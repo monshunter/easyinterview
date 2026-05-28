@@ -13,11 +13,11 @@ export interface UseRecentTargetJobsResult {
 export function useRecentTargetJobs(): UseRecentTargetJobsResult {
   const runtime = useAppRuntimeOptional();
   const [jobs, setJobs] = useState<TargetJob[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const fetch = useCallback(() => {
-    if (!runtime) {
+    if (!runtime || runtime.auth.status !== "authenticated") {
       setJobs([]);
       setLoading(false);
       setError(null);

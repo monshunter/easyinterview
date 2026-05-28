@@ -225,6 +225,12 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
       });
     }
     if (
+      runtime?.auth.status === "unauthenticated" &&
+      isProtectedRouteName(route.name)
+    ) {
+      return normalizeRoute(buildAuthLoginRoute(route));
+    }
+    if (
       runtime?.auth.status === "authenticated" &&
       runtime.auth.user.profileCompletionRequired &&
       route.name !== "auth_profile_setup" &&
@@ -236,11 +242,19 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
   }, [route, runtime?.auth]);
   const hideChrome = isChromeHidden(routeForRender.name);
   const prefs = useDisplayPreferences();
+  const authRouteGate =
+    runtime &&
+    isProtectedRouteName(route.name) &&
+    (runtime.auth.status === "loading" || runtime.auth.status === "error")
+      ? runtime.auth.status
+      : null;
 
   useEffect(() => {
     if (runtime?.auth.status === "unauthenticated") {
       if (route.name === "auth_profile_setup") {
         navigate({ name: "auth_login", params: { ...route.params } });
+      } else if (isProtectedRouteName(route.name)) {
+        navigate(buildAuthLoginRoute(route));
       }
       return;
     }
@@ -265,13 +279,28 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
             activeRoute={routeForRender.name}
             onNavigate={navigate}
             signedIn={signedIn}
-            user={runtime?.auth.status === "authenticated" ? runtime.auth.user : undefined}
+            user={
+              runtime?.auth.status === "authenticated"
+                ? runtime.auth.user
+                : undefined
+            }
           />
         )}
         <main>
           <InterviewContextProvider>
-            <InterviewContextRouteSync route={routeForRender} />
-            {renderRouteScreen(routeForRender, navigate, runtime, prefs.lang)}
+            {authRouteGate ? (
+              <AuthRouteGate status={authRouteGate} route={route} />
+            ) : (
+              <>
+                <InterviewContextRouteSync route={routeForRender} />
+                {renderRouteScreen(
+                  routeForRender,
+                  navigate,
+                  runtime,
+                  prefs.lang,
+                )}
+              </>
+            )}
           </InterviewContextProvider>
         </main>
         {children}
@@ -279,6 +308,18 @@ const AppShell: FC<Pick<AppProps, "initialRoute" | "children">> = ({
     </NavigationProvider>
   );
 };
+
+function buildAuthLoginRoute(route: Route): LooseRoute {
+  return {
+    name: "auth_login",
+    params: encodePendingAction({
+      route: route.name,
+      type: "open_protected_route",
+      label: route.name,
+      params: route.params,
+    }),
+  };
+}
 
 function buildProfileSetupRoute(route: Route): LooseRoute {
   if (isAuthRouteName(route.name)) {
@@ -298,6 +339,68 @@ function buildProfileSetupRoute(route: Route): LooseRoute {
 function isAuthRouteName(name: RouteName): boolean {
   return name.startsWith("auth_");
 }
+
+function isProtectedRouteName(name: RouteName): boolean {
+  return name !== "home" && !isAuthRouteName(name);
+}
+
+const AuthRouteGate: FC<{ status: "loading" | "error"; route: Route }> = ({
+  status,
+  route,
+}) => (
+  <section
+    data-testid="auth-route-gate"
+    data-route-name={route.name}
+    className="ei-screen-shell"
+    style={{ padding: "48px 56px 96px" }}
+  >
+    <div
+      style={{
+        maxWidth: 520,
+        background: "var(--ei-color-bg-card)",
+        border: "1px solid var(--ei-color-rule-strong)",
+        borderRadius: 3,
+        padding: 24,
+      }}
+    >
+      <div
+        style={{
+          color: "var(--ei-color-fg-tertiary)",
+          marginBottom: 8,
+          fontSize: 11,
+          fontWeight: 500,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          fontFamily: "var(--ei-font-mono)",
+        }}
+      >
+        AUTH
+      </div>
+      <div
+        style={{
+          fontSize: 22,
+          color: "var(--ei-color-fg-primary)",
+          fontFamily: "var(--ei-font-serif)",
+          letterSpacing: "-0.02em",
+        }}
+      >
+        {status === "loading" ? "Checking sign-in" : "Sign-in required"}
+      </div>
+      <p
+        style={{
+          color: "var(--ei-color-fg-secondary)",
+          fontSize: 14,
+          lineHeight: 1.55,
+          margin: "8px 0 0",
+        }}
+      >
+        {status === "loading"
+          ? "Please wait while we verify this session."
+          : "Please sign in before opening interview workspace routes."}
+      </p>
+    </div>
+  </section>
+);
 
 const InterviewContextRouteSync: FC<{ route: Route }> = ({ route }) => {
   const { dispatch } = useInterviewContext();

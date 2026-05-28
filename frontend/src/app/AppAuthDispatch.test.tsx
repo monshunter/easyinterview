@@ -31,6 +31,35 @@ function buildClient(spy?: typeof fetch) {
   return new EasyInterviewClient({ fetch: spy ?? fixtureFetch });
 }
 
+function buildRecordingRuntimeClient(options?: { hangGetMe?: boolean }) {
+  const calls: Array<{ url: string; method: string }> = [];
+  const fixtureFetch = createFixtureBackedFetch(
+    createFixtureRegistry([
+      getRuntimeConfigFixture,
+      getMeFixture,
+      completeMyProfileFixture,
+      logoutFixture,
+      startAuthEmailChallengeFixture,
+      verifyAuthEmailChallengeFixture,
+    ]),
+  );
+  const spy: typeof fetch = async (input, init) => {
+    const url =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url;
+    const method = init?.method ?? "GET";
+    calls.push({ url, method });
+    if (options?.hangGetMe && url.endsWith("/api/v1/me")) {
+      return new Promise<Response>(() => {});
+    }
+    return fixtureFetch(input, init);
+  };
+  return { client: new EasyInterviewClient({ fetch: spy }), calls };
+}
+
 describe("App auth route dispatch", () => {
   afterEach(() => {
     window.history.replaceState(null, "", "/");
@@ -201,6 +230,105 @@ describe("App auth route dispatch", () => {
     expect(
       screen.queryByTestId("route-auth_profile_setup"),
     ).not.toBeInTheDocument();
+  });
+
+  it("holds protected interview routes behind auth loading instead of mounting business screens", async () => {
+    const { client, calls } = buildRecordingRuntimeClient({ hangGetMe: true });
+
+    render(
+      <App
+        client={client}
+        initialRoute={{
+          name: "workspace",
+          params: { targetJobId: "01918fa0-0000-7000-8000-000000002000" },
+        }}
+      />,
+    );
+
+    expect(await screen.findByTestId("auth-route-gate")).toBeInTheDocument();
+    expect(screen.queryByTestId("workspace-crumbs")).not.toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(calls.some((c) => c.url.includes("/api/v1/targets"))).toBe(false);
+  });
+
+  it("redirects signed-out protected interview routes to auth_login with pendingAction", async () => {
+    const cases: Array<{
+      name:
+        | "jd_match"
+        | "parse"
+        | "workspace"
+        | "resume_versions"
+        | "practice"
+        | "generating"
+        | "report"
+        | "debrief"
+        | "profile"
+        | "settings";
+      params: Record<string, string>;
+      businessTestId: string;
+    }> = [
+      { name: "jd_match", params: {}, businessTestId: "jd-match-screen" },
+      { name: "parse", params: { targetJobId: "tj-1" }, businessTestId: "parse-loading-step-0" },
+      { name: "workspace", params: { targetJobId: "tj-1" }, businessTestId: "workspace-crumbs" },
+      { name: "resume_versions", params: { flow: "create" }, businessTestId: "resume-workshop-screen" },
+      { name: "practice", params: { sessionId: "session-1" }, businessTestId: "practice-screen" },
+      { name: "generating", params: { sessionId: "session-1", reportId: "report-1" }, businessTestId: "generating-screen" },
+      { name: "report", params: { sessionId: "session-1", reportId: "report-1" }, businessTestId: "report-dashboard" },
+      { name: "debrief", params: {}, businessTestId: "debrief-screen" },
+      { name: "profile", params: {}, businessTestId: "route-profile" },
+      { name: "settings", params: {}, businessTestId: "route-settings" },
+    ];
+
+    for (const tc of cases) {
+      const { client, calls } = buildRecordingRuntimeClient();
+      const { unmount } = render(
+        <App
+          client={client}
+          initialRoute={{ name: tc.name, params: tc.params }}
+          requestOptions={{
+            getMe: { headers: { Prefer: "example=unauthenticated" } },
+          }}
+        />,
+      );
+
+      await screen.findByTestId("route-auth_login");
+      expect(screen.getByTestId("auth-side-pending-action")).toBeInTheDocument();
+      expect(screen.queryByTestId(tc.businessTestId)).not.toBeInTheDocument();
+      expect(
+        calls.some(
+          (c) =>
+            !c.url.endsWith("/api/v1/runtime-config") &&
+            !c.url.endsWith("/api/v1/me"),
+        ),
+      ).toBe(false);
+      unmount();
+      window.history.replaceState(null, "", "/");
+    }
+  });
+
+  it("rewrites a direct protected browser URL to the login URL when signed out", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/workspace?targetJobId=tj-1",
+    );
+    const { client, calls } = buildRecordingRuntimeClient();
+
+    render(
+      <App
+        client={client}
+        requestOptions={{
+          getMe: { headers: { Prefer: "example=unauthenticated" } },
+        }}
+      />,
+    );
+
+    await screen.findByTestId("route-auth_login");
+    expect(screen.getByTestId("auth-side-pending-action")).toBeInTheDocument();
+    expect(window.location.href).toContain("/auth/login");
+    expect(window.location.href).toContain("pendingRoute=workspace");
+    expect(window.location.href).toContain("targetJobId=tj-1");
+    expect(calls.some((c) => c.url.includes("/api/v1/targets"))).toBe(false);
   });
 
   it("wires auth_profile_setup through completeMyProfile and restores the pending route", async () => {

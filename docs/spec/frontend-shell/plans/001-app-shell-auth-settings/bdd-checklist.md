@@ -1,6 +1,6 @@
 # Frontend Shell BDD Checklist
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: completed
 > **更新日期**: 2026-05-28
 
@@ -67,3 +67,12 @@
 - [x] 断言错误/隐私/旧口径负向路径：TopBar 注册按钮、`auth_register` live page、`purpose=signup/login` request body、displayName-before-verify、magic link URL、`/auth/verify?token=`、raw session cookie、`刘哲` / `Liu Zhe` / `liuzhe@example.com` 不出现在 UI、URL、console 或 scenario evidence
 - [x] 执行并通过场景验证，记录验证证据
   <!-- verified: 2026-05-28 command="bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/cleanup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/setup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/trigger.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/verify.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/cleanup.sh" evidence="profile-required gates PASS refresh=profile-setup deepLink=profile-setup crossBrowser=profile-setup logoutRelogin=profile-setup authStartBodyKeys=email authRegisterLivePage=absent topbarRegister=absent" -->
+
+## E2E.P0.102 未登录首页与面试业务路由登录前置
+
+- [x] 创建场景目录 `test/scenarios/e2e/p0-102-auth-gated-interview-routes/`
+- [x] 准备测试数据：未登录 `/me`、auth loading probe、Home target job fixture spy、业务 route safe params、后端无 cookie request set
+- [x] 实现 setup / trigger / verify / cleanup；verify 必须断言 Home 不展示 Recent mock interviews、不调用 `listTargetJobs`、不显示 raw `AUTH_UNAUTHORIZED`；业务 route 未登录时进入 `auth_login(pendingAction)`；后端 focused tests 证明业务 API 保持 session middleware 保护
+- [x] 执行并通过场景验证
+- [x] 记录验证证据
+  <!-- verified: 2026-05-28 command="bash test/scenarios/e2e/p0-102-auth-gated-interview-routes/scripts/setup.sh && bash test/scenarios/e2e/p0-102-auth-gated-interview-routes/scripts/trigger.sh && bash test/scenarios/e2e/p0-102-auth-gated-interview-routes/scripts/verify.sh && bash test/scenarios/e2e/p0-102-auth-gated-interview-routes/scripts/cleanup.sh" evidence=".test-output/e2e/p0-102-auth-gated-interview-routes/trigger.log; verify.sh PASS; result.json status=passed" -->

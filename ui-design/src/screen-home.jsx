@@ -1,5 +1,5 @@
 // Screen 1: Home / JD 导入 / 最近模拟面试
-const HomeScreen = ({ T, lang, nav, role }) => {
+const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
   const D = window.EI_DATA;
   const [input, setInput] = React.useState("");
   const [parsing, setParsing] = React.useState(false);
@@ -90,16 +90,18 @@ const HomeScreen = ({ T, lang, nav, role }) => {
       </div>
 
       {/* Recent mock interviews */}
-      <div style={{ marginBottom: 48 }}>
-        <SectionHeader eyebrow={lang === "en" ? "RECENT" : "最近"} title={L.active} sub={L.activeSub} T={T} />
-        {recentJobs.length ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
-            {recentJobs.map((j) => <MockInterviewCard key={j.id} job={j} rounds={D.jdSample.rounds} T={T} onClick={() => nav("workspace", { targetJobId: j.id, jobId: j.id, planId: `plan-${j.id}`, jdId: `jd-${j.id}` })} lang={lang} />)}
-          </div>
-        ) : (
-          <HomeEmptyState T={T} lang={lang} onImport={() => document.querySelector("textarea")?.focus()} />
-        )}
-      </div>
+      {signedIn && (
+        <div style={{ marginBottom: 48 }}>
+          <SectionHeader eyebrow={lang === "en" ? "RECENT" : "最近"} title={L.active} sub={L.activeSub} T={T} />
+          {recentJobs.length ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+              {recentJobs.map((j) => <MockInterviewCard key={j.id} job={j} rounds={D.jdSample.rounds} T={T} onClick={() => nav("workspace", { targetJobId: j.id, jobId: j.id, planId: `plan-${j.id}`, jdId: `jd-${j.id}` })} lang={lang} />)}
+            </div>
+          ) : (
+            <HomeEmptyState T={T} lang={lang} onImport={() => document.querySelector("textarea")?.focus()} />
+          )}
+        </div>
+      )}
 
       {/* Auxiliary starts */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>

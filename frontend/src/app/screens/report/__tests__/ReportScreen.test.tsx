@@ -138,10 +138,15 @@ function makeClient(options: ClientOptions = {}): EasyInterviewClient {
       return { aiProviderProfile: "stub" } as never;
     },
     async getMe() {
-      if (options.authenticated) {
-        return { id: "user-1", email: "u@example.com" } as never;
+      if (options.authenticated === false) {
+        throw new Error("HTTP 401 Unauthorized");
       }
-      throw new Error("HTTP 401 Unauthorized");
+      return {
+        id: "user-1",
+        emailMasked: "u***@example.com",
+        displayName: "User",
+        profileCompletionRequired: false,
+      } as never;
     },
     getFeedbackReport: feedbackReportFn,
     getTargetJob: targetJobFn,
@@ -186,7 +191,7 @@ describe("ReportScreen dispatch", () => {
         }}
       />,
     );
-    expect(screen.getByTestId("report-failure-state")).toBeInTheDocument();
+    expect(await screen.findByTestId("report-failure-state")).toBeInTheDocument();
     expect(screen.queryByTestId("report-dashboard")).toBeNull();
     expect(spies(client).feedbackReport).not.toHaveBeenCalled();
   });
@@ -202,7 +207,7 @@ describe("ReportScreen dispatch", () => {
         }}
       />,
     );
-    expect(screen.getByTestId("report-missing-session")).toBeInTheDocument();
+    expect(await screen.findByTestId("report-missing-session")).toBeInTheDocument();
     expect(spies(client).feedbackReport).not.toHaveBeenCalled();
     expect(spies(client).listTargetJobReports).not.toHaveBeenCalled();
   });
@@ -218,7 +223,7 @@ describe("ReportScreen dispatch", () => {
         }}
       />,
     );
-    expect(screen.getByTestId("report-missing-report")).toBeInTheDocument();
+    expect(await screen.findByTestId("report-missing-report")).toBeInTheDocument();
     expect(spies(client).feedbackReport).not.toHaveBeenCalled();
     expect(spies(client).listTargetJobReports).not.toHaveBeenCalled();
   });

@@ -1,6 +1,6 @@
 # Frontend Shell BDD Plan
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: completed
 > **更新日期**: 2026-05-28
 
@@ -35,3 +35,9 @@
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
 | E2E.P0.101 | Mailpit email-code single-entry login + profile setup | 本地 frontend real mode、backend 和 Mailpit 可用；邮箱是唯一账号标识；未登录 TopBar 只有登录入口；新邮箱尚未补全资料 | 用户从 `auth_login` 提交新邮箱，从 Mailpit 读取 6 位验证码，在 `auth_verify` 手动输入 code；首次 verify 后刷新资料补全页、关闭/换浏览器后用同一邮箱重新登录；随后提交 displayName + 条款确认；退出后同一邮箱再次登录 | 新邮箱首次登录签发 `ei_session` 但 `/me.profileCompletionRequired=true`，每次重新登录都先进入 `auth_profile_setup`，资料补全前不恢复 pendingAction；补全后 `/me.profileCompletionRequired=false` 且 TopBar 显示 displayName；后续同邮箱登录不再进入资料补全；注册按钮、`auth_register` live page、`purpose=signup/login` request body、displayName-before-verify、magic link URL 和 prototype fallback 均不出现 | `test/scenarios/e2e/p0-101-auth-email-code-login-register/` |
+
+## Phase 10: Unauthenticated interview route guard remediation
+
+| 场景 ID | 场景 | Given | When | Then | 验证入口 |
+|---------|------|-------|------|------|----------|
+| E2E.P0.102 | 未登录首页与面试业务路由登录前置 | 用户未登录，Home 可公开访问，业务 route 与业务 API 均需要账号 session | 用户打开 Home、直开 `workspace` / `practice` / `report` / `jd_match` / `profile` / `settings` 等业务 route，或触发 Home 业务 CTA | Home 不展示 Recent mock interviews、不请求 `listTargetJobs`、不显示 raw `AUTH_UNAUTHORIZED`；业务 route 在 auth loading 期间不挂载业务 screen，确认未登录后进入 `auth_login(pendingAction)`；后端 focused gate 证明业务 API 由 session middleware 返回 B1 auth envelope | `test/scenarios/e2e/p0-102-auth-gated-interview-routes/` |

@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: completed
 > **更新日期**: 2026-05-28
 
@@ -101,3 +101,16 @@
   <!-- verified: 2026-05-28 commands="python3 scripts/lint/openapi_inventory.py openapi/openapi.yaml; python3 scripts/lint/validate_fixtures.py --repo-root .; pnpm --filter @easyinterview/frontend test" evidence="60-operation OpenAPI/fixtures PASS; devMockClient tests cover profileIncomplete and completion flow" -->
 - [x] 9.6 BDD-Gate: 验证 E2E.P0.101 通过；验证: real frontend/backend/Mailpit 场景覆盖单入口新邮箱首次登录进入资料补全、资料补全页刷新仍停留、关闭/换浏览器后同邮箱重新登录仍停留、完成资料后 `/me.profileCompletionRequired=false` 并显示 displayName、退出后同邮箱再次登录不再进入资料补全；负向断言注册按钮、`auth_register` live page、`purpose=signup/login` request body、displayName-before-verify、旧 magic-link URL 不出现
   <!-- verified: 2026-05-28 command="bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/cleanup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/setup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/trigger.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/verify.sh && bash test/scenarios/e2e/p0-101-auth-email-code-login-register/scripts/cleanup.sh" evidence="P0.101 PASS: profile-required gates PASS refresh=profile-setup deepLink=profile-setup crossBrowser=profile-setup logoutRelogin=profile-setup authStartBodyKeys=email authRegisterLivePage=absent topbarRegister=absent" -->
+
+## Phase 10: Unauthenticated interview route guard remediation
+
+- [x] 10.1 UI truth source for signed-out Home；验证: `node --test ui-design/ui-design-contract.test.mjs` 断言 `ui-design/src/app.jsx` 向 Home 传 `signedIn`，`ui-design/src/screen-home.jsx` 仅在 signed-in 状态渲染 Recent mock interviews；`docs/ui-design/auth-and-entry.md` 锁定未登录不展示 Recent 模块
+  <!-- verified: 2026-05-28 command="node --test ui-design/ui-design-contract.test.mjs" evidence="16 UI contract tests passed; Home recent mock interviews are signed-in only" -->
+- [x] 10.2 Frontend runtime protected route guard；验证: `pnpm --filter @easyinterview/frontend test src/app/AppAuthDispatch.test.tsx` 覆盖未登录直开 `workspace` / `practice` / `report` / `jd_match` / `profile` / `settings` 等业务 route 时进入 `auth_login(pendingAction)`，auth loading 期间不挂载业务 screen 或发起受保护 API
+  <!-- verified: 2026-05-28 command="pnpm --filter @easyinterview/frontend test src/app/AppAuthDispatch.test.tsx" evidence="AppAuthDispatch route guard tests passed inside focused auth-gate suite; protected direct URL rewrites to auth_login and auth loading renders auth-route-gate without business API calls" -->
+- [x] 10.3 Home recent data fetch guard；验证: `pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeRecentMocks.test.tsx src/app/screens/home/HomeAuthGate.test.tsx` 覆盖 unauthenticated / loading / auth error 下不调用 `listTargetJobs`、不渲染 `home-recent-mocks`、不显示 raw `AUTH_UNAUTHORIZED`，authenticated 下仍按 fixture 排序和限制 12 张卡
+  <!-- verified: 2026-05-28 command="pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeRecentMocks.test.tsx src/app/screens/home/HomeAuthGate.test.tsx src/app/AppAuthDispatch.test.tsx" evidence="3 files / 24 tests passed; signed-out Home hides home-recent-mocks and Home CTAs redirect with pendingAction" -->
+- [x] 10.4 Backend protected API proof；验证: `cd backend && go test ./internal/auth -run TestSessionPolicyClassifiesPublicOptionalAndProtectedOperations -count=1 && go test ./cmd/api -run 'TestBuildAPIHandlerMounts(TargetJobRoutes|UploadPresign|ResumeRoutes|PracticeAndProfileRoutes|ReportRoutes|JobRoute)BehindSessionMiddleware|TestJDMatchRoutesRequireSessionOnAllRoutes' -count=1` 证明面试相关 API 保持 session middleware 保护
+  <!-- verified: 2026-05-28 command="cd backend && go test ./internal/auth -run TestSessionPolicyClassifiesPublicOptionalAndProtectedOperations -count=1; cd backend && go test ./cmd/api -run 'TestBuildAPIHandlerMounts(TargetJobRoutes|UploadPresign|ResumeRoutes|PracticeAndProfileRoutes|ReportRoutes|JobRoute)BehindSessionMiddleware|TestJDMatchRoutesRequireSessionOnAllRoutes' -count=1" evidence="backend auth policy and cmd/api route middleware gates passed; added practice/profile route middleware regression coverage" -->
+- [x] 10.5 BDD-Gate: 验证 E2E.P0.102 通过；验证: 新场景脚本执行 focused frontend + backend gates，确认未登录 Home 无 Recent 模块、受保护业务 route 先进入登录、受保护 API 返回 B1 `AUTH_UNAUTHORIZED` envelope
+  <!-- verified: 2026-05-28 command="bash test/scenarios/e2e/p0-102-auth-gated-interview-routes/scripts/setup.sh && bash test/scenarios/e2e/p0-102-auth-gated-interview-routes/scripts/trigger.sh && bash test/scenarios/e2e/p0-102-auth-gated-interview-routes/scripts/verify.sh && bash test/scenarios/e2e/p0-102-auth-gated-interview-routes/scripts/cleanup.sh" evidence="P0.102 PASS: UI contract, Home recent auth guard, App protected route guard, backend session policy and route middleware gates passed" -->

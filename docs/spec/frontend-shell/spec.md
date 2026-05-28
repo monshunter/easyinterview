@@ -1,6 +1,6 @@
 # Frontend Shell Spec
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: active
 > **更新日期**: 2026-05-28
 
@@ -51,6 +51,7 @@
 | D-11 | Email code verification | `auth_verify` 只展示邮箱提示和 6 位验证码输入；generated client 仍按 B2 operation 的 `token` query 名调用 verify API，但 UI / 邮件 / 场景材料统一称为验证码，不再依赖 magic-link callback | Mailpit 邮件只给 code；code 不进入 `pendingAction`、storage、业务 route 或浏览器历史长链路 |
 | D-12 | 单入口邮箱验证码登录 | 顶部和认证页只保留一个 `auth_login` 邮箱验证码入口；`startAuthEmailChallenge` 不再让用户选择注册或登录，也不得在发码前暴露邮箱是否已存在；邮箱验证成功后，既有账号直接登录，新邮箱创建资料未补全账号并进入 `auth_profile_setup` | 邮箱仍是唯一账号标识；displayName 不唯一、不参与登录或去重；旧 `auth_register` 不再是 live route 或可见入口 |
 | D-13 | 首次登录资料补全 | `/me.profileCompletionRequired=true` 是前端强制跳转依据；用户只要登录态存在但资料未补全，无论首次验证后、关闭浏览器后重开、换浏览器重新登录、退出后重新登录、刷新或直开业务 URL，都必须先进入 `auth_profile_setup`，完成 displayName + 条款确认后再恢复 pendingAction 或回 Home | pendingAction 必须在资料补全前保持 safe params；资料补全页不得保存 raw JD / 简历 / prompt；补全成功后刷新 `/me` 并只在 `profileCompletionRequired=false` 时恢复业务动作 |
+| D-14 | 面试业务路由登录前置 | `home` 和 auth 页面可未登录访问；`jd_match`、`parse`、`workspace`、`resume_versions`、`practice`、`generating`、`report`、`debrief`、`profile`、`settings` 等读取或写入用户面试上下文的 route 必须在 runtime auth 明确为 authenticated 后才渲染业务 screen | 未登录直开或点击这些入口时统一进入 `auth_login(pendingAction)`；auth loading 期间不能提前挂载业务 screen 或发起受保护 API；Home 的 Recent mock interviews 模块仅已登录展示，未登录不显示 raw backend unauthorized error |
 
 ## 4 设计约束
 
@@ -66,6 +67,8 @@
 - 登录成功恢复业务 route 前必须先检查最新 `/me.profileCompletionRequired`；如果仍为 true，则替换到 `auth_profile_setup` 并携带原 pendingAction safe params。该规则不能依赖当前浏览器 session state，必须由后端 `/me` 返回值驱动。
 - `#route=...` adapter 必须保留到 static preview / Playwright pixel parity / 场景 harness 全部迁移完成；adapter 解析出的 loose route 仍经过 `normalizeRoute`，并在正式 App 中替换为 canonical path，不新增 hash-only 分支。
 - Auth `pendingAction` 与 URL 恢复必须共用同一组 safe route params：登录前可保存目标 route、稳定 ID 与轻量 display hint；登录成功后恢复原 canonical path；任何 raw payload 必须留在受控 runtime state 或重新从 API 获取。
+- App route guard 必须先判断 runtime auth 状态再渲染面试业务 screen：未挂载 runtime 的 isolated UI tests / static prototype harness 可继续渲染 route shell；正式 runtime 中 `loading` 只显示 auth gate loading 占位，不得调用业务 API，`unauthenticated` 统一跳转到 `auth_login` 并携带 safe pendingAction。
+- Home 是可未登录访问的默认入口，但 Recent mock interviews 是账号历史数据，只能在 `runtime.auth.status === "authenticated"` 时渲染和请求 `listTargetJobs`；未登录或 auth error 不得显示模块标题、空态、skeleton 或后端 `AUTH_UNAUTHORIZED` 原始错误。
 - History `pushState` / `replaceState` / `popstate` 必须由 router adapter 统一管理，避免组件直接拼接 `window.location`；同一路由不同参数变化必须保持 back/forward 可预期。
 - 全局显示控制对未登录用户可见，并保持在登录前后稳定。
 - TopBar brand 只显示 `EasyInterview`，不得恢复 `面试训练器`、`Interview trainer` 或 `v1.0` 等解释性副标题；版本信息保留在 settings 的产品信息区，通过 locale 文案显示标签。
@@ -108,6 +111,7 @@
 | C-12 | Auth pendingAction + URL privacy redline | 未登录用户从 URL-addressable 业务页触发登录，或打开带 safe params 的深链接并完成 Mailpit email-code 登录 | 登录前保存 pendingAction，或 `auth_verify` 手动提交 6 位验证码后登录成功 | pendingAction 只保存 route name、canonical URL 和 safe params；登录成功后回到原 canonical path；URL / pendingAction / localStorage / session storage / history / console 不含 JD 原文、简历原文、guided answers、parsed summary、suggestion、prompt、验证码或 auth secret query | 004-url-addressable-routing + 001-app-shell-auth-settings Phase 8 |
 | C-13 | Hash compatibility + legacy route negative regression | static preview / pixel parity 仍使用 `#route=...`，或用户打开 unknown / malformed / retired route / 独立 `voice` URL | App bootstrap / normalize route | `#route=...` 被 adapter 解析后进入同一 `Route` 合约并替换/等价到 canonical path；unknown / malformed path fallback `home` 或当前保留 route；retired aliases 不 materialize standalone screens；`voice` 仍不是合法 route，只能用 `practice?mode=voice&modality=voice`；server fallback 对已知 frontend path 返回 `index.html`，API path 不被 frontend fallback 吞掉 | 004-url-addressable-routing |
 | C-14 | 单入口登录与首次资料补全 | 用户使用新邮箱从单一登录入口完成 6 位验证码验证，但还没有 displayName / 条款确认 | 首次验证后关闭浏览器、换浏览器重新登录、退出后重新登录、刷新或直开带 pendingAction 的业务 URL | 每次登录后 `/me.profileCompletionRequired=true` 都先进入 `auth_profile_setup`；资料补全前不恢复业务动作；提交 displayName + 条款后 `/me.profileCompletionRequired=false`，再恢复 pendingAction 或 Home；TopBar 不显示注册入口，旧 `auth_register` 不能 materialize live page | 001-app-shell-auth-settings |
+| C-15 | 未登录面试业务前置登录 | 用户未登录打开 Home 或直接访问任一面试业务 route | Home 首屏渲染、点击岗位推荐/复盘/简历/工作台等业务入口，或直开 `workspace` / `practice` / `report` 等 URL | Home 不展示 Recent mock interviews 模块，不请求 `listTargetJobs`，不显示后端 raw unauthorized error；业务 route 在 auth loading 期间不挂载业务 screen，确认未登录后进入 `auth_login(pendingAction)`；登录成功后按 profile completion gate 恢复原 route；后端 session policy 仍证明除 auth start/verify/runtime-config 和 optional logout 外的业务 API 都要求 session | 001-app-shell-auth-settings |
 
 ## 7 关联计划
 

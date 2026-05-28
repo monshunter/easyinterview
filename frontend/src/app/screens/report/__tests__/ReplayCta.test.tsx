@@ -233,7 +233,7 @@ describe("Replay CTAs", () => {
     expect(screen.queryByTestId("auth-login-screen")).toBeNull();
   });
 
-  it("unauthenticated user clicking replay routes to auth_login carrying a workspace auto-start pending action (TestReplayCtaPathA_UnauthenticatedUseRequestAuth)", async () => {
+  it("unauthenticated report route enters auth_login before mounting replay CTAs (TestReplayCtaPathA_UnauthenticatedUseRequestAuth)", async () => {
     const client = makeClient({ authenticated: false });
     render(
       <Harness
@@ -244,16 +244,12 @@ describe("Replay CTAs", () => {
         }}
       />,
     );
-    await screen.findByTestId("report-dashboard");
-    await act(async () => {
-      screen.getByTestId("report-replay-cta").click();
-    });
-    await waitFor(() => {
-      expect(screen.queryByTestId("report-dashboard")).toBeNull();
-    });
     await waitFor(() => {
       expect(screen.getByTestId("auth-login-email-form")).toBeInTheDocument();
     });
+    expect(screen.getByTestId("auth-side-pending-action")).toBeInTheDocument();
+    expect(screen.queryByTestId("report-dashboard")).toBeNull();
+    expect(client.getFeedbackReport).not.toHaveBeenCalled();
     expect(client.startPracticeSession).not.toHaveBeenCalled();
   });
 

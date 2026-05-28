@@ -19,11 +19,13 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	apijobs "github.com/monshunter/easyinterview/backend/internal/api/jobs"
+	apipractice "github.com/monshunter/easyinterview/backend/internal/api/practice"
 	apireports "github.com/monshunter/easyinterview/backend/internal/api/reports"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/middleware/idempotency"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
+	profilehandler "github.com/monshunter/easyinterview/backend/internal/profile/handler"
 	domainresume "github.com/monshunter/easyinterview/backend/internal/resume"
 	resumehandler "github.com/monshunter/easyinterview/backend/internal/resume/handler"
 	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
@@ -381,6 +383,70 @@ runtime:
 			handler.ServeHTTP(rec, req)
 			if rec.Code != http.StatusUnauthorized {
 				t.Fatalf("status = %d body=%s; resume route is not mounted behind auth middleware", rec.Code, rec.Body.String())
+			}
+			if !strings.Contains(rec.Body.String(), `"code":"AUTH_UNAUTHORIZED"`) {
+				t.Fatalf("expected auth middleware envelope, got %s", rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestBuildAPIHandlerMountsPracticeAndProfileRoutesBehindSessionMiddleware(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:               &apiAuthStore{},
+		SessionCookieSecret: "session-secret",
+	})
+	handler := buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(
+		loader,
+		apiRuntimeFlags{},
+		service,
+		targetjob.NewHandler(),
+		practiceRoutes{Handler: apipractice.NewHandler(apipractice.HandlerOptions{})},
+		uploadRoutes{},
+		resumeRoutes{},
+		reportRoutes{},
+		debriefRoutes{},
+		jobsRoutes{},
+		profileRoutes{Handler: profilehandler.New(profilehandler.Options{})},
+	)
+
+	cases := []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{http.MethodPost, "/api/v1/practice/plans", `{}`},
+		{http.MethodGet, "/api/v1/practice/plans/018f2a40-0000-7000-9000-0000000000a1", ""},
+		{http.MethodGet, "/api/v1/practice/sessions", ""},
+		{http.MethodPost, "/api/v1/practice/sessions", `{}`},
+		{http.MethodGet, "/api/v1/practice/sessions/018f2a40-0000-7000-9000-0000000000b1", ""},
+		{http.MethodPost, "/api/v1/practice/sessions/018f2a40-0000-7000-9000-0000000000b1/events", `{}`},
+		{http.MethodPost, "/api/v1/practice/sessions/018f2a40-0000-7000-9000-0000000000b1/complete", `{}`},
+		{http.MethodPost, "/api/v1/practice/sessions/018f2a40-0000-7000-9000-0000000000b1/voice-turns", `{}`},
+		{http.MethodGet, "/api/v1/profiles/me", ""},
+		{http.MethodPatch, "/api/v1/profiles/me", `{}`},
+		{http.MethodGet, "/api/v1/profiles/me/experience-cards", ""},
+		{http.MethodPost, "/api/v1/profiles/me/experience-cards", `{}`},
+		{http.MethodPatch, "/api/v1/profiles/me/experience-cards/018f2a40-0000-7000-9000-0000000000c1", `{}`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(tc.method, tc.path, strings.NewReader(tc.body))
+			req.Header.Set("Idempotency-Key", "idem-1")
+			handler.ServeHTTP(rec, req)
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("status = %d body=%s; route is not mounted behind auth middleware", rec.Code, rec.Body.String())
 			}
 			if !strings.Contains(rec.Body.String(), `"code":"AUTH_UNAUTHORIZED"`) {
 				t.Fatalf("expected auth middleware envelope, got %s", rec.Body.String())

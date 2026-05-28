@@ -93,7 +93,12 @@ function makeClient(report = FULL_REPORT): EasyInterviewClient {
       return { aiProviderProfile: "stub" } as never;
     },
     async getMe() {
-      throw new Error("HTTP 401 Unauthorized");
+      return {
+        id: "user-1",
+        emailMasked: "u***@example.com",
+        displayName: "User",
+        profileCompletionRequired: false,
+      } as never;
     },
     getFeedbackReport: vi.fn(async () => report),
     getTargetJob: vi.fn(async () => ({

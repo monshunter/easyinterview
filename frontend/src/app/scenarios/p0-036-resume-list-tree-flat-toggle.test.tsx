@@ -77,7 +77,7 @@ function renderApp(authMode: "authenticated" | "unauthenticated") {
 }
 
 describe("E2E.P0.036 resume-list tree/flat toggle + StatsStrip + auth boundary", () => {
-  it("unauthenticated visit to /resume_versions surfaces the auth gate, not the list, and triggers no Resume API", async () => {
+  it("unauthenticated visit to /resume_versions routes to login, not the list, and triggers no Resume API", async () => {
     const client = buildClient();
     const listSpy = vi.spyOn(client, "listResumes");
     const versionsSpy = vi.spyOn(client, "listResumeVersions");
@@ -91,12 +91,14 @@ describe("E2E.P0.036 resume-list tree/flat toggle + StatsStrip + auth boundary",
       />,
     );
 
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-workshop-auth-gate"),
-      ).toBeInTheDocument();
-    });
+    await waitFor(() =>
+      expect(screen.getByTestId("route-auth_login")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("auth-side-pending-action")).toBeInTheDocument();
     expect(screen.queryByTestId("resume-workshop-list")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("resume-workshop-auth-gate"),
+    ).not.toBeInTheDocument();
     expect(listSpy).not.toHaveBeenCalled();
     expect(versionsSpy).not.toHaveBeenCalled();
   });

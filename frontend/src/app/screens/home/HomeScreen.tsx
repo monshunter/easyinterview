@@ -34,6 +34,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     typeof route.params.resumeVersionId === "string"
       ? route.params.resumeVersionId
       : undefined;
+  const showRecentMocks = runtime?.auth.status === "authenticated";
 
   const jobs = useMemo(() => {
     const sorted = [...rawJobs].sort(
@@ -42,6 +43,22 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     );
     return sorted.slice(0, 12);
   }, [rawJobs]);
+
+  const openProtectedRoute = useCallback(
+    (next: Route, label: string) => {
+      if (!runtime || runtime.auth.status === "authenticated") {
+        navigate(next);
+        return;
+      }
+      requestAuth({
+        type: "open_protected_route",
+        label,
+        route: next.name,
+        params: next.params,
+      });
+    },
+    [navigate, requestAuth, runtime],
+  );
 
   const submitImportSource = useCallback(async (source: PendingImportSource) => {
     if (!runtime) return;
@@ -125,7 +142,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     if (!runtime || !input.trim() || importing) return;
     const source: PendingImportSource = { source: "paste", rawText: input };
 
-    if (runtime.auth.status === "unauthenticated") {
+    if (runtime.auth.status !== "authenticated") {
       const pendingImportId = storePendingImportSource(source);
       requestAuth({
         type: "import_jd",
@@ -149,7 +166,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     if (!runtime || importing) return;
     const pendingSource: PendingImportSource = source;
 
-    if (runtime.auth.status === "unauthenticated") {
+    if (runtime.auth.status !== "authenticated") {
       const pendingImportId = storePendingImportSource(pendingSource);
       requestAuth({
         type: "import_jd",
@@ -343,7 +360,10 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
             data-testid="home-resume-create"
             type="button"
             onClick={() =>
-              navigate({ name: "resume_versions", params: { flow: "create" } })
+              openProtectedRoute(
+                { name: "resume_versions", params: { flow: "create" } },
+                t("home.resumeCreateLink"),
+              )
             }
             style={{
               background: "transparent",
@@ -361,109 +381,114 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
       </div>
 
       {/* Recent mock interviews */}
-      <div style={{ marginBottom: 48 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-end",
-            marginBottom: 16,
-            gap: 20,
-          }}
-        >
-          <div>
-            <div
-              style={{
-                color: "var(--ei-color-fg-tertiary)",
-                marginBottom: 8,
-                fontSize: 11,
-                fontWeight: 500,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                fontFamily: "var(--ei-font-mono)",
-              }}
-            >
-              RECENT
+      {showRecentMocks && (
+        <div data-testid="home-recent-mocks" style={{ marginBottom: 48 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+              marginBottom: 16,
+              gap: 20,
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  color: "var(--ei-color-fg-tertiary)",
+                  marginBottom: 8,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  fontFamily: "var(--ei-font-mono)",
+                }}
+              >
+                RECENT
+              </div>
+              <div
+                style={{
+                  fontSize: 22,
+                  color: "var(--ei-color-fg-primary)",
+                  fontFamily: "var(--ei-font-serif)",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {t("home.recentSection")}
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "var(--ei-color-fg-tertiary)",
+                  marginTop: 4,
+                }}
+              >
+                {t("home.recentSectionSub")}
+              </div>
             </div>
-            <div
-              style={{
-                fontSize: 22,
-                color: "var(--ei-color-fg-primary)",
-                fontFamily: "var(--ei-font-serif)",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              {t("home.recentSection")}
+          </div>
+          {loading ? (
+            <div className="ei-skeleton-stripe">
+              {t("home.recentSection")}...
             </div>
+          ) : error ? (
             <div
               style={{
+                color: "var(--ei-color-danger)",
                 fontSize: 13,
-                color: "var(--ei-color-fg-tertiary)",
-                marginTop: 4,
               }}
             >
-              {t("home.recentSectionSub")}
+              {error.message}
             </div>
-          </div>
-        </div>
-        {loading ? (
-          <div className="ei-skeleton-stripe">
-            {t("home.recentSection")}...
-          </div>
-        ) : error ? (
-          <div
-            style={{
-              color: "var(--ei-color-danger)",
-              fontSize: 13,
-            }}
-          >
-            {error.message}
-          </div>
-        ) : jobs.length === 0 ? (
-          <div
-            style={{
-              background: "var(--ei-color-bg-soft)",
-              border: "1px solid var(--ei-color-rule-strong)",
-              borderRadius: 3,
-              padding: 32,
-              textAlign: "center",
-            }}
-          >
-            <p
+          ) : jobs.length === 0 ? (
+            <div
               style={{
-                color: "var(--ei-color-fg-secondary)",
-                fontSize: 14,
-                margin: 0,
+                background: "var(--ei-color-bg-soft)",
+                border: "1px solid var(--ei-color-rule-strong)",
+                borderRadius: 3,
+                padding: 32,
+                textAlign: "center",
               }}
             >
-              {t("home.recentSection")}
-            </p>
-          </div>
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-              gap: 16,
-            }}
-          >
-            {jobs.map((j) => (
-              <MockInterviewCard
-                key={j.id}
-                job={j}
-                onClick={() =>
-                  navigate({
-                    name: "workspace",
-                    params: interviewContextFromTargetJob(
-                      j,
-                    ) as unknown as Record<string, string>,
-                  })
-                }
-              />
-            ))}
-          </div>
-        )}
-      </div>
+              <p
+                style={{
+                  color: "var(--ei-color-fg-secondary)",
+                  fontSize: 14,
+                  margin: 0,
+                }}
+              >
+                {t("home.recentSection")}
+              </p>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                gap: 16,
+              }}
+            >
+              {jobs.map((j) => (
+                <MockInterviewCard
+                  key={j.id}
+                  job={j}
+                  onClick={() =>
+                    openProtectedRoute(
+                      {
+                        name: "workspace",
+                        params: interviewContextFromTargetJob(
+                          j,
+                        ) as unknown as Record<string, string>,
+                      },
+                      j.title,
+                    )
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Auxiliary cards */}
       <div
@@ -525,7 +550,12 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
           </div>
           <button
             type="button"
-            onClick={() => navigate({ name: "jd_match", params: {} })}
+            onClick={() =>
+              openProtectedRoute(
+                { name: "jd_match", params: {} },
+                t("home.jobPicksTitle"),
+              )
+            }
             style={{
               background: "var(--ei-color-bg-canvas)",
               color: "var(--ei-color-fg-primary)",
@@ -596,7 +626,12 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
           </div>
           <button
             type="button"
-            onClick={() => navigate({ name: "debrief", params: {} })}
+            onClick={() =>
+              openProtectedRoute(
+                { name: "debrief", params: {} },
+                t("home.debriefTitle"),
+              )
+            }
             style={{
               background: "var(--ei-color-bg-canvas)",
               color: "var(--ei-color-fg-primary)",

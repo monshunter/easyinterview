@@ -11,12 +11,19 @@ import { NavigationProvider } from "../../navigation/NavigationProvider";
 import { AppRuntimeProvider } from "../../runtime/AppRuntimeProvider";
 import { HomeScreen } from "./HomeScreen";
 
+import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
+import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import importTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/importTargetJob.json";
 import createUploadPresignFixture from "../../../../../openapi/fixtures/Uploads/createUploadPresign.json";
 
 function createClient(scenario?: string) {
   const fetch = createFixtureBackedFetch(
-    createFixtureRegistry([importTargetJobFixture, createUploadPresignFixture]),
+    createFixtureRegistry([
+      getRuntimeConfigFixture,
+      getMeFixture,
+      importTargetJobFixture,
+      createUploadPresignFixture,
+    ]),
     scenario ? { scenario } : undefined,
   );
   return new EasyInterviewClient({ fetch });
@@ -28,7 +35,12 @@ function renderHome(client: EasyInterviewClient, options?: { lang?: Lang }) {
     navigate,
     ...render(
       <DisplayPreferencesProvider initial={{ lang: options?.lang ?? "zh" }}>
-        <AppRuntimeProvider client={client}>
+        <AppRuntimeProvider
+          client={client}
+          requestOptions={{
+            getMe: { headers: { Prefer: "example=authenticated" } },
+          }}
+        >
           <NavigationProvider value={{ navigate }}>
             <HomeScreen route={{ name: "home", params: {} }} />
           </NavigationProvider>

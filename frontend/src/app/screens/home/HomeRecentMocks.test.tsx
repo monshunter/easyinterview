@@ -9,23 +9,43 @@ import { DisplayPreferencesProvider } from "../../display/DisplayPreferencesProv
 import { NavigationProvider } from "../../navigation/NavigationProvider";
 import { HomeScreen } from "./HomeScreen";
 
+import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
+import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import listTargetJobsFixture from "../../../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
 
 function createClient(scenario?: string) {
   const fetch = createFixtureBackedFetch(
-    createFixtureRegistry([listTargetJobsFixture]),
+    createFixtureRegistry([
+      getRuntimeConfigFixture,
+      getMeFixture,
+      listTargetJobsFixture,
+    ]),
     scenario ? { scenario } : undefined,
   );
   return new EasyInterviewClient({ fetch });
 }
 
-function renderHome(client: EasyInterviewClient) {
+function renderHome(
+  client: EasyInterviewClient,
+  options?: {
+    getMeScenario?: "authenticated" | "unauthenticated";
+  },
+) {
   const navigate = vi.fn();
   return {
     navigate,
     ...render(
       <DisplayPreferencesProvider>
-        <AppRuntimeProvider client={client}>
+        <AppRuntimeProvider
+          client={client}
+          requestOptions={{
+            getMe: {
+              headers: {
+                Prefer: `example=${options?.getMeScenario ?? "authenticated"}`,
+              },
+            },
+          }}
+        >
           <NavigationProvider value={{ navigate }}>
             <HomeScreen route={{ name: "home", params: {} }} />
           </NavigationProvider>
@@ -36,6 +56,24 @@ function renderHome(client: EasyInterviewClient) {
 }
 
 describe("HomeRecentMocks", () => {
+  it("does not render recent mocks or call listTargetJobs when signed out", async () => {
+    const client = createClient();
+    const getMeSpy = vi.spyOn(client, "getMe");
+    const listSpy = vi.spyOn(client, "listTargetJobs");
+
+    renderHome(client, { getMeScenario: "unauthenticated" });
+
+    await waitFor(() => {
+      expect(getMeSpy).toHaveBeenCalled();
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.queryByText("Recent mock interviews")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("home-recent-mocks")).not.toBeInTheDocument();
+    expect(screen.queryByText(/AUTH_UNAUTHORIZED|Unauthorized|authentication required/i)).not.toBeInTheDocument();
+    expect(listSpy).not.toHaveBeenCalled();
+  });
+
   it("calls listTargetJobs on mount", async () => {
     const client = createClient();
     const spy = vi.spyOn(client, "listTargetJobs");

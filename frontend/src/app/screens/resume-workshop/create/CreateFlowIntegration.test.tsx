@@ -71,21 +71,13 @@ describe("Home → ResumeCreateFlow CTA integration", () => {
     );
     const cta = await screen.findByTestId("home-resume-create");
     await userEvent.setup().click(cta);
-    // Unauthenticated CTA navigates straight to resume_versions; the route
-    // surface then renders the auth gate (no resume APIs invoked). We assert
-    // the eventual destination shows resume-workshop without surfacing raw
-    // text in any pendingAction-carrying query string.
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-workshop-screen"),
-      ).toBeInTheDocument();
-    });
-    // Since the gating happens at the screen level (not via auth_login pre-redirect)
-    // when navigation is triggered from the home CTA, the screen renders the
-    // auth gate when unauthenticated.
+    await waitFor(() =>
+      expect(screen.getByTestId("route-auth_login")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("auth-side-pending-action")).toBeInTheDocument();
     expect(
-      screen.queryByTestId("resume-workshop-auth-gate"),
-    ).toBeInTheDocument();
+      screen.queryByTestId("resume-workshop-screen"),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("resume-create-flow"),
     ).not.toBeInTheDocument();

@@ -285,7 +285,7 @@ const App = () => {
   };
 
   const screens = {
-    home: <HomeScreen T={T} lang={lang} nav={nav} role={tweaks.role} />,
+    home: <HomeScreen T={T} lang={lang} nav={nav} role={tweaks.role} signedIn={signedIn} />,
     workspace: <WorkspaceScreen T={T} lang={lang} nav={nav} requestAuth={requestAuth} params={route.params || {}} />,
     practice: <PracticeScreen T={T} lang={lang} nav={nav} params={route.params || {}} jobId={currentContext.targetJobId} mode={route.params.mode} role={tweaks.role} setRole={(r) => updateTweak("role", r)} />,
     report: <ReportScreen T={T} lang={lang} nav={nav} params={route.params || {}} requestAuth={requestAuth} />,

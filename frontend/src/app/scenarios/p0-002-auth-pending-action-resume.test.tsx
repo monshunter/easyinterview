@@ -74,7 +74,7 @@ describe("E2E.P0.002 auth pending-action resume", () => {
     render(
       <App
         client={buildClient()}
-        initialRoute={{ name: "workspace", params: {} }}
+        initialRoute={{ name: "home", params: {} }}
         requestOptions={{
           getMe: { headers: { Prefer: "example=unauthenticated" } },
         }}
@@ -89,7 +89,6 @@ describe("E2E.P0.002 auth pending-action resume", () => {
         "false",
       ),
     );
-    expect(screen.getByTestId("workspace-empty")).toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.click(screen.getByTestId("workspace-start-practice"));

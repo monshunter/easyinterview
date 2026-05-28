@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-28](./2026-05-28-auth-gated-interview-routes-assessment.md) | Auth Gated Interview Routes 交付复盘 | #assessment |
 | [2026-05-28](./2026-05-28-auth-unified-email-login-assessment.md) | Auth Unified Email Login 交付复盘 | #assessment |
 | [2026-05-27](./2026-05-27-auth-email-identity-semantics-assessment.md) | Auth Email Identity Semantics 交付复盘 | #assessment |
 | [2026-05-27](./2026-05-27-auth-mail-link-e2e-scenario-assessment.md) | Auth Mail-Link E2E Scenario 交付复盘 | #assessment |

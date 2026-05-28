@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: completed
 > **更新日期**: 2026-05-28
 
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`，并补齐已实施计划的登录态漂移修复：已登录用户区必须源级复刻头像 chip + dropdown，Vite dev fixture mock 必须覆盖默认非登录、登录成功和退出后非登录态全流程；browser-level parity 还必须覆盖 desktop / mobile dropdown geometry 与 logout flow。修订 v1.11 修复真实联调 passwordless 链路：登录和注册提交 `startAuthEmailChallenge` 时必须兼容后端 `202 Accepted` 空响应并导航到 verify 页；Mailpit magic link 必须落到前端 `auth_verify`，由前端自动消费 token、刷新 session，并用 replace 导航清理 URL token。修订 v1.12 将真实联调入口从 Mailpit magic link 改为 Mailpit 6 位 email code，并锁定邮箱是唯一账号标识：注册页传 `purpose=signup` + displayName，后续登录同一邮箱传 `purpose=login`，displayName 不唯一且不参与账号去重；TopBar 不再使用 `刘哲` / `Liu Zhe` / `liuzhe@example.com` 样例 fallback。修订 v1.13 将注册和登录合并为单一邮箱验证码入口：新邮箱 verify 后进入 `auth_profile_setup` 完成 displayName + 条款确认，`/me.profileCompletionRequired` 是强制跳转依据；旧 `auth_register` 不再是 live route 或可见入口。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
+落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`，并补齐已实施计划的登录态漂移修复：已登录用户区必须源级复刻头像 chip + dropdown，Vite dev fixture mock 必须覆盖默认非登录、登录成功和退出后非登录态全流程；browser-level parity 还必须覆盖 desktop / mobile dropdown geometry 与 logout flow。修订 v1.11 修复真实联调 passwordless 链路：登录和注册提交 `startAuthEmailChallenge` 时必须兼容后端 `202 Accepted` 空响应并导航到 verify 页；Mailpit magic link 必须落到前端 `auth_verify`，由前端自动消费 token、刷新 session，并用 replace 导航清理 URL token。修订 v1.12 将真实联调入口从 Mailpit magic link 改为 Mailpit 6 位 email code，并锁定邮箱是唯一账号标识：注册页传 `purpose=signup` + displayName，后续登录同一邮箱传 `purpose=login`，displayName 不唯一且不参与账号去重；TopBar 不再使用 `刘哲` / `Liu Zhe` / `liuzhe@example.com` 样例 fallback。修订 v1.13 将注册和登录合并为单一邮箱验证码入口：新邮箱 verify 后进入 `auth_profile_setup` 完成 displayName + 条款确认，`/me.profileCompletionRequired` 是强制跳转依据；旧 `auth_register` 不再是 live route 或可见入口。修订 v1.14 修复未登录 Home 展示 Recent mock interviews 与 raw backend unauthorized error 的回归，并把面试相关业务 route 统一前置到 `auth_login(pendingAction)`。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
 
 ## 2 背景
 
@@ -21,7 +21,7 @@
 
 - **Plan 类型**: `feature-behavior` + `frontend`。
 - **TDD 策略**: 通过 `/implement frontend-shell/001-app-shell-auth-settings frontend` -> `/tdd` 执行；每个 checklist item 先写 focused Vitest / component test / route-state test，再实现最小前端代码；测试断言写在 checklist 的 `验证:` 后。Runtime / API bootstrap 测试必须覆盖 `getRuntimeConfig`、`getMe` authenticated / unauthenticated、auth generated operations、mock scenario fail-loud，以及 dev mock session 状态从默认 unauthenticated -> verify authenticated -> logout unauthenticated 的连续变化。当前 plan 一旦把 frontend package `build` script 从占位切换为真实 bundler gate，必须在同一验证面运行 `pnpm --filter @easyinterview/frontend build` 与根 `make build`。
-- **BDD 策略**: 需要 BDD。本 plan 引入用户可见 App shell、TopBar、认证页面和 pending action 行为，必须维护 `bdd-plan.md`、`bdd-checklist.md`，并在主 checklist 中使用 `BDD-Gate:` 引用 `E2E.P0.001`、`E2E.P0.002`、`E2E.P0.032`、`E2E.P0.101`。
+- **BDD 策略**: 需要 BDD。本 plan 引入用户可见 App shell、TopBar、认证页面、pending action 行为和受保护业务 route guard，必须维护 `bdd-plan.md`、`bdd-checklist.md`，并在主 checklist 中使用 `BDD-Gate:` 引用 `E2E.P0.001`、`E2E.P0.002`、`E2E.P0.032`、`E2E.P0.101`、`E2E.P0.102`。
 - **替代验证 gate**: 不适用；BDD gate 是本 plan 的用户行为验证入口。补充 gate 包括 frontend unit tests、typecheck、mock-contract-suite handoff、route negative search、`make docs-check`。
 
 ## 4 实施步骤
@@ -219,6 +219,37 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 
 更新 real frontend/backend/Mailpit 场景：新邮箱从单一登录入口完成 6 位验证码验证后进入 `auth_profile_setup`；刷新该页仍停留在资料补全；关闭浏览器或换浏览器后用同一邮箱重新登录仍先进入资料补全；完成 displayName + 条款确认后 `/me.profileCompletionRequired=false`，TopBar 显示该 displayName；退出后同一邮箱再次登录不再进入资料补全并恢复 pendingAction 或 Home。场景必须负向断言 TopBar 注册按钮、`auth_register` live page、`purpose=signup/login` 请求体、displayName-before-verify 和旧 magic-link URL 不出现。
 
+### Phase 10: Unauthenticated interview route guard remediation
+
+#### 10.1 UI truth source for signed-out Home
+
+更新 `docs/ui-design/auth-and-entry.md`、`ui-design/src/screen-home.jsx` 与 `ui-design/src/app.jsx`：Home 仍可未登录访问和输入 JD 草稿，但 Recent mock interviews 只在 `signedIn=true` 时渲染；未登录状态不得展示该模块、空态、skeleton 或 raw backend unauthorized error。
+
+#### 10.2 Frontend runtime auth guard
+
+正式前端 runtime 中，`home` 和 auth pages 仍可未登录访问；`jd_match`、`parse`、`workspace`、`resume_versions`、`practice`、`generating`、`report`、`debrief`、`profile`、`settings` 等业务 route 必须在 `runtime.auth.status === "authenticated"` 后才挂载对应 screen。`loading` 状态只渲染 auth gate loading 占位，`unauthenticated` 状态导航到 `auth_login` 并携带 safe pendingAction；登录成功仍先经过 `profileCompletionRequired` gate 再恢复原 route。
+
+#### 10.3 Home recent data fetch guard
+
+`useRecentTargetJobs` / Home recent card 数据源必须只在 authenticated 状态调用 `listTargetJobs`。未登录、auth loading 或 auth error 下不发起受保护 API，不展示 Recent mock interviews 模块，也不把后端 `AUTH_UNAUTHORIZED` 错误正文渲染到 Home。
+
+#### 10.4 Backend protected API proof
+
+复用 `backend-auth` 的 C1 session policy 和 `cmd/api` wiring gate，证明 OpenAPI document-level security 与 runtime handler 均只把 `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getRuntimeConfig` 作为 public，`logout` 作为 optional，其他面试相关 API 由 session middleware 保护。
+
+#### 10.5 Phase 10 operation matrix
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| `getMe` | `openapi/fixtures/Auth/getMe.json#unauthenticated|authenticated` | `AppRuntimeProvider`、App protected route guard、Home recent visibility | backend-auth current-user handler | backend session lookup；frontend 不持久化 session | 无 | App auth route guard tests、E2E.P0.102 |
+| `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json#default|empty|one-job|twelve-plus` | `useRecentTargetJobs`、Home Recent mock interviews | `cmd/api` targetjob list handler behind `auth.SessionMiddleware` | `target_jobs` filtered by session user | target job parse may use AI outside this read path | Home recent auth guard tests、backend `TestBuildAPIHandlerMountsTargetJobRoutesBehindSessionMiddleware`、E2E.P0.102 |
+| `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json#manual-text-primary` | Home paste/upload/url submit via `requestAuth` + pending import source | `cmd/api` targetjob import handler behind session middleware | `target_jobs` / async parse job | target job parse AI after authenticated import | Home auth gate tests、E2E.P0.102 |
+| `N/A protected frontend routes` | N/A | App route guard for `jd_match` / `parse` / `workspace` / `resume_versions` / `practice` / `generating` / `report` / `debrief` / `profile` / `settings` | OpenAPI document security + per-route session policy for their API calls | route-specific domain stores | route-specific | App route guard tests、E2E.P0.102 |
+
+#### 10.6 BDD-Gate: 验证 E2E.P0.102 通过
+
+新增并执行 `E2E.P0.102`：未登录 Home 不显示 Recent mock interviews、不会调用 `listTargetJobs`、不会显示 raw `AUTH_UNAUTHORIZED`；未登录直开 `workspace` / `practice` / `report` / `jd_match` 等业务 route 时先进入 `auth_login(pendingAction)`，业务 screen 不挂载且受保护 API 不被调用；后端 focused gate 证明面试相关 API 仍由 session middleware 返回 B1 `AUTH_UNAUTHORIZED` envelope。
+
 ## 5 验收标准
 
 - 默认打开 App 渲染 Home、五入口 TopBar、单一登录入口和显示控制，不出现 welcome 或注册入口。
@@ -235,7 +266,7 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 - `zh` / `en` message map 分别位于独立 locale 文件，i18n helper 只聚合导入并提供类型安全 API，不在单文件内糅合多语言文案。
 - 旧 route negative search 确认正式前端不保留独立 old route screen。
 - UI 真理源边界写入 handoff：正式前端视觉只以 `ui-design/` 与 `docs/ui-design/` 为准。
-- BDD-Gate `E2E.P0.001`、`E2E.P0.002`、`E2E.P0.032`、`E2E.P0.101` 通过。
+- BDD-Gate `E2E.P0.001`、`E2E.P0.002`、`E2E.P0.032`、`E2E.P0.101`、`E2E.P0.102` 通过。
 - Frontend package 真实 build gate 与根 build 聚合 gate 通过，避免 `frontend/package.json` 脚本升级后缺 entry 破坏 `make build`。
 
 ## 6 风险与应对

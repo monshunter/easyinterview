@@ -99,3 +99,4 @@
 | E2E.P0.099 | e2e-scenarios-p0 C-1, C-2, C-4, C-5, C-6 | `p0-099-full-funnel-fullstack-ui-journey/` | Playwright full-stack UI：home → parse → workspace → practice → generating → report → next_round practice with real backend | automated | Ready |
 | E2E.P0.100 | e2e-scenarios-p0 C-9, C-10, C-11, C-12, C-13, C-14 | `p0-100-real-provider-full-funnel-hybrid/` | AI Agent first-run preflight + real provider browser UAT handoff：shared env、real backend/frontend、Mailpit login、redacted provider evidence | hybrid | Ready |
 | E2E.P0.101 | backend-auth C-9; frontend-shell C-14; local-dev-stack C-10/C-15 | `p0-101-auth-email-code-login-register/` | Playwright host-run real-mode auth：单一邮箱验证码入口；首次登录强制资料补全；同一邮箱后续登录不重复补全 | automated | Ready |
+| E2E.P0.102 | frontend-shell C-15; backend-auth C-5 | `p0-102-auth-gated-interview-routes/` | 未登录 Home 隐藏 Recent mock interviews；业务入口和保护路由先跳登录；后端业务 API 保持 session middleware | automated | Ready |

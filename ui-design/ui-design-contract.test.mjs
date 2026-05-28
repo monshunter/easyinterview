@@ -186,6 +186,16 @@ test("P0 empty and failure states avoid showing fake data", () => {
   assert.match(practice, /VoiceTranscriptionFailure/);
 });
 
+test("Home recent mock interviews are signed-in only", () => {
+  const app = readUiFile("./src/app.jsx");
+  const home = readUiFile("./src/screen-home.jsx");
+
+  assert.match(app, /home:\s*<HomeScreen[^>]*signedIn=\{signedIn\}/);
+  assert.match(home, /const HomeScreen = \(\{ T, lang, nav, role, signedIn/);
+  assert.match(home, /\{signedIn && \(/);
+  assert.match(home, /Recent mock interviews/);
+});
+
 test("P0 voice interview keeps the shared practice shell and renders the voice surface", () => {
   const practice = readUiFile("./src/screen-practice.jsx");
 

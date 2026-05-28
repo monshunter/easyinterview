@@ -216,11 +216,11 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
         client={client}
         initialRoute={{ name: "profile", params: {} }}
         requestOptions={{
-          getMe: { headers: { Prefer: "example=unauthenticated" } },
+          getMe: { headers: { Prefer: "example=authenticated" } },
         }}
       />,
     );
-    expect(screen.getByTestId("route-profile").className).toMatch(
+    expect((await screen.findByTestId("route-profile")).className).toMatch(
       /\bei-screen-shell\b/,
     );
     expect(
@@ -233,11 +233,11 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
         client={client}
         initialRoute={{ name: "settings", params: {} }}
         requestOptions={{
-          getMe: { headers: { Prefer: "example=unauthenticated" } },
+          getMe: { headers: { Prefer: "example=authenticated" } },
         }}
       />,
     );
-    expect(screen.getByTestId("route-settings").className).toMatch(
+    expect((await screen.findByTestId("route-settings")).className).toMatch(
       /\bei-screen-shell\b/,
     );
     expect(screen.getByTestId("settings-account").className).toMatch(
@@ -250,11 +250,11 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
         client={client}
         initialRoute={{ name: "company_intel", params: { jobId: "tj-1" } }}
         requestOptions={{
-          getMe: { headers: { Prefer: "example=unauthenticated" } },
+          getMe: { headers: { Prefer: "example=authenticated" } },
         }}
       />,
     );
-    expect(screen.getByTestId("route-company_intel").className).toMatch(
+    expect((await screen.findByTestId("route-company_intel")).className).toMatch(
       /\bei-screen-shell\b/,
     );
     expect(
