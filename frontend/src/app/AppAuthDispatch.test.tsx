@@ -448,6 +448,85 @@ describe("App auth route dispatch", () => {
     );
   });
 
+  it("does not strand the user on auth_verify when post-verify /me refresh fails", async () => {
+    const calls: Array<{ url: string; method: string }> = [];
+    const fixtureFetch = createFixtureBackedFetch(
+      createFixtureRegistry([
+        getRuntimeConfigFixture,
+        verifyAuthEmailChallengeFixture,
+      ]),
+    );
+    const spy: typeof fetch = async (input, init) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url;
+      const method = init?.method ?? "GET";
+      calls.push({ url, method });
+      if (url.endsWith("/api/v1/me")) {
+        return new Response(
+          JSON.stringify({
+            error: {
+              code: "AUTH_PROFILE_REFRESH_UNAVAILABLE",
+              message: "Profile context refresh timed out.",
+              requestId: "req-profile-refresh-failed",
+              retryable: true,
+            },
+          }),
+          {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
+      return fixtureFetch(input, init);
+    };
+    const client = new EasyInterviewClient({ fetch: spy });
+    render(
+      <App
+        client={client}
+        initialRoute={{
+          name: "auth_verify",
+          params: {
+            email: "alice@example.com",
+            pendingRoute: "workspace",
+            pendingType: "open_protected_route",
+            pendingLabel: "workspace",
+            targetJobId: "tj-1",
+          },
+        }}
+      />,
+    );
+
+    const user = userEvent.setup();
+    await user.type(screen.getByTestId("auth-verify-code"), "654321");
+    await user.click(screen.getByTestId("auth-verify-submit"));
+
+    await waitFor(() =>
+      expect(
+        calls.some(
+          (c) =>
+            c.method === "GET" &&
+            c.url.endsWith("/api/v1/auth/email/verify?token=654321"),
+        ),
+      ).toBe(true),
+    );
+    await screen.findByTestId("auth-route-gate");
+    expect(screen.getByTestId("auth-route-gate")).toHaveAttribute(
+      "data-route-name",
+      "workspace",
+    );
+    expect(screen.queryByTestId("route-auth_verify")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("auth-verify-code-status"),
+    ).not.toBeInTheDocument();
+    expect(
+      calls.filter((c) => c.url.endsWith("/api/v1/me")).length,
+    ).toBeGreaterThan(0);
+  });
+
   it("falls back to PlaceholderScreen for auth_* routes when no client / runtime is mounted", () => {
     render(<App initialRoute={{ name: "auth_login", params: {} }} />);
     // PlaceholderScreen renders the bare data attributes; it does not render

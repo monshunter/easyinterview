@@ -146,11 +146,16 @@ function renderRouteScreen(
             await runtime.client.verifyAuthEmailChallenge(
               withLocaleHeader(lang, { query: { token: req.token } }),
             );
-            const user = await runtime.client.getMe(withLocaleHeader(lang));
-            runtime.refreshAuth(user);
-            return {
-              profileCompletionRequired: user.profileCompletionRequired,
-            };
+            try {
+              const user = await runtime.client.getMe(withLocaleHeader(lang));
+              runtime.refreshAuth(user);
+              return {
+                profileCompletionRequired: user.profileCompletionRequired,
+              };
+            } catch {
+              runtime.refreshAuth();
+              return { profileCompletionRequired: false };
+            }
           }}
         />
       );

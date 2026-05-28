@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { FC } from "react";
 
 import getMeFixture from "../../../../openapi/fixtures/Auth/getMe.json";
 import getRuntimeConfigFixture from "../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import { EasyInterviewClient } from "../../api/generated/client";
+import type { UserContext } from "../../api/generated/types";
 import {
   createFixtureBackedFetch,
   createFixtureRegistry,
@@ -39,6 +40,25 @@ const Probe: FC = () => {
       {auth.status === "error" ? (
         <div data-testid="auth-error">{auth.error.message}</div>
       ) : null}
+    </div>
+  );
+};
+
+const CommitProbe: FC<{ user: UserContext }> = ({ user }) => {
+  const { auth, refreshAuth } = useAppRuntime();
+  return (
+    <div>
+      <div data-testid="auth-status">{auth.status}</div>
+      {auth.status === "authenticated" ? (
+        <div data-testid="auth-user-name">{auth.user.displayName}</div>
+      ) : null}
+      <button
+        data-testid="commit-auth-user"
+        type="button"
+        onClick={() => refreshAuth(user)}
+      >
+        commit
+      </button>
     </div>
   );
 };
@@ -142,6 +162,75 @@ describe("AppRuntimeProvider", () => {
     );
     expect(screen.getByTestId("auth-error").textContent).toMatch(
       /unknown fixture scenario/i,
+    );
+  });
+
+  it("does not reuse the public auth initial skip after directly committing a verified user", async () => {
+    const calls: Array<{ url: string; method: string }> = [];
+    const fixtureFetch = createFixtureBackedFetch(
+      createFixtureRegistry([getRuntimeConfigFixture, getMeFixture]),
+    );
+    const spy: typeof fetch = async (input, init) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url;
+      calls.push({ url, method: init?.method ?? "GET" });
+      return fixtureFetch(input, init);
+    };
+    const client = new EasyInterviewClient({ fetch: spy });
+    const committedUser: UserContext = {
+      id: "01918fa0-0000-7000-8000-00000000feed",
+      emailMasked: "ver***@example.com",
+      displayName: "Verified User",
+      uiLanguage: "zh-CN",
+      preferredPracticeLanguage: "zh-CN",
+      profileCompletionRequired: false,
+    };
+    const view = (lang: "zh" | "en") => (
+      <AppRuntimeProvider
+        client={client}
+        skipInitialAuthProbe
+        requestOptions={{
+          getMe: { headers: { "Accept-Language": lang } },
+        }}
+      >
+        <CommitProbe user={committedUser} />
+      </AppRuntimeProvider>
+    );
+
+    const { rerender } = render(view("zh"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("auth-status")).toHaveTextContent(
+        "unauthenticated",
+      ),
+    );
+    expect(calls.filter((c) => c.url.endsWith("/api/v1/me"))).toHaveLength(0);
+
+    fireEvent.click(screen.getByTestId("commit-auth-user"));
+    await waitFor(() =>
+      expect(screen.getByTestId("auth-user-name")).toHaveTextContent(
+        "Verified User",
+      ),
+    );
+
+    const meCallsBeforeLanguageSwitch = calls.filter((c) =>
+      c.url.endsWith("/api/v1/me"),
+    ).length;
+    rerender(view("en"));
+
+    await waitFor(() =>
+      expect(
+        calls.filter((c) => c.url.endsWith("/api/v1/me")).length,
+      ).toBeGreaterThan(meCallsBeforeLanguageSwitch),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("auth-user-name")).toHaveTextContent(
+        "Alice Example",
+      ),
     );
   });
 });

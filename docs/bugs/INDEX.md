@@ -72,6 +72,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0117](./BUG-0117.md) | auth verify recovery and skipped probe state regressed after unified login | medium | resolved | 2026-05-28 | `fix(frontend-shell): recover auth verify refresh failures (BUG-0117)` |
 | [BUG-0116](./BUG-0116.md) | auth profile setup and scenario evidence drift escaped frontend-shell review | medium | resolved | 2026-05-28 | `fix(frontend-shell): close auth profile L2 gaps (BUG-0116)` |
 | [BUG-0115](./BUG-0115.md) | unauthenticated home and interview routes mounted protected flows before login | high | resolved | 2026-05-28 | `fix(frontend-shell): gate protected routes before login (BUG-0115)` |
 | [BUG-0112](./BUG-0112.md) | auth mail-link login stalled on empty 202 response and backend verify link | high | resolved | 2026-05-27 | `fix(auth): restore mail-link login flow (BUG-0112)` |

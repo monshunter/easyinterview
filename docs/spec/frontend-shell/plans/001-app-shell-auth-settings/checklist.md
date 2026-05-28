@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.15
+> **版本**: 1.16
 > **状态**: completed
 > **更新日期**: 2026-05-28
 
@@ -114,3 +114,12 @@
   <!-- verified: 2026-05-28 command="cd backend && go test ./internal/auth -run TestSessionPolicyClassifiesPublicOptionalAndProtectedOperations -count=1; cd backend && go test ./cmd/api -run 'TestBuildAPIHandlerMounts(TargetJobRoutes|UploadPresign|ResumeRoutes|PracticeAndProfileRoutes|ReportRoutes|JobRoute)BehindSessionMiddleware|TestJDMatchRoutesRequireSessionOnAllRoutes' -count=1" evidence="backend auth policy and cmd/api route middleware gates passed; added practice/profile route middleware regression coverage" -->
 - [x] 10.5 BDD-Gate: 验证 E2E.P0.102 通过；验证: 新场景脚本执行 focused frontend + backend gates，确认未登录 Home 无 Recent 模块、受保护业务 route 先进入登录、受保护 API 返回 B1 `AUTH_UNAUTHORIZED` envelope；wrapper 必须从 `trigger.log` 校验 scenario runner marker、目标 Vitest 文件、Go package `ok` 行和每个后端 focused test 的 `--- PASS` 名称，并阻止 no-test / skip / fail 证据误判
   <!-- verified: 2026-05-28 command="bash test/scenarios/e2e/p0-102-auth-gated-interview-routes/scripts/setup.sh; bash test/scenarios/e2e/p0-102-auth-gated-interview-routes/scripts/trigger.sh; bash test/scenarios/e2e/p0-102-auth-gated-interview-routes/scripts/verify.sh; bash test/scenarios/e2e/p0-102-auth-gated-interview-routes/scripts/cleanup.sh" evidence="P0.102 PASS with strict wrapper evidence: UI contract, 3 Vitest files / 24 tests, backend session policy PASS, cmd/api route middleware named PASS markers, result.json result=PASS" -->
+
+## Phase 11: Auth verify recovery and skipped probe consumption
+
+- [x] 11.1 Consume public-auth initial probe skip once；验证: `pnpm --filter @easyinterview/frontend test src/app/runtime/AppRuntimeProvider.test.tsx` 覆盖 `skipInitialAuthProbe` 只消费首次 probe，`refreshAuth(user)` 直接提交 authenticated user 后，requestOptions / language 切换触发真实 `/me` refresh 而不是把 auth state 重置为 unauthenticated
+  <!-- verified: 2026-05-28 command="pnpm --filter @easyinterview/frontend test src/app/runtime/AppRuntimeProvider.test.tsx src/app/AppAuthDispatch.test.tsx" evidence="AppRuntimeProvider 6 tests passed; Red reproduced missing /me refresh after requestOptions change, Green probes /me and remains authenticated" -->
+- [x] 11.2 Separate verify success from post-verify `/me` failure；验证: `pnpm --filter @easyinterview/frontend test src/app/AppAuthDispatch.test.tsx` 覆盖 `verifyAuthEmailChallenge` 成功但后续 `/me` 失败时不显示验证码失败、不停留在 `auth_verify`，并通过 runtime auth refresh / route gate 表达 auth/profile loading 或 error
+  <!-- verified: 2026-05-28 command="pnpm --filter @easyinterview/frontend test src/app/runtime/AppRuntimeProvider.test.tsx src/app/AppAuthDispatch.test.tsx" evidence="AppAuthDispatch 13 tests passed; Red reproduced verify page stuck with code failure, Green navigates to auth-route-gate for pending workspace" -->
+- [x] 11.3 Phase 11 regression gates；验证: focused frontend auth gates 通过，`pnpm --filter @easyinterview/frontend typecheck` 通过，`python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/frontend-shell/plans/001-app-shell-auth-settings/context.yaml --docs-root docs --target frontend` 通过
+  <!-- verified: 2026-05-28 command="pnpm --filter @easyinterview/frontend test src/app/runtime/AppRuntimeProvider.test.tsx src/app/AppAuthDispatch.test.tsx; pnpm --filter @easyinterview/frontend typecheck; python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/frontend-shell/plans/001-app-shell-auth-settings/context.yaml --docs-root docs --target frontend" evidence="19 focused auth tests passed; frontend typecheck passed; context validator resolved plan/checklist/spec/bdd docs with specVersion.to=1.21" -->

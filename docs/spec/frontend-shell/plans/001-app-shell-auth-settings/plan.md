@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.15
+> **版本**: 1.16
 > **状态**: completed
 > **更新日期**: 2026-05-28
 
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`，并补齐已实施计划的登录态漂移修复：已登录用户区必须源级复刻头像 chip + dropdown，Vite dev fixture mock 必须覆盖默认非登录、登录成功和退出后非登录态全流程；browser-level parity 还必须覆盖 desktop / mobile dropdown geometry 与 logout flow。修订 v1.11 修复真实联调 passwordless 链路：登录和注册提交 `startAuthEmailChallenge` 时必须兼容后端 `202 Accepted` 空响应并导航到 verify 页；Mailpit magic link 必须落到前端 `auth_verify`，由前端自动消费 token、刷新 session，并用 replace 导航清理 URL token。修订 v1.12 将真实联调入口从 Mailpit magic link 改为 Mailpit 6 位 email code，并锁定邮箱是唯一账号标识：注册页传 `purpose=signup` + displayName，后续登录同一邮箱传 `purpose=login`，displayName 不唯一且不参与账号去重；TopBar 不再使用 `刘哲` / `Liu Zhe` / `liuzhe@example.com` 样例 fallback。修订 v1.13 将注册和登录合并为单一邮箱验证码入口：新邮箱 verify 后进入 `auth_profile_setup` 完成 displayName + 条款确认，`/me.profileCompletionRequired` 是强制跳转依据；旧 `auth_register` 不再是 live route 或可见入口。修订 v1.14 修复未登录 Home 展示 Recent mock interviews 与 raw backend unauthorized error 的回归，并把面试相关业务 route 统一前置到 `auth_login(pendingAction)`。修订 v1.15 收紧 L2 验收缺口：`AuthLoginScreen` 发码请求体只提交 email、`auth_profile_setup` 只在 `/me.profileCompletionRequired=false` 后恢复 pendingAction，且 P0.102 wrapper 直接校验 runner / Go `--- PASS` 证据。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
+落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`，并补齐已实施计划的登录态漂移修复：已登录用户区必须源级复刻头像 chip + dropdown，Vite dev fixture mock 必须覆盖默认非登录、登录成功和退出后非登录态全流程；browser-level parity 还必须覆盖 desktop / mobile dropdown geometry 与 logout flow。修订 v1.11 修复真实联调 passwordless 链路：登录和注册提交 `startAuthEmailChallenge` 时必须兼容后端 `202 Accepted` 空响应并导航到 verify 页；Mailpit magic link 必须落到前端 `auth_verify`，由前端自动消费 token、刷新 session，并用 replace 导航清理 URL token。修订 v1.12 将真实联调入口从 Mailpit magic link 改为 Mailpit 6 位 email code，并锁定邮箱是唯一账号标识：注册页传 `purpose=signup` + displayName，后续登录同一邮箱传 `purpose=login`，displayName 不唯一且不参与账号去重；TopBar 不再使用 `刘哲` / `Liu Zhe` / `liuzhe@example.com` 样例 fallback。修订 v1.13 将注册和登录合并为单一邮箱验证码入口：新邮箱 verify 后进入 `auth_profile_setup` 完成 displayName + 条款确认，`/me.profileCompletionRequired` 是强制跳转依据；旧 `auth_register` 不再是 live route 或可见入口。修订 v1.14 修复未登录 Home 展示 Recent mock interviews 与 raw backend unauthorized error 的回归，并把面试相关业务 route 统一前置到 `auth_login(pendingAction)`。修订 v1.15 收紧 L2 验收缺口：`AuthLoginScreen` 发码请求体只提交 email、`auth_profile_setup` 只在 `/me.profileCompletionRequired=false` 后恢复 pendingAction，且 P0.102 wrapper 直接校验 runner / Go `--- PASS` 证据。修订 v1.16 收紧 auth verify 恢复：公共 auth route 的 initial `/me` skip 只能消费一次，直接提交 verified user 后语言切换不得把已登录态重置为未登录；`verifyAuthEmailChallenge` 成功后如 `/me` refresh 失败，不能把已消费 code 折叠成验证码错误。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
 
 ## 2 背景
 
@@ -22,7 +22,7 @@
 - **Plan 类型**: `feature-behavior` + `frontend`。
 - **TDD 策略**: 通过 `/implement frontend-shell/001-app-shell-auth-settings frontend` -> `/tdd` 执行；每个 checklist item 先写 focused Vitest / component test / route-state test，再实现最小前端代码；测试断言写在 checklist 的 `验证:` 后。Runtime / API bootstrap 测试必须覆盖 `getRuntimeConfig`、`getMe` authenticated / unauthenticated、auth generated operations、mock scenario fail-loud，以及 dev mock session 状态从默认 unauthenticated -> verify authenticated -> logout unauthenticated 的连续变化。当前 plan 一旦把 frontend package `build` script 从占位切换为真实 bundler gate，必须在同一验证面运行 `pnpm --filter @easyinterview/frontend build` 与根 `make build`。
 - **BDD 策略**: 需要 BDD。本 plan 引入用户可见 App shell、TopBar、认证页面、pending action 行为和受保护业务 route guard，必须维护 `bdd-plan.md`、`bdd-checklist.md`，并在主 checklist 中使用 `BDD-Gate:` 引用 `E2E.P0.001`、`E2E.P0.002`、`E2E.P0.032`、`E2E.P0.101`、`E2E.P0.102`。
-- **替代验证 gate**: 不适用；BDD gate 是本 plan 的用户行为验证入口。补充 gate 包括 frontend unit tests、typecheck、mock-contract-suite handoff、route negative search、`make docs-check`。
+- **替代验证 gate**: 主路径 BDD gate 是本 plan 的用户行为验证入口。Phase 11 只修复已存在 auth flow 的 failure/recovery path，不新增场景目录；替代 gate 为 `AppRuntimeProvider.test.tsx` 与 `AppAuthDispatch.test.tsx` focused regression，覆盖语言切换 requestOptions 变化和 post-verify `/me` refresh failure。
 
 ## 4 实施步骤
 
@@ -250,6 +250,23 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 
 新增并执行 `E2E.P0.102`：未登录 Home 不显示 Recent mock interviews、不会调用 `listTargetJobs`、不会显示 raw `AUTH_UNAUTHORIZED`；未登录直开 `workspace` / `practice` / `report` / `jd_match` 等业务 route 时先进入 `auth_login(pendingAction)`，业务 screen 不挂载且受保护 API 不被调用；后端 focused gate 证明面试相关 API 仍由 session middleware 返回 B1 `AUTH_UNAUTHORIZED` envelope。
 
+### Phase 11: Auth verify recovery and skipped probe consumption
+
+#### 11.1 Consume public-auth initial probe skip once
+
+`AppRuntimeProvider` 在 `auth_login` / `auth_verify` / `auth_reset` 等公共 auth route 上可以跳过首次 `/me` probe，但该 skip 必须在 provider 生命周期内只消费一次。`refreshAuth(user)` 直接提交 verified user 后，TopBar language switch 带来的 `requestOptions` 变化必须触发真实 `/me` refresh，而不是重新执行 initial skip 并把 auth state 置为 unauthenticated。
+
+#### 11.2 Separate verify success from post-verify `/me` failure
+
+`AuthVerifyScreen` / `App` adapter 必须区分 code verification 与 profile context refresh。`verifyAuthEmailChallenge` 成功后，即使后续 `/me` refresh 失败或超时，也不得显示验证码失败；App 应调度 runtime auth refresh，并导航到 pending route 或 Home，让 auth/profile loading 或 error 在 route gate 中表达。只有 verify operation 本身失败才能停留在 `auth_verify` 并显示 code failure。
+
+#### 11.3 Phase 11 operation matrix
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| `verifyAuthEmailChallenge` | `openapi/fixtures/Auth/verifyAuthEmailChallenge.json#default` | `AuthVerifyScreen` / App auth adapter；只负责 code verify 和 session mint | backend-auth verify handler | backend consumes one-time challenge and mints first-party session cookie | 无 | `frontend/src/app/AppAuthDispatch.test.tsx` post-verify `/me` failure regression；E2E.P0.101 main path |
+| `getMe` | `openapi/fixtures/Auth/getMe.json#authenticated|profileIncomplete|unauthenticated` | `AppRuntimeProvider`、post-verify profile completion gate、TopBar language requestOptions refresh | backend-auth current-user handler | backend session lookup；frontend 不持久化 session | 无 | `frontend/src/app/runtime/AppRuntimeProvider.test.tsx` skipped-probe language switch regression；`frontend/src/app/AppAuthDispatch.test.tsx` auth/profile loading recovery |
+
 ## 5 验收标准
 
 - 默认打开 App 渲染 Home、五入口 TopBar、单一登录入口和显示控制，不出现 welcome 或注册入口。
@@ -258,6 +275,7 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 - `parse` route 作为 shell route 可达，但 JD 解析业务细节留给后续 owner。
 - Runtime config、`/me` 和 auth generated operations 均通过 fixture-backed client 测试，不直接读取 prototype data。
 - Vite dev 默认 mock App 首屏展示非登录态；passwordless mock verify 后根据 `/me.profileCompletionRequired` 进入资料补全或展示源级复刻的头像 dropdown 用户菜单；logout 后 `/me` 回到 unauthenticated，TopBar 重新展示单一登录入口。
+- `auth_verify` 成功后的 post-verify `/me` refresh 失败不会显示验证码失败，用户不会被留在已消费 code 的 verify 页；公共 auth route initial `/me` skip 不会在语言切换后重置已提交的 authenticated state。
 - 真实后端 `202 Accepted` 空响应不会让 generated client 抛出 JSON parse 错误；单一登录入口提交邮箱后进入 verify 页并显示邮件已发送/等待验证状态。
 - Mailpit 邮件只展示 6 位验证码；用户在前端 `auth_verify` 手动输入 code 后调用 generated `verifyAuthEmailChallenge`，刷新 session，并恢复 pending route。
 - 首次使用的新邮箱在 verify 后必须进入 `auth_profile_setup`；资料补全前刷新、换浏览器重新登录、退出后重新登录或直开业务 URL 都不能恢复业务动作；`completeMyProfile` 成功后才恢复 pendingAction 或 Home。

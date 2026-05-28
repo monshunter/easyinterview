@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FC,
   type ReactNode,
@@ -86,6 +87,7 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
       : { status: "loading" },
   );
   const [authNonce, setAuthNonce] = useState(0);
+  const skippedInitialAuthProbeRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,7 +110,12 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
   useEffect(() => {
     let cancelled = false;
 
-    if (skipInitialAuthProbe && authNonce === 0) {
+    if (
+      skipInitialAuthProbe &&
+      authNonce === 0 &&
+      !skippedInitialAuthProbeRef.current
+    ) {
+      skippedInitialAuthProbeRef.current = true;
       setAuth({ status: "unauthenticated" });
       return () => {
         cancelled = true;
@@ -145,10 +152,12 @@ export const AppRuntimeProvider: FC<AppRuntimeProviderProps> = ({
       runtime,
       auth,
       refreshAuth: (user?: UserContext) => {
+        skippedInitialAuthProbeRef.current = true;
         if (user) {
           setAuth({ status: "authenticated", user });
           return;
         }
+        setAuth({ status: "loading" });
         setAuthNonce((n) => n + 1);
       },
     }),

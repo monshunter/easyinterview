@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-05-28](./2026-05-28-frontend-shell-auth-verify-recovery-assessment.md) | Frontend Shell Auth Verify Recovery 交付复盘 | #assessment |
 | [2026-05-28](./2026-05-28-frontend-shell-auth-profile-l2-gaps-assessment.md) | Frontend Shell Auth Profile L2 Gaps 交付复盘 | #assessment |
 | [2026-05-28](./2026-05-28-auth-gated-interview-routes-assessment.md) | Auth Gated Interview Routes 交付复盘 | #assessment |
 | [2026-05-28](./2026-05-28-auth-unified-email-login-assessment.md) | Auth Unified Email Login 交付复盘 | #assessment |
