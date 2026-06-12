@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-06
+
+| 日期 | 报告 | 类型 |
+|------|------|------|
+| [2026-06-12](./2026-06-12-ux-funnel-simplification-design-assessment.md) | UX Funnel Simplification 设计层交付复盘 | #assessment |
+
 ## 2026-05
 
 | 日期 | 报告 | 类型 |

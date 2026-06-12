@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-06-12](2026-06-12.md) | `docs(retrospective): assess ux funnel simplification design delivery` | #docs |
 | [2026-06-12](2026-06-12.md) | `feat(ui-design): single-confirm jd funnel and redundancy trim` | #feat #ui #docs #test |
 
 ## 2026-05
