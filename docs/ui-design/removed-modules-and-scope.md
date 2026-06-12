@@ -1,6 +1,6 @@
 # EasyInterview UI 移除模块与范围裁剪
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: active
 > **更新日期**: 2026-06-12
 
@@ -36,9 +36,10 @@
 ├─ 简历版本树 / 主版本 / 岗位定制版本 / 分叉流程（D-20）
 ├─ 简历轻量问答建档（D-20）
 ├─ 简历改写建议的逐条拒绝 / 编辑（D-20）
-├─ 设置页通知 / 订阅占位 tab（D-21）
-└─ 主题自定义 accent（D-21）
+└─ 设置页通知 / 订阅占位 tab（D-21）
 ```
+
+> 主题`自定义 accent`曾在本批首版被裁剪，随后按用户决策恢复（D-21 v2.1），不在移除清单内；默认主题改为`深海`。
 
 不移除但重新定义的能力：
 
@@ -351,16 +352,18 @@ company_intel
 └─ 采纳后确认前预览 -> 覆盖原简历 / 保存为新简历
 ```
 
-### 15.5 设置占位 tab 与主题自定义 accent
+### 15.5 设置占位 tab（主题自定义 accent 经用户决策保留）
 
-`通知`、`订阅` 两个 P1 占位 tab 没有当前用户价值；自定义 accent 的色相 / 饱和度滑杆属于过度配置。
+`通知`、`订阅` 两个 P1 占位 tab 没有当前用户价值，删除。主题自定义 accent 首版一并裁剪后，用户判定裁剪过头并要求恢复；最终口径为保留自定义 accent，默认主题改为`深海`。
 
 ```text
 Settings
 └─ 只保留 个人资料 / 隐私与数据 两个 tab
 
 Theme menu
-└─ 只保留 暖陶 / 苔林 / 深海 / 梅子 + 暗色模式
+├─ 暖陶 / 苔林 / 深海（默认） / 梅子
+├─ 自定义 accent（色相 / 饱和度 / 恢复默认）
+└─ 暗色模式
 ```
 
 ## 16 受影响页面
@@ -415,7 +418,6 @@ Theme menu
 | `screen-resume-workshop.jsx::ResumeTreeView` / `ResumeBranchFlow` / `ResumeBranchMap` | 简历版本树 / 分叉 | 组件已删除 | 废弃版本树与分叉流程（D-20） |
 | `screen-resume-workshop.jsx` 轻量问答 create mode | `resume_versions(flow=create)` 旧 guided tab | 已删除 | 废弃轻量问答建档（D-20） |
 | `screens-p0-complete.jsx::SettingsNotif` / `SettingsBilling` | 设置通知 / 订阅占位 tab | 组件已删除 | 废弃占位 tab（D-21） |
-| `app.jsx::AccentPicker` / `CUSTOM_ACCENT_SEEDS` | 主题自定义 accent | 组件与逻辑已删除 | 废弃自定义 accent（D-21） |
 | `screen-report.jsx::IssueRow` / `PerQBlock` / `KVInline` | 无（定义后从未渲染） | 死代码已删除 | 报告页只保留 Dashboard 实际使用组件 |
 
 语音能力不是废弃能力；废弃的是脱离 `PracticeScreen` 外层骨架的独立语音页面呈现。
@@ -426,13 +428,13 @@ Theme menu
 
 ```text
 外观偏好
-├─ 顶栏主题色（四个预设）
+├─ 顶栏主题色（四预设 + 自定义 accent，默认深海）
 ├─ 暗色模式
 ├─ 语言下拉
 └─ 设置页字体预设
 ```
 
-这些控制保留，因为它们是横切的 UI 呈现能力；但它们不属于模拟面试、报告、简历或复盘的业务模块，也不应该成为新的一级导航或 onboarding 步骤。自定义 accent（色相 / 饱和度滑杆）已随 D-21 删除。
+这些控制保留，因为它们是横切的 UI 呈现能力；但它们不属于模拟面试、报告、简历或复盘的业务模块，也不应该成为新的一级导航或 onboarding 步骤。
 
 ## 19 未来重新引入条件
 

@@ -20,9 +20,9 @@
 
 <script type="text/babel">
   const ART_W = 1280, ART_H = 860, FRAME_W = 420;
-  const UI_VERSION = "20260612-mvp-trim";
+  const UI_VERSION = "20260612-ocean-default";
   const FRAME_H = Math.round(ART_H * FRAME_W / ART_W);
-  const Screen = ({ route, jobId = "tj-1", mode, sessionId, dark, lang = "zh", theme, fontPreset, role, practiceMode, debriefInputMode, debriefVoiceState }) => {
+  const Screen = ({ route, jobId = "tj-1", mode, sessionId, dark, lang = "zh", theme, customAccent, fontPreset, role, practiceMode, debriefInputMode, debriefVoiceState }) => {
     const params = new URLSearchParams();
     params.set("route", route); params.set("nochrome", "0"); params.set("lang", lang);
     if (jobId) params.set("jobId", jobId);
@@ -36,6 +36,7 @@
     if (mode) params.set("mode", mode);
     if (dark) params.set("dark", "1");
     if (theme) params.set("theme", theme);
+    if (customAccent) params.set("customAccent", `${customAccent.h},${customAccent.c}`);
     if (fontPreset) params.set("fontPreset", fontPreset);
     if (role) params.set("role", role);
     if (practiceMode) params.set("practiceMode", practiceMode);
@@ -91,16 +92,21 @@
         <DCArtboard id="debrief-voice-chat" label="语音复盘 · 连续对话进行中" width={FRAME_W} height={FRAME_H}><Screen route="debrief" debriefInputMode="voice" debriefVoiceState="chat" /></DCArtboard>
         <DCArtboard id="debrief-voice-review" label="语音复盘 · 待确认卡片" width={FRAME_W} height={FRAME_H}><Screen route="debrief" debriefInputMode="voice" debriefVoiceState="review" /></DCArtboard>
       </DCSection>
-      <DCSection id="theme-palette" title="主题色板 · 4 个预定义主题" subtitle="主题与暗/浅色正交">
-        <DCArtboard id="theme-warm" label="Warm · 暖陶（默认）" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="warm" /></DCArtboard>
+      <DCSection id="theme-palette" title="主题色板 · 4 个预定义主题" subtitle="主题与暗/浅色正交 · 默认深海">
+        <DCArtboard id="theme-warm" label="Warm · 暖陶" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="warm" /></DCArtboard>
         <DCArtboard id="theme-forest" label="Forest · 苔林" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="forest" /></DCArtboard>
-        <DCArtboard id="theme-ocean" label="Ocean · 深海" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="ocean" /></DCArtboard>
+        <DCArtboard id="theme-ocean" label="Ocean · 深海（默认）" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="ocean" /></DCArtboard>
         <DCArtboard id="theme-plum" label="Plum · 梅子" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="plum" /></DCArtboard>
       </DCSection>
       <DCSection id="theme-dark" title="主题色板 · 暗色矩阵">
         <DCArtboard id="theme-warm-dark" label="Warm · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="warm" dark /></DCArtboard>
         <DCArtboard id="theme-ocean-dark" label="Ocean · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="ocean" dark /></DCArtboard>
         <DCArtboard id="theme-plum-dark" label="Plum · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="plum" dark /></DCArtboard>
+      </DCSection>
+      <DCSection id="custom-accent" title="自定义 accent · 任意色相 × 任意饱和度" subtitle="OKLch 取色器">
+        <DCArtboard id="custom-orange" label="Custom · 橙金 (h=50)" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="warm" customAccent={{ h: 50, c: 0.18 }} /></DCArtboard>
+        <DCArtboard id="custom-teal" label="Custom · 青苔 (h=180)" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="forest" customAccent={{ h: 180, c: 0.14 }} /></DCArtboard>
+        <DCArtboard id="custom-violet" label="Custom · 紫罗兰 (h=290)" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="ocean" customAccent={{ h: 290, c: 0.20 }} /></DCArtboard>
       </DCSection>
       <DCSection id="font-presets" title="字体预设 · 编辑级 / 现代 / 杂志">
         <DCArtboard id="font-editorial" label="编辑级 · Noto Serif SC + Inter" width={FRAME_W} height={FRAME_H}><Screen route="report" fontPreset="editorial" /></DCArtboard>
@@ -113,7 +119,7 @@
         <DCArtboard id="manager" label="用人经理" width={FRAME_W} height={FRAME_H}><PracticeScreen role="manager" /></DCArtboard>
       </DCSection>
       <DCPostIt top={-28} left={60} rotate={-3} width={220}>提示：点击任一画板右上角 ⤢ 展开 → 可按 ← → 翻页、Esc 退出。</DCPostIt>
-      <DCPostIt top={330} right={60} rotate={2.5} width={210}>所有画板都是真实 iframe（loading=lazy）。Tweaks 改完主题、字体，这里会同步更新。</DCPostIt>
+      <DCPostIt top={330} right={60} rotate={2.5} width={210}>所有画板都是真实 iframe（loading=lazy）。Tweaks 改完主题、字体、accent，这里会同步更新。</DCPostIt>
     </DesignCanvas>
   );
   ReactDOM.createRoot(document.getElementById("root")).render(<App />);

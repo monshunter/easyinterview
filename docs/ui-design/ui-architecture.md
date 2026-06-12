@@ -1,6 +1,6 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.10
+> **版本**: 2.11
 > **状态**: active
 > **更新日期**: 2026-06-12
 
@@ -13,7 +13,7 @@
 1. App 默认进入首页，不再有未登录欢迎页或登录前置页。
 2. 顶部导航为：`首页`、`模拟面试`、`简历`、`复盘`；岗位推荐一级模块已删除（D-17）。
 3. 顶栏固定提供全局显示控制：主题色菜单、暗色模式、语言下拉；这些控制不属于业务模块，也不要求登录。
-4. 主题色与 dark/light 模式正交：当前运行时主题为 `暖陶 / 苔林 / 深海 / 梅子` 四个预设，暗色按钮只切换所选主题的明暗版本；自定义 accent（色相 / 饱和度滑杆）已删除（D-21）。
+4. 主题色与 dark/light 模式正交：当前运行时主题为 `暖陶 / 苔林 / 深海 / 梅子 / 自定义 accent`，默认主题为 `深海`，暗色按钮只切换所选主题的明暗版本（D-21 v2.1：自定义 accent 按用户决策保留）。
 5. 字体预设在 `设置与隐私` 的个人资料页维护，当前有 `编辑级 / 现代 / 杂志` 三组；切换时必须原子更新标题 serif 与正文 sans，等宽字体保持不变。
 6. `当前岗位` 不再作为一级模块；用户从 `模拟面试` 进入当前面试规划，规划由 `JD/目标岗位 + 简历 + 当前面试轮次` 组成。规划页是回访枢纽：服务最近面试回访、切换/新建规划与再次发起面试；首次导入新 JD 的启动决策在 `parse` 完成。
 7. `面试报告` 不再作为一级模块；报告隶属于某一次已完成的模拟面试，只能从面试结束页、会话历史或相关入口进入。
@@ -46,7 +46,7 @@
 [EasyInterview App]
 ├─ TopBar / 全局控制
 │  ├─ Brand: E mark + EasyInterview
-│  ├─ 主题色: 暖陶 / 苔林 / 深海 / 梅子
+│  ├─ 主题色: 暖陶 / 苔林 / 深海（默认） / 梅子 / 自定义
 │  ├─ Dark / Light
 │  ├─ 语言下拉: Globe icon + 当前语言标签
 │  └─ 用户区
@@ -163,8 +163,12 @@ TopBar Display Controls
 ├─ Theme menu
 │  ├─ 暖陶
 │  ├─ 苔林
-│  ├─ 深海
-│  └─ 梅子
+│  ├─ 深海（默认）
+│  ├─ 梅子
+│  └─ 自定义 accent
+│     ├─ 色相
+│     ├─ 饱和度
+│     └─ 恢复主题默认色
 ├─ Dark / Light toggle
 └─ Language dropdown
    ├─ 中文
@@ -300,7 +304,6 @@ Historical prototype routes normalized only for the static UI
    ├─ ReportEditorial / ReportTimeline
    ├─ IssueRow / PerQBlock / KVInline
    ├─ SettingsNotif / SettingsBilling
-   ├─ AccentPicker
    ├─ AuthResetScreen
    └─ ThankYouLetter
 ```
@@ -335,4 +338,4 @@ Historical prototype routes normalized only for the static UI
 24. `ResumeScreen`、旧 `ResumeVersionsScreen`、`OnboardingScreen`、`ReportEditorial`、`ReportTimeline`、`PlanScreen`、`ExperienceLibraryScreen`、`JDMatchScreen`、`CompanyIntelScreen` 和旧 `DebriefScreen` 不应进入当前源码或目标文档的页面结构。
 25. 模拟面试历史列表必须按当前面试规划 / 当前 TargetJob / JD 过滤，不展示其他公司或岗位的历史。
 26. 改写建议每条仅提供 `采纳`；采纳后确认前预览整份结果，由用户选择覆盖原简历或保存为新简历；不得恢复逐条 `拒绝 / 编辑`。
-27. 设置页只保留 `个人资料` 与 `隐私与数据` 两个 tab；主题菜单只保留四个预设主题 + 暗色模式，不得恢复通知 / 订阅占位或自定义 accent。
+27. 设置页只保留 `个人资料` 与 `隐私与数据` 两个 tab，不得恢复通知 / 订阅占位；主题菜单为四个预设 + 自定义 accent，默认主题为 `深海`。

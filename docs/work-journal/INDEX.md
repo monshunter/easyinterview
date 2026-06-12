@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-06-12](2026-06-12.md) | `feat(ui-design): restore custom accent and default to ocean theme` | #feat #ui #docs #test |
 | [2026-06-12](2026-06-12.md) | `docs(retrospective): assess mvp scope trim batch 2 delivery` | #docs |
 | [2026-06-12](2026-06-12.md) | `feat(ui-design): trim mvp scope to four-tab shell and flat resumes` | #feat #ui #docs #test |
 | [2026-06-12](2026-06-12.md) | `docs(retrospective): assess ux funnel simplification design delivery` | #docs |

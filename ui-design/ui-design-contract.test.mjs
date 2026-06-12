@@ -230,12 +230,17 @@ test("settings keeps only profile and privacy tabs (D-21)", () => {
   assert.doesNotMatch(p0, /SettingsNotif|SettingsBilling|"notifications"|"billing"|订阅/);
 });
 
-test("theme menu keeps four presets without a custom accent picker (D-21)", () => {
+test("theme defaults to ocean and keeps the custom accent picker (D-21 v2.1)", () => {
   const app = readUiFile("./src/app.jsx");
   const canvas = readUiFile("./canvas.html");
 
-  assert.doesNotMatch(app, /customAccent|AccentPicker|CUSTOM_ACCENT_SEEDS|自定义/);
-  assert.doesNotMatch(canvas, /customAccent|custom-accent/);
+  assert.match(app, /"theme": "ocean"/);
+  assert.match(app, /const CUSTOM_ACCENT_SEEDS = /);
+  assert.match(app, /const AccentPicker = /);
+  assert.match(app, /customAccent/);
+  assert.match(app, /\? tweaks\.theme : "ocean"/);
+  assert.match(canvas, /Ocean · 深海（默认）/);
+  assert.match(canvas, /customAccent/);
 });
 
 test("home keeps debrief as the only auxiliary entry", () => {
