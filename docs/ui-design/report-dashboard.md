@@ -1,8 +1,8 @@
 # Report Dashboard 目标结构
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: active
-> **更新日期**: 2026-05-02
+> **更新日期**: 2026-06-12
 
 ## 1 文档目的
 
@@ -21,6 +21,7 @@
 9. 当前运行时 `ReportScreen` 固定渲染 `ReportDashboard`；旧 `reportLayout`、Editorial 和 Timeline 组件 / 画板标签已从静态 UI 清理，不属于目标交互。
 10. 四张 Summary Cards 和报告内的文本链接会切换同一个 Detail Surface；这属于仪表盘内部二级详情，不是多报告形态。
 11. 无 `sessionId` 时显示缺失会话状态并返回当前面试规划 / 历史列表；报告生成失败时显示失败重试状态，不展示占位评分。
+12. CTA 单点收敛（D-19）：`复练当前轮` 与 `进入下一轮` 只在 Header 出现一次；复练计划详情只承载路径说明与复练清单，不重复 CTA 按钮；题目回顾的`加入本轮复练`是复练计划标记动作，不直接开启 session。
 
 ## 3 顶层框架
 
@@ -142,18 +143,19 @@ Question Review
 ### 4.5 Next Plan
 
 ```text
-复练计划
+复练计划（信息面，无 CTA）
 ├─ 路径 A · 复练当前轮（当前轮次）
 │  ├─ 默认路径，当准备度建议再练
 │  ├─ 重复当前轮次
 │  ├─ 带入错题、证据缺口和追问风险
-│  └─ CTA: 复练当前轮：当前轮次
+│  └─ 复练清单：必练 / 计划条目
 └─ 路径 B · 进入下一轮（下一轮次）
    ├─ 非默认复练路径
    ├─ 沿用同一 JD 和简历
-   ├─ 切换下一轮面试官视角和题目结构
-   └─ CTA: 进入下一轮：下一轮次
+   └─ 切换下一轮面试官视角和题目结构
 ```
+
+开练动作固定在报告 Header 的一对 CTA；复练计划详情不重复按钮（D-19）。
 
 ## 5 明确删除
 
@@ -164,6 +166,8 @@ Question Review
 ├─ 时间线视图
 ├─ 刊物式报告独立页面
 ├─ `reportLayout` 驱动的多报告形态切换
+├─ 复练计划详情内的重复 CTA 按钮（D-19）
+├─ 题目回顾内直接开启 session 的开练按钮（D-19）
 ├─ 单题复练入口
 ├─ 追问树入口
 ├─ Drill builder
@@ -182,8 +186,9 @@ Question Review
 | 点击证据片段 | 打开证据详情 |
 | 点击下一动作卡片 | 打开复练计划 |
 | 点击题目列表中的某题 | 更新题目回顾页当前题目 |
-| 点击复练当前轮 | 直接进入同一轮次的面试 session，payload 带 `sourceSessionId`、`replayItems`、`evidenceGaps` |
-| 点击进入下一轮 | 直接进入下一轮面试 session，payload 保留 `targetJobId`、`resumeVersionId`，切换 `roundId` |
+| 点击题目回顾的加入本轮复练 | 把该题标记进本轮复练清单并给出已加入反馈，不开启 session |
+| 点击 Header 复练当前轮 | 直接进入同一轮次的面试 session，payload 带 `sourceSessionId`、`replayItems`、`evidenceGaps` |
+| 点击 Header 进入下一轮 | 直接进入下一轮面试 session，payload 保留 `targetJobId`、`resumeId`，切换 `roundId` |
 | 点击返回 | 回到面试前确认 / 当前面试规划 |
 | 无 sessionId 打开报告 | 显示缺失会话状态，返回当前面试规划或历史列表 |
 | 报告生成失败 | 显示失败重试状态，不展示假分数或假证据 |

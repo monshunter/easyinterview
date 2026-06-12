@@ -23,11 +23,11 @@ const UserProfileScreen = ({ T, lang, nav }) => {
 
   return (
     <div className="ei-fadein" style={{ maxWidth: 1280, margin: "0 auto", padding: "42px 48px 96px" }}>
-      <button onClick={() => nav("jd_match")} style={{
+      <button onClick={() => nav("home")} style={{
         background: "transparent", border: "none", color: T.ink3, fontSize: 13,
         display: "inline-flex", alignItems: "center", gap: 6, padding: 0, marginBottom: 24,
       }}>
-        <Icon name="arrow_left" size={13} /> {lang === "en" ? "Back to job picks" : "返回岗位推荐"}
+        <Icon name="arrow_left" size={13} /> {lang === "en" ? "Back home" : "返回首页"}
       </button>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.15fr 0.85fr", gap: 32, alignItems: "end", marginBottom: 28 }}>
@@ -139,8 +139,8 @@ const UserProfileScreen = ({ T, lang, nav }) => {
               </div>
               <div style={{ fontSize: 13, color: T.ink3, lineHeight: 1.65 }}>
                 {lang === "en"
-                  ? "When you correct a field, the system keeps the original evidence, stores the correction as a higher-priority layer, and uses it in job matching, mock interview planning, and debrief analysis."
-                  : "用户修正不会删除原始证据，而是作为更高优先级的一层覆盖推断结果。岗位推荐、模拟面试规划和复盘分析都会优先读取这层修正。"}
+                  ? "When you correct a field, the system keeps the original evidence, stores the correction as a higher-priority layer, and uses it in mock interview planning, report rubrics, and debrief analysis."
+                  : "用户修正不会删除原始证据，而是作为更高优先级的一层覆盖推断结果。模拟面试规划、报告分析维度和复盘分析都会优先读取这层修正。"}
               </div>
             </Card>
           </div>
@@ -257,7 +257,6 @@ const getUserProfileData = (lang) => ({
     { label: lang === "en" ? "Debriefs" : "复盘", count: 2 },
   ],
   usage: [
-    { label: lang === "en" ? "Job recommendations" : "岗位推荐", on: true },
     { label: lang === "en" ? "Mock interview planning" : "模拟面试规划", on: true },
     { label: lang === "en" ? "Report rubrics" : "报告分析维度", on: true },
     { label: lang === "en" ? "Public sharing" : "公开分享", on: false },
@@ -296,16 +295,16 @@ const getUserProfileData = (lang) => ({
           value: lang === "en" ? "Hybrid is acceptable. Full on-site roles should be treated as a trade-off unless compensation or scope is unusually strong." : "接受混合办公；全职到岗岗位默认应作为取舍项，除非薪资或职责范围明显更强。",
           confidence: lang === "en" ? "USER SIGNAL" : "用户信号",
           confidenceTone: "accent",
-          source: lang === "en" ? "from saved searches" : "来自保存搜索",
+          source: lang === "en" ? "from user corrections" : "来自用户修正",
         },
         {
           id: "comp-floor",
           kicker: lang === "en" ? "COMPENSATION" : "薪资约束",
           title: lang === "en" ? "¥50K floor · equity friendly" : "底线 5 万/月 · 接受期权",
-          value: lang === "en" ? "Recommendations below the floor should be downgraded unless they offer exceptional scope, remote flexibility, or strong strategic upside." : "低于底线的岗位应被降权，除非职责范围、远程灵活性或战略机会明显更强。",
+          value: lang === "en" ? "Roles below the floor should be treated as trade-offs unless they offer exceptional scope, remote flexibility, or strong strategic upside." : "低于底线的岗位默认视为取舍项，除非职责范围、远程灵活性或战略机会明显更强。",
           confidence: lang === "en" ? "MEDIUM" : "中置信",
           confidenceTone: "amber",
-          source: lang === "en" ? "from JD watchlist" : "来自关注岗位",
+          source: lang === "en" ? "from imported JDs" : "来自导入的 JD",
         },
       ],
     },
@@ -339,7 +338,7 @@ const getUserProfileData = (lang) => ({
           id: "a11y",
           kicker: "a11y",
           title: lang === "en" ? "Useful differentiator, not core identity" : "可作为差异化，不是主身份",
-          value: lang === "en" ? "Accessibility is a useful matching boost for platform roles, but the profile should not over-index on it unless the JD names it." : "可访问性可作为平台岗位的加分项，但除非 JD 明确要求，否则不应成为推荐排序的主权重。",
+          value: lang === "en" ? "Accessibility is a useful matching boost for platform roles, but the profile should not over-index on it unless the JD names it." : "可访问性可作为平台岗位的加分项，但除非 JD 明确要求，否则不应成为匹配判断的主权重。",
           confidence: lang === "en" ? "MEDIUM" : "中置信",
           confidenceTone: "amber",
           source: lang === "en" ? "from JD matching history" : "来自 JD 匹配历史",

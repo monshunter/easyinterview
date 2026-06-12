@@ -3,14 +3,14 @@ const WorkspaceScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
   const D = window.EI_DATA;
   const initialContext = window.eiCreateInterviewContext ? window.eiCreateInterviewContext(params) : params;
   const [activeJobId, setActiveJobId] = React.useState(initialContext.targetJobId || initialContext.jobId);
-  const [selectedResumeId, setSelectedResumeId] = React.useState(initialContext.resumeVersionId || "frontend-v3");
+  const [selectedResumeId, setSelectedResumeId] = React.useState(initialContext.resumeId || "frontend-v3");
   const [resumePickerOpen, setResumePickerOpen] = React.useState(false);
   const [plannerOpen, setPlannerOpen] = React.useState(false);
   React.useEffect(() => {
     const nextJobId = params.targetJobId || params.jobId;
     if (nextJobId) setActiveJobId(nextJobId);
-    if (params.resumeVersionId) setSelectedResumeId(params.resumeVersionId);
-  }, [params.targetJobId, params.jobId, params.resumeVersionId]);
+    if (params.resumeId) setSelectedResumeId(params.resumeId);
+  }, [params.targetJobId, params.jobId, params.resumeId]);
 
   const jobs = D.targetJobs || [];
   const resumeOptions = getWorkspaceResumeOptions(lang);
@@ -199,8 +199,8 @@ const WorkspaceScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 24 }}>
         {/* left column */}
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          {/* company intel — embed */}
-          <CompanyIntelEmbed T={T} lang={lang} nav={nav} job={job} context={interviewContext} />
+          {/* company intel — embed (sole intel surface, D-18) */}
+          <CompanyIntelEmbed T={T} lang={lang} job={job} />
 
           {/* requirements */}
           <Card T={T} pad={0}>
@@ -340,7 +340,7 @@ const createWorkspaceInterviewContext = (plan, job, jd, round, resume, params = 
     targetJobId,
     jobId: targetJobId,
     jdId: plan?.jdId || (targetJobId ? `jd-${targetJobId}` : undefined),
-    resumeVersionId: resume?.id || params.resumeVersionId,
+    resumeId: resume?.id || params.resumeId,
     roundId,
     roundName: round?.name || plan?.round || params.roundName,
   };
@@ -360,38 +360,38 @@ const getWorkspaceResumeOptions = (lang) => lang === "en" ? [
   {
     id: "frontend-v3",
     name: "Liu Zhe · Frontend Platform v3",
-    meta: "Master version · 78% match · source: Liu-Zhe-Frontend-2026.pdf",
+    meta: "78% match · source: Liu-Zhe-Frontend-2026.pdf",
     note: "Highlights React depth, performance work, accessibility, and platform experience.",
   },
   {
     id: "impact-v2",
     name: "Liu Zhe · Collaboration Impact v2",
-    meta: "Generated from guided resume Q&A · 2026-04-18",
+    meta: "Created from pasted text · 2026-04-18",
     note: "Highlights cross-team influence, Design System rollout, and mentoring examples.",
   },
   {
     id: "english-v1",
     name: "Liu Zhe · Frontend Platform EN v1",
-    meta: "English version · source retained from original upload",
+    meta: "English resume · source retained from original upload",
     note: "Used for English HR screens and overseas platform roles.",
   },
 ] : [
   {
     id: "frontend-v3",
     name: "刘哲 · 前端平台版 v3",
-    meta: "主版本 · 匹配 78% · 原件：刘哲-前端-2026.pdf",
+    meta: "匹配 78% · 原件：刘哲-前端-2026.pdf",
     note: "突出 React 深度、性能优化、可访问性与平台工程经验。",
   },
   {
     id: "impact-v2",
     name: "刘哲 · 协作影响力版 v2",
-    meta: "由简历问答生成 · 2026-04-18",
+    meta: "粘贴文本创建 · 2026-04-18",
     note: "突出跨团队推动、Design System 落地和新人带教案例。",
   },
   {
     id: "english-v1",
     name: "Liu Zhe · Frontend Platform EN v1",
-    meta: "英文版 · 保留上传原件来源",
+    meta: "英文简历 · 保留上传原件来源",
     note: "用于英文 HR 初筛和海外平台类岗位。",
   },
 ];
@@ -527,7 +527,7 @@ const ResumePickerModal = ({ T, lang, resumes, selectedId, onClose, onConfirm })
               {lang === "en" ? "Choose the resume for this mock interview" : "选择这场模拟面试使用的简历"}
             </div>
             <div style={{ fontSize: 13, color: T.ink3, marginTop: 6, lineHeight: 1.6 }}>
-              {lang === "en" ? "Each uploaded or guided resume keeps a name, version, source, and original content." : "上传或引导生成的简历都会保留名称、版本、来源和原始内容。"}
+              {lang === "en" ? "Each resume keeps a name, source, and original content." : "每份简历都会保留名称、来源和原始内容。"}
             </div>
           </div>
           <button onClick={onClose} style={{ background: "transparent", border: "none", color: T.ink3, cursor: "pointer", padding: 4 }}>

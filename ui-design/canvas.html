@@ -20,23 +20,22 @@
 
 <script type="text/babel">
   const ART_W = 1280, ART_H = 860, FRAME_W = 420;
-  const UI_VERSION = "20260502-voice-debrief-conv";
+  const UI_VERSION = "20260612-mvp-trim";
   const FRAME_H = Math.round(ART_H * FRAME_W / ART_W);
-  const Screen = ({ route, jobId = "tj-1", mode, sessionId, dark, lang = "zh", theme, customAccent, fontPreset, role, practiceMode, debriefInputMode, debriefVoiceState }) => {
+  const Screen = ({ route, jobId = "tj-1", mode, sessionId, dark, lang = "zh", theme, fontPreset, role, practiceMode, debriefInputMode, debriefVoiceState }) => {
     const params = new URLSearchParams();
     params.set("route", route); params.set("nochrome", "0"); params.set("lang", lang);
     if (jobId) params.set("jobId", jobId);
     if (jobId) params.set("targetJobId", jobId);
     if (jobId) params.set("planId", `plan-${jobId}`);
     if (jobId) params.set("jdId", `jd-${jobId}`);
-    params.set("resumeVersionId", "frontend-v3");
+    params.set("resumeId", "frontend-v3");
     params.set("roundId", "round-manager");
     params.set("roundName", lang === "en" ? "Manager round" : "经理面");
     if (sessionId || ["practice", "voice", "generating", "report"].includes(route)) params.set("sessionId", sessionId || "session-24");
     if (mode) params.set("mode", mode);
     if (dark) params.set("dark", "1");
     if (theme) params.set("theme", theme);
-    if (customAccent) params.set("customAccent", `${customAccent.h},${customAccent.c}`);
     if (fontPreset) params.set("fontPreset", fontPreset);
     if (role) params.set("role", role);
     if (practiceMode) params.set("practiceMode", practiceMode);
@@ -57,12 +56,6 @@
         <DCArtboard id="ws" label="02 · 模拟面试规划" width={FRAME_W} height={FRAME_H}><Screen route="workspace" /></DCArtboard>
         <DCArtboard id="practice" label="03 · 模拟面试进行中" width={FRAME_W} height={FRAME_H}><PracticeScreen mode="core" /></DCArtboard>
         <DCArtboard id="report" label="04 · 证据化报告仪表盘" width={FRAME_W} height={FRAME_H}><Screen route="report" /></DCArtboard>
-      </DCSection>
-      <DCSection id="jd-match" title="JD 智能匹配 · 联网搜索代理" subtitle="按用户画像扫描市场">
-        <DCArtboard id="jdm-recommend" label="为你推荐 · 匹配评分" width={FRAME_W} height={FRAME_H}><Screen route="jd_match" /></DCArtboard>
-        <DCArtboard id="jdm-recommend-dark" label="为你推荐 · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="jd_match" dark /></DCArtboard>
-        <DCArtboard id="jdm-en" label="Recommended · English" width={FRAME_W} height={FRAME_H}><Screen route="jd_match" lang="en" /></DCArtboard>
-        <DCArtboard id="company-intel" label="公司情报 · Company Intel" width={FRAME_W} height={FRAME_H}><Screen route="company_intel" /></DCArtboard>
       </DCSection>
       <DCSection id="auth" title="账户体系 · 登录 / 验证 / 首次资料补全" subtitle="M0 入口">
         <DCArtboard id="auth-login" label="登录 · 邮箱验证码" width={FRAME_W} height={FRAME_H}><Screen route="auth_login" /></DCArtboard>
@@ -91,7 +84,7 @@
       </DCSection>
       <DCSection id="p1-depth" title="P1 深度 · 复盘 / 简历" subtitle="文本与语音是同一份记录的两种添加方式 · 顶部汇总条始终可见 · 模式切换不丢数据">
         <DCArtboard id="debrief" label="复盘 · 文本添加（默认）" width={FRAME_W} height={FRAME_H}><Screen route="debrief" /></DCArtboard>
-        <DCArtboard id="resume-versions" label="简历多版本 · bullet diff" width={FRAME_W} height={FRAME_H}><Screen route="resume_versions" /></DCArtboard>
+        <DCArtboard id="resume-versions" label="简历工坊 · 平铺列表" width={FRAME_W} height={FRAME_H}><Screen route="resume_versions" /></DCArtboard>
       </DCSection>
       <DCSection id="p1-voice-debrief" title="P1 · 复盘语音模式" subtitle="AI 持续监听 + 双向语音对话 · 无需手动点录 · [空格] 暂停 · 实时提取卡片 · 支持手动加一条">
         <DCArtboard id="debrief-voice-intro" label="语音复盘 · 开始引导" width={FRAME_W} height={FRAME_H}><Screen route="debrief" debriefInputMode="voice" /></DCArtboard>
@@ -109,11 +102,6 @@
         <DCArtboard id="theme-ocean-dark" label="Ocean · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="ocean" dark /></DCArtboard>
         <DCArtboard id="theme-plum-dark" label="Plum · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="plum" dark /></DCArtboard>
       </DCSection>
-      <DCSection id="custom-accent" title="自定义 accent · 任意色相 × 任意饱和度" subtitle="OKLch 取色器">
-        <DCArtboard id="custom-orange" label="Custom · 橙金 (h=50)" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="warm" customAccent={{ h: 50, c: 0.18 }} /></DCArtboard>
-        <DCArtboard id="custom-teal" label="Custom · 青苔 (h=180)" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="forest" customAccent={{ h: 180, c: 0.14 }} /></DCArtboard>
-        <DCArtboard id="custom-violet" label="Custom · 紫罗兰 (h=290)" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="ocean" customAccent={{ h: 290, c: 0.20 }} /></DCArtboard>
-      </DCSection>
       <DCSection id="font-presets" title="字体预设 · 编辑级 / 现代 / 杂志">
         <DCArtboard id="font-editorial" label="编辑级 · Noto Serif SC + Inter" width={FRAME_W} height={FRAME_H}><Screen route="report" fontPreset="editorial" /></DCArtboard>
         <DCArtboard id="font-modern" label="现代 · Source Serif Pro + Geist" width={FRAME_W} height={FRAME_H}><Screen route="report" fontPreset="modern" /></DCArtboard>
@@ -125,7 +113,7 @@
         <DCArtboard id="manager" label="用人经理" width={FRAME_W} height={FRAME_H}><PracticeScreen role="manager" /></DCArtboard>
       </DCSection>
       <DCPostIt top={-28} left={60} rotate={-3} width={220}>提示：点击任一画板右上角 ⤢ 展开 → 可按 ← → 翻页、Esc 退出。</DCPostIt>
-      <DCPostIt top={330} right={60} rotate={2.5} width={210}>所有画板都是真实 iframe（loading=lazy）。Tweaks 改完主题、字体、accent，这里会同步更新。</DCPostIt>
+      <DCPostIt top={330} right={60} rotate={2.5} width={210}>所有画板都是真实 iframe（loading=lazy）。Tweaks 改完主题、字体，这里会同步更新。</DCPostIt>
     </DesignCanvas>
   );
   ReactDOM.createRoot(document.getElementById("root")).render(<App />);

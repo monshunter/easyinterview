@@ -75,7 +75,7 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
   const PARSE_ROUND_IDS = ["round-hr", "round-tech-1", "round-tech-2", "round-manager"];
   const buildParseInterviewContext = () => {
     const base = {
-      resumeVersionId: selectedResumeId,
+      resumeId: selectedResumeId,
       roundId: PARSE_ROUND_IDS[currentRoundIdx] || "round-hr",
       roundName: parsed.rounds[currentRoundIdx]?.r,
     };
@@ -479,8 +479,8 @@ const SettingsScreen = ({ T, lang, nav, fontPreset, setFontPreset }) => {
   const [tab, setTab] = React.useState("profile");
 
   const tabs = lang === "en"
-    ? [{ k: "profile", t: "Profile" }, { k: "privacy", t: "Privacy & data" }, { k: "notifications", t: "Notifications" }, { k: "billing", t: "Billing" }]
-    : [{ k: "profile", t: "个人资料" }, { k: "privacy", t: "隐私与数据" }, { k: "notifications", t: "通知" }, { k: "billing", t: "订阅" }];
+    ? [{ k: "profile", t: "Profile" }, { k: "privacy", t: "Privacy & data" }]
+    : [{ k: "profile", t: "个人资料" }, { k: "privacy", t: "隐私与数据" }];
 
   return (
     <div className="ei-fadein" style={{ maxWidth: 1040, margin: "0 auto", padding: "40px 48px 96px" }}>
@@ -509,8 +509,6 @@ const SettingsScreen = ({ T, lang, nav, fontPreset, setFontPreset }) => {
         <div>
           {tab === "privacy" && <SettingsPrivacy T={T} lang={lang} />}
           {tab === "profile" && <SettingsProfile T={T} lang={lang} fontPreset={fontPreset} setFontPreset={setFontPreset} />}
-          {tab === "notifications" && <SettingsNotif T={T} lang={lang} />}
-          {tab === "billing" && <SettingsBilling T={T} lang={lang} />}
         </div>
       </div>
     </div>
@@ -730,21 +728,6 @@ const SettingsProfile = ({ T, lang, fontPreset, setFontPreset }) => {
     </div>
   );
 };
-
-const SettingsNotif = ({ T, lang }) => (
-  <div style={{ fontSize: 14, color: T.ink3, padding: 24, background: T.bgSoft, borderRadius: 2 }}>
-    {lang === "en" ? "Report ready notifications, practice reminders, and weekly readiness summaries — coming in P1." : "报告就绪通知、练习提醒、每周准备度摘要——P1 上线。"}
-  </div>
-);
-
-const SettingsBilling = ({ T, lang }) => (
-  <div style={{ padding: "24px 28px", background: T.accentSoft, borderRadius: 2 }}>
-    <div className="ei-label" style={{ color: T.accent, marginBottom: 8 }}>{lang === "en" ? "CURRENT PLAN" : "当前套餐"}</div>
-    <div className="ei-serif" style={{ fontSize: 24, color: T.ink, marginBottom: 6, letterSpacing: "-0.015em" }}>{lang === "en" ? "Free · 2 JD parses / month" : "免费版 · 每月 2 次 JD 解析"}</div>
-    <div style={{ fontSize: 13, color: T.ink3, marginBottom: 16 }}>{lang === "en" ? "Upgrade for unlimited practice, debrief, and deeper evidence review." : "升级解锁无限练习、复盘和更完整的证据复盘。"}</div>
-    <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => window.eiToast && window.eiToast(lang === "en" ? "Plans page lands in P1 · pricing TBD" : "套餐页 P1 上线 · 定价待定", { tone: "neutral" })}>{lang === "en" ? "See plans" : "查看套餐"}</Btn>
-  </div>
-);
 
 window.ParseScreen = ParseScreen;
 window.ReportGeneratingScreen = ReportGeneratingScreen;

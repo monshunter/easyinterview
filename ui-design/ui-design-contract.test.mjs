@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { readdirSync, readFileSync } from "node:fs";
 import test from "node:test";
 
@@ -45,13 +46,28 @@ test("current UI source does not expose removed inbox wording", () => {
   }
 });
 
-test("resume workshop opens targeted versions on rewrite decisions", () => {
+test("resume workshop is a flat list without version-tree concepts", () => {
   const resume = readUiFile("./src/screen-resume-workshop.jsx");
 
-  assert.match(resume, /const resumeDefaultTab = \(version\) => version && version\.tag === "TARGETED" \? "rewrites" : "preview";/);
-  assert.match(resume, /const openVersion = \(v, tab = resumeDefaultTab\(v\)\) => nav\("resume_versions", \{ versionId: v\.id, tab \}\);/);
-  assert.match(resume, /onClick=\{\(\) => onOpen\(v\)\}/);
-  assert.doesNotMatch(resume, /onOpen\(v, "preview"\)/);
+  assert.match(resume, /const ResumeListView = /);
+  assert.match(resume, /const openResume = \(r, tab = "preview"\) => nav\("resume_versions", \{ resumeId: r\.id, tab \}\);/);
+  assert.doesNotMatch(resume, /ResumeTreeView|ResumeBranchFlow|ResumeBranchMap/);
+  assert.doesNotMatch(resume, /"MASTER"|"TARGETED"|主版本|岗位定制|选为底稿|分叉/);
+  assert.doesNotMatch(resume, /createMode === "guided"|轻量问答|guideSteps|guideAnswers/);
+  assert.doesNotMatch(resume, /versionType|parentVersionId|originalId/);
+});
+
+test("resume rewrites are accept-only and save via overwrite-or-new confirm preview", () => {
+  const resume = readUiFile("./src/screen-resume-workshop.jsx");
+
+  assert.match(resume, /const acceptBullet = \(id\) => \{/);
+  assert.match(resume, /const RewriteSaveConfirmModal = /);
+  assert.match(resume, /覆盖原简历/);
+  assert.match(resume, /保存为新简历/);
+  assert.match(resume, /onConfirm\(mode\)/);
+  assert.match(resume, /saveRewriteResult/);
+  assert.doesNotMatch(resume, /"rejected"|已拒绝|拒绝/);
+  assert.doesNotMatch(resume, /保存人工改写|Save manual edit/);
 });
 
 test("resume workshop source preview and export controls are wired", () => {
@@ -67,16 +83,14 @@ test("resume workshop source preview and export controls are wired", () => {
   assert.match(resume, /icon="download" onClick=\{exportPdf\}/);
 });
 
-test("resume workshop create actions mutate local prototype data", () => {
+test("resume workshop create flow keeps upload/paste only and mutates local data", () => {
   const resume = readUiFile("./src/screen-resume-workshop.jsx");
 
-  assert.match(resume, /const \[createdOriginals, setCreatedOriginals\] = React\.useState\(\[\]\);/);
-  assert.match(resume, /const \[createdVersions, setCreatedVersions\] = React\.useState\(\[\]\);/);
-  assert.match(resume, /setCreatedOriginals\(\(prev\) => \[\.\.\.prev, original\]\);/);
-  assert.match(resume, /setCreatedVersions\(\(prev\) => \[\.\.\.prev, created\]\);/);
-  assert.match(resume, /onCreateVersion=\{\(draft\) => addTargetedVersion\(sourceOriginal, sourceMaster, draft\)\}/);
-  assert.match(resume, /onConfirm=\{\(label\) => onCreateOriginal \? onCreateOriginal\(label\) : onBack\(\)\}/);
-  assert.match(resume, /onClick=\{createVersion\}/);
+  assert.match(resume, /const \[createdResumes, setCreatedResumes\] = React\.useState\(\[\]\);/);
+  assert.match(resume, /setCreatedResumes\(\(prev\) => \[\.\.\.prev, resume\]\);/);
+  assert.match(resume, /onConfirm=\{\(label\) => onCreateResume \? onCreateResume\(label\) : onBack\(\)\}/);
+  assert.match(resume, /\{ k: "upload", icon: "upload"/);
+  assert.match(resume, /\{ k: "paste", icon: "file"/);
 });
 
 test("P0 context routes use InterviewContext instead of fixed tj-1 nav payloads", () => {
@@ -100,8 +114,11 @@ test("P0 context routes use InterviewContext instead of fixed tj-1 nav payloads"
   assert.match(workspace, /planId/);
   assert.match(workspace, /targetJobId/);
   assert.match(workspace, /jdId/);
-  assert.match(workspace, /resumeVersionId/);
+  assert.match(workspace, /resumeId/);
   assert.match(workspace, /roundId/);
+  for (const [name, source] of readUiSources()) {
+    assert.doesNotMatch(source, /resumeVersionId/, `${name} still uses the retired resumeVersionId context key`);
+  }
 });
 
 test("P0 report requires sessionId and separates replay from next-round payloads", () => {
@@ -134,6 +151,22 @@ test("P0 report replay and next-round CTAs start interview sessions directly", (
   assert.doesNotMatch(report, /`session-\$\{params\.planId\}-\$\{nextRoundId\}-prep`/);
 });
 
+test("report CTA pair lives only in the header (D-19)", () => {
+  const report = readUiFile("./src/screen-report.jsx");
+
+  assert.match(report, /const goReplay = /);
+  assert.match(report, /const goNextRound = /);
+  // Detail surface no longer receives session-start callbacks.
+  assert.doesNotMatch(report, /onReplay|onNextRound/);
+  // Question review marks items for the replay plan instead of starting a session.
+  assert.match(report, /const \[replayQueued, setReplayQueued\] = React\.useState\(\{\}\);/);
+  assert.match(report, /已加入本轮复练/);
+  // The next-plan tab points back to the header CTA instead of duplicating it.
+  assert.match(report, /开练入口在页面顶部/);
+  // Former dead components stay deleted.
+  assert.doesNotMatch(report, /IssueRow|PerQBlock|KVInline/);
+});
+
 test("current UI source does not expose removed mistakes/growth/drill product surfaces", () => {
   const report = readUiFile("./src/screen-report.jsx");
   const settings = readUiFile("./src/screens-p0-complete.jsx");
@@ -159,15 +192,66 @@ test("P0 auth success resumes the pending action instead of always returning hom
   assert.doesNotMatch(auth, /nav\("auth_register"/);
 });
 
-test("P0 company intel copy uses compliant public-signal wording", () => {
-  const jdMatch = readUiFile("./src/screen-jd-match.jsx");
-  const companyIntel = readUiFile("./src/screen-company-intel.jsx");
+test("job picks module is fully removed and jd_match aliases back home (D-17)", () => {
+  const app = readUiFile("./src/app.jsx");
 
-  assert.doesNotMatch(jdMatch, /抓到\s*\$\{job\.similarInterviewers\}\s*位面试官公开信息/);
-  assert.doesNotMatch(jdMatch, /interviewer profiles surfaced from public sources/);
-  assert.match(jdMatch, /公开面经\s*\/\s*JD\s*\/\s*公司资料信号/);
-  assert.match(jdMatch, /public interview-review, JD, and company-source signals/);
-  assert.doesNotMatch(companyIntel, /nav\("workspace",\s*\{\s*jobId:\s*"tj-1"\s*\}\)/);
+  assert.ok(!existsSync(new URL("./src/screen-jd-match.jsx", import.meta.url)), "screen-jd-match.jsx must stay deleted");
+  assert.match(app, /jd_match:\s*"home"/);
+  assert.doesNotMatch(app, /jd_match:\s*</);
+  for (const [name, source] of readUiSources()) {
+    assert.doesNotMatch(source, /JDMatchScreen|岗位推荐|Job Picks|Job picks|job recommendations/, `${name} still references the removed job picks module`);
+    if (name !== "app.jsx") {
+      assert.doesNotMatch(source, /jd_match/, `${name} still references the removed jd_match route`);
+    }
+  }
+});
+
+test("company intel keeps only the workspace embed (D-18)", () => {
+  const app = readUiFile("./src/app.jsx");
+  const intel = readUiFile("./src/screen-company-intel.jsx");
+  const workspace = readUiFile("./src/screen-workspace.jsx");
+
+  assert.match(app, /company_intel:\s*"workspace"/);
+  assert.doesNotMatch(app, /company_intel:\s*</);
+  assert.match(intel, /const CompanyIntelEmbed = /);
+  assert.doesNotMatch(intel, /CompanyIntelScreen|CompanyIntelBody|打开情报|Open intel/);
+  assert.match(workspace, /<CompanyIntelEmbed T=\{T\} lang=\{lang\} job=\{job\} \/>/);
+  for (const [name, source] of readUiSources()) {
+    if (name !== "app.jsx") {
+      assert.doesNotMatch(source, /nav\("company_intel"/, `${name} still navigates to the removed company_intel route`);
+    }
+  }
+});
+
+test("settings keeps only profile and privacy tabs (D-21)", () => {
+  const p0 = readUiFile("./src/screens-p0-complete.jsx");
+
+  assert.match(p0, /\{ k: "profile", t: "个人资料" \}, \{ k: "privacy", t: "隐私与数据" \}/);
+  assert.doesNotMatch(p0, /SettingsNotif|SettingsBilling|"notifications"|"billing"|订阅/);
+});
+
+test("theme menu keeps four presets without a custom accent picker (D-21)", () => {
+  const app = readUiFile("./src/app.jsx");
+  const canvas = readUiFile("./canvas.html");
+
+  assert.doesNotMatch(app, /customAccent|AccentPicker|CUSTOM_ACCENT_SEEDS|自定义/);
+  assert.doesNotMatch(canvas, /customAccent|custom-accent/);
+});
+
+test("home keeps debrief as the only auxiliary entry", () => {
+  const home = readUiFile("./src/screen-home.jsx");
+
+  assert.match(home, /POST-INTERVIEW/);
+  assert.match(home, /nav\("debrief"\)/);
+  assert.doesNotMatch(home, /JOB PICKS|jobPicks/);
+});
+
+test("profile page backs to home and drops recommendation usage", () => {
+  const profile = readUiFile("./src/screen-profile.jsx");
+
+  assert.match(profile, /nav\("home"\)/);
+  assert.match(profile, /模拟面试规划/);
+  assert.doesNotMatch(profile, /推荐排序|保存搜索|关注岗位|saved searches|JD watchlist/);
 });
 
 test("P0 empty and failure states avoid showing fake data", () => {
@@ -261,6 +345,12 @@ test("debrief no longer ships the unused thank-you letter draft", () => {
   for (const [name, source] of readUiSources()) {
     assert.doesNotMatch(source, /ThankYouLetter|感谢信/, `${name} still contains the removed thank-you letter draft`);
   }
+});
+
+test("legacy resume versions screen stays deleted", () => {
+  const depth = readUiFile("./src/screens-p1-depth.jsx");
+  assert.doesNotMatch(depth, /_LegacyResumeVersionsScreen|ResumeSourceMap/);
+  assert.doesNotMatch(depth, /const ResumeVersionsScreen = /);
 });
 
 test("voice interview only enters through explicit practice modality params", () => {

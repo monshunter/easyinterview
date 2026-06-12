@@ -10,7 +10,7 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [product-scope](./product-scope/spec.md) | 1.9 | active | 2026-06-12 | [plans](./product-scope/plans/) |
+| [product-scope](./product-scope/spec.md) | 2.0 | active | 2026-06-12 | [plans](./product-scope/plans/) |
 | [engineering-roadmap](./engineering-roadmap/spec.md) | 3.22 | active | 2026-05-28 | [plans](./engineering-roadmap/plans/) |
 | [historical-spec-implementation-review](./historical-spec-implementation-review/spec.md) | 1.0 | active | 2026-05-04 | [plans](./historical-spec-implementation-review/plans/) |
 

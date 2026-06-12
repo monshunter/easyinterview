@@ -1,168 +1,15 @@
-// Company Intel · 轻量岗位情报（spec P2 · 合规来源 · 强制标注抓取时间）
+// Company Intel · 轻量岗位情报嵌入卡片（D-18：独立详情页与 route 已删除，
+// 嵌入卡片是公司情报唯一呈现；仅合规公开来源，标注刷新时间）
 
-const CompanyIntelScreen = ({ T, lang, nav, params = {} }) => {
-  const intel = mockIntel(lang);
-  const context = window.eiCreateInterviewContext ? window.eiCreateInterviewContext(params) : params;
-  return (
-    <div className="ei-fadein" style={{ maxWidth: 1240, margin: "0 auto", padding: "40px 48px 96px" }}>
-      <div style={{ marginBottom: 24 }}>
-        <button onClick={() => nav("workspace", context)} style={{ background: "transparent", border: "none", color: T.ink3, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, padding: 0, marginBottom: 16 }}>
-          <Icon name="arrow_left" size={12} /> {lang === "en" ? "Back to interview setup" : "返回面试前确认"}
-        </button>
-        <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>
-          {lang === "en" ? "COMPANY INTEL · LIGHT-TOUCH · COMPLIANT SOURCES" : "公司情报 · 轻量版 · 仅合规公开来源"}
-        </div>
-        <h1 className="ei-serif" style={{ fontSize: 36, color: T.ink, margin: 0, letterSpacing: "-0.022em", lineHeight: 1.15 }}>
-          {intel.company}
-        </h1>
-        <div style={{ fontSize: 14, color: T.ink3, marginTop: 8 }}>
-          {intel.tagline}
-        </div>
-      </div>
-
-      <CompanyIntelBody T={T} lang={lang} intel={intel} />
-    </div>
-  );
-};
-
-const CompanyIntelBody = ({ T, lang, intel, compact = false }) => {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: compact ? "1fr" : "1.4fr 1fr", gap: 20 }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <Card T={T} pad={0}>
-          <div style={{ padding: "18px 22px", borderBottom: `1px solid ${T.rule}` }}>
-            <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "ONE-LINE PROFILE" : "一句话画像"}</div>
-            <div className="ei-serif" style={{ fontSize: 17, color: T.ink, lineHeight: 1.5, letterSpacing: "-0.005em" }}>
-              {intel.oneLiner}
-            </div>
-          </div>
-          <div style={{ padding: "14px 22px", display: "flex", gap: 18, flexWrap: "wrap", fontSize: 12.5, color: T.ink2 }}>
-            {intel.facts.map((f, i) => (
-              <div key={i}>
-                <span style={{ color: T.ink3, marginRight: 6 }}>{f.k}</span>
-                <span style={{ fontFamily: "var(--ei-mono)" }}>{f.v}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card T={T} pad={0}>
-          <div style={{ padding: "16px 22px", borderBottom: `1px dotted ${T.rule}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "RECENT PUBLIC SIGNALS · 90 DAYS" : "近 90 天公开动态"}</div>
-            <div style={{ fontSize: 11, color: T.ink3, fontFamily: "var(--ei-mono)" }}>{intel.signals.length} {lang === "en" ? "items" : "条"}</div>
-          </div>
-          {intel.signals.map((s, i) => (
-            <div key={i} style={{ padding: "14px 22px", borderBottom: i < intel.signals.length - 1 ? `1px dotted ${T.rule}` : "none", display: "flex", gap: 14 }}>
-              <div style={{ width: 72, flexShrink: 0, fontSize: 11, color: T.ink3, fontFamily: "var(--ei-mono)" }}>{s.date}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.45, marginBottom: 4 }}>{s.headline}</div>
-                <div style={{ fontSize: 11.5, color: T.ink3, fontFamily: "var(--ei-mono)" }}>
-                  <Tag T={T} tone={s.toneTag}>{s.kind}</Tag> · {s.source}
-                </div>
-              </div>
-            </div>
-          ))}
-        </Card>
-
-        <Card T={T} pad={0}>
-          <div style={{ padding: "16px 22px", borderBottom: `1px dotted ${T.rule}` }}>
-            <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "INTERVIEW STYLE HINTS · derived from public signals" : "面试风格提示 · 由公开信号推断"}</div>
-          </div>
-          <div style={{ padding: "16px 22px", display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 14 }}>
-            {intel.styleHints.map((h, i) => (
-              <div key={i} style={{ padding: "12px 14px", background: T.bgSoft, borderLeft: `2px solid ${T.accent}`, borderRadius: 2 }}>
-                <div style={{ fontSize: 12, color: T.ink3, fontFamily: "var(--ei-mono)", letterSpacing: "0.04em", marginBottom: 4 }}>{h.k}</div>
-                <div style={{ fontSize: 13, color: T.ink, lineHeight: 1.45 }}>{h.v}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ padding: "10px 22px 14px", fontSize: 11, color: T.ink3, fontFamily: "var(--ei-mono)", lineHeight: 1.5, fontStyle: "italic" }}>
-            {lang === "en"
-              ? "Generated from public sources only. Treat as orientation, not prediction."
-              : "仅基于公开来源推断。用作熟悉方向，不作预测结论。"}
-          </div>
-        </Card>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <Card T={T} pad={0}>
-          <div style={{ padding: "16px 20px", borderBottom: `1px dotted ${T.rule}` }}>
-            <div className="ei-label" style={{ color: T.accent }}>{lang === "en" ? "★ REVERSE-QUESTION SUGGESTIONS" : "★ 反问建议"}</div>
-            <div style={{ fontSize: 11.5, color: T.ink3, marginTop: 4 }}>
-              {lang === "en" ? "Anchored to specific public signals" : "每条都锚定具体公开信号"}
-            </div>
-          </div>
-          {intel.reverseQs.map((q, i) => (
-            <div key={i} style={{ padding: "14px 20px", borderBottom: i < intel.reverseQs.length - 1 ? `1px dotted ${T.rule}` : "none" }}>
-              <div className="ei-serif" style={{ fontSize: 14, color: T.ink, lineHeight: 1.45, letterSpacing: "-0.005em", marginBottom: 6 }}>
-                「{q.q}」
-              </div>
-              <div style={{ fontSize: 11.5, color: T.ink3, lineHeight: 1.5 }}>
-                <span style={{ color: T.ink2 }}>{lang === "en" ? "anchored to · " : "锚定 · "}</span>{q.anchor}
-              </div>
-            </div>
-          ))}
-        </Card>
-
-        <Card T={T} pad={0}>
-          <div style={{ padding: "16px 20px", borderBottom: `1px dotted ${T.rule}` }}>
-            <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "INTERNAL VOCABULARY" : "内部词汇"}</div>
-          </div>
-          {intel.glossary.map((g, i) => (
-            <div key={i} style={{ padding: "12px 20px", borderBottom: i < intel.glossary.length - 1 ? `1px dotted ${T.rule}` : "none", display: "flex", gap: 12 }}>
-              <div style={{ minWidth: 80, fontFamily: "var(--ei-mono)", fontSize: 12, color: T.accent }}>{g.term}</div>
-              <div style={{ fontSize: 12.5, color: T.ink2, lineHeight: 1.45 }}>{g.def}</div>
-            </div>
-          ))}
-        </Card>
-
-        <Card T={T} pad={0}>
-          <div style={{ padding: "14px 20px", borderBottom: `1px dotted ${T.rule}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "SOURCES & FRESHNESS" : "来源与抓取时间"}</div>
-            <span style={{ fontSize: 10.5, color: T.ok, fontFamily: "var(--ei-mono)" }}>
-              <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: 3, background: T.ok, marginRight: 5, verticalAlign: "middle" }} />
-              {lang === "en" ? "all compliant" : "全部合规"}
-            </span>
-          </div>
-          {intel.sources.map((s, i) => (
-            <div key={i} style={{ padding: "10px 20px", borderBottom: i < intel.sources.length - 1 ? `1px dotted ${T.rule}` : "none", display: "flex", justifyContent: "space-between", gap: 10 }}>
-              <div style={{ fontSize: 12, color: T.ink, fontFamily: "var(--ei-mono)" }}>{s.url}</div>
-              <div style={{ fontSize: 11, color: T.ink3, fontFamily: "var(--ei-mono)", flexShrink: 0 }}>{s.fetched}</div>
-            </div>
-          ))}
-          <div style={{ padding: "12px 20px", fontSize: 11, color: T.ink3, lineHeight: 1.5, fontStyle: "italic" }}>
-            {lang === "en"
-              ? "We do not aggregate employer reviews or score culture-fit. No private data, no scraping behind logins."
-              : "不做雇主评分聚合，不做文化契合度打分。不抓登录后内容、不使用私域数据。"}
-          </div>
-        </Card>
-
-        <div style={{ padding: "10px 14px", background: T.bgSoft, border: `1px dashed ${T.rule}`, borderRadius: 2, fontSize: 11.5, color: T.ink3, fontFamily: "var(--ei-mono)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span>{lang === "en" ? "auto-refresh every 24h · last 6h ago" : "每 24 小时自动刷新 · 最近 6 小时前"}</span>
-          <button style={{ background: "transparent", border: "none", color: T.accent, fontSize: 11.5, cursor: "pointer" }}>
-            {lang === "en" ? "refresh now" : "立即刷新"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const CompanyIntelEmbed = ({ T, lang, nav, job, context }) => {
+const CompanyIntelEmbed = ({ T, lang, job }) => {
   const intel = mockIntelForJob(lang, job);
-  const routeContext = window.eiCreateInterviewContext ? window.eiCreateInterviewContext(context || {}) : context;
   return (
     <div style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 2 }}>
-      <div style={{ padding: "16px 20px", borderBottom: `1px dotted ${T.rule}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14 }}>
-        <div style={{ flex: 1 }}>
-          <div className="ei-label" style={{ color: T.ink3, marginBottom: 6 }}>{lang === "en" ? "COMPANY INTEL · LIGHT" : "公司情报 · 轻量"}</div>
-          <div className="ei-serif" style={{ fontSize: 16, color: T.ink, lineHeight: 1.4, letterSpacing: "-0.005em" }}>
-            {intel.oneLiner}
-          </div>
+      <div style={{ padding: "16px 20px", borderBottom: `1px dotted ${T.rule}` }}>
+        <div className="ei-label" style={{ color: T.ink3, marginBottom: 6 }}>{lang === "en" ? "COMPANY INTEL · LIGHT" : "公司情报 · 轻量"}</div>
+        <div className="ei-serif" style={{ fontSize: 16, color: T.ink, lineHeight: 1.4, letterSpacing: "-0.005em" }}>
+          {intel.oneLiner}
         </div>
-        <button onClick={() => nav("company_intel", routeContext)} style={{ background: "transparent", border: `1px solid ${T.rule}`, padding: "5px 10px", borderRadius: 2, color: T.ink2, fontSize: 11.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-          {lang === "en" ? "Open intel" : "打开情报"} <Icon name="arrow_right" size={11} />
-        </button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
@@ -346,5 +193,4 @@ const mockIntel = (lang) => {
   };
 };
 
-window.CompanyIntelScreen = CompanyIntelScreen;
 window.CompanyIntelEmbed = CompanyIntelEmbed;

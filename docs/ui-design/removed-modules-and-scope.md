@@ -1,6 +1,6 @@
 # EasyInterview UI 移除模块与范围裁剪
 
-> **版本**: 2.5
+> **版本**: 2.6
 > **状态**: active
 > **更新日期**: 2026-06-12
 
@@ -29,14 +29,22 @@
 ├─ 独立刊物式报告页
 ├─ 首次导入链路中 parse 与 session 之间的第二个全页确认
 ├─ 独立重置登录页（auth_reset / 忘记密码 / 密码 / 两步验证口径）
-└─ 复盘感谢信草稿（ThankYouLetter 死代码）
+├─ 复盘感谢信草稿（ThankYouLetter 死代码）
+├─ 岗位推荐一级模块（jd_match / Job Picks · D-17）
+├─ 公司情报独立详情页（company_intel · D-18）
+├─ 报告内重复的复练 / 下一轮 CTA（D-19）
+├─ 简历版本树 / 主版本 / 岗位定制版本 / 分叉流程（D-20）
+├─ 简历轻量问答建档（D-20）
+├─ 简历改写建议的逐条拒绝 / 编辑（D-20）
+├─ 设置页通知 / 订阅占位 tab（D-21）
+└─ 主题自定义 accent（D-21）
 ```
 
 不移除但重新定义的能力：
 
 ```text
 保留但重新定义:
-├─ 岗位推荐 -> 一级导航 Job Picks
+├─ 公司情报 -> 模拟面试规划页嵌入卡片（唯一呈现）
 ├─ 语音 -> 面试形式: 语音面试
 ├─ 麦克风输入 -> 文本面试中的语音转文字
 ├─ 带提示练习 / 严格模拟 -> 面试会话内辅助程度开关
@@ -104,13 +112,13 @@ Experience Library
 
 ```text
 Resume
-└─ 简历原始内容 / 结构化主版本 / 岗位定制版本
+└─ 平铺简历资产（原始来源 / 解析文本快照 / 结构化内容）
 
 User Profile
 └─ 系统根据简历、JD、模拟面试、复盘沉淀经历证据
 ```
 
-旧 `screens-p1-depth.jsx::ResumeVersionsScreen` 中的单页版本工坊实现也不再作为目标入口。当前运行时由后加载的 `screen-resume-workshop.jsx` 覆盖 `window.ResumeVersionsScreen`；旧实现仅以 `_LegacyResumeVersionsScreen` dead code 形式保留，避免在本次简历 IA 调整中改动 1300 行历史文件。
+旧 `screens-p1-depth.jsx::ResumeVersionsScreen` 中的单页版本工坊实现已彻底删除（含曾以 `_LegacyResumeVersionsScreen` 形式保留的 dead code）；当前运行时由后加载的 `screen-resume-workshop.jsx` 覆盖 `window.ResumeVersionsScreen`，平铺简历工坊是唯一实现。
 
 ## 6 未登录落地页
 
@@ -296,7 +304,66 @@ ThankYouLetter
 └─ 死代码删除；不作为复盘或任何模块的目标能力恢复
 ```
 
-## 15 受影响页面
+## 15 第二批 MVP 裁剪（D-17 ~ D-21）
+
+### 15.1 岗位推荐一级模块
+
+岗位推荐（为你推荐 / 联网搜索 / 关注列表 / 画像摘要）整体超出 MVP 闭环：联网搜索 tab 依赖外部数据源接入与合规边界，推荐排序依赖画像置信度，均不增强“带着 JD 来 -> 完成一轮有效练习”的最短路径。
+
+```text
+Job Picks / jd_match
+└─ 模块、route、导航项、首页辅助入口、画板帧全部删除
+   ├─ 旧 jd_match hash 归一回 home
+   ├─ JD 获取唯一入口：首页粘贴 / 上传 / URL 导入
+   └─ 画像呈现只保留用户菜单的用户画像页（消除画像双呈现）
+```
+
+### 15.2 公司情报独立详情页
+
+`company_intel` 独立页在 MVP 阶段属于提前占位：轻量情报的全部用户价值（一句话画像、近期信号、反问建议、合规来源说明）已由模拟面试规划页嵌入卡片承载。
+
+```text
+company_intel
+└─ 独立详情页与 route 删除；旧 hash 归一回 workspace
+   └─ 嵌入卡片是公司情报唯一呈现
+```
+
+### 15.3 报告 CTA 三处重复
+
+旧报告页在 Header、复练计划详情和题目回顾三处出现可开启 session 的 CTA，且题目回顾的`加入本轮复练`按钮实际直接开练，语义错位。
+
+```text
+报告 CTA
+└─ 收敛为 Header 一对 CTA（复练当前轮 / 进入下一轮）
+   ├─ 复练计划详情只保留路径说明与复练清单
+   └─ 题目回顾的加入本轮复练改为计划标记动作
+```
+
+### 15.4 简历版本树与轻量问答
+
+版本树 / 主版本 / 岗位定制版本 / 分叉是版本管理系统，不是 MVP 简历资产的必要实体；轻量问答建档与上传 / 粘贴重复。
+
+```text
+简历模块
+├─ 列表收敛为平铺简历列表
+├─ 创建只保留上传 / 粘贴
+├─ 改写建议每条仅采纳（默认不动作，无逐条拒绝 / 编辑）
+└─ 采纳后确认前预览 -> 覆盖原简历 / 保存为新简历
+```
+
+### 15.5 设置占位 tab 与主题自定义 accent
+
+`通知`、`订阅` 两个 P1 占位 tab 没有当前用户价值；自定义 accent 的色相 / 饱和度滑杆属于过度配置。
+
+```text
+Settings
+└─ 只保留 个人资料 / 隐私与数据 两个 tab
+
+Theme menu
+└─ 只保留 暖陶 / 苔林 / 深海 / 梅子 + 暗色模式
+```
+
+## 16 受影响页面
 
 | 当前页面 | 目标处理 |
 |----------|----------|
@@ -313,14 +380,15 @@ ThankYouLetter
 | `drill` | 移除独立单题 Drill；运行时折回 `practice` |
 | `voice` | route alias 已删除；语音面试形式保留在 `practice?mode=voice&modality=voice`，不保留独立页面骨架 |
 | `report` | 保留为 session-scoped 仪表盘报告 |
-| `resume_versions` | 保留为一级简历模块当前入口 |
-| `jd_match` | 保留为一级岗位推荐 |
+| `resume_versions` | 保留为一级简历模块当前入口（平铺简历工坊） |
+| `jd_match` | 移除岗位推荐一级模块（D-17）；运行时折回 `home` |
+| `company_intel` | 移除独立情报详情页（D-18）；运行时折回 `workspace`，嵌入卡片保留在规划页 |
 | `profile` | 保留为用户菜单里的用户画像 |
-| `settings` | 保留为用户菜单里的账号、隐私、界面偏好入口 |
+| `settings` | 保留为用户菜单里的账号、隐私、界面偏好入口（仅个人资料 / 隐私与数据两个 tab） |
 | `auth_reset` | 移除独立重置登录页；运行时折回 `auth_login`，验证码重发与更换邮箱由 `auth_verify` 承担 |
 | `auth_login` / `auth_verify` / `auth_profile_setup` / `auth_logout` | 保留为认证流程页面 |
 
-## 16 当前静态 UI 中已清理或失效的废弃 / 历史代码
+## 17 当前静态 UI 中已清理或失效的废弃 / 历史代码
 
 以下清单用于约束后续文档和实现判断：这些组件、画板入口或旧实现已从当前目标运行时清理 / 归一 / dead code 化，后续不得作为目标页面恢复。当前目标以顶部导航、`ROUTE_ALIASES` 归一后的 `activeRouteName`、实际渲染内容和后加载覆盖关系为准；`voice` 不经过 `ROUTE_ALIASES`，必须使用 `practice` 显式参数。
 
@@ -333,7 +401,7 @@ ThankYouLetter
 | `screens-rest.jsx::GrowthScreen` | `growth` | 文件已删除；route 折回 `home` | 废弃独立成长中心 |
 | `screens-p2.jsx::PlanScreen` | `plan` | 文件已删除；route 折回 `workspace` | 废弃独立多轮计划页；`workspace` 内的轮次节点仍保留 |
 | `screens-p1-depth.jsx::ExperienceLibraryScreen` | `experiences` | 组件已删除；route 折回 `resume_versions` | 废弃独立经历库 |
-| `screens-p1-depth.jsx::ResumeVersionsScreen` | `resume_versions` 旧实现 | 导出改为 `_LegacyResumeVersionsScreen`；`screen-resume-workshop.jsx` 后加载并覆盖 `window.ResumeVersionsScreen` | 废弃旧单页版本工坊；以新简历工坊列表 / 详情 / 分叉 IA 为准 |
+| `screens-p1-depth.jsx::ResumeVersionsScreen`（`_LegacyResumeVersionsScreen`） | `resume_versions` 旧实现 | dead code 已删除；`screen-resume-workshop.jsx` 覆盖 `window.ResumeVersionsScreen` | 废弃旧单页版本工坊；以平铺简历工坊为准 |
 | `screens-completion.jsx::StarEditorScreen` | `star` | 文件已删除；route 折回 `resume_versions` | 废弃独立 STAR 编辑器 |
 | `screen-report.jsx::ReportEditorial` / `ReportTimeline` | 报告变体标签 / `reportLayout` | 组件、参数和画板变体已删除；`report` 只渲染 Dashboard | 废弃独立刊物式报告和时间线报告形态 |
 | `screens-rest.jsx::DebriefScreen` | 旧复盘实现 | 文件已删除；当前目标使用 `DebriefFullScreen` | 废弃旧复盘页 |
@@ -342,30 +410,37 @@ ThankYouLetter
 | `screens-p2.jsx::VoicePracticeScreen` | `voice` | 文件已删除；`voice` route alias 已删除 | 语音能力保留为 `PracticeScreen` 内的语音 Surface，不恢复独立语音页骨架 |
 | `screen-auth.jsx::AuthResetScreen` | `auth_reset` | 组件已删除；route 归一回 `auth_login` | 废弃独立重置登录页；无密码产品不保留“密码重置”形态 |
 | `screens-p1-depth.jsx::ThankYouLetter` | 无（定义后从未渲染） | 组件已删除 | 废弃复盘感谢信草稿；不进入当前复盘范围 |
+| `screen-jd-match.jsx::JDMatchScreen` | `jd_match` | 文件已删除；route 归一回 `home` | 废弃岗位推荐一级模块（D-17） |
+| `screen-company-intel.jsx::CompanyIntelScreen` / `CompanyIntelBody` | `company_intel` | 组件已删除；文件仅保留 `CompanyIntelEmbed` 与情报示例数据 | 废弃独立情报详情页（D-18） |
+| `screen-resume-workshop.jsx::ResumeTreeView` / `ResumeBranchFlow` / `ResumeBranchMap` | 简历版本树 / 分叉 | 组件已删除 | 废弃版本树与分叉流程（D-20） |
+| `screen-resume-workshop.jsx` 轻量问答 create mode | `resume_versions(flow=create)` 旧 guided tab | 已删除 | 废弃轻量问答建档（D-20） |
+| `screens-p0-complete.jsx::SettingsNotif` / `SettingsBilling` | 设置通知 / 订阅占位 tab | 组件已删除 | 废弃占位 tab（D-21） |
+| `app.jsx::AccentPicker` / `CUSTOM_ACCENT_SEEDS` | 主题自定义 accent | 组件与逻辑已删除 | 废弃自定义 accent（D-21） |
+| `screen-report.jsx::IssueRow` / `PerQBlock` / `KVInline` | 无（定义后从未渲染） | 死代码已删除 | 报告页只保留 Dashboard 实际使用组件 |
 
 语音能力不是废弃能力；废弃的是脱离 `PracticeScreen` 外层骨架的独立语音页面呈现。
 
-## 17 外观偏好不是业务模块
+## 18 外观偏好不是业务模块
 
-### 17.1 当前处理
+### 18.1 当前处理
 
 ```text
 外观偏好
-├─ 顶栏主题色
+├─ 顶栏主题色（四个预设）
 ├─ 暗色模式
 ├─ 语言下拉
 └─ 设置页字体预设
 ```
 
-这些控制保留，因为它们是横切的 UI 呈现能力；但它们不属于岗位推荐、模拟面试、报告、简历或复盘的业务模块，也不应该成为新的一级导航或 onboarding 步骤。
+这些控制保留，因为它们是横切的 UI 呈现能力；但它们不属于模拟面试、报告、简历或复盘的业务模块，也不应该成为新的一级导航或 onboarding 步骤。自定义 accent（色相 / 饱和度滑杆）已随 D-21 删除。
 
-## 18 未来重新引入条件
+## 19 未来重新引入条件
 
 被移除模块未来如需重新引入，必须先回答：
 
 1. 用户在什么时刻会主动需要它。
 2. 它解决的是哪一个具体任务。
-3. 它和首页、岗位推荐、模拟面试、报告、简历、复盘闭环是什么关系。
+3. 它和首页、模拟面试、报告、简历、复盘闭环是什么关系。
 4. 它是否值得成为一级导航或独立模块。
 
 在这些问题没有明确答案前，不应把这些模块放回主流程。

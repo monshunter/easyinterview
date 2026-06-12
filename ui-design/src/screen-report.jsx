@@ -167,8 +167,6 @@ const ReportDashboard = ({ T, lang, nav, r, context, params, requestAuth }) => {
         detail={detail}
         setDetail={setDetail}
         context={context}
-        onReplay={goReplay}
-        onNextRound={goNextRound}
         activeQuestion={activeQuestion}
         setActiveQuestion={setActiveQuestion}
       />
@@ -308,8 +306,12 @@ const ReportStatButton = ({ T, active, onClick, children }) => (
   </button>
 );
 
-const ReportDetailSurface = ({ T, lang, nav, r, detail, setDetail, context, onReplay, onNextRound, activeQuestion, setActiveQuestion }) => {
+const ReportDetailSurface = ({ T, lang, nav, r, detail, setDetail, context, activeQuestion, setActiveQuestion }) => {
   const q = r.perQuestion.find((item) => item.qId === activeQuestion) || r.perQuestion[0];
+  // Question review "add to replay" is a plan marker, not a session-start CTA (D-19).
+  const [replayQueued, setReplayQueued] = React.useState({});
+  const queued = !!replayQueued[q.qId];
+  const toggleQueued = () => setReplayQueued((prev) => ({ ...prev, [q.qId]: !prev[q.qId] }));
   const tabs = [
     { k: "readiness", labelZh: "准备度详情", labelEn: "Readiness", icon: "target" },
     { k: "dimensions", labelZh: "维度详情", labelEn: "Dimensions", icon: "chart" },
@@ -407,7 +409,9 @@ const ReportDetailSurface = ({ T, lang, nav, r, detail, setDetail, context, onRe
                 <div className="ei-label" style={{ color: T.ink3, marginBottom: 5 }}>{q.qId.toUpperCase()} · {lang === "en" ? "ANSWER ANALYSIS" : "回答分析"}</div>
                 <div className="ei-serif" style={{ fontSize: 26, color: T.ink, lineHeight: 1.25 }}>{q.topic}</div>
               </div>
-              <Btn T={T} variant="secondary" size="sm" icon="replay" onClick={onReplay}>{lang === "en" ? "Add to current-round replay" : "加入本轮复练"}</Btn>
+              <Btn T={T} variant="secondary" size="sm" icon={queued ? "check" : "plus"} onClick={toggleQueued}>
+                {queued ? (lang === "en" ? "Queued for replay" : "已加入本轮复练") : (lang === "en" ? "Add to current-round replay" : "加入本轮复练")}
+              </Btn>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
               <div style={{ background: T.okSoft, padding: 14, borderRadius: 2 }}>
@@ -483,8 +487,8 @@ const ReportDetailSurface = ({ T, lang, nav, r, detail, setDetail, context, onRe
                 <Tag tone={i === 0 ? "warn" : "muted"} T={T}>{i === 0 ? (lang === "en" ? "must include" : "必练") : (lang === "en" ? "planned" : "计划")}</Tag>
               </div>
             ))}
-            <div style={{ marginTop: 16 }}>
-              <Btn T={T} variant="accent" icon="replay" onClick={onReplay}>{lang === "en" ? `Replay ${context.round}` : `复练当前轮：${context.round}`}</Btn>
+            <div style={{ marginTop: 16, fontSize: 12, color: T.ink3, fontFamily: "var(--ei-mono)" }}>
+              {lang === "en" ? "Start from the header CTA: Replay current round." : "开练入口在页面顶部：复练当前轮。"}
             </div>
           </div>
           <div style={{ padding: 18, background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 2 }}>
@@ -508,57 +512,13 @@ const ReportDetailSurface = ({ T, lang, nav, r, detail, setDetail, context, onRe
                 </div>
               ))}
             </div>
-            <Btn T={T} variant="secondary" icon="arrow_right" onClick={onNextRound}>{lang === "en" ? `Start ${context.nextRound}` : `进入下一轮：${context.nextRound}`}</Btn>
+            <div style={{ fontSize: 12, color: T.ink3, fontFamily: "var(--ei-mono)" }}>
+              {lang === "en" ? "Start from the header CTA: Start next round." : "开练入口在页面顶部：进入下一轮。"}
+            </div>
           </div>
         </div>
       )}
     </Card>
-  );
-};
-
-const IssueRow = ({ iss, T, L, lang, onReplay }) => {
-  const toneMap = { high: T.danger, medium: T.warn, low: T.ink3 };
-  const [queued, setQueued] = React.useState(false);
-  return (
-    <div style={{ padding: "18px 0", borderBottom: `1px dotted ${T.rule}`, display: "grid", gridTemplateColumns: "auto 1fr", gap: 16 }}>
-      <div style={{ color: toneMap[iss.severity], fontSize: 18, lineHeight: 1, marginTop: 2 }}>▲</div>
-      <div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
-          <div style={{ fontSize: 16, color: T.ink, fontWeight: 500 }}>{iss.title}</div>
-          <Tag tone={iss.severity === "high" ? "danger" : iss.severity === "medium" ? "warn" : "muted"} T={T}>
-            {iss.severity === "high" ? (lang === "en" ? "High" : "高优先级") : iss.severity === "medium" ? (lang === "en" ? "Medium" : "中") : (lang === "en" ? "Low" : "低")}
-          </Tag>
-          <span style={{ fontSize: 11, color: T.ink3, fontFamily: "var(--ei-mono)" }}>{iss.evidence}</span>
-        </div>
-        <div style={{ fontSize: 14, color: T.ink2, lineHeight: 1.6, marginBottom: 8 }}>{iss.body}</div>
-        <div style={{ fontSize: 13, color: T.ink2, padding: "10px 12px", background: T.bgSoft, borderRadius: 2, lineHeight: 1.55 }}>
-          <b style={{ color: T.ink, fontSize: 11.5, fontFamily: "var(--ei-mono)", letterSpacing: "0.06em" }}>▸ {L.suggestion}</b><br/>{iss.suggestion}
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-          <Btn variant="secondary" size="sm" T={T} icon="play" onClick={onReplay}>{lang === "en" ? "Replay current round" : "带入本轮复练"}</Btn>
-          <Btn variant="ghost" size="sm" T={T} icon={queued ? "check" : "plus"} onClick={() => setQueued(true)}>
-            {queued ? (lang === "en" ? "Queued for replay" : "已加入本轮复练") : (lang === "en" ? "Add to replay plan" : "加入本轮复练")}
-          </Btn>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const PerQBlock = ({ q, T, L }) => {
-  const toneMap = { 强项: T.ok, 达标: T.cool, 待加强: T.warn };
-  return (
-    <div style={{ padding: "18px 0", borderBottom: `1px dotted ${T.rule}` }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-        <div style={{ fontSize: 15, color: T.ink, fontWeight: 500 }}>{q.qId.toUpperCase()} · {q.topic}</div>
-        <Tag tone={q.state === "强项" ? "ok" : q.state === "待加强" ? "warn" : "cool"} T={T}>{q.state}</Tag>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, fontSize: 13, lineHeight: 1.55 }}>
-        <div><div className="ei-label" style={{ color: T.ok, marginBottom: 4 }}>{L.good}</div><div style={{ color: T.ink2 }}>{q.good}</div></div>
-        <div><div className="ei-label" style={{ color: T.danger, marginBottom: 4 }}>{L.missing}</div><div style={{ color: T.ink2 }}>{q.missing}</div></div>
-        <div><div className="ei-label" style={{ color: T.ink3, marginBottom: 4 }}>{L.frame}</div><div style={{ color: T.ink2, fontFamily: "var(--ei-mono)", fontSize: 12 }}>{q.frame}</div></div>
-      </div>
-    </div>
   );
 };
 
@@ -580,13 +540,6 @@ const StatCard = ({ T, label, value, mono, big }) => (
   <div style={{ padding: "18px 20px", border: `1px solid ${T.rule}`, borderRadius: 2, background: T.bgCard }}>
     <div className="ei-label" style={{ color: T.ink3, marginBottom: 10 }}>{label}</div>
     <div className={mono ? "ei-mono" : "ei-serif"} style={{ fontSize: big ? 22 : 26, color: T.ink, letterSpacing: big ? "-0.01em" : 0 }}>{value}</div>
-  </div>
-);
-
-const KVInline = ({ T, k, v }) => (
-  <div>
-    <div className="ei-label" style={{ color: T.ink3, marginBottom: 2 }}>{k}</div>
-    <div style={{ fontSize: 14, color: T.ink, fontWeight: 500 }}>{v}</div>
   </div>
 );
 

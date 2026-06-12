@@ -1,6 +1,6 @@
 # 复盘目标模块
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: active
 > **更新日期**: 2026-06-12
 
@@ -215,7 +215,7 @@ Debrief Analysis
 Debrief Analysis
   -> Create Debrief Interview
      ├─ 使用 TargetJob / JD
-     ├─ 使用 ResumeVersion
+     ├─ 使用绑定简历
      ├─ 优先复现真实问题
      ├─ 尽量按真实顺序重问
      ├─ 补充真实面试暴露出的薄弱点

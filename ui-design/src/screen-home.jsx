@@ -24,9 +24,6 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
     startAfter: "Just finished an interview?",
     startAfterSub: "Drop in the questions you were asked and turn it into next-round ammo.",
     startAfterBtn: "Open debrief",
-    jobPicks: "Match more JDs from your resume",
-    jobPicksSub: "Use your resume and role preference to find JDs worth preparing for, then confirm a mock interview from the match list.",
-    jobPicksBtn: "Open job recommendations",
     resumeCreate: "No resume yet? Create one in 1 minute →",
   } : {
     tag: "首页 · 模拟面试",
@@ -40,9 +37,6 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
     startAfter: "刚面完一轮？",
     startAfterSub: "把面试问过的问题丢进来，沉淀成下一轮的弹药。",
     startAfterBtn: "打开复盘",
-    jobPicks: "按简历匹配更多 JD",
-    jobPicksSub: "用你的简历和岗位偏好筛出值得准备的 JD，再从匹配结果进入模拟面试前确认。",
-    jobPicksBtn: "打开岗位推荐",
     resumeCreate: "还没有简历？1 分钟创建 →",
   };
 
@@ -103,30 +97,17 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
         </div>
       )}
 
-      {/* Auxiliary starts */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <div style={{
-          background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 24,
-          display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, flexWrap: "wrap"
-        }}>
-          <div style={{ flex: 1, minWidth: 260 }}>
-            <div className="ei-label" style={{ color: T.accent, marginBottom: 6 }}>JOB PICKS</div>
-            <div className="ei-serif" style={{ fontSize: 20, color: T.ink }}>{L.jobPicks}</div>
-            <div style={{ fontSize: 13.5, color: T.ink2, marginTop: 4, lineHeight: 1.55 }}>{L.jobPicksSub}</div>
-          </div>
-          <Btn variant="secondary" icon="search" onClick={() => nav("jd_match")} T={T} iconRight="arrow_right">{L.jobPicksBtn}</Btn>
+      {/* Auxiliary start */}
+      <div style={{
+        background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 24,
+        display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, flexWrap: "wrap"
+      }}>
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <div className="ei-label" style={{ color: T.accent, marginBottom: 6 }}>POST-INTERVIEW</div>
+          <div className="ei-serif" style={{ fontSize: 20, color: T.ink }}>{L.startAfter}</div>
+          <div style={{ fontSize: 13.5, color: T.ink2, marginTop: 4 }}>{L.startAfterSub}</div>
         </div>
-        <div style={{
-          background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 24,
-          display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, flexWrap: "wrap"
-        }}>
-          <div style={{ flex: 1, minWidth: 260 }}>
-            <div className="ei-label" style={{ color: T.accent, marginBottom: 6 }}>POST-INTERVIEW</div>
-            <div className="ei-serif" style={{ fontSize: 20, color: T.ink }}>{L.startAfter}</div>
-            <div style={{ fontSize: 13.5, color: T.ink2, marginTop: 4 }}>{L.startAfterSub}</div>
-          </div>
-          <Btn variant="secondary" icon="flag" onClick={() => nav("debrief")} T={T} iconRight="arrow_right">{L.startAfterBtn}</Btn>
-        </div>
+        <Btn variant="secondary" icon="flag" onClick={() => nav("debrief")} T={T} iconRight="arrow_right">{L.startAfterBtn}</Btn>
       </div>
 
       {assistOpen && <JDAssistModal T={T} lang={lang} type={assistOpen} onClose={() => setAssistOpen(null)} onConfirm={() => { setAssistOpen(null); nav("parse", { source: assistOpen }); }} />}
