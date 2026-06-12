@@ -759,3 +759,4 @@ const ReqBlock = ({ T, title, items, tone, hits = [] }) => (
 );
 
 window.WorkspaceScreen = WorkspaceScreen;
+Object.assign(window, { ResumePickerModal, BindingPill, getWorkspaceResumeOptions });

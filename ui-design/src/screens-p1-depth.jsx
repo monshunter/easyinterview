@@ -52,6 +52,32 @@ const DebriefFullScreen = ({ T, lang, nav, params = {} }) => {
     resume: "resume-v3",
   });
   const [pickerType, setPickerType] = React.useState(null);
+  // Pick-one-derive-two: derivable context is auto-filled and stays changeable (D-15).
+  const [autoFilled, setAutoFilled] = React.useState({ targetJob: false, mockSession: false, resume: false });
+  const applyContextSelection = (kind, id) => {
+    if (kind === "mockSession") {
+      const mock = contextOptions.mockSessions.find((item) => item.id === id);
+      setSelectedContext({
+        mockSession: id,
+        targetJob: mock?.targetJobId || selectedContext.targetJob,
+        resume: mock?.resumeId || selectedContext.resume,
+      });
+      setAutoFilled({ targetJob: !!mock?.targetJobId, mockSession: false, resume: !!mock?.resumeId });
+      return;
+    }
+    if (kind === "targetJob") {
+      const job = contextOptions.targetJobs.find((item) => item.id === id);
+      setSelectedContext({
+        targetJob: id,
+        resume: job?.defaultResumeId || selectedContext.resume,
+        mockSession: job?.latestMockId || selectedContext.mockSession,
+      });
+      setAutoFilled({ targetJob: false, mockSession: !!job?.latestMockId, resume: !!job?.defaultResumeId });
+      return;
+    }
+    setSelectedContext({ ...selectedContext, [kind]: id });
+    setAutoFilled((prev) => ({ ...prev, [kind]: false }));
+  };
   const selectedTarget = contextOptions.targetJobs.find((item) => item.id === selectedContext.targetJob) || contextOptions.targetJobs[0];
   const selectedMock = contextOptions.mockSessions.find((item) => item.id === selectedContext.mockSession) || contextOptions.mockSessions[0];
   const selectedResume = contextOptions.resumes.find((item) => item.id === selectedContext.resume) || contextOptions.resumes[0];
@@ -143,7 +169,7 @@ const DebriefFullScreen = ({ T, lang, nav, params = {} }) => {
         </div>
       </div>
 
-      <DebriefContextStrip T={T} lang={lang} context={context} onOpenPicker={setPickerType} />
+      <DebriefContextStrip T={T} lang={lang} context={context} autoFilled={autoFilled} onOpenPicker={setPickerType} />
 
       {pickerType && (
         <DebriefContextPickerModal
@@ -154,7 +180,7 @@ const DebriefFullScreen = ({ T, lang, nav, params = {} }) => {
           selectedId={selectedContext[pickerType]}
           onClose={() => setPickerType(null)}
           onConfirm={(id) => {
-            setSelectedContext({ ...selectedContext, [pickerType]: id });
+            applyContextSelection(pickerType, id);
             setPickerType(null);
           }}
         />
@@ -371,14 +397,14 @@ const DebriefFullScreen = ({ T, lang, nav, params = {} }) => {
 
 const getDebriefContextOptions = (lang) => lang === "en" ? {
   targetJobs: [
-    { id: "tj-1", title: "Star-Ring Tech · Senior Frontend Engineer", meta: "P6 · Shanghai · JD match 78%", note: "Current real interview target. Used to anchor debrief questions and replay practice." },
-    { id: "tj-2", title: "Lumen Labs · Frontend Platform Engineer", meta: "Senior · remote · JD match 64%", note: "English HR-screen context. Pick this only when the debrief belongs to that process." },
-    { id: "tj-3", title: "CloudYun Group · Web Architecture Expert", meta: "P7 · Hangzhou · JD match 52%", note: "Draft target. Complete JD details before using it as the debrief baseline." },
+    { id: "tj-1", title: "Star-Ring Tech · Senior Frontend Engineer", meta: "P6 · Shanghai · JD match 78%", note: "Current real interview target. Used to anchor debrief questions and replay practice.", defaultResumeId: "resume-v3", latestMockId: "mock-24" },
+    { id: "tj-2", title: "Lumen Labs · Frontend Platform Engineer", meta: "Senior · remote · JD match 64%", note: "English HR-screen context. Pick this only when the debrief belongs to that process.", defaultResumeId: "resume-en", latestMockId: null },
+    { id: "tj-3", title: "CloudYun Group · Web Architecture Expert", meta: "P7 · Hangzhou · JD match 52%", note: "Draft target. Complete JD details before using it as the debrief baseline.", defaultResumeId: "resume-v3", latestMockId: null },
   ],
   mockSessions: [
-    { id: "mock-24", title: "Mock interview #24 · text · 4/20", meta: "Star-Ring Tech · Technical round 1 · report ready", note: "Best baseline for this real technical interview." },
-    { id: "mock-23", title: "Mock interview #23 · voice · 4/19", meta: "Star-Ring Tech · Technical round 1 · second run", note: "Use when comparing against the replay run instead of the first report." },
-    { id: "mock-20", title: "Mock interview #20 · text · 4/17", meta: "Star-Ring Tech · Technical round 2", note: "Useful if the real interview focused on architecture probes." },
+    { id: "mock-24", title: "Mock interview #24 · text · 4/20", meta: "Star-Ring Tech · Technical round 1 · report ready", note: "Best baseline for this real technical interview.", targetJobId: "tj-1", resumeId: "resume-v3" },
+    { id: "mock-23", title: "Mock interview #23 · voice · 4/19", meta: "Star-Ring Tech · Technical round 1 · second run", note: "Use when comparing against the replay run instead of the first report.", targetJobId: "tj-1", resumeId: "resume-v3" },
+    { id: "mock-20", title: "Mock interview #20 · text · 4/17", meta: "Star-Ring Tech · Technical round 2", note: "Useful if the real interview focused on architecture probes.", targetJobId: "tj-1", resumeId: "resume-v3" },
   ],
   resumes: [
     { id: "resume-v3", title: "Liu Zhe · resume v3 · 78% match", meta: "Master version · source retained", note: "Primary evidence source for this debrief analysis." },
@@ -387,14 +413,14 @@ const getDebriefContextOptions = (lang) => lang === "en" ? {
   ],
 } : {
   targetJobs: [
-    { id: "tj-1", title: "星环科技 · 资深前端工程师", meta: "P6 · 上海 · JD 匹配 78%", note: "当前真实面试目标，用来锚定复盘问题和复盘面试。" },
-    { id: "tj-2", title: "Lumen Labs · Frontend Platform Engineer", meta: "Senior · 远程 · JD 匹配 64%", note: "英文 HR 初筛上下文；只有复盘属于这条流程时才选择。" },
-    { id: "tj-3", title: "云栖集团 · 技术专家（Web 架构）", meta: "P7 · 杭州 · JD 匹配 52%", note: "草稿目标；用于复盘前应先补全 JD 细节。" },
+    { id: "tj-1", title: "星环科技 · 资深前端工程师", meta: "P6 · 上海 · JD 匹配 78%", note: "当前真实面试目标，用来锚定复盘问题和复盘面试。", defaultResumeId: "resume-v3", latestMockId: "mock-24" },
+    { id: "tj-2", title: "Lumen Labs · Frontend Platform Engineer", meta: "Senior · 远程 · JD 匹配 64%", note: "英文 HR 初筛上下文；只有复盘属于这条流程时才选择。", defaultResumeId: "resume-en", latestMockId: null },
+    { id: "tj-3", title: "云栖集团 · 技术专家（Web 架构）", meta: "P7 · 杭州 · JD 匹配 52%", note: "草稿目标；用于复盘前应先补全 JD 细节。", defaultResumeId: "resume-v3", latestMockId: null },
   ],
   mockSessions: [
-    { id: "mock-24", title: "模拟面试 #24 · 文本 · 4/20", meta: "星环科技 · 技术一面 · 报告已生成", note: "当前真实技术面最合适的对比基线。" },
-    { id: "mock-23", title: "模拟面试 #23 · 语音 · 4/19", meta: "星环科技 · 技术一面 · 第 2 次", note: "当用户想和复练后的表现对比时选择。" },
-    { id: "mock-20", title: "模拟面试 #20 · 文本 · 4/17", meta: "星环科技 · 技术二面", note: "真实面试偏架构追问时可作为对照。" },
+    { id: "mock-24", title: "模拟面试 #24 · 文本 · 4/20", meta: "星环科技 · 技术一面 · 报告已生成", note: "当前真实技术面最合适的对比基线。", targetJobId: "tj-1", resumeId: "resume-v3" },
+    { id: "mock-23", title: "模拟面试 #23 · 语音 · 4/19", meta: "星环科技 · 技术一面 · 第 2 次", note: "当用户想和复练后的表现对比时选择。", targetJobId: "tj-1", resumeId: "resume-v3" },
+    { id: "mock-20", title: "模拟面试 #20 · 文本 · 4/17", meta: "星环科技 · 技术二面", note: "真实面试偏架构追问时可作为对照。", targetJobId: "tj-1", resumeId: "resume-v3" },
   ],
   resumes: [
     { id: "resume-v3", title: "刘哲 · 简历 v3 · 匹配 78%", meta: "主版本 · 保留原始来源", note: "当前复盘分析的主要证据来源。" },
@@ -409,7 +435,7 @@ const getDebriefOptionsForKind = (contextOptions, kind) => ({
   resume: contextOptions.resumes,
 }[kind] || []);
 
-const DebriefContextStrip = ({ T, lang, context, onOpenPicker }) => (
+const DebriefContextStrip = ({ T, lang, context, autoFilled = {}, onOpenPicker }) => (
   <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", gap: 12, marginBottom: 28 }}>
     {[
       { key: "targetJob", icon: "briefcase", label: lang === "en" ? "Target job / JD" : "目标岗位 / JD", title: context.target, meta: context.jd, action: lang === "en" ? "Change" : "更换" },
@@ -424,6 +450,11 @@ const DebriefContextStrip = ({ T, lang, context, onOpenPicker }) => (
           <div className="ei-label" style={{ color: T.ink3, marginBottom: 3 }}>{item.label}</div>
           <div style={{ fontSize: 13.5, color: T.ink, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.title}</div>
           <div style={{ fontSize: 12, color: T.ink3, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.meta}</div>
+          {autoFilled[item.key] && (
+            <div style={{ fontSize: 10.5, color: T.accent, fontFamily: "var(--ei-mono)", marginTop: 3, letterSpacing: "0.04em" }}>
+              {lang === "en" ? "AUTO-FILLED · CHANGEABLE" : "已自动带入 · 可更换"}
+            </div>
+          )}
         </div>
         <button onClick={() => onOpenPicker(item.key)} style={{ background: "transparent", border: `1px solid ${T.rule}`, borderRadius: 2, color: T.ink2, fontSize: 12, padding: "5px 9px", cursor: "pointer" }}>{item.action}</button>
       </div>
@@ -1434,174 +1465,6 @@ const DebriefReplayPlan = ({ T, lang, nav, back, entries, context }) => (
   </div>
 );
 
-const ThankYouLetter = ({ T, lang, back, entries }) => {
-  const [tone, setTone] = React.useState("warm"); // warm / concise / formal
-  const [variant, setVariant] = React.useState(0);
-
-  const tones = lang === "en"
-    ? [{ k: "warm", t: "Warm" }, { k: "concise", t: "Concise" }, { k: "formal", t: "Formal" }]
-    : [{ k: "warm", t: "温和" }, { k: "concise", t: "简洁" }, { k: "formal", t: "正式" }];
-
-  const letters = {
-    warm: lang === "en"
-      ? `Hi 张哲,
-
-Thanks for the 45 minutes this afternoon. The question about who specifically drove the RSC migration stayed with me after the call — the honest answer is that I proposed it, ran the prototype, and pushed the rollout through a skeptical SRE team. I undersold that on the call.
-
-One thing I wanted to circle back on: you mentioned the team is weighing whether to keep the checkout rewrite on RSC or move back to client-rendering for the edit paths. I'd love to share the decision matrix I used at Star-Ring — if it's useful, happy to drop it in as a follow-up.
-
-Either way, the conversation was sharper than most first rounds I've had. Looking forward to the next step.
-
-— 林舟`
-      : `哲哥，你好：
-
-感谢今天下午的 45 分钟。你问到 RSC 迁移具体是谁推动的，那个问题面完之后一直在我脑子里——诚实的回答是：方案是我提的、原型是我跑的，也是我顶着 SRE 的质疑把上线推过去的。当时在镜头前我没讲到位。
-
-另外有件事想多说一句：你提到团队正在权衡结账流程的编辑路径要不要从 RSC 回退到客户端渲染。我之前在星环做过一个类似的决策矩阵，如果你们用得上，我可以整理出来发你。
-
-不管结果如何，今天的对话比我过去大多数一面都要锋利，期待下一步。
-
-— 林舟`,
-    concise: lang === "en"
-      ? `Hi 张哲,
-
-Thanks for today. Quick correction on the RSC migration — I was the one who proposed and drove it. I undersold that on the call.
-
-Happy to share the decision matrix we used for the rollback question if useful.
-
-Looking forward to the next step.
-
-— 林舟`
-      : `哲哥：
-
-感谢今天。关于 RSC 迁移一个更正——方案是我提的、我推的。当时没讲到位。
-
-如果你们在 RSC 回退那个问题上用得到，我可以把当时的决策矩阵发给你。
-
-期待下一步。
-
-— 林舟`,
-    formal: lang === "en"
-      ? `Dear 张哲,
-
-Thank you for the interview this afternoon. I appreciated the depth of the discussion, particularly around the checkout rewrite and Design System rollout.
-
-I'd like to clarify one point: the RSC migration at Star-Ring was proposed, prototyped, and driven through to rollout primarily by me. I did not articulate this clearly during our conversation.
-
-Should it be helpful, I would be glad to share the decision framework we used when considering a partial rollback — a question you raised that I have direct experience with.
-
-Looking forward to hearing from you.
-
-Sincerely,
-林舟`
-      : `哲哥：
-
-感谢您今天下午的面试。我很珍惜这次深入的交流，尤其是围绕结账链路重写与 Design System 落地的讨论。
-
-有一点想再澄清：星环的 RSC 迁移，从方案提出、原型验证到最终推动上线，主要由我负责。这一点我在面试中未能清晰表达。
-
-您提到关于是否部分回退到客户端渲染的权衡，我之前处理过类似场景，如果对团队当前的决策有帮助，我可以整理一份决策框架供您参考。
-
-期待您的回复。
-
-林舟`,
-  };
-
-  const content = letters[tone] || letters.warm;
-  const wordCount = content.length;
-
-  return (
-    <div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 28 }}>
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "THANK-YOU NOTE · draft" : "感谢信 · 草稿"}</div>
-            <div style={{ display: "flex", gap: 6 }}>
-              {tones.map((t) => (
-                <button key={t.k} onClick={() => setTone(t.k)} style={{
-                  padding: "5px 12px", fontSize: 12, borderRadius: 2, cursor: "pointer",
-                  border: `1px solid ${tone === t.k ? T.accent : T.rule}`,
-                  background: tone === t.k ? T.accentSoft : "transparent",
-                  color: tone === t.k ? T.accent : T.ink2, fontFamily: "var(--ei-sans)",
-                }}>{t.t}</button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 2, padding: "24px 28px" }}>
-            <div style={{ paddingBottom: 12, marginBottom: 16, borderBottom: `1px dotted ${T.rule}`, display: "flex", justifyContent: "space-between", fontFamily: "var(--ei-mono)", fontSize: 11, color: T.ink3 }}>
-              <div>TO · zhang.zhe@star-ring.com</div>
-              <div>SUBJECT · {lang === "en" ? "Quick note after today's chat" : "今天面试后的一点补充"}</div>
-            </div>
-            <textarea
-              key={tone}
-              defaultValue={content}
-              style={{
-                width: "100%", minHeight: 420, padding: 0,
-                fontFamily: "var(--ei-serif)", fontSize: 15, lineHeight: 1.75, color: T.ink,
-                background: "transparent", border: "none", outline: "none", resize: "vertical",
-                boxSizing: "border-box", whiteSpace: "pre-wrap",
-              }}
-            />
-          </div>
-
-          <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11.5, color: T.ink3, fontFamily: "var(--ei-mono)" }}>
-            <div>≈ {wordCount} {lang === "en" ? "chars · 45s read" : "字 · 45 秒读完"} · {lang === "en" ? "draft v1 · auto-saved" : "草稿 v1 · 已自动保存"}</div>
-            <div>{lang === "en" ? "send within 24h recommended" : "建议 24h 内发出"}</div>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24 }}>
-            <Btn T={T} variant="ghost" onClick={back}>{lang === "en" ? "Back" : "上一步"}</Btn>
-            <div style={{ display: "flex", gap: 10 }}>
-              <Btn T={T} variant="secondary" icon="download" onClick={() => {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                  navigator.clipboard.writeText(content);
-                  window.eiToast && window.eiToast(lang === "en" ? "Letter copied to clipboard" : "致谢信已复制到剪贴板", { tone: "ok" });
-                } else {
-                  window.eiToast && window.eiToast(lang === "en" ? "Clipboard unavailable" : "当前环境不支持剪贴板", { tone: "warn" });
-                }
-              }}>{lang === "en" ? "Copy text" : "复制文本"}</Btn>
-              <Btn T={T} variant="accent" icon="send" onClick={() => {
-                const subject = encodeURIComponent(lang === "en" ? "Thank you — follow up after our chat" : "今天面试后的一点补充");
-                const body = encodeURIComponent(content);
-                window.location.href = `mailto:zhang.zhe@star-ring.com?subject=${subject}&body=${body}`;
-              }}>{lang === "en" ? "Open in mail client" : "在邮件客户端打开"}</Btn>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <Card T={T} pad={18} style={{ marginBottom: 14 }}>
-            <div className="ei-label" style={{ color: T.ink3, marginBottom: 10 }}>{lang === "en" ? "WHAT THIS LETTER DOES" : "这封信在做什么"}</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 12.5, lineHeight: 1.55, color: T.ink2 }}>
-              {[
-                { t: lang === "en" ? "Repairs the Ownership miss" : "修复 Ownership 的失分", c: T.warn },
-                { t: lang === "en" ? "Reinforces perf credibility" : "夯实性能可信度", c: T.ok },
-                { t: lang === "en" ? "Opens a second touchpoint (decision matrix)" : "开一个二次接触点（决策矩阵）", c: T.accent },
-                { t: lang === "en" ? "Keeps tone within what you showed on call" : "语气不超出你面试时的形象", c: T.ink3 },
-              ].map((x, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                  <div style={{ width: 5, height: 5, borderRadius: 3, background: x.c, marginTop: 7, flexShrink: 0 }} />
-                  <span>{x.t}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card T={T} pad={18}>
-            <div className="ei-label" style={{ color: T.ink3, marginBottom: 10 }}>{lang === "en" ? "FOLLOW-UP PLAN" : "后续动作"}</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 12.5, color: T.ink2, lineHeight: 1.5 }}>
-              <div><span style={{ fontFamily: "var(--ei-mono)", color: T.ink4, marginRight: 6 }}>T+0</span>{lang === "en" ? "Send this note" : "发这封信"}</div>
-              <div><span style={{ fontFamily: "var(--ei-mono)", color: T.ink4, marginRight: 6 }}>T+1</span>{lang === "en" ? "Prep for tech round 2" : "准备技术二面"}</div>
-              <div><span style={{ fontFamily: "var(--ei-mono)", color: T.ink4, marginRight: 6 }}>T+4</span>{lang === "en" ? "If silent → light follow-up to HR" : "如无回应，轻量跟 HR 联系"}</div>
-              <div><span style={{ fontFamily: "var(--ei-mono)", color: T.ink4, marginRight: 6 }}>T+10</span>{lang === "en" ? "Close loop, move on" : "收口，继续别的"}</div>
-            </div>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // ═══════════════════════════════════════════════════════════════════
 // #12 RESUME VERSIONS + BULLET DIFF

@@ -211,6 +211,58 @@ test("P0 voice interview keeps the shared practice shell and renders the voice s
   assert.doesNotMatch(practice, /if\s*\(\s*k\s*===\s*"voice"\s*\)\s*nav\("voice"/);
 });
 
+test("parse confirm page owns the interview launch decision", () => {
+  const p0 = readUiFile("./src/screens-p0-complete.jsx");
+  const app = readUiFile("./src/app.jsx");
+  const workspace = readUiFile("./src/screen-workspace.jsx");
+
+  assert.match(p0, /const ParseScreen = \(\{ T, lang, nav, requestAuth \}\) =>/);
+  assert.match(p0, /window\.getWorkspaceResumeOptions/);
+  assert.match(p0, /ResumePickerModal/);
+  assert.match(p0, /立即面试/);
+  assert.match(p0, /仅保存规划/);
+  assert.match(p0, /type: "create_session"/);
+  assert.match(p0, /nav\("practice", startContext\)/);
+  assert.match(p0, /nav\("workspace", buildParseInterviewContext\(\)\)/);
+  assert.doesNotMatch(p0, /确认并进入面试前确认|Confirm & open interview setup/);
+  assert.match(app, /parse:\s*<ParseScreen[^>]*requestAuth=\{requestAuth\}/);
+  assert.match(workspace, /Object\.assign\(window, \{ ResumePickerModal, BindingPill, getWorkspaceResumeOptions \}\);/);
+});
+
+test("debrief context selection auto-fills derivable context and stays changeable", () => {
+  const debrief = readUiFile("./src/screens-p1-depth.jsx");
+
+  assert.match(debrief, /const applyContextSelection = /);
+  assert.match(debrief, /autoFilled/);
+  assert.match(debrief, /已自动带入/);
+  assert.match(debrief, /targetJobId: "tj-1"/);
+  assert.match(debrief, /defaultResumeId/);
+  assert.match(debrief, /latestMockId/);
+  assert.match(debrief, /onConfirm=\{\(id\) => \{\s*applyContextSelection\(pickerType, id\);/);
+});
+
+test("auth has no standalone reset page and aliases auth_reset back to login", () => {
+  const app = readUiFile("./src/app.jsx");
+  const auth = readUiFile("./src/screen-auth.jsx");
+
+  assert.match(app, /auth_reset:\s*"auth_login"/);
+  assert.doesNotMatch(app, /AuthResetScreen/);
+  assert.doesNotMatch(app, /auth_reset:\s*</);
+  assert.doesNotMatch(auth, /AuthResetScreen|PASSWORD RESET|找回密码|发送重置说明|auth_reset/);
+  for (const [name, source] of readUiSources()) {
+    assert.doesNotMatch(source, /忘记密码|两步验证|Two-step verification/, `${name} still references password-era auth wording`);
+    if (name !== "app.jsx") {
+      assert.doesNotMatch(source, /auth_reset/, `${name} still references the removed reset route`);
+    }
+  }
+});
+
+test("debrief no longer ships the unused thank-you letter draft", () => {
+  for (const [name, source] of readUiSources()) {
+    assert.doesNotMatch(source, /ThankYouLetter|感谢信/, `${name} still contains the removed thank-you letter draft`);
+  }
+});
+
 test("voice interview only enters through explicit practice modality params", () => {
   const app = readUiFile("./src/app.jsx");
   const canvas = readUiFile("./canvas.html");

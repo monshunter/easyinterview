@@ -1,8 +1,8 @@
 # EasyInterview UI 目标模块地图
 
-> **版本**: 2.4
+> **版本**: 2.5
 > **状态**: active
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-06-12
 
 ## 1 文档目的
 
@@ -14,21 +14,21 @@
 |------|----------|----------------|------|
 | Home / 首页 | 粘贴 JD 或继续最近模拟面试 | JD 输入、JD 文件/URL 弹窗、最近模拟面试、创建简历入口 | 默认入口，不需要登录页前置 |
 | Job Picks / 岗位推荐 | 基于画像和简历找到值得准备的 JD | 推荐列表、匹配原因、画像摘要、从推荐进入模拟面试 | 一级导航 |
-| Mock Interview / 模拟面试 | 确认一场模拟面试的上下文并立即开始 | 当前面试规划、切换/新建规划、JD/简历绑定、面试轮次、立即面试、会话历史 | 一级导航，不再叫当前岗位 |
+| Mock Interview / 模拟面试 | 回访既有面试规划并再次发起 session | 当前面试规划（回访枢纽）、切换/新建规划、JD/简历绑定、面试轮次、立即面试、会话历史 | 一级导航，不再叫当前岗位；首次导入的启动决策在 `parse` 完成，本页不是首次导入的必经确认页 |
 | Interview Session | 完成一场完整模拟面试 | 文本面试、语音面试、语音转文字、带提示练习 / 严格模拟、问题推进、右侧底部固定结束生成报告 | 会话级页面 |
 | Report Dashboard | 查看一次已完成模拟面试的报告 | 仪表盘、上下文条、准备度、维度、题目回顾、证据、复练计划 | 隶属于 session，不是一级导航 |
 | Resume / 简历 | 管理简历资产 | 原始简历树、结构化主版本、岗位定制版本、版本平铺、上传/粘贴/问答、解析预览确认、分叉定制版本、预览/改写/编辑详情、原件预览、导出/复制/复制版本反馈 | 一级导航 |
 | Debrief / 复盘 | 复盘真实面试并生成复盘面试 | 选择目标岗位/JD、关联模拟面试、绑定简历、文本 / 语音添加共享复盘记录、复盘分析、复盘面试 | 一级导航 |
 | User Profile / 用户画像 | 查看和修正系统理解用户的结构化画像 | 来源统计、画像维度、证据来源、用户纠偏、模块使用开关 | 用户菜单入口 |
 | Account & Settings / 设置与隐私 | 管理账号基础信息、登录安全、界面偏好和隐私 | 个人基础信息、登录方式、字体预设、通知占位、订阅占位、导出、删除 | 用户菜单入口 |
-| Auth / 认证 | 登录、注册和退出 | 登录、注册、邮箱验证、重置登录、退出登录 | 操作级触发，不是默认入口 |
+| Auth / 认证 | 登录和退出 | 邮箱验证码登录、邮箱验证、首次资料补全、退出登录 | 操作级触发，不是默认入口；无密码、无独立重置登录页 |
 | Global Display Controls / 全局显示控制 | 调整 UI 呈现 | 顶栏主题色、暗色模式、语言下拉，设置页字体预设 | 横切能力，不是业务模块 |
 
 ## 3 合并或降级的能力
 
 | 当前能力 | 目标归属 | 调整方式 |
 |----------|----------|----------|
-| `workspace` | Mock Interview / 当前面试规划 | 产品语义从“当前岗位”改为“模拟面试规划” |
+| `workspace` | Mock Interview / 当前面试规划 | 产品语义从“当前岗位”改为“模拟面试规划”，定位回访枢纽；首次导入启动决策由 `parse` 承载 |
 | `company_intel` | Mock Interview | 从独立页降为模拟面试规划页的公司情报分区或详情 |
 | `resume_versions` | Resume | 作为一级简历模块的当前入口；`flow=create`、`flow=branch`、`versionId` 和 `tab` 驱动创建、分叉和详情子状态 |
 | `resume` | Resume / Mock Interview | 简历资产在 Resume 管，模拟面试页只选择绑定简历 |
@@ -65,9 +65,9 @@
 | 当前 Route | 目标归属 | 目标状态 |
 |------------|----------|----------|
 | `home` | Home / 首页 | 默认入口 |
-| `parse` | JD Parse & Confirm | JD 解析确认步骤；来自首页 JD 导入或岗位推荐确认 |
+| `parse` | JD Parse & Confirm | JD 解析确认与启动页；来自首页 JD 导入或岗位推荐确认；核对解析结果、绑定简历、确认轮次后立即面试，或仅保存规划进入 `workspace` |
 | `jd_match` | Job Picks / 岗位推荐 | 一级导航；含为你推荐、联网搜索、关注列表 |
-| `workspace` | Mock Interview / 当前面试规划 | 一级导航 |
+| `workspace` | Mock Interview / 当前面试规划 | 一级导航；回访枢纽，不插入首次导入链路 |
 | `practice` | Interview Session / 文本或语音面试 | 会话级页面；`mode/modality` 决定文本输入区或语音波形 / 表达指标区，`practiceMode` 决定辅助信息显隐 |
 | `generating` | ReportGenerating | 报告生成过渡态 |
 | `report` | Report Dashboard(sessionId) | 会话级详情；当前运行时只渲染仪表盘 |
@@ -78,7 +78,6 @@
 | `auth_login` | Auth | 登录页 |
 | `auth_verify` | Auth | 邮箱验证页 |
 | `auth_profile_setup` | Auth | 首次登录资料补全页 |
-| `auth_reset` | Auth | 重置登录页 |
 | `auth_logout` | Auth | 退出登录页 |
 | `company_intel` | Mock Interview / Company Intel | 从模拟面试规划页轻量卡片打开的详情页 |
 
@@ -99,6 +98,7 @@
 | `resume` | `resume_versions` | 移除历史简历单页；目标入口是新简历工坊 |
 | `onboarding` | `resume_versions` | 移除历史 5 分钟画像 / 经历卡片页；当前简历创建走 `flow=create` |
 | `auth_register` | `auth_login` | 移除独立注册页；邮箱验证码登录统一承担首次登录和后续登录 |
+| `auth_reset` | `auth_login` | 移除独立重置登录页；无密码产品中验证码重发与更换邮箱由 `auth_verify` 承担 |
 
 ### 5.3 历史别名但不新增模块的页面
 
@@ -117,6 +117,8 @@
 | `screens-p1-depth.jsx::ResumeVersionsScreen` | `resume_versions` 旧实现 | 导出已改为 `_LegacyResumeVersionsScreen` dead code；当前 `screen-resume-workshop.jsx` 后加载并覆盖 `window.ResumeVersionsScreen` |
 | `screens-p0-complete.jsx::OnboardingScreen` | `onboarding` | 组件已删除；保留 `ParseScreen`、`ReportGeneratingScreen` 和 `SettingsScreen` |
 | `screen-report.jsx::ReportEditorial` / `ReportTimeline` | 报告变体标签 / `reportLayout` | 组件和参数已删除；`ReportScreen` 只返回 Dashboard |
+| `screen-auth.jsx::AuthResetScreen` | `auth_reset` | 组件已删除；route 归一回 `auth_login`，验证码重发由 `auth_verify` 承担 |
+| `screens-p1-depth.jsx::ThankYouLetter` | 无（定义后从未渲染） | 死代码已删除；感谢信草稿不属于当前复盘范围 |
 
 ## 6 目标模块依赖
 
@@ -171,3 +173,7 @@ User
 13. `带提示练习` / `严格模拟` 是 `PracticeScreen` 内的辅助程度开关，不是面试前模式卡片；严格模拟必须隐藏提示、实时观察、可调用经历和语音现场提示。
 14. `结束并生成报告` 必须保持为面试页右侧底部固定动作，并把 `practiceMode`、`hintUsed` 和 `hintCount` 传入报告上下文。
 15. `debrief` 的文本添加和语音添加必须共享同一份 `entries` 列表；语音提取卡片确认后才写入正式复盘记录，并保留来源标记。
+16. `parse` 是 JD 解析确认与启动页：核对解析结果、绑定简历、确认轮次、立即面试在同一页完成；首次导入链路在 `parse` 与 session 之间不得插入第二个全页确认。
+17. `workspace` 是回访枢纽：服务最近面试回访、切换/新建规划与再次发起面试，不得恢复为首次导入的必经确认页。
+18. `debrief` 上下文选择遵循“选一带二”：任一上下文选定后自动带出可推导项，标注“已自动带入”且可逐项更换；选择仍全部在复盘页弹窗内完成。
+19. 认证只有邮箱验证码一种登录方式：不得保留或新增 `auth_reset` 目标 route、独立重置登录页或“忘记密码 / 密码 / 两步验证”口径；验证码重发与更换邮箱在 `auth_verify` 内完成。

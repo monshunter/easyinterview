@@ -1,8 +1,8 @@
 # EasyInterview UI 移除模块与范围裁剪
 
-> **版本**: 2.4
+> **版本**: 2.5
 > **状态**: active
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-06-12
 
 ## 1 文档目的
 
@@ -26,7 +26,10 @@
 ├─ 当前岗位一级导航
 ├─ 收件箱 / Inbox 式旧入口文案
 ├─ 报告时间线
-└─ 独立刊物式报告页
+├─ 独立刊物式报告页
+├─ 首次导入链路中 parse 与 session 之间的第二个全页确认
+├─ 独立重置登录页（auth_reset / 忘记密码 / 密码 / 两步验证口径）
+└─ 复盘感谢信草稿（ThankYouLetter 死代码）
 ```
 
 不移除但重新定义的能力：
@@ -125,10 +128,9 @@ Home
 └─ 成为默认入口
 
 Auth Pages
-├─ 登录
-├─ 注册
+├─ 登录（邮箱验证码，单入口承担首次与后续登录）
 ├─ 邮箱验证
-├─ 重置登录
+├─ 首次资料补全
 └─ 退出登录
 ```
 
@@ -254,7 +256,47 @@ Report
 
 当前 `screen-report.jsx` 只保留 Dashboard。Editorial / Timeline 历史组件定义、`reportLayout` 参数和设计画板报告变体标签已从静态 UI 清理。
 
-## 13 受影响页面
+## 13 首次导入双重确认结构
+
+### 13.1 当前问题
+
+旧链路中，用户导入 JD 后先在 `parse` 完成“第 2/2 步 · 核对并确认”，又被带到 `workspace` 再做一次“开始前确认这场模拟面试的上下文”，JD 必需项 / 加分项 / 隐性关注点与轮次信息在两页连续重复展示。对带着 JD 来、想最快开练的用户，这是主漏斗里最大的一处冗余摩擦。
+
+### 13.2 目标处理
+
+```text
+parse 之后的第二个全页确认
+└─ 移除；启动决策（绑定简历、确认轮次、立即面试）收拢进 parse 解析确认页
+
+workspace
+└─ 重新定位为回访枢纽
+   ├─ Home 最近模拟面试 / Report / 会话历史 / 一级导航进入
+   ├─ parse 的仅保存规划进入
+   ├─ 切换 / 新建规划
+   └─ 立即面试（回访再练）
+```
+
+`workspace` 页面能力保留，移除的是它在首次导入链路中的必经确认职责。
+
+## 14 独立重置登录页与复盘感谢信残留
+
+### 14.1 当前问题
+
+产品已统一为邮箱验证码登录，任何页面都没有密码，但 `auth_reset` 仍以“密码重置”页面存在，功能与登录页发送验证码完全重叠；`screens-p1-depth.jsx` 中的 `ThankYouLetter` 感谢信草稿组件定义后从未被渲染，也不属于当前复盘范围。
+
+### 14.2 目标处理
+
+```text
+auth_reset
+└─ 页面与组件删除；route 归一回 auth_login
+   ├─ 登录页保留收不到验证码的帮助说明
+   └─ 验证码重发 / 更换邮箱在 auth_verify 完成
+
+ThankYouLetter
+└─ 死代码删除；不作为复盘或任何模块的目标能力恢复
+```
+
+## 15 受影响页面
 
 | 当前页面 | 目标处理 |
 |----------|----------|
@@ -275,9 +317,10 @@ Report
 | `jd_match` | 保留为一级岗位推荐 |
 | `profile` | 保留为用户菜单里的用户画像 |
 | `settings` | 保留为用户菜单里的账号、隐私、界面偏好入口 |
-| `auth_*` | 保留为认证流程页面 |
+| `auth_reset` | 移除独立重置登录页；运行时折回 `auth_login`，验证码重发与更换邮箱由 `auth_verify` 承担 |
+| `auth_login` / `auth_verify` / `auth_profile_setup` / `auth_logout` | 保留为认证流程页面 |
 
-## 14 当前静态 UI 中已清理或失效的废弃 / 历史代码
+## 16 当前静态 UI 中已清理或失效的废弃 / 历史代码
 
 以下清单用于约束后续文档和实现判断：这些组件、画板入口或旧实现已从当前目标运行时清理 / 归一 / dead code 化，后续不得作为目标页面恢复。当前目标以顶部导航、`ROUTE_ALIASES` 归一后的 `activeRouteName`、实际渲染内容和后加载覆盖关系为准；`voice` 不经过 `ROUTE_ALIASES`，必须使用 `practice` 显式参数。
 
@@ -297,12 +340,14 @@ Report
 | `screens-rest.jsx::ResumeScreen` | `resume` | 文件已删除；route 折回 `resume_versions` | 废弃为目标入口；以 `resume_versions` 为准 |
 | `screens-p0-complete.jsx::OnboardingScreen` | `onboarding` | 组件已删除；route 折回 `resume_versions` | 废弃为当前简历创建入口；以 `resume_versions(flow=create)` 为准 |
 | `screens-p2.jsx::VoicePracticeScreen` | `voice` | 文件已删除；`voice` route alias 已删除 | 语音能力保留为 `PracticeScreen` 内的语音 Surface，不恢复独立语音页骨架 |
+| `screen-auth.jsx::AuthResetScreen` | `auth_reset` | 组件已删除；route 归一回 `auth_login` | 废弃独立重置登录页；无密码产品不保留“密码重置”形态 |
+| `screens-p1-depth.jsx::ThankYouLetter` | 无（定义后从未渲染） | 组件已删除 | 废弃复盘感谢信草稿；不进入当前复盘范围 |
 
 语音能力不是废弃能力；废弃的是脱离 `PracticeScreen` 外层骨架的独立语音页面呈现。
 
-## 15 外观偏好不是业务模块
+## 17 外观偏好不是业务模块
 
-### 15.1 当前处理
+### 17.1 当前处理
 
 ```text
 外观偏好
@@ -314,7 +359,7 @@ Report
 
 这些控制保留，因为它们是横切的 UI 呈现能力；但它们不属于岗位推荐、模拟面试、报告、简历或复盘的业务模块，也不应该成为新的一级导航或 onboarding 步骤。
 
-## 16 未来重新引入条件
+## 18 未来重新引入条件
 
 被移除模块未来如需重新引入，必须先回答：
 

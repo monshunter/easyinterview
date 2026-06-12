@@ -1,8 +1,8 @@
 # EasyInterview UI 认证与默认入口
 
-> **版本**: 1.14
+> **版本**: 1.15
 > **状态**: active
-> **更新日期**: 2026-05-28
+> **更新日期**: 2026-06-12
 
 ## 1 文档目的
 
@@ -17,7 +17,7 @@
 5. 当前静态稿中邮箱验证成功后先检查 `/me.profileCompletionRequired`；需要补全资料时进入 `auth_profile_setup`，完成后才恢复 `pendingAction`；没有待恢复动作时回到 `Home`。
 6. 未登录顶部用户区只显示 `登录`，登录入口同时承担首次账号创建。
 7. 已登录用户菜单显示 `用户画像`、`设置与隐私`、`退出登录`。
-8. 认证页面包括单入口登录、邮箱验证、首次资料补全、重置登录和退出登录；旧 `auth_register` 不再是 live route。
+8. 认证页面包括单入口登录、邮箱验证、首次资料补全和退出登录；旧 `auth_register` 与 `auth_reset` 都不再是 live route。邮箱验证码是唯一登录方式，不存在密码，也不保留独立“重置登录 / 密码重置”页面；收不到验证码时在 `auth_verify` 重新发送或更换邮箱。
 9. 顶栏主题色、暗色模式和语言下拉对未登录用户也可见，不触发认证，不改变 `signedIn`。
 10. Home 可未登录访问，但 Recent mock interviews 属于账号历史数据；未登录时不展示该模块，也不触发读取历史面试 / target job 的后端请求。
 11. 面试相关业务 route（岗位推荐、JD 解析、工作台、简历、模拟面试、报告、复盘、用户画像、设置与隐私）在正式 runtime 中必须先确认登录；未登录直开或点击这些入口时统一进入 `auth_login(pendingAction)`。
@@ -68,27 +68,26 @@ Auth
 │  ├─ 邮箱
 │  ├─ 发送 6 位验证码
 │  ├─ 首次使用该邮箱会在验证后创建账号
-│  ├─ 忘记密码 -> auth_reset
+│  ├─ 收不到验证码的帮助说明（重发 / 换邮箱在 auth_verify 完成）
 │  └─ 继续 -> auth_verify
 ├─ auth_verify
 │  ├─ 输入 6 位邮箱验证码
 │  ├─ 验证码 5 分钟内有效
 │  ├─ 重新发送登录验证码
+│  ├─ 换一个邮箱 -> auth_login
 │  └─ 验证并继续；若 profileCompletionRequired=true -> auth_profile_setup
 ├─ auth_profile_setup
 │  ├─ 显示姓名
 │  ├─ 同意条款
 │  └─ 完成资料后恢复 pendingAction 或回 Home
-├─ auth_reset
-│  ├─ 输入账号邮箱
-│  ├─ 发送重置说明
-│  └─ 返回登录
 └─ auth_logout
    ├─ 确认退出
    ├─ 清除本机登录态
    ├─ 重新登录
    └─ 返回首页
 ```
+
+旧 `auth_reset` route 归一回 `auth_login`，不再渲染独立页面；“忘记密码”入口随之删除。
 
 退出登录只清除本机 session，不删除用户数据。
 
@@ -226,7 +225,6 @@ Auth Pages
 ├─ 登录
 ├─ 邮箱验证
 ├─ 首次资料补全
-├─ 重置登录
 └─ 退出登录
 ```
 
@@ -241,3 +239,4 @@ Auth Pages
 7. 主题色、暗色和语言下拉不得被绑定到认证状态；登录前后应保持同一套显示控制。
 8. 旧 `auth_register`、注册按钮、注册页文案和 displayName-before-verify 入口不得作为 live UI 继续出现。
 9. 未登录 Home 不展示 Recent mock interviews，也不调用历史面试 / target job API；任何受保护业务 route 在 auth loading 或 unauthenticated 状态下都不能先挂载业务 screen 再依赖后端 401 兜底。
+10. 旧 `auth_reset`、独立重置登录页、“忘记密码”链接和“密码 / 两步验证”口径不得作为 live UI 继续出现；`auth_reset` route 归一回 `auth_login`，验证码重发与更换邮箱由 `auth_verify` 承担。

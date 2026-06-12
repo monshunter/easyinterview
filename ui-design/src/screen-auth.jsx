@@ -1,4 +1,4 @@
-// Auth screens · unified email login, verification, profile setup, reset, logout
+// Auth screens · unified email login, verification, profile setup, logout
 
 const AuthShell = ({ T, lang, eyebrow, title, sub, children, side }) => (
   <div className="ei-fadein" style={{ maxWidth: 1160, margin: "0 auto", padding: "54px 48px 96px" }}>
@@ -104,9 +104,9 @@ const AuthLoginScreen = ({ T, lang, nav, onSignIn, pendingAction }) => {
             : (lang === "en" ? "Send code and continue" : "发送验证码并继续")}
         </Btn>
 
-        <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12.5 }}>
-          <span style={{ color: T.ink3 }}>{lang === "en" ? "One email can only own one account." : "一个邮箱只能对应一个账号。"}</span>
-          <AuthActionLink T={T} onClick={() => nav("auth_reset")}>{lang === "en" ? "Need help?" : "需要帮助？"}</AuthActionLink>
+        <div style={{ marginTop: 16, fontSize: 12.5, color: T.ink3, lineHeight: 1.6 }}>
+          <div>{lang === "en" ? "One email can only own one account." : "一个邮箱只能对应一个账号。"}</div>
+          <div style={{ marginTop: 4 }}>{lang === "en" ? "Code not arriving? You can resend it or switch email on the next step." : "收不到验证码？下一步可以重新发送，或换一个邮箱重试。"}</div>
         </div>
       </div>
     </AuthShell>
@@ -186,44 +186,6 @@ const AuthVerifyScreen = ({ T, lang, nav, email, onSignIn, pendingAction }) => {
   );
 };
 
-const AuthResetScreen = ({ T, lang, nav }) => {
-  const [email, setEmail] = React.useState("name@example.com");
-  const [sent, setSent] = React.useState(false);
-
-  return (
-    <AuthShell
-      T={T}
-      lang={lang}
-      eyebrow={lang === "en" ? "PASSWORD RESET" : "找回密码"}
-      title={lang === "en" ? "Reset access without losing your data." : "重置登录方式，不影响你的数据。"}
-      sub={lang === "en" ? "We send a secure sign-in code to your verified email. Existing resumes, JDs, and reports remain unchanged." : "系统会向已验证邮箱发送安全登录验证码。你的简历、JD 和报告不会被改动。"}
-    >
-      <div style={{ padding: 28 }}>
-        {sent ? (
-          <div>
-            <div style={{ padding: 18, background: T.okSoft, border: `1px solid ${T.ok}`, color: T.ink, fontSize: 13.5, lineHeight: 1.65, marginBottom: 20 }}>
-              {lang === "en" ? `Reset instructions sent to ${email}.` : `重置说明已发送到 ${email}。`}
-            </div>
-            <Btn T={T} variant="accent" icon="arrow_left" style={{ width: "100%" }} onClick={() => nav("auth_login")}>
-              {lang === "en" ? "Back to login" : "返回登录"}
-            </Btn>
-          </div>
-        ) : (
-          <>
-            <AuthField T={T} label={lang === "en" ? "Account email" : "账号邮箱"} value={email} setValue={setEmail} />
-            <Btn T={T} variant="accent" icon="send" style={{ width: "100%", marginTop: 22 }} onClick={() => setSent(true)}>
-              {lang === "en" ? "Send reset instructions" : "发送重置说明"}
-            </Btn>
-            <div style={{ marginTop: 18, textAlign: "center" }}>
-              <AuthActionLink T={T} onClick={() => nav("auth_login")}>{lang === "en" ? "Back to login" : "返回登录"}</AuthActionLink>
-            </div>
-          </>
-        )}
-      </div>
-    </AuthShell>
-  );
-};
-
 const AuthLogoutScreen = ({ T, lang, nav, signedIn, onSignOut }) => {
   const [done, setDone] = React.useState(!signedIn);
 
@@ -269,4 +231,4 @@ const AuthLogoutScreen = ({ T, lang, nav, signedIn, onSignOut }) => {
   );
 };
 
-Object.assign(window, { AuthLoginScreen, AuthProfileSetupScreen, AuthVerifyScreen, AuthResetScreen, AuthLogoutScreen });
+Object.assign(window, { AuthLoginScreen, AuthProfileSetupScreen, AuthVerifyScreen, AuthLogoutScreen });

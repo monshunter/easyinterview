@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════
 // #1 JD PARSE FLOW — loading state + structured preview / confirm
 // ═══════════════════════════════════════════════════════════════════
-const ParseScreen = ({ T, lang, nav }) => {
+const ParseScreen = ({ T, lang, nav, requestAuth }) => {
   const [stage, setStage] = React.useState("loading"); // loading -> preview
   const [step, setStep] = React.useState(0);
 
@@ -64,6 +64,45 @@ const ParseScreen = ({ T, lang, nav }) => {
       { r: lang === "en" ? "Hiring manager · 40m" : "经理面 · 40 分钟", focus: lang === "en" ? "Influence, conflict" : "影响力 · 冲突" },
     ],
   });
+
+  // Interview launch decision lives on this page (D-14): bind resume, pick round, start.
+  const resumeOptions = window.getWorkspaceResumeOptions ? window.getWorkspaceResumeOptions(lang) : [];
+  const [selectedResumeId, setSelectedResumeId] = React.useState(resumeOptions[0]?.id || "frontend-v3");
+  const [resumePickerOpen, setResumePickerOpen] = React.useState(false);
+  const [currentRoundIdx, setCurrentRoundIdx] = React.useState(0);
+  const selectedResume = resumeOptions.find((resume) => resume.id === selectedResumeId) || resumeOptions[0];
+
+  const PARSE_ROUND_IDS = ["round-hr", "round-tech-1", "round-tech-2", "round-manager"];
+  const buildParseInterviewContext = () => {
+    const base = {
+      resumeVersionId: selectedResumeId,
+      roundId: PARSE_ROUND_IDS[currentRoundIdx] || "round-hr",
+      roundName: parsed.rounds[currentRoundIdx]?.r,
+    };
+    return window.eiCreateInterviewContext ? window.eiCreateInterviewContext(base, base) : base;
+  };
+  const startInterview = () => {
+    const context = buildParseInterviewContext();
+    const startContext = {
+      ...context,
+      sessionId: `session-${context.planId}-${context.roundId}-new`,
+      mode: "text",
+      modality: "text",
+      practiceMode: "strict",
+      hintUsed: "false",
+    };
+    const run = () => nav("practice", startContext);
+    if (!requestAuth) {
+      run();
+      return;
+    }
+    requestAuth({
+      type: "create_session",
+      label: lang === "en" ? "Start interview now" : "立即面试",
+      route: "practice",
+      params: startContext,
+    }, run);
+  };
 
   if (stage === "loading") {
     return (
@@ -133,7 +172,7 @@ const ParseScreen = ({ T, lang, nav }) => {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
           <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>
-            {lang === "en" ? "STEP 2 OF 2 · REVIEW & CONFIRM" : "第 2 / 2 步 · 核对并确认"}
+            {lang === "en" ? "STEP 2 OF 2 · REVIEW & LAUNCH" : "第 2 / 2 步 · 核对并启动"}
           </div>
           <h1 className="ei-serif" style={{ fontSize: 32, margin: 0, color: T.ink, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
             {lang === "en" ? "Here's what I read from the JD." : "这是我从 JD 里读出来的内容。"}
@@ -205,38 +244,73 @@ const ParseScreen = ({ T, lang, nav }) => {
         </div>
       </Card>
 
-      {/* Round assumptions */}
-      <Card T={T} style={{ marginBottom: 28 }}>
+      {/* Round assumptions — pick the round to practice now */}
+      <Card T={T} style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "ROUND ASSUMPTIONS" : "轮次假设"}</div>
           <div style={{ fontSize: 11, color: T.ink3, fontFamily: "var(--ei-mono)" }}>
-            {lang === "en" ? "editable after creation" : "创建后仍可编辑"}
+            {lang === "en" ? "click to pick the current round · editable later" : "点选当前要练的轮次 · 之后仍可改"}
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
-          {parsed.rounds.map((r, i) => (
-            <div key={i} style={{ padding: "12px 14px", background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 2, position: "relative" }}>
-              <div style={{ fontFamily: "var(--ei-mono)", fontSize: 10.5, color: T.ink4, marginBottom: 5, letterSpacing: "0.06em" }}>R{i + 1}</div>
-              <div style={{ fontSize: 13, color: T.ink, fontWeight: 500, marginBottom: 4 }}>{r.r}</div>
-              <div style={{ fontSize: 11.5, color: T.ink3, lineHeight: 1.45 }}>{r.focus}</div>
-            </div>
-          ))}
+          {parsed.rounds.map((r, i) => {
+            const current = i === currentRoundIdx;
+            return (
+              <button key={i} onClick={() => setCurrentRoundIdx(i)} style={{ textAlign: "left", fontFamily: "var(--ei-sans)", cursor: "pointer", padding: "12px 14px", background: current ? T.accentSoft : T.bgSoft, border: `1px solid ${current ? T.accent : T.rule}`, borderRadius: 2, position: "relative" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                  <span style={{ fontFamily: "var(--ei-mono)", fontSize: 10.5, color: current ? T.accent : T.ink4, letterSpacing: "0.06em" }}>R{i + 1}</span>
+                  {current && <span style={{ fontFamily: "var(--ei-mono)", fontSize: 10, color: T.accent }}>{lang === "en" ? "CURRENT" : "当前轮"}</span>}
+                </div>
+                <div style={{ fontSize: 13, color: T.ink, fontWeight: 500, marginBottom: 4 }}>{r.r}</div>
+                <div style={{ fontSize: 11.5, color: T.ink3, lineHeight: 1.45 }}>{r.focus}</div>
+              </button>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Interview launch — resume binding + start, no second confirm page */}
+      <Card T={T} style={{ marginBottom: 28 }}>
+        <div className="ei-label" style={{ color: T.ink3, marginBottom: 12 }}>{lang === "en" ? "INTERVIEW LAUNCH" : "面试启动"}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <window.BindingPill T={T} icon="briefcase" label={lang === "en" ? "Target job / JD" : "目标岗位 / JD"} title={parsed.title} meta={`${parsed.company} · ${parsed.level}`} />
+          {selectedResume ? (
+            <window.BindingPill T={T} icon="resume" label={lang === "en" ? "Bound resume" : "绑定简历"} title={selectedResume.name} meta={selectedResume.meta} action={lang === "en" ? "Change" : "更换"} onClick={() => setResumePickerOpen(true)} />
+          ) : (
+            <window.BindingPill T={T} icon="resume" label={lang === "en" ? "Bound resume" : "绑定简历"} title={lang === "en" ? "No resume yet" : "还没有简历"} meta={lang === "en" ? "The interview needs resume evidence" : "面试生成需要简历证据"} action={lang === "en" ? "Create" : "去创建"} onClick={() => nav("resume_versions", { flow: "create" })} />
+          )}
+        </div>
+        <div style={{ fontSize: 12, color: T.ink3, marginTop: 12, display: "flex", gap: 6, alignItems: "center" }}>
+          <Icon name="info" size={12} /> {lang === "en" ? "Text and voice can be switched inside the interview." : "文本和语音可在面试过程中切换。"}
         </div>
       </Card>
 
       {/* Footer actions */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderTop: `1px solid ${T.rule}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderTop: `1px solid ${T.rule}`, gap: 16, flexWrap: "wrap" }}>
         <div style={{ fontSize: 12, color: T.ink3, fontFamily: "var(--ei-mono)", lineHeight: 1.6, maxWidth: 420 }}>
-          {lang === "en" ? "The interview setup will use these assumptions. You can edit anything later." : "面试前确认会使用上面这些信息，之后随时可改。"}
+          {lang === "en" ? "Start now with what you confirmed here, or save the plan and come back later." : "确认后直接开始这场模拟面试；也可以仅保存规划，稍后从模拟面试页回访。"}
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Btn T={T} variant="ghost" onClick={() => nav("home")}>{lang === "en" ? "Cancel" : "取消"}</Btn>
-          <Btn T={T} variant="secondary" icon="edit" onClick={() => { setStep(0); setStage("loading"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>{lang === "en" ? "Re-parse" : "重新解析"}</Btn>
-          <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => nav("workspace", window.eiCreateInterviewContext ? window.eiCreateInterviewContext() : {})}>
-            {lang === "en" ? "Confirm & open interview setup" : "确认并进入面试前确认"}
-          </Btn>
+          <Btn T={T} variant="ghost" icon="edit" onClick={() => { setStep(0); setStage("loading"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>{lang === "en" ? "Re-parse" : "重新解析"}</Btn>
+          <Btn T={T} variant="secondary" icon="layers" onClick={() => nav("workspace", buildParseInterviewContext())}>{lang === "en" ? "Save plan only" : "仅保存规划"}</Btn>
+          <Btn T={T} variant="accent" icon="play" disabled={!selectedResume} onClick={startInterview}>{lang === "en" ? "Start interview now" : "立即面试"}</Btn>
         </div>
       </div>
+
+      {resumePickerOpen && (
+        <window.ResumePickerModal
+          T={T}
+          lang={lang}
+          resumes={resumeOptions}
+          selectedId={selectedResumeId}
+          onClose={() => setResumePickerOpen(false)}
+          onConfirm={(resumeId) => {
+            setSelectedResumeId(resumeId);
+            setResumePickerOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -555,9 +629,7 @@ const SettingsProfile = ({ T, lang, fontPreset, setFontPreset }) => {
     { k: lang === "en" ? "Time zone" : "时区", v: "Asia/Shanghai" },
   ];
   const securityRows = [
-    { k: lang === "en" ? "Password" : "密码", v: lang === "en" ? "Last updated 18 days ago" : "18 天前更新" },
-    { k: lang === "en" ? "Login method" : "登录方式", v: lang === "en" ? "Email link + password" : "邮箱链接 + 密码" },
-    { k: lang === "en" ? "Two-step verification" : "两步验证", v: lang === "en" ? "Off" : "未开启" },
+    { k: lang === "en" ? "Login method" : "登录方式", v: lang === "en" ? "Email sign-in code · no password" : "邮箱验证码 · 无密码" },
   ];
 
   const Row = ({ r, last }) => (

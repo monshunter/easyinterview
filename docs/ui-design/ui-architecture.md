@@ -1,8 +1,8 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.8
+> **版本**: 2.9
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-06-12
 
 ## 1 文档目的
 
@@ -15,9 +15,9 @@
 3. 顶栏固定提供全局显示控制：主题色菜单、暗色模式、语言下拉；这些控制不属于业务模块，也不要求登录。
 4. 主题色与 dark/light 模式正交：当前运行时主题为 `暖陶 / 苔林 / 深海 / 梅子 / 自定义 accent`，暗色按钮只切换所选主题的明暗版本。
 5. 字体预设在 `设置与隐私` 的个人资料页维护，当前有 `编辑级 / 现代 / 杂志` 三组；切换时必须原子更新标题 serif 与正文 sans，等宽字体保持不变。
-6. `当前岗位` 不再作为一级模块；用户从 `模拟面试` 进入当前面试规划，规划由 `JD/目标岗位 + 简历 + 当前面试轮次` 组成。
+6. `当前岗位` 不再作为一级模块；用户从 `模拟面试` 进入当前面试规划，规划由 `JD/目标岗位 + 简历 + 当前面试轮次` 组成。规划页是回访枢纽：服务最近面试回访、切换/新建规划与再次发起面试；首次导入新 JD 的启动决策在 `parse` 完成。
 7. `面试报告` 不再作为一级模块；报告隶属于某一次已完成的模拟面试，只能从面试结束页、会话历史或相关入口进入。
-8. `岗位推荐` 是一级模块，用于基于简历、用户画像和岗位偏好推荐 JD；点击 `确认面试` 后先进入 JD 解析确认 `parse`，再进入模拟面试前确认 `workspace`。
+8. `岗位推荐` 是一级模块，用于基于简历、用户画像和岗位偏好推荐 JD；点击 `确认面试` 后进入 JD 解析确认与启动 `parse`，核对解析结果、绑定简历、确认轮次后立即面试；首次导入链路不再经过 `workspace` 第二次全页确认。
 9. 简历是一级模块，当前运行时以 `screen-resume-workshop.jsx` 为准，管理原始简历树、结构化主版本、岗位定制版本、创建流程、分叉流程和版本详情。
 10. 用户画像在用户菜单中，是 AI 根据简历、JD、模拟面试、复盘和用户修正沉淀出的结构化资料；个人设置只保留账号基础信息、界面偏好、隐私数据和登录安全。
 11. 面试是一个整体过程，不提供“热身、单题、反问、针对性复练”等练习模式选择。
@@ -30,14 +30,14 @@
 18. 复盘是一级模块，按 `复盘记录 -> 复盘分析 -> 复盘面试` 递进，用于真实面试而非模拟报告错题本。
 19. 复盘记录的 `文本` 和 `语音` 是同一份记录的两种添加方式；顶部汇总条、来源标记和问题卡片列表跨模式共享。
 20. 语音复盘由 AI 连续对话引导，支持 [空格] 暂停、实时提取待确认卡片、手动加一条、确认 / 编辑 / 删除 / 写入记录；切换回文本不得丢失语音会话状态。
-21. 公司情报不是一级导航；当前 UI 在模拟面试规划页内展示轻量嵌入卡片，并可打开 `company_intel` 详情页后返回面试前确认。
+21. 公司情报不是一级导航；当前 UI 在模拟面试规划页内展示轻量嵌入卡片，并可打开 `company_intel` 详情页后返回模拟面试规划。
 22. `welcome`、`growth`、`plan`、`mistakes`、`drill`、`followup`、`experiences`、`star`、`resume`、`onboarding` 等旧路由不代表独立目标模块；运行时通过 `ROUTE_ALIASES` 归一到 `home`、`workspace`、`report`、`practice` 或 `resume_versions`。`voice` 不再保留 route alias；语音面试只能通过 `practice` 显式携带 `mode=voice` 与 `modality=voice` 进入，不据此恢复独立语音页面骨架。
 23. 成长、多轮计划、经历库、追问树、单题 Drill、独立错题复练队列仍不进入当前主流程。
 24. 模拟面试规划页的历史列表只展示当前 `MockInterviewPlan` / `TargetJob` / `JD` 范围内的会话，不混入其他公司、岗位或 JD 的历史。
-25. 复盘页的 `目标岗位 / JD`、`关联模拟面试`、`绑定简历` 三个上下文卡片都通过本页弹窗选择，不跳转到模拟面试、报告或简历页面。
+25. 复盘页的 `目标岗位 / JD`、`关联模拟面试`、`绑定简历` 三个上下文卡片都通过本页弹窗选择，不跳转到模拟面试、报告或简历页面。上下文遵循“选一带二”：任一上下文选定后自动带出可推导项，标注“已自动带入”且可逐项更换。
 26. 旧 `screens-p1-depth.jsx::ResumeVersionsScreen` 已被 `_LegacyResumeVersionsScreen` dead code 化；`ui-design/index.html` 后加载 `screen-resume-workshop.jsx` 并覆盖 `window.ResumeVersionsScreen`，因此新简历工坊而不是旧版本页驱动目标架构。
-27. 路由层维护 `InterviewContext`，在 `workspace`、`practice`、`generating`、`report`、`debrief`、`company_intel` 间贯通 `planId / targetJobId / jdId / resumeVersionId / roundId / sessionId`。
-28. 登录打断使用 `pendingAction` 恢复原动作；当前静态稿已覆盖立即面试、复练当前轮和进入下一轮。
+27. 路由层维护 `InterviewContext`，在 `parse`、`workspace`、`practice`、`generating`、`report`、`debrief`、`company_intel` 间贯通 `planId / targetJobId / jdId / resumeVersionId / roundId / sessionId`；`parse` 立即面试时直接产出完整上下文进入 `practice`。
+28. 登录打断使用 `pendingAction` 恢复原动作；当前静态稿已覆盖立即面试（`parse` 与 `workspace` 两处入口）、复练当前轮和进入下一轮。
 29. TopBar 品牌区只保留 `E` mark 与 `EasyInterview`；`EasyInterview` 作为产品名不翻译，解释性定位文案和版本号不在 TopBar 常驻展示。版本号作为产品元数据放在设置页产品信息区。
 
 ## 3 目标产品骨架
@@ -157,7 +157,7 @@
 ├─ 简历原件预览 -> 简历模块内弹窗
 ├─ 用户画像 -> 用户菜单入口
 ├─ 设置 -> 用户菜单入口
-├─ 登录 / 验证 / 首次资料补全 / 重置 / 退出 -> 用户区或认证页
+├─ 登录 / 验证 / 首次资料补全 / 退出 -> 用户区或认证页
 ├─ 成长 -> 移除
 ├─ 多轮计划 -> 移除
 ├─ 经历库 -> 移除
@@ -306,7 +306,9 @@ Historical prototype routes normalized only for the static UI
 │  ├─ experiences -> resume_versions
 │  ├─ star -> resume_versions
 │  ├─ resume -> resume_versions
-│  └─ onboarding -> resume_versions
+│  ├─ onboarding -> resume_versions
+│  ├─ auth_register -> auth_login
+│  └─ auth_reset -> auth_login
 ├─ voice route alias 已删除:
 │  └─ 语音面试必须使用 practice(mode=voice, modality=voice)
 └─ 已从当前静态 UI 源码清理:
@@ -318,7 +320,9 @@ Historical prototype routes normalized only for the static UI
    ├─ ExperienceLibraryScreen
    ├─ Legacy ResumeVersionsScreen
    ├─ OnboardingScreen
-   └─ ReportEditorial / ReportTimeline
+   ├─ ReportEditorial / ReportTimeline
+   ├─ AuthResetScreen
+   └─ ThankYouLetter
 ```
 
 判断目标架构时不得以旧 hash、旧画板标签或已删除组件为准。目标页面必须同时符合当前顶部导航、`normalizeRoute` 后的 `activeRouteName` 和实际渲染内容。
@@ -327,7 +331,7 @@ Historical prototype routes normalized only for the static UI
 
 1. App 默认路由进入 `home`，不进入 `welcome`。
 2. 顶部导航不得恢复 `当前岗位` 或 `面试报告` 一级入口。
-3. `workspace` 的产品语义是 `MockInterviewPlan`，即当前模拟面试规划，不是独立岗位工作台。
+3. `workspace` 的产品语义是 `MockInterviewPlan`，即当前模拟面试规划，不是独立岗位工作台；定位是回访枢纽，不得作为首次导入链路中 `parse` 与 session 之间的必经确认页。
 4. `workspace` 必须允许切换规划和新建规划；如果用户不想继续当前规划，可以从这里切到新的 `JD + 简历 + 轮次` 组合。
 5. `workspace` 的主 CTA 文案是 `立即面试`。
 6. `workspace` 的流程线展示面试轮次，不展示模拟面试内部题目流程。
@@ -336,7 +340,7 @@ Historical prototype routes normalized only for the static UI
 9. `严格模拟` 是会话内辅助程度开关，必须隐藏提示、实时观察、可调用经历和语音现场提示；不得恢复面试前练习模式卡片。
 10. `结束并生成报告` 必须保持为右侧底部固定动作，并传递 `practiceMode`、`hintUsed` 和 `hintCount`。
 11. 报告必须显示 `sessionId`、目标岗位、绑定简历、面试轮次、沟通形式、练习方式和提示使用记录；无 `sessionId` 或生成失败时必须进入明确状态页。
-12. 报告的后续动作必须拆成 `复练当前轮` 和 `进入下一轮` 两条路径；两者都直接进入对应面试 session，只有返回按钮回到面试前确认。
+12. 报告的后续动作必须拆成 `复练当前轮` 和 `进入下一轮` 两条路径；两者都直接进入对应面试 session，只有返回按钮回到模拟面试规划。
 13. 简历模块必须保留原始简历预览和解析文本快照，结构化或岗位定制不能覆盖原件。
 14. 复盘必须先确认目标岗位、关联模拟面试和简历；三个上下文变更动作必须在当前复盘页打开选择弹窗，不直接跳转到其他一级或会话页。
 15. 复盘记录必须把文本添加和语音添加写入同一组问题卡片，并保留来源标记；切换添加方式不得丢状态。

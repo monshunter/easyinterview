@@ -62,6 +62,7 @@ const ROUTE_ALIASES = {
   resume: "resume_versions",
   onboarding: "resume_versions",
   auth_register: "auth_login",
+  auth_reset: "auth_login",
 };
 
 const DEFAULT_INTERVIEW_CONTEXT = {
@@ -290,7 +291,7 @@ const App = () => {
     practice: <PracticeScreen T={T} lang={lang} nav={nav} params={route.params || {}} jobId={currentContext.targetJobId} mode={route.params.mode} role={tweaks.role} setRole={(r) => updateTweak("role", r)} />,
     report: <ReportScreen T={T} lang={lang} nav={nav} params={route.params || {}} requestAuth={requestAuth} />,
     debrief: <DebriefFullScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
-    parse: <ParseScreen T={T} lang={lang} nav={nav} />,
+    parse: <ParseScreen T={T} lang={lang} nav={nav} requestAuth={requestAuth} />,
     generating: <ReportGeneratingScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
     settings: <SettingsScreen T={T} lang={lang} nav={nav} fontPreset={tweaks.fontPreset} setFontPreset={setFontPreset} />,
     debrief_full: <DebriefFullScreen T={T} lang={lang} nav={nav} />,
@@ -300,7 +301,6 @@ const App = () => {
     auth_login: <AuthLoginScreen T={T} lang={lang} nav={nav} onSignIn={completeSignIn} pendingAction={route.params.pendingAction} />,
     auth_verify: <AuthVerifyScreen T={T} lang={lang} nav={nav} email={route.params.email} onSignIn={completeSignIn} pendingAction={route.params.pendingAction} />,
     auth_profile_setup: <AuthProfileSetupScreen T={T} lang={lang} nav={nav} onCompleteProfile={completeProfile} pendingAction={route.params.pendingAction} />,
-    auth_reset: <AuthResetScreen T={T} lang={lang} nav={nav} />,
     auth_logout: <AuthLogoutScreen T={T} lang={lang} nav={nav} signedIn={signedIn} onSignOut={completeSignOut} />,
     company_intel: <CompanyIntelScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
   };
