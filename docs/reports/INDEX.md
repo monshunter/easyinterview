@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-06-12](./2026-06-12-mvp-scope-trim-batch2-assessment.md) | MVP Scope Trim Batch 2 设计层交付复盘 | #assessment |
 | [2026-06-12](./2026-06-12-ux-funnel-simplification-design-assessment.md) | UX Funnel Simplification 设计层交付复盘 | #assessment |
 
 ## 2026-05
