@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.16
-> **状态**: completed
-> **更新日期**: 2026-05-28
+> **版本**: 1.17
+> **状态**: active
+> **更新日期**: 2026-06-12
 
 **关联计划**: [plan](./plan.md)
 
@@ -123,3 +123,11 @@
   <!-- verified: 2026-05-28 command="pnpm --filter @easyinterview/frontend test src/app/runtime/AppRuntimeProvider.test.tsx src/app/AppAuthDispatch.test.tsx" evidence="AppAuthDispatch 13 tests passed; Red reproduced verify page stuck with code failure, Green navigates to auth-route-gate for pending workspace" -->
 - [x] 11.3 Phase 11 regression gates；验证: focused frontend auth gates 通过，`pnpm --filter @easyinterview/frontend typecheck` 通过，`python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/frontend-shell/plans/001-app-shell-auth-settings/context.yaml --docs-root docs --target frontend` 通过
   <!-- verified: 2026-05-28 command="pnpm --filter @easyinterview/frontend test src/app/runtime/AppRuntimeProvider.test.tsx src/app/AppAuthDispatch.test.tsx; pnpm --filter @easyinterview/frontend typecheck; python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/frontend-shell/plans/001-app-shell-auth-settings/context.yaml --docs-root docs --target frontend" evidence="19 focused auth tests passed; frontend typecheck passed; context validator resolved plan/checklist/spec/bdd docs with specVersion.to=1.21" -->
+
+## Phase 12: UX funnel simplification alignment (D-16 / D-21)
+
+- [ ] 12.1 删除 `auth_reset` route 与 `AuthResetScreen`，登录页改为静态帮助说明；验证: focused Vitest 断言 `auth_reset` route key 与 `/auth/reset` path 归一回 `auth_login` 且不 materialize 独立页面；`AuthResetScreen.tsx` 文件、`auth/index.ts` 导出、`App.tsx` 分支、`AuthShell` routeName、zh/en `auth.reset.*` / `auth.forgotPassword` 词条全部删除；`AuthLoginScreen` 无"忘记密码"导航按钮，渲染与 `ui-design/src/screen-auth.jsx` 一致的静态帮助说明（一个邮箱一个账号 + 收不到验证码下一步可重发/换邮箱），zh/en 双语断言
+- [ ] 12.2 设置页收敛为 `个人资料` / `隐私与数据` 双 tab 并对齐登录与安全口径；验证: SettingsScreen 测试断言只有 profile / privacy 两个 tab，`settings-notifications-placeholder` / `settings-subscription-placeholder` 与对应 i18n 词条删除；个人资料 tab 按原型含账号基础信息、`登录与安全` 仅一行 `邮箱验证码 · 无密码`、字体预设、产品信息；"密码 / 两步验证"旧口径词条删除
+- [ ] 12.3 默认主题与 fallback 改为 `ocean`；验证: DisplayPreferencesProvider 测试断言默认 `theme === "ocean"`、无效持久化值 fallback `ocean`；TopBar custom accent seed fallback 为 `CUSTOM_ACCENT_SEEDS.ocean`；主题菜单仍含四预设 + customAccent；p0-005 visual smoke 与相关 pixel-parity 默认主题断言同步更新
+- [ ] 12.4 Phase 12 operation matrix 固化；验证: plan.md Phase 12.4 矩阵存在（UI-only N/A 行 + auth operations 维持 Phase 9 matrix），context validator 通过
+- [ ] 12.5 Phase 12 回归与零残留 gate；验证: focused Vitest 全部更新后通过；`frontend/src` 负向搜索 `auth_reset` / `AuthResetScreen` / `forgotPassword` / 忘记密码 / 两步验证 / `settings-notifications-placeholder` / `settings-subscription-placeholder` 零残留（负向断言测试除外）；`pnpm --filter @easyinterview/frontend typecheck`、`pnpm --filter @easyinterview/frontend test`、`pnpm --filter @easyinterview/frontend build` 通过

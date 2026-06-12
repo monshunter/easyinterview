@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.16
-> **状态**: completed
-> **更新日期**: 2026-05-28
+> **版本**: 1.17
+> **状态**: active
+> **更新日期**: 2026-06-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`，并补齐已实施计划的登录态漂移修复：已登录用户区必须源级复刻头像 chip + dropdown，Vite dev fixture mock 必须覆盖默认非登录、登录成功和退出后非登录态全流程；browser-level parity 还必须覆盖 desktop / mobile dropdown geometry 与 logout flow。修订 v1.11 修复真实联调 passwordless 链路：登录和注册提交 `startAuthEmailChallenge` 时必须兼容后端 `202 Accepted` 空响应并导航到 verify 页；Mailpit magic link 必须落到前端 `auth_verify`，由前端自动消费 token、刷新 session，并用 replace 导航清理 URL token。修订 v1.12 将真实联调入口从 Mailpit magic link 改为 Mailpit 6 位 email code，并锁定邮箱是唯一账号标识：注册页传 `purpose=signup` + displayName，后续登录同一邮箱传 `purpose=login`，displayName 不唯一且不参与账号去重；TopBar 不再使用 `刘哲` / `Liu Zhe` / `liuzhe@example.com` 样例 fallback。修订 v1.13 将注册和登录合并为单一邮箱验证码入口：新邮箱 verify 后进入 `auth_profile_setup` 完成 displayName + 条款确认，`/me.profileCompletionRequired` 是强制跳转依据；旧 `auth_register` 不再是 live route 或可见入口。修订 v1.14 修复未登录 Home 展示 Recent mock interviews 与 raw backend unauthorized error 的回归，并把面试相关业务 route 统一前置到 `auth_login(pendingAction)`。修订 v1.15 收紧 L2 验收缺口：`AuthLoginScreen` 发码请求体只提交 email、`auth_profile_setup` 只在 `/me.profileCompletionRequired=false` 后恢复 pendingAction，且 P0.102 wrapper 直接校验 runner / Go `--- PASS` 证据。修订 v1.16 收紧 auth verify 恢复：公共 auth route 的 initial `/me` skip 只能消费一次，直接提交 verified user 后语言切换不得把已登录态重置为未登录；`verifyAuthEmailChallenge` 成功后如 `/me` refresh 失败，不能把已消费 code 折叠成验证码错误。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
+落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`，并补齐已实施计划的登录态漂移修复：已登录用户区必须源级复刻头像 chip + dropdown，Vite dev fixture mock 必须覆盖默认非登录、登录成功和退出后非登录态全流程；browser-level parity 还必须覆盖 desktop / mobile dropdown geometry 与 logout flow。修订 v1.11 修复真实联调 passwordless 链路：登录和注册提交 `startAuthEmailChallenge` 时必须兼容后端 `202 Accepted` 空响应并导航到 verify 页；Mailpit magic link 必须落到前端 `auth_verify`，由前端自动消费 token、刷新 session，并用 replace 导航清理 URL token。修订 v1.12 将真实联调入口从 Mailpit magic link 改为 Mailpit 6 位 email code，并锁定邮箱是唯一账号标识：注册页传 `purpose=signup` + displayName，后续登录同一邮箱传 `purpose=login`，displayName 不唯一且不参与账号去重；TopBar 不再使用 `刘哲` / `Liu Zhe` / `liuzhe@example.com` 样例 fallback。修订 v1.13 将注册和登录合并为单一邮箱验证码入口：新邮箱 verify 后进入 `auth_profile_setup` 完成 displayName + 条款确认，`/me.profileCompletionRequired` 是强制跳转依据；旧 `auth_register` 不再是 live route 或可见入口。修订 v1.14 修复未登录 Home 展示 Recent mock interviews 与 raw backend unauthorized error 的回归，并把面试相关业务 route 统一前置到 `auth_login(pendingAction)`。修订 v1.15 收紧 L2 验收缺口：`AuthLoginScreen` 发码请求体只提交 email、`auth_profile_setup` 只在 `/me.profileCompletionRequired=false` 后恢复 pendingAction，且 P0.102 wrapper 直接校验 runner / Go `--- PASS` 证据。修订 v1.16 收紧 auth verify 恢复：公共 auth route 的 initial `/me` skip 只能消费一次，直接提交 verified user 后语言切换不得把已登录态重置为未登录；`verifyAuthEmailChallenge` 成功后如 `/me` refresh 失败，不能把已消费 code 折叠成验证码错误。修订 v1.17 对齐 2026-06-12 product-scope v2.1 / spec v1.22 UX 漏斗收敛（新增 Phase 12）：D-16 删除 `auth_reset` route 与 `AuthResetScreen`（归一回 `auth_login`），登录页"忘记密码"入口改为静态帮助说明；D-21 设置页收敛为 `个人资料` / `隐私与数据` 双 tab，删除通知/订阅占位 tab，`登录与安全` 仅展示 `邮箱验证码 · 无密码`；默认主题与无效值 fallback 从 `warm` 改为 `ocean`。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
 
 ## 2 背景
 
@@ -22,7 +22,7 @@
 - **Plan 类型**: `feature-behavior` + `frontend`。
 - **TDD 策略**: 通过 `/implement frontend-shell/001-app-shell-auth-settings frontend` -> `/tdd` 执行；每个 checklist item 先写 focused Vitest / component test / route-state test，再实现最小前端代码；测试断言写在 checklist 的 `验证:` 后。Runtime / API bootstrap 测试必须覆盖 `getRuntimeConfig`、`getMe` authenticated / unauthenticated、auth generated operations、mock scenario fail-loud，以及 dev mock session 状态从默认 unauthenticated -> verify authenticated -> logout unauthenticated 的连续变化。当前 plan 一旦把 frontend package `build` script 从占位切换为真实 bundler gate，必须在同一验证面运行 `pnpm --filter @easyinterview/frontend build` 与根 `make build`。
 - **BDD 策略**: 需要 BDD。本 plan 引入用户可见 App shell、TopBar、认证页面、pending action 行为和受保护业务 route guard，必须维护 `bdd-plan.md`、`bdd-checklist.md`，并在主 checklist 中使用 `BDD-Gate:` 引用 `E2E.P0.001`、`E2E.P0.002`、`E2E.P0.032`、`E2E.P0.101`、`E2E.P0.102`。
-- **替代验证 gate**: 主路径 BDD gate 是本 plan 的用户行为验证入口。Phase 11 只修复已存在 auth flow 的 failure/recovery path，不新增场景目录；替代 gate 为 `AppRuntimeProvider.test.tsx` 与 `AppAuthDispatch.test.tsx` focused regression，覆盖语言切换 requestOptions 变化和 post-verify `/me` refresh failure。
+- **替代验证 gate**: 主路径 BDD gate 是本 plan 的用户行为验证入口。Phase 11 只修复已存在 auth flow 的 failure/recovery path，不新增场景目录；替代 gate 为 `AppRuntimeProvider.test.tsx` 与 `AppAuthDispatch.test.tsx` focused regression，覆盖语言切换 requestOptions 变化和 post-verify `/me` refresh failure。Phase 12 为既有用户流的裁剪与默认值修订（删除 `auth_reset` 入口、设置 tab 收敛、主题默认值），不引入新的端到端行为流，不新增场景目录；替代 gate 为 focused Vitest（route normalization / AuthLogin / Settings / DisplayPreferences / TopBar）、`ui-design` 对照的结构断言、`auth_reset`・"忘记密码"・"密码 / 两步验证"・占位 tab 的源码级零残留负向搜索，以及 `pnpm --filter @easyinterview/frontend build` 构建 smoke；既有 BDD 场景 `E2E.P0.001` / `E2E.P0.032` / `E2E.P0.102` 维持回归通过。
 
 ## 4 实施步骤
 
@@ -267,6 +267,32 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 | `verifyAuthEmailChallenge` | `openapi/fixtures/Auth/verifyAuthEmailChallenge.json#default` | `AuthVerifyScreen` / App auth adapter；只负责 code verify 和 session mint | backend-auth verify handler | backend consumes one-time challenge and mints first-party session cookie | 无 | `frontend/src/app/AppAuthDispatch.test.tsx` post-verify `/me` failure regression；E2E.P0.101 main path |
 | `getMe` | `openapi/fixtures/Auth/getMe.json#authenticated|profileIncomplete|unauthenticated` | `AppRuntimeProvider`、post-verify profile completion gate、TopBar language requestOptions refresh | backend-auth current-user handler | backend session lookup；frontend 不持久化 session | 无 | `frontend/src/app/runtime/AppRuntimeProvider.test.tsx` skipped-probe language switch regression；`frontend/src/app/AppAuthDispatch.test.tsx` auth/profile loading recovery |
 
+### Phase 12: UX funnel simplification alignment (D-16 / D-21)
+
+> 真理源：`docs/spec/product-scope/spec.md` v2.1 D-16 / D-21、`docs/spec/frontend-shell/spec.md` v1.22 C-17、`docs/ui-design/auth-and-entry.md` v1.17、`docs/ui-design/user-profile-and-settings.md` v1.7、`ui-design/src/screen-auth.jsx`、`ui-design/src/screens-p0-complete.jsx::SettingsScreen/SettingsProfile`、`ui-design/src/app.jsx::TWEAK_DEFAULTS`。
+
+#### 12.1 删除 `auth_reset` route 与页面，登录页改为静态帮助说明
+
+删除 `frontend/src/app/auth/AuthResetScreen.tsx`、`routes.ts` 中的 `auth_reset` 定义、`routeUrl.ts` 的 `/auth/reset` 映射、`App.tsx` 渲染分支、`AuthShell` 的 `auth_reset` routeName、`auth/index.ts` 导出与 zh/en i18n `auth.reset.*` / `auth.forgotPassword` 词条。旧 `auth_reset` route key 与 `/auth/reset` path 归一回 `auth_login`，不得 materialize 独立页面。`AuthLoginScreen` 删除"忘记密码"导航按钮，按 `ui-design/src/screen-auth.jsx` 增加静态帮助说明（"一个邮箱只能对应一个账号" + "收不到验证码？下一步可以重新发送，或换一个邮箱重试"），zh/en 词条与原型文案一致。
+
+#### 12.2 设置页收敛为双 tab 并对齐登录与安全口径
+
+`SettingsScreen` 按 `ui-design/src/screens-p0-complete.jsx::SettingsScreen` 收敛为 `个人资料`（profile）与 `隐私与数据`（privacy）两个 tab：删除 `settings-notifications-placeholder` / `settings-subscription-placeholder` 占位 tab 及对应 i18n；个人资料 tab 内容对齐原型 `SettingsProfile` 分区（账号基础信息、`登录与安全` 仅一行 `登录方式：邮箱验证码 · 无密码`、界面偏好字体预设、产品信息）；删除 i18n 中"密码 / 登录方式 / 两步验证"旧 securityItems 口径。隐私数据 tab 维持现有边界。
+
+#### 12.3 默认主题与 fallback 改为 `ocean`
+
+`DisplayPreferencesProvider` DEFAULTS 的 `theme` 从 `"warm"` 改为 `"ocean"`；`TopBar` 的 `CUSTOM_ACCENT_SEEDS` fallback 从 `CUSTOM_ACCENT_SEEDS.warm` 改为 `CUSTOM_ACCENT_SEEDS.ocean`；无效或缺失持久化主题值 fallback `ocean`。主题菜单维持 warm / forest / ocean / plum 四预设 + `customAccent`，不裁剪自定义 accent。
+
+#### 12.4 Phase 12 operation matrix
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| `N/A`（UI-only：route 删除 / 设置 tab 收敛 / 主题默认值） | N/A | `routes.ts` / `routeUrl.ts` / `App.tsx` / `AuthLoginScreen` / `SettingsScreen` / `DisplayPreferencesProvider` / `TopBar` | 无 API 变更；auth operations 维持 Phase 9 matrix | 无 | 无 | focused Vitest + 负向搜索 + build smoke；E2E.P0.001 / P0.032 / P0.102 回归 |
+
+#### 12.5 Phase 12 regression and zero-residue gates
+
+执行并通过：focused Vitest（route normalization、AuthScreens、AppAuthDispatch、SettingsScreen visual、DisplayPreferencesProvider、TopBar、相关 scenario smoke 测试的断言更新）；`frontend/src` 源码级负向搜索 `auth_reset` / `AuthResetScreen` / `forgotPassword` / 忘记密码 / 两步验证 / `settings-notifications-placeholder` / `settings-subscription-placeholder` 零残留（负向断言测试代码除外）；`pnpm --filter @easyinterview/frontend typecheck` 与 `pnpm --filter @easyinterview/frontend build` 通过；涉及 pixel-parity spec 的默认主题断言同步更新。
+
 ## 5 验收标准
 
 - 默认打开 App 渲染 Home、五入口 TopBar、单一登录入口和显示控制，不出现 welcome 或注册入口。
@@ -286,6 +312,9 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 - UI 真理源边界写入 handoff：正式前端视觉只以 `ui-design/` 与 `docs/ui-design/` 为准。
 - BDD-Gate `E2E.P0.001`、`E2E.P0.002`、`E2E.P0.032`、`E2E.P0.101`、`E2E.P0.102` 通过。
 - Frontend package 真实 build gate 与根 build 聚合 gate 通过，避免 `frontend/package.json` 脚本升级后缺 entry 破坏 `make build`。
+- `auth_reset` route / `AuthResetScreen` / "忘记密码"入口零残留；直开 `/auth/reset` 归一回 `auth_login`；登录页展示与原型一致的静态帮助说明。
+- 设置页只有 `个人资料` / `隐私与数据` 两个 tab；占位 tab 与"密码 / 两步验证"口径零残留；`登录与安全` 仅展示 `邮箱验证码 · 无密码`。
+- 默认主题与无效值 fallback 为 `ocean`；主题菜单保留四预设 + `customAccent`。
 
 ## 6 风险与应对
 
@@ -306,3 +335,5 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 | 真实后端 2xx 空响应与 fixture body 不一致 | Phase 7.1 使用空 body Response 回归测试 generated client，禁止只用 fixture `{}` 掩盖真实联调错误 |
 | Mailpit 邮件回流旧链接口径 | Phase 8.4 将本地邮件改为 code-only；邮件正文、场景和 evidence 不得再包含 `/auth/verify?token=` |
 | 本地端口在代码中分散硬编码 | Phase 7.3 将 backend dev CORS origin 从 `EMAIL_VERIFY_BASE_URL` 派生，并要求 frontend real mode 显式配置 `VITE_EI_API_BASE_URL`；Vite dev/preview 端口通过 `FRONTEND_HOST_PORT` / `FRONTEND_PREVIEW_PORT` 覆盖 |
+| 裁剪只删 UI 入口、留下死代码或 i18n 残留 | Phase 12.5 强制源码级零残留负向搜索，删除 route / screen / 导出 / i18n / 测试断言必须同 commit 收口 |
+| 主题默认值改动破坏既有 parity / scenario 断言 | Phase 12.3 / 12.5 要求同步更新 p0-005 visual smoke、DisplayPreferences 与 pixel-parity 默认主题断言，禁止留下 `warm` 默认值假设 |
