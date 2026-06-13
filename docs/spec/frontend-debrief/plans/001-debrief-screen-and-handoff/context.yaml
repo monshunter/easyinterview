@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.4
+    to: 1.7
 spec:
   defaultTarget: frontend
   discovery:

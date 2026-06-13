@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Branch, Rewrites and Edit Checklist
 
-> **版本**: 1.1
-> **状态**: completed
-> **更新日期**: 2026-05-23
+> **版本**: 1.2
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -149,3 +149,10 @@
 - [x] 7.14 spec / history / INDEX 同步核对：frontend-resume-workshop spec.md / history.md / `docs/spec/INDEX.md` 已保持 1.1，§6 C-11 / §7 plan 003 行指向当前 active plan，§3.2 accept/reject 口径为 UI 真理源 inline action + terminal-state feedback；`docs/spec/frontend-resume-workshop/plans/INDEX.md` 已包含 003 active 行；不为 checklist 收口重复 bump spec，除非发现新的设计事实（验证：`sync-doc-index --check` PASS）
   <!-- verified: 2026-05-18 method=script evidence=`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` reports "All documents are in sync. Zero drift detected." (Header Violations 0, INDEX Drifts 0, Orphans 0, Warnings 0); spec.md remains v1.1 active without bump; plans/INDEX.md still lists 003 active row; no implementation-side design facts emerged that warrant a spec bump -->
 - [x] 7.15 L2 real-backend generated-client gate：P0.084-P0.087 trigger 前置 `frontendOwners.realApiMode.test.ts`；verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker，覆盖 branch / update / accept / reject / tailor / export generated client real-mode routing。 <!-- verified: 2026-05-23 method=focused-vitest evidence=frontendOwners.realApiMode.test.ts PASS; scenario scripts updated with shared real-backend gate/verify helpers -->
+
+## Phase 8: D-20 简历扁平化 collapse（删 branch + rewrites 采纳保存）
+
+> product-scope D-20 / spec D-8。
+
+- [ ] 8.1 删 `flow=branch`/`ResumeBranchFlow`/seedStrategy；`ResumeRewritesTab` 仅采纳 + `RewriteSaveConfirmModal`（`updateResume` 覆盖 / `duplicateResume` 另存）；`ResumeEditTab` 改 `updateResume`（验证：vitest + pixel parity PASS）
+- [ ] 8.2 收口：full vitest + typecheck + build + 零 `ResumeBranchFlow`/`branchResumeVersion`/`seedStrategy`/`acceptResumeTailorSuggestion`/`updateResumeVersion` 残留 grep（验证：全 gate PASS + 负向 grep）

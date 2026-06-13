@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.5
-> **状态**: completed
-> **更新日期**: 2026-05-23
+> **版本**: 1.6
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -91,3 +91,10 @@
 - [x] P-L2-009 workspace label localization：JD block labels, round fallback labels, target status labels, source labels, and derived prep labels must resolve through `workspace.*` locale keys; English Vitest must assert Chinese labels are absent. <!-- verified: 2026-05-09 method=vitest files=WorkspaceScreen.test.tsx,WorkspaceHeader.test.tsx -->
 
 - [x] P-L2-010 real-backend generated-client gate：P0.018-P0.021 trigger 前置 `frontendOwners.realApiMode.test.ts`；verify 检查 `VITE_EI_API_MODE=real`、`VITE_EI_API_BASE_URL=http://localhost:8080/api/v1` 与测试文件 marker，防止 workspace fixture UI PASS 被误判为真实 backend 闭环。 <!-- verified: 2026-05-23 method=focused-vitest evidence=frontendOwners.realApiMode.test.ts PASS; scenario scripts updated with shared real-backend gate/verify helpers -->
+
+## Phase 7: D-20 简历扁平化绑定（InterviewContext + ResumePicker）
+
+> product-scope D-20 / spec D-15。
+
+- [ ] 7.1 `InterviewContext`/`routeUrl`/`useWorkspaceResume` `resumeVersionId`→`resumeId`；`ResumePickerModal` 扁平（删版本展开/`listResumeVersions`）（验证：vitest + pixel parity PASS）
+- [ ] 7.2 收口：full vitest + typecheck + build + 零 `resumeVersionId`/`listResumeVersions` 残留 grep（generated 除外）（验证：全 gate PASS + 负向 grep）

@@ -1,8 +1,8 @@
 # 002 Practice Text Event Loop
 
-> **版本**: 1.5
-> **状态**: completed
-> **更新日期**: 2026-05-23
+> **版本**: 1.6
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -462,6 +462,22 @@ async function finish() {
 #### 5.7 BDD-Gate
 
 - BDD-Gate: 验证 `E2E.P0.044 / E2E.P0.045 / E2E.P0.046 / E2E.P0.047` 全部 `setup → trigger → verify → cleanup` PASS；workspace `E2E.P0.018-021` regression 全部 PASS；backend-practice `E2E.P0.022-026` 与 `E2E.P0.038-043` 真实 regression 全部 PASS。
+
+### Phase 6: D-20 简历扁平化 resumeId 透传
+
+> product-scope D-20 / spec D-15。依赖 B2 004 Phase 7（contract collapse）+ generated client 重生。practice session context / handoff payload 的 `resumeVersionId`→`resumeId`（透传 D-Z InterviewContext 的扁平 resume 绑定）。详见 spec D-15。
+
+#### 6.1 实施
+
+practice session context / handoff payload 的 `resumeVersionId`→`resumeId`（透传 D-Z InterviewContext 的扁平 resume 绑定）。详见 spec D-15。
+
+（验证：vitest 组件/adapter/route + pixel parity + typecheck + build PASS）
+
+#### 6.2 收口
+
+零版本树残留 grep（`resumeVersionId` / `resumeAssetId` / `listResumeVersions` / 版本树组件，generated adapter 除外）+ `sync-doc-index --check`。
+
+（验证：全 gate PASS + 负向 grep 0 命中）
 
 ## 5 验收标准
 

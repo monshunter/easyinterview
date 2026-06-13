@@ -1,8 +1,8 @@
 # 001 Debrief Screen and Handoff BDD Plan
 
 > **版本**: 1.4
-> **状态**: completed
-> **更新日期**: 2026-05-17
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联计划**: [plan](./plan.md)
 **关联 Spec**: [spec](../../spec.md)

@@ -1,8 +1,8 @@
 # 002 — Practice Text Event Loop Test Checklist
 
 > **版本**: 1.4
-> **状态**: completed
-> **更新日期**: 2026-05-23
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 

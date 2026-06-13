@@ -1,8 +1,8 @@
 # 002 Practice Text Event Loop Checklist
 
-> **版本**: 1.5
-> **状态**: completed
-> **更新日期**: 2026-05-23
+> **版本**: 1.6
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -76,3 +76,10 @@
 
 - [x] 5.9 L2 real-backend generated-client gate：P0.044-P0.047 trigger 前置 `frontendOwners.realApiMode.test.ts`；verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker，证明 practice/report/resume/debrief real client routing 不停留在 fixture-only。 <!-- verified: 2026-05-23 method=focused-vitest evidence=frontendOwners.realApiMode.test.ts PASS; scenario scripts updated with shared real-backend gate/verify helpers -->
 - [x] 5.10 Voice owner handoff drift gate：P0.044/P0.047 verify 不再要求 `createPracticeVoiceTurn` repo-wide 0 命中；只禁止 `getFeedbackReport` 进入 practice runtime，并断言 `createPracticeVoiceTurn` 仅出现在 `hooks/usePracticeVoiceTurn.ts`，与 `practice-voice-mvp/001` 已完成事实一致。 <!-- verified: 2026-05-23 method=scenario-verify evidence=p0-044 exposed stale negative; verify scripts revised -->
+
+## Phase 6: D-20 简历扁平化 resumeId 透传
+
+> product-scope D-20 / spec D-15。
+
+- [ ] 6.1 session context / handoff payload `resumeVersionId`→`resumeId`（验证：vitest + handoff param test PASS）
+- [ ] 6.2 收口：full vitest + typecheck + build + 零 `resumeVersionId` 残留 grep（验证：全 gate PASS + 负向 grep）

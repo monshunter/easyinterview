@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow and Onboarding
 
-> **版本**: 1.1
-> **状态**: completed
-> **更新日期**: 2026-05-23
+> **版本**: 1.2
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -267,6 +267,22 @@
 - 确认 frontend-resume-workshop spec.md / history.md / `docs/spec/INDEX.md` 已由本 L1 设计结晶同步到 1.1，并且 §3.1 D-4 / §6 C-10 / §7 plan 002 行指向当前 active plan；实施阶段不得为了 checklist 收口重复 bump spec 版本，除非发现新的设计事实需要原地修订。
 - 确认 `docs/spec/frontend-resume-workshop/plans/INDEX.md` 已包含 002 active 行，且 Header / INDEX 投影一致。
 - `sync-doc-index --check` PASS。
+
+### Phase 7: D-20 简历扁平化适配（CreateFlow upload/paste）
+
+> product-scope D-20 / spec D-8。依赖 B2 004 Phase 7（contract collapse）+ generated client 重生。`ResumeCreateFlow` 收敛 upload / paste 两 tab（删除 guided tab 与 `guidedAnswers`）；`ResumePreviewConfirm` 直接保存扁平 resume（删除 `confirmResumeStructuredMaster` master 步骤，`registerResume` + parse 产出 `structured_profile`）。详见 spec D-8。
+
+#### 7.1 实施
+
+`ResumeCreateFlow` 收敛 upload / paste 两 tab（删除 guided tab 与 `guidedAnswers`）；`ResumePreviewConfirm` 直接保存扁平 resume（删除 `confirmResumeStructuredMaster` master 步骤，`registerResume` + parse 产出 `structured_profile`）。详见 spec D-8。
+
+（验证：vitest 组件/adapter/route + pixel parity + typecheck + build PASS）
+
+#### 7.2 收口
+
+零版本树残留 grep（`resumeVersionId` / `resumeAssetId` / `listResumeVersions` / 版本树组件，generated adapter 除外）+ `sync-doc-index --check`。
+
+（验证：全 gate PASS + 负向 grep 0 命中）
 
 ## 5 验收标准
 

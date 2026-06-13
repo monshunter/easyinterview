@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly
 
-> **版本**: 1.2
-> **状态**: completed
-> **更新日期**: 2026-05-23
+> **版本**: 1.3
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -172,6 +172,22 @@
 - frontend-resume-workshop spec.md 1.0 保持 active（首版）
 - frontend-resume-workshop history.md plan 001 完成后追加新行
 - 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `frontend-resume-workshop` 状态从 "未创建" 改为 "active"（与 backend-upload / backend-resume 同步行）
+
+### Phase 6: D-20 简历扁平化适配（平铺列表 + resumeId）
+
+> product-scope D-20 / spec D-8。依赖 B2 004 Phase 7（contract collapse）+ generated client 重生。`ResumeListView` 改平铺列表（删除 `ResumeTreeView` / `ResumeFlatView` / `ViewSwitcher`）；`ResumeDetailView` 去 Breadcrumb / 版本分支图；route param `versionId`→`resumeId`；adapter `ResumeAsset` / `ResumeVersion`→`Resume`；export `exportResumeVersion`→`exportResume`。详见 spec D-8。
+
+#### 6.1 实施
+
+`ResumeListView` 改平铺列表（删除 `ResumeTreeView` / `ResumeFlatView` / `ViewSwitcher`）；`ResumeDetailView` 去 Breadcrumb / 版本分支图；route param `versionId`→`resumeId`；adapter `ResumeAsset` / `ResumeVersion`→`Resume`；export `exportResumeVersion`→`exportResume`。详见 spec D-8。
+
+（验证：vitest 组件/adapter/route + pixel parity + typecheck + build PASS）
+
+#### 6.2 收口
+
+零版本树残留 grep（`resumeVersionId` / `resumeAssetId` / `listResumeVersions` / 版本树组件，generated adapter 除外）+ `sync-doc-index --check`。
+
+（验证：全 gate PASS + 负向 grep 0 命中）
 
 ## 5 验收标准
 

@@ -1,8 +1,8 @@
 # 001 Debrief Screen and Handoff
 
-> **版本**: 1.6
-> **状态**: completed
-> **更新日期**: 2026-05-23
+> **版本**: 1.7
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -351,6 +351,22 @@ case 'SET_DEBRIEF_CONTEXT':
 - `make docs-check` + `git diff --check` 通过
 - 更新 plans/INDEX.md 把 001 移到 completed
 - 更新 frontend-debrief/history.md 增加最新 completion / review-fix 行
+
+### Phase 10: D-20 简历扁平化 picker + resumeId
+
+> product-scope D-20 / spec D-19。依赖 B2 004 Phase 7（contract collapse）+ generated client 重生。Resume picker 改扁平——直接列 `listResumes` 单选简历，删除 asset→version 二级展开 / `listResumeVersions`；`InterviewContext` / nav payload / `suggestDebriefQuestions` / `createPracticePlan` 的 `resumeVersionId` / `resumeAssetId`→`resumeId`；`getResumeVersion`→`getResume`；`SET_DEBRIEF_CONTEXT` 写 `resumeId`。详见 spec D-19。（Phase 9 为既有 Plan 收口，D-20 续编为 Phase 10。）
+
+#### 10.1 实施
+
+Resume picker 改扁平——直接列 `listResumes` 单选简历，删除 asset→version 二级展开 / `listResumeVersions`；`InterviewContext` / nav payload / `suggestDebriefQuestions` / `createPracticePlan` 的 `resumeVersionId` / `resumeAssetId`→`resumeId`；`getResumeVersion`→`getResume`；`SET_DEBRIEF_CONTEXT` 写 `resumeId`。详见 spec D-19。（Phase 9 为既有 Plan 收口，D-20 续编为 Phase 10。）
+
+（验证：vitest 组件/adapter/route + pixel parity + typecheck + build PASS）
+
+#### 10.2 收口
+
+零版本树残留 grep（`resumeVersionId` / `resumeAssetId` / `listResumeVersions` / 版本树组件，generated adapter 除外）+ `sync-doc-index --check`。
+
+（验证：全 gate PASS + 负向 grep 0 命中）
 
 ## 5 验收标准
 

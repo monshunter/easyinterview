@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.5
-> **状态**: completed
-> **更新日期**: 2026-05-23
+> **版本**: 1.6
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -396,6 +396,22 @@ CTA 在请求中 disabled + spinner；4xx / 5xx 显示 inline 错误（在 Inter
 #### 6.7 BDD-Gate
 
 - BDD-Gate: 验证 `E2E.P0.018` / `E2E.P0.019` / `E2E.P0.020` / `E2E.P0.021` 全部通过 + D1+D2+D3 已存在 `E2E.P0.001/002/004/005/006` regression PASS；home plan `E2E.P0.014/015/016/017` 仅在场景资产存在且 INDEX Ready 时作为条件 regression gate
+
+### Phase 7: D-20 简历扁平化绑定（InterviewContext + ResumePicker）
+
+> product-scope D-20 / spec D-15。依赖 B2 004 Phase 7（contract collapse）+ generated client 重生。`InterviewContext` / `routeUrl` / `useWorkspaceResume` 的 `resumeVersionId`→`resumeId`；`ResumePickerModal` 改扁平——直接列 `listResumes` 选简历，删除版本展开 / `listResumeVersions`。详见 spec D-15。
+
+#### 7.1 实施
+
+`InterviewContext` / `routeUrl` / `useWorkspaceResume` 的 `resumeVersionId`→`resumeId`；`ResumePickerModal` 改扁平——直接列 `listResumes` 选简历，删除版本展开 / `listResumeVersions`。详见 spec D-15。
+
+（验证：vitest 组件/adapter/route + pixel parity + typecheck + build PASS）
+
+#### 7.2 收口
+
+零版本树残留 grep（`resumeVersionId` / `resumeAssetId` / `listResumeVersions` / 版本树组件，generated adapter 除外）+ `sync-doc-index --check`。
+
+（验证：全 gate PASS + 负向 grep 0 命中）
 
 ## 5 验收标准
 

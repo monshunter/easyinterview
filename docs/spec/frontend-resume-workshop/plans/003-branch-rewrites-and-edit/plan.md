@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Branch, Rewrites and Edit
 
-> **版本**: 1.1
-> **状态**: completed
-> **更新日期**: 2026-05-23
+> **版本**: 1.2
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -328,6 +328,22 @@
 - 确认 §3.2 accept/reject 口径为 UI 真理源 inline action + terminal-state feedback，不引入未在 `ui-design/` 出现的独立 ConfirmDialog。
 - 确认 `docs/spec/frontend-resume-workshop/plans/INDEX.md` 已包含 003 active 行，且 Header / INDEX 投影一致。
 - `sync-doc-index --check` PASS。
+
+### Phase 8: D-20 简历扁平化 collapse（删 branch + rewrites 采纳保存）
+
+> product-scope D-20 / spec D-8。依赖 B2 004 Phase 7（contract collapse）+ generated client 重生。删除 `flow=branch` / `ResumeBranchFlow` / seedStrategy；`ResumeRewritesTab` 改写仅「采纳」（删除逐条拒绝/编辑 + `acceptResumeTailorSuggestion`/`rejectResumeTailorSuggestion` op）+ tailor run polling（`requestResumeTailor`→`getResumeTailorRun` ephemeral）+ `RewriteSaveConfirmModal` 覆盖（`updateResume`）/ 另存（`duplicateResume`）；`ResumeEditTab` 提交 `updateResume`。详见 spec D-8。
+
+#### 8.1 实施
+
+删除 `flow=branch` / `ResumeBranchFlow` / seedStrategy；`ResumeRewritesTab` 改写仅「采纳」（删除逐条拒绝/编辑 + `acceptResumeTailorSuggestion`/`rejectResumeTailorSuggestion` op）+ tailor run polling（`requestResumeTailor`→`getResumeTailorRun` ephemeral）+ `RewriteSaveConfirmModal` 覆盖（`updateResume`）/ 另存（`duplicateResume`）；`ResumeEditTab` 提交 `updateResume`。详见 spec D-8。
+
+（验证：vitest 组件/adapter/route + pixel parity + typecheck + build PASS）
+
+#### 8.2 收口
+
+零版本树残留 grep（`resumeVersionId` / `resumeAssetId` / `listResumeVersions` / 版本树组件，generated adapter 除外）+ `sync-doc-index --check`。
+
+（验证：全 gate PASS + 负向 grep 0 命中）
 
 ## 5 验收标准
 

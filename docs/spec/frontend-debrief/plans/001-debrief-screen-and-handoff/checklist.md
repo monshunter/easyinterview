@@ -1,8 +1,8 @@
 # 001 Debrief Screen and Handoff Checklist
 
-> **版本**: 1.6
-> **状态**: completed
-> **更新日期**: 2026-05-23
+> **版本**: 1.7
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联计划**: [plan](./plan.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -100,3 +100,10 @@
 - [x] 9.3 frontend-debrief/history.md 增加 completion / review-fix 行
 - [x] 9.4 提交 commit `feat(frontend-debrief): close 001 debrief screen and handoff baseline`；记录工作日志 `/work-journal`
 - [x] 9.5 L2 real-backend generated-client gate：P0.065-P0.069 trigger 前置 `frontendOwners.realApiMode.test.ts`；verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker，证明 debrief / jobs / picker / replay practice generated client 不停留在 fixture-only。 <!-- verified: 2026-05-23 method=focused-vitest evidence=frontendOwners.realApiMode.test.ts PASS; scenario scripts updated with shared real-backend gate/verify helpers -->
+
+## Phase 10: D-20 简历扁平化 picker + resumeId
+
+> product-scope D-20 / spec D-19。
+
+- [ ] 10.1 Resume picker 扁平（删 asset→version 展开/`listResumeVersions`）；context/nav payload/`suggestDebriefQuestions`/`createPracticePlan` `resumeVersionId`/`resumeAssetId`→`resumeId`；`getResumeVersion`→`getResume`；`SET_DEBRIEF_CONTEXT` 写 `resumeId`（验证：vitest + pixel parity PASS）
+- [ ] 10.2 收口：full vitest + typecheck + build + 零 `resumeVersionId`/`resumeAssetId`/`listResumeVersions`/`getResumeVersion` 残留 grep（generated 除外）（验证：全 gate PASS + 负向 grep）
