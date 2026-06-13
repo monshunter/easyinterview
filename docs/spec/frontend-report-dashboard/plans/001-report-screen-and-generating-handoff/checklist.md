@@ -1,8 +1,8 @@
 # 001 — Report Screen and Generating Handoff Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-23
+> **更新日期**: 2026-06-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -104,3 +104,12 @@
 - 2026-05-23 L2 real-backend generated-client gate: P0.056-P0.059 trigger 前置 `frontendOwners.realApiMode.test.ts`；verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker；focused Vitest `frontendOwners.realApiMode.test.ts` PASS。
 - `make docs-check`
 - `git diff --check`
+
+## Phase 6: D-19 report CTA single-point convergence
+
+- [x] 6.1 next tab 删除重复 CTA 按钮；验证: focused Vitest 断言 `report-detail-panel-next` 渲染路径 A/B 说明 + 复练清单 + footer 引导文案，`report-next-cta-a` / `report-next-cta-b` 在 NextTab 渲染 DOM 0 命中；NextTab 不再接收 `onReplay`/`onNextRound` props；DetailSurface 去传参
+  <!-- verified: 2026-06-13 command="pnpm --filter @easyinterview/frontend test src/app/screens/report/__tests__/DetailSurface.test.tsx" evidence="Red: next-tab CTA 测试改为断言 report-next-cta-a/b 不存在 + path-a/b-footer 存在 + Header report-replay-cta/report-next-cta 仍在，先失败；Green: NextTab 删两 CTA 按钮与 onReplay/onNextRound props，新增 report-next-path-{a,b}-footer，DetailSurface 去 replayHandlers prop；10/10 通过" -->
+- [x] 6.2 题目回顾 `加入本轮复练` 改本地标记；验证: focused Vitest 断言点击 `report-questions-add-to-replay` 不触发 `navigate`/`useRequestAuth`，仅 toggle 当前题目本地标记（文案 `加入本轮复练` ↔ `已加入本轮复练`），切换不同题目各自独立标记；新增 i18n `report.questions.detail.addedToReplay`（zh/en）
+  <!-- verified: 2026-06-13 command="pnpm --filter @easyinterview/frontend test src/app/screens/report/__tests__/DetailSurface.test.tsx src/app/i18n" evidence="QuestionsTab 改 per-question markedForReplay 本地 state + toggleActiveMarked（对照原型 replayQueued/toggleQueued），data-marked toggle、不 nav；断言 data-marked false->true->false、route 不变、report-dashboard 仍在；i18n addedToReplay zh/en 新增；62 测试通过" -->
+- [x] 6.3 Phase 6 回归与负向 gate；验证: `report-next-cta-a`/`report-next-cta-b` 源码与渲染 0 命中（负向断言除外）；`pnpm --filter @easyinterview/frontend typecheck/test/build` 通过；report + topbar pixel parity 通过；`frontend_report_dashboard_legacy` lint 通过；`make docs-check` + `sync-doc-index --check` 零漂移
+  <!-- verified: 2026-06-13 command="pnpm --filter @easyinterview/frontend typecheck; pnpm --filter @easyinterview/frontend test; pnpm exec playwright test tests/pixel-parity/report.spec.ts; python3 scripts/lint/frontend_report_dashboard_legacy.py --repo-root . --phase all; make docs-check" evidence="report-next-cta-a/b 仅存于负向断言；typecheck OK；vitest 1077/1077；report pixel parity 8 passed；legacy lint OK；docs-check OK；sync-doc-index 零漂移" -->

@@ -1,4 +1,4 @@
-import type { FC } from "react";
+import { useState, type FC } from "react";
 
 import type { FeedbackReport } from "../../../../../api/generated/types";
 import { useI18n } from "../../../../i18n/messages";
@@ -7,21 +7,27 @@ interface QuestionsTabProps {
   report: FeedbackReport;
   activeTurnId: string | null;
   onActiveQuestionChange: (turnId: string) => void;
-  onAddToReplay: () => void;
 }
 
 /**
  * Source-level mirror of ui-design/src/screen-report.jsx::ReportDetailSurface
  * questions branch (lines 385-442). Left column lists turns, right column
  * renders the analysis for the active question.
+ *
+ * Per product-scope v2.1 D-19 the per-question "加入本轮复练" control is a
+ * local marker only (mirrors the prototype `replayQueued` / `toggleQueued`
+ * state): it toggles intent inside the report and never navigates or starts
+ * a session — the single start CTA lives in the report Header.
  */
 export const QuestionsTab: FC<QuestionsTabProps> = ({
   report,
   activeTurnId,
   onActiveQuestionChange,
-  onAddToReplay,
 }) => {
   const { t } = useI18n();
+  const [markedForReplay, setMarkedForReplay] = useState<
+    Record<string, boolean>
+  >({});
   const questions = report.questionAssessments ?? [];
   if (questions.length === 0) {
     return (
@@ -34,6 +40,12 @@ export const QuestionsTab: FC<QuestionsTabProps> = ({
     );
   }
   const active = questions.find((q) => q.turnId === activeTurnId) ?? questions[0]!;
+  const activeMarked = !!markedForReplay[active.turnId];
+  const toggleActiveMarked = () =>
+    setMarkedForReplay((prev) => ({
+      ...prev,
+      [active.turnId]: !prev[active.turnId],
+    }));
   return (
     <div
       data-testid="report-questions-panel"
@@ -148,20 +160,28 @@ export const QuestionsTab: FC<QuestionsTabProps> = ({
           <button
             type="button"
             data-testid="report-questions-add-to-replay"
-            onClick={onAddToReplay}
+            data-marked={activeMarked ? "true" : "false"}
+            aria-pressed={activeMarked}
+            onClick={toggleActiveMarked}
             style={{
               padding: "8px 12px",
-              border: "1px solid var(--ei-color-rule-soft)",
-              background: "transparent",
-              color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
+              border: `1px solid ${activeMarked ? "var(--ei-color-accent)" : "var(--ei-color-rule-soft)"}`,
+              background: activeMarked
+                ? "var(--ei-color-accent-soft, transparent)"
+                : "transparent",
+              color: activeMarked
+                ? "var(--ei-color-accent)"
+                : "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
               fontFamily: "var(--ei-font-sans)",
               fontSize: 12,
-            cursor: "pointer",
-            borderRadius: 2,
-            flex: "1 1 160px",
-          }}
+              cursor: "pointer",
+              borderRadius: 2,
+              flex: "1 1 160px",
+            }}
           >
-            {t("report.questions.detail.addToReplay")}
+            {activeMarked
+              ? t("report.questions.detail.addedToReplay")
+              : t("report.questions.detail.addToReplay")}
           </button>
         </div>
         <div

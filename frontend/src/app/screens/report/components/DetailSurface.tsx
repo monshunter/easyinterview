@@ -2,7 +2,6 @@ import { useEffect, useMemo, type FC } from "react";
 
 import type { FeedbackReport } from "../../../../api/generated/types";
 import { useI18n } from "../../../i18n/messages";
-import type { ReplayCtaHandlers } from "../useReplayCtaHandlers";
 import type { SummaryDetailKey } from "./SummaryCards";
 import { ReadinessTab } from "./tabs/ReadinessTab";
 import { DimensionsTab } from "./tabs/DimensionsTab";
@@ -14,7 +13,6 @@ interface DetailSurfaceProps {
   detail: SummaryDetailKey | "evidence";
   onSelect: (next: SummaryDetailKey | "evidence") => void;
   report: FeedbackReport;
-  replayHandlers: ReplayCtaHandlers;
   activeQuestionTurn: string | null;
   onActiveQuestionChange: (turnId: string) => void;
 }
@@ -38,7 +36,6 @@ export const DetailSurface: FC<DetailSurfaceProps> = ({
   detail,
   onSelect,
   report,
-  replayHandlers,
   activeQuestionTurn,
   onActiveQuestionChange,
 }) => {
@@ -66,19 +63,12 @@ export const DetailSurface: FC<DetailSurfaceProps> = ({
             report={report}
             activeTurnId={activeQuestionTurn}
             onActiveQuestionChange={onActiveQuestionChange}
-            onAddToReplay={replayHandlers.goReplay}
           />
         );
       case "evidence":
         return <EvidenceTab report={report} />;
       case "next":
-        return (
-          <NextTab
-            report={report}
-            onReplay={replayHandlers.goReplay}
-            onNextRound={replayHandlers.goNextRound}
-          />
-        );
+        return <NextTab report={report} />;
     }
   };
 

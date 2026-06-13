@@ -1,8 +1,10 @@
 # Frontend Report Dashboard Spec
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-05-23
+> **更新日期**: 2026-06-13
+
+> **2026-06-12 product-scope v2.1 D-19 对齐**：报告 CTA 单点收敛——报告页只保留 Header 一对 CTA（`复练当前轮` / `进入下一轮`）；复练计划详情 tab（next）只承载路径说明与复练清单，不重复 CTA 按钮；题目回顾的 `加入本轮复练` 改为本地标记动作（per-question toggle，不直接开启 session）。见 §3.1 D-19 与 §10。
 
 ## 1 背景与目标
 
@@ -34,8 +36,9 @@
     - `dimensions`（lines 360-382）：二级维度卡片网格（覆盖 D-4 ReadinessTier 四档对应的维度详情）。
     - `questions`（lines 385-442）：题目列表侧栏 + 当前题回答分析（有效点、缺口、建议框架、证据片段、下次追问）。
     - `evidence`（lines 445-467）：风险证据详情 + 可复用亮点证据。
-    - `next`（lines 470-514）：路径 A（复练当前轮）vs 路径 B（进入下一轮）对比展示 + 行动 CTA。
-  - 复练 CTA 行为：
+    - `next`（lines 470-514）：路径 A（复练当前轮）vs 路径 B（进入下一轮）对比展示 + 复练清单；**不含 CTA 按钮**（D-19 单点收敛）：路径卡片以 footer 文案「开练入口在页面顶部：复练当前轮 / 进入下一轮」引导用户使用 Header CTA，next tab 自身不渲染 `report-next-cta-a` / `report-next-cta-b`。
+    - 题目回顾 `加入本轮复练`（D-19）：是 per-question 本地标记动作（`report-questions-add-to-replay` toggle，文案 `加入本轮复练` ↔ `已加入本轮复练`），只改本地 state，不 `nav`、不开启 session、不调 API；标记仅在报告内表达复练意图，实际开练仍由 Header `复练当前轮` CTA 承载。
+  - 复练 CTA 行为（仅 Header 一对 CTA，D-19）：
     - 路径 A `goReplay()` → `nav("workspace", { sourceSessionId: sessionId, replayItems: retryFocusTurnIds, evidenceGaps: focusGaps, planId, targetJobId, jdId, resumeVersionId, roundId, mode:'text', modality:'text', practiceMode: lastPracticeMode, practiceGoal:'retry_current_round', autoStartPractice:'1' })`；workspace owner 随后调用 practice-plan/session start 契约并 `nav("practice", { sessionId:newSessionId, ...sameContext })`；未登录走 `useRequestAuth({type:'replay_practice', route:'workspace', params:{...sameParams, autoStartPractice:'1'}})`。
     - 路径 B `goNextRound()` → `nav("workspace", { nextRoundId, roundName, roundId: nextRoundId, planId, targetJobId, jdId, resumeVersionId, mode:'text', modality:'text', practiceMode: lastPracticeMode, practiceGoal:'next_round', autoStartPractice:'1' })`；workspace owner 创建新 session 后进入 `practice`；未登录走 `useRequestAuth({type:'replay_practice', route:'workspace', params:{...sameParams, autoStartPractice:'1'}})`。
 - 跨路由共享：
@@ -81,6 +84,7 @@
 | D-12 | retired 术语 | 旧 `reportLayout` / 5 档 readiness / 独立 mistakes 错题本 / Drill builder / Growth center / 报告时间线 / 多形态 report / 独立 `report` 一级导航 / 旧 reportLayout fixture variant 不得作为 live route / TopBar 项 / 正向 testid / 正向 scenario / 用户可见入口出现 | 与 product-scope D-6/D-7 + backend-review §4.5 一致 |
 | D-13 | 隐私红线 | route params / URL search params / InterviewContext 不传 raw `answerText` / `questionText` / `hint` / `promptHash` / `modelId` raw value；仅传 13 个 handoff params（7 个稳定 owner IDs + 6 个 display knobs）；fixture transport spy 不泄漏 body；console.log / localStorage / telemetry 同款约束 | 与 frontend-workspace-and-practice plan 002 隐私红线 + product-scope §9.3 一致 |
 | D-14 | backend 契约消费 | 只通过 B2 generated client 消费 OpenAPI operation；字段变化先回 B2/backend-review 修订；不在前端自造 endpoint 或复制 fixture JSON | 与 frontend-workspace-and-practice D-10 一致 |
+| D-19 | 报告 CTA 单点收敛 | 报告页只保留 Header 一对 CTA（`复练当前轮` / `进入下一轮`）作为唯一开练入口；`next`（复练计划）tab 只承载路径 A/B 说明与复练清单，**不渲染** `report-next-cta-a` / `report-next-cta-b`，改以 footer 文案引导用户使用 Header CTA；题目回顾 `加入本轮复练`（`report-questions-add-to-replay`）是 per-question 本地标记 toggle（`加入本轮复练` ↔ `已加入本轮复练`），只改本地 state，不 `nav` / 不开 session / 不调 API；不引入任何二级开练按钮 | 对齐 product-scope v2.1 D-19；纯前端 UI 收敛，无 OpenAPI/backend 变更；`ui-design/src/screen-report.jsx` 当前真理源即此形态（Header `goReplay`/`goNextRound` + NextTab 无按钮 + QuestionsTab `toggleQueued` 本地 per-question state） |
 
 ### 3.2 待确认事项
 
@@ -151,8 +155,10 @@
 | C-6 | ReportFailureState | `report?reportStatus=failed&errorCode=AI_PROVIDER_TIMEOUT&sessionId=S&reportId=R&...` | 进入 `report` | 渲染 ReportFailureState 卡片 + errorCode 文案映射 + CTA「重新生成」（nav `generating?reportId&sessionId&...`）+ 「返回 workspace」 | 001 |
 | C-7 | ReportMissingSessionState | `report?reportId=R`（缺 sessionId） | 进入 `report` | 渲染 ReportMissingSessionState 卡片 + CTA「返回 workspace」（nav workspace with targetJobId）；不调用 `getFeedbackReport` | 001 |
 | C-8 | 5 detail tab 切换 | C-5 已渲染 ReportDashboard | 用户点击 tab 切换按钮 | 5 个 tab（readiness / dimensions / questions / evidence / next）panel 切换；每个 tab 内容源级复刻；testid `report-detail-tab-{key}` + `report-detail-panel-{key}` 命中；其他 panel 不渲染（或 display:none） | 001 |
-| C-9 | 复练 CTA 路径 A | C-5 已渲染 ReportDashboard，准备度 = needs_practice，retry_focus_turn_ids 非空 | 用户点击「复练当前轮」CTA | `nav("workspace", { sourceSessionId, replayItems: retryFocusTurnIds, evidenceGaps, planId, targetJobId, jdId, resumeVersionId, roundId, mode:'text', modality:'text', practiceMode:lastPracticeMode, practiceGoal:'retry_current_round', autoStartPractice:'1' })`；workspace owner 调用 `startPracticeSession` 后 `nav("practice", { sessionId:newSessionId, ... })`；未登录走 useRequestAuth 后恢复同一 workspace auto-start payload | 001 |
-| C-10 | 复练 CTA 路径 B | C-5 已渲染 ReportDashboard，准备度 = basically_ready，next_action='next_round' | 用户点击「进入下一轮」CTA | `nav("workspace", { nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeVersionId, mode:'text', modality:'text', practiceMode:lastPracticeMode, practiceGoal:'next_round', autoStartPractice:'1' })`；workspace owner 调用 `startPracticeSession` 后进入 practice；未登录走 useRequestAuth 后恢复同一 workspace auto-start payload | 001 |
+| C-9 | 复练 CTA 路径 A（Header 唯一入口） | C-5 已渲染 ReportDashboard，准备度 = needs_practice，retry_focus_turn_ids 非空 | 用户点击 Header「复练当前轮」CTA | `nav("workspace", { sourceSessionId, replayItems: retryFocusTurnIds, evidenceGaps, planId, targetJobId, jdId, resumeVersionId, roundId, mode:'text', modality:'text', practiceMode:lastPracticeMode, practiceGoal:'retry_current_round', autoStartPractice:'1' })`；workspace owner 调用 `startPracticeSession` 后 `nav("practice", { sessionId:newSessionId, ... })`；未登录走 useRequestAuth 后恢复同一 workspace auto-start payload；CTA 仅在 Header 渲染（D-19） | 001 |
+| C-10 | 复练 CTA 路径 B（Header 唯一入口） | C-5 已渲染 ReportDashboard，准备度 = basically_ready，next_action='next_round' | 用户点击 Header「进入下一轮」CTA | `nav("workspace", { nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeVersionId, mode:'text', modality:'text', practiceMode:lastPracticeMode, practiceGoal:'next_round', autoStartPractice:'1' })`；workspace owner 调用 `startPracticeSession` 后进入 practice；未登录走 useRequestAuth 后恢复同一 workspace auto-start payload；CTA 仅在 Header 渲染（D-19） | 001 |
+| C-16 | next tab 无重复 CTA（D-19） | C-5 已渲染 ReportDashboard | 切到 `next`（复练计划）tab | `report-detail-panel-next` 渲染路径 A/B 说明 + 复练清单 + footer「开练入口在页面顶部」引导文案；`report-next-cta-a` / `report-next-cta-b` testid 在 DOM **0 命中**；不存在任何二级开练按钮触发 `goReplay`/`goNextRound` | 001 |
+| C-17 | 题目回顾本地标记（D-19） | C-5 已渲染 ReportDashboard，切到 `questions` tab | 用户点击 `report-questions-add-to-replay` | 仅 toggle 当前题目本地标记 state（文案 `加入本轮复练` ↔ `已加入本轮复练`），不触发 `nav`、不调用 `startPracticeSession`/任何 API、不改 URL/InterviewContext；切换不同题目各自独立标记；实际开练仍只由 Header CTA 承载 | 001 |
 | C-11 | UI source structure parity | C-1~C-10 通过 | Vitest+jsdom 加载 owner Screen | DOM 锚点、控件类型、icon、aria、keyboard、menu/modal 层级可追溯到 `screen-report.jsx` / `ReportGeneratingScreen` / `primitives.jsx`；testid 命名一致 | 001 |
 | C-12 | UI visual geometry parity | C-11 通过 | Playwright desktop + mobile 加载 owner 两屏 | 关键区块不重叠且 stays in viewport；theme/dark/customAccent 可见；generating mobile 居中不溢出；report mobile 三列折叠为单列 + Accordion + sticky CTA | 001 |
 | C-13 | UI stale-contract negative search | C-11 + C-12 通过 | lint/grep gate 扫描 active runtime、positive tests、README、scenario | 旧 `reportLayout` / 5 档 readiness numeric / `mistakes` route / `drill_builder` testid / `growth_center` / 报告时间线 / 多形态 report 不作为 live route / TopBar / 正向 testid / 正向 scenario / 用户入口出现；负向断言/禁止清单命中被分类允许 | 001 |
@@ -175,3 +181,9 @@
 - Fixture：`openapi/fixtures/Reports/getFeedbackReport.json`、`openapi/fixtures/Reports/listTargetJobReports.json`
 - 治理 / 流程：[`AGENTS.md`](../../../AGENTS.md)、[`docs/development.md`](../../development.md) §2、[`docs/spec/README.md`](../README.md)、[`docs/spec/TEMPLATES.md`](../TEMPLATES.md)、[`test/scenarios/README.md`](../../../test/scenarios/README.md)
 - 历史：[history.md](./history.md)
+
+## 10 修订记录
+
+| 版本 | 日期 | 说明 |
+|------|------|------|
+| 1.3 | 2026-06-13 | 对齐 product-scope v2.1 D-19 报告 CTA 单点收敛：新增 D-19 决策、§2.1 next tab 去 CTA + 题目本地标记、C-16/C-17 验收行；CTA 唯一入口收敛到 Header（C-9/C-10 标注）；plan 001 重开承接，纯前端无契约变更 |

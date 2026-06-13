@@ -825,6 +825,7 @@ export const en: LocaleMessages = {
   "report.questions.detail.followUp.body":
     "Probe the quantified outcome and the risk path you flagged.",
   "report.questions.detail.addToReplay": "Add to current-round replay",
+  "report.questions.detail.addedToReplay": "Queued for replay",
   "report.evidence.risks.eyebrow": "▲ RISK EVIDENCE",
   "report.evidence.risks.empty": "No risk evidence flagged.",
   "report.evidence.highlights.eyebrow": "● REUSABLE PROOF",
@@ -833,11 +834,13 @@ export const en: LocaleMessages = {
   "report.next.pathA.body":
     "Repeat the same round and inject the issues, evidence gaps, and risks from this report.",
   "report.next.pathA.cta": "Replay current round",
+  "report.next.pathA.footer": "Start from the header CTA: Replay current round.",
   "report.next.pathB.eyebrow": "PATH B · START NEXT ROUND",
   "report.next.pathB.title": "Use only when you decide to move forward.",
   "report.next.pathB.body":
     "Keep the target job and resume, advance to the next round (e.g. tech 1 → tech 2).",
   "report.next.pathB.cta": "Start next round",
+  "report.next.pathB.footer": "Start from the header CTA: Start next round.",
   "report.next.empty": "No next-action recommendations yet.",
   "report.detail.tablistLabel": "Report detail tabs",
   "report.detail.tab.readiness": "Readiness",

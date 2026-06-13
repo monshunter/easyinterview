@@ -1,13 +1,39 @@
 # 001 — Report Screen and Generating Handoff
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-23
+> **更新日期**: 2026-06-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 **关联 Test Plan**: [test-plan](./test-plan.md)
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
+
+## 0.0 D-19 CTA Convergence Reopen (v1.3)
+
+2026-06-12 [product-scope v2.1 D-19](../../../product-scope/spec.md#31-已锁定决策) 报告 CTA 单点收敛。本 plan 原地重开（completed -> active），新增 Phase 6 承接 [spec v1.3 §3.1 D-19 / C-16 / C-17](../../spec.md#31-已锁定决策)：next（复练计划）tab 删除 `report-next-cta-a` / `report-next-cta-b` 两个重复 CTA 按钮，改以 footer 文案引导 Header CTA；题目回顾 `加入本轮复练`（`report-questions-add-to-replay`）从 `goReplay` nav 改为 per-question 本地标记 toggle。Phase 0-5 为历史完成记录。
+
+**Phase 6 质量门禁**：纯前端 UI 收敛，无 OpenAPI/backend/契约变更；BDD 不适用（既有 `E2E.P0.056-059` 场景维持回归）。替代验证 gate 为 focused Vitest（NextTab 无 CTA、QuestionsTab 本地标记不 nav）+ topbar/report pixel parity + 旧 CTA testid 负向断言 + `pnpm typecheck/test/build`。删除属 TDD：先以 Red（断言 `report-next-cta-a/b` 缺失、点 add-to-replay 不触发 navigate）表达目标态，再改实现转绿。
+
+### Phase 6: D-19 report CTA single-point convergence
+
+#### 6.1 next tab 删除重复 CTA 按钮
+
+`NextTab.tsx` 删除 `report-next-cta-a` / `report-next-cta-b` 按钮与 `onReplay` / `onNextRound` props；路径 A/B 卡片保留说明与复练清单，新增 footer 文案「开练入口在页面顶部：复练当前轮 / 进入下一轮」（对照 `ui-design/src/screen-report.jsx` PATH A/B footer）；`DetailSurface.tsx` 去掉 NextTab 的 `onReplay`/`onNextRound` 传参。
+
+#### 6.2 题目回顾 `加入本轮复练` 改本地标记
+
+`QuestionsTab.tsx` 的 `report-questions-add-to-replay` 从 `onAddToReplay={goReplay}`（nav workspace）改为 per-question 本地 toggle state（`markedForReplay` map，对照原型 `replayQueued` + `toggleQueued`）：点击只 toggle 当前题目标记，文案 `加入本轮复练` ↔ `已加入本轮复练`，不 `nav`/不调 API/不改 URL；`DetailSurface.tsx` 去掉 `onAddToReplay` 传参；新增 i18n `report.questions.detail.addedToReplay`。
+
+#### 6.3 Phase 6 operation matrix
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| `N/A`（UI-only：CTA 收敛 + 本地标记） | N/A | `NextTab.tsx` / `QuestionsTab.tsx` / `DetailSurface.tsx`；Header CTA 维持既有 `useReplayCtaHandlers` | 无 API 变更 | 无（本地 React state） | 无 | focused Vitest + report/topbar pixel parity + 旧 CTA testid 负向；E2E.P0.056-059 回归 |
+
+#### 6.4 Phase 6 回归与负向 gate
+
+`report-next-cta-a` / `report-next-cta-b` testid 在 report 模块源码与渲染 DOM 0 命中（负向断言测试除外）；`report-questions-add-to-replay` 点击不触发 `navigate` / `useRequestAuth`；`pnpm --filter @easyinterview/frontend typecheck/test/build` 通过；report + topbar pixel parity 通过；`frontend_report_dashboard_legacy` lint 通过。
 
 ## 1 目标
 

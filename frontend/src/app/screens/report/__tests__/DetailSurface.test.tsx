@@ -247,6 +247,41 @@ describe("DetailSurface", () => {
     expect(screen.getByTestId("report-questions-add-to-replay")).toBeInTheDocument();
   });
 
+  it("question add-to-replay is a local per-question marker that does not navigate (D-19, TestAddToReplayLocalMarker)", async () => {
+    const client = makeClient();
+    render(
+      <Harness
+        client={client}
+        initialRoute={{
+          name: "report",
+          params: { sessionId: SESSION_ID, reportId: REPORT_ID },
+        }}
+      />,
+    );
+    await screen.findByTestId("report-dashboard");
+    const marker = screen.getByTestId("report-questions-add-to-replay");
+    // Locale-independent toggle state via data-marked; default unmarked.
+    expect(marker).toHaveAttribute("data-marked", "false");
+    const unmarkedText = marker.textContent;
+    await act(async () => {
+      marker.click();
+    });
+    // Marker toggles to the queued state locally; it must NOT navigate to
+    // workspace (no replay nav, no auth request) per product-scope D-19.
+    const afterClick = screen.getByTestId("report-questions-add-to-replay");
+    expect(afterClick).toHaveAttribute("data-marked", "true");
+    expect(afterClick.textContent).not.toBe(unmarkedText);
+    expect(screen.getByTestId("report-dashboard")).toBeInTheDocument();
+    expect(window.location.pathname).not.toBe("/workspace");
+    // Toggling again clears the local marker.
+    await act(async () => {
+      screen.getByTestId("report-questions-add-to-replay").click();
+    });
+    expect(
+      screen.getByTestId("report-questions-add-to-replay"),
+    ).toHaveAttribute("data-marked", "false");
+  });
+
   it("renders evidence risk + highlight columns (TestEvidenceTabRiskAndHighlight)", async () => {
     const client = makeClient();
     render(
@@ -266,7 +301,7 @@ describe("DetailSurface", () => {
     expect(screen.getByTestId("report-evidence-highlight-0")).toBeInTheDocument();
   });
 
-  it("next tab renders both path A and path B columns with CTAs (TestNextTabPathAAndB)", async () => {
+  it("next tab renders path A/B columns without duplicate CTAs (D-19, TestNextTabPathAAndB)", async () => {
     const client = makeClient();
     render(
       <Harness
@@ -283,8 +318,15 @@ describe("DetailSurface", () => {
     });
     expect(screen.getByTestId("report-next-path-a")).toBeInTheDocument();
     expect(screen.getByTestId("report-next-path-b")).toBeInTheDocument();
-    expect(screen.getByTestId("report-next-cta-a")).toBeInTheDocument();
-    expect(screen.getByTestId("report-next-cta-b")).toBeInTheDocument();
+    // product-scope D-19: CTAs converge to the Header; the next tab carries
+    // only path descriptions + a footer pointing at the Header CTA.
+    expect(screen.queryByTestId("report-next-cta-a")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("report-next-cta-b")).not.toBeInTheDocument();
+    expect(screen.getByTestId("report-next-path-a-footer")).toBeInTheDocument();
+    expect(screen.getByTestId("report-next-path-b-footer")).toBeInTheDocument();
+    // Header still owns the single pair of CTAs.
+    expect(screen.getByTestId("report-replay-cta")).toBeInTheDocument();
+    expect(screen.getByTestId("report-next-cta")).toBeInTheDocument();
   });
 
   it("dashboard body renders dim row / top priority / next practice / perq / issue / highlight rows (TestDashboardDimensionsCardRow + TestDashboardQuestionRecap + TestDashboardIssuesAndHighlights)", async () => {

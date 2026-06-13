@@ -191,7 +191,6 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ route }) => {
         detail={detail}
         onSelect={onSelectSummary}
         report={data}
-        replayHandlers={replayHandlers}
         activeQuestionTurn={activeQuestionTurn}
         onActiveQuestionChange={setActiveQuestionTurn}
       />

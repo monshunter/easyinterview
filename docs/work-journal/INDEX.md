@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-06-12](2026-06-12.md) | `feat(report): converge report cta to header per d-19` | #feat #ui #test #docs |
 | [2026-06-12](2026-06-12.md) | `docs(jd-match): close removal plan lifecycle after d-17` | #docs |
 | [2026-06-12](2026-06-12.md) | `feat(jd-match): remove job recommendation module per d-17` | #feat #api #ui #test #docs |
 | [2026-06-12](2026-06-12.md) | `docs(jd-match): revise owner plans for d-17 module removal` | #docs |

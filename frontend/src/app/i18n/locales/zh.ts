@@ -772,6 +772,7 @@ export const zh = {
   "report.questions.detail.followUp.body":
     "围绕量化结果与对应风险点继续深挖。",
   "report.questions.detail.addToReplay": "加入本轮复练",
+  "report.questions.detail.addedToReplay": "已加入本轮复练",
   "report.evidence.risks.eyebrow": "▲ 风险证据",
   "report.evidence.risks.empty": "未发现明显风险证据。",
   "report.evidence.highlights.eyebrow": "● 可复用亮点",
@@ -780,11 +781,13 @@ export const zh = {
   "report.next.pathA.body":
     "重复当前轮次，把本报告题目回顾里的问题、证据缺口和追问风险带进去。",
   "report.next.pathA.cta": "复练当前轮",
+  "report.next.pathA.footer": "开练入口在页面顶部：复练当前轮。",
   "report.next.pathB.eyebrow": "路径 B · 进入下一轮",
   "report.next.pathB.title": "确认推进时再使用。",
   "report.next.pathB.body":
     "沿用同一 JD 与简历，进入下一轮（如：技术一面 → 技术二面）。",
   "report.next.pathB.cta": "进入下一轮",
+  "report.next.pathB.footer": "开练入口在页面顶部：进入下一轮。",
   "report.next.empty": "暂未生成下一步行动建议。",
   "report.detail.tablistLabel": "报告详情切换",
   "report.detail.tab.readiness": "准备度详情",

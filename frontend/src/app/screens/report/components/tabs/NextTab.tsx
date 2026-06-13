@@ -5,16 +5,17 @@ import { useI18n } from "../../../../i18n/messages";
 
 interface NextTabProps {
   report: FeedbackReport;
-  onReplay: () => void;
-  onNextRound: () => void;
 }
 
 /**
  * Source-level mirror of ui-design/src/screen-report.jsx::ReportDetailSurface
- * next branch (lines 470-514). Two-column path A / path B layout with their
- * own action CTAs.
+ * next branch (lines 470-514). Two-column path A / path B layout carrying
+ * path descriptions + the retry checklist only. Per product-scope v2.1 D-19
+ * the start CTAs converge to the report Header; this tab no longer renders
+ * `report-next-cta-a` / `report-next-cta-b`, pointing users at the Header
+ * CTA through a footer line instead.
  */
-export const NextTab: FC<NextTabProps> = ({ report, onReplay, onNextRound }) => {
+export const NextTab: FC<NextTabProps> = ({ report }) => {
   const { t } = useI18n();
   const actions = report.nextActions ?? [];
   return (
@@ -116,24 +117,16 @@ export const NextTab: FC<NextTabProps> = ({ report, onReplay, onNextRound }) => 
             ))
           )}
         </ul>
-        <div style={{ marginTop: 16 }}>
-          <button
-            type="button"
-            data-testid="report-next-cta-a"
-            onClick={onReplay}
-            style={{
-              padding: "10px 16px",
-              background: "var(--ei-color-accent)",
-              color: "#fff",
-              border: "1px solid var(--ei-color-accent)",
-              borderRadius: 2,
-              cursor: "pointer",
-              fontFamily: "var(--ei-font-sans)",
-              fontSize: 13,
-            }}
-          >
-            {t("report.next.pathA.cta")}
-          </button>
+        <div
+          data-testid="report-next-path-a-footer"
+          style={{
+            marginTop: 16,
+            fontSize: 12,
+            color: "var(--ei-color-fg-tertiary)",
+            fontFamily: "var(--ei-font-mono)",
+          }}
+        >
+          {t("report.next.pathA.footer")}
         </div>
       </div>
       <div
@@ -174,23 +167,16 @@ export const NextTab: FC<NextTabProps> = ({ report, onReplay, onNextRound }) => 
         >
           {t("report.next.pathB.body")}
         </div>
-        <button
-          type="button"
-          data-testid="report-next-cta-b"
-          onClick={onNextRound}
+        <div
+          data-testid="report-next-path-b-footer"
           style={{
-            padding: "10px 16px",
-            background: "transparent",
-            color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
-            border: "1px solid var(--ei-color-rule-soft)",
-            borderRadius: 2,
-            cursor: "pointer",
-            fontFamily: "var(--ei-font-sans)",
-            fontSize: 13,
+            fontSize: 12,
+            color: "var(--ei-color-fg-tertiary)",
+            fontFamily: "var(--ei-font-mono)",
           }}
         >
-          {t("report.next.pathB.cta")}
-        </button>
+          {t("report.next.pathB.footer")}
+        </div>
       </div>
     </div>
   );
