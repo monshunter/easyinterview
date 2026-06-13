@@ -1,6 +1,6 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.23
+> **版本**: 3.24
 > **状态**: active
 > **更新日期**: 2026-06-13
 
@@ -135,7 +135,7 @@
 | Home / Parse | `frontend-home-job-picks-and-parse`、`backend-targetjob`、`backend-jobs-recommendations` | `frontend-home-job-picks-and-parse` active（spec v2.0：D-17 前端删除 + D-14 单次确认漏斗）；`backend-targetjob` active（001 import / parse completed）；`backend-jobs-recommendations` active（001 Phase 9 承接 D-17 模块删除：契约 / backend / migration / shared / config 零残留） | 首页 JD 导入、解析确认、目标岗位 / JD / 轮次假设；岗位推荐模块已随 product-scope v2.1 D-17 删除 | B2、B3、B4、A3、F3、D1 |
 | Mock Interview + Practice | `frontend-workspace-and-practice`、`backend-practice`、`practice-voice-mvp` | `frontend-workspace-and-practice` active；`backend-practice` active；`practice-voice-mvp` active（001 voice MVP completed） | 当前面试规划、简历绑定、公司轻情报卡片、完整文本 / 语音 session、带提示 / 严格模拟 | B2、B3、B4、A3、C4 |
 | Report Dashboard | `frontend-report-dashboard`、`backend-review` | `frontend-report-dashboard` active；`backend-review` active | 报告生成、上下文条、准备度、维度、题目回顾、复练当前轮 / 进入下一轮 | B2、B3、B4、A3、C5、F3 |
-| Resume Workshop | `frontend-resume-workshop`、`backend-resume`、`backend-upload` | `frontend-resume-workshop` active（001 / 002 / 003 completed）；`backend-resume` active；`backend-upload` active（001 file_objects + presign baseline completed） | 原始简历树、结构化主版本、岗位定制版本、创建/解析/确认、版本详情 | B2、B3、B4、A3、C2 `backend-upload` |
+| Resume Workshop | `frontend-resume-workshop`、`backend-resume`、`backend-upload` | `frontend-resume-workshop` active（001 / 002 / 003 D-20 phase active）；`backend-resume` active（001 / 002 D-20 phase active）；`backend-upload` active（001 file_objects + presign baseline completed） | 扁平简历列表、上传 / 粘贴创建、解析预览确认、简历详情（预览 / 改写 / 编辑）、改写采纳后覆盖 / 另存（D-20：删除版本树 / 主版本 / 岗位定制） | B2、B3、B4、A3、C2 `backend-upload` |
 | Debrief | `frontend-debrief`、`backend-debrief` | `frontend-debrief` active；`backend-debrief` active | 真实面试上下文选择、文本 / 语音共享记录、复盘分析、复盘面试 | B2、B3、B4、A3、C4、C6 |
 | Backend async runner | `backend-async-runner` | active（001 internal job + outbox runner baseline，承接单一 backend in-process runtime kernel、outbox dispatcher、retry/reaper/shutdown、`email_dispatch` 收口） | backend 内部 job/outbox runner、retry、删除链路执行；不创建独立 worker 进程 | B3、B4、A2、ADR-Q2/Q5、backend-runtime-topology |
 | Mock + E2E + release | `mock-contract-suite`、`e2e-scenarios-p0`、`analytics-funnel`、`release-gate-and-rollout` | `mock-contract-suite` active；`test/scenarios/e2e` framework 已创建，默认本地 runner；其余未创建 | fixture-backed mock、P0 主漏斗 BDD、产品漏斗、后续 release / rollback / SLO gate | B2、D1-D6、C4-C9、F1-F3 |
