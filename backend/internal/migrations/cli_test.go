@@ -135,11 +135,6 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 		"auth_challenges",
 		"sessions",
 		"external_identities",
-		"jd_match_recommendations",
-		"watchlist_items",
-		"saved_searches",
-		"agent_scans",
-		"jd_match_search_runs",
 		"schema_migrations",
 		"schema_backfills",
 	} {
@@ -150,7 +145,10 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 	if _, ok := got["mistake_entries"]; ok {
 		t.Fatalf("privacy matrix must not restore removed mistake_entries")
 	}
-	if len(got) != 35 {
-		t.Fatalf("privacy matrix should cover exactly 35 public baseline tables, got %d: %#v", len(got), got)
+	// product-scope v2.1 D-17 dropped the 5 jd_match module tables
+	// (jd_match_recommendations, watchlist_items, saved_searches,
+	// agent_scans, jd_match_search_runs), trimming 35 -> 30.
+	if len(got) != 30 {
+		t.Fatalf("privacy matrix should cover exactly 30 public baseline tables, got %d: %#v", len(got), got)
 	}
 }

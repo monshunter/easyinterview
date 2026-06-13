@@ -21,7 +21,7 @@ openapi/fixtures/
     └── <operationId>.json        # one fixture per operation (60 in current v1.0.0 additive freeze)
 ```
 
-The 13 tag directories follow
+The 12 tag directories follow
 [spec §2.1](../../docs/spec/openapi-v1-contract/spec.md#2-范围) declaration
 order; the 60 operationIds are listed in
 [spec §3.1.1](../../docs/spec/openapi-v1-contract/spec.md#311-v100-freeze-endpoint-列表).

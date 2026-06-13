@@ -339,12 +339,27 @@ def lint_seed_migration(prompts_root: pathlib.Path, migrations_root: pathlib.Pat
         )
         yaml_index[key] = str(parsed.get("template_hash", ""))
 
+    # Later module-removal migrations (e.g. product-scope v2.1 D-17 dropping
+    # the jd_match feature keys) delete previously seeded rows; the net DB
+    # state, not the raw seed insert, must match the prompts dir.
+    retired: set[str] = set()
+    delete_re = re.compile(
+        r"DELETE\s+FROM\s+(?:prompt|rubric)_versions\s+WHERE\s+feature_key\s+IN\s*\(([^)]+)\)",
+        re.IGNORECASE,
+    )
+    for sql_path in sorted(migrations_root.glob("*drop*_module.up.sql")):
+        text = sql_path.read_text(encoding="utf-8")
+        for dm in delete_re.finditer(text):
+            retired.update(re.findall(r"'([^']+)'", dm.group(1)))
+
     for sql_path in sorted(migrations_root.glob("*seed_baseline_prompt_rubric*.up.sql")):
         text = sql_path.read_text(encoding="utf-8")
         if not seed_re.search(text):
             continue
         for m in row_re.finditer(text):
             key = (m.group("feature_key"), m.group("version"), m.group("language"))
+            if m.group("feature_key") in retired:
+                continue
             sql_hash = m.group("template_hash")
             yaml_hash = yaml_index.get(key)
             if yaml_hash is None:

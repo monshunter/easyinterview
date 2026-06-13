@@ -22,9 +22,10 @@ const (
 // synchronous RunOnce driver.
 var priorityOrder = []Priority{PriorityCritical, PriorityDefault, PriorityLow}
 
-// defaultJobTypePriority is the spec D-9 fixed assignment over the 9 currently
-// executable job_type values. privacy_export / jd_match_search are not
-// registered by this plan and intentionally absent.
+// defaultJobTypePriority is the spec D-9 fixed assignment over the currently
+// executable job_type values. privacy_export is not registered by this plan
+// and intentionally absent; the jd_match job types were removed with the
+// module per product-scope v2.1 D-17.
 var defaultJobTypePriority = map[jobs.JobType]Priority{
 	jobs.JobTypeReportGenerate:   PriorityCritical,
 	jobs.JobTypePrivacyDelete:    PriorityCritical,
@@ -34,7 +35,6 @@ var defaultJobTypePriority = map[jobs.JobType]Priority{
 	jobs.JobTypeDebriefGenerate:  PriorityDefault,
 	jobs.JobTypeSourceRefresh:    PriorityLow,
 	jobs.JobTypeEmailDispatch:    PriorityLow,
-	jobs.JobTypeJdMatchAgentScan: PriorityLow,
 }
 
 // PriorityForJobType returns the spec D-9 bucket for jobType, defaulting to

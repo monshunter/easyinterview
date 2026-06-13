@@ -474,58 +474,6 @@
         }
       },
       "version": 1
-    },
-    {
-      "aggregateType": "agent_scan",
-      "name": "jd_match.recommendation.completed",
-      "optionalPayload": {},
-      "piiBoundary": "No reasons, risks, highlights, sourceUrl, networkNote, or interviewHypotheses content; only aggregated counts and IDs.",
-      "producer": "backend_async",
-      "requiredPayload": {
-        "agentScanId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        },
-        "completedAt": {
-          "source": "spec:3.1.4",
-          "type": "timestamptz"
-        },
-        "recommendationCount": {
-          "source": "spec:3.1.4",
-          "type": "int"
-        },
-        "userId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        }
-      },
-      "version": 1
-    },
-    {
-      "aggregateType": "search_run",
-      "name": "jd_match.search.completed",
-      "optionalPayload": {},
-      "piiBoundary": "No query, filters, label, or recommendation content; only aggregated counts and IDs.",
-      "producer": "api",
-      "requiredPayload": {
-        "completedAt": {
-          "source": "spec:3.1.4",
-          "type": "timestamptz"
-        },
-        "resultCount": {
-          "source": "spec:3.1.4",
-          "type": "int"
-        },
-        "searchRunId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        },
-        "userId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        }
-      },
-      "version": 1
     }
   ],
   "schemaVersion": 1,

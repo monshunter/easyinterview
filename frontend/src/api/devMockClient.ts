@@ -9,18 +9,6 @@ import createDebriefFixture from "../../../openapi/fixtures/Debriefs/createDebri
 import getDebriefFixture from "../../../openapi/fixtures/Debriefs/getDebrief.json";
 import suggestDebriefQuestionsFixture from "../../../openapi/fixtures/Debriefs/suggestDebriefQuestions.json";
 import getJobFixture from "../../../openapi/fixtures/Jobs/getJob.json";
-import addToWatchlistFixture from "../../../openapi/fixtures/JobMatch/addToWatchlist.json";
-import createSavedSearchFixture from "../../../openapi/fixtures/JobMatch/createSavedSearch.json";
-import getAgentScanStatusFixture from "../../../openapi/fixtures/JobMatch/getAgentScanStatus.json";
-import getJobMatchProfileFixture from "../../../openapi/fixtures/JobMatch/getJobMatchProfile.json";
-import getJobRecommendationFixture from "../../../openapi/fixtures/JobMatch/getJobRecommendation.json";
-import getMarketSignalsFixture from "../../../openapi/fixtures/JobMatch/getMarketSignals.json";
-import listJobRecommendationsFixture from "../../../openapi/fixtures/JobMatch/listJobRecommendations.json";
-import listSavedSearchesFixture from "../../../openapi/fixtures/JobMatch/listSavedSearches.json";
-import listWatchlistFixture from "../../../openapi/fixtures/JobMatch/listWatchlist.json";
-import markJobNotRelevantFixture from "../../../openapi/fixtures/JobMatch/markJobNotRelevant.json";
-import removeFromWatchlistFixture from "../../../openapi/fixtures/JobMatch/removeFromWatchlist.json";
-import searchJobsFixture from "../../../openapi/fixtures/JobMatch/searchJobs.json";
 import createPracticePlanFixture from "../../../openapi/fixtures/PracticePlans/createPracticePlan.json";
 import getPracticePlanFixture from "../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
 import appendSessionEventFixture from "../../../openapi/fixtures/PracticeSessions/appendSessionEvent.json";
@@ -81,18 +69,6 @@ const DEV_MOCK_FIXTURES = [
 	getDebriefFixture,
 	suggestDebriefQuestionsFixture,
 	getJobFixture,
-	getJobMatchProfileFixture,
-	getAgentScanStatusFixture,
-	listJobRecommendationsFixture,
-	getJobRecommendationFixture,
-	markJobNotRelevantFixture,
-	listWatchlistFixture,
-	addToWatchlistFixture,
-	removeFromWatchlistFixture,
-	searchJobsFixture,
-	listSavedSearchesFixture,
-	createSavedSearchFixture,
-	getMarketSignalsFixture,
 	deleteMeFixture,
 	completeMyProfileFixture,
 	getMeFixture,

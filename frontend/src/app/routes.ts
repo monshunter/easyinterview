@@ -4,7 +4,8 @@
  * Truth source: docs/spec/frontend-shell/spec.md §2.1, docs/ui-design/auth-and-entry.md,
  * docs/ui-design/ui-architecture.md, ui-design/src/app.jsx.
  *
- * Five primary nav entries: home / jd_match / workspace / resume_versions / debrief.
+ * Four primary nav entries: home / workspace / resume_versions / debrief
+ * (product-scope v2.1 D-17 removed the jd_match entry).
  * Context routes: parse / practice / generating / report / company_intel.
  * User-menu routes: profile / settings / auth_logout.
  * Auth pages: auth_login / auth_verify / auth_profile_setup / auth_logout.
@@ -17,7 +18,6 @@
 
 export const PRIMARY_NAV_ROUTES = [
   "home",
-  "jd_match",
   "workspace",
   "resume_versions",
   "debrief",

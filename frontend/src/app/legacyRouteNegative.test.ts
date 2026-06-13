@@ -115,10 +115,9 @@ describe("Plan 004 Phase 4.2 — legacy route negative regression", () => {
     }
   });
 
-  it("PRIMARY_NAV_ROUTES contains exactly the 5 retained primary nav entries", () => {
+  it("PRIMARY_NAV_ROUTES contains exactly the 4 retained primary nav entries (D-17)", () => {
     expect(PRIMARY_NAV_ROUTES).toEqual([
       "home",
-      "jd_match",
       "workspace",
       "resume_versions",
       "debrief",

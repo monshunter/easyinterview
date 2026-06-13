@@ -12,7 +12,6 @@ describe("ROUTE_TO_PATH catalog", () => {
   it("covers every retained route with a canonical path", () => {
     expect(ROUTE_TO_PATH).toEqual({
       home: "/",
-      jd_match: "/jd-match",
       workspace: "/workspace",
       resume_versions: "/resume-versions",
       debrief: "/debrief",
@@ -69,18 +68,13 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/workspace?targetJobId=tj-1");
   });
 
-  it("drops jd_match search query and saved-search label even when present", () => {
+  it("serializes the retired jd_match route name to the home canonical path (D-17)", () => {
     expect(
       formatRouteUrl({
         name: "jd_match",
-        params: {
-          tab: "search",
-          query: "principal engineer",
-          label: "PE shortlist",
-          selectedJobMatchId: "jm-1",
-        },
+        params: { tab: "search", query: "principal engineer" },
       }),
-    ).toBe("/jd-match?selectedJobMatchId=jm-1&tab=search");
+    ).toBe("/");
   });
 
   it("retains generating/report/resume_versions/debrief deep-link params", () => {
@@ -142,20 +136,6 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/?pendingImportId=imp-1&source=paste");
   });
 
-  it("emits jd_match pending action params and drops raw query/label/sourceUrl", () => {
-    expect(
-      formatRouteUrl({
-        name: "jd_match",
-        params: {
-          tab: "search",
-          pendingJdMatchActionId: "pa-1",
-          query: "principal",
-          label: "shortlist",
-          sourceUrl: "https://example.com/jobs/1",
-        },
-      }),
-    ).toBe("/jd-match?pendingJdMatchActionId=pa-1&tab=search");
-  });
 
   it("normalizes legacy route names back to retained routes", () => {
     expect(serializeRouteToUrl({ name: "welcome", params: {} }).path).toBe("/");
@@ -478,10 +458,6 @@ describe("parseUrlToRoute", () => {
 describe("isSafeRouteParam", () => {
   it("approves cross-owner safe params (handoff keys must survive)", () => {
     expect(isSafeRouteParam("home", "pendingImportId", {})).toBe(true);
-    expect(isSafeRouteParam("jd_match", "selectedJobMatchId", {})).toBe(true);
-    expect(isSafeRouteParam("jd_match", "pendingJdMatchActionId", {})).toBe(
-      true,
-    );
     expect(isSafeRouteParam("workspace", "autoStartPractice", {})).toBe(true);
     expect(isSafeRouteParam("workspace", "sourceSessionId", {})).toBe(true);
     expect(isSafeRouteParam("workspace", "sourceReportId", {})).toBe(true);
@@ -492,7 +468,6 @@ describe("isSafeRouteParam", () => {
     expect(isSafeRouteParam("report", "errorCode", {})).toBe(true);
     expect(isSafeRouteParam("resume_versions", "tailorRunId", {})).toBe(true);
     expect(isSafeRouteParam("debrief", "debriefJobId", {})).toBe(true);
-    expect(isSafeRouteParam("parse", "sourceJobMatchId", {})).toBe(true);
     expect(isSafeRouteParam("parse", "resumeVersionId", {})).toBe(true);
     expect(isSafeRouteParam("home", "resumeVersionId", {})).toBe(true);
   });
@@ -520,7 +495,6 @@ describe("isSafeRouteParam", () => {
     ];
     for (const key of forbidden) {
       expect(isSafeRouteParam("home", key, {})).toBe(false);
-      expect(isSafeRouteParam("jd_match", key, {})).toBe(false);
       expect(isSafeRouteParam("workspace", key, {})).toBe(false);
       expect(isSafeRouteParam("practice", key, {})).toBe(false);
       expect(isSafeRouteParam("auth_login", key, {
@@ -530,16 +504,14 @@ describe("isSafeRouteParam", () => {
     expect(isSafeRouteParam("auth_verify", "token", {})).toBe(false);
     expect(isSafeRouteParam("auth_login", "token", {})).toBe(false);
     expect(isSafeRouteParam("workspace", "token", {})).toBe(false);
+    // product-scope D-17: the retired jd_match -> parse reverse handoff
+    // param is no longer on the parse allowlist.
+    expect(isSafeRouteParam("parse", "sourceJobMatchId", {})).toBe(false);
   });
 
   it("expands auth_login allowlist with target route safe params when pendingRoute is present", () => {
     expect(
       isSafeRouteParam("auth_login", "planId", { pendingRoute: "workspace" }),
-    ).toBe(true);
-    expect(
-      isSafeRouteParam("auth_login", "selectedJobMatchId", {
-        pendingRoute: "jd_match",
-      }),
     ).toBe(true);
     expect(
       isSafeRouteParam("auth_login", "tailorRunId", {

@@ -34,8 +34,6 @@ const (
 	ResumeTailorBulletSuggestions  FeatureKey = "resume.tailor.bullet_suggestions"
 	DebriefGenerate                FeatureKey = "debrief.generate"
 	DebriefSuggestQuestions        FeatureKey = "debrief.suggest_questions"
-	JdMatchRecommendation          FeatureKey = "jd_match.recommendation"
-	JdMatchSearch                  FeatureKey = "jd_match.search"
 )
 
 // All returns every known feature_key constant in declaration order. Useful
@@ -54,8 +52,6 @@ func All() []FeatureKey {
 		ResumeTailorBulletSuggestions,
 		DebriefGenerate,
 		DebriefSuggestQuestions,
-		JdMatchRecommendation,
-		JdMatchSearch,
 	}
 }
 

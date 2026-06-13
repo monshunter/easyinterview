@@ -31,7 +31,6 @@ import type { UserContext } from "../../api/generated/types";
  */
 const NAV_LABEL_KEYS: Record<(typeof PRIMARY_NAV_ROUTES)[number], Parameters<typeof translate>[1]> = {
   home: "nav.home",
-  jd_match: "nav.jd_match",
   workspace: "nav.workspace",
   resume_versions: "nav.resume_versions",
   debrief: "nav.debrief",
@@ -54,7 +53,6 @@ const CUSTOM_ACCENT_SEEDS: Record<Theme, CustomAccent> = {
 
 const NAV_ICONS: Record<(typeof PRIMARY_NAV_ROUTES)[number], IconName> = {
   home: "target",
-  jd_match: "search",
   workspace: "play",
   resume_versions: "file",
   debrief: "flag",

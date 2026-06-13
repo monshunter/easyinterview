@@ -26,7 +26,6 @@ import {
 /** Canonical URL pathname for each retained route. */
 export const ROUTE_TO_PATH: Readonly<Record<RouteName, string>> = {
   home: "/",
-  jd_match: "/jd-match",
   workspace: "/workspace",
   resume_versions: "/resume-versions",
   debrief: "/debrief",
@@ -49,6 +48,9 @@ export const ROUTE_TO_PATH: Readonly<Record<RouteName, string>> = {
  */
 export const LEGACY_PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = new Map([
   ["/auth/reset", "auth_login"],
+  // product-scope D-17: the jd_match module is deleted; old deep links land
+  // on home where JD intake lives.
+  ["/jd-match", "home"],
 ]);
 
 const PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = (() => {
@@ -173,17 +175,11 @@ const PARSE_SAFE = new Set([
   "resumeVersionId",
   "importId",
   "source",
-  "sourceJobMatchId",
+  // product-scope D-17 removed the jd_match -> parse reverse handoff; the
+  // sourceJobMatchId param no longer has a producer.
 ]);
 
 const HOME_SAFE = new Set(["pendingImportId", "source", "resumeVersionId"]);
-
-const JD_MATCH_SAFE = new Set([
-  "tab",
-  "selectedJobMatchId",
-  "action",
-  "pendingJdMatchActionId",
-]);
 
 const COMPANY_INTEL_SAFE = new Set([
   "targetJobId",
@@ -216,7 +212,6 @@ const AUTH_LOGOUT_BASE = new Set(["next"]);
 
 const ROUTE_SAFE_PARAMS: Readonly<Record<RouteName, ReadonlySet<string>>> = {
   home: HOME_SAFE,
-  jd_match: JD_MATCH_SAFE,
   workspace: WORKSPACE_SAFE,
   resume_versions: RESUME_VERSIONS_SAFE,
   debrief: DEBRIEF_SAFE,

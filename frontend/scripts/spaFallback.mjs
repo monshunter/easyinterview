@@ -18,7 +18,6 @@
 /** Canonical frontend paths that the SPA fallback must serve. */
 export const FRONTEND_CANONICAL_PATHS = Object.freeze([
   "/",
-  "/jd-match",
   "/workspace",
   "/resume-versions",
   "/debrief",
@@ -41,7 +40,10 @@ export const FRONTEND_CANONICAL_PATHS = Object.freeze([
  * `/auth/reset` folds back into `auth_login`). Mirrors
  * `routeUrl.LEGACY_PATH_TO_ROUTE`.
  */
-export const FRONTEND_LEGACY_PATHS = Object.freeze(["/auth/reset"]);
+export const FRONTEND_LEGACY_PATHS = Object.freeze([
+  "/auth/reset",
+  "/jd-match",
+]);
 
 /** Path prefixes that must NEVER be swallowed by the SPA fallback. */
 export const FALLBACK_DENY_PREFIXES = Object.freeze([

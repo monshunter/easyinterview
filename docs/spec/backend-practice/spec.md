@@ -229,8 +229,8 @@
 
 ## 8 相关文档
 
-- [Product Scope §6.8 M3 模拟面试编排器](../product-scope/spec.md#68-m3模拟面试编排器)
-- [Product Scope §6.9 M4 证据化报告](../product-scope/spec.md#69-m4证据化报告)（下游 owner 边界参考）
+- [Product Scope §6.8 M3 模拟面试编排器](../product-scope/spec.md#67-m3模拟面试编排器)
+- [Product Scope §6.9 M4 证据化报告](../product-scope/spec.md#68-m4证据化报告)（下游 owner 边界参考）
 - [docs/ui-design/module-practice-review.md](../../ui-design/module-practice-review.md)
 - [docs/ui-design/report-dashboard.md](../../ui-design/report-dashboard.md)
 - [openapi-v1-contract](../openapi-v1-contract/spec.md)

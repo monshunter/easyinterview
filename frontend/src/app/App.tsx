@@ -35,7 +35,6 @@ import {
 import { DebriefScreen } from "./screens/debrief/DebriefScreen";
 import { GeneratingScreen } from "./screens/generating/GeneratingScreen";
 import { HomeScreen } from "./screens/home/HomeScreen";
-import { JDMatchScreen } from "./screens/jd_match/JDMatchScreen";
 import { ParseScreen } from "./screens/parse/ParseScreen";
 import { PlaceholderScreen } from "./screens/PlaceholderScreen";
 import { PracticeScreen } from "./screens/practice/PracticeScreen";
@@ -94,9 +93,6 @@ function renderRouteScreen(
   }
   if (route.name === "home") {
     return <HomeScreen route={route} />;
-  }
-  if (route.name === "jd_match") {
-    return <JDMatchScreen route={route} />;
   }
   if (route.name === "parse") {
     return <ParseScreen route={route} />;

@@ -208,28 +208,18 @@ describe("HomeAuthGate — upload import", () => {
 });
 
 describe("HomeAuthGate — protected entry CTAs", () => {
-  it("redirects to auth_login before opening job picks, resume workshop, or debrief", async () => {
+  it("redirects to auth_login before opening resume workshop or debrief", async () => {
     const client = createClient();
     const { navigate } = renderHome(client);
 
     await waitFor(() => {
-      expect(screen.getByText("Open job recommendations")).toBeInTheDocument();
+      expect(screen.getByText("Open debrief")).toBeInTheDocument();
     });
 
-    screen.getByText("Open job recommendations").click();
     screen.getByTestId("home-resume-create").click();
     screen.getByText("Open debrief").click();
 
     await waitFor(() => {
-      expect(navigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: "auth_login",
-          params: expect.objectContaining({
-            pendingRoute: "jd_match",
-            pendingType: "open_protected_route",
-          }),
-        }),
-      );
       expect(navigate).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "auth_login",

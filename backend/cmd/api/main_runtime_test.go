@@ -16,7 +16,7 @@ import (
 // TestMain_SingleRuntimeShutdown proves spec C-16 / D-1 / D-8: every executable
 // canonical job_type is registered on a single runner.Runtime, a single
 // Shutdown call drains the whole kernel, and the two reserved-but-unregistered
-// job types (privacy_export, jd_match_search) are not handled.
+// job types (privacy_export) are not handled.
 func TestMain_SingleRuntimeShutdown(t *testing.T) {
 	kernel := runner.New(runner.Options{Store: runner.NewSQLStore(nil), Config: testRunnerConfig()})
 
@@ -33,7 +33,6 @@ func TestMain_SingleRuntimeShutdown(t *testing.T) {
 		jobs.JobTypeResumeParse,
 		jobs.JobTypeResumeTailor,
 		jobs.JobTypeReportGenerate,
-		jobs.JobTypeJdMatchAgentScan,
 		jobs.JobTypeEmailDispatch,
 	}
 	handlers := map[string]runner.Handler{}
@@ -48,7 +47,7 @@ func TestMain_SingleRuntimeShutdown(t *testing.T) {
 		}
 	}
 	// Reserved job types must never be registered by this plan.
-	for _, reserved := range []jobs.JobType{jobs.JobTypePrivacyExport, jobs.JobTypeJdMatchSearch} {
+	for _, reserved := range []jobs.JobType{jobs.JobTypePrivacyExport} {
 		if kernel.Handles(string(reserved)) {
 			t.Fatalf("single runtime must not handle reserved job type %s", reserved)
 		}

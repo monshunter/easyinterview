@@ -14,17 +14,16 @@ function renderInProvider(node: ReactElement): RenderResult {
 }
 
 describe("TopBar primary nav", () => {
-  it("renders exactly the five primary nav entries", () => {
+  it("renders exactly the four primary nav entries (D-17)", () => {
     renderInProvider(<TopBar activeRoute="home" onNavigate={() => {}} />);
     const nav = screen.getByTestId("topbar-primary-nav");
     const items = nav.querySelectorAll("button[data-testid^='topbar-nav-']");
-    expect(items).toHaveLength(5);
+    expect(items).toHaveLength(4);
     const ids = Array.from(items).map((el) =>
       el.getAttribute("data-testid")?.replace("topbar-nav-", ""),
     );
     expect(ids).toEqual([
       "home",
-      "jd_match",
       "workspace",
       "resume_versions",
       "debrief",
@@ -73,8 +72,8 @@ describe("TopBar primary nav", () => {
     const onNavigate = vi.fn();
     renderInProvider(<TopBar activeRoute="home" onNavigate={onNavigate} />);
     const user = userEvent.setup();
-    await user.click(screen.getByTestId("topbar-nav-jd_match"));
-    expect(onNavigate).toHaveBeenCalledWith({ name: "jd_match", params: {} });
+    await user.click(screen.getByTestId("topbar-nav-workspace"));
+    expect(onNavigate).toHaveBeenCalledWith({ name: "workspace", params: {} });
   });
 });
 

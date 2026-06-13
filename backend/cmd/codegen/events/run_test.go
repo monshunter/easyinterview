@@ -98,7 +98,7 @@ func TestGenerateGoOutputs(t *testing.T) {
 		`= "source_event_only"`,
 		`JobTriggerEventSemanticTriggerCreatesJob`,
 		`var JobTriggerEventSemantics = map[JobType]JobTriggerEventSemantic{`,
-		`JobTypeReportGenerate:   JobTriggerEventSemanticSourceEventOnly`,
+		`JobTypeReportGenerate:  JobTriggerEventSemanticSourceEventOnly`,
 		`func IsSourceEventOnly(jobType JobType) bool`,
 		"var APIFacingJobTypes = []JobType{",
 		"JobTypePrivacyDelete",
@@ -184,7 +184,7 @@ func TestGenerateJSONSchemas(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadDir schemas: %v", err)
 	}
-	if got, want := len(entries), 18; got != want {
+	if got, want := len(entries), 16; got != want {
 		t.Fatalf("schema file count = %d, want %d", got, want)
 	}
 

@@ -165,22 +165,6 @@ func main() {
 	}
 	profileRoutes := buildProfileRoutes(loader, db)
 	privacyDeleteHooks.profileData = profileRoutes.Service.DeleteCandidateProfileForUser
-	jdmatchSearchAI, jdmatchGeneratorAI, err := buildJDMatchAIAdapters(loader, db, targetJobRuntime.AI.Client)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "api: jdmatch AI runtime init: %v\n", err)
-		os.Exit(1)
-	}
-	jdmatchRuntime, err := buildJDMatchRuntime(loader, db, logger, jdmatchSearchAI, jdmatchGeneratorAI)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "api: jdmatch runtime init: %v\n", err)
-		os.Exit(1)
-	}
-	jdmatchRoutes := jdmatchRuntime.Routes
-	privacyDeleteHooks.jdMatchData = func(ctx context.Context, userID string) error {
-		_, err := jdmatchRoutes.PrivacyDeleteFunc(ctx, userID)
-		return err
-	}
-
 	// Single in-process job kernel (spec D-1 / D-8): every domain handler is
 	// registered on one runner.Runtime that owns lease / retry / reaper /
 	// graceful shutdown.
@@ -201,12 +185,11 @@ func main() {
 	registerRunnerHandlers(kernel, targetJobRuntime.Handlers)
 	registerRunnerHandlers(kernel, resumeRuntime.Handlers)
 	registerRunnerHandlers(kernel, reportRuntime.Handlers)
-	registerRunnerHandlers(kernel, jdmatchRuntime.Handlers)
 	kernel.Register(string(jobs.JobTypeEmailDispatch), auth.NewEmailDispatchHandler(mailWriter))
 
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           withLocalDevCORS(loader.AppEnv(), localDevCORSOrigins(loader), buildAPIHandlerWithJDMatchAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), debriefRoutes, jobsRoutes, profileRoutes, jdmatchRoutes)),
+		Handler:           withLocalDevCORS(loader.AppEnv(), localDevCORSOrigins(loader), buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), debriefRoutes, jobsRoutes, profileRoutes)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -596,54 +579,6 @@ func buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(loader *config
 	return mux
 }
 
-// buildAPIHandlerWithJDMatchAndHandlers extends the profile variant
-// with the 12 JD-Match routes from backend-jobs-recommendations/001.
-// IK middleware wraps the 5 side-effect ops per spec D-5.
-func buildAPIHandlerWithJDMatchAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes, debrief debriefRoutes, jobs jobsRoutes, prof profileRoutes, jdmatch jdmatchRoutes) http.Handler {
-	base := buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, upload, resume, reports, debrief, jobs, prof)
-	mux, ok := base.(*http.ServeMux)
-	if !ok || jdmatch.Handler == nil {
-		return base
-	}
-	addJDMatchRoutes(mux, authService, jdmatch)
-	return mux
-}
-
-func addJDMatchRoutes(mux *http.ServeMux, authService *auth.PasswordlessService, jdmatch jdmatchRoutes) {
-	h := jdmatch.Handler
-	ik := jdmatch.Idempotency
-	withRequestID := func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if requestID := r.Header.Get("X-Request-ID"); requestID != "" {
-				w.Header().Set("X-Request-ID", requestID)
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-	withSession := func(op string, fn http.HandlerFunc) http.Handler {
-		return withRequestID(auth.SessionMiddleware(authService, op, http.Handler(fn)))
-	}
-	withSessionAndIK := func(op string, fn http.HandlerFunc) http.Handler {
-		var handler http.Handler = fn
-		if ik != nil {
-			handler = ik.Handler("jdmatch", op, requestUserFromContext, handler)
-		}
-		return withRequestID(auth.SessionMiddleware(authService, op, handler))
-	}
-	mux.Handle("GET /api/v1/jd-match/profile", withSession("getJobMatchProfile", h.GetJobMatchProfile))
-	mux.Handle("GET /api/v1/jd-match/agent-status", withSession("getAgentScanStatus", h.GetAgentScanStatus))
-	mux.Handle("GET /api/v1/jd-match/recommendations", withSession("listJobRecommendations", h.ListJobRecommendations))
-	mux.Handle("GET /api/v1/jd-match/recommendations/{jobMatchId}", withSession("getJobRecommendation", h.GetJobRecommendation))
-	mux.Handle("POST /api/v1/jd-match/recommendations/{jobMatchId}/dismiss", withSessionAndIK("markJobNotRelevant", h.MarkJobNotRelevant))
-	mux.Handle("GET /api/v1/jd-match/watchlist", withSession("listWatchlist", h.ListWatchlist))
-	mux.Handle("POST /api/v1/jd-match/watchlist", withSessionAndIK("addToWatchlist", h.AddToWatchlist))
-	mux.Handle("DELETE /api/v1/jd-match/watchlist/{jobMatchId}", withSessionAndIK("removeFromWatchlist", h.RemoveFromWatchlist))
-	mux.Handle("POST /api/v1/jd-match/search", withSessionAndIK("searchJobs", h.SearchJobs))
-	mux.Handle("GET /api/v1/jd-match/saved-searches", withSession("listSavedSearches", h.ListSavedSearches))
-	mux.Handle("POST /api/v1/jd-match/saved-searches", withSessionAndIK("createSavedSearch", h.CreateSavedSearch))
-	mux.Handle("GET /api/v1/jd-match/market-signals", withSession("getMarketSignals", h.GetMarketSignals))
-}
-
 type reportRuntime struct {
 	Handler  *apireports.Handler
 	Handlers map[string]runner.Handler
@@ -862,7 +797,6 @@ func (r *targetJobRuntime) Handles(jobType string) bool {
 
 type privacyDeleteRuntimeHooks struct {
 	profileData func(ctx context.Context, userID string, jobID string) error
-	jdMatchData func(ctx context.Context, userID string) error
 }
 
 func (h *privacyDeleteRuntimeHooks) DeleteProfileData(ctx context.Context, userID string, jobID string) error {
@@ -872,12 +806,6 @@ func (h *privacyDeleteRuntimeHooks) DeleteProfileData(ctx context.Context, userI
 	return h.profileData(ctx, userID, jobID)
 }
 
-func (h *privacyDeleteRuntimeHooks) DeleteJDMatchData(ctx context.Context, userID string) error {
-	if h == nil || h.jdMatchData == nil {
-		return nil
-	}
-	return h.jdMatchData(ctx, userID)
-}
 
 // Close releases the AI runtime resources owned by this runtime. Job lifecycle
 // (lease / reaper / shutdown) is owned by the shared runner.Runtime kernel.
@@ -1031,7 +959,6 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 		Requests:    privacyrunner.NewSQLStore(db),
 		UploadFiles: uploadFiles,
 		ProfileData: privacyHooks.DeleteProfileData,
-		JDMatchData: privacyHooks.DeleteJDMatchData,
 	})
 	handlers := map[string]runner.Handler{
 		string(jobs.JobTypeTargetImport):    runner.FromTargetjobHandler(executor),

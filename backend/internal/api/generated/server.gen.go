@@ -12,7 +12,7 @@ import (
 // C-domain handler packages must implement this interface; the runtime
 // router (registered by RegisterHandlers) dispatches by `(method, path)` to
 // the corresponding ServerInterface method. operationId order matches the
-// 60-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
+// 48-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 
 	// startAuthEmailChallenge — post /auth/email/start: Issue a passwordless email-code challenge
@@ -32,42 +32,6 @@ type ServerInterface interface {
 
 	// getDebrief — get /debriefs/{debriefId}: Get a real-interview debrief
 	GetDebrief(w http.ResponseWriter, r *http.Request, debriefId string)
-
-	// getAgentScanStatus — get /jd-match/agent-status: Get the background JD-match agent scan status
-	GetAgentScanStatus(w http.ResponseWriter, r *http.Request)
-
-	// getMarketSignals — get /jd-match/market-signals: Get aggregated market signals for the watchlist tab
-	GetMarketSignals(w http.ResponseWriter, r *http.Request)
-
-	// getJobMatchProfile — get /jd-match/profile: Get the candidate profile snapshot used for JD matching
-	GetJobMatchProfile(w http.ResponseWriter, r *http.Request)
-
-	// listJobRecommendations — get /jd-match/recommendations: List JD-match recommendations for the candidate
-	ListJobRecommendations(w http.ResponseWriter, r *http.Request)
-
-	// getJobRecommendation — get /jd-match/recommendations/{jobMatchId}: Get a single JD-match recommendation detail
-	GetJobRecommendation(w http.ResponseWriter, r *http.Request, jobMatchId string)
-
-	// markJobNotRelevant — post /jd-match/recommendations/{jobMatchId}/dismiss: Mark a recommendation as not relevant
-	MarkJobNotRelevant(w http.ResponseWriter, r *http.Request, jobMatchId string)
-
-	// listSavedSearches — get /jd-match/saved-searches: List the candidate's saved searches
-	ListSavedSearches(w http.ResponseWriter, r *http.Request)
-
-	// createSavedSearch — post /jd-match/saved-searches: Save the current search query as a recurring saved search
-	CreateSavedSearch(w http.ResponseWriter, r *http.Request)
-
-	// searchJobs — post /jd-match/search: Run a natural-language web search for JD matches
-	SearchJobs(w http.ResponseWriter, r *http.Request)
-
-	// listWatchlist — get /jd-match/watchlist: List the candidate watchlist
-	ListWatchlist(w http.ResponseWriter, r *http.Request)
-
-	// addToWatchlist — post /jd-match/watchlist: Save a recommendation to the watchlist
-	AddToWatchlist(w http.ResponseWriter, r *http.Request)
-
-	// removeFromWatchlist — delete /jd-match/watchlist/{jobMatchId}: Remove a recommendation from the watchlist
-	RemoveFromWatchlist(w http.ResponseWriter, r *http.Request, jobMatchId string)
 
 	// getJob — get /jobs/{jobId}: Poll the status of an async job
 	GetJob(w http.ResponseWriter, r *http.Request, jobId string)
@@ -215,18 +179,6 @@ var AllRoutes = []Route{
 	{OperationID: "createDebrief", Method: "post", Path: "/debriefs", PathParams: nil},
 	{OperationID: "suggestDebriefQuestions", Method: "post", Path: "/debriefs/question-suggestions", PathParams: nil},
 	{OperationID: "getDebrief", Method: "get", Path: "/debriefs/{debriefId}", PathParams: []string{"debriefId"}},
-	{OperationID: "getAgentScanStatus", Method: "get", Path: "/jd-match/agent-status", PathParams: nil},
-	{OperationID: "getMarketSignals", Method: "get", Path: "/jd-match/market-signals", PathParams: nil},
-	{OperationID: "getJobMatchProfile", Method: "get", Path: "/jd-match/profile", PathParams: nil},
-	{OperationID: "listJobRecommendations", Method: "get", Path: "/jd-match/recommendations", PathParams: nil},
-	{OperationID: "getJobRecommendation", Method: "get", Path: "/jd-match/recommendations/{jobMatchId}", PathParams: []string{"jobMatchId"}},
-	{OperationID: "markJobNotRelevant", Method: "post", Path: "/jd-match/recommendations/{jobMatchId}/dismiss", PathParams: []string{"jobMatchId"}},
-	{OperationID: "listSavedSearches", Method: "get", Path: "/jd-match/saved-searches", PathParams: nil},
-	{OperationID: "createSavedSearch", Method: "post", Path: "/jd-match/saved-searches", PathParams: nil},
-	{OperationID: "searchJobs", Method: "post", Path: "/jd-match/search", PathParams: nil},
-	{OperationID: "listWatchlist", Method: "get", Path: "/jd-match/watchlist", PathParams: nil},
-	{OperationID: "addToWatchlist", Method: "post", Path: "/jd-match/watchlist", PathParams: nil},
-	{OperationID: "removeFromWatchlist", Method: "delete", Path: "/jd-match/watchlist/{jobMatchId}", PathParams: []string{"jobMatchId"}},
 	{OperationID: "getJob", Method: "get", Path: "/jobs/{jobId}", PathParams: []string{"jobId"}},
 	{OperationID: "deleteMe", Method: "delete", Path: "/me", PathParams: nil},
 	{OperationID: "getMe", Method: "get", Path: "/me", PathParams: nil},

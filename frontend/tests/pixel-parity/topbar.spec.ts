@@ -29,7 +29,6 @@ const REPO_ROOT = resolve(process.cwd(), "..");
 
 const PRIMARY_NAV_LABELS_EN = [
   "Home",
-  "Job Picks",
   "Mock Interview",
   "Resume",
   "Debrief",
@@ -127,7 +126,7 @@ function assertUiDesignUserMenuSourceLiterals() {
 }
 
 test.describe("TopBar DOM + computed style parity", () => {
-  test("frontend dist renders five primary nav testids with the documented English labels", async ({
+  test("frontend dist renders four primary nav testids with the documented English labels (D-17)", async ({
     page,
   }) => {
     await page.goto(FRONTEND_PATH);
@@ -167,7 +166,7 @@ test.describe("TopBar DOM + computed style parity", () => {
 
     expect(summary.brand).toBe("EEasyInterview");
     expect(summary.selectCount).toBe(0);
-    expect(summary.navIconCount).toBe(5);
+    expect(summary.navIconCount).toBe(4);
     expect(summary.themeTitle).toBe("Theme");
     expect(summary.langText).toBe("English");
     expect(summary.buttonTexts).toContain("English");
@@ -342,7 +341,7 @@ test.describe("TopBar DOM + computed style parity", () => {
     await expect(page.locator("[data-testid='topbar-register']")).toHaveCount(0);
   });
 
-  test("ui-design golden preview renders five primary nav buttons with browser-default English labels", async ({
+  test("ui-design golden preview renders four primary nav buttons with browser-default English labels (D-17)", async ({
     page,
   }) => {
     test.setTimeout(45_000);
@@ -452,7 +451,6 @@ test.describe("TopBar DOM + computed style parity", () => {
     );
     expect(ariaCurrent).toBe("page");
     for (const route of [
-      "jd_match",
       "workspace",
       "resume_versions",
       "debrief",

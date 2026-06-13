@@ -149,126 +149,6 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** getAgentScanStatus — get /jd-match/agent-status: Get the background JD-match agent scan status */
-	async getAgentScanStatus(opts?: RequestOptions): Promise<Types.AgentScanStatus> {
-		return this.request<Types.AgentScanStatus>(
-			"GET",
-			"/jd-match/agent-status",
-			undefined,
-			opts,
-		);
-	}
-
-	/** getMarketSignals — get /jd-match/market-signals: Get aggregated market signals for the watchlist tab */
-	async getMarketSignals(opts?: RequestOptions): Promise<Types.MarketSignalsResponse> {
-		return this.request<Types.MarketSignalsResponse>(
-			"GET",
-			"/jd-match/market-signals",
-			undefined,
-			opts,
-		);
-	}
-
-	/** getJobMatchProfile — get /jd-match/profile: Get the candidate profile snapshot used for JD matching */
-	async getJobMatchProfile(opts?: RequestOptions): Promise<Types.JobMatchProfile> {
-		return this.request<Types.JobMatchProfile>(
-			"GET",
-			"/jd-match/profile",
-			undefined,
-			opts,
-		);
-	}
-
-	/** listJobRecommendations — get /jd-match/recommendations: List JD-match recommendations for the candidate */
-	async listJobRecommendations(opts?: RequestOptions): Promise<Types.PaginatedJobMatchRecommendation> {
-		return this.request<Types.PaginatedJobMatchRecommendation>(
-			"GET",
-			"/jd-match/recommendations",
-			undefined,
-			opts,
-		);
-	}
-
-	/** getJobRecommendation — get /jd-match/recommendations/{jobMatchId}: Get a single JD-match recommendation detail */
-	async getJobRecommendation(jobMatchId: string, opts?: RequestOptions): Promise<Types.JobMatchRecommendation> {
-		return this.request<Types.JobMatchRecommendation>(
-			"GET",
-			buildPath("/jd-match/recommendations/{jobMatchId}", { jobMatchId: jobMatchId }),
-			undefined,
-			opts,
-		);
-	}
-
-	/** markJobNotRelevant — post /jd-match/recommendations/{jobMatchId}/dismiss: Mark a recommendation as not relevant */
-	async markJobNotRelevant(jobMatchId: string, body: Types.MarkNotRelevantRequest, opts?: RequestOptions): Promise<Types.MarkNotRelevantResult> {
-		return this.request<Types.MarkNotRelevantResult>(
-			"POST",
-			buildPath("/jd-match/recommendations/{jobMatchId}/dismiss", { jobMatchId: jobMatchId }),
-			body,
-			opts,
-		);
-	}
-
-	/** listSavedSearches — get /jd-match/saved-searches: List the candidate's saved searches */
-	async listSavedSearches(opts?: RequestOptions): Promise<Types.SavedSearchesResponse> {
-		return this.request<Types.SavedSearchesResponse>(
-			"GET",
-			"/jd-match/saved-searches",
-			undefined,
-			opts,
-		);
-	}
-
-	/** createSavedSearch — post /jd-match/saved-searches: Save the current search query as a recurring saved search */
-	async createSavedSearch(body: Types.CreateSavedSearchRequest, opts?: RequestOptions): Promise<Types.SavedSearch> {
-		return this.request<Types.SavedSearch>(
-			"POST",
-			"/jd-match/saved-searches",
-			body,
-			opts,
-		);
-	}
-
-	/** searchJobs — post /jd-match/search: Run a natural-language web search for JD matches */
-	async searchJobs(body: Types.SearchJobsRequest, opts?: RequestOptions): Promise<Types.SearchJobsResponse> {
-		return this.request<Types.SearchJobsResponse>(
-			"POST",
-			"/jd-match/search",
-			body,
-			opts,
-		);
-	}
-
-	/** listWatchlist — get /jd-match/watchlist: List the candidate watchlist */
-	async listWatchlist(opts?: RequestOptions): Promise<Types.WatchlistResponse> {
-		return this.request<Types.WatchlistResponse>(
-			"GET",
-			"/jd-match/watchlist",
-			undefined,
-			opts,
-		);
-	}
-
-	/** addToWatchlist — post /jd-match/watchlist: Save a recommendation to the watchlist */
-	async addToWatchlist(body: Types.AddToWatchlistRequest, opts?: RequestOptions): Promise<Types.WatchlistItem> {
-		return this.request<Types.WatchlistItem>(
-			"POST",
-			"/jd-match/watchlist",
-			body,
-			opts,
-		);
-	}
-
-	/** removeFromWatchlist — delete /jd-match/watchlist/{jobMatchId}: Remove a recommendation from the watchlist */
-	async removeFromWatchlist(jobMatchId: string, opts?: RequestOptions): Promise<void> {
-		return this.request<void>(
-			"DELETE",
-			buildPath("/jd-match/watchlist/{jobMatchId}", { jobMatchId: jobMatchId }),
-			undefined,
-			opts,
-		);
-	}
-
 	/** getJob — get /jobs/{jobId}: Poll the status of an async job */
 	async getJob(jobId: string, opts?: RequestOptions): Promise<Types.Job> {
 		return this.request<Types.Job>(
@@ -700,18 +580,6 @@ export const ALL_OPERATION_IDS = [
 	"createDebrief",
 	"suggestDebriefQuestions",
 	"getDebrief",
-	"getAgentScanStatus",
-	"getMarketSignals",
-	"getJobMatchProfile",
-	"listJobRecommendations",
-	"getJobRecommendation",
-	"markJobNotRelevant",
-	"listSavedSearches",
-	"createSavedSearch",
-	"searchJobs",
-	"listWatchlist",
-	"addToWatchlist",
-	"removeFromWatchlist",
 	"getJob",
 	"deleteMe",
 	"getMe",
@@ -771,18 +639,6 @@ export const ALL_ROUTES = [
 	{ operationId: "createDebrief", method: "POST", path: "/debriefs" },
 	{ operationId: "suggestDebriefQuestions", method: "POST", path: "/debriefs/question-suggestions" },
 	{ operationId: "getDebrief", method: "GET", path: "/debriefs/{debriefId}" },
-	{ operationId: "getAgentScanStatus", method: "GET", path: "/jd-match/agent-status" },
-	{ operationId: "getMarketSignals", method: "GET", path: "/jd-match/market-signals" },
-	{ operationId: "getJobMatchProfile", method: "GET", path: "/jd-match/profile" },
-	{ operationId: "listJobRecommendations", method: "GET", path: "/jd-match/recommendations" },
-	{ operationId: "getJobRecommendation", method: "GET", path: "/jd-match/recommendations/{jobMatchId}" },
-	{ operationId: "markJobNotRelevant", method: "POST", path: "/jd-match/recommendations/{jobMatchId}/dismiss" },
-	{ operationId: "listSavedSearches", method: "GET", path: "/jd-match/saved-searches" },
-	{ operationId: "createSavedSearch", method: "POST", path: "/jd-match/saved-searches" },
-	{ operationId: "searchJobs", method: "POST", path: "/jd-match/search" },
-	{ operationId: "listWatchlist", method: "GET", path: "/jd-match/watchlist" },
-	{ operationId: "addToWatchlist", method: "POST", path: "/jd-match/watchlist" },
-	{ operationId: "removeFromWatchlist", method: "DELETE", path: "/jd-match/watchlist/{jobMatchId}" },
 	{ operationId: "getJob", method: "GET", path: "/jobs/{jobId}" },
 	{ operationId: "deleteMe", method: "DELETE", path: "/me" },
 	{ operationId: "getMe", method: "GET", path: "/me" },

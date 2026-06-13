@@ -24,7 +24,7 @@ describe("HomeScreen", () => {
     expect(screen.getByTestId("home-hero-sub")).toBeInTheDocument();
     expect(screen.getByTestId("home-jd-textarea")).toBeInTheDocument();
     expect(screen.getByTestId("home-jd-submit")).toBeInTheDocument();
-    expect(screen.getByTestId("home-aux-jobpicks")).toBeInTheDocument();
+    expect(screen.queryByTestId("home-aux-jobpicks")).not.toBeInTheDocument();
     expect(screen.getByTestId("home-aux-debrief")).toBeInTheDocument();
   });
 
@@ -63,17 +63,6 @@ describe("HomeScreen", () => {
     await userEvent.type(textarea, "Software Engineer JD");
 
     expect(submitBtn).not.toBeDisabled();
-  });
-
-  it("navigates to jd_match on Job Picks aux card button click", () => {
-    const navigate = vi.fn();
-    render(wrap(<HomeScreen route={{ name: "home", params: {} }} />, navigate));
-
-    const jobPicksCard = screen.getByTestId("home-aux-jobpicks");
-    const btn = jobPicksCard.querySelector("button");
-    fireEvent.click(btn!);
-
-    expect(navigate).toHaveBeenCalledWith({ name: "jd_match", params: {} });
   });
 
   it("navigates to debrief on Post-Interview aux card button click", () => {

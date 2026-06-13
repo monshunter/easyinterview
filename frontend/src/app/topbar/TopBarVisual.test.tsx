@@ -119,12 +119,11 @@ describe("TopBar shell visual contract (Phase 3.1)", () => {
   });
 });
 
-describe("TopBar five-entry + display controls visual (Phase 3.2)", () => {
+describe("TopBar four-entry + display controls visual (Phase 3.2 / D-17)", () => {
   it("each primary nav button carries semantic className and ei-text-body typography", () => {
     renderTopBar();
     for (const route of [
       "home",
-      "jd_match",
       "workspace",
       "resume_versions",
       "debrief",
@@ -153,7 +152,7 @@ describe("TopBar five-entry + display controls visual (Phase 3.2)", () => {
     expect(screen.queryByTestId("topbar-lang-select")).not.toBeInTheDocument();
     expect(screen.getByText("EasyInterview")).toBeInTheDocument();
     expect(screen.queryByTestId("topbar-brand-subtitle")).not.toBeInTheDocument();
-    expect(screen.getAllByTestId(/^topbar-nav-icon-/)).toHaveLength(5);
+    expect(screen.getAllByTestId(/^topbar-nav-icon-/)).toHaveLength(4);
 
     const themeButton = screen.getByTestId("topbar-theme-button");
     expect(themeButton).toHaveClass("ei-topbar-control");
@@ -242,15 +241,15 @@ describe("TopBar i18n regression after visual parity (Phase 3.2)", () => {
     );
     const user = userEvent.setup();
     expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent("首页");
-    expect(screen.getByTestId("topbar-nav-jd_match")).toHaveTextContent(
-      "岗位推荐",
+    expect(screen.getByTestId("topbar-nav-workspace")).toHaveTextContent(
+      "模拟面试",
     );
 
     await user.click(screen.getByTestId("topbar-lang-toggle"));
     await user.click(screen.getByTestId("topbar-lang-option-en"));
     expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent("Home");
-    expect(screen.getByTestId("topbar-nav-jd_match")).toHaveTextContent(
-      "Job Picks",
+    expect(screen.getByTestId("topbar-nav-workspace")).toHaveTextContent(
+      "Mock Interview",
     );
   });
 });

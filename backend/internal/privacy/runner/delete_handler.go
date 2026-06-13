@@ -27,7 +27,6 @@ type PrivacyDeleteHandlerOptions struct {
 	Requests    PrivacyRequestStore
 	UploadFiles UploadFileDeleter
 	ProfileData func(ctx context.Context, userID string, jobID string) error
-	JDMatchData func(ctx context.Context, userID string) error
 	Now         func() time.Time
 }
 
@@ -35,7 +34,6 @@ type PrivacyDeleteHandler struct {
 	requests    PrivacyRequestStore
 	uploadFiles UploadFileDeleter
 	profileData func(ctx context.Context, userID string, jobID string) error
-	jdMatchData func(ctx context.Context, userID string) error
 	now         func() time.Time
 }
 
@@ -48,7 +46,6 @@ func NewPrivacyDeleteHandler(opts PrivacyDeleteHandlerOptions) *PrivacyDeleteHan
 		requests:    opts.Requests,
 		uploadFiles: opts.UploadFiles,
 		profileData: opts.ProfileData,
-		jdMatchData: opts.JDMatchData,
 		now:         now,
 	}
 }
@@ -84,12 +81,6 @@ func (h *PrivacyDeleteHandler) Handle(ctx context.Context, job targetjob.Claimed
 	}
 	if h.profileData != nil {
 		if err := h.profileData(ctx, userID, job.JobID); err != nil {
-			_ = h.requests.MarkDeleteRequestFailed(ctx, job.ResourceID, ErrorCodePrivacyDeleteFailed, err.Error(), now)
-			return failedOutcome(ErrorCodePrivacyDeleteFailed, err.Error(), false)
-		}
-	}
-	if h.jdMatchData != nil {
-		if err := h.jdMatchData(ctx, userID); err != nil {
 			_ = h.requests.MarkDeleteRequestFailed(ctx, job.ResourceID, ErrorCodePrivacyDeleteFailed, err.Error(), now)
 			return failedOutcome(ErrorCodePrivacyDeleteFailed, err.Error(), false)
 		}

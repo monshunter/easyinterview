@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-06-12](2026-06-12.md) | `feat(jd-match): remove job recommendation module per d-17` | #feat #api #ui #test #docs |
 | [2026-06-12](2026-06-12.md) | `docs(jd-match): revise owner plans for d-17 module removal` | #docs |
 | [2026-06-12](2026-06-12.md) | `docs(frontend-shell): close app shell plan 001 lifecycle after phase 12` | #docs |
 | [2026-06-12](2026-06-12.md) | `feat(frontend-shell): align shell with ux funnel simplification` | #feat #ui #test #docs |

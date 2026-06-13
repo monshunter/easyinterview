@@ -56,8 +56,10 @@ test.describe("home screen DOM anchor parity", () => {
       1,
     );
     await expect(page.locator("[data-testid='home-jd-submit']")).toHaveCount(1);
+    // product-scope D-17 removed the JOB PICKS aux card with the jd_match
+    // module; only the POST-INTERVIEW debrief card remains.
     await expect(page.locator("[data-testid='home-aux-jobpicks']")).toHaveCount(
-      1,
+      0,
     );
     await expect(page.locator("[data-testid='home-aux-debrief']")).toHaveCount(1);
   });
@@ -78,31 +80,24 @@ test.describe("home screen DOM anchor parity", () => {
     expect(textareaRect.right).toBeLessThanOrEqual(viewport!.width + 1);
   });
 
-  test("home aux cards do not overlap", async ({ page }) => {
+  test("home post-interview aux card stays inside viewport (D-17 single card)", async ({
+    page,
+  }) => {
     await page.goto("/");
-    await page.waitForSelector("[data-testid='home-aux-jobpicks']");
+    await page.waitForSelector("[data-testid='home-aux-debrief']");
 
-    const jobPicksRect = await rectOf(
-      page,
-      "[data-testid='home-aux-jobpicks']",
-    );
-    const debriefRect = await rectOf(
-      page,
-      "[data-testid='home-aux-debrief']",
-    );
+    const viewport = page.viewportSize();
+    expect(viewport).toBeTruthy();
 
-    // Cards should not overlap
-    const overlapX =
-      jobPicksRect.left < debriefRect.right - 0.5 &&
-      jobPicksRect.right > debriefRect.left + 0.5;
-    const overlapY =
-      jobPicksRect.top < debriefRect.bottom - 0.5 &&
-      jobPicksRect.bottom > debriefRect.top + 0.5;
+    const debriefRect = await rectOf(page, "[data-testid='home-aux-debrief']");
+    expect(debriefRect.top).toBeGreaterThanOrEqual(0);
+    expect(debriefRect.left).toBeGreaterThanOrEqual(0);
+    expect(debriefRect.right).toBeLessThanOrEqual(viewport!.width + 1);
 
-    // In desktop they are side by side — should be on same row or stacked without overlap
-    if (overlapX && overlapY) {
-      expect(jobPicksRect).toBeDefined(); // would fail on overlap
-    }
+    // The retired JOB PICKS card must not render.
+    await expect(
+      page.locator("[data-testid='home-aux-jobpicks']"),
+    ).toHaveCount(0);
   });
 
   test("dark mode toggle changes computed background color", async ({

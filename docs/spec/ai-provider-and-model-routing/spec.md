@@ -1,8 +1,8 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.14
+> **版本**: 2.15
 > **状态**: active
-> **更新日期**: 2026-05-26
+> **更新日期**: 2026-06-13
 
 ## 1 背景与目标
 
@@ -125,8 +125,6 @@
 | 产品 / UI 场景 | 主要输入 | Capability family | 默认 profile 命名 |
 |----------------|----------|-------------------|-------------------|
 | JD 导入解析 | JD 文本 / URL 提取文本 | `chat` 结构化抽取 | `target.import.default` |
-| JD-Match 推荐解释（per-user agent_scan 内联生成） | candidate profile + 内部 jobs 池 | `chat` 结构化推荐 | `jd_match.recommendation.default` |
-| JD-Match 自然语言搜索（同步） | user query + filters + candidate profile + 内部 jobs 池 | `chat` 结构化检索 | `jd_match.search.default` |
 | Job Picks 匹配解释（legacy frontend home picks） | JD + 简历 / 用户画像 | `chat` 结构化匹配解释 | `target.import.default` |
 | 公司轻情报摘要 | source-grounded public info | `chat` source-grounded summarization | `target.intel.default`（P1/P2 占位） |
 | 简历解析 | 简历文本 / 上传解析结果 | `chat` 结构化抽取 | `resume.parse.default` |

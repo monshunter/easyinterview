@@ -133,55 +133,6 @@
       ],
       "triggerEvent": "api:auth_email_start",
       "triggerEventSemantic": "trigger_creates_job"
-    },
-    {
-      "apiFacing": false,
-      "asynqTask": "jd_match.agent_scan",
-      "canonical": "jd_match_agent_scan",
-      "ownerDomain": "backend-jobs-recommendations",
-      "payloadSchema": {
-        "agentScanId": {
-          "type": "uuidv7"
-        },
-        "userId": {
-          "type": "uuidv7"
-        }
-      },
-      "priority": "low",
-      "redactedFields": [
-        "reasons",
-        "risks",
-        "highlights",
-        "sourceUrl",
-        "networkNote",
-        "interviewHypotheses"
-      ],
-      "triggerEvent": "api:internal_jd_match_agent_scan",
-      "triggerEventSemantic": "trigger_creates_job"
-    },
-    {
-      "apiFacing": false,
-      "asynqTask": "jd_match.search",
-      "canonical": "jd_match_search",
-      "ownerDomain": "backend-jobs-recommendations",
-      "payloadSchema": {
-        "searchRunId": {
-          "type": "uuidv7"
-        },
-        "userId": {
-          "type": "uuidv7"
-        }
-      },
-      "priority": "medium",
-      "redactedFields": [
-        "query",
-        "filters",
-        "reasons",
-        "risks",
-        "sourceUrl"
-      ],
-      "triggerEvent": "api:reserved_future_jd_match_search",
-      "triggerEventSemantic": "trigger_creates_job"
     }
   ],
   "schemaVersion": 1,

@@ -25,6 +25,9 @@ const ROUTE_ALIASES: Record<string, RouteName> = {
   resume: "resume_versions",
   onboarding: "resume_versions",
   auth_register: "auth_login",
+  // product-scope D-17: the job-recommendation module is deleted; the
+  // retired jd_match entry folds back into home (JD intake lives there).
+  jd_match: "home",
   // product-scope D-16: passwordless email code is the only sign-in flow.
   // The retired reset page folds back into the single login entry.
   auth_reset: "auth_login",

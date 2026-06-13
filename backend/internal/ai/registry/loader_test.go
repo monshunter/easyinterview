@@ -20,14 +20,14 @@ func TestLoadHappyPath(t *testing.T) {
 		t.Fatalf("loadFromDisk failed: %v", err)
 	}
 
-	// Spec §3.1.1 names 13 baseline feature_keys (11 original + jd_match.recommendation
-	// + jd_match.search cross-owner additive); both directories must
-	// resolve all 13 through the loader.
-	if got := len(snap.prompts); got != 13 {
-		t.Fatalf("prompts: want 13 feature_keys, got %d", got)
+	// 11 baseline feature_keys remain after product-scope v2.1 D-17 removed
+	// the jd_match.recommendation / jd_match.search additive; both
+	// directories must resolve all 11 through the loader.
+	if got := len(snap.prompts); got != 11 {
+		t.Fatalf("prompts: want 11 feature_keys, got %d", got)
 	}
-	if got := len(snap.rubrics); got != 13 {
-		t.Fatalf("rubrics: want 13 feature_keys, got %d", got)
+	if got := len(snap.rubrics); got != 11 {
+		t.Fatalf("rubrics: want 11 feature_keys, got %d", got)
 	}
 
 	// Each baseline ships the canonical multi prompt.
@@ -97,13 +97,6 @@ func TestLoadOutputSchemaLanguageIndependent(t *testing.T) {
 		t.Fatalf("target.import.parse schema type: want object, got %s", got)
 	}
 
-	recommendation := snap.prompts["jd_match.recommendation"]["multi"].outputSchema
-	if recommendation == nil {
-		t.Fatal("jd_match.recommendation output schema missing")
-	}
-	if got := schemaType(t, *recommendation); got != "array" {
-		t.Fatalf("jd_match.recommendation schema type: want array, got %s", got)
-	}
 }
 
 func TestLoadMissingCanonicalMultiRejected(t *testing.T) {

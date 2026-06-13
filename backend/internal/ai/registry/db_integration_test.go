@@ -162,6 +162,48 @@ func extractSeedMigrationRows(t *testing.T, repoRoot string) map[string][]insert
 		out["prompt_versions"] = append(out["prompt_versions"], rows["prompt_versions"]...)
 		out["rubric_versions"] = append(out["rubric_versions"], rows["rubric_versions"]...)
 	}
+
+	// Later module-removal migrations (e.g. product-scope v2.1 D-17 dropping
+	// the jd_match feature keys) delete previously seeded rows. The net DB
+	// state — not the raw seed inserts — is what must match the on-disk
+	// config truth source, so subtract retired feature keys here.
+	retired := retiredFeatureKeys(t, repoRoot)
+	for table, rows := range out {
+		kept := rows[:0]
+		for _, row := range rows {
+			if !retired[row.featureKey] {
+				kept = append(kept, row)
+			}
+		}
+		out[table] = kept
+	}
+	return out
+}
+
+// retiredFeatureKeys parses `DELETE FROM prompt_versions ... feature_key IN
+// (...)` statements from module-removal migrations so the static seed gate
+// tracks the post-migration net state.
+func retiredFeatureKeys(t *testing.T, repoRoot string) map[string]bool {
+	t.Helper()
+
+	out := map[string]bool{}
+	paths, err := filepath.Glob(filepath.Join(repoRoot, "migrations", "*drop*_module.up.sql"))
+	if err != nil {
+		t.Fatalf("glob removal migrations: %v", err)
+	}
+	deleteRe := regexp.MustCompile(`DELETE FROM (?:prompt|rubric)_versions WHERE feature_key IN \(([^)]+)\)`)
+	keyRe := regexp.MustCompile(`'([^']+)'`)
+	for _, path := range paths {
+		body, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read removal migration %s: %v", path, err)
+		}
+		for _, m := range deleteRe.FindAllStringSubmatch(string(body), -1) {
+			for _, key := range keyRe.FindAllStringSubmatch(m[1], -1) {
+				out[key[1]] = true
+			}
+		}
+	}
 	return out
 }
 

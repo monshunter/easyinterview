@@ -156,7 +156,7 @@
 
 ## 8 相关文档
 
-- [Product Scope §6.7 M2 目标岗位工作台](../product-scope/spec.md#67-m2目标岗位工作台)
+- [Product Scope §6.7 M2 目标岗位工作台](../product-scope/spec.md#66-m2目标岗位工作台)
 - [docs/ui-design/jd-resume-management.md](../../ui-design/jd-resume-management.md)
 - [docs/ui-design/auth-and-entry.md](../../ui-design/auth-and-entry.md)
 - [openapi-v1-contract](../openapi-v1-contract/spec.md)

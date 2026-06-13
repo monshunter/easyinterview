@@ -106,7 +106,6 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
     );
     for (const route of [
       "home",
-      "jd_match",
       "workspace",
       "resume_versions",
       "debrief",

@@ -46,16 +46,15 @@ describe("D1 shell i18n locale file structure", () => {
       "home.orUpload",
       "home.recentSection",
       "home.recentSectionSub",
-      "home.jobPicksTitle",
-      "home.jobPicksSub",
-      "home.jobPicksBtn",
       "home.debriefTitle",
       "home.debriefSub",
       "home.debriefBtn",
       "home.resumeCreateLink",
     ];
 
-    expect(requiredKeys.length).toBeGreaterThanOrEqual(14);
+    // product-scope v2.1 D-17 removed the 3 home.jobPicks* keys with the
+    // jd_match module, trimming the home namespace lower bound to 12.
+    expect(requiredKeys.length).toBeGreaterThanOrEqual(12);
 
     for (const key of requiredKeys) {
       expect(zhSource).toContain(`"${key}"`);

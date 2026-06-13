@@ -177,7 +177,7 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
     expect(window.location.search).toContain("errorCode=AI_PROVIDER_TIMEOUT");
   });
 
-  it("navigate(jd_match) with search query/label drops them from URL", async () => {
+  it("navigate(jd_match) normalizes to home and drops raw query/label (D-17)", async () => {
     render(
       <App>
         <NavTrigger
@@ -186,7 +186,6 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
             name: "jd_match",
             params: {
               tab: "search",
-              selectedJobMatchId: "jm-1",
               query: "RAW_SEARCH_QUERY",
               label: "RAW_SAVED_SEARCH_LABEL",
             },
@@ -196,11 +195,14 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
     );
     const user = userEvent.setup();
     await user.click(screen.getByTestId("go-jdmatch-raw"));
-    await waitFor(() => screen.getByTestId("topbar-nav-jd_match"));
+    await waitFor(() =>
+      expect(screen.getByTestId("topbar-nav-home")).toHaveAttribute(
+        "aria-current",
+        "page",
+      ),
+    );
     const url = window.location.pathname + window.location.search;
-    expect(url).toBe("/jd-match?selectedJobMatchId=jm-1&tab=search");
-    expect(url.includes("query")).toBe(false);
-    expect(url.includes("label")).toBe(false);
+    expect(url).toBe("/");
     expect(url.includes("RAW_")).toBe(false);
   });
 

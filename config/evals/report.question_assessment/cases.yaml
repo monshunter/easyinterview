@@ -17,7 +17,7 @@ cases:
     gaps:
     - Needs deeper rollback and failure-mode analysis.
     recommended_framework: Use STAR with explicit constraints, tradeoffs, and measured outcome.
-    review_status: ready
+    review_status: open
   judge:
     scores:
     - dimension: report_evidence

@@ -125,10 +125,11 @@ Rules:
    Do not use provider-specific structured-output keys, `$ref`, `oneOf`,
    `anyOf`, `additionalProperties`, `format`, `minimum`, `maximum`, or SDK
    private fields.
-3. **Top-level shape**: chat feature keys use top-level `type: object` except
-   `jd_match.recommendation` and `jd_match.search`, which use top-level
-   `type: array` with an `items` schema. Voice / STT / TTS feature keys do not
-   produce JSON content and must not have output schema files.
+3. **Top-level shape**: chat feature keys use top-level `type: object`.
+   (The retired jd_match feature keys were the only top-level `array`
+   schemas; they were removed with the module per product-scope v2.1 D-17.)
+   Voice / STT / TTS feature keys do not produce JSON content and must not
+   have output schema files.
 4. **Required fields**: `required` contains only fields the backend parser or
    struct actually depends on. A prompt may not require fields the backend does
    not consume unless those fields are optional in schema and their

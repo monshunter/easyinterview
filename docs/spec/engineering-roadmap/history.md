@@ -1,13 +1,14 @@
 # Engineering Roadmap History
 
-> **版本**: 3.22
+> **版本**: 3.23
 > **状态**: active
-> **更新日期**: 2026-05-28
+> **更新日期**: 2026-06-13
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-06-13 | 3.23 | 对齐 product-scope v2.1 D-17：岗位推荐模块整体删除；Home / Job Picks / Parse workstream 行更名 Home / Parse，描述改为 frontend-home spec v2.0（D-17 前端删除 + D-14 单次确认漏斗）与 backend-jobs-recommendations 001 Phase 9 删除收口；B2 freeze 口径同步 12 tag / 48 endpoint。 | backend-jobs-recommendations/001 Phase 9 + frontend-home-job-picks-and-parse/002 Phase 7 |
 | 2026-05-28 | 3.22 | 对齐 B2 D-25 与 auth 单入口资料补全：roadmap B2 摘要与 mock-first runway 从 59 operation 升到 60 operation，Q-1 从 magic link 旧口径更新为 email-code + first-party session cookie，并明确注册/登录合并为单一邮箱入口、首次资料补全后再恢复 pendingAction。 | backend-auth/001 Phase 8 + frontend-shell/001 Phase 9 |
 | 2026-05-22 | 3.21 | 按方案 A 重定部署与测试目标：P0 本地验证收敛为 Docker Compose 外部依赖、宿主机前后端运行和 repo-tracked 本地 scenario runner；Kind / K8s / Helm 不再作为默认测试或部署目标，后续 release workstream 再按实际规模重新评估。 | local-dev-stack/001 post-pass revision |
 | 2026-05-22 | 3.20 | 合并 `main` 后恢复 roadmap 单调版本：在保留 v3.19 `backend-jobs-recommendations` 完成态与 v3.18 `backend-profile` 完成态的基础上，将 `backend-async-runner` 正式投影为 active subject，承接 001 internal job + outbox runner baseline：单一 backend in-process runtime kernel、outbox dispatcher、retry/reaper/shutdown 与 `email_dispatch` 收口。 | backend-async-runner/001-internal-job-outbox-runner |

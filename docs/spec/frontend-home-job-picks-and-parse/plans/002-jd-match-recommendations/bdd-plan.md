@@ -6,7 +6,9 @@
 
 **关联 Plan**: [plan](./plan.md)
 
-## 1 场景矩阵
+> **2026-06-13 D-17 退役声明**：本 BDD 矩阵的全部 jd_match 场景（E2E.P0.027-P0.031）已随 [product-scope v2.1 D-17](../../../product-scope/spec.md#31-已锁定决策) 整体退役——岗位推荐模块删除，对应场景目录 `test/scenarios/e2e/p0-027..031-jd-match-*` 已删除。以下矩阵保留为历史记录；当前 plan 002 active scope 为 Phase 7 前端删除（替代验证 gate 为 focused Vitest + parity + 零残留，BDD 不适用，见 [checklist Phase 7](./checklist.md)）。
+
+## 1 场景矩阵（历史记录，已随 D-17 退役）
 
 | 场景 ID | 类别 | 关联 Phase | 关联 Spec C-* | 关联 BDD-Gate（主 checklist） |
 |---------|------|-----------|--------------|----------------------------|

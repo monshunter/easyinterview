@@ -11,7 +11,7 @@
 本 subject 是 Candidate Profile 业务域的后端 owner：
 
 1. **承载 candidate_profiles + experience_cards 两张表的 store 与 handler**。两张表在 [B4 baseline migration](../db-migrations-baseline/spec.md) 已存在；本 subject 不引入新 migration，只承接 store / handler / cmd/api wiring。
-2. **实现 5 个 Profile endpoint 的真实业务逻辑**：candidate profile Lite 读写（M1-lite Progressive Profile，按 [product-scope §6.6](../product-scope/spec.md#66-m1-lite渐进式画像) 的最小可用画像形态）+ experience cards CRUD（作为画像证据原子层，按 [product-scope §5.1 M1](../product-scope/spec.md#51-产品能力层) Progressive Profile 的"经历证据"承载，**不恢复独立经历库 UI 入口**）。
+2. **实现 5 个 Profile endpoint 的真实业务逻辑**：candidate profile Lite 读写（M1-lite Progressive Profile，按 [product-scope §6.6](../product-scope/spec.md#65-m1-lite渐进式画像) 的最小可用画像形态）+ experience cards CRUD（作为画像证据原子层，按 [product-scope §5.1 M1](../product-scope/spec.md#51-产品能力层) Progressive Profile 的"经历证据"承载，**不恢复独立经历库 UI 入口**）。
 3. **为 backend-jobs-recommendations 提供画像证据聚合源**：candidate_profiles 提供 `JobMatchProfile` headline / yearsOfExperience；experience_cards 当前作为内部质量信号与 P1 `experienceCards` 扩展锚点；当前 `sources` response 计数仍由简历 / JD / 模拟面试 / 复盘 owner 提供；本 subject 是这份聚合的"画像底座"。
 4. **隐私删除链路 owner**：按 [B4 D-11 privacy deletion matrix](../db-migrations-baseline/spec.md) 与 [product-scope §9.3](../product-scope/spec.md#93-数据与隐私) 提供 `DeleteCandidateProfileForUser(userId)` internal API，hard delete `candidate_profiles` + `experience_cards`，并通过 audit tombstone 记录删除时间与 ID。
 5. **mock-first 切真**：本 subject 实现的 handler 响应与 [B2 fixtures](../openapi-v1-contract/spec.md) `Profile/*.json` 字节比对，[mock-contract-suite C-9](../mock-contract-suite/spec.md#6-验收标准) 强制 enforce。

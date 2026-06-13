@@ -245,25 +245,3 @@ events:
       status: { type: $ref:b1.PrivacyRequestStatus, source: spec:3.1.4 }
     optionalPayload: {}
     piiBoundary: Sensitive lifecycle event; no deleted or exported data.
-  - name: jd_match.recommendation.completed
-    version: 1
-    producer: backend_async
-    aggregateType: agent_scan
-    requiredPayload:
-      userId: { type: uuidv7, source: spec:3.1.4 }
-      agentScanId: { type: uuidv7, source: spec:3.1.4 }
-      recommendationCount: { type: int, source: spec:3.1.4 }
-      completedAt: { type: timestamptz, source: spec:3.1.4 }
-    optionalPayload: {}
-    piiBoundary: No reasons, risks, highlights, sourceUrl, networkNote, or interviewHypotheses content; only aggregated counts and IDs.
-  - name: jd_match.search.completed
-    version: 1
-    producer: api
-    aggregateType: search_run
-    requiredPayload:
-      userId: { type: uuidv7, source: spec:3.1.4 }
-      searchRunId: { type: uuidv7, source: spec:3.1.4 }
-      resultCount: { type: int, source: spec:3.1.4 }
-      completedAt: { type: timestamptz, source: spec:3.1.4 }
-    optionalPayload: {}
-    piiBoundary: No query, filters, label, or recommendation content; only aggregated counts and IDs.

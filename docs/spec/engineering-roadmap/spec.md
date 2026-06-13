@@ -1,8 +1,8 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.22
+> **版本**: 3.23
 > **状态**: active
-> **更新日期**: 2026-05-28
+> **更新日期**: 2026-06-13
 
 ## 1 背景与目标
 
@@ -95,7 +95,7 @@
 
 ### 4.3 契约与 mock-first 约束
 
-- 前端 mock 数据来源必须是 B2 OpenAPI fixtures（当前 13 tag / 60 operation；JobMatch tag 12 operation 由 B2 spec D-17 additive 升级纳入，Resumes tag 10 additive operation 由 B2 spec D-18 与 D-23 纳入，Debrief suggestions / PracticeSessions listing / Practice voice turn 分别由 D-20 / D-21 / D-22 纳入，Auth `completeMyProfile` 由 D-25 纳入），禁止前端重新 hardcode product data truth source。
+- 前端 mock 数据来源必须是 B2 OpenAPI fixtures（当前 12 tag / 48 operation；JobMatch tag 已随 product-scope v2.1 D-17 删除（2026-06-13），Resumes tag 10 additive operation 由 B2 spec D-18 与 D-23 纳入，Debrief suggestions / PracticeSessions listing / Practice voice turn 分别由 D-20 / D-21 / D-22 纳入，Auth `completeMyProfile` 由 D-25 纳入），禁止前端重新 hardcode product data truth source。
 - `ui-design/src/data.jsx` 只能作为 prototype-baseline 场景输入，不能越过 OpenAPI fixtures 直接驱动实现。
 - 后端 AI 调用必须通过 A3 `AIClient` 和 F3 prompt/rubric/model profile 契约。
 - 业务 spec 不得 hardcode prompt 正文、rubric 文本、模型名、厂商 SDK 或 feature flag 绕过 A3/A4/F3。
@@ -117,7 +117,7 @@
 | Foundation | A5 | `ci-pipeline-baseline` | 当前本地质量门禁，远端 CI deferred | 保留 |
 | Foundation | - | `backend-runtime-topology` | P0 frontend/backend 进程拓扑、worker 收敛与开发期观测依赖边界 | 保留 |
 | Contract | B1 | `shared-conventions-codified` | Go/TS 共享枚举、错误码、ID、codegen / drift gate | 保留 |
-| Contract | B2 | `openapi-v1-contract` | 当前 60 endpoint / 13 tag OpenAPI + fixtures | 保留 |
+| Contract | B2 | `openapi-v1-contract` | 当前 48 endpoint / 12 tag OpenAPI + fixtures | 保留 |
 | Contract | B3 | `event-and-outbox-contract` | 当前 16 internal event、jobType、outbox 契约 | 保留 |
 | Contract | B4 | `db-migrations-baseline` | 当前 28 应用表 + auth / migration 支撑表 | 保留 |
 | Quality | F1 | `observability-stack` | metrics/log/trace/dashboard/alerting 命名和红线 | 保留 |
@@ -132,7 +132,7 @@
 | Workstream | 建议 subject | 当前状态 | 当前产品 / UI 范围 | 主要依赖 |
 |------------|--------------|----------|-------------------|----------|
 | App shell + auth + settings | `frontend-shell`、`backend-auth`、`backend-profile` | `frontend-shell` active；`backend-auth` active（001 auth bootstrap completed）；`backend-profile` active（001 candidate profile + experience cards baseline completed） | TopBar、用户菜单、单入口邮箱登录、验证、首次资料补全、退出、pendingAction、用户画像入口、设置与隐私 | A4、B1、B2、B4、ADR-Q1 |
-| Home / Job Picks / Parse | `frontend-home-job-picks-and-parse`、`backend-targetjob`、`backend-jobs-recommendations` | `frontend-home-job-picks-and-parse` completed；`backend-targetjob` active（001 import / parse completed）；`backend-jobs-recommendations` active（001 real backend baseline completed: 12 JobMatch endpoints, drainer, fixture parity, E2E.P0.094-097 Ready/automated） | 首页 JD 导入、岗位推荐、解析确认、目标岗位 / JD / 轮次假设 | B2、B3、B4、A3、F3、D1 |
+| Home / Parse | `frontend-home-job-picks-and-parse`、`backend-targetjob`、`backend-jobs-recommendations` | `frontend-home-job-picks-and-parse` active（spec v2.0：D-17 前端删除 + D-14 单次确认漏斗）；`backend-targetjob` active（001 import / parse completed）；`backend-jobs-recommendations` active（001 Phase 9 承接 D-17 模块删除：契约 / backend / migration / shared / config 零残留） | 首页 JD 导入、解析确认、目标岗位 / JD / 轮次假设；岗位推荐模块已随 product-scope v2.1 D-17 删除 | B2、B3、B4、A3、F3、D1 |
 | Mock Interview + Practice | `frontend-workspace-and-practice`、`backend-practice`、`practice-voice-mvp` | `frontend-workspace-and-practice` active；`backend-practice` active；`practice-voice-mvp` active（001 voice MVP completed） | 当前面试规划、简历绑定、公司轻情报卡片、完整文本 / 语音 session、带提示 / 严格模拟 | B2、B3、B4、A3、C4 |
 | Report Dashboard | `frontend-report-dashboard`、`backend-review` | `frontend-report-dashboard` active；`backend-review` active | 报告生成、上下文条、准备度、维度、题目回顾、复练当前轮 / 进入下一轮 | B2、B3、B4、A3、C5、F3 |
 | Resume Workshop | `frontend-resume-workshop`、`backend-resume`、`backend-upload` | `frontend-resume-workshop` active（001 / 002 / 003 completed）；`backend-resume` active；`backend-upload` active（001 file_objects + presign baseline completed） | 原始简历树、结构化主版本、岗位定制版本、创建/解析/确认、版本详情 | B2、B3、B4、A3、C2 `backend-upload` |
@@ -161,7 +161,7 @@
 
 目标是让当前 UI 五入口和会话级页面能基于 B2 fixtures 跑通 P0 happy path：
 
-1. 创建或修订 `mock-contract-suite`，把 60 operation fixtures 提供给前端和后端 mock。
+1. 创建或修订 `mock-contract-suite`，把 48 operation fixtures 提供给前端和后端 mock。
 2. 创建或修订 `frontend-shell`，锁 TopBar、用户菜单、display controls、auth pendingAction、settings/profile 入口。
 3. 创建或修订 D2-D6 前端 workstream，严格按 `docs/ui-design/` 和 `ui-design/src/app.jsx` 目标路由实现。
 4. 在每个用户可见 workstream 的 plan 中维护 BDD gate。

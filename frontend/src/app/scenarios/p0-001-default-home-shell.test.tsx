@@ -6,7 +6,7 @@
  *               + bdd-checklist.md.
  *
  * Given a user without any saved session or saved route, opening the App must
- * render Home, the five primary nav entries, the single login entry, and the global
+ * render Home, the four primary nav entries (D-17), the single login entry, and the global
  * display controls. Welcome, standalone voice, and the retired
  * Growth / Mistakes / Drill modules must NOT be reachable.
  */
@@ -31,7 +31,7 @@ function buildClient(): EasyInterviewClient {
 }
 
 describe("E2E.P0.001 default home shell", () => {
-  it("renders Home + five primary nav + login + display controls without legacy entries", async () => {
+  it("renders Home + four primary nav + login + display controls without legacy entries", async () => {
     const client = buildClient();
     render(
       <App
@@ -48,7 +48,6 @@ describe("E2E.P0.001 default home shell", () => {
     expect(primaryNav).toBeInTheDocument();
     for (const name of [
       "home",
-      "jd_match",
       "workspace",
       "resume_versions",
       "debrief",
@@ -57,7 +56,7 @@ describe("E2E.P0.001 default home shell", () => {
     }
     expect(
       primaryNav.querySelectorAll("button[data-testid^='topbar-nav-']"),
-    ).toHaveLength(5);
+    ).toHaveLength(4);
 
     expect(screen.getByTestId("topbar-theme-button")).toBeInTheDocument();
     expect(screen.getByTestId("topbar-dark-toggle")).toBeInTheDocument();

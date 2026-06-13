@@ -50,22 +50,22 @@ describe("App browser-aware routing — Phase 2.2 navigate via History", () => {
     render(
       <App>
         <NavTrigger
-          testid="go-jdmatch"
-          to={{ name: "jd_match", params: { tab: "recommended" } }}
+          testid="go-workspace"
+          to={{ name: "workspace", params: { targetJobId: "tj-1" } }}
         />
       </App>,
     );
     const startLength = window.history.length;
     const user = userEvent.setup();
-    await user.click(screen.getByTestId("go-jdmatch"));
+    await user.click(screen.getByTestId("go-workspace"));
     await waitFor(() =>
-      expect(screen.getByTestId("topbar-nav-jd_match")).toHaveAttribute(
+      expect(screen.getByTestId("topbar-nav-workspace")).toHaveAttribute(
         "aria-current",
         "page",
       ),
     );
     expect(window.location.pathname + window.location.search).toBe(
-      "/jd-match?tab=recommended",
+      "/workspace?targetJobId=tj-1",
     );
     expect(window.history.length).toBe(startLength + 1);
   });

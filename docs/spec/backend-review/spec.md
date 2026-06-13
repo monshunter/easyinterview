@@ -194,7 +194,7 @@
 
 ## 8 关联文档
 
-- [Product Scope §6.9 M4 证据化报告](../product-scope/spec.md#69-m4证据化报告)
+- [Product Scope §6.9 M4 证据化报告](../product-scope/spec.md#68-m4证据化报告)
 - [Product Scope §4.1 产品原则](../product-scope/spec.md#41-产品原则)（证据优先、复练优先）
 - [docs/ui-design/report-dashboard.md](../../ui-design/report-dashboard.md)
 - [openapi-v1-contract](../openapi-v1-contract/spec.md)

@@ -21,7 +21,7 @@
 7. **Market signals + privacy + 删除链路**：4-card 市场信号聚合；search query / watchlist label / sourceJobUrl / freeNote 等敏感字段不进 log / audit / outbox；privacy delete 链路 cascade 清空用户 jd_match 数据。
 8. **mock-first 切真**：本 subject 实现的 handler 以 11 strict byte parity + `getJobMatchProfile` structural parity（D-19）对齐 [B2 fixtures](../openapi-v1-contract/spec.md) `JobMatch/*.json`，frontend 通过 generated client 切真不感知 transport 差异。
 
-本 subject **不实现**：前端 UI（归 [frontend-home-job-picks-and-parse/002-jd-match-recommendations](../frontend-home-job-picks-and-parse/plans/002-jd-match-recommendations/plan.md)）；真实外部招聘平台 API 接入（归后续 P2 plan）；岗位推荐"全球多平台搜岗"扩展（[product-scope §7.3 P2](../product-scope/spec.md#73-p2工程化和数据源扩展) 规划例外，独立设计）；隐形实时面试辅助（[product-scope 已丢弃](../product-scope/spec.md#612-规划例外与已丢弃能力)）。
+本 subject **不实现**：前端 UI（归 [frontend-home-job-picks-and-parse/002-jd-match-recommendations](../frontend-home-job-picks-and-parse/plans/002-jd-match-recommendations/plan.md)）；真实外部招聘平台 API 接入（归后续 P2 plan）；岗位推荐"全球多平台搜岗"扩展（[product-scope §7.3 P2](../product-scope/spec.md#73-p2工程化和数据源扩展) 规划例外，独立设计）；隐形实时面试辅助（[product-scope 已丢弃](../product-scope/spec.md#611-已丢弃能力)）。
 
 ## 2 范围
 

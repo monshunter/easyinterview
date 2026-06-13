@@ -264,7 +264,6 @@ describe("App auth route dispatch", () => {
   it("redirects signed-out protected interview routes to auth_login with pendingAction", async () => {
     const cases: Array<{
       name:
-        | "jd_match"
         | "parse"
         | "workspace"
         | "resume_versions"
@@ -277,7 +276,6 @@ describe("App auth route dispatch", () => {
       params: Record<string, string>;
       businessTestId: string;
     }> = [
-      { name: "jd_match", params: {}, businessTestId: "jd-match-screen" },
       { name: "parse", params: { targetJobId: "tj-1" }, businessTestId: "parse-loading-step-0" },
       { name: "workspace", params: { targetJobId: "tj-1" }, businessTestId: "workspace-crumbs" },
       { name: "resume_versions", params: { flow: "create" }, businessTestId: "resume-workshop-screen" },

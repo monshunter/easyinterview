@@ -490,91 +490,8 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         </div>
       )}
 
-      {/* Auxiliary cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 16,
-        }}
-      >
-        {/* JOB PICKS card */}
-        <div
-          data-testid="home-aux-jobpicks"
-          style={{
-            background: "var(--ei-color-bg-soft)",
-            border: "1px solid var(--ei-color-rule-strong)",
-            borderRadius: 3,
-            padding: 24,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 20,
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 260 }}>
-            <div
-              style={{
-                color: "var(--ei-color-accent)",
-                marginBottom: 6,
-                fontSize: 11,
-                fontWeight: 500,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                fontFamily: "var(--ei-font-mono)",
-              }}
-            >
-              JOB PICKS
-            </div>
-            <div
-              style={{
-                fontSize: 20,
-                color: "var(--ei-color-fg-primary)",
-                fontFamily: "var(--ei-font-serif)",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              {t("home.jobPicksTitle")}
-            </div>
-            <div
-              style={{
-                fontSize: 13.5,
-                color: "var(--ei-color-fg-secondary)",
-                marginTop: 4,
-                lineHeight: 1.55,
-              }}
-            >
-              {t("home.jobPicksSub")}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() =>
-              openProtectedRoute(
-                { name: "jd_match", params: {} },
-                t("home.jobPicksTitle"),
-              )
-            }
-            style={{
-              background: "var(--ei-color-bg-canvas)",
-              color: "var(--ei-color-fg-primary)",
-              border: "1px solid var(--ei-color-rule-strong)",
-              borderRadius: "var(--ei-radius-sm)",
-              padding: "0 16px",
-              height: 38,
-              fontSize: 14,
-              fontWeight: 500,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            {t("home.jobPicksBtn")}
-          </button>
-        </div>
-
+      {/* Auxiliary start (post-interview debrief card; the JOB PICKS card was
+          removed with the jd_match module per product-scope v2.1 D-17) */}
         {/* POST-INTERVIEW card */}
         <div
           data-testid="home-aux-debrief"
@@ -650,7 +567,6 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
             {t("home.debriefBtn")}
           </button>
         </div>
-      </div>
 
       {assistOpen && (
         <JDAssistModal

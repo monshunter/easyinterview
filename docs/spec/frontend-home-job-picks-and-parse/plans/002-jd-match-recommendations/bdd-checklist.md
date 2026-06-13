@@ -6,7 +6,9 @@
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
-## E2E.P0.027 jd_match Recommended tab 主路径 + Save/Unsave/Mark not relevant/Open source 闭环 + 4xx revert + auth pending action
+> **2026-06-13 D-17 退役声明**：以下 E2E.P0.027-P0.031 jd_match 场景资产已随 [product-scope v2.1 D-17](../../../product-scope/spec.md#31-已锁定决策) 整体退役，对应 `test/scenarios/e2e/p0-027..031-jd-match-*` 目录已删除。历史勾选保留为记录，不再作为当前验收依据；当前 plan 002 active scope 见 [checklist Phase 7](./checklist.md)（删除型 phase，BDD 不适用）。
+
+## E2E.P0.027 jd_match Recommended tab 主路径 + Save/Unsave/Mark not relevant/Open source 闭环 + 4xx revert + auth pending action（已随 D-17 退役）
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-027-jd-match-recommended-and-confirm/`，含 `README.md`（§6 baseline + §7 离线限制） <!-- evidence: 2026-05-10 directory + README + scripts present; scenario verified below -->
 - [x] 准备 fixture variant：`getJobMatchProfile.json`（`default`）、`getAgentScanStatus.json`（`idle/scanning/error`）、`listJobRecommendations.json`（`empty/one/many/failed`）、`getJobRecommendation.json`（`default/network-intel-empty/failed`）、`addToWatchlist.json`（`default/4xx-validation/5xx`）、`removeFromWatchlist.json`（`default/4xx-not-found`）、`markJobNotRelevant.json`（`default/4xx`）；signed-in / signed-out 两种状态切换入口；`make validate-fixtures` PASS <!-- evidence: 2026-05-10 plan §1.2 fixtures landed, validate-fixtures OK 46 fixtures; signed-in/out via existing Auth/getMe authenticated/unauthenticated fixtures -->

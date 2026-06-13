@@ -7,9 +7,9 @@
  *
  * Given an unauthenticated user opens URL-addressable workflow paths with
  * representative raw markers seeded across raw JD text, source URL,
- * jd_match search query/label, resume text, guided answers, parsed
- * summary, structured profile, suggestion text, question/answer text,
- * debrief notes and AI prompt / response tokens, this scenario asserts:
+ * resume text, guided answers, parsed summary, structured profile,
+ * suggestion text, question/answer text, debrief notes and AI prompt /
+ * response tokens, this scenario asserts:
  *   - Restored route and canonical URL contain only route name + safe IDs
  *     / hints; legal handoff params survive allowlist filtering.
  *   - Raw markers have ZERO hits in URL, history.state, pendingAction,
@@ -167,29 +167,6 @@ const PracticePendingTrigger: FC = () => {
   );
 };
 
-const JdMatchPendingTrigger: FC = () => {
-  const { navigate } = useNavigation();
-  return (
-    <button
-      type="button"
-      data-testid="go-jdmatch-pending"
-      onClick={() =>
-        navigate({
-          name: "jd_match",
-          params: {
-            tab: "search",
-            selectedJobMatchId: "jm-restored",
-            pendingJdMatchActionId: "pjm-restored",
-            ...RAW_MARKERS,
-          },
-        })
-      }
-    >
-      restore jd_match
-    </button>
-  );
-};
-
 describe("E2E.P0.089 auth pendingAction + URL privacy redline", () => {
   it("workspace auto-start pending action: login round-trip restores canonical practice URL with zero raw-marker leak", async () => {
     render(
@@ -250,22 +227,6 @@ describe("E2E.P0.089 auth pendingAction + URL privacy redline", () => {
       "01918fa0-0000-7000-8000-000000005000",
     );
     expectNoRawMarkerLeak("after verify restore to practice");
-  });
-
-  it("jd_match pendingJdMatchActionId / selectedJobMatchId survive allowlist filtering", async () => {
-    render(
-      <App>
-        <JdMatchPendingTrigger />
-      </App>,
-    );
-    const user = userEvent.setup();
-    await user.click(screen.getByTestId("go-jdmatch-pending"));
-    await waitFor(() => screen.getByTestId("topbar-nav-jd_match"));
-    const search = new URLSearchParams(window.location.search);
-    expect(search.get("tab")).toBe("search");
-    expect(search.get("selectedJobMatchId")).toBe("jm-restored");
-    expect(search.get("pendingJdMatchActionId")).toBe("pjm-restored");
-    expectNoRawMarkerLeak("after jd_match restore");
   });
 
   it("auth/login direct open with hostile raw markers as query keeps only safe params", () => {
