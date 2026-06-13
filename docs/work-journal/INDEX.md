@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-06-13](2026-06-13.md) | `docs(db-migrations): correct d-20 backfill to in-migration sql update` | #docs |
 | [2026-06-13](2026-06-13.md) | `docs(roadmap): align resume workstream scope with d-20 flatten` | #docs |
 | [2026-06-13](2026-06-13.md) | `docs(resume): add d-20 phases to frontend plans` | #docs |
 | [2026-06-13](2026-06-13.md) | `docs(resume): revise frontend specs for d-20 flatten` | #docs |
