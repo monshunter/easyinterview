@@ -1,8 +1,8 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-05-23
+> **更新日期**: 2026-06-13
 
 ## 1 背景与目标
 
@@ -39,7 +39,7 @@
   - 通过 `getFeedbackReport(reportId)` fixture variant `report-generating → default` 模拟轮询；`failed` variant 触发错误态。
   - 成功时导航 handoff 到 `report?sessionId&reportId`；失败时展示重试/返回 workspace 操作，但不渲染 Report Dashboard。
 - 跨路由共享：
-  - `InterviewContext` 在本 subspec owner route 内传递 `{planId, targetJobId, jdId, resumeVersionId, roundId, practiceMode, practiceGoal}`；外部 route 只要求自己的最小上下文。
+  - `InterviewContext` 在本 subspec owner route 内传递 `{planId, targetJobId, jdId, resumeId, roundId, practiceMode, practiceGoal}`；外部 route 只要求自己的最小上下文。
   - 未登录用户点击 `立即面试` 时通过 `useRequestAuth({type:"start_practice", route:"workspace", params:{...InterviewContext, ...PracticeDisplayContext, autoStartPractice:"1"}})` 触发鉴权；登录后 `pendingAction` 回到 `workspace`，由 `WorkspaceScreen` 检测 `autoStartPractice=1` 并执行 `createPracticePlan` / `startPracticeSession`，成功后再跳转 `practice`。
   - `PracticeDisplayContext = {mode, modality, practiceMode, practiceGoal, hintUsed, hintCount}` 仅作为 practice → generating → report handoff 的路由展示上下文；`completePracticeSession` request body 严格使用 B2 `CompletePracticeSessionRequest{clientCompletedAt}`，不得把展示参数塞进 backend request。
 - 契约消费形态：
@@ -81,11 +81,12 @@
 | D-11 | voice 协作面 | 本 spec 拥有 voice surface React 组件、DOM/a11y/parity；`practice-voice-mvp` 拥有 `createPracticeVoiceTurn`、STT/LLM/TTS、committed context、barge-in | voice UI 与 voice orchestration 不双 owner |
 | D-12 | appendSessionEvent 单 endpoint | 提交回答 / 请求提示 / 跳过 / 暂停 / 恢复都通过 `appendSessionEvent` + `kind`；仅 `practiceMode='strict'` 不渲染提示按钮，`goal='debrief'` 是否可提示由 practiceMode 决定 | 与 backend-practice D-7/D-16/D-21 一致 |
 | D-13 | 完成是异步流 | `completePracticeSession` 返回 202 + `ReportWithJob{reportId,job}`；generating 用 `reportId` 轮询 `getFeedbackReport`，完成后 handoff 到 report owner | 前端不阻塞等待报告，不伪造 LLM 进度 |
+| D-15 | 简历扁平化绑定（product-scope D-20） | `InterviewContext` 简历绑定 `resumeVersionId`→`resumeId`（[B2 D-26](../openapi-v1-contract/spec.md) / [backend-practice D-39](../backend-practice/spec.md)）；`ResumePickerModal` 改扁平——直接列 `listResumes` 选简历（`resumeId`），删除版本展开 / `listResumeVersions`；`workspace` route 推荐参数 `resumeVersionId`→`resumeId`；`WorkspaceMissingResumeState` 缺简历空态语义不变 | 由 frontend-workspace-and-practice/001 + 002 的 D-20 phase 落地 `InterviewContext` / `routeUrl` / `useWorkspaceResume` / `ResumePickerModal` rename；与 [B2 D-26](../openapi-v1-contract/spec.md) / [frontend-resume-workshop D-8](../frontend-resume-workshop/spec.md) 同步 |
 | D-14 | fixture-backed + real-backend gate 红线 | completed frontend owner plan 可以保留 fixture-backed UI variants，但当对应 backend owner 已落地真实 handler 时，必须原地补 `VITE_EI_API_MODE=real` generated-client gate + scenario verify marker；缺失 operation 或 fixture 时仍先回 B2 / mock-contract-suite / backend owner，不用本地 mock 兜底 | 保护前后端分离契约，避免 fixture UI PASS 被误判为真实 backend 闭环 |
 
 ### 3.2 待确认事项
 
-- Resume Picker 的 active-list 与版本展开契约已经由 backend-resume/B2 落地；completed workspace plan 若继续保留 disabled-list UX，必须在原 plan 中标为历史交付状态，并在后续 workspace owner 修订时切到 `listResumes` + `listResumeVersions(resumeAssetId)` real-mode gate。
+- Resume Picker（`ResumePickerModal`）D-20 改为扁平：直接列 `listResumes` 选简历（`resumeId`），无版本展开 / `listResumeVersions`；completed workspace plan 若继续保留 disabled-list UX，必须在原 plan 中标为历史交付状态，并在后续 workspace owner 修订时切到 `listResumes` real-mode gate。
 - `createPracticeVoiceTurn` 已由 practice-voice-mvp / backend-practice voice extension 进入 generated client 与 fixture；voice surface 的完整 STT/LLM/TTS orchestration 仍归对应 voice owner，但正式前端不得继续把 operation 写作缺失。
 
 ## 4 设计约束
@@ -99,7 +100,7 @@
 
 | Route | 本 spec owner | 最小上下文 | 缺失处理 |
 |-------|---------------|------------|----------|
-| `workspace` | 是 | `targetJobId`；推荐携带 `planId/jdId/resumeVersionId/roundId` | 缺 target/JD 显示 `WorkspaceEmptyState`；缺 resume 显示 `WorkspaceMissingResumeState` |
+| `workspace` | 是 | `targetJobId`；推荐携带 `planId/jdId/resumeId/roundId` | 缺 target/JD 显示 `WorkspaceEmptyState`；缺 resume 显示 `WorkspaceMissingResumeState` |
 | `practice` | 是 | `sessionId` 或可启动的 `planId`；推荐携带完整 InterviewContext | 缺 session/plan 时回 workspace 空态，不展示假问题 |
 | `generating` | 是 | `sessionId + reportId` | 缺 `reportId` 显示生成态错误/返回 workspace |
 | `report` | 否 | `sessionId + reportId` | 由 report owner 处理 |
@@ -127,7 +128,7 @@
 | Practice backend | `backend-practice` | 6 个 Practice operation handler/service/store、state machine、AssistantAction、outbox、idempotency |
 | Voice orchestration | `practice-voice-mvp` + `backend-practice` voice extension | `createPracticeVoiceTurn` contract/handler、STT/LLM/TTS、barge-in、committed-context |
 | Report generation data | future `backend-review` | `feedback_reports`、question assessments、readiness、report job result |
-| Resume data | [`backend-resume`](../backend-resume/spec.md) | Resume asset list/detail/version semantics；workspace 可消费绑定 resume 只读字段，后续 active picker 消费 `listResumes` / `listResumeVersions` |
+| Resume data | [`backend-resume`](../backend-resume/spec.md) | 扁平 Resume list / detail（D-20，无 version）；workspace 消费绑定 resume（`resumeId`）只读字段，active picker 消费 `listResumes` |
 | OpenAPI / fixtures / codegen | `openapi-v1-contract` + `mock-contract-suite` | `openapi/openapi.yaml`、fixtures、generated Go/TS artifacts、fixture-backed mock transport |
 
 ### 5.1 Operation Matrix
@@ -138,7 +139,6 @@
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` (`default`, `prototype-baseline`) | `WorkspaceScreen` JD / requirements / company meta | `backend/internal/targetjob` implemented | `target_jobs`, requirements/sources | none in frontend | `001-workspace-and-interview-context` |
 | `getResume` | `openapi/fixtures/Resumes/getResume.json` (`default`) | Bound resume summary only | backend-resume real handler | resume assets | none | `001` bound summary + real-mode gate |
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` (`default`) | Resume picker list / debrief picker / resume workshop | backend-resume real handler | resume assets | none | completed owner plans must run real-mode gate before fixture UI variants |
-| `listResumeVersions` | `openapi/fixtures/Resumes/listResumeVersions.json` (`default`) | Resume picker version expansion / debrief picker / resume workshop | backend-resume real handler | resume_versions | none | completed owner plans must run real-mode gate before fixture UI variants |
 | `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` (`default`, `missing-resume`, `debrief-derived`) | Workspace `立即面试` / debrief replay when no plan | backend-practice real handler | `practice_plans` | backend-only first-question prep | `001` + `frontendOwners.realApiMode.test.ts` |
 | `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` (`default`) | Workspace refresh / recovery | backend-practice real handler | `practice_plans` | none | `001` + real-mode gate |
 | `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` (`default`, `debrief-derived-first-question`) | Workspace start + auth resume + debrief replay | backend-practice real handler | `practice_sessions`, first turn | backend-only `practice.session.first_question` | `001` / debrief + real-mode gate |
@@ -155,7 +155,7 @@
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
 | C-1 | 三条 owner route 专属 Screen 接管 | `frontend-shell` D1 已交付，owner route 当前由 PlaceholderScreen 占位 | 进入 `workspace` / `practice` / `generating` | 三条 route 渲染正式 Screen；`practice/generating` 仍隐藏 chrome；`report/company_intel` 不由本 spec 实现 | 001 / 002 / 004 |
-| C-2 | Workspace 渲染 + 空态 | InterviewContext 至少包含 `targetJobId`，可选 `planId/jdId/resumeVersionId/roundId` | 进入 `workspace` | 渲染当前规划、Interview Launcher、JD 拆解、绑定简历、公司轻情报摘要入口、准备信号、会话历史；缺 JD/target 或 resume 时进入对应空态；不展示假数据 | 001 |
+| C-2 | Workspace 渲染 + 空态 | InterviewContext 至少包含 `targetJobId`，可选 `planId/jdId/resumeId/roundId` | 进入 `workspace` | 渲染当前规划、Interview Launcher、JD 拆解、绑定简历、公司轻情报摘要入口、准备信号、会话历史；缺 JD/target 或 resume 时进入对应空态；不展示假数据 | 001 |
 | C-3 | Workspace 交互闭环 | 已渲染 workspace | 用户点击 `切换规划` / `更换简历` / `立即面试` | 切换规划更新 InterviewContext；更换简历按 B2/listResumes 决策执行；立即面试用 generated client 调 `createPracticePlan`（必要时）→ `startPracticeSession`，副作用请求带 `Idempotency-Key`；未登录 pendingAction 恢复到 workspace 后自动执行双步启动，再进入 practice | 001 |
 | C-4 | Practice 文本 happy path | 用户进入 `practice?mode=text&modality=text&practiceMode=assisted`，session=`running` | 用户输入回答、请求提示/跳过/暂停/恢复、提交事件、结束 | TextSurface 源级复刻；操作通过 `appendSessionEvent({clientEventId,kind,payload})`；AssistantAction 驱动下一题/追问/完成；结束调用 `completePracticeSession` 后进入 `generating?sessionId&reportId` | 002 |
 | C-5 | Practice 语音 surface + strict/debrief goal 显隐 | 用户进入 `practice?mode=voice&modality=voice&practiceMode=strict`，以及 `goal='debrief'` 分别组合 assisted/strict | 用户进行语音回答或切换形式 | VoiceSurface 源级复刻；strict 隐藏提示、实时观察、可调用经历和现场提示；assisted+debrief 仍显示可用提示，strict+debrief 隐藏提示；不直连 STT/TTS provider；full voice turn flow 等 `createPracticeVoiceTurn` contract landed 后启用 | 003 |
