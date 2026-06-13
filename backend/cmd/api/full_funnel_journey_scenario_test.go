@@ -90,7 +90,7 @@ func TestE2EP0098CreatePracticePlanAcceptsEmptyFocusCodes(t *testing.T) {
 
 	raw := h.doJSON(t, http.MethodPost, "/api/v1/practice/plans", "e2e-p0-098-create-empty-focus-plan", api.CreatePracticePlanRequest{
 		TargetJobId:          imported.TargetJobId,
-		ResumeAssetId:        seed.ResumeAssetID,
+		ResumeId:             seed.ResumeAssetID,
 		Goal:                 sharedtypes.PracticeGoalBaseline,
 		Mode:                 sharedtypes.PracticeModeAssisted,
 		InterviewerPersona:   sharedtypes.InterviewerRoleHiringManager,
@@ -363,16 +363,16 @@ func (h *fullFunnelJourneyHarness) seedReadyResume(t *testing.T) fullFunnelResum
 		SourceType: fullFunnelStringPtr("paste"),
 		RawText:    fullFunnelStringPtr(fullFunnelSeedResumeText),
 	}, http.StatusAccepted)
-	var registered api.ResumeAssetWithJob
+	var registered api.ResumeWithJob
 	decodeJSON(t, raw, &registered)
-	if registered.ResumeAssetId == "" || registered.Job.Id == "" {
+	if registered.ResumeId == "" || registered.Job.Id == "" {
 		t.Fatalf("registerResume did not return asset/job ids: %+v", registered)
 	}
 	if registered.Job.JobType != api.JobTypeResumeParse || registered.Job.Status != sharedtypes.JobStatusQueued {
 		t.Fatalf("registerResume did not queue resume_parse: %+v", registered.Job)
 	}
 	h.runKernelOnce(t, "resume_parse")
-	seed := fullFunnelResumeSeed{UserID: h.userID, ResumeAssetID: registered.ResumeAssetId, ParseJobID: registered.Job.Id}
+	seed := fullFunnelResumeSeed{UserID: h.userID, ResumeAssetID: registered.ResumeId, ParseJobID: registered.Job.Id}
 	h.assertReadyResume(t, seed)
 	return seed
 }
@@ -381,7 +381,7 @@ func (h *fullFunnelJourneyHarness) createBaselinePracticePlan(t *testing.T, targ
 	t.Helper()
 	raw := h.doJSON(t, http.MethodPost, "/api/v1/practice/plans", "e2e-p0-098-create-baseline-plan", api.CreatePracticePlanRequest{
 		TargetJobId:          targetJobID,
-		ResumeAssetId:        resumeAssetID,
+		ResumeId:             resumeAssetID,
 		Goal:                 sharedtypes.PracticeGoalBaseline,
 		Mode:                 sharedtypes.PracticeModeAssisted,
 		InterviewerPersona:   sharedtypes.InterviewerRoleTechnicalManager,
@@ -408,7 +408,7 @@ func (h *fullFunnelJourneyHarness) createNextRoundPracticePlanWithKey(t *testing
 	t.Helper()
 	raw := h.doJSON(t, http.MethodPost, "/api/v1/practice/plans", idempotencyKey, api.CreatePracticePlanRequest{
 		TargetJobId:          targetJobID,
-		ResumeAssetId:        resumeAssetID,
+		ResumeId:             resumeAssetID,
 		SourceReportId:       fullFunnelStringPtr(sourceReportID),
 		Goal:                 sharedtypes.PracticeGoalNextRound,
 		Mode:                 sharedtypes.PracticeModeAssisted,
@@ -544,7 +544,7 @@ where target_job_id = $1`, targetJobID, 1)
 func (h *fullFunnelJourneyHarness) assertReadyResume(t *testing.T, seed fullFunnelResumeSeed) {
 	t.Helper()
 	raw := h.doJSON(t, http.MethodGet, "/api/v1/resumes/"+seed.ResumeAssetID, "", nil, http.StatusOK)
-	var detail api.ResumeAsset
+	var detail api.Resume
 	decodeJSON(t, raw, &detail)
 	if detail.Id != seed.ResumeAssetID || detail.ParseStatus != sharedtypes.TargetJobParseStatusReady {
 		t.Fatalf("journey seed resume is not ready: %+v", detail)
@@ -725,7 +725,7 @@ func (h *fullFunnelJourneyHarness) collectObservablePayloads(t *testing.T) [][]b
 	t.Helper()
 	query := `
 with owned_resources as (
-  select id from resume_assets where user_id = $1
+  select id from resumes where user_id = $1
   union select id from target_jobs where user_id = $1
   union select id from practice_plans where user_id = $1
   union select id from practice_sessions where user_id = $1
@@ -859,9 +859,9 @@ func (h *fullFunnelResumeSeedHarness) seedReadyResume(t *testing.T) fullFunnelRe
 		SourceType: fullFunnelStringPtr("paste"),
 		RawText:    fullFunnelStringPtr(fullFunnelSeedResumeText),
 	}, http.StatusAccepted)
-	var registered api.ResumeAssetWithJob
+	var registered api.ResumeWithJob
 	decodeJSON(t, raw, &registered)
-	if registered.ResumeAssetId == "" || registered.Job.Id == "" {
+	if registered.ResumeId == "" || registered.Job.Id == "" {
 		t.Fatalf("registerResume did not return asset/job ids: %+v", registered)
 	}
 	if registered.Job.JobType != api.JobTypeResumeParse || registered.Job.Status != sharedtypes.JobStatusQueued {
@@ -875,13 +875,13 @@ func (h *fullFunnelResumeSeedHarness) seedReadyResume(t *testing.T) fullFunnelRe
 	if !processed {
 		t.Fatal("resume seed RunOnce processed=false, want true")
 	}
-	return fullFunnelResumeSeed{UserID: h.userID, ResumeAssetID: registered.ResumeAssetId, ParseJobID: registered.Job.Id}
+	return fullFunnelResumeSeed{UserID: h.userID, ResumeAssetID: registered.ResumeId, ParseJobID: registered.Job.Id}
 }
 
 func (h *fullFunnelResumeSeedHarness) assertReadyResume(t *testing.T, seed fullFunnelResumeSeed) {
 	t.Helper()
 	raw := h.doJSON(t, http.MethodGet, "/api/v1/resumes/"+seed.ResumeAssetID, "", nil, http.StatusOK)
-	var detail api.ResumeAsset
+	var detail api.Resume
 	decodeJSON(t, raw, &detail)
 	if detail.Id != seed.ResumeAssetID || detail.ParseStatus != sharedtypes.TargetJobParseStatusReady {
 		t.Fatalf("seed resume is not ready: %+v", detail)
@@ -909,7 +909,7 @@ where id = $1`, seed.ParseJobID).Scan(&status, &attempts, &completed); err != ni
 	assertFullFunnelCount(t, h.db, `
 select count(*)
 from outbox_events
-where aggregate_type = 'resume_asset' and aggregate_id = $1 and event_name = 'resume.parse.completed'`, seed.ResumeAssetID, 1)
+where aggregate_type = 'resume' and aggregate_id = $1 and event_name = 'resume.parse.completed'`, seed.ResumeAssetID, 1)
 }
 
 func (h *fullFunnelResumeSeedHarness) cleanupSeed(t *testing.T, seed fullFunnelResumeSeed) {
@@ -920,7 +920,7 @@ func (h *fullFunnelResumeSeedHarness) cleanupSeed(t *testing.T, seed fullFunnelR
 func (h *fullFunnelResumeSeedHarness) assertSeedCleaned(t *testing.T, seed fullFunnelResumeSeed) {
 	t.Helper()
 	assertFullFunnelCount(t, h.db, `select count(*) from users where id = $1`, seed.UserID, 0)
-	assertFullFunnelCount(t, h.db, `select count(*) from resume_assets where id = $1`, seed.ResumeAssetID, 0)
+	assertFullFunnelCount(t, h.db, `select count(*) from resumes where id = $1`, seed.ResumeAssetID, 0)
 	assertFullFunnelCount(t, h.db, `select count(*) from async_jobs where id = $1 or resource_id = $2`, seed.ParseJobID, seed.ResumeAssetID, 0)
 	assertFullFunnelCount(t, h.db, `select count(*) from outbox_events where aggregate_id = $1`, seed.ResumeAssetID, 0)
 	assertFullFunnelCount(t, h.db, `select count(*) from idempotency_records where user_id = $1`, seed.UserID, 0)
@@ -1047,7 +1047,7 @@ func cleanupFullFunnelScenarioUser(t *testing.T, db *sql.DB, userID string) {
 	cleanupQueries := []string{
 		`
 with owned_resources as (
-  select id from resume_assets where user_id = $1
+  select id from resumes where user_id = $1
   union select id from target_jobs where user_id = $1
   union select id from practice_plans where user_id = $1
   union select id from practice_sessions where user_id = $1
@@ -1057,7 +1057,7 @@ delete from outbox_events
 where aggregate_id in (select id from owned_resources)`,
 		`
 with owned_resources as (
-  select id from resume_assets where user_id = $1
+  select id from resumes where user_id = $1
   union select id from target_jobs where user_id = $1
   union select id from practice_plans where user_id = $1
   union select id from practice_sessions where user_id = $1
@@ -1067,7 +1067,7 @@ delete from async_jobs
 where resource_id in (select id from owned_resources)`,
 		`
 with owned_resources as (
-  select id from resume_assets where user_id = $1
+  select id from resumes where user_id = $1
   union select id from target_jobs where user_id = $1
   union select id from practice_plans where user_id = $1
   union select id from practice_sessions where user_id = $1

@@ -109,7 +109,7 @@ const FULL_ROUTE: Route = {
   params: {
     targetJobId: "01918fa0-0000-7000-8000-000000002000",
     jdId: "jd-1",
-    resumeVersionId: "01918fa0-0000-7000-8000-000000001000",
+    resumeId: "01918fa0-0000-7000-8000-000000001000",
     roundId: "round-hr",
     planId: "",
   },
@@ -120,7 +120,7 @@ const PLAN_EXISTS_ROUTE: Route = {
   params: {
     targetJobId: "01918fa0-0000-7000-8000-000000002000",
     jdId: "jd-1",
-    resumeVersionId: "01918fa0-0000-7000-8000-000000001000",
+    resumeId: "01918fa0-0000-7000-8000-000000001000",
     roundId: "round-hr",
     planId: "01918fa0-0000-7000-8000-000000004000",
   },
@@ -131,7 +131,7 @@ const SYNTHETIC_PLAN_ROUTE: Route = {
   params: {
     targetJobId: "01918fa0-0000-7000-8000-000000002000",
     jdId: "jd-1",
-    resumeVersionId: "01918fa0-0000-7000-8000-000000001000",
+    resumeId: "01918fa0-0000-7000-8000-000000001000",
     roundId: "round-hr",
     planId: "plan-01918fa0-0000-7000-8000-000000002000",
   },
@@ -166,7 +166,7 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
     expect(params.planId).toBe("01918fa0-0000-7000-8000-000000004000");
     expect(params).toHaveProperty("targetJobId");
     expect(params).toHaveProperty("jdId");
-    expect(params).toHaveProperty("resumeVersionId");
+    expect(params).toHaveProperty("resumeId");
     expect(params).toHaveProperty("roundId");
     expect(params).toHaveProperty("mode");
     expect(params).toHaveProperty("modality");
@@ -511,7 +511,7 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
     expect(body.language).toBeDefined();
     expect(body.questionBudget).toBe(6);
     expect(body.timeBudgetMinutes).toBe(30);
-    expect(body.resumeAssetId).toBe("01918fa0-0000-7000-8000-000000001000");
+    expect(body.resumeId).toBe("01918fa0-0000-7000-8000-000000001000");
     expect(body.focusCompetencyCodes).toEqual([]);
   });
 });

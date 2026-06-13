@@ -9,7 +9,7 @@ import { ResumeCreateFlow } from "./ResumeCreateFlow";
 
 function renderCreateFlow(
   navigate: ReturnType<typeof vi.fn> = vi.fn(),
-  initialMode?: "upload" | "paste" | "guided",
+  initialMode?: "upload" | "paste",
 ) {
   return render(
     <DisplayPreferencesProvider>
@@ -67,16 +67,14 @@ describe("ResumeCreateFlow container", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("switches to the guided tab and shows the 5 step nav", async () => {
-    const user = userEvent.setup();
+  it("does not expose a guided tab or guided panel (D-20 removed guided intake)", () => {
     renderCreateFlow();
-    await user.click(screen.getByTestId("resume-create-tab-guided"));
-    expect(screen.getByTestId("resume-create-guided-panel")).toBeInTheDocument();
-    for (let i = 1; i <= 5; i++) {
-      expect(
-        screen.getByTestId(`resume-create-guided-step-${i}`),
-      ).toBeInTheDocument();
-    }
+    expect(
+      screen.queryByTestId("resume-create-tab-guided"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("resume-create-guided-panel"),
+    ).not.toBeInTheDocument();
   });
 
   it("preserves paste raw text when switching tab away and back (input retained for cancel-from-parse path)", async () => {
@@ -115,48 +113,6 @@ describe("ResumeCreateFlow container", () => {
     expect(submit.disabled).toBe(false);
   });
 
-  it("advances guided steps and walks back through the nav", async () => {
-    const user = userEvent.setup();
-    renderCreateFlow();
-    await user.click(screen.getByTestId("resume-create-tab-guided"));
-    // step 1 is active by default
-    expect(screen.getByTestId("resume-create-guided-step-1")).toHaveAttribute(
-      "data-active",
-      "true",
-    );
-    await user.click(screen.getByTestId("resume-create-guided-advance"));
-    expect(screen.getByTestId("resume-create-guided-step-2")).toHaveAttribute(
-      "data-active",
-      "true",
-    );
-    await user.click(screen.getByTestId("resume-create-guided-advance"));
-    expect(screen.getByTestId("resume-create-guided-step-3")).toHaveAttribute(
-      "data-active",
-      "true",
-    );
-    await user.click(screen.getByTestId("resume-create-guided-back"));
-    expect(screen.getByTestId("resume-create-guided-step-2")).toHaveAttribute(
-      "data-active",
-      "true",
-    );
-  });
-
-  it("guided final-step CTA reads `Generate v1` (i18n: 生成 v1) instead of `Next`", async () => {
-    const user = userEvent.setup();
-    renderCreateFlow();
-    await user.click(screen.getByTestId("resume-create-tab-guided"));
-    for (let i = 0; i < 4; i++) {
-      await user.click(screen.getByTestId("resume-create-guided-advance"));
-    }
-    expect(screen.getByTestId("resume-create-guided-step-5")).toHaveAttribute(
-      "data-active",
-      "true",
-    );
-    expect(
-      screen.getByTestId("resume-create-guided-advance"),
-    ).toHaveTextContent(/生成 v1|Generate v1/i);
-  });
-
   it("clicking the back button navigates to resume_versions list", async () => {
     const user = userEvent.setup();
     const navigate = vi.fn();
@@ -178,7 +134,7 @@ describe("ResumeCreateFlow container", () => {
     expect(screen.getByTestId("resume-create-paste-panel")).toBeInTheDocument();
   });
 
-  it("ArrowRight on the tablist moves focus and active state to the next tab", () => {
+  it("ArrowRight/ArrowLeft on the tablist cycles between the two tabs (upload <-> paste)", () => {
     renderCreateFlow();
     const uploadTab = screen.getByTestId(
       "resume-create-tab-upload",
@@ -192,15 +148,13 @@ describe("ResumeCreateFlow container", () => {
     const pasteTab = screen.getByTestId(
       "resume-create-tab-paste",
     ) as HTMLButtonElement;
+    // Only two tabs remain (D-20 removed guided); ArrowRight wraps back to upload.
     fireEvent.keyDown(pasteTab, { key: "ArrowRight" });
     expect(screen.getByTestId("resume-create-flow")).toHaveAttribute(
       "data-create-mode",
-      "guided",
+      "upload",
     );
-    const guidedTab = screen.getByTestId(
-      "resume-create-tab-guided",
-    ) as HTMLButtonElement;
-    fireEvent.keyDown(guidedTab, { key: "ArrowLeft" });
+    fireEvent.keyDown(uploadTab, { key: "ArrowLeft" });
     expect(screen.getByTestId("resume-create-flow")).toHaveAttribute(
       "data-create-mode",
       "paste",

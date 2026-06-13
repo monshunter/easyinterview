@@ -59,7 +59,7 @@ const NavBatch: FC = () => {
             name: "workspace",
             params: {
               targetJobId: TARGET_JOB_ID,
-              resumeVersionId: RESUME_VERSION_ID,
+              resumeId: RESUME_VERSION_ID,
               planId: PLAN_ID,
               autoStartPractice: "1",
             },
@@ -111,14 +111,14 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     window.history.replaceState(
       null,
       "",
-      `/workspace?targetJobId=${TARGET_JOB_ID}&resumeVersionId=${RESUME_VERSION_ID}&planId=${PLAN_ID}&autoStartPractice=1`,
+      `/workspace?targetJobId=${TARGET_JOB_ID}&resumeId=${RESUME_VERSION_ID}&planId=${PLAN_ID}&autoStartPractice=1`,
     );
     render(<App />);
     expect(screen.getByTestId("workspace-empty")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/workspace");
     const search = new URLSearchParams(window.location.search);
     expect(search.get("targetJobId")).toBe(TARGET_JOB_ID);
-    expect(search.get("resumeVersionId")).toBe(RESUME_VERSION_ID);
+    expect(search.get("resumeId")).toBe(RESUME_VERSION_ID);
     expect(search.get("planId")).toBe(PLAN_ID);
     expect(search.get("autoStartPractice")).toBe("1");
     expect(screen.getByTestId("topbar-nav-workspace")).toHaveAttribute(

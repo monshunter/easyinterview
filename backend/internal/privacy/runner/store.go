@@ -148,19 +148,8 @@ type accountIdentityDeleteExecutor interface {
 }
 
 func hardDeleteAccountIdentity(ctx context.Context, exec accountIdentityDeleteExecutor, userID string, email string) error {
-	if _, err := exec.ExecContext(ctx, `
-delete from resume_version_suggestions
-where resume_version_id in (select id from resume_versions where user_id = $1)`, userID); err != nil {
-		return fmt.Errorf("delete resume version suggestions for privacy user: %w", err)
-	}
-	if _, err := exec.ExecContext(ctx, `
-update resume_versions
-set parent_version_id = null
-where user_id = $1 and parent_version_id is not null`, userID); err != nil {
-		return fmt.Errorf("clear resume version parent links for privacy user: %w", err)
-	}
-	if _, err := exec.ExecContext(ctx, `delete from resume_versions where user_id = $1`, userID); err != nil {
-		return fmt.Errorf("delete resume versions for privacy user: %w", err)
+	if _, err := exec.ExecContext(ctx, `delete from resumes where user_id = $1`, userID); err != nil {
+		return fmt.Errorf("delete resumes for privacy user: %w", err)
 	}
 	if _, err := exec.ExecContext(ctx, `delete from auth_challenges where user_id = $1 or email = $2`, userID, email); err != nil {
 		return fmt.Errorf("delete auth challenges for privacy user: %w", err)

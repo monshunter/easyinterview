@@ -64,7 +64,7 @@ func (h *Handler) CreatePracticePlan(w http.ResponseWriter, r *http.Request) {
 	res, err := h.service.CreatePracticePlan(r.Context(), domain.CreatePlanRequest{
 		UserID:               userID,
 		TargetJobID:          body.TargetJobId,
-		ResumeAssetID:        body.ResumeAssetId,
+		ResumeID:             body.ResumeId,
 		SourceReportID:       stringValue(body.SourceReportId),
 		SourceDebriefID:      stringValue(body.SourceDebriefId),
 		Goal:                 body.Goal,

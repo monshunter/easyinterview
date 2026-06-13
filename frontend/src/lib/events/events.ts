@@ -101,13 +101,13 @@ export interface ReportGenerationFailedPayload {
 
 export interface ResumeParseCompletedPayload {
   parseStatus: TargetJobParseStatus;
-  resumeAssetId: string;
+  resumeId: string;
   userId: string;
 }
 
 export interface ResumeTailorCompletedPayload {
   mode: ResumeTailorMode;
-  resumeAssetId: string;
+  resumeId: string;
   status: ReportStatus;
   tailorRunId: string;
   targetJobId: string;

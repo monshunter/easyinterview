@@ -15,7 +15,7 @@ const SAMPLE: PendingAction = {
     planId: "plan-tj-1",
     targetJobId: "tj-1",
     jdId: "jd-tj-1",
-    resumeVersionId: "frontend-v3",
+    resumeId: "frontend-v3",
     roundId: "round-manager",
   },
 };
@@ -30,7 +30,7 @@ describe("pendingAction encode/decode", () => {
       planId: "plan-tj-1",
       targetJobId: "tj-1",
       jdId: "jd-tj-1",
-      resumeVersionId: "frontend-v3",
+      resumeId: "frontend-v3",
       roundId: "round-manager",
     });
   });
@@ -39,7 +39,7 @@ describe("pendingAction encode/decode", () => {
     expect(PENDING_ACTION_INTERVIEW_KEYS).toContain("planId");
     expect(PENDING_ACTION_INTERVIEW_KEYS).toContain("targetJobId");
     expect(PENDING_ACTION_INTERVIEW_KEYS).toContain("jdId");
-    expect(PENDING_ACTION_INTERVIEW_KEYS).toContain("resumeVersionId");
+    expect(PENDING_ACTION_INTERVIEW_KEYS).toContain("resumeId");
     expect(PENDING_ACTION_INTERVIEW_KEYS).toContain("roundId");
   });
 

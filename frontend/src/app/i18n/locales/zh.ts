@@ -445,9 +445,16 @@ export const zh = {
   "resumeWorkshop.list.versionsError": "加载简历版本失败，请重试。",
   "resumeWorkshop.list.empty": "尚未上传任何简历。",
   "resumeWorkshop.list.paginated": "继续加载下一页",
+  "resumeWorkshop.list.colResume": "简历",
+  "resumeWorkshop.list.colSource": "来源",
+  "resumeWorkshop.list.colLang": "语言",
+  "resumeWorkshop.list.colLastEdit": "最近编辑",
+  "resumeWorkshop.list.open": "打开",
+  "resumeWorkshop.list.uploadAnother": "上传或粘贴另一份简历",
   "resumeWorkshop.openVersion": "打开",
   "resumeWorkshop.detail.back": "返回简历工坊",
   "resumeWorkshop.detail.crumbVersions": "版本",
+  "resumeWorkshop.detail.lastEdit": "最近编辑",
   "resumeWorkshop.detail.tabPreview": "预览",
   "resumeWorkshop.detail.tabRewrites": "改写建议",
   "resumeWorkshop.detail.tabEdit": "手动编辑",
@@ -539,14 +546,16 @@ export const zh = {
   "resumeWorkshop.branch.error.generic": "创建版本失败，请重试。",
   // ── Rewrites tab (plan 003) ──
   "resumeWorkshop.rewrites.scopeBanner.body":
-    "「拒绝 / 编辑 / 采纳」只作用于当前版本：{versionName}。主版本与原始文件保持不变。",
+    "每条建议只有「采纳」一个动作，默认不动作即忽略。采纳的改写要经过确认前预览才会保存：可选覆盖原简历或保存为新简历。",
   "resumeWorkshop.rewrites.scopeBanner.counts":
-    "{accepted} 已采纳 · {pending} 待决定 · {rejected} 已拒绝",
+    "{accepted} 已采纳 · {untouched} 未动作",
+  "resumeWorkshop.rewrites.previewAndSave": "预览并保存",
   "resumeWorkshop.rewrites.listEyebrow": "建议改写",
   "resumeWorkshop.rewrites.empty.title": "暂无 AI 改写建议",
   "resumeWorkshop.rewrites.empty.body":
     "尚未生成 bullet 改写建议。可在右侧重新触发 AI 改写。",
   "resumeWorkshop.rewrites.status.accepted": "已采纳",
+  "resumeWorkshop.rewrites.status.suggested": "建议",
   "resumeWorkshop.rewrites.status.pending": "待决定",
   "resumeWorkshop.rewrites.status.rejected": "已拒绝",
   "resumeWorkshop.rewrites.diff.sectionFallback": "改写建议",
@@ -579,6 +588,10 @@ export const zh = {
     "人工改写已保存 · {versionName}",
   "resumeWorkshop.rewrites.toast.rerunRequested":
     "已重新触发 AI 改写",
+  "resumeWorkshop.rewrites.toast.overwritten":
+    "已覆盖「{resumeName}」· 已写入采纳的改写，原始来源不变",
+  "resumeWorkshop.rewrites.toast.savedAsNew":
+    "已保存为新简历：{resumeName}",
   "resumeWorkshop.rewrites.toast.alreadyDecided":
     "该 bullet 已决定 · 如需重做请新建 suggestion 或 branch",
   "resumeWorkshop.rewrites.error.generic": "处理失败，请重试。",
@@ -588,11 +601,30 @@ export const zh = {
     "字段校验失败，请重试。",
   "resumeWorkshop.rewrites.error.manualPendingRetry":
     "人工改写已保存，但状态写入失败，请重试。",
+  // ── Rewrite save confirm modal (D-20) ──
+  "resumeWorkshop.rewrites.save.eyebrow": "确认前预览",
+  "resumeWorkshop.rewrites.save.title": "确认采纳的改写结果，并选择保存方式。",
+  "resumeWorkshop.rewrites.save.sub": "无论选择哪种方式，原始来源都保持只读不变。",
+  "resumeWorkshop.rewrites.save.close": "关闭预览",
+  "resumeWorkshop.rewrites.save.acceptedCount": "{count} 条已采纳改写",
+  "resumeWorkshop.rewrites.save.overwriteLabel": "覆盖原简历",
+  "resumeWorkshop.rewrites.save.overwriteDesc":
+    "把改写写入「{resumeName}」；原始来源不变。",
+  "resumeWorkshop.rewrites.save.newLabel": "保存为新简历",
+  "resumeWorkshop.rewrites.save.newDesc":
+    "保留这份简历不动，把改写结果作为新简历加入列表。",
+  "resumeWorkshop.rewrites.save.newNameSuffix": "{resumeName} · 改写稿",
+  "resumeWorkshop.rewrites.save.cancel": "取消",
+  "resumeWorkshop.rewrites.save.confirmNew": "保存为新简历",
+  "resumeWorkshop.rewrites.save.confirmOverwrite": "覆盖原简历",
   // ── Edit tab (plan 003) ──
   "resumeWorkshop.edit.scope.master":
     "正在编辑主版本。已分叉的定制版本会保留已采纳的句子，未改的字段跟随主版本。",
   "resumeWorkshop.edit.scope.targeted":
     "正在编辑「{versionName}」。改动不会影响主版本或其它定制版本。",
+  "resumeWorkshop.edit.scope.body":
+    "正在编辑「{resumeName}」。改动保存到这份简历；原始来源保持只读。",
+  "resumeWorkshop.edit.displayNameLabel": "简历名称",
   "resumeWorkshop.edit.headlineLabel": "一句话标题",
   "resumeWorkshop.edit.summaryLabel": "简介",
   "resumeWorkshop.edit.save": "保存改动",

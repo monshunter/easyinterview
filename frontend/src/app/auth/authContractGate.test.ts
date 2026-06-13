@@ -34,14 +34,16 @@ const ALLOWED_NON_AUTH_OPERATIONS = new Set<string>([
   "getPracticePlan",
   "createPracticePlan",
   "startPracticeSession",
-  // Phase 1-3 resume workshop operations (frontend-resume-workshop)
+  // D-20 flat resume workshop operations (frontend-resume-workshop)
   "listResumes",
-  "listResumeVersions",
-  "getResumeVersion",
-  "exportResumeVersion",
+  "updateResume",
+  "duplicateResume",
+  "archiveResume",
+  "exportResume",
+  "requestResumeTailor",
+  "getResumeTailorRun",
   // Phase 1-6 resume workshop create flow (frontend-resume-workshop/002)
   "registerResume",
-  "confirmResumeStructuredMaster",
   // Phase 2-6 frontend-debrief operations
   // (docs/spec/frontend-debrief/plans/001-debrief-screen-and-handoff)
   "listPracticeSessions",

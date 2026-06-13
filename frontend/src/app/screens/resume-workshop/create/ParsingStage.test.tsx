@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import userEvent from "@testing-library/user-event";
 
 import { EasyInterviewClient } from "../../../../api/generated/client";
-import type { ResumeAsset } from "../../../../api/generated/types";
+import type { Resume } from "../../../../api/generated/types";
 import { AppRuntimeProvider } from "../../../runtime/AppRuntimeProvider";
 import {
   createFixtureBackedFetch,
@@ -51,11 +51,14 @@ function renderFlow(client: EasyInterviewClient) {
   );
 }
 
-const READY_ASSET: ResumeAsset = {
+const READY_ASSET: Resume = {
   id: "01918fa0-0000-7000-8000-000000001100",
   title: "粘贴的简历",
+  displayName: "粘贴的简历",
   language: "zh",
   parseStatus: "ready",
+  status: "active",
+  sourceType: "paste",
   createdAt: "2026-05-17T00:00:00Z",
   updatedAt: "2026-05-17T00:00:00Z",
   parsedSummary: {
@@ -96,25 +99,17 @@ describe("ParsingStage integration", () => {
   it("polling resolves and transitions to preview without rendering parsedTextSnapshot or originalText in the DOM", { timeout: 10_000 }, async () => {
     const client = buildClient();
     vi.spyOn(client, "registerResume").mockResolvedValue({
-      resumeAssetId: "01918fa0-0000-7000-8000-000000001100",
+      resumeId: "01918fa0-0000-7000-8000-000000001100",
       job: {
         id: "job-1",
         jobType: "resume_parse",
         status: "queued",
-        provider: null,
-        modelId: null,
-        promptVersion: null,
-        rubricVersion: null,
-        attempts: 0,
-        statusReason: null,
+        resourceType: "resume_asset",
+        resourceId: "01918fa0-0000-7000-8000-000000001100",
         errorCode: null,
-        retryAt: null,
-        nextAttemptAt: null,
-        ownerType: "resume_asset",
-        ownerId: "01918fa0-0000-7000-8000-000000001100",
         createdAt: "2026-05-17T00:00:00Z",
         updatedAt: "2026-05-17T00:00:00Z",
-      } as unknown as ResumeAsset["parsedSummary"] as never,
+      } as never,
     });
     const getResumeSpy = vi.spyOn(client, "getResume");
     getResumeSpy.mockResolvedValueOnce({ ...READY_ASSET, parseStatus: "queued" });
@@ -148,7 +143,7 @@ describe("ParsingStage integration", () => {
   it("cancel-and-return preserves the paste raw text and does not trigger a new registerResume", async () => {
     const client = buildClient();
     const registerSpy = vi.spyOn(client, "registerResume").mockResolvedValue({
-      resumeAssetId: "01918fa0-0000-7000-8000-000000001100",
+      resumeId: "01918fa0-0000-7000-8000-000000001100",
       job: {} as never,
     });
     vi.spyOn(client, "getResume").mockResolvedValue({

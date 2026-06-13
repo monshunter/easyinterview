@@ -1,16 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import type { ResumeAsset } from "../../../../../api/generated/types";
+import type { Resume } from "../../../../../api/generated/types";
 import {
   buildStructuredProfilePayload,
   mapParsedSummaryToStructuredProfileDraft,
 } from "./mapParsedSummaryToStructuredProfileDraft";
 
-const baseAsset: ResumeAsset = {
+const baseAsset: Resume = {
   id: "01918fa0-0000-7000-8000-000000001000",
   title: "alice.pdf",
+  displayName: "alice.pdf",
   language: "zh",
   parseStatus: "ready",
+  status: "active",
+  sourceType: "upload",
   createdAt: "2026-05-17T00:00:00Z",
   updatedAt: "2026-05-17T00:00:00Z",
 };
@@ -123,7 +126,7 @@ describe("mapParsedSummaryToStructuredProfileDraft", () => {
 });
 
 describe("buildStructuredProfilePayload", () => {
-  it("builds a confirmResumeStructuredMaster body shape from parsedSummary", () => {
+  it("builds a structuredProfile payload shape from parsedSummary", () => {
     const payload = buildStructuredProfilePayload({
       ...baseAsset,
       parsedSummary: {

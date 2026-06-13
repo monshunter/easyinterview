@@ -13,10 +13,8 @@ const buildPendingActionParams = (
 ): Record<string, string> => {
   const restored: Record<string, string> = {};
   if (params.flow !== "list") restored.flow = params.flow;
-  if (params.versionId) restored.versionId = params.versionId;
+  if (params.resumeId) restored.resumeId = params.resumeId;
   if (params.tab) restored.tab = params.tab;
-  if (params.branchOriginalId)
-    restored.branchOriginalId = params.branchOriginalId;
   if (params.targetJobId) restored.targetJobId = params.targetJobId;
   if (params.createMode) restored.createMode = params.createMode;
   return restored;

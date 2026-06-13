@@ -8,7 +8,7 @@
       "type": "string"
     },
     "aggregateType": {
-      "const": "resume_asset"
+      "const": "resume"
     },
     "eventId": {
       "format": "uuid",
@@ -30,7 +30,7 @@
         "parseStatus": {
           "$ref": "../refs/TargetJobParseStatus.json"
         },
-        "resumeAssetId": {
+        "resumeId": {
           "type": "string"
         },
         "userId": {
@@ -39,7 +39,7 @@
       },
       "required": [
         "parseStatus",
-        "resumeAssetId",
+        "resumeId",
         "userId"
       ],
       "type": "object"

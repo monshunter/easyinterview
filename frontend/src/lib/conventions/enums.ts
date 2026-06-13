@@ -227,40 +227,6 @@ export const ALL_PRIVACY_REQUEST_STATUSES: readonly PrivacyRequestStatus[] = [
   'cancelled',
 ] as const;
 
-// ResumeVersionType mirrors shared/conventions.yaml sourceSection 5.14 (jsonField: "resumeVersionType").
-export type ResumeVersionType =
-  | 'structured_master'
-  | 'targeted';
-
-export const ALL_RESUME_VERSION_TYPES: readonly ResumeVersionType[] = [
-  'structured_master',
-  'targeted',
-] as const;
-
-// ResumeSeedStrategy mirrors shared/conventions.yaml sourceSection 5.15 (jsonField: "resumeSeedStrategy").
-export type ResumeSeedStrategy =
-  | 'copy_master'
-  | 'blank'
-  | 'ai_select';
-
-export const ALL_RESUME_SEED_STRATEGIES: readonly ResumeSeedStrategy[] = [
-  'copy_master',
-  'blank',
-  'ai_select',
-] as const;
-
-// ResumeTailorSuggestionStatus mirrors shared/conventions.yaml sourceSection 5.16 (jsonField: "resumeTailorSuggestionStatus").
-export type ResumeTailorSuggestionStatus =
-  | 'pending'
-  | 'accepted'
-  | 'rejected';
-
-export const ALL_RESUME_TAILOR_SUGGESTION_STATUSES: readonly ResumeTailorSuggestionStatus[] = [
-  'pending',
-  'accepted',
-  'rejected',
-] as const;
-
 // JobStatus mirrors shared/conventions.yaml sourceSection 4.2 (jsonField: "status").
 export type JobStatus =
   | 'queued'

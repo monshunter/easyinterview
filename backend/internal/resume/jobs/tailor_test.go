@@ -17,18 +17,16 @@ import (
 )
 
 func TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox(t *testing.T) {
-	now := time.Date(2026, 5, 18, 12, 0, 0, 0, time.UTC)
+	now := time.Date(2026, 6, 13, 12, 0, 0, 0, time.UTC)
 	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf7a001"
 	userID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf7a002"
-	versionID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf7a003"
-	assetID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf7a004"
+	resumeID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf7a004"
 	targetID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf7a005"
 	privateSuggestedBullet := "PRIVATE_SUGGESTED_BULLET"
 	store := &fakeTailorStore{ctx: resumestore.TailorJobContext{
 		TailorRunID:       tailorRunID,
 		UserID:            userID,
-		ResumeVersionID:   versionID,
-		ResumeAssetID:     assetID,
+		ResumeID:          resumeID,
 		TargetJobID:       targetID,
 		Mode:              "gap_review",
 		Language:          "en",
@@ -64,29 +62,26 @@ func TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox(t *
 	})
 
 	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
-		JobID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf7c001", JobType: string(jobs.JobTypeResumeTailor), ResourceType: "resume_tailor_run", ResourceID: tailorRunID, Payload: []byte(`{"tailorRunId":"` + tailorRunID + `","resumeVersionId":"` + versionID + `"}`), Attempts: 1, MaxAttempts: 5,
+		JobID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf7c001", JobType: string(jobs.JobTypeResumeTailor), ResourceType: "resume_tailor_run", ResourceID: tailorRunID, Payload: []byte(`{"resumeId":"` + resumeID + `","targetJobId":"` + targetID + `","mode":"gap_review"}`), Attempts: 1, MaxAttempts: 5,
 	})
 
 	if !outcome.Succeeded {
 		t.Fatalf("Handle outcome = %+v", outcome)
 	}
-	if len(store.generating) != 1 || store.generating[0].TailorRunID != tailorRunID {
-		t.Fatalf("generating calls = %+v", store.generating)
-	}
-	if store.loadedResumeVersionID != versionID {
-		t.Fatalf("loaded resume version id = %q, want %q", store.loadedResumeVersionID, versionID)
+	if store.loadedTailorRunID != tailorRunID {
+		t.Fatalf("loaded tailor run id = %q, want %q", store.loadedTailorRunID, tailorRunID)
 	}
 	if store.success == nil {
 		t.Fatal("expected CompleteTailorRunSuccess")
 	}
-	if store.success.TailorRunID != tailorRunID || store.success.ResumeVersionID != versionID || len(store.success.Suggestions) != 3 {
+	if store.success.TailorRunID != tailorRunID || store.success.ResumeID != resumeID || store.success.Mode != "gap_review" || len(store.success.Suggestions) != 3 {
 		t.Fatalf("success input drift: %+v", store.success)
 	}
 	var outbox map[string]any
 	if err := json.Unmarshal(store.success.OutboxEventPayload, &outbox); err != nil {
 		t.Fatalf("decode outbox payload: %v", err)
 	}
-	wantKeys := map[string]bool{"tailorRunId": true, "resumeAssetId": true, "targetJobId": true, "mode": true, "status": true}
+	wantKeys := map[string]bool{"tailorRunId": true, "resumeId": true, "targetJobId": true, "mode": true, "status": true}
 	if len(outbox) != len(wantKeys) {
 		t.Fatalf("outbox field count = %d payload=%+v", len(outbox), outbox)
 	}
@@ -95,7 +90,7 @@ func TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox(t *
 			t.Fatalf("outbox missing key %s: %+v", key, outbox)
 		}
 	}
-	if outbox["tailorRunId"] != tailorRunID || outbox["status"] != "ready" || outbox["mode"] != "gap_review" {
+	if outbox["tailorRunId"] != tailorRunID || outbox["resumeId"] != resumeID || outbox["status"] != "ready" || outbox["mode"] != "gap_review" {
 		t.Fatalf("outbox identity/status drift: %+v", outbox)
 	}
 	if strings.Contains(string(store.success.OutboxEventPayload), privateSuggestedBullet) ||
@@ -141,7 +136,7 @@ func TestOutboxPrivacyForTailorCompletedEvent(t *testing.T) {
 	if err := json.Unmarshal(fixture.store.success.OutboxEventPayload, &payload); err != nil {
 		t.Fatalf("decode outbox payload: %v", err)
 	}
-	wantKeys := map[string]bool{"tailorRunId": true, "resumeAssetId": true, "targetJobId": true, "mode": true, "status": true}
+	wantKeys := map[string]bool{"tailorRunId": true, "resumeId": true, "targetJobId": true, "mode": true, "status": true}
 	if len(payload) != len(wantKeys) {
 		t.Fatalf("outbox payload fields drifted: %+v", payload)
 	}
@@ -189,15 +184,14 @@ func TestAuditPrivacyForTailorDrainer(t *testing.T) {
 }
 
 func TestTailorHandlerModeRoutingAndFailurePaths(t *testing.T) {
-	now := time.Date(2026, 5, 18, 12, 30, 0, 0, time.UTC)
+	now := time.Date(2026, 6, 13, 12, 30, 0, 0, time.UTC)
 	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8a001"
 	userID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8a002"
-	versionID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8a003"
+	resumeID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8a004"
 	baseCtx := resumestore.TailorJobContext{
 		TailorRunID:       tailorRunID,
 		UserID:            userID,
-		ResumeVersionID:   versionID,
-		ResumeAssetID:     "0195f2d0-4a44-7fc2-8f77-1f9c4cf8a004",
+		ResumeID:          resumeID,
 		TargetJobID:       "0195f2d0-4a44-7fc2-8f77-1f9c4cf8a005",
 		Mode:              "bullet_suggestions",
 		Language:          "en",
@@ -253,7 +247,7 @@ func TestTailorHandlerModeRoutingAndFailurePaths(t *testing.T) {
 				Now: func() time.Time { return now },
 			})
 			outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
-				JobID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf8c001", JobType: string(jobs.JobTypeResumeTailor), ResourceType: "resume_tailor_run", ResourceID: tailorRunID, Payload: []byte(`{"tailorRunId":"` + tailorRunID + `","resumeVersionId":"` + versionID + `"}`), Attempts: 1, MaxAttempts: 5,
+				JobID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf8c001", JobType: string(jobs.JobTypeResumeTailor), ResourceType: "resume_tailor_run", ResourceID: tailorRunID, Payload: []byte(`{"resumeId":"` + resumeID + `","mode":"bullet_suggestions"}`), Attempts: 1, MaxAttempts: 5,
 			})
 
 			rows := taskRuns.Rows()
@@ -261,8 +255,8 @@ func TestTailorHandlerModeRoutingAndFailurePaths(t *testing.T) {
 				t.Fatalf("ai_task_runs rows = %+v, want status %s", rows, tc.wantRunStatus)
 			}
 			if tc.wantCode == "" {
-				if !outcome.Succeeded || store.success == nil || store.failure != nil {
-					t.Fatalf("success path outcome=%+v success=%+v failure=%+v", outcome, store.success, store.failure)
+				if !outcome.Succeeded || store.success == nil {
+					t.Fatalf("success path outcome=%+v success=%+v", outcome, store.success)
 				}
 				if tc.ai.profileName != "resume.tailor.bullet_suggestions" || tc.ai.payload.Metadata.FeatureKey != resumejobs.FeatureKeyResumeTailorBulletSuggestions {
 					t.Fatalf("bullet route drift: profile=%q metadata=%+v", tc.ai.profileName, tc.ai.payload.Metadata)
@@ -275,11 +269,10 @@ func TestTailorHandlerModeRoutingAndFailurePaths(t *testing.T) {
 				}
 				return
 			}
+			// Failure paths surface through JobOutcome; the runner kernel marks
+			// the async_jobs row failed (D-20: no resume_tailor_runs status to flip).
 			if outcome.Succeeded || outcome.ErrorCode != tc.wantCode || outcome.Retryable != tc.wantRetryable {
 				t.Fatalf("failure outcome = %+v, want code=%s retry=%v", outcome, tc.wantCode, tc.wantRetryable)
-			}
-			if store.failure == nil || store.failure.ErrorCode != tc.wantCode {
-				t.Fatalf("failure input = %+v, want code %s", store.failure, tc.wantCode)
 			}
 			if store.success != nil {
 				t.Fatalf("failure must not write ready outbox: %+v", store.success)
@@ -289,14 +282,13 @@ func TestTailorHandlerModeRoutingAndFailurePaths(t *testing.T) {
 }
 
 func TestTailorHandlerBulletSuggestionsCanonicalKeysRoundTrip(t *testing.T) {
-	now := time.Date(2026, 5, 18, 12, 40, 0, 0, time.UTC)
+	now := time.Date(2026, 6, 13, 12, 40, 0, 0, time.UTC)
 	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca01"
-	versionID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca02"
+	resumeID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca04"
 	store := &fakeTailorStore{ctx: resumestore.TailorJobContext{
 		TailorRunID:       tailorRunID,
 		UserID:            "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca03",
-		ResumeVersionID:   versionID,
-		ResumeAssetID:     "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca04",
+		ResumeID:          resumeID,
 		TargetJobID:       "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca05",
 		Mode:              "bullet_suggestions",
 		Language:          "en",
@@ -323,7 +315,7 @@ func TestTailorHandlerBulletSuggestionsCanonicalKeysRoundTrip(t *testing.T) {
 		JobType:      string(jobs.JobTypeResumeTailor),
 		ResourceType: "resume_tailor_run",
 		ResourceID:   tailorRunID,
-		Payload:      []byte(`{"tailorRunId":"` + tailorRunID + `","resumeVersionId":"` + versionID + `"}`),
+		Payload:      []byte(`{"resumeId":"` + resumeID + `","mode":"bullet_suggestions"}`),
 		Attempts:     1,
 		MaxAttempts:  5,
 	})
@@ -342,16 +334,15 @@ func TestTailorHandlerBulletSuggestionsCanonicalKeysRoundTrip(t *testing.T) {
 	}
 }
 
-func TestTailorHandlerSuccessPersistenceFailureMarksFailedRetryable(t *testing.T) {
-	now := time.Date(2026, 5, 18, 12, 45, 0, 0, time.UTC)
+func TestTailorHandlerSuccessPersistenceFailureMarksRetryable(t *testing.T) {
+	now := time.Date(2026, 6, 13, 12, 45, 0, 0, time.UTC)
 	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d001"
-	versionID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d002"
+	resumeID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d004"
 	store := &fakeTailorStore{
 		ctx: resumestore.TailorJobContext{
 			TailorRunID:       tailorRunID,
 			UserID:            "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d003",
-			ResumeVersionID:   versionID,
-			ResumeAssetID:     "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d004",
+			ResumeID:          resumeID,
 			TargetJobID:       "0195f2d0-4a44-7fc2-8f77-1f9c4cf8d005",
 			Mode:              "gap_review",
 			Language:          "en",
@@ -379,7 +370,7 @@ func TestTailorHandlerSuccessPersistenceFailureMarksFailedRetryable(t *testing.T
 		JobType:      string(jobs.JobTypeResumeTailor),
 		ResourceType: "resume_tailor_run",
 		ResourceID:   tailorRunID,
-		Payload:      []byte(`{"tailorRunId":"` + tailorRunID + `","resumeVersionId":"` + versionID + `"}`),
+		Payload:      []byte(`{"resumeId":"` + resumeID + `","mode":"gap_review"}`),
 		Attempts:     1,
 		MaxAttempts:  5,
 	})
@@ -390,28 +381,25 @@ func TestTailorHandlerSuccessPersistenceFailureMarksFailedRetryable(t *testing.T
 	if store.success == nil {
 		t.Fatal("expected success transaction attempt before failure")
 	}
-	if store.failure == nil || store.failure.ErrorCode != sharederrors.CodeTargetImportFailed {
-		t.Fatalf("retryable completion failure must mark run failed for the next claim, got %+v", store.failure)
-	}
 }
 
 func TestTailorDrainerHandlesOnlyResumeTailor(t *testing.T) {
-	now := time.Date(2026, 5, 18, 13, 0, 0, 0, time.UTC)
+	now := time.Date(2026, 6, 13, 13, 0, 0, 0, time.UTC)
 	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf9a001"
+	resumeID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf9a005"
 	asyncStore := &tailorAsyncStore{job: targetjob.ClaimedJob{
 		JobID:        "0195f2d0-4a44-7fc2-8f77-1f9c4cf9a002",
 		JobType:      string(jobs.JobTypeResumeTailor),
 		ResourceType: "resume_tailor_run",
 		ResourceID:   tailorRunID,
-		Payload:      []byte(`{"tailorRunId":"` + tailorRunID + `","resumeVersionId":"0195f2d0-4a44-7fc2-8f77-1f9c4cf9a003"}`),
+		Payload:      []byte(`{"resumeId":"` + resumeID + `","mode":"gap_review"}`),
 		Attempts:     1,
 		MaxAttempts:  5,
 	}}
 	store := &fakeTailorStore{ctx: resumestore.TailorJobContext{
 		TailorRunID:       tailorRunID,
 		UserID:            "0195f2d0-4a44-7fc2-8f77-1f9c4cf9a004",
-		ResumeVersionID:   "0195f2d0-4a44-7fc2-8f77-1f9c4cf9a003",
-		ResumeAssetID:     "0195f2d0-4a44-7fc2-8f77-1f9c4cf9a005",
+		ResumeID:          resumeID,
 		TargetJobID:       "0195f2d0-4a44-7fc2-8f77-1f9c4cf9a006",
 		Mode:              "gap_review",
 		Language:          "en",
@@ -452,12 +440,10 @@ func TestTailorDrainerHandlesOnlyResumeTailor(t *testing.T) {
 }
 
 type fakeTailorStore struct {
-	ctx                   resumestore.TailorJobContext
-	loadedResumeVersionID string
-	generating            []resumestore.TailorRunStatusInput
-	success               *resumestore.CompleteTailorRunSuccessInput
-	completeSuccessErr    error
-	failure               *resumestore.TailorRunFailureInput
+	ctx                resumestore.TailorJobContext
+	loadedTailorRunID  string
+	success            *resumestore.CompleteTailorRunSuccessInput
+	completeSuccessErr error
 }
 
 type tailorAsyncStore struct {
@@ -479,40 +465,18 @@ func (s *tailorAsyncStore) FinalizeAsyncJob(_ context.Context, _ string, outcome
 	return nil
 }
 
-func (s *fakeTailorStore) MarkTailorRunGenerating(_ context.Context, in resumestore.TailorRunStatusInput) (resumestore.TailorRunRecord, error) {
-	s.generating = append(s.generating, in)
-	return resumestore.TailorRunRecord{
-		ID:            s.ctx.TailorRunID,
-		UserID:        s.ctx.UserID,
-		TargetJobID:   s.ctx.TargetJobID,
-		ResumeAssetID: s.ctx.ResumeAssetID,
-		Mode:          s.ctx.Mode,
-		Status:        "generating",
-	}, nil
-}
-
-func (s *fakeTailorStore) GetForTailor(_ context.Context, tailorRunID string, resumeVersionID string) (resumestore.TailorJobContext, error) {
-	s.loadedResumeVersionID = resumeVersionID
+func (s *fakeTailorStore) GetForTailor(_ context.Context, tailorRunID string) (resumestore.TailorJobContext, error) {
+	s.loadedTailorRunID = tailorRunID
 	if s.ctx.TailorRunID != tailorRunID {
 		return resumestore.TailorJobContext{}, resumestore.ErrTailorRunNotFound
 	}
-	out := s.ctx
-	if strings.TrimSpace(out.ResumeVersionID) == "" {
-		out.ResumeVersionID = resumeVersionID
-	}
-	return out, nil
+	return s.ctx, nil
 }
 
 func (s *fakeTailorStore) CompleteTailorRunSuccess(_ context.Context, in resumestore.CompleteTailorRunSuccessInput) error {
 	cp := in
 	s.success = &cp
 	return s.completeSuccessErr
-}
-
-func (s *fakeTailorStore) MarkTailorRunFailed(_ context.Context, in resumestore.TailorRunFailureInput) (resumestore.TailorRunRecord, error) {
-	cp := in
-	s.failure = &cp
-	return resumestore.TailorRunRecord{ID: s.ctx.TailorRunID, Status: "failed"}, nil
 }
 
 type tailorRegistry struct{}
@@ -592,15 +556,14 @@ type tailorPrivacyFixture struct {
 
 func runTailorPrivacyFixture(t *testing.T) tailorPrivacyFixture {
 	t.Helper()
-	now := time.Date(2026, 5, 18, 14, 0, 0, 0, time.UTC)
+	now := time.Date(2026, 6, 13, 14, 0, 0, 0, time.UTC)
 	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfaa001"
 	userID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfaa002"
-	versionID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfaa003"
+	resumeID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfaa004"
 	store := &fakeTailorStore{ctx: resumestore.TailorJobContext{
 		TailorRunID:       tailorRunID,
 		UserID:            userID,
-		ResumeVersionID:   versionID,
-		ResumeAssetID:     "0195f2d0-4a44-7fc2-8f77-1f9c4cfaa004",
+		ResumeID:          resumeID,
 		TargetJobID:       "0195f2d0-4a44-7fc2-8f77-1f9c4cfaa005",
 		Mode:              "gap_review",
 		Language:          "en",
@@ -632,7 +595,7 @@ func runTailorPrivacyFixture(t *testing.T) tailorPrivacyFixture {
 		JobType:      string(jobs.JobTypeResumeTailor),
 		ResourceType: "resume_tailor_run",
 		ResourceID:   tailorRunID,
-		Payload:      []byte(`{"tailorRunId":"` + tailorRunID + `","resumeVersionId":"` + versionID + `"}`),
+		Payload:      []byte(`{"resumeId":"` + resumeID + `","mode":"gap_review"}`),
 		Attempts:     1,
 		MaxAttempts:  5,
 	})
@@ -655,7 +618,6 @@ func assertNoTailorPrivacyLeak(t *testing.T, label string, raw string) {
 		"PRIVATE_MODEL_RAW_RESPONSE",
 		"PRIVATE_SUGGESTED_BULLET",
 		"PRIVATE_SUGGESTION_REASON",
-		"match_summary",
 		"prompt body",
 		"model raw response",
 		"suggested bullet",

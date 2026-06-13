@@ -119,17 +119,17 @@ type ReportGenerationFailedPayload struct {
 }
 
 type ResumeParseCompletedPayload struct {
-	ParseStatus   sharedtypes.TargetJobParseStatus `json:"parseStatus"`
-	ResumeAssetID string                           `json:"resumeAssetId"`
-	UserID        string                           `json:"userId"`
+	ParseStatus sharedtypes.TargetJobParseStatus `json:"parseStatus"`
+	ResumeID    string                           `json:"resumeId"`
+	UserID      string                           `json:"userId"`
 }
 
 type ResumeTailorCompletedPayload struct {
-	Mode          ResumeTailorMode         `json:"mode"`
-	ResumeAssetID string                   `json:"resumeAssetId"`
-	Status        sharedtypes.ReportStatus `json:"status"`
-	TailorRunID   string                   `json:"tailorRunId"`
-	TargetJobID   string                   `json:"targetJobId"`
+	Mode        ResumeTailorMode         `json:"mode"`
+	ResumeID    string                   `json:"resumeId"`
+	Status      sharedtypes.ReportStatus `json:"status"`
+	TailorRunID string                   `json:"tailorRunId"`
+	TargetJobID string                   `json:"targetJobId"`
 }
 
 type DebriefCreatedPayload struct {

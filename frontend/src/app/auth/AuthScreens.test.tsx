@@ -292,7 +292,7 @@ describe("AuthVerifyScreen", () => {
           params: {
             email: "alice@example.com",
             returnTo:
-              "/practice?planId=plan_1&targetJobId=tj_1&jdId=jd_1&resumeVersionId=resume_1&roundId=round_1",
+              "/practice?planId=plan_1&targetJobId=tj_1&jdId=jd_1&resumeId=resume_1&roundId=round_1",
           },
         }}
         onNavigate={onNavigate}
@@ -311,7 +311,7 @@ describe("AuthVerifyScreen", () => {
           planId: "plan_1",
           targetJobId: "tj_1",
           jdId: "jd_1",
-          resumeVersionId: "resume_1",
+          resumeId: "resume_1",
           roundId: "round_1",
         },
       }),

@@ -1,0 +1,145 @@
+{
+  "operationId": "updateResume",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "01918fa0-0000-7a00-8a00-0000000d2001"
+        },
+        "body": {
+          "displayName": "Northstar Systems frontend target - edited",
+          "structuredProfile": {
+            "headline": "Senior frontend engineer for platform-heavy product teams",
+            "summary": "Highlights reliability, release quality, and ownership evidence.",
+            "skills": ["React", "TypeScript", "Observability"],
+            "sections": [],
+            "provenance": {
+              "promptVersion": "resume_profile.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:resume_profile.v1",
+              "language": "zh-CN",
+              "featureFlag": "none",
+              "dataSourceVersion": "resume.v1"
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-40-00-update-resume"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000001000",
+          "title": "Alice Example - Senior Frontend Engineer",
+          "displayName": "Northstar Systems frontend target - edited",
+          "language": "zh-CN",
+          "parseStatus": "ready",
+          "status": "active",
+          "sourceType": "upload",
+          "fileObjectId": "01918fa0-0000-7000-8000-000000001100",
+          "structuredProfile": {
+            "headline": "Senior frontend engineer for platform-heavy product teams",
+            "summary": "Highlights reliability, release quality, and ownership evidence.",
+            "skills": ["React", "TypeScript", "Observability"],
+            "sections": [],
+            "provenance": {
+              "promptVersion": "resume_profile.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:resume_profile.v1",
+              "language": "zh-CN",
+              "featureFlag": "none",
+              "dataSourceVersion": "resume.v1"
+            }
+          },
+          "createdAt": "2026-05-12T08:24:00Z",
+          "updatedAt": "2026-05-12T08:40:00Z"
+        }
+      }
+    },
+    "idempotency-replay": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "01918fa0-0000-7a00-8a00-0000000d2001"
+        },
+        "body": {
+          "displayName": "Northstar Systems frontend target - edited",
+          "structuredProfile": {
+            "headline": "Senior frontend engineer for platform-heavy product teams",
+            "summary": "Highlights reliability, release quality, and ownership evidence.",
+            "skills": ["React", "TypeScript", "Observability"],
+            "sections": [],
+            "provenance": {
+              "promptVersion": "resume_profile.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:resume_profile.v1",
+              "language": "zh-CN",
+              "featureFlag": "none",
+              "dataSourceVersion": "resume.v1"
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-40-00-update-resume",
+          "X-Idempotency-Replayed": "true"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000001000",
+          "title": "Alice Example - Senior Frontend Engineer",
+          "displayName": "Northstar Systems frontend target - edited",
+          "language": "zh-CN",
+          "parseStatus": "ready",
+          "status": "active",
+          "sourceType": "upload",
+          "fileObjectId": "01918fa0-0000-7000-8000-000000001100",
+          "structuredProfile": {
+            "headline": "Senior frontend engineer for platform-heavy product teams",
+            "summary": "Highlights reliability, release quality, and ownership evidence.",
+            "skills": ["React", "TypeScript", "Observability"],
+            "sections": [],
+            "provenance": {
+              "promptVersion": "resume_profile.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:resume_profile.v1",
+              "language": "zh-CN",
+              "featureFlag": "none",
+              "dataSourceVersion": "resume.v1"
+            }
+          },
+          "createdAt": "2026-05-12T08:24:00Z",
+          "updatedAt": "2026-05-12T08:40:00Z"
+        }
+      }
+    },
+    "validation-error-422": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "01918fa0-0000-7a00-8a00-0000000d2002"
+        },
+        "body": {
+          "displayName": ""
+        }
+      },
+      "response": {
+        "status": 422,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-40-00-update-invalid"
+        },
+        "body": {
+          "error": {
+            "code": "VALIDATION_FAILED",
+            "message": "displayName must not be blank",
+            "requestId": "req_2026-05-12T08-40-00-update-invalid",
+            "retryable": false,
+            "details": {
+              "field": "displayName"
+            }
+          }
+        }
+      }
+    }
+  }
+}

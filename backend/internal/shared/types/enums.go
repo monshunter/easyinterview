@@ -293,52 +293,6 @@ var AllPrivacyRequestStatuses = []PrivacyRequestStatus{
 	PrivacyRequestStatusCancelled,
 }
 
-// ResumeVersionType mirrors shared/conventions.yaml sourceSection 5.14 (jsonField: "resumeVersionType").
-type ResumeVersionType string
-
-const (
-	ResumeVersionTypeStructuredMaster ResumeVersionType = "structured_master"
-	ResumeVersionTypeTargeted         ResumeVersionType = "targeted"
-)
-
-// AllResumeVersionTypes lists every defined value in declaration order.
-var AllResumeVersionTypes = []ResumeVersionType{
-	ResumeVersionTypeStructuredMaster,
-	ResumeVersionTypeTargeted,
-}
-
-// ResumeSeedStrategy mirrors shared/conventions.yaml sourceSection 5.15 (jsonField: "resumeSeedStrategy").
-type ResumeSeedStrategy string
-
-const (
-	ResumeSeedStrategyCopyMaster ResumeSeedStrategy = "copy_master"
-	ResumeSeedStrategyBlank      ResumeSeedStrategy = "blank"
-	ResumeSeedStrategyAiSelect   ResumeSeedStrategy = "ai_select"
-)
-
-// AllResumeSeedStrategies lists every defined value in declaration order.
-var AllResumeSeedStrategies = []ResumeSeedStrategy{
-	ResumeSeedStrategyCopyMaster,
-	ResumeSeedStrategyBlank,
-	ResumeSeedStrategyAiSelect,
-}
-
-// ResumeTailorSuggestionStatus mirrors shared/conventions.yaml sourceSection 5.16 (jsonField: "resumeTailorSuggestionStatus").
-type ResumeTailorSuggestionStatus string
-
-const (
-	ResumeTailorSuggestionStatusPending  ResumeTailorSuggestionStatus = "pending"
-	ResumeTailorSuggestionStatusAccepted ResumeTailorSuggestionStatus = "accepted"
-	ResumeTailorSuggestionStatusRejected ResumeTailorSuggestionStatus = "rejected"
-)
-
-// AllResumeTailorSuggestionStatuses lists every defined value in declaration order.
-var AllResumeTailorSuggestionStatuses = []ResumeTailorSuggestionStatus{
-	ResumeTailorSuggestionStatusPending,
-	ResumeTailorSuggestionStatusAccepted,
-	ResumeTailorSuggestionStatusRejected,
-}
-
 // JobStatus mirrors shared/conventions.yaml sourceSection 4.2 (jsonField: "status").
 type JobStatus string
 

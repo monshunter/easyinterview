@@ -1,18 +1,17 @@
-export type ResumeWorkshopFlow = "list" | "create" | "branch";
+export type ResumeWorkshopFlow = "list" | "create";
 export type ResumeDetailTab = "preview" | "rewrites" | "edit";
-export type ResumeCreateMode = "upload" | "paste" | "guided";
+export type ResumeCreateMode = "upload" | "paste";
 
 export interface ResumeWorkshopParams {
   flow: ResumeWorkshopFlow;
-  versionId: string | null;
+  resumeId: string | null;
   tab: ResumeDetailTab | null;
-  branchOriginalId: string | null;
   targetJobId: string | null;
   createMode: ResumeCreateMode | null;
   /**
-   * Optional tailor run id carried from the ai_select branch nav so the
-   * Rewrites Tab picks up an in-flight tailor run on first paint and starts
-   * polling without a manual rerun. Plan 003 Phase 5.
+   * Optional tailor run id carried from the ai_select nav so the Rewrites Tab
+   * picks up an in-flight tailor run on first paint and starts polling without
+   * a manual rerun. Plan 003 Phase 5.
    */
   tailorRunId: string | null;
 }
@@ -23,11 +22,7 @@ const DETAIL_TABS: readonly ResumeDetailTab[] = [
   "edit",
 ] as const;
 
-const CREATE_MODES: readonly ResumeCreateMode[] = [
-  "upload",
-  "paste",
-  "guided",
-] as const;
+const CREATE_MODES: readonly ResumeCreateMode[] = ["upload", "paste"] as const;
 
 const isDetailTab = (value: string | undefined): value is ResumeDetailTab =>
   typeof value === "string" && (DETAIL_TABS as readonly string[]).includes(value);
@@ -40,17 +35,13 @@ const isCreateMode = (
 
 const parseFlow = (value: string | undefined): ResumeWorkshopFlow => {
   if (value === "create") return "create";
-  if (value === "branch") return "branch";
   return "list";
 };
 
 export const parseResumeWorkshopParams = (
   routeParams: Record<string, string>,
 ): ResumeWorkshopParams => {
-  const versionId = routeParams.versionId ? routeParams.versionId : null;
-  const branchOriginalId = routeParams.branchOriginalId
-    ? routeParams.branchOriginalId
-    : null;
+  const resumeId = routeParams.resumeId ? routeParams.resumeId : null;
   const targetJobId = routeParams.targetJobId ? routeParams.targetJobId : null;
   const tab = isDetailTab(routeParams.tab) ? routeParams.tab : null;
   const createMode = isCreateMode(routeParams.createMode)
@@ -61,9 +52,8 @@ export const parseResumeWorkshopParams = (
     : null;
   return {
     flow: parseFlow(routeParams.flow),
-    versionId,
+    resumeId,
     tab,
-    branchOriginalId,
     targetJobId,
     createMode,
     tailorRunId,

@@ -3,11 +3,11 @@ package handler_test
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -28,7 +28,7 @@ func TestHandlerImplementsResumeTailorSurfaces(t *testing.T) {
 }
 
 func TestRequestResumeTailor(t *testing.T) {
-	now := time.Date(2026, 5, 18, 9, 0, 0, 0, time.UTC)
+	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
 	svc := &fakeTailorRunService{requestOut: tailorRunWithJobResponse("tailor-run-1", "job-1", now)}
 	h := resumehandler.New(resumehandler.Options{
 		Service: svc,
@@ -41,13 +41,31 @@ func TestRequestResumeTailor(t *testing.T) {
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if svc.requestIn.UserID != "user-1" || svc.requestIn.ResumeAssetID != "asset-1" || svc.requestIn.ResumeVersionID != "version-1" || svc.requestIn.TargetJobID != "target-1" || svc.requestIn.Mode != "gap_review" || svc.requestIn.IdempotencyKey != "idem-tailor" {
+	if svc.requestIn.UserID != "user-1" || svc.requestIn.ResumeID != "resume-1" || svc.requestIn.TargetJobID != "target-1" || svc.requestIn.Mode != "gap_review" || svc.requestIn.IdempotencyKey != "idem-tailor" {
 		t.Fatalf("service input = %+v", svc.requestIn)
 	}
 	var got api.ResumeTailorRunWithJob
 	decodeResponse(t, rec, &got)
 	if got.TailorRunId != "tailor-run-1" || got.Job.JobType != api.JobTypeResumeTailor || got.Job.ResourceType != api.ResourceTypeResumeTailorRun {
 		t.Fatalf("response = %+v", got)
+	}
+}
+
+func TestRequestResumeTailorAllowsOmittedTargetJob(t *testing.T) {
+	svc := &fakeTailorRunService{requestOut: tailorRunWithJobResponse("tailor-run-1", "job-1", time.Now())}
+	h := resumehandler.New(resumehandler.Options{
+		Service: svc,
+		Session: func(context.Context) (string, bool) { return "user-1", true },
+	})
+	rec := httptest.NewRecorder()
+
+	h.RequestResumeTailor(rec, newRequestTailorRequest(`{"resumeId":"resume-1","mode":"bullet_suggestions"}`))
+
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if svc.requestIn.ResumeID != "resume-1" || svc.requestIn.TargetJobID != "" {
+		t.Fatalf("service input = %+v", svc.requestIn)
 	}
 }
 
@@ -60,8 +78,8 @@ func TestRequestResumeTailorValidationAndErrors(t *testing.T) {
 		code   string
 	}{
 		{name: "invalid mode", body: validRequestTailorBody("unsupported"), status: http.StatusUnprocessableEntity, code: sharederrors.CodeValidationFailed},
-		{name: "missing asset", body: `{"targetJobId":"target-1","mode":"gap_review"}`, status: http.StatusUnprocessableEntity, code: sharederrors.CodeValidationFailed},
-		{name: "not found", body: validRequestTailorBody("gap_review"), err: resume.ErrNotFound, status: http.StatusNotFound, code: sharederrors.CodeTargetJobNotFound},
+		{name: "missing resume", body: `{"targetJobId":"target-1","mode":"gap_review"}`, status: http.StatusUnprocessableEntity, code: sharederrors.CodeValidationFailed},
+		{name: "not found", body: validRequestTailorBody("gap_review"), err: resume.ErrNotFound, status: http.StatusNotFound, code: sharederrors.CodeResourceNotFound},
 		{name: "validation", body: validRequestTailorBody("gap_review"), err: resume.ErrValidationFailed, status: http.StatusUnprocessableEntity, code: sharederrors.CodeValidationFailed},
 	}
 	for _, tc := range tests {
@@ -97,7 +115,7 @@ func TestRequestResumeTailorIdempotencyReplay(t *testing.T) {
 		State:          idempotency.StateReplay,
 		RecordID:       "idem-rec-tailor",
 		ResponseStatus: http.StatusAccepted,
-		ResponseBody:   []byte(`{"tailorRunId":"tailor-run-replay","job":{"id":"job-replay","jobType":"resume_tailor","status":"queued","resourceType":"resume_tailor_run","resourceId":"tailor-run-replay","errorCode":null,"createdAt":"2026-05-18T09:00:00Z","updatedAt":"2026-05-18T09:00:00Z"}}`),
+		ResponseBody:   []byte(`{"tailorRunId":"tailor-run-replay","job":{"id":"job-replay","jobType":"resume_tailor","status":"queued","resourceType":"resume_tailor_run","resourceId":"tailor-run-replay","errorCode":null,"createdAt":"2026-06-13T09:00:00Z","updatedAt":"2026-06-13T09:00:00Z"}}`),
 	}}
 	svc := &fakeTailorRunService{}
 	h := resumehandler.New(resumehandler.Options{
@@ -119,7 +137,7 @@ func TestRequestResumeTailorIdempotencyReplay(t *testing.T) {
 }
 
 func TestGetResumeTailorRun(t *testing.T) {
-	now := time.Date(2026, 5, 18, 9, 30, 0, 0, time.UTC)
+	now := time.Date(2026, 6, 13, 9, 30, 0, 0, time.UTC)
 	for _, status := range []string{"queued", "generating", "ready", "failed"} {
 		t.Run(status, func(t *testing.T) {
 			svc := &fakeTailorRunService{getOut: tailorRunResponse("tailor-run-1", status, now)}
@@ -155,7 +173,7 @@ func TestGetResumeTailorRunNotFound(t *testing.T) {
 
 	h.GetResumeTailorRun(rec, httptest.NewRequest(http.MethodGet, "/api/v1/resume/tailor-runs/missing", nil), "missing")
 
-	assertAPIError(t, rec, http.StatusNotFound, sharederrors.CodeTargetJobNotFound)
+	assertAPIError(t, rec, http.StatusNotFound, sharederrors.CodeResourceNotFound)
 }
 
 func TestResumeTailorFixtureParity(t *testing.T) {
@@ -166,11 +184,11 @@ func TestResumeTailorFixtureParity(t *testing.T) {
 	for _, scenario := range []string{"default"} {
 		t.Run("request "+scenario, func(t *testing.T) {
 			entry := requestFixture.Scenarios[scenario]
-			var out api.ResumeTailorRunWithJob
-			if err := json.Unmarshal(entry.Response.Body, &out); err != nil {
+			var want api.ResumeTailorRunWithJob
+			if err := json.Unmarshal(entry.Response.Body, &want); err != nil {
 				t.Fatalf("decode request fixture body: %v", err)
 			}
-			svc := &fakeTailorRunService{requestOut: out}
+			svc := &fakeTailorRunService{requestOut: want}
 			h := resumehandler.New(resumehandler.Options{
 				Service: svc,
 				Session: func(context.Context) (string, bool) { return "user-1", true },
@@ -179,7 +197,14 @@ func TestResumeTailorFixtureParity(t *testing.T) {
 
 			h.RequestResumeTailor(rec, newRequestTailorFixtureRequest(entry))
 
-			assertRawJSONEqual(t, rec, entry.Response.Status, entry.Response.Body)
+			if rec.Code != entry.Response.Status {
+				t.Fatalf("status = %d want %d body=%s", rec.Code, entry.Response.Status, rec.Body.String())
+			}
+			var got api.ResumeTailorRunWithJob
+			decodeResponse(t, rec, &got)
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf("fixture parity mismatch\ngot:  %+v\nwant: %+v", got, want)
+			}
 		})
 	}
 
@@ -233,6 +258,7 @@ func TestResumeTailorFixtureParity(t *testing.T) {
 }
 
 type fakeTailorRunService struct {
+	fakeRegisterService
 	requestCalls int
 	requestIn    resume.RequestTailorRunInput
 	requestOut   api.ResumeTailorRunWithJob
@@ -242,10 +268,6 @@ type fakeTailorRunService struct {
 	getTailorRunID string
 	getOut         api.ResumeTailorRun
 	getErr         error
-}
-
-func (s *fakeTailorRunService) RegisterResume(context.Context, resume.RegisterInput) (api.ResumeAssetWithJob, error) {
-	return api.ResumeAssetWithJob{}, errors.New("not implemented")
 }
 
 func (s *fakeTailorRunService) RequestResumeTailor(_ context.Context, in resume.RequestTailorRunInput) (api.ResumeTailorRunWithJob, error) {
@@ -267,7 +289,7 @@ func newRequestTailorRequest(body string) *http.Request {
 }
 
 func validRequestTailorBody(mode string) string {
-	return `{"targetJobId":"target-1","resumeAssetId":"asset-1","resumeVersionId":"version-1","mode":"` + mode + `"}`
+	return `{"targetJobId":"target-1","resumeId":"resume-1","mode":"` + mode + `"}`
 }
 
 func tailorRunWithJobResponse(tailorRunID, jobID string, now time.Time) api.ResumeTailorRunWithJob {
@@ -286,14 +308,15 @@ func tailorRunWithJobResponse(tailorRunID, jobID string, now time.Time) api.Resu
 }
 
 func tailorRunResponse(tailorRunID, status string, now time.Time) api.ResumeTailorRun {
+	targetJobID := "target-1"
 	run := api.ResumeTailorRun{
-		Id:            tailorRunID,
-		Status:        status,
-		TargetJobId:   "target-1",
-		ResumeAssetId: "asset-1",
-		Suggestions:   []api.ResumeTailorBulletSuggestion{},
-		CreatedAt:     now.Format(time.RFC3339),
-		UpdatedAt:     now.Format(time.RFC3339),
+		Id:          tailorRunID,
+		Status:      status,
+		TargetJobId: &targetJobID,
+		ResumeId:    "resume-1",
+		Suggestions: []api.ResumeTailorBulletSuggestion{},
+		CreatedAt:   now.Format(time.RFC3339),
+		UpdatedAt:   now.Format(time.RFC3339),
 	}
 	if status == "ready" {
 		run.MatchSummary = &api.ResumeTailorMatchSummary{Strengths: []string{"Strong systems evidence"}, Gaps: []string{"Add edge runtime detail"}}
@@ -312,6 +335,32 @@ func tailorRunResponse(tailorRunID, status string, now time.Time) api.ResumeTail
 		}
 	}
 	return run
+}
+
+func decodeResponse(t *testing.T, rec *httptest.ResponseRecorder, target any) {
+	t.Helper()
+	if err := json.Unmarshal(rec.Body.Bytes(), target); err != nil {
+		t.Fatalf("decode response: %v body=%s", err, rec.Body.String())
+	}
+}
+
+func assertRawJSONEqual(t *testing.T, rec *httptest.ResponseRecorder, status int, want json.RawMessage) {
+	t.Helper()
+	if rec.Code != status {
+		t.Fatalf("status = %d want %d body=%s", rec.Code, status, rec.Body.String())
+	}
+	var gotMap, wantMap any
+	if err := json.Unmarshal(rec.Body.Bytes(), &gotMap); err != nil {
+		t.Fatalf("decode got: %v body=%s", err, rec.Body.String())
+	}
+	if err := json.Unmarshal(want, &wantMap); err != nil {
+		t.Fatalf("decode want: %v", err)
+	}
+	gotNorm, _ := json.Marshal(gotMap)
+	wantNorm, _ := json.Marshal(wantMap)
+	if string(gotNorm) != string(wantNorm) {
+		t.Fatalf("json mismatch\ngot:  %s\nwant: %s", gotNorm, wantNorm)
+	}
 }
 
 type resumeTailorFixtureEntry struct {

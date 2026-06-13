@@ -47,7 +47,7 @@ const WORKSPACE_ROUTE: Route = {
     targetJobId: "01918fa0-0000-7000-8000-000000002000",
     jdId: "jd-1",
     planId: "plan-1",
-    resumeVersionId: "rv-1",
+    resumeId: "rv-1",
     roundId: "round-hr",
   },
 };

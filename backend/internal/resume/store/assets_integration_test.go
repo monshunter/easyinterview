@@ -16,11 +16,11 @@ import (
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
-func TestResumeAssetsIntegrationCRUDStateIsolationPaginationAndRollback(t *testing.T) {
+func TestResumesIntegrationCRUDStateIsolationPaginationAndRollback(t *testing.T) {
 	db := openResumeStoreTestDB(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	ensureResumeAssetsErrorCodeColumn(t, ctx, db)
+	ensureResumesErrorCodeColumn(t, ctx, db)
 
 	repo := resumestore.NewRepository(db)
 	now := time.Date(2026, 5, 13, 6, 0, 0, 0, time.UTC)
@@ -72,9 +72,10 @@ func TestResumeAssetsIntegrationCRUDStateIsolationPaginationAndRollback(t *testi
 		UserID:             userA,
 		AssetID:            assetID,
 		ParsedSummary:      []byte(`{"basics":{"name":"Alice"}}`),
+		StructuredProfile:  []byte(`{"basics":{"name":"Alice"}}`),
 		ParsedTextSnapshot: "parsed",
 		OutboxEventID:      "0195f2d0-4a44-7fc2-8f77-1f9c4cf1a006",
-		OutboxEventPayload: []byte(`{"resumeAssetId":"0195f2d0-4a44-7fc2-8f77-1f9c4cf1a004","userId":"0195f2d0-4a44-7fc2-8f77-1f9c4cf1a001","parseStatus":"ready"}`),
+		OutboxEventPayload: []byte(`{"resumeId":"0195f2d0-4a44-7fc2-8f77-1f9c4cf1a004","userId":"0195f2d0-4a44-7fc2-8f77-1f9c4cf1a001","parseStatus":"ready"}`),
 		Now:                now.Add(2 * time.Minute),
 	}); err != nil {
 		t.Fatalf("CompleteParseSuccess: %v", err)
@@ -84,20 +85,17 @@ func TestResumeAssetsIntegrationCRUDStateIsolationPaginationAndRollback(t *testi
 		t.Fatalf("Get ready: %v", err)
 	}
 	if ready.ParseStatus != sharedtypes.TargetJobParseStatusReady || ready.ParsedTextSnapshot == nil || *ready.ParsedTextSnapshot != "parsed" {
-		t.Fatalf("ready asset = %+v", ready)
+		t.Fatalf("ready resume = %+v", ready)
+	}
+	if string(ready.StructuredProfile) != `{"basics":{"name":"Alice"}}` {
+		t.Fatalf("ready structured_profile = %s", ready.StructuredProfile)
 	}
 	var count int
-	if err := db.QueryRowContext(ctx, `select count(*) from outbox_events where aggregate_id = $1 and event_name = 'resume.parse.completed'`, assetID).Scan(&count); err != nil {
+	if err := db.QueryRowContext(ctx, `select count(*) from outbox_events where aggregate_id = $1 and event_name = 'resume.parse.completed' and aggregate_type = 'resume'`, assetID).Scan(&count); err != nil {
 		t.Fatalf("count completed outbox: %v", err)
 	}
 	if count != 1 {
 		t.Fatalf("resume.parse.completed outbox count = %d, want 1", count)
-	}
-	if err := db.QueryRowContext(ctx, `select count(*) from resume_versions where resume_asset_id = $1`, assetID).Scan(&count); err != nil {
-		t.Fatalf("count resume_versions: %v", err)
-	}
-	if count != 0 {
-		t.Fatalf("resume_versions count after parse = %d, want 0", count)
 	}
 
 	for i := 0; i < 24; i++ {
@@ -152,11 +150,11 @@ func TestResumeAssetsIntegrationCRUDStateIsolationPaginationAndRollback(t *testi
 	if err == nil {
 		t.Fatal("expected rollback error for invalid async job status")
 	}
-	if err := db.QueryRowContext(ctx, `select count(*) from resume_assets where id = $1`, badAssetID).Scan(&count); err != nil {
-		t.Fatalf("count rollback asset: %v", err)
+	if err := db.QueryRowContext(ctx, `select count(*) from resumes where id = $1`, badAssetID).Scan(&count); err != nil {
+		t.Fatalf("count rollback resume: %v", err)
 	}
 	if count != 0 {
-		t.Fatalf("rollback asset count = %d, want 0", count)
+		t.Fatalf("rollback resume count = %d, want 0", count)
 	}
 }
 
@@ -177,14 +175,14 @@ func openResumeStoreTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
-func ensureResumeAssetsErrorCodeColumn(t *testing.T, ctx context.Context, db *sql.DB) {
+func ensureResumesErrorCodeColumn(t *testing.T, ctx context.Context, db *sql.DB) {
 	t.Helper()
 	var exists bool
-	if err := db.QueryRowContext(ctx, `select exists(select 1 from information_schema.columns where table_name = 'resume_assets' and column_name = 'error_code')`).Scan(&exists); err != nil {
-		t.Fatalf("check resume_assets.error_code: %v", err)
+	if err := db.QueryRowContext(ctx, `select exists(select 1 from information_schema.columns where table_name = 'resumes' and column_name = 'error_code')`).Scan(&exists); err != nil {
+		t.Fatalf("check resumes.error_code: %v", err)
 	}
 	if !exists {
-		t.Skip("resume_assets.error_code is not migrated; run make migrate-up before live resume store test")
+		t.Skip("resumes.error_code is not migrated; run make migrate-up before live resume store test")
 	}
 }
 
@@ -193,16 +191,10 @@ func cleanupResumeStoreUsers(t *testing.T, db *sql.DB, userIDs ...string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	for _, userID := range userIDs {
-		_, _ = db.ExecContext(ctx, `delete from outbox_events where aggregate_id in (select id from resume_assets where user_id = $1)`, userID)
-		_, _ = db.ExecContext(ctx, `delete from outbox_events where aggregate_id in (select id from resume_tailor_runs where user_id = $1)`, userID)
+		_, _ = db.ExecContext(ctx, `delete from outbox_events where aggregate_id in (select id from resumes where user_id = $1)`, userID)
 		_, _ = db.ExecContext(ctx, `delete from ai_task_runs where user_id = $1`, userID)
-		_, _ = db.ExecContext(ctx, `delete from async_jobs where resource_id in (select id from resume_assets where user_id = $1)`, userID)
-		_, _ = db.ExecContext(ctx, `delete from async_jobs where resource_id in (select id from resume_tailor_runs where user_id = $1)`, userID)
-		_, _ = db.ExecContext(ctx, `delete from resume_version_suggestions where resume_version_id in (select id from resume_versions where user_id = $1)`, userID)
-		_, _ = db.ExecContext(ctx, `update resume_versions set parent_version_id = null where user_id = $1 and parent_version_id is not null`, userID)
-		_, _ = db.ExecContext(ctx, `delete from resume_versions where user_id = $1`, userID)
-		_, _ = db.ExecContext(ctx, `delete from resume_tailor_runs where user_id = $1`, userID)
-		_, _ = db.ExecContext(ctx, `delete from resume_assets where user_id = $1`, userID)
+		_, _ = db.ExecContext(ctx, `delete from async_jobs where resource_id in (select id from resumes where user_id = $1)`, userID)
+		_, _ = db.ExecContext(ctx, `delete from resumes where user_id = $1`, userID)
 		_, _ = db.ExecContext(ctx, `delete from file_objects where user_id = $1`, userID)
 		_, _ = db.ExecContext(ctx, `delete from users where id = $1`, userID)
 	}

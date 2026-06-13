@@ -32,7 +32,7 @@ const PRACTICE_ROUTE: Route = {
     planId: "01918fa0-0000-7000-8000-000000004000",
     targetJobId: "01918fa0-0000-7000-8000-000000002000",
     jdId: "jd-1",
-    resumeVersionId: "01918fa0-0000-7000-8000-000000001000",
+    resumeId: "01918fa0-0000-7000-8000-000000001000",
     roundId: "round-tech1",
     mode: "text",
     modality: "text",

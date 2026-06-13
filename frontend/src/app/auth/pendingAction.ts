@@ -5,7 +5,7 @@
  * Pending actions encode "the user wanted to do X but had to log in first"
  * so that after `verifyAuthEmailChallenge` succeeds the App can restore the
  * original route + business params (planId / targetJobId / jdId /
- * resumeVersionId / roundId etc).
+ * resumeId / roundId etc).
  *
  * The pending action is carried as opaque route params on the auth_* routes
  * so we can survive a hash-based redirect through the email verify link
@@ -22,7 +22,7 @@ export const PENDING_ACTION_INTERVIEW_KEYS = [
   "targetJobId",
   "jobId",
   "jdId",
-  "resumeVersionId",
+  "resumeId",
   "roundId",
   "roundName",
   "mode",

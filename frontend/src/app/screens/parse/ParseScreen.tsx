@@ -235,7 +235,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     if (!targetJob || confirming) return;
     const workspaceParams: Record<string, string> = {
       ...interviewContextFromTargetJob(targetJob, {
-        resumeVersionId: route.params.resumeVersionId,
+        resumeId: route.params.resumeId,
       }),
     };
 

@@ -172,9 +172,9 @@ events:
   - name: resume.parse.completed
     version: 1
     producer: backend_async
-    aggregateType: resume_asset
+    aggregateType: resume
     requiredPayload:
-      resumeAssetId: { type: uuidv7, source: spec:3.1.4 }
+      resumeId: { type: uuidv7, source: spec:3.1.4 }
       userId: { type: uuidv7, source: spec:3.1.4 }
       parseStatus: { type: $ref:b1.TargetJobParseStatus, source: spec:3.1.4 }
     optionalPayload: {}
@@ -182,10 +182,10 @@ events:
   - name: resume.tailor.completed
     version: 1
     producer: backend_async
-    aggregateType: resume_tailor_run
+    aggregateType: resume
     requiredPayload:
       tailorRunId: { type: uuidv7, source: spec:3.1.4 }
-      resumeAssetId: { type: uuidv7, source: spec:3.1.4 }
+      resumeId: { type: uuidv7, source: spec:3.1.4 }
       targetJobId: { type: uuidv7, source: spec:3.1.4 }
       mode: { type: $ref:event.ResumeTailorMode, source: spec:3.1.4 }
       status: { type: $ref:b1.ReportStatus, source: spec:3.1.4 }

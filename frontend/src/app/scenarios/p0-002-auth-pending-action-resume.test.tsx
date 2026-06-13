@@ -9,7 +9,7 @@
  * `立即面试` while signed-out must redirect to `auth_login`. After
  * `verifyAuthEmailChallenge` succeeds, App must restore the `practice` route
  * with all five interview-context params (planId / targetJobId / jdId /
- * resumeVersionId / roundId) intact.
+ * resumeId / roundId) intact.
  */
 import { describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -38,7 +38,7 @@ const PRACTICE_PENDING_ACTION: PendingAction = {
     planId: "plan-tj-1",
     targetJobId: "tj-1",
     jdId: "jd-tj-1",
-    resumeVersionId: "frontend-v3",
+    resumeId: "frontend-v3",
     roundId: "round-manager",
   },
 };
@@ -121,7 +121,7 @@ describe("E2E.P0.002 auth pending-action resume", () => {
       PRACTICE_PENDING_ACTION.params.jdId,
     );
     expect(practice.getAttribute("data-resume-version-id")).toBe(
-      PRACTICE_PENDING_ACTION.params.resumeVersionId,
+      PRACTICE_PENDING_ACTION.params.resumeId,
     );
     expect(practice.getAttribute("data-round-id")).toBe(
       PRACTICE_PENDING_ACTION.params.roundId,

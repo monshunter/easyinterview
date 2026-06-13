@@ -113,7 +113,7 @@ describe("WorkspaceEmptyState", () => {
         name: "workspace",
         params: {
           targetJobId: "01918fa0-0000-7000-8000-000000009999",
-          resumeVersionId: "01918fa0-0000-7000-8000-000000001000",
+          resumeId: "01918fa0-0000-7000-8000-000000001000",
         },
       },
       clientWithScenarios({ targetJobScenario: "not-found" }),
@@ -136,7 +136,7 @@ describe("WorkspaceEmptyState", () => {
         name: "workspace",
         params: {
           targetJobId: "01918fa0-0000-7000-8000-000000002000",
-          resumeVersionId: "01918fa0-0000-7000-8000-000000001000",
+          resumeId: "01918fa0-0000-7000-8000-000000001000",
         },
       },
       client,
@@ -157,7 +157,7 @@ describe("WorkspaceEmptyState", () => {
 });
 
 describe("WorkspaceMissingResumeState", () => {
-  it("renders when targetJobId exists but resumeVersionId missing", async () => {
+  it("renders when targetJobId exists but resumeId missing", async () => {
     renderScreen({
       name: "workspace",
       params: {

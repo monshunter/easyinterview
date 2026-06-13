@@ -31,13 +31,7 @@ func TestSQLStoreMarkDeleteRequestCompletedDeletesAccountIdentityAndPreservesReq
 	mock.ExpectExec("update privacy_requests").
 		WithArgs(requestID, now, 1, userID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectExec("delete from resume_version_suggestions").
-		WithArgs(userID).
-		WillReturnResult(sqlmock.NewResult(0, 2))
-	mock.ExpectExec("update resume_versions").
-		WithArgs(userID).
-		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectExec("delete from resume_versions").
+	mock.ExpectExec("delete from resumes").
 		WithArgs(userID).
 		WillReturnResult(sqlmock.NewResult(0, 3))
 	mock.ExpectExec("delete from auth_challenges").

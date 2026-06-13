@@ -38,39 +38,11 @@ describe("ResumeWorkshopScreen route param parsing", () => {
     expect(flow).toHaveAttribute("data-create-mode", "paste");
   });
 
-  it("dispatches flow=branch to ResumeBranchFlow and preserves branchOriginalId", () => {
-    renderResumeWorkshop({
-      flow: "branch",
-      branchOriginalId: "01918fa0-0000-7000-8000-000000001000",
-      targetJobId: "01918fa0-0000-7000-8000-000000002000",
-    });
-    const root = screen.getByTestId("resume-workshop-screen");
-    expect(root).toHaveAttribute("data-flow", "branch");
-    expect(root).toHaveAttribute(
-      "data-branch-original-id",
-      "01918fa0-0000-7000-8000-000000001000",
-    );
-    expect(root).toHaveAttribute(
-      "data-target-job-id",
-      "01918fa0-0000-7000-8000-000000002000",
-    );
-    const branchRoot = screen.getByTestId("resume-branch-flow");
-    expect(branchRoot).toBeInTheDocument();
-    expect(branchRoot).toHaveAttribute(
-      "data-branch-original-id",
-      "01918fa0-0000-7000-8000-000000001000",
-    );
-    // Phase 1: NotImplementedPlaceholder no longer participates in flow=branch.
-    expect(
-      screen.queryByTestId("resume-workshop-not-implemented"),
-    ).not.toBeInTheDocument();
-  });
-
-  it("renders the detail container when versionId is set without an explicit tab", () => {
-    renderResumeWorkshop({ versionId: "0195f2d0-0001-7000-8000-000000000201" });
+  it("renders the detail container when resumeId is set without an explicit tab", () => {
+    renderResumeWorkshop({ resumeId: "0195f2d0-0001-7000-8000-000000000201" });
     expect(screen.getByTestId("resume-workshop-detail")).toBeInTheDocument();
     expect(screen.getByTestId("resume-workshop-detail")).toHaveAttribute(
-      "data-resume-version-id",
+      "data-resume-id",
       "0195f2d0-0001-7000-8000-000000000201",
     );
     expect(screen.queryByTestId("resume-workshop-list")).not.toBeInTheDocument();
@@ -78,16 +50,16 @@ describe("ResumeWorkshopScreen route param parsing", () => {
 
   it("preserves an explicit tab=preview on the detail container", () => {
     renderResumeWorkshop({
-      versionId: "0195f2d0-0001-7000-8000-000000000201",
+      resumeId: "0195f2d0-0001-7000-8000-000000000201",
       tab: "preview",
     });
     const detail = screen.getByTestId("resume-workshop-detail");
     expect(detail).toHaveAttribute("data-tab", "preview");
   });
 
-  it("preserves an explicit tab=rewrites on the detail container (TARGETED entries are not rewritten to preview)", () => {
+  it("preserves an explicit tab=rewrites on the detail container", () => {
     renderResumeWorkshop({
-      versionId: "0195f2d0-0001-7000-8000-000000000202",
+      resumeId: "0195f2d0-0001-7000-8000-000000000202",
       tab: "rewrites",
     });
     const detail = screen.getByTestId("resume-workshop-detail");
@@ -96,32 +68,22 @@ describe("ResumeWorkshopScreen route param parsing", () => {
   });
 });
 
-describe("ResumeWorkshopScreen flow=branch dispatch (plan 003)", () => {
-  it("renders ResumeBranchFlow for flow=branch and never falls back to NotImplementedPlaceholder", () => {
-    renderResumeWorkshop({
-      flow: "branch",
-      branchOriginalId: "01918fa0-0000-7000-8000-000000001000",
-    });
-    expect(screen.getByTestId("resume-branch-flow")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("resume-workshop-not-implemented"),
-    ).not.toBeInTheDocument();
-  });
-
-  it("shows the missing-id fallback panel when flow=branch is opened without a branchOriginalId", () => {
-    renderResumeWorkshop({ flow: "branch" });
-    expect(screen.getByTestId("resume-branch-flow")).toBeInTheDocument();
-    expect(screen.getByTestId("resume-branch-missing-id")).toBeInTheDocument();
-  });
-
-  it("does not render ResumeBranchFlow when flow=create is in effect (CreateFlow takes over)", () => {
-    renderResumeWorkshop({ flow: "create" });
-    expect(screen.queryByTestId("resume-branch-flow")).not.toBeInTheDocument();
-    expect(screen.getByTestId("resume-create-flow")).toBeInTheDocument();
-  });
-
-  it("does not render ResumeBranchFlow when flow=list is in effect", () => {
+describe("ResumeWorkshopScreen flow dispatch (D-20 flatten — no branch flow)", () => {
+  it("renders the flat list for flow=list", () => {
     renderResumeWorkshop({});
+    expect(screen.getByTestId("resume-workshop-list")).toBeInTheDocument();
+  });
+
+  it("renders the create flow for flow=create (no branch flow remains)", () => {
+    renderResumeWorkshop({ flow: "create" });
+    expect(screen.getByTestId("resume-create-flow")).toBeInTheDocument();
+    expect(screen.queryByTestId("resume-workshop-list")).not.toBeInTheDocument();
+  });
+
+  it("does not expose a retired branch flow surface for any flow value", () => {
+    renderResumeWorkshop({ flow: "branch" });
+    // D-20 removed the version-tree branch flow. An unknown flow falls back to
+    // the flat list; the branch surface must never render.
     expect(screen.queryByTestId("resume-branch-flow")).not.toBeInTheDocument();
     expect(screen.getByTestId("resume-workshop-list")).toBeInTheDocument();
   });

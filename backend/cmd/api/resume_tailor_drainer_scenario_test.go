@@ -16,16 +16,16 @@ import (
 )
 
 func TestResumeTailorDrainerHTTPScenario(t *testing.T) {
-	now := time.Date(2026, 5, 18, 14, 0, 0, 0, time.UTC)
+	now := time.Date(2026, 6, 13, 14, 0, 0, 0, time.UTC)
 	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0001"
-	versionID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0002"
-	store := newAPITailorStore(apiTailorContext(tailorRunID, versionID))
+	resumeID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0002"
+	store := newAPITailorStore(apiTailorContext(tailorRunID, resumeID))
 	asyncStore := &apiResumeAsyncStore{job: targetjob.ClaimedJob{
 		JobID:        "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0003",
 		JobType:      string(jobs.JobTypeResumeTailor),
 		ResourceType: "resume_tailor_run",
 		ResourceID:   tailorRunID,
-		Payload:      []byte(`{"tailorRunId":"` + tailorRunID + `","resumeVersionId":"` + versionID + `"}`),
+		Payload:      []byte(`{"resumeId":"` + resumeID + `","targetJobId":"0195f2d0-4a44-7fc2-8f77-1f9c4cfc0003","mode":"gap_review"}`),
 		Attempts:     1,
 		MaxAttempts:  5,
 	}}
@@ -54,14 +54,14 @@ func TestResumeTailorDrainerHTTPScenario(t *testing.T) {
 		t.Fatalf("drainer did not process resume_tailor successfully: processed=%v outcome=%+v", processed, asyncStore.outcome)
 	}
 	success := store.successes[tailorRunID]
-	if success == nil || success.ResumeVersionID != versionID || len(success.Suggestions) != 3 {
+	if success == nil || success.ResumeID != resumeID || len(success.Suggestions) != 3 {
 		t.Fatalf("tailor success not persisted: %+v", success)
 	}
 	var outbox map[string]any
 	if err := json.Unmarshal(success.OutboxEventPayload, &outbox); err != nil {
 		t.Fatalf("decode outbox: %v", err)
 	}
-	if len(outbox) != 5 || outbox["tailorRunId"] != tailorRunID || outbox["status"] != "ready" {
+	if len(outbox) != 5 || outbox["tailorRunId"] != tailorRunID || outbox["resumeId"] != resumeID || outbox["status"] != "ready" {
 		t.Fatalf("outbox payload drift: %+v", outbox)
 	}
 	if len(taskRuns.rows) != 1 || taskRuns.rows[0].Capability != aiclient.AITaskRunTaskResumeTailor || taskRuns.rows[0].Status != aiclient.AITaskRunStatusSuccess {
@@ -70,21 +70,21 @@ func TestResumeTailorDrainerHTTPScenario(t *testing.T) {
 }
 
 func TestResumeTailorDrainerFailureScenario(t *testing.T) {
-	now := time.Date(2026, 5, 18, 14, 30, 0, 0, time.UTC)
+	now := time.Date(2026, 6, 13, 14, 30, 0, 0, time.UTC)
 	timeoutRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfb0001"
 	invalidRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfb0002"
 	retryRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfb0003"
-	versionID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfb0004"
+	resumeID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfb0004"
 	store := newAPITailorStore(
-		apiTailorContext(timeoutRunID, versionID),
-		apiTailorContext(invalidRunID, versionID),
-		apiTailorContext(retryRunID, versionID),
+		apiTailorContext(timeoutRunID, resumeID),
+		apiTailorContext(invalidRunID, resumeID),
+		apiTailorContext(retryRunID, resumeID),
 	)
 	asyncStore := &apiResumeRetryAsyncStore{jobs: []targetjob.ClaimedJob{
-		apiTailorClaimedJob(timeoutRunID, versionID, 1),
-		apiTailorClaimedJob(invalidRunID, versionID, 1),
-		apiTailorClaimedJob(retryRunID, versionID, 1),
-		apiTailorClaimedJob(retryRunID, versionID, 2),
+		apiTailorClaimedJob(timeoutRunID, resumeID, 1),
+		apiTailorClaimedJob(invalidRunID, resumeID, 1),
+		apiTailorClaimedJob(retryRunID, resumeID, 1),
+		apiTailorClaimedJob(retryRunID, resumeID, 2),
 	}}
 	taskRuns := &apiTailorTaskRuns{}
 	handler := resumejobs.NewTailorHandler(resumejobs.TailorHandlerOptions{
@@ -130,6 +130,8 @@ func TestResumeTailorDrainerFailureScenario(t *testing.T) {
 	if len(asyncStore.outcomes) != 4 {
 		t.Fatalf("outcomes = %+v", asyncStore.outcomes)
 	}
+	// D-20: failures surface through JobOutcome; the runner kernel persists the
+	// async_jobs row status (there is no resume_tailor_runs status to flip).
 	if asyncStore.outcomes[0].ErrorCode != sharederrors.CodeAiProviderTimeout || !asyncStore.outcomes[0].Retryable {
 		t.Fatalf("timeout outcome = %+v", asyncStore.outcomes[0])
 	}
@@ -142,37 +144,35 @@ func TestResumeTailorDrainerFailureScenario(t *testing.T) {
 	if !asyncStore.outcomes[3].Succeeded {
 		t.Fatalf("retry second outcome = %+v", asyncStore.outcomes[3])
 	}
-	if store.failures[timeoutRunID].ErrorCode != sharederrors.CodeAiProviderTimeout ||
-		store.failures[invalidRunID].ErrorCode != sharederrors.CodeAiOutputInvalid ||
-		store.failures[retryRunID].ErrorCode != sharederrors.CodeAiProviderTimeout {
-		t.Fatalf("failure persistence drift: %+v", store.failures)
-	}
+	// Only the retried run reaches a ready result + outbox; failed runs persist nothing.
 	if store.successes[retryRunID] == nil || len(store.successes) != 1 {
 		t.Fatalf("ready-only success/outbox drift: successes=%+v", store.successes)
+	}
+	if store.successes[timeoutRunID] != nil || store.successes[invalidRunID] != nil {
+		t.Fatalf("failed runs must not persist a ready result: successes=%+v", store.successes)
 	}
 	if len(taskRuns.rows) != 4 {
 		t.Fatalf("ai_task_runs rows = %+v", taskRuns.rows)
 	}
 }
 
-func apiTailorClaimedJob(tailorRunID string, versionID string, attempts int32) targetjob.ClaimedJob {
+func apiTailorClaimedJob(tailorRunID string, resumeID string, attempts int32) targetjob.ClaimedJob {
 	return targetjob.ClaimedJob{
 		JobID:        tailorRunID,
 		JobType:      string(jobs.JobTypeResumeTailor),
 		ResourceType: "resume_tailor_run",
 		ResourceID:   tailorRunID,
-		Payload:      []byte(`{"tailorRunId":"` + tailorRunID + `","resumeVersionId":"` + versionID + `"}`),
+		Payload:      []byte(`{"resumeId":"` + resumeID + `","targetJobId":"0195f2d0-4a44-7fc2-8f77-1f9c4cfc0003","mode":"gap_review"}`),
 		Attempts:     attempts,
 		MaxAttempts:  5,
 	}
 }
 
-func apiTailorContext(tailorRunID string, versionID string) resumestore.TailorJobContext {
+func apiTailorContext(tailorRunID string, resumeID string) resumestore.TailorJobContext {
 	return resumestore.TailorJobContext{
 		TailorRunID:       tailorRunID,
 		UserID:            "0195f2d0-4a44-7fc2-8f77-1f9c4cfc0001",
-		ResumeVersionID:   versionID,
-		ResumeAssetID:     "0195f2d0-4a44-7fc2-8f77-1f9c4cfc0002",
+		ResumeID:          resumeID,
 		TargetJobID:       "0195f2d0-4a44-7fc2-8f77-1f9c4cfc0003",
 		Mode:              "gap_review",
 		Language:          "en",
@@ -186,18 +186,14 @@ func apiTailorContext(tailorRunID string, versionID string) resumestore.TailorJo
 }
 
 type apiTailorStore struct {
-	contexts   map[string]resumestore.TailorJobContext
-	successes  map[string]*resumestore.CompleteTailorRunSuccessInput
-	failures   map[string]*resumestore.TailorRunFailureInput
-	generating map[string]int
+	contexts  map[string]resumestore.TailorJobContext
+	successes map[string]*resumestore.CompleteTailorRunSuccessInput
 }
 
 func newAPITailorStore(contexts ...resumestore.TailorJobContext) *apiTailorStore {
 	out := &apiTailorStore{
-		contexts:   map[string]resumestore.TailorJobContext{},
-		successes:  map[string]*resumestore.CompleteTailorRunSuccessInput{},
-		failures:   map[string]*resumestore.TailorRunFailureInput{},
-		generating: map[string]int{},
+		contexts:  map[string]resumestore.TailorJobContext{},
+		successes: map[string]*resumestore.CompleteTailorRunSuccessInput{},
 	}
 	for _, ctx := range contexts {
 		out.contexts[ctx.TailorRunID] = ctx
@@ -205,22 +201,10 @@ func newAPITailorStore(contexts ...resumestore.TailorJobContext) *apiTailorStore
 	return out
 }
 
-func (s *apiTailorStore) MarkTailorRunGenerating(_ context.Context, in resumestore.TailorRunStatusInput) (resumestore.TailorRunRecord, error) {
-	ctx, ok := s.contexts[in.TailorRunID]
-	if !ok {
-		return resumestore.TailorRunRecord{}, resumestore.ErrTailorRunNotFound
-	}
-	s.generating[in.TailorRunID]++
-	return resumestore.TailorRunRecord{ID: in.TailorRunID, UserID: ctx.UserID, ResumeAssetID: ctx.ResumeAssetID, TargetJobID: ctx.TargetJobID, Mode: ctx.Mode, Status: "generating"}, nil
-}
-
-func (s *apiTailorStore) GetForTailor(_ context.Context, tailorRunID string, resumeVersionID string) (resumestore.TailorJobContext, error) {
+func (s *apiTailorStore) GetForTailor(_ context.Context, tailorRunID string) (resumestore.TailorJobContext, error) {
 	ctx, ok := s.contexts[tailorRunID]
 	if !ok {
 		return resumestore.TailorJobContext{}, resumestore.ErrTailorRunNotFound
-	}
-	if ctx.ResumeVersionID == "" {
-		ctx.ResumeVersionID = resumeVersionID
 	}
 	return ctx, nil
 }
@@ -229,12 +213,6 @@ func (s *apiTailorStore) CompleteTailorRunSuccess(_ context.Context, in resumest
 	cp := in
 	s.successes[in.TailorRunID] = &cp
 	return nil
-}
-
-func (s *apiTailorStore) MarkTailorRunFailed(_ context.Context, in resumestore.TailorRunFailureInput) (resumestore.TailorRunRecord, error) {
-	cp := in
-	s.failures[in.TailorRunID] = &cp
-	return resumestore.TailorRunRecord{ID: in.TailorRunID, Status: "failed"}, nil
 }
 
 type apiTailorRegistry struct{}

@@ -89,7 +89,7 @@ func NewService(opts ServiceOptions) *Service {
 type CreatePlanRequest struct {
 	UserID               string
 	TargetJobID          string
-	ResumeAssetID        string
+	ResumeID             string
 	SourceReportID       string
 	SourceDebriefID      string
 	Goal                 sharedtypes.PracticeGoal
@@ -107,7 +107,7 @@ type CreatePlanStoreInput struct {
 	AuditEventID         string
 	UserID               string
 	TargetJobID          string
-	ResumeAssetID        string
+	ResumeID             string
 	SourceReportID       string
 	SourceDebriefID      string
 	Goal                 sharedtypes.PracticeGoal
@@ -173,8 +173,8 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 	if !validPracticeGoal(in.Goal) {
 		return PlanRecord{}, validationError("goal is invalid", map[string]any{"field": "goal", "goal": string(in.Goal)})
 	}
-	if strings.TrimSpace(in.ResumeAssetID) == "" {
-		return PlanRecord{}, validationError("A resume asset must be bound before creating this practice plan.", map[string]any{"field": "resumeAssetId"})
+	if strings.TrimSpace(in.ResumeID) == "" {
+		return PlanRecord{}, validationError("A resume asset must be bound before creating this practice plan.", map[string]any{"field": "resumeId"})
 	}
 	sourceReportID := strings.TrimSpace(in.SourceReportID)
 	sourceDebriefID := strings.TrimSpace(in.SourceDebriefID)
@@ -206,7 +206,7 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 		AuditEventID:         s.newID(),
 		UserID:               strings.TrimSpace(in.UserID),
 		TargetJobID:          strings.TrimSpace(in.TargetJobID),
-		ResumeAssetID:        strings.TrimSpace(in.ResumeAssetID),
+		ResumeID:             strings.TrimSpace(in.ResumeID),
 		SourceReportID:       sourceReportID,
 		SourceDebriefID:      sourceDebriefID,
 		Goal:                 in.Goal,
@@ -221,8 +221,8 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 	})
 	if stderrs.Is(err, ErrPlanPrerequisiteNotFound) {
 		return PlanRecord{}, validationError("target job or resume asset is not available", map[string]any{
-			"targetJobId":   strings.TrimSpace(in.TargetJobID),
-			"resumeAssetId": strings.TrimSpace(in.ResumeAssetID),
+			"targetJobId": strings.TrimSpace(in.TargetJobID),
+			"resumeId":    strings.TrimSpace(in.ResumeID),
 		})
 	}
 	if err != nil {

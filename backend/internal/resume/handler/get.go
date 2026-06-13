@@ -11,11 +11,11 @@ import (
 )
 
 type GetService interface {
-	GetResume(ctx context.Context, userID string, resumeAssetID string) (api.ResumeAsset, error)
+	GetResume(ctx context.Context, userID string, resumeID string) (api.Resume, error)
 }
 
-// GetResume binds GET /api/v1/resumes/{resumeAssetId}.
-func (h *Handler) GetResume(w http.ResponseWriter, r *http.Request, resumeAssetID string) {
+// GetResume binds GET /api/v1/resumes/{resumeId}.
+func (h *Handler) GetResume(w http.ResponseWriter, r *http.Request, resumeID string) {
 	if h == nil {
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "resume service is not configured", nil)
 		return
@@ -30,10 +30,10 @@ func (h *Handler) GetResume(w http.ResponseWriter, r *http.Request, resumeAssetI
 		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required", nil)
 		return
 	}
-	out, err := service.GetResume(r.Context(), userID, resumeAssetID)
+	out, err := service.GetResume(r.Context(), userID, resumeID)
 	if err != nil {
 		if errors.Is(err, resume.ErrNotFound) {
-			writeAPIError(w, http.StatusNotFound, sharederrors.CodeTargetJobNotFound, "resume not found", nil)
+			writeAPIError(w, http.StatusNotFound, sharederrors.CodeResourceNotFound, "resume not found", nil)
 			return
 		}
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "resume get failed", nil)

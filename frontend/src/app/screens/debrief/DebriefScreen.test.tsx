@@ -12,7 +12,7 @@ import type {
   Job,
   PracticePlan,
   PracticeSession,
-  ResumeVersion,
+  Resume,
   RuntimeConfig,
   TargetJob,
   UserContext,
@@ -92,23 +92,17 @@ const targetJob: TargetJob = {
   updatedAt: "2026-05-17T00:00:00Z",
 };
 
-const resumeVersion: ResumeVersion = {
+const resume: Resume = {
   createdAt: "2026-05-17T00:00:00Z",
-  displayName: "Backend resume v3",
-  id: "rv-3",
-  provenance: {
-    dataSourceVersion: "resume-v3",
-    featureFlag: "resume",
-    language: "en-US",
-    modelId: "fixture",
-    promptVersion: "p1",
-    rubricVersion: "r1",
-  },
-  resumeAssetId: "ra-1",
+  displayName: "Backend resume",
+  id: "resume-3",
+  language: "en-US",
+  parseStatus: "ready",
+  status: "active",
+  sourceType: "upload",
   structuredProfile: {},
-  suggestions: [],
+  title: "Backend resume",
   updatedAt: "2026-05-17T00:00:00Z",
-  versionType: "targeted",
 };
 
 const practiceSession: PracticeSession = {
@@ -185,7 +179,7 @@ function createDebriefClient(overrides: Partial<Record<keyof EasyInterviewClient
     getRuntimeConfig: vi.fn().mockResolvedValue(runtimeConfig),
     getMe: vi.fn().mockResolvedValue(user),
     getTargetJob: vi.fn().mockResolvedValue(targetJob),
-    getResumeVersion: vi.fn().mockResolvedValue(resumeVersion),
+    getResume: vi.fn().mockResolvedValue(resume),
     getPracticeSession: vi.fn().mockResolvedValue(practiceSession),
     suggestDebriefQuestions: vi.fn().mockResolvedValue({
       suggestions: [
@@ -246,7 +240,7 @@ describe("DebriefScreen — TestDebriefScreen_DefaultRender", () => {
       params: {
         targetJobId: "tj-1",
         sessionId: "ps-1",
-        resumeVersionId: "rv-3",
+        resumeId: "resume-3",
       },
     });
 
@@ -257,7 +251,7 @@ describe("DebriefScreen — TestDebriefScreen_DefaultRender", () => {
       expect(client.suggestDebriefQuestions).toHaveBeenCalledWith({
         count: 6,
         language: "en-US",
-        resumeVersionId: "rv-3",
+        resumeId: "resume-3",
         sessionId: "ps-1",
         targetJobId: "tj-1",
       });
@@ -273,7 +267,7 @@ describe("DebriefScreen — TestDebriefScreen_DefaultRender", () => {
       lang: "en",
       params: {
         targetJobId: "tj-1",
-        resumeVersionId: "rv-3",
+        resumeId: "resume-3",
       },
     });
 
@@ -320,7 +314,7 @@ describe("DebriefScreen — TestDebriefScreen_DefaultRender", () => {
       params: {
         targetJobId: "tj-1",
         sessionId: "ps-1",
-        resumeVersionId: "rv-3",
+        resumeId: "resume-3",
       },
     });
 
@@ -340,7 +334,7 @@ describe("DebriefScreen — TestDebriefScreen_DefaultRender", () => {
         expect.objectContaining({
           goal: "debrief",
           language: "en-US",
-          resumeAssetId: "ra-1",
+          resumeId: "resume-3",
           sourceDebriefId: "deb-1",
           targetJobId: "tj-1",
         }),
@@ -366,7 +360,7 @@ describe("DebriefScreen — TestDebriefScreen_DefaultRender", () => {
           mode: "text",
           planId: "plan-debrief-1",
           practiceGoal: "debrief",
-          resumeVersionId: "rv-3",
+          resumeId: "resume-3",
           sessionId: "ps-debrief-new",
           targetJobId: "tj-1",
         }),
@@ -386,7 +380,7 @@ describe("DebriefScreen — TestDebriefScreen_DefaultRender", () => {
       params: {
         targetJobId: "01918fa0-0000-7000-8000-000000002000",
         sessionId: "01918fa0-0000-7000-8000-000000005000",
-        resumeVersionId: "0195f2d0-0001-7000-8000-000000000202",
+        resumeId: "01918fa0-0000-7000-8000-000000001000",
       },
     });
 

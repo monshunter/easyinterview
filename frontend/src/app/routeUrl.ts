@@ -64,7 +64,7 @@ const PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = (() => {
 const WORKSPACE_SAFE = new Set([
   "targetJobId",
   "jobId",
-  "resumeVersionId",
+  "resumeId",
   "sourceReportId",
   "planId",
   "roundId",
@@ -92,7 +92,7 @@ const PRACTICE_SAFE = new Set([
   "targetJobId",
   "jobId",
   "jdId",
-  "resumeVersionId",
+  "resumeId",
   "sourceReportId",
   "roundId",
   "roundName",
@@ -111,7 +111,7 @@ const GENERATING_SAFE = new Set([
   "targetJobId",
   "jobId",
   "jdId",
-  "resumeVersionId",
+  "resumeId",
   "roundId",
   "roundName",
   "mode",
@@ -128,7 +128,7 @@ const REPORT_SAFE = new Set([
   "targetJobId",
   "jobId",
   "jdId",
-  "resumeVersionId",
+  "resumeId",
   "roundId",
   "roundName",
   "mode",
@@ -142,13 +142,11 @@ const REPORT_SAFE = new Set([
 ]);
 
 const RESUME_VERSIONS_SAFE = new Set([
-  "resumeAssetId",
-  "versionId",
+  "resumeId",
   "flow",
   "tab",
   "createMode",
   "targetJobId",
-  "branchOriginalId",
   "tailorRunId",
 ]);
 
@@ -157,7 +155,7 @@ const DEBRIEF_SAFE = new Set([
   "jobId",
   "jdId",
   "sessionId",
-  "resumeVersionId",
+  "resumeId",
   "roundId",
   "roundName",
   "mode",
@@ -172,14 +170,14 @@ const DEBRIEF_SAFE = new Set([
 const PARSE_SAFE = new Set([
   "jdId",
   "targetJobId",
-  "resumeVersionId",
+  "resumeId",
   "importId",
   "source",
   // product-scope D-17 removed the jd_match -> parse reverse handoff; the
   // sourceJobMatchId param no longer has a producer.
 ]);
 
-const HOME_SAFE = new Set(["pendingImportId", "source", "resumeVersionId"]);
+const HOME_SAFE = new Set(["pendingImportId", "source", "resumeId"]);
 
 const COMPANY_INTEL_SAFE = new Set([
   "targetJobId",

@@ -45,8 +45,8 @@ export const DebriefAnalysisStep: FC<DebriefAnalysisStepProps> = ({
       key: "resume",
       eyebrow: t("debrief.contextStrip.resumeLabel"),
       title:
-        selectedContext.resumeAsset?.title ??
-        selectedContext.resumeVersion?.id ??
+        selectedContext.resume?.displayName ??
+        selectedContext.resume?.title ??
         t("debrief.contextStrip.unset"),
       body: debrief.questions?.[2]?.aiAnalysis ?? "—",
     },

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { EasyInterviewClient } from "../../../../api/generated/client";
@@ -16,18 +16,17 @@ import { ResumeWorkshopScreen } from "../ResumeWorkshopScreen";
 
 import getRuntimeConfigFixture from "../../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../../openapi/fixtures/Auth/getMe.json";
-import getResumeVersionFixture from "../../../../../../openapi/fixtures/Resumes/getResumeVersion.json";
-import exportResumeVersionFixture from "../../../../../../openapi/fixtures/Resumes/exportResumeVersion.json";
+import getResumeFixture from "../../../../../../openapi/fixtures/Resumes/getResume.json";
+import exportResumeFixture from "../../../../../../openapi/fixtures/Resumes/exportResume.json";
 
 const FIXTURES = [
   getRuntimeConfigFixture,
   getMeFixture,
-  getResumeVersionFixture,
-  exportResumeVersionFixture,
+  getResumeFixture,
+  exportResumeFixture,
 ];
 
-const MASTER_VERSION_ID =
-  getResumeVersionFixture.scenarios["master-default"].response.body.id;
+const RESUME_ID = getResumeFixture.scenarios.default.response.body.id;
 
 interface ToastCall {
   message: string;
@@ -55,12 +54,12 @@ afterEach(() => {
   ).eiToast;
 });
 
-describe("exportResumeVersion P0 fallback (Phase 3.7)", () => {
+describe("exportResume P0 fallback (Phase 3.7)", () => {
   it("clicking Export PDF on the preview tab passes a generated Idempotency-Key header to the request and surfaces the not-available toast", async () => {
     let capturedHeaders: Record<string, string> | null = null;
     const baseFetch = createFixtureBackedFetch(
       createFixtureRegistry(FIXTURES),
-      { scenario: "master-default" },
+      { scenario: "default" },
     );
     const fetchSpy = (
       input: RequestInfo | URL,
@@ -75,11 +74,11 @@ describe("exportResumeVersion P0 fallback (Phase 3.7)", () => {
     };
 
     const client = new EasyInterviewClient({ fetch: fetchSpy });
-    const exportSpy = vi.spyOn(client, "exportResumeVersion");
+    const exportSpy = vi.spyOn(client, "exportResume");
 
     const route: Route = {
       name: "resume_versions",
-      params: { versionId: MASTER_VERSION_ID, tab: "preview" },
+      params: { resumeId: RESUME_ID, tab: "preview" },
     };
 
     render(
@@ -97,7 +96,13 @@ describe("exportResumeVersion P0 fallback (Phase 3.7)", () => {
       </DisplayPreferencesProvider>,
     );
 
-    const exportBtn = await screen.findByTestId("resume-detail-export-pdf");
+    // Export PDF appears in both header and preview tab; click the preview one.
+    const previewContent = await screen.findByTestId(
+      "resume-detail-preview-content",
+    );
+    const exportBtn = within(previewContent).getByTestId(
+      "resume-detail-export-pdf",
+    );
     await userEvent.setup().click(exportBtn);
 
     await waitFor(() => {
@@ -105,6 +110,7 @@ describe("exportResumeVersion P0 fallback (Phase 3.7)", () => {
     });
 
     const args = exportSpy.mock.calls[0]!;
+    expect(args[0]).toBe(RESUME_ID);
     const opts = args[1] as { idempotencyKey?: string } | undefined;
     expect(opts?.idempotencyKey).toMatch(/^v1\.\d+\./);
 

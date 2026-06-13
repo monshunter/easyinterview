@@ -153,19 +153,19 @@ EXPECTED_EVENTS = {
     },
     "resume.parse.completed": {
         "producer": "backend_async",
-        "aggregateType": "resume_asset",
+        "aggregateType": "resume",
         "requiredPayload": {
-            "resumeAssetId": "uuidv7",
+            "resumeId": "uuidv7",
             "userId": "uuidv7",
             "parseStatus": "$ref:b1.TargetJobParseStatus",
         },
     },
     "resume.tailor.completed": {
         "producer": "backend_async",
-        "aggregateType": "resume_tailor_run",
+        "aggregateType": "resume",
         "requiredPayload": {
             "tailorRunId": "uuidv7",
-            "resumeAssetId": "uuidv7",
+            "resumeId": "uuidv7",
             "targetJobId": "uuidv7",
             "mode": "$ref:event.ResumeTailorMode",
             "status": "$ref:b1.ReportStatus",
@@ -218,26 +218,6 @@ EXPECTED_EVENTS = {
             "userId": "uuidv7",
             "requestType": "$ref:b1.PrivacyRequestType",
             "status": "$ref:b1.PrivacyRequestStatus",
-        },
-    },
-    "jd_match.recommendation.completed": {
-        "producer": "backend_async",
-        "aggregateType": "agent_scan",
-        "requiredPayload": {
-            "userId": "uuidv7",
-            "agentScanId": "uuidv7",
-            "recommendationCount": "int",
-            "completedAt": "timestamptz",
-        },
-    },
-    "jd_match.search.completed": {
-        "producer": "api",
-        "aggregateType": "search_run",
-        "requiredPayload": {
-            "userId": "uuidv7",
-            "searchRunId": "uuidv7",
-            "resultCount": "int",
-            "completedAt": "timestamptz",
         },
     },
 }
@@ -305,20 +285,6 @@ EXPECTED_JOBS = {
         "triggerEvent": "api:auth_email_start",
         "ownerDomain": "C1+C8",
         "priority": "low",
-    },
-    "jd_match_agent_scan": {
-        "asynqTask": "jd_match.agent_scan",
-        "apiFacing": False,
-        "triggerEvent": "api:internal_jd_match_agent_scan",
-        "ownerDomain": "backend-jobs-recommendations",
-        "priority": "low",
-    },
-    "jd_match_search": {
-        "asynqTask": "jd_match.search",
-        "apiFacing": False,
-        "triggerEvent": "api:reserved_future_jd_match_search",
-        "ownerDomain": "backend-jobs-recommendations",
-        "priority": "medium",
     },
 }
 ALLOWED_TRIGGER_EVENT_SEMANTICS = {

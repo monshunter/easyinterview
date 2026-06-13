@@ -24,10 +24,8 @@ const (
 )
 
 type TailorStore interface {
-	MarkTailorRunGenerating(ctx context.Context, in resumestore.TailorRunStatusInput) (resumestore.TailorRunRecord, error)
-	GetForTailor(ctx context.Context, tailorRunID string, resumeVersionID string) (resumestore.TailorJobContext, error)
+	GetForTailor(ctx context.Context, tailorRunID string) (resumestore.TailorJobContext, error)
 	CompleteTailorRunSuccess(ctx context.Context, in resumestore.CompleteTailorRunSuccessInput) error
-	MarkTailorRunFailed(ctx context.Context, in resumestore.TailorRunFailureInput) (resumestore.TailorRunRecord, error)
 }
 
 type TailorHandlerOptions struct {
@@ -75,23 +73,20 @@ func (h *TailorHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) ta
 	if err != nil {
 		return targetjob.JobOutcome{ErrorCode: sharederrors.CodeValidationFailed, ErrorMessage: sharederrors.CodeValidationFailed}
 	}
-	if _, err := h.store.MarkTailorRunGenerating(ctx, resumestore.TailorRunStatusInput{TailorRunID: payload.TailorRunID, Now: h.now()}); err != nil {
-		return targetjob.JobOutcome{
-			ErrorCode:    sharederrors.CodeTargetInvalidStateTransition,
-			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetInvalidStateTransition, err.Error()),
-		}
-	}
-	tailorCtx, err := h.store.GetForTailor(ctx, payload.TailorRunID, payload.ResumeVersionID)
+	// D-20: the async_jobs row (already marked running by the runner kernel) is
+	// the only durable run record; there is no resume_tailor_runs status to
+	// flip. Failures surface through JobOutcome and the kernel persists them.
+	tailorCtx, err := h.store.GetForTailor(ctx, payload.TailorRunID)
 	if err != nil {
-		return h.fail(ctx, payload.TailorRunID, sharederrors.CodeTargetImportFailed, err.Error(), false)
+		return h.fail(sharederrors.CodeTargetImportFailed, err.Error(), false)
 	}
 	featureKey, err := tailorFeatureKey(tailorCtx.Mode)
 	if err != nil {
-		return h.fail(ctx, payload.TailorRunID, sharederrors.CodeValidationFailed, err.Error(), false)
+		return h.fail(sharederrors.CodeValidationFailed, err.Error(), false)
 	}
 	resolution, err := h.registry.Resolve(ctx, featureKey, tailorCtx.Language)
 	if err != nil {
-		return h.fail(ctx, payload.TailorRunID, sharederrors.CodeAiProviderConfigInvalid, err.Error(), false)
+		return h.fail(sharederrors.CodeAiProviderConfigInvalid, err.Error(), false)
 	}
 
 	taskCtx := aiclient.AITaskRunContext{
@@ -125,26 +120,26 @@ func (h *TailorHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) ta
 		code, retryable := translateAIClientError(err)
 		meta = enrichTailorMeta(meta, resolution, featureKey, tailorCtx.Language, code)
 		h.writeTaskRun(ctx, meta, taskCtx, startedAt, completedAt, err)
-		return h.fail(ctx, payload.TailorRunID, code, err.Error(), retryable)
+		return h.fail(code, err.Error(), retryable)
 	}
 	parsed, err := decodeTailorAIResponse(complete.Content, tailorCtx)
 	if err != nil {
 		meta = enrichTailorMeta(meta, resolution, featureKey, tailorCtx.Language, sharederrors.CodeAiOutputInvalid)
 		meta.ValidationStatus = aiclient.ValidationStatusInvalid
 		h.writeTaskRun(ctx, meta, taskCtx, startedAt, completedAt, fmt.Errorf("%s: %w", sharederrors.CodeAiOutputInvalid, err))
-		return h.fail(ctx, payload.TailorRunID, sharederrors.CodeAiOutputInvalid, err.Error(), false)
+		return h.fail(sharederrors.CodeAiOutputInvalid, err.Error(), false)
 	}
 	h.writeTaskRun(ctx, meta, taskCtx, startedAt, completedAt, nil)
 
 	outboxPayload, err := json.Marshal(events.ResumeTailorCompletedPayload{
-		TailorRunID:   tailorCtx.TailorRunID,
-		ResumeAssetID: tailorCtx.ResumeAssetID,
-		TargetJobID:   tailorCtx.TargetJobID,
-		Mode:          events.ResumeTailorMode(tailorCtx.Mode),
-		Status:        sharedtypes.ReportStatusReady,
+		TailorRunID: tailorCtx.TailorRunID,
+		ResumeID:    tailorCtx.ResumeID,
+		TargetJobID: tailorCtx.TargetJobID,
+		Mode:        events.ResumeTailorMode(tailorCtx.Mode),
+		Status:      sharedtypes.ReportStatusReady,
 	})
 	if err != nil {
-		return h.fail(ctx, payload.TailorRunID, sharederrors.CodeTargetImportFailed, err.Error(), true)
+		return h.fail(sharederrors.CodeTargetImportFailed, err.Error(), true)
 	}
 	suggestions := make([]resumestore.TailorSuggestionInput, 0, len(parsed.Suggestions))
 	for _, suggestion := range parsed.Suggestions {
@@ -157,7 +152,9 @@ func (h *TailorHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) ta
 	}
 	if err := h.store.CompleteTailorRunSuccess(ctx, resumestore.CompleteTailorRunSuccessInput{
 		TailorRunID:        tailorCtx.TailorRunID,
-		ResumeVersionID:    tailorCtx.ResumeVersionID,
+		ResumeID:           tailorCtx.ResumeID,
+		TargetJobID:        tailorCtx.TargetJobID,
+		Mode:               tailorCtx.Mode,
 		MatchSummary:       parsed.MatchSummary,
 		Suggestions:        suggestions,
 		Provenance:         tailorProvenance(resolution, meta, tailorCtx.Language),
@@ -165,23 +162,12 @@ func (h *TailorHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) ta
 		OutboxEventPayload: outboxPayload,
 		Now:                h.now(),
 	}); err != nil {
-		return h.fail(ctx, payload.TailorRunID, sharederrors.CodeTargetImportFailed, err.Error(), true)
+		return h.fail(sharederrors.CodeTargetImportFailed, err.Error(), true)
 	}
 	return targetjob.JobOutcome{Succeeded: true}
 }
 
-func (h *TailorHandler) fail(ctx context.Context, tailorRunID string, code, message string, retryable bool) targetjob.JobOutcome {
-	if _, err := h.store.MarkTailorRunFailed(ctx, resumestore.TailorRunFailureInput{
-		TailorRunID: tailorRunID,
-		ErrorCode:   code,
-		Now:         h.now(),
-	}); err != nil {
-		return targetjob.JobOutcome{
-			ErrorCode:    sharederrors.CodeTargetImportFailed,
-			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
-			Retryable:    true,
-		}
-	}
+func (h *TailorHandler) fail(code, message string, retryable bool) targetjob.JobOutcome {
 	return targetjob.JobOutcome{
 		ErrorCode:    code,
 		ErrorMessage: safeFailureMessage(code, message),
@@ -201,19 +187,15 @@ func (h *TailorHandler) writeTaskRun(ctx context.Context, meta aiclient.AICallMe
 }
 
 type tailorJobPayload struct {
-	TailorRunID     string `json:"tailorRunId"`
-	ResumeVersionID string `json:"resumeVersionId,omitempty"`
+	TailorRunID string
 }
 
+// decodeTailorJobPayload resolves the tailorRunId from the async_jobs row.
+// D-20 keys the run by async_jobs.resource_id (= tailorRunId); the JSON payload
+// carries resumeId / targetJobId / mode, which the store re-reads in
+// GetForTailor.
 func decodeTailorJobPayload(job targetjob.ClaimedJob) (tailorJobPayload, error) {
 	payload := tailorJobPayload{TailorRunID: strings.TrimSpace(job.ResourceID)}
-	if len(job.Payload) > 0 {
-		if err := json.Unmarshal(job.Payload, &payload); err != nil {
-			return tailorJobPayload{}, fmt.Errorf("decode resume tailor job payload: %w", err)
-		}
-		payload.TailorRunID = strings.TrimSpace(payload.TailorRunID)
-		payload.ResumeVersionID = strings.TrimSpace(payload.ResumeVersionID)
-	}
 	if payload.TailorRunID == "" {
 		return tailorJobPayload{}, fmt.Errorf("tailorRunId is required")
 	}

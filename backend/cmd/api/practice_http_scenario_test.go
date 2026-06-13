@@ -97,7 +97,7 @@ func TestE2EP0022PracticePlanBaselineCreateAndRead(t *testing.T) {
 	h := newPracticeHTTPScenarioHarness(t)
 	body := api.CreatePracticePlanRequest{
 		TargetJobId:          "target-job-p0-022-a",
-		ResumeAssetId:        "resume-asset-p0-022-a",
+		ResumeId:             "resume-asset-p0-022-a",
 		Goal:                 sharedtypes.PracticeGoalBaseline,
 		Mode:                 sharedtypes.PracticeModeAssisted,
 		InterviewerPersona:   sharedtypes.InterviewerRoleHiringManager,
@@ -149,7 +149,7 @@ func TestE2EP0023PracticeSessionStartAndFirstQuestion(t *testing.T) {
 		AuditEventID:         "audit-p0-023",
 		UserID:               practiceHTTPScenarioUserAID,
 		TargetJobID:          "target-job-p0-023-a",
-		ResumeAssetID:        "resume-asset-p0-023-a",
+		ResumeID:             "resume-asset-p0-023-a",
 		Goal:                 sharedtypes.PracticeGoalBaseline,
 		Mode:                 sharedtypes.PracticeModeAssisted,
 		InterviewerPersona:   sharedtypes.InterviewerRoleHiringManager,
@@ -556,7 +556,7 @@ func TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T)
 	h := newPracticeHTTPScenarioHarness(t)
 	plan := h.seedReadyScenarioPlan("practice-plan-p0-039", "target-job-p0-039-a", "resume-asset-p0-039-a", practiceHTTPScenarioUserAID)
 	plan.Mode = sharedtypes.PracticeModeStrict
-	h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeAssetID: "resume-asset-p0-039-a"}
+	h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeID: "resume-asset-p0-039-a"}
 	started := h.startScenarioSession(t, plan.ID, "e2e-p0-039-start-session")
 	path := "/api/v1/practice/sessions/" + started.Id + "/events"
 
@@ -854,7 +854,7 @@ func TestE2EP0048PracticeHintAssistedAcrossGoals(t *testing.T) {
 				}
 				plan.SourceDebriefID = sourceDebriefID
 			}
-			h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeAssetID: "resume-asset-p0-048-" + string(goal)}
+			h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeID: "resume-asset-p0-048-" + string(goal)}
 			started := h.startScenarioSession(t, plan.ID, "e2e-p0-048-start-"+string(goal))
 
 			raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
@@ -943,7 +943,7 @@ func TestE2EP0049PracticeHintStrictRefusalAcrossGoals(t *testing.T) {
 				}
 				plan.SourceDebriefID = sourceDebriefID
 			}
-			h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeAssetID: "resume-asset-p0-049-" + string(goal)}
+			h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeID: "resume-asset-p0-049-" + string(goal)}
 			started := h.startScenarioSession(t, plan.ID, "e2e-p0-049-start-"+string(goal))
 			body := api.PracticeSessionEventRequest{
 				ClientEventId: "e2e-p0-049-hint-" + string(goal),
@@ -974,7 +974,7 @@ func TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns(t *testing.T) {
 	h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai, observedAI: true})
 	plan := h.seedReadyScenarioPlan("practice-plan-p0-050", "01918fa0-0000-7000-8000-000000002050", "resume-asset-p0-050", practiceHTTPScenarioUserAID)
 	plan.QuestionBudget = 2
-	h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeAssetID: "resume-asset-p0-050"}
+	h.store.plans[plan.ID] = scenarioPracticePlan{PlanRecord: plan, UserID: practiceHTTPScenarioUserAID, ResumeID: "resume-asset-p0-050"}
 	started := h.startScenarioSession(t, plan.ID, "e2e-p0-050-start")
 	assertScenarioTaskRunDelta(t, h.aiTaskRuns.Rows(), []scenarioExpectedTaskRun{{
 		Capability:       aiclient.AITaskRunTaskQuestionGenerate,
@@ -1182,7 +1182,7 @@ func TestE2EP0070PracticeDerivedPlanCreateReadReplay(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			body := api.CreatePracticePlanRequest{
 				TargetJobId:          targetID,
-				ResumeAssetId:        resumeID,
+				ResumeId:             resumeID,
 				SourceReportId:       tc.sourceReportID,
 				SourceDebriefId:      tc.sourceDebriefID,
 				Goal:                 tc.goal,
@@ -1243,7 +1243,7 @@ func TestE2EP0071PracticeDebriefStartUsesSourceQuestion(t *testing.T) {
 	}
 	planRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/plans", "e2e-p0-071-create", api.CreatePracticePlanRequest{
 		TargetJobId:        targetID,
-		ResumeAssetId:      resumeID,
+		ResumeId:           resumeID,
 		SourceDebriefId:    strPtr(sourceDebriefID),
 		Goal:               sharedtypes.PracticeGoalDebrief,
 		Mode:               sharedtypes.PracticeModeStrict,
@@ -1302,7 +1302,7 @@ func TestE2EP0072PracticeDerivedSourceValidationIsolationPrivacy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/plans", "e2e-p0-072-"+tc.name, api.CreatePracticePlanRequest{
 				TargetJobId:        targetID,
-				ResumeAssetId:      resumeID,
+				ResumeId:           resumeID,
 				SourceReportId:     tc.sourceReportID,
 				SourceDebriefId:    tc.sourceDebriefID,
 				Goal:               tc.goal,
@@ -1341,7 +1341,7 @@ func TestE2EP0073PracticeDebriefAssistedStrictAndLegacyNegative(t *testing.T) {
 		t.Run(string(mode), func(t *testing.T) {
 			planRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/plans", "e2e-p0-073-create-"+string(mode), api.CreatePracticePlanRequest{
 				TargetJobId:        targetID,
-				ResumeAssetId:      resumeID,
+				ResumeId:           resumeID,
 				SourceDebriefId:    strPtr(sourceDebriefID),
 				Goal:               sharedtypes.PracticeGoalDebrief,
 				Mode:               mode,
@@ -1366,7 +1366,7 @@ func TestE2EP0073PracticeDebriefAssistedStrictAndLegacyNegative(t *testing.T) {
 	}
 	raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/plans", "e2e-p0-073-legacy-mode", api.CreatePracticePlanRequest{
 		TargetJobId:        targetID,
-		ResumeAssetId:      resumeID,
+		ResumeId:           resumeID,
 		SourceDebriefId:    strPtr(sourceDebriefID),
 		Goal:               sharedtypes.PracticeGoalDebrief,
 		Mode:               sharedtypes.PracticeMode("debrief"),
@@ -1391,7 +1391,7 @@ func (h *practiceHTTPScenarioHarness) seedReadyScenarioPlan(planID, targetJobID,
 		AuditEventID:         "audit-" + planID,
 		UserID:               userID,
 		TargetJobID:          targetJobID,
-		ResumeAssetID:        resumeAssetID,
+		ResumeID:             resumeAssetID,
 		Goal:                 sharedtypes.PracticeGoalBaseline,
 		Mode:                 sharedtypes.PracticeModeAssisted,
 		InterviewerPersona:   sharedtypes.InterviewerRoleHiringManager,
@@ -1841,8 +1841,8 @@ type scenarioPracticeStore struct {
 
 type scenarioPracticePlan struct {
 	domainpractice.PlanRecord
-	UserID        string
-	ResumeAssetID string
+	UserID   string
+	ResumeID string
 }
 
 type scenarioFeedbackReport struct {
@@ -1926,7 +1926,7 @@ func (s *scenarioPracticeStore) nextID() string {
 }
 
 func (s *scenarioPracticeStore) CreatePlan(_ context.Context, in domainpractice.CreatePlanStoreInput) (domainpractice.PlanRecord, error) {
-	if s.prerequisiteTargetOwner[in.TargetJobID] != in.UserID || s.prerequisiteResumeOwner[in.ResumeAssetID] != in.UserID {
+	if s.prerequisiteTargetOwner[in.TargetJobID] != in.UserID || s.prerequisiteResumeOwner[in.ResumeID] != in.UserID {
 		return domainpractice.PlanRecord{}, domainpractice.ErrPlanPrerequisiteNotFound
 	}
 	if !s.sourceAvailableForPlan(in) {
@@ -1947,7 +1947,7 @@ func (s *scenarioPracticeStore) CreatePlan(_ context.Context, in domainpractice.
 		Status:             "ready",
 		CreatedAt:          in.Now,
 	}
-	s.plans[in.PlanID] = scenarioPracticePlan{PlanRecord: plan, UserID: in.UserID, ResumeAssetID: in.ResumeAssetID}
+	s.plans[in.PlanID] = scenarioPracticePlan{PlanRecord: plan, UserID: in.UserID, ResumeID: in.ResumeID}
 	auditMetadata := map[string]any{
 		"plan_id":       in.PlanID,
 		"goal":          string(in.Goal),

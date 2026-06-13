@@ -10,7 +10,7 @@ export interface PasteTabProps {
   submitting: boolean;
   inlineError: string | null;
   onRawTextChange: (text: string) => void;
-  onRegistered: (resumeAssetId: string, sourceLabel: string) => void;
+  onRegistered: (resumeId: string, sourceLabel: string) => void;
   setSubmitting: (value: boolean) => void;
   setInlineError: (message: string | null) => void;
 }
@@ -43,7 +43,7 @@ export const PasteTab: FC<PasteTabProps> = ({
         language: lang,
       });
       onRegistered(
-        registered.resumeAssetId,
+        registered.resumeId,
         t("resumeWorkshop.create.paste.titleFallback"),
       );
     } catch (error) {

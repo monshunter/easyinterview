@@ -44,13 +44,13 @@ describe("serializeRouteToUrl", () => {
         name: "workspace",
         params: {
           targetJobId: "tj-1",
-          resumeVersionId: "rv-1",
+          resumeId: "rv-1",
           planId: "plan-1",
           autoStartPractice: "1",
         },
       }),
     ).toBe(
-      "/workspace?autoStartPractice=1&planId=plan-1&resumeVersionId=rv-1&targetJobId=tj-1",
+      "/workspace?autoStartPractice=1&planId=plan-1&resumeId=rv-1&targetJobId=tj-1",
     );
   });
 
@@ -102,9 +102,9 @@ describe("serializeRouteToUrl", () => {
     expect(
       formatRouteUrl({
         name: "resume_versions",
-        params: { versionId: "v-1", tab: "rewrites", tailorRunId: "tr-1" },
+        params: { resumeId: "v-1", tab: "rewrites", tailorRunId: "tr-1" },
       }),
-    ).toBe("/resume-versions?tab=rewrites&tailorRunId=tr-1&versionId=v-1");
+    ).toBe("/resume-versions?resumeId=v-1&tab=rewrites&tailorRunId=tr-1");
 
     expect(
       formatRouteUrl({
@@ -180,13 +180,13 @@ describe("serializeRouteToUrl", () => {
           planId: "plan-1",
           targetJobId: "tj-1",
           jdId: "jd-1",
-          resumeVersionId: "rv-1",
+          resumeId: "rv-1",
           roundId: "round-1",
           rawText: "raw JD body",
         },
       }),
     ).toBe(
-      "/auth/login?email=alice%40example.com&jdId=jd-1&next=%2Fworkspace&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice&planId=plan-1&resumeVersionId=rv-1&roundId=round-1&targetJobId=tj-1",
+      "/auth/login?email=alice%40example.com&jdId=jd-1&next=%2Fworkspace&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice&planId=plan-1&resumeId=rv-1&roundId=round-1&targetJobId=tj-1",
     );
   });
 
@@ -252,7 +252,7 @@ describe("serializeRouteToUrl", () => {
         name: "workspace",
         params: {
           targetJobId: "tj-1",
-          resumeVersionId: "rv-1",
+          resumeId: "rv-1",
           planId: "plan-1",
           autoStartPractice: "1",
           sourceSessionId: "s-prior",
@@ -262,7 +262,7 @@ describe("serializeRouteToUrl", () => {
         },
       }),
     ).toBe(
-      "/workspace?autoStartPractice=1&evidenceGaps=technical_depth%7Cnarrative&nextRoundId=round-2&planId=plan-1&replayItems=turn-1%2Cturn-3&resumeVersionId=rv-1&sourceSessionId=s-prior&targetJobId=tj-1",
+      "/workspace?autoStartPractice=1&evidenceGaps=technical_depth%7Cnarrative&nextRoundId=round-2&planId=plan-1&replayItems=turn-1%2Cturn-3&resumeId=rv-1&sourceSessionId=s-prior&targetJobId=tj-1",
     );
   });
 
@@ -330,13 +330,13 @@ describe("parseUrlToRoute", () => {
   it("parses canonical workspace deep link", () => {
     expect(
       parseUrlToRoute(
-        "/workspace?targetJobId=tj-1&resumeVersionId=rv-1&planId=plan-1&autoStartPractice=1",
+        "/workspace?targetJobId=tj-1&resumeId=rv-1&planId=plan-1&autoStartPractice=1",
       ),
     ).toEqual({
       name: "workspace",
       params: {
         targetJobId: "tj-1",
-        resumeVersionId: "rv-1",
+        resumeId: "rv-1",
         planId: "plan-1",
         autoStartPractice: "1",
       },
@@ -468,8 +468,8 @@ describe("isSafeRouteParam", () => {
     expect(isSafeRouteParam("report", "errorCode", {})).toBe(true);
     expect(isSafeRouteParam("resume_versions", "tailorRunId", {})).toBe(true);
     expect(isSafeRouteParam("debrief", "debriefJobId", {})).toBe(true);
-    expect(isSafeRouteParam("parse", "resumeVersionId", {})).toBe(true);
-    expect(isSafeRouteParam("home", "resumeVersionId", {})).toBe(true);
+    expect(isSafeRouteParam("parse", "resumeId", {})).toBe(true);
+    expect(isSafeRouteParam("home", "resumeId", {})).toBe(true);
   });
 
   it("denies raw payload / AI prompt / auth secret keys on every route", () => {

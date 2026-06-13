@@ -47,13 +47,13 @@ describe("resolveInitialRoute priority", () => {
 
   it("falls back to canonical path when window override is absent", () => {
     setLocation(
-      "/workspace?targetJobId=tj-1&resumeVersionId=rv-1&planId=plan-1",
+      "/workspace?targetJobId=tj-1&resumeId=rv-1&planId=plan-1",
     );
     expect(resolveInitialRoute()).toEqual({
       name: "workspace",
       params: {
         targetJobId: "tj-1",
-        resumeVersionId: "rv-1",
+        resumeId: "rv-1",
         planId: "plan-1",
       },
     });

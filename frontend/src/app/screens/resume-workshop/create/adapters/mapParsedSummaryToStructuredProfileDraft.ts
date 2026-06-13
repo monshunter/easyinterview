@@ -1,4 +1,4 @@
-import type { ResumeAsset } from "../../../../../api/generated/types";
+import type { Resume } from "../../../../../api/generated/types";
 import type { PreviewDraft } from "../ResumePreviewConfirm";
 
 interface ParsedSummaryShape {
@@ -48,7 +48,7 @@ function toContactList(value: unknown): string[] {
 }
 
 export function mapParsedSummaryToStructuredProfileDraft(
-  asset: ResumeAsset,
+  asset: Resume,
 ): PreviewDraft {
   const parsed = (asset.parsedSummary ?? {}) as ParsedSummaryShape;
   const identity = parsed.identity ?? {};
@@ -87,7 +87,7 @@ export function mapParsedSummaryToStructuredProfileDraft(
 }
 
 export function buildStructuredProfilePayload(
-  asset: ResumeAsset,
+  asset: Resume,
 ): Record<string, unknown> {
   const draft = mapParsedSummaryToStructuredProfileDraft(asset);
   const language = asset.language?.trim() || "en";

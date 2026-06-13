@@ -5,20 +5,12 @@ import {
   createFixtureBackedFetch,
   createFixtureRegistry,
 } from "../../../api/mockTransport";
-import {
-  mapResumeAssetToUiSource,
-  mapResumeVersionToUi,
-} from "./adapters/resume";
+import { mapResumeToUiSource } from "./adapters/resume";
 
 import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
-import listResumeVersionsFixture from "../../../../../openapi/fixtures/Resumes/listResumeVersions.json";
-import getResumeVersionFixture from "../../../../../openapi/fixtures/Resumes/getResumeVersion.json";
+import getResumeFixture from "../../../../../openapi/fixtures/Resumes/getResume.json";
 
-const FIXTURES = [
-  listResumesFixture,
-  listResumeVersionsFixture,
-  getResumeVersionFixture,
-];
+const FIXTURES = [listResumesFixture, getResumeFixture];
 
 function buildClient(scenario: string): EasyInterviewClient {
   return new EasyInterviewClient({
@@ -28,10 +20,10 @@ function buildClient(scenario: string): EasyInterviewClient {
   });
 }
 
-const someAssetId = "01918fa0-0000-7000-8000-000000001000";
-const otherAssetId = "deadbeef-0000-7000-8000-000000009999";
+const knownResumeId = "01918fa0-0000-7000-8000-000000001000";
+const otherResumeId = "deadbeef-0000-7000-8000-000000009999";
 
-describe("Resumes fixture parity (counts derived from fixture body)", () => {
+describe("Resumes fixture parity (flat D-20 model, counts derived from fixture body)", () => {
   it("listResumes default scenario count matches fixture items length", async () => {
     const client = buildClient("default");
     const result = await client.listResumes();
@@ -55,42 +47,38 @@ describe("Resumes fixture parity (counts derived from fixture body)", () => {
     expect(result.pageInfo.nextCursor).toBeTruthy();
   });
 
-  it("listResumeVersions master-only scenario yields a single MASTER (structured_master) version", async () => {
-    const client = buildClient("master-only");
-    const result = await client.listResumeVersions(someAssetId);
-    expect(result.items).toHaveLength(
-      listResumeVersionsFixture.scenarios["master-only"].response.body.items
-        .length,
-    );
-    expect(result.items.every((v) => v.versionType === "structured_master")).toBe(
-      true,
-    );
-    const ui = result.items.map(mapResumeVersionToUi);
-    expect(ui.every((v) => v.tag === "MASTER")).toBe(true);
-  });
-
-  it("listResumeVersions with-targeted-branches scenario yields TARGETED versions with parentVersionId set", async () => {
-    const client = buildClient("with-targeted-branches");
-    const result = await client.listResumeVersions(someAssetId);
-    expect(result.items.length).toBeGreaterThan(0);
-    expect(result.items.every((v) => v.versionType === "targeted")).toBe(true);
-    expect(result.items.every((v) => v.parentVersionId !== null)).toBe(true);
-    const ui = result.items.map(mapResumeVersionToUi);
-    expect(ui.every((v) => v.tag === "TARGETED")).toBe(true);
-  });
-
-  it("mock transport is scenario-scoped, NOT request-aware: listResumeVersions returns the same scenario body regardless of resumeAssetId path param", async () => {
+  it("listResumes default scenario items are all flat resumes (no version tree fields)", async () => {
     const client = buildClient("default");
-    const a = await client.listResumeVersions(someAssetId);
-    const b = await client.listResumeVersions(otherAssetId);
-    expect(a.items.length).toBe(b.items.length);
-    expect(a.items.map((v) => v.id)).toEqual(b.items.map((v) => v.id));
+    const result = await client.listResumes();
+    expect(result.items.every((r) => typeof r.id === "string")).toBe(true);
+    expect(
+      result.items.every(
+        (r) => !("resumeAssetId" in r) && !("versionType" in r),
+      ),
+    ).toBe(true);
+  });
+
+  it("getResume default scenario returns the flat resume body verbatim", async () => {
+    const client = buildClient("default");
+    const result = await client.getResume(knownResumeId);
+    const { body } = getResumeFixture.scenarios.default.response;
+    expect(result.id).toBe(body.id);
+    expect(result.displayName).toBe(body.displayName);
+    expect(result.parseStatus).toBe(body.parseStatus);
+  });
+
+  it("mock transport is scenario-scoped, NOT request-aware: getResume returns the same scenario body regardless of resumeId path param", async () => {
+    const client = buildClient("default");
+    const a = await client.getResume(knownResumeId);
+    const b = await client.getResume(otherResumeId);
+    expect(a.id).toBe(b.id);
+    expect(a.displayName).toBe(b.displayName);
   });
 
   it("listResumes adapter mapping preserves count derived from fixture body", async () => {
     const client = buildClient("default");
     const result = await client.listResumes();
-    const ui = result.items.map(mapResumeAssetToUiSource);
+    const ui = result.items.map(mapResumeToUiSource);
     expect(ui.length).toBe(
       listResumesFixture.scenarios.default.response.body.items.length,
     );

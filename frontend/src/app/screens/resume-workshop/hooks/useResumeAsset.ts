@@ -1,26 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { ResumeAsset } from "../../../../api/generated/types";
+import type { Resume } from "../../../../api/generated/types";
 import { useDisplayPreferencesOptional } from "../../../display/DisplayPreferencesProvider";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 
 export interface UseResumeAssetResult {
   loading: boolean;
-  data: ResumeAsset | null;
+  data: Resume | null;
   error: Error | null;
+  notFound: boolean;
   retry: () => void;
 }
 
-export function useResumeAsset(resumeAssetId: string | null): UseResumeAssetResult {
+/**
+ * Loads a single flat resume via `getResume(resumeId)` (D-20: no version tree).
+ * Used as the detail-view primary loader and the "view original" source.
+ */
+export function useResumeAsset(resumeId: string | null): UseResumeAssetResult {
   const runtime = useAppRuntimeOptional();
   const client = runtime?.client;
   const isAuthenticated = runtime?.auth.status === "authenticated";
   const lang = useDisplayPreferencesOptional()?.lang ?? "zh";
 
   const [loading, setLoading] = useState<boolean>(
-    !!client && isAuthenticated && !!resumeAssetId,
+    !!client && isAuthenticated && !!resumeId,
   );
-  const [data, setData] = useState<ResumeAsset | null>(null);
+  const [data, setData] = useState<Resume | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [reloadSeq, setReloadSeq] = useState(0);
   const requestSeqRef = useRef(0);
@@ -30,7 +35,7 @@ export function useResumeAsset(resumeAssetId: string | null): UseResumeAssetResu
   }, []);
 
   useEffect(() => {
-    if (!client || !isAuthenticated || !resumeAssetId) {
+    if (!client || !isAuthenticated || !resumeId) {
       setLoading(false);
       setData(null);
       setError(null);
@@ -44,10 +49,10 @@ export function useResumeAsset(resumeAssetId: string | null): UseResumeAssetResu
     setError(null);
 
     client
-      .getResume(resumeAssetId, { headers: { "Accept-Language": lang } })
-      .then((asset) => {
+      .getResume(resumeId, { headers: { "Accept-Language": lang } })
+      .then((resume) => {
         if (!active || requestSeqRef.current !== requestSeq) return;
-        setData(asset);
+        setData(resume);
       })
       .catch((err: unknown) => {
         if (!active || requestSeqRef.current !== requestSeq) return;
@@ -61,7 +66,11 @@ export function useResumeAsset(resumeAssetId: string | null): UseResumeAssetResu
     return () => {
       active = false;
     };
-  }, [client, isAuthenticated, resumeAssetId, reloadSeq, lang]);
+  }, [client, isAuthenticated, resumeId, reloadSeq, lang]);
 
-  return { loading, data, error, retry };
+  const notFound = error
+    ? error.message.startsWith("HTTP 404 ") || error.message.includes("404")
+    : false;
+
+  return { loading, data, error, notFound, retry };
 }

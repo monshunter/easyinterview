@@ -8,7 +8,7 @@
       "type": "string"
     },
     "aggregateType": {
-      "const": "resume_tailor_run"
+      "const": "resume"
     },
     "eventId": {
       "format": "uuid",
@@ -30,7 +30,7 @@
         "mode": {
           "$ref": "../refs/ResumeTailorMode.json"
         },
-        "resumeAssetId": {
+        "resumeId": {
           "type": "string"
         },
         "status": {
@@ -45,7 +45,7 @@
       },
       "required": [
         "mode",
-        "resumeAssetId",
+        "resumeId",
         "status",
         "tailorRunId",
         "targetJobId"

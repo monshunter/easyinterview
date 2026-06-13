@@ -16,7 +16,7 @@ import (
 type SessionResolver func(ctx context.Context) (userID string, ok bool)
 
 type RegisterService interface {
-	RegisterResume(ctx context.Context, in resume.RegisterInput) (api.ResumeAssetWithJob, error)
+	RegisterResume(ctx context.Context, in resume.RegisterInput) (api.ResumeWithJob, error)
 }
 
 type Options struct {
@@ -82,7 +82,6 @@ func validateRegisterInput(userID string, idempotencyKey string, body api.Regist
 	if body.RawText != nil {
 		rawText = strings.TrimSpace(*body.RawText)
 	}
-	guidedAnswers := body.GuidedAnswers
 	if title == "" {
 		return resume.RegisterInput{}, validationError("title is required")
 	}
@@ -91,19 +90,15 @@ func validateRegisterInput(userID string, idempotencyKey string, body api.Regist
 	}
 	switch sourceType {
 	case "upload":
-		if fileObjectID == "" || rawText != "" || len(guidedAnswers) > 0 {
+		if fileObjectID == "" || rawText != "" {
 			return resume.RegisterInput{}, validationError("upload source requires fileObjectId only")
 		}
 	case "paste":
-		if rawText == "" || fileObjectID != "" || len(guidedAnswers) > 0 {
+		if rawText == "" || fileObjectID != "" {
 			return resume.RegisterInput{}, validationError("paste source requires rawText only")
 		}
-	case "guided":
-		if len(guidedAnswers) == 0 || fileObjectID != "" || rawText != "" {
-			return resume.RegisterInput{}, validationError("guided source requires guidedAnswers only")
-		}
 	default:
-		return resume.RegisterInput{}, validationError("sourceType must be upload, paste, or guided")
+		return resume.RegisterInput{}, validationError("sourceType must be upload or paste")
 	}
 	return resume.RegisterInput{
 		UserID:         strings.TrimSpace(userID),
@@ -111,7 +106,6 @@ func validateRegisterInput(userID string, idempotencyKey string, body api.Regist
 		SourceType:     sourceType,
 		FileObjectID:   fileObjectID,
 		RawText:        rawText,
-		GuidedAnswers:  cloneMap(guidedAnswers),
 		Title:          title,
 		Language:       language,
 	}, nil

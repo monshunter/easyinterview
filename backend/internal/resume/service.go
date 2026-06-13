@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -20,12 +19,9 @@ import (
 )
 
 var (
-	ErrValidationFailed              = errors.New("resume validation failed")
-	ErrNotFound                      = errors.New("resume asset not found")
-	ErrInvalidCursor                 = errors.New("invalid resume cursor")
-	ErrAssetParseNotReady            = errors.New("resume asset parse is not ready")
-	ErrStructuredMasterAlreadyExists = errors.New("structured master resume version already exists")
-	ErrSuggestionAlreadyDecided      = errors.New("resume tailor suggestion already decided")
+	ErrValidationFailed = errors.New("resume validation failed")
+	ErrNotFound         = errors.New("resume not found")
+	ErrInvalidCursor    = errors.New("invalid resume cursor")
 )
 
 type RegisterInput struct {
@@ -34,7 +30,6 @@ type RegisterInput struct {
 	SourceType     string
 	FileObjectID   string
 	RawText        string
-	GuidedAnswers  map[string]any
 	Title          string
 	Language       string
 }
@@ -44,37 +39,21 @@ type RegisterStore interface {
 }
 
 type ReadStore interface {
-	Get(ctx context.Context, userID string, assetID string) (resumestore.AssetRecord, error)
+	Get(ctx context.Context, userID string, resumeID string) (resumestore.ResumeRecord, error)
 	List(ctx context.Context, userID string, filter resumestore.ListFilter) (resumestore.ListResult, error)
 }
 
-type StructuredMasterStore interface {
-	CreateStructuredMasterFromAsset(ctx context.Context, in resumestore.CreateStructuredMasterInput) (resumestore.VersionRecord, error)
+type UpdateStore interface {
+	UpdateResume(ctx context.Context, in resumestore.UpdateResumeInput) (resumestore.ResumeRecord, error)
 }
 
-type VersionReadStore interface {
-	GetVersionByID(ctx context.Context, userID string, versionID string) (resumestore.VersionRecord, error)
-	ListVersionsByAsset(ctx context.Context, userID string, assetID string, filter resumestore.VersionListFilter) (resumestore.VersionListResult, error)
-}
-
-type VersionUpdateStore interface {
-	UpdateVersionPatch(ctx context.Context, in resumestore.VersionUpdateInput) (resumestore.VersionRecord, error)
-}
-
-type BranchVersionStore interface {
-	BranchFromParent(ctx context.Context, in resumestore.BranchVersionInput) (resumestore.BranchVersionResult, error)
+type DuplicateStore interface {
+	DuplicateResume(ctx context.Context, in resumestore.DuplicateResumeInput) (resumestore.ResumeRecord, error)
 }
 
 type TailorRunStore interface {
 	CreateTailorRun(ctx context.Context, in resumestore.CreateTailorRunInput) (resumestore.CreateTailorRunResult, error)
 	GetTailorRun(ctx context.Context, userID string, tailorRunID string) (resumestore.TailorRunRecord, error)
-	MarkTailorRunGenerating(ctx context.Context, in resumestore.TailorRunStatusInput) (resumestore.TailorRunRecord, error)
-	MarkTailorRunReady(ctx context.Context, in resumestore.TailorRunReadyInput) (resumestore.TailorRunRecord, error)
-	MarkTailorRunFailed(ctx context.Context, in resumestore.TailorRunFailureInput) (resumestore.TailorRunRecord, error)
-}
-
-type SuggestionDecisionStore interface {
-	DecideResumeSuggestion(ctx context.Context, in resumestore.DecideSuggestionInput) (resumestore.VersionRecord, error)
 }
 
 type UploadRegistrar interface {
@@ -115,20 +94,20 @@ func NewService(opts ServiceOptions) *Service {
 	}
 }
 
-func (s *Service) RegisterResume(ctx context.Context, in RegisterInput) (api.ResumeAssetWithJob, error) {
+func (s *Service) RegisterResume(ctx context.Context, in RegisterInput) (api.ResumeWithJob, error) {
 	if s == nil || s.store == nil || s.newID == nil {
-		return api.ResumeAssetWithJob{}, fmt.Errorf("resume service is not initialised")
+		return api.ResumeWithJob{}, fmt.Errorf("resume service is not initialised")
 	}
 	userID := strings.TrimSpace(in.UserID)
 	sourceType := strings.TrimSpace(in.SourceType)
 	if userID == "" || strings.TrimSpace(in.IdempotencyKey) == "" || sourceType == "" || strings.TrimSpace(in.Title) == "" || strings.TrimSpace(in.Language) == "" {
-		return api.ResumeAssetWithJob{}, ErrValidationFailed
+		return api.ResumeWithJob{}, ErrValidationFailed
 	}
 	now := s.now()
-	assetID := s.newID()
+	resumeID := s.newID()
 	jobID := s.newID()
 	storeIn := resumestore.CreateAssetInput{
-		AssetID:        assetID,
+		AssetID:        resumeID,
 		UserID:         userID,
 		JobID:          jobID,
 		DedupeKey:      s.dedupeKey(userID, in.IdempotencyKey),
@@ -136,7 +115,6 @@ func (s *Service) RegisterResume(ctx context.Context, in RegisterInput) (api.Res
 		Title:          strings.TrimSpace(in.Title),
 		Language:       strings.TrimSpace(in.Language),
 		RawText:        strings.TrimSpace(in.RawText),
-		GuidedAnswers:  cloneMap(in.GuidedAnswers),
 		ParseStatus:    sharedtypes.TargetJobParseStatusQueued,
 		JobStatus:      sharedtypes.JobStatusQueued,
 		Now:            now,
@@ -145,7 +123,7 @@ func (s *Service) RegisterResume(ctx context.Context, in RegisterInput) (api.Res
 	switch sourceType {
 	case "upload":
 		if s.uploadRegister == nil {
-			return api.ResumeAssetWithJob{}, fmt.Errorf("resume upload register service is not configured")
+			return api.ResumeWithJob{}, fmt.Errorf("resume upload register service is not configured")
 		}
 		file, err := s.uploadRegister.RegisterFileObject(ctx, uploadservice.RegisterFileObjectInput{
 			FileObjectID:    strings.TrimSpace(in.FileObjectID),
@@ -153,26 +131,24 @@ func (s *Service) RegisterResume(ctx context.Context, in RegisterInput) (api.Res
 			OwnerUserID:     userID,
 		})
 		if errors.Is(err, uploadservice.ErrValidationFailed) {
-			return api.ResumeAssetWithJob{}, ErrValidationFailed
+			return api.ResumeWithJob{}, ErrValidationFailed
 		}
 		if err != nil {
-			return api.ResumeAssetWithJob{}, err
+			return api.ResumeWithJob{}, err
 		}
 		storeIn.FileObjectID = &file.ID
 		storeIn.RequestPayload.FileObjectID = strings.TrimSpace(in.FileObjectID)
 	case "paste":
 		storeIn.RequestPayload.RawTextHash = contentHash(in.RawText)
-	case "guided":
-		storeIn.RequestPayload.GuidedAnswersHash = contentHashMap(in.GuidedAnswers)
 	default:
-		return api.ResumeAssetWithJob{}, ErrValidationFailed
+		return api.ResumeWithJob{}, ErrValidationFailed
 	}
 	res, err := s.store.CreateWithParseJob(ctx, storeIn)
 	if err != nil {
-		return api.ResumeAssetWithJob{}, err
+		return api.ResumeWithJob{}, err
 	}
-	return api.ResumeAssetWithJob{
-		ResumeAssetId: res.AssetID,
+	return api.ResumeWithJob{
+		ResumeId: res.AssetID,
 		Job: api.Job{
 			Id:           res.JobID,
 			JobType:      api.JobTypeResumeParse,
@@ -185,22 +161,22 @@ func (s *Service) RegisterResume(ctx context.Context, in RegisterInput) (api.Res
 	}, nil
 }
 
-func (s *Service) GetResume(ctx context.Context, userID string, resumeAssetID string) (api.ResumeAsset, error) {
+func (s *Service) GetResume(ctx context.Context, userID string, resumeID string) (api.Resume, error) {
 	if s == nil {
-		return api.ResumeAsset{}, fmt.Errorf("resume read store is not configured")
+		return api.Resume{}, fmt.Errorf("resume read store is not configured")
 	}
 	reader, ok := s.store.(ReadStore)
 	if !ok {
-		return api.ResumeAsset{}, fmt.Errorf("resume read store is not configured")
+		return api.Resume{}, fmt.Errorf("resume read store is not configured")
 	}
-	rec, err := reader.Get(ctx, strings.TrimSpace(userID), strings.TrimSpace(resumeAssetID))
+	rec, err := reader.Get(ctx, strings.TrimSpace(userID), strings.TrimSpace(resumeID))
 	if errors.Is(err, resumestore.ErrAssetNotFound) {
-		return api.ResumeAsset{}, ErrNotFound
+		return api.Resume{}, ErrNotFound
 	}
 	if err != nil {
-		return api.ResumeAsset{}, err
+		return api.Resume{}, err
 	}
-	return assetRecordToAPI(rec), nil
+	return resumeRecordToAPI(rec), nil
 }
 
 type ListRequest struct {
@@ -209,21 +185,21 @@ type ListRequest struct {
 	PageSize int
 }
 
-func (s *Service) ListResumes(ctx context.Context, in ListRequest) (api.PaginatedResumeAsset, error) {
+func (s *Service) ListResumes(ctx context.Context, in ListRequest) (api.PaginatedResume, error) {
 	if s == nil {
-		return api.PaginatedResumeAsset{}, fmt.Errorf("resume read store is not configured")
+		return api.PaginatedResume{}, fmt.Errorf("resume read store is not configured")
 	}
 	reader, ok := s.store.(ReadStore)
 	if !ok {
-		return api.PaginatedResumeAsset{}, fmt.Errorf("resume read store is not configured")
+		return api.PaginatedResume{}, fmt.Errorf("resume read store is not configured")
 	}
 	res, err := reader.List(ctx, strings.TrimSpace(in.UserID), resumestore.ListFilter{Cursor: in.Cursor, PageSize: in.PageSize})
 	if err != nil {
-		return api.PaginatedResumeAsset{}, err
+		return api.PaginatedResume{}, err
 	}
-	out := api.PaginatedResumeAsset{Items: make([]api.ResumeAsset, 0, len(res.Items))}
+	out := api.PaginatedResume{Items: make([]api.Resume, 0, len(res.Items))}
 	for _, item := range res.Items {
-		out.Items = append(out.Items, assetRecordToAPI(item))
+		out.Items = append(out.Items, resumeRecordToAPI(item))
 	}
 	out.PageInfo = api.PageInfo{
 		NextCursor: optionalString(res.NextCursor),
@@ -233,299 +209,156 @@ func (s *Service) ListResumes(ctx context.Context, in ListRequest) (api.Paginate
 	return out, nil
 }
 
-type ConfirmStructuredMasterInput struct {
+type UpdateResumeRequest struct {
 	UserID            string
-	ResumeAssetID     string
-	DisplayName       string
-	Language          string
+	ResumeID          string
+	DisplayName       *string
+	DisplayNameSet    bool
 	StructuredProfile map[string]any
 }
 
-func (s *Service) ConfirmStructuredMaster(ctx context.Context, in ConfirmStructuredMasterInput) (api.ResumeVersion, error) {
+// UpdateResume overwrites the editable fields on an existing resume (D-20 C-17).
+func (s *Service) UpdateResume(ctx context.Context, in UpdateResumeRequest) (api.Resume, error) {
 	if s == nil {
-		return api.ResumeVersion{}, fmt.Errorf("resume structured master store is not configured")
+		return api.Resume{}, fmt.Errorf("resume update store is not configured")
 	}
-	store, ok := s.store.(StructuredMasterStore)
+	store, ok := s.store.(UpdateStore)
 	if !ok {
-		return api.ResumeVersion{}, fmt.Errorf("resume structured master store is not configured")
+		return api.Resume{}, fmt.Errorf("resume update store is not configured")
 	}
 	userID := strings.TrimSpace(in.UserID)
-	assetID := strings.TrimSpace(in.ResumeAssetID)
-	displayName := strings.TrimSpace(in.DisplayName)
-	if userID == "" || assetID == "" || displayName == "" || len(in.StructuredProfile) == 0 {
-		return api.ResumeVersion{}, ErrValidationFailed
+	resumeID := strings.TrimSpace(in.ResumeID)
+	if userID == "" || resumeID == "" {
+		return api.Resume{}, ErrValidationFailed
 	}
-	provenance, err := extractVersionProvenance(in.StructuredProfile)
-	if err != nil {
-		return api.ResumeVersion{}, ErrValidationFailed
+	if len(in.StructuredProfile) == 0 && !in.DisplayNameSet {
+		return api.Resume{}, ErrValidationFailed
 	}
-	if provenance.Language == "" {
-		provenance.Language = strings.TrimSpace(in.Language)
+	update := resumestore.UpdateResumeInput{
+		UserID:   userID,
+		ResumeID: resumeID,
+		Now:      s.now(),
 	}
-	if provenance.Language == "" {
-		return api.ResumeVersion{}, ErrValidationFailed
-	}
-	profile, err := json.Marshal(in.StructuredProfile)
-	if err != nil {
-		return api.ResumeVersion{}, ErrValidationFailed
-	}
-	rec, err := store.CreateStructuredMasterFromAsset(ctx, resumestore.CreateStructuredMasterInput{
-		VersionID:         s.newID(),
-		UserID:            userID,
-		ResumeAssetID:     assetID,
-		DisplayName:       displayName,
-		StructuredProfile: profile,
-		Provenance:        provenance,
-		Now:               s.now(),
-	})
-	switch {
-	case errors.Is(err, resumestore.ErrAssetNotFound):
-		return api.ResumeVersion{}, ErrNotFound
-	case errors.Is(err, resumestore.ErrAssetParseNotReady):
-		return api.ResumeVersion{}, ErrAssetParseNotReady
-	case errors.Is(err, resumestore.ErrStructuredMasterAlreadyExists):
-		return api.ResumeVersion{}, ErrStructuredMasterAlreadyExists
-	case err != nil:
-		return api.ResumeVersion{}, err
-	}
-	return versionRecordToAPI(rec), nil
-}
-
-func (s *Service) GetResumeVersion(ctx context.Context, userID string, versionID string) (api.ResumeVersion, error) {
-	if s == nil {
-		return api.ResumeVersion{}, fmt.Errorf("resume version read store is not configured")
-	}
-	reader, ok := s.store.(VersionReadStore)
-	if !ok {
-		return api.ResumeVersion{}, fmt.Errorf("resume version read store is not configured")
-	}
-	rec, err := reader.GetVersionByID(ctx, strings.TrimSpace(userID), strings.TrimSpace(versionID))
-	if errors.Is(err, resumestore.ErrVersionNotFound) {
-		return api.ResumeVersion{}, ErrNotFound
-	}
-	if err != nil {
-		return api.ResumeVersion{}, err
-	}
-	return versionRecordToAPI(rec), nil
-}
-
-type ListVersionRequest struct {
-	UserID        string
-	ResumeAssetID string
-	Cursor        string
-	PageSize      int
-}
-
-type UpdateVersionRequest struct {
-	UserID               string
-	VersionID            string
-	DisplayName          *string
-	DisplayNameSet       bool
-	FocusAngle           *string
-	FocusAngleSet        bool
-	MatchScore           *float64
-	MatchScoreSet        bool
-	StructuredProfile    map[string]any
-	StructuredProfileSet bool
-}
-
-type BranchVersionRequest struct {
-	UserID          string
-	ParentVersionID string
-	TargetJobID     string
-	SeedStrategy    sharedtypes.ResumeSeedStrategy
-	DisplayName     string
-	FocusAngle      *string
-	IdempotencyKey  string
-}
-
-type BranchVersionResult struct {
-	Status   int
-	Version  api.ResumeVersion
-	Accepted *api.BranchResumeVersionAccepted
-}
-
-type RequestTailorRunInput struct {
-	UserID          string
-	TargetJobID     string
-	ResumeAssetID   string
-	ResumeVersionID string
-	Mode            string
-	IdempotencyKey  string
-}
-
-type SuggestionDecisionRequest struct {
-	UserID          string
-	ResumeVersionID string
-	SuggestionID    string
-	IdempotencyKey  string
-}
-
-func (s *Service) ListResumeVersions(ctx context.Context, in ListVersionRequest) (api.PaginatedResumeVersion, error) {
-	if s == nil {
-		return api.PaginatedResumeVersion{}, fmt.Errorf("resume version read store is not configured")
-	}
-	reader, ok := s.store.(VersionReadStore)
-	if !ok {
-		return api.PaginatedResumeVersion{}, fmt.Errorf("resume version read store is not configured")
-	}
-	res, err := reader.ListVersionsByAsset(ctx, strings.TrimSpace(in.UserID), strings.TrimSpace(in.ResumeAssetID), resumestore.VersionListFilter{Cursor: in.Cursor, PageSize: in.PageSize})
-	switch {
-	case errors.Is(err, resumestore.ErrAssetNotFound):
-		return api.PaginatedResumeVersion{}, ErrNotFound
-	case errors.Is(err, resumestore.ErrInvalidCursor):
-		return api.PaginatedResumeVersion{}, ErrInvalidCursor
-	case err != nil:
-		return api.PaginatedResumeVersion{}, err
-	}
-	out := api.PaginatedResumeVersion{Items: make([]api.ResumeVersion, 0, len(res.Items))}
-	for _, item := range res.Items {
-		out.Items = append(out.Items, versionRecordToAPI(item))
-	}
-	out.PageInfo = api.PageInfo{
-		NextCursor: optionalString(res.NextCursor),
-		PageSize:   res.PageSize,
-		HasMore:    res.HasMore,
-	}
-	return out, nil
-}
-
-func (s *Service) UpdateResumeVersion(ctx context.Context, in UpdateVersionRequest) (api.ResumeVersion, error) {
-	if s == nil {
-		return api.ResumeVersion{}, fmt.Errorf("resume version update store is not configured")
-	}
-	store, ok := s.store.(VersionUpdateStore)
-	if !ok {
-		return api.ResumeVersion{}, fmt.Errorf("resume version update store is not configured")
-	}
-	userID := strings.TrimSpace(in.UserID)
-	versionID := strings.TrimSpace(in.VersionID)
-	if userID == "" || versionID == "" {
-		return api.ResumeVersion{}, ErrValidationFailed
-	}
-	if !in.DisplayNameSet && !in.FocusAngleSet && !in.MatchScoreSet && !in.StructuredProfileSet {
-		return api.ResumeVersion{}, ErrValidationFailed
-	}
-	update := resumestore.VersionUpdateInput{
-		UserID:               userID,
-		VersionID:            versionID,
-		DisplayNameSet:       in.DisplayNameSet,
-		FocusAngleSet:        in.FocusAngleSet,
-		MatchScoreSet:        in.MatchScoreSet,
-		StructuredProfileSet: in.StructuredProfileSet,
-		Now:                  s.now(),
+	if len(in.StructuredProfile) > 0 {
+		profile := cloneMap(in.StructuredProfile)
+		delete(profile, "provenance")
+		raw, err := json.Marshal(profile)
+		if err != nil {
+			return api.Resume{}, ErrValidationFailed
+		}
+		update.StructuredProfile = raw
+	} else {
+		update.StructuredProfile = json.RawMessage(`{}`)
 	}
 	if in.DisplayNameSet {
 		if in.DisplayName == nil {
-			return api.ResumeVersion{}, ErrValidationFailed
+			return api.Resume{}, ErrValidationFailed
 		}
 		displayName := strings.TrimSpace(*in.DisplayName)
 		if displayName == "" {
-			return api.ResumeVersion{}, ErrValidationFailed
+			return api.Resume{}, ErrValidationFailed
 		}
 		update.DisplayName = &displayName
 	}
-	if in.FocusAngleSet && in.FocusAngle != nil {
-		focusAngle := strings.TrimSpace(*in.FocusAngle)
-		update.FocusAngle = &focusAngle
-	}
-	if in.MatchScoreSet {
-		update.MatchScore = cloneFloatPtr(in.MatchScore)
-	}
-	if in.StructuredProfileSet {
-		profile := cloneMap(in.StructuredProfile)
-		delete(profile, "provenance")
-		if len(profile) == 0 && !in.DisplayNameSet && !in.FocusAngleSet && !in.MatchScoreSet {
-			return api.ResumeVersion{}, ErrValidationFailed
-		}
-		profileRaw, err := json.Marshal(profile)
-		if err != nil {
-			return api.ResumeVersion{}, ErrValidationFailed
-		}
-		update.StructuredProfilePatch = profile
-		update.StructuredProfile = profileRaw
-	}
-	rec, err := store.UpdateVersionPatch(ctx, update)
+	rec, err := store.UpdateResume(ctx, update)
 	switch {
-	case errors.Is(err, resumestore.ErrVersionNotFound):
-		return api.ResumeVersion{}, ErrNotFound
-	case errors.Is(err, resumestore.ErrInvalidCursor):
-		return api.ResumeVersion{}, ErrInvalidCursor
+	case errors.Is(err, resumestore.ErrAssetNotFound):
+		return api.Resume{}, ErrNotFound
 	case err != nil:
-		return api.ResumeVersion{}, err
+		return api.Resume{}, err
 	}
-	return versionRecordToAPI(rec), nil
+	return resumeRecordToAPI(rec), nil
 }
 
-func (s *Service) BranchResumeVersion(ctx context.Context, in BranchVersionRequest) (BranchVersionResult, error) {
+type DuplicateResumeRequest struct {
+	UserID            string
+	SourceResumeID    string
+	DisplayName       *string
+	DisplayNameSet    bool
+	StructuredProfile map[string]any
+}
+
+// DuplicateResume saves the accepted rewrites as a new resume copied from the
+// source read-only snapshot (D-20 C-18).
+func (s *Service) DuplicateResume(ctx context.Context, in DuplicateResumeRequest) (api.Resume, error) {
 	if s == nil {
-		return BranchVersionResult{}, fmt.Errorf("resume version branch store is not configured")
+		return api.Resume{}, fmt.Errorf("resume duplicate store is not configured")
 	}
-	store, ok := s.store.(BranchVersionStore)
+	store, ok := s.store.(DuplicateStore)
 	if !ok {
-		return BranchVersionResult{}, fmt.Errorf("resume version branch store is not configured")
+		return api.Resume{}, fmt.Errorf("resume duplicate store is not configured")
 	}
 	userID := strings.TrimSpace(in.UserID)
-	parentVersionID := strings.TrimSpace(in.ParentVersionID)
-	targetJobID := strings.TrimSpace(in.TargetJobID)
-	displayName := strings.TrimSpace(in.DisplayName)
-	idempotencyKey := strings.TrimSpace(in.IdempotencyKey)
-	if userID == "" || parentVersionID == "" || targetJobID == "" || displayName == "" || idempotencyKey == "" {
-		return BranchVersionResult{}, ErrValidationFailed
+	sourceResumeID := strings.TrimSpace(in.SourceResumeID)
+	if userID == "" || sourceResumeID == "" {
+		return api.Resume{}, ErrValidationFailed
 	}
-	switch in.SeedStrategy {
-	case sharedtypes.ResumeSeedStrategyCopyMaster, sharedtypes.ResumeSeedStrategyBlank, sharedtypes.ResumeSeedStrategyAiSelect:
-	default:
-		return BranchVersionResult{}, ErrValidationFailed
+	duplicate := resumestore.DuplicateResumeInput{
+		NewResumeID:    s.newID(),
+		UserID:         userID,
+		SourceResumeID: sourceResumeID,
+		Now:            s.now(),
 	}
-	now := s.now()
-	storeIn := resumestore.BranchVersionInput{
-		VersionID:       s.newID(),
-		UserID:          userID,
-		ParentVersionID: parentVersionID,
-		TargetJobID:     targetJobID,
-		SeedStrategy:    in.SeedStrategy,
-		DisplayName:     displayName,
-		FocusAngle:      trimOptionalString(in.FocusAngle),
-		Provenance:      branchVersionProvenance(in.SeedStrategy),
-		Now:             now,
-	}
-	if in.SeedStrategy == sharedtypes.ResumeSeedStrategyAiSelect {
-		storeIn.TailorRunID = s.newID()
-		storeIn.JobID = s.newID()
-		storeIn.DedupeKey = s.branchDedupeKey(userID, idempotencyKey)
-	}
-	res, err := store.BranchFromParent(ctx, storeIn)
-	switch {
-	case errors.Is(err, resumestore.ErrVersionNotFound):
-		return BranchVersionResult{}, ErrNotFound
-	case err != nil:
-		return BranchVersionResult{}, err
-	}
-	version := versionRecordToAPI(res.Version)
-	if in.SeedStrategy == sharedtypes.ResumeSeedStrategyAiSelect {
-		jobStatus := res.JobStatus
-		if jobStatus == "" {
-			jobStatus = sharedtypes.JobStatusQueued
+	if len(in.StructuredProfile) > 0 {
+		profile := cloneMap(in.StructuredProfile)
+		delete(profile, "provenance")
+		raw, err := json.Marshal(profile)
+		if err != nil {
+			return api.Resume{}, ErrValidationFailed
 		}
-		return BranchVersionResult{
-			Status: http.StatusAccepted,
-			Accepted: &api.BranchResumeVersionAccepted{
-				ResumeVersionId: version.Id,
-				Version:         version,
-				Job: api.Job{
-					Id:           res.JobID,
-					JobType:      api.JobTypeResumeTailor,
-					ResourceType: api.ResourceTypeResumeTailorRun,
-					ResourceId:   res.TailorRunID,
-					Status:       jobStatus,
-					CreatedAt:    res.JobCreatedAt.UTC().Format(time.RFC3339),
-					UpdatedAt:    res.JobUpdatedAt.UTC().Format(time.RFC3339),
-				},
-			},
-		}, nil
+		duplicate.StructuredProfile = raw
 	}
-	return BranchVersionResult{Status: http.StatusCreated, Version: version}, nil
+	if in.DisplayNameSet {
+		if in.DisplayName == nil {
+			return api.Resume{}, ErrValidationFailed
+		}
+		displayName := strings.TrimSpace(*in.DisplayName)
+		if displayName == "" {
+			return api.Resume{}, ErrValidationFailed
+		}
+		duplicate.DisplayName = &displayName
+	}
+	rec, err := store.DuplicateResume(ctx, duplicate)
+	switch {
+	case errors.Is(err, resumestore.ErrAssetNotFound):
+		return api.Resume{}, ErrNotFound
+	case err != nil:
+		return api.Resume{}, err
+	}
+	return resumeRecordToAPI(rec), nil
+}
+
+// ArchiveResume marks a resume as archived (soft-hide, not privacy deletion).
+// P0 archive has no dedicated persistence column yet (full archive/delete
+// integration is plan 003); it enforces ownership / cross-user 404 and returns
+// the resume with status archived.
+func (s *Service) ArchiveResume(ctx context.Context, userID string, resumeID string) (api.Resume, error) {
+	if s == nil {
+		return api.Resume{}, fmt.Errorf("resume read store is not configured")
+	}
+	reader, ok := s.store.(ReadStore)
+	if !ok {
+		return api.Resume{}, fmt.Errorf("resume read store is not configured")
+	}
+	rec, err := reader.Get(ctx, strings.TrimSpace(userID), strings.TrimSpace(resumeID))
+	if errors.Is(err, resumestore.ErrAssetNotFound) {
+		return api.Resume{}, ErrNotFound
+	}
+	if err != nil {
+		return api.Resume{}, err
+	}
+	out := resumeRecordToAPI(rec)
+	archived := "archived"
+	out.Status = &archived
+	return out, nil
+}
+
+type RequestTailorRunInput struct {
+	UserID         string
+	TargetJobID    string
+	ResumeID       string
+	Mode           string
+	IdempotencyKey string
 }
 
 func (s *Service) RequestResumeTailor(ctx context.Context, in RequestTailorRunInput) (api.ResumeTailorRunWithJob, error) {
@@ -538,11 +371,10 @@ func (s *Service) RequestResumeTailor(ctx context.Context, in RequestTailorRunIn
 	}
 	userID := strings.TrimSpace(in.UserID)
 	targetJobID := strings.TrimSpace(in.TargetJobID)
-	resumeAssetID := strings.TrimSpace(in.ResumeAssetID)
-	resumeVersionID := strings.TrimSpace(in.ResumeVersionID)
+	resumeID := strings.TrimSpace(in.ResumeID)
 	mode := strings.TrimSpace(in.Mode)
 	idempotencyKey := strings.TrimSpace(in.IdempotencyKey)
-	if userID == "" || targetJobID == "" || resumeAssetID == "" || idempotencyKey == "" {
+	if userID == "" || resumeID == "" || idempotencyKey == "" {
 		return api.ResumeTailorRunWithJob{}, ErrValidationFailed
 	}
 	switch mode {
@@ -552,19 +384,18 @@ func (s *Service) RequestResumeTailor(ctx context.Context, in RequestTailorRunIn
 	}
 	now := s.now()
 	storeIn := resumestore.CreateTailorRunInput{
-		TailorRunID:     s.newID(),
-		JobID:           s.newID(),
-		UserID:          userID,
-		TargetJobID:     targetJobID,
-		ResumeAssetID:   resumeAssetID,
-		ResumeVersionID: resumeVersionID,
-		Mode:            mode,
-		DedupeKey:       s.tailorDedupeKey(userID, idempotencyKey),
-		Now:             now,
+		TailorRunID: s.newID(),
+		JobID:       s.newID(),
+		UserID:      userID,
+		TargetJobID: targetJobID,
+		ResumeID:    resumeID,
+		Mode:        mode,
+		DedupeKey:   s.tailorDedupeKey(userID, idempotencyKey),
+		Now:         now,
 	}
 	res, err := store.CreateTailorRun(ctx, storeIn)
 	switch {
-	case errors.Is(err, resumestore.ErrAssetNotFound), errors.Is(err, resumestore.ErrTailorRunNotFound), errors.Is(err, resumestore.ErrVersionNotFound):
+	case errors.Is(err, resumestore.ErrAssetNotFound), errors.Is(err, resumestore.ErrTailorRunNotFound):
 		return api.ResumeTailorRunWithJob{}, ErrNotFound
 	case err != nil:
 		return api.ResumeTailorRunWithJob{}, err
@@ -605,83 +436,17 @@ func (s *Service) GetResumeTailorRun(ctx context.Context, userID string, tailorR
 	return tailorRunRecordToAPI(rec), nil
 }
 
-func (s *Service) AcceptResumeTailorSuggestion(ctx context.Context, in SuggestionDecisionRequest) (api.ResumeVersion, error) {
-	return s.decideResumeTailorSuggestion(ctx, in, sharedtypes.ResumeTailorSuggestionStatusAccepted)
-}
-
-func (s *Service) RejectResumeTailorSuggestion(ctx context.Context, in SuggestionDecisionRequest) (api.ResumeVersion, error) {
-	return s.decideResumeTailorSuggestion(ctx, in, sharedtypes.ResumeTailorSuggestionStatusRejected)
-}
-
-func (s *Service) decideResumeTailorSuggestion(ctx context.Context, in SuggestionDecisionRequest, decision sharedtypes.ResumeTailorSuggestionStatus) (api.ResumeVersion, error) {
-	if s == nil {
-		return api.ResumeVersion{}, fmt.Errorf("resume suggestion decision store is not configured")
-	}
-	store, ok := s.store.(SuggestionDecisionStore)
-	if !ok {
-		return api.ResumeVersion{}, fmt.Errorf("resume suggestion decision store is not configured")
-	}
-	userID := strings.TrimSpace(in.UserID)
-	versionID := strings.TrimSpace(in.ResumeVersionID)
-	suggestionID := strings.TrimSpace(in.SuggestionID)
-	idempotencyKey := strings.TrimSpace(in.IdempotencyKey)
-	if userID == "" || versionID == "" || suggestionID == "" || idempotencyKey == "" {
-		return api.ResumeVersion{}, ErrValidationFailed
-	}
-	switch decision {
-	case sharedtypes.ResumeTailorSuggestionStatusAccepted, sharedtypes.ResumeTailorSuggestionStatusRejected:
-	default:
-		return api.ResumeVersion{}, ErrValidationFailed
-	}
-	rec, err := store.DecideResumeSuggestion(ctx, resumestore.DecideSuggestionInput{
-		UserID:          userID,
-		ResumeVersionID: versionID,
-		SuggestionID:    suggestionID,
-		Decision:        decision,
-		Now:             s.now(),
-	})
-	switch {
-	case errors.Is(err, resumestore.ErrSuggestionNotFound), errors.Is(err, resumestore.ErrVersionNotFound):
-		return api.ResumeVersion{}, ErrNotFound
-	case errors.Is(err, resumestore.ErrSuggestionAlreadyDecided):
-		return api.ResumeVersion{}, ErrSuggestionAlreadyDecided
-	case err != nil:
-		return api.ResumeVersion{}, err
-	}
-	return versionRecordToAPI(rec), nil
-}
-
 func (s *Service) dedupeKey(userID, idempotencyKey string) string {
-	h := sha256.New()
-	h.Write([]byte("resume.register.v1"))
-	if s.dedupePepper != "" {
-		h.Write([]byte("|"))
-		h.Write([]byte(s.dedupePepper))
-	}
-	h.Write([]byte("|"))
-	h.Write([]byte(strings.TrimSpace(userID)))
-	h.Write([]byte("|"))
-	h.Write([]byte(strings.TrimSpace(idempotencyKey)))
-	return hex.EncodeToString(h.Sum(nil))
-}
-
-func (s *Service) branchDedupeKey(userID, idempotencyKey string) string {
-	h := sha256.New()
-	h.Write([]byte("resume.branch.v1"))
-	if s.dedupePepper != "" {
-		h.Write([]byte("|"))
-		h.Write([]byte(s.dedupePepper))
-	}
-	h.Write([]byte("|"))
-	h.Write([]byte(strings.TrimSpace(userID)))
-	h.Write([]byte("|"))
-	h.Write([]byte(strings.TrimSpace(idempotencyKey)))
-	return hex.EncodeToString(h.Sum(nil))
+	return s.namespacedDedupeKey("resume.register.v1", userID, idempotencyKey)
 }
 
 func (s *Service) tailorDedupeKey(userID, idempotencyKey string) string {
+	return s.namespacedDedupeKey("resume.tailor.v1", userID, idempotencyKey)
+}
+
+func (s *Service) namespacedDedupeKey(namespace, userID, idempotencyKey string) string {
 	h := sha256.New()
-	h.Write([]byte("resume.tailor.v1"))
+	h.Write([]byte(namespace))
 	if s.dedupePepper != "" {
 		h.Write([]byte("|"))
 		h.Write([]byte(s.dedupePepper))
@@ -691,48 +456,11 @@ func (s *Service) tailorDedupeKey(userID, idempotencyKey string) string {
 	h.Write([]byte("|"))
 	h.Write([]byte(strings.TrimSpace(idempotencyKey)))
 	return hex.EncodeToString(h.Sum(nil))
-}
-
-func branchVersionProvenance(strategy sharedtypes.ResumeSeedStrategy) resumestore.VersionProvenance {
-	out := resumestore.VersionProvenance{
-		RubricVersion:     "not_applicable",
-		ModelID:           "not_applicable",
-		Provider:          "system",
-		Language:          "en",
-		FeatureFlag:       "resume-workshop-additive",
-		DataSourceVersion: "resume_version.v1",
-	}
-	switch strategy {
-	case sharedtypes.ResumeSeedStrategyBlank:
-		out.PromptVersion = "resume_branch.blank.v1"
-	case sharedtypes.ResumeSeedStrategyAiSelect:
-		out.PromptVersion = "resume_branch.ai_select.v1"
-		out.RubricVersion = "resume_targeted.rubric.v1"
-		out.DataSourceVersion = "resume_version.v1+target_job.v1"
-	default:
-		out.PromptVersion = "resume_branch.copy_master.v1"
-	}
-	return out
-}
-
-func trimOptionalString(in *string) *string {
-	if in == nil {
-		return nil
-	}
-	trimmed := strings.TrimSpace(*in)
-	if trimmed == "" {
-		return nil
-	}
-	return &trimmed
 }
 
 func contentHash(in string) string {
 	h := sha256.Sum256([]byte(strings.TrimSpace(in)))
 	return hex.EncodeToString(h[:])
-}
-
-func contentHashMap(in map[string]any) string {
-	return contentHash(fmt.Sprintf("%#v", in))
 }
 
 func cloneMap(in map[string]any) map[string]any {
@@ -746,22 +474,25 @@ func cloneMap(in map[string]any) map[string]any {
 	return out
 }
 
-func assetRecordToAPI(rec resumestore.AssetRecord) api.ResumeAsset {
+func resumeRecordToAPI(rec resumestore.ResumeRecord) api.Resume {
 	status := "active"
-	out := api.ResumeAsset{
-		Id:            rec.ID,
-		Title:         rec.Title,
-		Language:      rec.Language,
-		ParseStatus:   rec.ParseStatus,
-		Status:        &status,
-		FileObjectId:  cloneStringPtr(rec.FileObjectID),
-		OriginalText:  cloneStringPtr(rec.OriginalText),
-		SourceType:    cloneStringPtr(rec.SourceType),
-		CreatedAt:     rec.CreatedAt.UTC().Format(time.RFC3339),
-		UpdatedAt:     rec.UpdatedAt.UTC().Format(time.RFC3339),
-		DeletedAt:     timePtrToString(rec.DeletedAt),
-		ParsedSummary: rawJSONMapPtr(rec.ParsedSummary),
-		GuidedAnswers: rawJSONMapPtr(rec.GuidedAnswers),
+	out := api.Resume{
+		Id:                rec.ID,
+		Title:             rec.Title,
+		Language:          rec.Language,
+		ParseStatus:       rec.ParseStatus,
+		Status:            &status,
+		FileObjectId:      cloneStringPtr(rec.FileObjectID),
+		OriginalText:      cloneStringPtr(rec.OriginalText),
+		SourceType:        cloneStringPtr(rec.SourceType),
+		CreatedAt:         rec.CreatedAt.UTC().Format(time.RFC3339),
+		UpdatedAt:         rec.UpdatedAt.UTC().Format(time.RFC3339),
+		DeletedAt:         timePtrToString(rec.DeletedAt),
+		ParsedSummary:     rawJSONMapPtr(rec.ParsedSummary),
+		StructuredProfile: rawJSONAnyOrNil(rec.StructuredProfile),
+	}
+	if rec.DisplayName != nil {
+		out.DisplayName = *rec.DisplayName
 	}
 	if rec.ParsedTextSnapshot != nil {
 		out.ParsedTextSnapshot = cloneStringPtr(rec.ParsedTextSnapshot)
@@ -769,107 +500,17 @@ func assetRecordToAPI(rec resumestore.AssetRecord) api.ResumeAsset {
 	return out
 }
 
-func extractVersionProvenance(profile map[string]any) (resumestore.VersionProvenance, error) {
-	raw, ok := profile["provenance"].(map[string]any)
-	if !ok || len(raw) == 0 {
-		return resumestore.VersionProvenance{}, fmt.Errorf("structured profile provenance is required")
-	}
-	out := resumestore.VersionProvenance{
-		PromptVersion:     stringValue(raw["promptVersion"]),
-		RubricVersion:     stringValue(raw["rubricVersion"]),
-		ModelID:           stringValue(raw["modelId"]),
-		Provider:          stringValue(raw["provider"]),
-		Language:          stringValue(raw["language"]),
-		FeatureFlag:       stringValue(raw["featureFlag"]),
-		DataSourceVersion: stringValue(raw["dataSourceVersion"]),
-	}
-	if out.PromptVersion == "" || out.RubricVersion == "" || out.ModelID == "" || out.FeatureFlag == "" || out.DataSourceVersion == "" {
-		return resumestore.VersionProvenance{}, fmt.Errorf("structured profile provenance is incomplete")
-	}
-	return out, nil
-}
-
-func stringValue(v any) string {
-	s, _ := v.(string)
-	return strings.TrimSpace(s)
-}
-
-func versionRecordToAPI(rec resumestore.VersionRecord) api.ResumeVersion {
-	profile := rawJSONAny(rec.StructuredProfile)
-	provenance := rec.Provenance
-	if profileMap, ok := profile.(map[string]any); ok {
-		if profileProvenance, err := extractVersionProvenance(profileMap); err == nil {
-			fillProvenance(&provenance, profileProvenance)
-		}
-	}
-	if provenance.PromptVersion == "" && rec.PromptVersion != nil {
-		provenance.PromptVersion = *rec.PromptVersion
-	}
-	if provenance.RubricVersion == "" && rec.RubricVersion != nil {
-		provenance.RubricVersion = *rec.RubricVersion
-	}
-	if provenance.ModelID == "" && rec.ModelID != nil {
-		provenance.ModelID = *rec.ModelID
-	}
-	if provenance.Provider == "" && rec.Provider != nil {
-		provenance.Provider = *rec.Provider
-	}
-	promptVersion := cloneStringPtr(rec.PromptVersion)
-	if promptVersion == nil && provenance.PromptVersion != "" {
-		promptVersion = pointerString(provenance.PromptVersion)
-	}
-	rubricVersion := cloneStringPtr(rec.RubricVersion)
-	if rubricVersion == nil && provenance.RubricVersion != "" {
-		rubricVersion = pointerString(provenance.RubricVersion)
-	}
-	modelID := cloneStringPtr(rec.ModelID)
-	if modelID == nil && provenance.ModelID != "" {
-		modelID = pointerString(provenance.ModelID)
-	}
-	provider := cloneStringPtr(rec.Provider)
-	if provider == nil && provenance.Provider != "" {
-		provider = pointerString(provenance.Provider)
-	}
-	out := api.ResumeVersion{
-		Id:                rec.ID,
-		ResumeAssetId:     rec.ResumeAssetID,
-		ParentVersionId:   cloneStringPtr(rec.ParentVersionID),
-		VersionType:       rec.VersionType,
-		TargetJobId:       cloneStringPtr(rec.TargetJobID),
-		DisplayName:       rec.DisplayName,
-		SeedStrategy:      cloneSeedStrategyPtr(rec.SeedStrategy),
-		FocusAngle:        cloneStringPtr(rec.FocusAngle),
-		StructuredProfile: profile,
-		MatchScore:        cloneFloatPtr(rec.MatchScore),
-		PromptVersion:     promptVersion,
-		RubricVersion:     rubricVersion,
-		ModelId:           modelID,
-		Provider:          provider,
-		Provenance: api.GenerationProvenance{
-			PromptVersion:     provenance.PromptVersion,
-			RubricVersion:     provenance.RubricVersion,
-			ModelId:           provenance.ModelID,
-			Language:          provenance.Language,
-			FeatureFlag:       provenance.FeatureFlag,
-			DataSourceVersion: provenance.DataSourceVersion,
-		},
-		Suggestions: cloneAnySlice(rec.Suggestions),
-		CreatedAt:   rec.CreatedAt.UTC().Format(time.RFC3339),
-		UpdatedAt:   rec.UpdatedAt.UTC().Format(time.RFC3339),
-		DeletedAt:   timePtrToString(rec.DeletedAt),
-	}
-	return out
-}
-
 func tailorRunRecordToAPI(rec resumestore.TailorRunRecord) api.ResumeTailorRun {
 	out := api.ResumeTailorRun{
-		Id:            rec.ID,
-		Status:        rec.Status,
-		TargetJobId:   rec.TargetJobID,
-		ResumeAssetId: rec.ResumeAssetID,
-		Suggestions:   decodeTailorSuggestions(rec.Suggestions),
-		CreatedAt:     rec.CreatedAt.UTC().Format(time.RFC3339),
-		UpdatedAt:     rec.UpdatedAt.UTC().Format(time.RFC3339),
+		Id:          rec.ID,
+		Status:      rec.Status,
+		ResumeId:    rec.ResumeID,
+		Suggestions: decodeTailorSuggestions(rec.Suggestions),
+		CreatedAt:   rec.CreatedAt.UTC().Format(time.RFC3339),
+		UpdatedAt:   rec.UpdatedAt.UTC().Format(time.RFC3339),
+	}
+	if strings.TrimSpace(rec.TargetJobID) != "" {
+		out.TargetJobId = pointerString(rec.TargetJobID)
 	}
 	if rec.Status == "ready" {
 		if matchSummary := decodeTailorMatchSummary(rec.MatchSummary); matchSummary != nil {
@@ -920,69 +561,20 @@ func decodeTailorSuggestions(raw json.RawMessage) []api.ResumeTailorBulletSugges
 	return out
 }
 
-func cloneAnySlice(in []any) []any {
-	if in == nil {
-		return []any{}
-	}
-	out := make([]any, len(in))
-	copy(out, in)
-	return out
-}
-
-func fillProvenance(target *resumestore.VersionProvenance, fallback resumestore.VersionProvenance) {
-	if target.PromptVersion == "" {
-		target.PromptVersion = fallback.PromptVersion
-	}
-	if target.RubricVersion == "" {
-		target.RubricVersion = fallback.RubricVersion
-	}
-	if target.ModelID == "" {
-		target.ModelID = fallback.ModelID
-	}
-	if target.Provider == "" {
-		target.Provider = fallback.Provider
-	}
-	if target.Language == "" {
-		target.Language = fallback.Language
-	}
-	if target.FeatureFlag == "" {
-		target.FeatureFlag = fallback.FeatureFlag
-	}
-	if target.DataSourceVersion == "" {
-		target.DataSourceVersion = fallback.DataSourceVersion
-	}
-}
-
 func pointerString(in string) *string {
 	v := in
 	return &v
 }
 
-func rawJSONAny(raw json.RawMessage) any {
-	if len(raw) == 0 {
-		return map[string]any{}
+func rawJSONAnyOrNil(raw json.RawMessage) any {
+	if len(raw) == 0 || string(raw) == "{}" || string(raw) == "null" {
+		return nil
 	}
 	var out any
 	if err := json.Unmarshal(raw, &out); err != nil {
-		return map[string]any{}
+		return nil
 	}
 	return out
-}
-
-func cloneSeedStrategyPtr(in *sharedtypes.ResumeSeedStrategy) *sharedtypes.ResumeSeedStrategy {
-	if in == nil {
-		return nil
-	}
-	v := *in
-	return &v
-}
-
-func cloneFloatPtr(in *float64) *float64 {
-	if in == nil {
-		return nil
-	}
-	v := *in
-	return &v
 }
 
 func rawJSONMapPtr(raw json.RawMessage) *map[string]any {

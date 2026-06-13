@@ -17,9 +17,6 @@ import type {
 	QuestionReviewStatus as QuestionReviewStatusAlias,
 	ReadinessTier as ReadinessTierAlias,
 	ReportStatus as ReportStatusAlias,
-	ResumeSeedStrategy as ResumeSeedStrategyAlias,
-	ResumeTailorSuggestionStatus as ResumeTailorSuggestionStatusAlias,
-	ResumeVersionType as ResumeVersionTypeAlias,
 	SessionStatus as SessionStatusAlias,
 	TargetJobParseStatus as TargetJobParseStatusAlias,
 	TargetJobStatus as TargetJobStatusAlias,
@@ -34,7 +31,7 @@ export type ApiError = ApiErrorAlias;
 
 export type PageInfo = PageInfoAlias;
 
-export type ApiErrorCode = "AUTH_UNAUTHORIZED" | "TARGET_IMPORT_FAILED" | "TARGET_JOB_NOT_FOUND" | "TARGET_IMPORT_SOURCE_INVALID" | "TARGET_IMPORT_SOURCE_UNAVAILABLE" | "TARGET_INVALID_STATE_TRANSITION" | "PRACTICE_SESSION_CONFLICT" | "PRACTICE_PLAN_NOT_FOUND" | "PRACTICE_SESSION_NOT_FOUND" | "REPORT_NOT_FOUND" | "REPORT_NOT_READY" | "DEBRIEF_NOT_FOUND" | "RESUME_EXPORT_NOT_AVAILABLE" | "RESUME_STRUCTURED_MASTER_ALREADY_EXISTS" | "VALIDATION_FAILED" | "RESOURCE_NOT_FOUND" | "IDEMPOTENCY_KEY_MISMATCH" | "RATE_LIMITED" | "AI_PROVIDER_TIMEOUT" | "AI_OUTPUT_INVALID" | "AI_FALLBACK_EXHAUSTED" | "AI_UNSUPPORTED_CAPABILITY" | "AI_PROVIDER_CONFIG_INVALID" | "AI_PROVIDER_SECRET_MISSING" | "PRIVACY_EXPORT_NOT_AVAILABLE";
+export type ApiErrorCode = "AUTH_UNAUTHORIZED" | "TARGET_IMPORT_FAILED" | "TARGET_JOB_NOT_FOUND" | "TARGET_IMPORT_SOURCE_INVALID" | "TARGET_IMPORT_SOURCE_UNAVAILABLE" | "TARGET_INVALID_STATE_TRANSITION" | "PRACTICE_SESSION_CONFLICT" | "PRACTICE_PLAN_NOT_FOUND" | "PRACTICE_SESSION_NOT_FOUND" | "REPORT_NOT_FOUND" | "REPORT_NOT_READY" | "DEBRIEF_NOT_FOUND" | "RESUME_EXPORT_NOT_AVAILABLE" | "VALIDATION_FAILED" | "RESOURCE_NOT_FOUND" | "IDEMPOTENCY_KEY_MISMATCH" | "RATE_LIMITED" | "AI_PROVIDER_TIMEOUT" | "AI_OUTPUT_INVALID" | "AI_FALLBACK_EXHAUSTED" | "AI_UNSUPPORTED_CAPABILITY" | "AI_PROVIDER_CONFIG_INVALID" | "AI_PROVIDER_SECRET_MISSING" | "PRIVACY_EXPORT_NOT_AVAILABLE";
 
 export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled" | "dead";
 
@@ -69,12 +66,6 @@ export type DebriefQuestionSource = DebriefQuestionSourceAlias;
 export type PrivacyRequestType = PrivacyRequestTypeAlias;
 
 export type PrivacyRequestStatus = PrivacyRequestStatusAlias;
-
-export type ResumeVersionType = ResumeVersionTypeAlias;
-
-export type ResumeSeedStrategy = ResumeSeedStrategyAlias;
-
-export type ResumeTailorSuggestionStatus = ResumeTailorSuggestionStatusAlias;
 
 
 // =============================================================================
@@ -216,91 +207,47 @@ export interface PaginatedExperienceCard {
 
 export interface RegisterResumeRequest {
 	fileObjectId?: string | null;
-	guidedAnswers?: Record<string, unknown>;
 	language: string;
 	rawText?: string;
-	sourceType?: "upload" | "paste" | "guided";
+	sourceType?: "upload" | "paste";
 	title: string;
 }
 
-export interface ResumeAsset {
+export interface Resume {
 	createdAt: string;
 	deletedAt?: string | null;
+	displayName: string;
 	fileObjectId?: string | null;
-	guidedAnswers?: Record<string, unknown> | null;
 	id: string;
 	language: string;
 	originalText?: string | null;
 	parseStatus: TargetJobParseStatus;
 	parsedSummary?: Record<string, unknown> | null;
 	parsedTextSnapshot?: string | null;
-	sourceType?: "upload" | "paste" | "guided";
+	sourceType?: "upload" | "paste";
 	status?: "active" | "archived";
+	structuredProfile?: Record<string, unknown>;
 	title: string;
 	updatedAt: string;
 }
 
-export interface ResumeAssetWithJob {
+export interface ResumeWithJob {
 	job: Job;
-	resumeAssetId: string;
+	resumeId: string;
 }
 
-export interface PaginatedResumeAsset {
-	items: ResumeAsset[];
+export interface PaginatedResume {
+	items: Resume[];
 	pageInfo: PageInfo;
 }
 
-export interface ResumeVersion {
-	createdAt: string;
-	deletedAt?: string | null;
-	displayName: string;
-	focusAngle?: string | null;
-	id: string;
-	matchScore?: number | null;
-	modelId?: string | null;
-	parentVersionId?: string | null;
-	promptVersion?: string | null;
-	provenance: GenerationProvenance;
-	provider?: string | null;
-	resumeAssetId: string;
-	rubricVersion?: string | null;
-	seedStrategy?: ResumeSeedStrategy | null;
-	structuredProfile: Record<string, unknown>;
-	suggestions: Record<string, unknown>[];
-	targetJobId?: string | null;
-	updatedAt: string;
-	versionType: ResumeVersionType;
-}
-
-export interface BranchResumeVersionAccepted {
-	job: Job;
-	resumeVersionId: string;
-	version: ResumeVersion;
-}
-
-export interface PaginatedResumeVersion {
-	items: ResumeVersion[];
-	pageInfo: PageInfo;
-}
-
-export interface ConfirmResumeStructuredMasterRequest {
-	displayName: string;
-	language?: string;
-	structuredProfile: Record<string, unknown>;
-}
-
-export interface BranchResumeVersionRequest {
+export interface UpdateResumeRequest {
 	displayName?: string;
-	focusAngle?: string;
-	parentVersionId: string;
-	seedStrategy: ResumeSeedStrategy;
-	targetJobId: string;
+	structuredProfile?: Record<string, unknown>;
 }
 
-export interface UpdateResumeVersionRequest {
+export interface DuplicateResumeRequest {
 	displayName?: string;
-	focusAngle?: string | null;
-	matchScore?: number | null;
 	structuredProfile?: Record<string, unknown>;
 }
 
@@ -401,7 +348,7 @@ export interface CreatePracticePlanRequest {
 	language: string;
 	mode: PracticeMode;
 	questionBudget: number;
-	resumeAssetId: string;
+	resumeId: string;
 	sourceDebriefId?: string | null;
 	sourceReportId?: string | null;
 	targetJobId: string;
@@ -595,9 +542,8 @@ export interface PaginatedFeedbackReport {
 
 export interface RequestResumeTailorRequest {
 	mode: "gap_review" | "bullet_suggestions";
-	resumeAssetId: string;
-	resumeVersionId?: string;
-	targetJobId: string;
+	resumeId: string;
+	targetJobId?: string | null;
 }
 
 export interface ResumeTailorBulletSuggestion {
@@ -616,10 +562,10 @@ export interface ResumeTailorRun {
 	id: string;
 	matchSummary?: ResumeTailorMatchSummary | null;
 	provenance?: GenerationProvenance | null;
-	resumeAssetId: string;
+	resumeId: string;
 	status: "queued" | "generating" | "ready" | "failed";
 	suggestions?: ResumeTailorBulletSuggestion[];
-	targetJobId: string;
+	targetJobId?: string | null;
 	updatedAt: string;
 }
 
@@ -690,7 +636,7 @@ export interface SuggestedDebriefQuestion {
 export interface SuggestDebriefQuestionsRequest {
 	count?: number;
 	language: string;
-	resumeVersionId?: string;
+	resumeId?: string;
 	sessionId?: string;
 	targetJobId: string;
 }

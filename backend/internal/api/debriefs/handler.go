@@ -98,7 +98,7 @@ func (h *Handler) SuggestDebriefQuestions(w http.ResponseWriter, r *http.Request
 		UserID:          userID,
 		TargetJobID:     strings.TrimSpace(body.TargetJobId),
 		SessionID:       stringValue(body.SessionId),
-		ResumeVersionID: stringValue(body.ResumeVersionId),
+		ResumeID:        stringValue(body.ResumeId),
 		Language:        strings.TrimSpace(body.Language),
 		Count:           count,
 	})

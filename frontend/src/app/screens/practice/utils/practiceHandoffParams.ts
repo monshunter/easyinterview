@@ -29,7 +29,7 @@ export interface PracticeHandoffParams {
   planId: string;
   targetJobId: string;
   jdId: string;
-  resumeVersionId: string;
+  resumeId: string;
   roundId: string;
   sessionId: string;
   reportId: string;
@@ -63,7 +63,7 @@ export function buildPracticeHandoffParams(
     planId: source.ctx.planId ?? "",
     targetJobId: source.ctx.targetJobId ?? "",
     jdId: source.ctx.jdId ?? "",
-    resumeVersionId: source.ctx.resumeVersionId ?? "",
+    resumeId: source.ctx.resumeId ?? "",
     roundId: source.ctx.roundId ?? "",
     sessionId: source.ctx.sessionId ?? "",
     reportId: source.reportId,

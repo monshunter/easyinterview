@@ -45,13 +45,13 @@ func (r *SQLRepository) CreatePlan(ctx context.Context, in domain.CreatePlanStor
 insert into practice_plans (
   id, user_id, target_job_id, source_report_id, source_debrief_id, goal, mode,
   interviewer_persona, difficulty, language, time_budget_minutes,
-  question_budget, resume_asset_id, focus_competency_codes, status,
+  question_budget, resume_id, focus_competency_codes, status,
   created_at, updated_at
 )
 select $1, $2, tj.id, nullif($4, '')::uuid, nullif($5, '')::uuid,
        $6, $7, $8, $9, $10, $11, $12, ra.id, $14, 'ready', $15, $15
 from target_jobs tj
-join resume_assets ra
+join resumes ra
   on ra.id = $13
  and ra.user_id = $2
  and ra.deleted_at is null
@@ -89,7 +89,7 @@ returning id, target_job_id, source_report_id::text, source_debrief_id::text,
 		in.Language,
 		in.TimeBudgetMinutes,
 		in.QuestionBudget,
-		in.ResumeAssetID,
+		in.ResumeID,
 		pq.Array(focusCompetencyCodes),
 		in.Now,
 	).Scan(

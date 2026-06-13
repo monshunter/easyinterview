@@ -442,58 +442,47 @@ func buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(loader *config
 		if resume.Idempotency != nil {
 			registerResume = resume.Idempotency.Handler("resume", "registerResume", requestUserFromContext, registerResume).ServeHTTP
 		}
-		confirmStructuredMaster := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			resume.Handler.ConfirmResumeStructuredMaster(w, r, r.PathValue("resumeAssetId"))
+		updateResume := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resume.Handler.UpdateResume(w, r, r.PathValue("resumeId"))
 		})
 		if resume.Idempotency != nil {
-			confirmStructuredMaster = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "confirmResumeStructuredMaster", requestUserFromContext, confirmStructuredMaster)).ServeHTTP
+			updateResume = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "updateResume", requestUserFromContext, updateResume)).ServeHTTP
 		}
-		updateResumeVersion := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			resume.Handler.UpdateResumeVersion(w, r, r.PathValue("resumeVersionId"))
+		duplicateResume := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resume.Handler.DuplicateResume(w, r, r.PathValue("resumeId"))
 		})
 		if resume.Idempotency != nil {
-			updateResumeVersion = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "updateResumeVersion", requestUserFromContext, updateResumeVersion)).ServeHTTP
+			duplicateResume = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "duplicateResume", requestUserFromContext, duplicateResume)).ServeHTTP
 		}
-		branchResumeVersion := http.HandlerFunc(resume.Handler.BranchResumeVersion)
+		archiveResume := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resume.Handler.ArchiveResume(w, r, r.PathValue("resumeId"))
+		})
 		if resume.Idempotency != nil {
-			branchResumeVersion = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "branchResumeVersion", requestUserFromContext, branchResumeVersion)).ServeHTTP
+			archiveResume = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "archiveResume", requestUserFromContext, archiveResume)).ServeHTTP
+		}
+		exportResume := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resume.Handler.ExportResume(w, r, r.PathValue("resumeId"))
+		})
+		if resume.Idempotency != nil {
+			exportResume = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "exportResume", requestUserFromContext, exportResume)).ServeHTTP
 		}
 		requestResumeTailor := http.HandlerFunc(resume.Handler.RequestResumeTailor)
 		if resume.Idempotency != nil {
 			requestResumeTailor = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "requestResumeTailor", requestUserFromContext, requestResumeTailor)).ServeHTTP
 		}
-		acceptResumeTailorSuggestion := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			resume.Handler.AcceptResumeTailorSuggestion(w, r, r.PathValue("resumeVersionId"), r.PathValue("suggestionId"))
-		})
-		if resume.Idempotency != nil {
-			acceptResumeTailorSuggestion = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "acceptResumeTailorSuggestion", requestUserFromContext, acceptResumeTailorSuggestion)).ServeHTTP
-		}
-		rejectResumeTailorSuggestion := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			resume.Handler.RejectResumeTailorSuggestion(w, r, r.PathValue("resumeVersionId"), r.PathValue("suggestionId"))
-		})
-		if resume.Idempotency != nil {
-			rejectResumeTailorSuggestion = requireIdempotencyKey(http.StatusUnprocessableEntity, resume.Idempotency.Handler("resume", "rejectResumeTailorSuggestion", requestUserFromContext, rejectResumeTailorSuggestion)).ServeHTTP
-		}
 		mux.Handle("GET /api/v1/resumes", auth.SessionMiddleware(authService, "listResumes", http.HandlerFunc(resume.Handler.ListResumes)))
 		mux.Handle("POST /api/v1/resumes", auth.SessionMiddleware(authService, "registerResume", registerResume))
-		mux.Handle("POST /api/v1/resume-versions", auth.SessionMiddleware(authService, "branchResumeVersion", branchResumeVersion))
 		mux.Handle("POST /api/v1/resume/tailor", auth.SessionMiddleware(authService, "requestResumeTailor", requestResumeTailor))
 		mux.Handle("GET /api/v1/resume/tailor-runs/{tailorRunId}", auth.SessionMiddleware(authService, "getResumeTailorRun", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			resume.Handler.GetResumeTailorRun(w, r, r.PathValue("tailorRunId"))
 		})))
-		mux.Handle("GET /api/v1/resumes/{resumeAssetId}", auth.SessionMiddleware(authService, "getResume", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			resume.Handler.GetResume(w, r, r.PathValue("resumeAssetId"))
+		mux.Handle("GET /api/v1/resumes/{resumeId}", auth.SessionMiddleware(authService, "getResume", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resume.Handler.GetResume(w, r, r.PathValue("resumeId"))
 		})))
-		mux.Handle("GET /api/v1/resume-versions/{resumeVersionId}", auth.SessionMiddleware(authService, "getResumeVersion", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			resume.Handler.GetResumeVersion(w, r, r.PathValue("resumeVersionId"))
-		})))
-		mux.Handle("PATCH /api/v1/resume-versions/{resumeVersionId}", auth.SessionMiddleware(authService, "updateResumeVersion", updateResumeVersion))
-		mux.Handle("POST /api/v1/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept", auth.SessionMiddleware(authService, "acceptResumeTailorSuggestion", acceptResumeTailorSuggestion))
-		mux.Handle("POST /api/v1/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject", auth.SessionMiddleware(authService, "rejectResumeTailorSuggestion", rejectResumeTailorSuggestion))
-		mux.Handle("GET /api/v1/resumes/{resumeAssetId}/versions", auth.SessionMiddleware(authService, "listResumeVersions", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			resume.Handler.ListResumeVersions(w, r, r.PathValue("resumeAssetId"))
-		})))
-		mux.Handle("POST /api/v1/resumes/{resumeAssetId}/structured-master", auth.SessionMiddleware(authService, "confirmResumeStructuredMaster", confirmStructuredMaster))
+		mux.Handle("PATCH /api/v1/resumes/{resumeId}", auth.SessionMiddleware(authService, "updateResume", updateResume))
+		mux.Handle("POST /api/v1/resumes/{resumeId}/duplicate", auth.SessionMiddleware(authService, "duplicateResume", duplicateResume))
+		mux.Handle("POST /api/v1/resumes/{resumeId}/archive", auth.SessionMiddleware(authService, "archiveResume", archiveResume))
+		mux.Handle("POST /api/v1/resumes/{resumeId}/exports", auth.SessionMiddleware(authService, "exportResume", exportResume))
 	}
 	if reports.Handler != nil {
 		mux.Handle("GET /api/v1/reports/{reportId}", auth.SessionMiddleware(authService, "getFeedbackReport", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

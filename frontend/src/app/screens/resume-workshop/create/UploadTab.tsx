@@ -30,7 +30,7 @@ export interface UploadTabProps {
   inlineError: string | null;
   onPickFile: (file: File | null) => void;
   onValidationError: (message: string | null) => void;
-  onRegistered: (resumeAssetId: string, sourceLabel: string) => void;
+  onRegistered: (resumeId: string, sourceLabel: string) => void;
   setSubmitting: (value: boolean) => void;
   setInlineError: (message: string | null) => void;
 }
@@ -67,7 +67,7 @@ export const UploadTab: FC<UploadTabProps> = ({
           title,
           language: lang,
         });
-        onRegistered(registered.resumeAssetId, file.name);
+        onRegistered(registered.resumeId, file.name);
       } catch (error) {
         const message =
           error instanceof Error

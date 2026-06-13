@@ -72,9 +72,9 @@ runtime:
 		SourceType: strPtr("paste"),
 		RawText:    strPtr("Private resume body that must not leak."),
 	}, http.StatusAccepted)
-	var registered api.ResumeAssetWithJob
+	var registered api.ResumeWithJob
 	decodeJSON(t, registerRaw, &registered)
-	if registered.ResumeAssetId == "" || registered.Job.Status != sharedtypes.JobStatusQueued || registered.Job.JobType != api.JobTypeResumeParse {
+	if registered.ResumeId == "" || registered.Job.Status != sharedtypes.JobStatusQueued || registered.Job.JobType != api.JobTypeResumeParse {
 		t.Fatalf("unexpected register response: %+v", registered)
 	}
 
@@ -84,30 +84,30 @@ runtime:
 		SourceType: strPtr("paste"),
 		RawText:    strPtr("Private resume body that must not leak."),
 	}, http.StatusAccepted)
-	var replay api.ResumeAssetWithJob
+	var replay api.ResumeWithJob
 	decodeJSON(t, replayRaw, &replay)
-	if replay.ResumeAssetId != registered.ResumeAssetId || resumeSvc.createCount != 1 {
+	if replay.ResumeId != registered.ResumeId || resumeSvc.createCount != 1 {
 		t.Fatalf("idempotent replay created duplicate: replay=%+v creates=%d", replay, resumeSvc.createCount)
 	}
 
-	detailRaw := doResumeJSON(t, handler, true, http.MethodGet, "/api/v1/resumes/"+registered.ResumeAssetId, "", nil, http.StatusOK)
-	var detail api.ResumeAsset
+	detailRaw := doResumeJSON(t, handler, true, http.MethodGet, "/api/v1/resumes/"+registered.ResumeId, "", nil, http.StatusOK)
+	var detail api.Resume
 	decodeJSON(t, detailRaw, &detail)
-	if detail.Id != registered.ResumeAssetId || detail.ParseStatus != sharedtypes.TargetJobParseStatusQueued {
+	if detail.Id != registered.ResumeId || detail.ParseStatus != sharedtypes.TargetJobParseStatusQueued {
 		t.Fatalf("unexpected detail: %+v", detail)
 	}
 
 	listRaw := doResumeJSON(t, handler, true, http.MethodGet, "/api/v1/resumes?pageSize=20", "", nil, http.StatusOK)
-	var list api.PaginatedResumeAsset
+	var list api.PaginatedResume
 	decodeJSON(t, listRaw, &list)
-	if len(list.Items) != 1 || list.Items[0].Id != registered.ResumeAssetId || list.PageInfo.PageSize != 20 {
+	if len(list.Items) != 1 || list.Items[0].Id != registered.ResumeId || list.PageInfo.PageSize != 20 {
 		t.Fatalf("unexpected list: %+v", list)
 	}
 
 	missingRaw := doResumeJSON(t, handler, true, http.MethodGet, "/api/v1/resumes/01918fa0-0000-7000-8000-000000009999", "", nil, http.StatusNotFound)
 	var missing api.ApiErrorResponse
 	decodeJSON(t, missingRaw, &missing)
-	if missing.Error.Code != sharederrors.CodeTargetJobNotFound {
+	if missing.Error.Code != sharederrors.CodeResourceNotFound {
 		t.Fatalf("missing error = %+v", missing.Error)
 	}
 }
@@ -201,40 +201,40 @@ type resumeValidationScenarioService struct {
 	resumeScenarioService
 }
 
-func (s *resumeValidationScenarioService) RegisterResume(context.Context, resume.RegisterInput) (api.ResumeAssetWithJob, error) {
-	return api.ResumeAssetWithJob{}, resume.ErrValidationFailed
+func (s *resumeValidationScenarioService) RegisterResume(context.Context, resume.RegisterInput) (api.ResumeWithJob, error) {
+	return api.ResumeWithJob{}, resume.ErrValidationFailed
 }
 
-func (s *resumeValidationScenarioService) ListResumes(context.Context, resume.ListRequest) (api.PaginatedResumeAsset, error) {
-	return api.PaginatedResumeAsset{}, resumestore.ErrInvalidCursor
+func (s *resumeValidationScenarioService) ListResumes(context.Context, resume.ListRequest) (api.PaginatedResume, error) {
+	return api.PaginatedResume{}, resumestore.ErrInvalidCursor
 }
 
 type resumeScenarioService struct {
-	assets      map[string]api.ResumeAsset
-	byKey       map[string]api.ResumeAssetWithJob
+	resumes     map[string]api.Resume
+	byKey       map[string]api.ResumeWithJob
 	createCount int
 }
 
 func newResumeScenarioService() *resumeScenarioService {
 	return &resumeScenarioService{
-		assets: map[string]api.ResumeAsset{},
-		byKey:  map[string]api.ResumeAssetWithJob{},
+		resumes: map[string]api.Resume{},
+		byKey:   map[string]api.ResumeWithJob{},
 	}
 }
 
-func (s *resumeScenarioService) RegisterResume(_ context.Context, in resume.RegisterInput) (api.ResumeAssetWithJob, error) {
+func (s *resumeScenarioService) RegisterResume(_ context.Context, in resume.RegisterInput) (api.ResumeWithJob, error) {
 	key := in.UserID + ":" + in.IdempotencyKey
 	if existing, ok := s.byKey[key]; ok {
 		return existing, nil
 	}
 	s.createCount++
-	assetID := "01918fa0-0000-7000-8000-000000009101"
+	resumeID := "01918fa0-0000-7000-8000-000000009101"
 	jobID := "01918fa0-0000-7000-8000-000000009201"
-	now := "2026-05-13T09:00:00Z"
+	now := "2026-06-13T09:00:00Z"
 	sourceType := in.SourceType
 	rawText := in.RawText
-	s.assets[assetID] = api.ResumeAsset{
-		Id:           assetID,
+	s.resumes[resumeID] = api.Resume{
+		Id:           resumeID,
 		Title:        in.Title,
 		Language:     in.Language,
 		ParseStatus:  sharedtypes.TargetJobParseStatusQueued,
@@ -243,13 +243,13 @@ func (s *resumeScenarioService) RegisterResume(_ context.Context, in resume.Regi
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
-	out := api.ResumeAssetWithJob{
-		ResumeAssetId: assetID,
+	out := api.ResumeWithJob{
+		ResumeId: resumeID,
 		Job: api.Job{
 			Id:           jobID,
 			JobType:      api.JobTypeResumeParse,
 			ResourceType: api.ResourceTypeResumeAsset,
-			ResourceId:   assetID,
+			ResourceId:   resumeID,
 			Status:       sharedtypes.JobStatusQueued,
 			CreatedAt:    now,
 			UpdatedAt:    now,
@@ -259,24 +259,24 @@ func (s *resumeScenarioService) RegisterResume(_ context.Context, in resume.Regi
 	return out, nil
 }
 
-func (s *resumeScenarioService) GetResume(_ context.Context, _ string, resumeAssetID string) (api.ResumeAsset, error) {
-	asset, ok := s.assets[resumeAssetID]
+func (s *resumeScenarioService) GetResume(_ context.Context, _ string, resumeID string) (api.Resume, error) {
+	rec, ok := s.resumes[resumeID]
 	if !ok {
-		return api.ResumeAsset{}, resume.ErrNotFound
+		return api.Resume{}, resume.ErrNotFound
 	}
-	return asset, nil
+	return rec, nil
 }
 
-func (s *resumeScenarioService) ListResumes(_ context.Context, in resume.ListRequest) (api.PaginatedResumeAsset, error) {
-	items := make([]api.ResumeAsset, 0, len(s.assets))
-	for _, asset := range s.assets {
-		items = append(items, asset)
+func (s *resumeScenarioService) ListResumes(_ context.Context, in resume.ListRequest) (api.PaginatedResume, error) {
+	items := make([]api.Resume, 0, len(s.resumes))
+	for _, rec := range s.resumes {
+		items = append(items, rec)
 	}
 	pageSize := in.PageSize
 	if pageSize <= 0 {
 		pageSize = sharedtypes.DefaultPageSize
 	}
-	return api.PaginatedResumeAsset{
+	return api.PaginatedResume{
 		Items:    items,
 		PageInfo: api.PageInfo{PageSize: pageSize, HasMore: false},
 	}, nil

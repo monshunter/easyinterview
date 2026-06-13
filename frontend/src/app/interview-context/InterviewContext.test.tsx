@@ -31,7 +31,7 @@ describe("InterviewContext reducer", () => {
     expect(DEFAULT_INTERVIEW_CONTEXT.jobId).toBe("");
     expect(DEFAULT_INTERVIEW_CONTEXT.planId).toBeUndefined();
     expect(DEFAULT_INTERVIEW_CONTEXT.jdId).toBeUndefined();
-    expect(DEFAULT_INTERVIEW_CONTEXT.resumeVersionId).toBeUndefined();
+    expect(DEFAULT_INTERVIEW_CONTEXT.resumeId).toBeUndefined();
     expect(DEFAULT_INTERVIEW_CONTEXT.sourceReportId).toBeUndefined();
     expect(DEFAULT_INTERVIEW_CONTEXT.roundId).toBeUndefined();
     expect(DEFAULT_INTERVIEW_CONTEXT.roundName).toBeUndefined();
@@ -53,7 +53,7 @@ describe("InterviewContext reducer", () => {
         targetJobId: "tj-1",
         jdId: "jd-1",
         planId: "plan-1",
-        resumeVersionId: "rv-1",
+        resumeId: "rv-1",
         sourceReportId: "report-1",
         roundId: "round-hr",
         roundName: "HR 初筛",
@@ -66,7 +66,7 @@ describe("InterviewContext reducer", () => {
     expect(next.jobId).toBe("tj-1");
     expect(next.jdId).toBe("jd-1");
     expect(next.planId).toBe("plan-1");
-    expect(next.resumeVersionId).toBe("rv-1");
+    expect(next.resumeId).toBe("rv-1");
     expect(next.sourceReportId).toBe("report-1");
     expect(next.roundId).toBe("round-hr");
     expect(next.roundName).toBe("HR 初筛");
@@ -117,7 +117,7 @@ describe("InterviewContext reducer", () => {
     expect(next.targetJobId).toBe("tj-1");
   });
 
-  it("MERGE_RESUME sets resumeVersionId from resume data", () => {
+  it("MERGE_RESUME sets resumeId from resume data", () => {
     const state: InterviewContextState = {
       ...DEFAULT_INTERVIEW_CONTEXT,
       targetJobId: "tj-1",
@@ -127,7 +127,7 @@ describe("InterviewContext reducer", () => {
       resume: { id: "rv-1", title: "FE Resume v3" } as any,
     };
     const next = interviewContextReducer(state, action);
-    expect(next.resumeVersionId).toBe("rv-1");
+    expect(next.resumeId).toBe("rv-1");
   });
 
   it("MERGE_PRACTICE_PLAN sets planId from plan data", () => {
@@ -186,7 +186,7 @@ describe("InterviewContext reducer", () => {
       targetJobId: "tj-1",
       jobId: "tj-1",
       planId: "plan-1",
-      resumeVersionId: "rv-1",
+      resumeId: "rv-1",
       sessionId: "sess-1",
       jdId: "jd-1",
       roundId: "round-hr",

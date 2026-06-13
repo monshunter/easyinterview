@@ -23,7 +23,7 @@ func TestServiceCreatePracticePlanCreatesBaselinePlan(t *testing.T) {
 	plan, err := service.CreatePracticePlan(context.Background(), CreatePlanRequest{
 		UserID:               "user-1",
 		TargetJobID:          "target-1",
-		ResumeAssetID:        "resume-1",
+		ResumeID:             "resume-1",
 		Goal:                 sharedtypes.PracticeGoalBaseline,
 		Mode:                 sharedtypes.PracticeModeAssisted,
 		InterviewerPersona:   sharedtypes.InterviewerRoleHiringManager,
@@ -42,7 +42,7 @@ func TestServiceCreatePracticePlanCreatesBaselinePlan(t *testing.T) {
 	if store.last.PlanID != "plan-1" || store.last.AuditEventID != "audit-1" {
 		t.Fatalf("ids not propagated to store: %+v", store.last)
 	}
-	if store.last.UserID != "user-1" || store.last.TargetJobID != "target-1" || store.last.ResumeAssetID != "resume-1" {
+	if store.last.UserID != "user-1" || store.last.TargetJobID != "target-1" || store.last.ResumeID != "resume-1" {
 		t.Fatalf("ownership inputs not propagated: %+v", store.last)
 	}
 	if store.last.Goal != sharedtypes.PracticeGoalBaseline || store.last.Mode != sharedtypes.PracticeModeAssisted {
@@ -231,13 +231,13 @@ func TestServiceCreatePracticePlanRejectsMissingResume(t *testing.T) {
 	service := NewService(ServiceOptions{Store: &recordingPlanStore{}, NewID: sequenceIDs("plan-1", "audit-1")})
 
 	_, err := service.CreatePracticePlan(context.Background(), validCreatePlanRequest(func(in *CreatePlanRequest) {
-		in.ResumeAssetID = ""
+		in.ResumeID = ""
 	}))
 	var svcErr *ServiceError
 	if !errors.As(err, &svcErr) {
 		t.Fatalf("expected ServiceError, got %T: %v", err, err)
 	}
-	if svcErr.Code != sharederrors.CodeValidationFailed || svcErr.Details["field"] != "resumeAssetId" {
+	if svcErr.Code != sharederrors.CodeValidationFailed || svcErr.Details["field"] != "resumeId" {
 		t.Fatalf("unexpected missing resume error: %+v", svcErr)
 	}
 }
@@ -483,7 +483,7 @@ func validCreatePlanRequest(mutators ...func(*CreatePlanRequest)) CreatePlanRequ
 	in := CreatePlanRequest{
 		UserID:               "user-1",
 		TargetJobID:          "target-1",
-		ResumeAssetID:        "resume-1",
+		ResumeID:             "resume-1",
 		Goal:                 sharedtypes.PracticeGoalBaseline,
 		Mode:                 sharedtypes.PracticeModeAssisted,
 		InterviewerPersona:   sharedtypes.InterviewerRoleHiringManager,

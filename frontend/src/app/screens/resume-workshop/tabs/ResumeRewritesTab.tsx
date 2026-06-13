@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -7,162 +6,124 @@ import {
   type FC,
 } from "react";
 
-import type { ResumeVersion } from "../../../../api/generated/types";
+import type {
+  Resume,
+  ResumeTailorBulletSuggestion,
+} from "../../../../api/generated/types";
 import { useI18n, type MessageKey } from "../../../i18n/messages";
 import {
   mapBulletSuggestionToUi,
-  type ResumeSuggestionInput,
   type UiBullet,
-  type UiBulletStatus,
 } from "../adapters/resume";
 
-export interface ResumeRewritesTabActions {
-  /** Accept the suggestion (writes status=accepted, no structured_profile mutation). */
-  onAccept?: (bulletId: string) => Promise<void> | void;
-  /** Reject the suggestion (writes status=rejected). */
-  onReject?: (bulletId: string) => Promise<void> | void;
-  /**
-   * Save a manual edit:
-   *  1) update resume version structuredProfile.manualEdits[]
-   *  2) call bodyless accept to mark terminal accepted (Phase 4).
-   */
-  onSaveManualEdit?: (
-    bulletId: string,
-    editedText: string,
-  ) => Promise<void> | void;
-  /** Trigger a new tailor run for this version (Phase 5). */
-  onRequestRerun?: (mode: "bullet_suggestions" | "gap_review") => void;
+export interface AcceptedRewrite {
+  original: string;
+  rewritten: string;
 }
 
-export interface ResumeRewritesTabProps extends ResumeRewritesTabActions {
-  version: ResumeVersion;
+export interface ResumeRewritesTabProps {
+  resume: Resume;
+  /** Ephemeral tailor-run suggestions (D-20: not persisted until saved). */
+  suggestions: ResumeTailorBulletSuggestion[];
+  /** Trigger a new tailor run for this resume (Phase 5). */
+  onRequestRerun?: (mode: "bullet_suggestions" | "gap_review") => void;
+  /** Save accepted rewrites by overwriting this resume (updateResume). */
+  onOverwrite?: (accepted: AcceptedRewrite[]) => Promise<void> | void;
+  /** Save accepted rewrites as a new resume (duplicateResume). */
+  onSaveAsNew?: (accepted: AcceptedRewrite[]) => Promise<void> | void;
+  /** True while the host hook is awaiting a save call. */
+  saving?: boolean;
   /**
    * Inline status banner shown above the rewrites list (Phase 5 polling). The
    * tab component renders the banner content but does not own polling state.
    */
   pollingBanner?: ReactPollingBanner | null;
-  /** Phase 4 wires this to the per-row "saved manual edit pending accept" state. */
-  manualEditPendingFor?: string | null;
 }
 
 export type ReactPollingBanner =
   | { kind: "info"; message: string }
   | { kind: "danger"; message: string; onRetry: () => void };
 
-const toSuggestionInput = (raw: Record<string, unknown>): ResumeSuggestionInput => {
-  const safe = (key: string): string =>
-    typeof raw[key] === "string" ? (raw[key] as string) : "";
-  const optString = (key: string): string | undefined =>
-    typeof raw[key] === "string" ? (raw[key] as string) : undefined;
-  return {
-    id: safe("id"),
-    originalBullet: safe("originalBullet"),
-    suggestedBullet: safe("suggestedBullet"),
-    reason: safe("reason"),
-    status: optString("status"),
-    section: optString("section") ?? optString("sectionLabel"),
-    decidedAt: typeof raw.decidedAt === "string" ? (raw.decidedAt as string) : null,
-    source: optString("source"),
-    tailorRunId:
-      typeof raw.tailorRunId === "string"
-        ? (raw.tailorRunId as string)
-        : null,
-  };
-};
+const toUiBullets = (
+  suggestions: ResumeTailorBulletSuggestion[],
+): UiBullet[] =>
+  suggestions.map((suggestion, index) =>
+    mapBulletSuggestionToUi({
+      id: `bullet-${index}`,
+      originalBullet: suggestion.originalBullet,
+      suggestedBullet: suggestion.suggestedBullet,
+      reason: suggestion.reason,
+    }),
+  );
 
 export const ResumeRewritesTab: FC<ResumeRewritesTabProps> = ({
-  version,
-  onAccept,
-  onReject,
-  onSaveManualEdit,
+  resume,
+  suggestions,
   onRequestRerun,
+  onOverwrite,
+  onSaveAsNew,
+  saving = false,
   pollingBanner = null,
-  manualEditPendingFor = null,
 }) => {
   const { t } = useI18n();
   const bullets = useMemo<UiBullet[]>(
-    () =>
-      (version.suggestions ?? [])
-        .map((entry) => toSuggestionInput(entry))
-        .filter((entry) => entry.id !== "")
-        .map(mapBulletSuggestionToUi),
-    [version.suggestions],
+    () => toUiBullets(suggestions),
+    [suggestions],
   );
 
+  const [acceptedIds, setAcceptedIds] = useState<Record<string, boolean>>({});
   const [selectedBulletId, setSelectedBulletId] = useState<string | null>(
     bullets[0]?.id ?? null,
   );
-  const [editing, setEditing] = useState(false);
-  const [editText, setEditText] = useState("");
-  const [pendingActionId, setPendingActionId] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
-    if (bullets.length === 0) {
-      setSelectedBulletId(null);
-      return;
+    setAcceptedIds({});
+    setConfirmOpen(false);
+    setSelectedBulletId(bullets[0]?.id ?? null);
+  }, [resume.id, bullets]);
+
+  const decorated = bullets.map((b) => ({
+    ...b,
+    status: acceptedIds[b.id] ? ("accepted" as const) : ("pending" as const),
+  }));
+  const selected =
+    decorated.find((b) => b.id === selectedBulletId) ?? decorated[0] ?? null;
+  const acceptedBullets = decorated.filter((b) => b.status === "accepted");
+  const acceptedCount = acceptedBullets.length;
+
+  const acceptBullet = (id: string) => {
+    if (acceptedIds[id]) return;
+    setAcceptedIds((prev) => ({ ...prev, [id]: true }));
+  };
+
+  const handleConfirm = async (mode: "overwrite" | "new") => {
+    setConfirmOpen(false);
+    const accepted: AcceptedRewrite[] = acceptedBullets.map((b) => ({
+      original: b.original,
+      rewritten: b.rewritten,
+    }));
+    if (mode === "new") {
+      await onSaveAsNew?.(accepted);
+    } else {
+      await onOverwrite?.(accepted);
     }
-    if (!bullets.some((b) => b.id === selectedBulletId)) {
-      setSelectedBulletId(bullets[0]!.id);
-      setEditing(false);
-      setEditText("");
-    }
-  }, [bullets, selectedBulletId]);
-
-  const selected = useMemo(
-    () => bullets.find((b) => b.id === selectedBulletId) ?? null,
-    [bullets, selectedBulletId],
-  );
-
-  const counts = useMemo(() => {
-    const result: Record<UiBulletStatus, number> = {
-      accepted: 0,
-      pending: 0,
-      rejected: 0,
-    };
-    for (const b of bullets) {
-      result[b.status] += 1;
-    }
-    return result;
-  }, [bullets]);
-
-  const versionName = version.displayName;
-
-  const handleSelect = useCallback((id: string) => {
-    setSelectedBulletId(id);
-    setEditing(false);
-    setEditText("");
-  }, []);
-
-  const wrapAction = useCallback(
-    (id: string, fn?: (bulletId: string) => Promise<void> | void) => {
-      if (!fn) return undefined;
-      return async () => {
-        setPendingActionId(id);
-        try {
-          await fn(id);
-        } finally {
-          setPendingActionId((current) => (current === id ? null : current));
-        }
-      };
-    },
-    [],
-  );
+  };
 
   return (
     <div
       data-testid="resume-rewrites-tab"
-      data-version-id={version.id}
+      data-resume-id={resume.id}
       data-bullet-count={bullets.length}
-      data-pending-count={counts.pending}
-      data-accepted-count={counts.accepted}
-      data-rejected-count={counts.rejected}
+      data-accepted-count={acceptedCount}
       data-selected-bullet-id={selectedBulletId ?? ""}
-      data-editing={editing ? "true" : "false"}
     >
       <ScopeBanner
-        versionName={versionName}
-        counts={counts}
-        translateKey={(key) => t(key)}
+        acceptedCount={acceptedCount}
+        untouchedCount={bullets.length - acceptedCount}
+        onPreviewSave={() => setConfirmOpen(true)}
+        previewDisabled={acceptedCount === 0 || saving}
+        t={t}
       />
       {pollingBanner ? <PollingBanner banner={pollingBanner} t={t} /> : null}
       {bullets.length === 0 ? (
@@ -183,66 +144,51 @@ export const ResumeRewritesTab: FC<ResumeRewritesTabProps> = ({
           }}
         >
           <BulletList
-            bullets={bullets}
+            bullets={decorated}
             selectedBulletId={selectedBulletId}
-            onSelect={handleSelect}
+            onSelect={setSelectedBulletId}
             t={t}
-            pendingActionId={pendingActionId}
           />
           <div>
             {selected ? (
               <DiffDetailCard
                 bullet={selected}
-                editing={editing}
-                editText={editText}
-                versionName={versionName}
-                manualEditPendingFor={manualEditPendingFor}
-                pendingActionId={pendingActionId}
-                onEditStart={() => {
-                  setEditing(true);
-                  setEditText(selected.rewritten);
-                }}
-                onEditChange={(next) => setEditText(next)}
-                onEditCancel={() => setEditing(false)}
-                onEditSave={async () => {
-                  if (!onSaveManualEdit) return;
-                  setPendingActionId(selected.id);
-                  try {
-                    await onSaveManualEdit(selected.id, editText);
-                    setEditing(false);
-                  } finally {
-                    setPendingActionId((current) =>
-                      current === selected.id ? null : current,
-                    );
-                  }
-                }}
-                onReject={wrapAction(selected.id, onReject)}
-                onAccept={wrapAction(selected.id, onAccept)}
-                onRerunTailor={
-                  onRequestRerun
-                    ? () => onRequestRerun("bullet_suggestions")
-                    : undefined
-                }
+                onAccept={() => acceptBullet(selected.id)}
                 t={t}
               />
             ) : null}
           </div>
         </div>
       )}
+
+      {confirmOpen ? (
+        <RewriteSaveConfirmModal
+          resumeName={resume.displayName}
+          bullets={acceptedBullets}
+          saving={saving}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={handleConfirm}
+          t={t}
+        />
+      ) : null}
     </div>
   );
 };
 
 interface ScopeBannerProps {
-  versionName: string;
-  counts: Record<UiBulletStatus, number>;
-  translateKey: (key: MessageKey) => string;
+  acceptedCount: number;
+  untouchedCount: number;
+  onPreviewSave: () => void;
+  previewDisabled: boolean;
+  t: (key: MessageKey) => string;
 }
 
 const ScopeBanner: FC<ScopeBannerProps> = ({
-  versionName,
-  counts,
-  translateKey,
+  acceptedCount,
+  untouchedCount,
+  onPreviewSave,
+  previewDisabled,
+  t,
 }) => (
   <div
     data-testid="resume-rewrites-scope-banner"
@@ -262,23 +208,35 @@ const ScopeBanner: FC<ScopeBannerProps> = ({
     }}
   >
     <div style={{ fontSize: 13, color: "var(--ei-color-ink2)" }}>
-      {translateKey("resumeWorkshop.rewrites.scopeBanner.body").replace(
-        "{versionName}",
-        versionName,
-      )}
+      {t("resumeWorkshop.rewrites.scopeBanner.body")}
     </div>
-    <div
-      data-testid="resume-rewrites-counts"
-      style={{
-        fontSize: 11,
-        color: "var(--ei-color-ink3)",
-        fontFamily: "var(--ei-mono)",
-      }}
-    >
-      {translateKey("resumeWorkshop.rewrites.scopeBanner.counts")
-        .replace("{accepted}", String(counts.accepted))
-        .replace("{pending}", String(counts.pending))
-        .replace("{rejected}", String(counts.rejected))}
+    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <div
+        data-testid="resume-rewrites-counts"
+        style={{
+          fontSize: 11,
+          color: "var(--ei-color-ink3)",
+          fontFamily: "var(--ei-mono)",
+        }}
+      >
+        {t("resumeWorkshop.rewrites.scopeBanner.counts")
+          .replace("{accepted}", String(acceptedCount))
+          .replace("{untouched}", String(untouchedCount))}
+      </div>
+      <button
+        type="button"
+        data-testid="resume-rewrites-preview-save"
+        onClick={onPreviewSave}
+        disabled={previewDisabled}
+        aria-disabled={previewDisabled}
+        style={{
+          ...BTN_FILLED,
+          opacity: previewDisabled ? 0.55 : 1,
+          cursor: previewDisabled ? "not-allowed" : "pointer",
+        }}
+      >
+        {t("resumeWorkshop.rewrites.previewAndSave")}
+      </button>
     </div>
   </div>
 );
@@ -288,20 +246,7 @@ interface BulletListProps {
   selectedBulletId: string | null;
   onSelect: (id: string) => void;
   t: (key: MessageKey) => string;
-  pendingActionId: string | null;
 }
-
-const STATUS_TO_CHIP_KEY: Record<UiBulletStatus, MessageKey> = {
-  accepted: "resumeWorkshop.rewrites.status.accepted",
-  pending: "resumeWorkshop.rewrites.status.pending",
-  rejected: "resumeWorkshop.rewrites.status.rejected",
-};
-
-const STATUS_TO_TONE: Record<UiBulletStatus, string> = {
-  accepted: "var(--ei-color-ok)",
-  pending: "var(--ei-color-warn)",
-  rejected: "var(--ei-color-ink4)",
-};
 
 const truncate = (text: string, max: number): string =>
   text.length > max ? `${text.slice(0, max)}…` : text;
@@ -311,7 +256,6 @@ const BulletList: FC<BulletListProps> = ({
   selectedBulletId,
   onSelect,
   t,
-  pendingActionId,
 }) => (
   <div>
     <div
@@ -328,8 +272,10 @@ const BulletList: FC<BulletListProps> = ({
     >
       {bullets.map((b) => {
         const active = b.id === selectedBulletId;
-        const tone = STATUS_TO_TONE[b.status];
-        const pending = pendingActionId === b.id;
+        const accepted = b.status === "accepted";
+        const tone = accepted
+          ? "var(--ei-color-ok)"
+          : "var(--ei-color-ink3)";
         return (
           <button
             key={b.id}
@@ -338,8 +284,6 @@ const BulletList: FC<BulletListProps> = ({
             aria-selected={active}
             data-testid={`resume-rewrites-bullet-row-${b.id}`}
             data-status={b.status}
-            data-source={b.source}
-            data-pending={pending ? "true" : "false"}
             onClick={() => onSelect(b.id)}
             style={{
               padding: "14px 16px",
@@ -349,9 +293,7 @@ const BulletList: FC<BulletListProps> = ({
                 ? "var(--ei-color-bg-soft)"
                 : "var(--ei-color-bg-card)",
               border: `1px solid ${
-                active
-                  ? "var(--ei-color-accent)"
-                  : "var(--ei-color-rule)"
+                active ? "var(--ei-color-accent)" : "var(--ei-color-rule)"
               }`,
               borderRadius: 2,
               fontFamily: "var(--ei-sans)",
@@ -396,7 +338,9 @@ const BulletList: FC<BulletListProps> = ({
                     background: tone,
                   }}
                 />
-                {t(STATUS_TO_CHIP_KEY[b.status])}
+                {accepted
+                  ? t("resumeWorkshop.rewrites.status.accepted")
+                  : t("resumeWorkshop.rewrites.status.suggested")}
               </div>
             </div>
             <div
@@ -404,8 +348,6 @@ const BulletList: FC<BulletListProps> = ({
                 fontSize: 13,
                 color: "var(--ei-color-ink2)",
                 lineHeight: 1.5,
-                textDecoration: b.status === "rejected" ? "line-through" : "none",
-                opacity: b.status === "rejected" ? 0.6 : 1,
               }}
             >
               {truncate(b.rewritten, 90)}
@@ -419,42 +361,12 @@ const BulletList: FC<BulletListProps> = ({
 
 interface DiffDetailCardProps {
   bullet: UiBullet;
-  editing: boolean;
-  editText: string;
-  versionName: string;
-  manualEditPendingFor: string | null;
-  pendingActionId: string | null;
-  onEditStart: () => void;
-  onEditChange: (next: string) => void;
-  onEditCancel: () => void;
-  onEditSave: () => Promise<void> | void;
-  onReject?: () => Promise<void>;
-  onAccept?: () => Promise<void>;
-  onRerunTailor?: () => void;
+  onAccept: () => void;
   t: (key: MessageKey) => string;
 }
 
-const DiffDetailCard: FC<DiffDetailCardProps> = ({
-  bullet,
-  editing,
-  editText,
-  versionName,
-  manualEditPendingFor,
-  pendingActionId,
-  onEditStart,
-  onEditChange,
-  onEditCancel,
-  onEditSave,
-  onReject,
-  onAccept,
-  onRerunTailor,
-  t,
-}) => {
+const DiffDetailCard: FC<DiffDetailCardProps> = ({ bullet, onAccept, t }) => {
   const isAccepted = bullet.status === "accepted";
-  const isRejected = bullet.status === "rejected";
-  const manualPending = manualEditPendingFor === bullet.id;
-  const acting = pendingActionId === bullet.id;
-
   return (
     <div
       data-testid="resume-rewrites-diff-card"
@@ -471,69 +383,28 @@ const DiffDetailCard: FC<DiffDetailCardProps> = ({
           alignItems: "center",
         }}
       >
-        <div
-          className="ei-text-label"
-          style={{ color: "var(--ei-color-ink3)" }}
-        >
+        <div className="ei-text-label" style={{ color: "var(--ei-color-ink3)" }}>
           {bullet.section || t("resumeWorkshop.rewrites.diff.sectionFallback")}
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button
-            type="button"
-            data-testid="resume-rewrites-action-reject"
-            onClick={onReject}
-            disabled={!onReject || acting}
-            aria-disabled={!onReject || acting}
-            aria-label={t("resumeWorkshop.rewrites.action.reject")}
-            style={{
-              ...BTN_OUTLINE,
-              background: isRejected
-                ? "var(--ei-color-ink2)"
-                : "transparent",
-              color: isRejected ? "var(--ei-color-bg)" : "var(--ei-color-ink3)",
-              opacity: !onReject ? 0.6 : 1,
-            }}
-          >
-            {t("resumeWorkshop.rewrites.action.reject")}
-          </button>
-          <button
-            type="button"
-            data-testid="resume-rewrites-action-edit"
-            onClick={() => onEditStart()}
-            disabled={acting}
-            aria-label={t("resumeWorkshop.rewrites.action.edit")}
-            aria-pressed={editing}
-            style={{
-              ...BTN_OUTLINE,
-              background: editing
-                ? "var(--ei-color-bg-soft)"
-                : "transparent",
-              borderColor: editing
-                ? "var(--ei-color-accent)"
-                : "var(--ei-color-rule)",
-            }}
-          >
-            {t("resumeWorkshop.rewrites.action.edit")}
-          </button>
-          <button
-            type="button"
-            data-testid="resume-rewrites-action-accept"
-            onClick={onAccept}
-            disabled={!onAccept || acting}
-            aria-disabled={!onAccept || acting}
-            aria-label={t("resumeWorkshop.rewrites.action.accept")}
-            style={{
-              ...BTN_FILLED,
-              background: isAccepted
-                ? "var(--ei-color-ok)"
-                : "var(--ei-color-accent)",
-            }}
-          >
-            {isAccepted
-              ? t("resumeWorkshop.rewrites.action.accepted")
-              : t("resumeWorkshop.rewrites.action.accept")}
-          </button>
-        </div>
+        <button
+          type="button"
+          data-testid="resume-rewrites-action-accept"
+          onClick={onAccept}
+          disabled={isAccepted}
+          aria-disabled={isAccepted}
+          aria-label={t("resumeWorkshop.rewrites.action.accept")}
+          style={{
+            ...BTN_FILLED,
+            background: isAccepted
+              ? "var(--ei-color-ok)"
+              : "var(--ei-color-accent)",
+            cursor: isAccepted ? "default" : "pointer",
+          }}
+        >
+          {isAccepted
+            ? t("resumeWorkshop.rewrites.action.accepted")
+            : t("resumeWorkshop.rewrites.action.accept")}
+        </button>
       </div>
 
       <div
@@ -607,22 +478,15 @@ const DiffDetailCard: FC<DiffDetailCardProps> = ({
           <span
             style={{
               padding: "2px 8px",
-              background: editing
-                ? "var(--ei-color-accent-soft)"
-                : "var(--ei-color-ok-soft)",
-              color: editing
-                ? "var(--ei-color-accent)"
-                : "var(--ei-color-ok)",
+              background: "var(--ei-color-ok-soft)",
+              color: "var(--ei-color-ok)",
               fontSize: 10.5,
               fontFamily: "var(--ei-mono)",
               letterSpacing: "0.08em",
               borderRadius: 2,
             }}
           >
-            +{" "}
-            {editing
-              ? t("resumeWorkshop.rewrites.diff.manualEdit")
-              : t("resumeWorkshop.rewrites.diff.rewritten")}
+            + {t("resumeWorkshop.rewrites.diff.rewritten")}
           </span>
           <span
             style={{
@@ -631,87 +495,24 @@ const DiffDetailCard: FC<DiffDetailCardProps> = ({
               fontFamily: "var(--ei-mono)",
             }}
           >
-            {editing
-              ? t("resumeWorkshop.rewrites.diff.manualHint").replace(
-                  "{versionName}",
-                  versionName,
-                )
-              : t("resumeWorkshop.rewrites.diff.confidence")}
+            {t("resumeWorkshop.rewrites.diff.confidence")}
           </span>
         </div>
-        {editing ? (
-          <div>
-            <textarea
-              data-testid="resume-rewrites-edit-textarea"
-              value={editText}
-              onChange={(e) => onEditChange(e.target.value)}
-              style={{
-                width: "100%",
-                minHeight: 110,
-                padding: "12px 14px",
-                border: "1px solid var(--ei-color-accent)",
-                background: "var(--ei-color-accent-soft)",
-                color: "var(--ei-color-ink)",
-                borderRadius: 2,
-                fontFamily: "var(--ei-serif)",
-                fontSize: 14.5,
-                lineHeight: 1.65,
-                resize: "vertical",
-                outline: "none",
-              }}
-            />
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: 8,
-                marginTop: 10,
-              }}
-            >
-              <button
-                type="button"
-                data-testid="resume-rewrites-edit-cancel"
-                onClick={onEditCancel}
-                style={BTN_GHOST}
-              >
-                {t("resumeWorkshop.rewrites.action.cancelEdit")}
-              </button>
-              <button
-                type="button"
-                data-testid="resume-rewrites-edit-save"
-                onClick={() => void onEditSave()}
-                style={BTN_FILLED}
-              >
-                {t("resumeWorkshop.rewrites.action.saveManual")}
-              </button>
-            </div>
-            {manualPending ? (
-              <div
-                data-testid="resume-rewrites-manual-pending"
-                role="alert"
-                style={MANUAL_PENDING_STYLE}
-              >
-                {t("resumeWorkshop.rewrites.error.manualPendingRetry")}
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <div
-            data-testid="resume-rewrites-rewritten-text"
-            style={{
-              fontSize: 14.5,
-              color: "var(--ei-color-ink)",
-              lineHeight: 1.65,
-              fontFamily: "var(--ei-serif)",
-              background: "var(--ei-color-ok-soft)",
-              padding: "12px 14px",
-              borderRadius: 2,
-              borderLeft: "2px solid var(--ei-color-ok)",
-            }}
-          >
-            {bullet.rewritten}
-          </div>
-        )}
+        <div
+          data-testid="resume-rewrites-rewritten-text"
+          style={{
+            fontSize: 14.5,
+            color: "var(--ei-color-ink)",
+            lineHeight: 1.65,
+            fontFamily: "var(--ei-serif)",
+            background: "var(--ei-color-ok-soft)",
+            padding: "12px 14px",
+            borderRadius: 2,
+            borderLeft: "2px solid var(--ei-color-ok)",
+          }}
+        >
+          {bullet.rewritten}
+        </div>
       </div>
 
       <div style={{ padding: "16px 22px" }}>
@@ -738,18 +539,242 @@ const DiffDetailCard: FC<DiffDetailCardProps> = ({
             </div>
           ))}
         </div>
-        {onRerunTailor ? (
-          <div style={{ marginTop: 16 }}>
-            <button
-              type="button"
-              data-testid="resume-rewrites-rerun-tailor"
-              onClick={onRerunTailor}
-              style={BTN_GHOST}
+      </div>
+    </div>
+  );
+};
+
+interface RewriteSaveConfirmModalProps {
+  resumeName: string;
+  bullets: UiBullet[];
+  saving: boolean;
+  onClose: () => void;
+  onConfirm: (mode: "overwrite" | "new") => void;
+  t: (key: MessageKey) => string;
+}
+
+const RewriteSaveConfirmModal: FC<RewriteSaveConfirmModalProps> = ({
+  resumeName,
+  bullets,
+  saving,
+  onClose,
+  onConfirm,
+  t,
+}) => {
+  const [mode, setMode] = useState<"overwrite" | "new">("overwrite");
+  return (
+    <div
+      data-testid="resume-rewrites-save-modal-overlay"
+      role="presentation"
+      style={MODAL_OVERLAY_STYLE}
+      onClick={onClose}
+    >
+      <div
+        data-testid="resume-rewrites-save-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("resumeWorkshop.rewrites.save.title")}
+        style={MODAL_CARD_STYLE}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 18,
+            marginBottom: 18,
+          }}
+        >
+          <div>
+            <div
+              className="ei-text-label"
+              style={{ color: "var(--ei-color-accent)", marginBottom: 6 }}
             >
-              {t("resumeWorkshop.rewrites.rerun.cta")}
-            </button>
+              {t("resumeWorkshop.rewrites.save.eyebrow")}
+            </div>
+            <div
+              className="ei-text-title"
+              data-testid="resume-rewrites-save-modal-title"
+            >
+              {t("resumeWorkshop.rewrites.save.title")}
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: "var(--ei-color-ink3)",
+                marginTop: 6,
+                lineHeight: 1.6,
+              }}
+            >
+              {t("resumeWorkshop.rewrites.save.sub")}
+            </div>
           </div>
-        ) : null}
+          <button
+            type="button"
+            data-testid="resume-rewrites-save-modal-close"
+            onClick={onClose}
+            aria-label={t("resumeWorkshop.rewrites.save.close")}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "var(--ei-color-ink3)",
+              cursor: "pointer",
+              padding: 4,
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        <div
+          data-testid="resume-rewrites-save-modal-list"
+          style={{
+            border: "1px solid var(--ei-color-rule)",
+            background: "var(--ei-color-bg-soft)",
+            borderRadius: 3,
+            padding: 16,
+            marginBottom: 16,
+          }}
+        >
+          <div
+            className="ei-text-label"
+            style={{ color: "var(--ei-color-ink3)", marginBottom: 10 }}
+          >
+            {t("resumeWorkshop.rewrites.save.acceptedCount").replace(
+              "{count}",
+              String(bullets.length),
+            )}
+          </div>
+          {bullets.map((b, i) => (
+            <div
+              key={b.id}
+              data-testid={`resume-rewrites-save-modal-item-${b.id}`}
+              style={{
+                padding: "10px 0",
+                borderBottom:
+                  i < bullets.length - 1
+                    ? "1px dotted var(--ei-color-rule)"
+                    : "none",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "var(--ei-color-ink3)",
+                  fontFamily: "var(--ei-mono)",
+                  marginBottom: 4,
+                }}
+              >
+                {b.section || t("resumeWorkshop.rewrites.diff.sectionFallback")}
+              </div>
+              <div
+                style={{
+                  fontSize: 13.5,
+                  color: "var(--ei-color-ink)",
+                  lineHeight: 1.6,
+                }}
+              >
+                {b.rewritten}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 10,
+            marginBottom: 18,
+          }}
+        >
+          {(
+            [
+              {
+                k: "overwrite" as const,
+                label: t("resumeWorkshop.rewrites.save.overwriteLabel"),
+                desc: t("resumeWorkshop.rewrites.save.overwriteDesc").replace(
+                  "{resumeName}",
+                  resumeName,
+                ),
+              },
+              {
+                k: "new" as const,
+                label: t("resumeWorkshop.rewrites.save.newLabel"),
+                desc: t("resumeWorkshop.rewrites.save.newDesc"),
+              },
+            ]
+          ).map((m) => {
+            const on = mode === m.k;
+            return (
+              <button
+                key={m.k}
+                type="button"
+                data-testid={`resume-rewrites-save-mode-${m.k}`}
+                data-active={on ? "true" : "false"}
+                aria-pressed={on}
+                onClick={() => setMode(m.k)}
+                style={{
+                  textAlign: "left",
+                  padding: "14px 14px",
+                  background: on
+                    ? "var(--ei-color-accent-soft)"
+                    : "var(--ei-color-bg)",
+                  border: `1px solid ${
+                    on ? "var(--ei-color-accent)" : "var(--ei-color-rule)"
+                  }`,
+                  borderRadius: 2,
+                  cursor: "pointer",
+                }}
+              >
+                <div
+                  className="ei-text-label"
+                  style={{
+                    color: on ? "var(--ei-color-accent)" : "var(--ei-color-ink3)",
+                    marginBottom: 6,
+                  }}
+                >
+                  {m.label}
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--ei-color-ink2)",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {m.desc}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}
+        >
+          <button
+            type="button"
+            data-testid="resume-rewrites-save-cancel"
+            onClick={onClose}
+            style={BTN_GHOST}
+          >
+            {t("resumeWorkshop.rewrites.save.cancel")}
+          </button>
+          <button
+            type="button"
+            data-testid="resume-rewrites-save-confirm"
+            onClick={() => onConfirm(mode)}
+            disabled={saving}
+            aria-disabled={saving}
+            style={{ ...BTN_FILLED, opacity: saving ? 0.55 : 1 }}
+          >
+            {mode === "new"
+              ? t("resumeWorkshop.rewrites.save.confirmNew")
+              : t("resumeWorkshop.rewrites.save.confirmOverwrite")}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -822,6 +847,28 @@ const DIFF_CARD_STYLE: CSSProperties = {
   borderRadius: 2,
 };
 
+const MODAL_OVERLAY_STYLE: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(24, 20, 16, 0.24)",
+  zIndex: 80,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 24,
+};
+
+const MODAL_CARD_STYLE: CSSProperties = {
+  width: "min(760px, 100%)",
+  maxHeight: "88vh",
+  overflow: "auto",
+  background: "var(--ei-color-bg-card)",
+  border: "1px solid var(--ei-color-rule)",
+  borderRadius: 4,
+  boxShadow: "0 24px 70px rgba(30, 22, 15, 0.24)",
+  padding: 24,
+};
+
 const POLLING_BANNER_INFO: CSSProperties = {
   marginBottom: 16,
   padding: "10px 14px",
@@ -844,27 +891,6 @@ const POLLING_BANNER_DANGER: CSSProperties = {
   justifyContent: "space-between",
   alignItems: "center",
   gap: 8,
-};
-
-const MANUAL_PENDING_STYLE: CSSProperties = {
-  marginTop: 10,
-  padding: "8px 12px",
-  background: "var(--ei-color-warn-soft)",
-  color: "var(--ei-color-warn)",
-  border: "1px solid var(--ei-color-warn)",
-  borderRadius: 2,
-  fontSize: 12,
-};
-
-const BTN_OUTLINE: CSSProperties = {
-  padding: "5px 12px",
-  fontSize: 12,
-  cursor: "pointer",
-  background: "transparent",
-  color: "var(--ei-color-ink3)",
-  border: "1px solid var(--ei-color-rule)",
-  borderRadius: 2,
-  fontFamily: "var(--ei-sans)",
 };
 
 const BTN_FILLED: CSSProperties = {

@@ -18,7 +18,6 @@ import {
 import getRuntimeConfigFixture from "../../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../../openapi/fixtures/Auth/getMe.json";
 import listResumesFixture from "../../../../../../openapi/fixtures/Resumes/listResumes.json";
-import listResumeVersionsFixture from "../../../../../../openapi/fixtures/Resumes/listResumeVersions.json";
 import getResumeFixture from "../../../../../../openapi/fixtures/Resumes/getResume.json";
 import listTargetJobsFixture from "../../../../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
 
@@ -26,7 +25,6 @@ const FIXTURES = [
   getRuntimeConfigFixture,
   getMeFixture,
   listResumesFixture,
-  listResumeVersionsFixture,
   getResumeFixture,
   listTargetJobsFixture,
 ];

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type FC } from "react";
+import { useEffect, useState, type FC } from "react";
 
-import type { ResumeVersion } from "../../../../api/generated/types";
+import type { Resume } from "../../../../api/generated/types";
 import { generateIdempotencyKey } from "../../../../lib/conventions/idempotency";
 import { useDisplayPreferencesOptional } from "../../../display/DisplayPreferencesProvider";
 import { useI18n } from "../../../i18n/messages";
@@ -8,24 +8,16 @@ import { useNavigation } from "../../../navigation/NavigationProvider";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 import {
   buildResumePlainText,
-  mapResumeAssetToUiSource,
-  mapResumeVersionToUi,
+  mapResumeToUiSource,
 } from "../adapters/resume";
 import { useResumeAsset } from "../hooks/useResumeAsset";
-import { useResumeVersion } from "../hooks/useResumeVersion";
+import { useResumeSave, ResumeSaveError } from "../hooks/useResumeSave";
 import type { ResumeDetailTab } from "../params";
-import { ComingSoonTab } from "./ComingSoonTab";
 import { NotFoundEmptyState } from "./NotFoundEmptyState";
 import { OriginalResumePreviewModal } from "./OriginalResumePreviewModal";
 import { ResumePreviewTab } from "./ResumePreviewTab";
 import { ResumeEditTab } from "../tabs/ResumeEditTab";
 import { ResumeRewritesTab } from "../tabs/ResumeRewritesTab";
-import { useResumeRewritesActions } from "../tabs/hooks/useResumeRewritesActions";
-import { useUpdateResumeVersion } from "../tabs/hooks/useUpdateResumeVersion";
-import {
-  SuggestionDecisionError,
-} from "../tabs/hooks/useTailorSuggestionDecision";
-import { UpdateResumeVersionError } from "../tabs/hooks/useUpdateResumeVersion";
 import {
   RequestResumeTailorError,
   useRequestResumeTailor,
@@ -35,16 +27,13 @@ import type { ReactPollingBanner } from "../tabs/ResumeRewritesTab";
 import { fireResumeWorkshopToast } from "./toast";
 
 export interface ResumeDetailViewProps {
-  versionId: string;
+  resumeId: string;
   initialTab: ResumeDetailTab | null;
   initialTailorRunId?: string | null;
 }
 
-const defaultTabFor = (version: ResumeVersion): ResumeDetailTab =>
-  version.versionType === "structured_master" ? "preview" : "rewrites";
-
 export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
-  versionId,
+  resumeId,
   initialTab,
   initialTailorRunId = null,
 }) => {
@@ -52,34 +41,24 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
   const { navigate } = useNavigation();
   const runtime = useAppRuntimeOptional();
   const lang = useDisplayPreferencesOptional()?.lang ?? "zh";
-  const versionQuery = useResumeVersion(versionId);
-  const [activeTab, setActiveTab] = useState<ResumeDetailTab | null>(initialTab);
-  const [originalOpen, setOriginalOpen] = useState(false);
-  const sourceQuery = useResumeAsset(
-    originalOpen && versionQuery.data ? versionQuery.data.resumeAssetId : null,
+  const resumeQuery = useResumeAsset(resumeId);
+  const [activeTab, setActiveTab] = useState<ResumeDetailTab>(
+    initialTab ?? "preview",
   );
+  const [originalOpen, setOriginalOpen] = useState(false);
 
-  // When the URL omits `tab` and the version loads, fall back to the
-  // versionType-based default. Reset on versionId change.
   useEffect(() => {
-    setActiveTab(initialTab);
+    setActiveTab(initialTab ?? "preview");
     setOriginalOpen(false);
-  }, [versionId, initialTab]);
+  }, [resumeId, initialTab]);
 
-  useEffect(() => {
-    if (activeTab === null && versionQuery.data) {
-      setActiveTab(defaultTabFor(versionQuery.data));
-    }
-  }, [activeTab, versionQuery.data]);
-
-  const onBack = () =>
-    navigate({ name: "resume_versions", params: {} });
+  const onBack = () => navigate({ name: "resume_versions", params: {} });
 
   const onExport = async () => {
-    if (!runtime?.client || !versionQuery.data) return;
+    if (!runtime?.client || !resumeQuery.data) return;
     try {
       const idempotencyKey = generateIdempotencyKey();
-      await runtime.client.exportResumeVersion(versionQuery.data.id, {
+      await runtime.client.exportResume(resumeQuery.data.id, {
         idempotencyKey,
         headers: { "Accept-Language": lang },
       });
@@ -99,8 +78,8 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
   };
 
   const onCopy = async () => {
-    if (!versionQuery.data) return;
-    const text = buildResumePlainText(versionQuery.data);
+    if (!resumeQuery.data) return;
+    const text = buildResumePlainText(resumeQuery.data);
     if (window.navigator.clipboard?.writeText) {
       try {
         await window.navigator.clipboard.writeText(text);
@@ -113,7 +92,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
     fireResumeWorkshopToast(t("resumeWorkshop.detail.copyUnavailable"), "warn");
   };
 
-  if (versionQuery.notFound) {
+  if (resumeQuery.notFound) {
     return (
       <div data-testid="resume-detail-container">
         <NotFoundEmptyState onBack={onBack} />
@@ -121,7 +100,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
     );
   }
 
-  if (versionQuery.error) {
+  if (resumeQuery.error) {
     return (
       <div data-testid="resume-detail-error" className="ei-screen-card">
         <p className="ei-text-body" role="alert">
@@ -131,7 +110,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
           type="button"
           className="ei-cta"
           data-testid="resume-detail-retry"
-          onClick={versionQuery.retry}
+          onClick={resumeQuery.retry}
         >
           {t("workspace.errors.retry")}
         </button>
@@ -139,7 +118,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
     );
   }
 
-  if (versionQuery.loading || !versionQuery.data) {
+  if (resumeQuery.loading || !resumeQuery.data) {
     return (
       <div data-testid="resume-detail-container" className="ei-screen-card">
         <span className="ei-text-body" role="status">
@@ -149,10 +128,8 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
     );
   }
 
-  const version = versionQuery.data;
-  const ui = mapResumeVersionToUi(version);
-  const resolvedTab: ResumeDetailTab = activeTab ?? defaultTabFor(version);
-  const masterId = version.parentVersionId ?? null;
+  const resume = resumeQuery.data;
+  const ui = mapResumeToUiSource(resume);
 
   const tabs: ResumeDetailTab[] = ["preview", "rewrites", "edit"];
   const tabLabels: Record<ResumeDetailTab, string> = {
@@ -161,36 +138,23 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
     edit: t("resumeWorkshop.detail.tabEdit"),
   };
 
-  const versionFallbackOriginalText = (() => {
-    const profile = version.structuredProfile as Record<string, unknown>;
-    const summary = typeof profile.summary === "string" ? profile.summary : "";
-    const headline = typeof profile.headline === "string" ? profile.headline : "";
-    const lines: string[] = [];
-    if (headline) lines.push(headline);
-    if (summary) lines.push(summary);
-    return lines;
-  })();
-  const originalSource = sourceQuery.data
-    ? mapResumeAssetToUiSource(sourceQuery.data)
-    : null;
-  const originalText = sourceQuery.data
-    ? originalSource && originalSource.text.length > 0
-      ? originalSource.text
-      : versionFallbackOriginalText
-    : [];
-  const originalModalState =
-    originalOpen && sourceQuery.error
-      ? "error"
-      : originalOpen && !sourceQuery.data
-        ? "loading"
-        : "ready";
+  const originalText =
+    ui.text.length > 0
+      ? ui.text
+      : (() => {
+          const profile = resume.structuredProfile as Record<string, unknown>;
+          const headline =
+            typeof profile.headline === "string" ? profile.headline : "";
+          const summary =
+            typeof profile.summary === "string" ? profile.summary : "";
+          const lines: string[] = [];
+          if (headline) lines.push(headline);
+          if (summary) lines.push(summary);
+          return lines;
+        })();
 
   return (
-    <div
-      data-testid="resume-detail-container"
-      data-version-tag={ui.tag}
-      className="ei-resume-detail"
-    >
+    <div data-testid="resume-detail-container" className="ei-resume-detail">
       <button
         type="button"
         data-testid="resume-detail-back"
@@ -200,74 +164,33 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
         ← {t("resumeWorkshop.detail.back")}
       </button>
 
-      <nav
-        aria-label={t("resumeWorkshop.detail.crumbVersions")}
-        data-testid="resume-detail-breadcrumb"
-        className="ei-resume-detail-breadcrumb"
-      >
-        <span className="ei-text-label">{t("resumeWorkshop.eyebrow")}</span>
-        <span className="ei-text-label">›</span>
-        <span className="ei-text-label">
-          {t("resumeWorkshop.detail.crumbVersions")}
-        </span>
-        <span className="ei-text-label">›</span>
-        <span className="ei-text-label">{ui.name}</span>
-      </nav>
-
       <header className="ei-resume-detail-header">
+        <div className="ei-resume-detail-crumb" data-testid="resume-detail-crumb">
+          <span className="ei-text-label">{t("resumeWorkshop.eyebrow")}</span>
+          <span className="ei-text-label">›</span>
+          <span className="ei-text-label">{ui.name}</span>
+        </div>
         <h1 className="ei-text-display">{ui.name}</h1>
-        <span className="ei-text-label" data-testid="resume-detail-version-tag">
-          {ui.tag}
-        </span>
-        {resolvedTab !== "preview" ? (
-          <div
-            className="ei-resume-detail-header-actions"
-            data-testid="resume-detail-header-actions"
+        <div
+          className="ei-resume-detail-meta"
+          data-testid="resume-detail-meta"
+        >
+          {ui.sourceName} · {ui.createdAt} · {t("resumeWorkshop.detail.lastEdit")}{" "}
+          {ui.updatedAt}
+        </div>
+        <div
+          className="ei-resume-detail-header-actions"
+          data-testid="resume-detail-header-actions"
+        >
+          <button
+            type="button"
+            data-testid="resume-detail-export-pdf"
+            onClick={onExport}
           >
-            <button
-              type="button"
-              data-testid="resume-detail-export-pdf"
-              onClick={onExport}
-            >
-              {t("resumeWorkshop.detail.exportPdf")}
-            </button>
-            <button
-              type="button"
-              data-testid="resume-detail-copy-text"
-              onClick={onCopy}
-            >
-              {t("resumeWorkshop.detail.copyText")}
-            </button>
-          </div>
-        ) : null}
+            {t("resumeWorkshop.detail.exportPdf")}
+          </button>
+        </div>
       </header>
-
-      <section
-        data-testid="resume-detail-branch-graph"
-        className="ei-resume-detail-branch-graph"
-        aria-label="version branch graph"
-      >
-        <div className="ei-resume-detail-branch-node">
-          <span className="ei-text-label">
-            {t("resumeWorkshop.detail.branchOriginal")}
-          </span>
-          <span className="ei-text-body">{ui.originalId}</span>
-        </div>
-        {masterId ? (
-          <div className="ei-resume-detail-branch-node">
-            <span className="ei-text-label">
-              {t("resumeWorkshop.detail.branchMaster")}
-            </span>
-            <span className="ei-text-body">{masterId}</span>
-          </div>
-        ) : null}
-        <div className="ei-resume-detail-branch-node ei-resume-detail-branch-node--current">
-          <span className="ei-text-label">
-            {t("resumeWorkshop.detail.branchCurrent")}
-          </span>
-          <span className="ei-text-body">{ui.name}</span>
-        </div>
-      </section>
 
       <div
         role="tablist"
@@ -280,7 +203,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
             type="button"
             role="tab"
             data-testid={`resume-detail-tab-${tab}`}
-            aria-selected={resolvedTab === tab}
+            aria-selected={activeTab === tab}
             onClick={() => setActiveTab(tab)}
           >
             {tabLabels[tab]}
@@ -289,22 +212,23 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
       </div>
 
       <div className="ei-resume-detail-tab-content">
-        {resolvedTab === "preview" ? (
+        {activeTab === "preview" ? (
           <ResumePreviewTab
-            version={version}
+            resume={resume}
             onExport={onExport}
+            onCopy={onCopy}
             onViewOriginal={() => setOriginalOpen(true)}
           />
-        ) : resolvedTab === "rewrites" ? (
+        ) : activeTab === "rewrites" ? (
           <ResumeRewritesTabContainer
-            version={version}
+            resume={resume}
             initialTailorRunId={initialTailorRunId}
-            onVersionRefreshed={versionQuery.retry}
+            onResumeRefreshed={resumeQuery.retry}
           />
         ) : (
           <ResumeEditTabContainer
-            version={version}
-            onVersionRefreshed={versionQuery.retry}
+            resume={resume}
+            onResumeRefreshed={resumeQuery.retry}
           />
         )}
       </div>
@@ -313,58 +237,44 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
         open={originalOpen}
         onClose={() => setOriginalOpen(false)}
         originalText={originalText}
-        contentState={originalModalState}
-        onRetry={sourceQuery.retry}
-        title={originalSource?.name ?? ui.name}
+        contentState="ready"
+        title={ui.sourceName}
       />
     </div>
   );
 };
 
 interface ResumeRewritesTabContainerProps {
-  version: ResumeVersion;
+  resume: Resume;
   initialTailorRunId: string | null;
-  onVersionRefreshed: () => void;
+  onResumeRefreshed: () => void;
 }
 
 const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
-  version,
+  resume,
   initialTailorRunId,
-  onVersionRefreshed,
+  onResumeRefreshed,
 }) => {
   const { t } = useI18n();
-  const actions = useResumeRewritesActions({
-    version,
-    onVersionRefreshed,
-  });
+  const { navigate } = useNavigation();
+  const save = useResumeSave();
 
   const [activeTailorRunId, setActiveTailorRunId] = useState<string | null>(
     initialTailorRunId,
   );
   useEffect(() => {
     setActiveTailorRunId(initialTailorRunId);
-  }, [initialTailorRunId, version.id]);
+  }, [initialTailorRunId, resume.id]);
 
   const tailorRequest = useRequestResumeTailor();
-  const polling = useResumeTailorRunPolling(activeTailorRunId, {
-    onReady: () => onVersionRefreshed(),
-  });
+  const polling = useResumeTailorRunPolling(activeTailorRunId);
+  const suggestions = polling.run?.suggestions ?? [];
 
-  const handleRerun = async (
-    mode: "bullet_suggestions" | "gap_review",
-  ) => {
-    if (!version.targetJobId) {
-      fireResumeWorkshopToast(
-        t("resumeWorkshop.rewrites.error.generic"),
-        "warn",
-      );
-      return;
-    }
+  const handleRerun = async (mode: "bullet_suggestions" | "gap_review") => {
+    if (!resume.id) return;
     try {
       const result = await tailorRequest.request({
-        resumeAssetId: version.resumeAssetId,
-        resumeVersionId: version.id,
-        targetJobId: version.targetJobId,
+        resumeId: resume.id,
         mode,
       });
       setActiveTailorRunId(result.tailorRunId);
@@ -373,7 +283,10 @@ const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
         "ok",
       );
     } catch (err) {
-      if (err instanceof RequestResumeTailorError && err.kind === "validation") {
+      if (
+        err instanceof RequestResumeTailorError &&
+        err.kind === "validation"
+      ) {
         fireResumeWorkshopToast(
           t("resumeWorkshop.rewrites.error.validation"),
           "warn",
@@ -398,51 +311,21 @@ const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
   const pollingBanner: ReactPollingBanner | null =
     polling.phase === "polling"
       ? { kind: "info", message: t("resumeWorkshop.rewrites.polling.banner") }
-      : polling.phase === "failed"
+      : polling.phase === "failed" ||
+          polling.phase === "timeout" ||
+          polling.phase === "error"
         ? {
             kind: "danger",
-            message: t("resumeWorkshop.rewrites.polling.failed"),
+            message:
+              polling.phase === "timeout"
+                ? t("resumeWorkshop.rewrites.polling.timeout")
+                : t("resumeWorkshop.rewrites.polling.failed"),
             onRetry: () => polling.retry(),
           }
-        : polling.phase === "timeout"
-          ? {
-              kind: "danger",
-              message: t("resumeWorkshop.rewrites.polling.timeout"),
-              onRetry: () => polling.retry(),
-            }
-          : polling.phase === "error"
-            ? {
-                kind: "danger",
-                message: t("resumeWorkshop.rewrites.polling.failed"),
-                onRetry: () => polling.retry(),
-              }
-            : null;
+        : null;
 
-  const showError = (err: unknown) => {
-    if (err instanceof SuggestionDecisionError) {
-      if (err.kind === "already_decided") {
-        fireResumeWorkshopToast(
-          t("resumeWorkshop.rewrites.toast.alreadyDecided"),
-          "warn",
-        );
-        return;
-      }
-      if (err.kind === "cross_user") {
-        fireResumeWorkshopToast(
-          t("resumeWorkshop.rewrites.error.crossUser"),
-          "danger",
-        );
-        return;
-      }
-      if (err.kind === "validation") {
-        fireResumeWorkshopToast(
-          t("resumeWorkshop.rewrites.error.validation"),
-          "warn",
-        );
-        return;
-      }
-    }
-    if (err instanceof UpdateResumeVersionError) {
+  const showSaveError = (err: unknown) => {
+    if (err instanceof ResumeSaveError) {
       if (err.kind === "validation") {
         fireResumeWorkshopToast(
           t("resumeWorkshop.rewrites.error.validation"),
@@ -458,113 +341,125 @@ const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
         return;
       }
     }
-    fireResumeWorkshopToast(
-      t("resumeWorkshop.rewrites.error.generic"),
-      "danger",
-    );
+    fireResumeWorkshopToast(t("resumeWorkshop.rewrites.error.generic"), "danger");
   };
 
-  const handleAccept = async (id: string) => {
+  // Merge accepted rewrites into the structured profile sections so the saved
+  // resume reflects the chosen bullets.
+  const buildStructuredProfileWith = (
+    acceptedRewrites: { original: string; rewritten: string }[],
+  ): Record<string, unknown> => {
+    const profile = {
+      ...((resume.structuredProfile ?? {}) as Record<string, unknown>),
+    };
+    profile.acceptedRewrites = acceptedRewrites;
+    return profile;
+  };
+
+  const handleOverwrite = async (
+    acceptedRewrites: { original: string; rewritten: string }[],
+  ) => {
     try {
-      await actions.onAccept(id);
+      await save.overwrite(resume.id, {
+        structuredProfile: buildStructuredProfileWith(acceptedRewrites),
+      });
       fireResumeWorkshopToast(
-        t("resumeWorkshop.rewrites.toast.accept").replace(
-          "{versionName}",
-          version.displayName,
+        t("resumeWorkshop.rewrites.toast.overwritten").replace(
+          "{resumeName}",
+          resume.displayName,
         ),
         "ok",
       );
+      onResumeRefreshed();
     } catch (err) {
-      showError(err);
+      showSaveError(err);
     }
   };
 
-  const handleReject = async (id: string) => {
+  const handleSaveAsNew = async (
+    acceptedRewrites: { original: string; rewritten: string }[],
+  ) => {
     try {
-      await actions.onReject(id);
+      const created = await save.saveAsNew(resume.id, {
+        displayName: t("resumeWorkshop.rewrites.save.newNameSuffix").replace(
+          "{resumeName}",
+          resume.displayName,
+        ),
+        structuredProfile: buildStructuredProfileWith(acceptedRewrites),
+      });
       fireResumeWorkshopToast(
-        t("resumeWorkshop.rewrites.toast.reject").replace(
-          "{versionName}",
-          version.displayName,
+        t("resumeWorkshop.rewrites.toast.savedAsNew").replace(
+          "{resumeName}",
+          created.displayName,
         ),
         "ok",
       );
+      navigate({
+        name: "resume_versions",
+        params: { resumeId: created.id, tab: "preview" },
+      });
     } catch (err) {
-      showError(err);
-    }
-  };
-
-  const handleManual = async (id: string, text: string) => {
-    try {
-      await actions.onSaveManualEdit(id, text);
-      fireResumeWorkshopToast(
-        t("resumeWorkshop.rewrites.toast.manualSaved").replace(
-          "{versionName}",
-          version.displayName,
-        ),
-        "ok",
-      );
-    } catch (err) {
-      showError(err);
+      showSaveError(err);
     }
   };
 
   return (
     <ResumeRewritesTab
-      version={version}
-      onAccept={handleAccept}
-      onReject={handleReject}
-      onSaveManualEdit={handleManual}
+      resume={resume}
+      suggestions={suggestions}
       onRequestRerun={handleRerun}
-      manualEditPendingFor={actions.manualPendingFor}
+      onOverwrite={handleOverwrite}
+      onSaveAsNew={handleSaveAsNew}
+      saving={save.pending}
       pollingBanner={pollingBanner}
     />
   );
 };
 
 interface ResumeEditTabContainerProps {
-  version: ResumeVersion;
-  onVersionRefreshed: () => void;
+  resume: Resume;
+  onResumeRefreshed: () => void;
 }
 
 const ResumeEditTabContainer: FC<ResumeEditTabContainerProps> = ({
-  version,
-  onVersionRefreshed,
+  resume,
+  onResumeRefreshed,
 }) => {
   const { t } = useI18n();
-  const updater = useUpdateResumeVersion();
-  const saving = !!updater.pendingFor[version.id];
+  const save = useResumeSave();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const onSave = async ({
+    displayName,
     headline,
     summary,
   }: {
+    displayName: string;
     headline: string;
     summary: string;
   }) => {
     setErrorMessage(null);
-    const existing = (version.structuredProfile ?? {}) as Record<string, unknown>;
+    const existing = (resume.structuredProfile ?? {}) as Record<string, unknown>;
     const nextProfile = {
       ...existing,
       headline,
       summary,
     };
     try {
-      await updater.update({
-        versionId: version.id,
-        payload: { structuredProfile: nextProfile },
+      await save.overwrite(resume.id, {
+        displayName,
+        structuredProfile: nextProfile,
       });
       fireResumeWorkshopToast(
         t("resumeWorkshop.edit.toast.saved").replace(
-          "{versionName}",
-          version.displayName,
+          "{resumeName}",
+          displayName || resume.displayName,
         ),
         "ok",
       );
-      onVersionRefreshed();
+      onResumeRefreshed();
     } catch (err) {
-      if (err instanceof UpdateResumeVersionError) {
+      if (err instanceof ResumeSaveError) {
         if (err.kind === "validation") {
           setErrorMessage(t("resumeWorkshop.edit.error.validation"));
           return;
@@ -584,9 +479,9 @@ const ResumeEditTabContainer: FC<ResumeEditTabContainerProps> = ({
 
   return (
     <ResumeEditTab
-      version={version}
+      resume={resume}
       onSave={onSave}
-      saving={saving}
+      saving={save.pending}
       errorMessage={errorMessage}
     />
   );

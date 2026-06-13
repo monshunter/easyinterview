@@ -6,30 +6,29 @@ package errors
 // Documented error codes from shared/conventions.yaml. All values are
 // UPPER_SNAKE_CASE per shared-conventions-codified D-5.
 const (
-	CodeAuthUnauthorized                    = "AUTH_UNAUTHORIZED"
-	CodeTargetImportFailed                  = "TARGET_IMPORT_FAILED"
-	CodeTargetJobNotFound                   = "TARGET_JOB_NOT_FOUND"
-	CodeTargetImportSourceInvalid           = "TARGET_IMPORT_SOURCE_INVALID"
-	CodeTargetImportSourceUnavailable       = "TARGET_IMPORT_SOURCE_UNAVAILABLE"
-	CodeTargetInvalidStateTransition        = "TARGET_INVALID_STATE_TRANSITION"
-	CodePracticeSessionConflict             = "PRACTICE_SESSION_CONFLICT"
-	CodePracticePlanNotFound                = "PRACTICE_PLAN_NOT_FOUND"
-	CodePracticeSessionNotFound             = "PRACTICE_SESSION_NOT_FOUND"
-	CodeReportNotFound                      = "REPORT_NOT_FOUND"
-	CodeReportNotReady                      = "REPORT_NOT_READY"
-	CodeDebriefNotFound                     = "DEBRIEF_NOT_FOUND"
-	CodeResumeExportNotAvailable            = "RESUME_EXPORT_NOT_AVAILABLE"
-	CodeResumeStructuredMasterAlreadyExists = "RESUME_STRUCTURED_MASTER_ALREADY_EXISTS"
-	CodeValidationFailed                    = "VALIDATION_FAILED"
-	CodeResourceNotFound                    = "RESOURCE_NOT_FOUND"
-	CodeIdempotencyKeyMismatch              = "IDEMPOTENCY_KEY_MISMATCH"
-	CodeRateLimited                         = "RATE_LIMITED"
-	CodeAiProviderTimeout                   = "AI_PROVIDER_TIMEOUT"
-	CodeAiOutputInvalid                     = "AI_OUTPUT_INVALID"
-	CodeAiFallbackExhausted                 = "AI_FALLBACK_EXHAUSTED"
-	CodeAiUnsupportedCapability             = "AI_UNSUPPORTED_CAPABILITY"
-	CodeAiProviderConfigInvalid             = "AI_PROVIDER_CONFIG_INVALID"
-	CodeAiProviderSecretMissing             = "AI_PROVIDER_SECRET_MISSING"
+	CodeAuthUnauthorized              = "AUTH_UNAUTHORIZED"
+	CodeTargetImportFailed            = "TARGET_IMPORT_FAILED"
+	CodeTargetJobNotFound             = "TARGET_JOB_NOT_FOUND"
+	CodeTargetImportSourceInvalid     = "TARGET_IMPORT_SOURCE_INVALID"
+	CodeTargetImportSourceUnavailable = "TARGET_IMPORT_SOURCE_UNAVAILABLE"
+	CodeTargetInvalidStateTransition  = "TARGET_INVALID_STATE_TRANSITION"
+	CodePracticeSessionConflict       = "PRACTICE_SESSION_CONFLICT"
+	CodePracticePlanNotFound          = "PRACTICE_PLAN_NOT_FOUND"
+	CodePracticeSessionNotFound       = "PRACTICE_SESSION_NOT_FOUND"
+	CodeReportNotFound                = "REPORT_NOT_FOUND"
+	CodeReportNotReady                = "REPORT_NOT_READY"
+	CodeDebriefNotFound               = "DEBRIEF_NOT_FOUND"
+	CodeResumeExportNotAvailable      = "RESUME_EXPORT_NOT_AVAILABLE"
+	CodeValidationFailed              = "VALIDATION_FAILED"
+	CodeResourceNotFound              = "RESOURCE_NOT_FOUND"
+	CodeIdempotencyKeyMismatch        = "IDEMPOTENCY_KEY_MISMATCH"
+	CodeRateLimited                   = "RATE_LIMITED"
+	CodeAiProviderTimeout             = "AI_PROVIDER_TIMEOUT"
+	CodeAiOutputInvalid               = "AI_OUTPUT_INVALID"
+	CodeAiFallbackExhausted           = "AI_FALLBACK_EXHAUSTED"
+	CodeAiUnsupportedCapability       = "AI_UNSUPPORTED_CAPABILITY"
+	CodeAiProviderConfigInvalid       = "AI_PROVIDER_CONFIG_INVALID"
+	CodeAiProviderSecretMissing       = "AI_PROVIDER_SECRET_MISSING"
 )
 
 // AllCodes lists every documented error code in declaration order.
@@ -47,7 +46,6 @@ var AllCodes = []string{
 	CodeReportNotReady,
 	CodeDebriefNotFound,
 	CodeResumeExportNotAvailable,
-	CodeResumeStructuredMasterAlreadyExists,
 	CodeValidationFailed,
 	CodeResourceNotFound,
 	CodeIdempotencyKeyMismatch,
@@ -68,28 +66,27 @@ type CodeMeta struct {
 
 // CodeRegistry maps every documented error code to its metadata.
 var CodeRegistry = map[string]CodeMeta{
-	CodeAuthUnauthorized:                    {Message: "authentication required or invalid", Retryable: false},
-	CodeTargetImportFailed:                  {Message: "failed to import target job", Retryable: true},
-	CodeTargetJobNotFound:                   {Message: "target job not found", Retryable: false},
-	CodeTargetImportSourceInvalid:           {Message: "target import source is invalid or unreachable per policy", Retryable: false},
-	CodeTargetImportSourceUnavailable:       {Message: "target import source is temporarily unavailable", Retryable: true},
-	CodeTargetInvalidStateTransition:        {Message: "target job state transition is not allowed", Retryable: false},
-	CodePracticeSessionConflict:             {Message: "practice session is in conflicting state", Retryable: false},
-	CodePracticePlanNotFound:                {Message: "practice plan not found", Retryable: false},
-	CodePracticeSessionNotFound:             {Message: "practice session not found", Retryable: false},
-	CodeReportNotFound:                      {Message: "feedback report not found or not accessible", Retryable: false},
-	CodeReportNotReady:                      {Message: "report is not ready yet", Retryable: true},
-	CodeDebriefNotFound:                     {Message: "debrief record not found or not accessible", Retryable: false},
-	CodeResumeExportNotAvailable:            {Message: "resume version export is not available in P0", Retryable: false},
-	CodeResumeStructuredMasterAlreadyExists: {Message: "structured master resume version already exists for this resume asset", Retryable: false},
-	CodeValidationFailed:                    {Message: "request validation failed", Retryable: false},
-	CodeResourceNotFound:                    {Message: "requested resource not found or not accessible", Retryable: false},
-	CodeIdempotencyKeyMismatch:              {Message: "idempotency key was reused with a different request body", Retryable: false},
-	CodeRateLimited:                         {Message: "rate limit exceeded", Retryable: true},
-	CodeAiProviderTimeout:                   {Message: "AI provider request timed out", Retryable: true},
-	CodeAiOutputInvalid:                     {Message: "AI output failed schema validation", Retryable: false},
-	CodeAiFallbackExhausted:                 {Message: "AI fallback chain exhausted", Retryable: true},
-	CodeAiUnsupportedCapability:             {Message: "AI capability is not supported", Retryable: false},
-	CodeAiProviderConfigInvalid:             {Message: "AI provider registry or model profile configuration is invalid", Retryable: false},
-	CodeAiProviderSecretMissing:             {Message: "AI provider secret is missing", Retryable: false},
+	CodeAuthUnauthorized:              {Message: "authentication required or invalid", Retryable: false},
+	CodeTargetImportFailed:            {Message: "failed to import target job", Retryable: true},
+	CodeTargetJobNotFound:             {Message: "target job not found", Retryable: false},
+	CodeTargetImportSourceInvalid:     {Message: "target import source is invalid or unreachable per policy", Retryable: false},
+	CodeTargetImportSourceUnavailable: {Message: "target import source is temporarily unavailable", Retryable: true},
+	CodeTargetInvalidStateTransition:  {Message: "target job state transition is not allowed", Retryable: false},
+	CodePracticeSessionConflict:       {Message: "practice session is in conflicting state", Retryable: false},
+	CodePracticePlanNotFound:          {Message: "practice plan not found", Retryable: false},
+	CodePracticeSessionNotFound:       {Message: "practice session not found", Retryable: false},
+	CodeReportNotFound:                {Message: "feedback report not found or not accessible", Retryable: false},
+	CodeReportNotReady:                {Message: "report is not ready yet", Retryable: true},
+	CodeDebriefNotFound:               {Message: "debrief record not found or not accessible", Retryable: false},
+	CodeResumeExportNotAvailable:      {Message: "resume version export is not available in P0", Retryable: false},
+	CodeValidationFailed:              {Message: "request validation failed", Retryable: false},
+	CodeResourceNotFound:              {Message: "requested resource not found or not accessible", Retryable: false},
+	CodeIdempotencyKeyMismatch:        {Message: "idempotency key was reused with a different request body", Retryable: false},
+	CodeRateLimited:                   {Message: "rate limit exceeded", Retryable: true},
+	CodeAiProviderTimeout:             {Message: "AI provider request timed out", Retryable: true},
+	CodeAiOutputInvalid:               {Message: "AI output failed schema validation", Retryable: false},
+	CodeAiFallbackExhausted:           {Message: "AI fallback chain exhausted", Retryable: true},
+	CodeAiUnsupportedCapability:       {Message: "AI capability is not supported", Retryable: false},
+	CodeAiProviderConfigInvalid:       {Message: "AI provider registry or model profile configuration is invalid", Retryable: false},
+	CodeAiProviderSecretMissing:       {Message: "AI provider secret is missing", Retryable: false},
 }

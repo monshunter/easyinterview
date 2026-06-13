@@ -96,20 +96,6 @@
       "completed",
       "failed",
       "cancelled"
-    ],
-    "ResumeVersionType": [
-      "structured_master",
-      "targeted"
-    ],
-    "ResumeSeedStrategy": [
-      "copy_master",
-      "blank",
-      "ai_select"
-    ],
-    "ResumeTailorSuggestionStatus": [
-      "pending",
-      "accepted",
-      "rejected"
     ]
   },
   "errorCodes": [
@@ -126,7 +112,6 @@
     "REPORT_NOT_READY",
     "DEBRIEF_NOT_FOUND",
     "RESUME_EXPORT_NOT_AVAILABLE",
-    "RESUME_STRUCTURED_MASTER_ALREADY_EXISTS",
     "VALIDATION_FAILED",
     "RESOURCE_NOT_FOUND",
     "IDEMPOTENCY_KEY_MISMATCH",

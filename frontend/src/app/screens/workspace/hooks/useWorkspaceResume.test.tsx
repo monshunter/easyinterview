@@ -32,14 +32,14 @@ function buildClient() {
 interface WrapperProps {
   children: ReactNode;
   client: EasyInterviewClient;
-  resumeVersionId?: string;
+  resumeId?: string;
 }
 
-function Wrapper({ children, client, resumeVersionId }: WrapperProps) {
+function Wrapper({ children, client, resumeId }: WrapperProps) {
   return (
     <InterviewContextProvider>
       <AppRuntimeProvider client={client}>
-        <HydrateContext resumeVersionId={resumeVersionId}>
+        <HydrateContext resumeId={resumeId}>
           {children}
         </HydrateContext>
       </AppRuntimeProvider>
@@ -49,31 +49,31 @@ function Wrapper({ children, client, resumeVersionId }: WrapperProps) {
 
 function HydrateContext({
   children,
-  resumeVersionId,
+  resumeId,
 }: {
   children: ReactNode;
-  resumeVersionId?: string;
+  resumeId?: string;
 }) {
   const { dispatch } = useInterviewContext();
   useEffect(() => {
-    if (resumeVersionId) {
+    if (resumeId) {
       dispatch({
         type: "HYDRATE_FROM_ROUTE",
-        params: { targetJobId: "tj-1", resumeVersionId },
+        params: { targetJobId: "tj-1", resumeId },
       });
     }
-  }, [resumeVersionId, dispatch]);
+  }, [resumeId, dispatch]);
   return <>{children}</>;
 }
 
 describe("useWorkspaceResume", () => {
-  it("calls getResume once with correct resumeVersionId", async () => {
+  it("calls getResume once with correct resumeId", async () => {
     const client = buildClient();
     const spy = vi.spyOn(client, "getResume");
 
     const { result } = renderHook(() => useWorkspaceResume(), {
       wrapper: ({ children }) => (
-        <Wrapper client={client} resumeVersionId="01918fa0-0000-7000-8000-000000001000">
+        <Wrapper client={client} resumeId="01918fa0-0000-7000-8000-000000001000">
           {children}
         </Wrapper>
       ),
@@ -96,7 +96,7 @@ describe("useWorkspaceResume", () => {
 
     const { result } = renderHook(() => useWorkspaceResume(), {
       wrapper: ({ children }) => (
-        <Wrapper client={client} resumeVersionId="01918fa0-0000-7000-8000-000000001000">
+        <Wrapper client={client} resumeId="01918fa0-0000-7000-8000-000000001000">
           {children}
         </Wrapper>
       ),
@@ -112,13 +112,13 @@ describe("useWorkspaceResume", () => {
     expect(result.current.error).toBeNull();
   });
 
-  it("returns empty state when resumeVersionId is missing", () => {
+  it("returns empty state when resumeId is missing", () => {
     const client = buildClient();
     const spy = vi.spyOn(client, "getResume");
 
     const { result } = renderHook(() => useWorkspaceResume(), {
       wrapper: ({ children }) => (
-        <Wrapper client={client} resumeVersionId={undefined}>
+        <Wrapper client={client} resumeId={undefined}>
           {children}
         </Wrapper>
       ),
@@ -135,7 +135,7 @@ describe("useWorkspaceResume", () => {
 
     const { result } = renderHook(() => useWorkspaceResume(), {
       wrapper: ({ children }) => (
-        <Wrapper client={client} resumeVersionId="resume-unbound">
+        <Wrapper client={client} resumeId="resume-unbound">
           {children}
         </Wrapper>
       ),
@@ -169,7 +169,7 @@ describe("useWorkspaceResume", () => {
 
     const { result } = renderHook(() => useWorkspaceResume(), {
       wrapper: ({ children }) => (
-        <Wrapper client={client} resumeVersionId="rv-notfound">
+        <Wrapper client={client} resumeId="rv-notfound">
           {children}
         </Wrapper>
       ),

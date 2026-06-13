@@ -1,41 +1,41 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { ResumeAsset } from "../../../../api/generated/types";
+import type { Resume } from "../../../../api/generated/types";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 import { useInterviewContext } from "../../../interview-context/InterviewContext";
 import { normalizeServerBoundId } from "../../../interview-context/apiIds";
 
 export interface UseWorkspaceResumeResult {
   loading: boolean;
-  data: ResumeAsset | null;
+  data: Resume | null;
   error: Error | null;
   empty: boolean;
 }
 
 /**
- * Phase 3 hook: loads ResumeAsset via generated client when
- * InterviewContext.resumeVersionId exists, writing results through
- * MERGE_RESUME. Returns empty state immediately when resumeVersionId
- * is missing (no request sent). On 404, sets resumeVersionId=null
+ * Phase 3 hook: loads the flat Resume via generated client when
+ * InterviewContext.resumeId exists, writing results through
+ * MERGE_RESUME. Returns empty state immediately when resumeId
+ * is missing (no request sent). On 404, sets resumeId=null
  * to trigger WorkspaceMissingResumeState.
  */
 export function useWorkspaceResume(): UseWorkspaceResumeResult {
   const runtime = useAppRuntimeOptional();
   const client = runtime?.client;
   const { ctx, dispatch } = useInterviewContext();
-  const resumeVersionId = normalizeServerBoundId(ctx.resumeVersionId);
+  const resumeId = normalizeServerBoundId(ctx.resumeId);
 
-  const [loading, setLoading] = useState(!!resumeVersionId);
-  const [data, setData] = useState<ResumeAsset | null>(null);
+  const [loading, setLoading] = useState(!!resumeId);
+  const [data, setData] = useState<Resume | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const requestSeqRef = useRef(0);
 
   useEffect(() => {
-    if (!client || !resumeVersionId) {
+    if (!client || !resumeId) {
       setLoading(false);
       setData(null);
       setError(null);
-      if (ctx.resumeVersionId && !resumeVersionId) {
+      if (ctx.resumeId && !resumeId) {
         dispatch({ type: "CLEAR_RESUME" });
       }
       return;
@@ -49,7 +49,7 @@ export function useWorkspaceResume(): UseWorkspaceResumeResult {
     setError(null);
 
     client
-      .getResume(resumeVersionId)
+      .getResume(resumeId)
       .then((resume) => {
         if (!active || requestSeqRef.current !== requestSeq) return;
         setData(resume);
@@ -76,9 +76,9 @@ export function useWorkspaceResume(): UseWorkspaceResumeResult {
     return () => {
       active = false;
     };
-  }, [client, resumeVersionId, ctx.resumeVersionId, dispatch]);
+  }, [client, resumeId, ctx.resumeId, dispatch]);
 
-  return { loading, data, error, empty: !resumeVersionId };
+  return { loading, data, error, empty: !resumeId };
 }
 
 function isNotFound(error: Error): boolean {

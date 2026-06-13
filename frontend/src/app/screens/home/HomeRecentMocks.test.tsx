@@ -158,7 +158,7 @@ describe("HomeRecentMocks", () => {
           jobId: "01918fa0-0000-7000-8000-000000000001",
           jdId: "jd-01918fa0-0000-7000-8000-000000000001",
           planId: "plan-01918fa0-0000-7000-8000-000000000001",
-          resumeVersionId: "resume-unbound",
+          resumeId: "resume-unbound",
           roundId: "round-technical-1",
         }),
       }),

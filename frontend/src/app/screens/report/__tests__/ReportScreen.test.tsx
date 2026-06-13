@@ -7,7 +7,7 @@
  *  - happy path          → ReportDashboard (>=10 report-* testids)
  *  - cross-user 404      → not-found UI (separate from AI_* enum copy)
  *  - generated client receives no Idempotency-Key header
- *  - ContextStrip uses generated getTargetJob / getResumeVersion labels
+ *  - ContextStrip uses generated getTargetJob / getResume labels
  *  - listTargetJobReports is never invoked from report scope
  */
 
@@ -23,7 +23,7 @@ import type { FC, ReactNode } from "react";
 import type {
   ApiErrorCode,
   FeedbackReport,
-  ResumeVersion,
+  Resume,
   TargetJob,
 } from "../../../../api/generated/types";
 import { EasyInterviewClient } from "../../../../api/generated/client";
@@ -33,7 +33,7 @@ import type { LooseRoute } from "../../../normalizeRoute";
 const REPORT_ID = "01918fa0-0000-7000-8000-000000007000";
 const SESSION_ID = "01918fa0-0000-7000-8000-000000005000";
 const TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000002000";
-const RESUME_VERSION_ID = "01918fa0-0000-7000-8000-000000004000";
+const RESUME_ID = "01918fa0-0000-7000-8000-000000004000";
 
 function readyReport(overrides: Partial<FeedbackReport> = {}): FeedbackReport {
   return {
@@ -94,8 +94,8 @@ interface ClientOptions {
   reportReject?: unknown;
   targetJob?: TargetJob;
   targetJobReject?: unknown;
-  resumeVersion?: ResumeVersion;
-  resumeVersionReject?: unknown;
+  resume?: Resume;
+  resumeReject?: unknown;
   authenticated?: boolean;
 }
 
@@ -112,14 +112,14 @@ function makeClient(options: ClientOptions = {}): EasyInterviewClient {
       } as unknown as TargetJob)
     );
   });
-  const resumeVersionFn = vi.fn(async () => {
-    if (options.resumeVersionReject) throw options.resumeVersionReject;
+  const resumeFn = vi.fn(async () => {
+    if (options.resumeReject) throw options.resumeReject;
     return (
-      options.resumeVersion ??
+      options.resume ??
       ({
-        id: RESUME_VERSION_ID,
+        id: RESUME_ID,
         displayName: "Resume v3",
-      } as unknown as ResumeVersion)
+      } as unknown as Resume)
     );
   });
   const feedbackReportFn = vi.fn(async (id: string, opts?: { headers?: Record<string, string> }) => {
@@ -150,7 +150,7 @@ function makeClient(options: ClientOptions = {}): EasyInterviewClient {
     },
     getFeedbackReport: feedbackReportFn,
     getTargetJob: targetJobFn,
-    getResumeVersion: resumeVersionFn,
+    getResume: resumeFn,
     listTargetJobReports: listTargetJobReportsFn,
   } as unknown as EasyInterviewClient;
 }
@@ -159,7 +159,7 @@ function spies(client: EasyInterviewClient) {
   return {
     feedbackReport: client.getFeedbackReport as ReturnType<typeof vi.fn>,
     targetJob: client.getTargetJob as ReturnType<typeof vi.fn>,
-    resumeVersion: client.getResumeVersion as ReturnType<typeof vi.fn>,
+    resume: client.getResume as ReturnType<typeof vi.fn>,
     listTargetJobReports: client.listTargetJobReports as ReturnType<typeof vi.fn>,
   };
 }
@@ -239,7 +239,7 @@ describe("ReportScreen dispatch", () => {
             sessionId: SESSION_ID,
             reportId: REPORT_ID,
             targetJobId: TARGET_JOB_ID,
-            resumeVersionId: RESUME_VERSION_ID,
+            resumeId: RESUME_ID,
             roundId: "round-tech-1",
             roundName: "Round 1",
             planId: "plan-1",
@@ -341,7 +341,7 @@ describe("ReportScreen dispatch", () => {
             sessionId: SESSION_ID,
             reportId: REPORT_ID,
             targetJobId: TARGET_JOB_ID,
-            resumeVersionId: RESUME_VERSION_ID,
+            resumeId: RESUME_ID,
           },
         }}
       />,
@@ -356,16 +356,16 @@ describe("ReportScreen dispatch", () => {
       expect(resume.textContent).toContain("Resume v3");
     });
     expect(spies(client).targetJob).toHaveBeenCalled();
-    expect(spies(client).resumeVersion).toHaveBeenCalled();
+    expect(spies(client).resume).toHaveBeenCalled();
   });
 
   it("ContextStrip never reads raw resume / JD body fields (privacy red line)", async () => {
     const sensitiveResume = {
-      id: RESUME_VERSION_ID,
+      id: RESUME_ID,
       displayName: "Resume v3",
       originalText: "PRIVATE: do-not-leak resume body",
       parsedTextSnapshot: "PRIVATE: parsed snapshot",
-    } as unknown as ResumeVersion;
+    } as unknown as Resume;
     const sensitiveJob = {
       id: TARGET_JOB_ID,
       title: "Senior Frontend Engineer",
@@ -375,7 +375,7 @@ describe("ReportScreen dispatch", () => {
     } as unknown as TargetJob;
     const client = makeClient({
       targetJob: sensitiveJob,
-      resumeVersion: sensitiveResume,
+      resume: sensitiveResume,
     });
     render(
       <Harness
@@ -386,7 +386,7 @@ describe("ReportScreen dispatch", () => {
             sessionId: SESSION_ID,
             reportId: REPORT_ID,
             targetJobId: TARGET_JOB_ID,
-            resumeVersionId: RESUME_VERSION_ID,
+            resumeId: RESUME_ID,
           },
         }}
       />,

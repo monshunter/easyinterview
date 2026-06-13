@@ -17,17 +17,15 @@ import { ResumeWorkshopScreen } from "./ResumeWorkshopScreen";
 import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
-import listResumeVersionsFixture from "../../../../../openapi/fixtures/Resumes/listResumeVersions.json";
-import getResumeVersionFixture from "../../../../../openapi/fixtures/Resumes/getResumeVersion.json";
-import exportResumeVersionFixture from "../../../../../openapi/fixtures/Resumes/exportResumeVersion.json";
+import getResumeFixture from "../../../../../openapi/fixtures/Resumes/getResume.json";
+import exportResumeFixture from "../../../../../openapi/fixtures/Resumes/exportResume.json";
 
 const RESUME_FIXTURES = [
   getRuntimeConfigFixture,
   getMeFixture,
   listResumesFixture,
-  listResumeVersionsFixture,
-  getResumeVersionFixture,
-  exportResumeVersionFixture,
+  getResumeFixture,
+  exportResumeFixture,
 ];
 
 function buildClient(): EasyInterviewClient {
@@ -61,15 +59,14 @@ function renderResumeWorkshop(
   );
 }
 
-const VERSION_ID = "0195f2d0-0001-7000-8000-000000000201";
+const RESUME_ID = "01918fa0-0000-7000-8000-000000001000";
 
 describe("ResumeWorkshopScreen auth boundary", () => {
   it("renders the auth gate (and hides list / detail / not-implemented) when the runtime is unauthenticated", async () => {
     const client = buildClient();
     const listSpy = vi.spyOn(client, "listResumes");
-    const versionsSpy = vi.spyOn(client, "listResumeVersions");
-    const getSpy = vi.spyOn(client, "getResumeVersion");
-    const exportSpy = vi.spyOn(client, "exportResumeVersion");
+    const getSpy = vi.spyOn(client, "getResume");
+    const exportSpy = vi.spyOn(client, "exportResume");
     const nav = vi.fn();
 
     renderResumeWorkshop(
@@ -89,14 +86,13 @@ describe("ResumeWorkshopScreen auth boundary", () => {
     ).not.toBeInTheDocument();
 
     expect(listSpy).not.toHaveBeenCalled();
-    expect(versionsSpy).not.toHaveBeenCalled();
     expect(getSpy).not.toHaveBeenCalled();
     expect(exportSpy).not.toHaveBeenCalled();
   });
 
-  it("renders the auth gate without calling getResumeVersion when versionId is in the URL but the user is unauthenticated", async () => {
+  it("renders the auth gate without calling getResume when resumeId is in the URL but the user is unauthenticated", async () => {
     const client = buildClient();
-    const getSpy = vi.spyOn(client, "getResumeVersion");
+    const getSpy = vi.spyOn(client, "getResume");
     const nav = vi.fn();
 
     renderResumeWorkshop(
@@ -104,7 +100,7 @@ describe("ResumeWorkshopScreen auth boundary", () => {
       nav,
       {
         name: "resume_versions",
-        params: { versionId: VERSION_ID, tab: "rewrites" },
+        params: { resumeId: RESUME_ID, tab: "rewrites" },
       },
       "unauthenticated",
     );
@@ -134,7 +130,7 @@ describe("ResumeWorkshopScreen auth boundary", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("clicking the auth gate CTA navigates to auth_login with a pendingAction that only carries route params (flow, versionId, tab, branchOriginalId, targetJobId) — never raw text", async () => {
+  it("clicking the auth gate CTA navigates to auth_login with a pendingAction that only carries flat route params (flow, resumeId, tab, targetJobId, createMode) — never raw text", async () => {
     const client = buildClient();
     const nav = vi.fn();
 
@@ -144,10 +140,10 @@ describe("ResumeWorkshopScreen auth boundary", () => {
       {
         name: "resume_versions",
         params: {
-          flow: "branch",
-          branchOriginalId: "01918fa0-0000-7000-8000-000000001000",
+          flow: "create",
+          createMode: "paste",
           targetJobId: "01918fa0-0000-7000-8000-000000002000",
-          versionId: VERSION_ID,
+          resumeId: RESUME_ID,
           tab: "rewrites",
         },
       },
@@ -168,10 +164,10 @@ describe("ResumeWorkshopScreen auth boundary", () => {
     expect(params.pendingRoute).toBe("resume_versions");
     expect(params.pendingType).toBe("open_resume_workshop");
     expect(params.pendingLabel).toBeTruthy();
-    expect(params.flow).toBe("branch");
-    expect(params.branchOriginalId).toBe("01918fa0-0000-7000-8000-000000001000");
+    expect(params.flow).toBe("create");
+    expect(params.createMode).toBe("paste");
     expect(params.targetJobId).toBe("01918fa0-0000-7000-8000-000000002000");
-    expect(params.versionId).toBe(VERSION_ID);
+    expect(params.resumeId).toBe(RESUME_ID);
     expect(params.tab).toBe("rewrites");
 
     expect(params.rawText).toBeUndefined();
@@ -180,21 +176,22 @@ describe("ResumeWorkshopScreen auth boundary", () => {
     expect(params.structuredProfile).toBeUndefined();
     expect(params.originalText).toBeUndefined();
     expect(params.suggestion).toBeUndefined();
-    // Plan 003 Phase 1.3: branch form draft must NEVER ride along on the
-    // pendingAction. After sign-in we restore route params only and re-render
-    // ResumeBranchFlow with empty form state, so the draft surface is never
-    // serialized into URL params, localStorage, or cookies.
+    // D-20 flat model: there is no version tree / branch flow. The retired
+    // branch-draft and version params must NEVER ride along on the
+    // pendingAction; only flat route params are restored after sign-in.
     expect(params.name).toBeUndefined();
     expect(params.target).toBeUndefined();
     expect(params.focus).toBeUndefined();
     expect(params.seed).toBeUndefined();
+    expect(params.versionId).toBeUndefined();
+    expect(params.branchOriginalId).toBeUndefined();
     expect(params.parentVersionId).toBeUndefined();
     expect(params.displayName).toBeUndefined();
     expect(params.focusAngle).toBeUndefined();
     expect(params.seedStrategy).toBeUndefined();
   });
 
-  it("renders the placeholder list (instead of the auth gate) when the runtime reports authenticated", async () => {
+  it("renders the flat list (instead of the auth gate) when the runtime reports authenticated", async () => {
     const client = buildClient();
     const nav = vi.fn();
 

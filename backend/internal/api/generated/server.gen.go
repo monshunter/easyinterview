@@ -12,7 +12,7 @@ import (
 // C-domain handler packages must implement this interface; the runtime
 // router (registered by RegisterHandlers) dispatches by `(method, path)` to
 // the corresponding ServerInterface method. operationId order matches the
-// 48-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
+// 43-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 
 	// startAuthEmailChallenge — post /auth/email/start: Issue a passwordless email-code challenge
@@ -96,47 +96,32 @@ type ServerInterface interface {
 	// getFeedbackReport — get /reports/{reportId}: Get a feedback report (still-generating reports return 200 with placeholder)
 	GetFeedbackReport(w http.ResponseWriter, r *http.Request, reportId string)
 
-	// branchResumeVersion — post /resume-versions: Branch a resume version
-	BranchResumeVersion(w http.ResponseWriter, r *http.Request)
-
-	// getResumeVersion — get /resume-versions/{resumeVersionId}: Get a resume version
-	GetResumeVersion(w http.ResponseWriter, r *http.Request, resumeVersionId string)
-
-	// updateResumeVersion — patch /resume-versions/{resumeVersionId}: Update editable resume version fields
-	UpdateResumeVersion(w http.ResponseWriter, r *http.Request, resumeVersionId string)
-
-	// exportResumeVersion — post /resume-versions/{resumeVersionId}/exports: Export a resume version
-	ExportResumeVersion(w http.ResponseWriter, r *http.Request, resumeVersionId string)
-
-	// acceptResumeTailorSuggestion — post /resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept: Accept a resume-tailor suggestion
-	AcceptResumeTailorSuggestion(w http.ResponseWriter, r *http.Request, resumeVersionId string, suggestionId string)
-
-	// rejectResumeTailorSuggestion — post /resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject: Reject a resume-tailor suggestion
-	RejectResumeTailorSuggestion(w http.ResponseWriter, r *http.Request, resumeVersionId string, suggestionId string)
-
 	// requestResumeTailor — post /resume/tailor: Start a resume-tailoring run for a target job
 	RequestResumeTailor(w http.ResponseWriter, r *http.Request)
 
 	// getResumeTailorRun — get /resume/tailor-runs/{tailorRunId}: Get a resume-tailor run
 	GetResumeTailorRun(w http.ResponseWriter, r *http.Request, tailorRunId string)
 
-	// listResumes — get /resumes: List resume assets
+	// listResumes — get /resumes: List resumes
 	ListResumes(w http.ResponseWriter, r *http.Request)
 
-	// registerResume — post /resumes: Register an uploaded resume file and trigger parsing
+	// registerResume — post /resumes: Register an uploaded or pasted resume and trigger parsing
 	RegisterResume(w http.ResponseWriter, r *http.Request)
 
-	// getResume — get /resumes/{resumeAssetId}: Get a resume asset and parse status
-	GetResume(w http.ResponseWriter, r *http.Request, resumeAssetId string)
+	// getResume — get /resumes/{resumeId}: Get a resume and parse status
+	GetResume(w http.ResponseWriter, r *http.Request, resumeId string)
 
-	// archiveResumeAsset — post /resumes/{resumeAssetId}/archive: Archive a resume asset
-	ArchiveResumeAsset(w http.ResponseWriter, r *http.Request, resumeAssetId string)
+	// updateResume — patch /resumes/{resumeId}: Update editable resume fields (overwrite this resume)
+	UpdateResume(w http.ResponseWriter, r *http.Request, resumeId string)
 
-	// confirmResumeStructuredMaster — post /resumes/{resumeAssetId}/structured-master: Confirm a parsed resume asset as the structured master version
-	ConfirmResumeStructuredMaster(w http.ResponseWriter, r *http.Request, resumeAssetId string)
+	// archiveResume — post /resumes/{resumeId}/archive: Archive a resume
+	ArchiveResume(w http.ResponseWriter, r *http.Request, resumeId string)
 
-	// listResumeVersions — get /resumes/{resumeAssetId}/versions: List versions for a resume asset
-	ListResumeVersions(w http.ResponseWriter, r *http.Request, resumeAssetId string)
+	// duplicateResume — post /resumes/{resumeId}/duplicate: Duplicate a resume (save as a new resume)
+	DuplicateResume(w http.ResponseWriter, r *http.Request, resumeId string)
+
+	// exportResume — post /resumes/{resumeId}/exports: Export a resume
+	ExportResume(w http.ResponseWriter, r *http.Request, resumeId string)
 
 	// getRuntimeConfig — get /runtime-config: Get public runtime configuration
 	GetRuntimeConfig(w http.ResponseWriter, r *http.Request)
@@ -200,20 +185,15 @@ var AllRoutes = []Route{
 	{OperationID: "createExperienceCard", Method: "post", Path: "/profiles/me/experience-cards", PathParams: nil},
 	{OperationID: "updateExperienceCard", Method: "patch", Path: "/profiles/me/experience-cards/{cardId}", PathParams: []string{"cardId"}},
 	{OperationID: "getFeedbackReport", Method: "get", Path: "/reports/{reportId}", PathParams: []string{"reportId"}},
-	{OperationID: "branchResumeVersion", Method: "post", Path: "/resume-versions", PathParams: nil},
-	{OperationID: "getResumeVersion", Method: "get", Path: "/resume-versions/{resumeVersionId}", PathParams: []string{"resumeVersionId"}},
-	{OperationID: "updateResumeVersion", Method: "patch", Path: "/resume-versions/{resumeVersionId}", PathParams: []string{"resumeVersionId"}},
-	{OperationID: "exportResumeVersion", Method: "post", Path: "/resume-versions/{resumeVersionId}/exports", PathParams: []string{"resumeVersionId"}},
-	{OperationID: "acceptResumeTailorSuggestion", Method: "post", Path: "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept", PathParams: []string{"resumeVersionId", "suggestionId"}},
-	{OperationID: "rejectResumeTailorSuggestion", Method: "post", Path: "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject", PathParams: []string{"resumeVersionId", "suggestionId"}},
 	{OperationID: "requestResumeTailor", Method: "post", Path: "/resume/tailor", PathParams: nil},
 	{OperationID: "getResumeTailorRun", Method: "get", Path: "/resume/tailor-runs/{tailorRunId}", PathParams: []string{"tailorRunId"}},
 	{OperationID: "listResumes", Method: "get", Path: "/resumes", PathParams: nil},
 	{OperationID: "registerResume", Method: "post", Path: "/resumes", PathParams: nil},
-	{OperationID: "getResume", Method: "get", Path: "/resumes/{resumeAssetId}", PathParams: []string{"resumeAssetId"}},
-	{OperationID: "archiveResumeAsset", Method: "post", Path: "/resumes/{resumeAssetId}/archive", PathParams: []string{"resumeAssetId"}},
-	{OperationID: "confirmResumeStructuredMaster", Method: "post", Path: "/resumes/{resumeAssetId}/structured-master", PathParams: []string{"resumeAssetId"}},
-	{OperationID: "listResumeVersions", Method: "get", Path: "/resumes/{resumeAssetId}/versions", PathParams: []string{"resumeAssetId"}},
+	{OperationID: "getResume", Method: "get", Path: "/resumes/{resumeId}", PathParams: []string{"resumeId"}},
+	{OperationID: "updateResume", Method: "patch", Path: "/resumes/{resumeId}", PathParams: []string{"resumeId"}},
+	{OperationID: "archiveResume", Method: "post", Path: "/resumes/{resumeId}/archive", PathParams: []string{"resumeId"}},
+	{OperationID: "duplicateResume", Method: "post", Path: "/resumes/{resumeId}/duplicate", PathParams: []string{"resumeId"}},
+	{OperationID: "exportResume", Method: "post", Path: "/resumes/{resumeId}/exports", PathParams: []string{"resumeId"}},
 	{OperationID: "getRuntimeConfig", Method: "get", Path: "/runtime-config", PathParams: nil},
 	{OperationID: "listTargetJobs", Method: "get", Path: "/targets", PathParams: nil},
 	{OperationID: "importTargetJob", Method: "post", Path: "/targets/import", PathParams: nil},

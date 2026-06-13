@@ -5,8 +5,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { DisplayPreferencesProvider } from "../../../display/DisplayPreferencesProvider";
 import type {
   PracticeSession,
-  ResumeAsset,
-  ResumeVersion,
+  Resume,
   TargetJob,
 } from "../../../../api/generated/types";
 import { DebriefContextStrip } from "./DebriefContextStrip";
@@ -40,26 +39,22 @@ const PRACTICE_SESSION: PracticeSession = {
   updatedAt: "2026-05-15T14:12:00Z",
 };
 
-const RESUME_ASSET: ResumeAsset = {
+const RESUME: Resume = {
   id: "01918fa0-0000-7000-8000-000000001000",
   title: "Alice — Senior Frontend Engineer",
+  displayName: "Alice — Senior Frontend Engineer",
   language: "zh-CN",
   parseStatus: "ready",
   status: "active",
   sourceType: "upload",
   fileObjectId: "01918fa0-0000-7000-8000-000000001100",
   originalText: null,
-  guidedAnswers: {},
   parsedTextSnapshot: null,
   parsedSummary: null,
   createdAt: "2026-04-22T09:30:00Z",
   updatedAt: "2026-05-12T08:00:00Z",
   deletedAt: null,
-} as unknown as ResumeAsset;
-
-const RESUME_VERSION: ResumeVersion = {
-  id: "01918fa0-0000-7000-8000-000000001a00",
-} as unknown as ResumeVersion;
+};
 
 function setup(selected = EMPTY_SELECTED_CONTEXT) {
   const onOpenPicker = vi.fn();
@@ -93,16 +88,14 @@ describe("DebriefContextStrip — TestContextStrip_DisplayNameFetch", () => {
     setup({
       targetJob: TARGET_JOB,
       mockSession: PRACTICE_SESSION,
-      resumeAsset: RESUME_ASSET,
-      resumeVersion: RESUME_VERSION,
+      resume: RESUME,
     });
     const tj = screen.getByTestId("debrief-context-card-targetJob-title");
     expect(tj).toHaveTextContent("Acme · Senior Frontend Engineer");
     const ms = screen.getByTestId("debrief-context-card-mockSession-title");
     expect(ms).toHaveTextContent(PRACTICE_SESSION.id);
     const rs = screen.getByTestId("debrief-context-card-resume-title");
-    expect(rs).toHaveTextContent(RESUME_ASSET.title!);
-    expect(rs).toHaveTextContent(RESUME_VERSION.id);
+    expect(rs).toHaveTextContent(RESUME.displayName);
   });
 });
 

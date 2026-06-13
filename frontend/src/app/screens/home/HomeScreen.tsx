@@ -31,8 +31,8 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const { jobs: rawJobs, loading, error } = useRecentTargetJobs();
   const targetLanguage = lang === "zh" ? "zh-CN" : "en";
   const routeResumeVersionId =
-    typeof route.params.resumeVersionId === "string"
-      ? route.params.resumeVersionId
+    typeof route.params.resumeId === "string"
+      ? route.params.resumeId
       : undefined;
   const showRecentMocks = runtime?.auth.status === "authenticated";
 
@@ -113,7 +113,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
           targetJobId,
           source: source.source,
           ...(routeResumeVersionId
-            ? { resumeVersionId: routeResumeVersionId }
+            ? { resumeId: routeResumeVersionId }
             : {}),
         },
       });
@@ -152,7 +152,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
           source: "paste",
           pendingImportId,
           ...(routeResumeVersionId
-            ? { resumeVersionId: routeResumeVersionId }
+            ? { resumeId: routeResumeVersionId }
             : {}),
         },
       });
@@ -176,7 +176,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
           source: source.source,
           pendingImportId,
           ...(routeResumeVersionId
-            ? { resumeVersionId: routeResumeVersionId }
+            ? { resumeId: routeResumeVersionId }
             : {}),
         },
       });

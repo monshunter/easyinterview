@@ -3,8 +3,7 @@ import type {
   DebriefQuestion,
   DebriefRiskItem,
   PracticeSession,
-  ResumeAsset,
-  ResumeVersion,
+  Resume,
   SuggestedDebriefQuestion,
   TargetJob,
 } from "../../../api/generated/types";
@@ -35,15 +34,13 @@ export type DebriefPickerKind = "targetJob" | "mockSession" | "resume";
 export interface DebriefSelectedContext {
   targetJob: TargetJob | null;
   mockSession: PracticeSession | null;
-  resumeAsset: ResumeAsset | null;
-  resumeVersion: ResumeVersion | null;
+  resume: Resume | null;
 }
 
 export const EMPTY_SELECTED_CONTEXT: DebriefSelectedContext = {
   targetJob: null,
   mockSession: null,
-  resumeAsset: null,
-  resumeVersion: null,
+  resume: null,
 };
 
 export type DebriefPollingState =
@@ -58,8 +55,7 @@ export type {
   DebriefQuestion,
   DebriefRiskItem,
   PracticeSession,
-  ResumeAsset,
-  ResumeVersion,
+  Resume,
   SuggestedDebriefQuestion,
   TargetJob,
 };

@@ -1,10 +1,10 @@
 {
-  "operationId": "exportResumeVersion",
+  "operationId": "exportResume",
   "scenarios": {
     "default": {
       "request": {
         "headers": {
-          "Idempotency-Key": "idem-export-resume-version-2026-05-12"
+          "Idempotency-Key": "01918fa0-0000-7a00-8a00-0000000e3001"
         }
       },
       "response": {
@@ -15,7 +15,7 @@
         "body": {
           "error": {
             "code": "RESUME_EXPORT_NOT_AVAILABLE",
-            "message": "Resume version export is not available in P0.",
+            "message": "Resume export is not available in P0.",
             "requestId": "req_2026-05-12T08-55-00-export-resume",
             "retryable": false,
             "details": {
@@ -29,7 +29,7 @@
     "p0-501-not-available": {
       "request": {
         "headers": {
-          "Idempotency-Key": "idem-export-resume-version-2026-05-12"
+          "Idempotency-Key": "01918fa0-0000-7a00-8a00-0000000e3001"
         }
       },
       "response": {
@@ -40,7 +40,7 @@
         "body": {
           "error": {
             "code": "RESUME_EXPORT_NOT_AVAILABLE",
-            "message": "Resume version export is not available in P0.",
+            "message": "Resume export is not available in P0.",
             "requestId": "req_2026-05-12T08-55-00-export-resume",
             "retryable": false,
             "details": {

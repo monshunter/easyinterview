@@ -84,8 +84,7 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
 
   const routeTargetJobId = route.params.targetJobId || route.params.jobId || ctx.targetJobId;
   const routeSessionId = route.params.sessionId || ctx.sessionId;
-  const routeResumeVersionId =
-    route.params.resumeVersionId || ctx.resumeVersionId;
+  const routeResumeId = route.params.resumeId || ctx.resumeId;
 
   useEffect(() => {
     if (!runtime) return;
@@ -117,15 +116,13 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
         .catch(() => undefined);
     }
 
-    if (routeResumeVersionId) {
+    if (routeResumeId) {
       runtime.client
-        .getResumeVersion(routeResumeVersionId)
-        .then((resumeVersion) => {
+        .getResume(routeResumeId)
+        .then((resume) => {
           if (cancelled) return;
           setSelectedContext((prev) =>
-            prev.resumeVersion?.id === resumeVersion.id
-              ? prev
-              : { ...prev, resumeVersion },
+            prev.resume?.id === resume.id ? prev : { ...prev, resume },
           );
         })
         .catch(() => undefined);
@@ -134,17 +131,16 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
     return () => {
       cancelled = true;
     };
-  }, [routeResumeVersionId, routeSessionId, routeTargetJobId, runtime]);
+  }, [routeResumeId, routeSessionId, routeTargetJobId, runtime]);
 
   // Phase 2.5 — auto-trigger suggestions once targetJob + resume are both set.
   const suggestionsEnabled =
-    Boolean(selectedContext.targetJob) &&
-    Boolean(selectedContext.resumeVersion);
+    Boolean(selectedContext.targetJob) && Boolean(selectedContext.resume);
   const language = lang === "en" ? "en-US" : "zh-CN";
   const suggestions = useSuggestDebriefQuestions({
     targetJobId: selectedContext.targetJob?.id,
     sessionId: selectedContext.mockSession?.id,
-    resumeVersionId: selectedContext.resumeVersion?.id,
+    resumeId: selectedContext.resume?.id,
     language,
     enabled: suggestionsEnabled,
   });
@@ -182,8 +178,8 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
         practiceGoal: "debrief",
         language,
       };
-      if (selectedContext.resumeVersion?.id) {
-        params.resumeVersionId = selectedContext.resumeVersion.id;
+      if (selectedContext.resume?.id) {
+        params.resumeId = selectedContext.resume.id;
       }
       if (selectedContext.mockSession?.id) {
         params.sessionId = selectedContext.mockSession.id;
@@ -201,7 +197,7 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
     language,
     requestAuth,
     selectedContext.mockSession?.id,
-    selectedContext.resumeVersion?.id,
+    selectedContext.resume?.id,
     selectedContext.targetJob,
     submit,
   ]);
@@ -214,8 +210,8 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
       language,
       targetJobId: selectedContext.targetJob.id,
     };
-    if (selectedContext.resumeVersion?.id) {
-      authParams.resumeVersionId = selectedContext.resumeVersion.id;
+    if (selectedContext.resume?.id) {
+      authParams.resumeId = selectedContext.resume.id;
     }
     if (selectedContext.mockSession?.id) {
       authParams.sessionId = selectedContext.mockSession.id;
@@ -242,10 +238,8 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
       });
       return;
     }
-    const resumeAssetId =
-      selectedContext.resumeAsset?.id ??
-      selectedContext.resumeVersion?.resumeAssetId;
-    if (!debriefId || !resumeAssetId) {
+    const resumeId = selectedContext.resume?.id;
+    if (!debriefId || !resumeId) {
       setReplayState({
         kind: "error",
         message: t("debrief.replay.missingContext"),
@@ -270,7 +264,7 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
           language,
           questionBudget,
           timeBudgetMinutes: 30,
-          resumeAssetId,
+          resumeId,
           sourceDebriefId: debriefId,
           focusCompetencyCodes: [],
         },
@@ -298,7 +292,7 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
           practiceMode: mode,
           language,
           targetJobId: selectedContext.targetJob.id,
-          resumeVersionId: selectedContext.resumeVersion?.id ?? "",
+          resumeId: selectedContext.resume?.id ?? "",
           planId: plan.id,
           sessionId: session.id,
           debriefId,
@@ -527,14 +521,12 @@ export const DebriefScreen: FC<DebriefScreenProps> = ({ route }) => {
       )}
       {pickerKind === "resume" && (
         <ResumePicker
-          selectedAssetId={selectedContext.resumeAsset?.id ?? null}
-          selectedVersionId={selectedContext.resumeVersion?.id ?? null}
+          selectedResumeId={selectedContext.resume?.id ?? null}
           onClose={() => setPickerKind(null)}
           onConfirm={(selection) => {
             setSelectedContext((prev) => ({
               ...prev,
-              resumeAsset: selection.asset,
-              resumeVersion: selection.version,
+              resume: selection.resume,
             }));
             setPickerKind(null);
           }}

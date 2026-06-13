@@ -4,10 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import userEvent from "@testing-library/user-event";
 
 import { EasyInterviewClient } from "../../../../api/generated/client";
-import type {
-  ResumeAsset,
-  ResumeVersion,
-} from "../../../../api/generated/types";
+import type { Resume } from "../../../../api/generated/types";
 import { AppRuntimeProvider } from "../../../runtime/AppRuntimeProvider";
 import { DisplayPreferencesProvider } from "../../../display/DisplayPreferencesProvider";
 import { NavigationProvider } from "../../../navigation/NavigationProvider";
@@ -21,19 +18,24 @@ import getRuntimeConfigFixture from "../../../../../../openapi/fixtures/Auth/get
 import getMeFixture from "../../../../../../openapi/fixtures/Auth/getMe.json";
 import registerResumeFixture from "../../../../../../openapi/fixtures/Resumes/registerResume.json";
 import getResumeFixture from "../../../../../../openapi/fixtures/Resumes/getResume.json";
+import updateResumeFixture from "../../../../../../openapi/fixtures/Resumes/updateResume.json";
 
 const FIXTURES = [
   getRuntimeConfigFixture,
   getMeFixture,
   registerResumeFixture,
   getResumeFixture,
+  updateResumeFixture,
 ];
 
-const READY_ASSET: ResumeAsset = {
+const READY_ASSET: Resume = {
   id: "01918fa0-0000-7000-8000-000000001000",
   title: "粘贴的简历",
+  displayName: "粘贴的简历",
   language: "zh",
   parseStatus: "ready",
+  status: "active",
+  sourceType: "paste",
   createdAt: "2026-05-17T00:00:00Z",
   updatedAt: "2026-05-17T00:00:00Z",
   parsedSummary: {
@@ -51,26 +53,12 @@ const READY_ASSET: ResumeAsset = {
   },
 };
 
-const SAVED_VERSION: ResumeVersion = {
-  id: "0195f2d0-0001-7000-8000-000000000201",
-  resumeAssetId: READY_ASSET.id,
-  versionType: "structured_master",
-  displayName: "Structured master",
-  parentVersionId: null,
-  targetJobId: null,
-  seedStrategy: null,
-  focusAngle: null,
+// D-20: the confirm step overwrites the existing flat resume via updateResume.
+const SAVED_RESUME: Resume = {
+  ...READY_ASSET,
+  displayName: "Alice Example",
   structuredProfile: { headline: "Senior Frontend Engineer" },
-  suggestions: [],
-  provenance: {} as ResumeVersion["provenance"],
-  modelId: null,
-  promptVersion: null,
-  provider: null,
-  rubricVersion: null,
-  matchScore: null,
-  createdAt: "2026-05-17T00:00:00Z",
-  updatedAt: "2026-05-17T00:00:00Z",
-  deletedAt: null,
+  updatedAt: "2026-05-17T01:00:00Z",
 };
 
 function buildClient(): EasyInterviewClient {
@@ -104,7 +92,7 @@ function renderFlow(client: EasyInterviewClient, navigate = vi.fn()) {
 async function drivePasteToPreview(client: EasyInterviewClient) {
   const user = userEvent.setup();
   vi.spyOn(client, "registerResume").mockResolvedValue({
-    resumeAssetId: READY_ASSET.id,
+    resumeId: READY_ASSET.id,
     job: {} as never,
   });
   vi.spyOn(client, "getResume").mockResolvedValue(READY_ASSET);
@@ -119,7 +107,7 @@ async function drivePasteToPreview(client: EasyInterviewClient) {
   return user;
 }
 
-describe("PreviewStage — confirm save v1 integration", () => {
+describe("PreviewStage — confirm save v1 integration (D-20 flat overwrite)", () => {
   beforeEach(() => {
     window.__EI_RESUME_POLLING_OPTIONS__ = {
       initialDelayMs: 10,
@@ -134,62 +122,30 @@ describe("PreviewStage — confirm save v1 integration", () => {
     delete window.__EI_RESUME_POLLING_OPTIONS__;
   });
 
-  it("confirms via confirmResumeStructuredMaster + Idempotency-Key and navigates back to list", async () => {
+  it("confirms via updateResume + Idempotency-Key and navigates back to the list", async () => {
     const client = buildClient();
     const navigate = vi.fn();
     renderFlow(client, navigate);
     const user = await drivePasteToPreview(client);
-    const confirmSpy = vi
-      .spyOn(client, "confirmResumeStructuredMaster")
-      .mockResolvedValue(SAVED_VERSION);
+    const updateSpy = vi
+      .spyOn(client, "updateResume")
+      .mockResolvedValue(SAVED_RESUME);
     await user.click(screen.getByTestId("resume-preview-confirm-save-button"));
-    await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
-    const call = confirmSpy.mock.calls[0]!;
+    await waitFor(() => expect(updateSpy).toHaveBeenCalled());
+    const call = updateSpy.mock.calls[0]!;
     expect(call[0]).toBe(READY_ASSET.id);
-    expect(call[1]).toMatchObject({
-      displayName: "Alice Example",
-      language: "en",
-    });
+    expect(call[1]).toMatchObject({ displayName: "Alice Example" });
     expect(call[1].structuredProfile).toBeTypeOf("object");
     expect(call[2]?.idempotencyKey).toMatch(/^v1\.\d+\.[0-9a-f-]{36}$/);
     // After save, nav back to resume_versions list.
     await waitFor(() => {
       expect(navigate).toHaveBeenCalled();
     });
-    expect(navigate.mock.calls.find(([c]) =>
-      (c as { name?: string }).name === "resume_versions",
-    )).toBeTruthy();
-  });
-
-  it("handles 409 already-exists by navigating to the existing master via listResumeVersions", async () => {
-    const client = buildClient();
-    const navigate = vi.fn();
-    renderFlow(client, navigate);
-    const user = await drivePasteToPreview(client);
-    vi.spyOn(client, "confirmResumeStructuredMaster").mockRejectedValue(
-      new Error("HTTP 409 Conflict: RESUME_STRUCTURED_MASTER_ALREADY_EXISTS"),
-    );
-    vi.spyOn(client, "listResumeVersions").mockResolvedValue({
-      items: [
-        {
-          ...SAVED_VERSION,
-          id: "0195f2d0-0001-7000-8000-000000000777",
-        },
-      ],
-			pageInfo: { nextCursor: null, pageSize: 20, hasMore: false },
-		});
-    await user.click(screen.getByTestId("resume-preview-confirm-save-button"));
-    await waitFor(() => {
-      expect(navigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: "resume_versions",
-          params: expect.objectContaining({
-            versionId: "0195f2d0-0001-7000-8000-000000000777",
-            tab: "preview",
-          }),
-        }),
-      );
-    });
+    expect(
+      navigate.mock.calls.find(
+        ([c]) => (c as { name?: string }).name === "resume_versions",
+      ),
+    ).toBeTruthy();
   });
 
   it("renders an inline validation error on 422 without navigating", async () => {
@@ -197,8 +153,25 @@ describe("PreviewStage — confirm save v1 integration", () => {
     const navigate = vi.fn();
     renderFlow(client, navigate);
     const user = await drivePasteToPreview(client);
-    vi.spyOn(client, "confirmResumeStructuredMaster").mockRejectedValue(
+    vi.spyOn(client, "updateResume").mockRejectedValue(
       new Error("HTTP 422 Unprocessable: VALIDATION_FAILED"),
+    );
+    await user.click(screen.getByTestId("resume-preview-confirm-save-button"));
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("resume-preview-confirm-inline-error"),
+      ).toBeInTheDocument();
+    });
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("renders an inline error on a generic failure without navigating", async () => {
+    const client = buildClient();
+    const navigate = vi.fn();
+    renderFlow(client, navigate);
+    const user = await drivePasteToPreview(client);
+    vi.spyOn(client, "updateResume").mockRejectedValue(
+      new Error("HTTP 500 Internal Server Error"),
     );
     await user.click(screen.getByTestId("resume-preview-confirm-save-button"));
     await waitFor(() => {
@@ -214,9 +187,7 @@ describe("PreviewStage — confirm save v1 integration", () => {
     const navigate = vi.fn();
     renderFlow(client, navigate);
     const user = await drivePasteToPreview(client);
-    vi.spyOn(client, "confirmResumeStructuredMaster").mockResolvedValue(
-      SAVED_VERSION,
-    );
+    vi.spyOn(client, "updateResume").mockResolvedValue(SAVED_RESUME);
     const setLocal = vi.spyOn(window.localStorage.__proto__, "setItem");
     const setSession = vi.spyOn(window.sessionStorage.__proto__, "setItem");
     await user.click(screen.getByTestId("resume-preview-confirm-save-button"));
@@ -233,40 +204,12 @@ describe("PreviewStage — confirm save v1 integration", () => {
   });
 });
 
-describe("confirmResumeStructuredMaster fixture parity", () => {
-  it("default scenario response includes 201 + versionType=structured_master", async () => {
-    const fixture = await import(
-      "../../../../../../openapi/fixtures/Resumes/confirmResumeStructuredMaster.json"
-    );
-    const def = fixture.default.scenarios.default;
-    expect(def.response.status).toBe(201);
-    expect(def.response.body.versionType).toBe("structured_master");
-  });
-  it("idempotency-replay scenario reuses the same versionId", async () => {
-    const fixture = await import(
-      "../../../../../../openapi/fixtures/Resumes/confirmResumeStructuredMaster.json"
-    );
-    const def = fixture.default.scenarios.default;
-    const replay = fixture.default.scenarios["idempotency-replay"];
-    expect(replay).toBeTruthy();
-    expect(replay.response.body.id).toBe(def.response.body.id);
-  });
-  it("already-exists-409 scenario surfaces RESUME_STRUCTURED_MASTER_ALREADY_EXISTS", async () => {
-    const fixture = await import(
-      "../../../../../../openapi/fixtures/Resumes/confirmResumeStructuredMaster.json"
-    );
-    const scenario = fixture.default.scenarios["already-exists-409"];
-    expect(scenario.response.status).toBe(409);
-    expect(scenario.response.body.error.code).toBe(
-      "RESUME_STRUCTURED_MASTER_ALREADY_EXISTS",
-    );
-  });
-  it("validation-422 scenario surfaces VALIDATION_FAILED", async () => {
-    const fixture = await import(
-      "../../../../../../openapi/fixtures/Resumes/confirmResumeStructuredMaster.json"
-    );
-    const scenario = fixture.default.scenarios["validation-422"];
-    expect(scenario.response.status).toBe(422);
-    expect(scenario.response.body.error.code).toBe("VALIDATION_FAILED");
+describe("updateResume fixture parity (D-20)", () => {
+  it("default scenario returns 200 + a flat Resume body with displayName", () => {
+    const def = updateResumeFixture.scenarios.default;
+    expect(def.response.status).toBe(200);
+    expect(typeof def.response.body.displayName).toBe("string");
+    expect(def.response.body).not.toHaveProperty("versionType");
+    expect(def.response.body).not.toHaveProperty("resumeAssetId");
   });
 });

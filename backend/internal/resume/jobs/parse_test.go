@@ -43,21 +43,6 @@ func TestParseHandlerUsesThreeSourceInputsAndWritesReadyOutbox(t *testing.T) {
 			wantSnapshot: "paste resume text",
 		},
 		{
-			name: "guided answers json",
-			asset: resumestore.ParseAssetRecord{
-				ID:            "asset-guided",
-				UserID:        "user-1",
-				Language:      "en",
-				ParseStatus:   sharedtypes.TargetJobParseStatusQueued,
-				SourceType:    "guided",
-				OriginalText:  "must not use original text",
-				GuidedAnswers: json.RawMessage(`{"leadership":"platform migration","impact":"12 teams"}`),
-			},
-			wantPrompt:   `"leadership":"platform migration"`,
-			wantSnapshot: `{"leadership":"platform migration","impact":"12 teams"}`,
-			forbidPrompt: "must not use original text",
-		},
-		{
 			name: "upload file object",
 			asset: resumestore.ParseAssetRecord{
 				ID:            "asset-upload",
@@ -105,6 +90,9 @@ func TestParseHandlerUsesThreeSourceInputsAndWritesReadyOutbox(t *testing.T) {
 			if !json.Valid(store.success.ParsedSummary) || !strings.Contains(string(store.success.ParsedSummary), `"skills"`) {
 				t.Fatalf("parsed summary = %s", store.success.ParsedSummary)
 			}
+			if !json.Valid(store.success.StructuredProfile) || !strings.Contains(string(store.success.StructuredProfile), `"skills"`) {
+				t.Fatalf("structured profile = %s", store.success.StructuredProfile)
+			}
 			if store.success.ParsedTextSnapshot != tc.wantSnapshot {
 				t.Fatalf("parsed text snapshot = %q, want %q", store.success.ParsedTextSnapshot, tc.wantSnapshot)
 			}
@@ -112,7 +100,7 @@ func TestParseHandlerUsesThreeSourceInputsAndWritesReadyOutbox(t *testing.T) {
 			if err := json.Unmarshal(store.success.OutboxEventPayload, &payload); err != nil {
 				t.Fatalf("decode outbox payload: %v", err)
 			}
-			if payload.ResumeAssetID != tc.asset.ID || payload.UserID != tc.asset.UserID || payload.ParseStatus != sharedtypes.TargetJobParseStatusReady {
+			if payload.ResumeID != tc.asset.ID || payload.UserID != tc.asset.UserID || payload.ParseStatus != sharedtypes.TargetJobParseStatusReady {
 				t.Fatalf("outbox payload = %+v", payload)
 			}
 			if bytes := string(store.success.OutboxEventPayload); strings.Contains(bytes, tc.wantPrompt) || strings.Contains(bytes, "Ada Lovelace") {

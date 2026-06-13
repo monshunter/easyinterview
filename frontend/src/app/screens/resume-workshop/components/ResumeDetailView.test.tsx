@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { EasyInterviewClient } from "../../../../api/generated/client";
-import type { ResumeAsset, ResumeVersion } from "../../../../api/generated/types";
+import type { Resume } from "../../../../api/generated/types";
 import {
   createFixtureBackedFetch,
   createFixtureRegistry,
@@ -17,16 +17,16 @@ import { ResumeWorkshopScreen } from "../ResumeWorkshopScreen";
 
 import getRuntimeConfigFixture from "../../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../../openapi/fixtures/Auth/getMe.json";
-import getResumeVersionFixture from "../../../../../../openapi/fixtures/Resumes/getResumeVersion.json";
-import exportResumeVersionFixture from "../../../../../../openapi/fixtures/Resumes/exportResumeVersion.json";
+import getResumeFixture from "../../../../../../openapi/fixtures/Resumes/getResume.json";
+import exportResumeFixture from "../../../../../../openapi/fixtures/Resumes/exportResume.json";
 import requestResumeTailorFixture from "../../../../../../openapi/fixtures/ResumeTailor/requestResumeTailor.json";
 import getResumeTailorRunFixture from "../../../../../../openapi/fixtures/ResumeTailor/getResumeTailorRun.json";
 
 const FIXTURES = [
   getRuntimeConfigFixture,
   getMeFixture,
-  getResumeVersionFixture,
-  exportResumeVersionFixture,
+  getResumeFixture,
+  exportResumeFixture,
   requestResumeTailorFixture,
   getResumeTailorRunFixture,
 ];
@@ -81,35 +81,27 @@ function renderDetailWithClient(
   );
 }
 
-const TARGETED_VERSION_ID =
-  getResumeVersionFixture.scenarios.default.response.body.id;
-const MASTER_VERSION_ID =
-  getResumeVersionFixture.scenarios["master-default"].response.body.id;
+const RESUME_ID = getResumeFixture.scenarios.default.response.body.id;
 
 describe("ResumeDetailView container (Phase 3.1)", () => {
-  it("renders breadcrumb, branch graph, and three tabs once the version loads", async () => {
+  it("renders the crumb and three tabs once the resume loads", async () => {
     renderDetail("default", {
       name: "resume_versions",
-      params: { versionId: TARGETED_VERSION_ID, tab: "preview" },
+      params: { resumeId: RESUME_ID, tab: "preview" },
     });
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-detail-breadcrumb"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("resume-detail-crumb")).toBeInTheDocument();
     });
-    expect(
-      screen.getByTestId("resume-detail-branch-graph"),
-    ).toBeInTheDocument();
     expect(screen.getByTestId("resume-detail-tab-preview")).toBeInTheDocument();
     expect(screen.getByTestId("resume-detail-tab-rewrites")).toBeInTheDocument();
     expect(screen.getByTestId("resume-detail-tab-edit")).toBeInTheDocument();
   });
 
-  it("MASTER version (master-default scenario) defaults the active tab to preview", async () => {
-    renderDetail("master-default", {
+  it("defaults the active tab to preview when no tab is supplied", async () => {
+    renderDetail("default", {
       name: "resume_versions",
-      params: { versionId: MASTER_VERSION_ID },
+      params: { resumeId: RESUME_ID },
     });
 
     await waitFor(() => {
@@ -123,10 +115,10 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
     ).toBeInTheDocument();
   });
 
-  it("TARGETED version with explicit tab=rewrites in the URL keeps rewrites active and renders ResumeRewritesTab (plan 003 replaces ComingSoonTab)", async () => {
+  it("keeps Rewrites active when tab=rewrites is in the URL and renders ResumeRewritesTab", async () => {
     renderDetail("default", {
       name: "resume_versions",
-      params: { versionId: TARGETED_VERSION_ID, tab: "rewrites" },
+      params: { resumeId: RESUME_ID, tab: "rewrites" },
     });
 
     await waitFor(() => {
@@ -139,12 +131,9 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
       "true",
     );
     expect(screen.getByTestId("resume-rewrites-tab")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("resume-detail-tab-content-coming-soon-rewrites"),
-    ).not.toBeInTheDocument();
   });
 
-  it("rerun requests are pinned to the currently viewed resumeVersionId", async () => {
+  it("rerun requests carry the flat { resumeId, mode } and no version ids", async () => {
     const client = buildClient("default");
     const requestSpy = vi
       .spyOn(client, "requestResumeTailor")
@@ -154,32 +143,34 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
 
     renderDetailWithClient(client, {
       name: "resume_versions",
-      params: { versionId: TARGETED_VERSION_ID, tab: "rewrites" },
+      params: { resumeId: RESUME_ID, tab: "rewrites" },
     });
 
     await waitFor(() => {
       expect(screen.getByTestId("resume-rewrites-tab")).toBeInTheDocument();
     });
-    await userEvent.setup().click(
-      screen.getByTestId("resume-rewrites-rerun-tailor"),
-    );
+    await userEvent
+      .setup()
+      .click(screen.getByTestId("resume-rewrites-rerun-tailor"));
 
     await waitFor(() => {
       expect(requestSpy).toHaveBeenCalledTimes(1);
     });
-    expect(requestSpy.mock.calls[0]![0]).toMatchObject({
-      resumeAssetId:
-        getResumeVersionFixture.scenarios.default.response.body.resumeAssetId,
-      resumeVersionId: TARGETED_VERSION_ID,
-      targetJobId:
-        getResumeVersionFixture.scenarios.default.response.body.targetJobId,
+    const requestArg = requestSpy.mock.calls[0]![0] as unknown as Record<
+      string,
+      unknown
+    >;
+    expect(requestArg).toMatchObject({
+      resumeId: RESUME_ID,
       mode: "bullet_suggestions",
     });
+    expect(requestArg).not.toHaveProperty("resumeAssetId");
+    expect(requestArg).not.toHaveProperty("resumeVersionId");
   });
 
-  it("keeps Export PDF and Copy Text actions available on Rewrites and Edit tabs", async () => {
+  it("keeps the header Export PDF action available on Rewrites and Edit tabs and copies text from the preview tab", async () => {
     const client = buildClient("default");
-    const exportSpy = vi.spyOn(client, "exportResumeVersion");
+    const exportSpy = vi.spyOn(client, "exportResume");
     const writeText = vi.fn().mockResolvedValue(undefined);
     const originalNavigator = Object.getOwnPropertyDescriptor(
       window,
@@ -196,36 +187,51 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
     try {
       renderDetailWithClient(client, {
         name: "resume_versions",
-        params: { versionId: TARGETED_VERSION_ID, tab: "rewrites" },
+        params: { resumeId: RESUME_ID, tab: "rewrites" },
       });
 
       await waitFor(() => {
         expect(screen.getByTestId("resume-rewrites-tab")).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByTestId("resume-detail-copy-text"));
-      await waitFor(() => {
-        expect(writeText).toHaveBeenCalledWith(
-          expect.stringContaining("Senior frontend engineer"),
-        );
-      });
-
-      await userEvent.setup().click(screen.getByTestId("resume-detail-export-pdf"));
+      // Copy Text lives only on the preview tab; Export PDF persists in the
+      // header across every tab. From Rewrites, only the header export exists.
+      expect(
+        screen.queryByTestId("resume-detail-copy-text"),
+      ).not.toBeInTheDocument();
+      const headerActions = screen.getByTestId("resume-detail-header-actions");
+      fireEvent.click(within(headerActions).getByTestId("resume-detail-export-pdf"));
       await waitFor(() => {
         expect(exportSpy).toHaveBeenCalledWith(
-          TARGETED_VERSION_ID,
+          RESUME_ID,
           expect.objectContaining({
             idempotencyKey: expect.stringMatching(/^v1\.\d+\./),
           }),
         );
       });
 
-      await userEvent.setup().click(screen.getByTestId("resume-detail-tab-edit"));
+      // Edit tab also keeps the header export action.
+      fireEvent.click(screen.getByTestId("resume-detail-tab-edit"));
       await waitFor(() => {
         expect(screen.getByTestId("resume-edit-tab")).toBeInTheDocument();
       });
-      expect(screen.getByTestId("resume-detail-copy-text")).toBeInTheDocument();
-      expect(screen.getByTestId("resume-detail-export-pdf")).toBeInTheDocument();
+      expect(
+        within(headerActions).getByTestId("resume-detail-export-pdf"),
+      ).toBeInTheDocument();
+
+      // Preview tab is where Copy Text is wired; clicking it writes plain text.
+      fireEvent.click(screen.getByTestId("resume-detail-tab-preview"));
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("resume-detail-preview-content"),
+        ).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByTestId("resume-detail-copy-text"));
+      await waitFor(() => {
+        expect(writeText).toHaveBeenCalledWith(
+          expect.stringContaining("Senior frontend engineer"),
+        );
+      });
     } finally {
       if (originalNavigator) {
         Object.defineProperty(window, "navigator", originalNavigator);
@@ -233,10 +239,10 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
     }
   });
 
-  it("clicking a tab updates the active selection and shows that tab's content (preview from default route)", async () => {
+  it("clicking a tab updates the active selection and shows that tab's content", async () => {
     renderDetail("default", {
       name: "resume_versions",
-      params: { versionId: TARGETED_VERSION_ID, tab: "rewrites" },
+      params: { resumeId: RESUME_ID, tab: "rewrites" },
     });
 
     await waitFor(() => {
@@ -259,29 +265,13 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
     ).toBeInTheDocument();
   });
 
-  it("loads the original resume asset for the original modal instead of reusing structuredProfile copy", async () => {
+  it("builds the original modal text from the loaded resume's parsed snapshot (no extra getResume call)", async () => {
     const client = buildClient("default");
-    const originalAsset: ResumeAsset = {
-      id: "01918fa0-0000-7000-8000-000000001000",
-      title: "Original uploaded resume",
-      language: "zh-CN",
-      parseStatus: "ready",
-      sourceType: "upload",
-      status: "active",
-      parsedSummary: { headline: "Original asset headline" },
-      parsedTextSnapshot:
-        "Original asset line A\nOriginal asset line B from parsed snapshot",
-      originalText: "Raw original asset fallback",
-      createdAt: "2026-04-22T09:30:00Z",
-      updatedAt: "2026-04-28T12:00:00Z",
-    };
-    const getResumeSpy = vi
-      .spyOn(client, "getResume")
-      .mockResolvedValue(originalAsset);
+    const getResumeSpy = vi.spyOn(client, "getResume");
 
     renderDetailWithClient(client, {
       name: "resume_versions",
-      params: { versionId: TARGETED_VERSION_ID, tab: "preview" },
+      params: { resumeId: RESUME_ID, tab: "preview" },
     });
 
     await waitFor(() => {
@@ -289,135 +279,60 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
         screen.getByTestId("resume-detail-view-original"),
       ).toBeInTheDocument();
     });
-    await userEvent.setup().click(screen.getByTestId("resume-detail-view-original"));
+    await userEvent
+      .setup()
+      .click(screen.getByTestId("resume-detail-view-original"));
 
-    await waitFor(() => {
-      expect(getResumeSpy).toHaveBeenCalledWith(
-        originalAsset.id,
-        expect.objectContaining({
-          headers: expect.objectContaining({ "Accept-Language": "en" }),
-        }),
-      );
-    });
-    const modal = await screen.findByTestId("resume-detail-original-modal-content");
-    expect(modal).toHaveTextContent("Original asset line A");
-    expect(modal).toHaveTextContent("Original asset line B from parsed snapshot");
-    expect(modal).not.toHaveTextContent(
-      "Highlights reliability, cross-functional tradeoff work",
+    const modal = await screen.findByTestId(
+      "resume-detail-original-modal-content",
     );
+    expect(modal).toHaveTextContent("Original resume parsed text snapshot");
+    expect(modal).toHaveTextContent(
+      "Led platform release guardrail work across frontend surfaces",
+    );
+    // The detail view loads the resume exactly once; the modal reuses that data.
+    expect(getResumeSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("shows a retryable detail error for non-404 getResumeVersion failures", async () => {
+  it("shows a retryable detail error for non-404 getResume failures", async () => {
     const client = buildClient("default");
-    const getVersionSpy = vi
-      .spyOn(client, "getResumeVersion")
+    const getResumeSpy = vi
+      .spyOn(client, "getResume")
       .mockRejectedValueOnce(new Error("HTTP 500 fixture outage"))
       .mockResolvedValueOnce(
-        getResumeVersionFixture.scenarios.default.response.body as ResumeVersion,
+        getResumeFixture.scenarios.default.response.body as Resume,
       );
 
     renderDetailWithClient(client, {
       name: "resume_versions",
-      params: { versionId: TARGETED_VERSION_ID, tab: "preview" },
+      params: { resumeId: RESUME_ID, tab: "preview" },
     });
 
     await waitFor(() => {
       expect(screen.getByTestId("resume-detail-error")).toBeInTheDocument();
     });
-    expect(screen.queryByText(/加载版本中|Loading version/i)).not.toBeInTheDocument();
 
     await userEvent.setup().click(screen.getByTestId("resume-detail-retry"));
 
     await waitFor(() => {
-      expect(getVersionSpy).toHaveBeenCalledTimes(2);
-      expect(
-        screen.getByTestId("resume-detail-breadcrumb"),
-      ).toBeInTheDocument();
+      expect(getResumeSpy).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId("resume-detail-crumb")).toBeInTheDocument();
     });
   });
 
-  it("keeps the original modal in loading state instead of showing structuredProfile fallback while getResume is pending", async () => {
-    const client = buildClient("default");
-    const originalAsset: ResumeAsset = {
-      id: "01918fa0-0000-7000-8000-000000001000",
-      title: "Original uploaded resume",
-      language: "zh-CN",
-      parseStatus: "ready",
-      sourceType: "upload",
-      status: "active",
-      parsedSummary: { headline: "Original asset headline" },
-      parsedTextSnapshot: "Original asset line after pending resolves",
-      originalText: "Raw original asset fallback",
-      createdAt: "2026-04-22T09:30:00Z",
-      updatedAt: "2026-04-28T12:00:00Z",
-    };
-    let resolveOriginal: (asset: ResumeAsset) => void = () => undefined;
-    vi.spyOn(client, "getResume").mockReturnValue(
-      new Promise<ResumeAsset>((resolve) => {
-        resolveOriginal = resolve;
-      }),
-    );
-
-    renderDetailWithClient(client, {
+  it("renders NotFoundEmptyState when getResume returns 404", async () => {
+    renderDetail("not-found", {
       name: "resume_versions",
-      params: { versionId: TARGETED_VERSION_ID, tab: "preview" },
+      params: { resumeId: RESUME_ID, tab: "preview" },
     });
 
     await waitFor(() => {
       expect(
-        screen.getByTestId("resume-detail-view-original"),
-      ).toBeInTheDocument();
-    });
-    await userEvent.setup().click(screen.getByTestId("resume-detail-view-original"));
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-detail-original-modal-loading"),
+        screen.getByTestId("resume-detail-not-found"),
       ).toBeInTheDocument();
     });
     expect(
-      screen.getByTestId("resume-detail-original-modal-content"),
-    ).not.toHaveTextContent(
-      "Highlights reliability, cross-functional tradeoff work",
-    );
-
-    resolveOriginal(originalAsset);
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-detail-original-modal-content"),
-      ).toHaveTextContent("Original asset line after pending resolves");
-    });
-  });
-
-  it("shows original-source errors without substituting structuredProfile fallback text", async () => {
-    const client = buildClient("default");
-    const getResumeSpy = vi
-      .spyOn(client, "getResume")
-      .mockRejectedValue(new Error("HTTP 500 source outage"));
-
-    renderDetailWithClient(client, {
-      name: "resume_versions",
-      params: { versionId: TARGETED_VERSION_ID, tab: "preview" },
-    });
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-detail-view-original"),
-      ).toBeInTheDocument();
-    });
-    await userEvent.setup().click(screen.getByTestId("resume-detail-view-original"));
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-detail-original-modal-error"),
-      ).toBeInTheDocument();
-    });
-    expect(getResumeSpy).toHaveBeenCalledTimes(1);
-    expect(
-      screen.getByTestId("resume-detail-original-modal-content"),
-    ).not.toHaveTextContent(
-      "Highlights reliability, cross-functional tradeoff work",
-    );
+      screen.getByTestId("resume-detail-not-found-back"),
+    ).toBeInTheDocument();
   });
 });

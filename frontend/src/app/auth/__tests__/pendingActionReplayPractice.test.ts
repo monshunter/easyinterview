@@ -25,7 +25,7 @@ const REPLAY_ACTION: PendingAction = {
     planId: "plan-1",
     targetJobId: "tj-1",
     jdId: "jd-1",
-    resumeVersionId: "frontend-v3",
+    resumeId: "frontend-v3",
     roundId: "round-tech-1",
     mode: "text",
     modality: "text",

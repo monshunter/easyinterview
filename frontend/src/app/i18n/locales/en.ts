@@ -471,9 +471,16 @@ export const en: LocaleMessages = {
     "Failed to load resume versions. Please retry.",
   "resumeWorkshop.list.empty": "You have no resumes uploaded yet.",
   "resumeWorkshop.list.paginated": "Continue loading more",
+  "resumeWorkshop.list.colResume": "Resume",
+  "resumeWorkshop.list.colSource": "Source",
+  "resumeWorkshop.list.colLang": "Lang",
+  "resumeWorkshop.list.colLastEdit": "Last edit",
+  "resumeWorkshop.list.open": "Open",
+  "resumeWorkshop.list.uploadAnother": "Upload or paste another resume",
   "resumeWorkshop.openVersion": "Open",
   "resumeWorkshop.detail.back": "Back to Resume Workshop",
   "resumeWorkshop.detail.crumbVersions": "Versions",
+  "resumeWorkshop.detail.lastEdit": "last edit",
   "resumeWorkshop.detail.tabPreview": "Preview",
   "resumeWorkshop.detail.tabRewrites": "Rewrites",
   "resumeWorkshop.detail.tabEdit": "Edit",
@@ -577,14 +584,16 @@ export const en: LocaleMessages = {
     "Could not create the version. Please retry.",
   // ── Rewrites tab (plan 003) ──
   "resumeWorkshop.rewrites.scopeBanner.body":
-    "Reject / Edit / Accept apply to this version only: {versionName}. The master and original file are not changed.",
+    "Each suggestion has a single action: Accept. Doing nothing skips it. Accepted rewrites are saved only after the preview step, where you choose overwrite this resume or save as a new resume.",
   "resumeWorkshop.rewrites.scopeBanner.counts":
-    "{accepted} accepted - {pending} pending - {rejected} rejected",
+    "{accepted} accepted - {untouched} untouched",
+  "resumeWorkshop.rewrites.previewAndSave": "Preview & save",
   "resumeWorkshop.rewrites.listEyebrow": "SUGGESTED REWRITES",
   "resumeWorkshop.rewrites.empty.title": "No AI suggestions yet",
   "resumeWorkshop.rewrites.empty.body":
     "No bullet rewrites have been generated. Use the action on the right to rerun the tailor.",
   "resumeWorkshop.rewrites.status.accepted": "ACCEPTED",
+  "resumeWorkshop.rewrites.status.suggested": "SUGGESTED",
   "resumeWorkshop.rewrites.status.pending": "PENDING",
   "resumeWorkshop.rewrites.status.rejected": "REJECTED",
   "resumeWorkshop.rewrites.diff.sectionFallback": "Rewrite suggestion",
@@ -619,6 +628,10 @@ export const en: LocaleMessages = {
     "Manual edit saved for {versionName}",
   "resumeWorkshop.rewrites.toast.rerunRequested":
     "Tailor rerun requested",
+  "resumeWorkshop.rewrites.toast.overwritten":
+    "Overwrote {resumeName} - accepted rewrites applied; original source unchanged",
+  "resumeWorkshop.rewrites.toast.savedAsNew":
+    "Saved as a new resume: {resumeName}",
   "resumeWorkshop.rewrites.toast.alreadyDecided":
     "This bullet has already been decided - create a new suggestion or branch",
   "resumeWorkshop.rewrites.error.generic":
@@ -629,11 +642,32 @@ export const en: LocaleMessages = {
     "Validation failed. Please retry.",
   "resumeWorkshop.rewrites.error.manualPendingRetry":
     "Manual edit saved but status write failed - please retry.",
+  // ── Rewrite save confirm modal (D-20) ──
+  "resumeWorkshop.rewrites.save.eyebrow": "PREVIEW BEFORE SAVING",
+  "resumeWorkshop.rewrites.save.title":
+    "Review the accepted rewrites, then choose where to save.",
+  "resumeWorkshop.rewrites.save.sub":
+    "The original source stays read-only either way.",
+  "resumeWorkshop.rewrites.save.close": "Close preview",
+  "resumeWorkshop.rewrites.save.acceptedCount": "{count} ACCEPTED REWRITES",
+  "resumeWorkshop.rewrites.save.overwriteLabel": "Overwrite this resume",
+  "resumeWorkshop.rewrites.save.overwriteDesc":
+    "Apply rewrites into {resumeName}. Original source unchanged.",
+  "resumeWorkshop.rewrites.save.newLabel": "Save as a new resume",
+  "resumeWorkshop.rewrites.save.newDesc":
+    "Keep this resume as-is and add a rewritten copy to the list.",
+  "resumeWorkshop.rewrites.save.newNameSuffix": "{resumeName} - rewritten",
+  "resumeWorkshop.rewrites.save.cancel": "Cancel",
+  "resumeWorkshop.rewrites.save.confirmNew": "Save as new resume",
+  "resumeWorkshop.rewrites.save.confirmOverwrite": "Overwrite this resume",
   // ── Edit tab (plan 003) ──
   "resumeWorkshop.edit.scope.master":
     "Editing the master. Targeted versions branched from this master keep their accepted bullets but unedited fields follow.",
   "resumeWorkshop.edit.scope.targeted":
     "Editing {versionName}. Changes here do not affect the master or other versions.",
+  "resumeWorkshop.edit.scope.body":
+    "Editing {resumeName}. Changes save into this resume; the original source stays read-only.",
+  "resumeWorkshop.edit.displayNameLabel": "RESUME NAME",
   "resumeWorkshop.edit.headlineLabel": "HEADLINE",
   "resumeWorkshop.edit.summaryLabel": "SUMMARY",
   "resumeWorkshop.edit.save": "Save changes",

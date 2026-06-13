@@ -34,8 +34,8 @@ func TestRegisterSourceType(t *testing.T) {
 		ResourceType: api.ResourceTypeResumeAsset,
 		ResourceId:   "01918fa0-0000-7000-8000-000000000101",
 		Status:       sharedtypes.JobStatusQueued,
-		CreatedAt:    time.Date(2026, 5, 13, 1, 0, 0, 0, time.UTC).Format(time.RFC3339),
-		UpdatedAt:    time.Date(2026, 5, 13, 1, 0, 0, 0, time.UTC).Format(time.RFC3339),
+		CreatedAt:    time.Date(2026, 6, 13, 1, 0, 0, 0, time.UTC).Format(time.RFC3339),
+		UpdatedAt:    time.Date(2026, 6, 13, 1, 0, 0, 0, time.UTC).Format(time.RFC3339),
 	}
 	validCases := []struct {
 		name string
@@ -52,15 +52,10 @@ func TestRegisterSourceType(t *testing.T) {
 			body: `{"sourceType":"paste","rawText":"Senior platform resume text","title":"Resume","language":"en"}`,
 			want: resume.RegisterInput{UserID: "user-1", IdempotencyKey: "idem-1", SourceType: "paste", RawText: "Senior platform resume text", Title: "Resume", Language: "en"},
 		},
-		{
-			name: "guided requires guidedAnswers",
-			body: `{"sourceType":"guided","guidedAnswers":{"role":"Platform Lead"},"title":"Resume","language":"zh-CN"}`,
-			want: resume.RegisterInput{UserID: "user-1", IdempotencyKey: "idem-1", SourceType: "guided", GuidedAnswers: map[string]any{"role": "Platform Lead"}, Title: "Resume", Language: "zh-CN"},
-		},
 	}
 	for _, tc := range validCases {
 		t.Run(tc.name, func(t *testing.T) {
-			svc := &fakeRegisterService{out: api.ResumeAssetWithJob{ResumeAssetId: job.ResourceId, Job: job}}
+			svc := &fakeRegisterService{out: api.ResumeWithJob{ResumeId: job.ResourceId, Job: job}}
 			h := newTestHandler(svc)
 			rec := httptest.NewRecorder()
 
@@ -78,7 +73,7 @@ func TestRegisterSourceType(t *testing.T) {
 	invalidBodies := []string{
 		`{"sourceType":"upload","title":"Resume","language":"en"}`,
 		`{"sourceType":"paste","title":"Resume","language":"en"}`,
-		`{"sourceType":"guided","title":"Resume","language":"en"}`,
+		`{"sourceType":"guided","guidedAnswers":{"role":"Lead"},"title":"Resume","language":"en"}`,
 		`{"sourceType":"unknown","title":"Resume","language":"en"}`,
 		`{"sourceType":"upload","fileObjectId":"01918fa0-0000-7000-8000-000000000301","rawText":"must not mix","title":"Resume","language":"en"}`,
 	}
@@ -110,12 +105,12 @@ func TestRegisterIdempotency(t *testing.T) {
 			State:          idempotency.StateReplay,
 			RecordID:       "idem-rec-1",
 			ResponseStatus: http.StatusAccepted,
-			ResponseBody:   []byte(`{"resumeAssetId":"asset-replay","job":{"id":"job-replay","jobType":"resume_parse","resourceType":"resume_asset","resourceId":"asset-replay","status":"queued","createdAt":"2026-05-13T01:00:00Z","updatedAt":"2026-05-13T01:00:00Z"}}`),
+			ResponseBody:   []byte(`{"resumeId":"resume-replay","job":{"id":"job-replay","jobType":"resume_parse","resourceType":"resume_asset","resourceId":"resume-replay","status":"queued","createdAt":"2026-06-13T01:00:00Z","updatedAt":"2026-06-13T01:00:00Z"}}`),
 		}}
 		h := newTestHandler(&fakeRegisterService{})
 		mw := idempotency.New(idempotency.MiddlewareOptions{
 			Store: store,
-			Now:   func() time.Time { return time.Date(2026, 5, 13, 1, 0, 0, 0, time.UTC) },
+			Now:   func() time.Time { return time.Date(2026, 6, 13, 1, 0, 0, 0, time.UTC) },
 		})
 		wrapped := mw.Handler("resume", "registerResume", func(*http.Request) (string, bool) { return "user-1", true }, http.HandlerFunc(h.RegisterResume))
 		rec := httptest.NewRecorder()
@@ -131,7 +126,7 @@ func TestRegisterIdempotency(t *testing.T) {
 		if store.reserveIn.ExpiresAt.Sub(store.reserveIn.Now) != 24*time.Hour {
 			t.Fatalf("idempotency ttl = %s", store.reserveIn.ExpiresAt.Sub(store.reserveIn.Now))
 		}
-		if !strings.Contains(rec.Body.String(), "asset-replay") {
+		if !strings.Contains(rec.Body.String(), "resume-replay") {
 			t.Fatalf("replay body = %s", rec.Body.String())
 		}
 	})
@@ -160,7 +155,7 @@ func TestRegisterResumeValidationErrorsReturnUnprocessableEntity(t *testing.T) {
 
 func TestRegisterResumeFixtureParity(t *testing.T) {
 	fixture := loadRegisterFixture(t)
-	for _, scenario := range []string{"default", "paste-text", "guided-answers"} {
+	for _, scenario := range []string{"default", "paste-text"} {
 		t.Run(scenario, func(t *testing.T) {
 			want := fixture.Scenarios[scenario].Response
 			h := newTestHandler(&fakeRegisterService{out: want.Body})
@@ -190,11 +185,11 @@ func TestRegisterResumeFixtureParity(t *testing.T) {
 
 type fakeRegisterService struct {
 	in  resume.RegisterInput
-	out api.ResumeAssetWithJob
+	out api.ResumeWithJob
 	err error
 }
 
-func (s *fakeRegisterService) RegisterResume(_ context.Context, in resume.RegisterInput) (api.ResumeAssetWithJob, error) {
+func (s *fakeRegisterService) RegisterResume(_ context.Context, in resume.RegisterInput) (api.ResumeWithJob, error) {
 	s.in = in
 	return s.out, s.err
 }
@@ -229,18 +224,13 @@ func assertAPIError(t *testing.T, rec *httptest.ResponseRecorder, status int, co
 }
 
 func equalRegisterInput(got, want resume.RegisterInput) bool {
-	if got.UserID != want.UserID ||
-		got.IdempotencyKey != want.IdempotencyKey ||
-		got.SourceType != want.SourceType ||
-		got.FileObjectID != want.FileObjectID ||
-		got.RawText != want.RawText ||
-		got.Title != want.Title ||
-		got.Language != want.Language {
-		return false
-	}
-	gotRaw, _ := json.Marshal(got.GuidedAnswers)
-	wantRaw, _ := json.Marshal(want.GuidedAnswers)
-	return string(gotRaw) == string(wantRaw)
+	return got.UserID == want.UserID &&
+		got.IdempotencyKey == want.IdempotencyKey &&
+		got.SourceType == want.SourceType &&
+		got.FileObjectID == want.FileObjectID &&
+		got.RawText == want.RawText &&
+		got.Title == want.Title &&
+		got.Language == want.Language
 }
 
 type registerFixture struct {
@@ -249,8 +239,8 @@ type registerFixture struct {
 			Body map[string]any `json:"body"`
 		} `json:"request"`
 		Response struct {
-			Status int                    `json:"status"`
-			Body   api.ResumeAssetWithJob `json:"body"`
+			Status int              `json:"status"`
+			Body   api.ResumeWithJob `json:"body"`
 		} `json:"response"`
 	} `json:"scenarios"`
 }
@@ -265,7 +255,7 @@ func loadRegisterFixture(t *testing.T) registerFixture {
 	if err := json.Unmarshal(raw, &fixture); err != nil {
 		t.Fatalf("decode fixture: %v", err)
 	}
-	for _, scenario := range []string{"default", "paste-text", "guided-answers"} {
+	for _, scenario := range []string{"default", "paste-text"} {
 		if _, ok := fixture.Scenarios[scenario]; !ok {
 			t.Fatalf("fixture missing scenario %q; scenarios=%v", scenario, sortedScenarioKeys(fixture.Scenarios))
 		}
@@ -278,8 +268,8 @@ func sortedScenarioKeys(in map[string]struct {
 		Body map[string]any `json:"body"`
 	} `json:"request"`
 	Response struct {
-		Status int                    `json:"status"`
-		Body   api.ResumeAssetWithJob `json:"body"`
+		Status int              `json:"status"`
+		Body   api.ResumeWithJob `json:"body"`
 	} `json:"response"`
 }) []string {
 	keys := make([]string, 0, len(in))

@@ -1,43 +1,24 @@
 import type { FC } from "react";
 
 import { useI18n } from "../../../i18n/messages";
-import {
-  buildResumePlainText,
-  buildResumePreview,
-} from "../adapters/resume";
-import type { ResumeVersion } from "../../../../api/generated/types";
-import { fireResumeWorkshopToast } from "./toast";
+import { buildResumePreview } from "../adapters/resume";
+import type { Resume } from "../../../../api/generated/types";
 
 export interface ResumePreviewTabProps {
-  version: ResumeVersion;
+  resume: Resume;
   onViewOriginal: () => void;
   onExport: () => void;
+  onCopy: () => void;
 }
 
 export const ResumePreviewTab: FC<ResumePreviewTabProps> = ({
-  version,
+  resume,
   onViewOriginal,
   onExport,
+  onCopy,
 }) => {
   const { t } = useI18n();
-  const projection = buildResumePreview(version);
-
-  const onCopy = async () => {
-    const text = buildResumePlainText(version);
-    if (navigator.clipboard?.writeText) {
-      try {
-        await navigator.clipboard.writeText(text);
-        fireResumeWorkshopToast(t("resumeWorkshop.detail.copySuccess"), "ok");
-        return;
-      } catch {
-        // fall through to warn toast
-      }
-    }
-    fireResumeWorkshopToast(
-      t("resumeWorkshop.detail.copyUnavailable"),
-      "warn",
-    );
-  };
+  const projection = buildResumePreview(resume);
 
   return (
     <div

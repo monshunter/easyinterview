@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"net/http"
 	"testing"
 	"time"
 
@@ -16,397 +15,189 @@ import (
 )
 
 func TestRegisterUploadPathVerifiesFileObjectBeforeCreate(t *testing.T) {
-	now := time.Date(2026, 5, 13, 2, 0, 0, 0, time.UTC)
-	uploads := &fakeUploadRegistrar{out: uploadstore.FileObject{
-		ID:      "01918fa0-0000-7000-8000-000000000301",
-		UserID:  "user-1",
-		Purpose: uploadstore.PurposeResume,
-		Status:  uploadstore.StatusUploaded,
-	}}
-	store := &fakeRegisterStore{out: resumestore.CreateAssetResult{
-		AssetID:      "01918fa0-0000-7000-8000-000000000101",
-		JobID:        "01918fa0-0000-7000-8000-000000000201",
-		JobStatus:    "queued",
-		JobCreatedAt: now,
-		JobUpdatedAt: now,
-	}}
+	store := &fakeStore{out: resumestore.CreateAssetResult{AssetID: "resume-1", JobID: "job-1", JobStatus: sharedtypes.JobStatusQueued}}
+	upload := &fakeUploadRegistrar{out: uploadstore.FileObject{ID: "file-1"}}
 	svc := resume.NewService(resume.ServiceOptions{
 		Store:          store,
-		UploadRegister: uploads,
-		Now:            func() time.Time { return now },
-		NewID:          sequenceIDs("asset-new", "job-new"),
+		UploadRegister: upload,
+		Now:            func() time.Time { return time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC) },
+		NewID:          sequenceIDs("resume-1", "job-1"),
 	})
 
 	out, err := svc.RegisterResume(context.Background(), resume.RegisterInput{
 		UserID:         "user-1",
 		IdempotencyKey: "idem-1",
 		SourceType:     "upload",
-		FileObjectID:   "01918fa0-0000-7000-8000-000000000301",
+		FileObjectID:   "file-input",
 		Title:          "Resume",
 		Language:       "en",
 	})
 	if err != nil {
 		t.Fatalf("RegisterResume: %v", err)
 	}
-	if uploads.in.FileObjectID != "01918fa0-0000-7000-8000-000000000301" ||
-		uploads.in.OwnerUserID != "user-1" ||
-		uploads.in.ExpectedPurpose != uploadstore.PurposeResume {
-		t.Fatalf("upload register input = %+v", uploads.in)
+	if out.ResumeId != "resume-1" || out.Job.JobType != "resume_parse" {
+		t.Fatalf("response = %+v", out)
 	}
-	if store.in.FileObjectID == nil || *store.in.FileObjectID != uploads.out.ID {
-		t.Fatalf("store fileObjectId = %#v, want %q", store.in.FileObjectID, uploads.out.ID)
+	if upload.in.ExpectedPurpose != uploadstore.PurposeResume || upload.in.OwnerUserID != "user-1" {
+		t.Fatalf("upload register input = %+v", upload.in)
 	}
-	if out.ResumeAssetId != store.out.AssetID || out.Job.ResourceId != store.out.AssetID {
-		t.Fatalf("response = %+v, store out = %+v", out, store.out)
+	if store.createIn.FileObjectID == nil || *store.createIn.FileObjectID != "file-1" {
+		t.Fatalf("store input file object = %+v", store.createIn.FileObjectID)
+	}
+}
+
+func TestRegisterPasteRejectsBlankIdempotencyKey(t *testing.T) {
+	svc := resume.NewService(resume.ServiceOptions{Store: &fakeStore{}, NewID: sequenceIDs("resume-1", "job-1")})
+	_, err := svc.RegisterResume(context.Background(), resume.RegisterInput{
+		UserID:     "user-1",
+		SourceType: "paste",
+		RawText:    "resume text",
+		Title:      "Resume",
+		Language:   "en",
+	})
+	if !errors.Is(err, resume.ErrValidationFailed) {
+		t.Fatalf("err = %v, want ErrValidationFailed", err)
 	}
 }
 
 func TestRegisterUploadPathRejectsMissingObjectBeforeCreate(t *testing.T) {
-	uploads := &fakeUploadRegistrar{err: uploadservice.ErrValidationFailed}
-	store := &fakeRegisterStore{}
+	store := &fakeStore{}
+	upload := &fakeUploadRegistrar{err: uploadservice.ErrValidationFailed}
 	svc := resume.NewService(resume.ServiceOptions{
 		Store:          store,
-		UploadRegister: uploads,
-		NewID:          sequenceIDs("asset-new", "job-new"),
+		UploadRegister: upload,
+		NewID:          sequenceIDs("resume-1", "job-1"),
 	})
 
 	_, err := svc.RegisterResume(context.Background(), resume.RegisterInput{
 		UserID:         "user-1",
 		IdempotencyKey: "idem-1",
 		SourceType:     "upload",
-		FileObjectID:   "01918fa0-0000-7000-8000-000000000301",
+		FileObjectID:   "missing",
 		Title:          "Resume",
 		Language:       "en",
 	})
 	if !errors.Is(err, resume.ErrValidationFailed) {
-		t.Fatalf("error = %v, want ErrValidationFailed", err)
+		t.Fatalf("err = %v, want ErrValidationFailed", err)
 	}
-	if store.calls != 0 {
-		t.Fatalf("store CreateWithParseJob calls = %d, want 0", store.calls)
+	if store.createCalls != 0 {
+		t.Fatalf("store create calls = %d, want 0", store.createCalls)
 	}
 }
 
 func TestGetAndListResumesMapStoreRecordsWithUserScope(t *testing.T) {
-	now := time.Date(2026, 5, 13, 9, 0, 0, 0, time.UTC)
-	fileID := "01918fa0-0000-7000-8000-000000000301"
-	sourceType := "upload"
-	parsedText := "parsed resume"
-	store := &fakeRegisterStore{
-		getOut: resumestore.AssetRecord{
-			ID:                 "asset-1",
-			UserID:             "user-1",
-			FileObjectID:       &fileID,
-			Title:              "Resume",
-			Language:           "en",
-			ParseStatus:        "ready",
-			ParsedSummary:      json.RawMessage(`{"headline":"Senior engineer"}`),
-			ParsedTextSnapshot: &parsedText,
-			SourceType:         &sourceType,
-			CreatedAt:          now,
-			UpdatedAt:          now,
-		},
-		listOut: resumestore.ListResult{
-			Items: []resumestore.AssetRecord{{
-				ID:          "asset-1",
-				UserID:      "user-1",
-				Title:       "Resume",
-				Language:    "en",
-				ParseStatus: "ready",
-				CreatedAt:   now,
-				UpdatedAt:   now,
-			}},
-			NextCursor: "cursor-2",
-			HasMore:    true,
-			PageSize:   20,
-		},
+	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
+	displayName := "Alice CV"
+	rec := resumestore.ResumeRecord{
+		ID:                "resume-1",
+		UserID:            "user-1",
+		Title:             "Resume",
+		DisplayName:       &displayName,
+		Language:          "en",
+		ParseStatus:       sharedtypes.TargetJobParseStatusReady,
+		ParsedSummary:     json.RawMessage(`{"headline":"Senior engineer"}`),
+		StructuredProfile: json.RawMessage(`{"basics":{"name":"Alice"}}`),
+		SourceType:        ptr("paste"),
+		CreatedAt:         now,
+		UpdatedAt:         now,
+	}
+	store := &fakeStore{
+		getOut:  rec,
+		listOut: resumestore.ListResult{Items: []resumestore.ResumeRecord{rec}, NextCursor: "cursor-2", HasMore: true, PageSize: 20},
 	}
 	svc := resume.NewService(resume.ServiceOptions{Store: store})
 
-	got, err := svc.GetResume(context.Background(), "user-1", "asset-1")
+	got, err := svc.GetResume(context.Background(), "user-1", "resume-1")
 	if err != nil {
 		t.Fatalf("GetResume: %v", err)
 	}
-	if store.getUserID != "user-1" || store.getAssetID != "asset-1" {
-		t.Fatalf("Get scope user=%q asset=%q", store.getUserID, store.getAssetID)
-	}
-	if got.Id != "asset-1" || got.FileObjectId == nil || *got.FileObjectId != fileID ||
-		got.ParsedSummary == nil || (*got.ParsedSummary)["headline"] != "Senior engineer" ||
-		got.ParsedTextSnapshot == nil || *got.ParsedTextSnapshot != parsedText ||
-		got.Status == nil || *got.Status != "active" {
+	if got.Id != "resume-1" || got.DisplayName != "Alice CV" || got.StructuredProfile == nil {
 		t.Fatalf("GetResume mapped = %+v", got)
+	}
+	if store.getUserID != "user-1" || store.getResumeID != "resume-1" {
+		t.Fatalf("store get scope user=%q resume=%q", store.getUserID, store.getResumeID)
 	}
 
 	list, err := svc.ListResumes(context.Background(), resume.ListRequest{UserID: "user-1", Cursor: "cursor-1", PageSize: 20})
 	if err != nil {
 		t.Fatalf("ListResumes: %v", err)
 	}
-	if store.listUserID != "user-1" || store.listFilter.Cursor != "cursor-1" || store.listFilter.PageSize != 20 {
-		t.Fatalf("List scope user=%q filter=%+v", store.listUserID, store.listFilter)
-	}
-	if len(list.Items) != 1 || list.PageInfo.NextCursor == nil || *list.PageInfo.NextCursor != "cursor-2" || !list.PageInfo.HasMore || list.PageInfo.PageSize != 20 {
+	if len(list.Items) != 1 || list.Items[0].Id != "resume-1" || list.PageInfo.NextCursor == nil || *list.PageInfo.NextCursor != "cursor-2" || !list.PageInfo.HasMore {
 		t.Fatalf("ListResumes mapped = %+v", list)
+	}
+	if store.listUserID != "user-1" || store.listFilter.Cursor != "cursor-1" || store.listFilter.PageSize != 20 {
+		t.Fatalf("store list scope = %q filter=%+v", store.listUserID, store.listFilter)
 	}
 }
 
 func TestGetResumeMapsStoreNotFound(t *testing.T) {
-	svc := resume.NewService(resume.ServiceOptions{Store: &fakeRegisterStore{getErr: resumestore.ErrAssetNotFound}})
-
-	_, err := svc.GetResume(context.Background(), "user-1", "asset-missing")
-
+	store := &fakeStore{getErr: resumestore.ErrAssetNotFound}
+	svc := resume.NewService(resume.ServiceOptions{Store: store})
+	_, err := svc.GetResume(context.Background(), "user-1", "missing")
 	if !errors.Is(err, resume.ErrNotFound) {
 		t.Fatalf("GetResume err = %v, want ErrNotFound", err)
 	}
 }
 
-func TestConfirmStructuredMasterCreatesStructuredMasterVersion(t *testing.T) {
-	now := time.Date(2026, 5, 17, 16, 0, 0, 0, time.UTC)
-	store := &fakeRegisterStore{structuredOut: resumestore.VersionRecord{
-		ID:                "version-1",
+func TestUpdateResumeOverwritesAndStripsProvenance(t *testing.T) {
+	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
+	store := &fakeStore{updateOut: resumestore.ResumeRecord{
+		ID:                "resume-1",
 		UserID:            "user-1",
-		ResumeAssetID:     "asset-1",
-		VersionType:       "structured_master",
-		DisplayName:       "Structured master",
-		StructuredProfile: json.RawMessage(`{"headline":"Senior engineer","provenance":{"promptVersion":"resume_profile.v1","rubricVersion":"not_applicable","modelId":"model-1","language":"en","featureFlag":"none","dataSourceVersion":"asset.v1"}}`),
-		Provenance: resumestore.VersionProvenance{
-			PromptVersion: "resume_profile.v1", RubricVersion: "not_applicable", ModelID: "model-1", Language: "en", FeatureFlag: "none", DataSourceVersion: "asset.v1",
-		},
-		CreatedAt: now,
-		UpdatedAt: now,
-	}}
-	svc := resume.NewService(resume.ServiceOptions{
-		Store: store,
-		Now:   func() time.Time { return now },
-		NewID: sequenceIDs("version-1"),
-	})
-
-	got, err := svc.ConfirmStructuredMaster(context.Background(), resume.ConfirmStructuredMasterInput{
-		UserID:        "user-1",
-		ResumeAssetID: "asset-1",
-		DisplayName:   " Structured master ",
-		Language:      "en",
-		StructuredProfile: map[string]any{
-			"headline": "Senior engineer",
-			"provenance": map[string]any{
-				"promptVersion": "resume_profile.v1", "rubricVersion": "not_applicable", "modelId": "model-1", "language": "en", "featureFlag": "none", "dataSourceVersion": "asset.v1",
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("ConfirmStructuredMaster: %v", err)
-	}
-	if store.structuredIn.VersionID != "version-1" || store.structuredIn.UserID != "user-1" || store.structuredIn.ResumeAssetID != "asset-1" || store.structuredIn.DisplayName != "Structured master" {
-		t.Fatalf("store input = %+v", store.structuredIn)
-	}
-	if store.structuredIn.Provenance.PromptVersion != "resume_profile.v1" || store.structuredIn.Provenance.ModelID != "model-1" {
-		t.Fatalf("store provenance = %+v", store.structuredIn.Provenance)
-	}
-	if got.Id != "version-1" || got.VersionType != "structured_master" || got.ParentVersionId != nil || got.SeedStrategy != nil || len(got.Suggestions) != 0 {
-		t.Fatalf("response = %+v", got)
-	}
-	if got.Provenance.PromptVersion != "resume_profile.v1" || got.PromptVersion == nil || *got.PromptVersion != "resume_profile.v1" {
-		t.Fatalf("response provenance = %+v prompt=%v", got.Provenance, got.PromptVersion)
-	}
-}
-
-func TestConfirmStructuredMasterValidationAndStoreErrors(t *testing.T) {
-	tests := []struct {
-		name string
-		in   resume.ConfirmStructuredMasterInput
-		err  error
-		want error
-	}{
-		{name: "missing display name", in: resume.ConfirmStructuredMasterInput{UserID: "user-1", ResumeAssetID: "asset-1", StructuredProfile: validStructuredProfile()}, want: resume.ErrValidationFailed},
-		{name: "missing provenance", in: resume.ConfirmStructuredMasterInput{UserID: "user-1", ResumeAssetID: "asset-1", DisplayName: "Master", StructuredProfile: map[string]any{"headline": "Senior engineer"}}, want: resume.ErrValidationFailed},
-		{name: "not found", in: validConfirmInput(), err: resumestore.ErrAssetNotFound, want: resume.ErrNotFound},
-		{name: "parse not ready", in: validConfirmInput(), err: resumestore.ErrAssetParseNotReady, want: resume.ErrAssetParseNotReady},
-		{name: "already exists", in: validConfirmInput(), err: resumestore.ErrStructuredMasterAlreadyExists, want: resume.ErrStructuredMasterAlreadyExists},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			svc := resume.NewService(resume.ServiceOptions{Store: &fakeRegisterStore{structuredErr: tc.err}, NewID: sequenceIDs("version-1")})
-
-			_, err := svc.ConfirmStructuredMaster(context.Background(), tc.in)
-
-			if !errors.Is(err, tc.want) {
-				t.Fatalf("err = %v, want %v", err, tc.want)
-			}
-		})
-	}
-}
-
-func TestGetAndListResumeVersions(t *testing.T) {
-	now := time.Date(2026, 5, 17, 18, 0, 0, 0, time.UTC)
-	store := &fakeRegisterStore{
-		versionOut: resumestore.VersionRecord{
-			ID:                "version-1",
-			UserID:            "user-1",
-			ResumeAssetID:     "asset-1",
-			VersionType:       sharedtypes.ResumeVersionTypeStructuredMaster,
-			DisplayName:       "Structured master",
-			StructuredProfile: json.RawMessage(`{"headline":"Senior engineer","provenance":{"promptVersion":"resume_profile.v1","rubricVersion":"not_applicable","modelId":"model-1","language":"en","featureFlag":"none","dataSourceVersion":"asset.v1"}}`),
-			Provenance: resumestore.VersionProvenance{
-				PromptVersion: "resume_profile.v1", RubricVersion: "not_applicable", ModelID: "model-1", Language: "en", FeatureFlag: "none", DataSourceVersion: "asset.v1",
-			},
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		versionListOut: resumestore.VersionListResult{
-			Items: []resumestore.VersionRecord{
-				{ID: "version-2", UserID: "user-1", ResumeAssetID: "asset-1", VersionType: sharedtypes.ResumeVersionTypeTargeted, DisplayName: "Targeted", StructuredProfile: json.RawMessage(`{"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`), CreatedAt: now.Add(time.Minute), UpdatedAt: now.Add(time.Minute)},
-				{ID: "version-1", UserID: "user-1", ResumeAssetID: "asset-1", VersionType: sharedtypes.ResumeVersionTypeStructuredMaster, DisplayName: "Structured master", StructuredProfile: json.RawMessage(`{"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`), CreatedAt: now, UpdatedAt: now},
-			},
-			NextCursor: "cursor-2",
-			HasMore:    true,
-			PageSize:   2,
-		},
-	}
-	svc := resume.NewService(resume.ServiceOptions{Store: store})
-
-	got, err := svc.GetResumeVersion(context.Background(), "user-1", "version-1")
-	if err != nil {
-		t.Fatalf("GetResumeVersion: %v", err)
-	}
-	if store.versionUserID != "user-1" || store.versionID != "version-1" {
-		t.Fatalf("version get scope user=%q id=%q", store.versionUserID, store.versionID)
-	}
-	if got.Id != "version-1" || got.Provenance.PromptVersion != "resume_profile.v1" {
-		t.Fatalf("version response = %+v", got)
-	}
-
-	list, err := svc.ListResumeVersions(context.Background(), resume.ListVersionRequest{UserID: "user-1", ResumeAssetID: "asset-1", Cursor: "cursor-1", PageSize: 2})
-	if err != nil {
-		t.Fatalf("ListResumeVersions: %v", err)
-	}
-	if store.versionListUserID != "user-1" || store.versionListAssetID != "asset-1" || store.versionListFilter.Cursor != "cursor-1" || store.versionListFilter.PageSize != 2 {
-		t.Fatalf("version list scope user=%q asset=%q filter=%+v", store.versionListUserID, store.versionListAssetID, store.versionListFilter)
-	}
-	if len(list.Items) != 2 || list.PageInfo.NextCursor == nil || *list.PageInfo.NextCursor != "cursor-2" || !list.PageInfo.HasMore || list.PageInfo.PageSize != 2 {
-		t.Fatalf("version list response = %+v", list)
-	}
-}
-
-func TestResumeVersionReadMapsStoreErrors(t *testing.T) {
-	tests := []struct {
-		name string
-		call func(*resume.Service) error
-		err  error
-		want error
-	}{
-		{name: "get not found", err: resumestore.ErrVersionNotFound, want: resume.ErrNotFound, call: func(s *resume.Service) error {
-			_, err := s.GetResumeVersion(context.Background(), "user-1", "missing")
-			return err
-		}},
-		{name: "list asset not found", err: resumestore.ErrAssetNotFound, want: resume.ErrNotFound, call: func(s *resume.Service) error {
-			_, err := s.ListResumeVersions(context.Background(), resume.ListVersionRequest{UserID: "user-1", ResumeAssetID: "missing"})
-			return err
-		}},
-		{name: "list invalid cursor", err: resumestore.ErrInvalidCursor, want: resume.ErrInvalidCursor, call: func(s *resume.Service) error {
-			_, err := s.ListResumeVersions(context.Background(), resume.ListVersionRequest{UserID: "user-1", ResumeAssetID: "asset-1", Cursor: "bad"})
-			return err
-		}},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			store := &fakeRegisterStore{versionErr: tc.err, versionListErr: tc.err}
-			svc := resume.NewService(resume.ServiceOptions{Store: store})
-			err := tc.call(svc)
-			if !errors.Is(err, tc.want) {
-				t.Fatalf("err = %v, want %v", err, tc.want)
-			}
-		})
-	}
-}
-
-func TestUpdateResumeVersionSanitizesPatchAndMapsResponse(t *testing.T) {
-	now := time.Date(2026, 5, 17, 19, 15, 0, 0, time.UTC)
-	focusAngle := "Reliability leadership"
-	matchScore := 0.82
-	store := &fakeRegisterStore{updateVersionOut: resumestore.VersionRecord{
-		ID:            "version-1",
-		UserID:        "user-1",
-		ResumeAssetID: "asset-1",
-		VersionType:   sharedtypes.ResumeVersionTypeStructuredMaster,
-		DisplayName:   "Updated master",
-		FocusAngle:    &focusAngle,
-		MatchScore:    &matchScore,
-		StructuredProfile: json.RawMessage(`{
-			"headline":"Senior engineer",
-			"summary":"new summary",
-			"skills":["Go","Postgres"],
-			"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}
-		}`),
-		Provenance: resumestore.VersionProvenance{
-			PromptVersion: "p", RubricVersion: "r", ModelID: "m", Language: "en", FeatureFlag: "f", DataSourceVersion: "d",
-		},
-		CreatedAt: now,
-		UpdatedAt: now,
+		Title:             "Resume",
+		Language:          "en",
+		ParseStatus:       sharedtypes.TargetJobParseStatusReady,
+		StructuredProfile: json.RawMessage(`{"headline":"Staff engineer"}`),
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}}
 	svc := resume.NewService(resume.ServiceOptions{Store: store, Now: func() time.Time { return now }})
-	displayName := " Updated master "
-	inFocusAngle := " Reliability leadership "
 
-	got, err := svc.UpdateResumeVersion(context.Background(), resume.UpdateVersionRequest{
-		UserID:         " user-1 ",
-		VersionID:      " version-1 ",
+	displayName := "Updated CV"
+	got, err := svc.UpdateResume(context.Background(), resume.UpdateResumeRequest{
+		UserID:         "user-1",
+		ResumeID:       "resume-1",
 		DisplayName:    &displayName,
 		DisplayNameSet: true,
-		FocusAngle:     &inFocusAngle,
-		FocusAngleSet:  true,
-		MatchScore:     &matchScore,
-		MatchScoreSet:  true,
 		StructuredProfile: map[string]any{
-			"summary": "new summary",
-			"provenance": map[string]any{
-				"promptVersion": "client-controlled",
-			},
+			"headline":   "Staff engineer",
+			"provenance": map[string]any{"promptVersion": "p"},
 		},
-		StructuredProfileSet: true,
 	})
 	if err != nil {
-		t.Fatalf("UpdateResumeVersion: %v", err)
+		t.Fatalf("UpdateResume: %v", err)
 	}
-	if store.updateVersionIn.UserID != "user-1" || store.updateVersionIn.VersionID != "version-1" {
-		t.Fatalf("update scope = %+v", store.updateVersionIn)
+	if got.Id != "resume-1" {
+		t.Fatalf("UpdateResume mapped = %+v", got)
 	}
-	if store.updateVersionIn.DisplayName == nil || *store.updateVersionIn.DisplayName != "Updated master" {
-		t.Fatalf("displayName input = %#v", store.updateVersionIn.DisplayName)
+	if store.updateIn.DisplayName == nil || *store.updateIn.DisplayName != "Updated CV" {
+		t.Fatalf("update displayName = %#v", store.updateIn.DisplayName)
 	}
-	if store.updateVersionIn.FocusAngle == nil || *store.updateVersionIn.FocusAngle != "Reliability leadership" {
-		t.Fatalf("focusAngle input = %#v", store.updateVersionIn.FocusAngle)
+	var profile map[string]any
+	if err := json.Unmarshal(store.updateIn.StructuredProfile, &profile); err != nil {
+		t.Fatalf("structured profile = %s (err=%v)", store.updateIn.StructuredProfile, err)
 	}
-	if _, ok := store.updateVersionIn.StructuredProfilePatch["provenance"]; ok {
-		t.Fatalf("client provenance leaked into store patch: %#v", store.updateVersionIn.StructuredProfilePatch)
-	}
-	if got.DisplayName != "Updated master" || got.FocusAngle == nil || *got.FocusAngle != focusAngle || got.MatchScore == nil || *got.MatchScore != matchScore {
-		t.Fatalf("response = %+v", got)
-	}
-	profile, ok := got.StructuredProfile.(map[string]any)
-	if !ok || profile["summary"] != "new summary" {
-		t.Fatalf("structured profile response = %#v", got.StructuredProfile)
-	}
-	if got.Provenance.PromptVersion != "p" {
-		t.Fatalf("provenance = %+v", got.Provenance)
+	if _, ok := profile["provenance"]; ok {
+		t.Fatalf("provenance must be stripped: %+v", profile)
 	}
 }
 
-func TestUpdateResumeVersionValidationAndStoreErrors(t *testing.T) {
-	displayName := "Updated"
+func TestUpdateResumeValidationAndStoreErrors(t *testing.T) {
+	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
 	tests := []struct {
-		name string
-		in   resume.UpdateVersionRequest
-		err  error
-		want error
+		name  string
+		store *fakeStore
+		in    resume.UpdateResumeRequest
+		want  error
 	}{
-		{name: "empty patch", in: resume.UpdateVersionRequest{UserID: "user-1", VersionID: "version-1"}, want: resume.ErrValidationFailed},
-		{name: "missing version", in: resume.UpdateVersionRequest{UserID: "user-1", DisplayName: &displayName, DisplayNameSet: true}, want: resume.ErrValidationFailed},
-		{name: "not found", in: resume.UpdateVersionRequest{UserID: "user-1", VersionID: "version-1", DisplayName: &displayName, DisplayNameSet: true}, err: resumestore.ErrVersionNotFound, want: resume.ErrNotFound},
+		{name: "missing resume id", store: &fakeStore{}, in: resume.UpdateResumeRequest{UserID: "user-1", StructuredProfile: map[string]any{"x": 1}}, want: resume.ErrValidationFailed},
+		{name: "no editable fields", store: &fakeStore{}, in: resume.UpdateResumeRequest{UserID: "user-1", ResumeID: "resume-1"}, want: resume.ErrValidationFailed},
+		{name: "store not found", store: &fakeStore{updateErr: resumestore.ErrAssetNotFound}, in: resume.UpdateResumeRequest{UserID: "user-1", ResumeID: "resume-1", StructuredProfile: map[string]any{"x": 1}}, want: resume.ErrNotFound},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			svc := resume.NewService(resume.ServiceOptions{Store: &fakeRegisterStore{updateVersionErr: tc.err}})
-
-			_, err := svc.UpdateResumeVersion(context.Background(), tc.in)
-
+			svc := resume.NewService(resume.ServiceOptions{Store: tc.store, Now: func() time.Time { return now }})
+			_, err := svc.UpdateResume(context.Background(), tc.in)
 			if !errors.Is(err, tc.want) {
 				t.Fatalf("err = %v, want %v", err, tc.want)
 			}
@@ -414,168 +205,132 @@ func TestUpdateResumeVersionValidationAndStoreErrors(t *testing.T) {
 	}
 }
 
-func TestBranchResumeVersionRoutesSeedStrategies(t *testing.T) {
-	now := time.Date(2026, 5, 17, 20, 15, 0, 0, time.UTC)
-	focusAngle := "Platform evidence"
+func TestDuplicateResumeAllocatesNewIDAndAppliesProfile(t *testing.T) {
+	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
+	store := &fakeStore{duplicateOut: resumestore.ResumeRecord{
+		ID:                "resume-new",
+		UserID:            "user-1",
+		Title:             "Resume",
+		Language:          "en",
+		ParseStatus:       sharedtypes.TargetJobParseStatusReady,
+		StructuredProfile: json.RawMessage(`{"headline":"new"}`),
+		CreatedAt:         now,
+		UpdatedAt:         now,
+	}}
+	svc := resume.NewService(resume.ServiceOptions{Store: store, Now: func() time.Time { return now }, NewID: sequenceIDs("resume-new")})
+
+	got, err := svc.DuplicateResume(context.Background(), resume.DuplicateResumeRequest{
+		UserID:            "user-1",
+		SourceResumeID:    "source-1",
+		StructuredProfile: map[string]any{"headline": "new"},
+	})
+	if err != nil {
+		t.Fatalf("DuplicateResume: %v", err)
+	}
+	if got.Id != "resume-new" {
+		t.Fatalf("DuplicateResume mapped = %+v", got)
+	}
+	if store.duplicateIn.NewResumeID != "resume-new" || store.duplicateIn.SourceResumeID != "source-1" {
+		t.Fatalf("duplicate input = %+v", store.duplicateIn)
+	}
+}
+
+func TestDuplicateResumeValidationAndStoreErrors(t *testing.T) {
 	tests := []struct {
-		name       string
-		strategy   sharedtypes.ResumeSeedStrategy
-		ids        []string
-		storeOut   resumestore.BranchVersionResult
-		wantAsync  bool
-		wantStatus int
+		name  string
+		store *fakeStore
+		in    resume.DuplicateResumeRequest
+		want  error
 	}{
-		{
-			name:       "copy master",
-			strategy:   sharedtypes.ResumeSeedStrategyCopyMaster,
-			ids:        []string{"version-copy"},
-			storeOut:   branchStoreResult("version-copy", sharedtypes.ResumeSeedStrategyCopyMaster, now, false),
-			wantStatus: http.StatusCreated,
-		},
-		{
-			name:       "blank",
-			strategy:   sharedtypes.ResumeSeedStrategyBlank,
-			ids:        []string{"version-blank"},
-			storeOut:   branchStoreResult("version-blank", sharedtypes.ResumeSeedStrategyBlank, now, false),
-			wantStatus: http.StatusCreated,
-		},
-		{
-			name:       "ai select",
-			strategy:   sharedtypes.ResumeSeedStrategyAiSelect,
-			ids:        []string{"version-ai", "tailor-run-1", "job-1"},
-			storeOut:   branchStoreResult("version-ai", sharedtypes.ResumeSeedStrategyAiSelect, now, true),
-			wantAsync:  true,
-			wantStatus: http.StatusAccepted,
-		},
+		{name: "missing source", store: &fakeStore{}, in: resume.DuplicateResumeRequest{UserID: "user-1"}, want: resume.ErrValidationFailed},
+		{name: "store not found", store: &fakeStore{duplicateErr: resumestore.ErrAssetNotFound}, in: resume.DuplicateResumeRequest{UserID: "user-1", SourceResumeID: "source-1"}, want: resume.ErrNotFound},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			store := &fakeRegisterStore{branchOut: tc.storeOut}
-			svc := resume.NewService(resume.ServiceOptions{
-				Store: store,
-				Now:   func() time.Time { return now },
-				NewID: sequenceIDs(tc.ids...),
-			})
-
-			got, err := svc.BranchResumeVersion(context.Background(), resume.BranchVersionRequest{
-				UserID:          " user-1 ",
-				ParentVersionID: " parent-1 ",
-				TargetJobID:     " target-1 ",
-				SeedStrategy:    tc.strategy,
-				DisplayName:     " Targeted ",
-				FocusAngle:      &focusAngle,
-				IdempotencyKey:  " idem-branch ",
-			})
-			if err != nil {
-				t.Fatalf("BranchResumeVersion: %v", err)
-			}
-			if store.branchIn.UserID != "user-1" || store.branchIn.ParentVersionID != "parent-1" || store.branchIn.TargetJobID != "target-1" || store.branchIn.DisplayName != "Targeted" {
-				t.Fatalf("branch input = %+v", store.branchIn)
-			}
-			if store.branchIn.VersionID != tc.ids[0] || store.branchIn.SeedStrategy != tc.strategy || store.branchIn.Now != now {
-				t.Fatalf("branch id/strategy/time = %+v", store.branchIn)
-			}
-			if store.branchIn.FocusAngle == nil || *store.branchIn.FocusAngle != focusAngle {
-				t.Fatalf("focusAngle = %#v", store.branchIn.FocusAngle)
-			}
-			if store.branchIn.Provenance.PromptVersion == "" || store.branchIn.Provenance.DataSourceVersion == "" {
-				t.Fatalf("provenance = %+v", store.branchIn.Provenance)
-			}
-			if got.Status != tc.wantStatus {
-				t.Fatalf("status = %d, want %d", got.Status, tc.wantStatus)
-			}
-			if tc.wantAsync {
-				if store.branchIn.TailorRunID != "tailor-run-1" || store.branchIn.JobID != "job-1" {
-					t.Fatalf("async ids = %+v", store.branchIn)
-				}
-				if got.Accepted == nil || got.Accepted.Job.JobType != "resume_tailor" || got.Accepted.Job.ResourceType != "resume_tailor_run" || got.Accepted.Job.Status != "queued" {
-					t.Fatalf("accepted = %+v", got.Accepted)
-				}
-			} else if got.Accepted != nil || got.Version.Id != tc.ids[0] {
-				t.Fatalf("sync result = %+v", got)
+			svc := resume.NewService(resume.ServiceOptions{Store: tc.store, NewID: sequenceIDs("resume-new")})
+			_, err := svc.DuplicateResume(context.Background(), tc.in)
+			if !errors.Is(err, tc.want) {
+				t.Fatalf("err = %v, want %v", err, tc.want)
 			}
 		})
 	}
 }
 
-func TestBranchResumeVersionValidationAndStoreErrors(t *testing.T) {
-	tests := []struct {
-		name string
-		in   resume.BranchVersionRequest
-		err  error
-		want error
-	}{
-		{name: "missing display name", in: resume.BranchVersionRequest{UserID: "user-1", ParentVersionID: "parent-1", TargetJobID: "target-1", SeedStrategy: sharedtypes.ResumeSeedStrategyCopyMaster}, want: resume.ErrValidationFailed},
-		{name: "invalid seed", in: validBranchInput("invalid"), want: resume.ErrValidationFailed},
-		{name: "not found", in: validBranchInput(sharedtypes.ResumeSeedStrategyCopyMaster), err: resumestore.ErrVersionNotFound, want: resume.ErrNotFound},
+func TestArchiveResumeReturnsArchivedStatusAndScopesUser(t *testing.T) {
+	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
+	store := &fakeStore{getOut: resumestore.ResumeRecord{
+		ID:          "resume-1",
+		UserID:      "user-1",
+		Title:       "Resume",
+		Language:    "en",
+		ParseStatus: sharedtypes.TargetJobParseStatusReady,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}}
+	svc := resume.NewService(resume.ServiceOptions{Store: store})
+
+	got, err := svc.ArchiveResume(context.Background(), "user-1", "resume-1")
+	if err != nil {
+		t.Fatalf("ArchiveResume: %v", err)
 	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			svc := resume.NewService(resume.ServiceOptions{Store: &fakeRegisterStore{branchErr: tc.err}, NewID: sequenceIDs("version-1", "tailor-run-1", "job-1")})
+	if got.Status == nil || *got.Status != "archived" {
+		t.Fatalf("status = %#v, want archived", got.Status)
+	}
+	if store.getUserID != "user-1" || store.getResumeID != "resume-1" {
+		t.Fatalf("archive scope user=%q resume=%q", store.getUserID, store.getResumeID)
+	}
 
-			_, err := svc.BranchResumeVersion(context.Background(), tc.in)
-
-			if !errors.Is(err, tc.want) {
-				t.Fatalf("err = %v, want %v", err, tc.want)
-			}
-		})
+	store.getErr = resumestore.ErrAssetNotFound
+	if _, err := svc.ArchiveResume(context.Background(), "user-1", "missing"); !errors.Is(err, resume.ErrNotFound) {
+		t.Fatalf("ArchiveResume missing err = %v, want ErrNotFound", err)
 	}
 }
 
 func TestRequestResumeTailorCreatesQueuedRunAndJob(t *testing.T) {
-	now := time.Date(2026, 5, 18, 10, 0, 0, 0, time.UTC)
-	store := &fakeRegisterStore{tailorCreateOut: resumestore.CreateTailorRunResult{
-		TailorRunID:  "tailor-run-1",
+	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
+	store := &fakeStore{tailorCreateOut: resumestore.CreateTailorRunResult{
+		TailorRunID:  "tailor-1",
 		JobID:        "job-1",
 		JobStatus:    sharedtypes.JobStatusQueued,
 		JobCreatedAt: now,
 		JobUpdatedAt: now,
 	}}
-	svc := resume.NewService(resume.ServiceOptions{
-		Store: store,
-		Now:   func() time.Time { return now },
-		NewID: sequenceIDs("tailor-run-1", "job-1"),
-	})
+	svc := resume.NewService(resume.ServiceOptions{Store: store, Now: func() time.Time { return now }, NewID: sequenceIDs("tailor-1", "job-1")})
 
 	got, err := svc.RequestResumeTailor(context.Background(), resume.RequestTailorRunInput{
-		UserID:          " user-1 ",
-		TargetJobID:     " target-1 ",
-		ResumeAssetID:   " asset-1 ",
-		ResumeVersionID: " version-1 ",
-		Mode:            " gap_review ",
-		IdempotencyKey:  " idem-tailor ",
+		UserID:         "user-1",
+		TargetJobID:    "target-1",
+		ResumeID:       "resume-1",
+		Mode:           "gap_review",
+		IdempotencyKey: "idem-tailor",
 	})
 	if err != nil {
 		t.Fatalf("RequestResumeTailor: %v", err)
 	}
-	if store.tailorCreateIn.UserID != "user-1" || store.tailorCreateIn.TargetJobID != "target-1" || store.tailorCreateIn.ResumeAssetID != "asset-1" || store.tailorCreateIn.ResumeVersionID != "version-1" || store.tailorCreateIn.Mode != "gap_review" {
-		t.Fatalf("tailor create input = %+v", store.tailorCreateIn)
-	}
-	if store.tailorCreateIn.TailorRunID != "tailor-run-1" || store.tailorCreateIn.JobID != "job-1" || store.tailorCreateIn.DedupeKey == "" || store.tailorCreateIn.Now != now {
-		t.Fatalf("tailor generated fields = %+v", store.tailorCreateIn)
-	}
-	if got.TailorRunId != "tailor-run-1" || got.Job.Id != "job-1" || got.Job.JobType != "resume_tailor" || got.Job.ResourceType != "resume_tailor_run" || got.Job.Status != "queued" {
+	if got.TailorRunId != "tailor-1" || got.Job.JobType != "resume_tailor" || got.Job.ResourceType != "resume_tailor_run" {
 		t.Fatalf("response = %+v", got)
+	}
+	if store.tailorCreateIn.ResumeID != "resume-1" || store.tailorCreateIn.TargetJobID != "target-1" || store.tailorCreateIn.Mode != "gap_review" {
+		t.Fatalf("tailor create input = %+v", store.tailorCreateIn)
 	}
 }
 
 func TestRequestResumeTailorValidationAndStoreErrors(t *testing.T) {
+	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
 	tests := []struct {
-		name string
-		in   resume.RequestTailorRunInput
-		err  error
-		want error
+		name  string
+		store *fakeStore
+		in    resume.RequestTailorRunInput
+		want  error
 	}{
-		{name: "missing asset", in: resume.RequestTailorRunInput{UserID: "user-1", TargetJobID: "target-1", Mode: "gap_review", IdempotencyKey: "idem"}, want: resume.ErrValidationFailed},
-		{name: "invalid mode", in: resume.RequestTailorRunInput{UserID: "user-1", TargetJobID: "target-1", ResumeAssetID: "asset-1", Mode: "unsupported", IdempotencyKey: "idem"}, want: resume.ErrValidationFailed},
-		{name: "not found", in: validTailorInput(), err: resumestore.ErrAssetNotFound, want: resume.ErrNotFound},
+		{name: "missing resume id", store: &fakeStore{}, in: resume.RequestTailorRunInput{UserID: "user-1", Mode: "gap_review", IdempotencyKey: "idem"}, want: resume.ErrValidationFailed},
+		{name: "invalid mode", store: &fakeStore{}, in: resume.RequestTailorRunInput{UserID: "user-1", ResumeID: "resume-1", Mode: "rewrite", IdempotencyKey: "idem"}, want: resume.ErrValidationFailed},
+		{name: "store not found", store: &fakeStore{tailorCreateErr: resumestore.ErrAssetNotFound}, in: resume.RequestTailorRunInput{UserID: "user-1", ResumeID: "resume-1", Mode: "gap_review", IdempotencyKey: "idem"}, want: resume.ErrNotFound},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			svc := resume.NewService(resume.ServiceOptions{Store: &fakeRegisterStore{tailorCreateErr: tc.err}, NewID: sequenceIDs("tailor-run-1", "job-1")})
-
+			svc := resume.NewService(resume.ServiceOptions{Store: tc.store, Now: func() time.Time { return now }, NewID: sequenceIDs("tailor-1", "job-1")})
 			_, err := svc.RequestResumeTailor(context.Background(), tc.in)
-
 			if !errors.Is(err, tc.want) {
 				t.Fatalf("err = %v, want %v", err, tc.want)
 			}
@@ -584,107 +339,70 @@ func TestRequestResumeTailorValidationAndStoreErrors(t *testing.T) {
 }
 
 func TestGetResumeTailorRunMapsStatusesAndErrors(t *testing.T) {
-	now := time.Date(2026, 5, 18, 10, 15, 0, 0, time.UTC)
-	store := &fakeRegisterStore{tailorGetOut: resumestore.TailorRunRecord{
-		ID:            "tailor-run-1",
-		UserID:        "user-1",
-		TargetJobID:   "target-1",
-		ResumeAssetID: "asset-1",
-		Status:        "ready",
-		MatchSummary:  json.RawMessage(`{"strengths":["Strong systems evidence"],"gaps":["Add edge runtime detail"]}`),
-		Suggestions:   json.RawMessage(`[{"originalBullet":"Led migration.","suggestedBullet":"Led migration across 12 teams.","reason":"Adds scope."}]`),
-		Provenance: resumestore.VersionProvenance{
-			PromptVersion: "resume_tailor.v2", RubricVersion: "not_applicable", ModelID: "model-profile:contract.default", Language: "zh-CN", FeatureFlag: "none", DataSourceVersion: "target_job.v17",
-		},
+	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
+	store := &fakeStore{tailorGetOut: resumestore.TailorRunRecord{
+		ID:           "tailor-1",
+		UserID:       "user-1",
+		ResumeID:     "resume-1",
+		TargetJobID:  "target-1",
+		Mode:         "gap_review",
+		Status:       "ready",
+		MatchSummary: json.RawMessage(`{"strengths":["Go"],"gaps":["k8s"]}`),
+		Suggestions:  json.RawMessage(`[{"originalBullet":"a","suggestedBullet":"b","reason":"impact"}]`),
+		Provenance:   resumestore.VersionProvenance{PromptVersion: "p", ModelID: "m", Language: "en"},
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}}
+	svc := resume.NewService(resume.ServiceOptions{Store: store})
+
+	got, err := svc.GetResumeTailorRun(context.Background(), " user-1 ", " tailor-1 ")
+	if err != nil {
+		t.Fatalf("GetResumeTailorRun: %v", err)
+	}
+	if got.Id != "tailor-1" || got.ResumeId != "resume-1" || got.Status != "ready" {
+		t.Fatalf("tailor run = %+v", got)
+	}
+	if got.TargetJobId == nil || *got.TargetJobId != "target-1" {
+		t.Fatalf("target job id = %#v", got.TargetJobId)
+	}
+	if got.MatchSummary == nil || len(got.Suggestions) != 1 || got.Provenance == nil {
+		t.Fatalf("ready run payload = %+v", got)
+	}
+	if store.tailorGetUserID != "user-1" || store.tailorGetID != "tailor-1" {
+		t.Fatalf("tailor get scope user=%q id=%q", store.tailorGetUserID, store.tailorGetID)
+	}
+
+	store.tailorGetErr = resumestore.ErrTailorRunNotFound
+	if _, err := svc.GetResumeTailorRun(context.Background(), "user-1", "missing"); !errors.Is(err, resume.ErrNotFound) {
+		t.Fatalf("GetResumeTailorRun missing err = %v, want ErrNotFound", err)
+	}
+}
+
+func TestGetResumeTailorRunGeneratingOmitsReadyFields(t *testing.T) {
+	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
+	store := &fakeStore{tailorGetOut: resumestore.TailorRunRecord{
+		ID:        "tailor-1",
+		UserID:    "user-1",
+		ResumeID:  "resume-1",
+		Mode:      "bullet_suggestions",
+		Status:    "generating",
 		CreatedAt: now,
 		UpdatedAt: now,
 	}}
 	svc := resume.NewService(resume.ServiceOptions{Store: store})
 
-	got, err := svc.GetResumeTailorRun(context.Background(), " user-1 ", " tailor-run-1 ")
+	got, err := svc.GetResumeTailorRun(context.Background(), "user-1", "tailor-1")
 	if err != nil {
 		t.Fatalf("GetResumeTailorRun: %v", err)
 	}
-	if store.tailorGetUserID != "user-1" || store.tailorGetID != "tailor-run-1" {
-		t.Fatalf("get scope user=%q run=%q", store.tailorGetUserID, store.tailorGetID)
+	if got.Status != "generating" || got.MatchSummary != nil || got.Provenance != nil {
+		t.Fatalf("generating run = %+v", got)
 	}
-	if got.Status != "ready" || got.MatchSummary == nil || len(got.Suggestions) != 1 || got.Provenance == nil || got.Provenance.PromptVersion != "resume_tailor.v2" {
-		t.Fatalf("run response = %+v", got)
+	if got.Suggestions == nil || len(got.Suggestions) != 0 {
+		t.Fatalf("suggestions = %#v, want empty slice", got.Suggestions)
 	}
-
-	store.tailorGetErr = resumestore.ErrTailorRunNotFound
-	if _, err := svc.GetResumeTailorRun(context.Background(), "user-1", "missing"); !errors.Is(err, resume.ErrNotFound) {
-		t.Fatalf("not found err = %v, want ErrNotFound", err)
-	}
-}
-
-func TestResumeSuggestionDecisionRoutesAcceptRejectToStore(t *testing.T) {
-	now := time.Date(2026, 5, 18, 11, 30, 0, 0, time.UTC)
-	for _, tc := range []struct {
-		name         string
-		call         func(*resume.Service) (string, error)
-		wantDecision sharedtypes.ResumeTailorSuggestionStatus
-	}{
-		{
-			name: "accept",
-			call: func(s *resume.Service) (string, error) {
-				got, err := s.AcceptResumeTailorSuggestion(context.Background(), validSuggestionDecisionInput())
-				return suggestionStatusFromVersion(t, got.Suggestions), err
-			},
-			wantDecision: sharedtypes.ResumeTailorSuggestionStatusAccepted,
-		},
-		{
-			name: "reject",
-			call: func(s *resume.Service) (string, error) {
-				got, err := s.RejectResumeTailorSuggestion(context.Background(), validSuggestionDecisionInput())
-				return suggestionStatusFromVersion(t, got.Suggestions), err
-			},
-			wantDecision: sharedtypes.ResumeTailorSuggestionStatusRejected,
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			store := &fakeRegisterStore{decideSuggestionOut: suggestionDecisionStoreVersion("version-1", "suggestion-1", string(tc.wantDecision), now)}
-			svc := resume.NewService(resume.ServiceOptions{Store: store, Now: func() time.Time { return now }})
-
-			status, err := tc.call(svc)
-			if err != nil {
-				t.Fatalf("%s suggestion: %v", tc.name, err)
-			}
-			if store.decideSuggestionIn.UserID != "user-1" || store.decideSuggestionIn.ResumeVersionID != "version-1" || store.decideSuggestionIn.SuggestionID != "suggestion-1" {
-				t.Fatalf("store scope = %+v", store.decideSuggestionIn)
-			}
-			if store.decideSuggestionIn.Decision != tc.wantDecision || store.decideSuggestionIn.Now != now {
-				t.Fatalf("store decision = %+v", store.decideSuggestionIn)
-			}
-			if status != string(tc.wantDecision) {
-				t.Fatalf("response suggestion status = %q, want %q", status, tc.wantDecision)
-			}
-		})
-	}
-}
-
-func TestResumeSuggestionDecisionValidationAndStoreErrors(t *testing.T) {
-	tests := []struct {
-		name string
-		in   resume.SuggestionDecisionRequest
-		err  error
-		want error
-	}{
-		{name: "missing version", in: resume.SuggestionDecisionRequest{UserID: "user-1", SuggestionID: "suggestion-1", IdempotencyKey: "idem"}, want: resume.ErrValidationFailed},
-		{name: "missing idempotency key", in: resume.SuggestionDecisionRequest{UserID: "user-1", ResumeVersionID: "version-1", SuggestionID: "suggestion-1"}, want: resume.ErrValidationFailed},
-		{name: "not found", in: validSuggestionDecisionInput(), err: resumestore.ErrSuggestionNotFound, want: resume.ErrNotFound},
-		{name: "already decided", in: validSuggestionDecisionInput(), err: resumestore.ErrSuggestionAlreadyDecided, want: resume.ErrSuggestionAlreadyDecided},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			svc := resume.NewService(resume.ServiceOptions{Store: &fakeRegisterStore{decideSuggestionErr: tc.err}})
-
-			_, err := svc.AcceptResumeTailorSuggestion(context.Background(), tc.in)
-
-			if !errors.Is(err, tc.want) {
-				t.Fatalf("err = %v, want %v", err, tc.want)
-			}
-		})
+	if got.TargetJobId != nil {
+		t.Fatalf("target job id = %#v, want nil", got.TargetJobId)
 	}
 }
 
@@ -699,44 +417,29 @@ func (s *fakeUploadRegistrar) RegisterFileObject(_ context.Context, in uploadser
 	return s.out, s.err
 }
 
-type fakeRegisterStore struct {
-	calls int
-	in    resumestore.CreateAssetInput
-	out   resumestore.CreateAssetResult
-	err   error
+type fakeStore struct {
+	createCalls int
+	createIn    resumestore.CreateAssetInput
+	out         resumestore.CreateAssetResult
+	err         error
 
-	getUserID  string
-	getAssetID string
-	getOut     resumestore.AssetRecord
-	getErr     error
+	getUserID   string
+	getResumeID string
+	getOut      resumestore.ResumeRecord
+	getErr      error
 
 	listUserID string
 	listFilter resumestore.ListFilter
 	listOut    resumestore.ListResult
 	listErr    error
 
-	structuredIn  resumestore.CreateStructuredMasterInput
-	structuredOut resumestore.VersionRecord
-	structuredErr error
+	updateIn  resumestore.UpdateResumeInput
+	updateOut resumestore.ResumeRecord
+	updateErr error
 
-	versionUserID string
-	versionID     string
-	versionOut    resumestore.VersionRecord
-	versionErr    error
-
-	versionListUserID  string
-	versionListAssetID string
-	versionListFilter  resumestore.VersionListFilter
-	versionListOut     resumestore.VersionListResult
-	versionListErr     error
-
-	updateVersionIn  resumestore.VersionUpdateInput
-	updateVersionOut resumestore.VersionRecord
-	updateVersionErr error
-
-	branchIn  resumestore.BranchVersionInput
-	branchOut resumestore.BranchVersionResult
-	branchErr error
+	duplicateIn  resumestore.DuplicateResumeInput
+	duplicateOut resumestore.ResumeRecord
+	duplicateErr error
 
 	tailorCreateIn  resumestore.CreateTailorRunInput
 	tailorCreateOut resumestore.CreateTailorRunResult
@@ -746,84 +449,45 @@ type fakeRegisterStore struct {
 	tailorGetID     string
 	tailorGetOut    resumestore.TailorRunRecord
 	tailorGetErr    error
-
-	decideSuggestionIn  resumestore.DecideSuggestionInput
-	decideSuggestionOut resumestore.VersionRecord
-	decideSuggestionErr error
 }
 
-func (s *fakeRegisterStore) CreateWithParseJob(_ context.Context, in resumestore.CreateAssetInput) (resumestore.CreateAssetResult, error) {
-	s.calls++
-	s.in = in
+func (s *fakeStore) CreateWithParseJob(_ context.Context, in resumestore.CreateAssetInput) (resumestore.CreateAssetResult, error) {
+	s.createCalls++
+	s.createIn = in
 	return s.out, s.err
 }
 
-func (s *fakeRegisterStore) Get(_ context.Context, userID string, assetID string) (resumestore.AssetRecord, error) {
+func (s *fakeStore) Get(_ context.Context, userID string, resumeID string) (resumestore.ResumeRecord, error) {
 	s.getUserID = userID
-	s.getAssetID = assetID
+	s.getResumeID = resumeID
 	return s.getOut, s.getErr
 }
 
-func (s *fakeRegisterStore) List(_ context.Context, userID string, filter resumestore.ListFilter) (resumestore.ListResult, error) {
+func (s *fakeStore) List(_ context.Context, userID string, filter resumestore.ListFilter) (resumestore.ListResult, error) {
 	s.listUserID = userID
 	s.listFilter = filter
 	return s.listOut, s.listErr
 }
 
-func (s *fakeRegisterStore) CreateStructuredMasterFromAsset(_ context.Context, in resumestore.CreateStructuredMasterInput) (resumestore.VersionRecord, error) {
-	s.structuredIn = in
-	return s.structuredOut, s.structuredErr
+func (s *fakeStore) UpdateResume(_ context.Context, in resumestore.UpdateResumeInput) (resumestore.ResumeRecord, error) {
+	s.updateIn = in
+	return s.updateOut, s.updateErr
 }
 
-func (s *fakeRegisterStore) GetVersionByID(_ context.Context, userID string, versionID string) (resumestore.VersionRecord, error) {
-	s.versionUserID = userID
-	s.versionID = versionID
-	return s.versionOut, s.versionErr
+func (s *fakeStore) DuplicateResume(_ context.Context, in resumestore.DuplicateResumeInput) (resumestore.ResumeRecord, error) {
+	s.duplicateIn = in
+	return s.duplicateOut, s.duplicateErr
 }
 
-func (s *fakeRegisterStore) ListVersionsByAsset(_ context.Context, userID string, assetID string, filter resumestore.VersionListFilter) (resumestore.VersionListResult, error) {
-	s.versionListUserID = userID
-	s.versionListAssetID = assetID
-	s.versionListFilter = filter
-	return s.versionListOut, s.versionListErr
-}
-
-func (s *fakeRegisterStore) UpdateVersionPatch(_ context.Context, in resumestore.VersionUpdateInput) (resumestore.VersionRecord, error) {
-	s.updateVersionIn = in
-	return s.updateVersionOut, s.updateVersionErr
-}
-
-func (s *fakeRegisterStore) BranchFromParent(_ context.Context, in resumestore.BranchVersionInput) (resumestore.BranchVersionResult, error) {
-	s.branchIn = in
-	return s.branchOut, s.branchErr
-}
-
-func (s *fakeRegisterStore) CreateTailorRun(_ context.Context, in resumestore.CreateTailorRunInput) (resumestore.CreateTailorRunResult, error) {
+func (s *fakeStore) CreateTailorRun(_ context.Context, in resumestore.CreateTailorRunInput) (resumestore.CreateTailorRunResult, error) {
 	s.tailorCreateIn = in
 	return s.tailorCreateOut, s.tailorCreateErr
 }
 
-func (s *fakeRegisterStore) GetTailorRun(_ context.Context, userID string, tailorRunID string) (resumestore.TailorRunRecord, error) {
+func (s *fakeStore) GetTailorRun(_ context.Context, userID string, tailorRunID string) (resumestore.TailorRunRecord, error) {
 	s.tailorGetUserID = userID
 	s.tailorGetID = tailorRunID
 	return s.tailorGetOut, s.tailorGetErr
-}
-
-func (s *fakeRegisterStore) MarkTailorRunGenerating(context.Context, resumestore.TailorRunStatusInput) (resumestore.TailorRunRecord, error) {
-	return resumestore.TailorRunRecord{}, errors.New("not implemented")
-}
-
-func (s *fakeRegisterStore) MarkTailorRunReady(context.Context, resumestore.TailorRunReadyInput) (resumestore.TailorRunRecord, error) {
-	return resumestore.TailorRunRecord{}, errors.New("not implemented")
-}
-
-func (s *fakeRegisterStore) MarkTailorRunFailed(context.Context, resumestore.TailorRunFailureInput) (resumestore.TailorRunRecord, error) {
-	return resumestore.TailorRunRecord{}, errors.New("not implemented")
-}
-
-func (s *fakeRegisterStore) DecideResumeSuggestion(_ context.Context, in resumestore.DecideSuggestionInput) (resumestore.VersionRecord, error) {
-	s.decideSuggestionIn = in
-	return s.decideSuggestionOut, s.decideSuggestionErr
 }
 
 func sequenceIDs(ids ...string) func() string {
@@ -838,132 +502,6 @@ func sequenceIDs(ids ...string) func() string {
 	}
 }
 
-func validConfirmInput() resume.ConfirmStructuredMasterInput {
-	return resume.ConfirmStructuredMasterInput{
-		UserID:            "user-1",
-		ResumeAssetID:     "asset-1",
-		DisplayName:       "Structured master",
-		StructuredProfile: validStructuredProfile(),
-	}
-}
-
-func validTailorInput() resume.RequestTailorRunInput {
-	return resume.RequestTailorRunInput{
-		UserID:          "user-1",
-		TargetJobID:     "target-1",
-		ResumeAssetID:   "asset-1",
-		ResumeVersionID: "version-1",
-		Mode:            "gap_review",
-		IdempotencyKey:  "idem-tailor",
-	}
-}
-
-func validSuggestionDecisionInput() resume.SuggestionDecisionRequest {
-	return resume.SuggestionDecisionRequest{
-		UserID:          " user-1 ",
-		ResumeVersionID: " version-1 ",
-		SuggestionID:    " suggestion-1 ",
-		IdempotencyKey:  " idem-suggestion ",
-	}
-}
-
-func validStructuredProfile() map[string]any {
-	return map[string]any{
-		"headline": "Senior engineer",
-		"provenance": map[string]any{
-			"promptVersion":     "resume_profile.v1",
-			"rubricVersion":     "not_applicable",
-			"modelId":           "model-1",
-			"language":          "en",
-			"featureFlag":       "none",
-			"dataSourceVersion": "asset.v1",
-		},
-	}
-}
-
-func suggestionDecisionStoreVersion(versionID, suggestionID, status string, now time.Time) resumestore.VersionRecord {
-	return resumestore.VersionRecord{
-		ID:                versionID,
-		UserID:            "user-1",
-		ResumeAssetID:     "asset-1",
-		VersionType:       sharedtypes.ResumeVersionTypeTargeted,
-		DisplayName:       "Targeted",
-		StructuredProfile: json.RawMessage(`{"headline":"Senior engineer","provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`),
-		Provenance: resumestore.VersionProvenance{
-			PromptVersion: "p", RubricVersion: "r", ModelID: "m", Language: "en", FeatureFlag: "f", DataSourceVersion: "d",
-		},
-		Suggestions: []any{map[string]any{
-			"id":              suggestionID,
-			"originalBullet":  "Improved reliability.",
-			"suggestedBullet": "Improved reliability with release guardrails.",
-			"status":          status,
-			"provenance": map[string]any{
-				"promptVersion": "p", "rubricVersion": "r", "modelId": "m", "language": "en", "featureFlag": "f", "dataSourceVersion": "d",
-			},
-			"createdAt": now.Format(time.RFC3339),
-			"decidedAt": now.Format(time.RFC3339),
-		}},
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
-}
-
-func suggestionStatusFromVersion(t *testing.T, suggestions []any) string {
-	t.Helper()
-	if len(suggestions) != 1 {
-		t.Fatalf("suggestions = %#v", suggestions)
-	}
-	first, ok := suggestions[0].(map[string]any)
-	if !ok {
-		t.Fatalf("suggestion type = %T", suggestions[0])
-	}
-	status, _ := first["status"].(string)
-	if status == "" {
-		t.Fatalf("suggestion missing status: %+v", first)
-	}
-	return status
-}
-
-func validBranchInput(strategy sharedtypes.ResumeSeedStrategy) resume.BranchVersionRequest {
-	return resume.BranchVersionRequest{
-		UserID:          "user-1",
-		ParentVersionID: "parent-1",
-		TargetJobID:     "target-1",
-		SeedStrategy:    strategy,
-		DisplayName:     "Targeted",
-		IdempotencyKey:  "idem-branch",
-	}
-}
-
-func branchStoreResult(versionID string, strategy sharedtypes.ResumeSeedStrategy, now time.Time, async bool) resumestore.BranchVersionResult {
-	parentID := "parent-1"
-	targetID := "target-1"
-	focusAngle := "Platform evidence"
-	result := resumestore.BranchVersionResult{
-		Version: resumestore.VersionRecord{
-			ID:                versionID,
-			UserID:            "user-1",
-			ResumeAssetID:     "asset-1",
-			ParentVersionID:   &parentID,
-			VersionType:       sharedtypes.ResumeVersionTypeTargeted,
-			TargetJobID:       &targetID,
-			DisplayName:       "Targeted",
-			SeedStrategy:      &strategy,
-			FocusAngle:        &focusAngle,
-			StructuredProfile: json.RawMessage(`{"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`),
-			Provenance: resumestore.VersionProvenance{
-				PromptVersion: "p", RubricVersion: "r", ModelID: "m", Language: "en", FeatureFlag: "f", DataSourceVersion: "d",
-			},
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-	}
-	if async {
-		result.TailorRunID = "tailor-run-1"
-		result.JobID = "job-1"
-		result.JobStatus = sharedtypes.JobStatusQueued
-		result.JobCreatedAt = now
-		result.JobUpdatedAt = now
-	}
-	return result
+func ptr(in string) *string {
+	return &in
 }

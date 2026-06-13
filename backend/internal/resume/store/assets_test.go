@@ -9,12 +9,11 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/lib/pq"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
-func TestCreateWithParseJobInsertsAssetAndJobAtomically(t *testing.T) {
+func TestCreateWithParseJobInsertsResumeAndJobAtomically(t *testing.T) {
 	repo, mock, cleanup := newMockRepository(t)
 	defer cleanup()
 	now := time.Date(2026, 5, 13, 3, 0, 0, 0, time.UTC)
@@ -24,21 +23,21 @@ func TestCreateWithParseJobInsertsAssetAndJobAtomically(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta(`select resource_id, id, status, created_at, updated_at from async_jobs`)).
 		WithArgs("resume_parse", "dedupe-1").
 		WillReturnError(sql.ErrNoRows)
-	mock.ExpectExec(regexp.QuoteMeta(`insert into resume_assets`)).
+	mock.ExpectExec(regexp.QuoteMeta(`insert into resumes`)).
 		WithArgs(
-			"asset-1", "user-1", fileObjectID, "Resume", "en", string(sharedtypes.TargetJobParseStatusQueued),
-			"upload", nil, nil, "job-1", now, now,
+			"resume-1", "user-1", fileObjectID, "Resume", "en", string(sharedtypes.TargetJobParseStatusQueued),
+			"upload", nil, "job-1", now, now,
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(regexp.QuoteMeta(`insert into async_jobs`)).
 		WithArgs(
-			"job-1", "resume_parse", "resume_asset", "asset-1", "dedupe-1", string(sharedtypes.JobStatusQueued), sqlmock.AnyArg(), now, now, now,
+			"job-1", "resume_parse", "resume", "resume-1", "dedupe-1", string(sharedtypes.JobStatusQueued), sqlmock.AnyArg(), now, now, now,
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
 	got, err := repo.CreateWithParseJob(context.Background(), resumestore.CreateAssetInput{
-		AssetID:      "asset-1",
+		AssetID:      "resume-1",
 		UserID:       "user-1",
 		JobID:        "job-1",
 		DedupeKey:    "dedupe-1",
@@ -53,7 +52,7 @@ func TestCreateWithParseJobInsertsAssetAndJobAtomically(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateWithParseJob: %v", err)
 	}
-	if got.AssetID != "asset-1" || got.JobID != "job-1" || got.JobStatus != sharedtypes.JobStatusQueued {
+	if got.AssetID != "resume-1" || got.JobID != "job-1" || got.JobStatus != sharedtypes.JobStatusQueued {
 		t.Fatalf("result = %+v", got)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -70,14 +69,14 @@ func TestCreateWithParseJobRollsBackWhenJobInsertFails(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta(`select resource_id, id, status, created_at, updated_at from async_jobs`)).
 		WithArgs("resume_parse", "dedupe-1").
 		WillReturnError(sql.ErrNoRows)
-	mock.ExpectExec(regexp.QuoteMeta(`insert into resume_assets`)).
+	mock.ExpectExec(regexp.QuoteMeta(`insert into resumes`)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(regexp.QuoteMeta(`insert into async_jobs`)).
 		WillReturnError(errors.New("job insert failed"))
 	mock.ExpectRollback()
 
 	_, err := repo.CreateWithParseJob(context.Background(), resumestore.CreateAssetInput{
-		AssetID:     "asset-1",
+		AssetID:     "resume-1",
 		UserID:      "user-1",
 		JobID:       "job-1",
 		DedupeKey:   "dedupe-1",
@@ -97,278 +96,177 @@ func TestCreateWithParseJobRollsBackWhenJobInsertFails(t *testing.T) {
 	}
 }
 
-func TestRepositoryExposesResumeAssetMethods(t *testing.T) {
+func TestRepositoryExposesFlatResumeMethods(t *testing.T) {
 	var _ interface {
 		CreateWithParseJob(context.Context, resumestore.CreateAssetInput) (resumestore.CreateAssetResult, error)
-		Get(context.Context, string, string) (resumestore.AssetRecord, error)
+		Get(context.Context, string, string) (resumestore.ResumeRecord, error)
 		List(context.Context, string, resumestore.ListFilter) (resumestore.ListResult, error)
+		UpdateResume(context.Context, resumestore.UpdateResumeInput) (resumestore.ResumeRecord, error)
+		DuplicateResume(context.Context, resumestore.DuplicateResumeInput) (resumestore.ResumeRecord, error)
 		MarkParsing(context.Context, resumestore.StatusUpdateInput) error
 		MarkReady(context.Context, resumestore.MarkReadyInput) error
 		MarkFailed(context.Context, resumestore.MarkFailedInput) error
-		CreateStructuredMasterFromAsset(context.Context, resumestore.CreateStructuredMasterInput) (resumestore.VersionRecord, error)
-		GetVersionByID(context.Context, string, string) (resumestore.VersionRecord, error)
-		ListVersionsByAsset(context.Context, string, string, resumestore.VersionListFilter) (resumestore.VersionListResult, error)
-		UpdateVersionPatch(context.Context, resumestore.VersionUpdateInput) (resumestore.VersionRecord, error)
-		BranchFromParent(context.Context, resumestore.BranchVersionInput) (resumestore.BranchVersionResult, error)
 		CreateTailorRun(context.Context, resumestore.CreateTailorRunInput) (resumestore.CreateTailorRunResult, error)
 		GetTailorRun(context.Context, string, string) (resumestore.TailorRunRecord, error)
-		MarkTailorRunGenerating(context.Context, resumestore.TailorRunStatusInput) (resumestore.TailorRunRecord, error)
-		MarkTailorRunReady(context.Context, resumestore.TailorRunReadyInput) (resumestore.TailorRunRecord, error)
-		MarkTailorRunFailed(context.Context, resumestore.TailorRunFailureInput) (resumestore.TailorRunRecord, error)
+		GetForTailor(context.Context, string) (resumestore.TailorJobContext, error)
+		CompleteTailorRunSuccess(context.Context, resumestore.CompleteTailorRunSuccessInput) error
 		DeleteForUser(context.Context, string, time.Time) error
 	} = (*resumestore.Repository)(nil)
 }
 
-func TestGetVersionByIDScopesUser(t *testing.T) {
+func TestGetScopesUserAndMapsStructuredProfile(t *testing.T) {
 	repo, mock, cleanup := newMockRepository(t)
 	defer cleanup()
-	now := time.Date(2026, 5, 17, 18, 0, 0, 0, time.UTC)
-	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, resume_asset_id`)).
-		WithArgs("version-1", "user-1").
-		WillReturnRows(versionRows().AddRow(
-			"version-1", "user-1", "asset-1", nil, string(sharedtypes.ResumeVersionTypeStructuredMaster), nil,
-			"Structured master", nil, nil, []byte(`{"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`), nil,
-			"p", "r", "m", nil, now, now, nil,
+	now := time.Date(2026, 6, 13, 18, 0, 0, 0, time.UTC)
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, file_object_id, title, display_name, language, parse_status`)).
+		WithArgs("resume-1", "user-1").
+		WillReturnRows(resumeRows().AddRow(
+			"resume-1", "user-1", nil, "Resume", "Alice CV", "en", string(sharedtypes.TargetJobParseStatusReady),
+			[]byte(`{"headline":"Senior engineer"}`), nil, []byte(`{"basics":{"name":"Alice"}}`), "snapshot",
+			"paste", nil, "job-1", now, now, nil,
 		))
-	mock.ExpectQuery(regexp.QuoteMeta(`select s.id, s.tailor_run_id`)).
-		WithArgs("version-1").
-		WillReturnRows(suggestionRows())
 
-	got, err := repo.GetVersionByID(context.Background(), "user-1", "version-1")
+	got, err := repo.Get(context.Background(), "user-1", "resume-1")
 	if err != nil {
-		t.Fatalf("GetVersionByID: %v", err)
+		t.Fatalf("Get: %v", err)
 	}
-	if got.ID != "version-1" || got.ResumeAssetID != "asset-1" || got.VersionType != sharedtypes.ResumeVersionTypeStructuredMaster {
-		t.Fatalf("version = %+v", got)
+	if got.ID != "resume-1" || got.DisplayName == nil || *got.DisplayName != "Alice CV" {
+		t.Fatalf("resume = %+v", got)
+	}
+	if string(got.StructuredProfile) != `{"basics":{"name":"Alice"}}` {
+		t.Fatalf("structured profile = %s", got.StructuredProfile)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
 	}
 }
 
-func TestListVersionsByAssetScopesAssetAndPaginates(t *testing.T) {
+func TestUpdateResumeOverwritesProfileAndScopesUser(t *testing.T) {
 	repo, mock, cleanup := newMockRepository(t)
 	defer cleanup()
-	now := time.Date(2026, 5, 17, 18, 0, 0, 0, time.UTC)
-	mock.ExpectQuery(regexp.QuoteMeta(`select 1 from resume_assets`)).
-		WithArgs("asset-1", "user-1").
-		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(1))
-	rows := versionRows()
-	for i := 0; i < 3; i++ {
-		rows.AddRow(
-			assetID(i), "user-1", "asset-1", nil, string(sharedtypes.ResumeVersionTypeStructuredMaster), nil,
-			"Structured master", nil, nil, []byte(`{"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`), nil,
-			"p", "r", "m", nil, now.Add(-time.Duration(i)*time.Minute), now.Add(-time.Duration(i)*time.Minute), nil,
-		)
-	}
-	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, resume_asset_id`)).
-		WithArgs("user-1", "asset-1", 3).
-		WillReturnRows(rows)
-	mock.ExpectQuery(regexp.QuoteMeta(`select s.id, s.tailor_run_id`)).
-		WithArgs(assetID(0)).
-		WillReturnRows(suggestionRows())
-	mock.ExpectQuery(regexp.QuoteMeta(`select s.id, s.tailor_run_id`)).
-		WithArgs(assetID(1)).
-		WillReturnRows(suggestionRows())
+	createdAt := time.Date(2026, 6, 13, 19, 0, 0, 0, time.UTC)
+	updatedAt := time.Date(2026, 6, 13, 19, 30, 0, 0, time.UTC)
+	displayName := "Updated CV"
 
-	got, err := repo.ListVersionsByAsset(context.Background(), "user-1", "asset-1", resumestore.VersionListFilter{PageSize: 2})
-	if err != nil {
-		t.Fatalf("ListVersionsByAsset: %v", err)
-	}
-	if len(got.Items) != 2 || !got.HasMore || got.NextCursor == "" || got.PageSize != 2 {
-		t.Fatalf("list = %+v", got)
-	}
-	if got.Items[0].ID != assetID(0) || got.Items[1].ID != assetID(1) {
-		t.Fatalf("order = %+v", got.Items)
-	}
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("sql expectations: %v", err)
-	}
-}
-
-func TestCreateStructuredMasterFromAssetInsertsReadyAssetMaster(t *testing.T) {
-	repo, mock, cleanup := newMockRepository(t)
-	defer cleanup()
-	now := time.Date(2026, 5, 17, 16, 30, 0, 0, time.UTC)
-
-	mock.ExpectBegin()
-	mock.ExpectQuery(regexp.QuoteMeta(`select parse_status`)).
-		WithArgs("asset-1", "user-1").
-		WillReturnRows(sqlmock.NewRows([]string{"parse_status"}).AddRow(string(sharedtypes.TargetJobParseStatusReady)))
-	mock.ExpectQuery(regexp.QuoteMeta(`insert into resume_versions`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`update resumes`)).
 		WithArgs(
-			"version-1",
-			"user-1",
-			"asset-1",
-			string(sharedtypes.ResumeVersionTypeStructuredMaster),
-			"Structured master",
-			[]byte(`{"headline":"Senior engineer"}`),
-			"resume_profile.v1",
-			"not_applicable",
-			"model-1",
-			nil,
-			now,
-		).
-		WillReturnRows(versionRows().AddRow(
-			"version-1", "user-1", "asset-1", nil, string(sharedtypes.ResumeVersionTypeStructuredMaster), nil,
-			"Structured master", nil, nil, []byte(`{"headline":"Senior engineer"}`), nil,
-			"resume_profile.v1", "not_applicable", "model-1", nil, now, now, nil,
-		))
-	mock.ExpectCommit()
-
-	got, err := repo.CreateStructuredMasterFromAsset(context.Background(), resumestore.CreateStructuredMasterInput{
-		VersionID:         "version-1",
-		UserID:            "user-1",
-		ResumeAssetID:     "asset-1",
-		DisplayName:       "Structured master",
-		StructuredProfile: []byte(`{"headline":"Senior engineer"}`),
-		Provenance: resumestore.VersionProvenance{
-			PromptVersion: "resume_profile.v1",
-			RubricVersion: "not_applicable",
-			ModelID:       "model-1",
-		},
-		Now: now,
-	})
-	if err != nil {
-		t.Fatalf("CreateStructuredMasterFromAsset: %v", err)
-	}
-	if got.ID != "version-1" || got.VersionType != sharedtypes.ResumeVersionTypeStructuredMaster || got.ParentVersionID != nil || got.TargetJobID != nil || got.SeedStrategy != nil {
-		t.Fatalf("version = %+v", got)
-	}
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("sql expectations: %v", err)
-	}
-}
-
-func TestCreateStructuredMasterFromAssetValidatesOwnershipReadinessAndUniqueIndex(t *testing.T) {
-	tests := []struct {
-		name      string
-		selectErr error
-		status    sharedtypes.TargetJobParseStatus
-		insertErr error
-		want      error
-	}{
-		{name: "cross user not found", selectErr: sql.ErrNoRows, want: resumestore.ErrAssetNotFound},
-		{name: "parse not ready", status: sharedtypes.TargetJobParseStatusProcessing, want: resumestore.ErrAssetParseNotReady},
-		{name: "structured master already exists", status: sharedtypes.TargetJobParseStatusReady, insertErr: &pq.Error{Code: "23505", Constraint: "uq_resume_versions_structured_master_per_asset"}, want: resumestore.ErrStructuredMasterAlreadyExists},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			repo, mock, cleanup := newMockRepository(t)
-			defer cleanup()
-			mock.ExpectBegin()
-			selectQuery := mock.ExpectQuery(regexp.QuoteMeta(`select parse_status`)).
-				WithArgs("asset-1", "user-1")
-			if tc.selectErr != nil {
-				selectQuery.WillReturnError(tc.selectErr)
-			} else {
-				selectQuery.WillReturnRows(sqlmock.NewRows([]string{"parse_status"}).AddRow(string(tc.status)))
-			}
-			if tc.insertErr != nil {
-				mock.ExpectQuery(regexp.QuoteMeta(`insert into resume_versions`)).
-					WillReturnError(tc.insertErr)
-			}
-			mock.ExpectRollback()
-
-			_, err := repo.CreateStructuredMasterFromAsset(context.Background(), resumestore.CreateStructuredMasterInput{
-				VersionID:         "version-1",
-				UserID:            "user-1",
-				ResumeAssetID:     "asset-1",
-				DisplayName:       "Structured master",
-				StructuredProfile: []byte(`{"headline":"Senior engineer"}`),
-			})
-
-			if !errors.Is(err, tc.want) {
-				t.Fatalf("err = %v, want %v", err, tc.want)
-			}
-			if err := mock.ExpectationsWereMet(); err != nil {
-				t.Fatalf("sql expectations: %v", err)
-			}
-		})
-	}
-}
-
-func TestUpdateVersionPatchMergesProfileAndScopesUser(t *testing.T) {
-	repo, mock, cleanup := newMockRepository(t)
-	defer cleanup()
-	createdAt := time.Date(2026, 5, 17, 19, 0, 0, 0, time.UTC)
-	updatedAt := time.Date(2026, 5, 17, 19, 30, 0, 0, time.UTC)
-	focusAngle := "Reliability"
-	matchScore := 0.82
-
-	mock.ExpectBegin()
-	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, resume_asset_id`)).
-		WithArgs("version-1", "user-1").
-		WillReturnRows(versionRows().AddRow(
-			"version-1", "user-1", "asset-1", nil, string(sharedtypes.ResumeVersionTypeStructuredMaster), nil,
-			"Structured master", nil, nil,
-			[]byte(`{"headline":"Senior engineer","summary":"old","skills":["Go"],"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`),
-			nil, "p", "r", "m", "provider", createdAt, createdAt, nil,
-		))
-	mock.ExpectQuery(regexp.QuoteMeta(`update resume_versions`)).
-		WithArgs(
-			"Updated master",
-			focusAngle,
-			matchScore,
-			[]byte(`{"headline":"Senior engineer","provenance":{"dataSourceVersion":"d","featureFlag":"f","language":"en","modelId":"m","promptVersion":"p","rubricVersion":"r"},"skills":["Go"],"summary":"new"}`),
+			[]byte(`{"headline":"Staff engineer"}`),
+			displayName,
 			updatedAt,
-			"version-1",
+			"resume-1",
 			"user-1",
 		).
-		WillReturnRows(versionRows().AddRow(
-			"version-1", "user-1", "asset-1", nil, string(sharedtypes.ResumeVersionTypeStructuredMaster), nil,
-			"Updated master", nil, focusAngle,
-			[]byte(`{"headline":"Senior engineer","summary":"new","skills":["Go"],"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","language":"en","featureFlag":"f","dataSourceVersion":"d"}}`),
-			matchScore, "p", "r", "m", "provider", createdAt, updatedAt, nil,
+		WillReturnRows(resumeRows().AddRow(
+			"resume-1", "user-1", nil, "Resume", "Updated CV", "en", string(sharedtypes.TargetJobParseStatusReady),
+			[]byte(`{}`), nil, []byte(`{"headline":"Staff engineer"}`), nil,
+			"paste", nil, "job-1", createdAt, updatedAt, nil,
 		))
-	mock.ExpectCommit()
 
-	got, err := repo.UpdateVersionPatch(context.Background(), resumestore.VersionUpdateInput{
-		UserID:               "user-1",
-		VersionID:            "version-1",
-		DisplayName:          ptr("Updated master"),
-		DisplayNameSet:       true,
-		FocusAngle:           &focusAngle,
-		FocusAngleSet:        true,
-		MatchScore:           &matchScore,
-		MatchScoreSet:        true,
-		StructuredProfileSet: true,
-		StructuredProfilePatch: map[string]any{
-			"summary": "new",
-		},
-		Now: updatedAt,
+	got, err := repo.UpdateResume(context.Background(), resumestore.UpdateResumeInput{
+		UserID:            "user-1",
+		ResumeID:          "resume-1",
+		DisplayName:       &displayName,
+		StructuredProfile: []byte(`{"headline":"Staff engineer"}`),
+		Now:               updatedAt,
 	})
 	if err != nil {
-		t.Fatalf("UpdateVersionPatch: %v", err)
+		t.Fatalf("UpdateResume: %v", err)
 	}
-	if got.DisplayName != "Updated master" || got.FocusAngle == nil || *got.FocusAngle != focusAngle || got.MatchScore == nil || *got.MatchScore != matchScore {
-		t.Fatalf("version = %+v", got)
+	if got.DisplayName == nil || *got.DisplayName != "Updated CV" || string(got.StructuredProfile) != `{"headline":"Staff engineer"}` {
+		t.Fatalf("resume = %+v", got)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
 	}
 }
 
-func TestUpdateVersionPatchNotFoundRollsBack(t *testing.T) {
+func TestUpdateResumeNotFound(t *testing.T) {
 	repo, mock, cleanup := newMockRepository(t)
 	defer cleanup()
+	mock.ExpectQuery(regexp.QuoteMeta(`update resumes`)).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "resume-1", "user-1").
+		WillReturnError(sql.ErrNoRows)
+
+	_, err := repo.UpdateResume(context.Background(), resumestore.UpdateResumeInput{
+		UserID:            "user-1",
+		ResumeID:          "resume-1",
+		StructuredProfile: []byte(`{}`),
+		Now:               time.Now(),
+	})
+	if !errors.Is(err, resumestore.ErrAssetNotFound) {
+		t.Fatalf("err = %v, want ErrAssetNotFound", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestDuplicateResumeCopiesSourceSnapshotAndAppliesProfile(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 6, 13, 20, 0, 0, 0, time.UTC)
+	fileObjectID := "01918fa0-0000-7000-8000-000000000301"
 
 	mock.ExpectBegin()
-	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, resume_asset_id`)).
-		WithArgs("version-1", "user-1").
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, file_object_id, title, display_name, language, parse_status`)).
+		WithArgs("source-1", "user-1").
+		WillReturnRows(resumeRows().AddRow(
+			"source-1", "user-1", fileObjectID, "Resume", "Source CV", "en", string(sharedtypes.TargetJobParseStatusReady),
+			[]byte(`{"headline":"old"}`), "raw text", []byte(`{"headline":"old"}`), "snapshot",
+			"upload", nil, "job-1", now, now, nil,
+		))
+	mock.ExpectExec(regexp.QuoteMeta(`insert into resumes`)).
+		WithArgs(
+			"resume-new", "user-1", fileObjectID, "Resume", "New CV", "en", string(sharedtypes.TargetJobParseStatusReady),
+			"upload", "raw text", sqlmock.AnyArg(), "snapshot", []byte(`{"headline":"new"}`), now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, file_object_id, title, display_name, language, parse_status`)).
+		WithArgs("resume-new", "user-1").
+		WillReturnRows(resumeRows().AddRow(
+			"resume-new", "user-1", fileObjectID, "Resume", "New CV", "en", string(sharedtypes.TargetJobParseStatusReady),
+			[]byte(`{"headline":"old"}`), "raw text", []byte(`{"headline":"new"}`), "snapshot",
+			"upload", nil, nil, now, now, nil,
+		))
+	mock.ExpectCommit()
+
+	displayName := "New CV"
+	got, err := repo.DuplicateResume(context.Background(), resumestore.DuplicateResumeInput{
+		NewResumeID:       "resume-new",
+		UserID:            "user-1",
+		SourceResumeID:    "source-1",
+		DisplayName:       &displayName,
+		StructuredProfile: []byte(`{"headline":"new"}`),
+		Now:               now,
+	})
+	if err != nil {
+		t.Fatalf("DuplicateResume: %v", err)
+	}
+	if got.ID != "resume-new" || got.DisplayName == nil || *got.DisplayName != "New CV" || string(got.StructuredProfile) != `{"headline":"new"}` {
+		t.Fatalf("resume = %+v", got)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestDuplicateResumeSourceNotFoundRollsBack(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, file_object_id, title, display_name, language, parse_status`)).
+		WithArgs("source-1", "user-1").
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectRollback()
 
-	_, err := repo.UpdateVersionPatch(context.Background(), resumestore.VersionUpdateInput{
+	_, err := repo.DuplicateResume(context.Background(), resumestore.DuplicateResumeInput{
+		NewResumeID:    "resume-new",
 		UserID:         "user-1",
-		VersionID:      "version-1",
-		DisplayName:    ptr("Updated"),
-		DisplayNameSet: true,
+		SourceResumeID: "source-1",
 		Now:            time.Now(),
 	})
-
-	if !errors.Is(err, resumestore.ErrVersionNotFound) {
-		t.Fatalf("err = %v, want ErrVersionNotFound", err)
+	if !errors.Is(err, resumestore.ErrAssetNotFound) {
+		t.Fatalf("err = %v, want ErrAssetNotFound", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
@@ -380,51 +278,45 @@ func TestParseStatusTransition(t *testing.T) {
 	defer cleanup()
 	now := time.Date(2026, 5, 13, 4, 30, 0, 0, time.UTC)
 
-	mock.ExpectExec(regexp.QuoteMeta(`update resume_assets`)).
-		WithArgs(string(sharedtypes.TargetJobParseStatusProcessing), now, "asset-1", "user-1").
+	mock.ExpectExec(regexp.QuoteMeta(`update resumes`)).
+		WithArgs(string(sharedtypes.TargetJobParseStatusProcessing), now, "resume-1", "user-1").
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	if err := repo.MarkParsing(context.Background(), resumestore.StatusUpdateInput{UserID: "user-1", AssetID: "asset-1", Now: now}); err != nil {
+	if err := repo.MarkParsing(context.Background(), resumestore.StatusUpdateInput{UserID: "user-1", AssetID: "resume-1", Now: now}); err != nil {
 		t.Fatalf("MarkParsing: %v", err)
 	}
 
-	mock.ExpectExec(regexp.QuoteMeta(`update resume_assets`)).
-		WithArgs(string(sharedtypes.TargetJobParseStatusProcessing), now, "asset-retry", "user-1").
-		WillReturnResult(sqlmock.NewResult(0, 1))
-	if err := repo.MarkParsing(context.Background(), resumestore.StatusUpdateInput{UserID: "user-1", AssetID: "asset-retry", Now: now}); err != nil {
-		t.Fatalf("MarkParsing failed retry: %v", err)
-	}
-
-	mock.ExpectExec(regexp.QuoteMeta(`update resume_assets`)).
-		WithArgs(string(sharedtypes.TargetJobParseStatusReady), []byte(`{"summary":"ok"}`), "parsed text", now, "asset-1", "user-1", string(sharedtypes.TargetJobParseStatusProcessing)).
+	mock.ExpectExec(regexp.QuoteMeta(`update resumes`)).
+		WithArgs(string(sharedtypes.TargetJobParseStatusReady), []byte(`{"summary":"ok"}`), []byte(`{"basics":{}}`), "parsed text", now, "resume-1", "user-1", string(sharedtypes.TargetJobParseStatusProcessing)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	if err := repo.MarkReady(context.Background(), resumestore.MarkReadyInput{
 		UserID:             "user-1",
-		AssetID:            "asset-1",
+		AssetID:            "resume-1",
 		ParsedSummary:      []byte(`{"summary":"ok"}`),
+		StructuredProfile:  []byte(`{"basics":{}}`),
 		ParsedTextSnapshot: "parsed text",
 		Now:                now,
 	}); err != nil {
 		t.Fatalf("MarkReady: %v", err)
 	}
 
-	mock.ExpectExec(regexp.QuoteMeta(`update resume_assets`)).
-		WithArgs(string(sharedtypes.TargetJobParseStatusFailed), "AI_OUTPUT_INVALID", now, "asset-2", "user-1").
+	mock.ExpectExec(regexp.QuoteMeta(`update resumes`)).
+		WithArgs(string(sharedtypes.TargetJobParseStatusFailed), "AI_OUTPUT_INVALID", now, "resume-2", "user-1").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	if err := repo.MarkFailed(context.Background(), resumestore.MarkFailedInput{
 		UserID:    "user-1",
-		AssetID:   "asset-2",
+		AssetID:   "resume-2",
 		ErrorCode: "AI_OUTPUT_INVALID",
 		Now:       now,
 	}); err != nil {
 		t.Fatalf("MarkFailed: %v", err)
 	}
 
-	mock.ExpectExec(regexp.QuoteMeta(`update resume_assets`)).
-		WithArgs(string(sharedtypes.TargetJobParseStatusReady), []byte(`{"summary":"late"}`), "late", now, "asset-ready", "user-1", string(sharedtypes.TargetJobParseStatusProcessing)).
+	mock.ExpectExec(regexp.QuoteMeta(`update resumes`)).
+		WithArgs(string(sharedtypes.TargetJobParseStatusReady), []byte(`{"summary":"late"}`), []byte(`{}`), "late", now, "resume-ready", "user-1", string(sharedtypes.TargetJobParseStatusProcessing)).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	err := repo.MarkReady(context.Background(), resumestore.MarkReadyInput{
 		UserID:             "user-1",
-		AssetID:            "asset-ready",
+		AssetID:            "resume-ready",
 		ParsedSummary:      []byte(`{"summary":"late"}`),
 		ParsedTextSnapshot: "late",
 		Now:                now,
@@ -434,35 +326,37 @@ func TestParseStatusTransition(t *testing.T) {
 	}
 }
 
-func TestCompleteParseSuccessWritesReadyStateAndCompletedOutboxAtomically(t *testing.T) {
+func TestCompleteParseSuccessWritesReadyStateProfileAndCompletedOutboxAtomically(t *testing.T) {
 	repo, mock, cleanup := newMockRepository(t)
 	defer cleanup()
 	now := time.Date(2026, 5, 13, 8, 30, 0, 0, time.UTC)
 
 	mock.ExpectBegin()
-	mock.ExpectExec(regexp.QuoteMeta(`update resume_assets`)).
+	mock.ExpectExec(regexp.QuoteMeta(`update resumes`)).
 		WithArgs(
 			string(sharedtypes.TargetJobParseStatusReady),
 			[]byte(`{"basics":{"name":"Ada"}}`),
+			[]byte(`{"basics":{"name":"Ada"}}`),
 			"parsed text",
 			now,
-			"asset-1",
+			"resume-1",
 			"user-1",
 			string(sharedtypes.TargetJobParseStatusProcessing),
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(regexp.QuoteMeta(`insert into outbox_events`)).
-		WithArgs("event-1", "resume.parse.completed", "resume_asset", "asset-1", []byte(`{"resumeAssetId":"asset-1","userId":"user-1","parseStatus":"ready"}`), now).
+		WithArgs("event-1", "resume.parse.completed", "resume", "resume-1", []byte(`{"resumeId":"resume-1","userId":"user-1","parseStatus":"ready"}`), now).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
 	if err := repo.CompleteParseSuccess(context.Background(), resumestore.CompleteParseSuccessInput{
 		UserID:             "user-1",
-		AssetID:            "asset-1",
+		AssetID:            "resume-1",
 		ParsedSummary:      []byte(`{"basics":{"name":"Ada"}}`),
+		StructuredProfile:  []byte(`{"basics":{"name":"Ada"}}`),
 		ParsedTextSnapshot: "parsed text",
 		OutboxEventID:      "event-1",
-		OutboxEventPayload: []byte(`{"resumeAssetId":"asset-1","userId":"user-1","parseStatus":"ready"}`),
+		OutboxEventPayload: []byte(`{"resumeId":"resume-1","userId":"user-1","parseStatus":"ready"}`),
 		Now:                now,
 	}); err != nil {
 		t.Fatalf("CompleteParseSuccess: %v", err)
@@ -477,13 +371,13 @@ func TestCompleteParseFailureMarksFailedWithoutCompletedOutbox(t *testing.T) {
 	defer cleanup()
 	now := time.Date(2026, 5, 13, 8, 45, 0, 0, time.UTC)
 
-	mock.ExpectExec(regexp.QuoteMeta(`update resume_assets`)).
-		WithArgs(string(sharedtypes.TargetJobParseStatusFailed), "AI_OUTPUT_INVALID", now, "asset-1", "user-1").
+	mock.ExpectExec(regexp.QuoteMeta(`update resumes`)).
+		WithArgs(string(sharedtypes.TargetJobParseStatusFailed), "AI_OUTPUT_INVALID", now, "resume-1", "user-1").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	if err := repo.CompleteParseFailure(context.Background(), resumestore.CompleteParseFailureInput{
 		UserID:    "user-1",
-		AssetID:   "asset-1",
+		AssetID:   "resume-1",
 		ErrorCode: "AI_OUTPUT_INVALID",
 		Now:       now,
 	}); err != nil {
@@ -499,14 +393,14 @@ func TestListCursorPagination(t *testing.T) {
 	defer cleanup()
 	base := time.Date(2026, 5, 13, 5, 0, 0, 0, time.UTC)
 
-	firstRows := assetRows()
+	firstRows := resumeRows()
 	for i := 0; i < 21; i++ {
 		firstRows.AddRow(
-			assetID(i), "user-1", nil, "Resume", "en", string(sharedtypes.TargetJobParseStatusQueued),
-			[]byte(`{}`), nil, nil, nil, "paste", nil, "job-1", base.Add(-time.Duration(i)*time.Minute), base.Add(-time.Duration(i)*time.Minute), nil,
+			assetID(i), "user-1", nil, "Resume", nil, "en", string(sharedtypes.TargetJobParseStatusQueued),
+			[]byte(`{}`), nil, []byte(`{}`), nil, "paste", nil, "job-1", base.Add(-time.Duration(i)*time.Minute), base.Add(-time.Duration(i)*time.Minute), nil,
 		)
 	}
-	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, file_object_id, title, language, parse_status`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, file_object_id, title, display_name, language, parse_status`)).
 		WithArgs("user-1", 21).
 		WillReturnRows(firstRows)
 
@@ -521,14 +415,14 @@ func TestListCursorPagination(t *testing.T) {
 		t.Fatalf("unexpected first page order first=%s last=%s", first.Items[0].ID, first.Items[19].ID)
 	}
 
-	secondRows := assetRows()
+	secondRows := resumeRows()
 	for i := 20; i < 25; i++ {
 		secondRows.AddRow(
-			assetID(i), "user-1", nil, "Resume", "en", string(sharedtypes.TargetJobParseStatusQueued),
-			[]byte(`{}`), nil, nil, nil, "paste", nil, "job-1", base.Add(-time.Duration(i)*time.Minute), base.Add(-time.Duration(i)*time.Minute), nil,
+			assetID(i), "user-1", nil, "Resume", nil, "en", string(sharedtypes.TargetJobParseStatusQueued),
+			[]byte(`{}`), nil, []byte(`{}`), nil, "paste", nil, "job-1", base.Add(-time.Duration(i)*time.Minute), base.Add(-time.Duration(i)*time.Minute), nil,
 		)
 	}
-	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, file_object_id, title, language, parse_status`)).
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, file_object_id, title, display_name, language, parse_status`)).
 		WithArgs("user-1", sqlmock.AnyArg(), sqlmock.AnyArg(), 21).
 		WillReturnRows(secondRows)
 
@@ -555,17 +449,18 @@ func newMockRepository(t *testing.T) (*resumestore.Repository, sqlmock.Sqlmock, 
 	return resumestore.NewRepository(db), mock, func() { _ = db.Close() }
 }
 
-func assetRows() *sqlmock.Rows {
+func resumeRows() *sqlmock.Rows {
 	return sqlmock.NewRows([]string{
 		"id",
 		"user_id",
 		"file_object_id",
 		"title",
+		"display_name",
 		"language",
 		"parse_status",
 		"parsed_summary",
 		"original_text",
-		"guided_answers",
+		"structured_profile",
 		"parsed_text_snapshot",
 		"source_type",
 		"error_code",
@@ -576,53 +471,6 @@ func assetRows() *sqlmock.Rows {
 	})
 }
 
-func versionRows() *sqlmock.Rows {
-	return sqlmock.NewRows([]string{
-		"id",
-		"user_id",
-		"resume_asset_id",
-		"parent_version_id",
-		"version_type",
-		"target_job_id",
-		"display_name",
-		"seed_strategy",
-		"focus_angle",
-		"structured_profile",
-		"match_score",
-		"prompt_version",
-		"rubric_version",
-		"model_id",
-		"provider",
-		"created_at",
-		"updated_at",
-		"deleted_at",
-	})
-}
-
-func suggestionRows() *sqlmock.Rows {
-	return sqlmock.NewRows([]string{
-		"id",
-		"tailor_run_id",
-		"original_bullet",
-		"suggested_bullet",
-		"reason",
-		"status",
-		"decided_at",
-		"created_at",
-		"prompt_version",
-		"rubric_version",
-		"model_id",
-		"provider",
-		"language",
-		"feature_flag",
-		"data_source_version",
-	})
-}
-
 func assetID(i int) string {
 	return "01918fa0-0000-7000-8000-00000000a" + string(rune('a'+i/10)) + string(rune('0'+i%10))
-}
-
-func ptr(in string) *string {
-	return &in
 }

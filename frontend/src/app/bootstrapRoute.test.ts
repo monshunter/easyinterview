@@ -39,7 +39,7 @@ describe("parseInitialRouteHash", () => {
 
   it("hash adapter and canonical codec yield the same normalized Route", () => {
     const loose = parseInitialRouteHash(
-      "#route=workspace&targetJobId=tj-1&resumeVersionId=rv-1&planId=plan-1",
+      "#route=workspace&targetJobId=tj-1&resumeId=rv-1&planId=plan-1",
     );
     expect(loose).toBeDefined();
     const normalized = normalizeRoute(loose!);
@@ -47,12 +47,12 @@ describe("parseInitialRouteHash", () => {
       name: "workspace",
       params: {
         targetJobId: "tj-1",
-        resumeVersionId: "rv-1",
+        resumeId: "rv-1",
         planId: "plan-1",
       },
     });
     expect(formatRouteUrl(normalized)).toBe(
-      "/workspace?planId=plan-1&resumeVersionId=rv-1&targetJobId=tj-1",
+      "/workspace?planId=plan-1&resumeId=rv-1&targetJobId=tj-1",
     );
   });
 

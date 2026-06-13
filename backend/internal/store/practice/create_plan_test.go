@@ -41,7 +41,7 @@ func TestSQLRepositoryCreatePlanWritesPlanAndAuditInOneTransaction(t *testing.T)
 			in.Language,
 			in.TimeBudgetMinutes,
 			in.QuestionBudget,
-			in.ResumeAssetID,
+			in.ResumeID,
 			sqlmock.AnyArg(),
 			in.Now,
 		).
@@ -123,7 +123,7 @@ func TestSQLRepositoryCreatePlanNormalizesEmptyFocusCompetencyCodes(t *testing.T
 			in.Language,
 			in.TimeBudgetMinutes,
 			in.QuestionBudget,
-			in.ResumeAssetID,
+			in.ResumeID,
 			textArrayArg{want: "{}"},
 			in.Now,
 		).
@@ -226,7 +226,7 @@ func TestSQLRepositoryCreatePlanWritesDerivedSourceAndAudit(t *testing.T) {
 					in.Language,
 					in.TimeBudgetMinutes,
 					in.QuestionBudget,
-					in.ResumeAssetID,
+					in.ResumeID,
 					sqlmock.AnyArg(),
 					in.Now,
 				).
@@ -335,7 +335,7 @@ func TestSQLRepositoryCreatePlanReturnsPrerequisiteErrorWhenDerivedSourceUnavail
 					in.Language,
 					in.TimeBudgetMinutes,
 					in.QuestionBudget,
-					in.ResumeAssetID,
+					in.ResumeID,
 					sqlmock.AnyArg(),
 					in.Now,
 				).
@@ -448,7 +448,7 @@ func TestSQLRepositoryCreatePlanReturnsPrerequisiteErrorWhenTargetOrResumeMissin
 			in.Language,
 			in.TimeBudgetMinutes,
 			in.QuestionBudget,
-			in.ResumeAssetID,
+			in.ResumeID,
 			sqlmock.AnyArg(),
 			in.Now,
 		).
@@ -1043,7 +1043,7 @@ func validCreatePlanStoreInput(now time.Time) domain.CreatePlanStoreInput {
 		AuditEventID:         "01918fa0-0000-7000-8000-000000004001",
 		UserID:               "01918fa0-0000-7000-8000-000000000001",
 		TargetJobID:          "01918fa0-0000-7000-8000-000000002000",
-		ResumeAssetID:        "01918fa0-0000-7000-8000-000000001000",
+		ResumeID:             "01918fa0-0000-7000-8000-000000001000",
 		Goal:                 sharedtypes.PracticeGoalBaseline,
 		Mode:                 sharedtypes.PracticeModeAssisted,
 		InterviewerPersona:   sharedtypes.InterviewerRoleHiringManager,

@@ -77,67 +77,12 @@ describe("frontend dev fixture-backed mock client", () => {
 		const client = createDevMockClient();
 
 		await expect(
-			client.exportResumeVersion("0195f2d0-0002-7000-8000-000000000201"),
+			client.exportResume("0195f2d0-0002-7000-8000-000000000201"),
 		).resolves.toMatchObject({
 			error: { code: "RESUME_EXPORT_NOT_AVAILABLE" },
 		});
 		await expect(client.requestPrivacyExport()).resolves.toMatchObject({
 			error: { code: "PRIVACY_EXPORT_NOT_AVAILABLE" },
-		});
-	});
-
-	it("returns the async branch response shape for ai_select", async () => {
-		const client = createDevMockClient();
-
-		const response = await client.branchResumeVersion(
-			{
-				parentVersionId: "0195f2d0-0002-7000-8000-000000000201",
-				targetJobId: "01918fa0-0030-7a00-8a00-000000000030",
-				seedStrategy: "ai_select",
-			},
-			{ headers: { Prefer: "example=ai-select-202-with-job" } },
-		);
-
-		expect(response).toMatchObject({
-			resumeVersionId: "0195f2d0-0002-7000-8000-000000000204",
-			job: { jobType: "resume_tailor" },
-		});
-	});
-
-	it("serves confirmResumeStructuredMaster through the generated fixture client", async () => {
-		const client = createDevMockClient();
-
-		const response = await client.confirmResumeStructuredMaster(
-			"01918fa0-0000-7000-8000-000000001000",
-			{
-				displayName: "Structured master",
-				language: "zh-CN",
-				structuredProfile: {
-					headline: "Senior frontend engineer",
-					summary:
-						"Owns complex product surfaces and turns interview evidence into concise resume proof.",
-					skills: ["React", "TypeScript", "Design systems"],
-					sections: [],
-					provenance: {
-						promptVersion: "resume_profile.v1",
-						rubricVersion: "not_applicable",
-						modelId: "fixture-model:resume-version-profile",
-						language: "zh-CN",
-						featureFlag: "resume-workshop-additive",
-						dataSourceVersion: "resume_asset.v1",
-					},
-				},
-			},
-			{ idempotencyKey: "idem-confirm-structured-master-2026-05-17" },
-		);
-
-		expect(response).toMatchObject({
-			versionType: "structured_master",
-			parentVersionId: null,
-			seedStrategy: null,
-			structuredProfile: {
-				provenance: { promptVersion: "resume_profile.v1" },
-			},
 		});
 	});
 
@@ -209,7 +154,7 @@ describe("frontend dev fixture-backed mock client", () => {
 				language: "zh-CN",
 				questionBudget: 6,
 				timeBudgetMinutes: 30,
-				resumeAssetId: "01918fa0-0000-7000-8000-000000001000",
+				resumeId: "01918fa0-0000-7000-8000-000000001000",
 				sourceDebriefId: "01918fa0-0000-7000-8000-00000000a000",
 				focusCompetencyCodes: [],
 			},

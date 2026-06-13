@@ -19,7 +19,7 @@ export interface InterviewContextState {
   targetJobId: string;
   jobId: string;
   jdId?: string;
-  resumeVersionId?: string;
+  resumeId?: string;
   sourceReportId?: string;
   roundId?: string;
   roundName?: string;
@@ -49,7 +49,7 @@ export const DEFAULT_INTERVIEW_CONTEXT: InterviewContextState = {
   targetJobId: "",
   jobId: "",
   jdId: undefined,
-  resumeVersionId: undefined,
+  resumeId: undefined,
   sourceReportId: undefined,
   roundId: undefined,
   roundName: undefined,
@@ -122,7 +122,7 @@ export function interviewContextReducer(
         jobId: targetJobId,
         jdId:
           p.jdId !== undefined ? (p.jdId || undefined) : (targetJobId ? `jd-${targetJobId}` : state.jdId),
-        resumeVersionId: p.resumeVersionId || state.resumeVersionId,
+        resumeId: p.resumeId || state.resumeId,
         sourceReportId: p.sourceReportId || state.sourceReportId,
         roundId: p.roundId || state.roundId,
         roundName: p.roundName || state.roundName,
@@ -147,7 +147,7 @@ export function interviewContextReducer(
     case "MERGE_RESUME":
       return {
         ...state,
-        resumeVersionId: action.resume.id || state.resumeVersionId,
+        resumeId: action.resume.id || state.resumeId,
       };
     case "MERGE_PRACTICE_PLAN":
       return {
@@ -171,7 +171,7 @@ export function interviewContextReducer(
     case "CLEAR_RESUME":
       return {
         ...state,
-        resumeVersionId: undefined,
+        resumeId: undefined,
         sourceReportId: undefined,
       };
     case "CLEAR_PRACTICE_PLAN":

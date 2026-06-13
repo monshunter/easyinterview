@@ -106,7 +106,7 @@ function makeClient(report = FULL_REPORT): EasyInterviewClient {
       title: "Senior Frontend Engineer",
       companyName: "Acme",
     })),
-    getResumeVersion: vi.fn(async () => ({
+    getResume: vi.fn(async () => ({
       id: "01918fa0-0000-7000-8000-000000004000",
       displayName: "Resume v3",
     })),

@@ -80,7 +80,7 @@ const HANDOFF_KEYS = [
   "planId",
   "targetJobId",
   "jdId",
-  "resumeVersionId",
+  "resumeId",
   "roundId",
   "sessionId",
   "reportId",

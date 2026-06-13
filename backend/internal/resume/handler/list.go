@@ -12,7 +12,7 @@ import (
 )
 
 type ListService interface {
-	ListResumes(ctx context.Context, in resume.ListRequest) (api.PaginatedResumeAsset, error)
+	ListResumes(ctx context.Context, in resume.ListRequest) (api.PaginatedResume, error)
 }
 
 // ListResumes binds GET /api/v1/resumes.

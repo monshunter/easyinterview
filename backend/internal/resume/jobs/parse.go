@@ -1,7 +1,6 @@
 package jobs
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -150,9 +149,9 @@ func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) tar
 		return h.fail(ctx, asset, job, sharederrors.CodeAiOutputInvalid, err.Error(), false)
 	}
 	payload, err := json.Marshal(events.ResumeParseCompletedPayload{
-		ResumeAssetID: asset.ID,
-		UserID:        asset.UserID,
-		ParseStatus:   sharedtypes.TargetJobParseStatusReady,
+		ResumeID:    asset.ID,
+		UserID:      asset.UserID,
+		ParseStatus: sharedtypes.TargetJobParseStatusReady,
 	})
 	if err != nil {
 		return h.fail(ctx, asset, job, sharederrors.CodeTargetImportFailed, err.Error(), true)
@@ -160,10 +159,14 @@ func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) tar
 	if h.newID == nil {
 		return h.fail(ctx, asset, job, sharederrors.CodeTargetImportFailed, "resume parse event id generator not configured", true)
 	}
+	// D-20: parse directly produces the flat resume's structured content; the
+	// parsed JSON is both the summary and the structured_profile (no separate
+	// structured_master confirm step).
 	if err := h.store.CompleteParseSuccess(ctx, resumestore.CompleteParseSuccessInput{
 		UserID:             asset.UserID,
 		AssetID:            asset.ID,
 		ParsedSummary:      parsed,
+		StructuredProfile:  parsed,
 		ParsedTextSnapshot: input,
 		OutboxEventID:      h.newID(),
 		OutboxEventPayload: payload,
@@ -183,15 +186,6 @@ func (h *ParseHandler) resumeInput(ctx context.Context, asset resumestore.ParseA
 	switch asset.SourceType {
 	case "paste":
 		raw = asset.OriginalText
-	case "guided":
-		if len(asset.GuidedAnswers) == 0 {
-			return "", fmt.Errorf("guided answers are empty")
-		}
-		var compact bytes.Buffer
-		if err := json.Compact(&compact, asset.GuidedAnswers); err != nil {
-			return "", fmt.Errorf("guided answers JSON is invalid: %w", err)
-		}
-		raw = compact.String()
 	case "upload":
 		if h.objects == nil {
 			return "", fmt.Errorf("object reader is not configured")

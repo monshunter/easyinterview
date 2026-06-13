@@ -24,7 +24,7 @@ describe("buildPracticeHandoffParams", () => {
         planId: "plan-1",
         targetJobId: "tj-1",
         jdId: "jd-1",
-        resumeVersionId: "rv-1",
+        resumeId: "rv-1",
         roundId: "round-1",
         sessionId: "sess-1",
       },
@@ -39,7 +39,7 @@ describe("buildPracticeHandoffParams", () => {
     expect(params.planId).toBe("plan-1");
     expect(params.targetJobId).toBe("tj-1");
     expect(params.jdId).toBe("jd-1");
-    expect(params.resumeVersionId).toBe("rv-1");
+    expect(params.resumeId).toBe("rv-1");
     expect(params.roundId).toBe("round-1");
     expect(params.sessionId).toBe("sess-1");
     expect(params.reportId).toBe(REPORT_ID);

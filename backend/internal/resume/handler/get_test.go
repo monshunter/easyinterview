@@ -25,10 +25,11 @@ func TestHandlerImplementsGetResumeSurface(t *testing.T) {
 }
 
 func TestGetResume(t *testing.T) {
-	now := time.Date(2026, 5, 13, 4, 0, 0, 0, time.UTC).Format(time.RFC3339)
-	svc := &fakeGetService{out: api.ResumeAsset{
-		Id:          "asset-1",
+	now := time.Date(2026, 6, 13, 4, 0, 0, 0, time.UTC).Format(time.RFC3339)
+	svc := &fakeGetService{out: api.Resume{
+		Id:          "resume-1",
 		Title:       "Resume",
+		DisplayName: "Alice CV",
 		Language:    "en",
 		ParseStatus: sharedtypes.TargetJobParseStatusQueued,
 		CreatedAt:   now,
@@ -42,13 +43,13 @@ func TestGetResume(t *testing.T) {
 	})
 	rec := httptest.NewRecorder()
 
-	h.GetResume(rec, httptest.NewRequest(http.MethodGet, "/api/v1/resumes/asset-1", nil), "asset-1")
+	h.GetResume(rec, httptest.NewRequest(http.MethodGet, "/api/v1/resumes/resume-1", nil), "resume-1")
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if svc.userID != "user-1" || svc.assetID != "asset-1" {
-		t.Fatalf("service scope user=%q asset=%q", svc.userID, svc.assetID)
+	if svc.userID != "user-1" || svc.resumeID != "resume-1" {
+		t.Fatalf("service scope user=%q resume=%q", svc.userID, svc.resumeID)
 	}
 }
 
@@ -61,9 +62,9 @@ func TestGetResumeNotFoundAndCrossUserReturns404(t *testing.T) {
 	})
 	rec := httptest.NewRecorder()
 
-	h.GetResume(rec, httptest.NewRequest(http.MethodGet, "/api/v1/resumes/asset-owned-by-user-1", nil), "asset-owned-by-user-1")
+	h.GetResume(rec, httptest.NewRequest(http.MethodGet, "/api/v1/resumes/resume-owned-by-user-1", nil), "resume-owned-by-user-1")
 
-	assertAPIError(t, rec, http.StatusNotFound, sharederrors.CodeTargetJobNotFound)
+	assertAPIError(t, rec, http.StatusNotFound, sharederrors.CodeResourceNotFound)
 }
 
 func TestGetResumeFixtureParity(t *testing.T) {
@@ -84,7 +85,7 @@ func TestGetResumeFixtureParity(t *testing.T) {
 		if rec.Code != fixture.Scenarios["default"].Response.Status {
 			t.Fatalf("status = %d want %d body=%s", rec.Code, fixture.Scenarios["default"].Response.Status, rec.Body.String())
 		}
-		var got api.ResumeAsset
+		var got api.Resume
 		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 			t.Fatalf("decode response: %v", err)
 		}
@@ -119,19 +120,16 @@ func TestGetResumeFixtureParity(t *testing.T) {
 }
 
 type fakeGetService struct {
-	userID  string
-	assetID string
-	out     api.ResumeAsset
-	err     error
+	fakeRegisterService
+	userID   string
+	resumeID string
+	out      api.Resume
+	err      error
 }
 
-func (s *fakeGetService) RegisterResume(context.Context, resume.RegisterInput) (api.ResumeAssetWithJob, error) {
-	return api.ResumeAssetWithJob{}, nil
-}
-
-func (s *fakeGetService) GetResume(_ context.Context, userID string, assetID string) (api.ResumeAsset, error) {
+func (s *fakeGetService) GetResume(_ context.Context, userID string, resumeID string) (api.Resume, error) {
 	s.userID = userID
-	s.assetID = assetID
+	s.resumeID = resumeID
 	return s.out, s.err
 }
 
@@ -140,7 +138,7 @@ type getFixture struct {
 		Response struct {
 			Status int `json:"status"`
 			Body   struct {
-				Resume api.ResumeAsset
+				Resume api.Resume
 				Error  api.ApiErrorResponse
 			}
 		} `json:"response"`
@@ -168,7 +166,7 @@ func loadGetFixture(t *testing.T) getFixture {
 		Response struct {
 			Status int `json:"status"`
 			Body   struct {
-				Resume api.ResumeAsset
+				Resume api.Resume
 				Error  api.ApiErrorResponse
 			}
 		} `json:"response"`

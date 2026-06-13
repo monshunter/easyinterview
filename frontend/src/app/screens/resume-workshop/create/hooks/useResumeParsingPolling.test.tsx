@@ -4,7 +4,7 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 import type { ReactNode } from "react";
 
 import { EasyInterviewClient } from "../../../../../api/generated/client";
-import type { ResumeAsset } from "../../../../../api/generated/types";
+import type { Resume } from "../../../../../api/generated/types";
 import { AppRuntimeProvider } from "../../../../runtime/AppRuntimeProvider";
 import {
   createFixtureBackedFetch,
@@ -39,11 +39,14 @@ function buildWrapper(client: EasyInterviewClient) {
   );
 }
 
-const ASSET_BASE: ResumeAsset = {
+const ASSET_BASE: Resume = {
   id: "01918fa0-0000-7000-8000-000000001100",
   title: "alice.pdf",
+  displayName: "alice.pdf",
   language: "zh",
   parseStatus: "ready",
+  status: "active",
+  sourceType: "upload",
   createdAt: "2026-05-17T00:00:00Z",
   updatedAt: "2026-05-17T00:00:00Z",
   parsedSummary: {

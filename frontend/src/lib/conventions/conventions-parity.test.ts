@@ -17,9 +17,6 @@ import {
   ALL_DEBRIEF_QUESTION_SOURCES,
   ALL_PRIVACY_REQUEST_TYPES,
   ALL_PRIVACY_REQUEST_STATUSES,
-  ALL_RESUME_VERSION_TYPES,
-  ALL_RESUME_SEED_STRATEGIES,
-  ALL_RESUME_TAILOR_SUGGESTION_STATUSES,
   ALL_ERROR_CODES,
   ERROR_CODES,
   ALL_AI_CAPABILITIES,
@@ -47,7 +44,7 @@ interface ParityFixture {
 const parity = fixture as ParityFixture;
 
 describe('cross-language conventions parity fixture', () => {
-  it('matches all 19 generated enum literal sets', () => {
+  it('matches all 16 generated enum literal sets', () => {
     const actual: Record<string, readonly string[]> = {
       TargetJobStatus: ALL_TARGET_JOB_STATUSES,
       TargetJobParseStatus: ALL_TARGET_JOB_PARSE_STATUSES,
@@ -65,12 +62,9 @@ describe('cross-language conventions parity fixture', () => {
       DebriefQuestionSource: ALL_DEBRIEF_QUESTION_SOURCES,
       PrivacyRequestType: ALL_PRIVACY_REQUEST_TYPES,
       PrivacyRequestStatus: ALL_PRIVACY_REQUEST_STATUSES,
-      ResumeVersionType: ALL_RESUME_VERSION_TYPES,
-      ResumeSeedStrategy: ALL_RESUME_SEED_STRATEGIES,
-      ResumeTailorSuggestionStatus: ALL_RESUME_TAILOR_SUGGESTION_STATUSES,
     };
 
-    expect(Object.keys(actual)).toHaveLength(19);
+    expect(Object.keys(actual)).toHaveLength(16);
     expect(actual).toEqual(parity.enums);
   });
 

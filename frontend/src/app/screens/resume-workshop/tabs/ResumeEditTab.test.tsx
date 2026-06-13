@@ -3,74 +3,46 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import type { ResumeVersion } from "../../../../api/generated/types";
+import type { Resume } from "../../../../api/generated/types";
 import { DisplayPreferencesProvider } from "../../../display/DisplayPreferencesProvider";
 import { ResumeEditTab } from "./ResumeEditTab";
 
-const baseMaster: ResumeVersion = {
-  id: "0195f2d0-0001-7000-8000-000000000201",
-  resumeAssetId: "01918fa0-0000-7000-8000-000000001000",
-  parentVersionId: null,
-  versionType: "structured_master",
-  targetJobId: null,
-  displayName: "Structured master",
-  seedStrategy: null,
-  focusAngle: null,
+const baseResume: Resume = {
+  id: "01918fa0-0000-7000-8000-000000001000",
+  title: "Alice Example — Senior Frontend Engineer",
+  displayName: "Alice Example — Senior Frontend Engineer",
+  language: "zh-CN",
+  parseStatus: "ready",
+  status: "active",
+  sourceType: "upload",
+  fileObjectId: "01918fa0-0000-7000-8000-000000001100",
   structuredProfile: {
     headline: "Senior frontend engineer",
     summary: "Owns platform delivery end to end.",
   },
-  matchScore: null,
-  promptVersion: "p",
-  rubricVersion: "r",
-  modelId: "m",
-  provider: "fixture",
-  provenance: {
-    promptVersion: "p",
-    rubricVersion: "r",
-    modelId: "m",
-    language: "zh-CN",
-    featureFlag: "f",
-    dataSourceVersion: "d",
-  },
-  suggestions: [],
   createdAt: "2026-05-12T08:20:00Z",
   updatedAt: "2026-05-12T08:20:00Z",
   deletedAt: null,
 };
 
-const baseTargeted: ResumeVersion = {
-  ...baseMaster,
-  id: "0195f2d0-0001-7000-8000-000000000202",
-  parentVersionId: baseMaster.id,
-  versionType: "targeted",
-  targetJobId: "01918fa0-0000-7000-8000-000000002000",
-  displayName: "Northstar Systems frontend target",
-  seedStrategy: "copy_master",
-  focusAngle: "platform",
-  structuredProfile: {
-    headline: "Targeted headline",
-    summary: "Targeted summary.",
-  },
-};
-
 const renderEdit = (
-  version: ResumeVersion,
+  resume: Resume,
   props: Partial<Parameters<typeof ResumeEditTab>[0]> = {},
 ) =>
   render(
     <DisplayPreferencesProvider>
-      <ResumeEditTab version={version} {...props} />
+      <ResumeEditTab resume={resume} {...props} />
     </DisplayPreferencesProvider>,
   );
 
-describe("ResumeEditTab render baseline (plan 003 Phase 6.1)", () => {
-  it("renders the master scope banner + headline + summary + Experience/Skills placeholders + save button (>= 10 testid)", () => {
-    renderEdit(baseMaster);
+describe("ResumeEditTab render baseline (D-20 flat model)", () => {
+  it("renders the scope banner + displayName + headline + summary + Experience/Skills placeholders + save button (>= 12 testid)", () => {
+    renderEdit(baseResume);
     for (const id of [
       "resume-edit-tab",
       "resume-edit-scope-banner",
       "resume-edit-scope-banner-message",
+      "resume-edit-display-name-input",
       "resume-edit-headline-input",
       "resume-edit-summary-textarea",
       "resume-edit-section-experience",
@@ -83,29 +55,32 @@ describe("ResumeEditTab render baseline (plan 003 Phase 6.1)", () => {
     ]) {
       expect(screen.getByTestId(id)).toBeInTheDocument();
     }
-    expect(
-      screen.getByTestId("resume-edit-scope-banner"),
-    ).toHaveAttribute("data-scope", "master");
   });
 
-  it("renders the targeted scope banner with the version name interpolated", () => {
-    renderEdit(baseTargeted);
+  it("interpolates the resume displayName into the scope banner", () => {
+    renderEdit(baseResume);
     const banner = screen.getByTestId("resume-edit-scope-banner");
-    expect(banner).toHaveAttribute("data-scope", "targeted");
-    expect(banner.textContent).toContain("Northstar Systems frontend target");
+    expect(banner.textContent).toContain(
+      "Alice Example — Senior Frontend Engineer",
+    );
   });
 
-  it("pre-fills headline / summary from structuredProfile and disables save while clean", () => {
-    renderEdit(baseTargeted);
+  it("pre-fills displayName / headline / summary and disables save while clean", () => {
+    renderEdit(baseResume);
+    expect(
+      (
+        screen.getByTestId("resume-edit-display-name-input") as HTMLInputElement
+      ).value,
+    ).toBe("Alice Example — Senior Frontend Engineer");
     expect(
       (screen.getByTestId("resume-edit-headline-input") as HTMLInputElement)
         .value,
-    ).toBe("Targeted headline");
+    ).toBe("Senior frontend engineer");
     expect(
       (
         screen.getByTestId("resume-edit-summary-textarea") as HTMLTextAreaElement
       ).value,
-    ).toBe("Targeted summary.");
+    ).toBe("Owns platform delivery end to end.");
     const save = screen.getByTestId("resume-edit-save-button");
     expect(save).toBeDisabled();
     expect(screen.getByTestId("resume-edit-tab")).toHaveAttribute(
@@ -115,10 +90,10 @@ describe("ResumeEditTab render baseline (plan 003 Phase 6.1)", () => {
   });
 });
 
-describe("ResumeEditTab save behaviour (plan 003 Phase 6.2-6.4)", () => {
-  it("becomes dirty + enables save when the user edits headline; invokes onSave with current draft", async () => {
+describe("ResumeEditTab save behaviour (D-20 flat model)", () => {
+  it("becomes dirty + enables save when the user edits headline; invokes onSave with displayName + headline + summary", async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
-    renderEdit(baseTargeted, { onSave });
+    renderEdit(baseResume, { onSave });
     const user = userEvent.setup();
     const headline = screen.getByTestId(
       "resume-edit-headline-input",
@@ -133,20 +108,46 @@ describe("ResumeEditTab save behaviour (plan 003 Phase 6.2-6.4)", () => {
     expect(save).toBeEnabled();
     await user.click(save);
     expect(onSave).toHaveBeenCalledWith({
+      displayName: "Alice Example — Senior Frontend Engineer",
       headline: "New headline draft",
-      summary: "Targeted summary.",
+      summary: "Owns platform delivery end to end.",
+    });
+  });
+
+  it("becomes dirty when the user edits the displayName and forwards the new name to onSave", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderEdit(baseResume, { onSave });
+    const user = userEvent.setup();
+    const displayName = screen.getByTestId(
+      "resume-edit-display-name-input",
+    ) as HTMLInputElement;
+    await user.clear(displayName);
+    await user.type(displayName, "Renamed resume");
+    expect(screen.getByTestId("resume-edit-tab")).toHaveAttribute(
+      "data-edit-dirty",
+      "true",
+    );
+    await user.click(screen.getByTestId("resume-edit-save-button"));
+    expect(onSave).toHaveBeenCalledWith({
+      displayName: "Renamed resume",
+      headline: "Senior frontend engineer",
+      summary: "Owns platform delivery end to end.",
     });
   });
 
   it("disables save when saving=true and shows the localized saving copy", () => {
-    renderEdit(baseTargeted, { saving: true });
+    renderEdit(baseResume, { saving: true });
     const save = screen.getByTestId("resume-edit-save-button");
     expect(save).toBeDisabled();
     expect(save.textContent).toMatch(/Saving|保存中/);
+    expect(screen.getByTestId("resume-edit-tab")).toHaveAttribute(
+      "data-edit-saving",
+      "true",
+    );
   });
 
   it("renders the in-form error alert when errorMessage is provided", () => {
-    renderEdit(baseTargeted, { errorMessage: "Validation failed. Please retry." });
+    renderEdit(baseResume, { errorMessage: "Validation failed. Please retry." });
     const alert = screen.getByTestId("resume-edit-error");
     expect(alert).toBeInTheDocument();
     expect(alert).toHaveAttribute("role", "alert");
@@ -157,7 +158,7 @@ describe("ResumeEditTab save behaviour (plan 003 Phase 6.2-6.4)", () => {
     const eiToast = vi.fn();
     (window as unknown as { eiToast?: typeof eiToast }).eiToast = eiToast;
     const onSave = vi.fn();
-    renderEdit(baseTargeted, { onSave });
+    renderEdit(baseResume, { onSave });
     const user = userEvent.setup();
     await user.click(
       screen.getByTestId("resume-edit-section-experience-add"),
@@ -169,20 +170,20 @@ describe("ResumeEditTab save behaviour (plan 003 Phase 6.2-6.4)", () => {
   });
 });
 
-describe("ResumeEditTab privacy (plan 003 Phase 6.6)", () => {
-  it("does not append headline / summary text to URL or localStorage on render or typing", async () => {
+describe("ResumeEditTab privacy (D-20 flat model)", () => {
+  it("does not append displayName / headline / summary text to URL or localStorage on render or typing", async () => {
     const sensitiveHeadline = "Confidential headline 12345";
     const sensitiveSummary = "Sensitive personal summary body";
     const setItemSpy = vi.spyOn(window.localStorage, "setItem");
     const replaceState = vi.spyOn(window.history, "replaceState");
-    const version: ResumeVersion = {
-      ...baseTargeted,
+    const resume: Resume = {
+      ...baseResume,
       structuredProfile: {
         headline: sensitiveHeadline,
         summary: sensitiveSummary,
       },
     };
-    renderEdit(version);
+    renderEdit(resume);
 
     const user = userEvent.setup();
     await user.type(

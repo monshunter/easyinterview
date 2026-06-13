@@ -128,13 +128,6 @@ func TestRenderGoEnums_KnownConstants(t *testing.T) {
 		`JobStatus = "dead"`,
 		"type PrivacyRequestType string",
 		"type PrivacyRequestStatus string",
-		"type ResumeVersionType string",
-		`ResumeVersionTypeStructuredMaster ResumeVersionType = "structured_master"`,
-		"type ResumeSeedStrategy string",
-		`ResumeSeedStrategyAiSelect`,
-		`= "ai_select"`,
-		"type ResumeTailorSuggestionStatus string",
-		`ResumeTailorSuggestionStatusRejected ResumeTailorSuggestionStatus = "rejected"`,
 		"type DebriefRoundType string",
 		`DebriefRoundTypeHrScreen`,
 		`= "hr_screen"`,
@@ -143,7 +136,6 @@ func TestRenderGoEnums_KnownConstants(t *testing.T) {
 		"var AllPracticeModes = []PracticeMode{",
 		"var AllSessionStatuses = []SessionStatus{",
 		"var AllJobStatuses = []JobStatus{",
-		"var AllResumeSeedStrategies = []ResumeSeedStrategy{",
 	}
 	for _, want := range must {
 		if !strings.Contains(src, want) {
@@ -242,10 +234,6 @@ func TestRenderTSEnums_UnionTypes(t *testing.T) {
 		"| 'dead';",
 		"export const ALL_JOB_STATUSES: readonly JobStatus[] = [",
 		"export type PrivacyRequestStatus =",
-		"export type ResumeVersionType =",
-		"| 'structured_master'",
-		"export const ALL_RESUME_SEED_STRATEGIES: readonly ResumeSeedStrategy[] = [",
-		"export type ResumeTailorSuggestionStatus =",
 		"export type DebriefRoundType =",
 		"| 'hr_screen'",
 		"| 'custom';",
@@ -421,8 +409,6 @@ func TestGoPlural(t *testing.T) {
 	cases := map[string]string{
 		"PracticeMode":         "PracticeModes",
 		"SessionStatus":        "SessionStatuses",
-		"ResumeSeedStrategy":   "ResumeSeedStrategies",
-		"ResumeVersionType":    "ResumeVersionTypes",
 		"TargetJobParseStatus": "TargetJobParseStatuses",
 	}
 	for in, want := range cases {

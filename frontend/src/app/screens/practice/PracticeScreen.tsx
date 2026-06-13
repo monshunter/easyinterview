@@ -167,8 +167,8 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
         targetJobId: route.params.targetJobId || ctx.targetJobId,
         jdId: route.params.jdId || ctx.jdId || "",
         planId: route.params.planId || ctx.planId || "",
-        resumeVersionId:
-          route.params.resumeVersionId || ctx.resumeVersionId || "",
+        resumeId:
+          route.params.resumeId || ctx.resumeId || "",
       },
     });
   }, [navigate, route.params, ctx]);
@@ -560,7 +560,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
       data-target-job-id={route.params.targetJobId || ctx.targetJobId || ""}
       data-jd-id={route.params.jdId || ctx.jdId || ""}
       data-resume-version-id={
-        route.params.resumeVersionId || ctx.resumeVersionId || ""
+        route.params.resumeId || ctx.resumeId || ""
       }
       data-round-id={route.params.roundId || ctx.roundId || ""}
       data-mode={mode}

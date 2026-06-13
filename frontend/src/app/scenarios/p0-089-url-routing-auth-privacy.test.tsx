@@ -152,7 +152,7 @@ const PracticePendingTrigger: FC = () => {
             planId: "plan-1",
             targetJobId: "tj-1",
             jdId: "jd-1",
-            resumeVersionId: "rv-1",
+            resumeId: "rv-1",
             roundId: "round-1",
             mode: "text",
             modality: "text",
@@ -221,7 +221,7 @@ describe("E2E.P0.089 auth pendingAction + URL privacy redline", () => {
     expect(afterVerifySearch.get("planId")).toBe("plan-1");
     expect(afterVerifySearch.get("targetJobId")).toBe("tj-1");
     expect(afterVerifySearch.get("jdId")).toBe("jd-1");
-    expect(afterVerifySearch.get("resumeVersionId")).toBe("rv-1");
+    expect(afterVerifySearch.get("resumeId")).toBe("rv-1");
     expect(afterVerifySearch.get("roundId")).toBe("round-1");
     expect(afterVerifySearch.get("sessionId")).toBe(
       "01918fa0-0000-7000-8000-000000005000",

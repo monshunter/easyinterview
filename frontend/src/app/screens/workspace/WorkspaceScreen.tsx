@@ -43,7 +43,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
   const compactLayout = useWorkspaceCompactLayout();
 
   // ── Empty / missing states ──
-  const hasBoundResume = !!normalizeServerBoundId(ctx.resumeVersionId);
+  const hasBoundResume = !!normalizeServerBoundId(ctx.resumeId);
   const showEmptyState = (targetEmpty || targetNotFound) && !loading && !tj;
   const showTargetError = !!targetError && !targetNotFound && !loading && !tj;
   const showMissingResume = !targetEmpty && !loading && tj && (resumeEmpty || !hasBoundResume);
@@ -104,7 +104,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
           planId: result.planId,
           targetJobId: ctx.targetJobId,
           jdId: ctx.jdId ?? "",
-          resumeVersionId: ctx.resumeVersionId ?? "",
+          resumeId: ctx.resumeId ?? "",
           roundId: ctx.roundId ?? "",
           mode: ctx.mode,
           modality: ctx.modality,
@@ -122,7 +122,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
     if (ctx.autoStartPractice !== "1") return;
     if (autoStartRef.current) return;
     if (runtime?.auth.status !== "authenticated") return;
-    if (!normalizeServerBoundId(ctx.targetJobId) || !normalizeServerBoundId(ctx.resumeVersionId)) return;
+    if (!normalizeServerBoundId(ctx.targetJobId) || !normalizeServerBoundId(ctx.resumeId)) return;
 
     autoStartRef.current = true;
     dispatch({ type: "CLEAR_AUTO_START" });
@@ -134,7 +134,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
   }, [
     ctx.autoStartPractice,
     ctx.targetJobId,
-    ctx.resumeVersionId,
+    ctx.resumeId,
     dispatch,
     doStart,
     navigateToPractice,
@@ -150,7 +150,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
         params: {
           targetJobId: ctx.targetJobId,
           jdId: ctx.jdId ?? "",
-          resumeVersionId: ctx.resumeVersionId ?? "",
+          resumeId: ctx.resumeId ?? "",
           roundId: ctx.roundId ?? "",
           planId: ctx.planId ?? "",
           mode: ctx.mode,
@@ -1458,7 +1458,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
               jobId: targetJobId,
               jdId: `jd-${targetJobId}`,
               planId: "",
-              resumeVersionId: ctx.resumeVersionId ?? "",
+              resumeId: ctx.resumeId ?? "",
               roundId: ctx.roundId ?? "round-technical-1",
               roundName: ctx.roundName ?? "",
               practiceMode: ctx.practiceMode,
@@ -1475,7 +1475,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
       <ResumePickerModal
         open={resumePickerOpen}
         onClose={() => setResumePickerOpen(false)}
-        boundResumeId={ctx.resumeVersionId}
+        boundResumeId={ctx.resumeId}
       />
     </div>
   );

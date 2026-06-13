@@ -41,7 +41,7 @@ function buildWrapper(client: EasyInterviewClient) {
   );
 }
 
-describe("buildRegisterPayload — three sourceType mapper", () => {
+describe("buildRegisterPayload — upload/paste sourceType mapper", () => {
   it("maps upload input to { sourceType, fileObjectId, title, language }", () => {
     expect(
       buildRegisterPayload({
@@ -72,46 +72,6 @@ describe("buildRegisterPayload — three sourceType mapper", () => {
       title: "粘贴的简历",
       language: "zh",
     });
-  });
-
-  it("maps guided input to { sourceType, guidedAnswers, title, language } with all 5 keys preserved", () => {
-    const guided = {
-      recentRole: "Senior FE @ Foo",
-      direction: "frontend platform",
-      proofProject: "RSC migration",
-      metrics: "LCP 3.2s → 1.4s",
-      target: "Staff frontend",
-    };
-    expect(
-      buildRegisterPayload({
-        sourceType: "guided",
-        guidedAnswers: guided,
-        title: "问答简历",
-        language: "zh",
-      }),
-    ).toEqual({
-      sourceType: "guided",
-      guidedAnswers: guided,
-      title: "问答简历",
-      language: "zh",
-    });
-  });
-
-  it("preserves empty-string guided answers (does not trim user input)", () => {
-    const guided = {
-      recentRole: "",
-      direction: "",
-      proofProject: "Project A",
-      metrics: "",
-      target: "Senior FE",
-    };
-    const payload = buildRegisterPayload({
-      sourceType: "guided",
-      guidedAnswers: guided,
-      title: "问答简历",
-      language: "zh",
-    });
-    expect(payload.guidedAnswers).toEqual(guided);
   });
 });
 

@@ -9,7 +9,7 @@ import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 export interface UseSuggestDebriefQuestionsArgs {
   targetJobId?: string | null;
   sessionId?: string | null;
-  resumeVersionId?: string | null;
+  resumeId?: string | null;
   language: string;
   count?: number;
   enabled: boolean;
@@ -56,7 +56,7 @@ function parseError(err: unknown): SuggestDebriefError {
 export function useSuggestDebriefQuestions({
   targetJobId,
   sessionId,
-  resumeVersionId,
+  resumeId,
   language,
   count = 6,
   enabled,
@@ -77,7 +77,7 @@ export function useSuggestDebriefQuestions({
     const body: SuggestDebriefQuestionsRequest = {
       targetJobId,
       sessionId: sessionId ?? undefined,
-      resumeVersionId: resumeVersionId ?? undefined,
+      resumeId: resumeId ?? undefined,
       language,
       count,
     } as SuggestDebriefQuestionsRequest;
@@ -98,7 +98,7 @@ export function useSuggestDebriefQuestions({
         error: parseError(err),
       }));
     }
-  }, [runtime, enabled, targetJobId, sessionId, resumeVersionId, language, count]);
+  }, [runtime, enabled, targetJobId, sessionId, resumeId, language, count]);
 
   useEffect(() => {
     if (!enabled || !targetJobId) {
@@ -109,7 +109,7 @@ export function useSuggestDebriefQuestions({
       void run();
     }, DEBOUNCE_MS);
     return () => window.clearTimeout(handle);
-  }, [enabled, run, targetJobId, sessionId, resumeVersionId, language, count]);
+  }, [enabled, run, targetJobId, sessionId, resumeId, language, count]);
 
   const refetch = useCallback(() => {
     void run();

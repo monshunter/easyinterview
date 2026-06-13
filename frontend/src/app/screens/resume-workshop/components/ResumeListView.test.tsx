@@ -4,7 +4,6 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { EasyInterviewClient } from "../../../../api/generated/client";
-import type { PaginatedResumeVersion } from "../../../../api/generated/types";
 import {
   createFixtureBackedFetch,
   createFixtureRegistry,
@@ -18,31 +17,23 @@ import { ResumeWorkshopScreen } from "../ResumeWorkshopScreen";
 import getRuntimeConfigFixture from "../../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../../openapi/fixtures/Auth/getMe.json";
 import listResumesFixture from "../../../../../../openapi/fixtures/Resumes/listResumes.json";
-import listResumeVersionsFixture from "../../../../../../openapi/fixtures/Resumes/listResumeVersions.json";
 
-const FIXTURES = [
-  getRuntimeConfigFixture,
-  getMeFixture,
-  listResumesFixture,
-  listResumeVersionsFixture,
-];
+const FIXTURES = [getRuntimeConfigFixture, getMeFixture, listResumesFixture];
 
-function buildClient(): EasyInterviewClient {
+function buildClient(scenario: string): EasyInterviewClient {
   return new EasyInterviewClient({
-    fetch: createFixtureBackedFetch(
-      createFixtureRegistry(FIXTURES),
-      { scenario: "default" },
-    ),
+    fetch: createFixtureBackedFetch(createFixtureRegistry(FIXTURES), {
+      scenario,
+    }),
   });
 }
 
-function renderListView(route: Route) {
-  const client = buildClient();
+function renderListView(route: Route, scenario = "default") {
   const nav = vi.fn();
   const result = render(
     <DisplayPreferencesProvider initial={{ lang: "zh" }}>
       <AppRuntimeProvider
-        client={client}
+        client={buildClient(scenario)}
         requestOptions={{
           getMe: { headers: { Prefer: "example=authenticated" } },
         }}
@@ -56,87 +47,57 @@ function renderListView(route: Route) {
   return { ...result, nav };
 }
 
-function renderListViewWithClient(client: EasyInterviewClient, route: Route) {
-  const nav = vi.fn();
-  return render(
-    <DisplayPreferencesProvider initial={{ lang: "zh" }}>
-      <AppRuntimeProvider
-        client={client}
-        requestOptions={{
-          getMe: { headers: { Prefer: "example=authenticated" } },
-        }}
-      >
-        <NavigationProvider value={{ navigate: nav }}>
-          <ResumeWorkshopScreen route={route} />
-        </NavigationProvider>
-      </AppRuntimeProvider>
-    </DisplayPreferencesProvider>,
-  );
-}
-
 const LIST_ROUTE: Route = { name: "resume_versions", params: {} };
 
+const FIRST_ID =
+  listResumesFixture.scenarios.default.response.body.items[0]!.id;
+const SECOND_ID =
+  listResumesFixture.scenarios.default.response.body.items[1]!.id;
+
 describe("ResumeListView default fixture rendering", () => {
-  it("renders StatsStrip + ViewSwitcher + dispatched tree view (≥ 8 anchored testids on default)", async () => {
+  it("renders the flat table with one row per resume from the default fixture", async () => {
     renderListView(LIST_ROUTE);
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-workshop-stats-originals"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("resume-workshop-table")).toBeInTheDocument();
     });
 
     expect(
-      screen.getByTestId("resume-workshop-stats-originals"),
+      screen.getByTestId(`resume-list-row-${FIRST_ID}`),
     ).toBeInTheDocument();
     expect(
-      screen.getByTestId("resume-workshop-stats-versions"),
+      screen.getByTestId(`resume-list-row-${SECOND_ID}`),
     ).toBeInTheDocument();
     expect(
-      screen.getByTestId("resume-workshop-stats-top-match"),
+      screen.getByTestId(`resume-list-open-${FIRST_ID}`),
     ).toBeInTheDocument();
     expect(
-      screen.getByTestId("resume-workshop-stats-recent"),
+      screen.getByTestId(`resume-list-open-${SECOND_ID}`),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("resume-workshop-create")).toHaveTextContent(
+      "新建简历",
+    );
+  });
 
-    expect(
-      screen.getByTestId("resume-workshop-view-switcher-tree"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByTestId("resume-workshop-view-switcher-flat"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByTestId("resume-workshop-view-switcher-tree"),
-    ).toHaveAttribute("data-active", "true");
-    expect(
-      screen.getByTestId("resume-workshop-create"),
-    ).toHaveTextContent("新建简历");
-    expect(
-      screen.getByTestId("resume-workshop-view-context"),
-    ).toHaveTextContent("管理底稿与分叉关系");
+  it("opens a resume detail via the row Open button with the resumeId + preview tab", async () => {
+    const { nav } = renderListView(LIST_ROUTE);
 
-    // At least one tree row (asset entry) is rendered for the default fixture
-    const firstAssetId =
-      listResumesFixture.scenarios.default.response.body.items[0]?.id ?? "";
-    expect(firstAssetId).toBeTruthy();
-    expect(
-      screen.getByTestId(`resume-tree-row-${firstAssetId}`),
-    ).toBeInTheDocument();
-
-    // The asset that has matching versions in the default scenario must surface
-    // at least one resume-version-row
-    const matchedVersionId =
-      listResumeVersionsFixture.scenarios.default.response.body.items[0]?.id ??
-      "";
-    expect(matchedVersionId).toBeTruthy();
     await waitFor(() => {
       expect(
-        screen.getByTestId(`resume-version-row-${matchedVersionId}`),
+        screen.getByTestId(`resume-list-open-${FIRST_ID}`),
       ).toBeInTheDocument();
+    });
+
+    await userEvent
+      .setup()
+      .click(screen.getByTestId(`resume-list-open-${FIRST_ID}`));
+    expect(nav).toHaveBeenCalledWith({
+      name: "resume_versions",
+      params: { resumeId: FIRST_ID, tab: "preview" },
     });
   });
 
-  it("navigates to the create placeholder from the prototype header button", async () => {
+  it("navigates to the create flow from the header button", async () => {
     const { nav } = renderListView(LIST_ROUTE);
 
     await waitFor(() => {
@@ -150,55 +111,42 @@ describe("ResumeListView default fixture rendering", () => {
     });
   });
 
-  it("derives stats counts from fixture body, not from static prototype", async () => {
-    renderListView(LIST_ROUTE);
-
-    const expectedOriginalCount =
-      listResumesFixture.scenarios.default.response.body.items.length;
-    const expectedVersionCount =
-      listResumeVersionsFixture.scenarios.default.response.body.items.length;
-
-    await waitFor(() => {
-      const originals = screen.getByTestId("resume-workshop-stats-originals");
-      const versions = screen.getByTestId("resume-workshop-stats-versions");
-      expect(originals).toHaveTextContent(String(expectedOriginalCount));
-      expect(versions).toHaveTextContent(String(expectedVersionCount));
-    });
-  });
-
-  it("surfaces listResumeVersions failures as a retryable error instead of zero-version stats", async () => {
-    const client = buildClient();
-    const versionsSpy = vi
-      .spyOn(client, "listResumeVersions")
-      .mockRejectedValueOnce(new Error("versions fixture unavailable"))
-      .mockResolvedValueOnce(
-        listResumeVersionsFixture.scenarios.default.response
-          .body as PaginatedResumeVersion,
-      );
-    renderListViewWithClient(client, LIST_ROUTE);
+  it("navigates to the create flow from the upload-another CTA", async () => {
+    const { nav } = renderListView(LIST_ROUTE);
 
     await waitFor(() => {
       expect(
-        screen.getByTestId("resume-workshop-versions-error"),
+        screen.getByTestId("resume-workshop-upload-cta"),
       ).toBeInTheDocument();
     });
-    expect(
-      screen.queryByTestId("resume-workshop-stats-versions"),
-    ).not.toBeInTheDocument();
 
     await userEvent
       .setup()
-      .click(screen.getByTestId("resume-workshop-versions-retry"));
+      .click(screen.getByTestId("resume-workshop-upload-cta"));
+    expect(nav).toHaveBeenCalledWith({
+      name: "resume_versions",
+      params: { flow: "create" },
+    });
+  });
+
+  it("shows the empty state when listResumes returns no items", async () => {
+    renderListView(LIST_ROUTE, "empty");
 
     await waitFor(() => {
-      expect(versionsSpy).toHaveBeenCalledTimes(2);
       expect(
-        screen.getByTestId("resume-workshop-stats-versions"),
-      ).toHaveTextContent(
-        String(
-          listResumeVersionsFixture.scenarios.default.response.body.items.length,
-        ),
-      );
+        screen.getByTestId("resume-workshop-list-empty"),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("resume-workshop-table")).not.toBeInTheDocument();
+  });
+
+  it("surfaces the paginated affordance when the page reports more results", async () => {
+    renderListView(LIST_ROUTE, "paginated");
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("resume-workshop-list-paginated"),
+      ).toBeInTheDocument();
     });
   });
 });

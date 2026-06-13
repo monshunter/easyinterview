@@ -206,19 +206,19 @@ type CreateDebriefRequest struct {
 }
 
 type SuggestQuestionsRequest struct {
-	UserID          string
-	TargetJobID     string
-	SessionID       string
-	ResumeVersionID string
-	Language        string
-	Count           int32
+	UserID      string
+	TargetJobID string
+	SessionID   string
+	ResumeID    string
+	Language    string
+	Count       int32
 }
 
 type SuggestionContextRequest struct {
-	UserID          string
-	TargetJobID     string
-	SessionID       string
-	ResumeVersionID string
+	UserID      string
+	TargetJobID string
+	SessionID   string
+	ResumeID    string
 }
 
 type SuggestionContext struct {
@@ -250,10 +250,10 @@ func (s *Service) SuggestQuestions(ctx context.Context, in SuggestQuestionsReque
 		count = 6
 	}
 	suggestionContext, err := s.suggestionContext.GetSuggestionContext(ctx, SuggestionContextRequest{
-		UserID:          in.UserID,
-		TargetJobID:     in.TargetJobID,
-		SessionID:       in.SessionID,
-		ResumeVersionID: in.ResumeVersionID,
+		UserID:      in.UserID,
+		TargetJobID: in.TargetJobID,
+		SessionID:   in.SessionID,
+		ResumeID:    in.ResumeID,
 	})
 	if err != nil {
 		return SuggestQuestionsResult{}, err

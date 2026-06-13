@@ -8,17 +8,15 @@ import type {
 	Job,
 	PaginatedFeedbackReport,
 	PaginatedPracticeSession,
-	PaginatedResumeAsset,
-	PaginatedResumeVersion,
+	PaginatedResume,
 	PracticePlan,
 	PracticeSession,
 	PracticeVoiceTurnResult,
 	ReportWithJob,
-	ResumeAsset,
-	ResumeAssetWithJob,
+	Resume,
 	ResumeTailorRun,
 	ResumeTailorRunWithJob,
-	ResumeVersion,
+	ResumeWithJob,
 	SessionEventResult,
 	SuggestDebriefQuestionsResponse,
 } from "./generated/types";
@@ -29,10 +27,9 @@ const PRACTICE_PLAN_ID = "01918fa0-0000-7000-8000-00000000f101";
 const PRACTICE_SESSION_ID = "01918fa0-0000-7000-8000-00000000f102";
 const PRACTICE_TURN_ID = "01918fa0-0000-7000-8000-00000000f103";
 const REPORT_ID = "01918fa0-0000-7000-8000-00000000f201";
-const RESUME_ASSET_ID = "01918fa0-0000-7000-8000-00000000f301";
-const RESUME_VERSION_ID = "01918fa0-0000-7000-8000-00000000f302";
+const RESUME_ID = "01918fa0-0000-7000-8000-00000000f301";
+const DUPLICATE_RESUME_ID = "01918fa0-0000-7000-8000-00000000f302";
 const TAILOR_RUN_ID = "01918fa0-0000-7000-8000-00000000f303";
-const SUGGESTION_ID = "01918fa0-0000-7000-8000-00000000f304";
 const DEBRIEF_ID = "01918fa0-0000-7000-8000-00000000f401";
 const DEBRIEF_JOB_ID = "01918fa0-0000-7000-8000-00000000f402";
 const RAW_RESUME_TEXT = "Led confidential platform migration with private metrics.";
@@ -121,36 +118,18 @@ function buildFeedbackReport(overrides: Partial<FeedbackReport> = {}): FeedbackR
 	};
 }
 
-function buildResumeAsset(overrides: Partial<ResumeAsset> = {}): ResumeAsset {
+function buildResume(overrides: Partial<Resume> = {}): Resume {
 	return {
-		id: RESUME_ASSET_ID,
+		id: RESUME_ID,
 		title: "Frontend Platform Resume",
+		displayName: "Frontend Platform Resume",
 		language: "en",
 		parseStatus: "ready",
 		sourceType: "paste",
 		status: "active",
 		originalText: null,
 		parsedSummary: null,
-		createdAt: "2026-05-23T01:00:00Z",
-		updatedAt: "2026-05-23T01:01:00Z",
-		...overrides,
-	};
-}
-
-function buildResumeVersion(overrides: Partial<ResumeVersion> = {}): ResumeVersion {
-	return {
-		id: RESUME_VERSION_ID,
-		resumeAssetId: RESUME_ASSET_ID,
-		displayName: "Frontend Platform v2",
-		versionType: "targeted",
-		parentVersionId: null,
-		targetJobId: TARGET_JOB_ID,
-		focusAngle: "Platform leadership",
-		matchScore: 88,
-		seedStrategy: "ai_select",
 		structuredProfile: { headline: "Frontend platform lead" },
-		suggestions: [{ id: SUGGESTION_ID, status: "pending" }],
-		provenance: PROVENANCE,
 		createdAt: "2026-05-23T01:00:00Z",
 		updatedAt: "2026-05-23T01:01:00Z",
 		...overrides,
@@ -160,7 +139,7 @@ function buildResumeVersion(overrides: Partial<ResumeVersion> = {}): ResumeVersi
 function buildTailorRun(overrides: Partial<ResumeTailorRun> = {}): ResumeTailorRun {
 	return {
 		id: TAILOR_RUN_ID,
-		resumeAssetId: RESUME_ASSET_ID,
+		resumeId: RESUME_ID,
 		targetJobId: TARGET_JOB_ID,
 		status: "ready",
 		matchSummary: { strengths: ["Platform scope"], gaps: ["Backend depth"] },
@@ -283,57 +262,41 @@ function createRealApiFetchSpy() {
 			return jsonResponse(body);
 		}
 		if (route === "/resumes" && method === "GET") {
-			const body: PaginatedResumeAsset = {
-				items: [buildResumeAsset()],
+			const body: PaginatedResume = {
+				items: [buildResume()],
 				pageInfo: { hasMore: false, nextCursor: null, pageSize: 10 },
 			};
 			return jsonResponse(body);
 		}
 		if (route === "/resumes" && method === "POST") {
-			const body: ResumeAssetWithJob = {
-				resumeAssetId: RESUME_ASSET_ID,
+			const body: ResumeWithJob = {
+				resumeId: RESUME_ID,
 				job: buildJob({
 					id: "01918fa0-0000-7000-8000-00000000f305",
 					jobType: "resume_parse",
 					resourceType: "resume_asset",
-					resourceId: RESUME_ASSET_ID,
+					resourceId: RESUME_ID,
 				}),
 			};
 			return jsonResponse(body, 202);
 		}
-		if (route === `/resumes/${RESUME_ASSET_ID}` && method === "GET") {
-			return jsonResponse(buildResumeAsset());
+		if (route === `/resumes/${RESUME_ID}` && method === "GET") {
+			return jsonResponse(buildResume());
 		}
-		if (route === `/resumes/${RESUME_ASSET_ID}/archive` && method === "POST") {
-			return jsonResponse(buildResumeAsset({ status: "archived" }));
+		if (route === `/resumes/${RESUME_ID}` && method === "PATCH") {
+			return jsonResponse(buildResume({ displayName: "Frontend Platform v3" }));
 		}
-		if (route === `/resumes/${RESUME_ASSET_ID}/structured-master` && method === "POST") {
-			return jsonResponse(buildResumeVersion({ versionType: "structured_master" }), 201);
+		if (route === `/resumes/${RESUME_ID}/archive` && method === "POST") {
+			return jsonResponse(buildResume({ status: "archived" }));
 		}
-		if (route === `/resumes/${RESUME_ASSET_ID}/versions` && method === "GET") {
-			const body: PaginatedResumeVersion = {
-				items: [buildResumeVersion()],
-				pageInfo: { hasMore: false, nextCursor: null, pageSize: 10 },
-			};
-			return jsonResponse(body);
+		if (route === `/resumes/${RESUME_ID}/duplicate` && method === "POST") {
+			return jsonResponse(
+				buildResume({ id: DUPLICATE_RESUME_ID, displayName: "Frontend Platform Resume (copy)" }),
+				201,
+			);
 		}
-		if (route === "/resume-versions" && method === "POST") {
-			return jsonResponse(buildResumeVersion(), 201);
-		}
-		if (route === `/resume-versions/${RESUME_VERSION_ID}` && method === "GET") {
-			return jsonResponse(buildResumeVersion());
-		}
-		if (route === `/resume-versions/${RESUME_VERSION_ID}` && method === "PATCH") {
-			return jsonResponse(buildResumeVersion({ displayName: "Frontend Platform v3" }));
-		}
-		if (route === `/resume-versions/${RESUME_VERSION_ID}/exports` && method === "POST") {
+		if (route === `/resumes/${RESUME_ID}/exports` && method === "POST") {
 			return jsonResponse({ error: { code: "RESUME_EXPORT_NOT_AVAILABLE", message: "Export unavailable" } }, 501);
-		}
-		if (route === `/resume-versions/${RESUME_VERSION_ID}/suggestions/${SUGGESTION_ID}/accept` && method === "POST") {
-			return jsonResponse(buildResumeVersion({ suggestions: [{ id: SUGGESTION_ID, status: "accepted" }] }));
-		}
-		if (route === `/resume-versions/${RESUME_VERSION_ID}/suggestions/${SUGGESTION_ID}/reject` && method === "POST") {
-			return jsonResponse(buildResumeVersion({ suggestions: [{ id: SUGGESTION_ID, status: "rejected" }] }));
 		}
 		if (route === "/resume/tailor" && method === "POST") {
 			const body: ResumeTailorRunWithJob = {
@@ -432,7 +395,7 @@ describe("frontend owner real API mode", () => {
 				language: "en",
 				mode: "assisted",
 				questionBudget: 4,
-				resumeAssetId: RESUME_ASSET_ID,
+				resumeId: RESUME_ID,
 				targetJobId: TARGET_JOB_ID,
 				timeBudgetMinutes: 30,
 			},
@@ -481,29 +444,21 @@ describe("frontend owner real API mode", () => {
 			{ title: "Frontend Platform Resume", language: "en", sourceType: "paste", rawText: RAW_RESUME_TEXT },
 			{ idempotencyKey: "ik_register_resume" },
 		);
-		const resume = await client.getResume(RESUME_ASSET_ID);
-		const archived = await client.archiveResumeAsset(RESUME_ASSET_ID, { idempotencyKey: "ik_archive_resume" });
-		const masterVersion = await client.confirmResumeStructuredMaster(
-			RESUME_ASSET_ID,
-			{ displayName: "Structured Master", language: "en", structuredProfile: { headline: "Platform lead" } },
-			{ idempotencyKey: "ik_confirm_resume" },
-		);
-		const versions = await client.listResumeVersions(RESUME_ASSET_ID, { query: { pageSize: 10 } });
-		const branched = await client.branchResumeVersion(
-			{ parentVersionId: RESUME_VERSION_ID, targetJobId: TARGET_JOB_ID, seedStrategy: "ai_select", focusAngle: "Platform leadership" },
-			{ idempotencyKey: "ik_branch_resume" },
-		);
-		const version = await client.getResumeVersion(RESUME_VERSION_ID);
-		const updatedVersion = await client.updateResumeVersion(
-			RESUME_VERSION_ID,
+		const resume = await client.getResume(RESUME_ID);
+		const updated = await client.updateResume(
+			RESUME_ID,
 			{ displayName: "Frontend Platform v3", structuredProfile: { headline: "Updated lead" } },
 			{ idempotencyKey: "ik_update_resume" },
 		);
-		const exportUnavailable = await client.exportResumeVersion(RESUME_VERSION_ID, { idempotencyKey: "ik_export_resume" });
-		const accepted = await client.acceptResumeTailorSuggestion(RESUME_VERSION_ID, SUGGESTION_ID, { idempotencyKey: "ik_accept_suggestion" });
-		const rejected = await client.rejectResumeTailorSuggestion(RESUME_VERSION_ID, SUGGESTION_ID, { idempotencyKey: "ik_reject_suggestion" });
+		const duplicated = await client.duplicateResume(
+			RESUME_ID,
+			{ displayName: "Frontend Platform Resume (copy)" },
+			{ idempotencyKey: "ik_duplicate_resume" },
+		);
+		const archived = await client.archiveResume(RESUME_ID, { idempotencyKey: "ik_archive_resume" });
+		const exportUnavailable = await client.exportResume(RESUME_ID, { idempotencyKey: "ik_export_resume" });
 		const tailor = await client.requestResumeTailor(
-			{ mode: "bullet_suggestions", resumeAssetId: RESUME_ASSET_ID, resumeVersionId: RESUME_VERSION_ID, targetJobId: TARGET_JOB_ID },
+			{ mode: "bullet_suggestions", resumeId: RESUME_ID, targetJobId: TARGET_JOB_ID },
 			{ idempotencyKey: "ik_resume_tailor" },
 		);
 		const tailorRun = await client.getResumeTailorRun(TAILOR_RUN_ID);
@@ -520,7 +475,7 @@ describe("frontend owner real API mode", () => {
 			{ idempotencyKey: "ik_create_debrief" },
 		);
 		const suggestions = await client.suggestDebriefQuestions(
-			{ targetJobId: TARGET_JOB_ID, sessionId: PRACTICE_SESSION_ID, resumeVersionId: RESUME_VERSION_ID, language: "en", count: 6 },
+			{ targetJobId: TARGET_JOB_ID, sessionId: PRACTICE_SESSION_ID, resumeId: RESUME_ID, language: "en", count: 6 },
 			{ idempotencyKey: "ik_suggest_debrief" },
 		);
 		const hydratedDebrief = await client.getDebrief(DEBRIEF_ID);
@@ -536,19 +491,16 @@ describe("frontend owner real API mode", () => {
 		expect(completed.reportId).toBe(REPORT_ID);
 		expect(report.provenance).toEqual(PROVENANCE);
 		expect(reportList.items[0]?.retryFocusTurnIds).toEqual([PRACTICE_TURN_ID]);
-		expect(resumeList.items[0]?.id).toBe(RESUME_ASSET_ID);
+		expect(resumeList.items[0]?.id).toBe(RESUME_ID);
 		expect(registered.job.jobType).toBe("resume_parse");
+		expect(registered.resumeId).toBe(RESUME_ID);
 		expect(resume.originalText).toBeNull();
+		expect(updated.displayName).toBe("Frontend Platform v3");
+		expect(duplicated.id).toBe(DUPLICATE_RESUME_ID);
 		expect(archived.status).toBe("archived");
-		expect(masterVersion.versionType).toBe("structured_master");
-		expect(versions.items[0]?.provenance).toEqual(PROVENANCE);
-		expect(branched).toMatchObject({ id: RESUME_VERSION_ID });
-		expect(version.seedStrategy).toBe("ai_select");
-		expect(updatedVersion.displayName).toBe("Frontend Platform v3");
 		expect(exportUnavailable.error.code).toBe("RESUME_EXPORT_NOT_AVAILABLE");
-		expect(accepted.suggestions[0]).toMatchObject({ status: "accepted" });
-		expect(rejected.suggestions[0]).toMatchObject({ status: "rejected" });
 		expect(tailor.tailorRunId).toBe(TAILOR_RUN_ID);
+		expect(tailorRun.resumeId).toBe(RESUME_ID);
 		expect(tailorRun.provenance).toEqual(PROVENANCE);
 		expect(debrief.debriefId).toBe(DEBRIEF_ID);
 		expect(suggestions.suggestions[0]?.source).toBe("mock_report");
@@ -569,16 +521,11 @@ describe("frontend owner real API mode", () => {
 			`GET /api/v1/targets/${TARGET_JOB_ID}/reports?pageSize=5`,
 			"GET /api/v1/resumes?pageSize=10",
 			"POST /api/v1/resumes",
-			`GET /api/v1/resumes/${RESUME_ASSET_ID}`,
-			`POST /api/v1/resumes/${RESUME_ASSET_ID}/archive`,
-			`POST /api/v1/resumes/${RESUME_ASSET_ID}/structured-master`,
-			`GET /api/v1/resumes/${RESUME_ASSET_ID}/versions?pageSize=10`,
-			"POST /api/v1/resume-versions",
-			`GET /api/v1/resume-versions/${RESUME_VERSION_ID}`,
-			`PATCH /api/v1/resume-versions/${RESUME_VERSION_ID}`,
-			`POST /api/v1/resume-versions/${RESUME_VERSION_ID}/exports`,
-			`POST /api/v1/resume-versions/${RESUME_VERSION_ID}/suggestions/${SUGGESTION_ID}/accept`,
-			`POST /api/v1/resume-versions/${RESUME_VERSION_ID}/suggestions/${SUGGESTION_ID}/reject`,
+			`GET /api/v1/resumes/${RESUME_ID}`,
+			`PATCH /api/v1/resumes/${RESUME_ID}`,
+			`POST /api/v1/resumes/${RESUME_ID}/duplicate`,
+			`POST /api/v1/resumes/${RESUME_ID}/archive`,
+			`POST /api/v1/resumes/${RESUME_ID}/exports`,
 			"POST /api/v1/resume/tailor",
 			`GET /api/v1/resume/tailor-runs/${TAILOR_RUN_ID}`,
 			"POST /api/v1/debriefs",
@@ -600,21 +547,19 @@ describe("frontend owner real API mode", () => {
 		expect(summary[6]?.headers.get("Idempotency-Key")).toBe("ik_voice_turn");
 		expect(summary[7]?.headers.get("Idempotency-Key")).toBe("ik_practice_complete");
 		expect(summary[11]?.headers.get("Idempotency-Key")).toBe("ik_register_resume");
-		expect(summary[13]?.headers.get("Idempotency-Key")).toBe("ik_archive_resume");
-		expect(summary[14]?.headers.get("Idempotency-Key")).toBe("ik_confirm_resume");
-		expect(summary[16]?.headers.get("Idempotency-Key")).toBe("ik_branch_resume");
-		expect(summary[18]?.headers.get("Idempotency-Key")).toBe("ik_update_resume");
-		expect(summary[19]?.headers.get("Idempotency-Key")).toBe("ik_export_resume");
-		expect(summary[20]?.headers.get("Idempotency-Key")).toBe("ik_accept_suggestion");
-		expect(summary[21]?.headers.get("Idempotency-Key")).toBe("ik_reject_suggestion");
-		expect(summary[22]?.headers.get("Idempotency-Key")).toBe("ik_resume_tailor");
-		expect(summary[24]?.headers.get("Idempotency-Key")).toBe("ik_create_debrief");
-		expect(summary[25]?.headers.get("Idempotency-Key")).toBe("ik_suggest_debrief");
+		expect(summary[12]?.headers.get("Idempotency-Key")).toBeNull();
+		expect(summary[13]?.headers.get("Idempotency-Key")).toBe("ik_update_resume");
+		expect(summary[14]?.headers.get("Idempotency-Key")).toBe("ik_duplicate_resume");
+		expect(summary[15]?.headers.get("Idempotency-Key")).toBe("ik_archive_resume");
+		expect(summary[16]?.headers.get("Idempotency-Key")).toBe("ik_export_resume");
+		expect(summary[17]?.headers.get("Idempotency-Key")).toBe("ik_resume_tailor");
+		expect(summary[19]?.headers.get("Idempotency-Key")).toBe("ik_create_debrief");
+		expect(summary[20]?.headers.get("Idempotency-Key")).toBe("ik_suggest_debrief");
 		expect(JSON.parse(String(summary[11]?.body))).toMatchObject({
 			sourceType: "paste",
 			rawText: RAW_RESUME_TEXT,
 		});
-		expect(JSON.parse(String(summary[24]?.body))).toMatchObject({
+		expect(JSON.parse(String(summary[19]?.body))).toMatchObject({
 			notes: RAW_DEBRIEF_NOTE,
 			questions: [{ myAnswerSummary: "Explained sequencing." }],
 		});

@@ -7,23 +7,24 @@ import {
   type FC,
 } from "react";
 
-import type { ResumeVersion } from "../../../../api/generated/types";
+import type { Resume } from "../../../../api/generated/types";
 import { useI18n, type MessageKey } from "../../../i18n/messages";
 import { ResumeWorkshopIcon } from "../components/ResumeWorkshopIcon";
 
 export interface ResumeEditTabProps {
-  version: ResumeVersion;
+  resume: Resume;
   /**
-   * Async save handler (Phase 6 container injects useUpdateResumeVersion).
-   * The payload only carries the P0 editable fields (headline + summary).
+   * Async save handler. The payload carries the P0 editable fields
+   * (displayName + headline + summary). Overwrites this resume via updateResume.
    */
   onSave?: (payload: {
+    displayName: string;
     headline: string;
     summary: string;
   }) => Promise<void>;
-  /** Phase 6.6: optional in-form alert for validation/idempotency errors. */
+  /** Optional in-form alert for validation / idempotency errors. */
   errorMessage?: string | null;
-  /** True while the host hook is awaiting the updateResumeVersion call. */
+  /** True while the host hook is awaiting the updateResume call. */
   saving?: boolean;
 }
 
@@ -31,18 +32,18 @@ const safeStringField = (value: unknown): string =>
   typeof value === "string" ? value : "";
 
 export const ResumeEditTab: FC<ResumeEditTabProps> = ({
-  version,
+  resume,
   onSave,
   errorMessage = null,
   saving = false,
 }) => {
   const { t } = useI18n();
-  const isMaster = version.versionType === "structured_master";
 
   const profile = useMemo(
-    () => (version.structuredProfile ?? {}) as Record<string, unknown>,
-    [version.structuredProfile],
+    () => (resume.structuredProfile ?? {}) as Record<string, unknown>,
+    [resume.structuredProfile],
   );
+  const initialDisplayName = resume.displayName;
   const initialHeadline = useMemo(
     () => safeStringField(profile.headline),
     [profile.headline],
@@ -52,37 +53,35 @@ export const ResumeEditTab: FC<ResumeEditTabProps> = ({
     [profile.summary],
   );
 
+  const [displayName, setDisplayName] = useState(initialDisplayName);
   const [headline, setHeadline] = useState(initialHeadline);
   const [summary, setSummary] = useState(initialSummary);
 
-  // Reset on version switch (parent should rerender via key change too, but
-  // we also handle the case where the same Edit tab receives a different
-  // version because the user opened another versionId without unmount).
   useEffect(() => {
+    setDisplayName(initialDisplayName);
     setHeadline(initialHeadline);
     setSummary(initialSummary);
-  }, [version.id, initialHeadline, initialSummary]);
+  }, [resume.id, initialDisplayName, initialHeadline, initialSummary]);
 
   const isDirty =
-    headline !== initialHeadline || summary !== initialSummary;
+    displayName !== initialDisplayName ||
+    headline !== initialHeadline ||
+    summary !== initialSummary;
 
   const handleSave = useCallback(() => {
     if (!onSave || saving || !isDirty) return;
-    void onSave({ headline, summary });
-  }, [onSave, saving, isDirty, headline, summary]);
+    void onSave({ displayName, headline, summary });
+  }, [onSave, saving, isDirty, displayName, headline, summary]);
 
   return (
     <div
       data-testid="resume-edit-tab"
-      data-version-id={version.id}
-      data-version-type={version.versionType}
-      data-is-master={isMaster ? "true" : "false"}
+      data-resume-id={resume.id}
       data-edit-dirty={isDirty ? "true" : "false"}
       data-edit-saving={saving ? "true" : "false"}
     >
       <ScopeBanner
-        isMaster={isMaster}
-        versionName={version.displayName}
+        resumeName={resume.displayName}
         onSave={handleSave}
         disabled={saving || !isDirty}
         saving={saving}
@@ -92,11 +91,30 @@ export const ResumeEditTab: FC<ResumeEditTabProps> = ({
       <div style={CARD_STYLE}>
         <div style={CARD_SECTION_STYLE}>
           <label
-            htmlFor="resume-edit-headline-input"
+            htmlFor="resume-edit-display-name-input"
             className="ei-text-label"
             style={{
               color: "var(--ei-color-ink3)",
               marginBottom: 8,
+              display: "block",
+            }}
+          >
+            {t("resumeWorkshop.edit.displayNameLabel")}
+          </label>
+          <input
+            id="resume-edit-display-name-input"
+            data-testid="resume-edit-display-name-input"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            style={INPUT_STYLE}
+            disabled={saving}
+          />
+          <label
+            htmlFor="resume-edit-headline-input"
+            className="ei-text-label"
+            style={{
+              color: "var(--ei-color-ink3)",
+              margin: "16px 0 8px",
               display: "block",
             }}
           >
@@ -147,11 +165,7 @@ export const ResumeEditTab: FC<ResumeEditTabProps> = ({
       </div>
 
       {errorMessage ? (
-        <div
-          data-testid="resume-edit-error"
-          role="alert"
-          style={ERROR_STYLE}
-        >
+        <div data-testid="resume-edit-error" role="alert" style={ERROR_STYLE}>
           {errorMessage}
         </div>
       ) : null}
@@ -160,8 +174,7 @@ export const ResumeEditTab: FC<ResumeEditTabProps> = ({
 };
 
 interface ScopeBannerProps {
-  isMaster: boolean;
-  versionName: string;
+  resumeName: string;
   onSave: () => void;
   disabled: boolean;
   saving: boolean;
@@ -169,21 +182,19 @@ interface ScopeBannerProps {
 }
 
 const ScopeBanner: FC<ScopeBannerProps> = ({
-  isMaster,
-  versionName,
+  resumeName,
   onSave,
   disabled,
   saving,
   t,
 }) => {
-  const bannerKey: MessageKey = isMaster
-    ? "resumeWorkshop.edit.scope.master"
-    : "resumeWorkshop.edit.scope.targeted";
-  const message = t(bannerKey).replace("{versionName}", versionName);
+  const message = t("resumeWorkshop.edit.scope.body").replace(
+    "{resumeName}",
+    resumeName,
+  );
   return (
     <div
       data-testid="resume-edit-scope-banner"
-      data-scope={isMaster ? "master" : "targeted"}
       role="status"
       style={SCOPE_BANNER_STYLE}
     >
@@ -205,9 +216,7 @@ const ScopeBanner: FC<ScopeBannerProps> = ({
           cursor: disabled ? "not-allowed" : "pointer",
         }}
       >
-        {saving
-          ? t("resumeWorkshop.edit.saving")
-          : t("resumeWorkshop.edit.save")}
+        {saving ? t("resumeWorkshop.edit.saving") : t("resumeWorkshop.edit.save")}
       </button>
     </div>
   );
@@ -232,9 +241,7 @@ const SectionPlaceholder: FC<SectionPlaceholderProps> = ({
     data-testid={testId}
     style={{
       padding: "20px 24px",
-      borderBottom: isLast
-        ? "none"
-        : "1px solid var(--ei-color-rule)",
+      borderBottom: isLast ? "none" : "1px solid var(--ei-color-rule)",
     }}
   >
     <div
@@ -245,10 +252,7 @@ const SectionPlaceholder: FC<SectionPlaceholderProps> = ({
         marginBottom: 12,
       }}
     >
-      <div
-        className="ei-text-label"
-        style={{ color: "var(--ei-color-ink3)" }}
-      >
+      <div className="ei-text-label" style={{ color: "var(--ei-color-ink3)" }}>
         {title}
       </div>
       <button
@@ -256,9 +260,11 @@ const SectionPlaceholder: FC<SectionPlaceholderProps> = ({
         data-testid={`${testId}-add`}
         onClick={() => {
           if (typeof window === "undefined") return;
-          const fn = (window as unknown as {
-            eiToast?: (msg: string, opts?: { tone?: string }) => void;
-          }).eiToast;
+          const fn = (
+            window as unknown as {
+              eiToast?: (msg: string, opts?: { tone?: string }) => void;
+            }
+          ).eiToast;
           fn?.(comingSoonLabel, { tone: "neutral" });
         }}
         style={BTN_OUTLINE}

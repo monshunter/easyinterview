@@ -65,7 +65,7 @@ func TestResumeParseDrainerHTTPScenario(t *testing.T) {
 	if err := json.Unmarshal(parseStore.success.OutboxEventPayload, &outbox); err != nil {
 		t.Fatalf("decode outbox: %v", err)
 	}
-	if outbox["resumeAssetId"] != assetID || outbox["parseStatus"] != "ready" {
+	if outbox["resumeId"] != assetID || outbox["parseStatus"] != "ready" {
 		t.Fatalf("outbox payload drift: %+v", outbox)
 	}
 }
@@ -148,7 +148,7 @@ func TestResumeParseDrainerRetryableFailureScenario(t *testing.T) {
 	if err := json.Unmarshal(parseStore.success.OutboxEventPayload, &outbox); err != nil {
 		t.Fatalf("decode outbox: %v", err)
 	}
-	if outbox["resumeAssetId"] != assetID || outbox["parseStatus"] != "ready" {
+	if outbox["resumeId"] != assetID || outbox["parseStatus"] != "ready" {
 		t.Fatalf("outbox payload drift: %+v", outbox)
 	}
 }

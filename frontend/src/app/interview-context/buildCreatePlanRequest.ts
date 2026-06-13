@@ -21,9 +21,9 @@ export function buildCreatePlanRequest(
     throw new Error("invalid targetJobId");
   }
 
-  const resumeAssetId = normalizeServerBoundId(ctx.resumeVersionId);
-  if (!resumeAssetId) {
-    throw new Error("invalid resumeAssetId");
+  const resumeId = normalizeServerBoundId(ctx.resumeId);
+  if (!resumeId) {
+    throw new Error("invalid resumeId");
   }
 
   const goal: PracticeGoal = isDerivedReportGoal(ctx.practiceGoal)
@@ -38,7 +38,7 @@ export function buildCreatePlanRequest(
     language: lang,
     questionBudget: 6,
     timeBudgetMinutes: 30,
-    resumeAssetId,
+    resumeId,
     focusCompetencyCodes: [],
   };
 

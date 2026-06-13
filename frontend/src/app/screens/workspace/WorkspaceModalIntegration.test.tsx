@@ -36,7 +36,7 @@ const WORKSPACE_ROUTE: Route = {
   params: {
     targetJobId: "01918fa0-0000-7000-8000-000000002000",
     jdId: "jd-1",
-    resumeVersionId: "01918fa0-0000-7000-8000-000000001000",
+    resumeId: "01918fa0-0000-7000-8000-000000001000",
     roundId: "round-hr",
     planId: "01918fa0-0000-7000-8000-000000004000",
   },

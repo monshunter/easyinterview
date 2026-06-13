@@ -12,77 +12,21 @@ import { ResumeWorkshopIcon } from "../components/ResumeWorkshopIcon";
 import { ParsingStage } from "./ParsingStage";
 import { PreviewStage } from "./PreviewStage";
 import type { PreviewDraft } from "./ResumePreviewConfirm";
-import { GuidedTab } from "./GuidedTab";
 import { PasteTab } from "./PasteTab";
 import { UploadTab } from "./UploadTab";
 import { deriveDefaultTitle, type CreateMode } from "./util/title";
 import type { ResumeParseState } from "./ResumeParseFlow";
-import type { ResumeAsset } from "../../../../api/generated/types";
+import type { Resume } from "../../../../api/generated/types";
 
 export type CreateStage = "input" | "parsing" | "preview";
-
-export interface GuidedAnswers {
-  recentRole: string;
-  direction: string;
-  proofProject: string;
-  metrics: string;
-  target: string;
-}
-
-const EMPTY_GUIDED_ANSWERS: GuidedAnswers = {
-  recentRole: "",
-  direction: "",
-  proofProject: "",
-  metrics: "",
-  target: "",
-};
-
-const GUIDED_STEPS: Array<{
-  key: keyof GuidedAnswers;
-  label: MessageKey;
-  question: MessageKey;
-  placeholder: MessageKey;
-}> = [
-  {
-    key: "recentRole",
-    label: "resumeWorkshop.create.guided.step.recentRole.label",
-    question: "resumeWorkshop.create.guided.step.recentRole.question",
-    placeholder: "resumeWorkshop.create.guided.step.recentRole.placeholder",
-  },
-  {
-    key: "direction",
-    label: "resumeWorkshop.create.guided.step.direction.label",
-    question: "resumeWorkshop.create.guided.step.direction.question",
-    placeholder: "resumeWorkshop.create.guided.step.direction.placeholder",
-  },
-  {
-    key: "proofProject",
-    label: "resumeWorkshop.create.guided.step.proofProject.label",
-    question: "resumeWorkshop.create.guided.step.proofProject.question",
-    placeholder: "resumeWorkshop.create.guided.step.proofProject.placeholder",
-  },
-  {
-    key: "metrics",
-    label: "resumeWorkshop.create.guided.step.metrics.label",
-    question: "resumeWorkshop.create.guided.step.metrics.question",
-    placeholder: "resumeWorkshop.create.guided.step.metrics.placeholder",
-  },
-  {
-    key: "target",
-    label: "resumeWorkshop.create.guided.step.target.label",
-    question: "resumeWorkshop.create.guided.step.target.question",
-    placeholder: "resumeWorkshop.create.guided.step.target.placeholder",
-  },
-];
 
 const TAB_DESCRIPTORS: Array<{
   mode: CreateMode;
   label: MessageKey;
-  icon: "upload" | "file" | "chat";
+  icon: "upload" | "file";
 }> = [
   { mode: "upload", label: "resumeWorkshop.create.tabs.upload", icon: "upload" },
   { mode: "paste", label: "resumeWorkshop.create.tabs.paste", icon: "file" },
-  { mode: "guided", label: "resumeWorkshop.create.tabs.guided", icon: "chat" },
 ];
 
 interface CreateState {
@@ -90,13 +34,11 @@ interface CreateState {
   createMode: CreateMode;
   pickedFile: File | null;
   rawText: string;
-  guidedAnswers: GuidedAnswers;
-  guidedStep: number;
-  resumeAssetId: string | null;
+  resumeId: string | null;
   sourceLabel: string | null;
   parseState: ResumeParseState | null;
   previewDraft: PreviewDraft | null;
-  previewAsset: ResumeAsset | null;
+  previewResume: Resume | null;
   submitting: boolean;
   inlineError: string | null;
 }
@@ -105,20 +47,15 @@ type CreateAction =
   | { type: "set_mode"; mode: CreateMode }
   | { type: "set_picked_file"; file: File | null }
   | { type: "set_raw_text"; text: string }
-  | { type: "set_guided_answer"; key: keyof GuidedAnswers; value: string }
-  | { type: "set_guided_step"; index: number }
-  | { type: "advance_guided_step" }
-  | { type: "back_guided_step" }
   | {
       type: "submit_registered";
-      resumeAssetId: string;
+      resumeId: string;
       sourceLabel: string;
     }
   | { type: "set_parse_state"; parseState: ResumeParseState }
-  | { type: "parse_ready"; draft: PreviewDraft; asset: ResumeAsset }
+  | { type: "parse_ready"; draft: PreviewDraft; resume: Resume }
   | { type: "cancel_to_input" }
-  | { type: "go_to_preview" }
-  | { type: "back_to_input"; preserveResumeAssetId?: boolean }
+  | { type: "back_to_input"; preserveResumeId?: boolean }
   | { type: "set_submitting"; submitting: boolean }
   | { type: "set_inline_error"; error: string | null }
   | { type: "reset_after_success" };
@@ -129,13 +66,11 @@ function initialState(initialMode: CreateMode): CreateState {
     createMode: initialMode,
     pickedFile: null,
     rawText: "",
-    guidedAnswers: EMPTY_GUIDED_ANSWERS,
-    guidedStep: 0,
-    resumeAssetId: null,
+    resumeId: null,
     sourceLabel: null,
     parseState: null,
     previewDraft: null,
-    previewAsset: null,
+    previewResume: null,
     submitting: false,
     inlineError: null,
   };
@@ -149,34 +84,11 @@ function reducer(state: CreateState, action: CreateAction): CreateState {
       return { ...state, pickedFile: action.file, inlineError: null };
     case "set_raw_text":
       return { ...state, rawText: action.text };
-    case "set_guided_answer":
-      return {
-        ...state,
-        guidedAnswers: { ...state.guidedAnswers, [action.key]: action.value },
-      };
-    case "set_guided_step":
-      return {
-        ...state,
-        guidedStep: Math.min(
-          Math.max(0, action.index),
-          GUIDED_STEPS.length - 1,
-        ),
-      };
-    case "advance_guided_step":
-      return {
-        ...state,
-        guidedStep: Math.min(state.guidedStep + 1, GUIDED_STEPS.length - 1),
-      };
-    case "back_guided_step":
-      return {
-        ...state,
-        guidedStep: Math.max(0, state.guidedStep - 1),
-      };
     case "submit_registered":
       return {
         ...state,
         stage: "parsing",
-        resumeAssetId: action.resumeAssetId,
+        resumeId: action.resumeId,
         sourceLabel: action.sourceLabel,
         parseState: { phase: "polling" },
         submitting: false,
@@ -189,7 +101,7 @@ function reducer(state: CreateState, action: CreateAction): CreateState {
         ...state,
         stage: "preview",
         previewDraft: action.draft,
-        previewAsset: action.asset,
+        previewResume: action.resume,
         parseState: { phase: "ready" },
       };
     case "cancel_to_input":
@@ -197,13 +109,7 @@ function reducer(state: CreateState, action: CreateAction): CreateState {
         ...state,
         stage: "input",
         parseState: null,
-        // Preserve user input (createMode, rawText, guidedAnswers, pickedFile).
-      };
-    case "go_to_preview":
-      return {
-        ...state,
-        stage: "preview",
-        submitting: false,
+        // Preserve user input (createMode, rawText, pickedFile).
       };
     case "back_to_input":
       return {
@@ -213,9 +119,7 @@ function reducer(state: CreateState, action: CreateAction): CreateState {
         parseState: null,
         submitting: false,
         inlineError: null,
-        resumeAssetId: action.preserveResumeAssetId
-          ? state.resumeAssetId
-          : null,
+        resumeId: action.preserveResumeId ? state.resumeId : null,
       };
     case "set_submitting":
       return { ...state, submitting: action.submitting };
@@ -234,7 +138,7 @@ export interface ResumeCreateFlowProps {
 }
 
 const isCreateMode = (value: unknown): value is CreateMode =>
-  value === "upload" || value === "paste" || value === "guided";
+  value === "upload" || value === "paste";
 
 export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
   initialMode,
@@ -275,27 +179,27 @@ export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
     nextEl?.focus();
   };
 
-  if (state.stage === "parsing" && state.resumeAssetId) {
+  if (state.stage === "parsing" && state.resumeId) {
     return (
       <ParsingStage
-        resumeAssetId={state.resumeAssetId}
+        resumeId={state.resumeId}
         sourceLabel={sourceLabel}
-        onReady={(asset: ResumeAsset, draft) =>
-          dispatch({ type: "parse_ready", draft, asset })
+        onReady={(resume: Resume, draft) =>
+          dispatch({ type: "parse_ready", draft, resume })
         }
         onCancel={() => dispatch({ type: "cancel_to_input" })}
       />
     );
   }
 
-  if (state.stage === "preview" && state.previewDraft && state.previewAsset) {
+  if (state.stage === "preview" && state.previewDraft && state.previewResume) {
     return (
       <PreviewStage
-        asset={state.previewAsset}
+        resume={state.previewResume}
         draft={state.previewDraft}
         sourceLabel={sourceLabel}
         onBack={() =>
-          dispatch({ type: "back_to_input", preserveResumeAssetId: true })
+          dispatch({ type: "back_to_input", preserveResumeId: true })
         }
         onSaved={() => dispatch({ type: "reset_after_success" })}
       />
@@ -375,10 +279,10 @@ export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
                 onValidationError={(message) =>
                   dispatch({ type: "set_inline_error", error: message })
                 }
-                onRegistered={(resumeAssetId, label) =>
+                onRegistered={(resumeId, label) =>
                   dispatch({
                     type: "submit_registered",
-                    resumeAssetId,
+                    resumeId,
                     sourceLabel: label,
                   })
                 }
@@ -398,40 +302,10 @@ export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
                 onRawTextChange={(text) =>
                   dispatch({ type: "set_raw_text", text })
                 }
-                onRegistered={(resumeAssetId, label) =>
+                onRegistered={(resumeId, label) =>
                   dispatch({
                     type: "submit_registered",
-                    resumeAssetId,
-                    sourceLabel: label,
-                  })
-                }
-                setSubmitting={(value) =>
-                  dispatch({ type: "set_submitting", submitting: value })
-                }
-                setInlineError={(message) =>
-                  dispatch({ type: "set_inline_error", error: message })
-                }
-              />
-            ) : null}
-            {state.createMode === "guided" ? (
-              <GuidedTab
-                guidedAnswers={state.guidedAnswers}
-                guidedStep={state.guidedStep}
-                steps={GUIDED_STEPS}
-                submitting={state.submitting}
-                inlineError={state.inlineError}
-                onAnswerChange={(key, value) =>
-                  dispatch({ type: "set_guided_answer", key, value })
-                }
-                onSelectStep={(index) =>
-                  dispatch({ type: "set_guided_step", index })
-                }
-                onAdvanceStep={() => dispatch({ type: "advance_guided_step" })}
-                onBackStep={() => dispatch({ type: "back_guided_step" })}
-                onRegistered={(resumeAssetId, label) =>
-                  dispatch({
-                    type: "submit_registered",
-                    resumeAssetId,
+                    resumeId,
                     sourceLabel: label,
                   })
                 }
@@ -459,9 +333,7 @@ export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
                 <ResumeWorkshopIcon name="file" size={15} />
                 <div>
                   <div className="ei-resume-create-sidebar-item-title">
-                    {t(
-                      "resumeWorkshop.create.sidebar.whatSaved.original.title",
-                    )}
+                    {t("resumeWorkshop.create.sidebar.whatSaved.original.title")}
                   </div>
                   <p className="ei-resume-create-sidebar-item-body">
                     {t("resumeWorkshop.create.sidebar.whatSaved.original.body")}
@@ -477,22 +349,7 @@ export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
                     )}
                   </div>
                   <p className="ei-resume-create-sidebar-item-body">
-                    {t(
-                      "resumeWorkshop.create.sidebar.whatSaved.structured.body",
-                    )}
-                  </p>
-                </div>
-              </li>
-              <li>
-                <ResumeWorkshopIcon name="layers" size={15} />
-                <div>
-                  <div className="ei-resume-create-sidebar-item-title">
-                    {t(
-                      "resumeWorkshop.create.sidebar.whatSaved.baseline.title",
-                    )}
-                  </div>
-                  <p className="ei-resume-create-sidebar-item-body">
-                    {t("resumeWorkshop.create.sidebar.whatSaved.baseline.body")}
+                    {t("resumeWorkshop.create.sidebar.whatSaved.structured.body")}
                   </p>
                 </div>
               </li>

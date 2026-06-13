@@ -17,7 +17,7 @@
           "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
         },
         "body": {
-          "resumeAssetId": "01918fa0-0000-7000-8000-000000001000",
+          "resumeId": "01918fa0-0000-7000-8000-000000001000",
           "job": {
             "id": "01918fa0-0000-7000-8000-00000000b100",
             "jobType": "resume_parse",
@@ -47,7 +47,7 @@
           "X-Request-ID": "req_2026-05-12T08-25-00-register-resume-paste"
         },
         "body": {
-          "resumeAssetId": "0195f2d0-0000-7000-8000-000000001010",
+          "resumeId": "0195f2d0-0000-7000-8000-000000001010",
           "job": {
             "id": "0195f2d0-0000-7000-8000-00000000b110",
             "jobType": "resume_parse",
@@ -57,39 +57,6 @@
             "errorCode": null,
             "createdAt": "2026-05-12T08:25:00Z",
             "updatedAt": "2026-05-12T08:25:00Z"
-          }
-        }
-      }
-    },
-    "guided-answers": {
-      "request": {
-        "headers": {},
-        "body": {
-          "title": "Alice Example - Interview Evidence Resume",
-          "language": "zh-CN",
-          "sourceType": "guided",
-          "guidedAnswers": {
-            "targetRole": "Senior Frontend Engineer",
-            "strongestEvidence": "Checkout reliability and mentoring"
-          }
-        }
-      },
-      "response": {
-        "status": 202,
-        "headers": {
-          "X-Request-ID": "req_2026-05-12T08-26-00-register-resume-guided"
-        },
-        "body": {
-          "resumeAssetId": "0195f2d0-0000-7000-8000-000000001020",
-          "job": {
-            "id": "0195f2d0-0000-7000-8000-00000000b120",
-            "jobType": "resume_parse",
-            "status": "queued",
-            "resourceType": "resume_asset",
-            "resourceId": "0195f2d0-0000-7000-8000-000000001020",
-            "errorCode": null,
-            "createdAt": "2026-05-12T08:26:00Z",
-            "updatedAt": "2026-05-12T08:26:00Z"
           }
         }
       }

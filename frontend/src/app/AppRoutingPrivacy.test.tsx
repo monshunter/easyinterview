@@ -132,7 +132,7 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
             name: "workspace",
             params: {
               targetJobId: "tj-redline",
-              resumeVersionId: "rv-redline",
+              resumeId: "rv-redline",
               planId: "plan-redline",
               ...RAW_MARKERS,
             },
@@ -147,7 +147,7 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
     // Legitimate handoff keys must still survive.
     expect(window.location.search).toContain("targetJobId=tj-redline");
     expect(window.location.search).toContain("planId=plan-redline");
-    expect(window.location.search).toContain("resumeVersionId=rv-redline");
+    expect(window.location.search).toContain("resumeId=rv-redline");
   });
 
   it("navigate(report) with reportStatus + raw markers keeps handoff keys but drops raw markers", async () => {

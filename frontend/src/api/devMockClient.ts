@@ -29,18 +29,13 @@ import getFeedbackReportFixture from "../../../openapi/fixtures/Reports/getFeedb
 import listTargetJobReportsFixture from "../../../openapi/fixtures/Reports/listTargetJobReports.json";
 import getResumeTailorRunFixture from "../../../openapi/fixtures/ResumeTailor/getResumeTailorRun.json";
 import requestResumeTailorFixture from "../../../openapi/fixtures/ResumeTailor/requestResumeTailor.json";
-import acceptResumeTailorSuggestionFixture from "../../../openapi/fixtures/Resumes/acceptResumeTailorSuggestion.json";
-import archiveResumeAssetFixture from "../../../openapi/fixtures/Resumes/archiveResumeAsset.json";
-import branchResumeVersionFixture from "../../../openapi/fixtures/Resumes/branchResumeVersion.json";
-import confirmResumeStructuredMasterFixture from "../../../openapi/fixtures/Resumes/confirmResumeStructuredMaster.json";
-import exportResumeVersionFixture from "../../../openapi/fixtures/Resumes/exportResumeVersion.json";
+import archiveResumeFixture from "../../../openapi/fixtures/Resumes/archiveResume.json";
+import duplicateResumeFixture from "../../../openapi/fixtures/Resumes/duplicateResume.json";
+import exportResumeFixture from "../../../openapi/fixtures/Resumes/exportResume.json";
 import getResumeFixture from "../../../openapi/fixtures/Resumes/getResume.json";
-import getResumeVersionFixture from "../../../openapi/fixtures/Resumes/getResumeVersion.json";
 import listResumesFixture from "../../../openapi/fixtures/Resumes/listResumes.json";
-import listResumeVersionsFixture from "../../../openapi/fixtures/Resumes/listResumeVersions.json";
-import rejectResumeTailorSuggestionFixture from "../../../openapi/fixtures/Resumes/rejectResumeTailorSuggestion.json";
 import registerResumeFixture from "../../../openapi/fixtures/Resumes/registerResume.json";
-import updateResumeVersionFixture from "../../../openapi/fixtures/Resumes/updateResumeVersion.json";
+import updateResumeFixture from "../../../openapi/fixtures/Resumes/updateResume.json";
 import getTargetJobFixture from "../../../openapi/fixtures/TargetJobs/getTargetJob.json";
 import importTargetJobFixture from "../../../openapi/fixtures/TargetJobs/importTargetJob.json";
 import listTargetJobsFixture from "../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
@@ -91,18 +86,13 @@ const DEV_MOCK_FIXTURES = [
 	getFeedbackReportFixture,
 	requestResumeTailorFixture,
 	getResumeTailorRunFixture,
-	acceptResumeTailorSuggestionFixture,
-	archiveResumeAssetFixture,
-	branchResumeVersionFixture,
-	confirmResumeStructuredMasterFixture,
-	exportResumeVersionFixture,
-	getResumeVersionFixture,
 	listResumesFixture,
-	listResumeVersionsFixture,
-	rejectResumeTailorSuggestionFixture,
-	updateResumeVersionFixture,
 	registerResumeFixture,
 	getResumeFixture,
+	updateResumeFixture,
+	duplicateResumeFixture,
+	archiveResumeFixture,
+	exportResumeFixture,
 	getRuntimeConfigFixture,
 	listTargetJobsFixture,
 	importTargetJobFixture,

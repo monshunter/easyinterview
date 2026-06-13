@@ -25,7 +25,7 @@ interface ReportDashboardProps {
  * Top-level container behind `<ReportScreen>` for the success-path dashboard.
  * Owns:
  *   - `useFeedbackReport(reportId)` (single-shot read; 404 → notFound branch)
- *   - `useReportContextData({targetJobId, resumeVersionId})` for the strip
+ *   - `useReportContextData({targetJobId, resumeId})` for the strip
  *   - default detail tab = `questions`
  *   - Replay / Next round CTA wire (see useReplayCtaHandlers).
  */
@@ -38,7 +38,7 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ route }) => {
   const report = useFeedbackReport(reportId);
   const ctxData = useReportContextData({
     targetJobId: route.params.targetJobId,
-    resumeVersionId: route.params.resumeVersionId,
+    resumeId: route.params.resumeId,
   });
 
   const [detail, setDetail] = useState<SummaryDetailKey | "evidence">("questions");
@@ -672,7 +672,7 @@ function stripContextParams(params: Record<string, string>): Record<string, stri
     "planId",
     "targetJobId",
     "jdId",
-    "resumeVersionId",
+    "resumeId",
     "roundId",
   ];
   for (const key of allowed) {

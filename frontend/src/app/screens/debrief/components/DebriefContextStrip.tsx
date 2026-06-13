@@ -61,13 +61,9 @@ function pickTitle(
       return ms.id;
     }
     case "resume": {
-      const ra = ctx.resumeAsset;
-      const rv = ctx.resumeVersion;
-      if (!ra && !rv) return unsetCopy;
-      const assetTitle = ra?.title ?? "";
-      const versionId = rv?.id ?? "";
-      const composed = [assetTitle, versionId].filter(Boolean).join(" · ");
-      return composed || (ra?.id ?? rv?.id ?? unsetCopy);
+      const resume = ctx.resume;
+      if (!resume) return unsetCopy;
+      return resume.displayName || resume.title || resume.id;
     }
   }
 }

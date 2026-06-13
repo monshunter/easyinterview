@@ -133,10 +133,6 @@ function makeClient(opts: ClientOpts): EasyInterviewClient {
       title: "Resume v3",
       parsedSummary: { headline: "Frontend lead" },
     })),
-    getResumeVersion: vi.fn(async () => ({
-      id: RESUME_VERSION_ID,
-      displayName: "Resume v3",
-    })),
     createPracticePlan: vi.fn(async () => ({
       id: "01918fa0-0000-7000-8000-000000008000",
       status: "ready",
@@ -186,7 +182,7 @@ const ROUTE_BASE: Record<string, string> = {
   sessionId: SESSION_ID,
   reportId: REPORT_ID,
   targetJobId: TARGET_JOB_ID,
-  resumeVersionId: RESUME_VERSION_ID,
+  resumeId: RESUME_VERSION_ID,
   roundId: "round-tech-1",
   planId: "plan-1",
   jdId: "jd-1",
@@ -304,7 +300,7 @@ describe("Replay payload integrity", () => {
       planId: "plan-1",
       targetJobId: TARGET_JOB_ID,
       jdId: "jd-1",
-      resumeVersionId: RESUME_VERSION_ID,
+      resumeId: RESUME_VERSION_ID,
       sourceReportId: REPORT_ID,
       roundId: "round-tech-1",
       mode: "text",

@@ -221,7 +221,7 @@ describe("ParseEdit — confirm call", () => {
           jobId: "01918fa0-0000-7000-8000-000000002000",
           jdId: "jd-01918fa0-0000-7000-8000-000000002000",
           planId: "plan-01918fa0-0000-7000-8000-000000002000",
-          resumeVersionId: "resume-unbound",
+          resumeId: "resume-unbound",
           roundId: "round-technical-1",
           roundName: "Technical Round 1",
         }),

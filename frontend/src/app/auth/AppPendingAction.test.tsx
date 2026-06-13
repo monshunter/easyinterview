@@ -26,7 +26,7 @@ const SAMPLE_ACTION: PendingAction = {
     planId: "plan-tj-1",
     targetJobId: "tj-1",
     jdId: "jd-tj-1",
-    resumeVersionId: "frontend-v3",
+    resumeId: "frontend-v3",
     roundId: "round-manager",
   },
 };
@@ -82,7 +82,7 @@ describe("requestAuth pending-action flow", () => {
     expect(screen.getByTestId("route-auth_login")).toBeInTheDocument();
   });
 
-  it("restores practice with planId / targetJobId / jdId / resumeVersionId / roundId after verify success", async () => {
+  it("restores practice with planId / targetJobId / jdId / resumeId / roundId after verify success", async () => {
     render(
       <App
         client={buildClient()}
@@ -127,7 +127,7 @@ describe("requestAuth pending-action flow", () => {
     );
     expect(practice.getAttribute("data-jd-id")).toBe(SAMPLE_ACTION.params.jdId);
     expect(practice.getAttribute("data-resume-version-id")).toBe(
-      SAMPLE_ACTION.params.resumeVersionId,
+      SAMPLE_ACTION.params.resumeId,
     );
     expect(practice.getAttribute("data-round-id")).toBe(
       SAMPLE_ACTION.params.roundId,

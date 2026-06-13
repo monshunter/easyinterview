@@ -61,12 +61,9 @@ func TestConventionsParityFixture_EnumSets(t *testing.T) {
 		"DebriefQuestionSource":        stringsOf(AllDebriefQuestionSources),
 		"PrivacyRequestType":           stringsOf(AllPrivacyRequestTypes),
 		"PrivacyRequestStatus":         stringsOf(AllPrivacyRequestStatuses),
-		"ResumeVersionType":            stringsOf(AllResumeVersionTypes),
-		"ResumeSeedStrategy":           stringsOf(AllResumeSeedStrategies),
-		"ResumeTailorSuggestionStatus": stringsOf(AllResumeTailorSuggestionStatuses),
 	}
-	if len(got) != 19 {
-		t.Fatalf("generated enum type count = %d, want 19", len(got))
+	if len(got) != 16 {
+		t.Fatalf("generated enum type count = %d, want 16", len(got))
 	}
 	if !reflect.DeepEqual(got, fixture.Enums) {
 		t.Fatalf("Go enum sets differ from fixture\ngot:  %#v\nwant: %#v", got, fixture.Enums)
@@ -113,15 +110,6 @@ func TestPracticeNotFoundErrorCodesRegistered(t *testing.T) {
 }
 
 func TestResumeVocabularyRegistered(t *testing.T) {
-	if got, want := stringsOf(AllResumeVersionTypes), []string{"structured_master", "targeted"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("ResumeVersionType values = %#v, want %#v", got, want)
-	}
-	if got, want := stringsOf(AllResumeSeedStrategies), []string{"copy_master", "blank", "ai_select"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("ResumeSeedStrategy values = %#v, want %#v", got, want)
-	}
-	if got, want := stringsOf(AllResumeTailorSuggestionStatuses), []string{"pending", "accepted", "rejected"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("ResumeTailorSuggestionStatus values = %#v, want %#v", got, want)
-	}
 	if !contains(sharederrors.AllCodes, sharederrors.CodeResumeExportNotAvailable) {
 		t.Fatalf("shared error code %s is not registered in AllCodes: %#v", sharederrors.CodeResumeExportNotAvailable, sharederrors.AllCodes)
 	}

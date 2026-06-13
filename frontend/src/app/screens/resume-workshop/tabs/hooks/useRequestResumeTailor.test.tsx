@@ -17,8 +17,7 @@ import {
 import requestFixture from "../../../../../../../openapi/fixtures/ResumeTailor/requestResumeTailor.json";
 
 const baseBody: RequestResumeTailorRequest = {
-  resumeAssetId: "01918fa0-0000-7000-8000-000000001000",
-  resumeVersionId: "0195f2d0-0002-7000-8000-000000000202",
+  resumeId: "01918fa0-0000-7000-8000-000000001000",
   targetJobId: "01918fa0-0000-7000-8000-000000002000",
   mode: "bullet_suggestions",
 };

@@ -194,7 +194,7 @@ export function defaultRoute(overrides: Partial<Route["params"]> = {}): Route {
       planId: PLAN_A,
       targetJobId: TARGET_JOB_A,
       jdId: "jd-1",
-      resumeVersionId: RESUME_A,
+      resumeId: RESUME_A,
       roundId: "round-tech1",
       mode: "text",
       modality: "text",

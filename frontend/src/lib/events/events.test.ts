@@ -40,7 +40,7 @@ describe('generated event contract', () => {
   it('locks resume tailor mode to B2/B4-aligned values', () => {
     const gapReview: ResumeTailorCompletedPayload = {
       mode: 'gap_review',
-      resumeAssetId: '0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e',
+      resumeId: '0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e',
       status: 'ready',
       tailorRunId: '0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e',
       targetJobId: '0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e',

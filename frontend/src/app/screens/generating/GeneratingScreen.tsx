@@ -42,7 +42,7 @@ const HANDOFF_PASSTHROUGH_KEYS = [
   "planId",
   "targetJobId",
   "jdId",
-  "resumeVersionId",
+  "resumeId",
   "roundId",
   "roundName",
   "mode",

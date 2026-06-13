@@ -12,17 +12,31 @@
             {
               "id": "01918fa0-0000-7000-8000-000000001000",
               "title": "Alice Example - Senior Frontend Engineer",
+              "displayName": "Alice Example - Senior Frontend Engineer",
               "language": "zh-CN",
               "parseStatus": "ready",
               "status": "active",
               "sourceType": "upload",
               "fileObjectId": "01918fa0-0000-7000-8000-000000001100",
               "originalText": null,
-              "guidedAnswers": {},
               "parsedTextSnapshot": "Senior frontend engineer with evidence across product delivery, interviews, and mentoring.",
               "parsedSummary": {
                 "headline": "Senior frontend engineer focused on growth-stage SaaS",
                 "yearsOfExperience": 5
+              },
+              "structuredProfile": {
+                "headline": "Senior frontend engineer for platform-heavy product teams",
+                "summary": "Highlights reliability, release quality, and ownership evidence.",
+                "skills": ["React", "TypeScript", "Observability"],
+                "sections": [],
+                "provenance": {
+                  "promptVersion": "resume_profile.v1",
+                  "rubricVersion": "not_applicable",
+                  "modelId": "model-profile:resume_profile.v1",
+                  "language": "zh-CN",
+                  "featureFlag": "none",
+                  "dataSourceVersion": "resume.v1"
+                }
               },
               "createdAt": "2026-04-22T09:30:00Z",
               "updatedAt": "2026-05-12T08:00:00Z",
@@ -31,17 +45,31 @@
             {
               "id": "0195f2d0-0000-7000-8000-000000001010",
               "title": "Alice Example - Product Platform Resume",
+              "displayName": "Alice Example - Product Platform Resume",
               "language": "en-US",
               "parseStatus": "ready",
               "status": "active",
               "sourceType": "paste",
               "fileObjectId": null,
               "originalText": "Led frontend platform work for checkout, experimentation, and developer tooling.",
-              "guidedAnswers": {},
               "parsedTextSnapshot": "Led frontend platform work for checkout, experimentation, and developer tooling.",
               "parsedSummary": {
                 "headline": "Frontend platform engineer with product systems scope",
                 "yearsOfExperience": 6
+              },
+              "structuredProfile": {
+                "headline": "Frontend platform engineer with product systems scope",
+                "summary": "Owns checkout reliability, experimentation, and developer tooling outcomes.",
+                "skills": ["React", "Node.js", "Experimentation"],
+                "sections": [],
+                "provenance": {
+                  "promptVersion": "resume_profile.v1",
+                  "rubricVersion": "not_applicable",
+                  "modelId": "model-profile:resume_profile.v1",
+                  "language": "en-US",
+                  "featureFlag": "none",
+                  "dataSourceVersion": "resume.v1"
+                }
               },
               "createdAt": "2026-05-01T10:10:00Z",
               "updatedAt": "2026-05-11T18:30:00Z",
@@ -83,20 +111,31 @@
             {
               "id": "0195f2d0-0000-7000-8000-000000001020",
               "title": "Alice Example - Interview Evidence Resume",
+              "displayName": "Alice Example - Interview Evidence Resume",
               "language": "zh-CN",
               "parseStatus": "ready",
               "status": "active",
-              "sourceType": "guided",
+              "sourceType": "paste",
               "fileObjectId": null,
-              "originalText": null,
-              "guidedAnswers": {
-                "targetRole": "Senior Frontend Engineer",
-                "strongestEvidence": "Checkout reliability and mentoring"
-              },
-              "parsedTextSnapshot": "Guided resume assembled from interview evidence and project summaries.",
+              "originalText": "Evidence-first resume assembled from interview notes and project summaries.",
+              "parsedTextSnapshot": "Resume assembled from interview evidence and project summaries.",
               "parsedSummary": {
                 "headline": "Evidence-first senior frontend candidate",
                 "yearsOfExperience": 5
+              },
+              "structuredProfile": {
+                "headline": "Evidence-first senior frontend candidate",
+                "summary": "Leads with checkout reliability and mentoring evidence.",
+                "skills": ["React", "Testing", "Mentoring"],
+                "sections": [],
+                "provenance": {
+                  "promptVersion": "resume_profile.v1",
+                  "rubricVersion": "not_applicable",
+                  "modelId": "model-profile:resume_profile.v1",
+                  "language": "zh-CN",
+                  "featureFlag": "none",
+                  "dataSourceVersion": "resume.v1"
+                }
               },
               "createdAt": "2026-05-10T08:30:00Z",
               "updatedAt": "2026-05-12T07:45:00Z",

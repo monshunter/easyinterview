@@ -13,21 +13,16 @@ import { App } from "../App";
 import getRuntimeConfigFixture from "../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../openapi/fixtures/Auth/getMe.json";
 import getResumeFixture from "../../../../openapi/fixtures/Resumes/getResume.json";
-import getResumeVersionFixture from "../../../../openapi/fixtures/Resumes/getResumeVersion.json";
-import exportResumeVersionFixture from "../../../../openapi/fixtures/Resumes/exportResumeVersion.json";
+import exportResumeFixture from "../../../../openapi/fixtures/Resumes/exportResume.json";
 
 const FIXTURES = [
   getRuntimeConfigFixture,
   getMeFixture,
   getResumeFixture,
-  getResumeVersionFixture,
-  exportResumeVersionFixture,
+  exportResumeFixture,
 ];
 
-const TARGETED_VERSION_ID =
-  getResumeVersionFixture.scenarios.default.response.body.id;
-const MASTER_VERSION_ID =
-  getResumeVersionFixture.scenarios["master-default"].response.body.id;
+const RESUME_ID = getResumeFixture.scenarios.default.response.body.id;
 
 interface ToastCall {
   message: string;
@@ -66,7 +61,7 @@ function buildClient(scenario: string): EasyInterviewClient {
 
 function renderDetail(
   scenario: string,
-  versionId: string,
+  resumeId: string,
   authMode: "authenticated" | "unauthenticated" = "authenticated",
 ) {
   return render(
@@ -77,22 +72,19 @@ function renderDetail(
       }}
       initialRoute={{
         name: "resume_versions",
-        params: { versionId },
+        params: { resumeId },
       }}
     />,
   );
 }
 
 describe("E2E.P0.037 resume detail Preview Tab + original modal + 404 fallback + export 501", () => {
-  it("MASTER version renders detail with breadcrumb / branch graph / 3 tabs and defaults active tab to preview", async () => {
-    renderDetail("master-default", MASTER_VERSION_ID);
+  it("resume renders detail with crumb / 3 tabs and defaults the active tab to preview", async () => {
+    renderDetail("default", RESUME_ID);
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-detail-breadcrumb"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("resume-detail-crumb")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("resume-detail-branch-graph")).toBeInTheDocument();
     for (const tab of ["preview", "rewrites", "edit"]) {
       expect(screen.getByTestId(`resume-detail-tab-${tab}`)).toBeInTheDocument();
     }
@@ -103,9 +95,13 @@ describe("E2E.P0.037 resume detail Preview Tab + original modal + 404 fallback +
     expect(
       screen.getByTestId("resume-detail-preview-content"),
     ).toBeInTheDocument();
+    // D-20 flatten: there is no branch graph in the flat detail header.
+    expect(
+      screen.queryByTestId("resume-detail-branch-graph"),
+    ).not.toBeInTheDocument();
   });
 
-  it("TARGETED version with explicit ?tab=rewrites preserves the rewrites tab and renders the current Rewrites surface", async () => {
+  it("explicit ?tab=rewrites preserves the rewrites tab and renders the current Rewrites surface", async () => {
     render(
       <App
         client={buildClient("default")}
@@ -114,7 +110,7 @@ describe("E2E.P0.037 resume detail Preview Tab + original modal + 404 fallback +
         }}
         initialRoute={{
           name: "resume_versions",
-          params: { versionId: TARGETED_VERSION_ID, tab: "rewrites" },
+          params: { resumeId: RESUME_ID, tab: "rewrites" },
         }}
       />,
     );
@@ -135,7 +131,7 @@ describe("E2E.P0.037 resume detail Preview Tab + original modal + 404 fallback +
   });
 
   it("View original opens modal with focus trap and closes on ESC / outer overlay / X button", async () => {
-    renderDetail("master-default", MASTER_VERSION_ID);
+    renderDetail("default", RESUME_ID);
 
     await waitFor(() => {
       expect(
@@ -170,7 +166,7 @@ describe("E2E.P0.037 resume detail Preview Tab + original modal + 404 fallback +
     let exportHeaders: Record<string, string> | null = null;
     const baseFetch = createFixtureBackedFetch(
       createFixtureRegistry(FIXTURES),
-      { scenario: "master-default" },
+      { scenario: "default" },
     );
     const fetchSpy = (
       input: RequestInfo | URL,
@@ -192,12 +188,20 @@ describe("E2E.P0.037 resume detail Preview Tab + original modal + 404 fallback +
         }}
         initialRoute={{
           name: "resume_versions",
-          params: { versionId: MASTER_VERSION_ID, tab: "preview" },
+          params: { resumeId: RESUME_ID, tab: "preview" },
         }}
       />,
     );
 
-    const exportBtn = await screen.findByTestId("resume-detail-export-pdf");
+    // The reshaped detail surfaces Export PDF both in the header action bar
+    // and inside the Preview tab; target the header bar's button so the
+    // selector stays unambiguous regardless of the active tab.
+    const headerActions = await screen.findByTestId(
+      "resume-detail-header-actions",
+    );
+    const exportBtn = within(headerActions).getByTestId(
+      "resume-detail-export-pdf",
+    );
     await userEvent.setup().click(exportBtn);
 
     await waitFor(() => {
@@ -221,8 +225,8 @@ describe("E2E.P0.037 resume detail Preview Tab + original modal + 404 fallback +
     expect(offenders).toEqual([]);
   });
 
-  it("non-existent versionId returns 404 → NotFoundEmptyState renders generic copy and a back-to-list CTA (UI does not echo fixture error.code)", async () => {
-    renderDetail("not-found-404", "ffffffff-0000-7000-8000-00000000ff04");
+  it("non-existent resumeId returns 404 → NotFoundEmptyState renders generic copy and a back-to-list CTA (UI does not echo fixture error.code)", async () => {
+    renderDetail("not-found", "ffffffff-0000-7000-8000-00000000ff04");
 
     await waitFor(() => {
       expect(
@@ -230,7 +234,7 @@ describe("E2E.P0.037 resume detail Preview Tab + original modal + 404 fallback +
       ).toBeInTheDocument();
     });
     const card = screen.getByTestId("resume-detail-not-found");
-    expect(card).not.toHaveTextContent("TARGET_JOB_NOT_FOUND");
+    expect(card).not.toHaveTextContent("RESOURCE_NOT_FOUND");
     expect(
       screen.getByTestId("resume-detail-not-found-back"),
     ).toBeInTheDocument();

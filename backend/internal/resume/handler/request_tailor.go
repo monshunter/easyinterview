@@ -58,18 +58,14 @@ func (h *Handler) RequestResumeTailor(w http.ResponseWriter, r *http.Request) {
 }
 
 func validateRequestTailorInput(userID string, idempotencyKey string, body api.RequestResumeTailorRequest) (resume.RequestTailorRunInput, error) {
-	targetJobID := strings.TrimSpace(body.TargetJobId)
-	resumeAssetID := strings.TrimSpace(body.ResumeAssetId)
-	resumeVersionID := ""
-	if body.ResumeVersionId != nil {
-		resumeVersionID = strings.TrimSpace(*body.ResumeVersionId)
+	targetJobID := ""
+	if body.TargetJobId != nil {
+		targetJobID = strings.TrimSpace(*body.TargetJobId)
 	}
+	resumeID := strings.TrimSpace(body.ResumeId)
 	mode := strings.TrimSpace(body.Mode)
-	if targetJobID == "" {
-		return resume.RequestTailorRunInput{}, validationError("targetJobId is required")
-	}
-	if resumeAssetID == "" {
-		return resume.RequestTailorRunInput{}, validationError("resumeAssetId is required")
+	if resumeID == "" {
+		return resume.RequestTailorRunInput{}, validationError("resumeId is required")
 	}
 	switch mode {
 	case "gap_review", "bullet_suggestions":
@@ -77,12 +73,11 @@ func validateRequestTailorInput(userID string, idempotencyKey string, body api.R
 		return resume.RequestTailorRunInput{}, validationError("mode is invalid")
 	}
 	return resume.RequestTailorRunInput{
-		UserID:          strings.TrimSpace(userID),
-		TargetJobID:     targetJobID,
-		ResumeAssetID:   resumeAssetID,
-		ResumeVersionID: resumeVersionID,
-		Mode:            mode,
-		IdempotencyKey:  strings.TrimSpace(idempotencyKey),
+		UserID:         strings.TrimSpace(userID),
+		TargetJobID:    targetJobID,
+		ResumeID:       resumeID,
+		Mode:           mode,
+		IdempotencyKey: strings.TrimSpace(idempotencyKey),
 	}, nil
 }
 
@@ -91,10 +86,8 @@ func requestTailorValidationDetails(err error) map[string]any {
 		return nil
 	}
 	switch err.Error() {
-	case "targetJobId is required":
-		return map[string]any{"field": "targetJobId"}
-	case "resumeAssetId is required":
-		return map[string]any{"field": "resumeAssetId"}
+	case "resumeId is required":
+		return map[string]any{"field": "resumeId"}
 	case "mode is invalid":
 		return map[string]any{"field": "mode"}
 	default:
@@ -107,7 +100,7 @@ func writeTailorRunError(w http.ResponseWriter, err error, fallbackMessage strin
 	case errors.Is(err, resume.ErrValidationFailed):
 		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "resume validation failed", nil)
 	case errors.Is(err, resume.ErrNotFound):
-		writeAPIError(w, http.StatusNotFound, sharederrors.CodeTargetJobNotFound, "Resume asset, target job, or tailor run not found", nil)
+		writeAPIError(w, http.StatusNotFound, sharederrors.CodeResourceNotFound, "Resume, target job, or tailor run not found", nil)
 	default:
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, fallbackMessage, nil)
 	}

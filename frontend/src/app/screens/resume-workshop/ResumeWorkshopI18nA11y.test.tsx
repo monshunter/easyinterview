@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { EasyInterviewClient } from "../../../api/generated/client";
@@ -18,24 +18,15 @@ import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRun
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
 import getResumeFixture from "../../../../../openapi/fixtures/Resumes/getResume.json";
-import listResumeVersionsFixture from "../../../../../openapi/fixtures/Resumes/listResumeVersions.json";
-import getResumeVersionFixture from "../../../../../openapi/fixtures/Resumes/getResumeVersion.json";
 
 const FIXTURES = [
   getRuntimeConfigFixture,
   getMeFixture,
   listResumesFixture,
   getResumeFixture,
-  listResumeVersionsFixture,
-  getResumeVersionFixture,
 ];
 
-const FIRST_ASSET_ID =
-  listResumesFixture.scenarios.default.response.body.items[0]?.id ?? "";
-const VERSION_ID =
-  getResumeVersionFixture.scenarios.default.response.body.id;
-const VERSION_ASSET_ID =
-  getResumeVersionFixture.scenarios.default.response.body.resumeAssetId;
+const RESUME_ID = getResumeFixture.scenarios.default.response.body.id;
 
 interface RecordedRequest {
   url: string;
@@ -100,15 +91,13 @@ describe("ResumeWorkshop i18n + Accept-Language + a11y (Phase 4)", () => {
     renderScreen(client, { name: "resume_versions", params: {} });
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-workshop-stats-originals"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("resume-workshop-table")).toBeInTheDocument();
     });
-    const originals = screen.getByTestId("resume-workshop-stats-originals");
-    expect(originals).toHaveTextContent("Originals");
-    expect(
-      screen.getByTestId("resume-workshop-view-switcher-tree"),
-    ).toHaveTextContent("Group by original");
+    const list = within(screen.getByTestId("resume-workshop-list"));
+    expect(list.getByText("Resume Workshop")).toBeInTheDocument();
+    expect(screen.getByTestId("resume-workshop-create")).toHaveTextContent(
+      "New resume",
+    );
   });
 
   it("ZH locale renders Chinese copy on the list view", async () => {
@@ -116,15 +105,13 @@ describe("ResumeWorkshop i18n + Accept-Language + a11y (Phase 4)", () => {
     renderScreen(client, { name: "resume_versions", params: {} });
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-workshop-stats-originals"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("resume-workshop-table")).toBeInTheDocument();
     });
-    const originals = screen.getByTestId("resume-workshop-stats-originals");
-    expect(originals).toHaveTextContent("原始简历");
-    expect(
-      screen.getByTestId("resume-workshop-view-switcher-tree"),
-    ).toHaveTextContent("按原始分组");
+    const list = within(screen.getByTestId("resume-workshop-list"));
+    expect(list.getByText("简历工坊")).toBeInTheDocument();
+    expect(screen.getByTestId("resume-workshop-create")).toHaveTextContent(
+      "新建简历",
+    );
   });
 
   it("listResumes request carries Accept-Language header derived from the active lang", async () => {
@@ -132,9 +119,7 @@ describe("ResumeWorkshop i18n + Accept-Language + a11y (Phase 4)", () => {
     renderScreen(client, { name: "resume_versions", params: {} });
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-workshop-stats-originals"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("resume-workshop-table")).toBeInTheDocument();
     });
 
     const listCall = recorded.find((req) => req.url.endsWith("/resumes"));
@@ -142,110 +127,44 @@ describe("ResumeWorkshop i18n + Accept-Language + a11y (Phase 4)", () => {
     expect(listCall!.headers["Accept-Language"]).toBe("en");
   });
 
-  it("getResumeVersion request also carries Accept-Language", async () => {
+  it("getResume request also carries Accept-Language", async () => {
     const client = buildClientWithSpy("default", "zh");
     renderScreen(client, {
       name: "resume_versions",
-      params: { versionId: VERSION_ID, tab: "preview" },
+      params: { resumeId: RESUME_ID, tab: "preview" },
     });
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-detail-breadcrumb"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("resume-detail-crumb")).toBeInTheDocument();
     });
     const getCall = recorded.find((req) =>
-      req.url.includes(`/resume-versions/${VERSION_ID}`) &&
-      !req.url.endsWith("/exports"),
+      req.url.endsWith(`/resumes/${RESUME_ID}`),
     );
-    expect(getCall, "expected a getResumeVersion call").toBeTruthy();
+    expect(getCall, "expected a getResume call").toBeTruthy();
     expect(getCall!.headers["Accept-Language"]).toBe("zh");
   });
 
-  it("getResume request for the original modal carries Accept-Language", async () => {
-    const client = buildClientWithSpy("default", "zh");
-    renderScreen(client, {
-      name: "resume_versions",
-      params: { versionId: VERSION_ID, tab: "preview" },
-    });
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-detail-view-original"),
-      ).toBeInTheDocument();
-    });
-    await userEvent.setup().click(
-      screen.getByTestId("resume-detail-view-original"),
-    );
-
-    await waitFor(() => {
-      const getCall = recorded.find((req) =>
-        req.url.endsWith(`/resumes/${VERSION_ASSET_ID}`),
-      );
-      expect(getCall, "expected a getResume call").toBeTruthy();
-      expect(getCall!.headers["Accept-Language"]).toBe("zh");
-    });
-  });
-
-  it("ViewSwitcher buttons expose role=tab and aria-selected reflecting the active group", async () => {
+  it("the list table exposes row + columnheader roles for assistive tech", async () => {
     const client = buildClientWithSpy("default");
     renderScreen(client, { name: "resume_versions", params: {} });
     await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-workshop-view-switcher-tree"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("resume-workshop-table")).toBeInTheDocument();
     });
-    const tree = screen.getByTestId("resume-workshop-view-switcher-tree");
-    const flat = screen.getByTestId("resume-workshop-view-switcher-flat");
-    expect(tree).toHaveAttribute("role", "tab");
-    expect(flat).toHaveAttribute("role", "tab");
-    expect(tree).toHaveAttribute("aria-selected", "true");
-    expect(flat).toHaveAttribute("aria-selected", "false");
-
-    await userEvent.setup().click(flat);
-    await waitFor(() =>
-      expect(flat).toHaveAttribute("aria-selected", "true"),
-    );
-    expect(tree).toHaveAttribute("aria-selected", "false");
+    const table = within(screen.getByTestId("resume-workshop-table"));
+    expect(table.getAllByRole("columnheader").length).toBeGreaterThan(0);
+    expect(table.getAllByRole("row").length).toBeGreaterThan(0);
   });
 
-  it("Tree row toggle exposes aria-expanded that flips on click (keyboard accessible)", async () => {
-    const client = buildClientWithSpy("default");
-    renderScreen(client, { name: "resume_versions", params: {} });
-    await waitFor(() => {
-      expect(
-        screen.getByTestId(`resume-tree-row-${FIRST_ASSET_ID}-toggle`),
-      ).toBeInTheDocument();
-    });
-    const toggle = screen.getByTestId(
-      `resume-tree-row-${FIRST_ASSET_ID}-toggle`,
-    );
-    expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(toggle.tagName.toLowerCase()).toBe("button");
-
-    await act(async () => {
-      toggle.focus();
-    });
-    await userEvent.setup().keyboard(" ");
-    await waitFor(() =>
-      expect(toggle).toHaveAttribute("aria-expanded", "false"),
-    );
-  });
-
-  it("Detail view tabs expose role=tab and aria-selected and the breadcrumb has an aria-label", async () => {
+  it("Detail view tabs expose role=tab and aria-selected and the tablist has an aria-label", async () => {
     const client = buildClientWithSpy("default");
     renderScreen(client, {
       name: "resume_versions",
-      params: { versionId: VERSION_ID, tab: "preview" },
+      params: { resumeId: RESUME_ID, tab: "preview" },
     });
     await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-detail-breadcrumb"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("resume-detail-crumb")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("resume-detail-breadcrumb")).toHaveAttribute(
-      "aria-label",
-    );
+    expect(screen.getByRole("tablist")).toHaveAttribute("aria-label");
     const previewTab = screen.getByTestId("resume-detail-tab-preview");
     expect(previewTab).toHaveAttribute("role", "tab");
     expect(previewTab).toHaveAttribute("aria-selected", "true");
@@ -257,7 +176,7 @@ describe("ResumeWorkshop i18n + Accept-Language + a11y (Phase 4)", () => {
     const client = buildClientWithSpy("default");
     renderScreen(client, {
       name: "resume_versions",
-      params: { versionId: VERSION_ID, tab: "preview" },
+      params: { resumeId: RESUME_ID, tab: "preview" },
     });
     await waitFor(() => {
       expect(

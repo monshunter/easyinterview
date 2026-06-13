@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { PaginatedResumeAsset } from "../../../../api/generated/types";
+import type { PaginatedResume } from "../../../../api/generated/types";
 import { useDisplayPreferencesOptional } from "../../../display/DisplayPreferencesProvider";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 
 export interface UseResumeAssetsResult {
   loading: boolean;
-  data: PaginatedResumeAsset | null;
+  data: PaginatedResume | null;
   error: Error | null;
   retry: () => void;
 }
@@ -18,7 +18,7 @@ export function useResumeAssets(): UseResumeAssetsResult {
   const lang = useDisplayPreferencesOptional()?.lang ?? "zh";
 
   const [loading, setLoading] = useState<boolean>(!!client && isAuthenticated);
-  const [data, setData] = useState<PaginatedResumeAsset | null>(null);
+  const [data, setData] = useState<PaginatedResume | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [reloadSeq, setReloadSeq] = useState(0);
   const requestSeqRef = useRef(0);

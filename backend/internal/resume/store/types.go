@@ -8,12 +8,11 @@ import (
 )
 
 type RegisterRequestPayload struct {
-	SourceType        string `json:"sourceType"`
-	Title             string `json:"title"`
-	Language          string `json:"language"`
-	FileObjectID      string `json:"fileObjectId,omitempty"`
-	RawTextHash       string `json:"rawTextHash,omitempty"`
-	GuidedAnswersHash string `json:"guidedAnswersHash,omitempty"`
+	SourceType   string `json:"sourceType"`
+	Title        string `json:"title"`
+	Language     string `json:"language"`
+	FileObjectID string `json:"fileObjectId,omitempty"`
+	RawTextHash  string `json:"rawTextHash,omitempty"`
 }
 
 type CreateAssetInput struct {
@@ -26,7 +25,6 @@ type CreateAssetInput struct {
 	Title          string
 	Language       string
 	RawText        string
-	GuidedAnswers  map[string]any
 	ParseStatus    sharedtypes.TargetJobParseStatus
 	JobStatus      sharedtypes.JobStatus
 	RequestPayload RegisterRequestPayload
@@ -42,16 +40,20 @@ type CreateAssetResult struct {
 	Existing     bool
 }
 
-type AssetRecord struct {
+// ResumeRecord is a single flat resume asset (D-20 flatten): a read-only source
+// snapshot plus the editable structured_profile / display_name merged in from
+// the retired structured_master version.
+type ResumeRecord struct {
 	ID                 string
 	UserID             string
 	FileObjectID       *string
 	Title              string
+	DisplayName        *string
 	Language           string
 	ParseStatus        sharedtypes.TargetJobParseStatus
 	ParsedSummary      json.RawMessage
 	OriginalText       *string
-	GuidedAnswers      json.RawMessage
+	StructuredProfile  json.RawMessage
 	ParsedTextSnapshot *string
 	SourceType         *string
 	ErrorCode          *string
@@ -59,6 +61,23 @@ type AssetRecord struct {
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 	DeletedAt          *time.Time
+}
+
+type UpdateResumeInput struct {
+	UserID            string
+	ResumeID          string
+	DisplayName       *string
+	StructuredProfile json.RawMessage
+	Now               time.Time
+}
+
+type DuplicateResumeInput struct {
+	NewResumeID       string
+	UserID            string
+	SourceResumeID    string
+	DisplayName       *string
+	StructuredProfile json.RawMessage
+	Now               time.Time
 }
 
 type VersionProvenance struct {
@@ -71,100 +90,15 @@ type VersionProvenance struct {
 	DataSourceVersion string
 }
 
-type CreateStructuredMasterInput struct {
-	VersionID         string
-	UserID            string
-	ResumeAssetID     string
-	DisplayName       string
-	StructuredProfile json.RawMessage
-	Provenance        VersionProvenance
-	Now               time.Time
-}
-
-type VersionRecord struct {
-	ID                string
-	UserID            string
-	ResumeAssetID     string
-	ParentVersionID   *string
-	VersionType       sharedtypes.ResumeVersionType
-	TargetJobID       *string
-	DisplayName       string
-	SeedStrategy      *sharedtypes.ResumeSeedStrategy
-	FocusAngle        *string
-	StructuredProfile json.RawMessage
-	MatchScore        *float64
-	PromptVersion     *string
-	RubricVersion     *string
-	ModelID           *string
-	Provider          *string
-	Provenance        VersionProvenance
-	Suggestions       []any
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
-	DeletedAt         *time.Time
-}
-
-type VersionListFilter struct {
-	Cursor   string
-	PageSize int
-}
-
-type VersionListResult struct {
-	Items      []VersionRecord
-	NextCursor string
-	HasMore    bool
-	PageSize   int
-}
-
-type VersionUpdateInput struct {
-	UserID                 string
-	VersionID              string
-	DisplayName            *string
-	DisplayNameSet         bool
-	FocusAngle             *string
-	FocusAngleSet          bool
-	MatchScore             *float64
-	MatchScoreSet          bool
-	StructuredProfile      json.RawMessage
-	StructuredProfileSet   bool
-	StructuredProfilePatch map[string]any
-	Now                    time.Time
-}
-
-type BranchVersionInput struct {
-	VersionID       string
-	UserID          string
-	ParentVersionID string
-	TargetJobID     string
-	SeedStrategy    sharedtypes.ResumeSeedStrategy
-	DisplayName     string
-	FocusAngle      *string
-	Provenance      VersionProvenance
-	TailorRunID     string
-	JobID           string
-	DedupeKey       string
-	Now             time.Time
-}
-
-type BranchVersionResult struct {
-	Version      VersionRecord
-	TailorRunID  string
-	JobID        string
-	JobStatus    sharedtypes.JobStatus
-	JobCreatedAt time.Time
-	JobUpdatedAt time.Time
-}
-
 type CreateTailorRunInput struct {
-	TailorRunID     string
-	JobID           string
-	UserID          string
-	TargetJobID     string
-	ResumeAssetID   string
-	ResumeVersionID string
-	Mode            string
-	DedupeKey       string
-	Now             time.Time
+	TailorRunID string
+	JobID       string
+	UserID      string
+	TargetJobID string
+	ResumeID    string
+	Mode        string
+	DedupeKey   string
+	Now         time.Time
 }
 
 type CreateTailorRunResult struct {
@@ -175,45 +109,28 @@ type CreateTailorRunResult struct {
 	JobUpdatedAt time.Time
 }
 
+// TailorRunRecord reconstructs a tailor run from the async_jobs row that drives
+// it (D-20 dropped the dedicated resume_tailor_runs table). The result jsonb
+// carries the ephemeral match summary, bullet suggestions, and provenance.
 type TailorRunRecord struct {
-	ID            string
-	UserID        string
-	TargetJobID   string
-	ResumeAssetID string
-	Mode          string
-	Status        string
-	MatchSummary  json.RawMessage
-	Suggestions   json.RawMessage
-	Provenance    VersionProvenance
-	ErrorCode     *string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-}
-
-type TailorRunStatusInput struct {
-	TailorRunID string
-	Now         time.Time
-}
-
-type TailorRunReadyInput struct {
-	TailorRunID  string
+	ID           string
+	UserID       string
+	TargetJobID  string
+	ResumeID     string
+	Mode         string
+	Status       string
 	MatchSummary json.RawMessage
 	Suggestions  json.RawMessage
 	Provenance   VersionProvenance
-	Now          time.Time
-}
-
-type TailorRunFailureInput struct {
-	TailorRunID string
-	ErrorCode   string
-	Now         time.Time
+	ErrorCode    *string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type TailorJobContext struct {
 	TailorRunID       string
 	UserID            string
-	ResumeVersionID   string
-	ResumeAssetID     string
+	ResumeID          string
 	TargetJobID       string
 	Mode              string
 	Language          string
@@ -236,7 +153,9 @@ type TailorSuggestionInput struct {
 
 type CompleteTailorRunSuccessInput struct {
 	TailorRunID        string
-	ResumeVersionID    string
+	ResumeID           string
+	TargetJobID        string
+	Mode               string
 	MatchSummary       json.RawMessage
 	Suggestions        []TailorSuggestionInput
 	Provenance         VersionProvenance
@@ -245,21 +164,13 @@ type CompleteTailorRunSuccessInput struct {
 	Now                time.Time
 }
 
-type DecideSuggestionInput struct {
-	UserID          string
-	ResumeVersionID string
-	SuggestionID    string
-	Decision        sharedtypes.ResumeTailorSuggestionStatus
-	Now             time.Time
-}
-
 type ListFilter struct {
 	Cursor   string
 	PageSize int
 }
 
 type ListResult struct {
-	Items      []AssetRecord
+	Items      []ResumeRecord
 	NextCursor string
 	HasMore    bool
 	PageSize   int
@@ -275,6 +186,7 @@ type MarkReadyInput struct {
 	UserID             string
 	AssetID            string
 	ParsedSummary      json.RawMessage
+	StructuredProfile  json.RawMessage
 	ParsedTextSnapshot string
 	Now                time.Time
 }
@@ -293,7 +205,6 @@ type ParseAssetRecord struct {
 	ParseStatus   sharedtypes.TargetJobParseStatus
 	SourceType    string
 	OriginalText  string
-	GuidedAnswers json.RawMessage
 	FileObjectID  string
 	FileObjectKey string
 }
@@ -302,6 +213,7 @@ type CompleteParseSuccessInput struct {
 	UserID             string
 	AssetID            string
 	ParsedSummary      json.RawMessage
+	StructuredProfile  json.RawMessage
 	ParsedTextSnapshot string
 	OutboxEventID      string
 	OutboxEventPayload []byte

@@ -1,91 +1,36 @@
-import { useCallback, useMemo, useState, type FC } from "react";
+import { useCallback, useMemo, type FC } from "react";
 
-import { useI18n, type MessageKey } from "../../../i18n/messages";
+import { useI18n } from "../../../i18n/messages";
 import { useNavigation } from "../../../navigation/NavigationProvider";
-import {
-  mapResumeAssetToUiSource,
-  mapResumeVersionToUi,
-  type UiResumeSource,
-  type UiResumeVersion,
-} from "../adapters/resume";
+import { mapResumeToUiSource, type UiResumeSource } from "../adapters/resume";
 import { useResumeAssets } from "../hooks/useResumeAssets";
-import { useResumeVersions } from "../hooks/useResumeVersions";
-import { ResumeFlatView } from "./ResumeFlatView";
 import { ResumeWorkshopIcon } from "./ResumeWorkshopIcon";
-import { ResumeTreeView } from "./ResumeTreeView";
 
-type GroupBy = "tree" | "flat";
-
+/**
+ * D-20 flat list view — source-level replica of `ResumeListView` in
+ * ui-design/src/screen-resume-workshop.jsx. A single flat table of resumes
+ * sorted by last edit; no version tree, no stats strip, no view switcher.
+ */
 export const ResumeListView: FC = () => {
   const { t } = useI18n();
   const { navigate } = useNavigation();
-  const assetsQuery = useResumeAssets();
-  const primerAssetId = assetsQuery.data?.items[0]?.id ?? null;
-  const versionsQuery = useResumeVersions(primerAssetId);
-  const [groupBy, setGroupBy] = useState<GroupBy>("tree");
-  const [selectedTreeId, setSelectedTreeId] = useState<string | null>(null);
+  const resumesQuery = useResumeAssets();
 
-  const sources = useMemo<UiResumeSource[]>(
-    () => assetsQuery.data?.items.map(mapResumeAssetToUiSource) ?? [],
-    [assetsQuery.data],
-  );
-  const versions = useMemo<UiResumeVersion[]>(
-    () => versionsQuery.data?.items.map(mapResumeVersionToUi) ?? [],
-    [versionsQuery.data],
+  const resumes = useMemo<UiResumeSource[]>(
+    () => resumesQuery.data?.items.map(mapResumeToUiSource) ?? [],
+    [resumesQuery.data],
   );
 
-  const versionsByAsset = useMemo(() => {
-    const map = new Map<string, UiResumeVersion[]>();
-    for (const version of versions) {
-      const list = map.get(version.originalId) ?? [];
-      list.push(version);
-      map.set(version.originalId, list);
-    }
-    return map;
-  }, [versions]);
-
-  const stats = useMemo(() => {
-    const totalOriginals = sources.length;
-    const activeOriginals = sources.filter((source) => source.status === "active").length;
-    const totalVersions = versions.length;
-    const targetedVersions = versions.filter((v) => v.tag === "TARGETED").length;
-    const matches = versions
-      .map((v) => v.match)
-      .filter((value): value is number => value !== null);
-    const topMatch = matches.length > 0 ? Math.max(...matches) : null;
-    const topMatchVersion =
-      topMatch === null ? null : versions.find((v) => v.match === topMatch) ?? null;
-    const recentVersion = [...versions].sort((a, b) =>
-      b.date.localeCompare(a.date),
-    )[0] ?? null;
-    return {
-      activeOriginals,
-      totalOriginals,
-      totalVersions,
-      targetedVersions,
-      topMatch,
-      topMatchLabel: topMatchVersion?.target ?? topMatchVersion?.name ?? null,
-      recent: recentVersion?.date ?? null,
-      recentLabel:
-        recentVersion === null
-          ? null
-          : `v · ${recentVersion.target ?? recentVersion.name}`,
-    };
-  }, [sources, versions]);
-
-  const selectedTree = useMemo(
-    () => sources.find((source) => source.id === selectedTreeId) ?? null,
-    [selectedTreeId, sources],
+  const sorted = useMemo(
+    () => [...resumes].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    [resumes],
   );
 
-  const onOpenVersion = useCallback(
-    (version: UiResumeVersion) => {
+  const onOpen = useCallback(
+    (resumeId: string) => {
       navigate({
         name: "resume_versions",
-        params: {
-          versionId: version.id,
-          tab: version.tag === "TARGETED" ? "rewrites" : "preview",
-        },
+        params: { resumeId, tab: "preview" },
       });
     },
     [navigate],
@@ -97,17 +42,7 @@ export const ResumeListView: FC = () => {
     });
   }, [navigate]);
 
-  const onBranch = useCallback(
-    (sourceId: string) => {
-      navigate({
-        name: "resume_versions",
-        params: { flow: "branch", branchOriginalId: sourceId },
-      });
-    },
-    [navigate],
-  );
-
-  if (assetsQuery.loading) {
+  if (resumesQuery.loading) {
     return (
       <div data-testid="resume-workshop-list" className="ei-screen-card">
         <span className="ei-text-body" role="status">
@@ -117,7 +52,7 @@ export const ResumeListView: FC = () => {
     );
   }
 
-  if (assetsQuery.error) {
+  if (resumesQuery.error) {
     return (
       <div data-testid="resume-workshop-list" className="ei-screen-card">
         <p className="ei-text-body" role="alert">
@@ -127,44 +62,7 @@ export const ResumeListView: FC = () => {
           type="button"
           className="ei-cta"
           data-testid="resume-workshop-list-retry"
-          onClick={assetsQuery.retry}
-        >
-          {t("workspace.errors.retry")}
-        </button>
-      </div>
-    );
-  }
-
-  const versionsPending =
-    sources.length > 0 &&
-    primerAssetId !== null &&
-    !versionsQuery.data &&
-    !versionsQuery.error;
-
-  if (versionsPending || (versionsQuery.loading && sources.length > 0)) {
-    return (
-      <div data-testid="resume-workshop-list" className="ei-screen-card">
-        <span className="ei-text-body" role="status">
-          {t("resumeWorkshop.list.loading")}
-        </span>
-      </div>
-    );
-  }
-
-  if (versionsQuery.error) {
-    return (
-      <div
-        data-testid="resume-workshop-versions-error"
-        className="ei-screen-card"
-      >
-        <p className="ei-text-body" role="alert">
-          {t("resumeWorkshop.list.versionsError")}
-        </p>
-        <button
-          type="button"
-          className="ei-cta"
-          data-testid="resume-workshop-versions-retry"
-          onClick={versionsQuery.retry}
+          onClick={resumesQuery.retry}
         >
           {t("workspace.errors.retry")}
         </button>
@@ -173,11 +71,7 @@ export const ResumeListView: FC = () => {
   }
 
   return (
-    <div
-      data-testid="resume-workshop-list"
-      data-group-by={groupBy}
-      className="ei-resume-workshop-list"
-    >
+    <div data-testid="resume-workshop-list" className="ei-resume-workshop-list">
       <header className="ei-resume-workshop-list-header">
         <div>
           <span className="ei-text-label">{t("resumeWorkshop.eyebrow")}</span>
@@ -195,87 +89,72 @@ export const ResumeListView: FC = () => {
         </button>
       </header>
 
-      <StatsStrip
-        activeOriginals={stats.activeOriginals}
-        totalOriginals={stats.totalOriginals}
-        totalVersions={stats.totalVersions}
-        targetedVersions={stats.targetedVersions}
-        topMatch={stats.topMatch}
-        topMatchLabel={stats.topMatchLabel}
-        recent={stats.recent}
-        recentLabel={stats.recentLabel}
-        translate={t}
-      />
-
-      <div className="ei-resume-workshop-view-row">
-        <ViewSwitcher value={groupBy} onChange={setGroupBy} translate={t} />
-        <div
-          className="ei-resume-workshop-view-context"
-          data-testid="resume-workshop-view-context"
-        >
-          {groupBy === "tree"
-            ? t("resumeWorkshop.viewContext.tree")
-            : t("resumeWorkshop.viewContext.flat")}
-        </div>
-      </div>
-
-      {groupBy === "tree" && selectedTree ? (
-        <div
-          className="ei-resume-workshop-selected-tree"
-          data-testid="resume-workshop-selected-tree-helper"
-        >
-          <div className="ei-resume-workshop-selected-tree-copy">
-            <ResumeWorkshopIcon name="check" size={12} />
-            <span>{t("resumeWorkshop.tree.selectedHelper")}</span>
-            <span className="ei-resume-workshop-selected-tree-name">
-              {selectedTree.name}
-            </span>
-          </div>
-          <div className="ei-resume-workshop-selected-tree-actions">
-            <button
-              type="button"
-              data-testid="resume-workshop-selected-tree-clear"
-              onClick={() => setSelectedTreeId(null)}
-            >
-              {t("resumeWorkshop.tree.clearSelection")}
-            </button>
-            <button
-              type="button"
-              data-testid="resume-workshop-selected-tree-branch"
-              onClick={() => onBranch(selectedTree.id)}
-            >
-              <ResumeWorkshopIcon name="plus" size={12} />
-              {t("resumeWorkshop.tree.newVersion")}
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {sources.length === 0 ? (
-        <div
-          data-testid="resume-workshop-list-empty"
-          className="ei-screen-card"
-        >
+      {sorted.length === 0 ? (
+        <div data-testid="resume-workshop-list-empty" className="ei-screen-card">
           <p className="ei-text-body">{t("resumeWorkshop.list.empty")}</p>
         </div>
-      ) : groupBy === "tree" ? (
-        <ResumeTreeView
-          sources={sources}
-          versionsByAsset={versionsByAsset}
-          onOpenVersion={onOpenVersion}
-          selectedSourceId={selectedTreeId}
-          onSelectSource={setSelectedTreeId}
-          onCreate={onCreate}
-        />
       ) : (
-        <ResumeFlatView
-          sources={sources}
-          versions={versions}
-          onOpenVersion={onOpenVersion}
-        />
+        <div className="ei-resume-workshop-table" data-testid="resume-workshop-table">
+          <div className="ei-resume-workshop-table-head" role="row">
+            <span role="columnheader">{t("resumeWorkshop.list.colResume")}</span>
+            <span role="columnheader">{t("resumeWorkshop.list.colSource")}</span>
+            <span role="columnheader">{t("resumeWorkshop.list.colLang")}</span>
+            <span role="columnheader">{t("resumeWorkshop.list.colLastEdit")}</span>
+            <span role="columnheader" aria-hidden="true" />
+          </div>
+          {sorted.map((resume) => (
+            <div
+              key={resume.id}
+              role="row"
+              data-testid={`resume-list-row-${resume.id}`}
+              className="ei-resume-workshop-table-row"
+            >
+              <div className="ei-resume-workshop-table-name">
+                <ResumeWorkshopIcon name="resume" size={13} />
+                <div>
+                  <div className="ei-resume-workshop-table-name-main">
+                    {resume.name}
+                  </div>
+                  <div className="ei-resume-workshop-table-name-sub">
+                    {resume.summary}
+                  </div>
+                </div>
+              </div>
+              <div className="ei-resume-workshop-table-source">
+                {resume.sourceName}
+              </div>
+              <div className="ei-resume-workshop-table-lang">
+                <span className="ei-resume-workshop-lang-tag">
+                  {resume.langTag}
+                </span>
+              </div>
+              <div className="ei-resume-workshop-table-date">
+                {resume.updatedAt}
+              </div>
+              <button
+                type="button"
+                data-testid={`resume-list-open-${resume.id}`}
+                className="ei-resume-workshop-table-open"
+                onClick={() => onOpen(resume.id)}
+              >
+                {t("resumeWorkshop.list.open")}
+              </button>
+            </div>
+          ))}
+        </div>
       )}
 
-      {assetsQuery.data?.pageInfo.hasMore ? (
+      <button
+        type="button"
+        className="ei-resume-workshop-upload-cta"
+        data-testid="resume-workshop-upload-cta"
+        onClick={onCreate}
+      >
+        <ResumeWorkshopIcon name="upload" size={14} />
+        {t("resumeWorkshop.list.uploadAnother")}
+      </button>
+
+      {resumesQuery.data?.pageInfo.hasMore ? (
         <div
           data-testid="resume-workshop-list-paginated"
           className="ei-text-body"
@@ -286,124 +165,3 @@ export const ResumeListView: FC = () => {
     </div>
   );
 };
-
-interface StatsStripProps {
-  activeOriginals: number;
-  totalOriginals: number;
-  totalVersions: number;
-  targetedVersions: number;
-  topMatch: number | null;
-  topMatchLabel: string | null;
-  recent: string | null;
-  recentLabel: string | null;
-  translate: (key: MessageKey) => string;
-}
-
-const StatsStrip: FC<StatsStripProps> = ({
-  activeOriginals,
-  totalOriginals,
-  totalVersions,
-  targetedVersions,
-  topMatch,
-  topMatchLabel,
-  recent,
-  recentLabel,
-  translate,
-}) => (
-  <ul className="ei-resume-workshop-stats">
-    <li
-      data-testid="resume-workshop-stats-originals"
-      className="ei-resume-workshop-stat"
-    >
-      <span className="ei-text-label">
-        {translate("resumeWorkshop.stats.originals")}
-      </span>
-      <span className="ei-text-title">{`${activeOriginals} / ${totalOriginals}`}</span>
-      <span className="ei-resume-workshop-stat-sub">
-        {translate("resumeWorkshop.stats.originalsSub")}
-      </span>
-    </li>
-    <li
-      data-testid="resume-workshop-stats-versions"
-      className="ei-resume-workshop-stat"
-    >
-      <span className="ei-text-label">
-        {translate("resumeWorkshop.stats.versions")}
-      </span>
-      <span className="ei-text-title">{totalVersions}</span>
-      <span className="ei-resume-workshop-stat-sub">
-        {translate("resumeWorkshop.stats.versionsSub").replace(
-          "{count}",
-          String(targetedVersions),
-        )}
-      </span>
-    </li>
-    <li
-      data-testid="resume-workshop-stats-top-match"
-      className="ei-resume-workshop-stat"
-    >
-      <span className="ei-text-label">
-        {translate("resumeWorkshop.stats.topMatch")}
-      </span>
-      <span className="ei-text-title">
-        {topMatch !== null
-          ? `${topMatch}%`
-          : translate("resumeWorkshop.stats.empty")}
-      </span>
-      <span className="ei-resume-workshop-stat-sub">
-        {topMatchLabel ?? translate("resumeWorkshop.stats.empty")}
-      </span>
-    </li>
-    <li
-      data-testid="resume-workshop-stats-recent"
-      className="ei-resume-workshop-stat"
-    >
-      <span className="ei-text-label">
-        {translate("resumeWorkshop.stats.recent")}
-      </span>
-      <span className="ei-text-title">
-        {recent ?? translate("resumeWorkshop.stats.empty")}
-      </span>
-      <span className="ei-resume-workshop-stat-sub">
-        {recentLabel ?? translate("resumeWorkshop.stats.empty")}
-      </span>
-    </li>
-  </ul>
-);
-
-interface ViewSwitcherProps {
-  value: GroupBy;
-  onChange: (next: GroupBy) => void;
-  translate: (key: MessageKey) => string;
-}
-
-const ViewSwitcher: FC<ViewSwitcherProps> = ({ value, onChange, translate }) => (
-  <div
-    role="tablist"
-    aria-label={translate("resumeWorkshop.eyebrow")}
-    className="ei-resume-workshop-view-switcher"
-  >
-    <button
-      type="button"
-      data-testid="resume-workshop-view-switcher-tree"
-      data-active={value === "tree" ? "true" : "false"}
-      role="tab"
-      aria-selected={value === "tree"}
-      onClick={() => onChange("tree")}
-    >
-      <ResumeWorkshopIcon name="file" size={12} />
-      {translate("resumeWorkshop.viewSwitcher.tree")}
-    </button>
-    <button
-      type="button"
-      data-testid="resume-workshop-view-switcher-flat"
-      data-active={value === "flat" ? "true" : "false"}
-      role="tab"
-      aria-selected={value === "flat"}
-      onClick={() => onChange("flat")}
-    >
-      <ResumeWorkshopIcon name="layers" size={12} />
-      {translate("resumeWorkshop.viewSwitcher.flat")}
-    </button>
-  </div>
-);

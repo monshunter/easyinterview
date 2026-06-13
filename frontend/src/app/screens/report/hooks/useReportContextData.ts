@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { ResumeVersion, TargetJob } from "../../../../api/generated/types";
+import type { Resume, TargetJob } from "../../../../api/generated/types";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 
 export interface ReportContextLabels {
@@ -14,11 +14,11 @@ export interface ReportContextLabels {
 
 interface UseReportContextDataOptions {
   targetJobId?: string;
-  resumeVersionId?: string;
+  resumeId?: string;
 }
 
 /**
- * Fetches the two label-only operations (`getTargetJob` + `getResumeVersion`)
+ * Fetches the two label-only operations (`getTargetJob` + `getResume`)
  * required by ReportContextStrip. Each failure independently falls back to the
  * id (per plan §3.7 mapping table) so a single broken upstream never blocks
  * the report body.
@@ -30,7 +30,7 @@ interface UseReportContextDataOptions {
 export function useReportContextData(
   options: UseReportContextDataOptions,
 ): ReportContextLabels {
-  const { targetJobId, resumeVersionId } = options;
+  const { targetJobId, resumeId } = options;
   const runtime = useAppRuntimeOptional();
   const client = runtime?.client ?? null;
 
@@ -38,13 +38,13 @@ export function useReportContextData(
     targetJobId ?? null,
   );
   const [resumeLabel, setResumeLabel] = useState<string | null>(
-    resumeVersionId ?? null,
+    resumeId ?? null,
   );
   const [targetLoading, setTargetLoading] = useState<boolean>(
     Boolean(client && targetJobId),
   );
   const [resumeLoading, setResumeLoading] = useState<boolean>(
-    Boolean(client && resumeVersionId),
+    Boolean(client && resumeId),
   );
 
   const targetSeqRef = useRef(0);
@@ -83,34 +83,34 @@ export function useReportContextData(
   }, [client, targetJobId]);
 
   useEffect(() => {
-    if (!client || !resumeVersionId) {
-      setResumeLabel(resumeVersionId ?? null);
+    if (!client || !resumeId) {
+      setResumeLabel(resumeId ?? null);
       setResumeLoading(false);
       return;
     }
     const seq = resumeSeqRef.current + 1;
     resumeSeqRef.current = seq;
     setResumeLoading(true);
-    setResumeLabel(resumeVersionId);
+    setResumeLabel(resumeId);
     const controller = new AbortController();
     client
-      .getResumeVersion(resumeVersionId, { signal: controller.signal })
-      .then((resume: ResumeVersion) => {
+      .getResume(resumeId, { signal: controller.signal })
+      .then((resume: Resume) => {
         if (resumeSeqRef.current !== seq) return;
-        const label = buildResumeLabel(resume, resumeVersionId);
+        const label = buildResumeLabel(resume, resumeId);
         setResumeLabel(label);
         setResumeLoading(false);
       })
       .catch((err: unknown) => {
         if (resumeSeqRef.current !== seq) return;
         if (isAbortError(err)) return;
-        setResumeLabel(resumeVersionId);
+        setResumeLabel(resumeId);
         setResumeLoading(false);
       });
     return () => {
       controller.abort();
     };
-  }, [client, resumeVersionId]);
+  }, [client, resumeId]);
 
   return {
     targetLabel,
@@ -133,12 +133,10 @@ function buildTargetLabel(job: TargetJob, fallback: string): string {
   return fallback;
 }
 
-function buildResumeLabel(resume: ResumeVersion, fallback: string): string {
+function buildResumeLabel(resume: Resume, fallback: string): string {
   const bag = resume as unknown as Record<string, unknown>;
-  const display = readString(bag, ["displayName", "label", "name"]);
+  const display = readString(bag, ["displayName", "title", "label", "name"]);
   if (display) return display;
-  const versionLabel = readString(bag, ["versionLabel"]);
-  if (versionLabel) return versionLabel;
   return fallback;
 }
 

@@ -405,7 +405,7 @@ func fixtureCreatePlanRequest() api.CreatePracticePlanRequest {
 		Language:             "zh-CN",
 		QuestionBudget:       6,
 		TimeBudgetMinutes:    30,
-		ResumeAssetId:        "01918fa0-0000-7000-8000-000000001000",
+		ResumeId:             "01918fa0-0000-7000-8000-000000001000",
 		FocusCompetencyCodes: []string{"communication", "design-systems"},
 	}
 }

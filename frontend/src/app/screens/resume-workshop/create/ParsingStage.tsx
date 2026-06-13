@@ -1,6 +1,6 @@
 import { useEffect, type FC } from "react";
 
-import type { ResumeAsset } from "../../../../api/generated/types";
+import type { Resume } from "../../../../api/generated/types";
 import {
   useResumeParsingPolling,
   type UseResumeParsingPollingOptions,
@@ -16,16 +16,16 @@ declare global {
 }
 
 export interface ParsingStageProps {
-  resumeAssetId: string;
+  resumeId: string;
   sourceLabel: string;
-  onReady: (asset: ResumeAsset, draft: PreviewDraft) => void;
+  onReady: (resume: Resume, draft: PreviewDraft) => void;
   onCancel: () => void;
   /** Optional polling overrides for tests. */
   pollingOptions?: UseResumeParsingPollingOptions;
 }
 
 export const ParsingStage: FC<ParsingStageProps> = ({
-  resumeAssetId,
+  resumeId,
   sourceLabel,
   onReady,
   onCancel,
@@ -37,7 +37,7 @@ export const ParsingStage: FC<ParsingStageProps> = ({
       ? window.__EI_RESUME_POLLING_OPTIONS__
       : undefined;
   const { snapshot, retry, cancel } = useResumeParsingPolling(
-    resumeAssetId,
+    resumeId,
     pollingOptions ?? testOverrides,
   );
 

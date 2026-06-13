@@ -25,14 +25,14 @@ func TestHandlerImplementsListResumesSurface(t *testing.T) {
 }
 
 func TestListResumesPassesPaginationAndUserScope(t *testing.T) {
-	svc := &fakeListService{out: api.PaginatedResumeAsset{
-		Items: []api.ResumeAsset{{
-			Id:          "asset-1",
+	svc := &fakeListService{out: api.PaginatedResume{
+		Items: []api.Resume{{
+			Id:          "resume-1",
 			Title:       "Resume",
 			Language:    "en",
 			ParseStatus: sharedtypes.TargetJobParseStatusReady,
-			CreatedAt:   "2026-05-13T01:00:00Z",
-			UpdatedAt:   "2026-05-13T01:00:00Z",
+			CreatedAt:   "2026-06-13T01:00:00Z",
+			UpdatedAt:   "2026-06-13T01:00:00Z",
 		}},
 		PageInfo: api.PageInfo{PageSize: 5, HasMore: true, NextCursor: strPtr("cursor-2")},
 	}}
@@ -71,7 +71,7 @@ func TestListResumesFixtureParity(t *testing.T) {
 			if rec.Code != fixture.Scenarios[scenario].Response.Status {
 				t.Fatalf("status = %d want %d body=%s", rec.Code, fixture.Scenarios[scenario].Response.Status, rec.Body.String())
 			}
-			var got api.PaginatedResumeAsset
+			var got api.PaginatedResume
 			if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 				t.Fatalf("decode response: %v", err)
 			}
@@ -99,11 +99,11 @@ func TestListResumesInvalidCursorReturnsUnprocessableEntity(t *testing.T) {
 type fakeListService struct {
 	fakeRegisterService
 	in  resume.ListRequest
-	out api.PaginatedResumeAsset
+	out api.PaginatedResume
 	err error
 }
 
-func (s *fakeListService) ListResumes(_ context.Context, in resume.ListRequest) (api.PaginatedResumeAsset, error) {
+func (s *fakeListService) ListResumes(_ context.Context, in resume.ListRequest) (api.PaginatedResume, error) {
 	s.in = in
 	return s.out, s.err
 }
@@ -113,8 +113,8 @@ func strPtr(v string) *string { return &v }
 type listFixture struct {
 	Scenarios map[string]struct {
 		Response struct {
-			Status int                      `json:"status"`
-			Body   api.PaginatedResumeAsset `json:"body"`
+			Status int                `json:"status"`
+			Body   api.PaginatedResume `json:"body"`
 		} `json:"response"`
 	} `json:"scenarios"`
 }

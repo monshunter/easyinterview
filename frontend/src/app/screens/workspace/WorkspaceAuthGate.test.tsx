@@ -75,7 +75,7 @@ const WORKSPACE_ROUTE: Route = {
   params: {
     targetJobId: "01918fa0-0000-7000-8000-000000002000",
     jdId: "jd-1",
-    resumeVersionId: "01918fa0-0000-7000-8000-000000001000",
+    resumeId: "01918fa0-0000-7000-8000-000000001000",
     roundId: "round-hr",
     planId: "",
   },
@@ -159,7 +159,7 @@ describe("WorkspaceAuthGate (Phase 4.8)", () => {
     expect(params.pendingType).toBe("start_practice");
     expect(params.targetJobId).toBe(WORKSPACE_ROUTE.params.targetJobId);
     expect(params.jdId).toBe(WORKSPACE_ROUTE.params.jdId);
-    expect(params.resumeVersionId).toBe(WORKSPACE_ROUTE.params.resumeVersionId);
+    expect(params.resumeId).toBe(WORKSPACE_ROUTE.params.resumeId);
     expect(params.roundId).toBe(WORKSPACE_ROUTE.params.roundId);
     expect(params.autoStartPractice).toBe("1");
     // PracticeDisplayContext fields

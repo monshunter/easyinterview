@@ -19,12 +19,12 @@ function context(overrides: Partial<InterviewContextState>): InterviewContextSta
 describe("buildCreatePlanRequest", () => {
   it("keeps valid server-bound ids in the generated client request body", () => {
     const body = buildCreatePlanRequest(
-      context({ resumeVersionId: VALID_RESUME_ID }),
+      context({ resumeId: VALID_RESUME_ID }),
       "en",
     );
 
     expect(body.targetJobId).toBe(VALID_TARGET_JOB_ID);
-    expect(body.resumeAssetId).toBe(VALID_RESUME_ID);
+    expect(body.resumeId).toBe(VALID_RESUME_ID);
     expect(body.goal).toBe("baseline");
     expect(body.sourceReportId).toBeUndefined();
   });
@@ -32,7 +32,7 @@ describe("buildCreatePlanRequest", () => {
   it("creates next_round plans from the source report id", () => {
     const body = buildCreatePlanRequest(
       context({
-        resumeVersionId: VALID_RESUME_ID,
+        resumeId: VALID_RESUME_ID,
         practiceGoal: "next_round",
         sourceReportId: VALID_REPORT_ID,
       }),
@@ -47,7 +47,7 @@ describe("buildCreatePlanRequest", () => {
     expect(() =>
       buildCreatePlanRequest(
         context({
-          resumeVersionId: VALID_RESUME_ID,
+          resumeId: VALID_RESUME_ID,
           practiceGoal: "next_round",
         }),
         "en",
@@ -58,10 +58,10 @@ describe("buildCreatePlanRequest", () => {
   it("rejects synthetic resume placeholders instead of sending incomplete API bodies", () => {
     expect(() =>
       buildCreatePlanRequest(
-        context({ resumeVersionId: "resume-unbound" }),
+        context({ resumeId: "resume-unbound" }),
         "en",
       ),
-    ).toThrow("invalid resumeAssetId");
+    ).toThrow("invalid resumeId");
   });
 
   it("rejects synthetic target ids instead of sending them to generated APIs", () => {

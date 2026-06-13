@@ -1,23 +1,23 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { DisplayPreferencesProvider } from "../../../display/DisplayPreferencesProvider";
 import { buildResumePlainText } from "../adapters/resume";
-import getResumeVersionFixture from "../../../../../../openapi/fixtures/Resumes/getResumeVersion.json";
-import type { ResumeVersion } from "../../../../api/generated/types";
+import getResumeFixture from "../../../../../../openapi/fixtures/Resumes/getResume.json";
+import type { Resume } from "../../../../api/generated/types";
 import { ResumePreviewTab } from "./ResumePreviewTab";
 
-const TARGETED_VERSION =
-  getResumeVersionFixture.scenarios.default.response.body as unknown as ResumeVersion;
+const RESUME = getResumeFixture.scenarios.default.response.body as unknown as Resume;
 
-function renderPreview(version: ResumeVersion) {
+function renderPreview(resume: Resume) {
   return render(
     <DisplayPreferencesProvider>
       <ResumePreviewTab
-        version={version}
+        resume={resume}
         onExport={vi.fn()}
+        onCopy={vi.fn()}
         onViewOriginal={vi.fn()}
       />
     </DisplayPreferencesProvider>,
@@ -25,52 +25,45 @@ function renderPreview(version: ResumeVersion) {
 }
 
 describe("ResumePreviewTab content rendering and copy-to-clipboard", () => {
-  it("renders the headline, summary, sections, and skills derived from structuredProfile", () => {
-    renderPreview(TARGETED_VERSION);
+  it("renders the headline, summary, and skills derived from structuredProfile", () => {
+    renderPreview(RESUME);
     const card = screen.getByTestId("resume-detail-preview-content");
-    expect(card).toHaveTextContent("Senior frontend engineer");
-    expect(card).toHaveTextContent("Highlights reliability");
-    expect(card).toHaveTextContent("Selected evidence");
-    expect(card).toHaveTextContent("Reduced checkout incident follow-ups");
+    expect(card).toHaveTextContent(
+      "Senior frontend engineer for platform-heavy product teams",
+    );
+    expect(card).toHaveTextContent(
+      "Highlights reliability, release quality, and ownership evidence.",
+    );
     expect(card).toHaveTextContent("React");
     expect(card).toHaveTextContent("TypeScript");
+    expect(card).toHaveTextContent("Observability");
   });
 
-  it("fires a toast when Copy is clicked (copy success when clipboard exists, warn otherwise)", async () => {
-    const toastCalls: { message: string; tone?: string }[] = [];
-    (
-      window as unknown as {
-        eiToast?: (msg: string, opts?: { tone?: string }) => void;
-      }
-    ).eiToast = (message, opts) => {
-      toastCalls.push({ message, tone: opts?.tone });
-    };
+  it("invokes onCopy when Copy text is clicked", async () => {
+    const onCopy = vi.fn();
+    render(
+      <DisplayPreferencesProvider>
+        <ResumePreviewTab
+          resume={RESUME}
+          onExport={vi.fn()}
+          onCopy={onCopy}
+          onViewOriginal={vi.fn()}
+        />
+      </DisplayPreferencesProvider>,
+    );
 
-    try {
-      renderPreview(TARGETED_VERSION);
-      const button = screen.getByTestId("resume-detail-copy-text");
-      await userEvent.setup().click(button);
-
-      await waitFor(() => {
-        expect(toastCalls.length).toBeGreaterThan(0);
-      });
-      const last = toastCalls[toastCalls.length - 1]!;
-      expect(last.message).toMatch(/复制|copy|copi|剪贴板|clipboard/i);
-    } finally {
-      delete (
-        window as unknown as {
-          eiToast?: (msg: string, opts?: { tone?: string }) => void;
-        }
-      ).eiToast;
-    }
+    await userEvent.setup().click(screen.getByTestId("resume-detail-copy-text"));
+    expect(onCopy).toHaveBeenCalledTimes(1);
   });
 
-  it("buildResumePlainText projects headline, summary, sections, and skills", () => {
-    const text = buildResumePlainText(TARGETED_VERSION);
-    expect(text).toContain("Senior frontend engineer");
-    expect(text).toContain("Highlights reliability");
-    expect(text).toContain("Selected evidence");
-    expect(text).toContain("- Reduced checkout incident follow-ups");
+  it("buildResumePlainText projects headline, summary, and skills", () => {
+    const text = buildResumePlainText(RESUME);
+    expect(text).toContain(
+      "Senior frontend engineer for platform-heavy product teams",
+    );
+    expect(text).toContain(
+      "Highlights reliability, release quality, and ownership evidence.",
+    );
     expect(text).toContain("React");
   });
 
@@ -80,8 +73,9 @@ describe("ResumePreviewTab content rendering and copy-to-clipboard", () => {
     render(
       <DisplayPreferencesProvider>
         <ResumePreviewTab
-          version={TARGETED_VERSION}
+          resume={RESUME}
           onExport={onExport}
+          onCopy={vi.fn()}
           onViewOriginal={onViewOriginal}
         />
       </DisplayPreferencesProvider>,

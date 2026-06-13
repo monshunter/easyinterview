@@ -1,0 +1,118 @@
+{
+  "operationId": "duplicateResume",
+  "scenarios": {
+    "default": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "01918fa0-0000-7a00-8a00-0000000d5001"
+        },
+        "body": {
+          "displayName": "Northstar Systems frontend target - saved copy",
+          "structuredProfile": {
+            "headline": "Senior frontend engineer for platform-heavy product teams",
+            "summary": "Highlights reliability, release quality, and ownership evidence.",
+            "skills": ["React", "TypeScript", "Observability"],
+            "sections": [],
+            "provenance": {
+              "promptVersion": "resume_profile.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:resume_profile.v1",
+              "language": "zh-CN",
+              "featureFlag": "none",
+              "dataSourceVersion": "resume.v1"
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-45-00-duplicate-resume"
+        },
+        "body": {
+          "id": "0195f2d0-0003-7000-8000-000000001030",
+          "title": "Alice Example - Senior Frontend Engineer",
+          "displayName": "Northstar Systems frontend target - saved copy",
+          "language": "zh-CN",
+          "parseStatus": "ready",
+          "status": "active",
+          "sourceType": "upload",
+          "fileObjectId": "01918fa0-0000-7000-8000-000000001100",
+          "structuredProfile": {
+            "headline": "Senior frontend engineer for platform-heavy product teams",
+            "summary": "Highlights reliability, release quality, and ownership evidence.",
+            "skills": ["React", "TypeScript", "Observability"],
+            "sections": [],
+            "provenance": {
+              "promptVersion": "resume_profile.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:resume_profile.v1",
+              "language": "zh-CN",
+              "featureFlag": "none",
+              "dataSourceVersion": "resume.v1"
+            }
+          },
+          "createdAt": "2026-05-12T08:45:00Z",
+          "updatedAt": "2026-05-12T08:45:00Z"
+        }
+      }
+    },
+    "idempotency-replay": {
+      "request": {
+        "headers": {
+          "Idempotency-Key": "01918fa0-0000-7a00-8a00-0000000d5001"
+        },
+        "body": {
+          "displayName": "Northstar Systems frontend target - saved copy",
+          "structuredProfile": {
+            "headline": "Senior frontend engineer for platform-heavy product teams",
+            "summary": "Highlights reliability, release quality, and ownership evidence.",
+            "skills": ["React", "TypeScript", "Observability"],
+            "sections": [],
+            "provenance": {
+              "promptVersion": "resume_profile.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:resume_profile.v1",
+              "language": "zh-CN",
+              "featureFlag": "none",
+              "dataSourceVersion": "resume.v1"
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "X-Request-ID": "req_2026-05-12T08-45-00-duplicate-resume",
+          "X-Idempotency-Replayed": "true"
+        },
+        "body": {
+          "id": "0195f2d0-0003-7000-8000-000000001030",
+          "title": "Alice Example - Senior Frontend Engineer",
+          "displayName": "Northstar Systems frontend target - saved copy",
+          "language": "zh-CN",
+          "parseStatus": "ready",
+          "status": "active",
+          "sourceType": "upload",
+          "fileObjectId": "01918fa0-0000-7000-8000-000000001100",
+          "structuredProfile": {
+            "headline": "Senior frontend engineer for platform-heavy product teams",
+            "summary": "Highlights reliability, release quality, and ownership evidence.",
+            "skills": ["React", "TypeScript", "Observability"],
+            "sections": [],
+            "provenance": {
+              "promptVersion": "resume_profile.v1",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:resume_profile.v1",
+              "language": "zh-CN",
+              "featureFlag": "none",
+              "dataSourceVersion": "resume.v1"
+            }
+          },
+          "createdAt": "2026-05-12T08:45:00Z",
+          "updatedAt": "2026-05-12T08:45:00Z"
+        }
+      }
+    }
+  }
+}

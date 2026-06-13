@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { ResumeAsset } from "../../../../../api/generated/types";
+import type { Resume } from "../../../../../api/generated/types";
 import { useAppRuntimeOptional } from "../../../../runtime/AppRuntimeProvider";
 import { useDisplayPreferencesOptional } from "../../../../display/DisplayPreferencesProvider";
 
@@ -14,7 +14,7 @@ export interface UseResumeParsingPollingOptions {
 export interface ParsingPollingSnapshot {
   status: "idle" | "polling" | "ready" | "failed";
   attempts: number;
-  asset: ResumeAsset | null;
+  asset: Resume | null;
   errorCode: string | null;
 }
 
@@ -30,7 +30,7 @@ const DEFAULT_MAX_ATTEMPTS = 8;
 const DEFAULT_MAX_TOTAL_MS = 30_000;
 
 export function useResumeParsingPolling(
-  resumeAssetId: string | null,
+  resumeId: string | null,
   options: UseResumeParsingPollingOptions = {},
 ): UseResumeParsingPollingResult {
   const runtime = useAppRuntimeOptional();
@@ -42,7 +42,7 @@ export function useResumeParsingPolling(
   const maxTotalMs = options.maxTotalMs ?? DEFAULT_MAX_TOTAL_MS;
 
   const [snapshot, setSnapshot] = useState<ParsingPollingSnapshot>({
-    status: resumeAssetId ? "polling" : "idle",
+    status: resumeId ? "polling" : "idle",
     attempts: 0,
     asset: null,
     errorCode: null,
@@ -52,7 +52,7 @@ export function useResumeParsingPolling(
   const sessionRef = useRef(0);
 
   useEffect(() => {
-    if (!resumeAssetId || !client) {
+    if (!resumeId || !client) {
       setSnapshot({ status: "idle", attempts: 0, asset: null, errorCode: null });
       return;
     }
@@ -75,7 +75,7 @@ export function useResumeParsingPolling(
       if (cancelRef.current || sessionRef.current !== sessionId) return;
       attempt += 1;
       try {
-        const asset = await client.getResume(resumeAssetId, {
+        const asset = await client.getResume(resumeId, {
           headers: { "Accept-Language": lang },
         });
         if (cancelRef.current || sessionRef.current !== sessionId) return;
@@ -133,12 +133,12 @@ export function useResumeParsingPolling(
     lang,
     maxAttempts,
     maxTotalMs,
-    resumeAssetId,
+    resumeId,
     retryEpoch,
   ]);
 
   const retry = useCallback(() => {
-    if (!resumeAssetId) return;
+    if (!resumeId) return;
     cancelRef.current = true;
     setSnapshot({
       status: "polling",
@@ -147,7 +147,7 @@ export function useResumeParsingPolling(
       errorCode: null,
     });
     setRetryEpoch((value) => value + 1);
-  }, [resumeAssetId]);
+  }, [resumeId]);
 
   const cancel = useCallback(() => {
     cancelRef.current = true;

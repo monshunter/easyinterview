@@ -11,7 +11,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 
 import type {
-  ResumeVersion,
+  Resume,
   TargetJob,
 } from "../../../../api/generated/types";
 import { EasyInterviewClient } from "../../../../api/generated/client";
@@ -19,11 +19,11 @@ import { AppRuntimeProvider } from "../../../runtime/AppRuntimeProvider";
 import { useReportContextData } from "../hooks/useReportContextData";
 
 const TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000002000";
-const RESUME_VERSION_ID = "01918fa0-0000-7000-8000-000000004000";
+const RESUME_ID = "01918fa0-0000-7000-8000-000000004000";
 
 interface ClientOpts {
   targetJob?: TargetJob | { reject: unknown };
-  resumeVersion?: ResumeVersion | { reject: unknown };
+  resume?: Resume | { reject: unknown };
 }
 
 function makeClient(opts: ClientOpts = {}): EasyInterviewClient {
@@ -40,12 +40,12 @@ function makeClient(opts: ClientOpts = {}): EasyInterviewClient {
     return next;
   });
   const resumeFn = vi.fn(async () => {
-    const next = opts.resumeVersion;
+    const next = opts.resume;
     if (!next) {
       return {
-        id: RESUME_VERSION_ID,
+        id: RESUME_ID,
         displayName: "Resume v3",
-      } as unknown as ResumeVersion;
+      } as unknown as Resume;
     }
     if ("reject" in next) throw next.reject;
     return next;
@@ -58,7 +58,7 @@ function makeClient(opts: ClientOpts = {}): EasyInterviewClient {
       throw new Error("HTTP 401 Unauthorized");
     },
     getTargetJob: targetFn,
-    getResumeVersion: resumeFn,
+    getResume: resumeFn,
   } as unknown as EasyInterviewClient;
 }
 
@@ -79,7 +79,7 @@ describe("useReportContextData", () => {
       () =>
         useReportContextData({
           targetJobId: TARGET_JOB_ID,
-          resumeVersionId: RESUME_VERSION_ID,
+          resumeId: RESUME_ID,
         }),
       {
         wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
@@ -98,7 +98,7 @@ describe("useReportContextData", () => {
       () =>
         useReportContextData({
           targetJobId: TARGET_JOB_ID,
-          resumeVersionId: RESUME_VERSION_ID,
+          resumeId: RESUME_ID,
         }),
       {
         wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
@@ -111,11 +111,11 @@ describe("useReportContextData", () => {
 
   it("does not read raw resume body or JD body fields (TestReportContextDataDoesNotReadRawBody)", async () => {
     const sensitiveResume = {
-      id: RESUME_VERSION_ID,
+      id: RESUME_ID,
       displayName: "Resume v3",
       originalText: "PRIVATE: do-not-leak",
       parsedTextSnapshot: "PRIVATE: snapshot",
-    } as unknown as ResumeVersion;
+    } as unknown as Resume;
     const sensitiveJob = {
       id: TARGET_JOB_ID,
       title: "Senior Frontend Engineer",
@@ -124,13 +124,13 @@ describe("useReportContextData", () => {
     } as unknown as TargetJob;
     const client = makeClient({
       targetJob: sensitiveJob,
-      resumeVersion: sensitiveResume,
+      resume: sensitiveResume,
     });
     const { result } = renderHook(
       () =>
         useReportContextData({
           targetJobId: TARGET_JOB_ID,
-          resumeVersionId: RESUME_VERSION_ID,
+          resumeId: RESUME_ID,
         }),
       {
         wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,

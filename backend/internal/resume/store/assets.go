@@ -10,11 +10,12 @@ import (
 	"strings"
 	"time"
 
-	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	"github.com/monshunter/easyinterview/backend/internal/shared/events"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
+
+const resumeAggregateType = "resume"
 
 type Repository struct {
 	db *sql.DB
@@ -24,18 +25,18 @@ func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) GetForParse(ctx context.Context, assetID string) (ParseAssetRecord, error) {
+func (r *Repository) GetForParse(ctx context.Context, resumeID string) (ParseAssetRecord, error) {
 	if r == nil || r.db == nil {
 		return ParseAssetRecord{}, fmt.Errorf("resume store db is nil")
 	}
 	row := r.db.QueryRowContext(ctx, `
-select ra.id, ra.user_id, ra.language, ra.parse_status, coalesce(ra.source_type, ''),
-       coalesce(ra.original_text, ''), coalesce(ra.guided_answers, '{}'::jsonb),
-       coalesce(ra.file_object_id::text, ''), coalesce(fo.object_key, '')
-from resume_assets ra
-left join file_objects fo on fo.id = ra.file_object_id and fo.deleted_at is null
-where ra.id = $1 and ra.deleted_at is null`,
-		assetID,
+select rs.id, rs.user_id, rs.language, rs.parse_status, coalesce(rs.source_type, ''),
+       coalesce(rs.original_text, ''),
+       coalesce(rs.file_object_id::text, ''), coalesce(fo.object_key, '')
+from resumes rs
+left join file_objects fo on fo.id = rs.file_object_id and fo.deleted_at is null
+where rs.id = $1 and rs.deleted_at is null`,
+		resumeID,
 	)
 	var rec ParseAssetRecord
 	var parseStatus string
@@ -46,7 +47,6 @@ where ra.id = $1 and ra.deleted_at is null`,
 		&parseStatus,
 		&rec.SourceType,
 		&rec.OriginalText,
-		&rec.GuidedAnswers,
 		&rec.FileObjectID,
 		&rec.FileObjectKey,
 	); errors.Is(err, sql.ErrNoRows) {
@@ -58,25 +58,27 @@ where ra.id = $1 and ra.deleted_at is null`,
 	return rec, nil
 }
 
-func (r *Repository) Get(ctx context.Context, userID string, assetID string) (AssetRecord, error) {
+const resumeSelectColumns = `id, user_id, file_object_id, title, display_name, language, parse_status,
+       parsed_summary, original_text, structured_profile, parsed_text_snapshot,
+       source_type, error_code, latest_parse_job_id, created_at, updated_at, deleted_at`
+
+func (r *Repository) Get(ctx context.Context, userID string, resumeID string) (ResumeRecord, error) {
 	if r == nil || r.db == nil {
-		return AssetRecord{}, fmt.Errorf("resume store db is nil")
+		return ResumeRecord{}, fmt.Errorf("resume store db is nil")
 	}
 	row := r.db.QueryRowContext(ctx, `
-select id, user_id, file_object_id, title, language, parse_status,
-       parsed_summary, original_text, guided_answers, parsed_text_snapshot,
-       source_type, error_code, latest_parse_job_id, created_at, updated_at, deleted_at
-from resume_assets
+select `+resumeSelectColumns+`
+from resumes
 where id = $1 and user_id = $2 and deleted_at is null`,
-		assetID,
+		resumeID,
 		userID,
 	)
-	rec, err := scanAsset(row)
+	rec, err := scanResume(row)
 	if errors.Is(err, sql.ErrNoRows) {
-		return AssetRecord{}, ErrAssetNotFound
+		return ResumeRecord{}, ErrAssetNotFound
 	}
 	if err != nil {
-		return AssetRecord{}, err
+		return ResumeRecord{}, err
 	}
 	return rec, nil
 }
@@ -95,10 +97,8 @@ func (r *Repository) List(ctx context.Context, userID string, filter ListFilter)
 	limit := pageSize + 1
 	args := []any{userID, limit}
 	query := `
-select id, user_id, file_object_id, title, language, parse_status,
-       parsed_summary, original_text, guided_answers, parsed_text_snapshot,
-       source_type, error_code, latest_parse_job_id, created_at, updated_at, deleted_at
-from resume_assets
+select ` + resumeSelectColumns + `
+from resumes
 where user_id = $1 and deleted_at is null`
 	if strings.TrimSpace(filter.Cursor) != "" {
 		updatedAt, id, err := decodeCursor(filter.Cursor)
@@ -114,9 +114,9 @@ where user_id = $1 and deleted_at is null`
 		return ListResult{}, err
 	}
 	defer rows.Close()
-	items := make([]AssetRecord, 0, pageSize)
+	items := make([]ResumeRecord, 0, pageSize)
 	for rows.Next() {
-		rec, err := scanAsset(rows)
+		rec, err := scanResume(rows)
 		if err != nil {
 			return ListResult{}, err
 		}
@@ -137,16 +137,133 @@ where user_id = $1 and deleted_at is null`
 	return ListResult{Items: items, NextCursor: nextCursor, HasMore: hasMore, PageSize: pageSize}, nil
 }
 
+// UpdateResume overwrites the editable structured_profile / display_name on an
+// existing resume (D-20 C-17: save accepted rewrites by overwrite).
+func (r *Repository) UpdateResume(ctx context.Context, in UpdateResumeInput) (ResumeRecord, error) {
+	if r == nil || r.db == nil {
+		return ResumeRecord{}, fmt.Errorf("resume store db is nil")
+	}
+	now := in.Now
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	structuredProfile := in.StructuredProfile
+	if len(structuredProfile) == 0 {
+		structuredProfile = json.RawMessage(`{}`)
+	}
+	row := r.db.QueryRowContext(ctx, `
+update resumes
+set structured_profile = $1,
+    display_name = coalesce($2, display_name),
+    updated_at = $3
+where id = $4 and user_id = $5 and deleted_at is null
+returning `+resumeSelectColumns,
+		structuredProfile,
+		nullableStringPtr(in.DisplayName),
+		now,
+		in.ResumeID,
+		in.UserID,
+	)
+	rec, err := scanResume(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ResumeRecord{}, ErrAssetNotFound
+	}
+	if err != nil {
+		return ResumeRecord{}, err
+	}
+	return rec, nil
+}
+
+// DuplicateResume copies the source resume's read-only snapshot into a new
+// resume row, applying the supplied structured_profile / display_name and a new
+// id (D-20 C-18: save accepted rewrites as a new resume).
+func (r *Repository) DuplicateResume(ctx context.Context, in DuplicateResumeInput) (ResumeRecord, error) {
+	if r == nil || r.db == nil {
+		return ResumeRecord{}, fmt.Errorf("resume store db is nil")
+	}
+	now := in.Now
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return ResumeRecord{}, fmt.Errorf("begin resume duplicate: %w", err)
+	}
+	defer tx.Rollback()
+
+	source, err := scanResume(tx.QueryRowContext(ctx, `
+select `+resumeSelectColumns+`
+from resumes
+where id = $1 and user_id = $2 and deleted_at is null`,
+		in.SourceResumeID,
+		in.UserID,
+	))
+	if errors.Is(err, sql.ErrNoRows) {
+		return ResumeRecord{}, ErrAssetNotFound
+	}
+	if err != nil {
+		return ResumeRecord{}, err
+	}
+
+	structuredProfile := in.StructuredProfile
+	if len(structuredProfile) == 0 {
+		structuredProfile = source.StructuredProfile
+	}
+	if len(structuredProfile) == 0 {
+		structuredProfile = json.RawMessage(`{}`)
+	}
+	displayName := source.DisplayName
+	if in.DisplayName != nil {
+		displayName = in.DisplayName
+	}
+	if _, err := tx.ExecContext(ctx, `
+insert into resumes (
+  id, user_id, file_object_id, title, display_name, language, parse_status,
+  source_type, original_text, parsed_summary, parsed_text_snapshot,
+  structured_profile, latest_parse_job_id, created_at, updated_at
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,null,$13,$13)`,
+		in.NewResumeID,
+		in.UserID,
+		nullableStringPtr(source.FileObjectID),
+		source.Title,
+		nullableStringPtr(displayName),
+		source.Language,
+		string(source.ParseStatus),
+		nullableStringPtr(source.SourceType),
+		nullableStringPtr(source.OriginalText),
+		nonEmptyJSON(source.ParsedSummary),
+		nullableStringPtr(source.ParsedTextSnapshot),
+		structuredProfile,
+		now,
+	); err != nil {
+		return ResumeRecord{}, fmt.Errorf("insert duplicated resume: %w", err)
+	}
+	rec, err := scanResume(tx.QueryRowContext(ctx, `
+select `+resumeSelectColumns+`
+from resumes
+where id = $1 and user_id = $2`,
+		in.NewResumeID,
+		in.UserID,
+	))
+	if err != nil {
+		return ResumeRecord{}, fmt.Errorf("read duplicated resume: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return ResumeRecord{}, fmt.Errorf("commit resume duplicate: %w", err)
+	}
+	return rec, nil
+}
+
 func (r *Repository) MarkParsing(ctx context.Context, in StatusUpdateInput) error {
-	return r.updateStatus(ctx, in.UserID, in.AssetID, "", sharedtypes.TargetJobParseStatusProcessing, nil, nil, "", in.Now)
+	return r.updateStatus(ctx, in.UserID, in.AssetID, "", sharedtypes.TargetJobParseStatusProcessing, nil, nil, nil, "", in.Now)
 }
 
 func (r *Repository) MarkReady(ctx context.Context, in MarkReadyInput) error {
-	return r.updateStatus(ctx, in.UserID, in.AssetID, sharedtypes.TargetJobParseStatusProcessing, sharedtypes.TargetJobParseStatusReady, in.ParsedSummary, &in.ParsedTextSnapshot, "", in.Now)
+	return r.updateStatus(ctx, in.UserID, in.AssetID, sharedtypes.TargetJobParseStatusProcessing, sharedtypes.TargetJobParseStatusReady, in.ParsedSummary, in.StructuredProfile, &in.ParsedTextSnapshot, "", in.Now)
 }
 
 func (r *Repository) MarkFailed(ctx context.Context, in MarkFailedInput) error {
-	return r.updateStatus(ctx, in.UserID, in.AssetID, "", sharedtypes.TargetJobParseStatusFailed, nil, nil, in.ErrorCode, in.Now)
+	return r.updateStatus(ctx, in.UserID, in.AssetID, "", sharedtypes.TargetJobParseStatusFailed, nil, nil, nil, in.ErrorCode, in.Now)
 }
 
 func (r *Repository) CompleteParseSuccess(ctx context.Context, in CompleteParseSuccessInput) error {
@@ -160,6 +277,10 @@ func (r *Repository) CompleteParseSuccess(ctx context.Context, in CompleteParseS
 	if len(in.ParsedSummary) == 0 {
 		in.ParsedSummary = []byte(`{}`)
 	}
+	structuredProfile := in.StructuredProfile
+	if len(structuredProfile) == 0 {
+		structuredProfile = []byte(`{}`)
+	}
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin resume parse success: %w", err)
@@ -167,11 +288,12 @@ func (r *Repository) CompleteParseSuccess(ctx context.Context, in CompleteParseS
 	defer tx.Rollback()
 
 	res, err := tx.ExecContext(ctx, `
-update resume_assets
-set parse_status = $1, parsed_summary = $2, parsed_text_snapshot = $3, error_code = null, updated_at = $4
-where id = $5 and user_id = $6 and parse_status = $7 and deleted_at is null`,
+update resumes
+set parse_status = $1, parsed_summary = $2, structured_profile = $3, parsed_text_snapshot = $4, error_code = null, updated_at = $5
+where id = $6 and user_id = $7 and parse_status = $8 and deleted_at is null`,
 		string(sharedtypes.TargetJobParseStatusReady),
 		in.ParsedSummary,
+		structuredProfile,
 		in.ParsedTextSnapshot,
 		now,
 		in.AssetID,
@@ -195,7 +317,7 @@ insert into outbox_events (
 ) values ($1,$2,1,$3,$4,$5,'pending',$6,$6)`,
 		in.OutboxEventID,
 		string(events.EventNameResumeParseCompleted),
-		string(api.ResourceTypeResumeAsset),
+		resumeAggregateType,
 		in.AssetID,
 		in.OutboxEventPayload,
 		now,
@@ -220,19 +342,19 @@ func (r *Repository) DeleteForUser(ctx context.Context, userID string, now time.
 		now = time.Now().UTC()
 	}
 	_, err := r.db.ExecContext(ctx, `
-update resume_assets
+update resumes
 set deleted_at = coalesce(deleted_at, $2), updated_at = $2
 where user_id = $1 and deleted_at is null`,
 		userID,
 		now,
 	)
 	if err != nil {
-		return fmt.Errorf("delete resume assets for user: %w", err)
+		return fmt.Errorf("delete resumes for user: %w", err)
 	}
 	return nil
 }
 
-func (r *Repository) updateStatus(ctx context.Context, userID string, assetID string, from sharedtypes.TargetJobParseStatus, to sharedtypes.TargetJobParseStatus, parsedSummary json.RawMessage, parsedTextSnapshot *string, errorCode string, now time.Time) error {
+func (r *Repository) updateStatus(ctx context.Context, userID string, resumeID string, from sharedtypes.TargetJobParseStatus, to sharedtypes.TargetJobParseStatus, parsedSummary json.RawMessage, structuredProfile json.RawMessage, parsedTextSnapshot *string, errorCode string, now time.Time) error {
 	if r == nil || r.db == nil {
 		return fmt.Errorf("resume store db is nil")
 	}
@@ -244,34 +366,37 @@ func (r *Repository) updateStatus(ctx context.Context, userID string, assetID st
 	switch {
 	case to == sharedtypes.TargetJobParseStatusProcessing:
 		res, err = r.db.ExecContext(ctx, `
-update resume_assets
+update resumes
 set parse_status = $1, error_code = null, updated_at = $2
 where id = $3 and user_id = $4 and parse_status in ('queued','failed') and deleted_at is null`,
-			string(to), now, assetID, userID,
+			string(to), now, resumeID, userID,
 		)
 	case to == sharedtypes.TargetJobParseStatusReady:
 		if len(parsedSummary) == 0 {
 			parsedSummary = []byte(`{}`)
 		}
+		if len(structuredProfile) == 0 {
+			structuredProfile = []byte(`{}`)
+		}
 		res, err = r.db.ExecContext(ctx, `
-update resume_assets
-set parse_status = $1, parsed_summary = $2, parsed_text_snapshot = $3, error_code = null, updated_at = $4
-where id = $5 and user_id = $6 and parse_status = $7 and deleted_at is null`,
-			string(to), parsedSummary, nullableStringPtr(parsedTextSnapshot), now, assetID, userID, string(from),
+update resumes
+set parse_status = $1, parsed_summary = $2, structured_profile = $3, parsed_text_snapshot = $4, error_code = null, updated_at = $5
+where id = $6 and user_id = $7 and parse_status = $8 and deleted_at is null`,
+			string(to), parsedSummary, structuredProfile, nullableStringPtr(parsedTextSnapshot), now, resumeID, userID, string(from),
 		)
 	case to == sharedtypes.TargetJobParseStatusFailed:
 		res, err = r.db.ExecContext(ctx, `
-update resume_assets
+update resumes
 set parse_status = $1, error_code = $2, updated_at = $3
 where id = $4 and user_id = $5 and parse_status in ('queued','processing') and deleted_at is null`,
-			string(to), nullableString(errorCode), now, assetID, userID,
+			string(to), nullableString(errorCode), now, resumeID, userID,
 		)
 	default:
 		res, err = r.db.ExecContext(ctx, `
-update resume_assets
+update resumes
 set parse_status = $1, updated_at = $2
 where id = $3 and user_id = $4 and parse_status = $5 and deleted_at is null`,
-			string(to), now, assetID, userID, string(from),
+			string(to), now, resumeID, userID, string(from),
 		)
 	}
 	if err != nil {
@@ -306,7 +431,7 @@ func (r *Repository) CreateWithParseJob(ctx context.Context, in CreateAssetInput
 
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return CreateAssetResult{}, fmt.Errorf("begin resume asset create: %w", err)
+		return CreateAssetResult{}, fmt.Errorf("begin resume create: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -324,15 +449,11 @@ func (r *Repository) CreateWithParseJob(ctx context.Context, in CreateAssetInput
 		}
 	}
 
-	guidedAnswers, err := nullableJSON(in.GuidedAnswers)
-	if err != nil {
-		return CreateAssetResult{}, err
-	}
 	if _, err := tx.ExecContext(ctx, `
-insert into resume_assets (
+insert into resumes (
   id, user_id, file_object_id, title, language, parse_status,
-  source_type, original_text, guided_answers, latest_parse_job_id, created_at, updated_at
-) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+  source_type, original_text, latest_parse_job_id, created_at, updated_at
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
 		in.AssetID,
 		in.UserID,
 		nullableStringPtr(in.FileObjectID),
@@ -341,19 +462,18 @@ insert into resume_assets (
 		string(parseStatus),
 		in.SourceType,
 		nullableString(in.RawText),
-		guidedAnswers,
 		in.JobID,
 		now,
 		now,
 	); err != nil {
-		return CreateAssetResult{}, fmt.Errorf("insert resume asset: %w", err)
+		return CreateAssetResult{}, fmt.Errorf("insert resume: %w", err)
 	}
 
 	payload, err := json.Marshal(map[string]any{
-		"resumeAssetId": in.AssetID,
-		"userId":        in.UserID,
-		"sourceType":    in.SourceType,
-		"request":       in.RequestPayload,
+		"resumeId":   in.AssetID,
+		"userId":     in.UserID,
+		"sourceType": in.SourceType,
+		"request":    in.RequestPayload,
 	})
 	if err != nil {
 		return CreateAssetResult{}, fmt.Errorf("marshal resume parse job payload: %w", err)
@@ -365,7 +485,7 @@ insert into async_jobs (
 ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
 		in.JobID,
 		string(jobs.JobTypeResumeParse),
-		string(api.ResourceTypeResumeAsset),
+		string(resourceTypeResume),
 		in.AssetID,
 		nullableString(in.DedupeKey),
 		string(jobStatus),
@@ -377,7 +497,7 @@ insert into async_jobs (
 		return CreateAssetResult{}, fmt.Errorf("insert resume parse job: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
-		return CreateAssetResult{}, fmt.Errorf("commit resume asset create: %w", err)
+		return CreateAssetResult{}, fmt.Errorf("commit resume create: %w", err)
 	}
 	return CreateAssetResult{
 		AssetID:      in.AssetID,
@@ -424,25 +544,21 @@ func nullableStringPtr(in *string) any {
 	return *in
 }
 
-func nullableJSON(in map[string]any) (any, error) {
-	if len(in) == 0 {
-		return nil, nil
+func nonEmptyJSON(raw json.RawMessage) any {
+	if len(raw) == 0 {
+		return []byte(`{}`)
 	}
-	raw, err := json.Marshal(in)
-	if err != nil {
-		return nil, fmt.Errorf("marshal guided answers: %w", err)
-	}
-	return raw, nil
+	return []byte(raw)
 }
 
 type rowScanner interface {
 	Scan(dest ...any) error
 }
 
-func scanAsset(row rowScanner) (AssetRecord, error) {
-	var rec AssetRecord
-	var fileObjectID, originalText, parsedTextSnapshot, sourceType, errorCode, latestParseJobID sql.NullString
-	var parsedSummary, guidedAnswers []byte
+func scanResume(row rowScanner) (ResumeRecord, error) {
+	var rec ResumeRecord
+	var fileObjectID, displayName, originalText, parsedTextSnapshot, sourceType, errorCode, latestParseJobID sql.NullString
+	var parsedSummary, structuredProfile []byte
 	var deletedAt sql.NullTime
 	var parseStatus string
 	if err := row.Scan(
@@ -450,11 +566,12 @@ func scanAsset(row rowScanner) (AssetRecord, error) {
 		&rec.UserID,
 		&fileObjectID,
 		&rec.Title,
+		&displayName,
 		&rec.Language,
 		&parseStatus,
 		&parsedSummary,
 		&originalText,
-		&guidedAnswers,
+		&structuredProfile,
 		&parsedTextSnapshot,
 		&sourceType,
 		&errorCode,
@@ -463,10 +580,11 @@ func scanAsset(row rowScanner) (AssetRecord, error) {
 		&rec.UpdatedAt,
 		&deletedAt,
 	); err != nil {
-		return AssetRecord{}, err
+		return ResumeRecord{}, err
 	}
 	rec.ParseStatus = sharedtypes.TargetJobParseStatus(parseStatus)
 	rec.FileObjectID = stringPtrFromNull(fileObjectID)
+	rec.DisplayName = stringPtrFromNull(displayName)
 	rec.OriginalText = stringPtrFromNull(originalText)
 	rec.ParsedTextSnapshot = stringPtrFromNull(parsedTextSnapshot)
 	rec.SourceType = stringPtrFromNull(sourceType)
@@ -476,9 +594,10 @@ func scanAsset(row rowScanner) (AssetRecord, error) {
 		parsedSummary = []byte(`{}`)
 	}
 	rec.ParsedSummary = append(json.RawMessage(nil), parsedSummary...)
-	if len(guidedAnswers) > 0 {
-		rec.GuidedAnswers = append(json.RawMessage(nil), guidedAnswers...)
+	if len(structuredProfile) == 0 {
+		structuredProfile = []byte(`{}`)
 	}
+	rec.StructuredProfile = append(json.RawMessage(nil), structuredProfile...)
 	if deletedAt.Valid {
 		rec.DeletedAt = &deletedAt.Time
 	}
@@ -493,15 +612,10 @@ func stringPtrFromNull(in sql.NullString) *string {
 }
 
 var (
-	ErrAssetNotFound                 = errors.New("resume asset not found")
-	ErrAssetParseNotReady            = errors.New("resume asset parse is not ready")
-	ErrStructuredMasterAlreadyExists = errors.New("structured master resume version already exists")
-	ErrVersionNotFound               = errors.New("resume version not found")
-	ErrSuggestionNotFound            = errors.New("resume version suggestion not found")
-	ErrSuggestionAlreadyDecided      = errors.New("resume version suggestion already decided")
-	ErrTailorRunNotFound             = errors.New("resume tailor run not found")
-	ErrInvalidStateTransition        = errors.New("invalid resume parse status transition")
-	ErrInvalidCursor                 = errors.New("invalid resume list cursor")
+	ErrAssetNotFound          = errors.New("resume not found")
+	ErrTailorRunNotFound      = errors.New("resume tailor run not found")
+	ErrInvalidStateTransition = errors.New("invalid resume parse status transition")
+	ErrInvalidCursor          = errors.New("invalid resume list cursor")
 )
 
 func encodeCursor(updatedAt time.Time, id string) string {

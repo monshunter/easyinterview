@@ -2,7 +2,7 @@ import { useCallback } from "react";
 
 import type {
   RegisterResumeRequest,
-  ResumeAssetWithJob,
+  ResumeWithJob,
 } from "../../../../../api/generated/types";
 import { useAppRuntimeOptional } from "../../../../runtime/AppRuntimeProvider";
 import { generateIdempotencyKey } from "../../../../../lib/conventions/idempotency";
@@ -21,20 +21,11 @@ export type RegisterPasteInput = {
   language: string;
 };
 
-export type RegisterGuidedInput = {
-  sourceType: "guided";
-  guidedAnswers: Record<string, string>;
-  title: string;
-  language: string;
-};
-
-export type RegisterInput =
-  | RegisterUploadInput
-  | RegisterPasteInput
-  | RegisterGuidedInput;
+// D-20: guided Q&A intake removed. Resume creation is upload or paste only.
+export type RegisterInput = RegisterUploadInput | RegisterPasteInput;
 
 export interface UseResumeRegistrationResult {
-  register: (input: RegisterInput) => Promise<ResumeAssetWithJob>;
+  register: (input: RegisterInput) => Promise<ResumeWithJob>;
 }
 
 export function buildRegisterPayload(input: RegisterInput): RegisterResumeRequest {
@@ -46,17 +37,9 @@ export function buildRegisterPayload(input: RegisterInput): RegisterResumeReques
       language: input.language,
     };
   }
-  if (input.sourceType === "paste") {
-    return {
-      sourceType: "paste",
-      rawText: input.rawText,
-      title: input.title,
-      language: input.language,
-    };
-  }
   return {
-    sourceType: "guided",
-    guidedAnswers: input.guidedAnswers,
+    sourceType: "paste",
+    rawText: input.rawText,
     title: input.title,
     language: input.language,
   };
@@ -66,7 +49,7 @@ export function useResumeRegistration(): UseResumeRegistrationResult {
   const runtime = useAppRuntimeOptional();
 
   const register = useCallback(
-    async (input: RegisterInput): Promise<ResumeAssetWithJob> => {
+    async (input: RegisterInput): Promise<ResumeWithJob> => {
       if (!runtime) {
         throw new Error("REGISTER_RUNTIME_UNAVAILABLE");
       }

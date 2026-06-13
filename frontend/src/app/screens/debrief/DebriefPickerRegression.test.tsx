@@ -5,8 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { EasyInterviewClient } from "../../../api/generated/client";
 import type {
-  ResumeAsset,
-  ResumeVersion,
+  Resume,
   RuntimeConfig,
   TargetJob,
   UserContext,
@@ -49,39 +48,23 @@ const targetJob: TargetJob = {
   updatedAt: "2026-05-17T00:00:00Z",
 };
 
-const oldResumeAsset: ResumeAsset = {
+const oldResume: Resume = {
   createdAt: "2026-05-17T00:00:00Z",
-  id: "ra-old",
+  displayName: "Old resume",
+  id: "resume-old",
   language: "en-US",
   parseStatus: "ready",
   status: "active",
+  sourceType: "upload",
   title: "Old resume",
   updatedAt: "2026-05-17T00:00:00Z",
 };
 
-const newResumeAsset: ResumeAsset = {
-  ...oldResumeAsset,
-  id: "ra-2",
+const newResume: Resume = {
+  ...oldResume,
+  displayName: "Backend resume",
+  id: "resume-2",
   title: "Backend resume",
-};
-
-const newResumeVersion: ResumeVersion = {
-  createdAt: "2026-05-17T00:00:00Z",
-  displayName: "Backend resume v4",
-  id: "rv-4",
-  provenance: {
-    dataSourceVersion: "resume-v4",
-    featureFlag: "resume",
-    language: "en-US",
-    modelId: "fixture",
-    promptVersion: "p1",
-    rubricVersion: "r1",
-  },
-  resumeAssetId: "ra-2",
-  structuredProfile: {},
-  suggestions: [],
-  updatedAt: "2026-05-17T00:00:00Z",
-  versionType: "targeted",
 };
 
 function renderWithRuntime(ui: ReactNode, client: Partial<EasyInterviewClient>) {
@@ -120,41 +103,26 @@ describe("Debrief pickers and guided entry regressions", () => {
     });
   });
 
-  it("reopens resume picker on the asset list and keeps the selected asset object", async () => {
+  it("confirms a resume from the flat single-step list and returns the selected resume object", async () => {
     const listResumes = vi.fn().mockResolvedValue({
-      items: [oldResumeAsset, newResumeAsset],
-      pageInfo,
-    });
-    const listResumeVersions = vi.fn().mockResolvedValue({
-      items: [newResumeVersion],
+      items: [oldResume, newResume],
       pageInfo,
     });
     const onConfirm = vi.fn();
 
     renderWithRuntime(
       <ResumePicker
-        selectedAssetId="ra-old"
-        selectedVersionId="rv-old"
+        selectedResumeId="resume-old"
         onClose={vi.fn()}
         onConfirm={onConfirm}
       />,
-      { listResumes, listResumeVersions },
+      { listResumes },
     );
 
-    fireEvent.click(await screen.findByTestId("debrief-picker-option-ra-2"));
+    fireEvent.click(await screen.findByTestId("debrief-picker-option-resume-2"));
     fireEvent.click(screen.getByTestId("debrief-picker-confirm"));
 
-    await waitFor(() => {
-      expect(listResumeVersions).toHaveBeenCalledWith("ra-2");
-    });
-
-    fireEvent.click(await screen.findByTestId("debrief-picker-option-rv-4"));
-    fireEvent.click(screen.getByTestId("debrief-picker-confirm"));
-
-    expect(onConfirm).toHaveBeenCalledWith({
-      asset: newResumeAsset,
-      version: newResumeVersion,
-    });
+    expect(onConfirm).toHaveBeenCalledWith({ resume: newResume });
   });
 
   it.each([

@@ -70,12 +70,12 @@ function buildClient(
       return next as FeedbackReport;
     },
     // The screen handoff navigates to <ReportScreen> on ready/failed; the
-    // dashboard there hydrates context labels via getTargetJob /
-    // getResumeVersion. Stub them so the post-handoff render doesn't throw.
+    // dashboard there hydrates context labels via getTargetJob / getResume.
+    // Stub them so the post-handoff render doesn't throw.
     async getTargetJob() {
       throw new Error("HTTP 404 Not Found");
     },
-    async getResumeVersion() {
+    async getResume() {
       throw new Error("HTTP 404 Not Found");
     },
   } as unknown as EasyInterviewClient;

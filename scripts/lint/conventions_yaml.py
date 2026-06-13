@@ -39,15 +39,12 @@ EXPECTED_TOP_LEVEL = {
 }
 
 EXPECTED_STRUCTURES = {"PageInfo", "ApiError"}
-EXPECTED_ENUM_SECTIONS = {f"5.{i}" for i in range(1, 17)}  # §5.1 .. §5.16
+EXPECTED_ENUM_SECTIONS = {f"5.{i}" for i in range(1, 14)}  # §5.1 .. §5.13 (D-20 retired §5.14-5.16 resume version enums)
 EXPECTED_JOB_STATUSES = {"queued", "running", "succeeded", "failed", "cancelled", "dead"}
 EXPECTED_PRODUCT_ENUM_VALUES = {
     "PracticeMode": ["assisted", "strict"],
     "PracticeGoal": ["baseline", "retry_current_round", "next_round", "debrief"],
     "QuestionReviewStatus": ["open", "queued_for_retry", "resolved"],
-    "ResumeVersionType": ["structured_master", "targeted"],
-    "ResumeSeedStrategy": ["copy_master", "blank", "ai_select"],
-    "ResumeTailorSuggestionStatus": ["pending", "accepted", "rejected"],
     "DebriefRoundType": [
         "hr_screen",
         "hiring_manager",

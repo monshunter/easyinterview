@@ -11,13 +11,13 @@ export interface InterviewContext {
   jobId: string;
   jdId: string;
   planId: string;
-  resumeVersionId: string;
+  resumeId: string;
   roundId: string;
   roundName: string;
 }
 
 export interface InterviewContextOptions {
-  resumeVersionId?: string;
+  resumeId?: string;
 }
 
 export function interviewContextFromTargetJob(
@@ -25,13 +25,13 @@ export function interviewContextFromTargetJob(
   options: InterviewContextOptions = {},
 ): InterviewContext {
   const id = job.id;
-  const resumeVersionId = options.resumeVersionId?.trim() || "resume-unbound";
+  const resumeId = options.resumeId?.trim() || "resume-unbound";
   return {
     targetJobId: id,
     jobId: id,
     jdId: `jd-${id}`,
     planId: `plan-${id}`,
-    resumeVersionId,
+    resumeId,
     roundId: "round-technical-1",
     roundName: "Technical Round 1",
   };

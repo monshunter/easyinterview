@@ -360,67 +360,6 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** branchResumeVersion — post /resume-versions: Branch a resume version */
-	async branchResumeVersion(body: Types.BranchResumeVersionRequest, opts?: RequestOptions): Promise<Types.ResumeVersion | Types.BranchResumeVersionAccepted> {
-		return this.request<Types.ResumeVersion | Types.BranchResumeVersionAccepted>(
-			"POST",
-			"/resume-versions",
-			body,
-			opts,
-		);
-	}
-
-	/** getResumeVersion — get /resume-versions/{resumeVersionId}: Get a resume version */
-	async getResumeVersion(resumeVersionId: string, opts?: RequestOptions): Promise<Types.ResumeVersion> {
-		return this.request<Types.ResumeVersion>(
-			"GET",
-			buildPath("/resume-versions/{resumeVersionId}", { resumeVersionId: resumeVersionId }),
-			undefined,
-			opts,
-		);
-	}
-
-	/** updateResumeVersion — patch /resume-versions/{resumeVersionId}: Update editable resume version fields */
-	async updateResumeVersion(resumeVersionId: string, body: Types.UpdateResumeVersionRequest, opts?: RequestOptions): Promise<Types.ResumeVersion> {
-		return this.request<Types.ResumeVersion>(
-			"PATCH",
-			buildPath("/resume-versions/{resumeVersionId}", { resumeVersionId: resumeVersionId }),
-			body,
-			opts,
-		);
-	}
-
-	/** exportResumeVersion — post /resume-versions/{resumeVersionId}/exports: Export a resume version */
-	async exportResumeVersion(resumeVersionId: string, opts?: RequestOptions): Promise<Types.ApiErrorResponse> {
-		return this.request<Types.ApiErrorResponse>(
-			"POST",
-			buildPath("/resume-versions/{resumeVersionId}/exports", { resumeVersionId: resumeVersionId }),
-			undefined,
-			opts,
-			[501],
-		);
-	}
-
-	/** acceptResumeTailorSuggestion — post /resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept: Accept a resume-tailor suggestion */
-	async acceptResumeTailorSuggestion(resumeVersionId: string, suggestionId: string, opts?: RequestOptions): Promise<Types.ResumeVersion> {
-		return this.request<Types.ResumeVersion>(
-			"POST",
-			buildPath("/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept", { resumeVersionId: resumeVersionId, suggestionId: suggestionId }),
-			undefined,
-			opts,
-		);
-	}
-
-	/** rejectResumeTailorSuggestion — post /resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject: Reject a resume-tailor suggestion */
-	async rejectResumeTailorSuggestion(resumeVersionId: string, suggestionId: string, opts?: RequestOptions): Promise<Types.ResumeVersion> {
-		return this.request<Types.ResumeVersion>(
-			"POST",
-			buildPath("/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject", { resumeVersionId: resumeVersionId, suggestionId: suggestionId }),
-			undefined,
-			opts,
-		);
-	}
-
 	/** requestResumeTailor — post /resume/tailor: Start a resume-tailoring run for a target job */
 	async requestResumeTailor(body: Types.RequestResumeTailorRequest, opts?: RequestOptions): Promise<Types.ResumeTailorRunWithJob> {
 		return this.request<Types.ResumeTailorRunWithJob>(
@@ -441,9 +380,9 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** listResumes — get /resumes: List resume assets */
-	async listResumes(opts?: RequestOptions): Promise<Types.PaginatedResumeAsset> {
-		return this.request<Types.PaginatedResumeAsset>(
+	/** listResumes — get /resumes: List resumes */
+	async listResumes(opts?: RequestOptions): Promise<Types.PaginatedResume> {
+		return this.request<Types.PaginatedResume>(
 			"GET",
 			"/resumes",
 			undefined,
@@ -451,9 +390,9 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** registerResume — post /resumes: Register an uploaded resume file and trigger parsing */
-	async registerResume(body: Types.RegisterResumeRequest, opts?: RequestOptions): Promise<Types.ResumeAssetWithJob> {
-		return this.request<Types.ResumeAssetWithJob>(
+	/** registerResume — post /resumes: Register an uploaded or pasted resume and trigger parsing */
+	async registerResume(body: Types.RegisterResumeRequest, opts?: RequestOptions): Promise<Types.ResumeWithJob> {
+		return this.request<Types.ResumeWithJob>(
 			"POST",
 			"/resumes",
 			body,
@@ -461,43 +400,54 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** getResume — get /resumes/{resumeAssetId}: Get a resume asset and parse status */
-	async getResume(resumeAssetId: string, opts?: RequestOptions): Promise<Types.ResumeAsset> {
-		return this.request<Types.ResumeAsset>(
+	/** getResume — get /resumes/{resumeId}: Get a resume and parse status */
+	async getResume(resumeId: string, opts?: RequestOptions): Promise<Types.Resume> {
+		return this.request<Types.Resume>(
 			"GET",
-			buildPath("/resumes/{resumeAssetId}", { resumeAssetId: resumeAssetId }),
+			buildPath("/resumes/{resumeId}", { resumeId: resumeId }),
 			undefined,
 			opts,
 		);
 	}
 
-	/** archiveResumeAsset — post /resumes/{resumeAssetId}/archive: Archive a resume asset */
-	async archiveResumeAsset(resumeAssetId: string, opts?: RequestOptions): Promise<Types.ResumeAsset> {
-		return this.request<Types.ResumeAsset>(
-			"POST",
-			buildPath("/resumes/{resumeAssetId}/archive", { resumeAssetId: resumeAssetId }),
-			undefined,
-			opts,
-		);
-	}
-
-	/** confirmResumeStructuredMaster — post /resumes/{resumeAssetId}/structured-master: Confirm a parsed resume asset as the structured master version */
-	async confirmResumeStructuredMaster(resumeAssetId: string, body: Types.ConfirmResumeStructuredMasterRequest, opts?: RequestOptions): Promise<Types.ResumeVersion> {
-		return this.request<Types.ResumeVersion>(
-			"POST",
-			buildPath("/resumes/{resumeAssetId}/structured-master", { resumeAssetId: resumeAssetId }),
+	/** updateResume — patch /resumes/{resumeId}: Update editable resume fields (overwrite this resume) */
+	async updateResume(resumeId: string, body: Types.UpdateResumeRequest, opts?: RequestOptions): Promise<Types.Resume> {
+		return this.request<Types.Resume>(
+			"PATCH",
+			buildPath("/resumes/{resumeId}", { resumeId: resumeId }),
 			body,
 			opts,
 		);
 	}
 
-	/** listResumeVersions — get /resumes/{resumeAssetId}/versions: List versions for a resume asset */
-	async listResumeVersions(resumeAssetId: string, opts?: RequestOptions): Promise<Types.PaginatedResumeVersion> {
-		return this.request<Types.PaginatedResumeVersion>(
-			"GET",
-			buildPath("/resumes/{resumeAssetId}/versions", { resumeAssetId: resumeAssetId }),
+	/** archiveResume — post /resumes/{resumeId}/archive: Archive a resume */
+	async archiveResume(resumeId: string, opts?: RequestOptions): Promise<Types.Resume> {
+		return this.request<Types.Resume>(
+			"POST",
+			buildPath("/resumes/{resumeId}/archive", { resumeId: resumeId }),
 			undefined,
 			opts,
+		);
+	}
+
+	/** duplicateResume — post /resumes/{resumeId}/duplicate: Duplicate a resume (save as a new resume) */
+	async duplicateResume(resumeId: string, body: Types.DuplicateResumeRequest, opts?: RequestOptions): Promise<Types.Resume> {
+		return this.request<Types.Resume>(
+			"POST",
+			buildPath("/resumes/{resumeId}/duplicate", { resumeId: resumeId }),
+			body,
+			opts,
+		);
+	}
+
+	/** exportResume — post /resumes/{resumeId}/exports: Export a resume */
+	async exportResume(resumeId: string, opts?: RequestOptions): Promise<Types.ApiErrorResponse> {
+		return this.request<Types.ApiErrorResponse>(
+			"POST",
+			buildPath("/resumes/{resumeId}/exports", { resumeId: resumeId }),
+			undefined,
+			opts,
+			[501],
 		);
 	}
 
@@ -601,20 +551,15 @@ export const ALL_OPERATION_IDS = [
 	"createExperienceCard",
 	"updateExperienceCard",
 	"getFeedbackReport",
-	"branchResumeVersion",
-	"getResumeVersion",
-	"updateResumeVersion",
-	"exportResumeVersion",
-	"acceptResumeTailorSuggestion",
-	"rejectResumeTailorSuggestion",
 	"requestResumeTailor",
 	"getResumeTailorRun",
 	"listResumes",
 	"registerResume",
 	"getResume",
-	"archiveResumeAsset",
-	"confirmResumeStructuredMaster",
-	"listResumeVersions",
+	"updateResume",
+	"archiveResume",
+	"duplicateResume",
+	"exportResume",
 	"getRuntimeConfig",
 	"listTargetJobs",
 	"importTargetJob",
@@ -660,20 +605,15 @@ export const ALL_ROUTES = [
 	{ operationId: "createExperienceCard", method: "POST", path: "/profiles/me/experience-cards" },
 	{ operationId: "updateExperienceCard", method: "PATCH", path: "/profiles/me/experience-cards/{cardId}" },
 	{ operationId: "getFeedbackReport", method: "GET", path: "/reports/{reportId}" },
-	{ operationId: "branchResumeVersion", method: "POST", path: "/resume-versions" },
-	{ operationId: "getResumeVersion", method: "GET", path: "/resume-versions/{resumeVersionId}" },
-	{ operationId: "updateResumeVersion", method: "PATCH", path: "/resume-versions/{resumeVersionId}" },
-	{ operationId: "exportResumeVersion", method: "POST", path: "/resume-versions/{resumeVersionId}/exports" },
-	{ operationId: "acceptResumeTailorSuggestion", method: "POST", path: "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept" },
-	{ operationId: "rejectResumeTailorSuggestion", method: "POST", path: "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject" },
 	{ operationId: "requestResumeTailor", method: "POST", path: "/resume/tailor" },
 	{ operationId: "getResumeTailorRun", method: "GET", path: "/resume/tailor-runs/{tailorRunId}" },
 	{ operationId: "listResumes", method: "GET", path: "/resumes" },
 	{ operationId: "registerResume", method: "POST", path: "/resumes" },
-	{ operationId: "getResume", method: "GET", path: "/resumes/{resumeAssetId}" },
-	{ operationId: "archiveResumeAsset", method: "POST", path: "/resumes/{resumeAssetId}/archive" },
-	{ operationId: "confirmResumeStructuredMaster", method: "POST", path: "/resumes/{resumeAssetId}/structured-master" },
-	{ operationId: "listResumeVersions", method: "GET", path: "/resumes/{resumeAssetId}/versions" },
+	{ operationId: "getResume", method: "GET", path: "/resumes/{resumeId}" },
+	{ operationId: "updateResume", method: "PATCH", path: "/resumes/{resumeId}" },
+	{ operationId: "archiveResume", method: "POST", path: "/resumes/{resumeId}/archive" },
+	{ operationId: "duplicateResume", method: "POST", path: "/resumes/{resumeId}/duplicate" },
+	{ operationId: "exportResume", method: "POST", path: "/resumes/{resumeId}/exports" },
 	{ operationId: "getRuntimeConfig", method: "GET", path: "/runtime-config" },
 	{ operationId: "listTargetJobs", method: "GET", path: "/targets" },
 	{ operationId: "importTargetJob", method: "POST", path: "/targets/import" },

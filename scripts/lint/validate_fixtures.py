@@ -82,12 +82,10 @@ AI_PROVENANCE_PATHS: dict[str, Tuple[str, ...]] = {
     "listTargetJobReports": ("items[*].provenance",),
     "getResumeTailorRun": ("provenance",),
     "getDebrief": ("provenance",),
-    "listResumeVersions": ("items[*].provenance", "items[*].structuredProfile.provenance"),
-    "getResumeVersion": ("provenance", "structuredProfile.provenance"),
-    "branchResumeVersion": ("provenance", "structuredProfile.provenance"),
-    "updateResumeVersion": ("provenance", "structuredProfile.provenance"),
-    "acceptResumeTailorSuggestion": ("provenance", "structuredProfile.provenance"),
-    "rejectResumeTailorSuggestion": ("provenance", "structuredProfile.provenance"),
+    "getResume": ("structuredProfile.provenance",),
+    "listResumes": ("items[*].structuredProfile.provenance",),
+    "updateResume": ("structuredProfile.provenance",),
+    "duplicateResume": ("structuredProfile.provenance",),
 }
 PROVENANCE_REQUIRED_FIELDS = (
     "promptVersion",
@@ -99,7 +97,7 @@ PROVENANCE_REQUIRED_FIELDS = (
 )
 P0_EXPORT_ERROR_CODES: dict[str, str] = {
     "requestPrivacyExport": "PRIVACY_EXPORT_NOT_AVAILABLE",
-    "exportResumeVersion": "RESUME_EXPORT_NOT_AVAILABLE",
+    "exportResume": "RESUME_EXPORT_NOT_AVAILABLE",
 }
 REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
     "appendSessionEvent": frozenset(

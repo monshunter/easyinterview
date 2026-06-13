@@ -15,14 +15,14 @@ import { ResumeWorkshopScreen } from "../ResumeWorkshopScreen";
 
 import getRuntimeConfigFixture from "../../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../../openapi/fixtures/Auth/getMe.json";
-import getResumeVersionFixture from "../../../../../../openapi/fixtures/Resumes/getResumeVersion.json";
-import exportResumeVersionFixture from "../../../../../../openapi/fixtures/Resumes/exportResumeVersion.json";
+import getResumeFixture from "../../../../../../openapi/fixtures/Resumes/getResume.json";
+import exportResumeFixture from "../../../../../../openapi/fixtures/Resumes/exportResume.json";
 
 const FIXTURES = [
   getRuntimeConfigFixture,
   getMeFixture,
-  getResumeVersionFixture,
-  exportResumeVersionFixture,
+  getResumeFixture,
+  exportResumeFixture,
 ];
 
 function buildClient(scenario: string): EasyInterviewClient {
@@ -33,10 +33,10 @@ function buildClient(scenario: string): EasyInterviewClient {
   });
 }
 
-function renderDetail(scenario: string, versionId: string) {
+function renderDetail(scenario: string, resumeId: string) {
   const route: Route = {
     name: "resume_versions",
-    params: { versionId },
+    params: { resumeId },
   };
   return render(
     <DisplayPreferencesProvider>
@@ -54,46 +54,32 @@ function renderDetail(scenario: string, versionId: string) {
   );
 }
 
-const SCENARIOS = ["default", "master-default", "targeted-with-suggestions"];
+const RESUME_ID = getResumeFixture.scenarios.default.response.body.id;
 
-describe("getResumeVersion fixture parity (Phase 3.6)", () => {
-  for (const scenarioName of SCENARIOS) {
-    it(`renders the detail container with breadcrumb + branch graph + tabs for the ${scenarioName} scenario`, async () => {
-      const versionId = (
-        getResumeVersionFixture.scenarios as unknown as Record<
-          string,
-          { response: { body: { id?: string } } }
-        >
-      )[scenarioName]!.response.body.id ?? "";
-      renderDetail(scenarioName, versionId);
+describe("getResume fixture parity (Phase 3.6)", () => {
+  it("renders the detail container with crumb + tabs for the default scenario", async () => {
+    renderDetail("default", RESUME_ID);
 
-      await waitFor(() => {
-        expect(
-          screen.getByTestId("resume-detail-breadcrumb"),
-        ).toBeInTheDocument();
-      });
-      expect(
-        screen.getByTestId("resume-detail-branch-graph"),
-      ).toBeInTheDocument();
-      expect(screen.getByTestId("resume-detail-tab-preview")).toBeInTheDocument();
-      expect(screen.getByTestId("resume-detail-tab-rewrites")).toBeInTheDocument();
-      expect(screen.getByTestId("resume-detail-tab-edit")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-detail-crumb")).toBeInTheDocument();
     });
-  }
+    expect(screen.getByTestId("resume-detail-tab-preview")).toBeInTheDocument();
+    expect(screen.getByTestId("resume-detail-tab-rewrites")).toBeInTheDocument();
+    expect(screen.getByTestId("resume-detail-tab-edit")).toBeInTheDocument();
+  });
 
-  it("renders NotFoundEmptyState when getResumeVersion returns 404 (UI copy is independent of fixture error.code spelling)", async () => {
-    renderDetail("not-found-404", "ffffffff-0000-7000-8000-000000009000");
+  it("renders NotFoundEmptyState when getResume returns 404 (UI copy is independent of fixture error.code spelling)", async () => {
+    renderDetail("not-found", RESUME_ID);
 
     await waitFor(() => {
       expect(
         screen.getByTestId("resume-detail-not-found"),
       ).toBeInTheDocument();
     });
-    // The fixture's error.code is `TARGET_JOB_NOT_FOUND` (a copy gap), but
-    // the UI must surface a generic not-found message rather than echoing
-    // the wire code verbatim.
+    // The fixture's error.code is a wire code; the UI must surface a generic
+    // not-found message rather than echoing the wire code verbatim.
     const card = screen.getByTestId("resume-detail-not-found");
-    expect(card).not.toHaveTextContent("TARGET_JOB_NOT_FOUND");
+    expect(card).not.toHaveTextContent("RESOURCE_NOT_FOUND");
     expect(card).toHaveTextContent(/未找到|not found/i);
     expect(
       screen.getByTestId("resume-detail-not-found-back"),
