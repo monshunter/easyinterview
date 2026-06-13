@@ -1,8 +1,8 @@
 # Event and Outbox Contract Spec
 
-> **版本**: 2.7
+> **版本**: 2.8
 > **状态**: active
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-06-13
 
 ## 1 背景与目标
 
@@ -70,6 +70,7 @@
 | D-14 | `ResumeTailorMode` 漂移修复（已落地） | `shared/events.yaml` 中 `eventLocalEnums.ResumeTailorMode` 字面量已对齐为 `[gap_review, bullet_suggestions]`，与 [B2 `RequestResumeTailorRequest.mode`](../openapi-v1-contract/spec.md#42-schema-inventory-约束) 和 [B4 `resume_tailor_runs.mode`](../db-migrations-baseline/spec.md) check constraint 同步；本次修订属于已有契约漂移修复，baseline 期 `resume.tailor.completed` 无真实 producer/consumer，不按 breaking 处理；[event-and-outbox-contract/002-resume-tailor-mode-drift-fix](./plans/002-resume-tailor-mode-drift-fix/plan.md) 已同步 yaml、baseline manifest、Go/TS 生成类型、JSON Schema refs 与旧字面量精准负向搜索 | `shared/events.yaml` `eventLocalEnums.ResumeTailorMode` 字面量集；`shared/events/baseline/events.v1.json` baseline manifest；`backend/internal/shared/events/` Go 生成类型；`frontend/src/lib/events/` TS 生成类型；§3.1.4 `resume.tailor.completed.mode` 列 enum 值描述同步；与 B2 D-18 / B4 002 / B1 D-10 一并审查 |
 | D-15 | `triggerEventSemantic` job ownership 语义 | `shared/jobs.yaml.jobs[*].triggerEventSemantic` 允许 `trigger_creates_job` / `source_event_only`；缺省为 `trigger_creates_job`。`report_generate` 必须显式为 `source_event_only`，表示 `practice.session.completed` 是 source event / analytics fact，不是 dispatcher 二次创建 report job 的指令。B3 codegen 必须生成 `JobTriggerEventSemantic*` 常量与 `IsSourceEventOnly(jobType)` 谓词；未来 backend async runner / dispatcher 必须读取该谓词并跳过 `source_event_only` 任务 | 支撑 backend-practice/002 D-32：`completePracticeSession` 同事务创建 `feedback_reports` placeholder 与 `async_jobs(report_generate)`，outbox 重放不得创建第二个 report/job |
 | D-16 | JD-Match events + jobs cross-owner additive | backend-jobs-recommendations/001 携带 B3 spec/yaml additive：(1) `shared/events.yaml` 新增 `jd_match.recommendation.completed` (producer=backend_async, aggregateType=agent_scan, payload `userId / agentScanId / recommendationCount / completedAt`，PII 边界：不含 reasons / risks / highlights / sourceUrl / networkNote / interviewHypotheses 文本) + `jd_match.search.completed` (producer=api, aggregateType=search_run, payload `userId / searchRunId / resultCount / completedAt`，PII 边界：不含 query / filters / label 文本)；events 全集从 16 升至 18。(2) `shared/jobs.yaml` 新增 canonical `jd_match_agent_scan` (dotted `jd_match.agent_scan`, apiFacing=false, internal-only periodic+incremental+lazy trigger) + `jd_match_search` (dotted `jd_match.search`, apiFacing=false, future-async reserved；P0 走 sync HTTP handler，不在 drainer 注册)；jobs 全集从 9 升至 11；apiFacingSubset 不变。(3) `migrations/000009_jd_match_baseline.up.sql` 同步 ALTER `async_jobs.job_type` CHECK 扩展 11 个 canonical values。(4) `scripts/lint/events_inventory.py` 同步注册新 events/jobs + 新 event domain `jd_match`；EVENT_NAME_RE 同步允许下划线段。(5) `shared/events/baseline/events.v1.json` 与 `shared/jobs/baseline/jobs.v1.json` 由 `make codegen-events` 重新渲染；Go + TS 生成类型同步更新。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.8 + 0.9 + 0.10 |
+| D-17 | D-20 简历扁平化 resume event 重命名 | product-scope D-20 把简历绑定对象从 ResumeVersion 改为扁平 `resumes`（`resumeId`）。`resume.parse.completed` / `resume.tailor.completed` 的 `resumeAssetId` 字段重命名为 `resumeId`（= `resumes.id`），§3.1.3 event #10/#11 resource label `resume_asset` / `resume_tailor_run` 收敛为 `resume`。`resume_tailor` job_type 与 `resume.tailor.completed` 事件**保留**（AI 改写能力延续）：专属 `resume_tailor_runs` 持久化表已由 [B4 D-22](../db-migrations-baseline/spec.md) 删除，改写建议改为 ephemeral 即时返回，`tailorRunId` 改指 AI task run id；`ResumeTailorMode` event-local enum 与 `targetJobId`（可选 JD-aware 上下文）保留，最终随 [backend-resume](../backend-resume/spec.md) C7 D-20 reshape 确认。baseline 期 resume events 无真实 producer/consumer，按 fixture/docs-only 路径处理，不触发 breaking。由 D-20 contract impl phase 同步 `shared/events.yaml`、baseline manifest、Go/TS 生成类型、JSON Schema refs（随 contract regen 落地，不另起 B3 plan phase，参考 [B1 D-20](../shared-conventions-codified/spec.md) 同款无独立 plan phase 模式）。 | `shared/events.yaml` resume event payload；`shared/events/baseline/events.v1.json`；`shared/events/schemas/resume.parse.completed.v1.json` / `resume.tailor.completed.v1.json`；`backend/internal/shared/events/`；`frontend/src/lib/events/`；§3.1.3 / §3.1.4 已同步；与 B4 D-22 / B2 D-20 / B1 D-20 一并审查 |
 
 #### 3.1.1 DB/backend runner canonical job_type ↔ Asynq dotted task name 映射
 
@@ -107,8 +108,8 @@ B2 OpenAPI v1.0.0 的 `JobType` enum 只允许以下 7 项：`target_import` / `
 | 7 | `report.generation.requested` | api / dispatcher | backend internal runner | `feedback_report` | `report_generate` |
 | 8 | `report.generated` | backend_async | report question-review / analytics | `feedback_report` | – |
 | 9 | `report.generation.failed` | backend_async | analytics / alerting | `feedback_report` | – |
-| 10 | `resume.parse.completed` | backend_async | analytics | `resume_asset` | – |
-| 11 | `resume.tailor.completed` | backend_async | analytics | `resume_tailor_run` | – |
+| 10 | `resume.parse.completed` | backend_async | analytics | `resume` | – |
+| 11 | `resume.tailor.completed` | backend_async | analytics | `resume` | – |
 | 12 | `debrief.created` | api | debrief runner / analytics | `debrief` | `debrief_generate` |
 | 13 | `debrief.completed` | backend_async | debrief practice planner / analytics | `debrief` | – |
 | 14 | `source.refreshed` | backend_async | source cache / analytics | `source_record` | – |
@@ -132,8 +133,8 @@ B2 OpenAPI v1.0.0 的 `JobType` enum 只允许以下 7 项：`target_import` / `
 | `report.generation.requested` | `reportId:uuidv7`, `sessionId:uuidv7`, `targetJobId:uuidv7` | – | – | IDs only |
 | `report.generated` | `reportId:uuidv7`, `sessionId:uuidv7`, `targetJobId:uuidv7`, `preparednessLevel:ReadinessTier`, `questionIssueCount:int`, `promptVersion:string`, `rubricVersion:string`, `modelId:string` | – | B1 `ReadinessTier`; F3 prompt/rubric version ids; A3 model profile id | No report body, answer snippets, raw model response, or prompt body |
 | `report.generation.failed` | `reportId:uuidv7`, `sessionId:uuidv7`, `errorCode:string`, `retryable:bool` | – | `errorCode` UPPER_SNAKE_CASE producer-owned code | No raw provider response / prompt / answer text |
-| `resume.parse.completed` | `resumeAssetId:uuidv7`, `userId:uuidv7`, `parseStatus:TargetJobParseStatus` | – | B1 `TargetJobParseStatus` reused for queued/processing/ready/failed parse lifecycle | No resume raw text or parsed summary |
-| `resume.tailor.completed` | `tailorRunId:uuidv7`, `resumeAssetId:uuidv7`, `targetJobId:uuidv7`, `mode:string`, `status:ReportStatus` | – | `mode` event-local `ResumeTailorMode`（`[gap_review, bullet_suggestions]`，与 B2 OpenAPI `RequestResumeTailorRequest.mode` / B4 `resume_tailor_runs.mode` 同步）; B1 `ReportStatus` (`ready`/`failed` subset when emitted) | No tailored bullet text |
+| `resume.parse.completed` | `resumeId:uuidv7`, `userId:uuidv7`, `parseStatus:TargetJobParseStatus` | – | B1 `TargetJobParseStatus` reused for queued/processing/ready/failed parse lifecycle；`resumeId` = 扁平 `resumes.id`（D-20，原 `resumeAssetId`） | No resume raw text or parsed summary |
+| `resume.tailor.completed` | `tailorRunId:uuidv7`, `resumeId:uuidv7`, `targetJobId:uuidv7`, `mode:string`, `status:ReportStatus` | – | `mode` event-local `ResumeTailorMode`（`[gap_review, bullet_suggestions]`，与 B2 OpenAPI `RequestResumeTailorRequest.mode` 同步）; B1 `ReportStatus` (`ready`/`failed` subset when emitted)；D-20：`resumeId` = 扁平 `resumes.id`（原 `resumeAssetId`），`tailorRunId` = AI task run id（专属 `resume_tailor_runs` 表已由 D-22 删除，改写建议 ephemeral），`targetJobId` 仍可选携带 JD-aware 改写上下文 | No tailored bullet text |
 | `debrief.created` | `debriefId:uuidv7`, `targetJobId:uuidv7`, `roundType:InterviewerRole`, `questionCount:int` | – | B1 `InterviewerRole` | No debrief notes / transcript text |
 | `debrief.completed` | `debriefId:uuidv7`, `targetJobId:uuidv7`, `riskItemCount:int`, `practiceFocusCount:int` | – | – | Counts only; no risk item prose |
 | `source.refreshed` | `sourceRecordId:uuidv7`, `ownerType:string`, `ownerId:uuidv7`, `freshnessStatus:string` | – | `ownerType` event-local resource enum compatible with B2 `ResourceType` where API-facing; `freshnessStatus` event-local `SourceFreshnessStatus` | No source snapshot content or URL secret |

@@ -1,8 +1,8 @@
 # DB Migrations Baseline Resume Versions Additive Checklist
 
-> **版本**: 1.1
-> **状态**: completed
-> **更新日期**: 2026-05-12
+> **版本**: 1.2
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -49,3 +49,16 @@
 
 - [x] 5.1 `cleanupUser` 先清理 `resume_version_suggestions` / `resume_versions` 等 child rows，再删 user，且清理错误会 fail test（验证：focused Go test）
 - [x] 5.2 focused migration test 重复运行不因固定 UUID 残留冲突；无 `DATABASE_URL` 时必须明确记录 skip 而非伪 PASS（验证：`cd backend && go test ./internal/migrations/... -run 'TestResumeVersions|TestResumeAssetDeleteRequiresVersionCleanup' -count=2 -v`；当前环境 `DATABASE_URL` 未设置，live tests 明确 skip，contract test PASS）
+
+## Phase 6: D-20 简历扁平化 flatten migration
+
+> product-scope D-20 / B4 D-22。Red 优先；下游 contract phase 依赖本 migration。
+
+- [ ] 6.1 Red：先写 `TestResumeFlattenCheckConstraints`（`resumes.source_type='guided'` 被 PG 拒，23514）+ `TestResumeFlattenSchema`（migrate-up 后 `resumes` 含 `structured_profile` / `display_name`，`resume_versions` / `resume_version_suggestions` / `resume_tailor_runs` 不存在，`practice_plans.resume_id` 存在），确认 RED（验证：测试先失败 / 无 DATABASE_URL 明确 skip）
+- [ ] 6.2 创建 `migrations/000015_resume_flatten.up.sql`：`resume_assets`→`resumes` RENAME + ADD `structured_profile jsonb NOT NULL DEFAULT '{}'::jsonb` / `display_name text`，DROP `guided_answers`，`source_type` CHECK 收敛 {`upload`, `paste`}，`practice_plans.resume_asset_id`→`resume_id`，按 FK 反序 DROP `resume_version_suggestions` → `resume_tailor_runs` → `resume_versions`（验证：`make migrate-up` 干净 DB 成功 + `\d+ resumes`）
+- [ ] 6.3 Go backfill `backend/internal/migrations/backfills/000015/`：从旧 `structured_master` version 回填 `resumes.structured_profile` / `display_name`，无 master 留空；注册 `migrations/backfill/manifest.yaml`（version `000015`, reversible=false, dry-run/apply, 写 `schema_backfills`）；backfill 在 DROP `resume_versions` 之前执行（验证：dry-run + apply 正确 + `go test ./internal/migrations/backfills/...` PASS）
+- [ ] 6.4 创建 `migrations/000015_resume_flatten.down.sql`：`resumes`→`resume_assets` 反向 rename、恢复 `guided_answers` + `source_type` CHECK {upload,paste,guided}、`practice_plans.resume_id`→`resume_asset_id`、恢复三表结构骨架（验证：`make migrate-down`（FORCE+dev）`&& make migrate-up` 循环 3 次幂等 PASS）
+- [ ] 6.5 修订 `migrations/enum-sources.yaml`：移除 `resume_versions.version_type` / `resume_versions.seed_strategy` / `resume_version_suggestions.status` 三个 enum source；`resume_assets.source_type` 行改为 `resumes.source_type` 值 {`upload`, `paste`}（验证：`migrations/lint.sh` PASS + 未登记 enum negative fixture exit 2）
+- [x] 6.6 B4 spec 1.22→1.23 + history 1.23：§2.1 表数 25、§3.1.2 privacy matrix（`resumes` 行 + 删 version/jd_match 行 + debriefs 收敛）、§6 C-1 表数 25 / ≥30、新增 D-22 决策、标注 D-17 / B4 本地 D-20 退役、回填 product-scope D-17 jd_match drop 计数漂移（本次 doc 修订已完成）（验证：`sync-doc-index --check` 零漂移）
+- [ ] 6.7 跨 gate 收口：`make migrate-up && make migrate-down && make migrate-up` + `make migrate-check` + `cd backend && go test ./internal/migrations/... ./internal/store/...` + `migrations/lint.sh` + `sync-doc-index --check` PASS（无 `DATABASE_URL` 时 live 明确 skip，contract / lint / negative fixture PASS）；零 `resume_versions` / `resume_version_suggestions` / `resume_tailor_runs` / `resume_asset_id` 残留 grep（除负向断言与 down 骨架）
+- [ ] 6.8 下游信号：`backend-resume`（store 改 `resumes` 单表）/ `openapi-v1-contract/004`（resume 契约坍缩）/ `shared-conventions-codified`（3 enum 退役）/ `backend-practice`（session resume_id binding）已收到 D-20 flatten 落地信号（验证：cross-plan 引用）

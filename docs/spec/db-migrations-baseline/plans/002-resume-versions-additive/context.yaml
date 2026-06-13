@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: 1.14
-    to: 1.15
+    to: 1.23
 spec:
   defaultTarget: contract
   discovery:
@@ -23,7 +23,21 @@ spec:
       - ResumeVersionType
       - ResumeSeedStrategy
       - ResumeTailorSuggestionStatus
+      - D-20
+      - D-22
+      - resume_flatten
+      - resumes
+      - resume_id
+      - 000015_resume_flatten
     keywords:
+      - D-20 resume flatten migration
+      - resume_assets rename resumes
+      - resumes structured_profile display_name
+      - drop resume_versions resume_version_suggestions resume_tailor_runs
+      - practice_plans resume_asset_id rename resume_id
+      - structured_master backfill structured_profile
+      - source_type upload paste drop guided
+      - jd_match drop count reconcile baseline 33 28 25
       - resume workshop migration
       - resume versions table
       - resume version suggestions table

@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Resume Workshop Additive Coverage
 
-> **版本**: 1.1
-> **状态**: completed
-> **更新日期**: 2026-05-12
+> **版本**: 1.2
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -212,6 +212,58 @@
 
 将 Resume Workshop 9 个新 operation fixture 接入 `frontend/src/api/devMockClient.ts`，并用 focused Vitest 覆盖 generated operationId 完整性与 `exportResumeVersion` typed 501 fallback。
 
+### Phase 7: D-20 简历扁平化 contract collapse
+
+> product-scope D-20 / B2 本地 D-26。把 Resume Workshop 版本树契约坍缩为扁平 `resumes` 资产；同步完成 product-scope D-17 残留的 §2.1/§3.1.1 endpoint 计数 reconcile。Red 优先：先把 `scripts/lint/openapi_inventory.py` EXPECTED_OPERATIONS 改 48→43（lint 先红），再改 `openapi.yaml`。本 phase 与 `db-migrations-baseline/002` Phase 6（migration）+ `backend-resume` D-20 phase 同属 D-20 contract impl，原子提交（契约与生成物互依）。
+
+#### 7.1 删除 6 个版本/suggestion operation
+
+从 `openapi/openapi.yaml` 删除 `confirmResumeStructuredMaster` / `listResumeVersions` / `getResumeVersion` / `branchResumeVersion` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion` 的 path + operation；删除对应 6 个 `openapi/fixtures/Resumes/*.json`。
+
+（验证：`npx -p @apidevtools/swagger-cli@4.0.4 swagger-cli validate openapi/openapi.yaml` PASS；`grep -c "operationId:" openapi/openapi.yaml` = 43）
+
+#### 7.2 重命名 3 op + resumeId 路径统一
+
+`updateResumeVersion`→`updateResume`（`PATCH /api/v1/resumes/{resumeId}`）、`archiveResumeAsset`→`archiveResume`（`POST /api/v1/resumes/{resumeId}/archive`）、`exportResumeVersion`→`exportResume`（`POST /api/v1/resumes/{resumeId}/exports`，保留 `501` + `RESUME_EXPORT_NOT_AVAILABLE`）；`getResume` 路径参数 `resumeAssetId`→`resumeId`；`RequestResumeTailorRequest.resumeVersionId`→`resumeId`（required，tailor 作用于扁平 resume）。重命名 / 移动对应 fixtures。
+
+（验证：`swagger-cli validate` PASS；`rg "resumeAssetId|resumeVersionId|resume-versions" openapi/openapi.yaml` 0 命中）
+
+#### 7.3 新增 duplicateResume operation
+
+新增 `POST /api/v1/resumes/{resumeId}/duplicate` operationId `duplicateResume`（IK 必带），request `DuplicateResumeRequest`（optional `structuredProfile` 覆盖 + `displayName`），success `201 + Resume`；新增 fixture `openapi/fixtures/Resumes/duplicateResume.json`（含 GenerationProvenance）。
+
+（验证：fixture schema-valid；`make validate-fixtures` PASS）
+
+#### 7.4 schema 扁平化
+
+`ResumeAsset`→`Resume`（新增 `structuredProfile` object + `displayName`；保留只读 `sourceType`∈{`upload`,`paste`} / `rawText` / `parsedTextSnapshot` / `fileObjectId`）、`ResumeAssetWithJob`→`ResumeWithJob`、`PaginatedResumeAsset`→`PaginatedResume`；新增 `UpdateResumeRequest` / `DuplicateResumeRequest`；删除 `ResumeVersion` / `BranchResumeVersionRequest` / `BranchResumeVersionAccepted` / `PaginatedResumeVersion` / `ConfirmResumeStructuredMasterRequest` / `UpdateResumeVersionRequest`；`RegisterResumeRequest.sourceType` 收敛 {`upload`,`paste`}（删除 `guided` + `guidedAnswers`）；删除 `ResumeVersionType` / `ResumeSeedStrategy` / `ResumeTailorSuggestionStatus` 三个 enum 的 `$ref`（随 [B1 D-20](../../../shared-conventions-codified/spec.md) 退役）。
+
+（验证：`swagger-cli validate` PASS；`$ref` 无悬空；`rg "ResumeVersion|BranchResumeVersion" openapi/openapi.yaml` 0 命中）
+
+#### 7.5 inventory + fixture lint 真理源
+
+`scripts/lint/openapi_inventory.py`：`EXPECTED_OPERATIONS` 48→43、`EXPECTED_TAGS` 维持 12、operation set 删 6 + 改名 3 + 加 `duplicateResume`、`IK_REQUIRED` 调整（删 branch/accept/reject/confirm，加 `updateResume`/`duplicateResume`/`archiveResume`/`exportResume`）、`AI_PROVENANCE_SCHEMAS` `ResumeVersion`→`Resume`、501 allowlist `exportResumeVersion`→`exportResume`；`scripts/lint/validate_fixtures.py` 注释计数 48→43。
+
+（验证：`python3 scripts/lint/openapi_inventory.py openapi/openapi.yaml` PASS 43 op/12 tag；`make validate-fixtures` PASS；未登记/计数不符时 lint 先红后绿）
+
+#### 7.6 codegen + baseline re-freeze
+
+`make codegen-openapi`（Go server/types + TS client/types 重生）；`make codegen-check`（提交后 `git diff --exit-code` 清）；`openapi/baseline/openapi-v1.0.0.yaml` 原地 re-freeze（pre-launch correction，参考 D-25 模式）；`openapi/diff-config.yaml` `endpointCount` 同步 43；`make openapi-diff` PASS（删除/重命名属 pre-launch correction，按 D-25 同款 re-freeze 处理，非 breaking gate violation）。
+
+（验证：`make codegen-openapi && make codegen-check` exit 0；`make openapi-diff` PASS）
+
+#### 7.7 spec / README / roadmap 计数同步
+
+B2 spec 1.29→1.30（本次 doc 修订已完成）：§1 / §2.1 / §3.1.1（43 op/12 tag + D-17 残留 reconcile）/ §4.1 / §4.2 / D-9 / 新增 D-26 / 退役 D-18/D-23/D-24；history 1.30；`openapi/README.md` + `openapi/fixtures/README.md` 计数；`docs/spec/mock-contract-suite` + `docs/spec/engineering-roadmap` resume op / count 表述。
+
+（验证：`sync-doc-index --check` 零漂移；README 计数与 inventory 一致）
+
+#### 7.8 零残留收口
+
+负向 grep：`rg "resumeVersionId|resumeAssetId|ResumeVersion|ResumeAsset|branchResume|listResumeVersions|getResumeVersion|confirmResumeStructuredMaster|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion|ResumeSeedStrategy|ResumeTailorSuggestionStatus" openapi/ scripts/lint/ backend/internal/api/generated frontend/src/api/generated` 0 命中（除 `history.md` 历史行 + 负向断言）。
+
+（验证：负向 grep 0 命中 + 7.1-7.7 全 gate PASS）
+
 ## 5 验收标准
 
 - 本计划列出的 §4 所有 Phase task 全部完成
@@ -221,6 +273,15 @@
 - 3 个 enum + 1 个错误码已在 B1 generated artifacts 中出现
 - 9 个新 operation 的 fixtures 全部 schema-valid
 - `frontend-workspace-and-practice/001` owner 已收到 listResumes 解锁信号
+
+**D-20 简历扁平化 contract collapse（Phase 7）验收**（product-scope D-20 / B2 D-26）：
+
+- `openapi/openapi.yaml` 43 operation / 12 tag：删除 6 个版本/suggestion op、3 个重命名（updateResume/archiveResume/exportResume）、新增 `duplicateResume`、`resumeAssetId`/`resumeVersionId`→`resumeId`
+- schema `ResumeAsset`→`Resume`（含 `structuredProfile`/`displayName`）、`PaginatedResumeAsset`→`PaginatedResume`、新增 `UpdateResumeRequest`/`DuplicateResumeRequest`、删除 `ResumeVersion` 等 6 个版本 schema；`RequestResumeTailorRequest.resumeVersionId`→`resumeId`；`RegisterResumeRequest.sourceType` 收敛 {upload,paste}
+- `scripts/lint/openapi_inventory.py` EXPECTED_OPERATIONS 48→43、`AI_PROVENANCE_SCHEMAS` `ResumeVersion`→`Resume`；`make validate-fixtures` / `make codegen-openapi && make codegen-check` / `make openapi-diff` 全 PASS；baseline 原地 re-freeze
+- B2 spec 1.29→1.30 + history 1.30 + README/roadmap/mock-contract-suite 计数同步；`sync-doc-index --check` 零漂移
+- 负向 grep `resumeVersionId|resumeAssetId|ResumeVersion|branchResume|...` 在 openapi/lint/generated 0 命中（除 history 历史行 + 负向断言）
+- 同步修正 product-scope D-17 残留的 §2.1/§3.1.1 endpoint 计数漂移（60→48→43）
 
 ## 6 风险与应对
 

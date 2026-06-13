@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Resume Workshop Additive Coverage Checklist
 
-> **版本**: 1.1
-> **状态**: completed
-> **更新日期**: 2026-05-12
+> **版本**: 1.2
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -69,3 +69,18 @@
 - [x] 6.1 `branchResumeVersion` 202 response 使用命名 schema + generated TS union return type（验证：codegen unit test + `make codegen-openapi`）
 - [x] 6.2 generated TS client 对显式 P0 `501` response 走 typed parse path，未声明 4xx/5xx 仍 throw（验证：codegen unit test + frontend focused Vitest）
 - [x] 6.3 dev mock client 导入 9 个 Resume Workshop fixture，operationId coverage 与 `exportResumeVersion` typed fallback 通过（验证：`pnpm --filter @easyinterview/frontend test src/api/devMockClient.test.ts`）
+
+## Phase 7: D-20 简历扁平化 contract collapse
+
+> product-scope D-20 / B2 D-26。Red 优先：先改 inventory lint 期望值再改 `openapi.yaml`。与 `db-migrations-baseline/002` Phase 6 + `backend-resume` D-20 同属 contract impl 原子提交。
+
+- [ ] 7.0 Red：`scripts/lint/openapi_inventory.py` `EXPECTED_OPERATIONS` 48→43 + operation set 调整，确认 `python3 scripts/lint/openapi_inventory.py openapi/openapi.yaml` 先红（验证：lint 退出码非 0）
+- [ ] 7.1 删除 6 个 op（`confirmResumeStructuredMaster` / `listResumeVersions` / `getResumeVersion` / `branchResumeVersion` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion`）+ 6 fixtures（验证：`swagger-cli validate` PASS + `grep -c operationId` = 43）
+- [ ] 7.2 重命名 `updateResume` / `archiveResume` / `exportResume` + `resumeId` 路径 + `RequestResumeTailorRequest.resumeVersionId`→`resumeId` + 移动 fixtures（验证：`swagger-cli validate` PASS + `rg "resumeAssetId|resumeVersionId|resume-versions" openapi/openapi.yaml` 0 命中）
+- [ ] 7.3 新增 `duplicateResume` op + `DuplicateResumeRequest` schema + fixture（验证：fixture schema-valid + `make validate-fixtures` PASS）
+- [ ] 7.4 schema 扁平化：`ResumeAsset`→`Resume`(+`structuredProfile`/`displayName`) / `PaginatedResume` / `UpdateResumeRequest`，删 `ResumeVersion` 等 6 schema，`RegisterResumeRequest.sourceType` {upload,paste}，删 3 enum `$ref`（验证：`swagger-cli validate` PASS + 无悬空 `$ref`）
+- [ ] 7.5 inventory + `validate_fixtures` lint 真理源 48→43、`AI_PROVENANCE_SCHEMAS` `ResumeVersion`→`Resume`、`IK_REQUIRED` 调整（验证：`openapi_inventory.py` + `make validate-fixtures` PASS）
+- [ ] 7.6 `make codegen-openapi` + `make codegen-check` + baseline 原地 re-freeze + `make openapi-diff` PASS（验证：codegen-check exit 0 + openapi-diff PASS）
+- [x] 7.7 B2 spec 1.30 + history 1.30 + `openapi/README.md` / `openapi/fixtures/README.md` / roadmap / mock-contract-suite 计数同步（本次 doc 修订已完成 spec/history；README/roadmap 计数随 impl）（验证：`sync-doc-index --check` 零漂移）
+- [ ] 7.8 零残留负向 grep `resumeVersionId|resumeAssetId|ResumeVersion|branchResume|listResumeVersions|getResumeVersion|confirmResumeStructuredMaster|accept+rejectResumeTailorSuggestion|ResumeSeedStrategy|ResumeTailorSuggestionStatus`（openapi/lint/generated；除 history 历史行 + 负向断言）（验证：0 命中）
+- [ ] 7.9 下游信号：`frontend-resume-workshop` / `frontend-workspace-and-practice` / `frontend-debrief` / `backend-resume` 已收到 resume 契约坍缩 + `resumeId` 信号（验证：cross-plan 引用）

@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: 1.16
-    to: 1.17
+    to: 1.30
 spec:
   defaultTarget: contract
   discovery:
@@ -25,6 +25,14 @@ spec:
       - ResumeVersionType
       - ResumeSeedStrategy
       - ResumeTailorSuggestionStatus
+      - D-20
+      - D-26
+      - resume-flatten
+      - resumeId
+      - updateResume
+      - duplicateResume
+      - archiveResume
+      - exportResume
     keywords:
       - resume workshop additive
       - resume versions
@@ -33,13 +41,19 @@ spec:
       - register resume sourceType
       - resume export not available
       - additive operation matrix
-      - openapi 55 endpoint
+      - openapi 43 endpoint
       - workspace listResumes unblock
       - resume picker active list
       - resume vocabulary D-10
       - resume provenance schema
       - resume idempotency-key
       - resume archive endpoint
+      - D-20 resume flatten contract collapse
+      - delete resume version operations
+      - resumeAssetId resumeVersionId rename resumeId
+      - duplicateResume save as new
+      - ResumeAsset rename Resume schema
+      - jd_match endpoint count reconcile 60 48 43
   targets:
     contract:
       plan: ./plan.md
