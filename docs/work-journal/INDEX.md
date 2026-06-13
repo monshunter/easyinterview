@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-06-12](2026-06-12.md) | `docs(frontend-shell): close app shell plan 001 lifecycle after phase 12` | #docs |
 | [2026-06-12](2026-06-12.md) | `feat(frontend-shell): align shell with ux funnel simplification` | #feat #ui #test #docs |
 | [2026-06-12](2026-06-12.md) | `docs(frontend-shell): revise app shell plan for ux funnel alignment` | #docs |
 | [2026-06-12](2026-06-12.md) | `feat(ui-design): restore custom accent and default to ocean theme` | #feat #ui #docs #test |

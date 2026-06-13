@@ -1,8 +1,8 @@
 # Frontend Shell BDD Checklist
 
 > **版本**: 1.10
-> **状态**: active
-> **更新日期**: 2026-06-12
+> **状态**: completed
+> **更新日期**: 2026-06-13
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 

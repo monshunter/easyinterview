@@ -1,8 +1,8 @@
 # Frontend Shell BDD Plan
 
 > **版本**: 1.10
-> **状态**: active
-> **更新日期**: 2026-06-12
+> **状态**: completed
+> **更新日期**: 2026-06-13
 
 ## Phase 2: TopBar and display controls
 
