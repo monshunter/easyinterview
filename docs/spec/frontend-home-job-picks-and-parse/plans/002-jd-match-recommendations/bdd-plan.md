@@ -1,7 +1,7 @@
 # 002 BDD Plan
 
 > **版本**: 1.7
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-06-13
 
 **关联 Plan**: [plan](./plan.md)
