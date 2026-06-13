@@ -1,8 +1,8 @@
 # Backend Resume Asset Register Parse and Listing Checklist
 
-> **版本**: 1.3
-> **状态**: completed
-> **更新日期**: 2026-05-13
+> **版本**: 1.4
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -61,3 +61,12 @@
 - [x] 6.2 `resume.parse` retryable failure 每次写 `parse_status='failed' + error_code`，retry metadata 仍由 `async_jobs` 表达，并允许 failed asset 重试回 processing 后 ready（验证：job/store/cmd-api retry tests PASS）<!-- verified: 2026-05-13 method=go-test tests=TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox,TestParseHandlerRetriesFailedAssetBackToProcessing,TestParseStatusTransition,TestResumeParseDrainerRetryableFailureScenario -->
 - [x] 6.3 加固 E2E.P0.034 / E2E.P0.035 trigger/verify，检查新增 validation/retry 测试名且拒绝 no-op/skip（验证：两个 scenario `setup -> trigger -> verify -> cleanup` PASS）<!-- verified: 2026-05-13 method=scenario logs=.test-output/e2e/p0-034-resume-register-and-list/trigger.log,.test-output/e2e/p0-035-resume-parse-async-job-lifecycle/trigger.log -->
 - [x] 6.4 收口验证：focused Go tests、`go test ./internal/resume/... ./cmd/api`、`make docs-check`、`sync-doc-index --check`、`git diff --check` 全 PASS <!-- verified: 2026-05-13 method=go-test+scenario+docs-check+sync-doc-index+diff-check -->
+
+## Phase 7: D-20 简历扁平化适配（resumes / resumeId / structured_profile）
+
+> product-scope D-20 / backend-resume D-13。依赖 B4 002 Phase 6 + B2 004 Phase 7。Red 优先。
+
+- [ ] 7.1 store `assets.go`→`resumes.go`：表名 `resumes` + 读写 `structured_profile` / `display_name` 列；删 `guided_answers`；`source_type` 收敛 {`upload`,`paste`}（验证：`cd backend && go test ./internal/resume/store/...` PASS）
+- [ ] 7.2 handler register/get/list 迁移：generated `ResumeAsset`→`Resume`、`ResumeAssetWithJob`→`ResumeWithJob`、`resumeAssetId`→`resumeId`、`PaginatedResumeAsset`→`PaginatedResume`；register 删 `guided` 422 分支（验证：handler unit test + `cmd/api` wiring test PASS）
+- [ ] 7.3 parse job 写 `resumes.structured_profile`（无 master 确认），`resume.parse.completed` envelope 改 `resumeId`（验证：parse job unit test + outbox envelope test PASS）
+- [ ] 7.4 收口：`cd backend && go test ./internal/resume/... ./cmd/api`；零 `resumeAssetId` / `resume_assets` / `ResumeAsset` 残留 grep（generated 由 B2 重生除外）；`sync-doc-index --check`（验证：全 gate PASS + 负向 grep 0 命中）

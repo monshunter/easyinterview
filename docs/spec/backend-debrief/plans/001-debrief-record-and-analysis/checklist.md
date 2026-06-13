@@ -1,8 +1,8 @@
 # 001 Debrief Record and Analysis Checklist
 
-> **版本**: 1.0
-> **状态**: completed
-> **更新日期**: 2026-05-17
+> **版本**: 1.1
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联计划**: [plan](./plan.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -135,3 +135,10 @@
   <!-- verified: 2026-05-16 docs/spec/backend-debrief/history.md records plan 001 completion -->
 - [x] 7.4 提交 commit `feat(backend-debrief): close 001 debrief record and analysis baseline`；记录工作日志 `/work-journal`
   <!-- verified: 2026-05-16 work-journal entry prepared for the same commit message; commit is this close-out change set -->
+
+## Phase 8: D-20 简历扁平化 resumeId 重命名
+
+> product-scope D-20 / backend-debrief D-19。Red 优先。（Phase 7 为既有 Plan 收口，D-20 续编为 Phase 8。）
+
+- [ ] 8.1 `suggestDebriefQuestions` handler：generated `SuggestDebriefQuestionsRequest.resumeVersionId`→`resumeId`；可选上下文 SQL `(user_id, resume_id)` 查扁平 `resumes`，prompt 上下文「resume version 摘要」→「resume `structured_profile` 摘要」（验证：handler unit test + 越权 resume 404 PASS）
+- [ ] 8.2 收口：`cd backend && go test ./internal/debrief/... ./cmd/api` + 零 debrief 包内 `resumeVersionId` / `resume_version_id` 残留 grep（generated 除外）（验证：全 gate PASS + 负向 grep 0 命中）

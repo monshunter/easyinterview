@@ -1,8 +1,8 @@
 # Backend Practice Spec
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-06-13
 
 ## 1 背景与目标
 
@@ -24,7 +24,7 @@
   - `POST /practice/sessions/{sessionId}/events` `appendSessionEvent`：200 + `SessionEventResult{acknowledged, session, assistantAction}`；通过 body `clientEventId` 实现 per-session idempotency，必须**禁止**携带 `Idempotency-Key` header；按 event `kind` 路由到状态机分支并生成下一个 `AssistantAction`。
   - `POST /practice/sessions/{sessionId}/complete` `completePracticeSession`：202 + `ReportWithJob`，要求 `Idempotency-Key`；事务内把 session 状态推进到 `completing`，写 `session_completed` event，创建 `feedback_reports(status='queued')` placeholder 与 `async_jobs(job_type='report_generate')` queued row，发出 outbox `practice.session.completed`；本域只创建报告占位与 job，不生成报告内容。
 - Plan goal 与数据来源派生规则（goal 决定 turn 来源，与 mode 正交）：
-  - `baseline`：仅依赖 `target_jobs` + `resume_assets` 上下文；`source_report_id` / `source_debrief_id` 均为空；首题与后续 turn 由 AI 生成。
+  - `baseline`：仅依赖 `target_jobs` + `resumes` 上下文（D-20 扁平简历）；`source_report_id` / `source_debrief_id` 均为空；首题与后续 turn 由 AI 生成。
   - `retry_current_round`：要求 `source_report_id NOT NULL`，`practice_plans.focus_competency_codes` 来自报告 `next_actions` 中标记 `included_in_retry_plan=true` 的 `question_assessments`；turn 仍由 AI 生成，但聚焦于上一轮缺口。
   - `next_round`：要求 `source_report_id NOT NULL`，`interviewer_persona` / `difficulty` 按 InterviewRound 进阶规则切换；turn 由 AI 生成。
   - `debrief`：要求 `source_debrief_id NOT NULL`；首批 `practice_turns` 由 debrief 已确认问题序列**预填**，AI 仅生成同题追问与轻量评估，不主动追加新题（除超出 debrief 序列且用户继续答题）；与 `mode` 正交——debrief plan 仍可在 `assisted` 或 `strict` 下运行。
@@ -49,7 +49,7 @@
 - 不实现 report 生成、证据回收、维度评估、ReadinessTier 计算、题目回顾页 payload；归 `backend-review` (future) owner。本 spec 仅创建 queued report/job handoff 与 source event，不生成报告内容。
 - 不实现真实面试复盘的 intake、分析、复盘面试问题导出；归 `backend-debrief` (future) owner。本 spec 仅消费 `source_debrief_id` 引用并把已确认 debrief 问题预填进 turns。
 - 不实现 JD 解析、`target_jobs` 生命周期；归 [`backend-targetjob`](./../backend-targetjob/spec.md) owner。本 spec 仅引用 `target_job_id`。
-- 不实现简历资产版本、`resume_assets` 解析、岗位定制；归 `backend-resume` (future) owner。本 spec 仅引用 `resume_asset_id`。
+- 不实现简历解析、改写；归 `backend-resume` owner。本 spec 仅引用 `resumeId`（D-20 扁平简历，原 `resumeAssetId`）。
 - 不实现 STT / LLM / TTS 编排、committed-context 推进、barge-in 处理、TTS chunk 播放语义；归 [`practice-voice-mvp`](../practice-voice-mvp/spec.md) owner 与其 plan。
 - 不实现独立 worker / Asynq dispatcher / 生产级 outbox consumer；001/002 范围只负责 handler/store 同事务写 `outbox_events` 与 `async_jobs`，真实 dispatcher / runtime drainer 由 future `backend-async-runner` 或对应 owner 接管，不把不存在的 runtime 包作为 002 实施依赖。
 - 不暴露独立 cancel API（OpenAPI v1 不提供 `DELETE /practice/sessions/{id}`）；`status='cancelled'` 仅由 platform sweep（超时阈值由本 spec §6 约定，实现归 platform owner）和 DELETE /me cascade 触发。
@@ -92,9 +92,10 @@
 | D-28 | D-22 下 B3 job ownership 前置 | 用户已确认坚持 D-22：`completePracticeSession` 同事务创建 `feedback_reports` placeholder 与 `async_jobs(report_generate)`。因此 B3 `event-and-outbox-contract` / `shared/jobs.yaml` / generated jobs docs 必须在 Phase 0 明确 `practice.session.completed` 是 report job 的 source event 与 analytics fact，不能再由 outbox dispatcher 根据同一事件创建第二个 `report_generate` job；dispatcher / backend-review 只消费既有 queued job 或按 dedupe key 查找既有 job | 保持 `ReportWithJob` 可执行，同时避免重复 job、重复报告与 dispatcher 职责冲突 |
 | D-29 | F3 baseline 独立前置 | `prompt-rubric-registry/001-baseline` 必须独立派生、完成并通过其 Resolve / prompt / rubric / lint gates 后，backend-practice 才能进入依赖 `practice.session.first_question` / `practice.session.follow_up` / `practice.turn.lightweight_observe` 的实现阶段；未完成前只允许契约 / migration / 非 AI store work | 防止 backend-practice hardcode prompt 或在 F3 真理源未落地时启动 AI handler |
 | D-30 | 001-Phase-0 跨 spec 修订归属与 idempotency 表载体 | (a) `001-plan-and-session-orchestration` Phase 0 直接修订 B1 `shared/conventions.yaml` / B2 `openapi/openapi.yaml` / B3 generated event refs / B4 migrations 编码真理源（integrator 模式），同时同步追加各 owner spec 的 `history.md` 与 `spec.md` Header 授权记录与版本号；不再为 D-21 / D-26 / D-27 各派 sibling owner spec plan。(b) D-27 idempotency 存储载体收敛为 **shared** `idempotency_records` 表（含 `domain` / `operation` namespace 字段），由 001 Phase 0 引入并设计为可被 backend-targetjob / backend-review / 自身 002 等未来 backend domain 直接复用 | 缩短 critical path；shared idempotency 基建在引入第一个 caller 时一并设计，避免后续重构；ownership 软化由各 owner spec 在 history 显式登记"协调修订模式 / 关联计划: backend-practice/001 Phase 0"兜底 |
-| D-31 | baseline plan 必须绑定简历资产 | `createPracticePlan` 的 baseline 路径要求 `resumeAssetId` 为 schema 必填字段，并且该 resume asset 必须属于当前用户且未删除；缺失、空值或不可用 resume 均返回 `422 VALIDATION_FAILED`。B2 `CreatePracticePlanRequest.required`、fixtures、Go/TS generated artifacts、frontend request builder 与 backend service/store 必须保持同一口径 | 当前 workspace UI 已把缺简历作为进入面试前的阻塞空状态；首题上下文和后续报告证据链依赖目标岗位 + 简历绑定，避免契约允许客户端发送不完整 plan |
+| D-31 | baseline plan 必须绑定简历资产（**D-39 重塑（D-20）**：`resumeAssetId`→`resumeId`） | `createPracticePlan` 的 baseline 路径要求 `resumeId`（D-20 前为 `resumeAssetId`）为 schema 必填字段，并且该 resume 必须属于当前用户且未删除；缺失、空值或不可用 resume 均返回 `422 VALIDATION_FAILED`。B2 `CreatePracticePlanRequest.required`、fixtures、Go/TS generated artifacts、frontend request builder 与 backend service/store 必须保持同一口径 | 当前 workspace UI 已把缺简历作为进入面试前的阻塞空状态；首题上下文和后续报告证据链依赖目标岗位 + 简历绑定，避免契约允许客户端发送不完整 plan |
 | D-36 | hint / lightweight_observe AI 失败按 graceful degrade（由 003 plan-level 派生） | 辅助 AI（`practice.turn.lightweight_observe` / hint）失败 → `appendSessionEvent` 返回 `200 + AssistantAction{type:'session_wait', hint:null, sessionStatus:'running'}`；DB `practice_sessions.status` 保持 `running`，`failure_code` 保持 NULL；`practice_turns.hint_text` 保持 NULL；不返回 502/503，不写 `audit_events`；service-local `SessionEventOutcome.AuditMetadata["hint_degrade_reason"]` 只允许携带 sanitized B1 error_code 且不得落入 `audit_events.metadata` 或 wire envelope；F3 resolve 类失败统一映射为 B1 `AI_PROVIDER_CONFIG_INVALID`，A3 / parse 类失败使用 A3 返回或解析得到的 B1 `AI_*` code；ai_task_runs 仍写 `task_type='hint_generate', validation_status='failed', error_code` 来自 B1 enum 作为运维可观测兜底 | hint 是 session-running 期间用户主动触发的辅助 AI；强制 fail-closed 会因临时 AI 故障中断答题循环，并与 002 D-19 follow_up fallback 模式不一致；session-survival AI 仍按 C-17 / D-19 narrowed 规则 fail-closed |
 | D-38 | hint turn-lifecycle 边界（由 003 plan-level 派生） | hint_requested 路径在 `practice_session_events` 上写入 `kind='hint_requested'` 留痕，但不递增 `practice_sessions.turn_count`、不改 `practice_turns.status` / `turn_index` / `follow_up_count`、不发 `practice.turn.completed` outbox、不写 `audit_events`；assisted 成功路径 UPDATE `practice_turns.hint_text`，degrade / strict 路径 hint_text 保持 NULL；hint 不计入 `question_budget` | 把 hint 与 answer_submitted 在 turn 主表上的写入路径彻底解耦，避免 hint 路径误占预算 / 误推进 turn 状态 / 误触发完成事件；002 已固定 strict-default 不写 hint_text 等行为，003 在 assisted 接入后必须保持同一边界 |
+| D-39 | 简历扁平化绑定适配（product-scope D-20） | `createPracticePlan` / `practice_plans` 的简历绑定从 `resumeAssetId` / `resume_asset_id` 改为 `resumeId` / `resume_id`（指向扁平 `resumes` 表：[B4 D-22](../db-migrations-baseline/spec.md) 已 rename `practice_plans.resume_asset_id`→`resume_id`，[B2 D-26](../openapi-v1-contract/spec.md) `CreatePracticePlanRequest.resumeAssetId`→`resumeId` 随全局 resumeId 重命名）；移除「简历主版本 / 岗位定制版本」上下文口径（D-20 简历无版本）；baseline session 首题 prompt 引用扁平 resume 的 `structured_profile`。 | 由 backend-practice/001 D-20 phase 落地 handler / service / store / generated 类型 rename；与 [B4 D-22](../db-migrations-baseline/spec.md) / [B2 D-26](../openapi-v1-contract/spec.md) / [backend-resume D-13](../backend-resume/spec.md) 同步 |
 
 ### 3.2 非后端 owner 决策
 
@@ -173,7 +174,7 @@
 | Observability | [F1 `observability-stack`](../observability-stack/spec.md) | metric / audit 类型登记、label allowlist、隐私红线 |
 | Auth / isolation | [`backend-auth`](../backend-auth/spec.md) | session middleware、user-scoped read/write、idempotency framework、DELETE /me CASCADE 协议 |
 | Upstream — TargetJob | [`backend-targetjob`](../backend-targetjob/spec.md) | 提供 `target_job_id` 与解析后的 requirements / fitSummary / company language |
-| Upstream — Resume | future `backend-resume` | 提供 `resume_asset_id` 与简历主版本 / 岗位定制版本上下文 |
+| Upstream — Resume | `backend-resume` | 提供 `resumeId` 与扁平简历（`structured_profile`）上下文（D-20，原 `resume_asset_id` + 版本树） |
 | Downstream — Report | future `backend-review` | 消费既有 `async_jobs(report_generate)` queued job，关联 `practice.session.completed` source event / analytics fact，填充 `feedback_reports` 内容并生成 `question_assessments`；本 spec 仅创建 placeholder / job / source event |
 | Downstream — Debrief | future `backend-debrief` | 提供 debrief 已确认问题序列供 `goal='debrief'` plan 消费 |
 | Voice extension | [`practice-voice-mvp`](../practice-voice-mvp/spec.md) | STT / LLM / TTS profile 选择、committed-context、barge-in；本 spec 提供 voice operation 契约入口与 session event 持久化 |
@@ -185,7 +186,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | baseline plan 创建 | 已登录用户拥有 `target_job_id` 与 `resume_asset_id`，`goal='baseline'` | `POST /practice/plans` 携带 `Idempotency-Key` | 返回 201 + `PracticePlan{status:'ready'}`，DB 写入 `practice_plans`，`source_report_id` / `source_debrief_id` 均为空，audit_events 写入元数据摘要 | 001-plan-and-session-orchestration |
+| C-1 | baseline plan 创建 | 已登录用户拥有 `target_job_id` 与 `resumeId`（D-20 扁平简历），`goal='baseline'` | `POST /practice/plans` 携带 `Idempotency-Key` | 返回 201 + `PracticePlan{status:'ready'}`，DB 写入 `practice_plans`，`source_report_id` / `source_debrief_id` 均为空，audit_events 写入元数据摘要 | 001-plan-and-session-orchestration |
 | C-2 | retry / next_round plan 派生 | 用户对某 `feedback_reports` 选择 `复练当前轮` 或 `进入下一轮` | `POST /practice/plans` 携带 `goal IN ('retry_current_round','next_round')` 与 `sourceReportId` | DB 写入 `source_report_id`；`focus_competency_codes` 来源于 report `next_actions` 中 `included_in_retry_plan=true` 的 turn id 集合 | 004-derived-plans-debrief |
 | C-3 | debrief 来源 plan 派生 | 用户在 debrief 模块完成复盘，已确认问题序列存在 | `POST /practice/plans` 携带 `goal='debrief'` + `sourceDebriefId` + 任意合法 `mode IN ('assisted','strict')` | DB 写入 `source_debrief_id`；CHECK 约束保证 source_report_id 为空；turn seeding 由 backend-debrief 接入接口提供；mode 字段独立保留辅助度策略 | 004-derived-plans-debrief |
 | C-4 | 同步启动 session 与首题 | plan 处于 `status='ready'`，F3 / A3 active | `POST /practice/sessions` 携带 `Idempotency-Key` 与 `planId` | 返回 201 + `PracticeSession{status:'running', currentTurn:{turnIndex:1, status:'asked', questionText, questionIntent, askedAt}}`，事件 `practice.session.started` 出 outbox | 001 |

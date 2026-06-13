@@ -1,13 +1,14 @@
 # Backend Practice History
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-06-13
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-06-13 | 1.12 | product-scope D-20 简历扁平化绑定适配（新增 D-39）：`createPracticePlan` / `practice_plans` 简历绑定 `resumeAssetId` / `resume_asset_id`→`resumeId` / `resume_id`（指向扁平 `resumes`：[B4 D-22](../db-migrations-baseline/spec.md) `practice_plans.resume_asset_id`→`resume_id` 列 rename + [B2 D-26](../openapi-v1-contract/spec.md) `CreatePracticePlanRequest.resumeAssetId`→`resumeId` 随全局 resumeId 重命名）；移除「简历主版本 / 岗位定制版本」上下文口径（D-20 简历无版本）；baseline 首题 prompt 引用扁平 resume `structured_profile`。handler / service / store / generated 类型 rename 由 001 D-20 phase 落地。 | backend-practice/001 D-20 phase（product-scope D-20）|
 | 2026-05-21 | 1.11 | 登记 backend-jobs-recommendations/001 cross-owner additive：新增 `CountPracticeSessionsForUser(ctx, db, userID) (int, error)` 内部 API（`backend/internal/practice/count.go`），read-only `SELECT COUNT(*) FROM practice_sessions WHERE user_id = $1`；cross-user 隔离由 caller userId 保证；不写 audit_events。单元测试 `count_test.go` 覆盖 happy / cross-user / nil-db / empty-userId。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.15 |
 | 2026-05-16 | 1.10 | 派生 `004-derived-plans-debrief` active plan：承接 D-4 / D-14 / D-24 与 C-2 / C-3，补齐 `sourceReportId` / `sourceDebriefId` OpenAPI 字段、B4 `practice_plans.source_debrief_id` 与 source CHECK、`createPracticePlan` derived source validation、`startPracticeSession(goal='debrief')` 从 debrief confirmed question 预填首 turn 且不调用 `practice.session.first_question`；占用 BDD `E2E.P0.070-073`，用于解除 backend-debrief/001 Phase 0.6 阻塞。 | [004-derived-plans-debrief](./plans/004-derived-plans-debrief/plan.md) |
 | 2026-05-15 | 1.9 | L2 follow-up：补充 C-26 的 `show_hint` replay 不变量，要求 `appendSessionEvent` 同 `clientEventId` 重试必须返回原事件 response snapshot，不得从后续可变的 `practice_turns.hint_text` 重建；对应 B4 v1.18 在 `practice_session_events.replay_payload` 中承载内部 replay snapshot，同时保持 `payload` 隐私红线。 | [003-mode-policies-and-provenance](./plans/003-mode-policies-and-provenance/plan.md) |

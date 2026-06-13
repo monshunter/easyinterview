@@ -1,8 +1,8 @@
 # 001 BDD Checklist
 
 > **版本**: 1.3
-> **状态**: completed
-> **更新日期**: 2026-05-13
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 

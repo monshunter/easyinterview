@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-06-13](2026-06-13.md) | `docs(resume): revise backend specs for d-20 flatten` | #docs |
 | [2026-06-13](2026-06-13.md) | `docs(resume): revise contract-foundation specs for d-20 flatten` | #docs |
 | [2026-06-12](2026-06-12.md) | `docs(retrospective): assess ux funnel downstream implementation delivery` | #docs |
 | [2026-06-12](2026-06-12.md) | `fix(report-parity): mock auth so workspace parity reaches empty state` | #fix #test |

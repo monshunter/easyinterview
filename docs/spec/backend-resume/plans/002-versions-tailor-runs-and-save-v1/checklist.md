@@ -1,8 +1,8 @@
 # Backend Resume Versions, Tailor Runs and Save v1 Checklist
 
-> **版本**: 1.2
-> **状态**: completed
-> **更新日期**: 2026-05-17
+> **版本**: 1.3
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -135,3 +135,14 @@
 - [x] 9.13 通知 [frontend-resume-workshop](../../../frontend-resume-workshop/) owner：9 个 op 已就位，可启动 mock-first → real backend 切真原地修订（验证：cross-plan 信号写入 `docs/spec/frontend-resume-workshop/spec.md` 1.1 + `history.md` 1.1，标记 backend-resume/002 handoff ready，002/003 可创建/启动）
 - [x] 9.14 同步 `docs/spec/INDEX.md` backend-resume 行（1.1 → 1.2）；同步 `docs/spec/backend-resume/plans/INDEX.md`，将 002 行从 Active → Completed（验证：backend-resume spec index 已为 1.2；plans index 002 移至 Completed；最终 `sync-doc-index --check` PASS）
 - [x] 9.15 spec / history 收口：再次 `make docs-check` PASS + `git diff --check` 0 残留 trailing whitespace（验证：Phase 9 final gates PASS）
+
+## Phase 10: D-20 简历扁平化 collapse（删版本树 + 重塑 tailor + update/duplicate）
+
+> product-scope D-20 / backend-resume D-13。Red 优先。Phase 1–9 历史 baseline，本 phase 重塑其交付物。
+
+- [ ] 10.1 删除 `confirm_structured_master` / `get_version` / `list_versions` / `update_version` / `branch_version` / `accept_suggestion` / `reject_suggestion` handler + `resume_versions` / `resume_version_suggestions` / `resume_tailor_runs` store + `cmd/api` route；Red：`/api/v1/resume-versions/*` + `confirmResumeStructuredMaster` 路由 404 负向断言（验证：`go test` 404 PASS + `go build ./...` 通过）
+- [ ] 10.2 `requestResumeTailor` / `getResumeTailorRun` 重塑作用于 `resumeId`、suggestions ephemeral 落 `ai_task_runs`（task_type=`resume_tailor`）输出（验证：handler + job unit test PASS）
+- [ ] 10.3 新增 `updateResume` handler（`PATCH /api/v1/resumes/{resumeId}` 覆盖 `structured_profile` / `display_name`，IK 必带）（验证：unit + IK replay + cross-user 404 PASS）
+- [ ] 10.4 新增 `duplicateResume` handler（`POST /api/v1/resumes/{resumeId}/duplicate` 复制只读来源 + 应用 `structuredProfile`，IK 必带）（验证：unit + IK replay PASS）
+- [ ] 10.5 `resume.tailor.completed` envelope 改 `resumeId` + `tailorRunId`(=ai_task_run id)（验证：outbox envelope test PASS）
+- [ ] 10.6 收口：`cd backend && go test ./internal/resume/... ./cmd/api` + 新增 update/duplicate/tailor-ephemeral 扁平 BDD + 零 `resumeVersionId` / `resume_versions` / `structured_master` / `branchResume` / `acceptResumeTailorSuggestion` 残留 grep（generated 除外）（验证：全 gate PASS + 负向 grep 0 命中）

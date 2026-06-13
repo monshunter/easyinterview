@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.0
+    to: 1.4
 spec:
   defaultTarget: backend
   discovery:
@@ -23,6 +23,10 @@ spec:
       - guided_answers
       - sourceType
       - C7
+      - D-20
+      - resumes
+      - resumeId
+      - structured_profile flatten
     keywords:
       - resume register handler
       - resume get handler

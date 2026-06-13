@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration Checklist
 
-> **版本**: 1.3
-> **状态**: completed
-> **更新日期**: 2026-05-10
+> **版本**: 1.4
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -61,3 +61,11 @@
 - [x] 3.6 BDD-Gate: 验证 `E2E.P0.026` 通过（`test/scenarios/e2e/p0-026-practice-observability-and-privacy-redlines/`）
 - [x] 3.7 文档收口：plan / checklist / test-plan / test-checklist / bdd-plan / bdd-checklist 状态 `active` → `completed`（待 §5 验收 gate 全绿后）；同步 `plans/INDEX.md` 与 `docs/spec/INDEX.md`；运行 `/sync-doc-index --check` 无 drift
 - [x] 3.8 Phase 3 commit + work-journal + `/retrospective`（成功交付后沉淀复盘建议）
+
+## Phase 4: D-20 简历扁平化 resumeId 绑定适配
+
+> product-scope D-20 / backend-practice D-39。依赖 B2 004 Phase 7 + B4 002 Phase 6。
+
+- [ ] 4.1 `createPracticePlan` handler + service + `practice_plans` store：generated `CreatePracticePlanRequest.resumeAssetId`→`resumeId`、列 `resume_asset_id`→`resume_id`（指向 `resumes`）；baseline「resume 属于当前用户且未删除」校验改查 `resumes`（验证：handler + store unit/integration test PASS；缺 resume `422` 路径保留）
+- [ ] 4.2 baseline 首题 prompt 上下文从「resume version / 主版本」改为扁平 `resumes.structured_profile`（验证：first-question AI 调用 unit test stub 验证 prompt 上下文）
+- [ ] 4.3 收口：`cd backend && go test ./internal/practice/... ./cmd/api` + 零 practice 包内 `resumeAssetId` / `resume_asset_id` 残留 grep（generated 除外）（验证：全 gate PASS + 负向 grep 0 命中）

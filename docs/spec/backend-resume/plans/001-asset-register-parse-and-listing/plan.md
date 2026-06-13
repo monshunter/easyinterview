@@ -1,8 +1,8 @@
 # Backend Resume Asset Register Parse and Listing
 
-> **版本**: 1.3
-> **状态**: completed
-> **更新日期**: 2026-05-13
+> **版本**: 1.4
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -196,6 +196,34 @@
 - `cmd/api` 场景补齐 handler validation mapping、invalid cursor、retryable failure → retry success 的可执行断言；
 - E2E.P0.034 / E2E.P0.035 trigger/verify 必须检查新增测试名，拒绝只靠 happy path 或测反的 unit test 通过；
 - 收口后重新执行 focused Go tests、两个场景脚本、docs/index/diff gate。
+
+### Phase 7: D-20 简历扁平化适配（resumes / resumeId / structured_profile）
+
+> product-scope D-20 / backend-resume D-13。把 register / get / list / parse 迁移到扁平 `resumes` 单表口径。依赖 [B4 002 Phase 6](../../../db-migrations-baseline/plans/002-resume-versions-additive/plan.md) flatten migration + [B2 004 Phase 7](../../../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) contract collapse。Red 优先。
+
+#### 7.1 store 迁移 resume_assets → resumes
+
+`internal/resume/store/assets.go` → `resumes.go`：表名改 `resumes`，新增 `structured_profile` / `display_name` 列读写；删除 `guided_answers`；`source_type` 收敛 {`upload`, `paste`}。
+
+（验证：`cd backend && go test ./internal/resume/store/...` PASS）
+
+#### 7.2 handler register/get/list 迁移 resumeId
+
+`register.go` / `get.go` / `list.go`：generated 类型 `ResumeAsset`→`Resume`、`ResumeAssetWithJob`→`ResumeWithJob`、path param `resumeAssetId`→`resumeId`、`PaginatedResumeAsset`→`PaginatedResume`；register `sourceType` 双路（删 `guided` 422 分支）。
+
+（验证：handler unit test + `cmd/api` wiring test PASS）
+
+#### 7.3 parse job 写 structured_profile
+
+`jobs/parse.go`：parse 完成直接写 `resumes.structured_profile`（无 master 确认步骤）；`resume.parse.completed` envelope 改 `resumeId`。
+
+（验证：parse job unit test + outbox envelope test PASS）
+
+#### 7.4 收口
+
+`cd backend && go test ./internal/resume/... ./cmd/api`；零 `resumeAssetId` / `resume_assets` / `ResumeAsset` 残留 grep（generated 由 B2 重生除外）；`sync-doc-index --check`。
+
+（验证：全 gate PASS + 负向 grep 0 命中）
 
 ## 5 验收标准
 

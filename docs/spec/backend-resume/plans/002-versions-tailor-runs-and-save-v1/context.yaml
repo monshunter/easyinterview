@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: 1.1
-    to: 1.2
+    to: 1.4
 spec:
   defaultTarget: backend
   discovery:
@@ -31,6 +31,13 @@ spec:
       - structured_master
       - RESUME_STRUCTURED_MASTER_ALREADY_EXISTS
       - C7
+      - D-20
+      - resumes
+      - resumeId
+      - updateResume
+      - duplicateResume
+      - resume flatten collapse
+      - tailor ephemeral ai_task_runs
     keywords:
       - confirm resume structured master save v1
       - preview confirm resume version

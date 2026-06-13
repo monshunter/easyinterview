@@ -1,8 +1,8 @@
 # Backend Resume Versions, Tailor Runs and Save v1
 
-> **版本**: 1.2
-> **状态**: completed
-> **更新日期**: 2026-05-17
+> **版本**: 1.3
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -337,11 +337,52 @@ BDD-Gate: 验证 `E2E.P0.079` 通过
 - `docs/spec/INDEX.md` 已同步 backend-resume 行（Phase 0 已统一升级到 1.2）。
 - `plans/INDEX.md` 完成行从 Active → Completed（实施完成时切换）。
 
+### Phase 10: D-20 简历扁平化 collapse（删版本树 + 重塑 tailor + update/duplicate）
+
+> product-scope D-20 / backend-resume D-13。删除版本树 / master / suggestion handler+store，重塑 tailor 为 ephemeral，新增 `updateResume` / `duplicateResume`。依赖 [B4 002 Phase 6](../../../db-migrations-baseline/plans/002-resume-versions-additive/plan.md) + [B2 004 Phase 7](../../../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md)。Red 优先（先让被删 handler 测试转为 404 / 路由不存在断言）。Phase 1–9 为历史 baseline，本 phase 重塑其交付物。
+
+#### 10.1 删除版本/master/suggestion handler + store
+
+删除 `handler/confirm_structured_master.go` / `get_version.go` / `list_versions.go` / `update_version.go` / `branch_version.go` / `accept_suggestion.go` / `reject_suggestion.go` + 对应 store（`resume_versions` / `resume_version_suggestions` / `resume_tailor_runs`）+ `cmd/api` route；Red：`/api/v1/resume-versions/*` + `confirmResumeStructuredMaster` + `resumes/{id}/structured-master` 路由 404 负向断言。
+
+（验证：`go test` 404 断言 PASS + 包删除后 `go build ./...` 通过）
+
+#### 10.2 重塑 requestResumeTailor / getResumeTailorRun
+
+作用于 `resumeId`（移除 `resumeVersionId` 绑定与 targeted version 创建）；run + suggestions 落 `ai_task_runs`（task_type=`resume_tailor`）输出，不写 `resume_tailor_runs` 表；`getResumeTailorRun` 读 ai_task_run 返回 run 状态 + ephemeral suggestions。
+
+（验证：handler + job unit test PASS）
+
+#### 10.3 新增 updateResume（覆盖原简历）
+
+`handler/update.go`：`PATCH /api/v1/resumes/{resumeId}` 覆盖 `structured_profile` / `display_name`；IK 必带；cross-user 404。
+
+（验证：handler unit test + IK replay test + cross-user 404 test PASS）
+
+#### 10.4 新增 duplicateResume（保存为新简历）
+
+`handler/duplicate.go`：`POST /api/v1/resumes/{resumeId}/duplicate` 从现有 resume 复制只读来源快照 + 应用传入 `structuredProfile`，分配新 `id`；IK 必带。
+
+（验证：handler unit test + IK replay test PASS）
+
+#### 10.5 resume.tailor.completed envelope
+
+`resume.tailor.completed` envelope 改 `resumeId` + `tailorRunId`(=ai_task_run id)；B4 addendum migration `000007_resume_versions_structured_master_unique` 随 `resume_versions` 表由 `000015` drop 一并退役（不单独保留）。
+
+（验证：outbox envelope test PASS）
+
+#### 10.6 收口 + BDD
+
+`cd backend && go test ./internal/resume/... ./cmd/api`；E2E.P0.074-080 七个版本树场景退役（目录删除由 D-20 scenario cleanup 处理），新增 `updateResume` / `duplicateResume` / tailor-ephemeral 扁平 BDD；零 `resumeVersionId` / `resume_versions` / `structured_master` / `branchResume` / `acceptResumeTailorSuggestion` 残留 grep（generated 由 B2 重生除外）。
+
+（验证：全 gate PASS + 负向 grep 0 命中）
+
 ## 5 验收标准
 
-- 本计划列出的 §4 所有 Phase task 全部完成
+- 本计划列出的 §4 所有 Phase task 全部完成（Phase 1–9 历史 baseline 由 Phase 10 D-20 重塑）
 - §3 替代验证 gate 全部通过
-- spec §6 C-9 partial / C-10 / C-11 / C-13 / C-14 / C-15 / C-16 全部 PASS
+- **D-20（Phase 10）**：版本/master/suggestion 7 handler + 3 store 删除、tailor 重塑 ephemeral、`updateResume`/`duplicateResume` 新增、`resume.tailor.completed` envelope `resumeId`；`go test ./internal/resume/... ./cmd/api` PASS；零版本树残留 grep
+- spec §6 C-9 partial / ~~C-10 / C-11~~（D-13 退役）/ C-12 / C-13 / ~~C-14 / C-15~~（D-13 退役）/ C-16 / C-17 / C-18 全部 PASS
 - `cmd/api` route/runtime gate PASS：9 个新 route 在真实 runtime 注册，session / IK middleware 行为与现有 backend-resume/001 一致；resume_tailor backend-internal runner Start/Shutdown 与 deterministic `RunOnce` 均有测试证据
 - 7 个 BDD 场景（E2E.P0.074 – P0.080）PASS
 - [frontend-resume-workshop](../../../frontend-resume-workshop/) owner 已收到 9 个 op 切真信号

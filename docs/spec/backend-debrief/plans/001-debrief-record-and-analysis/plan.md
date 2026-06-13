@@ -1,8 +1,8 @@
 # 001 Debrief Record and Analysis
 
-> **版本**: 1.0
-> **状态**: completed
-> **更新日期**: 2026-05-16
+> **版本**: 1.1
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -314,9 +314,26 @@ Tests: `TestGetDebrief_DraftPartialReturn|TestGetDebrief_CompletedFullReturn|Tes
 - 更新 plans/INDEX.md 把 001 移到 completed
 - 更新 backend-debrief/history.md 增加 1.1 completion 行
 
+### Phase 8: D-20 简历扁平化 resumeId 重命名
+
+> product-scope D-20 / backend-debrief D-19。`suggestDebriefQuestions` 的 `resumeVersionId?`→`resumeId?`。依赖 [B2 004 Phase 7](../../../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md)（`SuggestDebriefQuestionsRequest.resumeVersionId`→`resumeId`）。（Phase 7 为既有 Plan 收口，本 D-20 phase 续编为 Phase 8。）
+
+#### 8.1 handler resumeId 迁移
+
+`suggestDebriefQuestions` handler：generated `SuggestDebriefQuestionsRequest.resumeVersionId`→`resumeId`；可选上下文拉取 SQL `(user_id, resume_id)`（查扁平 `resumes`），prompt 上下文从「resume version 摘要」改为「resume `structured_profile` 摘要」。
+
+（验证：handler unit test PASS；越权 resume 404；可选 resume 缺省路径保留）
+
+#### 8.2 收口
+
+`cd backend && go test ./internal/debrief/... ./cmd/api`；零 `resumeVersionId` / `resume_version_id`（debrief 包内）残留 grep（generated 由 B2 重生除外）。
+
+（验证：全 gate PASS + 负向 grep 0 命中）
+
 ## 5 验收标准
 
 - C-1 ~ C-17（[spec §6](../../spec.md#6-验收标准)）全部通过
+- **D-20（Phase 8）**：`suggestDebriefQuestions` `resumeVersionId?`→`resumeId?`、SQL `(user_id, resume_id)`、prompt 引用扁平 `structured_profile`；`go test ./internal/debrief/... ./cmd/api` PASS；零 debrief 包内 `resumeVersionId` 残留
 - 本 plan 列出的 Phase 0-6 实现项全部按 checklist 勾选
 - [BDD-Gate](./bdd-checklist.md) `E2E.P0.060-064` 全部通过
 - [test-checklist](./test-checklist.md) 单元测试与集成测试项全部通过

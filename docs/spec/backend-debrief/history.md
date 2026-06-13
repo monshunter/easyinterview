@@ -1,13 +1,14 @@
 # Backend Debrief History
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-06-13
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-06-13 | 1.4 | product-scope D-20 简历扁平化 resumeId 重命名（新增 D-19）：`suggestDebriefQuestions` request `resumeVersionId?`→`resumeId?`、handler 可选上下文「resume version 摘要」→「resume `structured_profile` 摘要」、SQL 过滤 `(user_id, resume_id)`、复盘面试 handoff（D-17）route payload `resumeVersionId`→`resumeId`、Q-6 `dataSourceVersion` 链路同步。handler / `SuggestDebriefQuestionsRequest` generated 类型 rename 由 001 D-20 phase 落地。 | backend-debrief/001 D-20 phase（product-scope D-20）|
 | 2026-05-21 | 1.3 | 登记 backend-jobs-recommendations/001 cross-owner additive：新增 `CountDebriefsForUser(ctx, db, userID) (int, error)` 内部 API（`backend/internal/debrief/count.go`），read-only `SELECT COUNT(*) FROM debriefs WHERE user_id = $1`；cross-user 隔离由 caller userId 保证；不写 audit_events。单元测试 `count_test.go` 覆盖 happy / cross-user / nil-db / empty-userId。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.17 |
 | 2026-05-16 | 1.2 | 完成 plan 001 `backend-debrief/001-debrief-record-and-analysis`：落地 createDebrief / getDebrief / suggestDebriefQuestions API、`debrief_generate` worker、debrief store/service/handler、idempotency mismatch 统一错误码、隐私/观测/retry/legacy negative gates 与 E2E.P0.060-064 场景资产；全局 backend、codegen、fixture、events、migration、lint、docs 与 diff gates 通过。 | 001-debrief-record-and-analysis completion |
 | 2026-05-16 | 1.1 | Phase 0.6 反查 backend-practice 真理源后修正复盘面试 handoff 口径：`debrief` 是 `PracticeGoal`，不是 `PracticeMode`；mode 继续二值 `assisted` / `strict`，goal 派生能力仍依赖 backend-practice/004 或等价 addendum。 | 001-debrief-record-and-analysis Phase 0.6 |
