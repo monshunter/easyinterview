@@ -23,6 +23,12 @@ describe("normalizeRouteName", () => {
     expect(normalizeRouteName("voice")).toBe("home");
   });
 
+  it("normalizes the retired auth_reset route to the single login entry", () => {
+    // product-scope D-16 / frontend-shell spec v1.22 C-17 — email code is the
+    // only sign-in flow; auth_reset must not materialize a standalone screen.
+    expect(normalizeRouteName("auth_reset")).toBe("auth_login");
+  });
+
   it("normalizes the historical debrief_full alias to the current debrief route", () => {
     // docs/spec/frontend-debrief/spec.md §2.2 — `debrief_full` is the legacy
     // standalone-screen route and must not materialize a second debrief

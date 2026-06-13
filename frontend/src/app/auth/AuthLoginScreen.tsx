@@ -74,15 +74,9 @@ export const AuthLoginScreen: FC<AuthLoginScreenProps> = ({
           {t("auth.sendEmail")}
         </button>
       </form>
-      <div className="ei-auth-link-row">
-        <button
-          type="button"
-          data-testid="auth-login-link-reset"
-          className="ei-auth-secondary-link"
-          onClick={() => onNavigate({ name: "auth_reset", params: {} })}
-        >
-          {t("auth.forgotPassword")}
-        </button>
+      <div data-testid="auth-login-help" className="ei-auth-help">
+        <div>{t("auth.login.helpAccount")}</div>
+        <div className="ei-auth-help-line">{t("auth.login.helpCode")}</div>
       </div>
     </AuthShell>
   );

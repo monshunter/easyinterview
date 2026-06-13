@@ -13,7 +13,7 @@ import { resolve } from "node:path";
  * - DOM anchors (workspace crumbs, plan eyebrow, launcher, main columns, modals,
  *   empty/missing states)
  * - Bounding box stays in viewport, no overlap
- * - warm/light -> dark -> customAccent theme switching
+ * - default (ocean)/light -> dark -> customAccent theme switching
  * - non-empty screenshot smoke
  * - Negative: old prototype testids absent
  *

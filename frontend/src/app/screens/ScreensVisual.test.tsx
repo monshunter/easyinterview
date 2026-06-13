@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
-import { render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 
 import { DisplayPreferencesProvider } from "../display/DisplayPreferencesProvider";
 import { PlaceholderScreen } from "./PlaceholderScreen";
@@ -55,8 +55,8 @@ describe("Profile shell visual contract (Phase 5.1)", () => {
   });
 });
 
-describe("Settings shell visual contract (Phase 5.1)", () => {
-  it("renders ei-screen-shell with display title and ei-screen-card sections", () => {
+describe("Settings shell visual contract (Phase 5.1 / Phase 12.2)", () => {
+  it("renders ei-screen-shell with a two-tab rail and profile-tab ei-screen-card sections", () => {
     const { container } = render(
       withProvider(<SettingsScreen route={{ name: "settings", params: {} }} />),
     );
@@ -65,19 +65,73 @@ describe("Settings shell visual contract (Phase 5.1)", () => {
     expect(root!.className).toMatch(/\bei-screen-shell\b/);
     const heading = root!.querySelector("h1");
     expect(heading?.className).toMatch(/\bei-text-display\b/);
+
+    // D-21: exactly two tabs — profile and privacy & data.
+    expect(
+      container.querySelector("[data-testid='settings-tab-profile']"),
+    ).toBeTruthy();
+    expect(
+      container.querySelector("[data-testid='settings-tab-privacy']"),
+    ).toBeTruthy();
+    expect(
+      container.querySelectorAll("[data-testid^='settings-tab-']"),
+    ).toHaveLength(2);
+
+    // Default profile tab carries account / login-security / font preset /
+    // product info cards; the privacy card lives on the privacy tab.
     for (const sectionId of [
       "settings-account",
       "settings-login-security",
       "settings-font-preset",
-      "settings-privacy",
-      "settings-notifications-placeholder",
-      "settings-subscription-placeholder",
       "settings-app-info",
     ]) {
       const section = container.querySelector(`[data-testid='${sectionId}']`);
       expect(section, `${sectionId} missing`).toBeTruthy();
       expect(section!.className).toMatch(/\bei-screen-card\b/);
     }
+    expect(
+      container.querySelector("[data-testid='settings-privacy']"),
+    ).toBeFalsy();
+
+    // D-21: P1 placeholder tabs are removed for good.
+    expect(
+      container.querySelector(
+        "[data-testid='settings-notifications-placeholder']",
+      ),
+    ).toBeFalsy();
+    expect(
+      container.querySelector(
+        "[data-testid='settings-subscription-placeholder']",
+      ),
+    ).toBeFalsy();
+
+    // D-16: login security only states the passwordless method.
+    const security = container.querySelector(
+      "[data-testid='settings-login-security']",
+    );
+    expect(security!.textContent).toMatch(
+      /邮箱验证码 · 无密码|Email sign-in code · no password/,
+    );
+    expect(security!.textContent).not.toMatch(
+      /密码（|两步验证|Two-step verification/,
+    );
+  });
+
+  it("shows the privacy & data card when the privacy tab is selected", () => {
+    const { container } = render(
+      withProvider(<SettingsScreen route={{ name: "settings", params: {} }} />),
+    );
+    fireEvent.click(
+      container.querySelector("[data-testid='settings-tab-privacy']")!,
+    );
+    const privacy = container.querySelector(
+      "[data-testid='settings-privacy']",
+    );
+    expect(privacy).toBeTruthy();
+    expect(privacy!.className).toMatch(/\bei-screen-card\b/);
+    expect(
+      container.querySelector("[data-testid='settings-account']"),
+    ).toBeFalsy();
   });
 
   it("rejects retired Growth / Experiences / Mistakes / Drill / 独立 voice copy and testid", () => {

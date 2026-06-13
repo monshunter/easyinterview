@@ -20,14 +20,8 @@ export const en: LocaleMessages = {
   "auth.login": "Sign in",
   "auth.email": "Email",
   "auth.sendEmail": "Send sign-in code",
-  "auth.passwordLoginUnavailable": "Password sign-in (not available yet)",
-  "auth.passwordLogin": "Password sign-in",
-  "auth.oauthUnavailable": "Third-party sign-in (not available yet)",
-  "auth.forgotPassword": "Forgot password",
   "auth.displayName": "Display name",
-  "auth.setPasswordUnavailable": "Set password (not available yet)",
   "auth.acceptTerms": "I agree to the terms and privacy policy",
-  "auth.createAndVerify": "Create account and verify email",
   "auth.verifyTitle": "Email verification",
   "auth.verifySentPrefix": "Sent to",
   "auth.code": "6-digit code",
@@ -36,12 +30,6 @@ export const en: LocaleMessages = {
   "auth.verifyLinkFailed":
     "The code could not be verified. Send a new code to continue.",
   "auth.resend": "Resend",
-  "auth.resetTitle": "Reset sign-in",
-  "auth.accountEmail": "Account email",
-  "auth.sendResetUnavailable": "Send reset instructions (not available yet)",
-  "auth.resetHint":
-    "Reset is not available yet. Use email-code sign-in or contact support.",
-  "auth.backToLogin": "Back to sign in",
   "auth.logoutHint":
     "Signing out clears the local session. Account data stays in place.",
   "auth.confirmLogout": "Sign out",
@@ -56,6 +44,9 @@ export const en: LocaleMessages = {
   "auth.login.title": "Continue your interview preparation.",
   "auth.login.sub":
     "Sign in when you want to save resumes, keep mock interview history, or sync across devices.",
+  "auth.login.helpAccount": "One email can only own one account.",
+  "auth.login.helpCode":
+    "Code not arriving? You can resend it or switch email on the next step.",
   "auth.profileSetup.eyebrow": "PROFILE SETUP",
   "auth.profileSetup.title": "Tell us what to call you.",
   "auth.profileSetup.sub":
@@ -66,10 +57,6 @@ export const en: LocaleMessages = {
   "auth.verify.title": "Confirm this is your email.",
   "auth.verify.sub":
     "We sent a 6-digit sign-in code to your email. The code expires in 5 minutes.",
-  "auth.reset.eyebrow": "PASSWORD RESET",
-  "auth.reset.title": "Reset access without losing your data.",
-  "auth.reset.sub":
-    "We send a secure sign-in code to your verified email. Existing resumes, JDs, and reports remain unchanged.",
   "auth.logout.eyebrow": "LOGOUT",
   "auth.logout.title": "Sign out of this device?",
   "auth.logout.sub":
@@ -96,16 +83,14 @@ export const en: LocaleMessages = {
   "settings.accountItems":
     "Display name|Login email|Mobile|Interface language|Time zone",
   "settings.security": "Sign-in & security",
-  "settings.securityItems":
-    "Password (available after C1 / B2 hookup)|Login method|Two-step verification",
+  "settings.securityItems": "Login method: Email sign-in code · no password",
+  "settings.tab.profile": "Profile",
   "settings.fontPreset": "Font preset",
   "settings.fontPresetItems":
     "Editorial: Noto Serif SC + Inter|Modern: Source Serif Pro + Geist|Magazine: Cormorant Garamond + IBM Plex Sans",
   "settings.privacy": "Privacy & data",
   "settings.privacyItems":
     "Data retention toggles|Data overview|Export data|Delete one session|Delete all practice data|Delete account",
-  "settings.notifications": "Notifications (P1 placeholder)",
-  "settings.subscription": "Subscription (P1 placeholder)",
   "settings.appInfo": "Product info",
   "settings.appInfoItems": "Product: EasyInterview|Version: v1.0",
   "placeholder.workspace": "Workspace",

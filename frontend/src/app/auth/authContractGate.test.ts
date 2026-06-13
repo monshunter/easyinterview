@@ -4,7 +4,7 @@
  * Bearer-style headers, custom session storage) must first land an explicit
  * spec / OpenAPI revision; this test enforces the freeze.
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -180,12 +180,20 @@ describe("auth contract gate (Phase 3.3)", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("auth_reset screen never invokes any onStartChallenge callback (UI shell only)", () => {
-    const file = resolve(AUTH_DIR, "AuthResetScreen.tsx");
-    const content = readFileSync(file, "utf8");
-    expect(content).not.toMatch(/onStartChallenge\s*\(/);
-    expect(content).toMatch(
-      /Reset is a UI shell only|reset is a UI shell|reset is a UI stub/i,
-    );
+  it("keeps zero auth_reset / forgot-password residue in the auth surface (D-16)", () => {
+    // product-scope D-16: passwordless email code is the only sign-in flow.
+    // The reset screen file must be gone and no non-test auth source may
+    // reference the retired route or forgot-password vocabulary.
+    expect(existsSync(resolve(AUTH_DIR, "AuthResetScreen.tsx"))).toBe(false);
+
+    const offenders: Array<{ file: string; needle: string }> = [];
+    for (const file of walk(AUTH_DIR)) {
+      if (/\.test\.tsx?$/.test(file)) continue;
+      const content = readFileSync(file, "utf8");
+      for (const needle of ["auth_reset", "AuthResetScreen", "forgotPassword"]) {
+        if (content.includes(needle)) offenders.push({ file, needle });
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 });

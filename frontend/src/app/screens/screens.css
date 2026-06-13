@@ -1694,3 +1694,34 @@
     gap: 12px;
   }
 }
+
+/* Settings two-tab rail (product-scope D-21).
+   Source: ui-design/src/screens-p0-complete.jsx::SettingsScreen tab rail —
+   text buttons, padding 10px 12px, fontSize 14, 2px accent left border on
+   the active tab. */
+.ei-settings-tab-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  align-items: flex-start;
+}
+
+.ei-settings-tab {
+  background: transparent;
+  border: none;
+  border-left: 2px solid transparent;
+  border-radius: 2px;
+  text-align: left;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-family: var(--ei-font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ei-color-fg-tertiary);
+}
+
+.ei-settings-tab[data-active="true"] {
+  border-left-color: var(--ei-color-accent);
+  color: var(--ei-color-fg-primary);
+  font-weight: 500;
+}

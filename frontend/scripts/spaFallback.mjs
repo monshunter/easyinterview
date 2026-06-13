@@ -32,9 +32,16 @@ export const FRONTEND_CANONICAL_PATHS = Object.freeze([
   "/auth/login",
   "/auth/verify",
   "/auth/profile",
-  "/auth/reset",
   "/auth/logout",
 ]);
+
+/**
+ * Retired paths that the host still serves with `index.html` so the App can
+ * normalize them to the current retained route (product-scope D-16:
+ * `/auth/reset` folds back into `auth_login`). Mirrors
+ * `routeUrl.LEGACY_PATH_TO_ROUTE`.
+ */
+export const FRONTEND_LEGACY_PATHS = Object.freeze(["/auth/reset"]);
 
 /** Path prefixes that must NEVER be swallowed by the SPA fallback. */
 export const FALLBACK_DENY_PREFIXES = Object.freeze([
@@ -76,7 +83,10 @@ export function isCanonicalFrontendPath(path) {
     cleaned !== "/" && cleaned.endsWith("/")
       ? cleaned.slice(0, -1)
       : cleaned;
-  return FRONTEND_CANONICAL_PATHS.includes(normalized);
+  return (
+    FRONTEND_CANONICAL_PATHS.includes(normalized) ||
+    FRONTEND_LEGACY_PATHS.includes(normalized)
+  );
 }
 
 /**

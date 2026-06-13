@@ -71,14 +71,12 @@ describe("App auth route dispatch", () => {
         | "auth_login"
         | "auth_verify"
         | "auth_profile_setup"
-        | "auth_reset"
         | "auth_logout";
       hallmarkTestId: string;
     }> = [
       { name: "auth_login", hallmarkTestId: "auth-login-email" },
       { name: "auth_verify", hallmarkTestId: "auth-verify-code" },
       { name: "auth_profile_setup", hallmarkTestId: "auth-profile-name" },
-      { name: "auth_reset", hallmarkTestId: "auth-reset-email" },
       { name: "auth_logout", hallmarkTestId: "auth-logout-confirm" },
     ];
     for (const { name, hallmarkTestId } of cases) {
@@ -89,6 +87,17 @@ describe("App auth route dispatch", () => {
       expect(screen.getByTestId(hallmarkTestId)).toBeInTheDocument();
       unmount();
     }
+  });
+
+  it("renders the login screen when the retired auth_reset route is requested (D-16)", () => {
+    render(
+      <App
+        client={buildClient()}
+        initialRoute={{ name: "auth_reset", params: {} }}
+      />,
+    );
+    expect(screen.getByTestId("route-auth_login")).toBeInTheDocument();
+    expect(screen.queryByTestId("route-auth_reset")).not.toBeInTheDocument();
   });
 
   it("wires auth_login submit through startAuthEmailChallenge and treats empty 202 as success", async () => {
@@ -157,9 +166,10 @@ describe("App auth route dispatch", () => {
   });
 
   it("does not issue the initial /me probe on public auth entry routes", async () => {
-    const cases: Array<
-      "auth_login" | "auth_verify" | "auth_reset"
-    > = ["auth_login", "auth_verify", "auth_reset"];
+    const cases: Array<"auth_login" | "auth_verify"> = [
+      "auth_login",
+      "auth_verify",
+    ];
     for (const name of cases) {
       const calls: Array<{ url: string; method: string }> = [];
       const fixtureFetch = createFixtureBackedFetch(

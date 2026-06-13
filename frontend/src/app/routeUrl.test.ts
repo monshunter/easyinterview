@@ -26,7 +26,6 @@ describe("ROUTE_TO_PATH catalog", () => {
       auth_login: "/auth/login",
       auth_verify: "/auth/verify",
       auth_profile_setup: "/auth/profile",
-      auth_reset: "/auth/reset",
       auth_logout: "/auth/logout",
     });
   });
@@ -337,6 +336,15 @@ describe("serializeRouteToUrl", () => {
 describe("parseUrlToRoute", () => {
   it("parses root path to home with empty params", () => {
     expect(parseUrlToRoute("/")).toEqual({ name: "home", params: {} });
+  });
+
+  it("normalizes the retired /auth/reset path back to the login entry", () => {
+    // product-scope D-16 — auth_reset is no longer a live route; the legacy
+    // path must land on auth_login instead of materializing a reset screen.
+    expect(parseUrlToRoute("/auth/reset")).toEqual({
+      name: "auth_login",
+      params: {},
+    });
   });
 
   it("parses canonical workspace deep link", () => {

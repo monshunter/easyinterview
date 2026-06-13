@@ -8,7 +8,6 @@ import {
   AuthLoginScreen,
   AuthLogoutScreen,
   AuthProfileSetupScreen,
-  AuthResetScreen,
   AuthVerifyScreen,
 } from "./auth";
 import { encodePendingAction } from "./auth/pendingAction";
@@ -176,8 +175,6 @@ function renderRouteScreen(
           }}
         />
       );
-    case "auth_reset":
-      return <AuthResetScreen route={route} onNavigate={navigate} />;
     case "auth_logout":
       return (
         <AuthLogoutScreen
@@ -478,9 +475,5 @@ export const App: FC<AppProps> = ({
 
 function shouldSkipInitialAuthProbe(initialRoute?: LooseRoute): boolean {
   const route = resolveInitialRoute({ initialRoute });
-  return (
-    route.name === "auth_login" ||
-    route.name === "auth_reset" ||
-    route.name === "auth_verify"
-  );
+  return route.name === "auth_login" || route.name === "auth_verify";
 }

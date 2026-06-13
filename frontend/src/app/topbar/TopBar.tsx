@@ -87,7 +87,7 @@ export const TopBar: FC<TopBarProps> = ({
   const [langMenuOpen, setLangMenuOpen] = useState<boolean>(false);
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
 
-  const seed = CUSTOM_ACCENT_SEEDS[prefs.theme] ?? CUSTOM_ACCENT_SEEDS.warm;
+  const seed = CUSTOM_ACCENT_SEEDS[prefs.theme] ?? CUSTOM_ACCENT_SEEDS.ocean;
   const accentValue: CustomAccent = prefs.customAccent ?? seed;
   const swatchOklch = customActive
     ? `oklch(${prefs.dark ? 68 : 58}% ${accentValue.c.toFixed(3)} ${accentValue.h.toFixed(1)})`

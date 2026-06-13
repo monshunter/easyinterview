@@ -432,13 +432,14 @@ test.describe("TopBar DOM + computed style parity", () => {
       return {
         width: cs.borderBottomWidth,
         style: cs.borderBottomStyle,
-        // border-bottom-color resolves to rgb(231, 226, 214) for warm/light.
+        // border-bottom-color resolves to rgb(221, 226, 236) for the ocean/light
+        // default (EI_THEMES.ocean.light.rule = #dde2ec, product-scope D-21).
         color: cs.borderBottomColor,
       };
     });
     expect(border.width).toBe("1px");
     expect(border.style).toBe("solid");
-    expect(border.color).toBe("rgb(231, 226, 214)");
+    expect(border.color).toBe("rgb(221, 226, 236)");
   });
 
   test("frontend default home renders aria-current=page on the Home nav button", async ({

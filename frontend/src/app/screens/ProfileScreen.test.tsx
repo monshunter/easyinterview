@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { ProfileScreen } from "./ProfileScreen";
 import { SettingsScreen } from "./SettingsScreen";
@@ -34,7 +34,7 @@ describe("ProfileScreen", () => {
 });
 
 describe("SettingsScreen", () => {
-  it("renders account / login-security / font-preset / privacy sections", () => {
+  it("renders the profile tab sections by default and privacy on its own tab (D-21)", () => {
     render(
       <SettingsScreen route={{ name: "settings", params: {} }} />,
     );
@@ -43,9 +43,16 @@ describe("SettingsScreen", () => {
     expect(
       screen.getByTestId("settings-login-security"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("settings-login-security").textContent,
+    ).toMatch(/邮箱验证码 · 无密码|Email sign-in code · no password/);
     expect(screen.getByTestId("settings-font-preset")).toBeInTheDocument();
-    expect(screen.getByTestId("settings-privacy")).toBeInTheDocument();
     expect(screen.getByTestId("settings-app-info")).toHaveTextContent("v1.0");
+    expect(screen.queryByTestId("settings-privacy")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("settings-tab-privacy"));
+    expect(screen.getByTestId("settings-privacy")).toBeInTheDocument();
+    expect(screen.queryByTestId("settings-account")).not.toBeInTheDocument();
   });
 
   it("does not restore legacy Growth / Experiences / Mistakes / Drill modules", () => {
@@ -65,15 +72,16 @@ describe("SettingsScreen", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("ships notifications and subscription as P1 placeholders only", () => {
+  it("does not keep notifications / subscription placeholder tabs (D-21)", () => {
     render(<SettingsScreen route={{ name: "settings", params: {} }} />);
-    const notifications = screen.queryByTestId(
-      "settings-notifications-placeholder",
-    );
-    const subscription = screen.queryByTestId(
-      "settings-subscription-placeholder",
-    );
-    expect(notifications).toBeInTheDocument();
-    expect(subscription).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("settings-notifications-placeholder"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("settings-subscription-placeholder"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/通知（P1 占位）|订阅（P1 占位）/),
+    ).not.toBeInTheDocument();
   });
 });

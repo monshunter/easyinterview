@@ -16,10 +16,11 @@ import { describe, expect, it } from "vitest";
 import {
   FALLBACK_DENY_PREFIXES,
   FRONTEND_CANONICAL_PATHS,
+  FRONTEND_LEGACY_PATHS,
   isCanonicalFrontendPath,
   resolveSpaFallback,
 } from "../../scripts/spaFallback.mjs";
-import { ROUTE_TO_PATH } from "./routeUrl";
+import { LEGACY_PATH_TO_ROUTE, ROUTE_TO_PATH } from "./routeUrl";
 
 describe("spaFallback canonical path drift gate", () => {
   it("covers every Route path declared by the App codec (ROUTE_TO_PATH)", () => {
@@ -37,6 +38,21 @@ describe("spaFallback canonical path drift gate", () => {
         Object.values(ROUTE_TO_PATH).includes(path),
         `spaFallback enumerates ${path} which is not in routeUrl.ROUTE_TO_PATH`,
       ).toBe(true);
+    }
+  });
+
+  it("mirrors the App codec legacy path table (retired routes still load the SPA)", () => {
+    const legacyPaths = [...LEGACY_PATH_TO_ROUTE.keys()];
+    expect([...FRONTEND_LEGACY_PATHS].sort()).toEqual(legacyPaths.sort());
+    for (const path of FRONTEND_LEGACY_PATHS) {
+      expect(
+        isCanonicalFrontendPath(path),
+        `${path} must still be served by the SPA fallback for App-side normalization`,
+      ).toBe(true);
+      expect(
+        Object.values(ROUTE_TO_PATH).includes(path),
+        `${path} must not remain a canonical Route path`,
+      ).toBe(false);
     }
   });
 });

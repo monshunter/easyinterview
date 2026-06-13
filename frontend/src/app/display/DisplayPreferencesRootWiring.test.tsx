@@ -95,7 +95,8 @@ describe("DisplayPreferencesProvider root-element wiring (Phase 1.2)", () => {
         <Probe />
       </DisplayPreferencesProvider>,
     );
-    expect(document.documentElement.getAttribute("data-theme")).toBe("warm");
+    // product-scope D-21 (v2.1): ocean is the default theme.
+    expect(document.documentElement.getAttribute("data-theme")).toBe("ocean");
     expect(document.documentElement.getAttribute("data-mode")).toBe("light");
     expect(document.documentElement.getAttribute("data-custom-accent")).toBe(
       null,
@@ -111,7 +112,7 @@ describe("DisplayPreferencesProvider root-element wiring (Phase 1.2)", () => {
     const before = getComputedStyle(document.documentElement)
       .getPropertyValue("--ei-color-bg-canvas")
       .trim();
-    expect(before).toBe("#fdfcf8");
+    expect(before).toBe("#f8fafd");
 
     await userEvent.click(screen.getByTestId("probe-set-theme-forest"));
     expect(document.documentElement.getAttribute("data-theme")).toBe(
@@ -132,14 +133,14 @@ describe("DisplayPreferencesProvider root-element wiring (Phase 1.2)", () => {
     const lightFg = getComputedStyle(document.documentElement)
       .getPropertyValue("--ei-color-fg-primary")
       .trim();
-    expect(lightFg).toBe("#1c1917");
+    expect(lightFg).toBe("#141821");
 
     await userEvent.click(screen.getByTestId("probe-set-dark-on"));
     expect(document.documentElement.getAttribute("data-mode")).toBe("dark");
     const darkFg = getComputedStyle(document.documentElement)
       .getPropertyValue("--ei-color-fg-primary")
       .trim();
-    expect(darkFg).toBe("#f5f0e4");
+    expect(darkFg).toBe("#e8edf6");
 
     await userEvent.click(screen.getByTestId("probe-set-dark-off"));
     expect(document.documentElement.getAttribute("data-mode")).toBe("light");

@@ -7,9 +7,9 @@ import {
   AuthLoginScreen,
   AuthLogoutScreen,
   AuthProfileSetupScreen,
-  AuthResetScreen,
   AuthVerifyScreen,
 } from "./index";
+import { DisplayPreferencesProvider } from "../display/DisplayPreferencesProvider";
 import type { Route } from "../routes";
 
 const baseRoute = (name: Route["name"]): Route => ({ name, params: {} });
@@ -28,7 +28,40 @@ describe("AuthLoginScreen", () => {
     expect(screen.queryByTestId("auth-login-password-stub")).not.toBeInTheDocument();
     expect(screen.queryByTestId("auth-login-oauth-stub")).not.toBeInTheDocument();
     expect(screen.queryByTestId("auth-login-link-register")).not.toBeInTheDocument();
-    expect(screen.getByTestId("auth-login-link-reset")).toBeInTheDocument();
+    expect(screen.queryByTestId("auth-login-link-reset")).not.toBeInTheDocument();
+  });
+
+  it("renders static passwordless help copy instead of a reset entry (D-16)", () => {
+    const zh = render(
+      <DisplayPreferencesProvider initial={{ lang: "zh" }}>
+        <AuthLoginScreen
+          route={baseRoute("auth_login")}
+          onNavigate={() => {}}
+          onStartChallenge={async () => {}}
+        />
+      </DisplayPreferencesProvider>,
+    );
+    const zhHelp = screen.getByTestId("auth-login-help");
+    expect(zhHelp).toHaveTextContent("一个邮箱只能对应一个账号。");
+    expect(zhHelp).toHaveTextContent(
+      "收不到验证码？下一步可以重新发送，或换一个邮箱重试。",
+    );
+    zh.unmount();
+
+    render(
+      <DisplayPreferencesProvider initial={{ lang: "en" }}>
+        <AuthLoginScreen
+          route={baseRoute("auth_login")}
+          onNavigate={() => {}}
+          onStartChallenge={async () => {}}
+        />
+      </DisplayPreferencesProvider>,
+    );
+    const enHelp = screen.getByTestId("auth-login-help");
+    expect(enHelp).toHaveTextContent("One email can only own one account.");
+    expect(enHelp).toHaveTextContent(
+      "Code not arriving? You can resend it or switch email on the next step.",
+    );
   });
 
   it("submits the email challenge with email only and carries pendingAction params to verify", async () => {
@@ -73,22 +106,6 @@ describe("AuthLoginScreen", () => {
     expect(onNavigate.mock.calls[0]?.[0].params).not.toHaveProperty("returnTo");
   });
 
-  it("navigates to reset route from the inline link", async () => {
-    const onNavigate = vi.fn();
-    render(
-      <AuthLoginScreen
-        route={baseRoute("auth_login")}
-        onNavigate={onNavigate}
-        onStartChallenge={async () => {}}
-      />,
-    );
-    const user = userEvent.setup();
-    await user.click(screen.getByTestId("auth-login-link-reset"));
-    expect(onNavigate).toHaveBeenCalledWith({
-      name: "auth_reset",
-      params: {},
-    });
-  });
 });
 
 describe("AuthProfileSetupScreen", () => {
@@ -299,35 +316,6 @@ describe("AuthVerifyScreen", () => {
         },
       }),
     );
-  });
-});
-
-describe("AuthResetScreen", () => {
-  it("renders the reset shell with email input, a stub send button, and back-to-login link without wiring any API", async () => {
-    const onStartChallenge = vi.fn();
-    const onNavigate = vi.fn();
-    render(
-      <AuthResetScreen
-        route={baseRoute("auth_reset")}
-        onNavigate={onNavigate}
-        onStartChallenge={onStartChallenge}
-      />,
-    );
-    expect(screen.getByTestId("route-auth_reset")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-reset-email")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-reset-send-stub")).toBeInTheDocument();
-    expect(screen.getByTestId("auth-reset-link-login")).toBeInTheDocument();
-
-    const user = userEvent.setup();
-    await user.click(screen.getByTestId("auth-reset-send-stub"));
-    // Reset is intentionally a UI shell; no API call is dispatched.
-    expect(onStartChallenge).not.toHaveBeenCalled();
-
-    await user.click(screen.getByTestId("auth-reset-link-login"));
-    expect(onNavigate).toHaveBeenCalledWith({
-      name: "auth_login",
-      params: {},
-    });
   });
 });
 

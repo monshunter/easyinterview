@@ -41,7 +41,7 @@ async function freezeAnimations(page: import("@playwright/test").Page): Promise<
 }
 
 test.describe("frontend home screenshot smoke (Phase 4.1)", () => {
-  test("default warm/light home renders a stable non-empty screenshot without a baseline prerequisite", async ({
+  test("default ocean/light home renders a stable non-empty screenshot without a baseline prerequisite", async ({
     page,
   }) => {
     await page.goto("/");
@@ -66,8 +66,8 @@ test.describe("dark + customAccent visual diff (Phase 4.2)", () => {
         mode: document.documentElement.getAttribute("data-mode"),
       };
     });
-    expect(lightTokens.bg).toBe("#fdfcf8");
-    expect(lightTokens.fg).toBe("#1c1917");
+    expect(lightTokens.bg).toBe("#f8fafd");
+    expect(lightTokens.fg).toBe("#141821");
     expect(lightTokens.mode).toBe("light");
 
     await page.click("[data-testid='topbar-dark-toggle']");
@@ -80,13 +80,13 @@ test.describe("dark + customAccent visual diff (Phase 4.2)", () => {
       };
     });
     expect(darkTokens.mode).toBe("dark");
-    expect(darkTokens.bg).toBe("#16130e");
-    expect(darkTokens.fg).toBe("#f5f0e4");
+    expect(darkTokens.bg).toBe("#0c0f17");
+    expect(darkTokens.fg).toBe("#e8edf6");
     // The browser must actually paint the new background color.
     const computedBodyBg = await page.evaluate(
       () => getComputedStyle(document.body).backgroundColor,
     );
-    expect(computedBodyBg).toBe("rgb(22, 19, 14)");
+    expect(computedBodyBg).toBe("rgb(12, 15, 23)");
   });
 
   test("activating customAccent overrides --ei-color-accent inline with an oklch value", async ({

@@ -128,27 +128,28 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
       />,
     );
     const root = document.documentElement;
-    expect(root.getAttribute("data-theme")).toBe("warm");
+    // product-scope D-21 (v2.1): ocean is the default theme.
+    expect(root.getAttribute("data-theme")).toBe("ocean");
     expect(root.getAttribute("data-mode")).toBe("light");
 
-    // warm/light → bg-canvas resolves to ui-design EI_THEMES.warm.light.bg.
+    // ocean/light → bg-canvas resolves to ui-design EI_THEMES.ocean.light.bg.
     expect(
       getComputedStyle(root).getPropertyValue("--ei-color-bg-canvas").trim(),
-    ).toBe("#fdfcf8");
+    ).toBe("#f8fafd");
 
     const user = userEvent.setup();
     await user.click(screen.getByTestId("topbar-dark-toggle"));
     expect(root.getAttribute("data-mode")).toBe("dark");
     expect(
       getComputedStyle(root).getPropertyValue("--ei-color-fg-primary").trim(),
-    ).toBe("#f5f0e4");
+    ).toBe("#e8edf6");
 
     await user.click(screen.getByTestId("topbar-theme-button"));
-    await user.click(screen.getByTestId("topbar-theme-option-ocean"));
-    expect(root.getAttribute("data-theme")).toBe("ocean");
+    await user.click(screen.getByTestId("topbar-theme-option-warm"));
+    expect(root.getAttribute("data-theme")).toBe("warm");
     expect(
       getComputedStyle(root).getPropertyValue("--ei-color-bg-canvas").trim(),
-    ).toBe("#0c0f17");
+    ).toBe("#16130e");
   });
 
   it("activates customAccent overlay → only --ei-color-accent / -soft are inline-overridden", async () => {

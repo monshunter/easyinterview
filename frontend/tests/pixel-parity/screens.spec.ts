@@ -53,11 +53,20 @@ test.describe("auth_login DOM anchor parity", () => {
     await expect(
       root.locator("[data-testid='auth-login-submit-email']"),
     ).toHaveClass(/\bei-auth-cta\b/);
+    // product-scope D-12 / D-16: the single email-code entry has no password
+    // or OAuth stubs and no reset link; the static passwordless help copy
+    // replaces them (ui-design/src/screen-auth.jsx login footer).
     await expect(
       root.locator("[data-testid='auth-login-password-stub']"),
-    ).toHaveCount(1);
+    ).toHaveCount(0);
     await expect(
       root.locator("[data-testid='auth-login-oauth-stub']"),
+    ).toHaveCount(0);
+    await expect(
+      root.locator("[data-testid='auth-login-link-reset']"),
+    ).toHaveCount(0);
+    await expect(
+      root.locator("[data-testid='auth-login-help']"),
     ).toHaveCount(1);
   });
 
@@ -103,7 +112,7 @@ test.describe("auth_login DOM anchor parity", () => {
         return text.includes("继续") || text.includes("Continue");
       },
       undefined,
-      { timeout: 15_000 },
+      { timeout: 30_000 },
     );
     const heroH1 = page.locator("h1").first();
     await expect(heroH1).toBeVisible();

@@ -10,7 +10,6 @@ import {
   AuthLoginScreen,
   AuthLogoutScreen,
   AuthProfileSetupScreen,
-  AuthResetScreen,
   AuthVerifyScreen,
 } from "./index";
 import type { Route } from "../routes";
@@ -63,16 +62,6 @@ const SCREENS: AuthScreenSpec[] = [
         route={{ name: "auth_verify", params: { email: "u@example.com" } } as Route}
         onNavigate={noop}
         onVerify={async () => ({ profileCompletionRequired: false })}
-      />
-    ),
-  },
-  {
-    name: "AuthResetScreen",
-    routeName: "auth_reset",
-    render: () => (
-      <AuthResetScreen
-        route={{ name: "auth_reset", params: {} } as Route}
-        onNavigate={noop}
       />
     ),
   },
@@ -165,7 +154,7 @@ describe("auth screen D1 regression after visual parity (Phase 4.1)", () => {
     expect(container.querySelector("[data-testid='auth-login-password-stub']")).toBeFalsy();
     expect(container.querySelector("[data-testid='auth-login-oauth-stub']")).toBeFalsy();
     expect(container.querySelector("[data-testid='auth-login-link-register']")).toBeFalsy();
-    expect(container.querySelector("[data-testid='auth-login-link-reset']")).toBeTruthy();
+    expect(container.querySelector("[data-testid='auth-login-link-reset']")).toBeFalsy();
   });
 
   it("AuthProfileSetupScreen retains form / submit testids", () => {
@@ -200,19 +189,18 @@ describe("auth screen D1 regression after visual parity (Phase 4.1)", () => {
     expect(container.querySelector("[data-testid='auth-verify-email-hint']")).toBeTruthy();
   });
 
-  it("AuthResetScreen retains stub testids", () => {
+  it("AuthLoginScreen renders the static passwordless help copy (D-16)", () => {
     const { container } = render(
       withProvider(
-        <AuthResetScreen
-          route={{ name: "auth_reset", params: {} } as Route}
+        <AuthLoginScreen
+          route={{ name: "auth_login", params: {} } as Route}
           onNavigate={noop}
+          onStartChallenge={async () => {}}
         />,
       ),
     );
-    expect(container.querySelector("[data-testid='auth-reset-form']")).toBeTruthy();
-    expect(container.querySelector("[data-testid='auth-reset-email']")).toBeTruthy();
-    expect(container.querySelector("[data-testid='auth-reset-send-stub']")).toBeTruthy();
-    expect(container.querySelector("[data-testid='auth-reset-link-login']")).toBeTruthy();
+    expect(container.querySelector("[data-testid='auth-login-help']")).toBeTruthy();
+    expect(container.querySelector("[data-testid='auth-login-link-reset']")).toBeNull();
   });
 
   it("AuthLogoutScreen retains confirm/cancel testids", () => {

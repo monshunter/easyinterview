@@ -9,7 +9,6 @@ export interface AuthShellProps {
     | "auth_login"
     | "auth_verify"
     | "auth_profile_setup"
-    | "auth_reset"
     | "auth_logout";
   /** i18n key for the eyebrow (e.g., `auth.login.eyebrow`). */
   eyebrowKey: MessageKey;

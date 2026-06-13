@@ -15,7 +15,5 @@ export type {
   AuthVerifyRequest,
   AuthVerifyScreenProps,
 } from "./AuthVerifyScreen";
-export { AuthResetScreen } from "./AuthResetScreen";
-export type { AuthResetScreenProps } from "./AuthResetScreen";
 export { AuthLogoutScreen } from "./AuthLogoutScreen";
 export type { AuthLogoutScreenProps } from "./AuthLogoutScreen";

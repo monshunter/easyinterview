@@ -40,9 +40,16 @@ export const ROUTE_TO_PATH: Readonly<Record<RouteName, string>> = {
   auth_login: "/auth/login",
   auth_verify: "/auth/verify",
   auth_profile_setup: "/auth/profile",
-  auth_reset: "/auth/reset",
   auth_logout: "/auth/logout",
 };
+
+/**
+ * Retired canonical paths that must not fall back to `home`. They normalize to
+ * the current retained route per product-scope D-16 / frontend-shell spec §2.2.
+ */
+export const LEGACY_PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = new Map([
+  ["/auth/reset", "auth_login"],
+]);
 
 const PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = (() => {
   const map = new Map<string, RouteName>();
@@ -205,7 +212,6 @@ const AUTH_LOGIN_BASE = new Set([
 ]);
 const AUTH_VERIFY_BASE = new Set(["email", ...PENDING_ACTION_RESERVED]);
 const AUTH_PROFILE_SETUP_BASE = new Set(["email", ...PENDING_ACTION_RESERVED]);
-const AUTH_RESET_BASE = new Set(["next", "email"]);
 const AUTH_LOGOUT_BASE = new Set(["next"]);
 
 const ROUTE_SAFE_PARAMS: Readonly<Record<RouteName, ReadonlySet<string>>> = {
@@ -224,7 +230,6 @@ const ROUTE_SAFE_PARAMS: Readonly<Record<RouteName, ReadonlySet<string>>> = {
   auth_login: AUTH_LOGIN_BASE,
   auth_verify: AUTH_VERIFY_BASE,
   auth_profile_setup: AUTH_PROFILE_SETUP_BASE,
-  auth_reset: AUTH_RESET_BASE,
   auth_logout: AUTH_LOGOUT_BASE,
 };
 
@@ -317,7 +322,10 @@ export function parseUrlToRoute(rawUrl: string): Route {
     return DEFAULT_ROUTE;
   }
   const pathname = url.pathname || "/";
-  const name = PATH_TO_ROUTE.get(pathname) ?? DEFAULT_ROUTE.name;
+  const name =
+    PATH_TO_ROUTE.get(pathname) ??
+    LEGACY_PATH_TO_ROUTE.get(pathname) ??
+    DEFAULT_ROUTE.name;
   const rawParams: Record<string, string> = {};
   for (const [key, value] of url.searchParams.entries()) rawParams[key] = value;
   const allowed = resolveAllowedParamKeys(name, rawParams);

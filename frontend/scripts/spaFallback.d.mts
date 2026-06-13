@@ -8,6 +8,7 @@
  */
 
 export const FRONTEND_CANONICAL_PATHS: readonly string[];
+export const FRONTEND_LEGACY_PATHS: readonly string[];
 export const FALLBACK_DENY_PREFIXES: readonly string[];
 
 export function isCanonicalFrontendPath(path: unknown): boolean;

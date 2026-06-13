@@ -10,7 +10,7 @@ import { expect, test } from "@playwright/test";
  * Covers desktop (1440x900) and mobile (390x844) projects:
  * - DOM anchors (hero, textarea, aux cards)
  * - Bounding box stays in viewport, no overlap
- * - warm/light -> dark -> customAccent theme switching
+ * - default (ocean)/light -> dark -> customAccent theme switching
  * - Mobile: textarea card not overflowing, aux cards fold
  */
 

@@ -78,7 +78,8 @@ describe("DisplayPreferencesProvider", () => {
   it("starts with the documented defaults and follows browser locale", () => {
     setNavigatorLanguages("zh-CN", ["zh-CN", "en-US"]);
     render(<Harness />);
-    expect(screen.getByTestId("theme")).toHaveTextContent("warm");
+    // product-scope D-21 (v2.1): the default theme is ocean.
+    expect(screen.getByTestId("theme")).toHaveTextContent("ocean");
     expect(screen.getByTestId("dark")).toHaveTextContent("false");
     expect(screen.getByTestId("lang")).toHaveTextContent("zh");
   });

@@ -7,7 +7,8 @@
  * Five primary nav entries: home / jd_match / workspace / resume_versions / debrief.
  * Context routes: parse / practice / generating / report / company_intel.
  * User-menu routes: profile / settings / auth_logout.
- * Auth pages: auth_login / auth_verify / auth_profile_setup / auth_reset / auth_logout.
+ * Auth pages: auth_login / auth_verify / auth_profile_setup / auth_logout.
+ * auth_reset retired per product-scope D-16; it normalizes back to auth_login.
  *
  * D1 frontend-shell keeps the formal route catalog to current product routes.
  * Retired aliases are handled outside this catalog and must never appear as
@@ -36,7 +37,6 @@ export const AUTH_ROUTES = [
   "auth_login",
   "auth_verify",
   "auth_profile_setup",
-  "auth_reset",
   "auth_logout",
 ] as const;
 

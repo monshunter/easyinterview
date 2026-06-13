@@ -63,7 +63,9 @@ export interface DisplayPreferences {
 }
 
 const DEFAULTS = {
-  theme: "warm" as Theme,
+  // product-scope D-21 (v2.1): ocean is the default theme; invalid or
+  // missing theme values must also fall back to ocean.
+  theme: "ocean" as Theme,
   dark: false,
   lang: DEFAULT_LANG,
   customAccent: null as CustomAccent | null,

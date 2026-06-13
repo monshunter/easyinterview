@@ -25,6 +25,9 @@ const ROUTE_ALIASES: Record<string, RouteName> = {
   resume: "resume_versions",
   onboarding: "resume_versions",
   auth_register: "auth_login",
+  // product-scope D-16: passwordless email code is the only sign-in flow.
+  // The retired reset page folds back into the single login entry.
+  auth_reset: "auth_login",
   // Historical full-screen debrief route. The current product collapses both
   // entry points into a single `debrief` route per
   // docs/spec/frontend-debrief/spec.md §2.2; the alias prevents legacy
