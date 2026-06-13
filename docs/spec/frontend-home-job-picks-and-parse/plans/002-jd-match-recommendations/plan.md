@@ -1,13 +1,43 @@
 # 002 JD Match Recommendations (Recommended / Search / Watchlist)
 
-> **版本**: 1.7
-> **状态**: completed
-> **更新日期**: 2026-05-22
+> **版本**: 2.0
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 **关联 BDD Checklist**: [bdd-checklist](./bdd-checklist.md)
+
+## 0.0 D-17 Frontend Removal Reopen (v2.0)
+
+2026-06-12 [product-scope v2.1 D-17](../../../product-scope/spec.md#31-已锁定决策) 整体删除岗位推荐模块。本 plan 原地重开（completed -> active），新增 Phase 7 承接 [spec v2.0 §9](../../spec.md#9-d-17-前端删除范围与零残留验收plan-002-active-scope) 的前端删除与导航四项收敛。Phase 0-6 为历史完成记录，其交付的 jd_match 三 tab 能力随 D-17 退役；历史 BDD 场景 P0.027-P0.031 / P0.017 一并删除。
+
+**Phase 7 质量门禁**：删除型 phase 不新增用户行为流，BDD 不适用（历史 bdd 资产随场景目录删除并在 bdd 文档标注退役）；替代验证 gate 为 spec §9.2 C-R1~C-R3——focused Vitest（导航四项 / route 归一 / Home aux card）、`legacyRouteNegative` 负向断言、`pnpm typecheck / test / build / test:pixel-parity`、前端零残留负向搜索。删除属 TDD 范畴：先以失败断言（四入口、jd_match 归一 home、aux card 负向）表达目标态，再执行删除使其转绿。前置依赖：backend plan 001 Phase 9.1 已删除 OpenAPI jobmatch tag 并再生成 client（`frontend/src/api/generated/client.ts` 无 JobMatch 入口）。
+
+### Phase 7: D-17 frontend removal and four-entry nav convergence
+
+#### 7.1 导航与路由收敛（Red 先行）
+
+`routes.ts` `PRIMARY_NAV_ROUTES` 收敛为 `home / workspace / resume_versions / debrief`；`jd_match` route 定义删除并在 `normalizeRoute.ts` 增加 `jd_match: "home"` alias；`routeUrl.ts` 删除 `/jd-match` canonical path 与 `JD_MATCH_SAFE` 并把 `/jd-match` 加入 `LEGACY_PATH_TO_ROUTE` 归一 `home`；`spaFallback.mjs` canonical/legacy 列表同步；`TopBar` `NAV_LABEL_KEYS` / `NAV_ICONS` 删除 jd_match 条目；`App.tsx` 渲染分支删除。
+
+#### 7.2 jd_match 模块与 Home aux card 删除
+
+删除 `frontend/src/app/screens/jd_match/` 全目录及其测试；Home 屏删除 `JOB PICKS` aux card（保留 `POST-INTERVIEW`），对照当前 `ui-design/src/screen-home.jsx` 源级复刻；删除 i18n `jdMatch.*` 命名空间与 `nav.jd_match` 词条（zh/en）；`authContractGate` 允许列表移除 JobMatch operation。
+
+#### 7.3 测试资产收口
+
+删除 `frontend/tests/pixel-parity/jd_match.spec.ts`；topbar parity golden 断言从五入口改为四入口；`AppRoutingHistory` / `AppRoutingPrivacy` / `legacyRouteNegative` / `HomeScreen` 测试中的 jd_match 用例改写为负向断言或删除；删除 `test/scenarios/e2e/p0-017-jd-match-placeholder` 与 `p0-027..031-jd-match-*` 场景目录并更新 `test/scenarios/e2e/INDEX.md`；bdd-plan / bdd-checklist 标注 P0.027-P0.031 已随 D-17 退役。
+
+#### 7.4 零残留与全量回归 gate
+
+`rg -i "jd[-_]?match|jobmatch|job picks"` 于 `frontend/src frontend/tests`（normalize alias、legacy path 表、负向断言除外）零残留；`pnpm --filter @easyinterview/frontend typecheck / test / build / test:pixel-parity` 通过（parity 失败基线中 jd_match 与五入口 golden 项清零）；`sync-doc-index --check` 零漂移。
+
+#### 7.5 Phase 7 operation matrix
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| JobMatch tag 12 个 operation（前端消费随上游契约删除） | `openapi/fixtures/JobMatch/`（backend plan 001 Phase 9 删除） | `screens/jd_match/`（本 phase 删除） | `backend/internal/jdmatch/`（backend plan 001 Phase 9 删除） | drop migration（backend plan） | 无 | C-R1~C-R3 替代 gate；P0.017 / P0.027-031 场景目录删除 |
 
 ## 1 目标
 

@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: 1.1
-    to: 1.6
+    to: 2.0
 spec:
   defaultTarget: frontend
   discovery:
@@ -20,6 +20,10 @@ spec:
       - JobMatch OpenAPI tag
       - frontend job picks
     keywords:
+      - D-17 frontend removal
+      - jd_match deletion
+      - four entry navigation
+      - job picks card removal
       - JDMatchScreen
       - JobMatchCard
       - JDDetail

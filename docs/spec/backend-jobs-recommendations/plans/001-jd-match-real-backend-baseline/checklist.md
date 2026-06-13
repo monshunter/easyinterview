@@ -1,8 +1,8 @@
 # JD-Match Real Backend Baseline Checklist
 
-> **版本**: 1.5
-> **状态**: completed
-> **更新日期**: 2026-05-23
+> **版本**: 2.0
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -11,6 +11,15 @@
 > 2026-05-22 L2 follow-up completion：review 遗留的 privacy runner 集成、agent_scan generator 上下文、JDMatch error envelope/retryable 与本地 lock 文件问题已修复；新增单测与 live cmd/api 断言覆盖，详见 Phase 7。
 
 > 2026-05-23 repo lint follow-up correction：review 反查 merge base 后确认 JD-Match rubric dimension allowlist 已存在；Phase 8 改为移除重复 no-op stanza 并校正证据记录。
+
+## Phase 9: D-17 module removal
+
+- [ ] 9.1 契约删除与再生成；验证: `openapi/openapi.yaml` 无 jobmatch tag / 12 个 operation / 专属 schema，`openapi/fixtures/JobMatch/` 已删除；`make codegen && make codegen-check` 通过且生成物无 JobMatch 入口；`openapi-v1-contract` freeze 列表与 `mock-contract-suite` JobMatch 口径同步修订；fixtures / mock-contract lint 通过
+- [ ] 9.2 backend 包与运行时删除；验证: `backend/internal/jdmatch/`、`cmd/api/jdmatch_runtime.go` 与 3 个 jdmatch 测试文件删除，`main.go` / session policy / privacy runner / `auth/identity.go` 共享触点原地修改；Red 阶段先落 `/api/v1/jd-match/*` 404 断言与负向 grep gate，删除后转绿；仍被其他消费方使用的 cross-owner counter / identity API 留存并在 plan 记录理由；`cd backend && go test ./...` 通过
+- [ ] 9.3 数据与注册表收口；验证: 新增 drop migration 删除 5 张 jd_match 表与 `jd_match.*` registry 行，up/down 测试与迁移 gate 通过；`migrations/enum-sources.yaml` 无 jd_match 残留
+- [ ] 9.4 shared / config 资产删除；验证: `shared/` 事件 / job_type / baseline / schema 无 `jd_match.*`，共享常量再生成；`config/prompts|rubrics|evals/jd_match.*` 与 `config/ai-profiles.yaml` 对应 entry 删除，`resolved-prompts.json` 再生成；相关 lint 通过
+- [ ] 9.5 场景与文档收口；验证: `test/scenarios/e2e/p0-094..097-jd-match-*` 删除且 `test/scenarios/e2e/INDEX.md` 无对应行；`engineering-roadmap` §5.2 描述更新；`sync-doc-index --check` 零漂移
+- [ ] 9.6 零残留与全量回归 gate；验证: `rg -i "jobmatch|jd[-_]match"` 于 openapi/ backend/ shared/ config/ frontend/src/api/generated/ 零残留（drop migration、历史迁移文件、负向断言与 plan 文档除外）；`cd backend && go test ./...`、`make codegen-check`、`make docs-check` 通过
 
 ## Phase 8: Repo lint follow-up evidence correction
 

@@ -1,10 +1,12 @@
 # Backend Jobs Recommendations Spec
 
-> **版本**: 1.2
+> **版本**: 2.0
 > **状态**: active
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-06-13
 
-## 1 背景与目标
+> **D-17 退役声明（2026-06-12 product-scope v2.1）**：岗位推荐模块（`jd_match` / JobMatch / Job Picks）已被 [product-scope D-17](../product-scope/spec.md#31-已锁定决策) 整体删除——JD 获取唯一入口是首页导入，一级导航收敛为四项，Q-2 关闭，`全球多平台搜岗` 规划例外随之丢弃。本 spec 自 v2.0 起转为该删除的 backend / 契约侧 owner：§9 定义删除范围与零残留验收 gate；§1-§8 保留为历史 baseline 记录（描述的能力已退役，不得作为新实现依据）。前端删除归 [frontend-home-job-picks-and-parse/002](../frontend-home-job-picks-and-parse/plans/002-jd-match-recommendations/plan.md)。
+
+## 1 背景与目标（历史 baseline 记录，已随 D-17 退役）
 
 [frontend-home-job-picks-and-parse spec §2.2 + §3.1 D-1](../frontend-home-job-picks-and-parse/spec.md#22-out-of-scope) 与 [openapi-v1-contract §3.1.1](../openapi-v1-contract/spec.md#311-v100-freeze-endpoint-列表) 都已显式预占：JobMatch tag 12 个 operationId（`getJobMatchProfile` / `getAgentScanStatus` / `listJobRecommendations` / `getJobRecommendation` / `markJobNotRelevant` / `listWatchlist` / `addToWatchlist` / `removeFromWatchlist` / `searchJobs` / `listSavedSearches` / `createSavedSearch` / `getMarketSignals`）的真实 backend 由独立未来 subspec `backend-jobs-recommendations` 承接；frontend 当前通过 generated client + fixture-backed transport 闭环，不依赖也不实现真实 backend。本 spec 是该承接的正式入口。
 
@@ -200,6 +202,34 @@
 
 - 上游 spec：[`product-scope`](../product-scope/spec.md)、[`engineering-roadmap`](../engineering-roadmap/spec.md)、[`openapi-v1-contract`](../openapi-v1-contract/spec.md)、[`db-migrations-baseline`](../db-migrations-baseline/spec.md)、[`shared-conventions-codified`](../shared-conventions-codified/spec.md)、[`event-and-outbox-contract`](../event-and-outbox-contract/spec.md)、[`ai-provider-and-model-routing`](../ai-provider-and-model-routing/spec.md)、[`prompt-rubric-registry`](../prompt-rubric-registry/spec.md)、[`backend-runtime-topology`](../backend-runtime-topology/spec.md)、[`mock-contract-suite`](../mock-contract-suite/spec.md)
 - 上游 owner 内部 API 依赖：[`backend-auth`](../backend-auth/spec.md)（D-17 identity additive）、[`backend-profile`](../backend-profile/spec.md)（D-11 + D-13）、[`backend-resume`](../backend-resume/spec.md)、[`backend-targetjob`](../backend-targetjob/spec.md)、[`backend-practice`](../backend-practice/spec.md)、[`backend-debrief`](../backend-debrief/spec.md)
-- 下游 frontend：[`frontend-home-job-picks-and-parse`](../frontend-home-job-picks-and-parse/spec.md)（plan 002 切真消费）
-- UI 真理源：[`docs/ui-design/module-job-workspace.md`](../../ui-design/module-job-workspace.md)、[`ui-design/src/screen-jd-match.jsx`](../../../ui-design/src/screen-jd-match.jsx)
+- 下游 frontend：[`frontend-home-job-picks-and-parse`](../frontend-home-job-picks-and-parse/spec.md)（plan 002 承接前端删除）
+- UI 真理源：[`docs/ui-design/removed-modules-and-scope.md`](../../ui-design/removed-modules-and-scope.md) §15（jd_match 删除记录；旧 `ui-design/src/screen-jd-match.jsx` 已随 2026-06-12 第二批裁剪删除）
 - 历史：[history.md](./history.md)
+
+## 9 D-17 删除范围与零残留验收（当前 active scope）
+
+### 9.1 删除范围
+
+| 层 | 待删资产 | 处置 |
+|----|---------|------|
+| OpenAPI | `openapi/openapi.yaml` jobmatch tag 12 个 operationId（`getJobMatchProfile` / `getAgentScanStatus` / `listJobRecommendations` / `getJobRecommendation` / `markJobNotRelevant` / `listWatchlist` / `addToWatchlist` / `removeFromWatchlist` / `searchJobs` / `listSavedSearches` / `createSavedSearch` / `getMarketSignals`）及其专属 schema、`openapi/fixtures/JobMatch/` 全部 fixture | 删除并重新 codegen；[openapi-v1-contract](../openapi-v1-contract/spec.md) freeze 列表同步修订 |
+| backend | `backend/internal/jdmatch/`（handler / service / store / jobs / generators）、`backend/cmd/api/jdmatch_runtime.go` 与 3 个 jdmatch 测试文件、`main.go` 挂载点、session policy / generated server 中 jobmatch 入口 | 删除文件 + 原地修改共享文件 |
+| cross-owner internal API | `backend-auth.GetUserIdentityForUser`、`backend-{resume,targetjob,practice,debrief}.Count*ForUser` 等为 JobMatchProfile 聚合新增的 additive | 仅当无其他消费方时随删；有消费方（如 privacy 数据概览 / profile 页）则保留并在 plan 中记录留存理由 |
+| migrations | `jd_match_recommendations` / `watchlist_items` / `saved_searches` / `agent_scans` / `jd_match_search_runs` 5 张表与 000010 注入的 `jd_match.*` prompt/rubric registry 行 | 新增 drop migration 收口（000009/000010 保留为历史迁移文件）；`migrations/enum-sources.yaml` 同步 |
+| shared / B3 | `jd_match.recommendation.completed` / `jd_match.search.completed` 事件、`jd_match.agent_scan` job_type、events/jobs baseline 与 schema 文件、生成常量 | 删除并重新 codegen |
+| config / F3 | `jd_match.recommendation` / `jd_match.search` feature_key、`config/prompts|rubrics|evals/jd_match.*`、`config/ai-profiles.yaml` 关联条目、`resolved-prompts.json` 再生成 | 删除 |
+| scenarios | `test/scenarios/e2e/p0-094..097-jd-match-*` 4 个真实后端场景目录与 INDEX 行 | 删除（前端 mock 场景 p0-017 / p0-027..031 归 frontend plan 002） |
+
+### 9.2 验收标准（v2.0）
+
+| ID | 场景 | Given | When | Then | 对应 Plan |
+|----|------|-------|------|------|-----------|
+| C-R1 | 契约零残留 | D-17 删除完成 | 运行 `make codegen && make codegen-check`、fixtures 校验、`rg -i "jobmatch|jd[-_]match"` 于 `openapi/ backend/ shared/ config/ migrations/`（drop migration、历史 000009/000010 迁移文件与负向断言除外） | jobmatch tag、生成物、fixtures、事件、job_type、feature_key、prompt/rubric/eval 资产零残留；backend 全量 `go test ./...` 通过 | 001 Phase 9 |
+| C-R2 | 运行时无 jd_match 表面 | 删除后启动 `cmd/api` | 请求任一旧 `/api/v1/jd-match/*` 路径 | 返回 404（非 500 / 非鉴权拦截后的 panic）；session policy 不再包含 jobmatch operation | 001 Phase 9 |
+| C-R3 | 数据删除收口 | 既有 dev DB 含 jd_match 数据 | 应用 drop migration；运行 privacy delete | 5 张表与 registry 行被删除；privacy delete 链路不再引用 jd_match 表且测试通过 | 001 Phase 9 |
+
+## 10 修订记录
+
+| 版本 | 日期 | 说明 |
+|------|------|------|
+| 2.0 | 2026-06-13 | 对齐 product-scope v2.1 D-17：subject 转为岗位推荐模块删除的 backend / 契约侧 owner；新增 §9 删除范围与 C-R1~C-R3 零残留验收；§1-§8 标注为历史 baseline 记录 |

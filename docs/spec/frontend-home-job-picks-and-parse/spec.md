@@ -1,8 +1,12 @@
 # Frontend Home / Job Picks / Parse Spec
 
-> **版本**: 1.12
-> **状态**: completed
-> **更新日期**: 2026-05-24
+> **版本**: 2.0
+> **状态**: active
+> **更新日期**: 2026-06-13
+
+> **2026-06-12 product-scope v2.1 对齐声明**：本 spec v2.0 承接两项锁定决策——
+> **D-17**：岗位推荐模块（`jd_match` / Job Picks）整体删除，JD 获取唯一入口是首页导入，一级导航收敛为 `首页 / 模拟面试 / 简历 / 复盘` 四项。本 spec 中所有 jd_match 屏 / 三 tab / JobMatch 契约消费 / Job Picks aux card 相关条目（§2.1 JD Match 屏、D-1 / D-8 / D-9 / D-10 / D-11 / D-12、C-8 / C-12~C-16）自 v2.0 起退役为历史记录，不得作为新实现依据；前端删除范围与验收见 §9，由 [plan 002](./plans/002-jd-match-recommendations/plan.md) 原地重开承接。
+> **D-14**：JD 导入单次确认——`parse` 解析确认页同时承载启动决策（核对解析结果、绑定简历、确认 InterviewRound、立即面试 / 仅保存规划），首次导入链路只允许一次全页确认；旧「确认并进入面试前确认」二次确认按钮删除，`workspace` 不再是首次导入必经第二确认页。目标交互契约见 §10，由 [plan 001](./plans/001-home-jd-import-and-parse/plan.md) 原地重开承接；C-5 / D-4 中与二次确认相关的口径以 §10 为准。
 
 ## 1 背景与目标
 
@@ -126,5 +130,43 @@
 ## 8 关联文档
 
 - 上游 spec：[`engineering-roadmap`](../engineering-roadmap/spec.md)、[`product-scope`](../product-scope/spec.md)、[`frontend-shell`](../frontend-shell/spec.md)、[`openapi-v1-contract`](../openapi-v1-contract/spec.md)、[`mock-contract-suite`](../mock-contract-suite/spec.md)
-- UI 真理源：`ui-design/src/screen-home.jsx`、`ui-design/src/screen-jd-match.jsx`、`ui-design/src/screens-p0-complete.jsx`、`ui-design/src/app.jsx`、`ui-design/src/primitives.jsx`、[`docs/ui-design/jd-resume-management.md`](../../ui-design/jd-resume-management.md)、[`docs/ui-design/ui-architecture.md`](../../ui-design/ui-architecture.md)、[`docs/ui-design/module-job-workspace.md`](../../ui-design/module-job-workspace.md)
+- UI 真理源：`ui-design/src/screen-home.jsx`、`ui-design/src/screens-p0-complete.jsx::ParseScreen`、`ui-design/src/app.jsx`、`ui-design/src/primitives.jsx`、[`docs/ui-design/jd-resume-management.md`](../../ui-design/jd-resume-management.md)、[`docs/ui-design/ui-architecture.md`](../../ui-design/ui-architecture.md)、[`docs/ui-design/module-job-workspace.md`](../../ui-design/module-job-workspace.md)、[`docs/ui-design/removed-modules-and-scope.md`](../../ui-design/removed-modules-and-scope.md) §15（旧 `ui-design/src/screen-jd-match.jsx` 已随 2026-06-12 第二批裁剪删除）
+
+## 9 D-17 前端删除范围与零残留验收（plan 002 active scope）
+
+### 9.1 删除范围
+
+| 资产 | 处置 |
+|------|------|
+| `frontend/src/app/screens/jd_match/` 全目录（screens / tabs / hooks / 子组件 / 测试） | 删除 |
+| `routes.ts` `PRIMARY_NAV_ROUTES` 中 `jd_match` 项与 route 定义、`routeUrl.ts` `/jd-match` path 与 `JD_MATCH_SAFE`、`App.tsx` 渲染分支、`TopBar` `NAV_LABEL_KEYS` / `NAV_ICONS` 条目 | 删除；`jd_match` route key 与 `/jd-match` path 归一回 `home`（normalize alias + legacy path），一级导航收敛为 `home / workspace / resume_versions / debrief` 四项 |
+| Home 屏 `JOB PICKS` aux card（→ jd_match 入口） | 删除；`POST-INTERVIEW` aux card 维持，与当前 `ui-design/src/screen-home.jsx` 对齐 |
+| i18n `jdMatch.*` 命名空间与 `nav.jd_match` 词条（zh/en） | 删除 |
+| `frontend/tests/pixel-parity/jd_match.spec.ts` 与 topbar parity 五入口 golden 断言 | 删除 / 改为四入口断言 |
+| jd_match 相关 Vitest（unit / scenario / 路由测试中的 jd_match 用例） | 删除或改写为负向断言 |
+| `test/scenarios/e2e/p0-017 / p0-027..031` 前端 jd_match 场景目录与 INDEX 行 | 删除 |
+| `frontend/src/lib/jobs/jobs.ts` 等生成常量中的 jd_match 条目 | 随 shared codegen 再生成（上游删除归 backend plan 001 Phase 9） |
+
+### 9.2 验收标准（v2.0 新增）
+
+| ID | 场景 | Given | When | Then | 对应 Plan |
+|----|------|-------|------|------|-----------|
+| C-R1 | 四入口导航收敛 | D-17 删除完成 | 打开 App / 切换语言 / 切换主题 | TopBar 一级导航仅 `home / workspace / resume_versions / debrief` 四项；`topbar-nav-jd_match` 零命中；pixel parity 与 golden 预览四入口一致 | 002 removal phase |
+| C-R2 | 旧 route 归一 | 用户直开 `/jd-match` 或旧 `jd_match` route key（含 localStorage 残留） | App normalize / parse URL | 归一到 `home`，不渲染独立 jd_match 屏；`legacyRouteNegative` 断言 jd_match 不在 live route 目录 | 002 removal phase |
+| C-R3 | 前端零残留 | 删除完成 | `rg -i "jd[-_]?match|job picks"` 于 `frontend/src frontend/tests`（normalize alias / legacy path / 负向断言除外）；`pnpm test` / `typecheck` / `build` / `test:pixel-parity` | 零残留；全套件通过；Home 仅保留 `POST-INTERVIEW` aux card | 002 removal phase |
+
+## 10 D-14 单次确认漏斗目标契约（plan 001 active scope）
+
+以 `ui-design/src/screens-p0-complete.jsx::ParseScreen` 与 [docs/ui-design/module-job-workspace.md](../../ui-design/module-job-workspace.md) v1.10 为唯一 UI 真理源：
+
+1. parse 确认页在解析 preview 基础上同时承载启动决策：轮次假设卡可点选确认 InterviewRound；绑定简历 pill（复用 ResumePickerModal）选择 / 更换简历；底部主操作为「立即面试」与「仅保存规划」。
+2. 「立即面试」走 `requestAuth(create_session)` 登录拦截，pendingAction 恢复后直达 `practice`；「仅保存规划」进入 `workspace`。
+3. 旧「确认并进入面试前确认」二次确认按钮删除；首次导入链路 parse 与 session 之间不存在平行确认页；`workspace` 定位为回访枢纽。
+4. 详细 DOM 锚点、operation matrix 与验收行在 plan 001 v2.0 修订中固化（C-5 旧口径以本节为准失效）。
+
+## 11 修订记录
+
+| 版本 | 日期 | 说明 |
+|------|------|------|
+| 2.0 | 2026-06-13 | 对齐 product-scope v2.1：D-17 删除 jd_match 模块（新增 §9 删除范围与 C-R1~C-R3，jd_match 相关历史条目退役）；D-14 单次确认漏斗目标契约（新增 §10，plan 001 重开承接）；UI 真理源列表移除 screen-jd-match.jsx |
 - 历史：[history.md](./history.md)

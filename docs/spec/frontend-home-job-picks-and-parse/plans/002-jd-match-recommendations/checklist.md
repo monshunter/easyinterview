@@ -1,8 +1,8 @@
 # 002 JD Match Recommendations Checklist
 
-> **版本**: 1.7
-> **状态**: completed
-> **更新日期**: 2026-05-22
+> **版本**: 2.0
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -127,3 +127,10 @@
 - [x] 6.13 L2 remediation：修复 jd_match pixel parity 在 clean checkout 缺少 ignored screenshot baseline 时失败的问题；常规 Playwright gate 不得依赖 `frontend/tests/pixel-parity/*-snapshots/` 本地 ignored PNG，且 P0.028 verify 必须反查新的 SearchTab parity assertions。 <!-- evidence: 2026-05-10 Red: `pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/jd_match.spec.ts` → 18 passed / 2 failed，失败原因为 desktop/mobile focused screenshot baseline PNG 不存在且被 `.gitignore` 忽略；Green: focused screenshot 改为 bounding box + non-empty screenshot buffer，Search tab pixel 断言补 natural-language heading/source label/company source；`pnpm --filter @easyinterview/frontend build` PASS；清理 stale 4173 后 `pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/jd_match.spec.ts` → 20 passed；`git diff --check` PASS -->
 
 - [x] 6.14 L2 remediation：真实 backend 联调闭环。新增 `frontend/src/api/jdMatch.realApiMode.test.ts` 覆盖 `VITE_EI_API_MODE=real` 下 12 个 JobMatch generated-client operation 的真实 backend base URL、`credentials: "include"`、默认无 fixture `Prefer` header、5 个 side-effect `Idempotency-Key` 与 `GenerationProvenance` roundtrip；P0.027-P0.031 trigger/verify 必须先跑该 real-mode gate 再跑 fixture-backed UI variants；原地更新 plan/spec/BDD/OpenAPI/generated spec，删除 `backend-jobs-recommendations` 仍为未来态的 stale 口径；重跑 P0.027-P0.031 + backend P0.094-P0.097 + codegen/docs drift gates。 <!-- evidence: 2026-05-22 focused real-mode vitest PASS (1 file / 1 test); P0.027 PASS (real gate 1/1 + Recommended 15 files / 102 tests); P0.028 PASS (real gate 1/1 + Search 10 files / 58 tests); P0.029 PASS (real gate 1/1 + Watchlist 7 files / 26 tests); P0.030 PASS (real gate 1/1 + Profile/AGENT 8 files / 44 tests + frontend build PASS + Playwright responsive/dark 4 tests PASS); P0.031 PASS (real gate 1/1 + Confirm 1 file / 2 tests + P0.015 54 tests + P0.016 13 tests); backend P0.094-P0.097 all setup→trigger→verify→cleanup PASS; make lint-openapi PASS; second make codegen-openapi produced no generated diff change; make codegen-check PASS -->
+
+## Phase 7: D-17 frontend removal and four-entry nav convergence
+
+- [ ] 7.1 导航与路由收敛；验证: focused Vitest 断言 `PRIMARY_NAV_ROUTES` 为四项、`jd_match` route key 与 `/jd-match` path 归一 `home`、TopBar 无 jd_match 项；Red 先行后转绿；`spaFallback` 列表与 routeUrl legacy 表镜像测试通过
+- [ ] 7.2 jd_match 模块与 Home aux card 删除；验证: `screens/jd_match/` 目录删除；HomeScreen 测试断言无 `JOB PICKS` aux card、保留 `POST-INTERVIEW`；i18n `jdMatch.*` / `nav.jd_match` 删除且 locale 类型校验通过；authContractGate 允许列表无 JobMatch operation
+- [ ] 7.3 测试资产收口；验证: `tests/pixel-parity/jd_match.spec.ts` 删除，topbar golden 断言四入口；路由/隐私/legacy 测试 jd_match 用例改写或删除；`test/scenarios/e2e/p0-017 / p0-027..031` 目录删除且 INDEX 无对应行；bdd 文档标注 P0.027-031 退役
+- [ ] 7.4 零残留与全量回归 gate；验证: `rg -i "jd[-_]?match|jobmatch|job picks"` 于 frontend/src frontend/tests 零残留（alias / legacy path / 负向断言除外）；typecheck / vitest 全量 / build / test:pixel-parity 通过且 parity 基线中 jd_match 与五入口 golden 失败清零；`sync-doc-index --check` 零漂移

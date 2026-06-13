@@ -1,11 +1,49 @@
 # JD-Match Real Backend Baseline
 
-> **版本**: 1.5
-> **状态**: completed
-> **更新日期**: 2026-05-23
+> **版本**: 2.0
+> **状态**: active
+> **更新日期**: 2026-06-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
+
+## 0.0 D-17 Module Removal Reopen (v2.0)
+
+2026-06-12 [product-scope v2.1 D-17](../../../product-scope/spec.md#31-已锁定决策) 整体删除岗位推荐模块。本 plan 原地重开（completed -> active），新增 Phase 9 承接 [spec v2.0 §9](../../spec.md#9-d-17-删除范围与零残留验收当前-active-scope) 的 backend / 契约侧删除：OpenAPI jobmatch tag 12 个 operation 与 fixtures、`backend/internal/jdmatch/` 全包、cmd/api wiring、5 张表 drop migration、B3 事件 / job_type、F3 feature_key 与 prompt/rubric/eval 资产、A3 profile 条目、P0.094-097 场景目录。Phase 0-8 为历史完成记录，其断言的能力随 D-17 退役，不得作为当前验收依据。
+
+**Phase 9 质量门禁**：删除型 phase 不新增用户行为流，BDD 不适用；替代验证 gate 为 spec §9.2 C-R1~C-R3——`make codegen && make codegen-check`、fixtures / mock-contract lint、`cd backend && go test ./...`、`/api/v1/jd-match/*` 404 运行时断言、drop migration up/down 测试、跨仓零残留负向搜索（drop migration、历史迁移文件 000009/000010 与负向断言除外）。删除属 TDD 范畴：先以失败断言（如 route 404 测试、负向 grep gate）表达目标态，再执行删除使其转绿。
+
+### Phase 9 operation matrix
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| jobmatch tag 12 个 operation（全部删除） | `openapi/fixtures/JobMatch/`（全部删除） | frontend jd_match 模块（由 frontend-home-job-picks-and-parse/002 同步删除） | `backend/internal/jdmatch/` + `cmd/api` jdmatch wiring（全部删除） | 5 张 jd_match 表（drop migration 收口） | `jd_match.recommendation` / `jd_match.search` feature_key（删除） | C-R1~C-R3 替代 gate；P0.094-097 场景目录删除 |
+
+### Phase 9: D-17 module removal
+
+#### 9.1 契约删除与再生成
+
+删除 `openapi/openapi.yaml` jobmatch tag、12 个 operation、专属 schema 与 `openapi/fixtures/JobMatch/`；运行 `make codegen && make codegen-check` 再生成 frontend/backend client、server、types；同步修订 `openapi-v1-contract` spec freeze 列表与 `mock-contract-suite` 中 JobMatch 口径；fixtures / mock-contract lint 通过。
+
+#### 9.2 backend 包与运行时删除
+
+删除 `backend/internal/jdmatch/` 全包、`cmd/api/jdmatch_runtime.go`、`jdmatch_live_scenario_test.go` / `jdmatch_fixture_parity_test.go` / `jdmatch_http_scenario_test.go`、`main.go` 挂载点与 session policy jobmatch 条目；原地修改 privacy runner（去除 `DeleteJobMatchDataForUser` 链路）与 `backend/internal/auth/identity.go` 等共享触点；保留仍被其他消费方使用的 cross-owner counter / identity API 并记录留存理由（如 privacy 数据概览）。先写 route 404 / 负向断言（Red），删除后转绿。
+
+#### 9.3 数据与注册表收口
+
+新增 drop migration：删除 `jd_match_recommendations` / `watchlist_items` / `saved_searches` / `agent_scans` / `jd_match_search_runs` 5 张表与 000010 注入的 `jd_match.*` prompt/rubric registry 行；`migrations/enum-sources.yaml` 同步；migration up/down 测试与迁移 gate 通过。
+
+#### 9.4 shared / config 资产删除
+
+删除 `shared/events.yaml` / `shared/jobs.yaml` 及 baseline / schema 中 `jd_match.*` 事件与 job_type，重新生成共享常量；删除 `config/prompts|rubrics|evals/jd_match.*`、`config/ai-profiles.yaml` 对应 entry，并再生成 `config/evals/resolved-prompts.json`；相关 lint（events / jobs / rubric / config）通过。
+
+#### 9.5 场景与文档收口
+
+删除 `test/scenarios/e2e/p0-094..097-jd-match-*` 4 个目录并更新 `test/scenarios/e2e/INDEX.md`；同步 `engineering-roadmap` §5.2 对本 subject 的描述为 D-17 删除完成；`sync-doc-index --check` 零漂移。
+
+#### 9.6 零残留与全量回归 gate
+
+`rg -i "jobmatch|jd[-_]match"` 于 `openapi/ backend/ shared/ config/ frontend/src/api/generated/`（drop migration、历史迁移文件、负向断言与本 plan 文档除外）零残留；`cd backend && go test ./...`、`make codegen-check`、`make lint-mock-contract`（如适用）、`make docs-check` 通过；`/api/v1/jd-match/*` 返回 404 的运行时断言通过。
 
 ## 0 Post-Reopen Completion Note
 
