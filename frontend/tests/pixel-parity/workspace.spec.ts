@@ -135,12 +135,23 @@ async function freezeAnimations(page: import("@playwright/test").Page): Promise<
   });
 }
 
-/** Navigate to workspace by clicking the TopBar Mock Interview button. */
+/**
+ * Navigate to workspace by clicking the TopBar Mock Interview button.
+ *
+ * `workspace` is an auth-gated business route (frontend-shell Phase 10 /
+ * BUG-0115): the route guard renders `auth-route-gate` and redirects to
+ * `auth_login` until runtime auth resolves to authenticated. Mock the auth
+ * APIs first so the TopBar-click path reaches the workspace empty state
+ * instead of the auth gate.
+ */
 async function goToWorkspace(page: import("@playwright/test").Page) {
+  await mockWorkspaceApis(page);
   await page.goto("/");
   await page.waitForSelector("[data-testid='topbar-nav-workspace']");
   await page.click("[data-testid='topbar-nav-workspace']");
-  await page.waitForTimeout(400);
+  await page.waitForSelector("[data-testid='workspace-empty']", {
+    timeout: 5000,
+  });
 }
 
 /** Navigate to a hydrated workspace through server-bound initial route params. */
