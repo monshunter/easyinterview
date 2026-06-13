@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-06-12](2026-06-12.md) | `docs(retrospective): assess ux funnel downstream implementation delivery` | #docs |
 | [2026-06-12](2026-06-12.md) | `fix(report-parity): mock auth so workspace parity reaches empty state` | #fix #test |
 | [2026-06-12](2026-06-12.md) | `feat(report): converge report cta to header per d-19` | #feat #ui #test #docs |
 | [2026-06-12](2026-06-12.md) | `docs(jd-match): close removal plan lifecycle after d-17` | #docs |
