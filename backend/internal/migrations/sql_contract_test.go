@@ -240,6 +240,51 @@ func TestResumeVersionsAdditiveMigrationContract(t *testing.T) {
 	}
 }
 
+func TestResumeFlattenMigrationContract(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000015_resume_flatten.up.sql")))
+	down := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000015_resume_flatten.down.sql")))
+
+	for _, required := range []string{
+		"alter table resume_assets rename to resumes",
+		"add column if not exists structured_profile jsonb not null default '{}'::jsonb",
+		"add column if not exists display_name text",
+		"update resumes",
+		"version_type = 'structured_master'",
+		"drop column if exists guided_answers",
+		"add constraint resumes_source_type_check",
+		"check (source_type is null or source_type in ('upload', 'paste'))",
+		"alter table practice_plans rename column resume_asset_id to resume_id",
+		"drop table if exists resume_version_suggestions",
+		"drop table if exists resume_tailor_runs",
+		"drop table if exists resume_versions",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("resume flatten up migration missing %q", required)
+		}
+	}
+	// D-20: create flow is upload/paste only; the flat source_type check must
+	// drop the retired 'guided' onboarding value.
+	if strings.Contains(up, "'guided'") {
+		t.Fatalf("resume flatten up migration must not keep retired 'guided' source_type value")
+	}
+
+	for _, required := range []string{
+		"alter table resumes rename to resume_assets",
+		"drop column if exists structured_profile",
+		"drop column if exists display_name",
+		"add column if not exists guided_answers",
+		"alter table practice_plans rename column resume_id to resume_asset_id",
+		"create table if not exists resume_tailor_runs",
+		"create table if not exists resume_versions",
+		"create table if not exists resume_version_suggestions",
+	} {
+		if !strings.Contains(down, required) {
+			t.Fatalf("resume flatten down migration missing %q", required)
+		}
+	}
+}
+
 func TestBaselineMigrationDoesNotStoreRawAuthSecrets(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))

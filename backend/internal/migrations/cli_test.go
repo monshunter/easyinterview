@@ -112,7 +112,7 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 		"candidate_profiles",
 		"experience_cards",
 		"file_objects",
-		"resume_assets",
+		"resumes",
 		"target_jobs",
 		"target_job_requirements",
 		"target_job_sources",
@@ -122,7 +122,6 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 		"practice_turns",
 		"feedback_reports",
 		"question_assessments",
-		"resume_tailor_runs",
 		"debriefs",
 		"source_records",
 		"prompt_versions",
@@ -147,8 +146,12 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 	}
 	// product-scope v2.1 D-17 dropped the 5 jd_match module tables
 	// (jd_match_recommendations, watchlist_items, saved_searches,
-	// agent_scans, jd_match_search_runs), trimming 35 -> 30.
-	if len(got) != 30 {
-		t.Fatalf("privacy matrix should cover exactly 30 public baseline tables, got %d: %#v", len(got), got)
+	// agent_scans, jd_match_search_runs), trimming 35 -> 30. product-scope
+	// v2.1 D-20 resume flatten renamed resume_assets -> resumes and dropped
+	// resume_tailor_runs (resume_versions / resume_version_suggestions were
+	// already covered by the resumes cascade, not separate matrix rows),
+	// trimming 30 -> 29.
+	if len(got) != 29 {
+		t.Fatalf("privacy matrix should cover exactly 29 public baseline tables, got %d: %#v", len(got), got)
 	}
 }

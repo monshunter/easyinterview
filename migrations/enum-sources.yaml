@@ -9,6 +9,7 @@ checks:
   - {table: file_objects, column: upload_status, source: db-local, values: [pending, uploaded, scan_failed, deleted], checksum: "sha256:42790f9f1f0a8e63"}
   - {table: resume_assets, column: parse_status, source: shared-conventions-codified, values: [queued, processing, ready, failed], checksum: "sha256:b1c22ab83ff1c7c9"}
   - {table: resume_assets, column: source_type, source: openapi-v1-contract.RegisterResumeRequest.sourceType, values: [upload, paste, guided], checksum: "sha256:35a3b210c20f72f3"}
+  - {table: resumes, column: source_type, source: openapi-v1-contract.RegisterResumeRequest.sourceType, values: [upload, paste], checksum: "sha256:bd18eab64a28b140"}
   - {table: resume_versions, column: version_type, source: shared-conventions-codified.ResumeVersionType, values: [structured_master, targeted], checksum: "sha256:af6773b6df136007"}
   - {table: resume_versions, column: seed_strategy, source: shared-conventions-codified.ResumeSeedStrategy, values: [copy_master, blank, ai_select], checksum: "sha256:2c9f6e4a35c9537e"}
   - {table: resume_version_suggestions, column: status, source: shared-conventions-codified.ResumeTailorSuggestionStatus, values: [pending, accepted, rejected], checksum: "sha256:3582afed269167b1"}
