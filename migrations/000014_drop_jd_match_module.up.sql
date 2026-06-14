@@ -12,5 +12,7 @@ DROP TABLE IF EXISTS jd_match_recommendations;
 DELETE FROM rubric_versions WHERE feature_key IN ('jd_match.recommendation', 'jd_match.search');
 DELETE FROM prompt_versions WHERE feature_key IN ('jd_match.recommendation', 'jd_match.search');
 
+DELETE FROM async_jobs WHERE job_type IN ('jd_match_agent_scan', 'jd_match_search');
+
 ALTER TABLE async_jobs DROP CONSTRAINT IF EXISTS async_jobs_job_type_check;
 ALTER TABLE async_jobs ADD CONSTRAINT async_jobs_job_type_check CHECK (job_type IN ('target_import', 'resume_parse', 'report_generate', 'resume_tailor', 'debrief_generate', 'source_refresh', 'privacy_export', 'privacy_delete', 'email_dispatch'));

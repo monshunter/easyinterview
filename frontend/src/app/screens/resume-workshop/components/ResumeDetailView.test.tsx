@@ -294,6 +294,74 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
     expect(getResumeSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("persists accepted rewrites into structuredProfile sections when overwriting", async () => {
+    const client = buildClient("default");
+    const resumeWithBullet = {
+      ...(getResumeFixture.scenarios.default.response.body as Resume),
+      structuredProfile: {
+        headline: "Senior frontend engineer",
+        sections: [
+          {
+            title: "Experience",
+            bullets: ["Led design-system migration.", "Kept unrelated bullet."],
+          },
+        ],
+      },
+    } satisfies Resume;
+    const updateSpy = vi.spyOn(client, "updateResume").mockResolvedValueOnce({
+      ...resumeWithBullet,
+      structuredProfile: {
+        ...resumeWithBullet.structuredProfile,
+        sections: [
+          {
+            title: "Experience",
+            bullets: [
+              "Led design-system migration across 12 teams; reduced UI defect rate by 38% over 6 weeks.",
+              "Kept unrelated bullet.",
+            ],
+          },
+        ],
+      },
+    } as Resume);
+    vi.spyOn(client, "getResume").mockResolvedValue(resumeWithBullet);
+
+    renderDetailWithClient(client, {
+      name: "resume_versions",
+      params: {
+        resumeId: RESUME_ID,
+        tab: "rewrites",
+        tailorRunId: getResumeTailorRunFixture.scenarios.default.response.body.id,
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-rewrites-action-accept")).toBeEnabled();
+    }, { timeout: 3000 });
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("resume-rewrites-action-accept"));
+    await user.click(screen.getByTestId("resume-rewrites-preview-save"));
+    await user.click(screen.getByTestId("resume-rewrites-save-confirm"));
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+    });
+    const body = updateSpy.mock.calls[0]![1] as Record<string, unknown>;
+    expect(body.structuredProfile).toMatchObject({
+      sections: [
+        {
+          title: "Experience",
+          bullets: [
+            "Led design-system migration across 12 teams; reduced UI defect rate by 38% over 6 weeks.",
+            "Kept unrelated bullet.",
+          ],
+        },
+      ],
+    });
+    expect(
+      JSON.stringify(body.structuredProfile),
+    ).not.toContain("acceptedRewrites");
+  });
+
   it("shows a retryable detail error for non-404 getResume failures", async () => {
     const client = buildClient("default");
     const getResumeSpy = vi

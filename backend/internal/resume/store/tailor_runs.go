@@ -15,14 +15,12 @@ import (
 )
 
 // async_jobs.resource_type values owned by this subject. D-20 dropped the
-// dedicated resume_assets / resume_tailor_runs tables, so the resume parse and
-// resume tailor jobs are the only durable record of an in-flight run; the
-// tailor result is persisted into async_jobs.result and read back by
-// tailorRunId (= async_jobs.resource_id).
+// dedicated resume_tailor_runs table; parse jobs keep the API-facing
+// resume_asset resource type while the physical table is now resumes.
 type resourceType string
 
 const (
-	resourceTypeResume          resourceType = "resume"
+	resourceTypeResume          resourceType = "resume_asset"
 	resourceTypeResumeTailorRun resourceType = "resume_tailor_run"
 )
 
@@ -37,7 +35,7 @@ type tailorJobPayload struct {
 // tailorJobResult is the ephemeral resume.tailor output persisted into
 // async_jobs.result by the tailor job (D-20: no resume_tailor_runs table).
 type tailorJobResult struct {
-	MatchSummary json.RawMessage         `json:"matchSummary,omitempty"`
+	MatchSummary json.RawMessage          `json:"matchSummary,omitempty"`
 	Suggestions  []tailorResultSuggestion `json:"suggestions"`
 	Provenance   tailorResultProvenance   `json:"provenance"`
 }

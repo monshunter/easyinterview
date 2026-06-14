@@ -148,6 +148,18 @@ type accountIdentityDeleteExecutor interface {
 }
 
 func hardDeleteAccountIdentity(ctx context.Context, exec accountIdentityDeleteExecutor, userID string, email string) error {
+	if _, err := exec.ExecContext(ctx, `
+delete from async_jobs
+where (
+  resource_type in ('resume_asset', 'resume')
+  and resource_id in (select id from resumes where user_id = $1)
+)
+or (
+  resource_type = 'resume_tailor_run'
+  and payload->>'resumeId' in (select id::text from resumes where user_id = $1)
+)`, userID); err != nil {
+		return fmt.Errorf("delete resume async jobs for privacy user: %w", err)
+	}
 	if _, err := exec.ExecContext(ctx, `delete from resumes where user_id = $1`, userID); err != nil {
 		return fmt.Errorf("delete resumes for privacy user: %w", err)
 	}

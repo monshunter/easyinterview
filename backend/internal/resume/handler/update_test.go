@@ -48,7 +48,7 @@ func TestUpdateResumeOverwritesEditableFields(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if svc.in.UserID != "user-1" || svc.in.ResumeID != "resume-1" || !svc.in.DisplayNameSet || svc.in.StructuredProfile["headline"] != "Staff engineer" {
+	if svc.in.UserID != "user-1" || svc.in.ResumeID != "resume-1" || !svc.in.DisplayNameSet || !svc.in.StructuredProfileSet || svc.in.StructuredProfile["headline"] != "Staff engineer" {
 		t.Fatalf("update input = %+v", svc.in)
 	}
 }

@@ -1081,6 +1081,9 @@ ai:
 	mock.ExpectExec("update privacy_requests").
 		WithArgs(requestID, sqlmock.AnyArg(), 0, userID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("delete from async_jobs").
+		WithArgs(userID).
+		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec("delete from resumes").
 		WithArgs(userID).
 		WillReturnResult(sqlmock.NewResult(0, 0))

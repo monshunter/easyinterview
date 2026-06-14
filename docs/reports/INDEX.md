@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-06-14](./2026-06-14-resume-flatten-review-regressions-assessment.md) | Resume Flatten Review Regressions 交付复盘 | #assessment |
 | [2026-06-14](./2026-06-14-ux-funnel-refactor-drift-assessment.md) | UX Funnel Refactor Drift 交付复盘 | #assessment |
 | [2026-06-12](./2026-06-12-ux-funnel-downstream-implementation-assessment.md) | UX Funnel Downstream Implementation 交付复盘 | #assessment |
 | [2026-06-12](./2026-06-12-mvp-scope-trim-batch2-assessment.md) | MVP Scope Trim Batch 2 设计层交付复盘 | #assessment |

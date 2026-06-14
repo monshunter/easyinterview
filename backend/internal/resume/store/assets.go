@@ -137,7 +137,7 @@ where user_id = $1 and deleted_at is null`
 	return ListResult{Items: items, NextCursor: nextCursor, HasMore: hasMore, PageSize: pageSize}, nil
 }
 
-// UpdateResume overwrites the editable structured_profile / display_name on an
+// UpdateResume overwrites only the editable fields present in the request on an
 // existing resume (D-20 C-17: save accepted rewrites by overwrite).
 func (r *Repository) UpdateResume(ctx context.Context, in UpdateResumeInput) (ResumeRecord, error) {
 	if r == nil || r.db == nil {
@@ -147,18 +147,15 @@ func (r *Repository) UpdateResume(ctx context.Context, in UpdateResumeInput) (Re
 	if now.IsZero() {
 		now = time.Now().UTC()
 	}
-	structuredProfile := in.StructuredProfile
-	if len(structuredProfile) == 0 {
-		structuredProfile = json.RawMessage(`{}`)
-	}
 	row := r.db.QueryRowContext(ctx, `
 update resumes
-set structured_profile = $1,
-    display_name = coalesce($2, display_name),
-    updated_at = $3
-where id = $4 and user_id = $5 and deleted_at is null
+set structured_profile = case when $1 then $2 else structured_profile end,
+    display_name = coalesce($3, display_name),
+    updated_at = $4
+where id = $5 and user_id = $6 and deleted_at is null
 returning `+resumeSelectColumns,
-		structuredProfile,
+		in.StructuredProfileSet,
+		in.StructuredProfile,
 		nullableStringPtr(in.DisplayName),
 		now,
 		in.ResumeID,

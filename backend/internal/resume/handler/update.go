@@ -104,6 +104,7 @@ func validateUpdateResumeInput(userID string, resumeID string, raw []byte) (resu
 		// structuredProfile; the service strips it before persisting (D-20:
 		// resume.tailor suggestions are ephemeral, provenance is not editable).
 		in.StructuredProfile = cloneMap(profile)
+		in.StructuredProfileSet = true
 	}
 	return in, nil
 }

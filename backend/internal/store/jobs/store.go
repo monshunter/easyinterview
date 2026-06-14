@@ -47,10 +47,10 @@ where j.id = $1
         and tj.deleted_at is null
     ))
     or (j.resource_type = 'resume_asset' and exists (
-      select 1 from resume_assets ra
-      where ra.id = j.resource_id
-        and ra.user_id = $2
-        and ra.deleted_at is null
+      select 1 from resumes rs
+      where rs.id = j.resource_id
+        and rs.user_id = $2
+        and rs.deleted_at is null
     ))
     or (j.resource_type = 'feedback_report' and exists (
       select 1 from feedback_reports fr
@@ -58,9 +58,10 @@ where j.id = $1
         and fr.user_id = $2
     ))
     or (j.resource_type = 'resume_tailor_run' and exists (
-      select 1 from resume_tailor_runs rr
-      where rr.id = j.resource_id
-        and rr.user_id = $2
+      select 1 from resumes rs
+      where rs.id::text = j.payload->>'resumeId'
+        and rs.user_id = $2
+        and rs.deleted_at is null
     ))
     or (j.resource_type = 'debrief' and exists (
       select 1 from debriefs d

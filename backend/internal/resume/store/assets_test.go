@@ -31,7 +31,7 @@ func TestCreateWithParseJobInsertsResumeAndJobAtomically(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(regexp.QuoteMeta(`insert into async_jobs`)).
 		WithArgs(
-			"job-1", "resume_parse", "resume", "resume-1", "dedupe-1", string(sharedtypes.JobStatusQueued), sqlmock.AnyArg(), now, now, now,
+			"job-1", "resume_parse", "resume_asset", "resume-1", "dedupe-1", string(sharedtypes.JobStatusQueued), sqlmock.AnyArg(), now, now, now,
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
@@ -150,6 +150,7 @@ func TestUpdateResumeOverwritesProfileAndScopesUser(t *testing.T) {
 
 	mock.ExpectQuery(regexp.QuoteMeta(`update resumes`)).
 		WithArgs(
+			true,
 			[]byte(`{"headline":"Staff engineer"}`),
 			displayName,
 			updatedAt,
@@ -163,11 +164,12 @@ func TestUpdateResumeOverwritesProfileAndScopesUser(t *testing.T) {
 		))
 
 	got, err := repo.UpdateResume(context.Background(), resumestore.UpdateResumeInput{
-		UserID:            "user-1",
-		ResumeID:          "resume-1",
-		DisplayName:       &displayName,
-		StructuredProfile: []byte(`{"headline":"Staff engineer"}`),
-		Now:               updatedAt,
+		UserID:               "user-1",
+		ResumeID:             "resume-1",
+		DisplayName:          &displayName,
+		StructuredProfile:    []byte(`{"headline":"Staff engineer"}`),
+		StructuredProfileSet: true,
+		Now:                  updatedAt,
 	})
 	if err != nil {
 		t.Fatalf("UpdateResume: %v", err)
@@ -184,14 +186,15 @@ func TestUpdateResumeNotFound(t *testing.T) {
 	repo, mock, cleanup := newMockRepository(t)
 	defer cleanup()
 	mock.ExpectQuery(regexp.QuoteMeta(`update resumes`)).
-		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "resume-1", "user-1").
+		WithArgs(true, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "resume-1", "user-1").
 		WillReturnError(sql.ErrNoRows)
 
 	_, err := repo.UpdateResume(context.Background(), resumestore.UpdateResumeInput{
-		UserID:            "user-1",
-		ResumeID:          "resume-1",
-		StructuredProfile: []byte(`{}`),
-		Now:               time.Now(),
+		UserID:               "user-1",
+		ResumeID:             "resume-1",
+		StructuredProfile:    []byte(`{}`),
+		StructuredProfileSet: true,
+		Now:                  time.Now(),
 	})
 	if !errors.Is(err, resumestore.ErrAssetNotFound) {
 		t.Fatalf("err = %v, want ErrAssetNotFound", err)

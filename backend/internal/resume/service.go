@@ -210,11 +210,12 @@ func (s *Service) ListResumes(ctx context.Context, in ListRequest) (api.Paginate
 }
 
 type UpdateResumeRequest struct {
-	UserID            string
-	ResumeID          string
-	DisplayName       *string
-	DisplayNameSet    bool
-	StructuredProfile map[string]any
+	UserID               string
+	ResumeID             string
+	DisplayName          *string
+	DisplayNameSet       bool
+	StructuredProfile    map[string]any
+	StructuredProfileSet bool
 }
 
 // UpdateResume overwrites the editable fields on an existing resume (D-20 C-17).
@@ -231,7 +232,7 @@ func (s *Service) UpdateResume(ctx context.Context, in UpdateResumeRequest) (api
 	if userID == "" || resumeID == "" {
 		return api.Resume{}, ErrValidationFailed
 	}
-	if len(in.StructuredProfile) == 0 && !in.DisplayNameSet {
+	if !in.StructuredProfileSet && !in.DisplayNameSet {
 		return api.Resume{}, ErrValidationFailed
 	}
 	update := resumestore.UpdateResumeInput{
@@ -239,7 +240,7 @@ func (s *Service) UpdateResume(ctx context.Context, in UpdateResumeRequest) (api
 		ResumeID: resumeID,
 		Now:      s.now(),
 	}
-	if len(in.StructuredProfile) > 0 {
+	if in.StructuredProfileSet {
 		profile := cloneMap(in.StructuredProfile)
 		delete(profile, "provenance")
 		raw, err := json.Marshal(profile)
@@ -247,8 +248,7 @@ func (s *Service) UpdateResume(ctx context.Context, in UpdateResumeRequest) (api
 			return api.Resume{}, ErrValidationFailed
 		}
 		update.StructuredProfile = raw
-	} else {
-		update.StructuredProfile = json.RawMessage(`{}`)
+		update.StructuredProfileSet = true
 	}
 	if in.DisplayNameSet {
 		if in.DisplayName == nil {

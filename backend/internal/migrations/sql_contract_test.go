@@ -251,6 +251,7 @@ func TestResumeFlattenMigrationContract(t *testing.T) {
 		"add column if not exists display_name text",
 		"update resumes",
 		"version_type = 'structured_master'",
+		"where source_type = 'guided'",
 		"drop column if exists guided_answers",
 		"add constraint resumes_source_type_check",
 		"check (source_type is null or source_type in ('upload', 'paste'))",
@@ -263,10 +264,16 @@ func TestResumeFlattenMigrationContract(t *testing.T) {
 			t.Fatalf("resume flatten up migration missing %q", required)
 		}
 	}
-	// D-20: create flow is upload/paste only; the flat source_type check must
-	// drop the retired 'guided' onboarding value.
-	if strings.Contains(up, "'guided'") {
-		t.Fatalf("resume flatten up migration must not keep retired 'guided' source_type value")
+	// D-20: create flow is upload/paste only. Existing guided rows must be
+	// rewritten before the new check is added, but the check itself must not
+	// retain the retired value.
+	guidedCleanup := strings.Index(up, "where source_type = 'guided'")
+	newCheck := strings.Index(up, "add constraint resumes_source_type_check")
+	if guidedCleanup < 0 || newCheck < 0 || guidedCleanup > newCheck {
+		t.Fatalf("resume flatten up migration must clean guided rows before adding source_type check")
+	}
+	if strings.Contains(up[newCheck:], "'guided'") {
+		t.Fatalf("resume flatten source_type check must not keep retired 'guided' value")
 	}
 
 	for _, required := range []string{
@@ -281,6 +288,31 @@ func TestResumeFlattenMigrationContract(t *testing.T) {
 	} {
 		if !strings.Contains(down, required) {
 			t.Fatalf("resume flatten down migration missing %q", required)
+		}
+	}
+}
+
+func TestDropJDMatchMigrationDeletesRetiredAsyncJobsBeforeNarrowingCheck(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000014_drop_jd_match_module.up.sql")))
+
+	deleteJobs := strings.Index(up, "delete from async_jobs")
+	addCheck := strings.Index(up, "add constraint async_jobs_job_type_check")
+	if deleteJobs < 0 {
+		t.Fatalf("jd-match drop migration must delete retired async_jobs rows before narrowing job_type")
+	}
+	if addCheck < 0 {
+		t.Fatalf("jd-match drop migration missing async_jobs_job_type_check")
+	}
+	if deleteJobs > addCheck {
+		t.Fatalf("jd-match async_jobs cleanup must run before narrowed job_type check")
+	}
+	for _, retired := range []string{"jd_match_agent_scan", "jd_match_search"} {
+		if !strings.Contains(up[:addCheck], retired) {
+			t.Fatalf("jd-match async_jobs cleanup missing retired job_type %q", retired)
+		}
+		if strings.Contains(up[addCheck:], retired) {
+			t.Fatalf("narrowed async_jobs job_type check must not keep retired value %q", retired)
 		}
 	}
 }

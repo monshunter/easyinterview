@@ -35,8 +35,8 @@ whitelist:
       reasonRef: spec §3.1 D-12 / §4.4 "P0 例外"
 
 contractInventory:
-  endpointCount: 48
-  note: current v1.0.0 pre-launch freeze keeps DELETE /me (operationId=deleteMe), removes independent Mistakes/Growth endpoints, includes accepted Resume Workshop, Debrief, Practice session, Practice voice, structured-master, and Auth profile-completion expansions, and leaves the privacy-export whitelist as the only status-transition exception.
+  endpointCount: 43
+  note: current v1.0.0 pre-launch freeze keeps DELETE /me (operationId=deleteMe), removes independent Mistakes/Growth endpoints and the JD Match module, collapses Resume Workshop to flat Resume operations, includes Debrief, Practice session, Practice voice, and Auth profile-completion expansions, and leaves the privacy-export whitelist as the only status-transition exception.
 
 tooling:
   wrapperVersion: "1.0.0"

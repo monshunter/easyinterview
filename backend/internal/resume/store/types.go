@@ -64,11 +64,12 @@ type ResumeRecord struct {
 }
 
 type UpdateResumeInput struct {
-	UserID            string
-	ResumeID          string
-	DisplayName       *string
-	StructuredProfile json.RawMessage
-	Now               time.Time
+	UserID               string
+	ResumeID             string
+	DisplayName          *string
+	StructuredProfile    json.RawMessage
+	StructuredProfileSet bool
+	Now                  time.Time
 }
 
 type DuplicateResumeInput struct {

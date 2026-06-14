@@ -163,6 +163,7 @@ func TestUpdateResumeOverwritesAndStripsProvenance(t *testing.T) {
 			"headline":   "Staff engineer",
 			"provenance": map[string]any{"promptVersion": "p"},
 		},
+		StructuredProfileSet: true,
 	})
 	if err != nil {
 		t.Fatalf("UpdateResume: %v", err)
@@ -182,6 +183,43 @@ func TestUpdateResumeOverwritesAndStripsProvenance(t *testing.T) {
 	}
 }
 
+func TestUpdateResumeDisplayNameOnlyPreservesStructuredProfile(t *testing.T) {
+	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
+	displayNameOut := "Renamed CV"
+	store := &fakeStore{updateOut: resumestore.ResumeRecord{
+		ID:                "resume-1",
+		UserID:            "user-1",
+		Title:             "Resume",
+		DisplayName:       &displayNameOut,
+		Language:          "en",
+		ParseStatus:       sharedtypes.TargetJobParseStatusReady,
+		StructuredProfile: json.RawMessage(`{"headline":"Existing profile"}`),
+		CreatedAt:         now,
+		UpdatedAt:         now,
+	}}
+	svc := resume.NewService(resume.ServiceOptions{Store: store, Now: func() time.Time { return now }})
+
+	displayName := "Renamed CV"
+	got, err := svc.UpdateResume(context.Background(), resume.UpdateResumeRequest{
+		UserID:         "user-1",
+		ResumeID:       "resume-1",
+		DisplayName:    &displayName,
+		DisplayNameSet: true,
+	})
+	if err != nil {
+		t.Fatalf("UpdateResume: %v", err)
+	}
+	if got.StructuredProfile == nil {
+		t.Fatalf("mapped structured profile is nil")
+	}
+	if len(store.updateIn.StructuredProfile) != 0 {
+		t.Fatalf("displayName-only PATCH must not overwrite structuredProfile, got %s", store.updateIn.StructuredProfile)
+	}
+	if store.updateIn.DisplayName == nil || *store.updateIn.DisplayName != "Renamed CV" {
+		t.Fatalf("update displayName = %#v", store.updateIn.DisplayName)
+	}
+}
+
 func TestUpdateResumeValidationAndStoreErrors(t *testing.T) {
 	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
 	tests := []struct {
@@ -190,9 +228,9 @@ func TestUpdateResumeValidationAndStoreErrors(t *testing.T) {
 		in    resume.UpdateResumeRequest
 		want  error
 	}{
-		{name: "missing resume id", store: &fakeStore{}, in: resume.UpdateResumeRequest{UserID: "user-1", StructuredProfile: map[string]any{"x": 1}}, want: resume.ErrValidationFailed},
+		{name: "missing resume id", store: &fakeStore{}, in: resume.UpdateResumeRequest{UserID: "user-1", StructuredProfile: map[string]any{"x": 1}, StructuredProfileSet: true}, want: resume.ErrValidationFailed},
 		{name: "no editable fields", store: &fakeStore{}, in: resume.UpdateResumeRequest{UserID: "user-1", ResumeID: "resume-1"}, want: resume.ErrValidationFailed},
-		{name: "store not found", store: &fakeStore{updateErr: resumestore.ErrAssetNotFound}, in: resume.UpdateResumeRequest{UserID: "user-1", ResumeID: "resume-1", StructuredProfile: map[string]any{"x": 1}}, want: resume.ErrNotFound},
+		{name: "store not found", store: &fakeStore{updateErr: resumestore.ErrAssetNotFound}, in: resume.UpdateResumeRequest{UserID: "user-1", ResumeID: "resume-1", StructuredProfile: map[string]any{"x": 1}, StructuredProfileSet: true}, want: resume.ErrNotFound},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

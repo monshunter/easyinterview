@@ -37,6 +37,11 @@ WHERE resumes.id = rv.resume_asset_id;
 
 -- D-20 create flow is upload / paste only; drop guided onboarding answers and
 -- narrow the source_type check accordingly.
+UPDATE resumes
+SET source_type = 'paste',
+    original_text = COALESCE(original_text, raw_text, guided_answers::text)
+WHERE source_type = 'guided';
+
 ALTER TABLE resumes DROP COLUMN IF EXISTS guided_answers;
 ALTER TABLE resumes DROP CONSTRAINT IF EXISTS resume_assets_source_type_check;
 ALTER TABLE resumes ADD CONSTRAINT resumes_source_type_check

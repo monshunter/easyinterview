@@ -135,6 +135,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0119](./BUG-0119.md) | resume flatten review left runtime and data retention regressions | high | resolved | 2026-06-14 | `fix(schema): close resume flatten review regressions (BUG-0119)` |
 | [BUG-0084](./BUG-0084.md) | jd-match L2 follow-up missed privacy runner and agent-scan context wiring | high | resolved | 2026-05-22 | `fix(backend-jobs): close jd-match L2 follow-up (BUG-0084)` |
 | [BUG-0083](./BUG-0083.md) | jd-match runtime bypassed A3/F3 and missed search/privacy contracts | high | resolved | 2026-05-22 | `fix(backend-jobs): harden jd-match runtime contracts (BUG-0083)` |
 | [BUG-0077](./BUG-0077.md) | OpenAPI diff baseline lag hid the current additive contract change | medium | resolved | 2026-05-18 | `fix(resume-workshop): close real backend gaps (BUG-0076, BUG-0077)` |

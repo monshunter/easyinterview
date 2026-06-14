@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-06-14](2026-06-14.md) | `fix(schema): close resume flatten review regressions (BUG-0119)` | #fix #api #ui #test #docs |
 | [2026-06-14](2026-06-14.md) | `fix(test): close ux funnel refactor drift (BUG-0118)` | #fix #test #docs #ui #api |
 | [2026-06-13](2026-06-13.md) | `feat(resume): implement d-20 resume flatten across contract backend frontend` | #feat #api #ui #i18n #test |
 | [2026-06-13](2026-06-13.md) | `feat(db-migrations): land 000015 resume flatten migration (d-20)` | #feat #test |

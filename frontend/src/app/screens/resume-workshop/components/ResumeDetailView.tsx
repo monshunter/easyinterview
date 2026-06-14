@@ -352,7 +352,23 @@ const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
     const profile = {
       ...((resume.structuredProfile ?? {}) as Record<string, unknown>),
     };
-    profile.acceptedRewrites = acceptedRewrites;
+    const rewrites = new Map(
+      acceptedRewrites.map((rewrite) => [rewrite.original, rewrite.rewritten]),
+    );
+    const sections = profile.sections;
+    if (Array.isArray(sections)) {
+      profile.sections = sections.map((section) => {
+        if (typeof section !== "object" || section === null) return section;
+        const record = section as Record<string, unknown>;
+        if (!Array.isArray(record.bullets)) return section;
+        return {
+          ...record,
+          bullets: record.bullets.map((bullet) =>
+            typeof bullet === "string" ? rewrites.get(bullet) ?? bullet : bullet,
+          ),
+        };
+      });
+    }
     return profile;
   };
 
