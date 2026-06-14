@@ -25,7 +25,6 @@ export const FRONTEND_CANONICAL_PATHS = Object.freeze([
   "/practice",
   "/generating",
   "/report",
-  "/company-intel",
   "/profile",
   "/settings",
   "/auth/login",
@@ -43,6 +42,7 @@ export const FRONTEND_CANONICAL_PATHS = Object.freeze([
 export const FRONTEND_LEGACY_PATHS = Object.freeze([
   "/auth/reset",
   "/jd-match",
+  "/company-intel",
 ]);
 
 /** Path prefixes that must NEVER be swallowed by the SPA fallback. */

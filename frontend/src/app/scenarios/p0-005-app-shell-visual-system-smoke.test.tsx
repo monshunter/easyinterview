@@ -254,19 +254,8 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
         }}
       />,
     );
-    expect((await screen.findByTestId("route-company_intel")).className).toMatch(
-      /\bei-screen-shell\b/,
-    );
-    expect(
-      screen.getByTestId("route-company_intel").querySelector(
-        ".ei-screen-card",
-      ),
-    ).toBeTruthy();
-    expect(
-      screen.getByTestId("route-company_intel").querySelector(
-        ".ei-skeleton-stripe",
-      ),
-    ).toBeTruthy();
+    expect(screen.queryByTestId("route-company_intel")).not.toBeInTheDocument();
+    expect(await screen.findByTestId("workspace-empty")).toBeInTheDocument();
   });
 
   it("legacy entries (welcome / standalone voice / growth / mistakes / drill) do not flow back", async () => {

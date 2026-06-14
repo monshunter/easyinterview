@@ -33,7 +33,6 @@ export const ROUTE_TO_PATH: Readonly<Record<RouteName, string>> = {
   practice: "/practice",
   generating: "/generating",
   report: "/report",
-  company_intel: "/company-intel",
   profile: "/profile",
   settings: "/settings",
   auth_login: "/auth/login",
@@ -51,6 +50,9 @@ export const LEGACY_PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = new Map([
   // product-scope D-17: the jd_match module is deleted; old deep links land
   // on home where JD intake lives.
   ["/jd-match", "home"],
+  // product-scope D-18: the company intel detail route is deleted; old deep
+  // links land on workspace where the embedded card lives.
+  ["/company-intel", "workspace"],
 ]);
 
 const PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = (() => {
@@ -179,13 +181,6 @@ const PARSE_SAFE = new Set([
 
 const HOME_SAFE = new Set(["pendingImportId", "source", "resumeId"]);
 
-const COMPANY_INTEL_SAFE = new Set([
-  "targetJobId",
-  "jobId",
-  "companyId",
-  "jdId",
-]);
-
 const SETTINGS_SAFE = new Set(["tab"]);
 
 /**
@@ -217,7 +212,6 @@ const ROUTE_SAFE_PARAMS: Readonly<Record<RouteName, ReadonlySet<string>>> = {
   practice: PRACTICE_SAFE,
   generating: GENERATING_SAFE,
   report: REPORT_SAFE,
-  company_intel: COMPANY_INTEL_SAFE,
   profile: new Set<string>(),
   settings: SETTINGS_SAFE,
   auth_login: AUTH_LOGIN_BASE,

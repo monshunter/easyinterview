@@ -5,7 +5,7 @@
 - Confirm sends only editable fields such as title, company, location, and notes; hit toggle state, level, and language are not submitted.
 - Authenticated confirm navigates to workspace with interview context fields.
 - Browser-level confirm reaches `/workspace` with all 7 context query params:
-  `targetJobId`, `jobId`, `jdId`, `planId`, `resumeVersionId`, `roundId`, and
+  `targetJobId`, `jobId`, `jdId`, `planId`, `resumeId`, `roundId`, and
   `roundName`, then renders the `workspace-missing-resume` next-step state for
   the default `resume-unbound` handoff.
 - Unauthenticated confirm requests auth with a `confirm_interview` pending action.

@@ -1,15 +1,15 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.24
+> **版本**: 3.25
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-06-14
 
 ## 1 背景与目标
 
 `engineering-roadmap` 曾承担一次性拆出 38 个 child subspec、按 W0-W5 wave 逐步 spawn 的顶层规划职责。随着 `docs/spec/product-scope/spec.md`、`docs/ui-design/` 与 `ui-design/` 在 2026-05-03 收敛，旧 roadmap 的几个假设已经不适合继续作为执行入口：
 
 - 当前产品真理源明确：未被当前 UI / UI 文档保留、重定义或列为规划例外的旧能力默认已丢弃。
-- 当前 UI 一级入口只保留 `首页 / 岗位推荐 / 模拟面试 / 简历 / 复盘`，报告和语音都是上下文能力，不是一级模块。
+- 当前 UI 一级入口只保留 `首页 / 模拟面试 / 简历 / 复盘`，报告、语音和公司情报都是上下文 / 嵌入能力，不是一级模块。
 - `docs/spec/INDEX.md` 应投影真实存在的 spec，而不是承载大量 `_pending_` backlog 占位。
 - 已落地的 A/B/F 工程契约已经有 active spec 与编码 truth source，后续实现应直接引用这些真理源，而不是按旧 wave 重新生成空壳文档。
 
@@ -25,7 +25,7 @@
 ### 2.1 In Scope
 
 - 当前 active spec 与已编码 truth source 的工程边界。
-- 当前 P0 MVP 闭环的实施 workstream：JD 导入、岗位推荐、模拟面试规划、完整面试 session、报告 Dashboard、简历工坊、真实面试复盘、认证 / 设置 / 用户画像、mock / E2E / release gate。
+- 当前 P0 MVP 闭环的实施 workstream：JD 导入、模拟面试规划、完整面试 session、报告 Dashboard、简历工坊、真实面试复盘、认证 / 设置 / 用户画像、mock / E2E / release gate。
 - 后续 child spec / plan 的创建规则、依赖顺序和质量门禁。
 - 已完成 ADR-Q1..Q6 的持续约束：认证、异步编排、分析平台、云部署、隐私节奏、AI 网关与模型路由。
 - `docs/spec/INDEX.md` 与 `plans/INDEX.md` 作为 Header 投影视图的治理规则。
@@ -49,7 +49,7 @@
 | D-3 | 技术契约真理源 | [product-scope §1.5](../product-scope/spec.md#15-技术契约-owner-matrix) 定义的 Layer A/B/F owner spec + 已编码 truth source（`openapi/`、`shared/`、`migrations/`、`config/`） | 后续实现必须复用现有契约；技术契约 owner matrix 由 product-scope 持有 |
 | D-4 | INDEX 语义 | `docs/spec/INDEX.md` 只记录真实存在的 spec | 删除 pending 占位；未 spawn 的 subject 只能在 roadmap 正文中作为候选 workstream 描述 |
 | D-5 | child 创建策略 | 只在进入设计或实现时创建 child spec / plan / checklist / context | 避免空 spec、僵尸 plan 和未审清的 P1/P2 占位 |
-| D-6 | 当前 P0 前端边界 | Home / Job Picks / Mock Interview / Practice Session / Report Dashboard / Resume / Debrief / User Menu | 不恢复 Welcome、Growth、Plan、Mistakes、Drill、Followup、Experiences、STAR 或独立 Voice 页面 |
+| D-6 | 当前 P0 前端边界 | Home / Mock Interview / Practice Session / Report Dashboard / Resume / Debrief / User Menu | 不恢复 Welcome、Growth、Plan、Mistakes、Drill、Followup、Experiences、STAR、Job Picks、独立 Company Intel 或独立 Voice 页面 |
 | D-7 | ADR-Q1..Q6 | 保留为 engineering-roadmap 的历史架构约束 | 后续推翻必须新增 superseding ADR，并同步本 spec |
 
 ### 3.2 ADR-Q1..Q6 当前约束
@@ -75,13 +75,13 @@
 
 ### 4.1 产品与 UI 约束
 
-- P0 闭环必须围绕 `JD / 推荐岗位 -> 当前面试规划 -> 完整模拟面试 -> Report Dashboard -> 复练当前轮 / 进入下一轮 -> 真实面试复盘`。
-- 顶部导航只能出现当前 UI 真理源确认的五个一级入口。
+- P0 闭环必须围绕 `JD 导入 -> 当前面试规划 -> 完整模拟面试 -> Report Dashboard -> 复练当前轮 / 进入下一轮 -> 真实面试复盘`。
+- 顶部导航只能出现当前 UI 真理源确认的四个一级入口。
 - `workspace` 的产品语义是当前模拟面试规划，不是旧 `当前岗位` 一级模块。
 - `practice` 是文本和语音面试共享的会话页面；语音面试只能通过 `practice?mode=voice&modality=voice` 或等价显式参数进入。
 - `report` 必须带 `sessionId` 或等价会话上下文；报告不作为一级导航或无上下文历史中心。
 - `debrief` 处理真实面试复盘，文本添加和语音添加共享同一份复盘记录。
-- 旧 route key / 旧画板标签 `welcome`、`growth`、`plan`、`mistakes`、`drill`、`followup`、`experiences`、`star`、`resume`、`onboarding`、`voice` 不得作为独立目标模块恢复；当前简历一级模块入口以 UI 文档定义的 `resume_versions` / Resume Workshop 为准。
+- 旧 route key / 旧画板标签 `welcome`、`growth`、`plan`、`mistakes`、`drill`、`followup`、`experiences`、`star`、`resume`、`onboarding`、`jd_match`、`company_intel`、`voice` 不得作为独立目标模块恢复；当前简历一级模块入口以 UI 文档定义的 `resume_versions` / Resume Workshop 为准。
 
 ### 4.2 文档治理约束
 
@@ -95,7 +95,7 @@
 
 ### 4.3 契约与 mock-first 约束
 
-- 前端 mock 数据来源必须是 B2 OpenAPI fixtures（当前 12 tag / 48 operation；JobMatch tag 已随 product-scope v2.1 D-17 删除（2026-06-13），Resumes tag 10 additive operation 由 B2 spec D-18 与 D-23 纳入，Debrief suggestions / PracticeSessions listing / Practice voice turn 分别由 D-20 / D-21 / D-22 纳入，Auth `completeMyProfile` 由 D-25 纳入），禁止前端重新 hardcode product data truth source。
+- 前端 mock 数据来源必须是 B2 OpenAPI fixtures（当前 12 tag / 43 operation；JobMatch tag 已随 product-scope v2.1 D-17 删除，Resume Workshop 版本树 / suggestion operations 已随 D-20 简历扁平化收敛为扁平 Resume contract），禁止前端重新 hardcode product data truth source。
 - `ui-design/src/data.jsx` 只能作为 prototype-baseline 场景输入，不能越过 OpenAPI fixtures 直接驱动实现。
 - 后端 AI 调用必须通过 A3 `AIClient` 和 F3 prompt/rubric/model profile 契约。
 - 业务 spec 不得 hardcode prompt 正文、rubric 文本、模型名、厂商 SDK 或 feature flag 绕过 A3/A4/F3。
@@ -117,7 +117,7 @@
 | Foundation | A5 | `ci-pipeline-baseline` | 当前本地质量门禁，远端 CI deferred | 保留 |
 | Foundation | - | `backend-runtime-topology` | P0 frontend/backend 进程拓扑、worker 收敛与开发期观测依赖边界 | 保留 |
 | Contract | B1 | `shared-conventions-codified` | Go/TS 共享枚举、错误码、ID、codegen / drift gate | 保留 |
-| Contract | B2 | `openapi-v1-contract` | 当前 48 endpoint / 12 tag OpenAPI + fixtures | 保留 |
+| Contract | B2 | `openapi-v1-contract` | 当前 43 endpoint / 12 tag OpenAPI + fixtures | 保留 |
 | Contract | B3 | `event-and-outbox-contract` | 当前 16 internal event、jobType、outbox 契约 | 保留 |
 | Contract | B4 | `db-migrations-baseline` | 当前 28 应用表 + auth / migration 支撑表 | 保留 |
 | Quality | F1 | `observability-stack` | metrics/log/trace/dashboard/alerting 命名和红线 | 保留 |
@@ -159,9 +159,9 @@
 
 ### 6.2 S1 · Contract-backed mock runway
 
-目标是让当前 UI 五入口和会话级页面能基于 B2 fixtures 跑通 P0 happy path：
+目标是让当前 UI 四入口和会话级页面能基于 B2 fixtures 跑通 P0 happy path：
 
-1. 创建或修订 `mock-contract-suite`，把 48 operation fixtures 提供给前端和后端 mock。
+1. 创建或修订 `mock-contract-suite`，把 43 operation fixtures 提供给前端和后端 mock。
 2. 创建或修订 `frontend-shell`，锁 TopBar、用户菜单、display controls、auth pendingAction、settings/profile 入口。
 3. 创建或修订 D2-D6 前端 workstream，严格按 `docs/ui-design/` 和 `ui-design/src/app.jsx` 目标路由实现。
 4. 在每个用户可见 workstream 的 plan 中维护 BDD gate。

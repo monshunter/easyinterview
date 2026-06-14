@@ -12,7 +12,7 @@
 | planId | `plan-tj-1` |
 | targetJobId | `tj-1` |
 | jdId | `jd-tj-1` |
-| resumeVersionId | `frontend-v3` |
+| resumeId | `frontend-v3` |
 | roundId | `round-manager` |
 
 - API fixture：

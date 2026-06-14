@@ -84,7 +84,7 @@ allowed = [
     "startPracticeSession",
     "createPracticePlan",
     "practice_plans",
-    "resumeAssetId",
+    "resumeId",
     "resume_assets",
     "/api/v1/practice/sessions/{sessionId}/voice-turns",
 ]

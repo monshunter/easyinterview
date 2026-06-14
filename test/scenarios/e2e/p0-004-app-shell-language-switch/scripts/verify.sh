@@ -13,9 +13,10 @@ grep -Eq 'Test Files +1 passed \(1\)' "$LOG_FILE"
 
 for required in \
   'Home' \
-  'Job Picks' \
+  'Mock Interview' \
+  'Resume' \
+  'Debrief' \
   'Sign in' \
-  'Register' \
   'language dropdown' \
   'Accept-Language: en'; do
   if ! grep -Fq "$required" "$LOG_FILE"; then
@@ -30,6 +31,8 @@ for forbidden in \
   'topbar-nav-growth' \
   'topbar-nav-drill' \
   'topbar-nav-voice' \
+  'topbar-nav-jd_match' \
+  'topbar-register' \
   'ui-design/src/data'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
     echo "forbidden legacy/prototype evidence leaked: $forbidden" >&2

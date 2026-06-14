@@ -90,17 +90,6 @@
   gap: var(--ei-space-3);
 }
 
-.ei-resume-branch-flow,
-.ei-resume-branch-from-card,
-.ei-resume-branch-fields,
-.ei-resume-branch-seed-grid {
-  min-width: 0;
-}
-
-.ei-resume-branch-seed-grid > button {
-  min-width: 0;
-}
-
 .ei-skeleton-stripe {
   height: 120px;
   border-radius: var(--ei-radius-sm);
@@ -198,253 +187,6 @@
   font-weight: 500;
 }
 
-.ei-resume-workshop-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  list-style: none;
-  margin: 0 0 22px;
-  padding: 0;
-}
-
-.ei-resume-workshop-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 0;
-  padding: 14px 16px;
-  background: var(--ei-color-bg-card);
-  border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 2px;
-}
-
-.ei-resume-workshop-stat .ei-text-title {
-  color: var(--ei-color-fg-primary);
-  font-size: 20px;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-}
-
-.ei-resume-workshop-stat .ei-text-label {
-  color: var(--ei-color-fg-tertiary);
-}
-
-.ei-resume-workshop-stat-sub {
-  overflow: hidden;
-  color: var(--ei-color-fg-tertiary);
-  font-family: var(--ei-font-mono);
-  font-size: 11px;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ei-resume-workshop-view-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-}
-
-.ei-resume-workshop-view-switcher {
-  display: flex;
-  align-items: center;
-  width: fit-content;
-  margin-bottom: 0;
-  overflow: hidden;
-  background: var(--ei-color-bg-card);
-  border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 2px;
-}
-
-.ei-resume-workshop-view-switcher button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  color: var(--ei-color-fg-tertiary);
-  background: transparent;
-  border: 0;
-  border-right: 1px solid var(--ei-color-rule-strong);
-  font-family: var(--ei-font-sans);
-  font-size: 13px;
-}
-
-.ei-resume-workshop-view-switcher button:last-child {
-  border-right: 0;
-}
-
-.ei-resume-workshop-view-switcher button[data-active="true"] {
-  color: var(--ei-color-fg-primary);
-  background: var(--ei-color-bg-soft);
-}
-
-.ei-resume-workshop-view-context {
-  color: var(--ei-color-fg-tertiary);
-  font-family: var(--ei-font-mono);
-  font-size: 12px;
-}
-
-.ei-resume-workshop-selected-tree {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-  padding: 10px 14px;
-  color: var(--ei-color-fg-secondary);
-  background: var(--ei-color-accent-soft);
-  border: 1px solid var(--ei-color-accent);
-  border-radius: 2px;
-  font-size: 13px;
-}
-
-.ei-resume-workshop-selected-tree-copy,
-.ei-resume-workshop-selected-tree-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ei-resume-workshop-selected-tree-copy .ei-resume-workshop-icon {
-  color: var(--ei-color-accent);
-}
-
-.ei-resume-workshop-selected-tree-name {
-  overflow: hidden;
-  max-width: 520px;
-  color: var(--ei-color-fg-tertiary);
-  font-family: var(--ei-font-mono);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ei-resume-workshop-selected-tree-actions button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  color: var(--ei-color-fg-tertiary);
-  background: transparent;
-  border: 0;
-  border-radius: 2px;
-  font-family: var(--ei-font-sans);
-  font-size: 12px;
-}
-
-.ei-resume-workshop-selected-tree-actions button:last-child {
-  color: #fff;
-  background: var(--ei-color-accent);
-  border: 1px solid var(--ei-color-accent);
-}
-
-.ei-resume-workshop-tree {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.ei-resume-workshop-tree-row {
-  overflow: hidden;
-  background: var(--ei-color-bg-card);
-  border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 3px;
-}
-
-.ei-resume-workshop-tree-row[data-selected="true"] {
-  border-color: var(--ei-color-accent);
-}
-
-.ei-resume-workshop-tree-row[data-source-status="archived"] {
-  opacity: 0.7;
-}
-
-.ei-resume-workshop-tree-row-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--ei-color-rule-strong);
-}
-
-.ei-resume-workshop-tree-row[data-collapsed="true"]
-  .ei-resume-workshop-tree-row-header {
-  border-bottom: 0;
-}
-
-.ei-resume-workshop-tree-toggle {
-  display: grid;
-  grid-template-columns: 20px minmax(0, 1fr);
-  align-items: center;
-  min-width: 0;
-  gap: 12px;
-  padding: 0;
-  color: var(--ei-color-fg-secondary);
-  text-align: left;
-  background: transparent;
-  border: 0;
-}
-
-.ei-resume-workshop-tree-source-copy {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  gap: 4px;
-}
-
-.ei-resume-workshop-tree-title-line {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  gap: 8px;
-}
-
-.ei-resume-workshop-tree-toggle .ei-text-title,
-.ei-resume-workshop-tree-meta {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ei-resume-workshop-tree-toggle .ei-text-title {
-  color: var(--ei-color-fg-primary);
-  font-family: var(--ei-font-sans);
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: 0;
-}
-
-.ei-resume-workshop-tree-toggle .ei-text-label {
-  padding: 1px 6px;
-  color: var(--ei-color-fg-tertiary);
-  background: var(--ei-color-bg-soft);
-  border-radius: 2px;
-  font-size: 9px;
-  letter-spacing: 0.08em;
-}
-
-.ei-resume-workshop-tree-meta {
-  color: var(--ei-color-fg-tertiary);
-  font-family: var(--ei-font-mono);
-  font-size: 12px;
-}
-
-.ei-resume-workshop-tree-meta span {
-  color: var(--ei-color-fg-secondary);
-}
-
-.ei-resume-workshop-tree-row-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.ei-resume-workshop-tree-row-actions button,
-.ei-resume-workshop-version-row button,
-.ei-resume-workshop-flat-row button,
 .ei-resume-detail-back,
 .ei-resume-detail-preview-actions button,
 .ei-resume-detail-modal button {
@@ -457,167 +199,22 @@
   font-size: 12px;
 }
 
-.ei-resume-workshop-tree-row-actions button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-}
-
-.ei-resume-workshop-tree-row-actions button[data-selected="true"] {
-  color: #fff;
-  background: var(--ei-color-accent);
-  border-color: var(--ei-color-accent);
-}
-
-.ei-resume-workshop-tree-versions {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  list-style: none;
-  margin: 0;
-  padding: 6px 0;
-}
-
-.ei-resume-workshop-version-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  padding: 11px 18px 11px 18px;
-  border-bottom: 1px dotted var(--ei-color-rule-strong);
-}
-
-.ei-resume-workshop-version-row[data-indent="1"] {
-  grid-template-columns: 32px minmax(0, 1fr) auto;
-}
-
-.ei-resume-workshop-version-row:last-child {
-  border-bottom: 0;
-}
-
-.ei-resume-workshop-version-indent {
-  display: flex;
-  justify-content: center;
-  color: var(--ei-color-fg-muted);
-  font-family: var(--ei-font-mono);
-  font-size: 14px;
-}
-
-.ei-resume-workshop-version-main {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  gap: 10px;
-}
-
-.ei-resume-workshop-version-main .ei-resume-workshop-icon {
-  flex: 0 0 auto;
-  color: var(--ei-color-fg-tertiary);
-}
-
-.ei-resume-workshop-version-row[data-tag="TARGETED"]
-  .ei-resume-workshop-version-main
-  .ei-resume-workshop-icon {
-  color: var(--ei-color-accent);
-}
-
-.ei-resume-workshop-version-name {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--ei-color-fg-primary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 14px;
-  font-weight: 400;
-}
-
-.ei-resume-workshop-version-row[data-tag="TARGETED"]
-  .ei-resume-workshop-version-name {
-  font-weight: 500;
-}
-
-.ei-resume-workshop-version-tag {
-  padding: 1px 6px;
-  color: var(--ei-color-fg-tertiary);
-  background: var(--ei-color-bg-soft);
-  border-radius: 2px;
-  font-family: var(--ei-font-mono);
-  font-size: 9px;
-  letter-spacing: 0.08em;
-}
-
-.ei-resume-workshop-version-row[data-tag="TARGETED"]
-  .ei-resume-workshop-version-tag {
-  color: var(--ei-color-accent);
-  background: var(--ei-color-accent-soft);
-}
-
-.ei-resume-workshop-version-meta {
-  color: var(--ei-color-fg-tertiary);
-  font-family: var(--ei-font-mono);
-  font-size: 11.5px;
-  white-space: nowrap;
-}
-
-.ei-resume-workshop-version-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ei-resume-workshop-version-match {
-  padding: 2px 8px;
-  color: var(--ei-color-accent);
-  background: var(--ei-color-accent-soft);
-  border-radius: 2px;
-  font-family: var(--ei-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-}
-
-.ei-resume-workshop-version-row[data-tag="TARGETED"]
-  .ei-resume-workshop-version-match {
-  color: var(--ei-color-ok);
-  background: var(--ei-color-ok-soft);
-}
-
-.ei-resume-workshop-version-row button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ei-resume-workshop-upload-another {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 18px;
-  color: var(--ei-color-fg-tertiary);
-  background: transparent;
-  border: 1px dashed var(--ei-color-rule-strong);
-  border-radius: 3px;
-  font-family: var(--ei-font-sans);
-  font-size: 13.5px;
-}
-
-.ei-resume-workshop-flat {
+.ei-resume-workshop-table {
   overflow: hidden;
   background: var(--ei-color-bg-card);
   border: 1px solid var(--ei-color-rule-strong);
   border-radius: 3px;
 }
 
-.ei-resume-workshop-flat-header,
-.ei-resume-workshop-flat-row {
+.ei-resume-workshop-table-head,
+.ei-resume-workshop-table-row {
   display: grid;
-  grid-template-columns: 1.6fr 1.4fr 1fr 0.8fr 1fr 100px;
+  grid-template-columns: 1.8fr 1.4fr 0.6fr 1fr 100px;
   gap: 14px;
   align-items: center;
 }
 
-.ei-resume-workshop-flat-header {
+.ei-resume-workshop-table-head {
   padding: 11px 18px;
   color: var(--ei-color-fg-tertiary);
   background: var(--ei-color-bg-soft);
@@ -628,22 +225,92 @@
   text-transform: uppercase;
 }
 
-.ei-resume-workshop-flat-row {
+.ei-resume-workshop-table-row {
   padding: 13px 18px;
   color: var(--ei-color-fg-secondary);
   border-bottom: 1px dotted var(--ei-color-rule-strong);
   font-size: 12.5px;
 }
 
-.ei-resume-workshop-flat-row:last-child {
+.ei-resume-workshop-table-row:last-child {
   border-bottom: 0;
 }
 
-.ei-resume-workshop-flat-row > span {
+.ei-resume-workshop-table-row > div,
+.ei-resume-workshop-table-head > span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ei-resume-workshop-table-name {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+}
+
+.ei-resume-workshop-table-name .ei-resume-workshop-icon {
+  flex: 0 0 auto;
+  color: var(--ei-color-fg-tertiary);
+}
+
+.ei-resume-workshop-table-name-main {
+  overflow: hidden;
+  color: var(--ei-color-fg-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.ei-resume-workshop-table-name-sub {
+  overflow: hidden;
+  color: var(--ei-color-fg-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--ei-font-mono);
+  font-size: 10.5px;
+}
+
+.ei-resume-workshop-lang-tag {
+  padding: 1px 6px;
+  color: var(--ei-color-fg-tertiary);
+  background: var(--ei-color-bg-soft);
+  border-radius: 2px;
+  font-family: var(--ei-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.ei-resume-workshop-table-source,
+.ei-resume-workshop-table-date {
+  font-family: var(--ei-font-mono);
+}
+
+.ei-resume-workshop-table-open {
+  padding: 5px 12px;
+  color: var(--ei-color-fg-secondary);
+  background: transparent;
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 2px;
+  font-family: var(--ei-font-sans);
+  font-size: 12px;
+}
+
+.ei-resume-workshop-upload-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 18px;
+  color: var(--ei-color-fg-tertiary);
+  background: transparent;
+  border: 1px dashed var(--ei-color-rule-strong);
+  border-radius: 3px;
+  font-family: var(--ei-font-sans);
+  font-size: 13.5px;
 }
 
 .ei-resume-detail {
@@ -712,37 +379,6 @@
   font-family: var(--ei-font-sans);
   font-size: 13px;
   text-align: left;
-}
-
-.ei-resume-detail-branch-graph {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-bottom: 24px;
-}
-
-.ei-resume-detail-branch-node {
-  min-width: 0;
-  padding: 12px 14px;
-  background: var(--ei-color-bg-card);
-  border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 2px;
-}
-
-.ei-resume-detail-branch-node .ei-text-body {
-  display: block;
-  margin-top: 5px;
-  overflow: hidden;
-  color: var(--ei-color-fg-secondary);
-  font-family: var(--ei-font-mono);
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ei-resume-detail-branch-node--current {
-  border-color: var(--ei-color-accent);
-  background: var(--ei-color-accent-soft);
 }
 
 .ei-resume-detail-tabs {
@@ -915,51 +551,12 @@
     padding: 32px 24px 80px;
   }
 
-  .ei-resume-workshop-stats,
-  .ei-resume-detail-branch-graph {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .ei-resume-detail-preview {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .ei-resume-workshop-flat {
-    overflow-x: auto;
-  }
-
-  .ei-resume-workshop-flat-header,
-  .ei-resume-workshop-flat-row {
-    min-width: 860px;
   }
 }
 
 @media (max-width: 700px) {
-  .ei-resume-branch-flow {
-    padding: 28px 18px 72px !important;
-  }
-
-  .ei-resume-branch-from-card,
-  .ei-resume-branch-fields,
-  .ei-resume-branch-seed-grid {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
-
-  .ei-resume-branch-from-original {
-    border-right: none !important;
-    border-bottom: 1px dotted var(--ei-color-rule) !important;
-  }
-
-  .ei-resume-branch-actions {
-    align-items: stretch !important;
-    flex-direction: column;
-  }
-
-  .ei-resume-branch-actions > div:last-child {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
   .ei-screen-shell[data-testid="resume-workshop-screen"] {
     padding: 28px 18px 72px;
   }
@@ -969,17 +566,11 @@
     font-size: 30px;
   }
 
-  .ei-resume-workshop-stats,
-  .ei-resume-detail-branch-graph {
+  .ei-resume-workshop-table-head,
+  .ei-resume-workshop-table-row {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .ei-resume-workshop-tree-row-header,
-  .ei-resume-workshop-version-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .ei-resume-workshop-tree-row-actions,
   .ei-resume-detail-tabs {
     overflow-x: auto;
   }
@@ -1177,8 +768,7 @@
   color: var(--ei-color-fg-secondary);
 }
 
-.ei-resume-create-paste-textarea,
-.ei-resume-create-guided-textarea {
+.ei-resume-create-paste-textarea {
   width: 100%;
   min-height: 220px;
   border: 1px solid var(--ei-color-rule-strong);
@@ -1193,8 +783,7 @@
   resize: vertical;
 }
 
-.ei-resume-create-paste-footer,
-.ei-resume-create-guided-footer {
+.ei-resume-create-paste-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1203,8 +792,7 @@
   flex-wrap: wrap;
 }
 
-.ei-resume-create-paste-helper,
-.ei-resume-create-guided-helper {
+.ei-resume-create-paste-helper {
   margin: 0;
   font-size: 12.5px;
   color: var(--ei-color-fg-tertiary);
@@ -1242,82 +830,6 @@
 .ei-resume-create-cta-ghost:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.ei-resume-create-guided {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: 22px;
-}
-
-.ei-resume-create-guided-steps {
-  border-right: 1px solid var(--ei-color-rule-strong);
-  padding-right: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.ei-resume-create-guided-step {
-  width: 100%;
-  padding: 11px 0;
-  background: transparent;
-  border: none;
-  text-align: left;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  color: var(--ei-color-fg-tertiary);
-  cursor: pointer;
-}
-
-.ei-resume-create-guided-step[data-active="true"] {
-  color: var(--ei-color-fg-primary);
-}
-
-.ei-resume-create-guided-step-index {
-  width: 22px;
-  height: 22px;
-  border-radius: 11px;
-  background: var(--ei-color-bg-secondary);
-  color: var(--ei-color-fg-tertiary);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-family: var(--ei-font-mono);
-}
-
-.ei-resume-create-guided-step[data-active="true"]
-  .ei-resume-create-guided-step-index {
-  background: var(--ei-color-accent);
-  color: #ffffff;
-}
-
-.ei-resume-create-guided-eyebrow {
-  color: var(--ei-color-accent);
-  margin-bottom: 10px;
-  display: inline-block;
-}
-
-.ei-resume-create-guided-question {
-  font-family: var(--ei-font-serif);
-  font-size: 24px;
-  color: var(--ei-color-fg-primary);
-  line-height: 1.35;
-  margin: 0 0 16px;
-}
-
-.ei-resume-create-guided-controls {
-  display: flex;
-  gap: 8px;
-}
-
-.ei-resume-create-guided-controls .ei-resume-create-cta-ghost,
-.ei-resume-create-guided-controls .ei-resume-create-cta-accent {
-  height: 30px;
-  padding: 0 12px;
-  font-size: 13px;
 }
 
 .ei-resume-create-sidebar {
@@ -1680,19 +1192,6 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .ei-resume-create-guided {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .ei-resume-create-guided-steps {
-    border-right: none;
-    border-bottom: 1px solid var(--ei-color-rule-strong);
-    flex-direction: row;
-    overflow-x: auto;
-    padding-right: 0;
-    padding-bottom: 12px;
-    gap: 12px;
-  }
 }
 
 /* Settings two-tab rail (product-scope D-21).

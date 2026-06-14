@@ -12,7 +12,7 @@ if grep -Eiq 'No test files found|No tests found|No test suite found|No test cas
 if grep -Eq '^[[:space:]]*Test Files[[:space:]].*failed|^[[:space:]]*Tests[[:space:]].*failed' "$LOG_FILE"; then echo "$SCENARIO_ID: failing vitest summary found" >&2; exit 1; fi
 grep -Eq '^[[:space:]]*Test Files[[:space:]]+[1-9][0-9]*[[:space:]]+passed' "$LOG_FILE" || { echo "$SCENARIO_ID: no passing test files" >&2; exit 1; }
 grep -Eq '^[[:space:]]*Tests[[:space:]]+[1-9][0-9]*[[:space:]]+passed' "$LOG_FILE" || { echo "$SCENARIO_ID: no passing tests" >&2; exit 1; }
-for spec in ResumeDetailExport.test.tsx ResumeDetailFixtureParity.test.tsx ResumeBranchFlow.test.tsx ResumeRewritesTab.test.tsx ResumeEditTab.test.tsx; do
+for spec in ResumeDetailExport.test.tsx ResumeDetailFixtureParity.test.tsx ResumeDetailView.test.tsx ResumeRewritesTab.test.tsx ResumeEditTab.test.tsx; do
   grep -qF "$spec" "$LOG_FILE" || { echo "$SCENARIO_ID: spec $spec not exercised" >&2; exit 1; }
 done
 grep -qF '## frontend-build' "$LOG_FILE" || { echo "$SCENARIO_ID: frontend build marker missing" >&2; exit 1; }
@@ -23,12 +23,12 @@ grep -Eq 'Running[[:space:]]+[1-9][0-9]*[[:space:]]+tests?[[:space:]]+using' "$L
 grep -Eq '^[[:space:]]*[1-9][0-9]*[[:space:]]+passed[[:space:]]+\([0-9.]+s\)' "$LOG_FILE" || { echo "$SCENARIO_ID: playwright passing summary missing" >&2; exit 1; }
 if grep -Eiq 'failed|timed out|Timeout|Error:|ERR_PNPM' "$LOG_FILE"; then echo "$SCENARIO_ID: failing build/playwright marker found" >&2; exit 1; fi
 cd "$REPO_ROOT"
-if git grep -nE "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true" -- frontend/src/app/screens/resume-workshop/branch/ frontend/src/app/screens/resume-workshop/tabs/ > "$OUTPUT_DIR/retired-modules-grep.log"; then
+if rg -n "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true|ResumeBranchFlow|branchResumeVersion|seedStrategy|updateResumeVersion|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion" frontend/src/app/screens/resume-workshop --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/retired-modules-grep.log"; then
   echo "$SCENARIO_ID: retired modules grep matched" >&2; exit 1
 fi
-if git grep -nE "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" -- frontend/src/app/screens/resume-workshop/branch/ frontend/src/app/screens/resume-workshop/tabs/ > "$OUTPUT_DIR/retired-tailor-mode-grep.log"; then
+if rg -n "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" frontend/src/app/screens/resume-workshop/tabs --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/retired-tailor-mode-grep.log"; then
   echo "$SCENARIO_ID: retired tailor mode grep matched" >&2; exit 1
 fi
-if git grep -nE "ui-design/src/(data|screen-resume-workshop)" -- frontend/src/app/screens/resume-workshop/branch/ frontend/src/app/screens/resume-workshop/tabs/ > "$OUTPUT_DIR/prototype-import-grep.log"; then
+if rg -n "ui-design/src/(data|screen-resume-workshop)" frontend/src/app/screens/resume-workshop/tabs --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/prototype-import-grep.log"; then
   echo "$SCENARIO_ID: prototype runtime import detected" >&2; exit 1
 fi

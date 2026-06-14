@@ -67,5 +67,5 @@ Verifies the parse preview editing and confirm flow:
 - The browser gate opens `/parse?targetJobId=...`, mocks generated API
   responses, clicks Confirm, asserts `updateTargetJob` body/Idempotency-Key,
   verifies `/workspace` carries `targetJobId / jobId / jdId / planId /
-  resumeVersionId / roundId / roundName`, and captures a non-empty screenshot
+  resumeId / roundId / roundName`, and captures a non-empty screenshot
   of `workspace-missing-resume`.

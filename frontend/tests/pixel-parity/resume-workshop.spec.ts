@@ -8,7 +8,7 @@ import { resolve } from "node:path";
  *
  * Truth source: ui-design/src/screen-resume-workshop.jsx and
  * docs/spec/frontend-resume-workshop/plans/001-listing-routing-and-detail-
- * readonly/plan.md §4 Phase 5.
+ * readonly/plan.md, D-20 flat resume asset model.
  *
  * Covers desktop (1440x900) and mobile (390x844) projects. Clean checkout
  * gate does not depend on local screenshot snapshots; the spec asserts DOM
@@ -89,20 +89,6 @@ async function mockResumeWorkshopApis(
     }
     if (/^\/resumes\/[^/]+$/.test(path)) {
       await fulfillFixture(route, "openapi/fixtures/Resumes/getResume.json");
-      return;
-    }
-    if (/^\/resumes\/[^/]+\/versions$/.test(path)) {
-      await fulfillFixture(
-        route,
-        "openapi/fixtures/Resumes/listResumeVersions.json",
-      );
-      return;
-    }
-    if (/^\/resume-versions\/[^/]+$/.test(path)) {
-      await fulfillFixture(
-        route,
-        "openapi/fixtures/Resumes/getResumeVersion.json",
-      );
       return;
     }
     await route.fulfill({
@@ -188,16 +174,14 @@ async function goToList(page: import("@playwright/test").Page): Promise<void> {
     params: {},
   });
   await page.goto("/");
-  await page.waitForSelector(
-    "[data-testid='resume-workshop-stats-originals']",
-  );
+  await page.waitForSelector("[data-testid='resume-workshop-table']");
 }
 
 async function goToDetail(
   page: import("@playwright/test").Page,
 ): Promise<void> {
   await mockResumeWorkshopApis(page);
-  const versionId = "0195f2d0-0001-7000-8000-000000000202";
+  const resumeId = "01918fa0-0000-7000-8000-000000001000";
   await page.addInitScript(
     (route) => {
       (
@@ -211,39 +195,40 @@ async function goToDetail(
     },
     {
       name: "resume_versions",
-      params: { versionId, tab: "preview" },
+      params: { resumeId, tab: "preview" },
     },
   );
   await page.goto("/");
-  await page.waitForSelector("[data-testid='resume-detail-breadcrumb']");
+  await page.waitForSelector("[data-testid='resume-detail-crumb']");
 }
 
 test.describe("Resume Workshop list DOM anchors", () => {
-  test("stats + view switcher + tree rows render and stay inside the viewport", async ({ page }, testInfo) => {
+  test("flat list table renders and stays inside the viewport", async ({ page }, testInfo) => {
     await goToList(page);
     await freezeAnimations(page);
 
     for (const anchor of [
-      "resume-workshop-stats-originals",
-      "resume-workshop-stats-versions",
-      "resume-workshop-stats-top-match",
-      "resume-workshop-stats-recent",
-      "resume-workshop-view-switcher-tree",
-      "resume-workshop-view-switcher-flat",
+      "resume-workshop-list",
+      "resume-workshop-table",
+      "resume-workshop-create",
+      "resume-workshop-upload-cta",
     ]) {
       await expect(page.locator(`[data-testid='${anchor}']`)).toBeVisible();
     }
+    await expect(
+      page.locator("[data-testid^='resume-list-row-'][role='row']"),
+    ).toHaveCount(2);
 
     const viewport = page.viewportSize();
     expect(viewport).not.toBeNull();
-    const stats = await rectOf(
+    const table = await rectOf(
       page,
-      "[data-testid='resume-workshop-stats-originals']",
+      "[data-testid='resume-workshop-table']",
     );
-    expect(stats.width).toBeGreaterThan(0);
-    expect(stats.height).toBeGreaterThan(0);
-    expect(stats.left).toBeGreaterThanOrEqual(0);
-    expect(stats.right).toBeLessThanOrEqual(viewport!.width);
+    expect(table.width).toBeGreaterThan(0);
+    expect(table.height).toBeGreaterThan(0);
+    expect(table.left).toBeGreaterThanOrEqual(0);
+    expect(table.right).toBeLessThanOrEqual(viewport!.width + 1);
 
     const shellStyle = await computedStyleOf(
       page,
@@ -259,27 +244,15 @@ test.describe("Resume Workshop list DOM anchors", () => {
       expect(shellStyle["padding-right"]).toBe("18px");
     }
 
-    const statsStyle = await computedStyleOf(
+    const tableStyle = await computedStyleOf(
       page,
-      "[data-testid='resume-workshop-stats-originals']",
-      ["border-radius", "padding-top", "border-top-width"],
+      "[data-testid='resume-workshop-table']",
+      ["border-radius", "border-top-width", "overflow"],
     );
-    expect(statsStyle["border-radius"]).toBe("2px");
-    expect(statsStyle["padding-top"]).toBe("14px");
-    expect(statsStyle["border-top-width"]).toBe("1px");
+    expect(tableStyle["border-radius"]).toBe("3px");
+    expect(tableStyle["border-top-width"]).toBe("1px");
+    expect(tableStyle.overflow).toBe("hidden");
 
-    const switcherStyle = await computedStyleOf(
-      page,
-      ".ei-resume-workshop-view-switcher",
-      ["display", "border-radius"],
-    );
-    expect(switcherStyle["display"]).toBe("flex");
-    expect(switcherStyle["border-radius"]).toBe("2px");
-
-    const tree = page.locator(
-      "[data-testid^='resume-tree-row-01918fa0-']",
-    );
-    await expect(tree.first()).toBeVisible();
     const screenshot = await page.screenshot();
     expect(screenshot.length).toBeGreaterThan(0);
     await testInfo.attach("resume-workshop-list", {
@@ -288,46 +261,34 @@ test.describe("Resume Workshop list DOM anchors", () => {
     });
   });
 
-  test("tree row toggle button is a real <button> with aria-expanded", async ({ page }) => {
+  test("flat rows expose real Open buttons and no retired tree/view-switcher anchors", async ({ page }) => {
     await goToList(page);
     await freezeAnimations(page);
-    const toggle = page.locator(
-      "[data-testid^='resume-tree-row-01918fa0-'][data-testid$='-toggle']",
-    );
-    const handle = toggle.first();
-    await expect(handle).toBeVisible();
-    expect(await handle.getAttribute("aria-expanded")).toBe("true");
-    expect((await handle.evaluate((node) => node.tagName)).toLowerCase()).toBe(
-      "button",
-    );
-  });
-
-  test("clicking the flat view switcher renders flat rows and the active tab flips", async ({ page }) => {
-    await goToList(page);
-    await freezeAnimations(page);
-    await page.click("[data-testid='resume-workshop-view-switcher-flat']");
-    await expect(
-      page.locator("[data-testid^='resume-flat-row-'][role='row']"),
-    ).toHaveCount(2);
-    expect(
-      await page
-        .locator("[data-testid='resume-workshop-view-switcher-flat']")
-        .getAttribute("aria-selected"),
-    ).toBe("true");
+    const open = page.locator("[data-testid^='resume-list-open-']").first();
+    await expect(open).toBeVisible();
+    expect((await open.evaluate((node) => node.tagName)).toLowerCase()).toBe("button");
+    for (const retired of [
+      "resume-workshop-view-switcher-tree",
+      "resume-workshop-view-switcher-flat",
+      "resume-workshop-stats-originals",
+      "resume-detail-branch-graph",
+    ]) {
+      await expect(page.locator(`[data-testid='${retired}']`)).toHaveCount(0);
+    }
+    await expect(page.locator("[data-testid^='resume-tree-row-']")).toHaveCount(0);
+    await expect(page.locator("[data-testid^='resume-flat-row-']")).toHaveCount(0);
   });
 });
 
 test.describe("Resume Workshop detail DOM anchors", () => {
-  test("breadcrumb + branch graph + three tabs render with role=tab and aria-selected reflecting the active tab", async ({ page }, testInfo) => {
+  test("crumb + three tabs render with role=tab and aria-selected reflecting the active tab", async ({ page }, testInfo) => {
     await goToDetail(page);
     await freezeAnimations(page);
 
     await expect(
-      page.locator("[data-testid='resume-detail-breadcrumb']"),
+      page.locator("[data-testid='resume-detail-crumb']"),
     ).toBeVisible();
-    await expect(
-      page.locator("[data-testid='resume-detail-branch-graph']"),
-    ).toBeVisible();
+    await expect(page.locator("[data-testid='resume-detail-branch-graph']")).toHaveCount(0);
     for (const tab of ["preview", "rewrites", "edit"]) {
       const handle = page.locator(`[data-testid='resume-detail-tab-${tab}']`);
       await expect(handle).toBeVisible();

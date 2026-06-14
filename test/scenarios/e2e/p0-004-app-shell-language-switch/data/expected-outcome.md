@@ -5,9 +5,10 @@
   - `topbar-lang-toggle` is a button that opens `topbar-lang-menu`, aligned with `ui-design/src/app.jsx`.
   - `topbar-lang-option-en` selects English from the menu.
   - `topbar-nav-home` shows `Home`.
-  - `topbar-nav-jd_match` shows `Job Picks`.
+  - `topbar-nav-workspace` shows `Mock Interview`.
+  - `topbar-nav-resume_versions` shows `Resume`.
+  - `topbar-nav-debrief` shows `Debrief`.
   - `topbar-login` shows `Sign in`.
-  - `topbar-register` shows `Register`.
   - Auth/profile/settings/placeholder shell labels are English.
 - Stable route/test IDs remain unchanged; no localized route names are introduced.
 - Generated client requests made after locale toggle include

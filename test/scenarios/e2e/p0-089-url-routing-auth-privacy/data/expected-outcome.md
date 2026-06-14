@@ -3,8 +3,7 @@
 | 维度 | 期望 |
 |------|------|
 | `/auth/login` URL (重定向后) | pathname `/auth/login`；search 含 `pendingRoute=practice` / `pendingType=start_practice` / `planId=plan-1` / `targetJobId=tj-1` / `sessionId=01918fa0-...`；不含任何 raw marker |
-| 登录 → verify 成功后 URL | pathname `/practice`；search 含 6 个 safe handoff key (`planId` / `targetJobId` / `jdId` / `resumeVersionId` / `roundId` / `sessionId`)；不含 raw marker |
-| jd_match restore URL | `/jd-match?selectedJobMatchId=jm-restored&pendingJdMatchActionId=pjm-restored&tab=search`；不含 `query` / `label` 等 raw marker |
+| 登录 → verify 成功后 URL | pathname `/practice`；search 含 6 个 safe handoff key (`planId` / `targetJobId` / `jdId` / `resumeId` / `roundId` / `sessionId`)；不含 raw marker |
 | Hostile `/auth/login` direct-open | search 保留 `pendingRoute=workspace` / `pendingType=start_practice` / `planId` / `targetJobId`；其余 raw marker 被 allowlist 拦截 |
 | Hostile browser history popstate | 地址栏立即改写为 `/workspace?targetJobId=...`，hash 被清空，raw `history.state` 被 replace 为 `null` |
 | `window.history.state` | 常规导航保持 `null`；hostile raw state 在 popstate restore 后被 scrub 为 `null` |
@@ -18,4 +17,4 @@
 | `pendingRoute` / `pendingType` / `pendingLabel` 在 verify 完成后 URL 中不出现 | 还原后 reserved key 已剥离 |
 
 证据：`.test-output/e2e/p0-089-url-routing-auth-privacy/trigger.log` 必须
-出现 `Tests 4 passed (4)` 与 `Test Files 1 passed (1)` marker。
+出现 `Tests 3 passed (3)` 与 `Test Files 1 passed (1)` marker。

@@ -10,8 +10,8 @@
 
 未登录用户在带有 Plan 004 routeStore + pendingAction safe-param 过滤的正式
 前端中触发 auth-gated workflow URL；测试 harness 还在 pendingAction params
-里塞入代表性的 raw 标记（raw JD 文本、source URL、jd_match 查询 / 标签、
-简历正文、guided answers、解析摘要、structured profile、suggestion、
+里塞入代表性的 raw 标记（raw JD 文本、source URL、retired job-search 查询 /
+标签、简历正文、retired guided answers、解析摘要、structured profile、suggestion、
 question/answer 正文、debrief 备注、AI prompt/response token、auth secret
 token / password 等）。
 
@@ -26,8 +26,6 @@ session。
 - 在 `/auth/login` 输入邮箱 → `/auth/verify` 输入验证码 → 完成
   passwordless mock 登录。
 - App 自动恢复目标 route (`/practice?...`)。
-- 直接打开 `/jd-match?...&pendingJdMatchActionId=...` 测试搜索 / 推荐
-  pendingAction 还原。
 - 用 hostile URL 直接打开 `/auth/login?...rawText=...&token=...`，验证
   parseUrlToRoute / decodePendingActionRoute 的 allowlist 拦截。
 - 从浏览器历史栈恢复 hostile `/workspace?...rawText=...#prompt` entry，验证
@@ -37,10 +35,8 @@ session。
 
 - 重定向到 `/auth/login` 后 URL 仅包含 `pendingRoute` / `pendingType` /
   `pendingLabel` + practice safe params（含 `planId` / `targetJobId` /
-  `jdId` / `resumeVersionId` / `roundId` / `sessionId`）。
+  `jdId` / `resumeId` / `roundId` / `sessionId`）。
 - verify 完成后 URL 重写为 `/practice?...`，保留全部 6 个 safe handoff key。
-- jd_match restore URL 保留 `tab=search` / `selectedJobMatchId` /
-  `pendingJdMatchActionId`。
 - 任意 hostile 输入下，URL、`window.history.state`、`localStorage`、
   `sessionStorage`、console capture 都 ZERO 命中 raw 标记。
 - hostile popstate 后地址栏只保留 `/workspace?targetJobId=...`，hash 与

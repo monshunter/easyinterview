@@ -152,6 +152,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0118](./BUG-0118.md) | D-17/D-18/D-20 refactor left stale scenario and contract gates | medium | resolved | 2026-06-14 | `fix(test): close ux funnel refactor drift (BUG-0118)` |
 | [BUG-0111](./BUG-0111.md) | scenario env review follow-ups exposed stale env and evidence gates | medium | resolved | 2026-05-27 | `fix(test): close scenario env review follow-ups (BUG-0111)` |
 | [BUG-0110](./BUG-0110.md) | real-provider UAT bypassed the standard scenario runner | medium | resolved | 2026-05-27 | `fix(test): use dev-stack env for hybrid scenario (BUG-0110)` |
 | [BUG-0109](./BUG-0109.md) | scenario environment lifecycle was coupled to individual scenario runners | medium | resolved | 2026-05-27 | `fix(test): decouple scenario env lifecycle (BUG-0109)` |

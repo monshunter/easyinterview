@@ -2,12 +2,11 @@
 
 ## Users
 
-- User A: authenticated candidate who owns the parent resume version and target job.
+- User A: authenticated candidate who owns the flat resume and target job.
 
-## Resume Assets And Versions
+## Resume Rows
 
-- Ready resume asset owned by user A.
-- Active structured master version owned by user A.
+- Ready flat resume owned by user A.
 
 ## Target Jobs
 
@@ -15,5 +14,7 @@
 
 ## Fixture Inputs
 
-- `openapi/fixtures/Resumes/branchResumeVersion.json`: `ai-select-202-with-job`.
-- Later phases extend this scenario with `requestResumeTailor.json` and `getResumeTailorRun.json`.
+- `openapi/fixtures/ResumeTailor/requestResumeTailor.json`: `default`,
+  `idempotency-replay`.
+- `openapi/fixtures/ResumeTailor/getResumeTailorRun.json`: `default`,
+  `queued`, `generating`, `failed`.

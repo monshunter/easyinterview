@@ -1,4 +1,4 @@
-# E2E.P0.086 Resume Suggestion Accept/Reject/Manual-Edit + Edit Tab updateResumeVersion + Terminal State Machine
+# E2E.P0.086 Rewrites Accept-Only + Edit Tab updateResume
 
 > **场景 ID**: E2E.P0.086
 > **执行方式**: automated (vitest jsdom)
@@ -7,37 +7,38 @@
 
 ## 1 Given
 
-- Fixture-backed mock-first client: `Resumes/getResumeVersion.json targeted-with-suggestions` + `Resumes/acceptResumeTailorSuggestion.json default / idempotency-replay / already-decided-409` + `Resumes/rejectResumeTailorSuggestion.json default / idempotency-replay / already-decided-409` + `Resumes/updateResumeVersion.json default / idempotency-replay / validation-error-422`.
-- 409 envelope: `error.code='VALIDATION_FAILED'` + `error.details.reason='SUGGESTION_ALREADY_DECIDED'`.
-- User A authenticated; lang default. User B authenticated (cross-user).
-- Phase 0 real-backend preflight: 6 ops (accept/reject/update + suggestion deps) generated client/server/handler/route real.
+- Fixture-backed mock-first client: flat `getResume`, `updateResume`,
+  `duplicateResume`, and current `requestResumeTailor/getResumeTailorRun`
+  fixtures.
+- User A authenticated; lang default.
+- D-20: suggestion accept/reject/updateVersion routes are retired; Rewrites
+  suggestions are ephemeral and accept-only until saved.
 
 ## 2 When
 
-- Accept b1 → replay same IK → fresh IK accept again (409 already-decided).
-- Reject b3 → replay same IK → fresh IK reject again (409).
-- Manual edit b2: update structuredProfile.manualEdits[] → bodyless accept; replay; update success + accept fail → manualPendingFor → retry.
-- Edit Tab: change headline + summary → save → replay → 422 inline.
-- Disallowed field push (versionType / parentVersionId / etc.) → mapper throws + lint signal.
-- User B accepts version owned by user A → 404 cross-user.
+- Accept a rewrite locally → Preview & save opens modal → overwrite or save
+  as new through flat handlers.
+- Edit Tab: change headline + summary → save → 422 inline.
+- Disallowed legacy operations are searched out of runtime source.
 
 ## 3 Then
 
-- accept/reject requests are bodyless (argv length = 3, no `manualEditText`).
-- IK behaviour: same `(versionId, suggestionId)` replays the cached key; switching suggestions rotates; 422 clears cache.
-- 409 SUGGESTION_ALREADY_DECIDED maps to `kind=already_decided` with a localized toast; 404 maps to `kind=cross_user` without leaking ownership info; 422 maps to `kind=validation` inline alert.
-- Manual edit: update fires first, accept fires second; saved-manual-pending state shown when accept fails; retry only re-fires accept (no double-write of edit).
-- D-12: accept/reject never call updateResumeVersion; structured_profile DOM not mutated by accept alone.
-- Edit Tab `updateResumeVersion` payload only carries allowed fields (filterUpdateResumeVersionPayload throws on disallowed); 422 surfaces in-form error; 409 surfaces idempotency-conflict copy; success triggers toast + versionQuery.retry refetch.
-- Privacy: originalBullet / suggestedBullet / matchSummary / structuredProfile / manual edit text never leak to URL / pendingAction / localStorage / fetch transport log / toast content.
+- No accept/reject request is sent; accept only updates local Rewrites state.
+- Save paths call current flat handlers (`updateResume` overwrite,
+  `duplicateResume` save-as-new).
+- Edit Tab `updateResume` payload only carries allowed fields; 422 surfaces
+  in-form error; success triggers toast + detail refresh.
+- Privacy: originalBullet / suggestedBullet / matchSummary / structuredProfile
+  / manual edit text never leak to URL / pendingAction / localStorage / fetch
+  transport log / toast content.
 
 ## 4 Verification Entry
 
 `scripts/trigger.sh` runs:
 
-- `src/app/screens/resume-workshop/tabs/hooks/useTailorSuggestionDecision.test.tsx`
-- `src/app/screens/resume-workshop/tabs/hooks/useResumeRewritesActions.test.tsx`
-- `src/app/screens/resume-workshop/tabs/hooks/useUpdateResumeVersion.test.tsx`
+- `src/app/screens/resume-workshop/create/PreviewStage.test.tsx`
+- `src/app/screens/resume-workshop/tabs/ResumeRewritesTab.test.tsx`
+- `src/app/screens/resume-workshop/components/ResumeDetailView.test.tsx`
 - `src/app/screens/resume-workshop/tabs/ResumeEditTab.test.tsx`
 
 ## 5 Output
@@ -47,7 +48,7 @@
 
 ## 6 Baseline
 
-`make codegen-check` clean: accept/reject bodyless POST + updateResumeVersion request type per shared-conventions §5.
+`make codegen-check` clean: retired accept/reject/updateVersion operations stay absent; flat `updateResume` / `duplicateResume` / tailor operations remain valid.
 
 ## 7 离线限制
 

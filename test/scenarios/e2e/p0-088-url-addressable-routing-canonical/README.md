@@ -18,7 +18,7 @@ allowlist 写入 `pushState` / `replaceState`。
 
 ## 2 When
 
-- 直接打开 `/workspace?targetJobId=...&resumeVersionId=...&planId=...&autoStartPractice=1`、
+- 直接打开 `/workspace?targetJobId=...&resumeId=...&planId=...&autoStartPractice=1`、
   `/practice?mode=voice&modality=voice&sessionId=...`、`/generating?sessionId=...&reportId=...`、
   `/report?sessionId=...&reportId=...&reportStatus=failed&errorCode=AI_PROVIDER_TIMEOUT`、
   `/resume-versions?tab=rewrites&tailorRunId=...`、`/debrief?targetJobId=...&debriefId=...&debriefJobId=...`。

@@ -73,7 +73,7 @@ function Wrapper({
 }
 
 describe("useReportContextData", () => {
-  it("loads target + resume labels through generated client (TestReportContextDataLoadsTargetJobAndResumeVersion)", async () => {
+  it("loads target + resume labels through generated client (TestReportContextDataLoadsTargetJobAndResume)", async () => {
     const client = makeClient();
     const { result } = renderHook(
       () =>

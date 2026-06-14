@@ -15,11 +15,10 @@ describe("Resume Workshop source-level CSS parity", () => {
     for (const selector of [
       ".ei-screen-shell[data-testid=\"resume-workshop-screen\"]",
       ".ei-resume-workshop-list",
-      ".ei-resume-workshop-stats",
-      ".ei-resume-workshop-view-switcher",
-      ".ei-resume-workshop-tree-row",
-      ".ei-resume-workshop-version-row",
-      ".ei-resume-workshop-flat",
+      ".ei-resume-workshop-table",
+      ".ei-resume-workshop-table-head",
+      ".ei-resume-workshop-table-row",
+      ".ei-resume-workshop-upload-cta",
       ".ei-resume-detail",
       ".ei-resume-detail-preview",
       ".ei-resume-detail-modal",
@@ -32,10 +31,26 @@ describe("Resume Workshop source-level CSS parity", () => {
     const source = css();
     expect(source).toContain("max-width: 1320px");
     expect(source).toContain("padding: 40px 48px 96px");
-    expect(source).toContain("grid-template-columns: repeat(4, minmax(0, 1fr))");
+    expect(source).toContain("grid-template-columns: 1.8fr 1.4fr 0.6fr 1fr 100px");
     expect(source).toContain("border-radius: 2px");
     expect(source).toContain("grid-template-columns: minmax(0, 1fr) 320px");
     expect(source).toContain("min-height: 720px");
     expect(source).toContain("box-shadow: 0 18px 50px rgba(30, 22, 15, 0.10)");
+  });
+
+  it("does not keep retired tree/version/branch styling after D-20", () => {
+    const source = css();
+    for (const selector of [
+      ".ei-resume-workshop-stats",
+      ".ei-resume-workshop-view-switcher",
+      ".ei-resume-workshop-selected-tree",
+      ".ei-resume-workshop-tree",
+      ".ei-resume-workshop-version-row",
+      ".ei-resume-workshop-flat",
+      ".ei-resume-detail-branch-graph",
+      ".ei-resume-branch-flow",
+    ]) {
+      expect(source, `${selector} should remain retired`).not.toContain(selector);
+    }
   });
 });

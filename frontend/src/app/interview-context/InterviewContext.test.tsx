@@ -312,7 +312,6 @@ describe("INTERVIEW_CONTEXT_ROUTES parity with ui-design/src/app.jsx", () => {
       "generating",
       "report",
       "debrief",
-      "company_intel",
     ]);
     expect(INTERVIEW_CONTEXT_ROUTES).toEqual(expected);
   });
@@ -323,7 +322,7 @@ describe("INTERVIEW_CONTEXT_ROUTES parity with ui-design/src/app.jsx", () => {
     expect(shouldCarryInterviewContext("generating")).toBe(true);
     expect(shouldCarryInterviewContext("report")).toBe(true);
     expect(shouldCarryInterviewContext("debrief")).toBe(true);
-    expect(shouldCarryInterviewContext("company_intel")).toBe(true);
+    expect(shouldCarryInterviewContext("company_intel")).toBe(false);
   });
 
   it("shouldCarryInterviewContext returns false for non-context routes", () => {

@@ -11,15 +11,13 @@ mkdir -p "$OUT"
   echo "RUNNER make validate-fixtures"
   cd "$ROOT"
   make validate-fixtures
-  echo "RUNNER go test cmd/api resume update HTTP scenario"
+  echo "RUNNER go test cmd/api flat resume update HTTP scenario"
   cd "$ROOT/backend"
-  go test ./cmd/api -run 'TestResumeUpdateVersionHTTPScenario|TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware' -count=1 -v
+  go test ./cmd/api -run 'TestResumeRegisterListHTTPScenario|TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware' -count=1 -v
   echo "RUNNER go test resume handler update and fixture parity"
-  go test ./internal/resume/handler -run 'TestUpdateResumeVersion|TestUpdateResumeVersionFixtureParity' -count=1 -v
+  go test ./internal/resume/handler -run 'TestUpdateResume(OverwritesEditableFields|ValidationAndErrors|RequiresIdempotencyKey|FixtureParity)' -count=1 -v
   echo "RUNNER go test resume service update"
-  go test ./internal/resume -run 'TestUpdateResumeVersion' -count=1 -v
+  go test ./internal/resume -run 'TestUpdateResume(OverwritesAndStripsProvenance|ValidationAndStoreErrors)' -count=1 -v
   echo "RUNNER go test resume store unit update"
-  go test ./internal/resume/store -run 'TestUpdateVersionPatch|TestRepositoryExposesResumeAssetMethods' -count=1 -v
-  echo "RUNNER go test resume store live update integration"
-  DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" go test ./internal/resume/store -tags=integration -run 'TestResumeVersionUpdatePatch|TestStructuredMasterUnique|TestResumeVersionListPagination' -count=1 -v
+  go test ./internal/resume/store -run 'Test(UpdateResumeOverwritesProfileAndScopesUser|UpdateResumeNotFound|RepositoryExposesFlatResumeMethods)' -count=1 -v
 } | tee "$OUT/trigger.log"

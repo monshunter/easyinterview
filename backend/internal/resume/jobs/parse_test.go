@@ -18,7 +18,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
-func TestParseHandlerUsesThreeSourceInputsAndWritesReadyOutbox(t *testing.T) {
+func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 	now := time.Date(2026, 5, 13, 7, 0, 0, 0, time.UTC)
 	cases := []struct {
 		name           string

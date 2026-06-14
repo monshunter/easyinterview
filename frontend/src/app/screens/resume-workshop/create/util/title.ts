@@ -1,6 +1,6 @@
 import type { Lang } from "../../../../i18n/messages";
 
-export type CreateMode = "upload" | "paste" | "guided";
+export type CreateMode = "upload" | "paste";
 
 const MAX_TITLE_LENGTH = 80;
 
@@ -8,12 +8,10 @@ const FALLBACK_TITLES: Record<Lang, Record<CreateMode, string>> = {
   zh: {
     upload: "上传的简历",
     paste: "粘贴的简历",
-    guided: "问答简历",
   },
   en: {
     upload: "Uploaded resume",
     paste: "Pasted resume",
-    guided: "Guided resume",
   },
 };
 

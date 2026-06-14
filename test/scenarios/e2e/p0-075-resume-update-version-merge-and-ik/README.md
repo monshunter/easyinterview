@@ -1,8 +1,11 @@
-# E2E.P0.075 resume update version merge and IK
+# E2E.P0.075 flat resume update and IK
 
 ## 1. Purpose
 
-Validate `PATCH /api/v1/resume-versions/{resumeVersionId}` for editable resume version fields: partial `structured_profile` merge, idempotency replay / mismatch, server-owned field rejection, cross-user hiding, soft-delete hiding, fixture parity, and privacy / retired-vocabulary redlines.
+Validate `PATCH /api/v1/resumes/{resumeId}` for editable flat resume fields:
+structured profile overwrite, idempotency replay / mismatch, server-owned field
+rejection, cross-user hiding, fixture parity, and privacy / retired-vocabulary
+redlines.
 
 ## 2. Requirements
 
@@ -11,11 +14,16 @@ Validate `PATCH /api/v1/resume-versions/{resumeVersionId}` for editable resume v
 
 ## 3. Given / When / Then
 
-Given a ready resume asset, one active `structured_master` version owned by user A, one authenticated user B without access, the B2 `updateResumeVersion` fixture, and migration `000007_resume_versions_structured_master_unique` applied.
+Given a ready flat resume owned by user A, one authenticated user B without
+access, and the B2 `updateResume` fixture.
 
 When user A patches editable fields, replays the same idempotency key, reuses the key with a changed fingerprint, sends a server-owned field, clears nullable fields, and user B or a deleted row is patched.
 
-Then the API returns fixture-compatible payloads, merges the partial profile without dropping existing profile sections, returns IK replay / mismatch semantics, rejects server-owned fields with `422 VALIDATION_FAILED`, hides cross-user and soft-deleted records as 404, and keeps raw resume / profile text out of logs and scenario evidence.
+Then the API returns fixture-compatible payloads, overwrites editable flat
+resume fields while stripping client provenance, returns IK replay / mismatch
+semantics, rejects server-owned fields with `422 VALIDATION_FAILED`, hides
+cross-user records as 404, and keeps raw resume / profile text out of logs and
+scenario evidence.
 
 ## 4. Scripts
 
@@ -43,4 +51,6 @@ Scenario evidence is written to `.test-output/e2e/p0-075-resume-update-version-m
 
 ## 7. Offline Limits
 
-The `cmd/api` HTTP scenario proves route and middleware behavior. Store integration tests prove live database merge, cross-user isolation, soft-delete isolation, and rollback behavior with concrete `DATABASE_URL`. Missing DB availability or skipped integration gates are scenario failures, not PASS.
+Focused handler/service/store gates prove route, idempotency, validation,
+fixture parity, cross-user isolation, and rollback behavior. Skipped focused
+gates are scenario failures, not PASS.

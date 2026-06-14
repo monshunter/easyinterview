@@ -96,6 +96,12 @@ describe("E2E.P0.004 app shell language switch", () => {
     expect(screen.getByTestId("topbar-nav-workspace")).toHaveTextContent(
       "Mock Interview",
     );
+    expect(screen.getByTestId("topbar-nav-resume_versions")).toHaveTextContent(
+      "Resume",
+    );
+    expect(screen.getByTestId("topbar-nav-debrief")).toHaveTextContent(
+      "Debrief",
+    );
     expect(screen.getByTestId("topbar-login")).toHaveTextContent("Sign in");
     expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
 
@@ -155,7 +161,7 @@ describe("E2E.P0.004 app shell language switch", () => {
         screen.queryByTestId(`topbar-nav-${legacy}`),
       ).not.toBeInTheDocument();
     }
-    console.log("E2E.P0.004 evidence: language dropdown Home Mock Interview Sign in Accept-Language: en");
+    console.log("E2E.P0.004 evidence: language dropdown Home Mock Interview Resume Debrief Sign in Accept-Language: en");
   });
 });
 

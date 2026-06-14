@@ -3,10 +3,11 @@
 ## DOM Anchors
 
 - `resume-create-flow` testid renders for `flow=create` route
-- Tab anchors `resume-create-tab-upload/-paste/-guided` exist; only the active tab has `data-active="true"`
+- Tab anchors `resume-create-tab-upload/-paste` exist; only the active tab has
+  `data-active="true"`; `resume-create-tab-guided` and
+  `resume-create-guided-panel` do not exist.
 - Upload tab: `resume-create-upload-dropzone`, `resume-create-upload-input`, `resume-create-upload-choose`, `resume-create-upload-selected`
 - Paste tab: `resume-create-paste-textarea`, `resume-create-paste-submit`
-- Guided tab: `resume-create-guided-step-{1..5}`, `resume-create-guided-textarea`, `resume-create-guided-back`, `resume-create-guided-advance`
 - Sidebar: `resume-create-sidebar` with `WHAT GETS SAVED` + `WHAT HAPPENS NEXT` text
 - Parse stage: `resume-parse-flow` testid, 7 step ticker `resume-parse-step-{0..6}`
 

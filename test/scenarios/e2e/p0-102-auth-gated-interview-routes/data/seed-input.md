@@ -5,7 +5,6 @@
   - unauthenticated for Home and protected route redirect assertions.
   - hanging `/me` for protected route loading gate assertions.
 - Protected frontend routes:
-  - `jd_match`
   - `parse`
   - `workspace`
   - `resume_versions`

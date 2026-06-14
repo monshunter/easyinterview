@@ -1,8 +1,10 @@
-# E2E.P0.074 resume confirm master and version reads
+# E2E.P0.074 flat resume reads and retired version routes
 
 ## 1. Purpose
 
-Validate the backend-resume v1 save path after parse readiness: confirm a structured master resume version, replay the idempotent request, reject duplicates, read the saved version, list versions with cursor pagination, hide cross-user records, and preserve privacy / retired-vocabulary redlines.
+Validate the D-20 backend-resume flat read path: `getResume` / `listResumes`
+fixture parity, service/store user scoping and pagination, generated route catalog
+cleanup, and retired `/resume-versions` / structured-master route 404 behavior.
 
 ## 2. Requirements
 
@@ -11,16 +13,23 @@ Validate the backend-resume v1 save path after parse readiness: confirm a struct
 
 ## 3. Given / When / Then
 
-Given a ready resume asset, a processing resume asset, two authenticated users, B2 fixtures for `confirmResumeStructuredMaster`, `getResumeVersion`, and `listResumeVersions`, and migration `000007_resume_versions_structured_master_unique` applied.
+Given flat ready resume rows owned by user A, user B without access, B2 fixtures
+for `getResume` and `listResumes`, and D-20 route catalog tests for retired
+version operations.
 
-When user A confirms the structured master, replays the same idempotency key, retries with a new key, requests the saved version, lists versions across cursor pages, requests an empty asset list, sends an invalid cursor, and user B accesses user A records.
+When user A reads one resume and lists resumes with cursor pagination, user B
+attempts cross-user access, and old version endpoints are probed.
 
-Then the API returns fixture-compatible payloads, writes exactly one active `structured_master` version per asset, returns 409 for duplicate active master creation, returns 422 for invalid input / parse-not-ready, hides cross-user records as 404, proves stable `updated_at DESC, id DESC` pagination, and keeps raw resume / suggestion text out of scenario evidence.
+Then the API returns fixture-compatible flat resume payloads, hides cross-user
+records as 404, proves stable `updated_at DESC, id DESC` pagination, confirms
+old version operations are absent from generated routes, and keeps raw resume /
+suggestion text out of scenario evidence.
 
 ## 4. Scripts
 
 - `scripts/setup.sh`: prepares output directories and copies seed / expected outcome notes into `.test-output`.
-- `scripts/trigger.sh`: runs the focused `cmd/api` HTTP scenarios, handler fixture parity, service/store read tests, fixture validation, and live DB integration gate.
+- `scripts/trigger.sh`: runs fixture validation, retired route/catalog tests,
+  handler fixture parity, and service/store flat read tests.
 - `scripts/verify.sh`: rejects skipped or no-op gates, checks required runner markers and PASS evidence, reruns fixture parity, and performs privacy / retired-vocabulary negative searches.
 - `scripts/cleanup.sh`: records cleanup completion while preserving logs under `.test-output/`.
 
@@ -43,4 +52,5 @@ Scenario evidence is written to `.test-output/e2e/p0-074-resume-confirm-master-a
 
 ## 7. Offline Limits
 
-The `cmd/api` HTTP scenario proves route and middleware behavior. Store integration tests prove live database uniqueness, cross-user isolation, and cursor pagination with concrete `DATABASE_URL`. Missing DB availability or skipped integration gates are scenario failures, not PASS.
+The focused tests prove route/catalog cleanup, handler fixture parity, and flat
+store/service behavior. Skipped focused gates are scenario failures, not PASS.

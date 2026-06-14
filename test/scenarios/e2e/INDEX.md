@@ -8,7 +8,7 @@
 
 | 场景 ID | 关联需求 | 目录 | 描述 | 执行方式 | 状态 |
 |---------|----------|------|------|----------|------|
-| E2E.P0.001 | frontend-shell C-1 | `p0-001-default-home-shell/` | 默认进入首页并呈现五入口 TopBar 与用户菜单 | automated | Ready |
+| E2E.P0.001 | frontend-shell C-1 | `p0-001-default-home-shell/` | 默认进入首页并呈现四入口 TopBar 与用户菜单 | automated | Ready |
 | E2E.P0.002 | frontend-shell C-2 | `p0-002-auth-pending-action-resume/` | 登录打断后恢复原业务动作与上下文 | automated | Ready |
 | E2E.P0.003 | backend-auth C-1 | `p0-003-passwordless-session-cookie/` | 邮箱挑战验证后签发 first-party session 并支持 /me 与 logout | automated | Ready |
 | E2E.P0.004 | frontend-shell C-7 | `p0-004-app-shell-language-switch/` | App Shell 中英语言切换并携带 Accept-Language display hint | automated | Ready |
@@ -72,15 +72,15 @@
 | E2E.P0.078 | backend-resume C-16 | `p0-078-resume-tailor-failure-and-retry/` | resume_tailor timeout retryable, output_invalid terminal, retry-to-ready, and ready-only outbox | automated | Ready |
 | E2E.P0.079 | backend-resume C-16 | `p0-079-resume-suggestion-accept-reject-terminal/` | resume suggestion accept/reject terminal decision + idempotency + cross-user isolation + profile stability | automated | Ready |
 | E2E.P0.080 | backend-resume C-13 | `p0-080-resume-versions-privacy-legacy/` | resume versions/tailor privacy payload and retired vocabulary negative regression | automated | Ready |
-| E2E.P0.081 | frontend-resume-workshop C-10, C-7, C-8, C-9 | `p0-081-resume-create-flow-upload-paste-guided-happy/` | ResumeCreateFlow 三 sourceType happy + presign + register + parse polling + IK + privacy + legacy negative | automated | Ready |
+| E2E.P0.081 | frontend-resume-workshop C-10, C-7, C-8, C-9 | `p0-081-resume-create-flow-upload-paste-guided-happy/` | ResumeCreateFlow upload/paste happy + guided-negative + presign + register + parse polling + IK + privacy + legacy negative | automated | Ready |
 | E2E.P0.082 | frontend-resume-workshop C-10, C-8 | `p0-082-resume-create-flow-parsing-failure-and-retry/` | Agent Parsing failure / PARSE_TIMEOUT / cancel-and-return + retry-from-input | automated | Ready |
 | E2E.P0.083 | frontend-resume-workshop C-10, C-8, C-9 | `p0-083-resume-create-flow-preview-confirm-and-cta-handoff/` | PreviewConfirm save v1 + 409 fallback + 422 inline + Home/Workspace CTA pendingAction handoff | automated | Ready |
 | E2E.P0.084 | frontend-resume-workshop C-11, C-8, C-9 | `p0-084-resume-branch-flow-three-seed-strategies/` | ResumeBranchFlow 三 seedStrategy 提交 + IK + 422 + 404 cross-user + UI parity DOM anchor + 旧入口负向 | automated | Ready |
 | E2E.P0.085 | frontend-resume-workshop C-11, C-8 | `p0-085-resume-rewrites-tab-tailor-run-polling/` | Rewrites Tab + ai_select handoff + tailor run polling (queued/generating/ready/failed/timeout) + 重新运行改写 + unmount cleanup | automated | Ready |
-| E2E.P0.086 | frontend-resume-workshop C-11, C-8 | `p0-086-resume-suggestion-accept-reject-edit-and-update-version/` | accept/reject bodyless + IK + 409 already-decided + manual edit update -> accept + Edit Tab updateResumeVersion + D-12 不自动 patch | automated | Ready |
+| E2E.P0.086 | frontend-resume-workshop C-11, C-8 | `p0-086-resume-suggestion-accept-reject-edit-and-update-version/` | Rewrites accept-only save + Edit Tab updateResume + retired accept/reject/updateVersion negative | automated | Ready |
 | E2E.P0.087 | frontend-resume-workshop C-11, C-9, C-8 | `p0-087-resume-detail-export-copy-consistency-and-parity/` | Export PDF 501 stub + copyText fallback 不退化 + Branch/Rewrites/Edit DOM 源级镜像 + retired tailor mode / 旧入口 / prototype import 0 命中 | automated | Ready |
 | E2E.P0.088 | frontend-shell C-11 | `p0-088-url-addressable-routing-canonical/` | Canonical path deep-link / reload / back-forward 在 workspace / practice / generating / report / resume-versions / debrief 全保留 safe params 并保持 TopBar + chrome 行为 | automated | Ready |
-| E2E.P0.089 | frontend-shell C-12 | `p0-089-url-routing-auth-privacy/` | Auth pendingAction round-trip + URL / history / storage / console 19 类 raw marker 零命中 + jd_match handoff 合法 keys 仍保留 | automated | Ready |
+| E2E.P0.089 | frontend-shell C-12 | `p0-089-url-routing-auth-privacy/` | Auth pendingAction round-trip + URL / history / storage / console 19 类 raw marker 零命中 + safe handoff keys 保留 | automated | Ready |
 | E2E.P0.090 | frontend-shell C-13 | `p0-090-url-routing-hash-legacy-negative/` | `#route=...` 兼容 + retired aliases 不 materialize + SPA fallback 仅服务 canonical path 且不吞 `/api/*` / `/openapi/*` / `/health` / `/assets/*` | automated | Ready |
 | E2E.P0.091 | backend-profile C-1, C-2, C-3, C-13, C-14 | `p0-091-candidate-profile-seed-and-patch/` | candidate profile seed + PATCH 语义 + profile_version 单调 + 多用户隔离 + 旧模块负向 | automated | Ready |
 | E2E.P0.092 | backend-profile C-4, C-5, C-6, C-7, C-8, C-9, C-11, C-12, C-14, C-15 | `p0-092-experience-cards-crud-with-ik/` | experience cards CRUD + cursor pagination + IK replay/conflict + source_type force + cross-user 404 + cross-owner candidate profile read internal API | automated | Ready |

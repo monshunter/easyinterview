@@ -20,12 +20,12 @@ example=unauthenticated} />`，模拟用户首次打开 App。
 ## 3 Then
 
 - 默认渲染 Home（`route-home` 出现）。
-- TopBar 一级导航严格包含 `home` / `jd_match` / `workspace` /
-  `resume_versions` / `debrief` 五项，且只包含这五项。
+- TopBar 一级导航严格包含 `home` / `workspace` / `resume_versions` /
+  `debrief` 四项，且只包含这四项。
 - 全局显示控制（主题色、暗色、语言）可见。
-- 未登录 user-area 渲染 `登录` 与 `注册` 入口；`topbar-user-area`
-  data-signed-in 为 `false`。
-- 旧入口 `welcome`、独立 `voice`、`growth` / `mistakes` / `drill`
+- 未登录 user-area 渲染 `登录` 入口；`topbar-user-area` data-signed-in 为
+  `false`，不渲染独立注册入口。
+- 旧入口 `welcome`、`jd_match`、独立 `voice`、`growth` / `mistakes` / `drill`
   在 TopBar 与路由层均不可达。
 
 ## 4 执行

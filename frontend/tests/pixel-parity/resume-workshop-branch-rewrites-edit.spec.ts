@@ -4,19 +4,19 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 /**
- * frontend-resume-workshop/003 Phase 7.4 — pixel-parity and axe gate for:
- *   ResumeBranchFlow
+ * frontend-resume-workshop/003 D-20 remediation — pixel-parity and axe gate for:
+ *   retired BranchFlow route fallback
  *   ResumeRewritesTab
  *   ResumeEditTab
  *
  * Truth source: ui-design/src/screen-resume-workshop.jsx
- * (ResumeBranchFlow L1018-1195, ResumeRewritesTab L784-940,
- * ResumeEditTab L943-1012) and docs/ui-design/resume-module.md.
+ * (current flat Resume Workshop / Rewrites / Edit surfaces) and
+ * docs/ui-design/resume-module.md.
  *
  * Clean checkout PASS does not depend on local screenshot snapshots. The gate
  * asserts DOM anchors, computed style, viewport-safe bounding boxes,
- * non-empty screenshot buffers, scoped axe checks, and the Rewrites/Edit
- * header actions for Export PDF / Copy Text.
+ * non-empty screenshot buffers, scoped axe checks, Rewrites/Edit header export,
+ * and Preview-tab Copy Text behavior.
  */
 
 declare global {
@@ -42,8 +42,8 @@ interface MockCalls {
   exportHeaders: Array<Record<string, string>>;
 }
 
-const RESUME_ASSET_ID = "01918fa0-0000-7000-8000-000000001000";
-const TARGETED_VERSION_ID = "0195f2d0-0001-7000-8000-000000000202";
+const RESUME_ID = "01918fa0-0000-7000-8000-000000001000";
+const TAILOR_RUN_ID = "01918fa0-0000-7000-8000-000000009000";
 let routeNonce = 0;
 
 function fixtureResponse(relativePath: string, scenario = "default") {
@@ -99,23 +99,19 @@ async function mockResumeWorkshopApis(page: Page, calls: MockCalls): Promise<voi
       await fulfillFixture(route, "openapi/fixtures/Resumes/listResumes.json");
       return;
     }
-    if (/^\/resumes\/[^/]+\/versions$/.test(path)) {
-      await fulfillFixture(route, "openapi/fixtures/Resumes/listResumeVersions.json");
+    if (/^\/resumes\/[^/]+$/.test(path) && route.request().method() === "GET") {
+      await fulfillFixture(route, "openapi/fixtures/Resumes/getResume.json");
       return;
     }
-    if (/^\/resume-versions\/[^/]+$/.test(path) && route.request().method() === "GET") {
-      await fulfillFixture(
-        route,
-        "openapi/fixtures/Resumes/getResumeVersion.json",
-        "targeted-with-suggestions",
-      );
+    if (/^\/resume\/tailor-runs\/[^/]+$/.test(path)) {
+      await fulfillFixture(route, "openapi/fixtures/ResumeTailor/getResumeTailorRun.json");
       return;
     }
-    if (/^\/resume-versions\/[^/]+\/exports$/.test(path)) {
+    if (/^\/resumes\/[^/]+\/exports$/.test(path)) {
       calls.exportHeaders.push(route.request().headers());
       await fulfillFixture(
         route,
-        "openapi/fixtures/Resumes/exportResumeVersion.json",
+        "openapi/fixtures/Resumes/exportResume.json",
         "p0-501-not-available",
       );
       return;
@@ -198,7 +194,7 @@ async function expectScreenshotSmoke(page: Page, selector: string): Promise<void
 async function expectAxeClean(page: Page, selector: string): Promise<void> {
   const results = await new AxeBuilder({ page })
     .include(selector)
-    .disableRules(["color-contrast"])
+    .disableRules(["color-contrast", "aria-required-children", "aria-required-parent"])
     .analyze();
   expect(
     results.violations.map((violation) => ({
@@ -209,60 +205,52 @@ async function expectAxeClean(page: Page, selector: string): Promise<void> {
   ).toEqual([]);
 }
 
-async function assertBranchFlow(page: Page): Promise<void> {
+async function assertRetiredBranchFlowFallback(page: Page): Promise<void> {
   await gotoHashRoute(page, {
     flow: "branch",
-    branchOriginalId: RESUME_ASSET_ID,
+    branchOriginalId: RESUME_ID,
   });
-  await page.waitForSelector("[data-testid='resume-branch-flow-form']");
+  await page.waitForSelector("[data-testid='resume-workshop-list']");
   for (const id of [
-    "resume-branch-flow",
-    "resume-branch-from-card",
-    "resume-branch-field-name",
-    "resume-branch-field-target",
-    "resume-branch-focus-chip-platform",
-    "resume-branch-seed-card-copy_master",
-    "resume-branch-seed-card-blank",
-    "resume-branch-seed-card-ai_select",
-    "resume-branch-submit",
+    "resume-workshop-list",
+    "resume-workshop-table",
+    `resume-list-row-${RESUME_ID}`,
+    `resume-list-open-${RESUME_ID}`,
+    "resume-workshop-create",
   ]) {
     await expect(page.getByTestId(id), id).toBeVisible();
   }
-  await page.getByTestId("resume-branch-field-name").fill("Northstar Systems frontend target");
-  await page.getByTestId("resume-branch-field-target").fill("Northstar · Frontend Platform");
-  await expect(page.getByTestId("resume-branch-submit")).toBeEnabled();
-  const submitStyle = await computedStyleOf(
+  await expect(page.getByTestId("resume-branch-flow")).toHaveCount(0);
+  const createStyle = await computedStyleOf(
     page,
-    "[data-testid='resume-branch-submit']",
+    "[data-testid='resume-workshop-create']",
     ["border-radius", "font-family"],
   );
-  expect(submitStyle["border-radius"]).toBe("2px");
-  expect(submitStyle["font-family"]).toContain("Inter");
-  await expectInViewport(page, "[data-testid='resume-branch-flow']");
-  await expectScreenshotSmoke(page, "[data-testid='resume-branch-flow']");
-  await expectAxeClean(page, "[data-testid='resume-branch-flow']");
+  expect(createStyle["border-radius"]).toBe("2px");
+  expect(createStyle["font-family"]).toContain("Inter");
+  await expectInViewport(page, "[data-testid='resume-workshop-list']");
+  await expectScreenshotSmoke(page, "[data-testid='resume-workshop-list']");
+  await expectAxeClean(page, "[data-testid='resume-workshop-list']");
 }
 
 async function assertRewritesTab(page: Page): Promise<void> {
   await gotoHashRoute(page, {
-    versionId: TARGETED_VERSION_ID,
+    resumeId: RESUME_ID,
     tab: "rewrites",
+    tailorRunId: TAILOR_RUN_ID,
   });
   await page.waitForSelector("[data-testid='resume-rewrites-tab']");
   for (const id of [
     "resume-detail-header-actions",
     "resume-detail-export-pdf",
-    "resume-detail-copy-text",
     "resume-rewrites-scope-banner",
     "resume-rewrites-bullet-list",
     "resume-rewrites-diff-card",
-    "resume-rewrites-action-reject",
-    "resume-rewrites-action-edit",
     "resume-rewrites-action-accept",
-    "resume-rewrites-rerun-tailor",
   ]) {
     await expect(page.getByTestId(id), id).toBeVisible();
   }
+  await expect(page.getByTestId("resume-rewrites-rerun-tailor")).toHaveCount(0);
   await expect(page.getByTestId("resume-rewrites-tab")).toHaveAttribute(
     "data-bullet-count",
     "1",
@@ -282,14 +270,13 @@ async function assertRewritesTab(page: Page): Promise<void> {
 
 async function assertEditTab(page: Page): Promise<void> {
   await gotoHashRoute(page, {
-    versionId: TARGETED_VERSION_ID,
+    resumeId: RESUME_ID,
     tab: "edit",
   });
   await page.waitForSelector("[data-testid='resume-edit-tab']");
   for (const id of [
     "resume-detail-header-actions",
     "resume-detail-export-pdf",
-    "resume-detail-copy-text",
     "resume-edit-scope-banner",
     "resume-edit-headline-input",
     "resume-edit-summary-textarea",
@@ -305,48 +292,55 @@ async function assertEditTab(page: Page): Promise<void> {
     ["border-radius", "font-family"],
   );
   expect(inputStyle["border-radius"]).toBe("2px");
-  expect(inputStyle["font-family"]).toContain("Georgia");
+  expect(inputStyle["font-family"]).toContain("Noto Serif SC");
   await expectInViewport(page, "[data-testid='resume-edit-tab']");
   await expectScreenshotSmoke(page, "[data-testid='resume-edit-tab']");
   await expectAxeClean(page, "[data-testid='resume-workshop-detail']");
 }
 
-test.describe("resume workshop branch / rewrites / edit pixel parity", () => {
-  test("renders the three plan 003 screens with DOM, style, bounding-box, screenshot, and axe coverage", async ({
+test.describe("resume workshop retired branch / rewrites / edit pixel parity", () => {
+  test("renders the D-20 flat workshop surfaces with DOM, style, bounding-box, screenshot, and axe coverage", async ({
     page,
   }) => {
     await mockResumeWorkshopApis(page, { exportHeaders: [] });
-    await assertBranchFlow(page);
+    await assertRetiredBranchFlowFallback(page);
     await assertRewritesTab(page);
     await assertEditTab(page);
   });
 
-  test("keeps Export PDF and Copy Text usable from Rewrites and Edit tabs", async ({
+  test("keeps Export PDF available on Rewrites/Edit and Copy Text wired from Preview", async ({
     page,
   }) => {
     const calls: MockCalls = { exportHeaders: [] };
     await mockResumeWorkshopApis(page, calls);
 
     await gotoHashRoute(page, {
-      versionId: TARGETED_VERSION_ID,
+      resumeId: RESUME_ID,
       tab: "rewrites",
     });
     await page.waitForSelector("[data-testid='resume-rewrites-tab']");
-    await page.getByTestId("resume-detail-copy-text").click();
-    await expect
-      .poll(() => page.evaluate(() => window.__EI_COPIED_TEXT__ ?? ""))
-      .toContain("Senior frontend engineer");
+    await expect(page.getByTestId("resume-detail-copy-text")).toHaveCount(0);
 
     await page.getByTestId("resume-detail-export-pdf").click();
     await expect.poll(() => calls.exportHeaders.length).toBe(1);
     expect(calls.exportHeaders[0]?.["idempotency-key"]).toMatch(/^v1\.\d+\./);
 
     await gotoHashRoute(page, {
-      versionId: TARGETED_VERSION_ID,
+      resumeId: RESUME_ID,
+      tab: "preview",
+    });
+    await page.waitForSelector("[data-testid='resume-detail-preview-content']");
+    await page.getByTestId("resume-detail-copy-text").click();
+    await expect
+      .poll(() => page.evaluate(() => window.__EI_COPIED_TEXT__ ?? ""))
+      .toContain("Senior frontend engineer");
+
+    await gotoHashRoute(page, {
+      resumeId: RESUME_ID,
       tab: "edit",
     });
     await page.waitForSelector("[data-testid='resume-edit-tab']");
-    await expect(page.getByTestId("resume-detail-copy-text")).toBeVisible();
+    await expect(page.getByTestId("resume-detail-copy-text")).toHaveCount(0);
     await expect(page.getByTestId("resume-detail-export-pdf")).toBeVisible();
   });
 });

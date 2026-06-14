@@ -2,17 +2,19 @@
 
 ## API Outcomes
 
-- `POST /api/v1/resumes/{resumeAssetId}/structured-master` returns 201 with `versionType='structured_master'`.
-- Same idempotency key replays the original 201 response and does not call the service again.
-- A new idempotency key for an already confirmed active master returns `409 RESUME_STRUCTURED_MASTER_ALREADY_EXISTS`.
-- Blank display name and processing assets return `422 VALIDATION_FAILED`; processing includes `details.reason='PARSE_NOT_READY'`.
-- `GET /api/v1/resume-versions/{resumeVersionId}` returns the saved version for the owner and 404 for cross-user access.
-- `GET /api/v1/resumes/{resumeAssetId}/versions` returns default, empty, paginated, and invalid-cursor outcomes with stable ordering.
+- `GET /api/v1/resumes/{resumeId}` returns the flat resume for the owner and
+  404 for cross-user or missing rows.
+- `GET /api/v1/resumes` returns default, empty, paginated, and invalid-cursor
+  outcomes with stable ordering.
+- Old `/api/v1/resume-versions...` and
+  `/api/v1/resumes/{resumeId}/structured-master` routes return 404 and their
+  operationIds are absent from `generated.AllRoutes`.
 
 ## Evidence Outcomes
 
 - `method=cmd-api-http` appears in verify output.
-- Fixture parity covers all P0.074 confirm/get/list scenarios.
-- Live DB integration covers partial UNIQUE index, soft-delete replacement, cross-user read hiding, invalid cursor, and pagination.
+- Fixture parity covers `getResume` and `listResumes`.
+- Service/store tests cover user scoping, invalid cursor, pagination, flat
+  structured profile mapping, and repository flat methods.
 - Trigger log contains no skipped or no-op focused gates.
 - Retired vocabulary and privacy negative greps return zero hits for backend resume implementation and scenario evidence.

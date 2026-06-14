@@ -30,7 +30,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const [importError, setImportError] = useState<string | null>(null);
   const { jobs: rawJobs, loading, error } = useRecentTargetJobs();
   const targetLanguage = lang === "zh" ? "zh-CN" : "en";
-  const routeResumeVersionId =
+  const routeResumeId =
     typeof route.params.resumeId === "string"
       ? route.params.resumeId
       : undefined;
@@ -112,8 +112,8 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         params: {
           targetJobId,
           source: source.source,
-          ...(routeResumeVersionId
-            ? { resumeId: routeResumeVersionId }
+          ...(routeResumeId
+            ? { resumeId: routeResumeId }
             : {}),
         },
       });
@@ -124,7 +124,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     } finally {
       setImporting(false);
     }
-  }, [navigate, routeResumeVersionId, runtime, targetLanguage]);
+  }, [navigate, routeResumeId, runtime, targetLanguage]);
 
   useEffect(() => {
     if (!runtime || runtime.auth.status !== "authenticated") return;
@@ -151,8 +151,8 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         params: {
           source: "paste",
           pendingImportId,
-          ...(routeResumeVersionId
-            ? { resumeId: routeResumeVersionId }
+          ...(routeResumeId
+            ? { resumeId: routeResumeId }
             : {}),
         },
       });
@@ -175,8 +175,8 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         params: {
           source: source.source,
           pendingImportId,
-          ...(routeResumeVersionId
-            ? { resumeId: routeResumeVersionId }
+          ...(routeResumeId
+            ? { resumeId: routeResumeId }
             : {}),
         },
       });

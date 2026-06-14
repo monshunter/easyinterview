@@ -1,8 +1,11 @@
-# E2E.P0.079 resume suggestion accept reject terminal
+# E2E.P0.079 retired suggestion routes and accept-only save flow
 
 ## 1. Purpose
 
-Validate the resume-tailor suggestion terminal decision flow for backend-resume Phase 8: users can accept or reject pending suggestions exactly once, idempotency replay is stable, already-decided suggestions return the documented 409 envelope, and accepting a suggestion does not mutate `resume_versions.structured_profile`.
+Validate the D-20 outcome after backend suggestion decision routes were retired:
+old accept/reject version operations are absent, flat save fixtures remain valid,
+and the frontend Rewrites tab keeps suggestions ephemeral and accept-only until
+the user saves through `updateResume` or `duplicateResume`.
 
 ## 2. Requirements
 
@@ -11,16 +14,23 @@ Validate the resume-tailor suggestion terminal decision flow for backend-resume 
 
 ## 3. Given / When / Then
 
-Given user A owns a ready targeted resume version with pending suggestions and user B owns a separate suggestion.
+Given the D-20 flat resume API fixtures, generated route catalog, and current
+frontend Rewrites/Detail save surfaces.
 
-When user A accepts one suggestion, rejects another, repeats the same idempotency key, retries against an already terminal suggestion, and attempts to decide user B's suggestion.
+When fixture validation runs, retired route tests probe the old version/suggestion
+family, handler fixture parity runs for flat save operations, and frontend
+Vitest exercises the accept-only Rewrites save flow.
 
-Then the API returns updated `ResumeVersion` snapshots with terminal suggestion status and `decidedAt`; idempotency replay bypasses duplicate side effects; already terminal suggestions return `VALIDATION_FAILED` with `details.reason=SUGGESTION_ALREADY_DECIDED`; cross-user access returns 404; and the version `structured_profile` remains unchanged.
+Then old accept/reject routes stay gone from `cmd/api` and generated route
+catalog, `updateResume` / `duplicateResume` / `requestResumeTailor` fixture
+parity stays green, and accepted rewrites are saved only through the flat resume
+save paths.
 
 ## 4. Scripts
 
 - `scripts/setup.sh`: prepares output directories and copies seed / expected outcome notes into `.test-output`.
-- `scripts/trigger.sh`: runs fixture validation plus focused `cmd/api`, handler, service, and live store gates for accept/reject decisions.
+- `scripts/trigger.sh`: runs fixture validation, retired route/catalog tests,
+  flat save fixture parity, and frontend Rewrites/Detail Vitest coverage.
 - `scripts/verify.sh`: rejects skipped or no-op gates, checks required runner markers and PASS evidence, and performs privacy / retired-vocabulary negative searches.
 - `scripts/cleanup.sh`: records cleanup completion while preserving logs under `.test-output/`.
 
@@ -43,4 +53,5 @@ Scenario evidence is written to `.test-output/e2e/p0-079-resume-suggestion-accep
 
 ## 7. Offline Limits
 
-This scenario verifies the backend API route and persistence state machine through deterministic focused tests. It does not require a deployed frontend because Phase 8 owns backend terminal decision semantics and fixture parity.
+This scenario verifies deterministic route/catalog, fixture, and frontend save
+semantics. It does not require external services.

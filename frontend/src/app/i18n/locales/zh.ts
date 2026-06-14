@@ -263,12 +263,11 @@ export const zh = {
     "基于版本分叉的流程将在后续版本开放。新建简历已可用。",
   "resumeWorkshop.create.back": "返回简历工坊",
   "resumeWorkshop.create.eyebrow": "创建第一版简历",
-  "resumeWorkshop.create.title": "上传、粘贴，或用 5 分钟问答生成第一版。",
+  "resumeWorkshop.create.title": "上传或粘贴，创建第一版简历。",
   "resumeWorkshop.create.subtitle":
     "系统会保留原始文件或原始文本，同时解析成结构化简历，并作为可回溯版本保存。",
   "resumeWorkshop.create.tabs.upload": "上传文件",
   "resumeWorkshop.create.tabs.paste": "粘贴内容",
-  "resumeWorkshop.create.tabs.guided": "轻量问答",
   "resumeWorkshop.create.upload.dropzoneTitle": "拖入 PDF / DOCX / Markdown 简历",
   "resumeWorkshop.create.upload.dropzoneBody":
     "原始文件会作为原始版本保存，解析出的工作经历、项目、技能和教育经历会进入可编辑结构化简历。",
@@ -280,42 +279,10 @@ export const zh = {
   "resumeWorkshop.create.paste.helper": "原始文本会保留，并解析成结构化段落。",
   "resumeWorkshop.create.paste.submit": "解析并保存 v1",
   "resumeWorkshop.create.paste.titleFallback": "粘贴的简历",
-  "resumeWorkshop.create.guided.eyebrow": "轻量问答建档",
-  "resumeWorkshop.create.guided.helper":
-    "只回答你现在记得的部分，生成后还可以继续补充。",
-  "resumeWorkshop.create.guided.back": "上一步",
-  "resumeWorkshop.create.guided.next": "下一步",
-  "resumeWorkshop.create.guided.generate": "生成 v1",
-  "resumeWorkshop.create.guided.titleFallback": "问答简历",
-  "resumeWorkshop.create.guided.step.recentRole.label": "最近经历",
-  "resumeWorkshop.create.guided.step.recentRole.question":
-    "你最近在哪家公司、担任什么职位？",
-  "resumeWorkshop.create.guided.step.recentRole.placeholder":
-    "公司、职位、时间段…",
-  "resumeWorkshop.create.guided.step.direction.label": "主要方向",
-  "resumeWorkshop.create.guided.step.direction.question":
-    "你主要负责什么产品或技术方向？",
-  "resumeWorkshop.create.guided.step.direction.placeholder":
-    "前端平台、增长、基础设施、数据、AI 应用…",
-  "resumeWorkshop.create.guided.step.proofProject.label": "代表项目",
-  "resumeWorkshop.create.guided.step.proofProject.question":
-    "选一个最能证明你能力的项目。",
-  "resumeWorkshop.create.guided.step.proofProject.placeholder":
-    "背景、你做了什么、最后结果…",
-  "resumeWorkshop.create.guided.step.metrics.label": "量化结果",
-  "resumeWorkshop.create.guided.step.metrics.question":
-    "这个项目能补哪些数字或可验证结果？",
-  "resumeWorkshop.create.guided.step.metrics.placeholder":
-    "性能、收入、采用率、效率、成本…",
-  "resumeWorkshop.create.guided.step.target.label": "目标岗位",
-  "resumeWorkshop.create.guided.step.target.question":
-    "你现在想准备什么类型的岗位？",
-  "resumeWorkshop.create.guided.step.target.placeholder":
-    "资深前端、平台工程、AI 应用工程…",
   "resumeWorkshop.create.sidebar.whatSavedEyebrow": "会保存什么",
   "resumeWorkshop.create.sidebar.whatSaved.original.title": "原始版本",
   "resumeWorkshop.create.sidebar.whatSaved.original.body":
-    "文件、粘贴文本或问答记录都会保留来源。",
+    "文件或粘贴文本都会保留来源。",
   "resumeWorkshop.create.sidebar.whatSaved.structured.title": "结构化简历",
   "resumeWorkshop.create.sidebar.whatSaved.structured.body":
     "工作经历、项目、技能、教育和证据点可编辑。",
@@ -420,7 +387,6 @@ export const zh = {
   "resumeWorkshop.viewSwitcher.flat": "按版本平铺",
   "resumeWorkshop.sourceType.upload": "上传 PDF",
   "resumeWorkshop.sourceType.paste": "粘贴文本",
-  "resumeWorkshop.sourceType.guided": "轻量问答",
   "resumeWorkshop.sourceType.unknown": "未知来源",
   "resumeWorkshop.tree.versionsCount": "{count} 个版本",
   "resumeWorkshop.tree.useAsBase": "选为底稿",

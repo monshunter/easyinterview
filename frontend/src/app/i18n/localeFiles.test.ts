@@ -77,4 +77,21 @@ describe("D1 shell i18n locale file structure", () => {
       expect(source).not.toContain("resumeWorkshop.tree.toastBranch");
     }
   });
+
+  it("does not keep retired Resume Workshop guided create keys", () => {
+    const zhSource = readFileSync(
+      new URL("./locales/zh.ts", import.meta.url),
+      "utf8",
+    );
+    const enSource = readFileSync(
+      new URL("./locales/en.ts", import.meta.url),
+      "utf8",
+    );
+
+    for (const source of [zhSource, enSource]) {
+      expect(source).not.toContain("resumeWorkshop.create.tabs.guided");
+      expect(source).not.toContain("resumeWorkshop.create.guided.");
+      expect(source).not.toContain("resumeWorkshop.sourceType.guided");
+    }
+  });
 });

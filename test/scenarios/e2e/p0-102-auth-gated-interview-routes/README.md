@@ -11,8 +11,8 @@
 用户未登录时可以打开 `home` 和 auth 页面，但所有面试相关入口必须先进入登录页：
 
 - Home 首页不展示 `Recent mock interviews` 区块，也不调用 `listTargetJobs`。
-- Home 上的 JD 导入、岗位推荐、简历工作台、复盘入口在未登录时编码 pendingAction 并跳转 `auth_login`。
-- 直接访问 `jd_match`、`parse`、`workspace`、`resume_versions`、`practice`、`generating`、`report`、`debrief`、`profile`、`settings` 时，App 在 `/me` 判定前不得挂载业务 screen；判定未登录后跳转 `auth_login`。
+- Home 上的 JD 导入、简历工作台、复盘入口在未登录时编码 pendingAction 并跳转 `auth_login`。
+- 直接访问 `parse`、`workspace`、`resume_versions`、`practice`、`generating`、`report`、`debrief`、`profile`、`settings` 时，App 在 `/me` 判定前不得挂载业务 screen；判定未登录后跳转 `auth_login`。Retired `jd_match` 输入先归一到当前 route，不作为独立保护 route。
 - 后端除 auth start/verify、runtime-config、logout optional 之外的业务 API 均保持 session middleware 保护。
 
 ## 2 When

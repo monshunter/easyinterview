@@ -8,7 +8,7 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 
 test -s "$LOG_FILE"
 grep -Fq "src/app/scenarios/p0-089-url-routing-auth-privacy.test.tsx" "$LOG_FILE"
-grep -Eq 'Tests +4 passed \(4\)' "$LOG_FILE"
+grep -Eq 'Tests +3 passed \(3\)' "$LOG_FILE"
 grep -Eq 'Test Files +1 passed \(1\)' "$LOG_FILE"
 
 # Verify scenario design carries raw markers in test sources so the

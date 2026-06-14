@@ -274,12 +274,11 @@ export const en: LocaleMessages = {
   "resumeWorkshop.create.back": "Back to resume workshop",
   "resumeWorkshop.create.eyebrow": "FIRST RESUME VERSION",
   "resumeWorkshop.create.title":
-    "Start from a file, pasted text, or a five-minute guided draft.",
+    "Start from a file or pasted text.",
   "resumeWorkshop.create.subtitle":
     "We keep the original source, parse it into a structured resume, and save both as a version you can revise later.",
   "resumeWorkshop.create.tabs.upload": "Upload",
   "resumeWorkshop.create.tabs.paste": "Paste",
-  "resumeWorkshop.create.tabs.guided": "Guided",
   "resumeWorkshop.create.upload.dropzoneTitle":
     "Drop a PDF / DOCX / Markdown resume",
   "resumeWorkshop.create.upload.dropzoneBody":
@@ -293,42 +292,10 @@ export const en: LocaleMessages = {
     "Raw text is retained, then parsed into structured sections.",
   "resumeWorkshop.create.paste.submit": "Parse and save v1",
   "resumeWorkshop.create.paste.titleFallback": "Pasted resume",
-  "resumeWorkshop.create.guided.eyebrow": "GUIDED DRAFT",
-  "resumeWorkshop.create.guided.helper":
-    "Answer only the parts you know. The draft can be refined later.",
-  "resumeWorkshop.create.guided.back": "Back",
-  "resumeWorkshop.create.guided.next": "Next",
-  "resumeWorkshop.create.guided.generate": "Generate v1",
-  "resumeWorkshop.create.guided.titleFallback": "Guided resume",
-  "resumeWorkshop.create.guided.step.recentRole.label": "Last role",
-  "resumeWorkshop.create.guided.step.recentRole.question":
-    "Where did you work most recently, and what was your title?",
-  "resumeWorkshop.create.guided.step.recentRole.placeholder":
-    "Company, title, dates…",
-  "resumeWorkshop.create.guided.step.direction.label": "Direction",
-  "resumeWorkshop.create.guided.step.direction.question":
-    "What product or engineering direction did you mainly own?",
-  "resumeWorkshop.create.guided.step.direction.placeholder":
-    "Frontend platform, growth, infra, data…",
-  "resumeWorkshop.create.guided.step.proofProject.label": "Proof project",
-  "resumeWorkshop.create.guided.step.proofProject.question":
-    "Pick one project that proves your level.",
-  "resumeWorkshop.create.guided.step.proofProject.placeholder":
-    "Problem, action, result…",
-  "resumeWorkshop.create.guided.step.metrics.label": "Numbers",
-  "resumeWorkshop.create.guided.step.metrics.question":
-    "What measurable result can we attach to that project?",
-  "resumeWorkshop.create.guided.step.metrics.placeholder":
-    "Performance, revenue, adoption, efficiency…",
-  "resumeWorkshop.create.guided.step.target.label": "Target",
-  "resumeWorkshop.create.guided.step.target.question":
-    "What roles are you preparing for now?",
-  "resumeWorkshop.create.guided.step.target.placeholder":
-    "Senior frontend, staff platform, AI infra…",
   "resumeWorkshop.create.sidebar.whatSavedEyebrow": "WHAT GETS SAVED",
   "resumeWorkshop.create.sidebar.whatSaved.original.title": "Original source",
   "resumeWorkshop.create.sidebar.whatSaved.original.body":
-    "File, pasted text, or guided answers stay traceable.",
+    "File or pasted text stays traceable.",
   "resumeWorkshop.create.sidebar.whatSaved.structured.title":
     "Structured resume",
   "resumeWorkshop.create.sidebar.whatSaved.structured.body":
@@ -445,7 +412,6 @@ export const en: LocaleMessages = {
   "resumeWorkshop.viewSwitcher.flat": "Flat by version",
   "resumeWorkshop.sourceType.upload": "Uploaded PDF",
   "resumeWorkshop.sourceType.paste": "Pasted text",
-  "resumeWorkshop.sourceType.guided": "Guided answers",
   "resumeWorkshop.sourceType.unknown": "Unknown source",
   "resumeWorkshop.tree.versionsCount": "{count} versions",
   "resumeWorkshop.tree.useAsBase": "Use as base",

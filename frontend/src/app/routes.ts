@@ -6,7 +6,7 @@
  *
  * Four primary nav entries: home / workspace / resume_versions / debrief
  * (product-scope v2.1 D-17 removed the jd_match entry).
- * Context routes: parse / practice / generating / report / company_intel.
+ * Context routes: parse / practice / generating / report.
  * User-menu routes: profile / settings / auth_logout.
  * Auth pages: auth_login / auth_verify / auth_profile_setup / auth_logout.
  * auth_reset retired per product-scope D-16; it normalizes back to auth_login.
@@ -28,7 +28,6 @@ export const CONTEXT_ROUTES = [
   "practice",
   "generating",
   "report",
-  "company_intel",
 ] as const;
 
 export const USER_MENU_ROUTES = ["profile", "settings", "auth_logout"] as const;
@@ -74,7 +73,6 @@ export const INTERVIEW_CONTEXT_ROUTES: ReadonlySet<string> = new Set([
   "generating",
   "report",
   "debrief",
-  "company_intel",
 ]);
 
 export function shouldCarryInterviewContext(name: string): boolean {

@@ -328,7 +328,7 @@ describe("ReportScreen dispatch", () => {
     ).toBeNull();
   });
 
-  it("ContextStrip displays target / resume labels via generated client + falls back to ID when getTargetJob fails (TestReportContextDataLoadsTargetJobAndResumeVersion / TestReportContextDataFallsBackToIds)", async () => {
+  it("ContextStrip displays target / resume labels via generated client + falls back to ID when getTargetJob fails (TestReportContextDataLoadsTargetJobAndResume / TestReportContextDataFallsBackToIds)", async () => {
     const client = makeClient({
       targetJobReject: new Error("HTTP 500 Internal"),
     });

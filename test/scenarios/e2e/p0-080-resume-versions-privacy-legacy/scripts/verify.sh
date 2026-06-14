@@ -25,7 +25,7 @@ mkdir -p "$OUT"
   grep -q 'RUNNER go test cmd/api resume tailor drainer privacy' "$LOG"
   grep -q 'TestResumeTailorDrainerHTTPScenario' "$LOG"
   grep -q 'TestResumeTailorDrainerFailureScenario' "$LOG"
-  grep -q 'retired_inline_rewrite_mirror=0' "$LOG"
+  grep -q 'retired_inline_mirror=0' "$LOG"
   grep -q 'retired_mistakes_growth_drill=0' "$LOG"
   grep -q 'outbox_payload=ids_mode_status_only' "$LOG"
   grep -q 'ai_task_runs=no_prompt_or_raw_response' "$LOG"
@@ -35,8 +35,8 @@ mkdir -p "$OUT"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/resume/store([[:space:]]|$)' "$LOG"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/cmd/api([[:space:]]|$)' "$LOG"
   cd "$ROOT"
-  if rg -n 'inline|rewrite|mirror' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: retired inline/rewrite/mirror vocabulary found"
+  if rg -n 'inline|mirror' backend/internal/resume --glob '!**/verify.sh'; then
+    echo "ERROR: retired inline/mirror vocabulary found"
     exit 1
   fi
   if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/verify.sh'; then

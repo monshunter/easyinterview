@@ -29,7 +29,7 @@ grep -Eq '^[[:space:]]*Tests[[:space:]]+[1-9][0-9]*[[:space:]]+passed' "$LOG_FIL
 }
 for spec in \
   PreviewStage.test.tsx \
-  useResumeStructuredMasterConfirm.test.tsx \
+  ResumeCreateFlow.test.tsx \
   mapParsedSummaryToStructuredProfileDraft.test.ts \
   CreateFlowIntegration.test.tsx \
   ResumeWorkshopAuthGate.test.tsx; do
@@ -38,8 +38,8 @@ for spec in \
     exit 1
   }
 done
-# Sanity-check 409 / 422 / replay branches exercised.
-for term in 409 422 replay; do
+# Sanity-check current D-20 preview confirm and removed guided branches exercised.
+for term in updateResume 422 guided; do
   grep -Fq "$term" "$LOG_FILE" || {
     echo "$SCENARIO_ID: branch $term was not run" >&2
     exit 1

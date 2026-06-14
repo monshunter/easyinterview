@@ -11,15 +11,13 @@ mkdir -p "$OUT"
   echo "RUNNER make validate-fixtures"
   cd "$ROOT"
   make validate-fixtures
-  echo "RUNNER go test cmd/api branch version HTTP scenario"
+  echo "RUNNER go test cmd/api flat resume duplicate HTTP scenario"
   cd "$ROOT/backend"
-  go test ./cmd/api -run 'TestResumeBranchVersionHTTPScenario|TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware' -count=1 -v
-  echo "RUNNER go test resume handler branch and fixture parity"
-  go test ./internal/resume/handler -run 'TestBranchResumeVersion|TestBranchResumeVersionFixtureParity' -count=1 -v
-  echo "RUNNER go test resume service branch"
-  go test ./internal/resume -run 'TestBranchResumeVersion' -count=1 -v
-  echo "RUNNER go test resume store unit branch"
-  go test ./internal/resume/store -run 'TestRepositoryExposesResumeAssetMethods|TestBranchVersion' -count=1 -v
-  echo "RUNNER go test resume store live branch integration"
-  DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" go test ./internal/resume/store -tags=integration -run TestBranchVersion -count=1 -v
+  go test ./cmd/api -run 'TestResumeRegisterListHTTPScenario|TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware' -count=1 -v
+  echo "RUNNER go test resume handler duplicate and fixture parity"
+  go test ./internal/resume/handler -run 'TestDuplicateResume(Returns201|AllowsEmptyBody|ValidationAndErrors|RequiresIdempotencyKey|FixtureParity)' -count=1 -v
+  echo "RUNNER go test resume service duplicate"
+  go test ./internal/resume -run 'TestDuplicateResume(AllocatesNewIDAndAppliesProfile|ValidationAndStoreErrors)' -count=1 -v
+  echo "RUNNER go test resume store unit duplicate"
+  go test ./internal/resume/store -run 'Test(DuplicateResumeCopiesSourceSnapshotAndAppliesProfile|DuplicateResumeSourceNotFoundRollsBack|RepositoryExposesFlatResumeMethods)' -count=1 -v
 } | tee "$OUT/trigger.log"

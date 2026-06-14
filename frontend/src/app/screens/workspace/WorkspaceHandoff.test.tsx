@@ -96,7 +96,7 @@ function renderWorkspace(nav: ReturnType<typeof vi.fn>) {
 }
 
 describe("WorkspaceHandoff (Phase 5.4)", () => {
-  it("CompanyIntelEmbed 'open' navigates to company_intel with targetJobId/jdId", async () => {
+  it("CompanyIntelEmbed 'open' stays on workspace with targetJobId/jdId", async () => {
     const nav = vi.fn();
     renderWorkspace(nav);
 
@@ -110,7 +110,7 @@ describe("WorkspaceHandoff (Phase 5.4)", () => {
 
     expect(nav).toHaveBeenCalled();
     const navCall = nav.mock.calls[0]![0] as Record<string, unknown>;
-    expect(navCall.name).toBe("company_intel");
+    expect(navCall.name).toBe("workspace");
     const params = navCall.params as Record<string, string>;
     expect(params.targetJobId).toBe(WORKSPACE_ROUTE.params.targetJobId);
     expect(params.jdId).toBe(WORKSPACE_ROUTE.params.jdId);

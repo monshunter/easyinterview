@@ -11,7 +11,10 @@ Validate the backend-resume baseline path for resume asset registration, get/lis
 
 ## 3. Given / When / Then
 
-Given two authenticated users and three resume input modes (`upload`, `paste`, `guided`), plus B2 fixtures for `registerResume`, `getResume`, and `listResumes`.
+Given two authenticated users and the two supported resume input modes
+(`upload`, `paste`), plus B2 fixtures for `registerResume`, `getResume`, and
+`listResumes`. The retired `guided` sourceType is covered only as an invalid
+input regression.
 
 When user A registers resumes, replays the same idempotency key, fetches one resume, lists the collection with cursor pagination, and user B attempts to fetch user A's asset.
 

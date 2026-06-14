@@ -11,15 +11,13 @@ mkdir -p "$OUT"
   echo "RUNNER make validate-fixtures"
   cd "$ROOT"
   make validate-fixtures
-  echo "RUNNER go test cmd/api resume version HTTP scenarios"
+  echo "RUNNER go test cmd/api retired resume version route gate"
   cd "$ROOT/backend"
-  go test ./cmd/api -run 'TestResumeConfirmStructuredMasterHTTPScenario|TestResumeVersionReadHTTPScenario|TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware' -count=1 -v
-  echo "RUNNER go test resume handler confirm and version parity"
-  go test ./internal/resume/handler -run 'Test(ConfirmStructuredMaster|ResumeVersionReadFixtureParity|GetResumeVersion|ListResumeVersions)' -count=1 -v
-  echo "RUNNER go test resume service version reads"
-  go test ./internal/resume -run 'Test(ConfirmStructuredMaster|GetAndListResumeVersions|ResumeVersionReadMapsStoreErrors)' -count=1 -v
-  echo "RUNNER go test resume store unit reads"
-  go test ./internal/resume/store -run 'Test(CreateStructuredMaster|GetVersionByID|ListVersionsByAsset)' -count=1 -v
-  echo "RUNNER go test resume store live integration"
-  DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" go test ./internal/resume/store -tags=integration -run 'TestStructuredMasterUnique|TestResumeVersionListPagination' -count=1 -v
+  go test ./cmd/api -run 'TestResumeVersionRoutesAreGonePerD20|TestGeneratedRouteCatalogHasNoResumeVersionOperations|TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware' -count=1 -v
+  echo "RUNNER go test resume handler flat reads"
+  go test ./internal/resume/handler -run 'Test(GetResume|GetResumeFixtureParity|GetResumeNotFoundAndCrossUserReturns404|ListResumesFixtureParity|ListResumesInvalidCursorReturnsUnprocessableEntity)' -count=1 -v
+  echo "RUNNER go test resume service flat reads"
+  go test ./internal/resume -run 'TestGetAndListResumesMapStoreRecordsWithUserScope|TestGetResumeMapsStoreNotFound' -count=1 -v
+  echo "RUNNER go test resume store flat reads"
+  go test ./internal/resume/store -run 'Test(GetScopesUserAndMapsStructuredProfile|ListCursorPagination|RepositoryExposesFlatResumeMethods)' -count=1 -v
 } | tee "$OUT/trigger.log"

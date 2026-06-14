@@ -5,14 +5,14 @@
 - `openapi/fixtures/Auth/getRuntimeConfig.json` `default`
 - `openapi/fixtures/Auth/getMe.json` `authenticated`
 - `openapi/fixtures/Uploads/createUploadPresign.json` `default`
-- `openapi/fixtures/Resumes/registerResume.json` `default` (upload) / `paste-text` / `guided-answers`
+- `openapi/fixtures/Resumes/registerResume.json` `default` (upload) / `paste-text`
 - `openapi/fixtures/Resumes/getResume.json` `default`
 
 ## Synthetic User Inputs
 
 - Upload tab：`alice.pdf` size 2048 bytes, mime `application/pdf`
 - Paste tab：`Hello, I am Alice and I lead frontend work.`
-- Guided tab：5 answers covering recentRole / direction / proofProject / metrics / target
+- Retired guided tab：negative only; the tab and panel must not render.
 
 ## Mock Harness Notes
 

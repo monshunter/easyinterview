@@ -9,19 +9,19 @@ mkdir -p "$OUT"
   echo "E2E.P0.079 trigger"
   date -u '+timestamp=%Y-%m-%dT%H:%M:%SZ'
   cd "$ROOT"
-  echo "RUNNER make validate-fixtures suggestion decision fixtures"
+  echo "RUNNER make validate-fixtures D-20 flat resume fixtures"
   make validate-fixtures
   cd "$ROOT/backend"
-  echo "RUNNER go test cmd/api suggestion accept reject"
-  go test ./cmd/api -run TestResumeSuggestionAcceptRejectHTTPScenario -count=1 -v
-  echo "RUNNER go test handler suggestion fixture parity"
-  go test ./internal/resume/handler -run TestResumeSuggestionDecisionFixtureParity -count=1 -v
-  echo "RUNNER go test service suggestion decision"
-  go test ./internal/resume -run TestResumeSuggestionDecision -count=1 -v
-  echo "RUNNER go test store live suggestion decision CAS"
-  DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" go test ./internal/resume/store -tags=integration -run TestResumeSuggestionDecisionCASIsolationAndProfileStability -count=1 -v
-  echo "evidence status=accepted"
-  echo "evidence status=rejected"
-  echo "evidence reason=SUGGESTION_ALREADY_DECIDED"
-  echo "evidence structured_profile=unchanged"
+  echo "RUNNER go test cmd/api retired suggestion routes"
+  go test ./cmd/api -run 'TestResumeVersionRoutesAreGonePerD20|TestGeneratedRouteCatalogHasNoResumeVersionOperations' -count=1 -v
+  echo "RUNNER go test handler flat save fixture parity"
+  go test ./internal/resume/handler -run 'Test(UpdateResumeFixtureParity|DuplicateResumeFixtureParity|ResumeTailorFixtureParity)' -count=1 -v
+  cd "$ROOT"
+  echo "RUNNER frontend vitest rewrites accept-only save flow"
+  pnpm --filter @easyinterview/frontend exec vitest run --reporter=verbose \
+    src/app/screens/resume-workshop/tabs/ResumeRewritesTab.test.tsx \
+    src/app/screens/resume-workshop/components/ResumeDetailView.test.tsx
+  echo "evidence retired_accept_reject_routes=gone"
+  echo "evidence rewrites_accept_only=true"
+  echo "evidence save_paths=updateResume_or_duplicateResume"
 } | tee "$OUT/trigger.log"

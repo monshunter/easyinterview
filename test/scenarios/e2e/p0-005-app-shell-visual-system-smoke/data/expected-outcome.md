@@ -2,7 +2,7 @@
 
 - TopBar 渲染 `app-shell-topbar` 元素，根级 className 命中 `ei-shell-topbar`，
   primary nav / display controls / user area 子节点 className 命中
-  `ei-topbar-nav` / `ei-topbar-controls` / `ei-topbar-user`，五入口与显示控制
+  `ei-topbar-nav` / `ei-topbar-controls` / `ei-topbar-user`，四入口与显示控制
   按 ui-design 源同步。
 - 切换主题 / 暗色后 `<html>` 的 `data-theme` / `data-mode` 即时翻转；
   `getComputedStyle(documentElement)` 在 warm/light 下读到
@@ -14,9 +14,9 @@
   token 没有被覆盖；`topbar-custom-accent-hue` / `-chroma` slider 渲染。
 - `route-auth_login` 渲染 `ei-auth-shell` 双列布局，`auth-login-email-form` /
   `auth-login-submit-email` / `auth-login-{password,oauth}-stub` 全部存在；
-  `route-profile` / `route-settings` / `route-company_intel` 渲染
-  `ei-screen-shell` + `ei-screen-card`，placeholder 卡片包含
-  `ei-skeleton-stripe`。
+  `route-profile` / `route-settings` 渲染 `ei-screen-shell` + `ei-screen-card`；
+  retired `company_intel` 输入不渲染 `route-company_intel`，而是归一到
+  workspace 空态。
 - retired 入口 / 旧路由 / 旧文案在 DOM 中均不可见。
 - `ui-design/src/{app,screen-auth,screen-profile}.jsx` 字面量尺寸（height 58
   / padding 0 32 / gap 28 / max-width 1160 / padding 54 48 96 / grid

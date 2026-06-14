@@ -16,19 +16,19 @@ mkdir -p "$OUT"
   grep -q 'TestResumeParseDrainerHTTPScenario' "$OUT/trigger.log"
   grep -q 'TestResumeParseDrainerRetryableFailureScenario' "$OUT/trigger.log"
   grep -q 'TestBuildResumeRuntimeWiresRoutesDrainerAndDeterministicAI' "$OUT/trigger.log"
-  grep -q 'TestParseHandlerUsesThreeSourceInputsAndWritesReadyOutbox' "$OUT/trigger.log"
+  grep -q 'TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox' "$OUT/trigger.log"
   grep -q 'TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox' "$OUT/trigger.log"
   grep -q 'TestParseHandlerRetriesFailedAssetBackToProcessing' "$OUT/trigger.log"
   grep -q 'TestParseHandlerObservedAIWritesResumeTaskRunColumns' "$OUT/trigger.log"
   grep -q 'TestParseHandlerPIIRedlineForLogsAuditTaskRunsAndOutbox' "$OUT/trigger.log"
-  grep -q 'TestCompleteParseSuccessWritesReadyStateAndCompletedOutboxAtomically' "$OUT/trigger.log"
+  grep -q 'TestCompleteParseSuccessWritesReadyStateProfileAndCompletedOutboxAtomically' "$OUT/trigger.log"
   grep -q 'TestCompleteParseFailureMarksFailedWithoutCompletedOutbox' "$OUT/trigger.log"
-  grep -q 'TestResumeAssetsIntegrationCRUDStateIsolationPaginationAndRollback' "$OUT/trigger.log"
+  grep -q 'TestResumesIntegrationCRUDStateIsolationPaginationAndRollback' "$OUT/trigger.log"
   cd "$ROOT/backend"
   go test ./cmd/api -run TestResumeParseDrainerHTTPScenario -count=1
   go test ./internal/resume/jobs -run 'TestParseHandlerPIIRedlineForLogsAuditTaskRunsAndOutbox' -count=1
   cd "$ROOT"
-  if rg -n 'inline|rewrite|mirror' backend/internal/resume backend/cmd/api/resume_parse_drainer_scenario_test.go --glob '!**/verify.sh'; then
+  if rg -n 'inline|mirror' backend/internal/resume backend/cmd/api/resume_parse_drainer_scenario_test.go --glob '!**/verify.sh'; then
     exit 1
   fi
   if rg -n 'failed_retryable' backend/internal/resume backend/cmd/api/resume_parse_drainer_scenario_test.go; then
@@ -42,5 +42,5 @@ mkdir -p "$OUT"
   echo "parse status: queued -> processing -> ready or failed"
   echo "observability: AI task run typed columns covered"
   echo "outbox: ready-only resume.parse.completed payload covered"
-  echo "resume_versions: unchanged before Preview Confirm covered by integration gate"
+  echo "resumes.structured_profile: ready-state persistence covered by integration gate"
 } | tee "$OUT/verify.log"

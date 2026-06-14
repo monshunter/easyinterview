@@ -173,7 +173,7 @@ async function goToHydratedWorkspace(page: import("@playwright/test").Page) {
       jobId: WORKSPACE_TARGET_ID,
       jdId: `jd-${WORKSPACE_TARGET_ID}`,
       planId: WORKSPACE_PLAN_ID,
-      resumeVersionId: WORKSPACE_RESUME_ID,
+      resumeId: WORKSPACE_RESUME_ID,
       roundId: "round-technical-1",
       roundName: "Technical Round 1",
     },

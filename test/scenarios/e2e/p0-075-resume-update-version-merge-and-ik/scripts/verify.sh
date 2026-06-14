@@ -16,29 +16,28 @@ mkdir -p "$OUT"
   fi
   grep -q 'RUNNER make validate-fixtures' "$LOG"
   grep -q 'validate-fixtures: OK' "$LOG"
-  grep -q 'RUNNER go test cmd/api resume update HTTP scenario' "$LOG"
-  grep -q 'TestResumeUpdateVersionHTTPScenario' "$LOG"
+  grep -q 'RUNNER go test cmd/api flat resume update HTTP scenario' "$LOG"
+  grep -q 'TestResumeRegisterListHTTPScenario' "$LOG"
   grep -q 'TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware' "$LOG"
   grep -q 'RUNNER go test resume handler update and fixture parity' "$LOG"
-  grep -q 'TestUpdateResumeVersionFixtureParity' "$LOG"
-  grep -q 'TestUpdateResumeVersionIdempotencyMismatch' "$LOG"
+  grep -q 'TestUpdateResumeFixtureParity' "$LOG"
+  grep -q 'TestUpdateResumeOverwritesEditableFields' "$LOG"
+  grep -q 'TestUpdateResumeRequiresIdempotencyKey' "$LOG"
   grep -q 'RUNNER go test resume service update' "$LOG"
-  grep -q 'TestUpdateResumeVersionSanitizesPatchAndMapsResponse' "$LOG"
-  grep -q 'TestUpdateResumeVersionValidationAndStoreErrors' "$LOG"
+  grep -q 'TestUpdateResumeOverwritesAndStripsProvenance' "$LOG"
+  grep -q 'TestUpdateResumeValidationAndStoreErrors' "$LOG"
   grep -q 'RUNNER go test resume store unit update' "$LOG"
-  grep -q 'TestUpdateVersionPatchMergesProfileAndScopesUser' "$LOG"
-  grep -q 'TestUpdateVersionPatchNotFoundRollsBack' "$LOG"
-  grep -q 'RUNNER go test resume store live update integration' "$LOG"
-  grep -q 'TestResumeVersionUpdatePatchMergeCrossUserAndDeleted' "$LOG"
+  grep -q 'TestUpdateResumeOverwritesProfileAndScopesUser' "$LOG"
+  grep -q 'TestUpdateResumeNotFound' "$LOG"
   grep -Eq '^PASS$' "$LOG"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/cmd/api([[:space:]]|$)' "$LOG"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/resume/handler([[:space:]]|$)' "$LOG"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/resume/store([[:space:]]|$)' "$LOG"
   cd "$ROOT/backend"
-  go test ./internal/resume/handler -run TestUpdateResumeVersionFixtureParity -count=1
+  go test ./internal/resume/handler -run TestUpdateResumeFixtureParity -count=1
   cd "$ROOT"
-  if rg -n 'inline|rewrite|mirror' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: retired inline/rewrite/mirror vocabulary found"
+  if rg -n 'inline|mirror' backend/internal/resume --glob '!**/verify.sh'; then
+    echo "ERROR: retired inline/mirror vocabulary found"
     exit 1
   fi
   if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/verify.sh'; then
@@ -50,7 +49,7 @@ mkdir -p "$OUT"
     exit 1
   fi
   echo "method=cmd-api-http"
-  echo "fixture parity: updateResumeVersion default/idempotency-replay/validation-error-422"
-  echo "DB state: partial structured_profile merge, cross-user isolation, deleted-row isolation, rollback"
+  echo "fixture parity: updateResume default/idempotency-replay/validation-error-422"
+  echo "DB state: flat structured_profile overwrite, cross-user isolation, not-found rollback"
   echo "privacy: no raw resume or profile text in scenario evidence"
 } | tee "$OUT/verify.log"

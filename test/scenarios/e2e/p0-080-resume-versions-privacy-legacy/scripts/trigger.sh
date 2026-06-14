@@ -19,11 +19,11 @@ mkdir -p "$OUT"
   go test ./cmd/api -run 'TestResumeTailorDrainerHTTPScenario|TestResumeTailorDrainerFailureScenario' -count=1 -v
   cd "$ROOT"
   echo "RUNNER rg retired inline rewrite mirror"
-  if rg -n 'inline|rewrite|mirror' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: retired inline/rewrite/mirror vocabulary found"
+  if rg -n 'inline|mirror' backend/internal/resume --glob '!**/verify.sh'; then
+    echo "ERROR: retired inline/mirror vocabulary found"
     exit 1
   fi
-  echo "evidence retired_inline_rewrite_mirror=0"
+  echo "evidence retired_inline_mirror=0"
   echo "RUNNER rg retired mistakes growth drill"
   if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/verify.sh'; then
     echo "ERROR: retired mistakes/growth/drill vocabulary found"

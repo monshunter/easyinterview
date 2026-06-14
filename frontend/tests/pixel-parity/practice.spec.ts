@@ -120,7 +120,7 @@ async function goToPractice(
       planId: PLAN_ID,
       targetJobId: TARGET_JOB_ID,
       jdId: `jd-${TARGET_JOB_ID}`,
-      resumeVersionId: RESUME_ID,
+      resumeId: RESUME_ID,
       roundId: "round-technical-1",
       mode: "text",
       modality: "text",

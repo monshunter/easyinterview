@@ -15,7 +15,7 @@
 
 - Paste tab → submit → ParseFlow → polling 模拟 failed
 - 点击 "重试解析" → polling 模拟 ready
-- Guided tab → submit → polling 模拟 8 attempt processing → 超过上限触发 PARSE_TIMEOUT
+- Paste tab → submit → polling 模拟 8 attempt processing → 超过上限触发 PARSE_TIMEOUT
 - 任一 ParseFlow 阶段点击 "取消并返回修改" → 验证输入保留
 
 ## 3 Then
@@ -23,7 +23,7 @@
 - `resume-parse-failed-state` testid 命中 failed 路径
 - errorCode 映射：`AI_TIMEOUT_RETRYABLE`、`PARSE_TIMEOUT` 文案
 - "重试解析" 触发 polling 重启（不重新 registerResume）
-- "取消并返回修改" 回到 `resume-create-flow` stage='input' 且原 rawText / guidedAnswers / pickedFile 保留
+- "取消并返回修改" 回到 `resume-create-flow` stage='input' 且原 rawText / pickedFile 保留
 - 隐私：失败 toast 内容不含 raw text / parsedSummary / parsedTextSnapshot
 
 ## 4 Verification Entry

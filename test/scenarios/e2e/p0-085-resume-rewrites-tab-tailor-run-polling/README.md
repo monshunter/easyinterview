@@ -7,15 +7,15 @@
 
 ## 1 Given
 
-- Fixture-backed mock-first client: `Resumes/branchResumeVersion.json ai-select-202-with-job` + `ResumeTailor/requestResumeTailor.json default / idempotency-replay` + `ResumeTailor/getResumeTailorRun.json queued / generating / default(ready) / failed` + `Resumes/getResumeVersion.json targeted-with-suggestions`.
+- Fixture-backed mock-first client: `ResumeTailor/requestResumeTailor.json default / idempotency-replay` + `ResumeTailor/getResumeTailorRun.json queued / generating / default(ready) / failed`.
 - Deterministic harness: `useResumeTailorRunPolling` consumes ordered fixture responses via Vitest fake-timer chain (no synthetic schema).
-- User authenticated; lang default; MASTER + targetJobId already resolved (Phase 1 source state).
+- User authenticated; lang default; flat resume + optional targetJobId already resolved.
 - Phase 0 real-backend preflight: `requestResumeTailor` + `getResumeTailorRun` generated client + server interface + handler + cmd/api route real.
 
 ## 2 When
 
-- ai_select branch submission lands → URL carries `tailorRunId` → Rewrites Tab mounts and starts polling.
-- Polling sequence queued → generating → ready; the `onReady` callback refetches the version.
+- URL carries `tailorRunId` or user requests rerun → Rewrites Tab starts polling.
+- Polling sequence queued → generating → ready; the `onReady` callback updates the current suggestions surface.
 - User clicks `重新运行改写` with `mode='gap_review'` → `useRequestResumeTailor` requests a new tailor run.
 - Second sequence: queued → generating → failed → user clicks Retry → restart polling.
 - Third sequence: max-attempts overflow → timeout.
@@ -27,7 +27,7 @@
 - Polling banner testid `resume-rewrites-polling-banner` renders while polling, replaced by failed banner (`resume-rewrites-failed-banner` + role=alert) on terminal failure / timeout.
 - `getResumeTailorRun` is called with a single positional arg (no `Idempotency-Key`), proving read-only no-IK contract.
 - `requestResumeTailor` carries `Idempotency-Key` (v1 wire format); same body fingerprint replays the key, mode change rotates it.
-- After ready, `getResumeVersion` is refetched (covered by ResumeRewritesTabContainer.onVersionRefreshed via versionQuery.retry).
+- After ready, the hook fires `onReady` exactly once so the parent surface can refresh current suggestions.
 - Failed / timeout banners surface a localized retry CTA (`resume-rewrites-polling-retry`); the underlying hook `retry()` resets the attempt counter and re-enters polling.
 - Unmount cancels the active setTimeout — Vitest fake timers verify no further `getResumeTailorRun` calls after unmount.
 - Privacy: originalBullet / suggestedBullet / matchSummary text never leaks into URL / localStorage / fetch transport log.

@@ -23,11 +23,11 @@ mkdir -p "$OUT"
   grep -q 'TestRegisterFileObjectRejectsMissingObjectAndIllegalStates' "$OUT/trigger.log"
   grep -q 'TestCreateWithParseJobRollsBackWhenJobInsertFails' "$OUT/trigger.log"
   grep -q 'TestListCursorPagination' "$OUT/trigger.log"
-  grep -q 'TestResumeAssetsIntegrationCRUDStateIsolationPaginationAndRollback' "$OUT/trigger.log"
+  grep -q 'TestResumesIntegrationCRUDStateIsolationPaginationAndRollback' "$OUT/trigger.log"
   cd "$ROOT/backend"
   go test ./internal/resume/handler -run 'Test(RegisterResumeFixtureParity|GetResumeFixtureParity|ListResumesFixtureParity)' -count=1
   cd "$ROOT"
-  if rg -n 'inline|rewrite|mirror' backend/internal/resume backend/cmd/api/resume_http_scenario_test.go --glob '!**/verify.sh'; then
+  if rg -n 'inline|mirror' backend/internal/resume backend/cmd/api/resume_http_scenario_test.go --glob '!**/verify.sh'; then
     exit 1
   fi
   if rg -n 'mistake|growth|drill' backend/internal/resume; then
@@ -39,6 +39,6 @@ mkdir -p "$OUT"
   fi
   echo "method=cmd-api-http"
   echo "fixture parity: registerResume/getResume/listResumes"
-  echo "DB state machine: asset/job atomic create, rollback, cursor pagination, cross-user isolation"
+  echo "DB state machine: resume/job atomic create, rollback, cursor pagination, cross-user isolation"
   echo "upload handoff: RegisterFileObject missing object and size mismatch rejection"
 } | tee "$OUT/verify.log"

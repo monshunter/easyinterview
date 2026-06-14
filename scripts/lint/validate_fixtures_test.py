@@ -63,12 +63,12 @@ IK_REQUIRED_OPERATION_IDS = {
 class FixtureSkeletonTest(unittest.TestCase):
     """Phase 1.1 structural contract."""
 
-    def test_sixty_operations_expected(self) -> None:
-        self.assertEqual(len(EXPECTED_OPERATIONS), 60)
+    def test_forty_three_operations_expected(self) -> None:
+        self.assertEqual(len(EXPECTED_OPERATIONS), 43)
 
-    def test_thirteen_unique_tags(self) -> None:
+    def test_twelve_unique_tags(self) -> None:
         tags = {tag for tag, *_ in EXPECTED_OPERATIONS}
-        self.assertEqual(len(tags), 13)
+        self.assertEqual(len(tags), 12)
 
     def test_each_fixture_file_exists(self) -> None:
         missing = []
@@ -171,14 +171,13 @@ PROVENANCE_OPERATIONS = {
     ],
     "appendSessionEvent": ["assistantAction.provenance"],
     "getFeedbackReport": ["provenance"],
+    "listTargetJobReports": ["items[*].provenance"],
     "getResumeTailorRun": ["provenance"],
     "getDebrief": ["provenance"],
-    "listResumeVersions": ["items[*].provenance", "items[*].structuredProfile.provenance"],
-    "getResumeVersion": ["provenance", "structuredProfile.provenance"],
-    "branchResumeVersion": ["provenance", "structuredProfile.provenance"],
-    "updateResumeVersion": ["provenance", "structuredProfile.provenance"],
-    "acceptResumeTailorSuggestion": ["provenance", "structuredProfile.provenance"],
-    "rejectResumeTailorSuggestion": ["provenance", "structuredProfile.provenance"],
+    "getResume": ["structuredProfile.provenance"],
+    "listResumes": ["items[*].structuredProfile.provenance"],
+    "updateResume": ["structuredProfile.provenance"],
+    "duplicateResume": ["structuredProfile.provenance"],
 }
 
 LIST_OPERATIONS = [
@@ -186,7 +185,6 @@ LIST_OPERATIONS = [
     "listTargetJobs",
     "listTargetJobReports",
     "listResumes",
-    "listResumeVersions",
 ]
 
 # *WithJob async operations and the JobType they must emit.
@@ -313,7 +311,7 @@ class FixtureContentTest(unittest.TestCase):
         )
 
     def test_resume_export_returns_501_with_correct_error_code(self) -> None:
-        data = _load_fixture("exportResumeVersion", "Resumes")
+        data = _load_fixture("exportResume", "Resumes")
         resp = data["scenarios"]["default"]["response"]
         self.assertEqual(resp["status"], 501)
         self.assertEqual(
@@ -484,10 +482,10 @@ class FixtureContentTest(unittest.TestCase):
         self.assertIn("rawText", paste_body)
         self.assertNotIn("fileObjectId", paste_body)
 
-        guided_body = scenarios["guided-answers"]["request"]["body"]
-        self.assertEqual("guided", guided_body["sourceType"])
-        self.assertIn("guidedAnswers", guided_body)
-        self.assertNotIn("fileObjectId", guided_body)
+        for scenario in scenarios.values():
+            body = scenario["request"]["body"]
+            self.assertIn(body["sourceType"], {"upload", "paste"})
+            self.assertNotIn("guidedAnswers", body)
 
     def test_list_resumes_represents_fileless_assets_without_file_object_id(self) -> None:
         scenarios = _load_fixture("listResumes", "Resumes")["scenarios"]
@@ -498,7 +496,7 @@ class FixtureContentTest(unittest.TestCase):
 
         self.assertIsInstance(by_source["upload"]["fileObjectId"], str)
         self.assertIsNone(by_source["paste"]["fileObjectId"])
-        self.assertIsNone(by_source["guided"]["fileObjectId"])
+        self.assertEqual({"upload", "paste"}, set(by_source))
 
     def test_uuid_format_ids_are_uuidv7_no_tmp_prefix(self) -> None:
         validator = _load_validator()

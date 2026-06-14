@@ -12,7 +12,7 @@ mkdir -p "$OUTPUT_DIR"
   pnpm --filter @easyinterview/frontend exec vitest run --reporter=verbose \
     src/app/screens/resume-workshop/components/ResumeDetailExport.test.tsx \
     src/app/screens/resume-workshop/components/ResumeDetailFixtureParity.test.tsx \
-    src/app/screens/resume-workshop/branch/ResumeBranchFlow.test.tsx \
+    src/app/screens/resume-workshop/components/ResumeDetailView.test.tsx \
     src/app/screens/resume-workshop/tabs/ResumeRewritesTab.test.tsx \
     src/app/screens/resume-workshop/tabs/ResumeEditTab.test.tsx
   echo "## frontend-build"

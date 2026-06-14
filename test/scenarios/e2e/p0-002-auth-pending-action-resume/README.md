@@ -9,7 +9,7 @@
 ## 1 Given
 
 未登录用户处于 `workspace` 路由下，有完整的 plan context（planId / targetJobId
-/ jdId / resumeVersionId / roundId）；fixture transport 提供
+/ jdId / resumeId / roundId）；fixture transport 提供
 `getMe` `unauthenticated`、`startAuthEmailChallenge` `default`、
 `verifyAuthEmailChallenge` `default`、`getMe` 切换为 `authenticated` 的
 mock auth 成功响应。
@@ -24,7 +24,7 @@ interview-context 参数；用户在 `auth_login` 输入邮箱、提交挑战、
 
 - 点击 `立即面试` 后立即进入 `auth_login`，TopBar `data-signed-in=false`。
 - 验证成功后 App 切换到 `practice`，`route-practice` 的 `data-route-params`
-  必须包含 planId / targetJobId / jdId / resumeVersionId / roundId 全部 5 个原始值。
+  必须包含 planId / targetJobId / jdId / resumeId / roundId 全部 5 个原始值。
 - `verify.sh` 负向 grep 必须确认 trigger.log 不出现 `route-auth_login`
   之外的旧 auth alias 与 prototype data 痕迹，且最终断言 5 个 interview
   context key 全部回填。

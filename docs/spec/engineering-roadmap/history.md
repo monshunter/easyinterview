@@ -1,13 +1,14 @@
 # Engineering Roadmap History
 
-> **版本**: 3.23
+> **版本**: 3.25
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-06-14
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-06-14 | 3.25 | 收口 D-17 / D-18 / D-20 后的 roadmap 残留：当前 UI 一级入口统一为四项；删除岗位推荐作为 P0 workstream 范围；把 `jd_match` / `company_intel` 纳入不得恢复的旧 route key；B2 / mock-first 计数统一为 43 operation。 | 当前 review + D-17/D-18/D-20 closure |
 | 2026-06-13 | 3.24 | 对齐 product-scope v2.1 D-20 简历扁平化：Resume Workshop workstream 行 scope 从「原始简历树 / 结构化主版本 / 岗位定制版本 / 版本详情」改为「扁平简历列表 / 上传 / 粘贴创建 / 解析预览确认 / 简历详情（预览 / 改写 / 编辑）/ 改写采纳覆盖或另存」；`frontend-resume-workshop` 001/002/003 与 `backend-resume` 001/002 标记 D-20 phase active。B2 freeze 口径 48→43 endpoint 随 contract impl 同步（mock-contract-suite 计数同步在 D-20 contract impl 阶段）。 | D-20 owner doc 对齐（B1/B4/B3/B2 + C7/C5/C9 + D-X/D-Z/D-Y） |
 | 2026-06-13 | 3.23 | 对齐 product-scope v2.1 D-17：岗位推荐模块整体删除；Home / Job Picks / Parse workstream 行更名 Home / Parse，描述改为 frontend-home spec v2.0（D-17 前端删除 + D-14 单次确认漏斗）与 backend-jobs-recommendations 001 Phase 9 删除收口；B2 freeze 口径同步 12 tag / 48 endpoint。 | backend-jobs-recommendations/001 Phase 9 + frontend-home-job-picks-and-parse/002 Phase 7 |
 | 2026-05-28 | 3.22 | 对齐 B2 D-25 与 auth 单入口资料补全：roadmap B2 摘要与 mock-first runway 从 59 operation 升到 60 operation，Q-1 从 magic link 旧口径更新为 email-code + first-party session cookie，并明确注册/登录合并为单一邮箱入口、首次资料补全后再恢复 pendingAction。 | backend-auth/001 Phase 8 + frontend-shell/001 Phase 9 |

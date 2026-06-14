@@ -13,25 +13,26 @@ if grep -Eq '^[[:space:]]*Test Files[[:space:]].*failed|^[[:space:]]*Tests[[:spa
 grep -Eq '^[[:space:]]*Test Files[[:space:]]+[1-9][0-9]*[[:space:]]+passed' "$LOG_FILE" || { echo "$SCENARIO_ID: no passing test files" >&2; exit 1; }
 grep -Eq '^[[:space:]]*Tests[[:space:]]+[1-9][0-9]*[[:space:]]+passed' "$LOG_FILE" || { echo "$SCENARIO_ID: no passing tests" >&2; exit 1; }
 for spec in \
-  ResumeBranchFlow.test.tsx \
-  useResumeBranchSubmit.test.tsx \
-  mapBranchFormToRequest.test.ts \
+  ResumeWorkshopScreen.test.tsx \
+  ResumeDetailView.test.tsx \
+  ResumeRewritesTab.test.tsx \
+  PreviewStage.test.tsx \
   ResumeWorkshopAuthGate.test.tsx \
   ; do
   grep -qF "$spec" "$LOG_FILE" || { echo "$SCENARIO_ID: spec $spec not exercised" >&2; exit 1; }
 done
 
-# Plan 003 §7.10-7.12 retired-grep gate (executable within the scenario)
+# D-20 flat-resume regression gate: branch flow and version operations stay retired.
 cd "$REPO_ROOT"
-if git grep -nE "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true" -- frontend/src/app/screens/resume-workshop/branch/ frontend/src/app/screens/resume-workshop/tabs/ > "$OUTPUT_DIR/retired-modules-grep.log"; then
+if rg -n "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true|ResumeBranchFlow|branchResumeVersion|seedStrategy|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion|updateResumeVersion" frontend/src/app/screens/resume-workshop --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/retired-modules-grep.log"; then
   echo "$SCENARIO_ID: retired modules grep matched something (see retired-modules-grep.log)" >&2
   exit 1
 fi
-if git grep -nE "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" -- frontend/src/app/screens/resume-workshop/branch/ frontend/src/app/screens/resume-workshop/tabs/ > "$OUTPUT_DIR/retired-tailor-mode-grep.log"; then
+if rg -n "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" frontend/src/app/screens/resume-workshop/tabs --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/retired-tailor-mode-grep.log"; then
   echo "$SCENARIO_ID: retired tailor mode grep matched something" >&2
   exit 1
 fi
-if git grep -nE "ui-design/src/(data|screen-resume-workshop)" -- frontend/src/app/screens/resume-workshop/branch/ frontend/src/app/screens/resume-workshop/tabs/ > "$OUTPUT_DIR/prototype-import-grep.log"; then
+if rg -n "ui-design/src/(data|screen-resume-workshop)" frontend/src/app/screens/resume-workshop/tabs --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/prototype-import-grep.log"; then
   echo "$SCENARIO_ID: prototype runtime import detected" >&2
   exit 1
 fi

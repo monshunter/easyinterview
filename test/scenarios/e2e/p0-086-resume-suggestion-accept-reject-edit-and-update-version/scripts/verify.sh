@@ -12,10 +12,10 @@ if grep -Eiq 'No test files found|No tests found|No test suite found|No test cas
 if grep -Eq '^[[:space:]]*Test Files[[:space:]].*failed|^[[:space:]]*Tests[[:space:]].*failed' "$LOG_FILE"; then echo "$SCENARIO_ID: failing vitest summary found" >&2; exit 1; fi
 grep -Eq '^[[:space:]]*Test Files[[:space:]]+[1-9][0-9]*[[:space:]]+passed' "$LOG_FILE" || { echo "$SCENARIO_ID: no passing test files" >&2; exit 1; }
 grep -Eq '^[[:space:]]*Tests[[:space:]]+[1-9][0-9]*[[:space:]]+passed' "$LOG_FILE" || { echo "$SCENARIO_ID: no passing tests" >&2; exit 1; }
-for spec in useTailorSuggestionDecision.test.tsx useResumeRewritesActions.test.tsx useUpdateResumeVersion.test.tsx ResumeEditTab.test.tsx; do
+for spec in PreviewStage.test.tsx ResumeRewritesTab.test.tsx ResumeDetailView.test.tsx ResumeEditTab.test.tsx; do
   grep -qF "$spec" "$LOG_FILE" || { echo "$SCENARIO_ID: spec $spec not exercised" >&2; exit 1; }
 done
 cd "$REPO_ROOT"
-if git grep -nE "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true" -- frontend/src/app/screens/resume-workshop/tabs/ > "$OUTPUT_DIR/retired-modules-grep.log"; then
+if rg -n "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion|updateResumeVersion" frontend/src/app/screens/resume-workshop/tabs frontend/src/app/screens/resume-workshop/components frontend/src/app/screens/resume-workshop/create --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/retired-modules-grep.log"; then
   echo "$SCENARIO_ID: retired modules grep matched" >&2; exit 1
 fi

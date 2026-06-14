@@ -37,12 +37,12 @@ describe("App shell", () => {
     expect(screen.getByTestId("route-home")).toBeInTheDocument();
   });
 
-  it("keeps chrome rendered for context routes (parse / report / company_intel)", () => {
-    // `parse` and `company_intel` still go through PlaceholderScreen — assert
-    // via route-${name}. `report` is now wired to ReportScreen; with no
+  it("keeps chrome rendered for context routes (parse / report)", () => {
+    // `parse` still goes through PlaceholderScreen — assert via route-${name}.
+    // `report` is now wired to ReportScreen; with no
     // sessionId it falls back to ReportMissingSessionState which still keeps
     // App chrome visible (per frontend-report-dashboard/001 §4 routing).
-    const placeholderContextRoutes = ["parse", "company_intel"] as const;
+    const placeholderContextRoutes = ["parse"] as const;
     for (const name of placeholderContextRoutes) {
       const { unmount } = render(<App initialRoute={{ name, params: {} }} />);
       expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
@@ -210,9 +210,10 @@ describe("App shell", () => {
     expect(screen.queryByTestId("route-generating")).not.toBeInTheDocument();
   });
 
-  it("company_intel route still renders PlaceholderScreen (out of scope)", () => {
+  it("company_intel route is retired and normalizes to workspace", () => {
     render(<App initialRoute={{ name: "company_intel", params: {} }} />);
-    expect(screen.getByTestId("route-company_intel")).toBeInTheDocument();
+    expect(screen.queryByTestId("route-company_intel")).not.toBeInTheDocument();
+    expect(screen.getByTestId("workspace-empty")).toBeInTheDocument();
   });
 
   it("report route mounts ReportScreen — dispatches missingSession when sessionId absent (frontend-report-dashboard/001 Phase 2)", () => {

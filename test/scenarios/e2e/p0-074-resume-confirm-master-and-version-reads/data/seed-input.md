@@ -5,19 +5,14 @@
 - User A: authenticated candidate who owns ready and processing resume assets.
 - User B: authenticated candidate without access to user A assets or versions.
 
-## Resume Assets
+## Flat Resume Rows
 
-- First asset: `parse_status='ready'`, used for `confirmResumeStructuredMaster`, `getResumeVersion`, and populated `listResumeVersions`.
-- Second asset: `parse_status='ready'`, used for empty `listResumeVersions`.
-- Third asset: `parse_status='processing'`, used for `PARSE_NOT_READY` validation.
-
-## Version Rows
-
-- One active `structured_master` row for the first asset after confirm.
-- Additional targeted rows seeded by the store integration gate to prove cursor pagination and `updated_at DESC, id DESC` ordering before Phase 5 branch endpoints exist.
+- Ready flat resumes owned by user A, each carrying `structured_profile`,
+  `display_name`, source fields, parse state, and updated timestamps.
+- Cross-user rows owned by user B, used to prove scoped 404/list isolation.
+- Cursor pagination rows ordered by `updated_at DESC, id DESC`.
 
 ## Fixture Inputs
 
-- `openapi/fixtures/Resumes/confirmResumeStructuredMaster.json`: `default`, `idempotency-replay`, `already-exists-409`, `validation-422`.
-- `openapi/fixtures/Resumes/getResumeVersion.json`: `default`, `not-found-404`.
-- `openapi/fixtures/Resumes/listResumeVersions.json`: `default`, `empty`, `paginated`.
+- `openapi/fixtures/Resumes/getResume.json`: `default`, `not-found`.
+- `openapi/fixtures/Resumes/listResumes.json`: `default`, `empty`, `paginated`.

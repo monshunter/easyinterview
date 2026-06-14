@@ -11,7 +11,7 @@ mkdir -p "$OUTPUT_DIR"
   pnpm --filter @easyinterview/frontend exec vitest run --reporter=verbose \
     src/app/screens/resume-workshop/create/ResumeCreateFlow.test.tsx \
     src/app/screens/resume-workshop/create/UploadTab.test.tsx \
-    src/app/screens/resume-workshop/create/PasteGuidedTab.test.tsx \
+    src/app/screens/resume-workshop/create/PreviewStage.test.tsx \
     src/app/screens/resume-workshop/create/hooks/useResumePresignUpload.test.tsx \
     src/app/screens/resume-workshop/create/hooks/useResumeRegistration.test.tsx \
     src/app/screens/resume-workshop/create/ParsingStage.test.tsx \

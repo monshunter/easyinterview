@@ -7,9 +7,10 @@ import scripts.lint.openapi_inventory as inventory
 
 
 class OpenAPIInventoryContractTest(unittest.TestCase):
-    def test_product_scope_v12_inventory_includes_delete_me(self) -> None:
-        # Current v1.0.0 pre-launch freeze after auth profile completion.
-        self.assertEqual(60, len(inventory.EXPECTED_OPERATIONS))
+    def test_product_scope_v21_inventory_includes_delete_me(self) -> None:
+        # Current v1.0.0 pre-launch freeze after D-17 JD match removal and
+        # D-20 flat resume contract.
+        self.assertEqual(43, len(inventory.EXPECTED_OPERATIONS))
         self.assertIn(("Auth", "delete", "/me", "deleteMe"), inventory.EXPECTED_OPERATIONS)
         self.assertIn(("delete", "/me"), inventory.IK_REQUIRED)
 
@@ -88,38 +89,46 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
 
     def test_resume_workshop_additive_inventory_is_resumes_tag_only(self) -> None:
         resume_ops = {
+            ("Resumes", "post", "/resumes", "registerResume"),
             ("Resumes", "get", "/resumes", "listResumes"),
-            ("Resumes", "get", "/resumes/{resumeAssetId}/versions", "listResumeVersions"),
-            ("Resumes", "get", "/resume-versions/{resumeVersionId}", "getResumeVersion"),
-            ("Resumes", "post", "/resume-versions", "branchResumeVersion"),
-            ("Resumes", "patch", "/resume-versions/{resumeVersionId}", "updateResumeVersion"),
-            ("Resumes", "post", "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept", "acceptResumeTailorSuggestion"),
-            ("Resumes", "post", "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject", "rejectResumeTailorSuggestion"),
-            ("Resumes", "post", "/resumes/{resumeAssetId}/archive", "archiveResumeAsset"),
-            ("Resumes", "post", "/resume-versions/{resumeVersionId}/exports", "exportResumeVersion"),
+            ("Resumes", "get", "/resumes/{resumeId}", "getResume"),
+            ("Resumes", "patch", "/resumes/{resumeId}", "updateResume"),
+            ("Resumes", "post", "/resumes/{resumeId}/duplicate", "duplicateResume"),
+            ("Resumes", "post", "/resumes/{resumeId}/archive", "archiveResume"),
+            ("Resumes", "post", "/resumes/{resumeId}/exports", "exportResume"),
         }
 
         for row in resume_ops:
             self.assertIn(row, inventory.EXPECTED_OPERATIONS)
 
+        retired_ops = {
+            "listResumeVersions",
+            "getResumeVersion",
+            "branchResumeVersion",
+            "updateResumeVersion",
+            "acceptResumeTailorSuggestion",
+            "rejectResumeTailorSuggestion",
+            "archiveResumeAsset",
+            "exportResumeVersion",
+        }
+        self.assertFalse(retired_ops & {opid for *_rest, opid in inventory.EXPECTED_OPERATIONS})
         self.assertNotIn("ResumeVersions", inventory.EXPECTED_TAGS)
-        self.assertIn("ResumeVersion", inventory.AI_PROVENANCE_SCHEMAS)
+        self.assertIn("Resume", inventory.AI_PROVENANCE_SCHEMAS)
         self.assertEqual(
             {
                 ("post", "/privacy/exports"): "PRIVACY_EXPORT_NOT_AVAILABLE",
-                ("post", "/resume-versions/{resumeVersionId}/exports"): "RESUME_EXPORT_NOT_AVAILABLE",
+                ("post", "/resumes/{resumeId}/exports"): "RESUME_EXPORT_NOT_AVAILABLE",
             },
             inventory.P0_501_ENDPOINTS,
         )
 
     def test_resume_workshop_side_effects_require_idempotency_key(self) -> None:
         for row in {
-            ("post", "/resume-versions"),
-            ("patch", "/resume-versions/{resumeVersionId}"),
-            ("post", "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept"),
-            ("post", "/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject"),
-            ("post", "/resumes/{resumeAssetId}/archive"),
-            ("post", "/resume-versions/{resumeVersionId}/exports"),
+            ("post", "/resumes"),
+            ("patch", "/resumes/{resumeId}"),
+            ("post", "/resumes/{resumeId}/duplicate"),
+            ("post", "/resumes/{resumeId}/archive"),
+            ("post", "/resumes/{resumeId}/exports"),
         }:
             self.assertIn(row, inventory.IK_REQUIRED)
 
@@ -200,15 +209,16 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
         schemas = data["components"]["schemas"]
 
-        self.assertEqual(["structured_master", "targeted"], schemas["ResumeVersionType"]["enum"])
-        self.assertEqual(["copy_master", "blank", "ai_select"], schemas["ResumeSeedStrategy"]["enum"])
-        self.assertEqual(["pending", "accepted", "rejected"], schemas["ResumeTailorSuggestionStatus"]["enum"])
+        self.assertNotIn("ResumeVersionType", schemas)
+        self.assertNotIn("ResumeSeedStrategy", schemas)
+        self.assertNotIn("ResumeTailorSuggestionStatus", schemas)
         self.assertIn("RESUME_EXPORT_NOT_AVAILABLE", schemas["ApiErrorCode"]["enum"])
 
-        resume_version = schemas["ResumeVersion"]
-        reachable = inventory.reachable_schemas(schemas, ["ResumeVersion"])
+        resume = schemas["Resume"]
+        reachable = inventory.reachable_schemas(schemas, ["Resume"])
         self.assertIn("GenerationProvenance", reachable)
-        self.assertIn("provenance", resume_version["required"])
+        self.assertEqual(["upload", "paste"], resume["properties"]["sourceType"]["enum"])
+        self.assertIn("structuredProfile", resume["properties"])
 
     def test_register_resume_contract_supports_fileless_sources(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
@@ -218,14 +228,15 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertNotIn("fileObjectId", register_resume["required"])
         self.assertIn("sourceType", register_resume["properties"])
         self.assertIn("rawText", register_resume["properties"])
-        self.assertIn("guidedAnswers", register_resume["properties"])
+        self.assertNotIn("guidedAnswers", register_resume["properties"])
+        self.assertEqual(["upload", "paste"], register_resume["properties"]["sourceType"]["enum"])
         self.assertEqual("string", register_resume["properties"]["fileObjectId"]["type"])
         self.assertTrue(register_resume["properties"]["fileObjectId"]["nullable"])
 
-        resume_asset = schemas["ResumeAsset"]
-        self.assertNotIn("fileObjectId", resume_asset["required"])
-        self.assertEqual("string", resume_asset["properties"]["fileObjectId"]["type"])
-        self.assertTrue(resume_asset["properties"]["fileObjectId"]["nullable"])
+        resume = schemas["Resume"]
+        self.assertNotIn("fileObjectId", resume["required"])
+        self.assertEqual("string", resume["properties"]["fileObjectId"]["type"])
+        self.assertTrue(resume["properties"]["fileObjectId"]["nullable"])
 
     def test_product_scope_semantic_invariants_reject_old_mistakes_scope(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))

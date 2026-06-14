@@ -1,8 +1,10 @@
-# E2E.P0.076 resume branch version sync paths
+# E2E.P0.076 flat resume duplicate sync paths
 
 ## 1. Purpose
 
-Validate the synchronous `branchResumeVersion` paths for `seedStrategy=copy_master` and `seedStrategy=blank`: route wiring, idempotency, parent / target ownership, targeted version persistence, fixture parity, and privacy / retired-vocabulary redlines.
+Validate the synchronous `duplicateResume` path for the D-20 flat resume model:
+route wiring, idempotency, source ownership, flat resume copy persistence,
+fixture parity, and privacy / retired-vocabulary redlines.
 
 ## 2. Requirements
 
@@ -11,11 +13,16 @@ Validate the synchronous `branchResumeVersion` paths for `seedStrategy=copy_mast
 
 ## 3. Given / When / Then
 
-Given a ready resume asset, one active structured master version owned by user A, one ready target job owned by user A, user B without access, and the B2 `branchResumeVersion` fixture.
+Given a ready flat resume owned by user A, user B without access, and the B2
+`duplicateResume` fixture.
 
-When user A branches with `copy_master`, branches with `blank`, replays the idempotency key, sends an invalid seed strategy, and user B or a foreign target job is used.
+When user A duplicates a resume, optionally overlays editable profile fields,
+replays the idempotency key, sends invalid input, or user B accesses the source.
 
-Then copy-master creates a targeted version that keeps parent profile content with server-reset branch provenance, blank creates an empty editable profile, idempotency replay returns the first result, invalid input returns 422, cross-user parent / target access returns 404, and no async job is created for synchronous strategies.
+Then duplicate creates a new flat resume that keeps source snapshots and resets
+server provenance, idempotency replay returns the first result, invalid input
+returns 422, cross-user source access returns 404, and rollback leaves no orphan
+rows.
 
 ## 4. Scripts
 
@@ -43,4 +50,6 @@ Scenario evidence is written to `.test-output/e2e/p0-076-resume-branch-version-s
 
 ## 7. Offline Limits
 
-The `cmd/api` HTTP scenario proves route and middleware behavior. Store integration tests prove live database copy / blank semantics, parent / target isolation, and no-orphan rollback with concrete `DATABASE_URL`. Missing DB availability or skipped integration gates are scenario failures, not PASS.
+Focused handler/service/store gates prove route and middleware behavior, source
+copy semantics, source isolation, and no-orphan rollback. Skipped focused gates
+are scenario failures, not PASS.

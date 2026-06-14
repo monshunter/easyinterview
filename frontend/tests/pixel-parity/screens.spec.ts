@@ -13,10 +13,9 @@ import { expect, test } from "@playwright/test";
  *     we assert frontend's `ei-auth-shell` + `ei-auth-card` semantic
  *     classNames and the structural equivalent on ui-design (a sticky `<h1>`
  *     hero column + a card on the right).
- *   - `profile`, `settings`, `company_intel`, and other placeholder routes
- *     either require a signed-in session (profile / settings) or arrive only
- *     after navigating through D2-D6 business flows (company_intel via
- *     workspace). The DOM-anchor parity for those routes is covered by the
+ *   - `profile`, `settings`, and other protected routes either require a
+ *     signed-in session or arrive only after navigating through D2-D6 business
+ *     flows. The DOM-anchor parity for those routes is covered by the
  *     in-process scenario test
  *     `frontend/src/app/scenarios/p0-005-app-shell-visual-system-smoke.test
  *     .tsx`, which renders them with the production CSS bundle and asserts

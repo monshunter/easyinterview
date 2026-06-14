@@ -7,11 +7,11 @@ import { resolve } from "node:path";
  * ResumeCreateFlow / ResumeParseFlow / ResumePreviewConfirm screens.
  *
  * Truth source: ui-design/src/screen-resume-workshop.jsx, exporting:
- *   ResumeCreateFlow (Upload / Paste / Guided tabs)
+ *   ResumeCreateFlow (Upload / Paste tabs; guided intake removed by D-20)
  *   ResumeParseFlow (Agent Parsing 7-step ticker)
  *   ResumePreviewConfirm (structured draft preview + WHAT WILL BE SAVED + PARSE NOTES)
  *
- * The spec covers 5 logical viewports: Upload tab, Paste tab, Guided tab,
+ * The spec covers 5 logical viewports: Upload tab, Paste tab, guided-negative,
  * Parse Flow, and Preview Confirm, in both desktop (1440x900) and mobile
  * (390x844). The check baseline is DOM anchor + computed style + bounding
  * box parity, plus a non-empty screenshot smoke. Clean checkout PASS does
@@ -115,13 +115,6 @@ async function mockCreateFlowApis(
             }
           : response.body;
       await fulfillJson(route, response.status, body, response.headers);
-      return;
-    }
-    if (/^\/resumes\/[^/]+\/structured-master$/.test(path)) {
-      await fulfillFixture(
-        route,
-        "openapi/fixtures/Resumes/confirmResumeStructuredMaster.json",
-      );
       return;
     }
     if (path === "/uploads/presign") {
@@ -235,15 +228,14 @@ test.describe("ResumeCreateFlow pixel parity — input stages", () => {
     expect(buf.byteLength).toBeGreaterThan(0);
   });
 
-  test("Guided tab — 5 step nav anchors visible", async ({ page }) => {
+  test("Guided tab is removed by D-20 and cannot be selected", async ({ page }) => {
     await gotoCreateFlow(page);
-    await page.getByTestId("resume-create-tab-guided").click();
-    await expect(page.getByTestId("resume-create-guided-panel")).toBeVisible();
-    for (let i = 1; i <= 5; i++) {
-      await expect(
-        page.getByTestId(`resume-create-guided-step-${i}`),
-      ).toBeVisible();
-    }
+    await expect(page.getByTestId("resume-create-tab-guided")).toHaveCount(0);
+    await expect(page.getByTestId("resume-create-guided-panel")).toHaveCount(0);
+    await expect(page.getByTestId("resume-create-flow")).toHaveAttribute(
+      "data-create-mode",
+      "upload",
+    );
     const buf = await page.locator("[data-testid='resume-create-flow']").screenshot();
     expect(buf.byteLength).toBeGreaterThan(0);
   });

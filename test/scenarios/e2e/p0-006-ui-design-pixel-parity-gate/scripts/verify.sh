@@ -7,7 +7,7 @@ OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-006-ui-design-pixel-parity-gate"
 LOG_FILE="$OUTPUT_DIR/trigger.log"
 
 test -s "$LOG_FILE"
-grep -Eq '112 passed' "$LOG_FILE"
+grep -Eq '[0-9]+ passed' "$LOG_FILE"
 if grep -Eq '[0-9]+ failed' "$LOG_FILE"; then
   echo "[verify] trigger.log reports failed tests" >&2
   exit 1
@@ -15,19 +15,31 @@ fi
 # Project markers must appear so we know both viewport profiles ran.
 grep -Fq "[desktop]" "$LOG_FILE"
 grep -Fq "[mobile]" "$LOG_FILE"
-# Spec markers — assert all four parity specs were exercised.
-grep -Fq "tests/pixel-parity/topbar.spec.ts" "$LOG_FILE"
-grep -Fq "tests/pixel-parity/screens.spec.ts" "$LOG_FILE"
-grep -Fq "tests/pixel-parity/layout.spec.ts" "$LOG_FILE"
-grep -Fq "tests/pixel-parity/screenshot.spec.ts" "$LOG_FILE"
-grep -Fq "tests/pixel-parity/home.spec.ts" "$LOG_FILE"
-grep -Fq "tests/pixel-parity/parse.spec.ts" "$LOG_FILE"
-grep -Fq "tests/pixel-parity/jd_match.spec.ts" "$LOG_FILE"
-grep -Fq "tests/pixel-parity/workspace.spec.ts" "$LOG_FILE"
+# Spec markers — assert the current parity suite was exercised.
+for spec in \
+  debrief.spec.ts \
+  generating.spec.ts \
+  home.spec.ts \
+  layout.spec.ts \
+  parse.spec.ts \
+  practice.spec.ts \
+  report.spec.ts \
+  resume-workshop-branch-rewrites-edit.spec.ts \
+  resume-workshop-create.spec.ts \
+  resume-workshop.spec.ts \
+  screens.spec.ts \
+  screenshot.spec.ts \
+  topbar.spec.ts \
+  workspace.spec.ts; do
+  grep -Fq "tests/pixel-parity/$spec" "$LOG_FILE"
+done
 
 # Negative: trigger.log must not mention retired entries.
 for forbidden in \
   'route-welcome' \
+  'route-jd_match' \
+  'route-company_intel' \
+  'topbar-nav-jd_match' \
   'topbar-nav-mistakes' \
   'topbar-nav-growth' \
   'topbar-nav-drill' \

@@ -7,7 +7,7 @@ interface ScenarioState {
   frontendOrigin: string;
   userId: string;
   userEmail: string;
-  resumeAssetId: string;
+  resumeId: string;
   sessionCookieName: string;
   sessionCookieValue: string;
 }
@@ -60,7 +60,7 @@ test("E2E.P0.099 full funnel import to next-round practice", async ({
     },
   ]);
 
-  await page.goto(`/?resumeVersionId=${encodeURIComponent(state.resumeAssetId)}`);
+  await page.goto(`/?resumeId=${encodeURIComponent(state.resumeId)}`);
   await expect(page.getByTestId("home-jd-textarea")).toBeVisible();
   await page.getByTestId("home-jd-textarea").fill(PRIVATE_JD);
 

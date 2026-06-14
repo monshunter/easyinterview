@@ -14,9 +14,9 @@ import { THEME_METADATA } from "../theme/themes.data";
 import type { UserContext } from "../../api/generated/types";
 
 /**
- * Five primary nav entries match docs/spec/frontend-shell/spec.md §2.1 and
- * docs/ui-design/auth-and-entry.md §4. Reports / company-intel / auth /
- * profile / settings are intentionally NOT promoted to first-level nav.
+ * Four primary nav entries match docs/spec/frontend-shell/spec.md §2.1 and
+ * docs/ui-design/auth-and-entry.md §4. Report, auth, profile, and settings
+ * routes are intentionally NOT promoted to first-level nav.
  *
  * Labels are rendered through the D1 i18n catalog. English RouteName keys stay
  * canonical so route-state tests and URL hashes do not depend on UI locale.

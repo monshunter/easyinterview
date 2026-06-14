@@ -19,7 +19,7 @@ practice fixture 数据就绪：`getPracticeSession` 提供 `default / missing-s
 ## 3 Then
 
 - 502 retry 复用同一 `clientEventId`（usePracticeEvents inflight cache）
-- 404 触发 PracticeSessionLostState；CTA nav workspace 携带 targetJobId / jdId / planId / resumeVersionId
+- 404 触发 PracticeSessionLostState；CTA nav workspace 携带 targetJobId / jdId / planId / resumeId
 - 409 mismatch / 409 strict-hint 通过 `practice.errors.sessionConflict / strictHintConflict` 文案在 ErrorState 渲染
 - raw `answerText` / `questionText` / `hint` / `provenance.modelId` 不出现在 console.log / URL / localStorage
 - AI provider key / prompt registry / AIClient / LLM endpoint 0 命中

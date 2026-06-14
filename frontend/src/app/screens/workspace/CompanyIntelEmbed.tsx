@@ -14,8 +14,8 @@ interface CompanyIntelEmbedProps {
 
 /**
  * Phase 5: CompanyIntelEmbed card — renders getTargetJob summary fields
- * only. Does NOT call getCompanyIntel (missing contract). "Open Company Intel"
- * navigates to company_intel route with targetJobId/jdId handoff.
+ * only. Does NOT call getCompanyIntel (missing contract). Company intel is an
+ * embedded-only surface, so the action stays on workspace with safe params.
  */
 export const CompanyIntelEmbed: FC<CompanyIntelEmbedProps> = ({
   companyName,
@@ -77,7 +77,7 @@ export const CompanyIntelEmbed: FC<CompanyIntelEmbedProps> = ({
         data-testid="workspace-companyintel-open"
         onClick={() =>
           navigate({
-            name: "company_intel",
+            name: "workspace",
             params: { targetJobId, jdId: jdId || "" },
           })
         }

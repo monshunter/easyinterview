@@ -2,8 +2,7 @@
 
 | 触发器 | Payload |
 |--------|---------|
-| `useRequestAuth` → `立即面试` | `PendingAction.route=practice`，params 含 `sessionId / planId / targetJobId / jdId / resumeVersionId / roundId / mode / modality` + 19 个 raw markers |
-| jd_match 直跳 | navigate `jd_match`，params 含 `tab=search / selectedJobMatchId / pendingJdMatchActionId` + 19 个 raw markers |
+| `useRequestAuth` → `立即面试` | `PendingAction.route=practice`，params 含 `sessionId / planId / targetJobId / jdId / resumeId / roundId / mode / modality` + 19 个 raw markers |
 | hostile `/auth/login` 直接打开 | `pendingRoute=workspace` + safe params + 19 个 raw markers |
 | hostile browser history popstate | `window.history.pushState` 写入 `/workspace?targetJobId=...&rawText=...#prompt` 与 raw `history.state` 后触发 `popstate` |
 

@@ -12,7 +12,9 @@
 点击 workspace-companyintel-open；点击 workspace-history-empty；隐私反查；旧入口负向 grep
 
 ## 3 Then
-- A: nav("company_intel", {targetJobId, jdId})，getCompanyIntel 调用 0
+- A: 点击 company-intel embed 的打开动作会留在 `workspace` route，并保留
+  `{targetJobId, jdId}`；独立 `company_intel` route 不 materialize，
+  getCompanyIntel 调用 0
 - B: history 区域 EmptyHistory / disabled placeholder，点击不触发 report nav
 - D: JD原文/简历正文/questionText 不在 console/URL/localStorage/telemetry
 - E: 旧 testid + 旧 route alias + prototype data import grep 0 命中

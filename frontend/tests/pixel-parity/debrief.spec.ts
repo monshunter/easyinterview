@@ -35,7 +35,7 @@ interface OperationFixture {
 
 const TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000002000";
 const SESSION_ID = "01918fa0-0000-7000-8000-000000005000";
-const RESUME_VERSION_ID = "0195f2d0-0001-7000-8000-000000000202";
+const RESUME_ID = "01918fa0-0000-7000-8000-000000001000";
 
 function fixtureResponse(relativePath: string, scenario = "default") {
   const absolutePath = resolve(process.cwd(), "..", relativePath);
@@ -92,10 +92,10 @@ async function mockDebriefApis(page: import("@playwright/test").Page) {
       );
       return;
     }
-    if (/^\/resume-versions\/[^/]+$/.test(path)) {
+    if (/^\/resumes\/[^/]+$/.test(path)) {
       await fulfillFixture(
         route,
-        "openapi/fixtures/Resumes/getResumeVersion.json",
+        "openapi/fixtures/Resumes/getResume.json",
       );
       return;
     }
@@ -165,7 +165,7 @@ async function goToDebrief(
 ) {
   await mockDebriefApis(page);
   await page.goto(
-    `/#route=${routeName}&targetJobId=${TARGET_JOB_ID}&sessionId=${SESSION_ID}&resumeVersionId=${RESUME_VERSION_ID}`,
+    `/#route=${routeName}&targetJobId=${TARGET_JOB_ID}&sessionId=${SESSION_ID}&resumeId=${RESUME_ID}`,
   );
   await page.waitForSelector("[data-testid='route-debrief']");
   await page.waitForSelector("[data-testid='debrief-guided-current']");

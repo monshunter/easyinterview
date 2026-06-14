@@ -7,7 +7,7 @@
 
 ## 1 Given
 
-用户已登录，workspace fixture 数据就绪：`getTargetJob=with-rounds`、`getResume=default`、`getPracticePlan=default(ready)`。`InterviewContext` 通过 route param 传入了 `targetJobId/jdId/resumeVersionId/roundId`。
+用户已登录，workspace fixture 数据就绪：`getTargetJob=with-rounds`、`getResume=default`、`getPracticePlan=default(ready)`。`InterviewContext` 通过 route param 传入了 `targetJobId/jdId/resumeId/roundId`。
 
 ## 2 When
 

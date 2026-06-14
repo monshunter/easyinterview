@@ -19,7 +19,7 @@ practice fixture 数据就绪：`getPracticeSession=default / completing`；`app
 
 - body 仅 `{clientCompletedAt}`，display 字段（mode/modality/practiceMode/practiceGoal/hintUsed/hintCount）不出现在 body
 - request 必含 `Idempotency-Key` header；retry 复用同一 key；replay scenario 同 key 二次返回首次 response
-- nav `generating` 携带稳定 InterviewContext ID（planId / targetJobId / jdId / resumeVersionId / roundId / sessionId / reportId）+ PracticeDisplayContext（mode / modality / practiceMode / practiceGoal / hintUsed / hintCount）
+- nav `generating` 携带稳定 InterviewContext ID（planId / targetJobId / jdId / resumeId / roundId / sessionId / reportId）+ PracticeDisplayContext（mode / modality / practiceMode / practiceGoal / hintUsed / hintCount）
 - URL params 不含 raw `answerText / questionText / hint / promptVersion / rubricVersion / modelId`
 - 双击 finish CTA 仅一次 POST + 一次 nav
 - 负向断言：`getFeedbackReport` / `createPracticeVoiceTurn` 调用次数 = 0；旧 testid / 旧 route alias / `Idempotency-Key.*appendSessionEvent` 全部 0 命中

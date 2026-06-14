@@ -11,7 +11,8 @@ Validate the backend-resume async parse lifecycle from queued `resume_parse` job
 
 ## 3. Given / When / Then
 
-Given registered resume assets for `upload`, `paste`, and `guided` sources, an in-process `resume_parse` drainer, and a deterministic A3/F3-compatible AI client.
+Given registered resume assets for `upload` and `paste` sources, an in-process
+`resume_parse` drainer, and a deterministic A3/F3-compatible AI client.
 
 When the drainer claims queued jobs and invokes the resume parse handler for success, invalid output, timeout, and retry-exhausted variants.
 

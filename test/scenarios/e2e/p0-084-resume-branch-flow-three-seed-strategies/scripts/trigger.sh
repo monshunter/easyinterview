@@ -9,8 +9,9 @@ mkdir -p "$OUTPUT_DIR"
   cd "$REPO_ROOT"
   "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend exec vitest run --reporter=verbose \
-    src/app/screens/resume-workshop/branch/ResumeBranchFlow.test.tsx \
-    src/app/screens/resume-workshop/branch/hooks/useResumeBranchSubmit.test.tsx \
-    src/app/screens/resume-workshop/branch/adapters/mapBranchFormToRequest.test.ts \
+    src/app/screens/resume-workshop/ResumeWorkshopScreen.test.tsx \
+    src/app/screens/resume-workshop/components/ResumeDetailView.test.tsx \
+    src/app/screens/resume-workshop/tabs/ResumeRewritesTab.test.tsx \
+    src/app/screens/resume-workshop/create/PreviewStage.test.tsx \
     src/app/screens/resume-workshop/ResumeWorkshopAuthGate.test.tsx
 ) | tee "$OUTPUT_DIR/trigger.log"

@@ -25,6 +25,7 @@ interface OperationFixture {
 
 const REPORT_ID = "01918fa0-0000-7000-8000-000000007000";
 const SESSION_ID = "01918fa0-0000-7000-8000-000000005000";
+const RESUME_ID = "01918fa0-0000-7000-8000-000000004000";
 
 function fixtureResponse(relativePath: string, scenario = "default") {
   const absolutePath = resolve(process.cwd(), "..", relativePath);
@@ -59,8 +60,8 @@ async function mockReportApis(page: import("@playwright/test").Page) {
     if (url.includes("/targets/")) {
       return fulfillFixture(route, "openapi/fixtures/TargetJobs/getTargetJob.json");
     }
-    if (url.includes("/resume-versions/")) {
-      return fulfillFixture(route, "openapi/fixtures/Resumes/getResumeVersion.json");
+    if (url.includes("/resumes/")) {
+      return fulfillFixture(route, "openapi/fixtures/Resumes/getResume.json");
     }
     if (url.endsWith("/runtime/config")) {
       return fulfillFixture(route, "openapi/fixtures/Auth/getRuntimeConfig.json");
@@ -77,7 +78,7 @@ test.describe("report dashboard parity", () => {
     page,
   }) => {
     await mockReportApis(page);
-    await page.goto(`/#route=report&reportId=${REPORT_ID}&sessionId=${SESSION_ID}&targetJobId=01918fa0-0000-7000-8000-000000002000&resumeVersionId=01918fa0-0000-7000-8000-000000004000`);
+    await page.goto(`/#route=report&reportId=${REPORT_ID}&sessionId=${SESSION_ID}&targetJobId=01918fa0-0000-7000-8000-000000002000&resumeId=${RESUME_ID}`);
     await page.waitForSelector("[data-testid='report-dashboard']");
 
     await expect(page.locator("[data-testid='report-header']")).toBeVisible();
@@ -115,7 +116,7 @@ test.describe("report dashboard parity", () => {
   test("mobile viewport keeps the dashboard inside 390px width", async ({ page }) => {
     await mockReportApis(page);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`/#route=report&reportId=${REPORT_ID}&sessionId=${SESSION_ID}&targetJobId=01918fa0-0000-7000-8000-000000002000&resumeVersionId=01918fa0-0000-7000-8000-000000004000`);
+    await page.goto(`/#route=report&reportId=${REPORT_ID}&sessionId=${SESSION_ID}&targetJobId=01918fa0-0000-7000-8000-000000002000&resumeId=${RESUME_ID}`);
     await page.waitForSelector("[data-testid='report-dashboard']");
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(overflow).toBeLessThanOrEqual(420);

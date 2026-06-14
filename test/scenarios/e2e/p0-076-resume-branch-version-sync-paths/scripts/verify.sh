@@ -16,25 +16,25 @@ mkdir -p "$OUT"
   fi
   grep -q 'RUNNER make validate-fixtures' "$LOG"
   grep -q 'validate-fixtures: OK' "$LOG"
-  grep -q 'RUNNER go test cmd/api branch version HTTP scenario' "$LOG"
-  grep -q 'TestResumeBranchVersionHTTPScenario' "$LOG"
-  grep -q 'RUNNER go test resume handler branch and fixture parity' "$LOG"
-  grep -q 'TestBranchResumeVersionFixtureParity' "$LOG"
-  grep -q 'RUNNER go test resume service branch' "$LOG"
-  grep -q 'TestBranchResumeVersionRoutesSeedStrategies' "$LOG"
-  grep -q 'RUNNER go test resume store unit branch' "$LOG"
-  grep -q 'TestRepositoryExposesResumeAssetMethods' "$LOG"
-  grep -q 'RUNNER go test resume store live branch integration' "$LOG"
-  grep -q 'TestBranchVersionInsertStrategiesCrossUserAndRollback' "$LOG"
+  grep -q 'RUNNER go test cmd/api flat resume duplicate HTTP scenario' "$LOG"
+  grep -q 'TestResumeRegisterListHTTPScenario' "$LOG"
+  grep -q 'RUNNER go test resume handler duplicate and fixture parity' "$LOG"
+  grep -q 'TestDuplicateResumeFixtureParity' "$LOG"
+  grep -q 'TestDuplicateResumeRequiresIdempotencyKey' "$LOG"
+  grep -q 'RUNNER go test resume service duplicate' "$LOG"
+  grep -q 'TestDuplicateResumeAllocatesNewIDAndAppliesProfile' "$LOG"
+  grep -q 'RUNNER go test resume store unit duplicate' "$LOG"
+  grep -q 'TestDuplicateResumeCopiesSourceSnapshotAndAppliesProfile' "$LOG"
+  grep -q 'TestDuplicateResumeSourceNotFoundRollsBack' "$LOG"
   grep -Eq '^PASS$' "$LOG"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/cmd/api([[:space:]]|$)' "$LOG"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/resume/handler([[:space:]]|$)' "$LOG"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/resume/store([[:space:]]|$)' "$LOG"
   cd "$ROOT/backend"
-  go test ./internal/resume/handler -run TestBranchResumeVersionFixtureParity -count=1
+  go test ./internal/resume/handler -run TestDuplicateResumeFixtureParity -count=1
   cd "$ROOT"
-  if rg -n 'inline|rewrite|mirror' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: retired inline/rewrite/mirror vocabulary found"
+  if rg -n 'inline|mirror' backend/internal/resume --glob '!**/verify.sh'; then
+    echo "ERROR: retired inline/mirror vocabulary found"
     exit 1
   fi
   if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/verify.sh'; then
@@ -46,7 +46,7 @@ mkdir -p "$OUT"
     exit 1
   fi
   echo "method=cmd-api-http"
-  echo "fixture parity: branchResumeVersion sync scenarios"
-  echo "DB state: copy_master provenance reset, blank profile, cross-user target isolation, rollback"
+  echo "fixture parity: duplicateResume default/idempotency-replay/validation-error-422"
+  echo "DB state: flat resume source snapshot copy, structuredProfile overlay, rollback"
   echo "privacy: no raw resume or suggestion text in scenario evidence"
 } | tee "$OUT/verify.log"

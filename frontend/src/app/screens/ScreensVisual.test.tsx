@@ -179,11 +179,11 @@ describe("PlaceholderScreen card skeleton (Phase 5.2)", () => {
     expect(card!.querySelector(".ei-skeleton-stripe")).toBeTruthy();
   });
 
-  it("falls back to placeholder.default copy for unmapped route names", () => {
+  it("falls back to placeholder.default copy for retained placeholder routes", () => {
     const { container } = render(
       withProvider(
         <PlaceholderScreen
-          route={{ name: "company_intel", params: {} }}
+          route={{ name: "parse", params: {} }}
         />,
       ),
     );

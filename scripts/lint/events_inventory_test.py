@@ -375,13 +375,13 @@ class EventsInventoryEnvelopeTest(unittest.TestCase):
 
         self.assertTrue(any("unknown.import.requested" in err and "domain" in err for err in errs), errs)
 
-    def test_rejects_snake_segment_event_name(self) -> None:
+    def test_rejects_non_whitelisted_final_event_verb(self) -> None:
         data = valid_events_data()
         data["events"][7]["name"] = "report.generation_failed"
 
         errs = self.linter.validate_events_yaml(data)
 
-        self.assertTrue(any("report.generation_failed" in err and "dot.case" in err for err in errs), errs)
+        self.assertTrue(any("report.generation_failed" in err and "past-tense" in err for err in errs), errs)
 
     def test_rejects_non_whitelisted_past_tense_verb(self) -> None:
         data = valid_events_data()

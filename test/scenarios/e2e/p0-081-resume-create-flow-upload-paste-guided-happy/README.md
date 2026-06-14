@@ -1,4 +1,4 @@
-# E2E.P0.081 Resume Create Flow Upload / Paste / Guided Happy Path
+# E2E.P0.081 Resume Create Flow Upload / Paste Happy Path
 
 > **场景 ID**: E2E.P0.081
 > **执行方式**: automated (vitest jsdom)
@@ -7,7 +7,7 @@
 
 ## 1 Given
 
-- Fixture-backed mock-first client：`Uploads/createUploadPresign.json default`、`Resumes/registerResume.json default / paste-text / guided-answers`、`Resumes/getResume.json default`、`Auth/getRuntimeConfig.json`、`Auth/getMe.json authenticated`
+- Fixture-backed mock-first client：`Uploads/createUploadPresign.json default`、`Resumes/registerResume.json default / paste-text`、`Resumes/getResume.json default`、`Auth/getRuntimeConfig.json`、`Auth/getMe.json authenticated`
 - Mock harness 在 fixture 未覆盖 `parseStatus` 多态时使用 deterministic attempt-aware stepping（[plan.md §6 R2](../../../docs/spec/frontend-resume-workshop/plans/002-create-flow-and-onboarding/plan.md#6-风险与应对) 显式声明）
 - 用户：未登录 → 登录态切换 + lang 切换
 
@@ -15,18 +15,16 @@
 
 - 选择 Upload tab → 通过 file input 选择 1KB `.pdf` → 触发 `createUploadPresign` + 浏览器 PUT + `registerResume`
 - 选择 Paste tab → 填写 raw text → submit `registerResume` (sourceType=paste)
-- 选择 Guided tab → 5 step 各填非空回答 → 最后一步 submit `registerResume` (sourceType=guided)
 - 三条路径均进入 ParseFlow → polling `getResume` → transition
 
 ## 3 Then
 
 - ResumeCreateFlow 渲染：`resume-create-flow` testid 命中
-- 三 tab DOM anchors 覆盖：`resume-create-tab-upload/-paste/-guided` + `data-active=true` 当前 tab
+- 两个 tab DOM anchors 覆盖：`resume-create-tab-upload/-paste` + `data-active=true` 当前 tab；retired guided tab/panel 不渲染
 - Upload：`Idempotency-Key` header on presign + register，`fetch(uploadUrl, { method: 'PUT', body: file })` 调用形态
 - Paste：textarea / submit disabled-when-empty / IK on register
-- Guided：5 step nav `resume-create-guided-step-{1..5}` + payload `{ recentRole, direction, proofProject, metrics, target }`
 - ParseFlow：`resume-parse-flow` testid + 7-step ticker DOM
-- 隐私：rawText / guidedAnswers / parsedTextSnapshot / parsedSummary / file binary 不出现在 console / URL / pendingAction / localStorage / mock transport log
+- 隐私：rawText / parsedTextSnapshot / parsedSummary / file binary 不出现在 console / URL / pendingAction / localStorage / mock transport log
 - 旧入口 grep：`welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true` 0 命中
 - prototype import grep：`ui-design/src/(data|screen-resume-workshop)` 0 命中
 - mock harness 切换显式标注 `method=mock-fixture-client`
@@ -37,7 +35,7 @@
 
 - `src/app/screens/resume-workshop/create/ResumeCreateFlow.test.tsx`
 - `src/app/screens/resume-workshop/create/UploadTab.test.tsx`
-- `src/app/screens/resume-workshop/create/PasteGuidedTab.test.tsx`
+- `src/app/screens/resume-workshop/create/PreviewStage.test.tsx`
 - `src/app/screens/resume-workshop/create/hooks/useResumePresignUpload.test.tsx`
 - `src/app/screens/resume-workshop/create/hooks/useResumeRegistration.test.tsx`
 - `src/app/screens/resume-workshop/create/ParsingStage.test.tsx`

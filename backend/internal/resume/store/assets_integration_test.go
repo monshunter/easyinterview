@@ -5,9 +5,11 @@ package store_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -87,9 +89,7 @@ func TestResumesIntegrationCRUDStateIsolationPaginationAndRollback(t *testing.T)
 	if ready.ParseStatus != sharedtypes.TargetJobParseStatusReady || ready.ParsedTextSnapshot == nil || *ready.ParsedTextSnapshot != "parsed" {
 		t.Fatalf("ready resume = %+v", ready)
 	}
-	if string(ready.StructuredProfile) != `{"basics":{"name":"Alice"}}` {
-		t.Fatalf("ready structured_profile = %s", ready.StructuredProfile)
-	}
+	assertJSONEqual(t, ready.StructuredProfile, []byte(`{"basics":{"name":"Alice"}}`), "ready structured_profile")
 	var count int
 	if err := db.QueryRowContext(ctx, `select count(*) from outbox_events where aggregate_id = $1 and event_name = 'resume.parse.completed' and aggregate_type = 'resume'`, assetID).Scan(&count); err != nil {
 		t.Fatalf("count completed outbox: %v", err)
@@ -204,6 +204,21 @@ func mustExec(t *testing.T, ctx context.Context, db *sql.DB, query string, args 
 	t.Helper()
 	if _, err := db.ExecContext(ctx, query, args...); err != nil {
 		t.Fatalf("exec %q: %v", query, err)
+	}
+}
+
+func assertJSONEqual(t *testing.T, got []byte, want []byte, label string) {
+	t.Helper()
+	var gotValue any
+	if err := json.Unmarshal(got, &gotValue); err != nil {
+		t.Fatalf("%s invalid JSON: %v", label, err)
+	}
+	var wantValue any
+	if err := json.Unmarshal(want, &wantValue); err != nil {
+		t.Fatalf("%s invalid expected JSON: %v", label, err)
+	}
+	if !reflect.DeepEqual(gotValue, wantValue) {
+		t.Fatalf("%s = %s, want %s", label, got, want)
 	}
 }
 

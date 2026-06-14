@@ -11,7 +11,7 @@ mkdir -p "$OUT"
   cd "$ROOT/backend"
   go test ./cmd/api -run 'TestResumeParseDrainerHTTPScenario|TestResumeParseDrainerRetryableFailureScenario' -count=1 -v
   go test ./cmd/api -run TestBuildResumeRuntimeWiresRoutesDrainerAndDeterministicAI -count=1 -v
-  go test ./internal/resume/jobs -run 'TestParseHandler(UsesThreeSourceInputsAndWritesReadyOutbox|FailurePathsMarkFailedAndSkipCompletedOutbox|RetriesFailedAssetBackToProcessing|ObservedAIWritesResumeTaskRunColumns|PIIRedlineForLogsAuditTaskRunsAndOutbox)' -count=1 -v
-  go test ./internal/resume/store -run 'Test(CompleteParseSuccessWritesReadyStateAndCompletedOutboxAtomically|CompleteParseFailureMarksFailedWithoutCompletedOutbox|ParseStatusTransition)' -count=1 -v
-  DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" go test ./internal/resume/store -tags=integration -run TestResumeAssetsIntegrationCRUDStateIsolationPaginationAndRollback -count=1 -v
+  go test ./internal/resume/jobs -run 'TestParseHandler(UsesTwoSourceInputsAndWritesReadyOutbox|FailurePathsMarkFailedAndSkipCompletedOutbox|RetriesFailedAssetBackToProcessing|ObservedAIWritesResumeTaskRunColumns|PIIRedlineForLogsAuditTaskRunsAndOutbox)' -count=1 -v
+  go test ./internal/resume/store -run 'Test(CompleteParseSuccessWritesReadyStateProfileAndCompletedOutboxAtomically|CompleteParseFailureMarksFailedWithoutCompletedOutbox|ParseStatusTransition)' -count=1 -v
+  DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" go test ./internal/resume/store -tags=integration -run TestResumesIntegrationCRUDStateIsolationPaginationAndRollback -count=1 -v
 } | tee "$OUT/trigger.log"

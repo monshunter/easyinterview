@@ -21,7 +21,7 @@
 
 | # | 检查项 | 期望结果 | 结果 |
 |---|--------|----------|------|
-| 1.1 | Home 渲染 | 五入口 TopBar 与 Home 主入口正常 | ☐ Pass ☐ Fail |
+| 1.1 | Home 渲染 | 四入口 TopBar 与 Home 主入口正常 | ☐ Pass ☐ Fail |
 | 1.2 | 粘贴 `data/jd-backend-engineer.<lang>.md` | `importTargetJob` 真实请求成功 | ☐ Pass ☐ Fail |
 | 1.3 | Parse loading | 真实 runner / polling 推进，不是 mock 即时返回 | ☐ Pass ☐ Fail |
 | 1.4 | Parse ready | 结构化 JD 字段可见，符合 `data/expected-observations.md` 的角色/资历/技能观察点 | ☐ Pass ☐ Fail |

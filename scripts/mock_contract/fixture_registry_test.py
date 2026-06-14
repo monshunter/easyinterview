@@ -24,7 +24,7 @@ class FixtureRegistryTest(unittest.TestCase):
             "listTargetJobs": ("TargetJobs", 200, "#/components/schemas/PaginatedTargetJob"),
             "getPracticeSession": ("PracticeSessions", 200, "#/components/schemas/PracticeSession"),
             "getFeedbackReport": ("Reports", 200, "#/components/schemas/FeedbackReport"),
-            "getResume": ("Resumes", 200, "#/components/schemas/ResumeAsset"),
+            "getResume": ("Resumes", 200, "#/components/schemas/Resume"),
             "getDebrief": ("Debriefs", 200, "#/components/schemas/Debrief"),
         }
 

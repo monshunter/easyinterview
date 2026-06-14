@@ -9,8 +9,8 @@
 ## Given
 
 User session authenticated; generated client surfaces
-`listTargetJobs / listPracticeSessions / listResumes / listResumeVersions
-/ getTargetJob / getResumeVersion / getPracticeSession`; route
+`listTargetJobs / listPracticeSessions / listResumes / getTargetJob /
+getResume / getPracticeSession`; route
 normalization maps the historical `debrief_full` alias to `debrief`.
 
 ## When

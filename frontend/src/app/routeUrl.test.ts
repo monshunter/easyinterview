@@ -19,7 +19,6 @@ describe("ROUTE_TO_PATH catalog", () => {
       practice: "/practice",
       generating: "/generating",
       report: "/report",
-      company_intel: "/company-intel",
       profile: "/profile",
       settings: "/settings",
       auth_login: "/auth/login",
@@ -75,6 +74,19 @@ describe("serializeRouteToUrl", () => {
         params: { tab: "search", query: "principal engineer" },
       }),
     ).toBe("/");
+  });
+
+  it("serializes the retired company_intel route name to workspace (D-18)", () => {
+    expect(
+      formatRouteUrl({
+        name: "company_intel",
+        params: {
+          targetJobId: "tj-1",
+          jdId: "jd-1",
+          companyId: "company-private",
+        },
+      }),
+    ).toBe("/workspace?jdId=jd-1&targetJobId=tj-1");
   });
 
   it("retains generating/report/resume_versions/debrief deep-link params", () => {

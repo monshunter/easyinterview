@@ -5,8 +5,7 @@
 - `openapi/fixtures/Uploads/createUploadPresign.json` `default`
 - `openapi/fixtures/Resumes/registerResume.json` `default`
 - `openapi/fixtures/Resumes/getResume.json` `default`
-- `openapi/fixtures/Resumes/confirmResumeStructuredMaster.json` `default / idempotency-replay / already-exists-409 / validation-422`
-- `openapi/fixtures/Resumes/listResumeVersions.json` `default`
+- `openapi/fixtures/Resumes/updateResume.json` `default / idempotency-replay / validation-error-422`
 
 ## Synthetic Inputs
 
@@ -19,9 +18,7 @@
 
 ## Mock Overrides
 
-- `confirmResumeStructuredMaster`:
-  - success: mockResolvedValue with a synthetic ResumeVersion
-  - replay: same key/body second call → same version
-  - 409: mockRejectedValue with HTTP 409 wrapped error
+- `updateResume`:
+  - success: mockResolvedValue with a saved flat Resume
   - 422: mockRejectedValue with HTTP 422 wrapped error
-- `listResumeVersions`: mockResolvedValue with single structured_master item
+  - generic failure: mockRejectedValue with HTTP 500 wrapped error

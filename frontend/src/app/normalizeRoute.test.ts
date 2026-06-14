@@ -36,6 +36,11 @@ describe("normalizeRouteName", () => {
     expect(normalizeRouteName("debrief_full")).toBe("debrief");
   });
 
+  it("normalizes the retired company_intel route to workspace", () => {
+    // product-scope D-18 — company intel is an embedded workspace card only.
+    expect(normalizeRouteName("company_intel")).toBe("workspace");
+  });
+
   it("preserves valid current route names", () => {
     expect(normalizeRouteName("home")).toBe("home");
     expect(normalizeRouteName("workspace")).toBe("workspace");

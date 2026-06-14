@@ -27,8 +27,8 @@ mkdir -p "$OUT"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/resume/jobs([[:space:]]|$)' "$LOG"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/resume/store([[:space:]]|$)' "$LOG"
   cd "$ROOT"
-  if rg -n 'inline|rewrite|mirror' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: retired inline/rewrite/mirror vocabulary found"
+  if rg -n 'inline|mirror' backend/internal/resume --glob '!**/verify.sh'; then
+    echo "ERROR: retired inline/mirror vocabulary found"
     exit 1
   fi
   if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/verify.sh'; then

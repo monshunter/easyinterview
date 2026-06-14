@@ -32,7 +32,7 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
 均使用 chromium 引擎），依次执行：
 
 - `tests/pixel-parity/topbar.spec.ts` — TopBar DOM 锚点 + computed style
-  parity（五入口、显示控制、语言 dropdown、authenticated 头像菜单 dropdown /
+  parity（四入口、显示控制、语言 dropdown、authenticated 头像菜单 dropdown /
   logout flow、ui-design 对照与 mode/aria contract）。
 - `tests/pixel-parity/screens.spec.ts` — auth_login 卡片 shell DOM 锚点 +
   ui-design hash route `#route=auth_login` 对照 + retired-module 负向断言。
@@ -46,19 +46,24 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
   bounding box 与 dark/customAccent token 变化。
 - `tests/pixel-parity/parse.spec.ts` — Home 到 parse 入口、textarea submit enable、
   upload modal DOM 锚点。
-- `tests/pixel-parity/jd_match.spec.ts` — jd_match placeholder 从 home aux card 进入、
-  viewport 内布局与旧业务 testid 负向断言。
 - `tests/pixel-parity/workspace.spec.ts` — workspace empty + full-state DOM anchor、
   bounding box、modal、theme 与 screenshot smoke；full-state 通过 server-bound
   initial route bootstrap 进入，不依赖 Home recent card 的 `resume-unbound`。
+- `tests/pixel-parity/resume-workshop.spec.ts`、`resume-workshop-create.spec.ts`、
+  `resume-workshop-branch-rewrites-edit.spec.ts` — Resume Workshop flat list、
+  upload/paste create flow、rewrites/edit/detail parity 与 retired tree/branch/guided
+  负向断言。
+- `tests/pixel-parity/practice.spec.ts`、`generating.spec.ts`、`report.spec.ts`、
+  `debrief.spec.ts` — 面试、生成、报告与复盘核心页面 DOM、布局、主题与
+  screenshot smoke。
 
 `webServer` 由 `frontend/scripts/serve-pixel-parity.mjs` 提供（Node 内置
 模块；同时挂载 `frontend/dist` 与 `ui-design/`，并暴露 `/health` 探活）。
 
 ## 3 Then
 
-- 全部 112 个 Playwright 用例（8 个 spec × 2 project）PASS、0 failed。
-- TopBar 五入口 testid 在两个 project 下都存在；TopBar shell 高 58 / padding
+- 全部 Playwright 用例（14 个 spec × 2 project）PASS、0 failed。
+- TopBar 四入口 testid 在两个 project 下都存在；TopBar shell 高 58 / padding
   0 32 / border-bottom 1px solid `rgb(231, 226, 214)`。
 - 默认 home 渲染 `topbar-nav-home[aria-current=page]`、`topbar-dark-toggle`
   `aria-pressed=false`、语言 dropdown 暴露 `topbar-lang-option-zh` /
@@ -93,9 +98,9 @@ pnpm --filter @easyinterview/frontend test:pixel-parity:install
 `setup.sh` 检查 chromium 缓存 + `frontend/dist/index.html` 存在；缺失任一
 都 exit ≠ 0 并给出可读提示。`trigger.sh` 跑 Playwright 后把日志写到
 `.test-output/e2e/p0-006-ui-design-pixel-parity-gate/trigger.log`。
-`verify.sh` 断言日志包含 `112 passed` 与 `0 failed`，并 grep retired-module
-testid 不在 trigger 输出里出现，同时确认 home / parse / jd_match / workspace
-parity spec 已实际执行。
+`verify.sh` 断言日志包含 passing summary 且没有 failed summary，并 grep
+retired-module testid 不在 trigger 输出里的 failing trace 出现，同时确认当前
+14 个 parity spec 已实际执行。
 
 ## 5 污染控制
 

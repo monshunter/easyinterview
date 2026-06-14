@@ -2,30 +2,36 @@
 
 - Playwright `webServer` 在端口 4173 起来后健康检查 `/health` 返回 200。
 - desktop（1440×900）+ mobile（390×844）两个 chromium project 各跑：
-  - `topbar.spec.ts` 11 个用例：5 入口 testid、ui-design 5 个 nav 文本、
+  - `topbar.spec.ts`：4 入口 testid、ui-design 当前 nav 文本、
     TopBar height ~58 / padding 32 / border-bottom 1px、aria-current 与
     aria-pressed 默认值、语言 dropdown 选项、authenticated user menu
     dropdown + logout flow parity。
-  - `screens.spec.ts` 6 个用例：navigates to auth_login + ei-auth-shell
+  - `screens.spec.ts`：navigates to auth_login + ei-auth-shell
     渲染、ei-text-display 头部、ei-auth-eyebrow 字体族、ui-design hash
     route h1 hero、auth_login 卡片 padding 28、retired entries 0 命中。
-  - `layout.spec.ts` 4 个用例：TopBar fits viewport、五入口不重叠、display
+  - `layout.spec.ts`：TopBar fits viewport、四入口不重叠、display
     controls + user area 不重叠、auth_login 两栏在 desktop 双列 / mobile
     单列堆叠。
-  - `screenshot.spec.ts` 4 个用例：home warm/light screenshot smoke、dark
+  - `screenshot.spec.ts`：home warm/light screenshot smoke、dark
     toggle 翻转 token + body bg、customAccent 内联仅覆盖 accent / accent-
     soft、retired entries 0 命中。
-  - `home.spec.ts` 4 个用例：Home hero / textarea / aux cards DOM 锚点、
+  - `home.spec.ts`：Home hero / textarea / aux cards DOM 锚点、
     viewport 内布局与 dark mode token 变化。
-  - `parse.spec.ts` 3 个用例：Home 到 parse 入口、textarea submit enable、
+  - `parse.spec.ts`：Home 到 parse 入口、textarea submit enable、
     upload modal DOM 锚点。
-  - `jd_match.spec.ts` 10 个用例：三 tab DOM anchor、responsive geometry、
-    dark/customAccent、screenshot smoke 与旧业务 testid 0 命中。
-  - `workspace.spec.ts` 14 个用例：empty state、server-bound full-state、
+  - `workspace.spec.ts`：empty state、server-bound full-state、
     modal、bounding box、theme、screenshot smoke 与 retired entry negative。
+  - `resume-workshop.spec.ts` / `resume-workshop-create.spec.ts` /
+    `resume-workshop-branch-rewrites-edit.spec.ts`：flat list、upload/paste
+    create flow、rewrites/edit/detail parity、retired tree/branch/guided
+    negative。
+  - `practice.spec.ts` / `generating.spec.ts` / `report.spec.ts` /
+    `debrief.spec.ts`：面试、生成、报告与复盘页面 parity。
 - trigger.log 必须出现：
-  - `112 passed`
-  - `0 failed`
+  - Playwright passed summary
+  - 不含 failed summary
   - 不含 `topbar-nav-welcome` / `topbar-nav-mistakes` / `topbar-nav-growth` /
-    `topbar-nav-drill` / `topbar-nav-voice` / `route-welcome` 任何一个 token。
+    `topbar-nav-drill` / `topbar-nav-voice` / `topbar-nav-jd_match` /
+    `route-welcome` / `route-jd_match` / `route-company_intel` 的 failing
+    trace。
 - Playwright report 写到 `.playwright-output/`（gitignored）。

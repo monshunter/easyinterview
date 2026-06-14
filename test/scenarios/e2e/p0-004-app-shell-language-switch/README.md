@@ -20,8 +20,8 @@ English，并进入 auth / profile / settings / placeholder shell。
 
 ## 3 Then
 
-- TopBar 五个一级导航从中文切换为英文。
-- 未登录用户区从 `登录` / `注册` 切换为 `Sign in` / `Register`。
+- TopBar 四个一级导航从中文切换为英文。
+- 未登录用户区从 `登录` 切换为 `Sign in`，不恢复独立注册入口。
 - 已登录用户菜单、auth shell、profile/settings shell 与 placeholder shell 的
   D1 静态文案随 locale 切换。
 - RouteName、testid、route params 与业务字段不被 locale 改写。

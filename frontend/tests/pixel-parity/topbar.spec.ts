@@ -12,7 +12,7 @@ import { resolve } from "node:path";
  * ui-design golden preview is mounted at `/ui-design/`. Both default to the
  * Home route and render the TopBar. We compare:
  *
- *   - Five primary nav entries by visible label (English by default when the
+ *   - Four primary nav entries by visible label (English by default when the
  *     browser locale is unsupported or English).
  *   - TopBar shell computed style (height, padding-left, padding-right,
  *     border-bottom-width, background-color) within a small tolerance.

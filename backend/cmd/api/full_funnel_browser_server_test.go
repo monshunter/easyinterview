@@ -26,7 +26,7 @@ type fullFunnelBrowserState struct {
 	FrontendOrigin     string `json:"frontendOrigin"`
 	UserID             string `json:"userId"`
 	UserEmail          string `json:"userEmail"`
-	ResumeAssetID      string `json:"resumeAssetId"`
+	ResumeID           string `json:"resumeId"`
 	SessionCookieName  string `json:"sessionCookieName"`
 	SessionCookieValue string `json:"sessionCookieValue"`
 }
@@ -58,8 +58,8 @@ func TestE2EP0099ScenarioBackendServer(t *testing.T) {
 	mux.HandleFunc("/__e2e/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]string{
-			"status":        "ok",
-			"resumeAssetId": seed.ResumeAssetID,
+			"status":   "ok",
+			"resumeId": seed.ResumeID,
 		})
 	})
 	mux.Handle("/", h.handler)
@@ -84,7 +84,7 @@ func TestE2EP0099ScenarioBackendServer(t *testing.T) {
 		FrontendOrigin:     frontendOrigin,
 		UserID:             h.userID,
 		UserEmail:          fullFunnelJourneyEmail,
-		ResumeAssetID:      seed.ResumeAssetID,
+		ResumeID:           seed.ResumeID,
 		SessionCookieName:  h.cookie.Name,
 		SessionCookieValue: h.cookie.Value,
 	}

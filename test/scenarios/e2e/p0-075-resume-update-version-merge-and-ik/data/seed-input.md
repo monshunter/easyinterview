@@ -2,18 +2,15 @@
 
 ## Users
 
-- User A: authenticated candidate who owns the editable resume version.
-- User B: authenticated candidate without access to user A versions.
+- User A: authenticated candidate who owns the editable flat resume.
+- User B: authenticated candidate without access to user A resumes.
 
 ## Resume Assets
 
-- Ready resume asset owned by user A.
-
-## Version Rows
-
-- One active `structured_master` row for user A with initial `structured_profile` containing `headline`, `summary`, `skills`, `sections`, and server provenance.
-- One soft-deleted version row for user A used to prove deleted rows return 404.
+- Ready flat resume row owned by user A with initial `structured_profile`
+  containing `headline`, `summary`, `skills`, `sections`, and server provenance.
 
 ## Fixture Inputs
 
-- `openapi/fixtures/Resumes/updateResumeVersion.json`: `default`, `idempotency-replay`, `validation-error-422`.
+- `openapi/fixtures/Resumes/updateResume.json`: `default`,
+  `idempotency-replay`, `validation-error-422`.
