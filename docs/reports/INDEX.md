@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-06-14](./2026-06-14-debrief-suggest-resumeid-context-assessment.md) | Debrief Suggest ResumeId Context 交付复盘 | #assessment |
 | [2026-06-14](./2026-06-14-d20-resume-negative-sweep-hardening-assessment.md) | D-20 Resume Negative Sweep Hardening 交付复盘 | #assessment |
 | [2026-06-14](./2026-06-14-resume-flatten-review-regressions-assessment.md) | Resume Flatten Review Regressions 交付复盘 | #assessment |
 | [2026-06-14](./2026-06-14-ux-funnel-refactor-drift-assessment.md) | UX Funnel Refactor Drift 交付复盘 | #assessment |

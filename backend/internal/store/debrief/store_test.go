@@ -488,6 +488,71 @@ func TestStoreGetSuggestionContext_TargetJobScoped(t *testing.T) {
 	}
 }
 
+func TestStoreGetSuggestionContext_LoadsResumeStructuredProfile(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewRepository(db)
+	in := domain.SuggestionContextRequest{
+		UserID:      "01918fa0-0000-7000-8000-000000000001",
+		TargetJobID: "01918fa0-0000-7000-8000-00000000c001",
+		ResumeID:    "01918fa0-0000-7000-8000-00000000a001",
+	}
+
+	mock.ExpectQuery(`(?s)select tj\.id::text.*from target_jobs tj.*where tj\.id = \$1.*tj\.user_id = \$2`).
+		WithArgs(in.TargetJobID, in.UserID).
+		WillReturnRows(sqlmock.NewRows([]string{"target_job_id", "title", "company_name", "summary"}).AddRow(
+			in.TargetJobID,
+			"Backend Engineer",
+			"Example Co",
+			[]byte(`{"mustHave":["Go"]}`),
+		))
+	mock.ExpectQuery(`(?s)select coalesce\(structured_profile, '\{\}'::jsonb\).*from resumes.*where id = \$1.*user_id = \$2.*deleted_at is null`).
+		WithArgs(in.ResumeID, in.UserID).
+		WillReturnRows(sqlmock.NewRows([]string{"structured_profile"}).AddRow([]byte(`{"basics":{"headline":"Platform engineer"},"skills":["Go","PostgreSQL"]}`)))
+
+	got, err := repo.GetSuggestionContext(context.Background(), in)
+	if err != nil {
+		t.Fatalf("GetSuggestionContext returned error: %v", err)
+	}
+	if got.ResumeSummary != `{"basics":{"headline":"Platform engineer"},"skills":["Go","PostgreSQL"]}` {
+		t.Fatalf("resume structured profile not loaded into context: %+v", got)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestStoreGetSuggestionContext_CrossUserResumeNotFound(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewRepository(db)
+	in := domain.SuggestionContextRequest{
+		UserID:      "01918fa0-0000-7000-8000-000000000001",
+		TargetJobID: "01918fa0-0000-7000-8000-00000000c001",
+		ResumeID:    "01918fa0-0000-7000-8000-00000000a001",
+	}
+
+	mock.ExpectQuery(`(?s)select tj\.id::text.*from target_jobs tj.*where tj\.id = \$1.*tj\.user_id = \$2`).
+		WithArgs(in.TargetJobID, in.UserID).
+		WillReturnRows(sqlmock.NewRows([]string{"target_job_id", "title", "company_name", "summary"}).AddRow(
+			in.TargetJobID,
+			"Backend Engineer",
+			"Example Co",
+			[]byte(`{"mustHave":["Go"]}`),
+		))
+	mock.ExpectQuery(`(?s)select coalesce\(structured_profile, '\{\}'::jsonb\).*from resumes.*where id = \$1.*user_id = \$2.*deleted_at is null`).
+		WithArgs(in.ResumeID, in.UserID).
+		WillReturnError(sql.ErrNoRows)
+
+	_, err := repo.GetSuggestionContext(context.Background(), in)
+	if !errors.Is(err, domain.ErrDebriefPrerequisite) {
+		t.Fatalf("error=%v, want ErrDebriefPrerequisite", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
 func TestStoreUpdateDebriefCompleted_HappyTransaction(t *testing.T) {
 	db, mock, cleanup := newMockDB(t)
 	defer cleanup()

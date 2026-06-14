@@ -1,8 +1,8 @@
 # 001 Debrief Record and Analysis Test Plan
 
-> **版本**: 1.0
-> **状态**: active
-> **更新日期**: 2026-06-13
+> **版本**: 1.1
+> **状态**: completed
+> **更新日期**: 2026-06-14
 
 **关联计划**: [plan](./plan.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -43,6 +43,7 @@
 | R20 | spec D-18 / DELETE /me CASCADE | Privacy / Cleanup | Phase 5 | migrations test + integration | — |
 | R21 | spec §4.5 / Legacy negative: mistakes_count, generatedMistakeCount, experience_library, drill_builder, growth_center, star_editor, debrief_voice | Regression / Legacy-negative | Phase 6 | grep + lint script | mistakes_count, generatedMistakeCount, experience_library, drill_builder, growth_center, star_editor, debrief_voice |
 | R22 | F1 metric registration boundary | Observability | Phase 6 | F1 owner co-author + grep | — |
+| R23 | spec D-19 / D-20 resumeId suggestion context | Cross-layer contract + Privacy | Phase 8 | store/service/API/cmd-api focused tests + fixture parity + scenario wrapper | resumeVersionId / resume_version_id |
 
 ## 2 测试项明细
 
@@ -317,6 +318,49 @@
 - When：drainer finalize
 - Then：attempts=5, status='failed' (permanent), locked_at=null
 - 覆盖：R6
+
+### Phase 8: D-20 resumeId suggestion context gate
+
+#### 8.1 TestStoreGetSuggestionContext_LoadsResumeStructuredProfile
+- 文件：`backend/internal/store/debrief/store_test.go`
+- Given：SuggestionContextRequest 带 `resumeId`
+- When：Repository.GetSuggestionContext 按 `(user_id, target_job_id)` 拉 target job 后继续按 `(user_id, resume_id)` 查询 `resumes.structured_profile`
+- Then：SuggestionContext.ResumeSummary 包含扁平 resume structured_profile JSON
+- 覆盖：R23
+
+#### 8.2 TestStoreGetSuggestionContext_CrossUserResumeNotFound
+- Given：target job 属于当前用户，但 `resumeId` 不存在或不属于当前用户
+- When：Repository.GetSuggestionContext
+- Then：返回 ErrDebriefPrerequisite，避免 cross-user resume 进入 prompt context
+- 覆盖：R7, R23
+
+#### 8.3 TestServiceSuggestQuestions_ResumeContextInPrompt
+- 文件：`backend/internal/debrief/service_test.go`
+- Given：SuggestionContext.ResumeSummary 已由 store 提供
+- When：Service.SuggestQuestions 渲染 F3 prompt template
+- Then：AI Complete payload 的 user message 包含 resume structured_profile 摘要，且 response 可返回 `source='resume'`
+- 覆盖：R3, R23
+
+#### 8.4 TestSuggestDebriefQuestions_MapsResumeIDToService
+- 文件：`backend/internal/api/debriefs/handler_test.go`
+- Given：generated `SuggestDebriefQuestionsRequest` body 使用 `resumeId`
+- When：Handler.SuggestDebriefQuestions
+- Then：domain `SuggestQuestionsRequest.ResumeID` 等于 request `resumeId`
+- 覆盖：R3, R23
+
+#### 8.5 TestBuildAPIHandlerMountsDebriefSuggestQuestionsBehindSessionMiddleware
+- 文件：`backend/cmd/api/main_test.go`
+- Given：cmd/api route table 挂载 debrief handler
+- When：未认证请求 `POST /api/v1/debriefs/question-suggestions`，body 含 `resumeId`
+- Then：返回 `AUTH_UNAUTHORIZED`，证明真实 route 被 session middleware 包裹并由 cmd/api 挂载
+- 覆盖：R3, R23
+
+#### 8.6 E2E.P0.063 scenario wrapper
+- 文件：`test/scenarios/e2e/p0-063-debrief-suggest-questions/scripts/trigger.sh` 与 `verify.sh`
+- Given：fixture `openapi/fixtures/Debriefs/suggestDebriefQuestions.json` default request 使用 `resumeId`
+- When：运行 setup -> trigger -> verify -> cleanup
+- Then：执行 store/service/API/cmd-api focused tests、`make validate-fixtures`、fixture `resumeId` marker 与 `resumeVersionId` 负向 gate
+- 覆盖：R3, R12, R23
 
 ## 3 集成测试与覆盖率说明
 

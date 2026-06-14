@@ -1,8 +1,8 @@
 # 001 Debrief Record and Analysis Test Checklist
 
-> **版本**: 1.0
-> **状态**: active
-> **更新日期**: 2026-06-13
+> **版本**: 1.1
+> **状态**: completed
+> **更新日期**: 2026-06-14
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 **关联计划**: [plan](./plan.md)
@@ -144,3 +144,18 @@
   <!-- verified: 2026-05-16 ./migrations/lint.sh; set -a; . deploy/dev-stack/.env; set +a; make migrate-check -->
 - [x] 7.F Phase 7 本计划定义的单元测试项全部通过
   <!-- verified: 2026-05-16 Phase 1-7 checklist and test-checklist items are checked with executable command evidence -->
+
+## Phase 8: D-20 resumeId suggestion context gate
+
+- [x] 8.A TestStoreGetSuggestionContext_LoadsResumeStructuredProfile 通过（`resumeId` 按 `(user_id, resume_id)` 读取扁平 `resumes.structured_profile`）
+  <!-- verified: 2026-06-14 red failed with empty ResumeSummary; green: cd backend && go test ./internal/store/debrief -run 'TestStoreGetSuggestionContext_LoadsResumeStructuredProfile|TestStoreGetSuggestionContext_CrossUserResumeNotFound|TestStoreGetSuggestionContext_TargetJobScoped' -count=1 -->
+- [x] 8.B TestStoreGetSuggestionContext_CrossUserResumeNotFound 通过（cross-user / missing resume 不进入 prompt context）
+  <!-- verified: 2026-06-14 cd backend && go test ./internal/store/debrief -run 'TestStoreGetSuggestionContext_LoadsResumeStructuredProfile|TestStoreGetSuggestionContext_CrossUserResumeNotFound|TestStoreGetSuggestionContext_TargetJobScoped' -count=1 -->
+- [x] 8.C TestServiceSuggestQuestions_ResumeContextInPrompt 通过（service 把 resume structured_profile 注入 AI prompt）
+  <!-- verified: 2026-06-14 cd backend && go test ./internal/debrief -run 'TestServiceSuggestQuestions_ResumeContextInPrompt|TestServiceSuggestQuestions_Happy' -count=1 -->
+- [x] 8.D TestSuggestDebriefQuestions_MapsResumeIDToService 通过（generated request `resumeId` 到 domain request `ResumeID`）
+  <!-- verified: 2026-06-14 cd backend && go test ./internal/api/debriefs -run 'TestSuggestDebriefQuestions_MapsResumeIDToService|TestSuggestDebriefQuestions_CountBoundary' -count=1 -->
+- [x] 8.E TestBuildAPIHandlerMountsDebriefSuggestQuestionsBehindSessionMiddleware 通过（真实 cmd/api route 装载，不停留在 fixture/mock）
+  <!-- verified: 2026-06-14 cd backend && go test ./cmd/api -run 'TestBuildAPIHandlerMountsDebriefSuggestQuestionsBehindSessionMiddleware|TestBuildDebriefRoutesWiresHandlerAndIdempotency' -count=1 -->
+- [x] 8.F E2E.P0.063 scenario wrapper 通过（store/service/API/cmd-api focused tests + `make validate-fixtures` + fixture `resumeId` negative gate）
+  <!-- verified: 2026-06-14 test/scenarios/e2e/p0-063-debrief-suggest-questions/scripts/setup.sh -> trigger.sh -> verify.sh -> cleanup.sh PASS -->

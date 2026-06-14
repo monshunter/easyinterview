@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	stderrs "errors"
 	"fmt"
+	"strings"
 
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	domain "github.com/monshunter/easyinterview/backend/internal/debrief"
@@ -297,6 +298,29 @@ where tj.id = $1
 		summary = []byte(`{}`)
 	}
 	out.Summary = string(summary)
+	resumeID := strings.TrimSpace(in.ResumeID)
+	if resumeID != "" {
+		var resumeSummary []byte
+		err := r.db.QueryRowContext(ctx, `
+select coalesce(structured_profile, '{}'::jsonb)
+from resumes
+where id = $1
+  and user_id = $2
+  and deleted_at is null`,
+			resumeID,
+			in.UserID,
+		).Scan(&resumeSummary)
+		if stderrs.Is(err, sql.ErrNoRows) {
+			return domain.SuggestionContext{}, domain.ErrDebriefPrerequisite
+		}
+		if err != nil {
+			return domain.SuggestionContext{}, fmt.Errorf("get debrief resume suggestion context: %w", err)
+		}
+		if len(resumeSummary) == 0 {
+			resumeSummary = []byte(`{}`)
+		}
+		out.ResumeSummary = string(resumeSummary)
+	}
 	return out, nil
 }
 

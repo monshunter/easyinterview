@@ -224,6 +224,30 @@ func TestSuggestDebriefQuestions_CountBoundary(t *testing.T) {
 	}
 }
 
+func TestSuggestDebriefQuestions_MapsResumeIDToService(t *testing.T) {
+	service := &fakeDebriefService{suggestResult: domain.SuggestQuestionsResult{Suggestions: []domain.SuggestedQuestion{{
+		QuestionText:   "How did the platform migration change your scope?",
+		WhyLikelyAsked: "The resume profile highlights platform ownership.",
+		Source:         sharedtypes.DebriefQuestionSourceResume,
+	}}}}
+	handler := NewHandler(HandlerOptions{Service: service, Session: staticSession("user-1")})
+	rec := httptest.NewRecorder()
+	resumeID := "01918fa0-0000-7000-8000-00000000a001"
+
+	handler.SuggestDebriefQuestions(rec, newSuggestDebriefQuestionsRequest(t, api.SuggestDebriefQuestionsRequest{
+		TargetJobId: "01918fa0-0000-7000-8000-00000000d001",
+		ResumeId:    &resumeID,
+		Language:    "zh-CN",
+	}))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: want %d, got %d body=%s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if service.suggestCalls != 1 || service.lastSuggest.ResumeID != resumeID {
+		t.Fatalf("resumeId not mapped to service: calls=%d last=%+v", service.suggestCalls, service.lastSuggest)
+	}
+}
+
 func TestSuggestDebriefQuestions_Unauthenticated_401(t *testing.T) {
 	service := &fakeDebriefService{}
 	handler := NewHandler(HandlerOptions{Service: service})

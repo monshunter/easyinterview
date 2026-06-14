@@ -17,6 +17,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	apidebriefs "github.com/monshunter/easyinterview/backend/internal/api/debriefs"
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	apijobs "github.com/monshunter/easyinterview/backend/internal/api/jobs"
 	apipractice "github.com/monshunter/easyinterview/backend/internal/api/practice"
@@ -387,6 +388,45 @@ runtime:
 				t.Fatalf("expected auth middleware envelope, got %s", rec.Body.String())
 			}
 		})
+	}
+}
+
+func TestBuildAPIHandlerMountsDebriefSuggestQuestionsBehindSessionMiddleware(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:               &apiAuthStore{},
+		SessionCookieSecret: "session-secret",
+	})
+	handler := buildAPIHandlerWithUploadReportDebriefAndHandlers(
+		loader,
+		apiRuntimeFlags{},
+		service,
+		targetjob.NewHandler(),
+		practiceRoutes{},
+		uploadRoutes{},
+		resumeRoutes{},
+		reportRoutes{},
+		debriefRoutes{Handler: apidebriefs.NewHandler(apidebriefs.HandlerOptions{})},
+	)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/debriefs/question-suggestions", strings.NewReader(`{"targetJobId":"target-1","resumeId":"resume-1","language":"zh-CN"}`))
+	req.Header.Set("Content-Type", "application/json")
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d body=%s; suggestDebriefQuestions route is not mounted behind auth middleware", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"code":"AUTH_UNAUTHORIZED"`) {
+		t.Fatalf("expected auth middleware envelope, got %s", rec.Body.String())
 	}
 }
 

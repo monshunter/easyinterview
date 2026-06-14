@@ -1,8 +1,8 @@
 # 001 Debrief Record and Analysis
 
-> **版本**: 1.1
-> **状态**: active
-> **更新日期**: 2026-06-13
+> **版本**: 1.2
+> **状态**: completed
+> **更新日期**: 2026-06-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -49,7 +49,7 @@ backend-targetjob drainer 已在 `backend/internal/targetjob/drainer.go` 注册 
 #### 0.2 B2 addendum：新增 suggestDebriefQuestions operation + 修复 roundType 引用
 
 在 `openapi/openapi.yaml` 新增：
-- `POST /debriefs/question-suggestions` operation `suggestDebriefQuestions`：request body `SuggestDebriefQuestionsRequest{targetJobId(uuid required), sessionId(uuid optional), resumeVersionId(uuid optional), language(string required), count(int default 6 max 10)}`；response 200 `SuggestDebriefQuestionsResponse{suggestions: array of SuggestedDebriefQuestion{stage(optional), questionText(string required), whyLikelyAsked(string required), source($ref DebriefQuestionSource required)}}`。
+- `POST /debriefs/question-suggestions` operation `suggestDebriefQuestions`：request body `SuggestDebriefQuestionsRequest{targetJobId(uuid required), sessionId(uuid optional), resumeId(uuid optional), language(string required), count(int default 6 max 10)}`；response 200 `SuggestDebriefQuestionsResponse{suggestions: array of SuggestedDebriefQuestion{stage(optional), questionText(string required), whyLikelyAsked(string required), source($ref DebriefQuestionSource required)}}`。
 - 修复 `Debrief.roundType` / `CreateDebriefRequest.roundType` 字段引用为 `$ref: '#/components/schemas/DebriefRoundType'`（替代原 inline enum 数组），保持 wire 字面量不变（仍是 6 个 hr_screen/hiring_manager/behavioral/technical/culture/custom）。
 
 扩展 / 新增 fixtures：
@@ -302,7 +302,7 @@ Tests: `TestGetDebrief_DraftPartialReturn|TestGetDebrief_CompletedFullReturn|Tes
 - `test/scenarios/e2e/p0-060-debrief-create-and-generate/`
 - `test/scenarios/e2e/p0-061-debrief-get-and-cross-user/`
 - `test/scenarios/e2e/p0-062-debrief-worker-failure-and-retry/`
-- `test/scenarios/e2e/p0-063-suggest-debrief-questions/`
+- `test/scenarios/e2e/p0-063-debrief-suggest-questions/`
 - `test/scenarios/e2e/p0-064-debrief-privacy-and-legacy-negative/`
 
 所有 scenario 必须 `--- PASS` + `ok` + verify.sh 通过。
@@ -323,6 +323,12 @@ Tests: `TestGetDebrief_DraftPartialReturn|TestGetDebrief_CompletedFullReturn|Tes
 `suggestDebriefQuestions` handler：generated `SuggestDebriefQuestionsRequest.resumeVersionId`→`resumeId`；可选上下文拉取 SQL `(user_id, resume_id)`（查扁平 `resumes`），prompt 上下文从「resume version 摘要」改为「resume `structured_profile` 摘要」。
 
 （验证：handler unit test PASS；越权 resume 404；可选 resume 缺省路径保留）
+
+当前 operation matrix：
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| `suggestDebriefQuestions` | `openapi/fixtures/Debriefs/suggestDebriefQuestions.json` `default` request body uses `resumeId` and no `resumeVersionId`; `make validate-fixtures` PASS | `frontend-debrief` record text-mode suggestion flow via generated client | `backend/internal/api/debriefs.Handler.SuggestDebriefQuestions` maps generated `ResumeId` → `domain.SuggestQuestionsRequest.ResumeID`; `backend/internal/debrief.Service.SuggestQuestions` passes it into `SuggestionContext`; `backend/internal/store/debrief.Repository.GetSuggestionContext` queries `resumes.structured_profile` by `(user_id, resume_id)` | `target_jobs` read; optional `resumes.structured_profile` read; no `debriefs` / outbox / `async_jobs` write | `debrief.suggest_questions` via F3 registry + A3 AI client; task type `debrief_suggest_questions` | `E2E.P0.063` wrapper runs store/service/API/cmd-api focused tests plus fixture validation and rejects `resumeVersionId` fixture drift |
 
 #### 8.2 收口
 

@@ -184,6 +184,58 @@ func TestServiceSuggestQuestions_Happy(t *testing.T) {
 	}
 }
 
+func TestServiceSuggestQuestions_ResumeContextInPrompt(t *testing.T) {
+	targetJobID := "01918fa0-0000-7000-8000-00000000c001"
+	resumeID := "01918fa0-0000-7000-8000-00000000a001"
+	contexts := &recordingSuggestionContextStore{result: SuggestionContext{
+		TargetJobID:   targetJobID,
+		Title:         "Staff Backend Engineer",
+		ResumeSummary: `{"basics":{"headline":"Platform engineer"},"skills":["Go","PostgreSQL"]}`,
+	}}
+	reg := &recordingPromptResolver{resolution: registry.PromptResolution{
+		FeatureKey:          featurekeys.DebriefSuggestQuestions.String(),
+		PromptVersion:       "v0.1.0",
+		RubricVersion:       "v0.1.0",
+		ModelProfileName:    "debrief.suggest_questions.default",
+		DataSourceVersion:   "target_job/01918fa0-0000-7000-8000-00000000c001@v1",
+		UserMessageTemplate: "Target: {{targetTitle}}\nResume: {{resumeSummary}}",
+	}}
+	ai := &recordingAIClient{
+		response: aiclient.CompleteResponse{Content: `{"suggestions":[{"questionText":"How did you scale the platform?","whyLikelyAsked":"The resume profile highlights platform engineering.","source":"resume"}]}`},
+		meta: aiclient.AICallMeta{
+			ValidationStatus: aiclient.ValidationStatusOK,
+		},
+	}
+	service := NewService(ServiceOptions{
+		SuggestionContext: contexts,
+		Registry:          reg,
+		AI:                ai,
+		AITaskRuns:        &recordingTaskRunWriter{},
+		Now:               func() time.Time { return time.Date(2026, 6, 14, 10, 0, 0, 0, time.UTC) },
+		NewID:             sequenceID("01918fa0-0000-7000-8000-00000000e001"),
+	})
+
+	result, err := service.SuggestQuestions(context.Background(), SuggestQuestionsRequest{
+		UserID:      "01918fa0-0000-7000-8000-000000000001",
+		TargetJobID: targetJobID,
+		ResumeID:    resumeID,
+		Language:    "zh-CN",
+		Count:       1,
+	})
+	if err != nil {
+		t.Fatalf("SuggestQuestions returned error: %v", err)
+	}
+	if contexts.last.ResumeID != resumeID {
+		t.Fatalf("resumeId not passed to context store: %+v", contexts.last)
+	}
+	if len(result.Suggestions) != 1 || result.Suggestions[0].Source != sharedtypes.DebriefQuestionSourceResume {
+		t.Fatalf("suggestions drifted: %+v", result.Suggestions)
+	}
+	if !strings.Contains(ai.payload.Messages[len(ai.payload.Messages)-1].Content, `"headline":"Platform engineer"`) {
+		t.Fatalf("resume structured profile missing from AI prompt: %+v", ai.payload.Messages)
+	}
+}
+
 func TestServiceGetDebrief_ProvenanceWireOnly(t *testing.T) {
 	store := &recordingStore{getResult: DebriefRecord{
 		ID:          "01918fa0-0000-7000-8000-00000000d010",

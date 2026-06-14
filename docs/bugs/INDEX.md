@@ -50,6 +50,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0121](./BUG-0121.md) | debrief suggestions ignored resumeId in real backend context | medium | resolved | 2026-06-14 | `fix(debrief): wire resume context for suggestions (BUG-0121)` |
 | [BUG-0078](./BUG-0078.md) | frontend debrief dev mock flow was stuck in analysis | high | resolved | 2026-05-18 | `fix(frontend-debrief): repair dev mock debrief flow (BUG-0078)` |
 | [BUG-0071](./BUG-0071.md) | frontend debrief record modes drifted from ui-design parity | medium | resolved | 2026-05-17 | `fix(frontend-debrief): restore record mode ui parity (BUG-0071)` |
 | [BUG-0069](./BUG-0069.md) | debrief real backend flows were blocked by mock-only contract drift | high | resolved | 2026-05-17 | `fix(frontend-debrief): repair real backend debrief flows (BUG-0068)` |
