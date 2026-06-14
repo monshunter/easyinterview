@@ -296,7 +296,7 @@ func TestDuplicateResumeValidationAndStoreErrors(t *testing.T) {
 
 func TestArchiveResumeReturnsArchivedStatusAndScopesUser(t *testing.T) {
 	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
-	store := &fakeStore{getOut: resumestore.ResumeRecord{
+	store := &fakeStore{archiveOut: resumestore.ResumeRecord{
 		ID:          "resume-1",
 		UserID:      "user-1",
 		Title:       "Resume",
@@ -304,8 +304,9 @@ func TestArchiveResumeReturnsArchivedStatusAndScopesUser(t *testing.T) {
 		ParseStatus: sharedtypes.TargetJobParseStatusReady,
 		CreatedAt:   now,
 		UpdatedAt:   now,
+		DeletedAt:   &now,
 	}}
-	svc := resume.NewService(resume.ServiceOptions{Store: store})
+	svc := resume.NewService(resume.ServiceOptions{Store: store, Now: func() time.Time { return now }})
 
 	got, err := svc.ArchiveResume(context.Background(), "user-1", "resume-1")
 	if err != nil {
@@ -314,13 +315,21 @@ func TestArchiveResumeReturnsArchivedStatusAndScopesUser(t *testing.T) {
 	if got.Status == nil || *got.Status != "archived" {
 		t.Fatalf("status = %#v, want archived", got.Status)
 	}
-	if store.getUserID != "user-1" || store.getResumeID != "resume-1" {
-		t.Fatalf("archive scope user=%q resume=%q", store.getUserID, store.getResumeID)
+	if got.DeletedAt == nil || *got.DeletedAt != now.Format(time.RFC3339) {
+		t.Fatalf("deletedAt = %#v, want archive timestamp", got.DeletedAt)
+	}
+	if store.archiveIn.UserID != "user-1" || store.archiveIn.ResumeID != "resume-1" || !store.archiveIn.Now.Equal(now) {
+		t.Fatalf("archive input = %+v", store.archiveIn)
 	}
 
-	store.getErr = resumestore.ErrAssetNotFound
+	store.archiveErr = resumestore.ErrAssetNotFound
 	if _, err := svc.ArchiveResume(context.Background(), "user-1", "missing"); !errors.Is(err, resume.ErrNotFound) {
 		t.Fatalf("ArchiveResume missing err = %v, want ErrNotFound", err)
+	}
+
+	store.archiveErr = resumestore.ErrAlreadyArchived
+	if _, err := svc.ArchiveResume(context.Background(), "user-1", "resume-1"); !errors.Is(err, resume.ErrAlreadyArchived) {
+		t.Fatalf("ArchiveResume archived err = %v, want ErrAlreadyArchived", err)
 	}
 }
 
@@ -479,6 +488,10 @@ type fakeStore struct {
 	duplicateOut resumestore.ResumeRecord
 	duplicateErr error
 
+	archiveIn  resumestore.ArchiveResumeInput
+	archiveOut resumestore.ResumeRecord
+	archiveErr error
+
 	tailorCreateIn  resumestore.CreateTailorRunInput
 	tailorCreateOut resumestore.CreateTailorRunResult
 	tailorCreateErr error
@@ -515,6 +528,11 @@ func (s *fakeStore) UpdateResume(_ context.Context, in resumestore.UpdateResumeI
 func (s *fakeStore) DuplicateResume(_ context.Context, in resumestore.DuplicateResumeInput) (resumestore.ResumeRecord, error) {
 	s.duplicateIn = in
 	return s.duplicateOut, s.duplicateErr
+}
+
+func (s *fakeStore) ArchiveResume(_ context.Context, in resumestore.ArchiveResumeInput) (resumestore.ResumeRecord, error) {
+	s.archiveIn = in
+	return s.archiveOut, s.archiveErr
 }
 
 func (s *fakeStore) CreateTailorRun(_ context.Context, in resumestore.CreateTailorRunInput) (resumestore.CreateTailorRunResult, error) {

@@ -35,7 +35,7 @@ pnpm --filter @easyinterview/frontend test \
   src/app/screens/home/HomeAuthGate.test.tsx \
   src/app/AppAuthDispatch.test.tsx
 cd backend && go test ./internal/auth -run TestSessionPolicyClassifiesPublicOptionalAndProtectedOperations -count=1
-cd backend && go test ./cmd/api -run 'TestBuildAPIHandlerMounts(TargetJobRoutes|UploadPresign|ResumeRoutes|PracticeAndProfileRoutes|ReportRoutes|JobRoute)BehindSessionMiddleware|TestJDMatchRoutesRequireSessionOnAllRoutes' -count=1
+cd backend && go test ./cmd/api -run 'TestBuildAPIHandlerMounts(TargetJobRoutes|UploadPresign|ResumeRoutes|PracticeAndProfileRoutes|ReportRoutes|JobRoute)BehindSessionMiddleware|TestJDMatchRoutesAreGonePerD17' -count=1
 ```
 
 ## 3 Then

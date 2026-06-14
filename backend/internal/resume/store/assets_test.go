@@ -103,6 +103,7 @@ func TestRepositoryExposesFlatResumeMethods(t *testing.T) {
 		List(context.Context, string, resumestore.ListFilter) (resumestore.ListResult, error)
 		UpdateResume(context.Context, resumestore.UpdateResumeInput) (resumestore.ResumeRecord, error)
 		DuplicateResume(context.Context, resumestore.DuplicateResumeInput) (resumestore.ResumeRecord, error)
+		ArchiveResume(context.Context, resumestore.ArchiveResumeInput) (resumestore.ResumeRecord, error)
 		MarkParsing(context.Context, resumestore.StatusUpdateInput) error
 		MarkReady(context.Context, resumestore.MarkReadyInput) error
 		MarkFailed(context.Context, resumestore.MarkFailedInput) error
@@ -138,6 +139,85 @@ func TestGetScopesUserAndMapsStructuredProfile(t *testing.T) {
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestArchiveResumeSoftHidesAndScopesUser(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	createdAt := time.Date(2026, 6, 13, 19, 0, 0, 0, time.UTC)
+	archivedAt := time.Date(2026, 6, 14, 8, 50, 0, 0, time.UTC)
+
+	mock.ExpectQuery(regexp.QuoteMeta(`update resumes`)).
+		WithArgs(archivedAt, "resume-1", "user-1").
+		WillReturnRows(resumeRows().AddRow(
+			"resume-1", "user-1", nil, "Resume", "Archived CV", "en", string(sharedtypes.TargetJobParseStatusReady),
+			[]byte(`{}`), nil, []byte(`{"headline":"Senior engineer"}`), nil,
+			"paste", nil, "job-1", createdAt, archivedAt, archivedAt,
+		))
+
+	got, err := repo.ArchiveResume(context.Background(), resumestore.ArchiveResumeInput{
+		UserID:   "user-1",
+		ResumeID: "resume-1",
+		Now:      archivedAt,
+	})
+	if err != nil {
+		t.Fatalf("ArchiveResume: %v", err)
+	}
+	if got.DeletedAt == nil || !got.DeletedAt.Equal(archivedAt) || !got.UpdatedAt.Equal(archivedAt) {
+		t.Fatalf("archive timestamps deletedAt=%v updatedAt=%v", got.DeletedAt, got.UpdatedAt)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestArchiveResumeAlreadyArchivedAndNotFound(t *testing.T) {
+	tests := []struct {
+		name       string
+		selectRows *sqlmock.Rows
+		selectErr  error
+		want       error
+	}{
+		{
+			name:       "already archived",
+			selectRows: sqlmock.NewRows([]string{"deleted_at"}).AddRow(time.Date(2026, 6, 14, 8, 50, 0, 0, time.UTC)),
+			want:       resumestore.ErrAlreadyArchived,
+		},
+		{
+			name:      "not found",
+			selectErr: sql.ErrNoRows,
+			want:      resumestore.ErrAssetNotFound,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			repo, mock, cleanup := newMockRepository(t)
+			defer cleanup()
+			now := time.Date(2026, 6, 14, 9, 0, 0, 0, time.UTC)
+			mock.ExpectQuery(regexp.QuoteMeta(`update resumes`)).
+				WithArgs(now, "resume-1", "user-1").
+				WillReturnError(sql.ErrNoRows)
+			selectQuery := mock.ExpectQuery(regexp.QuoteMeta(`select deleted_at`)).
+				WithArgs("resume-1", "user-1")
+			if tc.selectErr != nil {
+				selectQuery.WillReturnError(tc.selectErr)
+			} else {
+				selectQuery.WillReturnRows(tc.selectRows)
+			}
+
+			_, err := repo.ArchiveResume(context.Background(), resumestore.ArchiveResumeInput{
+				UserID:   "user-1",
+				ResumeID: "resume-1",
+				Now:      now,
+			})
+			if !errors.Is(err, tc.want) {
+				t.Fatalf("err = %v, want %v", err, tc.want)
+			}
+			if err := mock.ExpectationsWereMet(); err != nil {
+				t.Fatalf("sql expectations: %v", err)
+			}
+		})
 	}
 }
 

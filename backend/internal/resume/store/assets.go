@@ -251,6 +251,49 @@ where id = $1 and user_id = $2`,
 	return rec, nil
 }
 
+func (r *Repository) ArchiveResume(ctx context.Context, in ArchiveResumeInput) (ResumeRecord, error) {
+	if r == nil || r.db == nil {
+		return ResumeRecord{}, fmt.Errorf("resume store db is nil")
+	}
+	now := in.Now
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	rec, err := scanResume(r.db.QueryRowContext(ctx, `
+update resumes
+set deleted_at = $1, updated_at = $1
+where id = $2 and user_id = $3 and deleted_at is null
+returning `+resumeSelectColumns,
+		now,
+		in.ResumeID,
+		in.UserID,
+	))
+	if err == nil {
+		return rec, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return ResumeRecord{}, err
+	}
+	var deletedAt sql.NullTime
+	err = r.db.QueryRowContext(ctx, `
+select deleted_at
+from resumes
+where id = $1 and user_id = $2`,
+		in.ResumeID,
+		in.UserID,
+	).Scan(&deletedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ResumeRecord{}, ErrAssetNotFound
+	}
+	if err != nil {
+		return ResumeRecord{}, err
+	}
+	if deletedAt.Valid {
+		return ResumeRecord{}, ErrAlreadyArchived
+	}
+	return ResumeRecord{}, ErrAssetNotFound
+}
+
 func (r *Repository) MarkParsing(ctx context.Context, in StatusUpdateInput) error {
 	return r.updateStatus(ctx, in.UserID, in.AssetID, "", sharedtypes.TargetJobParseStatusProcessing, nil, nil, nil, "", in.Now)
 }
@@ -610,6 +653,7 @@ func stringPtrFromNull(in sql.NullString) *string {
 
 var (
 	ErrAssetNotFound          = errors.New("resume not found")
+	ErrAlreadyArchived        = errors.New("resume already archived")
 	ErrTailorRunNotFound      = errors.New("resume tailor run not found")
 	ErrInvalidStateTransition = errors.New("invalid resume parse status transition")
 	ErrInvalidCursor          = errors.New("invalid resume list cursor")

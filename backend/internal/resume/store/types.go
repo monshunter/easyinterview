@@ -80,6 +80,12 @@ type DuplicateResumeInput struct {
 	Now               time.Time
 }
 
+type ArchiveResumeInput struct {
+	UserID   string
+	ResumeID string
+	Now      time.Time
+}
+
 type VersionProvenance struct {
 	PromptVersion     string
 	RubricVersion     string

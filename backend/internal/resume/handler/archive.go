@@ -42,6 +42,10 @@ func (h *Handler) ArchiveResume(w http.ResponseWriter, r *http.Request, resumeID
 			writeAPIError(w, http.StatusNotFound, sharederrors.CodeResourceNotFound, "resume not found", nil)
 			return
 		}
+		if errors.Is(err, resume.ErrAlreadyArchived) {
+			writeAPIError(w, http.StatusConflict, sharederrors.CodeTargetInvalidStateTransition, "Resume is already archived", nil)
+			return
+		}
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "resume archive failed", nil)
 		return
 	}

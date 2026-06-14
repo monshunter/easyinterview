@@ -16,7 +16,7 @@ grep -Fq "src/app/screens/home/HomeRecentMocks.test.tsx" "$LOG_FILE"
 grep -Fq "src/app/screens/home/HomeAuthGate.test.tsx" "$LOG_FILE"
 grep -Fq "src/app/AppAuthDispatch.test.tsx" "$LOG_FILE"
 grep -Eq 'Test Files +3 passed \(3\)' "$LOG_FILE"
-grep -Eq 'Tests +24 passed \(24\)' "$LOG_FILE"
+grep -Eq 'Tests +26 passed \(26\)' "$LOG_FILE"
 grep -Fq "=== backend-session-policy ===" "$LOG_FILE"
 grep -Fq -- "--- PASS: TestSessionPolicyClassifiesPublicOptionalAndProtectedOperations" "$LOG_FILE"
 grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/auth' "$LOG_FILE"
@@ -27,7 +27,7 @@ grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddlew
 grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsPracticeAndProfileRoutesBehindSessionMiddleware" "$LOG_FILE"
 grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsReportRoutesBehindSessionMiddleware" "$LOG_FILE"
 grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsJobRouteBehindSessionMiddleware" "$LOG_FILE"
-grep -Fq -- "--- PASS: TestJDMatchRoutesRequireSessionOnAllRoutes" "$LOG_FILE"
+grep -Fq -- "--- PASS: TestJDMatchRoutesAreGonePerD17" "$LOG_FILE"
 grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/cmd/api' "$LOG_FILE"
 
 for forbidden in \

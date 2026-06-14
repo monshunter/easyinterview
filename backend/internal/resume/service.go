@@ -21,6 +21,7 @@ import (
 var (
 	ErrValidationFailed = errors.New("resume validation failed")
 	ErrNotFound         = errors.New("resume not found")
+	ErrAlreadyArchived  = errors.New("resume already archived")
 	ErrInvalidCursor    = errors.New("invalid resume cursor")
 )
 
@@ -49,6 +50,10 @@ type UpdateStore interface {
 
 type DuplicateStore interface {
 	DuplicateResume(ctx context.Context, in resumestore.DuplicateResumeInput) (resumestore.ResumeRecord, error)
+}
+
+type ArchiveStore interface {
+	ArchiveResume(ctx context.Context, in resumestore.ArchiveResumeInput) (resumestore.ResumeRecord, error)
 }
 
 type TailorRunStore interface {
@@ -329,28 +334,33 @@ func (s *Service) DuplicateResume(ctx context.Context, in DuplicateResumeRequest
 }
 
 // ArchiveResume marks a resume as archived (soft-hide, not privacy deletion).
-// P0 archive has no dedicated persistence column yet (full archive/delete
-// integration is plan 003); it enforces ownership / cross-user 404 and returns
-// the resume with status archived.
 func (s *Service) ArchiveResume(ctx context.Context, userID string, resumeID string) (api.Resume, error) {
 	if s == nil {
-		return api.Resume{}, fmt.Errorf("resume read store is not configured")
+		return api.Resume{}, fmt.Errorf("resume archive store is not configured")
 	}
-	reader, ok := s.store.(ReadStore)
+	store, ok := s.store.(ArchiveStore)
 	if !ok {
-		return api.Resume{}, fmt.Errorf("resume read store is not configured")
+		return api.Resume{}, fmt.Errorf("resume archive store is not configured")
 	}
-	rec, err := reader.Get(ctx, strings.TrimSpace(userID), strings.TrimSpace(resumeID))
-	if errors.Is(err, resumestore.ErrAssetNotFound) {
+	userID = strings.TrimSpace(userID)
+	resumeID = strings.TrimSpace(resumeID)
+	if userID == "" || resumeID == "" {
+		return api.Resume{}, ErrValidationFailed
+	}
+	rec, err := store.ArchiveResume(ctx, resumestore.ArchiveResumeInput{
+		UserID:   userID,
+		ResumeID: resumeID,
+		Now:      s.now(),
+	})
+	switch {
+	case errors.Is(err, resumestore.ErrAssetNotFound):
 		return api.Resume{}, ErrNotFound
-	}
-	if err != nil {
+	case errors.Is(err, resumestore.ErrAlreadyArchived):
+		return api.Resume{}, ErrAlreadyArchived
+	case err != nil:
 		return api.Resume{}, err
 	}
-	out := resumeRecordToAPI(rec)
-	archived := "archived"
-	out.Status = &archived
-	return out, nil
+	return resumeRecordToAPI(rec), nil
 }
 
 type RequestTailorRunInput struct {
@@ -476,6 +486,9 @@ func cloneMap(in map[string]any) map[string]any {
 
 func resumeRecordToAPI(rec resumestore.ResumeRecord) api.Resume {
 	status := "active"
+	if rec.DeletedAt != nil {
+		status = "archived"
+	}
 	out := api.Resume{
 		Id:                rec.ID,
 		Title:             rec.Title,
