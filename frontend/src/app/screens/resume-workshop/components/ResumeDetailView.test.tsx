@@ -133,7 +133,7 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
     expect(screen.getByTestId("resume-rewrites-tab")).toBeInTheDocument();
   });
 
-  it("rerun requests carry the flat { resumeId, mode } and no version ids", async () => {
+  it("rerun requests carry the flat { resumeId, targetJobId, mode } and no version ids", async () => {
     const client = buildClient("default");
     const requestSpy = vi
       .spyOn(client, "requestResumeTailor")
@@ -143,7 +143,11 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
 
     renderDetailWithClient(client, {
       name: "resume_versions",
-      params: { resumeId: RESUME_ID, tab: "rewrites" },
+      params: {
+        resumeId: RESUME_ID,
+        targetJobId: "01918fa0-0000-7000-8000-000000002000",
+        tab: "rewrites",
+      },
     });
 
     await waitFor(() => {
@@ -162,6 +166,7 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
     >;
     expect(requestArg).toMatchObject({
       resumeId: RESUME_ID,
+      targetJobId: "01918fa0-0000-7000-8000-000000002000",
       mode: "bullet_suggestions",
     });
     expect(requestArg).not.toHaveProperty("resumeAssetId");
@@ -360,6 +365,118 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
     expect(
       JSON.stringify(body.structuredProfile),
     ).not.toContain("acceptedRewrites");
+  });
+
+  it("persists accepted rewrites into flat experience, experiences, and projects bullets", async () => {
+    const client = buildClient("default");
+    const resumeWithFlatBullets = {
+      ...(getResumeFixture.scenarios.default.response.body as Resume),
+      structuredProfile: {
+        headline: "Senior frontend engineer",
+        experience: [
+          {
+            company: "Acme",
+            bullets: ["Led design-system migration.", "Kept unrelated bullet."],
+          },
+        ],
+        experiences: [
+          {
+            company: "Legacy Acme",
+            bullets: ["Led design-system migration."],
+          },
+        ],
+        projects: [
+          {
+            name: "Design System",
+            bullets: ["Led design-system migration."],
+          },
+        ],
+      },
+    } satisfies Resume;
+    const updateSpy = vi
+      .spyOn(client, "updateResume")
+      .mockResolvedValueOnce(resumeWithFlatBullets);
+    vi.spyOn(client, "getResume").mockResolvedValue(resumeWithFlatBullets);
+
+    renderDetailWithClient(client, {
+      name: "resume_versions",
+      params: {
+        resumeId: RESUME_ID,
+        tab: "rewrites",
+        tailorRunId: getResumeTailorRunFixture.scenarios.default.response.body.id,
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-rewrites-action-accept")).toBeEnabled();
+    }, { timeout: 3000 });
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId("resume-rewrites-action-accept"));
+    await user.click(screen.getByTestId("resume-rewrites-preview-save"));
+    await user.click(screen.getByTestId("resume-rewrites-save-confirm"));
+
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+    });
+    const body = updateSpy.mock.calls[0]![1] as Record<string, unknown>;
+    expect(body.structuredProfile).toMatchObject({
+      experience: [
+        {
+          company: "Acme",
+          bullets: [
+            "Led design-system migration across 12 teams; reduced UI defect rate by 38% over 6 weeks.",
+            "Kept unrelated bullet.",
+          ],
+        },
+      ],
+      experiences: [
+        {
+          company: "Legacy Acme",
+          bullets: [
+            "Led design-system migration across 12 teams; reduced UI defect rate by 38% over 6 weeks.",
+          ],
+        },
+      ],
+      projects: [
+        {
+          name: "Design System",
+          bullets: [
+            "Led design-system migration across 12 teams; reduced UI defect rate by 38% over 6 weeks.",
+          ],
+        },
+      ],
+    });
+  });
+
+  it("does not crash the original preview fallback when structuredProfile is omitted", async () => {
+    const client = buildClient("default");
+    const resumeWithoutTextOrProfile = {
+      ...(getResumeFixture.scenarios.default.response.body as Resume),
+      parsedTextSnapshot: null,
+      originalText: null,
+    };
+    delete resumeWithoutTextOrProfile.structuredProfile;
+    vi.spyOn(client, "getResume").mockResolvedValueOnce(
+      resumeWithoutTextOrProfile,
+    );
+
+    renderDetailWithClient(client, {
+      name: "resume_versions",
+      params: { resumeId: RESUME_ID, tab: "preview" },
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("resume-detail-view-original"),
+      ).toBeInTheDocument();
+    });
+    await userEvent
+      .setup()
+      .click(screen.getByTestId("resume-detail-view-original"));
+
+    expect(
+      screen.getByTestId("resume-detail-original-modal-content"),
+    ).toBeInTheDocument();
   });
 
   it("shows a retryable detail error for non-404 getResume failures", async () => {

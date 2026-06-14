@@ -30,12 +30,14 @@ export interface ResumeDetailViewProps {
   resumeId: string;
   initialTab: ResumeDetailTab | null;
   initialTailorRunId?: string | null;
+  targetJobId?: string | null;
 }
 
 export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
   resumeId,
   initialTab,
   initialTailorRunId = null,
+  targetJobId = null,
 }) => {
   const { t } = useI18n();
   const { navigate } = useNavigation();
@@ -142,7 +144,10 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
     ui.text.length > 0
       ? ui.text
       : (() => {
-          const profile = resume.structuredProfile as Record<string, unknown>;
+          const profile = (resume.structuredProfile ?? {}) as Record<
+            string,
+            unknown
+          >;
           const headline =
             typeof profile.headline === "string" ? profile.headline : "";
           const summary =
@@ -223,6 +228,7 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
           <ResumeRewritesTabContainer
             resume={resume}
             initialTailorRunId={initialTailorRunId}
+            targetJobId={targetJobId}
             onResumeRefreshed={resumeQuery.retry}
           />
         ) : (
@@ -247,12 +253,14 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({
 interface ResumeRewritesTabContainerProps {
   resume: Resume;
   initialTailorRunId: string | null;
+  targetJobId: string | null;
   onResumeRefreshed: () => void;
 }
 
 const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
   resume,
   initialTailorRunId,
+  targetJobId,
   onResumeRefreshed,
 }) => {
   const { t } = useI18n();
@@ -275,6 +283,7 @@ const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
     try {
       const result = await tailorRequest.request({
         resumeId: resume.id,
+        ...(targetJobId ? { targetJobId } : {}),
         mode,
       });
       setActiveTailorRunId(result.tailorRunId);
@@ -344,8 +353,34 @@ const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
     fireResumeWorkshopToast(t("resumeWorkshop.rewrites.error.generic"), "danger");
   };
 
-  // Merge accepted rewrites into the structured profile sections so the saved
-  // resume reflects the chosen bullets.
+  const rewriteBullets = (
+    bullets: unknown,
+    rewrites: Map<string, string>,
+  ): unknown => {
+    if (!Array.isArray(bullets)) return bullets;
+    return bullets.map((bullet) =>
+      typeof bullet === "string" ? rewrites.get(bullet) ?? bullet : bullet,
+    );
+  };
+
+  const rewriteBulletRecords = (
+    value: unknown,
+    rewrites: Map<string, string>,
+  ): unknown => {
+    if (!Array.isArray(value)) return value;
+    return value.map((entry) => {
+      if (typeof entry !== "object" || entry === null) return entry;
+      const record = entry as Record<string, unknown>;
+      if (!Array.isArray(record.bullets)) return entry;
+      return {
+        ...record,
+        bullets: rewriteBullets(record.bullets, rewrites),
+      };
+    });
+  };
+
+  // Merge accepted rewrites into every supported structured-profile bullet
+  // collection used by flat resumes and older backend parse output.
   const buildStructuredProfileWith = (
     acceptedRewrites: { original: string; rewritten: string }[],
   ): Record<string, unknown> => {
@@ -355,19 +390,8 @@ const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
     const rewrites = new Map(
       acceptedRewrites.map((rewrite) => [rewrite.original, rewrite.rewritten]),
     );
-    const sections = profile.sections;
-    if (Array.isArray(sections)) {
-      profile.sections = sections.map((section) => {
-        if (typeof section !== "object" || section === null) return section;
-        const record = section as Record<string, unknown>;
-        if (!Array.isArray(record.bullets)) return section;
-        return {
-          ...record,
-          bullets: record.bullets.map((bullet) =>
-            typeof bullet === "string" ? rewrites.get(bullet) ?? bullet : bullet,
-          ),
-        };
-      });
+    for (const key of ["sections", "experience", "experiences", "projects"]) {
+      profile[key] = rewriteBulletRecords(profile[key], rewrites);
     }
     return profile;
   };
