@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Resume Workshop Additive Coverage
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-06-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -264,6 +264,12 @@ B2 spec 1.29→1.30（本次 doc 修订已完成）：§1 / §2.1 / §3.1.1（43
 
 （验证：负向 grep 0 命中 + 7.1-7.7 全 gate PASS）
 
+#### 7.10 L2 hardening - retired fixture key gate
+
+`scripts/lint/validate_fixtures.py` 必须递归扫描 fixture request / response key，拒绝 D-20 退役的 `resumeAssetId` / `resumeVersionId` 字段；`openapi/fixtures/Debriefs/suggestDebriefQuestions.json` 等下游 fixture 必须使用 `resumeId`。该 gate 与 `make validate-fixtures` 同步执行，防止 OpenAPI schema 已坍缩但 fixture / mock consumer 继续携带旧字段。
+
+（验证：`python3 -m unittest scripts.lint.validate_fixtures_cli_test` PASS；`make validate-fixtures` PASS；`rg -n "resumeVersionId|resumeAssetId" openapi/fixtures openapi/openapi.yaml backend/internal/api/generated frontend/src/api/generated` 0 命中）
+
 ## 5 验收标准
 
 - 本计划列出的 §4 所有 Phase task 全部完成
@@ -280,7 +286,7 @@ B2 spec 1.29→1.30（本次 doc 修订已完成）：§1 / §2.1 / §3.1.1（43
 - schema `ResumeAsset`→`Resume`（含 `structuredProfile`/`displayName`）、`PaginatedResumeAsset`→`PaginatedResume`、新增 `UpdateResumeRequest`/`DuplicateResumeRequest`、删除 `ResumeVersion` 等 6 个版本 schema；`RequestResumeTailorRequest.resumeVersionId`→`resumeId`；`RegisterResumeRequest.sourceType` 收敛 {upload,paste}
 - `scripts/lint/openapi_inventory.py` EXPECTED_OPERATIONS 48→43、`AI_PROVENANCE_SCHEMAS` `ResumeVersion`→`Resume`；`make validate-fixtures` / `make codegen-openapi && make codegen-check` / `make openapi-diff` 全 PASS；baseline 原地 re-freeze
 - B2 spec 1.29→1.30 + history 1.30 + README/roadmap/mock-contract-suite 计数同步；`sync-doc-index --check` 零漂移
-- 负向 grep `resumeVersionId|resumeAssetId|ResumeVersion|branchResume|...` 在 openapi/lint/generated 0 命中（除 history 历史行 + 负向断言）
+- 负向 grep `resumeVersionId|resumeAssetId|ResumeVersion|branchResume|...` 在 openapi/lint/generated 0 命中（除 history 历史行 + 负向断言）；`validate_fixtures.py` 递归拒绝 fixture request / response 中的 D-20 退役 key
 - 同步修正 product-scope D-17 残留的 §2.1/§3.1.1 endpoint 计数漂移（60→48→43）
 
 ## 6 风险与应对

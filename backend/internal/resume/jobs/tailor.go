@@ -73,9 +73,9 @@ func (h *TailorHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) ta
 	if err != nil {
 		return targetjob.JobOutcome{ErrorCode: sharederrors.CodeValidationFailed, ErrorMessage: sharederrors.CodeValidationFailed}
 	}
-	// D-20: the async_jobs row (already marked running by the runner kernel) is
-	// the only durable run record; there is no resume_tailor_runs status to
-	// flip. Failures surface through JobOutcome and the kernel persists them.
+		// D-20: the async_jobs row (already marked running by the runner kernel) is
+		// the only durable run record. Failures surface through JobOutcome and the
+		// kernel persists them.
 	tailorCtx, err := h.store.GetForTailor(ctx, payload.TailorRunID)
 	if err != nil {
 		return h.fail(sharederrors.CodeTargetImportFailed, err.Error(), false)

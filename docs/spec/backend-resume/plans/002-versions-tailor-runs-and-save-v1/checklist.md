@@ -1,10 +1,12 @@
 # Backend Resume Versions, Tailor Runs and Save v1 Checklist
 
-> **版本**: 1.3
-> **状态**: active
-> **更新日期**: 2026-06-13
+> **版本**: 1.4
+> **状态**: completed
+> **更新日期**: 2026-06-14
 
 **关联计划**: [plan](./plan.md)
+
+> D-20 current contract note: Phase 1-9 are historical baseline evidence and are not executable current gates. Current backend acceptance is Phase 10 plus [bdd-checklist](./bdd-checklist.md), with scoped negative checks over active runtime, generated OpenAPI artifacts, fixtures and scenario scripts; historical docs / bug records / work journals are excluded from raw zero-reference searches.
 
 ## Phase 0: preflight + spec/plan 锁定
 
@@ -140,9 +142,10 @@
 
 > product-scope D-20 / backend-resume D-13。Red 优先。Phase 1–9 历史 baseline，本 phase 重塑其交付物。
 
-- [ ] 10.1 删除 `confirm_structured_master` / `get_version` / `list_versions` / `update_version` / `branch_version` / `accept_suggestion` / `reject_suggestion` handler + `resume_versions` / `resume_version_suggestions` / `resume_tailor_runs` store + `cmd/api` route；Red：`/api/v1/resume-versions/*` + `confirmResumeStructuredMaster` 路由 404 负向断言（验证：`go test` 404 PASS + `go build ./...` 通过）
-- [ ] 10.2 `requestResumeTailor` / `getResumeTailorRun` 重塑作用于 `resumeId`、suggestions ephemeral 落 `ai_task_runs`（task_type=`resume_tailor`）输出（验证：handler + job unit test PASS）
-- [ ] 10.3 新增 `updateResume` handler（`PATCH /api/v1/resumes/{resumeId}` 覆盖 `structured_profile` / `display_name`，IK 必带）（验证：unit + IK replay + cross-user 404 PASS）
-- [ ] 10.4 新增 `duplicateResume` handler（`POST /api/v1/resumes/{resumeId}/duplicate` 复制只读来源 + 应用 `structuredProfile`，IK 必带）（验证：unit + IK replay PASS）
-- [ ] 10.5 `resume.tailor.completed` envelope 改 `resumeId` + `tailorRunId`(=ai_task_run id)（验证：outbox envelope test PASS）
-- [ ] 10.6 收口：`cd backend && go test ./internal/resume/... ./cmd/api` + 新增 update/duplicate/tailor-ephemeral 扁平 BDD + 零 `resumeVersionId` / `resume_versions` / `structured_master` / `branchResume` / `acceptResumeTailorSuggestion` 残留 grep（generated 除外）（验证：全 gate PASS + 负向 grep 0 命中）
+- [x] 10.0 L2 hardening: 固化 D-20 negative sweep gate，覆盖 runtime SQL（job owner query 不引用 dropped resume tables）、privacy payload（resume async job payload/result cleanup）、migration legacy-row（`guided` / retired JD Match async jobs 在 narrowed CHECK 前 cleanup）、OpenAPI baseline（43 operation baseline + retired fixture key validator）；验证：focused Go tests + `make openapi-diff` + `python3 -m unittest scripts.lint.validate_fixtures_cli_test` + `make validate-fixtures` + scoped negative grep 0 命中
+- [x] 10.1 删除 `confirm_structured_master` / `get_version` / `list_versions` / `update_version` / `branch_version` / `accept_suggestion` / `reject_suggestion` handler + `resume_versions` / `resume_version_suggestions` / `resume_tailor_runs` store + `cmd/api` route；Red：`/api/v1/resume-versions/*` + `confirmResumeStructuredMaster` 路由 404 负向断言（验证：`go test ./backend/cmd/api -run TestResumeVersionRoutesAreGonePerD20 -count=1 -v` PASS；`go test ./backend/cmd/api -run TestGeneratedRouteCatalogHasNoResumeVersionOperations -count=1` PASS；`find backend/internal/resume -maxdepth 3 -type f` 无旧 handler/store 文件）
+- [x] 10.2 `requestResumeTailor` / `getResumeTailorRun` 重塑作用于 `resumeId`、suggestions ephemeral 落 `ai_task_runs` / `async_jobs.result` 输出（验证：`go test ./backend/internal/resume/... ./backend/cmd/api -list 'Test.*(Tailor|Drainer|HTTPScenario)'` 命中当前测试；`go test ./backend/internal/resume/... ./backend/cmd/api -run 'TestRequestResumeTailor|TestGetResumeTailorRun|TestResumeTailorFixtureParity|TestResumeTailorEndpointsHTTPScenario|TestResumeTailorDrainerHTTPScenario|TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox' -count=1` PASS）
+- [x] 10.3 新增 `updateResume` handler（`PATCH /api/v1/resumes/{resumeId}` 覆盖 `structured_profile` / `display_name`，IK 必带）（验证：`go test ./backend/internal/resume/... -run 'TestUpdateResume|TestUpdateResumeFixtureParity' -count=1` PASS；handler/service/store tests 覆盖 IK、server-owned field 422、cross-user / not-found）
+- [x] 10.4 新增 `duplicateResume` handler（`POST /api/v1/resumes/{resumeId}/duplicate` 复制只读来源 + 应用 `structuredProfile`，IK 必带）（验证：`go test ./backend/internal/resume/... -run 'TestDuplicateResume|TestDuplicateResumeFixtureParity' -count=1` PASS；handler/service/store tests 覆盖 IK、source copy、rollback）
+- [x] 10.5 `resume.tailor.completed` envelope 改 `resumeId` + `tailorRunId`(=ai_task_run / async job run id)（验证：`go test ./backend/internal/resume/jobs ./backend/internal/resume/store ./backend/cmd/api -run 'TestOutboxPrivacyForTailorCompletedEvent|TestCompleteTailorRunSuccessWritesResultAndOutbox|TestResumeTailorDrainerHTTPScenario|TestResumeTailorDrainerFailureScenario' -count=1` PASS；payload allowlist 不含 suggestion/match text）
+- [x] 10.6 收口：`cd backend && go test ./internal/resume/... ./cmd/api` + D-20 flat/retired BDD P0.074-P0.080 + 零 `resumeVersionId` / `resume_versions` / `structured_master` / `branchResume` / `acceptResumeTailorSuggestion` 残留 grep（范围：active runtime / generated OpenAPI artifacts / fixtures / scenario scripts；历史 docs、bug records、work journals 除外）（验证：`go test ./backend/internal/resume/... ./backend/cmd/api -count=1` PASS；P0.074-P0.080 scenario setup/trigger/verify/cleanup PASS；scoped runtime negative grep 0 命中）

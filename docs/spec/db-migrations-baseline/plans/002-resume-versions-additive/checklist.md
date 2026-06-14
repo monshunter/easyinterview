@@ -1,8 +1,8 @@
 # DB Migrations Baseline Resume Versions Additive Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-06-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -62,3 +62,4 @@
 - [x] 6.6 B4 spec 1.22→1.23 + history 1.23：§2.1 表数 25、§3.1.2 privacy matrix（`resumes` 行 + 删 version/jd_match 行 + debriefs 收敛）、§6 C-1 表数 25 / ≥30、新增 D-22 决策、标注 D-17 / B4 本地 D-20 退役、回填 product-scope D-17 jd_match drop 计数漂移（本次 doc 修订已完成）（验证：`sync-doc-index --check` 零漂移）
 - [ ] 6.7 跨 gate 收口：`make migrate-up && make migrate-down && make migrate-up` + `make migrate-check` + `cd backend && go test ./internal/migrations/... ./internal/store/...` + `migrations/lint.sh` + `sync-doc-index --check` PASS（无 `DATABASE_URL` 时 live 明确 skip，contract / lint / negative fixture PASS）；零 `resume_versions` / `resume_version_suggestions` / `resume_tailor_runs` / `resume_asset_id` 残留 grep（除负向断言与 down 骨架）
 - [ ] 6.8 下游信号：`backend-resume`（store 改 `resumes` 单表）/ `openapi-v1-contract/004`（resume 契约坍缩）/ `shared-conventions-codified`（3 enum 退役）/ `backend-practice`（session resume_id binding）已收到 D-20 flatten 落地信号（验证：cross-plan 引用）
+- [x] 6.9 L2 hardening: migration contract test 固化 narrowed CHECK 前历史合法行 cleanup：`source_type='guided'` rows 先转 `paste`，retired `jd_match_agent_scan` / `jd_match_search` async jobs 先删除再添加 narrowed `async_jobs.job_type` CHECK；验证：`go test ./backend/internal/migrations -run 'TestResumeFlattenMigrationContract|TestDropJDMatchMigrationDeletesRetiredAsyncJobsBeforeNarrowingCheck' -count=1`

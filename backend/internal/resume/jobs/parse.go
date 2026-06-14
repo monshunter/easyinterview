@@ -159,9 +159,8 @@ func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) tar
 	if h.newID == nil {
 		return h.fail(ctx, asset, job, sharederrors.CodeTargetImportFailed, "resume parse event id generator not configured", true)
 	}
-	// D-20: parse directly produces the flat resume's structured content; the
-	// parsed JSON is both the summary and the structured_profile (no separate
-	// structured_master confirm step).
+		// D-20: parse directly produces the flat resume's structured content; the
+		// parsed JSON is both the summary and the structured_profile.
 	if err := h.store.CompleteParseSuccess(ctx, resumestore.CompleteParseSuccessInput{
 		UserID:             asset.UserID,
 		AssetID:            asset.ID,

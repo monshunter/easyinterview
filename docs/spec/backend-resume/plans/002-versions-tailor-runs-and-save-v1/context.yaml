@@ -85,12 +85,9 @@ spec:
           - frontend/src/api
         uiRoutes: []
         apiNames:
-          - confirmResumeStructuredMaster
-          - getResumeVersion
-          - listResumeVersions
-          - updateResumeVersion
-          - branchResumeVersion
+          - getResume
+          - listResumes
+          - updateResume
+          - duplicateResume
           - requestResumeTailor
           - getResumeTailorRun
-          - acceptResumeTailorSuggestion
-          - rejectResumeTailorSuggestion

@@ -2,10 +2,10 @@
 
 ## Failure / Retry Outcomes
 
-- Timeout attempts return retryable `AI_PROVIDER_TIMEOUT`, mark the tailor run failed, and do not emit `resume.tailor.completed`.
-- Invalid output returns terminal `AI_OUTPUT_INVALID`, mark the tailor run failed, and does not emit `resume.tailor.completed`.
-- Retry can move a failed run back to generating and then ready on a later successful AI response.
-- The successful retry writes pending `resume_version_suggestions`, ready run provenance, and exactly one completed outbox event.
+- Timeout attempts return retryable `AI_PROVIDER_TIMEOUT`, mark the async job failed, and do not emit `resume.tailor.completed`.
+- Invalid output returns terminal `AI_OUTPUT_INVALID`, marks the async job failed, and does not emit `resume.tailor.completed`.
+- Retry can move a failed async job back to generating and then ready on a later successful AI response.
+- The successful retry writes ready run provenance plus ephemeral suggestions into async job result, and exactly one completed outbox event.
 - `ai_task_runs` contains one row per AI attempt, including failed and successful attempts.
 
 ## Evidence Outcomes

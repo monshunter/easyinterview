@@ -41,8 +41,7 @@ type CreateAssetResult struct {
 }
 
 // ResumeRecord is a single flat resume asset (D-20 flatten): a read-only source
-// snapshot plus the editable structured_profile / display_name merged in from
-// the retired structured_master version.
+// snapshot plus editable structured_profile / display_name fields.
 type ResumeRecord struct {
 	ID                 string
 	UserID             string
@@ -111,8 +110,8 @@ type CreateTailorRunResult struct {
 }
 
 // TailorRunRecord reconstructs a tailor run from the async_jobs row that drives
-// it (D-20 dropped the dedicated resume_tailor_runs table). The result jsonb
-// carries the ephemeral match summary, bullet suggestions, and provenance.
+// it. The result jsonb carries the ephemeral match summary, bullet suggestions,
+// and provenance.
 type TailorRunRecord struct {
 	ID           string
 	UserID       string

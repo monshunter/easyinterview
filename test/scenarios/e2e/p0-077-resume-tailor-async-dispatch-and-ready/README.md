@@ -21,13 +21,13 @@ and the B2 `requestResumeTailor` / `getResumeTailorRun` fixtures.
 
 When user A requests a tailor run and polls the run by ID.
 
-Then the API returns 202 with `ResumeTailorRunWithJob`; queued
-`resume_tailor_runs` and queued `async_jobs` rows are created atomically;
-getTailorRun returns queued / generating / ready / failed variants; state
-transitions reject double-claim; the drainer marks a run ready, persists match
-summary + suggestions on the tailor run, writes a typed `ai_task_runs` row, and
-emits one ready-only completed outbox event whose payload contains only IDs,
-mode, and status.
+Then the API returns 202 with `ResumeTailorRunWithJob`; queued state is held by
+`async_jobs(job_type='resume_tailor')` with a `resumeId` payload; getTailorRun
+returns queued / generating / ready / failed variants from async job state and
+task output; state transitions reject double-claim; the drainer marks the job
+ready, persists the run result and ephemeral suggestions in `async_jobs.result`,
+writes a typed `ai_task_runs` row, and emits one ready-only completed outbox
+event whose payload contains only IDs, mode, and status.
 
 ## 4. Scripts
 

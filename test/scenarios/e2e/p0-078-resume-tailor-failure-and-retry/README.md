@@ -15,7 +15,7 @@ Given three queued resume tailor runs owned by user A and a deterministic `cmd/a
 
 When the drainer processes timeout, invalid-output, and timeout-then-success variants.
 
-Then failed runs persist `resume_tailor_runs.status='failed'` with `AI_PROVIDER_TIMEOUT` or `AI_OUTPUT_INVALID`; retryable state remains in `async_jobs` outcome metadata; retry can re-enter generating and finish ready; `ai_task_runs` records every AI attempt; and `resume.tailor.completed` is emitted only for the final ready run.
+Then failed runs persist failure state in `async_jobs` outcome/result metadata with `AI_PROVIDER_TIMEOUT` or `AI_OUTPUT_INVALID`; retryable state remains in `async_jobs` outcome metadata; retry can re-enter generating and finish ready; `ai_task_runs` records every AI attempt; and `resume.tailor.completed` is emitted only for the final ready run.
 
 ## 4. Scripts
 

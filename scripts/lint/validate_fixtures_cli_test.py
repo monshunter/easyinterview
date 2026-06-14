@@ -52,7 +52,7 @@ class ValidatorCliTest(unittest.TestCase):
     def test_clean_fixtures_exit_zero(self) -> None:
         out = _run_validator(self.repo)
         self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")
-        self.assertIn("60", out.stdout)
+        self.assertIn("43", out.stdout)
 
     # ---- §1.3.5 missing operation ----
     def test_missing_fixture_fails(self) -> None:
@@ -114,6 +114,20 @@ class ValidatorCliTest(unittest.TestCase):
         self.assertNotEqual(out.returncode, 0)
         self.assertIn("operationId", out.stderr + out.stdout)
 
+    def test_d20_retired_resume_fixture_key_fails(self) -> None:
+        rel = "openapi/fixtures/Debriefs/suggestDebriefQuestions.json"
+        data = self._read(rel)
+        body = data["scenarios"]["default"]["request"]["body"]
+        body["resumeVersionId"] = body.pop("resumeId")
+        self._write(rel, data)
+
+        out = _run_validator(self.repo)
+
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("suggestDebriefQuestions", out.stderr + out.stdout)
+        self.assertIn("resumeVersionId", out.stderr + out.stdout)
+        self.assertIn("D-20 flat resume", out.stderr + out.stdout)
+
     def test_missing_required_practice_session_scenario_fails(self) -> None:
         rel = "openapi/fixtures/PracticeSessions/appendSessionEvent.json"
         data = self._read(rel)
@@ -162,7 +176,7 @@ class ValidatorCliTest(unittest.TestCase):
         out = _run_validator(self.repo)
 
         self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")
-        self.assertIn("61", out.stdout)
+        self.assertIn("44", out.stdout)
 
     def test_fixture_without_openapi_operation_fails(self) -> None:
         extra = self.repo / "openapi/fixtures/Growth/getGrowthOverview.json"

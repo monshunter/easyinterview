@@ -14,9 +14,9 @@ import (
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
-// async_jobs.resource_type values owned by this subject. D-20 dropped the
-// dedicated resume_tailor_runs table; parse jobs keep the API-facing
-// resume_asset resource type while the physical table is now resumes.
+// async_jobs.resource_type values owned by this subject. D-20 keeps tailor run
+// state on the async job row; parse jobs keep the API-facing resume_asset
+// resource type while the physical table is now resumes.
 type resourceType string
 
 const (
@@ -33,7 +33,7 @@ type tailorJobPayload struct {
 }
 
 // tailorJobResult is the ephemeral resume.tailor output persisted into
-// async_jobs.result by the tailor job (D-20: no resume_tailor_runs table).
+// async_jobs.result by the tailor job.
 type tailorJobResult struct {
 	MatchSummary json.RawMessage          `json:"matchSummary,omitempty"`
 	Suggestions  []tailorResultSuggestion `json:"suggestions"`

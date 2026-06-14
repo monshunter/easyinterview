@@ -1,7 +1,7 @@
 # E2E.P0.078 Seed Input
 
-- User A owns one ready resume asset, one targeted resume version, and one ready target job.
-- Three resume tailor runs are queued for the same asset / target / version:
+- User A owns one ready flat resume and one ready target job.
+- Three resume tailor async jobs are queued for the same resume / target:
   - M1: AI provider timeout.
   - M2: invalid AI JSON output.
   - M3: AI provider timeout followed by retry success.

@@ -15,6 +15,8 @@ Phase 1.3 scope (per `002-fixtures-and-mock-source` plan §3 / spec C-6 / C-11):
        string with `tmp_` prefix is rejected.
     6. coverage  — every operationId currently exposed by openapi.yaml must
        have a fixture file.
+    7. D-20 retired resume contract keys — flat resume fixtures must not
+       reintroduce resumeAssetId / resumeVersionId request or response fields.
 """
 
 from __future__ import annotations
@@ -134,6 +136,7 @@ REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
         }
     ),
 }
+RETIRED_D20_FIXTURE_KEYS = frozenset({"resumeAssetId", "resumeVersionId"})
 
 
 # ---------- helpers -----------------------------------------------------------
@@ -160,6 +163,17 @@ def _walk_strings(data: Any, prefix: str = "") -> Iterator[Tuple[str, str]]:
     elif isinstance(data, list):
         for i, v in enumerate(data):
             yield from _walk_strings(v, f"{prefix}[{i}]")
+
+
+def _walk_keys(data: Any, prefix: str = "") -> Iterator[Tuple[str, str]]:
+    if isinstance(data, dict):
+        for k, v in data.items():
+            path = f"{prefix}.{k}" if prefix else k
+            yield path, k
+            yield from _walk_keys(v, path)
+    elif isinstance(data, list):
+        for i, v in enumerate(data):
+            yield from _walk_keys(v, f"{prefix}[{i}]")
 
 
 def _resolve_path(data: Any, path: str) -> List[Any]:
@@ -579,6 +593,15 @@ def check_privacy_and_ids(opid: str, data: dict, errors: List[str]) -> None:
             )
 
 
+def check_d20_retired_fixture_keys(opid: str, data: dict, errors: List[str]) -> None:
+    for path, key in _walk_keys(data):
+        if key in RETIRED_D20_FIXTURE_KEYS:
+            errors.append(
+                f"{opid}.{path}: D-20 flat resume fixtures must use resumeId, "
+                f"not retired key {key!r}"
+            )
+
+
 # ---------- top-level entry --------------------------------------------------
 
 def validate(repo_root: Path) -> List[str]:
@@ -612,6 +635,7 @@ def validate(repo_root: Path) -> List[str]:
         check_practice_voice_playable_refs(opid, scenarios, errors)
         check_provenance(opid, scenarios.get("default") or {}, errors)
         check_p0_export_error_code(opid, scenarios, errors)
+        check_d20_retired_fixture_keys(opid, data, errors)
         check_privacy_and_ids(opid, data, errors)
 
     expected = {opid for _tag, opid in expected_fixture_operations(spec)}

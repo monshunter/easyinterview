@@ -14,7 +14,7 @@ mkdir -p "$OUT"
   echo "RUNNER go test resume jobs tailor ready payload privacy"
   go test ./internal/resume/jobs -run TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox -count=1 -v
   echo "RUNNER go test resume store live ready-only outbox privacy"
-  DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" go test ./internal/resume/store -tags=integration -run TestCompleteTailorRunSuccessWritesSuggestionsAndReadyOnlyOutbox -count=1 -v
+  DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" go test ./internal/resume/store -tags=integration -run TestCompleteTailorRunSuccessWritesResultAndOutbox -count=1 -v
   echo "RUNNER go test cmd/api resume tailor drainer privacy"
   go test ./cmd/api -run 'TestResumeTailorDrainerHTTPScenario|TestResumeTailorDrainerFailureScenario' -count=1 -v
   cd "$ROOT"

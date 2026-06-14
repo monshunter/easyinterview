@@ -1,11 +1,13 @@
 # Backend Resume Versions, Tailor Runs and Save v1
 
-> **版本**: 1.3
-> **状态**: active
-> **更新日期**: 2026-06-13
+> **版本**: 1.4
+> **状态**: completed
+> **更新日期**: 2026-06-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
+
+> D-20 current contract note: Phase 1-9 preserve the original versions / suggestions delivery record only. Current implementation and acceptance use §3.2 plus Phase 10, where the live backend is flat `resumes` + ephemeral tailor output in `async_jobs` / `ai_task_runs`; retired version/suggestion routes and tables are negative-only.
 
 ## 1 目标
 
@@ -72,6 +74,8 @@
 
 ### 3.1 Frontend / Backend Operation Matrix
 
+> Phase 1-9 表格保留本 plan 的历史 baseline 交付记录。D-20 当前 backend owner 矩阵见 §3.2；实现 / 验收时以 §3.2 与 Phase 10 为当前 contract。
+
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `confirmResumeStructuredMaster` (NEW D-10) | `openapi/fixtures/Resumes/confirmResumeStructuredMaster.json` `default` / `idempotency-replay` / `already-exists-409` / `validation-422`（本 plan Phase 1 新增） | `frontend-resume-workshop/002`（未来）Preview Confirm 保存 v1 入口 | `backend/internal/resume/handler/confirm_structured_master.go` real handler + `cmd/api` `POST /api/v1/resumes/{resumeAssetId}/structured-master` route with session + IK middleware | `resume_versions(version_type='structured_master', parent_version_id=null)` 单事务 INSERT；resume_asset 不变；partial UNIQUE INDEX 兜底 | none (用户已确认 structured_profile；本 op 不再调 AI) | `E2E.P0.074` |
@@ -83,6 +87,18 @@
 | `getResumeTailorRun` | `openapi/fixtures/ResumeTailor/getResumeTailorRun.json` `default`（本 plan 补齐 `queued` / `generating` / `failed` 三个 status variant） | `frontend-resume-workshop/002` 改写 run 轮询 | `backend/internal/resume/handler/get_tailor_run.go` + `cmd/api` `GET /api/v1/resume/tailor-runs/{tailorRunId}` | `resume_tailor_runs` read + cross-user 404 | none | `E2E.P0.077` + `E2E.P0.078` |
 | `acceptResumeTailorSuggestion` | `openapi/fixtures/Resumes/acceptResumeTailorSuggestion.json` `default`（本 plan 补齐 `idempotency-replay` / `already-decided-409`，并将 current `conflict-409` + `TARGET_INVALID_STATE_TRANSITION` 漂移收敛为 `VALIDATION_FAILED` + `detail.reason='SUGGESTION_ALREADY_DECIDED'`） | `frontend-resume-workshop/002` accept CTA | `backend/internal/resume/handler/accept_suggestion.go` + `cmd/api` `POST /api/v1/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/accept` with IK middleware | `resume_version_suggestions.status='accepted' + decided_at`（不自动改 structured_profile，D-12） | none | `E2E.P0.079` |
 | `rejectResumeTailorSuggestion` | `openapi/fixtures/Resumes/rejectResumeTailorSuggestion.json` `default`（本 plan 补齐 `idempotency-replay` / `already-decided-409`，并将 current `conflict-409` + `TARGET_INVALID_STATE_TRANSITION` 漂移收敛为 `VALIDATION_FAILED` + `detail.reason='SUGGESTION_ALREADY_DECIDED'`） | `frontend-resume-workshop/002` reject CTA | `backend/internal/resume/handler/reject_suggestion.go` + `cmd/api` `POST /api/v1/resume-versions/{resumeVersionId}/suggestions/{suggestionId}/reject` with IK middleware | `resume_version_suggestions.status='rejected' + decided_at` | none | `E2E.P0.079` |
+
+### 3.2 D-20 Current Operation Matrix
+
+| operationId / surface | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-----------------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| Retired version/suggestion family: `confirmResumeStructuredMaster`, `getResumeVersion`, `listResumeVersions`, `updateResumeVersion`, `branchResumeVersion`, `acceptResumeTailorSuggestion`, `rejectResumeTailorSuggestion` | N/A；B2 D-26 删除对应 fixtures / generated routes | current frontend uses flat resume routes; old routes are negative-only | handler files and `cmd/api` routes removed; `TestResumeVersionRoutesAreGonePerD20` asserts 404 | `resume_versions` / `resume_version_suggestions` / `resume_tailor_runs` dropped by migration 000015 | none | `E2E.P0.074`, `E2E.P0.079` |
+| `getResume` / `listResumes` | `openapi/fixtures/Resumes/getResume.json`, `listResumes.json` | Resume Workshop list/detail and workspace resume picker | `backend/internal/resume/handler/get.go`, `list.go` + `cmd/api` flat resume routes | `resumes` flat table | none | `E2E.P0.074` |
+| `updateResume` | `openapi/fixtures/Resumes/updateResume.json` `default` / `idempotency-replay` / `validation-error-422` | Resume Workshop edit / accepted rewrite overwrite | `backend/internal/resume/handler/update.go` + `PATCH /api/v1/resumes/{resumeId}` with IK middleware | `resumes.structured_profile`, `resumes.display_name` update | none | `E2E.P0.075`, `E2E.P0.079` |
+| `duplicateResume` | `openapi/fixtures/Resumes/duplicateResume.json` `default` / `idempotency-replay` / `validation-error-422` | Resume Workshop save-as-new / accepted rewrite duplicate | `backend/internal/resume/handler/duplicate.go` + `POST /api/v1/resumes/{resumeId}/duplicate` with IK middleware | new `resumes` row copied from source with editable overlay | none | `E2E.P0.076`, `E2E.P0.079` |
+| `requestResumeTailor` | `openapi/fixtures/ResumeTailor/requestResumeTailor.json` `default` / `idempotency-replay` | Resume Workshop tailor run request | `backend/internal/resume/handler/request_tailor.go` + `POST /api/v1/resume/tailor` with IK middleware | `async_jobs(job_type='resume_tailor', resource_type='resume_tailor_run', payload.resumeId)` | async job calls F3 `resume.tailor.gap_review` / `resume.tailor.bullet_suggestions` | `E2E.P0.077` |
+| `getResumeTailorRun` | `openapi/fixtures/ResumeTailor/getResumeTailorRun.json` `default` / `queued` / `generating` / `failed` | Resume Workshop tailor polling | `backend/internal/resume/handler/get_tailor_run.go` + `GET /api/v1/resume/tailor-runs/{tailorRunId}` | reads `async_jobs` status/result scoped through `resumes` and `payload.resumeId`; suggestions are ephemeral task output | none at read time | `E2E.P0.077`, `E2E.P0.078` |
+| `resume.tailor.completed` event | N/A | downstream event consumers | `backend/internal/resume/jobs/tailor.go`, `backend/internal/resume/store/tailor_runs.go` | `outbox_events` + typed `ai_task_runs`; no dedicated tailor/suggestion table | A3 AIClient via F3 feature_key | `E2E.P0.077`, `E2E.P0.078`, `E2E.P0.080` |
 
 ## 4 实施步骤
 
@@ -341,6 +357,17 @@ BDD-Gate: 验证 `E2E.P0.079` 通过
 
 > product-scope D-20 / backend-resume D-13。删除版本树 / master / suggestion handler+store，重塑 tailor 为 ephemeral，新增 `updateResume` / `duplicateResume`。依赖 [B4 002 Phase 6](../../../db-migrations-baseline/plans/002-resume-versions-additive/plan.md) + [B2 004 Phase 7](../../../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md)。Red 优先（先让被删 handler 测试转为 404 / 路由不存在断言）。Phase 1–9 为历史 baseline，本 phase 重塑其交付物。
 
+#### 10.0 L2 hardening - D-20 negative sweep gate
+
+在继续执行 / 收口 Phase 10 前，必须把 D-20 schema deletion 的跨层负向扫尾作为 owner gate：
+
+- runtime SQL sweep：`backend/internal/store/jobs`、privacy runner 和 `cmd/api` runtime 路径不得在非测试实现中引用 dropped `resume_tailor_runs` / `resume_assets` / `resume_versions` / `resume_asset_id`，job ownership 必须经 `resumes` 与 `async_jobs.payload->>'resumeId'` 证明；
+- privacy payload sweep：privacy delete 必须删除与用户 resumes 相关的 `resume_asset` / `resume` / `resume_tailor_run` async job payload / result，防止 user material 派生数据残留；
+- migration legacy-row sweep：B4 migration 必须在 narrowed CHECK 前清理历史合法 `source_type='guided'` 与 retired `jd_match_agent_scan` / `jd_match_search` async jobs；
+- OpenAPI baseline sweep：B2 baseline / diff-config / generated / fixtures 必须统一 43 operations，`make openapi-diff` 通过，fixtures validator 必须拒绝 `resumeAssetId` / `resumeVersionId` 退役 key。
+
+（验证：`go test ./backend/internal/store/jobs ./backend/internal/privacy/runner ./backend/internal/migrations -run 'TestRepositoryGetJobScopesAsyncJobToOwningUser|TestSQLStoreMarkDeleteRequestCompletedDeletesAccountIdentityAndPreservesRequestTombstone|TestResumeFlattenMigrationContract|TestDropJDMatchMigrationDeletesRetiredAsyncJobsBeforeNarrowingCheck' -count=1` PASS；`make openapi-diff` PASS；`python3 -m unittest scripts.lint.validate_fixtures_cli_test` PASS；`make validate-fixtures` PASS；scoped negative grep 0 命中）
+
 #### 10.1 删除版本/master/suggestion handler + store
 
 删除 `handler/confirm_structured_master.go` / `get_version.go` / `list_versions.go` / `update_version.go` / `branch_version.go` / `accept_suggestion.go` / `reject_suggestion.go` + 对应 store（`resume_versions` / `resume_version_suggestions` / `resume_tailor_runs`）+ `cmd/api` route；Red：`/api/v1/resume-versions/*` + `confirmResumeStructuredMaster` + `resumes/{id}/structured-master` 路由 404 负向断言。
@@ -382,11 +409,12 @@ BDD-Gate: 验证 `E2E.P0.079` 通过
 - 本计划列出的 §4 所有 Phase task 全部完成（Phase 1–9 历史 baseline 由 Phase 10 D-20 重塑）
 - §3 替代验证 gate 全部通过
 - **D-20（Phase 10）**：版本/master/suggestion 7 handler + 3 store 删除、tailor 重塑 ephemeral、`updateResume`/`duplicateResume` 新增、`resume.tailor.completed` envelope `resumeId`；`go test ./internal/resume/... ./cmd/api` PASS；零版本树残留 grep
+- D-20 L2 negative sweep gate 覆盖 runtime SQL、privacy payload、migration legacy-row cleanup 与 OpenAPI baseline / retired fixture key，并有当前可执行 gate 证据
 - spec §6 C-9 partial / ~~C-10 / C-11~~（D-13 退役）/ C-12 / C-13 / ~~C-14 / C-15~~（D-13 退役）/ C-16 / C-17 / C-18 全部 PASS
 - `cmd/api` route/runtime gate PASS：9 个新 route 在真实 runtime 注册，session / IK middleware 行为与现有 backend-resume/001 一致；resume_tailor backend-internal runner Start/Shutdown 与 deterministic `RunOnce` 均有测试证据
-- 7 个 BDD 场景（E2E.P0.074 – P0.080）PASS
+- 7 个 D-20 BDD 场景（E2E.P0.074 – P0.080：flat read / update / duplicate / tailor ephemeral / retired-route negative / privacy）PASS
 - [frontend-resume-workshop](../../../frontend-resume-workshop/) owner 已收到 9 个 op 切真信号
-- `docs/spec/INDEX.md` 与 `plans/INDEX.md` 同步至 1.2 / completed
+- `docs/spec/INDEX.md` 与 `plans/INDEX.md` 同步至当前 Header / completed
 
 ## 6 风险与应对
 

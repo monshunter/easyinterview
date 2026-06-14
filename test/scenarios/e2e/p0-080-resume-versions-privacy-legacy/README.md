@@ -2,7 +2,8 @@
 
 ## 1. Purpose
 
-Validate the backend-resume Phase 9 privacy and retired-vocabulary regression gate after resume versions, tailor runs, suggestions, task runs, and outbox events are all wired.
+Validate the backend-resume D-20 privacy and retired-vocabulary regression gate
+after flat resume tailor async jobs, task runs, and outbox events are wired.
 
 ## 2. Requirements
 
@@ -11,7 +12,9 @@ Validate the backend-resume Phase 9 privacy and retired-vocabulary regression ga
 
 ## 3. Given / When / Then
 
-Given E2E.P0.074 through E2E.P0.079 have already covered the live API and persistence paths for resume versions, tailor dispatch, ready/failure drainer paths, and suggestion decisions.
+Given E2E.P0.074 through E2E.P0.079 have already covered the live API and
+persistence paths for flat resume reads, update, duplicate, tailor dispatch,
+ready/failure drainer paths, and retired suggestion decisions.
 
 When the privacy regression runner replays the focused tailor drainer, live store, and cmd/api gates and performs zero-reference searches over `backend/internal/resume/`.
 
