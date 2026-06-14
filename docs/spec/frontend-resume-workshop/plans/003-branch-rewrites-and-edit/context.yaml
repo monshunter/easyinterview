@@ -14,48 +14,44 @@ spec:
     aliases:
       - frontend-resume-workshop
       - 003-branch-rewrites-and-edit
-      - ResumeBranchFlow
       - ResumeRewritesTab
       - ResumeEditTab
-      - resume-branch-flow
+      - ResumeDetailView
+      - RewriteSaveConfirmModal
+      - resume-detail-view
       - resume-rewrites-tab
       - resume-edit-tab
-      - branchResumeVersion
       - requestResumeTailor
       - getResumeTailorRun
-      - acceptResumeTailorSuggestion
-      - rejectResumeTailorSuggestion
-      - updateResumeVersion
+      - updateResume
+      - duplicateResume
       - resume-tailor-run-polling
-      - resume-suggestion-terminal-state
-      - resume-manual-edit-fallback
+      - resume-rewrite-save-confirm
+      - resume-flat-profile-save
+      - resume-target-job-context
       - resume-export-pdf-stub-consistency
     keywords:
-      - resume branch flow three seedStrategy
-      - branchResumeVersion copy_master blank ai_select
-      - branch resume version idempotent replay
-      - branch resume version 422 validation
-      - cross-user branch parent 404 not exposed
+      - D-20 flat resume Phase 8 closure
+      - ResumeBranchFlow branchResumeVersion seedStrategy retired negative
       - rewrites tab scope banner aria-live
       - rewrites tab suggestions list counts
       - resume tailor run polling exponential backoff
-      - requestResumeTailor idempotency-key
+      - requestResumeTailor resumeId targetJobId idempotency-key
       - getResumeTailorRun no idempotency-key
-      - accept resume tailor suggestion terminal state
-      - reject resume tailor suggestion terminal state
-      - manual edit fallback update resume version
-      - accept no structured profile mutation D-12
-      - already decided 409 mapping
-      - update resume version partial merge
-      - update resume version idempotency replay
-      - non editable fields filter mapper
-      - resume edit tab headline summary save
+      - accept-only rewrites save confirm modal
+      - updateResume overwrite accepted rewrite bullets
+      - duplicateResume save accepted rewrite bullets as new
+      - structuredProfile omitted detail fallback
+      - structuredProfile sections experience experiences projects bullet merge
+      - route targetJobId rerun context preservation
+      - resume edit tab headline summary updateResume
       - resume detail export PDF idempotency-key 501 stub
       - resume detail copy plain text clipboard fallback
       - retired tailor mode negative inline rewrite mirror
+      - retired operations negative accept reject updateResumeVersion resumeVersionId resumeAssetId
       - retired modules negative onboarding screen welcome growth drill
       - ui-design data screen runtime import forbidden
-      - resume workshop branch rewrites edit i18n en zh
+      - resume workshop flat detail rewrites edit i18n en zh
       - resume workshop branch rewrites edit a11y
       - resume workshop branch rewrites edit ui parity desktop mobile
       - fixture-backed frontend real-backend preflight
@@ -72,8 +68,7 @@ spec:
           - frontend/src/app
           - frontend/src/app/screens
           - frontend/src/app/screens/resume-workshop
-          - frontend/src/app/screens/resume-workshop/branch
-          - frontend/src/app/screens/resume-workshop/branch/hooks
+          - frontend/src/app/screens/resume-workshop/components
           - frontend/src/app/screens/resume-workshop/tabs
           - frontend/src/app/screens/resume-workshop/tabs/hooks
           - frontend/src/app/screens/resume-workshop/adapters
@@ -87,13 +82,10 @@ spec:
         uiRoutes:
           - resume_versions
         apiNames:
-          - branchResumeVersion
           - requestResumeTailor
           - getResumeTailorRun
-          - acceptResumeTailorSuggestion
-          - rejectResumeTailorSuggestion
-          - updateResumeVersion
-          - exportResumeVersion
-          - getResumeVersion
+          - updateResume
+          - duplicateResume
+          - exportResume
+          - getResume
           - listResumes
-          - listResumeVersions

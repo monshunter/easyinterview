@@ -31,7 +31,7 @@
 - Playwright proves the flat detail/Rewrites/Edit surfaces are non-blank,
   viewport-safe, and axe-clean on desktop + mobile, using
   `frontend/tests/pixel-parity/resume-workshop-branch-rewrites-edit.spec.ts`.
-- Retired grep: `welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true|ResumeBranchFlow|branchResumeVersion|seedStrategy|updateResumeVersion|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion` 0 hits in runtime Resume Workshop source.
+- Retired grep: `welcome|mistake|growth|drill|followup|STAR|ExperiencesScreen|experiences-route|voice|OnboardingScreen|onboarding=true|ResumeBranchFlow|branchResumeVersion|seedStrategy|updateResumeVersion|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion` 0 hits in runtime Resume Workshop source. D-20 flat profile `experiences[]` is allowed and covered by `ResumeDetailView.test.tsx`.
 - Retired tailor mode grep: `(inline|rewrite|mirror)` 0 hits in `tabs/` (B3 D-14 alignment).
 - Prototype import grep: `ui-design/src/(data|screen-resume-workshop)` 0 hits in `tabs/`.
 - Privacy: structured profile / suggestion text never appears in URL / localStorage / fetch transport log (covered by per-tab privacy specs).

@@ -23,7 +23,7 @@ grep -Eq 'Running[[:space:]]+[1-9][0-9]*[[:space:]]+tests?[[:space:]]+using' "$L
 grep -Eq '^[[:space:]]*[1-9][0-9]*[[:space:]]+passed[[:space:]]+\([0-9.]+s\)' "$LOG_FILE" || { echo "$SCENARIO_ID: playwright passing summary missing" >&2; exit 1; }
 if grep -Eiq 'failed|timed out|Timeout|Error:|ERR_PNPM' "$LOG_FILE"; then echo "$SCENARIO_ID: failing build/playwright marker found" >&2; exit 1; fi
 cd "$REPO_ROOT"
-if rg -n "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true|ResumeBranchFlow|branchResumeVersion|seedStrategy|updateResumeVersion|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion" frontend/src/app/screens/resume-workshop --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/retired-modules-grep.log"; then
+if rg -n "welcome|mistake|growth|drill|followup|STAR|ExperiencesScreen|experiences-route|voice|OnboardingScreen|onboarding=true|ResumeBranchFlow|branchResumeVersion|seedStrategy|updateResumeVersion|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion" frontend/src/app/screens/resume-workshop --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/retired-modules-grep.log"; then
   echo "$SCENARIO_ID: retired modules grep matched" >&2; exit 1
 fi
 if rg -n "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" frontend/src/app/screens/resume-workshop/tabs --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/retired-tailor-mode-grep.log"; then

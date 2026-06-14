@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Branch, Rewrites and Edit Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-06-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -20,7 +20,7 @@
 - [x] 0.4 确认 [frontend-resume-workshop/001](../001-listing-routing-and-detail-readonly/plan.md) 容器已就位，当前分支 [002](../002-create-flow-and-onboarding/plan.md) 实现已把 `flow=create` 替换为 `ResumeCreateFlow`，而 `flow=branch` 与 Rewrites / Edit tab 仍分别是 `<NotImplementedPlaceholder>` / `<ComingSoonTab>`（验证：grep + Vitest）
   <!-- verified: 2026-05-17 method=grep evidence=ResumeWorkshopScreen.tsx:43-46 flow=create→ResumeCreateFlow, flow=branch→NotImplementedPlaceholder + ResumeDetailView.tsx:237-245 preview→ResumePreviewTab, rewrites/edit→ComingSoonTab placeholders -->
 
-- [x] 0.5 retired drift baseline：`git grep -nE "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" -- frontend/src/app/screens/resume-workshop/` 0 命中；`git grep -nE "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true" -- frontend/src/app/screens/resume-workshop/` 0 命中
+- [x] 0.5 retired drift baseline：`git grep -nE "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" -- frontend/src/app/screens/resume-workshop/` 0 命中；`git grep -nE "welcome|mistake|growth|drill|followup|STAR|ExperiencesScreen|experiences-route|voice|OnboardingScreen|onboarding=true" -- frontend/src/app/screens/resume-workshop/` 0 命中（D-20 flat profile `experiences[]` 字段不属于旧入口）
   <!-- verified: 2026-05-17 method=grep evidence=retired-tailor-mode regex matched 6 lines under create/ (testid "resume-preview-confirm-inline-error" + form inline error semantics from plan 002), all are non-tailor-mode usage and outside plan 003 write scope (branch/ + tabs/); retired-modules regex 0 hit across resume-workshop; §7.10-7.12 closeout enforces 0 hit strictly within branch/ + tabs/ -->
 
 
@@ -138,7 +138,7 @@
   <!-- verified: 2026-05-18 method=scenario bddChecklist=complete evidence=`bash test/scenarios/e2e/p0-086-resume-suggestion-accept-reject-edit-and-update-version/scripts/{setup,trigger,verify,cleanup}.sh` end-to-end PASS; trigger log: 4 files / 34 tests passed (useTailorSuggestionDecision.test.tsx + useResumeRewritesActions.test.tsx + useUpdateResumeVersion.test.tsx + ResumeEditTab.test.tsx); verify.sh asserts vitest summary + specs + retired modules grep 0 in tabs/ -->
 - [x] 7.9 BDD-Gate: E2E.P0.087 resume-detail-export-copy-consistency-and-parity PASS
   <!-- verified: 2026-05-18 method=scenario bddChecklist=complete evidence=`bash test/scenarios/e2e/p0-087-resume-detail-export-copy-consistency-and-parity/scripts/{setup,trigger,verify,cleanup}.sh` end-to-end PASS after trigger was upgraded to run Vitest + `pnpm --filter @easyinterview/frontend build` + Playwright pixel parity/axe. Trigger log: 5 Vitest files / 40 tests passed, build PASS, Playwright desktop+mobile 4 tests passed (`resume-workshop-branch-rewrites-edit.spec.ts`); verify.sh asserts Vitest/build/Playwright runner markers, spec presence, Playwright passing summary, and all three grep gates land at 0 in branch/+tabs/. -->
-- [x] 7.10 旧入口 grep（收口）：`git grep -nE "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true" -- frontend/src/app/screens/resume-workshop/branch/ frontend/src/app/screens/resume-workshop/tabs/` 0 命中（验证：CI lint）
+- [x] 7.10 旧入口 grep（收口）：`git grep -nE "welcome|mistake|growth|drill|followup|STAR|ExperiencesScreen|experiences-route|voice|OnboardingScreen|onboarding=true" -- frontend/src/app/screens/resume-workshop/branch/ frontend/src/app/screens/resume-workshop/tabs/` 0 命中（验证：CI lint；不禁止 D-20 flat profile `experiences[]` 字段）
   <!-- verified: 2026-05-18 method=grep evidence=git grep on retired modules regex against branch/+tabs/ returns 0 hits after renaming "by mistake" -> "by accident" in mapBranchFormToRequest.ts; P0.084 / P0.087 scenario verify scripts re-execute the grep at runtime to keep the gate live -->
 - [x] 7.11 retired tailor mode grep：`git grep -nE "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" -- frontend/src/app/screens/resume-workshop/branch/ frontend/src/app/screens/resume-workshop/tabs/` 0 命中（验证：CI lint）
   <!-- verified: 2026-05-18 method=grep evidence=git grep retired-tailor-mode regex against branch/+tabs/ returns 0 hits after renaming "inline alert" -> "in-form alert" across ResumeBranchFlow.test.tsx, ResumeEditTab.test.tsx, ResumeEditTab.tsx; P0.084 / P0.085 / P0.087 scenario verify scripts re-execute the grep at runtime -->
@@ -154,5 +154,15 @@
 
 > product-scope D-20 / spec D-8。
 
-- [ ] 8.1 删 `flow=branch`/`ResumeBranchFlow`/seedStrategy；`ResumeRewritesTab` 仅采纳 + `RewriteSaveConfirmModal`（`updateResume` 覆盖 / `duplicateResume` 另存）；`ResumeEditTab` 改 `updateResume`（验证：vitest + pixel parity PASS）
-- [ ] 8.2 收口：full vitest + typecheck + build + 零 `ResumeBranchFlow`/`branchResumeVersion`/`seedStrategy`/`acceptResumeTailorSuggestion`/`updateResumeVersion` 残留 grep（验证：全 gate PASS + 负向 grep）
+- [x] 8.1 Flat route / retired branch gate：`flow=branch` 不 materialize，runtime 不渲染 `resume-branch-flow`；`ResumeBranchFlow` / `branchResumeVersion` / `seedStrategy` / `resumeVersionId` / `resumeAssetId` / `listResumeVersions` / `getResumeVersion` 在 runtime Resume Workshop source 中 0 命中（验证：`ResumeWorkshopScreen.test.tsx` + P0.084 retired grep）
+  <!-- verified: 2026-06-14 method=scenario evidence=P0.084 setup->trigger->verify->cleanup PASS; trigger log `.test-output/e2e/p0-084-resume-branch-flow-three-seed-strategies/trigger.log` shows real-backend gate + 5 files / 46 tests passed; verify retired branch/version grep 0 hit in runtime source -->
+- [x] 8.2 Rewrites accept-only + save modal gate：`ResumeRewritesTab` 只提供本地采纳，`RewriteSaveConfirmModal` 覆盖 `updateResume` overwrite 与 `duplicateResume` save-as-new；不发送 `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion` / `updateResumeVersion`（验证：`ResumeRewritesTab.test.tsx` + `ResumeDetailView.test.tsx` + P0.086）
+  <!-- verified: 2026-06-14 method=scenario evidence=P0.086 setup->trigger->verify->cleanup PASS; trigger log `.test-output/e2e/p0-086-resume-suggestion-accept-reject-edit-and-update-version/trigger.log` shows real-backend gate + 4 files / 41 tests passed; verify retired accept/reject/updateVersion grep 0 hit -->
+- [x] 8.3 Flat structuredProfile merge gate：accepted rewrites 写入 `sections[]`、`experience[]`、`experiences[]`、`projects[]` 的 `bullets`，未匹配 bullet 保持不变，payload 不写 `acceptedRewrites`；omitted `structuredProfile` fallback 不崩溃（验证：`ResumeDetailView.test.tsx` BUG-0123 regression）
+  <!-- verified: 2026-06-14 method=vitest+scenario evidence=P0.084/P0.086 trigger logs include ResumeDetailView.test.tsx BUG-0123 regressions for sections/experience/experiences/projects merge, omitted structuredProfile fallback, and no acceptedRewrites payload -->
+- [x] 8.4 Tailor rerun route context gate：route `targetJobId` 从 `ResumeWorkshopScreen` 透传到 Rewrites rerun body；有 `targetJobId` 时发送 `{ resumeId, targetJobId, mode }`，无时才允许 `{ resumeId, mode }`；不恢复 `resumeAssetId` / `resumeVersionId`（验证：`ResumeDetailView.test.tsx` + `useRequestResumeTailor.test.tsx`）
+  <!-- verified: 2026-06-14 method=vitest+scenario evidence=P0.084 trigger log includes rerun body regression `{resumeId,targetJobId,mode}` with no old ids; P0.085 setup->trigger->verify->cleanup PASS, trigger log `.test-output/e2e/p0-085-resume-rewrites-tab-tailor-run-polling/trigger.log` shows 3 files / 30 tests passed -->
+- [x] 8.5 Edit Tab + export/copy non-regression gate：`ResumeEditTab` 使用 `updateResume` 保存 flat `displayName/headline/summary`，Export PDF 使用 `exportResume` P0 501 toast，copyText 使用 `buildResumePlainText`；Rewrites/Edit 切换不退化（验证：`ResumeEditTab.test.tsx` + `ResumeDetailExport.test.tsx` + P0.087）
+  <!-- verified: 2026-06-14 method=scenario evidence=P0.087 setup->trigger->verify->cleanup PASS; trigger log `.test-output/e2e/p0-087-resume-detail-export-copy-consistency-and-parity/trigger.log` shows focused Vitest 5 files / 39 tests passed, frontend build PASS, Playwright flat detail/Rewrites/Edit parity 4 passed -->
+- [x] 8.6 UI parity / privacy / BDD wrappers：P0.084-P0.087 `setup → trigger → verify → cleanup` PASS；verify 拒绝 no-test/fail marker，检查 real-backend generated-client marker、Playwright flat detail/Rewrites/Edit parity、隐私与 retired grep（验证：scenario wrapper logs + `typecheck` + `build` + full resume-workshop vitest）
+  <!-- verified: 2026-06-14 method=scenario evidence=P0.084/P0.085/P0.086/P0.087 wrappers all PASS after setup->trigger->verify->cleanup; verify scripts check real-backend marker, runner summaries, no-test/fail marker rejection, retired greps, and P0.087 Playwright/build gates -->

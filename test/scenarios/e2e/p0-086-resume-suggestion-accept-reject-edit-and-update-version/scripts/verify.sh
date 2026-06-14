@@ -16,6 +16,6 @@ for spec in PreviewStage.test.tsx ResumeRewritesTab.test.tsx ResumeDetailView.te
   grep -qF "$spec" "$LOG_FILE" || { echo "$SCENARIO_ID: spec $spec not exercised" >&2; exit 1; }
 done
 cd "$REPO_ROOT"
-if rg -n "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion|updateResumeVersion" frontend/src/app/screens/resume-workshop/tabs frontend/src/app/screens/resume-workshop/components frontend/src/app/screens/resume-workshop/create --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/retired-modules-grep.log"; then
+if rg -n "welcome|mistake|growth|drill|followup|STAR|ExperiencesScreen|experiences-route|voice|OnboardingScreen|onboarding=true|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion|updateResumeVersion" frontend/src/app/screens/resume-workshop/tabs frontend/src/app/screens/resume-workshop/components frontend/src/app/screens/resume-workshop/create --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/retired-modules-grep.log"; then
   echo "$SCENARIO_ID: retired modules grep matched" >&2; exit 1
 fi

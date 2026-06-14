@@ -24,7 +24,7 @@ done
 
 # D-20 flat-resume regression gate: branch flow and version operations stay retired.
 cd "$REPO_ROOT"
-if rg -n "welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true|ResumeBranchFlow|branchResumeVersion|seedStrategy|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion|updateResumeVersion" frontend/src/app/screens/resume-workshop --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/retired-modules-grep.log"; then
+if rg -n "welcome|mistake|growth|drill|followup|STAR|ExperiencesScreen|experiences-route|voice|OnboardingScreen|onboarding=true|ResumeBranchFlow|branchResumeVersion|seedStrategy|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion|updateResumeVersion" frontend/src/app/screens/resume-workshop --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/retired-modules-grep.log"; then
   echo "$SCENARIO_ID: retired modules grep matched something (see retired-modules-grep.log)" >&2
   exit 1
 fi

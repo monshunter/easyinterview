@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-06-14](./2026-06-14-resume-phase8-flat-gate-drift-assessment.md) | Resume Phase 8 Flat Gate Drift 交付复盘 | #assessment |
 | [2026-06-14](./2026-06-14-resume-detail-review-regressions-assessment.md) | Resume Detail Review Regressions 交付复盘 | #assessment |
 | [2026-06-14](./2026-06-14-debrief-suggest-sessionid-context-assessment.md) | Debrief Suggest SessionId Context 交付复盘 | #assessment |
 | [2026-06-14](./2026-06-14-debrief-suggest-resumeid-context-assessment.md) | Debrief Suggest ResumeId Context 交付复盘 | #assessment |
