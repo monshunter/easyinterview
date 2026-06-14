@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-06-14](2026-06-14.md) | `fix(debrief): wire session context for suggestions (BUG-0122)` | #fix #api #test #docs |
 | [2026-06-14](2026-06-14.md) | `fix(debrief): wire resume context for suggestions (BUG-0121)` | #fix #api #test #docs |
 | [2026-06-14](2026-06-14.md) | `fix(test): close resume d20 gate drift (BUG-0120)` | #fix #test #docs #api |
 | [2026-06-14](2026-06-14.md) | `fix(schema): close resume flatten review regressions (BUG-0119)` | #fix #api #ui #test #docs |

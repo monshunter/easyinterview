@@ -1,6 +1,6 @@
 # 001 Debrief Record and Analysis BDD Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-06-14
 
@@ -50,10 +50,10 @@
 ## E2E.P0.063 — suggestDebriefQuestions Sync + AI Failure
 
 - [x] 063.A 创建 scenario 目录 `test/scenarios/e2e/p0-063-debrief-suggest-questions/`
-- [x] 063.B 编写 fixtures：以 `openapi/fixtures/Debriefs/suggestDebriefQuestions.json`、`data/seed-input.md` 和 store/service/API/cmd-api tests 固化 `resumeId` request、target_job + resume structured_profile + valid / timeout / invalid JSON
+- [x] 063.B 编写 fixtures：以 `openapi/fixtures/Debriefs/suggestDebriefQuestions.json`、`data/seed-input.md` 和 store/service/API/cmd-api tests 固化 `sessionId` + `resumeId` request、target_job + completed practice session derived summary + resume structured_profile + valid / timeout / invalid JSON
 - [x] 063.C 编写 setup.sh：初始化 scenario output 与 setup marker
-- [x] 063.D 编写 trigger.sh：执行 suggestDebriefQuestions store/service/API/cmd-api tests 与 `make validate-fixtures`
-- [x] 063.E 编写 verify.sh：assert store/service/API/cmd-api success/failure/count-boundary tests、fixture `resumeId` marker、`resumeVersionId` 负向 gate 与 PASS marker
+- [x] 063.D 编写 trigger.sh：执行 suggestDebriefQuestions store/service/API/cmd-api tests（含 sessionId/resumeId context tests）与 `make validate-fixtures`
+- [x] 063.E 编写 verify.sh：assert store/service/API/cmd-api success/failure/count-boundary tests、fixture `sessionId` + `resumeId` marker、`resumeVersionId` 负向 gate 与 PASS marker
 - [x] 063.F 编写 cleanup.sh
 - [x] 063.G 确认四段脚本可独立执行
 - [x] 063.H 登记到 INDEX

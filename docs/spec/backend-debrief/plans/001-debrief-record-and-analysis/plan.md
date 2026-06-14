@@ -1,6 +1,6 @@
 # 001 Debrief Record and Analysis
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-06-14
 
@@ -170,7 +170,7 @@ handler 调用 service，处理 IK middleware 返回，返回 generated `Debrief
 
 在 `backend/internal/debrief/service.go` 新增 `SuggestQuestions(ctx, params SuggestParams) (*SuggestResult, error)`：
 - 拉 target_job 摘要（generated `getTargetJob(targetJobId, user_id)`），越权返回 `403 FORBIDDEN`
-- 可选拉 session 摘要 + resume version 摘要
+- 可选拉 completed practice session 摘要（`practice_sessions` scoped by `(user_id, target_job_id, session_id)` + `practice_turns.answer_summary` + ready `feedback_reports` derived summary）+ resume 摘要
 - 组装 F3 prompt 上下文：`{targetJobTitle, jdHighlights, resumeBullets?, practiceSessionSummary?, language, count}`
 - 调 `RegistryClient.Resolve("debrief.suggest_questions", language)` → A3 `AIClient.Complete`
 - 解析 AI 输出 JSON 到 `SuggestResult{suggestions: []SuggestedQuestion{questionText, whyLikelyAsked, source(B1 enum)}}`
@@ -328,7 +328,7 @@ Tests: `TestGetDebrief_DraftPartialReturn|TestGetDebrief_CompletedFullReturn|Tes
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `suggestDebriefQuestions` | `openapi/fixtures/Debriefs/suggestDebriefQuestions.json` `default` request body uses `resumeId` and no `resumeVersionId`; `make validate-fixtures` PASS | `frontend-debrief` record text-mode suggestion flow via generated client | `backend/internal/api/debriefs.Handler.SuggestDebriefQuestions` maps generated `ResumeId` → `domain.SuggestQuestionsRequest.ResumeID`; `backend/internal/debrief.Service.SuggestQuestions` passes it into `SuggestionContext`; `backend/internal/store/debrief.Repository.GetSuggestionContext` queries `resumes.structured_profile` by `(user_id, resume_id)` | `target_jobs` read; optional `resumes.structured_profile` read; no `debriefs` / outbox / `async_jobs` write | `debrief.suggest_questions` via F3 registry + A3 AI client; task type `debrief_suggest_questions` | `E2E.P0.063` wrapper runs store/service/API/cmd-api focused tests plus fixture validation and rejects `resumeVersionId` fixture drift |
+| `suggestDebriefQuestions` | `openapi/fixtures/Debriefs/suggestDebriefQuestions.json` `default` request body uses `sessionId` + `resumeId` and no `resumeVersionId`; `make validate-fixtures` PASS | `frontend-debrief` record text-mode suggestion flow via generated client | `backend/internal/api/debriefs.Handler.SuggestDebriefQuestions` maps generated `SessionId` / `ResumeId` → domain request; `backend/internal/debrief.Service.SuggestQuestions` passes both into `SuggestionContext` and replaces real F3 prompt markers (`{{mock_report_summary}}`, `{{resume_highlights}}`, `{{job_summary}}`, `{{role_title}}`); `backend/internal/store/debrief.Repository.GetSuggestionContext` queries completed `practice_sessions` by `(user_id, target_job_id, session_id)` and `resumes.structured_profile` by `(user_id, resume_id)` | `target_jobs` read; optional `practice_sessions` / `practice_turns` / ready `feedback_reports` derived summary read; optional `resumes.structured_profile` read; no `debriefs` / outbox / `async_jobs` write | `debrief.suggest_questions` via F3 registry + A3 AI client; task type `debrief_suggest_questions` | `E2E.P0.063` wrapper runs store/service/API/cmd-api focused tests plus fixture validation, checks `sessionId` + `resumeId` fixture markers, and rejects `resumeVersionId` fixture drift |
 
 #### 8.2 收口
 
@@ -340,6 +340,7 @@ Tests: `TestGetDebrief_DraftPartialReturn|TestGetDebrief_CompletedFullReturn|Tes
 
 - C-1 ~ C-17（[spec §6](../../spec.md#6-验收标准)）全部通过
 - **D-20（Phase 8）**：`suggestDebriefQuestions` `resumeVersionId?`→`resumeId?`、SQL `(user_id, resume_id)`、prompt 引用扁平 `structured_profile`；`go test ./internal/debrief/... ./cmd/api` PASS；零 debrief 包内 `resumeVersionId` 残留
+- **Session context sweep（Phase 3 closure）**：`suggestDebriefQuestions` `sessionId?` 已由 handler 映射到 domain request；store 按 `(user_id, target_job_id, session_id)` 只读取 completed practice session 的派生摘要；service 将 session summary 注入真实 `{{mock_report_summary}}` prompt marker；P0.063 wrapper 强制检查 sessionId focused tests 与 fixture marker。
 - 本 plan 列出的 Phase 0-6 实现项全部按 checklist 勾选
 - [BDD-Gate](./bdd-checklist.md) `E2E.P0.060-064` 全部通过
 - [test-checklist](./test-checklist.md) 单元测试与集成测试项全部通过

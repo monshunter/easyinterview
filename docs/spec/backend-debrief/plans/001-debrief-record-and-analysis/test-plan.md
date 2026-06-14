@@ -1,6 +1,6 @@
 # 001 Debrief Record and Analysis Test Plan
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-06-14
 
@@ -44,6 +44,7 @@
 | R21 | spec §4.5 / Legacy negative: mistakes_count, generatedMistakeCount, experience_library, drill_builder, growth_center, star_editor, debrief_voice | Regression / Legacy-negative | Phase 6 | grep + lint script | mistakes_count, generatedMistakeCount, experience_library, drill_builder, growth_center, star_editor, debrief_voice |
 | R22 | F1 metric registration boundary | Observability | Phase 6 | F1 owner co-author + grep | — |
 | R23 | spec D-19 / D-20 resumeId suggestion context | Cross-layer contract + Privacy | Phase 8 | store/service/API/cmd-api focused tests + fixture parity + scenario wrapper | resumeVersionId / resume_version_id |
+| R24 | E2E.P0.063 / sessionId suggestion context | Cross-layer contract + Privacy | Phase 3 | store/service/API focused tests + real prompt marker replacement + scenario wrapper | cross-user / wrong-target sessionId; unreplaced `{{mock_report_summary}}` |
 
 ## 2 测试项明细
 
@@ -154,6 +155,34 @@
 - When：handler 处理
 - Then：返回 401 + B1 `AUTH_UNAUTHORIZED`
 - 覆盖：R3
+
+#### 3.8 TestStoreGetSuggestionContext_LoadsPracticeSessionSummary
+- 文件：`backend/internal/store/debrief/store_test.go`
+- Given：`target_jobs(user_id=A,id=T)` 与 `practice_sessions(user_id=A,target_job_id=T,id=S,status='completed')` 存在，turn/report derived summary ready
+- When：`Repository.GetSuggestionContext({userID:A,targetJobID:T,sessionID:S})`
+- Then：返回 `SuggestionContext.SessionSummary`，包含 session id、turn answer summary 与 ready report derived issues；不读取 raw `answer_text`
+- 覆盖：R24
+
+#### 3.9 TestServiceSuggestQuestions_SessionContextInPrompt
+- 文件：`backend/internal/debrief/service_test.go`
+- Given：context store 返回 `SessionSummary`，F3 active prompt 使用真实 marker `{{role_title}}` / `{{job_summary}}` / `{{mock_report_summary}}`
+- When：`Service.SuggestQuestions({sessionID:S})`
+- Then：`sessionId` 传入 context store；AI prompt 替换真实 marker 且包含 mock-report/session derived summary；返回 source=`mock_report`
+- 覆盖：R24
+
+#### 3.10 TestStoreGetSuggestionContext_CrossUserSessionNotFound
+- 文件：`backend/internal/store/debrief/store_test.go`
+- Given：`sessionId` 不属于当前用户、目标岗位不匹配或 session 未完成
+- When：`Repository.GetSuggestionContext({userID:A,targetJobID:T,sessionID:S})`
+- Then：返回 `ErrDebriefPrerequisite`；不调用 AI
+- 覆盖：R24
+
+#### 3.11 TestSuggestDebriefQuestions_MapsSessionIDToService
+- 文件：`backend/internal/api/debriefs/handler_test.go`
+- Given：generated `SuggestDebriefQuestionsRequest.sessionId` 非空
+- When：handler 处理 request
+- Then：domain `SuggestQuestionsRequest.SessionID` 等于 generated request `sessionId`
+- 覆盖：R24
 
 ### Phase 4: debrief_generate worker handler
 

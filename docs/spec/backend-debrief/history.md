@@ -1,6 +1,6 @@
 # Backend Debrief History
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
 > **更新日期**: 2026-06-14
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-06-14 | 1.6 | 完成 `suggestDebriefQuestions` sessionId context L2 sweep：`sessionId` 已由 handler 映射到 domain request，store 按 `(user_id, target_job_id, session_id)` 只读取 completed practice session 的 derived summary（practice_turns answer_summary + ready feedback_report summary），service 替换真实 F3 prompt marker `{{mock_report_summary}}` / `{{job_summary}}` / `{{role_title}}` 并把 session summary 注入 AI prompt；P0.063 scenario gate 扩展为 sessionId focused tests + fixture marker + no-op test 负向断言。 | 001-debrief-record-and-analysis Phase 3 closure |
 | 2026-06-14 | 1.5 | 完成 backend-debrief/001 Phase 8 D-20 实证闭环：`suggestDebriefQuestions` generated request `resumeId` 已由 handler 映射到 domain request，service 将 resume structured_profile 注入 AI prompt，store 按 `(user_id, resume_id)` 查询扁平 `resumes.structured_profile` 并对 cross-user / missing resume fail-closed；P0.063 scenario gate 扩展为 store/service/API/cmd-api focused tests + `make validate-fixtures` + fixture `resumeId` / `resumeVersionId` 负向断言。 | 001-debrief-record-and-analysis Phase 8 |
 | 2026-06-13 | 1.4 | product-scope D-20 简历扁平化 resumeId 重命名（新增 D-19）：`suggestDebriefQuestions` request `resumeVersionId?`→`resumeId?`、handler 可选上下文「resume version 摘要」→「resume `structured_profile` 摘要」、SQL 过滤 `(user_id, resume_id)`、复盘面试 handoff（D-17）route payload `resumeVersionId`→`resumeId`、Q-6 `dataSourceVersion` 链路同步。handler / `SuggestDebriefQuestionsRequest` generated 类型 rename 由 001 D-20 phase 落地。 | backend-debrief/001 D-20 phase（product-scope D-20）|
 | 2026-05-21 | 1.3 | 登记 backend-jobs-recommendations/001 cross-owner additive：新增 `CountDebriefsForUser(ctx, db, userID) (int, error)` 内部 API（`backend/internal/debrief/count.go`），read-only `SELECT COUNT(*) FROM debriefs WHERE user_id = $1`；cross-user 隔离由 caller userId 保证；不写 audit_events。单元测试 `count_test.go` 覆盖 happy / cross-user / nil-db / empty-userId。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.17 |

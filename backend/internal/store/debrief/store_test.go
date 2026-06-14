@@ -522,6 +522,71 @@ func TestStoreGetSuggestionContext_LoadsResumeStructuredProfile(t *testing.T) {
 	}
 }
 
+func TestStoreGetSuggestionContext_LoadsPracticeSessionSummary(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewRepository(db)
+	in := domain.SuggestionContextRequest{
+		UserID:      "01918fa0-0000-7000-8000-000000000001",
+		TargetJobID: "01918fa0-0000-7000-8000-00000000c001",
+		SessionID:   "01918fa0-0000-7000-8000-000000005000",
+	}
+
+	mock.ExpectQuery(`(?s)select tj\.id::text.*from target_jobs tj.*where tj\.id = \$1.*tj\.user_id = \$2`).
+		WithArgs(in.TargetJobID, in.UserID).
+		WillReturnRows(sqlmock.NewRows([]string{"target_job_id", "title", "company_name", "summary"}).AddRow(
+			in.TargetJobID,
+			"Backend Engineer",
+			"Example Co",
+			[]byte(`{"mustHave":["Go"]}`),
+		))
+	mock.ExpectQuery(`(?s)select jsonb_build_object.*from practice_sessions ps.*where ps\.id = \$1.*ps\.user_id = \$2.*ps\.target_job_id = \$3.*ps\.status = 'completed'`).
+		WithArgs(in.SessionID, in.UserID, in.TargetJobID).
+		WillReturnRows(sqlmock.NewRows([]string{"session_summary"}).AddRow([]byte(`{"sessionId":"01918fa0-0000-7000-8000-000000005000","status":"completed","turns":[{"questionText":"How did you measure adoption?","answerSummary":"I cited rollout metrics."}],"report":{"preparednessLevel":"basically_ready","issues":[{"title":"Needs sharper metrics"}]}}`)))
+
+	got, err := repo.GetSuggestionContext(context.Background(), in)
+	if err != nil {
+		t.Fatalf("GetSuggestionContext returned error: %v", err)
+	}
+	if got.SessionSummary == "" || !strings.Contains(got.SessionSummary, `"sessionId":"01918fa0-0000-7000-8000-000000005000"`) || !strings.Contains(got.SessionSummary, `"Needs sharper metrics"`) {
+		t.Fatalf("practice session summary not loaded into context: %+v", got)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestStoreGetSuggestionContext_CrossUserSessionNotFound(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewRepository(db)
+	in := domain.SuggestionContextRequest{
+		UserID:      "01918fa0-0000-7000-8000-000000000001",
+		TargetJobID: "01918fa0-0000-7000-8000-00000000c001",
+		SessionID:   "01918fa0-0000-7000-8000-000000005000",
+	}
+
+	mock.ExpectQuery(`(?s)select tj\.id::text.*from target_jobs tj.*where tj\.id = \$1.*tj\.user_id = \$2`).
+		WithArgs(in.TargetJobID, in.UserID).
+		WillReturnRows(sqlmock.NewRows([]string{"target_job_id", "title", "company_name", "summary"}).AddRow(
+			in.TargetJobID,
+			"Backend Engineer",
+			"Example Co",
+			[]byte(`{"mustHave":["Go"]}`),
+		))
+	mock.ExpectQuery(`(?s)select jsonb_build_object.*from practice_sessions ps.*where ps\.id = \$1.*ps\.user_id = \$2.*ps\.target_job_id = \$3.*ps\.status = 'completed'`).
+		WithArgs(in.SessionID, in.UserID, in.TargetJobID).
+		WillReturnError(sql.ErrNoRows)
+
+	_, err := repo.GetSuggestionContext(context.Background(), in)
+	if !errors.Is(err, domain.ErrDebriefPrerequisite) {
+		t.Fatalf("error=%v, want ErrDebriefPrerequisite", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
 func TestStoreGetSuggestionContext_CrossUserResumeNotFound(t *testing.T) {
 	db, mock, cleanup := newMockDB(t)
 	defer cleanup()

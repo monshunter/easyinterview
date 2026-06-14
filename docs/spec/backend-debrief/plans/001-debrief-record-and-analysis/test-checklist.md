@@ -1,6 +1,6 @@
 # 001 Debrief Record and Analysis Test Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-06-14
 
@@ -67,6 +67,14 @@
   <!-- verified: 2026-05-16 cd backend && go test ./internal/api/debriefs -run 'TestSuggestDebriefQuestions_CountBoundary|TestSuggestDebriefQuestions_Unauthenticated_401' -count=1 -->
 - [x] 3.G TestSuggestDebriefQuestions_Unauthenticated_401 通过（[test-plan §3.7](./test-plan.md#37-testsuggestdebriefquestions_unauthenticated_401)）
   <!-- verified: 2026-05-16 cd backend && go test ./internal/api/debriefs -run 'TestSuggestDebriefQuestions_CountBoundary|TestSuggestDebriefQuestions_Unauthenticated_401' -count=1 -->
+- [x] 3.H TestStoreGetSuggestionContext_LoadsPracticeSessionSummary 通过（[test-plan §3.8](./test-plan.md#38-teststoregetsuggestioncontext_loadspracticesessionsummary)）
+  <!-- verified: 2026-06-14 red: SessionSummary empty; green: cd backend && go test ./internal/store/debrief -run 'TestStoreGetSuggestionContext_LoadsPracticeSessionSummary|TestStoreGetSuggestionContext_CrossUserSessionNotFound' -count=1 -->
+- [x] 3.I TestServiceSuggestQuestions_SessionContextInPrompt 通过（[test-plan §3.9](./test-plan.md#39-testservicesuggestquestions_sessioncontextinprompt)）
+  <!-- verified: 2026-06-14 red: real `{{mock_report_summary}}` marker stayed unreplaced; green: cd backend && go test ./internal/debrief -run 'TestServiceSuggestQuestions_SessionContextInPrompt' -count=1 -->
+- [x] 3.J TestStoreGetSuggestionContext_CrossUserSessionNotFound 通过（[test-plan §3.10](./test-plan.md#310-teststoregetsuggestioncontext_crossusersessionnotfound)）
+  <!-- verified: 2026-06-14 red: missing session returned nil; green: cd backend && go test ./internal/store/debrief -run 'TestStoreGetSuggestionContext_LoadsPracticeSessionSummary|TestStoreGetSuggestionContext_CrossUserSessionNotFound' -count=1 -->
+- [x] 3.K TestSuggestDebriefQuestions_MapsSessionIDToService 通过（[test-plan §3.11](./test-plan.md#311-testsuggestdebriefquestions_mapssessionidtoservice)）
+  <!-- verified: 2026-06-14 cd backend && go test ./internal/api/debriefs -run 'TestSuggestDebriefQuestions_MapsSessionIDToService' -count=1 -->
 
 ## Phase 4: debrief_generate worker handler
 

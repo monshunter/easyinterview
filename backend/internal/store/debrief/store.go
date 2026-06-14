@@ -298,6 +298,60 @@ where tj.id = $1
 		summary = []byte(`{}`)
 	}
 	out.Summary = string(summary)
+	sessionID := strings.TrimSpace(in.SessionID)
+	if sessionID != "" {
+		var sessionSummary []byte
+		err := r.db.QueryRowContext(ctx, `
+select jsonb_build_object(
+  'sessionId', ps.id::text,
+  'status', ps.status,
+  'language', ps.language,
+  'turnCount', ps.turn_count,
+  'turns', coalesce((
+    select jsonb_agg(jsonb_build_object(
+      'turnIndex', pt.turn_index,
+      'questionText', pt.question_text,
+      'questionIntent', coalesce(pt.question_intent, ''),
+      'answerSummary', coalesce(pt.answer_summary, '')
+    ) order by pt.turn_index)
+    from practice_turns pt
+    where pt.session_id = ps.id
+  ), '[]'::jsonb),
+  'report', coalesce((
+    select jsonb_build_object(
+      'preparednessLevel', coalesce(fr.preparedness_level, ''),
+      'highlights', fr.highlights,
+      'issues', fr.issues,
+      'nextActions', fr.next_actions
+    )
+    from feedback_reports fr
+    where fr.session_id = ps.id
+      and fr.user_id = ps.user_id
+      and fr.status = 'ready'
+    order by fr.created_at desc
+    limit 1
+  ), '{}'::jsonb)
+)
+from practice_sessions ps
+where ps.id = $1
+  and ps.user_id = $2
+  and ps.target_job_id = $3
+  and ps.status = 'completed'`,
+			sessionID,
+			in.UserID,
+			in.TargetJobID,
+		).Scan(&sessionSummary)
+		if stderrs.Is(err, sql.ErrNoRows) {
+			return domain.SuggestionContext{}, domain.ErrDebriefPrerequisite
+		}
+		if err != nil {
+			return domain.SuggestionContext{}, fmt.Errorf("get debrief practice session suggestion context: %w", err)
+		}
+		if len(sessionSummary) == 0 {
+			sessionSummary = []byte(`{}`)
+		}
+		out.SessionSummary = string(sessionSummary)
+	}
 	resumeID := strings.TrimSpace(in.ResumeID)
 	if resumeID != "" {
 		var resumeSummary []byte

@@ -1,6 +1,6 @@
 # 001 Debrief Record and Analysis BDD Plan
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
 > **更新日期**: 2026-06-14
 
@@ -77,9 +77,9 @@
 | Phase | Phase 3 |
 | 关联 spec AC | C-9, C-10 |
 | 执行入口 | `bash scripts/setup.sh && bash scripts/trigger.sh && bash scripts/verify.sh; bash scripts/cleanup.sh`（在该场景目录内执行） |
-| Given | 用户 A 已认证；target_jobs(user_id=A, id=T) ready；可选 practice_sessions(user_id=A, id=S, target_job_id=T) completed；可选 resumes(user_id=A, id=R, structured_profile ready)；F3 `debrief.suggest_questions` baseline active；A3 mock 配置：第一次返回有效 JSON {suggestions:[6 items]}，第二次返回 timeout，第三次返回非 JSON |
+| Given | 用户 A 已认证；target_jobs(user_id=A, id=T) ready；可选 practice_sessions(user_id=A, id=S, target_job_id=T, status='completed') 且其 practice_turns / ready feedback_report derived summary 可读；可选 resumes(user_id=A, id=R, structured_profile ready)；F3 `debrief.suggest_questions` baseline active；A3 mock 配置：第一次返回有效 JSON {suggestions:[6 items]}，第二次返回 timeout，第三次返回非 JSON |
 | When | (1) `POST /debriefs/question-suggestions` with `{targetJobId:T, sessionId:S, resumeId:R, language:'zh', count:6}`；(2) 再次 `POST` 同 body（A3 第二次 timeout）；(3) 再次 `POST` 同 body（A3 第三次 invalid JSON） |
-| Then | (1) HTTP 200 + SuggestDebriefQuestionsResponse{suggestions:[6 items each {questionText, whyLikelyAsked, source: enum value}]}；`resumeId` 经 handler/service/store 进入 `(user_id, resume_id)` 查询并把 `resumes.structured_profile` 注入 AI prompt；ai_task_runs 写 success row；audit 一行；(2) HTTP 502 + B1 `AI_PROVIDER_TIMEOUT`；ai_task_runs 写 timeout row；audit 一行 with error_code；(3) HTTP 502 + B1 `AI_OUTPUT_INVALID`；ai_task_runs 写 invalid row |
+| Then | (1) HTTP 200 + SuggestDebriefQuestionsResponse{suggestions:[6 items each {questionText, whyLikelyAsked, source: enum value}]}；`sessionId` 经 handler/service/store 进入 `(user_id, target_job_id, session_id, status='completed')` 查询并把 practice session derived summary 注入真实 `{{mock_report_summary}}` AI prompt marker；`resumeId` 经 handler/service/store 进入 `(user_id, resume_id)` 查询并把 `resumes.structured_profile` 注入 AI prompt；ai_task_runs 写 success row；audit 一行；(2) HTTP 502 + B1 `AI_PROVIDER_TIMEOUT`；ai_task_runs 写 timeout row；audit 一行 with error_code；(3) HTTP 502 + B1 `AI_OUTPUT_INVALID`；ai_task_runs 写 invalid row |
 | Cleanup | 删除用户 A + cascade；不应有 debriefs 行（suggestDebriefQuestions 不写 debriefs） |
 | Privacy 反查 | verify.sh assert response suggestions 不含 raw target_job description（只允许 AI 派生 questions）；ai_task_runs 不在 metric label 泄漏 |
 

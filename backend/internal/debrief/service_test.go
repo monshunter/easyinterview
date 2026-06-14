@@ -236,6 +236,63 @@ func TestServiceSuggestQuestions_ResumeContextInPrompt(t *testing.T) {
 	}
 }
 
+func TestServiceSuggestQuestions_SessionContextInPrompt(t *testing.T) {
+	targetJobID := "01918fa0-0000-7000-8000-00000000c001"
+	sessionID := "01918fa0-0000-7000-8000-000000005000"
+	contexts := &recordingSuggestionContextStore{result: SuggestionContext{
+		TargetJobID:    targetJobID,
+		Title:          "Staff Backend Engineer",
+		Summary:        `{"mustHave":["platform reliability"]}`,
+		SessionSummary: `{"sessionId":"01918fa0-0000-7000-8000-000000005000","turns":[{"questionText":"How did you measure adoption?","answerSummary":"I cited rollout metrics."}],"report":{"issues":[{"title":"Needs sharper metrics"}]}}`,
+	}}
+	reg := &recordingPromptResolver{resolution: registry.PromptResolution{
+		FeatureKey:          featurekeys.DebriefSuggestQuestions.String(),
+		PromptVersion:       "v0.1.0",
+		RubricVersion:       "v0.1.0",
+		ModelProfileName:    "debrief.suggest_questions.default",
+		DataSourceVersion:   "target_job/01918fa0-0000-7000-8000-00000000c001@v1",
+		UserMessageTemplate: "Target: {{role_title}}\nJob: {{job_summary}}\nMock: {{mock_report_summary}}",
+	}}
+	ai := &recordingAIClient{
+		response: aiclient.CompleteResponse{Content: `{"suggestions":[{"questionText":"How did you measure adoption?","whyLikelyAsked":"The mock interview report shows metrics risk.","source":"mock_report"}]}`},
+		meta: aiclient.AICallMeta{
+			ValidationStatus: aiclient.ValidationStatusOK,
+		},
+	}
+	service := NewService(ServiceOptions{
+		SuggestionContext: contexts,
+		Registry:          reg,
+		AI:                ai,
+		AITaskRuns:        &recordingTaskRunWriter{},
+		Now:               func() time.Time { return time.Date(2026, 6, 14, 14, 0, 0, 0, time.UTC) },
+		NewID:             sequenceID("01918fa0-0000-7000-8000-00000000e001"),
+	})
+
+	result, err := service.SuggestQuestions(context.Background(), SuggestQuestionsRequest{
+		UserID:      "01918fa0-0000-7000-8000-000000000001",
+		TargetJobID: targetJobID,
+		SessionID:   sessionID,
+		Language:    "zh-CN",
+		Count:       1,
+	})
+	if err != nil {
+		t.Fatalf("SuggestQuestions returned error: %v", err)
+	}
+	if contexts.last.SessionID != sessionID {
+		t.Fatalf("sessionId not passed to context store: %+v", contexts.last)
+	}
+	if len(result.Suggestions) != 1 || result.Suggestions[0].Source != sharedtypes.DebriefQuestionSourceMockReport {
+		t.Fatalf("suggestions drifted: %+v", result.Suggestions)
+	}
+	prompt := ai.payload.Messages[len(ai.payload.Messages)-1].Content
+	if strings.Contains(prompt, "{{mock_report_summary}}") || !strings.Contains(prompt, `"Needs sharper metrics"`) {
+		t.Fatalf("mock session summary missing from AI prompt: %s", prompt)
+	}
+	if strings.Contains(prompt, "{{role_title}}") || strings.Contains(prompt, "{{job_summary}}") {
+		t.Fatalf("real prompt markers were not replaced: %s", prompt)
+	}
+}
+
 func TestServiceGetDebrief_ProvenanceWireOnly(t *testing.T) {
 	store := &recordingStore{getResult: DebriefRecord{
 		ID:          "01918fa0-0000-7000-8000-00000000d010",

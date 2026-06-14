@@ -13,7 +13,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-debrief-record-and-analysis](./001-debrief-record-and-analysis/plan.md) | [plan](./001-debrief-record-and-analysis/plan.md) / [checklist](./001-debrief-record-and-analysis/checklist.md) / [context](./001-debrief-record-and-analysis/context.yaml) / [test-plan](./001-debrief-record-and-analysis/test-plan.md) / [test-checklist](./001-debrief-record-and-analysis/test-checklist.md) / [bdd-plan](./001-debrief-record-and-analysis/bdd-plan.md) / [bdd-checklist](./001-debrief-record-and-analysis/bdd-checklist.md) | 1.2 | completed | 2026-06-14 |
+| [001-debrief-record-and-analysis](./001-debrief-record-and-analysis/plan.md) | [plan](./001-debrief-record-and-analysis/plan.md) / [checklist](./001-debrief-record-and-analysis/checklist.md) / [context](./001-debrief-record-and-analysis/context.yaml) / [test-plan](./001-debrief-record-and-analysis/test-plan.md) / [test-checklist](./001-debrief-record-and-analysis/test-checklist.md) / [bdd-plan](./001-debrief-record-and-analysis/bdd-plan.md) / [bdd-checklist](./001-debrief-record-and-analysis/bdd-checklist.md) | 1.3 | completed | 2026-06-14 |
 
 ## 3 草案 / 阻塞（Draft / Blocked）
 

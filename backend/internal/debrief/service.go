@@ -353,13 +353,17 @@ func renderSuggestTemplate(template string, ctx SuggestionContext, in SuggestQue
 		return ""
 	}
 	replacements := map[string]string{
-		"{{targetTitle}}":    ctx.Title,
-		"{{companyName}}":    ctx.CompanyName,
-		"{{targetSummary}}":  ctx.Summary,
-		"{{sessionSummary}}": ctx.SessionSummary,
-		"{{resumeSummary}}":  ctx.ResumeSummary,
-		"{{language}}":       in.Language,
-		"{{count}}":          fmt.Sprintf("%d", count),
+		"{{targetTitle}}":         ctx.Title,
+		"{{companyName}}":         ctx.CompanyName,
+		"{{targetSummary}}":       ctx.Summary,
+		"{{sessionSummary}}":      ctx.SessionSummary,
+		"{{resumeSummary}}":       ctx.ResumeSummary,
+		"{{role_title}}":          ctx.Title,
+		"{{job_summary}}":         ctx.Summary,
+		"{{mock_report_summary}}": ctx.SessionSummary,
+		"{{resume_highlights}}":   ctx.ResumeSummary,
+		"{{language}}":            in.Language,
+		"{{count}}":               fmt.Sprintf("%d", count),
 	}
 	for marker, value := range replacements {
 		content = strings.ReplaceAll(content, marker, value)

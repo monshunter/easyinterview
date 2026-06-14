@@ -1,6 +1,6 @@
 # 001 Debrief Record and Analysis Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-06-14
 
@@ -58,16 +58,19 @@
 
 ## Phase 3: suggestDebriefQuestions sync handler
 
-- [x] 3.1 service.SuggestQuestions 实现：拉 target_job 摘要 + 可选 session + 可选 resume；F3 Resolve + A3 Complete；解析输出；写 ai_task_runs + audit。测试：`TestServiceSuggestQuestions_Happy`（[test-plan §3.1](./test-plan.md#31-testservicesuggestquestions_happy)） + `TestServiceSuggestQuestions_CrossUserTargetJob_403`（[test-plan §3.2](./test-plan.md#32-testservicesuggestquestions_crossusertargetjob_403)）
+- [x] 3.1 service.SuggestQuestions 实现：拉 target_job 摘要 + 可选 completed session derived summary + 可选 resume；F3 Resolve + A3 Complete；解析输出；写 ai_task_runs + audit。测试：`TestServiceSuggestQuestions_Happy`（[test-plan §3.1](./test-plan.md#31-testservicesuggestquestions_happy)） + `TestServiceSuggestQuestions_CrossUserTargetJob_403`（[test-plan §3.2](./test-plan.md#32-testservicesuggestquestions_crossusertargetjob_403)）+ `TestServiceSuggestQuestions_SessionContextInPrompt`（[test-plan §3.9](./test-plan.md#39-testservicesuggestquestions_sessioncontextinprompt)）
   <!-- verified: 2026-05-16 red: SuggestionContext/Registry/AI service surface undefined; green: cd backend && go test ./internal/debrief -run 'TestServiceSuggestQuestions_Happy|TestServiceSuggestQuestions_CrossUserTargetJob_403' -count=1. Cross-user target follows current targetjob isolation semantics through ErrDebriefPrerequisite/404 boundary; no unregistered FORBIDDEN code introduced. -->
+  <!-- verified: 2026-06-14 red: session summary stayed empty and real `{{mock_report_summary}}` marker was not replaced; green: cd backend && go test ./internal/store/debrief -run 'TestStoreGetSuggestionContext_LoadsPracticeSessionSummary|TestStoreGetSuggestionContext_CrossUserSessionNotFound' -count=1; cd backend && go test ./internal/debrief -run 'TestServiceSuggestQuestions_SessionContextInPrompt' -count=1 -->
 - [x] 3.2 AI 失败映射：F3 ResolveActive/config 失败 → B1 `AI_PROVIDER_CONFIG_INVALID`；A3 secret missing → `AI_PROVIDER_SECRET_MISSING`；A3 timeout → `AI_PROVIDER_TIMEOUT`；fallback exhausted/provider unreachable → `AI_FALLBACK_EXHAUSTED`；A3 invalid JSON / parsed empty → `AI_OUTPUT_INVALID`；写 ai_task_runs status='failed' + error_code。测试：`TestServiceSuggestQuestions_F3ResolveFailed`（[test-plan §3.3](./test-plan.md#33-testservicesuggestquestions_f3resolvefailed)） + `TestServiceSuggestQuestions_A3Timeout`（[test-plan §3.4](./test-plan.md#34-testservicesuggestquestions_a3timeout)） + `TestServiceSuggestQuestions_ParseFailed`（[test-plan §3.5](./test-plan.md#35-testservicesuggestquestions_parsefailed)）
   <!-- verified: 2026-05-16 red: F3 resolve failure did not write ai_task_runs row; green: cd backend && go test ./internal/debrief -run 'TestServiceSuggestQuestions_F3ResolveFailed|TestServiceSuggestQuestions_A3Timeout|TestServiceSuggestQuestions_ParseFailed|TestServiceSuggestQuestions_Happy|TestServiceSuggestQuestions_CrossUserTargetJob_403' -count=1 -->
-- [x] 3.3 handler skeleton：注入 user_id；解析 `SuggestDebriefQuestionsRequest`；校验 count ∈ [1,10]；调 service；返回 200 或 5xx。测试：`TestSuggestDebriefQuestions_CountBoundary`（[test-plan §3.6](./test-plan.md#36-testsuggestdebriefquestions_countboundary)）+ `TestSuggestDebriefQuestions_Unauthenticated_401`（[test-plan §3.7](./test-plan.md#37-testsuggestdebriefquestions_unauthenticated_401)）
+- [x] 3.3 handler skeleton：注入 user_id；解析 `SuggestDebriefQuestionsRequest`；校验 count ∈ [1,10]；映射 `sessionId` / `resumeId`；调 service；返回 200 或 5xx。测试：`TestSuggestDebriefQuestions_CountBoundary`（[test-plan §3.6](./test-plan.md#36-testsuggestdebriefquestions_countboundary)）+ `TestSuggestDebriefQuestions_Unauthenticated_401`（[test-plan §3.7](./test-plan.md#37-testsuggestdebriefquestions_unauthenticated_401)）+ `TestSuggestDebriefQuestions_MapsSessionIDToService`（[test-plan §3.11](./test-plan.md#311-testsuggestdebriefquestions_mapssessionidtoservice)）
   <!-- verified: 2026-05-16 red: Handler.SuggestDebriefQuestions undefined; green: cd backend && go test ./internal/api/debriefs -run 'TestSuggestDebriefQuestions_CountBoundary|TestSuggestDebriefQuestions_Unauthenticated_401' -count=1 -->
+  <!-- verified: 2026-06-14 cd backend && go test ./internal/api/debriefs -run 'TestSuggestDebriefQuestions_MapsSessionIDToService|TestSuggestDebriefQuestions_MapsResumeIDToService|TestSuggestDebriefQuestions_CountBoundary|TestSuggestDebriefQuestions_Unauthenticated_401' -count=1 -->
 - [x] 3.4 fixture parity：`make validate-fixtures` 确认 `suggestDebriefQuestions.json` `default` / `empty` / `prototype-baseline` variants 与 handler 一致
   <!-- verified: 2026-05-16 make validate-fixtures; cd backend && go test ./internal/debrief ./internal/api/debriefs -count=1; cd backend && go test ./internal/ai/aiclient -count=1 -->
 - [x] 3.5 BDD-Gate: E2E.P0.063 覆盖 suggestDebriefQuestions 主路径 + AI failure（待 Phase 6 整体验证）
   <!-- verified: 2026-05-16 test/scenarios/e2e/p0-063-debrief-suggest-questions/scripts/setup.sh -> trigger.sh -> verify.sh -> cleanup.sh -->
+  <!-- verified: 2026-06-14 P0.063 setup -> trigger -> verify -> cleanup PASS; trigger runs sessionId/resumeId store/service/API/cmd-api focused tests plus make validate-fixtures; verify checks `sessionId backend contract PASS`, fixture sessionId/resumeId markers, package ok lines, and no no-op test output -->
 
 ## Phase 4: debrief_generate worker handler
 

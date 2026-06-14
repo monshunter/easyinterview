@@ -248,6 +248,30 @@ func TestSuggestDebriefQuestions_MapsResumeIDToService(t *testing.T) {
 	}
 }
 
+func TestSuggestDebriefQuestions_MapsSessionIDToService(t *testing.T) {
+	service := &fakeDebriefService{suggestResult: domain.SuggestQuestionsResult{Suggestions: []domain.SuggestedQuestion{{
+		QuestionText:   "How did you measure adoption?",
+		WhyLikelyAsked: "The mock report highlights a metrics gap.",
+		Source:         sharedtypes.DebriefQuestionSourceMockReport,
+	}}}}
+	handler := NewHandler(HandlerOptions{Service: service, Session: staticSession("user-1")})
+	rec := httptest.NewRecorder()
+	sessionID := "01918fa0-0000-7000-8000-000000005000"
+
+	handler.SuggestDebriefQuestions(rec, newSuggestDebriefQuestionsRequest(t, api.SuggestDebriefQuestionsRequest{
+		TargetJobId: "01918fa0-0000-7000-8000-00000000d001",
+		SessionId:   &sessionID,
+		Language:    "zh-CN",
+	}))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: want %d, got %d body=%s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if service.suggestCalls != 1 || service.lastSuggest.SessionID != sessionID {
+		t.Fatalf("sessionId not mapped to service: calls=%d last=%+v", service.suggestCalls, service.lastSuggest)
+	}
+}
+
 func TestSuggestDebriefQuestions_Unauthenticated_401(t *testing.T) {
 	service := &fakeDebriefService{}
 	handler := NewHandler(HandlerOptions{Service: service})
