@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: completed
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-06-15
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-10 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与 optional 项目组件接入约定，把 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 占位的 `make dev-up` / `make dev-down` 替换为真实实现并新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO / Mailpit healthy；backend / frontend 通过宿主机 dev command 连接这些依赖」可由开发者本机重复跑通；其中启用 AIClient 的非测试组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
 
-本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。本次 1.13 revision 将本地 redeploy 收口为 build + 重启 host-run backend/frontend，并把服务地址、日志路径、PID 文件与容器日志入口作为 env 脚本固定输出，避免开发者在 Agent 启动环境后无法接管调试。
+本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。1.13 revision 将本地 redeploy 收口为 build + 重启 host-run backend/frontend，并把服务地址、日志路径、PID 文件与容器日志入口作为 env 脚本固定输出，避免开发者在 Agent 启动环境后无法接管调试。本次 1.14 revision 修复 host-run backend 继承通配 `APP_LISTEN_ADDR=:8080` 导致无关 bridge listener 阻断重启的问题，要求本地场景 redeploy 启动 backend 时收敛到 loopback 监听。
 
 ## 2 背景
 
@@ -24,7 +24,7 @@
 - **Plan 类型**: `tooling + dev-infra + code-internal`。本 plan 修改本地 docker-compose dev stack、Make targets、doctor 脚本、README 与健康检查约定；不产生用户可见 UI、HTTP API 行为或业务 workflow。
 - **TDD 策略**: 历史实现以 checklist 中每个 phase 的 `自检` 命令作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，优先以 `make dev-*`、`dev-doctor` JSON schema/probe、端口冲突复现、volume idempotency 和 README smoke 作为 focused assertions。
 - **BDD 策略**: BDD 不适用。本 plan 只交付开发环境基础设施；后续 P0 用户行为场景由 `e2e-scenarios-p0` 或具体 feature plan 维护 BDD。
-- **替代验证 gate**: `make dev-up`、`make dev-doctor`、`make dev-down`、`make dev-reset`、`make scenario-env-setup` / `status` / `verify` / `cleanup` / `redeploy` dry-run 与 focused live gate、端口冲突复现、Postgres connectivity probe、AI provider fail-fast smoke、local raw debug config tests、P0.100 preflight contract、`sync-doc-index --check`、Markdown link check、`git diff --check`。
+- **替代验证 gate**: `make dev-up`、`make dev-doctor`、`make dev-down`、`make dev-reset`、`make scenario-env-setup` / `status` / `verify` / `cleanup` / `redeploy` dry-run 与 focused live gate、host-run backend loopback bind contract、端口冲突复现、Postgres connectivity probe、AI provider fail-fast smoke、local raw debug config tests、P0.100 preflight contract、`sync-doc-index --check`、Markdown link check、`git diff --check`。
 
 ## 4 实施步骤
 
@@ -312,9 +312,36 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - Dry-run：`test/scenarios/env-redeploy.sh backend --dry-run`、`test/scenarios/env-setup.sh --dry-run`、`test/scenarios/env-status.sh --dry-run` 均解释即将输出调试信息。
 - Live redeploy：`test/scenarios/env-redeploy.sh all` 后 `lsof` 证明 backend/frontend 监听当前端口；`.test-output/local-dev/*.log` 与 `.pid` 存在；重新触发 Mailpit 登录邮件，最新邮件为 code-only，前端 origin / CORS 来源与当前 `EMAIL_VERIFY_BASE_URL` 一致。
 
+### Phase 9: host-run backend loopback bind revision
+
+#### 9.1 Regression contract
+
+`scripts/lint/scenario_env_contract_test.py` 必须覆盖 `test/scenarios/_shared/scripts/local-dev-runtime.sh` 的 backend 监听推导：当 `.env` 仍使用通配 `APP_LISTEN_ADDR=:8080` 或 `0.0.0.0:8080` 时，helper 必须在启动 `go run ./backend/cmd/api` 前导出 `APP_LISTEN_ADDR=127.0.0.1:${API_HOST_PORT:-8080}`，并保留 `API_HOST_PORT` 对外部访问端口的控制。
+
+#### 9.2 Runtime implementation
+
+`restart_backend_runtime` 必须在停止旧 pidfile 进程后、启动新 backend 前：
+
+- 通过 `api_port` 取得对外 API host port。
+- 通过 `backend_listen_addr` 把通配监听地址收敛为 loopback 地址；已显式设置为具体地址的用户配置保持原样。
+- `export APP_LISTEN_ADDR` 后再调用 detached `go run ./backend/cmd/api -config-dir config`。
+- 日志输出必须包含 effective `APP_LISTEN_ADDR`，便于从 `.test-output/local-dev/backend.log` 和命令输出判断本次实际监听地址。
+- 不得为了规避 8080 冲突杀掉不属于 `.test-output/local-dev/backend.pid` 或 loopback listener 的无关 bridge / Kind / Docker 进程。
+
+#### 9.3 Docs and runbook
+
+`deploy/dev-stack/README.md` 和 local-dev-stack spec 必须说明：本地场景 env 的 backend API base 仍是 `http://127.0.0.1:${API_HOST_PORT:-8080}/api/v1`，host-run backend redeploy 会把通配 `APP_LISTEN_ADDR` 收敛到 loopback，避免浏览器继续访问 stale / down backend。
+
+#### 9.4 Phase 9 self-check
+
+- Red gate：先运行 focused `python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k redeploy_script_documents_host_run_artifact_boundary`，证明新增 contract 在 implementation 前失败。
+- Green static gate：修复后运行 `python3 -m pytest scripts/lint/scenario_env_contract_test.py -q` 与 `bash -n test/scenarios/_shared/scripts/local-dev-runtime.sh test/scenarios/env-redeploy.sh`。
+- Live redeploy gate：在当前本机仍存在无关 8080 bridge listener 的前提下运行 `test/scenarios/env-redeploy.sh backend`，确认 backend 监听 `127.0.0.1:${API_HOST_PORT:-8080}`、runtime-config 返回 200、PID/log 写入 `.test-output/local-dev/`。
+- User regression gate：用新 synthetic `.example.test` 邮箱走 Mailpit 登录/首次用户链路后请求 `GET /api/v1/resumes`，确认返回 200 empty list，不再出现用户截图中的简历模块 500。
+
 ## 5 验收标准
 
-- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-15 全部成立，证据贴入工作日志或当前 `.test-output/`。
+- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-16 全部成立，证据贴入工作日志或当前 `.test-output/`。
 - 本 plan checklist 全部勾选；Phase 3 / Phase 4 的 `make dev-*` 自检命令日志贴入工作日志。
 - engineering-roadmap 历史 rebaseline 中保留的 A2 executable gate 承诺由 Phase 4.4 关闭；不重复修改父 roadmap checklist。
 
@@ -333,6 +360,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-06-15 | 1.14 | Host-run backend loopback bind revision：`env-redeploy.sh backend|all` 启动 backend 时将通配 `APP_LISTEN_ADDR` 收敛到 `127.0.0.1:${API_HOST_PORT:-8080}`，避免无关 bridge listener 阻断本地重启并导致简历页 500。 | BUG investigation |
 | 2026-05-27 | 1.13 | Developer debug handoff revision：`env-redeploy.sh backend|frontend|all` 从 build-only 修订为 build + 重启 host-run 进程，并输出 endpoint/log/PID/container log 调试入口。 | user feedback |
 | 2026-05-27 | 1.12 | Raw debug local default revision：local dev/test 与本地真实联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，P0.100 preflight 校验该开关，staging/prod 默认关闭。 | user feedback |
 | 2026-05-27 | 1.11 | Single env source revision：`deploy/dev-stack/.env` 成为本地真实前后端联调唯一 env 来源，`.env.example` 补齐 auth secrets、frontend real mode、AI provider 与共享依赖 keys，禁止场景复制独立 `.env`。 | user feedback / BUG-0110 follow-up |

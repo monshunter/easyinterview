@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-06-15](2026-06-15.md) | `fix(local-dev-stack): bind host backend to loopback (BUG-0127)` | #fix #test #docs |
 | [2026-06-15](2026-06-15.md) | `fix(review): close resume flatten follow-up gaps (BUG-0126)` | #fix #api #test #docs |
 | [2026-06-15](2026-06-15.md) | `fix(review): persist resume archive and p0102 gate (BUG-0125)` | #fix #api #test #docs |
 | [2026-06-14](2026-06-14.md) | `fix(test): close resume phase8 flat gate drift (BUG-0124)` | #fix #test #docs #ui |

@@ -1,8 +1,8 @@
 # Local Dev Stack
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-06-15
 
 本目录承载 [local-dev-stack/001-bootstrap](../../docs/spec/local-dev-stack/plans/001-bootstrap/plan.md) 的运行时实现。默认 `make dev-up` 只启动 P0 闭环必须的外部依赖；backend / frontend 默认由宿主机 dev command 管理，只有组件 owner 明确接入 optional compose app service 时才进入本栈。**默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider**；本地邮件通过轻量 Mailpit 依赖承接。
 
@@ -74,7 +74,8 @@
 host-run backend 必须从同一个 `.env` 读取：
 
 - `APP_ENV=dev`
-- `APP_LISTEN_ADDR=:8080`
+- `APP_LISTEN_ADDR=:8080`（应用默认值；`test/scenarios/env-redeploy.sh backend|all` 会在启动 host-run backend 前把 `:8080` / `0.0.0.0:8080` 收敛为 `127.0.0.1:${API_HOST_PORT:-8080}`）
+- `API_HOST_PORT=8080`
 - `SESSION_COOKIE_SECRET`
 - `AUTH_CHALLENGE_TOKEN_PEPPER`
 
@@ -114,6 +115,8 @@ make dev-logs SERVICE=mailpit-dev
 ```bash
 test/scenarios/env-redeploy.sh all
 ```
+
+如果本机存在不属于 easyinterview 的 Docker / Kind bridge listener 占用非 loopback 8080，场景 redeploy 不会尝试杀掉它；host-run backend 会改用 `127.0.0.1:${API_HOST_PORT:-8080}` 监听，frontend real-mode API base 仍保持 `http://127.0.0.1:${API_HOST_PORT:-8080}/api/v1`。
 
 ### 4.2 AI provider 配置
 

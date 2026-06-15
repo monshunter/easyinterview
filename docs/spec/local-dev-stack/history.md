@@ -1,13 +1,14 @@
 # Local Dev Stack History
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: active
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-06-15
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-06-15 | 1.20 | 修订 host-run backend redeploy 监听契约：本地场景环境将通配 `APP_LISTEN_ADDR` 收敛到 loopback，避免无关 bridge listener 占用 8080 时重启失败并导致前端简历页继续命中旧/不可用 backend。 | local-dev-stack/001 Phase 9 |
 | 2026-05-27 | 1.19 | 对齐 backend-auth / frontend-shell 的 email-code 修订：Mailpit 本地邮件改为 6 位验证码、5 分钟有效，`EMAIL_VERIFY_BASE_URL` 仅保留为本地 frontend origin / CORS 推导来源，不再拼入邮件链接。 | backend-auth/001 Phase 7 + frontend-shell/001 Phase 8 |
 | 2026-05-27 | 1.18 | 将 scenario redeploy 闭环修订为 rebuild + 重启 host-run backend/frontend，并要求 env setup/status/verify/redeploy 输出服务地址、PID、日志路径和容器日志命令，便于开发者接管调试。 | local-dev-stack/001 developer debug handoff |
 | 2026-05-27 | 1.17 | 修订本地 Mailpit 登录闭环：默认邮件链接进入 frontend `/auth/verify` callback，由前端调用 backend verify API、刷新 session 并清理 URL token；手动 token 仅保留为 fallback。 | frontend-shell/001 Phase 7 |

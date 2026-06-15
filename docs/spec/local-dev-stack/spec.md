@@ -1,8 +1,8 @@
 # Local Dev Stack Spec
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: active
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-06-15
 
 ## 1 背景与目标
 
@@ -21,6 +21,7 @@
 7. **单一真实 env 来源**：本地真实前后端联调只使用 `deploy/dev-stack/.env` 一个文件承接共享依赖、host-run backend、frontend real mode、auth secrets 与真实 AI provider 配置；具体场景不得复制独立 `.env`。
 8. **本地 AI raw output 可调试**：local dev/test 与本地真实联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，让 AI Agent 能确认真实 provider 输出格式；raw output 只进入本机 backend stderr / `.test-output/` 调试日志，不进入持久化审计、runtime-config、staging 或 prod 默认配置。
 9. **重建后开发者可接管**：创建、验证或重建测试环境后，脚本必须明确输出 frontend/backend/Mailpit/MinIO 地址、host-run 进程 PID、日志路径和容器日志命令；`env-redeploy.sh backend|frontend|all` 必须重启对应宿主机前后端进程，避免“build 已更新但浏览器仍连旧进程”的假闭环。
+10. **Host-run backend 只暴露 loopback 调试入口**：本地场景环境启动宿主机 backend 时，必须把通配监听地址收敛为 `127.0.0.1:${API_HOST_PORT:-8080}`，避免无关 Docker / Kind bridge listener 占用非 loopback 8080 时阻断本地重启。
 
 本 spec 不实现业务代码、不接入 K8s / Kind / Helm，也不部署 staging。当前 P0 本地测试与 smoke 以 Docker Compose 外部依赖 + 宿主机前后端运行 + `test/scenarios/` 本地 runner 脚本为准；[E4 `release-gate-and-rollout`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 后续如需部署级环境，必须重新评估并显式修订。
 
@@ -67,12 +68,13 @@
 | D-12 | 单一真实 env 来源 | `deploy/dev-stack/.env.example` 必须列出真实本地联调所需的 backend auth secrets、AI provider、邮件、共享依赖、frontend real-mode env；`deploy/dev-stack/.env` 是唯一被 host-run backend/frontend 与 hybrid 场景读取的本地真实 env 文件 | 防止每个场景复制独立 `.env`，保证本地测试环境和真实联调环境通过同一配置构建 |
 | D-13 | local raw output debug 默认开启 | `config/dev.yaml`、`config/test.yaml` 与 `deploy/dev-stack/.env.example` 必须默认 `AI_DEBUG_PRINT_RAW_OUTPUT=true`；`config/config.yaml`、staging、prod 仍默认 false；本地 hybrid 场景 preflight 必须拒绝未开启 raw debug 的真实 provider run | 支持 AI Agent 以本机 raw log 调试 schema/格式问题，同时不扩大生产或共享持久化泄露面 |
 | D-14 | 环境调试摘要 | `env-setup.sh` / `env-status.sh` / `env-verify.sh` / `env-redeploy.sh` 必须输出本地调试摘要：frontend dev URL、backend API base、Mailpit URL、MinIO Console URL、`.test-output/local-dev/{backend,frontend}.log`、`.pid` 文件和 `make dev-logs SERVICE=<name>` 容器日志入口 | 开发者能在 Agent 启动环境后直接接管浏览器和日志，不需要猜端口、查进程或追问调试入口 |
+| D-15 | Host-run backend loopback 监听 | `env-redeploy.sh backend|all` 通过 `test/scenarios/_shared/scripts/local-dev-runtime.sh` 启动宿主机 backend 时，若 `deploy/dev-stack/.env` 中 `APP_LISTEN_ADDR` 是 `:8080` 或 `0.0.0.0:8080` 这类通配地址，必须在启动前导出 `APP_LISTEN_ADDR=127.0.0.1:${API_HOST_PORT:-8080}`；已显式设置为其它具体地址时保留用户配置 | 本地前端与场景脚本始终访问 loopback backend API；不得因为无关 bridge listener 占用非 loopback 8080 而启动失败，也不得为了规避冲突杀掉不属于本仓库的 listener |
 
 ### 3.2 待确认事项
 
 - `make dev-up` 是否自动跑 `make migrate`：默认不自动；B4 落地后由开发者显式执行，避免数据库 schema 变更与服务启动耦合。
 - 若某个未来组件需要容器化 app service，该组件 plan 必须先补齐稳定运行入口、健康检查与资源预算，再声明自己受 `make dev-up` 覆盖；普通本地开发默认仍使用宿主机 dev command。
-- `env-redeploy.sh` 当前不启动长期运行的 backend/frontend 进程；真实 provider hybrid UAT 的进程启动命令仍由目标场景 README 与用户本地 secret 文件控制，避免 skill 在无凭证上下文中生成悬挂进程或泄露 secrets。
+- `env-redeploy.sh` 只负责启动本地可接管的 host-run backend/frontend 进程；真实 provider hybrid UAT 的业务前置、凭证检查与付费调用仍由目标场景 README、preflight 和用户本地 secret 文件控制，避免 skill 在无凭证上下文中伪造场景 PASS 或泄露 secrets。
 
 ## 4 设计约束
 
@@ -136,10 +138,11 @@
 | C-9 | 本地 AI provider 配置不走 stub | 启用了需要 AIClient 的 backend 运行路径；`.env` 缺 `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 或当前 profile 选中的 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` | 启动非测试 backend runtime；若该 runtime 已接入 compose，则同时通过 `make dev-up` / `make dev-doctor` 检查 | 组件启动失败或 dev-doctor 报 DOWN/DEGRADED 并说明缺真实 AI provider 配置；补齐 catalog path 与真实 provider endpoint / key 后组件健康；不启动 AI provider 容器，也不把部署切到 stub | 001 |
 | C-10 | 本地邮箱登录 | `make dev-up` 完成，backend 以 `EMAIL_PROVIDER=mailpit` 和真实 auth secrets 在宿主机运行 | 用户调用 `POST /api/v1/auth/email/start` 或前端登录/注册页提交 synthetic `.example.test` 邮箱 | Mailpit Web UI 出现 code-only 邮件；用户把 6 位 code 输入前端验证页后，前端调用 `GET /api/v1/auth/email/verify` 签发 first-party `ei_session` cookie 并回到目标页面；邮件与 URL 不包含 raw code；不依赖真实外部邮箱服务、真实邮箱账号或场景专属 backend cmd | 001 Mailpit revision + frontend-shell/001 Phase 8 + backend-auth/001 Phase 7 |
 | C-11 | 独立环境 setup / verify / cleanup | 开发者或 Agent 只想准备共享本地环境，不准备立即运行具体场景 | 通过 `/scenario-env setup` / `verify` / `status` / `cleanup`，或等价根 `make scenario-env-*` target | 调用 `test/scenarios/env-*.sh` 顶层脚本；setup 启动 dev-stack，verify/status 返回 dev-doctor JSON，cleanup 默认保留命名卷；全流程不引用任何 `test/scenarios/e2e/p0-*` 目录，也不新增 `backend/cmd` / Go helper | 001 environment lifecycle revision |
-| C-12 | 独立 rebuild / redeploy | 开发者或 Agent 已有共享本地环境，希望刷新并重新加载当前 backend/frontend runtime 后再人工或自动验证 | `/scenario-redeploy backend|frontend|all` 或 `make scenario-env-redeploy TARGET=backend|frontend|all` | backend target 执行 `go build ./cmd/...` 并重启 `go run ./backend/cmd/api`；frontend target 执行 `pnpm --filter @easyinterview/frontend build` 并重启 Vite dev server；all 同时覆盖依赖环境 verify；不会运行具体 BDD 场景，也不会启动真实 provider 付费调用 | 001 environment lifecycle revision |
+| C-12 | 独立 rebuild / redeploy | 开发者或 Agent 已有共享本地环境，希望刷新并重新加载当前 backend/frontend runtime 后再人工或自动验证 | `/scenario-redeploy backend|frontend|all` 或 `make scenario-env-redeploy TARGET=backend|frontend|all` | backend target 执行 `go build ./cmd/...` 并重启 `go run ./backend/cmd/api`；若 `.env` 的 `APP_LISTEN_ADDR` 是通配地址，host-run backend 实际监听 `127.0.0.1:${API_HOST_PORT:-8080}`；frontend target 执行 `pnpm --filter @easyinterview/frontend build` 并重启 Vite dev server；all 同时覆盖依赖环境 verify；不会运行具体 BDD 场景，也不会启动真实 provider 付费调用 | 001 environment lifecycle revision |
 | C-13 | 单一真实 env 文件 | 开发者或 Agent 准备真实前后端联调或 `E2E.P0.100` hybrid 场景 | 编辑 `deploy/dev-stack/.env` 并运行目标 backend/frontend/scenario preflight | `deploy/dev-stack/.env.example` 覆盖 auth、AI、邮件、共享依赖、frontend real-mode keys；场景脚本不得要求场景专属 `.env`；缺真实 key 时输出可解释的 `MANUAL_REQUIRED` 或 fail-fast，不降级到 stub | 001 + e2e-scenarios-p0/002 |
 | C-14 | 本地 raw output debug 默认开启 | 开发者或 Agent 准备本地测试、host-run backend/frontend 联调或 `E2E.P0.100` hybrid 场景 | 加载 `config/dev.yaml` / `config/test.yaml` 或 `deploy/dev-stack/.env`，再启动 backend / 场景 preflight | local dev/test effective config 中 `ai.debugPrintRawOutput=true`；`deploy/dev-stack/.env.example` 含 `AI_DEBUG_PRINT_RAW_OUTPUT=true`；`E2E.P0.100` preflight 对缺失或非 true 输出 `MANUAL_REQUIRED`；staging/prod 默认仍关闭 | 001 raw debug local default revision |
 | C-15 | 可接管调试信息 | 开发者或 Agent 创建、验证或重建共享本地环境 | 执行 `test/scenarios/env-setup.sh`、`env-status.sh`、`env-verify.sh` 或 `env-redeploy.sh all` | 输出 frontend/backend/Mailpit/MinIO 地址、backend/frontend 日志路径、PID 文件和容器日志命令；`env-redeploy.sh all` 后浏览器访问的 frontend origin 和 Mailpit code-only 邮件验证页入口均来自当前 `deploy/dev-stack/.env` | 001 developer debug handoff revision |
+| C-16 | Bridge listener 不阻断 backend 重启 | `.env` 仍使用 `APP_LISTEN_ADDR=:8080`，且本机存在不属于 easyinterview 的非 loopback bridge listener 占用 8080 | 执行 `test/scenarios/env-redeploy.sh backend` 或 `make scenario-env-redeploy TARGET=backend` | 脚本不杀掉无关 listener；host-run backend 用 `127.0.0.1:${API_HOST_PORT:-8080}` 成功启动并写入 PID/log；`http://127.0.0.1:${API_HOST_PORT:-8080}/api/v1/runtime-config` 可访问，首次登录用户访问简历列表不再因 stale / down backend 返回 500 | 001 developer debug handoff revision |
 
 ## 7 关联计划
 

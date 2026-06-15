@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: completed
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-06-15
 
 **关联计划**: [plan](./plan.md)
 
@@ -83,3 +83,16 @@
   <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q" evidence="contract requires dev-stack debug log paths, env-redeploy command, scenario README redeploy restart semantics, and skill host-run restart wording" -->
 - [x] 8.5 Phase 8 自检：scenario env contract pytest、dry-run、`env-redeploy.sh all` live restart、端口监听、日志/PID 存在、Mailpit 最新邮件为 code-only 且本地 frontend origin / CORS 来源一致。
   <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q; test/scenarios/env-redeploy.sh backend --dry-run; test/scenarios/env-setup.sh --dry-run; test/scenarios/env-status.sh --dry-run; test/scenarios/env-redeploy.sh all; lsof -nP -iTCP:8080 -iTCP:5173 -sTCP:LISTEN; curl -X POST http://127.0.0.1:8080/api/v1/auth/email/start ..." evidence="12 contract tests passed; redeploy summary printed endpoints/logs/PIDs; backend/frontend listeners survived after command exit; latest Mailpit email contains frontend /auth/verify callback and not backend verify API" -->
+
+## Phase 9: host-run backend loopback bind revision
+
+- [x] 9.1 Red contract：`scripts/lint/scenario_env_contract_test.py` 覆盖 `local-dev-runtime.sh` 的 `backend_listen_addr` / `APP_LISTEN_ADDR` 导出契约；implementation 前 focused pytest 必须失败。
+  <!-- verified: 2026-06-15 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k redeploy_script_documents_host_run_artifact_boundary" evidence="red failed before helper implementation: expected backend_listen_addr() in local-dev-runtime.sh" -->
+- [x] 9.2 Runtime fix：`restart_backend_runtime` 将通配 `APP_LISTEN_ADDR` 收敛为 `127.0.0.1:${API_HOST_PORT:-8080}` 后再启动 `go run ./backend/cmd/api`，并保留显式具体监听地址。
+  <!-- verified: 2026-06-15 evidence="local-dev-runtime.sh now derives backend_listen_addr, exports APP_LISTEN_ADDR before go run, and logs the effective listen address" -->
+- [x] 9.3 Docs/runbook：`deploy/dev-stack/README.md` 与 local-dev-stack spec/plan/checklist 说明 loopback host-run backend 契约和 bridge listener regression。
+  <!-- verified: 2026-06-15 evidence="local-dev-stack spec 1.20 adds D-15/C-16; plan 1.14 adds Phase 9; dev-stack README 1.7 documents loopback redeploy behavior" -->
+- [x] 9.4 Green/static gates：`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q`、`bash -n test/scenarios/_shared/scripts/local-dev-runtime.sh test/scenarios/env-redeploy.sh` 通过。
+  <!-- verified: 2026-06-15 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q; bash -n test/scenarios/_shared/scripts/local-dev-runtime.sh; bash -n test/scenarios/env-redeploy.sh" evidence="12 scenario env contract tests passed; both shell scripts parsed successfully; bash emitted only existing locale warning" -->
+- [x] 9.5 Live/user regression gate：存在无关 8080 bridge listener 时 `test/scenarios/env-redeploy.sh backend` 成功；`/api/v1/runtime-config` 返回 200；新 synthetic 首次登录用户 `GET /api/v1/resumes` 返回 200 empty list。
+  <!-- verified: 2026-06-15 command="test/scenarios/env-redeploy.sh backend; curl http://127.0.0.1:8080/api/v1/runtime-config; node first-login smoke; agent-browser /resume-versions smoke" evidence="netstat still showed unrelated 172.18.0.6:8080 listener; redeploy started backend with APP_LISTEN_ADDR=127.0.0.1:8080; runtime-config 200; new synthetic user resumes before and after profile setup returned 200 empty list; browser page showed resume empty state and in-page fetch /api/v1/resumes returned status 200 itemCount 0 errorCode null" -->

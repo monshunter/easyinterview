@@ -109,6 +109,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0127](./BUG-0127.md) | host-run backend wildcard bind left resume page on stale 500 | medium | resolved | 2026-06-15 | `fix(local-dev-stack): bind host backend to loopback (BUG-0127)` |
 | [BUG-0114](./BUG-0114.md) | auth registration treated display name as account identity boundary | high | resolved | 2026-05-27 | `fix(auth): enforce email identity semantics (BUG-0114)` |
 | [BUG-0113](./BUG-0113.md) | scenario redeploy refreshed artifacts without restarting host-run services | high | resolved | 2026-05-27 | `fix(test): restart host-run services on redeploy (BUG-0113)` |
 | [BUG-0107](./BUG-0107.md) | review follow-up exposed provider schema, report status, and privacy retry drift | medium | resolved | 2026-05-26 | `fix(backend): close review correctness follow-ups (BUG-0107)` |

@@ -23,6 +23,21 @@ api_port() {
   printf '%s\n' "${API_HOST_PORT:-$port}"
 }
 
+backend_listen_addr() {
+  local listen_addr="${APP_LISTEN_ADDR:-:8080}"
+  local port
+  port="$(api_port)"
+
+  case "$listen_addr" in
+    :*|0.0.0.0:*)
+      printf '127.0.0.1:%s\n' "$port"
+      ;;
+    *)
+      printf '%s\n' "$listen_addr"
+      ;;
+  esac
+}
+
 frontend_port() {
   printf '%s\n' "${FRONTEND_HOST_PORT:-5173}"
 }
@@ -160,7 +175,9 @@ restart_backend_runtime() {
 
   stop_pidfile_process_group "$pid_file"
   stop_port_listeners "$port"
-  echo "[local-dev] starting backend: go run ./backend/cmd/api -config-dir config"
+  APP_LISTEN_ADDR="$(backend_listen_addr)"
+  export APP_LISTEN_ADDR
+  echo "[local-dev] starting backend: APP_LISTEN_ADDR=$APP_LISTEN_ADDR go run ./backend/cmd/api -config-dir config"
   start_detached "$REPO_ROOT" "$log_file" "$pid_file" go run ./backend/cmd/api -config-dir config >/dev/null
   wait_for_tcp_port "backend" "$port" "$log_file"
 }

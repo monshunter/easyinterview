@@ -83,6 +83,10 @@ def test_redeploy_script_documents_host_run_artifact_boundary() -> None:
     assert "go run ./backend/cmd/api" in helper
     assert "pnpm --filter @easyinterview/frontend dev" in helper
     assert "start_new_session=True" in helper
+    assert "backend_listen_addr()" in helper
+    assert "127.0.0.1:%s" in helper
+    assert 'APP_LISTEN_ADDR="$(backend_listen_addr)"' in helper
+    assert "export APP_LISTEN_ADDR" in helper
     assert ".test-output/local-dev/backend.log" in helper
     assert ".test-output/local-dev/frontend.log" in helper
     assert "backend API" in helper
@@ -175,6 +179,7 @@ def test_scenario_docs_describe_independent_env_lifecycle() -> None:
 
     assert "手动引导" in suite
     assert "host-run" in dev_stack
+    assert "127.0.0.1:${API_HOST_PORT:-8080}" in dev_stack
     assert "make scenario-env-setup" in dev_stack
     assert ".test-output/local-dev/backend.log" in dev_stack
     assert ".test-output/local-dev/frontend.log" in dev_stack
