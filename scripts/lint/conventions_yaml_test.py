@@ -225,24 +225,6 @@ def valid_data() -> dict:
                 "jsonField": "privacyRequestStatus",
                 "values": ["queued"],
             },
-            {
-                "name": "ResumeVersionType",
-                "sourceSection": "5.14",
-                "jsonField": "resumeVersionType",
-                "values": ["structured_master", "targeted"],
-            },
-            {
-                "name": "ResumeSeedStrategy",
-                "sourceSection": "5.15",
-                "jsonField": "resumeSeedStrategy",
-                "values": ["copy_master", "blank", "ai_select"],
-            },
-            {
-                "name": "ResumeTailorSuggestionStatus",
-                "sourceSection": "5.16",
-                "jsonField": "resumeTailorSuggestionStatus",
-                "values": ["pending", "accepted", "rejected"],
-            },
         ],
         "structures": {
             "PageInfo": {

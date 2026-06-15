@@ -194,7 +194,7 @@ def validate(data: dict[str, Any]) -> list[str]:
 
         section = enum.get("sourceSection", "")
         if section not in EXPECTED_ENUM_SECTIONS:
-            errors.append(f"enum {name!r} sourceSection must be one of §5.1..§5.16, got {section!r}")
+            errors.append(f"enum {name!r} sourceSection must be one of §5.1..§5.13, got {section!r}")
         seen_sections.add(section)
 
         json_field = enum.get("jsonField", "")

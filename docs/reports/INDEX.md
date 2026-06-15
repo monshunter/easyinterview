@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-06-15](./2026-06-15-resume-flatten-follow-up-review-assessment.md) | Resume Flatten Follow-up Review 交付复盘 | #assessment |
 | [2026-06-15](./2026-06-15-resume-archive-p0102-review-followup-assessment.md) | Resume Archive And P0.102 Review Follow-up 交付复盘 | #assessment |
 | [2026-06-14](./2026-06-14-resume-phase8-flat-gate-drift-assessment.md) | Resume Phase 8 Flat Gate Drift 交付复盘 | #assessment |
 | [2026-06-14](./2026-06-14-resume-detail-review-regressions-assessment.md) | Resume Detail Review Regressions 交付复盘 | #assessment |

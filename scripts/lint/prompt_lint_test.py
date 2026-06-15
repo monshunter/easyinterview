@@ -413,11 +413,18 @@ def test_missing_schema_description_reports_lint_error_without_traceback(tmp_pat
     assert "Traceback" not in result.stderr
 
 
-def test_jd_match_recommendation_posted_is_optional_contract():
-    schema_path = REPO_ROOT / "config/prompts/jd_match.recommendation/v0.1.0.schema.json"
-    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+def test_retired_jd_match_prompt_contract_is_absent():
+    assert not (REPO_ROOT / "config/prompts/jd_match.recommendation").exists()
+    assert not (REPO_ROOT / "config/prompts/jd_match.search").exists()
 
-    assert "posted" not in schema["items"].get("required", [])
+
+def test_retired_jd_match_prompt_key_is_rejected(tmp_path):
+    _write_baseline_pair(tmp_path, "jd_match.search")
+
+    result = _run(tmp_path / "config/prompts", tmp_path / "migrations")
+
+    assert result.returncode == 1
+    assert "feature_key 'jd_match.search' is retired" in result.stderr
 
 
 if __name__ == "__main__":

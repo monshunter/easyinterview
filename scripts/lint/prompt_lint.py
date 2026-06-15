@@ -43,6 +43,7 @@ LANGUAGE_OVERRIDE_ALLOWLIST: set[tuple[str, str, str]] = set()
 # while the lint script still rejects them inside Markdown bodies.
 FORBIDDEN_BODY_TOKEN_RE = re.compile(r"\bTBD\b|\bplaceholder\b", re.IGNORECASE)
 RETIRED_MODULE_RE = re.compile(r"\bmistakes\b|\bgrowth\b|\bdrill\b|mistake\.extract")
+RETIRED_FEATURE_KEY_PREFIXES = ("jd_match.",)
 
 SCHEMA_ALLOWED_KEYS = {"type", "required", "properties", "items", "enum", "description"}
 SCHEMA_ALLOWED_TYPES = {"object", "array", "string", "number", "integer", "boolean", "null"}
@@ -165,28 +166,6 @@ FEATURE_CONTRACTS = {
             "$.suggestions[].source",
         },
     },
-    "jd_match.recommendation": {
-        "type": "array",
-        "required_paths": {
-            "$[].jobMatchId",
-            "$[].title",
-            "$[].company",
-            "$[].location",
-            "$[].score",
-            "$[].fit",
-            "$[].fit.must",
-            "$[].fit.total",
-            "$[].fit.plus",
-            "$[].fit.totalPlus",
-            "$[].reasons",
-            "$[].risks",
-            "$[].highlights",
-        },
-    },
-    "jd_match.search": {
-        "type": "array",
-        "required_paths": {"$[].jobMatchId"},
-    },
 }
 
 
@@ -251,6 +230,8 @@ def lint_prompt_yaml(yaml_path: pathlib.Path) -> list[str]:
         errors.append(
             f"{yaml_path}: feature_key '{feature_key}' does not match parent dir '{yaml_path.parent.name}'"
         )
+    if any(str(feature_key).startswith(prefix) for prefix in RETIRED_FEATURE_KEY_PREFIXES):
+        errors.append(f"{yaml_path}: feature_key '{feature_key}' is retired")
 
     version = parsed.get("version")
     if not isinstance(version, str) or not SEMVER_RE.match(version):

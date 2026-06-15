@@ -276,11 +276,12 @@ func (s *Service) UpdateResume(ctx context.Context, in UpdateResumeRequest) (api
 }
 
 type DuplicateResumeRequest struct {
-	UserID            string
-	SourceResumeID    string
-	DisplayName       *string
-	DisplayNameSet    bool
-	StructuredProfile map[string]any
+	UserID               string
+	SourceResumeID       string
+	DisplayName          *string
+	DisplayNameSet       bool
+	StructuredProfile    map[string]any
+	StructuredProfileSet bool
 }
 
 // DuplicateResume saves the accepted rewrites as a new resume copied from the
@@ -304,7 +305,7 @@ func (s *Service) DuplicateResume(ctx context.Context, in DuplicateResumeRequest
 		SourceResumeID: sourceResumeID,
 		Now:            s.now(),
 	}
-	if len(in.StructuredProfile) > 0 {
+	if in.StructuredProfileSet {
 		profile := cloneMap(in.StructuredProfile)
 		delete(profile, "provenance")
 		raw, err := json.Marshal(profile)
@@ -312,6 +313,7 @@ func (s *Service) DuplicateResume(ctx context.Context, in DuplicateResumeRequest
 			return api.Resume{}, ErrValidationFailed
 		}
 		duplicate.StructuredProfile = raw
+		duplicate.StructuredProfileSet = true
 	}
 	if in.DisplayNameSet {
 		if in.DisplayName == nil {

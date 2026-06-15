@@ -25,7 +25,7 @@ func TestCreateWithParseJobInsertsResumeAndJobAtomically(t *testing.T) {
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectExec(regexp.QuoteMeta(`insert into resumes`)).
 		WithArgs(
-			"resume-1", "user-1", fileObjectID, "Resume", "en", string(sharedtypes.TargetJobParseStatusQueued),
+			"resume-1", "user-1", fileObjectID, "Resume", "Resume", "en", string(sharedtypes.TargetJobParseStatusQueued),
 			"upload", nil, "job-1", now, now,
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -320,6 +320,7 @@ func TestDuplicateResumeCopiesSourceSnapshotAndAppliesProfile(t *testing.T) {
 		SourceResumeID:    "source-1",
 		DisplayName:       &displayName,
 		StructuredProfile: []byte(`{"headline":"new"}`),
+		StructuredProfileSet: true,
 		Now:               now,
 	})
 	if err != nil {
@@ -327,6 +328,53 @@ func TestDuplicateResumeCopiesSourceSnapshotAndAppliesProfile(t *testing.T) {
 	}
 	if got.ID != "resume-new" || got.DisplayName == nil || *got.DisplayName != "New CV" || string(got.StructuredProfile) != `{"headline":"new"}` {
 		t.Fatalf("resume = %+v", got)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestDuplicateResumePersistsExplicitEmptyProfile(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 6, 13, 20, 0, 0, 0, time.UTC)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, file_object_id, title, display_name, language, parse_status`)).
+		WithArgs("source-1", "user-1").
+		WillReturnRows(resumeRows().AddRow(
+			"source-1", "user-1", nil, "Resume", "Source CV", "en", string(sharedtypes.TargetJobParseStatusReady),
+			[]byte(`{"headline":"old"}`), "raw text", []byte(`{"headline":"old"}`), "snapshot",
+			"paste", nil, "job-1", now, now, nil,
+		))
+	mock.ExpectExec(regexp.QuoteMeta(`insert into resumes`)).
+		WithArgs(
+			"resume-new", "user-1", nil, "Resume", "Source CV", "en", string(sharedtypes.TargetJobParseStatusReady),
+			"paste", "raw text", sqlmock.AnyArg(), "snapshot", []byte(`{}`), now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, user_id, file_object_id, title, display_name, language, parse_status`)).
+		WithArgs("resume-new", "user-1").
+		WillReturnRows(resumeRows().AddRow(
+			"resume-new", "user-1", nil, "Resume", "Source CV", "en", string(sharedtypes.TargetJobParseStatusReady),
+			[]byte(`{"headline":"old"}`), "raw text", []byte(`{}`), "snapshot",
+			"paste", nil, nil, now, now, nil,
+		))
+	mock.ExpectCommit()
+
+	got, err := repo.DuplicateResume(context.Background(), resumestore.DuplicateResumeInput{
+		NewResumeID:          "resume-new",
+		UserID:               "user-1",
+		SourceResumeID:       "source-1",
+		StructuredProfile:    []byte(`{}`),
+		StructuredProfileSet: true,
+		Now:                  now,
+	})
+	if err != nil {
+		t.Fatalf("DuplicateResume: %v", err)
+	}
+	if string(got.StructuredProfile) != `{}` {
+		t.Fatalf("structured profile = %s, want {}", got.StructuredProfile)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)

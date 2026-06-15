@@ -290,6 +290,17 @@ func TestResumeFlattenMigrationContract(t *testing.T) {
 			t.Fatalf("resume flatten down migration missing %q", required)
 		}
 	}
+	for _, required := range []string{
+		"language text not null default 'en'",
+		"feature_flag text not null default 'none'",
+		"data_source_version text not null default 'not_applicable'",
+	} {
+		tailorRuns := down[strings.Index(down, "create table if not exists resume_tailor_runs"):]
+		tailorRuns = tailorRuns[:strings.Index(tailorRuns, ");")]
+		if !strings.Contains(tailorRuns, required) {
+			t.Fatalf("resume flatten down migration must restore resume_tailor_runs.%s", required)
+		}
+	}
 }
 
 func TestDropJDMatchMigrationDeletesRetiredAsyncJobsBeforeNarrowingCheck(t *testing.T) {

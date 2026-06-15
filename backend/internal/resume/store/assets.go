@@ -203,7 +203,7 @@ where id = $1 and user_id = $2 and deleted_at is null`,
 	}
 
 	structuredProfile := in.StructuredProfile
-	if len(structuredProfile) == 0 {
+	if !in.StructuredProfileSet {
 		structuredProfile = source.StructuredProfile
 	}
 	if len(structuredProfile) == 0 {
@@ -490,13 +490,14 @@ func (r *Repository) CreateWithParseJob(ctx context.Context, in CreateAssetInput
 	}
 
 	if _, err := tx.ExecContext(ctx, `
-insert into resumes (
-  id, user_id, file_object_id, title, language, parse_status,
-  source_type, original_text, latest_parse_job_id, created_at, updated_at
-) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+	insert into resumes (
+	  id, user_id, file_object_id, title, display_name, language, parse_status,
+	  source_type, original_text, latest_parse_job_id, created_at, updated_at
+	) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
 		in.AssetID,
 		in.UserID,
 		nullableStringPtr(in.FileObjectID),
+		in.Title,
 		in.Title,
 		in.Language,
 		string(parseStatus),

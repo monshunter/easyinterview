@@ -120,8 +120,8 @@ def test_dimension_name_allowlist(tmp_path):
     TestDimensionNameAllowlist(tmp_path)
 
 
-def test_jd_match_dimension_names_are_allowlisted(tmp_path):
-    """JD-Match D-12 rubric dimensions are valid business-domain names."""
+def test_retired_jd_match_dimension_names_are_rejected(tmp_path):
+    """JD-Match D-12 rubric dimensions are retired with the JD-Match module."""
     dimensions = (
         '  - name: "relevance_to_profile"\n'
         '    weight: 0.2\n'
@@ -204,7 +204,9 @@ def test_jd_match_dimension_names_are_allowlisted(tmp_path):
     )
     _write_baseline(tmp_path, "jd_match.search", dimensions)
     result = _run(tmp_path / "config/rubrics")
-    assert result.returncode == 0, result.stderr
+    assert result.returncode == 1
+    assert "relevance_to_profile" in result.stderr
+    assert "not in allowlist" in result.stderr
 
 
 def test_language_override_without_allowlist_negative(tmp_path):

@@ -258,9 +258,10 @@ func TestDuplicateResumeAllocatesNewIDAndAppliesProfile(t *testing.T) {
 	svc := resume.NewService(resume.ServiceOptions{Store: store, Now: func() time.Time { return now }, NewID: sequenceIDs("resume-new")})
 
 	got, err := svc.DuplicateResume(context.Background(), resume.DuplicateResumeRequest{
-		UserID:            "user-1",
-		SourceResumeID:    "source-1",
-		StructuredProfile: map[string]any{"headline": "new"},
+		UserID:               "user-1",
+		SourceResumeID:       "source-1",
+		StructuredProfile:    map[string]any{"headline": "new"},
+		StructuredProfileSet: true,
 	})
 	if err != nil {
 		t.Fatalf("DuplicateResume: %v", err)
@@ -270,6 +271,40 @@ func TestDuplicateResumeAllocatesNewIDAndAppliesProfile(t *testing.T) {
 	}
 	if store.duplicateIn.NewResumeID != "resume-new" || store.duplicateIn.SourceResumeID != "source-1" {
 		t.Fatalf("duplicate input = %+v", store.duplicateIn)
+	}
+	if !store.duplicateIn.StructuredProfileSet || string(store.duplicateIn.StructuredProfile) != `{"headline":"new"}` {
+		t.Fatalf("structured profile input = set:%v raw:%s", store.duplicateIn.StructuredProfileSet, store.duplicateIn.StructuredProfile)
+	}
+}
+
+func TestDuplicateResumePreservesExplicitEmptyProfile(t *testing.T) {
+	now := time.Date(2026, 6, 13, 9, 0, 0, 0, time.UTC)
+	store := &fakeStore{duplicateOut: resumestore.ResumeRecord{
+		ID:                "resume-new",
+		UserID:            "user-1",
+		Title:             "Resume",
+		Language:          "en",
+		ParseStatus:       sharedtypes.TargetJobParseStatusReady,
+		StructuredProfile: json.RawMessage(`{}`),
+		CreatedAt:         now,
+		UpdatedAt:         now,
+	}}
+	svc := resume.NewService(resume.ServiceOptions{Store: store, Now: func() time.Time { return now }, NewID: sequenceIDs("resume-new")})
+
+	got, err := svc.DuplicateResume(context.Background(), resume.DuplicateResumeRequest{
+		UserID:               "user-1",
+		SourceResumeID:       "source-1",
+		StructuredProfile:    map[string]any{},
+		StructuredProfileSet: true,
+	})
+	if err != nil {
+		t.Fatalf("DuplicateResume: %v", err)
+	}
+	if got.Id != "resume-new" {
+		t.Fatalf("DuplicateResume mapped = %+v", got)
+	}
+	if !store.duplicateIn.StructuredProfileSet || string(store.duplicateIn.StructuredProfile) != `{}` {
+		t.Fatalf("structured profile input = set:%v raw:%s", store.duplicateIn.StructuredProfileSet, store.duplicateIn.StructuredProfile)
 	}
 }
 

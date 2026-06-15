@@ -72,12 +72,13 @@ type UpdateResumeInput struct {
 }
 
 type DuplicateResumeInput struct {
-	NewResumeID       string
-	UserID            string
-	SourceResumeID    string
-	DisplayName       *string
-	StructuredProfile json.RawMessage
-	Now               time.Time
+	NewResumeID          string
+	UserID               string
+	SourceResumeID       string
+	DisplayName          *string
+	StructuredProfile    json.RawMessage
+	StructuredProfileSet bool
+	Now                  time.Time
 }
 
 type ArchiveResumeInput struct {

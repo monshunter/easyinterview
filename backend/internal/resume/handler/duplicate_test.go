@@ -46,7 +46,7 @@ func TestDuplicateResumeReturns201(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if svc.in.UserID != "user-1" || svc.in.SourceResumeID != "source-1" || svc.in.StructuredProfile["headline"] != "new" {
+	if svc.in.UserID != "user-1" || svc.in.SourceResumeID != "source-1" || !svc.in.StructuredProfileSet || svc.in.StructuredProfile["headline"] != "new" {
 		t.Fatalf("duplicate input = %+v", svc.in)
 	}
 }
@@ -65,6 +65,24 @@ func TestDuplicateResumeAllowsEmptyBody(t *testing.T) {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 	if svc.in.SourceResumeID != "source-1" || svc.in.StructuredProfile != nil {
+		t.Fatalf("duplicate input = %+v", svc.in)
+	}
+}
+
+func TestDuplicateResumePreservesExplicitEmptyStructuredProfile(t *testing.T) {
+	svc := &fakeDuplicateResumeService{out: api.Resume{Id: "resume-new"}}
+	h := resumehandler.New(resumehandler.Options{
+		Service: svc,
+		Session: func(context.Context) (string, bool) { return "user-1", true },
+	})
+	rec := httptest.NewRecorder()
+
+	h.DuplicateResume(rec, newDuplicateResumeRequest(`{"structuredProfile":{}}`), "source-1")
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !svc.in.StructuredProfileSet || len(svc.in.StructuredProfile) != 0 {
 		t.Fatalf("duplicate input = %+v", svc.in)
 	}
 }

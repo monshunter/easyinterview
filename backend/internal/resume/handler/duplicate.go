@@ -102,6 +102,7 @@ func validateDuplicateResumeInput(userID string, resumeID string, raw []byte) (r
 		// Provenance echoed back inside structuredProfile is stripped by the
 		// service before persisting (D-20).
 		in.StructuredProfile = cloneMap(profile)
+		in.StructuredProfileSet = true
 	}
 	return in, nil
 }
