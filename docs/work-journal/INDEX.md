@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-06-30](2026-06-30.md) | `fix(core-loop): close pruning gate drift (BUG-0129)` | #fix #test #docs #api |
 | [2026-06-29](2026-06-29.md) | `fix(core-loop): close pruning review drift (BUG-0128)` | #fix #ui #test #docs |
 | [2026-06-29](2026-06-29.md) | `feat(core-loop): prune debrief and profile modules` | #feat #api #ui #test #docs #bdd |
 | [2026-06-15](2026-06-15.md) | `fix(local-dev-stack): bind host backend to loopback (BUG-0127)` | #fix #test #docs |

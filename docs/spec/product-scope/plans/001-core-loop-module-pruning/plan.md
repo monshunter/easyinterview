@@ -1,8 +1,8 @@
 # Core Loop Module Pruning Plan
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-06-29
+> **更新日期**: 2026-06-30
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -142,4 +142,5 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-06-30 | 1.2 | Review remediation: reconcile stale AI profile specs, OpenAPI operation-count tests, event schema-count tests, and frontend envelope fixture expectations after D-22 pruning. |
 | 2026-06-29 | 1.1 | L2 review remediation: reopen cross-layer cleanup to remove stale design-canvas Profile/Debrief artboards and privacy runner profile cleanup hook drift. |

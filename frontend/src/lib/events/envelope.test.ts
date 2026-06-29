@@ -19,7 +19,7 @@ const fixtures = JSON.parse(readFileSync(fixturePath, 'utf8')) as FixtureEnvelop
 
 describe('event envelope contract', () => {
   it('round-trips shared fixture envelopes', () => {
-    expect(fixtures).toHaveLength(3);
+    expect(fixtures).toHaveLength(2);
 
     for (const fixture of fixtures) {
       const decoded = JSON.parse(JSON.stringify(fixture)) as FixtureEnvelope;

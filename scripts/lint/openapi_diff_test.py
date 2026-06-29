@@ -403,7 +403,7 @@ class CLIWhitelistTests(unittest.TestCase):
             rc, payload, stderr = self._run(repo)
             self.assertEqual(rc, 0, msg=payload)
             self.assertEqual(payload["summary"]["breaking"], 0)
-            self.assertEqual(payload["inventory"]["expectedOperations"], 43)
+            self.assertEqual(payload["inventory"]["expectedOperations"], 35)
             self.assertEqual(payload["inventory"]["baselineOperations"], 3)
             self.assertEqual(payload["inventory"]["currentOperations"], 3)
             self.assertIn("wrapper-", stderr)

@@ -1,8 +1,8 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.16
+> **版本**: 2.17
 > **状态**: active
-> **更新日期**: 2026-06-29
+> **更新日期**: 2026-06-30
 
 ## 1 背景与目标
 
@@ -13,8 +13,7 @@
 - JD 导入解析、Job Picks 匹配解释、公司轻情报摘要；
 - 模拟面试首题、追问、轻量观察 / hint、文本输入中的语音转写、voice interview；
 - 报告生成、逐题评估、复练当前轮 / 下一轮上下文；
-- 简历解析、岗位定制、bullet 改写、用户画像信号更新；
-- 真实面试 debrief 文本引导、语音复盘抽取、debrief 分析与复盘练习；
+- 简历解析、岗位定制、bullet 改写；
 - 离线 LLM Judge / eval。
 
 因此本 spec 的目标从“一个全局 AI provider base URL + profile”升级为：
@@ -125,11 +124,10 @@
 | 产品 / UI 场景 | 主要输入 | Capability family | 默认 profile 命名 |
 |----------------|----------|-------------------|-------------------|
 | JD 导入解析 | JD 文本 / URL 提取文本 | `chat` 结构化抽取 | `target.import.default` |
-| Job Picks 匹配解释（legacy frontend home picks） | JD + 简历 / 用户画像 | `chat` 结构化匹配解释 | `target.import.default` |
+| Job Picks 匹配解释（legacy frontend home picks） | JD + 简历 | `chat` 结构化匹配解释 | `target.import.default` |
 | 公司轻情报摘要 | source-grounded public info | `chat` source-grounded summarization | `target.intel.default`（P1/P2 占位） |
 | 简历解析 | 简历文本 / 上传解析结果 | `chat` 结构化抽取 | `resume.parse.default` |
 | 简历定制 / bullet 改写 | JD + 简历证据 | `chat` 写作 / 改写 | `resume.tailor.default` |
-| 用户画像信号更新 | 简历 / JD / session / debrief | `chat` 分类摘要 | `profile.update.default`（后续占位） |
 | 模拟面试首题 | JD / round / resume / role | `chat` 对话生成 | `practice.first_question.default` |
 | 模拟面试追问 | transcript / current answer | `chat` 低延迟生成 | `practice.followup.default` |
 | assisted hint / turn observe | 当前回答 + rubric | `chat` 低延迟观察 | `practice.turn_observe.default` |
@@ -138,10 +136,6 @@
 | 报告生成 | full session + JD + resume | `chat` 长上下文结构化推理 | `report.generate.default` |
 | 单题评估 | 单题回答 + rubric | `chat` rubric assessment | `report.assessment.default` |
 | 复练当前轮 / 下一轮 | report gaps + replay items | `chat` 生成 | `report.generate.default` / `report.assessment.default` / `practice.first_question.default` / `practice.followup.default` |
-| Debrief 文本引导 | JD / mock report / resume | `chat` source-grounded generation | `debrief.generate.default` |
-| Debrief 问题建议 | JD / resume / mock report | `chat` source-grounded suggestion generation | `debrief.suggest_questions.default` |
-| Debrief 语音抽取 | audio + running transcript | `stt` + `chat` 抽取；语音引导可选 `tts` | `debrief.voice.extract.default`；后续可增 `debrief.voice.tts.default` |
-| Debrief 分析 | real questions + mock/JD/resume | `chat` 长上下文分析 | `debrief.generate.default` |
 | 离线 LLM Judge / eval | prompt output + rubric | `judge` | `judge.default`（F3 eval） |
 
 ## 5 模块边界
@@ -173,7 +167,7 @@
 | C-7 | 错误码合规 | provider 返回结构化输出非法 | client `validate_output` 失败 | 返回错误码 `AI_OUTPUT_INVALID`；`ai_output_validation_failures_total` +1 | 001 |
 | C-8 | active spec relation gate | 本 spec 通过 `/plan-review` | 与当前 active spec 和 future workstream 关系审查 | A3 与 F3 / B1 / A4 / F1 / release gate 引用关系自洽；A3 不重新引入已废弃的 provider-proxy 业务语义 | plan-review |
 | C-9 | Registry secret fail-fast | 非测试本地 app run、未来 staging / prod 缺失 registry 选中 provider 的 base URL 或 API key | 启动 backend runtime | 进程启动失败并报配置错误；不得自动回退到 stub provider | 003 + A4 |
-| C-10 | F3 baseline profile coverage | F3 10 个 baseline feature_key 已定义默认 profile name | 运行 profile coverage lint | 每个默认 profile 在 `config/ai-profiles.yaml` catalog 中存在，且 capability / provider_ref / status 合法；允许 P1/P2 profile `disabled` / `unsupported`，但必须携带 `unsupported_reason` 且不得缺 catalog entry | 003 + F3 |
+| C-10 | F3 baseline profile coverage | F3 9 个 baseline feature_key 已定义默认 profile name | 运行 profile coverage lint | 每个默认 profile 在 `config/ai-profiles.yaml` catalog 中存在，且 capability / provider_ref / status 合法；允许 P1/P2 profile `disabled` / `unsupported`，但必须携带 `unsupported_reason` 且不得缺 catalog entry | 003 + F3 |
 | C-11 | Product/UI capability inventory drift | 新增 AI 场景或 UI 交互依赖 AI | `/plan-review` 或 lint 检查 | 本 spec §4.5、F3 feature_key 字典与 A3 profile catalog 同步更新；不得只在业务代码 hardcode 新 profile | 003 + F3 |
 | C-12 | Unsupported capability fail-closed | profile 使用 `realtime` / `judge`，但对应 adapter 未激活 | 运行时调用该 profile | 返回明确 unsupported capability 错误并记录 meta/log；不得降级到 chat 或 stub；对应 UI 能力必须 feature-gated | 003 + 002 |
 | C-13 | Tool call provider-neutral | profile 使用 `chat` capability 且 payload 携带 `tools[]` / `tool_choice` | 调用 `Complete` | openai_compatible adapter 映射 tool wire；响应返回 `tool_calls[]` 与 `finish_reason=tool_calls`；`AICallMeta.tool_invocations[]` 只含 tool name / argument hash / argument length，不含 args 明文 | 002 |

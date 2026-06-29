@@ -1,8 +1,8 @@
 # Core Loop Module Pruning Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-06-29
+> **更新日期**: 2026-06-30
 
 **关联计划**: [plan](./plan.md)
 
@@ -60,3 +60,5 @@
   <!-- verified: 2026-06-29 method=zero-reference-grep evidence="Runtime grep across backend/frontend/openapi/shared/config/migrations/ui-design/test/scenarios/e2e/scripts only hit explicit forbidden-token tests/lints, backend runtime negative assertions, and E2E.P0.098/P0.099 negative gates; active zero-reference path grep excluding reports/work-journal/bugs/plan dirs only hit historical OpenAPI decision rows D-20/D-24/D-27 plus history, all superseded by D-27. No live handler, route, generated consumer, fixture, table, event, job, feature key, prompt/rubric, UI screen, pixel spec, or positive scenario remains." -->
 - [x] 5.4 执行收尾 gate：`make docs-check`、`make codegen-check`、`make validate-fixtures`、相关 frontend/backend tests、`git diff --check` 通过，并按需要执行 `/retrospective` 与工作日志提交。
   <!-- verified: 2026-06-29 method=final-gates evidence="make codegen PASS; make render-openapi-fixture-examples PASS; make docs-check PASS; make lint-openapi PASS; make validate-fixtures PASS (35 fixtures); make openapi-diff PASS (35 baseline/current operations, 0 findings); make codegen-check PASS after temporarily staging generated paths for the target's unstaged-drift check, then git restore --staged and git diff --cached --name-only confirmed empty; python pytest gates PASS: openapi/fixtures/render group 57 tests + 4211 subtests, prompt/rubric/scenario/events group 36 tests, migrations/conventions/events/openapi group 73 tests + 5 subtests, scenario_script_contract 2 tests; Go gate PASS: go test ./backend/cmd/codegen/conventions ./backend/internal/api/practice ./backend/cmd/api ./backend/internal/...; frontend gate PASS: pnpm --filter @easyinterview/frontend test focused auth/devmock/conventions/BDD suite 56 tests (existing React act warnings only); pnpm --filter @easyinterview/frontend build PASS with existing Vite chunk-size warning; git diff --check PASS." -->
+- [x] 5.5 Review remediation：同步 active A3/F3 AI profile truth source、OpenAPI 35-operation test contract、B3 14 event-schema codegen contract 与 frontend envelope fixture count；运行四个 review 指定 focused gates。
+  <!-- verified: 2026-06-30 method=review-focused-and-aggregate-gates evidence="Focused: python3 scripts/lint/ai_profile_coverage.py --repo-root . PASS; cd backend && go test ./cmd/codegen/openapi PASS; PYTHONPATH=. python3 -m pytest -q scripts/lint/openapi_diff_test.py PASS (25 tests); cd backend && go test ./cmd/codegen/events PASS; pnpm --filter @easyinterview/frontend test src/lib/events/envelope.test.ts PASS (2 tests). Aggregate: make lint PASS; make test PASS (backend Go + frontend 154 files / 941 tests, existing React act warnings only); make docs-check PASS; make codegen-check PASS; git diff --check PASS." -->

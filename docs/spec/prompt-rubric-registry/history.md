@@ -1,13 +1,14 @@
 # Prompt Rubric Registry History
 
-> **版本**: 2.11
+> **版本**: 2.13
 > **状态**: active
-> **更新日期**: 2026-05-26
+> **更新日期**: 2026-06-30
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-06-30 | 2.13 | 修复 core-loop module pruning 后的 F3 active truth-source drift：§3.1.1 baseline feature_key 字典删除 `debrief.generate` / `debrief.suggest_questions`，当前 prompt/rubric/eval/profile coverage 口径改为 9 个 active feature_key / ≥36 eval cases，并登记 D-16 防止退役 debrief/profile 模块继续进入 AI profile coverage。 | product-scope/001-core-loop-module-pruning review remediation |
 | 2026-05-26 | 2.11 | real-provider manual UAT 修复 `practice.turn.lightweight_observe` schema 过硬问题：`answerSummary` 作为 report handoff 摘要字段保留在 prompt/example/parser 中，但不列入 schema required，避免真实 provider 偶发漏字段导致辅助 observation fail-close；practice owner 在缺失时生成降级摘要并记录错误码。 | e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel + BUG-0105 |
 | 2026-05-26 | 2.10 | real-provider manual UAT 修复 `report.question_assessment` output schema/prompt drift：`review_status` schema enum 对齐 B1/shared/DB 的 `open` / `queued_for_retry` / `resolved`，prompt example 不再使用旧值 `ready`；同时把 schema enum 必须对齐 consumer/DB 的约束写入 §4.1，防止真实 provider 输出 schema-valid 但 persistence-invalid。 | e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel + BUG-0105 |
 | 2026-05-24 | 2.9 | 修复 `004-real-model-profile-and-evals` review findings：评估指标示例把异常高分率对齐到现有 `score_outlier` rubric dimension（同时保留 report 业务可用 `report_calibration`）；扩展旧编号 / stale spec version zero-reference gate，覆盖短写 `002-real-model`、`003-grayscale`、`F3 后续 002` 与 active README / lint script 中的旧 spec 版本引用，同时排除 completed plan/history 历史记录；把 004 最终验证 gate 扩展为 `make lint` / `make test` / `make build` / `make eval-offline` / docs gates，避免跨语言资产局部绿灯。 | prompt-rubric-registry/004-real-model-profile-and-evals |

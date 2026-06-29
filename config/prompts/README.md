@@ -23,7 +23,7 @@ config/prompts/
     <version>.<language>.md                 (template body for that override)
 ```
 
-- `<feature_key>` is one of the 13 baseline keys frozen in
+- `<feature_key>` is one of the 9 baseline keys frozen in
   `docs/spec/prompt-rubric-registry/spec.md` §3.1.1.
 - `<version>` is a SemVer string; baseline starts at `v0.1.0`.
 - `<language>` is either `multi` (omitted from the filename) or an ISO-639
