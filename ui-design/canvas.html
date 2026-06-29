@@ -22,7 +22,7 @@
   const ART_W = 1280, ART_H = 860, FRAME_W = 420;
   const UI_VERSION = "20260612-ocean-default";
   const FRAME_H = Math.round(ART_H * FRAME_W / ART_W);
-  const Screen = ({ route, jobId = "tj-1", mode, sessionId, dark, lang = "zh", theme, customAccent, fontPreset, role, practiceMode, debriefInputMode, debriefVoiceState }) => {
+  const Screen = ({ route, jobId = "tj-1", mode, sessionId, dark, lang = "zh", theme, customAccent, fontPreset, role, practiceMode }) => {
     const params = new URLSearchParams();
     params.set("route", route); params.set("nochrome", "0"); params.set("lang", lang);
     if (jobId) params.set("jobId", jobId);
@@ -40,8 +40,6 @@
     if (fontPreset) params.set("fontPreset", fontPreset);
     if (role) params.set("role", role);
     if (practiceMode) params.set("practiceMode", practiceMode);
-    if (debriefInputMode) params.set("debriefInputMode", debriefInputMode);
-    if (debriefVoiceState) params.set("debriefVoiceState", debriefVoiceState);
     return (
       <div style={{ width: FRAME_W, height: FRAME_H, background: dark ? "#16130e" : "#fdfcf8", overflow: "hidden" }}>
         <iframe src={"index.html?v=" + UI_VERSION + "#" + params.toString()} loading="lazy"
@@ -64,11 +62,6 @@
         <DCArtboard id="auth-profile-setup" label="首次资料补全 · 显示姓名" width={FRAME_W} height={FRAME_H}><Screen route="auth_profile_setup" /></DCArtboard>
         <DCArtboard id="auth-logout" label="退出登录 · 二次确认" width={FRAME_W} height={FRAME_H}><Screen route="auth_logout" /></DCArtboard>
       </DCSection>
-      <DCSection id="profile" title="用户画像 · Profile" subtitle="设置入口的下一层">
-        <DCArtboard id="profile-zh" label="用户画像 · 中文" width={FRAME_W} height={FRAME_H}><Screen route="profile" /></DCArtboard>
-        <DCArtboard id="profile-en" label="User profile · English" width={FRAME_W} height={FRAME_H}><Screen route="profile" lang="en" /></DCArtboard>
-        <DCArtboard id="profile-dark" label="用户画像 · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="profile" dark /></DCArtboard>
-      </DCSection>
       <DCSection id="p0-complete" title="P0 补齐 · 入口 / 异步 / 隐私">
         <DCArtboard id="parse" label="JD 解析 · loading → 预览" width={FRAME_W} height={FRAME_H}><Screen route="parse" /></DCArtboard>
         <DCArtboard id="generating" label="报告生成中 · 异步观察流" width={FRAME_W} height={FRAME_H}><Screen route="generating" /></DCArtboard>
@@ -83,14 +76,8 @@
         <DCArtboard id="practice-strict" label="严格模拟 · 提示与经历隐藏" width={FRAME_W} height={FRAME_H}><Screen route="practice" practiceMode="strict" /></DCArtboard>
         <DCArtboard id="practice-strict-voice" label="严格模拟 · 语音模式" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="voice" practiceMode="strict" /></DCArtboard>
       </DCSection>
-      <DCSection id="p1-depth" title="P1 深度 · 复盘 / 简历" subtitle="文本与语音是同一份记录的两种添加方式 · 顶部汇总条始终可见 · 模式切换不丢数据">
-        <DCArtboard id="debrief" label="复盘 · 文本添加（默认）" width={FRAME_W} height={FRAME_H}><Screen route="debrief" /></DCArtboard>
+      <DCSection id="resume-workshop" title="简历工坊 · 简历资产" subtitle="简历列表、预览、改写与导出">
         <DCArtboard id="resume-versions" label="简历工坊 · 平铺列表" width={FRAME_W} height={FRAME_H}><Screen route="resume_versions" /></DCArtboard>
-      </DCSection>
-      <DCSection id="p1-voice-debrief" title="P1 · 复盘语音模式" subtitle="AI 持续监听 + 双向语音对话 · 无需手动点录 · [空格] 暂停 · 实时提取卡片 · 支持手动加一条">
-        <DCArtboard id="debrief-voice-intro" label="语音复盘 · 开始引导" width={FRAME_W} height={FRAME_H}><Screen route="debrief" debriefInputMode="voice" /></DCArtboard>
-        <DCArtboard id="debrief-voice-chat" label="语音复盘 · 连续对话进行中" width={FRAME_W} height={FRAME_H}><Screen route="debrief" debriefInputMode="voice" debriefVoiceState="chat" /></DCArtboard>
-        <DCArtboard id="debrief-voice-review" label="语音复盘 · 待确认卡片" width={FRAME_W} height={FRAME_H}><Screen route="debrief" debriefInputMode="voice" debriefVoiceState="review" /></DCArtboard>
       </DCSection>
       <DCSection id="theme-palette" title="主题色板 · 4 个预定义主题" subtitle="主题与暗/浅色正交 · 默认深海">
         <DCArtboard id="theme-warm" label="Warm · 暖陶" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="warm" /></DCArtboard>

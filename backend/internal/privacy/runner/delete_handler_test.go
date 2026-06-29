@@ -3,6 +3,7 @@ package runner_test
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -12,16 +13,21 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/upload/store"
 )
 
+func TestPrivacyDeleteHandlerOptionsRejectsRetiredDomainHooks(t *testing.T) {
+	optionsType := reflect.TypeOf(runner.PrivacyDeleteHandlerOptions{})
+	if _, ok := optionsType.FieldByName("ProfileData"); ok {
+		t.Fatal("privacy delete handler must not expose retired domain cleanup hooks")
+	}
+}
+
 func TestPrivacyDeleteHandlerDeletesUploadFilesForRequestUser(t *testing.T) {
 	requests := &fakePrivacyRequestStore{userID: "user-1"}
 	uploads := &fakeUploadFileDeleter{deleted: []store.DeletedFileObject{
 		{ID: "file-1", ObjectKey: "user-1/resume/file-1.pdf", Purpose: store.PurposeResume},
 	}}
-	profile := &fakeProfileDataDeleter{}
 	handler := runner.NewPrivacyDeleteHandler(runner.PrivacyDeleteHandlerOptions{
 		Requests:    requests,
 		UploadFiles: uploads,
-		ProfileData: profile.DeleteCandidateProfileForUser,
 		Now:         fixedPrivacyNow,
 	})
 
@@ -37,9 +43,6 @@ func TestPrivacyDeleteHandlerDeletesUploadFilesForRequestUser(t *testing.T) {
 	}
 	if requests.lookupID != "privacy-request-1" || uploads.userID != "user-1" {
 		t.Fatalf("lookupID=%q uploadUser=%q", requests.lookupID, uploads.userID)
-	}
-	if profile.userID != "user-1" || profile.jobID != "job-1" {
-		t.Fatalf("profile delete user=%q job=%q", profile.userID, profile.jobID)
 	}
 	if requests.completedID != "privacy-request-1" || requests.completedUserID != "user-1" || requests.completedCount != 1 {
 		t.Fatalf("completedID=%q completedUser=%q completedCount=%d", requests.completedID, requests.completedUserID, requests.completedCount)
@@ -73,11 +76,9 @@ func TestPrivacyDeleteHandlerHardDeletesAccountIdentityAfterDomainCleanup(t *tes
 func TestPrivacyDeleteHandlerCompletedTombstoneRetrySucceedsIdempotently(t *testing.T) {
 	requests := &fakePrivacyRequestStore{lookupErr: runner.ErrPrivacyDeleteAlreadyCompleted}
 	uploads := &fakeUploadFileDeleter{}
-	profile := &fakeProfileDataDeleter{}
 	handler := runner.NewPrivacyDeleteHandler(runner.PrivacyDeleteHandlerOptions{
 		Requests:    requests,
 		UploadFiles: uploads,
-		ProfileData: profile.DeleteCandidateProfileForUser,
 		Now:         fixedPrivacyNow,
 	})
 
@@ -97,37 +98,8 @@ func TestPrivacyDeleteHandlerCompletedTombstoneRetrySucceedsIdempotently(t *test
 	if requests.processingID != "" || requests.completedID != "" || requests.failedID != "" {
 		t.Fatalf("completed tombstone retry must not mutate request: processing=%q completed=%q failed=%q", requests.processingID, requests.completedID, requests.failedID)
 	}
-	if uploads.userID != "" || profile.userID != "" {
-		t.Fatalf("completed tombstone retry must not rerun cleanup: upload=%q profile=%q", uploads.userID, profile.userID)
-	}
-}
-
-func TestPrivacyDeleteHandlerDomainFailureMarksRequestFailed(t *testing.T) {
-	requests := &fakePrivacyRequestStore{userID: "user-1"}
-	uploads := &fakeUploadFileDeleter{}
-	profile := &fakeProfileDataDeleter{err: errors.New("profile delete failed")}
-	handler := runner.NewPrivacyDeleteHandler(runner.PrivacyDeleteHandlerOptions{
-		Requests:    requests,
-		UploadFiles: uploads,
-		ProfileData: profile.DeleteCandidateProfileForUser,
-		Now:         fixedPrivacyNow,
-	})
-
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
-		JobID:        "job-1",
-		JobType:      "privacy_delete",
-		ResourceType: "privacy_request",
-		ResourceID:   "privacy-request-1",
-	})
-
-	if outcome.Succeeded || outcome.Retryable || outcome.ErrorCode != runner.ErrorCodePrivacyDeleteFailed {
-		t.Fatalf("unexpected outcome: %+v", outcome)
-	}
-	if requests.failedID != "privacy-request-1" || requests.completedID != "" {
-		t.Fatalf("failed=%q completed=%q", requests.failedID, requests.completedID)
-	}
-	if requests.completedUserID != "" {
-		t.Fatalf("account identity must not be deleted after domain failure, got %q", requests.completedUserID)
+	if uploads.userID != "" {
+		t.Fatalf("completed tombstone retry must not rerun cleanup: upload=%q", uploads.userID)
 	}
 }
 
@@ -218,16 +190,3 @@ func (s *fakePrivacyRequestStore) MarkDeleteRequestFailed(ctx context.Context, p
 func fixedPrivacyNow() time.Time {
 	return time.Date(2026, 5, 12, 3, 0, 0, 0, time.UTC)
 }
-
-type fakeProfileDataDeleter struct {
-	userID string
-	jobID  string
-	err    error
-}
-
-func (d *fakeProfileDataDeleter) DeleteCandidateProfileForUser(ctx context.Context, userID string, jobID string) error {
-	d.userID = userID
-	d.jobID = jobID
-	return d.err
-}
-

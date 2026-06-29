@@ -159,6 +159,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0128](./BUG-0128.md) | core-loop pruning gates missed design canvas and privacy hook drift | medium | resolved | 2026-06-29 | `fix(core-loop): close pruning review drift (BUG-0128)` |
 | [BUG-0124](./BUG-0124.md) | resume Phase 8 flat gate drifted on current profile fields | medium | resolved | 2026-06-14 | `fix(test): close resume phase8 flat gate drift (BUG-0124)` |
 | [BUG-0120](./BUG-0120.md) | D-20 resume gates missed retired fixture keys and stale scenario scripts | medium | resolved | 2026-06-14 | `fix(test): close resume d20 gate drift (BUG-0120)` |
 | [BUG-0118](./BUG-0118.md) | D-17/D-18/D-20 refactor left stale scenario and contract gates | medium | resolved | 2026-06-14 | `fix(test): close ux funnel refactor drift (BUG-0118)` |

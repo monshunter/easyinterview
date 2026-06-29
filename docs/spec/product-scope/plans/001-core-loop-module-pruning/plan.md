@@ -1,6 +1,6 @@
 # Core Loop Module Pruning Plan
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-06-29
 
@@ -110,13 +110,13 @@
 |--------|----------|------------|--------------|----------------|
 | 用户确认方案 B | Primary path | Phase 1-5 | `E2E.P0.098`, `E2E.P0.099` | 核心链路不得依赖复盘或画像 |
 | product-scope P0 改写 | Cross-layer contract | Phase 1 | `make docs-check`, sync-doc-index | `复盘` / `用户画像` 不得作为 active 产品能力出现 |
-| UI 真理源 | UI source structure parity | Phase 1-2 | frontend route/topbar tests, pixel parity smoke | `debrief` primary nav, `profile` user menu |
+| UI 真理源 | UI source structure parity | Phase 1-2 | frontend route/topbar tests, pixel parity smoke, `ui-design/canvas.html` retired-artboard negative gate | `debrief` primary nav, `profile` user menu, positive retired design-canvas artboards |
 | Old route behavior | Regression / legacy-negative | Phase 2 | `E2E.P0.088`, `E2E.P0.090`, routeUrl tests | `/debrief`, `#route=debrief_full`, `/profile` live page |
 | API removal | Cross-layer contract | Phase 3 | `make codegen-check`, `make validate-fixtures` | `Profile` / `Debriefs` tags, generated methods |
 | DB removal | Migration | Phase 4 | migration lint / focused DB tests | `debriefs`, `candidate_profiles`, `experience_cards`, `source_debrief_id` |
 | Async/event removal | Cross-layer contract | Phase 3-4 | shared jobs/events codegen/lint | `debrief.created`, `debrief.completed`, `debrief.generate` |
 | AI config removal | Cross-layer contract | Phase 4 | prompt/rubric/profile lint/eval inventory | `debrief.*`, `profile.update` feature keys |
-| Privacy boundary | Privacy / security | Phase 4-5 | backend privacy delete tests, legacy grep | account delete must still clean retained core data |
+| Privacy boundary | Privacy / security | Phase 4-5 | backend privacy delete tests, legacy grep for retired profile cleanup hooks | account delete must still clean retained core data without candidate-profile runtime hooks |
 | Scenario scope | Regression / legacy-negative | Phase 5 | scenario INDEX and script verification | retired P0 debrief/profile scenarios must not remain Ready |
 
 ## 7 验收标准
@@ -137,3 +137,9 @@
 | OpenAPI 删除导致 generated consumer 大面积编译失败 | 先写 contract red tests / inventory gate，再代码删除并运行 codegen，最后修 frontend/backend consumers |
 | 历史场景索引保留 Ready 状态 | Phase 5 删除正向场景目录和 INDEX 行，保留核心闭环场景的替代覆盖 |
 | 文档仍把旧模块写为 P1/P2 自动恢复对象 | Phase 1 和 zero-reference gate 覆盖 product-scope、engineering-roadmap、docs/ui-design、docs/spec/INDEX |
+
+## 9 修订记录
+
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-06-29 | 1.1 | L2 review remediation: reopen cross-layer cleanup to remove stale design-canvas Profile/Debrief artboards and privacy runner profile cleanup hook drift. |

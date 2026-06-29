@@ -27,6 +27,7 @@ test("workspace mock history is scoped to the active mock plan", () => {
 
 test("D-22 removes debrief and user profile static screens", () => {
   const app = readUiFile("./src/app.jsx");
+  const canvas = readUiFile("./canvas.html");
 
   assert.ok(!existsSync(new URL("./src/screens-p1-depth.jsx", import.meta.url)), "screens-p1-depth.jsx must stay deleted");
   assert.ok(!existsSync(new URL("./src/screen-profile.jsx", import.meta.url)), "screen-profile.jsx must stay deleted");
@@ -36,6 +37,8 @@ test("D-22 removes debrief and user profile static screens", () => {
   assert.doesNotMatch(app, /debrief:\s*</);
   assert.doesNotMatch(app, /debrief_full:\s*</);
   assert.doesNotMatch(app, /profile:\s*</);
+  assert.doesNotMatch(canvas, /<DCSection id="profile"|<DCArtboard id="profile-[^"]+"|route="profile"/);
+  assert.doesNotMatch(canvas, /<DCSection id="p1-depth"|<DCArtboard id="debrief"|<DCSection id="p1-voice-debrief"|route="debrief"/);
 });
 
 test("current UI source does not expose removed inbox wording", () => {

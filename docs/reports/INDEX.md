@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-06-29](./2026-06-29-core-loop-pruning-review-drift-assessment.md) | Core Loop Pruning Review Drift 交付复盘 | #assessment |
 | [2026-06-29](./2026-06-29-core-loop-module-pruning-assessment.md) | Core Loop Module Pruning 交付复盘 | #assessment |
 | [2026-06-15](./2026-06-15-local-dev-stack-loopback-backend-assessment.md) | Local Dev Stack Loopback Backend 交付复盘 | #assessment |
 | [2026-06-15](./2026-06-15-resume-flatten-follow-up-review-assessment.md) | Resume Flatten Follow-up Review 交付复盘 | #assessment |

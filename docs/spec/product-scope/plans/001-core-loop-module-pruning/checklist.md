@@ -1,6 +1,6 @@
 # Core Loop Module Pruning Checklist
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
 > **更新日期**: 2026-06-29
 
@@ -14,6 +14,8 @@
   <!-- verified: 2026-06-29 method=ui-design-contract-and-negative-grep evidence="node --test ui-design/ui-design-contract.test.mjs PASS (28 tests); rg UserProfileScreen/DebriefFullScreen/screen-profile/screens-p1-depth/nav(debrief)/nav(profile)/profile evidence/debrief records only hits deletion assertions in ui-design-contract.test.mjs; make docs-check PASS" -->
 - [x] 1.3 BDD-Gate: 验证 `E2E.P0.001`, `E2E.P0.088`, `E2E.P0.090` 的更新后场景资产准备完成。
   <!-- verified: 2026-06-29 method=bdd-assets-and-red-tests evidence="Updated README/seed/expected/verify for E2E.P0.001, P0.088, P0.090, P0.102 plus frontend scenario tests; focused frontend run produced expected red failures for current implementation: TopBar still has 4 nav items, /debrief still materializes, Home still exposes Open debrief." -->
+- [x] 1.4 Review remediation: harden `ui-design/canvas.html` source zero-reference coverage so the design canvas no longer exposes positive `profile` / `debrief` retired artboards or routes, then run `node --test ui-design/ui-design-contract.test.mjs`.
+  <!-- verified: 2026-06-29 method=ui-design-red-green-negative-grep evidence="Red: node --test ui-design/ui-design-contract.test.mjs failed on D-22 canvas retired profile/debrief artboards. Green: node --test ui-design/ui-design-contract.test.mjs PASS (28 tests). rg 'route=\"profile\"|route=\"debrief\"|<DCSection id=\"profile\"|<DCSection id=\"p1-depth\"|<DCSection id=\"p1-voice-debrief\"|<DCArtboard id=\"profile-|<DCArtboard id=\"debrief' ui-design/canvas.html returned no matches." -->
 
 ## Phase 2: 前端实现清理
 
@@ -45,6 +47,8 @@
   <!-- verified: 2026-06-29 method=migration-focused-gates evidence="Baseline/seed migrations no longer create debriefs, candidate_profiles, experience_cards, target_jobs.profile_id, practice_plans.source_debrief_id, debrief job/event enum values, or debrief/profile prompt seeds. python3 scripts/lint/migrations_lint.py --repo-root . PASS; python3 -m pytest -q scripts/lint/migrations_lint_test.py PASS (18 tests); go test ./backend/internal/migrations ./backend/internal/runner PASS." -->
 - [x] 4.4 删除 `config/prompts/debrief.*`、`config/rubrics/debrief.*`、`config/evals/debrief.*` 和 `config/ai-profiles.yaml` 中对应 profile，运行 prompt/rubric/config focused lint。
   <!-- verified: 2026-06-29 method=ai-config-focused-gates evidence="Deleted config/prompts/debrief.*, config/rubrics/debrief.*, config/evals/debrief.*, debrief.* profiles, and profile.update profile; regenerated config/evals/resolved-prompts.json. python3 scripts/lint/prompt_lint.py --prompts-dir config/prompts --migrations-dir migrations PASS; go test ./backend/internal/ai/registry ./backend/internal/ai/aiclient/profile ./backend/internal/shared/featurekeys PASS; go test ./backend/internal/eval ./backend/cmd/evalkit PASS; go run ./backend/cmd/evalkit drift-check PASS (36 cases, 10 resolved prompts)." -->
+- [x] 4.5 Review remediation: remove privacy delete candidate-profile cleanup hook drift and backend README `profile` domain drift, then run `go test ./backend/internal/privacy/runner -run TestPrivacyDeleteHandler -count=1` plus focused legacy grep.
+  <!-- verified: 2026-06-29 method=privacy-runner-red-green-negative-grep evidence="Red: go test ./backend/internal/privacy/runner -run 'TestPrivacyDeleteHandlerOptionsRejectsRetiredDomainHooks|TestPrivacyDeleteHandler' -count=1 failed on ProfileData. Green: same command PASS. Runtime grep excluding *_test.go for ProfileData/DeleteCandidateProfileForUser/fakeProfileDataDeleter/candidate profile/candidate-profile/profile delete failed across backend/internal/privacy and backend/README.md returned no matches; test file retains only the deliberate FieldByName(\"ProfileData\") guard." -->
 
 ## Phase 5: 场景、文档索引和验收收口
 
