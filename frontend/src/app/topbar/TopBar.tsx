@@ -14,8 +14,8 @@ import { THEME_METADATA } from "../theme/themes.data";
 import type { UserContext } from "../../api/generated/types";
 
 /**
- * Four primary nav entries match docs/spec/frontend-shell/spec.md §2.1 and
- * docs/ui-design/auth-and-entry.md §4. Report, auth, profile, and settings
+ * Three primary nav entries match docs/ui-design/auth-and-entry.md §4 after
+ * product-scope D-22. Report, auth, and settings
  * routes are intentionally NOT promoted to first-level nav.
  *
  * Labels are rendered through the D1 i18n catalog. English RouteName keys stay
@@ -33,7 +33,6 @@ const NAV_LABEL_KEYS: Record<(typeof PRIMARY_NAV_ROUTES)[number], Parameters<typ
   home: "nav.home",
   workspace: "nav.workspace",
   resume_versions: "nav.resume_versions",
-  debrief: "nav.debrief",
 };
 
 const THEME_LABEL_KEYS: Record<Theme, Parameters<typeof translate>[1]> = {
@@ -55,7 +54,6 @@ const NAV_ICONS: Record<(typeof PRIMARY_NAV_ROUTES)[number], IconName> = {
   home: "target",
   workspace: "play",
   resume_versions: "file",
-  debrief: "flag",
 };
 
 export interface TopBarProps {
@@ -421,15 +419,6 @@ export const TopBar: FC<TopBarProps> = ({
                       {userEmail}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    data-testid="topbar-user-profile"
-                    className="ei-topbar-user-button ei-text-body"
-                    onClick={() => navigateFromUserMenu({ name: "profile", params: {} })}
-                  >
-                    <Icon name="user" size={13} />
-                    {t("user.profile")}
-                  </button>
                   <button
                     type="button"
                     data-testid="topbar-user-settings"

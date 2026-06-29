@@ -108,7 +108,6 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
       "home",
       "workspace",
       "resume_versions",
-      "debrief",
     ]) {
       const navBtn = screen.getByTestId(`topbar-nav-${route}`);
       expect(navBtn.className).toMatch(/\bei-topbar-nav-button\b/);
@@ -209,25 +208,8 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
     expect(screen.queryByTestId("auth-login-oauth-stub")).not.toBeInTheDocument();
   });
 
-  it("profile / settings / placeholder render the ei-screen-shell + ei-screen-card scaffold", async () => {
+  it("settings / placeholder render the ei-screen-shell + ei-screen-card scaffold", async () => {
     const client = buildClient();
-    const { unmount: unmountProfile } = render(
-      <App
-        client={client}
-        initialRoute={{ name: "profile", params: {} }}
-        requestOptions={{
-          getMe: { headers: { Prefer: "example=authenticated" } },
-        }}
-      />,
-    );
-    expect((await screen.findByTestId("route-profile")).className).toMatch(
-      /\bei-screen-shell\b/,
-    );
-    expect(
-      screen.getByTestId("profile-identity-summary").className,
-    ).toMatch(/\bei-screen-card\b/);
-    unmountProfile();
-
     const { unmount: unmountSettings } = render(
       <App
         client={client}
@@ -275,12 +257,12 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
       ).not.toBeInTheDocument();
       expect(screen.queryByTestId(`route-${legacy}`)).not.toBeInTheDocument();
     }
-    // Settings / profile must not surface retired-module copy.
+    // Settings must not surface retired-module copy.
     const html = document.documentElement.outerHTML;
     expect(html).not.toMatch(/错题本|成长中心|经历库|目标角色|技能标签/);
   });
 
-  it("ui-design source files (app.jsx + screen-auth.jsx + screen-profile.jsx) carry the literal values transcribed into D2 CSS", () => {
+  it("ui-design source files (app.jsx + screen-auth.jsx) carry the literal values transcribed into D2 CSS", () => {
     const repoRoot = resolve(HERE, "..", "..", "..", "..");
     const appJsx = readFileSync(
       resolve(repoRoot, "ui-design", "src", "app.jsx"),
@@ -290,11 +272,6 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
       resolve(repoRoot, "ui-design", "src", "screen-auth.jsx"),
       "utf8",
     );
-    const profileJsx = readFileSync(
-      resolve(repoRoot, "ui-design", "src", "screen-profile.jsx"),
-      "utf8",
-    );
-
     // TopBar literals
     expect(appJsx).toContain("height: 58");
     expect(appJsx).toContain('padding: "0 32px"');
@@ -305,7 +282,5 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
     expect(authJsx).toContain('padding: "54px 48px 96px"');
     expect(authJsx).toContain('gridTemplateColumns: "0.88fr 1.12fr"');
     expect(authJsx).toContain("gap: 44");
-    // Profile screen literals
-    expect(profileJsx).toContain("padding: 28");
   });
 });

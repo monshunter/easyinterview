@@ -66,7 +66,6 @@ const (
 	PracticeGoalBaseline          PracticeGoal = "baseline"
 	PracticeGoalRetryCurrentRound PracticeGoal = "retry_current_round"
 	PracticeGoalNextRound         PracticeGoal = "next_round"
-	PracticeGoalDebrief           PracticeGoal = "debrief"
 )
 
 // AllPracticeGoals lists every defined value in declaration order.
@@ -74,7 +73,6 @@ var AllPracticeGoals = []PracticeGoal{
 	PracticeGoalBaseline,
 	PracticeGoalRetryCurrentRound,
 	PracticeGoalNextRound,
-	PracticeGoalDebrief,
 }
 
 // InterviewerRole mirrors shared/conventions.yaml sourceSection 5.5 (jsonField: "interviewerRole").
@@ -203,60 +201,6 @@ var AllQuestionReviewStatuses = []QuestionReviewStatus{
 	QuestionReviewStatusOpen,
 	QuestionReviewStatusQueuedForRetry,
 	QuestionReviewStatusResolved,
-}
-
-// DebriefStatus mirrors shared/conventions.yaml sourceSection 5.12 (jsonField: "debriefStatus").
-type DebriefStatus string
-
-const (
-	DebriefStatusDraft     DebriefStatus = "draft"
-	DebriefStatusCompleted DebriefStatus = "completed"
-)
-
-// AllDebriefStatuses lists every defined value in declaration order.
-var AllDebriefStatuses = []DebriefStatus{
-	DebriefStatusDraft,
-	DebriefStatusCompleted,
-}
-
-// DebriefRoundType mirrors shared/conventions.yaml sourceSection 5.12 (jsonField: "roundType").
-type DebriefRoundType string
-
-const (
-	DebriefRoundTypeHrScreen      DebriefRoundType = "hr_screen"
-	DebriefRoundTypeHiringManager DebriefRoundType = "hiring_manager"
-	DebriefRoundTypeBehavioral    DebriefRoundType = "behavioral"
-	DebriefRoundTypeTechnical     DebriefRoundType = "technical"
-	DebriefRoundTypeCulture       DebriefRoundType = "culture"
-	DebriefRoundTypeCustom        DebriefRoundType = "custom"
-)
-
-// AllDebriefRoundTypes lists every defined value in declaration order.
-var AllDebriefRoundTypes = []DebriefRoundType{
-	DebriefRoundTypeHrScreen,
-	DebriefRoundTypeHiringManager,
-	DebriefRoundTypeBehavioral,
-	DebriefRoundTypeTechnical,
-	DebriefRoundTypeCulture,
-	DebriefRoundTypeCustom,
-}
-
-// DebriefQuestionSource mirrors shared/conventions.yaml sourceSection 5.12 (jsonField: "source").
-type DebriefQuestionSource string
-
-const (
-	DebriefQuestionSourceJd         DebriefQuestionSource = "jd"
-	DebriefQuestionSourceResume     DebriefQuestionSource = "resume"
-	DebriefQuestionSourceMockReport DebriefQuestionSource = "mock_report"
-	DebriefQuestionSourceManual     DebriefQuestionSource = "manual"
-)
-
-// AllDebriefQuestionSources lists every defined value in declaration order.
-var AllDebriefQuestionSources = []DebriefQuestionSource{
-	DebriefQuestionSourceJd,
-	DebriefQuestionSourceResume,
-	DebriefQuestionSourceMockReport,
-	DebriefQuestionSourceManual,
 }
 
 // PrivacyRequestType mirrors shared/conventions.yaml sourceSection 5.13 (jsonField: "privacyRequestType").

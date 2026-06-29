@@ -98,10 +98,10 @@ resolves a sibling file.
 
 ## Tag inventory
 
-The 12 OpenAPI tags follow
+The 10 OpenAPI tags follow
 [spec §2.1](../docs/spec/openapi-v1-contract/spec.md#2-范围) in declaration
-order: Auth, Uploads, Profile, Resumes, TargetJobs, PracticePlans,
-PracticeSessions, Reports, ResumeTailor, Debriefs, Jobs, Privacy. The 43
+order: Auth, Uploads, Resumes, TargetJobs, PracticePlans,
+PracticeSessions, Reports, ResumeTailor, Jobs, Privacy. The 35
 operations are catalogued in
 [spec §3.1.1](../docs/spec/openapi-v1-contract/spec.md#311-v100-freeze-endpoint-列表);
 `scripts/lint/openapi_inventory.py` enforces tag order, operation enumeration,
@@ -116,7 +116,7 @@ default `ApiErrorResponse` refs, the `Idempotency-Key` mutex (per ADR-Q1 +
 shared/conventions.yaml ─► (codegen) ─► openapi.yaml's B1-AUTO block
                                        (ApiError inner object, ApiErrorResponse
                                         envelope, ApiErrorCode, PageInfo,
-                                        JobStatus, 17 enums)
+                                        JobStatus, 13 product/privacy enums)
                                               │
                                               ▼
             openapi.yaml hand-authored schemas use $ref into the same block

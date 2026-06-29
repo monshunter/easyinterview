@@ -34,46 +34,6 @@ CREATE TABLE user_settings (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE candidate_profiles (
-  id uuid PRIMARY KEY,
-  user_id uuid NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-  headline text,
-  summary_md text,
-  "current_role" text,
-  years_of_experience smallint,
-  seniority_level text,
-  preferred_practice_language text NOT NULL DEFAULT 'en',
-  ui_language text NOT NULL DEFAULT 'zh-CN',
-  region text,
-  profile_version integer NOT NULL DEFAULT 1,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  deleted_at timestamptz
-);
-
-CREATE TABLE experience_cards (
-  id uuid PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  profile_id uuid NOT NULL REFERENCES candidate_profiles(id) ON DELETE CASCADE,
-  title text NOT NULL,
-  company_name text,
-  situation text,
-  task text,
-  action text,
-  result text,
-  metrics jsonb NOT NULL DEFAULT '{}'::jsonb,
-  skills text[] NOT NULL DEFAULT '{}'::text[],
-  language text NOT NULL DEFAULT 'en',
-  source_type text NOT NULL DEFAULT 'manual' CHECK (source_type IN ('manual', 'resume_parse', 'practice_report', 'debrief')),
-  source_ref_id uuid,
-  confidence text NOT NULL DEFAULT 'medium' CHECK (confidence IN ('high', 'medium', 'low')),
-  archived_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_experience_cards_user_updated_at ON experience_cards (user_id, updated_at DESC);
-CREATE INDEX idx_experience_cards_profile ON experience_cards (profile_id);
-
 CREATE TABLE file_objects (
   id uuid PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -110,7 +70,6 @@ CREATE INDEX idx_resume_assets_user_updated_at ON resume_assets (user_id, update
 CREATE TABLE target_jobs (
   id uuid PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  profile_id uuid REFERENCES candidate_profiles(id) ON DELETE SET NULL,
   status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'preparing', 'applied', 'interviewing', 'offer', 'rejected', 'archived')),
   analysis_status text NOT NULL DEFAULT 'queued' CHECK (analysis_status IN ('queued', 'processing', 'ready', 'failed')),
   title text,
@@ -166,8 +125,7 @@ CREATE TABLE practice_plans (
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   target_job_id uuid NOT NULL REFERENCES target_jobs(id) ON DELETE CASCADE,
   source_report_id uuid,
-  source_debrief_id uuid,
-  goal text NOT NULL CHECK (goal IN ('baseline', 'retry_current_round', 'next_round', 'debrief')),
+  goal text NOT NULL CHECK (goal IN ('baseline', 'retry_current_round', 'next_round')),
   mode text NOT NULL CHECK (mode IN ('assisted', 'strict')),
   interviewer_persona text NOT NULL CHECK (interviewer_persona IN ('generalist', 'hr', 'hiring_manager', 'technical_manager', 'peer')),
   difficulty text NOT NULL DEFAULT 'standard' CHECK (difficulty IN ('easy', 'standard', 'stretch')),
@@ -180,9 +138,8 @@ CREATE TABLE practice_plans (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT practice_plans_source_goal_check CHECK (
-    (goal = 'baseline' AND source_report_id IS NULL AND source_debrief_id IS NULL)
-    OR (goal IN ('retry_current_round', 'next_round') AND source_report_id IS NOT NULL AND source_debrief_id IS NULL)
-    OR (goal = 'debrief' AND source_report_id IS NULL AND source_debrief_id IS NOT NULL)
+    (goal = 'baseline' AND source_report_id IS NULL)
+    OR (goal IN ('retry_current_round', 'next_round') AND source_report_id IS NOT NULL)
   )
 );
 CREATE INDEX idx_practice_plans_target_job_created ON practice_plans (target_job_id, created_at DESC);
@@ -329,35 +286,10 @@ CREATE TABLE resume_tailor_runs (
 );
 CREATE INDEX idx_resume_tailor_runs_target_job_created ON resume_tailor_runs (target_job_id, created_at DESC);
 
-CREATE TABLE debriefs (
-  id uuid PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  target_job_id uuid NOT NULL REFERENCES target_jobs(id) ON DELETE CASCADE,
-  status text NOT NULL CHECK (status IN ('draft', 'completed')),
-  round_type text NOT NULL CHECK (round_type IN ('hr_screen', 'hiring_manager', 'behavioral', 'technical', 'culture', 'custom')),
-  interviewer_role text,
-  language text NOT NULL DEFAULT 'en',
-  raw_questions jsonb NOT NULL DEFAULT '[]'::jsonb,
-  notes text,
-  risk_items jsonb NOT NULL DEFAULT '[]'::jsonb,
-  next_round_checklist jsonb NOT NULL DEFAULT '[]'::jsonb,
-  thank_you_draft text,
-  prompt_version text,
-  rubric_version text,
-  model_id text,
-  provider text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_debriefs_target_job_created ON debriefs (target_job_id, created_at DESC);
-
-ALTER TABLE practice_plans
-  ADD CONSTRAINT fk_practice_plans_source_debrief FOREIGN KEY (source_debrief_id) REFERENCES debriefs(id) ON DELETE SET NULL;
-
 CREATE TABLE source_records (
   id uuid PRIMARY KEY,
   user_id uuid REFERENCES users(id) ON DELETE SET NULL,
-  owner_type text NOT NULL CHECK (owner_type IN ('target_job', 'debrief', 'intelligence_item')),
+  owner_type text NOT NULL CHECK (owner_type IN ('target_job', 'intelligence_item')),
   owner_id uuid NOT NULL,
   source_type text NOT NULL CHECK (source_type IN ('jd_url', 'company_page', 'manual_text', 'news', 'upload')),
   title text,
@@ -397,7 +329,7 @@ CREATE TABLE rubric_versions (
 CREATE TABLE ai_task_runs (
   id uuid PRIMARY KEY,
   user_id uuid REFERENCES users(id) ON DELETE SET NULL,
-  task_type text NOT NULL CHECK (task_type IN ('jd_parse', 'resume_parse', 'question_generate', 'followup_generate', 'report_generate', 'report_assessment', 'resume_tailor', 'debrief_generate', 'debrief_suggest_questions', 'hint_generate')),
+  task_type text NOT NULL CHECK (task_type IN ('jd_parse', 'resume_parse', 'question_generate', 'followup_generate', 'report_generate', 'report_assessment', 'resume_tailor', 'hint_generate')),
   resource_type text NOT NULL,
   resource_id uuid NOT NULL,
   provider text NOT NULL,
@@ -433,7 +365,7 @@ CREATE INDEX idx_ai_task_runs_dashboard ON ai_task_runs (model_profile_name, val
 
 CREATE TABLE async_jobs (
   id uuid PRIMARY KEY,
-  job_type text NOT NULL CHECK (job_type IN ('target_import', 'resume_parse', 'report_generate', 'resume_tailor', 'debrief_generate', 'source_refresh', 'privacy_export', 'privacy_delete', 'email_dispatch')),
+  job_type text NOT NULL CHECK (job_type IN ('target_import', 'resume_parse', 'report_generate', 'resume_tailor', 'source_refresh', 'privacy_export', 'privacy_delete', 'email_dispatch')),
   resource_type text NOT NULL,
   resource_id uuid NOT NULL,
   dedupe_key text,

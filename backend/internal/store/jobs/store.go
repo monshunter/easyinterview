@@ -63,11 +63,6 @@ where j.id = $1
         and rs.user_id = $2
         and rs.deleted_at is null
     ))
-    or (j.resource_type = 'debrief' and exists (
-      select 1 from debriefs d
-      where d.id = j.resource_id
-        and d.user_id = $2
-    ))
     or (j.resource_type = 'privacy_request' and exists (
       select 1 from privacy_requests pr
       where pr.id = j.resource_id

@@ -91,7 +91,6 @@ type CreatePlanRequest struct {
 	TargetJobID          string
 	ResumeID             string
 	SourceReportID       string
-	SourceDebriefID      string
 	Goal                 sharedtypes.PracticeGoal
 	Mode                 sharedtypes.PracticeMode
 	InterviewerPersona   sharedtypes.InterviewerRole
@@ -109,7 +108,6 @@ type CreatePlanStoreInput struct {
 	TargetJobID          string
 	ResumeID             string
 	SourceReportID       string
-	SourceDebriefID      string
 	Goal                 sharedtypes.PracticeGoal
 	Mode                 sharedtypes.PracticeMode
 	InterviewerPersona   sharedtypes.InterviewerRole
@@ -125,7 +123,6 @@ type PlanRecord struct {
 	ID                 string
 	TargetJobID        string
 	SourceReportID     string
-	SourceDebriefID    string
 	Goal               sharedtypes.PracticeGoal
 	Mode               sharedtypes.PracticeMode
 	InterviewerPersona sharedtypes.InterviewerRole
@@ -177,8 +174,7 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 		return PlanRecord{}, validationError("A resume asset must be bound before creating this practice plan.", map[string]any{"field": "resumeId"})
 	}
 	sourceReportID := strings.TrimSpace(in.SourceReportID)
-	sourceDebriefID := strings.TrimSpace(in.SourceDebriefID)
-	if err := validateCreatePlanSources(in.Goal, sourceReportID, sourceDebriefID); err != nil {
+	if err := validateCreatePlanSources(in.Goal, sourceReportID); err != nil {
 		return PlanRecord{}, err
 	}
 	if !validPracticeMode(in.Mode) {
@@ -208,7 +204,6 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 		TargetJobID:          strings.TrimSpace(in.TargetJobID),
 		ResumeID:             strings.TrimSpace(in.ResumeID),
 		SourceReportID:       sourceReportID,
-		SourceDebriefID:      sourceDebriefID,
 		Goal:                 in.Goal,
 		Mode:                 in.Mode,
 		InterviewerPersona:   in.InterviewerPersona,
@@ -231,28 +226,15 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 	return plan, nil
 }
 
-func validateCreatePlanSources(goal sharedtypes.PracticeGoal, sourceReportID, sourceDebriefID string) error {
+func validateCreatePlanSources(goal sharedtypes.PracticeGoal, sourceReportID string) error {
 	switch goal {
 	case sharedtypes.PracticeGoalBaseline:
 		if sourceReportID != "" {
 			return validationError("baseline practice plans cannot use a report source", map[string]any{"field": "sourceReportId", "goal": string(goal)})
 		}
-		if sourceDebriefID != "" {
-			return validationError("baseline practice plans cannot use a debrief source", map[string]any{"field": "sourceDebriefId", "goal": string(goal)})
-		}
 	case sharedtypes.PracticeGoalRetryCurrentRound, sharedtypes.PracticeGoalNextRound:
 		if sourceReportID == "" {
 			return validationError("sourceReportId is required for this practice goal", map[string]any{"field": "sourceReportId", "goal": string(goal)})
-		}
-		if sourceDebriefID != "" {
-			return validationError("sourceDebriefId is not allowed for this practice goal", map[string]any{"field": "sourceDebriefId", "goal": string(goal)})
-		}
-	case sharedtypes.PracticeGoalDebrief:
-		if sourceReportID != "" {
-			return validationError("sourceReportId is not allowed for debrief practice plans", map[string]any{"field": "sourceReportId", "goal": string(goal)})
-		}
-		if sourceDebriefID == "" {
-			return validationError("sourceDebriefId is required for debrief practice plans", map[string]any{"field": "sourceDebriefId", "goal": string(goal)})
 		}
 	}
 	return nil

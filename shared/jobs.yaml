@@ -12,7 +12,6 @@ apiFacingSubset:
   - resume_parse
   - report_generate
   - resume_tailor
-  - debrief_generate
   - privacy_export
   - privacy_delete
 
@@ -41,12 +40,6 @@ jobs:
     apiFacing: true
     triggerEvent: api:request_tailor
     ownerDomain: C7
-    priority: default
-  - canonical: debrief_generate
-    asynqTask: debrief.generate
-    apiFacing: true
-    triggerEvent: debrief.created
-    ownerDomain: C9
     priority: default
   - canonical: source_refresh
     asynqTask: source.refresh

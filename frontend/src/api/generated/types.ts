@@ -4,9 +4,6 @@
 import type {
 	ApiError as ApiErrorAlias,
 	Confidence as ConfidenceAlias,
-	DebriefQuestionSource as DebriefQuestionSourceAlias,
-	DebriefRoundType as DebriefRoundTypeAlias,
-	DebriefStatus as DebriefStatusAlias,
 	DimensionStatus as DimensionStatusAlias,
 	InterviewerRole as InterviewerRoleAlias,
 	PageInfo as PageInfoAlias,
@@ -31,7 +28,7 @@ export type ApiError = ApiErrorAlias;
 
 export type PageInfo = PageInfoAlias;
 
-export type ApiErrorCode = "AUTH_UNAUTHORIZED" | "TARGET_IMPORT_FAILED" | "TARGET_JOB_NOT_FOUND" | "TARGET_IMPORT_SOURCE_INVALID" | "TARGET_IMPORT_SOURCE_UNAVAILABLE" | "TARGET_INVALID_STATE_TRANSITION" | "PRACTICE_SESSION_CONFLICT" | "PRACTICE_PLAN_NOT_FOUND" | "PRACTICE_SESSION_NOT_FOUND" | "REPORT_NOT_FOUND" | "REPORT_NOT_READY" | "DEBRIEF_NOT_FOUND" | "RESUME_EXPORT_NOT_AVAILABLE" | "VALIDATION_FAILED" | "RESOURCE_NOT_FOUND" | "IDEMPOTENCY_KEY_MISMATCH" | "RATE_LIMITED" | "AI_PROVIDER_TIMEOUT" | "AI_OUTPUT_INVALID" | "AI_FALLBACK_EXHAUSTED" | "AI_UNSUPPORTED_CAPABILITY" | "AI_PROVIDER_CONFIG_INVALID" | "AI_PROVIDER_SECRET_MISSING" | "PRIVACY_EXPORT_NOT_AVAILABLE";
+export type ApiErrorCode = "AUTH_UNAUTHORIZED" | "TARGET_IMPORT_FAILED" | "TARGET_JOB_NOT_FOUND" | "TARGET_IMPORT_SOURCE_INVALID" | "TARGET_IMPORT_SOURCE_UNAVAILABLE" | "TARGET_INVALID_STATE_TRANSITION" | "PRACTICE_SESSION_CONFLICT" | "PRACTICE_PLAN_NOT_FOUND" | "PRACTICE_SESSION_NOT_FOUND" | "REPORT_NOT_FOUND" | "REPORT_NOT_READY" | "RESUME_EXPORT_NOT_AVAILABLE" | "VALIDATION_FAILED" | "RESOURCE_NOT_FOUND" | "IDEMPOTENCY_KEY_MISMATCH" | "RATE_LIMITED" | "AI_PROVIDER_TIMEOUT" | "AI_OUTPUT_INVALID" | "AI_FALLBACK_EXHAUSTED" | "AI_UNSUPPORTED_CAPABILITY" | "AI_PROVIDER_CONFIG_INVALID" | "AI_PROVIDER_SECRET_MISSING" | "PRIVACY_EXPORT_NOT_AVAILABLE";
 
 export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled" | "dead";
 
@@ -57,12 +54,6 @@ export type Confidence = ConfidenceAlias;
 
 export type QuestionReviewStatus = QuestionReviewStatusAlias;
 
-export type DebriefStatus = DebriefStatusAlias;
-
-export type DebriefRoundType = DebriefRoundTypeAlias;
-
-export type DebriefQuestionSource = DebriefQuestionSourceAlias;
-
 export type PrivacyRequestType = PrivacyRequestTypeAlias;
 
 export type PrivacyRequestStatus = PrivacyRequestStatusAlias;
@@ -77,13 +68,13 @@ export interface ApiErrorResponse {
 	error: ApiError;
 }
 
-export type ResourceType = "target_job" | "feedback_report" | "resume_asset" | "resume_tailor_run" | "debrief" | "privacy_request";
+export type ResourceType = "target_job" | "feedback_report" | "resume_asset" | "resume_tailor_run" | "privacy_request";
 
-export const AllResourceTypes = ["target_job", "feedback_report", "resume_asset", "resume_tailor_run", "debrief", "privacy_request"] as const;
+export const AllResourceTypes = ["target_job", "feedback_report", "resume_asset", "resume_tailor_run", "privacy_request"] as const;
 
-export type JobType = "target_import" | "resume_parse" | "report_generate" | "resume_tailor" | "debrief_generate" | "privacy_export" | "privacy_delete";
+export type JobType = "target_import" | "resume_parse" | "report_generate" | "resume_tailor" | "privacy_export" | "privacy_delete";
 
-export const AllJobTypes = ["target_import", "resume_parse", "report_generate", "resume_tailor", "debrief_generate", "privacy_export", "privacy_delete"] as const;
+export const AllJobTypes = ["target_import", "resume_parse", "report_generate", "resume_tailor", "privacy_export", "privacy_delete"] as const;
 
 export interface GenerationProvenance {
 	dataSourceVersion: string;
@@ -144,65 +135,6 @@ export interface UploadPresign {
 	headers: Record<string, unknown>;
 	method: "PUT" | "POST";
 	uploadUrl: string;
-}
-
-export interface CandidateProfile {
-	currentRole: string | null;
-	headline: string | null;
-	preferredPracticeLanguage: string;
-	region: string | null;
-	uiLanguage: string;
-	yearsOfExperience: number | null;
-}
-
-export interface UpdateProfileRequest {
-	currentRole?: string;
-	headline?: string;
-	preferredPracticeLanguage?: string;
-	region?: string;
-	uiLanguage?: string;
-	yearsOfExperience?: number;
-}
-
-export interface ExperienceCard {
-	action: string;
-	companyName: string;
-	createdAt: string;
-	id: string;
-	language: string;
-	result: string;
-	situation: string;
-	skills: string[];
-	task: string;
-	title: string;
-	updatedAt: string;
-}
-
-export interface CreateExperienceCardRequest {
-	action: string;
-	companyName: string;
-	language: string;
-	result: string;
-	situation: string;
-	skills?: string[];
-	task: string;
-	title: string;
-}
-
-export interface UpdateExperienceCardRequest {
-	action?: string;
-	companyName?: string;
-	language?: string;
-	result?: string;
-	situation?: string;
-	skills?: string[];
-	task?: string;
-	title?: string;
-}
-
-export interface PaginatedExperienceCard {
-	items: ExperienceCard[];
-	pageInfo: PageInfo;
 }
 
 export interface RegisterResumeRequest {
@@ -349,7 +281,6 @@ export interface CreatePracticePlanRequest {
 	mode: PracticeMode;
 	questionBudget: number;
 	resumeId: string;
-	sourceDebriefId?: string | null;
 	sourceReportId?: string | null;
 	targetJobId: string;
 	timeBudgetMinutes: number;
@@ -364,7 +295,6 @@ export interface PracticePlan {
 	language: string;
 	mode: PracticeMode;
 	questionBudget: number;
-	sourceDebriefId?: string | null;
 	sourceReportId?: string | null;
 	status: "draft" | "ready" | "archived";
 	targetJobId: string;
@@ -572,77 +502,6 @@ export interface ResumeTailorRun {
 export interface ResumeTailorRunWithJob {
 	job: Job;
 	tailorRunId: string;
-}
-
-export interface DebriefQuestionInput {
-	interviewerReaction?: string;
-	myAnswerSummary: string;
-	questionText: string;
-}
-
-export interface DebriefQuestion {
-	aiAnalysis?: string | null;
-	interviewerReaction?: string;
-	myAnswerSummary: string;
-	questionText: string;
-}
-
-export interface DebriefRiskItem {
-	label: string;
-	severity: "low" | "medium" | "high";
-}
-
-export interface DebriefNextRoundChecklistItem {
-	label: string;
-	rationale?: string;
-}
-
-export interface CreateDebriefRequest {
-	interviewerRole?: InterviewerRole;
-	language: string;
-	notes?: string;
-	questions: DebriefQuestionInput[];
-	roundType: DebriefRoundType;
-	targetJobId: string;
-}
-
-export interface Debrief {
-	createdAt: string;
-	id: string;
-	interviewerRole?: InterviewerRole | null;
-	nextRoundChecklist?: DebriefNextRoundChecklistItem[];
-	provenance?: GenerationProvenance | null;
-	questions?: DebriefQuestion[];
-	riskItems?: DebriefRiskItem[];
-	roundType: DebriefRoundType;
-	status: DebriefStatus;
-	targetJobId: string;
-	thankYouDraft?: string | null;
-	updatedAt: string;
-}
-
-export interface DebriefWithJob {
-	debriefId: string;
-	job: Job;
-}
-
-export interface SuggestedDebriefQuestion {
-	questionText: string;
-	source: DebriefQuestionSource;
-	stage?: string | null;
-	whyLikelyAsked: string;
-}
-
-export interface SuggestDebriefQuestionsRequest {
-	count?: number;
-	language: string;
-	resumeId?: string;
-	sessionId?: string;
-	targetJobId: string;
-}
-
-export interface SuggestDebriefQuestionsResponse {
-	suggestions: SuggestedDebriefQuestion[];
 }
 
 export interface Job {

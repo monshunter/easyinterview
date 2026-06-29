@@ -32,13 +32,11 @@ import {
   type AppRuntimeProviderProps,
   type AppRuntimeValue,
 } from "./runtime/AppRuntimeProvider";
-import { DebriefScreen } from "./screens/debrief/DebriefScreen";
 import { GeneratingScreen } from "./screens/generating/GeneratingScreen";
 import { HomeScreen } from "./screens/home/HomeScreen";
 import { ParseScreen } from "./screens/parse/ParseScreen";
 import { PlaceholderScreen } from "./screens/PlaceholderScreen";
 import { PracticeScreen } from "./screens/practice/PracticeScreen";
-import { ProfileScreen } from "./screens/ProfileScreen";
 import { ReportScreen } from "./screens/report/ReportScreen";
 import { ResumeWorkshopScreen } from "./screens/resume-workshop/ResumeWorkshopScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
@@ -82,12 +80,9 @@ function renderRouteScreen(
   runtime: AppRuntimeValue | null,
   lang: Lang,
 ): ReactNode {
-  // Profile / Settings / Home shells are pure UI and do not depend on
+  // Settings / Home shells are pure UI and do not depend on
   // runtime; render them whether or not a client is mounted so D2-D6 owners
   // can iterate without the auth bootstrap.
-  if (route.name === "profile") {
-    return <ProfileScreen route={route} />;
-  }
   if (route.name === "settings") {
     return <SettingsScreen route={route} />;
   }
@@ -111,9 +106,6 @@ function renderRouteScreen(
   }
   if (route.name === "report") {
     return <ReportScreen route={route} />;
-  }
-  if (route.name === "debrief") {
-    return <DebriefScreen route={route} />;
   }
   if (!runtime) {
     return <PlaceholderScreen route={route} />;

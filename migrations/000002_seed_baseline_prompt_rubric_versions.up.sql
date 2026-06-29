@@ -1,5 +1,5 @@
 -- F3 prompt-rubric-registry/001-baseline phase 4.4 seed migration.
--- Writes the 11 baseline feature_keys canonical multi coordinate into
+-- Writes the 9 baseline feature_keys canonical multi coordinate into
 -- prompt_versions and rubric_versions with template_hash matching the
 -- on-disk config/prompts/<feature_key>/v0.1.0.{yaml,md} files.
 -- Idempotent via ON CONFLICT DO NOTHING.
@@ -7,93 +7,6 @@
 BEGIN;
 
 INSERT INTO prompt_versions (id, feature_key, version, language, template_hash, template_body, is_active, created_at) VALUES
-  ('9a63e69d-c434-5114-88c7-3a9060e2f06d', 'debrief.generate', 'v0.1.0', 'multi', '031dd8e6c4095a829dac6a747b0c8618a582fc0802480ed9743c1fea82b38c22', $body$You are a post-interview coach helping the candidate analyze a real interview.
-Respond in the language indicated by `{{language}}` (default English).
-
-Target role: {{targetTitle}}
-Target summary: {{targetSummary}}
-Recorded interview questions: {{questions}}
-
-<!-- output-schema-contract:start -->
-Return strict JSON matching this schema-derived output contract.
-Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
-
-Output shape:
-- `$` (required, object): Completed real-interview debrief analysis.
-- `$.questions` (required, array): Analyzed debrief questions preserving input order.
-- `$.questions[]` (required, object): One analyzed interview question.
-- `$.questions[].questionText` (required, string): Original or cleaned interview question text.
-- `$.questions[].myAnswerSummary` (required, string): Candidate answer summary.
-- `$.questions[].aiAnalysis` (required, string): Concise coaching analysis.
-- `$.questions[].interviewerReaction` (optional, string): Interviewer reaction when supplied by the candidate.
-- `$.riskItems` (required, array): Risks or follow-up concerns from the debrief.
-- `$.riskItems[]` (required, object): One risk item.
-- `$.riskItems[].label` (required, string): Risk label.
-- `$.riskItems[].severity` (required, string enum(low, medium, high)): Risk severity.
-
-Example complete JSON output:
-```json
-{
-  "questions": [
-    {
-      "questionText": "How did you handle backpressure in the migration?",
-      "myAnswerSummary": "Explained queue sizing and retry policy.",
-      "aiAnalysis": "Good direction, but add numbers and rollback detail.",
-      "interviewerReaction": "Asked for concrete failure metrics."
-    }
-  ],
-  "riskItems": [
-    {
-      "label": "Thin rollback detail",
-      "severity": "medium"
-    }
-  ]
-}
-```
-<!-- output-schema-contract:end -->
-
-Do not return timeline, lessons, follow_up_actions, nextRoundChecklist, or a
-thank-you draft. Do not invent events the candidate did not describe.
-$body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('c496cd93-fe74-5ebd-8c3e-b972f63729f2', 'debrief.suggest_questions', 'v0.1.0', 'multi', '1418dfe290462412d642ff4ab6cf84fd9e502b0bfb593bcb0561582a0778ff5e', $body$You generate likely post-interview debrief questions from sanitized preparation context. Respond in the language indicated by `{{language}}` (default English).
-
-Target role: {{role_title}}
-Job summary: {{job_summary}}
-Resume highlights: {{resume_highlights}}
-Mock interview signals: {{mock_report_summary}}
-Requested count: {{count}}
-
-<!-- output-schema-contract:start -->
-Return strict JSON matching this schema-derived output contract.
-Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
-
-Output shape:
-- `$` (required, object): Likely post-interview debrief questions.
-- `$.suggestions` (required, array): Suggested questions the candidate can answer from memory.
-- `$.suggestions[]` (required, object): One suggested debrief question.
-- `$.suggestions[].questionText` (required, string): Likely interview question.
-- `$.suggestions[].whyLikelyAsked` (required, string): Why this question is likely or useful.
-- `$.suggestions[].source` (required, string enum(jd, resume, mock_report, manual)): Context source that motivated the question.
-- `$.suggestions[].stage` (optional, string): Optional interview stage or topic grouping.
-
-Example complete JSON output:
-```json
-{
-  "suggestions": [
-    {
-      "questionText": "Tell me about a time you improved reliability in a distributed system.",
-      "whyLikelyAsked": "The JD emphasizes distributed systems and ownership of reliability.",
-      "source": "jd",
-      "stage": "onsite"
-    }
-  ]
-}
-```
-<!-- output-schema-contract:end -->
-
-Prefer concise questions the candidate can answer from memory. Do not include
-raw resume or report prose beyond the generated question.
-$body$, TRUE, '2026-05-16T00:00:00Z'),
   ('9bda6ff0-9fa2-5b18-8e98-243592fa1bf9', 'practice.session.first_question', 'v0.1.0', 'multi', '5275bb911bbf51ae57e04509cd64282aaed6ca75a8e4ed3e7fa660373f6565b8', $body$You are an experienced interviewer running a mock interview based on the
 candidate's target job. Generate the first question for the session, anchored
 in the role and the rubric the session will be scored against. Respond in the
@@ -580,8 +493,6 @@ $body$, TRUE, '2026-05-09T11:30:00Z')
 ON CONFLICT (feature_key, version, language) DO NOTHING;
 
 INSERT INTO rubric_versions (id, feature_key, version, language, schema_json, is_active, created_at) VALUES
-  ('8921c937-9ab1-52cc-9502-718bfb0a5461', 'debrief.generate', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Generated question analyses preserve the candidate's recorded interview beats.", "name": "debrief_recall_completeness", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.35}, {"description": "Question analyses name the underlying interview signal rather than restating the answer.", "name": "debrief_lesson_specificity", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.35}, {"description": "Risk items are concrete, severity-calibrated, and actionable for the next preparation round.", "name": "debrief_action_quality", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}], "feature_key": "debrief.generate", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-05-09T11:30:00Z'),
-  ('a8d1acd0-39d8-55ec-8ad4-cf4c8ef39948', 'debrief.suggest_questions', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Suggested questions cover the likely interview stages and the user's available context.", "name": "debrief_recall_completeness", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Rationales explain the signal behind each suggested question.", "name": "debrief_lesson_specificity", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.35}, {"description": "Output language matches the requested locale and uses stable source labels.", "name": "language_consistency", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.25}], "feature_key": "debrief.suggest_questions", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-05-16T00:00:00Z'),
   ('0c570c46-b7b6-5ff8-9c4e-01591e59d3a0', 'practice.session.first_question', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Question or follow-up probes deeply into the candidate's reasoning rather than staying on the surface.", "name": "practice_depth", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Across the session, rubric dimensions are exercised without leaving large blind spots.", "name": "practice_dimension_coverage", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}, {"description": "Output language matches the requested locale and uses consistent terminology.", "name": "language_consistency", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}], "feature_key": "practice.session.first_question", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-05-09T11:30:00Z'),
   ('673b43cf-3cda-5eed-8fa6-2872157da379', 'practice.session.follow_up', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Follow-up question targets the candidate's actual gap or signal rather than recycling the prior turn.", "name": "followup_relevance", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Question or follow-up probes deeply into the candidate's reasoning rather than staying on the surface.", "name": "practice_depth", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}, {"description": "Output language matches the requested locale and uses consistent terminology.", "name": "language_consistency", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}], "feature_key": "practice.session.follow_up", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-05-09T11:30:00Z'),
   ('b827bc4a-b976-53f1-a79d-f0fe9087905f', 'practice.turn.lightweight_observe', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "The cue or generated artifact surfaces a high-signal moment rather than commentary.", "name": "practice_signal_strength", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Output is unambiguous and parseable without re-reading.", "name": "practice_clarity", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Output language matches the requested locale and uses consistent terminology.", "name": "language_consistency", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.2}], "feature_key": "practice.turn.lightweight_observe", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-05-09T11:30:00Z'),

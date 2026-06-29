@@ -9,7 +9,8 @@
  *   - `#route=...` static-preview / pixel-parity entries still bootstrap
  *     through `normalizeRoute` and produce equivalent canonical paths.
  *   - Legacy aliases (`welcome`, `growth`, `plan`, `mistakes`, `drill`,
- *     `followup`, `experiences`, `star`, `onboarding`, standalone `voice`)
+ *     `followup`, `experiences`, `star`, `onboarding`, standalone `voice`,
+ *     `debrief`, `debrief_full`, `profile`)
  *     never materialize standalone screens, canonical paths, scenario
  *     names or TopBar entries.
  *   - Server SPA fallback returns `index.html` for canonical frontend
@@ -80,7 +81,7 @@ describe("E2E.P0.090 hash compatibility + legacy route negative regression", () 
     expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
   });
 
-  it("retired aliases via hash all normalize to retained routes (welcome / growth / plan / mistakes / drill / followup / experiences / star / onboarding / debrief_full)", () => {
+  it("retired aliases via hash all normalize to retained routes (welcome / growth / plan / mistakes / drill / followup / experiences / star / onboarding / debrief / debrief_full / profile)", () => {
     const cases: Array<[string, string]> = [
       ["#route=welcome", "/"],
       ["#route=growth", "/"],
@@ -91,7 +92,9 @@ describe("E2E.P0.090 hash compatibility + legacy route negative regression", () 
       ["#route=experiences", "/resume-versions"],
       ["#route=star", "/resume-versions"],
       ["#route=onboarding", "/resume-versions"],
-      ["#route=debrief_full", "/debrief"],
+      ["#route=debrief", "/"],
+      ["#route=debrief_full", "/"],
+      ["#route=profile", "/"],
     ];
     for (const [hash, expectedPath] of cases) {
       resetWindow();
@@ -130,6 +133,8 @@ describe("E2E.P0.090 hash compatibility + legacy route negative regression", () 
     expect(all).not.toContain("/experiences");
     expect(all).not.toContain("/star");
     expect(all).not.toContain("/onboarding");
+    expect(all).not.toContain("/debrief");
+    expect(all).not.toContain("/profile");
   });
 
   it("formatRouteUrl maps every retired alias to a retained canonical path", () => {
@@ -144,7 +149,9 @@ describe("E2E.P0.090 hash compatibility + legacy route negative regression", () 
       star: "/resume-versions",
       onboarding: "/resume-versions",
       voice: "/",
-      debrief_full: "/debrief",
+      debrief: "/",
+      debrief_full: "/",
+      profile: "/",
     };
     for (const [alias, expectedPath] of Object.entries(expectations)) {
       expect(formatRouteUrl({ name: alias, params: {} })).toBe(expectedPath);

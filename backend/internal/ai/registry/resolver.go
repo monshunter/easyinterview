@@ -104,10 +104,6 @@ func defaultModelProfile(featureKey string) string {
 		return "resume.tailor.default"
 	case featurekeys.ResumeTailorBulletSuggestions:
 		return "resume.tailor.default"
-	case featurekeys.DebriefGenerate:
-		return "debrief.generate.default"
-	case featurekeys.DebriefSuggestQuestions:
-		return "debrief.suggest_questions.default"
 	default:
 		return ""
 	}

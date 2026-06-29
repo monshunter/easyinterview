@@ -36,8 +36,6 @@ RESUME_TAILOR_FILE_ID      = u7(0x12)
 TARGET_JOB_ID_1            = u7(0x20)
 TARGET_JOB_ID_2            = u7(0x21)
 TARGET_JOB_ID_3            = u7(0x22)
-EXPERIENCE_CARD_ID_1       = u7(0x30)
-EXPERIENCE_CARD_ID_2       = u7(0x31)
 PRACTICE_PLAN_ID_1         = u7(0x40)
 PRACTICE_SESSION_ID_1      = u7(0x50)
 PRACTICE_SESSION_ID_2      = u7(0x51)
@@ -46,12 +44,10 @@ PRACTICE_TURN_ID_2         = u7(0x61)
 REPORT_ID_1                = u7(0x70)
 REPORT_ID_2                = u7(0x71)
 RESUME_TAILOR_RUN_ID       = u7(0x90)
-DEBRIEF_ID                 = u7(0xA0)
 JOB_ID_TARGET_IMPORT       = u7(0xB0)
 JOB_ID_RESUME_PARSE        = u7(0xB1)
 JOB_ID_REPORT_GENERATE     = u7(0xB2)
 JOB_ID_RESUME_TAILOR       = u7(0xB3)
-JOB_ID_DEBRIEF_GENERATE    = u7(0xB4)
 JOB_ID_PRIVACY_DELETE      = u7(0xB5)
 JOB_ID_PRIVACY_ME_DELETE   = u7(0xB6)
 PRIVACY_REQUEST_ID_DEL     = u7(0xC0)
@@ -102,12 +98,6 @@ PROV_RESUME_TAILOR = prov(
     FIXTURE_MODEL_PROFILE_ID, "zh-CN", "none",
     "target_job.v17",
 )
-PROV_DEBRIEF = prov(
-    "debrief_generate.v1", "not_applicable",
-    FIXTURE_MODEL_PROFILE_ID, "zh-CN", "none",
-    "debrief.v4",
-)
-
 
 # Generic fixture builder ------------------------------------------------------
 
@@ -207,7 +197,6 @@ FIXTURES[("Auth", "getRuntimeConfig")] = fixture(
         ("defaultUiLanguage", "zh-CN"),
         ("featureFlags", OrderedDict([
             ("ai_assistant_actions", True),
-            ("debrief_v2", True),
             ("resume_tailor_bullets", False),
         ])),
         ("appVersion", "1.0.0+dev.0428"),
@@ -237,93 +226,6 @@ FIXTURES[("Uploads", "createUploadPresign")] = fixture(
         ("fileName", "alice-resume-2026.pdf"),
         ("contentType", "application/pdf"),
         ("byteSize", 248192),
-    ]),
-)
-
-
-# ---------- Profile tag ------------------------------------------------------
-
-CANDIDATE_PROFILE = OrderedDict([
-    ("headline", "Senior frontend engineer focused on growth-stage SaaS"),
-    ("yearsOfExperience", 5),
-    ("currentRole", "Senior Frontend Engineer at Acme"),
-    ("preferredPracticeLanguage", "zh-CN"),
-    ("uiLanguage", "zh-CN"),
-    ("region", "CN-SH"),
-])
-
-FIXTURES[("Profile", "getMyProfile")] = fixture("getMyProfile", CANDIDATE_PROFILE)
-
-FIXTURES[("Profile", "updateMyProfile")] = fixture(
-    "updateMyProfile",
-    CANDIDATE_PROFILE,
-    request_body=OrderedDict([
-        ("headline", "Senior frontend engineer focused on growth-stage SaaS"),
-        ("region", "CN-SH"),
-    ]),
-)
-
-EXP_CARD_1 = OrderedDict([
-    ("id", EXPERIENCE_CARD_ID_1),
-    ("title", "Drove design-system migration across 12 product teams"),
-    ("companyName", "Acme"),
-    ("situation", "Acme had three competing design systems causing inconsistent UX across web."),
-    ("task", "Lead a unified design-system migration without freezing product roadmaps."),
-    ("action", "Authored RFC, established a 6-week parallel rollout, and paired with each team."),
-    ("result", "Reduced UI defect rate by 38%; 12/12 teams shipped on the unified system."),
-    ("skills", ["technical-leadership", "stakeholder-management", "frontend-architecture"]),
-    ("language", "zh-CN"),
-    ("createdAt", EARLIEST),
-    ("updatedAt", EARLIER),
-])
-
-EXP_CARD_2 = OrderedDict([
-    ("id", EXPERIENCE_CARD_ID_2),
-    ("title", "Cut p95 first-paint latency from 3.2s to 1.1s"),
-    ("companyName", "Acme"),
-    ("situation", "Marketing pages had >3s p95 first-paint after a CMS migration."),
-    ("task", "Restore first-paint within 1.5s without losing personalization."),
-    ("action", "Migrated to streaming SSR + edge cache; rewrote the personalization fetch path."),
-    ("result", "p95 first-paint = 1.1s; conversion lifted +9% on the landing funnel."),
-    ("skills", ["performance", "ssr", "edge-computing"]),
-    ("language", "zh-CN"),
-    ("createdAt", EARLIEST),
-    ("updatedAt", EARLIER),
-])
-
-FIXTURES[("Profile", "listExperienceCards")] = fixture(
-    "listExperienceCards",
-    OrderedDict([
-        ("items", [EXP_CARD_1, EXP_CARD_2]),
-        ("pageInfo", OrderedDict([
-            ("nextCursor", None),
-            ("pageSize", 20),
-            ("hasMore", False),
-        ])),
-    ]),
-)
-
-FIXTURES[("Profile", "createExperienceCard")] = fixture(
-    "createExperienceCard",
-    EXP_CARD_1,
-    status=201,
-    request_body=OrderedDict([
-        ("title", EXP_CARD_1["title"]),
-        ("companyName", EXP_CARD_1["companyName"]),
-        ("situation", EXP_CARD_1["situation"]),
-        ("task", EXP_CARD_1["task"]),
-        ("action", EXP_CARD_1["action"]),
-        ("result", EXP_CARD_1["result"]),
-        ("skills", EXP_CARD_1["skills"]),
-        ("language", EXP_CARD_1["language"]),
-    ]),
-)
-
-FIXTURES[("Profile", "updateExperienceCard")] = fixture(
-    "updateExperienceCard",
-    EXP_CARD_1,
-    request_body=OrderedDict([
-        ("result", EXP_CARD_1["result"]),
     ]),
 )
 
@@ -735,65 +637,6 @@ FIXTURES[("ResumeTailor", "requestResumeTailor")] = fixture(
 )
 
 FIXTURES[("ResumeTailor", "getResumeTailorRun")] = fixture("getResumeTailorRun", RESUME_TAILOR_RUN)
-
-
-# ---------- Debriefs ---------------------------------------------------------
-
-DEBRIEF = OrderedDict([
-    ("id", DEBRIEF_ID),
-    ("targetJobId", TARGET_JOB_ID_1),
-    ("status", "completed"),
-    ("roundType", "hiring_manager"),
-    ("interviewerRole", "hiring_manager"),
-    ("questions", [
-        OrderedDict([
-            ("questionText", "你过去推动跨团队 alignment 的最难一次是什么？"),
-            ("myAnswerSummary", "用 STAR 讲了设计系统迁移，但漏掉了财务影响的量化。"),
-            ("interviewerReaction", "追问了财务影响 2 次。"),
-            ("aiAnalysis", "下一轮提前准备 1-2 个量化的财务/运营指标作为后置 punchline。"),
-        ]),
-    ]),
-    ("riskItems", [
-        OrderedDict([("label", "缺少财务量化叙事"), ("severity", "medium")]),
-    ]),
-    ("provenance", PROV_DEBRIEF),
-    ("createdAt", EARLIER),
-    ("updatedAt", NOW),
-])
-
-FIXTURES[("Debriefs", "createDebrief")] = fixture(
-    "createDebrief",
-    OrderedDict([
-        ("debriefId", DEBRIEF_ID),
-        ("job", OrderedDict([
-            ("id", JOB_ID_DEBRIEF_GENERATE),
-            ("jobType", "debrief_generate"),
-            ("status", "queued"),
-            ("resourceType", "debrief"),
-            ("resourceId", DEBRIEF_ID),
-            ("errorCode", None),
-            ("createdAt", NOW),
-            ("updatedAt", NOW),
-        ])),
-    ]),
-    status=202,
-    request_body=OrderedDict([
-        ("targetJobId", TARGET_JOB_ID_1),
-        ("roundType", "hiring_manager"),
-        ("interviewerRole", "hiring_manager"),
-        ("language", "zh-CN"),
-        ("questions", [
-            OrderedDict([
-                ("questionText", "你过去推动跨团队 alignment 的最难一次是什么？"),
-                ("myAnswerSummary", "用 STAR 讲了设计系统迁移，但漏掉了财务影响的量化。"),
-                ("interviewerReaction", "追问了财务影响 2 次。"),
-            ]),
-        ]),
-        ("notes", "面试官非常关注 ROI 与量化叙事。"),
-    ]),
-)
-
-FIXTURES[("Debriefs", "getDebrief")] = fixture("getDebrief", DEBRIEF)
 
 
 # ---------- Jobs -------------------------------------------------------------

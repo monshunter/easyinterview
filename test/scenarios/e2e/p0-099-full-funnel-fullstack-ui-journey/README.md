@@ -50,6 +50,9 @@ pnpm --filter @easyinterview/frontend exec playwright test --config=playwright.e
   query params.
 - Browser URL/storage/console surfaces do not expose private JD text, answer
   text, or report prose.
+- TopBar, Home, routing, and report/practice UI surfaces do not expose debrief
+  or user-profile navigation, screens, pending actions, or first-party mock
+  transport branches.
 - Playwright output is confined to `.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/`.
 
 ## Cleanup

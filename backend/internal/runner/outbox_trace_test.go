@@ -10,11 +10,11 @@ import (
 func TestOutboxDispatcher_PropagatesTraceParent(t *testing.T) {
 	now := time.Date(2026, 5, 22, 12, 0, 0, 0, time.UTC)
 	store := newFakeOutboxStore()
-	store.enqueue("evt-1", "debrief.created", []byte(`{"traceparent":"`+sampleTraceparent+`"}`), now.Add(-time.Minute))
+	store.enqueue("evt-1", "report.generated", []byte(`{"traceparent":"`+sampleTraceparent+`"}`), now.Add(-time.Minute))
 
 	d := NewOutboxDispatcher(OutboxDispatcherOptions{Store: store, Now: fixedClock(now)})
 	var seen string
-	d.RegisterConsumer("debrief.created", OutboxConsumerFunc(func(ctx context.Context, _ OutboxEvent) error {
+	d.RegisterConsumer("report.generated", OutboxConsumerFunc(func(ctx context.Context, _ OutboxEvent) error {
 		seen = TraceIDFromContext(ctx)
 		return nil
 	}))
@@ -29,11 +29,11 @@ func TestOutboxDispatcher_PropagatesTraceParent(t *testing.T) {
 func TestOutboxDispatcher_WarnsOnMissingTrace(t *testing.T) {
 	now := time.Date(2026, 5, 22, 12, 0, 0, 0, time.UTC)
 	store := newFakeOutboxStore()
-	store.enqueue("evt-1", "debrief.created", []byte(`{}`), now.Add(-time.Minute))
+	store.enqueue("evt-1", "report.generated", []byte(`{}`), now.Add(-time.Minute))
 
 	capture := newCapturingHandler()
 	d := NewOutboxDispatcher(OutboxDispatcherOptions{Store: store, Now: fixedClock(now), Logger: slog.New(capture)})
-	d.RegisterConsumer("debrief.created", OutboxConsumerFunc(func(context.Context, OutboxEvent) error { return nil }))
+	d.RegisterConsumer("report.generated", OutboxConsumerFunc(func(context.Context, OutboxEvent) error { return nil }))
 
 	published, err := d.RunOnce(context.Background())
 	if err != nil {

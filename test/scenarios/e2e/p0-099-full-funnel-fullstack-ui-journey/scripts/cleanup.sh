@@ -20,7 +20,7 @@ with stale_users as (
   where email = 'full-funnel-journey@example.com'
 ),
 owned_resources as (
-  select id from resume_assets where user_id in (select id from stale_users)
+  select id from resumes where user_id in (select id from stale_users)
   union select id from target_jobs where user_id in (select id from stale_users)
   union select id from practice_plans where user_id in (select id from stale_users)
   union select id from practice_sessions where user_id in (select id from stale_users)
@@ -33,7 +33,7 @@ with stale_users as (
   where email = 'full-funnel-journey@example.com'
 ),
 owned_resources as (
-  select id from resume_assets where user_id in (select id from stale_users)
+  select id from resumes where user_id in (select id from stale_users)
   union select id from target_jobs where user_id in (select id from stale_users)
   union select id from practice_plans where user_id in (select id from stale_users)
   union select id from practice_sessions where user_id in (select id from stale_users)
@@ -46,7 +46,7 @@ with stale_users as (
   where email = 'full-funnel-journey@example.com'
 ),
 owned_resources as (
-  select id from resume_assets where user_id in (select id from stale_users)
+  select id from resumes where user_id in (select id from stale_users)
   union select id from target_jobs where user_id in (select id from stale_users)
   union select id from practice_plans where user_id in (select id from stale_users)
   union select id from practice_sessions where user_id in (select id from stale_users)

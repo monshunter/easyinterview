@@ -32,7 +32,7 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
 均使用 chromium 引擎），依次执行：
 
 - `tests/pixel-parity/topbar.spec.ts` — TopBar DOM 锚点 + computed style
-  parity（四入口、显示控制、语言 dropdown、authenticated 头像菜单 dropdown /
+  parity（三入口、显示控制、语言 dropdown、authenticated 头像菜单 dropdown /
   logout flow、ui-design 对照与 mode/aria contract）。
 - `tests/pixel-parity/screens.spec.ts` — auth_login 卡片 shell DOM 锚点 +
   ui-design hash route `#route=auth_login` 对照 + retired-module 负向断言。
@@ -53,8 +53,8 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
   `resume-workshop-branch-rewrites-edit.spec.ts` — Resume Workshop flat list、
   upload/paste create flow、rewrites/edit/detail parity 与 retired tree/branch/guided
   负向断言。
-- `tests/pixel-parity/practice.spec.ts`、`generating.spec.ts`、`report.spec.ts`、
-  `debrief.spec.ts` — 面试、生成、报告与复盘核心页面 DOM、布局、主题与
+- `tests/pixel-parity/practice.spec.ts`、`generating.spec.ts`、`report.spec.ts`
+  — 面试、生成与报告核心页面 DOM、布局、主题与
   screenshot smoke。
 
 `webServer` 由 `frontend/scripts/serve-pixel-parity.mjs` 提供（Node 内置
@@ -62,8 +62,8 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
 
 ## 3 Then
 
-- 全部 Playwright 用例（14 个 spec × 2 project）PASS、0 failed。
-- TopBar 四入口 testid 在两个 project 下都存在；TopBar shell 高 58 / padding
+- 全部 Playwright 用例（13 个 spec × 2 project）PASS、0 failed。
+- TopBar 三入口 testid 在两个 project 下都存在；TopBar shell 高 58 / padding
   0 32 / border-bottom 1px solid `rgb(231, 226, 214)`。
 - 默认 home 渲染 `topbar-nav-home[aria-current=page]`、`topbar-dark-toggle`
   `aria-pressed=false`、语言 dropdown 暴露 `topbar-lang-option-zh` /
@@ -71,7 +71,7 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
   独立 voice）testid 不可达。
 - authenticated user menu 通过 mocked auth API 完成 login → avatar chip → dropdown
   → logout：dropdown 对齐 `ui-design/src/app.jsx` 的 220px 最小宽度、6px top gap、
-  header / profile / settings / logout 项；mobile 下菜单保持在 viewport 内。
+  header / settings / logout 项；mobile 下菜单保持在 viewport 内。
 - auth_login 渲染 `ei-auth-shell` 双列（desktop）或单列（mobile，760px 媒体
   查询）；卡片 padding 28px；ei-text-display 头部字号 48px。
 - dark toggle 把 `<html data-mode>` 翻到 `dark`、`--ei-color-bg-canvas`
@@ -100,7 +100,7 @@ pnpm --filter @easyinterview/frontend test:pixel-parity:install
 `.test-output/e2e/p0-006-ui-design-pixel-parity-gate/trigger.log`。
 `verify.sh` 断言日志包含 passing summary 且没有 failed summary，并 grep
 retired-module testid 不在 trigger 输出里的 failing trace 出现，同时确认当前
-14 个 parity spec 已实际执行。
+13 个 parity spec 已实际执行。
 
 ## 5 污染控制
 

@@ -40,8 +40,6 @@ EXPECTED_BASELINE_TABLES = [
     "schema_backfills",
     "users",
     "user_settings",
-    "candidate_profiles",
-    "experience_cards",
     "file_objects",
     "resume_assets",
     "resume_versions",
@@ -57,7 +55,6 @@ EXPECTED_BASELINE_TABLES = [
     "feedback_reports",
     "question_assessments",
     "resume_tailor_runs",
-    "debriefs",
     "source_records",
     "prompt_versions",
     "rubric_versions",
@@ -93,7 +90,7 @@ REMOVED_PRODUCT_SCOPE_TOKENS = [
 ]
 PRODUCT_SCOPE_REQUIRED_FRAGMENTS = [
     ("target_jobs.open_question_issue_count", "open_question_issue_count integer not null default 0"),
-    ("practice_plans.goal", "goal text not null check (goal in ('baseline', 'retry_current_round', 'next_round', 'debrief'))"),
+    ("practice_plans.goal", "goal text not null check (goal in ('baseline', 'retry_current_round', 'next_round'))"),
     ("practice_plans.mode", "mode text not null check (mode in ('assisted', 'strict'))"),
     ("idempotency_records.unique_key", "unique (user_id, domain, operation, idempotency_key_hash)"),
     ("idempotency_records.expires_at_index", "create index idx_idempotency_records_expires_at on idempotency_records (expires_at)"),
@@ -141,7 +138,6 @@ FEATURE_KEY_REQUIRED_FRAGMENTS = {
 }
 
 B1_SOURCE_MAP = {
-    "experience_cards.confidence": "Confidence",
     "resume_assets.parse_status": "TargetJobParseStatus",
     "target_jobs.status": "TargetJobStatus",
     "target_jobs.analysis_status": "TargetJobParseStatus",
@@ -154,7 +150,6 @@ B1_SOURCE_MAP = {
     "question_assessments.overall_status": "DimensionStatus",
     "question_assessments.confidence": "Confidence",
     "question_assessments.review_status": "QuestionReviewStatus",
-    "debriefs.status": "DebriefStatus",
     "async_jobs.status": "JobStatus",
     "privacy_requests.request_type": "PrivacyRequestType",
     "privacy_requests.status": "PrivacyRequestStatus",

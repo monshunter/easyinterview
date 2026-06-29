@@ -6,9 +6,11 @@
 
 ## 1 进行中（Active）
 
-*暂无 active 计划文档；本次只创建产品范围真理源 `spec.md` / `history.md` / `plans/INDEX.md`，不生成实现计划。后续若修改 P0/P1 用户行为、恢复旧模块或调整工程阶段，必须在本 subject 下创建对应 plan / checklist / context.yaml。*
+| 计划 | 文件 | 版本 | 状态 | 更新日期 |
+|------|------|------|------|----------|
 
 ## 2 已完成（Completed）
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
+| Core Loop Module Pruning | [plan](./001-core-loop-module-pruning/plan.md) / [checklist](./001-core-loop-module-pruning/checklist.md) / [context](./001-core-loop-module-pruning/context.yaml) / [bdd-plan](./001-core-loop-module-pruning/bdd-plan.md) / [bdd-checklist](./001-core-loop-module-pruning/bdd-checklist.md) | 1.0 | completed | 2026-06-29 |

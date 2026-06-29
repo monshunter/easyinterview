@@ -24,17 +24,16 @@ var priorityOrder = []Priority{PriorityCritical, PriorityDefault, PriorityLow}
 
 // defaultJobTypePriority is the spec D-9 fixed assignment over the currently
 // executable job_type values. privacy_export is not registered by this plan
-// and intentionally absent; the jd_match job types were removed with the
-// module per product-scope v2.1 D-17.
+// and intentionally absent; the jd_match and debrief job types were removed
+// with their modules per product-scope D-17/D-22.
 var defaultJobTypePriority = map[jobs.JobType]Priority{
-	jobs.JobTypeReportGenerate:   PriorityCritical,
-	jobs.JobTypePrivacyDelete:    PriorityCritical,
-	jobs.JobTypeTargetImport:     PriorityDefault,
-	jobs.JobTypeResumeParse:      PriorityDefault,
-	jobs.JobTypeResumeTailor:     PriorityDefault,
-	jobs.JobTypeDebriefGenerate:  PriorityDefault,
-	jobs.JobTypeSourceRefresh:    PriorityLow,
-	jobs.JobTypeEmailDispatch:    PriorityLow,
+	jobs.JobTypeReportGenerate: PriorityCritical,
+	jobs.JobTypePrivacyDelete:  PriorityCritical,
+	jobs.JobTypeTargetImport:   PriorityDefault,
+	jobs.JobTypeResumeParse:    PriorityDefault,
+	jobs.JobTypeResumeTailor:   PriorityDefault,
+	jobs.JobTypeSourceRefresh:  PriorityLow,
+	jobs.JobTypeEmailDispatch:  PriorityLow,
 }
 
 // PriorityForJobType returns the spec D-9 bucket for jobType, defaulting to

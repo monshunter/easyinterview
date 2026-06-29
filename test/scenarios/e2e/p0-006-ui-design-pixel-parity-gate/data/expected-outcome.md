@@ -2,14 +2,14 @@
 
 - Playwright `webServer` 在端口 4173 起来后健康检查 `/health` 返回 200。
 - desktop（1440×900）+ mobile（390×844）两个 chromium project 各跑：
-  - `topbar.spec.ts`：4 入口 testid、ui-design 当前 nav 文本、
+  - `topbar.spec.ts`：3 入口 testid、ui-design 当前 nav 文本、
     TopBar height ~58 / padding 32 / border-bottom 1px、aria-current 与
     aria-pressed 默认值、语言 dropdown 选项、authenticated user menu
     dropdown + logout flow parity。
   - `screens.spec.ts`：navigates to auth_login + ei-auth-shell
     渲染、ei-text-display 头部、ei-auth-eyebrow 字体族、ui-design hash
     route h1 hero、auth_login 卡片 padding 28、retired entries 0 命中。
-  - `layout.spec.ts`：TopBar fits viewport、四入口不重叠、display
+  - `layout.spec.ts`：TopBar fits viewport、三入口不重叠、display
     controls + user area 不重叠、auth_login 两栏在 desktop 双列 / mobile
     单列堆叠。
   - `screenshot.spec.ts`：home warm/light screenshot smoke、dark
@@ -25,8 +25,8 @@
     `resume-workshop-branch-rewrites-edit.spec.ts`：flat list、upload/paste
     create flow、rewrites/edit/detail parity、retired tree/branch/guided
     negative。
-  - `practice.spec.ts` / `generating.spec.ts` / `report.spec.ts` /
-    `debrief.spec.ts`：面试、生成、报告与复盘页面 parity。
+  - `practice.spec.ts` / `generating.spec.ts` / `report.spec.ts`：
+    面试、生成与报告页面 parity。
 - trigger.log 必须出现：
   - Playwright passed summary
   - 不含 failed summary

@@ -33,11 +33,11 @@ const ROUTE_ALIASES: Record<string, RouteName> = {
   // product-scope D-16: passwordless email code is the only sign-in flow.
   // The retired reset page folds back into the single login entry.
   auth_reset: "auth_login",
-  // Historical full-screen debrief route. The current product collapses both
-  // entry points into a single `debrief` route per
-  // docs/spec/frontend-debrief/spec.md §2.2; the alias prevents legacy
-  // bookmarks / saved state from materializing a standalone screen.
-  debrief_full: "debrief",
+  // product-scope D-22: debrief and user profile are deleted. Legacy saved
+  // state and deep links fold back to home instead of materializing screens.
+  debrief: "home",
+  debrief_full: "home",
+  profile: "home",
 };
 
 export function normalizeRouteName(raw: string): RouteName {

@@ -14,5 +14,8 @@
 - Network capture includes baseline and `next_round` `POST /practice/plans`
   bodies.
 - Browser privacy checks pass for URL, localStorage, sessionStorage, and console.
+- UI source surfaces scanned by the wrapper do not contain `DebriefScreen`,
+  `ProfileScreen`, `topbar-nav-debrief`, `topbar-user-profile`,
+  `home-aux-debrief`, `debriefId`, or `debriefJobId`.
 - Trigger logs contain a Playwright pass marker and no skip/no-test/fail marker.
 - Playwright artifacts stay under `.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/`.

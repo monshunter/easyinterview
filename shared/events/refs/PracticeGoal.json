@@ -4,8 +4,7 @@
   "enum": [
     "baseline",
     "retry_current_round",
-    "next_round",
-    "debrief"
+    "next_round"
   ],
   "title": "PracticeGoal",
   "type": "string"

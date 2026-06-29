@@ -12,7 +12,7 @@ import (
 // C-domain handler packages must implement this interface; the runtime
 // router (registered by RegisterHandlers) dispatches by `(method, path)` to
 // the corresponding ServerInterface method. operationId order matches the
-// 43-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
+// 35-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 
 	// startAuthEmailChallenge — post /auth/email/start: Issue a passwordless email-code challenge
@@ -23,15 +23,6 @@ type ServerInterface interface {
 
 	// logout — post /auth/logout: Invalidate the current session
 	Logout(w http.ResponseWriter, r *http.Request)
-
-	// createDebrief — post /debriefs: Create a real-interview debrief and trigger augmented summary
-	CreateDebrief(w http.ResponseWriter, r *http.Request)
-
-	// suggestDebriefQuestions — post /debriefs/question-suggestions: Suggest likely debrief questions for a real interview
-	SuggestDebriefQuestions(w http.ResponseWriter, r *http.Request)
-
-	// getDebrief — get /debriefs/{debriefId}: Get a real-interview debrief
-	GetDebrief(w http.ResponseWriter, r *http.Request, debriefId string)
 
 	// getJob — get /jobs/{jobId}: Poll the status of an async job
 	GetJob(w http.ResponseWriter, r *http.Request, jobId string)
@@ -77,21 +68,6 @@ type ServerInterface interface {
 
 	// getPrivacyRequest — get /privacy/requests/{privacyRequestId}: Get a privacy request status / result
 	GetPrivacyRequest(w http.ResponseWriter, r *http.Request, privacyRequestId string)
-
-	// getMyProfile — get /profiles/me: Get my candidate profile
-	GetMyProfile(w http.ResponseWriter, r *http.Request)
-
-	// updateMyProfile — patch /profiles/me: Update my candidate profile (Lite)
-	UpdateMyProfile(w http.ResponseWriter, r *http.Request)
-
-	// listExperienceCards — get /profiles/me/experience-cards: List my experience cards (cursor-paginated)
-	ListExperienceCards(w http.ResponseWriter, r *http.Request)
-
-	// createExperienceCard — post /profiles/me/experience-cards: Create an experience card
-	CreateExperienceCard(w http.ResponseWriter, r *http.Request)
-
-	// updateExperienceCard — patch /profiles/me/experience-cards/{cardId}: Update an experience card
-	UpdateExperienceCard(w http.ResponseWriter, r *http.Request, cardId string)
 
 	// getFeedbackReport — get /reports/{reportId}: Get a feedback report (still-generating reports return 200 with placeholder)
 	GetFeedbackReport(w http.ResponseWriter, r *http.Request, reportId string)
@@ -161,9 +137,6 @@ var AllRoutes = []Route{
 	{OperationID: "startAuthEmailChallenge", Method: "post", Path: "/auth/email/start", PathParams: nil},
 	{OperationID: "verifyAuthEmailChallenge", Method: "get", Path: "/auth/email/verify", PathParams: nil},
 	{OperationID: "logout", Method: "post", Path: "/auth/logout", PathParams: nil},
-	{OperationID: "createDebrief", Method: "post", Path: "/debriefs", PathParams: nil},
-	{OperationID: "suggestDebriefQuestions", Method: "post", Path: "/debriefs/question-suggestions", PathParams: nil},
-	{OperationID: "getDebrief", Method: "get", Path: "/debriefs/{debriefId}", PathParams: []string{"debriefId"}},
 	{OperationID: "getJob", Method: "get", Path: "/jobs/{jobId}", PathParams: []string{"jobId"}},
 	{OperationID: "deleteMe", Method: "delete", Path: "/me", PathParams: nil},
 	{OperationID: "getMe", Method: "get", Path: "/me", PathParams: nil},
@@ -179,11 +152,6 @@ var AllRoutes = []Route{
 	{OperationID: "requestPrivacyDelete", Method: "post", Path: "/privacy/deletions", PathParams: nil},
 	{OperationID: "requestPrivacyExport", Method: "post", Path: "/privacy/exports", PathParams: nil},
 	{OperationID: "getPrivacyRequest", Method: "get", Path: "/privacy/requests/{privacyRequestId}", PathParams: []string{"privacyRequestId"}},
-	{OperationID: "getMyProfile", Method: "get", Path: "/profiles/me", PathParams: nil},
-	{OperationID: "updateMyProfile", Method: "patch", Path: "/profiles/me", PathParams: nil},
-	{OperationID: "listExperienceCards", Method: "get", Path: "/profiles/me/experience-cards", PathParams: nil},
-	{OperationID: "createExperienceCard", Method: "post", Path: "/profiles/me/experience-cards", PathParams: nil},
-	{OperationID: "updateExperienceCard", Method: "patch", Path: "/profiles/me/experience-cards/{cardId}", PathParams: []string{"cardId"}},
 	{OperationID: "getFeedbackReport", Method: "get", Path: "/reports/{reportId}", PathParams: []string{"reportId"}},
 	{OperationID: "requestResumeTailor", Method: "post", Path: "/resume/tailor", PathParams: nil},
 	{OperationID: "getResumeTailorRun", Method: "get", Path: "/resume/tailor-runs/{tailorRunId}", PathParams: []string{"tailorRunId"}},

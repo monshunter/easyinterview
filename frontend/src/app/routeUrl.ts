@@ -28,12 +28,10 @@ export const ROUTE_TO_PATH: Readonly<Record<RouteName, string>> = {
   home: "/",
   workspace: "/workspace",
   resume_versions: "/resume-versions",
-  debrief: "/debrief",
   parse: "/parse",
   practice: "/practice",
   generating: "/generating",
   report: "/report",
-  profile: "/profile",
   settings: "/settings",
   auth_login: "/auth/login",
   auth_verify: "/auth/verify",
@@ -53,6 +51,9 @@ export const LEGACY_PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = new Map([
   // product-scope D-18: the company intel detail route is deleted; old deep
   // links land on workspace where the embedded card lives.
   ["/company-intel", "workspace"],
+  // product-scope D-22: debrief and user profile modules are deleted.
+  ["/debrief", "home"],
+  ["/profile", "home"],
 ]);
 
 const PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = (() => {
@@ -85,7 +86,6 @@ const WORKSPACE_SAFE = new Set([
   "hintCount",
   "autoStartPractice",
   "language",
-  "debriefId",
 ]);
 
 const PRACTICE_SAFE = new Set([
@@ -103,7 +103,6 @@ const PRACTICE_SAFE = new Set([
   "practiceMode",
   "practiceGoal",
   "language",
-  "debriefId",
 ]);
 
 const GENERATING_SAFE = new Set([
@@ -152,23 +151,6 @@ const RESUME_VERSIONS_SAFE = new Set([
   "tailorRunId",
 ]);
 
-const DEBRIEF_SAFE = new Set([
-  "targetJobId",
-  "jobId",
-  "jdId",
-  "sessionId",
-  "resumeId",
-  "roundId",
-  "roundName",
-  "mode",
-  "modality",
-  "practiceMode",
-  "practiceGoal",
-  "language",
-  "debriefId",
-  "debriefJobId",
-]);
-
 const PARSE_SAFE = new Set([
   "jdId",
   "targetJobId",
@@ -207,12 +189,10 @@ const ROUTE_SAFE_PARAMS: Readonly<Record<RouteName, ReadonlySet<string>>> = {
   home: HOME_SAFE,
   workspace: WORKSPACE_SAFE,
   resume_versions: RESUME_VERSIONS_SAFE,
-  debrief: DEBRIEF_SAFE,
   parse: PARSE_SAFE,
   practice: PRACTICE_SAFE,
   generating: GENERATING_SAFE,
   report: REPORT_SAFE,
-  profile: new Set<string>(),
   settings: SETTINGS_SAFE,
   auth_login: AUTH_LOGIN_BASE,
   auth_verify: AUTH_VERIFY_BASE,

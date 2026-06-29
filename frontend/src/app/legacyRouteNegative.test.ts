@@ -3,7 +3,7 @@
  *
  * Asserts that retired routes (`welcome`, `growth`, `plan`, `mistakes`,
  * `drill`, `followup`, `experiences`, `star`, `onboarding`, standalone
- * `voice`) never materialize as:
+ * `voice`, `debrief`, `profile`) never materialize as:
  *   - canonical paths emitted by `formatRouteUrl`
  *   - SPA fallback paths in `spaFallback.FRONTEND_CANONICAL_PATHS`
  *   - TopBar primary nav entries
@@ -33,7 +33,9 @@ const RETIRED_ALIASES = [
   "star",
   "onboarding",
   "voice",
+  "debrief",
   "debrief_full",
+  "profile",
 ] as const;
 
 const RETIRED_PATHS = [
@@ -47,7 +49,9 @@ const RETIRED_PATHS = [
   "/star",
   "/onboarding",
   "/voice",
+  "/debrief",
   "/debrief-full",
+  "/profile",
 ] as const;
 
 describe("Plan 004 Phase 4.2 — legacy route negative regression", () => {
@@ -82,7 +86,9 @@ describe("Plan 004 Phase 4.2 — legacy route negative regression", () => {
       star: "/resume-versions",
       onboarding: "/resume-versions",
       voice: "/",
-      debrief_full: "/debrief",
+      debrief: "/",
+      debrief_full: "/",
+      profile: "/",
     };
     for (const alias of RETIRED_ALIASES) {
       const url = formatRouteUrl({ name: alias, params: {} });
@@ -115,12 +121,11 @@ describe("Plan 004 Phase 4.2 — legacy route negative regression", () => {
     }
   });
 
-  it("PRIMARY_NAV_ROUTES contains exactly the 4 retained primary nav entries (D-17)", () => {
+  it("PRIMARY_NAV_ROUTES contains exactly the 3 retained primary nav entries (D-22)", () => {
     expect(PRIMARY_NAV_ROUTES).toEqual([
       "home",
       "workspace",
       "resume_versions",
-      "debrief",
     ]);
     for (const alias of RETIRED_ALIASES) {
       expect(

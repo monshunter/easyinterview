@@ -1,8 +1,8 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.15
+> **版本**: 2.16
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-06-29
 
 ## 1 背景与目标
 
@@ -154,7 +154,7 @@
 | Profile 文件内容 | F3 + 各 AI feature owner | F3 owns feature_key -> model_profile_name；A3 owns profile schema；业务 owner 负责新增场景时补 profile |
 | Profile 文件路径 / secret 注入 | A4 | `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 与 provider-specific env secret ref |
 | 真实 provider endpoint | A3 + A4 + E4/运维 | 非测试本地 app run 可直连真实 AI provider；未来 staging / prod 可接运维提供的 provider endpoint；本 spec 不部署独立代理 |
-| 业务调用现场 | `backend-targetjob` / `backend-practice` / `backend-review` / `backend-resume` / `backend-debrief` / future retrieval / production voice owners | 各业务 spec / plan 引用 profile name，不引用 provider/model |
+| 业务调用现场 | `backend-targetjob` / `backend-practice` / `backend-review` / `backend-resume` / future retrieval / production voice owners | 各业务 spec / plan 引用 profile name，不引用 provider/model；`backend-debrief` 已随 product-scope D-22 删除 |
 | 共享约定 | B1 | `AI_*` 错误码、AI capability、provider registry/profile 字段名、AI meta 字段名共享常量、`ApiError` / `ApiErrorResponse` 消费约定 |
 | DB 表 | B4 | `ai_task_runs` schema |
 | Metric / Dashboard | F1 | 7 个 ai_* metric + AI Cost & Quality Dashboard；任何 label 迁移（例如从旧任务分类 label 迁到 `capability`）必须先由 F1 spec / plan 承接 |

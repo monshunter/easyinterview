@@ -48,8 +48,6 @@ type SessionReservation struct {
 	InterviewerPersona         sharedtypes.InterviewerRole
 	Language                   string
 	HintsEnabled               bool
-	DebriefFirstQuestionText   string
-	DebriefFirstQuestionIntent string
 	RoleTitle                  string
 	Seniority                  string
 	TopSkills                  []string
@@ -181,13 +179,6 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 }
 
 func (s *Service) firstQuestionForReservation(ctx context.Context, userID string, reservation SessionReservation) (firstQuestion, error) {
-	if reservation.Goal == sharedtypes.PracticeGoalDebrief {
-		question, err := debriefSourceFirstQuestion(reservation)
-		if err != nil {
-			return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, err)
-		}
-		return question, nil
-	}
 	if s.registry == nil {
 		return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, aiConfigError())
 	}
@@ -229,21 +220,6 @@ func (s *Service) failReservedSessionStart(ctx context.Context, userID string, r
 		return failErr
 	}
 	return svcErr
-}
-
-func debriefSourceFirstQuestion(reservation SessionReservation) (firstQuestion, error) {
-	text := strings.TrimSpace(reservation.DebriefFirstQuestionText)
-	if text == "" {
-		return firstQuestion{}, validationError("debrief source question is not available", map[string]any{
-			"field": "sourceDebriefId",
-			"goal":  string(sharedtypes.PracticeGoalDebrief),
-		})
-	}
-	intent := strings.TrimSpace(reservation.DebriefFirstQuestionIntent)
-	if intent == "" {
-		intent = "debrief.source_question"
-	}
-	return firstQuestion{Text: text, Intent: intent}, nil
 }
 
 func aiConfigError() *ServiceError {

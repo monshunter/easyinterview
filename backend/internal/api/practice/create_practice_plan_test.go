@@ -71,38 +71,6 @@ func TestCreatePracticePlanReturns422ForValidationError(t *testing.T) {
 	}
 }
 
-func TestCreatePracticePlanMapsDerivedSourceIds(t *testing.T) {
-	sourceDebriefID := "01918fa0-0000-7000-8000-00000000d001"
-	service := &fakePlanService{
-		record: func() domain.PlanRecord {
-			plan := fixturePlanRecord()
-			plan.Goal = sharedtypes.PracticeGoalDebrief
-			plan.SourceDebriefID = sourceDebriefID
-			return plan
-		}(),
-	}
-	handler := newTestHandler(service)
-	body := fixtureCreatePlanRequest()
-	body.Goal = sharedtypes.PracticeGoalDebrief
-	body.SourceDebriefId = &sourceDebriefID
-
-	rec := httptest.NewRecorder()
-	handler.CreatePracticePlan(rec, newCreatePlanHTTPRequest(t, body))
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
-	}
-	if service.last.SourceDebriefID != sourceDebriefID {
-		t.Fatalf("sourceDebriefId not mapped to service: %+v", service.last)
-	}
-	var out api.PracticePlan
-	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
-		t.Fatalf("decode PracticePlan: %v", err)
-	}
-	if out.SourceDebriefId == nil || *out.SourceDebriefId != sourceDebriefID {
-		t.Fatalf("sourceDebriefId not mapped to response: %+v", out)
-	}
-}
-
 func TestCreatePracticePlanUsesIdempotencyReplay(t *testing.T) {
 	service := &fakePlanService{record: fixturePlanRecord()}
 	handler := newTestHandler(service)
@@ -128,89 +96,6 @@ func TestCreatePracticePlanUsesIdempotencyReplay(t *testing.T) {
 	}
 	if service.calls != 1 {
 		t.Fatalf("idempotency replay should call service once, got %d", service.calls)
-	}
-}
-
-func TestCreatePracticePlanIdempotencyReplayPreservesDerivedSource(t *testing.T) {
-	sourceDebriefID := "01918fa0-0000-7000-8000-00000000d001"
-	service := &fakePlanService{
-		record: func() domain.PlanRecord {
-			plan := fixturePlanRecord()
-			plan.Goal = sharedtypes.PracticeGoalDebrief
-			plan.SourceDebriefID = sourceDebriefID
-			return plan
-		}(),
-	}
-	handler := newTestHandler(service)
-	store := newRouteMemoryStore()
-	mw := idempotency.New(idempotency.MiddlewareOptions{
-		Store: store,
-		Now:   func() time.Time { return time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC) },
-		NewID: func() string { return "idempotency-record-1" },
-	})
-	route := mw.Handler("practice", "createPracticePlan", userFromRequestContext, http.HandlerFunc(handler.CreatePracticePlan))
-
-	reqBody := fixtureCreatePlanRequest()
-	reqBody.Goal = sharedtypes.PracticeGoalDebrief
-	reqBody.SourceDebriefId = &sourceDebriefID
-	first := httptest.NewRecorder()
-	route.ServeHTTP(first, newCreatePlanHTTPRequest(t, reqBody))
-	second := httptest.NewRecorder()
-	route.ServeHTTP(second, newCreatePlanHTTPRequest(t, reqBody))
-
-	if first.Code != http.StatusCreated || second.Code != http.StatusCreated {
-		t.Fatalf("unexpected statuses: first=%d second=%d secondBody=%s", first.Code, second.Code, second.Body.String())
-	}
-	if second.Header().Get(idempotency.ReplayHeader) != "true" {
-		t.Fatalf("expected idempotency replay header on second response")
-	}
-	var out api.PracticePlan
-	if err := json.Unmarshal(second.Body.Bytes(), &out); err != nil {
-		t.Fatalf("decode replay response: %v", err)
-	}
-	if out.SourceDebriefId == nil || *out.SourceDebriefId != sourceDebriefID {
-		t.Fatalf("replay lost sourceDebriefId: %+v", out)
-	}
-	if service.calls != 1 {
-		t.Fatalf("idempotency replay should call service once, got %d", service.calls)
-	}
-}
-
-func TestCreatePracticePlanIdempotencyRejectsDifferentSourceWithSameKey(t *testing.T) {
-	sourceDebriefID := "01918fa0-0000-7000-8000-00000000d001"
-	otherDebriefID := "01918fa0-0000-7000-8000-00000000d002"
-	service := &fakePlanService{
-		record: func() domain.PlanRecord {
-			plan := fixturePlanRecord()
-			plan.Goal = sharedtypes.PracticeGoalDebrief
-			plan.SourceDebriefID = sourceDebriefID
-			return plan
-		}(),
-	}
-	handler := newTestHandler(service)
-	store := newRouteMemoryStore()
-	mw := idempotency.New(idempotency.MiddlewareOptions{
-		Store: store,
-		Now:   func() time.Time { return time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC) },
-		NewID: func() string { return "idempotency-record-1" },
-	})
-	route := mw.Handler("practice", "createPracticePlan", userFromRequestContext, http.HandlerFunc(handler.CreatePracticePlan))
-
-	reqBody := fixtureCreatePlanRequest()
-	reqBody.Goal = sharedtypes.PracticeGoalDebrief
-	reqBody.SourceDebriefId = &sourceDebriefID
-	first := httptest.NewRecorder()
-	route.ServeHTTP(first, newCreatePlanHTTPRequest(t, reqBody))
-	reqBody.SourceDebriefId = &otherDebriefID
-	second := httptest.NewRecorder()
-	route.ServeHTTP(second, newCreatePlanHTTPRequest(t, reqBody))
-
-	if first.Code != http.StatusCreated || second.Code != http.StatusConflict {
-		t.Fatalf("unexpected statuses: first=%d second=%d secondBody=%s", first.Code, second.Code, second.Body.String())
-	}
-	assertAPIError(t, second, sharederrors.CodeIdempotencyKeyMismatch, false)
-	if service.calls != 1 {
-		t.Fatalf("fingerprint mismatch should not call service again, got %d", service.calls)
 	}
 }
 
@@ -457,7 +342,6 @@ func planRecordFromFixture(plan api.PracticePlan) domain.PlanRecord {
 		ID:                 plan.Id,
 		TargetJobID:        plan.TargetJobId,
 		SourceReportID:     stringValue(plan.SourceReportId),
-		SourceDebriefID:    stringValue(plan.SourceDebriefId),
 		Goal:               plan.Goal,
 		Mode:               plan.Mode,
 		InterviewerPersona: plan.InterviewerPersona,

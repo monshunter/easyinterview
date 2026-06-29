@@ -19,7 +19,7 @@
 - 实现 `candidate_profiles` 与 `experience_cards` store Repository（CRUD + cross-user + cursor pagination + privacy delete + source counts）；
 - 在 `cmd/api` 挂载 5 个 route + session middleware + IK middleware（仅 experience card CUD），并验证真实 HTTP runtime；
 - 携带 [B2 cross-owner additive](../../../openapi-v1-contract/spec.md) 修订（在 `createExperienceCard` / `updateExperienceCard` 添加 `IdempotencyKey` parameter $ref + fixtures 增补 IK header 示例 + inventory 重算 + spec D-X 锁定），与本 plan Phase 1 同步落地；
-- 暴露 `DeleteCandidateProfileForUser(userId)` internal API + `CountExperienceCardsBySource(userId)` internal API + `GetCandidateProfileForUser(userId)` internal API（[spec D-13](../../spec.md#31-已锁定决策)，read-only / 不触发 seed 副作用 / 缺失返回 nil），供 backend internal privacy runner + [backend-jobs-recommendations](../../../backend-jobs-recommendations/spec.md) `getJobMatchProfile` aggregation 消费；
+- 暴露 `DeleteCandidateProfileForUser(userId)` internal API + `CountExperienceCardsBySource(userId)` internal API + `GetCandidateProfileForUser(userId)` internal API（历史 spec D-13；当前 subject 已退役，见 [spec §3](../../spec.md#3-用户决策--待确认事项)，read-only / 不触发 seed 副作用 / 缺失返回 nil），供 backend internal privacy runner + [backend-jobs-recommendations](../../../backend-jobs-recommendations/spec.md) `getJobMatchProfile` aggregation 消费；
 - 通过 spec §6 C-1..C-15 验收 + 新增 E2E.P0.091 + E2E.P0.092 + E2E.P0.093 三个 BDD 场景；
 - 不实现 AI 调用 / Insight Cards / 修正覆盖层 / 独立经历库 UI / cross-owner `AppendExperienceCardEvidence` write path（归 [spec §2.2](../../spec.md#22-out-of-scope) 与 plan 002 P1）。
 

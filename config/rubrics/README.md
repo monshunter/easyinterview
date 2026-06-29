@@ -83,8 +83,6 @@ business-domain extensions. The lint gate accepts the following names:
 - Resume family: `resume_match`, `resume_impact`, `resume_clarity`,
   `resume_truthfulness`
 - Target family: `target_extraction_completeness`, `target_field_accuracy`
-- Debrief family: `debrief_recall_completeness`, `debrief_lesson_specificity`,
-  `debrief_action_quality`
 
 A dimension name not on this list fails `make lint-rubrics`. Adding a new name
 requires (a) adding it here, (b) bumping the linter's allowlist constant, and

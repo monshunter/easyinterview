@@ -58,7 +58,7 @@ describe("InterviewContext reducer", () => {
         roundId: "round-hr",
         roundName: "HR 初筛",
         practiceMode: "assisted",
-        practiceGoal: "debrief",
+        practiceGoal: "retry_current_round",
       },
     };
     const next = interviewContextReducer(state, action);
@@ -71,7 +71,7 @@ describe("InterviewContext reducer", () => {
     expect(next.roundId).toBe("round-hr");
     expect(next.roundName).toBe("HR 初筛");
     expect(next.practiceMode).toBe("assisted");
-    expect(next.practiceGoal).toBe("debrief");
+    expect(next.practiceGoal).toBe("retry_current_round");
     // unchanged defaults
     expect(next.mode).toBe("text");
     expect(next.modality).toBe("text");
@@ -240,68 +240,23 @@ describe("InterviewContextProvider + useInterviewContext", () => {
     expect(result.current.ctx.targetJobId).toBe("");
   });
 
-  // ---- Phase 5.4 SET_DEBRIEF_CONTEXT contract ----
-
-  it("TestInterviewContext_SetDebriefContext writes debriefId / debriefJobId / practiceGoal", () => {
-    const next = interviewContextReducer(DEFAULT_INTERVIEW_CONTEXT, {
-      type: "SET_DEBRIEF_CONTEXT",
-      payload: {
-        debriefId: "deb-1",
-        debriefJobId: "job-deb-1",
-        practiceGoal: "debrief",
-      },
-    });
-    expect(next.debriefId).toBe("deb-1");
-    expect(next.debriefJobId).toBe("job-deb-1");
-    expect(next.practiceGoal).toBe("debrief");
-  });
-
-  it("TestInterviewContext_DoesNotOverwriteJobId leaves jobId / targetJobId untouched", () => {
-    const seeded: InterviewContextState = {
-      ...DEFAULT_INTERVIEW_CONTEXT,
-      jobId: "tj-keep",
-      targetJobId: "tj-keep",
-    };
-    const next = interviewContextReducer(seeded, {
-      type: "SET_DEBRIEF_CONTEXT",
-      payload: { debriefId: "deb-2", debriefJobId: "job-deb-2" },
-    });
-    expect(next.jobId).toBe("tj-keep");
-    expect(next.targetJobId).toBe("tj-keep");
-    expect(next.debriefId).toBe("deb-2");
-    expect(next.debriefJobId).toBe("job-deb-2");
-  });
-
-  it("TestPendingAction_DebriefParamsRoundTrip hydrates debriefId/debriefJobId/practiceGoal/sessionId via route params", () => {
+  it("ignores retired debrief params while retaining current session context", () => {
     const next = interviewContextReducer(DEFAULT_INTERVIEW_CONTEXT, {
       type: "HYDRATE_FROM_ROUTE",
       params: {
         targetJobId: "tj-1",
         debriefId: "deb-rt",
         debriefJobId: "job-deb-rt",
-        practiceGoal: "debrief",
+        practiceGoal: "retry_current_round",
         sessionId: "sess-1",
       },
     });
-    expect(next.debriefId).toBe("deb-rt");
-    expect(next.debriefJobId).toBe("job-deb-rt");
-    expect(next.practiceGoal).toBe("debrief");
+    expect("debriefId" in next).toBe(false);
+    expect("debriefJobId" in next).toBe(false);
+    expect(next.practiceGoal).toBe("retry_current_round");
     expect(next.sessionId).toBe("sess-1");
   });
 
-  it("TestInterviewContext_OtherActionsNotAffected leaves debrief fields when handling unrelated actions", () => {
-    const seeded: InterviewContextState = {
-      ...DEFAULT_INTERVIEW_CONTEXT,
-      debriefId: "deb-keep",
-      debriefJobId: "job-keep",
-    };
-    const next = interviewContextReducer(seeded, {
-      type: "INCREMENT_HINT_COUNT",
-    });
-    expect(next.debriefId).toBe("deb-keep");
-    expect(next.debriefJobId).toBe("job-keep");
-    expect(next.hintCount).toBe("1");
-  });
 });
 
 describe("INTERVIEW_CONTEXT_ROUTES parity with ui-design/src/app.jsx", () => {
@@ -311,7 +266,6 @@ describe("INTERVIEW_CONTEXT_ROUTES parity with ui-design/src/app.jsx", () => {
       "practice",
       "generating",
       "report",
-      "debrief",
     ]);
     expect(INTERVIEW_CONTEXT_ROUTES).toEqual(expected);
   });
@@ -321,13 +275,13 @@ describe("INTERVIEW_CONTEXT_ROUTES parity with ui-design/src/app.jsx", () => {
     expect(shouldCarryInterviewContext("practice")).toBe(true);
     expect(shouldCarryInterviewContext("generating")).toBe(true);
     expect(shouldCarryInterviewContext("report")).toBe(true);
-    expect(shouldCarryInterviewContext("debrief")).toBe(true);
     expect(shouldCarryInterviewContext("company_intel")).toBe(false);
   });
 
   it("shouldCarryInterviewContext returns false for non-context routes", () => {
     expect(shouldCarryInterviewContext("home")).toBe(false);
     expect(shouldCarryInterviewContext("settings")).toBe(false);
+    expect(shouldCarryInterviewContext("debrief")).toBe(false);
     expect(shouldCarryInterviewContext("profile")).toBe(false);
     expect(shouldCarryInterviewContext("auth_login")).toBe(false);
   });

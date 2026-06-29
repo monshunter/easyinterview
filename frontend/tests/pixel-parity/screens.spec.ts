@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * Phase 2.2 — Auth / Profile / Settings / Placeholder DOM anchor parity.
+ * Phase 2.2 — Auth / Settings / Placeholder DOM anchor parity.
  *
  * Truth source: docs/spec/frontend-shell/plans/003-ui-design-pixel-parity-
  * gate/plan.md §4 Phase 2.2.
@@ -13,9 +13,9 @@ import { expect, test } from "@playwright/test";
  *     we assert frontend's `ei-auth-shell` + `ei-auth-card` semantic
  *     classNames and the structural equivalent on ui-design (a sticky `<h1>`
  *     hero column + a card on the right).
- *   - `profile`, `settings`, and other protected routes either require a
- *     signed-in session or arrive only after navigating through D2-D6 business
- *     flows. The DOM-anchor parity for those routes is covered by the
+ *   - `settings` and other protected routes either require a signed-in session
+ *     or arrive only after navigating through D2-D6 business flows. The
+ *     DOM-anchor parity for those routes is covered by the
  *     in-process scenario test
  *     `frontend/src/app/scenarios/p0-005-app-shell-visual-system-smoke.test
  *     .tsx`, which renders them with the production CSS bundle and asserts

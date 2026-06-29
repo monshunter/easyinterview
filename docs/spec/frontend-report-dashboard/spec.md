@@ -1,8 +1,8 @@
 # Frontend Report Dashboard Spec
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-06-29
 
 > **2026-06-12 product-scope v2.1 D-19 对齐**：报告 CTA 单点收敛——报告页只保留 Header 一对 CTA（`复练当前轮` / `进入下一轮`）；复练计划详情 tab（next）只承载路径说明与复练清单，不重复 CTA 按钮；题目回顾的 `加入本轮复练` 改为本地标记动作（per-question toggle，不直接开启 session）。见 §3.1 D-19 与 §10。
 
@@ -15,7 +15,7 @@
 - `generating`：`completePracticeSession` 后的报告生成过渡态。承接 frontend-workspace-and-practice 已经设置好的 generating route params + reportId，轮询 `getFeedbackReport(reportId)` 直到 `status='ready'`（→ nav `report`）或 `status='failed'`（→ nav `report?reportStatus=failed`）。
 - `report`：完整的证据化报告 dashboard。源级复刻 `ui-design/src/screen-report.jsx::ReportScreen` 的三态：`ReportDashboard`（正常报告：Header + ContextStrip + 4 个 Summary Cards + 5 个 Detail Tabs + 维度卡片行 + 优先级 + 复练重点 + 题目回顾概览 + 风险亮点）、`ReportFailureState`（reportStatus='failed'）、`ReportMissingSessionState`（缺 sessionId）。`复练当前轮` / `进入下一轮` CTA 触发 `nav("workspace", {..., autoStartPractice:'1'})`，由 workspace owner 创建全新 practice session 后再进入 `practice`。
 
-`workspace` / `practice` / `company_intel` / `debrief` 不在本 subspec 范围。`workspace` / `practice` 由 [frontend-workspace-and-practice](../frontend-workspace-and-practice/spec.md) owner 承接；`company_intel` 与 `debrief` 由 external company-intel / future `frontend-debrief` owner 承接。本 subspec 只在 ReportScreen 的复练 CTA 中发起 workspace auto-start handoff；不实现 practice 任何 UI，也不直接创建或复用 practice session。
+`workspace` / `practice` / `company_intel` 不在本 subspec 范围。`workspace` / `practice` 由 [frontend-workspace-and-practice](../frontend-workspace-and-practice/spec.md) owner 承接；`company_intel` 由 external owner 承接；真实面试复盘 UI 已随 product-scope D-22 删除。本 subspec 只在 ReportScreen 的复练 CTA 中发起 workspace auto-start handoff；不实现 practice 任何 UI，也不直接创建或复用 practice session。
 
 本 subspec 通过 generated client + fixture-backed transport 消费已经存在的 Reports OpenAPI 契约；截至 2026-05-23，backend-review/001 已落地 `getFeedbackReport` / `listTargetJobReports` 真实 handler，frontend plan 001 的 completed UI variants 必须配套 `VITE_EI_API_MODE=real` generated-client gate，证明 production bootstrap 使用真实 backend base URL、cookie credentials、无 fixture `Prefer` header，并保持 dashboard-only D-7 不消费列表 UI。任何新增或缺失 operation 先回到 [B2](../openapi-v1-contract/spec.md) / [backend-review](../backend-review/spec.md) 修订，不能在前端手写 ad hoc fetch 或复制 `ui-design` mock data。
 
@@ -54,7 +54,7 @@
 - `WorkspaceScreen` / Interview Launcher / Resume Picker / Plan Switcher：由 [frontend-workspace-and-practice](../frontend-workspace-and-practice/spec.md) 承接。
 - `PracticeScreen` 任何 UI / 状态机消费 / 文本 surface / voice surface / 完成动作：由 [frontend-workspace-and-practice](../frontend-workspace-and-practice/spec.md) 承接；本 spec 只在复练 CTA 中交给 workspace auto-start，等待该 owner 创建新 session 后进入 practice。
 - `CompanyIntelScreen` / `getCompanyIntel`：external company-intel owner 承接。
-- `DebriefScreen` / `getDebrief`：future `frontend-debrief` owner 承接。
+- Debrief UI / API 已随 product-scope D-22 删除；ReportScreen 不再声明 `DebriefScreen` 或 `getDebrief` downstream。
 - Home / Parse / JD Match shell 与 JD 导入解析：由 [frontend-home-job-picks-and-parse](../frontend-home-job-picks-and-parse/spec.md) 承接。
 - Auth / TopBar / Sidebar / Theme / I18n bootstrap / requestAuth 接线：由 [frontend-shell](../frontend-shell/spec.md) 承接。
 - Reports / FeedbackReport 真实 backend handler / service / store / event 发射：由 [backend-review](../backend-review/spec.md) 承接。
@@ -123,7 +123,6 @@
 | App shell / routes / auth / runtime / theme | [`frontend-shell`](../frontend-shell/spec.md) | TopBar、NO_CHROME_ROUTES、requestAuth、generated client bootstrap、mock transport、display preferences |
 | Home / Parse / JD Match | [`frontend-home-job-picks-and-parse`](../frontend-home-job-picks-and-parse/spec.md) | parse confirm 跳转 workspace |
 | Company Intel UI | external company-intel owner | `CompanyIntelScreen` |
-| Debrief UI | future `frontend-debrief` | `DebriefScreen` |
 | Reports backend | [`backend-review`](../backend-review/spec.md) | `getFeedbackReport` / `listTargetJobReports` handler / service / store / inline review runner / report 生成 / 维度评估 / readiness / retry_focus / next_action |
 | Practice backend | [`backend-practice`](../backend-practice/spec.md) | 6 Practice operation handler / state machine / outbox / complete handoff `ReportWithJob` 提供方 |
 | OpenAPI / fixtures / codegen | [`openapi-v1-contract`](../openapi-v1-contract/spec.md) + [`mock-contract-suite`](../mock-contract-suite/spec.md) | `openapi/openapi.yaml`、fixtures `Reports/getFeedbackReport.json` / `listTargetJobReports.json`、generated Go/TS artifacts、fixture-backed mock transport |

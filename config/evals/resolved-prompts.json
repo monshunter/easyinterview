@@ -1,22 +1,4 @@
 {
-  "debrief.generate|multi": {
-    "feature_key": "debrief.generate",
-    "prompt_version": "v0.1.0",
-    "rubric_version": "v0.1.0",
-    "model_profile_name": "debrief.generate.default",
-    "data_source_version": "registry.v1",
-    "system_message": "",
-    "user_message_template": "You are a post-interview coach helping the candidate analyze a real interview.\nRespond in the language indicated by `{{language}}` (default English).\n\nTarget role: {{targetTitle}}\nTarget summary: {{targetSummary}}\nRecorded interview questions: {{questions}}\n\n\u003c!-- output-schema-contract:start --\u003e\nReturn strict JSON matching this schema-derived output contract.\nProduce a complete JSON value, not JSON Schema or an OpenAPI schema.\n\nOutput shape:\n- `$` (required, object): Completed real-interview debrief analysis.\n- `$.questions` (required, array): Analyzed debrief questions preserving input order.\n- `$.questions[]` (required, object): One analyzed interview question.\n- `$.questions[].questionText` (required, string): Original or cleaned interview question text.\n- `$.questions[].myAnswerSummary` (required, string): Candidate answer summary.\n- `$.questions[].aiAnalysis` (required, string): Concise coaching analysis.\n- `$.questions[].interviewerReaction` (optional, string): Interviewer reaction when supplied by the candidate.\n- `$.riskItems` (required, array): Risks or follow-up concerns from the debrief.\n- `$.riskItems[]` (required, object): One risk item.\n- `$.riskItems[].label` (required, string): Risk label.\n- `$.riskItems[].severity` (required, string enum(low, medium, high)): Risk severity.\n\nExample complete JSON output:\n```json\n{\n  \"questions\": [\n    {\n      \"questionText\": \"How did you handle backpressure in the migration?\",\n      \"myAnswerSummary\": \"Explained queue sizing and retry policy.\",\n      \"aiAnalysis\": \"Good direction, but add numbers and rollback detail.\",\n      \"interviewerReaction\": \"Asked for concrete failure metrics.\"\n    }\n  ],\n  \"riskItems\": [\n    {\n      \"label\": \"Thin rollback detail\",\n      \"severity\": \"medium\"\n    }\n  ]\n}\n```\n\u003c!-- output-schema-contract:end --\u003e\n\nDo not return timeline, lessons, follow_up_actions, nextRoundChecklist, or a\nthank-you draft. Do not invent events the candidate did not describe.\n"
-  },
-  "debrief.suggest_questions|multi": {
-    "feature_key": "debrief.suggest_questions",
-    "prompt_version": "v0.1.0",
-    "rubric_version": "v0.1.0",
-    "model_profile_name": "debrief.suggest_questions.default",
-    "data_source_version": "registry.v1",
-    "system_message": "",
-    "user_message_template": "You generate likely post-interview debrief questions from sanitized preparation context. Respond in the language indicated by `{{language}}` (default English).\n\nTarget role: {{role_title}}\nJob summary: {{job_summary}}\nResume highlights: {{resume_highlights}}\nMock interview signals: {{mock_report_summary}}\nRequested count: {{count}}\n\n\u003c!-- output-schema-contract:start --\u003e\nReturn strict JSON matching this schema-derived output contract.\nProduce a complete JSON value, not JSON Schema or an OpenAPI schema.\n\nOutput shape:\n- `$` (required, object): Likely post-interview debrief questions.\n- `$.suggestions` (required, array): Suggested questions the candidate can answer from memory.\n- `$.suggestions[]` (required, object): One suggested debrief question.\n- `$.suggestions[].questionText` (required, string): Likely interview question.\n- `$.suggestions[].whyLikelyAsked` (required, string): Why this question is likely or useful.\n- `$.suggestions[].source` (required, string enum(jd, resume, mock_report, manual)): Context source that motivated the question.\n- `$.suggestions[].stage` (optional, string): Optional interview stage or topic grouping.\n\nExample complete JSON output:\n```json\n{\n  \"suggestions\": [\n    {\n      \"questionText\": \"Tell me about a time you improved reliability in a distributed system.\",\n      \"whyLikelyAsked\": \"The JD emphasizes distributed systems and ownership of reliability.\",\n      \"source\": \"jd\",\n      \"stage\": \"onsite\"\n    }\n  ]\n}\n```\n\u003c!-- output-schema-contract:end --\u003e\n\nPrefer concise questions the candidate can answer from memory. Do not include\nraw resume or report prose beyond the generated question.\n"
-  },
   "practice.session.first_question|multi": {
     "feature_key": "practice.session.first_question",
     "prompt_version": "v0.1.0",

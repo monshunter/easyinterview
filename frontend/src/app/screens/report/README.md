@@ -30,4 +30,4 @@ UI truth: `ui-design/src/screen-report.jsx` + `docs/ui-design/report-dashboard.m
 
 - Backend handler delivery: `docs/spec/backend-review/plans/001-report-generation-baseline`.
 - Frontend workspace + practice owner: `docs/spec/frontend-workspace-and-practice` (consumer of the `nav("generating", …)` exit + `replay_practice` resume).
-- The implementation must never call `listTargetJobReports`, `appendSessionEvent`, `completePracticeSession`, `createPracticeVoiceTurn`, `getCompanyIntel`, or `getDebrief`. The `legacyNegative.test.ts` and `scripts/lint/frontend_report_dashboard_legacy.py` enforce the boundary.
+- The implementation must never call `listTargetJobReports`, `appendSessionEvent`, `completePracticeSession`, `createPracticeVoiceTurn`, or `getCompanyIntel`. The `legacyNegative.test.ts` and `scripts/lint/frontend_report_dashboard_legacy.py` enforce the boundary.

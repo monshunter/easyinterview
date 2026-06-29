@@ -12,13 +12,13 @@ func TestReaper_ReclaimsExpiredLeases(t *testing.T) {
 	// Three job types stuck running, locked well before the timeout window.
 	store.enqueueRunning("ti-1", "target_import", now.Add(-10*time.Minute), 1)
 	store.enqueueRunning("pd-1", "privacy_delete", now.Add(-10*time.Minute), 2)
-	store.enqueueRunning("dg-1", "debrief_generate", now.Add(-10*time.Minute), 1)
+	store.enqueueRunning("rg-1", "report_generate", now.Add(-10*time.Minute), 1)
 	// A freshly locked row must NOT be reclaimed.
 	store.enqueueRunning("ti-2", "target_import", now.Add(-time.Second), 1)
 
 	r := NewReaper(ReaperOptions{
 		Store:        store,
-		JobTypes:     []string{"target_import", "privacy_delete", "debrief_generate"},
+		JobTypes:     []string{"target_import", "privacy_delete", "report_generate"},
 		LeaseTimeout: 5 * time.Minute,
 		Now:          fixedClock(now),
 	})
@@ -29,7 +29,7 @@ func TestReaper_ReclaimsExpiredLeases(t *testing.T) {
 	if reclaimed != 3 {
 		t.Fatalf("reclaimed = %d, want 3", reclaimed)
 	}
-	for _, id := range []string{"ti-1", "pd-1", "dg-1"} {
+	for _, id := range []string{"ti-1", "pd-1", "rg-1"} {
 		if row := store.get(id); row == nil || row.status != "queued" || row.lockedAt != nil {
 			t.Fatalf("%s = %v, want queued + locked_at nil", id, row)
 		}

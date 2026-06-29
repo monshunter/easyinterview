@@ -16,7 +16,6 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/api/generated"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
-	profilehandler "github.com/monshunter/easyinterview/backend/internal/profile/handler"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
@@ -35,7 +34,7 @@ runtime:
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
-	handler := buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(
+	handler := buildAPIHandlerWithUploadReportJobsAndHandlers(
 		loader,
 		apiRuntimeFlags{},
 		service,
@@ -44,9 +43,7 @@ runtime:
 		uploadRoutes{},
 		resumeRoutes{},
 		reportRoutes{},
-		debriefRoutes{},
 		jobsRoutes{},
-		profileRoutes{Handler: profilehandler.New(profilehandler.Options{})},
 	)
 
 	paths := []string{

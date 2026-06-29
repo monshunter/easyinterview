@@ -1,238 +1,86 @@
-# EasyInterview UI 认证与默认入口
+# 认证与默认入口
 
-> **版本**: 1.17
+> **版本**: 1.18
 > **状态**: active
-> **更新日期**: 2026-06-12
+> **更新日期**: 2026-06-29
 
 ## 1 文档目的
 
-本文档定义当前静态 UI 中默认入口、操作级登录拦截和完整认证页面流。认证能力存在，但不作为进入产品的前置门槛。
+本文档定义当前默认入口、认证触发点、pendingAction 恢复和用户菜单边界。当前 UI 已按 D-22 删除复盘和用户画像入口。
 
 ## 2 已确认决策
 
-1. App 默认进入首页。
-2. 不再展示独立未登录欢迎页。
-3. 用户未登录时，仍然可以看到首页并开始输入 JD。
-4. 当用户执行需要身份、保存、同步、导出或敏感数据处理的动作时，产品目标是再触发登录；当前静态稿已把轻量 `requestAuth(pendingAction)` 接入 `立即面试`、`复练当前轮` 和 `进入下一轮`。
-5. 当前静态稿中邮箱验证成功后先检查 `/me.profileCompletionRequired`；需要补全资料时进入 `auth_profile_setup`，完成后才恢复 `pendingAction`；没有待恢复动作时回到 `Home`。
-6. 未登录顶部用户区只显示 `登录`，登录入口同时承担首次账号创建。
-7. 已登录用户菜单显示 `用户画像`、`设置与隐私`、`退出登录`。
-8. 认证页面包括单入口登录、邮箱验证、首次资料补全和退出登录；旧 `auth_register` 与 `auth_reset` 都不再是 live route。邮箱验证码是唯一登录方式，不存在密码，也不保留独立“重置登录 / 密码重置”页面；收不到验证码时在 `auth_verify` 重新发送或更换邮箱。
-9. 顶栏主题色、暗色模式和语言下拉对未登录用户也可见，不触发认证，不改变 `signedIn`。
-10. Home 可未登录访问，但 Recent mock interviews 属于账号历史数据；未登录时不展示该模块，也不触发读取历史面试 / target job 的后端请求。
-11. 面试相关业务 route（JD 解析、工作台、简历、模拟面试、报告、复盘、用户画像、设置与隐私）在正式 runtime 中必须先确认登录；未登录直开或点击这些入口时统一进入 `auth_login(pendingAction)`。
+1. App 默认进入 `home`。
+2. 登录方式只有邮箱验证码。
+3. 登录是操作级拦截，不是默认前置页。
+4. 登录成功后若 `profileCompletionRequired=true`，进入 `auth_profile_setup`；完成账号资料补全后恢复 pendingAction。
+5. `auth_profile_setup` 是账号资料补全，不是用户画像。
+6. 已登录用户菜单只显示 `设置与隐私` 和 `退出登录`。
+7. `用户画像` 不再是用户菜单入口。
+8. `复盘` 不再是业务入口或登录触发点。
 
 ## 3 默认入口
 
 ```text
 打开 App
-  -> Home
-     ├─ 粘贴 JD
-     ├─ 上传 JD / URL
-     ├─ 查看最近模拟面试（仅已登录）
-     ├─ 创建第一份简历
-     └─ 打开复盘
+└─ home
+   ├─ JD 粘贴 / 上传 / URL 导入
+   ├─ 最近模拟面试
+   └─ 创建简历入口
 ```
 
-默认入口不检查 `signedIn` 后再决定是否进入 `welcome`。登录状态只影响哪些动作能继续、用户区展示什么入口。
-
-## 4 顶部用户区与全局控制
+## 4 用户菜单
 
 ```text
-全局显示控制:
-├─ 主题色 -> 暖陶 / 苔林 / 深海（默认） / 梅子 / 自定义
-├─ 暗色模式
-└─ 语言下拉
+未登录
+└─ 登录
 
-未登录:
-└─ 用户区
-   └─ 登录 -> auth_login
-
-已登录:
-└─ 用户菜单
-   ├─ 用户画像 -> profile
-   ├─ 设置与隐私 -> settings
-   └─ 退出登录 -> auth_logout
+已登录
+├─ 设置与隐私 -> settings
+└─ 退出登录 -> auth_logout
 ```
 
-全局显示控制始终属于 TopBar，不属于认证流程。`signedIn` 只影响用户区展示 `登录` 还是头像菜单。
-
-`用户画像` 与 `设置与隐私` 不应混用：画像是系统理解用户的结构化资料，设置是账号、登录安全和隐私控制。
-
-## 5 认证页面流
+## 5 认证页面
 
 ```text
-Auth
-├─ auth_login
-│  ├─ 邮箱
-│  ├─ 发送 6 位验证码
-│  ├─ 首次使用该邮箱会在验证后创建账号
-│  ├─ 收不到验证码的帮助说明（重发 / 换邮箱在 auth_verify 完成）
-│  └─ 继续 -> auth_verify
-├─ auth_verify
-│  ├─ 输入 6 位邮箱验证码
-│  ├─ 验证码 5 分钟内有效
-│  ├─ 重新发送登录验证码
-│  ├─ 换一个邮箱 -> auth_login
-│  └─ 验证并继续；若 profileCompletionRequired=true -> auth_profile_setup
-├─ auth_profile_setup
-│  ├─ 显示姓名
-│  ├─ 同意条款
-│  └─ 完成资料后恢复 pendingAction 或回 Home
-└─ auth_logout
-   ├─ 确认退出
-   ├─ 清除本机登录态
-   ├─ 重新登录
-   └─ 返回首页
-```
-
-旧 `auth_reset` route 归一回 `auth_login`，不再渲染独立页面；“忘记密码”入口随之删除。
-
-退出登录只清除本机 session，不删除用户数据。
-
-## 6 认证拦截模型
-
-当前静态 UI 已实现独立认证页面、顶部用户区入口和轻量业务级 `requestAuth(pendingAction)`。运行时行为是：
-
-```text
-TopBar 登录
-  -> auth_login
+auth_login
   -> auth_verify
-  -> success
-  -> profileCompletionRequired?
-     ├─ true -> auth_profile_setup -> resume pendingAction 或 Home
-     └─ false -> resume pendingAction 或 Home
+     -> profileCompletionRequired?
+        ├─ true -> auth_profile_setup -> restore pendingAction
+        └─ false -> restore pendingAction
 
-UserMenu 退出登录
-  -> auth_logout
-  -> 清除本机登录态
-  -> 重新登录 或 返回首页
-
-业务动作:
-  -> requestAuth(pendingAction)
-     ├─ signedIn=true -> 执行原动作
-     └─ signedIn=false -> auth_login(pendingAction)
-        └─ success -> resume pendingAction.route(pendingAction.params)
+auth_logout
+  -> home
 ```
 
-后续接入保存、上传、查看更多历史数据等真实业务动作时，应继续沿用同一模型：
+旧 `auth_register` 和 `auth_reset` 归一到 `auth_login`。
 
-```text
-UserAction
-  -> requiresAuth(action)
-     ├─ false -> continue
-     └─ true
-        -> AuthGate(pendingAction)
-           ├─ success + profileCompletionRequired=false -> resume pendingAction
-           ├─ success + profileCompletionRequired=true -> auth_profile_setup -> resume pendingAction
-           ├─ cancel -> return source screen
-           └─ error -> stay AuthGate with retry
-```
+## 6 Pending Action
 
-`AuthGate` 可以是弹层或认证页，但它不是默认落地页，也不出现在顶部导航里。
+可恢复的 pendingAction 只覆盖当前核心业务动作：
 
-## 7 动作级登录触发点
+| 动作 | 目标 route | 说明 |
+|------|------------|------|
+| 立即面试 | `practice` | 从 parse 或 workspace 发起 |
+| 复练当前轮 | `practice` | 从 report header 发起 |
+| 进入下一轮 | `practice` | 从 report header 发起 |
+| 保存简历 | `resume_versions` | 创建或编辑简历 |
+| 打开设置 | `settings` | 账号和隐私设置 |
 
-| 动作 | 是否触发登录 | 原因 |
-|------|--------------|------|
-| 打开首页 | 否 | 用户应直接开始 |
-| 粘贴 JD 文本 | 否 | 只是输入草稿 |
-| 上传 JD 文件 | 是 | 文件上传到服务端并绑定用户上下文 |
-| URL 导入 JD | 是 | 服务端抓取并保存目标岗位上下文 |
-| 解析并保存岗位 / 面试规划 | 是 | 会创建用户上下文 |
-| 打开已有模拟面试规划 | 是 | 读取用户历史数据 |
-| 上传简历 | 是 | 涉及敏感个人资料 |
-| 粘贴简历 | 是 | 涉及敏感个人资料 |
-| 采纳简历改写建议并保存 | 是 | 会覆盖原简历或保存新简历 |
-| 导出简历 PDF / 复制纯文本 | 是 | 涉及用户个人资料导出 |
-| 更换当前规划绑定简历 | 是 | 会修改用户面试规划上下文 |
-| 立即面试 | 是 | 会生成个人面试记录 |
-| 结束并生成报告 | 是 | 会写入报告和证据 |
-| 查看历史报告 | 是 | 会读取用户历史数据 |
-| 复练当前轮 | 是 | 会创建新的面试 session |
-| 进入下一轮 | 是 | 会直接创建并进入下一轮面试 session |
-| 开始复盘 | 是 | 会保存真实面试问题、回答和反馈 |
-| 开始复盘面试 | 是 | 会基于复盘创建新的面试 session |
-| 打开用户画像 | 是 | 读取系统沉淀的个人结构化资料 |
-| 打开设置与隐私 | 是 | 账户与隐私设置依赖身份 |
-| 导出数据 | 是 | 涉及用户数据 |
-| 删除数据 | 是 | 高风险账户操作 |
-| 切换主题 / 暗色 / 语言 | 否 | 只改变本地显示偏好 |
-| 切换字体预设 | 否 | 界面偏好，进入设置页本身仍需要身份 |
+不得创建 pendingAction 到 `debrief`、`debrief_full` 或 `profile`。
 
-## 8 Pending Action
+## 7 旧入口归一
 
-`Pending Action` 是动作级登录拦截的恢复对象。当前静态 UI 会在登录、邮箱验证和首次资料补全页展示待恢复动作。登录成功后必须先处理 `profileCompletionRequired`，确认资料补全完成后才恢复目标 route 和 params。
+| 输入 | 处理 |
+|------|------|
+| `debrief` / `debrief_full` | 归一到 `home` |
+| `profile` | 归一到 `home` |
+| `auth_register` | 归一到 `auth_login` |
+| `auth_reset` | 归一到 `auth_login` |
 
-```text
-pendingAction
-├─ type
-├─ label
-├─ route
-└─ params
-```
+## 8 后续实现输入
 
-### 8.1 成功路径
-
-```text
-Auth success
-  -> if profileCompletionRequired
-       -> auth_profile_setup
-       -> complete profile
-  -> read pendingAction.route
-  -> restore pendingAction.params
-  -> navigate target route
-```
-
-### 8.2 取消路径
-
-```text
-Auth cancel
-  -> return sourceRoute(sourceParams)
-  -> restore draftState
-  -> show non-blocking status
-```
-
-取消登录不应清空用户已经输入的 JD、简历草稿或面试设置。
-
-## 9 页面框架影响
-
-### 9.1 删除的页面职责
-
-```text
-Welcome
-├─ 产品欢迎
-├─ 登录前门
-└─ Start with a JD
-```
-
-以上职责不再由独立页面承担。
-
-### 9.2 新职责归属
-
-```text
-Home
-├─ 产品默认入口
-├─ JD 输入
-├─ 最近模拟面试（仅已登录）
-└─ 简历创建入口
-
-Auth Pages
-├─ 登录
-├─ 邮箱验证
-├─ 首次资料补全
-└─ 退出登录
-```
-
-## 10 后续实现输入
-
-1. `hideTopBar` 不应依赖 `welcome` 作为默认未登录态。
-2. `signedIn` 不应决定是否能渲染 Home。
-3. 登录成功必须先检查 `/me.profileCompletionRequired`；资料补全完成后才恢复 `pendingAction`，没有待恢复动作时才回 `Home`。
-4. 认证 UI 需要明确“登录后继续刚才动作”的文案。
-5. 接入真实业务保存 / 上传 / 查看历史数据时，所有需要登录的按钮必须走统一 `requestAuth(pendingAction)`，不能在各页面散落自定义跳转。
-6. 退出登录页面必须说明账号数据不会被删除。
-7. 主题色、暗色和语言下拉不得被绑定到认证状态；登录前后应保持同一套显示控制。
-8. 旧 `auth_register`、注册按钮、注册页文案和 displayName-before-verify 入口不得作为 live UI 继续出现。
-9. 未登录 Home 不展示 Recent mock interviews，也不调用历史面试 / target job API；任何受保护业务 route 在 auth loading 或 unauthenticated 状态下都不能先挂载业务 screen 再依赖后端 401 兜底。
-10. 旧 `auth_reset`、独立重置登录页、“忘记密码”链接和“密码 / 两步验证”口径不得作为 live UI 继续出现；`auth_reset` route 归一回 `auth_login`，验证码重发与更换邮箱由 `auth_verify` 承担。
+1. TopBar 用户菜单不得恢复 `用户画像`。
+2. 未登录保护路由不得把 `debrief` 或 `profile` 当业务目标。
+3. 正式前端、URL fallback 和 scenario 都必须覆盖旧入口负向。
+4. 设置页只承载账号、界面偏好和隐私数据控制。

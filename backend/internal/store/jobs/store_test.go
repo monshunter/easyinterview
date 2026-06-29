@@ -20,15 +20,15 @@ func TestRepositoryGetJobScopesAsyncJobToOwningUser(t *testing.T) {
 	repo := NewRepository(db)
 	now := time.Date(2026, 5, 17, 10, 45, 0, 0, time.UTC)
 
-	mock.ExpectQuery(`(?s)from async_jobs j.*resource_type = 'resume_asset'.*from resumes rs.*resource_type = 'resume_tailor_run'.*payload->>'resumeId'.*resource_type = 'debrief'.*debriefs d.*d.user_id = \$2`).
+	mock.ExpectQuery(`(?s)from async_jobs j.*resource_type = 'resume_asset'.*from resumes rs.*resource_type = 'resume_tailor_run'.*payload->>'resumeId'.*resource_type = 'privacy_request'.*privacy_requests pr.*pr.user_id = \$2`).
 		WithArgs("job-1", "user-1").
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "job_type", "resource_type", "resource_id", "status", "error_code", "created_at", "updated_at",
 		}).AddRow(
 			"job-1",
-			"debrief_generate",
-			"debrief",
-			"debrief-1",
+			"report_generate",
+			"feedback_report",
+			"report-1",
 			string(sharedtypes.JobStatusQueued),
 			nil,
 			now,
@@ -39,7 +39,7 @@ func TestRepositoryGetJobScopesAsyncJobToOwningUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetJob: %v", err)
 	}
-	if got.ID != "job-1" || got.ResourceID != "debrief-1" || got.Status != sharedtypes.JobStatusQueued {
+	if got.ID != "job-1" || got.ResourceID != "report-1" || got.Status != sharedtypes.JobStatusQueued {
 		t.Fatalf("job drifted: %+v", got)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {

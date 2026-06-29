@@ -15,7 +15,7 @@ export interface UsePracticeAssistanceResult {
 /**
  * Item 3.1 — display flags driven by `practiceMode==='strict'` ONLY.
  *
- * `practiceGoal` (baseline / retry_current_round / next_round / debrief)
+ * `practiceGoal` (baseline / retry_current_round / next_round)
  * affects question sourcing on the backend; it MUST NOT influence the
  * front-end strict-vs-assisted display switch (spec D-3 verifier).
  *

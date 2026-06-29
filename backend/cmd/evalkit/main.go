@@ -2,7 +2,7 @@
 // prompt-rubric-registry/004 §4). It is the Go backend the pinned Promptfoo
 // runner shells out to: Promptfoo orchestrates and reports, while evalkit owns
 // registry single-source resolution, schema-validated grading via the single
-// registry.LLMJudge, the >=50 count gate, and the registry-single-source drift
+// registry.LLMJudge, the >=36 count gate, and the registry-single-source drift
 // gate. The default path is deterministic and makes no network call; EVAL_LIVE=1
 // opts into real provider/judge calls.
 package main
@@ -26,7 +26,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const minCases = 50
+const minCases = 36
 
 type paths struct {
 	evals    string

@@ -15,7 +15,7 @@ dev mock transport 使用 OpenAPI Auth fixtures，但必须维护本地 session 
 ## 2 When
 
 场景在 jsdom 中渲染 `<App client={createDevMockClient()} />`，模拟用户完成
-passwordless mock 登录，打开 TopBar 头像菜单，分别进入 profile/settings，
+passwordless mock 登录，打开 TopBar 头像菜单，进入 settings，
 再从头像菜单执行退出登录确认。
 
 ## 3 Then
@@ -23,9 +23,9 @@ passwordless mock 登录，打开 TopBar 头像菜单，分别进入 profile/set
 - 默认首屏是非登录态，`topbar-user-area` 的 `data-signed-in` 为 `false`，
   且显示 `登录` / `注册`。
 - 登录成功后 TopBar 显示 `ui-design/src/app.jsx` 对齐的头像 chip；
-  profile/settings/logout 入口只在 dropdown 打开后出现。
-- 头像 dropdown 展示用户姓名、脱敏邮箱、用户画像、设置与隐私、退出登录，
-  且 profile/settings/logout 均能从 dropdown 正确分流。
+  settings/logout 入口只在 dropdown 打开后出现。
+- 头像 dropdown 展示用户姓名、脱敏邮箱、设置与隐私、退出登录，
+  且 settings/logout 均能从 dropdown 正确分流。
 - logout 确认后 `/me` 回到 unauthenticated，TopBar 回到登录 / 注册。
 - 旧 inline 三按钮结构不回流，登录态菜单不会读取 `ui-design/src/data.jsx`。
 

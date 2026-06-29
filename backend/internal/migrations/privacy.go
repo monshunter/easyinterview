@@ -15,12 +15,11 @@ type PrivacyMatrixEntry struct {
 // PrivacyMatrix is the executable projection of db-migrations-baseline spec §3.1.2.
 var PrivacyMatrix = []PrivacyMatrixEntry{
 	{Tables: "users", Disposition: "sync_soft_delete_then_hard_delete"},
-	{Tables: "user_settings,candidate_profiles,experience_cards", Disposition: "hard_delete"},
+	{Tables: "user_settings", Disposition: "hard_delete"},
 	{Tables: "file_objects,resumes", Disposition: "hard_delete_and_object_storage_delete"},
 	{Tables: "target_jobs,target_job_requirements,target_job_sources", Disposition: "cascade_or_hard_delete"},
 	{Tables: "practice_plans,practice_sessions,practice_session_events,practice_turns", Disposition: "cascade_or_hard_delete"},
 	{Tables: "question_assessments,feedback_reports", Disposition: "hard_delete"},
-	{Tables: "debriefs", Disposition: "hard_delete"},
 	{Tables: "source_records", Disposition: "hard_delete"},
 	{Tables: "ai_task_runs", Disposition: "hard_delete_after_audit_summary"},
 	{Tables: "async_jobs,outbox_events", Disposition: "hard_delete_or_redacted_terminal_tombstone"},

@@ -23,6 +23,10 @@ for forbidden in \
   '/growth?' \
   '/mistakes?' \
   '/drill?' \
+  '/debrief?' \
+  '/profile?' \
+  'debrief-screen' \
+  'route-profile' \
   'ui-design/src/data'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
     echo "forbidden legacy entry leaked into scenario evidence: $forbidden" >&2

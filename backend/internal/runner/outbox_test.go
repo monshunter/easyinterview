@@ -111,11 +111,11 @@ func (s *fakeOutboxStore) ProcessPendingBatch(_ context.Context, now time.Time, 
 func TestOutboxDispatcher_PublishesToRegisteredConsumer(t *testing.T) {
 	now := time.Date(2026, 5, 22, 12, 0, 0, 0, time.UTC)
 	store := newFakeOutboxStore()
-	store.enqueue("evt-1", "debrief.created", []byte(`{}`), now.Add(-time.Minute))
+	store.enqueue("evt-1", "report.generated", []byte(`{}`), now.Add(-time.Minute))
 
 	d := NewOutboxDispatcher(OutboxDispatcherOptions{Store: store, Now: fixedClock(now)})
 	var consumed []string
-	d.RegisterConsumer("debrief.created", OutboxConsumerFunc(func(_ context.Context, e OutboxEvent) error {
+	d.RegisterConsumer("report.generated", OutboxConsumerFunc(func(_ context.Context, e OutboxEvent) error {
 		consumed = append(consumed, e.EventID)
 		return nil
 	}))

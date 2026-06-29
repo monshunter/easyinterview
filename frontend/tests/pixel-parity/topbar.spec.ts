@@ -12,7 +12,7 @@ import { resolve } from "node:path";
  * ui-design golden preview is mounted at `/ui-design/`. Both default to the
  * Home route and render the TopBar. We compare:
  *
- *   - Four primary nav entries by visible label (English by default when the
+ *   - Three primary nav entries by visible label (English by default when the
  *     browser locale is unsupported or English).
  *   - TopBar shell computed style (height, padding-left, padding-right,
  *     border-bottom-width, background-color) within a small tolerance.
@@ -31,7 +31,6 @@ const PRIMARY_NAV_LABELS_EN = [
   "Home",
   "Mock Interview",
   "Resume",
-  "Debrief",
 ] as const;
 
 interface OperationFixture {
@@ -120,13 +119,13 @@ function assertUiDesignUserMenuSourceLiterals() {
   expect(source).toContain("minWidth: 220");
   expect(source).toContain('top: "calc(100% + 6px)"');
   expect(source).toContain('padding: "3px 10px 3px 3px"');
-  expect(source).toContain('labelZh: "用户画像"');
+  expect(source).not.toContain('labelZh: "用户画像"');
   expect(source).toContain('labelZh: "设置与隐私"');
   expect(source).toContain('name="logout"');
 }
 
 test.describe("TopBar DOM + computed style parity", () => {
-  test("frontend dist renders four primary nav testids with the documented English labels (D-17)", async ({
+  test("frontend dist renders three primary nav testids with the documented English labels (D-22)", async ({
     page,
   }) => {
     await page.goto(FRONTEND_PATH);
@@ -166,7 +165,7 @@ test.describe("TopBar DOM + computed style parity", () => {
 
     expect(summary.brand).toBe("EEasyInterview");
     expect(summary.selectCount).toBe(0);
-    expect(summary.navIconCount).toBe(4);
+    expect(summary.navIconCount).toBe(3);
     expect(summary.themeTitle).toBe("Theme");
     expect(summary.langText).toBe("English");
     expect(summary.buttonTexts).toContain("English");
@@ -244,7 +243,7 @@ test.describe("TopBar DOM + computed style parity", () => {
     await expect(menu).toBeVisible();
     await expect(page.locator("[data-testid='topbar-user-menu-header']")).toContainText("Alice Example");
     await expect(page.locator("[data-testid='topbar-user-email']")).toHaveText("ali***@example.com");
-    await expect(page.locator("[data-testid='topbar-user-profile']")).toHaveText(/User profile/);
+    await expect(page.locator("[data-testid='topbar-user-profile']")).toHaveCount(0);
     await expect(page.locator("[data-testid='topbar-user-settings']")).toHaveText(/Settings & privacy/);
     await expect(page.locator("[data-testid='topbar-user-logout']")).toHaveText(/Sign out/);
 
@@ -341,7 +340,7 @@ test.describe("TopBar DOM + computed style parity", () => {
     await expect(page.locator("[data-testid='topbar-register']")).toHaveCount(0);
   });
 
-  test("ui-design golden preview renders four primary nav buttons with browser-default English labels (D-17)", async ({
+  test("ui-design golden preview renders three primary nav buttons with browser-default English labels (D-22)", async ({
     page,
   }) => {
     test.setTimeout(45_000);
@@ -453,7 +452,6 @@ test.describe("TopBar DOM + computed style parity", () => {
     for (const route of [
       "workspace",
       "resume_versions",
-      "debrief",
     ]) {
       const value = await page.getAttribute(
         `[data-testid='topbar-nav-${route}']`,
@@ -461,6 +459,7 @@ test.describe("TopBar DOM + computed style parity", () => {
       );
       expect(value).toBeNull();
     }
+    await expect(page.locator("[data-testid='topbar-nav-debrief']")).toHaveCount(0);
   });
 
   test("frontend topbar-dark-toggle defaults to aria-pressed=false", async ({

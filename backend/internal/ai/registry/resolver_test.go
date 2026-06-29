@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-
-	"github.com/monshunter/easyinterview/backend/internal/shared/featurekeys"
 )
 
 func newTestClient(t *testing.T) *Client {
@@ -143,29 +141,6 @@ func TestResolvePracticeSessionBaselineFeatures(t *testing.T) {
 				t.Errorf("UserMessageTemplate must be populated for plan 001 baseline")
 			}
 		})
-	}
-}
-
-func TestResolveDebriefSuggestionBaselineFeature(t *testing.T) {
-	t.Parallel()
-	client := newTestClient(t)
-	ctx := context.Background()
-
-	res, err := client.ResolveActive(ctx, featurekeys.DebriefSuggestQuestions.String(), "en")
-	if err != nil {
-		t.Fatalf("ResolveActive: %v", err)
-	}
-	if res.FeatureKey != featurekeys.DebriefSuggestQuestions.String() {
-		t.Errorf("FeatureKey: want %s, got %s", featurekeys.DebriefSuggestQuestions, res.FeatureKey)
-	}
-	if res.PromptVersion != "v0.1.0" || res.RubricVersion != "v0.1.0" {
-		t.Errorf("versions: want prompt/rubric v0.1.0, got %s/%s", res.PromptVersion, res.RubricVersion)
-	}
-	if res.ModelProfileName != "debrief.suggest_questions.default" {
-		t.Errorf("ModelProfileName: want debrief.suggest_questions.default, got %s", res.ModelProfileName)
-	}
-	if res.UserMessageTemplate == "" {
-		t.Errorf("UserMessageTemplate must be populated for debrief suggestions")
 	}
 }
 

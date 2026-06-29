@@ -1,8 +1,8 @@
 # PROTOTYPE_MAPPING
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
-> **更新日期**: 2026-05-03
+> **更新日期**: 2026-06-29
 
 把 [ui-design/src/data.jsx](../../ui-design/src/data.jsx) 的 mock 数据节映射到 OpenAPI v1 contract 的 P0 关键 operationId。`make sync-fixtures-from-prototype` 只读这张表 + data.jsx，把映射结果写入 §3 列出的 fixture 的 `scenarios.prototype-baseline` 节。该 scenario 是 spec §4.7 锁定的「ui 原型同源」入口；同步工具不会改写任何 fixture 的 `scenarios.default`。
 
@@ -10,7 +10,7 @@
 
 - **真理源单向**：data.jsx 是 prototype 的真理源；fixtures 是 OpenAPI 契约对外的 mock 真理源；同步工具单向把 data.jsx 折成 OpenAPI schema-valid 的 fixture body。
 - **schema 校验 fail-fast**：写入前同步工具会跑一次 schema 校验，schema 不通过直接 fail 并打印 mapping 缺口（`Mapping gap: ...`）。不允许 sync 工具静默兜底或自动重命名。
-- **缺失数据节直接跳过**：data.jsx 缺哪一节，对应 fixture 的 `prototype-baseline` 就不写入；不强制 34/34 覆盖。但本表列出的 P0 关键 6 个 endpoint 必须存在数据节并写入 prototype-baseline。
+- **缺失数据节直接跳过**：data.jsx 缺哪一节，对应 fixture 的 `prototype-baseline` 就不写入；不强制全量覆盖。但本表列出的 P0 关键 5 个 endpoint 必须存在数据节并写入 prototype-baseline。
 - **id / 时间归一化**：data.jsx 中的 `tj-1` / `m1` / `今天 15:48` 等 prototype 风格在写入前会被归一化成 OpenAPI 契约要求的 UUIDv7 字面量与 RFC3339 UTC 时间，归一化方式由同步工具内部约定（见 §4）。
 - **额外字段不可保留**：data.jsx 的展示字段（如 `statusTone` / `readinessLabel` 等）若 OpenAPI schema 不接受，同步工具必须丢弃，不写入 fixture。
 
@@ -19,7 +19,6 @@
 | data.jsx 节 | OpenAPI operationId | 关系 | Tag | 说明 |
 |-------------|---------------------|------|-----|------|
 | `user` | `getMe` | 1:1 | Auth | `email` → `emailMasked`（脱敏）；`name` → `displayName`；`locale` → `uiLanguage` / `preferredPracticeLanguage`。 |
-| `experiences[]` | `listExperienceCards` | 1:N | Profile | 每个 `exp-cN` 映射为一条 `ExperienceCard`：`title/company/situation/task/action/result/skills/language`。`createdAt` / `updatedAt` 由 §4 规则填充。 |
 | `targetJobs[]` | `listTargetJobs` | 1:N | TargetJobs | 每个 `tj-N` 映射为 `TargetJob`：`title/company → companyName/locationText/language → targetLanguage/source → sourceType`；`status` 取 OpenAPI enum 中最贴近的值；`statusTone/level/source/updatedAt` 等展示字段不入 fixture。 |
 | `targetJobs[0]` + `jdSample` | `getTargetJob` | N:1 | TargetJobs | 取第一个 target job 的核心字段，再用 `jdSample.mustHave` / `jdSample.nice` 填 `requirements[]`，`jdSample.hidden` 折成 `summary.coreThemes` / `interviewHypotheses`，`jdSample.rounds` 不入 fixture。 |
 | `questions[]` + `targetJobs[0]` + `sessionTranscript` | `getPracticeSession` | N:1 | PracticeSessions | `questions[0]` 折成 `currentTurn`（`questionText/questionIntent`）；`sessionTranscript` 用于推导 `turnCount` 与 `status`。 |
@@ -30,7 +29,6 @@
 | operationId | 数据来源 | 映射状态 |
 |-------------|----------|----------|
 | `getMe` | `user` | ✅ |
-| `listExperienceCards` | `experiences[]` | ✅ |
 | `listTargetJobs` | `targetJobs[]` | ✅ |
 | `getTargetJob` | `targetJobs[0]` + `jdSample` | ✅ |
 | `getPracticeSession` | `questions` + `targetJobs[0]` + `sessionTranscript` | ✅ |

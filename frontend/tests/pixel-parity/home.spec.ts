@@ -8,10 +8,10 @@ import { expect, test } from "@playwright/test";
  * parse/plan.md §4 Phase 6.
  *
  * Covers desktop (1440x900) and mobile (390x844) projects:
- * - DOM anchors (hero, textarea, aux cards)
+ * - DOM anchors (hero, textarea, retired aux-card negatives)
  * - Bounding box stays in viewport, no overlap
  * - default (ocean)/light -> dark -> customAccent theme switching
- * - Mobile: textarea card not overflowing, aux cards fold
+ * - Mobile: textarea card not overflowing
  */
 
 interface Rect {
@@ -56,12 +56,12 @@ test.describe("home screen DOM anchor parity", () => {
       1,
     );
     await expect(page.locator("[data-testid='home-jd-submit']")).toHaveCount(1);
-    // product-scope D-17 removed the JOB PICKS aux card with the jd_match
-    // module; only the POST-INTERVIEW debrief card remains.
+    // product-scope D-17 removed the JOB PICKS aux card, and D-22 removed the
+    // post-interview debrief card.
     await expect(page.locator("[data-testid='home-aux-jobpicks']")).toHaveCount(
       0,
     );
-    await expect(page.locator("[data-testid='home-aux-debrief']")).toHaveCount(1);
+    await expect(page.locator("[data-testid='home-aux-debrief']")).toHaveCount(0);
   });
 
   test("home textarea card stays inside viewport (desktop)", async ({ page }) => {
@@ -80,23 +80,17 @@ test.describe("home screen DOM anchor parity", () => {
     expect(textareaRect.right).toBeLessThanOrEqual(viewport!.width + 1);
   });
 
-  test("home post-interview aux card stays inside viewport (D-17 single card)", async ({
+  test("home retired aux cards stay absent", async ({
     page,
   }) => {
     await page.goto("/");
-    await page.waitForSelector("[data-testid='home-aux-debrief']");
+    await page.waitForSelector("[data-testid='home-jd-textarea']");
 
-    const viewport = page.viewportSize();
-    expect(viewport).toBeTruthy();
-
-    const debriefRect = await rectOf(page, "[data-testid='home-aux-debrief']");
-    expect(debriefRect.top).toBeGreaterThanOrEqual(0);
-    expect(debriefRect.left).toBeGreaterThanOrEqual(0);
-    expect(debriefRect.right).toBeLessThanOrEqual(viewport!.width + 1);
-
-    // The retired JOB PICKS card must not render.
     await expect(
       page.locator("[data-testid='home-aux-jobpicks']"),
+    ).toHaveCount(0);
+    await expect(
+      page.locator("[data-testid='home-aux-debrief']"),
     ).toHaveCount(0);
   });
 

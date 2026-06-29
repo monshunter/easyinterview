@@ -6,12 +6,11 @@ import userEvent from "@testing-library/user-event";
 import { AuthLoginScreen } from "../auth/AuthLoginScreen";
 import { DisplayPreferencesProvider } from "../display/DisplayPreferencesProvider";
 import { PlaceholderScreen } from "../screens/PlaceholderScreen";
-import { ProfileScreen } from "../screens/ProfileScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { TopBar } from "../topbar/TopBar";
 
 describe("D1 shell i18n", () => {
-  it("renders TopBar, auth, profile/settings, and placeholder shell copy in English without localizing route keys", async () => {
+  it("renders TopBar, auth, settings, and placeholder shell copy in English without localizing route keys", async () => {
     render(
       <DisplayPreferencesProvider initial={{ lang: "en" }}>
         <TopBar activeRoute="home" onNavigate={() => {}} signedIn={false} />
@@ -21,7 +20,6 @@ describe("D1 shell i18n", () => {
           onNavigate={() => {}}
           onStartChallenge={vi.fn()}
         />
-        <ProfileScreen route={{ name: "profile", params: {} }} />
         <SettingsScreen route={{ name: "settings", params: {} }} />
         <PlaceholderScreen
           route={{ name: "workspace", params: { planId: "plan-tj-1" } }}
@@ -45,9 +43,7 @@ describe("D1 shell i18n", () => {
     }
     const user = userEvent.setup();
     await user.click(screen.getByTestId("topbar-user-chip"));
-    expect(screen.getByTestId("topbar-user-profile")).toHaveTextContent(
-      "User profile",
-    );
+    expect(screen.queryByTestId("topbar-user-profile")).not.toBeInTheDocument();
     expect(screen.getByTestId("topbar-user-settings")).toHaveTextContent(
       "Settings & privacy",
     );
@@ -60,9 +56,6 @@ describe("D1 shell i18n", () => {
     );
     expect(screen.getByTestId("auth-login-submit-email")).toHaveTextContent(
       "Send sign-in code",
-    );
-    expect(screen.getByTestId("route-profile")).toHaveTextContent(
-      "User profile",
     );
     expect(screen.getByTestId("route-settings")).toHaveTextContent(
       "Settings & privacy",

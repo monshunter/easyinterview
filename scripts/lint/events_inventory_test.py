@@ -94,13 +94,6 @@ EXPECTED_JOBS = {
         "ownerDomain": "C7",
         "priority": "default",
     },
-    "debrief_generate": {
-        "asynqTask": "debrief.generate",
-        "apiFacing": True,
-        "triggerEvent": "debrief.created",
-        "ownerDomain": "C9",
-        "priority": "default",
-    },
     "source_refresh": {
         "asynqTask": "source.refresh",
         "apiFacing": False,
@@ -167,8 +160,7 @@ def valid_jobs_data() -> dict:
             "resume_parse",
             "report_generate",
             "resume_tailor",
-            "debrief_generate",
-            "privacy_export",
+                    "privacy_export",
             "privacy_delete",
         ],
         "jobs": jobs,
@@ -187,8 +179,6 @@ EXPECTED_EVENT_PAYLOADS = {
     "report.generation.failed": ["reportId", "sessionId", "errorCode", "retryable"],
     "resume.parse.completed": ["resumeId", "userId", "parseStatus"],
     "resume.tailor.completed": ["tailorRunId", "resumeId", "targetJobId", "mode", "status"],
-    "debrief.created": ["debriefId", "targetJobId", "roundType", "questionCount"],
-    "debrief.completed": ["debriefId", "targetJobId", "riskItemCount", "practiceFocusCount"],
     "source.refreshed": ["sourceRecordId", "ownerType", "ownerId", "freshnessStatus"],
     "privacy.request.created": ["privacyRequestId", "userId", "requestType"],
     "privacy.request.completed": ["privacyRequestId", "userId", "requestType", "status"],
@@ -214,8 +204,6 @@ def valid_event_entries() -> list[dict]:
         "report.generation.failed": "feedback_report",
         "resume.parse.completed": "resume",
         "resume.tailor.completed": "resume",
-        "debrief.created": "debrief",
-        "debrief.completed": "debrief",
         "source.refreshed": "source_record",
         "privacy.request.created": "privacy_request",
         "privacy.request.completed": "privacy_request",
@@ -232,8 +220,6 @@ def valid_event_entries() -> list[dict]:
         "report.generation.failed": "backend_async",
         "resume.parse.completed": "backend_async",
         "resume.tailor.completed": "backend_async",
-        "debrief.created": "api",
-        "debrief.completed": "backend_async",
         "source.refreshed": "backend_async",
         "privacy.request.created": "api",
         "privacy.request.completed": "backend_async",
@@ -278,7 +264,6 @@ def payload_type(name: str) -> str:
         "reportId",
         "resumeId",
         "tailorRunId",
-        "debriefId",
         "sourceRecordId",
         "ownerId",
         "privacyRequestId",
@@ -290,9 +275,6 @@ def payload_type(name: str) -> str:
         "answerCharLength",
         "turnCount",
         "questionIssueCount",
-        "questionCount",
-        "riskItemCount",
-        "practiceFocusCount",
     }
     bool_fields = {"retryable"}
     enum_refs = {
@@ -302,7 +284,6 @@ def payload_type(name: str) -> str:
         "preparednessLevel": "$ref:b1.ReadinessTier",
         "status": "$ref:b1.PrivacyRequestStatus",
         "parseStatus": "$ref:b1.TargetJobParseStatus",
-        "roundType": "$ref:b1.DebriefRoundType",
         "requestType": "$ref:b1.PrivacyRequestType",
     }
     if name in uuid_fields:

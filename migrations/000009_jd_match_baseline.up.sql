@@ -91,4 +91,4 @@ CREATE TABLE jd_match_search_runs (
 CREATE INDEX idx_jd_match_search_runs_user_created_at ON jd_match_search_runs (user_id, created_at DESC);
 
 ALTER TABLE async_jobs DROP CONSTRAINT async_jobs_job_type_check;
-ALTER TABLE async_jobs ADD CONSTRAINT async_jobs_job_type_check CHECK (job_type IN ('target_import', 'resume_parse', 'report_generate', 'resume_tailor', 'debrief_generate', 'source_refresh', 'privacy_export', 'privacy_delete', 'email_dispatch', 'jd_match_agent_scan', 'jd_match_search'));
+ALTER TABLE async_jobs ADD CONSTRAINT async_jobs_job_type_check CHECK (job_type IN ('target_import', 'resume_parse', 'report_generate', 'resume_tailor', 'source_refresh', 'privacy_export', 'privacy_delete', 'email_dispatch', 'jd_match_agent_scan', 'jd_match_search'));

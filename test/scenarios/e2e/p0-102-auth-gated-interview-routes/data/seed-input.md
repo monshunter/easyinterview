@@ -11,9 +11,11 @@
   - `practice`
   - `generating`
   - `report`
-  - `debrief`
-  - `profile`
   - `settings`
+- Retired route negatives:
+  - `debrief`
+  - `debrief_full`
+  - `profile`
 - Backend API proof points:
   - session policy public/optional/protected classification.
-  - target job, upload, resume, practice, profile, report, jobs, and jd-match route mount behind session middleware.
+  - target job, upload, resume, practice, report, jobs, and jd-match route mount behind session middleware.

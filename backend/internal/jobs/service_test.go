@@ -15,9 +15,9 @@ func TestServiceGetJobRequiresUserOwnedJob(t *testing.T) {
 	store := &recordingStore{
 		job: JobRecord{
 			ID:           "job-1",
-			JobType:      api.JobTypeDebriefGenerate,
-			ResourceType: api.ResourceTypeDebrief,
-			ResourceID:   "debrief-1",
+			JobType:      api.JobTypeReportGenerate,
+			ResourceType: api.ResourceTypeFeedbackReport,
+			ResourceID:   "report-1",
 			Status:       sharedtypes.JobStatusQueued,
 			CreatedAt:    now,
 			UpdatedAt:    now,
@@ -32,7 +32,7 @@ func TestServiceGetJobRequiresUserOwnedJob(t *testing.T) {
 	if store.userID != "user-1" || store.jobID != "job-1" {
 		t.Fatalf("store input was not normalized: user=%q job=%q", store.userID, store.jobID)
 	}
-	if got.ID != "job-1" || got.ResourceType != api.ResourceTypeDebrief || got.Status != sharedtypes.JobStatusQueued {
+	if got.ID != "job-1" || got.ResourceType != api.ResourceTypeFeedbackReport || got.Status != sharedtypes.JobStatusQueued {
 		t.Fatalf("job drifted: %+v", got)
 	}
 }

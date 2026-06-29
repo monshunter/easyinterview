@@ -4,10 +4,10 @@
  * Truth source: docs/spec/frontend-shell/spec.md §2.1, docs/ui-design/auth-and-entry.md,
  * docs/ui-design/ui-architecture.md, ui-design/src/app.jsx.
  *
- * Four primary nav entries: home / workspace / resume_versions / debrief
- * (product-scope v2.1 D-17 removed the jd_match entry).
+ * Three primary nav entries: home / workspace / resume_versions
+ * (product-scope D-22 removed the debrief and user profile entries).
  * Context routes: parse / practice / generating / report.
- * User-menu routes: profile / settings / auth_logout.
+ * User-menu routes: settings / auth_logout.
  * Auth pages: auth_login / auth_verify / auth_profile_setup / auth_logout.
  * auth_reset retired per product-scope D-16; it normalizes back to auth_login.
  *
@@ -20,7 +20,6 @@ export const PRIMARY_NAV_ROUTES = [
   "home",
   "workspace",
   "resume_versions",
-  "debrief",
 ] as const;
 
 export const CONTEXT_ROUTES = [
@@ -30,7 +29,7 @@ export const CONTEXT_ROUTES = [
   "report",
 ] as const;
 
-export const USER_MENU_ROUTES = ["profile", "settings", "auth_logout"] as const;
+export const USER_MENU_ROUTES = ["settings", "auth_logout"] as const;
 
 export const AUTH_ROUTES = [
   "auth_login",
@@ -72,7 +71,6 @@ export const INTERVIEW_CONTEXT_ROUTES: ReadonlySet<string> = new Set([
   "practice",
   "generating",
   "report",
-  "debrief",
 ]);
 
 export function shouldCarryInterviewContext(name: string): boolean {

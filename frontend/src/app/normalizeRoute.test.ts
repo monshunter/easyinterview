@@ -29,11 +29,12 @@ describe("normalizeRouteName", () => {
     expect(normalizeRouteName("auth_reset")).toBe("auth_login");
   });
 
-  it("normalizes the historical debrief_full alias to the current debrief route", () => {
-    // docs/spec/frontend-debrief/spec.md §2.2 — `debrief_full` is the legacy
-    // standalone-screen route and must not materialize a second debrief
-    // surface. Both entries collapse into `debrief`.
-    expect(normalizeRouteName("debrief_full")).toBe("debrief");
+  it("normalizes retired debrief/profile aliases to home", () => {
+    // product-scope D-22 deletes the debrief and user-profile modules. Saved
+    // local route names must fold back to the core intake home.
+    expect(normalizeRouteName("debrief")).toBe("home");
+    expect(normalizeRouteName("debrief_full")).toBe("home");
+    expect(normalizeRouteName("profile")).toBe("home");
   });
 
   it("normalizes the retired company_intel route to workspace", () => {

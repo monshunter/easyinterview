@@ -9,7 +9,7 @@
 
 ## 0.0 D-17 Module Removal Reopen (v2.0)
 
-2026-06-12 [product-scope v2.1 D-17](../../../product-scope/spec.md#31-已锁定决策) 整体删除岗位推荐模块。本 plan 原地重开（completed -> active），新增 Phase 9 承接 [spec v2.0 §9](../../spec.md#9-d-17-删除范围与零残留验收当前-active-scope) 的 backend / 契约侧删除：OpenAPI jobmatch tag 12 个 operation 与 fixtures、`backend/internal/jdmatch/` 全包、cmd/api wiring、5 张表 drop migration、B3 事件 / job_type、F3 feature_key 与 prompt/rubric/eval 资产、A3 profile 条目、P0.094-097 场景目录。Phase 0-8 为历史完成记录，其断言的能力随 D-17 退役，不得作为当前验收依据。
+2026-06-12 [product-scope v2.1 D-17](../../../product-scope/spec.md#31-已锁定决策) 整体删除岗位推荐模块。本 plan 原地重开（completed -> active），新增 Phase 9 承接历史 spec v2.0 §9 的 backend / 契约侧删除；当前 subject 已退役，见 [spec §6](../../spec.md#6-验收标准) 的零残留验收口径。删除范围包括 OpenAPI jobmatch tag 12 个 operation 与 fixtures、`backend/internal/jdmatch/` 全包、cmd/api wiring、5 张表 drop migration、B3 事件 / job_type、F3 feature_key 与 prompt/rubric/eval 资产、A3 profile 条目、P0.094-097 场景目录。Phase 0-8 为历史完成记录，其断言的能力随 D-17 退役，不得作为当前验收依据。
 
 **Phase 9 质量门禁**：删除型 phase 不新增用户行为流，BDD 不适用；替代验证 gate 为 spec §9.2 C-R1~C-R3——`make codegen && make codegen-check`、fixtures / mock-contract lint、`cd backend && go test ./...`、`/api/v1/jd-match/*` 404 运行时断言、drop migration up/down 测试、跨仓零残留负向搜索（drop migration、历史迁移文件 000009/000010 与负向断言除外）。删除属 TDD 范畴：先以失败断言（如 route 404 测试、负向 grep gate）表达目标态，再执行删除使其转绿。
 

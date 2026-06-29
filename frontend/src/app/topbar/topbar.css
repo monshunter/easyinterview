@@ -10,7 +10,7 @@
  * Keep the testid contract intact (`app-shell-topbar`, `topbar-primary-nav`,
  * `topbar-display-controls`, `topbar-user-area`, `topbar-nav-*`,
    * `topbar-theme-button`, `topbar-dark-toggle`, `topbar-lang-toggle`,
-   * `topbar-login`, `topbar-user-menu`, `topbar-user-{profile,
+   * `topbar-login`, `topbar-user-menu`, `topbar-user-{settings,
    * settings,logout}`); D2 only adds theme-menu/language-menu/custom-accent
    * picker anchors.
  */

@@ -33,7 +33,6 @@ func TestSQLRepositoryCreatePlanWritesPlanAndAuditInOneTransaction(t *testing.T)
 			in.UserID,
 			in.TargetJobID,
 			in.SourceReportID,
-			in.SourceDebriefID,
 			string(in.Goal),
 			string(in.Mode),
 			string(in.InterviewerPersona),
@@ -46,12 +45,11 @@ func TestSQLRepositoryCreatePlanWritesPlanAndAuditInOneTransaction(t *testing.T)
 			in.Now,
 		).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "target_job_id", "source_report_id", "source_debrief_id", "goal", "mode", "interviewer_persona", "difficulty",
+			"id", "target_job_id", "source_report_id", "goal", "mode", "interviewer_persona", "difficulty",
 			"language", "time_budget_minutes", "question_budget", "status", "created_at",
 		}).AddRow(
 			in.PlanID,
 			in.TargetJobID,
-			nil,
 			nil,
 			string(in.Goal),
 			string(in.Mode),
@@ -92,8 +90,8 @@ func TestSQLRepositoryCreatePlanWritesPlanAndAuditInOneTransaction(t *testing.T)
 	if plan.ID != in.PlanID || plan.Status != "ready" || plan.CreatedAt != in.Now {
 		t.Fatalf("unexpected plan: %+v", plan)
 	}
-	if plan.SourceReportID != "" || plan.SourceDebriefID != "" {
-		t.Fatalf("baseline plan should not have source ids: %+v", plan)
+	if plan.SourceReportID != "" {
+		t.Fatalf("baseline plan should not have a source report id: %+v", plan)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
@@ -115,7 +113,6 @@ func TestSQLRepositoryCreatePlanNormalizesEmptyFocusCompetencyCodes(t *testing.T
 			in.UserID,
 			in.TargetJobID,
 			in.SourceReportID,
-			in.SourceDebriefID,
 			string(in.Goal),
 			string(in.Mode),
 			string(in.InterviewerPersona),
@@ -128,12 +125,11 @@ func TestSQLRepositoryCreatePlanNormalizesEmptyFocusCompetencyCodes(t *testing.T
 			in.Now,
 		).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "target_job_id", "source_report_id", "source_debrief_id", "goal", "mode", "interviewer_persona", "difficulty",
+			"id", "target_job_id", "source_report_id", "goal", "mode", "interviewer_persona", "difficulty",
 			"language", "time_budget_minutes", "question_budget", "status", "created_at",
 		}).AddRow(
 			in.PlanID,
 			in.TargetJobID,
-			nil,
 			nil,
 			string(in.Goal),
 			string(in.Mode),
@@ -167,11 +163,10 @@ func TestSQLRepositoryCreatePlanNormalizesEmptyFocusCompetencyCodes(t *testing.T
 
 func TestSQLRepositoryCreatePlanWritesDerivedSourceAndAudit(t *testing.T) {
 	tests := []struct {
-		name            string
-		goal            sharedtypes.PracticeGoal
-		sourceReportID  string
-		sourceDebriefID string
-		wantMetadata    map[string]string
+		name           string
+		goal           sharedtypes.PracticeGoal
+		sourceReportID string
+		wantMetadata   map[string]string
 	}{
 		{
 			name:           "report source",
@@ -179,14 +174,6 @@ func TestSQLRepositoryCreatePlanWritesDerivedSourceAndAudit(t *testing.T) {
 			sourceReportID: "01918fa0-0000-7000-8000-000000003000",
 			wantMetadata: map[string]string{
 				"source_report_id": "01918fa0-0000-7000-8000-000000003000",
-			},
-		},
-		{
-			name:            "debrief source",
-			goal:            sharedtypes.PracticeGoalDebrief,
-			sourceDebriefID: "01918fa0-0000-7000-8000-000000003100",
-			wantMetadata: map[string]string{
-				"source_debrief_id": "01918fa0-0000-7000-8000-000000003100",
 			},
 		},
 	}
@@ -200,25 +187,19 @@ func TestSQLRepositoryCreatePlanWritesDerivedSourceAndAudit(t *testing.T) {
 			in := validCreatePlanStoreInput(now)
 			in.Goal = tc.goal
 			in.SourceReportID = tc.sourceReportID
-			in.SourceDebriefID = tc.sourceDebriefID
 
 			sourceReportRow := any(nil)
 			if tc.sourceReportID != "" {
 				sourceReportRow = tc.sourceReportID
 			}
-			sourceDebriefRow := any(nil)
-			if tc.sourceDebriefID != "" {
-				sourceDebriefRow = tc.sourceDebriefID
-			}
 
 			mock.ExpectBegin()
-			mock.ExpectQuery(`(?s)insert into practice_plans.*left join feedback_reports fr.*fr.status = 'ready'.*left join debriefs d.*d.status = 'completed'.*jsonb_array_length\(d.raw_questions\) > 0`).
+			mock.ExpectQuery(`(?s)insert into practice_plans.*left join feedback_reports fr.*fr.status = 'ready'`).
 				WithArgs(
 					in.PlanID,
 					in.UserID,
 					in.TargetJobID,
 					in.SourceReportID,
-					in.SourceDebriefID,
 					string(in.Goal),
 					string(in.Mode),
 					string(in.InterviewerPersona),
@@ -231,13 +212,12 @@ func TestSQLRepositoryCreatePlanWritesDerivedSourceAndAudit(t *testing.T) {
 					in.Now,
 				).
 				WillReturnRows(sqlmock.NewRows([]string{
-					"id", "target_job_id", "source_report_id", "source_debrief_id", "goal", "mode", "interviewer_persona", "difficulty",
+					"id", "target_job_id", "source_report_id", "goal", "mode", "interviewer_persona", "difficulty",
 					"language", "time_budget_minutes", "question_budget", "status", "created_at",
 				}).AddRow(
 					in.PlanID,
 					in.TargetJobID,
 					sourceReportRow,
-					sourceDebriefRow,
 					string(in.Goal),
 					string(in.Mode),
 					string(in.InterviewerPersona),
@@ -278,7 +258,7 @@ func TestSQLRepositoryCreatePlanWritesDerivedSourceAndAudit(t *testing.T) {
 			if err != nil {
 				t.Fatalf("CreatePlan returned error: %v", err)
 			}
-			if plan.SourceReportID != tc.sourceReportID || plan.SourceDebriefID != tc.sourceDebriefID {
+			if plan.SourceReportID != tc.sourceReportID {
 				t.Fatalf("unexpected source fields: %+v", plan)
 			}
 			if err := mock.ExpectationsWereMet(); err != nil {
@@ -302,14 +282,6 @@ func TestSQLRepositoryCreatePlanReturnsPrerequisiteErrorWhenDerivedSourceUnavail
 			},
 			queryRegex: `(?s)insert into practice_plans.*left join feedback_reports fr.*fr.user_id = \$2.*fr.target_job_id = tj.id.*fr.status = 'ready'`,
 		},
-		{
-			name: "debrief source missing cross user wrong target draft or empty",
-			mutate: func(in *domain.CreatePlanStoreInput) {
-				in.Goal = sharedtypes.PracticeGoalDebrief
-				in.SourceDebriefID = "01918fa0-0000-7000-8000-000000003100"
-			},
-			queryRegex: `(?s)insert into practice_plans.*left join debriefs d.*d.user_id = \$2.*d.target_job_id = tj.id.*d.status = 'completed'.*jsonb_array_length\(d.raw_questions\) > 0`,
-		},
 	}
 
 	for _, tc := range tests {
@@ -327,7 +299,6 @@ func TestSQLRepositoryCreatePlanReturnsPrerequisiteErrorWhenDerivedSourceUnavail
 					in.UserID,
 					in.TargetJobID,
 					in.SourceReportID,
-					in.SourceDebriefID,
 					string(in.Goal),
 					string(in.Mode),
 					string(in.InterviewerPersona),
@@ -359,9 +330,9 @@ func TestSQLRepositoryCommitSessionStartWritesAuditMetadataWithoutQuestionText(t
 	repo := NewSQLRepository(db)
 	now := time.Date(2026, 5, 9, 12, 45, 0, 0, time.UTC)
 	in := validCommitSessionStartInput(now)
-	in.Goal = sharedtypes.PracticeGoalDebrief
-	in.QuestionText = "__PRIVATE_DEBRIEF_TEXT__"
-	in.QuestionIntent = "debrief.source_question"
+	in.Goal = sharedtypes.PracticeGoalRetryCurrentRound
+	in.QuestionText = "__PRIVATE_PRACTICE_TEXT__"
+	in.QuestionIntent = "practice.first_question"
 
 	mock.ExpectBegin()
 	mock.ExpectExec(`insert into practice_turns`).
@@ -440,7 +411,6 @@ func TestSQLRepositoryCreatePlanReturnsPrerequisiteErrorWhenTargetOrResumeMissin
 			in.UserID,
 			in.TargetJobID,
 			in.SourceReportID,
-			in.SourceDebriefID,
 			string(in.Goal),
 			string(in.Mode),
 			string(in.InterviewerPersona),
@@ -527,8 +497,7 @@ func TestSQLRepositoryReserveSessionStartReusesFailedRetryableRecord(t *testing.
 		WithArgs(in.SessionID, in.UserID, in.PlanID, in.HintsEnabled, in.Now).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "plan_id", "target_job_id", "goal", "mode", "interviewer_persona",
-			"language", "role_title", "seniority", "top_skills", "debrief_first_question_text",
-			"debrief_first_question_intent", "hints_enabled", "created_at", "updated_at",
+			"language", "role_title", "seniority", "top_skills", "hints_enabled", "created_at", "updated_at",
 		}).AddRow(
 			in.SessionID,
 			in.PlanID,
@@ -540,8 +509,6 @@ func TestSQLRepositoryReserveSessionStartReusesFailedRetryableRecord(t *testing.
 			"Staff Frontend Architect",
 			"staff",
 			"React, design systems",
-			nil,
-			nil,
 			true,
 			in.Now,
 			in.Now,
@@ -554,72 +521,6 @@ func TestSQLRepositoryReserveSessionStartReusesFailedRetryableRecord(t *testing.
 	}
 	if reservation.IdempotencyRecordID != "idem-existing" || reservation.SessionID != in.SessionID {
 		t.Fatalf("unexpected reservation: %+v", reservation)
-	}
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("sql expectations: %v", err)
-	}
-}
-
-func TestSQLRepositoryReserveSessionStartDebriefCarriesSourceQuestion(t *testing.T) {
-	db, mock, cleanup := newMockDB(t)
-	defer cleanup()
-	repo := NewSQLRepository(db)
-	now := time.Date(2026, 5, 16, 10, 0, 0, 0, time.UTC)
-	in := domain.StartSessionReservationInput{
-		IdempotencyRecordID: "new-idem",
-		SessionID:           "session-debrief",
-		UserID:              "user-1",
-		PlanID:              "plan-debrief",
-		HintsEnabled:        false,
-		IdempotencyKeyHash:  "key-hash",
-		RequestFingerprint:  "fingerprint",
-		ExpiresAt:           now.Add(24 * time.Hour),
-		Now:                 now,
-	}
-
-	mock.ExpectBegin()
-	mock.ExpectExec(`select pg_advisory_xact_lock`).
-		WithArgs(startSessionAdvisoryLockKey(in)).
-		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(`select id, request_fingerprint, status, resource_id::text, response_body, expires_at`).
-		WithArgs(in.UserID, in.IdempotencyKeyHash).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "request_fingerprint", "status", "resource_id", "response_body", "expires_at"}))
-	mock.ExpectExec(`insert into idempotency_records`).
-		WithArgs(in.IdempotencyRecordID, in.UserID, in.IdempotencyKeyHash, in.RequestFingerprint, string(idempotency.StatusPending), in.ExpiresAt, in.Now).
-		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(`(?s)with selected_plan.*left join debriefs d.*d.id = p.source_debrief_id.*jsonb_array_length\(d.raw_questions\) > 0.*raw_questions->0->>'questionText'`).
-		WithArgs(in.SessionID, in.UserID, in.PlanID, in.HintsEnabled, in.Now).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "plan_id", "target_job_id", "goal", "mode", "interviewer_persona",
-			"language", "role_title", "seniority", "top_skills", "debrief_first_question_text",
-			"debrief_first_question_intent", "hints_enabled", "created_at", "updated_at",
-		}).AddRow(
-			in.SessionID,
-			in.PlanID,
-			"target-1",
-			string(sharedtypes.PracticeGoalDebrief),
-			string(sharedtypes.PracticeModeStrict),
-			string(sharedtypes.InterviewerRoleHiringManager),
-			"zh-CN",
-			"Staff Frontend Architect",
-			"staff",
-			"React, design systems",
-			"__DEBRIEF_FIRST_QUESTION__",
-			nil,
-			false,
-			in.Now,
-			in.Now,
-		))
-	mock.ExpectCommit()
-
-	reservation, err := repo.ReserveSessionStart(context.Background(), in)
-	if err != nil {
-		t.Fatalf("ReserveSessionStart returned error: %v", err)
-	}
-	if reservation.Goal != sharedtypes.PracticeGoalDebrief ||
-		reservation.DebriefFirstQuestionText != "__DEBRIEF_FIRST_QUESTION__" ||
-		reservation.DebriefFirstQuestionIntent != "debrief.source_question" {
-		t.Fatalf("unexpected debrief reservation: %+v", reservation)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
@@ -726,8 +627,7 @@ func TestSQLRepositoryReserveSessionStartResetsExpiredPendingRecord(t *testing.T
 		WithArgs(in.SessionID, in.UserID, in.PlanID, in.HintsEnabled, in.Now).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "plan_id", "target_job_id", "goal", "mode", "interviewer_persona",
-			"language", "role_title", "seniority", "top_skills", "debrief_first_question_text",
-			"debrief_first_question_intent", "hints_enabled", "created_at", "updated_at",
+			"language", "role_title", "seniority", "top_skills", "hints_enabled", "created_at", "updated_at",
 		}).AddRow(
 			in.SessionID,
 			in.PlanID,
@@ -739,8 +639,6 @@ func TestSQLRepositoryReserveSessionStartResetsExpiredPendingRecord(t *testing.T
 			"Staff Frontend Architect",
 			"staff",
 			"React, design systems",
-			nil,
-			nil,
 			true,
 			in.Now,
 			in.Now,
@@ -806,8 +704,7 @@ func TestSQLRepositoryReserveSessionStartResetsExpiredSucceededRecord(t *testing
 		WithArgs(in.SessionID, in.UserID, in.PlanID, in.HintsEnabled, in.Now).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "plan_id", "target_job_id", "goal", "mode", "interviewer_persona",
-			"language", "role_title", "seniority", "top_skills", "debrief_first_question_text",
-			"debrief_first_question_intent", "hints_enabled", "created_at", "updated_at",
+			"language", "role_title", "seniority", "top_skills", "hints_enabled", "created_at", "updated_at",
 		}).AddRow(
 			in.SessionID,
 			in.PlanID,
@@ -819,8 +716,6 @@ func TestSQLRepositoryReserveSessionStartResetsExpiredSucceededRecord(t *testing
 			"Staff Frontend Architect",
 			"staff",
 			"React, design systems",
-			nil,
-			nil,
 			true,
 			in.Now,
 			in.Now,
@@ -869,8 +764,7 @@ func TestSQLRepositoryReserveSessionStartScopesIdempotencyByUser(t *testing.T) {
 		WithArgs(in.SessionID, in.UserID, in.PlanID, in.HintsEnabled, in.Now).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "plan_id", "target_job_id", "goal", "mode", "interviewer_persona",
-			"language", "role_title", "seniority", "top_skills", "debrief_first_question_text",
-			"debrief_first_question_intent", "hints_enabled", "created_at", "updated_at",
+			"language", "role_title", "seniority", "top_skills", "hints_enabled", "created_at", "updated_at",
 		}).AddRow(
 			in.SessionID,
 			in.PlanID,
@@ -882,8 +776,6 @@ func TestSQLRepositoryReserveSessionStartScopesIdempotencyByUser(t *testing.T) {
 			"Product Manager",
 			"mid",
 			"prioritization, stakeholder communication",
-			nil,
-			nil,
 			false,
 			in.Now,
 			in.Now,

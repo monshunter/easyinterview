@@ -2,70 +2,6 @@
 # Schema uses capability + provider_ref; retired legacy profile keys are
 # rejected by backend/internal/ai/aiclient/profile loader tests.
 profiles:
-  - name: debrief.generate.default
-    capability: chat
-    status: active
-    default:
-      provider_ref: deepseek
-      model: deepseek-v4-pro
-      params:
-        temperature: 0.3
-    fallback: []
-    timeout_ms: 20000
-    max_tokens: 2048
-    rate_limit:
-      rps: 5
-      tpm: 60000
-    route: debrief.generate
-    version: 1.1.0
-
-  - name: debrief.suggest_questions.default
-    capability: chat
-    status: active
-    default:
-      provider_ref: deepseek
-      model: deepseek-v4-flash
-      params:
-        temperature: 0.4
-    fallback: []
-    timeout_ms: 12000
-    max_tokens: 1024
-    rate_limit:
-      rps: 5
-      tpm: 60000
-    route: debrief.suggest_questions
-    version: 1.0.0
-
-  - name: debrief.voice.extract.default
-    capability: stt
-    status: unsupported
-    unsupported_reason: "DeepSeek V4 Flash/Pro do not provide STT; keep fail-closed until a speech provider is explicitly added"
-    default:
-      provider_ref: unit-test-stub
-      model: stt-provider-required
-    fallback: []
-    timeout_ms: 10000
-    rate_limit:
-      rps: 5
-      tpm: 60000
-    route: debrief.voice.extract
-    version: 0.2.0
-
-  - name: debrief.voice.tts.default
-    capability: tts
-    status: disabled
-    unsupported_reason: "TTS for debrief voice playback is reserved for a future debrief owner implementation"
-    default:
-      provider_ref: minimax_speech
-      model: speech-02-turbo
-    fallback: []
-    timeout_ms: 15000
-    rate_limit:
-      rps: 3
-      tpm: 60000
-    route: debrief.voice.tts
-    version: 0.1.0
-
   - name: judge.default
     capability: judge
     status: active
@@ -199,22 +135,6 @@ profiles:
     route: practice.voice.realtime
     version: 0.1.0
 
-  - name: profile.update.default
-    capability: chat
-    status: disabled
-    unsupported_reason: "progressive profile update AI workflow is reserved for a future profile implementation"
-    default:
-      provider_ref: deepseek
-      model: deepseek-v4-flash
-    fallback: []
-    timeout_ms: 15000
-    max_tokens: 1024
-    rate_limit:
-      rps: 3
-      tpm: 60000
-    route: profile.update
-    version: 0.2.0
-
   - name: report.assessment.default
     capability: chat
     status: active
@@ -315,4 +235,3 @@ profiles:
       tpm: 60000
     route: target.intel
     version: 0.2.0
-

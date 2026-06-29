@@ -31,17 +31,6 @@ export interface InterviewContextState {
   hintCount: string;
   sessionId?: string;
   autoStartPractice?: string;
-  /**
-   * Frontend-debrief plan 001 Phase 5.4: ID of the debrief record returned by
-   * `createDebrief` (202). Stays scoped to the debrief workflow — never written
-   * back into `jobId`, which remains the target-job alias.
-   */
-  debriefId?: string;
-  /**
-   * Async job id returned alongside the debrief record. Used by the
-   * `useDebriefPolling` Phase A loop to poll `getJob`.
-   */
-  debriefJobId?: string;
 }
 
 export const DEFAULT_INTERVIEW_CONTEXT: InterviewContextState = {
@@ -61,8 +50,6 @@ export const DEFAULT_INTERVIEW_CONTEXT: InterviewContextState = {
   hintCount: "0",
   sessionId: undefined,
   autoStartPractice: undefined,
-  debriefId: undefined,
-  debriefJobId: undefined,
 };
 
 export type InterviewContextAction =
@@ -90,20 +77,6 @@ export type InterviewContextAction =
   | { type: "CLEAR_RESUME" }
   | { type: "CLEAR_PRACTICE_PLAN" }
   | { type: "CLEAR_AUTO_START" }
-  | {
-      /**
-       * frontend-debrief plan 001 Phase 5.4. Writes `debriefId` /
-       * `debriefJobId` (and optionally `practiceGoal`) without touching
-       * `jobId`. Reducer test
-       * `TestInterviewContext_DoesNotOverwriteJobId` guards the boundary.
-       */
-      type: "SET_DEBRIEF_CONTEXT";
-      payload: {
-        debriefId?: string;
-        debriefJobId?: string;
-        practiceGoal?: string;
-      };
-    }
   | { type: "CLEAR" };
 
 export function interviewContextReducer(
@@ -134,8 +107,6 @@ export function interviewContextReducer(
         hintCount: p.hintCount || state.hintCount,
         sessionId: p.sessionId || state.sessionId,
         autoStartPractice: p.autoStartPractice ?? state.autoStartPractice,
-        debriefId: p.debriefId || state.debriefId,
-        debriefJobId: p.debriefJobId || state.debriefJobId,
       };
     }
     case "MERGE_TARGET_JOB":
@@ -184,15 +155,6 @@ export function interviewContextReducer(
         ...state,
         autoStartPractice: undefined,
       };
-    case "SET_DEBRIEF_CONTEXT": {
-      // Phase 5.4 guard: never overwrite `jobId` (target-job alias).
-      return {
-        ...state,
-        debriefId: action.payload.debriefId ?? state.debriefId,
-        debriefJobId: action.payload.debriefJobId ?? state.debriefJobId,
-        practiceGoal: action.payload.practiceGoal ?? state.practiceGoal,
-      };
-    }
     case "CLEAR":
       return { ...DEFAULT_INTERVIEW_CONTEXT };
   }

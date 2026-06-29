@@ -22,8 +22,7 @@
     "PracticeGoal": [
       "baseline",
       "retry_current_round",
-      "next_round",
-      "debrief"
+      "next_round"
     ],
     "InterviewerRole": [
       "generalist",
@@ -68,24 +67,6 @@
       "queued_for_retry",
       "resolved"
     ],
-    "DebriefStatus": [
-      "draft",
-      "completed"
-    ],
-    "DebriefRoundType": [
-      "hr_screen",
-      "hiring_manager",
-      "behavioral",
-      "technical",
-      "culture",
-      "custom"
-    ],
-    "DebriefQuestionSource": [
-      "jd",
-      "resume",
-      "mock_report",
-      "manual"
-    ],
     "PrivacyRequestType": [
       "export",
       "delete"
@@ -110,7 +91,6 @@
     "PRACTICE_SESSION_NOT_FOUND",
     "REPORT_NOT_FOUND",
     "REPORT_NOT_READY",
-    "DEBRIEF_NOT_FOUND",
     "RESUME_EXPORT_NOT_AVAILABLE",
     "VALIDATION_FAILED",
     "RESOURCE_NOT_FOUND",

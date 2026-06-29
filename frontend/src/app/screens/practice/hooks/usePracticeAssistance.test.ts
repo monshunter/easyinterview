@@ -13,7 +13,6 @@ import { usePracticeAssistance } from "./usePracticeAssistance";
 describe("usePracticeAssistance", () => {
   it.each([
     ["assisted", "baseline"],
-    ["assisted", "debrief"],
     ["assisted", "retry_current_round"],
     ["assisted", "next_round"],
   ] as const)(
@@ -31,7 +30,6 @@ describe("usePracticeAssistance", () => {
 
   it.each([
     ["strict", "baseline"],
-    ["strict", "debrief"],
     ["strict", "retry_current_round"],
     ["strict", "next_round"],
   ] as const)(
@@ -47,7 +45,7 @@ describe("usePracticeAssistance", () => {
     },
   );
 
-  it("baseline vs debrief snapshot under assisted is identical", () => {
+  it("baseline vs retry_current_round snapshot under assisted is identical", () => {
     const a = renderHook(() =>
       usePracticeAssistance({
         practiceMode: "assisted",
@@ -57,13 +55,13 @@ describe("usePracticeAssistance", () => {
     const b = renderHook(() =>
       usePracticeAssistance({
         practiceMode: "assisted",
-        practiceGoal: "debrief",
+        practiceGoal: "retry_current_round",
       }),
     ).result.current;
     expect(b).toEqual(a);
   });
 
-  it("baseline vs debrief snapshot under strict is identical", () => {
+  it("baseline vs next_round snapshot under strict is identical", () => {
     const a = renderHook(() =>
       usePracticeAssistance({
         practiceMode: "strict",
@@ -73,7 +71,7 @@ describe("usePracticeAssistance", () => {
     const b = renderHook(() =>
       usePracticeAssistance({
         practiceMode: "strict",
-        practiceGoal: "debrief",
+        practiceGoal: "next_round",
       }),
     ).result.current;
     expect(b).toEqual(a);

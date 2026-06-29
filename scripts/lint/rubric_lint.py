@@ -50,10 +50,6 @@ DIMENSION_ALLOWLIST = frozenset(
         # Target family
         "target_extraction_completeness",
         "target_field_accuracy",
-        # Debrief family
-        "debrief_recall_completeness",
-        "debrief_lesson_specificity",
-        "debrief_action_quality",
     }
 )
 

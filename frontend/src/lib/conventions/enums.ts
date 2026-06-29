@@ -49,14 +49,12 @@ export const ALL_PRACTICE_MODES: readonly PracticeMode[] = [
 export type PracticeGoal =
   | 'baseline'
   | 'retry_current_round'
-  | 'next_round'
-  | 'debrief';
+  | 'next_round';
 
 export const ALL_PRACTICE_GOALS: readonly PracticeGoal[] = [
   'baseline',
   'retry_current_round',
   'next_round',
-  'debrief',
 ] as const;
 
 // InterviewerRole mirrors shared/conventions.yaml sourceSection 5.5 (jsonField: "interviewerRole").
@@ -157,48 +155,6 @@ export const ALL_QUESTION_REVIEW_STATUSES: readonly QuestionReviewStatus[] = [
   'open',
   'queued_for_retry',
   'resolved',
-] as const;
-
-// DebriefStatus mirrors shared/conventions.yaml sourceSection 5.12 (jsonField: "debriefStatus").
-export type DebriefStatus =
-  | 'draft'
-  | 'completed';
-
-export const ALL_DEBRIEF_STATUSES: readonly DebriefStatus[] = [
-  'draft',
-  'completed',
-] as const;
-
-// DebriefRoundType mirrors shared/conventions.yaml sourceSection 5.12 (jsonField: "roundType").
-export type DebriefRoundType =
-  | 'hr_screen'
-  | 'hiring_manager'
-  | 'behavioral'
-  | 'technical'
-  | 'culture'
-  | 'custom';
-
-export const ALL_DEBRIEF_ROUND_TYPES: readonly DebriefRoundType[] = [
-  'hr_screen',
-  'hiring_manager',
-  'behavioral',
-  'technical',
-  'culture',
-  'custom',
-] as const;
-
-// DebriefQuestionSource mirrors shared/conventions.yaml sourceSection 5.12 (jsonField: "source").
-export type DebriefQuestionSource =
-  | 'jd'
-  | 'resume'
-  | 'mock_report'
-  | 'manual';
-
-export const ALL_DEBRIEF_QUESTION_SOURCES: readonly DebriefQuestionSource[] = [
-  'jd',
-  'resume',
-  'mock_report',
-  'manual',
 ] as const;
 
 // PrivacyRequestType mirrors shared/conventions.yaml sourceSection 5.13 (jsonField: "privacyRequestType").

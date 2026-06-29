@@ -258,37 +258,6 @@
         }
       }
     },
-    "hint-strict-debrief-conflict": {
-      "request": {
-        "headers": {},
-        "body": {
-          "clientEventId": "01918fa0-0000-7000-8000-00000000e00c",
-          "kind": "hint_requested",
-          "occurredAt": "2026-04-28T13:47:52Z",
-          "payload": {
-            "turnId": "01918fa0-0000-7000-8000-000000006000"
-          }
-        }
-      },
-      "response": {
-        "status": 409,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-47-52-abcdef"
-        },
-        "body": {
-          "error": {
-            "code": "PRACTICE_SESSION_CONFLICT",
-            "message": "Hints are disabled for strict practice mode.",
-            "requestId": "req_2026-04-28T13-47-52-abcdef",
-            "retryable": false,
-            "details": {
-              "policy": "hint_disabled_in_mode",
-              "mode": "strict"
-            }
-          }
-        }
-      }
-    },
     "turn-skipped": {
       "request": {
         "headers": {},

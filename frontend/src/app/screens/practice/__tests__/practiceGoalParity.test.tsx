@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  *
- * Item 3.8 — display under (assisted | strict) × (baseline | debrief) is
+ * Item 3.8 — display under (assisted | strict) × current core-loop goals is
  * indistinguishable across the two practiceGoal values for the same
  * practiceMode. Snapshots over the 4 combinations are pairwise equal.
  */
@@ -28,7 +28,7 @@ function snapshotKey(): Record<string, string | null> {
 }
 
 describe("practiceGoal parity (item 3.8)", () => {
-  it("assisted × baseline matches assisted × debrief", async () => {
+  it("assisted × baseline matches assisted × retry_current_round", async () => {
     const baseline = mountPracticeScreen({
       routeParams: { practiceMode: "assisted", practiceGoal: "baseline" },
     });
@@ -39,7 +39,7 @@ describe("practiceGoal parity (item 3.8)", () => {
     baseline.unmount();
 
     mountPracticeScreen({
-      routeParams: { practiceMode: "assisted", practiceGoal: "debrief" },
+      routeParams: { practiceMode: "assisted", practiceGoal: "retry_current_round" },
     });
     await waitFor(() =>
       expect(screen.getByTestId("practice-screen")).toBeDefined(),
@@ -48,7 +48,7 @@ describe("practiceGoal parity (item 3.8)", () => {
     expect(b).toEqual(a);
   });
 
-  it("strict × baseline matches strict × debrief", async () => {
+  it("strict × baseline matches strict × next_round", async () => {
     const baseline = mountPracticeScreen({
       routeParams: { practiceMode: "strict", practiceGoal: "baseline" },
     });
@@ -59,7 +59,7 @@ describe("practiceGoal parity (item 3.8)", () => {
     baseline.unmount();
 
     mountPracticeScreen({
-      routeParams: { practiceMode: "strict", practiceGoal: "debrief" },
+      routeParams: { practiceMode: "strict", practiceGoal: "next_round" },
     });
     await waitFor(() =>
       expect(screen.getByTestId("practice-screen")).toBeDefined(),

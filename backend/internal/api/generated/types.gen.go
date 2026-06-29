@@ -69,15 +69,6 @@ type Confidence = sharedtypes.Confidence
 // QuestionReviewStatus aliases the B1-owned type.
 type QuestionReviewStatus = sharedtypes.QuestionReviewStatus
 
-// DebriefStatus aliases the B1-owned type.
-type DebriefStatus = sharedtypes.DebriefStatus
-
-// DebriefRoundType aliases the B1-owned type.
-type DebriefRoundType = sharedtypes.DebriefRoundType
-
-// DebriefQuestionSource aliases the B1-owned type.
-type DebriefQuestionSource = sharedtypes.DebriefQuestionSource
-
 // PrivacyRequestType aliases the B1-owned type.
 type PrivacyRequestType = sharedtypes.PrivacyRequestType
 
@@ -107,7 +98,6 @@ const (
 	ApiErrorCodePRACTICESESSIONNOTFOUND       ApiErrorCode = "PRACTICE_SESSION_NOT_FOUND"
 	ApiErrorCodeREPORTNOTFOUND                ApiErrorCode = "REPORT_NOT_FOUND"
 	ApiErrorCodeREPORTNOTREADY                ApiErrorCode = "REPORT_NOT_READY"
-	ApiErrorCodeDEBRIEFNOTFOUND               ApiErrorCode = "DEBRIEF_NOT_FOUND"
 	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE      ApiErrorCode = "RESUME_EXPORT_NOT_AVAILABLE"
 	ApiErrorCodeVALIDATIONFAILED              ApiErrorCode = "VALIDATION_FAILED"
 	ApiErrorCodeRESOURCENOTFOUND              ApiErrorCode = "RESOURCE_NOT_FOUND"
@@ -135,7 +125,6 @@ var AllApiErrorCodes = []ApiErrorCode{
 	ApiErrorCodePRACTICESESSIONNOTFOUND,
 	ApiErrorCodeREPORTNOTFOUND,
 	ApiErrorCodeREPORTNOTREADY,
-	ApiErrorCodeDEBRIEFNOTFOUND,
 	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE,
 	ApiErrorCodeVALIDATIONFAILED,
 	ApiErrorCodeRESOURCENOTFOUND,
@@ -161,7 +150,6 @@ const (
 	ResourceTypeFeedbackReport  ResourceType = "feedback_report"
 	ResourceTypeResumeAsset     ResourceType = "resume_asset"
 	ResourceTypeResumeTailorRun ResourceType = "resume_tailor_run"
-	ResourceTypeDebrief         ResourceType = "debrief"
 	ResourceTypePrivacyRequest  ResourceType = "privacy_request"
 )
 
@@ -171,20 +159,18 @@ var AllResourceTypes = []ResourceType{
 	ResourceTypeFeedbackReport,
 	ResourceTypeResumeAsset,
 	ResourceTypeResumeTailorRun,
-	ResourceTypeDebrief,
 	ResourceTypePrivacyRequest,
 }
 
 type JobType string
 
 const (
-	JobTypeTargetImport    JobType = "target_import"
-	JobTypeResumeParse     JobType = "resume_parse"
-	JobTypeReportGenerate  JobType = "report_generate"
-	JobTypeResumeTailor    JobType = "resume_tailor"
-	JobTypeDebriefGenerate JobType = "debrief_generate"
-	JobTypePrivacyExport   JobType = "privacy_export"
-	JobTypePrivacyDelete   JobType = "privacy_delete"
+	JobTypeTargetImport   JobType = "target_import"
+	JobTypeResumeParse    JobType = "resume_parse"
+	JobTypeReportGenerate JobType = "report_generate"
+	JobTypeResumeTailor   JobType = "resume_tailor"
+	JobTypePrivacyExport  JobType = "privacy_export"
+	JobTypePrivacyDelete  JobType = "privacy_delete"
 )
 
 // AllJobTypes lists every defined value in declaration order.
@@ -193,7 +179,6 @@ var AllJobTypes = []JobType{
 	JobTypeResumeParse,
 	JobTypeReportGenerate,
 	JobTypeResumeTailor,
-	JobTypeDebriefGenerate,
 	JobTypePrivacyExport,
 	JobTypePrivacyDelete,
 }
@@ -257,65 +242,6 @@ type UploadPresign struct {
 	Headers      map[string]any `json:"headers"`
 	Method       string         `json:"method"`
 	UploadUrl    string         `json:"uploadUrl"`
-}
-
-type CandidateProfile struct {
-	CurrentRole               *string `json:"currentRole"`
-	Headline                  *string `json:"headline"`
-	PreferredPracticeLanguage string  `json:"preferredPracticeLanguage"`
-	Region                    *string `json:"region"`
-	UiLanguage                string  `json:"uiLanguage"`
-	YearsOfExperience         *int32  `json:"yearsOfExperience"`
-}
-
-type UpdateProfileRequest struct {
-	CurrentRole               *string `json:"currentRole,omitempty"`
-	Headline                  *string `json:"headline,omitempty"`
-	PreferredPracticeLanguage *string `json:"preferredPracticeLanguage,omitempty"`
-	Region                    *string `json:"region,omitempty"`
-	UiLanguage                *string `json:"uiLanguage,omitempty"`
-	YearsOfExperience         *int32  `json:"yearsOfExperience,omitempty"`
-}
-
-type ExperienceCard struct {
-	Action      string   `json:"action"`
-	CompanyName string   `json:"companyName"`
-	CreatedAt   string   `json:"createdAt"`
-	Id          string   `json:"id"`
-	Language    string   `json:"language"`
-	Result      string   `json:"result"`
-	Situation   string   `json:"situation"`
-	Skills      []string `json:"skills"`
-	Task        string   `json:"task"`
-	Title       string   `json:"title"`
-	UpdatedAt   string   `json:"updatedAt"`
-}
-
-type CreateExperienceCardRequest struct {
-	Action      string   `json:"action"`
-	CompanyName string   `json:"companyName"`
-	Language    string   `json:"language"`
-	Result      string   `json:"result"`
-	Situation   string   `json:"situation"`
-	Skills      []string `json:"skills,omitempty"`
-	Task        string   `json:"task"`
-	Title       string   `json:"title"`
-}
-
-type UpdateExperienceCardRequest struct {
-	Action      *string  `json:"action,omitempty"`
-	CompanyName *string  `json:"companyName,omitempty"`
-	Language    *string  `json:"language,omitempty"`
-	Result      *string  `json:"result,omitempty"`
-	Situation   *string  `json:"situation,omitempty"`
-	Skills      []string `json:"skills,omitempty"`
-	Task        *string  `json:"task,omitempty"`
-	Title       *string  `json:"title,omitempty"`
-}
-
-type PaginatedExperienceCard struct {
-	Items    []ExperienceCard `json:"items"`
-	PageInfo PageInfo         `json:"pageInfo"`
 }
 
 type RegisterResumeRequest struct {
@@ -463,7 +389,6 @@ type CreatePracticePlanRequest struct {
 	Mode                 PracticeMode    `json:"mode"`
 	QuestionBudget       int32           `json:"questionBudget"`
 	ResumeId             string          `json:"resumeId"`
-	SourceDebriefId      *string         `json:"sourceDebriefId,omitempty"`
 	SourceReportId       *string         `json:"sourceReportId,omitempty"`
 	TargetJobId          string          `json:"targetJobId"`
 	TimeBudgetMinutes    int32           `json:"timeBudgetMinutes"`
@@ -478,7 +403,6 @@ type PracticePlan struct {
 	Language           string          `json:"language"`
 	Mode               PracticeMode    `json:"mode"`
 	QuestionBudget     int32           `json:"questionBudget"`
-	SourceDebriefId    *string         `json:"sourceDebriefId,omitempty"`
 	SourceReportId     *string         `json:"sourceReportId,omitempty"`
 	Status             string          `json:"status"`
 	TargetJobId        string          `json:"targetJobId"`
@@ -686,77 +610,6 @@ type ResumeTailorRun struct {
 type ResumeTailorRunWithJob struct {
 	Job         Job    `json:"job"`
 	TailorRunId string `json:"tailorRunId"`
-}
-
-type DebriefQuestionInput struct {
-	InterviewerReaction *string `json:"interviewerReaction,omitempty"`
-	MyAnswerSummary     string  `json:"myAnswerSummary"`
-	QuestionText        string  `json:"questionText"`
-}
-
-type DebriefQuestion struct {
-	AiAnalysis          *string `json:"aiAnalysis,omitempty"`
-	InterviewerReaction *string `json:"interviewerReaction,omitempty"`
-	MyAnswerSummary     string  `json:"myAnswerSummary"`
-	QuestionText        string  `json:"questionText"`
-}
-
-type DebriefRiskItem struct {
-	Label    string `json:"label"`
-	Severity string `json:"severity"`
-}
-
-type DebriefNextRoundChecklistItem struct {
-	Label     string  `json:"label"`
-	Rationale *string `json:"rationale,omitempty"`
-}
-
-type CreateDebriefRequest struct {
-	InterviewerRole *InterviewerRole       `json:"interviewerRole,omitempty"`
-	Language        string                 `json:"language"`
-	Notes           *string                `json:"notes,omitempty"`
-	Questions       []DebriefQuestionInput `json:"questions"`
-	RoundType       DebriefRoundType       `json:"roundType"`
-	TargetJobId     string                 `json:"targetJobId"`
-}
-
-type Debrief struct {
-	CreatedAt          string                          `json:"createdAt"`
-	Id                 string                          `json:"id"`
-	InterviewerRole    *InterviewerRole                `json:"interviewerRole,omitempty"`
-	NextRoundChecklist []DebriefNextRoundChecklistItem `json:"nextRoundChecklist,omitempty"`
-	Provenance         *GenerationProvenance           `json:"provenance,omitempty"`
-	Questions          []DebriefQuestion               `json:"questions,omitempty"`
-	RiskItems          []DebriefRiskItem               `json:"riskItems,omitempty"`
-	RoundType          DebriefRoundType                `json:"roundType"`
-	Status             DebriefStatus                   `json:"status"`
-	TargetJobId        string                          `json:"targetJobId"`
-	ThankYouDraft      *string                         `json:"thankYouDraft,omitempty"`
-	UpdatedAt          string                          `json:"updatedAt"`
-}
-
-type DebriefWithJob struct {
-	DebriefId string `json:"debriefId"`
-	Job       Job    `json:"job"`
-}
-
-type SuggestedDebriefQuestion struct {
-	QuestionText   string                `json:"questionText"`
-	Source         DebriefQuestionSource `json:"source"`
-	Stage          *string               `json:"stage,omitempty"`
-	WhyLikelyAsked string                `json:"whyLikelyAsked"`
-}
-
-type SuggestDebriefQuestionsRequest struct {
-	Count       *int32  `json:"count,omitempty"`
-	Language    string  `json:"language"`
-	ResumeId    *string `json:"resumeId,omitempty"`
-	SessionId   *string `json:"sessionId,omitempty"`
-	TargetJobId string  `json:"targetJobId"`
-}
-
-type SuggestDebriefQuestionsResponse struct {
-	Suggestions []SuggestedDebriefQuestion `json:"suggestions"`
 }
 
 type Job struct {

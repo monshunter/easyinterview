@@ -7,53 +7,14 @@ import { fireEvent, render } from "@testing-library/react";
 
 import { DisplayPreferencesProvider } from "../display/DisplayPreferencesProvider";
 import { PlaceholderScreen } from "./PlaceholderScreen";
-import { ProfileScreen } from "./ProfileScreen";
 import { SettingsScreen } from "./SettingsScreen";
 
 const HERE = resolve(__dirname);
-const REPO_ROOT = resolve(HERE, "..", "..", "..", "..");
 const SCREENS_CSS = resolve(HERE, "screens.css");
-const SCREEN_PROFILE_JSX = resolve(REPO_ROOT, "ui-design", "src", "screen-profile.jsx");
 
 function withProvider(node: React.ReactElement) {
   return <DisplayPreferencesProvider>{node}</DisplayPreferencesProvider>;
 }
-
-describe("Profile shell visual contract (Phase 5.1)", () => {
-  it("renders ei-screen-shell with display title and body sub copy", () => {
-    const { container } = render(
-      withProvider(<ProfileScreen route={{ name: "profile", params: {} }} />),
-    );
-    const root = container.querySelector("[data-testid='route-profile']");
-    expect(root).toBeTruthy();
-    expect(root!.className).toMatch(/\bei-screen-shell\b/);
-
-    const heading = root!.querySelector("h1");
-    expect(heading?.className).toMatch(/\bei-text-display\b/);
-
-    const sub = root!.querySelector("header p");
-    expect(sub?.className).toMatch(/\bei-text-body\b/);
-  });
-
-  it("wraps every section in ei-screen-card with ei-text-title section heading", () => {
-    const { container } = render(
-      withProvider(<ProfileScreen route={{ name: "profile", params: {} }} />),
-    );
-    for (const sectionId of [
-      "profile-identity-summary",
-      "profile-sections",
-      "profile-insight-cards",
-      "profile-used-by",
-      "profile-recent-evidence",
-    ]) {
-      const section = container.querySelector(`[data-testid='${sectionId}']`);
-      expect(section, `${sectionId} missing`).toBeTruthy();
-      expect(section!.className).toMatch(/\bei-screen-card\b/);
-      const heading = section!.querySelector("h2");
-      expect(heading?.className).toMatch(/\bei-text-title\b/);
-    }
-  });
-});
 
 describe("Settings shell visual contract (Phase 5.1 / Phase 12.2)", () => {
   it("renders ei-screen-shell with a two-tab rail and profile-tab ei-screen-card sections", () => {
@@ -221,12 +182,6 @@ describe("screens.css visual rhythm (Phase 5.1 + 5.2)", () => {
     expect(css).toMatch(
       /\.ei-skeleton-stripe\s*\{[^}]*background:\s*repeating-linear-gradient/,
     );
-  });
-
-  it("values can be traced back to ui-design/src/screen-profile.jsx", () => {
-    const src = readFileSync(SCREEN_PROFILE_JSX, "utf8");
-    expect(src).toContain("padding: 28");
-    expect(src).toContain("padding: 14");
   });
 
   it("global.css imports screens.css", () => {

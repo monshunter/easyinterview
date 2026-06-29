@@ -51,6 +51,8 @@ cd backend && DATABASE_URL=... go test -v ./cmd/api -run '^TestE2EP0098' -count=
   provider/prompt payloads.
 - Legacy route vocabulary is rejected with a route-aware pattern while canonical
   operation names remain allowed.
+- D-22 retired debrief/profile API, table, event, job, feature-key, fixture, and
+  generated-contract tokens are absent from the API-level core loop.
 
 ## Cleanup
 

@@ -65,6 +65,9 @@ const ROUTE_ALIASES = {
   auth_reset: "auth_login",
   jd_match: "home",
   company_intel: "workspace",
+  debrief: "home",
+  debrief_full: "home",
+  profile: "home",
 };
 
 const DEFAULT_INTERVIEW_CONTEXT = {
@@ -77,7 +80,7 @@ const DEFAULT_INTERVIEW_CONTEXT = {
   roundName: "经理面",
 };
 
-const INTERVIEW_CONTEXT_ROUTES = new Set(["workspace", "practice", "generating", "report", "debrief"]);
+const INTERVIEW_CONTEXT_ROUTES = new Set(["workspace", "practice", "generating", "report"]);
 const normalizeRouteName = (name) => ROUTE_ALIASES[name] || name;
 const shouldCarryInterviewContext = (name) => INTERVIEW_CONTEXT_ROUTES.has(normalizeRouteName(name));
 const paramsFromSearch = (params) => {
@@ -292,13 +295,10 @@ const App = () => {
     workspace: <WorkspaceScreen T={T} lang={lang} nav={nav} requestAuth={requestAuth} params={route.params || {}} />,
     practice: <PracticeScreen T={T} lang={lang} nav={nav} params={route.params || {}} jobId={currentContext.targetJobId} mode={route.params.mode} role={tweaks.role} setRole={(r) => updateTweak("role", r)} />,
     report: <ReportScreen T={T} lang={lang} nav={nav} params={route.params || {}} requestAuth={requestAuth} />,
-    debrief: <DebriefFullScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
     parse: <ParseScreen T={T} lang={lang} nav={nav} requestAuth={requestAuth} />,
     generating: <ReportGeneratingScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
     settings: <SettingsScreen T={T} lang={lang} nav={nav} fontPreset={tweaks.fontPreset} setFontPreset={setFontPreset} />,
-    debrief_full: <DebriefFullScreen T={T} lang={lang} nav={nav} />,
     resume_versions: <ResumeVersionsScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
-    profile: <UserProfileScreen T={T} lang={lang} nav={nav} />,
     auth_login: <AuthLoginScreen T={T} lang={lang} nav={nav} onSignIn={completeSignIn} pendingAction={route.params.pendingAction} />,
     auth_verify: <AuthVerifyScreen T={T} lang={lang} nav={nav} email={route.params.email} onSignIn={completeSignIn} pendingAction={route.params.pendingAction} />,
     auth_profile_setup: <AuthProfileSetupScreen T={T} lang={lang} nav={nav} onCompleteProfile={completeProfile} pendingAction={route.params.pendingAction} />,
@@ -346,7 +346,6 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
     { k: "home", labelZh: "首页", labelEn: "Home", icon: "target" },
     { k: "workspace", labelZh: "模拟面试", labelEn: "Mock Interview", icon: "play" },
     { k: "resume_versions", labelZh: "简历", labelEn: "Resume", icon: "file" },
-    { k: "debrief", labelZh: "复盘", labelEn: "Debrief", icon: "flag" },
   ];
   return (
     <div style={{
@@ -539,7 +538,6 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
                   <div style={{ fontSize: 11.5, color: T.ink3, marginTop: 2, fontFamily: "var(--ei-mono)" }}>liuzhe@example.com</div>
                 </div>
                 {[
-                  { k: "profile", icon: "user", labelZh: "用户画像", labelEn: "User profile", action: () => nav("profile") },
                   { k: "settings", icon: "settings", labelZh: "设置与隐私", labelEn: "Settings & privacy", action: () => nav("settings") },
                 ].map((item) => (
                   <button key={item.k} onClick={() => { item.action(); setUserMenuOpen(false); }} style={{

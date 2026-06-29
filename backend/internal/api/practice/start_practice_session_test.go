@@ -45,19 +45,19 @@ func TestStartPracticeSessionReturns201WithCurrentTurn(t *testing.T) {
 	}
 }
 
-func TestStartPracticeSessionDebriefReturnsSourceCurrentTurn(t *testing.T) {
+func TestStartPracticeSessionReportDerivedReturnsSourceCurrentTurn(t *testing.T) {
 	service := &fakePlanService{
 		startRecord: func() domain.SessionRecord {
 			session := fixtureSessionRecord()
-			session.CurrentTurn.QuestionText = "__DEBRIEF_FIRST_QUESTION__"
-			session.CurrentTurn.QuestionIntent = "debrief.source_question"
+			session.CurrentTurn.QuestionText = "__REPORT_NEXT_ROUND_FIRST_QUESTION__"
+			session.CurrentTurn.QuestionIntent = "report.next_round_source_question"
 			return session
 		}(),
 	}
 	handler := newTestHandler(service)
 
 	rec := httptest.NewRecorder()
-	handler.StartPracticeSession(rec, newStartSessionHTTPRequest(t, api.StartPracticeSessionRequest{PlanId: "plan-debrief"}))
+	handler.StartPracticeSession(rec, newStartSessionHTTPRequest(t, api.StartPracticeSessionRequest{PlanId: "plan-next-round"}))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
@@ -67,10 +67,10 @@ func TestStartPracticeSessionDebriefReturnsSourceCurrentTurn(t *testing.T) {
 	}
 	if out.Status != sharedtypes.SessionStatusRunning ||
 		out.CurrentTurn == nil ||
-		out.CurrentTurn.QuestionText != "__DEBRIEF_FIRST_QUESTION__" ||
+		out.CurrentTurn.QuestionText != "__REPORT_NEXT_ROUND_FIRST_QUESTION__" ||
 		out.CurrentTurn.QuestionIntent == nil ||
-		*out.CurrentTurn.QuestionIntent != "debrief.source_question" {
-		t.Fatalf("unexpected debrief response: %+v", out)
+		*out.CurrentTurn.QuestionIntent != "report.next_round_source_question" {
+		t.Fatalf("unexpected report-derived response: %+v", out)
 	}
 }
 

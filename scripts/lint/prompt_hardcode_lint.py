@@ -20,7 +20,6 @@ DEFAULT_ROOTS = [
     "backend/internal/practice",
     "backend/internal/report",
     "backend/internal/resume",
-    "backend/internal/debrief",
     "backend/internal/targetjob",
 ]
 

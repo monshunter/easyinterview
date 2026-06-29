@@ -120,53 +120,6 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 	}
 }
 
-func TestStartPracticeSessionDebriefUsesSourceQuestionWithoutFirstQuestionAI(t *testing.T) {
-	now := time.Date(2026, 5, 16, 9, 30, 0, 0, time.UTC)
-	store := &recordingPlanStore{
-		reservation: SessionReservation{
-			SessionID:                  "session-1",
-			PlanID:                     "plan-1",
-			TargetJobID:                "target-1",
-			Goal:                       sharedtypes.PracticeGoalDebrief,
-			Mode:                       sharedtypes.PracticeModeStrict,
-			InterviewerPersona:         sharedtypes.InterviewerRoleHiringManager,
-			Language:                   "zh-CN",
-			HintsEnabled:               false,
-			DebriefFirstQuestionText:   "__DEBRIEF_FIRST_QUESTION__",
-			DebriefFirstQuestionIntent: "debrief.source_question",
-			CreatedAt:                  now.Add(-time.Hour),
-			UpdatedAt:                  now.Add(-time.Hour),
-		},
-	}
-	service := NewService(ServiceOptions{
-		Store: store,
-		Now:   func() time.Time { return now },
-		NewID: sequenceIDs("idem-1", "session-1", "turn-1", "event-1", "outbox-1", "audit-1"),
-	})
-
-	session, err := service.StartPracticeSession(context.Background(), StartSessionRequest{
-		UserID:             "user-1",
-		PlanID:             "plan-1",
-		IdempotencyKeyHash: "key-hash",
-		RequestFingerprint: "fingerprint",
-	})
-	if err != nil {
-		t.Fatalf("StartPracticeSession returned error: %v", err)
-	}
-	if !reflect.DeepEqual(store.steps, []string{"reserve", "commit"}) {
-		t.Fatalf("debrief start should skip first_question AI, steps=%v", store.steps)
-	}
-	if store.commit.QuestionText != "__DEBRIEF_FIRST_QUESTION__" ||
-		store.commit.QuestionIntent != "debrief.source_question" {
-		t.Fatalf("debrief source question not committed: %+v", store.commit)
-	}
-	if session.CurrentTurn == nil ||
-		session.CurrentTurn.QuestionText != "__DEBRIEF_FIRST_QUESTION__" ||
-		session.CurrentTurn.QuestionIntent != "debrief.source_question" {
-		t.Fatalf("unexpected debrief session: %+v", session)
-	}
-}
-
 func TestStartPracticeSessionFailsReservationWhenPromptResolutionFails(t *testing.T) {
 	store := &recordingPlanStore{
 		reservation: SessionReservation{

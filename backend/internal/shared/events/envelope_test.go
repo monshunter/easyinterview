@@ -10,7 +10,7 @@ import (
 
 func TestEnvelopeRoundTrip(t *testing.T) {
 	fixtures := readEnvelopeFixtures(t)
-	if got, want := len(fixtures), 3; got != want {
+	if got, want := len(fixtures), 2; got != want {
 		t.Fatalf("fixture count = %d, want %d", got, want)
 	}
 

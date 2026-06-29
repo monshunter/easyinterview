@@ -68,7 +68,7 @@ Growth
 └─ 从目标导航和默认流程移除；运行时旧 route 折回 Home
 ```
 
-若需要展示进展，只在模拟面试规划、报告仪表盘或用户画像中展示与当前任务相关的信号，不提供独立成长中心。
+若需要展示进展，只在模拟面试规划或报告仪表盘中展示与当前任务相关的信号，不提供独立成长中心。
 
 ## 4 多轮计划模块
 
@@ -316,7 +316,7 @@ Job Picks / jd_match
 └─ 模块、route、导航项、首页辅助入口、画板帧全部删除
    ├─ 旧 jd_match hash 归一回 home
    ├─ JD 获取唯一入口：首页粘贴 / 上传 / URL 导入
-   └─ 画像呈现只保留用户菜单的用户画像页（消除画像双呈现）
+   └─ 不再提供岗位推荐画像摘要或用户画像页（消除画像双呈现）
 ```
 
 ### 15.2 公司情报独立详情页
@@ -377,7 +377,7 @@ Theme menu
 | `star` | 移除独立 STAR 编辑器；运行时折回 `resume_versions` |
 | `onboarding` | 运行时折回 `resume_versions`；移除旧经历库前置职责，简历创建目标入口是 `resume_versions(flow=create)` |
 | `resume` | 运行时折回 `resume_versions`；不作为顶部导航或目标入口 |
-| `debrief_full` | 同 `debrief` 的历史别名；不新增独立模块 |
+| `debrief` / `debrief_full` | D-22 已删除复盘；运行时归一回 `home`，不新增独立模块 |
 | `followup` | 移除独立追问树；运行时折回 `practice` |
 | `mistakes` | 移除独立错题复练流程；运行时折回 `report` |
 | `drill` | 移除独立单题 Drill；运行时折回 `practice` |
@@ -386,7 +386,7 @@ Theme menu
 | `resume_versions` | 保留为一级简历模块当前入口（平铺简历工坊） |
 | `jd_match` | 移除岗位推荐一级模块（D-17）；运行时折回 `home` |
 | `company_intel` | 移除独立情报详情页（D-18）；运行时折回 `workspace`，嵌入卡片保留在规划页 |
-| `profile` | 保留为用户菜单里的用户画像 |
+| `profile` | D-22 已删除用户画像；运行时归一回 `home` |
 | `settings` | 保留为用户菜单里的账号、隐私、界面偏好入口（仅个人资料 / 隐私与数据两个 tab） |
 | `auth_reset` | 移除独立重置登录页；运行时折回 `auth_login`，验证码重发与更换邮箱由 `auth_verify` 承担 |
 | `auth_login` / `auth_verify` / `auth_profile_setup` / `auth_logout` | 保留为认证流程页面 |
@@ -407,7 +407,7 @@ Theme menu
 | `screens-p1-depth.jsx::ResumeVersionsScreen`（`_LegacyResumeVersionsScreen`） | `resume_versions` 旧实现 | dead code 已删除；`screen-resume-workshop.jsx` 覆盖 `window.ResumeVersionsScreen` | 废弃旧单页版本工坊；以平铺简历工坊为准 |
 | `screens-completion.jsx::StarEditorScreen` | `star` | 文件已删除；route 折回 `resume_versions` | 废弃独立 STAR 编辑器 |
 | `screen-report.jsx::ReportEditorial` / `ReportTimeline` | 报告变体标签 / `reportLayout` | 组件、参数和画板变体已删除；`report` 只渲染 Dashboard | 废弃独立刊物式报告和时间线报告形态 |
-| `screens-rest.jsx::DebriefScreen` | 旧复盘实现 | 文件已删除；当前目标使用 `DebriefFullScreen` | 废弃旧复盘页 |
+| `screens-rest.jsx::DebriefScreen` / `screens-p1-depth.jsx::DebriefFullScreen` | 复盘实现 | 文件已删除；当前目标不再渲染复盘页 | 废弃复盘页 |
 | `screens-rest.jsx::ResumeScreen` | `resume` | 文件已删除；route 折回 `resume_versions` | 废弃为目标入口；以 `resume_versions` 为准 |
 | `screens-p0-complete.jsx::OnboardingScreen` | `onboarding` | 组件已删除；route 折回 `resume_versions` | 废弃为当前简历创建入口；以 `resume_versions(flow=create)` 为准 |
 | `screens-p2.jsx::VoicePracticeScreen` | `voice` | 文件已删除；`voice` route alias 已删除 | 语音能力保留为 `PracticeScreen` 内的语音 Surface，不恢复独立语音页骨架 |
@@ -434,7 +434,7 @@ Theme menu
 └─ 设置页字体预设
 ```
 
-这些控制保留，因为它们是横切的 UI 呈现能力；但它们不属于模拟面试、报告、简历或复盘的业务模块，也不应该成为新的一级导航或 onboarding 步骤。
+这些控制保留，因为它们是横切的 UI 呈现能力；但它们不属于模拟面试、报告或简历的业务模块，也不应该成为新的一级导航或 onboarding 步骤。
 
 ## 19 未来重新引入条件
 
@@ -442,7 +442,7 @@ Theme menu
 
 1. 用户在什么时刻会主动需要它。
 2. 它解决的是哪一个具体任务。
-3. 它和首页、模拟面试、报告、简历、复盘闭环是什么关系。
+3. 它和首页、模拟面试、报告、简历闭环是什么关系。
 4. 它是否值得成为一级导航或独立模块。
 
 在这些问题没有明确答案前，不应把这些模块放回主流程。

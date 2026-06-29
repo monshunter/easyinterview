@@ -1,8 +1,8 @@
 # Backend TargetJob Spec
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-06-29
 
 ## 1 背景与目标
 
@@ -40,7 +40,7 @@
 - 不实现真实 `company_intel` 抓取、聚合或刷新；本 spec 只允许 `target.parsed` 事件触发后续 internal-only `source_refresh` job 的占位入口，实际刷新由后续 plan 设计。
 - 不实现独立 worker / Asynq dispatcher / 生产级 outbox consumer；P0 用 backend-internal drainer 完成本地与 BDD 验证。
 - 不修改 B2 OpenAPI、B3 events.yaml / jobs.yaml、B4 baseline 表结构、A3 provider 协议、F3 `target.import.parse` baseline prompt / rubric 文本；任何修改先回到 owner spec。
-- 不实现报告生成、证据回收、错题回顾或复盘；这些归 `backend-review` / `backend-debrief` owner。
+- 不实现报告生成、证据回收或错题回顾；这些归 `backend-review` 等 owner。真实面试复盘已随 product-scope D-22 删除，不再作为 downstream owner。
 - 不实现完整 privacy export；`target_jobs` 软删 + 删除矩阵 dry-run schema 由 [B4](../db-migrations-baseline/spec.md) 承接，`privacy_delete` 运行链路已由 [`backend-async-runner/001`](../backend-async-runner/spec.md) kernel 接管（`privacy_export` 仍为 reserved，不由本 plan 注册）；本 spec 只保证 `deleted_at` 软删字段与 cascade 关系不被违反。
 
 ## 3 用户决策 / 待确认事项

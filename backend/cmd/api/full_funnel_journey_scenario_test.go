@@ -287,7 +287,7 @@ func newFullFunnelJourneyHarnessWithTimeout(t *testing.T, timeout time.Duration)
 		ChallengePepper:     fullFunnelAuthPepper,
 		SessionCookieSecret: fullFunnelSessionSecret,
 	})
-	targetRuntime, err := buildTargetJobRuntime(loader, db, logger, nil, &privacyDeleteRuntimeHooks{})
+	targetRuntime, err := buildTargetJobRuntime(loader, db, logger, nil)
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
@@ -307,7 +307,7 @@ func newFullFunnelJourneyHarnessWithTimeout(t *testing.T, timeout time.Duration)
 		t.Fatalf("buildReportRuntime: %v", err)
 	}
 	jobs := buildJobsRoutes(db)
-	handler := buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(
+	handler := buildAPIHandlerWithUploadReportJobsAndHandlers(
 		loader,
 		apiRuntimeFlags{},
 		authService,
@@ -316,7 +316,6 @@ func newFullFunnelJourneyHarnessWithTimeout(t *testing.T, timeout time.Duration)
 		uploadRoutes{},
 		resumeRuntime.Routes(),
 		reports.Routes(),
-		debriefRoutes{},
 		jobs,
 	)
 	kernel := newTestKernel(runner.NewSQLStore(db), targetRuntime.Handlers, resumeRuntime.Handlers, reports.Handlers)
@@ -828,6 +827,18 @@ type fullFunnelScenarioAIClient struct{}
 
 func (c *fullFunnelScenarioAIClient) Complete(ctx context.Context, profileName string, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
 	switch payload.Metadata.FeatureKey {
+	case targetjob.FeatureKeyTargetImportParse:
+		content := fullFunnelTargetImportJSON()
+		return aiclient.CompleteResponse{Content: content, FinishReason: "stop"}, aiclient.AICallMeta{
+			Provider:         "full-funnel-fixture",
+			ModelFamily:      "fixture",
+			ModelID:          "fixture-model:target-import-parse",
+			ModelProfileName: profileName,
+			Language:         payload.Metadata.Language,
+			InputTokens:      len(payload.Messages),
+			OutputTokens:     len(content),
+			LatencyMs:        1,
+		}, nil
 	case "practice.session.first_question", "practice.session.follow_up", hintFeatureKeyForScenario:
 		return (&scenarioPracticeAIClient{}).Complete(ctx, profileName, payload)
 	case "report.generate":
@@ -837,6 +848,10 @@ func (c *fullFunnelScenarioAIClient) Complete(ctx context.Context, profileName s
 	default:
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, errors.New("unexpected full-funnel AI feature key: " + payload.Metadata.FeatureKey)
 	}
+}
+
+func fullFunnelTargetImportJSON() string {
+	return `{"coreThemes":["backend platform","async ownership"],"interviewHypotheses":["Probe API design, persistence, and migration tradeoffs."],"strengths":["Backend service ownership"],"gaps":["Clarify production scale evidence"],"riskSignals":[],"requirements":[{"kind":"must_have","label":"Backend service ownership","description":"Own APIs, persistence, and asynchronous job processing.","evidenceLevel":"explicit"}]}`
 }
 
 func (c *fullFunnelScenarioAIClient) Transcribe(context.Context, string, aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
@@ -1011,6 +1026,13 @@ func loginFullFunnelScenarioUser(t *testing.T, ctx context.Context, db *sql.DB, 
 	})
 	if err != nil {
 		t.Fatalf("verify full-funnel auth challenge: %v", err)
+	}
+	if _, err := service.CompleteProfile(ctx, auth.CompleteProfileInput{
+		UserID:        verified.UserID,
+		DisplayName:   "Candidate",
+		AcceptedTerms: true,
+	}); err != nil {
+		t.Fatalf("complete full-funnel auth profile: %v", err)
 	}
 	return &http.Cookie{Name: auth.SessionCookieName, Value: verified.SessionToken}, verified.UserID
 }

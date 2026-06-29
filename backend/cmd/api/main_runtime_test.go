@@ -29,7 +29,6 @@ func TestMain_SingleRuntimeShutdown(t *testing.T) {
 		jobs.JobTypeTargetImport,
 		jobs.JobTypeSourceRefresh,
 		jobs.JobTypePrivacyDelete,
-		jobs.JobTypeDebriefGenerate,
 		jobs.JobTypeResumeParse,
 		jobs.JobTypeResumeTailor,
 		jobs.JobTypeReportGenerate,

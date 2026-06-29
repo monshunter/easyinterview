@@ -6,8 +6,8 @@
  *               + bdd-checklist.md.
  *
  * Given a user without any saved session or saved route, opening the App must
- * render Home, the four primary nav entries (D-17), the single login entry, and the global
- * display controls. Welcome, standalone voice, and the retired
+ * render Home, the three primary nav entries (D-22), the single login entry, and the global
+ * display controls. Welcome, standalone voice, Debrief, User Profile, and the retired
  * Growth / Mistakes / Drill modules must NOT be reachable.
  */
 import { describe, expect, it } from "vitest";
@@ -31,7 +31,7 @@ function buildClient(): EasyInterviewClient {
 }
 
 describe("E2E.P0.001 default home shell", () => {
-  it("renders Home + four primary nav + login + display controls without legacy entries", async () => {
+  it("renders Home + three primary nav + login + display controls without legacy entries", async () => {
     const client = buildClient();
     render(
       <App
@@ -50,13 +50,12 @@ describe("E2E.P0.001 default home shell", () => {
       "home",
       "workspace",
       "resume_versions",
-      "debrief",
     ]) {
       expect(screen.getByTestId(`topbar-nav-${name}`)).toBeInTheDocument();
     }
     expect(
       primaryNav.querySelectorAll("button[data-testid^='topbar-nav-']"),
-    ).toHaveLength(4);
+    ).toHaveLength(3);
 
     expect(screen.getByTestId("topbar-theme-button")).toBeInTheDocument();
     expect(screen.getByTestId("topbar-dark-toggle")).toBeInTheDocument();
@@ -72,7 +71,7 @@ describe("E2E.P0.001 default home shell", () => {
     expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
 
     expect(screen.queryByTestId("route-welcome")).not.toBeInTheDocument();
-    for (const legacy of ["mistakes", "growth", "voice", "drill", "welcome"]) {
+    for (const legacy of ["mistakes", "growth", "voice", "drill", "welcome", "debrief", "profile"]) {
       expect(
         screen.queryByTestId(`topbar-nav-${legacy}`),
       ).not.toBeInTheDocument();

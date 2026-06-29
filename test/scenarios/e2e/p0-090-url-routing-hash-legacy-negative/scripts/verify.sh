@@ -14,7 +14,7 @@ grep -Eq 'Test Files +1 passed \(1\)' "$LOG_FILE"
 # Retired-route grep: ROUTE_TO_PATH must not enumerate retired aliases.
 ROUTE_FILE="$REPO_ROOT/frontend/src/app/routeUrl.ts"
 test -s "$ROUTE_FILE"
-for retired in '/voice' '/welcome' '/growth' '/mistakes' '/drill' '/followup' '/experiences' '/star' '/onboarding'; do
+for retired in '/voice' '/welcome' '/growth' '/mistakes' '/drill' '/followup' '/experiences' '/star' '/onboarding' '/debrief' '/profile'; do
   if grep -E "^\\s*[a-zA-Z_]+: \"$retired\"," "$ROUTE_FILE" >/dev/null; then
     echo "routeUrl.ROUTE_TO_PATH leaked retired path: $retired" >&2
     exit 1
@@ -23,7 +23,7 @@ done
 
 # Retired-screen grep: no standalone screen file for retired aliases.
 SCREEN_DIR="$REPO_ROOT/frontend/src/app/screens"
-for legacy in 'welcome' 'growth' 'mistakes' 'drill' 'followup' 'experiences' 'star' 'onboarding'; do
+for legacy in 'welcome' 'growth' 'mistakes' 'drill' 'followup' 'experiences' 'star' 'onboarding' 'debrief' 'profile'; do
   if find "$SCREEN_DIR" -mindepth 1 -maxdepth 2 -type d -iname "$legacy" 2>/dev/null | grep -q .; then
     echo "retired screen directory still present: $legacy" >&2
     exit 1

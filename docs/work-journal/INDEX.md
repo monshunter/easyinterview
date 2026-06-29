@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-06-29](2026-06-29.md) | `feat(core-loop): prune debrief and profile modules` | #feat #api #ui #test #docs #bdd |
 | [2026-06-15](2026-06-15.md) | `fix(local-dev-stack): bind host backend to loopback (BUG-0127)` | #fix #test #docs |
 | [2026-06-15](2026-06-15.md) | `fix(review): close resume flatten follow-up gaps (BUG-0126)` | #fix #api #test #docs |
 | [2026-06-15](2026-06-15.md) | `fix(review): persist resume archive and p0102 gate (BUG-0125)` | #fix #api #test #docs |

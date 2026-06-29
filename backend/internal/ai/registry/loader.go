@@ -93,7 +93,6 @@ var outputSchemaExemptFeatureKeys = map[string]struct{}{
 	"practice.voice.stt":     {},
 	"practice.voice.tts":     {},
 	"practice.dictation.stt": {},
-	"debrief.voice.tts":      {},
 }
 
 func readOutputSchema(yamlPath string, meta PromptMeta, cache map[string]*json.RawMessage) (*json.RawMessage, error) {

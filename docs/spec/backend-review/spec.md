@@ -1,8 +1,8 @@
 # Backend Review Spec
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: active
-> **更新日期**: 2026-05-15
+> **更新日期**: 2026-06-29
 
 ## 1 背景与目标
 
@@ -74,7 +74,7 @@
 | D-13 | Inline runner（已收干） | 本 spec P0 曾在 `backend/internal/review/runner.go` 内实现 SELECT FOR UPDATE polling worker（poll 周期 5s、concurrency 1、lease timeout 5min）。该形态已由 [`backend-async-runner/001`](../backend-async-runner/spec.md) 接管：`report_generate` 的 lease / retry / reaper 由 `runner.Runtime` kernel 统一持有，业务实现迁移为 `review.GenerateHandler`，`review.Runner` 文件已删除 | 历史记录保留以追溯；当前真理源为 backend-async-runner kernel |
 | D-14 | listTargetJobReports 分页 | cursor 用 base64 encoded `(created_at, id)` tuple；`pageSize` 默认 20、最大 50；按 `created_at DESC, id DESC` 排序；空列表返回 `pageInfo.hasMore=false, nextCursor=null` | 与 B2 当前 `PaginatedFeedbackReport` schema 一致 |
 | D-15 | Practice / Report 错误码前置 | B1/B2 必须新增 `REPORT_NOT_FOUND` 错误码并同步 generated Go/TS/OpenAPI 后，backend-review 才能在 404 隔离路径使用该 code；当前 B1 已有 `REPORT_NOT_READY` / `PRACTICE_SESSION_NOT_FOUND`，但 `REPORT_NOT_FOUND` 尚缺；若 B1/B2 owner 选择复用 `REPORT_NOT_READY` + 404 status 作为 cross-user 隔离信号需明确 status 与 detail 含义 | 保持错误码单一真理源；避免 spec 中出现未注册字面量 |
-| D-16 | 异步 worker 抽象边界 | 本 spec P0 在 `backend/internal/review/` 内**新建独立** Runner / Reaper / `LeaseAsyncJob` 抽象，**不**复用 `backend/internal/targetjob/drainer.go` 的 `targetjob.Drainer` / `JobHandler` 模式。二者共存于同一 backend 进程：drainer 拥有 `target_import` / `source_refresh` / `privacy_delete` / `resume_parse` / `resume_tailor` / `debrief_generate` 等已注册 job_type 的 claim + finalize；review.Runner 拥有 `report_generate` job_type 的 lease + finalize + reaper。SQL 列名以 B4 baseline 为真理源：`async_jobs.locked_at`（不写 `leased_at`）、`async_jobs.attempts`（不写 `attempt_count`）、`async_jobs.status` ∈ {`queued`,`running`,`succeeded`,`failed`,`cancelled`,`dead`}；P0 阶段**不**新增 `worker_id` 列（worker 身份通过结构化 logger + metric label 暴露，不进 DB）。该 dual-runner 形态已由 [`backend-async-runner/001`](../backend-async-runner/spec.md) 收干：`review.Runner` / `review.Reaper` 删除，`report_generate` 与原 drainer 注册的 job_type 统一由单一 `runner.Runtime` kernel lease / retry / reaper，业务 handler（含 `review.GenerateHandler`）保留各 owner 实现。SQL 列名仍以 B4 baseline 为真理源：`async_jobs.locked_at`、`async_jobs.attempts`、`async_jobs.status` ∈ {`queued`,`running`,`succeeded`,`failed`,`cancelled`,`dead`} | 列名 / status 枚举与 baseline 完全对齐避免 spec → 实现 drift；dual-runner 并发治理已由 kernel 收干 |
+| D-16 | 异步 worker 抽象边界 | 本 spec P0 在 `backend/internal/review/` 内**新建独立** Runner / Reaper / `LeaseAsyncJob` 抽象，**不**复用 `backend/internal/targetjob/drainer.go` 的 `targetjob.Drainer` / `JobHandler` 模式。二者共存于同一 backend 进程：drainer 拥有 `target_import` / `source_refresh` / `privacy_delete` / `resume_parse` / `resume_tailor` 等已注册 job_type 的 claim + finalize；review.Runner 拥有 `report_generate` job_type 的 lease + finalize + reaper。SQL 列名以 B4 baseline 为真理源：`async_jobs.locked_at`（不写 `leased_at`）、`async_jobs.attempts`（不写 `attempt_count`）、`async_jobs.status` ∈ {`queued`,`running`,`succeeded`,`failed`,`cancelled`,`dead`}；P0 阶段**不**新增 `worker_id` 列（worker 身份通过结构化 logger + metric label 暴露，不进 DB）。该 dual-runner 形态已由 [`backend-async-runner/001`](../backend-async-runner/spec.md) 收干：`review.Runner` / `review.Reaper` 删除，`report_generate` 与原 drainer 注册的 job_type 统一由单一 `runner.Runtime` kernel lease / retry / reaper，业务 handler（含 `review.GenerateHandler`）保留各 owner 实现。SQL 列名仍以 B4 baseline 为真理源：`async_jobs.locked_at`、`async_jobs.attempts`、`async_jobs.status` ∈ {`queued`,`running`,`succeeded`,`failed`,`cancelled`,`dead`} | 列名 / status 枚举与 baseline 完全对齐避免 spec → 实现 drift；dual-runner 并发治理已由 kernel 收干 |
 
 ### 3.2 非后端 owner 决策
 
@@ -152,7 +152,6 @@
 | Upstream — TargetJob | [`backend-targetjob`](../backend-targetjob/spec.md) | 提供 `target_jobs` 行；本 spec 仅引用 `target_job_id` 用于过滤 |
 | Upstream — Resume | [`backend-resume`](../backend-resume/spec.md) | 提供 resume asset 行；本 spec 不直接消费 resume 内容，由 backend-practice 在 plan 上下文中已 hydrate |
 | Downstream — Report UI | [`frontend-report-dashboard`](../frontend-report-dashboard/spec.md) | `ReportScreen` / `GeneratingScreen` 渲染、复练 CTA、报告失败态；本 spec 提供 schema + data，不耦合 UI |
-| Downstream — Debrief | future `backend-debrief` | 真实复盘流程；不消费本 spec 产出 |
 | Frontend consumer | [`frontend-report-dashboard`](../frontend-report-dashboard/spec.md) + [`frontend-workspace-and-practice`](../frontend-workspace-and-practice/spec.md) plan 004 | `getFeedbackReport` 轮询入口在 generating 屏；`getFeedbackReport` / `listTargetJobReports` 详情入口在 report 屏 |
 | Scenario coverage | scenarios owner + 本 subject | `E2E.P0.0NN-report-*` 套件 setup / trigger / verify / cleanup（具体编号在各 plan 内分配） |
 | Async runner replacement | future `backend-async-runner` | 接管 runtime dispatcher / drainer / 多 worker；必须沿用 D-32 forward-binding 与 backend-review D-13 inline runner 边界 |

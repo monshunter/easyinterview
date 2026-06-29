@@ -44,13 +44,8 @@ const ALLOWED_NON_AUTH_OPERATIONS = new Set<string>([
   "getResumeTailorRun",
   // Phase 1-6 resume workshop create flow (frontend-resume-workshop/002)
   "registerResume",
-  // Phase 2-6 frontend-debrief operations
-  // (docs/spec/frontend-debrief/plans/001-debrief-screen-and-handoff)
   "listPracticeSessions",
   "getPracticeSession",
-  "suggestDebriefQuestions",
-  "createDebrief",
-  "getDebrief",
   "getJob",
 ]);
 

@@ -25,22 +25,18 @@ tags:
     description: Session bootstrap (email code), session teardown, runtime user context, and public runtime config.
   - name: Uploads
     description: Pre-signed object-storage URLs for resume / JD attachment uploads.
-  - name: Profile
-    description: Candidate profile (CandidateProfile) and experience cards.
   - name: Resumes
     description: Resume asset registration and retrieval.
   - name: TargetJobs
     description: JD import, target-job workspace state, and per-target metadata.
   - name: PracticePlans
-    description: Practice plans created from target-job rounds, report retry plans, or debrief replay.
+    description: Practice plans created from target-job rounds or report retry plans.
   - name: PracticeSessions
     description: Mock-interview sessions, session events, and session completion.
   - name: Reports
     description: Evidence-based feedback reports.
   - name: ResumeTailor
     description: Resume tailoring runs (per-target customised resumes).
-  - name: Debriefs
-    description: Real-interview debrief intake and follow-up.
   - name: Jobs
     description: Async job status polling for `202 Accepted` workflows.
   - name: Privacy
@@ -262,158 +258,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadPresign'
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
-
-  /profiles/me:
-    get:
-      tags: [Profile]
-      operationId: getMyProfile
-      summary: Get my candidate profile
-      parameters:
-        - $ref: '#/components/parameters/XRequestID'
-        - $ref: '#/components/parameters/Traceparent'
-        - $ref: '#/components/parameters/AcceptLanguage'
-        - $ref: '#/components/parameters/XClientVersion'
-      responses:
-        '200':
-          description: Candidate profile.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CandidateProfile'
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
-    patch:
-      tags: [Profile]
-      operationId: updateMyProfile
-      summary: Update my candidate profile (Lite)
-      parameters:
-        - $ref: '#/components/parameters/XRequestID'
-        - $ref: '#/components/parameters/Traceparent'
-        - $ref: '#/components/parameters/AcceptLanguage'
-        - $ref: '#/components/parameters/XClientVersion'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateProfileRequest'
-      responses:
-        '200':
-          description: Updated profile.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CandidateProfile'
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
-
-  /profiles/me/experience-cards:
-    get:
-      tags: [Profile]
-      operationId: listExperienceCards
-      summary: List my experience cards (cursor-paginated)
-      parameters:
-        - name: cursor
-          in: query
-          required: false
-          schema:
-            type: string
-        - name: pageSize
-          in: query
-          required: false
-          schema:
-            type: integer
-            format: int32
-            minimum: 1
-            maximum: 100
-        - $ref: '#/components/parameters/XRequestID'
-        - $ref: '#/components/parameters/Traceparent'
-        - $ref: '#/components/parameters/AcceptLanguage'
-        - $ref: '#/components/parameters/XClientVersion'
-      responses:
-        '200':
-          description: Paginated experience cards.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedExperienceCard'
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
-    post:
-      tags: [Profile]
-      operationId: createExperienceCard
-      summary: Create an experience card
-      description: Side-effect endpoint per backend-profile spec D-5 — requires `Idempotency-Key`. Server forces `source_type='manual'` regardless of body.
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/XRequestID'
-        - $ref: '#/components/parameters/Traceparent'
-        - $ref: '#/components/parameters/AcceptLanguage'
-        - $ref: '#/components/parameters/XClientVersion'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateExperienceCardRequest'
-      responses:
-        '201':
-          description: Experience card created.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExperienceCard'
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
-
-  /profiles/me/experience-cards/{cardId}:
-    patch:
-      tags: [Profile]
-      operationId: updateExperienceCard
-      summary: Update an experience card
-      description: Side-effect endpoint per backend-profile spec D-5 — requires `Idempotency-Key`. Cross-user access returns 404 `RESOURCE_NOT_FOUND`.
-      parameters:
-        - name: cardId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/XRequestID'
-        - $ref: '#/components/parameters/Traceparent'
-        - $ref: '#/components/parameters/AcceptLanguage'
-        - $ref: '#/components/parameters/XClientVersion'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateExperienceCardRequest'
-      responses:
-        '200':
-          description: Updated experience card.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExperienceCard'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
@@ -860,9 +704,8 @@ paths:
       summary: List practice sessions (cursor-paginated)
       description: |
         List practice sessions for the authenticated user, optionally filtered
-        by `targetJobId` and `status`. Powers the frontend-debrief Mock Session
-        picker so users can attach a completed mock-interview session as
-        evidence for a real-interview debrief.
+        by `targetJobId` and `status`. Powers target-job session history and
+        report replay entry points.
       parameters:
         - name: targetJobId
           in: query
@@ -1230,99 +1073,6 @@ paths:
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
-  /debriefs:
-    post:
-      tags: [Debriefs]
-      operationId: createDebrief
-      summary: Create a real-interview debrief and trigger augmented summary
-      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Long-running → 202 + Job (`debrief_generate`).
-      parameters:
-        - $ref: '#/components/parameters/IdempotencyKey'
-        - $ref: '#/components/parameters/XRequestID'
-        - $ref: '#/components/parameters/Traceparent'
-        - $ref: '#/components/parameters/AcceptLanguage'
-        - $ref: '#/components/parameters/XClientVersion'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateDebriefRequest'
-      responses:
-        '202':
-          description: Debrief accepted; AI augmentation dispatched.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DebriefWithJob'
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
-
-  /debriefs/question-suggestions:
-    post:
-      tags: [Debriefs]
-      operationId: suggestDebriefQuestions
-      summary: Suggest likely debrief questions for a real interview
-      description: |
-        Synchronous AI-assisted helper for the Debrief recording step. Does not
-        persist a debrief record, create an async job, or require
-        `Idempotency-Key`; callers can fall back to manual entry on AI errors.
-      parameters:
-        - $ref: '#/components/parameters/XRequestID'
-        - $ref: '#/components/parameters/Traceparent'
-        - $ref: '#/components/parameters/AcceptLanguage'
-        - $ref: '#/components/parameters/XClientVersion'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SuggestDebriefQuestionsRequest'
-      responses:
-        '200':
-          description: Suggested debrief questions.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuggestDebriefQuestionsResponse'
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
-
-  /debriefs/{debriefId}:
-    get:
-      tags: [Debriefs]
-      operationId: getDebrief
-      summary: Get a real-interview debrief
-      parameters:
-        - name: debriefId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - $ref: '#/components/parameters/XRequestID'
-        - $ref: '#/components/parameters/Traceparent'
-        - $ref: '#/components/parameters/AcceptLanguage'
-        - $ref: '#/components/parameters/XClientVersion'
-      responses:
-        '200':
-          description: Debrief.
-          headers:
-            X-Request-ID:
-              $ref: '#/components/headers/XRequestID'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Debrief'
-        default:
-          $ref: '#/components/responses/ApiErrorResponse'
-
   /jobs/{jobId}:
     get:
       tags: [Jobs]
@@ -1543,7 +1293,7 @@ components:
     # Hand edits inside this block will be overwritten. To extend the contract,
     # update `shared/conventions.yaml` (B1 truth source) and re-run codegen.
     # The block tracks: ApiError inner object, ApiErrorResponse envelope,
-    # ApiErrorCode, PageInfo, JobStatus, and the 16 enums catalogued in
+    # ApiErrorCode, PageInfo, JobStatus, and the 13 enums catalogued in
     # `shared/conventions.yaml#enums`.
     ApiErrorCode:
       type: string
@@ -1565,7 +1315,6 @@ components:
         - PRACTICE_SESSION_NOT_FOUND
         - REPORT_NOT_FOUND
         - REPORT_NOT_READY
-        - DEBRIEF_NOT_FOUND
         - RESUME_EXPORT_NOT_AVAILABLE
         - VALIDATION_FAILED
         - RESOURCE_NOT_FOUND
@@ -1656,7 +1405,7 @@ components:
     PracticeGoal:
       type: string
       description: Synced from `shared/conventions.yaml#enums[PracticeGoal]` sourceSection 5.4.
-      enum: [baseline, retry_current_round, next_round, debrief]
+      enum: [baseline, retry_current_round, next_round]
 
     InterviewerRole:
       type: string
@@ -1693,21 +1442,6 @@ components:
       description: Synced from `shared/conventions.yaml#enums[QuestionReviewStatus]` sourceSection 5.11.
       enum: [open, queued_for_retry, resolved]
 
-    DebriefStatus:
-      type: string
-      description: Synced from `shared/conventions.yaml#enums[DebriefStatus]` sourceSection 5.12.
-      enum: [draft, completed]
-
-    DebriefRoundType:
-      type: string
-      description: Synced from `shared/conventions.yaml#enums[DebriefRoundType]` sourceSection 5.12.
-      enum: [hr_screen, hiring_manager, behavioral, technical, culture, custom]
-
-    DebriefQuestionSource:
-      type: string
-      description: Synced from `shared/conventions.yaml#enums[DebriefQuestionSource]` sourceSection 5.12.
-      enum: [jd, resume, mock_report, manual]
-
     PrivacyRequestType:
       type: string
       description: Synced from `shared/conventions.yaml#enums[PrivacyRequestType]` sourceSection 5.13.
@@ -1730,7 +1464,6 @@ components:
         - feedback_report
         - resume_asset
         - resume_tailor_run
-        - debrief
         - privacy_request
 
     JobType:
@@ -1738,13 +1471,12 @@ components:
       description: |
         Async job type catalogue evidenced by `B2 openapi-v1-contract` examples
         (target_import, resume_parse, report_generate, resume_tailor,
-        debrief_generate, privacy_export, privacy_delete).
+        privacy_export, privacy_delete).
       enum:
         - target_import
         - resume_parse
         - report_generate
         - resume_tailor
-        - debrief_generate
         - privacy_export
         - privacy_delete
 
@@ -1932,136 +1664,6 @@ components:
         expiresAt:
           type: string
           format: date-time
-
-    # ----- Profile -----
-    CandidateProfile:
-      type: object
-      required: [headline, yearsOfExperience, currentRole, preferredPracticeLanguage, uiLanguage, region]
-      properties:
-        headline:
-          type: string
-          nullable: true
-        yearsOfExperience:
-          type: integer
-          format: int32
-          minimum: 0
-          nullable: true
-        currentRole:
-          type: string
-          nullable: true
-        preferredPracticeLanguage:
-          type: string
-        uiLanguage:
-          type: string
-        region:
-          type: string
-          nullable: true
-
-    UpdateProfileRequest:
-      type: object
-      description: All fields optional — only supplied fields are updated.
-      properties:
-        headline:
-          type: string
-        yearsOfExperience:
-          type: integer
-          format: int32
-          minimum: 0
-        currentRole:
-          type: string
-        preferredPracticeLanguage:
-          type: string
-        uiLanguage:
-          type: string
-        region:
-          type: string
-
-    ExperienceCard:
-      type: object
-      required: [id, title, companyName, situation, task, action, result, skills, language, createdAt, updatedAt]
-      properties:
-        id:
-          type: string
-          format: uuid
-        title:
-          type: string
-        companyName:
-          type: string
-        situation:
-          type: string
-        task:
-          type: string
-        action:
-          type: string
-        result:
-          type: string
-        skills:
-          type: array
-          items:
-            type: string
-        language:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    CreateExperienceCardRequest:
-      type: object
-      required: [title, companyName, situation, task, action, result, language]
-      properties:
-        title:
-          type: string
-        companyName:
-          type: string
-        situation:
-          type: string
-        task:
-          type: string
-        action:
-          type: string
-        result:
-          type: string
-        skills:
-          type: array
-          items:
-            type: string
-        language:
-          type: string
-
-    UpdateExperienceCardRequest:
-      type: object
-      properties:
-        title:
-          type: string
-        companyName:
-          type: string
-        situation:
-          type: string
-        task:
-          type: string
-        action:
-          type: string
-        result:
-          type: string
-        skills:
-          type: array
-          items:
-            type: string
-        language:
-          type: string
-
-    PaginatedExperienceCard:
-      allOf:
-        - $ref: '#/components/schemas/PaginatedEnvelope'
-        - type: object
-          properties:
-            items:
-              type: array
-              items:
-                $ref: '#/components/schemas/ExperienceCard'
 
     # ----- Resumes -----
     RegisterResumeRequest:
@@ -2489,11 +2091,6 @@ components:
           format: uuid
           nullable: true
           description: Required for retry_current_round and next_round practice goals.
-        sourceDebriefId:
-          type: string
-          format: uuid
-          nullable: true
-          description: Required for debrief practice goals.
         focusCompetencyCodes:
           type: array
           items:
@@ -2529,10 +2126,6 @@ components:
           format: int32
           minimum: 1
         sourceReportId:
-          type: string
-          format: uuid
-          nullable: true
-        sourceDebriefId:
           type: string
           format: uuid
           nullable: true
@@ -3073,182 +2666,6 @@ components:
           format: uuid
         job:
           $ref: '#/components/schemas/Job'
-
-    # ----- Debriefs -----
-    DebriefQuestionInput:
-      type: object
-      required: [questionText, myAnswerSummary]
-      properties:
-        questionText:
-          type: string
-        myAnswerSummary:
-          type: string
-        interviewerReaction:
-          type: string
-
-    DebriefQuestion:
-      type: object
-      required: [questionText, myAnswerSummary]
-      properties:
-        questionText:
-          type: string
-        myAnswerSummary:
-          type: string
-        interviewerReaction:
-          type: string
-        aiAnalysis:
-          oneOf:
-            - type: string
-            - type: 'null'
-
-    DebriefRiskItem:
-      type: object
-      required: [label, severity]
-      properties:
-        label:
-          type: string
-        severity:
-          type: string
-          enum: [low, medium, high]
-
-    DebriefNextRoundChecklistItem:
-      type: object
-      required: [label]
-      properties:
-        label:
-          type: string
-        rationale:
-          type: string
-
-    CreateDebriefRequest:
-      type: object
-      required: [targetJobId, roundType, language, questions]
-      properties:
-        targetJobId:
-          type: string
-          format: uuid
-        roundType:
-          $ref: '#/components/schemas/DebriefRoundType'
-        interviewerRole:
-          $ref: '#/components/schemas/InterviewerRole'
-        language:
-          type: string
-        questions:
-          type: array
-          items:
-            $ref: '#/components/schemas/DebriefQuestionInput'
-        notes:
-          type: string
-
-    Debrief:
-      type: object
-      required: [id, targetJobId, status, roundType, createdAt, updatedAt]
-      description: |
-        Real-interview debrief. P0 keeps the real-interview reconstruction and
-        review surface focused on questions, risks and next practice signals.
-        Full follow-up suggestions and thank-you drafts are P1 optional/hidden
-        fields and must not be required for P0 clients. Spec §4.6: when
-        `status == completed`, must carry `GenerationProvenance`.
-      properties:
-        id:
-          type: string
-          format: uuid
-        targetJobId:
-          type: string
-          format: uuid
-        status:
-          $ref: '#/components/schemas/DebriefStatus'
-        roundType:
-          $ref: '#/components/schemas/DebriefRoundType'
-        interviewerRole:
-          oneOf:
-            - $ref: '#/components/schemas/InterviewerRole'
-            - type: 'null'
-        questions:
-          type: array
-          items:
-            $ref: '#/components/schemas/DebriefQuestion'
-        riskItems:
-          type: array
-          items:
-            $ref: '#/components/schemas/DebriefRiskItem'
-        nextRoundChecklist:
-          type: array
-          description: P1 optional/hidden full follow-up suggestions; not required for P0.
-          items:
-            $ref: '#/components/schemas/DebriefNextRoundChecklistItem'
-        thankYouDraft:
-          description: P1 optional/hidden thank-you draft; not required for P0.
-          oneOf:
-            - type: string
-            - type: 'null'
-        provenance:
-          oneOf:
-            - $ref: '#/components/schemas/GenerationProvenance'
-            - type: 'null'
-          description: Required once `status == completed` per spec §4.6.
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    DebriefWithJob:
-      type: object
-      required: [debriefId, job]
-      properties:
-        debriefId:
-          type: string
-          format: uuid
-        job:
-          $ref: '#/components/schemas/Job'
-
-    SuggestedDebriefQuestion:
-      type: object
-      required: [questionText, whyLikelyAsked, source]
-      properties:
-        stage:
-          oneOf:
-            - type: string
-            - type: 'null'
-        questionText:
-          type: string
-        whyLikelyAsked:
-          type: string
-        source:
-          $ref: '#/components/schemas/DebriefQuestionSource'
-
-    SuggestDebriefQuestionsRequest:
-      type: object
-      required: [targetJobId, language]
-      properties:
-        targetJobId:
-          type: string
-          format: uuid
-        sessionId:
-          type: string
-          format: uuid
-        resumeId:
-          type: string
-          format: uuid
-        language:
-          type: string
-        count:
-          type: integer
-          format: int32
-          minimum: 1
-          maximum: 10
-          default: 6
-
-    SuggestDebriefQuestionsResponse:
-      type: object
-      required: [suggestions]
-      properties:
-        suggestions:
-          type: array
-          items:
-            $ref: '#/components/schemas/SuggestedDebriefQuestion'
 
     # ----- Async Job -----
     Job:

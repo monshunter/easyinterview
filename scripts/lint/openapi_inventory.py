@@ -21,14 +21,12 @@ import yaml
 EXPECTED_TAGS: list[str] = [
     "Auth",
     "Uploads",
-    "Profile",
     "Resumes",
     "TargetJobs",
     "PracticePlans",
     "PracticeSessions",
     "Reports",
     "ResumeTailor",
-    "Debriefs",
     "Jobs",
     "Privacy",
 ]
@@ -42,11 +40,6 @@ EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("Auth", "get", "/auth/email/verify", "verifyAuthEmailChallenge"),
     ("Auth", "post", "/auth/logout", "logout"),
     ("Uploads", "post", "/uploads/presign", "createUploadPresign"),
-    ("Profile", "get", "/profiles/me", "getMyProfile"),
-    ("Profile", "patch", "/profiles/me", "updateMyProfile"),
-    ("Profile", "get", "/profiles/me/experience-cards", "listExperienceCards"),
-    ("Profile", "post", "/profiles/me/experience-cards", "createExperienceCard"),
-    ("Profile", "patch", "/profiles/me/experience-cards/{cardId}", "updateExperienceCard"),
     ("Resumes", "post", "/resumes", "registerResume"),
     ("Resumes", "get", "/resumes", "listResumes"),
     ("Resumes", "get", "/resumes/{resumeId}", "getResume"),
@@ -70,9 +63,6 @@ EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("Reports", "get", "/targets/{targetJobId}/reports", "listTargetJobReports"),
     ("ResumeTailor", "post", "/resume/tailor", "requestResumeTailor"),
     ("ResumeTailor", "get", "/resume/tailor-runs/{tailorRunId}", "getResumeTailorRun"),
-    ("Debriefs", "post", "/debriefs", "createDebrief"),
-    ("Debriefs", "post", "/debriefs/question-suggestions", "suggestDebriefQuestions"),
-    ("Debriefs", "get", "/debriefs/{debriefId}", "getDebrief"),
     ("Jobs", "get", "/jobs/{jobId}", "getJob"),
     ("Privacy", "post", "/privacy/exports", "requestPrivacyExport"),
     ("Privacy", "post", "/privacy/deletions", "requestPrivacyDelete"),
@@ -96,7 +86,6 @@ IK_REQUIRED: set[tuple[str, str]] = {
     ("post", "/practice/sessions/{sessionId}/voice-turns"),
     ("post", "/practice/sessions/{sessionId}/complete"),
     ("post", "/resume/tailor"),
-    ("post", "/debriefs"),
     ("post", "/privacy/exports"),
     ("post", "/privacy/deletions"),
 }
@@ -105,7 +94,6 @@ IK_REQUIRED: set[tuple[str, str]] = {
 IK_FORBIDDEN: set[tuple[str, str]] = {
     ("post", "/auth/email/start"),
     ("post", "/practice/sessions/{sessionId}/events"),
-    ("post", "/debriefs/question-suggestions"),
 }
 
 # Public endpoints per spec §4.1 — must declare `security: []` to override doc-level cookie auth.
@@ -122,7 +110,6 @@ AI_PROVENANCE_SCHEMAS: list[str] = [
     "AssistantAction",
     "FeedbackReport",
     "ResumeTailorRun",
-    "Debrief",
     "Resume",
 ]
 
@@ -149,11 +136,23 @@ FORBIDDEN_PRODUCT_SCOPE_TOKENS: tuple[str, ...] = (
     "warmup",
     "core_interview",
     "fix_mistake",
+    "getMyProfile",
+    "updateMyProfile",
+    "listExperienceCards",
+    "createExperienceCard",
+    "updateExperienceCard",
+    "createDebrief",
+    "suggestDebriefQuestions",
+    "getDebrief",
+    "CandidateProfile",
+    "ExperienceCard",
+    "DebriefWithJob",
+    "sourceDebriefId",
 )
 
 EXPECTED_PRODUCT_ENUMS: dict[str, list[str]] = {
     "PracticeMode": ["assisted", "strict"],
-    "PracticeGoal": ["baseline", "retry_current_round", "next_round", "debrief"],
+    "PracticeGoal": ["baseline", "retry_current_round", "next_round"],
     "QuestionReviewStatus": ["open", "queued_for_retry", "resolved"],
     "ReportNextAction.type": ["retry_current_round", "next_round", "review_evidence"],
     "JobType": [
@@ -161,7 +160,6 @@ EXPECTED_PRODUCT_ENUMS: dict[str, list[str]] = {
         "resume_parse",
         "report_generate",
         "resume_tailor",
-        "debrief_generate",
         "privacy_export",
         "privacy_delete",
     ],
@@ -170,11 +168,8 @@ EXPECTED_PRODUCT_ENUMS: dict[str, list[str]] = {
         "feedback_report",
         "resume_asset",
         "resume_tailor_run",
-        "debrief",
         "privacy_request",
     ],
-    "DebriefRoundType": ["hr_screen", "hiring_manager", "behavioral", "technical", "culture", "custom"],
-    "DebriefQuestionSource": ["jd", "resume", "mock_report", "manual"],
 }
 
 DEFAULT_OPENAPI_PATH = Path("openapi/openapi.yaml")
@@ -238,12 +233,12 @@ def validate_product_scope_contract(data: dict[str, Any], errors: list[str]) -> 
 
     paths = data.get("paths") or {}
     for path_str in paths:
-        for forbidden_prefix in ("/mistakes", "/growth", "/voice", "/drill"):
+        for forbidden_prefix in ("/mistakes", "/growth", "/voice", "/drill", "/profiles", "/debriefs"):
             if path_str.startswith(forbidden_prefix):
                 errors.append(f"forbidden product-scope path {path_str!r} (matches {forbidden_prefix!r})")
 
     tags = {tag.get("name") for tag in (data.get("tags") or []) if isinstance(tag, dict)}
-    for tag in ("Mistakes", "Growth", "Voice", "Drill"):
+    for tag in ("Mistakes", "Growth", "Voice", "Drill", "Profile", "Debriefs"):
         if tag in tags:
             errors.append(f"forbidden product-scope tag {tag!r}")
 
@@ -285,17 +280,6 @@ def validate_product_scope_contract(data: dict[str, Any], errors: list[str]) -> 
         errors.append("TargetJob must expose openQuestionIssueCount")
     if "openMistakeCount" in target_props:
         errors.append("TargetJob must not expose old openMistakeCount")
-
-    debrief = schemas.get("Debrief") or {}
-    debrief_required = set(debrief.get("required") or [])
-    for p1_field in ("thankYouDraft", "nextRoundChecklist"):
-        if p1_field in debrief_required:
-            errors.append(f"Debrief.{p1_field} must remain optional/hidden for P0")
-
-    create_debrief_required = set((schemas.get("CreateDebriefRequest") or {}).get("required") or [])
-    for required in ("targetJobId", "roundType", "language", "questions"):
-        if required not in create_debrief_required:
-            errors.append(f"CreateDebriefRequest missing real-interview debrief required field {required!r}")
 
 
 def has_parameter_ref(operation: dict[str, Any], target_ref: str) -> bool:

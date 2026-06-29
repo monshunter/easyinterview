@@ -46,15 +46,11 @@ describe("D1 shell i18n locale file structure", () => {
       "home.orUpload",
       "home.recentSection",
       "home.recentSectionSub",
-      "home.debriefTitle",
-      "home.debriefSub",
-      "home.debriefBtn",
       "home.resumeCreateLink",
     ];
 
-    // product-scope v2.1 D-17 removed the 3 home.jobPicks* keys with the
-    // jd_match module, trimming the home namespace lower bound to 12.
-    expect(requiredKeys.length).toBeGreaterThanOrEqual(12);
+    // product-scope D-22 removes the home debrief CTA with the debrief module.
+    expect(requiredKeys.length).toBeGreaterThanOrEqual(9);
 
     for (const key of requiredKeys) {
       expect(zhSource).toContain(`"${key}"`);

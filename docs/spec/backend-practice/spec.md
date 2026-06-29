@@ -1,8 +1,8 @@
 # Backend Practice Spec
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-06-29
 
 ## 1 背景与目标
 
@@ -17,19 +17,19 @@
 ### 2.1 In Scope
 
 - 6 个 Practice operation 的 backend handler + service + store：
-  - `POST /practice/plans` `createPracticePlan`：201 + `PracticePlan`，要求 `Idempotency-Key`；同步写入 `practice_plans`，根据 `goal` 派生 `source_report_id` / `source_debrief_id` 引用，初始 `status='ready'`。
+  - `POST /practice/plans` `createPracticePlan`：201 + `PracticePlan`，要求 `Idempotency-Key`；同步写入 `practice_plans`，根据 `goal` 派生 `source_report_id` 引用，初始 `status='ready'`。
   - `GET /practice/plans/{planId}` `getPracticePlan`：返回完整 `PracticePlan`。
   - `POST /practice/sessions` `startPracticeSession`：201 + `PracticeSession`，要求 `Idempotency-Key`；先用短事务按 D-27 的 user-scoped idempotency record reserve session，再在事务外同步生成首题（调用 F3 `Resolve("practice.session.first_question", language)` + A3 `AIClient.Complete()`），成功后用短事务写入 `practice_turns(turn_index=1, status='asked')` + `seq_no=1` 的 `session_started` event + `practice.session.started` outbox，并把 `currentTurn` 嵌入响应。
   - `GET /practice/sessions/{sessionId}` `getPracticeSession`：返回完整 `PracticeSession` 用于刷新 / 断网恢复，必须按 `user_id` 过滤。
   - `POST /practice/sessions/{sessionId}/events` `appendSessionEvent`：200 + `SessionEventResult{acknowledged, session, assistantAction}`；通过 body `clientEventId` 实现 per-session idempotency，必须**禁止**携带 `Idempotency-Key` header；按 event `kind` 路由到状态机分支并生成下一个 `AssistantAction`。
   - `POST /practice/sessions/{sessionId}/complete` `completePracticeSession`：202 + `ReportWithJob`，要求 `Idempotency-Key`；事务内把 session 状态推进到 `completing`，写 `session_completed` event，创建 `feedback_reports(status='queued')` placeholder 与 `async_jobs(job_type='report_generate')` queued row，发出 outbox `practice.session.completed`；本域只创建报告占位与 job，不生成报告内容。
 - Plan goal 与数据来源派生规则（goal 决定 turn 来源，与 mode 正交）：
-  - `baseline`：仅依赖 `target_jobs` + `resumes` 上下文（D-20 扁平简历）；`source_report_id` / `source_debrief_id` 均为空；首题与后续 turn 由 AI 生成。
+  - `baseline`：仅依赖 `target_jobs` + `resumes` 上下文（D-20 扁平简历）；`source_report_id` 为空；首题与后续 turn 由 AI 生成。
   - `retry_current_round`：要求 `source_report_id NOT NULL`，`practice_plans.focus_competency_codes` 来自报告 `next_actions` 中标记 `included_in_retry_plan=true` 的 `question_assessments`；turn 仍由 AI 生成，但聚焦于上一轮缺口。
   - `next_round`：要求 `source_report_id NOT NULL`，`interviewer_persona` / `difficulty` 按 InterviewRound 进阶规则切换；turn 由 AI 生成。
-  - `debrief`：要求 `source_debrief_id NOT NULL`；首批 `practice_turns` 由 debrief 已确认问题序列**预填**，AI 仅生成同题追问与轻量评估，不主动追加新题（除超出 debrief 序列且用户继续答题）；与 `mode` 正交——debrief plan 仍可在 `assisted` 或 `strict` 下运行。
-- Session 状态机与首题同步生成：`startPracticeSession` 必须先 reserve session，再在事务外生成首题，最后短事务提交首题与 started event；baseline / retry / next_round 由 AI 生成首题，debrief 直接复制 debrief 序列首题，不调 first_question feature_key。AI 调用失败映射到 B1 `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID`，session reservation 进入 `failed` 并记录 `failure_code`；同 `Idempotency-Key` 对 failed 且无 currentTurn 的 reservation 允许重试首题生成，不把失败响应固化为永久 dedupe 结果。
-- AssistantAction 决策树：`answer_submitted` → 决定下一个动作为 `ask_question`（新 turn）/ `ask_follow_up`（同 turn 加深）/ `session_wait`（队列空闲）/ `session_completed`（达到 `question_budget`）；`hint_requested` → `show_hint`（mode=`assisted`，复用 `practice.turn.lightweight_observe` 的低延迟辅助输出）或 `409 PRACTICE_SESSION_CONFLICT`（mode=`strict`）；`turn_skipped` → 推进到下一题（baseline/retry/next_round 调 AI 生成下一题，debrief 取下一条预填问题）；`session_paused` / `session_resumed` → 仅切换 `waiting_user_input`/`running` 状态，不生成新 AI 输出。
+  - `debrief` 已随 product-scope D-22 删除，不再是合法 `PracticeGoal` 或 plan source。
+- Session 状态机与首题同步生成：`startPracticeSession` 必须先 reserve session，再在事务外生成首题，最后短事务提交首题与 started event；baseline / retry / next_round 均由 AI 生成首题。AI 调用失败映射到 B1 `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID`，session reservation 进入 `failed` 并记录 `failure_code`；同 `Idempotency-Key` 对 failed 且无 currentTurn 的 reservation 允许重试首题生成，不把失败响应固化为永久 dedupe 结果。
+- AssistantAction 决策树：`answer_submitted` → 决定下一个动作为 `ask_question`（新 turn）/ `ask_follow_up`（同 turn 加深）/ `session_wait`（队列空闲）/ `session_completed`（达到 `question_budget`）；`hint_requested` → `show_hint`（mode=`assisted`，复用 `practice.turn.lightweight_observe` 的低延迟辅助输出）或 `409 PRACTICE_SESSION_CONFLICT`（mode=`strict`）；`turn_skipped` → baseline/retry/next_round 调 AI 生成下一题；`session_paused` / `session_resumed` → 仅切换 `waiting_user_input`/`running` 状态，不生成新 AI 输出。
 - Mode 策略执行（mode 仅控制辅助度，与 goal 正交）：
   - `assisted`：允许 hint，启用 `practice.turn.lightweight_observe` 周期性观察反馈；适用任何 goal。
   - `strict`：拒绝 `hint_requested`（返回 `409 PRACTICE_SESSION_CONFLICT`），禁用 lightweight observe，AssistantAction 仅生成 `ask_question` / `ask_follow_up` / `session_completed`；适用任何 goal。
@@ -47,7 +47,7 @@
 ### 2.2 Out of Scope
 
 - 不实现 report 生成、证据回收、维度评估、ReadinessTier 计算、题目回顾页 payload；归 `backend-review` (future) owner。本 spec 仅创建 queued report/job handoff 与 source event，不生成报告内容。
-- 不实现真实面试复盘的 intake、分析、复盘面试问题导出；归 `backend-debrief` (future) owner。本 spec 仅消费 `source_debrief_id` 引用并把已确认 debrief 问题预填进 turns。
+- 不实现真实面试复盘的 intake、分析、复盘面试问题导出；该模块已随 product-scope D-22 删除。本 spec 不再消费 `source_debrief_id` 或 debrief-derived turns。
 - 不实现 JD 解析、`target_jobs` 生命周期；归 [`backend-targetjob`](./../backend-targetjob/spec.md) owner。本 spec 仅引用 `target_job_id`。
 - 不实现简历解析、改写；归 `backend-resume` owner。本 spec 仅引用 `resumeId`（D-20 扁平简历，原 `resumeAssetId`）。
 - 不实现 STT / LLM / TTS 编排、committed-context 推进、barge-in 处理、TTS chunk 播放语义；归 [`practice-voice-mvp`](../practice-voice-mvp/spec.md) owner 与其 plan。
@@ -63,10 +63,10 @@
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
 | D-1 | API 契约来源 | 本域只消费 [B2 OpenAPI](../openapi-v1-contract/spec.md) 已定义的 6 个 Practice operation；不私造 endpoint、不重写 schema | 任何字段 / 新 operation 先在 B2 spec / `openapi.yaml` 修订 |
-| D-2 | DB 真理源 | 复用 [B4 baseline](../db-migrations-baseline/spec.md) 的 `practice_plans` / `practice_sessions` / `practice_session_events` / `practice_turns`、与现有索引、CHECK 约束、UNIQUE 约束 | 不在本 spec 内 inline 落 migration；新列（如 `source_debrief_id`）必须先修订 B4 |
+| D-2 | DB 真理源 | 复用 [B4 baseline](../db-migrations-baseline/spec.md) 的 `practice_plans` / `practice_sessions` / `practice_session_events` / `practice_turns`、与现有索引、CHECK 约束、UNIQUE 约束 | 不在本 spec 内 inline 落 migration；新增列必须先修订 B4 |
 | D-3 | 事件契约 | 复用 [B3](../event-and-outbox-contract/spec.md) 已冻结的 `practice.session.started` / `practice.turn.completed` / `practice.session.completed` 与 `report_generate` job mapping；D-28 要求先修订 mapping ownership，避免 outbox dispatcher 二次创建 job | 事件 payload 与 PII 边界不得扩张；新增字段或 job ownership 语义先回到 B3 spec / `shared/jobs.yaml` |
-| D-4 | Plan goal 四值 | `baseline` / `retry_current_round` / `next_round` / `debrief`，对应不同 source 引用与 turn seeding 规则 | 不引入第五种 goal；新增 goal 先回到 B1 / B4 |
-| D-5 | Mode 二值（仅辅助度） | `assisted` / `strict`；strict 禁用 hint 与 lightweight observe；mode 与 goal 正交，不承担数据来源语义 | 不引入第三种 mode；旧 `legacy debrief replay value` 由 `goal='debrief'` 完整承接（见 D-21） |
+| D-4 | Plan goal 三值 | `baseline` / `retry_current_round` / `next_round`，对应不同 source 引用与 turn seeding 规则；`debrief` 已随 D-22 删除 | 不引入第四种 goal；新增 goal 先回到 B1 / B4 / product-scope |
+| D-5 | Mode 二值（仅辅助度） | `assisted` / `strict`；strict 禁用 hint 与 lightweight observe；mode 与 goal 正交，不承担数据来源语义 | 不引入第三种 mode；旧 `debrief` mode 只能作为负向测试输入 |
 | D-6 | 完成是异步流 | `completePracticeSession` 返回 202 + `ReportWithJob`，事务内推进 session=`completing` + 创建 `feedback_reports(status='queued')` placeholder + 创建 `async_jobs(report_generate)` + outbox `practice.session.completed`；report 内容由 backend-review 异步 worker 消费 | 用户在 `generating` 屏等待异步报告，不阻塞 HTTP；API 响应中的 `reportId/job` 有真实 DB row 承接 |
 | D-7 | 双轨 idempotency | 副作用 endpoint 用 `Idempotency-Key` header；`appendSessionEvent` 用 body `clientEventId`（per session 唯一），不允许携带 `Idempotency-Key` header；`startPracticeSession` 首题失败 reservation 可用同 key 重试，成功后才固化 dedupe 结果 | 防止重复创建 plan / session / 报告 job；防止多端事件重号或重写；避免 AI 临时失败把 session 永久卡死 |
 | D-8 | AI 调用形态 | 通过 F3 `RegistryClient.Resolve("practice.session.first_question" / ".follow_up" / ".turn.lightweight_observe", language)` + A3 `AIClient.Complete`；不 hardcode prompt | 业务包不得直接持有 prompt 文本或 model 字符串 |
@@ -75,7 +75,7 @@
 | D-11 | 隐私红线 | 事件 / metric label / log / audit / async payload 不得包含 `question_text` / `answer_text` / `hint_text` / AI prompt / response 明文 / provider secret；只允许 hash、length、count、status、profile、provider、model_id、cost micros、error code | 与 product-scope §9.3 / B3 piiBoundary / F1 一致 |
 | D-12 | Spec 粒度 | 单一 `backend-practice` spec 覆盖 plan + session + turn + assistantAction 全部 6 个 operation；与 OpenAPI tag `PracticePlans`+`PracticeSessions` 边界一致 | 不拆 sibling spec；后续按 phase 拆 plan |
 | D-13 | 首题同步生成 | `startPracticeSession` 对调用方同步返回 `201 + currentTurn`；实现上禁止把外部 AI 调用包在长 DB transaction 内，必须采用 session reservation + 事务外 AI + 成功/失败短事务收口 | 不破坏 OpenAPI 当前 201 语义；前端不需要轮询；避免锁表等待 provider |
-| D-14 | debrief 数据来源接入 | `practice_plans` 新增 `source_debrief_id` FK 列 + CHECK：(`goal='debrief'` ↔ `source_debrief_id IS NOT NULL`)；与 `source_report_id` 互斥（同一 plan 不允许两个 source 都非空） | 需要新 migration，由 B4 owner 修订；FK 完整性最强；debrief 数据来源完全由 goal 表达，不再依赖 mode 字段 |
+| D-14 | debrief 数据来源退役 | `source_debrief_id` 与 `sourceDebriefId` 已随 product-scope D-22 删除；`goal='debrief'` 不再是合法计划目标 | 相关旧输入必须被 contract / handler / migration / scenario 负向 gate 拒绝或归零 |
 | D-15 | Voice operation owner | `createPracticeVoiceTurn` 等 voice 新 operation 的 OpenAPI 契约 + handler 入口 + session event 持久化归本 spec；STT / LLM / TTS profile 选择、committed-context、barge-in 归 practice-voice-mvp | voice 与文本闭环共享同一状态机 / 事件 / idempotency 框架 |
 | D-16 | Strict 下 hint 拒绝码 | 在 `mode='strict'` 的 session 上 `hint_requested` 返回 `409 PRACTICE_SESSION_CONFLICT`；ApiError detail 携带 `mode` 与 `policy='hint_disabled_in_mode'`；goal 与 hint 拒绝无关 | 与 B1 已有 conflict code 语义一致；避免与 422 结构性错误混淆 |
 | D-17 | 并发序列化 | `appendSessionEvent` 事务必须 `SELECT FOR UPDATE practice_sessions WHERE id=$1 AND user_id=$2`，再计算 `seq_no = COALESCE(MAX(seq_no), 0) + 1` 并写 `practice_session_events`；与 UNIQUE(session_id, seq_no) 共同保护 | 多端并发不重号、不乱序、不丢事件 |
@@ -85,7 +85,7 @@
 | D-21 | PracticeMode 收敛前置契约修订 | 因 D-5 把 mode 从三值降为二值，`legacy debrief replay value` 不再是合法 PracticeMode 取值；任何 backend-practice 实施 plan 的 Phase 0 必须先修订 [B1 `shared/conventions.yaml#enums[PracticeMode]`](../shared-conventions-codified/spec.md)、[B2 `openapi/openapi.yaml#components.schemas.PracticeMode`](../openapi-v1-contract/spec.md)、[B4 `migrations/000001_create_baseline.up.sql:170` `practice_plans.mode` CHECK](../db-migrations-baseline/spec.md)、B3 `shared/events.yaml` / generated event refs 中引用 B1 PracticeMode 的 surface，把 `legacy debrief replay value` 取值删除（pre-launch 直接改 baseline，不引入 deprecated alias）；前端 mock fixture 与 generated client/server 必须随同更新 | 编码真理源与本 spec 决策对齐；保持 mode 与 goal 两轴正交；契约前置不通过则 implementation plan 不得进入 Phase 1 |
 | D-22 | `completePracticeSession` report/job 创建边界 | 本域在 complete 事务内创建 `feedback_reports` placeholder 与 `async_jobs(report_generate)`，并以 `session_id` / `report_id` / idempotency key 防重复；backend-review 只消费 queued job 生成内容 | 让 202 response 的 `ReportWithJob` 可执行，不等待 dispatcher 异步补行 |
 | D-23 | 首题失败重试边界 | `startPracticeSession` failed reservation 不视为最终 dedupe 结果；同 user + key + plan 可重试，成功后返回同一 session id 或明确迁移到成功 session，且不得产生两个 active session | 防止 provider 临时错误导致用户无法开始面试 |
-| D-24 | Derived plan source 字段前置 | `retry_current_round` / `next_round` 需要 B2 `sourceReportId` + B4 `practice_plans.source_report_id`；`debrief` 需要 B2 `sourceDebriefId` + B4 `practice_plans.source_debrief_id` + CHECK 互斥；这些字段由 `004-derived-plans-debrief` Phase 0 owner 修订，001/002 不依赖它们 | baseline start 可先实施；复练/下一轮/复盘面试不能靠隐藏字段或本地 mock |
+| D-24 | Derived plan source 字段前置 | `retry_current_round` / `next_round` 需要 B2 `sourceReportId` + B4 `practice_plans.source_report_id`；D-22 后不再存在 `sourceDebriefId` / `source_debrief_id` | baseline start 可先实施；复练/下一轮不能靠隐藏字段或本地 mock |
 | D-25 | Turn status API/DB 映射 | DB `practice_turns.status` 允许内部状态 `asked/answered/follow_up_requested/assessed/skipped`；OpenAPI `PracticeTurn.status` 当前只暴露 `asked/answered/skipped`，handler 必须做映射，除非先回 B2 扩展 schema。由 002 plan-level D-33 落实为 wire enum 扩 5 值（pre-launch baseline rebase），handler 不再做"压缩到 3 值"映射；002 落地后 D-25 的"映射"分支视为已淘汰备选 | 避免前端 SDK 与 DB internal state 漂移；不把内部评估状态强塞进 wire enum |
 | D-26 | Practice 错误码前置 | B1/B2 必须新增 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND` 并同步 generated Go/TS/OpenAPI 后，backend-practice 才能在 404 隔离路径使用这些 code；未认证统一使用既有 `AUTH_UNAUTHORIZED` | 保持错误码单一真理源；避免 spec 中出现未注册字面量 |
 | D-27 | Practice idempotency 存储与 replay 语义 | B4 / backend-practice Phase 0 必须新增 user-scoped API idempotency 表（载体已由 D-30 收敛为 shared `idempotency_records`，含 `domain` / `operation` namespace 字段），至少保存 `user_id`、`domain`、`operation`、`idempotency_key_hash`、`request_fingerprint`、`status(pending/succeeded/failed_retryable/failed_terminal)`、`resource_type`、`resource_id`、`response_body`、`error_code`、`expires_at`；副作用 endpoint 用该记录锁定单执行者、replay 成功响应、拒绝同 key 不同 fingerprint、隔离跨用户；`startPracticeSession` 首题前失败可写 `failed_retryable` 并允许同 key 重试 | 让 D-7/D-23/C-10 可落库、可测试、可并发；避免仅靠业务表猜测重复请求；shared 载体让 backend-targetjob / backend-review / 002 复用同款基建 |
@@ -102,7 +102,7 @@
 | ID | 事项 | Owner | 本域处理 |
 |----|------|-------|----------|
 | Q-1 | 报告 next_actions → retry plan focus_competency_codes 派生算法 | backend-review (future) | 本 spec 仅约定 `practice_plans.focus_competency_codes` 字段从报告读取；具体算法在 backend-review plan |
-| Q-2 | debrief 已确认问题 → turn seeding 字段映射 | backend-debrief (future) | 本 spec 仅约定 `practice_plans.source_debrief_id NOT NULL` 时首批 turns 来自 debrief；具体映射在 backend-debrief plan |
+| Q-2 | debrief-derived turn seeding | 已关闭 | product-scope D-22 删除该路径；不再等待 backend-debrief owner |
 | Q-3 | session 24h timeout sweep 实现 | platform / future plan | 本 spec 仅约定 SessionStatus.cancelled 的退出路径与阈值默认值；不在本 spec 内派 plan |
 
 ### 3.3 待确认事项
@@ -133,7 +133,7 @@
 - 所有 DB 写入必须在各自短事务内完成；外部 AI 调用不得包在 DB transaction 内。`practice.session.started` / `practice.turn.completed` / `practice.session.completed` 必须通过 outbox 与对应业务写入同事务发出，避免双写。
 - `practice_session_events.event_type` 仅允许 B4 已有 CHECK 列表；新增事件 type 先回到 B4 修订。
 - `practice_turns.status` 仅允许 DB internal 值 `asked` / `answered` / `follow_up_requested` / `assessed` / `skipped`；`answered → assessed` 由本 spec 在 turn 结束时基于 `practice.turn.lightweight_observe` 反馈推进，handler 必须按 D-25 映射到 B2 当前 `PracticeTurn.status` wire enum。
-- `practice_plans.source_report_id` 与 `source_debrief_id` 互斥（除 `goal='debrief'` 允许 source_debrief_id 非空之外），CHECK 约束在 D-14 派生的 B4 修订中固化。
+- `practice_plans.source_report_id` 只用于 report-derived `retry_current_round` / `next_round`；D-22 后不存在 `source_debrief_id` 或 debrief-derived CHECK 分支。
 - D-27 idempotency 存储必须有唯一约束保护 `(user_id, operation, idempotency_key_hash)`，并保存 request fingerprint 与 terminal response；response body 可保存为 B2 response JSON 摘要 / envelope，禁止保存 prompt、answer、hint 或 provider raw response。
 - 软删 / 物理删除：v1 不引入软删；DELETE /me 通过 ON DELETE CASCADE 物理清理；session timeout sweep 仅修改 `status='cancelled'` + `cancelled_at`，不删除行。
 
@@ -165,7 +165,7 @@
 | API contract | [B2 `openapi-v1-contract`](../openapi-v1-contract/spec.md) | 6 个 Practice operation 与 voice 扩展 operation 的 schema、fixtures、generated client / server |
 | `CountPracticeSessionsForUser(ctx, db, userID) (int, error)` cross-owner internal API | backend-practice | backend-jobs-recommendations/001 BuildJobMatchProfile aggregation (D-18 sources.mocks)；read-only；cross-user 隔离；不写 audit。实现：`backend/internal/practice/count.go` |
 | Backend domain | `backend-practice`（本 spec） | handler / service / store / async handoff row creation / state machine / AssistantAction generator / outbox emit |
-| DB schema | [B4 `db-migrations-baseline`](../db-migrations-baseline/spec.md) | `practice_plans` / `practice_sessions` / `practice_session_events` / `practice_turns` 列与索引；shared `idempotency_records` 表由 B4 承载，backend-practice 是首个 caller，必须使用 `domain` / `operation` namespace 保持 future backend domain 可复用；`source_debrief_id` 由本 spec D-14 派生的 B4 修订落地 |
+| DB schema | [B4 `db-migrations-baseline`](../db-migrations-baseline/spec.md) | `practice_plans` / `practice_sessions` / `practice_session_events` / `practice_turns` 列与索引；shared `idempotency_records` 表由 B4 承载，backend-practice 是首个 caller，必须使用 `domain` / `operation` namespace 保持 future backend domain 可复用；`source_debrief_id` 已由 D-22 删除 |
 | Event / job contract | [B3 `event-and-outbox-contract`](../event-and-outbox-contract/spec.md) | `practice.session.started` / `practice.turn.completed` / `practice.session.completed` 与 `report_generate` job mapping；D-28 要求 report job row 由 `completePracticeSession` 创建，事件只作 source fact / analytics |
 | Shared enums / errors | [B1 `shared-conventions-codified`](../shared-conventions-codified/spec.md) | `PracticeMode` / `PracticeGoal` / `InterviewerRole` / `SessionStatus` / `PRACTICE_SESSION_CONFLICT` / `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND` |
 | AI provider | [A3 `ai-provider-and-model-routing`](../ai-provider-and-model-routing/spec.md) | `AIClient.Complete`、provider registry、model profile、observability decorator |
@@ -176,7 +176,6 @@
 | Upstream — TargetJob | [`backend-targetjob`](../backend-targetjob/spec.md) | 提供 `target_job_id` 与解析后的 requirements / fitSummary / company language |
 | Upstream — Resume | `backend-resume` | 提供 `resumeId` 与扁平简历（`structured_profile`）上下文（D-20，原 `resume_asset_id` + 版本树） |
 | Downstream — Report | future `backend-review` | 消费既有 `async_jobs(report_generate)` queued job，关联 `practice.session.completed` source event / analytics fact，填充 `feedback_reports` 内容并生成 `question_assessments`；本 spec 仅创建 placeholder / job / source event |
-| Downstream — Debrief | future `backend-debrief` | 提供 debrief 已确认问题序列供 `goal='debrief'` plan 消费 |
 | Voice extension | [`practice-voice-mvp`](../practice-voice-mvp/spec.md) | STT / LLM / TTS profile 选择、committed-context、barge-in；本 spec 提供 voice operation 契约入口与 session event 持久化 |
 | Frontend consumer | future `frontend-workspace-and-practice` | Interview Session 与 Report Dashboard mock → real 切换；本 spec 不直接耦合前端组件 |
 | Scenario coverage | scenarios owner + 本 subject | `E2E.P0.0NN-practice-session-*` 套件 setup / trigger / verify / cleanup（具体编号在各 plan 内分配） |
@@ -186,15 +185,14 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | baseline plan 创建 | 已登录用户拥有 `target_job_id` 与 `resumeId`（D-20 扁平简历），`goal='baseline'` | `POST /practice/plans` 携带 `Idempotency-Key` | 返回 201 + `PracticePlan{status:'ready'}`，DB 写入 `practice_plans`，`source_report_id` / `source_debrief_id` 均为空，audit_events 写入元数据摘要 | 001-plan-and-session-orchestration |
+| C-1 | baseline plan 创建 | 已登录用户拥有 `target_job_id` 与 `resumeId`（D-20 扁平简历），`goal='baseline'` | `POST /practice/plans` 携带 `Idempotency-Key` | 返回 201 + `PracticePlan{status:'ready'}`，DB 写入 `practice_plans`，`source_report_id` 为空，audit_events 写入元数据摘要 | 001-plan-and-session-orchestration |
 | C-2 | retry / next_round plan 派生 | 用户对某 `feedback_reports` 选择 `复练当前轮` 或 `进入下一轮` | `POST /practice/plans` 携带 `goal IN ('retry_current_round','next_round')` 与 `sourceReportId` | DB 写入 `source_report_id`；`focus_competency_codes` 来源于 report `next_actions` 中 `included_in_retry_plan=true` 的 turn id 集合 | 004-derived-plans-debrief |
-| C-3 | debrief 来源 plan 派生 | 用户在 debrief 模块完成复盘，已确认问题序列存在 | `POST /practice/plans` 携带 `goal='debrief'` + `sourceDebriefId` + 任意合法 `mode IN ('assisted','strict')` | DB 写入 `source_debrief_id`；CHECK 约束保证 source_report_id 为空；turn seeding 由 backend-debrief 接入接口提供；mode 字段独立保留辅助度策略 | 004-derived-plans-debrief |
+| C-3 | debrief source 已退役 | 请求携带旧 `goal='debrief'` 或 `sourceDebriefId` | `POST /practice/plans` | 返回 validation/conflict 错误，不写 `source_debrief_id`，不创建 debrief-derived turns | product-scope/001-core-loop-module-pruning |
 | C-4 | 同步启动 session 与首题 | plan 处于 `status='ready'`，F3 / A3 active | `POST /practice/sessions` 携带 `Idempotency-Key` 与 `planId` | 返回 201 + `PracticeSession{status:'running', currentTurn:{turnIndex:1, status:'asked', questionText, questionIntent, askedAt}}`，事件 `practice.session.started` 出 outbox | 001 |
 | C-5 | startPracticeSession AI 失败重试 | F3 active 但 A3 返回 `AI_PROVIDER_TIMEOUT` | `POST /practice/sessions` 携带 `Idempotency-Key` | 短事务 reservation 被标记为 session=`failed` + `failure_code='AI_PROVIDER_TIMEOUT'`，无 `currentTurn` / started outbox；同 `Idempotency-Key` 重试可重新生成首题并最终成功固化 201；client 可见 502 错误 envelope 不包含 prompt / response 明文 | 001 |
 | C-6 | 答题循环与下一题 | session=`running`，currentTurn=`asked` | `POST /practice/sessions/{id}/events` 携带 `clientEventId` + `kind='answer_submitted'` + `payload.{turnId,answerText}` | 200 + `SessionEventResult{acknowledged:true, session, assistantAction.type IN ('ask_question','ask_follow_up','session_completed')}`；`practice_turns` 写 answer_text，DB internal 状态可推进 `asked → answered → assessed`，API response 按 D-25 映射；事件 `practice.turn.completed` 出 outbox | 002-event-loop-and-completion |
 | C-7 | hint 在 assisted 下生效 | session.mode=`assisted`，currentTurn=`asked` | `POST /practice/sessions/{id}/events` 携带 `kind='hint_requested'` | 200 + `assistantAction.type='show_hint'`；`practice_turns.hint_text` 落库；hint 使用 F3 `practice.turn.lightweight_observe`，wire provenance 只暴露 B2 `GenerationProvenance` 当前字段 | 003-mode-policies-and-provenance |
 | C-8 | hint 在 strict 下被拒 | session.mode=`strict`（无论 goal 取值） | `POST /practice/sessions/{id}/events` 携带 `kind='hint_requested'` | 409 + `ApiError{code:'PRACTICE_SESSION_CONFLICT', detail:{mode:'strict', policy:'hint_disabled_in_mode'}}`；session 状态不变 | 003 |
-| C-8b | hint 在 assisted+debrief 下允许 | session.goal=`debrief` 且 session.mode=`assisted` | `POST /practice/sessions/{id}/events` 携带 `kind='hint_requested'` | 200 + `assistantAction.type='show_hint'`；证明 hint 仅由 mode 决定，与 goal 正交 | 003 |
 | C-9 | 重复 clientEventId idempotency | 同一 `(session_id, client_event_id)` 已处理过 | 重新 `POST /practice/sessions/{id}/events` | 返回首次结果（`acknowledged:true`），不写新 event row，不重复触发 AI 调用 | 002 |
 | C-10 | 重复 Idempotency-Key dedupe | 同一 `(user_id, idempotency_key)` 已被 createPracticePlan / startPracticeSession / completePracticeSession 处理 | 重复请求 | 返回首次结果，DB 不出现重复 plan / session row，outbox 不重复发事件 | 001 + 002 |
 | C-11 | 完成 session 触发异步 report | session=`running`，达到 question_budget 或用户主动结束 | `POST /practice/sessions/{id}/complete` 携带 `Idempotency-Key` | 202 + `ReportWithJob{reportId, job{jobType:'report_generate', status:'queued'}}`；同事务创建 `feedback_reports(status='queued')` placeholder 与 `async_jobs(report_generate)` queued row，session=`completing`，事件 `practice.session.completed` 出 outbox；report 内容由 backend-review 异步生成（本 spec 不验证 report payload） | 002 |
@@ -222,7 +220,7 @@
 1. [`001-plan-and-session-orchestration`](./plans/001-plan-and-session-orchestration/plan.md)：D-12 + D-13 + D-21 + D-23 + D-26 + D-27 + D-30 主流程（createPracticePlan baseline + startPracticeSession reservation/首题/失败重试 + getPracticePlan/getPracticeSession + practice.session.started outbox + shared `idempotency_records` 表）；Phase 0 按 D-30 Q1=A integrator 模式直接修订 B1/B2/B3/B4 编码真理源，并同步追加各 owner spec history append 与 Header bump；含 PracticeMode 二值化、practice not-found 错误码、B3 PracticeMode event surface、Practice idempotency storage/replay 语义与 F3 baseline preflight 检查
 2. [`002-event-loop-and-completion`](./plans/002-event-loop-and-completion/plan.md)（completed, 2026-05-13）：D-6 + D-7 + D-22 + D-25 + D-27 + D-28 全 5 种 event kind 状态机 + completePracticeSession 202 + placeholder report/job + practice.turn.completed / practice.session.completed outbox + 双轨 idempotency + **B2 `PracticeTurn.status` wire enum 扩 5 值（D-33 落实 D-25，pre-launch baseline rebase）** + **B3 `shared/jobs.yaml#report_generate` `triggerEventSemantic: source_event_only`（D-32 落实 D-28，未来 dispatcher 必须按 generated `JobTriggerEventSemantic*` 常量在 dispatch-time 跳过；002 阶段无 runtime dispatcher，由 jobs.yaml lint + 常量 + handler 端 `async_jobs(job_type, dedupe_key)` UNIQUE + repo grep 兜底）** + **D-34 plan-level 决策：`hint_requested` 在 002 默认 strict 409，等待 003 接手 assisted 分支** + **D-35 plan-level 决策：已完成 session 的二次 complete 不论 `Idempotency-Key` 是否一致都返回既有 `ReportWithJob`，idempotency key 仅控制 inflight 单执行者**
 3. [`003-mode-policies-and-provenance`](./plans/003-mode-policies-and-provenance/plan.md)：D-5 + D-10 mode 策略（仅 assisted/strict 两支） + AssistantAction provenance + show_hint feature_key + lightweight observe + **D-36 plan-level（hint / lightweight_observe AI 失败 graceful degrade narrowing；同步 inline-narrow C-17 / D-19 / §4.3 / §2.1 失败语义文字）** + **D-37 plan-level（B4 `ai_task_runs.task_type` CHECK 扩值 `hint_generate` pre-launch baseline rebase + `AITaskRunTaskHintGenerate` writers.go enum）** + **D-38 plan-level（hint turn-lifecycle 边界：不递增 turn_count / 不发 practice.turn.completed outbox / 不写 audit / 不改 turn.status）**
-4. [`004-derived-plans-debrief`](./plans/004-derived-plans-debrief/plan.md)：D-4 + D-14 + D-24 retry/next_round/debrief plan 派生 + B2 `sourceReportId` / `sourceDebriefId` source 字段 + B4 修订 `source_debrief_id` 列；显式验证 `goal='debrief'` 与 `mode IN ('assisted','strict')` 的组合，且 debrief start 不调用 `practice.session.first_question`
+4. [`004-derived-plans-debrief`](./plans/004-derived-plans-debrief/plan.md)：历史目录名保留；D-22 后当前有效范围只剩 retry/next_round report-derived plan 派生 + B2 `sourceReportId` / B4 `source_report_id`；debrief/sourceDebriefId/source_debrief_id 分支已退役，负向 gate 归 product-scope/001 承接
 5. `005-voice-turn-extension`：D-15 与 practice-voice-mvp 协作 + voice operation OpenAPI 修订
 6. `006-privacy-cascade-and-cleanup`：D-9 + D-11 + D-18 DELETE /me CASCADE + audit_events + timeout sweep contract
 

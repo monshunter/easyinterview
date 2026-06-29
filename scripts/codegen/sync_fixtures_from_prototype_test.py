@@ -26,7 +26,6 @@ VALIDATE = REPO_ROOT / "scripts" / "lint" / "validate_fixtures.py"
 
 P0_BASELINE_OPS = (
     ("Auth", "getMe"),
-    ("Profile", "listExperienceCards"),
     ("TargetJobs", "listTargetJobs"),
     ("TargetJobs", "getTargetJob"),
     ("PracticeSessions", "getPracticeSession"),
@@ -105,17 +104,16 @@ class SyncFixturesFromPrototypeTest(unittest.TestCase):
         )
 
     def test_sync_fails_fast_on_mapping_gap(self) -> None:
-        # Drop the experiences section that listExperienceCards depends on.
+        # Drop the targetJobs section that listTargetJobs depends on.
         data_file = self.repo / "ui-design" / "src" / "data.jsx"
         text = data_file.read_text(encoding="utf-8")
-        # Replace the experiences array with an empty list.
-        replaced = text.replace("experiences: [", "experiences__missing: [", 1)
-        self.assertNotEqual(text, replaced, "Test setup: data.jsx must contain `experiences: [`")
+        replaced = text.replace("targetJobs: [", "targetJobs__missing: [", 1)
+        self.assertNotEqual(text, replaced, "Test setup: data.jsx must contain `targetJobs: [`")
         data_file.write_text(replaced, encoding="utf-8")
         out = _run(SYNC, self.repo)
         self.assertNotEqual(out.returncode, 0)
         self.assertIn("Mapping gap", out.stderr + out.stdout)
-        self.assertIn("listExperienceCards", out.stderr + out.stdout)
+        self.assertIn("listTargetJobs", out.stderr + out.stdout)
 
 
 if __name__ == "__main__":

@@ -99,9 +99,6 @@ describe("E2E.P0.004 app shell language switch", () => {
     expect(screen.getByTestId("topbar-nav-resume_versions")).toHaveTextContent(
       "Resume",
     );
-    expect(screen.getByTestId("topbar-nav-debrief")).toHaveTextContent(
-      "Debrief",
-    );
     expect(screen.getByTestId("topbar-login")).toHaveTextContent("Sign in");
     expect(screen.queryByTestId("topbar-register")).not.toBeInTheDocument();
 
@@ -136,20 +133,13 @@ describe("E2E.P0.004 app shell language switch", () => {
     await user.click(screen.getByTestId("topbar-lang-toggle"));
     await user.click(screen.getByTestId("topbar-lang-option-en"));
     await user.click(screen.getByTestId("topbar-user-chip"));
-    expect(screen.getByTestId("topbar-user-profile")).toHaveTextContent(
-      "User profile",
-    );
+    expect(screen.queryByTestId("topbar-user-profile")).not.toBeInTheDocument();
     expect(screen.getByTestId("topbar-user-settings")).toHaveTextContent(
       "Settings & privacy",
     );
     expect(screen.getByTestId("topbar-user-logout")).toHaveTextContent(
       "Sign out",
     );
-    await user.click(screen.getByTestId("topbar-user-profile"));
-    expect(screen.getByTestId("route-profile")).toHaveTextContent(
-      "User profile",
-    );
-    await user.click(screen.getByTestId("topbar-user-chip"));
     await user.click(screen.getByTestId("topbar-user-settings"));
     expect(screen.getByTestId("route-settings")).toHaveTextContent(
       "Settings & privacy",
@@ -161,7 +151,7 @@ describe("E2E.P0.004 app shell language switch", () => {
         screen.queryByTestId(`topbar-nav-${legacy}`),
       ).not.toBeInTheDocument();
     }
-    console.log("E2E.P0.004 evidence: language dropdown Home Mock Interview Resume Debrief Sign in Accept-Language: en");
+    console.log("E2E.P0.004 evidence: language dropdown Home Mock Interview Resume Sign in Accept-Language: en");
   });
 });
 

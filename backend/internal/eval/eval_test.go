@@ -153,7 +153,7 @@ func TestResolveAllSingleSource(t *testing.T) {
 	}
 }
 
-// TestRealSuiteOfflineGreen is the count>=44 + offline-grades-clean gate over
+// TestRealSuiteOfflineGreen is the count>=36 + offline-grades-clean gate over
 // the committed config/evals suite (plan 004 §4.1/§4.5). It runs with no
 // AI_PROVIDER env and must not touch the network.
 func TestRealSuiteOfflineGreen(t *testing.T) {
@@ -162,11 +162,10 @@ func TestRealSuiteOfflineGreen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSuite(real): %v", err)
 	}
-	// Baseline is 44 since 2026-06-13: the original 50 included 6 jd_match
-	// cases removed with the module per product-scope v2.1 D-17
-	// (prompt-rubric-registry spec v2.12).
-	if suite.Count() < 44 {
-		t.Fatalf("offline eval suite must have >= 44 cases, got %d", suite.Count())
+	// Baseline is 36 since product-scope D-22: 9 active feature keys each keep
+	// the four quality-band cases after jd_match and debrief/profile removal.
+	if suite.Count() < 36 {
+		t.Fatalf("offline eval suite must have >= 36 cases, got %d", suite.Count())
 	}
 	reg := repoRegistry(t, root)
 	results, err := suite.RunOffline(context.Background(), reg)

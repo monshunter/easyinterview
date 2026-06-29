@@ -7,9 +7,8 @@
   - `topbar-nav-home` shows `Home`.
   - `topbar-nav-workspace` shows `Mock Interview`.
   - `topbar-nav-resume_versions` shows `Resume`.
-  - `topbar-nav-debrief` shows `Debrief`.
   - `topbar-login` shows `Sign in`.
-  - Auth/profile/settings/placeholder shell labels are English.
+  - Auth/settings/placeholder shell labels are English.
 - Stable route/test IDs remain unchanged; no localized route names are introduced.
 - Generated client requests made after locale toggle include
   `Accept-Language: en`.

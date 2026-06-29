@@ -1,0 +1,68 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: product-scope
+  name: 001-core-loop-module-pruning
+  sequence: 1
+  branch: core-loop-module-pruning
+  baseBranch: main
+  supersedes: []
+  specVersion:
+    from: 2.1
+    to: 2.2
+spec:
+  defaultTarget: cross-layer
+  discovery:
+    aliases:
+      - product-scope
+      - core-loop-module-pruning
+      - module-pruning
+      - debrief-removal
+      - profile-removal
+    keywords:
+      - debrief
+      - Debriefs
+      - profile
+      - CandidateProfile
+      - ExperienceCard
+      - 用户画像
+      - 复盘
+      - source_debrief_id
+      - candidate_profiles
+      - experience_cards
+  targets:
+    cross-layer:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      discovery:
+        packages:
+          - docs/spec/product-scope
+          - docs/spec/engineering-roadmap
+          - docs/ui-design
+          - ui-design/src
+          - frontend/src
+          - frontend/tests
+          - openapi
+          - shared
+          - backend
+          - migrations
+          - config
+          - test/scenarios/e2e
+        uiRoutes:
+          - home
+          - workspace
+          - resume_versions
+          - debrief
+          - profile
+        apiNames:
+          - getMyProfile
+          - updateMyProfile
+          - listExperienceCards
+          - createExperienceCard
+          - updateExperienceCard
+          - createDebrief
+          - suggestDebriefQuestions
+          - getDebrief

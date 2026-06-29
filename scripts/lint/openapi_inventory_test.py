@@ -10,7 +10,7 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
     def test_product_scope_v21_inventory_includes_delete_me(self) -> None:
         # Current v1.0.0 pre-launch freeze after D-17 JD match removal and
         # D-20 flat resume contract.
-        self.assertEqual(43, len(inventory.EXPECTED_OPERATIONS))
+        self.assertEqual(35, len(inventory.EXPECTED_OPERATIONS))
         self.assertIn(("Auth", "delete", "/me", "deleteMe"), inventory.EXPECTED_OPERATIONS)
         self.assertIn(("delete", "/me"), inventory.IK_REQUIRED)
 
@@ -22,8 +22,7 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertNotIn(("patch", "/me"), inventory.IK_FORBIDDEN)
 
     def test_list_practice_sessions_operation_is_registered_without_idempotency_key(self) -> None:
-        # frontend-debrief/001 Phase 0 cross-owner addendum: GET
-        # /practice/sessions surfaces the Mock Session picker dataset.
+        # GET /practice/sessions surfaces target-job session history.
         # As a read-only operation it must not require Idempotency-Key.
         self.assertIn(
             ("PracticeSessions", "get", "/practice/sessions", "listPracticeSessions"),
@@ -79,13 +78,22 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
             result["properties"]["ttsError"]["oneOf"],
         )
 
-    def test_debrief_suggestions_operation_is_registered_without_idempotency_key(self) -> None:
-        self.assertIn(
-            ("Debriefs", "post", "/debriefs/question-suggestions", "suggestDebriefQuestions"),
-            inventory.EXPECTED_OPERATIONS,
-        )
-        self.assertIn(("post", "/debriefs/question-suggestions"), inventory.IK_FORBIDDEN)
-        self.assertNotIn(("post", "/debriefs/question-suggestions"), inventory.IK_REQUIRED)
+    def test_d22_debrief_and_profile_operations_are_removed(self) -> None:
+        self.assertNotIn("Profile", inventory.EXPECTED_TAGS)
+        self.assertNotIn("Debriefs", inventory.EXPECTED_TAGS)
+        removed_operation_ids = {
+            "getMyProfile",
+            "updateMyProfile",
+            "listExperienceCards",
+            "createExperienceCard",
+            "updateExperienceCard",
+            "createDebrief",
+            "suggestDebriefQuestions",
+            "getDebrief",
+        }
+        self.assertFalse(removed_operation_ids & {opid for *_rest, opid in inventory.EXPECTED_OPERATIONS})
+        self.assertNotIn(("post", "/debriefs"), inventory.IK_REQUIRED)
+        self.assertNotIn(("post", "/debriefs/question-suggestions"), inventory.IK_FORBIDDEN)
 
     def test_resume_workshop_additive_inventory_is_resumes_tag_only(self) -> None:
         resume_ops = {
@@ -144,18 +152,6 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         response = operation["responses"]["202"]
         schema = response["content"]["application/json"]["schema"]
         self.assertEqual("#/components/schemas/PrivacyRequestWithJob", schema["$ref"])
-
-    def test_p0_debrief_keeps_p1_followup_fields_optional_and_hidden(self) -> None:
-        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
-        debrief = data["components"]["schemas"]["Debrief"]
-        required = set(debrief["required"])
-
-        self.assertNotIn("thankYouDraft", required)
-        self.assertNotIn("nextRoundChecklist", required)
-
-        props = debrief["properties"]
-        for name in ("thankYouDraft", "nextRoundChecklist"):
-            self.assertIn("P1 optional/hidden", props[name]["description"])
 
     def test_product_scope_semantic_invariants_are_enforced(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))

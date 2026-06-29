@@ -208,16 +208,16 @@ describe("HomeAuthGate — upload import", () => {
 });
 
 describe("HomeAuthGate — protected entry CTAs", () => {
-  it("redirects to auth_login before opening resume workshop or debrief", async () => {
+  it("redirects to auth_login before opening resume workshop and does not expose debrief", async () => {
     const client = createClient();
     const { navigate } = renderHome(client);
 
     await waitFor(() => {
-      expect(screen.getByText("Open debrief")).toBeInTheDocument();
+      expect(screen.getByTestId("home-resume-create")).toBeInTheDocument();
     });
+    expect(screen.queryByText("Open debrief")).not.toBeInTheDocument();
 
     screen.getByTestId("home-resume-create").click();
-    screen.getByText("Open debrief").click();
 
     await waitFor(() => {
       expect(navigate).toHaveBeenCalledWith(
@@ -227,15 +227,6 @@ describe("HomeAuthGate — protected entry CTAs", () => {
             pendingRoute: "resume_versions",
             pendingType: "open_protected_route",
             flow: "create",
-          }),
-        }),
-      );
-      expect(navigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: "auth_login",
-          params: expect.objectContaining({
-            pendingRoute: "debrief",
-            pendingType: "open_protected_route",
           }),
         }),
       );

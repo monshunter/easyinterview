@@ -23,21 +23,17 @@ const (
 	AITaskRunTaskReportGenerate          AITaskRunCapability = AITaskRunCapability(jobs.JobTypeReportGenerate)
 	AITaskRunTaskReportAssessment        AITaskRunCapability = "report_assessment"
 	AITaskRunTaskResumeTailor            AITaskRunCapability = AITaskRunCapability(jobs.JobTypeResumeTailor)
-	AITaskRunTaskDebriefGenerate         AITaskRunCapability = AITaskRunCapability(jobs.JobTypeDebriefGenerate)
-	AITaskRunTaskDebriefSuggestQuestions AITaskRunCapability = "debrief_suggest_questions"
 )
 
 var allowedAITaskRunCapabilities = map[AITaskRunCapability]struct{}{
-	AITaskRunTaskJDParse:                 {},
-	AITaskRunTaskResumeParse:             {},
-	AITaskRunTaskQuestionGenerate:        {},
-	AITaskRunTaskFollowupGenerate:        {},
-	AITaskRunTaskHintGenerate:            {},
-	AITaskRunTaskReportGenerate:          {},
-	AITaskRunTaskReportAssessment:        {},
-	AITaskRunTaskResumeTailor:            {},
-	AITaskRunTaskDebriefGenerate:         {},
-	AITaskRunTaskDebriefSuggestQuestions: {},
+	AITaskRunTaskJDParse:          {},
+	AITaskRunTaskResumeParse:      {},
+	AITaskRunTaskQuestionGenerate: {},
+	AITaskRunTaskFollowupGenerate: {},
+	AITaskRunTaskHintGenerate:     {},
+	AITaskRunTaskReportGenerate:   {},
+	AITaskRunTaskReportAssessment: {},
+	AITaskRunTaskResumeTailor:     {},
 }
 
 // AITaskRunResourceType mirrors the B2 API-facing ResourceType values. B4
@@ -49,7 +45,6 @@ const (
 	AITaskRunResourceFeedbackReport  AITaskRunResourceType = "feedback_report"
 	AITaskRunResourceResumeAsset     AITaskRunResourceType = "resume_asset"
 	AITaskRunResourceResumeTailorRun AITaskRunResourceType = "resume_tailor_run"
-	AITaskRunResourceDebrief         AITaskRunResourceType = "debrief"
 	AITaskRunResourcePrivacyRequest  AITaskRunResourceType = "privacy_request"
 )
 

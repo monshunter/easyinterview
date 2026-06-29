@@ -11,12 +11,12 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
     "Extracting title, level, location",
     "Identifying must-have vs nice-to-have",
     "Building the mock interview context",
-    "Matching against your profile",
+    "Comparing with your resume context",
   ] : [
     "抽取岗位名、职级、地点",
     "识别必需项与加分项",
     "生成模拟面试上下文",
-    "对比你的画像",
+    "对比你的简历上下文",
   ];
 
   React.useEffect(() => {
@@ -580,7 +580,7 @@ const SettingsPrivacy = ({ T, lang }) => {
               {lang === "en" ? "Download everything — JSON + PDF reports" : "下载全部 —— JSON + PDF 报告"}
             </div>
             <div style={{ fontSize: 12, color: T.ink3, lineHeight: 1.5 }}>
-              {lang === "en" ? "Practice sessions, reports, question reviews, resume versions, and profile evidence. Link is emailed when ready (<5min)." : "练习会话、报告、题目回顾、简历版本和画像证据。准备好发到你邮箱（<5 分钟）。"}
+              {lang === "en" ? "Practice sessions, reports, question reviews, resumes, and saved JDs. Link is emailed when ready (<5min)." : "练习会话、报告、题目回顾、简历和已保存 JD。准备好发到你邮箱（<5 分钟）。"}
             </div>
           </div>
           <Btn T={T} variant="secondary" size="sm" onClick={() => window.eiToast && window.eiToast(lang === "en" ? "Export requested · link emailed to liuzhe@example.com when ready" : "已申请导出 · 准备好后会发到 liuzhe@example.com", { tone: "ok", duration: 3000 })}>{lang === "en" ? "Request export" : "申请导出"}</Btn>
@@ -593,7 +593,7 @@ const SettingsPrivacy = ({ T, lang }) => {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {[
             { t: lang === "en" ? "Delete a single session" : "删除某一次会话", d: lang === "en" ? "Pick a session — transcript, report, question reviews, and any audio are removed together." : "挑一次会话，转写、报告、题目回顾和音频会一起删除。", b: lang === "en" ? "Pick" : "选择" },
-            { t: lang === "en" ? "Delete all practice data" : "删除所有练习数据", d: lang === "en" ? "Sessions, reports, question reviews, and readiness signals are removed. Target jobs & profile stay." : "会话、报告、题目回顾和准备度信号全部删掉。岗位和画像保留。", b: lang === "en" ? "Delete…" : "删除…" },
+            { t: lang === "en" ? "Delete all practice data" : "删除所有练习数据", d: lang === "en" ? "Sessions, reports, question reviews, and readiness signals are removed. Saved JDs and resumes stay." : "会话、报告、题目回顾和准备度信号全部删掉。已保存 JD 和简历保留。", b: lang === "en" ? "Delete…" : "删除…" },
             { t: lang === "en" ? "Delete my account" : "注销账号", d: lang === "en" ? "Permanent. All data is purged within 30 days per GDPR. Backups rotated within 90." : "永久。30 天内按 GDPR 清理所有数据。备份 90 天内轮换清除。", b: lang === "en" ? "Delete account…" : "注销账号…", danger: true },
           ].map((r) => (
             <div key={r.t} style={{ padding: "16px 20px", background: r.danger ? T.dangerSoft : T.bgCard, border: `1px solid ${r.danger ? T.danger : T.rule}`, borderRadius: 2, display: "flex", gap: 16, alignItems: "flex-start" }}>

@@ -18,8 +18,8 @@ func TestGetJobReturnsOwnedAsyncJob(t *testing.T) {
 	now := time.Date(2026, 5, 17, 10, 30, 0, 0, time.UTC)
 	service := &fakeJobService{job: domain.JobRecord{
 		ID:           "01918fa0-0000-7000-8000-00000000f301",
-		JobType:      api.JobTypeDebriefGenerate,
-		ResourceType: api.ResourceTypeDebrief,
+		JobType:      api.JobTypeReportGenerate,
+		ResourceType: api.ResourceTypeFeedbackReport,
 		ResourceID:   "01918fa0-0000-7000-8000-00000000d010",
 		Status:       sharedtypes.JobStatusQueued,
 		CreatedAt:    now,
@@ -40,7 +40,7 @@ func TestGetJobReturnsOwnedAsyncJob(t *testing.T) {
 	if service.userID != "user-1" || service.jobID != "job-1" {
 		t.Fatalf("service input drifted: user=%q job=%q", service.userID, service.jobID)
 	}
-	if out.Id != service.job.ID || out.JobType != api.JobTypeDebriefGenerate || out.ResourceType != api.ResourceTypeDebrief {
+	if out.Id != service.job.ID || out.JobType != api.JobTypeReportGenerate || out.ResourceType != api.ResourceTypeFeedbackReport {
 		t.Fatalf("job response drifted: %+v", out)
 	}
 }

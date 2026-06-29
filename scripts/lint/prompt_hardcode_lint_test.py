@@ -40,7 +40,6 @@ def test_default_scan_passes():
         "backend/internal/practice",
         "backend/internal/report",
         "backend/internal/resume",
-        "backend/internal/debrief",
         "backend/internal/targetjob",
     ])
     assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
@@ -107,15 +106,15 @@ def test_test_file_allowlisted(tmp_path):
 def test_system_message_flagged(tmp_path):
     """systemMessage := `...` literal is flagged regardless of suffix rules."""
     source = (
-        "package debrief\n\n"
+        "package targetjob\n\n"
         "func bad() {\n"
         "\tsystemMessage := `You are a coach.\n"
-        "Reconstruct the interview.`\n"
+        "Summarize the target role.`\n"
         "\t_ = systemMessage\n"
         "}\n"
     )
-    _seed_go(tmp_path, "backend/internal/debrief", "bad.go", source)
-    result = _run(tmp_path, ["backend/internal/debrief"])
+    _seed_go(tmp_path, "backend/internal/targetjob", "bad.go", source)
+    result = _run(tmp_path, ["backend/internal/targetjob"])
     assert result.returncode == 1
     assert "systemMessage" in result.stderr
 

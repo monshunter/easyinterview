@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.30
+> **版本**: 1.31
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-06-29
 
 ## 1 修订规则
 
@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-06-29 | 1.31 | product-scope D-22 核心闭环模块裁剪（新增 B2 本地 D-27）：删除 `Profile` tag 5 个 operation（`getMyProfile` / `updateMyProfile` / `listExperienceCards` / `createExperienceCard` / `updateExperienceCard`）和 `Debriefs` tag 3 个 operation（`createDebrief` / `suggestDebriefQuestions` / `getDebrief`）；删除 `CandidateProfile` / `ExperienceCard` / `Debrief*` schemas、Profile/Debriefs fixtures、generated Go/TS operations、`ResourceType=debrief`、`JobType=debrief_generate`；§2.1 / §3.1.1 endpoint inventory 43→35 / 12 tag→10 tag，并原地 re-freeze `openapi/baseline/openapi-v1.0.0.yaml` 到当前开发期契约。账号资料补全保留为 Auth `completeMyProfile`，不再承担候选人画像语义。 | product-scope/001-core-loop-module-pruning |
 | 2026-06-13 | 1.30 | product-scope D-20 简历资产扁平化 contract collapse（新增 B2 本地 D-26）：删除 6 个简历版本/suggestion operation（`confirmResumeStructuredMaster` / `listResumeVersions` / `getResumeVersion` / `branchResumeVersion` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion`）；`updateResumeVersion`→`updateResume` / `archiveResumeAsset`→`archiveResume` / `exportResumeVersion`→`exportResume`（改 `resumeId` 路径）；新增 side-effect `duplicateResume`（`POST /api/v1/resumes/{resumeId}/duplicate`，「保存为新简历」，IK 必带）；`getResume`/`registerResume`/`listResumes` 的 `resumeAssetId`/`ResumeAsset`→`resumeId`/`Resume`；schema `ResumeAsset`→`Resume`（含 `structuredProfile`/`displayName`）、`PaginatedResumeAsset`→`PaginatedResume`，删除 `ResumeVersion`/`BranchResumeVersion*`/`PaginatedResumeVersion`/`ConfirmResumeStructuredMasterRequest`/`UpdateResumeVersionRequest`，新增 `UpdateResumeRequest`/`DuplicateResumeRequest`；`RequestResumeTailorRequest.resumeVersionId`→`resumeId`；`RegisterResumeRequest.sourceType` 收敛 {upload, paste}。§3.1.1 endpoint inventory 48→43 / 12 tag；EXPECTED_OPERATIONS 48→43、`AI_PROVENANCE_SCHEMAS` `ResumeVersion`→`Resume`；退役 D-18/D-23/D-24(resume tailor target)。**同步修正 product-scope D-17 JobMatch 删除时残留的 §2.1/§3.1.1 endpoint 计数漂移（60→48→43）：D-17 reconcile 当时把 spec bump 至 1.29、§1/D-17 行标注历史，但 §2.1「60 端点」/§3.1.1「总计 60」未回填，本行一并修正，history 从 1.28 直接对齐到 1.30**。实际 `openapi.yaml`/fixtures/lint/baseline/codegen 删改由 `openapi-v1-contract/004` D-20 phase 落地。 | openapi-v1-contract/004-resume-additive-coverage D-20 phase（product-scope D-20）+ product-scope D-17 count reconcile |
 | 2026-05-28 | 1.28 | Auth single-entry profile completion pre-launch correction：`AuthEmailStartRequest` 删除 `purpose` / `displayName`，邮箱验证码登录不再区分注册/登录；`UserContext` 新增 `profileCompletionRequired`；Auth tag 新增 protected `PATCH /api/v1/me` / `completeMyProfile`，request schema `CompleteProfileRequest`，success response `UserContext`；§3.1.1 endpoint inventory 59→60，并原地 re-freeze `openapi/baseline/openapi-v1.0.0.yaml` 到当前开发期契约。 | backend-auth/001 Phase 8 + frontend-shell/001 Phase 9 |
 | 2026-05-27 | 1.27 | Auth tag 对齐 email-code challenge：`AuthEmailStartRequest` 增加可选 `purpose=signup\|login` 与 `displayName`，`verifyAuthEmailChallenge` 的 query `token` 收窄为 6 位 code。 | backend-auth/001 Phase 7 + frontend-shell/001 Phase 8 |

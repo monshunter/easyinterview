@@ -16,7 +16,10 @@ for forbidden in \
   'topbar-nav-mistakes' \
   'topbar-nav-growth' \
   'topbar-nav-drill' \
-  'topbar-nav-voice'; do
+  'topbar-nav-voice' \
+  'topbar-nav-debrief' \
+  'topbar-nav-profile' \
+  'topbar-user-profile'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
     echo "forbidden legacy entry leaked into scenario evidence: $forbidden" >&2
     exit 1

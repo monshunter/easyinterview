@@ -1,13 +1,14 @@
 # AI Provider and Model Routing History
 
-> **版本**: 2.14
+> **版本**: 2.16
 > **状态**: active
-> **更新日期**: 2026-05-26
+> **更新日期**: 2026-06-29
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-06-29 | 2.16 | product-scope D-22 后同步业务调用现场：移除 `backend-debrief` 当前 owner 口径，保留 provider/profile 治理作为核心链路能力。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-26 | 2.14 | 真实 provider 复测发现 `report.assessment.default` 15s 预算会在 full-funnel report assessment 中误触发 `AI_PROVIDER_TIMEOUT`；C-14 与 tracked catalog gate 将该 profile 纳入不低于 30s 的 manual UAT timeout budget。 | e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel |
 | 2026-05-26 | 2.13 | 为 `e2e-scenarios-p0/002` 真实 provider manual UAT 固化 P0 full-funnel profile timeout budget：target/resume/practice 主链路 profile 最小 30s、turn observe 最小 20s、report generate 最小 60s，并新增 tracked catalog gate 防止回退；同时要求 OpenAI-compatible provider 在 `output_schema` 存在时请求 JSON object response mode，避免真实 provider 只靠 prompt 自律导致结构化输出漂移。 | e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel |
 | 2026-05-22 | 2.12 | 对齐 ADR-Q4 v1.7 / 方案 A：AI provider fail-fast 边界从 `local deploy / Kind / staging / prod` 改为非测试本地 app run 与未来部署；Kind / K8s / Helm 不再是当前 P0 AI smoke 或场景默认前提。 | local-dev-stack/001 post-pass revision |

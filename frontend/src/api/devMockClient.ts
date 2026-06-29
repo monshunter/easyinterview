@@ -5,9 +5,6 @@ import getRuntimeConfigFixture from "../../../openapi/fixtures/Auth/getRuntimeCo
 import logoutFixture from "../../../openapi/fixtures/Auth/logout.json";
 import startAuthEmailChallengeFixture from "../../../openapi/fixtures/Auth/startAuthEmailChallenge.json";
 import verifyAuthEmailChallengeFixture from "../../../openapi/fixtures/Auth/verifyAuthEmailChallenge.json";
-import createDebriefFixture from "../../../openapi/fixtures/Debriefs/createDebrief.json";
-import getDebriefFixture from "../../../openapi/fixtures/Debriefs/getDebrief.json";
-import suggestDebriefQuestionsFixture from "../../../openapi/fixtures/Debriefs/suggestDebriefQuestions.json";
 import getJobFixture from "../../../openapi/fixtures/Jobs/getJob.json";
 import createPracticePlanFixture from "../../../openapi/fixtures/PracticePlans/createPracticePlan.json";
 import getPracticePlanFixture from "../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
@@ -20,11 +17,6 @@ import startPracticeSessionFixture from "../../../openapi/fixtures/PracticeSessi
 import getPrivacyRequestFixture from "../../../openapi/fixtures/Privacy/getPrivacyRequest.json";
 import requestPrivacyDeleteFixture from "../../../openapi/fixtures/Privacy/requestPrivacyDelete.json";
 import requestPrivacyExportFixture from "../../../openapi/fixtures/Privacy/requestPrivacyExport.json";
-import createExperienceCardFixture from "../../../openapi/fixtures/Profile/createExperienceCard.json";
-import getMyProfileFixture from "../../../openapi/fixtures/Profile/getMyProfile.json";
-import listExperienceCardsFixture from "../../../openapi/fixtures/Profile/listExperienceCards.json";
-import updateExperienceCardFixture from "../../../openapi/fixtures/Profile/updateExperienceCard.json";
-import updateMyProfileFixture from "../../../openapi/fixtures/Profile/updateMyProfile.json";
 import getFeedbackReportFixture from "../../../openapi/fixtures/Reports/getFeedbackReport.json";
 import listTargetJobReportsFixture from "../../../openapi/fixtures/Reports/listTargetJobReports.json";
 import getResumeTailorRunFixture from "../../../openapi/fixtures/ResumeTailor/getResumeTailorRun.json";
@@ -54,15 +46,11 @@ import {
 	type FixtureRegistry,
 	type OperationFixture,
 } from "./mockTransport";
-import { JOB_TYPE_DEBRIEF_GENERATE } from "../lib/jobs/jobs";
 
 const DEV_MOCK_FIXTURES = [
 	startAuthEmailChallengeFixture,
 	verifyAuthEmailChallengeFixture,
 	logoutFixture,
-	createDebriefFixture,
-	getDebriefFixture,
-	suggestDebriefQuestionsFixture,
 	getJobFixture,
 	deleteMeFixture,
 	completeMyProfileFixture,
@@ -78,11 +66,6 @@ const DEV_MOCK_FIXTURES = [
 	requestPrivacyDeleteFixture,
 	requestPrivacyExportFixture,
 	getPrivacyRequestFixture,
-	getMyProfileFixture,
-	updateMyProfileFixture,
-	listExperienceCardsFixture,
-	createExperienceCardFixture,
-	updateExperienceCardFixture,
 	getFeedbackReportFixture,
 	requestResumeTailorFixture,
 	getResumeTailorRunFixture,
@@ -127,19 +110,11 @@ export function createDevMockClient(
 		emailMasked: "new***r@example.com",
 		lastEmail: "",
 	};
-	const debriefJobIds = new Set<string>();
-	const debriefPracticePlanIds = new Set<string>();
 	const fetch: typeof globalThis.fetch = async (input, init) => {
 		const request = readRequest(input, init);
 		const authResponse = respondToStatefulAuthRequest(request, authState);
 		if (authResponse) return authResponse;
-		const scenarioInit = withStatefulDebriefScenario(
-			init,
-			request,
-			debriefJobIds,
-			debriefPracticePlanIds,
-		);
-		const response = await fixtureFetch(input, scenarioInit);
+		const response = await fixtureFetch(input, init);
 		if (response.ok && request.method === "POST" && request.path === "/auth/email/start") {
 			const body = parseJsonObject(request.bodyText);
 			if (typeof body?.email === "string") {
@@ -152,12 +127,6 @@ export function createDevMockClient(
 		}
 		if (response.ok && request.method === "POST" && request.path === "/auth/logout") {
 			authState.signedIn = false;
-		}
-		if (response.ok && request.method === "POST" && request.path === "/debriefs") {
-			await rememberDebriefJob(response, debriefJobIds);
-		}
-		if (response.ok && request.method === "POST" && request.path === "/practice/plans") {
-			await rememberDebriefPracticePlan(response, debriefPracticePlanIds);
 		}
 		return response;
 	};
@@ -276,94 +245,6 @@ function maskEmail(email: string): string {
 	return `${prefix}***@${domain}`;
 }
 
-function withStatefulDebriefScenario(
-	init: RequestInit | undefined,
-	request: {
-		method: string;
-		path: string;
-		headers: Headers;
-		bodyText?: string;
-	},
-	debriefJobIds: ReadonlySet<string>,
-	debriefPracticePlanIds: ReadonlySet<string>,
-): RequestInit | undefined {
-	if (request.headers.has("Prefer")) return init;
-	if (request.method === "GET") {
-		const jobId = readPathId(request.path, "/jobs/");
-		if (jobId && debriefJobIds.has(jobId)) {
-			return withPreferScenario(init, request, "debrief-succeeded");
-		}
-	}
-	if (
-		request.method === "POST" &&
-		request.path === "/practice/plans" &&
-		isDebriefPracticePlanRequest(request.bodyText)
-	) {
-		return withPreferScenario(init, request, "debrief-derived");
-	}
-	if (request.method === "POST" && request.path === "/practice/sessions") {
-		const planId = readPracticeSessionPlanId(request.bodyText);
-		if (planId && debriefPracticePlanIds.has(planId)) {
-			return withPreferScenario(init, request, "debrief-derived-first-question");
-		}
-	}
-	return init;
-}
-
-function withPreferScenario(
-	init: RequestInit | undefined,
-	request: { headers: Headers },
-	scenario: string,
-): RequestInit {
-	const headers = new Headers(request.headers);
-	headers.set("Prefer", `example=${scenario}`);
-	return { ...init, headers };
-}
-
-async function rememberDebriefJob(
-	response: Response,
-	debriefJobIds: Set<string>,
-): Promise<void> {
-	const body = await readJsonObject(response);
-	const job = isObject(body?.job) ? body.job : null;
-	if (
-		typeof job?.id === "string" &&
-		job.jobType === JOB_TYPE_DEBRIEF_GENERATE &&
-		job.resourceType === "debrief"
-	) {
-		debriefJobIds.add(job.id);
-	}
-}
-
-async function rememberDebriefPracticePlan(
-	response: Response,
-	debriefPracticePlanIds: Set<string>,
-): Promise<void> {
-	const body = await readJsonObject(response);
-	if (typeof body?.id === "string" && body.goal === "debrief") {
-		debriefPracticePlanIds.add(body.id);
-	}
-}
-
-async function readJsonObject(response: Response): Promise<Record<string, unknown> | null> {
-	try {
-		const body: unknown = await response.clone().json();
-		return isObject(body) ? body : null;
-	} catch {
-		return null;
-	}
-}
-
-function isDebriefPracticePlanRequest(bodyText: string | undefined): boolean {
-	const body = parseJsonObject(bodyText);
-	return body?.goal === "debrief";
-}
-
-function readPracticeSessionPlanId(bodyText: string | undefined): string | null {
-	const body = parseJsonObject(bodyText);
-	return typeof body?.planId === "string" ? body.planId : null;
-}
-
 function parseJsonObject(bodyText: string | undefined): Record<string, unknown> | null {
 	if (!bodyText) return null;
 	try {
@@ -372,12 +253,6 @@ function parseJsonObject(bodyText: string | undefined): Record<string, unknown> 
 	} catch {
 		return null;
 	}
-}
-
-function readPathId(path: string, prefix: string): string | null {
-	if (!path.startsWith(prefix)) return null;
-	const rest = path.slice(prefix.length);
-	return rest && !rest.includes("/") ? decodeURIComponent(rest) : null;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

@@ -25,7 +25,7 @@ describe("HomeScreen", () => {
     expect(screen.getByTestId("home-jd-textarea")).toBeInTheDocument();
     expect(screen.getByTestId("home-jd-submit")).toBeInTheDocument();
     expect(screen.queryByTestId("home-aux-jobpicks")).not.toBeInTheDocument();
-    expect(screen.getByTestId("home-aux-debrief")).toBeInTheDocument();
+    expect(screen.queryByTestId("home-aux-debrief")).not.toBeInTheDocument();
   });
 
   it("renders correct control types", () => {
@@ -63,17 +63,6 @@ describe("HomeScreen", () => {
     await userEvent.type(textarea, "Software Engineer JD");
 
     expect(submitBtn).not.toBeDisabled();
-  });
-
-  it("navigates to debrief on Post-Interview aux card button click", () => {
-    const navigate = vi.fn();
-    render(wrap(<HomeScreen route={{ name: "home", params: {} }} />, navigate));
-
-    const debriefCard = screen.getByTestId("home-aux-debrief");
-    const btn = debriefCard.querySelector("button");
-    fireEvent.click(btn!);
-
-    expect(navigate).toHaveBeenCalledWith({ name: "debrief", params: {} });
   });
 
   it("navigates to resume_versions on resume create CTA click", () => {

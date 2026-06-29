@@ -350,58 +350,6 @@
       "version": 1
     },
     {
-      "aggregateType": "debrief",
-      "name": "debrief.created",
-      "optionalPayload": {},
-      "piiBoundary": "No debrief notes or transcript text.",
-      "producer": "api",
-      "requiredPayload": {
-        "debriefId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        },
-        "questionCount": {
-          "source": "spec:3.1.4",
-          "type": "int"
-        },
-        "roundType": {
-          "source": "spec:3.1.4",
-          "type": "$ref:b1.DebriefRoundType"
-        },
-        "targetJobId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        }
-      },
-      "version": 1
-    },
-    {
-      "aggregateType": "debrief",
-      "name": "debrief.completed",
-      "optionalPayload": {},
-      "piiBoundary": "Counts only; no risk item prose.",
-      "producer": "backend_async",
-      "requiredPayload": {
-        "debriefId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        },
-        "practiceFocusCount": {
-          "source": "spec:3.1.4",
-          "type": "int"
-        },
-        "riskItemCount": {
-          "source": "spec:3.1.4",
-          "type": "int"
-        },
-        "targetJobId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        }
-      },
-      "version": 1
-    },
-    {
       "aggregateType": "source_record",
       "name": "source.refreshed",
       "optionalPayload": {},

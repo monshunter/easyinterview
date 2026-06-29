@@ -15,7 +15,6 @@ for required in \
   'Home' \
   'Mock Interview' \
   'Resume' \
-  'Debrief' \
   'Sign in' \
   'language dropdown' \
   'Accept-Language: en'; do

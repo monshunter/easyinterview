@@ -8,7 +8,7 @@
  * Given the App is built with the Browser History router and the Plan 004
  * route store, this scenario asserts that:
  *   - Direct-open of canonical workspace / practice / generating / report /
- *     resume-versions / debrief deep links lands on the correct route +
+ *     resume-versions deep links lands on the correct route +
  *     params.
  *   - InterviewContext hydrates from URL safe params.
  *   - TopBar active state + chrome-hidden behaviour match the route
@@ -29,8 +29,6 @@ import { useNavigation } from "../navigation/NavigationProvider";
 const SESSION_ID = "01918fa0-0000-7000-8000-000000005000";
 const REPORT_ID = "01918fa0-0000-7000-8000-00000000a000";
 const TAILOR_RUN_ID = "01918fa0-0000-7000-8000-00000000b000";
-const DEBRIEF_ID = "01918fa0-0000-7000-8000-00000000c000";
-const DEBRIEF_JOB_ID = "01918fa0-0000-7000-8000-00000000d000";
 // Non-UUID id intentionally: WorkspaceScreen falls through to
 // `workspace-empty` placeholder (no network fetch) without a runtime
 // client, keeping the scenario URL-only and contract-light.
@@ -174,18 +172,21 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     expect(search.get("tailorRunId")).toBe(TAILOR_RUN_ID);
   });
 
-  it("direct-open /debrief?debriefId=...&debriefJobId=... preserves debrief context", () => {
-    window.history.replaceState(
-      null,
-      "",
-      `/debrief?targetJobId=${TARGET_JOB_ID}&debriefId=${DEBRIEF_ID}&debriefJobId=${DEBRIEF_JOB_ID}`,
-    );
-    render(<App />);
-    const search = new URLSearchParams(window.location.search);
-    expect(search.get("debriefId")).toBe(DEBRIEF_ID);
-    expect(search.get("debriefJobId")).toBe(DEBRIEF_JOB_ID);
-    expect(search.get("targetJobId")).toBe(TARGET_JOB_ID);
-    expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
+  it("direct-open retired /debrief and /profile paths fold back to home without retired params", () => {
+    for (const path of [
+      `/debrief?targetJobId=${TARGET_JOB_ID}&debriefId=01918fa0-0000-7000-8000-00000000c000`,
+      "/profile",
+    ]) {
+      resetWindow();
+      window.history.replaceState(null, "", path);
+      const { unmount } = render(<App />);
+      expect(screen.getByTestId("route-home")).toBeInTheDocument();
+      expect(window.location.pathname).toBe("/");
+      expect(window.location.search).toBe("");
+      expect(screen.queryByTestId("debrief-screen")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("route-profile")).not.toBeInTheDocument();
+      unmount();
+    }
   });
 
   it("App navigation pushes 3 history entries and back/forward restores chrome state", async () => {

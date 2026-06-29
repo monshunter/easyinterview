@@ -39,21 +39,12 @@ EXPECTED_TOP_LEVEL = {
 }
 
 EXPECTED_STRUCTURES = {"PageInfo", "ApiError"}
-EXPECTED_ENUM_SECTIONS = {f"5.{i}" for i in range(1, 14)}  # §5.1 .. §5.13 (D-20 retired §5.14-5.16 resume version enums)
+EXPECTED_ENUM_SECTIONS = {f"5.{i}" for i in range(1, 12)} | {"5.13"}  # D-22 retired §5.12 debrief and D-20 retired §5.14-5.16 resume version enums
 EXPECTED_JOB_STATUSES = {"queued", "running", "succeeded", "failed", "cancelled", "dead"}
 EXPECTED_PRODUCT_ENUM_VALUES = {
     "PracticeMode": ["assisted", "strict"],
-    "PracticeGoal": ["baseline", "retry_current_round", "next_round", "debrief"],
+    "PracticeGoal": ["baseline", "retry_current_round", "next_round"],
     "QuestionReviewStatus": ["open", "queued_for_retry", "resolved"],
-    "DebriefRoundType": [
-        "hr_screen",
-        "hiring_manager",
-        "behavioral",
-        "technical",
-        "culture",
-        "custom",
-    ],
-    "DebriefQuestionSource": ["jd", "resume", "mock_report", "manual"],
 }
 REMOVED_ENUM_NAMES = {"MistakeStatus"}
 REQUIRED_ERROR_CODES = {

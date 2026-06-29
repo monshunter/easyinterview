@@ -119,36 +119,6 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** createDebrief — post /debriefs: Create a real-interview debrief and trigger augmented summary */
-	async createDebrief(body: Types.CreateDebriefRequest, opts?: RequestOptions): Promise<Types.DebriefWithJob> {
-		return this.request<Types.DebriefWithJob>(
-			"POST",
-			"/debriefs",
-			body,
-			opts,
-		);
-	}
-
-	/** suggestDebriefQuestions — post /debriefs/question-suggestions: Suggest likely debrief questions for a real interview */
-	async suggestDebriefQuestions(body: Types.SuggestDebriefQuestionsRequest, opts?: RequestOptions): Promise<Types.SuggestDebriefQuestionsResponse> {
-		return this.request<Types.SuggestDebriefQuestionsResponse>(
-			"POST",
-			"/debriefs/question-suggestions",
-			body,
-			opts,
-		);
-	}
-
-	/** getDebrief — get /debriefs/{debriefId}: Get a real-interview debrief */
-	async getDebrief(debriefId: string, opts?: RequestOptions): Promise<Types.Debrief> {
-		return this.request<Types.Debrief>(
-			"GET",
-			buildPath("/debriefs/{debriefId}", { debriefId: debriefId }),
-			undefined,
-			opts,
-		);
-	}
-
 	/** getJob — get /jobs/{jobId}: Poll the status of an async job */
 	async getJob(jobId: string, opts?: RequestOptions): Promise<Types.Job> {
 		return this.request<Types.Job>(
@@ -296,56 +266,6 @@ export class EasyInterviewClient {
 			"GET",
 			buildPath("/privacy/requests/{privacyRequestId}", { privacyRequestId: privacyRequestId }),
 			undefined,
-			opts,
-		);
-	}
-
-	/** getMyProfile — get /profiles/me: Get my candidate profile */
-	async getMyProfile(opts?: RequestOptions): Promise<Types.CandidateProfile> {
-		return this.request<Types.CandidateProfile>(
-			"GET",
-			"/profiles/me",
-			undefined,
-			opts,
-		);
-	}
-
-	/** updateMyProfile — patch /profiles/me: Update my candidate profile (Lite) */
-	async updateMyProfile(body: Types.UpdateProfileRequest, opts?: RequestOptions): Promise<Types.CandidateProfile> {
-		return this.request<Types.CandidateProfile>(
-			"PATCH",
-			"/profiles/me",
-			body,
-			opts,
-		);
-	}
-
-	/** listExperienceCards — get /profiles/me/experience-cards: List my experience cards (cursor-paginated) */
-	async listExperienceCards(opts?: RequestOptions): Promise<Types.PaginatedExperienceCard> {
-		return this.request<Types.PaginatedExperienceCard>(
-			"GET",
-			"/profiles/me/experience-cards",
-			undefined,
-			opts,
-		);
-	}
-
-	/** createExperienceCard — post /profiles/me/experience-cards: Create an experience card */
-	async createExperienceCard(body: Types.CreateExperienceCardRequest, opts?: RequestOptions): Promise<Types.ExperienceCard> {
-		return this.request<Types.ExperienceCard>(
-			"POST",
-			"/profiles/me/experience-cards",
-			body,
-			opts,
-		);
-	}
-
-	/** updateExperienceCard — patch /profiles/me/experience-cards/{cardId}: Update an experience card */
-	async updateExperienceCard(cardId: string, body: Types.UpdateExperienceCardRequest, opts?: RequestOptions): Promise<Types.ExperienceCard> {
-		return this.request<Types.ExperienceCard>(
-			"PATCH",
-			buildPath("/profiles/me/experience-cards/{cardId}", { cardId: cardId }),
-			body,
 			opts,
 		);
 	}
@@ -527,9 +447,6 @@ export const ALL_OPERATION_IDS = [
 	"startAuthEmailChallenge",
 	"verifyAuthEmailChallenge",
 	"logout",
-	"createDebrief",
-	"suggestDebriefQuestions",
-	"getDebrief",
 	"getJob",
 	"deleteMe",
 	"getMe",
@@ -545,11 +462,6 @@ export const ALL_OPERATION_IDS = [
 	"requestPrivacyDelete",
 	"requestPrivacyExport",
 	"getPrivacyRequest",
-	"getMyProfile",
-	"updateMyProfile",
-	"listExperienceCards",
-	"createExperienceCard",
-	"updateExperienceCard",
 	"getFeedbackReport",
 	"requestResumeTailor",
 	"getResumeTailorRun",
@@ -581,9 +493,6 @@ export const ALL_ROUTES = [
 	{ operationId: "startAuthEmailChallenge", method: "POST", path: "/auth/email/start" },
 	{ operationId: "verifyAuthEmailChallenge", method: "GET", path: "/auth/email/verify" },
 	{ operationId: "logout", method: "POST", path: "/auth/logout" },
-	{ operationId: "createDebrief", method: "POST", path: "/debriefs" },
-	{ operationId: "suggestDebriefQuestions", method: "POST", path: "/debriefs/question-suggestions" },
-	{ operationId: "getDebrief", method: "GET", path: "/debriefs/{debriefId}" },
 	{ operationId: "getJob", method: "GET", path: "/jobs/{jobId}" },
 	{ operationId: "deleteMe", method: "DELETE", path: "/me" },
 	{ operationId: "getMe", method: "GET", path: "/me" },
@@ -599,11 +508,6 @@ export const ALL_ROUTES = [
 	{ operationId: "requestPrivacyDelete", method: "POST", path: "/privacy/deletions" },
 	{ operationId: "requestPrivacyExport", method: "POST", path: "/privacy/exports" },
 	{ operationId: "getPrivacyRequest", method: "GET", path: "/privacy/requests/{privacyRequestId}" },
-	{ operationId: "getMyProfile", method: "GET", path: "/profiles/me" },
-	{ operationId: "updateMyProfile", method: "PATCH", path: "/profiles/me" },
-	{ operationId: "listExperienceCards", method: "GET", path: "/profiles/me/experience-cards" },
-	{ operationId: "createExperienceCard", method: "POST", path: "/profiles/me/experience-cards" },
-	{ operationId: "updateExperienceCard", method: "PATCH", path: "/profiles/me/experience-cards/{cardId}" },
 	{ operationId: "getFeedbackReport", method: "GET", path: "/reports/{reportId}" },
 	{ operationId: "requestResumeTailor", method: "POST", path: "/resume/tailor" },
 	{ operationId: "getResumeTailorRun", method: "GET", path: "/resume/tailor-runs/{tailorRunId}" },

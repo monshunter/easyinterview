@@ -1,13 +1,14 @@
 # Backend TargetJob History
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-06-29
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-06-29 | 1.6 | product-scope D-22 后同步 downstream 边界：真实面试复盘已退役，backend-targetjob 不再声明 backend-debrief downstream owner。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-21 | 1.5 | 登记 backend-jobs-recommendations/001 cross-owner additive：新增 `CountTargetJobsForUser(ctx, db, userID) (int, error)` 内部 API（`backend/internal/targetjob/count.go`），read-only `SELECT COUNT(*) FROM target_jobs WHERE user_id = $1 AND deleted_at IS NULL`；cross-user 隔离由 caller userId 保证；不写 audit_events。单元测试 `count_test.go` 覆盖 happy / cross-user / nil-db / empty-userId。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.13 |
 | 2026-05-08 | 1.4 | 完成 001 plan 真实 HTTP BDD gate：p0-010..013 场景脚本迁移为 `cmd/api` HTTP harness，覆盖 auth middleware、generated route、TargetJob handler/service、in-process drainer、F3 contract bridge、A3 test fixture 与 URL fetch，verify 输出 `method=cmd-api-http` / `validBddEvidence=true`。 | 001-targetjob-import-and-parse-bootstrap |
 | 2026-05-08 | 1.3 | L2 plan-code-review remediation：重新打开 001 plan 与 BDD gate，记录 `cmd/api` 缺真实 TargetJob drainer / F3 runtime wiring 的 blocker，并补充 URL fetch DNS rebinding 与 update 状态机事务内校验修复项。 | 001-targetjob-import-and-parse-bootstrap |

@@ -14,12 +14,10 @@ describe("ROUTE_TO_PATH catalog", () => {
       home: "/",
       workspace: "/workspace",
       resume_versions: "/resume-versions",
-      debrief: "/debrief",
       parse: "/parse",
       practice: "/practice",
       generating: "/generating",
       report: "/report",
-      profile: "/profile",
       settings: "/settings",
       auth_login: "/auth/login",
       auth_verify: "/auth/verify",
@@ -89,7 +87,7 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/workspace?jdId=jd-1&targetJobId=tj-1");
   });
 
-  it("retains generating/report/resume_versions/debrief deep-link params", () => {
+  it("retains generating/report/resume_versions deep-link params", () => {
     expect(
       formatRouteUrl({
         name: "generating",
@@ -117,17 +115,6 @@ describe("serializeRouteToUrl", () => {
         params: { resumeId: "v-1", tab: "rewrites", tailorRunId: "tr-1" },
       }),
     ).toBe("/resume-versions?resumeId=v-1&tab=rewrites&tailorRunId=tr-1");
-
-    expect(
-      formatRouteUrl({
-        name: "debrief",
-        params: {
-          targetJobId: "tj-1",
-          debriefId: "d-1",
-          debriefJobId: "j-1",
-        },
-      }),
-    ).toBe("/debrief?debriefId=d-1&debriefJobId=j-1&targetJobId=tj-1");
   });
 
   it("emits practice voice mode params under canonical path", () => {
@@ -177,6 +164,11 @@ describe("serializeRouteToUrl", () => {
       "/auth/login",
     );
     expect(serializeRouteToUrl({ name: "voice", params: {} }).path).toBe("/");
+    expect(serializeRouteToUrl({ name: "debrief", params: {} }).path).toBe("/");
+    expect(serializeRouteToUrl({ name: "debrief_full", params: {} }).path).toBe(
+      "/",
+    );
+    expect(serializeRouteToUrl({ name: "profile", params: {} }).path).toBe("/");
   });
 
   it("auth_login carries pendingAction safe params union with target route", () => {
@@ -479,7 +471,6 @@ describe("isSafeRouteParam", () => {
     expect(isSafeRouteParam("report", "reportStatus", {})).toBe(true);
     expect(isSafeRouteParam("report", "errorCode", {})).toBe(true);
     expect(isSafeRouteParam("resume_versions", "tailorRunId", {})).toBe(true);
-    expect(isSafeRouteParam("debrief", "debriefJobId", {})).toBe(true);
     expect(isSafeRouteParam("parse", "resumeId", {})).toBe(true);
     expect(isSafeRouteParam("home", "resumeId", {})).toBe(true);
   });
@@ -534,7 +525,7 @@ describe("isSafeRouteParam", () => {
       isSafeRouteParam("auth_login", "debriefId", {
         pendingRoute: "debrief",
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("auth_login without pendingRoute keeps only base allowlist", () => {

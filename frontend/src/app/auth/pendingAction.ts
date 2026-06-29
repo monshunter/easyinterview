@@ -27,11 +27,7 @@ export const PENDING_ACTION_INTERVIEW_KEYS = [
   "roundName",
   "mode",
   "modality",
-  // frontend-debrief plan 001 Phase 5.4: the debrief workflow needs to
-  // restore its own context after sign-in (e.g. `start_debrief_interview`).
   "practiceGoal",
-  "debriefId",
-  "debriefJobId",
   "sessionId",
 ] as const;
 

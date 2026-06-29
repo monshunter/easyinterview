@@ -20,14 +20,14 @@ func TestLoadHappyPath(t *testing.T) {
 		t.Fatalf("loadFromDisk failed: %v", err)
 	}
 
-	// 11 baseline feature_keys remain after product-scope v2.1 D-17 removed
-	// the jd_match.recommendation / jd_match.search additive; both
-	// directories must resolve all 11 through the loader.
-	if got := len(snap.prompts); got != 11 {
-		t.Fatalf("prompts: want 11 feature_keys, got %d", got)
+	// 9 baseline feature_keys remain after product-scope D-17/D-22 removed
+	// the jd_match and debrief/profile prompt owners; both directories must
+	// resolve all 9 through the loader.
+	if got := len(snap.prompts); got != 9 {
+		t.Fatalf("prompts: want 9 feature_keys, got %d", got)
 	}
-	if got := len(snap.rubrics); got != 11 {
-		t.Fatalf("rubrics: want 11 feature_keys, got %d", got)
+	if got := len(snap.rubrics); got != 9 {
+		t.Fatalf("rubrics: want 9 feature_keys, got %d", got)
 	}
 
 	// Each baseline ships the canonical multi prompt.

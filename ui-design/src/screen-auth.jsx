@@ -202,7 +202,7 @@ const AuthLogoutScreen = ({ T, lang, nav, signedIn, onSignOut }) => {
       title={done ? (lang === "en" ? "You are signed out." : "你已退出登录。") : (lang === "en" ? "Sign out of this device?" : "从这台设备退出？")}
       sub={done
         ? (lang === "en" ? "You can still browse the product. Saving or syncing will ask you to sign in again." : "你仍然可以浏览产品。需要保存或同步时，系统会再次引导登录。")
-        : (lang === "en" ? "This only clears the local session. Saved resumes, JDs, reports, and debrief records stay in your account." : "这只会清除本机登录态。已保存的简历、JD、报告和复盘记录仍保留在你的账号里。")}
+        : (lang === "en" ? "This only clears the local session. Saved resumes, JDs, and reports stay in your account." : "这只会清除本机登录态。已保存的简历、JD 和报告仍保留在你的账号里。")}
     >
       <div style={{ padding: 28 }}>
         {done ? (

@@ -40,8 +40,6 @@ const (
 	EventNameReportGenerationFailed    EventName = "report.generation.failed"
 	EventNameResumeParseCompleted      EventName = "resume.parse.completed"
 	EventNameResumeTailorCompleted     EventName = "resume.tailor.completed"
-	EventNameDebriefCreated            EventName = "debrief.created"
-	EventNameDebriefCompleted          EventName = "debrief.completed"
 	EventNameSourceRefreshed           EventName = "source.refreshed"
 	EventNamePrivacyRequestCreated     EventName = "privacy.request.created"
 	EventNamePrivacyRequestCompleted   EventName = "privacy.request.completed"
@@ -130,20 +128,6 @@ type ResumeTailorCompletedPayload struct {
 	Status      sharedtypes.ReportStatus `json:"status"`
 	TailorRunID string                   `json:"tailorRunId"`
 	TargetJobID string                   `json:"targetJobId"`
-}
-
-type DebriefCreatedPayload struct {
-	DebriefID     string                       `json:"debriefId"`
-	QuestionCount int                          `json:"questionCount"`
-	RoundType     sharedtypes.DebriefRoundType `json:"roundType"`
-	TargetJobID   string                       `json:"targetJobId"`
-}
-
-type DebriefCompletedPayload struct {
-	DebriefID          string `json:"debriefId"`
-	PracticeFocusCount int    `json:"practiceFocusCount"`
-	RiskItemCount      int    `json:"riskItemCount"`
-	TargetJobID        string `json:"targetJobId"`
 }
 
 type SourceRefreshedPayload struct {

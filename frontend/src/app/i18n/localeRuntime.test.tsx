@@ -106,8 +106,9 @@ describe("locale bootstrap", () => {
     expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent("Home");
     expect(screen.queryByTestId("topbar-user-profile")).not.toBeInTheDocument();
     await userEvent.setup().click(screen.getByTestId("topbar-user-chip"));
-    expect(screen.getByTestId("topbar-user-profile")).toHaveTextContent(
-      "User profile",
+    expect(screen.queryByTestId("topbar-user-profile")).not.toBeInTheDocument();
+    expect(screen.getByTestId("topbar-user-settings")).toHaveTextContent(
+      "Settings & privacy",
     );
     expect(
       seen.filter((request) => request.url.endsWith("/me")),

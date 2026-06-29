@@ -4,7 +4,6 @@
     "resume_parse",
     "report_generate",
     "resume_tailor",
-    "debrief_generate",
     "privacy_export",
     "privacy_delete"
   ],
@@ -51,17 +50,6 @@
       "priority": "default",
       "redactedFields": null,
       "triggerEvent": "api:request_tailor",
-      "triggerEventSemantic": "trigger_creates_job"
-    },
-    {
-      "apiFacing": true,
-      "asynqTask": "debrief.generate",
-      "canonical": "debrief_generate",
-      "ownerDomain": "C9",
-      "payloadSchema": {},
-      "priority": "default",
-      "redactedFields": null,
-      "triggerEvent": "debrief.created",
       "triggerEventSemantic": "trigger_creates_job"
     },
     {

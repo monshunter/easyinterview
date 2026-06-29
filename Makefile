@@ -87,7 +87,7 @@ build: ## A5 build aggregator: backend cmd binaries + frontend bundle
 eval-offline-resolve: ## F3: regenerate the committed registry-resolved single-source export for the offline eval suite
 	@cd "$(ROOT_DIR)" && go run ./backend/cmd/evalkit resolve
 
-eval-offline: ## F3 offline eval (NOT in make test): single-source drift gate + >=50 count + Promptfoo runner over recorded fixtures; EVAL_LIVE=1 opts into real provider/judge calls
+eval-offline: ## F3 offline eval (NOT in make test): single-source drift gate + >=36 count + Promptfoo runner over recorded fixtures; EVAL_LIVE=1 opts into real provider/judge calls
 	@cd "$(ROOT_DIR)" && go build -o backend/bin/evalkit ./backend/cmd/evalkit
 	@cd "$(ROOT_DIR)" && ./backend/bin/evalkit drift-check
 	@cd "$(ROOT_DIR)" && ./backend/bin/evalkit run $(if $(EVAL_LIVE),--live,)

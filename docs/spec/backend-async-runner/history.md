@@ -1,13 +1,14 @@
 # Backend Async Runner History
 
-> **版本**: 1.4
+> **版本**: 1.6
 > **状态**: active
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-06-29
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-06-29 | 1.6 | product-scope D-17 / D-22 后同步当前 runner job_type 事实：移除 JobMatch / Debrief runtime 迁移口径，当前可执行 handler 集合收敛为 target/import、resume、report、privacy delete、email dispatch 等核心 job。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-22 | 1.4 | L2 review fix：补齐 scheduler 防饥饿、handler 返回后 fresh timestamp finalize、`report_generate` 失败走 kernel shared backoff 的验收口径与测试 gate。 | 001-internal-job-outbox-runner |
 | 2026-05-22 | 1.3 | L2 completion audit 修正文档事实口径：将 spec / plan 中的旧 runner、旧 mail dispatcher 与 outbox dispatcher 缺失描述明确为 `001` 实施前基线，并补写当前 kernel + `OutboxDispatcher` 已接入的完成态事实，避免 active spec 继续表达旧实现为当前事实。 | 001-internal-job-outbox-runner |
 | 2026-05-22 | 1.2 | L2 code review remediation：固化 `cmd/api` production bootstrap 必须挂接 `OutboxDispatcher` 的验收口径；补齐 owner BDD rerun 清单（含 `E2E.P0.011` / `053` / `093`）与 p0-033 live gate 重复运行证据。 | 001-internal-job-outbox-runner |

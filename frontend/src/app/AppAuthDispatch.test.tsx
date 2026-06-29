@@ -270,8 +270,6 @@ describe("App auth route dispatch", () => {
         | "practice"
         | "generating"
         | "report"
-        | "debrief"
-        | "profile"
         | "settings";
       params: Record<string, string>;
       businessTestId: string;
@@ -282,8 +280,6 @@ describe("App auth route dispatch", () => {
       { name: "practice", params: { sessionId: "session-1" }, businessTestId: "practice-screen" },
       { name: "generating", params: { sessionId: "session-1", reportId: "report-1" }, businessTestId: "generating-screen" },
       { name: "report", params: { sessionId: "session-1", reportId: "report-1" }, businessTestId: "report-dashboard" },
-      { name: "debrief", params: {}, businessTestId: "debrief-screen" },
-      { name: "profile", params: {}, businessTestId: "route-profile" },
       { name: "settings", params: {}, businessTestId: "route-settings" },
     ];
 

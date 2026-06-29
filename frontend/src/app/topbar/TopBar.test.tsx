@@ -14,11 +14,11 @@ function renderInProvider(node: ReactElement): RenderResult {
 }
 
 describe("TopBar primary nav", () => {
-  it("renders exactly the four primary nav entries (D-17)", () => {
+  it("renders exactly the three primary nav entries (D-22)", () => {
     renderInProvider(<TopBar activeRoute="home" onNavigate={() => {}} />);
     const nav = screen.getByTestId("topbar-primary-nav");
     const items = nav.querySelectorAll("button[data-testid^='topbar-nav-']");
-    expect(items).toHaveLength(4);
+    expect(items).toHaveLength(3);
     const ids = Array.from(items).map((el) =>
       el.getAttribute("data-testid")?.replace("topbar-nav-", ""),
     );
@@ -26,7 +26,6 @@ describe("TopBar primary nav", () => {
       "home",
       "workspace",
       "resume_versions",
-      "debrief",
     ]);
   });
 
@@ -48,9 +47,9 @@ describe("TopBar primary nav", () => {
     );
   });
 
-  it("does not render legacy / removed entries (mistakes / growth / voice / drill)", () => {
+  it("does not render legacy / removed entries (mistakes / growth / voice / drill / debrief / profile)", () => {
     renderInProvider(<TopBar activeRoute="home" onNavigate={() => {}} />);
-    for (const legacy of ["mistakes", "growth", "voice", "drill", "welcome"]) {
+    for (const legacy of ["mistakes", "growth", "voice", "drill", "welcome", "debrief", "profile"]) {
       expect(
         screen.queryByTestId(`topbar-nav-${legacy}`),
       ).not.toBeInTheDocument();
@@ -125,23 +124,19 @@ describe("TopBar user menu", () => {
       "ali***@example.com",
     );
     expect(screen.getByTestId("topbar-user-backdrop")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("topbar-user-profile"),
+    ).not.toBeInTheDocument();
 
-    await user.click(screen.getByTestId("topbar-user-profile"));
-    expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
-    await user.click(screen.getByTestId("topbar-user-chip"));
     await user.click(screen.getByTestId("topbar-user-settings"));
     expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
     await user.click(screen.getByTestId("topbar-user-chip"));
     await user.click(screen.getByTestId("topbar-user-logout"));
     expect(onNavigate).toHaveBeenNthCalledWith(1, {
-      name: "profile",
-      params: {},
-    });
-    expect(onNavigate).toHaveBeenNthCalledWith(2, {
       name: "settings",
       params: {},
     });
-    expect(onNavigate).toHaveBeenNthCalledWith(3, {
+    expect(onNavigate).toHaveBeenNthCalledWith(2, {
       name: "auth_logout",
       params: {},
     });

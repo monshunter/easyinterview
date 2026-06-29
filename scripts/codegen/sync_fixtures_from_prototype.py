@@ -148,7 +148,6 @@ def load_prototype_data(data_file: Path) -> dict:
 
 REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = {
     "getMe": ("user",),
-    "listExperienceCards": ("experiences",),
     "listTargetJobs": ("targetJobs",),
     "getTargetJob": ("targetJobs", "jdSample"),
     "getPracticeSession": ("targetJobs", "questions", "sessionTranscript"),
@@ -157,7 +156,6 @@ REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = {
 
 OP_TAGS = {
     "getMe": "Auth",
-    "listExperienceCards": "Profile",
     "listTargetJobs": "TargetJobs",
     "getTargetJob": "TargetJobs",
     "getPracticeSession": "PracticeSessions",
@@ -173,33 +171,7 @@ def map_get_me(data: dict) -> OrderedDict:
         ("displayName", "Alice Example"),  # spec §4.7: avoid real names; use placeholder
         ("uiLanguage", LANGUAGE_TRANSLATION.get(user.get("locale", "zh-CN"), "zh-CN")),
         ("preferredPracticeLanguage", LANGUAGE_TRANSLATION.get(user.get("locale", "zh-CN"), "zh-CN")),
-    ])
-    return _wrap_response(200, body)
-
-
-def map_list_experience_cards(data: dict) -> OrderedDict:
-    items = []
-    for raw in data["experiences"]:
-        items.append(OrderedDict([
-            ("id", uuidv7_for(f"experience:{raw['id']}")),
-            ("title", raw.get("title", "Experience card")),
-            ("companyName", _translate_company(raw.get("company"))),
-            ("situation", raw.get("situation", "")),
-            ("task", raw.get("task", "")),
-            ("action", raw.get("action", "")),
-            ("result", raw.get("result", "")),
-            ("skills", list(raw.get("skills", []))),
-            ("language", LANGUAGE_TRANSLATION.get(raw.get("language", "zh-CN"), "zh-CN")),
-            ("createdAt", EARLIEST),
-            ("updatedAt", EARLIER),
-        ]))
-    body = OrderedDict([
-        ("items", items),
-        ("pageInfo", OrderedDict([
-            ("nextCursor", None),
-            ("pageSize", 20),
-            ("hasMore", False),
-        ])),
+        ("profileCompletionRequired", False),
     ])
     return _wrap_response(200, body)
 
@@ -221,7 +193,7 @@ def _build_target_job(raw: dict, jd: dict | None = None) -> OrderedDict:
         themes = list(jd.get("hidden", [])) or ["Cross-team alignment"]
         hypotheses = []
         for r in jd.get("rounds", []):
-            label = f"{r.get('name','Round')}: {r.get('focus','')}"
+            label = f"{r.get('name', 'Round')}: {r.get('focus', '')}"
             hypotheses.append(label)
         base["summary"] = OrderedDict([
             ("coreThemes", themes),
@@ -387,7 +359,6 @@ def map_get_feedback_report(data: dict) -> OrderedDict:
 
 MAPPERS: dict[str, Callable[[dict], OrderedDict]] = {
     "getMe": map_get_me,
-    "listExperienceCards": map_list_experience_cards,
     "listTargetJobs": map_list_target_jobs,
     "getTargetJob": map_get_target_job,
     "getPracticeSession": map_get_practice_session,

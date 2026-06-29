@@ -25,7 +25,6 @@ class FixtureRegistryTest(unittest.TestCase):
             "getPracticeSession": ("PracticeSessions", 200, "#/components/schemas/PracticeSession"),
             "getFeedbackReport": ("Reports", 200, "#/components/schemas/FeedbackReport"),
             "getResume": ("Resumes", 200, "#/components/schemas/Resume"),
-            "getDebrief": ("Debriefs", 200, "#/components/schemas/Debrief"),
         }
 
         for operation_id, (tag, status, schema_ref) in cases.items():

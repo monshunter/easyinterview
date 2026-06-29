@@ -119,14 +119,13 @@ describe("TopBar shell visual contract (Phase 3.1)", () => {
   });
 });
 
-describe("TopBar four-entry + display controls visual (Phase 3.2 / D-17)", () => {
+describe("TopBar three-entry + display controls visual (D-22)", () => {
   it("each primary nav button carries semantic className and ei-text-body typography", () => {
     renderTopBar();
     for (const route of [
       "home",
       "workspace",
       "resume_versions",
-      "debrief",
     ]) {
       const btn = screen.getByTestId(`topbar-nav-${route}`);
       expect(btn.className).toMatch(/\bei-topbar-nav-button\b/);
@@ -152,7 +151,7 @@ describe("TopBar four-entry + display controls visual (Phase 3.2 / D-17)", () =>
     expect(screen.queryByTestId("topbar-lang-select")).not.toBeInTheDocument();
     expect(screen.getByText("EasyInterview")).toBeInTheDocument();
     expect(screen.queryByTestId("topbar-brand-subtitle")).not.toBeInTheDocument();
-    expect(screen.getAllByTestId(/^topbar-nav-icon-/)).toHaveLength(4);
+    expect(screen.getAllByTestId(/^topbar-nav-icon-/)).toHaveLength(3);
 
     const themeButton = screen.getByTestId("topbar-theme-button");
     expect(themeButton).toHaveClass("ei-topbar-control");

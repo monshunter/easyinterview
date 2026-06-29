@@ -19,7 +19,6 @@ ALLOWED_EVENT_DOMAINS = {
     "practice",
     "report",
     "resume",
-    "debrief",
     "source",
     "privacy",
     "jd_match",
@@ -171,26 +170,6 @@ EXPECTED_EVENTS = {
             "status": "$ref:b1.ReportStatus",
         },
     },
-    "debrief.created": {
-        "producer": "api",
-        "aggregateType": "debrief",
-        "requiredPayload": {
-            "debriefId": "uuidv7",
-            "targetJobId": "uuidv7",
-            "roundType": "$ref:b1.DebriefRoundType",
-            "questionCount": "int",
-        },
-    },
-    "debrief.completed": {
-        "producer": "backend_async",
-        "aggregateType": "debrief",
-        "requiredPayload": {
-            "debriefId": "uuidv7",
-            "targetJobId": "uuidv7",
-            "riskItemCount": "int",
-            "practiceFocusCount": "int",
-        },
-    },
     "source.refreshed": {
         "producer": "backend_async",
         "aggregateType": "source_record",
@@ -251,13 +230,6 @@ EXPECTED_JOBS = {
         "ownerDomain": "C7",
         "priority": "default",
     },
-    "debrief_generate": {
-        "asynqTask": "debrief.generate",
-        "apiFacing": True,
-        "triggerEvent": "debrief.created",
-        "ownerDomain": "C9",
-        "priority": "default",
-    },
     "source_refresh": {
         "asynqTask": "source.refresh",
         "apiFacing": False,
@@ -296,7 +268,6 @@ EXPECTED_API_FACING_SUBSET = [
     "resume_parse",
     "report_generate",
     "resume_tailor",
-    "debrief_generate",
     "privacy_export",
     "privacy_delete",
 ]

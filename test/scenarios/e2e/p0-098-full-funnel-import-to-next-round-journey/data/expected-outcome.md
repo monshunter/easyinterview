@@ -18,3 +18,6 @@
 - Trigger logs contain concrete Go test pass markers and no skip/no-test marker.
 - Trigger logs and observable payload checks do not expose private JD text,
   answer text, report prose, prompt body, response body, or provider secrets.
+- API-level core loop artifacts do not contain retired `Debriefs` / `Profile`
+  operations, `candidate_profiles` / `experience_cards` tables,
+  `source_debrief_id`, `debrief_generate`, or debrief event tokens.

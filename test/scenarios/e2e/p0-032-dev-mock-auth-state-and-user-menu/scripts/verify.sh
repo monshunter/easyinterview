@@ -12,7 +12,7 @@ grep -Eq 'Tests +1 passed \(1\)' "$LOG_FILE"
 grep -Eq 'Test Files +1 passed \(1\)' "$LOG_FILE"
 
 for required in \
-  'dev mock unauthenticated login avatar dropdown profile settings logout' \
+  'dev mock unauthenticated login avatar dropdown settings logout' \
   'Alice Example' \
   'ali***@example.com' \
   'topbar-user-chip' \
@@ -25,6 +25,7 @@ done
 
 for forbidden in \
   'topbar-user-inline' \
+  'topbar-user-profile' \
   'legacy inline user menu' \
   'ui-design/src/data'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then

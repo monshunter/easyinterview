@@ -25,19 +25,17 @@ test("workspace mock history is scoped to the active mock plan", () => {
   assert.doesNotMatch(historySource, /Lumen Labs · Frontend Platform Engineer/);
 });
 
-test("debrief context cards open local pickers instead of cross-page navigation", () => {
-  const debrief = readUiFile("./src/screens-p1-depth.jsx");
-  assert.doesNotMatch(debrief, /Inbox|收件箱/);
-  assert.match(debrief, /DebriefContextPickerModal/);
+test("D-22 removes debrief and user profile static screens", () => {
+  const app = readUiFile("./src/app.jsx");
 
-  const stripStart = debrief.indexOf("const DebriefContextStrip");
-  const stripEnd = debrief.indexOf("const GuidedDebriefRecord");
-  const stripSource = debrief.slice(stripStart, stripEnd);
-
-  assert.notEqual(stripStart, -1);
-  assert.notEqual(stripEnd, -1);
-  assert.match(stripSource, /onOpenPicker/);
-  assert.doesNotMatch(stripSource, /nav\("workspace"|nav\("report"|nav\("resume_versions"/);
+  assert.ok(!existsSync(new URL("./src/screens-p1-depth.jsx", import.meta.url)), "screens-p1-depth.jsx must stay deleted");
+  assert.ok(!existsSync(new URL("./src/screen-profile.jsx", import.meta.url)), "screen-profile.jsx must stay deleted");
+  assert.match(app, /debrief:\s*"home"/);
+  assert.match(app, /debrief_full:\s*"home"/);
+  assert.match(app, /profile:\s*"home"/);
+  assert.doesNotMatch(app, /debrief:\s*</);
+  assert.doesNotMatch(app, /debrief_full:\s*</);
+  assert.doesNotMatch(app, /profile:\s*</);
 });
 
 test("current UI source does not expose removed inbox wording", () => {
@@ -243,20 +241,20 @@ test("theme defaults to ocean and keeps the custom accent picker (D-21 v2.1)", (
   assert.match(canvas, /customAccent/);
 });
 
-test("home keeps debrief as the only auxiliary entry", () => {
+test("home removes the debrief auxiliary entry (D-22)", () => {
   const home = readUiFile("./src/screen-home.jsx");
 
-  assert.match(home, /POST-INTERVIEW/);
-  assert.match(home, /nav\("debrief"\)/);
+  assert.doesNotMatch(home, /POST-INTERVIEW|post-interview|nav\("debrief"\)|Open debrief|打开复盘/);
   assert.doesNotMatch(home, /JOB PICKS|jobPicks/);
 });
 
-test("profile page backs to home and drops recommendation usage", () => {
-  const profile = readUiFile("./src/screen-profile.jsx");
+test("user menu no longer exposes the user profile route (D-22)", () => {
+  const app = readUiFile("./src/app.jsx");
 
-  assert.match(profile, /nav\("home"\)/);
-  assert.match(profile, /模拟面试规划/);
-  assert.doesNotMatch(profile, /推荐排序|保存搜索|关注岗位|saved searches|JD watchlist/);
+  assert.doesNotMatch(app, /label:\s*"用户画像"|label:\s*"Profile"|nav\("profile"\)/);
+  assert.match(app, /labelZh:\s*"设置与隐私"/);
+  assert.match(app, /nav\("settings"\)/);
+  assert.match(app, /nav\("auth_logout"\)/);
 });
 
 test("P0 empty and failure states avoid showing fake data", () => {
@@ -318,16 +316,16 @@ test("parse confirm page owns the interview launch decision", () => {
   assert.match(workspace, /Object\.assign\(window, \{ ResumePickerModal, BindingPill, getWorkspaceResumeOptions \}\);/);
 });
 
-test("debrief context selection auto-fills derivable context and stays changeable", () => {
-  const debrief = readUiFile("./src/screens-p1-depth.jsx");
+test("D-22 does not leave debrief source or navigation hooks", () => {
+  for (const [name, source] of readUiSources()) {
+    assert.doesNotMatch(source, /DebriefFullScreen|DebriefContextPickerModal|GuidedDebriefRecord|VoiceDebriefRecord|DebriefReplayPlan/, `${name} still contains debrief components`);
+    if (name !== "app.jsx") {
+      assert.doesNotMatch(source, /nav\("debrief"|nav\("debrief_full"/, `${name} still navigates to debrief`);
+    }
+  }
 
-  assert.match(debrief, /const applyContextSelection = /);
-  assert.match(debrief, /autoFilled/);
-  assert.match(debrief, /已自动带入/);
-  assert.match(debrief, /targetJobId: "tj-1"/);
-  assert.match(debrief, /defaultResumeId/);
-  assert.match(debrief, /latestMockId/);
-  assert.match(debrief, /onConfirm=\{\(id\) => \{\s*applyContextSelection\(pickerType, id\);/);
+  const app = readUiFile("./src/app.jsx");
+  assert.doesNotMatch(app, /INTERVIEW_CONTEXT_ROUTES = new Set\(\[[^\]]*"debrief"/);
 });
 
 test("auth has no standalone reset page and aliases auth_reset back to login", () => {
@@ -353,9 +351,10 @@ test("debrief no longer ships the unused thank-you letter draft", () => {
 });
 
 test("legacy resume versions screen stays deleted", () => {
-  const depth = readUiFile("./src/screens-p1-depth.jsx");
-  assert.doesNotMatch(depth, /_LegacyResumeVersionsScreen|ResumeSourceMap/);
-  assert.doesNotMatch(depth, /const ResumeVersionsScreen = /);
+  assert.ok(!existsSync(new URL("./src/screens-p1-depth.jsx", import.meta.url)), "screens-p1-depth.jsx must stay deleted");
+  for (const [name, source] of readUiSources()) {
+    assert.doesNotMatch(source, /_LegacyResumeVersionsScreen|ResumeSourceMap/, `${name} still contains legacy resume version source`);
+  }
 });
 
 test("voice interview only enters through explicit practice modality params", () => {

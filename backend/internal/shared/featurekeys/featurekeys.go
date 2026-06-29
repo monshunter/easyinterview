@@ -32,8 +32,6 @@ const (
 	ResumeParse                    FeatureKey = "resume.parse"
 	ResumeTailorGapReview          FeatureKey = "resume.tailor.gap_review"
 	ResumeTailorBulletSuggestions  FeatureKey = "resume.tailor.bullet_suggestions"
-	DebriefGenerate                FeatureKey = "debrief.generate"
-	DebriefSuggestQuestions        FeatureKey = "debrief.suggest_questions"
 )
 
 // All returns every known feature_key constant in declaration order. Useful
@@ -50,8 +48,6 @@ func All() []FeatureKey {
 		ResumeParse,
 		ResumeTailorGapReview,
 		ResumeTailorBulletSuggestions,
-		DebriefGenerate,
-		DebriefSuggestQuestions,
 	}
 }
 

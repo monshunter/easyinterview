@@ -63,12 +63,12 @@ IK_REQUIRED_OPERATION_IDS = {
 class FixtureSkeletonTest(unittest.TestCase):
     """Phase 1.1 structural contract."""
 
-    def test_forty_three_operations_expected(self) -> None:
-        self.assertEqual(len(EXPECTED_OPERATIONS), 43)
+    def test_thirty_five_operations_expected(self) -> None:
+        self.assertEqual(len(EXPECTED_OPERATIONS), 35)
 
-    def test_twelve_unique_tags(self) -> None:
+    def test_ten_unique_tags(self) -> None:
         tags = {tag for tag, *_ in EXPECTED_OPERATIONS}
-        self.assertEqual(len(tags), 12)
+        self.assertEqual(len(tags), 10)
 
     def test_each_fixture_file_exists(self) -> None:
         missing = []
@@ -173,7 +173,6 @@ PROVENANCE_OPERATIONS = {
     "getFeedbackReport": ["provenance"],
     "listTargetJobReports": ["items[*].provenance"],
     "getResumeTailorRun": ["provenance"],
-    "getDebrief": ["provenance"],
     "getResume": ["structuredProfile.provenance"],
     "listResumes": ["items[*].structuredProfile.provenance"],
     "updateResume": ["structuredProfile.provenance"],
@@ -181,7 +180,6 @@ PROVENANCE_OPERATIONS = {
 }
 
 LIST_OPERATIONS = [
-    "listExperienceCards",
     "listTargetJobs",
     "listTargetJobReports",
     "listResumes",
@@ -194,7 +192,6 @@ WITH_JOB_OPERATIONS = {
     "importTargetJob": "target_import",
     "completePracticeSession": "report_generate",
     "requestResumeTailor": "resume_tailor",
-    "createDebrief": "debrief_generate",
     "deleteMe": "privacy_delete",
     "requestPrivacyDelete": "privacy_delete",
 }
@@ -338,11 +335,6 @@ class FixtureContentTest(unittest.TestCase):
         self.assertIn("job", body)
         self.assertEqual(body["job"]["jobType"], "privacy_delete")
         self.assertEqual(body["job"]["resourceType"], "privacy_request")
-
-    def test_debrief_default_fixture_keeps_p1_followup_fields_empty(self) -> None:
-        body = _load_fixture("getDebrief", "Debriefs")["scenarios"]["default"]["response"]["body"]
-        self.assertIsNone(body.get("thankYouDraft"))
-        self.assertEqual(body.get("nextRoundChecklist"), [])
 
     def test_list_endpoints_have_pageInfo(self) -> None:
         for opid in LIST_OPERATIONS:

@@ -2,8 +2,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createAppClient } from "./clientFactory";
 import type {
-	Debrief,
-	DebriefWithJob,
 	FeedbackReport,
 	Job,
 	PaginatedFeedbackReport,
@@ -18,7 +16,6 @@ import type {
 	ResumeTailorRunWithJob,
 	ResumeWithJob,
 	SessionEventResult,
-	SuggestDebriefQuestionsResponse,
 } from "./generated/types";
 
 const API_BASE_URL = "http://api.test/api/v1";
@@ -30,10 +27,8 @@ const REPORT_ID = "01918fa0-0000-7000-8000-00000000f201";
 const RESUME_ID = "01918fa0-0000-7000-8000-00000000f301";
 const DUPLICATE_RESUME_ID = "01918fa0-0000-7000-8000-00000000f302";
 const TAILOR_RUN_ID = "01918fa0-0000-7000-8000-00000000f303";
-const DEBRIEF_ID = "01918fa0-0000-7000-8000-00000000f401";
-const DEBRIEF_JOB_ID = "01918fa0-0000-7000-8000-00000000f402";
+const REPORT_JOB_ID = "01918fa0-0000-7000-8000-00000000f901";
 const RAW_RESUME_TEXT = "Led confidential platform migration with private metrics.";
-const RAW_DEBRIEF_NOTE = "Interviewer asked about confidential launch details.";
 const PROVENANCE = {
 	dataSourceVersion: "frontend-owner-real-backend-2026-05-23",
 	featureFlag: "frontend.owner.real_backend",
@@ -45,7 +40,7 @@ const PROVENANCE = {
 
 function buildJob(overrides: Partial<Job> = {}): Job {
 	return {
-		id: "01918fa0-0000-7000-8000-00000000f901",
+		id: REPORT_JOB_ID,
 		jobType: "report_generate",
 		resourceId: REPORT_ID,
 		resourceType: "feedback_report",
@@ -153,28 +148,6 @@ function buildTailorRun(overrides: Partial<ResumeTailorRun> = {}): ResumeTailorR
 		provenance: PROVENANCE,
 		createdAt: "2026-05-23T01:00:00Z",
 		updatedAt: "2026-05-23T01:03:00Z",
-		...overrides,
-	};
-}
-
-function buildDebrief(overrides: Partial<Debrief> = {}): Debrief {
-	return {
-		id: DEBRIEF_ID,
-		targetJobId: TARGET_JOB_ID,
-		roundType: "technical",
-		interviewerRole: "technical_manager",
-		status: "completed",
-		questions: [
-			{
-				questionText: "What tradeoffs did you make?",
-				myAnswerSummary: "Explained migration sequencing.",
-				aiAnalysis: "Evidence was concrete.",
-			},
-		],
-		riskItems: [{ label: "Clarify backend constraints", severity: "medium" }],
-		provenance: PROVENANCE,
-		createdAt: "2026-05-23T01:00:00Z",
-		updatedAt: "2026-05-23T01:05:00Z",
 		...overrides,
 	};
 }
@@ -313,40 +286,8 @@ function createRealApiFetchSpy() {
 		if (route === `/resume/tailor-runs/${TAILOR_RUN_ID}` && method === "GET") {
 			return jsonResponse(buildTailorRun());
 		}
-		if (route === "/debriefs" && method === "POST") {
-			const body: DebriefWithJob = {
-				debriefId: DEBRIEF_ID,
-				job: buildJob({
-					id: DEBRIEF_JOB_ID,
-					jobType: "debrief_generate",
-					resourceType: "debrief",
-					resourceId: DEBRIEF_ID,
-				}),
-			};
-			return jsonResponse(body, 202);
-		}
-		if (route === "/debriefs/question-suggestions" && method === "POST") {
-			const body: SuggestDebriefQuestionsResponse = {
-				suggestions: [
-					{
-						questionText: "What did the interviewer probe?",
-						source: "mock_report",
-						stage: "technical",
-						whyLikelyAsked: "Backend-derived overlap with prior mock evidence.",
-					},
-				],
-			};
-			return jsonResponse(body);
-		}
-		if (route === `/debriefs/${DEBRIEF_ID}` && method === "GET") {
-			return jsonResponse(buildDebrief());
-		}
-		if (route === `/jobs/${DEBRIEF_JOB_ID}` && method === "GET") {
+		if (route === `/jobs/${REPORT_JOB_ID}` && method === "GET") {
 			return jsonResponse(buildJob({
-				id: DEBRIEF_JOB_ID,
-				jobType: "debrief_generate",
-				resourceType: "debrief",
-				resourceId: DEBRIEF_ID,
 				status: "succeeded",
 			}));
 		}
@@ -372,7 +313,7 @@ afterEach(() => {
 });
 
 describe("frontend owner real API mode", () => {
-	it("routes practice, report, resume, and debrief owners through the real generated client", async () => {
+	it("routes practice, report, resume, job, and privacy owners through the real generated client", async () => {
 		if (import.meta.env.VITE_EI_API_MODE !== undefined) {
 			expect(import.meta.env.VITE_EI_API_MODE).toBe("real");
 		}
@@ -462,24 +403,7 @@ describe("frontend owner real API mode", () => {
 			{ idempotencyKey: "ik_resume_tailor" },
 		);
 		const tailorRun = await client.getResumeTailorRun(TAILOR_RUN_ID);
-
-		const debrief = await client.createDebrief(
-			{
-				targetJobId: TARGET_JOB_ID,
-				roundType: "technical",
-				interviewerRole: "technical_manager",
-				language: "en",
-				notes: RAW_DEBRIEF_NOTE,
-				questions: [{ questionText: "What tradeoffs did you make?", myAnswerSummary: "Explained sequencing." }],
-			},
-			{ idempotencyKey: "ik_create_debrief" },
-		);
-		const suggestions = await client.suggestDebriefQuestions(
-			{ targetJobId: TARGET_JOB_ID, sessionId: PRACTICE_SESSION_ID, resumeId: RESUME_ID, language: "en", count: 6 },
-			{ idempotencyKey: "ik_suggest_debrief" },
-		);
-		const hydratedDebrief = await client.getDebrief(DEBRIEF_ID);
-		const debriefJob = await client.getJob(DEBRIEF_JOB_ID);
+		const reportJob = await client.getJob(REPORT_JOB_ID);
 
 		expect(createdPlan.id).toBe(PRACTICE_PLAN_ID);
 		expect(plan.targetJobId).toBe(TARGET_JOB_ID);
@@ -502,10 +426,7 @@ describe("frontend owner real API mode", () => {
 		expect(tailor.tailorRunId).toBe(TAILOR_RUN_ID);
 		expect(tailorRun.resumeId).toBe(RESUME_ID);
 		expect(tailorRun.provenance).toEqual(PROVENANCE);
-		expect(debrief.debriefId).toBe(DEBRIEF_ID);
-		expect(suggestions.suggestions[0]?.source).toBe("mock_report");
-		expect(hydratedDebrief.provenance).toEqual(PROVENANCE);
-		expect(debriefJob.status).toBe("succeeded");
+		expect(reportJob.status).toBe("succeeded");
 
 		const summary = callSummary(fetchSpy);
 		expect(summary.map(({ method, path }) => `${method} ${path}`)).toEqual([
@@ -528,17 +449,13 @@ describe("frontend owner real API mode", () => {
 			`POST /api/v1/resumes/${RESUME_ID}/exports`,
 			"POST /api/v1/resume/tailor",
 			`GET /api/v1/resume/tailor-runs/${TAILOR_RUN_ID}`,
-			"POST /api/v1/debriefs",
-			"POST /api/v1/debriefs/question-suggestions",
-			`GET /api/v1/debriefs/${DEBRIEF_ID}`,
-			`GET /api/v1/jobs/${DEBRIEF_JOB_ID}`,
+			`GET /api/v1/jobs/${REPORT_JOB_ID}`,
 		]);
 
 		for (const call of summary) {
 			expect(call.credentials).toBe("include");
 			expect(call.headers.get("Prefer")).toBeNull();
 			expect(String(call.path)).not.toContain(RAW_RESUME_TEXT);
-			expect(String(call.path)).not.toContain(RAW_DEBRIEF_NOTE);
 		}
 
 		expect(summary[0]?.headers.get("Idempotency-Key")).toBe("ik_practice_plan");
@@ -553,15 +470,10 @@ describe("frontend owner real API mode", () => {
 		expect(summary[15]?.headers.get("Idempotency-Key")).toBe("ik_archive_resume");
 		expect(summary[16]?.headers.get("Idempotency-Key")).toBe("ik_export_resume");
 		expect(summary[17]?.headers.get("Idempotency-Key")).toBe("ik_resume_tailor");
-		expect(summary[19]?.headers.get("Idempotency-Key")).toBe("ik_create_debrief");
-		expect(summary[20]?.headers.get("Idempotency-Key")).toBe("ik_suggest_debrief");
+		expect(summary[19]?.headers.get("Idempotency-Key")).toBeNull();
 		expect(JSON.parse(String(summary[11]?.body))).toMatchObject({
 			sourceType: "paste",
 			rawText: RAW_RESUME_TEXT,
-		});
-		expect(JSON.parse(String(summary[19]?.body))).toMatchObject({
-			notes: RAW_DEBRIEF_NOTE,
-			questions: [{ myAnswerSummary: "Explained sequencing." }],
 		});
 	});
 });

@@ -341,7 +341,6 @@ func TestHandleHintRequestedModeMatrix(t *testing.T) {
 		sharedtypes.PracticeGoalBaseline,
 		sharedtypes.PracticeGoalRetryCurrentRound,
 		sharedtypes.PracticeGoalNextRound,
-		sharedtypes.PracticeGoalDebrief,
 	}
 
 	for _, goal := range goals {

@@ -21,9 +21,6 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
     orUpload: "or upload .pdf / .docx / .md",
     active: "Recent mock interviews",
     activeSub: "Sorted by recent preparation. Each card is tied to one target job and interview round.",
-    startAfter: "Just finished an interview?",
-    startAfterSub: "Drop in the questions you were asked and turn it into next-round ammo.",
-    startAfterBtn: "Open debrief",
     resumeCreate: "No resume yet? Create one in 1 minute →",
   } : {
     tag: "首页 · 模拟面试",
@@ -34,9 +31,6 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
     orUpload: "也可以上传 .pdf / .docx / .md",
     active: "最近模拟面试",
     activeSub: "按最近准备排序。每张卡片都对应一个目标岗位和一轮面试。",
-    startAfter: "刚面完一轮？",
-    startAfterSub: "把面试问过的问题丢进来，沉淀成下一轮的弹药。",
-    startAfterBtn: "打开复盘",
     resumeCreate: "还没有简历？1 分钟创建 →",
   };
 
@@ -96,19 +90,6 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
           )}
         </div>
       )}
-
-      {/* Auxiliary start */}
-      <div style={{
-        background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 24,
-        display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, flexWrap: "wrap"
-      }}>
-        <div style={{ flex: 1, minWidth: 260 }}>
-          <div className="ei-label" style={{ color: T.accent, marginBottom: 6 }}>POST-INTERVIEW</div>
-          <div className="ei-serif" style={{ fontSize: 20, color: T.ink }}>{L.startAfter}</div>
-          <div style={{ fontSize: 13.5, color: T.ink2, marginTop: 4 }}>{L.startAfterSub}</div>
-        </div>
-        <Btn variant="secondary" icon="flag" onClick={() => nav("debrief")} T={T} iconRight="arrow_right">{L.startAfterBtn}</Btn>
-      </div>
 
       {assistOpen && <JDAssistModal T={T} lang={lang} type={assistOpen} onClose={() => setAssistOpen(null)} onConfirm={() => { setAssistOpen(null); nav("parse", { source: assistOpen }); }} />}
     </div>

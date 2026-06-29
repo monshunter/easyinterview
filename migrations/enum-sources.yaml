@@ -2,8 +2,6 @@ checks:
   - {table: schema_backfills, column: mode, source: db-migrations-baseline, values: [dry_run, apply], checksum: "sha256:3cdf58dc45bc1e70"}
   - {table: schema_backfills, column: status, source: db-migrations-baseline, values: [running, succeeded, failed, skipped], checksum: "sha256:e9ee9a6bcd7ab599"}
   - {table: users, column: status, source: adr-q1-auth, values: [active, disabled, deleted], checksum: "sha256:86cb1fd799c3228f"}
-  - {table: experience_cards, column: source_type, source: db-local, values: [manual, resume_parse, practice_report, debrief], checksum: "sha256:166cbe93dd6f3707"}
-  - {table: experience_cards, column: confidence, source: shared-conventions-codified, values: [high, medium, low], checksum: "sha256:f0d0df80558afaad"}
   - {table: file_objects, column: purpose, source: db-local, values: [resume, target_job_attachment, privacy_export, source_snapshot, audio, video], checksum: "sha256:662ea49f3f6cdf06"}
   - {table: file_objects, column: retention_policy, source: db-local, values: [user_owned, short_lived, legal_hold], checksum: "sha256:3923620cafe446d3"}
   - {table: file_objects, column: upload_status, source: db-local, values: [pending, uploaded, scan_failed, deleted], checksum: "sha256:42790f9f1f0a8e63"}
@@ -20,7 +18,7 @@ checks:
   - {table: target_job_requirements, column: evidence_level, source: db-local, values: [explicit, inferred], checksum: "sha256:8ce9d5deb0352bf3"}
   - {table: target_job_sources, column: source_type, source: db-local, values: [url, file, manual_text, manual_form], checksum: "sha256:90e5815bf44675c9"}
   - {table: target_job_sources, column: freshness_status, source: db-local, values: [fresh, stale, expired], checksum: "sha256:509736b3cb89eda5"}
-  - {table: practice_plans, column: goal, source: shared-conventions-codified, values: [baseline, retry_current_round, next_round, debrief], checksum: "sha256:c373629b4b846cbf"}
+  - {table: practice_plans, column: goal, source: shared-conventions-codified, values: [baseline, retry_current_round, next_round], checksum: "sha256:a0f0aa72534f103e"}
   - {table: practice_plans, column: mode, source: shared-conventions-codified, values: [assisted, strict], checksum: "sha256:58040c145fc07913"}
   - {table: practice_plans, column: interviewer_persona, source: shared-conventions-codified, values: [generalist, hr, hiring_manager, technical_manager, peer], checksum: "sha256:1d16f396c7e825b7"}
   - {table: practice_plans, column: difficulty, source: db-local, values: [easy, standard, stretch], checksum: "sha256:e769a78f1c8f2cec"}
@@ -36,14 +34,12 @@ checks:
   - {table: question_assessments, column: review_status, source: shared-conventions-codified, values: [open, queued_for_retry, resolved], checksum: "sha256:45e53b5e06dfd3ef"}
   - {table: resume_tailor_runs, column: mode, source: db-local, values: [gap_review, bullet_suggestions], checksum: "sha256:53e251a2a39c6d12"}
   - {table: resume_tailor_runs, column: status, source: db-local, values: [queued, generating, ready, failed], checksum: "sha256:1f7af1bf73e4cb81"}
-  - {table: debriefs, column: status, source: shared-conventions-codified, values: [draft, completed], checksum: "sha256:7dfbbc43f04f6f76"}
-  - {table: debriefs, column: round_type, source: db-local, values: [hr_screen, hiring_manager, behavioral, technical, culture, custom], checksum: "sha256:5ef3312bab1a78e4"}
-  - {table: source_records, column: owner_type, source: db-local, values: [target_job, debrief, intelligence_item], checksum: "sha256:f2aa008a2f2b539e"}
+  - {table: source_records, column: owner_type, source: db-local, values: [target_job, intelligence_item], checksum: "sha256:1eb44063e31bc088"}
   - {table: source_records, column: source_type, source: db-local, values: [jd_url, company_page, manual_text, news, upload], checksum: "sha256:273c4d80f839f6c9"}
   - {table: source_records, column: freshness_status, source: db-local, values: [fresh, stale, expired], checksum: "sha256:509736b3cb89eda5"}
-  - {table: ai_task_runs, column: task_type, source: db-local, values: [jd_parse, resume_parse, question_generate, followup_generate, report_generate, report_assessment, resume_tailor, debrief_generate, debrief_suggest_questions, hint_generate], checksum: "sha256:06ab49a59d3e7dc5"}
+  - {table: ai_task_runs, column: task_type, source: db-local, values: [jd_parse, resume_parse, question_generate, followup_generate, report_generate, report_assessment, resume_tailor, hint_generate], checksum: "sha256:f279dc495cb15920"}
   - {table: ai_task_runs, column: status, source: db-local, values: [success, failed, timeout, fallback], checksum: "sha256:83c3ce20bfb1ecb2"}
-  - {table: async_jobs, column: job_type, source: event-and-outbox-contract, values: [target_import, resume_parse, report_generate, resume_tailor, debrief_generate, source_refresh, privacy_export, privacy_delete, email_dispatch], checksum: "sha256:9870d215751c6633"}
+  - {table: async_jobs, column: job_type, source: event-and-outbox-contract, values: [target_import, resume_parse, report_generate, resume_tailor, source_refresh, privacy_export, privacy_delete, email_dispatch], checksum: "sha256:cc9a1e9179170092"}
   - {table: async_jobs, column: status, source: shared-conventions-codified, values: [queued, running, succeeded, failed, cancelled, dead], checksum: "sha256:836f03f87ad8aa40"}
   - {table: outbox_events, column: publish_status, source: event-and-outbox-contract, values: [pending, published, failed], checksum: "sha256:768c489322aa2d05"}
   - {table: privacy_requests, column: request_type, source: shared-conventions-codified, values: [export, delete], checksum: "sha256:306a4b49061254ed"}

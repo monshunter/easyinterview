@@ -57,7 +57,6 @@ OUTPUT_SCHEMA_EXEMPT_FEATURE_KEYS = {
     "practice.voice.stt",
     "practice.voice.tts",
     "practice.dictation.stt",
-    "debrief.voice.tts",
 }
 
 FEATURE_CONTRACTS = {
@@ -143,27 +142,6 @@ FEATURE_CONTRACTS = {
             "$.suggestions[].originalBullet",
             "$.suggestions[].suggestedBullet",
             "$.suggestions[].reason",
-        },
-    },
-    "debrief.generate": {
-        "type": "object",
-        "required_paths": {
-            "$.questions",
-            "$.questions[].questionText",
-            "$.questions[].myAnswerSummary",
-            "$.questions[].aiAnalysis",
-            "$.riskItems",
-            "$.riskItems[].label",
-            "$.riskItems[].severity",
-        },
-    },
-    "debrief.suggest_questions": {
-        "type": "object",
-        "required_paths": {
-            "$.suggestions",
-            "$.suggestions[].questionText",
-            "$.suggestions[].whyLikelyAsked",
-            "$.suggestions[].source",
         },
     },
 }

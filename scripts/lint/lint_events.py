@@ -32,7 +32,6 @@ TS_EVENT_CONST_RE = re.compile(r"\b(EVENT_NAME_[A-Z0-9_]*)\s*=")
 REMOVED_EVENT_NAMES = {"mistake.created", "mistake.status.changed"}
 REMOVED_PAYLOAD_FIELDS = {
     ("report.generated", "mistakeCount"),
-    ("debrief.completed", "generatedMistakeCount"),
 }
 ALLOWED_TRIGGER_EVENT_SEMANTICS = {
     "trigger_creates_job",
@@ -46,8 +45,6 @@ EVENT_CONTRACT_DIRS = (
 NON_EVENT_JOB_LITERAL_ALLOWLIST = {
     # Uploads owns file purpose values; this string is not an async job dispatch literal.
     (Path("backend/internal/upload/store/file_objects.go"), "privacy_export"),
-    # Profile owns experience_cards.source_type values; this string is not an async job dispatch literal.
-    (Path("backend/internal/profile/profile.go"), "resume_parse"),
 }
 VENDOR_MODEL_TOKEN_RE = re.compile(
     r"(?:openrouter|anthropic|claude|openai|gpt-|mistral|gemini|cohere)",
@@ -170,8 +167,8 @@ def validate_jobs_contract_shape(jobs: dict[str, Any], events: dict[str, Any] | 
     subset = jobs.get("apiFacingSubset") or []
     if not isinstance(subset, list):
         return ["apiFacingSubset must be a list"]
-    if len(subset) != 7:
-        errors.append(f"apiFacingSubset must contain exactly 7 job types, got {len(subset)}: {subset!r}")
+    if len(subset) != 6:
+        errors.append(f"apiFacingSubset must contain exactly 6 job types, got {len(subset)}: {subset!r}")
     for canonical in subset:
         job = job_by_type.get(canonical)
         if job is None:

@@ -7,7 +7,7 @@
  *
  * Given the default fixture-backed Vite dev mock client, the mounted App must
  * start signed out, sign in through passwordless auth, expose the ui-design
- * aligned avatar dropdown, route profile/settings/logout from that dropdown,
+ * aligned avatar dropdown, route settings/logout from that dropdown,
  * and return to signed out after logout.
  */
 import { describe, expect, it } from "vitest";
@@ -18,7 +18,7 @@ import { createDevMockClient } from "../../api/devMockClient";
 import { App } from "../App";
 
 describe("E2E.P0.032 dev mock auth state and user menu", () => {
-  it("keeps /me stateful across login, profile/settings menu actions, and logout", async () => {
+  it("keeps /me stateful across login, settings menu action, and logout", async () => {
     setNavigatorLanguages("zh-CN", ["zh-CN", "en-US"]);
     render(<App client={createDevMockClient()} />);
 
@@ -65,11 +65,6 @@ describe("E2E.P0.032 dev mock auth state and user menu", () => {
       "ali***@example.com",
     );
 
-    await user.click(screen.getByTestId("topbar-user-profile"));
-    expect(screen.getByTestId("route-profile")).toBeInTheDocument();
-    expect(screen.queryByTestId("topbar-user-menu")).not.toBeInTheDocument();
-
-    await user.click(screen.getByTestId("topbar-user-chip"));
     await user.click(screen.getByTestId("topbar-user-settings"));
     expect(screen.getByTestId("route-settings")).toBeInTheDocument();
 
@@ -89,7 +84,7 @@ describe("E2E.P0.032 dev mock auth state and user menu", () => {
     expect(screen.queryByTestId("topbar-user-chip")).not.toBeInTheDocument();
 
     console.log(
-      "E2E.P0.032 evidence: dev mock unauthenticated login avatar dropdown profile settings logout Alice Example ali***@example.com topbar-user-chip topbar-user-avatar",
+      "E2E.P0.032 evidence: dev mock unauthenticated login avatar dropdown settings logout Alice Example ali***@example.com topbar-user-chip topbar-user-avatar",
     );
   });
 });

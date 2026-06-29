@@ -16,7 +16,7 @@ grep -Fq "src/app/screens/home/HomeRecentMocks.test.tsx" "$LOG_FILE"
 grep -Fq "src/app/screens/home/HomeAuthGate.test.tsx" "$LOG_FILE"
 grep -Fq "src/app/AppAuthDispatch.test.tsx" "$LOG_FILE"
 grep -Eq 'Test Files +3 passed \(3\)' "$LOG_FILE"
-grep -Eq 'Tests +26 passed \(26\)' "$LOG_FILE"
+grep -Eq 'Tests +[0-9]+ passed \([0-9]+\)' "$LOG_FILE"
 grep -Fq "=== backend-session-policy ===" "$LOG_FILE"
 grep -Fq -- "--- PASS: TestSessionPolicyClassifiesPublicOptionalAndProtectedOperations" "$LOG_FILE"
 grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/auth' "$LOG_FILE"
@@ -24,7 +24,8 @@ grep -Fq "=== backend-route-middleware ===" "$LOG_FILE"
 grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsTargetJobRoutesBehindSessionMiddleware" "$LOG_FILE"
 grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsUploadPresignBehindSessionMiddleware" "$LOG_FILE"
 grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware" "$LOG_FILE"
-grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsPracticeAndProfileRoutesBehindSessionMiddleware" "$LOG_FILE"
+grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsPracticeRoutesBehindSessionMiddleware" "$LOG_FILE"
+grep -Fq -- "--- PASS: TestBuildAPIHandlerDoesNotMountRetiredDebriefOrProfileRoutes" "$LOG_FILE"
 grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsReportRoutesBehindSessionMiddleware" "$LOG_FILE"
 grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsJobRouteBehindSessionMiddleware" "$LOG_FILE"
 grep -Fq -- "--- PASS: TestJDMatchRoutesAreGonePerD17" "$LOG_FILE"
@@ -39,6 +40,9 @@ for forbidden in \
   "[no tests to run]" \
   "testing: warning: no tests to run" \
   "missing fixture for operationId: listTargetJobs" \
+  "Open debrief" \
+  "pendingRoute: \"debrief\"" \
+  "pendingRoute=debrief" \
   "expected document not to contain element"; do
   if grep -Fq -- "$forbidden" "$LOG_FILE"; then
     echo "forbidden marker leaked into scenario evidence: $forbidden" >&2

@@ -75,7 +75,7 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 		Now:                   func() time.Time { return time.Date(2026, 5, 13, 9, 30, 0, 0, time.UTC) },
 		NewID:                 apiFixedIDs(challengeID, userID, sessionID, privacyRequestID, privacyJobID),
 	})
-	runtime, err := buildTargetJobRuntime(loader, db, slog.New(slog.NewTextHandler(io.Discard, nil)), uploadRoutes.Service, nil)
+	runtime, err := buildTargetJobRuntime(loader, db, slog.New(slog.NewTextHandler(io.Discard, nil)), uploadRoutes.Service)
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}

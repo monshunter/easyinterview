@@ -1,8 +1,7 @@
 /*
  * D2 screen shell visual rhythm. Transcribed from
- * ui-design/src/screen-profile.jsx (Profile + Settings card cadence) and the
- * generic placeholder cards used across screen-home /
- * screen-workspace.
+ * ui-design/src/screens-p0-complete.jsx (Settings card cadence) and the
+ * generic placeholder cards used across screen-home / screen-workspace.
  *
  * Contract:
  *   - ei-screen-shell: full-bleed page wrapper, max-width 1160, padding 54

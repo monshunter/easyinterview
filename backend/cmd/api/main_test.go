@@ -17,7 +17,6 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
-	apidebriefs "github.com/monshunter/easyinterview/backend/internal/api/debriefs"
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	apijobs "github.com/monshunter/easyinterview/backend/internal/api/jobs"
 	apipractice "github.com/monshunter/easyinterview/backend/internal/api/practice"
@@ -26,7 +25,6 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/middleware/idempotency"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
-	profilehandler "github.com/monshunter/easyinterview/backend/internal/profile/handler"
 	domainresume "github.com/monshunter/easyinterview/backend/internal/resume"
 	resumehandler "github.com/monshunter/easyinterview/backend/internal/resume/handler"
 	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
@@ -391,7 +389,7 @@ runtime:
 	}
 }
 
-func TestBuildAPIHandlerMountsDebriefSuggestQuestionsBehindSessionMiddleware(t *testing.T) {
+func TestBuildAPIHandlerMountsPracticeRoutesBehindSessionMiddleware(t *testing.T) {
 	dir := t.TempDir()
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
 runtime:
@@ -406,46 +404,7 @@ runtime:
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
-	handler := buildAPIHandlerWithUploadReportDebriefAndHandlers(
-		loader,
-		apiRuntimeFlags{},
-		service,
-		targetjob.NewHandler(),
-		practiceRoutes{},
-		uploadRoutes{},
-		resumeRoutes{},
-		reportRoutes{},
-		debriefRoutes{Handler: apidebriefs.NewHandler(apidebriefs.HandlerOptions{})},
-	)
-
-	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/debriefs/question-suggestions", strings.NewReader(`{"targetJobId":"target-1","resumeId":"resume-1","language":"zh-CN"}`))
-	req.Header.Set("Content-Type", "application/json")
-	handler.ServeHTTP(rec, req)
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("status = %d body=%s; suggestDebriefQuestions route is not mounted behind auth middleware", rec.Code, rec.Body.String())
-	}
-	if !strings.Contains(rec.Body.String(), `"code":"AUTH_UNAUTHORIZED"`) {
-		t.Fatalf("expected auth middleware envelope, got %s", rec.Body.String())
-	}
-}
-
-func TestBuildAPIHandlerMountsPracticeAndProfileRoutesBehindSessionMiddleware(t *testing.T) {
-	dir := t.TempDir()
-	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
-runtime:
-  appVersion: "1.2.3"
-  defaultUiLanguage: zh-CN
-`)
-	loader, err := config.Load(config.Options{ConfigDir: dir})
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
-		Store:               &apiAuthStore{},
-		SessionCookieSecret: "session-secret",
-	})
-	handler := buildAPIHandlerWithUploadReportDebriefJobsProfileAndHandlers(
+	handler := buildAPIHandlerWithUploadReportJobsAndHandlers(
 		loader,
 		apiRuntimeFlags{},
 		service,
@@ -454,9 +413,7 @@ runtime:
 		uploadRoutes{},
 		resumeRoutes{},
 		reportRoutes{},
-		debriefRoutes{},
 		jobsRoutes{},
-		profileRoutes{Handler: profilehandler.New(profilehandler.Options{})},
 	)
 
 	cases := []struct {
@@ -472,11 +429,6 @@ runtime:
 		{http.MethodPost, "/api/v1/practice/sessions/018f2a40-0000-7000-9000-0000000000b1/events", `{}`},
 		{http.MethodPost, "/api/v1/practice/sessions/018f2a40-0000-7000-9000-0000000000b1/complete", `{}`},
 		{http.MethodPost, "/api/v1/practice/sessions/018f2a40-0000-7000-9000-0000000000b1/voice-turns", `{}`},
-		{http.MethodGet, "/api/v1/profiles/me", ""},
-		{http.MethodPatch, "/api/v1/profiles/me", `{}`},
-		{http.MethodGet, "/api/v1/profiles/me/experience-cards", ""},
-		{http.MethodPost, "/api/v1/profiles/me/experience-cards", `{}`},
-		{http.MethodPatch, "/api/v1/profiles/me/experience-cards/018f2a40-0000-7000-9000-0000000000c1", `{}`},
 	}
 	for _, tc := range cases {
 		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
@@ -491,6 +443,56 @@ runtime:
 				t.Fatalf("expected auth middleware envelope, got %s", rec.Body.String())
 			}
 		})
+	}
+}
+
+func TestBuildAPIHandlerDoesNotMountRetiredDebriefOrProfileRoutes(t *testing.T) {
+	dir := t.TempDir()
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+`)
+	loader, err := config.Load(config.Options{ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+		Store:               &apiAuthStore{},
+		SessionCookieSecret: "session-secret",
+	})
+	handler := buildAPIHandlerWithUploadReportJobsAndHandlers(
+		loader,
+		apiRuntimeFlags{},
+		service,
+		targetjob.NewHandler(),
+		practiceRoutes{Handler: apipractice.NewHandler(apipractice.HandlerOptions{})},
+		uploadRoutes{},
+		resumeRoutes{},
+		reportRoutes{},
+		jobsRoutes{},
+	)
+
+	for _, tc := range []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{http.MethodPost, "/api/v1/debriefs", `{}`},
+		{http.MethodPost, "/api/v1/debriefs/question-suggestions", `{}`},
+		{http.MethodGet, "/api/v1/debriefs/018f2a40-0000-7000-9000-0000000000d1", ""},
+		{http.MethodGet, "/api/v1/profiles/me", ""},
+		{http.MethodPatch, "/api/v1/profiles/me", `{}`},
+		{http.MethodGet, "/api/v1/profiles/me/experience-cards", ""},
+		{http.MethodPost, "/api/v1/profiles/me/experience-cards", `{}`},
+		{http.MethodPatch, "/api/v1/profiles/me/experience-cards/018f2a40-0000-7000-9000-0000000000c1", `{}`},
+	} {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(tc.method, tc.path, strings.NewReader(tc.body))
+		handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("%s %s status = %d body=%s; retired route must not be mounted", tc.method, tc.path, rec.Code, rec.Body.String())
+		}
 	}
 }
 
@@ -730,7 +732,7 @@ runtime:
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
-	handler := buildAPIHandlerWithUploadReportDebriefJobsAndHandlers(
+	handler := buildAPIHandlerWithUploadReportJobsAndHandlers(
 		loader,
 		apiRuntimeFlags{},
 		service,
@@ -739,7 +741,6 @@ runtime:
 		uploadRoutes{},
 		resumeRoutes{},
 		reportRoutes{},
-		debriefRoutes{},
 		jobsRoutes{Handler: apijobs.NewHandler(apijobs.HandlerOptions{})},
 	)
 
@@ -884,33 +885,6 @@ runtime:
 	}
 }
 
-func TestBuildDebriefRoutesWiresHandlerAndIdempotency(t *testing.T) {
-	dir := t.TempDir()
-	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
-	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
-runtime:
-  appVersion: "1.2.3"
-  defaultUiLanguage: zh-CN
-ai:
-  promptsDir: "`+promptsDir+`"
-  rubricsDir: "`+rubricsDir+`"
-auth:
-  challengeTokenPepper: "pepper"
-`)
-	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
-
-	routes, err := buildDebriefRoutes(loader, nil, &apiNoopAIClient{})
-	if err != nil {
-		t.Fatalf("buildDebriefRoutes: %v", err)
-	}
-	if routes.Handler == nil || routes.Idempotency == nil {
-		t.Fatalf("debrief routes missing handler/idempotency: %+v", routes)
-	}
-}
-
 func TestBuildTargetJobRuntimeWiresDrainerAndAIClient(t *testing.T) {
 	dir := t.TempDir()
 	providersPath := filepath.Join(dir, "ai-providers.yaml")
@@ -955,7 +929,7 @@ ai:
 		t.Fatalf("Load: %v", err)
 	}
 
-	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
+	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
@@ -1034,7 +1008,7 @@ ai:
 		t.Fatalf("Load: %v", err)
 	}
 
-	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiUploadFileDeleter{}, nil)
+	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiUploadFileDeleter{})
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
@@ -1093,7 +1067,7 @@ ai:
 		t.Fatalf("Load: %v", err)
 	}
 
-	runtime, err := buildTargetJobRuntime(loader, db, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiUploadFileDeleter{}, &privacyDeleteRuntimeHooks{})
+	runtime, err := buildTargetJobRuntime(loader, db, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiUploadFileDeleter{})
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
@@ -1149,7 +1123,7 @@ ai:
 	}
 }
 
-func TestDrainer_DebriefGenerateRegistered(t *testing.T) {
+func TestDrainer_DebriefGenerateNotRegistered(t *testing.T) {
 	dir := t.TempDir()
 	providersPath := filepath.Join(dir, "ai-providers.yaml")
 	profilesPath := filepath.Join(dir, "ai-profiles.yaml")
@@ -1193,12 +1167,12 @@ ai:
 		t.Fatalf("Load: %v", err)
 	}
 
-	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil)
+	runtime, err := buildTargetJobRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
-	if !runtime.Handles(string(jobs.JobTypeDebriefGenerate)) {
-		t.Fatalf("runtime does not contribute handler for %s", jobs.JobTypeDebriefGenerate)
+	if runtime.Handles("debrief_generate") {
+		t.Fatalf("runtime must not contribute retired debrief_generate handler")
 	}
 }
 

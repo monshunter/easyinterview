@@ -17,7 +17,6 @@ grep -Fq "[desktop]" "$LOG_FILE"
 grep -Fq "[mobile]" "$LOG_FILE"
 # Spec markers — assert the current parity suite was exercised.
 for spec in \
-  debrief.spec.ts \
   generating.spec.ts \
   home.spec.ts \
   layout.spec.ts \

@@ -144,7 +144,7 @@ def valid_data() -> dict:
                 "name": "PracticeGoal",
                 "sourceSection": "5.4",
                 "jsonField": "goal",
-                "values": ["baseline", "retry_current_round", "next_round", "debrief"],
+                "values": ["baseline", "retry_current_round", "next_round"],
             },
             {
                 "name": "InterviewerRole",
@@ -187,31 +187,6 @@ def valid_data() -> dict:
                 "sourceSection": "5.11",
                 "jsonField": "questionReviewStatus",
                 "values": ["open", "queued_for_retry", "resolved"],
-            },
-            {
-                "name": "DebriefStatus",
-                "sourceSection": "5.12",
-                "jsonField": "debriefStatus",
-                "values": ["draft"],
-            },
-            {
-                "name": "DebriefRoundType",
-                "sourceSection": "5.12",
-                "jsonField": "roundType",
-                "values": [
-                    "hr_screen",
-                    "hiring_manager",
-                    "behavioral",
-                    "technical",
-                    "culture",
-                    "custom",
-                ],
-            },
-            {
-                "name": "DebriefQuestionSource",
-                "sourceSection": "5.12",
-                "jsonField": "source",
-                "values": ["jd", "resume", "mock_report", "manual"],
             },
             {
                 "name": "PrivacyRequestType",

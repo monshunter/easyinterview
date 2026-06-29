@@ -109,8 +109,6 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 	for _, table := range []string{
 		"users",
 		"user_settings",
-		"candidate_profiles",
-		"experience_cards",
 		"file_objects",
 		"resumes",
 		"target_jobs",
@@ -122,7 +120,6 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 		"practice_turns",
 		"feedback_reports",
 		"question_assessments",
-		"debriefs",
 		"source_records",
 		"prompt_versions",
 		"rubric_versions",
@@ -150,8 +147,9 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 	// v2.1 D-20 resume flatten renamed resume_assets -> resumes and dropped
 	// resume_tailor_runs (resume_versions / resume_version_suggestions were
 	// already covered by the resumes cascade, not separate matrix rows),
-	// trimming 30 -> 29.
-	if len(got) != 29 {
-		t.Fatalf("privacy matrix should cover exactly 29 public baseline tables, got %d: %#v", len(got), got)
+	// trimming 30 -> 29. product-scope D-22 removed candidate profile,
+	// experience card, and debrief tables, trimming 29 -> 26.
+	if len(got) != 26 {
+		t.Fatalf("privacy matrix should cover exactly 26 public baseline tables, got %d: %#v", len(got), got)
 	}
 }
