@@ -133,6 +133,9 @@ export const zh = {
   "parse.resumeBinding": "绑定简历",
   "parse.resumeLoading": "正在读取你的简历…",
   "parse.resumeChange": "更换简历",
+  "parse.resumeRequiredTitle": "请选择本场面试使用的简历",
+  "parse.resumeRequiredBody":
+    "请先在下方选择一份已解析完成的简历。未选择前不能保存规划或启动面试。",
   "parse.resumeEmptyTitle": "还没有可用简历",
   "parse.resumeEmptyBody": "请先创建或上传一份简历，解析完成后再回来确认这场面试。",
   "parse.resumeCreate": "创建简历",

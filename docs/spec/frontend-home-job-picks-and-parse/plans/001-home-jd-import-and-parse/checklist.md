@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder Checklist
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
 > **更新日期**: 2026-06-30
 
@@ -110,11 +110,11 @@
 
 ## Phase 7: Parse 简历绑定强制门禁（2026-06-30 修订）
 
-- [x] 7.1 新增 `frontend/src/app/screens/parse/ParseResumeBinding.test.tsx` 红灯：ready Parse preview 必须调用 `listResumes`，渲染 `parse-launch`、`parse-resume-binding`、`parse-action-save-plan`、`parse-action-start-interview`，默认选中最新 ready 简历；旧实现因仍只有 `parse-action-confirm` 且未调用 `listResumes` 失败。
+- [x] 7.1 新增 `frontend/src/app/screens/parse/ParseResumeBinding.test.tsx` 红灯：ready Parse preview 必须调用 `listResumes`，渲染 `parse-launch`、`parse-resume-binding`、`parse-action-save-plan`、`parse-action-start-interview`；有 ready 简历时不得默认选中，Save/Start 在用户显式选择前必须 disabled。
   - Evidence 2026-06-30: Red `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/parse/ParseResumeBinding.test.tsx` failed with `expected "listResumes" to be called 1 times, but got 0 times`; Green same command passed after `ParseScreen` added resume binding.
-- [x] 7.2 实现 Parse resume binding：`ParseScreen` 读取 `listResumes`，过滤 `parseStatus=ready` 且未 archived 的简历，默认按 `updatedAt desc` 选中；渲染简历绑定卡、简历选择弹窗 / 列表锚点和创建简历入口；无 ready 简历或读取失败时禁用 `立即面试` 与 `仅保存规划`，点击 `parse-resume-create` 导航 `resume_versions` `{ flow: "create" }`。
-  - Evidence 2026-06-30: `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/parse/ParseResumeBinding.test.tsx` passed 3 tests covering ready default binding, resume switching, empty-state disabled actions, and `resume_versions(flow=create)` navigation.
-- [x] 7.3 修复 Parse handoff：`仅保存规划` 保存 `updateTargetJob` 后进入 `workspace` 并携带真实 `resumeId`；`立即面试` 保存同一编辑字段后进入 `workspace` 并携带 `autoStartPractice=1`，由现有 workspace `useStartPractice` 链路创建 session 后进入 `practice`；focused tests 反向断言 `resume-unbound` 不在成功 params 中，未登录且无 verified ready 简历时不得产生成功 pendingAction。
+- [x] 7.2 实现 Parse resume binding：`ParseScreen` 读取 `listResumes`，过滤 `parseStatus=ready` 且未 archived 的简历，不默认选中；渲染简历绑定卡、显式选择列表 / 弹窗锚点和创建简历入口；无 ready 简历或读取失败时禁用 `立即面试` 与 `仅保存规划`，点击 `parse-resume-create` 导航 `resume_versions` `{ flow: "create" }`。
+  - Evidence 2026-06-30: `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/parse/ParseResumeBinding.test.tsx` passed after explicit-selection remediation, covering ready list no-default disabled state, user click enablement, empty-state disabled actions, and Start handoff with the clicked resume id.
+- [x] 7.3 修复 Parse handoff：用户显式选择简历后，`仅保存规划` 保存 `updateTargetJob` 后进入 `workspace` 并携带真实 `resumeId`；`立即面试` 保存同一编辑字段后进入 `workspace` 并携带 `autoStartPractice=1`，由现有 workspace `useStartPractice` 链路创建 session 后进入 `practice`；focused tests 反向断言 `resume-unbound` 不在成功 params 中，未登录且无 verified ready 简历时不得产生成功 pendingAction。
   - Evidence 2026-06-30: `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/parse` passed 6 files / 32 tests, including Save plan real `resumeId`, Start interview `autoStartPractice=1`, and unauthenticated disabled no-handoff negative coverage.
 - [x] 7.4 BDD-Gate: 修订并验证 `E2E.P0.016`：trigger/verify/README/expected outcome 证明 Parse 成功出口不再渲染 `workspace-missing-resume`，并拒绝 `resume-unbound` 成功 marker。
   - Evidence 2026-06-30: `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` all PASS. Trigger includes real API gate, focused Parse Vitest, frontend build, and Playwright desktop/mobile Save/Start browser gates with real ready `resumeId`.

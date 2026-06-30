@@ -67,10 +67,10 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
 
   // Interview launch decision lives on this page (D-14): bind resume, pick round, start.
   const resumeOptions = window.getWorkspaceResumeOptions ? window.getWorkspaceResumeOptions(lang) : [];
-  const [selectedResumeId, setSelectedResumeId] = React.useState(resumeOptions[0]?.id || "frontend-v3");
+  const [selectedResumeId, setSelectedResumeId] = React.useState("");
   const [resumePickerOpen, setResumePickerOpen] = React.useState(false);
   const [currentRoundIdx, setCurrentRoundIdx] = React.useState(0);
-  const selectedResume = resumeOptions.find((resume) => resume.id === selectedResumeId) || resumeOptions[0];
+  const selectedResume = resumeOptions.find((resume) => resume.id === selectedResumeId);
 
   const PARSE_ROUND_IDS = ["round-hr", "round-tech-1", "round-tech-2", "round-manager"];
   const buildParseInterviewContext = () => {
@@ -82,6 +82,7 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
     return window.eiCreateInterviewContext ? window.eiCreateInterviewContext(base, base) : base;
   };
   const startInterview = () => {
+    if (!selectedResume) return;
     const context = buildParseInterviewContext();
     const startContext = {
       ...context,
@@ -276,6 +277,8 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
           <window.BindingPill T={T} icon="briefcase" label={lang === "en" ? "Target job / JD" : "目标岗位 / JD"} title={parsed.title} meta={`${parsed.company} · ${parsed.level}`} />
           {selectedResume ? (
             <window.BindingPill T={T} icon="resume" label={lang === "en" ? "Bound resume" : "绑定简历"} title={selectedResume.name} meta={selectedResume.meta} action={lang === "en" ? "Change" : "更换"} onClick={() => setResumePickerOpen(true)} />
+          ) : resumeOptions.length ? (
+            <window.BindingPill T={T} icon="resume" label={lang === "en" ? "Bound resume" : "绑定简历"} title={lang === "en" ? "Choose a resume" : "选择简历"} meta={lang === "en" ? "Save and Start stay locked until you choose" : "未选择前不能保存或启动"} action={lang === "en" ? "Choose" : "去选择"} onClick={() => setResumePickerOpen(true)} />
           ) : (
             <window.BindingPill T={T} icon="resume" label={lang === "en" ? "Bound resume" : "绑定简历"} title={lang === "en" ? "No resume yet" : "还没有简历"} meta={lang === "en" ? "The interview needs resume evidence" : "面试生成需要简历证据"} action={lang === "en" ? "Create" : "去创建"} onClick={() => nav("resume_versions", { flow: "create" })} />
           )}
@@ -293,7 +296,7 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Btn T={T} variant="ghost" onClick={() => nav("home")}>{lang === "en" ? "Cancel" : "取消"}</Btn>
           <Btn T={T} variant="ghost" icon="edit" onClick={() => { setStep(0); setStage("loading"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>{lang === "en" ? "Re-parse" : "重新解析"}</Btn>
-          <Btn T={T} variant="secondary" icon="layers" onClick={() => nav("workspace", buildParseInterviewContext())}>{lang === "en" ? "Save plan only" : "仅保存规划"}</Btn>
+          <Btn T={T} variant="secondary" icon="layers" disabled={!selectedResume} onClick={() => selectedResume && nav("workspace", buildParseInterviewContext())}>{lang === "en" ? "Save plan only" : "仅保存规划"}</Btn>
           <Btn T={T} variant="accent" icon="play" disabled={!selectedResume} onClick={startInterview}>{lang === "en" ? "Start interview now" : "立即面试"}</Btn>
         </div>
       </div>

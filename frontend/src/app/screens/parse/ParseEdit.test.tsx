@@ -194,6 +194,11 @@ describe("ParseEdit — save plan call", () => {
     const spy = vi.spyOn(client, "updateTargetJob");
     const { navigate } = await renderReadyParse(client);
 
+    fireEvent.click(
+      await screen.findByTestId(
+        "parse-resume-option-01918fa0-0000-7000-8000-000000001000",
+      ),
+    );
     const saveBtn = await screen.findByTestId("parse-action-save-plan");
     fireEvent.click(saveBtn);
 
@@ -269,6 +274,11 @@ describe("ParseEdit — save plan call", () => {
 
     await renderReadyParse(client);
 
+    fireEvent.click(
+      await screen.findByTestId(
+        "parse-resume-option-01918fa0-0000-7000-8000-000000001000",
+      ),
+    );
     const saveBtn = await screen.findByTestId("parse-action-save-plan");
     fireEvent.click(saveBtn);
 

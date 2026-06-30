@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
 > **更新日期**: 2026-06-30
 
@@ -66,7 +66,7 @@
 | Observability | 仅 fixture transport 调用次数 / latency / 4xx code 进 telemetry；不带 raw text | n/a | 3+4 | Vitest mockTransport spy |
 | UX · loading state | Parse 4 步进度条节奏；listTargetJobs 加载占位 | `screens-p0-complete.jsx::ParseScreen` lines 68-107 | 2+4 | Vitest |
 | UX · parse target switch | 同一 mounted `ParseScreen` 收到新的 `targetJobId` 时清空旧 preview/edit state，回到 loading gate，tick 完成后 hydrate 新 TargetJob | `screens-p0-complete.jsx::ParseScreen` lines 68-107 | 4 | Vitest `parse/ParseFlow.test.tsx` same-route target switch regression |
-| UX · parse resume binding | Preview 渲染 `INTERVIEW LAUNCH`，有 ready 简历时默认选中且可更换；无 ready 简历时禁用离开动作并引导创建简历 | `screens-p0-complete.jsx::ParseScreen` Interview launch block + `screen-workspace.jsx::ResumePickerModal` | 7 | Vitest + Playwright parse confirm gate |
+| UX · parse resume binding | Preview 渲染 `INTERVIEW LAUNCH`，有 ready 简历时必须等待用户显式选择；无 ready 简历时禁用离开动作并引导创建简历 | `screens-p0-complete.jsx::ParseScreen` Interview launch block + `screen-workspace.jsx::ResumePickerModal` | 7 | Vitest + Playwright parse confirm gate |
 | UX · empty state | listTargetJobs 空 → HomeEmptyState；search/watchlist tab 空 → P1 placeholder | `screen-home.jsx::HomeEmptyState` + `screen-jd-match.jsx` placeholders | 2+5 | Vitest |
 | UX · error state | importTargetJob 4xx 内联错误；getTargetJob failed 全屏错误 | n/a | 3+4 | Vitest |
 | UX · i18n zh/en | 全文案通过 typed helper；切换立即重绘；新增 home / parse / jdMatch namespaces | D1 typed locale helper | 1-5 | Vitest `i18n` namespaces test |
@@ -108,7 +108,7 @@
 | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` scenarios: `manual_text-success` / `file-success` / `url-success` / `invalid-source-422` / `server-error-500` | `HomeScreen` import submit via generated `importTargetJob`; source variants are `manual_text` / `file` / `url`; request body carries JD raw content only through generated body + React state; side-effect call supplies `idempotencyKey` | real: `backend/cmd/api/main.go` mounts `POST /api/v1/targets/import` to `backend/internal/targetjob.Handler.ImportTargetJob`; frontend must not call URL fetcher, file parser, LLM, prompt registry, or provider-specific endpoint | backend: `target_jobs`, `target_job_sources`, `target_import` job / outbox; frontend: none | backend-only `target.import.parse` through F3/A3 after import job; frontend fixture/stub only for UI variants | E2E.P0.015 fixture UI + real gate; backend E2E.P0.010 / P0.011 / P0.012 / P0.013 |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` scenarios: `default` / `prototype-baseline` / plan-added `queued` / `processing` / `ready` / `failed` / `hidden-signal-rich` | `ParseScreen` polling via generated `getTargetJob(targetJobId)`; `analysisStatus` drives loading/preview/failed; Hidden signals render only backend/API `summary.interviewHypotheses` + `coreThemes` + `fitSummary.riskSignals` with `GenerationProvenance` present | real: `backend/cmd/api/main.go` mounts `GET /api/v1/targets/{targetJobId}` to `backend/internal/targetjob.Handler.GetTargetJob`; no frontend LLM interaction | backend: `target_jobs`, `target_job_requirements`; frontend: ephemeral UI state only | backend-only parse result; frontend displays returned AI-generated fields without inference or regeneration | E2E.P0.015 fixture UI + real gate; backend E2E.P0.010 / P0.011 / P0.012 / P0.013 |
 | `updateTargetJob` | `openapi/fixtures/TargetJobs/updateTargetJob.json` scenarios: `success` / `validation-4xx` | `ParseScreen` Save plan / Start interview via generated `updateTargetJob`; request body includes only supplied editable fields (`titleHint`, `companyNameHint`, `locationText`, `notes`); hit toggle state is not sent; side-effect call supplies `idempotencyKey` | real: `backend/cmd/api/main.go` mounts `PATCH /api/v1/targets/{targetJobId}` to `backend/internal/targetjob.Handler.UpdateTargetJob`; owned by `backend-targetjob/001-targetjob-import-and-parse-bootstrap` | backend: `target_jobs` metadata columns; frontend: none | none in frontend; no parse regeneration | E2E.P0.016 fixture UI + real gate; backend E2E.P0.010 |
-| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` scenarios: `default` / `empty` | `ParseScreen` preview launch block; reads ready, non-archived flat resumes; default select latest by `updatedAt`; no side-effect key | real: `backend/cmd/api/main.go` mounts `GET /api/v1/resumes` to resume handler; owned by `backend-resume` | backend: `resumes`; frontend: selected resume id in React state only | none | E2E.P0.016 fixture UI; resume real backend covered by resume owner gates |
+| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` scenarios: `default` / `empty` | `ParseScreen` preview launch block; reads ready, non-archived flat resumes; does not default-select any resume; no side-effect key | real: `backend/cmd/api/main.go` mounts `GET /api/v1/resumes` to resume handler; owned by `backend-resume` | backend: `resumes`; frontend: selected resume id in React state only after explicit user click | none | E2E.P0.016 fixture UI; resume real backend covered by resume owner gates |
 | `N/A` UI-only `jd_match` placeholder | no new fixture; generated client must not be called by `JDMatchScreen` placeholder except existing shell auth/runtime calls | `JDMatchScreen` hero/profile-chip/tabs/placeholder shell; TopBar + Home aux card route only | N/A until future recommendations API / plan `002-jd-match-recommendations` | none | none | E2E.P0.017 |
 
 ## 3.7 TargetJob Frontend View-Model Mapping
@@ -128,6 +128,7 @@
 
 | 日期 | 版本 | 类型 | 说明 |
 |------|------|------|------|
+| 2026-06-30 | 1.8 | explicit-resume-selection remediation | 修复 Phase 7 首版默认选中最新 ready 简历的产品语义偏差：Parse 有 ready 简历时仍必须由用户显式选择，Save/Start 在选择前保持 disabled。 |
 | 2026-06-30 | 1.7 | resume-binding remediation | 修复 Parse 确认页仍以 `resume-unbound` 成功 handoff 的流程缺陷；新增 Phase 7，强制选择 ready 简历或创建简历，`立即面试` 进入 workspace `autoStartPractice=1` 会话创建链路后到 practice，`仅保存规划` 进入 workspace。 |
 | 2026-05-24 | 1.6 | route-param remediation | 修复同一 mounted `ParseScreen` 从已解析 preview 切到新的 `targetJobId` 时没有重置内部 state 的问题；新增 `ParseFlow.test.tsx` rerender regression，断言旧 TargetJob title 消失、新 loading DOM 出现、loading gate 完成后 hydrate 新 TargetJob。 |
 | 2026-05-24 | 1.5 | route/context remediation | E2E.P0.016 增加 Confirm → Workspace browser gate：`ParseScreen` Confirm 统一复用 `interviewContextFromTargetJob(targetJob)`，已登录 navigate 与未登录 pendingAction 均携带 `targetJobId` / `jobId` / `jdId` / `planId` / `resumeVersionId` / `roundId` / `roundName`；Playwright 点击 Confirm 后验证 `/workspace` query 与 `workspace-missing-resume` screenshot marker。 |
@@ -333,7 +334,7 @@ Re-parse 重置 `stage=loading` 并重新调 `getTargetJob` 触发 polling；Can
 
 #### 7.1 Parse preview 读取并选择 ready 简历
 
-在 `ParseScreen` preview 阶段调用 generated `listResumes`，只保留 `parseStatus=ready` 且 `status !== archived` 的简历。默认选中 `updatedAt` 最新的一份，渲染 `parse-launch` / `parse-resume-binding` / `parse-resume-picker-*` DOM 锚点，展示简历名称、来源和更新时间。Red-Green: 新增 `parse/ParseResumeBinding.test.tsx`，旧实现下因无 launch block / 未调用 `listResumes` 失败。
+在 `ParseScreen` preview 阶段调用 generated `listResumes`，只保留 `parseStatus=ready` 且 `status !== archived` 的简历。即使存在 ready 简历，也不得默认选中最新项；必须渲染 `parse-launch` / `parse-resume-binding` / `parse-resume-picker-*` DOM 锚点，让用户显式点击一份简历后才展示名称、来源和更新时间。Red-Green: `parse/ParseResumeBinding.test.tsx` 先锁定选择前 Save/Start disabled 与无默认简历名称，再验证点击简历项后才启用。
 
 #### 7.2 无 ready 简历时阻断启动并引导创建
 
@@ -341,7 +342,7 @@ Re-parse 重置 `stage=loading` 并重新调 `getTargetJob` 触发 polling；Can
 
 #### 7.3 `立即面试` 与 `仅保存规划` 使用真实 `resumeId`
 
-选中简历后，`仅保存规划` 先执行原有 `updateTargetJob` 保存编辑字段，再 `navigate("workspace", interviewContextFromTargetJob(targetJob, { resumeId }))`；`立即面试` 同样保存编辑字段，再进入 `workspace` 并携带 `autoStartPractice=1`，由既有 workspace `useStartPractice` 链路创建 session 后进入 `practice`。params 必须包含 `planId` / `targetJobId` / `jdId` / 真实 `resumeId` / `roundId` / `roundName` / `practiceMode` / `mode` / `modality`，不得包含 `resume-unbound`。未登录且没有可验证 ready 简历时不得产生 pendingAction；若后续入口已携带 verified resume context，pendingAction 也必须恢复到 `workspace autoStartPractice=1`，不再走 `confirm_interview -> workspace`。
+用户显式选中简历后，`仅保存规划` 先执行原有 `updateTargetJob` 保存编辑字段，再 `navigate("workspace", interviewContextFromTargetJob(targetJob, { resumeId }))`；`立即面试` 同样保存编辑字段，再进入 `workspace` 并携带 `autoStartPractice=1`，由既有 workspace `useStartPractice` 链路创建 session 后进入 `practice`。params 必须包含 `planId` / `targetJobId` / `jdId` / 真实 `resumeId` / `roundId` / `roundName` / `practiceMode` / `mode` / `modality`，不得包含 `resume-unbound`。未显式选择 ready 简历时不得产生 pendingAction；若后续启动动作已有真实 `resumeId`，pendingAction 恢复到 `workspace autoStartPractice=1`，不再走 `confirm_interview -> workspace`。
 
 #### 7.4 BDD / browser gate 修订
 

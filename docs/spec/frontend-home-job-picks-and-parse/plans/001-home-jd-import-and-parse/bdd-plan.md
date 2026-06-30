@@ -1,6 +1,6 @@
 # 001 BDD Plan
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
 > **更新日期**: 2026-06-30
 
@@ -37,7 +37,7 @@ E2E.P0.014-P0.016 的 UI 子用例继续使用 fixture-backed component transpor
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.016 | Parse 编辑 + 绑定简历 + Start/Save handoff | 用户在 parse 屏 preview 阶段，`listResumes` 返回 ready 简历；另有 empty/failed 变体 | 用户编辑 title 字段、选择简历，分别点击 `仅保存规划` 与 `立即面试` | （A 保存规划）（1）调 `updateTargetJob(targetJobId, body, { idempotencyKey })` body 仅含 supplied fields，不含 hit toggle 状态、summary、fitSummary 或 hidden signals；（2）成功后 route 跳 `workspace?targetJobId=&jobId=&jdId=&planId=&resumeId=&roundId=&roundName=`，`resumeId` 为真实 ready 简历 id，禁止 `resume-unbound`；（3）不渲染 `workspace-missing-resume` 成功态；（B 立即面试）（1）调同一保存路径后进入 `workspace` 并携带 `autoStartPractice=1`，由 workspace `useStartPractice` 创建 session 后进入 `practice`；（2）handoff / pendingAction params 携带真实 `resumeId`；（C 无 ready 简历）（1）`立即面试` 与 `仅保存规划` disabled；（2）`parse-resume-create` 导航 `resume_versions?flow=create`；（D 通用）Re-parse / Cancel / 隐私负向保持原有要求；browser gate 输出真实 resumeId context marker，并拒绝 `workspace-missing-resume` / `resume-unbound` 成功 marker | `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/` |
+| E2E.P0.016 | Parse 编辑 + 显式绑定简历 + Start/Save handoff | 用户在 parse 屏 preview 阶段，`listResumes` 返回 ready 简历；另有 empty/failed 变体 | 用户编辑 title 字段；选择前 Save/Start disabled；用户显式点击一份简历后分别点击 `仅保存规划` 与 `立即面试` | （A 选择前）（1）页面不展示默认绑定简历名称；（2）`仅保存规划` / `立即面试` disabled；（B 保存规划）（1）调 `updateTargetJob(targetJobId, body, { idempotencyKey })` body 仅含 supplied fields，不含 hit toggle 状态、summary、fitSummary 或 hidden signals；（2）成功后 route 跳 `workspace?targetJobId=&jobId=&jdId=&planId=&resumeId=&roundId=&roundName=`，`resumeId` 为用户点击的真实 ready 简历 id，禁止 `resume-unbound`；（3）不渲染 `workspace-missing-resume` 成功态；（C 立即面试）（1）调同一保存路径后进入 `workspace` 并携带 `autoStartPractice=1`，由 workspace `useStartPractice` 创建 session 后进入 `practice`；（2）handoff / pendingAction params 携带真实 `resumeId`；（D 无 ready 简历）（1）`立即面试` 与 `仅保存规划` disabled；（2）`parse-resume-create` 导航 `resume_versions?flow=create`；（E 通用）Re-parse / Cancel / 隐私负向保持原有要求；browser gate 输出真实 resumeId context marker，并拒绝 `workspace-missing-resume` / `resume-unbound` 成功 marker | `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/` |
 
 ## Phase 5: jd_match P1 Placeholder Shell
 

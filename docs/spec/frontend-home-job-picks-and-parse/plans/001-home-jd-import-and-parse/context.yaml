@@ -45,6 +45,7 @@ spec:
       - same route stale preview
       - target switch loading gate
       - parse resume binding
+      - explicit resume selection
       - require resume before interview
       - listResumes
       - resume-unbound

@@ -1,6 +1,6 @@
 # Frontend Home / Job Picks / Parse Spec
 
-> **版本**: 2.1
+> **版本**: 2.2
 > **状态**: active
 > **更新日期**: 2026-06-30
 
@@ -169,7 +169,7 @@
 首次 JD 导入后的 `parse` 解析确认页不得再把 `resume-unbound` 作为可启动或可保存规划的默认上下文。正式前端必须在用户离开 `parse` 前完成以下约束：
 
 1. 进入 preview 后读取 `listResumes`，只允许选择 `parseStatus=ready` 且未归档的简历。
-2. 有可用简历时默认选中最近更新的一份，并展示名称、来源和更新时间；用户可打开简历选择弹窗更换。
+2. 有可用简历时不得默认选中任何一份；必须展示可选 ready 简历并保持 `立即面试` / `仅保存规划` disabled，直到用户显式选择一份简历。
 3. 没有可用简历或读取失败时，`立即面试` 与 `仅保存规划` 必须禁用，并显示“创建简历”入口；入口导航到 `resume_versions?flow=create`，不得静默继续。
 4. `立即面试` 必须携带真实 `resumeId` 进入 `workspace` 的 `autoStartPractice=1` 会话创建链路，并使用 `requestAuth(start_practice)` 保护登录恢复；`仅保存规划` 必须携带同一真实 `resumeId` 进入 `workspace`。
 5. P0.016 的浏览器 gate 必须反向证明 `workspace-missing-resume` 不再是 Parse 确认主路径的成功状态。
@@ -182,6 +182,7 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 2.2 | 2026-06-30 | 修订 D-14 简历绑定：Parse 不得默认选中最新 ready 简历，用户必须显式选择后才能保存规划或启动面试。 |
 | 2.1 | 2026-06-30 | 修订 D-14：Parse 解析确认页必须在 `立即面试` / `仅保存规划` 前绑定 ready 简历，禁止 `resume-unbound` 成为成功 handoff。 |
 | 2.0 | 2026-06-13 | 对齐 product-scope v2.1：D-17 删除 jd_match 模块（新增 §9 删除范围与 C-R1~C-R3，jd_match 相关历史条目退役）；D-14 单次确认漏斗目标契约（新增 §10，plan 001 重开承接）；UI 真理源列表移除 screen-jd-match.jsx |
 - 历史：[history.md](./history.md)

@@ -11,7 +11,7 @@ Verifies the parse preview editing and resume-bound launch flow:
 - Edit title/company/location/notes in Basic fields
 - Level/language read-only (no input elements)
 - Hit toggle cycling (false → true → partial → false)
-- Parse preview reads ready resumes and requires a bound resume before exit
+- Parse preview reads ready resumes, does not default-select one, and requires an explicit resume click before exit
 - Save plan / Start interview call updateTargetJob with only supplied fields + Idempotency-Key
 - Successful save navigates to workspace with real resumeId interviewContext params
 - Successful start uses workspace autoStartPractice=1 and reaches practice
@@ -69,7 +69,7 @@ Verifies the parse preview editing and resume-bound launch flow:
 - The trigger builds `frontend/dist` and runs Playwright
   `tests/pixel-parity/parse.spec.ts --grep "save plan navigates|start interview hands off"`.
 - The browser gate opens `/parse?targetJobId=...`, mocks generated API
-  responses, clicks Save plan and Start interview, asserts `updateTargetJob` body/Idempotency-Key,
+  responses, first verifies Save/Start are disabled until the user clicks a ready resume, then clicks Save plan and Start interview, asserts `updateTargetJob` body/Idempotency-Key,
   verifies `/workspace` carries `targetJobId / jobId / jdId / planId /
   resumeId / roundId / roundName` with a real ready resume, verifies Start reaches
   `practice`, and rejects `workspace-missing-resume` / `resume-unbound` success markers.

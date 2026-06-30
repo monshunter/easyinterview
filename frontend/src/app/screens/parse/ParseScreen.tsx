@@ -256,11 +256,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   useEffect(() => {
     const client = runtime?.client;
     const authenticated = runtime?.auth.status === "authenticated";
-    const routeResumeId =
-      typeof route.params.resumeId === "string"
-        ? route.params.resumeId.trim()
-        : "";
-
     if (stage !== "preview" || !targetJob || !client || !authenticated) {
       setResumesLoading(false);
       setReadyResumes([]);
@@ -286,13 +281,10 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           .sort(sortByMostRecentResume);
         setReadyResumes(ready);
         setSelectedResumeId((current) => {
-          if (routeResumeId && ready.some((resume) => resume.id === routeResumeId)) {
-            return routeResumeId;
-          }
           if (current && ready.some((resume) => resume.id === current)) {
             return current;
           }
-          return ready[0]?.id ?? "";
+          return "";
         });
       })
       .catch((err: unknown) => {
@@ -312,7 +304,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     };
   }, [
     lang,
-    route.params.resumeId,
     runtime?.auth.status,
     runtime?.client,
     stage,
@@ -810,7 +801,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     { name: t("parse.round3Name"), focus: t("parse.round3Focus") },
     { name: t("parse.round4Name"), focus: t("parse.round4Focus") },
   ];
-  const launchDisabled = !selectedResume || confirming;
+  const launchDisabled = resumesLoading || !selectedResume || confirming;
 
   return (
     <section
@@ -1535,6 +1526,29 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                   {t("parse.resumeChange")}
                 </button>
               </>
+            ) : readyResumes.length > 0 ? (
+              <div data-testid="parse-resume-required">
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "var(--ei-color-fg-primary)",
+                    marginBottom: 4,
+                  }}
+                >
+                  {t("parse.resumeRequiredTitle")}
+                </div>
+                <div
+                  style={{
+                    fontSize: 12.5,
+                    color: "var(--ei-color-fg-tertiary)",
+                    lineHeight: 1.5,
+                    marginBottom: 12,
+                  }}
+                >
+                  {t("parse.resumeRequiredBody")}
+                </div>
+              </div>
             ) : (
               <div data-testid="parse-resume-empty">
                 <div
@@ -1576,7 +1590,8 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               </div>
             )}
 
-            {resumePickerOpen && readyResumes.length > 1 && (
+            {(resumePickerOpen || (!selectedResume && readyResumes.length > 0)) &&
+              readyResumes.length > 0 && (
               <div
                 data-testid="parse-resume-picker"
                 style={{

@@ -78,6 +78,8 @@ test("E2E.P0.099 full funnel import to next-round practice", async ({
   await expect(page.getByTestId("parse-resume-binding")).toBeVisible({
     timeout: 20_000,
   });
+  await expect(page.getByTestId("parse-action-start-interview")).toBeDisabled();
+  await page.getByTestId(`parse-resume-option-${state.resumeId}`).click();
   await expect(page.getByTestId("parse-action-start-interview")).toBeEnabled();
   await page.getByTestId("parse-action-start-interview").click();
   const practice = page.getByTestId("practice-screen");

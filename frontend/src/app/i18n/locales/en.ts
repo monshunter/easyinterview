@@ -139,6 +139,9 @@ export const en: LocaleMessages = {
   "parse.resumeBinding": "RESUME BINDING",
   "parse.resumeLoading": "Loading your resumes…",
   "parse.resumeChange": "Change resume",
+  "parse.resumeRequiredTitle": "Choose the resume for this interview",
+  "parse.resumeRequiredBody":
+    "Select one ready resume below. Save and Start stay locked until you choose the material the generator should use.",
   "parse.resumeEmptyTitle": "No usable resume yet",
   "parse.resumeEmptyBody": "Create or upload a resume first, then return here after parsing finishes.",
   "parse.resumeCreate": "Create resume",

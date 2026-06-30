@@ -263,6 +263,13 @@ test.describe("parse screen DOM anchor parity", () => {
     await page.goto("/parse?targetJobId=01918fa0-0000-7000-8000-000000002000");
     await page.waitForSelector("[data-testid='parse-basics-title']", { timeout: 5_000 });
     await expect(page.locator("[data-testid='parse-resume-binding']")).toContainText(
+      "Choose the resume for this interview",
+    );
+    await expect(page.locator("[data-testid='parse-action-save-plan']")).toBeDisabled();
+    await page.click(
+      "[data-testid='parse-resume-option-01918fa0-0000-7000-8000-000000001000']",
+    );
+    await expect(page.locator("[data-testid='parse-resume-binding']")).toContainText(
       "Alice Example - Senior Frontend Engineer",
     );
     await expect(page.locator("[data-testid='parse-action-save-plan']")).toBeEnabled();
@@ -327,6 +334,12 @@ test.describe("parse screen DOM anchor parity", () => {
 
     await page.goto("/parse?targetJobId=01918fa0-0000-7000-8000-000000002000");
     await page.waitForSelector("[data-testid='parse-basics-title']", { timeout: 5_000 });
+    await expect(
+      page.locator("[data-testid='parse-action-start-interview']"),
+    ).toBeDisabled();
+    await page.click(
+      "[data-testid='parse-resume-option-01918fa0-0000-7000-8000-000000001000']",
+    );
     await expect(page.locator("[data-testid='parse-action-start-interview']")).toBeEnabled();
     await page.click("[data-testid='parse-action-start-interview']");
 

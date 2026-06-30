@@ -101,7 +101,7 @@ afterEach(() => {
 });
 
 describe("ParseResumeBinding", () => {
-  it("loads ready resumes and renders the interview launch binding before any handoff", async () => {
+  it("loads ready resumes but requires an explicit resume selection before any handoff", async () => {
     const client = createClient();
     const listSpy = vi.spyOn(client, "listResumes");
 
@@ -113,22 +113,27 @@ describe("ParseResumeBinding", () => {
 
     expect(await screen.findByTestId("parse-launch")).toBeInTheDocument();
     expect(screen.getByTestId("parse-resume-binding")).toHaveTextContent(
-      "Alice Example - Senior Frontend Engineer",
+      "Choose the resume for this interview",
     );
-    expect(screen.getByTestId("parse-action-save-plan")).toBeEnabled();
-    expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
+    expect(screen.getByTestId("parse-resume-required")).toBeInTheDocument();
+    expect(screen.queryByTestId("parse-resume-picker-toggle")).not.toBeInTheDocument();
+    expect(screen.getByTestId("parse-action-save-plan")).toBeDisabled();
+    expect(screen.getByTestId("parse-action-start-interview")).toBeDisabled();
+    expect(
+      screen.getByTestId(
+        "parse-resume-option-01918fa0-0000-7000-8000-000000001000",
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("parse-action-confirm")).not.toBeInTheDocument();
   });
 
-  it("allows switching between ready resumes before saving or starting", async () => {
+  it("enables launch actions only after the user chooses a ready resume", async () => {
     const client = createClient();
     await renderReadyParse(client);
 
-    expect(await screen.findByTestId("parse-resume-binding")).toHaveTextContent(
-      "Alice Example - Senior Frontend Engineer",
-    );
+    expect(await screen.findByTestId("parse-resume-required")).toBeInTheDocument();
+    expect(screen.getByTestId("parse-action-save-plan")).toBeDisabled();
 
-    fireEvent.click(screen.getByTestId("parse-resume-picker-toggle"));
     fireEvent.click(
       screen.getByTestId(
         "parse-resume-option-0195f2d0-0000-7000-8000-000000001010",
@@ -138,6 +143,8 @@ describe("ParseResumeBinding", () => {
     expect(screen.getByTestId("parse-resume-binding")).toHaveTextContent(
       "Alice Example - Product Platform Resume",
     );
+    expect(screen.getByTestId("parse-action-save-plan")).toBeEnabled();
+    expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
   });
 
   it("blocks save and start when no ready resume exists and routes to resume creation", async () => {
@@ -164,6 +171,11 @@ describe("ParseResumeBinding", () => {
     const updateSpy = vi.spyOn(client, "updateTargetJob");
     const { navigate } = await renderReadyParse(client);
 
+    fireEvent.click(
+      await screen.findByTestId(
+        "parse-resume-option-0195f2d0-0000-7000-8000-000000001010",
+      ),
+    );
     fireEvent.click(await screen.findByTestId("parse-action-start-interview"));
 
     await waitFor(() => {
@@ -175,7 +187,7 @@ describe("ParseResumeBinding", () => {
         name: "workspace",
         params: expect.objectContaining({
           targetJobId: "01918fa0-0000-7000-8000-000000002000",
-          resumeId: "01918fa0-0000-7000-8000-000000001000",
+          resumeId: "0195f2d0-0000-7000-8000-000000001010",
           autoStartPractice: "1",
           practiceMode: "strict",
           mode: "text",
