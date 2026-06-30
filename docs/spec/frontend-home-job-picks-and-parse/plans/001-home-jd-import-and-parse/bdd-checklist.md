@@ -1,8 +1,8 @@
 # 001 BDD Checklist
 
-> **版本**: 1.6
-> **状态**: completed
-> **更新日期**: 2026-05-24
+> **版本**: 1.7
+> **状态**: active
+> **更新日期**: 2026-06-30
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -27,7 +27,7 @@
 - [x] 2026-05-24 browser gate：P0.015 trigger 通过 Playwright `tests/pixel-parity/parse.spec.ts` 打开 `/parse?targetJobId=...`，fixture-backed ready response 下捕获 loading DOM screenshot，断言 preview 在 loading window 内缺席且 tick 完成后出现；verify.sh 要求 `E2E.P0.015 ready-response loading browser gate screenshotBytes=` marker。 <!-- evidence: `.test-output/e2e/p0-015-jd-import-and-parse/trigger.log` includes Playwright parse.spec ready-response browser gate + screenshotBytes marker; verify.sh PASS -->
 - [x] 2026-05-24 same-route target switch regression：P0.015 trigger 的 `ParseFlow.test.tsx` 覆盖同一 mounted `ParseScreen` 在 preview 状态切换 `targetJobId` 的 rerender 路径，断言旧 preview 被清空、loading DOM 重新出现、tick 完成后 hydrate 新 TargetJob。 <!-- evidence: `.test-output/e2e/p0-015-jd-import-and-parse/trigger.log` includes ParseFlow.test.tsx PASS; focused local Red-Green reproduced stale preview before fix -->
 
-## E2E.P0.016 Parse 编辑 + Confirm → workspace（含 auth pending action）
+## E2E.P0.016 Parse 编辑 + 绑定简历 + Save/Start handoff
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/`，含 `README.md`
 - [x] 准备 fixture variant：`updateTargetJob.json` 至少 2 个 variant（成功 / 4xx）；signed-in / signed-out 两种状态切换入口
@@ -36,6 +36,8 @@
 - [x] 记录验证证据：updateTargetJob request body 截取 + auth pending action 路径流 + interviewContext 字段集合断言
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.016 行（关联需求 C-5, C-7，状态 Ready，automated）
 - [x] 2026-05-24 browser route/context gate：P0.016 trigger 通过 Playwright `tests/pixel-parity/parse.spec.ts` 打开 `/parse?targetJobId=...`，mock generated API 返回 ready TargetJob，点击 Confirm 后验证 `/workspace` query 携带 `targetJobId` / `jobId` / `jdId` / `planId` / `resumeVersionId` / `roundId` / `roundName`，并捕获 `workspace-missing-resume` screenshot；verify.sh 要求 `E2E.P0.016 parse confirm workspace browser gate contextKeys=targetJobId,jobId,jdId,planId,resumeVersionId,roundId,roundName screenshotBytes=` marker。 <!-- evidence: `.test-output/e2e/p0-016-parse-confirm-to-workspace/trigger.log` includes focused Playwright parse.spec confirm gate desktop/mobile PASS and screenshotBytes markers; verify.sh PASS -->
+- [x] 2026-06-30 resume binding gate：P0.016 trigger / verify / README / expected outcome 必须改为验证 Parse 成功出口携带真实 ready `resumeId`，`仅保存规划` 不再渲染 `workspace-missing-resume`，`立即面试` 通过 `workspace autoStartPractice=1` handoff 创建 session 后到 `practice`；verify.sh 必须拒绝 `resume-unbound` 成功 marker。
+  - Evidence 2026-06-30: `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/scripts/setup.sh`, `trigger.sh`, `verify.sh`, and `cleanup.sh` all exited 0. Trigger ran `targetJob.realApiMode.test.ts`, focused Parse Vitest tests, frontend build, and Playwright markers `parse save-plan workspace browser gate ... resumeId=01918fa0-0000-7000-8000-000000001000` plus `parse start-interview autoStart browser gate ... route=practice`.
 
 ## E2E.P0.017 jd_match P1 Placeholder Smoke
 

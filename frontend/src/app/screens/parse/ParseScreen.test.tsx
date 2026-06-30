@@ -138,9 +138,12 @@ describe("ParseScreen", () => {
 
     expect(screen.getByTestId("parse-hidden-signal-0")).toBeInTheDocument();
     expect(screen.getByTestId("parse-round-0")).toBeInTheDocument();
+    expect(screen.getByTestId("parse-launch")).toBeInTheDocument();
     expect(screen.getByTestId("parse-action-cancel")).toBeInTheDocument();
     expect(screen.getByTestId("parse-action-reparse")).toBeInTheDocument();
-    expect(screen.getByTestId("parse-action-confirm")).toBeInTheDocument();
+    expect(screen.getByTestId("parse-action-save-plan")).toBeInTheDocument();
+    expect(screen.getByTestId("parse-action-start-interview")).toBeInTheDocument();
+    expect(screen.queryByTestId("parse-action-confirm")).not.toBeInTheDocument();
   });
 
   it("level and language fields are read-only", () => {

@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder Checklist
 
-> **版本**: 1.6
-> **状态**: completed
-> **更新日期**: 2026-05-24
+> **版本**: 1.7
+> **状态**: active
+> **更新日期**: 2026-06-30
 
 **关联计划**: [plan](./plan.md)
 
@@ -107,3 +107,14 @@
 - [x] 6.11 BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016` / `E2E.P0.017` 全部 setup→trigger→verify→cleanup PASS + D1+D2+D3 P0.001/002/004/005/006 regression PASS
 <!-- verified: 2026-05-08 method=scenario P0.014/P0.015/P0.016/P0.017 plus P0.001/P0.002/P0.004/P0.005/P0.006 all setup→trigger→verify→cleanup PASS -->
 - [x] 6.12 L2 remediation：真实 backend 联调闭环。新增 `frontend/src/api/targetJob.realApiMode.test.ts` 覆盖 `VITE_EI_API_MODE=real` 下 `listTargetJobs` / `createUploadPresign` / `importTargetJob` / `getTargetJob` / `updateTargetJob` 的真实 backend base URL、`credentials: "include"`、默认无 fixture `Prefer` header、3 个 side-effect `Idempotency-Key` 与 `GenerationProvenance` roundtrip；P0.014-P0.016 trigger/verify 必须先跑该 real-mode gate 再跑 fixture-backed UI variants；原地更新 plan/spec/BDD/scenario docs，删除 TargetJobs/import/parse 仍为 `not-yet-implemented` 的 stale 口径；重跑 P0.014-P0.016 + backend P0.010-P0.013 + upload focused route/handler tests + docs drift gates。 <!-- evidence: 2026-05-22 focused real-mode vitest PASS (1 file / 1 test); P0.014 PASS (real gate 1/1 + Home 3 files / 22 tests); P0.015 PASS (real gate 1/1 + Home/Parse import flow 7 files / 54 tests; existing React act warnings only); P0.016 PASS (real gate 1/1 + Parse confirm 2 files / 13 tests); backend P0.010/P0.011/P0.012/P0.013 all setup→trigger→verify→cleanup PASS; backend upload focused tests PASS (`go test ./cmd/api -run TestBuildUploadRoutesAlignsIdempotencyTTLWithPresignTTL -count=1`; `go test ./internal/upload/handler -run 'TestCreateUploadPresignReturnsCreatedResponse|TestCreateUploadPresignIdempotencyReplayAndTTL' -count=1`) -->
+
+## Phase 7: Parse 简历绑定强制门禁（2026-06-30 修订）
+
+- [x] 7.1 新增 `frontend/src/app/screens/parse/ParseResumeBinding.test.tsx` 红灯：ready Parse preview 必须调用 `listResumes`，渲染 `parse-launch`、`parse-resume-binding`、`parse-action-save-plan`、`parse-action-start-interview`，默认选中最新 ready 简历；旧实现因仍只有 `parse-action-confirm` 且未调用 `listResumes` 失败。
+  - Evidence 2026-06-30: Red `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/parse/ParseResumeBinding.test.tsx` failed with `expected "listResumes" to be called 1 times, but got 0 times`; Green same command passed after `ParseScreen` added resume binding.
+- [x] 7.2 实现 Parse resume binding：`ParseScreen` 读取 `listResumes`，过滤 `parseStatus=ready` 且未 archived 的简历，默认按 `updatedAt desc` 选中；渲染简历绑定卡、简历选择弹窗 / 列表锚点和创建简历入口；无 ready 简历或读取失败时禁用 `立即面试` 与 `仅保存规划`，点击 `parse-resume-create` 导航 `resume_versions` `{ flow: "create" }`。
+  - Evidence 2026-06-30: `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/parse/ParseResumeBinding.test.tsx` passed 3 tests covering ready default binding, resume switching, empty-state disabled actions, and `resume_versions(flow=create)` navigation.
+- [x] 7.3 修复 Parse handoff：`仅保存规划` 保存 `updateTargetJob` 后进入 `workspace` 并携带真实 `resumeId`；`立即面试` 保存同一编辑字段后进入 `workspace` 并携带 `autoStartPractice=1`，由现有 workspace `useStartPractice` 链路创建 session 后进入 `practice`；focused tests 反向断言 `resume-unbound` 不在成功 params 中，未登录且无 verified ready 简历时不得产生成功 pendingAction。
+  - Evidence 2026-06-30: `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/parse` passed 6 files / 32 tests, including Save plan real `resumeId`, Start interview `autoStartPractice=1`, and unauthenticated disabled no-handoff negative coverage.
+- [x] 7.4 BDD-Gate: 修订并验证 `E2E.P0.016`：trigger/verify/README/expected outcome 证明 Parse 成功出口不再渲染 `workspace-missing-resume`，并拒绝 `resume-unbound` 成功 marker。
+  - Evidence 2026-06-30: `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` all PASS. Trigger includes real API gate, focused Parse Vitest, frontend build, and Playwright desktop/mobile Save/Start browser gates with real ready `resumeId`.

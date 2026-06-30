@@ -1,8 +1,8 @@
 # 001 BDD Plan
 
-> **版本**: 1.3
-> **状态**: completed
-> **更新日期**: 2026-05-24
+> **版本**: 1.4
+> **状态**: active
+> **更新日期**: 2026-06-30
 
 **关联 Plan**: [plan](./plan.md)
 
@@ -12,7 +12,7 @@
 |---------|------|-----------|--------------|----------------------------|
 | E2E.P0.014 | primary path · home 默认渲染 | Phase 1 + 2 | C-1, C-4 | Phase 1.5、Phase 2.6 |
 | E2E.P0.015 | primary path · paste→import→parse 主路径 + alternate path（upload / URL variants） + failure path（4xx / failed） | Phase 3 + 4 | C-2, C-3, C-6 | Phase 3.6、Phase 4.10 |
-| E2E.P0.016 | primary path · parse 编辑 + Confirm → workspace + failure（updateTargetJob 4xx）+ alternate（auth pending action） | Phase 4 | C-5, C-7 | Phase 4.10 |
+| E2E.P0.016 | primary path · parse 编辑 + 绑定简历 + Save/Start handoff + failure（updateTargetJob 4xx）+ empty resume gate | Phase 4 + Phase 7 | C-5, C-7, C-17 | Phase 4.10 + Phase 7.4 |
 | E2E.P0.017 | regression / legacy-negative · jd_match P1 placeholder smoke + 旧 prototype 业务 testid 反向 grep | Phase 5 | C-8 | Phase 5.5 |
 
 ---
@@ -33,11 +33,11 @@ E2E.P0.014-P0.016 的 UI 子用例继续使用 fixture-backed component transpor
 |---------|------|-------|------|------|----------|
 | E2E.P0.015 | Paste/Upload/URL → import → parse loading → preview | 用户已登录，importTargetJob fixture 返回 `{ targetJobId: "uuid", job }`，createUploadPresign fixture 返回 `fileObjectId`，getTargetJob fixture 配置 `analysisStatus` 序列 `queued → processing → ready` 与 `failed` 两种 variant | 用户在 home 分别走三条路径：（A）粘贴 JD 文本点 Submit；（B）打开 upload modal 拖入 placeholder 文件后 Continue；（C）打开 URL modal 输入 URL 后 Continue；并在解析过程中切换 `failed` variant 触发失败态 | （1）A/C 路径分别提交 `source.type=manual_text|url` 的 `ImportTargetJobRequest`；B 路径先调用 `createUploadPresign` `purpose=target_job_attachment` 并把返回 `fileObjectId` 写入 `source.type=file`；side-effect 调用均带 `Idempotency-Key`；（2）成功响应后 route 跳 `parse?targetJobId=…&source=…`；（3）Parse 屏先渲染 `parse-loading-step-${0..3}` + `parse-loading-footer`，按 ≥600ms 节奏推进，footer 只展示 backend parse metadata / fixture metadata，不触发任何 LLM/provider 请求；（4）`analysisStatus=ready` 后切到 preview，渲染 fixture/backend response 中 title/companyName/locationText/requirements/summary.interviewHypotheses/summary.coreThemes/fitSummary.riskSignals，且 summary/fitSummary `GenerationProvenance` 可追溯；（5）`analysisStatus=failed` variant 下显示 failed UI（重新解析 / 返回首页 2 button），不展示伪造 preview；（6）JD raw text 在 console / URL / localStorage / telemetry 全部 0 命中；（7）4xx import / presign 响应触发 inline 错误并保留 textarea/modal 输入；（8）network/client spy 只允许 generated `createUploadPresign`、TargetJobs client + existing shell runtime/auth 调用，不允许前端直连 AI provider、prompt registry 或 provider-specific endpoint | `test/scenarios/e2e/p0-015-jd-import-and-parse/` |
 
-## Phase 4: Parse 编辑 + Confirm → workspace（含 auth pending action）
+## Phase 4 / 7: Parse 编辑 + 绑定简历 + Save/Start handoff
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.016 | Parse 编辑 + Confirm → workspace + auth pending action | 用户在 parse 屏 preview 阶段；分两子场景：（A）已登录；（B）未登录 | 用户编辑 title 字段、修改 location、切换若干 hit toggle，点击 Confirm | （A 已登录）（1）调 `updateTargetJob(targetJobId, body, { idempotencyKey })` body 仅含 supplied fields（titleHint / locationText 等，至多 4 字段），不含 hit toggle 状态、summary、fitSummary 或 hidden signals，并带 `Idempotency-Key`；（2）成功后 route 跳 `workspace?targetJobId=&jobId=&jdId=&planId=&resumeVersionId=&roundId=&roundName=`，7 字段完整携带；（3）默认 `resume-unbound` handoff 渲染 `workspace-missing-resume`；（4）`updateTargetJob` 4xx 触发 inline 错误并保留编辑态；（B 未登录）（1）Confirm 触发 `requestAuth({ type: "confirm_interview", route: "workspace", params })`；（2）route 跳 `auth_login`；（3）登录成功后 route 自动跳 `workspace` 携带原 7 字段 params；（C 通用）（1）Re-parse 重置 stage=loading 并重新轮询 `getTargetJob`，不直接调用 LLM；（2）Cancel 跳 `home`；（3）JD raw text / provenance 完整 hash 不出现在 URL / localStorage / telemetry；（4）browser gate 输出完整 contextKeys + screenshotBytes marker | `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/` |
+| E2E.P0.016 | Parse 编辑 + 绑定简历 + Start/Save handoff | 用户在 parse 屏 preview 阶段，`listResumes` 返回 ready 简历；另有 empty/failed 变体 | 用户编辑 title 字段、选择简历，分别点击 `仅保存规划` 与 `立即面试` | （A 保存规划）（1）调 `updateTargetJob(targetJobId, body, { idempotencyKey })` body 仅含 supplied fields，不含 hit toggle 状态、summary、fitSummary 或 hidden signals；（2）成功后 route 跳 `workspace?targetJobId=&jobId=&jdId=&planId=&resumeId=&roundId=&roundName=`，`resumeId` 为真实 ready 简历 id，禁止 `resume-unbound`；（3）不渲染 `workspace-missing-resume` 成功态；（B 立即面试）（1）调同一保存路径后进入 `workspace` 并携带 `autoStartPractice=1`，由 workspace `useStartPractice` 创建 session 后进入 `practice`；（2）handoff / pendingAction params 携带真实 `resumeId`；（C 无 ready 简历）（1）`立即面试` 与 `仅保存规划` disabled；（2）`parse-resume-create` 导航 `resume_versions?flow=create`；（D 通用）Re-parse / Cancel / 隐私负向保持原有要求；browser gate 输出真实 resumeId context marker，并拒绝 `workspace-missing-resume` / `resume-unbound` 成功 marker | `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/` |
 
 ## Phase 5: jd_match P1 Placeholder Shell
 

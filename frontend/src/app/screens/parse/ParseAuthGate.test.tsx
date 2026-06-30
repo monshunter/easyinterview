@@ -12,6 +12,7 @@ import { NavigationProvider } from "../../navigation/NavigationProvider";
 import { AppRuntimeProvider } from "../../runtime/AppRuntimeProvider";
 import { ParseScreen } from "./ParseScreen";
 
+import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
 
@@ -36,7 +37,7 @@ function createUnauthClient() {
   };
 
   const fetch = createFixtureBackedFetch(
-    createFixtureRegistry([getMeFixture, readyFixture]),
+    createFixtureRegistry([getRuntimeConfigFixture, getMeFixture, readyFixture]),
   );
   return new EasyInterviewClient({ fetch });
 }
@@ -80,35 +81,26 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("ParseAuthGate — confirm", () => {
-  it("redirects to auth_login when unauthenticated user clicks Confirm", async () => {
+describe("ParseAuthGate — resume-required launch", () => {
+  it("keeps save and start disabled for unauthenticated users without a verified ready resume", async () => {
     const client = createUnauthClient();
     const { navigate } = await renderReadyUnauth(client);
     const updateSpy = vi.spyOn(client, "updateTargetJob");
+    const listSpy = vi.spyOn(client, "listResumes");
 
-    await screen.findByTestId("parse-action-confirm");
-    screen.getByTestId("parse-action-confirm").click();
+    const saveBtn = await screen.findByTestId("parse-action-save-plan");
+    const startBtn = await screen.findByTestId("parse-action-start-interview");
 
-    await waitFor(() => {
-      expect(navigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: "auth_login",
-          params: expect.objectContaining({
-            pendingRoute: "workspace",
-            pendingType: "confirm_interview",
-            targetJobId: "01918fa0-0000-7000-8000-000000002000",
-            jobId: "01918fa0-0000-7000-8000-000000002000",
-            jdId: "jd-01918fa0-0000-7000-8000-000000002000",
-            planId: "plan-01918fa0-0000-7000-8000-000000002000",
-            resumeId: "resume-unbound",
-            roundId: "round-technical-1",
-            roundName: "Technical Round 1",
-          }),
-        }),
-      );
-    });
+    expect(saveBtn).toBeDisabled();
+    expect(startBtn).toBeDisabled();
+    expect(screen.getByTestId("parse-resume-empty")).toBeInTheDocument();
+    expect(screen.queryByTestId("parse-action-confirm")).not.toBeInTheDocument();
 
-    // Should not call updateTargetJob when unauthenticated
+    saveBtn.click();
+    startBtn.click();
+
+    expect(navigate).not.toHaveBeenCalled();
     expect(updateSpy).not.toHaveBeenCalled();
+    expect(listSpy).not.toHaveBeenCalled();
   });
 });

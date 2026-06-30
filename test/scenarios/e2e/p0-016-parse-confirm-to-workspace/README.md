@@ -1,4 +1,4 @@
-# E2E.P0.016 — Parse Confirm + Edit → Workspace (with Auth Gate)
+# E2E.P0.016 — Parse Resume Binding + Save/Start Handoff
 
 > **Scenario ID**: E2E.P0.016
 > **Owner**: frontend-home-job-picks-and-parse/001-home-jd-import-and-parse
@@ -7,19 +7,21 @@
 
 ## Scope
 
-Verifies the parse preview editing and confirm flow:
+Verifies the parse preview editing and resume-bound launch flow:
 - Edit title/company/location/notes in Basic fields
 - Level/language read-only (no input elements)
 - Hit toggle cycling (false → true → partial → false)
-- Confirm calls updateTargetJob with only supplied fields + Idempotency-Key
-- Successful confirm navigates to workspace with interviewContext params
+- Parse preview reads ready resumes and requires a bound resume before exit
+- Save plan / Start interview call updateTargetJob with only supplied fields + Idempotency-Key
+- Successful save navigates to workspace with real resumeId interviewContext params
+- Successful start uses workspace autoStartPractice=1 and reaches practice
 - 4xx inline error preserves editing state
-- Authenticated: direct confirm → workspace
-- Unauthenticated: confirm → requestAuth → auth_login with pendingAction=confirm_interview
+- Unauthenticated without a verified ready resume: Save/Start disabled, no pendingAction
 
 ## Fixture Variants
 
 - `openapi/fixtures/TargetJobs/updateTargetJob.json`: success + 4xx validation
+- `openapi/fixtures/Resumes/listResumes.json`: ready list + empty variant
 - `openapi/fixtures/Auth/getMe.json`: authenticated + unauthenticated
 
 ## Verification Points
@@ -29,22 +31,24 @@ Verifies the parse preview editing and confirm flow:
 - Level/language NOT in request body
 - Idempotency-Key header present
 - Real backend mode generated-client gate for TargetJobs read/update and import path operations
-- Nav to workspace with 7 interviewContext fields
-- Browser-level Confirm click reaches `/workspace` with all 7 interviewContext query params and renders the `workspace-missing-resume` next-step state for the default `resume-unbound` handoff
-- Auth pending action triggers correctly
+- Nav to workspace with real `resumeId` interviewContext fields
+- Browser-level Save plan reaches `/workspace` with real ready `resumeId` and does not render `workspace-missing-resume`
+- Browser-level Start interview reaches `practice` through workspace `autoStartPractice=1`
+- `resume-unbound` never appears in success markers
 - 4xx error inline, edit state preserved
 
 ## Scripts
 
 - `scripts/setup.sh` — auth state selection (signed-in/out)
-- `scripts/trigger.sh` — execute confirm flow (A: auth, B: unauth, C: 4xx)
-- `scripts/verify.sh` — assert request body schema, auth gate, nav params
+- `scripts/trigger.sh` — execute save/start flow (A: bound save, B: bound start, C: empty resume gate, D: 4xx)
+- `scripts/verify.sh` — assert request body schema, disabled unauth/empty gate, nav params, no `resume-unbound`
 - `scripts/cleanup.sh` — reset auth state
 
 ## Offline Limitations
 
 - Requires getMe fixture variant for auth state selection
 - Requires updateTargetJob fixture for success/error paths
+- Requires listResumes fixture for ready/empty variants
 
 ## Real Backend Overlay
 
@@ -56,16 +60,16 @@ Verifies the parse preview editing and confirm flow:
   base URL with cookie credentials, Idempotency-Key side effects, and
   provenance roundtrip.
 - The parse edit/auth UI subcases remain fixture-backed for deterministic
-  request-body, auth pending action, 4xx, and workspace navigation assertions.
+  request-body, empty/unauth disabled gate, 4xx, and workspace/practice handoff assertions.
   Backend E2E.P0.010-P0.013 pair this frontend routing proof with live
   TargetJob route/persistence/auth/IK/privacy/provenance semantics.
 
 ## Browser Route/Context Gate
 
 - The trigger builds `frontend/dist` and runs Playwright
-  `tests/pixel-parity/parse.spec.ts --grep "confirm navigates to workspace missing-resume with complete interview context"`.
+  `tests/pixel-parity/parse.spec.ts --grep "save plan navigates|start interview hands off"`.
 - The browser gate opens `/parse?targetJobId=...`, mocks generated API
-  responses, clicks Confirm, asserts `updateTargetJob` body/Idempotency-Key,
+  responses, clicks Save plan and Start interview, asserts `updateTargetJob` body/Idempotency-Key,
   verifies `/workspace` carries `targetJobId / jobId / jdId / planId /
-  resumeId / roundId / roundName`, and captures a non-empty screenshot
-  of `workspace-missing-resume`.
+  resumeId / roundId / roundName` with a real ready resume, verifies Start reaches
+  `practice`, and rejects `workspace-missing-resume` / `resume-unbound` success markers.

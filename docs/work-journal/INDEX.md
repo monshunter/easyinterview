@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-06-30](2026-06-30.md) | `fix(frontend-home): require resume binding before practice (BUG-0130)` | #fix #ui #test #docs #bdd |
 | [2026-06-30](2026-06-30.md) | `fix(core-loop): close pruning gate drift (BUG-0129)` | #fix #test #docs #api |
 | [2026-06-29](2026-06-29.md) | `fix(core-loop): close pruning review drift (BUG-0128)` | #fix #ui #test #docs |
 | [2026-06-29](2026-06-29.md) | `feat(core-loop): prune debrief and profile modules` | #feat #api #ui #test #docs #bdd |

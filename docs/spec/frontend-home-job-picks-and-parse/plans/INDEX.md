@@ -8,10 +8,10 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| [001-home-jd-import-and-parse](./001-home-jd-import-and-parse/plan.md) | [plan](./001-home-jd-import-and-parse/plan.md) / [checklist](./001-home-jd-import-and-parse/checklist.md) / [context](./001-home-jd-import-and-parse/context.yaml) / [bdd-plan](./001-home-jd-import-and-parse/bdd-plan.md) / [bdd-checklist](./001-home-jd-import-and-parse/bdd-checklist.md) | 1.7 | active | 2026-06-30 |
 
 ## 2 已完成（Completed）
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-home-jd-import-and-parse](./001-home-jd-import-and-parse/plan.md) | [plan](./001-home-jd-import-and-parse/plan.md) / [checklist](./001-home-jd-import-and-parse/checklist.md) / [context](./001-home-jd-import-and-parse/context.yaml) / [bdd-plan](./001-home-jd-import-and-parse/bdd-plan.md) / [bdd-checklist](./001-home-jd-import-and-parse/bdd-checklist.md) | 1.6 | completed | 2026-05-24 |
 | [002-jd-match-recommendations](./002-jd-match-recommendations/plan.md) | [plan](./002-jd-match-recommendations/plan.md) / [checklist](./002-jd-match-recommendations/checklist.md) / [context](./002-jd-match-recommendations/context.yaml) / [bdd-plan](./002-jd-match-recommendations/bdd-plan.md) / [bdd-checklist](./002-jd-match-recommendations/bdd-checklist.md) | 2.0 | completed | 2026-06-13 |

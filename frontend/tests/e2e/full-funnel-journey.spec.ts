@@ -75,16 +75,11 @@ test("E2E.P0.099 full funnel import to next-round practice", async ({
 
   await expect(page.getByTestId("route-parse")).toBeVisible();
   await expect(page.locator("[data-testid^='parse-loading-step-']")).toHaveCount(4);
-  await expect(page.getByTestId("parse-action-confirm")).toBeVisible({
+  await expect(page.getByTestId("parse-resume-binding")).toBeVisible({
     timeout: 20_000,
   });
-
-  await page.getByTestId("parse-action-confirm").click();
-  await expect(page.getByTestId("workspace-cta-start")).toBeVisible({
-    timeout: 10_000,
-  });
-
-  await page.getByTestId("workspace-cta-start").click();
+  await expect(page.getByTestId("parse-action-start-interview")).toBeEnabled();
+  await page.getByTestId("parse-action-start-interview").click();
   const practice = page.getByTestId("practice-screen");
   await expect(practice).toBeVisible({ timeout: 20_000 });
   const firstSessionId = await practice.getAttribute("data-session-id");

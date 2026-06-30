@@ -12,8 +12,11 @@ import { NavigationProvider } from "../../navigation/NavigationProvider";
 import { AppRuntimeProvider } from "../../runtime/AppRuntimeProvider";
 import { ParseScreen } from "./ParseScreen";
 
+import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
+import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
 import updateTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/updateTargetJob.json";
+import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
 
 const LOADING_PREVIEW_DELAY = 3200;
 
@@ -39,8 +42,11 @@ function makeReadyFixture() {
 function createClient() {
   const fetch = createFixtureBackedFetch(
     createFixtureRegistry([
+      getRuntimeConfigFixture,
+      getMeFixture,
       makeReadyFixture(),
       updateTargetJobFixture,
+      listResumesFixture,
     ]),
     { scenario: "default" },
   );
@@ -182,14 +188,14 @@ describe("ParseEdit — inline editing", () => {
   });
 });
 
-describe("ParseEdit — confirm call", () => {
-  it("calls updateTargetJob on Confirm with only supplied fields", async () => {
+describe("ParseEdit — save plan call", () => {
+  it("calls updateTargetJob on Save plan with only supplied fields and a real resumeId", async () => {
     const client = createClient();
     const spy = vi.spyOn(client, "updateTargetJob");
     const { navigate } = await renderReadyParse(client);
 
-    const confirmBtn = await screen.findByTestId("parse-action-confirm");
-    fireEvent.click(confirmBtn);
+    const saveBtn = await screen.findByTestId("parse-action-save-plan");
+    fireEvent.click(saveBtn);
 
     await waitFor(() => {
       expect(spy).toHaveBeenCalledTimes(1);
@@ -221,12 +227,14 @@ describe("ParseEdit — confirm call", () => {
           jobId: "01918fa0-0000-7000-8000-000000002000",
           jdId: "jd-01918fa0-0000-7000-8000-000000002000",
           planId: "plan-01918fa0-0000-7000-8000-000000002000",
-          resumeId: "resume-unbound",
+          resumeId: "01918fa0-0000-7000-8000-000000001000",
           roundId: "round-technical-1",
           roundName: "Technical Round 1",
         }),
       });
     });
+    const params = navigate.mock.calls[0]?.[0].params as Record<string, string>;
+    expect(JSON.stringify(params)).not.toContain("resume-unbound");
   });
 
   it("shows inline error on updateTargetJob 4xx", async () => {
@@ -248,21 +256,27 @@ describe("ParseEdit — confirm call", () => {
     };
 
     const fetch = createFixtureBackedFetch(
-      createFixtureRegistry([makeReadyFixture(), errorFixture]),
+      createFixtureRegistry([
+        getRuntimeConfigFixture,
+        getMeFixture,
+        makeReadyFixture(),
+        listResumesFixture,
+        errorFixture,
+      ]),
       { scenario: "default" },
     );
     const client = new EasyInterviewClient({ fetch });
 
     await renderReadyParse(client);
 
-    const confirmBtn = await screen.findByTestId("parse-action-confirm");
-    fireEvent.click(confirmBtn);
+    const saveBtn = await screen.findByTestId("parse-action-save-plan");
+    fireEvent.click(saveBtn);
 
     await waitFor(() => {
       expect(
-        screen.getByTestId("parse-action-confirm"),
+        screen.getByTestId("parse-action-save-plan"),
       ).toBeInTheDocument();
-      // Confirm button should still be present (editing state preserved)
+      // Save button should still be present (editing state preserved)
     });
   });
 });

@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-06-30](./2026-06-30-frontend-parse-resume-binding-assessment.md) | Frontend Parse Resume Binding 交付复盘 | #assessment |
 | [2026-06-30](./2026-06-30-core-loop-pruning-gate-drift-assessment.md) | Core Loop Pruning Gate Drift 交付复盘 | #assessment |
 | [2026-06-29](./2026-06-29-core-loop-pruning-review-drift-assessment.md) | Core Loop Pruning Review Drift 交付复盘 | #assessment |
 | [2026-06-29](./2026-06-29-core-loop-module-pruning-assessment.md) | Core Loop Module Pruning 交付复盘 | #assessment |

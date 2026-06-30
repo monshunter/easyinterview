@@ -73,6 +73,10 @@ async function mockParseReadyApis(page: import("@playwright/test").Page): Promis
       await fulfillFixture(route, "openapi/fixtures/TargetJobs/getTargetJob.json");
       return;
     }
+    if (method === "GET" && path === "/resumes") {
+      await fulfillFixture(route, "openapi/fixtures/Resumes/listResumes.json");
+      return;
+    }
     await route.fulfill({
       status: 404,
       headers: { "content-type": "application/json; charset=utf-8" },
@@ -105,9 +109,25 @@ async function mockParseConfirmApis(
       await fulfillFixture(route, "openapi/fixtures/TargetJobs/getTargetJob.json");
       return;
     }
+    if (method === "GET" && path === "/resumes") {
+      await fulfillFixture(route, "openapi/fixtures/Resumes/listResumes.json");
+      return;
+    }
     if (method === "PATCH" && path.startsWith("/targets/")) {
       await onUpdateTargetJob(route.request());
       await fulfillFixture(route, "openapi/fixtures/TargetJobs/updateTargetJob.json");
+      return;
+    }
+    if (method === "POST" && path === "/practice/plans") {
+      await fulfillFixture(route, "openapi/fixtures/PracticePlans/createPracticePlan.json");
+      return;
+    }
+    if (method === "POST" && path === "/practice/sessions") {
+      await fulfillFixture(route, "openapi/fixtures/PracticeSessions/startPracticeSession.json");
+      return;
+    }
+    if (method === "GET" && path.startsWith("/practice/sessions/")) {
+      await fulfillFixture(route, "openapi/fixtures/PracticeSessions/getPracticeSession.json");
       return;
     }
     if (path.startsWith("/resumes/")) {
@@ -226,7 +246,7 @@ test.describe("parse screen DOM anchor parity", () => {
     await expect(page.locator("[data-testid='parse-basics-title']")).toBeVisible();
   });
 
-  test("confirm navigates to workspace missing-resume with complete interview context", async ({
+  test("save plan navigates to workspace with bound resume context", async ({
     page,
   }, testInfo) => {
     const updateCalls: Array<{
@@ -242,10 +262,14 @@ test.describe("parse screen DOM anchor parity", () => {
 
     await page.goto("/parse?targetJobId=01918fa0-0000-7000-8000-000000002000");
     await page.waitForSelector("[data-testid='parse-basics-title']", { timeout: 5_000 });
-    await page.click("[data-testid='parse-action-confirm']");
+    await expect(page.locator("[data-testid='parse-resume-binding']")).toContainText(
+      "Alice Example - Senior Frontend Engineer",
+    );
+    await expect(page.locator("[data-testid='parse-action-save-plan']")).toBeEnabled();
+    await page.click("[data-testid='parse-action-save-plan']");
     await page.waitForURL(/\/workspace\?/);
-    await expect(page.locator("[data-testid='workspace-missing-resume']")).toBeVisible();
-    await expect(page.locator("[data-testid='workspace-missing-resume-cta']")).toBeVisible();
+    await expect(page.locator("[data-testid='workspace-missing-resume']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='workspace-cta-start']")).toBeVisible();
 
     expect(updateCalls).toHaveLength(1);
     expect(updateCalls[0]?.idempotencyKey).toBeTruthy();
@@ -263,7 +287,7 @@ test.describe("parse screen DOM anchor parity", () => {
       jobId: "01918fa0-0000-7000-8000-000000002000",
       jdId: "jd-01918fa0-0000-7000-8000-000000002000",
       planId: "plan-01918fa0-0000-7000-8000-000000002000",
-      resumeId: "resume-unbound",
+      resumeId: "01918fa0-0000-7000-8000-000000001000",
       roundId: "round-technical-1",
       roundName: "Technical Round 1",
     };
@@ -273,16 +297,56 @@ test.describe("parse screen DOM anchor parity", () => {
     }
     expect(url.searchParams.get("rawText")).toBeNull();
     expect(url.searchParams.get("sourceUrl")).toBeNull();
+    expect(url.search).not.toContain("resume-unbound");
 
     await freezeVisualAnimations(page);
-    const screenshot = await page.locator("[data-testid='workspace-missing-resume']").screenshot();
-    await testInfo.attach("parse-confirm-workspace-context", {
+    const screenshot = await page.locator("[data-testid='workspace-launcher']").screenshot();
+    await testInfo.attach("parse-save-plan-workspace-bound-resume", {
       body: screenshot,
       contentType: "image/png",
     });
     expect(screenshot.length).toBeGreaterThan(10_000);
     console.log(
-      `E2E.P0.016 parse confirm workspace browser gate contextKeys=${Object.keys(expectedParams).join(",")} screenshotBytes=${screenshot.length}`,
+      `E2E.P0.016 parse save-plan workspace browser gate contextKeys=${Object.keys(expectedParams).join(",")} resumeId=${expectedParams.resumeId} screenshotBytes=${screenshot.length}`,
+    );
+  });
+
+  test("start interview hands off through workspace autoStart with bound resume", async ({
+    page,
+  }) => {
+    const updateCalls: Array<{
+      body: unknown;
+      idempotencyKey: string | null;
+    }> = [];
+    await mockParseConfirmApis(page, async (request) => {
+      updateCalls.push({
+        body: request.postDataJSON(),
+        idempotencyKey: request.headers()["idempotency-key"] ?? null,
+      });
+    });
+
+    await page.goto("/parse?targetJobId=01918fa0-0000-7000-8000-000000002000");
+    await page.waitForSelector("[data-testid='parse-basics-title']", { timeout: 5_000 });
+    await expect(page.locator("[data-testid='parse-action-start-interview']")).toBeEnabled();
+    await page.click("[data-testid='parse-action-start-interview']");
+
+    await expect(page.locator("[data-testid='practice-screen']")).toBeVisible({
+      timeout: 10_000,
+    });
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0]?.idempotencyKey).toBeTruthy();
+
+    const url = new URL(page.url());
+    expect(url.pathname).toBe("/practice");
+    expect(url.searchParams.get("targetJobId")).toBe(
+      "01918fa0-0000-7000-8000-000000002000",
+    );
+    expect(url.searchParams.get("resumeId")).toBe(
+      "01918fa0-0000-7000-8000-000000001000",
+    );
+    expect(url.search).not.toContain("resume-unbound");
+    console.log(
+      "E2E.P0.016 parse start-interview autoStart browser gate resumeId=01918fa0-0000-7000-8000-000000001000 route=practice",
     );
   });
 });

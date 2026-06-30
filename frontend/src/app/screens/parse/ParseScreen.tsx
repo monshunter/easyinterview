@@ -1,4 +1,11 @@
-import { useState, useEffect, useCallback, useRef, type FC } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  type FC,
+} from "react";
 
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
@@ -6,7 +13,7 @@ import { useI18n } from "../../i18n/messages";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import { interviewContextFromTargetJob } from "../../navigation/interviewContext";
 import type { Route } from "../../routes";
-import type { TargetJob } from "../../../api/generated/types";
+import type { Resume, TargetJob } from "../../../api/generated/types";
 
 type Stage = "loading" | "preview" | "error" | "failed";
 
@@ -34,6 +41,44 @@ const loadingStepKeys = [
 const loadingStepTicks = [600, 900, 800, 700] as const;
 const loadingPreviewDelay =
   loadingStepTicks.reduce((total, tick) => total + tick, 0) + 200;
+
+const defaultPracticeParams = {
+  mode: "text",
+  modality: "text",
+  practiceMode: "strict",
+  practiceGoal: "baseline",
+  hintUsed: "false",
+  hintCount: "0",
+} as const;
+
+function isSelectableResume(resume: Resume): boolean {
+  return (
+    resume.parseStatus === "ready" &&
+    resume.status !== "archived" &&
+    !resume.deletedAt
+  );
+}
+
+function sortByMostRecentResume(a: Resume, b: Resume): number {
+  return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+}
+
+function buildInterviewParams(
+  job: TargetJob,
+  resumeId: string,
+): Record<string, string> {
+  return {
+    ...interviewContextFromTargetJob(job, { resumeId }),
+    ...defaultPracticeParams,
+    language: job.targetLanguage || "",
+  };
+}
+
+function resumeMeta(resume: Resume): string {
+  return [resume.language, resume.sourceType, resume.updatedAt.slice(0, 10)]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 function safeScrollToTop(): void {
   if (navigator.userAgent.toLowerCase().includes("jsdom")) return;
@@ -66,10 +111,16 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [resumesLoading, setResumesLoading] = useState(false);
+  const [readyResumes, setReadyResumes] = useState<Resume[]>([]);
+  const [selectedResumeId, setSelectedResumeId] = useState("");
+  const [resumeError, setResumeError] = useState<string | null>(null);
+  const [resumePickerOpen, setResumePickerOpen] = useState(false);
   const [pollNonce, setPollNonce] = useState(0);
   const [pendingReadyJob, setPendingReadyJob] = useState<TargetJob | null>(null);
   const [loadingComplete, setLoadingComplete] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resumeRequestSeqRef = useRef(0);
 
   const steps = loadingStepKeys;
   const targetJobId =
@@ -99,6 +150,10 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     setHitToggles({});
     setErrorMessage(null);
     setConfirmError(null);
+    setReadyResumes([]);
+    setSelectedResumeId("");
+    setResumeError(null);
+    setResumePickerOpen(false);
     setPendingReadyJob(null);
     setLoadingComplete(false);
     setStep(0);
@@ -198,6 +253,72 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     }
   }, [_mockTargetJob, hydrateReadyJob]);
 
+  useEffect(() => {
+    const client = runtime?.client;
+    const authenticated = runtime?.auth.status === "authenticated";
+    const routeResumeId =
+      typeof route.params.resumeId === "string"
+        ? route.params.resumeId.trim()
+        : "";
+
+    if (stage !== "preview" || !targetJob || !client || !authenticated) {
+      setResumesLoading(false);
+      setReadyResumes([]);
+      setSelectedResumeId("");
+      setResumeError(null);
+      setResumePickerOpen(false);
+      return;
+    }
+
+    let active = true;
+    const requestSeq = resumeRequestSeqRef.current + 1;
+    resumeRequestSeqRef.current = requestSeq;
+
+    setResumesLoading(true);
+    setResumeError(null);
+
+    client
+      .listResumes({ headers: { "Accept-Language": lang } })
+      .then((page) => {
+        if (!active || resumeRequestSeqRef.current !== requestSeq) return;
+        const ready = page.items
+          .filter(isSelectableResume)
+          .sort(sortByMostRecentResume);
+        setReadyResumes(ready);
+        setSelectedResumeId((current) => {
+          if (routeResumeId && ready.some((resume) => resume.id === routeResumeId)) {
+            return routeResumeId;
+          }
+          if (current && ready.some((resume) => resume.id === current)) {
+            return current;
+          }
+          return ready[0]?.id ?? "";
+        });
+      })
+      .catch((err: unknown) => {
+        if (!active || resumeRequestSeqRef.current !== requestSeq) return;
+        setReadyResumes([]);
+        setSelectedResumeId("");
+        setResumeError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (active && resumeRequestSeqRef.current === requestSeq) {
+          setResumesLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    lang,
+    route.params.resumeId,
+    runtime?.auth.status,
+    runtime?.client,
+    stage,
+    targetJob,
+  ]);
+
   const toggleHit = useCallback(
     (reqId: string) => {
       setHitToggles((prev) => ({
@@ -231,24 +352,13 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     safeScrollToTop();
   }, []);
 
-  const handleConfirm = useCallback(async () => {
-    if (!targetJob || confirming) return;
-    const workspaceParams: Record<string, string> = {
-      ...interviewContextFromTargetJob(targetJob, {
-        resumeId: route.params.resumeId,
-      }),
-    };
+  const selectedResume = useMemo(
+    () => readyResumes.find((resume) => resume.id === selectedResumeId) ?? null,
+    [readyResumes, selectedResumeId],
+  );
 
-    if (!runtime || runtime.auth.status === "unauthenticated") {
-      requestAuth({
-        type: "confirm_interview",
-        label: t("parse.confirm") || (lang === "en" ? "Confirm" : "确认"),
-        route: "workspace",
-        params: workspaceParams,
-      });
-      return;
-    }
-
+  const saveTargetJobEdits = useCallback(async (): Promise<boolean> => {
+    if (!targetJob || !runtime) return false;
     setConfirmError(null);
     setConfirming(true);
     const ik = `ik-${crypto.randomUUID()}`;
@@ -263,18 +373,95 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         },
         { idempotencyKey: ik },
       );
+      return true;
+    } catch (err: unknown) {
+      setConfirmError(err instanceof Error ? err.message : String(err));
+      return false;
+    } finally {
+      setConfirming(false);
+    }
+  }, [
+    editedCompany,
+    editedLocation,
+    editedNotes,
+    editedTitle,
+    runtime,
+    targetJob,
+  ]);
+
+  const handleSavePlan = useCallback(async () => {
+    if (!targetJob || !selectedResume || confirming) return;
+    const workspaceParams = buildInterviewParams(targetJob, selectedResume.id);
+
+    if (runtime?.auth.status !== "authenticated") {
+      requestAuth({
+        type: "save_interview_plan",
+        label: t("parse.savePlanOnly"),
+        route: "workspace",
+        params: workspaceParams,
+      });
+      return;
+    }
+
+    if (await saveTargetJobEdits()) {
       navigate({
         name: "workspace",
         params: workspaceParams,
       });
-    } catch (err: unknown) {
-      setConfirmError(
-        err instanceof Error ? err.message : String(err),
-      );
-    } finally {
-      setConfirming(false);
     }
-  }, [targetJob, runtime, confirming, editedTitle, editedCompany, editedLocation, editedNotes, navigate, requestAuth, t, lang]);
+  }, [
+    confirming,
+    navigate,
+    requestAuth,
+    runtime?.auth.status,
+    saveTargetJobEdits,
+    selectedResume,
+    t,
+    targetJob,
+  ]);
+
+  const handleStartInterview = useCallback(async () => {
+    if (!targetJob || !selectedResume || confirming) return;
+    const workspaceParams = {
+      ...buildInterviewParams(targetJob, selectedResume.id),
+      autoStartPractice: "1",
+    };
+
+    if (runtime?.auth.status !== "authenticated") {
+      requestAuth({
+        type: "start_practice",
+        label: t("parse.startInterview"),
+        route: "workspace",
+        params: workspaceParams,
+      });
+      return;
+    }
+
+    if (await saveTargetJobEdits()) {
+      navigate({
+        name: "workspace",
+        params: workspaceParams,
+      });
+    }
+  }, [
+    confirming,
+    navigate,
+    requestAuth,
+    runtime?.auth.status,
+    saveTargetJobEdits,
+    selectedResume,
+    t,
+    targetJob,
+  ]);
+
+  const handleCreateResume = useCallback(() => {
+    navigate({
+      name: "resume_versions",
+      params: targetJob?.id
+        ? { flow: "create", targetJobId: targetJob.id }
+        : { flow: "create" },
+    });
+  }, [navigate, targetJob?.id]);
 
   const HitDot: FC<{ hit: HitState }> = ({ hit }) => {
     const color =
@@ -623,6 +810,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     { name: t("parse.round3Name"), focus: t("parse.round3Focus") },
     { name: t("parse.round4Name"), focus: t("parse.round4Focus") },
   ];
+  const launchDisabled = !selectedResume || confirming;
 
   return (
     <section
@@ -1222,6 +1410,230 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         </div>
       </div>
 
+      {/* Interview launch */}
+      <div
+        data-testid="parse-launch"
+        className="ei-screen-card"
+        style={{
+          marginBottom: 28,
+          borderColor: selectedResume
+            ? "var(--ei-color-ok)"
+            : "var(--ei-color-warn)",
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr minmax(260px, 360px)",
+            gap: 24,
+            alignItems: "start",
+          }}
+        >
+          <div>
+            <div
+              className="ei-label"
+              style={{
+                color: "var(--ei-color-fg-tertiary)",
+                marginBottom: 6,
+              }}
+            >
+              {t("parse.launchTitle")}
+            </div>
+            <div
+              className="ei-serif"
+              style={{
+                fontSize: 22,
+                color: "var(--ei-color-fg-primary)",
+                letterSpacing: "-0.01em",
+                lineHeight: 1.25,
+                marginBottom: 8,
+              }}
+            >
+              {t("parse.launchHeading")}
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: "var(--ei-color-fg-tertiary)",
+                lineHeight: 1.5,
+                maxWidth: 620,
+              }}
+            >
+              {t("parse.launchSub")}
+            </div>
+          </div>
+
+          <div
+            data-testid="parse-resume-binding"
+            style={{
+              padding: 14,
+              background: "var(--ei-color-bg-soft)",
+              border: "1px solid var(--ei-color-rule-strong)",
+              borderRadius: "var(--ei-radius-sm)",
+            }}
+          >
+            <div
+              className="ei-label"
+              style={{
+                color: selectedResume
+                  ? "var(--ei-color-ok)"
+                  : "var(--ei-color-warn)",
+                marginBottom: 8,
+              }}
+            >
+              {t("parse.resumeBinding")}
+            </div>
+
+            {resumesLoading ? (
+              <div
+                data-testid="parse-resume-loading"
+                style={{
+                  fontSize: 13,
+                  color: "var(--ei-color-fg-tertiary)",
+                  lineHeight: 1.5,
+                }}
+              >
+                {t("parse.resumeLoading")}
+              </div>
+            ) : selectedResume ? (
+              <>
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "var(--ei-color-fg-primary)",
+                    lineHeight: 1.35,
+                    marginBottom: 4,
+                  }}
+                >
+                  {selectedResume.displayName || selectedResume.title}
+                </div>
+                <div
+                  style={{
+                    fontSize: 11.5,
+                    color: "var(--ei-color-fg-tertiary)",
+                    fontFamily: "var(--ei-font-mono)",
+                    marginBottom: 12,
+                  }}
+                >
+                  {resumeMeta(selectedResume)}
+                </div>
+                <button
+                  data-testid="parse-resume-picker-toggle"
+                  onClick={() => setResumePickerOpen((open) => !open)}
+                  style={{
+                    padding: "7px 12px",
+                    fontSize: 12.5,
+                    fontFamily: "var(--ei-font-sans)",
+                    background: "transparent",
+                    border: "1px solid var(--ei-color-rule-strong)",
+                    borderRadius: "var(--ei-radius-sm)",
+                    color: "var(--ei-color-fg-primary)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {t("parse.resumeChange")}
+                </button>
+              </>
+            ) : (
+              <div data-testid="parse-resume-empty">
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "var(--ei-color-fg-primary)",
+                    marginBottom: 4,
+                  }}
+                >
+                  {t("parse.resumeEmptyTitle")}
+                </div>
+                <div
+                  style={{
+                    fontSize: 12.5,
+                    color: "var(--ei-color-fg-tertiary)",
+                    lineHeight: 1.5,
+                    marginBottom: 12,
+                  }}
+                >
+                  {resumeError ?? t("parse.resumeEmptyBody")}
+                </div>
+                <button
+                  data-testid="parse-resume-create"
+                  onClick={handleCreateResume}
+                  style={{
+                    padding: "7px 12px",
+                    fontSize: 12.5,
+                    fontFamily: "var(--ei-font-sans)",
+                    background: "var(--ei-color-accent)",
+                    border: "none",
+                    borderRadius: "var(--ei-radius-sm)",
+                    color: "#fff",
+                    cursor: "pointer",
+                  }}
+                >
+                  {t("parse.resumeCreate")}
+                </button>
+              </div>
+            )}
+
+            {resumePickerOpen && readyResumes.length > 1 && (
+              <div
+                data-testid="parse-resume-picker"
+                style={{
+                  marginTop: 12,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                {readyResumes.map((resume) => {
+                  const active = resume.id === selectedResumeId;
+                  return (
+                    <button
+                      key={resume.id}
+                      data-testid={`parse-resume-option-${resume.id}`}
+                      onClick={() => {
+                        setSelectedResumeId(resume.id);
+                        setResumePickerOpen(false);
+                      }}
+                      style={{
+                        textAlign: "left",
+                        padding: "9px 10px",
+                        background: active
+                          ? "var(--ei-color-accent-soft)"
+                          : "transparent",
+                        border: `1px solid ${
+                          active
+                            ? "var(--ei-color-accent)"
+                            : "var(--ei-color-rule-strong)"
+                        }`,
+                        borderRadius: "var(--ei-radius-sm)",
+                        color: "var(--ei-color-fg-primary)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={{ fontSize: 12.5, fontWeight: 600 }}>
+                        {resume.displayName || resume.title}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "var(--ei-color-fg-tertiary)",
+                          fontFamily: "var(--ei-font-mono)",
+                          marginTop: 2,
+                        }}
+                      >
+                        {resumeMeta(resume)}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Footer actions */}
       {confirmError && (
         <div
@@ -1293,8 +1705,28 @@ export const ParseScreen: FC<ParseScreenProps> = ({
             {t("parse.reparse")}
           </button>
           <button
-            data-testid="parse-action-confirm"
-            onClick={handleConfirm}
+            data-testid="parse-action-save-plan"
+            onClick={handleSavePlan}
+            disabled={launchDisabled}
+            style={{
+              padding: "8px 18px",
+              fontSize: 13.5,
+              fontFamily: "var(--ei-font-sans)",
+              background: "var(--ei-color-bg-soft)",
+              border: "1px solid var(--ei-color-rule-strong)",
+              borderRadius: "var(--ei-radius-sm)",
+              color: "var(--ei-color-fg-primary)",
+              cursor: launchDisabled ? "not-allowed" : "pointer",
+              opacity: launchDisabled ? 0.5 : 1,
+              fontWeight: 500,
+            }}
+          >
+            {t("parse.savePlanOnly")}
+          </button>
+          <button
+            data-testid="parse-action-start-interview"
+            onClick={handleStartInterview}
+            disabled={launchDisabled}
             style={{
               padding: "8px 18px",
               fontSize: 13.5,
@@ -1303,11 +1735,12 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               border: "none",
               borderRadius: "var(--ei-radius-sm)",
               color: "#fff",
-              cursor: "pointer",
+              cursor: launchDisabled ? "not-allowed" : "pointer",
+              opacity: launchDisabled ? 0.5 : 1,
               fontWeight: 500,
             }}
           >
-            {t("parse.confirm")}
+            {t("parse.startInterview")}
           </button>
         </div>
       </div>
