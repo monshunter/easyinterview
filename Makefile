@@ -14,7 +14,7 @@ SCENARIO_ENV_CLEANUP := $(ROOT_DIR)/test/scenarios/env-cleanup.sh
 SCENARIO_ENV_REDEPLOY := $(ROOT_DIR)/test/scenarios/env-redeploy.sh
 TARGET ?= all
 
-.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-legacy lint-runner-legacy lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-secrets-pattern lint-observability lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build eval-offline eval-offline-resolve dev-up dev-down dev-doctor dev-reset dev-logs dev-pull scenario-env-setup scenario-env-status scenario-env-verify scenario-env-cleanup scenario-env-redeploy codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
+.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-legacy lint-runner-legacy lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-core-loop-pruning-surface lint-secrets-pattern lint-observability lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build eval-offline eval-offline-resolve dev-up dev-down dev-doctor dev-reset dev-logs dev-pull scenario-env-setup scenario-env-status scenario-env-verify scenario-env-cleanup scenario-env-redeploy codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -23,7 +23,7 @@ fmt: ## Format Go and frontend sources (delegates to backend/ and frontend/)
 	@$(call recurse_target,fmt,backend/Makefile,backend)
 	@$(call recurse_target,fmt,frontend/Makefile,frontend)
 
-lint: lint-conventions lint-config lint-ai-profile-coverage lint-backend-practice-legacy lint-runner-legacy lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-runtime-topology lint-observability ## Lint Go and frontend sources (B1/A4/A3-F3/E1/runtime-topology/F1 local gates, then backend golangci-lint + frontend pnpm lint)
+lint: lint-conventions lint-config lint-ai-profile-coverage lint-backend-practice-legacy lint-runner-legacy lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-core-loop-pruning-surface lint-runtime-topology lint-observability ## Lint Go and frontend sources (B1/A4/A3-F3/E1/runtime-topology/F1 local gates, then backend golangci-lint + frontend pnpm lint)
 	@cd "$(ROOT_DIR)/backend" && golangci-lint run ./...
 	@pnpm --filter @easyinterview/frontend lint
 
@@ -63,6 +63,9 @@ lint-prompts-hardcode: ## lint-prompts-hardcode (F3): reject raw / long-string p
 lint-mock-contract: validate-fixtures lint-openapi ## Validate fixture coverage, registry metadata, mock runtime boundaries, and retired mock/API tokens
 	@python3 -m unittest scripts.mock_contract.fixture_registry_test
 	@python3 "$(ROOT_DIR)/scripts/lint/mock_runtime_boundary.py" --repo-root "$(ROOT_DIR)"
+
+lint-core-loop-pruning-surface: ## Bucket D-22 retired Debrief/Profile/JD Match runtime/generated references and fail real residuals
+	@python3 "$(ROOT_DIR)/scripts/lint/core_loop_pruning_surface.py" --repo-root "$(ROOT_DIR)"
 
 lint-secrets-pattern: ## Scan staged + tracked files for AKIA / sk- / xox secret prefixes (defense-in-depth; pre-commit hook is the primary gate)
 	@bash "$(ROOT_DIR)/scripts/lint/gitleaks.sh" "$(ROOT_DIR)"

@@ -702,7 +702,7 @@ export const en: LocaleMessages = {
   "practice.rightpanel.jdProbesSkeleton": "Loading probe…",
   "practice.rightpanel.experienceLabel": "RELEVANT EXPERIENCE",
   "practice.rightpanel.strictBanner":
-    "Strict mode · hints and experience cards are hidden.",
+    "Strict mode · hints and resume evidence are hidden.",
   "practice.rightpanel.aiTransparency": "AI TRANSPARENCY",
   "practice.rightpanel.finishCta": "Finish & generate report",
   "practice.rightpanel.hintUsageNote":

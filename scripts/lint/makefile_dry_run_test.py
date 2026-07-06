@@ -119,6 +119,17 @@ class MakefileDryRunTest(unittest.TestCase):
             msg="top-level lint must run the mock contract runtime boundary gate",
         )
 
+    def test_lint_wires_core_loop_pruning_surface_gate(self):
+        makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+
+        self.assertIn("lint-core-loop-pruning-surface", makefile)
+        self.assertIn("scripts/lint/core_loop_pruning_surface.py", makefile)
+        self.assertRegex(
+            makefile,
+            r"lint: .*lint-core-loop-pruning-surface",
+            msg="top-level lint must run the core-loop runtime/generated pruning surface gate",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

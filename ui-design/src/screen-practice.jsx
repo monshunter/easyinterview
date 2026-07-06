@@ -276,7 +276,7 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId, mode, role, setRole 
                 {strictMode ? (
                   <div style={{ padding: "10px 12px", background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 2, marginBottom: 14 }}>
                     <div style={{ fontSize: 11, color: T.ink3, fontFamily: "var(--ei-mono)", lineHeight: 1.65 }}>
-                      {lang === "en" ? "Strict mode · hints and experience cards are hidden." : "严格模拟中 · 提示与可调用经历已隐藏"}
+                      {lang === "en" ? "Strict mode · hints and resume evidence are hidden." : "严格模拟中 · 提示与可调用经历已隐藏"}
                     </div>
                   </div>
                 ) : (

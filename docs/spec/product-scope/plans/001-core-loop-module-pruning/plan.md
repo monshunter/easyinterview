@@ -1,6 +1,6 @@
 # Core Loop Module Pruning Plan
 
-> **版本**: 1.14
+> **版本**: 1.15
 > **状态**: active
 > **更新日期**: 2026-07-06
 
@@ -152,6 +152,10 @@
 
 按用户 2026-07-06 明确要求，已经无争议废弃的模块文档包直接删除。删除 `backend-debrief`、`frontend-debrief`、`backend-profile`、`backend-jobs-recommendations` 等不再承接当前合同的旧 subject 实体目录，并更新 `docs/spec/INDEX.md`、跨计划引用、context discovery 和验收报告。保留范围仅限 work-journal、bug、report、migration 历史、负向测试和当前 active owner spec 必需的删除证据；若某历史 plan 的内容仍有字段 / schema / gate 价值，必须先迁移到当前 owner spec 或 coded truth source，再删除原目录。
 
+#### 6.16 Runtime / generated allowlist 脚本化
+
+把 6.14 的手工 runtime / generated / config 负向审计沉淀为 `scripts/lint/core_loop_pruning_surface.py`：扫描 `backend/`、`frontend/`、`openapi/`、`shared/`、`config/`、`scripts/`、`migrations/`、`test/scenarios/` 与 `ui-design/` 的旧 Debrief / Profile / JD Match surface，并分桶输出 `historical_migrations`、`legacy_normalization`、`negative_tests` 和 `real_residuals`。脚本必须允许历史 migration 链、旧 route normalization 和负向测试 / lint guard 命中，但 `real_residuals` 非空时失败；若发现真实残留文档或代码，按当前 owner spec 直接删除或修订，不保留 parallel deprecated 包。
+
 ## 5 Operation Matrix
 
 | operationId / contract | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
@@ -204,6 +208,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-06 | 1.15 | Add executable runtime/generated allowlist audit to bucket historical migrations, legacy normalization, negative tests, and real residuals before further pruning. |
 | 2026-07-06 | 1.14 | Delete obsolete Debrief / Profile / Jobs Recommendations subject directories and the old frontend JD Match plan package; update indexes, links, context audit, and current owner evidence without preserving retired banners. |
 | 2026-07-06 | 1.13 | Reopen to delete unambiguous obsolete module document packages instead of preserving retired banners. |
 | 2026-07-06 | 1.12 | Reconcile runtime/generated/config negative sweep: remove stale JD Match CSS assets, add frontend scope guard, and record the migration enum-source squash/lint-model decision boundary. |

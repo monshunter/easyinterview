@@ -14,7 +14,7 @@ import (
 func TestF3ReportGenerateAndAssessmentPreflight(t *testing.T) {
 	prompts, rubrics := repoConfigRoots(t)
 	repoRoot := filepath.Dir(filepath.Dir(prompts))
-	assertFileContains(t, filepath.Join(repoRoot, "docs", "spec", "prompt-rubric-registry", "spec.md"), "Prompt Rubric Registry Spec", "> **版本**: 2.12")
+	assertFileContains(t, filepath.Join(repoRoot, "docs", "spec", "prompt-rubric-registry", "spec.md"), "Prompt Rubric Registry Spec", "> **版本**: 2.13")
 	assertCompletedDocHeader(t, filepath.Join(repoRoot, "docs", "spec", "prompt-rubric-registry", "plans", "001-baseline", "plan.md"))
 	assertCompletedDocHeader(t, filepath.Join(repoRoot, "docs", "spec", "prompt-rubric-registry", "plans", "001-baseline", "checklist.md"))
 	assertWorkJournalContains(t, filepath.Join(repoRoot, "docs", "work-journal"), "docs(prompt-rubric-registry): close 001-baseline lifecycle and record ac self-check")

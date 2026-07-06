@@ -1,6 +1,6 @@
 # Core Loop Module Pruning Checklist
 
-> **版本**: 1.14
+> **版本**: 1.15
 > **状态**: active
 > **更新日期**: 2026-07-06
 
@@ -95,3 +95,5 @@
   <!-- verified: 2026-07-06 method=runtime-negative-sweep-red-green evidence="Red: npm test -- src/app/scope.test.ts failed on lingering frontend/src/app/theme/global.css jdmatch-* class names. Green: npm test -- src/app/scope.test.ts PASS (5 tests). rg for jdmatch-* class names across runtime only hit no references after CSS deletion; targeted retired operation/table/job searches show only negative tests, historical migrations, lint guards, legacy normalization, and retired scenario assertions." -->
 - [x] 6.15 无争议废弃文档包实体删除；验证: 删除不再承接当前合同的旧 subject / plan 实体目录，不保留说明文件或 historical banner；对被删目录名、旧 shorthand 和旧 operation/package/fixture/prompt 路径运行 zero-reference 搜索，只允许 work-journal、bug、report、migration 历史、负向测试和当前 owner spec 必需删除证据命中。
   <!-- verified: 2026-07-06 method=obsolete-doc-package-delete evidence="Deleted four obsolete subject dirs plus frontend-home-job-picks-and-parse/plans/002-jd-match-recommendations. Fixed docs/spec INDEX, frontend-home plans INDEX, active roadmap/openapi/backend spec references, and broken report links. make docs-check PASS; sync-doc-index --check PASS; git diff --check PASS." -->
+- [x] 6.16 Runtime / generated allowlist 脚本化；验证: 新增 `scripts/lint/core_loop_pruning_surface.py` 与单元测试，把旧 Debrief / Profile / JD Match 命中分桶为 `historical_migrations`、`legacy_normalization`、`negative_tests`、`real_residuals`，并接入 `make lint`；`real_residuals` 非空必须失败，真实残留文档或代码必须删除或原地修订。
+  <!-- verified: 2026-07-06 method=runtime-generated-allowlist-red-green evidence="Red: pytest failed because scripts/lint/core_loop_pruning_surface.py and Makefile target were missing. Green: python3 -m pytest -q scripts/lint/core_loop_pruning_surface_test.py scripts/lint/makefile_dry_run_test.py -k 'core_loop_pruning_surface or lint_wires_core_loop_pruning_surface_gate' PASS (6 selected); make lint-core-loop-pruning-surface PASS with historical_migrations=54 legacy_normalization=15 negative_tests=271 real_residuals=0; node --test ui-design/ui-design-contract.test.mjs PASS (29 tests); pnpm --filter @easyinterview/frontend test src/app/screens/practice/PracticeScreen.test.tsx src/app/screens/practice/hooks/usePracticeAssistance.test.ts src/app/i18n/localeFiles.test.ts PASS (27 tests). Removed user-visible 'experience cards' wording from frontend and ui-design strict-mode copy." -->
