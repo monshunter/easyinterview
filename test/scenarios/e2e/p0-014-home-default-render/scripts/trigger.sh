@@ -13,6 +13,7 @@ mkdir -p "$OUTPUT_DIR"
     src/api/targetJob.realApiMode.test.ts
   pnpm --filter @easyinterview/frontend test \
     src/app/screens/home/HomeScreen.test.tsx \
+    src/app/screens/home/HomeLayout.test.tsx \
     src/app/screens/home/HomeResumeSelection.test.tsx \
     src/app/screens/home/HomeRecentMocks.test.tsx \
     src/app/screens/home/MockInterviewCard.test.tsx

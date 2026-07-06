@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder Checklist
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: completed
 > **更新日期**: 2026-07-06
 
@@ -142,3 +142,12 @@
   - Evidence 2026-07-06: `HomeScreen` renders `home-resume-select` as native `select`, keeps the explicit ready resume import gate, slices recent mocks to 3 after `updatedAt desc` sorting, and navigates `home-recent-more` to `workspace`; focused Home tests, i18n tests, UI contract, typecheck, frontend build, and home pixel-parity gate all passed.
 - [x] 9.4 BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015`：P0.014 证明 dropdown、3-card cap、`更多` 跳转；P0.015 证明 dropdown 选择的真实 `resumeId` 继续随 import route 进入 parse。
   - Evidence 2026-07-06: `test/scenarios/e2e/p0-014-home-default-render/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` all exited 0; `test/scenarios/e2e/p0-015-jd-import-and-parse/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` all exited 0.
+
+## Phase 10: Home 新建规划输入源与 CTA 布局收敛（2026-07-06 修订）
+
+- [x] 10.1 修订 UI 真理源与文档：`ui-design/src/screen-home.jsx` 将粘贴 JD textarea 与上传文件 source 分区，简历下拉框定宽并与“还没有简历？1 分钟创建 →”同排，`立即面试` 移到简历选择下方；同步 `docs/ui-design/*`、owner spec / plan / BDD 与 P0.014 / P0.015 场景说明。Evidence: 2026-07-06 updated `ui-design/src/screen-home.jsx`, `docs/ui-design/*`, owner spec/plan/BDD docs, and P0.014/P0.015 scenario docs/scripts.
+- [x] 10.2 新增 Red 测试：`HomeLayout.test.tsx` 断言 `home-source-layout`、`home-jd-paste-panel`、`home-upload-source-panel`、`home-resume-row`、`home-submit-row` 的层级与顺序；断言 upload trigger 不在 `home-jd-input-card` 内，`home-resume-select` 不撑满整页，`home-jd-submit` 不在 textarea card 内。Evidence: red run `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeLayout.test.tsx` failed 3/3 before implementation on missing layout anchors.
+- [x] 10.3 实现 Home 布局：正式前端源级复刻 `ui-design`，保留 paste / upload / URL 的 generated client 行为、ready resume gate、真实 `resumeId` 透传、import error 与 pending auth 行为。
+  - Evidence 2026-07-06: `HomeScreen.tsx` renders `home-source-layout`, `home-jd-paste-panel`, `home-upload-source-panel`, compact `home-resume-row`, and `home-submit-row`; focused command `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeLayout.test.tsx src/app/screens/home/HomeScreen.test.tsx src/app/screens/home/HomeResumeSelection.test.tsx src/app/screens/home/HomeImport.test.tsx src/app/screens/home/HomeAuthGate.test.tsx src/app/screens/home/HomeRecentMocks.test.tsx src/app/i18n/localeFiles.test.ts` passed 7 files / 41 tests; `node ui-design/ui-design-contract.test.mjs` passed 29 tests; typecheck and build exited 0.
+- [x] 10.4 BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015`：P0.014 证明新布局锚点和几何关系；P0.015 证明新布局下 paste / upload / URL 仍使用同一个显式 ready 简历并传到 parse。
+  - Evidence 2026-07-06: `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/home.spec.ts` passed 10 tests across desktop/mobile; `test/scenarios/env-setup.sh` and `env-verify.sh` exited 0; `test/scenarios/e2e/p0-014-home-default-render/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` exited 0; `test/scenarios/e2e/p0-015-jd-import-and-parse/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` exited 0.

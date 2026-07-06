@@ -8,7 +8,7 @@ import { expect, test } from "@playwright/test";
  * parse/plan.md §4 Phase 6.
  *
  * Covers desktop (1440x900) and mobile (390x844) projects:
- * - DOM anchors (hero, textarea, resume picker, retired aux-card negatives)
+ * - DOM anchors (hero, source panels, textarea, resume picker, retired aux-card negatives)
  * - Bounding box stays in viewport, no overlap
  * - default (ocean)/light -> dark -> customAccent theme switching
  * - Mobile: textarea card not overflowing
@@ -52,6 +52,18 @@ test.describe("home screen DOM anchor parity", () => {
     await expect(page.locator("[data-testid='home-hero-label']")).toHaveCount(1);
     await expect(page.locator("[data-testid='home-hero-title']")).toHaveCount(1);
     await expect(page.locator("[data-testid='home-hero-sub']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='home-source-layout']")).toHaveCount(
+      1,
+    );
+    await expect(page.locator("[data-testid='home-jd-paste-panel']")).toHaveCount(
+      1,
+    );
+    await expect(
+      page.locator("[data-testid='home-upload-source-panel']"),
+    ).toHaveCount(1);
+    await expect(page.locator("[data-testid='home-jd-input-card']")).toHaveCount(
+      1,
+    );
     await expect(page.locator("[data-testid='home-jd-textarea']")).toHaveCount(
       1,
     );
@@ -62,6 +74,8 @@ test.describe("home screen DOM anchor parity", () => {
     await expect(page.locator("[data-testid='home-resume-select']")).toHaveCount(
       1,
     );
+    await expect(page.locator("[data-testid='home-resume-row']")).toHaveCount(1);
+    await expect(page.locator("[data-testid='home-submit-row']")).toHaveCount(1);
     await expect(page.locator("[data-testid='home-resume-select']")).toHaveJSProperty(
       "tagName",
       "SELECT",
@@ -72,6 +86,71 @@ test.describe("home screen DOM anchor parity", () => {
       0,
     );
     await expect(page.locator("[data-testid='home-aux-debrief']")).toHaveCount(0);
+  });
+
+  test("home import layout separates source, resume, and submit zones", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.waitForSelector("[data-testid='home-source-layout']");
+
+    const placement = await page.evaluate(() => {
+      const inputCard = document.querySelector(
+        "[data-testid='home-jd-input-card']",
+      ) as HTMLElement | null;
+      const uploadTrigger = document.querySelector(
+        "[data-testid='home-upload-trigger']",
+      ) as HTMLElement | null;
+      const submitButton = document.querySelector(
+        "[data-testid='home-jd-submit']",
+      ) as HTMLElement | null;
+      const resumeRow = document.querySelector(
+        "[data-testid='home-resume-row']",
+      ) as HTMLElement | null;
+      const submitRow = document.querySelector(
+        "[data-testid='home-submit-row']",
+      ) as HTMLElement | null;
+      const resumeSelect = document.querySelector(
+        "[data-testid='home-resume-select']",
+      ) as HTMLElement | null;
+      const createCta = document.querySelector(
+        "[data-testid='home-resume-create']",
+      ) as HTMLElement | null;
+
+      if (
+        !inputCard ||
+        !uploadTrigger ||
+        !submitButton ||
+        !resumeRow ||
+        !submitRow ||
+        !resumeSelect ||
+        !createCta
+      ) {
+        throw new Error("missing Home import layout anchor");
+      }
+
+      const selectRect = resumeSelect.getBoundingClientRect();
+      const createRect = createCta.getBoundingClientRect();
+      return {
+        viewportWidth: window.innerWidth,
+        uploadOutsideInput: !inputCard.contains(uploadTrigger),
+        submitOutsideInput: !inputCard.contains(submitButton),
+        submitAfterResume: Boolean(
+          resumeRow.compareDocumentPosition(submitRow) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+        selectWidth: selectRect.width,
+        createTopDelta: Math.abs(selectRect.top - createRect.top),
+      };
+    });
+
+    expect(placement.uploadOutsideInput).toBe(true);
+    expect(placement.submitOutsideInput).toBe(true);
+    expect(placement.submitAfterResume).toBe(true);
+    expect(placement.selectWidth).toBeLessThanOrEqual(362);
+    if (placement.viewportWidth >= 900) {
+      expect(placement.createTopDelta).toBeLessThanOrEqual(2);
+    }
   });
 
   test("home textarea card stays inside viewport (desktop)", async ({ page }) => {

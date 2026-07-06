@@ -21,6 +21,9 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
     tag: "HOME · MOCK INTERVIEWS",
     title: "Let's win the interview you already care about.",
     ph: "Paste the JD here…",
+    pasteSource: "Paste JD",
+    uploadSource: "Upload JD file",
+    uploadSourceSub: "Supports .pdf / .docx / .md, or import from URL.",
     importBtn: "Start interview now",
     orUpload: "or upload .pdf / .docx / .md",
     active: "Recent mock interviews",
@@ -36,6 +39,9 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
     tag: "首页 · 模拟面试",
     title: "先把你已经拿在手里的那场面试，赢下来。",
     ph: "把 JD 粘贴到这里…",
+    pasteSource: "粘贴 JD",
+    uploadSource: "上传 JD 文件",
+    uploadSourceSub: "支持 .pdf / .docx / .md，也可以从 URL 导入。",
     importBtn: "立即面试",
     orUpload: "也可以上传 .pdf / .docx / .md",
     active: "最近模拟面试",
@@ -58,56 +64,68 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
           {L.title}
         </h1>
 
-        <div style={{ marginTop: 32, background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 20 }}>
-          <textarea
-            value={input} onChange={(e) => setInput(e.target.value)}
-            placeholder={L.ph}
-            style={{
-              width: "100%", minHeight: 120, border: "none", outline: "none", resize: "vertical",
-              fontSize: 14.5, lineHeight: 1.6, color: T.ink, background: "transparent",
-              fontFamily: "var(--ei-sans)",
-            }}
-          />
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, paddingTop: 14, borderTop: `1px dotted ${T.rule}` }}>
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <button onClick={() => setAssistOpen("upload")} style={{ background: "transparent", border: "none", color: T.ink3, fontSize: 13, display: "flex", alignItems: "center", gap: 6, padding: 0, cursor: "pointer" }}>
-                <Icon name="upload" size={14} /> {L.orUpload}
+        <div data-testid="home-source-layout" style={{ marginTop: 32, display: "flex", gap: 16, alignItems: "stretch", flexWrap: "wrap" }}>
+          <div data-testid="home-jd-paste-panel" style={{ flex: "1 1 560px", minWidth: 280 }}>
+            <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{L.pasteSource}</div>
+            <div data-testid="home-jd-input-card" style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 20 }}>
+              <textarea
+                data-testid="home-jd-textarea"
+                value={input} onChange={(e) => setInput(e.target.value)}
+                placeholder={L.ph}
+                style={{
+                  width: "100%", minHeight: 120, border: "none", outline: "none", resize: "vertical",
+                  fontSize: 14.5, lineHeight: 1.6, color: T.ink, background: "transparent",
+                  fontFamily: "var(--ei-sans)",
+                }}
+              />
+            </div>
+          </div>
+          <div data-testid="home-upload-source-panel" style={{ flex: "0 1 300px", minWidth: 260, background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 18, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ color: T.ink, fontSize: 14, fontWeight: 500 }}>{L.uploadSource}</div>
+              <div style={{ color: T.ink3, fontSize: 12.5, lineHeight: 1.5 }}>{L.uploadSourceSub}</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button data-testid="home-upload-trigger" onClick={() => setAssistOpen("upload")} style={{ background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 3, color: T.ink, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 40, padding: "0 12px", cursor: "pointer", fontWeight: 500 }}>
+                <Icon name="upload" size={14} /> {L.uploadSource}
               </button>
-              <span style={{ color: T.rule }}>·</span>
-              <button onClick={() => setAssistOpen("url")} style={{ background: "transparent", border: "none", color: T.ink3, fontSize: 13, display: "flex", alignItems: "center", gap: 6, padding: 0, cursor: "pointer" }}>
+              <button data-testid="home-url-trigger" onClick={() => setAssistOpen("url")} style={{ background: "transparent", border: "1px solid transparent", color: T.accent, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 34, padding: "0 12px", cursor: "pointer", fontWeight: 500 }}>
                 <Icon name="link" size={14} /> URL
               </button>
             </div>
-            <Btn variant="accent" onClick={handleImport} T={T} iconRight="arrow_right" disabled={!input.trim() || !selectedResume || parsing}>
-              {parsing ? (lang === "en" ? "Parsing JD…" : "正在解析 JD…") : L.importBtn}
-            </Btn>
           </div>
         </div>
 
-        <div style={{ marginTop: 16, display: "flex", alignItems: "flex-start", gap: 18, flexWrap: "wrap" }}>
-          <div style={{ minWidth: 320, flex: "1 1 420px" }}>
-            <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{L.resumeSelect}</div>
+        <div style={{ marginTop: 16 }}>
+          <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{L.resumeSelect}</div>
+          <div data-testid="home-resume-row" style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
             <select
+              data-testid="home-resume-select"
               value={selectedResumeId}
               disabled={!resumeOptions.length}
               onChange={(e) => setSelectedResumeId(e.target.value)}
-              style={{ width: "100%", minHeight: 42, border: `1px solid ${T.rule}`, borderRadius: 3, background: T.bgCard, color: T.ink, fontSize: 13.5, fontFamily: "var(--ei-sans)", padding: "0 12px", outline: "none", cursor: resumeOptions.length ? "pointer" : "not-allowed" }}
+              style={{ width: 360, maxWidth: "100%", flex: "0 1 360px", boxSizing: "border-box", minHeight: 42, border: `1px solid ${T.rule}`, borderRadius: 3, background: T.bgCard, color: T.ink, fontSize: 13.5, fontFamily: "var(--ei-sans)", padding: "0 12px", outline: "none", cursor: resumeOptions.length ? "pointer" : "not-allowed" }}
             >
               <option value="">{L.resumeSelectPlaceholder}</option>
               {resumeOptions.map((resume) => (
                 <option key={resume.id} value={resume.id}>{resume.name} · {resume.meta}</option>
               ))}
             </select>
-            {!resumeOptions.length && (
-              <div style={{ marginTop: 8, border: `1px dashed ${T.rule}`, borderRadius: 3, padding: "10px 12px", color: T.ink3, fontSize: 13 }}>{L.resumeEmpty}</div>
-            )}
-            <div style={{ marginTop: 8, fontSize: 12.5, color: selectedResume ? T.ink2 : T.ink3 }}>
-              {selectedResume ? `${L.selectedResume} · ${selectedResume.name}` : L.resumeSelectHint}
-            </div>
+            <button data-testid="home-resume-create" onClick={() => nav("resume_versions", { flow: "create" })} style={{ background: "transparent", border: "none", color: T.accent, fontSize: 13, padding: 0, cursor: "pointer", fontWeight: 500, minHeight: 42, display: "flex", alignItems: "center" }}>
+              {L.resumeCreate}
+            </button>
           </div>
-          <button onClick={() => nav("resume_versions", { flow: "create" })} style={{ background: "transparent", border: "none", color: T.accent, fontSize: 13, padding: 0, cursor: "pointer", fontWeight: 500 }}>
-            {L.resumeCreate}
-          </button>
+          {!resumeOptions.length && (
+            <div style={{ marginTop: 8, maxWidth: 360, border: `1px dashed ${T.rule}`, borderRadius: 3, padding: "10px 12px", color: T.ink3, fontSize: 13 }}>{L.resumeEmpty}</div>
+          )}
+          <div style={{ marginTop: 8, fontSize: 12.5, color: selectedResume ? T.ink2 : T.ink3 }}>
+            {selectedResume ? `${L.selectedResume} · ${selectedResume.name}` : L.resumeSelectHint}
+          </div>
+          <div data-testid="home-submit-row" style={{ marginTop: 14, display: "flex" }}>
+            <Btn variant="accent" onClick={handleImport} T={T} iconRight="arrow_right" disabled={!input.trim() || !selectedResume || parsing}>
+              {parsing ? (lang === "en" ? "Parsing JD…" : "正在解析 JD…") : L.importBtn}
+            </Btn>
+          </div>
         </div>
       </div>
 

@@ -23,8 +23,9 @@ Verifies the home screen renders correctly in three states:
 ## Verification Points
 
 - Hero label/title DOM anchors, with retired hero sub copy absent
-- Textarea card + upload/URL buttons
-- Existing ready resume dropdown + create-resume CTA
+- JD source layout separates paste textarea from upload/URL actions
+- Existing ready resume dropdown is compact, with create-resume CTA on the same row
+- Main CTA sits below resume selection rather than inside the JD input card
 - Main CTA copy is `立即面试` / `Start interview now`
 - Retired aux cards (JOB PICKS, POST-INTERVIEW) remain absent
 - Real backend mode generated-client gate for TargetJobs home/import/parse operations

@@ -58,6 +58,10 @@ spec:
       - E2E.P0.015
       - E2E.P0.016
       - E2E.P0.017
+      - home source layout
+      - upload file source
+      - resume select row
+      - submit below resume selection
   targets:
     frontend:
       plan: ./plan.md
