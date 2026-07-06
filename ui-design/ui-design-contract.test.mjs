@@ -210,10 +210,12 @@ test("job picks module is fully removed and jd_match aliases back home (D-17)", 
 test("home uses a resume dropdown and caps recent mocks at three", () => {
   const home = readUiFile("./src/screen-home.jsx");
 
-  assert.match(home, /data-testid="home-source-layout"/);
-  assert.match(home, /data-testid="home-jd-paste-panel"/);
-  assert.match(home, /data-testid="home-upload-source-panel"/);
   assert.match(home, /data-testid="home-jd-input-card"/);
+  assert.match(home, /data-testid="home-jd-source-controls"/);
+  assert.match(home, /data-testid="home-upload-trigger"/);
+  assert.match(home, /data-testid="home-url-trigger"/);
+  assert.doesNotMatch(home, /data-testid="home-source-layout"/);
+  assert.doesNotMatch(home, /data-testid="home-upload-source-panel"/);
   assert.match(home, /data-testid="home-resume-row"/);
   assert.match(home, /data-testid="home-submit-row"/);
   assert.match(home, /<select[\s\S]*data-testid="home-resume-select"[\s\S]*value=\{selectedResumeId\}/);

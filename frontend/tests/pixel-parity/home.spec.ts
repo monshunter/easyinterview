@@ -8,7 +8,7 @@ import { expect, test } from "@playwright/test";
  * parse/plan.md §4 Phase 6.
  *
  * Covers desktop (1440x900) and mobile (390x844) projects:
- * - DOM anchors (hero, source panels, textarea, resume picker, retired aux-card negatives)
+ * - DOM anchors (hero, integrated source controls, textarea, resume picker, retired aux-card negatives)
  * - Bounding box stays in viewport, no overlap
  * - default (ocean)/light -> dark -> customAccent theme switching
  * - Mobile: textarea card not overflowing
@@ -53,17 +53,20 @@ test.describe("home screen DOM anchor parity", () => {
     await expect(page.locator("[data-testid='home-hero-title']")).toHaveCount(1);
     await expect(page.locator("[data-testid='home-hero-sub']")).toHaveCount(0);
     await expect(page.locator("[data-testid='home-source-layout']")).toHaveCount(
-      1,
+      0,
     );
     await expect(page.locator("[data-testid='home-jd-paste-panel']")).toHaveCount(
-      1,
+      0,
     );
     await expect(
       page.locator("[data-testid='home-upload-source-panel']"),
-    ).toHaveCount(1);
+    ).toHaveCount(0);
     await expect(page.locator("[data-testid='home-jd-input-card']")).toHaveCount(
       1,
     );
+    await expect(
+      page.locator("[data-testid='home-jd-source-controls']"),
+    ).toHaveCount(1);
     await expect(page.locator("[data-testid='home-jd-textarea']")).toHaveCount(
       1,
     );
@@ -88,11 +91,11 @@ test.describe("home screen DOM anchor parity", () => {
     await expect(page.locator("[data-testid='home-aux-debrief']")).toHaveCount(0);
   });
 
-  test("home import layout separates source, resume, and submit zones", async ({
+  test("home import layout keeps source controls integrated and submit below resume", async ({
     page,
   }) => {
     await page.goto("/");
-    await page.waitForSelector("[data-testid='home-source-layout']");
+    await page.waitForSelector("[data-testid='home-jd-input-card']");
 
     const placement = await page.evaluate(() => {
       const inputCard = document.querySelector(
@@ -133,7 +136,7 @@ test.describe("home screen DOM anchor parity", () => {
       const createRect = createCta.getBoundingClientRect();
       return {
         viewportWidth: window.innerWidth,
-        uploadOutsideInput: !inputCard.contains(uploadTrigger),
+        uploadInsideInput: inputCard.contains(uploadTrigger),
         submitOutsideInput: !inputCard.contains(submitButton),
         submitAfterResume: Boolean(
           resumeRow.compareDocumentPosition(submitRow) &
@@ -144,7 +147,7 @@ test.describe("home screen DOM anchor parity", () => {
       };
     });
 
-    expect(placement.uploadOutsideInput).toBe(true);
+    expect(placement.uploadInsideInput).toBe(true);
     expect(placement.submitOutsideInput).toBe(true);
     expect(placement.submitAfterResume).toBe(true);
     expect(placement.selectWidth).toBeLessThanOrEqual(362);

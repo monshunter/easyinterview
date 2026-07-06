@@ -64,34 +64,29 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
           {L.title}
         </h1>
 
-        <div data-testid="home-source-layout" style={{ marginTop: 32, display: "flex", gap: 16, alignItems: "stretch", flexWrap: "wrap" }}>
-          <div data-testid="home-jd-paste-panel" style={{ flex: "1 1 560px", minWidth: 280 }}>
-            <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{L.pasteSource}</div>
-            <div data-testid="home-jd-input-card" style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 20 }}>
-              <textarea
-                data-testid="home-jd-textarea"
-                value={input} onChange={(e) => setInput(e.target.value)}
-                placeholder={L.ph}
-                style={{
-                  width: "100%", minHeight: 120, border: "none", outline: "none", resize: "vertical",
-                  fontSize: 14.5, lineHeight: 1.6, color: T.ink, background: "transparent",
-                  fontFamily: "var(--ei-sans)",
-                }}
-              />
-            </div>
-          </div>
-          <div data-testid="home-upload-source-panel" style={{ flex: "0 1 300px", minWidth: 260, background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 18, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 16 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ color: T.ink, fontSize: 14, fontWeight: 500 }}>{L.uploadSource}</div>
-              <div style={{ color: T.ink3, fontSize: 12.5, lineHeight: 1.5 }}>{L.uploadSourceSub}</div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <button data-testid="home-upload-trigger" onClick={() => setAssistOpen("upload")} style={{ background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 3, color: T.ink, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 40, padding: "0 12px", cursor: "pointer", fontWeight: 500 }}>
-                <Icon name="upload" size={14} /> {L.uploadSource}
-              </button>
-              <button data-testid="home-url-trigger" onClick={() => setAssistOpen("url")} style={{ background: "transparent", border: "1px solid transparent", color: T.accent, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 34, padding: "0 12px", cursor: "pointer", fontWeight: 500 }}>
-                <Icon name="link" size={14} /> URL
-              </button>
+        <div style={{ marginTop: 32 }}>
+          <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{L.pasteSource}</div>
+          <div data-testid="home-jd-input-card" style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 20 }}>
+            <textarea
+              data-testid="home-jd-textarea"
+              value={input} onChange={(e) => setInput(e.target.value)}
+              placeholder={L.ph}
+              style={{
+                width: "100%", minHeight: 120, border: "none", outline: "none", resize: "vertical",
+                fontSize: 14.5, lineHeight: 1.6, color: T.ink, background: "transparent",
+                fontFamily: "var(--ei-sans)",
+              }}
+            />
+            <div data-testid="home-jd-source-controls" style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.rule}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ color: T.ink3, fontSize: 12.5, lineHeight: 1.5 }}>{L.orUpload}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <button data-testid="home-upload-trigger" onClick={() => setAssistOpen("upload")} style={{ background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 3, color: T.ink, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 34, padding: "0 12px", cursor: "pointer", fontWeight: 500 }}>
+                  <Icon name="upload" size={14} /> {L.uploadSource}
+                </button>
+                <button data-testid="home-url-trigger" onClick={() => setAssistOpen("url")} style={{ background: "transparent", border: "1px solid transparent", color: T.accent, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 34, padding: "0 12px", cursor: "pointer", fontWeight: 500 }}>
+                  <Icon name="link" size={14} /> URL
+                </button>
+              </div>
             </div>
           </div>
         </div>

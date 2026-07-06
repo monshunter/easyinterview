@@ -1,6 +1,6 @@
 # 001 BDD Checklist
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: completed
 > **更新日期**: 2026-07-06
 
@@ -13,8 +13,10 @@
 - [x] 实现 `scripts/setup.sh`（预检 frontend dist + chromium + fixture variant 切换入口）/ `scripts/trigger.sh`（运行 home spec + 三 variant 切换）/ `scripts/verify.sh`（断言 hero/textarea/aux cards/empty state/3-card cap + 更多跳转/`updatedAt desc` 排序/topbar 高亮/zh-en 切换/warm-dark-customAccent 切换）/ `scripts/cleanup.sh`
 - [x] 2026-07-06 dropdown + recent cap gate：P0.014 trigger / verify / README / expected outcome 必须验证 `home-resume-select` 是下拉框而不是平铺 button 列表，`twelve-plus` 只渲染 3 张最近卡片，`home-recent-more` 点击跳转 `workspace`。
   - Evidence 2026-07-06: `test/scenarios/e2e/p0-014-home-default-render/scripts/setup.sh`, `trigger.sh`, `verify.sh`, and `cleanup.sh` exited 0 after README / seed / expected outcome updates; trigger includes focused Home tests and verify rejects missing dropdown / 3-card cap / `更多` workspace marker.
-- [x] 2026-07-06 source layout gate：P0.014 trigger / verify / README / expected outcome 必须验证 `home-source-layout` 分离粘贴 JD 与上传文件，`home-upload-trigger` 不在 `home-jd-input-card` 内，`home-resume-select` 与 `home-resume-create` 同一行，`home-jd-submit` 位于 `home-resume-row` 下方且不在 textarea card 内。
+- [x] 2026-07-06 source / submit layout gate：P0.014 trigger / verify / README / expected outcome 必须验证 `home-resume-select` 与 `home-resume-create` 同一行，`home-jd-submit` 位于 `home-resume-row` 下方且不在 textarea card 内；source controls 的当前输入卡内归属由 integrated source controls gate 约束。
   - Evidence 2026-07-06: `test/scenarios/e2e/p0-014-home-default-render/scripts/setup.sh`, `trigger.sh`, `verify.sh`, and `cleanup.sh` exited 0; trigger includes `HomeLayout.test.tsx`, and Home pixel parity passed 10 desktop/mobile layout tests.
+- [x] 2026-07-06 integrated source controls gate：P0.014 trigger / verify / README / expected outcome 必须验证 `home-upload-trigger` 与 `home-url-trigger` 位于 `home-jd-input-card` 底部 `home-jd-source-controls` 内，独立 `home-upload-source-panel` / `home-source-layout` 0 命中，`home-jd-submit` 仍位于 `home-resume-row` 下方且不在输入卡内。
+  - Evidence 2026-07-06: `test/scenarios/e2e/p0-014-home-default-render/scripts/setup.sh`, `trigger.sh`, `verify.sh`, and `cleanup.sh` exited 0; trigger includes `HomeLayout.test.tsx`, `HomeResumeSelection.test.tsx`, and focused Home render tests under real-mode preflight.
 - [x] 执行 `setup → trigger → verify → cleanup` 全 PASS
 - [x] 记录验证证据：spec 调用栈 + variant 切换日志 + 截图（baseline + 当前）+ retired-testid grep 0 命中
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.014 行（关联需求 `frontend-home-job-picks-and-parse C-1, C-4`，状态 Ready，automated）
@@ -36,6 +38,8 @@
   - Evidence 2026-07-06: `test/scenarios/e2e/p0-015-jd-import-and-parse/scripts/setup.sh`, `trigger.sh`, `verify.sh`, and `cleanup.sh` exited 0; trigger includes `HomeResumeSelection.test.tsx`, `HomeImport.test.tsx`, `HomeAuthGate.test.tsx`, frontend build, and parse loading Playwright gate.
 - [x] 2026-07-06 home source separation gate：P0.015 trigger / verify / README / expected outcome 必须证明新布局下 paste、upload、URL 三种 source 仍使用同一个 ready resume gate；上传文件从独立 source panel 打开 modal，paste 的「立即面试」在简历行下方提交并携带真实 `resumeId`。
   - Evidence 2026-07-06: `test/scenarios/e2e/p0-015-jd-import-and-parse/scripts/setup.sh`, `trigger.sh`, `verify.sh`, and `cleanup.sh` exited 0; trigger includes `HomeLayout.test.tsx`, `HomeResumeSelection.test.tsx`, `HomeImport.test.tsx`, and `HomeAuthGate.test.tsx`, plus parse loading Playwright gate.
+- [x] 2026-07-06 home integrated source controls gate：P0.015 trigger / verify / README / expected outcome 必须证明整合布局下 paste、upload、URL 三种 source 仍使用同一个 ready resume gate；上传文件与 URL 从 `home-jd-input-card` 内的 `home-jd-source-controls` 打开 modal，paste 的「立即面试」仍在简历行下方提交并携带真实 `resumeId`。
+  - Evidence 2026-07-06: `test/scenarios/e2e/p0-015-jd-import-and-parse/scripts/setup.sh`, `trigger.sh`, `verify.sh`, and `cleanup.sh` exited 0; trigger includes `HomeLayout.test.tsx`, `HomeImport.test.tsx`, `HomeAuthGate.test.tsx`, frontend build, and parse loading Playwright gate.
 
 ## E2E.P0.016 Parse 编辑 + 绑定简历 + Save/Start handoff
 

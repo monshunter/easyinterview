@@ -15,22 +15,21 @@ function wrap(ui: React.ReactElement) {
 }
 
 describe("Home layout", () => {
-  it("separates JD paste and upload sources instead of keeping upload inside the textarea card", () => {
+  it("keeps JD upload and URL source actions inside the input card", () => {
     render(wrap(<HomeScreen route={{ name: "home", params: {} }} />));
 
-    const sourceLayout = screen.getByTestId("home-source-layout");
-    const pastePanel = screen.getByTestId("home-jd-paste-panel");
-    const uploadPanel = screen.getByTestId("home-upload-source-panel");
     const inputCard = screen.getByTestId("home-jd-input-card");
     const textarea = screen.getByTestId("home-jd-textarea");
+    const sourceControls = screen.getByTestId("home-jd-source-controls");
     const uploadTrigger = screen.getByTestId("home-upload-trigger");
+    const urlTrigger = screen.getByTestId("home-url-trigger");
 
-    expect(sourceLayout).toContainElement(pastePanel);
-    expect(sourceLayout).toContainElement(uploadPanel);
-    expect(pastePanel).toContainElement(inputCard);
+    expect(screen.queryByTestId("home-source-layout")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("home-upload-source-panel")).not.toBeInTheDocument();
     expect(inputCard).toContainElement(textarea);
-    expect(uploadPanel).toContainElement(uploadTrigger);
-    expect(inputCard).not.toContainElement(uploadTrigger);
+    expect(inputCard).toContainElement(sourceControls);
+    expect(sourceControls).toContainElement(uploadTrigger);
+    expect(sourceControls).toContainElement(urlTrigger);
   });
 
   it("keeps resume selection compact with the create CTA on the same row", () => {

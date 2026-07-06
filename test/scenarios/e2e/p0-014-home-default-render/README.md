@@ -23,7 +23,8 @@ Verifies the home screen renders correctly in three states:
 ## Verification Points
 
 - Hero label/title DOM anchors, with retired hero sub copy absent
-- JD source layout separates paste textarea from upload/URL actions
+- JD input card integrates paste textarea with upload/URL source actions
+- Upload/URL source actions live inside `home-jd-input-card`; independent upload source panel is absent
 - Existing ready resume dropdown is compact, with create-resume CTA on the same row
 - Main CTA sits below resume selection rather than inside the JD input card
 - Main CTA copy is `立即面试` / `Start interview now`

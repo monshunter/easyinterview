@@ -297,96 +297,64 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         </h1>
         {/* JD source choice */}
         <div
-          data-testid="home-source-layout"
           style={{
             marginTop: 32,
-            display: "flex",
-            gap: 16,
-            alignItems: "stretch",
-            flexWrap: "wrap",
           }}
         >
           <div
-            data-testid="home-jd-paste-panel"
             style={{
-              flex: "1 1 560px",
-              minWidth: 280,
+              color: "var(--ei-color-fg-tertiary)",
+              marginBottom: 8,
+              fontSize: 11,
+              fontWeight: 500,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              fontFamily: "var(--ei-font-mono)",
             }}
           >
-            <div
-              style={{
-                color: "var(--ei-color-fg-tertiary)",
-                marginBottom: 8,
-                fontSize: 11,
-                fontWeight: 500,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                fontFamily: "var(--ei-font-mono)",
-              }}
-            >
-              {t("home.pasteSource")}
-            </div>
-            <div
-              data-testid="home-jd-input-card"
-              style={{
-                background: "var(--ei-color-bg-card)",
-                border: "1px solid var(--ei-color-rule-strong)",
-                borderRadius: 3,
-                padding: 20,
-              }}
-            >
-              <textarea
-                data-testid="home-jd-textarea"
-                aria-label={t("home.jdPlaceholder")}
-                placeholder={t("home.jdPlaceholder")}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                style={{
-                  width: "100%",
-                  minHeight: 120,
-                  border: "none",
-                  outline: "none",
-                  resize: "vertical",
-                  fontSize: 14.5,
-                  lineHeight: 1.6,
-                  color: "var(--ei-color-fg-primary)",
-                  background: "transparent",
-                  fontFamily: "var(--ei-font-sans)",
-                }}
-              />
-            </div>
+            {t("home.pasteSource")}
           </div>
           <div
-            data-testid="home-upload-source-panel"
+            data-testid="home-jd-input-card"
             style={{
-              flex: "0 1 300px",
-              minWidth: 260,
               background: "var(--ei-color-bg-card)",
               border: "1px solid var(--ei-color-rule-strong)",
               borderRadius: 3,
-              padding: 18,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gap: 16,
+              padding: 20,
             }}
           >
+            <textarea
+              data-testid="home-jd-textarea"
+              aria-label={t("home.jdPlaceholder")}
+              placeholder={t("home.jdPlaceholder")}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              style={{
+                width: "100%",
+                minHeight: 120,
+                border: "none",
+                outline: "none",
+                resize: "vertical",
+                fontSize: 14.5,
+                lineHeight: 1.6,
+                color: "var(--ei-color-fg-primary)",
+                background: "transparent",
+                fontFamily: "var(--ei-font-sans)",
+              }}
+            />
             <div
+              data-testid="home-jd-source-controls"
               style={{
                 display: "flex",
-                flexDirection: "column",
-                gap: 6,
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+                marginTop: 14,
+                paddingTop: 14,
+                borderTop: "1px solid var(--ei-color-rule-strong)",
               }}
             >
-              <div
-                style={{
-                  color: "var(--ei-color-fg-primary)",
-                  fontSize: 14,
-                  fontWeight: 500,
-                }}
-              >
-                {t("home.uploadSource")}
-              </div>
               <div
                 style={{
                   color: "var(--ei-color-fg-tertiary)",
@@ -394,57 +362,58 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
                   lineHeight: 1.5,
                 }}
               >
-                {t("home.uploadSourceSub")}
+                {t("home.orUpload")}
               </div>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-              }}
-            >
-              <button
-                data-testid="home-upload-trigger"
-                type="button"
-                onClick={() => setAssistOpen("upload")}
+              <div
                 style={{
-                  background: "var(--ei-color-bg-soft)",
-                  border: "1px solid var(--ei-color-rule-strong)",
-                  borderRadius: 3,
-                  color: "var(--ei-color-fg-primary)",
-                  fontSize: 13,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  minHeight: 40,
-                  padding: "0 12px",
-                  cursor: "pointer",
-                  fontWeight: 500,
+                  gap: 10,
+                  flexWrap: "wrap",
                 }}
               >
-                {t("home.uploadSource")}
-              </button>
-              <button
-                data-testid="home-url-trigger"
-                type="button"
-                onClick={() => setAssistOpen("url")}
-                style={{
-                  background: "transparent",
-                  border: "1px solid transparent",
-                  color: "var(--ei-color-accent)",
-                  fontSize: 13,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minHeight: 34,
-                  padding: "0 12px",
-                  cursor: "pointer",
-                  fontWeight: 500,
-                }}
-              >
-                URL
-              </button>
+                <button
+                  data-testid="home-upload-trigger"
+                  type="button"
+                  onClick={() => setAssistOpen("upload")}
+                  style={{
+                    background: "var(--ei-color-bg-soft)",
+                    border: "1px solid var(--ei-color-rule-strong)",
+                    borderRadius: 3,
+                    color: "var(--ei-color-fg-primary)",
+                    fontSize: 13,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 34,
+                    padding: "0 12px",
+                    cursor: "pointer",
+                    fontWeight: 500,
+                  }}
+                >
+                  {t("home.uploadSource")}
+                </button>
+                <button
+                  data-testid="home-url-trigger"
+                  type="button"
+                  onClick={() => setAssistOpen("url")}
+                  style={{
+                    background: "transparent",
+                    border: "1px solid transparent",
+                    color: "var(--ei-color-accent)",
+                    fontSize: 13,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 34,
+                    padding: "0 12px",
+                    cursor: "pointer",
+                    fontWeight: 500,
+                  }}
+                >
+                  URL
+                </button>
+              </div>
             </div>
           </div>
         </div>

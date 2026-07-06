@@ -75,6 +75,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0134](./BUG-0134.md) | home JD source controls over-separated from input card | medium | resolved | 2026-07-06 | `fix(frontend-home): integrate source controls into input card (BUG-0134)` |
 | [BUG-0133](./BUG-0133.md) | home quick-start source and CTA layout drifted from planning flow | medium | resolved | 2026-07-06 | `fix(frontend-home): separate source and submit layout (BUG-0133)` |
 | [BUG-0132](./BUG-0132.md) | home resume selector and recent mocks drifted from compact shortcut UX | medium | resolved | 2026-07-06 | `fix(frontend-home): use resume dropdown and cap recent mocks (BUG-0132)` |
 | [BUG-0131](./BUG-0131.md) | home immediate interview skipped required resume pre-bind | medium | resolved | 2026-07-06 | `fix(frontend-home): prebind resume for immediate interview (BUG-0131)` |

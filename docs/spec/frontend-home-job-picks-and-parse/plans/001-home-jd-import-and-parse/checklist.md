@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder Checklist
 
-> **版本**: 2.1
+> **版本**: 2.2
 > **状态**: completed
 > **更新日期**: 2026-07-06
 
@@ -145,9 +145,20 @@
 
 ## Phase 10: Home 新建规划输入源与 CTA 布局收敛（2026-07-06 修订）
 
-- [x] 10.1 修订 UI 真理源与文档：`ui-design/src/screen-home.jsx` 将粘贴 JD textarea 与上传文件 source 分区，简历下拉框定宽并与“还没有简历？1 分钟创建 →”同排，`立即面试` 移到简历选择下方；同步 `docs/ui-design/*`、owner spec / plan / BDD 与 P0.014 / P0.015 场景说明。Evidence: 2026-07-06 updated `ui-design/src/screen-home.jsx`, `docs/ui-design/*`, owner spec/plan/BDD docs, and P0.014/P0.015 scenario docs/scripts.
-- [x] 10.2 新增 Red 测试：`HomeLayout.test.tsx` 断言 `home-source-layout`、`home-jd-paste-panel`、`home-upload-source-panel`、`home-resume-row`、`home-submit-row` 的层级与顺序；断言 upload trigger 不在 `home-jd-input-card` 内，`home-resume-select` 不撑满整页，`home-jd-submit` 不在 textarea card 内。Evidence: red run `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeLayout.test.tsx` failed 3/3 before implementation on missing layout anchors.
+- [x] 10.1 修订 UI 真理源与文档：`ui-design/src/screen-home.jsx` 将 Home 新建规划入口拆清 JD 输入/source controls 区、简历选择区和提交区，简历下拉框定宽并与“还没有简历？1 分钟创建 →”同排，`立即面试` 移到简历选择下方；source actions 当前输入卡内归属由 Phase 11 精化；同步 `docs/ui-design/*`、owner spec / plan / BDD 与 P0.014 / P0.015 场景说明。Evidence: 2026-07-06 updated `ui-design/src/screen-home.jsx`, `docs/ui-design/*`, owner spec/plan/BDD docs, and P0.014/P0.015 scenario docs/scripts.
+- [x] 10.2 新增 Red 测试：`HomeLayout.test.tsx` 断言 `home-resume-row`、`home-submit-row` 的层级与顺序；断言 `home-resume-select` 不撑满整页，`home-jd-submit` 不在 textarea card 内；原 source panel 归属断言已被 Phase 11 输入卡内整合 gate 替换。Evidence: red run `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeLayout.test.tsx` failed 3/3 before implementation on missing layout anchors.
 - [x] 10.3 实现 Home 布局：正式前端源级复刻 `ui-design`，保留 paste / upload / URL 的 generated client 行为、ready resume gate、真实 `resumeId` 透传、import error 与 pending auth 行为。
-  - Evidence 2026-07-06: `HomeScreen.tsx` renders `home-source-layout`, `home-jd-paste-panel`, `home-upload-source-panel`, compact `home-resume-row`, and `home-submit-row`; focused command `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeLayout.test.tsx src/app/screens/home/HomeScreen.test.tsx src/app/screens/home/HomeResumeSelection.test.tsx src/app/screens/home/HomeImport.test.tsx src/app/screens/home/HomeAuthGate.test.tsx src/app/screens/home/HomeRecentMocks.test.tsx src/app/i18n/localeFiles.test.ts` passed 7 files / 41 tests; `node ui-design/ui-design-contract.test.mjs` passed 29 tests; typecheck and build exited 0.
+  - Evidence 2026-07-06: `HomeScreen.tsx` renders compact `home-resume-row` and `home-submit-row`; Phase 11 supersedes the temporary independent source panel with `home-jd-source-controls` inside `home-jd-input-card`; focused command `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeLayout.test.tsx src/app/screens/home/HomeScreen.test.tsx src/app/screens/home/HomeResumeSelection.test.tsx src/app/screens/home/HomeImport.test.tsx src/app/screens/home/HomeAuthGate.test.tsx src/app/screens/home/HomeRecentMocks.test.tsx src/app/i18n/localeFiles.test.ts` passed 7 files / 41 tests; `node ui-design/ui-design-contract.test.mjs` passed 29 tests; typecheck and build exited 0.
 - [x] 10.4 BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015`：P0.014 证明新布局锚点和几何关系；P0.015 证明新布局下 paste / upload / URL 仍使用同一个显式 ready 简历并传到 parse。
   - Evidence 2026-07-06: `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/home.spec.ts` passed 10 tests across desktop/mobile; `test/scenarios/env-setup.sh` and `env-verify.sh` exited 0; `test/scenarios/e2e/p0-014-home-default-render/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` exited 0; `test/scenarios/e2e/p0-015-jd-import-and-parse/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` exited 0.
+
+## Phase 11: Home JD source actions 输入卡内整合（2026-07-06 修订）
+
+- [x] 11.1 修订 UI 真理源与文档：`ui-design/src/screen-home.jsx` 把上传 JD 文件与 URL 导入回收到 `home-jd-input-card` 底部 `home-jd-source-controls`，删除独立 `home-upload-source-panel` / `home-source-layout` 双栏结构；同步 `docs/ui-design/*`、owner spec / plan / BDD 与 P0.014 / P0.015 场景说明。
+  - Evidence 2026-07-06: updated `ui-design/src/screen-home.jsx`, `docs/ui-design/{ui-architecture,module-job-workspace,jd-resume-management,INDEX}.md`, owner spec / plan / checklist / BDD docs, and P0.014 / P0.015 scenario docs for integrated source controls.
+- [x] 11.2 更新 Red 测试：`HomeLayout.test.tsx` 断言 `home-jd-input-card` 包含 `home-jd-source-controls`、`home-upload-trigger`、`home-url-trigger`，并反向断言 `home-upload-source-panel` / `home-source-layout` 0 命中；`home-jd-submit` 仍在 `home-submit-row` 且不在输入卡内。
+  - Evidence 2026-07-06: red run `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeLayout.test.tsx` failed before implementation on missing `home-jd-source-controls` and existing old source layout; green focused rerun passed 3 tests after implementation.
+- [x] 11.3 实现 Home 输入卡内 source controls：正式前端源级复刻 `ui-design`，保留 paste / upload / URL generated client 行为、ready resume gate、真实 `resumeId` 透传、import error 与 pending auth 行为。
+  - Evidence 2026-07-06: `HomeScreen.tsx` renders `home-jd-source-controls` inside `home-jd-input-card` and no longer renders `home-source-layout` / `home-upload-source-panel`; focused Home command passed 7 files / 41 tests; `node ui-design/ui-design-contract.test.mjs` passed 29 tests; typecheck and build exited 0; Home pixel parity passed 10 desktop/mobile tests.
+- [x] 11.4 BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015`：P0.014 证明 source actions 在输入卡内、独立 upload panel 不存在、简历与 submit 布局不回退；P0.015 证明整合布局下 paste / upload / URL 仍使用同一个显式 ready 简历并传到 parse。
+  - Evidence 2026-07-06: `test/scenarios/env-setup.sh` and `env-verify.sh` exited 0; `test/scenarios/e2e/p0-014-home-default-render/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` exited 0; `test/scenarios/e2e/p0-015-jd-import-and-parse/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` exited 0.

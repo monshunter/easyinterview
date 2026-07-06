@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-06](2026-07-06.md) | `fix(frontend-home): integrate source controls into input card (BUG-0134)` | #fix #ui #test #docs #bdd |
 | [2026-07-06](2026-07-06.md) | `fix(frontend-home): separate source and submit layout (BUG-0133)` | #fix #ui #test #docs #bdd |
 | [2026-07-06](2026-07-06.md) | `fix(frontend-home): use resume dropdown and cap recent mocks (BUG-0132)` | #fix #ui #test #docs #bdd |
 | [2026-07-06](2026-07-06.md) | `fix(frontend-home): prebind resume for immediate interview (BUG-0131)` | #fix #ui #test #docs #bdd |

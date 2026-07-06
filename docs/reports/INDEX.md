@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-06](./2026-07-06-frontend-home-integrated-source-controls-assessment.md) | Frontend Home Integrated Source Controls 交付复盘 | #assessment |
 | [2026-07-06](./2026-07-06-frontend-home-source-layout-assessment.md) | Frontend Home Source Layout 交付复盘 | #assessment |
 | [2026-07-06](./2026-07-06-frontend-home-compact-shortcut-ux-assessment.md) | Frontend Home Compact Shortcut UX 交付复盘 | #assessment |
 | [2026-07-06](./2026-07-06-frontend-home-resume-prebind-assessment.md) | Frontend Home Resume Pre-bind 交付复盘 | #assessment |

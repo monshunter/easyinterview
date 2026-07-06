@@ -1,6 +1,6 @@
 # Frontend Home / Job Picks / Parse Spec
 
-> **版本**: 2.5
+> **版本**: 2.6
 > **状态**: completed
 > **更新日期**: 2026-07-06
 
@@ -22,7 +22,7 @@
 
 - Home 屏（`route=home`）：
   - Hero（label / title）按 `ui-design/src/screen-home.jsx` 源级复刻；不再渲染旧 `home.heroSub`
-  - JD 导入区：粘贴 JD 输入框与上传文件入口是二选一 source，不得把上传文件作为 textarea 底部辅助链接；URL 入口可作为次级 source，但必须与上传/粘贴 source 区分
+  - JD 导入区：粘贴 JD 输入框是主输入；上传 JD 文件与 URL 导入是同一输入卡底部的 source actions，不再渲染独立上传 source panel
   - 首页新建模拟面试快捷入口必须先通过适度宽度的下拉框选择已有 ready 简历；`还没有简历？1 分钟创建 →` 必须在下拉框右侧同一行水平对齐，只导航到简历创建，不上传简历，也不得平铺所有简历为按钮列表
   - 主按钮文案为「立即面试」，位置在“选择已有简历”行下方，不得停留在 JD textarea 卡片右下角
   - Recent mock interviews 列表：消费 `listTargetJobs`，最多渲染 3 张 `MockInterviewCard` + `MiniRoundRail`；超过 3 条时展示“更多”并跳转到 `workspace` 模拟面试列表页
@@ -190,18 +190,21 @@
 4. `还没有简历？1 分钟创建 →` 与“选择已有简历”并排，点击进入 `resume_versions?flow=create`。
 5. 用户未显式选择 ready 简历时，`立即面试` disabled，不调用 `importTargetJob`，也不产生 pending import。
 6. 用户显式选择 ready 简历后，paste / upload / URL import 成功路由到 `parse` 时必须携带真实 `resumeId`；parse 可继承该显式选择，但仍必须保留缺失或无效 resume 时的阻断与创建入口。
-7. 2026-07-06 布局修订：粘贴 JD 输入框与上传文件入口是互斥输入 source，需要视觉分区；简历下拉框宽度不得撑满整页，创建入口在下拉框右侧同一行；「立即面试」主按钮放在简历选择行下方，避免与 textarea/source 行混在一起。
+7. 2026-07-06 布局修订：简历下拉框宽度不得撑满整页，创建入口在下拉框右侧同一行；「立即面试」主按钮放在简历选择行下方，避免与 textarea/source 行混在一起。
+8. 2026-07-06 整合修订：上传 JD 文件与 URL 导入必须回收到同一个 `home-jd-input-card` 底部，作为 `home-jd-source-controls` source actions；不得继续渲染独立 `home-upload-source-panel` 或双栏 `home-source-layout`。
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
 | C-18 | Home 预绑定简历启动 | Home JD 输入卡已加载，`listResumes` 返回 ready 简历 | 用户通过下拉框显式选择一份已有简历、粘贴 JD 后点击「立即面试」 | `importTargetJob` 成功后进入 `parse`，route params 带真实 `resumeId`；未选择简历时按钮 disabled 且 import 不发生；首页不展示旧 hero sub、不展示上传简历入口，不平铺全部简历；创建简历 CTA 进入 `resume_versions?flow=create` | 001-home-jd-import-and-parse |
 | C-19 | Home 最近模拟面试收敛 | Home 已登录且 `listTargetJobs` 返回超过 3 条 TargetJob | 用户进入 Home | 最近模拟面试只显示最近 3 张卡片；`更多` CTA 可见并点击跳转到 `workspace` 模拟面试列表页；少于或等于 3 条时不需要额外列表展开；卡片排序仍按 `updatedAt desc` | 001-home-jd-import-and-parse |
-| C-20 | Home 新建规划布局收敛 | Home JD 输入卡已加载，存在 ready 简历 | 用户查看新建模拟面试入口 | 粘贴 JD 输入框与上传文件入口分区展示且不是同一 textarea 底栏；`home-resume-select` 下拉框使用适度宽度并与 `还没有简历？1 分钟创建 →` 同行水平对齐；`立即面试` 位于简历选择行下方，仍保持未选简历或未输入 JD 时 disabled；upload / URL modal 和 paste import 继续携带真实 `resumeId` | 001-home-jd-import-and-parse |
+| C-20 | Home 新建规划布局收敛 | Home JD 输入卡已加载，存在 ready 简历 | 用户查看新建模拟面试入口 | `home-resume-select` 下拉框使用适度宽度并与 `还没有简历？1 分钟创建 →` 同行水平对齐；`立即面试` 位于简历选择行下方，仍保持未选简历或未输入 JD 时 disabled；paste / upload / URL import 继续携带真实 `resumeId`；JD source actions 的当前容器归属由 C-21 约束 | 001-home-jd-import-and-parse |
+| C-21 | Home JD source actions 输入卡内整合 | Home JD 输入卡已加载，存在 ready 简历 | 用户查看新建模拟面试入口 | `home-jd-input-card` 同时承载 `home-jd-textarea` 与底部 `home-jd-source-controls`；`home-upload-trigger` 与 `home-url-trigger` 位于输入卡内，独立 `home-upload-source-panel` / `home-source-layout` 0 命中；`home-resume-select` 与 `home-resume-create` 仍同行，`home-jd-submit` 仍在 `home-submit-row` 且不在输入卡内；paste / upload / URL import 继续携带真实 `resumeId` | 001-home-jd-import-and-parse |
 
 ## 11 修订记录
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 2.6 | 2026-07-06 | 修订首页 JD source actions：上传 JD 文件与 URL 导入回收到输入卡底部，删除独立 upload source panel，保留简历下拉框与主按钮布局。 |
 | 2.5 | 2026-07-06 | 修订首页新建规划布局：粘贴 JD 与上传文件分区，简历下拉框定宽并与创建入口同行，主按钮移到简历选择下方。 |
 | 2.4 | 2026-07-06 | 修订首页选择已有简历控件为下拉框，并把最近模拟面试收敛为 3 张卡片 + “更多”跳转到模拟面试列表页。 |
 | 2.3 | 2026-07-06 | 修订首页新建模拟面试规划快捷入口：删除冗余 hero sub，主按钮改为「立即面试」，并在首页预先选择已有 ready 简历后才允许提交 JD import。 |
