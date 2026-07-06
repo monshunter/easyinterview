@@ -72,6 +72,8 @@ describe("Home resume selection", () => {
     await waitFor(() => {
       expect(screen.getByTestId("home-resume-select")).toBeInTheDocument();
     });
+    expect(screen.getByTestId("home-resume-select").tagName).toBe("SELECT");
+    expect(screen.getByTestId("home-resume-select")).toHaveRole("combobox");
   });
 
   it("requires an explicit ready resume selection before importing a pasted JD", async () => {
@@ -92,9 +94,20 @@ describe("Home resume selection", () => {
     expect(screen.getByTestId("home-jd-submit")).toBeDisabled();
     expect(importSpy).not.toHaveBeenCalled();
 
-    await userEvent.click(
-      screen.getByTestId("home-resume-option-01918fa0-0000-7000-8000-000000001000"),
+    await screen.findByTestId(
+      "home-resume-option-01918fa0-0000-7000-8000-000000001000",
     );
+    const resumeSelect = screen.getByTestId("home-resume-select");
+    expect(resumeSelect.tagName).toBe("SELECT");
+    expect(
+      screen.queryByRole("button", { name: /Alice Example/i }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.selectOptions(
+      resumeSelect,
+      "01918fa0-0000-7000-8000-000000001000",
+    );
+    expect(resumeSelect).toHaveValue("01918fa0-0000-7000-8000-000000001000");
     expect(screen.getByTestId("home-jd-submit")).not.toBeDisabled();
 
     await userEvent.click(screen.getByTestId("home-jd-submit"));

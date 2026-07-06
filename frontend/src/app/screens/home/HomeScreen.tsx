@@ -64,13 +64,14 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   );
   const canSubmit = Boolean(input.trim()) && Boolean(selectedResume) && !importing;
 
-  const jobs = useMemo(() => {
-    const sorted = [...rawJobs].sort(
+  const sortedJobs = useMemo(() => {
+    return [...rawJobs].sort(
       (a, b) =>
         new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
     );
-    return sorted.slice(0, 12);
   }, [rawJobs]);
+  const jobs = useMemo(() => sortedJobs.slice(0, 3), [sortedJobs]);
+  const hasMoreRecentMocks = sortedJobs.length > jobs.length;
 
   const openProtectedRoute = useCallback(
     (next: Route, label: string) => {
@@ -422,7 +423,6 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
           }}
         >
           <div
-            data-testid="home-resume-select"
             style={{
               flex: "1 1 420px",
               minWidth: 280,
@@ -441,63 +441,49 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
             >
               {t("home.resumeSelect")}
             </div>
-            {resumesLoading ? (
-              <div className="ei-skeleton-stripe">
-                {t("home.resumeLoading")}
-              </div>
-            ) : readyResumes.length > 0 ? (
-              <div style={{ display: "grid", gap: 8 }}>
-                {readyResumes.map((resume) => {
-                  const active = resume.id === selectedResumeId;
-                  return (
-                    <button
-                      key={resume.id}
-                      data-testid={`home-resume-option-${resume.id}`}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setSelectedResumeId(resume.id)}
-                      style={{
-                        width: "100%",
-                        textAlign: "left",
-                        background: active
-                          ? "var(--ei-color-accent-soft)"
-                          : "var(--ei-color-bg-card)",
-                        border: `1px solid ${
-                          active
-                            ? "var(--ei-color-accent)"
-                            : "var(--ei-color-rule-strong)"
-                        }`,
-                        borderRadius: 3,
-                        padding: "10px 12px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 13.5,
-                          color: "var(--ei-color-fg-primary)",
-                          fontWeight: 500,
-                        }}
-                      >
-                        {resume.displayName || resume.title}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          color: "var(--ei-color-fg-tertiary)",
-                          marginTop: 3,
-                        }}
-                      >
-                        {resumeMeta(resume)}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
+            <select
+              data-testid="home-resume-select"
+              aria-label={t("home.resumeSelect")}
+              value={selectedResumeId}
+              disabled={resumesLoading || readyResumes.length === 0}
+              onChange={(event) => setSelectedResumeId(event.target.value)}
+              style={{
+                width: "100%",
+                minHeight: 42,
+                border: "1px solid var(--ei-color-rule-strong)",
+                borderRadius: 3,
+                background: "var(--ei-color-bg-card)",
+                color: "var(--ei-color-fg-primary)",
+                fontSize: 13.5,
+                fontFamily: "var(--ei-font-sans)",
+                padding: "0 12px",
+                outline: "none",
+                cursor:
+                  resumesLoading || readyResumes.length === 0
+                    ? "not-allowed"
+                    : "pointer",
+              }}
+            >
+              <option value="">
+                {resumesLoading
+                  ? t("home.resumeLoading")
+                  : t("home.resumeSelectPlaceholder")}
+              </option>
+              {readyResumes.map((resume) => (
+                <option
+                  key={resume.id}
+                  data-testid={`home-resume-option-${resume.id}`}
+                  value={resume.id}
+                >
+                  {`${resume.displayName || resume.title} · ${resumeMeta(resume)}`}
+                </option>
+              ))}
+            </select>
+            {!resumesLoading && readyResumes.length === 0 && (
               <div
                 data-testid="home-resume-empty"
                 style={{
+                  marginTop: 8,
                   border: "1px dashed var(--ei-color-rule-strong)",
                   borderRadius: 3,
                   padding: "10px 12px",
@@ -593,6 +579,30 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
                 {t("home.recentSectionSub")}
               </div>
             </div>
+            {hasMoreRecentMocks && (
+              <button
+                data-testid="home-recent-more"
+                type="button"
+                onClick={() =>
+                  openProtectedRoute(
+                    { name: "workspace", params: {} },
+                    t("home.recentMore"),
+                  )
+                }
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--ei-color-accent)",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  padding: 0,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {t("home.recentMore")}
+              </button>
+            )}
           </div>
           {loading ? (
             <div className="ei-skeleton-stripe">

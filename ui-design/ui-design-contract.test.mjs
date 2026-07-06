@@ -207,6 +207,16 @@ test("job picks module is fully removed and jd_match aliases back home (D-17)", 
   }
 });
 
+test("home uses a resume dropdown and caps recent mocks at three", () => {
+  const home = readUiFile("./src/screen-home.jsx");
+
+  assert.match(home, /<select\s*\n\s*value=\{selectedResumeId\}/);
+  assert.match(home, /recentJobs\.slice\(0, 3\)/);
+  assert.match(home, /hasMoreRecentJobs/);
+  assert.match(home, /nav\("workspace", \{\}\)/);
+  assert.doesNotMatch(home, /home-resume-option/);
+});
+
 test("company intel keeps only the workspace embed (D-18)", () => {
   const app = readUiFile("./src/app.jsx");
   const intel = readUiFile("./src/screen-company-intel.jsx");

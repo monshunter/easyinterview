@@ -8,7 +8,7 @@
 ## Scope
 
 Verifies the full JD import flow with three source variants:
-- Home selects an existing ready resume before any import source can submit
+- Home selects an existing ready resume from a dropdown before any import source can submit
 - Paste JD → importTargetJob(manual_text) → parse loading → preview with route `resumeId`
 - Upload file → createUploadPresign → importTargetJob(file) → parse loading → preview with route `resumeId`
 - URL input → importTargetJob(url) → parse loading → preview with route `resumeId`
@@ -24,7 +24,7 @@ Verifies the full JD import flow with three source variants:
 ## Verification Points
 
 - Home no longer renders the retired hero sub copy or old `解析并确认面试` CTA
-- Home requires explicit ready resume selection before importTargetJob or pending import
+- Home requires explicit ready resume dropdown selection before importTargetJob or pending import
 - importTargetJob discriminator (type + required fields)
 - Successful Home import navigates to parse with the selected real `resumeId`
 - Idempotency-Key header on all side-effect calls

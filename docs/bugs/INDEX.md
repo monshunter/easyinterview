@@ -75,6 +75,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0132](./BUG-0132.md) | home resume selector and recent mocks drifted from compact shortcut UX | medium | resolved | 2026-07-06 | `fix(frontend-home): use resume dropdown and cap recent mocks (BUG-0132)` |
 | [BUG-0131](./BUG-0131.md) | home immediate interview skipped required resume pre-bind | medium | resolved | 2026-07-06 | `fix(frontend-home): prebind resume for immediate interview (BUG-0131)` |
 | [BUG-0130](./BUG-0130.md) | parse launch allowed practice planning without a bound resume | high | resolved | 2026-06-30 | `fix(frontend-home): require explicit resume selection (BUG-0130)` |
 | [BUG-0117](./BUG-0117.md) | auth verify recovery and skipped probe state regressed after unified login | medium | resolved | 2026-05-28 | `fix(frontend-shell): recover auth verify refresh failures (BUG-0117)` |

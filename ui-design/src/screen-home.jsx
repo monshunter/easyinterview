@@ -6,6 +6,8 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
   const [parsing, setParsing] = React.useState(false);
   const [assistOpen, setAssistOpen] = React.useState(null);
   const recentJobs = D.targetJobs || [];
+  const recentPreviewJobs = recentJobs.slice(0, 3);
+  const hasMoreRecentJobs = recentJobs.length > recentPreviewJobs.length;
   const resumeOptions = window.getWorkspaceResumeOptions ? window.getWorkspaceResumeOptions(lang) : [];
   const selectedResume = resumeOptions.find((resume) => resume.id === selectedResumeId);
 
@@ -23,7 +25,9 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
     orUpload: "or upload .pdf / .docx / .md",
     active: "Recent mock interviews",
     activeSub: "Sorted by recent preparation. Each card is tied to one target job and interview round.",
+    recentMore: "More",
     resumeSelect: "Select existing resume",
+    resumeSelectPlaceholder: "Select a resume",
     resumeSelectHint: "Pick the resume this mock interview should use.",
     resumeEmpty: "No ready resume yet",
     selectedResume: "Selected resume",
@@ -36,7 +40,9 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
     orUpload: "也可以上传 .pdf / .docx / .md",
     active: "最近模拟面试",
     activeSub: "按最近准备排序。每张卡片都对应一个目标岗位和一轮面试。",
+    recentMore: "更多",
     resumeSelect: "选择已有简历",
+    resumeSelectPlaceholder: "请选择简历",
     resumeSelectHint: "选择这场模拟面试要使用的简历。",
     resumeEmpty: "还没有可用简历",
     selectedResume: "已选择简历",
@@ -81,20 +87,19 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
         <div style={{ marginTop: 16, display: "flex", alignItems: "flex-start", gap: 18, flexWrap: "wrap" }}>
           <div style={{ minWidth: 320, flex: "1 1 420px" }}>
             <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{L.resumeSelect}</div>
-            {resumeOptions.length ? (
-              <div style={{ display: "grid", gap: 8 }}>
-                {resumeOptions.map((resume) => {
-                  const active = resume.id === selectedResumeId;
-                  return (
-                    <button key={resume.id} onClick={() => setSelectedResumeId(resume.id)} style={{ width: "100%", textAlign: "left", background: active ? T.accentSoft : T.bgCard, border: `1px solid ${active ? T.accent : T.rule}`, borderRadius: 3, padding: "10px 12px", cursor: "pointer" }}>
-                      <div style={{ fontSize: 13.5, color: T.ink, fontWeight: 500 }}>{resume.name}</div>
-                      <div style={{ fontSize: 12, color: T.ink3, marginTop: 3 }}>{resume.meta}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ border: `1px dashed ${T.rule}`, borderRadius: 3, padding: "10px 12px", color: T.ink3, fontSize: 13 }}>{L.resumeEmpty}</div>
+            <select
+              value={selectedResumeId}
+              disabled={!resumeOptions.length}
+              onChange={(e) => setSelectedResumeId(e.target.value)}
+              style={{ width: "100%", minHeight: 42, border: `1px solid ${T.rule}`, borderRadius: 3, background: T.bgCard, color: T.ink, fontSize: 13.5, fontFamily: "var(--ei-sans)", padding: "0 12px", outline: "none", cursor: resumeOptions.length ? "pointer" : "not-allowed" }}
+            >
+              <option value="">{L.resumeSelectPlaceholder}</option>
+              {resumeOptions.map((resume) => (
+                <option key={resume.id} value={resume.id}>{resume.name} · {resume.meta}</option>
+              ))}
+            </select>
+            {!resumeOptions.length && (
+              <div style={{ marginTop: 8, border: `1px dashed ${T.rule}`, borderRadius: 3, padding: "10px 12px", color: T.ink3, fontSize: 13 }}>{L.resumeEmpty}</div>
             )}
             <div style={{ marginTop: 8, fontSize: 12.5, color: selectedResume ? T.ink2 : T.ink3 }}>
               {selectedResume ? `${L.selectedResume} · ${selectedResume.name}` : L.resumeSelectHint}
@@ -109,10 +114,17 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
       {/* Recent mock interviews */}
       {signedIn && (
         <div style={{ marginBottom: 48 }}>
-          <SectionHeader eyebrow={lang === "en" ? "RECENT" : "最近"} title={L.active} sub={L.activeSub} T={T} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 20, marginBottom: 16 }}>
+            <SectionHeader eyebrow={lang === "en" ? "RECENT" : "最近"} title={L.active} sub={L.activeSub} T={T} />
+            {hasMoreRecentJobs && (
+              <button onClick={() => nav("workspace", {})} style={{ background: "transparent", border: "none", color: T.accent, fontSize: 13, padding: 0, cursor: "pointer", fontWeight: 500, whiteSpace: "nowrap" }}>
+                {L.recentMore}
+              </button>
+            )}
+          </div>
           {recentJobs.length ? (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
-              {recentJobs.map((j) => <MockInterviewCard key={j.id} job={j} rounds={D.jdSample.rounds} T={T} onClick={() => nav("workspace", { targetJobId: j.id, jobId: j.id, planId: `plan-${j.id}`, jdId: `jd-${j.id}` })} lang={lang} />)}
+              {recentPreviewJobs.map((j) => <MockInterviewCard key={j.id} job={j} rounds={D.jdSample.rounds} T={T} onClick={() => nav("workspace", { targetJobId: j.id, jobId: j.id, planId: `plan-${j.id}`, jdId: `jd-${j.id}` })} lang={lang} />)}
             </div>
           ) : (
             <HomeEmptyState T={T} lang={lang} onImport={() => document.querySelector("textarea")?.focus()} />

@@ -62,6 +62,10 @@ test.describe("home screen DOM anchor parity", () => {
     await expect(page.locator("[data-testid='home-resume-select']")).toHaveCount(
       1,
     );
+    await expect(page.locator("[data-testid='home-resume-select']")).toHaveJSProperty(
+      "tagName",
+      "SELECT",
+    );
     // product-scope D-17 removed the JOB PICKS aux card, and D-22 removed the
     // post-interview debrief card.
     await expect(page.locator("[data-testid='home-aux-jobpicks']")).toHaveCount(

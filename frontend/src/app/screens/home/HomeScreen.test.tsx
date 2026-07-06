@@ -37,6 +37,9 @@ describe("HomeScreen", () => {
 
     const submitBtn = screen.getByTestId("home-jd-submit");
     expect(submitBtn.tagName).toBe("BUTTON");
+
+    const resumeSelect = screen.getByTestId("home-resume-select");
+    expect(resumeSelect.tagName).toBe("SELECT");
   });
 
   it("renders shell data attributes", () => {

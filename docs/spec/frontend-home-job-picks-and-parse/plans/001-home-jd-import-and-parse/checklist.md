@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder Checklist
 
-> **版本**: 1.9
+> **版本**: 2.0
 > **状态**: completed
 > **更新日期**: 2026-07-06
 
@@ -19,10 +19,10 @@
 
 - [x] 2.1 在 `HomeScreen` 中新增 `useRecentTargetJobs()` hook，通过 D1 generated client 调 `listTargetJobs`（pagination 取首页，`RequestOptions.query.pageSize=12`）；React state 跟踪 loading / data / error 三态；Vitest 断言 generated client `listTargetJobs` 被调用 1 次、query 参数 `pageSize=12`、返回 mockTransport fixture
 - [x] 2.2 新增 `MockInterviewCard.tsx` 与 `MiniRoundRail.tsx` 组件，按 `ui-design/src/screen-home.jsx::MockInterviewCard` lines 148-178 + `MiniRoundRail` lines 188-216 源级复刻；testid `home-recent-mock-card-${id}` 与 `home-recent-mock-rail-${id}`；card view model 只能读取 generated `TargetJob` 字段（`companyName` / `title` / `locationText` / `status` / `updatedAt`），`statusTone` 从 `TargetJob.status` 派生并通过 D2 token 渲染（不硬编码颜色、不读取不存在的 `level` / `nextRound` / `statusTone` fixture 字段）；Vitest 断言 fixture 中 N 张卡片渲染、status pill computed background 对应 token、MiniRoundRail 圆点 currentIndex fallback 正确
-- [x] 2.3 在 `HomeScreen` 中按 `updatedAt desc` 排序并取最多 12 条；超 12 条取首 12；卡片点击调 `nav("workspace", interviewContextFromTargetJob(j))`，`interviewContextFromTargetJob` 抽到 `frontend/src/app/navigation/interviewContext.ts` 锁定字段集合与 fallback（`targetJobId=id` / `jobId=id` / `planId=plan-${id}` / `jdId=jd-${id}` / `resumeVersionId=resume-unbound` / `roundId=round-technical-1` / `roundName` locale fallback）；Vitest 断言点击 callback 携带完整 7 个字段且不依赖 OpenAPI 未声明字段
+- [x] 2.3 在 `HomeScreen` 中按 `updatedAt desc` 排序；Phase 9 后首页只展示最近 3 条并通过“更多”进入 `workspace` 列表；卡片点击调 `nav("workspace", interviewContextFromTargetJob(j))`，`interviewContextFromTargetJob` 抽到 `frontend/src/app/navigation/interviewContext.ts` 锁定字段集合与 fallback（`targetJobId=id` / `jobId=id` / `planId=plan-${id}` / `jdId=jd-${id}` / `resumeVersionId=resume-unbound` / `roundId=round-technical-1` / `roundName` locale fallback）；Vitest 断言点击 callback 携带完整 7 个字段且不依赖 OpenAPI 未声明字段
 <!-- verified: 2026-05-08 method=vitest HomeRecentMocks.test.tsx 6 tests PASS; L2 remediation confirms a013 latest included and a001 oldest excluded after updatedAt desc sort -->
 - [x] 2.4 在 `openapi/fixtures/TargetJobs/listTargetJobs.json` 扩展 `listTargetJobs` variants（empty / one / 12+），通过 `createFixtureBackedFetch({ scenario })` 按 variant 选择；`make validate-fixtures` 通过
-- [x] 2.5 新增 `home/HomeRecentMocks.test.tsx`：测 fixture variant 三态（empty → 无 card 渲染；1 条 → 1 张卡片；13 条 → 取首 12 + `updatedAt desc` 排序）；卡片点击 callback 携带正确 params；4xx/5xx → 错误占位
+- [x] 2.5 新增 `home/HomeRecentMocks.test.tsx`：测 fixture variant 三态（empty → 无 card 渲染；1 条 → 1 张卡片；13 条 → 只展示最近 3 张 + `更多` + `updatedAt desc` 排序）；卡片点击 callback 携带正确 params；4xx/5xx → 错误占位
 <!-- verified: 2026-05-08 method=vitest HomeRecentMocks.test.tsx red→green for twelve-plus updatedAt desc order -->
 - [x] 2.6 BDD-Gate: 验证 `E2E.P0.014` 完整版（含 Recent mocks 三态）
 <!-- verified: 2026-05-08 method=vitest HomeRecentMocks 6 tests (default/empty/one-job/twelve-plus variants, sort+limit, interviewContext nav) + HomeScreen 10 tests + MockInterviewCard 6 tests PASS; BDD scenario assets deferred to Phase 6 -->
@@ -131,3 +131,14 @@
   - Evidence 2026-07-06: `ParseResumeBinding.test.tsx` passed 5 tests including `inherits a valid route resumeId from the Home immediate interview handoff`; missing route `resumeId` path still requires explicit selection.
 - [x] 8.5 BDD-Gate: 修订并验证 `E2E.P0.015` / `E2E.P0.016`：Home gate 证明旧 hero sub 0 命中、按钮为「立即面试」、选择前 disabled、选择后 import 跳 parse 且带真实 `resumeId`；Parse gate 证明继承 route `resumeId` 后 Save/Start handoff 仍拒绝 `resume-unbound`。
   - Evidence 2026-07-06: `test/scenarios/e2e/p0-014-home-default-render/scripts/trigger.sh` + `verify.sh`, `p0-015-jd-import-and-parse/scripts/trigger.sh` + `verify.sh`, and `p0-016-parse-confirm-to-workspace/scripts/trigger.sh` + `verify.sh` all exited 0.
+
+## Phase 9: Home 下拉选择简历 + Recent mocks 三条快捷入口（2026-07-06 修订）
+
+- [x] 9.1 修订 UI 真理源与文档：`ui-design/src/screen-home.jsx` 把“选择已有简历”改为 dropdown / combobox，Recent mock interviews 最多 3 张卡片并在超过 3 条时显示“更多”；同步 `docs/ui-design/*`、owner spec / plan / BDD 与 P0.014 / P0.015 场景说明。
+  - Evidence 2026-07-06: `ui-design/src/screen-home.jsx`, `ui-design/ui-design-contract.test.mjs`, `docs/ui-design/{ui-architecture,module-job-workspace,jd-resume-management}.md`, owner spec / plan / BDD docs, and P0.014 / P0.015 scenario docs were updated for dropdown resume selection, 3-card recent cap, and `更多` workspace handoff.
+- [x] 9.2 新增 Red 测试：`HomeResumeSelection.test.tsx` 断言 `home-resume-select` 是下拉框、选择通过 `selectOptions` 完成，旧平铺 button 列表不出现；`HomeRecentMocks.test.tsx` 断言 `twelve-plus` 仅渲染 3 张卡片，`home-recent-more` 点击跳转 `workspace`。
+  - Evidence 2026-07-06: Red failed before implementation because `home-resume-select` was a `DIV` instead of `SELECT`, and `HomeRecentMocks.test.tsx` rendered 12 cards instead of 3 for the twelve-plus variant.
+- [x] 9.3 实现 Home 行为：正式前端使用 native select / combobox 选择 ready 简历，保留未选择时 import disabled 与真实 `resumeId` 透传；recent mocks 仍按 `updatedAt desc` 排序但 UI `slice(0, 3)`；“更多”通过受保护路由跳转 `workspace`。
+  - Evidence 2026-07-06: `HomeScreen` renders `home-resume-select` as native `select`, keeps the explicit ready resume import gate, slices recent mocks to 3 after `updatedAt desc` sorting, and navigates `home-recent-more` to `workspace`; focused Home tests, i18n tests, UI contract, typecheck, frontend build, and home pixel-parity gate all passed.
+- [x] 9.4 BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015`：P0.014 证明 dropdown、3-card cap、`更多` 跳转；P0.015 证明 dropdown 选择的真实 `resumeId` 继续随 import route 进入 parse。
+  - Evidence 2026-07-06: `test/scenarios/e2e/p0-014-home-default-render/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` all exited 0; `test/scenarios/e2e/p0-015-jd-import-and-parse/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` all exited 0.

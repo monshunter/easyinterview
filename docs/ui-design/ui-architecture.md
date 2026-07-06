@@ -1,6 +1,6 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.13
+> **版本**: 2.14
 > **状态**: active
 > **更新日期**: 2026-07-06
 
@@ -35,10 +35,10 @@
 ├─ Home / 首页
 │  ├─ JD 粘贴输入
 │  ├─ JD 文件 / URL 导入弹窗
-│  ├─ 选择已有简历
+│  ├─ 选择已有简历（下拉框）
 │  ├─ 还没有简历？1 分钟创建
 │  ├─ 立即面试
-│  └─ 最近模拟面试列表
+│  └─ 最近模拟面试（最多 3 条 + 更多）
 ├─ Mock Interview / 模拟面试
 │  ├─ 当前面试规划
 │  ├─ JD / 简历 / InterviewRound
@@ -109,7 +109,8 @@ Home
 │  └─ Parse & Confirm Interview(resumeId 已绑定)
 │     └─ Interview Session 或 Mock Interview Plan
 ├─ 最近模拟面试
-│  └─ Mock Interview Plan
+│  ├─ 最多 3 条快捷卡片
+│  └─ 更多 -> Mock Interview Plan 列表
 
 Mock Interview Plan
 ├─ TargetJob / JD

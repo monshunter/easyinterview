@@ -11,20 +11,20 @@ Verifies the home screen renders correctly in three states:
 - JD input quick start with existing-resume selector and `立即面试` CTA
 - Empty state (no TargetJobs) → textarea focused, empty state CTA
 - Non-empty state (1-3 TargetJobs) → MockInterviewCards rendered
-- 12+ items capped at 12, sorted by `updatedAt desc`
+- 12+ items capped at 3, sorted by `updatedAt desc`, with More jumping to Mock Interview
 
 ## Fixture Variants
 
 `openapi/fixtures/TargetJobs/listTargetJobs.json`:
 - `empty` — zero items
 - `one-job` — single TargetJob
-- `twelve-plus` — 15 items, only first 12 rendered
+- `twelve-plus` — 15 items, only first 3 rendered and `更多` shown
 
 ## Verification Points
 
 - Hero label/title DOM anchors, with retired hero sub copy absent
 - Textarea card + upload/URL buttons
-- Existing ready resume selector + create-resume CTA
+- Existing ready resume dropdown + create-resume CTA
 - Main CTA copy is `立即面试` / `Start interview now`
 - Retired aux cards (JOB PICKS, POST-INTERVIEW) remain absent
 - Real backend mode generated-client gate for TargetJobs home/import/parse operations
@@ -37,7 +37,7 @@ Verifies the home screen renders correctly in three states:
 
 - `scripts/setup.sh` — ensure frontend dist exists, select fixture variant
 - `scripts/trigger.sh` — run home screen verification via Vitest/Playwright
-- `scripts/verify.sh` — assert testid anchors, sorting, card cap, empty state
+- `scripts/verify.sh` — assert testid anchors, sorting, 3-card cap, More jump, empty state
 - `scripts/cleanup.sh` — reset test state
 
 ## Offline Limitations

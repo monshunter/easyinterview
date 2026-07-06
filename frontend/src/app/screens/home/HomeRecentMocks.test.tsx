@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { createFixtureBackedFetch, createFixtureRegistry } from "../../../api/mockTransport";
 import { EasyInterviewClient } from "../../../api/generated/client";
@@ -128,13 +129,13 @@ describe("HomeRecentMocks", () => {
     });
   });
 
-  it("renders at most 12 cards for twelve-plus variant", async () => {
+  it("renders at most 3 cards for twelve-plus variant and exposes More navigation", async () => {
     const client = createClient("twelve-plus");
-    renderHome(client);
+    const { navigate } = renderHome(client);
 
     await waitFor(() => {
       const cards = screen.queryAllByTestId(/home-recent-mock-card-/);
-      expect(cards).toHaveLength(12);
+      expect(cards).toHaveLength(3);
       expect(cards[0]?.getAttribute("data-testid")).toBe(
         "home-recent-mock-card-01918fa0-0000-7000-8000-00000000a013",
       );
@@ -142,8 +143,15 @@ describe("HomeRecentMocks", () => {
         screen.getByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-00000000a013"),
       ).toBeInTheDocument();
       expect(
-        screen.queryByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-00000000a001"),
+        screen.queryByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-00000000a010"),
       ).not.toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByTestId("home-recent-more"));
+
+    expect(navigate).toHaveBeenCalledWith({
+      name: "workspace",
+      params: {},
     });
   });
 

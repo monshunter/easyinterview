@@ -1,6 +1,6 @@
 # 001 BDD Checklist
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: completed
 > **更新日期**: 2026-07-06
 
@@ -10,7 +10,9 @@
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-014-home-default-render/`，含 `README.md`（§6 baseline + §7 离线限制）
 - [x] 准备 fixture variant：`listTargetJobs.json` 至少 3 个 variant（empty / one-job / 12+jobs），按 `mock-contract-suite` 规则配置；通过 `make validate-fixtures`
-- [x] 实现 `scripts/setup.sh`（预检 frontend dist + chromium + fixture variant 切换入口）/ `scripts/trigger.sh`（运行 home spec + 三 variant 切换）/ `scripts/verify.sh`（断言 hero/textarea/aux cards/empty state/12-card cap/`updatedAt desc` 排序/topbar 高亮/zh-en 切换/warm-dark-customAccent 切换）/ `scripts/cleanup.sh`
+- [x] 实现 `scripts/setup.sh`（预检 frontend dist + chromium + fixture variant 切换入口）/ `scripts/trigger.sh`（运行 home spec + 三 variant 切换）/ `scripts/verify.sh`（断言 hero/textarea/aux cards/empty state/3-card cap + 更多跳转/`updatedAt desc` 排序/topbar 高亮/zh-en 切换/warm-dark-customAccent 切换）/ `scripts/cleanup.sh`
+- [x] 2026-07-06 dropdown + recent cap gate：P0.014 trigger / verify / README / expected outcome 必须验证 `home-resume-select` 是下拉框而不是平铺 button 列表，`twelve-plus` 只渲染 3 张最近卡片，`home-recent-more` 点击跳转 `workspace`。
+  - Evidence 2026-07-06: `test/scenarios/e2e/p0-014-home-default-render/scripts/setup.sh`, `trigger.sh`, `verify.sh`, and `cleanup.sh` exited 0 after README / seed / expected outcome updates; trigger includes focused Home tests and verify rejects missing dropdown / 3-card cap / `更多` workspace marker.
 - [x] 执行 `setup → trigger → verify → cleanup` 全 PASS
 - [x] 记录验证证据：spec 调用栈 + variant 切换日志 + 截图（baseline + 当前）+ retired-testid grep 0 命中
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.014 行（关联需求 `frontend-home-job-picks-and-parse C-1, C-4`，状态 Ready，automated）
@@ -28,6 +30,8 @@
 - [x] 2026-05-24 same-route target switch regression：P0.015 trigger 的 `ParseFlow.test.tsx` 覆盖同一 mounted `ParseScreen` 在 preview 状态切换 `targetJobId` 的 rerender 路径，断言旧 preview 被清空、loading DOM 重新出现、tick 完成后 hydrate 新 TargetJob。 <!-- evidence: `.test-output/e2e/p0-015-jd-import-and-parse/trigger.log` includes ParseFlow.test.tsx PASS; focused local Red-Green reproduced stale preview before fix -->
 - [x] 2026-07-06 home resume pre-bind gate：P0.015 trigger / verify / README / expected outcome 必须改为验证 Home 主路径先选择已有 ready 简历，再点击「立即面试」提交 import；verify.sh 必须拒绝旧 hero sub、旧「解析并确认面试」按钮文案、未选择简历仍可 import，以及 parse route 缺少真实 `resumeId` 的成功 marker。
   - Evidence 2026-07-06: `test/scenarios/e2e/p0-015-jd-import-and-parse/scripts/trigger.sh` and `verify.sh` exited 0; trigger includes `HomeResumeSelection.test.tsx`, `HomeImport.test.tsx`, `HomeAuthGate.test.tsx`, frontend build, and parse loading Playwright gate.
+- [x] 2026-07-06 home resume dropdown gate：P0.015 trigger / verify / README / expected outcome 必须证明用户通过 `home-resume-select` 下拉框选择 ready 简历后，paste / upload / URL import 继续携带真实 `resumeId` 到 parse；不得要求点击平铺简历按钮。
+  - Evidence 2026-07-06: `test/scenarios/e2e/p0-015-jd-import-and-parse/scripts/setup.sh`, `trigger.sh`, `verify.sh`, and `cleanup.sh` exited 0; trigger includes `HomeResumeSelection.test.tsx`, `HomeImport.test.tsx`, `HomeAuthGate.test.tsx`, frontend build, and parse loading Playwright gate.
 
 ## E2E.P0.016 Parse 编辑 + 绑定简历 + Save/Start handoff
 

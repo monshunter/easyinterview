@@ -39,10 +39,12 @@ function createClient(scenario?: string) {
 }
 
 async function selectDefaultResume() {
-  await userEvent.click(
-    await screen.findByTestId(
-      "home-resume-option-01918fa0-0000-7000-8000-000000001000",
-    ),
+  await screen.findByTestId(
+    "home-resume-option-01918fa0-0000-7000-8000-000000001000",
+  );
+  await userEvent.selectOptions(
+    screen.getByTestId("home-resume-select"),
+    "01918fa0-0000-7000-8000-000000001000",
   );
 }
 
