@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder
 
-> **版本**: 1.8
-> **状态**: active
-> **更新日期**: 2026-06-30
+> **版本**: 1.9
+> **状态**: completed
+> **更新日期**: 2026-07-06
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -15,8 +15,8 @@
 
 完成本计划后，用户在 frontend dev server 上能够：
 
-1. 默认进入 home，看到 JD 导入卡片、Recent mock interviews 列表、Job Picks / Post-interview aux cards、empty state 与 resume create CTA
-2. paste / upload / URL 三种 source variants 提交 JD，进入 parse 屏看到 4 步 loading → preview / confirm
+1. 默认进入 home，看到 JD 导入卡片、选择已有简历控件、Recent mock interviews 列表、empty state 与 resume create CTA；旧 hero sub 不再渲染
+2. paste / upload / URL 三种 source variants 在显式选择 ready 简历后通过「立即面试」提交 JD，进入 parse 屏看到 4 步 loading → preview / confirm，并携带首页选择的真实 `resumeId`
 3. 编辑 parse 屏的 basic fields、切换 hit toggle，绑定 ready 简历后点击 `仅保存规划` 进入 workspace，或点击 `立即面试` 进入 `workspace autoStartPractice=1` 会话创建链路（携带完整 interview context params 与真实 resumeId）
 4. 点击 TopBar Job Picks 或 home aux card 进入 jd_match P1 placeholder
 5. UI variants 继续通过 generated client + fixture-backed mock transport 稳定覆盖；同时在 `VITE_EI_API_MODE=real` 下用 production generated client 证明 TargetJobs/upload/import/parse operations 指向真实 backend base URL；JD 原文不泄漏；i18n zh/en 完整切换；dark + customAccent 三态可见变化；desktop + mobile pixel parity 通过
@@ -28,6 +28,8 @@
 `frontend-shell/spec.md` §2.1 显式让出 `parse` 业务内容；`engineering-roadmap/spec.md` 预占 `frontend-home-job-picks-and-parse` 子 spec。`openapi-v1-contract` 已声明 `TargetJobs` tag 4 个 operations + 完整 schema + fixtures（`importTargetJob.json` / `listTargetJobs.json` / `getTargetJob.json` / `updateTargetJob.json`）。`mock-contract-suite` 提供 generated client mock transport。2026-05-22 L2 remediation 复查时，`backend-targetjob/001-targetjob-import-and-parse-bootstrap` 与 `backend-upload/001-file-objects-and-presign-baseline` 已落地真实 handler；本 plan 原地补齐 real-mode generated-client gate，避免继续把 2026-05-08 的 fixture-first wording 当作当前 backend owner 事实。
 
 2026-06-30 change-intake 复查发现，spec v2.1 / `ui-design/src/screens-p0-complete.jsx::ParseScreen` 已要求 Parse 确认页在启动前绑定简历，但正式 `ParseScreen` 仍保留旧 `Confirm -> workspace` 和 `resume-unbound` 默认 handoff，导致模拟面试规划只有 JD 单边分析。Phase 7 原地修复该实现漂移：Parse preview 必须读取已有 ready 简历、强制选择或引导创建，并在 `立即面试` / `仅保存规划` 中携带真实 `resumeId`。
+
+2026-07-06 用户反馈进一步收紧首页新建规划语义：Home 不是单纯“解析 JD”，而是“模拟面试”的新建规划快捷方式。由于后续 `立即面试` / workspace auto-start 链路必须绑定 `resumeId`，首页应先选择已有 ready 简历，再提交 JD import；`parse` 继续负责核对解析结果和异常兜底，但不能作为首页主路径首次出现简历选择的唯一位置。Phase 8 原地修订 Home：删除冗余 hero sub、按钮改为「立即面试」、在 JD 输入卡旁新增选择已有简历，并把显式选择的 `resumeId` 透传到 parse。
 
 本 plan 是新 subspec 的首个计划，覆盖 P0 用户首次接入闭环。`jd_match` 完整三 tab 业务由后续 plan `002-jd-match-recommendations` 在 backend recommendations API 落地后承接。
 
@@ -42,7 +44,7 @@
 
 | 类别 | 覆盖描述 | UI Source Anchor | Phase | 验证入口 |
 |------|----------|------------------|-------|---------|
-| Primary path | Paste JD → importTargetJob → parse loading → analysisStatus=ready → preview → bind ready resume → Save plan / Start interview handoff | `screen-home.jsx::HomeScreen` lines 49-90 + `screens-p0-complete.jsx::ParseScreen` launch area | 1+2+3+4+7 | E2E.P0.015/P0.016 + Vitest `home/HomeImport.test.tsx` + `parse/ParseFlow.test.tsx` + `parse/ParseResumeBinding.test.tsx` |
+| Primary path | Paste JD → select ready resume on Home → importTargetJob → parse loading → analysisStatus=ready → preview inherits selected resume → Save plan / Start interview handoff | `screen-home.jsx::HomeScreen` lines 49-90 + homepage resume binding block + `screens-p0-complete.jsx::ParseScreen` launch area | 1+2+3+4+7+8 | E2E.P0.015/P0.016 + Vitest `home/HomeImport.test.tsx` + `home/HomeResumeSelection.test.tsx` + `parse/ParseFlow.test.tsx` + `parse/ParseResumeBinding.test.tsx` |
 | Alternate path · upload source | upload modal → `createUploadPresign` `purpose=target_job_attachment` → `fileObjectId` → importTargetJob `source.type=file` | `screen-home.jsx::JDAssistModal` lines 218-262 | 3 | Vitest `home/JDAssistModal.test.tsx` + E2E.P0.015 variant |
 | Alternate path · URL source | URL modal → url → importTargetJob `source.type=url` | `screen-home.jsx::JDAssistModal` lines 218-262 | 3 | Vitest 同上 + fixture variant |
 | Alternate path · auth pending action | 未登录提交 → requestAuth → 登录后恢复 | `app.jsx::App.requestAuth` + `app.jsx::completeSignIn` | 3+4 | Vitest `home/HomeAuthGate.test.tsx` + `parse/ParseAuthGate.test.tsx` |
@@ -58,7 +60,7 @@
 | Cross-layer contract · ImportTargetJobRequest discriminator | source oneOf 四 variant；`type` discriminator + 必填字段；side-effect 调用带 `Idempotency-Key` | OpenAPI `TargetJobImportSource` | 3 | mock-contract-suite parity test + Vitest 4 variant |
 | Cross-layer contract · TargetJob schema | requirements / summary / fitSummary / analysisStatus 渲染 | OpenAPI `TargetJob` schema | 4 | Vitest fixture parity |
 | Cross-layer contract · UpdateTargetJobRequest 部分字段 | 仅 supplied fields 写入；side-effect 调用带 `Idempotency-Key` | OpenAPI `UpdateTargetJobRequest` | 4 | Vitest request body 反查 |
-| Cross-layer contract · listResumes for Parse launch | Parse preview 读取 ready 简历并禁止 `resume-unbound` 成功 handoff | OpenAPI `PaginatedResume` | 7 | Vitest `parse/ParseResumeBinding.test.tsx` + E2E.P0.016 |
+| Cross-layer contract · listResumes for Home / Parse launch | Home 读取 ready 简历并要求显式选择后才能 import；Parse preview 继承首页 `resumeId` 或在缺失时兜底选择，禁止 `resume-unbound` 成功 handoff | OpenAPI `PaginatedResume` | 7+8 | Vitest `home/HomeResumeSelection.test.tsx` + `parse/ParseResumeBinding.test.tsx` + E2E.P0.015/P0.016 |
 | Cross-layer contract · provenance 渲染 | summary.interviewHypotheses / fitSummary.riskSignals 必带 provenance | OpenAPI `GenerationProvenance` | 4 | Vitest |
 | Privacy / security · JD raw text | rawText / rawDescription / url 不进 console / URL / localStorage / telemetry | n/a | 3+4 | Vitest 反查 + redact lint |
 | Privacy / security · auth | 未登录提交触发 requestAuth；登录后恢复 | `app.jsx::App.requestAuth` | 3+4 | Vitest |
@@ -66,7 +68,7 @@
 | Observability | 仅 fixture transport 调用次数 / latency / 4xx code 进 telemetry；不带 raw text | n/a | 3+4 | Vitest mockTransport spy |
 | UX · loading state | Parse 4 步进度条节奏；listTargetJobs 加载占位 | `screens-p0-complete.jsx::ParseScreen` lines 68-107 | 2+4 | Vitest |
 | UX · parse target switch | 同一 mounted `ParseScreen` 收到新的 `targetJobId` 时清空旧 preview/edit state，回到 loading gate，tick 完成后 hydrate 新 TargetJob | `screens-p0-complete.jsx::ParseScreen` lines 68-107 | 4 | Vitest `parse/ParseFlow.test.tsx` same-route target switch regression |
-| UX · parse resume binding | Preview 渲染 `INTERVIEW LAUNCH`，有 ready 简历时必须等待用户显式选择；无 ready 简历时禁用离开动作并引导创建简历 | `screens-p0-complete.jsx::ParseScreen` Interview launch block + `screen-workspace.jsx::ResumePickerModal` | 7 | Vitest + Playwright parse confirm gate |
+| UX · home / parse resume binding | Home 在 JD 输入卡下方渲染“选择已有简历”与“还没有简历？1 分钟创建 →”；有 ready 简历时必须等待用户显式选择；无 ready 简历时禁用 `立即面试` 并引导创建；Parse 继承首页显式选择或兜底阻断 | `screen-home.jsx::HomeScreen` + `screens-p0-complete.jsx::ParseScreen` Interview launch block + `screen-workspace.jsx::ResumePickerModal` | 7+8 | Vitest + Playwright home/parse confirm gate |
 | UX · empty state | listTargetJobs 空 → HomeEmptyState；search/watchlist tab 空 → P1 placeholder | `screen-home.jsx::HomeEmptyState` + `screen-jd-match.jsx` placeholders | 2+5 | Vitest |
 | UX · error state | importTargetJob 4xx 内联错误；getTargetJob failed 全屏错误 | n/a | 3+4 | Vitest |
 | UX · i18n zh/en | 全文案通过 typed helper；切换立即重绘；新增 home / parse / jdMatch namespaces | D1 typed locale helper | 1-5 | Vitest `i18n` namespaces test |
@@ -108,7 +110,7 @@
 | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` scenarios: `manual_text-success` / `file-success` / `url-success` / `invalid-source-422` / `server-error-500` | `HomeScreen` import submit via generated `importTargetJob`; source variants are `manual_text` / `file` / `url`; request body carries JD raw content only through generated body + React state; side-effect call supplies `idempotencyKey` | real: `backend/cmd/api/main.go` mounts `POST /api/v1/targets/import` to `backend/internal/targetjob.Handler.ImportTargetJob`; frontend must not call URL fetcher, file parser, LLM, prompt registry, or provider-specific endpoint | backend: `target_jobs`, `target_job_sources`, `target_import` job / outbox; frontend: none | backend-only `target.import.parse` through F3/A3 after import job; frontend fixture/stub only for UI variants | E2E.P0.015 fixture UI + real gate; backend E2E.P0.010 / P0.011 / P0.012 / P0.013 |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` scenarios: `default` / `prototype-baseline` / plan-added `queued` / `processing` / `ready` / `failed` / `hidden-signal-rich` | `ParseScreen` polling via generated `getTargetJob(targetJobId)`; `analysisStatus` drives loading/preview/failed; Hidden signals render only backend/API `summary.interviewHypotheses` + `coreThemes` + `fitSummary.riskSignals` with `GenerationProvenance` present | real: `backend/cmd/api/main.go` mounts `GET /api/v1/targets/{targetJobId}` to `backend/internal/targetjob.Handler.GetTargetJob`; no frontend LLM interaction | backend: `target_jobs`, `target_job_requirements`; frontend: ephemeral UI state only | backend-only parse result; frontend displays returned AI-generated fields without inference or regeneration | E2E.P0.015 fixture UI + real gate; backend E2E.P0.010 / P0.011 / P0.012 / P0.013 |
 | `updateTargetJob` | `openapi/fixtures/TargetJobs/updateTargetJob.json` scenarios: `success` / `validation-4xx` | `ParseScreen` Save plan / Start interview via generated `updateTargetJob`; request body includes only supplied editable fields (`titleHint`, `companyNameHint`, `locationText`, `notes`); hit toggle state is not sent; side-effect call supplies `idempotencyKey` | real: `backend/cmd/api/main.go` mounts `PATCH /api/v1/targets/{targetJobId}` to `backend/internal/targetjob.Handler.UpdateTargetJob`; owned by `backend-targetjob/001-targetjob-import-and-parse-bootstrap` | backend: `target_jobs` metadata columns; frontend: none | none in frontend; no parse regeneration | E2E.P0.016 fixture UI + real gate; backend E2E.P0.010 |
-| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` scenarios: `default` / `empty` | `ParseScreen` preview launch block; reads ready, non-archived flat resumes; does not default-select any resume; no side-effect key | real: `backend/cmd/api/main.go` mounts `GET /api/v1/resumes` to resume handler; owned by `backend-resume` | backend: `resumes`; frontend: selected resume id in React state only after explicit user click | none | E2E.P0.016 fixture UI; resume real backend covered by resume owner gates |
+| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` scenarios: `default` / `empty` | `HomeScreen` JD import card and `ParseScreen` preview launch block; reads ready, non-archived flat resumes; Home requires explicit selection before import; Parse may inherit route `resumeId` selected on Home and still validates it against ready resumes; no side-effect key | real: `backend/cmd/api/main.go` mounts `GET /api/v1/resumes` to resume handler; owned by `backend-resume` | backend: `resumes`; frontend: selected resume id in React state only after explicit user click | none | E2E.P0.015/P0.016 fixture UI; resume real backend covered by resume owner gates |
 | `N/A` UI-only `jd_match` placeholder | no new fixture; generated client must not be called by `JDMatchScreen` placeholder except existing shell auth/runtime calls | `JDMatchScreen` hero/profile-chip/tabs/placeholder shell; TopBar + Home aux card route only | N/A until future recommendations API / plan `002-jd-match-recommendations` | none | none | E2E.P0.017 |
 
 ## 3.7 TargetJob Frontend View-Model Mapping
@@ -128,6 +130,7 @@
 
 | 日期 | 版本 | 类型 | 说明 |
 |------|------|------|------|
+| 2026-07-06 | 1.9 | home-resume-selection remediation | 修订 Home 新建模拟面试规划快捷入口：删除旧 hero sub，主按钮改为「立即面试」，首页选择已有 ready 简历后才允许 import 并把真实 `resumeId` 透传到 parse。 |
 | 2026-06-30 | 1.8 | explicit-resume-selection remediation | 修复 Phase 7 首版默认选中最新 ready 简历的产品语义偏差：Parse 有 ready 简历时仍必须由用户显式选择，Save/Start 在选择前保持 disabled。 |
 | 2026-06-30 | 1.7 | resume-binding remediation | 修复 Parse 确认页仍以 `resume-unbound` 成功 handoff 的流程缺陷；新增 Phase 7，强制选择 ready 简历或创建简历，`立即面试` 进入 workspace `autoStartPractice=1` 会话创建链路后到 practice，`仅保存规划` 进入 workspace。 |
 | 2026-05-24 | 1.6 | route-param remediation | 修复同一 mounted `ParseScreen` 从已解析 preview 切到新的 `targetJobId` 时没有重置内部 state 的问题；新增 `ParseFlow.test.tsx` rerender regression，断言旧 TargetJob title 消失、新 loading DOM 出现、loading gate 完成后 hydrate 新 TargetJob。 |
@@ -348,12 +351,35 @@ Re-parse 重置 `stage=loading` 并重新调 `getTargetJob` 触发 polling；Can
 
 更新 E2E.P0.016 文档和 Playwright gate：Parse 确认主路径点击 `仅保存规划` 后应进入 workspace 完整规划态或至少 URL 携带真实 `resumeId`，不得渲染 `workspace-missing-resume`；另覆盖 `立即面试` 的 `workspace autoStartPractice=1` handoff。verify.sh 需要拒绝 `resume-unbound` 成功 marker。
 
+### Phase 8: Home 首页选择已有简历后立即面试（2026-07-06 修订）
+
+#### 8.1 UI 真理源与 i18n 修订
+
+更新 `ui-design/src/screen-home.jsx`、`docs/ui-design/jd-resume-management.md`、`docs/ui-design/ui-architecture.md`、`docs/ui-design/module-job-workspace.md`：Home hero 不再渲染 `sub`；按钮文案为「立即面试」/ `Start interview now`；JD 输入卡下方新增“选择已有简历”控件，旁边保留“还没有简历？1 分钟创建 →”。`frontend/src/app/i18n/locales/zh.ts` / `en.ts` 删除运行时对 `home.heroSub` 的渲染依赖，新增 `home.resumeSelect*` 文案。
+
+#### 8.2 Home 读取并显式选择 ready 简历
+
+`HomeScreen` 在已登录状态下调用 generated `listResumes`，过滤 `parseStatus=ready` 且未 archived / deleted 的简历，按 `updatedAt desc` 展示。不得上传简历；无 ready 简历或读取失败时展示创建入口并保持 `home-jd-submit` disabled。Red-Green：新增 `home/HomeResumeSelection.test.tsx`，先锁定当前缺少 `home-resume-select` / `home-resume-option-*` 且按钮未受 resume 约束，再实现。
+
+#### 8.3 Home import 透传真实 `resumeId`
+
+用户显式选择 ready 简历后，paste / upload / URL import 成功跳转 `parse` 时必须把 `resumeId=<selected ready resume id>` 写入 route params；未选择简历时不得调用 `importTargetJob` 或 `requestAuth(import_jd)`。未登录 pending import 仅允许在已有显式 `resumeId` 时创建，pending params 继续只携带 opaque `pendingImportId`、`source` 与 `resumeId`，不携带 JD 原文。
+
+#### 8.4 Parse 继承首页显式选择
+
+`ParseScreen` 在 `route.params.resumeId` 命中 ready 简历时把它作为当前显式选择；该行为只适用于上游 Home 已经选择并透传的真实 `resumeId`，不恢复“默认选中最近简历”。若 route `resumeId` 缺失、无效、已归档或读取失败，Parse 继续保持 Phase 7 的阻断和创建入口。
+
+#### 8.5 BDD / browser gate 修订
+
+更新 E2E.P0.015 / E2E.P0.016 文档和 focused gates：Home 子用例必须证明旧 hero sub 0 命中、按钮文案为「立即面试」、选择 ready 简历前按钮 disabled、选择后 import 跳 parse 且 URL 含真实 `resumeId`；Parse 子用例必须证明 route `resumeId` 被继承，成功 handoff 仍拒绝 `resume-unbound`。
+
 ## 5 验收标准
 
-- 本计划列出的 Phase 1-7 全部 checklist 项通过
-- spec C-1 ~ C-11 与 C-17 全部覆盖且通过对应测试
+- 本计划列出的 Phase 1-8 全部 checklist 项通过
+- spec C-1 ~ C-11、C-17 与 C-18 全部覆盖且通过对应测试
 - 关联 BDD-Gate（E2E.P0.014 / E2E.P0.015 / E2E.P0.016 / E2E.P0.017）全部通过；P0.014-P0.016 trigger log 必须包含 `VITE_EI_API_MODE=real` 与 `targetJob.realApiMode.test.ts` PASS；backend E2E.P0.010-P0.013 live TargetJob scenarios 全部 PASS；D1+D2+D3 regression（P0.001/002/004/005/006）全部 PASS
 - Phase 7 验证必须证明 Parse 成功 handoff 不再包含 `resume-unbound`，没有 ready 简历时不能启动或保存规划
+- Phase 8 验证必须证明 Home 预先选择已有 ready 简历后才允许 import，旧 hero sub 不再渲染，`解析并确认面试` 文案不再出现在 Home 主按钮，成功进入 parse 时携带真实 `resumeId`
 - pixel parity 在 desktop + mobile 两 viewport 下 home / parse / jd_match 三屏新增 spec 全 PASS
 - `make docs-check` zero drift；`check_md_links` 双 OK；`pnpm typecheck` 0 错；`pnpm build` + `make build` PASS
 - 负向搜索（旧 prototype 业务 testid、旧 route alias、prototype data 直接 import、JD raw text 泄漏）全部 0 命中

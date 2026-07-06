@@ -2,35 +2,44 @@
 const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
   const D = window.EI_DATA;
   const [input, setInput] = React.useState("");
+  const [selectedResumeId, setSelectedResumeId] = React.useState("");
   const [parsing, setParsing] = React.useState(false);
   const [assistOpen, setAssistOpen] = React.useState(null);
   const recentJobs = D.targetJobs || [];
+  const resumeOptions = window.getWorkspaceResumeOptions ? window.getWorkspaceResumeOptions(lang) : [];
+  const selectedResume = resumeOptions.find((resume) => resume.id === selectedResumeId);
 
   const handleImport = () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !selectedResume) return;
     setParsing(true);
-    setTimeout(() => { setParsing(false); nav("parse", { source: "pasted" }); }, 400);
+    setTimeout(() => { setParsing(false); nav("parse", { source: "pasted", resumeId: selectedResume.id }); }, 400);
   };
 
   const L = lang === "en" ? {
     tag: "HOME · MOCK INTERVIEWS",
     title: "Let's win the interview you already care about.",
-    sub: "Paste a JD or continue a recent mock interview. Practice stays tied to the role, not to generic question banks.",
     ph: "Paste the JD here…",
-    importBtn: "Parse & confirm interview",
+    importBtn: "Start interview now",
     orUpload: "or upload .pdf / .docx / .md",
     active: "Recent mock interviews",
     activeSub: "Sorted by recent preparation. Each card is tied to one target job and interview round.",
+    resumeSelect: "Select existing resume",
+    resumeSelectHint: "Pick the resume this mock interview should use.",
+    resumeEmpty: "No ready resume yet",
+    selectedResume: "Selected resume",
     resumeCreate: "No resume yet? Create one in 1 minute →",
   } : {
     tag: "首页 · 模拟面试",
     title: "先把你已经拿在手里的那场面试，赢下来。",
-    sub: "粘贴 JD，或继续最近一次模拟面试。每一次练习都绑定具体岗位，而不是泛用题库。",
     ph: "把 JD 粘贴到这里…",
-    importBtn: "解析并确认面试",
+    importBtn: "立即面试",
     orUpload: "也可以上传 .pdf / .docx / .md",
     active: "最近模拟面试",
     activeSub: "按最近准备排序。每张卡片都对应一个目标岗位和一轮面试。",
+    resumeSelect: "选择已有简历",
+    resumeSelectHint: "选择这场模拟面试要使用的简历。",
+    resumeEmpty: "还没有可用简历",
+    selectedResume: "已选择简历",
     resumeCreate: "还没有简历？1 分钟创建 →",
   };
 
@@ -42,7 +51,6 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
         <h1 className="ei-serif" style={{ fontSize: 48, color: T.ink, margin: 0, lineHeight: 1.1, letterSpacing: "-0.025em", maxWidth: 820, textWrap: "balance" }}>
           {L.title}
         </h1>
-        <p style={{ fontSize: 15.5, color: T.ink2, maxWidth: 620, marginTop: 16, lineHeight: 1.55 }}>{L.sub}</p>
 
         <div style={{ marginTop: 32, background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 20 }}>
           <textarea
@@ -64,13 +72,34 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
                 <Icon name="link" size={14} /> URL
               </button>
             </div>
-            <Btn variant="accent" onClick={handleImport} T={T} iconRight="arrow_right" disabled={!input.trim() && !parsing}>
+            <Btn variant="accent" onClick={handleImport} T={T} iconRight="arrow_right" disabled={!input.trim() || !selectedResume || parsing}>
               {parsing ? (lang === "en" ? "Parsing JD…" : "正在解析 JD…") : L.importBtn}
             </Btn>
           </div>
         </div>
 
-        <div style={{ marginTop: 16, display: "flex", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ marginTop: 16, display: "flex", alignItems: "flex-start", gap: 18, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 320, flex: "1 1 420px" }}>
+            <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{L.resumeSelect}</div>
+            {resumeOptions.length ? (
+              <div style={{ display: "grid", gap: 8 }}>
+                {resumeOptions.map((resume) => {
+                  const active = resume.id === selectedResumeId;
+                  return (
+                    <button key={resume.id} onClick={() => setSelectedResumeId(resume.id)} style={{ width: "100%", textAlign: "left", background: active ? T.accentSoft : T.bgCard, border: `1px solid ${active ? T.accent : T.rule}`, borderRadius: 3, padding: "10px 12px", cursor: "pointer" }}>
+                      <div style={{ fontSize: 13.5, color: T.ink, fontWeight: 500 }}>{resume.name}</div>
+                      <div style={{ fontSize: 12, color: T.ink3, marginTop: 3 }}>{resume.meta}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ border: `1px dashed ${T.rule}`, borderRadius: 3, padding: "10px 12px", color: T.ink3, fontSize: 13 }}>{L.resumeEmpty}</div>
+            )}
+            <div style={{ marginTop: 8, fontSize: 12.5, color: selectedResume ? T.ink2 : T.ink3 }}>
+              {selectedResume ? `${L.selectedResume} · ${selectedResume.name}` : L.resumeSelectHint}
+            </div>
+          </div>
           <button onClick={() => nav("resume_versions", { flow: "create" })} style={{ background: "transparent", border: "none", color: T.accent, fontSize: 13, padding: 0, cursor: "pointer", fontWeight: 500 }}>
             {L.resumeCreate}
           </button>
@@ -91,7 +120,7 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
         </div>
       )}
 
-      {assistOpen && <JDAssistModal T={T} lang={lang} type={assistOpen} onClose={() => setAssistOpen(null)} onConfirm={() => { setAssistOpen(null); nav("parse", { source: assistOpen }); }} />}
+      {assistOpen && <JDAssistModal T={T} lang={lang} type={assistOpen} onClose={() => setAssistOpen(null)} onConfirm={() => { if (!selectedResume) return; setAssistOpen(null); nav("parse", { source: assistOpen, resumeId: selectedResume.id }); }} />}
     </div>
   );
 };

@@ -284,6 +284,11 @@ test("Home recent mock interviews are signed-in only", () => {
   assert.match(home, /const HomeScreen = \(\{ T, lang, nav, role, signedIn/);
   assert.match(home, /\{signedIn && \(/);
   assert.match(home, /Recent mock interviews/);
+  assert.match(home, /选择已有简历/);
+  assert.match(home, /还没有简历？1 分钟创建 →/);
+  assert.match(home, /立即面试/);
+  assert.doesNotMatch(home, /粘贴 JD，或继续最近一次模拟面试。每一次练习都绑定具体岗位，而不是泛用题库。/);
+  assert.doesNotMatch(home, /解析并确认面试/);
 });
 
 test("P0 voice interview keeps the shared practice shell and renders the voice surface", () => {

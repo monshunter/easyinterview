@@ -14,9 +14,28 @@ import {
   type PendingImportSource,
 } from "./pendingImportState";
 import { useRecentTargetJobs } from "./useRecentTargetJobs";
+import type { Resume } from "../../../api/generated/types";
 
 function idempotencyKey(): string {
   return `ik-${crypto.randomUUID()}`;
+}
+
+function isSelectableResume(resume: Resume): boolean {
+  return (
+    resume.parseStatus === "ready" &&
+    resume.status !== "archived" &&
+    !resume.deletedAt
+  );
+}
+
+function sortByMostRecentResume(a: Resume, b: Resume): number {
+  return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+}
+
+function resumeMeta(resume: Resume): string {
+  return [resume.language, resume.sourceType, resume.updatedAt.slice(0, 10)]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
@@ -28,6 +47,10 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const [assistOpen, setAssistOpen] = useState<"upload" | "url" | null>(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [readyResumes, setReadyResumes] = useState<Resume[]>([]);
+  const [selectedResumeId, setSelectedResumeId] = useState("");
+  const [resumesLoading, setResumesLoading] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
   const { jobs: rawJobs, loading, error } = useRecentTargetJobs();
   const targetLanguage = lang === "zh" ? "zh-CN" : "en";
   const routeResumeId =
@@ -35,6 +58,11 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
       ? route.params.resumeId
       : undefined;
   const showRecentMocks = runtime?.auth.status === "authenticated";
+  const selectedResume = useMemo(
+    () => readyResumes.find((resume) => resume.id === selectedResumeId) ?? null,
+    [readyResumes, selectedResumeId],
+  );
+  const canSubmit = Boolean(input.trim()) && Boolean(selectedResume) && !importing;
 
   const jobs = useMemo(() => {
     const sorted = [...rawJobs].sort(
@@ -60,7 +88,56 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     [navigate, requestAuth, runtime],
   );
 
-  const submitImportSource = useCallback(async (source: PendingImportSource) => {
+  useEffect(() => {
+    if (!runtime || runtime.auth.status !== "authenticated") {
+      setReadyResumes([]);
+      setSelectedResumeId("");
+      setResumesLoading(false);
+      setResumeError(null);
+      return;
+    }
+
+    let active = true;
+    setResumesLoading(true);
+    setResumeError(null);
+
+    runtime.client
+      .listResumes({ headers: { "Accept-Language": lang } })
+      .then((page) => {
+        if (!active) return;
+        const ready = page.items
+          .filter(isSelectableResume)
+          .sort(sortByMostRecentResume);
+        setReadyResumes(ready);
+        setSelectedResumeId((current) => {
+          if (current && ready.some((resume) => resume.id === current)) {
+            return current;
+          }
+          if (
+            routeResumeId &&
+            ready.some((resume) => resume.id === routeResumeId)
+          ) {
+            return routeResumeId;
+          }
+          return "";
+        });
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        setReadyResumes([]);
+        setSelectedResumeId("");
+        setResumeError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (active) setResumesLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [lang, routeResumeId, runtime]);
+
+  const submitImportSource = useCallback(async (source: PendingImportSource, resumeId: string) => {
     if (!runtime) return;
     setImportError(null);
     setImporting(true);
@@ -112,9 +189,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         params: {
           targetJobId,
           source: source.source,
-          ...(routeResumeId
-            ? { resumeId: routeResumeId }
-            : {}),
+          resumeId,
         },
       });
     } catch (err: unknown) {
@@ -124,22 +199,28 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
     } finally {
       setImporting(false);
     }
-  }, [navigate, routeResumeId, runtime, targetLanguage]);
+  }, [navigate, runtime, targetLanguage]);
 
   useEffect(() => {
     if (!runtime || runtime.auth.status !== "authenticated") return;
     const pendingImportId = route.params.pendingImportId;
     if (!pendingImportId) return;
+    const resumeId =
+      typeof route.params.resumeId === "string" ? route.params.resumeId : "";
+    if (!resumeId) {
+      setImportError(t("home.resumeRequired"));
+      return;
+    }
     const pendingSource = consumePendingImportSource(pendingImportId);
     if (!pendingSource) {
       setImportError("Pending JD import expired. Please submit the JD again.");
       return;
     }
-    void submitImportSource(pendingSource);
-  }, [route.params.pendingImportId, runtime, submitImportSource]);
+    void submitImportSource(pendingSource, resumeId);
+  }, [route.params.pendingImportId, route.params.resumeId, runtime, submitImportSource, t]);
 
   const handlePasteImport = async () => {
-    if (!runtime || !input.trim() || importing) return;
+    if (!runtime || !input.trim() || importing || !selectedResume) return;
     const source: PendingImportSource = { source: "paste", rawText: input };
 
     if (runtime.auth.status !== "authenticated") {
@@ -151,19 +232,17 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         params: {
           source: "paste",
           pendingImportId,
-          ...(routeResumeId
-            ? { resumeId: routeResumeId }
-            : {}),
+          resumeId: selectedResume.id,
         },
       });
       return;
     }
 
-    await submitImportSource(source);
+    await submitImportSource(source, selectedResume.id);
   };
 
   const handleModalConfirm = async (source: JDAssistModalSource) => {
-    if (!runtime || importing) return;
+    if (!runtime || importing || !selectedResume) return;
     const pendingSource: PendingImportSource = source;
 
     if (runtime.auth.status !== "authenticated") {
@@ -175,15 +254,13 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         params: {
           source: source.source,
           pendingImportId,
-          ...(routeResumeId
-            ? { resumeId: routeResumeId }
-            : {}),
+          resumeId: selectedResume.id,
         },
       });
       return;
     }
 
-    await submitImportSource(pendingSource);
+    await submitImportSource(pendingSource, selectedResume.id);
   };
 
   return (
@@ -217,19 +294,6 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         >
           {t("home.heroTitle")}
         </h1>
-        <p
-          data-testid="home-hero-sub"
-          style={{
-            fontSize: 15.5,
-            color: "var(--ei-color-fg-secondary)",
-            maxWidth: 620,
-            marginTop: 16,
-            lineHeight: 1.55,
-          }}
-        >
-          {t("home.heroSub")}
-        </p>
-
         {/* JD textarea card */}
         <div
           style={{
@@ -312,7 +376,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
             <button
               data-testid="home-jd-submit"
               type="button"
-              disabled={!input.trim() || importing}
+              disabled={!canSubmit}
               onClick={handlePasteImport}
               style={{
                 background: "var(--ei-color-accent)",
@@ -352,10 +416,113 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
           style={{
             marginTop: 16,
             display: "flex",
-            gap: 16,
+            gap: 18,
             flexWrap: "wrap",
+            alignItems: "flex-start",
           }}
         >
+          <div
+            data-testid="home-resume-select"
+            style={{
+              flex: "1 1 420px",
+              minWidth: 280,
+            }}
+          >
+            <div
+              style={{
+                color: "var(--ei-color-fg-tertiary)",
+                marginBottom: 8,
+                fontSize: 11,
+                fontWeight: 500,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                fontFamily: "var(--ei-font-mono)",
+              }}
+            >
+              {t("home.resumeSelect")}
+            </div>
+            {resumesLoading ? (
+              <div className="ei-skeleton-stripe">
+                {t("home.resumeLoading")}
+              </div>
+            ) : readyResumes.length > 0 ? (
+              <div style={{ display: "grid", gap: 8 }}>
+                {readyResumes.map((resume) => {
+                  const active = resume.id === selectedResumeId;
+                  return (
+                    <button
+                      key={resume.id}
+                      data-testid={`home-resume-option-${resume.id}`}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setSelectedResumeId(resume.id)}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        background: active
+                          ? "var(--ei-color-accent-soft)"
+                          : "var(--ei-color-bg-card)",
+                        border: `1px solid ${
+                          active
+                            ? "var(--ei-color-accent)"
+                            : "var(--ei-color-rule-strong)"
+                        }`,
+                        borderRadius: 3,
+                        padding: "10px 12px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 13.5,
+                          color: "var(--ei-color-fg-primary)",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {resume.displayName || resume.title}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "var(--ei-color-fg-tertiary)",
+                          marginTop: 3,
+                        }}
+                      >
+                        {resumeMeta(resume)}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div
+                data-testid="home-resume-empty"
+                style={{
+                  border: "1px dashed var(--ei-color-rule-strong)",
+                  borderRadius: 3,
+                  padding: "10px 12px",
+                  color: "var(--ei-color-fg-tertiary)",
+                  fontSize: 13,
+                }}
+              >
+                {resumeError ?? t("home.resumeEmpty")}
+              </div>
+            )}
+            <div
+              data-testid="home-resume-selection-status"
+              style={{
+                marginTop: 8,
+                fontSize: 12.5,
+                color: selectedResume
+                  ? "var(--ei-color-fg-secondary)"
+                  : "var(--ei-color-fg-tertiary)",
+              }}
+            >
+              {selectedResume
+                ? `${t("home.resumeSelected")} · ${selectedResume.displayName || selectedResume.title}`
+                : t("home.resumeSelectHint")}
+            </div>
+          </div>
           <button
             data-testid="home-resume-create"
             type="button"

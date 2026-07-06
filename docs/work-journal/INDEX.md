@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-07
+
+| 日期 | Commit Message | 标签 |
+|------|----------------|------|
+| [2026-07-06](2026-07-06.md) | `fix(frontend-home): prebind resume for immediate interview (BUG-0131)` | #fix #ui #test #docs #bdd |
+
 ## 2026-06
 
 | 日期 | Commit Message | 标签 |

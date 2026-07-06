@@ -8,7 +8,7 @@ import { expect, test } from "@playwright/test";
  * parse/plan.md §4 Phase 6.
  *
  * Covers desktop (1440x900) and mobile (390x844) projects:
- * - DOM anchors (hero, textarea, retired aux-card negatives)
+ * - DOM anchors (hero, textarea, resume picker, retired aux-card negatives)
  * - Bounding box stays in viewport, no overlap
  * - default (ocean)/light -> dark -> customAccent theme switching
  * - Mobile: textarea card not overflowing
@@ -51,11 +51,17 @@ test.describe("home screen DOM anchor parity", () => {
 
     await expect(page.locator("[data-testid='home-hero-label']")).toHaveCount(1);
     await expect(page.locator("[data-testid='home-hero-title']")).toHaveCount(1);
-    await expect(page.locator("[data-testid='home-hero-sub']")).toHaveCount(1);
+    await expect(page.locator("[data-testid='home-hero-sub']")).toHaveCount(0);
     await expect(page.locator("[data-testid='home-jd-textarea']")).toHaveCount(
       1,
     );
     await expect(page.locator("[data-testid='home-jd-submit']")).toHaveCount(1);
+    await expect(page.locator("[data-testid='home-jd-submit']")).toContainText(
+      /立即面试|Start interview now/,
+    );
+    await expect(page.locator("[data-testid='home-resume-select']")).toHaveCount(
+      1,
+    );
     // product-scope D-17 removed the JOB PICKS aux card, and D-22 removed the
     // post-interview debrief card.
     await expect(page.locator("[data-testid='home-aux-jobpicks']")).toHaveCount(

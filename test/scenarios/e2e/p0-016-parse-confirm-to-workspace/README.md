@@ -11,7 +11,7 @@ Verifies the parse preview editing and resume-bound launch flow:
 - Edit title/company/location/notes in Basic fields
 - Level/language read-only (no input elements)
 - Hit toggle cycling (false → true → partial → false)
-- Parse preview reads ready resumes, does not default-select one, and requires an explicit resume click before exit
+- Parse preview reads ready resumes, inherits a valid `resumeId` from Home immediate-interview handoff, and otherwise requires an explicit resume click before exit
 - Save plan / Start interview call updateTargetJob with only supplied fields + Idempotency-Key
 - Successful save navigates to workspace with real resumeId interviewContext params
 - Successful start uses workspace autoStartPractice=1 and reaches practice
@@ -32,6 +32,7 @@ Verifies the parse preview editing and resume-bound launch flow:
 - Idempotency-Key header present
 - Real backend mode generated-client gate for TargetJobs read/update and import path operations
 - Nav to workspace with real `resumeId` interviewContext fields
+- Route `resumeId` from Home is accepted only when it matches a ready resume
 - Browser-level Save plan reaches `/workspace` with real ready `resumeId` and does not render `workspace-missing-resume`
 - Browser-level Start interview reaches `practice` through workspace `autoStartPractice=1`
 - `resume-unbound` never appears in success markers
@@ -41,7 +42,7 @@ Verifies the parse preview editing and resume-bound launch flow:
 
 - `scripts/setup.sh` — auth state selection (signed-in/out)
 - `scripts/trigger.sh` — execute save/start flow (A: bound save, B: bound start, C: empty resume gate, D: 4xx)
-- `scripts/verify.sh` — assert request body schema, disabled unauth/empty gate, nav params, no `resume-unbound`
+- `scripts/verify.sh` — assert route resume inheritance, request body schema, disabled unauth/empty gate, nav params, no `resume-unbound`
 - `scripts/cleanup.sh` — reset auth state
 
 ## Offline Limitations
@@ -69,7 +70,7 @@ Verifies the parse preview editing and resume-bound launch flow:
 - The trigger builds `frontend/dist` and runs Playwright
   `tests/pixel-parity/parse.spec.ts --grep "save plan navigates|start interview hands off"`.
 - The browser gate opens `/parse?targetJobId=...`, mocks generated API
-  responses, first verifies Save/Start are disabled until the user clicks a ready resume, then clicks Save plan and Start interview, asserts `updateTargetJob` body/Idempotency-Key,
+  responses, verifies route resume inheritance in unit tests, first verifies Save/Start are disabled until the user clicks a ready resume when no valid route resume is present, then clicks Save plan and Start interview, asserts `updateTargetJob` body/Idempotency-Key,
   verifies `/workspace` carries `targetJobId / jobId / jdId / planId /
   resumeId / roundId / roundName` with a real ready resume, verifies Start reaches
   `practice`, and rejects `workspace-missing-resume` / `resume-unbound` success markers.

@@ -40,17 +40,22 @@ describe("D1 shell i18n locale file structure", () => {
     const requiredKeys = [
       "home.heroLabel",
       "home.heroTitle",
-      "home.heroSub",
       "home.jdPlaceholder",
       "home.importBtn",
       "home.orUpload",
       "home.recentSection",
       "home.recentSectionSub",
+      "home.resumeSelect",
+      "home.resumeSelectHint",
+      "home.resumeSelected",
+      "home.resumeLoading",
+      "home.resumeEmpty",
+      "home.resumeRequired",
       "home.resumeCreateLink",
     ];
 
     // product-scope D-22 removes the home debrief CTA with the debrief module.
-    expect(requiredKeys.length).toBeGreaterThanOrEqual(9);
+    expect(requiredKeys.length).toBeGreaterThanOrEqual(14);
 
     for (const key of requiredKeys) {
       expect(zhSource).toContain(`"${key}"`);

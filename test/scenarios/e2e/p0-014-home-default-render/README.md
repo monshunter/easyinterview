@@ -8,6 +8,7 @@
 ## Scope
 
 Verifies the home screen renders correctly in three states:
+- JD input quick start with existing-resume selector and `立即面试` CTA
 - Empty state (no TargetJobs) → textarea focused, empty state CTA
 - Non-empty state (1-3 TargetJobs) → MockInterviewCards rendered
 - 12+ items capped at 12, sorted by `updatedAt desc`
@@ -21,9 +22,11 @@ Verifies the home screen renders correctly in three states:
 
 ## Verification Points
 
-- Hero (label/title/sub) DOM anchors
+- Hero label/title DOM anchors, with retired hero sub copy absent
 - Textarea card + upload/URL buttons
-- Aux cards (JOB PICKS, POST-INTERVIEW)
+- Existing ready resume selector + create-resume CTA
+- Main CTA copy is `立即面试` / `Start interview now`
+- Retired aux cards (JOB PICKS, POST-INTERVIEW) remain absent
 - Real backend mode generated-client gate for TargetJobs home/import/parse operations
 - TopBar highlights home
 - i18n zh/en switching

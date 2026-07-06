@@ -21,9 +21,10 @@ describe("HomeScreen", () => {
 
     expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
     expect(screen.getByTestId("home-hero-title")).toBeInTheDocument();
-    expect(screen.getByTestId("home-hero-sub")).toBeInTheDocument();
+    expect(screen.queryByTestId("home-hero-sub")).not.toBeInTheDocument();
     expect(screen.getByTestId("home-jd-textarea")).toBeInTheDocument();
     expect(screen.getByTestId("home-jd-submit")).toBeInTheDocument();
+    expect(screen.getByTestId("home-resume-select")).toBeInTheDocument();
     expect(screen.queryByTestId("home-aux-jobpicks")).not.toBeInTheDocument();
     expect(screen.queryByTestId("home-aux-debrief")).not.toBeInTheDocument();
   });
@@ -54,7 +55,7 @@ describe("HomeScreen", () => {
     expect(submitBtn).toBeDisabled();
   });
 
-  it("submit button becomes enabled when textarea has content", async () => {
+  it("submit button remains disabled without a selected resume", async () => {
     render(wrap(<HomeScreen route={{ name: "home", params: {} }} />));
 
     const textarea = screen.getByTestId("home-jd-textarea");
@@ -62,7 +63,7 @@ describe("HomeScreen", () => {
 
     await userEvent.type(textarea, "Software Engineer JD");
 
-    expect(submitBtn).not.toBeDisabled();
+    expect(submitBtn).toBeDisabled();
   });
 
   it("navigates to resume_versions on resume create CTA click", () => {
@@ -94,7 +95,7 @@ describe("HomeScreen", () => {
       "Let's win the interview you already care about.",
     );
     expect(screen.getByTestId("home-jd-submit")).toHaveTextContent(
-      "Parse & confirm interview",
+      "Start interview now",
     );
   });
 

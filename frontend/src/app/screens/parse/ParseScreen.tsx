@@ -127,6 +127,10 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     typeof route.params?.targetJobId === "string"
       ? route.params.targetJobId
       : undefined;
+  const routeResumeId =
+    typeof route.params?.resumeId === "string"
+      ? route.params.resumeId
+      : undefined;
 
   const hydrateReadyJob = useCallback((job: TargetJob) => {
     setTargetJob(job);
@@ -284,6 +288,12 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           if (current && ready.some((resume) => resume.id === current)) {
             return current;
           }
+          if (
+            routeResumeId &&
+            ready.some((resume) => resume.id === routeResumeId)
+          ) {
+            return routeResumeId;
+          }
           return "";
         });
       })
@@ -306,6 +316,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     lang,
     runtime?.auth.status,
     runtime?.client,
+    routeResumeId,
     stage,
     targetJob,
   ]);

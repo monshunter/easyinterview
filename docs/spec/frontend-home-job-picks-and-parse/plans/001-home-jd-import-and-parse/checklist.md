@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse + JD Match Placeholder Checklist
 
-> **版本**: 1.8
-> **状态**: active
-> **更新日期**: 2026-06-30
+> **版本**: 1.9
+> **状态**: completed
+> **更新日期**: 2026-07-06
 
 **关联计划**: [plan](./plan.md)
 
@@ -118,3 +118,16 @@
   - Evidence 2026-06-30: `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/parse` passed 6 files / 32 tests, including Save plan real `resumeId`, Start interview `autoStartPractice=1`, and unauthenticated disabled no-handoff negative coverage.
 - [x] 7.4 BDD-Gate: 修订并验证 `E2E.P0.016`：trigger/verify/README/expected outcome 证明 Parse 成功出口不再渲染 `workspace-missing-resume`，并拒绝 `resume-unbound` 成功 marker。
   - Evidence 2026-06-30: `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` all PASS. Trigger includes real API gate, focused Parse Vitest, frontend build, and Playwright desktop/mobile Save/Start browser gates with real ready `resumeId`.
+
+## Phase 8: Home 首页选择已有简历后立即面试（2026-07-06 修订）
+
+- [x] 8.1 修订 UI 真理源与文档：`ui-design/src/screen-home.jsx` 删除旧 hero sub，主按钮改为「立即面试」/ `Start interview now`，新增“选择已有简历”控件并与“还没有简历？1 分钟创建 →”并排；同步 `docs/ui-design/*` 与 owner spec / plan / BDD。
+  - Evidence 2026-07-06: `ui-design/src/screen-home.jsx`, `docs/ui-design/{ui-architecture,module-job-workspace,jd-resume-management,removed-modules-and-scope}.md`, owner spec / plan / BDD docs updated; `test/scenarios/e2e/p0-014-home-default-render/scripts/verify.sh` rejects the retired Home copy outside tests.
+- [x] 8.2 新增 Red 测试 `frontend/src/app/screens/home/HomeResumeSelection.test.tsx`：Home 必须调用 `listResumes`、过滤 ready + active 简历、渲染 `home-resume-select` / `home-resume-option-*`，未显式选择时 `home-jd-submit` disabled 且不调用 `importTargetJob` / `requestAuth`；旧 `home-hero-sub` 与「解析并确认面试」在 Home 0 命中。
+  - Evidence 2026-07-06: focused Red failed before implementation on missing `home-resume-select` / old hero sub / missing `listResumes`; Green `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeResumeSelection.test.tsx` passed 3 tests.
+- [x] 8.3 实现 Home resume binding：显式选择 ready 简历后才允许 paste / upload / URL import；成功 `navigate("parse")` params 必须包含真实 `resumeId`；无 ready 简历或读取失败时展示创建入口，点击 `home-resume-create` 进入 `resume_versions` `{ flow: "create" }`。
+  - Evidence 2026-07-06: `HomeScreen` calls `listResumes`, filters ready active resumes, disables import before selection, and passes selected `resumeId` to parse; `HomeImport.test.tsx`, `HomeAuthGate.test.tsx`, `HomeRecentMocks.test.tsx`, and `HomeScreen.test.tsx` all passed.
+- [x] 8.4 实现 Parse 继承首页显式 `resumeId`：`route.params.resumeId` 命中 ready 简历时作为当前选择；缺失、无效或已归档时仍保持 Phase 7 阻断；focused tests 反向断言不恢复默认选中最近简历。
+  - Evidence 2026-07-06: `ParseResumeBinding.test.tsx` passed 5 tests including `inherits a valid route resumeId from the Home immediate interview handoff`; missing route `resumeId` path still requires explicit selection.
+- [x] 8.5 BDD-Gate: 修订并验证 `E2E.P0.015` / `E2E.P0.016`：Home gate 证明旧 hero sub 0 命中、按钮为「立即面试」、选择前 disabled、选择后 import 跳 parse 且带真实 `resumeId`；Parse gate 证明继承 route `resumeId` 后 Save/Start handoff 仍拒绝 `resume-unbound`。
+  - Evidence 2026-07-06: `test/scenarios/e2e/p0-014-home-default-render/scripts/trigger.sh` + `verify.sh`, `p0-015-jd-import-and-parse/scripts/trigger.sh` + `verify.sh`, and `p0-016-parse-confirm-to-workspace/scripts/trigger.sh` + `verify.sh` all exited 0.

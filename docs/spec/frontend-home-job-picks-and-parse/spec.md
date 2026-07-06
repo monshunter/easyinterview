@@ -1,8 +1,8 @@
 # Frontend Home / Job Picks / Parse Spec
 
-> **版本**: 2.2
+> **版本**: 2.3
 > **状态**: active
-> **更新日期**: 2026-06-30
+> **更新日期**: 2026-07-06
 
 > **2026-06-12 product-scope v2.1 对齐声明**：本 spec v2.0 承接两项锁定决策——
 > **D-17**：岗位推荐模块（`jd_match` / Job Picks）整体删除，JD 获取唯一入口是首页导入，一级导航收敛为 `首页 / 模拟面试 / 简历 / 复盘` 四项。本 spec 中所有 jd_match 屏 / 三 tab / JobMatch 契约消费 / Job Picks aux card 相关条目（§2.1 JD Match 屏、D-1 / D-8 / D-9 / D-10 / D-11 / D-12、C-8 / C-12~C-16）自 v2.0 起退役为历史记录，不得作为新实现依据；前端删除范围与验收见 §9，由 [plan 002](./plans/002-jd-match-recommendations/plan.md) 原地重开承接。
@@ -21,8 +21,9 @@
 ### 2.1 In Scope
 
 - Home 屏（`route=home`）：
-  - Hero（label / title / sub）按 `ui-design/src/screen-home.jsx` 源级复刻
-  - JD 导入卡片：textarea + upload modal + URL modal 三 source variants
+  - Hero（label / title）按 `ui-design/src/screen-home.jsx` 源级复刻；不再渲染旧 `home.heroSub`
+  - JD 导入卡片：textarea + upload modal + URL modal 三 source variants，主按钮文案为「立即面试」
+  - 首页新建模拟面试快捷入口必须先选择已有 ready 简历；`还没有简历？1 分钟创建 →` 只导航到简历创建，不上传简历
   - Recent mock interviews 列表：消费 `listTargetJobs`，渲染 `MockInterviewCard` + `MiniRoundRail`
   - Empty state：当 `listTargetJobs` 返回空数组时引导粘贴/上传 JD，不展示占位面试数据
   - Auxiliary cards：`JOB PICKS`（→ `jd_match`）+ `POST-INTERVIEW`（→ `debrief`）
@@ -62,7 +63,7 @@
 | D-3 | Hidden signals 来源 | 前端只展示 backend/API 返回的 `TargetJobSummary.interviewHypotheses`（对象级 `provenance` 必须存在）+ `TargetJobSummary.coreThemes`；`fitSummary.riskSignals` 用于 "WHERE IT'S A STRETCH" 类风险呈现；结构与 icon/置信度 tag 必须与 `ui-design` Hidden signals 卡片一致 | 不在前端凭 JD 文本推断、补写、改写或重新生成 hidden signals；所有 AI-generated 字段必须通过 OpenAPI fixture / backend response 可追溯到 `GenerationProvenance` |
 | D-4 | Parse Launch 跳转契约 | `仅保存规划` 使用 `nav("workspace", interviewContextFromTargetJob(targetJob, { resumeId }))`；`立即面试` 使用同一 context 并附加 `autoStartPractice=1`，由 workspace 创建 session 后进入 practice；完整参数为 `targetJobId`、`jobId`、`jdId`、`planId`、真实 `resumeId`、`roundId`、`roundName`、`mode`、`modality`、`practiceMode` 等安全字段；`planId` 由 D1 `eiCreateInterviewContext` 等价契约从 `targetJobId` 推导（`plan-${targetJobId}`） | 真实 `createPracticePlan` / `startPractice` API 调用由 `frontend-workspace-and-practice` 承接；本 subspec 不直接创建 session，但必须传递真实 `resumeId` |
 | D-5 | i18n locale 拆分 | 在 `frontend/src/app/i18n/locales/zh.ts` / `en.ts` 中新增 `home.*`、`parse.*`、`jdMatch.*` 三个命名空间；不混入 messages.ts 类型聚合层 | 与 D1 D-7 i18n 规则一致；新增命名空间需通过 D1 typed helper test |
-| D-6 | Auth gate 触发点 | Paste/Upload/URL 三种 import 提交在未登录时触发 `requestAuth({ type: "import_jd", route: "home", params: { pendingImportId, source }, label })`；`pendingImportId` 只引用当前 SPA 会话内存中的待提交 source payload，不包含 JD 原文或 source URL；Parse preview 未取得 verified ready `resumeId` 时不得触发保存/启动 pendingAction；具备真实 `resumeId` 的启动动作使用 `requestAuth({ type: "start_practice", route: "workspace", params: { ...context, autoStartPractice: "1" } })` | 已登录用户直接执行；未登录跳 `auth_login`，登录后恢复目标 route 与 params；import 恢复先回 home 自动提交，再跳 parse；与 frontend-shell C-2 一致 |
+| D-6 | Auth gate 触发点 | Paste/Upload/URL 三种 import 提交在未登录时触发 `requestAuth({ type: "import_jd", route: "home", params: { pendingImportId, source, resumeId }, label })`；`pendingImportId` 只引用当前 SPA 会话内存中的待提交 source payload，不包含 JD 原文或 source URL；首页未取得用户显式选择的 ready `resumeId` 时不得提交 import；Parse preview 若已收到首页显式选择的 `resumeId`，可把它作为当前绑定简历，但仍必须拒绝缺失或无效的 `resumeId`；具备真实 `resumeId` 的启动动作使用 `requestAuth({ type: "start_practice", route: "workspace", params: { ...context, autoStartPractice: "1" } })` | 已登录用户直接执行；未登录跳 `auth_login`，登录后恢复目标 route 与 params；import 恢复先回 home 自动提交，再跳 parse；与 frontend-shell C-2 一致 |
 | D-7 | Privacy 红线 | JD 原文（rawText / rawDescription / sourceUrl）不进入 logger 字符串、URL query、localStorage、telemetry payload；只通过 generated client request body 与 React state 传递；fixture redact lint 必须覆盖 | 与 product-scope spec §1.6 隐私默认保守一致；observability redact rule 已在 D1 接入 |
 | D-8 | jd_match → parse 反向数据流 | plan 002 frontend 仅锁定 nav 出口契约 `nav("parse", { source: "jd_match", sourceJobMatchId })`；parse 屏是否反向更新推荐已用状态（如 `markJobMatchAsConsumed` operation、列表显示 used badge 等）由后续 plan / 独立 subspec 承接 | plan 002 不修改 parse subspec 文档与代码；parse 屏可在未来选择性接入 source 标识；E2E.P0.031 仅断言出口 params 完整性，不断言反向状态 |
 | D-9 | Watchlist 与 Saved Searches 持久化策略 | 服务端持久化（backend 承接 `watchlist_items` + `saved_searches` 表与对应 operationId）；frontend 通过 generated client 调用 `addToWatchlist` / `removeFromWatchlist` / `listWatchlist` / `createSavedSearch` / `listSavedSearches` 等 operation；不写 localStorage / sessionStorage / IndexedDB | 与 D-7 隐私默认保守一致；frontend 不引入 client-side persistence 依赖；plan 002 frontend 实现仅消费 generated client，backend 持久化由 backend-jobs-recommendations 承接 |
@@ -105,8 +106,8 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | Home 默认渲染 | 用户未登录或已登录，无 TargetJob | 打开 `home` 路由 | Hero / textarea card / upload + URL 入口 / Job Picks aux card / Post-interview aux card / Resume create CTA / empty state 完整渲染；TopBar 高亮 home；i18n zh/en 文案均通过 typed helper；CSS variables `--ei-bg`/`--ei-ink`/`--ei-accent`/`data-mode` 切换生效；DOM 锚点能追溯到 `ui-design/src/screen-home.jsx` | 001-home-jd-import-and-parse |
-| C-2 | Paste JD → Parse | 用户在 Home 输入框粘贴 JD 文本 | 点击「解析并确认面试」 | 调用 `importTargetJob`（`source.type=manual_text`、`source.rawText=JD 文本`、`targetLanguage=当前 UI locale`）；成功后路由跳 `parse?targetJobId=…`；Parse 屏先显示 4 步 loading，再轮询 `getTargetJob` 至 `analysisStatus=ready` 切到 preview；preview 渲染 fixture 中 title/companyName/locationText/requirements/summary.interviewHypotheses/fitSummary.riskSignals；JD 原文不写入 URL/localStorage/telemetry | 001-home-jd-import-and-parse |
+| C-1 | Home 默认渲染 | 用户未登录或已登录，无 TargetJob | 打开 `home` 路由 | Hero / textarea card / upload + URL 入口 / 选择已有简历 / Resume create CTA / empty state 完整渲染；不渲染旧 `home.heroSub`；TopBar 高亮 home；i18n zh/en 文案均通过 typed helper；CSS variables `--ei-bg`/`--ei-ink`/`--ei-accent`/`data-mode` 切换生效；DOM 锚点能追溯到 `ui-design/src/screen-home.jsx` | 001-home-jd-import-and-parse |
+| C-2 | Paste JD → Parse | 用户在 Home 输入框粘贴 JD 文本，`listResumes` 返回 ready 简历 | 显式选择一份已有简历后点击「立即面试」 | 调用 `importTargetJob`（`source.type=manual_text`、`source.rawText=JD 文本`、`targetLanguage=当前 UI locale`）；成功后路由跳 `parse?targetJobId=…&resumeId=<selected ready resume id>`；未选择 ready 简历时按钮 disabled，不调用 import；Parse 屏先显示 4 步 loading，再轮询 `getTargetJob` 至 `analysisStatus=ready` 切到 preview；preview 渲染 fixture 中 title/companyName/locationText/requirements/summary.interviewHypotheses/fitSummary.riskSignals，并继承首页显式选择的真实 `resumeId`；JD 原文不写入 URL/localStorage/telemetry | 001-home-jd-import-and-parse |
 | C-3 | Upload / URL 双 source variant | 用户在 Home 点击 upload 或 URL 入口 | 在 JDAssistModal 中确认 | Upload 路径先调用 generated `createUploadPresign`（`purpose=target_job_attachment`，带 `Idempotency-Key`），fixture 返回 `fileObjectId` 后再提交 `importTargetJob` `source.type=file`；URL 路径提交 `source.type=url`（`url` 字段）；后续流程与 C-2 一致；DOM 与 `screen-home.jsx::JDAssistModal` 行为一致（关闭、Continue、Cancel）；frontend tests 不真实上传二进制到 object storage | 001-home-jd-import-and-parse |
 | C-4 | Recent mock interviews 列表 | 用户已登录，listTargetJobs 返回 N 条 TargetJob | 进入 home | 渲染最多 12 张 `MockInterviewCard`，按 `updatedAt desc` 排序；卡片显示 `companyName · status-derived label` / title / locationText / status pill（statusTone 从 `TargetJob.status` 派生）/ MiniRoundRail P0 fallback 当前轮次圆点；点击卡片调 `nav("workspace", interviewContextFromTargetJob(targetJob))`，默认补齐 `targetJobId / jobId / planId / jdId / resumeVersionId / roundId / roundName`；列表为空时显示 `HomeEmptyState`，`回到 JD 输入` 按钮 focus textarea | 001-home-jd-import-and-parse |
 | C-5 | Parse 编辑与保存/启动 | 用户在 Parse preview 编辑 OpenAPI 当前允许保存的 title / company / location / notes 字段，并切换若干 hit toggle | 选择 ready 简历后点击「仅保存规划」或「立即面试」 | 调用 `updateTargetJob`（仅 supplied fields，例：`titleHint` / `companyNameHint` / `locationText` / `notes`，带 `Idempotency-Key`）；level / language 槽位按 `ui-design` DOM 展示但为 read-only，直到 B2 扩展 `UpdateTargetJobRequest`；hit toggle 不写后端；「仅保存规划」成功后路由跳 `workspace?targetJobId=&jobId=&jdId=&planId=&resumeId=&roundId=&roundName=`；「立即面试」成功后跳 `workspace` 并携带 `autoStartPractice=1`，由 workspace 创建 session 后进入 `practice`；两个成功出口均必须携带真实 ready `resumeId`，不得写入 `resume-unbound`；任何 `updateTargetJob` 4xx 显示 inline 错误并保留编辑态；Cancel 跳 `home`；Re-parse 重置 `stage=loading` 并重新轮询 `getTargetJob` | 001-home-jd-import-and-parse |
@@ -178,10 +179,26 @@
 |----|------|-------|------|------|-----------|
 | C-17 | Parse 强制绑定简历 | `parse` preview 已就绪，`listResumes` 返回 ready 简历 | 用户选择简历后点击 `立即面试` 或 `仅保存规划` | 两个出口均携带真实 `resumeId`；`立即面试` 通过 `requestAuth(start_practice)` / `workspace autoStartPractice=1` 创建 session 后进入 `practice`；没有 ready 简历时两个出口禁用并引导创建简历；不得生成 `resume-unbound` 面试规划 | 001-home-jd-import-and-parse |
 
+### 10.2 2026-07-06 首页新建规划快捷入口修订
+
+首页的 JD 输入卡是“新建模拟面试规划”的快捷入口，不再把简历选择延后到 parse 才出现。正式前端必须在首页完成以下约束：
+
+1. 删除旧说明文案 `home.heroSub`，首页 Hero 只保留 label 与标题。
+2. 主按钮文案从「解析并确认面试」改为「立即面试」；英文从 `Parse & confirm interview` 改为 `Start interview now`。
+3. JD 输入卡下方展示“选择已有简历”控件，读取 `listResumes`，只允许选择 `parseStatus=ready` 且未归档的简历；不得出现上传简历入口。
+4. `还没有简历？1 分钟创建 →` 与“选择已有简历”并排，点击进入 `resume_versions?flow=create`。
+5. 用户未显式选择 ready 简历时，`立即面试` disabled，不调用 `importTargetJob`，也不产生 pending import。
+6. 用户显式选择 ready 简历后，paste / upload / URL import 成功路由到 `parse` 时必须携带真实 `resumeId`；parse 可继承该显式选择，但仍必须保留缺失或无效 resume 时的阻断与创建入口。
+
+| ID | 场景 | Given | When | Then | 对应 Plan |
+|----|------|-------|------|------|-----------|
+| C-18 | Home 预绑定简历启动 | Home JD 输入卡已加载，`listResumes` 返回 ready 简历 | 用户粘贴 JD、显式选择一份已有简历后点击「立即面试」 | `importTargetJob` 成功后进入 `parse`，route params 带真实 `resumeId`；未选择简历时按钮 disabled 且 import 不发生；首页不展示旧 hero sub、不展示上传简历入口；创建简历 CTA 进入 `resume_versions?flow=create` | 001-home-jd-import-and-parse |
+
 ## 11 修订记录
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 2.3 | 2026-07-06 | 修订首页新建模拟面试规划快捷入口：删除冗余 hero sub，主按钮改为「立即面试」，并在首页预先选择已有 ready 简历后才允许提交 JD import。 |
 | 2.2 | 2026-06-30 | 修订 D-14 简历绑定：Parse 不得默认选中最新 ready 简历，用户必须显式选择后才能保存规划或启动面试。 |
 | 2.1 | 2026-06-30 | 修订 D-14：Parse 解析确认页必须在 `立即面试` / `仅保存规划` 前绑定 ready 简历，禁止 `resume-unbound` 成为成功 handoff。 |
 | 2.0 | 2026-06-13 | 对齐 product-scope v2.1：D-17 删除 jd_match 模块（新增 §9 删除范围与 C-R1~C-R3，jd_match 相关历史条目退役）；D-14 单次确认漏斗目标契约（新增 §10，plan 001 重开承接）；UI 真理源列表移除 screen-jd-match.jsx |

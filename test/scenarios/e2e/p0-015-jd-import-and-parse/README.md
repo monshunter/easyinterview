@@ -8,9 +8,10 @@
 ## Scope
 
 Verifies the full JD import flow with three source variants:
-- Paste JD → importTargetJob(manual_text) → parse loading → preview
-- Upload file → createUploadPresign → importTargetJob(file) → parse loading → preview
-- URL input → importTargetJob(url) → parse loading → preview
+- Home selects an existing ready resume before any import source can submit
+- Paste JD → importTargetJob(manual_text) → parse loading → preview with route `resumeId`
+- Upload file → createUploadPresign → importTargetJob(file) → parse loading → preview with route `resumeId`
+- URL input → importTargetJob(url) → parse loading → preview with route `resumeId`
 - Failed import (4xx) → inline error
 - Failed parse (analysisStatus=failed) → failed UI
 
@@ -22,7 +23,10 @@ Verifies the full JD import flow with three source variants:
 
 ## Verification Points
 
+- Home no longer renders the retired hero sub copy or old `解析并确认面试` CTA
+- Home requires explicit ready resume selection before importTargetJob or pending import
 - importTargetJob discriminator (type + required fields)
+- Successful Home import navigates to parse with the selected real `resumeId`
 - Idempotency-Key header on all side-effect calls
 - Real backend mode generated-client gate for upload presign, import, parse read, and update
 - polling节奏 ≥600ms, progress step advances
@@ -37,7 +41,7 @@ Verifies the full JD import flow with three source variants:
 
 - `scripts/setup.sh` — select fixture variant (paste/upload/url)
 - `scripts/trigger.sh` — execute import flow per variant
-- `scripts/verify.sh` — assert request body schema, polling behavior, ready-response browser marker, privacy redline
+- `scripts/verify.sh` — assert Home resume pre-bind, request body schema, polling behavior, ready-response browser marker, privacy redline
 - `scripts/cleanup.sh` — reset mock state
 
 ## Offline Limitations

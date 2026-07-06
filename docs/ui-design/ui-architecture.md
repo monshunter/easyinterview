@@ -1,8 +1,8 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.12
+> **版本**: 2.13
 > **状态**: active
-> **更新日期**: 2026-06-29
+> **更新日期**: 2026-07-06
 
 ## 1 文档目的
 
@@ -35,7 +35,9 @@
 ├─ Home / 首页
 │  ├─ JD 粘贴输入
 │  ├─ JD 文件 / URL 导入弹窗
+│  ├─ 选择已有简历
 │  ├─ 还没有简历？1 分钟创建
+│  ├─ 立即面试
 │  └─ 最近模拟面试列表
 ├─ Mock Interview / 模拟面试
 │  ├─ 当前面试规划
@@ -99,12 +101,15 @@
 ```text
 Home
 ├─ 粘贴 / 上传 / URL 导入 JD
-│  └─ Parse & Confirm Interview
+├─ 选择已有 ready 简历
+│  └─ 还没有简历？1 分钟创建
+│     └─ Resume Intake
+│
+├─ 立即面试
+│  └─ Parse & Confirm Interview(resumeId 已绑定)
 │     └─ Interview Session 或 Mock Interview Plan
 ├─ 最近模拟面试
 │  └─ Mock Interview Plan
-└─ 1 分钟创建简历
-   └─ Resume Intake
 
 Mock Interview Plan
 ├─ TargetJob / JD

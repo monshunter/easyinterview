@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-07
+
+| 日期 | 报告 | 类型 |
+|------|------|------|
+| [2026-07-06](./2026-07-06-frontend-home-resume-prebind-assessment.md) | Frontend Home Resume Pre-bind 交付复盘 | #assessment |
+
 ## 2026-06
 
 | 日期 | 报告 | 类型 |

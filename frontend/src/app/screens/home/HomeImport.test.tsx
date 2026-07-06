@@ -13,20 +13,37 @@ import { HomeScreen } from "./HomeScreen";
 
 import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
+import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
 import importTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/importTargetJob.json";
 import createUploadPresignFixture from "../../../../../openapi/fixtures/Uploads/createUploadPresign.json";
+
+type ListResumesResponse = Awaited<ReturnType<EasyInterviewClient["listResumes"]>>;
+
+const defaultListResumesResponse = listResumesFixture.scenarios.default.response
+  .body as ListResumesResponse;
 
 function createClient(scenario?: string) {
   const fetch = createFixtureBackedFetch(
     createFixtureRegistry([
       getRuntimeConfigFixture,
       getMeFixture,
+      listResumesFixture,
       importTargetJobFixture,
       createUploadPresignFixture,
     ]),
     scenario ? { scenario } : undefined,
   );
-  return new EasyInterviewClient({ fetch });
+  const client = new EasyInterviewClient({ fetch });
+  vi.spyOn(client, "listResumes").mockResolvedValue(defaultListResumesResponse);
+  return client;
+}
+
+async function selectDefaultResume() {
+  await userEvent.click(
+    await screen.findByTestId(
+      "home-resume-option-01918fa0-0000-7000-8000-000000001000",
+    ),
+  );
 }
 
 function renderHome(client: EasyInterviewClient, options?: { lang?: Lang }) {
@@ -56,12 +73,13 @@ describe("HomeImport — paste (manual_text)", () => {
     const spy = vi.spyOn(client, "importTargetJob");
 
     renderHome(client);
+    await selectDefaultResume();
 
     await userEvent.type(
       screen.getByTestId("home-jd-textarea"),
       "Senior Frontend Engineer needed",
     );
-    screen.getByTestId("home-jd-submit").click();
+    await userEvent.click(screen.getByTestId("home-jd-submit"));
 
     await waitFor(() => {
       expect(spy).toHaveBeenCalledTimes(1);
@@ -86,12 +104,13 @@ describe("HomeImport — paste (manual_text)", () => {
     const spy = vi.spyOn(client, "importTargetJob");
 
     renderHome(client, { lang: "en" });
+    await selectDefaultResume();
 
     await userEvent.type(
       screen.getByTestId("home-jd-textarea"),
       "Senior Frontend Engineer needed",
     );
-    screen.getByTestId("home-jd-submit").click();
+    await userEvent.click(screen.getByTestId("home-jd-submit"));
 
     await waitFor(() => {
       expect(spy).toHaveBeenCalledTimes(1);
@@ -105,12 +124,13 @@ describe("HomeImport — paste (manual_text)", () => {
   it("navigates to parse on successful paste import", async () => {
     const client = createClient("manual-text-primary");
     const { navigate } = renderHome(client);
+    await selectDefaultResume();
 
     await userEvent.type(
       screen.getByTestId("home-jd-textarea"),
       "Senior Frontend Engineer needed",
     );
-    screen.getByTestId("home-jd-submit").click();
+    await userEvent.click(screen.getByTestId("home-jd-submit"));
 
     await waitFor(() => {
       expect(navigate).toHaveBeenCalledWith(
@@ -132,13 +152,14 @@ describe("HomeImport — url import", () => {
     const spy = vi.spyOn(client, "importTargetJob");
 
     renderHome(client);
+    await selectDefaultResume();
 
-    screen.getByText("URL").click();
+    await userEvent.click(screen.getByText("URL"));
 
     const urlInput = await screen.findByTestId("home-modal-url-input");
     await userEvent.type(urlInput, "https://acme.example/careers/senior");
 
-    screen.getByTestId("home-modal-url-continue").click();
+    await userEvent.click(screen.getByTestId("home-modal-url-continue"));
 
     await waitFor(() => {
       expect(spy).toHaveBeenCalledTimes(1);
@@ -160,12 +181,13 @@ describe("HomeImport — url import", () => {
   it("navigates to parse on successful url import", async () => {
     const client = createClient("default");
     const { navigate } = renderHome(client);
+    await selectDefaultResume();
 
-    screen.getByText("URL").click();
+    await userEvent.click(screen.getByText("URL"));
     const urlInput = await screen.findByTestId("home-modal-url-input");
     await userEvent.type(urlInput, "https://acme.example/careers/senior");
 
-    screen.getByTestId("home-modal-url-continue").click();
+    await userEvent.click(screen.getByTestId("home-modal-url-continue"));
 
     await waitFor(() => {
       expect(navigate).toHaveBeenCalledWith(
@@ -180,11 +202,12 @@ describe("HomeImport — url import", () => {
   it("shows inline error on 4xx import response", async () => {
     const client = createClient("url-invalid-source");
     renderHome(client);
+    await selectDefaultResume();
 
-    screen.getByText("URL").click();
+    await userEvent.click(screen.getByText("URL"));
     const urlInput = await screen.findByTestId("home-modal-url-input");
     await userEvent.type(urlInput, "http://192.0.2.1/job");
-    screen.getByTestId("home-modal-url-continue").click();
+    await userEvent.click(screen.getByTestId("home-modal-url-continue"));
 
     await waitFor(() => {
       expect(screen.getByTestId("home-import-error")).toBeInTheDocument();
@@ -199,12 +222,13 @@ describe("HomeImport — upload flow", () => {
     const importSpy = vi.spyOn(client, "importTargetJob");
 
     renderHome(client);
+    await selectDefaultResume();
 
     const uploadBtn = screen.getByTestId("home-upload-trigger");
-    uploadBtn.click();
+    await userEvent.click(uploadBtn);
 
     const continueBtn = await screen.findByTestId("home-modal-upload-continue");
-    continueBtn.click();
+    await userEvent.click(continueBtn);
 
     await waitFor(() => {
       expect(presignSpy).toHaveBeenCalled();
@@ -241,9 +265,10 @@ describe("HomeImport — privacy", () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     renderHome(client);
+    await selectDefaultResume();
 
     await userEvent.type(screen.getByTestId("home-jd-textarea"), jdText);
-    screen.getByTestId("home-jd-submit").click();
+    await userEvent.click(screen.getByTestId("home-jd-submit"));
 
     await waitFor(() => {
       expect(screen.getByTestId("home-jd-textarea")).toBeInTheDocument();
@@ -262,9 +287,10 @@ describe("HomeImport — privacy", () => {
     const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
 
     renderHome(client);
+    await selectDefaultResume();
 
     await userEvent.type(screen.getByTestId("home-jd-textarea"), jdText);
-    screen.getByTestId("home-jd-submit").click();
+    await userEvent.click(screen.getByTestId("home-jd-submit"));
 
     await waitFor(() => {
       expect(screen.getByTestId("home-jd-textarea")).toBeInTheDocument();
@@ -281,9 +307,10 @@ describe("HomeImport — privacy", () => {
   it("excludes JD raw text from navigation params", async () => {
     const client = createClient("manual-text-primary");
     const { navigate } = renderHome(client);
+    await selectDefaultResume();
 
     await userEvent.type(screen.getByTestId("home-jd-textarea"), jdText);
-    screen.getByTestId("home-jd-submit").click();
+    await userEvent.click(screen.getByTestId("home-jd-submit"));
 
     await waitFor(() => {
       expect(navigate).toHaveBeenCalled();
@@ -304,11 +331,12 @@ describe("HomeImport — privacy", () => {
     const importSpy = vi.spyOn(client, "importTargetJob");
 
     renderHome(client);
+    await selectDefaultResume();
 
-    screen.getByText("URL").click();
+    await userEvent.click(screen.getByText("URL"));
     const urlInput = await screen.findByTestId("home-modal-url-input");
     await userEvent.type(urlInput, "https://example.com/jd/secret-role");
-    screen.getByTestId("home-modal-url-continue").click();
+    await userEvent.click(screen.getByTestId("home-modal-url-continue"));
 
     await waitFor(() => {
       expect(importSpy).toHaveBeenCalled();

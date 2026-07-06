@@ -66,7 +66,10 @@ function emptyListResumesFixture(): OperationFixture {
   };
 }
 
-function renderParse(client: EasyInterviewClient) {
+function renderParse(
+  client: EasyInterviewClient,
+  routeParams: Record<string, string> = {},
+) {
   const navigate = vi.fn();
   return {
     navigate,
@@ -75,7 +78,10 @@ function renderParse(client: EasyInterviewClient) {
         <AppRuntimeProvider client={client}>
           <NavigationProvider value={{ navigate }}>
             <ParseScreen
-              route={{ name: "parse", params: { targetJobId: "tj-1" } }}
+              route={{
+                name: "parse",
+                params: { targetJobId: "tj-1", ...routeParams },
+              }}
             />
           </NavigationProvider>
         </AppRuntimeProvider>
@@ -84,9 +90,12 @@ function renderParse(client: EasyInterviewClient) {
   };
 }
 
-async function renderReadyParse(client: EasyInterviewClient) {
+async function renderReadyParse(
+  client: EasyInterviewClient,
+  routeParams?: Record<string, string>,
+) {
   vi.useFakeTimers();
-  const result = renderParse(client);
+  const result = renderParse(client, routeParams);
 
   await act(async () => {
     await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
@@ -101,6 +110,24 @@ afterEach(() => {
 });
 
 describe("ParseResumeBinding", () => {
+  it("inherits a valid route resumeId from the Home immediate interview handoff", async () => {
+    const client = createClient();
+
+    await renderReadyParse(client, {
+      resumeId: "01918fa0-0000-7000-8000-000000001000",
+    });
+
+    expect(await screen.findByTestId("parse-launch")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("parse-resume-binding")).toHaveTextContent(
+        "Alice Example - Senior Frontend Engineer",
+      );
+    });
+    expect(screen.queryByTestId("parse-resume-required")).not.toBeInTheDocument();
+    expect(screen.getByTestId("parse-action-save-plan")).toBeEnabled();
+    expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
+  });
+
   it("loads ready resumes but requires an explicit resume selection before any handoff", async () => {
     const client = createClient();
     const listSpy = vi.spyOn(client, "listResumes");

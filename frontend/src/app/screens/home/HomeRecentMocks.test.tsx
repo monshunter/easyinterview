@@ -11,18 +11,27 @@ import { HomeScreen } from "./HomeScreen";
 
 import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
+import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
 import listTargetJobsFixture from "../../../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
+
+type ListResumesResponse = Awaited<ReturnType<EasyInterviewClient["listResumes"]>>;
+
+const defaultListResumesResponse = listResumesFixture.scenarios.default.response
+  .body as ListResumesResponse;
 
 function createClient(scenario?: string) {
   const fetch = createFixtureBackedFetch(
     createFixtureRegistry([
       getRuntimeConfigFixture,
       getMeFixture,
+      listResumesFixture,
       listTargetJobsFixture,
     ]),
     scenario ? { scenario } : undefined,
   );
-  return new EasyInterviewClient({ fetch });
+  const client = new EasyInterviewClient({ fetch });
+  vi.spyOn(client, "listResumes").mockResolvedValue(defaultListResumesResponse);
+  return client;
 }
 
 function renderHome(
