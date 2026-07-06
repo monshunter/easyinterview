@@ -1,8 +1,8 @@
 # 002 BDD Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-06
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -17,13 +17,13 @@
 
 > Evidence 2026-05-14: `setup → trigger → verify → cleanup` PASS；trigger 8 files / 62 tests PASS；verify 输出 `E2E.P0.044 PASS`。
 
-## E2E.P0.045 strict / assisted × baseline / debrief 显隐 + hint / skip / pause-resume + 旧口径负向
+## E2E.P0.045 strict / assisted × current practiceGoal 显隐 + hint / skip / pause-resume + 旧口径负向
 
-- [x] 创建场景目录 `test/scenarios/e2e/p0-045-practice-text-loop-strict-and-debrief-display/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
-- [x] 准备 fixture variant：`getPracticeSession.json` 至少 1 个 `default` variant；`appendSessionEvent.json` 至少 6 个 variant（`default` answer→ask_question / `show-hint`（fixture-only until backend-practice/003，hint_requested → 200 + assistantAction.type='show_hint'）/ `hint-strict-conflict`（当前真实 backend-practice/002 409 PRACTICE_SESSION_CONFLICT detail.policy='hint_disabled_in_mode'）/ `turn-skipped` / `pause-resume` / `follow-up`）；4 路由组合通过 setup 切换 `practiceMode` × `practiceGoal`
-- [x] 实现 `scripts/setup.sh`（4 路由组合切换 + fixture 切换 + signed-in 状态）/ `scripts/trigger.sh`（运行 usePracticeAssistance + practiceHints / practiceSkip / practicePauseResume / practiceModeSwitch / practiceStrictToggleLocked / practiceGoalParity 覆盖、Vitest 显隐文件、Playwright pixel parity strict / assisted 子用例）/ `scripts/verify.sh`（断言：assisted LIVE NOTES / hint button / experience cards 渲染 + hintCount 自增；strict 三者 DOM 不存在 + strict-mode banner 渲染；assisted + debrief 与 assisted + baseline 显隐快照一致；旧口径负向 grep —— `practiceMode='debrief'` / `切到语音` / 旧 testid / `Idempotency-Key.*appendSessionEvent` / 独立 voice route 全部 0 命中；strict toggle 点击触发 toast + 0 backend 调用）/ `scripts/cleanup.sh`
+- [x] 创建场景目录 `test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
+- [x] 准备 fixture variant：`getPracticeSession.json` 至少 1 个 `default` variant；`appendSessionEvent.json` 至少 6 个 variant（`default` answer→ask_question / `show-hint`（fixture-only until backend-practice/003，hint_requested → 200 + assistantAction.type='show_hint'）/ `hint-strict-conflict`（当前真实 backend-practice/002 409 PRACTICE_SESSION_CONFLICT detail.policy='hint_disabled_in_mode'）/ `turn-skipped` / `pause-resume` / `follow-up`）；6 路由组合通过 setup 切换 `practiceMode` × `practiceGoal∈{baseline,retry_current_round,next_round}`
+- [x] 实现 `scripts/setup.sh`（6 路由组合切换 + fixture 切换 + signed-in 状态）/ `scripts/trigger.sh`（运行 usePracticeAssistance + practiceHints / practiceSkip / practicePauseResume / practiceModeSwitch / practiceStrictToggleLocked / practiceGoalParity 覆盖、Vitest 显隐文件、Playwright pixel parity strict / assisted 子用例）/ `scripts/verify.sh`（断言：assisted LIVE NOTES / hint button / experience cards 渲染 + hintCount 自增；strict 三者 DOM 不存在 + strict-mode banner 渲染；current practiceGoal 不影响显隐快照；旧口径负向 grep —— `practiceMode='debrief'` / `practiceGoal='debrief'` / `切到语音` / 旧 testid / `Idempotency-Key.*appendSessionEvent` / 独立 voice route 全部 0 命中；strict toggle 点击触发 toast + 0 backend 调用）/ `scripts/cleanup.sh`
 - [x] 执行 `setup → trigger → verify → cleanup` 全 PASS
-- [x] 记录验证证据：`.test-output/e2e/p0-045-practice-text-loop-strict-and-debrief-display/trigger.log` + verify 输出 + 显隐快照 diff 0 + 旧口径负向 grep 日志
+- [x] 记录验证证据：`.test-output/e2e/p0-045-practice-text-loop-mode-policy-display/trigger.log` + verify 输出 + 显隐快照 diff 0 + 旧口径负向 grep 日志
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.045 行（关联需求 `frontend-workspace-and-practice C-4, C-10, C-12`，状态 Ready，automated）
 
 > Evidence 2026-05-14: `setup → trigger → verify → cleanup` PASS；trigger 9 files / 27 tests PASS；verify 输出 `E2E.P0.045 PASS`。

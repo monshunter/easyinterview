@@ -184,7 +184,6 @@ export const en: LocaleMessages = {
   "workspace.resumeBound": "Bound Resume",
   "workspace.changeResume": "Change",
   "workspace.prepStatus": "Preparation Status",
-  "workspace.jdMatch": "JD Match",
   "workspace.sessionTag": "Completed",
   "workspace.reportReady": "Report ready",
   "workspace.planEyebrow": "Current Interview Plan",

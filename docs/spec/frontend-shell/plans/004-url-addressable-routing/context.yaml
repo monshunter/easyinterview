@@ -27,15 +27,15 @@ spec:
       - hash adapter
       - parseInitialRouteHash
       - pendingAction
-      - selectedJobMatchId
-      - pendingJdMatchActionId
+      - retired route params rejected
       - safe route params
       - autoStartPractice
       - reportId
       - reportStatus
       - pendingImportId
       - tailorRunId
-      - debriefId
+      - resumeId
+      - sourceReportId
       - URL privacy
       - standalone voice negative
       - E2E.P0.088
@@ -66,20 +66,15 @@ spec:
           - test/scenarios/e2e
         uiRoutes:
           - home
-          - jd_match
           - workspace
           - resume_versions
-          - debrief
           - parse
           - practice
           - generating
           - report
-          - company_intel
-          - profile
           - settings
           - auth_login
-          - auth_register
           - auth_verify
-          - auth_reset
+          - auth_profile_setup
           - auth_logout
         apiNames: []

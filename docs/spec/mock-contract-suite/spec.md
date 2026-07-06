@@ -1,12 +1,12 @@
 # Mock Contract Suite Spec
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-06
 
 ## 1 背景与目标
 
-`engineering-roadmap` S1 要求先建立 contract-backed mock runway，让当前 UI 五入口和会话级页面能基于 B2 OpenAPI fixtures 跑通 P0 happy path。`mock-contract-suite` 是这条 runway 的工程 owner：它把 B2 fixtures、generated API types、runtime config 和前后端 mock 入口组织成可测试、可复用、可漂移检查的 mock 运行层。
+`engineering-roadmap` S1 要求先建立 contract-backed mock runway，让当前核心入口和会话级页面能基于 B2 OpenAPI fixtures 跑通 P0 happy path。`mock-contract-suite` 是这条 runway 的工程 owner：它把 B2 fixtures、generated API types、runtime config 和前后端 mock 入口组织成可测试、可复用、可漂移检查的 mock 运行层。
 
 本 subject 的目标是：
 
@@ -20,11 +20,11 @@
 
 ### 2.1 In Scope
 
-- 读取 `openapi/fixtures/` 当前 12 tag / 48 operation fixtures（JobMatch tag 已随 product-scope v2.1 D-17 删除（2026-06-13）；B2 spec D-18 Resume Workshop additive、D-20/D-21/D-22 recent additive、D-23 Backend Resume structured master additive 与 D-25 Auth single-entry profile completion 均已落地；Resume Workshop / Backend Resume 保留 `Resumes` tag 扩容，当前含 10 个 additive operationId + 多 variant fixtures），落地路径由 [openapi-v1-contract/004-resume-additive-coverage](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md)、[backend-resume/002](../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md)、[backend-auth/001](../backend-auth/plans/001-passwordless-session-bootstrap/plan.md) 与 [frontend-shell/001](../frontend-shell/plans/001-app-shell-auth-settings/plan.md) 承接。
+- 读取 `openapi/fixtures/` 当前 10 tag / 35 operation fixtures（JobMatch tag 已随 product-scope v2.1 D-17 删除；简历版本 / suggestion operation 已随 D-20 扁平化删除；Profile / Debriefs tag 已随 D-22 核心闭环裁剪删除；Auth `completeMyProfile`、扁平 `Resumes`、PracticeSessions listing、PracticeVoiceTurn 与 runtime config 等核心契约保留），落地路径由 [openapi-v1-contract/004-resume-additive-coverage](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md)、[backend-resume/002](../backend-resume/plans/002-versions-tailor-runs-and-save-v1/plan.md)、[backend-auth/001](../backend-auth/plans/001-passwordless-session-bootstrap/plan.md) 与 [frontend-shell/001](../frontend-shell/plans/001-app-shell-auth-settings/plan.md) 承接。
 - 基于 generated OpenAPI types 为前端提供 fixture-backed API client 或 mock transport。
 - 为本地后端或开发服务器提供同源 mock handler / router。
 - 校验 fixtures 与 `openapi/openapi.yaml`、generated packages 和 `openapi/fixtures/PROTOTYPE_MAPPING.md` 的一致性。
-- 统一 mock response 中的 auth/session、target job、practice plan、practice session、report、resume、debrief、privacy 和 runtime config 基线。
+- 统一 mock response 中的 auth/session、target job、practice plan、practice session、report、resume、privacy 和 runtime config 基线。
 - 为后续 scenario / BDD gate 提供可重置的 seed profile；seed profile 必须表达为 `openapi/fixtures/<tag>/<operationId>.json` 内的 named scenarios，不得引入第二套 seed 数据源。
 - 前端 Vite dev preview 的默认 API client wiring：`pnpm --filter @easyinterview/frontend dev` 在未显式选择真实 backend 时必须使用 fixture-backed transport。
 
@@ -72,7 +72,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | Fixture coverage | B2 已有 48 operation fixtures（含 Auth `completeMyProfile`、Resumes tag 10 additive operation 与 recent Debrief / Practice additive operations；JobMatch 12 operation 已随 product-scope v2.1 D-17 删除） | 运行 mock coverage gate | 每个 operationId 都能被 registry 解析且 schema 校验通过；`completeMyProfile`、`listResumes` / `exportResumeVersion` / `confirmResumeStructuredMaster` 等 operation 也必须可被同一 registry 解析 | 001-fixture-backed-mock-runtime（C-1 数字随 openapi-v1-contract 与 backend-auth/backend-resume additive 升级） |
+| C-1 | Fixture coverage | B2 当前 35 operation fixtures 已落地（含 Auth `completeMyProfile`、扁平 `Resumes` operation、PracticeSessions listing、PracticeVoiceTurn 与 runtime config；JobMatch / Profile / Debriefs 和简历版本 / suggestion 旧 operation 已随 product-scope D-17 / D-20 / D-22 删除） | 运行 mock coverage gate | 每个当前 operationId 都能被 registry 解析且 schema 校验通过；`completeMyProfile`、`listResumes` / `duplicateResume` / `exportResume` 等当前 operation 也必须可被同一 registry 解析；旧 operation 不得作为正向 fixture coverage 目标 | 001-fixture-backed-mock-runtime（C-1 数字随 openapi-v1-contract 与 backend-auth/backend-resume additive 升级） |
 | C-2 | 前端 mock 同源 | 前端请求 generated client | 切到 mock transport | response shape 来自 B2 fixtures，组件不 import prototype data | 001-fixture-backed-mock-runtime |
 | C-3 | 后端 mock 同源 | 本地 API smoke 请求 mock handler | 命中任一 P0 operation | handler 返回同一 fixture registry 的 typed response | 001-fixture-backed-mock-runtime |
 | C-4 | 旧口径拦截 | mock runtime / fixtures / generated artifacts 已生成 | 运行 scoped negative search | 不含旧 route / tag / operationId / schema key / config path 等 retired token；不误杀普通业务文案 | 001-fixture-backed-mock-runtime |

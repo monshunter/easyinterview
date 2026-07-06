@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: 2.4
-    to: 2.6
+    to: 2.13
 spec:
   defaultTarget: backend
   discovery:
@@ -29,8 +29,7 @@ spec:
       - prompt body example JSON
       - complete JSON output example
       - seed migration coverage
-      - jd_match prompt rubric seed
-      - jd_match recommendation posted optional
+      - retired feature key rejection
       - prompt lint invalid schema traceback
       - prompt_versions rubric_versions baseline
       - OpenAPI schema negative prompt example
@@ -63,8 +62,6 @@ spec:
           - backend/internal/resume/jobs
           - backend/internal/review
           - backend/internal/practice
-          - backend/internal/debrief
-          - backend/internal/jdmatch
           - backend/cmd/api
         uiRoutes: []
         apiNames: []

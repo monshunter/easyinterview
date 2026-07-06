@@ -13,10 +13,10 @@ interface ResumePickerModalProps {
 }
 
 /**
- * Phase 3: ResumePickerModal in disabled-list mode.
+ * Phase 3 historical behavior: ResumePickerModal in disabled-list mode.
  * Only the currently bound resume is enabled + selected;
  * remaining slots render disabled placeholder cards.
- * listResumes is NOT called (missing OpenAPI operation).
+ * Phase 7/D-20 should replace this with a listResumes active-list flow.
  */
 export const ResumePickerModal: FC<ResumePickerModalProps> = ({
   open,

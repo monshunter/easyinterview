@@ -5,7 +5,7 @@
 
 ## 1 复盘范围与成功证据
 
-- 交付范围：[`backend-profile/001-candidate-profile-and-experience-cards`](../spec/backend-profile/plans/001-candidate-profile-and-experience-cards/plan.md) Phase 1-5 完整实施。
+- 交付范围：历史 `backend-profile/001-candidate-profile-and-experience-cards` Phase 1-5 完整实施（实体已随 product-scope/001 删除；当前删除证据由 [Core Loop Module Pruning](../spec/product-scope/plans/001-core-loop-module-pruning/plan.md) 承接）。
 - 验证证据：
   - `go test ./...` 全 PASS（含 handler unit、service unit、conventions parity）。
   - `DATABASE_URL=... go test -tags=integration ./internal/profile/store/... -count=1` PASS（命中本地 dev-stack Postgres）。
@@ -76,8 +76,8 @@
 
 ## 6 关联资产
 
-- 计划：[plan](../spec/backend-profile/plans/001-candidate-profile-and-experience-cards/plan.md) / [checklist](../spec/backend-profile/plans/001-candidate-profile-and-experience-cards/checklist.md) / [bdd-plan](../spec/backend-profile/plans/001-candidate-profile-and-experience-cards/bdd-plan.md) / [bdd-checklist](../spec/backend-profile/plans/001-candidate-profile-and-experience-cards/bdd-checklist.md)
-- Owner spec：[backend-profile/spec.md](../spec/backend-profile/spec.md)（升至 1.2）
+- 历史计划实体：`backend-profile/001-candidate-profile-and-experience-cards`（已删除）
+- 当前删除 owner：[Core Loop Module Pruning](../spec/product-scope/plans/001-core-loop-module-pruning/plan.md)
 - Cross-owner additive：[`shared-conventions-codified` 1.20](../spec/shared-conventions-codified/spec.md) + [`openapi-v1-contract` 1.26](../spec/openapi-v1-contract/spec.md)
 - 路线图：[`engineering-roadmap` 3.18](../spec/engineering-roadmap/spec.md)
 - BDD 场景：`test/scenarios/e2e/p0-091-candidate-profile-seed-and-patch/` / `p0-092-experience-cards-crud-with-ik/` / `p0-093-profile-privacy-delete-lifecycle/`

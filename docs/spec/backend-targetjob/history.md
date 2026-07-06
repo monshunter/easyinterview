@@ -1,13 +1,14 @@
 # Backend TargetJob History
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-06-29
+> **更新日期**: 2026-07-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-06 | 1.7 | 对齐 product-scope D-17/D-18 后的 TargetJob active owner 边界：背景从 `Home / Job Picks / Parse` 收敛为 JD import / parse；Out of Scope 明确 Job Picks / JD Match 已删除，不新增 recommendation/search/data-source plan；删除 backend-jobs-recommendations `CountTargetJobsForUser` cross-owner 正向边界。 | product-scope/001-core-loop-module-pruning Phase 6 |
 | 2026-06-29 | 1.6 | product-scope D-22 后同步 downstream 边界：真实面试复盘已退役，backend-targetjob 不再声明 backend-debrief downstream owner。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-21 | 1.5 | 登记 backend-jobs-recommendations/001 cross-owner additive：新增 `CountTargetJobsForUser(ctx, db, userID) (int, error)` 内部 API（`backend/internal/targetjob/count.go`），read-only `SELECT COUNT(*) FROM target_jobs WHERE user_id = $1 AND deleted_at IS NULL`；cross-user 隔离由 caller userId 保证；不写 audit_events。单元测试 `count_test.go` 覆盖 happy / cross-user / nil-db / empty-userId。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.13 |
 | 2026-05-08 | 1.4 | 完成 001 plan 真实 HTTP BDD gate：p0-010..013 场景脚本迁移为 `cmd/api` HTTP harness，覆盖 auth middleware、generated route、TargetJob handler/service、in-process drainer、F3 contract bridge、A3 test fixture 与 URL fetch，verify 输出 `method=cmd-api-http` / `validBddEvidence=true`。 | 001-targetjob-import-and-parse-bootstrap |

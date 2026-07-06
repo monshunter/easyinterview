@@ -1,4 +1,4 @@
-# E2E.P0.021 Workspace Handoff + Privacy + Legacy Negative
+# E2E.P0.021 Workspace Embedded-only + Privacy + Legacy Negative
 
 > **场景 ID**: E2E.P0.021
 > **执行方式**: automated

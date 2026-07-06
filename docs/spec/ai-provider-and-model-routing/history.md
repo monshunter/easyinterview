@@ -1,13 +1,14 @@
 # AI Provider and Model Routing History
 
-> **版本**: 2.17
+> **版本**: 2.18
 > **状态**: active
-> **更新日期**: 2026-06-30
+> **更新日期**: 2026-07-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-06 | 2.18 | 对齐 product-scope D-17/D-18 后的 active UI/AI capability：删除 Product/UI AI Capability Catalog 中残留的 Job Picks 匹配解释正向行，背景描述改为 JD 导入解析与 workspace 内嵌公司轻情报摘要，不再把旧首页 Job Picks 当成 AI 调用场景。 | product-scope/001-core-loop-module-pruning Phase 6 |
 | 2026-06-30 | 2.17 | 修复 core-loop module pruning 后的 AI profile coverage drift：Product/UI AI Capability Catalog 删除用户画像信号更新与 Debrief 文本 / 问题 / 语音 / 分析行，F3 baseline profile coverage 口径改为当前 9 个 active feature_key。 | product-scope/001-core-loop-module-pruning review remediation |
 | 2026-06-29 | 2.16 | product-scope D-22 后同步业务调用现场：移除 `backend-debrief` 当前 owner 口径，保留 provider/profile 治理作为核心链路能力。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-26 | 2.14 | 真实 provider 复测发现 `report.assessment.default` 15s 预算会在 full-funnel report assessment 中误触发 `AI_PROVIDER_TIMEOUT`；C-14 与 tracked catalog gate 将该 profile 纳入不低于 30s 的 manual UAT timeout budget。 | e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel |

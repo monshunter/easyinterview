@@ -1,8 +1,8 @@
 # 002 — Practice Text Event Loop Test Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-06
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -16,7 +16,7 @@
 
 ## Phase 3: assisted / strict 显隐 + RoleDropdown + 提示 / 跳过 / 暂停-恢复
 
-- [x] Phase 3 本计划定义的 `usePracticeAssistance.test.ts`（strict / assisted × baseline / debrief 4 组合）、`practiceGoalParity.test.tsx`（显隐快照）、`practiceHints.test.tsx`（assisted 流 + hintCount 自增 + strict DOM 缺失）、`practiceSkip.test.tsx`、`practicePauseResume.test.tsx`、`RoleDropdown.test.tsx`（UI-only 0 调用）、`SessionMap.test.tsx`、`practiceModeSwitch.test.tsx`、`practiceStrictToggleLocked.test.tsx` 测试项全部通过
+- [x] Phase 3 本计划定义的 `usePracticeAssistance.test.ts`（strict / assisted × baseline / retry_current_round / next_round 6 组合）、`practiceGoalParity.test.tsx`（显隐快照）、`practiceHints.test.tsx`（assisted 流 + hintCount 自增 + strict DOM 缺失）、`practiceSkip.test.tsx`、`practicePauseResume.test.tsx`、`RoleDropdown.test.tsx`（UI-only 0 调用）、`SessionMap.test.tsx`、`practiceModeSwitch.test.tsx`、`practiceStrictToggleLocked.test.tsx` 测试项全部通过
 
 ## Phase 4: completePracticeSession + handoff + 错误恢复 + sessionLost / conflict
 

@@ -1,6 +1,6 @@
-# 001 Home + JD Import + Parse + JD Match Placeholder
+# 001 Home + JD Import + Parse
 
-> **版本**: 2.2
+> **版本**: 2.3
 > **状态**: completed
 > **更新日期**: 2026-07-06
 
@@ -11,14 +11,16 @@
 
 ## 1 目标
 
-在 D1+D2+D3 已交付的 App 壳、视觉系统与 pixel parity gate 之上，把 `home` 与 `parse` 两屏从 `ui-design/` 静态原型迁移到正式 frontend，端到端跑通 P0 主路径「粘贴/上传/URL 导入 JD → 解析确认 → 进入模拟面试规划」；同时把 `jd_match` 屏作为 P1 placeholder shell 接入路由，保留 TopBar 入口可达。
+> **2026-07-06 product-scope pruning reconcile**：本计划的当前 active owner 是 Home + Parse 新建模拟面试入口。历史 Phase 5 / P0.017 `jd_match` placeholder 已随 D-17 删除；Home `JOB PICKS` 与 `POST-INTERVIEW` aux cards、TopBar `jd_match` / `debrief` 入口、`frontend/src/app/screens/jd_match/`、`frontend/tests/pixel-parity/jd_match.spec.ts`、`test/scenarios/e2e/p0-017-jd-match-placeholder/` 均不得再作为实施或验证目标。删除证据由 product-scope/001 与当前负向 gate 承接。
+
+在 D1+D2+D3 已交付的 App 壳、视觉系统与 pixel parity gate 之上，把 `home` 与 `parse` 两屏从 `ui-design/` 静态原型迁移到正式 frontend，端到端跑通 P0 主路径「粘贴/上传/URL 导入 JD → 解析确认 → 进入模拟面试规划」；当前 scope 不再包含 `jd_match` P1 placeholder shell。
 
 完成本计划后，用户在 frontend dev server 上能够：
 
 1. 默认进入 home，看到 JD 导入卡片、选择已有简历下拉框、Recent mock interviews 最近 3 张卡片、empty state、`更多` CTA 与 resume create CTA；旧 hero sub 不再渲染
 2. paste / upload / URL 三种 source variants 在显式选择 ready 简历后通过「立即面试」提交 JD，进入 parse 屏看到 4 步 loading → preview / confirm，并携带首页选择的真实 `resumeId`
 3. 编辑 parse 屏的 basic fields、切换 hit toggle，绑定 ready 简历后点击 `仅保存规划` 进入 workspace，或点击 `立即面试` 进入 `workspace autoStartPractice=1` 会话创建链路（携带完整 interview context params 与真实 resumeId）
-4. 点击 TopBar Job Picks 或 home aux card 进入 jd_match P1 placeholder
+4. 打开旧 `/jd-match` / `jd_match` route key 时归一回 `home`；Home 与 TopBar 不出现 Job Picks / debrief 退役入口
 5. UI variants 继续通过 generated client + fixture-backed mock transport 稳定覆盖；同时在 `VITE_EI_API_MODE=real` 下用 production generated client 证明 TargetJobs/upload/import/parse operations 指向真实 backend base URL；JD 原文不泄漏；i18n zh/en 完整切换；dark + customAccent 三态可见变化；desktop + mobile pixel parity 通过
 
 ## 2 背景
@@ -37,13 +39,13 @@
 
 2026-07-06 用户对 Phase 10 分区布局继续反馈：粘贴 JD、上传 JD 文件和 URL 导入仍应采用更简约的旧式整合设计，即在同一个 JD 输入框卡片内呈现 source actions，而不是把上传文件做成右侧独立 panel。Phase 11 原地修订 Home：保留“立即面试”位于简历选择下方、简历下拉框与创建入口同行、ready resume gate 和真实 `resumeId` 透传；只把 upload / URL controls 回收到 `home-jd-input-card` 底部。
 
-本 plan 是新 subspec 的首个计划，覆盖 P0 用户首次接入闭环。`jd_match` 完整三 tab 业务由后续 plan `002-jd-match-recommendations` 在 backend recommendations API 落地后承接。
+本 plan 是该 subspec 的当前唯一实体计划，覆盖 P0 用户首次接入闭环。`jd_match` placeholder 与后续完整三 tab 业务均已删除；相关删除证据由 `product-scope/001-core-loop-module-pruning` 与当前负向 gate 承接，不保留旧 002 plan 实体。
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: feature-behavior（用户可感知 UI + API 行为 + 业务流程 + 端到端功能）
-- **TDD 策略**: Red-Green-Refactor 入口为 `pnpm --filter @easyinterview/frontend test`（Vitest）；每个 Phase 在新增组件前先写失败测试，覆盖 DOM 锚点、控件类型、props/state、generated client 调用断言、URL/state 隐私反查；`pnpm --filter @easyinterview/frontend test:pixel-parity` 在 Phase 6 扩展为 home + parse 双屏 desktop + mobile 4 个 project；新增组件文件位于 `frontend/src/app/screens/home/`、`frontend/src/app/screens/parse/`、`frontend/src/app/screens/jd_match/`；测试文件与组件 colocate（`*.test.tsx`）。
-- **BDD 策略**: Feature plan requires BDD；本 plan 在 `bdd-plan.md` 定义 4 个场景 `E2E.P0.014 / E2E.P0.015 / E2E.P0.016 / E2E.P0.017`，`bdd-checklist.md` 跟踪每个场景资产创建与执行；主 `checklist.md` 在每个 Phase 末尾保留 `BDD-Gate:` 项引用对应场景 ID。
+- **TDD 策略**: Red-Green-Refactor 入口为 `pnpm --filter @easyinterview/frontend test`（Vitest）；每个 Phase 在新增组件前先写失败测试，覆盖 DOM 锚点、控件类型、props/state、generated client 调用断言、URL/state 隐私反查；`pnpm --filter @easyinterview/frontend test:pixel-parity` 在当前 scope 下覆盖 home + parse 双屏 desktop + mobile；当前 active 组件文件位于 `frontend/src/app/screens/home/`、`frontend/src/app/screens/parse/`；历史 `frontend/src/app/screens/jd_match/` 不得恢复。
+- **BDD 策略**: Feature plan requires BDD；本 plan 当前 active BDD 场景为 `E2E.P0.014 / E2E.P0.015 / E2E.P0.016`，`bdd-checklist.md` 跟踪每个场景资产创建与执行；历史 `E2E.P0.017` 已随 D-17 退役，只允许作为删除记录，不再作为 BDD-Gate。
 - **替代验证 gate**: 不适用（feature plan，已有完整 BDD + TDD 双层覆盖）
 
 ## 3.5 Coverage Matrix
@@ -76,13 +78,13 @@
 | UX · parse target switch | 同一 mounted `ParseScreen` 收到新的 `targetJobId` 时清空旧 preview/edit state，回到 loading gate，tick 完成后 hydrate 新 TargetJob | `screens-p0-complete.jsx::ParseScreen` lines 68-107 | 4 | Vitest `parse/ParseFlow.test.tsx` same-route target switch regression |
 | UX · home / parse resume binding | Home 在 JD source 区下方渲染“选择已有简历”下拉框与“还没有简历？1 分钟创建 →”同行；有 ready 简历时必须等待用户显式选择；无 ready 简历时禁用 `立即面试` 并引导创建；`立即面试` 位于简历行下方；Parse 继承首页显式选择或兜底阻断 | `screen-home.jsx::HomeScreen` + `screens-p0-complete.jsx::ParseScreen` Interview launch block + `screen-workspace.jsx::ResumePickerModal` | 7+8+9+10+11 | Vitest + Playwright home/parse confirm gate |
 | UX · home source controls integrated | 粘贴 JD textarea 是主输入；上传 JD 文件与 URL 导入作为同一 `home-jd-input-card` 底部的 source actions 整合呈现；不得再渲染独立 `home-upload-source-panel`；textarea 底部不承载主按钮，`立即面试` 仍在简历选择下方 | `screen-home.jsx::HomeScreen` import source block | 11 | Vitest `home/HomeLayout.test.tsx` + UI contract + pixel parity |
-| UX · empty state | listTargetJobs 空 → HomeEmptyState；search/watchlist tab 空 → P1 placeholder | `screen-home.jsx::HomeEmptyState` + `screen-jd-match.jsx` placeholders | 2+5 | Vitest |
+| UX · empty state | listTargetJobs 空 → HomeEmptyState；retired Job Picks / debrief aux cards 0 命中 | `screen-home.jsx::HomeEmptyState` | 2 + pruning reconcile | Vitest |
 | UX · error state | importTargetJob 4xx 内联错误；getTargetJob failed 全屏错误 | n/a | 3+4 | Vitest |
-| UX · i18n zh/en | 全文案通过 typed helper；切换立即重绘；新增 home / parse / jdMatch namespaces | D1 typed locale helper | 1-5 | Vitest `i18n` namespaces test |
+| UX · i18n zh/en | 全文案通过 typed helper；切换立即重绘；当前只保留 home / parse active namespaces，`jdMatch.*` 不得恢复 | D1 typed locale helper | 1-4 + pruning reconcile | Vitest `i18n` namespaces test |
 | UX · dark + customAccent | home + parse 三态切换关键元素 computed 颜色变化 | D2 `data-theme` / `data-mode` / `data-custom-accent` | 1+4+6 | Playwright + Vitest computed style |
 | UX · responsive layout | mobile 390×844 下不溢出；Requirements 双列折叠为单列；textarea card 不溢出 | n/a | 1+4+6 | Playwright mobile project |
 | UI source structure parity · home Hero | Hero label / title / sub i18n + textarea card + upload/URL/Submit | `screen-home.jsx::HomeScreen` lines 49-90 | 1 | Vitest DOM + testid `home-hero-*` / `home-jd-textarea` / `home-jd-submit` |
-| UI source structure parity · home aux cards | JOB PICKS + POST-INTERVIEW 2 张 aux 卡片 + 各自 Btn | `screen-home.jsx::HomeScreen` lines 105-128 | 1 | Vitest `home-aux-jobpicks` / `home-aux-debrief` |
+| UI source structure parity · retired aux cards | JOB PICKS + POST-INTERVIEW 退役入口在 Home DOM 0 命中 | `screen-home.jsx::HomeScreen` current source | pruning reconcile | Vitest negative assertions `home-aux-jobpicks` / `home-aux-debrief` absent |
 | UI source structure parity · MockInterviewCard | company meta slot / title / location / status pill / MiniRoundRail 圆点 + 进度线；meta slot 数据按 §3.7 映射，不读取 OpenAPI 未声明 `level` 字段 | `screen-home.jsx::MockInterviewCard` + `MiniRoundRail` lines 148-216 | 2 | Vitest + testid `home-recent-mock-card-${id}` / `home-recent-mock-rail-${id}` |
 | UI source structure parity · JDAssistModal | upload + URL 双模态、Continue / Cancel 按钮、关闭 X、外层遮罩点击关闭 | `screen-home.jsx::JDAssistModal` lines 218-262 | 3 | Vitest + testid `home-modal-{upload\|url}-*` |
 | UI source structure parity · Parse loading | 4 步进度条 + footer model/rubric/prompt hash 作为 backend parse metadata / fixture metadata 展示；前端不调用 LLM | `screens-p0-complete.jsx::ParseScreen` lines 68-107 | 4 | Vitest + testid `parse-loading-step-${i}` |
@@ -91,13 +93,13 @@
 | UI source structure parity · Hidden signals | sparkle icon list + confidence tag | `screens-p0-complete.jsx::ParseScreen` lines 184-206 | 4 | Vitest + testid `parse-hidden-signal-${idx}` |
 | UI source structure parity · Round assumptions | 4 卡 R1-R4 grid | `screens-p0-complete.jsx::ParseScreen` lines 209-225 | 4 | Vitest + testid `parse-round-${idx}` |
 | UI source structure parity · Parse footer | Cancel / Re-parse / Save plan only / Start interview now；Start 走 workspace `autoStartPractice=1` 技术桥接 | `screens-p0-complete.jsx::ParseScreen` launch/footer area | 4+7 | Vitest + testid `parse-action-{cancel\|reparse\|save-plan\|start-interview}` |
-| UI source structure parity · jd_match shell | Hero + Profile snapshot chip + 三 tab 标签 + placeholder 内容 | `screen-jd-match.jsx::JDMatchScreen` lines 244-300 | 5 | Vitest + testid `jdmatch-hero` / `jdmatch-tab-${k}` / `jdmatch-placeholder` |
-| UI visual geometry parity · desktop | 1440×900 home + parse + jd_match bounding box stays in viewport, no overlap | n/a | 6 | Playwright `tests/pixel-parity/home.spec.ts` + `parse.spec.ts` + `jd_match.spec.ts` desktop project |
+| UI source structure parity · retired jd_match shell | `frontend/src/app/screens/jd_match/`、`jdmatch-hero`、`jdmatch-tab-*`、`jdmatch-placeholder` 在 active source/test 0 命中（legacy normalize / historical docs 除外） | n/a | pruning reconcile | rg negative + route normalize test |
+| UI visual geometry parity · desktop | 1440×900 home + parse bounding box stays in viewport, no overlap | n/a | 6 + current parity | Playwright `tests/pixel-parity/home.spec.ts` + `parse.spec.ts` desktop project |
 | UI visual geometry parity · mobile | 390×844 Requirements 折单列、textarea/cards 不溢出 | n/a | 6 | Playwright mobile project |
 | UI visual geometry parity · dark / customAccent | 三态切换关键元素 computed background / color 可见变化 | n/a | 6 | Playwright |
 | UI visual geometry parity · screenshot regression | toHaveScreenshot baseline maxDiffPixels 阈值 | n/a | 6 | Playwright + `frontend/.gitignore` baseline |
-| UI stale-contract negative · 旧 jd_match 占位 | 旧 prototype 的 search / watchlist 业务字段（saved-search-*, watchlist-*, market-signal-*）testid 在本 plan 不能命中 | `screen-jd-match.jsx` 旧 prototype | 5+6 | Vitest negative grep + scenario verify |
-| UI stale-contract negative · 旧 route alias | 旧 `welcome` / `growth` / `mistakes` / `drill` / `followup` / `experiences` / `star` / 独立 `voice` route 在 Home / Parse / jd_match 新代码中不出现 | n/a | 全 phase | Vitest + scenario verify negative grep |
+| UI stale-contract negative · 旧 jd_match / debrief 占位 | 旧 prototype 的 jdmatch / job picks / debrief / post-interview testid 与 route 入口在 active source 中 0 命中；只允许 normalize alias 与负向断言 | n/a | pruning reconcile | Vitest negative grep + scenario verify |
+| UI stale-contract negative · 旧 route alias | 旧 `welcome` / `growth` / `mistakes` / `drill` / `followup` / `experiences` / `star` / 独立 `voice` route 在 Home / Parse 新代码中不出现 | n/a | 全 phase | Vitest + scenario verify negative grep |
 | Regression / legacy-negative · D1+D2+D3 现有 gate | E2E.P0.001/002/004/005/006 重跑通过 | n/a | 6 | scenario rerun |
 | Regression / legacy-negative · 不直接 import prototype data | `frontend/src` 不 import `ui-design/src/data.jsx` 或 `window.EI_DATA` | n/a | 全 phase | Vitest + tsc grep negative |
 | Regression / legacy-negative · 不直接调用 LLM/provider | `frontend/src` 不出现 AI provider key、provider registry、prompt registry、LLM endpoint 或 ad hoc parse fetch；只允许 generated TargetJobs client / fixture transport | n/a | 全 phase | Vitest + grep negative |
@@ -118,7 +120,7 @@
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` scenarios: `default` / `prototype-baseline` / plan-added `queued` / `processing` / `ready` / `failed` / `hidden-signal-rich` | `ParseScreen` polling via generated `getTargetJob(targetJobId)`; `analysisStatus` drives loading/preview/failed; Hidden signals render only backend/API `summary.interviewHypotheses` + `coreThemes` + `fitSummary.riskSignals` with `GenerationProvenance` present | real: `backend/cmd/api/main.go` mounts `GET /api/v1/targets/{targetJobId}` to `backend/internal/targetjob.Handler.GetTargetJob`; no frontend LLM interaction | backend: `target_jobs`, `target_job_requirements`; frontend: ephemeral UI state only | backend-only parse result; frontend displays returned AI-generated fields without inference or regeneration | E2E.P0.015 fixture UI + real gate; backend E2E.P0.010 / P0.011 / P0.012 / P0.013 |
 | `updateTargetJob` | `openapi/fixtures/TargetJobs/updateTargetJob.json` scenarios: `success` / `validation-4xx` | `ParseScreen` Save plan / Start interview via generated `updateTargetJob`; request body includes only supplied editable fields (`titleHint`, `companyNameHint`, `locationText`, `notes`); hit toggle state is not sent; side-effect call supplies `idempotencyKey` | real: `backend/cmd/api/main.go` mounts `PATCH /api/v1/targets/{targetJobId}` to `backend/internal/targetjob.Handler.UpdateTargetJob`; owned by `backend-targetjob/001-targetjob-import-and-parse-bootstrap` | backend: `target_jobs` metadata columns; frontend: none | none in frontend; no parse regeneration | E2E.P0.016 fixture UI + real gate; backend E2E.P0.010 |
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` scenarios: `default` / `empty` | `HomeScreen` JD import card and `ParseScreen` preview launch block; reads ready, non-archived flat resumes; Home requires explicit selection before import; Parse may inherit route `resumeId` selected on Home and still validates it against ready resumes; no side-effect key | real: `backend/cmd/api/main.go` mounts `GET /api/v1/resumes` to resume handler; owned by `backend-resume` | backend: `resumes`; frontend: selected resume id in React state only after explicit user click | none | E2E.P0.015/P0.016 fixture UI; resume real backend covered by resume owner gates |
-| `N/A` UI-only `jd_match` placeholder | no new fixture; generated client must not be called by `JDMatchScreen` placeholder except existing shell auth/runtime calls | `JDMatchScreen` hero/profile-chip/tabs/placeholder shell; TopBar + Home aux card route only | N/A until future recommendations API / plan `002-jd-match-recommendations` | none | none | E2E.P0.017 |
+| `N/A` retired `jd_match` placeholder | no fixture; `JDMatchScreen` and P0.017 are historical only; generated JobMatch client must not be called by active Home / Parse scope | N/A | N/A retired by D-17 | none | none | negative route/source grep |
 
 ## 3.7 TargetJob Frontend View-Model Mapping
 
@@ -137,6 +139,7 @@
 
 | 日期 | 版本 | 类型 | 说明 |
 |------|------|------|------|
+| 2026-07-06 | 2.3 | product-scope pruning reconcile | 将当前 active owner 收敛为 Home + Parse；删除旧 002 plan 实体后，历史 Phase 5 / P0.017 jd_match placeholder、Job Picks / POST-INTERVIEW aux cards、jd_match parity 和 scenario 资产只由 product-scope/001 与负向 gate 承接，不再作为实施目标。 |
 | 2026-07-06 | 2.2 | home-integrated-source-controls remediation | 修订 Home source actions：上传 JD 文件与 URL 导入回收到同一 `home-jd-input-card` 底部，删除独立 upload source panel，保持简历下拉框与提交按钮布局不回退。 |
 | 2026-07-06 | 2.1 | home-source-layout remediation | 修订 Home 新建规划输入源与 CTA 布局：粘贴 JD 与上传文件分区，简历下拉框定宽并与创建入口同排，`立即面试` 位于简历选择下方。 |
 | 2026-07-06 | 2.0 | home-dropdown-recent-cap remediation | 修订 Home 简历选择为下拉框，Recent mock interviews 只展示最近 3 条并提供“更多”跳转模拟面试列表。 |
@@ -154,7 +157,7 @@
 
 #### 1.1 新增 `frontend/src/app/screens/home/` 目录与 `HomeScreen.tsx`
 
-按 `ui-design/src/screen-home.jsx::HomeScreen` 源级复刻渲染 Hero（label / title / sub）、JD textarea card（含 upload / URL / Submit 按钮）、Resume create CTA、aux cards（JOB PICKS + POST-INTERVIEW），不接入数据（recent mocks 用 placeholder）。`onSubmit` / `onUpload` / `onUrl` 仅记录调用次数，不发起 API。
+按当前 `ui-design/src/screen-home.jsx::HomeScreen` 源级复刻渲染 Hero（label / title）、JD textarea card（含 upload / URL source actions）、Resume create CTA 与 recent mocks 区域；退役 aux cards（JOB PICKS + POST-INTERVIEW）不得渲染。`onSubmit` / `onUpload` / `onUrl` 在当前实现中通过 generated client gate 接入，历史无数据壳仅保留为 Phase 1 记录。
 
 #### 1.2 路由壳接入
 
@@ -266,56 +269,57 @@ Re-parse 重置 `stage=loading` 并重新调 `getTargetJob` 触发 polling；Can
 
 - BDD-Gate: 验证 `E2E.P0.015`（主路径完整）+ `E2E.P0.016`（编辑 + 绑定简历 + Save/Start handoff）
 
-### Phase 5: jd_match P1 Placeholder Shell
+### Phase 5: jd_match P1 Placeholder Shell（历史，D-17 后退役）
+
+> 本 phase 是 2026-05-08 历史实施记录。2026-06-12 D-17 后，`jd_match` placeholder、TopBar Job Picks、Home Job Picks aux card、`frontend/src/app/screens/jd_match/`、`frontend/tests/pixel-parity/jd_match.spec.ts` 与 `E2E.P0.017` 均不得作为当前实施目标；当前 gate 是删除/归一/零残留。
 
 #### 5.1 新增 `frontend/src/app/screens/jd_match/` 目录与 `JDMatchScreen.tsx`
 
-按 `ui-design/src/screen-jd-match.jsx::JDMatchScreen` lines 244-300 复刻 hero（label / title / sub）+ profile snapshot chip 静态版本（不连接真实 profile）+ 三 tab 标签（Recommended / Search / Watchlist）；tab 内容区固定渲染 P1 placeholder 文案 + 引用本 subspec spec §7 中的 plan `002-jd-match-recommendations`。不渲染 JobMatchCard / JDDetail / SearchTab / WatchlistTab。
+历史记录：曾按 `ui-design/src/screen-jd-match.jsx::JDMatchScreen` lines 244-300 复刻 hero + profile snapshot chip + 三 tab placeholder。当前不得恢复；活跃代码应保持 `frontend/src/app/screens/jd_match/` 0 命中。
 
 #### 5.2 路由壳接入
 
-在 `frontend/src/app/App.tsx` route table 中绑定 `jd_match` → `<JDMatchScreen />`（替换 D1 `PlaceholderScreen`）；TopBar 高亮 jd_match。
+历史记录：曾在 `frontend/src/app/App.tsx` route table 中绑定 `jd_match`。当前 route key / `/jd-match` 只允许由 normalize alias 归一回 `home`，TopBar 不得渲染 `topbar-nav-jd_match`。
 
 #### 5.3 i18n
 
-`jdMatch.*` 命名空间（≤10 key：hero label / title / sub、tab 标签、placeholder 文案 zh/en）。
+历史记录：曾新增 `jdMatch.*` 命名空间。当前 active locale 中不得恢复 `jdMatch.*` 或 `nav.jd_match`。
 
 #### 5.4 Vitest
 
-新增 `jd_match/JDMatchPlaceholder.test.tsx`：测 hero / profile chip / 三 tab 标签 DOM；测 placeholder 文案 zh/en；负向断言 — 旧 prototype 的 `JobMatchCard` / `JDDetail` / `SearchTab` / `WatchlistTab` testid（如 `jdmatch-card-*` / `jdmatch-saved-search-*` / `jdmatch-watchlist-*` / `jdmatch-market-signal-*`）不命中；TopBar `topbar-nav-jd_match` 高亮。
+历史记录：曾新增 `jd_match/JDMatchPlaceholder.test.tsx`。当前测试应改为 legacy route normalize 与 active source 负向断言，确保 `jdmatch-*` 业务锚点、TopBar 入口和 Home aux card 0 命中。
 
 #### 5.5 BDD-Gate
 
-- BDD-Gate: 验证 `E2E.P0.017` jd_match P1 placeholder smoke
+- Historical BDD-Gate：`E2E.P0.017` 已退役，不再作为当前 gate；当前 gate 由 product-scope pruning 的 legacy negative / zero-reference 搜索承接。
 
 ### Phase 6: 验证收口（pixel parity + scenario + regression rerun）
 
 #### 6.1 Playwright pixel parity 扩展
 
-新增 `frontend/tests/pixel-parity/home.spec.ts`、`parse.spec.ts`、`jd_match.spec.ts`，覆盖 desktop (1440×900) + mobile (390×844) 两个 chromium project：
+新增/维护 `frontend/tests/pixel-parity/home.spec.ts`、`parse.spec.ts`，覆盖 desktop (1440×900) + mobile (390×844) 两个 chromium project；历史 `jd_match.spec.ts` 已退役：
 
 - DOM 锚点存在性
 - 关键元素 bounding box stays in viewport, no overlap
 - mobile Requirements 折单列、textarea card 不溢出
 - warm/light → dark → customAccent 三态切换 computed background / color 可见变化
-- toHaveScreenshot baseline 区域：home Hero、Recent mocks 网格、parse loading 与 preview 主区块、jd_match hero 与 placeholder
+- toHaveScreenshot baseline 区域：home Hero、Recent mocks 网格、parse loading 与 preview 主区块
 
 `pnpm --filter @easyinterview/frontend test:pixel-parity` 全 PASS（在 D2/D3 现有 21 个 spec × 2 viewport = 42 项基础上累加）。
 
 #### 6.2 Scenario 资产
 
-派生 4 个新 scenario 目录：
+派生并维护当前 active scenario 目录：
 
 - `test/scenarios/e2e/p0-014-home-default-render/`
 - `test/scenarios/e2e/p0-015-jd-import-and-parse/`
 - `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/`
-- `test/scenarios/e2e/p0-017-jd-match-placeholder/`
 
 每个目录包含 `README.md`（§6 文档 baseline 维护、§7 离线运行限制）+ `scripts/{setup,trigger,verify,cleanup}.sh`（按 `test/scenarios/README.md` + `test/scenarios/e2e/README.md` 规范）。
 
 #### 6.3 Scenario INDEX 更新
 
-`test/scenarios/e2e/INDEX.md` P0 表追加 4 行（`E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016` / `E2E.P0.017`），关联需求列指向 `frontend-home-job-picks-and-parse C-1` … `C-10`，状态 Ready，执行方式 automated。
+`test/scenarios/e2e/INDEX.md` P0 表当前只应保留 active Home / Parse 场景（`E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016`）；历史 `E2E.P0.017` 行随 D-17 删除。
 
 #### 6.4 Regression 重跑
 
@@ -328,20 +332,20 @@ Re-parse 重置 `stage=loading` 并重新调 `getTargetJob` 触发 polling；Can
 #### 6.6 负向搜索
 
 - `frontend/src/` 内不 import `ui-design/src/data.jsx` 或 `window.EI_DATA`
-- 旧 prototype jd_match 业务 testid（`jdmatch-card-*` / `jdmatch-saved-search-*` / `jdmatch-watchlist-*` / `jdmatch-market-signal-*` / `jdmatch-search-bar` 等）grep 0 命中（除负向断言文件）
+- 旧 prototype jd_match / Job Picks / debrief 业务 testid（`jdmatch-card-*` / `jdmatch-saved-search-*` / `jdmatch-watchlist-*` / `jdmatch-market-signal-*` / `jdmatch-search-bar` / `home-aux-jobpicks` / `home-aux-debrief` 等）grep 0 命中（除负向断言文件与历史文档）
 - 旧 route alias（`welcome` / `growth` / `mistakes` / `drill` / `followup` / `experiences` / `star` / 独立 `voice`）grep 0 命中（除 `app/normalizeRoute.ts` 的 alias map 与对应负向 D1 测试）
 - JD raw text grep — 仅出现在 React state / generated client request body 与 fixture，不出现在 console.log / URL / localStorage / telemetry 调用
 - LLM/provider grep — `frontend/src` 不出现 provider key、provider registry、prompt registry、AIClient、LLM endpoint 或任意 bypass generated client 的 parse fetch；Parse loading footer 仅允许作为 UI 文案 / fixture metadata 展示
 
 #### 6.7 BDD-Gate
 
-- BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016` / `E2E.P0.017` 全部通过 + D1+D2+D3 现有 P0.001-006 regression PASS
+- BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016` 全部通过 + D1+D2+D3 现有 P0.001-006 regression PASS；`E2E.P0.017` 不再作为当前 gate
 
 #### 6.8 L2 remediation — real backend integration closure
 
 原地关闭 plan 001 与 backend real implementation 的语义漂移：新增 `frontend/src/api/targetJob.realApiMode.test.ts`，在 `VITE_EI_API_MODE=real` 下证明 `createAppClient` 使用 production generated `EasyInterviewClient` 和真实 backend base URL 调用 `listTargetJobs`、`createUploadPresign`、`importTargetJob`、`getTargetJob`、`updateTargetJob`；断言每个 request `credentials: "include"`、默认不带 fixture `Prefer` header、side-effect operation 带 `Idempotency-Key`、TargetJob summary / fitSummary `GenerationProvenance` roundtrip，且 JD 原文只进入 POST body、不进入 URL。
 
-同步 P0.014-P0.016 trigger/verify/README，让每个 frontend scenario 都先跑 real-mode generated-client gate，再跑 fixture-backed UI variants；与 backend E2E.P0.010-P0.013 的 live HTTP TargetJob scenarios 配对，并用 backend-upload focused tests 证明 `POST /api/v1/uploads/presign` route/handler 已真实落地。P0.017 仍是 jd_match UI-only smoke，不纳入 TargetJobs real backend overlay。
+同步 P0.014-P0.016 trigger/verify/README，让每个 frontend scenario 都先跑 real-mode generated-client gate，再跑 fixture-backed UI variants；与 backend E2E.P0.010-P0.013 的 live HTTP TargetJob scenarios 配对，并用 backend-upload focused tests 证明 `POST /api/v1/uploads/presign` route/handler 已真实落地。历史 P0.017 已退役，不纳入 TargetJobs real backend overlay。
 
 ### Phase 7: Parse 简历绑定强制门禁（2026-06-30 修订）
 
@@ -441,13 +445,13 @@ Re-parse 重置 `stage=loading` 并重新调 `getTargetJob` 触发 polling；Can
 
 - 本计划列出的 Phase 1-11 全部 checklist 项通过
 - spec C-1 ~ C-11、C-17、C-18、C-19、C-20 与 C-21 全部覆盖且通过对应测试
-- 关联 BDD-Gate（E2E.P0.014 / E2E.P0.015 / E2E.P0.016 / E2E.P0.017）全部通过；P0.014-P0.016 trigger log 必须包含 `VITE_EI_API_MODE=real` 与 `targetJob.realApiMode.test.ts` PASS；backend E2E.P0.010-P0.013 live TargetJob scenarios 全部 PASS；D1+D2+D3 regression（P0.001/002/004/005/006）全部 PASS
+- 关联 BDD-Gate（E2E.P0.014 / E2E.P0.015 / E2E.P0.016）全部通过；P0.014-P0.016 trigger log 必须包含 `VITE_EI_API_MODE=real` 与 `targetJob.realApiMode.test.ts` PASS；backend E2E.P0.010-P0.013 live TargetJob scenarios 全部 PASS；D1+D2+D3 regression（P0.001/002/004/005/006）全部 PASS
 - Phase 7 验证必须证明 Parse 成功 handoff 不再包含 `resume-unbound`，没有 ready 简历时不能启动或保存规划
 - Phase 8 验证必须证明 Home 预先选择已有 ready 简历后才允许 import，旧 hero sub 不再渲染，`解析并确认面试` 文案不再出现在 Home 主按钮，成功进入 parse 时携带真实 `resumeId`
 - Phase 9 验证必须证明 Home 简历选择是下拉框而不是平铺按钮列表，Recent mock interviews 只显示 3 条，`更多` 跳转 `workspace`
 - Phase 10 验证必须证明 Home 简历下拉框定宽并与创建入口同排、`立即面试` 位于简历选择下方；source actions 的当前容器归属以 Phase 11 为准
 - Phase 11 验证必须证明 Home 上传 JD 文件与 URL 导入被整合回 `home-jd-input-card` 底部，独立 `home-upload-source-panel` 零命中，`立即面试` 仍位于简历选择下方且不在输入卡内
-- pixel parity 在 desktop + mobile 两 viewport 下 home / parse / jd_match 三屏新增 spec 全 PASS
+- pixel parity 在 desktop + mobile 两 viewport 下 home / parse 两屏新增 spec 全 PASS；历史 jd_match parity spec 不得恢复
 - `make docs-check` zero drift；`check_md_links` 双 OK；`pnpm typecheck` 0 错；`pnpm build` + `make build` PASS
 - 负向搜索（旧 prototype 业务 testid、旧 route alias、prototype data 直接 import、JD raw text 泄漏）全部 0 命中
 
@@ -459,7 +463,7 @@ Re-parse 重置 `stage=loading` 并重新调 `getTargetJob` 触发 polling；Can
 | polling 节奏与 fixture transport 同步立即返回 ready 导致 4 步进度条无法观察 | 在 fixture transport 引入可观察 latency 占位，或在前端组件内显式分步 ≥600ms 节奏并锁定为 acceptance criteria（避免后续优化为 0ms 跳过 loading 阶段） |
 | ParseScreen Re-parse 与 polling 的 race condition | Re-parse 时 abort 当前 polling effect 并重置 `analysisStatus` 局部状态；Vitest fake timer 下断言 polling 不会泄漏到下一次 |
 | `eiCreateInterviewContext` 等价契约不 stable 导致 workspace 携带的 params 漂移 | 在 D1 已有 helper 之上抽 `frontend/src/app/navigation/interviewContext.ts` 集中契约；新增 unit test 锁定字段集合与回退默认值 |
-| jd_match P1 placeholder 后续被 plan 002 替换时 testid 漂移 | placeholder testid 命名锁定为 `jdmatch-placeholder-*`（不与未来 `jdmatch-recommendations-*` 冲突），plan 002 不需要改 D1 path |
-| Pixel parity 跨 fontsource 字体子像素差异（D3 retrospective 已识别） | 沿用 D3 经验：home / parse / jd_match 的 toHaveScreenshot 仅作 frontend 内部 regression（含 maxDiffPixels 阈值），不与 ui-design golden 跨字体源做硬 diff |
+| 历史 jd_match placeholder 被误恢复 | context discovery、BDD plan、checklist 与 spec 均标注 D-17 retired；active source 负向搜索必须证明 `frontend/src/app/screens/jd_match/`、`jdMatch.*`、`topbar-nav-jd_match`、`home-aux-jobpicks` 0 命中（legacy normalize / negative assertions 除外） |
+| Pixel parity 跨 fontsource 字体子像素差异（D3 retrospective 已识别） | 沿用 D3 经验：home / parse 的 toHaveScreenshot 仅作 frontend 内部 regression（含 maxDiffPixels 阈值），不与 ui-design golden 跨字体源做硬 diff |
 | Auth pending action 在 paste 流恢复时表单 state 丢失 | 把待提交 source payload 存入当前 SPA 会话内存，并只通过 D1 `pendingAction.params` 序列化 opaque `pendingImportId`；登录恢复时消费内存 payload 并自动重新发起 importTargetJob；新增 Vitest 测试锁定行为，同时负向断言 JD 原文 / source URL 不进入 URL 或 localStorage |
 | 旧 prototype data 渗透（开发者从 `ui-design/src/screen-home.jsx` 复制粘贴时把 `D.targetJobs` / `D.jdSample` 一并带过来） | Vitest negative grep + `eslint-rules` 反查（`no-restricted-imports` 限制 `ui-design/`）；scenario verify 阶段 grep `EI_DATA` / `targetJobs` literal |

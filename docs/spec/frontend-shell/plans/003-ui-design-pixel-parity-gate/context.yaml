@@ -62,16 +62,11 @@ spec:
           - test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate
         uiRoutes:
           - home
-          - jd_match
           - workspace
           - resume_versions
-          - debrief
-          - profile
           - settings
           - auth_login
-          - auth_register
           - auth_verify
-          - auth_reset
+          - auth_profile_setup
           - auth_logout
-          - company_intel
         apiNames: []

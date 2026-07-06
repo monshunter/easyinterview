@@ -1,8 +1,10 @@
 # Core Loop Module Pruning BDD Plan
 
-> **版本**: 1.1
-> **状态**: completed
-> **更新日期**: 2026-06-29
+> **版本**: 1.2
+> **状态**: active
+> **更新日期**: 2026-07-06
+
+> Reopened with product-scope/001 Phase 6 document deletion cleanup; existing D-22 BDD matrix remains the behavior gate while active docs are reconciled against current truth sources.
 
 ## Phase 1: App Shell 与旧入口负向
 

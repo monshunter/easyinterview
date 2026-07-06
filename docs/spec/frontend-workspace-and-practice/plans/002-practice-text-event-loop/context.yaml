@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: 1.2
-    to: 1.5
+    to: 1.6
 spec:
   defaultTarget: frontend
   discovery:
@@ -61,7 +61,7 @@ spec:
       - hintsEnabled
       - practiceMode strict
       - practiceMode assisted
-      - practiceGoal debrief
+      - practiceGoal baseline retry_current_round next_round
       - SessionStatus
       - assistantAction.type ask_question
       - assistantAction.type ask_follow_up
@@ -118,7 +118,7 @@ spec:
           - openapi
           - openapi/fixtures/PracticeSessions
           - test/scenarios/e2e/p0-044-practice-text-loop-assisted-happy-path
-          - test/scenarios/e2e/p0-045-practice-text-loop-strict-and-debrief-display
+          - test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display
           - test/scenarios/e2e/p0-046-practice-text-loop-failure-and-recovery
           - test/scenarios/e2e/p0-047-practice-text-loop-complete-and-generating-handoff
         uiRoutes:

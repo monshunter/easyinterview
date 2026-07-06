@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Resume Workshop Additive Coverage Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
-> **更新日期**: 2026-06-14
+> **更新日期**: 2026-07-06
 
 **关联计划**: [plan](./plan.md)
 
@@ -83,5 +83,5 @@
 - [ ] 7.6 `make codegen-openapi` + `make codegen-check` + baseline 原地 re-freeze + `make openapi-diff` PASS（验证：codegen-check exit 0 + openapi-diff PASS）
 - [x] 7.7 B2 spec 1.30 + history 1.30 + `openapi/README.md` / `openapi/fixtures/README.md` / roadmap / mock-contract-suite 计数同步（本次 doc 修订已完成 spec/history；README/roadmap 计数随 impl）（验证：`sync-doc-index --check` 零漂移）
 - [ ] 7.8 零残留负向 grep `resumeVersionId|resumeAssetId|ResumeVersion|branchResume|listResumeVersions|getResumeVersion|confirmResumeStructuredMaster|accept+rejectResumeTailorSuggestion|ResumeSeedStrategy|ResumeTailorSuggestionStatus`（openapi/lint/generated；除 history 历史行 + 负向断言）（验证：0 命中）
-- [ ] 7.9 下游信号：`frontend-resume-workshop` / `frontend-workspace-and-practice` / `frontend-debrief` / `backend-resume` 已收到 resume 契约坍缩 + `resumeId` 信号（验证：cross-plan 引用）
+- [ ] 7.9 下游信号：`frontend-resume-workshop` / `frontend-workspace-and-practice` / `backend-resume` 已收到 resume 契约坍缩 + `resumeId` 信号；Debrief 旧 subject 已随 product-scope D-22 删除，不再作为正向下游（验证：cross-plan 引用）
 - [x] 7.10 L2 hardening: `validate_fixtures.py` 递归拒绝 fixture request / response 中的 D-20 退役 key `resumeAssetId` / `resumeVersionId`，并修正 Debriefs fixture 为 `resumeId`；验证：`python3 -m unittest scripts.lint.validate_fixtures_cli_test`、`make validate-fixtures`、`rg -n "resumeVersionId|resumeAssetId" openapi/fixtures openapi/openapi.yaml backend/internal/api/generated frontend/src/api/generated` 0 命中

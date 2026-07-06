@@ -1,13 +1,14 @@
 # Engineering Roadmap History
 
-> **版本**: 3.26
+> **版本**: 3.27
 > **状态**: active
-> **更新日期**: 2026-06-29
+> **更新日期**: 2026-07-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-06 | 3.27 | 删除 deprecated Debrief / Profile / Jobs Recommendations subject 实体后的 roadmap 对齐：P0 workstream 表不再列出已删 subject，基础契约计数同步到当前 35 endpoint / 10 tag、14 events / 8 jobs、22 app tables + 3 auth support tables、9 chat feature_key；无争议旧 plan 不再保留退役说明。 | product-scope/001-core-loop-module-pruning |
 | 2026-06-29 | 3.26 | 对齐 product-scope v2.2 D-22：当前 UI 一级入口收敛为三项，`frontend-debrief`、`backend-debrief`、`backend-profile` 进入删除范围，不再作为 P0 workstream；核心闭环改为导入 -> 规划 -> 练习 -> 报告 -> 复练 / 下一轮。 | product-scope/001-core-loop-module-pruning |
 | 2026-06-14 | 3.25 | 收口 D-17 / D-18 / D-20 后的 roadmap 残留：当前 UI 一级入口统一为四项；删除岗位推荐作为 P0 workstream 范围；把 `jd_match` / `company_intel` 纳入不得恢复的旧 route key；B2 / mock-first 计数统一为 43 operation。 | 当前 review + D-17/D-18/D-20 closure |
 | 2026-06-13 | 3.24 | 对齐 product-scope v2.1 D-20 简历扁平化：Resume Workshop workstream 行 scope 从「原始简历树 / 结构化主版本 / 岗位定制版本 / 版本详情」改为「扁平简历列表 / 上传 / 粘贴创建 / 解析预览确认 / 简历详情（预览 / 改写 / 编辑）/ 改写采纳覆盖或另存」；`frontend-resume-workshop` 001/002/003 与 `backend-resume` 001/002 标记 D-20 phase active。B2 freeze 口径 48→43 endpoint 随 contract impl 同步（mock-contract-suite 计数同步在 D-20 contract impl 阶段）。 | D-20 owner doc 对齐（B1/B4/B3/B2 + C7/C5/C9 + D-X/D-Z/D-Y） |

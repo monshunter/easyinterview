@@ -8,7 +8,7 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 test -s "$LOG_FILE"
 "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}"
 grep -Eq 'Test Files +[0-9]+ passed \([0-9]+\)' "$LOG_FILE" || { echo "$SCENARIO_ID: no passing test files" >&2; exit 1; }
-grep -Fq 'WorkspaceHandoff.test.tsx' "$LOG_FILE" || { echo "$SCENARIO_ID: handoff test did not run" >&2; exit 1; }
+grep -Fq 'WorkspaceHandoff.test.tsx' "$LOG_FILE" || { echo "$SCENARIO_ID: embedded-only test did not run" >&2; exit 1; }
 if rg -n '\.getCompanyIntel\(|\.getFeedbackReport\(|\.listResumes\(|recentSessions|console\.log\(' \
   "$REPO_ROOT/frontend/src/app/screens/workspace" \
   "$REPO_ROOT/frontend/src/app/interview-context" \

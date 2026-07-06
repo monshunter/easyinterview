@@ -74,6 +74,7 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 - **新版语义反向审计**：必须从当前 `docs/spec/product-scope/spec.md`、`docs/ui-design/`、`ui-design/` 和 active spec 中提取不变量，反向审查实现是否仍符合当前产品与交互范围。
 - **旧口径负向搜索**：必须搜索旧 route、旧 tag/schema/table/event/job/config flag、旧 feature flag、旧 AI model/provider 假设、旧 `feature_key` / `featureKey` 路由口径，以及 Mistakes / Growth / Drill / 独立 Voice 等被当前设计丢弃的模块口径。
 - **历史包删除零残留**：当用户要求删除已迁移文档包、旧目录或旧模块时，不得只改链接；必须删除实体目录 / 文件，并在 owner spec / plan gate 中固化目录名、文件名和旧 shorthand 的 zero-reference 搜索，确认当前 owner spec / coded truth source 可独立承接字段、事件、指标、日志、schema 与验证 gate。
+- **无争议旧文档直接删除**：当模块、计划、设计文档或历史包已与当前 active spec 冲突且没有继续承接当前合同的价值时，不得用“退役说明”“Deprecated banner”“历史记录”继续保留实体文件；应删除实体目录 / 文件，并同步修订 INDEX、context、引用和验证 gate。只有 work-journal、bug、report、migration 历史、明确法律/审计证据或仍被当前 owner spec 必需引用的材料可作为历史证据保留。
 - **旧 gate 只是必要条件**：如果现有 gate 只覆盖结构数量或历史断言，必须补充语义 lint、unit test、negative fixture、smoke 或脚本断言后再继续下一个 target。
 - **反馈立即固化**：用户指出工作方式、审查深度或 gate 覆盖不足时，必须先把反馈写入当前执行规章、AGENTS.md、对应 skill 或 plan gate，再继续推进。
 

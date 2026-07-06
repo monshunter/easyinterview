@@ -1,8 +1,8 @@
 # URL-Addressable Routing
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-18
+> **更新日期**: 2026-07-06
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -41,27 +41,30 @@ EasyInterview 的核心工作流已经围绕真实 JD、target job、resume vers
 
 | Route | Canonical URL | Safe Params | Chrome |
 |-------|---------------|-------------|--------|
-| `home` | `/` | `pendingImportId`, `source` | visible |
-| `jd_match` | `/jd-match` | `tab`, `selectedJobMatchId`, `action`, `pendingJdMatchActionId` | visible |
-| `workspace` | `/workspace` | `targetJobId`, `jobId`, `resumeVersionId`, `planId`, `roundId`, `roundName`, `jdId`, `sessionId`, `sourceSessionId`, `replayItems`, `evidenceGaps`, `nextRoundId`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `hintUsed`, `hintCount`, `autoStartPractice`, `language`, `debriefId` | visible |
-| `resume_versions` | `/resume-versions` | `resumeAssetId`, `versionId`, `flow`, `tab`, `createMode`, `targetJobId`, `branchOriginalId`, `tailorRunId` | visible |
-| `debrief` | `/debrief` | `targetJobId`, `jobId`, `jdId`, `sessionId`, `resumeVersionId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `language`, `debriefId`, `debriefJobId` | visible |
-| `parse` | `/parse` | `jdId`, `targetJobId`, `importId`, `source`, `sourceJobMatchId` | visible |
-| `practice` | `/practice` | `sessionId`, `planId`, `targetJobId`, `jobId`, `jdId`, `resumeVersionId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `language`, `debriefId` | hidden |
-| `generating` | `/generating` | `sessionId`, `reportId`, `planId`, `targetJobId`, `jobId`, `jdId`, `resumeVersionId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `hintUsed`, `hintCount` | hidden |
-| `report` | `/report` | `sessionId`, `reportId`, `targetJobId`, `jobId`, `jdId`, `resumeVersionId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `hintUsed`, `hintCount`, `reportStatus`, `errorCode` | visible |
-| `company_intel` | `/company-intel` | `targetJobId`, `jobId`, `companyId`, `jdId` | visible |
-| `profile` | `/profile` | none | visible |
+| `home` | `/` | `pendingImportId`, `source`, `resumeId` | visible |
+| `workspace` | `/workspace` | `targetJobId`, `jobId`, `resumeId`, `sourceReportId`, `planId`, `roundId`, `roundName`, `jdId`, `sessionId`, `sourceSessionId`, `replayItems`, `evidenceGaps`, `nextRoundId`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `hintUsed`, `hintCount`, `autoStartPractice`, `language` | visible |
+| `resume_versions` | `/resume-versions` | `resumeId`, `flow`, `tab`, `createMode`, `targetJobId`, `tailorRunId` | visible |
+| `parse` | `/parse` | `jdId`, `targetJobId`, `resumeId`, `importId`, `source` | visible |
+| `practice` | `/practice` | `sessionId`, `planId`, `targetJobId`, `jobId`, `jdId`, `resumeId`, `sourceReportId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `language` | hidden |
+| `generating` | `/generating` | `sessionId`, `reportId`, `planId`, `targetJobId`, `jobId`, `jdId`, `resumeId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `hintUsed`, `hintCount` | hidden |
+| `report` | `/report` | `sessionId`, `reportId`, `targetJobId`, `jobId`, `jdId`, `resumeId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `hintUsed`, `hintCount`, `reportStatus`, `errorCode` | visible |
 | `settings` | `/settings` | `tab` | visible |
 | `auth_login` | `/auth/login` | `next`, `email` display hint only, plus encoded pendingAction safe params (`pendingRoute`, `pendingType`, `pendingLabel` and target-route safe params) | visible |
-| `auth_register` | `/auth/register` | legacy alias only；must normalize to `auth_login` and must not materialize an independent live route | visible as login |
 | `auth_verify` | `/auth/verify` | `email` display hint only, short-lived verification code handled by the auth form/client boundary, plus encoded pendingAction safe params | visible |
-| `auth_reset` | `/auth/reset` | `next`, `email` display hint only | visible |
+| `auth_profile_setup` | `/auth/profile` | `email` display hint only, plus encoded pendingAction safe params | visible |
 | `auth_logout` | `/auth/logout` | `next` | visible |
+
+Retired paths are not canonical routes and must never materialize standalone screens:
+
+- `/auth/reset` normalizes to `auth_login`.
+- `/jd-match` normalizes to `home`.
+- `/company-intel` normalizes to `workspace`.
+- `/debrief` normalizes to `home`.
+- `/profile` normalizes to `home`.
 
 `voice` is intentionally absent. Voice interview remains `practice?mode=voice&modality=voice`.
 
-The allowlist above is a current cross-owner contract, not an aspirational sample. It is derived from `frontend/src/app/interview-context/InterviewContext.tsx`, `frontend/src/app/auth/pendingAction.ts`, and active owner specs for home / parse / jd_match, workspace / practice / generating, report, resume workshop and debrief. `jd_match` search query and saved-search label remain SPA session memory only; Search auth restore uses opaque `pendingJdMatchActionId`, and Confirm interview hands off to `parse` through `source=jd_match&sourceJobMatchId=...`. Implementation may only remove a key after the owning spec removes the workflow that produces it.
+The allowlist above is a current cross-owner contract, not an aspirational sample. It is derived from `frontend/src/app/routeUrl.ts`, `frontend/src/app/routes.ts`, `frontend/src/app/interview-context/InterviewContext.tsx`, `frontend/src/app/auth/pendingAction.ts`, and active owner specs for home / parse, workspace / practice / generating, report, resume workshop and settings. `jd_match` search query / saved-search labels and debrief IDs are retired workflow payloads and must not survive canonical URL, pendingAction, storage or history restoration.
 
 ## 6 实施步骤
 
@@ -73,7 +76,7 @@ Create a typed route codec next to the existing route catalog. It must convert e
 
 #### 1.2 Safe param allowlist
 
-Introduce a route-param allowlist shared by URL serialization, auth pendingAction serialization, and tests. Unknown params are dropped from canonical URLs unless explicitly allowed by the route owner. The allowlist must preserve current owner handoff keys such as `autoStartPractice`, `practiceMode`, `practiceGoal`, `reportId`, `reportStatus`, `errorCode`, `tailorRunId`, `pendingImportId`, `selectedJobMatchId`, `pendingJdMatchActionId`, `sourceJobMatchId`, `debriefId` and `debriefJobId`. Raw payload fields such as `rawText`, `rawDescription`, `sourceUrl`, `query`, `label`, `guidedAnswers`, `parsedSummary`, `structuredProfile`, `suggestion`, `originalBullet`, `suggestedBullet`, `questionText`, `answerText`, `notes`, `prompt`, `response`, `file`, `token`, `password` and auth/session secrets must fail privacy tests if they appear in URL / storage / history.
+Introduce a route-param allowlist shared by URL serialization, auth pendingAction serialization, and tests. Unknown params are dropped from canonical URLs unless explicitly allowed by the route owner. The allowlist must preserve current owner handoff keys such as `autoStartPractice`, `practiceMode`, `practiceGoal`, `reportId`, `reportStatus`, `errorCode`, `tailorRunId`, `pendingImportId`, `resumeId`, `sourceReportId`, `hintUsed` and `hintCount`. Retired `selectedJobMatchId`, `pendingJdMatchActionId`, `sourceJobMatchId`, `debriefId` and `debriefJobId` must be rejected unless a future product-scope revision restores the workflow. Raw payload fields such as `rawText`, `rawDescription`, `sourceUrl`, `query`, `label`, `guidedAnswers`, `parsedSummary`, `structuredProfile`, `suggestion`, `originalBullet`, `suggestedBullet`, `questionText`, `answerText`, `notes`, `prompt`, `response`, `file`, `token`, `password` and auth/session secrets must fail privacy tests if they appear in URL / storage / history.
 
 #### 1.3 Hash adapter preservation
 

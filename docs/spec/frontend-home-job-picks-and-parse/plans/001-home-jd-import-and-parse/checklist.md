@@ -1,17 +1,19 @@
-# 001 Home + JD Import + Parse + JD Match Placeholder Checklist
+# 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.2
+> **版本**: 2.3
 > **状态**: completed
 > **更新日期**: 2026-07-06
 
 **关联计划**: [plan](./plan.md)
 
+> **2026-07-06 product-scope pruning reconcile**：当前 active checklist 只覆盖 Home + Parse。Phase 5 / P0.017 `jd_match` placeholder、TopBar Job Picks、Home `home-aux-jobpicks` / `home-aux-debrief`、`frontend/src/app/screens/jd_match/`、`frontend/tests/pixel-parity/jd_match.spec.ts` 和 `test/scenarios/e2e/p0-017-jd-match-placeholder/` 已随 D-17 / D-22 退役；以下历史勾选项不得作为恢复实现的依据，当前 gate 是归一与零残留负向验证。
+
 ## Phase 1: Home shell 静态壳 + 路由壳 + i18n（无数据）
 
-- [x] 1.1 新增 `frontend/src/app/screens/home/HomeScreen.tsx`，按 `ui-design/src/screen-home.jsx::HomeScreen` lines 49-90 + 105-128 源级复刻 Hero（label/title/sub）+ JD textarea card（含 upload / URL / Submit Btn）+ Resume create CTA + 2 张 aux cards（JOB PICKS / POST-INTERVIEW）；recent mocks 与数据相关区域留 placeholder；Vitest 断言 `home-hero-label` / `home-hero-title` / `home-hero-sub` / `home-jd-textarea` / `home-jd-submit` / `home-aux-jobpicks` / `home-aux-debrief` 7 个 testid 存在 + 控件类型断言（textarea / button）
+- [x] 1.1 新增 `frontend/src/app/screens/home/HomeScreen.tsx`，按当前 `ui-design/src/screen-home.jsx::HomeScreen` 源级复刻 Hero（label/title）+ JD textarea card（含 upload / URL source actions / Submit Btn）+ Resume create CTA；退役 aux cards（JOB PICKS / POST-INTERVIEW）不得渲染。当前 Vitest 断言 `home-hero-label` / `home-hero-title` / `home-jd-textarea` / `home-jd-submit` 存在，并反向断言 `home-hero-sub` / `home-aux-jobpicks` / `home-aux-debrief` 0 命中
 - [x] 1.2 在 `frontend/src/app/App.tsx` route table 中绑定 `home` → `<HomeScreen />`，替换 D1 PlaceholderScreen；Vitest 断言 `App.tsx` 内 `home` route render 命中 `HomeScreen` 而非 PlaceholderScreen
 - [x] 1.3 扩展 `frontend/src/app/i18n/locales/zh.ts` 与 `en.ts` 新增 `home.*` 命名空间（≥14 key 覆盖 tag/title/sub/ph/importBtn/orUpload/active/activeSub/startAfter/startAfterSub/startAfterBtn/jobPicks/jobPicksSub/jobPicksBtn/resumeCreate）；`frontend/src/app/i18n/messages.ts` 类型聚合补齐；Vitest `i18n` 套件断言新 namespace zh/en 同步无缺漏
-- [x] 1.4 新增 `home/HomeScreen.test.tsx`：测 i18n zh/en 切换重绘、空 textarea Submit 按钮 disabled、aux cards 点击调用 `nav` stub（含正确 route name "jd_match" / "debrief"）、Resume create CTA 点击调用 `nav("resume_versions", { flow: "create" })`；负向断言旧 prototype 中存在但当前真理源已移除的 testid 不命中（`home-pasted-success-*` / `home-mocked-recent-*` 等若有）
+- [x] 1.4 新增/维护 `home/HomeScreen.test.tsx`：测 i18n zh/en 切换重绘、空 textarea Submit 按钮 disabled、Resume create CTA 点击调用 `nav("resume_versions", { flow: "create" })`；当前反向断言退役 aux cards 与旧 prototype 中存在但当前真理源已移除的 testid 不命中（`home-aux-jobpicks` / `home-aux-debrief` / `home-pasted-success-*` / `home-mocked-recent-*` 等）
 - [x] 1.5 BDD-Gate: 验证 `E2E.P0.014` 中 home 静态部分（hero + textarea card + aux cards + topbar 高亮）资产构建到 ready 态
 <!-- verified: 2026-05-08 method=vitest HomeScreen 10 tests + App 5 tests PASS; BDD scenario assets deferred to Phase 6 -->
 
@@ -69,17 +71,19 @@
 - [x] 4.13 P0.016 route/context remediation: `ParseScreen` Confirm 必须复用 `interviewContextFromTargetJob(targetJob)`；已登录 navigate 与未登录 `requestAuth(pendingAction)` 均携带 `targetJobId` / `jobId` / `jdId` / `planId` / `resumeVersionId` / `roundId` / `roundName`；`E2E.P0.016` trigger 必须运行 Playwright browser gate，点击 Confirm 后验证 `/workspace` query、`workspace-missing-resume` DOM 与 screenshot bytes marker，verify.sh 必须 grep 完整 contextKeys marker。 <!-- evidence: 2026-05-24 Red: ParseEdit/AuthGate failed missing jobId/roundName; Green: focused ParseEdit/AuthGate 13 tests PASS; frontend build PASS; focused Playwright parse confirm gate desktop/mobile PASS screenshotBytes=20243/83490; P0.016 setup→trigger→verify→cleanup PASS -->
 - [x] 4.14 Same-route `targetJobId` switch remediation: 同一 mounted `ParseScreen` 从 preview 收到新的 `targetJobId` 时必须清空旧 `targetJob` / editable fields / hit toggles / error / pending ready state，回到 loading gate，并在 tick 完成后 hydrate 新 TargetJob；`ParseFlow.test.tsx` 必须用 `rerender` 覆盖旧 title 消失、新 loading DOM 出现、新 title 最终渲染。 <!-- evidence: 2026-05-24 Red: focused ParseFlow rerender regression stayed on old preview; Green: focused ParseFlow 7 tests PASS; parse suite 28 tests PASS; frontend build PASS; P0.015/P0.016 setup→trigger→verify PASS -->
 
-## Phase 5: jd_match P1 Placeholder Shell
+## Phase 5: jd_match P1 Placeholder Shell（历史，D-17 后退役）
 
-- [x] 5.1 新增 `frontend/src/app/screens/jd_match/JDMatchScreen.tsx`，按 `ui-design/src/screen-jd-match.jsx::JDMatchScreen` lines 244-300 复刻 hero + profile snapshot chip 静态版本（不连接真实 profile）+ 三 tab 标签（recommended / search / watchlist）；tab 内容区固定渲染 P1 placeholder（testid `jdmatch-placeholder`）+ 引用 `frontend-home-job-picks-and-parse/plans/002-jd-match-recommendations`（保留编号）；testid `jdmatch-hero-{label,title,sub}` + `jdmatch-profile-chip-{title,years,location,skills,sources}` + `jdmatch-tab-{recommended,search,watchlist}` + `jdmatch-placeholder` + `jdmatch-placeholder-cta`
+> 历史记录：以下勾选项曾在 2026-05-08 完成，但 D-17 后不再是当前 implementation target。当前 active gate 是 `jd_match` / Job Picks / JobMatch / P0.017 零残留与 legacy route 归一。
+
+- [x] 5.1 历史新增 `frontend/src/app/screens/jd_match/JDMatchScreen.tsx`；当前已退役，不得恢复。当前负向 gate 要求 active source 中 `frontend/src/app/screens/jd_match/`、`jdmatch-hero-*`、`jdmatch-tab-*`、`jdmatch-placeholder*` 0 命中（历史文档除外）
 <!-- verified: 2026-05-08 method=vitest JDMatchPlaceholder.test.tsx 6 tests PASS -->
-- [x] 5.2 在 `frontend/src/app/App.tsx` route table 中绑定 `jd_match` → `<JDMatchScreen />`，替换 D1 PlaceholderScreen；Vitest 断言 TopBar `topbar-nav-jd_match` 高亮、route 渲染命中 `JDMatchScreen` 而非 PlaceholderScreen；`HomeScreen` Job Picks aux card 点击进入 `jd_match` 路由仍可达
+- [x] 5.2 历史 route binding 已退役；当前 `jd_match` route key / `/jd-match` 只允许 normalize 回 `home`，TopBar `topbar-nav-jd_match` 与 Home Job Picks aux card 0 命中
 <!-- verified: 2026-05-08 method=vitest route binding verified via JDMatchPlaceholder.test.tsx shell data-route-name assertion -->
-- [x] 5.3 扩展 i18n `jdMatch.*` 命名空间（≤10 key：hero.label / hero.title / hero.sub、tab.recommended / tab.search / tab.watchlist、placeholder.copy / placeholder.cta zh/en）；i18n test 断言 zh/en 同步
+- [x] 5.3 历史 i18n `jdMatch.*` 命名空间已退役；当前 active locale 不得恢复 `jdMatch.*` 或 `nav.jd_match`
 <!-- verified: 2026-05-08 method=vitest localeFiles.test.ts + localeRuntime.test.tsx PASS; 16 jdMatch keys zh/en synced -->
-- [x] 5.4 新增 `jd_match/JDMatchPlaceholder.test.tsx`：测 hero / profile chip / 三 tab 标签 DOM；测 placeholder 文案 zh/en；负向断言旧 prototype 业务 testid（`jdmatch-card-*` / `jdmatch-saved-search-*` / `jdmatch-watchlist-*` / `jdmatch-market-signal-*` / `jdmatch-search-bar` / `jdmatch-search-results` / `jdmatch-jd-detail-*` / `jdmatch-agent-status`）grep 0 命中；TopBar `topbar-nav-jd_match` 高亮断言
+- [x] 5.4 历史 placeholder tests 已退役；当前测试应覆盖 legacy route normalize 与 retired business testid / Home aux card / TopBar 入口 0 命中
 <!-- verified: 2026-05-08 method=vitest JDMatchPlaceholder.test.tsx 6 tests PASS (hero, profile chip, 3 tabs, placeholder, negative assertions) -->
-- [x] 5.5 BDD-Gate: 验证 `E2E.P0.017` jd_match P1 placeholder smoke
+- [x] 5.5 Historical BDD-Gate: `E2E.P0.017` 已退役，不再作为当前 gate；零残留由 product-scope pruning / frontend negative gates 承接
 <!-- verified: 2026-05-08 method=scenario P0.017 setup→trigger→verify→cleanup PASS -->
 
 ## Phase 6: 验证收口（pixel parity + scenario + regression rerun）
@@ -88,13 +92,13 @@
 <!-- verified: 2026-05-08 method=playwright --list discovers 4 home tests × 2 viewports; execution requires pnpm build + pixel parity server -->
 - [x] 6.2 新增 `frontend/tests/pixel-parity/parse.spec.ts` 覆盖 desktop + mobile：loading 4 步进度条与 footer DOM；preview Basic fields / Requirements 双列 / Hidden signals / Round assumptions / footer actions 锚点；mobile 断言 Requirements 折单列、Round assumptions grid 折单/双列；warm/light → dark → customAccent 三态可见变化
 <!-- verified: 2026-05-08 method=playwright --list discovers 3 parse tests × 2 viewports; full fixture-backed parse flow deferred to E2E.P0.015/016 scenarios -->
-- [x] 6.3 新增 `frontend/tests/pixel-parity/jd_match.spec.ts` 覆盖 desktop + mobile：hero + profile chip + 三 tab 标签 + placeholder DOM；负向断言旧业务 testid 0 命中；mobile 不溢出
+- [x] 6.3 历史 `frontend/tests/pixel-parity/jd_match.spec.ts` 已退役；当前 active parity 只覆盖 home / parse，并通过负向搜索确保 jd_match parity spec 不恢复
 <!-- verified: 2026-05-08 method=playwright --list discovers 3 jd_match tests × 2 viewports; negative testid assertions cover jdmatch-card-*, jdmatch-saved-search-*, jdmatch-watchlist-*, jdmatch-market-signal-*, jdmatch-search-bar -->
-- [x] 6.4 `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 D2/D3 现有 21 spec × 2 viewport = 42 项基础上累加 home/parse/jd_match 新增 spec；总数全 PASS
+- [x] 6.4 `pnpm --filter @easyinterview/frontend test:pixel-parity` 当前只累加 home / parse active spec；历史 jd_match parity spec 不再计入当前完成条件
 <!-- verified: 2026-05-08 method=playwright 68/68 PASS (34 specs × 2 viewports); baseline updated for home screen changes -->
-- [x] 6.5 派生 4 个 scenario 目录 `test/scenarios/e2e/p0-014-home-default-render/` `p0-015-jd-import-and-parse/` `p0-016-parse-confirm-to-workspace/` `p0-017-jd-match-placeholder/`，每个含 `README.md`（§6 baseline + §7 离线限制）+ `scripts/{setup,trigger,verify,cleanup}.sh`，按 `test/scenarios/README.md` + `test/scenarios/e2e/README.md` 规范实现；verify 脚本断言对应 testid 命中、retired-entry grep 0 命中、新增 spec 全 PASS marker
+- [x] 6.5 当前 active scenario 目录为 `test/scenarios/e2e/p0-014-home-default-render/` `p0-015-jd-import-and-parse/` `p0-016-parse-confirm-to-workspace/`；历史 `p0-017-jd-match-placeholder/` 已退役。active verify 脚本断言对应 testid 命中、retired-entry grep 0 命中、新增 spec 全 PASS marker
 <!-- verified: 2026-05-08 method=scenario P0.014/P0.015/P0.016/P0.017 setup→trigger→verify→cleanup PASS; P0.006 verify repaired to current 68-test parity suite -->
-- [x] 6.6 `test/scenarios/e2e/INDEX.md` P0 表追加 4 行（007 home 默认渲染 / 008 JD 导入与解析 / 009 Parse 确认进 workspace / 010 jd_match P1 placeholder smoke），关联需求列指向 `frontend-home-job-picks-and-parse C-1～C-10`，状态 Ready，执行方式 automated
+- [x] 6.6 `test/scenarios/e2e/INDEX.md` P0 表当前只保留 Home / Parse active 场景；历史 jd_match P1 placeholder 行随 D-17 删除
 <!-- verified: 2026-05-08 method=fs INDEX.md updated with P0.014-P0.017 rows -->
 - [x] 6.7 Regression 重跑：`E2E.P0.001 / 002 / 004 / 005 / 006` 全部 setup→trigger→verify→cleanup PASS
 <!-- verified: 2026-05-08 method=scenario P0.001/P0.002/P0.004/P0.005/P0.006 setup→trigger→verify→cleanup PASS; P0.006 Playwright 68/68 PASS -->
@@ -104,7 +108,7 @@
 <!-- verified: 2026-05-08 method=make docs-check zero drift; check_md_links double OK -->
 - [x] 6.10 负向搜索：`frontend/src/` 内不 import `ui-design/src/data.jsx` / `window.EI_DATA` 0 命中；旧 prototype jd_match 业务 testid 与旧 route alias 0 命中（除 negative 断言文件与 `normalizeRoute` alias map）；JD raw text 不在 console.log/URL/localStorage/telemetry 0 命中；AI provider key / provider registry / prompt registry / AIClient / LLM endpoint / bypass generated client 的 parse fetch 0 命中（除测试负向断言与纯 UI 文案 fixture）
 <!-- verified: 2026-05-08 method=rg runtime source negative searches passed; excluded README/test negative assertions and normalizeRoute alias map where applicable -->
-- [x] 6.11 BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016` / `E2E.P0.017` 全部 setup→trigger→verify→cleanup PASS + D1+D2+D3 P0.001/002/004/005/006 regression PASS
+- [x] 6.11 BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016` 全部 setup→trigger→verify→cleanup PASS + D1+D2+D3 P0.001/002/004/005/006 regression PASS；`E2E.P0.017` 已退役
 <!-- verified: 2026-05-08 method=scenario P0.014/P0.015/P0.016/P0.017 plus P0.001/P0.002/P0.004/P0.005/P0.006 all setup→trigger→verify→cleanup PASS -->
 - [x] 6.12 L2 remediation：真实 backend 联调闭环。新增 `frontend/src/api/targetJob.realApiMode.test.ts` 覆盖 `VITE_EI_API_MODE=real` 下 `listTargetJobs` / `createUploadPresign` / `importTargetJob` / `getTargetJob` / `updateTargetJob` 的真实 backend base URL、`credentials: "include"`、默认无 fixture `Prefer` header、3 个 side-effect `Idempotency-Key` 与 `GenerationProvenance` roundtrip；P0.014-P0.016 trigger/verify 必须先跑该 real-mode gate 再跑 fixture-backed UI variants；原地更新 plan/spec/BDD/scenario docs，删除 TargetJobs/import/parse 仍为 `not-yet-implemented` 的 stale 口径；重跑 P0.014-P0.016 + backend P0.010-P0.013 + upload focused route/handler tests + docs drift gates。 <!-- evidence: 2026-05-22 focused real-mode vitest PASS (1 file / 1 test); P0.014 PASS (real gate 1/1 + Home 3 files / 22 tests); P0.015 PASS (real gate 1/1 + Home/Parse import flow 7 files / 54 tests; existing React act warnings only); P0.016 PASS (real gate 1/1 + Parse confirm 2 files / 13 tests); backend P0.010/P0.011/P0.012/P0.013 all setup→trigger→verify→cleanup PASS; backend upload focused tests PASS (`go test ./cmd/api -run TestBuildUploadRoutesAlignsIdempotencyTTLWithPresignTTL -count=1`; `go test ./internal/upload/handler -run 'TestCreateUploadPresignReturnsCreatedResponse|TestCreateUploadPresignIdempotencyReplayAndTTL' -count=1`) -->
 

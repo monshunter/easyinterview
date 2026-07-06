@@ -144,6 +144,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0135](./BUG-0135.md) | migration privacy matrix omitted idempotency records | medium | resolved | 2026-07-06 | `fix(schema): cover idempotency in privacy matrix (BUG-0135)` |
 | [BUG-0126](./BUG-0126.md) | resume flatten follow-ups exposed display, duplicate, rollback, and lint drift | medium | resolved | 2026-06-15 | `fix(review): close resume flatten follow-up gaps (BUG-0126)` |
 | [BUG-0125](./BUG-0125.md) | resume archive persistence and P0.102 gate drift escaped review | medium | resolved | 2026-06-15 | `fix(review): persist resume archive and p0102 gate (BUG-0125)` |
 | [BUG-0119](./BUG-0119.md) | resume flatten review left runtime and data retention regressions | high | resolved | 2026-06-14 | `fix(schema): close resume flatten review regressions (BUG-0119)` |

@@ -1,8 +1,8 @@
 # Fixture-backed Mock Runtime
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-07-06
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -13,7 +13,7 @@
 
 ## 2 背景
 
-`engineering-roadmap` S1 明确要求先创建或修订 `mock-contract-suite`，把 34 operation fixtures 提供给前端和后端 mock。当前仓库已经有 B2 OpenAPI、fixtures、generated frontend/backend types 和 prototype mapping，但还缺少统一 mock runtime owner。
+`engineering-roadmap` S1 明确要求先创建或修订 `mock-contract-suite`，把当前 OpenAPI operation fixtures 提供给前端和后端 mock。当前仓库已经有 B2 OpenAPI、fixtures、generated frontend/backend types 和 prototype mapping；D-17 / D-20 / D-22 后，正向 mock surface 是当前 10 tag / 35 operation fixtures，旧 JobMatch / Profile / Debriefs / resume-version suggestion operation 只能作为 retired-negative gate。
 
 本 plan 只建立 contract-backed mock runtime，不新增用户可见流程，也不修改 API schema。
 
@@ -21,6 +21,7 @@
 
 | 日期 | 版本 | 变更 | 原因 |
 |------|------|------|------|
+| 2026-07-06 | 1.6 | 对齐 product-scope D-22 后的 active mock contract：context `apiNames` 改为当前 35 operationId，旧 Profile / Debriefs operationId 不再作为正向 fixture coverage 目标。 | completed plan/context 仍被后续 `/plan-code-review` 当作 discovery source，必须避免从旧 operation 列表派生过期工作。 |
 | 2026-05-10 | 1.4 | 合并 Phase 4.5 named scenario truth-source remediation 与 Phase 5 frontend dev preview mock wiring。 | 当前分支和 `main` 均已完成 mock-contract-suite 修订，合并后必须保留两边 gate 并消除同版本并行语义。 |
 | 2026-05-10 | 1.3 | 重新激活本 plan，新增 Phase 5 frontend dev preview mock wiring。 | 既有交付只覆盖测试/可注入 client，没有覆盖 `pnpm --filter @easyinterview/frontend dev` 的默认预览路径，导致无真实 backend 时大量 `/api/v1` 报错且页面不可见。 |
 | 2026-05-22 | 1.5 | 重新激活本 plan，新增 Phase 6 practice voice contract precision gate。 | repo-wide `make lint` 暴露 retired-token gate 误伤 `createPracticeVoiceTurn`、`/voice-turns` 与 `PracticeVoiceTurn*` generated artifacts；必须保留独立 `/voice` route / `Voice` tag 拦截，同时允许 practice-voice-mvp owner contract。 |
@@ -58,7 +59,7 @@
 
 #### 3.1 提供后端 mock handler / router
 
-在后端 API 测试或 dev harness 中复用同一 fixture registry，提供 Auth、TargetJobs、PracticePlans、PracticeSessions、Reports、Resumes、Debriefs、Privacy 和 runtime config 等 P0 operation 的 mock response。
+在后端 API 测试或 dev harness 中复用同一 fixture registry，提供 Auth、TargetJobs、PracticePlans、PracticeSessions、Reports、Resumes、Privacy 和 runtime config 等当前 P0 operation 的 mock response。Debriefs/Profile fixtures 已随 D-22 删除，只能作为 retired-negative gate。
 
 #### 3.2 错误态和 seed profile
 
@@ -80,7 +81,7 @@
 
 #### 4.4 Fixture tag directory gate
 
-扩展 mock runtime boundary lint，校验 `openapi/fixtures/` 的 tag 目录集合严格等于当前 OpenAPI 12 tag；即使旧 `Growth` / `Mistakes` 为空目录或 Git 不跟踪，也必须被 gate 捕获并清理。
+扩展 mock runtime boundary lint，校验 `openapi/fixtures/` 的 tag 目录集合严格等于当前 OpenAPI 10 tag；即使旧 `Growth` / `Mistakes` / `Profile` / `Debriefs` 为空目录或 Git 不跟踪，也必须被 gate 捕获并清理。
 
 #### 4.5 Remediation: named scenario expectations follow fixture truth source
 
@@ -108,7 +109,7 @@
 
 ## 5 验收标准
 
-- 34 operation fixtures 均能被 operationId registry 解析。
+- 当前 35 operation fixtures 均能被 operationId registry 解析；旧 JobMatch / Profile / Debriefs / resume-version suggestion operation 不作为正向 registry 目标。
 - 前端 mock transport 返回 generated API types，不依赖 prototype data。
 - 后端 mock harness 与前端 mock 使用同一 fixture registry。
 - Vite dev frontend 在没有真实 backend 时默认使用 fixture-backed client，已开发页面可渲染；真实 backend opt-out 只能通过显式 `VITE_EI_API_MODE=real`。

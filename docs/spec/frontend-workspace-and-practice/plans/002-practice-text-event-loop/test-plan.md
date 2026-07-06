@@ -1,14 +1,14 @@
 # 002 — Practice Text Event Loop Test Plan
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-06
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 
 ## 1 测试策略概览
 
-本 plan 是 feature-behavior + cross-layer contract 组合。TDD（Vitest + @testing-library/react + jsdom）覆盖 hook / 组件 / utils；contract drift 覆盖 fixture parity + OpenAPI schema 同步；Pixel parity（Playwright）覆盖 UI visual geometry parity；BDD scenario 覆盖用户可见行为切片（answer_submitted 主路径 / hint / skip / pause-resume / strict×debrief 显隐 / 完成 + 生成态导航 / 失败恢复 / 旧口径负向）。本测试计划只覆盖 **单元 / 集成 / contract / drift / pixel-parity / negative-grep** 层；BDD 场景见 [bdd-plan](./bdd-plan.md) 与 [bdd-checklist](./bdd-checklist.md)。
+本 plan 是 feature-behavior + cross-layer contract 组合。TDD（Vitest + @testing-library/react + jsdom）覆盖 hook / 组件 / utils；contract drift 覆盖 fixture parity + OpenAPI schema 同步；Pixel parity（Playwright）覆盖 UI visual geometry parity；BDD scenario 覆盖用户可见行为切片（answer_submitted 主路径 / hint / skip / pause-resume / strict×current practiceGoal 显隐 / 完成 + 生成态导航 / 失败恢复 / 旧口径负向）。本测试计划只覆盖 **单元 / 集成 / contract / drift / pixel-parity / negative-grep** 层；BDD 场景见 [bdd-plan](./bdd-plan.md) 与 [bdd-checklist](./bdd-checklist.md)。
 
 测试目标按 phase 与 [plan §3.5 Coverage Matrix](./plan.md#35-coverage-matrix) 行映射；不引入硬编码代码覆盖率百分比作为 gate；如团队需要观测覆盖率，仅作背景指标。
 
@@ -26,7 +26,7 @@
 | AssistantActionRenderer 5 type 渲染 + provenance 隔离 | Cross-layer contract · AssistantAction 5 type | Phase 2 | 单元 | `practice/__tests__/AssistantActionRenderer.test.tsx` |
 | usePracticeSession 七个 status 分支 | Cross-layer contract · SessionStatus 七值消费 | Phase 2 + Phase 4 | 单元 | `practice/__tests__/usePracticeSession.test.ts` |
 | appendSessionEvent body schema parity | Cross-layer contract · PracticeSessionEventRequest schema | Phase 2 | 单元 + contract | `practice/__tests__/appendSessionEventBody.test.ts` + `make validate-fixtures` |
-| usePracticeAssistance strict / assisted × baseline / debrief | Alternate · assisted/strict 显隐；Alternate · goal=debrief 不改变显隐 | Phase 3 | 单元 + 显隐快照 | `practice/__tests__/usePracticeAssistance.test.ts` + `practiceGoalParity.test.tsx` |
+| usePracticeAssistance strict / assisted × current practiceGoal | Alternate · assisted/strict 显隐；practiceGoal 不改变显隐 | Phase 3 | 单元 + 显隐快照 | `practice/__tests__/usePracticeAssistance.test.ts` + `practiceGoalParity.test.tsx` |
 | hint / skip / pause-resume 流 | Alternate · hint_requested；Alternate · turn_skipped；Alternate · session_paused/resumed；Boundary · paused 状态禁用 | Phase 3 | 单元 + integration | `practice/__tests__/practiceHints.test.tsx` + `practiceSkip.test.tsx` + `practicePauseResume.test.tsx` |
 | RoleDropdown UI-only | Cross-layer contract · interviewerPersona UI-only | Phase 3 | 单元 + 调用次数反查 | `practice/__tests__/RoleDropdown.test.tsx` |
 | SessionMap turn 历史 | UI source structure parity · SessionMap；Boundary · 空 transcript | Phase 3 | 单元 | `practice/__tests__/SessionMap.test.tsx` + `Transcript.test.tsx`（empty 用例） |
@@ -49,7 +49,7 @@
 | PracticeScreen 静态壳源级复刻 + ≥ 20 个 testid + 控件类型断言 | `practice/__tests__/PracticeScreen.test.tsx` | Red: testid 缺失 / `<select>` 用作 segmented mode / RoleDropdown 是 `<select>`；Green: ≥ 20 个 `practice-*` testid 命中 + segmented mode 是 `<button>` 列表 + RoleDropdown 展开后是 menu hierarchy（`role="menu"` / `role="menuitem"`） + strict toggle role='switch' aria-checked 切换 |
 | usePracticeSessionLoader 五态 | `practice/__tests__/usePracticeSessionLoader.test.ts` | Red: idle / loading / data / sessionLost / error 任一态错；Green: 五态分支 + sessionId 缺失立即 sessionLost（不发请求） + MERGE_SESSION 调用次数 1 |
 | usePracticeSessionLoader auto refresh | 同上（`TestVisibilityRefresh` / `TestFocusRefresh` / `TestOnlineRefresh`） | Red: 切换 visibility 不触发 refresh；Green: 三个事件各自触发一次 `getPracticeSession` 调用 |
-| 路由壳替换 | `app/__tests__/App.test.tsx`（在 001 文件追加 case） | Red: `practice` 命中 PlaceholderScreen；Green: `practice` 命中 PracticeScreen，`generating` / `report` / `company_intel` 仍命中 PlaceholderScreen |
+| 路由壳替换 | `app/__tests__/App.test.tsx`（在 001 文件追加 case） | Red: `practice` 命中 PlaceholderScreen；Green: `practice` 命中 PracticeScreen，`generating` / `report` 不由本 plan 接管，旧 `company_intel` 归一回 workspace |
 | i18n practice.* namespace parity | `pnpm --filter @easyinterview/frontend test --run i18n` | Red: zh / en namespace 有缺漏；Green: ≥ 40 key 双语对齐 |
 | Voice owner co-location boundary | `practice/__tests__/PracticeScreen.test.tsx` + `practiceModeSwitch.test.tsx` + P0.044/P0.047 verify | Red: `createPracticeVoiceTurn` 散落到 text event hooks / completion handoff；Green: voice operation 只在 `usePracticeVoiceTurn.ts` 与 voice tests 中出现 |
 
@@ -69,8 +69,8 @@
 
 | 任务 | 测试文件 / 命令 | 预期 Red/Green 证据 |
 |------|----------------|---------------------|
-| usePracticeAssistance 显隐 | `practice/__tests__/usePracticeAssistance.test.ts` | Red: practiceGoal 参与计算；Green: 仅依赖 practiceMode；4 组合（strict / assisted × baseline / debrief）显隐一致 |
-| practiceGoalParity 4 组合显隐 | `practice/__tests__/practiceGoalParity.test.tsx` | Red: debrief 改变显隐；Green: assisted+baseline / assisted+debrief / strict+baseline / strict+debrief 显隐快照一致 |
+| usePracticeAssistance 显隐 | `practice/__tests__/usePracticeAssistance.test.ts` | Red: practiceGoal 参与计算；Green: 仅依赖 practiceMode；6 组合（strict / assisted × baseline / retry_current_round / next_round）显隐一致 |
+| practiceGoalParity core-loop 显隐 | `practice/__tests__/practiceGoalParity.test.tsx` | Red: practiceGoal 改变显隐；Green: assisted+baseline / assisted+retry_current_round / strict+baseline / strict+next_round 显隐快照一致 |
 | Hint flow（assisted + 200） | `practice/__tests__/practiceHints.test.tsx` | Red: hintCount 未自增 / strict 模式 hint button DOM 渲染；Green: hint 200 后 hintCount++ + hintUsed='true' + HintBanner 显示；strict 模式 hint button DOM 不存在 |
 | Skip flow | `practice/__tests__/practiceSkip.test.tsx` | Red: SessionMap turn 状态未标记 skipped；Green: skip → API → SessionMap 标记 skipped + renderer 推进 ask_question |
 | Pause / Resume flow | `practice/__tests__/practicePauseResume.test.tsx` | Red: 暂停期间按钮可用；Green: pause → API + timer 停止 + 三按钮 disabled；resume → API + timer 恢复 + 解禁 |

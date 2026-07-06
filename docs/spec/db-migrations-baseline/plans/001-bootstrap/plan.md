@@ -1,15 +1,15 @@
 # DB Migrations Baseline Bootstrap
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-07-06
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-把 [db-migrations-baseline spec](../../spec.md) v1.12 锁定的迁移工具、28 张应用 / auth 支撑表、2 张迁移元数据表、B3 outbox retry operational columns、A3/F1 `ai_task_runs` typed columns、enum/check 来源矩阵、backfill ledger 与 P0 privacy deletion matrix 落到 `migrations/` 与 `backend/cmd/migrate`。
+把 [db-migrations-baseline spec](../../spec.md) 当前锁定的迁移工具、25 张应用 / auth 支撑表、2 张迁移元数据表、B3 outbox retry operational columns、A3/F1 `ai_task_runs` typed columns、enum/check 来源矩阵、backfill ledger 与 P0 privacy deletion matrix 落到 `migrations/` 与 `backend/cmd/migrate`。
 
 本 plan 不实现业务 repository、不实现 C8 dispatcher、不实现 privacy_delete runner；只提供 schema baseline、迁移可执行入口、lint/check gate 与下游 handoff。
 
@@ -42,13 +42,13 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 ### Phase 2: baseline DDL 与索引
 
-#### 2.1 28 张当前应用 / auth 支撑表
+#### 2.1 25 张当前应用 / auth 支撑表
 
-落地当前产品范围内的 25 张应用表，加 ADR-Q1 的 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表；旧 `mistake_entries` 与向量检索表不再创建。`make migrate-up` 后 public schema 至少 30 张表（含 `schema_migrations` / `schema_backfills`）。
+落地当前产品范围内的 22 张应用表，加 ADR-Q1 的 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表；旧 `mistake_entries`、JD Match、简历版本树、候选人画像与真实复盘表不再作为 current baseline 创建。`make migrate-up` 后 public schema 至少 27 张表（含 `schema_migrations` / `schema_backfills`）。
 
 #### 2.2 B3 outbox / async columns
 
-`outbox_events` 必须包含 `publish_attempts` / `next_attempt_at` / `locked_at` / `last_error_code` / `last_error_message`；pending due 查询索引至少覆盖 `(publish_status, next_attempt_at, created_at)`。`async_jobs.job_type` check 必须包含 B3 9 个 canonical jobType（含 internal-only `email_dispatch`），但 API-facing subset 仍只由 B2 7 项暴露。
+`outbox_events` 必须包含 `publish_attempts` / `next_attempt_at` / `locked_at` / `last_error_code` / `last_error_message`；pending due 查询索引至少覆盖 `(publish_status, next_attempt_at, created_at)`。`async_jobs.job_type` check 必须包含 B3 当前 8 个 canonical jobType（含 internal-only `source_refresh` / `email_dispatch` 与 contract-only `privacy_export`），但 API-facing subset 仍只由 B2 当前 6 项暴露。
 
 #### 2.3 A3/F1 AI typed columns
 
@@ -80,7 +80,7 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 #### 4.2 table / column / index probes
 
-运行 SQL probes：public table count ≥30；`outbox_events` retry columns 存在；`ai_task_runs` typed columns 存在；pending due / B-Tree 索引存在且 explain 命中。
+运行 SQL probes：public table count ≥27；`outbox_events` retry columns 存在；`ai_task_runs` typed columns 存在；pending due / B-Tree 索引存在且 explain 命中。
 
 #### 4.3 enum / privacy probes
 
@@ -115,7 +115,7 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 | 风险 | 应对措施 |
 |------|----------|
 | baseline DDL 过大难以 review | 分 phase 编排，保持 migration 文件编号稳定；用 table/column/index inventory probe 辅助 review |
-| internal-only jobType 误暴露到 B2 API | Phase 3 enum/source lint 对比 B2 API-facing 7 项与 B3 canonical 9 项，`email_dispatch` 只能进入 DB/C8 check |
+| internal-only jobType 误暴露到 B2 API | Phase 3 enum/source lint 对比 B2 API-facing 6 项与 B3 canonical 8 项，`source_refresh` / `email_dispatch` 只能进入 DB / backend runner check |
 | migration down 误在 prod 执行 | wrapper 在 `APP_ENV=prod` 时拒绝 down，除非显式 `MIGRATE_DOWN_FORCE=1` 且执行环境允许 |
 | backfill 重复 apply | `schema_backfills` 以 version/mode/checksum 做幂等 ledger；重复执行必须 fail 或 skip |
 | privacy deletion matrix 漏表 | Phase 3.3 dry-run 输出必须覆盖所有 baseline 表组；新增表时 lint 要求同步 matrix |
@@ -124,6 +124,7 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-06 | 1.7 | product-scope D-17/D-20/D-22 后续收敛：本 completed bootstrap plan 的当前正向表数、public schema gate 与 B3/B2 job type 口径更新为 22 应用表 + 3 auth 支撑表、public schema ≥27、B3 8 canonical jobs、B2 6 API-facing jobs；历史删除表只保留在 remediation / history 语境。 | product-scope/001-core-loop-module-pruning Phase 6.10 |
 | 2026-05-08 | 1.6 | 对齐 A2 用户决策：本地迁移验证前提升级为 Postgres 18。 | local-dev-stack/001 post-pass revision |
 | 2026-05-03 | 1.4 | 修正 Phase 2 / Phase 4 中遗留的旧表数量口径：当时 baseline 为应用表 + auth 支撑表 + 迁移元数据表。 | readiness reconcile |
 | 2026-05-08 | 1.5 | 对齐 A3 003 Phase 6：删除向量扩展、向量检索表/索引与 extension drop gate；当前 baseline 为 25 应用表 + 3 auth 支撑表 + 2 迁移元数据表，public schema count gate ≥30。 | ai-provider-and-model-routing/003 Phase 6 |

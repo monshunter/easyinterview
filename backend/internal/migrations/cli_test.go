@@ -115,6 +115,7 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 		"target_job_requirements",
 		"target_job_sources",
 		"practice_plans",
+		"idempotency_records",
 		"practice_sessions",
 		"practice_session_events",
 		"practice_turns",
@@ -148,8 +149,10 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 	// resume_tailor_runs (resume_versions / resume_version_suggestions were
 	// already covered by the resumes cascade, not separate matrix rows),
 	// trimming 30 -> 29. product-scope D-22 removed candidate profile,
-	// experience card, and debrief tables, trimming 29 -> 26.
-	if len(got) != 26 {
-		t.Fatalf("privacy matrix should cover exactly 26 public baseline tables, got %d: %#v", len(got), got)
+	// experience card, and debrief tables, trimming 29 -> 26. The
+	// idempotency_records table remains current and user-owned, so the matrix
+	// must still cover 27 entries.
+	if len(got) != 27 {
+		t.Fatalf("privacy matrix should cover exactly 27 public baseline tables, got %d: %#v", len(got), got)
 	}
 }

@@ -321,6 +321,48 @@ func TestDropJDMatchMigrationDeletesRetiredAsyncJobsBeforeNarrowingCheck(t *test
 	}
 }
 
+func TestDropJDMatchMigrationDropsRetiredTablesAndRegistryRows(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000014_drop_jd_match_module.up.sql")))
+
+	addCheck := strings.Index(up, "add constraint async_jobs_job_type_check")
+	if addCheck < 0 {
+		t.Fatalf("jd-match drop migration missing async_jobs_job_type_check")
+	}
+
+	for _, table := range []string{
+		"jd_match_search_runs",
+		"agent_scans",
+		"saved_searches",
+		"watchlist_items",
+		"jd_match_recommendations",
+	} {
+		dropTable := "drop table if exists " + table
+		dropIndex := strings.Index(up, dropTable)
+		if dropIndex < 0 {
+			t.Fatalf("jd-match drop migration must remove retired table %s", table)
+		}
+		if dropIndex > addCheck {
+			t.Fatalf("jd-match table cleanup for %s must run before narrowed async_jobs job_type check", table)
+		}
+	}
+
+	for _, registryTable := range []string{"rubric_versions", "prompt_versions"} {
+		deleteIndex := strings.Index(up, "delete from "+registryTable)
+		if deleteIndex < 0 {
+			t.Fatalf("jd-match drop migration must delete retired rows from %s", registryTable)
+		}
+		if deleteIndex > addCheck {
+			t.Fatalf("jd-match %s cleanup must run before narrowed async_jobs job_type check", registryTable)
+		}
+	}
+	for _, featureKey := range []string{"jd_match.recommendation", "jd_match.search"} {
+		if !strings.Contains(up[:addCheck], featureKey) {
+			t.Fatalf("jd-match registry cleanup missing retired feature key %q", featureKey)
+		}
+	}
+}
+
 func TestBaselineMigrationDoesNotStoreRawAuthSecrets(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))

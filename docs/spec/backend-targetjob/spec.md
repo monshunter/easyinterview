@@ -1,12 +1,12 @@
 # Backend TargetJob Spec
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-06-29
+> **更新日期**: 2026-07-06
 
 ## 1 背景与目标
 
-`backend-targetjob` 承接 [engineering-roadmap §5.2](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 中 `Home / Job Picks / Parse` workstream 的后端域，落地 P0 用户路径：用户在首页粘贴 / 上传 / URL 导入 / 手工录入 JD 后，后端创建 `TargetJob`，异步完成 JD 解析，并把岗位需求 / 摘要 / fit 信号写入 [B4 `target_jobs` / `target_job_requirements` / `target_job_sources`](../db-migrations-baseline/spec.md) 三张 baseline 表，让前端 `parse` 屏与后续 `Mock Interview Plan` 能从 mock fixture 切到真实数据。
+`backend-targetjob` 承接 [engineering-roadmap §5.2](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 中 JD import / parse 后端域，落地 P0 用户路径：用户在首页粘贴 / 上传 / URL 导入 / 手工录入 JD 后，后端创建 `TargetJob`，异步完成 JD 解析，并把岗位需求 / 摘要 / fit 信号写入 [B4 `target_jobs` / `target_job_requirements` / `target_job_sources`](../db-migrations-baseline/spec.md) 三张 baseline 表，让前端 `parse` 屏与后续 `Mock Interview Plan` 能从 mock fixture 切到真实数据。
 
 [B2 OpenAPI v1](../openapi-v1-contract/spec.md) 已定义本域承接的 4 个 operation：`importTargetJob` / `listTargetJobs` / `getTargetJob` / `updateTargetJob`，[B3 `event-and-outbox-contract`](../event-and-outbox-contract/spec.md) 已冻结 `target.import.requested` / `target.parsed` / `target.analysis.failed` 三个事件与 `target_import` 异步 job（`asynqTask: target.import`，apiFacing），[F3 `prompt-rubric-registry`](../prompt-rubric-registry/spec.md) 已锁定 feature_key `target.import.parse` 与默认 model profile `target.import.default`。本 subject 把这些已就位的契约、表结构、事件和 feature_key 缝合成一个 P0 后端域，明确 owner 边界、隐私红线、解析失败语义、idempotency 与 source-fetch 安全约束。
 
@@ -34,10 +34,10 @@
 
 ### 2.2 Out of Scope
 
-- 不实现岗位推荐（Job Picks）：当前 OpenAPI 没有 recommendation endpoint；该能力需要单独的 product / data-source 设计后才能进入 plan。
+- 不实现岗位推荐（Job Picks / JD Match）：该模块已随 product-scope D-17 删除；本 subject 不新增 recommendation endpoint、JD search endpoint 或 data-source plan。
 - 不实现 `MockInterviewPlan` / `practice_plans` 创建、修改、列表；归 `backend-practice` owner。
 - 不实现简历或 `resume_versions` 的解析、改写、绑定到 plan；归 `backend-resume` owner。
-- 不实现真实 `company_intel` 抓取、聚合或刷新；本 spec 只允许 `target.parsed` 事件触发后续 internal-only `source_refresh` job 的占位入口，实际刷新由后续 plan 设计。
+- 不实现独立 `company_intel` 抓取、聚合、刷新或详情页数据源；本 spec 只允许 `target.parsed` 事件触发 internal-only `source_refresh` job 的占位入口，供 workspace 内嵌公司轻情报摘要消费当前 TargetJob 公开摘要，实际抓取刷新需要先回 owner spec 重新设计。
 - 不实现独立 worker / Asynq dispatcher / 生产级 outbox consumer；P0 用 backend-internal drainer 完成本地与 BDD 验证。
 - 不修改 B2 OpenAPI、B3 events.yaml / jobs.yaml、B4 baseline 表结构、A3 provider 协议、F3 `target.import.parse` baseline prompt / rubric 文本；任何修改先回到 owner spec。
 - 不实现报告生成、证据回收或错题回顾；这些归 `backend-review` 等 owner。真实面试复盘已随 product-scope D-22 删除，不再作为 downstream owner。
@@ -119,7 +119,6 @@
 | 边界 | Owner | 说明 |
 |------|-------|------|
 | API contract | [B2 `openapi-v1-contract`](../openapi-v1-contract/spec.md) | 4 个 TargetJob operation 的 schema、fixtures、generated client / server |
-| `CountTargetJobsForUser(ctx, db, userID) (int, error)` cross-owner internal API | backend-targetjob | backend-jobs-recommendations/001 BuildJobMatchProfile aggregation (D-18 sources.jds)；read-only；cross-user 隔离；不写 audit。实现：`backend/internal/targetjob/count.go` |
 | Backend domain | `backend-targetjob` | handler / service / store / drainer / parse executor / outbox emit |
 | DB schema | [B4 `db-migrations-baseline`](../db-migrations-baseline/spec.md) | `target_jobs` / `target_job_requirements` / `target_job_sources` 列与索引；删除矩阵 dry-run |
 | Event / job contract | [B3 `event-and-outbox-contract`](../event-and-outbox-contract/spec.md) | `target.import.requested` / `target.parsed` / `target.analysis.failed` 与 `target_import` job |

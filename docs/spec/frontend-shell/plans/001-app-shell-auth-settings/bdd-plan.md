@@ -1,15 +1,15 @@
 # Frontend Shell BDD Plan
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: completed
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-06
 
 ## Phase 2: TopBar and display controls
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.001 | 默认首页与五入口 Shell | 用户没有登录且没有保存 route | 打开 App | 用户看到 Home、五个一级入口、单一登录入口、用户区和显示控制；不会看到 welcome、注册入口、独立 voice 或旧模块入口 | `test/scenarios/e2e/p0-001-default-home-shell/` |
-| E2E.P0.004 | App Shell 中英语言切换 | 用户打开默认 App shell，浏览器 locale 可被归一为中文，未登录用户仍可见 TopBar | 用户通过 TopBar language dropdown 把语言从中文切到 English，并进入 auth / profile / settings shell | TopBar、单一登录入口、用户菜单和 D1 shell 静态文案立即切换为英文；route/testid/业务 params 不变；后续 generated client 请求携带当前 `Accept-Language` display hint；runtime locale 与登录态不覆盖前端语言设置；控件结构与 `ui-design/src/app.jsx` 一致 | `test/scenarios/e2e/p0-004-app-shell-language-switch/` |
+| E2E.P0.001 | 默认首页与三入口 Shell | 用户没有登录且没有保存 route | 打开 App | 用户看到 Home、三个一级入口、单一登录入口、用户区和显示控制；不会看到 welcome、注册入口、`jd_match`、`debrief`、`profile`、独立 voice 或旧模块入口 | `test/scenarios/e2e/p0-001-default-home-shell/` |
+| E2E.P0.004 | App Shell 中英语言切换 | 用户打开默认 App shell，浏览器 locale 可被归一为中文，未登录用户仍可见 TopBar | 用户通过 TopBar language dropdown 把语言从中文切到 English，并进入 auth / settings shell | TopBar、单一登录入口、用户菜单和 D1 shell 静态文案立即切换为英文；route/testid/业务 params 不变；后续 generated client 请求携带当前 `Accept-Language` display hint；runtime locale 与登录态不覆盖前端语言设置；控件结构与 `ui-design/src/app.jsx` 一致；`profile` 不作为 live shell 出现 | `test/scenarios/e2e/p0-004-app-shell-language-switch/` |
 
 ## Phase 3: Auth pages and pending action
 
@@ -21,7 +21,7 @@
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.032 | Dev mock 登录态菜单与退出闭环 | 用户在 Vite dev 默认 fixture-backed mock App 中打开首页，初始没有 session | 用户完成 passwordless mock 登录，打开头像菜单，进入 profile/settings，再执行退出登录 | 默认首屏是非登录态；登录后 TopBar 显示与 `ui-design/src/app.jsx` 一致的头像 chip + dropdown；profile/settings/logout 均可从 dropdown 分流；logout 后 `/me` 回到 unauthenticated，TopBar 回到单一登录入口，旧 inline 三按钮和注册按钮结构不回流 | `test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/` |
+| E2E.P0.032 | Dev mock 登录态菜单与退出闭环 | 用户在 Vite dev 默认 fixture-backed mock App 中打开首页，初始没有 session | 用户完成 passwordless mock 登录，打开头像菜单，进入 settings，再执行退出登录 | 默认首屏是非登录态；登录后 TopBar 显示与 `ui-design/src/app.jsx` 一致的头像 chip + dropdown；settings/logout 可从 dropdown 分流；logout 后 `/me` 回到 unauthenticated，TopBar 回到单一登录入口，旧 inline 三按钮、注册按钮结构和 `profile` 菜单项不回流 | `test/scenarios/e2e/p0-032-dev-mock-auth-state-and-user-menu/` |
 
 ## Phase 7: Historical real passwordless mail-link remediation
 
@@ -40,4 +40,4 @@
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.102 | 未登录首页与面试业务路由登录前置 | 用户未登录，Home 可公开访问，业务 route 与业务 API 均需要账号 session | 用户打开 Home、直开 `workspace` / `practice` / `report` / `jd_match` / `profile` / `settings` 等业务 route，或触发 Home 业务 CTA | Home 不展示 Recent mock interviews、不请求 `listTargetJobs`、不显示 raw `AUTH_UNAUTHORIZED`；业务 route 在 auth loading 期间不挂载业务 screen，确认未登录后进入 `auth_login(pendingAction)`；后端 focused gate 证明业务 API 由 session middleware 返回 B1 auth envelope | `test/scenarios/e2e/p0-102-auth-gated-interview-routes/` |
+| E2E.P0.102 | 未登录首页与面试业务路由登录前置 | 用户未登录，Home 可公开访问，业务 route 与业务 API 均需要账号 session | 用户打开 Home、直开 `workspace` / `practice` / `report` / `settings` 等业务 route，或打开 `jd_match` / `debrief` / `profile` retired route，或触发 Home 业务 CTA | Home 不展示 Recent mock interviews、不请求 `listTargetJobs`、不显示 raw `AUTH_UNAUTHORIZED`；业务 route 在 auth loading 期间不挂载业务 screen，确认未登录后进入 `auth_login(pendingAction)`；retired route 归一回当前保留 route 或 `home`，不产生旧 screen；后端 focused gate 证明业务 API 由 session middleware 返回 B1 auth envelope | `test/scenarios/e2e/p0-102-auth-gated-interview-routes/` |

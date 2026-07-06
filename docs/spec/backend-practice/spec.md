@@ -1,8 +1,8 @@
 # Backend Practice Spec
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: active
-> **更新日期**: 2026-06-29
+> **更新日期**: 2026-07-06
 
 ## 1 背景与目标
 
@@ -163,7 +163,6 @@
 | 边界 | Owner | 说明 |
 |------|-------|------|
 | API contract | [B2 `openapi-v1-contract`](../openapi-v1-contract/spec.md) | 6 个 Practice operation 与 voice 扩展 operation 的 schema、fixtures、generated client / server |
-| `CountPracticeSessionsForUser(ctx, db, userID) (int, error)` cross-owner internal API | backend-practice | backend-jobs-recommendations/001 BuildJobMatchProfile aggregation (D-18 sources.mocks)；read-only；cross-user 隔离；不写 audit。实现：`backend/internal/practice/count.go` |
 | Backend domain | `backend-practice`（本 spec） | handler / service / store / async handoff row creation / state machine / AssistantAction generator / outbox emit |
 | DB schema | [B4 `db-migrations-baseline`](../db-migrations-baseline/spec.md) | `practice_plans` / `practice_sessions` / `practice_session_events` / `practice_turns` 列与索引；shared `idempotency_records` 表由 B4 承载，backend-practice 是首个 caller，必须使用 `domain` / `operation` namespace 保持 future backend domain 可复用；`source_debrief_id` 已由 D-22 删除 |
 | Event / job contract | [B3 `event-and-outbox-contract`](../event-and-outbox-contract/spec.md) | `practice.session.started` / `practice.turn.completed` / `practice.session.completed` 与 `report_generate` job mapping；D-28 要求 report job row 由 `completePracticeSession` 创建，事件只作 source fact / analytics |

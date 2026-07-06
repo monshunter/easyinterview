@@ -1,13 +1,14 @@
 # Backend Auth History
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
-> **更新日期**: 2026-05-28
+> **更新日期**: 2026-07-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-06 | 1.9 | 删除已随 JD Match 模块移除的 `GetUserIdentityForUser` cross-owner internal API 模块边界；当前 backend-auth 只保留认证、资料补全、session、email dispatch 与 privacy delete handoff，旧 aggregation helper 不再作为 active contract。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-28 | 1.8 | 修订为单入口邮箱验证码登录：`AuthEmailStartRequest` 不再暴露 `purpose` / `displayName`，发码前不泄露邮箱存在性；新邮箱 verify 后创建资料未补全账号，`/me.profileCompletionRequired` 驱动前端资料补全，`PATCH /me` 完成 displayName + 条款确认；邮箱唯一，displayName 不唯一。 | 001-passwordless-session-bootstrap Phase 8 |
 | 2026-05-27 | 1.7 | 修订 passwordless 认证为 6 位 email-code：challenge TTL 改 5 分钟，`purpose=signup|login` 区分注册/登录，注册邮箱即后续登录邮箱且唯一，displayName 只在 signup 创建用户时写入。 | 001-passwordless-session-bootstrap Phase 7 |
 | 2026-05-27 | 1.6 | 修订 local Mailpit magic-link handoff：SMTP writer 可生成 frontend `/auth/verify` callback 链接，frontend 再调用 backend `GET /api/v1/auth/email/verify` 兑换 session 并清理 URL token；backend verify API 路径不变。 | frontend-shell/001 Phase 7 |

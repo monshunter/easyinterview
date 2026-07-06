@@ -1,8 +1,8 @@
 # Engineering Roadmap Spec
 
-> **版本**: 3.26
+> **版本**: 3.27
 > **状态**: active
-> **更新日期**: 2026-06-29
+> **更新日期**: 2026-07-06
 
 ## 1 背景与目标
 
@@ -51,7 +51,7 @@
 | D-5 | child 创建策略 | 只在进入设计或实现时创建 child spec / plan / checklist / context | 避免空 spec、僵尸 plan 和未审清的 P1/P2 占位 |
 | D-6 | 当前 P0 前端边界 | Home / Mock Interview / Practice Session / Report Dashboard / Resume / Settings/Auth | 不恢复 Welcome、Growth、Plan、Mistakes、Drill、Followup、Experiences、STAR、Job Picks、Debrief、User Profile、独立 Company Intel 或独立 Voice 页面 |
 | D-7 | ADR-Q1..Q6 | 保留为 engineering-roadmap 的历史架构约束 | 后续推翻必须新增 superseding ADR，并同步本 spec |
-| D-8 | Core-loop module pruning | product-scope D-22 已确认方案 B，复盘和用户画像从 P0 runtime / API / DB / UI / 场景中硬删除 | `frontend-debrief`、`backend-debrief`、`backend-profile` 不再作为 P0 workstream；删除实体和零残留 gate 由 product-scope/001-core-loop-module-pruning 承接 |
+| D-8 | Core-loop module pruning | product-scope D-22 已确认方案 B，复盘和用户画像从 P0 runtime / API / DB / UI / 场景中硬删除 | Debrief / profile / jobs-recommendations 旧 subject 实体不再保留；删除证据和零残留 gate 由 product-scope/001-core-loop-module-pruning 承接 |
 
 ### 3.2 ADR-Q1..Q6 当前约束
 
@@ -91,7 +91,7 @@
 - 尚未进入设计或实现的 P1/P2 能力不得提前创建空 spec、空 plans/INDEX 或 draft 占位。
 - 新增或修订代码逻辑 plan 必须写明 TDD 策略，并通过 `/implement` -> `/tdd` 执行。
 - 新增或修订用户可见 UI、API 行为、业务流程或端到端功能 plan 必须维护 BDD gate。
-- 删除旧规划时优先删除索引占位和死文档；仍作为历史证据的 completed plan 可保留，但正文必须明确它不是当前执行入口。
+- 删除旧规划时优先删除索引占位和死文档；已经无争议且不再承接当前合同的 completed plan 不保留实体，只能由当前 owner spec、代码 truth source、负向测试或必要审计记录承接证据。
 - 删除已迁移技术草稿前，必须确认当前文档与代码注释不再引用其目录名或文件名；技术责任必须由当前 owner spec / coded truth source 独立承接。
 
 ### 4.3 契约与 mock-first 约束
@@ -118,11 +118,11 @@
 | Foundation | A5 | `ci-pipeline-baseline` | 当前本地质量门禁，远端 CI deferred | 保留 |
 | Foundation | - | `backend-runtime-topology` | P0 frontend/backend 进程拓扑、worker 收敛与开发期观测依赖边界 | 保留 |
 | Contract | B1 | `shared-conventions-codified` | Go/TS 共享枚举、错误码、ID、codegen / drift gate | 保留 |
-| Contract | B2 | `openapi-v1-contract` | 当前 43 endpoint / 12 tag OpenAPI + fixtures | 保留 |
-| Contract | B3 | `event-and-outbox-contract` | 当前 16 internal event、jobType、outbox 契约 | 保留 |
-| Contract | B4 | `db-migrations-baseline` | 当前 28 应用表 + auth / migration 支撑表 | 保留 |
+| Contract | B2 | `openapi-v1-contract` | 当前 35 endpoint / 10 tag OpenAPI + fixtures | 保留 |
+| Contract | B3 | `event-and-outbox-contract` | 当前 14 internal events / 8 canonical job types / outbox 契约 | 保留 |
+| Contract | B4 | `db-migrations-baseline` | 当前 22 应用表 + 3 auth 支撑表 + migration 支撑表 | 保留 |
 | Quality | F1 | `observability-stack` | metrics/log/trace/dashboard/alerting 命名和红线 | 保留 |
-| Quality | F3 | `prompt-rubric-registry` | 10 个当前 baseline feature_key、prompt/rubric/model profile 治理 | 保留 |
+| Quality | F3 | `prompt-rubric-registry` | 当前 9 个 chat feature_key、prompt/rubric/model profile 治理 | 保留 |
 
 这些 spec 是当前 engineering roadmap 的基础层。若其中某个计划已完成，后续改动应在该 subject 原地修订，而不是从 roadmap 再 spawn 同主题 plan。P0 implementation subject 在进入设计或实现时创建，并在 §5.2 的当前状态列跟踪。
 
@@ -132,12 +132,11 @@
 
 | Workstream | 建议 subject | 当前状态 | 当前产品 / UI 范围 | 主要依赖 |
 |------------|--------------|----------|-------------------|----------|
-| App shell + auth + settings | `frontend-shell`、`backend-auth` | `frontend-shell` active；`backend-auth` active（001 auth bootstrap completed）；`backend-profile` 进入 D-22 删除范围 | TopBar、用户菜单、单入口邮箱登录、验证、首次资料补全、退出、pendingAction、设置与隐私 | A4、B1、B2、B4、ADR-Q1 |
-| Home / Parse | `frontend-home-job-picks-and-parse`、`backend-targetjob`、`backend-jobs-recommendations` | `frontend-home-job-picks-and-parse` active（spec v2.0：D-17 前端删除 + D-14 单次确认漏斗）；`backend-targetjob` active（001 import / parse completed）；`backend-jobs-recommendations` active（001 Phase 9 承接 D-17 模块删除：契约 / backend / migration / shared / config 零残留） | 首页 JD 导入、解析确认、目标岗位 / JD / 轮次假设；岗位推荐模块已随 product-scope v2.1 D-17 删除 | B2、B3、B4、A3、F3、D1 |
+| App shell + auth + settings | `frontend-shell`、`backend-auth` | `frontend-shell` active；`backend-auth` active（001 auth bootstrap completed） | TopBar、用户菜单、单入口邮箱登录、验证、首次资料补全、退出、pendingAction、设置与隐私 | A4、B1、B2、B4、ADR-Q1 |
+| Home / Parse | `frontend-home-job-picks-and-parse`、`backend-targetjob` | `frontend-home-job-picks-and-parse` completed（当前实体计划只保留 001 Home + Parse）；`backend-targetjob` active（001 import / parse completed）；岗位推荐 / JD Match 旧 subject 实体已删除 | 首页 JD 导入、解析确认、目标岗位 / JD / 轮次假设；岗位推荐模块已随 product-scope v2.1 D-17 删除 | B2、B3、B4、A3、F3、D1 |
 | Mock Interview + Practice | `frontend-workspace-and-practice`、`backend-practice`、`practice-voice-mvp` | `frontend-workspace-and-practice` active；`backend-practice` active；`practice-voice-mvp` active（001 voice MVP completed） | 当前面试规划、简历绑定、公司轻情报卡片、完整文本 / 语音 session、带提示 / 严格模拟 | B2、B3、B4、A3、C4 |
 | Report Dashboard | `frontend-report-dashboard`、`backend-review` | `frontend-report-dashboard` active；`backend-review` active | 报告生成、上下文条、准备度、维度、题目回顾、复练当前轮 / 进入下一轮 | B2、B3、B4、A3、C5、F3 |
 | Resume Workshop | `frontend-resume-workshop`、`backend-resume`、`backend-upload` | `frontend-resume-workshop` active（001 / 002 / 003 D-20 phase active）；`backend-resume` active（001 / 002 D-20 phase active）；`backend-upload` active（001 file_objects + presign baseline completed） | 扁平简历列表、上传 / 粘贴创建、解析预览确认、简历详情（预览 / 改写 / 编辑）、改写采纳后覆盖 / 另存（D-20：删除版本树 / 主版本 / 岗位定制） | B2、B3、B4、A3、C2 `backend-upload` |
-| Debrief | `frontend-debrief`、`backend-debrief` | D-22 删除范围，由 `product-scope/001-core-loop-module-pruning` 承接实体删除和零残留 gate | 不再是 P0 workstream；不得新建同主题 follow-up plan 恢复 | B2、B3、B4、A3 |
 | Backend async runner | `backend-async-runner` | active（001 internal job + outbox runner baseline，承接单一 backend in-process runtime kernel、outbox dispatcher、retry/reaper/shutdown、`email_dispatch` 收口） | backend 内部 job/outbox runner、retry、删除链路执行；不创建独立 worker 进程 | B3、B4、A2、ADR-Q2/Q5、backend-runtime-topology |
 | Mock + E2E + release | `mock-contract-suite`、`e2e-scenarios-p0`、`analytics-funnel`、`release-gate-and-rollout` | `mock-contract-suite` active；`test/scenarios/e2e` framework 已创建，默认本地 runner；其余未创建 | fixture-backed mock、P0 主漏斗 BDD、产品漏斗、后续 release / rollback / SLO gate | B2、D1-D6、C4-C9、F1-F3 |
 
@@ -162,7 +161,7 @@
 
 目标是让当前 UI 三入口和会话级页面能基于 B2 fixtures 跑通 P0 happy path：
 
-1. 创建或修订 `mock-contract-suite`，把 43 operation fixtures 提供给前端和后端 mock。
+1. 创建或修订 `mock-contract-suite`，把当前 35 operation fixtures 提供给前端和后端 mock。
 2. 创建或修订 `frontend-shell`，锁 TopBar、用户菜单、display controls、auth pendingAction、settings 入口，并删除 profile 正向入口。
 3. 创建或修订 D2-D6 前端 workstream，严格按 `docs/ui-design/` 和 `ui-design/src/app.jsx` 目标路由实现。
 4. 在每个用户可见 workstream 的 plan 中维护 BDD gate。
@@ -171,9 +170,9 @@
 
 目标是把 P0 主流程所需后端域按契约落地：
 
-1. `backend-auth`、`backend-upload` 提供身份与文件基础；`backend-profile` 随 D-22 删除，不再提供候选人画像基础。
+1. `backend-auth`、`backend-upload` 提供身份与文件基础；候选人画像旧后端 subject 已随 D-22 删除，不再提供 P0 业务基础。
 2. `backend-async-runner` 提供 backend 内部 job、outbox、retry 和删除链路执行；P0 不拆独立 worker 进程。
-3. `backend-targetjob`、`backend-practice`、`backend-review`、`backend-resume` 分别承接当前产品闭环；`backend-debrief` 随 D-22 删除。
+3. `backend-targetjob`、`backend-practice`、`backend-review`、`backend-resume` 分别承接当前产品闭环；Debrief 旧后端 subject 已随 D-22 删除。
 4. 所有 AI 输出必须引用 A3 / F3，所有长任务必须走 B3 job/outbox contract 并由 backend internal runner 承接，所有敏感数据必须符合 product-scope 隐私红线。
 
 ### 6.4 S3 · True integration and release gate

@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-06
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -15,13 +15,13 @@
 
 完成本计划后，用户在 frontend dev server 上能够：
 
-1. 通过 TopBar `模拟面试` 入口或 home/parse 跳转进入 `workspace`，看到当前面试规划页头（公司·岗位 / 状态 / `当前轮次·绑定简历` / `切换规划` / `新建规划`）、Interview Launcher（轮次节点条 + 面试前确认 + `立即面试` CTA + 目标岗位/JD + 绑定简历）、Main Left（公司轻情报 handoff 卡片 + JD 拆解）、Main Right（我的准备 + 当前规划的模拟面试历史占位）
+1. 通过 TopBar `模拟面试` 入口或 home/parse 跳转进入 `workspace`，看到当前面试规划页头（公司·岗位 / 状态 / `当前轮次·绑定简历` / `切换规划` / `新建规划`）、Interview Launcher（轮次节点条 + 面试前确认 + `立即面试` CTA + 目标岗位/JD + 绑定简历）、Main Left（公司轻情报摘要卡片 + JD 拆解）、Main Right（我的准备 + 当前规划的模拟面试历史占位）
 2. 通过 `切换规划` 打开 Plan Switcher Modal（消费 `listTargetJobs`），选择规划后更新 `InterviewContext`，关闭 modal
-3. 通过 `更换简历` 打开 Resume Picker Modal（受 `listResumes` 缺契约约束，本 plan 仅展示「当前绑定简历 + disabled 列表」模式，附 spec §3.2 待确认事项的可见说明）
+3. 通过 `更换简历` 打开 Resume Picker Modal；Phase 1-6 保留交付时的「当前绑定简历 + disabled 列表」历史行为，Phase 7/D-20 负责原地切换为 `listResumes` active-list
 4. 点击 `立即面试`：当 `InterviewContext.planId` 不存在或 `getPracticePlan` 返回 404 时先调 `createPracticePlan(goal='baseline')`（带 `Idempotency-Key`），再调 `startPracticeSession`（带 `Idempotency-Key`），成功后 `nav("practice", { sessionId, planId, targetJobId, jdId, resumeVersionId, roundId, mode, modality, practiceMode, hintUsed, hintCount })`；practice route 仍渲染 D1 `PlaceholderScreen`，由 plan 002 替换
 5. 未登录用户点 `立即面试` 触发 `requestAuth({ type: "start_practice", route: "workspace", params: { ...InterviewContext, ...PracticeDisplayContext, autoStartPractice: "1" } })`，登录成功后回到 workspace，自动恢复 startPractice 双步流程并跳到 practice
 6. 缺 JD/target 渲染 `WorkspaceEmptyState`（CTA 跳 home）；缺简历渲染 `WorkspaceMissingResumeState`（CTA 跳 `resume_versions?flow=create`）
-7. 公司轻情报摘要卡片只渲染 `CompanyIntelEmbed`（源级复刻 `screen-company-intel.jsx::CompanyIntelEmbed`），点击 `打开公司情报` 调 `nav("company_intel", { targetJobId, jdId })` handoff 给外部 owner；不在本 plan 实现 `CompanyIntelScreen`
+7. 公司轻情报摘要卡片只渲染 `CompanyIntelEmbed`（源级复刻 `screen-company-intel.jsx::CompanyIntelEmbed`），点击 `打开公司情报` 保留在 `workspace` 并携带 safe params；不实现 `CompanyIntelScreen`、不 materialize 独立 `company_intel` route
 8. 模拟面试历史因当前 OpenAPI/generated `TargetJob` 未声明 typed history 字段，本 plan 只渲染 `EmptyHistory` / disabled placeholder，不读取 fixture extension；真实历史行与 `nav("report", { sessionId, reportId })` handoff 交给后续 `listPracticeSessions` 或等价 typed contract owner
 9. 全部用户行为通过 generated client + fixture-backed mock transport 闭环；JD 原文 / 简历正文 / hint / answer / AI prompt-response 不出现在 console / URL / localStorage / telemetry；i18n zh/en 完整切换；dark + customAccent 三态可见变化；desktop (1440×900) + mobile (390×844) pixel parity 通过
 
@@ -29,7 +29,7 @@
 
 `frontend-shell` D1+D2+D3 已交付：默认 `home` route + 五入口 TopBar + route normalization + `requestAuth(pendingAction)` 与登录恢复 + generated client + fixture transport bootstrap + warm/forest/ocean/plum 四主题 + dark + customAccent + Vitest+jsdom smoke gate（`E2E.P0.001/002/004/005`）+ Playwright pixel parity gate（`E2E.P0.006`）。
 
-`frontend-home-job-picks-and-parse/001-home-jd-import-and-parse` 当前仍为 active plan（参见 [home plan §1 / §3.7](../../../frontend-home-job-picks-and-parse/plans/001-home-jd-import-and-parse/plan.md)）：它定义 home / parse / jd_match 屏、`interviewContextFromTargetJob(targetJob)` 与 parse confirm → workspace 跳转契约，但 `test/scenarios/e2e/p0-014` ~ `p0-017` 场景资产尚未出现在当前仓库。本 plan 必须接住同款 `nav("workspace", { targetJobId, jdId, planId, resumeVersionId, roundId, ... })` params；在 home plan Ready 前，P0.018 使用直接 workspace route/hash seed 验证，不把 P0.014-017 作为无条件完成 gate。
+`frontend-home-job-picks-and-parse/001-home-jd-import-and-parse` 已完成 home / parse 跳转契约（参见 [home plan §1 / §3.7](../../../frontend-home-job-picks-and-parse/plans/001-home-jd-import-and-parse/plan.md)）：当前正向入口只保留 home / parse → workspace；旧 `jd_match` / Job Picks route 已由 product-scope D-17 删除，只能作为 legacy-negative 搜索对象。本 plan 必须接住同款 `nav("workspace", { targetJobId, jdId, planId, resumeVersionId, roundId, ... })` params；P0.018 使用直接 workspace route/hash seed 验证，不再把旧 P0.017 `jd_match` smoke 作为正向依赖。
 
 `backend-practice` v1.3 spec 已锁 6 个 Practice operation 与 D-13 `startPracticeSession` 同步首题语义，并记录当前 OpenAPI/generated `PracticeMode` 仍有旧 `legacy debrief replay value` enum 漂移；`backend-targetjob` 实施 plan `001` 已交付 `listTargetJobs / getTargetJob / updateTargetJob / importTargetJob` 真实 handler。2026-05-23 L2 复查确认 `createPracticePlan / getPracticePlan / startPracticeSession` 真实 backend handler 已由 `backend-practice/001-plan-and-session-orchestration` 落地；本 completed plan 保留交付时 fixture-backed UI variants，但 P0.018-P0.021 trigger 现在必须前置 real-mode generated-client gate。
 
@@ -39,6 +39,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-06 | 1.7 | 对齐 product-scope D-17 / D-18：旧 Job Picks / `jd_match` 与独立 `company_intel` route 不再作为正向 handoff；CompanyIntelEmbed 仅保留 workspace 内嵌摘要与 safe params；`listResumes` 从缺契约 blocker 改为 Phase 7/D-20 active-list 切换对象。 |
 | 2026-05-23 | 1.5 | L2 real-backend gate remediation：原 plan 保留历史 disabled-list / fixture-backed UI variants，但 P0.018-P0.021 trigger 前置 `frontendOwners.realApiMode.test.ts`，verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker；spec operation matrix 已同步 backend-resume / backend-practice real handler 事实，避免 completed plan 的历史 fixture-first 口径误导后续实施。 |
 | 2026-05-13 | 1.4 | Handoff only：`backend-resume/001-asset-register-parse-and-listing` 已落地 `listResumes` 真实 `cmd/api` route、fixtures parity 与 E2E.P0.034/P0.035；workspace owner 可启动原地修订 Resume Picker active-list，替换 completed plan 的 disabled-list 负向断言。 |
 | 2026-05-12 | 1.3 | Handoff only：B2 D-18 / `openapi-v1-contract/004-resume-additive-coverage` 已落地 `listResumes` operation、fixtures 和 generated client；本 completed plan 保留当时交付的 disabled-list 行为，后续 workspace owner 应原地修订 Resume Picker 为 active-list 模式并移除 `resumePicker.disabledNote`。 |
@@ -58,7 +59,7 @@
 | Primary path · workspace 默认渲染 | 进入 workspace，渲染 plan eyebrow + Interview Launcher + Main Left + Main Right；TopBar 高亮 `workspace` | `screen-workspace.jsx::WorkspaceScreen` lines 116-302 + `app.jsx::App.screens.workspace` line 271 | 1+2 | E2E.P0.018 + Vitest `workspace/WorkspaceScreen.test.tsx` |
 | Primary path · 立即面试 双步契约 | 立即面试：plan 不存在时 `createPracticePlan(goal='baseline')` → `startPracticeSession`；两步均带 `Idempotency-Key`；成功后 nav `practice` | `screen-workspace.jsx::WorkspaceScreen.startInterview` lines 102-114 | 4 | E2E.P0.020 + Vitest `workspace/WorkspaceStartPractice.test.tsx` |
 | Alternate path · Plan Switcher | `切换规划` 打开 `PlanSwitcherModal`，选择不同 plan 后 `InterviewContext` 更新；新建规划 CTA 跳 home | `screen-workspace.jsx::PlanSwitcherModal` lines 587-666 | 3 | E2E.P0.018 + Vitest `workspace/modals/PlanSwitcherModal.test.tsx` |
-| Alternate path · Resume Picker (disabled list) | `更换简历` 打开 `ResumePickerModal`；本 plan 仅渲染当前绑定简历 + disabled 列表 + 待解锁说明（spec §3.2 `listResumes` 缺契约） | `screen-workspace.jsx::ResumePickerModal` lines 517-585 | 3 | Vitest `workspace/modals/ResumePickerModal.test.tsx` + 负向断言：generated client `listResumes` 不被调用 |
+| Alternate path · Resume Picker (Phase 1-6 historical disabled list) | `更换简历` 打开 `ResumePickerModal`；Phase 1-6 保留当前绑定简历 + disabled 列表；Phase 7/D-20 切换为 `listResumes` active-list | `screen-workspace.jsx::ResumePickerModal` lines 517-585 | 3 / 7 | Vitest `workspace/modals/ResumePickerModal.test.tsx`；Phase 7 需替换旧 `listResumes` 负向断言 |
 | Alternate path · 未登录立即面试 | 未登录点 `立即面试` 触发 `requestAuth({ type: "start_practice" })`；登录后自动恢复 startPractice 双步契约 | `app.jsx::App.requestAuth` + `screen-workspace.jsx::WorkspaceScreen.startInterview` | 4 | E2E.P0.020 + Vitest `workspace/WorkspaceAuthGate.test.tsx` |
 | Alternate path · 现有 plan 复用 | `InterviewContext.planId` 存在且 `getPracticePlan` 返回 `status=ready` → 跳过 `createPracticePlan` 直接 `startPracticeSession` | spec D-9 + `screen-workspace.jsx::startInterview` | 4 | Vitest 双 fixture variant + `Idempotency-Key` 反查 |
 | Failure / recovery · createPracticePlan 4xx | `createPracticePlan` 422 (`missing-resume`) 显示 inline 错误，保留输入；不进入 `startPracticeSession` | n/a (error state) | 4 | Vitest fixture variant `missing-resume` + inline error UI |
@@ -76,7 +77,7 @@
 | Cross-layer contract · listTargetJobs 复用 | `Plan Switcher Modal` 通过 generated `listTargetJobs` 拉数据；`pageSize` 复用 `frontend-home-job-picks-and-parse/001` 同款 viewmodel mapping | `screen-workspace.jsx::PlanSwitcherModal` + home plan §3.7 | 3 | Vitest |
 | Cross-layer contract · getPracticePlan refresh | workspace mount 时若 `InterviewContext.planId` 存在 → 调 `getPracticePlan(planId)`；`status='ready'` 复用，`status='archived'` 或 404 视为缺 plan 走 createPracticePlan 路径；不得假设 OpenAPI 未声明的 plan status | spec §2.1 + OpenAPI `PracticePlan.status` | 4 | Vitest fixture 多 variant |
 | Cross-layer contract · mode/practiceMode 协议 | spec D-3：`mode/modality∈{text,voice}` 与 `practiceMode∈{assisted,strict}` 独立；本 plan 立即面试默认 `mode='text', modality='text', practiceMode='strict'`（与 ui-design `screen-workspace.jsx` line 99 一致）；negative gate 确认 workspace 不产出 `legacy debrief replay value` | `screen-workspace.jsx::startContext` lines 94-101 | 4 | Vitest startContext 字段断言 + negative grep |
-| Cross-layer contract · CompanyIntelEmbed handoff | 卡片仅展示 fixture 中 `target_jobs` 公开摘要；`打开公司情报` 调 `nav("company_intel", { targetJobId, jdId })`；不调 `getCompanyIntel` | spec §2.2 + `screen-company-intel.jsx::CompanyIntelEmbed` | 5 | Vitest negative + nav stub 断言 |
+| Cross-layer contract · CompanyIntelEmbed embedded-only | 卡片仅展示 fixture 中 `target_jobs` 公开摘要；`打开公司情报` 保留在 `workspace` 并携带 safe params；不调 `getCompanyIntel`，不 materialize 独立 `company_intel` route | spec §2.2 + `screen-company-intel.jsx::CompanyIntelEmbed` | 5 | Vitest negative + route-normalization 断言 |
 | Cross-layer contract · session history placeholder | 因当前 typed contract 缺 `recentSessions` / `listPracticeSessions`，workspace 只渲染 `EmptyHistory` / disabled placeholder；不从 fixture extension 或 `any` 读取历史行；真实 report handoff 等 typed history contract 落地 | spec §2.1 + `screen-workspace.jsx::WorkspaceScreen.sessionHistory` visual shell | 5 | Vitest negative + E2E.P0.021 |
 | Privacy / security · JD 原文 + 简历正文 | 原文 / parsed body 不进 console / URL / localStorage / telemetry / fixture transport 日志；header eyebrow 仅展示 `company / title / status / sourceType / fitSummary availability` 等 generated 结构化字段 | spec §4 隐私红线 | 2-5 | Vitest 反查 + redact lint |
 | Privacy / security · pendingAction params | `pendingAction.params` 不携带 `answerText / hintText / promptHash` 等敏感字段；只允许 IDs / 状态 / route 与 `PracticeDisplayContext` 结构化字段，以及 `autoStartPractice=1` 控制位 | `frontend-shell/spec.md::pendingAction` + `pendingAction.ts` | 4 | Vitest |
@@ -91,7 +92,7 @@
 | UI source structure parity · plan eyebrow | crumbs (`返回首页`) + plan card (`公司·岗位` / status tag / `当前轮次·绑定简历` / `切换规划` / `新建规划`) | `screen-workspace.jsx::WorkspaceScreen` lines 119-149 | 1 | Vitest DOM + testid `workspace-crumbs` / `workspace-plan-eyebrow-{label,title,status,sub}` / `workspace-plan-action-{switch,create}` |
 | UI source structure parity · header summary | status tag + level + updatedAt + 标题 + 公司·地点·来源 + 准备状态/匹配度 | `screen-workspace.jsx::WorkspaceScreen` lines 152-172 | 2 | Vitest + testid `workspace-header-{tag,level,updated,title,subtitle,prep}` |
 | UI source structure parity · Interview Launcher | Round Rail + 面试前确认文案 + `立即面试` 主 CTA + JD/Resume BindingPill + note line | `screen-workspace.jsx::WorkspaceScreen` lines 174-196 + `InterviewRoundRail` lines 677-722 + `BindingPill` lines 724-740 | 2+4 | Vitest + testid `workspace-launcher-*` / `workspace-round-rail-*` / `workspace-binding-{jd,resume}` / `workspace-cta-start` |
-| UI source structure parity · Main Left CompanyIntelEmbed | `CompanyIntelEmbed` 卡片 + `打开公司情报` button → `nav("company_intel", ...)` | `screen-workspace.jsx::WorkspaceScreen` line 203 + `screen-company-intel.jsx::CompanyIntelEmbed` | 5 | Vitest + testid `workspace-companyintel-{summary,open}` |
+| UI source structure parity · Main Left CompanyIntelEmbed | `CompanyIntelEmbed` 卡片 + `打开公司情报` button；点击不离开 `workspace`，旧 `company_intel` route 只允许归一回 workspace | `screen-workspace.jsx::WorkspaceScreen` line 203 + `screen-company-intel.jsx::CompanyIntelEmbed` | 5 | Vitest + testid `workspace-companyintel-{summary,open}` |
 | UI source structure parity · Main Left JD breakdown | Card + Must Have / Nice to Have / Hidden signals 三 ReqBlock；hits 命中圆点 | `screen-workspace.jsx::WorkspaceScreen` lines 206-219 + `ReqBlock` lines 742-759 | 2 | Vitest + testid `workspace-jd-block-{must,nice,hidden}` |
 | UI source structure parity · Main Right risks/strengths | `我的准备` Card + 直接命中 / 风险提示 list | `screen-workspace.jsx::WorkspaceScreen` lines 224-239 | 2 | Vitest + testid `workspace-prep-{strong,risk}-${idx}` |
 | UI source structure parity · Main Right session history | sessionHistory visual shell + `EmptyHistory` / disabled placeholder；不得 import `getWorkspaceSessionHistory` prototype helper | `screen-workspace.jsx::WorkspaceScreen` lines 241-265 | 5 | Vitest + testid `workspace-history-empty` + negative grep |
@@ -105,7 +106,7 @@
 | UI stale-contract negative · 旧 route alias | 旧 `welcome` / `growth` / `mistakes` / `drill` / `followup` / `experiences` / `star` / 独立 `voice` route 在 workspace 新代码中不出现（除 `normalizeRoute` alias map 与对应 D1 测试） | spec §4 + frontend-shell D1 alias 表 | 全 phase | Vitest + scenario verify negative grep |
 | UI stale-contract negative · 旧画板标签 | `practiceModeCard` / `warmup` / `single_drill` / `drill_builder` / `mistake_queue` / `growth_center` 不出现在 workspace 模块和 i18n key | spec §4 + product-scope §4.5 | 全 phase | grep negative |
 | UI stale-contract negative · 不直接 import prototype data | `frontend/src/app/screens/workspace/` 不 import `ui-design/src/data.jsx` / `window.EI_DATA` / `getWorkspaceJDSample` 等 prototype helper | n/a | 全 phase | Vitest + tsc grep |
-| UI stale-contract negative · 不调 getCompanyIntel / listResumes | workspace 模块不调 `getCompanyIntel`（缺 contract） / `listResumes`（缺 contract）；调用尝试触发 typecheck 错误 | spec §3.2 + §5.1 operation matrix | 全 phase | Vitest spy + tsc |
+| UI stale-contract negative · 不调 getCompanyIntel / 旧 disabled-list 边界 | workspace 模块不调 `getCompanyIntel`（独立公司情报已删除）；Phase 1-6 不调 `listResumes` 的断言仅作为历史 disabled-list 边界，Phase 7/D-20 必须移除并替换为 active-list 正向断言 | spec §3.2 + §5.1 operation matrix | 全 phase / Phase 7 | Vitest spy + tsc |
 | Regression / legacy-negative · D1+D2+D3 + 已存在场景 gate | `E2E.P0.001/002/004/005/006` 全部 PASS；`E2E.P0.014/015/016/017` 仅在对应目录已存在且 home plan INDEX 标记 Ready 后作为条件回归 gate 执行 | n/a | 6 | scenario rerun |
 | Regression / legacy-negative · 不直接调用 LLM/provider | workspace 模块不出现 AI provider key / provider registry / prompt registry / AIClient / LLM endpoint / bypass generated client 的 ad hoc fetch | n/a | 全 phase | Vitest + grep negative |
 
@@ -123,11 +124,11 @@
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` scenarios: `default` / `prototype-baseline` / 计划新增 `single-plan` / `12-plus` | `PlanSwitcherModal` 通过 generated client 拉所有候选 plan；与 home plan §3.7 viewmodel mapping 一致 | implemented (`backend-targetjob/001` 已交付) | `target_jobs` + `target_job_requirements` | none in frontend | E2E.P0.018 |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` scenarios: `default` / `prototype-baseline` / 计划新增 `with-rounds` / `not-found` | workspace mount 时通过 generated client 拉当前 `targetJobId`；驱动 header / Interview Launcher / JD 拆解 / risks-strengths；缺失或 404 → `WorkspaceEmptyState` | implemented (`backend-targetjob/001` 已交付) | `target_jobs` + `target_job_requirements` + `target_job_sources` | none in frontend | E2E.P0.018 / E2E.P0.019 |
 | `getResume` | `openapi/fixtures/Resumes/getResume.json` scenarios: `default` / `not-found` | workspace mount 时通过 generated client 拉绑定 resume；驱动 BindingPill resume 段；缺失或 404 → `WorkspaceMissingResumeState` | backend-resume real handler | `resume_assets` | none | E2E.P0.018 / E2E.P0.019 + real-mode gate |
-| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` (`default`, `empty`, `paginated`) | **本 completed plan 不消费 UI**：交付时 Resume Picker 仅展示当前绑定 resume + disabled 列表；后续 workspace owner 应原地修订为 active-list | backend-resume real handler | resume assets | none | 当前 completed plan 保留历史负向断言；real-mode gate 证明 generated client 可指向真实 backend |
+| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` (`default`, `empty`, `paginated`) | Phase 1-6 交付时 Resume Picker 仅展示当前绑定 resume + disabled 列表；Phase 7/D-20 原地修订为 active-list 正向消费 | backend-resume real handler | resume assets | none | 当前 Phase 7 owner 必须替换旧负向断言；real-mode gate 证明 generated client 可指向真实 backend |
 | `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` scenarios: `default` / `missing-resume` / `validation-422` | workspace 立即面试：`InterviewContext.planId` 不存在或 `getPracticePlan` 失败时调用；body 含 `targetJobId / goal='baseline' / mode='assisted' / interviewerPersona / difficulty / language / questionBudget / timeBudgetMinutes / resumeAssetId / focusCompetencyCodes`；side-effect 调用带 `Idempotency-Key` | backend-practice real handler | `practice_plans` | none in frontend；backend-only `practice.session.first_question` 由 `startPracticeSession` 阶段触发 | E2E.P0.020 + real-mode gate |
 | `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` scenarios: `default` / `archived` / `not-found` | workspace mount 时若 `InterviewContext.planId` 存在 → 拉取以确认 `status='ready'`；非 ready 视为缺 plan 走 createPracticePlan 路径 | backend-practice real handler | `practice_plans` | none | E2E.P0.019 + real-mode gate |
 | `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` scenarios: `default` / `ai-timeout-502` | workspace 立即面试 plan 就绪后调用；body `{ planId, hintsEnabled }`；`Idempotency-Key` 与 createPracticePlan 同一 batch；成功响应携带 `currentTurn{turnIndex:1, questionText, askedAt, status:'asked'}`，前端只缓存 sessionId / planId / turnIndex 进 InterviewContext，**不在 workspace 屏渲染 questionText** | backend-practice real handler | `practice_sessions` + 第 1 个 turn + `session_started` event | backend-only `practice.session.first_question` (spec D-13) | E2E.P0.020 + real-mode gate |
-| `getCompanyIntel` | N/A | 本 plan **不消费**；CompanyIntelEmbed 卡片仅渲染 `target_jobs.companyName / location / source / summary`，handoff 由 `nav("company_intel", { targetJobId, jdId })` 触发外部 owner | external | external | none | 负向断言 + E2E.P0.021 |
+| `getCompanyIntel` | N/A | 本 plan **不消费**；CompanyIntelEmbed 卡片仅渲染 `target_jobs.companyName / location / source / summary`；旧 `company_intel` route 归一回 `workspace`，不存在外部 owner handoff | removed | removed | none | 负向断言 + E2E.P0.021 |
 | `getFeedbackReport` | N/A | 本 plan **不消费**；workspace session history 仅渲染 disabled placeholder，不通过 fixture extension 获取 `sessionId/reportId`；真实 history → report handoff 等 `listPracticeSessions` 或等价 typed contract 落地 | external (`frontend-report-dashboard` / future `backend-review`) | external | none | E2E.P0.021 negative |
 
 ## 3.7 InterviewContext View-Model Mapping
@@ -138,7 +139,7 @@
 |-----------------------|--------|------|
 | `planId` | `getPracticePlan(planId).id` 或 `createPracticePlan` 响应 `id` 或 fallback `plan-${targetJobId}` | route param 优先；fallback 仅在 plan 未创建时使用，不能进入 backend body |
 | `targetJobId` / `jobId` | `getTargetJob.id` / route param | 必填；缺失 → `WorkspaceEmptyState` |
-| `jdId` | route param 或 fallback `jd-${targetJobId}` | 用于 company intel handoff |
+| `jdId` | route param 或 fallback `jd-${targetJobId}` | 用于 workspace 内 company intel safe params |
 | `resumeVersionId` | route param 或 `getResume.id` | 缺失 → `WorkspaceMissingResumeState` |
 | `roundId` | route param 或 `screen-workspace.jsx::getWorkspaceRoundId` 同款映射（`HR / 技术一面 / 技术二面 / 经理面 / round-draft`） | 不依赖 OpenAPI 未声明字段 |
 | `roundName` | `getTargetJob` 中对应轮次或 locale fallback | i18n zh/en |
@@ -232,7 +233,7 @@
 
 #### 3.3 `ResumePickerModal.tsx` (disabled-list 模式)
 
-按 `screen-workspace.jsx::ResumePickerModal` lines 517-585 源级复刻 DOM 结构 + 模态层 + footer 按钮；列表项：仅当前绑定 resume 启用 + 选中态；其余位置渲染 `disabled` 占位卡 + i18n 文案 `resumePicker.disabledNote`（中文：「更多简历版本将在 backend 开放 `listResumes` 接口后启用」），并在底部显示 spec §3.2 链接。`Use this resume` 按钮在仅有当前绑定 resume 时仍可点击但实际只关闭 modal（因为没有可切换项）。Vitest 负向断言 generated client `listResumes` 不存在或调用次数为 0。
+按 `screen-workspace.jsx::ResumePickerModal` lines 517-585 源级复刻 DOM 结构 + 模态层 + footer 按钮；Phase 1-6 历史行为为仅当前绑定 resume 启用 + 选中态，其余位置渲染 `disabled` 占位卡；Phase 7/D-20 必须原地切换为 `listResumes` active-list，并移除 `resumePicker.disabledNote` 与旧负向断言。`Use this resume` 按钮在仅有当前绑定 resume 时仍可点击但实际只关闭 modal（因为没有可切换项）。
 
 #### 3.4 `PlanSwitcherModal.tsx`
 
@@ -256,7 +257,7 @@ ResumePickerModal 与 PlanSwitcherModal 必须实现：
 
 #### 3.7 Vitest
 
-新增 `workspace/modals/ResumePickerModal.test.tsx`：测 DOM、disabled 列表渲染、文案 zh/en、a11y 行为、generated client `listResumes` 调用次数为 0；新增 `workspace/modals/PlanSwitcherModal.test.tsx`：测 DOM、`listTargetJobs` 接入、boundary（1 条 / 12+ 条）、a11y、`从新 JD 创建规划` 跳 home、`Use this plan` 切换 `InterviewContext` 并触发 refetch；新增 `workspace/WorkspaceMissingResumeState.test.tsx`：测缺简历空态。
+新增 `workspace/modals/ResumePickerModal.test.tsx`：Phase 1-6 测 DOM、disabled 列表渲染、文案 zh/en、a11y 行为；Phase 7/D-20 必须补 `listResumes` active-list 正向消费断言并删除旧调用次数为 0 的负向断言；新增 `workspace/modals/PlanSwitcherModal.test.tsx`：测 DOM、`listTargetJobs` 接入、boundary（1 条 / 12+ 条）、a11y、`从新 JD 创建规划` 跳 home、`Use this plan` 切换 `InterviewContext` 并触发 refetch；新增 `workspace/WorkspaceMissingResumeState.test.tsx`：测缺简历空态。
 
 #### 3.8 BDD-Gate
 
@@ -322,11 +323,11 @@ CTA 在请求中 disabled + spinner；4xx / 5xx 显示 inline 错误（在 Inter
 
 - BDD-Gate: 验证 `E2E.P0.020` 立即面试主路径 + 未登录恢复 + `E2E.P0.019` getPracticePlan 恢复路径
 
-### Phase 5: CompanyIntelEmbed handoff + Session History handoff + 空态收口
+### Phase 5: CompanyIntelEmbed embedded-only + Session History handoff + 空态收口
 
 #### 5.1 `CompanyIntelEmbed` 组件
 
-按 `ui-design/src/screen-company-intel.jsx::CompanyIntelEmbed` 源级复刻；数据来源仅限 `getTargetJob.companyName / locationText / sourceType / summary`；不调 `getCompanyIntel`；`打开公司情报` 调 `nav("company_intel", { targetJobId, jdId })` handoff（route 仍由 D1 `PlaceholderScreen` 占位，由外部 owner 后续替换）。
+按 `ui-design/src/screen-company-intel.jsx::CompanyIntelEmbed` 源级复刻；数据来源仅限 `getTargetJob.companyName / locationText / sourceType / summary`；不调 `getCompanyIntel`；`打开公司情报` 保留在 `workspace` 并携带 `targetJobId / jdId` safe params。旧 `company_intel` route 只能由 route normalization 归一到 `workspace`，不得渲染独立详情页。
 
 #### 5.2 sessionHistory placeholder
 
@@ -341,11 +342,11 @@ CTA 在请求中 disabled + spinner；4xx / 5xx 显示 inline 错误（在 Inter
 - `WorkspaceEmptyState` `导入 JD` CTA → `nav("home")`，并在 home `home-jd-textarea` 自动 focus
 - `WorkspaceMissingResumeState` `创建简历` CTA → `nav("resume_versions", { flow: "create" })`
 
-新增 `workspace/WorkspaceHandoff.test.tsx`：测 CompanyIntelEmbed 不调 `getCompanyIntel`；测 nav handoff 携带 `targetJobId / jdId`；测 sessionHistory 区域为 `EmptyHistory` / disabled placeholder 且点击不触发 report nav；负向断言不读取 `TargetJob.recentSessions` / 不调用 `getFeedbackReport`。
+新增 `workspace/WorkspaceHandoff.test.tsx`：测 CompanyIntelEmbed 不调 `getCompanyIntel`；测点击后仍停留在 `workspace` 且保留 `targetJobId / jdId`；测 sessionHistory 区域为 `EmptyHistory` / disabled placeholder 且点击不触发 report nav；负向断言不读取 `TargetJob.recentSessions` / 不调用 `getFeedbackReport`。
 
 #### 5.4 BDD-Gate
 
-- BDD-Gate: 验证 `E2E.P0.021` handoff 主路径 + 隐私红线 + 旧入口反向 grep
+- BDD-Gate: 验证 `E2E.P0.021` embedded-only 主路径 + 隐私红线 + 旧入口反向 grep
 
 ### Phase 6: 验证收口（pixel parity + scenario + regression rerun）
 
@@ -391,7 +392,7 @@ CTA 在请求中 disabled + spinner；4xx / 5xx 显示 inline 错误（在 Inter
 - 旧 route alias（`welcome` / `growth` / `mistakes` / `drill` / `followup` / `experiences` / `star` / 独立 `voice`）在 workspace 模块中 grep 0 命中（除 `app/normalizeRoute.ts` alias map）
 - JD 原文 / 简历正文 grep — 仅出现在 React state / generated client request body / fixture，不出现在 `console.log` / URL / `localStorage` / telemetry 调用
 - LLM/provider grep — workspace 模块不出现 provider key、provider registry、prompt registry、AIClient、LLM endpoint 或 ad hoc 绕过 generated client 的 fetch；`questionText` 不在 workspace 屏 DOM 中渲染
-- generated client `listResumes` / `getCompanyIntel` 调用次数为 0（断言入口：`mockTransport` spy + tsc 类型检查）
+- `getCompanyIntel` 调用次数为 0；Phase 1-6 保留 `listResumes` 调用次数为 0 的历史证据，Phase 7/D-20 必须替换为 active-list 正向断言
 
 #### 6.7 BDD-Gate
 
@@ -420,14 +421,14 @@ CTA 在请求中 disabled + spinner；4xx / 5xx 显示 inline 错误（在 Inter
 - 关联 BDD-Gate（`E2E.P0.018 / 019 / 020 / 021`）全部通过；D1+D2+D3 已存在 regression（`P0.001/002/004/005/006`）全部 PASS；home plan regression（`P0.014/015/016/017`）仅在场景资产存在且 INDEX Ready 时执行并 PASS
 - pixel parity 在 desktop + mobile 两 viewport 下 workspace 主屏 + 两 modal + 两空态新增 spec 全 PASS
 - `make docs-check` zero drift；`check_md_links` 双 OK；`pnpm typecheck` 0 错；`pnpm build` + `make build` PASS
-- 负向搜索（旧 prototype 业务 testid / 旧 route alias / prototype data 直接 import / JD 原文 / 简历正文泄漏 / `listResumes` / `getCompanyIntel` 调用）全部 0 命中
+- 负向搜索（旧 prototype 业务 testid / 旧 route alias / prototype data 直接 import / JD 原文 / 简历正文泄漏 / `getCompanyIntel` 调用）全部 0 命中；`listResumes` 负向搜索仅适用于 Phase 1-6 历史 disabled-list，Phase 7/D-20 必须反转为正向消费
 
 ## 6 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
 | `getTargetJob` / Practice contract 缺 typed history 字段 → sessionHistory 无法落地 | Phase 5.2 固定只渲染 `EmptyHistory` / disabled placeholder；negative gate 确认不读取 `recentSessions` fixture extension、不通过 `any` 拼出 report handoff；后续 owner 先补 `listPracticeSessions` 或等价 typed contract |
-| `listResumes` 缺 contract → Resume Picker 仅可显示当前绑定 resume | Phase 3.3 落 disabled-list 模式；Vitest 负向断言 generated client `listResumes` 不存在；UI 文案明示「待解锁」并指向 spec §3.2；plan 002+ 不直接复用 disabled-list 行为，由后续 contract 修订后切换 |
+| Resume Picker 历史 disabled-list 与当前 `listResumes` real handler 漂移 | Phase 3.3 保留历史 disabled-list；Phase 7/D-20 必须把 `ResumePickerModal` 切换为 active-list，移除 `resumePicker.disabledNote` 与 `listResumes` 负向断言，并通过 generated client / real-mode gate 证明消费真实 handler |
 | `Idempotency-Key` 在 createPracticePlan + startPracticeSession 双步分配策略不一致导致重试不幂等 | 抽 `frontend/src/lib/conventions/idempotency.ts::newIdempotencyBatch()` 返回稳定 `{create, start}` 双键；retry 复用同一 batch；Vitest 锁定 retry 第二次调用 header 与首次一致 |
 | `useStartPractice` 在 React StrictMode 双触发导致重复 createPracticePlan | hook 内部使用 `inFlightRef` + `Promise.resolve` 缓存当前 batch；首次调用入栈后 deduplicate；Vitest 在 StrictMode 下断言 generated client 调用次数 = 1 |
 | pendingAction round-trip 时 startContext 未持久化导致登录后启动失败 | `requestAuth` params 携带完整 `InterviewContext` keys、`PracticeDisplayContext` 与 `autoStartPractice=1`；pending route 固定为 `workspace`，登录恢复后 workspace mount 检查并清理控制位再触发 `useStartPractice().start()`；新增 Vitest 锁定 `pendingRoute=workspace` 且不使用不可执行 callback |

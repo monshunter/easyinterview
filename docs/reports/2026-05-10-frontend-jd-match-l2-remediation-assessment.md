@@ -6,7 +6,7 @@
 ## 1 复盘范围与成功证据
 
 - 范围：`/plan-code-review 002-jd-match-recommendations --fix` 的 L2 remediation，覆盖 `getJobRecommendation` 详情必调、`jd_match_action` 登录后 auto-resume、Search opaque pending payload、pixel parity gate、P0.027/P0.028/P0.030/P0.031 scenario verify 强化，以及 plan 002 文档生命周期恢复 completed。
-- 关联计划：[002 JD Match Recommendations](../spec/frontend-home-job-picks-and-parse/plans/002-jd-match-recommendations/plan.md)。
+- 关联历史计划：`frontend-home-job-picks-and-parse/002-jd-match-recommendations`（实体已随 product-scope/001 删除；当前删除证据由 [Core Loop Module Pruning](../spec/product-scope/plans/001-core-loop-module-pruning/plan.md) 承接）。
 - 关联 Bug：[BUG-0037](../bugs/BUG-0037.md)。
 - 成功证据：`pnpm --filter @easyinterview/frontend test` 105 files / 663 tests PASS；`typecheck` PASS；`build` PASS；`make build` PASS；`make validate-fixtures` OK 46 fixtures；`pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/jd_match.spec.ts` 20 passed；P0.027/P0.028/P0.029/P0.030/P0.031/P0.017 scenario setup→trigger→verify→cleanup 均 PASS；`sync-doc-index --check` 与 `make docs-check` zero drift。
 

@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: 1.9
-    to: 1.10
+    to: 1.13
 spec:
   defaultTarget: backend
   discovery:
@@ -15,25 +15,23 @@ spec:
       - backend-practice
       - backend-practice/004
       - 004-derived-plans-debrief
-      - derived-plans-debrief
-      - debrief-derived-practice
+      - report-derived-practice
+      - derived-plans-debrief-retired
     keywords:
       - practice
       - derived plan
       - retry_current_round
       - next_round
-      - debrief
+      - report-derived practice
+      - debrief retired
       - sourceReportId
-      - sourceDebriefId
       - source_report_id
-      - source_debrief_id
       - createPracticePlan
+      - getPracticePlan
       - startPracticeSession
-      - goal=debrief
-      - PracticeGoalDebrief
       - mode assisted strict
-      - debrief.raw_questions
-      - no first_question AI for debrief
+      - sourceDebriefId retired
+      - PracticeGoalDebrief retired
       - 004-derived-plans-debrief
   targets:
     backend:
@@ -54,6 +52,8 @@ spec:
           - openapi/fixtures/PracticePlans
           - openapi/fixtures/PracticeSessions
           - openapi
+          - test/scenarios/e2e/p0-070-practice-derived-plan-create-read-replay
+          - test/scenarios/e2e/p0-072-practice-derived-source-isolation-privacy
           - scripts/lint
         apiNames:
           - createPracticePlan

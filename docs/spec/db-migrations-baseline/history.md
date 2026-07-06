@@ -1,13 +1,15 @@
 # DB Migrations Baseline History
 
-> **版本**: 1.23
+> **版本**: 1.25
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-06 | 1.25 | JD Match 历史迁移审计：修正 §3.1.1 中 `async_jobs.job_type` 仍写 B3 canonical 9 项的旧口径，当前 source of truth 为 B3 / `shared/jobs.yaml` 的 8 项；补充 focused migration contract test，证明 `000014_drop_jd_match_module` 删除 5 张 JD Match 表、清理 `jd_match.*` prompt/rubric registry rows，并在收窄 `async_jobs_job_type_check` 前删除退休 job rows。 | product-scope/001-core-loop-module-pruning Phase 6.9 |
+| 2026-07-06 | 1.24 | 对齐 product-scope D-22 后的当前 DB baseline：`candidate_profiles` / `experience_cards` / `debriefs` 不再是 current 应用表或 privacy matrix 表项，应用表数 25→22，应用 / auth 支撑表数 28→25，public schema count gate 30→27。同步修复可执行 privacy matrix：`idempotency_records` 仍是当前用户关联表，必须按 `user_id` hard delete，并由 focused migration test 固化。 | product-scope/001-core-loop-module-pruning Phase 6 + B4 privacy matrix reconcile |
 | 2026-06-13 | 1.23 | product-scope D-20 简历扁平化（新增 B4 本地 D-22 决策）+ 回填 product-scope D-17 jd_match drop 计数漂移。`migrations/000015_resume_flatten.{up,down}.sql`（由 002 D-20 flatten phase 落地）：`resume_assets`→`resumes` + `structured_profile` / `display_name` + structured_master backfill；`source_type` CHECK 去 `guided` + drop `guided_answers` 列；`practice_plans.resume_asset_id`→`resume_id`；按 FK 反序 drop `resume_version_suggestions` / `resume_tailor_runs` / `resume_versions`；`migrations/enum-sources.yaml` 移除 3 个 resume version enum 来源（version_type / seed_strategy / suggestion status），`resumes.source_type` check 收敛 {upload, paste}。同步修正：product-scope D-17 已由 `000014_drop_jd_match_module` 删除 5 张 JD-Match 表，但 B4 spec §2.1 / §3.1.2 / §6 C-1 与本 history 此前未回填——本次一并回填，baseline 应用表 33（陈旧）→ 28（post-D-17 真实）→ 25（post-D-20），public schema 总表数 ≥30。`resume_tailor` async job_type 与 `resume.tailor.*` ai task_type 保留（AI 改写能力延续，改写建议改为 ephemeral 即时返回）。 | db-migrations-baseline/002-resume-versions-additive D-20 flatten phase + product-scope D-17 reconcile |
 | 2026-05-26 | 1.22 | BUG-0106 修订：新增 `migrations/000011_privacy_requests_user_tombstone.{up,down}.sql`，将 `privacy_requests.user_id` 改为 nullable + `ON DELETE SET NULL`，让 privacy delete completed tombstone 可在最终 hard delete `users` 行后保留 request id / status / completed_at / metadata，避免账户身份清理级联删除 request tombstone。 | backend-async-runner/001-internal-job-outbox-runner BUG-0106 remediation |
 | 2026-05-21 | 1.21 | 登记 backend-jobs-recommendations/001 cross-owner additive：新增 `migrations/000009_jd_match_baseline.{up,down}.sql` 创建 5 张 JD-Match 表（`jd_match_recommendations` / `watchlist_items` / `saved_searches` / `agent_scans` / `jd_match_search_runs`）+ index + FK + CHECK constraints；`migrations/enum-sources.yaml` 追加 2 个新 enum source（`agent_scans.status` ∈ {idle, scanning, error} / `watchlist_items.tone` ∈ {ok, warn, muted}）；baseline 应用表数 28 → 33（含 ADR-Q1 支撑表 + 元数据表共 38 张）；§3.1.2 privacy deletion matrix 新增 5 表删除顺序 `watchlist_items → saved_searches → jd_match_search_runs → jd_match_recommendations → agent_scans`；新 D-20 决策行锁定 cross-owner additive 范围与禁止外部招聘平台接入（LinkedIn / Boss / 脉脉 / 拉勾 baseline 不连）。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0 |

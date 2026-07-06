@@ -1,7 +1,7 @@
 // Package runner is the single in-process async job and outbox kernel for the
 // backend (docs/spec/backend-async-runner). It consolidates the per-domain
-// drainers / runners that previously lived in targetjob, review, resume, auth,
-// and jdmatch into one runner.Runtime that owns:
+// drainers / runners that previously lived in targetjob, review, resume, and
+// auth into one runner.Runtime that owns:
 //
 //   - the handler registry (Register / Handles),
 //   - lease + finalize bookkeeping over async_jobs (LeaseStore, spec D-3),

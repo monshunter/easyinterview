@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-06
 
 **关联计划**: [plan](./plan.md)
 
@@ -11,6 +11,8 @@
 > Handoff（2026-05-12）：`openapi-v1-contract/004-resume-additive-coverage` 已落地 `listResumes` operation + fixtures + generated client；本 completed plan 的 disabled-list 模式保持历史交付状态，后续 workspace owner 应原地修订 Resume Picker 为 active-list。
 
 > Handoff（2026-05-13）：`backend-resume/001-asset-register-parse-and-listing` 已落地 `listResumes` 真实 `cmd/api` route、handler fixture parity 与 E2E.P0.034/P0.035；workspace owner 可启动 Resume Picker active-list 原地修订，移除 disabled-list 负向断言。关联提交：`1d1f69c feat(backend-resume): wire resume routes and listing`。
+
+> Product-scope reconcile（2026-07-06）：旧 Job Picks / `jd_match` 与独立 `company_intel` route 不再作为正向范围；CompanyIntelEmbed 只保留 workspace 内嵌摘要与 safe params。`listResumes` 不是缺契约 blocker，Phase 7/D-20 应把历史 disabled-list 反向断言改为 active-list 正向断言。
 
 ## Phase 1: WorkspaceScreen 静态壳 + 路由壳 + InterviewContext store + i18n（无数据）
 
@@ -55,13 +57,13 @@
 - [x] 4.8 新增 `workspace/WorkspaceAuthGate.test.tsx`：测未登录立即面试 → `requestAuth` 触发 → `auth_login` 携带 `pendingRoute=workspace` / `pendingType=start_practice` / `autoStartPractice=1` → 登录恢复 workspace → route hydrate `InterviewContext` → 清理 `autoStartPractice` → 自动 startPractice → nav practice；测 pendingAction.params 仅含 IDs / route / `PracticeDisplayContext` / `autoStartPractice` 结构化字段，不含敏感字段
 - [x] 4.9 BDD-Gate: 验证 `E2E.P0.020` 立即面试 + 未登录恢复 + `E2E.P0.019` getPracticePlan 恢复 <!-- verified: 2026-05-09 method=scenario -->
 
-## Phase 5: CompanyIntelEmbed handoff + Session History handoff + 空态收口
+## Phase 5: CompanyIntelEmbed embedded-only + Session History handoff + 空态收口
 
 - [x] 5.1 新增 `frontend/src/app/screens/workspace/CompanyIntelEmbed.tsx`：数据仅限 getTargetJob 字段，不调 getCompanyIntel
 - [x] 5.2 sessionHistory placeholder：Phase 2 已实现 `EmptyHistory` / disabled placeholder
 - [x] 5.3 WorkspaceEmptyState / WorkspaceMissingResumeState 收口：CTA 跳转已实现（home / resume_versions?flow=create）
-- [x] 5.4 新增 `workspace/WorkspaceHandoff.test.tsx`：测 CompanyIntelEmbed 不调 `getCompanyIntel`、handoff 携带 `targetJobId / jdId`；测 sessionHistory 为 `EmptyHistory` / disabled placeholder 且点击不触发 report nav；测不读取 `TargetJob.recentSessions`、不调用 `getFeedbackReport`；测两空态 CTA 跳转
-- [x] 5.5 BDD-Gate: 验证 `E2E.P0.021` handoff 主路径 + 隐私红线 + 旧入口反向 grep <!-- verified: 2026-05-09 method=scenario -->
+- [x] 5.4 新增 `workspace/WorkspaceHandoff.test.tsx`：测 CompanyIntelEmbed 不调 `getCompanyIntel`、点击后仍停留在 `workspace` 并携带 `targetJobId / jdId` safe params；测 sessionHistory 为 `EmptyHistory` / disabled placeholder 且点击不触发 report nav；测不读取 `TargetJob.recentSessions`、不调用 `getFeedbackReport`；测两空态 CTA 跳转
+- [x] 5.5 BDD-Gate: 验证 `E2E.P0.021` embedded-only 主路径 + 隐私红线 + 旧入口反向 grep <!-- verified: 2026-05-09 method=scenario -->
 
 ## Phase 6: 验证收口（pixel parity + scenario + regression rerun）
 
@@ -72,7 +74,7 @@
 - [x] 6.5 Regression 重跑：`P0.001/002/004/005` 由 full Vitest + full pixel parity 等价覆盖；P0.006 pixel parity 96/96 PASS；workspace `P0.018/019/020/021` 均 `setup -> trigger -> verify -> cleanup` PASS；`P0.014/015/016/017` 场景目录存在但属 home plan active gate，记录为条件 gate（当前不适用）
 - [x] 6.6 全量验证：`pnpm --filter @easyinterview/frontend test` (67 files, 432 tests PASS)、`pnpm --filter @easyinterview/frontend build` (PASS，包含 `tsc --noEmit` + `vite build`)；`make build` 未作为本次 L2 code review fix 的必要 gate 执行
 - [x] 6.7 文档与索引同步：checklist、bdd-checklist 与 plans INDEX 已更新至最新；`make docs-check` + `/sync-doc-index --fix-index` post-fix zero drift gate 执行
-- [x] 6.8 负向搜索：prototype helper imports、旧 testid、旧 route alias、JD 原文/简历正文泄漏、AI/LLM 直接调用、listResumes/getCompanyIntel/getFeedbackReport 运行时调用 → 全部 0 命中（仅注释与测试断言命中）
+- [x] 6.8 负向搜索：prototype helper imports、旧 testid、旧 route alias、JD 原文/简历正文泄漏、AI/LLM 直接调用、getCompanyIntel/getFeedbackReport 运行时调用 → 全部 0 命中；`listResumes` 调用 0 只作为 Phase 1-6 历史 disabled-list 证据，Phase 7/D-20 必须反转为 active-list 正向断言
 - [x] 6.9 BDD-Gate: 验证 `E2E.P0.018/019/020/021` 全部 `setup -> trigger -> verify -> cleanup` PASS；D1+D2+D3 regression 由 full Vitest + full pixel parity 覆盖；`P0.006` pixel parity 96/96 PASS；home plan `P0.014-017` 条件 gate 当前不适用 <!-- verified: 2026-05-09 method=scenario -->
 
 ## L2 Code Review Remediation（2026-05-09）

@@ -1,13 +1,14 @@
 # Event and Outbox Contract History
 
-> **版本**: 2.8
+> **版本**: 2.9
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-06 | 2.9 | 对齐 product-scope D-17 / D-22 后的当前编码 truth：B3 active spec 从 18 events / 11 jobs 收敛为 `shared/events.yaml` 的 14 events 与 `shared/jobs.yaml` 的 8 jobs；`debrief.*`、`debrief_generate`、`jd_match.*`、`jd_match_agent_scan`、`jd_match_search` 只保留为历史删除记录，不再作为 current event/job contract。 | product-scope/001-core-loop-module-pruning Phase 6 |
 | 2026-06-13 | 2.8 | product-scope D-20 简历扁平化（新增 B3 本地 D-17）：`resume.parse.completed` / `resume.tailor.completed` 的 `resumeAssetId` 重命名为 `resumeId`（= 扁平 `resumes.id`），§3.1.3 event #10/#11 resource label `resume_asset` / `resume_tailor_run` 收敛为 `resume`。`resume_tailor` job_type 与 `resume.tailor.completed` 事件保留（AI 改写延续；专属 `resume_tailor_runs` 表已由 B4 D-22 删除，改写建议 ephemeral，`tailorRunId` 改指 AI task run id）；`ResumeTailorMode` enum 与 `targetJobId`（可选 JD-aware 上下文）保留。baseline 期 resume events 无真实 producer/consumer，按 fixture/docs-only 路径处理，不触发 breaking。`shared/events.yaml` / baseline manifest / Go/TS 生成类型 / JSON Schema refs 的实际重命名由 D-20 contract impl phase 随 contract regen 落地（无独立 B3 plan phase）。 | product-scope D-20 contract impl phase |
 | 2026-05-22 | 2.7 | plan-review backend-async-runner/001 深度校对时同步 B3 当前生成物事实：事件全集为 18、canonical job_type 为 11；将目标、scope、§3.1.1/§3.1.2/§3.1.3、payload schema、命名约束和验收标准统一到 `shared/events.yaml` / `shared/jobs.yaml` 与 generated Go/TS truth，明确 `jd_match_search` 仅 future-async reserved，不进入当前 backend async runner drainer 注册。 | backend-async-runner/001-internal-job-outbox-runner plan-review remediation |
 | 2026-05-21 | 2.6 | backend-jobs-recommendations/001 携带 B3 additive：新增 `jd_match.recommendation.completed` / `jd_match.search.completed` 两个事件与 `jd_match_agent_scan` / `jd_match_search` 两个 canonical job_type，同步 baseline、generated artifacts、migration check constraint 与 lint inventory；`jd_match_search` 保持 internal-only future-async reserved。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.8 + 0.9 + 0.10 |

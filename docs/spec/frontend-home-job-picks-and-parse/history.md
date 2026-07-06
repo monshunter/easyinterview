@@ -1,13 +1,14 @@
-# Frontend Home / Job Picks / Parse History
+# Frontend Home / Parse History
 
-> **版本**: 1.11
+> **版本**: 2.7
 > **状态**: completed
-> **更新日期**: 2026-05-24
+> **更新日期**: 2026-07-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-06 | 2.7 | 第二轮 product-scope pruning reconcile：当前 active scope 收敛为 Home + Parse；旧 Job Picks / jd_match / JobMatch / P0.017 / `frontend/src/app/screens/jd_match/` / `frontend/tests/pixel-parity/jd_match.spec.ts` / `POST-INTERVIEW` / debrief 正向口径全部改为历史退役记录与负向 gate；同步 plan 001、BDD、context 与 plans index，防止 `/implement` discovery 误拾取已删模块 | 001-home-jd-import-and-parse |
 | 2026-05-24 | 1.11 | plan `001-home-jd-import-and-parse` same-route target switch remediation：修复同一 mounted `ParseScreen` 从已解析 preview 切到新的 `targetJobId` 时继续显示旧 TargetJob 的问题；新增 `ParseFlow` rerender regression，要求路由参数切换后清空旧 preview/edit state、重新展示 loading gate，并在 tick 完成后 hydrate 新 TargetJob | 001-home-jd-import-and-parse |
 | 2026-05-24 | 1.10 | plan `001-home-jd-import-and-parse` P0.016 remediation：修复 `ParseScreen` Confirm handoff 手写 workspace params 漏传 `jobId` / `roundName` 的问题；已登录 navigate 与未登录 `requestAuth(pendingAction)` 统一复用 `interviewContextFromTargetJob(targetJob)` 7 字段契约；P0.016 新增 Playwright browser gate，点击 Confirm 后验证 `/workspace` query 与 `workspace-missing-resume` screenshot marker | 001-home-jd-import-and-parse |
 | 2026-05-24 | 1.9 | plan `001-home-jd-import-and-parse` regression remediation：修复 `ParseScreen` 在首次 `getTargetJob.analysisStatus=ready` 时直接进入 preview、跳过 `ui-design/src/screens-p0-complete.jsx::ParseScreen` 4 步 loading 演示的问题；新增/调整 `ParseFlow` ready gate，要求 loading step DOM 先出现并完成 3.2s tick 后再渲染 preview；同步 P0.015 scenario 证据 | 001-home-jd-import-and-parse |

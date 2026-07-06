@@ -1,8 +1,8 @@
 # Backend Resume Spec
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-06
 
 ## 1 背景与目标
 
@@ -101,7 +101,6 @@
 | 边界 | Owner | 说明 |
 |------|-------|------|
 | 14 个 Resume / ResumeTailor HTTP handler | backend-resume | 真实业务逻辑 |
-| `CountResumesForUser(ctx, db, userID) (int, error)` cross-owner internal API | backend-resume | backend-jobs-recommendations/001 BuildJobMatchProfile aggregation (D-18 sources.resumes)；read-only；cross-user 隔离；不写 audit。实现：`backend/internal/resume/count.go` |
 | `resume_assets` / `resume_versions` / `resume_version_suggestions` / `resume_tailor_runs` 表 schema | [B4 db-migrations-baseline](../db-migrations-baseline/spec.md) + [B4 002 plan](../db-migrations-baseline/plans/002-resume-versions-additive/plan.md) | 字段 / 索引 / FK / check constraint |
 | file_object 引用 | [backend-upload](../backend-upload/spec.md) `Register` internal API | resume_assets 通过 backend-upload 引用 file_object |
 | `resume.parse` / `resume.tailor` async job | backend-resume + backend-runtime-topology | job handler 注册到 `cmd/api` in-process drainer / runtime composition |

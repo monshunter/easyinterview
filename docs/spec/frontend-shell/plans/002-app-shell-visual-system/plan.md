@@ -1,8 +1,8 @@
 # App Shell Visual System
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-07-06
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,18 +11,18 @@
 
 ## 1 目标
 
-承接 [001-app-shell-auth-settings](../001-app-shell-auth-settings/plan.md) 已交付的 routing / i18n / auth / fixture-backed mock 行为骨架，把 `ui-design/` 静态原型 100% 源级复刻进正式前端 App 壳：建立设计 token 与 typography scale、接入主题 / 暗色 / `customAccent` 根级 wiring、为 TopBar / 五入口 / 显示控制 / 认证页 / 用户菜单 / settings & profile placeholder 提供与静态原型一致的视觉表达。本 plan 不引入业务页面细节、不引入新构建框架、不引入外部品牌设计系统，不允许 AI 自由重设计、重新解释或重新组合视觉，并在交付时通过 D1 前端全量测试、`E2E.P0.001` / `E2E.P0.002` / `E2E.P0.004` 行为 regression、`E2E.P0.005` visual smoke + `ui-design` parity gate 证明视觉接入未破坏既有行为契约且忠实复刻当前 UI 真理源。
+承接 [001-app-shell-auth-settings](../001-app-shell-auth-settings/plan.md) 已交付的 routing / i18n / auth / fixture-backed mock 行为骨架，把 `ui-design/` 静态原型 100% 源级复刻进正式前端 App 壳：建立设计 token 与 typography scale、接入主题 / 暗色 / `customAccent` 根级 wiring、为 TopBar / 三入口 / 显示控制 / 认证页 / 用户菜单 / settings shell 提供与静态原型一致的视觉表达。本 plan 不引入业务页面细节、不引入新构建框架、不引入外部品牌设计系统，不允许 AI 自由重设计、重新解释或重新组合视觉，并在交付时通过 D1 前端全量测试、`E2E.P0.001` / `E2E.P0.002` / `E2E.P0.004` 行为 regression、`E2E.P0.005` visual smoke + `ui-design` parity gate 证明视觉接入未破坏既有行为契约且忠实复刻当前 UI 真理源。
 
 ## 2 背景
 
-D1 plan 完成后，正式前端已具备 `home` 默认壳、五入口 TopBar、`requestAuth(pendingAction)`、用户菜单、`profile` / `settings` placeholder、display preferences (`warm` / `forest` / `ocean` / `plum` × `light` / `dark`)、独立 locale 文件以及 fixture-backed mock transport。`docs/ui-design/` 与 `ui-design/` 是本 plan 的唯一 UI 验收真理源头；外部品牌设计系统不再作为参考。spec.md §4 / §6 C-8 已收紧为：正式前端必须 100% 源级复刻 `ui-design/` 的 DOM 构图、布局、间距、字号、字体层级、控件密度、颜色、阴影、边框、圆角、状态、响应式行为和交互节奏，`customAccent` 必须进入正式前端主题系统，visual smoke 工具必须作为用户可见视觉渲染 gate。
+D1 plan 完成后，正式前端已具备 `home` 默认壳、三入口 TopBar、`requestAuth(pendingAction)`、用户菜单、`settings` shell、display preferences (`warm` / `forest` / `ocean` / `plum` × `light` / `dark`)、独立 locale 文件以及 fixture-backed mock transport。`docs/ui-design/` 与 `ui-design/` 是本 plan 的唯一 UI 验收真理源头；外部品牌设计系统不再作为参考。spec.md §4 / §6 C-8 已收紧为：正式前端必须 100% 源级复刻 `ui-design/` 的 DOM 构图、布局、间距、字号、字体层级、控件密度、颜色、阴影、边框、圆角、状态、响应式行为和交互节奏，`customAccent` 必须进入正式前端主题系统，visual smoke 工具必须作为用户可见视觉渲染 gate。
 
 `ui-design/src/primitives.jsx` 持有 `EI_THEMES` 真理源（warm / forest / ocean / plum × light / dark）和 `EI_FONT_PRESETS`；`ui-design/src/app.jsx` 持有 `customAccent` 运行时模型与 TopBar 自定义 accent 控件。`ui-design/src/screen-*.jsx` 与 `docs/ui-design/auth-and-entry.md` / `user-profile-and-settings.md` 等文档定义具体页面节奏、卡片层级与字体层级。实现前必须直接读取这些文件并建立 source-to-target 映射；所有样式值必须来自原型源码或由原型源码抽取的 token，不得只按文字描述、组件库默认值或 AI 直觉重建 UI。
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior` + `frontend`（视觉接入是用户可见的前端交付，但用户行为流不变）。
-- **TDD 策略**: 通过 `/implement frontend-shell/002-app-shell-visual-system frontend` → `/tdd` 执行；每个 checklist item 先写 focused Vitest / component test / structural test / visual smoke / parity fixture，再实现最小前端代码；测试断言写在 checklist 的 `验证:` 后。Token wiring、主题 / 暗色 / `customAccent` data-attribute 或 CSS variable 切换、字体加载 helper、TopBar / Auth / Profile / Settings 视觉表达、visual smoke 工具必须各自有断言；关键视觉项必须与 `ui-design` golden preview 比对 DOM 锚点、computed style、bounding box 和必要截图差异，并附 source-to-target 映射证据；D1 当前前端全量测试 + `pnpm --filter @easyinterview/frontend build` + `make build` 必须在 Phase 6 通过。任何可见偏差不得以“风格接近”收口，必须修到与原型一致或先修改 `ui-design/` 真理源。
+- **TDD 策略**: 通过 `/implement frontend-shell/002-app-shell-visual-system frontend` → `/tdd` 执行；每个 checklist item 先写 focused Vitest / component test / structural test / visual smoke / parity fixture，再实现最小前端代码；测试断言写在 checklist 的 `验证:` 后。Token wiring、主题 / 暗色 / `customAccent` data-attribute 或 CSS variable 切换、字体加载 helper、TopBar / Auth / Settings / Placeholder 视觉表达、visual smoke 工具必须各自有断言；关键视觉项必须与 `ui-design` golden preview 比对 DOM 锚点、computed style、bounding box 和必要截图差异，并附 source-to-target 映射证据；旧 `profile` route 只作为 retired alias 负向对象。D1 当前前端全量测试 + `pnpm --filter @easyinterview/frontend build` + `make build` 必须在 Phase 6 通过。任何可见偏差不得以“风格接近”收口，必须修到与原型一致或先修改 `ui-design/` 真理源。
 - **BDD 策略**: 需要 BDD。本 plan 引入用户可见视觉系统、主题 / 暗色 / custom accent 交互和 visual smoke 验证工具，必须维护 [bdd-plan](./bdd-plan.md)、[bdd-checklist](./bdd-checklist.md)，并在主 checklist 使用 `BDD-Gate:` 引用 `E2E.P0.005`。D1 已交付的 `E2E.P0.001` / `E2E.P0.002` / `E2E.P0.004` 作为行为 regression gate 继续重跑。
 - **替代验证 gate**: 不适用；BDD gate 是本 plan 的用户可见视觉验证入口。补充 gate 包括 D1 frontend 全量测试、visual contract tests、`ui-design` parity tests、visual smoke 工具、build smoke、active-scope 负向搜索和 `make docs-check`。
 
@@ -58,21 +58,21 @@ D1 plan 完成后，正式前端已具备 `home` 默认壳、五入口 TopBar、
 
 把 `frontend/src/app/topbar/TopBar.tsx` 的 `<header>` / `<nav>` / `<div>` 接入设计 token，并按 `ui-design/src/app.jsx` 的 TopBar DOM 构图、尺寸、gap、padding、背景、阴影和对齐方式逐项复刻。**保留**所有 D1 `data-testid` 不变；视觉只通过 `className` / 设计 token 表达。
 
-#### 3.2 五入口与显示控制视觉
+#### 3.2 三入口与显示控制视觉
 
-为五入口按钮、主题 menu、custom accent 控件、暗色 icon toggle、语言 icon dropdown、登录 / 注册 / 用户菜单按钮接入语义 className，并原生复刻 `ui-design/src/app.jsx` TopBar 与 `ui-design/src/screen-home.jsx` 的视觉节奏。`aria-current` / `aria-pressed` / `aria-label` 行为不变；字号、padding、圆角、gap、active 状态、控件密度必须来自原型事实，不得凭组件库默认值自由生成。
+为三入口按钮、主题 menu、custom accent 控件、暗色 icon toggle、语言 icon dropdown、单一登录 / 用户菜单按钮接入语义 className，并原生复刻 `ui-design/src/app.jsx` TopBar 与 `ui-design/src/screen-home.jsx` 的视觉节奏。`aria-current` / `aria-pressed` / `aria-label` 行为不变；字号、padding、圆角、gap、active 状态、控件密度必须来自原型事实，不得凭组件库默认值自由生成；`jd_match` / `debrief` / `profile` / 注册入口不作为正向 TopBar 或菜单视觉对象。
 
 ### Phase 4: 认证页视觉接入
 
 #### 4.1 Auth 页 shell 视觉
 
-为 `auth_login` / `auth_register` / `auth_verify` / `auth_reset` / `auth_logout` 五个 screen 接入卡片化视觉（标题、表单容器、CTA 按钮、错误 / 状态提示），节奏对齐 `ui-design/src/screen-auth.jsx` 与 `docs/ui-design/auth-and-entry.md`。**保留** D1 表单字段、`data-testid`、pendingAction wiring、auth-only params 隔离不变。
+为 `auth_login` / `auth_verify` / `auth_profile_setup` / `auth_logout` screen 接入卡片化视觉（标题、表单容器、CTA 按钮、错误 / 状态提示），节奏对齐 `ui-design/src/screen-auth.jsx` 与 `docs/ui-design/auth-and-entry.md`。`auth_register` / `auth_reset` 只作为 retired alias 负向对象，不得 materialize 独立页面。**保留** D1 表单字段、`data-testid`、pendingAction wiring、auth-only params 隔离不变。
 
-### Phase 5: Profile / Settings placeholder 视觉接入
+### Phase 5: Settings / placeholder 视觉接入
 
-#### 5.1 Profile / Settings shell 视觉
+#### 5.1 Settings shell 视觉
 
-为 `profile` 与 `settings` placeholder shell 接入卡片节奏与分区标题（账号 / 隐私 / 字体预设），参考 `ui-design/src/screen-profile.jsx` 与 `docs/ui-design/user-profile-and-settings.md`。**禁止**恢复旧 Growth / Experiences / Mistakes / Drill / 独立 Voice 模块视觉；**保留** D1 `data-testid` 不变。
+为 `settings` shell 接入卡片节奏与分区标题（账号 / 隐私 / 字体预设），参考当前 `ui-design/` 与 `docs/ui-design/` 设置页契约。**禁止**恢复旧 Profile / Growth / Experiences / Mistakes / Drill / 独立 Voice 模块视觉；**保留** D1 `data-testid` 不变。
 
 #### 5.2 PlaceholderScreen 视觉占位
 
@@ -94,7 +94,7 @@ D1 plan 完成后，正式前端已具备 `home` 默认壳、五入口 TopBar、
 
 #### 6.4 Visual smoke 工具与 BDD gate
 
-引入 visual smoke + parity 工具（优先 Playwright 或等价浏览器渲染工具），在本 plan 的关键 shell 场景中同时打开正式 `frontend` 与 `ui-design` golden preview，检查默认 App shell、TopBar、auth/profile/settings/placeholder shell 在 desktop 与 mobile viewport 下非空渲染、核心控件不重叠、warm/light 与 dark/custom accent 产生可见 computed-style 或截图差异、旧入口未回流，并对源/目标 DOM 锚点、computed style、bounding box 与必要截图差异执行 100% 复刻 gate。该工具作为 `E2E.P0.005` 的验证入口，并由 `bdd-checklist.md` 记录场景资产与执行证据。
+引入 visual smoke + parity 工具（优先 Playwright 或等价浏览器渲染工具），在本 plan 的关键 shell 场景中同时打开正式 `frontend` 与 `ui-design` golden preview，检查默认 App shell、TopBar、auth/settings/placeholder shell 在 desktop 与 mobile viewport 下非空渲染、核心控件不重叠、ocean/light 与 dark/custom accent 产生可见 computed-style 或截图差异、旧入口未回流，并对源/目标 DOM 锚点、computed style、bounding box 与必要截图差异执行 100% 复刻 gate；`profile` 只作为 retired alias 负向对象。该工具作为 `E2E.P0.005` 的验证入口，并由 `bdd-checklist.md` 记录场景资产与执行证据。
 
 #### 6.5 Handoff
 

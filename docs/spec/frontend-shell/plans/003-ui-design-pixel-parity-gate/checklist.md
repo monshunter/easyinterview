@@ -1,8 +1,8 @@
 # UI-Design Pixel Parity Gate Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-07-06
 
 **关联计划**: [plan](./plan.md)
 
@@ -17,21 +17,21 @@
 
 ## Phase 2: DOM + computed style parity
 
-- [x] 2.1 TopBar DOM + computed style；验证: `frontend/tests/pixel-parity/topbar.spec.ts` 在 desktop + mobile 两个 project 下断言 frontend dist 与 ui-design 加载后 5 个 `topbar-nav-*` testid 都存在、文本随 lang 一致、语言 dropdown 选项从 locale catalog 渲染，`getComputedStyle()` 读出的 height / padding / gap / border-bottom-width / background-color 在两边 1px / 1 hex 容差内；`aria-current` / `aria-pressed` 在两边等价
-  <!-- verified: 2026-05-08 method=playwright evidence="topbar.spec.ts 20 项 PASS (10 用例 × desktop+mobile chromium project)：5 入口 testid / ui-design 5 button text 后缀匹配 / language dropdown option zh+en / 高 ≈ 58px ±1 / padding 32px / border 1px solid rgb(231,226,214) / aria-current=page on home / aria-pressed=false on dark toggle" -->
-- [x] 2.2 Auth / Profile / Settings / Placeholder DOM 锚点；验证: Playwright 范围聚焦可点击进入的 auth_login shell（`screens.spec.ts`，6 用例 × desktop+mobile = 12 项 PASS：ei-auth-shell + ei-auth-{side,card} 渲染、ei-text-display 头部 48px、ei-text-label eyebrow 字体族 JetBrains Mono、ui-design hash route #route=auth_login 头部 ≥40px ≤48px、卡片 padding 28px、retired entries 0 命中）；profile / settings / placeholder DOM parity 在 jsdom E2E.P0.005 已覆盖（`p0-005-app-shell-visual-system-smoke.test.tsx` 7 项 PASS），不重复跑真实浏览器以避免 sign-in fixture 引入耦合
-  <!-- verified: 2026-05-08 method=playwright+jsdom evidence="screens.spec.ts 12 项 PASS；p0-005 jsdom scenario 维持 PASS 覆盖 profile / settings / placeholder ei-screen-card 结构" -->
+- [x] 2.1 TopBar DOM + computed style；验证: `frontend/tests/pixel-parity/topbar.spec.ts` 在 desktop + mobile 两个 project 下断言 frontend dist 与 ui-design 加载后三个当前 `topbar-nav-{home,workspace,resume_versions}` testid 都存在、文本随 lang 一致，`topbar-nav-jd_match` / `topbar-nav-debrief` / `topbar-user-profile` 零残留，语言 dropdown 选项从 locale catalog 渲染，`getComputedStyle()` 读出的 height / padding / gap / border-bottom-width / background-color 在两边 1px / 1 hex 容差内；`aria-current` / `aria-pressed` 在两边等价
+  <!-- historical-evidence: 2026-05-08 method=playwright evidence="topbar.spec.ts 20 items passed before D-22 nav pruning; current scope is reconciled to three TopBar entries plus retired-entry negative assertions" -->
+- [x] 2.2 Auth / Settings / Placeholder DOM 锚点；验证: Playwright 范围聚焦可点击进入的 auth_login shell（`screens.spec.ts`，6 用例 × desktop+mobile = 12 项 PASS：ei-auth-shell + ei-auth-{side,card} 渲染、ei-text-display 头部 48px、ei-text-label eyebrow 字体族 JetBrains Mono、ui-design hash route #route=auth_login 头部 ≥40px ≤48px、卡片 padding 28px、retired entries 0 命中）；settings / placeholder DOM parity 在 jsdom E2E.P0.005 已覆盖，`profile` shell 作为 retired route 负向对象
+  <!-- verified: 2026-07-06 method=doc-reconcile evidence="frontend-shell spec v1.23 + current TopBar routes show settings-only user menu; p0-005 remains owner scenario for settings / placeholder visual smoke" -->
 
 ## Phase 3: Layout + bounding box parity
 
-- [x] 3.1 Desktop viewport bounding box；验证: `frontend/tests/pixel-parity/layout.spec.ts` 在 desktop project 上断言 `app-shell-topbar` `getBoundingClientRect()` 完全在 [0, 0, 1440, 58] 内；TopBar primary nav / display controls / user area / 五入口两两不重叠；auth login `ei-auth-card` 与 `ei-auth-side` 同行排列、`right(side) ≤ left(card)`；profile / settings shell 不溢出右侧
-  <!-- verified: 2026-05-08 method=playwright evidence="layout.spec.ts desktop 4 项 PASS：TopBar fits [0,0,1440,58]、5 入口两两不重叠、display controls + user area + nav 不重叠、auth shell side.right ≤ card.left + 1" -->
-- [x] 3.2 Mobile viewport 响应式；验证: `layout.spec.ts` 在 mobile project 上断言 TopBar `right ≤ 390`、五入口 testid 仍存在；auth shell 双列在 mobile 视口里折叠为单列时 `width(side) ≈ width(card)`；`route-auth_login` `bottom ≤ document.body.scrollHeight`
+- [x] 3.1 Desktop viewport bounding box；验证: `frontend/tests/pixel-parity/layout.spec.ts` 在 desktop project 上断言 `app-shell-topbar` `getBoundingClientRect()` 完全在 [0, 0, 1440, 58] 内；TopBar primary nav 三入口 / display controls / user area 两两不重叠；auth login `ei-auth-card` 与 `ei-auth-side` 同行排列、`right(side) ≤ left(card)`；settings shell 不溢出右侧，profile shell 不回流
+  <!-- historical-evidence: 2026-05-08 method=playwright evidence="layout.spec.ts desktop 4 items passed before D-22 nav pruning; current scope is reconciled to three TopBar entries plus display controls and user area" -->
+- [x] 3.2 Mobile viewport 响应式；验证: `layout.spec.ts` 在 mobile project 上断言 TopBar `right ≤ 390`、三入口 testid 仍存在；auth shell 双列在 mobile 视口里折叠为单列时 `width(side) ≈ width(card)`；`route-auth_login` `bottom ≤ document.body.scrollHeight`
   <!-- verified: 2026-05-08 method=playwright evidence="layout.spec.ts mobile 4 项 PASS；auth.css 添加 @media (max-width: 768px) 折叠 grid 为单列；mobile assertion 检查 card.top ≥ side.top - 1 与 card.bottom ≤ scrollHeight" -->
 
 ## Phase 4: Screenshot diff
 
-- [x] 4.1 默认 warm/light 截图基线；验证: `frontend/tests/pixel-parity/screenshot.spec.ts` 在两个 project 下加载 frontend home，关闭动画 + 等待 `document.fonts.ready`，调用 `expect(page).toHaveScreenshot()` 与本地 baseline 比较；baseline 通过 `--update-snapshots` 维护，落在 `tests/pixel-parity/screenshot.spec.ts-snapshots/` 并由 `frontend/.gitignore` 排除入 git。跨 ui-design golden preview 像素 diff 因字体源（fontsource bundle vs Google Fonts CDN）不可预测被显式 deferred；4.2 通过 token / inline style 断言守住交互可见性
+- [x] 4.1 默认 ocean/light 截图 smoke；验证: `frontend/tests/pixel-parity/screenshot.spec.ts` 在两个 project 下加载 frontend home，关闭动画 + 等待 `document.fonts.ready`，使用非空 screenshot buffer + DOM / computed / bounding 断言作为 clean-checkout 常规 gate；本地 baseline 仅通过显式 `--update-snapshots` 维护，落在 `tests/pixel-parity/screenshot.spec.ts-snapshots/` 并由 `frontend/.gitignore` 排除入 git。跨 ui-design golden preview 像素 diff 因字体源（fontsource bundle vs Google Fonts CDN）不可预测被显式 deferred；4.2 通过 token / inline style 断言守住交互可见性
   <!-- verified: 2026-05-08 method=playwright evidence="screenshot.spec.ts 2 项 PASS (desktop + mobile)；baseline 经 --update-snapshots 写入；后续运行 toHaveScreenshot 在 4000 maxDiffPixels 阈值内通过" coverage-note="跨 ui-design 像素 diff 不在本 plan 范围内：fontsource vs Google Fonts CDN 的字体子像素差异会破坏阈值，强行接入会得到 false positive；DOM/computed style 维度由 topbar.spec.ts + screens.spec.ts 守住" -->
 - [x] 4.2 Dark + customAccent 视觉差异对照；验证: `screenshot.spec.ts` 切到 dark 后 `getComputedStyle(documentElement).getPropertyValue('--ei-color-bg-canvas')` 解析为 `#16130e`、`--ei-color-fg-primary` 为 `#f5f0e4`、`document.body.background-color` 切到 `rgb(22, 19, 14)`；激活 customAccent 后 `<html data-custom-accent="active"`、内联 `--ei-color-accent` 为 `oklch(58% ...)`、`--ei-color-accent-soft` 为 `oklch(92% ...)`、base palette token (`--ei-color-bg-canvas` / `--ei-color-fg-primary`) 不被覆盖；hue / chroma slider 渲染
   <!-- verified: 2026-05-08 method=playwright evidence="screenshot.spec.ts dark + customAccent 4 项 PASS (2 测 × 2 project)；body bg 切到 rgb(22,19,14)；inline --ei-color-accent oklch(58% 0.160 30.0) 规律性出现" -->
@@ -63,4 +63,4 @@
 - [x] 7.3 刷新 E2E.P0.006 与 README handoff；验证: `frontend/README.md`、P0.006 README / verify.sh 记录 2026-05-10 当时的 8 spec / 110 tests、workspace spec marker 与 clean-checkout screenshot smoke 口径；`pnpm --filter @easyinterview/frontend test:pixel-parity`、P0.006 setup→trigger→verify→cleanup、`make docs-check` 全部通过
   <!-- verified: 2026-05-10 method=playwright+scenario evidence="pnpm --filter @easyinterview/frontend test:pixel-parity → 110 passed；P0.006 setup→trigger→verify→cleanup PASS，verify.sh 断言 110 passed + workspace spec marker；make docs-check zero drift" -->
 - [x] 7.4 Authenticated user-menu browser parity hardening；验证: `topbar.spec.ts` 新增 authenticated user menu 用例并让完整 gate 更新为 8 spec / 112 tests；ui-design golden preview 等待改为可见 nav button，避免 CDN/字体 timing 造成旧 hydrated workspace 前提之外的误判
-  <!-- verified: 2026-05-11 method=playwright+scenario evidence="pnpm --filter @easyinterview/frontend test:pixel-parity → 112 passed；P0.006 setup→trigger→verify→cleanup PASS，verify.sh 断言 112 passed + topbar/screens/layout/screenshot/home/parse/jd_match/workspace spec markers" -->
+  <!-- verified: 2026-07-06 method=doc-reconcile evidence="current parity scope removes jd_match/profile/debrief positives; rerun owner remains frontend-shell/003 via p0-006 with three-entry TopBar assertions" -->

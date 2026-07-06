@@ -1,8 +1,8 @@
 # 001 BDD Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-06
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -35,13 +35,13 @@
 - [x] 记录验证证据：`.test-output/e2e/p0-020-workspace-start-practice/trigger.log` + verify 输出 + generated client body/header 断言 + `pendingAction.params` 字段集合断言 + retry/idempotency 测试断言
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.020 行（关联需求 `frontend-workspace-and-practice C-1, C-3, C-12`，状态 Ready，automated）
 
-## E2E.P0.021 Workspace handoff + 隐私红线 + 旧入口反向 grep
+## E2E.P0.021 Workspace embedded-only + 隐私红线 + 旧入口反向 grep
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-021-workspace-handoff/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md`
 - [x] 准备 fixture variant：`getTargetJob.json` `with-rounds` 不新增未声明 `recentSessions[]` extension；`getResume.json` `default`；`getPracticePlan.json` `default(ready)`；signed-in 状态；history 验证固定为 `EmptyHistory` / disabled placeholder
-- [x] 实现 `scripts/setup.sh`（fixture variant 切换）/ `scripts/trigger.sh`（运行 WorkspaceHandoff 与相关 workspace regression 覆盖）/ `scripts/verify.sh`（断言 handoff、history placeholder、runtime 敏感字段、旧 testid / route alias / prototype import / forbidden generated calls grep 0 命中）/ `scripts/cleanup.sh`
+- [x] 实现 `scripts/setup.sh`（fixture variant 切换）/ `scripts/trigger.sh`（运行 WorkspaceHandoff 与相关 workspace regression 覆盖）/ `scripts/verify.sh`（断言 embedded-only、history placeholder、runtime 敏感字段、旧 testid / route alias / prototype import / forbidden generated calls grep 0 命中）/ `scripts/cleanup.sh`
 - [x] 执行 `setup -> trigger -> verify -> cleanup` 全 PASS
-- [x] 记录验证证据：`.test-output/e2e/p0-021-workspace-handoff/trigger.log` + verify 输出 + handoff nav params 断言 + runtime negative grep 0 命中日志
+- [x] 记录验证证据：`.test-output/e2e/p0-021-workspace-handoff/trigger.log` + verify 输出 + embedded-only nav params 断言 + runtime negative grep 0 命中日志
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.021 行（关联需求 `frontend-workspace-and-practice C-7, C-9, C-10, C-12`，状态 Ready，automated）
 
 ## 整体 Regression（Phase 6 收口）

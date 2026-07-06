@@ -14,8 +14,8 @@ interface CompanyIntelEmbedProps {
 
 /**
  * Phase 5: CompanyIntelEmbed card — renders getTargetJob summary fields
- * only. Does NOT call getCompanyIntel (missing contract). Company intel is an
- * embedded-only surface, so the action stays on workspace with safe params.
+ * only. Does NOT call getCompanyIntel because the independent company-intel
+ * surface is retired. The action stays on workspace with safe params.
  */
 export const CompanyIntelEmbed: FC<CompanyIntelEmbedProps> = ({
   companyName,

@@ -1,8 +1,8 @@
 # Core Loop Module Pruning Plan
 
-> **版本**: 1.2
-> **状态**: completed
-> **更新日期**: 2026-06-30
+> **版本**: 1.14
+> **状态**: active
+> **更新日期**: 2026-07-06
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -90,6 +90,68 @@
 
 运行文档、contract、backend、frontend、migration、scenario 和 legacy-negative gate。任何残留 `debrief` / `CandidateProfile` / `ExperienceCard` / `用户画像` / `复盘` 命中必须分类为允许的历史记录、已删除文件路径、报告 / work-journal 历史，或继续清理。
 
+### Phase 6: Active 文档漂移复查
+
+#### 6.1 Event / job active spec 对齐
+
+反查 `shared/events.yaml`、`shared/jobs.yaml` 和 generated events/jobs truth，修订 active B3 spec 中仍保留的 18-event / 11-job / `debrief` / `jd_match` 正向口径，使文档回到当前 14-event / 8-job 合同。
+
+#### 6.2 Workspace / practice active spec 和计划对齐
+
+反查正式前端与 UI 真理源，修订 `frontend-workspace-and-practice` active spec / plan / BDD / test 文档中仍把 `company_intel` 当外部详情 owner 或把 `goal=debrief` 当正向显隐组合的口径；当前只保留 workspace 内嵌公司情报卡片与 `baseline / retry_current_round / next_round` 核心 practice goals。
+
+#### 6.3 Deprecated subject 生命周期对齐
+
+修订已 deprecated 的 debrief / profile / jobs-recommendations subject 及其 plans index，避免 deprecated spec 下面继续投影 active plan 或 future 保留编号建议。
+
+#### 6.4 文档索引与语义 gate
+
+运行 `sync-doc-index --check`、`make docs-check`、legacy-negative active-doc grep 和 `git diff --check`，确认 active 文档不再把已删除模块作为正向 owner / future work。
+
+#### 6.5 B4 migration active spec 与 privacy matrix 收敛
+
+反查 `db-migrations-baseline` active spec、baseline migration truth 与 privacy delete matrix，使 D-22 后 `candidate_profiles` / `experience_cards` / `debriefs` 不再作为当前表项，同时当前仍存在的 `idempotency_records` 等用户关联表必须有明确 privacy disposition 和测试覆盖。
+
+#### 6.6 Context manifest 正向 surface 收敛
+
+反查 `context.yaml` 的 target discovery，确保 `uiRoutes` 与 `apiNames` 只列当前保留 route / operationId；`debrief`、`profile`、`Profile` / `Debriefs` operationId、候选人画像 operationId 只能保留在关键词、operation matrix 或 retired-negative 文本里，不能作为 `/plan-code-review` / `/implement` 的正向 target surface。
+
+#### 6.7 Backend-practice completed plan 语义收敛
+
+反查 active subject 下的 completed `backend-practice/004-derived-plans-debrief`，保留目录名作为历史锚点，但把 plan / checklist / test / BDD / context 的正向范围收敛为 report-derived `retry_current_round` / `next_round` + `sourceReportId`；历史 `sourceDebriefId`、`source_debrief_id`、`PracticeGoalDebrief`、`goal='debrief'`、debrief first-turn seeding 和 P0.071/P0.073 只能作为 retired-negative 说明，不再作为当前 owner gate。
+
+#### 6.8 Completed backend infra / AI contract plan 语义收敛
+
+反查 active subject 下仍被 `context.yaml` 作为执行入口的 completed plans，优先处理 `backend-async-runner/001-internal-job-outbox-runner` 与 `prompt-rubric-registry/002-output-schema-contract`：当前正向 runner 范围必须是 7 个可执行 handler + `privacy_export` contract-only；当前 prompt/rubric truth source 必须是 9 个 chat feature_key。历史 Debrief / JD Match 正向矩阵、包路径、测试命令和 context discovery 只能作为 retired-negative 或 revision-history 说明，不得作为当前 `/implement` / `/plan-code-review` target surface。
+
+#### 6.9 JD Match 历史迁移审计
+
+反查 `migrations/000009_jd_match_baseline.*`、`migrations/000010_jd_match_seed_registry.*` 与 `migrations/000014_drop_jd_match_module.*` 的当前关系：`000009` / `000010` 只作为 pre-launch 历史建表 / seed 记录保留，`000014` 必须删除 5 张 JD Match 表、清理 `jd_match.*` prompt/rubric registry rows，并在收窄 `async_jobs.job_type` check 前删除退休 `jd_match_agent_scan` / `jd_match_search` job rows。B4 active spec 不得继续把 B3 canonical job type 误写为旧 9 项。
+
+#### 6.10 Completed bootstrap plan 当前口径收敛
+
+反查 active contract subject 下仍作为 owner 入口存在的 completed bootstrap plans，优先处理 `event-and-outbox-contract/001-bootstrap` 与 `db-migrations-baseline/001-bootstrap`：B3 当前正向口径必须是 14 events / 8 canonical jobs / 6 API-facing job types；B4 当前正向口径必须是 22 应用表 + 3 auth 支撑表、public schema ≥27、B3 8 canonical jobs、B2 6 API-facing jobs。历史 16-event / 9-job / 30-table 口径只能保留在明确历史 remediation / revision record 中，不得作为当前 checklist、handoff 或 context discovery 的正向 gate。
+
+#### 6.11 Profile / Jobs Recommendations 旧 subject 实体删除
+
+反查旧 subject 下保留的 completed plans，优先处理 `backend-profile/001-candidate-profile-and-experience-cards` 与 `backend-jobs-recommendations/001-jd-match-real-backend-baseline`：若当前 active spec、coded truth source、migration final-state guard 和 scenario negative gate 已能独立承接相关字段、事件、指标、schema 和验证要求，则删除对应 subject 实体目录，不再保留说明文件、banner 或 parallel historical plan。
+
+#### 6.12 Debrief 旧 subject 实体删除
+
+反查 `backend-debrief/001-debrief-record-and-analysis` 与 `frontend-debrief/001-debrief-screen-and-handoff`：若当前 product-scope、OpenAPI、frontend route normalization、backend route-negative tests、migration/privacy gates 和 E2E negative scenarios 已能独立证明 Debrief 删除，则删除对应 subject 实体目录，不再保留说明文件、banner 或 context 收敛历史包。
+
+#### 6.13 Repo-wide context 正向 surface 审计
+
+结构化解析 `docs/spec/**/context.yaml`，只检查 `targets.*.discovery.packages` / `uiRoutes` / `apiNames` 三类会驱动 `/implement`、`/plan-code-review` 或 worker discovery 的正向字段；旧 Debrief / Profile / JobMatch operationId、route、backend/frontend package、fixtures、prompt/rubric path 不得在这些字段中作为当前 target surface 出现。已删除 subject 不得再以自身文档目录路径或旧 shorthand 形式保留为执行入口。
+
+#### 6.14 Runtime / generated / config 负向审计
+
+反查 `backend/`、`frontend/`、`openapi/`、`shared/`、`config/`、`scripts/`、`migrations/`、`test/scenarios/` 与 `ui-design/` 中的旧 Debrief / Profile / JobMatch runtime surface：允许负向测试、历史迁移和 retired alias normalization 命中，但不得保留无人引用的正式样式、组件、handler、fixture、operationId、prompt/rubric、job/event 或正向场景资产。发现 `frontend/src/app/theme/global.css` 中仅服务已删除 JD Match screen 的 `jdmatch-*` responsive class 时，删除并用 frontend scope gate 固化。`migrations/enum-sources.yaml` 中历史 JD Match enum source 仍受 `000009` historical up migration 与当前 lint 模型约束；除非用户批准 pre-launch migration squash 或先改造 lint 为最终态 schema 模型，否则不得直接删除导致 migration gate 失真。
+
+#### 6.15 无争议废弃文档包实体删除
+
+按用户 2026-07-06 明确要求，已经无争议废弃的模块文档包直接删除。删除 `backend-debrief`、`frontend-debrief`、`backend-profile`、`backend-jobs-recommendations` 等不再承接当前合同的旧 subject 实体目录，并更新 `docs/spec/INDEX.md`、跨计划引用、context discovery 和验收报告。保留范围仅限 work-journal、bug、report、migration 历史、负向测试和当前 active owner spec 必需的删除证据；若某历史 plan 的内容仍有字段 / schema / gate 价值，必须先迁移到当前 owner spec 或 coded truth source，再删除原目录。
+
 ## 5 Operation Matrix
 
 | operationId / contract | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
@@ -142,5 +204,12 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-06 | 1.14 | Delete obsolete Debrief / Profile / Jobs Recommendations subject directories and the old frontend JD Match plan package; update indexes, links, context audit, and current owner evidence without preserving retired banners. |
+| 2026-07-06 | 1.13 | Reopen to delete unambiguous obsolete module document packages instead of preserving retired banners. |
+| 2026-07-06 | 1.12 | Reconcile runtime/generated/config negative sweep: remove stale JD Match CSS assets, add frontend scope guard, and record the migration enum-source squash/lint-model decision boundary. |
+| 2026-07-06 | 1.6 | Reconcile completed backend infra / AI contract plans after D-22 pruning: `backend-async-runner/001` current runner scope is 7 executable handlers + `privacy_export` contract-only; `prompt-rubric-registry/002` current prompt/rubric scope is 9 chat feature_keys. |
+| 2026-07-06 | 1.5 | Reconcile active-subject completed `backend-practice/004-derived-plans-debrief`: current positive scope is report-derived retry / next-round only; debrief source, debrief first-turn seeding, and P0.071/P0.073 are retired-negative. |
+| 2026-07-06 | 1.4 | Reconcile completed owner plan context manifests after D-22 pruning: current `uiRoutes` / `apiNames` now list only retained routes and 35 live OpenAPI operationIds; retired debrief/profile operations remain negative/search terms only. |
+| 2026-07-06 | 1.3 | Reopen for active document-drift cleanup after D-22 pruning: reconcile B3 event/job spec, frontend workspace/practice active docs, deprecated debrief lifecycle projection, and active-doc legacy-negative gates. |
 | 2026-06-30 | 1.2 | Review remediation: reconcile stale AI profile specs, OpenAPI operation-count tests, event schema-count tests, and frontend envelope fixture expectations after D-22 pruning. |
 | 2026-06-29 | 1.1 | L2 review remediation: reopen cross-layer cleanup to remove stale design-canvas Profile/Debrief artboards and privacy runner profile cleanup hook drift. |

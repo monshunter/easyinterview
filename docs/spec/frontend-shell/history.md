@@ -1,13 +1,14 @@
 # Frontend Shell History
 
-> **版本**: 1.21
+> **版本**: 1.23
 > **状态**: active
-> **更新日期**: 2026-05-28
+> **更新日期**: 2026-07-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-06 | 1.23 | 对齐 product-scope D-22 与当前前端实现：TopBar 一级导航为 `home` / `workspace` / `resume_versions` 三项；旧 `debrief` 与 `profile` 不再作为 live route、用户菜单项、protected route 或 parity 正向对象，只作为 retired alias 归一回 `home` 的负向 gate。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-28 | 1.21 | 修订 auth verify 恢复语义：`verifyAuthEmailChallenge` 成功后的一次性 code 不因后续 `/me` refresh 失败被当成验证码错误；公共 auth route 的 initial `/me` skip 只能消费一次，直接提交 verified user 后语言切换不得把已登录态重置为未登录。 | 001-app-shell-auth-settings Phase 11 |
 | 2026-05-28 | 1.20 | 修订未登录面试业务路由前置登录：Home 公开但 Recent mock interviews 仅已登录展示，业务 route 在 auth loading / unauthenticated 下不得先挂载 screen 或调用受保护 API。 | 001-app-shell-auth-settings Phase 10 |
 | 2026-05-28 | 1.19 | 修订为单入口邮箱验证码登录 + 首次资料补全：TopBar 和认证页只保留 `auth_login`，旧 `auth_register` 仅作为 legacy alias 折回登录；新邮箱 verify 后进入 `auth_profile_setup`，`/me.profileCompletionRequired` 未完成时在刷新、重开、换浏览器、退出重登和 deep link 前强制优先补全 displayName + 条款。 | 001-app-shell-auth-settings Phase 9 |

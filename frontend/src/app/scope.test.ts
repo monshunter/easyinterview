@@ -88,4 +88,10 @@ describe("frontend D1 scope guards", () => {
     const content = readFileSync(file, "utf8");
     expect(content).not.toMatch(/^\s*voice\s*:/m);
   });
+
+  it("does not keep retired JD Match CSS assets", () => {
+    const file = join(FRONTEND_SRC, "app", "theme", "global.css");
+    const content = readFileSync(file, "utf8");
+    expect(content).not.toMatch(/jdmatch-/);
+  });
 });

@@ -1,8 +1,10 @@
 # Core Loop Module Pruning BDD Checklist
 
-> **版本**: 1.1
-> **状态**: completed
-> **更新日期**: 2026-06-29
+> **版本**: 1.2
+> **状态**: active
+> **更新日期**: 2026-07-06
+
+> Reopened with product-scope/001 Phase 6 document deletion cleanup; completed D-22 scenario updates remain evidence, and active verification is tracked in the main checklist Phase 6.
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 

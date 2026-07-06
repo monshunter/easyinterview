@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.17
+> **版本**: 1.18
 > **状态**: completed
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-06
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-落地正式前端 App 壳：默认 Home、五入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`，并补齐已实施计划的登录态漂移修复：已登录用户区必须源级复刻头像 chip + dropdown，Vite dev fixture mock 必须覆盖默认非登录、登录成功和退出后非登录态全流程；browser-level parity 还必须覆盖 desktop / mobile dropdown geometry 与 logout flow。修订 v1.11 修复真实联调 passwordless 链路：登录和注册提交 `startAuthEmailChallenge` 时必须兼容后端 `202 Accepted` 空响应并导航到 verify 页；Mailpit magic link 必须落到前端 `auth_verify`，由前端自动消费 token、刷新 session，并用 replace 导航清理 URL token。修订 v1.12 将真实联调入口从 Mailpit magic link 改为 Mailpit 6 位 email code，并锁定邮箱是唯一账号标识：注册页传 `purpose=signup` + displayName，后续登录同一邮箱传 `purpose=login`，displayName 不唯一且不参与账号去重；TopBar 不再使用 `刘哲` / `Liu Zhe` / `liuzhe@example.com` 样例 fallback。修订 v1.13 将注册和登录合并为单一邮箱验证码入口：新邮箱 verify 后进入 `auth_profile_setup` 完成 displayName + 条款确认，`/me.profileCompletionRequired` 是强制跳转依据；旧 `auth_register` 不再是 live route 或可见入口。修订 v1.14 修复未登录 Home 展示 Recent mock interviews 与 raw backend unauthorized error 的回归，并把面试相关业务 route 统一前置到 `auth_login(pendingAction)`。修订 v1.15 收紧 L2 验收缺口：`AuthLoginScreen` 发码请求体只提交 email、`auth_profile_setup` 只在 `/me.profileCompletionRequired=false` 后恢复 pendingAction，且 P0.102 wrapper 直接校验 runner / Go `--- PASS` 证据。修订 v1.16 收紧 auth verify 恢复：公共 auth route 的 initial `/me` skip 只能消费一次，直接提交 verified user 后语言切换不得把已登录态重置为未登录；`verifyAuthEmailChallenge` 成功后如 `/me` refresh 失败，不能把已消费 code 折叠成验证码错误。修订 v1.17 对齐 2026-06-12 product-scope v2.1 / spec v1.22 UX 漏斗收敛（新增 Phase 12）：D-16 删除 `auth_reset` route 与 `AuthResetScreen`（归一回 `auth_login`），登录页"忘记密码"入口改为静态帮助说明；D-21 设置页收敛为 `个人资料` / `隐私与数据` 双 tab，删除通知/订阅占位 tab，`登录与安全` 仅展示 `邮箱验证码 · 无密码`；默认主题与无效值 fallback 从 `warm` 改为 `ocean`。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
+落地正式前端 App 壳：默认 Home、三入口 TopBar、全局显示控制、认证页面、用户菜单、`requestAuth(pendingAction)`、登录后恢复动作、`parse` route shell 与 runtime / API bootstrap。修订 v1.4 补齐静态原型已具备但正式前端遗漏的 `zh` / `en` UI i18n 与 `Accept-Language` display hint；修订 v1.5 收紧 i18n 资源组织，要求每种语言使用独立 locale 文件；修订 v1.6 明确 UI 语言默认跟随浏览器 locale，未知时 fallback English，且语言切换只关联前端显示偏好、不依赖登录态；修订 v1.8 按当前 `ui-design/src/app.jsx` 将 TopBar 语言切换口径更新为 icon dropdown，旧 native select/dropdown 口径不再作为正式前端契约；修订 v1.10 明确按钮显示当前语言标签且用户显式选择持久化到 `localStorage["ei-lang"]`，并补齐已实施计划的登录态漂移修复：已登录用户区必须源级复刻头像 chip + dropdown，Vite dev fixture mock 必须覆盖默认非登录、登录成功和退出后非登录态全流程；browser-level parity 还必须覆盖 desktop / mobile dropdown geometry 与 logout flow。修订 v1.11 修复真实联调 passwordless 链路：登录和注册提交 `startAuthEmailChallenge` 时必须兼容后端 `202 Accepted` 空响应并导航到 verify 页；Mailpit magic link 必须落到前端 `auth_verify`，由前端自动消费 token、刷新 session，并用 replace 导航清理 URL token。修订 v1.12 将真实联调入口从 Mailpit magic link 改为 Mailpit 6 位 email code，并锁定邮箱是唯一账号标识：注册页传 `purpose=signup` + displayName，后续登录同一邮箱传 `purpose=login`，displayName 不唯一且不参与账号去重；TopBar 不再使用 `刘哲` / `Liu Zhe` / `liuzhe@example.com` 样例 fallback。修订 v1.13 将注册和登录合并为单一邮箱验证码入口：新邮箱 verify 后进入 `auth_profile_setup` 完成 displayName + 条款确认，`/me.profileCompletionRequired` 是强制跳转依据；旧 `auth_register` 不再是 live route 或可见入口。修订 v1.14 修复未登录 Home 展示 Recent mock interviews 与 raw backend unauthorized error 的回归，并把面试相关业务 route 统一前置到 `auth_login(pendingAction)`。修订 v1.15 收紧 L2 验收缺口：`AuthLoginScreen` 发码请求体只提交 email、`auth_profile_setup` 只在 `/me.profileCompletionRequired=false` 后恢复 pendingAction，且 P0.102 wrapper 直接校验 runner / Go `--- PASS` 证据。修订 v1.16 收紧 auth verify 恢复：公共 auth route 的 initial `/me` skip 只能消费一次，直接提交 verified user 后语言切换不得把已登录态重置为未登录；`verifyAuthEmailChallenge` 成功后如 `/me` refresh 失败，不能把已消费 code 折叠成验证码错误。修订 v1.17 对齐 2026-06-12 product-scope v2.1 / spec v1.22 UX 漏斗收敛（新增 Phase 12）：D-16 删除 `auth_reset` route 与 `AuthResetScreen`（归一回 `auth_login`），登录页"忘记密码"入口改为静态帮助说明；D-21 设置页收敛为 `个人资料` / `隐私与数据` 双 tab，删除通知/订阅占位 tab，`登录与安全` 仅展示 `邮箱验证码 · 无密码`；默认主题与无效值 fallback 从 `warm` 改为 `ocean`。修订 v1.18 对齐 product-scope D-22 与 frontend-shell spec v1.23：TopBar 正向入口只剩 `home` / `workspace` / `resume_versions`，`debrief` 与 `profile` 只作为 retired alias 归一回 `home` 的负向对象。完成后，后续 D2-D6 前端 workstream 可以在同一壳内继续实现业务页面。
 
 ## 2 背景
 
@@ -46,9 +46,9 @@
 
 ### Phase 2: TopBar and display controls
 
-#### 2.1 实现五入口 TopBar
+#### 2.1 实现三入口 TopBar
 
-TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrief` 五个一级入口。
+TopBar 只展示 `home`、`workspace`、`resume_versions` 三个一级入口；`jd_match`、`debrief` 和 `profile` 不作为 live route 或可见入口出现。
 
 #### 2.2 实现全局显示控制
 
@@ -56,7 +56,7 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 
 #### 2.4 I18n remediation: 建立 D1 shell message catalog
 
-为 TopBar、auth shell、profile/settings shell 和 placeholder route shell 建立 typed `zh` / `en` message catalog 或等价 helper。切换语言必须立即重绘 D1 可见静态文案；RouteName、testid、URL/hash 与业务字段仍使用稳定英文 key，不受 UI locale 影响。
+为 TopBar、auth shell、settings shell 和当前 placeholder route shell 建立 typed `zh` / `en` message catalog 或等价 helper。切换语言必须立即重绘 D1 可见静态文案；RouteName、testid、URL/hash 与业务字段仍使用稳定英文 key，不受 UI locale 影响；旧 `profile` route 只作为 retired alias 负向对象。
 
 #### 2.5 I18n remediation: browser locale bootstrap 与 request header
 
@@ -64,7 +64,7 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 
 #### 2.6 I18n remediation: BDD language switch gate
 
-新增 BDD 场景验证默认 App shell 从中文切到 English 后，TopBar 导航、登录/注册、用户菜单和 D1 auth/settings/profile shell 静态文案同步切换，并保留旧 route / prototype data 负向约束。
+新增 BDD 场景验证默认 App shell 从中文切到 English 后，TopBar 导航、单一登录入口、用户菜单和 D1 auth/settings/placeholder shell 静态文案同步切换，并保留旧 route / prototype data 负向约束。
 
 #### 2.7 I18n remediation: 独立 locale 文件与语言切换契约
 
@@ -78,7 +78,7 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 
 #### 3.1 实现认证页面壳
 
-历史 D1 初始实现曾包含 `auth_login`、`auth_register`、`auth_verify`、`auth_reset`、`auth_logout` 页面流。当前 Phase 9 已将 `auth_register` 收敛为 legacy alias，不得 materialize 独立页面；正式 wire 只允许 generated `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getMe`、`completeMyProfile`、`logout` 与 first-party session cookie。密码登录、OAuth 和 reset 只能作为 UI shell 或 stub，不得私造 API。
+历史 D1 初始实现曾包含 `auth_login`、`auth_register`、`auth_verify`、`auth_reset`、`auth_logout` 页面流。当前 Phase 9/12 已将 `auth_register` 与 `auth_reset` 收敛为 legacy alias，不得 materialize 独立页面；正式 wire 只允许 generated `startAuthEmailChallenge`、`verifyAuthEmailChallenge`、`getMe`、`completeMyProfile`、`logout` 与 first-party session cookie。密码登录、OAuth、注册页和重置页不得作为 UI shell、stub 或 API 回流。
 
 #### 3.2 实现 `requestAuth(pendingAction)`
 
@@ -90,17 +90,17 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 
 #### 3.5 L2 remediation: verify token 与 auth-only params 隔离
 
-`auth_verify` 必须把用户输入的验证 token 传给 generated `verifyAuthEmailChallenge` query；登录 / 注册页临时字段只允许停留在认证页，不得随 pendingAction 恢复到业务 route params。
+`auth_verify` 必须把用户输入的验证 token 传给 generated `verifyAuthEmailChallenge` query；认证页临时字段只允许停留在认证页，不得随 pendingAction 恢复到业务 route params。
 
-### Phase 4: User menu, profile, settings
+### Phase 4: User menu and settings
 
 #### 4.1 实现用户菜单入口
 
-未登录展示登录 / 注册；已登录展示头像菜单，并分流到 `profile`、`settings`、`auth_logout`。
+未登录只展示单一邮箱验证码登录入口；已登录展示头像菜单，并分流到 `settings`、`auth_logout`，不得恢复注册入口或 `profile` 菜单项。
 
-#### 4.2 实现 settings/profile placeholder shell
+#### 4.2 实现 settings shell 与 profile alias guard
 
-为 `profile` 和 `settings` 提供当前 UI 边界内的页面壳；业务内容可用 mock data，但不得恢复旧 Growth / Experiences / Mistakes 模块。
+为 `settings` 提供当前 UI 边界内的页面壳；旧 `profile` route 只作为 retired alias 归一回 `home`，不得恢复画像页或空 placeholder。
 
 ### Phase 5: BDD and handoff
 
@@ -128,7 +128,7 @@ TopBar 只展示 `home`、`jd_match`、`workspace`、`resume_versions`、`debrie
 
 #### 6.1 源级复刻已登录用户菜单
 
-按 `ui-design/src/app.jsx::TopBar` 把已登录用户区从 inline 三按钮修正为头像 chip + dropdown menu。按钮必须显示头像 initials、display name 和 caret；菜单打开后必须显示用户姓名 / masked email header、`用户画像`、`设置与隐私` 和 `退出登录` 三项，带图标、分隔线、关闭 backdrop、Escape 关闭，并在点击 profile/settings/logout 后关闭菜单。
+按 `ui-design/src/app.jsx::TopBar` 把已登录用户区从 inline 三按钮修正为头像 chip + dropdown menu。按钮必须显示头像 initials、display name 和 caret；菜单打开后必须显示用户姓名 / masked email header、`设置与隐私` 和 `退出登录` 两项，带图标、分隔线、关闭 backdrop、Escape 关闭，并在点击 settings/logout 后关闭菜单；`profile` 菜单项不得回流。
 
 #### 6.2 修复 fixture-backed dev mock session 状态
 
@@ -136,11 +136,11 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 
 #### 6.3 BDD-Gate: 验证 E2E.P0.032 通过
 
-新增并执行 `E2E.P0.032`，覆盖 dev mock 默认非登录态、mock 登录后头像 dropdown 菜单、profile/settings 分流、logout 后回到非登录态，以及旧 inline 用户菜单 / 静态 authenticated default 回流负向断言。
+新增并执行 `E2E.P0.032`，覆盖 dev mock 默认非登录态、mock 登录后头像 dropdown 菜单、settings/logout 分流、logout 后回到非登录态，以及旧 inline 用户菜单 / `profile` 菜单项 / 静态 authenticated default 回流负向断言。
 
 #### 6.4 L2 remediation: 浏览器级 authenticated user menu parity gate
 
-`frontend/tests/pixel-parity/topbar.spec.ts` 必须在 desktop / mobile 两个 chromium project 下通过 mocked Auth API 完成 login → avatar chip → dropdown → logout flow。断言范围包括：头像 chip text / initials / caret、dropdown header、masked email、`用户画像` / `设置与隐私` / `退出登录` 三项、`ui-design/src/app.jsx` 中的 `minWidth: 220` / `top: calc(100% + 6px)` / padding / shadow 等源码字面量、desktop 菜单右边与 chip 右边对齐、mobile 菜单保持在 viewport 内、logout confirm 后回到登录 / 注册入口。
+`frontend/tests/pixel-parity/topbar.spec.ts` 必须在 desktop / mobile 两个 chromium project 下通过 mocked Auth API 完成 login → avatar chip → dropdown → logout flow。断言范围包括：头像 chip text / initials / caret、dropdown header、masked email、`设置与隐私` / `退出登录` 两项、`ui-design/src/app.jsx` 中的 `minWidth: 220` / `top: calc(100% + 6px)` / padding / shadow 等源码字面量、desktop 菜单右边与 chip 右边对齐、mobile 菜单保持在 viewport 内、logout confirm 后回到单一登录入口；`用户画像` / `profile` 菜单项不得回流。
 
 #### 6.5 Phase 6 operation matrix
 
@@ -157,7 +157,7 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 
 #### 7.1 `startAuthEmailChallenge` empty-body success
 
-真实后端 `POST /api/v1/auth/email/start` 返回 `202 Accepted` 且无 JSON body。Generated client 必须把无 body 的 2xx 响应视为成功，登录页和注册页必须在该成功后进入 `auth_verify`，不得因为 `response.json()` 解析空响应而中断。
+真实后端 `POST /api/v1/auth/email/start` 返回 `202 Accepted` 且无 JSON body。Generated client 必须把无 body 的 2xx 响应视为成功；当前单一登录页在该成功后进入 `auth_verify`，不得因为 `response.json()` 解析空响应而中断。历史注册页证据不得作为当前正向口径。
 
 #### 7.2 `auth_verify` magic-link callback
 
@@ -191,7 +191,7 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 
 #### 9.1 UI truth source and route catalog
 
-`docs/ui-design/auth-and-entry.md`、`ui-design/src/screen-auth.jsx` 与 `ui-design/src/app.jsx` 必须先改为单一登录入口：TopBar 未登录用户区只显示 `登录 -> auth_login`；认证页集合为 `auth_login`、`auth_verify`、`auth_profile_setup`、`auth_reset`、`auth_logout`；旧 `auth_register` 只能 normalize 到当前保留 route，不得 materialize 成独立页面、按钮或 URL 入口。
+`docs/ui-design/auth-and-entry.md`、`ui-design/src/screen-auth.jsx` 与 `ui-design/src/app.jsx` 必须先改为单一登录入口：TopBar 未登录用户区只显示 `登录 -> auth_login`；认证页集合为 `auth_login`、`auth_verify`、`auth_profile_setup`、`auth_logout`；旧 `auth_register` / `auth_reset` 只能 normalize 到当前保留 route，不得 materialize 成独立页面、按钮或 URL 入口。
 
 #### 9.2 Unified login start
 
@@ -227,7 +227,7 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 
 #### 10.2 Frontend runtime auth guard
 
-正式前端 runtime 中，`home` 和 auth pages 仍可未登录访问；`jd_match`、`parse`、`workspace`、`resume_versions`、`practice`、`generating`、`report`、`debrief`、`profile`、`settings` 等业务 route 必须在 `runtime.auth.status === "authenticated"` 后才挂载对应 screen。`loading` 状态只渲染 auth gate loading 占位，`unauthenticated` 状态导航到 `auth_login` 并携带 safe pendingAction；登录成功仍先经过 `profileCompletionRequired` gate 再恢复原 route。
+正式前端 runtime 中，`home` 和 auth pages 仍可未登录访问；`parse`、`workspace`、`resume_versions`、`practice`、`generating`、`report`、`settings` 等业务 route 必须在 `runtime.auth.status === "authenticated"` 后才挂载对应 screen。`jd_match`、`debrief`、`profile` 等 retired route 先归一到当前保留 route 或 `home`，不能作为 protected live route materialize。`loading` 状态只渲染 auth gate loading 占位，`unauthenticated` 状态导航到 `auth_login` 并携带 safe pendingAction；登录成功仍先经过 `profileCompletionRequired` gate 再恢复原 route。
 
 #### 10.3 Home recent data fetch guard
 
@@ -244,17 +244,17 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 | `getMe` | `openapi/fixtures/Auth/getMe.json#unauthenticated|authenticated` | `AppRuntimeProvider`、App protected route guard、Home recent visibility | backend-auth current-user handler | backend session lookup；frontend 不持久化 session | 无 | App auth route guard tests、E2E.P0.102 |
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json#default|empty|one-job|twelve-plus` | `useRecentTargetJobs`、Home Recent mock interviews | `cmd/api` targetjob list handler behind `auth.SessionMiddleware` | `target_jobs` filtered by session user | target job parse may use AI outside this read path | Home recent auth guard tests、backend `TestBuildAPIHandlerMountsTargetJobRoutesBehindSessionMiddleware`、E2E.P0.102 |
 | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json#manual-text-primary` | Home paste/upload/url submit via `requestAuth` + pending import source | `cmd/api` targetjob import handler behind session middleware | `target_jobs` / async parse job | target job parse AI after authenticated import | Home auth gate tests、E2E.P0.102 |
-| `N/A protected frontend routes` | N/A | App route guard for `jd_match` / `parse` / `workspace` / `resume_versions` / `practice` / `generating` / `report` / `debrief` / `profile` / `settings` | OpenAPI document security + per-route session policy for their API calls | route-specific domain stores | route-specific | App route guard tests、E2E.P0.102 |
+| `N/A protected frontend routes` | N/A | App route guard for `parse` / `workspace` / `resume_versions` / `practice` / `generating` / `report` / `settings`; retired `jd_match` / `debrief` / `profile` normalize before guard and never materialize live screens | OpenAPI document security + per-route session policy for their API calls | route-specific domain stores | route-specific | App route guard tests、E2E.P0.102 |
 
 #### 10.6 BDD-Gate: 验证 E2E.P0.102 通过
 
-新增并执行 `E2E.P0.102`：未登录 Home 不显示 Recent mock interviews、不会调用 `listTargetJobs`、不会显示 raw `AUTH_UNAUTHORIZED`；未登录直开 `workspace` / `practice` / `report` / `jd_match` 等业务 route 时先进入 `auth_login(pendingAction)`，业务 screen 不挂载且受保护 API 不被调用；后端 focused gate 证明面试相关 API 仍由 session middleware 返回 B1 `AUTH_UNAUTHORIZED` envelope。
+新增并执行 `E2E.P0.102`：未登录 Home 不显示 Recent mock interviews、不会调用 `listTargetJobs`、不会显示 raw `AUTH_UNAUTHORIZED`；未登录直开 `workspace` / `practice` / `report` / `settings` 等业务 route 时先进入 `auth_login(pendingAction)`，业务 screen 不挂载且受保护 API 不被调用；直开 `jd_match` / `debrief` / `profile` 等 retired route 时先归一回当前保留 route 或 `home`，不产生旧业务 screen；后端 focused gate 证明面试相关 API 仍由 session middleware 返回 B1 `AUTH_UNAUTHORIZED` envelope。
 
 ### Phase 11: Auth verify recovery and skipped probe consumption
 
 #### 11.1 Consume public-auth initial probe skip once
 
-`AppRuntimeProvider` 在 `auth_login` / `auth_verify` / `auth_reset` 等公共 auth route 上可以跳过首次 `/me` probe，但该 skip 必须在 provider 生命周期内只消费一次。`refreshAuth(user)` 直接提交 verified user 后，TopBar language switch 带来的 `requestOptions` 变化必须触发真实 `/me` refresh，而不是重新执行 initial skip 并把 auth state 置为 unauthenticated。
+`AppRuntimeProvider` 在 `auth_login` / `auth_verify` / `auth_profile_setup` 等当前公共 auth route 上可以跳过首次 `/me` probe，但该 skip 必须在 provider 生命周期内只消费一次。`refreshAuth(user)` 直接提交 verified user 后，TopBar language switch 带来的 `requestOptions` 变化必须触发真实 `/me` refresh，而不是重新执行 initial skip 并把 auth state 置为 unauthenticated；旧 `auth_reset` 只能作为 normalize-to-login 的 legacy alias。
 
 #### 11.2 Separate verify success from post-verify `/me` failure
 
@@ -295,9 +295,9 @@ Vite dev 默认 `createDevMockClient()` 必须从非登录态开始；`verifyAut
 
 ## 5 验收标准
 
-- 默认打开 App 渲染 Home、五入口 TopBar、单一登录入口和显示控制，不出现 welcome 或注册入口。
+- 默认打开 App 渲染 Home、三入口 TopBar、单一登录入口和显示控制，不出现 welcome、注册入口、`jd_match`、`debrief` 或 `profile` 可见入口。
 - `requestAuth(pendingAction)` 能在登录成功后恢复 `practice` 或 `report` 上下文。
-- 用户菜单的 `用户画像` 与 `设置与隐私` 分别进入 `profile` 和 `settings`。
+- 用户菜单只保留 `设置与隐私` 与退出登录；`profile` 不作为菜单项或 live route 出现。
 - `parse` route 作为 shell route 可达，但 JD 解析业务细节留给后续 owner。
 - Runtime config、`/me` 和 auth generated operations 均通过 fixture-backed client 测试，不直接读取 prototype data。
 - Vite dev 默认 mock App 首屏展示非登录态；passwordless mock verify 后根据 `/me.profileCompletionRequired` 进入资料补全或展示源级复刻的头像 dropdown 用户菜单；logout 后 `/me` 回到 unauthenticated，TopBar 重新展示单一登录入口。

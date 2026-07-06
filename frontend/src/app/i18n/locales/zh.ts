@@ -178,7 +178,6 @@ export const zh = {
   "workspace.resumeBound": "绑定简历",
   "workspace.changeResume": "更换",
   "workspace.prepStatus": "准备状态",
-  "workspace.jdMatch": "JD 匹配度",
   "workspace.sessionTag": "已完成",
   "workspace.reportReady": "报告已生成",
   "workspace.planEyebrow": "当前面试规划",

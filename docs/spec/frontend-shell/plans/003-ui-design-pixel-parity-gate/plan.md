@@ -1,8 +1,8 @@
 # UI-Design Pixel Parity Gate
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-11
+> **更新日期**: 2026-07-06
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -19,14 +19,14 @@ D2 plan 002 已在 vitest+jsdom 范围内验证 DOM/className/CSS variable resol
 [`p0-005-app-shell-visual-system-smoke.test.tsx`](../../../../../frontend/src/app/scenarios/p0-005-app-shell-visual-system-smoke.test.tsx) 与场景 README §6。jsdom 不做 CSS 布局，不计算 bounding box，不渲染像素，所以以下维度需要真实浏览器：
 
 - **viewport 布局**：flex / grid / sticky / responsive 表现是否与 ui-design 一致；TopBar 在 1440×900 与 390×844 下都不溢出。
-- **bounding box**：核心控件（TopBar 五入口、显示控制、用户区、auth CTA、profile / settings 卡片）在两边的 `getBoundingClientRect()` 不重叠且 stays in viewport。
-- **screenshot smoke / optional diff**：默认 warm/light、dark、customAccent 三种状态下，常规 gate 以非空 screenshot buffer + DOM / computed / bounding 断言证明真实浏览器可渲染；只有 baseline 可由 checkout / CI artifact 稳定取得或显式 `--update-snapshots` 维护时，才把 `toHaveScreenshot` diff 升级为 hard gate。
+- **bounding box**：核心控件（TopBar 三入口、显示控制、用户区、auth CTA、settings 卡片）在两边的 `getBoundingClientRect()` 不重叠且 stays in viewport。
+- **screenshot smoke / optional diff**：默认 ocean/light、dark、customAccent 三种状态下，常规 gate 以非空 screenshot buffer + DOM / computed / bounding 断言证明真实浏览器可渲染；只有 baseline 可由 checkout / CI artifact 稳定取得或显式 `--update-snapshots` 维护时，才把 `toHaveScreenshot` diff 升级为 hard gate。
 
 `ui-design/index.html` 是单文件静态原型（含 `<script src="...react...">` CDN 引用 + 内嵌 `src/*.jsx` Babel 转译），不需要构建。`frontend/dist/index.html` 由 vite build 产物。两者通过同一个 Playwright server fixture 提供，互不耦合。
 
-2026-05-10 remediation：完整 `test:pixel-parity` 已扩展到 home / parse / jd_match / workspace 等业务屏，不能继续依赖过期的本地 hydrated workspace 前提或 `.gitignore` 排除的 screenshot baseline。常规 clean checkout gate 必须只依赖可重建的 DOM anchor、computed style、bounding box、responsive geometry 与 screenshot smoke；`toHaveScreenshot` 只能在 baseline 可由 checkout / CI artifact 稳定取得或显式 `--update-snapshots` 维护时使用。Workspace full-state pixel tests 必须从 server-bound route params 进入完整规划态，不能通过 Home recent card 的 `resume-unbound` 路径绕到 missing-resume 状态。
+2026-05-10 remediation：完整 `test:pixel-parity` 扩展到 home / parse / workspace 等业务屏，不能继续依赖过期的本地 hydrated workspace 前提或 `.gitignore` 排除的 screenshot baseline。product-scope D-17 / D-22 后，`jd_match`、`debrief` 与 `profile` 只作为 retired alias 负向对象，不再作为 pixel parity 正向屏。常规 clean checkout gate 必须只依赖可重建的 DOM anchor、computed style、bounding box、responsive geometry 与 screenshot smoke；`toHaveScreenshot` 只能在 baseline 可由 checkout / CI artifact 稳定取得或显式 `--update-snapshots` 维护时使用。Workspace full-state pixel tests 必须从 server-bound route params 进入完整规划态，不能通过 Home recent card 的 `resume-unbound` 路径绕到 missing-resume 状态。
 
-2026-05-11 remediation：Phase 6 登录态菜单 parity 不能只停留在 jsdom/component test。`topbar.spec.ts` 必须覆盖 authenticated user menu 的真实浏览器几何：登录后头像 chip、dropdown header / profile / settings / logout 项、desktop 右对齐、mobile viewport containment、logout 后回到非登录态。完整 `test:pixel-parity` 当前为 8 spec / 112 tests。
+2026-05-11 remediation：Phase 6 登录态菜单 parity 不能只停留在 jsdom/component test。`topbar.spec.ts` 必须覆盖 authenticated user menu 的真实浏览器几何：登录后头像 chip、dropdown header / settings / logout 项、desktop 右对齐、mobile viewport containment、logout 后回到非登录态；`profile` 菜单项不得回流。
 
 ## 3 质量门禁分类
 
@@ -64,15 +64,15 @@ D2 plan 002 已在 vitest+jsdom 范围内验证 DOM/className/CSS variable resol
 
 `frontend/tests/pixel-parity/topbar.spec.ts` 在两个 project 下都验证：
 
-- `frontend/dist/index.html` 与 `ui-design/index.html` 加载后 TopBar 五入口 testid（`topbar-nav-{home,jd_match,workspace,resume_versions,debrief}`）都存在，文本一致（按 lang）。
+- `frontend/dist/index.html` 与 `ui-design/index.html` 加载后 TopBar 三入口 testid（`topbar-nav-{home,workspace,resume_versions}`）都存在，文本一致（按 lang）；`topbar-nav-jd_match` / `topbar-nav-debrief` / `topbar-user-profile` 零残留。
 - `getComputedStyle()` 在两边读出的 TopBar `height` / `padding` / `gap` / `border-bottom-width` / `background-color` 一致到 1px / 1 hex 容差内。
 - `aria-current` / `aria-pressed` 行为一致。
 
-#### 2.2 Auth / Profile / Settings / Placeholder DOM 锚点
+#### 2.2 Auth / Settings / Placeholder DOM 锚点
 
 `frontend/tests/pixel-parity/screens.spec.ts` 验证：
 
-- 加载 frontend `#auth_login`、`#profile`、`#settings`、`#company_intel` 时 D2 testid（`route-*` / `ei-*` className）存在；并且 `ui-design/index.html` 在同样的 hash 路由下渲染等价 DOM 节点（不要求 testid 完全一致，但要求结构同源 / 文案语义同源）。
+- 加载 frontend `#auth_login`、`#settings` 和当前保留 placeholder route 时 D2 testid（`route-*` / `ei-*` className）存在；并且 `ui-design/index.html` 在同样的 hash 路由下渲染等价 DOM 节点（不要求 testid 完全一致，但要求结构同源 / 文案语义同源）。`#profile` 与 `#company_intel` 只作为 retired alias 归一和负向断言对象，不得 materialize live parity screen。
 - 主要卡片（`ei-auth-card` / `ei-screen-card`）的 computed `padding` / `border-radius` / `border-color` 与 ui-design 对应卡片一致。
 
 ### Phase 3: Layout + bounding box parity
@@ -82,20 +82,20 @@ D2 plan 002 已在 vitest+jsdom 范围内验证 DOM/className/CSS variable resol
 `frontend/tests/pixel-parity/layout.spec.ts`（desktop project）在 frontend dist 上验证：
 
 - `app-shell-topbar` `getBoundingClientRect()` 完全在 `[0, 0, 1440, 58]` 内。
-- TopBar primary nav 五个 button + display controls + user area 之间两两不重叠（`!intersects(rectA, rectB)`）。
+- TopBar primary nav 三个 button + display controls + user area 之间两两不重叠（`!intersects(rectA, rectB)`）。
 - auth login `ei-auth-card` 与 `ei-auth-side` 在同一行排列、`right(side) <= left(card)`、`top(card) ≈ top(side)`。
-- profile / settings shell 卡片在 viewport 内，不溢出右侧。
+- settings shell 卡片在 viewport 内，不溢出右侧；profile shell 不作为 live route 出现。
 
 #### 3.2 Mobile viewport 响应式
 
 `layout.spec.ts`（mobile project）验证：
 
-- TopBar 不溢出 viewport（`right ≤ 390`）、五入口仍可达（DOM 中存在；不要求全部可见）。
+- TopBar 不溢出 viewport（`right ≤ 390`）、三入口仍可达（DOM 中存在；不要求全部可见）。
 - auth shell 双列在 mobile 视口里允许折叠为单列（`width(side) ≈ width(card)`），但 `route-auth_login` 元素的 `bottom` 不超过 `body.scrollHeight`。
 
 ### Phase 4: Screenshot diff
 
-#### 4.1 默认 warm/light 截图基线
+#### 4.1 默认 ocean/light 截图 smoke
 
 `frontend/tests/pixel-parity/screenshot.spec.ts` 在两个 project 下执行：
 

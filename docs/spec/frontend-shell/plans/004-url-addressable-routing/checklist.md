@@ -1,15 +1,15 @@
 # URL-Addressable Routing Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-18
+> **更新日期**: 2026-07-06
 
 **关联计划**: [plan](./plan.md)
 
 ## Phase 1: Route codec and compatibility adapter
 
 - [x] 1.1 Implement typed route-to-URL table for every retained `Route.name`; verification: Red/Green unit tests cover canonical serialize/parse for primary nav, context routes, user-menu routes and auth routes, including current `generating/report/resume_versions/debrief` deep-link params. Evidence: `frontend/src/app/routeUrl.ts` + `routeUrl.test.ts` (28 tests).
-- [x] 1.2 Implement safe param allowlist from active owner specs and current `InterviewContext` / `pendingAction` truth; verification: tests prove report replay (`autoStartPractice`, `practiceGoal`), generating/report (`reportId`, `reportStatus`, `errorCode`), resume workshop (`tailorRunId`), home import (`pendingImportId`), jd_match pending action (`selectedJobMatchId`, `pendingJdMatchActionId`) and debrief (`debriefId`, `debriefJobId`) params survive, while search query/label and raw payload/auth-secret-like params are dropped or rejected. Evidence: `routeUrl.test.ts` describes `isSafeRouteParam` + privacy redline assertions.
+- [x] 1.2 Implement safe param allowlist from active owner specs and current `InterviewContext` / `pendingAction` truth; verification: tests prove report replay (`autoStartPractice`, `practiceGoal`), generating/report (`reportId`, `reportStatus`, `errorCode`), resume workshop (`tailorRunId`), home import (`pendingImportId`), resume binding (`resumeId`) and report source (`sourceReportId`) params survive, while retired jd_match/debrief payloads (`selectedJobMatchId`, `pendingJdMatchActionId`, `sourceJobMatchId`, `debriefId`, `debriefJobId`), search query/label and raw payload/auth-secret-like params are dropped or rejected. Evidence: `routeUrl.test.ts` describes `isSafeRouteParam` + privacy redline assertions.
 - [x] 1.3 Preserve `#route=...` adapter; verification: existing hash inputs parse to `LooseRoute`, normalize through current aliases, and can be replaced by canonical path without breaking pixel parity bootstrap. Evidence: `bootstrapRoute.test.ts` (hash codec roundtrip) + `routeStore.ts` mount effect replaces hash URL with canonical path.
 
 ## Phase 2: Browser History integration
@@ -20,8 +20,8 @@
 
 ## Phase 3: Auth and privacy
 
-- [x] 3.1 Restore auth pendingAction through canonical route; verification: login success returns to the original path and safe params, including workspace/practice/report replay, resume create/branch, home import, jd_match Recommended/Search pending action and debrief contexts. Evidence: `frontend/src/app/auth/pendingAction.ts` now filters params through `isSafeRouteParam`; `AppPendingAction.test.tsx` + `pendingActionReplayPractice.test.ts` round-trip green.
-- [x] 3.2 Add URL/privacy redline tests; verification: raw JD, source URL, jd_match query/label, resume text, guided answers, parsed summary, structured profile, suggestion text, question/answer text, debrief notes, AI prompt / response and auth/session secrets have zero hits in URL, history state, pendingAction, localStorage, sessionStorage, console and mock transport logs, including hostile `popstate` restoration from pre-existing raw URL/hash/history.state entries. Evidence: `AppRoutingPrivacy.test.tsx` (6 tests) + `pendingAction.test.ts` 19 raw-marker drop assertions.
+- [x] 3.1 Restore auth pendingAction through canonical route; verification: login success returns to the original path and safe params, including workspace/practice/report replay, resume create/branch and home import contexts; retired jd_match/debrief/profile contexts normalize away and do not restore old screens. Evidence: `frontend/src/app/auth/pendingAction.ts` now filters params through `isSafeRouteParam`; `AppPendingAction.test.tsx` + `pendingActionReplayPractice.test.ts` round-trip green.
+- [x] 3.2 Add URL/privacy redline tests; verification: raw JD, source URL, retired jd_match query/label, resume text, guided answers, parsed summary, structured profile, suggestion text, question/answer text, retired debrief notes, AI prompt / response and auth/session secrets have zero hits in URL, history state, pendingAction, localStorage, sessionStorage, console and mock transport logs, including hostile `popstate` restoration from pre-existing raw URL/hash/history.state entries. Evidence: `AppRoutingPrivacy.test.tsx` + `pendingAction.test.ts` raw-marker drop assertions.
 - [x] 3.3 BDD-Gate: E2E.P0.089 auth pendingAction + URL privacy redline PASS. Evidence: `test/scenarios/e2e/p0-089-url-routing-auth-privacy/` setup+trigger+verify (4 tests pass, raw markers grep blocked, hostile popstate scrubbed).
 
 ## Phase 4: Host fallback and regression

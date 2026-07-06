@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.5
+    to: 1.6
 spec:
   defaultTarget: frontend
   discovery:
@@ -45,11 +45,11 @@ spec:
       - autoStartPractice
       - practiceMode
       - hintsEnabled
-      - companyIntel handoff
+      - companyIntel embedded-only
       - report handoff
       - sessionHistory placeholder
-      - listResumes blocker
-      - getCompanyIntel blocker
+      - listResumes Phase 7 active-list
+      - getCompanyIntel removed
       - workspace pixel parity
       - E2E.P0.018
       - E2E.P0.019
@@ -109,7 +109,6 @@ spec:
           - practice
           - generating
           - report
-          - company_intel
           - auth_login
           - home
           - resume_versions

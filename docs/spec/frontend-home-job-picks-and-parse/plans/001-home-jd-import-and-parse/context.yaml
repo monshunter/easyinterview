@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 2.6
+    to: 2.7
 spec:
   defaultTarget: frontend
   discovery:
@@ -20,7 +20,6 @@ spec:
     keywords:
       - home screen
       - parse screen
-      - jd_match placeholder
       - importTargetJob
       - createUploadPresign
       - listTargetJobs
@@ -57,7 +56,6 @@ spec:
       - E2E.P0.014
       - E2E.P0.015
       - E2E.P0.016
-      - E2E.P0.017
       - home source layout
       - upload file source
       - integrated source controls
@@ -89,7 +87,6 @@ spec:
         packages:
           - frontend/src/app/screens/home
           - frontend/src/app/screens/parse
-          - frontend/src/app/screens/jd_match
           - frontend/src/app/navigation
           - frontend/src/app/i18n/locales
           - frontend/src/api
@@ -103,11 +100,9 @@ spec:
           - test/scenarios/e2e/p0-014-home-default-render
           - test/scenarios/e2e/p0-015-jd-import-and-parse
           - test/scenarios/e2e/p0-016-parse-confirm-to-workspace
-          - test/scenarios/e2e/p0-017-jd-match-placeholder
         uiRoutes:
           - home
           - parse
-          - jd_match
           - workspace
           - auth_login
         apiNames:

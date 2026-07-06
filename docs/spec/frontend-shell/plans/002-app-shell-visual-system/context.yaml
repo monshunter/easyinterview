@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: 1.4
-    to: 1.7
+    to: 1.23
 spec:
   defaultTarget: frontend
   discovery:
@@ -68,18 +68,13 @@ spec:
           - ui-design/src
         uiRoutes:
           - home
-          - jd_match
           - workspace
           - resume_versions
-          - debrief
-          - profile
           - settings
           - auth_login
-          - auth_register
           - auth_verify
-          - auth_reset
+          - auth_profile_setup
           - auth_logout
           - parse
           - report
-          - company_intel
         apiNames: []

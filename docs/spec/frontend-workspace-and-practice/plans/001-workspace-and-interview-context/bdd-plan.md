@@ -1,8 +1,8 @@
 # 001 BDD Plan
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-06
 
 **关联 Plan**: [plan](./plan.md)
 
@@ -13,7 +13,7 @@
 | E2E.P0.018 | primary path · workspace 默认渲染 + Plan Switcher / Resume Picker | Phase 1 + 2 + 3 | C-2, C-7, C-8, C-9 | Phase 1.6、Phase 2.8、Phase 3.8 |
 | E2E.P0.019 | primary + boundary + failure · context loading + getPracticePlan refresh + WorkspaceEmptyState / WorkspaceMissingResumeState | Phase 2 + 3 + 4 | C-2, C-3, C-8, C-9 | Phase 3.8、Phase 4.9 |
 | E2E.P0.020 | primary + alternate · 立即面试 双步契约 + Idempotency-Key + pendingAction(start_practice) + 未登录恢复 | Phase 4 | C-1, C-3, C-12 | Phase 4.9 |
-| E2E.P0.021 | regression / legacy-negative · session history → report handoff + company intel handoff + 隐私红线 + 旧 route/testid 反向 grep | Phase 5 + 6 | C-7, C-9, C-10, C-12 | Phase 5.5、Phase 6.9 |
+| E2E.P0.021 | regression / legacy-negative · session history → report handoff + company intel embedded-only + 隐私红线 + 旧 route/testid 反向 grep | Phase 5 + 6 | C-7, C-9, C-10, C-12 | Phase 5.5、Phase 6.9 |
 
 ---
 
@@ -39,4 +39,4 @@
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.021 | Workspace handoff + 隐私红线 + 旧入口负向 | 用户已登录；`getTargetJob=with-rounds` + `getResume=default` + `getPracticePlan=default(ready)`；当前 typed contract 不提供 session history | 用户点击：（A）`workspace-companyintel-open` 公司情报入口；（B）`workspace-history-empty` / disabled history placeholder | （A）（1）调 `nav("company_intel", { targetJobId, jdId })`；（2）`company_intel` route 仍渲染 PlaceholderScreen（外部 owner 替换）；（3）generated client `getCompanyIntel` 调用次数为 0；（B）（1）history 区域渲染 `EmptyHistory` / disabled placeholder；（2）点击不触发 `nav("report", ...)`；（3）不读取未声明 `TargetJob.recentSessions` / fixture extension，不调用 `getFeedbackReport`；（D 隐私）（1）JD 原文 / 简历正文 / `questionText` / AI prompt-response / `answerText` / `hintText` 不出现在 console / URL / localStorage / telemetry / fixture transport 日志 0 命中；（2）`pendingAction.params` 仅含 IDs / route / `PracticeDisplayContext` / `autoStartPractice`；（E 旧入口负向）（1）旧 prototype workspace 业务 testid（`practice-mode-card-*` / `growth-*` / `drill-builder-*` / `mistake-queue-*` / `workspace-mocked-*`）grep 0 命中；（2）旧 route alias（`welcome` / `growth` / `mistakes` / `drill` / `followup` / `experiences` / `star` / 独立 `voice`）在 workspace 模块 grep 0 命中（除 `normalizeRoute` alias map）；（3）`frontend/src/app/screens/workspace/` + `frontend/src/app/interview-context/` 不 import `ui-design/src/data.jsx` / `window.EI_DATA` / `getWorkspace*` prototype helper；（4）generated client `listResumes` / `getCompanyIntel` 调用次数为 0；（F regression）D1+D2+D3 已存在 `E2E.P0.001 / 002 / 004 / 005 / 006` 全部 PASS；home plan `E2E.P0.014 / 015 / 016 / 017` 仅在场景资产存在且 INDEX Ready 时执行 | `test/scenarios/e2e/p0-021-workspace-handoff/` |
+| E2E.P0.021 | Workspace embedded-only + 隐私红线 + 旧入口负向 | 用户已登录；`getTargetJob=with-rounds` + `getResume=default` + `getPracticePlan=default(ready)`；当前 typed contract 不提供 session history | 用户点击：（A）`workspace-companyintel-open` 公司情报入口；（B）`workspace-history-empty` / disabled history placeholder | （A）（1）调 `nav("workspace", { targetJobId, jdId })` 并停留在 workspace；（2）旧 `company_intel` route 只能归一到 `workspace`，不渲染独立详情页；（3）generated client `getCompanyIntel` 调用次数为 0；（B）（1）history 区域渲染 `EmptyHistory` / disabled placeholder；（2）点击不触发 `nav("report", ...)`；（3）不读取未声明 `TargetJob.recentSessions` / fixture extension，不调用 `getFeedbackReport`；（D 隐私）（1）JD 原文 / 简历正文 / `questionText` / AI prompt-response / `answerText` / `hintText` 不出现在 console / URL / localStorage / telemetry / fixture transport 日志 0 命中；（2）`pendingAction.params` 仅含 IDs / route / `PracticeDisplayContext` / `autoStartPractice`；（E 旧入口负向）（1）旧 prototype workspace 业务 testid（`practice-mode-card-*` / `growth-*` / `drill-builder-*` / `mistake-queue-*` / `workspace-mocked-*`）grep 0 命中；（2）旧 route alias（`welcome` / `growth` / `mistakes` / `drill` / `followup` / `experiences` / `star` / 独立 `voice`）在 workspace 模块 grep 0 命中（除 `normalizeRoute` alias map）；（3）`frontend/src/app/screens/workspace/` + `frontend/src/app/interview-context/` 不 import `ui-design/src/data.jsx` / `window.EI_DATA` / `getWorkspace*` prototype helper；（4）`getCompanyIntel` 调用次数为 0，`listResumes` 调用 0 只作为 Phase 1-6 历史 disabled-list 证据；（F regression）D1+D2+D3 已存在 `E2E.P0.001 / 002 / 004 / 005 / 006` 全部 PASS；home plan `E2E.P0.014 / 015 / 016 / 017` 仅在场景资产存在且 INDEX Ready 时执行 | `test/scenarios/e2e/p0-021-workspace-handoff/` |

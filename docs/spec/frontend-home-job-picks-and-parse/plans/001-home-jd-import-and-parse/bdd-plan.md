@@ -1,6 +1,6 @@
 # 001 BDD Plan
 
-> **版本**: 1.9
+> **版本**: 2.0
 > **状态**: completed
 > **更新日期**: 2026-07-06
 
@@ -13,13 +13,13 @@
 | E2E.P0.014 | primary path · home 默认渲染 | Phase 1 + 2 + 9 + 10 + 11 | C-1, C-4, C-19, C-20, C-21 | Phase 1.5、Phase 2.6、Phase 9.4、Phase 10.4、Phase 11.4 |
 | E2E.P0.015 | primary path · home 下拉选择已有简历 → paste/import → parse 主路径 + alternate path（upload / URL variants） + failure path（4xx / failed） | Phase 3 + 4 + 8 + 9 + 10 + 11 | C-2, C-3, C-6, C-18, C-20, C-21 | Phase 3.6、Phase 4.10、Phase 8.5、Phase 9.4、Phase 10.4、Phase 11.4 |
 | E2E.P0.016 | primary path · parse 编辑 + 继承/绑定简历 + Save/Start handoff + failure（updateTargetJob 4xx）+ empty resume gate | Phase 4 + Phase 7 + Phase 8 | C-5, C-7, C-17, C-18 | Phase 4.10 + Phase 7.4 + Phase 8.5 |
-| E2E.P0.017 | regression / legacy-negative · jd_match P1 placeholder smoke + 旧 prototype 业务 testid 反向 grep | Phase 5 | C-8 | Phase 5.5 |
+| E2E.P0.017 | **retired historical** · jd_match P1 placeholder smoke | Historical Phase 5 only | retired C-8 history | D-17 后不再作为 active BDD-Gate；由 product-scope pruning 零残留搜索承接 |
 
 ---
 
 ## 1.1 Real Backend Overlay
 
-E2E.P0.014-P0.016 的 UI 子用例继续使用 fixture-backed component transports，原因是这些场景要稳定覆盖 DOM、source variants、auth pending action、4xx/failed variants、privacy negative grep 与 responsive parity。2026-05-22 L2 remediation 在每个 trigger 前置运行 `src/api/targetJob.realApiMode.test.ts`，并显式设置 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`：该 gate 证明 production bootstrap/generated client 对 `listTargetJobs`、`createUploadPresign`、`importTargetJob`、`getTargetJob`、`updateTargetJob` 使用真实 backend base URL、cookie credentials、side-effect `Idempotency-Key` 与 TargetJob provenance roundtrip。真实 backend route/persistence/auth/IK/parse semantics 由 `backend-targetjob/001-targetjob-import-and-parse-bootstrap` 的 E2E.P0.010-P0.013 live scenarios 配对证明；upload presign route/handler 由 `backend-upload/001-file-objects-and-presign-baseline` focused tests 配对证明。E2E.P0.017 是 jd_match UI-only smoke，不属于 TargetJobs/import/parse real backend overlay。
+E2E.P0.014-P0.016 的 UI 子用例继续使用 fixture-backed component transports，原因是这些场景要稳定覆盖 DOM、source variants、auth pending action、4xx/failed variants、privacy negative grep 与 responsive parity。2026-05-22 L2 remediation 在每个 trigger 前置运行 `src/api/targetJob.realApiMode.test.ts`，并显式设置 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`：该 gate 证明 production bootstrap/generated client 对 `listTargetJobs`、`createUploadPresign`、`importTargetJob`、`getTargetJob`、`updateTargetJob` 使用真实 backend base URL、cookie credentials、side-effect `Idempotency-Key` 与 TargetJob provenance roundtrip。真实 backend route/persistence/auth/IK/parse semantics 由 `backend-targetjob/001-targetjob-import-and-parse-bootstrap` 的 E2E.P0.010-P0.013 live scenarios 配对证明；upload presign route/handler 由 `backend-upload/001-file-objects-and-presign-baseline` focused tests 配对证明。E2E.P0.017 是历史 jd_match UI-only smoke，已随 D-17 退役，不属于当前 TargetJobs/import/parse real backend overlay，也不得作为 active BDD gate。
 
 ## Phase 1 + 2: Home 默认渲染（含 Recent mocks 三态）
 
@@ -39,8 +39,8 @@ E2E.P0.014-P0.016 的 UI 子用例继续使用 fixture-backed component transpor
 |---------|------|-------|------|------|----------|
 | E2E.P0.016 | Parse 编辑 + 继承/显式绑定简历 + Start/Save handoff | 用户在 parse 屏 preview 阶段，`listResumes` 返回 ready 简历；route 可携带 Home 选择的 `resumeId`；另有 empty/failed 变体 | 用户编辑 title 字段；若 route `resumeId` 有效则页面展示该绑定；若缺失则选择前 Save/Start disabled；用户分别点击 `仅保存规划` 与 `立即面试` | （A route resume 继承）（1）命中 ready 简历时展示 Home 选择的绑定简历；（2）不恢复默认选中最近简历；（B 保存规划）（1）调 `updateTargetJob(targetJobId, body, { idempotencyKey })` body 仅含 supplied fields，不含 hit toggle 状态、summary、fitSummary 或 hidden signals；（2）成功后 route 跳 `workspace?targetJobId=&jobId=&jdId=&planId=&resumeId=&roundId=&roundName=`，`resumeId` 为 route 或用户点击的真实 ready 简历 id，禁止 `resume-unbound`；（3）不渲染 `workspace-missing-resume` 成功态；（C 立即面试）（1）调同一保存路径后进入 `workspace` 并携带 `autoStartPractice=1`，由 workspace `useStartPractice` 创建 session 后进入 `practice`；（2）handoff / pendingAction params 携带真实 `resumeId`；（D 无 ready 简历或 route resume 无效）（1）`立即面试` 与 `仅保存规划` disabled；（2）`parse-resume-create` 导航 `resume_versions?flow=create`；（E 通用）Re-parse / Cancel / 隐私负向保持原有要求；browser gate 输出真实 resumeId context marker，并拒绝 `workspace-missing-resume` / `resume-unbound` 成功 marker | `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/` |
 
-## Phase 5: jd_match P1 Placeholder Shell
+## Phase 5: jd_match P1 Placeholder Shell（历史，D-17 后退役）
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.017 | jd_match P1 placeholder smoke | 用户已登录或未登录均可 | 通过 TopBar Job Picks 入口与 home 的 `home-aux-jobpicks` aux card 分别进入 `jd_match` 路由 | （1）route 渲染 `jd_match` 命中 `JDMatchScreen` 而非 PlaceholderScreen；（2）testid `jdmatch-hero-{label,title,sub}`、`jdmatch-profile-chip-{title,years,location,skills,sources}`、`jdmatch-tab-{recommended,search,watchlist}`、`jdmatch-placeholder`、`jdmatch-placeholder-cta` 全部命中；（3）TopBar `topbar-nav-jd_match` 高亮；（4）i18n zh/en placeholder 文案切换；（5）旧 prototype 业务 testid（`jdmatch-card-*` / `jdmatch-saved-search-*` / `jdmatch-watchlist-*` / `jdmatch-market-signal-*` / `jdmatch-search-bar` / `jdmatch-search-results` / `jdmatch-jd-detail-*` / `jdmatch-agent-status`）grep 0 命中；（6）warm/light → dark → customAccent 三态切换 hero 与 profile chip computed background 出现可见变化；（7）mobile (390×844) viewport 下 hero / profile chip / 三 tab 不溢出 | `test/scenarios/e2e/p0-017-jd-match-placeholder/` |
+| E2E.P0.017 | retired jd_match placeholder smoke | 历史记录 | 不再执行 | D-17 后该场景目录、TopBar Job Picks、Home `home-aux-jobpicks`、`JDMatchScreen` 与 `jdmatch-*` placeholder DOM 均不得作为当前完成条件；当前 owner 只需通过零残留 / legacy route normalize gate 证明未恢复 | historical only |

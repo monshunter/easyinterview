@@ -1,13 +1,14 @@
 # Backend Practice History
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: active
-> **更新日期**: 2026-06-29
+> **更新日期**: 2026-07-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-06 | 1.14 | 删除已随 JD Match 模块移除的 `CountPracticeSessionsForUser` cross-owner internal API 模块边界；当前 backend-practice 只承接 practice plan/session/event/turn/report-derived retry/next_round，不再提供 jobs-recommendations aggregation helper。 | product-scope/001-core-loop-module-pruning |
 | 2026-06-29 | 1.13 | product-scope D-22 后同步 practice 当前范围：`PracticeGoal` 收敛为 baseline / retry_current_round / next_round，debrief/sourceDebriefId/source_debrief_id 派生分支退役；004 历史目录名保留但当前有效范围只剩 report-derived retry / next-round。 | product-scope/001-core-loop-module-pruning |
 | 2026-06-13 | 1.12 | product-scope D-20 简历扁平化绑定适配（新增 D-39）：`createPracticePlan` / `practice_plans` 简历绑定 `resumeAssetId` / `resume_asset_id`→`resumeId` / `resume_id`（指向扁平 `resumes`：[B4 D-22](../db-migrations-baseline/spec.md) `practice_plans.resume_asset_id`→`resume_id` 列 rename + [B2 D-26](../openapi-v1-contract/spec.md) `CreatePracticePlanRequest.resumeAssetId`→`resumeId` 随全局 resumeId 重命名）；移除「简历主版本 / 岗位定制版本」上下文口径（D-20 简历无版本）；baseline 首题 prompt 引用扁平 resume `structured_profile`。handler / service / store / generated 类型 rename 由 001 D-20 phase 落地。 | backend-practice/001 D-20 phase（product-scope D-20）|
 | 2026-05-21 | 1.11 | 登记 backend-jobs-recommendations/001 cross-owner additive：新增 `CountPracticeSessionsForUser(ctx, db, userID) (int, error)` 内部 API（`backend/internal/practice/count.go`），read-only `SELECT COUNT(*) FROM practice_sessions WHERE user_id = $1`；cross-user 隔离由 caller userId 保证；不写 audit_events。单元测试 `count_test.go` 覆盖 happy / cross-user / nil-db / empty-userId。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.15 |

@@ -1,13 +1,14 @@
 # E2E Scenarios P0 History
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-07-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-06 | 1.8 | 对齐 product-scope D-17/D-22 后的 P0 journey 范围：full-funnel 正向目标删除真实复盘 / debrief 回流、jobs-recommendations 与 profile 业务域；复练仍以 `retry_current_round` / `next_round` 报告派生计划表达，`debrief` 仅保留为 legacy-negative。 | product-scope/001-core-loop-module-pruning Phase 6 |
 | 2026-05-27 | 1.7 | 对齐 C1/D1 email-code 修订：真实 provider hybrid UAT 账号入口从 Mailpit magic-link 改为 Mailpit 6 位 code，证据红线禁止 raw email code。 | backend-auth/001 Phase 7 + frontend-shell/001 Phase 8 |
 | 2026-05-27 | 1.6 | 修正真实 provider hybrid 场景 env 边界：`deploy/dev-stack/.env` 成为本地真实联调唯一 env 来源，删除 `E2E.P0.100` 场景专属 `dev-real.env` 模板口径。 | 002-manual-uat-real-provider-full-funnel |
 | 2026-05-27 | 1.5 | 将 `E2E.P0.100` 从独立 `manual-uat` companion 迁回标准 `e2e` 场景框架：AI Agent 先运行环境 preflight 与四段脚本，缺真实凭证/浏览器证据时输出 `MANUAL_REQUIRED`，人工或浏览器 Agent 在同一场景输出目录补证。 | 002-manual-uat-real-provider-full-funnel |

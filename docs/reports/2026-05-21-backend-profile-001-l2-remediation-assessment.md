@@ -5,7 +5,7 @@
 
 ## 1 复盘范围与成功证据
 
-- 交付范围：[`backend-profile/001-candidate-profile-and-experience-cards`](../spec/backend-profile/plans/001-candidate-profile-and-experience-cards/plan.md) 的 L2 code review `--fix` 闭环，覆盖场景编号证据漂移、legacy negative gate、隐私删除失败恢复、event lint 和 plan v1.2 收口。
+- 交付范围：历史 `backend-profile/001-candidate-profile-and-experience-cards` 的 L2 code review `--fix` 闭环（实体已随 product-scope/001 删除；当前删除证据由 [Core Loop Module Pruning](../spec/product-scope/plans/001-core-loop-module-pruning/plan.md) 承接），覆盖场景编号证据漂移、legacy negative gate、隐私删除失败恢复、event lint 和 plan v1.2 收口。
 - 成功证据：
   - P0.091 / P0.092 / P0.093 场景全部完成 setup -> trigger -> verify -> cleanup 并通过。
   - 隐私删除新增 failure rollback integration gate：`DATABASE_URL=... go test -tags=integration ./internal/profile/store/... -count=1` PASS。

@@ -1,10 +1,12 @@
 # 001 BDD Checklist
 
-> **版本**: 2.1
+> **版本**: 2.2
 > **状态**: completed
 > **更新日期**: 2026-07-06
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
+
+> **2026-07-06 product-scope pruning reconcile**：`E2E.P0.017` jd_match placeholder 已随 D-17 退役，不再作为当前 BDD gate；当前 active BDD 只覆盖 `E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016`。旧场景只作为历史记录与零残留负向搜索线索。
 
 ## E2E.P0.014 Home 默认渲染（empty + non-empty + 12+）
 
@@ -55,14 +57,11 @@
 - [x] 2026-07-06 parse inherit home resume gate：P0.016 trigger / verify / README / expected outcome 必须新增 route `resumeId` 继承子用例，证明 Home 传入的 ready 简历在 Parse preview 已绑定；同时保留 route `resumeId` 无效时不默认选中最近简历、Save/Start disabled 的负向覆盖。
   - Evidence 2026-07-06: `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/scripts/trigger.sh` and `verify.sh` exited 0; verbose Vitest output contains `inherits a valid route resumeId from the Home immediate interview handoff`, followed by desktop/mobile Save/Start Playwright gates rejecting `resume-unbound`.
 
-## E2E.P0.017 jd_match P1 Placeholder Smoke
+## E2E.P0.017 jd_match P1 Placeholder Smoke（历史，D-17 后退役）
 
-- [x] 创建场景目录 `test/scenarios/e2e/p0-017-jd-match-placeholder/`，含 `README.md`
-- [x] 准备：无需新 fixture（placeholder 不消费数据）；脚本入口校验 D1 generated client 不会被 jd_match 屏触发额外 API 调用
-- [x] 实现 `scripts/setup.sh` / `scripts/trigger.sh`（通过 TopBar 与 home aux card 双入口进入 jd_match）/ `scripts/verify.sh`（断言 hero / profile chip / 三 tab / placeholder testid 全命中、TopBar `topbar-nav-jd_match` 高亮、旧业务 testid grep 0 命中、i18n zh/en 切换、warm-dark-customAccent 切换、mobile 不溢出、generated client 调用次数为 0 或仅限于 `getMe` 等已存在 D1 调用）/ `scripts/cleanup.sh`
-- [x] 执行 `setup → trigger → verify → cleanup` 全 PASS
-- [x] 记录验证证据：retired-testid grep 0 命中日志 + generated client spy + mobile 截图
-- [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.017 行（关联需求 C-8，状态 Ready，automated）
+- [x] 历史记录：曾创建场景目录 `test/scenarios/e2e/p0-017-jd-match-placeholder/` 并验证 placeholder smoke
+- [x] 当前状态：该场景已退役；不得作为 active trigger / verify / INDEX 行恢复
+- [x] 当前替代 gate：legacy route normalize、`topbar-nav-jd_match` / `home-aux-jobpicks` / `frontend/src/app/screens/jd_match/` / `frontend/tests/pixel-parity/jd_match.spec.ts` / JobMatch operation consumer 0 命中（历史文档与负向断言除外）
 
 ## Real Backend Overlay（2026-05-22）
 
@@ -70,12 +69,12 @@
 - [x] P0.014-P0.016 verify scripts reject missing real-mode markers, so fixture-backed UI PASS alone cannot satisfy TargetJobs/import/parse completion. <!-- evidence: 2026-05-22 verify scripts require VITE_EI_API_MODE=real, VITE_EI_API_BASE_URL=http://localhost:8080/api/v1, and targetJob.realApiMode.test.ts markers -->
 - [x] Backend TargetJob owner evidence paired: E2E.P0.010 / P0.011 / P0.012 / P0.013 setup→trigger→verify→cleanup PASS through `backend/cmd/api` live HTTP harness. <!-- evidence: 2026-05-22 backend scenarios P0.010-P0.013 all PASS; verify scripts accepted generated result artifacts -->
 - [x] Backend upload support evidence paired: `POST /api/v1/uploads/presign` route and handler focused tests PASS, covering the plan001 `createUploadPresign` supporting operation. <!-- evidence: 2026-05-22 `go test ./cmd/api -run TestBuildUploadRoutesAlignsIdempotencyTTLWithPresignTTL -count=1` PASS; `go test ./internal/upload/handler -run 'TestCreateUploadPresignReturnsCreatedResponse|TestCreateUploadPresignIdempotencyReplayAndTTL' -count=1` PASS -->
-- [x] E2E.P0.017 remains jd_match UI-only smoke and intentionally has no TargetJobs real-mode overlay. <!-- evidence: plan001 P0.017 does not consume TargetJobs/import/parse operations -->
+- [x] E2E.P0.017 is retired historical jd_match UI-only smoke and intentionally has no current TargetJobs real-mode overlay. <!-- evidence: 2026-07-06 product-scope pruning reconcile marks P0.017 historical only -->
 
 ## 整体 Regression（Phase 6 收口）
 
-- [x] D1+D2+D3 Regression 重跑：`E2E.P0.001 / 002 / 004 / 005 / 006` setup→trigger→verify→cleanup 全部 PASS（D2 视觉系统不被 home/parse/jd_match 改动破坏）
+- [x] D1+D2+D3 Regression 重跑：`E2E.P0.001 / 002 / 004 / 005 / 006` setup→trigger→verify→cleanup 全部 PASS（D2 视觉系统不被 home/parse 改动破坏）
 - [x] `pnpm --filter @easyinterview/frontend test` 全量 Vitest PASS（含本 plan 新增测试文件）
-- [x] `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 D2/D3 现有 21 spec × 2 viewport = 42 项基础上累加 home/parse/jd_match 新增 spec，总数全 PASS，并确认 parse loading footer 与 `ui-design` 源级结构一致但无前端 LLM/provider 请求
+- [x] `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 D2/D3 现有基线上累加 home/parse active spec，全 PASS，并确认 parse loading footer 与 `ui-design` 源级结构一致但无前端 LLM/provider 请求；历史 jd_match parity spec 不得恢复
 - [x] `pnpm --filter @easyinterview/frontend typecheck` + `pnpm --filter @easyinterview/frontend build` + `make build` 全 PASS
 - [x] `make docs-check` zero drift；`/sync-doc-index --fix-index` post-fix zero drift；`check_md_links` 双 OK

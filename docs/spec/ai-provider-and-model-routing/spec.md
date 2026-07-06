@@ -1,8 +1,8 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.17
+> **版本**: 2.18
 > **状态**: active
-> **更新日期**: 2026-06-30
+> **更新日期**: 2026-07-06
 
 ## 1 背景与目标
 
@@ -10,7 +10,7 @@
 
 基于当前 [product-scope](../product-scope/spec.md) 与 `docs/ui-design/` / `ui-design/` 交互，easyinterview 的 AI 使用面已经超过“单一文本 LLM endpoint”：
 
-- JD 导入解析、Job Picks 匹配解释、公司轻情报摘要；
+- JD 导入解析、workspace 内嵌公司轻情报摘要；
 - 模拟面试首题、追问、轻量观察 / hint、文本输入中的语音转写、voice interview；
 - 报告生成、逐题评估、复练当前轮 / 下一轮上下文；
 - 简历解析、岗位定制、bullet 改写；
@@ -124,7 +124,6 @@
 | 产品 / UI 场景 | 主要输入 | Capability family | 默认 profile 命名 |
 |----------------|----------|-------------------|-------------------|
 | JD 导入解析 | JD 文本 / URL 提取文本 | `chat` 结构化抽取 | `target.import.default` |
-| Job Picks 匹配解释（legacy frontend home picks） | JD + 简历 | `chat` 结构化匹配解释 | `target.import.default` |
 | 公司轻情报摘要 | source-grounded public info | `chat` source-grounded summarization | `target.intel.default`（P1/P2 占位） |
 | 简历解析 | 简历文本 / 上传解析结果 | `chat` 结构化抽取 | `resume.parse.default` |
 | 简历定制 / bullet 改写 | JD + 简历证据 | `chat` 写作 / 改写 | `resume.tailor.default` |

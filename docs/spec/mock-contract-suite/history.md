@@ -1,13 +1,15 @@
 # Mock Contract Suite History
 
-> **版本**: 1.9
+> **版本**: 1.11
 > **状态**: active
-> **更新日期**: 2026-05-28
+> **更新日期**: 2026-07-06
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-06 | 1.11 | 对齐 product-scope D-17 / D-20 / D-22 后的当前 B2 truth：mock fixture coverage 从历史 48/60 口径收敛为当前 10 tag / 35 operation；JobMatch、Profile、Debriefs 与简历版本/suggestion 旧 operation 不再作为正向 fixture coverage 或 mock response baseline。 | product-scope/001-core-loop-module-pruning Phase 6 |
+| 2026-06-13 | 1.10 | product-scope D-17/D-20 后同步 JobMatch 删除与简历扁平化计数，保留 12 tag / 48 operation 过渡口径；该口径已在 v1.11 被 D-22 当前 truth 覆盖。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-28 | 1.9 | 对齐 B2 D-25 Auth single-entry profile completion：mock contract fixture coverage 从 59 operation 升到 60 operation，承接 `completeMyProfile` fixture、`UserContext.profileCompletionRequired` 和单入口邮箱验证码登录契约；§2.1 / §6 C-1 与 `openapi/fixtures/README.md` 计数已同步。 | backend-auth/001 Phase 8 + frontend-shell/001 Phase 9 |
 | 2026-05-22 | 1.8 | 收窄 retired-token gate：继续拦截独立 `/voice` route / `Voice` tag，但允许 practice-voice-mvp 拥有的 `createPracticeVoiceTurn`、`/practice/sessions/{sessionId}/voice-turns` 与 `PracticeVoiceTurn*` generated artifacts；`lint-mock-contract` 与 repo-wide `make lint` 通过。 | 001-fixture-backed-mock-runtime Phase 6 |
 | 2026-05-17 | 1.7 | B2 D-20/D-21/D-22 与 backend-resume D-23 additive 落地同步：mock contract fixture coverage 从 55 operation 升到 59 operation，承接 `suggestDebriefQuestions`、`listPracticeSessions`、`createPracticeVoiceTurn` 与 `confirmResumeStructuredMaster` fixtures；§2.1 / §6 C-1 与 `openapi/fixtures/README.md` 计数已同步。 | backend-resume/002-versions-tailor-runs-and-save-v1 Phase 1 |

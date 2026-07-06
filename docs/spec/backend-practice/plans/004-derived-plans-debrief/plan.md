@@ -1,8 +1,8 @@
-# 004 — Derived Plans and Debrief Seeding
+# 004 — Report-derived Practice Plans (Debrief Retired)
 
-> **版本**: 1.0
+> **版本**: 1.1
 > **状态**: completed
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-07-06
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,148 +11,87 @@
 
 ## 1 目标
 
-落地 backend-practice spec D-4 / D-14 / D-24 与 C-2 / C-3 预留的 derived practice plan 能力：
+本目录名保留历史 `004-derived-plans-debrief` 锚点，但 D-22 后当前有效范围只剩 report-derived practice plan：
 
-- `createPracticePlan` 支持 `goal IN ('retry_current_round','next_round') + sourceReportId`，写入 `practice_plans.source_report_id`，保持首题仍由 `practice.session.first_question` AI 生成。
-- `createPracticePlan` 支持 `goal='debrief' + sourceDebriefId`，写入新列 `practice_plans.source_debrief_id`，并验证 source debrief 属于同一用户、同一 target job、状态已 completed 且至少有一条可用问题。
-- `startPracticeSession` 在 `goal='debrief'` 时直接使用 debrief 已确认问题序列的首题作为第一 turn，不调用 F3 `practice.session.first_question` / A3 first-question AI；`mode` 仍只允许 `assisted` / `strict`，并继续控制 hint 策略。
-- 所有 source id、question text、answer text 与 debrief notes 遵守 backend-practice D-11 隐私红线：API / event / audit / metric / log 只暴露 ID、状态、计数与错误码摘要。
-
-本 plan 是 `backend-debrief/001` Phase 0.6 的阻塞依赖；完成后 `backend-debrief` 可恢复验证 `goal='debrief'` handoff。
+- `createPracticePlan` 支持 `goal IN ('retry_current_round','next_round') + sourceReportId`，写入 `practice_plans.source_report_id`。
+- `getPracticePlan` 返回当前 plan 的 `sourceReportId`，同用户重放保持一致。
+- `startPracticeSession` 对 report-derived plan 仍走 `practice.session.first_question` / A3 首题生成路径，不存在 debrief source 首题 bypass。
+- `goal='debrief'`、`sourceDebriefId`、`source_debrief_id`、`PracticeGoalDebrief` 和 debrief-derived first-turn seeding 均已随 product-scope D-22 退役；只能作为 retired-negative gate，不再作为当前功能目标、scenario 或 future handoff。
 
 ## 2 背景
 
-001 已把 baseline plan create/start 闭环并显式拒绝非 baseline goal，错误 detail 指向 future `004-derived-plans-debrief`。002/003 已完成 event loop、completion、hint mode policy 与 provenance；同时 003 验证了 `goal='debrief'` 在 mode policy 中只是一种 goal，不应变成第三个 `PracticeMode`。
+2026-05-16 的历史 004 曾同时覆盖 report-derived 与 debrief-derived practice plan。product-scope D-22 删除真实面试复盘模块后，当前 `backend-practice/spec.md` v1.13 已把 `PracticeGoal` 收敛为 `baseline / retry_current_round / next_round`，并明确 `debrief/sourceDebriefId/source_debrief_id` 不再是合法 plan source。
 
-当前阻塞事实：
-
-- B1/B2/B4 已有 `PracticeGoal.debrief`，但 service 仍拒绝所有非 baseline goal。
-- B4 baseline 已有 `source_report_id`，尚缺 `source_debrief_id` 与互斥 / goal CHECK。
-- B2 `CreatePracticePlanRequest` / `PracticePlan` 尚无 `sourceReportId` / `sourceDebriefId` wire 字段。
-- `startPracticeSession` 对所有 goal 都调用 `practice.session.first_question`；debrief flow 需要从 `debriefs.raw_questions` 取首题，证明复盘面试是对真实复盘问题的再练。
+本次修订不新增代码；它清理 completed plan/test/BDD/context 的正向口径，使后续 `/implement` 或 `/plan-code-review` 不会从历史 debrief 主路径重新派生工作。
 
 ## 3 质量门禁分类
 
-- **Plan 类型**: feature-behavior + contract + migration + code-internal。
-- **TDD 策略**: Code plan requires TDD。每个 checklist item 先补 Red：OpenAPI/generated/fixture contract、migration SQL contract、service validation、repository integration、handler envelope、HTTP scenario；再 Green 实现；最后 Refactor 与 checklist 同步。测试入口详见 [test-plan](./test-plan.md)。
-- **BDD 策略**: Feature plan requires BDD。本 plan 改变用户可见 API 行为与复盘面试启动业务流，分配 `E2E.P0.070-073`，主 checklist 使用 `BDD-Gate:` 引用 [bdd-plan](./bdd-plan.md) / [bdd-checklist](./bdd-checklist.md)。
-- **替代验证 gate**: Contract / migration / privacy / legacy negative 使用 `make codegen-openapi`、`make lint-openapi`、`make validate-fixtures`、`migrations/lint.sh`、`make migrate-check`、focused Go tests、`make docs-check`、`git diff --check` 与 scoped grep 组合。
+- **Plan 类型**: docs-only reconciliation for an already-implemented feature-behavior / contract plan。
+- **TDD 策略**: 不适用：本次只修订文档和 context；当前实现证据来自现有 focused Go tests、OpenAPI inventory、scenario wrapper 与 retired-token negative grep。
+- **BDD 策略**: 保留当前有效 BDD `E2E.P0.070` / `E2E.P0.072`；历史 debrief 专属 `E2E.P0.071` / `E2E.P0.073` 已退役，不再作为完成 gate。
+- **替代验证 gate**: `validate_context.py`、focused Go test existence/search、P0.070/P0.072 scenario docs、OpenAPI operation/enum search、retired-token negative grep、`make docs-check`、`git diff --check`。
 
 ## 3.1 Operation Matrix
 
 | `operationId` | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |---------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` 新增 `report-derived` / `debrief-derived` / `source-missing` / `cross-user-source` scenarios | frontend-report-dashboard replay CTA 经 workspace/practice owner；frontend-debrief handoff 经 frontend-workspace-and-practice owner | `backend/internal/api/practice.Handler.CreatePracticePlan` + `backend/internal/practice.Service.CreatePracticePlan` + `backend/internal/store/practice.SQLRepository.CreatePlan` | `practice_plans.source_report_id` / `practice_plans.source_debrief_id` / `audit_events` / `idempotency_records` | none | `E2E.P0.070`, `E2E.P0.072` |
-| `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` 补 derived source 字段场景 | workspace/practice state refresh | `Handler.GetPracticePlan` + `Service.GetPracticePlan` + `SQLRepository.GetPlan` | `practice_plans` read | none | `E2E.P0.070`, `E2E.P0.072` |
-| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` 新增 `debrief-derived-first-question` / `debrief-source-empty` scenarios | frontend-debrief "复盘面试" handoff 后的 practice route | `Handler.StartPracticeSession` + `Service.StartPracticeSession` + `SQLRepository.ReserveSessionStart` / `CommitSessionStart` | `practice_sessions` / `practice_turns` / `practice_session_events` / `outbox_events` / `audit_events` / `idempotency_records` | `practice.session.first_question` 仅 baseline / retry / next_round 调用；debrief 不调用 | `E2E.P0.071`, `E2E.P0.073` |
+| `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` `report-derived` scenarios | Report next actions and workspace/practice owner create retry / next-round plans | `backend/internal/api/practice.Handler.CreatePracticePlan` + `backend/internal/practice.Service.CreatePracticePlan` + `backend/internal/store/practice.SQLRepository.CreatePlan` | `practice_plans.source_report_id` / `audit_events` / `idempotency_records` | none | `E2E.P0.070`, `E2E.P0.072` |
+| `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` sourceReportId shape | Workspace/practice state refresh | `Handler.GetPracticePlan` + `Service.GetPracticePlan` + `SQLRepository.GetPlan` | `practice_plans` read | none | `E2E.P0.070` |
+| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` current plan goals only | Interview session start | `Handler.StartPracticeSession` + `Service.StartPracticeSession` + `SQLRepository.ReserveSessionStart` / `CommitSessionStart` | `practice_sessions` / `practice_turns` / `practice_session_events` / `outbox_events` / `idempotency_records` | `practice.session.first_question` for baseline / retry_current_round / next_round | Covered by active backend-practice start-session gates; no debrief bypass scenario remains |
 
 ## 3.2 Coverage Matrix
 
-| 行 | 类别 | source | plan_phase | verification | negative_scope |
-|----|------|--------|------------|--------------|----------------|
-| R1 | Cross-layer contract | D-24 source fields | Phase 0 | OpenAPI schema + generated Go/TS + fixtures + handler mapping tests | no hidden local-only source id fields |
-| R2 | Migration | D-14 B4 source_debrief_id | Phase 0 | SQL contract + migration lint + migrate-check | no ALTER path; pre-launch baseline edit only |
-| R3 | Primary | C-2 report-derived plan | Phase 1 | service/store/handler tests + `E2E.P0.070` | non-baseline goals no longer return owner=004 when valid source is present |
-| R4 | Primary | C-3 debrief-derived plan | Phase 1 + Phase 2 | service/store/handler tests + `E2E.P0.071` | no `mode='debrief'`; only `goal='debrief'` |
-| R5 | Failure / recovery | missing/cross-user/stale source | Phase 1 + Phase 3 | validation tests + cross-user 404/422 envelope tests + `E2E.P0.072` | no source existence leak across users |
-| R6 | Boundary | debrief source empty or not completed | Phase 1 + Phase 2 | repository integration + start-session failure tests | no empty first turn; no draft debrief source |
-| R7 | Privacy / observability | D-11 / D-14 | Phase 3 | audit/outbox/log/metric grep + HTTP scenario assertions | no debrief question text, answer text, notes, risk prose in audit/event/log/metric |
-| R8 | Regression / legacy-negative | D-5/D-21 mode two-valued | Phase 3 | scoped grep + generated enum tests | `PracticeMode.debrief`, `mode=debrief`, `legacy debrief replay value` zero active references |
+| 行 | 类别 | source | verification | negative_scope |
+|----|------|--------|--------------|----------------|
+| R1 | Primary | retry_current_round / next_round report-derived plan creation | service/store/API derived-source tests + `E2E.P0.070` | no owner=004 rejection for valid report-derived sources |
+| R2 | Failure / recovery | missing / cross-user / wrong-target report source | service/store/API source isolation tests + `E2E.P0.072` | no source existence leak across users |
+| R3 | Cross-layer contract | B2 `sourceReportId`, B4 `source_report_id`, generated Go/TS | OpenAPI inventory + generated artifact search + fixture validation owner gates | no `sourceDebriefId` / `source_debrief_id` positive fields |
+| R4 | Regression / legacy-negative | D-22 debrief retirement | retired-token grep across runtime/generated/fixtures/scenario docs | no `PracticeGoalDebrief`, `goal='debrief'`, debrief start scenario, or debrief first-question bypass |
 
 ## 4 实施步骤
 
-### Phase 0: Contract, Migration, And Plan Preflight
+### Phase 1: Report-derived Plan Contract
 
-#### 0.1 B2 source fields
+#### 1.1 Source report request / response contract
 
-在 `openapi/openapi.yaml` 为 `CreatePracticePlanRequest` 与 `PracticePlan` 增加可空 `sourceReportId` / `sourceDebriefId`，更新 PracticePlans / PracticeSessions fixtures，运行 OpenAPI codegen 与 fixture validation。
+Keep `sourceReportId` as the only derived-plan source field in `CreatePracticePlanRequest` and `PracticePlan`.
 
-#### 0.2 B4 source_debrief_id
+#### 1.2 Report source validation
 
-在 `migrations/000001_create_baseline.up.sql` 为 `practice_plans` 增加 `source_debrief_id uuid`、FK 到 `debriefs(id) ON DELETE SET NULL`，并补 CHECK：
+Keep service/store validation for `retry_current_round` and `next_round`: `sourceReportId` is required, must belong to the same user and target job, and must not leak cross-user source existence.
 
-- `goal='baseline'` 时两个 source 均为空。
-- `goal IN ('retry_current_round','next_round')` 时 `source_report_id IS NOT NULL` 且 `source_debrief_id IS NULL`。
-- `goal='debrief'` 时 `source_debrief_id IS NOT NULL` 且 `source_report_id IS NULL`。
+#### 1.3 Start-session behavior
 
-同步 SQL contract / migration lint / migrate-check。
+Keep report-derived starts on the regular AI first-question path. Do not add a source-question bypass or debrief raw-question seed.
 
-#### 0.3 owner docs sync
+### Phase 2: D-22 Retired-negative Reconciliation
 
-将本 plan 链接到 backend-practice spec §7 与 plans INDEX；如果跨 owner 文档仍出现 `mode='debrief'` 作为 active contract，按当前 D-5/D-21 修订为 `goal='debrief' + mode IN ('assisted','strict')`。
+#### 2.1 Debrief source removal
 
-### Phase 1: createPracticePlan Derived Source Validation
+Ensure current docs, context, fixtures, generated clients, runtime code, and scenarios do not list `sourceDebriefId`, `source_debrief_id`, `PracticeGoalDebrief`, or `goal='debrief'` as current positive contract.
 
-#### 1.1 DTO and service validation
+#### 2.2 Scenario set reconciliation
 
-扩展 domain DTO：`CreatePlanRequest` / `CreatePlanStoreInput` / `PlanRecord` 增加 source ids；service 按 goal 做互斥验证并返回 `422 VALIDATION_FAILED`：
-
-- baseline 禁止任何 source id。
-- retry / next_round 要求 `sourceReportId` 且禁止 `sourceDebriefId`。
-- debrief 要求 `sourceDebriefId` 且禁止 `sourceReportId`。
-
-#### 1.2 SQL source validation
-
-repository 在插入时验证 source 同 user / same target job /可用状态：
-
-- report source：`feedback_reports.user_id=user_id`、`target_job_id=targetJobId`、`status='ready'`。
-- debrief source：`debriefs.user_id=user_id`、`target_job_id=targetJobId`、`status='completed'`、`jsonb_array_length(raw_questions) > 0`。
-
-#### 1.3 handler and idempotency
-
-handler 从 generated request 读取 source ids；idempotency fingerprint 必须包含 source ids，same key + different source 返回既有 mismatch；response replay 保留 source ids。
-
-### Phase 2: debrief startPracticeSession First Turn Seeding
-
-#### 2.1 reservation carries debrief question
-
-`ReserveSessionStart` 在 selected plan 中读取 `source_debrief_id` 与 debrief `raw_questions[0]` 的 `questionText` / intent fallback；`SessionReservation` 增加 debrief first-turn 字段。
-
-#### 2.2 service bypasses first_question AI for debrief
-
-`StartPracticeSession` 在 `reservation.Goal == PracticeGoalDebrief` 时直接构造 first question，不调用 `ResolveActive(practice.session.first_question)` / `AIClient.Complete`；baseline / retry / next_round 保持现有 AI 首题路径。
-
-#### 2.3 commit and event payload
-
-`CommitSessionStart` 复用现有 started event / outbox / audit 结构，audit metadata 只包含 source ids 与计数摘要，不包含 debrief question text / answer summary / notes。
-
-### Phase 3: Privacy, Isolation, And Legacy-Negative
-
-#### 3.1 source isolation matrix
-
-覆盖 missing source、cross-user source、wrong target job、draft debrief、empty raw_questions、source mismatch replay，确保错误 envelope 不泄露另一个用户的资源存在性。
-
-#### 3.2 mode × goal regression
-
-验证 debrief plan 在 `mode='assisted'` 与 `mode='strict'` 都可 start；hint 策略仍由 003 处理；`mode='debrief'` 在 OpenAPI / generated / fixtures / backend runtime 中不是合法值。
-
-#### 3.3 privacy and audit redline
-
-断言 audit_events / outbox_events / logs / metrics / idempotency response 不含 debrief question text、answer summary、interviewer reaction、notes、risk label prose。
-
-### Phase 4: Gates And Handoff
-
-#### 4.1 focused gates
-
-运行 test-plan 中列出的 focused Go tests、OpenAPI/fixture/migration/docs gates。
-
-#### 4.2 unblock backend-debrief
-
-回到 `backend-debrief/001` checklist 0.6，记录本 plan 依赖与验证命令；随后执行 backend-debrief Phase 0.7 收口 gate。
+Keep `E2E.P0.070` and `E2E.P0.072` as the active scenario proof. Remove historical `E2E.P0.071` / `E2E.P0.073` debrief-specific gates from this owner plan.
 
 ## 5 验收标准
 
-- `createPracticePlan` 对 baseline / retry_current_round / next_round / debrief 的 source id 规则与 DB CHECK 一致。
-- `startPracticeSession(goal='debrief')` 返回第一条 debrief 问题作为 currentTurn，且不调用 first_question AI。
-- `mode` 仍只有 `assisted` / `strict`，不会因为 debrief goal 引入第三值。
-- `E2E.P0.070-073` 的 HTTP scenario 或等价场景证据全部通过。
-- backend-debrief 0.6 被解除阻塞并记录依赖。
+- Current plan/test/BDD/context describe only report-derived `retry_current_round` / `next_round` behavior as positive scope.
+- `sourceDebriefId` / `source_debrief_id` / `PracticeGoalDebrief` / `goal='debrief'` do not appear in active runtime, generated artifacts, OpenAPI fixtures, or this plan's positive gates.
+- `E2E.P0.070` and `E2E.P0.072` remain the only scenario IDs owned by this plan.
+- `validate_context.py`, `make docs-check`, and `git diff --check` pass.
 
 ## 6 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
-| derived source validation 与 DB CHECK 规则漂移 | service 表驱动测试 + SQL contract + migration lint 双向验证 |
-| debrief 首题误走 first_question AI | fake registry / fake AIClient call-count 测试断言 debrief start 零调用 |
-| source id 泄露跨用户资源存在性 | cross-user source 返回统一 validation/not-found envelope，BDD 反查错误 detail 不含 owner/source raw id 外的敏感上下文 |
-| 旧 `mode='debrief'` 口径回流 | OpenAPI enum、generated enum、fixtures、docs/runtime scoped grep 作为 legacy-negative gate |
+| Historical directory name makes debrief look current | Keep the directory path, but make every current section state report-derived only and debrief retired-negative only |
+| Old scenario IDs or no-op commands are treated as proof | Keep BDD/test docs limited to P0.070/P0.072 and verify matching tests/scripts exist |
+| Retired source fields re-enter generated artifacts | Retired-token grep covers OpenAPI, generated Go/TS, fixtures, backend runtime, and scenario docs |
+
+## 7 修订记录
+
+| 日期 | 版本 | 变更 | 原因 |
+|------|------|------|------|
+| 2026-07-06 | 1.1 | Reconcile completed plan after product-scope D-22: current positive scope is report-derived retry / next-round only; debrief-derived source, scenarios, and first-turn seeding are retired-negative. | Completed plan/context was still a discovery source and could reintroduce deleted debrief work. |
+| 2026-05-16 | 1.0 | Historical implementation of derived practice plans. | Superseded in-place by D-22 pruning semantics. |

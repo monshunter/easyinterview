@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  *
- * Phase 5.4: Workspace handoff tests — CompanyIntelEmbed handoff + sessionHistory
- * placeholder + negative assertions (getCompanyIntel/getFeedbackReport not called).
+ * Phase 5.4: Workspace embedded-only tests — CompanyIntelEmbed action +
+ * sessionHistory placeholder + negative assertions (getCompanyIntel/getFeedbackReport not called).
  */
 
 import { describe, expect, it, vi } from "vitest";

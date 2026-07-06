@@ -7,7 +7,7 @@ metadata:
   supersedes: []
   specVersion:
     from: null
-    to: 1.22
+    to: 1.23
 spec:
   defaultTarget: frontend
   discovery:
@@ -17,12 +17,12 @@ spec:
       - D1 frontend shell
     keywords:
       - TopBar
-      - four entry navigation
+      - three entry navigation
       - pendingAction
       - auth gate
       - user menu
       - settings privacy
-      - profile route
+      - profile route retired alias
       - display controls
       - parse route
       - runtime config bootstrap
@@ -94,8 +94,6 @@ spec:
           - generating
           - report
           - resume_versions
-          - debrief
-          - profile
           - settings
           - auth_login
           - auth_verify

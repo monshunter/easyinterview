@@ -1,25 +1,25 @@
 # E2E Scenarios P0 Spec
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-07-06
 
 ## 1 背景与目标
 
-[engineering-roadmap §6.4 S3](../engineering-roadmap/spec.md#64-s3--true-integration-and-release-gate) 把 `e2e-scenarios-p0` 列为「覆盖导入 -> 规划 -> 练习 -> 报告 -> 复练当前轮 / 下一轮 -> 真实复盘」完整 P0 漏斗的 owner subject。
+[engineering-roadmap §6.4 S3](../engineering-roadmap/spec.md#64-s3--true-integration-and-release-gate) 把 `e2e-scenarios-p0` 列为「覆盖导入 -> 规划 -> 练习 -> 报告 -> 复练当前轮 / 下一轮」完整 P0 漏斗的 owner subject。
 
-当前 `test/scenarios/e2e` 已登记 87 条切片场景（最高编号 `E2E.P0.097`，编号有空档），但全部是**单一可独立收口的行为切片**（README §3）：每个场景只验证某个 owner spec 的局部 C-* 条件（如 targetjob 导入、workspace 渲染、practice loop、report 渲染、debrief 分析），彼此独立。没有任何一条场景把这些切片**串成跨模块的完整用户旅程**，因此 P0 闭环的「真实 handoff 在真后端下端到端贯通」一直没有被直接验证。
+当前 `test/scenarios/e2e` 已登记 87 条切片场景（最高编号 `E2E.P0.097`，编号有空档），但全部是**单一可独立收口的行为切片**（README §3）：每个场景只验证某个 owner spec 的局部 C-* 条件（如 targetjob 导入、workspace 渲染、practice loop、report 渲染），彼此独立。没有任何一条场景把这些切片**串成跨模块的完整用户旅程**，因此 P0 闭环的「真实 handoff 在真后端下端到端贯通」一直没有被直接验证。
 
 本 subject 创建时的实施前基线是：
 
-- 各 P0 业务域（targetjob / practice / review / resume / debrief / jobs-recommendations / profile / auth / upload）的 plan checklist 已基本收口；近两周大量提交在修复「real backend gate drift」，说明各 owner 正在把 mock 切真后端。
-- `backend/cmd/api` 已有成熟的真后端场景范式：`*_http_scenario_test.go` / `jdmatch_live_scenario_test.go` 用 `httptest.NewServer` 组装真实 router/handler/store/internal runner/events，连 `DATABASE_URL`（默认 dev-stack postgres `localhost:5432`）；`config.LoadCanonical(AppEnv:"test")` 负责加载 canonical config 与 AI profile/registry，场景 AI 由 harness 注入确定性 stub / fixture client。
+- 各 P0 业务域（targetjob / practice / review / resume / auth / upload）的 plan checklist 已基本收口；近两周大量提交在修复「real backend gate drift」，说明各 owner 正在把 mock 切真后端。
+- `backend/cmd/api` 已有成熟的真后端场景范式：`*_http_scenario_test.go` 用 `httptest.NewServer` 组装真实 router/handler/store/internal runner/events，连 `DATABASE_URL`（默认 dev-stack postgres `localhost:5432`）；`config.LoadCanonical(AppEnv:"test")` 负责加载 canonical config 与 AI profile/registry，场景 AI 由 harness 注入确定性 stub / fixture client。
 - `make dev-up` 提供 Docker Compose 外部依赖（postgres/redis/minio/mailpit），backend/frontend 默认 host-run 进程（见 [development.md §2](../../development.md#2-frontend--backend-contract-workflow)）。
 
 目标：
 
 1. 验证 P0 完整漏斗跨模块真实贯通：handoff 链 `targetJobId → planId → sessionId → reportId → 派生 planId` 在真实 handler/store/runner/event/DB + scenario stub / fixture AI 下端到端可用。
-2. 建立可独立收口的「happy 主干 journey」gate，为后续分支（复练 / 下一轮）、真实复盘回流、失败 / 恢复 journey 与 release gate 奠基。
+2. 建立可独立收口的「happy 主干 journey」gate，为后续分支（复练 / 下一轮）、失败 / 恢复 journey 与 release gate 奠基。
 3. 用两种 driver 同时证明：API-level（后端域间贯通）与 Playwright 全栈（前端在真后端下走完漏斗）。
 4. 在自动化 journey 之后提供统一纳入 `e2e` 套件的真实 provider hybrid UAT 场景：AI Agent 先执行环境 preflight、材料/配置/隐私检查和统一 result artifact；人工或浏览器 Agent 再补齐真实前端、真实后端、真实 AI LLM、Mailpit 本地 6 位 email-code 登录、双语输入材料、checklist、证据归档和清理边界。
 
@@ -37,7 +37,7 @@
 
 ### 2.2 Out of Scope
 
-- 复练（`retry_current_round`）分支与真实复盘（`debrief`）回流 journey —— 归后续 plan（`002+`）。
+- 复练（`retry_current_round`）分支 journey —— 归后续 plan（`002+`）；真实复盘 / `debrief` 回流已随 product-scope D-22 删除，不再预留正向 journey。
 - 失败 / 恢复 journey（报告生成失败、AI timeout、跨用户隔离贯通）—— 归后续 plan。
 - 新增或修改任何 OpenAPI operation、DB schema、event payload、prompt / rubric —— 本 subject 只**消费**现有契约。
 - 真实 LLM 质量 / 评估 —— 归 [prompt-rubric-registry §7](../prompt-rubric-registry/spec.md) 的 `004-real-model-profile-and-evals` eval workstream owner；本 subject 只用 stub。
@@ -53,7 +53,7 @@
 |----|------|--------|------|
 | D-1 | 后端形态 | 真后端全栈：复用 `backend/cmd/api` httptest + `DATABASE_URL`（dev-stack postgres）+ 真实 router/handler/store/internal runner/events + harness 注入的确定性 AI client；postgres 不可达 `t.Skip` | journey 证明的是真实集成贯通，不是 mock 流转 |
 | D-2 | AI provider | stub / recorded scenario client；`config.LoadCanonical(AppEnv:"test")` 与 AI profile/registry 必须在未配置 `AI_PROVIDER_*` 时可加载/解析 | journey 可重复、不依赖外网；AI 质量归 F3 eval workstream |
-| D-3 | 覆盖广度 | 首个 plan = 单条 happy 主干 journey（含到 `next_round` 派生一跳）；复练 / 真实复盘回流 / 失败 journey 归后续 plan | 首个 plan 可独立收口部署，规模可控 |
+| D-3 | 覆盖广度 | 首个 plan = 单条 happy 主干 journey（含到 `next_round` 派生一跳）；复练 / 失败 journey 归后续 plan；真实复盘 / `debrief` 不再作为正向 journey | 首个 plan 可独立收口部署，规模可控 |
 | D-4 | owner 归属 | 新建本 subject；journey 场景在 `test/scenarios/e2e/` 新建目录，与现有 slice 场景区分 | 跨模块 journey 有明确 owner，不挂靠单一域 owner |
 | D-5 | journey driver | 两种都要：API-level（`E2E.P0.098`）+ Playwright 全栈（`E2E.P0.099`） | 后端域间贯通与前端全栈体验都被覆盖 |
 | D-6 | 场景编号 | 接续 `E2E.P0.098` / `E2E.P0.099`，目录 slug 标注 `full-funnel` journey 以区分 slice | 编号与现有框架一致，语义上标识 journey |
