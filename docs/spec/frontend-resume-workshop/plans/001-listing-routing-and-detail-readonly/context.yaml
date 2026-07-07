@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 1.7
+    to: 1.8
 spec:
   defaultTarget: frontend
   discovery:
@@ -17,17 +17,19 @@ spec:
       - ResumeListView
       - ResumeDetailView
       - resume-workshop-flat-list
-      - resume-detail-preview
+      - resume-detail-readonly
     keywords:
       - resume workshop route shell
       - flat resume list table
-      - resumeId detail preview
+      - resumeId detail readonly
+      - resumeId detail read-only resume body
+      - legacy tab tailorRunId ignored
       - resume auth gate no fetch before login
       - listResumes fixture backed rows
-      - getResume original modal source text
-      - exportResume P0 501 toast fallback Idempotency-Key
+      - getResume read-only detail body
+      - detail export copy original rewrites edit absent
       - resume workshop i18n en zh
-      - resume workshop a11y modal focus
+      - resume workshop a11y read-only detail
       - resume workshop privacy route params
       - ui parity desktop mobile
       - non-current route testid negative
@@ -58,4 +60,3 @@ spec:
         apiNames:
           - listResumes
           - getResume
-          - exportResume

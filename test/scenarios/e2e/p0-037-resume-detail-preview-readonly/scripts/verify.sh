@@ -8,7 +8,7 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 
 test -s "$LOG_FILE"
 grep -Fq "src/app/scenarios/p0-037-resume-detail-preview-readonly.test.tsx" "$LOG_FILE"
-grep -Eq 'Tests +5 passed \(5\)' "$LOG_FILE"
+grep -Eq 'Tests +4 passed \(4\)' "$LOG_FILE"
 grep -Eq 'Test Files +1 passed \(1\)' "$LOG_FILE"
 
 # Negative: scenario evidence must not surface non-current-route testid leakage.

@@ -155,7 +155,7 @@ describe("ResumeWorkshop i18n + Accept-Language + a11y (Phase 4)", () => {
     expect(table.getAllByRole("row").length).toBeGreaterThan(0);
   });
 
-  it("Detail view tabs expose role=tab and aria-selected and the tablist has an aria-label", async () => {
+  it("Detail view exposes the read-only resume article without tab semantics", async () => {
     const client = buildClientWithSpy("default");
     renderScreen(client, {
       name: "resume_versions",
@@ -164,35 +164,21 @@ describe("ResumeWorkshop i18n + Accept-Language + a11y (Phase 4)", () => {
     await waitFor(() => {
       expect(screen.getByTestId("resume-detail-crumb")).toBeInTheDocument();
     });
-    expect(screen.getByRole("tablist")).toHaveAttribute("aria-label");
-    const previewTab = screen.getByTestId("resume-detail-tab-preview");
-    expect(previewTab).toHaveAttribute("role", "tab");
-    expect(previewTab).toHaveAttribute("aria-selected", "true");
-    const rewritesTab = screen.getByTestId("resume-detail-tab-rewrites");
-    expect(rewritesTab).toHaveAttribute("aria-selected", "false");
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+    expect(screen.getByTestId("resume-detail-preview-content")).toBeInTheDocument();
   });
 
-  it("clicking View original opens the modal with focus on the close button (focus management)", async () => {
+  it("Detail view does not expose a separate original-preview modal trigger", async () => {
     const client = buildClientWithSpy("default");
     renderScreen(client, {
       name: "resume_versions",
       params: { resumeId: RESUME_ID, tab: "preview" },
     });
     await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-detail-view-original"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("resume-detail-crumb")).toBeInTheDocument();
     });
-
-    await userEvent.setup().click(
-      screen.getByTestId("resume-detail-view-original"),
-    );
-    const dialog = await screen.findByTestId("resume-detail-original-modal");
-    const closeBtn = within(dialog).getByTestId(
-      "resume-detail-original-modal-close",
-    );
-    await waitFor(() => {
-      expect(document.activeElement).toBe(closeBtn);
-    });
+    expect(screen.queryByTestId("resume-detail-view-original")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("resume-detail-original-modal")).not.toBeInTheDocument();
   });
 });

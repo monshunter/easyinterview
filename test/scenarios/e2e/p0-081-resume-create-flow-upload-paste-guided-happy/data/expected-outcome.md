@@ -9,7 +9,7 @@
 - Upload tab: `resume-create-upload-dropzone`, `resume-create-upload-input`, `resume-create-upload-choose`, `resume-create-upload-selected`
 - Paste tab: `resume-create-paste-textarea`, `resume-create-paste-submit`
 - Sidebar: `resume-create-sidebar` with `WHAT GETS SAVED` + `WHAT HAPPENS NEXT` text
-- Parse stage: `resume-parse-flow` testid, 7 step ticker `resume-parse-step-{0..6}`
+- Retired stages: `resume-parse-flow` and `resume-preview-confirm` do not render
 
 ## Idempotency / Header
 
@@ -25,13 +25,14 @@
 
 ## Stage Machine
 
-- After upload PUT + register success, stage transitions to `parsing`
-- ParseFlow renders ticker while polling
-- On `parseStatus=ready`, stage transitions to `preview`
+- After upload PUT + register success, navigation goes directly to `resume_versions?resumeId=<id>`
+- After paste register success, navigation goes directly to `resume_versions?resumeId=<id>`
+- Paste register title is derived from resume content rather than a generic label
 
 ## Negative Greps
 
 - Source tree under `frontend/src/app/screens/resume-workshop/create/` contains zero non-current-module references
+- Source tree under `frontend/src/app/screens/resume-workshop/create/` contains zero parser/preview-confirm component references
 - Source tree does not import `ui-design/src/data` or `ui-design/src/screen-resume-workshop`
 
 ## Trigger Log Assertions

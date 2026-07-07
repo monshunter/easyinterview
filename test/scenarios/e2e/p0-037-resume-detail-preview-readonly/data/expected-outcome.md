@@ -2,7 +2,7 @@
 
 trigger.log 含：
 
-- `Tests  5 passed (5)`
+- `Tests  4 passed (4)`
 - `Test Files  1 passed (1)`
 - 测试文件路径 `src/app/scenarios/p0-037-resume-detail-preview-readonly.test.tsx`
 

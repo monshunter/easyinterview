@@ -9,7 +9,6 @@ mkdir -p "$OUTPUT_DIR"
   cd "$REPO_ROOT"
   "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend exec vitest run --reporter=verbose \
-    src/app/screens/resume-workshop/create/hooks/useResumeParsingPolling.test.tsx \
-    src/app/screens/resume-workshop/create/ParsingStage.test.tsx \
-    src/app/screens/resume-workshop/create/ResumeCreateFlow.test.tsx
+    src/app/screens/resume-workshop/create/ResumeCreateFlow.test.tsx \
+    src/app/screens/resume-workshop/create/CreateFlowNonCurrentNegative.test.ts
 ) | tee "$OUTPUT_DIR/trigger.log"

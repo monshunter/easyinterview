@@ -14,7 +14,7 @@ export interface UseResumeAssetResult {
 
 /**
  * Loads a single flat resume via `getResume(resumeId)`.
- * Used as the detail-view primary loader and the "view original" source.
+ * Used as the detail-view primary loader.
  */
 export function useResumeAsset(resumeId: string | null): UseResumeAssetResult {
   const runtime = useAppRuntimeOptional();

@@ -43,9 +43,9 @@
 - [x] 5.2 success 写 typed `ai_task_runs` 和 ready-only `resume.tailor.completed` outbox；payload allowlist 不含 prompt/raw resume/match summary/suggested bullet 文本（验证：`go test ./backend/internal/resume/store ./backend/cmd/api -run 'TestCompleteTailorRunSuccessWritesResultAndOutbox|TestResumeTailorDrainerHTTPScenario|TestResumeTailorDrainerFailureScenario' -count=1` PASS）
 - [x] 5.3 BDD-Gate: `E2E.P0.080` tailor privacy and non-current negative 场景保持 Ready（验证：`test/scenarios/e2e/p0-080-resume-tailor-privacy-negative/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS）
 
-## Phase 6: accept-only save UX and closeout
+## Phase 6: flat save fixture parity and read-only detail boundary
 
-- [x] 6.1 frontend suggestions remain ephemeral，用户只通过 `updateResume` / `duplicateResume` flat save paths 落盘（验证：P0.079 trigger/verify 覆盖 frontend Rewrites/Detail Vitest、flat save fixture parity 和 route boundary checks）
-- [x] 6.2 BDD-Gate: `E2E.P0.079` resume rewrites accept-only save 场景保持 Ready（验证：`test/scenarios/e2e/p0-079-resume-rewrites-accept-only-save/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS）
+- [x] 6.1 flat save fixtures 保持 current backend contract，同时前端详情不再暴露 Rewrites/Edit 二次操作（验证：P0.079 trigger/verify 覆盖 read-only detail negative Vitest、flat save fixture parity 和 route boundary checks）
+- [x] 6.2 BDD-Gate: `E2E.P0.079` flat save fixture parity + read-only detail boundary 场景保持 Ready（验证：`test/scenarios/e2e/p0-079-resume-rewrites-accept-only-save/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS）
 - [x] 6.3 docs/index/context 收口（验证：`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` PASS；`make docs-check` PASS；`git diff --check` PASS）
 - [x] 6.4 product-scope pruning owner 记录本 phase 6.100 evidence，聚合 residual scan 不再把本 owner plan/checklist 识别为旧叙事热点（验证：`make lint-core-loop-pruning-surface` PASS，`real_residuals=0`）

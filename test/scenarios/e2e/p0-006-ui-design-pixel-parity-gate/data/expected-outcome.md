@@ -21,10 +21,9 @@
     upload modal DOM 锚点。
   - `workspace.spec.ts`：empty state、server-bound full-state、
     modal、bounding box、theme、screenshot smoke 与 non-current entry negative。
-  - `resume-workshop.spec.ts` / `resume-workshop-create.spec.ts` /
-    `resume-workshop-branch-rewrites-edit.spec.ts`：flat list、upload/paste
-    create flow、rewrites/edit/detail parity、non-current tree/branch/guided
-    negative。
+  - `resume-workshop.spec.ts` / `resume-workshop-create.spec.ts`：flat list、
+    read-only detail、upload/paste create flow、non-current tree/branch/guided/
+    rewrite/edit negative。
   - `practice.spec.ts` / `generating.spec.ts` / `report.spec.ts`：
     面试、生成与报告页面 parity。
 - trigger.log 必须出现：

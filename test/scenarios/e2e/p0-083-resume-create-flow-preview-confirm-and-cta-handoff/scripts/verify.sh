@@ -28,18 +28,18 @@ grep -Eq '^[[:space:]]*Tests[[:space:]]+[1-9][0-9]*[[:space:]]+passed' "$LOG_FIL
   exit 1
 }
 for spec in \
-  PreviewStage.test.tsx \
   ResumeCreateFlow.test.tsx \
-  mapParsedSummaryToStructuredProfileDraft.test.ts \
+  UploadTab.test.tsx \
   CreateFlowIntegration.test.tsx \
-  ResumeWorkshopAuthGate.test.tsx; do
+  ResumeWorkshopAuthGate.test.tsx \
+  WorkspaceHandoff.test.tsx; do
   grep -Fq "$spec" "$LOG_FILE" || {
     echo "$SCENARIO_ID: spec $spec did not run" >&2
     exit 1
   }
 done
-# Sanity-check current D-20 preview confirm and guided branches exercised.
-for term in updateResume 422 guided; do
+# Sanity-check current CTA/direct create branches exercised.
+for term in Home Workspace pendingAction; do
   grep -Fq "$term" "$LOG_FILE" || {
     echo "$SCENARIO_ID: branch $term was not run" >&2
     exit 1

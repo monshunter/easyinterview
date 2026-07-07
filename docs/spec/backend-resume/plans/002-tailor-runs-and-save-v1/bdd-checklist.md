@@ -46,12 +46,12 @@
 - [x] 场景脚本使用当前测试名 `TestCompleteTailorRunSuccessWritesResultAndOutbox`
 - [x] 在 `test/scenarios/e2e/INDEX.md` 保留 P0.078 Ready 行
 
-## E2E.P0.079 accept-only save flow and removed route boundary
+## E2E.P0.079 flat save fixture parity and read-only detail boundary
 
 - [x] 场景目录 `test/scenarios/e2e/p0-079-resume-rewrites-accept-only-save/` 存在，含标准七件套
-- [x] `scripts/trigger.sh` 覆盖 `make validate-fixtures`、removed route/catalog tests、flat save fixture parity、frontend Rewrites/Detail Vitest
-- [x] `scripts/verify.sh` 拒绝 skip/no-op，检查 removed route inputs absent、`updateResume` / `duplicateResume` / `requestResumeTailor` fixture parity、accept-only save flow evidence
-- [x] 场景语义为当前 frontend accept-only save + removed route boundary
+- [x] `scripts/trigger.sh` 覆盖 `make validate-fixtures`、removed route/catalog tests、flat save fixture parity、frontend read-only detail negative Vitest
+- [x] `scripts/verify.sh` 拒绝 skip/no-op，检查 removed route inputs absent、`updateResume` / `duplicateResume` / `requestResumeTailor` fixture parity、read-only detail boundary evidence
+- [x] 场景语义为当前 flat save fixture parity + read-only detail boundary
 - [x] 在 `test/scenarios/e2e/INDEX.md` 保留 P0.079 Ready 行
 
 ## E2E.P0.080 tailor privacy and runtime vocabulary negative

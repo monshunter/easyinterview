@@ -15,7 +15,7 @@
 | E2E.P0.076 | primary + boundary · `duplicateResume` save-as-new + IK + source isolation + rollback | Phase 3 | C-18 | Phase 3 |
 | E2E.P0.077 | primary · `requestResumeTailor` + `getResumeTailorRun` queued/ready + `ai_task_runs` + ready-only outbox | Phase 4 + 5 | C-16 | Phase 4 + 5 |
 | E2E.P0.078 | failure/recovery · resume.tailor timeout retryable + output_invalid terminal + retry-to-ready + ready-only outbox | Phase 4 + 5 | C-16 failure path | Phase 4 + 5 |
-| E2E.P0.079 | regression + UX handoff · removed suggestion route inputs + flat save fixture parity + accept-only frontend save flow | Phase 1 + 2 + 3 + 6 | C-17, C-18 | Phase 6 |
+| E2E.P0.079 | regression + boundary · removed suggestion route inputs + flat save fixture parity + read-only frontend detail | Phase 1 + 2 + 3 + 6 | C-17, C-18 | Phase 6 |
 | E2E.P0.080 | regression + privacy · outbox / audit / `ai_task_runs` privacy + runtime vocabulary negative | Phase 5 + 6 | C-13, C-16 | Phase 5 |
 
 ## 2 场景明细
@@ -50,11 +50,11 @@
 |-------|------|------|----------|
 | 三个 deterministic tailor async jobs 覆盖 timeout、output_invalid、timeout-then-success；`cmd/api` in-process drainer 可 `RunOnce` | 运行 `TestResumeTailorDrainerFailureScenario`、`TestTailorHandlerModeRoutingAndFailurePaths`、live store ready-only outbox integration | timeout 为 retryable `AI_PROVIDER_TIMEOUT`；invalid output 为 terminal `AI_OUTPUT_INVALID`；retry 可回到 generating 并最终 ready；每次 AI attempt 写 `ai_task_runs`；只有 final ready 发 `resume.tailor.completed` | `test/scenarios/e2e/p0-078-resume-tailor-failure-and-retry/` |
 
-### E2E.P0.079 accept-only save flow and removed route boundary
+### E2E.P0.079 flat save fixture parity and read-only detail boundary
 
 | Given | When | Then | 验证入口 |
 |-------|------|------|----------|
-| flat fixtures、generated route catalog、frontend Rewrites/Detail save surfaces 已更新 | 运行 fixture validation、removed route/catalog tests、flat save fixture parity、frontend Rewrites/Detail Vitest | Removed suggestion route inputs 保持 404 且 generated catalog absent；`updateResume` / `duplicateResume` / `requestResumeTailor` fixture parity green；frontend suggestions remain ephemeral，用户只通过 flat save paths 落盘 | `test/scenarios/e2e/p0-079-resume-rewrites-accept-only-save/` |
+| flat fixtures、generated route catalog、frontend detail read-only surface 已更新 | 运行 fixture validation、removed route/catalog tests、flat save fixture parity、frontend read-only detail negative Vitest | Removed suggestion route inputs 保持 404 且 generated catalog absent；`updateResume` / `duplicateResume` / `requestResumeTailor` fixture parity green；frontend detail 不渲染 Rewrites/Edit/export/copy/original surfaces，不通过详情调用 save/tailor/export 操作 | `test/scenarios/e2e/p0-079-resume-rewrites-accept-only-save/` |
 
 ### E2E.P0.080 tailor privacy and runtime vocabulary negative
 

@@ -1,8 +1,8 @@
 # 001 BDD Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-07
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -25,3 +25,4 @@
 - [x] 记录验证证据：`.test-output/e2e/p0-035-resume-parse-async-job-lifecycle/trigger.log` + `cmd/api` drainer scenario log + verify 输出 + DB parse_status 转换轨迹 + `resume_versions` count unchanged before Preview Confirm + ai_task_runs 行 dump + outbox_events 行 dump（ready-only completed event，failure no completed event，PII grep 0 命中）+ stub provider call log + shutdown / no goroutine leak 证据 + `method=cmd-api-http` 或等价 live runtime evidence + no no-op / no skip 证据
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.035 行（关联需求 `backend-resume C-3, C-4, C-13`，状态 Ready，automated）
 - [x] L2 remediation：trigger/verify 检查 `TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox`、`TestParseHandlerRetriesFailedAssetBackToProcessing`、`TestResumeParseDrainerRetryableFailureScenario`，证明 retryable timeout 先落 failed/error_code 再重试成功 <!-- verified: 2026-05-13 method=scenario log=.test-output/e2e/p0-035-resume-parse-async-job-lifecycle/trigger.log -->
+- [x] D-14 displayName remediation：trigger/verify 检查 `TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox`、`TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically`、`TestResumeParseDrainerHTTPScenario` 和 `TestResumeParseDrainerRetryableFailureScenario`，证明 ready / retry-to-ready 后写入 LLM-derived `displayName` 而非通用上传 / 粘贴标题 <!-- verified: 2026-07-07 method=go-test+scenario -->

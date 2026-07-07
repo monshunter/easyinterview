@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import type { EasyInterviewClient } from "../../../../api/generated/client";
 import { NavigationProvider } from "../../../navigation/NavigationProvider";
 import { DisplayPreferencesProvider } from "../../../display/DisplayPreferencesProvider";
+import { AppRuntimeContext } from "../../../runtime/AppRuntimeProvider";
 import { ResumeCreateFlow } from "./ResumeCreateFlow";
 
 function renderCreateFlow(
@@ -19,6 +21,45 @@ function renderCreateFlow(
     </DisplayPreferencesProvider>,
   );
 }
+
+function renderCreateFlowWithRuntime(
+  client: Pick<EasyInterviewClient, "registerResume">,
+  navigate: ReturnType<typeof vi.fn> = vi.fn(),
+) {
+  return {
+    navigate,
+    ...render(
+      <DisplayPreferencesProvider>
+        <AppRuntimeContext.Provider
+          value={{
+            client: client as EasyInterviewClient,
+            runtime: { status: "ready", config: {} as never },
+            auth: { status: "authenticated", user: {} as never },
+            refreshAuth: vi.fn(),
+          }}
+        >
+          <NavigationProvider value={{ navigate }}>
+            <ResumeCreateFlow initialMode="paste" />
+          </NavigationProvider>
+        </AppRuntimeContext.Provider>
+      </DisplayPreferencesProvider>,
+    ),
+  };
+}
+
+const REGISTER_RESULT = {
+  resumeId: "01918fa0-0000-7000-8000-000000001999",
+  job: {
+    id: "01918fa0-0000-7000-8000-00000000b999",
+    jobType: "resume_parse",
+    status: "queued",
+    resourceType: "resume_asset",
+    resourceId: "01918fa0-0000-7000-8000-000000001999",
+    errorCode: null,
+    createdAt: "2026-07-07T00:00:00Z",
+    updatedAt: "2026-07-07T00:00:00Z",
+  },
+} as const;
 
 describe("ResumeCreateFlow container", () => {
   it("renders the create-flow shell with the upload tab active by default", () => {
@@ -159,5 +200,32 @@ describe("ResumeCreateFlow container", () => {
       "data-create-mode",
       "paste",
     );
+  });
+
+  it("submits pasted content with a content-derived title and navigates directly to detail", async () => {
+    const user = userEvent.setup();
+    const registerResume = vi.fn().mockResolvedValue(REGISTER_RESULT);
+    const { navigate } = renderCreateFlowWithRuntime({ registerResume });
+
+    fireEvent.change(screen.getByTestId("resume-create-paste-textarea"), {
+      target: {
+        value:
+          "张三 · 后端平台工程师\nFerry / reloadr / grayplan - GitOps CI/CD 与配置治理平台",
+      },
+    });
+    await user.click(screen.getByTestId("resume-create-paste-submit"));
+
+    expect(registerResume).toHaveBeenCalledTimes(1);
+    expect(registerResume.mock.calls[0]![0]).toMatchObject({
+      sourceType: "paste",
+      title: "张三 · 后端平台工程师",
+    });
+    expect(registerResume.mock.calls[0]![0].title).not.toBe("粘贴的简历");
+    expect(navigate).toHaveBeenCalledWith({
+      name: "resume_versions",
+      params: { resumeId: REGISTER_RESULT.resumeId },
+    });
+    expect(screen.queryByTestId("resume-parse-flow")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("resume-preview-confirm")).not.toBeInTheDocument();
   });
 });

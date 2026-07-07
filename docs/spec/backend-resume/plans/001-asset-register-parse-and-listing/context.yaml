@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 1.6
+    to: 1.8
 spec:
   defaultTarget: backend
   discovery:
@@ -24,6 +24,7 @@ spec:
       - resumes
       - resumeId
       - structured_profile flatten
+      - llm derived displayName
     keywords:
       - resume register handler
       - resume get handler
@@ -36,6 +37,8 @@ spec:
       - sourceType upload paste
       - aiclient resume parse feature key
       - ai_task_runs typed columns
+      - parse derived display_name
+      - generic pasted uploaded resume title filtered
       - cross user isolation 404
       - parse_status state machine
       - workspace 001 listResumes unblock

@@ -315,13 +315,13 @@ func TestDuplicateResumeCopiesSourceSnapshotAndAppliesProfile(t *testing.T) {
 
 	displayName := "New CV"
 	got, err := repo.DuplicateResume(context.Background(), resumestore.DuplicateResumeInput{
-		NewResumeID:       "resume-new",
-		UserID:            "user-1",
-		SourceResumeID:    "source-1",
-		DisplayName:       &displayName,
-		StructuredProfile: []byte(`{"headline":"new"}`),
+		NewResumeID:          "resume-new",
+		UserID:               "user-1",
+		SourceResumeID:       "source-1",
+		DisplayName:          &displayName,
+		StructuredProfile:    []byte(`{"headline":"new"}`),
 		StructuredProfileSet: true,
-		Now:               now,
+		Now:                  now,
 	})
 	if err != nil {
 		t.Fatalf("DuplicateResume: %v", err)
@@ -457,10 +457,11 @@ func TestParseStatusTransition(t *testing.T) {
 	}
 }
 
-func TestCompleteParseSuccessWritesReadyStateProfileAndCompletedOutboxAtomically(t *testing.T) {
+func TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically(t *testing.T) {
 	repo, mock, cleanup := newMockRepository(t)
 	defer cleanup()
 	now := time.Date(2026, 5, 13, 8, 30, 0, 0, time.UTC)
+	displayName := "Ada Lovelace - Engineer"
 
 	mock.ExpectBegin()
 	mock.ExpectExec(regexp.QuoteMeta(`update resumes`)).
@@ -469,6 +470,7 @@ func TestCompleteParseSuccessWritesReadyStateProfileAndCompletedOutboxAtomically
 			[]byte(`{"basics":{"name":"Ada"}}`),
 			[]byte(`{"basics":{"name":"Ada"}}`),
 			"parsed text",
+			displayName,
 			now,
 			"resume-1",
 			"user-1",
@@ -486,6 +488,7 @@ func TestCompleteParseSuccessWritesReadyStateProfileAndCompletedOutboxAtomically
 		ParsedSummary:      []byte(`{"basics":{"name":"Ada"}}`),
 		StructuredProfile:  []byte(`{"basics":{"name":"Ada"}}`),
 		ParsedTextSnapshot: "parsed text",
+		DisplayName:        &displayName,
 		OutboxEventID:      "event-1",
 		OutboxEventPayload: []byte(`{"resumeId":"resume-1","userId":"user-1","parseStatus":"ready"}`),
 		Now:                now,

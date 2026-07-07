@@ -48,23 +48,22 @@ describe("ResumeWorkshopScreen route param parsing", () => {
     expect(screen.queryByTestId("resume-workshop-list")).not.toBeInTheDocument();
   });
 
-  it("preserves an explicit tab=preview on the detail container", () => {
+  it("ignores an explicit tab=preview on the detail container", () => {
     renderResumeWorkshop({
       resumeId: "0195f2d0-0001-7000-8000-000000000201",
       tab: "preview",
     });
     const detail = screen.getByTestId("resume-workshop-detail");
-    expect(detail).toHaveAttribute("data-tab", "preview");
+    expect(detail).not.toHaveAttribute("data-tab");
   });
 
-  it("preserves an explicit tab=rewrites on the detail container", () => {
+  it("ignores an explicit tab=rewrites on the detail container", () => {
     renderResumeWorkshop({
       resumeId: "0195f2d0-0001-7000-8000-000000000202",
       tab: "rewrites",
     });
     const detail = screen.getByTestId("resume-workshop-detail");
-    expect(detail).toHaveAttribute("data-tab", "rewrites");
-    expect(detail).not.toHaveAttribute("data-tab", "preview");
+    expect(detail).not.toHaveAttribute("data-tab");
   });
 });
 

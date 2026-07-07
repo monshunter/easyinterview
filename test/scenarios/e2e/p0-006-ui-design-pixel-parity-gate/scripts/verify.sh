@@ -23,7 +23,6 @@ for spec in \
   parse.spec.ts \
   practice.spec.ts \
   report.spec.ts \
-  resume-workshop-branch-rewrites-edit.spec.ts \
   resume-workshop-create.spec.ts \
   resume-workshop.spec.ts \
   screens.spec.ts \

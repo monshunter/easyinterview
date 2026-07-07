@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 
 import { EasyInterviewClient } from "../../api/generated/client";
 import {
@@ -13,42 +12,14 @@ import { App } from "../App";
 import getRuntimeConfigFixture from "../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../openapi/fixtures/Auth/getMe.json";
 import getResumeFixture from "../../../../openapi/fixtures/Resumes/getResume.json";
-import exportResumeFixture from "../../../../openapi/fixtures/Resumes/exportResume.json";
 
 const FIXTURES = [
   getRuntimeConfigFixture,
   getMeFixture,
   getResumeFixture,
-  exportResumeFixture,
 ];
 
 const RESUME_ID = getResumeFixture.scenarios.default.response.body.id;
-
-interface ToastCall {
-  message: string;
-  tone?: string;
-}
-
-let toastCalls: ToastCall[] = [];
-
-beforeEach(() => {
-  toastCalls = [];
-  (
-    window as unknown as {
-      eiToast?: (msg: string, opts?: { tone?: string }) => void;
-    }
-  ).eiToast = (message, opts) => {
-    toastCalls.push({ message, tone: opts?.tone });
-  };
-});
-
-afterEach(() => {
-  delete (
-    window as unknown as {
-      eiToast?: (msg: string, opts?: { tone?: string }) => void;
-    }
-  ).eiToast;
-});
 
 function buildClient(scenario: string): EasyInterviewClient {
   return new EasyInterviewClient({
@@ -62,170 +33,87 @@ function buildClient(scenario: string): EasyInterviewClient {
 function renderDetail(
   scenario: string,
   resumeId: string,
-  authMode: "authenticated" | "unauthenticated" = "authenticated",
+  params: Record<string, string> = {},
 ) {
   return render(
     <App
       client={buildClient(scenario)}
       requestOptions={{
-        getMe: { headers: { Prefer: `example=${authMode}` } },
+        getMe: { headers: { Prefer: "example=authenticated" } },
       }}
       initialRoute={{
         name: "resume_versions",
-        params: { resumeId },
+        params: { resumeId, ...params },
       }}
     />,
   );
 }
 
-describe("E2E.P0.037 resume detail Preview Tab + original modal + 404 fallback + export 501", () => {
-  it("resume renders detail with crumb / 3 tabs and defaults the active tab to preview", async () => {
+describe("E2E.P0.037 resume detail read-only view + 404 fallback", () => {
+  it("renders the resume itself and exposes no tab, export, copy, edit, rewrite, or original-preview controls", async () => {
     renderDetail("default", RESUME_ID);
 
     await waitFor(() => {
       expect(screen.getByTestId("resume-detail-crumb")).toBeInTheDocument();
     });
-    for (const tab of ["preview", "rewrites", "edit"]) {
-      expect(screen.getByTestId(`resume-detail-tab-${tab}`)).toBeInTheDocument();
-    }
-    expect(screen.getByTestId("resume-detail-tab-preview")).toHaveAttribute(
-      "aria-selected",
-      "true",
+    expect(screen.getByTestId("resume-detail-preview-content")).toHaveTextContent(
+      "Original resume parsed text snapshot",
     );
-    expect(
-      screen.getByTestId("resume-detail-preview-content"),
-    ).toBeInTheDocument();
-    // D-20 flatten: there is no branch graph in the flat detail header.
+    expect(screen.getByTestId("resume-detail-preview-content")).not.toHaveTextContent(
+      "Senior frontend engineer for platform-heavy product teams",
+    );
     expect(
       screen.queryByTestId("resume-detail-branch-graph"),
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    for (const forbidden of [
+      "resume-detail-tab-preview",
+      "resume-detail-tab-rewrites",
+      "resume-detail-tab-edit",
+      "resume-detail-header-actions",
+      "resume-detail-export-pdf",
+      "resume-detail-copy-text",
+      "resume-detail-view-original",
+      "resume-detail-original-modal",
+      "resume-rewrites-tab",
+      "resume-edit-tab",
+    ]) {
+      expect(screen.queryByTestId(forbidden)).not.toBeInTheDocument();
+    }
   });
 
-  it("explicit ?tab=rewrites preserves the rewrites tab and renders the current Rewrites surface", async () => {
-    render(
-      <App
-        client={buildClient("default")}
-        requestOptions={{
-          getMe: { headers: { Prefer: "example=authenticated" } },
-        }}
-        initialRoute={{
-          name: "resume_versions",
-          params: { resumeId: RESUME_ID, tab: "rewrites" },
-        }}
-      />,
-    );
+  it("legacy ?tab=rewrites is ignored and cannot activate a rewrite surface", async () => {
+    renderDetail("default", RESUME_ID, { tab: "rewrites" });
 
     await waitFor(() => {
       expect(
-        screen.getByTestId("resume-detail-tab-rewrites"),
+        screen.getByTestId("resume-detail-preview-content"),
       ).toBeInTheDocument();
     });
-    expect(screen.getByTestId("resume-detail-tab-rewrites")).toHaveAttribute(
-      "aria-selected",
-      "true",
+    expect(screen.queryByTestId("resume-rewrites-tab")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("resume-detail-tab-rewrites")).not.toBeInTheDocument();
+    expect(screen.getByTestId("resume-workshop-detail")).not.toHaveAttribute(
+      "data-tab",
     );
-    expect(screen.getByTestId("resume-rewrites-tab")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("resume-detail-tab-content-coming-soon-rewrites"),
-    ).not.toBeInTheDocument();
   });
 
-  it("View original opens modal with focus trap and closes on ESC / outer overlay / X button", async () => {
+  it("does not write detail-only action state into localStorage", async () => {
     renderDetail("default", RESUME_ID);
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-detail-view-original"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("resume-detail-crumb")).toBeInTheDocument();
     });
-    const user = userEvent.setup();
-    await user.click(screen.getByTestId("resume-detail-view-original"));
-
-    const dialog = await screen.findByTestId("resume-detail-original-modal");
-    expect(dialog).toHaveAttribute("aria-modal", "true");
-    expect(dialog).toHaveAttribute("role", "dialog");
-    await waitFor(() => {
-      expect(
-        within(dialog).getByTestId("resume-detail-original-modal-content"),
-      ).toHaveTextContent("Original resume parsed text snapshot");
-    });
-    const closeBtn = within(dialog).getByTestId(
-      "resume-detail-original-modal-close",
-    );
-    await waitFor(() => expect(document.activeElement).toBe(closeBtn));
-
-    await user.keyboard("{Escape}");
-    await waitFor(() =>
-      expect(
-        screen.queryByTestId("resume-detail-original-modal"),
-      ).not.toBeInTheDocument(),
-    );
-  });
-
-  it("Export PDF passes Idempotency-Key on the wire and surfaces the P0 not-available toast (no blob, no localStorage)", async () => {
-    let exportHeaders: Record<string, string> | null = null;
-    const baseFetch = createFixtureBackedFetch(
-      createFixtureRegistry(FIXTURES),
-      { scenario: "default" },
-    );
-    const fetchSpy = (
-      input: RequestInfo | URL,
-      init?: RequestInit,
-    ): Promise<Response> => {
-      const url = typeof input === "string" ? input : input.toString();
-      if (url.includes("/exports")) {
-        exportHeaders = (init?.headers as Record<string, string>) ?? {};
-      }
-      return baseFetch(input, init);
-    };
-    const client = new EasyInterviewClient({ fetch: fetchSpy });
-
-    render(
-      <App
-        client={client}
-        requestOptions={{
-          getMe: { headers: { Prefer: "example=authenticated" } },
-        }}
-        initialRoute={{
-          name: "resume_versions",
-          params: { resumeId: RESUME_ID, tab: "preview" },
-        }}
-      />,
-    );
-
-    // The reshaped detail surfaces Export PDF both in the header action bar
-    // and inside the Preview tab; target the header bar's button so the
-    // selector stays unambiguous regardless of the active tab.
-    const headerActions = await screen.findByTestId(
-      "resume-detail-header-actions",
-    );
-    const exportBtn = within(headerActions).getByTestId(
-      "resume-detail-export-pdf",
-    );
-    await userEvent.setup().click(exportBtn);
-
-    await waitFor(() => {
-      expect(exportHeaders).not.toBeNull();
-    });
-    expect(exportHeaders!["Idempotency-Key"]).toMatch(/^v1\.\d+\./);
-
-    await waitFor(() => {
-      expect(
-        toastCalls.some((c) =>
-          /即将开放|not available|P0/i.test(c.message),
-        ),
-      ).toBe(true);
-    });
-
     const offenders: string[] = [];
     for (let i = 0; i < window.localStorage.length; i++) {
       const key = window.localStorage.key(i);
-      if (key && /resume|export|pdf/i.test(key)) offenders.push(key);
+      if (key && /resume|export|pdf|rewrite|edit|original/i.test(key)) {
+        offenders.push(key);
+      }
     }
     expect(offenders).toEqual([]);
   });
 
-  it("non-existent resumeId returns 404 → NotFoundEmptyState renders generic copy and a back-to-list CTA (UI does not echo fixture error.code)", async () => {
+  it("non-existent resumeId returns 404 without echoing fixture error.code", async () => {
     renderDetail("not-found", "ffffffff-0000-7000-8000-00000000ff04");
 
     await waitFor(() => {

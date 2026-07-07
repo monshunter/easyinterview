@@ -8,18 +8,17 @@
 ## 1 Given
 
 - Fixture-backed mock-first client：`Resumes/listResumes.json default` +
-  `Resumes/getResume.json default` + current flat save/tailor fixtures used by
-  `ResumeWorkshopScreen` / `ResumeDetailView` / `ResumeRewritesTab` /
-  `PreviewStage`。
+  `Resumes/getResume.json default` + current flat fixtures used by
+  `ResumeWorkshopScreen` / `ResumeDetailView` / `ResumeCreateFlow`。
 - 用户：未登录 → 登录态，lang 默认。
 - Non-current form and operation tokens remain absent from runtime source.
 
 ## 2 When
 
 - 未登录访问 Resume Workshop/detail/create 路由 → 显示 auth gate。
-- 登录态渲染 flat `ResumeWorkshopScreen`、`ResumeDetailView`、current
-  `ResumeRewritesTab` 与 `PreviewStage`。
-- Rewrites accept-only save modal覆盖 overwrite / save-as-new 分支。
+- 登录态渲染 flat `ResumeWorkshopScreen`、read-only `ResumeDetailView` 与
+  `ResumeCreateFlow`。
+- 旧 `tab=rewrites` / edit surface 不 materialize。
 - Source grep 检查 non-current operation token 不回流。
 
 ## 3 Then
@@ -28,7 +27,8 @@
 - `ResumeBranchFlow`、`branchResumeVersion`、`seedStrategy`、
   `acceptResumeTailorSuggestion`、`rejectResumeTailorSuggestion`、
   `updateResumeVersion` 在 runtime source 中 0 命中。
-- Flat list/detail/create/rewrites surfaces stay functional under Vitest.
+- Flat list/detail/create surfaces stay functional under Vitest.
+- Resume detail renders `parsedTextSnapshot` / `originalText` as the read-only body before any structured fallback.
 - Non-current tailor mode `(inline|rewrite|mirror)` 0 命中；prototype import
   `ui-design/src/(data|screen-resume-workshop)` 0 命中。
 
@@ -38,8 +38,7 @@
 
 - `src/app/screens/resume-workshop/ResumeWorkshopScreen.test.tsx`
 - `src/app/screens/resume-workshop/components/ResumeDetailView.test.tsx`
-- `src/app/screens/resume-workshop/tabs/ResumeRewritesTab.test.tsx`
-- `src/app/screens/resume-workshop/create/PreviewStage.test.tsx`
+- `src/app/screens/resume-workshop/create/ResumeCreateFlow.test.tsx`
 - `src/app/screens/resume-workshop/ResumeWorkshopAuthGate.test.tsx`
 
 ## 5 Output
@@ -51,8 +50,7 @@
 
 - `make codegen-check` 已通过的 generated client, with non-current operations
   absent.
-- Current flat resume fixtures: `listResumes` / `getResume` /
-  `updateResume` / `duplicateResume` / `requestResumeTailor`.
+- Current flat resume fixtures: `listResumes` / `getResume` / `registerResume`.
 
 ## 7 离线限制
 

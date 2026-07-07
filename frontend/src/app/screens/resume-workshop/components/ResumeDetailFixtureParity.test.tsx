@@ -16,14 +16,8 @@ import { ResumeWorkshopScreen } from "../ResumeWorkshopScreen";
 import getRuntimeConfigFixture from "../../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../../openapi/fixtures/Auth/getMe.json";
 import getResumeFixture from "../../../../../../openapi/fixtures/Resumes/getResume.json";
-import exportResumeFixture from "../../../../../../openapi/fixtures/Resumes/exportResume.json";
 
-const FIXTURES = [
-  getRuntimeConfigFixture,
-  getMeFixture,
-  getResumeFixture,
-  exportResumeFixture,
-];
+const FIXTURES = [getRuntimeConfigFixture, getMeFixture, getResumeFixture];
 
 function buildClient(scenario: string): EasyInterviewClient {
   return new EasyInterviewClient({
@@ -57,15 +51,17 @@ function renderDetail(scenario: string, resumeId: string) {
 const RESUME_ID = getResumeFixture.scenarios.default.response.body.id;
 
 describe("getResume fixture parity (Phase 3.6)", () => {
-  it("renders the detail container with crumb + tabs for the default scenario", async () => {
+  it("renders the read-only detail container with the resume body for the default scenario", async () => {
     renderDetail("default", RESUME_ID);
 
     await waitFor(() => {
       expect(screen.getByTestId("resume-detail-crumb")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("resume-detail-tab-preview")).toBeInTheDocument();
-    expect(screen.getByTestId("resume-detail-tab-rewrites")).toBeInTheDocument();
-    expect(screen.getByTestId("resume-detail-tab-edit")).toBeInTheDocument();
+    expect(screen.getByTestId("resume-detail-preview-content")).toHaveTextContent(
+      "Senior frontend engineer for platform-heavy product teams",
+    );
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("resume-detail-export-pdf")).not.toBeInTheDocument();
   });
 
   it("renders NotFoundEmptyState when getResume returns 404 (UI copy is independent of fixture error.code spelling)", async () => {

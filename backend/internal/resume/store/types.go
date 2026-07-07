@@ -222,6 +222,7 @@ type CompleteParseSuccessInput struct {
 	ParsedSummary      json.RawMessage
 	StructuredProfile  json.RawMessage
 	ParsedTextSnapshot string
+	DisplayName        *string
 	OutboxEventID      string
 	OutboxEventPayload []byte
 	Now                time.Time

@@ -51,47 +51,48 @@ test("resume workshop is a flat list without version-tree concepts", () => {
   const resume = readUiFile("./src/screen-resume-workshop.jsx");
 
   assert.match(resume, /const ResumeListView = /);
-  assert.match(resume, /const openResume = \(r, tab = "preview"\) => nav\("resume_versions", \{ resumeId: r\.id, tab \}\);/);
+  assert.match(resume, /const openResume = \(r\) => nav\("resume_versions", \{ resumeId: r\.id \}\);/);
   assert.doesNotMatch(resume, /ResumeTreeView|ResumeBranchFlow|ResumeBranchMap/);
   assert.doesNotMatch(resume, /"MASTER"|"TARGETED"|主版本|岗位定制|选为底稿|分叉/);
   assert.doesNotMatch(resume, /createMode === "guided"|轻量问答|guideSteps|guideAnswers/);
   assert.doesNotMatch(resume, /versionType|parentVersionId|originalId/);
 });
 
-test("resume rewrites are accept-only and save via overwrite-or-new confirm preview", () => {
+test("resume workshop keeps rewrites and second-step save surfaces retired", () => {
   const resume = readUiFile("./src/screen-resume-workshop.jsx");
 
-  assert.match(resume, /const acceptBullet = \(id\) => \{/);
-  assert.match(resume, /const RewriteSaveConfirmModal = /);
-  assert.match(resume, /覆盖原简历/);
-  assert.match(resume, /保存为新简历/);
-  assert.match(resume, /onConfirm\(mode\)/);
-  assert.match(resume, /saveRewriteResult/);
+  assert.doesNotMatch(resume, /const acceptBullet = \(id\) => \{/);
+  assert.doesNotMatch(resume, /const RewriteSaveConfirmModal = /);
+  assert.doesNotMatch(resume, /覆盖原简历|保存为新简历/);
+  assert.doesNotMatch(resume, /onConfirm\(mode\)|saveRewriteResult/);
+  assert.doesNotMatch(resume, /ResumePreviewConfirm|ResumeParseFlow/);
   assert.doesNotMatch(resume, /"rejected"|已拒绝|拒绝/);
   assert.doesNotMatch(resume, /保存人工改写|Save manual edit/);
 });
 
-test("resume workshop source preview and export controls are wired", () => {
+test("resume workshop detail is read-only original content without source preview/export controls", () => {
   const resume = readUiFile("./src/screen-resume-workshop.jsx");
 
-  assert.match(resume, /const \[sourcePreviewOpen, setSourcePreviewOpen\] = React\.useState\(false\);/);
-  assert.match(resume, /onPreviewOriginal=\{\(\) => setSourcePreviewOpen\(true\)\}/);
-  assert.match(resume, /const OriginalResumePreviewModal = /);
-  assert.match(resume, /onClick=\{onPreviewOriginal\}/);
-  assert.match(resume, /onExport=\{exportPdf\}/);
-  assert.match(resume, /onCopy=\{copyText\}/);
-  assert.match(resume, /navigator\.clipboard\.writeText\(text\)/);
-  assert.match(resume, /icon="download" onClick=\{exportPdf\}/);
+  assert.match(resume, /const ResumeDetailView = /);
+  assert.match(resume, /const lines = Array\.isArray\(resume\.text\) && resume\.text\.length > 0/);
+  assert.match(resume, /\{lines\.join\("\\n"\)\}/);
+  assert.doesNotMatch(resume, /sourcePreviewOpen|OriginalResumePreviewModal|onPreviewOriginal/);
+  assert.doesNotMatch(resume, /onExport|exportPdf|onCopy|copyText/);
+  assert.doesNotMatch(resume, /navigator\.clipboard\.writeText/);
+  assert.doesNotMatch(resume, /icon="download"/);
 });
 
-test("resume workshop create flow keeps upload/paste only and mutates local data", () => {
+test("resume workshop create flow keeps upload/paste only and opens detail directly", () => {
   const resume = readUiFile("./src/screen-resume-workshop.jsx");
 
   assert.match(resume, /const \[createdResumes, setCreatedResumes\] = React\.useState\(\[\]\);/);
   assert.match(resume, /setCreatedResumes\(\(prev\) => \[\.\.\.prev, resume\]\);/);
-  assert.match(resume, /onConfirm=\{\(label\) => onCreateResume \? onCreateResume\(label\) : onBack\(\)\}/);
+  assert.match(resume, /nav\("resume_versions", \{ resumeId: resume\.id \}\);/);
+  assert.match(resume, /onCreateResume\(sourceLabel, createMode === "paste" \? resumeText : ""\)/);
+  assert.match(resume, /onCreateResume\(f\.name, ""\)/);
   assert.match(resume, /\{ k: "upload", icon: "upload"/);
   assert.match(resume, /\{ k: "paste", icon: "file"/);
+  assert.doesNotMatch(resume, /onConfirm=|resume-preview-confirm|resume-parse-flow/);
 });
 
 test("P0 context routes use InterviewContext instead of fixed tj-1 nav payloads", () => {

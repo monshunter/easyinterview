@@ -329,12 +329,14 @@ func (r *Repository) CompleteParseSuccess(ctx context.Context, in CompleteParseS
 
 	res, err := tx.ExecContext(ctx, `
 update resumes
-set parse_status = $1, parsed_summary = $2, structured_profile = $3, parsed_text_snapshot = $4, error_code = null, updated_at = $5
-where id = $6 and user_id = $7 and parse_status = $8 and deleted_at is null`,
+set parse_status = $1, parsed_summary = $2, structured_profile = $3, parsed_text_snapshot = $4,
+    display_name = coalesce($5, display_name), error_code = null, updated_at = $6
+where id = $7 and user_id = $8 and parse_status = $9 and deleted_at is null`,
 		string(sharedtypes.TargetJobParseStatusReady),
 		in.ParsedSummary,
 		structuredProfile,
 		in.ParsedTextSnapshot,
+		nullableStringPtr(in.DisplayName),
 		now,
 		in.AssetID,
 		in.UserID,

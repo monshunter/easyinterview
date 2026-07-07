@@ -21,13 +21,15 @@ import (
 func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 	now := time.Date(2026, 5, 13, 7, 0, 0, 0, time.UTC)
 	cases := []struct {
-		name           string
-		asset          resumestore.ParseAssetRecord
-		objectText     string
-		wantPrompt     string
-		wantSnapshot   string
-		forbidPrompt   string
-		wantReadObject bool
+		name            string
+		asset           resumestore.ParseAssetRecord
+		objectText      string
+		aiContent       string
+		wantPrompt      string
+		wantSnapshot    string
+		forbidPrompt    string
+		wantDisplayName string
+		wantReadObject  bool
 	}{
 		{
 			name: "paste original_text",
@@ -58,13 +60,40 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 			wantSnapshot:   "uploaded resume text",
 			wantReadObject: true,
 		},
+		{
+			name: "filters generic llm name and uses root headline",
+			asset: resumestore.ParseAssetRecord{
+				ID:           "asset-generic-name",
+				UserID:       "user-1",
+				Language:     "zh-CN",
+				ParseStatus:  sharedtypes.TargetJobParseStatusQueued,
+				SourceType:   "paste",
+				OriginalText: "张三\n后端平台工程师",
+			},
+			aiContent: `{
+  "headline": "后端平台工程师",
+  "basics": {"name": "粘贴的简历"},
+  "experiences": [],
+  "projects": [{"name": "Ferry"}],
+  "education": [],
+  "skills": ["Go"],
+  "languages": ["zh-CN"]
+}`,
+			wantPrompt:      "张三\n后端平台工程师",
+			wantSnapshot:    "张三\n后端平台工程师",
+			wantDisplayName: "后端平台工程师",
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			store := &fakeParseStore{asset: tc.asset}
 			objects := &fakeObjectReader{objects: map[string]string{tc.asset.FileObjectKey: tc.objectText}}
-			ai := &captureAI{resp: aiclient.CompleteResponse{Content: validResumeParseJSON}}
+			aiContent := tc.aiContent
+			if aiContent == "" {
+				aiContent = validResumeParseJSON
+			}
+			ai := &captureAI{resp: aiclient.CompleteResponse{Content: aiContent}}
 			handler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
 				Store:    store,
 				Registry: fakeRegistry{resolution: parseResolution()},
@@ -92,6 +121,13 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 			}
 			if !json.Valid(store.success.StructuredProfile) || !strings.Contains(string(store.success.StructuredProfile), `"skills"`) {
 				t.Fatalf("structured profile = %s", store.success.StructuredProfile)
+			}
+			wantDisplayName := tc.wantDisplayName
+			if wantDisplayName == "" {
+				wantDisplayName = "Ada Lovelace - Engineer"
+			}
+			if store.success.DisplayName == nil || *store.success.DisplayName != wantDisplayName {
+				t.Fatalf("display name = %#v, want %s", store.success.DisplayName, wantDisplayName)
 			}
 			if store.success.ParsedTextSnapshot != tc.wantSnapshot {
 				t.Fatalf("parsed text snapshot = %q, want %q", store.success.ParsedTextSnapshot, tc.wantSnapshot)
@@ -236,6 +272,9 @@ func TestParseHandlerRetriesFailedAssetBackToProcessing(t *testing.T) {
 	}
 	if store.success == nil {
 		t.Fatal("expected CompleteParseSuccess")
+	}
+	if store.success.DisplayName == nil || *store.success.DisplayName != "Ada Lovelace - Engineer" {
+		t.Fatalf("display name = %#v, want Ada Lovelace - Engineer", store.success.DisplayName)
 	}
 	if strings.Contains(string(store.success.OutboxEventPayload), "resume retry body") {
 		t.Fatalf("outbox payload leaked resume content: %s", store.success.OutboxEventPayload)

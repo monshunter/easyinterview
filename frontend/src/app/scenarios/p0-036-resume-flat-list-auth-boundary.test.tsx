@@ -149,7 +149,7 @@ describe("E2E.P0.036 resume flat list + auth boundary", () => {
     ).toBe(false);
   });
 
-  it("opening a flat row navigates to that resume's detail with the preview tab as default", async () => {
+  it("opening a flat row navigates to that resume's read-only detail with only resumeId", async () => {
     renderApp("authenticated");
 
     await waitFor(() => {
@@ -166,7 +166,7 @@ describe("E2E.P0.036 resume flat list + auth boundary", () => {
     });
     const detail = screen.getByTestId("resume-workshop-detail");
     expect(detail).toHaveAttribute("data-resume-id", FIRST_RESUME_ID);
-    expect(detail).toHaveAttribute("data-tab", "preview");
+    expect(detail).not.toHaveAttribute("data-tab");
   });
 
   it("non-current prototype testids and runtime imports are absent from the resume-workshop source", () => {

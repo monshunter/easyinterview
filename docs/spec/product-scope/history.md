@@ -1,6 +1,6 @@
 # Product Scope History
 
-> **版本**: 2.6
+> **版本**: 2.8
 > **状态**: active
 > **更新日期**: 2026-07-07
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-07 | 2.8 | 简历资产范围收敛：详情页只读展示简历正文，移除详情二次编辑/导出/复制/原件弹层；新增 LLM-derived 简历名称要求。 | resume detail readonly / LLM display name follow-up |
 | 2026-07-07 | 2.6 | 将 product-scope 正文收敛为当前合同表达；中文范围边界只描述当前行为和非当前范围。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-06 | 2.5 | 将 active product-scope 中的范围变更过程说明收敛为当前范围合同与负向边界表述。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-06 | 2.4 | 将 UI 范围边界证据集中到 `module-map` 与当前 product-scope。 | product-scope/001-core-loop-module-pruning |

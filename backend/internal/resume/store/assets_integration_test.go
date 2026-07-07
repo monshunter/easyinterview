@@ -18,6 +18,10 @@ import (
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
+func ptrString(v string) *string {
+	return &v
+}
+
 func TestResumesIntegrationCRUDStateIsolationPaginationAndRollback(t *testing.T) {
 	db := openResumeStoreTestDB(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -76,6 +80,7 @@ func TestResumesIntegrationCRUDStateIsolationPaginationAndRollback(t *testing.T)
 		ParsedSummary:      []byte(`{"basics":{"name":"Alice"}}`),
 		StructuredProfile:  []byte(`{"basics":{"name":"Alice"}}`),
 		ParsedTextSnapshot: "parsed",
+		DisplayName:        ptrString("Alice - Staff Engineer"),
 		OutboxEventID:      "0195f2d0-4a44-7fc2-8f77-1f9c4cf1a006",
 		OutboxEventPayload: []byte(`{"resumeId":"0195f2d0-4a44-7fc2-8f77-1f9c4cf1a004","userId":"0195f2d0-4a44-7fc2-8f77-1f9c4cf1a001","parseStatus":"ready"}`),
 		Now:                now.Add(2 * time.Minute),
@@ -88,6 +93,9 @@ func TestResumesIntegrationCRUDStateIsolationPaginationAndRollback(t *testing.T)
 	}
 	if ready.ParseStatus != sharedtypes.TargetJobParseStatusReady || ready.ParsedTextSnapshot == nil || *ready.ParsedTextSnapshot != "parsed" {
 		t.Fatalf("ready resume = %+v", ready)
+	}
+	if ready.DisplayName == nil || *ready.DisplayName != "Alice - Staff Engineer" {
+		t.Fatalf("ready display name = %#v", ready.DisplayName)
 	}
 	assertJSONEqual(t, ready.StructuredProfile, []byte(`{"basics":{"name":"Alice"}}`), "ready structured_profile")
 	var count int

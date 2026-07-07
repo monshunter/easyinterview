@@ -142,10 +142,8 @@ const REPORT_SAFE = new Set([
 const RESUME_VERSIONS_SAFE = new Set([
   "resumeId",
   "flow",
-  "tab",
   "createMode",
   "targetJobId",
-  "tailorRunId",
 ]);
 
 const PARSE_SAFE = new Set([

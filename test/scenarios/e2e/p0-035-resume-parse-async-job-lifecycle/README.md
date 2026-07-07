@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-Validate the backend-resume async parse lifecycle from queued `resume_parse` job to deterministic AI parse, ready/failed state transitions, typed AI observability, ready-only outbox emission, and privacy redlines.
+Validate the backend-resume async parse lifecycle from queued `resume_parse` job to deterministic AI parse, ready/failed state transitions, LLM-derived `displayName`, typed AI observability, ready-only outbox emission, and privacy redlines.
 
 ## 2. Requirements
 
@@ -16,7 +16,7 @@ Given registered resume assets for `upload` and `paste` sources, an in-process
 
 When the drainer claims queued jobs and invokes the resume parse handler for success, invalid output, timeout, and retry-exhausted variants.
 
-Then success writes `parsed_summary`, `parsed_text_snapshot`, `parse_status=ready`, typed `ai_task_runs` metadata, and one `resume.parse.completed` outbox event; failures write `parse_status=failed` with `error_code` and no completed event; parse does not create `resume_versions` before Preview Confirm.
+Then success writes `parsed_summary`, `parsed_text_snapshot`, `parse_status=ready`, LLM-derived `displayName`, typed `ai_task_runs` metadata, and one `resume.parse.completed` outbox event; failures write `parse_status=failed` with `error_code` and no completed event; parse does not create `resume_versions` before Preview Confirm.
 
 ## 4. Scripts
 

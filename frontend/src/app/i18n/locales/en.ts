@@ -275,24 +275,24 @@ export const en: LocaleMessages = {
   "resumeWorkshop.create.back": "Back to resume workshop",
   "resumeWorkshop.create.eyebrow": "CREATE RESUME",
   "resumeWorkshop.create.title":
-    "Start from a file or pasted text.",
+    "Save an original resume from a file or pasted text.",
   "resumeWorkshop.create.subtitle":
-    "We keep the original source and parse it into an editable structured resume.",
+    "After saving, the app opens read-only detail that shows the original resume content.",
   "resumeWorkshop.create.tabs.upload": "Upload",
   "resumeWorkshop.create.tabs.paste": "Paste",
   "resumeWorkshop.create.upload.dropzoneTitle":
     "Drop a PDF / DOCX / Markdown resume",
   "resumeWorkshop.create.upload.dropzoneBody":
-    "The source file is stored as the original source. Parsed sections become your editable structured resume.",
+    "After upload, the app opens resume detail and keeps the source content as the body.",
   "resumeWorkshop.create.upload.choose": "Choose file",
   "resumeWorkshop.create.upload.selectedPrefix": "Selected: ",
   "resumeWorkshop.create.upload.uploading": "Uploading…",
-  "resumeWorkshop.create.upload.titleFallback": "Uploaded resume",
+  "resumeWorkshop.create.upload.titleFallback": "Uploaded file",
   "resumeWorkshop.create.paste.placeholder": "Paste your resume text here…",
   "resumeWorkshop.create.paste.helper":
-    "Raw text is retained, then parsed into structured sections.",
-  "resumeWorkshop.create.paste.submit": "Parse and save resume",
-  "resumeWorkshop.create.paste.titleFallback": "Pasted resume",
+    "Raw text is retained, then the detail opens directly.",
+  "resumeWorkshop.create.paste.submit": "Save and open resume",
+  "resumeWorkshop.create.paste.titleFallback": "Pasted text",
   "resumeWorkshop.create.sidebar.whatSavedEyebrow": "WHAT GETS SAVED",
   "resumeWorkshop.create.sidebar.whatSaved.original.title": "Original source",
   "resumeWorkshop.create.sidebar.whatSaved.original.body":
@@ -300,13 +300,13 @@ export const en: LocaleMessages = {
   "resumeWorkshop.create.sidebar.whatSaved.structured.title":
     "Structured resume",
   "resumeWorkshop.create.sidebar.whatSaved.structured.body":
-    "Work, projects, skills, education, and evidence are editable.",
-  "resumeWorkshop.create.sidebar.whatSaved.baseline.title": "Editable resume",
+    "Backend parsing helps naming and downstream matching; it does not replace the detail body.",
+  "resumeWorkshop.create.sidebar.whatSaved.baseline.title": "Read-only detail",
   "resumeWorkshop.create.sidebar.whatSaved.baseline.body":
-    "After saving, you can keep editing, rewrite, or save as a new resume.",
+    "After saving, opening the resume shows the resume itself.",
   "resumeWorkshop.create.sidebar.whatNextEyebrow": "WHAT HAPPENS NEXT",
   "resumeWorkshop.create.sidebar.whatNextBody":
-    "After you submit, we'll parse the source live, then show you a preview to confirm before saving a resume.",
+    "After submission succeeds, resume detail opens directly and shows the original content read-only.",
   "resumeWorkshop.create.errors.validation":
     "Validation failed — review the fields and retry.",
   "resumeWorkshop.create.errors.extensionInvalid":
@@ -324,81 +324,17 @@ export const en: LocaleMessages = {
     "Save failed · please retry shortly.",
   "resumeWorkshop.create.auth.pendingLabel":
     "Continue creating a resume after sign-in",
-  "resumeWorkshop.parsing.cancel": "Cancel and edit input",
-  "resumeWorkshop.parsing.eyebrow": "PARSING SOURCE",
-  "resumeWorkshop.parsing.title":
-    "Reading your source and drafting a structured resume.",
-  "resumeWorkshop.parsing.sourcePrefix": "source · ",
-  "resumeWorkshop.parsing.agent": "AGENT PARSING",
-  "resumeWorkshop.parsing.step.extract": "Extracting raw text from source…",
-  "resumeWorkshop.parsing.step.identity":
-    "Detecting personal info · name · contact · location",
-  "resumeWorkshop.parsing.step.experience":
-    "Parsing work experience · employers · timeline",
-  "resumeWorkshop.parsing.step.projects":
-    "Identifying flagship projects · candidate list",
-  "resumeWorkshop.parsing.step.skills":
-    "Aggregating skills · stack · evidence links",
-  "resumeWorkshop.parsing.step.education":
-    "Extracting education · degrees · certifications",
-  "resumeWorkshop.parsing.step.structure":
-    "Drafting structured resume · ready to confirm",
-  "resumeWorkshop.parsing.failed.title": "Parsing failed",
-  "resumeWorkshop.parsing.failed.body":
-    "Retry the parse or head back to revise your input.",
-  "resumeWorkshop.parsing.failed.retry": "Retry parse",
-  "resumeWorkshop.parsing.failed.back": "Back to input",
-  "resumeWorkshop.parsing.failed.code.AI_TIMEOUT_RETRYABLE":
-    "AI service timed out — retry shortly.",
-  "resumeWorkshop.parsing.failed.code.PARSE_TIMEOUT":
-    "Parse timed out — retry or return to edit input.",
-  "resumeWorkshop.parsing.failed.code.AI_PROVIDER_TIMEOUT":
-    "AI provider timed out — please retry.",
-  "resumeWorkshop.parsing.failed.code.AI_OUTPUT_INVALID":
-    "AI output failed validation — please retry.",
-  "resumeWorkshop.parsing.failed.code.UNKNOWN":
-    "Unknown error — retry or return to edit input.",
-  "resumeWorkshop.preview.back": "Re-parse from input",
-  "resumeWorkshop.preview.eyebrow": "PREVIEW · CONFIRM TO SAVE",
-  "resumeWorkshop.preview.title":
-    "Here's the structured draft. Confirm to save it as a new original.",
-  "resumeWorkshop.preview.sourcePrefix": "source · ",
-  "resumeWorkshop.preview.statusParsed": "parsed",
-  "resumeWorkshop.preview.backCta": "Back",
-  "resumeWorkshop.preview.confirm": "Confirm and save resume",
-  "resumeWorkshop.preview.section.summary": "SUMMARY",
-  "resumeWorkshop.preview.section.experience": "EXPERIENCE",
-  "resumeWorkshop.preview.section.projects": "FLAGSHIP PROJECTS",
-  "resumeWorkshop.preview.section.skills": "SKILLS",
-  "resumeWorkshop.preview.section.education": "EDUCATION",
-  "resumeWorkshop.preview.sidebar.whatSavedEyebrow": "WHAT WILL BE SAVED",
-  "resumeWorkshop.preview.sidebar.whatSaved.original.title": "Original source",
-  "resumeWorkshop.preview.sidebar.whatSaved.original.body":
-    "Kept untouched · always traceable.",
-  "resumeWorkshop.preview.sidebar.whatSaved.structured.title":
-    "Structured resume",
-  "resumeWorkshop.preview.sidebar.whatSaved.structured.body":
-    "The draft above · editable later.",
-  "resumeWorkshop.preview.sidebar.whatSaved.editable.title": "Editable resume",
-  "resumeWorkshop.preview.sidebar.whatSaved.editable.body":
-    "After saving, you can keep editing, rewrite, or save as a new resume.",
-  "resumeWorkshop.preview.sidebar.notesEyebrow": "PARSE NOTES",
-  "resumeWorkshop.preview.sidebar.notesBody":
-    "Anything missing or wrong can be fixed in the structured editor after you save.",
-  "resumeWorkshop.preview.success": "Saved resume · back to workshop",
-  "resumeWorkshop.preview.alreadyExists":
-    "A matching resume already exists · opening it",
   "resumeWorkshop.create.cta": "No resume yet — create one in 1 minute",
   "resumeWorkshop.auth.eyebrow": "Resume Workshop",
   "resumeWorkshop.auth.title": "Sign in to view your resumes",
   "resumeWorkshop.auth.body":
-    "Resume listing, detail, and export require authentication. Sign-in restores this page with route params only — no resume text is carried along.",
+    "Resume listing and read-only detail require authentication. Sign-in restores this page with route params only — no resume text is carried along.",
   "resumeWorkshop.auth.cta": "Sign in to continue",
   "resumeWorkshop.auth.pendingLabel": "Open Resume Workshop after sign-in",
   "resumeWorkshop.eyebrow": "Resume Workshop",
   "resumeWorkshop.title": "Your resumes",
   "resumeWorkshop.subtitle":
-    "Manage saved resumes. Open any resume to preview, accept rewrites, or edit by hand.",
+    "Manage saved resumes. Open any resume to read the resume itself.",
   "resumeWorkshop.create": "New resume",
   "resumeWorkshop.sourceType.upload": "Uploaded PDF",
   "resumeWorkshop.sourceType.paste": "Pasted text",
@@ -415,129 +351,12 @@ export const en: LocaleMessages = {
   "resumeWorkshop.list.uploadAnother": "Upload or paste another resume",
   "resumeWorkshop.detail.back": "Back to Resume Workshop",
   "resumeWorkshop.detail.lastEdit": "last edit",
-  "resumeWorkshop.detail.tabPreview": "Preview",
-  "resumeWorkshop.detail.tabRewrites": "Rewrites",
-  "resumeWorkshop.detail.tabEdit": "Edit",
-  "resumeWorkshop.detail.copyText": "Copy plain text",
-  "resumeWorkshop.detail.exportPdf": "Export PDF",
-  "resumeWorkshop.detail.viewOriginal": "View original",
-  "resumeWorkshop.detail.exportNotAvailable":
-    "PDF export is not available yet",
-  "resumeWorkshop.detail.copySuccess": "Plain text copied",
-  "resumeWorkshop.detail.copyUnavailable":
-    "Clipboard write is unavailable in this environment",
   "resumeWorkshop.detail.loading": "Loading resume...",
   "resumeWorkshop.detail.error": "Failed to load this resume. Please retry.",
   "resumeWorkshop.detail.notFoundTitle": "Resume not found",
   "resumeWorkshop.detail.notFoundBody":
     "This resume is unavailable or the link is no longer valid. Return to Resume Workshop to choose another resume.",
   "resumeWorkshop.detail.notFoundCta": "Back to list",
-  "resumeWorkshop.detail.modalTitle": "Original resume preview",
-  "resumeWorkshop.detail.modalClose": "Close original preview",
-  "resumeWorkshop.detail.modalDescription":
-    "The original is read-only. Rewrites can overwrite this resume or save as a new resume.",
-  "resumeWorkshop.detail.modalLoading": "Loading original source...",
-  "resumeWorkshop.detail.modalError":
-    "Failed to load original source. Please retry.",
-  // ── Rewrites tab (plan 003) ──
-  "resumeWorkshop.rewrites.scopeBanner.body":
-    "Each suggestion has a single action: Accept. Doing nothing skips it. Accepted rewrites are saved only after the preview step, where you choose overwrite this resume or save as a new resume.",
-  "resumeWorkshop.rewrites.scopeBanner.counts":
-    "{accepted} accepted - {untouched} untouched",
-  "resumeWorkshop.rewrites.previewAndSave": "Preview & save",
-  "resumeWorkshop.rewrites.listEyebrow": "SUGGESTED REWRITES",
-  "resumeWorkshop.rewrites.empty.title": "No AI suggestions yet",
-  "resumeWorkshop.rewrites.empty.body":
-    "No bullet rewrites have been generated. Use the action on the right to rerun the tailor.",
-  "resumeWorkshop.rewrites.status.accepted": "ACCEPTED",
-  "resumeWorkshop.rewrites.status.suggested": "SUGGESTED",
-  "resumeWorkshop.rewrites.status.pending": "PENDING",
-  "resumeWorkshop.rewrites.status.rejected": "REJECTED",
-  "resumeWorkshop.rewrites.diff.sectionFallback": "Rewrite suggestion",
-  "resumeWorkshop.rewrites.diff.original": "ORIGINAL",
-  "resumeWorkshop.rewrites.diff.originalFrom": "from current resume",
-  "resumeWorkshop.rewrites.diff.rewritten": "REWRITTEN",
-  "resumeWorkshop.rewrites.diff.manualEdit": "MANUAL EDIT",
-  "resumeWorkshop.rewrites.diff.confidence": "confidence - high",
-  "resumeWorkshop.rewrites.diff.manualHint": "will save into {versionName}",
-  "resumeWorkshop.rewrites.diff.whyEyebrow": "WHY THIS CHANGE",
-  "resumeWorkshop.rewrites.action.reject": "Reject",
-  "resumeWorkshop.rewrites.action.edit": "Edit",
-  "resumeWorkshop.rewrites.action.accept": "Accept",
-  "resumeWorkshop.rewrites.action.accepted": "Accepted",
-  "resumeWorkshop.rewrites.action.cancelEdit": "Cancel",
-  "resumeWorkshop.rewrites.action.saveManual": "Save manual edit",
-  "resumeWorkshop.rewrites.rerun.cta": "Rerun rewrites",
-  "resumeWorkshop.rewrites.rerun.modeBulletSuggestions": "Bullet suggestions",
-  "resumeWorkshop.rewrites.rerun.modeGapReview": "Gap review",
-  "resumeWorkshop.rewrites.polling.banner":
-    "AI is generating bullets - expected within 30s",
-  "resumeWorkshop.rewrites.polling.failed":
-    "AI generation failed - please retry",
-  "resumeWorkshop.rewrites.polling.timeout":
-    "AI generation timed out - please retry",
-  "resumeWorkshop.rewrites.polling.retry": "Retry",
-  "resumeWorkshop.rewrites.toast.accept":
-    "Accepted into {versionName}",
-  "resumeWorkshop.rewrites.toast.reject":
-    "Rejected - original kept for {versionName}",
-  "resumeWorkshop.rewrites.toast.manualSaved":
-    "Manual edit saved for {versionName}",
-  "resumeWorkshop.rewrites.toast.rerunRequested":
-    "Tailor rerun requested",
-  "resumeWorkshop.rewrites.toast.overwritten":
-    "Overwrote {resumeName} - accepted rewrites applied; original source unchanged",
-  "resumeWorkshop.rewrites.toast.savedAsNew":
-    "Saved as a new resume: {resumeName}",
-  "resumeWorkshop.rewrites.toast.alreadyDecided":
-    "This bullet has already been decided - rerun rewrites to try again",
-  "resumeWorkshop.rewrites.error.generic":
-    "The operation failed. Please retry.",
-  "resumeWorkshop.rewrites.error.crossUser":
-    "Resume not found - choose another resume and retry.",
-  "resumeWorkshop.rewrites.error.validation":
-    "Validation failed. Please retry.",
-  "resumeWorkshop.rewrites.error.manualPendingRetry":
-    "Manual edit saved but status write failed - please retry.",
-  // ── Rewrite save confirm modal (D-20) ──
-  "resumeWorkshop.rewrites.save.eyebrow": "PREVIEW BEFORE SAVING",
-  "resumeWorkshop.rewrites.save.title":
-    "Review the accepted rewrites, then choose where to save.",
-  "resumeWorkshop.rewrites.save.sub":
-    "The original source stays read-only either way.",
-  "resumeWorkshop.rewrites.save.close": "Close preview",
-  "resumeWorkshop.rewrites.save.acceptedCount": "{count} ACCEPTED REWRITES",
-  "resumeWorkshop.rewrites.save.overwriteLabel": "Overwrite this resume",
-  "resumeWorkshop.rewrites.save.overwriteDesc":
-    "Apply rewrites into {resumeName}. Original source unchanged.",
-  "resumeWorkshop.rewrites.save.newLabel": "Save as a new resume",
-  "resumeWorkshop.rewrites.save.newDesc":
-    "Keep this resume as-is and add a rewritten copy to the list.",
-  "resumeWorkshop.rewrites.save.newNameSuffix": "{resumeName} - rewritten",
-  "resumeWorkshop.rewrites.save.cancel": "Cancel",
-  "resumeWorkshop.rewrites.save.confirmNew": "Save as new resume",
-  "resumeWorkshop.rewrites.save.confirmOverwrite": "Overwrite this resume",
-  // ── Edit tab (plan 003) ──
-  "resumeWorkshop.edit.scope.body":
-    "Editing {resumeName}. Changes save into this resume; the original source stays read-only.",
-  "resumeWorkshop.edit.displayNameLabel": "RESUME NAME",
-  "resumeWorkshop.edit.headlineLabel": "HEADLINE",
-  "resumeWorkshop.edit.summaryLabel": "SUMMARY",
-  "resumeWorkshop.edit.save": "Save changes",
-  "resumeWorkshop.edit.saving": "Saving...",
-  "resumeWorkshop.edit.section.experience": "EXPERIENCE",
-  "resumeWorkshop.edit.section.skills": "SKILLS",
-  "resumeWorkshop.edit.section.add": "Add",
-  "resumeWorkshop.edit.section.comingSoon":
-    "Experience / Skills list editing is coming soon",
-  "resumeWorkshop.edit.toast.saved": "Changes saved for {versionName}",
-  "resumeWorkshop.edit.error.validation":
-    "Validation failed. Please retry.",
-  "resumeWorkshop.edit.error.idempotency":
-    "Previous save is still processing - please retry shortly",
-  "resumeWorkshop.edit.error.crossUser":
-    "Resume not found - choose another resume and retry.",
-  "resumeWorkshop.edit.error.generic": "Save failed. Please retry.",
   // ── Practice screen (plan 002) ──
   "practice.toolbar.companySkeleton": "Target company",
   "practice.toolbar.titleSkeleton": "Target role",

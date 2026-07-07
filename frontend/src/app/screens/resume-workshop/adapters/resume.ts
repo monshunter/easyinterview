@@ -15,34 +15,25 @@ export interface UiResumeSource {
   text: string[];
 }
 
-export type UiBulletStatus = "pending" | "accepted";
-
-export interface UiBullet {
-  id: string;
-  section: string;
-  original: string;
-  rewritten: string;
-  why: string[];
-  status: UiBulletStatus;
-}
-
-export interface ResumeSuggestionInput {
-  id: string;
-  originalBullet: string;
-  suggestedBullet: string;
-  reason: string;
-  section?: string;
-}
-
 const LANG_TAG_MAP: Record<string, string> = {
   zh: "中",
   en: "EN",
 };
 
 const SOURCE_TYPE_LABEL: Record<string, string> = {
-  upload: "Uploaded file",
-  paste: "Pasted text",
+  upload: "上传文件",
+  paste: "粘贴文本",
 };
+
+const GENERIC_RESUME_NAMES = new Set([
+  "粘贴的简历",
+  "粘帖的简历",
+  "上传的简历",
+  "pasted resume",
+  "uploaded resume",
+  "pasted text",
+  "uploaded file",
+]);
 
 const formatDateOnly = (iso: string): string => iso.slice(0, 10);
 
@@ -64,85 +55,122 @@ const deriveSummary = (parsedSummary: Resume["parsedSummary"]): string => {
   return typeof headline === "string" ? headline : "";
 };
 
-const deriveText = (resume: Resume): string[] => {
-  const snapshot = resume.parsedTextSnapshot;
-  if (typeof snapshot === "string" && snapshot.trim().length > 0) {
-    return snapshot
-      .split(/\n+/)
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-  }
-  const original = resume.originalText;
-  if (typeof original === "string" && original.trim().length > 0) {
-    return original
-      .split(/\n+/)
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
-  }
-  return [];
-};
-
 const normalizeStatus = (status: Resume["status"]): ResumeStatus =>
   status === "archived" ? "archived" : "active";
 
+const safeString = (value: unknown): string =>
+  typeof value === "string" ? value.trim() : "";
+
+const safeStringArray = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value
+        .map((item) => safeString(item))
+        .filter((item) => item.length > 0)
+    : [];
+
+const normalizeName = (value: string): string =>
+  value.replace(/\s+/g, " ").trim();
+
+const isGenericResumeName = (value: string): boolean => {
+  const normalized = normalizeName(value);
+  if (!normalized) return true;
+  return GENERIC_RESUME_NAMES.has(normalized.toLowerCase());
+};
+
+const splitContentLines = (content: string | null | undefined): string[] => {
+  if (typeof content !== "string" || content.trim().length === 0) return [];
+  return content
+    .split(/\r?\n+/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+};
+
+const firstContentLine = (resume: Resume): string => {
+  const line = [
+    ...splitContentLines(resume.parsedTextSnapshot),
+    ...splitContentLines(resume.originalText),
+  ].find((candidate) => !isGenericResumeName(candidate));
+  return line ?? "";
+};
+
+const profileRecord = (resume: Resume): Record<string, unknown> =>
+  (resume.structuredProfile ?? {}) as Record<string, unknown>;
+
+const parsedSummaryRecord = (resume: Resume): Record<string, unknown> =>
+  (resume.parsedSummary ?? {}) as Record<string, unknown>;
+
+const deriveStructuredName = (resume: Resume): string => {
+  const profile = profileRecord(resume);
+  const basics =
+    typeof profile.basics === "object" && profile.basics !== null
+      ? (profile.basics as Record<string, unknown>)
+      : {};
+  const parsed = parsedSummaryRecord(resume);
+
+  const name = safeString(basics.name);
+  const headline =
+    safeString(basics.headline) ||
+    safeString(basics.title) ||
+    safeString(profile.headline) ||
+    safeString(parsed.headline);
+
+  if (name && headline) return `${name} · ${headline}`;
+  if (name) return name;
+  if (headline) return headline;
+
+  const skills = safeStringArray(profile.skills);
+  if (skills.length > 0) return skills.slice(0, 4).join(" · ");
+
+  return "";
+};
+
+const firstNonGeneric = (values: string[]): string => {
+  const value = values.find((candidate) => !isGenericResumeName(candidate));
+  return value ? normalizeName(value) : "";
+};
+
+const deriveDisplayName = (resume: Resume): string =>
+  firstNonGeneric([
+    safeString(resume.displayName),
+    safeString(resume.title),
+    firstContentLine(resume),
+    deriveStructuredName(resume),
+  ]) || deriveSourceTypeLabel(resume.sourceType);
+
+const deriveSourceName = (resume: Resume): string => {
+  if (resume.sourceType === "paste") return deriveSourceTypeLabel("paste");
+  return (
+    firstNonGeneric([safeString(resume.title), safeString(resume.displayName)]) ||
+    deriveSourceTypeLabel(resume.sourceType)
+  );
+};
+
 /**
  * Maps the flat OpenAPI `Resume` to the UI source shape consumed by the list
- * row and detail header. `displayName` is the editable
- * label; `title` is the original-source title fallback.
+ * row and detail header. `displayName` is the LLM-derived label after parse;
+ * `title` is the original-source title fallback.
  */
 export const mapResumeToUiSource = (resume: Resume): UiResumeSource => ({
   id: resume.id,
-  name: resume.displayName || resume.title,
+  name: deriveDisplayName(resume),
   langTag: deriveLangTag(resume.language),
   type: deriveSourceTypeLabel(resume.sourceType),
-  sourceName: resume.title,
+  sourceName: deriveSourceName(resume),
   createdAt: formatDateOnly(resume.createdAt),
   updatedAt: formatDateOnly(resume.updatedAt),
   status: normalizeStatus(resume.status),
   summary: deriveSummary(resume.parsedSummary),
-  text: deriveText(resume),
+  text: buildResumeBodyLines(resume),
 });
 
-const splitWhy = (reason: string): string[] => {
-  if (!reason) return [];
-  return reason
-    .split(/\s*[|;；]\s*/)
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0);
-};
+export const buildResumeBodyLines = (resume: Resume): string[] => {
+  const originalLines = splitContentLines(resume.parsedTextSnapshot);
+  if (originalLines.length > 0) return originalLines;
 
-/**
- * Maps an ephemeral resume-tailor bullet suggestion to the UI bullet shape.
- * D-20: suggestions are accept-only and not persisted server-side until the
- * accepted set is saved via overwrite / save-as-new, so `status` starts
- * `pending` and is tracked client-side.
- */
-export const mapBulletSuggestionToUi = (
-  input: ResumeSuggestionInput,
-): UiBullet => ({
-  id: input.id,
-  section: input.section ?? "",
-  original: input.originalBullet,
-  rewritten: input.suggestedBullet,
-  why: splitWhy(input.reason),
-  status: "pending",
-});
+  const rawLines = splitContentLines(resume.originalText);
+  if (rawLines.length > 0) return rawLines;
 
-const safeString = (value: unknown): string =>
-  typeof value === "string" ? value : "";
-
-const safeStringArray = (value: unknown): string[] =>
-  Array.isArray(value) ? value.filter((s): s is string => typeof s === "string") : [];
-
-export interface ResumePreviewProjection {
-  headline: string;
-  summary: string;
-  skills: string[];
-  sections: { title: string; bullets: string[] }[];
-}
-
-export const buildResumePreview = (resume: Resume): ResumePreviewProjection => {
-  const profile = (resume.structuredProfile ?? {}) as Record<string, unknown>;
+  const profile = profileRecord(resume);
   const sectionsRaw = profile.sections;
   const sections = Array.isArray(sectionsRaw)
     ? sectionsRaw.flatMap((entry) => {
@@ -156,34 +184,11 @@ export const buildResumePreview = (resume: Resume): ResumePreviewProjection => {
         ];
       })
     : [];
-  return {
-    headline: safeString(profile.headline),
-    summary: safeString(profile.summary),
-    skills: safeStringArray(profile.skills),
-    sections,
-  };
-};
 
-/**
- * Plain-text projection of the resume preview, suitable for clipboard copy.
- * Reads structuredProfile from the API response so it stays in sync with real
- * data once backend lands.
- */
-export const buildResumePlainText = (resume: Resume): string => {
-  const projection = buildResumePreview(resume);
-  const lines: string[] = [];
-  if (projection.headline) lines.push(projection.headline);
-  if (projection.summary) lines.push(projection.summary);
-  for (const section of projection.sections) {
-    if (lines.length > 0) lines.push("");
-    if (section.title) lines.push(section.title);
-    for (const bullet of section.bullets) {
-      lines.push(`- ${bullet}`);
-    }
-  }
-  if (projection.skills.length > 0) {
-    if (lines.length > 0) lines.push("");
-    lines.push(projection.skills.join(" · "));
-  }
-  return lines.join("\n");
+  return [
+    safeString(profile.headline),
+    safeString(profile.summary),
+    ...sections.flatMap((section) => [section.title, ...section.bullets]),
+    safeStringArray(profile.skills).join(" · "),
+  ].filter((line) => line.length > 0);
 };

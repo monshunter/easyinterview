@@ -33,8 +33,8 @@ allowlist 写入 `pushState` / `replaceState`。
   与 `app-shell-topbar` 隐藏行为符合 route catalog。
 - `report?reportStatus=failed` 渲染 `report-failure-state`，并保留 errorCode。
 - 当前 cross-owner handoff key (`autoStartPractice` / `reportId` /
-  `reportStatus` / `tailorRunId`) 经
-  allowlist 过滤后仍保留。
+  `reportStatus`) 经 allowlist 过滤后仍保留；简历详情已是只读内容页，
+  `tab` / `tailorRunId` 会被过滤。
 - back / forward 在 workspace / practice / report 之间正常切换且不丢失
   params；practice / generating 保持 chrome 隐藏。
 - 未知 query 被 allowlist 过滤；canonical URL 不保留 `bogusKey`、`another`。

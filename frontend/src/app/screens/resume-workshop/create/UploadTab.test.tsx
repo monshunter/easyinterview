@@ -50,7 +50,8 @@ function buildClient(): EasyInterviewClient {
 }
 
 function renderUploadTab(client: EasyInterviewClient) {
-  return render(
+  const navigate = vi.fn();
+  const result = render(
     <DisplayPreferencesProvider>
       <AppRuntimeProvider
         client={client}
@@ -58,12 +59,13 @@ function renderUploadTab(client: EasyInterviewClient) {
           getMe: { headers: { Prefer: "example=authenticated" } },
         }}
       >
-        <NavigationProvider value={{ navigate: vi.fn() }}>
+        <NavigationProvider value={{ navigate }}>
           <ResumeCreateFlow />
         </NavigationProvider>
       </AppRuntimeProvider>
     </DisplayPreferencesProvider>,
   );
+  return { ...result, navigate };
 }
 
 function makeFile(name: string, size: number, type: string): File {
@@ -145,12 +147,12 @@ describe("UploadTab pre-check + presign + register", () => {
     expect(presignSpy).not.toHaveBeenCalled();
   });
 
-  it("completes presign + browser PUT + registerResume + advances stage to parsing", async () => {
+  it("completes presign + browser PUT + registerResume + opens the detail directly", async () => {
     const client = buildClient();
     const presignSpy = vi.spyOn(client, "createUploadPresign");
     const registerSpy = vi.spyOn(client, "registerResume");
 
-    renderUploadTab(client);
+    const { navigate } = renderUploadTab(client);
     await waitFor(() =>
       expect(screen.getByTestId("resume-create-upload-input")).toBeInTheDocument(),
     );
@@ -160,9 +162,14 @@ describe("UploadTab pre-check + presign + register", () => {
     const file = makeFile("alice.pdf", 2048, "application/pdf");
     fireEvent.change(input, { target: { files: [file] } });
 
-    await waitFor(() => {
-      expect(screen.getByTestId("resume-parse-flow")).toBeInTheDocument();
-    });
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({
+        name: "resume_versions",
+        params: {
+          resumeId: registerResumeFixture.scenarios.default.response.body.resumeId,
+        },
+      }),
+    );
     expect(presignSpy).toHaveBeenCalledTimes(1);
     expect(presignSpy.mock.calls[0]![1]?.idempotencyKey).toMatch(
       /^v1\.\d+\.[0-9a-f-]{36}$/,
@@ -176,8 +183,9 @@ describe("UploadTab pre-check + presign + register", () => {
     });
     expect(registerCall[1]?.idempotencyKey).toMatch(/^v1\.\d+\.[0-9a-f-]{36}$/);
     expect(putSpy).toHaveBeenCalledTimes(1);
-    // The DOM transitions to ParseFlow; the original file blob is NOT rendered
-    // anywhere in the document body text.
+    expect(screen.queryByTestId("resume-parse-flow")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("resume-preview-confirm")).not.toBeInTheDocument();
+    // The create DOM never renders the original file blob.
     const bodyText = document.body.textContent ?? "";
     expect(bodyText).not.toContain("application/pdf");
     expect(bodyText).not.toContain(file.name + ".binary");

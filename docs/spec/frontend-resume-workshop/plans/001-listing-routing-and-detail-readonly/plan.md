@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly
 
-> **版本**: 1.4
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-07-07
 
@@ -12,13 +12,14 @@
 本计划承接当前 `frontend-resume-workshop` 的首屏与只读详情边界：
 
 - `resume_versions` route 渲染 `ResumeWorkshopScreen`，TopBar 选中简历入口。
-- route params 只使用当前 flat Resume 合同：`flow=create|list`、`resumeId`、`tab=preview|rewrites|edit`、`targetJobId`、`tailorRunId`、`createMode=upload|paste`。
+- route params 只使用当前 flat Resume 合同：`flow=create|list`、`resumeId`、`createMode=upload|paste`；旧 `tab` / `tailorRunId` 被过滤或忽略。
 - `ResumeListView` 使用 `listResumes` 渲染单层平铺表格、创建入口、详情入口、loading / empty / retry / pagination 状态。
-- `ResumeDetailView` 使用 `getResume(resumeId)` 渲染 preview tab、copy、original modal、export fallback 和 generic 404 fallback。
+- `ResumeDetailView` 使用 `getResume(resumeId)` 只渲染原始简历内容本身和 generic 404 fallback。
+- 列表与详情不展示通用“上传的简历 / 粘贴的简历 / Uploaded resume / Pasted resume”名称；LLM-derived `displayName` 优先，旧数据或解析前状态从原文、文件名或结构化字段派生可识别兜底名称。
 - 未登录态不触发 Resume API，请求登录时 pending action 只保存安全 route params。
 - 可见 UI 继续追溯 `ui-design/src/screen-resume-workshop.jsx`、`ui-design/src/primitives.jsx`、`ui-design/src/app.jsx` 和 `docs/ui-design/`。
 
-本计划不拥有 CreateFlow、Rewrites save、Edit save、tailor polling 或 duplicate/save-as-new 行为；这些由 002 / 003 owner 承接。
+本计划不拥有 CreateFlow 注册链路、tailor polling、duplicate/save-as-new 或 backend handler 行为；本计划同时固化详情页不提供 Rewrites/Edit/export/copy/original modal/preview-confirm 等二次操作。
 
 ## 2 背景
 
@@ -27,7 +28,7 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior + frontend + contract-consumer`
-- **TDD 策略**: 适用。实现项由 `/implement frontend-resume-workshop/001-listing-routing-and-detail-readonly` 进入 `/tdd`；测试断言来源为 `ResumeWorkshopScreen`、`ResumeWorkshopAuthGate`、`ResumeListView`、`ResumeDetailView`、`ResumeDetailFixtureParity`、`ResumeDetailExport`、`OriginalResumePreviewModal`、`ResumePreviewTab`、`ResumeWorkshopI18nA11y`、`ResumeWorkshopPrivacy`、`fixture-parity` 和 P0.036/P0.037 scenario Vitest。
+- **TDD 策略**: 适用。实现项由 `/implement frontend-resume-workshop/001-listing-routing-and-detail-readonly` 进入 `/tdd`；测试断言来源为 `ResumeWorkshopScreen`、`ResumeWorkshopAuthGate`、`ResumeListView`、`ResumeDetailView`、`ResumeDetailFixtureParity`、`ResumeDetailExport`、`ResumePreviewTab`、`ResumeWorkshopI18nA11y`、`ResumeWorkshopPrivacy`、`fixture-parity` 和 P0.036/P0.037 scenario Vitest。
 - **BDD 策略**: 适用。主 checklist 保留 E2E.P0.036 / E2E.P0.037 `BDD-Gate:`，场景细节由 [bdd-plan.md](./bdd-plan.md) 与 [bdd-checklist.md](./bdd-checklist.md) 承接。
 - **替代验证 gate**: focused frontend Vitest、P0.036/P0.037 scenario scripts、frontend typecheck/build 或 owner parity gate、context validation、`sync-doc-index --check`、`make docs-check`、`git diff --check`、core-loop pruning surface lint。
 
@@ -35,9 +36,8 @@
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` `default` / `empty` / `paginated` | list hook + `ResumeListView` + `mapResumeToUiSource` | backend-resume real handler | `resumes` | none | E2E.P0.036 |
-| `getResume` | `openapi/fixtures/Resumes/getResume.json` `default` / `not-found` | detail hook + `ResumeDetailView` + `ResumePreviewTab` + original modal | backend-resume real handler | `resumes` | none | E2E.P0.037 |
-| `exportResume` | `openapi/fixtures/Resumes/exportResume.json` `p0-501-not-available` | `ResumeDetailView` header / preview export action; generated client passes `Idempotency-Key` | backend-resume P0 unavailable response | none in P0 | none | E2E.P0.037 |
+| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` `default` / `empty` / `paginated` | list hook + `ResumeListView` + `mapResumeToUiSource` display-name fallback | backend-resume real handler | `resumes` | none | E2E.P0.036 |
+| `getResume` | `openapi/fixtures/Resumes/getResume.json` `default` / `not-found` | detail hook + `ResumeDetailView` + `ResumePreviewTab` original-content body | backend-resume real handler | `resumes` | none | E2E.P0.037 |
 
 ## 4 实施步骤
 
@@ -63,21 +63,25 @@ runtime 未认证时渲染登录入口；Resume API 请求保持 0 次；pending
 
 #### 2.3 Create and detail entry
 
-创建入口导航到 `resume_versions?flow=create`；打开行导航到 `resume_versions?resumeId=<id>&tab=preview`。
+创建入口导航到 `resume_versions?flow=create`；打开行导航到 `resume_versions?resumeId=<id>`。
 
-### Phase 3: Detail Preview / Original / Export
+### Phase 3: Read-only Detail
 
-#### 3.1 Preview detail
+#### 3.1 Read-only detail
 
-`ResumeDetailView` 使用 `getResume(resumeId)` 渲染 crumb、header meta、preview / rewrites / edit tablist；默认 tab 为 `preview`，显式 `tab=rewrites|edit` 不被改写。
+`ResumeDetailView` 使用 `getResume(resumeId)` 渲染 crumb、header meta 和只读原始简历正文；显式 `tab=preview|rewrites|edit` 不 materialize 任何 tab 或二次编辑 surface。
 
-#### 3.2 Preview actions
+#### 3.2 Removed actions
 
-Preview tab 支持 copy text、view original modal 和 Export PDF。original modal 展示原始文本或解析文本快照，具备 `role=dialog`、`aria-modal`、focus return 和 ESC 关闭。
+详情页不渲染 Export PDF、Copy text、View original/original modal、Rewrites、Edit 或 preview-confirm；原始简历预览就是当前原文正文。
 
-#### 3.3 Export fallback and 404
+#### 3.4 Original-content projection and meaningful names
 
-Export PDF 通过 generated client 调用 `exportResume(resumeId, { idempotencyKey })`，501 / unavailable response 映射为本地 toast，不写 blob / localStorage。不存在的 `resumeId` 渲染 generic NotFoundEmptyState，不回显 fixture `error.code`。
+`ResumePreviewTab` 优先展示 `parsedTextSnapshot`，其次 `originalText`，最后才降级到结构化字段的只读摘要；列表和详情 header 对通用占位 `displayName` 做负向过滤，使用 LLM-derived 名称或从原始内容 / 文件名 / 结构化 headline 派生的可识别名称。
+
+#### 3.3 404
+
+不存在的 `resumeId` 渲染 generic NotFoundEmptyState，不回显 fixture `error.code`。
 
 ### Phase 4: Privacy / I18n / A11y / Parity
 
@@ -87,7 +91,7 @@ raw resume text、parsedTextSnapshot、parsedSummary、structuredProfile 和 rew
 
 #### 4.2 I18n and accessibility
 
-中英 key 由 frontend-shell i18n 体系承接；table、tablist、modal、buttons 和 aria labels 具备可测试语义。
+中英 key 由 frontend-shell i18n 体系承接；table、只读正文、buttons 和 aria labels 具备可测试语义。
 
 #### 4.3 UI parity
 
@@ -97,7 +101,7 @@ DOM anchor、computed style、bounding box、mobile / desktop layout 和 screens
 
 #### 5.1 BDD scenarios
 
-E2E.P0.036 验证 flat list + auth boundary；E2E.P0.037 验证 detail preview + original modal + export 501 + 404 fallback。
+E2E.P0.036 验证 flat list + auth boundary；E2E.P0.037 验证 read-only detail + legacy tab negative + removed actions + 404 fallback。
 
 #### 5.2 Non-current negative gate
 
@@ -109,8 +113,8 @@ Resume Workshop runtime source、scenario evidence 和 rendered DOM 不出现树
 
 ## 5 验收标准
 
-- 001 owner docs 只描述当前 flat Resume list / preview detail 合同。
-- Operation matrix 只列当前 generated-client operations。
+- 001 owner docs 只描述当前 flat Resume list / original-content read-only detail 合同。
+- Operation matrix 只列当前详情实际消费的 generated-client operations。
 - E2E.P0.036 / E2E.P0.037 scenario assets 指向当前 slug、当前 Vitest entry 和当前 expected outcome。
 - Focused frontend tests、context validation、docs/index gates 和 pruning surface lint 通过。
 
@@ -120,10 +124,12 @@ Resume Workshop runtime source、scenario evidence 和 rendered DOM 不出现树
 |------|------|
 | Flat list 文档再次回流树形语义 | P0.036、fixture parity 和 pruning surface lint 保留负向断言 |
 | Fixture-backed UI 被误认为 real backend 闭环 | scenario trigger 保留 real-mode/generated-client gate，operation matrix 标明真实 handler / fixture 边界 |
-| Detail tab owner 交叉 | 001 只拥有 preview/detail shell；Rewrites/Edit save 行为由 003 owner docs 和 tests 承接 |
+| 旧详情动作回流 | P0.037、pixel parity 和 negative grep 固化 Export/Copy/Original/Rewrites/Edit absence |
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-07 | 1.6 | 修订未闭环回归：详情正文改为优先展示原始内容快照，列表/详情过滤通用上传/粘贴名称并增加内容派生兜底。 |
+| 2026-07-07 | 1.5 | 将详情页收敛为只读简历正文，移除 export/copy/original modal/Rewrites/Edit 正向 gate，并过滤旧 `tab` / `tailorRunId` route 口径。 |
 | 2026-07-07 | 1.4 | 压缩 001 owner 到当前 flat Resume list/detail preview 合同，移除旧树形/版本集合/分叉参数语义，并同步 P0.036 当前场景 slug。 |

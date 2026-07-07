@@ -144,7 +144,7 @@ func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) tar
 		code, retryable := translateAIClientError(err)
 		return h.fail(ctx, asset, job, code, err.Error(), retryable)
 	}
-	parsed, err := decodeResumeParseResponse(complete.Content)
+	parsed, displayName, err := decodeResumeParseResponse(complete.Content)
 	if err != nil {
 		return h.fail(ctx, asset, job, sharederrors.CodeAiOutputInvalid, err.Error(), false)
 	}
@@ -159,14 +159,15 @@ func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) tar
 	if h.newID == nil {
 		return h.fail(ctx, asset, job, sharederrors.CodeTargetImportFailed, "resume parse event id generator not configured", true)
 	}
-		// D-20: parse directly produces the flat resume's structured content; the
-		// parsed JSON is both the summary and the structured_profile.
+	// D-20: parse directly produces the flat resume's structured content; the
+	// parsed JSON is both the summary and the structured_profile.
 	if err := h.store.CompleteParseSuccess(ctx, resumestore.CompleteParseSuccessInput{
 		UserID:             asset.UserID,
 		AssetID:            asset.ID,
 		ParsedSummary:      parsed,
 		StructuredProfile:  parsed,
 		ParsedTextSnapshot: input,
+		DisplayName:        displayName,
 		OutboxEventID:      h.newID(),
 		OutboxEventPayload: payload,
 		Now:                h.now(),
@@ -243,25 +244,117 @@ func buildPromptMessages(resolution PromptResolution, resumeText string) []aicli
 	return messages
 }
 
-func decodeResumeParseResponse(content string) (json.RawMessage, error) {
+func decodeResumeParseResponse(content string) (json.RawMessage, *string, error) {
 	content = strings.TrimSpace(content)
 	if content == "" {
-		return nil, fmt.Errorf("AI response content was empty")
+		return nil, nil, fmt.Errorf("AI response content was empty")
 	}
 	var parsed map[string]any
 	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
-		return nil, fmt.Errorf("AI response is not valid JSON: %v", err)
+		return nil, nil, fmt.Errorf("AI response is not valid JSON: %v", err)
 	}
 	for _, key := range []string{"basics", "experiences", "projects", "education", "skills", "languages"} {
 		if _, ok := parsed[key]; !ok {
-			return nil, fmt.Errorf("AI response missing %s", key)
+			return nil, nil, fmt.Errorf("AI response missing %s", key)
 		}
 	}
 	raw, err := json.Marshal(parsed)
 	if err != nil {
-		return nil, fmt.Errorf("marshal parsed resume summary: %w", err)
+		return nil, nil, fmt.Errorf("marshal parsed resume summary: %w", err)
 	}
-	return raw, nil
+	return raw, deriveResumeDisplayName(parsed), nil
+}
+
+func deriveResumeDisplayName(parsed map[string]any) *string {
+	name := fieldString(objectField(parsed, "basics"), "name")
+	headline := firstNonEmpty(
+		fieldString(objectField(parsed, "basics"), "headline"),
+		fieldString(objectField(parsed, "basics"), "title"),
+		fieldString(parsed, "headline"),
+		fieldString(parsed, "title"),
+		fieldString(parsed, "summary"),
+		firstRecordField(parsed["experiences"], "title", "role"),
+		firstRecordField(parsed["projects"], "name", "title"),
+	)
+	name = normalizeDisplayNamePart(name)
+	headline = normalizeDisplayNamePart(headline)
+	if name != "" && headline != "" && !strings.EqualFold(name, headline) {
+		return stringPtr(truncateDisplayName(name + " - " + headline))
+	}
+	if name != "" {
+		return stringPtr(truncateDisplayName(name))
+	}
+	if headline != "" {
+		return stringPtr(truncateDisplayName(headline))
+	}
+	return nil
+}
+
+func objectField(values map[string]any, key string) map[string]any {
+	value, ok := values[key].(map[string]any)
+	if !ok {
+		return nil
+	}
+	return value
+}
+
+func fieldString(values map[string]any, key string) string {
+	if values == nil {
+		return ""
+	}
+	value, ok := values[key].(string)
+	if !ok {
+		return ""
+	}
+	return value
+}
+
+func firstRecordField(value any, keys ...string) string {
+	records, ok := value.([]any)
+	if !ok || len(records) == 0 {
+		return ""
+	}
+	record, ok := records[0].(map[string]any)
+	if !ok {
+		return ""
+	}
+	for _, key := range keys {
+		if value := fieldString(record, key); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func normalizeDisplayNamePart(value string) string {
+	value = strings.Join(strings.Fields(value), " ")
+	switch strings.ToLower(value) {
+	case "", "pasted resume", "paste resume", "pasted text", "paste text", "uploaded resume", "upload resume", "uploaded file", "upload file", "粘贴的简历", "粘帖的简历", "上传的简历":
+		return ""
+	default:
+		return value
+	}
+}
+
+func truncateDisplayName(value string) string {
+	runes := []rune(value)
+	if len(runes) <= 96 {
+		return value
+	}
+	return strings.TrimSpace(string(runes[:96]))
+}
+
+func stringPtr(value string) *string {
+	return &value
 }
 
 func translateAIClientError(err error) (string, bool) {

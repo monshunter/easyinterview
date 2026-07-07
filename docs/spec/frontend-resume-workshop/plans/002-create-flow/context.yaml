@@ -14,8 +14,7 @@ spec:
       - frontend-resume-workshop
       - 002-create-flow
       - ResumeCreateFlow
-      - ResumeParseFlow
-      - ResumePreviewConfirm
+      - resume-create-direct-detail
       - resume-create-flow
       - resume-1-minute-create
       - workspace-missing-resume-cta
@@ -25,9 +24,10 @@ spec:
       - createUploadPresign frontend hook
       - browser PUT signed url
       - registerResume hook upload paste
-      - getResume parse status polling
-      - resume parsing retry cancel
-      - resume preview updateResume save
+      - direct detail navigation after registerResume
+      - parser animation absent
+      - preview confirm absent
+      - generic pasted resume title absent
       - home create CTA
       - workspace missing resume CTA
       - resume create auth pending action
@@ -63,6 +63,4 @@ spec:
         apiNames:
           - createUploadPresign
           - registerResume
-          - getResume
-          - updateResume
           - listResumes

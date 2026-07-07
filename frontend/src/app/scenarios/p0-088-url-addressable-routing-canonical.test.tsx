@@ -28,7 +28,6 @@ import { useNavigation } from "../navigation/NavigationProvider";
 
 const SESSION_ID = "01918fa0-0000-7000-8000-000000005000";
 const REPORT_ID = "01918fa0-0000-7000-8000-00000000a000";
-const TAILOR_RUN_ID = "01918fa0-0000-7000-8000-00000000b000";
 // Non-UUID id intentionally: WorkspaceScreen falls through to
 // `workspace-empty` placeholder (no network fetch) without a runtime
 // client, keeping the scenario URL-only and contract-light.
@@ -159,17 +158,16 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
   });
 
-  it("direct-open /resume-versions?tab=rewrites&tailorRunId=... preserves resume workshop deep-link keys", () => {
+  it("direct-open /resume-versions?tab=rewrites&tailorRunId=... filters non-current resume detail tab keys", () => {
     window.history.replaceState(
       null,
       "",
-      `/resume-versions?tab=rewrites&tailorRunId=${TAILOR_RUN_ID}`,
+      "/resume-versions?tab=rewrites&tailorRunId=01918fa0-0000-7000-8000-00000000b000",
     );
     render(<App />);
     expect(screen.getByTestId("resume-workshop-screen")).toBeInTheDocument();
-    const search = new URLSearchParams(window.location.search);
-    expect(search.get("tab")).toBe("rewrites");
-    expect(search.get("tailorRunId")).toBe(TAILOR_RUN_ID);
+    expect(window.location.pathname).toBe("/resume-versions");
+    expect(window.location.search).toBe("");
   });
 
   it("direct-open non-current /debrief and /profile paths fold back to home without non-current params", () => {

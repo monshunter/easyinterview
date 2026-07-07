@@ -3,7 +3,7 @@ import { useCallback, type FC } from "react";
 import { useI18n } from "../../../i18n/messages";
 import { ResumeWorkshopIcon } from "../components/ResumeWorkshopIcon";
 import { useResumeRegistration } from "./hooks/useResumeRegistration";
-import { deriveDefaultTitle } from "./util/title";
+import { derivePasteTitle } from "./util/title";
 
 export interface PasteTabProps {
   rawText: string;
@@ -35,17 +35,14 @@ export const PasteTab: FC<PasteTabProps> = ({
     setSubmitting(true);
     setInlineError(null);
     try {
-      const title = deriveDefaultTitle("paste", lang, null);
+      const title = derivePasteTitle(rawText, lang);
       const registered = await register.register({
         sourceType: "paste",
         rawText,
         title,
         language: lang,
       });
-      onRegistered(
-        registered.resumeId,
-        t("resumeWorkshop.create.paste.titleFallback"),
-      );
+      onRegistered(registered.resumeId, title);
     } catch (error) {
       const message =
         error instanceof Error

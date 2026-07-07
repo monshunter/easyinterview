@@ -8,11 +8,11 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| _无_ | - | - | - | - |
 
 ## 2 已完成（Completed）
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [002-create-flow](./002-create-flow/plan.md) | [plan](./002-create-flow/plan.md) / [checklist](./002-create-flow/checklist.md) / [context](./002-create-flow/context.yaml) / [bdd-plan](./002-create-flow/bdd-plan.md) / [bdd-checklist](./002-create-flow/bdd-checklist.md) | 1.3 | completed | 2026-07-07 |
-| [003-branch-rewrites-and-edit](./003-branch-rewrites-and-edit/plan.md) | [plan](./003-branch-rewrites-and-edit/plan.md) / [checklist](./003-branch-rewrites-and-edit/checklist.md) / [context](./003-branch-rewrites-and-edit/context.yaml) / [bdd-plan](./003-branch-rewrites-and-edit/bdd-plan.md) / [bdd-checklist](./003-branch-rewrites-and-edit/bdd-checklist.md) | 1.4 | completed | 2026-07-07 |
-| [001-listing-routing-and-detail-readonly](./001-listing-routing-and-detail-readonly/plan.md) | [plan](./001-listing-routing-and-detail-readonly/plan.md) / [checklist](./001-listing-routing-and-detail-readonly/checklist.md) / [context](./001-listing-routing-and-detail-readonly/context.yaml) / [bdd-plan](./001-listing-routing-and-detail-readonly/bdd-plan.md) / [bdd-checklist](./001-listing-routing-and-detail-readonly/bdd-checklist.md) | 1.4 | completed | 2026-07-07 |
+| [002-create-flow](./002-create-flow/plan.md) | [plan](./002-create-flow/plan.md) / [checklist](./002-create-flow/checklist.md) / [context](./002-create-flow/context.yaml) / [bdd-plan](./002-create-flow/bdd-plan.md) / [bdd-checklist](./002-create-flow/bdd-checklist.md) | 1.4 | completed | 2026-07-07 |
+| [001-listing-routing-and-detail-readonly](./001-listing-routing-and-detail-readonly/plan.md) | [plan](./001-listing-routing-and-detail-readonly/plan.md) / [checklist](./001-listing-routing-and-detail-readonly/checklist.md) / [context](./001-listing-routing-and-detail-readonly/context.yaml) / [bdd-plan](./001-listing-routing-and-detail-readonly/bdd-plan.md) / [bdd-checklist](./001-listing-routing-and-detail-readonly/bdd-checklist.md) | 1.6 | completed | 2026-07-07 |

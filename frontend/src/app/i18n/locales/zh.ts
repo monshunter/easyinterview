@@ -268,35 +268,35 @@ export const zh = {
   "workspace.errors.backHome": "回到首页",
   "resumeWorkshop.create.back": "返回简历工坊",
   "resumeWorkshop.create.eyebrow": "创建简历",
-  "resumeWorkshop.create.title": "上传或粘贴，创建一份结构化简历。",
+  "resumeWorkshop.create.title": "上传或粘贴，保存一份原始简历。",
   "resumeWorkshop.create.subtitle":
-    "系统会保留原始文件或原始文本，同时解析成可编辑的结构化简历。",
+    "保存后直接打开只读详情；详情展示的就是原始简历内容本身。",
   "resumeWorkshop.create.tabs.upload": "上传文件",
   "resumeWorkshop.create.tabs.paste": "粘贴内容",
   "resumeWorkshop.create.upload.dropzoneTitle": "拖入 PDF / DOCX / Markdown 简历",
   "resumeWorkshop.create.upload.dropzoneBody":
-    "原始文件会保存为来源，解析出的工作经历、项目、技能和教育经历会进入可编辑结构化简历。",
+    "上传成功后直接打开简历详情，原始内容保留为正文来源。",
   "resumeWorkshop.create.upload.choose": "选择文件",
   "resumeWorkshop.create.upload.selectedPrefix": "已选择：",
   "resumeWorkshop.create.upload.uploading": "正在上传…",
   "resumeWorkshop.create.upload.titleFallback": "上传文件",
   "resumeWorkshop.create.paste.placeholder": "把你的简历内容粘贴到这里…",
-  "resumeWorkshop.create.paste.helper": "原始文本会保留，并解析成结构化段落。",
-  "resumeWorkshop.create.paste.submit": "解析并保存简历",
-  "resumeWorkshop.create.paste.titleFallback": "粘贴的简历",
+  "resumeWorkshop.create.paste.helper": "原始文本会完整保留，保存后直接打开详情。",
+  "resumeWorkshop.create.paste.submit": "保存并打开简历",
+  "resumeWorkshop.create.paste.titleFallback": "粘贴文本",
   "resumeWorkshop.create.sidebar.whatSavedEyebrow": "会保存什么",
   "resumeWorkshop.create.sidebar.whatSaved.original.title": "原始来源",
   "resumeWorkshop.create.sidebar.whatSaved.original.body":
     "文件或粘贴文本都会保留来源。",
   "resumeWorkshop.create.sidebar.whatSaved.structured.title": "结构化简历",
   "resumeWorkshop.create.sidebar.whatSaved.structured.body":
-    "工作经历、项目、技能、教育和证据点可编辑。",
-  "resumeWorkshop.create.sidebar.whatSaved.baseline.title": "可编辑简历",
+    "后台解析结果只用于命名和后续匹配，不替换详情正文。",
+  "resumeWorkshop.create.sidebar.whatSaved.baseline.title": "只读详情",
   "resumeWorkshop.create.sidebar.whatSaved.baseline.body":
-    "保存后可在详情页继续编辑、改写或另存。",
+    "保存后打开简历详情，看到的就是简历内容本身。",
   "resumeWorkshop.create.sidebar.whatNextEyebrow": "接下来",
   "resumeWorkshop.create.sidebar.whatNextBody":
-    "提交之后会动态解析原始内容，然后进入预览确认页，确认后保存为一份简历。",
+    "提交成功后直接打开简历详情，页面只读显示原始内容。",
   "resumeWorkshop.create.errors.validation": "字段校验失败，请检查后重试。",
   "resumeWorkshop.create.errors.extensionInvalid":
     "暂不支持该文件类型，仅支持 .pdf / .docx / .md / .txt。",
@@ -308,76 +308,17 @@ export const zh = {
   "resumeWorkshop.create.errors.alreadyExists": "已存在同名简历 · 跳转查看。",
   "resumeWorkshop.create.errors.confirmFailed": "保存失败，请稍后重试。",
   "resumeWorkshop.create.auth.pendingLabel": "登录后继续创建简历",
-  "resumeWorkshop.parsing.cancel": "取消并返回修改",
-  "resumeWorkshop.parsing.eyebrow": "解析原始内容",
-  "resumeWorkshop.parsing.title":
-    "正在阅读你的原始内容，生成结构化简历草稿。",
-  "resumeWorkshop.parsing.sourcePrefix": "来源 · ",
-  "resumeWorkshop.parsing.agent": "AGENT 解析中",
-  "resumeWorkshop.parsing.step.extract": "提取原始文本…",
-  "resumeWorkshop.parsing.step.identity":
-    "识别个人信息 · 姓名 · 联系方式 · 城市",
-  "resumeWorkshop.parsing.step.experience":
-    "解析工作经历 · 公司 · 时间线",
-  "resumeWorkshop.parsing.step.projects": "识别代表项目 · 候选清单",
-  "resumeWorkshop.parsing.step.skills": "聚合技能 · 技术栈 · 证据链接",
-  "resumeWorkshop.parsing.step.education": "提取教育背景 · 学位 · 认证",
-  "resumeWorkshop.parsing.step.structure":
-    "生成结构化简历 · 准备进入预览",
-  "resumeWorkshop.parsing.failed.title": "解析失败",
-  "resumeWorkshop.parsing.failed.body":
-    "可重新解析这份内容，或返回上一步修改。",
-  "resumeWorkshop.parsing.failed.retry": "重试解析",
-  "resumeWorkshop.parsing.failed.back": "返回输入",
-  "resumeWorkshop.parsing.failed.code.AI_TIMEOUT_RETRYABLE":
-    "AI 服务响应超时，请重试。",
-  "resumeWorkshop.parsing.failed.code.PARSE_TIMEOUT":
-    "解析超时，请重试或返回修改。",
-  "resumeWorkshop.parsing.failed.code.AI_PROVIDER_TIMEOUT":
-    "AI 服务超时，请重试。",
-  "resumeWorkshop.parsing.failed.code.AI_OUTPUT_INVALID":
-    "AI 输出未通过校验，请重试。",
-  "resumeWorkshop.parsing.failed.code.UNKNOWN":
-    "未知错误，请重试或返回修改。",
-  "resumeWorkshop.preview.back": "回到上一步重新解析",
-  "resumeWorkshop.preview.eyebrow": "预览 · 确认后保存",
-  "resumeWorkshop.preview.title":
-    "结构化草稿如下，确认后保存为一份新的原始简历。",
-  "resumeWorkshop.preview.sourcePrefix": "来源 · ",
-  "resumeWorkshop.preview.statusParsed": "已解析",
-  "resumeWorkshop.preview.backCta": "返回上一步",
-  "resumeWorkshop.preview.confirm": "确认并保存简历",
-  "resumeWorkshop.preview.section.summary": "个人简介",
-  "resumeWorkshop.preview.section.experience": "工作经历",
-  "resumeWorkshop.preview.section.projects": "代表项目",
-  "resumeWorkshop.preview.section.skills": "技能",
-  "resumeWorkshop.preview.section.education": "教育",
-  "resumeWorkshop.preview.sidebar.whatSavedEyebrow": "确认后保存什么",
-  "resumeWorkshop.preview.sidebar.whatSaved.original.title": "原始来源",
-  "resumeWorkshop.preview.sidebar.whatSaved.original.body":
-    "原始内容保持不变，可追溯。",
-  "resumeWorkshop.preview.sidebar.whatSaved.structured.title": "结构化简历",
-  "resumeWorkshop.preview.sidebar.whatSaved.structured.body":
-    "上面的草稿 · 后续可编辑。",
-  "resumeWorkshop.preview.sidebar.whatSaved.editable.title": "可编辑简历",
-  "resumeWorkshop.preview.sidebar.whatSaved.editable.body":
-    "保存后可继续编辑、改写或另存。",
-  "resumeWorkshop.preview.sidebar.notesEyebrow": "解析备注",
-  "resumeWorkshop.preview.sidebar.notesBody":
-    "如有遗漏或不准确的内容，保存后可在结构化编辑器里继续调整。",
-  "resumeWorkshop.preview.success": "已保存简历 · 进入简历工坊",
-  "resumeWorkshop.preview.alreadyExists": "已存在同名简历 · 跳转查看",
   "resumeWorkshop.create.cta": "还没有简历？1 分钟创建",
   "resumeWorkshop.auth.eyebrow": "简历工坊",
   "resumeWorkshop.auth.title": "登录后查看你的简历",
   "resumeWorkshop.auth.body":
-    "简历列表、详情和导出能力需要先验证身份，登录后会回到当前页面，仅恢复路由参数，不带任何简历正文。",
+    "简历列表和只读详情需要先验证身份，登录后会回到当前页面，仅恢复路由参数，不带任何简历正文。",
   "resumeWorkshop.auth.cta": "登录继续",
   "resumeWorkshop.auth.pendingLabel": "登录后进入简历工坊",
   "resumeWorkshop.eyebrow": "简历工坊",
   "resumeWorkshop.title": "你的简历",
   "resumeWorkshop.subtitle":
-    "管理已保存的简历，打开任意一份进入预览、改写建议或手动编辑。",
+    "管理已保存的简历，打开任意一份查看简历内容本身。",
   "resumeWorkshop.create": "新建简历",
   "resumeWorkshop.sourceType.upload": "上传 PDF",
   "resumeWorkshop.sourceType.paste": "粘贴文本",
@@ -394,120 +335,12 @@ export const zh = {
   "resumeWorkshop.list.uploadAnother": "上传或粘贴另一份简历",
   "resumeWorkshop.detail.back": "返回简历工坊",
   "resumeWorkshop.detail.lastEdit": "最近编辑",
-  "resumeWorkshop.detail.tabPreview": "预览",
-  "resumeWorkshop.detail.tabRewrites": "改写建议",
-  "resumeWorkshop.detail.tabEdit": "手动编辑",
-  "resumeWorkshop.detail.copyText": "复制纯文本",
-  "resumeWorkshop.detail.exportPdf": "导出 PDF",
-  "resumeWorkshop.detail.viewOriginal": "查看原件",
-  "resumeWorkshop.detail.exportNotAvailable": "PDF 导出能力即将开放",
-  "resumeWorkshop.detail.copySuccess": "已复制纯文本",
-  "resumeWorkshop.detail.copyUnavailable": "当前环境不支持剪贴板写入",
   "resumeWorkshop.detail.loading": "加载简历中…",
   "resumeWorkshop.detail.error": "加载简历失败，请重试。",
   "resumeWorkshop.detail.notFoundTitle": "未找到该简历",
   "resumeWorkshop.detail.notFoundBody":
     "该简历不可用或链接已失效，请返回简历工坊重新选择。",
   "resumeWorkshop.detail.notFoundCta": "返回列表",
-  "resumeWorkshop.detail.modalTitle": "原始简历预览",
-  "resumeWorkshop.detail.modalClose": "关闭原件预览",
-  "resumeWorkshop.detail.modalDescription":
-    "原始简历只读保存。改写可覆盖当前简历或另存为新简历。",
-  "resumeWorkshop.detail.modalLoading": "加载原件来源中…",
-  "resumeWorkshop.detail.modalError": "加载原件来源失败，请重试。",
-  // ── Rewrites tab (plan 003) ──
-  "resumeWorkshop.rewrites.scopeBanner.body":
-    "每条建议只有「采纳」一个动作，默认不动作即忽略。采纳的改写要经过确认前预览才会保存：可选覆盖原简历或保存为新简历。",
-  "resumeWorkshop.rewrites.scopeBanner.counts":
-    "{accepted} 已采纳 · {untouched} 未动作",
-  "resumeWorkshop.rewrites.previewAndSave": "预览并保存",
-  "resumeWorkshop.rewrites.listEyebrow": "建议改写",
-  "resumeWorkshop.rewrites.empty.title": "暂无 AI 改写建议",
-  "resumeWorkshop.rewrites.empty.body":
-    "尚未生成 bullet 改写建议。可在右侧重新触发 AI 改写。",
-  "resumeWorkshop.rewrites.status.accepted": "已采纳",
-  "resumeWorkshop.rewrites.status.suggested": "建议",
-  "resumeWorkshop.rewrites.status.pending": "待决定",
-  "resumeWorkshop.rewrites.status.rejected": "已拒绝",
-  "resumeWorkshop.rewrites.diff.sectionFallback": "改写建议",
-  "resumeWorkshop.rewrites.diff.original": "原句",
-  "resumeWorkshop.rewrites.diff.originalFrom": "来自当前简历",
-  "resumeWorkshop.rewrites.diff.rewritten": "AI 改写",
-  "resumeWorkshop.rewrites.diff.manualEdit": "人工改写",
-  "resumeWorkshop.rewrites.diff.confidence": "置信度 · 高",
-  "resumeWorkshop.rewrites.diff.manualHint": "将保存到「{versionName}」",
-  "resumeWorkshop.rewrites.diff.whyEyebrow": "为什么这么改",
-  "resumeWorkshop.rewrites.action.reject": "拒绝",
-  "resumeWorkshop.rewrites.action.edit": "编辑",
-  "resumeWorkshop.rewrites.action.accept": "采纳",
-  "resumeWorkshop.rewrites.action.accepted": "已采纳",
-  "resumeWorkshop.rewrites.action.cancelEdit": "取消",
-  "resumeWorkshop.rewrites.action.saveManual": "保存人工改写",
-  "resumeWorkshop.rewrites.rerun.cta": "重新运行改写",
-  "resumeWorkshop.rewrites.rerun.modeBulletSuggestions": "Bullet 建议",
-  "resumeWorkshop.rewrites.rerun.modeGapReview": "差距审查",
-  "resumeWorkshop.rewrites.polling.banner":
-    "AI 正在生成 bullet · 预计 30s 内完成",
-  "resumeWorkshop.rewrites.polling.failed":
-    "AI 生成失败 · 请重试",
-  "resumeWorkshop.rewrites.polling.timeout":
-    "AI 生成超时 · 请重试",
-  "resumeWorkshop.rewrites.polling.retry": "重试",
-  "resumeWorkshop.rewrites.toast.accept": "已采纳建议 · {versionName}",
-  "resumeWorkshop.rewrites.toast.reject": "已拒绝建议 · {versionName}",
-  "resumeWorkshop.rewrites.toast.manualSaved":
-    "人工改写已保存 · {versionName}",
-  "resumeWorkshop.rewrites.toast.rerunRequested":
-    "已重新触发 AI 改写",
-  "resumeWorkshop.rewrites.toast.overwritten":
-    "已覆盖「{resumeName}」· 已写入采纳的改写，原始来源不变",
-  "resumeWorkshop.rewrites.toast.savedAsNew":
-    "已保存为新简历：{resumeName}",
-  "resumeWorkshop.rewrites.toast.alreadyDecided":
-    "该 bullet 已决定 · 如需重做请重新运行改写",
-  "resumeWorkshop.rewrites.error.generic": "处理失败，请重试。",
-  "resumeWorkshop.rewrites.error.crossUser":
-    "未找到该简历，请选择另一份简历后重试。",
-  "resumeWorkshop.rewrites.error.validation":
-    "字段校验失败，请重试。",
-  "resumeWorkshop.rewrites.error.manualPendingRetry":
-    "人工改写已保存，但状态写入失败，请重试。",
-  // ── Rewrite save confirm modal (D-20) ──
-  "resumeWorkshop.rewrites.save.eyebrow": "确认前预览",
-  "resumeWorkshop.rewrites.save.title": "确认采纳的改写结果，并选择保存方式。",
-  "resumeWorkshop.rewrites.save.sub": "无论选择哪种方式，原始来源都保持只读不变。",
-  "resumeWorkshop.rewrites.save.close": "关闭预览",
-  "resumeWorkshop.rewrites.save.acceptedCount": "{count} 条已采纳改写",
-  "resumeWorkshop.rewrites.save.overwriteLabel": "覆盖原简历",
-  "resumeWorkshop.rewrites.save.overwriteDesc":
-    "把改写写入「{resumeName}」；原始来源不变。",
-  "resumeWorkshop.rewrites.save.newLabel": "保存为新简历",
-  "resumeWorkshop.rewrites.save.newDesc":
-    "保留这份简历不动，把改写结果作为新简历加入列表。",
-  "resumeWorkshop.rewrites.save.newNameSuffix": "{resumeName} · 改写稿",
-  "resumeWorkshop.rewrites.save.cancel": "取消",
-  "resumeWorkshop.rewrites.save.confirmNew": "保存为新简历",
-  "resumeWorkshop.rewrites.save.confirmOverwrite": "覆盖原简历",
-  // ── Edit tab (plan 003) ──
-  "resumeWorkshop.edit.scope.body":
-    "正在编辑「{resumeName}」。改动保存到这份简历；原始来源保持只读。",
-  "resumeWorkshop.edit.displayNameLabel": "简历名称",
-  "resumeWorkshop.edit.headlineLabel": "一句话标题",
-  "resumeWorkshop.edit.summaryLabel": "简介",
-  "resumeWorkshop.edit.save": "保存改动",
-  "resumeWorkshop.edit.saving": "保存中…",
-  "resumeWorkshop.edit.section.experience": "工作经历",
-  "resumeWorkshop.edit.section.skills": "技能",
-  "resumeWorkshop.edit.section.add": "新增",
-  "resumeWorkshop.edit.section.comingSoon":
-    "Experience / Skills 列表编辑即将开放",
-  "resumeWorkshop.edit.toast.saved": "已保存改动 · {versionName}",
-  "resumeWorkshop.edit.error.validation": "字段校验失败，请重试。",
-  "resumeWorkshop.edit.error.idempotency":
-    "上一次保存还在处理 · 请稍后重试",
-  "resumeWorkshop.edit.error.crossUser":
-    "未找到该简历，请选择另一份简历后重试。",
-  "resumeWorkshop.edit.error.generic": "保存失败，请重试。",
   // ── Practice screen (plan 002) ──
   "practice.toolbar.companySkeleton": "目标公司",
   "practice.toolbar.titleSkeleton": "目标岗位",

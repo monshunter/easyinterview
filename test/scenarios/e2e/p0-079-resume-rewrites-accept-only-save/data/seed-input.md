@@ -8,5 +8,5 @@
     `validation-error-422`
   - `ResumeTailor/requestResumeTailor.json` and
     `ResumeTailor/getResumeTailorRun.json`
-- Frontend fixtures include ephemeral Rewrites suggestions rendered by
-  `ResumeRewritesTab`.
+- Frontend fixtures include a ready flat resume rendered by the read-only
+  detail view; legacy Rewrites/Edit route params are negative inputs only.

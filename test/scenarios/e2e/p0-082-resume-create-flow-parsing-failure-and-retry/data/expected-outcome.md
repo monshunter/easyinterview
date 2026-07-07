@@ -1,37 +1,23 @@
 # P0.082 Expected Outcome
 
-## ParseFlow Failed State
+## Retired Parsing Surfaces
 
-- `resume-parse-failed-state` testid renders when polling reports parseStatus=failed
-- errorCode mapped to enum:
-  - `AI_TIMEOUT_RETRYABLE`
-  - `PARSE_TIMEOUT`
-- Two CTAs visible: `resume-parse-flow-retry` and `resume-parse-flow-back`
+- `resume-parse-flow` does not render after register success
+- `resume-preview-confirm` does not render after register success
+- Create-flow runtime source contains no parser / preview-confirm component imports
 
-## Retry Path
+## Direct Navigation
 
-- Clicking retry restarts polling without invoking a new `registerResume`
-- The second poll cycle returns `ready` → ParseFlow transitions to PreviewConfirm
-
-## Cancel-and-Return Path
-
-- Clicking `resume-parse-flow-cancel` returns to stage="input"
-- Original input is preserved:
-  - paste raw text remains in the textarea
-  - guided answers remain in the reducer state
-  - pickedFile remains selected
-
-## Timeout Path
-
-- After `maxAttempts` polls without terminal status, snapshot transitions to failed with errorCode="PARSE_TIMEOUT"
+- Paste register success navigates to `resume_versions?resumeId=<id>`
+- Upload register success navigates to `resume_versions?resumeId=<id>`
 
 ## Privacy
 
-- ParseFlow DOM does NOT render `parsedTextSnapshot` / `originalText` strings
-- After ready transition, PreviewConfirm DOM renders structured fields but NOT private snapshot strings
+- No raw text appears in URL / pendingAction / localStorage
+- No structured draft appears in URL / pendingAction / localStorage
 
 ## Trigger Log Assertions
 
 - `Test Files +\d+ passed` matches
 - Linked test files present in log
-- `failed`, `cancel-and-return`, `timeout` strings present in test names
+- `ResumeCreateFlow.test.tsx` and `CreateFlowNonCurrentNegative.test.ts` present in log

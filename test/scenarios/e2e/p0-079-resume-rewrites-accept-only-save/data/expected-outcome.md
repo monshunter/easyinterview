@@ -4,7 +4,6 @@
   absent from generated route catalog.
 - `updateResume`, `duplicateResume`, and `requestResumeTailor` fixture parity
   passes.
-- Rewrites suggestions are ephemeral UI bullets: accept marks local rows only,
-  with no reject/status route.
-- Save persists accepted rewrites through `updateResume` (overwrite) or
-  `duplicateResume` (save as new).
+- Resume detail is read-only: no Rewrites/Edit tab, export, copy, original modal,
+  tailor request, or detail save call is exposed.
+- Legacy Rewrites/Edit route params do not materialize removed frontend surfaces.

@@ -17,11 +17,10 @@ mkdir -p "$OUT"
   echo "RUNNER go test handler flat save fixture parity"
   go test ./internal/resume/handler -run 'Test(UpdateResumeFixtureParity|DuplicateResumeFixtureParity|ResumeTailorFixtureParity)' -count=1 -v
   cd "$ROOT"
-  echo "RUNNER frontend vitest rewrites accept-only save flow"
+  echo "RUNNER frontend vitest read-only detail negative flow"
   pnpm --filter @easyinterview/frontend exec vitest run --reporter=verbose \
-    src/app/screens/resume-workshop/tabs/ResumeRewritesTab.test.tsx \
     src/app/screens/resume-workshop/components/ResumeDetailView.test.tsx
   echo "evidence non_current_accept_reject_routes=gone"
-  echo "evidence rewrites_accept_only=true"
-  echo "evidence save_paths=updateResume_or_duplicateResume"
+  echo "evidence detail_rewrites_edit_surface=gone"
+  echo "evidence backend_flat_save_fixtures=updateResume_or_duplicateResume"
 } | tee "$OUT/trigger.log"

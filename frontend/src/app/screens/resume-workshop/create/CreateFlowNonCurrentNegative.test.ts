@@ -52,6 +52,12 @@ describe("frontend-resume-workshop/002 — non-current module negative grep", ()
     ["vo", "ice"].join(""),
     ["Onboarding", "Screen"].join(""),
     ["onboarding", "=true"].join(""),
+    ["Resume", "Parse", "Flow"].join(""),
+    ["Parsing", "Stage"].join(""),
+    ["Preview", "Stage"].join(""),
+    ["Resume", "Preview", "Confirm"].join(""),
+    ["resume", "parse", "flow"].join("-"),
+    ["resume", "preview", "confirm"].join("-"),
   ];
   const nonCurrentPattern = new RegExp(
     `\\b(${nonCurrentTerms.map(escapeRegExp).join("|")})\\b`,

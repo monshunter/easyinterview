@@ -11,7 +11,6 @@ mkdir -p "$OUTPUT_DIR"
   pnpm --filter @easyinterview/frontend exec vitest run --reporter=verbose \
     src/app/screens/resume-workshop/ResumeWorkshopScreen.test.tsx \
     src/app/screens/resume-workshop/components/ResumeDetailView.test.tsx \
-    src/app/screens/resume-workshop/tabs/ResumeRewritesTab.test.tsx \
-    src/app/screens/resume-workshop/create/PreviewStage.test.tsx \
+    src/app/screens/resume-workshop/create/ResumeCreateFlow.test.tsx \
     src/app/screens/resume-workshop/ResumeWorkshopAuthGate.test.tsx
 ) | tee "$OUTPUT_DIR/trigger.log"

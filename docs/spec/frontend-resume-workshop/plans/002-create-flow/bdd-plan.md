@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Create Flow BDD Plan
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
 > **更新日期**: 2026-07-07
 
@@ -10,26 +10,26 @@
 
 | 场景 ID | 类别 | 覆盖范围 | 关联 Checklist |
 |---------|------|----------|----------------|
-| E2E.P0.081 | primary | CreateFlow upload / paste happy path, presign, register, parse polling, privacy and UI parity | 5.1 |
-| E2E.P0.082 | failure / recovery | Parse failure, timeout, cancel-and-return and retry-from-input | 5.2 |
-| E2E.P0.083 | primary + handoff | Preview confirm, Home CTA, Workspace CTA and auth pending action | 5.3 |
+| E2E.P0.081 | primary | CreateFlow upload / paste happy path, presign, register, direct detail navigation, privacy and UI parity | 5.1 |
+| E2E.P0.082 | retired negative | Parser animation / parse failure UI are non-current and absent from create flow | 5.2 |
+| E2E.P0.083 | primary + handoff | Home CTA, Workspace CTA and auth pending action direct-create handoff | 5.3 |
 
 ## 2 场景说明
 
 ### E2E.P0.081
 
 Given an authenticated user opens the Resume Workshop create route.
-When the user completes upload or paste creation and parsing reaches ready.
-Then CreateFlow reaches preview, side-effect requests use IK, polling omits IK, UI parity anchors render, and raw resume content is not stored in route state or browser storage.
+When the user completes upload or paste creation and `registerResume` returns a `resumeId`.
+Then the app navigates directly to `resume_versions?resumeId=<id>`, side-effect requests use IK, parser/preview-confirm DOM is absent, and raw resume content is not stored in route state or browser storage.
 
 ### E2E.P0.082
 
-Given a user is in parse progress.
-When parsing fails, times out, or the user cancels.
-Then the failed state, retry state and return-to-input state are visible, and the original input remains local to the component.
+Given current CreateFlow no longer exposes parser progress.
+When source/runtime scans and create-route tests run.
+Then parser animation, parser failure retry UI and preview confirm surfaces are absent.
 
 ### E2E.P0.083
 
-Given a ready parsed resume is shown in preview confirm.
-When the user confirms or enters from Home / Workspace CTA.
-Then the flat resume save path completes or shows inline validation, and auth pending action keeps only safe route params.
+Given Home / Workspace CTA enters resume creation.
+When upload or paste registration succeeds, or unauthenticated auth pending action is created.
+Then direct detail navigation is used and auth pending action keeps only safe route params.

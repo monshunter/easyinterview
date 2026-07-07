@@ -195,7 +195,11 @@ async function goToDetail(
     },
     {
       name: "resume_versions",
-      params: { resumeId, tab: "preview" },
+      params: {
+        resumeId,
+        tab: "rewrites",
+        tailorRunId: "01918fa0-0000-7000-8000-000000009000",
+      },
     },
   );
   await page.goto("/");
@@ -281,7 +285,7 @@ test.describe("Resume Workshop list DOM anchors", () => {
 });
 
 test.describe("Resume Workshop detail DOM anchors", () => {
-  test("crumb + three tabs render with role=tab and aria-selected reflecting the active tab", async ({ page }, testInfo) => {
+  test("crumb + read-only resume body render without secondary actions", async ({ page }, testInfo) => {
     await goToDetail(page);
     await freezeAnimations(page);
 
@@ -289,41 +293,39 @@ test.describe("Resume Workshop detail DOM anchors", () => {
       page.locator("[data-testid='resume-detail-crumb']"),
     ).toBeVisible();
     await expect(page.locator("[data-testid='resume-detail-branch-graph']")).toHaveCount(0);
-    for (const tab of ["preview", "rewrites", "edit"]) {
-      const handle = page.locator(`[data-testid='resume-detail-tab-${tab}']`);
-      await expect(handle).toBeVisible();
-      expect(await handle.getAttribute("role")).toBe("tab");
+    for (const removed of [
+      "resume-detail-tab-preview",
+      "resume-detail-tab-rewrites",
+      "resume-detail-tab-edit",
+      "resume-detail-export-pdf",
+      "resume-detail-copy-text",
+      "resume-detail-view-original",
+      "resume-rewrites-tab",
+      "resume-edit-tab",
+    ]) {
+      await expect(page.locator(`[data-testid='${removed}']`)).toHaveCount(0);
     }
-    expect(
-      await page
-        .locator("[data-testid='resume-detail-tab-preview']")
-        .getAttribute("aria-selected"),
-    ).toBe("true");
 
     const viewport = page.viewportSize();
     expect(viewport).not.toBeNull();
     const previewStyle = await computedStyleOf(
       page,
       "[data-testid='resume-detail-preview-content']",
-      ["display", "grid-template-columns", "gap"],
+      ["display", "justify-content", "align-items"],
     );
-    expect(previewStyle["display"]).toBe("grid");
-    expect(previewStyle["gap"]).toBe("22px");
-    if (viewport!.width > 900) {
-      expect(previewStyle["grid-template-columns"]).toContain("320px");
-    }
+    expect(previewStyle["display"]).toBe("flex");
+    expect(previewStyle["justify-content"]).toBe("center");
+    expect(previewStyle["align-items"]).toBe("flex-start");
 
     const cardStyle = await computedStyleOf(
       page,
       ".ei-resume-detail-preview-card",
-      ["min-height", "padding-top", "box-shadow", "font-family"],
+      ["width", "padding-top", "box-shadow", "font-family"],
     );
     expect(cardStyle["padding-top"]).toBe(
       viewport!.width > 700 ? "44px" : "32px",
     );
-    expect(cardStyle["min-height"]).toBe(
-      viewport!.width > 700 ? "720px" : "520px",
-    );
+    expect(cardStyle["width"]).not.toBe("auto");
     expect(cardStyle["box-shadow"]).toContain("rgba(30, 22, 15, 0.1)");
     expect(cardStyle["font-family"].toLowerCase()).toContain("georgia");
 
@@ -333,18 +335,5 @@ test.describe("Resume Workshop detail DOM anchors", () => {
       body: screenshot,
       contentType: "image/png",
     });
-  });
-
-  test("view-original button opens the modal dialog with role=dialog and aria-modal=true", async ({ page }) => {
-    await goToDetail(page);
-    await freezeAnimations(page);
-
-    await page.click("[data-testid='resume-detail-view-original']");
-    const dialog = page.locator(
-      "[data-testid='resume-detail-original-modal']",
-    );
-    await expect(dialog).toBeVisible();
-    expect(await dialog.getAttribute("role")).toBe("dialog");
-    expect(await dialog.getAttribute("aria-modal")).toBe("true");
   });
 });

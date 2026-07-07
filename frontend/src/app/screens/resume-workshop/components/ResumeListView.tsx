@@ -8,8 +8,8 @@ import { ResumeWorkshopIcon } from "./ResumeWorkshopIcon";
 
 /**
  * D-20 flat list view — source-level replica of `ResumeListView` in
- * ui-design/src/screen-resume-workshop.jsx. A single flat table of resumes
- * sorted by last edit.
+ * the static resume-workshop prototype. A single flat table of resumes sorted
+ * by last edit.
  */
 export const ResumeListView: FC = () => {
   const { t } = useI18n();
@@ -30,7 +30,7 @@ export const ResumeListView: FC = () => {
     (resumeId: string) => {
       navigate({
         name: "resume_versions",
-        params: { resumeId, tab: "preview" },
+        params: { resumeId },
       });
     },
     [navigate],

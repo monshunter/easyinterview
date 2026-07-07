@@ -1,6 +1,5 @@
 import {
   useCallback,
-  useMemo,
   useReducer,
   type FC,
   type KeyboardEvent,
@@ -9,16 +8,11 @@ import {
 import { useI18n, type MessageKey } from "../../../i18n/messages";
 import { useNavigation } from "../../../navigation/NavigationProvider";
 import { ResumeWorkshopIcon } from "../components/ResumeWorkshopIcon";
-import { ParsingStage } from "./ParsingStage";
-import { PreviewStage } from "./PreviewStage";
-import type { PreviewDraft } from "./ResumePreviewConfirm";
 import { PasteTab } from "./PasteTab";
 import { UploadTab } from "./UploadTab";
-import { deriveDefaultTitle, type CreateMode } from "./util/title";
-import type { ResumeParseState } from "./ResumeParseFlow";
-import type { Resume } from "../../../../api/generated/types";
+import type { CreateMode } from "./util/title";
 
-export type CreateStage = "input" | "parsing" | "preview";
+export type CreateStage = "input";
 
 const TAB_DESCRIPTORS: Array<{
   mode: CreateMode;
@@ -30,15 +24,9 @@ const TAB_DESCRIPTORS: Array<{
 ];
 
 interface CreateState {
-  stage: CreateStage;
   createMode: CreateMode;
   pickedFile: File | null;
   rawText: string;
-  resumeId: string | null;
-  sourceLabel: string | null;
-  parseState: ResumeParseState | null;
-  previewDraft: PreviewDraft | null;
-  previewResume: Resume | null;
   submitting: boolean;
   inlineError: string | null;
 }
@@ -47,30 +35,14 @@ type CreateAction =
   | { type: "set_mode"; mode: CreateMode }
   | { type: "set_picked_file"; file: File | null }
   | { type: "set_raw_text"; text: string }
-  | {
-      type: "submit_registered";
-      resumeId: string;
-      sourceLabel: string;
-    }
-  | { type: "set_parse_state"; parseState: ResumeParseState }
-  | { type: "parse_ready"; draft: PreviewDraft; resume: Resume }
-  | { type: "cancel_to_input" }
-  | { type: "back_to_input"; preserveResumeId?: boolean }
   | { type: "set_submitting"; submitting: boolean }
-  | { type: "set_inline_error"; error: string | null }
-  | { type: "reset_after_success" };
+  | { type: "set_inline_error"; error: string | null };
 
 function initialState(initialMode: CreateMode): CreateState {
   return {
-    stage: "input",
     createMode: initialMode,
     pickedFile: null,
     rawText: "",
-    resumeId: null,
-    sourceLabel: null,
-    parseState: null,
-    previewDraft: null,
-    previewResume: null,
     submitting: false,
     inlineError: null,
   };
@@ -84,49 +56,10 @@ function reducer(state: CreateState, action: CreateAction): CreateState {
       return { ...state, pickedFile: action.file, inlineError: null };
     case "set_raw_text":
       return { ...state, rawText: action.text };
-    case "submit_registered":
-      return {
-        ...state,
-        stage: "parsing",
-        resumeId: action.resumeId,
-        sourceLabel: action.sourceLabel,
-        parseState: { phase: "polling" },
-        submitting: false,
-        inlineError: null,
-      };
-    case "set_parse_state":
-      return { ...state, parseState: action.parseState };
-    case "parse_ready":
-      return {
-        ...state,
-        stage: "preview",
-        previewDraft: action.draft,
-        previewResume: action.resume,
-        parseState: { phase: "ready" },
-      };
-    case "cancel_to_input":
-      return {
-        ...state,
-        stage: "input",
-        parseState: null,
-        // Preserve user input (createMode, rawText, pickedFile).
-      };
-    case "back_to_input":
-      return {
-        ...state,
-        stage: "input",
-        previewDraft: null,
-        parseState: null,
-        submitting: false,
-        inlineError: null,
-        resumeId: action.preserveResumeId ? state.resumeId : null,
-      };
     case "set_submitting":
       return { ...state, submitting: action.submitting };
     case "set_inline_error":
       return { ...state, inlineError: action.error };
-    case "reset_after_success":
-      return initialState(state.createMode);
     default:
       return state;
   }
@@ -143,7 +76,7 @@ const isCreateMode = (value: unknown): value is CreateMode =>
 export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
   initialMode,
 }) => {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const { navigate } = useNavigation();
   const startMode: CreateMode = isCreateMode(initialMode) ? initialMode : "upload";
   const [state, dispatch] = useReducer(reducer, startMode, initialState);
@@ -152,14 +85,12 @@ export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
     navigate({ name: "resume_versions", params: {} });
   }, [navigate]);
 
-  const sourceLabel = useMemo(() => {
-    if (state.sourceLabel) return state.sourceLabel;
-    return deriveDefaultTitle(
-      state.createMode,
-      lang,
-      state.pickedFile?.name ?? null,
-    );
-  }, [lang, state.createMode, state.pickedFile, state.sourceLabel]);
+  const handleRegistered = useCallback(
+    (resumeId: string) => {
+      navigate({ name: "resume_versions", params: { resumeId } });
+    },
+    [navigate],
+  );
 
   const onModeTabKeyDown = (
     event: KeyboardEvent<HTMLButtonElement>,
@@ -179,38 +110,11 @@ export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
     nextEl?.focus();
   };
 
-  if (state.stage === "parsing" && state.resumeId) {
-    return (
-      <ParsingStage
-        resumeId={state.resumeId}
-        sourceLabel={sourceLabel}
-        onReady={(resume: Resume, draft) =>
-          dispatch({ type: "parse_ready", draft, resume })
-        }
-        onCancel={() => dispatch({ type: "cancel_to_input" })}
-      />
-    );
-  }
-
-  if (state.stage === "preview" && state.previewDraft && state.previewResume) {
-    return (
-      <PreviewStage
-        resume={state.previewResume}
-        draft={state.previewDraft}
-        sourceLabel={sourceLabel}
-        onBack={() =>
-          dispatch({ type: "back_to_input", preserveResumeId: true })
-        }
-        onSaved={() => dispatch({ type: "reset_after_success" })}
-      />
-    );
-  }
-
   return (
     <div
       className="ei-resume-create-flow"
       data-testid="resume-create-flow"
-      data-stage={state.stage}
+      data-stage="input"
       data-create-mode={state.createMode}
     >
       <button
@@ -279,13 +183,7 @@ export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
                 onValidationError={(message) =>
                   dispatch({ type: "set_inline_error", error: message })
                 }
-                onRegistered={(resumeId, label) =>
-                  dispatch({
-                    type: "submit_registered",
-                    resumeId,
-                    sourceLabel: label,
-                  })
-                }
+                onRegistered={handleRegistered}
                 setSubmitting={(value) =>
                   dispatch({ type: "set_submitting", submitting: value })
                 }
@@ -302,13 +200,7 @@ export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
                 onRawTextChange={(text) =>
                   dispatch({ type: "set_raw_text", text })
                 }
-                onRegistered={(resumeId, label) =>
-                  dispatch({
-                    type: "submit_registered",
-                    resumeId,
-                    sourceLabel: label,
-                  })
-                }
+                onRegistered={handleRegistered}
                 setSubmitting={(value) =>
                   dispatch({ type: "set_submitting", submitting: value })
                 }

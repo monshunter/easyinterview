@@ -114,7 +114,7 @@ describe("serializeRouteToUrl", () => {
         name: "resume_versions",
         params: { resumeId: "v-1", tab: "rewrites", tailorRunId: "tr-1" },
       }),
-    ).toBe("/resume-versions?resumeId=v-1&tab=rewrites&tailorRunId=tr-1");
+    ).toBe("/resume-versions?resumeId=v-1");
   });
 
   it("emits practice voice mode params under canonical path", () => {
@@ -474,7 +474,7 @@ describe("isSafeRouteParam", () => {
     expect(isSafeRouteParam("workspace", "nextRoundId", {})).toBe(true);
     expect(isSafeRouteParam("report", "reportStatus", {})).toBe(true);
     expect(isSafeRouteParam("report", "errorCode", {})).toBe(true);
-    expect(isSafeRouteParam("resume_versions", "tailorRunId", {})).toBe(true);
+    expect(isSafeRouteParam("resume_versions", "tailorRunId", {})).toBe(false);
     expect(isSafeRouteParam("parse", "resumeId", {})).toBe(true);
     expect(isSafeRouteParam("home", "resumeId", {})).toBe(true);
   });
@@ -524,7 +524,7 @@ describe("isSafeRouteParam", () => {
       isSafeRouteParam("auth_login", "tailorRunId", {
         pendingRoute: "resume_versions",
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isSafeRouteParam("auth_login", "debriefId", {
         pendingRoute: "debrief",

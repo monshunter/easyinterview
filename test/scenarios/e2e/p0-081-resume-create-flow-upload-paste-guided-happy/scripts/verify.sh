@@ -30,10 +30,8 @@ grep -Eq '^[[:space:]]*Tests[[:space:]]+[1-9][0-9]*[[:space:]]+passed' "$LOG_FIL
 for spec in \
   ResumeCreateFlow.test.tsx \
   UploadTab.test.tsx \
-  PreviewStage.test.tsx \
   useResumePresignUpload.test.tsx \
   useResumeRegistration.test.tsx \
-  ParsingStage.test.tsx \
   CreateFlowNonCurrentNegative.test.ts; do
   grep -Fq "$spec" "$LOG_FILE" || {
     echo "$SCENARIO_ID: spec $spec did not run" >&2

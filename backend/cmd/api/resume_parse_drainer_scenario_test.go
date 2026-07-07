@@ -61,6 +61,9 @@ func TestResumeParseDrainerHTTPScenario(t *testing.T) {
 	if parseStore.success == nil || parseStore.success.AssetID != assetID || parseStore.success.ParsedTextSnapshot != "Private resume body" {
 		t.Fatalf("parse success not persisted: %+v", parseStore.success)
 	}
+	if parseStore.success.DisplayName == nil || *parseStore.success.DisplayName != "Fixture Candidate - Engineer" {
+		t.Fatalf("display name = %#v, want Fixture Candidate - Engineer", parseStore.success.DisplayName)
+	}
 	var outbox map[string]any
 	if err := json.Unmarshal(parseStore.success.OutboxEventPayload, &outbox); err != nil {
 		t.Fatalf("decode outbox: %v", err)
@@ -140,6 +143,9 @@ func TestResumeParseDrainerRetryableFailureScenario(t *testing.T) {
 	}
 	if parseStore.success == nil || parseStore.asset.ParseStatus != sharedtypes.TargetJobParseStatusReady {
 		t.Fatalf("retry success not persisted: success=%+v status=%s", parseStore.success, parseStore.asset.ParseStatus)
+	}
+	if parseStore.success.DisplayName == nil || *parseStore.success.DisplayName != "Fixture Candidate" {
+		t.Fatalf("retry success display name = %#v, want Fixture Candidate", parseStore.success.DisplayName)
 	}
 	if parseStore.markParsing != 2 {
 		t.Fatalf("MarkParsing calls = %d, want 2", parseStore.markParsing)

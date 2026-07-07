@@ -15,8 +15,7 @@ grep -Eq '^[[:space:]]*Tests[[:space:]]+[1-9][0-9]*[[:space:]]+passed' "$LOG_FIL
 for spec in \
   ResumeWorkshopScreen.test.tsx \
   ResumeDetailView.test.tsx \
-  ResumeRewritesTab.test.tsx \
-  PreviewStage.test.tsx \
+  ResumeCreateFlow.test.tsx \
   ResumeWorkshopAuthGate.test.tsx \
   ; do
   grep -qF "$spec" "$LOG_FILE" || { echo "$SCENARIO_ID: spec $spec not exercised" >&2; exit 1; }
@@ -28,11 +27,11 @@ if rg -n "welcome|mistake|growth|drill|followup|STAR|ExperiencesScreen|experienc
   echo "$SCENARIO_ID: non-current modules grep matched something (see non-current-modules-grep.log)" >&2
   exit 1
 fi
-if rg -n "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" frontend/src/app/screens/resume-workshop/tabs --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/non-current-tailor-mode-grep.log"; then
+if rg -n "(^|[^A-Za-z0-9_-])(inline|rewrite|mirror)([^A-Za-z0-9_-]|$)" frontend/src/app/screens/resume-workshop --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/non-current-tailor-mode-grep.log"; then
   echo "$SCENARIO_ID: non-current tailor mode grep matched something" >&2
   exit 1
 fi
-if rg -n "ui-design/src/(data|screen-resume-workshop)" frontend/src/app/screens/resume-workshop/tabs --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/prototype-import-grep.log"; then
+if rg -n "ui-design/src/(data|screen-resume-workshop)" frontend/src/app/screens/resume-workshop --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/prototype-import-grep.log"; then
   echo "$SCENARIO_ID: prototype runtime import detected" >&2
   exit 1
 fi

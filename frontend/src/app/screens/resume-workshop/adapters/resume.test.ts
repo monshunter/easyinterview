@@ -3,11 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { Resume } from "../../../../api/generated/types";
 
 import {
-  buildResumePlainText,
-  buildResumePreview,
-  mapBulletSuggestionToUi,
+  buildResumeBodyLines,
   mapResumeToUiSource,
-  type ResumeSuggestionInput,
 } from "./resume";
 
 const baseResume: Resume = {
@@ -49,6 +46,22 @@ describe("mapResumeToUiSource", () => {
     expect(ui.name).toBe(baseResume.title);
   });
 
+  it("does not surface generic upload/paste names and derives a readable fallback from resume content", () => {
+    const ui = mapResumeToUiSource({
+      ...baseResume,
+      sourceType: "paste",
+      title: "粘贴的简历",
+      displayName: "粘贴的简历",
+      originalText:
+        "张三 · 后端平台工程师\nFerry / reloadr / grayplan - GitOps CI/CD 与配置治理平台",
+      parsedTextSnapshot: null,
+      parsedSummary: { headline: "平台工程与 GitOps 简历" },
+    });
+    expect(ui.name).toBe("张三 · 后端平台工程师");
+    expect(ui.name).not.toBe("粘贴的简历");
+    expect(ui.sourceName).toBe("粘贴文本");
+  });
+
   it("derives langTag from BCP-47 language tag (zh-CN → 中, en-US → EN)", () => {
     expect(mapResumeToUiSource({ ...baseResume, language: "zh-CN" }).langTag).toBe(
       "中",
@@ -75,59 +88,31 @@ describe("mapResumeToUiSource", () => {
     };
     const ui = mapResumeToUiSource(sparse);
     expect(ui.summary).toBe("");
-    expect(ui.text).toEqual([]);
-  });
-});
-
-describe("buildResumePreview / buildResumePlainText", () => {
-  it("projects the structured profile into the preview shape", () => {
-    const preview = buildResumePreview(baseResume);
-    expect(preview.headline).toBe("Senior frontend engineer");
-    expect(preview.summary).toBe("Owns complex product surfaces.");
-    expect(preview.skills).toEqual(["React", "TypeScript"]);
-    expect(preview.sections).toEqual([
-      { title: "Experience", bullets: ["Bullet a.", "Bullet b."] },
+    expect(ui.text).toEqual([
+      "Senior frontend engineer",
+      "Owns complex product surfaces.",
+      "Experience",
+      "Bullet a.",
+      "Bullet b.",
+      "React · TypeScript",
     ]);
   });
-
-  it("renders a plain-text projection suitable for clipboard copy", () => {
-    const text = buildResumePlainText(baseResume);
-    expect(text).toContain("Senior frontend engineer");
-    expect(text).toContain("- Bullet a.");
-    expect(text).toContain("React · TypeScript");
-  });
 });
 
-describe("mapBulletSuggestionToUi", () => {
-  it("maps the suggestion to the UI bullet shape with the why list split", () => {
-    const input: ResumeSuggestionInput = {
-      id: "sug-1",
-      originalBullet: "Improved checkout reliability.",
-      suggestedBullet:
-        "Reduced checkout incident follow-ups by tightening release guardrails.",
-      reason:
-        "Adds measurable ownership evidence. | Names the affected surface.",
-      section: "Experience · Star-Ring",
-    };
-    const bullet = mapBulletSuggestionToUi(input);
-    expect(bullet.id).toBe("sug-1");
-    expect(bullet.section).toBe("Experience · Star-Ring");
-    expect(bullet.original).toBe(input.originalBullet);
-    expect(bullet.rewritten).toBe(input.suggestedBullet);
-    expect(bullet.why.length).toBeGreaterThanOrEqual(1);
-    // D-20: suggestions are accept-only and client-side ephemeral; the UI
-    // bullet starts pending with no decision provenance fields.
-    expect(bullet.status).toBe("pending");
-  });
+describe("buildResumeBodyLines", () => {
+  it("uses parsedTextSnapshot / originalText as the read-only resume body before structured fallback", () => {
+    expect(buildResumeBodyLines(baseResume)).toEqual([
+      "Senior frontend engineer.",
+    ]);
 
-  it("defaults section to an empty string when not provided", () => {
-    const bullet = mapBulletSuggestionToUi({
-      id: "sug-3",
-      originalBullet: "o",
-      suggestedBullet: "s",
-      reason: "r",
-    });
-    expect(bullet.section).toBe("");
-    expect(bullet.status).toBe("pending");
+    const originalOnly = {
+      ...baseResume,
+      parsedTextSnapshot: null,
+      originalText: "Original line 1\nOriginal line 2",
+    };
+    expect(buildResumeBodyLines(originalOnly)).toEqual([
+      "Original line 1",
+      "Original line 2",
+    ]);
   });
 });

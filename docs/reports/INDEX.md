@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-07](./2026-07-07-resume-detail-readonly-llm-display-name-assessment.md) | Resume Detail Readonly and LLM Display Name 交付复盘 | #assessment |
 | [2026-07-07](./2026-07-07-repo-pruning-cleanup-review-remediation-assessment.md) | Repo Pruning Cleanup Review Remediation 交付复盘 | #assessment |
 
 ## 2026-06

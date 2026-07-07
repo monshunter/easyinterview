@@ -79,7 +79,7 @@ describe("ResumeListView default fixture rendering", () => {
     );
   });
 
-  it("opens a resume detail via the row Open button with the resumeId + preview tab", async () => {
+  it("opens a resume detail via the row Open button with only the resumeId", async () => {
     const { nav } = renderListView(LIST_ROUTE);
 
     await waitFor(() => {
@@ -93,7 +93,7 @@ describe("ResumeListView default fixture rendering", () => {
       .click(screen.getByTestId(`resume-list-open-${FIRST_ID}`));
     expect(nav).toHaveBeenCalledWith({
       name: "resume_versions",
-      params: { resumeId: FIRST_ID, tab: "preview" },
+      params: { resumeId: FIRST_ID },
     });
   });
 

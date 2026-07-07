@@ -28,21 +28,11 @@ grep -Eq '^[[:space:]]*Tests[[:space:]]+[1-9][0-9]*[[:space:]]+passed' "$LOG_FIL
   exit 1
 }
 for spec in \
-  useResumeParsingPolling.test.tsx \
-  ParsingStage.test.tsx \
-  ResumeCreateFlow.test.tsx; do
+  ResumeCreateFlow.test.tsx \
+  CreateFlowNonCurrentNegative.test.ts; do
   grep -Fq "$spec" "$LOG_FILE" || {
     echo "$SCENARIO_ID: spec $spec did not run" >&2
     exit 1
   }
 done
-# Sanity-check failure/cancel/timeout branches are exercised.
-grep -Fq "PARSE_TIMEOUT" "$LOG_FILE" || {
-  echo "$SCENARIO_ID: PARSE_TIMEOUT branch was not run" >&2
-  exit 1
-}
-grep -Fq "cancel" "$LOG_FILE" || {
-  echo "$SCENARIO_ID: cancel branch was not run" >&2
-  exit 1
-}
 echo "$SCENARIO_ID PASS"

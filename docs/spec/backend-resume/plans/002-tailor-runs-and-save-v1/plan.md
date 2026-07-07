@@ -26,8 +26,8 @@
 | operationId / surface | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-----------------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `getResume` / `listResumes` | `openapi/fixtures/Resumes/getResume.json`, `listResumes.json` | Resume Workshop list/detail, workspace resume picker | `backend/internal/resume/handler/get.go`, `list.go` + `cmd/api` flat resume routes | `resumes` | none | `E2E.P0.074` |
-| `updateResume` | `openapi/fixtures/Resumes/updateResume.json` | Resume Workshop edit / accepted rewrite overwrite | `backend/internal/resume/handler/update.go` + `PATCH /api/v1/resumes/{resumeId}` with IK middleware | `resumes.structured_profile`, `resumes.display_name` | none | `E2E.P0.075`, `E2E.P0.079` |
-| `duplicateResume` | `openapi/fixtures/Resumes/duplicateResume.json` | Resume Workshop save-as-new / accepted rewrite duplicate | `backend/internal/resume/handler/duplicate.go` + `POST /api/v1/resumes/{resumeId}/duplicate` with IK middleware | new `resumes` row copied from source with editable overlay | none | `E2E.P0.076`, `E2E.P0.079` |
+| `updateResume` | `openapi/fixtures/Resumes/updateResume.json` | backend flat save fixture parity / future internal overwrite consumers | `backend/internal/resume/handler/update.go` + `PATCH /api/v1/resumes/{resumeId}` with IK middleware | `resumes.structured_profile`, `resumes.display_name` | none | `E2E.P0.075`, `E2E.P0.079` |
+| `duplicateResume` | `openapi/fixtures/Resumes/duplicateResume.json` | backend flat save fixture parity / future internal duplicate consumers | `backend/internal/resume/handler/duplicate.go` + `POST /api/v1/resumes/{resumeId}/duplicate` with IK middleware | new `resumes` row copied from source with editable overlay | none | `E2E.P0.076`, `E2E.P0.079` |
 | `requestResumeTailor` | `openapi/fixtures/ResumeTailor/requestResumeTailor.json` | Resume Workshop tailor run request | `backend/internal/resume/handler/request_tailor.go` + `POST /api/v1/resume/tailor` with IK middleware | `async_jobs(job_type='resume_tailor', resource_type='resume_tailor_run', payload.resumeId)` | async job calls F3 `resume.tailor.gap_review` / `resume.tailor.bullet_suggestions` | `E2E.P0.077` |
 | `getResumeTailorRun` | `openapi/fixtures/ResumeTailor/getResumeTailorRun.json` | Resume Workshop tailor polling | `backend/internal/resume/handler/get_tailor_run.go` + `GET /api/v1/resume/tailor-runs/{tailorRunId}` | reads `async_jobs` status/result scoped through `resumes` and `payload.resumeId`; suggestions are task output | none at read time | `E2E.P0.077`, `E2E.P0.078` |
 | `resume.tailor.completed` event | N/A | downstream event consumers | `backend/internal/resume/jobs/tailor.go`, `backend/internal/resume/store/tailor_runs.go` | `outbox_events` + typed `ai_task_runs` | A3 AIClient via F3 feature_key | `E2E.P0.077`, `E2E.P0.078`, `E2E.P0.080` |
@@ -52,7 +52,7 @@
 
 - **Plan 类型**: `contract + code-internal + feature-behavior`。
 - **TDD 策略**: 适用。Focused gates cover generated route catalog, handler unit tests, store tests, `cmd/api` route/drainer tests, OpenAPI fixture parity and privacy assertions.
-- **BDD 策略**: 适用。`E2E.P0.074` - `E2E.P0.080` cover flat reads, update, duplicate, tailor happy/failure paths, accept-only save UX and privacy/boundary negatives.
+- **BDD 策略**: 适用。`E2E.P0.074` - `E2E.P0.080` cover flat reads, update, duplicate, tailor happy/failure paths, flat save fixture parity, read-only detail boundary and privacy/boundary negatives.
 - **替代验证 gate**:
   - `make lint-openapi`
   - `make validate-fixtures`

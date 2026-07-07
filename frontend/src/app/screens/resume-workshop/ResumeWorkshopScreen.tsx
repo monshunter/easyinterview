@@ -45,8 +45,6 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
     body = (
       <DetailWrapper
         resumeId={params.resumeId}
-        tab={params.tab}
-        tailorRunId={params.tailorRunId}
         targetJobId={params.targetJobId}
       />
     );
@@ -63,38 +61,23 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
 
 interface DetailWrapperProps {
   resumeId: string;
-  tab: import("./params").ResumeDetailTab | null;
-  tailorRunId: string | null;
   targetJobId: string | null;
 }
 
 const DetailWrapper: FC<DetailWrapperProps> = ({
   resumeId,
-  tab,
-  tailorRunId,
   targetJobId,
 }) => {
   const attrs: Record<string, string> = {
     "data-testid": "resume-workshop-detail",
     "data-resume-id": resumeId,
   };
-  if (tab) {
-    attrs["data-tab"] = tab;
-  }
-  if (tailorRunId) {
-    attrs["data-tailor-run-id"] = tailorRunId;
-  }
   if (targetJobId) {
     attrs["data-target-job-id"] = targetJobId;
   }
   return (
     <div {...attrs}>
-      <ResumeDetailView
-        resumeId={resumeId}
-        initialTab={tab}
-        initialTailorRunId={tailorRunId}
-        targetJobId={targetJobId}
-      />
+      <ResumeDetailView resumeId={resumeId} />
     </div>
   );
 };

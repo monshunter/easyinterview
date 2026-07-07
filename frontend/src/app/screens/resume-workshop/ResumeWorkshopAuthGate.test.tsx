@@ -130,7 +130,7 @@ describe("ResumeWorkshopScreen auth boundary", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("clicking the auth gate CTA navigates to auth_login with a pendingAction that only carries flat route params (flow, resumeId, tab, targetJobId, createMode) — never raw text", async () => {
+  it("clicking the auth gate CTA navigates to auth_login with a pendingAction that only carries current flat route params — never tab state or raw text", async () => {
     const client = buildClient();
     const nav = vi.fn();
 
@@ -168,7 +168,7 @@ describe("ResumeWorkshopScreen auth boundary", () => {
     expect(params.createMode).toBe("paste");
     expect(params.targetJobId).toBe("01918fa0-0000-7000-8000-000000002000");
     expect(params.resumeId).toBe(RESUME_ID);
-    expect(params.tab).toBe("rewrites");
+    expect(params.tab).toBeUndefined();
 
     expect(params.rawText).toBeUndefined();
     expect(params.parsedTextSnapshot).toBeUndefined();

@@ -1,6 +1,6 @@
 # Backend Resume Asset Register Parse and Listing Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
 > **更新日期**: 2026-07-07
 
@@ -70,3 +70,9 @@
 - [ ] 7.2 handler register/get/list 迁移：generated `ResumeAsset`→`Resume`、`ResumeAssetWithJob`→`ResumeWithJob`、`resumeAssetId`→`resumeId`、`PaginatedResumeAsset`→`PaginatedResume`；register 删 `guided` 422 分支（验证：handler unit test + `cmd/api` wiring test PASS）
 - [ ] 7.3 parse job 写 `resumes.structured_profile`（无 master 确认），`resume.parse.completed` envelope 改 `resumeId`（验证：parse job unit test + outbox envelope test PASS）
 - [ ] 7.4 收口：`cd backend && go test ./internal/resume/... ./cmd/api`；零 `resumeAssetId` / `resume_assets` / `ResumeAsset` 残留 grep（generated 由 B2 重生除外）；`sync-doc-index --check`（验证：全 gate PASS + 负向 grep 0 命中）
+
+## Phase 8: LLM-derived display_name for ready resumes
+
+- [x] 8.1 `backend/internal/resume/jobs/parse.go` 从 LLM structured output 派生可识别 `display_name`，过滤通用上传 / 粘贴标题（验证：`cd backend && go test ./internal/resume/jobs -run TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox -count=1` PASS）<!-- verified: 2026-07-07 method=go-test -->
+- [x] 8.2 `CompleteParseSuccess` 在 ready 事务中写入派生 `display_name`，无法派生时保留现有名称（验证：`cd backend && go test ./internal/resume/store -run 'TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1` PASS）<!-- verified: 2026-07-07 method=go-test -->
+- [x] 8.3 cmd/api resume_parse drainer ready / retry-to-ready 场景断言 stored resume 使用 LLM-derived `displayName`（验证：`cd backend && go test ./cmd/api -run 'TestResumeParseDrainerHTTPScenario|TestResumeParseDrainerRetryableFailureScenario' -count=1` PASS；P0.035 trigger/verify 检查当前测试名）<!-- verified: 2026-07-07 method=go-test+scenario -->

@@ -49,10 +49,9 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
 - `tests/pixel-parity/workspace.spec.ts` — workspace empty + full-state DOM anchor、
   bounding box、modal、theme 与 screenshot smoke；full-state 通过 server-bound
   initial route bootstrap 进入，不依赖 Home recent card 的 `resume-unbound`。
-- `tests/pixel-parity/resume-workshop.spec.ts`、`resume-workshop-create.spec.ts`、
-  `resume-workshop-branch-rewrites-edit.spec.ts` — Resume Workshop flat list、
-  upload/paste create flow、rewrites/edit/detail parity 与 non-current tree/branch/guided
-  负向断言。
+- `tests/pixel-parity/resume-workshop.spec.ts`、`resume-workshop-create.spec.ts` —
+  Resume Workshop flat list、read-only detail、upload/paste create flow 与
+  non-current tree/branch/guided/rewrite/edit 负向断言。
 - `tests/pixel-parity/practice.spec.ts`、`generating.spec.ts`、`report.spec.ts`
   — 面试、生成与报告核心页面 DOM、布局、主题与
   screenshot smoke。

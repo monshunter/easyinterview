@@ -1,24 +1,16 @@
 # P0.083 Expected Outcome
 
-## PreviewConfirm DOM
+## Direct Create Outcome
 
-- `resume-preview-confirm` testid renders after polling resolves ready
-- Header anchors: `resume-preview-confirm-back-link`, `resume-preview-confirm-back-button`, `resume-preview-confirm-save-button`, `resume-preview-confirm-source`, `resume-preview-confirm-name`
-- Sidebar anchors: `resume-preview-confirm-sidebar-what-saved`, `resume-preview-confirm-sidebar-parse-notes`
-- Content anchor: `resume-preview-confirm-content`
-- Inline error anchor: `resume-preview-confirm-inline-error` (only on 422)
-
-## Confirm Outcome Matrix
-
-| Outcome | Toast | Navigation | Inline Error |
-|---------|-------|------------|--------------|
-| `saved` | save success toast | `resume_versions` (list) | — |
-| `validation` | — | (no nav) | `resume-preview-confirm-inline-error` |
-| `error` | — | (no nav) | generic `resumeWorkshop.create.errors.confirmFailed` |
+- `resume-create-flow` renders for `resume_versions?flow=create`
+- Upload/Paste register success navigates directly to `resume_versions?resumeId=<id>`
+- `resume-preview-confirm` does not render
+- `updateResume` is not called by create flow
 
 ## Idempotency
 
-- `updateResume` request carries `Idempotency-Key` matching `v1.<unix>.<uuidv7>`
+- `registerResume` request carries `Idempotency-Key` matching `v1.<unix>.<uuidv7>`
+- Upload presign and PUT still use the existing upload path
 
 ## Home / Workspace CTA
 
@@ -30,12 +22,11 @@
 
 ## Privacy
 
-- structuredProfile JSON content does NOT appear in nav params
-- localStorage / sessionStorage receive no setItem calls during confirm
+- rawText and structuredProfile JSON content do NOT appear in nav params
+- localStorage / sessionStorage receive no setItem calls during create handoff
 
 ## Trigger Log Assertions
 
 - `Test Files +\d+ passed` matches
 - Linked test files present in log
-- Test names mentioning `updateResume`, `422`, `guided`, `Home`, `Workspace`
-  are exercised
+- Test names mentioning `Home`, `Workspace`, and direct detail navigation are exercised
