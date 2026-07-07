@@ -1,9 +1,12 @@
 package jobs_test
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -162,6 +165,91 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 			}
 			if len(ai.payload.Metadata.OutputSchema) == 0 {
 				t.Fatalf("AI metadata OutputSchema must be populated")
+			}
+		})
+	}
+}
+
+func TestParseHandlerExtractsReadableUploadText(t *testing.T) {
+	now := time.Date(2026, 7, 7, 9, 0, 0, 0, time.UTC)
+	cases := []struct {
+		name       string
+		objectKey  string
+		body       []byte
+		wantText   string
+		forbidText []string
+	}{
+		{
+			name:       "pdf",
+			objectKey:  "user-1/resume/tan-ai-backend.pdf",
+			body:       minimalPDFWithText("PDF Extracted Resume Text"),
+			wantText:   "PDF Extracted Resume Text",
+			forbidText: []string{"%PDF", "tan-ai-backend.pdf"},
+		},
+		{
+			name:       "docx",
+			objectKey:  "user-1/resume/tan-ai-backend.docx",
+			body:       minimalDOCXWithText(t, "DOCX Extracted Resume Text"),
+			wantText:   "DOCX Extracted Resume Text",
+			forbidText: []string{"PK", "word/document.xml"},
+		},
+		{
+			name:      "markdown",
+			objectKey: "user-1/resume/tan-ai-backend.md",
+			body:      []byte("# Markdown Resume\nGo platform engineer"),
+			wantText:  "# Markdown Resume Go platform engineer",
+		},
+		{
+			name:      "text",
+			objectKey: "user-1/resume/tan-ai-backend.txt",
+			body:      []byte("Plain Text Resume\nAI infrastructure engineer"),
+			wantText:  "Plain Text Resume AI infrastructure engineer",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			store := &fakeParseStore{asset: resumestore.ParseAssetRecord{
+				ID:            "asset-upload-" + tc.name,
+				UserID:        "user-1",
+				Language:      "zh-CN",
+				ParseStatus:   sharedtypes.TargetJobParseStatusQueued,
+				SourceType:    "upload",
+				FileObjectID:  "file-1",
+				FileObjectKey: tc.objectKey,
+			}}
+			objects := &fakeObjectReader{objectBytes: map[string][]byte{tc.objectKey: tc.body}}
+			ai := &captureAI{resp: aiclient.CompleteResponse{Content: validResumeParseJSON}}
+			handler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
+				Store:    store,
+				Registry: fakeRegistry{resolution: parseResolution()},
+				AI:       ai,
+				Objects:  objects,
+				NewID:    idSeq("event-1"),
+				Now:      func() time.Time { return now },
+			})
+
+			outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+				JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: store.asset.ID, Attempts: 1, MaxAttempts: 5,
+			})
+
+			if !outcome.Succeeded {
+				t.Fatalf("Handle outcome = %+v", outcome)
+			}
+			if store.success == nil {
+				t.Fatal("expected CompleteParseSuccess")
+			}
+			if got := normalizeComparableText(store.success.ParsedTextSnapshot); got != tc.wantText {
+				t.Fatalf("parsed text snapshot = %q, want %q", got, tc.wantText)
+			}
+			prompt := normalizeComparableText(ai.lastUserMessage())
+			if !strings.Contains(prompt, tc.wantText) {
+				t.Fatalf("prompt %q does not contain readable text %q", prompt, tc.wantText)
+			}
+			for _, forbidden := range tc.forbidText {
+				if strings.Contains(store.success.ParsedTextSnapshot, forbidden) || strings.Contains(ai.lastUserMessage(), forbidden) {
+					t.Fatalf("upload extraction leaked forbidden token %q into snapshot/prompt", forbidden)
+				}
 			}
 		})
 	}
@@ -508,17 +596,74 @@ func (r fakeRegistry) Resolve(_ context.Context, featureKey string, language str
 }
 
 type fakeObjectReader struct {
-	objects   map[string]string
-	readCalls int
+	objects     map[string]string
+	objectBytes map[string][]byte
+	readCalls   int
 }
 
 func (r *fakeObjectReader) Read(_ context.Context, objectKey string, _ int64) ([]byte, error) {
 	r.readCalls++
+	if value, ok := r.objectBytes[objectKey]; ok {
+		return append([]byte(nil), value...), nil
+	}
 	value, ok := r.objects[objectKey]
 	if !ok {
 		return nil, errors.New("object not found")
 	}
 	return []byte(value), nil
+}
+
+func minimalPDFWithText(text string) []byte {
+	stream := fmt.Sprintf("BT /F1 16 Tf 72 720 Td (%s) Tj ET", escapePDFText(text))
+	objects := []string{
+		"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+		"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+		"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n",
+		"4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
+		fmt.Sprintf("5 0 obj\n<< /Length %d >>\nstream\n%s\nendstream\nendobj\n", len(stream), stream),
+	}
+	var buf bytes.Buffer
+	buf.WriteString("%PDF-1.4\n")
+	offsets := make([]int, 0, len(objects))
+	for _, obj := range objects {
+		offsets = append(offsets, buf.Len())
+		buf.WriteString(obj)
+	}
+	xref := buf.Len()
+	fmt.Fprintf(&buf, "xref\n0 %d\n0000000000 65535 f \n", len(objects)+1)
+	for _, offset := range offsets {
+		fmt.Fprintf(&buf, "%010d 00000 n \n", offset)
+	}
+	fmt.Fprintf(&buf, "trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n", len(objects)+1, xref)
+	return buf.Bytes()
+}
+
+func minimalDOCXWithText(t *testing.T, text string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	writer := zip.NewWriter(&buf)
+	file, err := writer.Create("word/document.xml")
+	if err != nil {
+		t.Fatalf("create docx document.xml: %v", err)
+	}
+	if _, err := file.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>` + text + `</w:t></w:r></w:p></w:body></w:document>`)); err != nil {
+		t.Fatalf("write docx document.xml: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close docx zip: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func escapePDFText(value string) string {
+	value = strings.ReplaceAll(value, `\`, `\\`)
+	value = strings.ReplaceAll(value, "(", `\(`)
+	value = strings.ReplaceAll(value, ")", `\)`)
+	return value
+}
+
+func normalizeComparableText(value string) string {
+	return strings.Join(strings.Fields(value), " ")
 }
 
 type captureAI struct {

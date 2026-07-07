@@ -33,7 +33,7 @@ describe("Resume Workshop source-level CSS parity", () => {
     expect(source).toContain("padding: 40px 48px 96px");
     expect(source).toContain("grid-template-columns: 1.8fr 1.4fr 0.6fr 1fr 100px");
     expect(source).toContain("border-radius: 2px");
-    expect(source).toContain("grid-template-columns: minmax(0, 1fr) 320px");
+    expect(source).toContain("grid-template-columns: minmax(0, 1fr) 340px");
     expect(source).toContain("min-height: 720px");
     expect(source).toContain("box-shadow: 0 18px 50px rgba(30, 22, 15, 0.10)");
   });

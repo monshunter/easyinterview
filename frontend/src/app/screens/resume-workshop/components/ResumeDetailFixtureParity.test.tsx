@@ -58,6 +58,9 @@ describe("getResume fixture parity (Phase 3.6)", () => {
       expect(screen.getByTestId("resume-detail-crumb")).toBeInTheDocument();
     });
     expect(screen.getByTestId("resume-detail-preview-content")).toHaveTextContent(
+      "Original resume parsed text snapshot",
+    );
+    expect(screen.getByTestId("resume-detail-preview-content")).not.toHaveTextContent(
       "Senior frontend engineer for platform-heavy product teams",
     );
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();

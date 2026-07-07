@@ -38,4 +38,8 @@ for spec in \
     exit 1
   }
 done
+grep -Fq "submits pasted content with a neutral source title" "$LOG_FILE" || {
+  echo "$SCENARIO_ID: neutral paste title regression test did not run" >&2
+  exit 1
+}
 echo "$SCENARIO_ID PASS"

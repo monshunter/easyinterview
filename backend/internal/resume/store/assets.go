@@ -500,7 +500,7 @@ func (r *Repository) CreateWithParseJob(ctx context.Context, in CreateAssetInput
 		in.UserID,
 		nullableStringPtr(in.FileObjectID),
 		in.Title,
-		in.Title,
+		nil,
 		in.Language,
 		string(parseStatus),
 		in.SourceType,

@@ -41,12 +41,13 @@ describe("mapResumeToUiSource", () => {
     expect(ui.text).toContain("Senior frontend engineer.");
   });
 
-  it("falls back to title when displayName is empty", () => {
+  it("falls back to LLM structured headline instead of source title when displayName is empty", () => {
     const ui = mapResumeToUiSource({ ...baseResume, displayName: "" });
-    expect(ui.name).toBe(baseResume.title);
+    expect(ui.name).toBe("Senior frontend engineer");
+    expect(ui.name).not.toBe(baseResume.title);
   });
 
-  it("does not surface generic upload/paste names and derives a readable fallback from resume content", () => {
+  it("does not surface generic upload/paste names or derive a visible name from raw content", () => {
     const ui = mapResumeToUiSource({
       ...baseResume,
       sourceType: "paste",
@@ -56,10 +57,43 @@ describe("mapResumeToUiSource", () => {
         "张三 · 后端平台工程师\nFerry / reloadr / grayplan - GitOps CI/CD 与配置治理平台",
       parsedTextSnapshot: null,
       parsedSummary: { headline: "平台工程与 GitOps 简历" },
+      structuredProfile: {},
     });
-    expect(ui.name).toBe("张三 · 后端平台工程师");
+    expect(ui.name).toBe("平台工程与 GitOps 简历");
+    expect(ui.name).not.toContain("张三");
     expect(ui.name).not.toBe("粘贴的简历");
     expect(ui.sourceName).toBe("粘贴文本");
+  });
+
+  it("does not use markdown first line or file name as the visible name", () => {
+    const ui = mapResumeToUiSource({
+      ...baseResume,
+      sourceType: "upload",
+      title: "谭章毓简历-后端工程师AI.pdf",
+      displayName: "",
+      originalText: null,
+      parsedTextSnapshot:
+        "# 谭章毓 | AI / Infra / DevOps 平台工程师\nservice-registry-operator / korder / ohmykube",
+      parsedSummary: { headline: "AI Infra DevOps 平台工程师" },
+      structuredProfile: {},
+    });
+    expect(ui.name).toBe("AI Infra DevOps 平台工程师");
+    expect(ui.name).not.toContain("# 谭章毓");
+    expect(ui.name).not.toContain(".pdf");
+  });
+
+  it("uses a neutral pending name while parsing has no LLM-derived name", () => {
+    const ui = mapResumeToUiSource({
+      ...baseResume,
+      parseStatus: "queued",
+      title: "粘贴文本",
+      displayName: "",
+      originalText: null,
+      parsedTextSnapshot: null,
+      parsedSummary: null,
+      structuredProfile: {},
+    });
+    expect(ui.name).toBe("名称生成中");
   });
 
   it("derives langTag from BCP-47 language tag (zh-CN → 中, en-US → EN)", () => {

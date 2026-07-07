@@ -25,6 +25,8 @@ const SOURCE_TYPE_LABEL: Record<string, string> = {
   paste: "粘贴文本",
 };
 
+const PENDING_DISPLAY_NAME = "名称生成中";
+
 const GENERIC_RESUME_NAMES = new Set([
   "粘贴的简历",
   "粘帖的简历",
@@ -69,7 +71,10 @@ const safeStringArray = (value: unknown): string[] =>
     : [];
 
 const normalizeName = (value: string): string =>
-  value.replace(/\s+/g, " ").trim();
+  value
+    .replace(/^\s{0,3}#{1,6}\s+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
 const isGenericResumeName = (value: string): boolean => {
   const normalized = normalizeName(value);
@@ -83,14 +88,6 @@ const splitContentLines = (content: string | null | undefined): string[] => {
     .split(/\r?\n+/)
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
-};
-
-const firstContentLine = (resume: Resume): string => {
-  const line = [
-    ...splitContentLines(resume.parsedTextSnapshot),
-    ...splitContentLines(resume.originalText),
-  ].find((candidate) => !isGenericResumeName(candidate));
-  return line ?? "";
 };
 
 const profileRecord = (resume: Resume): Record<string, unknown> =>
@@ -132,10 +129,8 @@ const firstNonGeneric = (values: string[]): string => {
 const deriveDisplayName = (resume: Resume): string =>
   firstNonGeneric([
     safeString(resume.displayName),
-    safeString(resume.title),
-    firstContentLine(resume),
     deriveStructuredName(resume),
-  ]) || deriveSourceTypeLabel(resume.sourceType);
+  ]) || PENDING_DISPLAY_NAME;
 
 const deriveSourceName = (resume: Resume): string => {
   if (resume.sourceType === "paste") return deriveSourceTypeLabel("paste");

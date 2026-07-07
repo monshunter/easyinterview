@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Create Flow
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
 > **更新日期**: 2026-07-07
 
@@ -15,7 +15,7 @@
 - `resume_versions?flow=create` 渲染 `ResumeCreateFlow`。
 - 创建入口只提供 upload / paste 两种输入。
 - Upload 路径通过 `createUploadPresign`、browser PUT 和 `registerResume` 完成注册。
-- Paste 路径通过 `registerResume` 完成注册，并使用原始文本派生临时可识别标题，不提交通用“粘贴的简历”。
+- Paste 路径通过 `registerResume` 完成注册，但只提交中性来源标题；用户可见简历名称等待 backend parse 的 LLM-derived `displayName`，不得把原始文本第一行作为最终或列表名称。
 - 注册成功后直接导航到 `resume_versions?resumeId=<id>`，打开只读详情页展示原始内容。
 - 创建流不渲染解析动画页、预览确认页或确认保存页；不在 create-flow 中轮询 `getResume` 或调用 `updateResume`。
 - Home “1 分钟创建” 与 Workspace missing-resume CTA 都进入当前 create flow。
@@ -54,7 +54,7 @@
 ### Phase 2: Upload / Paste Registration
 
 - Upload tab validates file extension and size, requests a presigned upload, uploads the file through browser `fetch`, then calls `registerResume`.
-- Paste tab validates non-empty text, derives a meaningful temporary title from the pasted content, and calls `registerResume`.
+- Paste tab validates non-empty text, sends a neutral source title, and calls `registerResume`; visible naming is owned by backend parse after LLM structured output.
 - Side-effect calls use `Idempotency-Key`; `getResume` polling does not.
 - Request headers carry language where required.
 
@@ -76,7 +76,7 @@ Home and Workspace CTA paths enter `resume_versions?flow=create`. CreateFlow kee
 |----|------|-------|------|------|------|
 | C-1 | Create route | Authenticated user opens `resume_versions?flow=create` | App renders route | `ResumeCreateFlow` appears with upload tab active by default | focused Vitest |
 | C-2 | Upload path | Valid file selected | Submit | Presign + PUT + register flow runs with IK and language headers | hook / component tests |
-| C-3 | Paste path | Non-empty text | Submit | `registerResume` receives paste payload with content-derived title and direct detail navigation follows | hook / component tests |
+| C-3 | Paste path | Non-empty text | Submit | `registerResume` receives paste payload with a neutral source title, raw text is not used as a visible name, and direct detail navigation follows | hook / component tests |
 | C-4 | Register recovery | Upload/register fails | User retries or returns | Input stays local and content does not leak | upload/paste tests |
 | C-5 | Old surfaces absent | Register succeeds | Route updates | Parser animation, preview confirm and create-flow `updateResume` save path do not render or run | negative tests |
 | C-6 | CTA handoff | Home or Workspace create CTA | Click | Route lands on current CreateFlow without raw data in pending action | integration tests |
@@ -89,3 +89,9 @@ Home and Workspace CTA paths enter `resume_versions?flow=create`. CreateFlow kee
 | Generated client drift | Keep fixture parity and real-mode frontend owner tests before changing hook payloads |
 | CreateFlow privacy regression | Preserve URL / pendingAction / storage / console tests for raw resume content |
 | UI parity drift | Keep CreateFlow DOM anchors, tab roles and screenshot smoke coverage aligned with `ui-design/` |
+
+## 7 修订记录
+
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-07-07 | 1.5 | 修订未闭环命名回归：paste 创建不再提交原文首行作为标题，列表/详情名称等待 backend LLM-derived displayName。 |

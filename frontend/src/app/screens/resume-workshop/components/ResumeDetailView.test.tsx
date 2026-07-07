@@ -133,6 +133,58 @@ describe("ResumeDetailView read-only contract", () => {
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
+  it("polls a pending upload until the extracted original text snapshot is visible", async () => {
+    const client = buildClient("default");
+    const queued: Resume = {
+      ...(getResumeFixture.scenarios.default.response.body as Resume),
+      id: RESUME_ID,
+      title: "谭章毓简历-后端工程师AI.pdf",
+      displayName: "",
+      sourceType: "upload",
+      parseStatus: "queued",
+      originalText: null,
+      parsedTextSnapshot: null,
+      parsedSummary: null,
+      structuredProfile: {},
+    };
+    const ready: Resume = {
+      ...queued,
+      parseStatus: "ready",
+      displayName: "谭章毓 - 后端工程师 AI",
+      parsedSummary: { headline: "后端工程师 AI" },
+      parsedTextSnapshot:
+        "谭章毓\n后端工程师 AI\nservice-registry-operator / korder / ohmykube",
+    };
+    const getResumeSpy = vi
+      .spyOn(client, "getResume")
+      .mockResolvedValueOnce(queued)
+      .mockResolvedValueOnce(ready);
+
+    renderDetailWithClient(client, {
+      name: "resume_versions",
+      params: { resumeId: RESUME_ID },
+    });
+
+    await waitFor(
+      () => {
+        expect(getResumeSpy).toHaveBeenCalledTimes(2);
+      },
+      { timeout: 2000 },
+    );
+    expect(
+      screen.getAllByRole("heading", { name: "谭章毓 - 后端工程师 AI" })
+        .length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getByTestId("resume-detail-preview-content")).toHaveTextContent(
+      "service-registry-operator / korder / ohmykube",
+    );
+    expect(
+      screen.queryByRole("heading", { name: "谭章毓简历-后端工程师AI.pdf" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("resume-parse-flow")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("resume-preview-confirm")).not.toBeInTheDocument();
+  });
+
   it("shows a retryable detail error for non-404 getResume failures", async () => {
     const client = buildClient("default");
     const getResumeSpy = vi

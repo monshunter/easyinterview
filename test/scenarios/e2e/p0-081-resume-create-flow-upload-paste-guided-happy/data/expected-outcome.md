@@ -27,7 +27,7 @@
 
 - After upload PUT + register success, navigation goes directly to `resume_versions?resumeId=<id>`
 - After paste register success, navigation goes directly to `resume_versions?resumeId=<id>`
-- Paste register title is derived from resume content rather than a generic label
+- Paste register title is a neutral source label; raw resume first line is not submitted or displayed as the resume name
 
 ## Negative Greps
 

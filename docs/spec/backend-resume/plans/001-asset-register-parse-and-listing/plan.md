@@ -1,6 +1,6 @@
 # Backend Resume Asset Register Parse and Listing
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
 > **更新日期**: 2026-07-07
 
@@ -16,7 +16,8 @@
 - 实现 `GET /api/v1/resumes` (listResumes) handler，cursor pagination + `updated_at DESC, id DESC` 唯一稳定序；**直接解除 [frontend-workspace-and-practice/001](../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/plan.md) Phase 3.3 `listResumes` disabled-list 阻塞**；
 - 实现 `resume_assets` store layer：`CreateWithParseJob(pending + async_jobs resume_parse)` / `MarkParsing` / `MarkReady(parsedSummary, parsedTextSnapshot)` / `MarkFailed(errorCode)` / `Get` / `List(cursor, pageSize)` / `DeleteForUser`；
 - 实现 `resume.parse` async job handler（按 backend-targetjob 同款 `cmd/api` backend-internal runner 注册，不引入独立后台执行进程）：通过 [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 调 [F3 `resume.parse` feature_key](../../../prompt-rubric-registry/spec.md) → 解析 JSON parse draft → 写 `resume_assets` + outbox `resume.parse.completed`；
-- D-20 flat Resume 完成态下，`resume.parse` 成功还必须从 LLM structured output 派生可识别 `display_name`，不得把“上传的简历 / 粘贴的简历”等通用标题作为 ready 简历最终名称；
+- D-20 flat Resume 完成态下，`resume.parse` 成功还必须从 LLM structured output 派生可识别 `display_name`，不得把“上传的简历 / 粘贴的简历”等通用标题或 raw resume 第一行作为 ready 简历最终名称；
+- upload source 的 prompt input 与 `parsed_text_snapshot` 必须来自文件可读正文提取（PDF / DOCX / Markdown / text），不得使用文件名或二进制 bytes 直转 string；
 - 接 [B3 events `resume.parse.completed`](../../../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory)：只有最终 ready 成功路径通过 outbox 写入 envelope 字段集（`resumeAssetId / userId / parseStatus`）+ PII 边界（不含 raw text / guided answers / parsed_summary）；失败路径不发 completed event；
 - 在 `cmd/api` 挂载 `registerResume` / `getResume` / `listResumes` route，验证 session middleware、IK middleware、path params 与 backend-internal `resume_parse` runner wiring 都走真实 runtime；
 - 明确本 plan 只落地 `ResumeAsset` source 登记、解析草稿与列表读取，不在用户 Preview Confirm 前创建正式 `structured_master` `ResumeVersion`；保存 v1 与版本读写由 backend-resume/002 承接；
@@ -228,7 +229,7 @@
 
 ### Phase 8: LLM-derived display_name for ready resumes
 
-> product-scope D-20 / backend-resume D-14。创建入口可使用上传 / 粘贴标题作为解析前占位；parse 成功后必须根据 LLM 结构化结果派生完成态 `display_name`。
+> product-scope D-20 / backend-resume D-14。创建入口只保存 source title，不写可见 `display_name`；parse 成功后必须根据 LLM 结构化结果派生完成态 `display_name`。
 
 #### 8.1 parse job 派生 display_name
 
@@ -238,7 +239,7 @@
 
 #### 8.2 store 完成态写入 display_name
 
-`store/assets.go`：`CompleteParseSuccess` 在 `parse_status='ready'` 的同一事务内写入非空 `display_name`；无法可靠派生时保留现有名称，不把空值覆盖到 ready resume。
+`store/assets.go`：`CompleteParseSuccess` 在 `parse_status='ready'` 的同一事务内写入非空 `display_name`；无法可靠派生时保留空 `display_name`，不得回退到注册 title 或 raw resume 第一行。
 
 （验证：`cd backend && go test ./internal/resume/store -run 'TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1` PASS）
 
@@ -248,6 +249,20 @@
 
 （验证：`cd backend && go test ./cmd/api -run 'TestResumeParseDrainerHTTPScenario|TestResumeParseDrainerRetryableFailureScenario' -count=1` PASS；E2E.P0.035 trigger/verify 检查当前测试名）
 
+### Phase 9: Upload file readable text snapshot
+
+#### 9.1 upload parse extracts readable text
+
+`jobs/parse.go`：upload source 按 object key / content type 对 PDF / DOCX / Markdown / text 进行可读正文提取；PDF 至少解析 text objects，DOCX 读取 `word/document.xml` 文本节点，Markdown / text 保持 UTF-8 正文。AI prompt input 与 `parsed_text_snapshot` 使用同一可读正文，且不得包含文件名或原始二进制片段。
+
+（验证：`cd backend && go test ./internal/resume/jobs -run 'TestParseHandlerExtractsReadableUploadText|TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox' -count=1` PASS）
+
+#### 9.2 source title no longer seeds display_name
+
+`store/assets.go`：`CreateWithParseJob` 创建 queued resume 时只保存 `title` 作为来源标题，不写 `display_name`；ready 后 `display_name` 只由 parse success 写入。无法从 LLM 派生时保留空 `display_name`，由前端显示中性占位。
+
+（验证：`cd backend && go test ./internal/resume/store -run 'TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady|TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1` PASS）
+
 ## 5 验收标准
 
 - 本计划列出的 §4 所有 Phase task 全部完成
@@ -255,7 +270,8 @@
 - spec §6 C-1..C-8 + C-13 全部 PASS（C-3 与 C-4 涉及 resume.parse async 完成 / 失败，必须 stub AIClient 验证）
 - `cmd/api` route/runtime gate PASS：session middleware、IK middleware、register/get/list route、resume_parse drainer start/shutdown 与 deterministic `RunOnce` 均有测试证据
 - BDD E2E.P0.034 + E2E.P0.035 PASS
-- D-14 LLM-derived `display_name` gates PASS：parse job、store complete success、cmd/api drainer ready/retry scenario 均断言 ready resume 不保留通用上传 / 粘贴名称
+- D-14 LLM-derived `display_name` gates PASS：parse job、store create / complete success、cmd/api drainer ready/retry scenario 均断言 ready resume 不保留通用上传 / 粘贴名称，也不把 raw resume 第一行作为名称
+- D-15 upload text snapshot gates PASS：upload PDF / DOCX / Markdown / text 的 `parsed_text_snapshot` 与 AI prompt input 来自可读正文，不是文件名或二进制 bytes
 - `frontend-workspace-and-practice/001` owner 已收到 `listResumes` 解锁信号
 - engineering-roadmap §5.2 `backend-resume` 状态已升级到 active
 

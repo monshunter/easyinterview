@@ -21,7 +21,7 @@
 - ResumeCreateFlow 渲染：`resume-create-flow` testid 命中
 - 两个 tab DOM anchors 覆盖：`resume-create-tab-upload/-paste` + `data-active=true` 当前 tab；non-current guided tab/panel 不渲染
 - Upload：`Idempotency-Key` header on presign + register，`fetch(uploadUrl, { method: 'PUT', body: file })` 调用形态
-- Paste：textarea / submit disabled-when-empty / IK on register / title 从原文首个有效行派生
+- Paste：textarea / submit disabled-when-empty / IK on register / title 使用中性来源标题，不能提交 raw resume 第一行作为可见名称
 - Direct detail：register success 后不渲染 `resume-parse-flow` / `resume-preview-confirm`
 - 隐私：rawText / parsedTextSnapshot / parsedSummary / file binary 不出现在 console / URL / pendingAction / localStorage / mock transport log
 - 非当前入口 grep：`welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true|ResumeParseFlow|ParsingStage|PreviewStage|ResumePreviewConfirm` 0 命中

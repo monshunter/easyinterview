@@ -43,7 +43,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
-| [BUG-0137](./BUG-0137.md) | resume creation kept generic names and obsolete parse steps | medium | resolved | 2026-07-07 | `fix(resume-workshop): make resume creation direct and detail readonly (BUG-0137)` |
+| [BUG-0137](./BUG-0137.md) | resume creation kept generic names and obsolete parse steps | medium | resolved | 2026-07-07 | `fix(resume-workshop): use parse-derived names and upload text (BUG-0137)` |
 | [BUG-0123](./BUG-0123.md) | resume detail accepted rewrites missed flat profile and JD context | high | resolved | 2026-06-14 | `fix(resume): close detail rewrite review regressions (BUG-0123)` |
 | [BUG-0081](./BUG-0081.md) | backend profile L2 review exposed privacy rollback and scenario evidence drift | high | resolved | 2026-05-21 | `fix(backend-profile): close profile L2 evidence drift (BUG-0081)` |
 | [BUG-0076](./BUG-0076.md) | resume workshop real backend requests drifted from version contracts | high | resolved | 2026-05-18 | `fix(resume-workshop): close real backend gaps (BUG-0076, BUG-0077)` |

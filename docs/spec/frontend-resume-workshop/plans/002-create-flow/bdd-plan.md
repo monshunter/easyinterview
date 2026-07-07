@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Create Flow BDD Plan
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-07-07
 
@@ -20,7 +20,7 @@
 
 Given an authenticated user opens the Resume Workshop create route.
 When the user completes upload or paste creation and `registerResume` returns a `resumeId`.
-Then the app navigates directly to `resume_versions?resumeId=<id>`, side-effect requests use IK, parser/preview-confirm DOM is absent, and raw resume content is not stored in route state or browser storage.
+Then the app navigates directly to `resume_versions?resumeId=<id>`, side-effect requests use IK, parser/preview-confirm DOM is absent, raw resume content is not stored in route state or browser storage, and pasted raw first line is not submitted or displayed as the resume name.
 
 ### E2E.P0.082
 

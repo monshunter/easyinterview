@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Create Flow Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
 > **更新日期**: 2026-07-07
 
@@ -15,7 +15,7 @@
 ## Phase 2: Upload / paste registration
 
 - [x] 2.1 Upload path validates file shape, obtains presign data, performs browser PUT, then calls `registerResume`.
-- [x] 2.2 Paste path calls `registerResume` with paste payload after non-empty validation and sends a content-derived title instead of generic “粘贴的简历 / Pasted resume”.
+- [x] 2.2 Paste path calls `registerResume` with paste payload after non-empty validation and sends a neutral source title; raw resume first line must not be submitted or displayed as the resume name. <!-- verified: 2026-07-07 method=vitest+scenario tests=ResumeCreateFlow.test.tsx,E2E.P0.081 -->
 - [x] 2.3 Side-effect requests include `Idempotency-Key`; polling requests do not.
 
 ## Phase 3: Direct-to-detail navigation

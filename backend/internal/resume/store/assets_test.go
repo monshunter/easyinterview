@@ -25,7 +25,7 @@ func TestCreateWithParseJobInsertsResumeAndJobAtomically(t *testing.T) {
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectExec(regexp.QuoteMeta(`insert into resumes`)).
 		WithArgs(
-			"resume-1", "user-1", fileObjectID, "Resume", "Resume", "en", string(sharedtypes.TargetJobParseStatusQueued),
+			"resume-1", "user-1", fileObjectID, "Resume", nil, "en", string(sharedtypes.TargetJobParseStatusQueued),
 			"upload", nil, "job-1", now, now,
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -53,6 +53,48 @@ func TestCreateWithParseJobInsertsResumeAndJobAtomically(t *testing.T) {
 		t.Fatalf("CreateWithParseJob: %v", err)
 	}
 	if got.AssetID != "resume-1" || got.JobID != "job-1" || got.JobStatus != sharedtypes.JobStatusQueued {
+		t.Fatalf("result = %+v", got)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 7, 7, 9, 15, 0, 0, time.UTC)
+
+	mock.ExpectBegin()
+	mock.ExpectExec(regexp.QuoteMeta(`insert into resumes`)).
+		WithArgs(
+			"resume-paste", "user-1", nil, "粘贴文本", nil, "zh-CN", string(sharedtypes.TargetJobParseStatusQueued),
+			"paste", "张三 · 后端平台工程师\nFerry GitOps 平台", "job-paste", now, now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(regexp.QuoteMeta(`insert into async_jobs`)).
+		WithArgs(
+			"job-paste", "resume_parse", "resume_asset", "resume-paste", nil, string(sharedtypes.JobStatusQueued), sqlmock.AnyArg(), now, now, now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	got, err := repo.CreateWithParseJob(context.Background(), resumestore.CreateAssetInput{
+		AssetID:     "resume-paste",
+		UserID:      "user-1",
+		JobID:       "job-paste",
+		SourceType:  "paste",
+		Title:       "粘贴文本",
+		Language:    "zh-CN",
+		RawText:     "张三 · 后端平台工程师\nFerry GitOps 平台",
+		ParseStatus: sharedtypes.TargetJobParseStatusQueued,
+		JobStatus:   sharedtypes.JobStatusQueued,
+		Now:         now,
+	})
+	if err != nil {
+		t.Fatalf("CreateWithParseJob: %v", err)
+	}
+	if got.AssetID != "resume-paste" || got.JobID != "job-paste" {
 		t.Fatalf("result = %+v", got)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {

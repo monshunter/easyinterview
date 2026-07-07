@@ -3,7 +3,7 @@ import { useCallback, type FC } from "react";
 import { useI18n } from "../../../i18n/messages";
 import { ResumeWorkshopIcon } from "../components/ResumeWorkshopIcon";
 import { useResumeRegistration } from "./hooks/useResumeRegistration";
-import { derivePasteTitle } from "./util/title";
+import { deriveDefaultTitle } from "./util/title";
 
 export interface PasteTabProps {
   rawText: string;
@@ -35,7 +35,7 @@ export const PasteTab: FC<PasteTabProps> = ({
     setSubmitting(true);
     setInlineError(null);
     try {
-      const title = derivePasteTitle(rawText, lang);
+      const title = deriveDefaultTitle("paste", lang, null);
       const registered = await register.register({
         sourceType: "paste",
         rawText,

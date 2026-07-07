@@ -5,19 +5,17 @@
 
 ## 1 复盘范围与成功证据
 
-本次交付覆盖 Resume Workshop 创建和详情闭环：详情页只读展示原始简历正文；upload / paste 注册成功后直接打开 `resume_versions?resumeId=<id>`；删除解析动画页、预览确认页和确认保存页；列表/详情过滤通用“粘贴的简历 / 上传的简历”名称；backend `resume.parse` 成功后根据 LLM structured output 派生 `display_name`。
+本次交付覆盖 Resume Workshop 创建和详情闭环的二次修复：详情页只读展示原始简历正文；upload / paste 注册成功后直接打开 `resume_versions?resumeId=<id>`；删除解析动画页、预览确认页和确认保存页；列表/详情名称只能来自 LLM-derived `displayName` 或 LLM/结构化 headline，不能使用通用来源名、raw resume 第一行或文件名；上传 PDF / DOCX / Markdown / text 会提取可读正文作为 AI prompt input 和 `parsed_text_snapshot`。
 
 已通过的主要证据：
 
-- `go test ./backend/internal/resume/jobs`
-- `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/create`
-- `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/create/ResumeCreateFlow.test.tsx src/app/screens/resume-workshop/create/UploadTab.test.tsx src/app/screens/resume-workshop/create/CreateFlowNonCurrentNegative.test.ts src/app/screens/resume-workshop/adapters/resume.test.ts src/app/screens/resume-workshop/components/ResumePreviewTab.test.tsx src/app/screens/resume-workshop/components/ResumeDetailView.test.tsx src/app/i18n/localeFiles.test.ts`
-- `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/ResumeWorkshopScreen.test.tsx src/app/screens/resume-workshop/fixture-parity.test.ts`
-- `corepack pnpm --filter @easyinterview/frontend typecheck`
-- `node --test ui-design/ui-design-contract.test.mjs`
-- E2E.P0.037 / P0.081 / P0.082 / P0.083 / P0.084 `trigger -> verify`
-- `sync-doc-index --check`, `make docs-check`, `git diff --check`
-- `BUG-0137` 已建档并登记到 `docs/bugs/INDEX.md`
+- `go test ./internal/resume/jobs -run 'TestParseHandlerExtractsReadableUploadText|TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox' -count=1`
+- `go test ./internal/resume/store -run 'TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady|TestCreateWithParseJobInsertsResumeAndJobAtomically|TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1`
+- `go test ./internal/resume/... ./cmd/api -run 'TestResume|TestParse|TestCreateWithParseJob|TestCompleteParse|TestBuildResumeRuntime' -count=1`
+- `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop src/app/scenarios/p0-037-resume-detail-preview-readonly.test.tsx`
+- E2E.P0.035 / P0.037 / P0.081 `trigger -> verify`
+- `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --fix-index` post-fix verification: zero drift
+- `BUG-0137` 已修订并登记到 `docs/bugs/INDEX.md`
 
 ## 2 会话中的主要阻点/痛点
 
@@ -33,6 +31,14 @@
   - **证据**：P0.037 初次失败，期望 `Senior frontend engineer for platform-heavy product teams`，实际渲染原文 `Original resume parsed text snapshot`。
   - **影响**：旧场景会误判正确的“原文优先”实现为失败。
 
+- 第一轮修复后，命名合同仍被错误理解为“从原文第一行或文件名兜底”。
+  - **证据**：用户截图显示列表名称为 `# 姓名 | AI / Infra / DevOps 平台工程师`，详情标题显示 PDF 文件名；代码中 `PasteTab` 调 `derivePasteTitle(rawText)`，adapter 的 `deriveDisplayName` 仍使用 `title` 和 `firstContentLine()`。
+  - **影响**：用户看到的仍不是 LLM 生成的简历名，且 Markdown heading 会被误认为业务名称。
+
+- upload path 没有正文提取 gate。
+  - **证据**：`backend/internal/resume/jobs/parse.go` upload 分支直接 `raw = string(body)`；新增红测 `TestParseHandlerExtractsReadableUploadText` 在 PDF / DOCX case 中先失败，snapshot 包含 `%PDF` / `PK` / XML 片段。
+  - **影响**：上传 PDF/DOCX 后详情页无法展示真实原文，LLM prompt 也可能消费不可读二进制。
+
 ## 3 根因归类
 
 - Runtime / spec-plan 漂移：
@@ -45,7 +51,11 @@
 
 - 名称 fallback 漏洞：
   - **类别**：spec-plan
-  - **根因**：计划只要求 LLM 生成完成态名称，但没有明确旧数据/解析前状态的 frontend generic-title negative fallback。
+  - **根因**：计划只要求 LLM 生成完成态名称，但第一轮没有明确禁止 raw resume 第一行 / 文件名进入可见名称链路；旧数据/解析前状态应显示中性占位或 LLM/结构化 headline，而不是从正文或来源标题猜测名称。
+
+- 上传正文提取缺口：
+  - **类别**：spec-plan
+  - **根因**：backend-resume D-14 只覆盖 displayName，未把 upload 白名单格式和 `parsed_text_snapshot` 的 readable body extraction 写成 D-15 gate。
 
 ## 4 对流程资产的改进建议
 
@@ -53,8 +63,12 @@
   - **落点**：spec-plan
   - **优先级**：high
 
-- Resume 命名合同应明确两层：backend LLM-derived `displayName` 是完成态来源，frontend 必须对通用 source title 做负向过滤并从原文/文件名/结构化字段兜底。
+- Resume 命名合同应明确两层：backend LLM-derived `displayName` 是完成态来源；frontend 必须过滤通用 source title，禁止从 raw 第一行或文件名兜底，只能使用 LLM/结构化 headline 或中性占位。
   - **落点**：spec-plan
+  - **优先级**：high
+
+- Upload 白名单格式必须有 readable text extraction gate，至少覆盖 PDF / DOCX / Markdown / text 的 prompt input 与 `parsed_text_snapshot` 一致性。
+  - **落点**：spec-plan / scenario scripts
   - **优先级**：high
 
 - P0 scenario verify 中涉及“retired UI”的场景，应优先断言不存在旧 DOM / 旧 imports，而不是保留旧目录名里的正向语义作为说明。
@@ -63,6 +77,6 @@
 
 ## 5 建议优先级与后续动作
 
-最高价值的下一步是把“UI 删除类零残留 gate”和“简历名称 generic-title negative fallback”固化到 frontend-resume-workshop 后续 owner checklist。它们直接对应本轮返工来源：旧页面和旧名称都不是单个组件问题，而是 runtime、UI truth、scenario 和 adapter contract 的联合漂移。
+最高价值的下一步是把“简历名称不得来自 raw 第一行 / 文件名”和“上传文件正文提取必须覆盖 PDF/DOCX/Markdown/text”保留在 backend/frontend/scenario 三层 owner gate 中。它们直接对应本轮返工来源：用户可见名称和原文展示不是单个组件问题，而是 backend parse、frontend adapter、UI truth 和 scenario verify 的联合合同。
 
 可以延后处理的是 P0.082/P0.083 目录 slug 的重命名；本轮已把内容和 verify 语义改为 retired/direct handoff，目录名若继续造成误解，再作为独立 test asset cleanup 处理。

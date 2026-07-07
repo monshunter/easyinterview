@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
 > **更新日期**: 2026-07-07
 
@@ -23,7 +23,8 @@
 - [x] 3.2 `ResumePreviewTab` 优先渲染 `parsedTextSnapshot` / `originalText` 原始正文，不因 structured projection 丢失原文信息；不渲染 copy text、original modal、export、rewrite、preview-confirm 或 edit 控件；验证: `ResumePreviewTab.test.tsx`、`ResumeDetailView.test.tsx`、`ResumeDetailExport.test.tsx`、P0.037。
 - [x] 3.3 详情页不调用 `exportResume` / `requestResumeTailor` / detail `updateResume`；验证: `ResumeDetailView.test.tsx`、`ResumeDetailExport.test.tsx` 与 P0.037。
 - [x] 3.4 不存在的 `resumeId` 渲染 generic NotFoundEmptyState，不回显 fixture `error.code`；验证: `ResumeDetailFixtureParity.test.tsx` 与 P0.037。
-- [x] 3.5 `mapResumeToUiSource` 对通用“粘贴的简历 / 上传的简历 / Pasted resume / Uploaded resume”做负向过滤，并从 LLM-derived `displayName`、原始文本、文件名或 structured headline 派生可识别名称；验证: `adapters/resume.test.ts`、`ResumeListView.test.tsx`、`ResumeDetailView.test.tsx`。
+- [x] 3.5 `mapResumeToUiSource` 对通用“粘贴的简历 / 上传的简历 / Pasted resume / Uploaded resume”做负向过滤，并只从 LLM-derived `displayName` / structured headline 派生可识别名称；不得把 raw resume 第一行作为名称；验证: `adapters/resume.test.ts`、`ResumeListView.test.tsx`、`ResumeDetailView.test.tsx`。 <!-- verified: 2026-07-07 method=vitest tests=adapters/resume.test.ts,ResumeDetailView.test.tsx,resume-workshop-suite -->
+- [x] 3.6 `ResumeDetailView` 对 `queued/processing` 且正文快照为空的上传简历轻量轮询 `getResume`，直到 `parsedTextSnapshot` / `originalText` 可展示或进入失败态；不渲染 parser animation / preview-confirm；验证: `ResumeDetailView.test.tsx`、P0.037。 <!-- verified: 2026-07-07 method=vitest+scenario tests=ResumeDetailView.test.tsx,E2E.P0.037 -->
 
 ## Phase 4: Privacy / I18n / A11y / Parity
 

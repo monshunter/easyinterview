@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
 > **更新日期**: 2026-07-07
 
@@ -15,7 +15,7 @@
 - route params 只使用当前 flat Resume 合同：`flow=create|list`、`resumeId`、`createMode=upload|paste`；旧 `tab` / `tailorRunId` 被过滤或忽略。
 - `ResumeListView` 使用 `listResumes` 渲染单层平铺表格、创建入口、详情入口、loading / empty / retry / pagination 状态。
 - `ResumeDetailView` 使用 `getResume(resumeId)` 只渲染原始简历内容本身和 generic 404 fallback。
-- 列表与详情不展示通用“上传的简历 / 粘贴的简历 / Uploaded resume / Pasted resume”名称；LLM-derived `displayName` 优先，旧数据或解析前状态从原文、文件名或结构化字段派生可识别兜底名称。
+- 列表与详情不展示通用“上传的简历 / 粘贴的简历 / Uploaded resume / Pasted resume”名称；完成态名称优先使用 LLM-derived `displayName` 或 LLM structured headline；前端不得把 raw resume 第一行当作名称。
 - 未登录态不触发 Resume API，请求登录时 pending action 只保存安全 route params。
 - 可见 UI 继续追溯 `ui-design/src/screen-resume-workshop.jsx`、`ui-design/src/primitives.jsx`、`ui-design/src/app.jsx` 和 `docs/ui-design/`。
 
@@ -77,7 +77,7 @@ runtime 未认证时渲染登录入口；Resume API 请求保持 0 次；pending
 
 #### 3.4 Original-content projection and meaningful names
 
-`ResumePreviewTab` 优先展示 `parsedTextSnapshot`，其次 `originalText`，最后才降级到结构化字段的只读摘要；列表和详情 header 对通用占位 `displayName` 做负向过滤，使用 LLM-derived 名称或从原始内容 / 文件名 / 结构化 headline 派生的可识别名称。
+`ResumePreviewTab` 优先展示 `parsedTextSnapshot`，其次 `originalText`，最后才降级到结构化字段的只读摘要；上传文件刚注册后若 `parseStatus` 仍为 `queued/processing` 且正文快照为空，详情页可以轻量轮询 `getResume`，但不得恢复 parser animation 或 preview-confirm。列表和详情 header 对通用占位 `displayName` 做负向过滤，使用 LLM-derived 名称或 structured headline；raw resume 第一行不得作为名称兜底。
 
 #### 3.3 404
 
@@ -131,5 +131,6 @@ Resume Workshop runtime source、scenario evidence 和 rendered DOM 不出现树
 | 日期 | 版本 | 变更 |
 |------|------|------|
 | 2026-07-07 | 1.6 | 修订未闭环回归：详情正文改为优先展示原始内容快照，列表/详情过滤通用上传/粘贴名称并增加内容派生兜底。 |
+| 2026-07-07 | 1.7 | 修订未闭环回归：禁止 raw 第一行作为可见名称；上传详情在原文快照到达前轻量轮询，避免 PDF 详情空白。 |
 | 2026-07-07 | 1.5 | 将详情页收敛为只读简历正文，移除 export/copy/original modal/Rewrites/Edit 正向 gate，并过滤旧 `tab` / `tailorRunId` route 口径。 |
 | 2026-07-07 | 1.4 | 压缩 001 owner 到当前 flat Resume list/detail preview 合同，移除旧树形/版本集合/分叉参数语义，并同步 P0.036 当前场景 slug。 |

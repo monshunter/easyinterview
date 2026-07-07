@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Create Flow BDD Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-07-07
 
@@ -9,7 +9,7 @@
 ## E2E.P0.081 CreateFlow Direct-to-detail Happy Path
 
 - [x] Scenario assets exist for E2E.P0.081.
-- [x] Verify script covers upload / paste happy path, IK, direct detail navigation, parser/preview absence, privacy and UI parity assertions.
+- [x] Verify script covers upload / paste happy path, IK, direct detail navigation, parser/preview absence, privacy, UI parity assertions, and raw-first-line naming negative. <!-- verified: 2026-07-07 method=scenario scenario=E2E.P0.081 -->
 
 ## E2E.P0.082 Retired Parser UI Negative
 

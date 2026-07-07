@@ -78,13 +78,14 @@ const ResumeWorkshopScreen = ({ T, lang, nav, params = {} }) => {
 
   const addCreatedResume = (sourceLabel, rawText = "") => {
     const suffix = Date.now();
+    const pendingName = isEn ? "Generating name" : "名称生成中";
     const lines = rawText
       .split(/\n+/)
       .map((line) => line.trim())
       .filter(Boolean);
     const resume = {
       id: `resume-created-${suffix}`,
-      name: lines[0] || sourceLabel || (isEn ? "New resume" : "新建简历"),
+      name: pendingName,
       langTag: isEn ? "CN" : "中",
       sourceType: rawText ? "paste" : "upload",
       sourceName: rawText ? (isEn ? "Pasted text" : "粘贴文本") : (sourceLabel || (isEn ? "Uploaded file" : "上传文件")),
@@ -97,7 +98,7 @@ const ResumeWorkshopScreen = ({ T, lang, nav, params = {} }) => {
     };
     setCreatedResumes((prev) => [...prev, resume]);
     nav("resume_versions", { resumeId: resume.id });
-    resumeNotify(lang, `已创建 ${resume.name} · 正在打开详情`, `Created ${resume.name} · opening detail`);
+    resumeNotify(lang, "已创建简历 · 正在打开详情", "Resume created · opening detail");
   };
 
   const resumeId = params.resumeId;

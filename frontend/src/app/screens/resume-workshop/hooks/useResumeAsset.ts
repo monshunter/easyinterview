@@ -12,6 +12,16 @@ export interface UseResumeAssetResult {
   retry: () => void;
 }
 
+const hasReadableResumeBody = (resume: Resume): boolean =>
+  [resume.parsedTextSnapshot, resume.originalText].some(
+    (value) => typeof value === "string" && value.trim().length > 0,
+  );
+
+const shouldPollForReadableUploadBody = (resume: Resume): boolean =>
+  resume.sourceType === "upload" &&
+  (resume.parseStatus === "queued" || resume.parseStatus === "processing") &&
+  !hasReadableResumeBody(resume);
+
 /**
  * Loads a single flat resume via `getResume(resumeId)`.
  * Used as the detail-view primary loader.
@@ -42,6 +52,7 @@ export function useResumeAsset(resumeId: string | null): UseResumeAssetResult {
       return;
     }
     let active = true;
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
     const requestSeq = requestSeqRef.current + 1;
     requestSeqRef.current = requestSeq;
     setLoading(true);
@@ -53,6 +64,12 @@ export function useResumeAsset(resumeId: string | null): UseResumeAssetResult {
       .then((resume) => {
         if (!active || requestSeqRef.current !== requestSeq) return;
         setData(resume);
+        if (shouldPollForReadableUploadBody(resume)) {
+          pollTimer = setTimeout(() => {
+            if (!active || requestSeqRef.current !== requestSeq) return;
+            setReloadSeq((value) => value + 1);
+          }, 250);
+        }
       })
       .catch((err: unknown) => {
         if (!active || requestSeqRef.current !== requestSeq) return;
@@ -65,6 +82,9 @@ export function useResumeAsset(resumeId: string | null): UseResumeAssetResult {
       });
     return () => {
       active = false;
+      if (pollTimer) {
+        clearTimeout(pollTimer);
+      }
     };
   }, [client, isAuthenticated, resumeId, reloadSeq, lang]);
 

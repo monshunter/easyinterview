@@ -202,7 +202,7 @@ describe("ResumeCreateFlow container", () => {
     );
   });
 
-  it("submits pasted content with a content-derived title and navigates directly to detail", async () => {
+  it("submits pasted content with a neutral source title and navigates directly to detail", async () => {
     const user = userEvent.setup();
     const registerResume = vi.fn().mockResolvedValue(REGISTER_RESULT);
     const { navigate } = renderCreateFlowWithRuntime({ registerResume });
@@ -218,8 +218,11 @@ describe("ResumeCreateFlow container", () => {
     expect(registerResume).toHaveBeenCalledTimes(1);
     expect(registerResume.mock.calls[0]![0]).toMatchObject({
       sourceType: "paste",
-      title: "张三 · 后端平台工程师",
+      title: "Pasted text",
     });
+    expect(registerResume.mock.calls[0]![0].title).not.toContain(
+      "张三 · 后端平台工程师",
+    );
     expect(registerResume.mock.calls[0]![0].title).not.toBe("粘贴的简历");
     expect(navigate).toHaveBeenCalledWith({
       name: "resume_versions",

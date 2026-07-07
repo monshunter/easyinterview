@@ -1,13 +1,20 @@
 package jobs
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
+	pdf "github.com/ledongthuc/pdf"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
@@ -197,7 +204,10 @@ func (h *ParseHandler) resumeInput(ctx context.Context, asset resumestore.ParseA
 		if err != nil {
 			return "", err
 		}
-		raw = string(body)
+		raw, err = extractUploadResumeText(asset.FileObjectKey, body)
+		if err != nil {
+			return "", err
+		}
 	default:
 		return "", fmt.Errorf("unsupported source_type %q", asset.SourceType)
 	}
@@ -206,6 +216,157 @@ func (h *ParseHandler) resumeInput(ctx context.Context, asset resumestore.ParseA
 		return "", fmt.Errorf("resume input is empty")
 	}
 	return raw, nil
+}
+
+func extractUploadResumeText(objectKey string, body []byte) (string, error) {
+	ext := strings.ToLower(filepath.Ext(strings.TrimSpace(objectKey)))
+	var (
+		raw string
+		err error
+	)
+	switch ext {
+	case ".pdf":
+		raw, err = extractPDFText(body)
+	case ".docx":
+		raw, err = extractDOCXText(body)
+	case ".md", ".markdown", ".txt", "":
+		raw = strings.ToValidUTF8(string(body), "")
+	default:
+		raw = strings.ToValidUTF8(string(body), "")
+	}
+	if err != nil {
+		return "", err
+	}
+	raw = normalizeExtractedResumeText(raw)
+	if raw == "" {
+		return "", fmt.Errorf("upload resume text is empty")
+	}
+	return raw, nil
+}
+
+func extractPDFText(body []byte) (string, error) {
+	reader, err := pdf.NewReader(bytes.NewReader(body), int64(len(body)))
+	if err == nil {
+		plain, plainErr := reader.GetPlainText()
+		if plainErr == nil {
+			data, readErr := io.ReadAll(plain)
+			if readErr == nil {
+				if text := normalizeExtractedResumeText(string(data)); text != "" {
+					return text, nil
+				}
+			}
+		}
+	}
+	if text := extractPDFLiteralText(body); text != "" {
+		return text, nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("extract pdf text: %w", err)
+	}
+	return "", fmt.Errorf("extract pdf text: no readable text found")
+}
+
+func extractDOCXText(body []byte) (string, error) {
+	reader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+	if err != nil {
+		return "", fmt.Errorf("open docx: %w", err)
+	}
+	for _, file := range reader.File {
+		if file.Name != "word/document.xml" {
+			continue
+		}
+		handle, err := file.Open()
+		if err != nil {
+			return "", fmt.Errorf("open docx document: %w", err)
+		}
+		defer handle.Close()
+		text, err := extractDOCXDocumentText(handle)
+		if err != nil {
+			return "", err
+		}
+		if text == "" {
+			return "", fmt.Errorf("docx text is empty")
+		}
+		return text, nil
+	}
+	return "", fmt.Errorf("docx document.xml not found")
+}
+
+func extractDOCXDocumentText(reader io.Reader) (string, error) {
+	decoder := xml.NewDecoder(reader)
+	var parts []string
+	inText := false
+	for {
+		token, err := decoder.Token()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return "", fmt.Errorf("decode docx document: %w", err)
+		}
+		switch value := token.(type) {
+		case xml.StartElement:
+			if value.Name.Local == "t" {
+				inText = true
+			}
+		case xml.CharData:
+			if inText {
+				parts = append(parts, string(value))
+			}
+		case xml.EndElement:
+			if value.Name.Local == "t" {
+				inText = false
+			}
+			if value.Name.Local == "p" {
+				parts = append(parts, "\n")
+			}
+		}
+	}
+	return normalizeExtractedResumeText(strings.Join(parts, " ")), nil
+}
+
+var pdfLiteralTextPattern = regexp.MustCompile(`\((?:\\.|[^\\()])*\)`)
+
+func extractPDFLiteralText(body []byte) string {
+	source := string(body)
+	if !strings.Contains(source, "Tj") && !strings.Contains(source, "TJ") {
+		return ""
+	}
+	matches := pdfLiteralTextPattern.FindAllString(source, -1)
+	parts := make([]string, 0, len(matches))
+	for _, match := range matches {
+		unescaped := unescapePDFLiteral(match[1 : len(match)-1])
+		if strings.TrimSpace(unescaped) != "" {
+			parts = append(parts, unescaped)
+		}
+	}
+	return normalizeExtractedResumeText(strings.Join(parts, "\n"))
+}
+
+func unescapePDFLiteral(value string) string {
+	replacer := strings.NewReplacer(
+		`\\`, `\`,
+		`\(`, `(`,
+		`\)`, `)`,
+		`\n`, "\n",
+		`\r`, "\r",
+		`\t`, "\t",
+		`\b`, "\b",
+		`\f`, "\f",
+	)
+	return replacer.Replace(value)
+}
+
+func normalizeExtractedResumeText(value string) string {
+	lines := strings.Split(strings.ToValidUTF8(value, ""), "\n")
+	normalized := make([]string, 0, len(lines))
+	for _, line := range lines {
+		line = strings.Join(strings.Fields(line), " ")
+		if line != "" {
+			normalized = append(normalized, line)
+		}
+	}
+	return strings.TrimSpace(strings.Join(normalized, "\n"))
 }
 
 func (h *ParseHandler) fail(ctx context.Context, asset resumestore.ParseAssetRecord, job targetjob.ClaimedJob, code, message string, retryable bool) targetjob.JobOutcome {
