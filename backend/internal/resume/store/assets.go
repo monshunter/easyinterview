@@ -373,11 +373,41 @@ insert into outbox_events (
 }
 
 func (r *Repository) CompleteParseFailure(ctx context.Context, in CompleteParseFailureInput) error {
-	var parsedTextSnapshot *string
-	if strings.TrimSpace(in.ParsedTextSnapshot) != "" {
-		parsedTextSnapshot = &in.ParsedTextSnapshot
+	if r == nil || r.db == nil {
+		return fmt.Errorf("resume store db is nil")
 	}
-	return r.updateStatus(ctx, in.UserID, in.AssetID, "", sharedtypes.TargetJobParseStatusFailed, nil, nil, parsedTextSnapshot, in.ErrorCode, in.Now)
+	now := in.Now
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	var parsedTextSnapshot any
+	if strings.TrimSpace(in.ParsedTextSnapshot) != "" {
+		parsedTextSnapshot = in.ParsedTextSnapshot
+	}
+	res, err := r.db.ExecContext(ctx, `
+update resumes
+set parse_status = $1, error_code = $2, parsed_text_snapshot = $3,
+    display_name = coalesce($4, display_name), updated_at = $5
+where id = $6 and user_id = $7 and parse_status in ('queued','processing','failed') and deleted_at is null`,
+		string(sharedtypes.TargetJobParseStatusFailed),
+		in.ErrorCode,
+		parsedTextSnapshot,
+		nullableStringPtr(in.DisplayName),
+		now,
+		in.AssetID,
+		in.UserID,
+	)
+	if err != nil {
+		return fmt.Errorf("complete resume parse failure: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("complete resume parse failure rows affected: %w", err)
+	}
+	if rows == 0 {
+		return ErrInvalidStateTransition
+	}
+	return nil
 }
 
 func (r *Repository) DeleteForUser(ctx context.Context, userID string, now time.Time) error {

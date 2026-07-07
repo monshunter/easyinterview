@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: completed
 > **更新日期**: 2026-07-07
 
@@ -15,7 +15,7 @@
 - route params 只使用当前 flat Resume 合同：`flow=create|list`、`resumeId`、`createMode=upload|paste`；旧 `tab` / `tailorRunId` 被过滤或忽略。
 - `ResumeListView` 使用 `listResumes` 渲染单层平铺表格、创建入口、详情入口、loading / empty / retry / pagination 状态。
 - `ResumeDetailView` 使用 `getResume(resumeId)` 只渲染原始简历内容本身和 generic 404 fallback。
-- 列表与详情不展示通用“上传的简历 / 粘贴的简历 / Uploaded resume / Pasted resume”名称；完成态名称优先使用 LLM-derived `displayName` 或 LLM structured headline；前端不得把 raw resume 第一行、上传文件名或与来源 `title` 相同的文件名 `displayName` 当作名称。
+- 列表与详情不展示通用“上传的简历 / 粘贴的简历 / Uploaded resume / Pasted resume”名称；完成态名称优先使用 backend generated `displayName` 或 LLM structured headline；前端不得把 raw resume 第一行、上传文件名或与来源 `title` 相同的文件名 `displayName` 当作名称。
 - 未登录态不触发 Resume API，请求登录时 pending action 只保存安全 route params。
 - 可见 UI 继续追溯 `ui-design/src/screen-resume-workshop.jsx`、`ui-design/src/primitives.jsx`、`ui-design/src/app.jsx` 和 `docs/ui-design/`。
 
@@ -77,7 +77,7 @@ runtime 未认证时渲染登录入口；Resume API 请求保持 0 次；pending
 
 #### 3.4 Original-content projection and meaningful names
 
-`ResumePreviewTab` 优先展示 `parsedTextSnapshot`，其次 `originalText`，最后才降级到结构化字段的只读摘要；上传文件刚注册后若 `parseStatus` 仍为 `queued/processing` 且正文快照为空，详情页可以轻量轮询 `getResume`，但不得恢复 parser animation 或 preview-confirm；若 `parseStatus='failed'` 但 `parsedTextSnapshot` 已到达，详情仍展示该原文快照。列表和详情 header 对通用占位 `displayName` 做负向过滤，使用 LLM-derived 名称或 structured headline；raw resume 第一行、上传文件名或与来源 `title` 相同的文件名 `displayName` 不得作为名称兜底。
+`ResumePreviewTab` 优先展示 `parsedTextSnapshot`，其次 `originalText`，最后才降级到结构化字段的只读摘要；上传文件刚注册后若 `parseStatus` 仍为 `queued/processing` 且正文快照为空，详情页可以轻量轮询 `getResume`，但不得恢复 parser animation 或 preview-confirm；若 `parseStatus='failed'` 或任一可读正文已到达，详情必须停止轮询并展示该原文快照。列表和详情 header 对通用占位 `displayName` 做负向过滤，使用 backend generated 名称或 structured headline；raw resume 第一行、上传文件名或与来源 `title` 相同的文件名 `displayName` 不得作为名称兜底。
 
 #### 3.3 404
 
@@ -130,6 +130,7 @@ Resume Workshop runtime source、scenario evidence 和 rendered DOM 不出现树
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-07 | 1.9 | 修订上传详情性能回归：`failed` 或已有可读正文时停止 `getResume` 轮询；名称消费改为 backend generated displayName 优先。 |
 | 2026-07-07 | 1.8 | 修订未闭环回归：禁止上传文件名 / 与来源 title 相同的文件名 displayName 作为可见名称；failed resume 只要已有 parsedTextSnapshot 仍展示原文。 |
 | 2026-07-07 | 1.6 | 修订未闭环回归：详情正文改为优先展示原始内容快照，列表/详情过滤通用上传/粘贴名称并增加内容派生兜底。 |
 | 2026-07-07 | 1.7 | 修订未闭环回归：禁止 raw 第一行作为可见名称；上传详情在原文快照到达前轻量轮询，避免 PDF 详情空白。 |

@@ -548,7 +548,7 @@ func TestCompleteParseFailureMarksFailedWithoutCompletedOutbox(t *testing.T) {
 	now := time.Date(2026, 5, 13, 8, 45, 0, 0, time.UTC)
 
 	mock.ExpectExec(regexp.QuoteMeta(`update resumes`)).
-		WithArgs(string(sharedtypes.TargetJobParseStatusFailed), "AI_OUTPUT_INVALID", now, "resume-1", "user-1").
+		WithArgs(string(sharedtypes.TargetJobParseStatusFailed), "AI_OUTPUT_INVALID", nil, nil, now, "resume-1", "user-1").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	if err := repo.CompleteParseFailure(context.Background(), resumestore.CompleteParseFailureInput{
@@ -568,9 +568,10 @@ func TestCompleteParseFailureCanPersistExtractedTextSnapshot(t *testing.T) {
 	repo, mock, cleanup := newMockRepository(t)
 	defer cleanup()
 	now := time.Date(2026, 7, 7, 9, 30, 0, 0, time.UTC)
+	displayName := "谭章毓 - AI Infra DevOps 平台工程师"
 
 	mock.ExpectExec(regexp.QuoteMeta(`update resumes`)).
-		WithArgs(string(sharedtypes.TargetJobParseStatusFailed), "AI_OUTPUT_INVALID", "readable pdf resume text", now, "resume-1", "user-1").
+		WithArgs(string(sharedtypes.TargetJobParseStatusFailed), "AI_OUTPUT_INVALID", "readable pdf resume text", displayName, now, "resume-1", "user-1").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	if err := repo.CompleteParseFailure(context.Background(), resumestore.CompleteParseFailureInput{
@@ -578,6 +579,7 @@ func TestCompleteParseFailureCanPersistExtractedTextSnapshot(t *testing.T) {
 		AssetID:            "resume-1",
 		ErrorCode:          "AI_OUTPUT_INVALID",
 		ParsedTextSnapshot: "readable pdf resume text",
+		DisplayName:        &displayName,
 		Now:                now,
 	}); err != nil {
 		t.Fatalf("CompleteParseFailure: %v", err)

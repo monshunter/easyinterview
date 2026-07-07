@@ -16,6 +16,6 @@
 ## E2E.P0.037 read-only original-content detail + removed actions + 404 fallback
 
 - [x] 场景目录为 `test/scenarios/e2e/p0-037-resume-detail-preview-readonly/`，含 `README.md`、`data/seed-input.md`、`data/expected-outcome.md` 与四段脚本。
-- [x] `trigger.sh` 执行 `src/app/scenarios/p0-037-resume-detail-preview-readonly.test.tsx`，覆盖 read-only original-content detail、pending upload polling to original snapshot、generic-name / raw-first-line name negative、legacy rewrites tab ignored、removed action negative 和 not-found fallback。 <!-- verified: 2026-07-07 method=scenario scenario=E2E.P0.037 -->
-- [x] `verify.sh` 检查 trigger log 的当前测试数 passed、测试文件 marker、non-current testid negative、fallback-text negative、generic upload/paste name negative、raw-first-line name negative、pending upload polling marker 和 error-code no-echo。 <!-- verified: 2026-07-07 method=scenario scenario=E2E.P0.037 -->
+- [x] `trigger.sh` 执行 `src/app/scenarios/p0-037-resume-detail-preview-readonly.test.tsx`，覆盖 read-only original-content detail、pending upload polling to original snapshot、failed-with-snapshot upload single-fetch、generic-name / raw-first-line name negative、legacy rewrites tab ignored、removed action negative 和 not-found fallback。 <!-- verified: 2026-07-07 method=scenario scenario=E2E.P0.037 -->
+- [x] `verify.sh` 检查 trigger log 的当前测试数 passed、测试文件 marker、non-current testid negative、fallback-text negative、generic upload/paste name negative、raw-first-line name negative、pending upload polling marker、failed-with-snapshot single-fetch marker 和 error-code no-echo。 <!-- verified: 2026-07-07 method=scenario scenario=E2E.P0.037 -->
 - [x] 场景在 `test/scenarios/e2e/INDEX.md` 登记为 Ready / automated，描述当前 read-only original-content detail contract。

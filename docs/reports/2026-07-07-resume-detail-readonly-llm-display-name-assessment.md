@@ -9,6 +9,8 @@
 
 第三轮补修覆盖真实 PDF 空白/乱码问题：resume.parse upload object 读取预算从 256KiB 提升到 8MiB，避免真实浏览器生成 PDF 的 xref / 字体映射被截断；PDF 抽取优先使用 `pdftotext -layout - -`，并给 Go parser / literal fallback 增加可读性 gate；`CompleteParseFailure` 支持保存已抽取的 `parsed_text_snapshot`，使原文预览不依赖 LLM 结构化解析成功；frontend adapter 继续过滤与来源 title 相同的 PDF 文件名 `displayName`。
 
+第四轮补修覆盖 BUG-0138：`resume.parse` prompt/schema 明确 required `displayName`，backend 优先消费并验证 AI 生成名称；AI provider / output 失败但已有正文时，失败事务写入正文派生 fallback `display_name`；P0.037 增加 failed-with-snapshot 详情只请求一次的回归场景，防止同一详情 URL 在非 pending 状态重复请求。
+
 已通过的主要证据：
 
 - `go test ./internal/resume/jobs -run 'TestParseHandlerExtractsReadableUploadText|TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox' -count=1`
@@ -21,8 +23,16 @@
 - `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/adapters/resume.test.ts`
 - local UAT：真实 PDF resume `019f3bfb-7d9d-76d2-a82d-08bcbac225ce` 重排后 `parse_status=failed` / `AI_OUTPUT_INVALID`，但 `parsed_text_snapshot` 长度 3083，开头为 `谭章毓 | AI Infra / Agent / 平台工程师` 等可读中文正文。
 - E2E.P0.035 / P0.037 / P0.081 `trigger -> verify`
+- `go test ./internal/resume/jobs ./internal/resume/store ./cmd/api -count=1`
+- `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop src/app/scenarios/p0-037-resume-detail-preview-readonly.test.tsx`
+- `make lint-prompts`
+- `make lint-prompts-hardcode`
+- `go test ./internal/ai/registry -count=1`
+- `go run ./backend/cmd/evalkit drift-check`
+- E2E.P0.035 / P0.037 `setup -> trigger -> verify -> cleanup`
 - `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --fix-index` post-fix verification: zero drift
 - `BUG-0137` 已修订并登记到 `docs/bugs/INDEX.md`
+- `BUG-0138` 已创建并登记到 `docs/bugs/INDEX.md`
 
 ## 2 会话中的主要阻点/痛点
 
@@ -58,6 +68,18 @@
   - **证据**：旧 `CompleteParseFailure` 只写 `parse_status='failed' + error_code`，不接受 `parsed_text_snapshot`；只要 AI provider 或 output validation 失败，详情页仍可能空白。
   - **影响**：用户核心诉求是“预览就是原始简历内容”，不应被 LLM 名称/profile 结构化成功率牵连。
 
+- `resume.parse` prompt 输出合同没有把 UI 名称当成 required 字段。
+  - **证据**：`config/prompts/resume.parse/v0.1.0.schema.json` 和 prompt body 缺少 required `displayName`；修改后还需要同步 seed migration、prompt lint contract 和 `config/evals/resolved-prompts.json`，否则 drift-check 会落后。
+  - **影响**：即使 LLM 正常返回结构化内容，也没有强约束生成“正常有意义”的简历名称；离线 eval 单源导出也容易在后续阶段才暴露 drift。
+
+- P0.037 只验证 pending upload 轮询，没有覆盖 failed-with-snapshot 停止轮询。
+  - **证据**：新增 `ResumeDetailView` regression 与 P0.037 场景后，测试明确断言 failed + readable snapshot + backend generated `displayName` 时 `getResume` 只调用一次。
+  - **影响**：同一详情 URL 重复请求的性能风险缺少场景级保护，容易被后续 hook 改动重新引入。
+
+- store SQL mock 测试跟随新失败事务合同时暴露滞后。
+  - **证据**：P0.035 trigger 初次失败于 `TestCompleteParseFailureMarksFailedWithoutCompletedOutbox`，旧 mock 仍期望 5 个 update 参数；新实现已经写入 `parsed_text_snapshot` 和 `display_name` 两个可选字段。
+  - **影响**：这类测试失败是有价值的合同提醒，但也说明新增失败态字段时要同步老失败路径单测，而不能只新增 happy regression。
+
 ## 3 根因归类
 
 - Runtime / spec-plan 漂移：
@@ -88,6 +110,14 @@
   - **类别**：runtime-contract
   - **根因**：parse success 事务同时承担结构化 profile、displayName 和原文快照写入；failure path 没有保留已抽取的原文快照。
 
+- Prompt 输出合同不完整：
+  - **类别**：spec-plan
+  - **根因**：UI 可见名称被当成后端派生细节，而不是 prompt schema、prompt body、backend validator 和 committed eval export 共同维护的合同字段。
+
+- Failed-with-snapshot 轮询缺口：
+  - **类别**：test-gate
+  - **根因**：原场景只覆盖 pending polling to readable body，没有把 failed/ready/has-readable-body 作为停止轮询的不变量写进 BDD。
+
 ## 4 对流程资产的改进建议
 
 - UI 删除类变更应在 plan gate 中固定“runtime source + locale + CSS + ui-design contract + scenario README/data/scripts”的零残留检查。
@@ -114,12 +144,20 @@
   - **落点**：backend-resume store/job contract
   - **优先级**：high
 
+- Prompt schema 新增 UI 可见字段时，必须同步 prompt body、hash、seed migration、prompt lint contract、resolved export 和 drift-check 证据。
+  - **落点**：prompt-rubric / backend owner checklist
+  - **优先级**：high
+
+- 详情轮询 gate 应把 `queued|processing && no readable body` 作为唯一正向轮询条件，并把 failed-with-snapshot 单次请求写入组件测试和 BDD 场景。
+  - **落点**：frontend owner checklist / scenario scripts
+  - **优先级**：high
+
 - P0 scenario verify 中涉及“retired UI”的场景，应优先断言不存在旧 DOM / 旧 imports，而不是保留旧目录名里的正向语义作为说明。
   - **落点**：README / scenario scripts
   - **优先级**：medium
 
 ## 5 建议优先级与后续动作
 
-最高价值的下一步是把“简历名称不得来自 raw 第一行 / 文件名”和“上传文件正文提取必须覆盖 PDF/DOCX/Markdown/text”保留在 backend/frontend/scenario 三层 owner gate 中。它们直接对应本轮返工来源：用户可见名称和原文展示不是单个组件问题，而是 backend parse、frontend adapter、UI truth 和 scenario verify 的联合合同。
+最高价值的下一步是把“简历名称不得来自 raw 第一行 / 文件名”“prompt 必须生成 required `displayName`”“失败态已有正文时也要写 fallback `display_name`”和“详情只在 truly pending 且无正文时轮询”保留在 backend/frontend/scenario 三层 owner gate 中。它们直接对应本轮返工来源：用户可见名称、原文展示和详情请求频率不是单个组件问题，而是 backend parse、frontend hook、UI truth 和 scenario verify 的联合合同。
 
 可以延后处理的是 P0.082/P0.083 目录 slug 的重命名；本轮已把内容和 verify 语义改为 retired/direct handoff，目录名若继续造成误解，再作为独立 test asset cleanup 处理。

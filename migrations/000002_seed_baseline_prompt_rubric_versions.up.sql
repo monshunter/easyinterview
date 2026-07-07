@@ -253,7 +253,7 @@ turn clearly needs another retry, in which case use `queued_for_retry`; use
 summarized observations only; do not request raw interview text or direct
 quotes.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('410f16c3-3ea9-5327-a87a-027f039368b3', 'resume.parse', 'v0.1.0', 'multi', '8ee64c7dc89e0b8907c116766efeda4a20e3756fc165d92590cbe32396b362ed', $body$You are a resume parser. Extract structured experience from the supplied
+  ('410f16c3-3ea9-5327-a87a-027f039368b3', 'resume.parse', 'v0.1.0', 'multi', '4e9243f53364021a87dcf810965c3c7b7dbc6d331f490e1262b675029cb961e3', $body$You are a resume parser. Extract structured experience from the supplied
 resume text. Respond in the language indicated by `{{language}}` (default
 English) regardless of the resume's source language.
 
@@ -261,12 +261,18 @@ Resume text:
 
 {{resume_text}}
 
+Generate `displayName` as a concise resume name for the UI. Use the candidate
+name plus headline, role, or strongest technical positioning when available.
+Never use "uploaded resume", "pasted resume", the file name, or a raw first-line
+copy as `displayName`.
+
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
 Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Structured resume summary parsed from supplied resume text.
+- `$.displayName` (required, string): Short meaningful resume name for UI display, derived from candidate name plus headline, role, or strongest technical positioning; never use uploaded/pasted resume, the file name, or a raw first-line copy.
 - `$.basics` (required, object): Basic candidate identity and contact summary.
 - `$.basics.name` (optional, string): Candidate name when present.
 - `$.basics.headline` (optional, string): Candidate headline or target positioning.
@@ -303,6 +309,7 @@ Output shape:
 Example complete JSON output:
 ```json
 {
+  "displayName": "Candidate A - Backend engineer",
   "basics": {
     "name": "Candidate A",
     "headline": "Backend engineer focused on distributed systems",

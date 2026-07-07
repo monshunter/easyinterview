@@ -172,6 +172,51 @@ describe("E2E.P0.037 resume detail read-only view + 404 fallback", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("does not poll again when an upload has failed but readable text and displayName are available", async () => {
+    const client = buildClient("default");
+    const failed: Resume = {
+      ...(getResumeFixture.scenarios.default.response.body as Resume),
+      id: RESUME_ID,
+      title: "谭章毓简历-后端工程师AI.pdf",
+      displayName: "谭章毓 - AI Infra DevOps 平台工程师",
+      sourceType: "upload",
+      parseStatus: "failed",
+      originalText: null,
+      parsedTextSnapshot:
+        "谭章毓 | AI / Infra / DevOps 平台工程师\n核心能力：AI Workflow、Kubernetes、GitOps",
+      parsedSummary: null,
+      structuredProfile: {},
+    };
+    const getResumeSpy = vi.spyOn(client, "getResume").mockResolvedValue(failed);
+
+    render(
+      <App
+        client={client}
+        requestOptions={{
+          getMe: { headers: { Prefer: "example=authenticated" } },
+        }}
+        initialRoute={{
+          name: "resume_versions",
+          params: { resumeId: RESUME_ID },
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-detail-preview-content")).toHaveTextContent(
+        "AI Workflow",
+      );
+    });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
+    expect(getResumeSpy).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getAllByRole("heading", {
+        name: "谭章毓 - AI Infra DevOps 平台工程师",
+      }).length,
+    ).toBeGreaterThanOrEqual(1);
+  });
+
   it("non-existent resumeId returns 404 without echoing fixture error.code", async () => {
     renderDetail("not-found", "ffffffff-0000-7000-8000-00000000ff04");
 

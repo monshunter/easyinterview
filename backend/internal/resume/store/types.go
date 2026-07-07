@@ -233,5 +233,6 @@ type CompleteParseFailureInput struct {
 	AssetID            string
 	ErrorCode          string
 	ParsedTextSnapshot string
+	DisplayName        *string
 	Now                time.Time
 }

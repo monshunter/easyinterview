@@ -86,6 +86,29 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 			wantSnapshot:    "张三\n后端平台工程师",
 			wantDisplayName: "后端平台工程师",
 		},
+		{
+			name: "uses explicit llm displayName before structured fallback",
+			asset: resumestore.ParseAssetRecord{
+				ID:           "asset-explicit-display-name",
+				UserID:       "user-1",
+				Language:     "zh-CN",
+				ParseStatus:  sharedtypes.TargetJobParseStatusQueued,
+				SourceType:   "paste",
+				OriginalText: "谭章毓 | AI / Infra / DevOps 平台工程师\n核心能力：AI Workflow、Kubernetes、GitOps",
+			},
+			aiContent: `{
+  "displayName": "谭章毓 - AI Infra DevOps 平台工程师",
+  "basics": {"name": "谭章毓", "headline": "平台工程师"},
+  "experiences": [],
+  "projects": [{"name": "EasyInterview"}],
+  "education": [],
+  "skills": ["AI Workflow", "Kubernetes"],
+  "languages": ["zh-CN"]
+}`,
+			wantPrompt:      "谭章毓 | AI / Infra / DevOps 平台工程师",
+			wantSnapshot:    "谭章毓 | AI / Infra / DevOps 平台工程师\n核心能力：AI Workflow、Kubernetes、GitOps",
+			wantDisplayName: "谭章毓 - AI Infra DevOps 平台工程师",
+		},
 	}
 
 	for _, tc := range cases {
@@ -312,6 +335,7 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 		wantRetry           bool
 		wantFailed          bool
 		wantFailureSnapshot string
+		wantDisplayName     string
 	}{
 		{
 			name:                "invalid json output",
@@ -319,7 +343,8 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 			job:                 targetjob.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 1, MaxAttempts: 5},
 			wantCode:            sharederrors.CodeAiOutputInvalid,
 			wantFailed:          true,
-			wantFailureSnapshot: "private resume body",
+			wantFailureSnapshot: "谭章毓 | AI / Infra / DevOps 平台工程师\n核心能力：AI Workflow、Kubernetes、GitOps",
+			wantDisplayName:     "谭章毓 - AI / Infra / DevOps 平台工程师",
 		},
 		{
 			name:                "retryable timeout before exhaustion",
@@ -328,7 +353,8 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 			wantCode:            sharederrors.CodeAiProviderTimeout,
 			wantRetry:           true,
 			wantFailed:          true,
-			wantFailureSnapshot: "private resume body",
+			wantFailureSnapshot: "谭章毓 | AI / Infra / DevOps 平台工程师\n核心能力：AI Workflow、Kubernetes、GitOps",
+			wantDisplayName:     "谭章毓 - AI / Infra / DevOps 平台工程师",
 		},
 		{
 			name:                "retryable timeout exhausted",
@@ -337,7 +363,8 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 			wantCode:            sharederrors.CodeAiProviderTimeout,
 			wantRetry:           true,
 			wantFailed:          true,
-			wantFailureSnapshot: "private resume body",
+			wantFailureSnapshot: "谭章毓 | AI / Infra / DevOps 平台工程师\n核心能力：AI Workflow、Kubernetes、GitOps",
+			wantDisplayName:     "谭章毓 - AI / Infra / DevOps 平台工程师",
 		},
 	}
 
@@ -349,7 +376,7 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 				Language:     "en",
 				ParseStatus:  sharedtypes.TargetJobParseStatusQueued,
 				SourceType:   "paste",
-				OriginalText: "private resume body",
+				OriginalText: "谭章毓 | AI / Infra / DevOps 平台工程师\n核心能力：AI Workflow、Kubernetes、GitOps",
 			}}
 			handler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
 				Store:    store,
@@ -371,13 +398,16 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 				if store.failure.ParsedTextSnapshot != tc.wantFailureSnapshot {
 					t.Fatalf("failure snapshot = %q, want %q", store.failure.ParsedTextSnapshot, tc.wantFailureSnapshot)
 				}
+				if store.failure.DisplayName == nil || *store.failure.DisplayName != tc.wantDisplayName {
+					t.Fatalf("failure display name = %#v, want %s", store.failure.DisplayName, tc.wantDisplayName)
+				}
 			} else if store.failure != nil {
 				t.Fatalf("retryable non-exhausted failure should not mark resume failed: %+v", store.failure)
 			}
 			if store.success != nil {
 				t.Fatalf("failure must not write completed outbox: %+v", store.success)
 			}
-			if strings.Contains(outcome.ErrorMessage, "private resume body") {
+			if strings.Contains(outcome.ErrorMessage, "AI / Infra / DevOps") {
 				t.Fatalf("outcome leaked resume body: %+v", outcome)
 			}
 		})
@@ -575,6 +605,7 @@ func TestParseHandlerPIIRedlineForLogsAuditTaskRunsAndOutbox(t *testing.T) {
 }
 
 const validResumeParseJSON = `{
+  "displayName": "Ada Lovelace - Engineer",
   "basics": {"name": "Ada Lovelace"},
   "experiences": [{"company": "Analytical Engines", "title": "Engineer", "start": "2024-01", "end": "", "summary": "Built systems", "bullets": ["Led platform work"]}],
   "projects": [],

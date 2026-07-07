@@ -1,6 +1,6 @@
 # Backend Resume Spec
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: active
 > **更新日期**: 2026-07-07
 
@@ -55,7 +55,7 @@
 | D-7 | listResumes pagination | 默认 pageSize=20，cursor 分页；返回 `PaginatedResume` | 与 [B2 D-5](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围) 分页规则一致 |
 | D-8 | Resume side-effect operation 必带 IK | `registerResume` / `updateResume` / `duplicateResume` / `archiveResume` / `exportResume` / `requestResumeTailor` 共 6 个 side-effect operation 必带 `Idempotency-Key` | 防止网络抖动产生重复 resume、重复改写请求或重复归档 / 导出请求 |
 | D-13 | 简历资产扁平化 | 当前合同是单一扁平 `resumes` 表 + 9 个 op：`registerResume` / `getResume` / `listResumes` / `updateResume` / `duplicateResume` / `archiveResume` / `exportResume` / `requestResumeTailor` / `getResumeTailorRun`。`registerResume` + parse 直接写当前 resume 的 `structured_profile`；`requestResumeTailor` / `getResumeTailorRun` 的 run + suggestions 落在 `ai_task_runs` task 输出；客户端采纳后通过 `updateResume` 覆盖或 `duplicateResume` 另存 | 对齐 [B2 D-26](../openapi-v1-contract/spec.md)、[B4 D-22](../db-migrations-baseline/spec.md)、[B3 D-17](../event-and-outbox-contract/spec.md) 与 [B1 D-20](../shared-conventions-codified/spec.md) |
-| D-14 | parse-derived displayName | `resume.parse` 成功后从 LLM 结构化结果中派生可读 `display_name`，优先组合候选人姓名与标题 / 岗位 / 项目名称；不得把通用“上传的简历 / 粘贴的简历”或 raw resume 第一行作为 ready 完成态名称写回 | 支撑前端列表和只读详情展示 LLM-derived 可识别简历名称，避免用户看到无意义标题或正文首行 |
+| D-14 | parse-derived displayName | `resume.parse` 输出合同必须显式要求可读 `displayName`，并由后端校验为非通用、非文件名、非 raw 第一行直出；成功路径优先使用 LLM `displayName`，再从结构化结果组合候选人姓名与标题 / 岗位 / 项目名称。若 LLM 输出失败但可读正文已抽取，失败路径也必须写入一个保守的 extracted-text fallback `display_name`，不得长期保留空值或通用“上传/粘贴的简历” | 支撑前端列表和只读详情展示可识别名称，避免用户看到无意义标题、正文首行、PDF 文件名或长期“名称生成中” |
 | D-15 | upload text snapshot | upload 简历的 `parsed_text_snapshot` 必须来自文件正文提取，而不是文件名、截断文件片段、PDF literal 乱码或二进制 bytes 直转 string；PDF / DOCX / Markdown / text 至少覆盖当前上传白名单；PDF 读取预算必须覆盖真实浏览器生成简历文件所需的 xref / 字体映射，优先使用 `pdftotext` 获取可读正文，所有 fallback 都必须通过可读性 gate；若可读正文已抽取成功，后续 LLM 输出失败也必须保留该 snapshot | 详情页上传后能展示原始简历正文，LLM prompt 也消费同一可读文本，原文预览不依赖结构化解析成功 |
 
 ### 3.2 待确认事项
@@ -110,8 +110,8 @@
 |----|------|-------|------|------|-----------|
 | C-1 | registerResume (upload) 主路径 | 已登录 + 有效 file_object (purpose=resume) + IK | 调 `POST /api/v1/resumes` `{sourceType: upload, fileObjectId, title, language}` | 返回 202 + `ResumeWithJob{resumeId, job(jobType=resume_parse, status=queued)}`；DB `resumes` 行 `parse_status='queued'`；触发 `resume.parse` async job | 001-asset-register-parse-and-listing |
 | C-2 | registerResume (paste) | sourceType=paste with rawText | 调 register | 同 C-1 行为，但 `resumes.file_object_id` 为 NULL；paste 写 `source_type='paste'` + `original_text`；`parsed_text_snapshot` / `structured_profile` 仅由 parse job 后续写入 | 001 |
-| C-3 | resume.parse async 完成 | resume.parse job consumer 处理 queued 行 | 通过 [A3 AIClient](../ai-provider-and-model-routing/spec.md) 调 model + parse JSON | DB `resumes.parse_status='ready'` + `parsed_summary` / readable `parsed_text_snapshot` / `structured_profile` 写入；upload PDF / DOCX / Markdown / text 的 snapshot 是完整文件正文提取结果，不是文件名、截断文件片段、PDF literal 乱码或二进制 bytes；从 LLM structured output 派生非通用 `display_name`，无法可靠派生时保留现有名称；触发 outbox `resume.parse.completed`（envelope `resumeId` 等字段集 [B3 §3.1.4](../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory) 一致）；ai_task_runs 行写入 typed columns | 001 |
-| C-4 | resume.parse 失败 retryable | AI provider 返回 timeout / output_invalid | resume.parse 失败 | DB `resumes.parse_status='failed'` + 对应 `error_code`；若 upload / paste 正文已抽取成功，`parsed_text_snapshot` 仍写入并可供详情只读显示；retryable 由 `async_jobs` attempt metadata 表达；失败路径不发 `resume.parse.completed`；privacy 红线：error 不含 prompt / response 摘要 | 001 |
+| C-3 | resume.parse async 完成 | resume.parse job consumer 处理 queued 行 | 通过 [A3 AIClient](../ai-provider-and-model-routing/spec.md) 调 model + parse JSON | DB `resumes.parse_status='ready'` + `parsed_summary` / readable `parsed_text_snapshot` / `structured_profile` 写入；upload PDF / DOCX / Markdown / text 的 snapshot 是完整文件正文提取结果，不是文件名、截断文件片段、PDF literal 乱码或二进制 bytes；从 LLM `displayName` 或 structured output 派生非通用 `display_name`，无法可靠派生时保留现有名称；触发 outbox `resume.parse.completed`（envelope `resumeId` 等字段集 [B3 §3.1.4](../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory) 一致）；ai_task_runs 行写入 typed columns | 001 |
+| C-4 | resume.parse 失败 retryable | AI provider 返回 timeout / output_invalid | resume.parse 失败 | DB `resumes.parse_status='failed'` + 对应 `error_code`；若 upload / paste 正文已抽取成功，`parsed_text_snapshot` 仍写入并可供详情只读显示，同时写入非通用、非文件名、非 raw 第一行直出的 fallback `display_name`；retryable 由 `async_jobs` attempt metadata 表达；失败路径不发 `resume.parse.completed`；privacy 红线：error 不含 prompt / response 摘要 | 001 |
 | C-5 | listResumes pagination | 用户 A 有 25 个 resume | 调 `GET /api/v1/resumes?pageSize=20` 然后 cursor | 第一页返回 20 行 + `pageInfo.nextCursor`；第二页返回 5 行 + `hasMore=false`；按 `updated_at DESC, id DESC` 唯一稳定序排序；cross-user 不可见 | 001 |
 | C-6 | cross-user 隔离 | 用户 A 有 resume；用户 B 调 `getResume(A.resumeId)` | – | 404；不暴露存在；audit_events 不写入敏感字段 | 001 + 后续 plan |
 | C-7 | IK replay | register 同 IK 重复调用 | – | 返回首次 `resumeId`；不创建新 DB 行 | 001 |

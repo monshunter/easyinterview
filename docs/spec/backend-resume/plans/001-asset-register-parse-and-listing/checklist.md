@@ -1,6 +1,6 @@
 # Backend Resume Asset Register Parse and Listing Checklist
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
 > **更新日期**: 2026-07-07
 
@@ -83,3 +83,10 @@
 - [x] 9.2 `CreateWithParseJob` 创建 queued resume 时只保存来源 `title`，不写 `display_name`；ready 后只由 parse success 写入 LLM-derived `display_name`（验证：`cd backend && go test ./internal/resume/store -run 'TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady|TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1` PASS）<!-- verified: 2026-07-07 method=go-test+scenario -->
 - [x] 9.3 `resume.parse` upload 对象读取预算覆盖真实浏览器生成 PDF，不因 256KiB 截断导致 `parsed_text_snapshot` 为空，并拒绝 PDF literal / binary 乱码正文（验证：`cd backend && go test ./internal/resume/jobs -run 'TestParseHandlerRejectsUnreadablePDFText|TestParseHandlerExtractsReadableUploadText' -count=1` PASS，assert read budget >= 554631 bytes；local UAT 真实 PDF snapshot 以中文正文开头）<!-- verified: 2026-07-07 method=go-test+local-uat -->
 - [x] 9.4 `resume.parse` 在已抽取正文后遇到 AI provider / AI output 失败，仍写入 `parsed_text_snapshot` 供只读详情显示，且不发 completed event（验证：`cd backend && go test ./internal/resume/jobs -run TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox -count=1` PASS；`cd backend && go test ./internal/resume/store -run TestCompleteParseFailureCanPersistExtractedTextSnapshot -count=1` PASS；local UAT 真实 PDF `parse_status=failed` / `AI_OUTPUT_INVALID` 时 snapshot_len=3083）<!-- verified: 2026-07-07 method=go-test+local-uat -->
+
+## Phase 10: Display name robustness and prompt contract hardening
+
+- [x] 10.1 `resume.parse` prompt schema / prompt body 显式要求 required `displayName`，并更新 prompt hash；验证: `make lint-prompts`。<!-- verified: 2026-07-07 method=lint command="make lint-prompts" -->
+- [x] 10.2 `decodeResumeParseResponse` 优先使用 AI `displayName`，并拒绝通用上传/粘贴标题、上传文件名和 raw 第一行直出；验证: `cd backend && go test ./internal/resume/jobs -run TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox -count=1`。<!-- verified: 2026-07-07 method=go-test -->
+- [x] 10.3 AI provider / output 失败但已有可读正文时，`CompleteParseFailure` 同时写入 fallback `display_name`，确保 failed-with-snapshot 详情不再长期显示“名称生成中”；验证: `cd backend && go test ./internal/resume/jobs -run TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox -count=1` 与 `cd backend && go test ./internal/resume/store -run TestCompleteParseFailureCanPersistExtractedTextSnapshot -count=1`。<!-- verified: 2026-07-07 method=go-test -->
+- [x] 10.4 `ResumeDetailView` / `useResumeAsset` 对 `failed` 或已有正文的上传详情停止轮询 `getResume`，避免同一详情 URL 重复请求；验证: `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/components/ResumeDetailView.test.tsx`。<!-- verified: 2026-07-07 method=vitest -->

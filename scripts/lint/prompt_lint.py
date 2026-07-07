@@ -123,6 +123,7 @@ FEATURE_CONTRACTS = {
     "resume.parse": {
         "type": "object",
         "required_paths": {
+            "$.displayName",
             "$.basics",
             "$.experiences",
             "$.projects",
@@ -608,6 +609,7 @@ ENUM_EXAMPLE_BY_PATH = {
 }
 
 STRING_EXAMPLE_BY_PATH = {
+    "$.displayName": "Candidate A - Backend engineer",
     "$.basics.name": "Candidate A",
     "$.dimension_scores[].name": "System design",
     "$.dimension_scores[].reasoning": "Clear architecture tradeoffs, but limited quantified impact.",

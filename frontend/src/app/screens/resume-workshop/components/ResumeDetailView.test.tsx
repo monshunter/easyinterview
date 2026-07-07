@@ -185,6 +185,40 @@ describe("ResumeDetailView read-only contract", () => {
     expect(screen.queryByTestId("resume-preview-confirm")).not.toBeInTheDocument();
   });
 
+  it("does not keep polling a failed upload once a readable snapshot is available", async () => {
+    const client = buildClient("default");
+    const failedWithSnapshot: Resume = {
+      ...(getResumeFixture.scenarios.default.response.body as Resume),
+      id: RESUME_ID,
+      title: "谭章毓简历-后端工程师AI.pdf",
+      displayName: "谭章毓 - AI Infra DevOps 平台工程师",
+      sourceType: "upload",
+      parseStatus: "failed",
+      originalText: null,
+      parsedTextSnapshot:
+        "谭章毓 | AI / Infra / DevOps 平台工程师\n核心能力：AI Workflow、Kubernetes、GitOps",
+      parsedSummary: null,
+      structuredProfile: {},
+    };
+    const getResumeSpy = vi
+      .spyOn(client, "getResume")
+      .mockResolvedValue(failedWithSnapshot);
+
+    renderDetailWithClient(client, {
+      name: "resume_versions",
+      params: { resumeId: RESUME_ID },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-detail-preview-content")).toHaveTextContent(
+        "AI Workflow",
+      );
+    });
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
+    expect(getResumeSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("shows a retryable detail error for non-404 getResume failures", async () => {
     const client = buildClient("default");
     const getResumeSpy = vi

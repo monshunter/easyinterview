@@ -2,6 +2,7 @@
   "type": "object",
   "description": "Structured resume summary parsed from supplied resume text.",
   "required": [
+    "displayName",
     "basics",
     "experiences",
     "projects",
@@ -10,6 +11,10 @@
     "languages"
   ],
   "properties": {
+    "displayName": {
+      "type": "string",
+      "description": "Short meaningful resume name for UI display, derived from candidate name plus headline, role, or strongest technical positioning; never use uploaded/pasted resume, the file name, or a raw first-line copy."
+    },
     "basics": {
       "type": "object",
       "description": "Basic candidate identity and contact summary.",

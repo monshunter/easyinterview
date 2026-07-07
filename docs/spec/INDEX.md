@@ -55,7 +55,7 @@
 | [backend-review](./backend-review/spec.md) | 1.3 | active | 2026-07-07 | [plans](./backend-review/plans/) |
 | [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.6 | active | 2026-07-07 | [plans](./practice-voice-mvp/plans/) |
 | [backend-upload](./backend-upload/spec.md) | 1.3 | active | 2026-07-07 | [plans](./backend-upload/plans/) |
-| [backend-resume](./backend-resume/spec.md) | 2.0 | active | 2026-07-07 | [plans](./backend-resume/plans/) |
-| [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 2.1 | active | 2026-07-07 | [plans](./frontend-resume-workshop/plans/) |
+| [backend-resume](./backend-resume/spec.md) | 2.1 | active | 2026-07-07 | [plans](./backend-resume/plans/) |
+| [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 2.2 | active | 2026-07-07 | [plans](./frontend-resume-workshop/plans/) |
 | [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.6 | active | 2026-07-07 | [plans](./frontend-report-dashboard/plans/) |
 | [e2e-scenarios-p0](./e2e-scenarios-p0/spec.md) | 1.8 | active | 2026-07-06 | [plans](./e2e-scenarios-p0/plans/) |

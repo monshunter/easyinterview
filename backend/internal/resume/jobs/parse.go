@@ -33,6 +33,8 @@ const defaultMaxResumeInputBytes int64 = 8 * 1024 * 1024
 
 var ErrPromptUnsupported = errors.New("prompt registry: feature/language is not enabled")
 
+var resumeFileNamePattern = regexp.MustCompile(`(?i)\.(pdf|docx?|txt|md|markdown)$`)
+
 type PromptResolution struct {
 	PromptVersion       string
 	RubricVersion       string
@@ -153,7 +155,7 @@ func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) tar
 		code, retryable := translateAIClientError(err)
 		return h.fail(ctx, asset, job, code, err.Error(), retryable, input)
 	}
-	parsed, displayName, err := decodeResumeParseResponse(complete.Content)
+	parsed, displayName, err := decodeResumeParseResponse(complete.Content, input)
 	if err != nil {
 		return h.fail(ctx, asset, job, sharederrors.CodeAiOutputInvalid, err.Error(), false, input)
 	}
@@ -420,6 +422,7 @@ func (h *ParseHandler) fail(ctx context.Context, asset resumestore.ParseAssetRec
 		AssetID:            asset.ID,
 		ErrorCode:          code,
 		ParsedTextSnapshot: parsedTextSnapshot,
+		DisplayName:        deriveDisplayNameFromResumeText(parsedTextSnapshot),
 		Now:                h.now(),
 	}); err != nil {
 		return targetjob.JobOutcome{
@@ -451,7 +454,7 @@ func buildPromptMessages(resolution PromptResolution, resumeText string) []aicli
 	return messages
 }
 
-func decodeResumeParseResponse(content string) (json.RawMessage, *string, error) {
+func decodeResumeParseResponse(content string, resumeText string) (json.RawMessage, *string, error) {
 	content = strings.TrimSpace(content)
 	if content == "" {
 		return nil, nil, fmt.Errorf("AI response content was empty")
@@ -469,10 +472,13 @@ func decodeResumeParseResponse(content string) (json.RawMessage, *string, error)
 	if err != nil {
 		return nil, nil, fmt.Errorf("marshal parsed resume summary: %w", err)
 	}
-	return raw, deriveResumeDisplayName(parsed), nil
+	return raw, deriveResumeDisplayName(parsed, resumeText), nil
 }
 
-func deriveResumeDisplayName(parsed map[string]any) *string {
+func deriveResumeDisplayName(parsed map[string]any, resumeText string) *string {
+	if displayName := normalizeDisplayNameCandidate(fieldString(parsed, "displayName"), resumeText); displayName != "" {
+		return stringPtr(truncateDisplayName(displayName))
+	}
 	name := fieldString(objectField(parsed, "basics"), "name")
 	headline := firstNonEmpty(
 		fieldString(objectField(parsed, "basics"), "headline"),
@@ -543,13 +549,102 @@ func firstNonEmpty(values ...string) string {
 }
 
 func normalizeDisplayNamePart(value string) string {
-	value = strings.Join(strings.Fields(value), " ")
-	switch strings.ToLower(value) {
+	return normalizeDisplayNameCandidate(value, "")
+}
+
+func normalizeDisplayNameCandidate(value string, resumeText string) string {
+	value = strings.TrimSpace(strings.TrimPrefix(strings.Join(strings.Fields(value), " "), "#"))
+	value = strings.TrimSpace(value)
+	lower := strings.ToLower(value)
+	switch lower {
 	case "", "pasted resume", "paste resume", "pasted text", "paste text", "uploaded resume", "upload resume", "uploaded file", "upload file", "粘贴的简历", "粘帖的简历", "上传的简历":
 		return ""
-	default:
-		return value
 	}
+	if looksLikeResumeFileName(value) {
+		return ""
+	}
+	if resumeText != "" && isSameDisplayName(value, firstResumeTextLine(resumeText)) {
+		return ""
+	}
+	return value
+}
+
+func looksLikeResumeFileName(value string) bool {
+	return resumeFileNamePattern.MatchString(strings.TrimSpace(value))
+}
+
+func isSameDisplayName(left string, right string) bool {
+	return strings.EqualFold(strings.Join(strings.Fields(left), " "), strings.Join(strings.Fields(right), " "))
+}
+
+func firstResumeTextLine(value string) string {
+	for _, line := range strings.Split(value, "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			return line
+		}
+	}
+	return ""
+}
+
+func deriveDisplayNameFromResumeText(value string) *string {
+	lines := resumeSignalLines(value)
+	if len(lines) == 0 {
+		return nil
+	}
+	if name, headline := splitNameHeadlineLine(lines[0]); name != "" && headline != "" {
+		return stringPtr(truncateDisplayName(name + " - " + headline))
+	}
+	if len(lines) >= 2 {
+		name := normalizeDisplayNameCandidate(lines[0], "")
+		headline := normalizeDisplayNameCandidate(lines[1], "")
+		if name != "" && headline != "" && !isContactLikeLine(headline) && !isSameDisplayName(name, headline) {
+			return stringPtr(truncateDisplayName(name + " - " + headline))
+		}
+	}
+	return nil
+}
+
+func resumeSignalLines(value string) []string {
+	rawLines := strings.Split(normalizeExtractedResumeText(value), "\n")
+	lines := make([]string, 0, len(rawLines))
+	for _, line := range rawLines {
+		line = strings.TrimSpace(strings.TrimPrefix(line, "#"))
+		line = strings.TrimSpace(line)
+		if line == "" || isContactLikeLine(line) {
+			continue
+		}
+		lines = append(lines, line)
+		if len(lines) >= 4 {
+			break
+		}
+	}
+	return lines
+}
+
+func splitNameHeadlineLine(line string) (string, string) {
+	for _, sep := range []string{" | ", "｜", " - ", " — ", " – ", " · "} {
+		parts := strings.Split(line, sep)
+		if len(parts) < 2 {
+			continue
+		}
+		name := normalizeDisplayNameCandidate(parts[0], "")
+		headline := normalizeDisplayNameCandidate(strings.Join(parts[1:], " "), "")
+		if name != "" && headline != "" && !isContactLikeLine(headline) {
+			return name, headline
+		}
+	}
+	return "", ""
+}
+
+func isContactLikeLine(value string) bool {
+	lower := strings.ToLower(value)
+	return strings.Contains(lower, "@") ||
+		strings.Contains(lower, "github") ||
+		strings.Contains(lower, "phone") ||
+		strings.Contains(lower, "email") ||
+		strings.Contains(value, "电话") ||
+		strings.Contains(value, "邮箱")
 }
 
 func truncateDisplayName(value string) string {

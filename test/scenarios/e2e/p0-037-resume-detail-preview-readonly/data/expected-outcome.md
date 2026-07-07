@@ -2,10 +2,11 @@
 
 trigger.log 含：
 
-- `Tests  5 passed (5)`
+- `Tests  6 passed (6)`
 - `Test Files  1 passed (1)`
 - 测试文件路径 `src/app/scenarios/p0-037-resume-detail-preview-readonly.test.tsx`
 - pending upload detail 会轮询 `getResume` 直到展示提取后的原文正文和 LLM-derived `displayName`
+- failed-with-snapshot upload detail 只请求一次 `getResume`，直接展示正文与 backend generated `displayName`
 
 verify.sh 在 trigger.log 中校验：
 
