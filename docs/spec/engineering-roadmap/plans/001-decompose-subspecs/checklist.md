@@ -1,44 +1,49 @@
 # Roadmap Rebaseline and Subspec Governance Checklist
 
-> **版本**: 3.3
+> **版本**: 3.4
 > **状态**: completed
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-07-06
 
 **关联计划**: [plan](./plan.md)
 
-## Phase 1: 历史完成事实保留
+## Phase 1: 当前 truth source 投影
 
-- [x] 1.1 保留 ADR-Q1..Q6 作为当前认证、异步、分析、部署、隐私和 AI 路由架构约束；验证: roadmap spec v3.0 §3.2 仍链接并摘要 6 项 ADR
-- [x] 1.2 保留当前已存在的 active foundation / contract / quality spec，不删除 A1-A5、B1-B4、F1、F3；验证: roadmap spec v3.0 §5.1 列出当前 active spec 清单
-- [x] 1.3 将旧 “38 child pending INDEX” 任务改为历史事实，不再作为当前执行模型；验证: roadmap plan v3.0 §4 Phase 1 / Phase 2 明确关闭 pending 模型
+- [x] 1.1 ADR-Q1..Q6 作为当前认证、异步、分析、部署、隐私和 AI 路由架构约束投影到 roadmap spec。
+  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="engineering-roadmap spec v3.29 keeps ADR-Q1..Q6 as current constraints; plan v3.4 describes them as architecture constraints rather than spawn drivers." -->
+- [x] 1.2 当前基础、契约、质量、产品和 UI owner spec 作为后续实施依赖。
+  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 1.2 and roadmap spec current workstream table point implementation to active owner specs and coded truth sources." -->
+- [x] 1.3 `docs/spec/INDEX.md` 只投影真实存在且 Header 合规的 spec。
+  <!-- verified: 2026-07-06 method=sync-doc-index evidence="sync-doc-index --fix-index updated engineering-roadmap plan index and docs/spec index during product-scope 1.38; follow-up sync-doc-index --check PASS." -->
 
-## Phase 2: Roadmap rebaseline
+## Phase 2: Roadmap 当前实施地图
 
-- [x] 2.1 对齐产品与 UI 真理源：读取 product-scope、docs/ui-design 与 ui-design/src/app.jsx 当前模块 / 路由 / 删除范围；验证: roadmap spec v3.0 §4.1 只保留当前 UI 范围
-- [x] 2.2 重写 `engineering-roadmap/spec.md` 为当前实施地图；验证: spec Header 版本 3.0，§5.2 只列 P0 workstream 候选，§5.3 只列 future candidates
-- [x] 2.3 修订本 plan、checklist、context 和 plans/INDEX；验证: 本文件、plan.md、context.yaml、plans/INDEX Header / row 均为 3.0
-- [x] 2.4 删除 `docs/spec/INDEX.md` 中所有 `_pending_` 行和待 spawn 分组；验证: INDEX 只包含真实存在的 spec link row
-- [x] 2.5 同步 product-scope 中指向旧 engineering-roadmap v2.2 的交叉引用；验证: product-scope spec/history 更新到 v1.5
-- [x] 2.6 验证文档一致性：`validate_context.py`、`sync-doc-index --check`、`check_md_links.py docs`、`git diff --check` 全部通过（2026-05-03：四项均通过；`sync-doc-index --check` zero drift）
+- [x] 2.1 对齐 `product-scope`、`docs/ui-design/` 与 `ui-design/src/app.jsx` 当前模块、route、上下文和非当前边界。
+  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 2.1 names product-scope, docs/ui-design, and ui-design/src/app.jsx as the current truth sources." -->
+- [x] 2.2 `engineering-roadmap/spec.md` 只描述当前 truth source 关系、active owner、P0 workstream、future candidates、实施顺序和验收标准。
+  <!-- verified: 2026-07-06 method=engineering-roadmap-current-map-wording-reconcile evidence="engineering-roadmap spec v3.29 updated background, scope, decisions, constraints, workstreams, implementation sequence, and acceptance criteria to current execution-map wording." -->
+- [x] 2.3 修订本 plan、checklist、context 和 plans/INDEX 为 roadmap rebaseline、按需 child 创建和 no-pending INDEX 合同。
+  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan/checklist bumped to v3.4; context specVersion.to bumped to 3.29 and discovery keywords now use current-map / no-pending / non-current-boundary wording." -->
+- [x] 2.4 交叉引用和索引投影指向当前 roadmap 版本和当前 plan 版本。
+  <!-- verified: 2026-07-06 method=sync-doc-index evidence="sync-doc-index --fix-index updated docs/spec/INDEX.md engineering-roadmap version to 3.29 and product-scope plans INDEX to 1.38; engineering-roadmap plans INDEX will project plan v3.4 after this checklist update." -->
+- [x] 2.5 文档一致性验证通过。
+  <!-- verified: 2026-07-06 method=docs-gates evidence="validate_context.py engineering-roadmap/001 docs PASS; sync-doc-index --check PASS; make docs-check PASS; git diff --check PASS." -->
 
-## Phase 3: 后续 P0 workstream 创建规则
+## Phase 3: 后续 child 创建规则
 
-- [x] 3.1 创建任一 P0 workstream child spec 前，确认 product-scope 和 UI 文档已保留对应用户行为或工程能力
-  <!-- verified: 2026-05-05 evidence=plan.md Phase 3.1 and engineering-roadmap spec §4.2/§5.2; this item records the future creation rule only and does not create a child spec -->
-- [x] 3.2 创建任一 child plan 时同步生成 `context.yaml`、`plan.md`、`checklist.md`，涉及用户行为时同步 BDD plan / checklist
-  <!-- verified: 2026-05-05 evidence=plan.md Phase 3.1 and engineering-roadmap spec §4.2/§7 C-5; this item records the future plan-completeness rule only -->
-- [x] 3.3 涉及代码逻辑的 child plan 必须通过 `/implement` -> `/tdd` 执行，并按 checklist 顺序即时更新
-  <!-- verified: 2026-05-05 evidence=plan.md Phase 3.1 and engineering-roadmap spec §4.2; this item records the future execution rule only -->
-- [x] 3.4 Future candidates（readiness、retrieval、privacy export、source intel、production voice、multi-platform job search）不得提前创建空 spec / empty plan / INDEX pending row
-  <!-- verified: 2026-05-05 evidence=engineering-roadmap spec §5.3/§6.5; no new future candidate spec or pending INDEX row was created -->
+- [x] 3.1 创建 child spec / plan 前必须确认 `product-scope` 与 UI 真理源已明确保留对应用户行为或工程能力。
+  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 3.1 records current behavior / engineering capability as the first creation precondition." -->
+- [x] 3.2 创建 child plan 时必须同步 `context.yaml`、`plan.md`、`checklist.md`，涉及用户行为时同步 BDD plan / checklist。
+  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 3.1 records paired context, plan, checklist, TDD, and BDD requirements." -->
+- [x] 3.3 Future candidates 只有在产品 / UI / 合规设计确认后才创建 owner 文档。
+  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 3.3 and roadmap spec future candidate section keep future items out of INDEX and owner packages until design confirmation." -->
 
-## Phase 4: 已迁移技术草稿移除
+## Phase 4: 技术草稿引用边界
 
-- [x] 4.1 product-scope §1.5 持有当前技术契约 owner matrix，roadmap 只消费当前 owner spec / coded truth source
-  <!-- verified: 2026-05-05 evidence=product-scope spec §1.5 + engineering-roadmap spec D-3/C-7 + plan Phase 4.1 -->
-- [x] 4.2 删除或改写已迁移技术草稿的目录名、文件名和旧 shorthand，所有责任改由当前 owner spec / coded truth source 表述
-  <!-- verified: 2026-05-05 evidence=retired-name zero-reference search returned no matches; make docs-check passed -->
-- [x] 4.3 `shared/conventions.yaml`、codegen source 与 generated artifacts 不再把已迁移技术草稿称为外部真理源
-  <!-- verified: 2026-05-05 evidence=external-truth negative search in shared/scripts returned no matches; conventions_yaml.py lint passed -->
-- [x] 4.4 删除前 gate 固化到 engineering-roadmap spec / plan：retired-name zero-reference search、Header/INDEX check、Markdown link check、diff check 必须通过
-  <!-- verified: 2026-05-05 evidence=validate_context.py passed; sync-doc-index --check zero drift; make docs-check passed; retired-name zero-reference search returned no matches; git diff --check passed -->
+- [x] 4.1 `product-scope` §1.5 持有当前技术契约 owner matrix，roadmap 只消费当前 owner spec / coded truth source。
+  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 4.1 points technical contract ownership to product-scope §1.5 owner matrix." -->
+- [x] 4.2 当前项目文档、代码注释、生成源、生成物、日志与报告不得把非当前技术草稿目录名或文件名作为 truth source。
+  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 4.2 records technical-draft zero-reference as the current boundary." -->
+- [x] 4.3 `shared/conventions.yaml`、lint 脚本、codegen source 与 generated artifacts 的字段和 gate 归属到当前 owner。
+  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 4.3 assigns shared conventions, OpenAPI, DB, event, and observability gates to current owners." -->
+- [x] 4.4 Technical-draft zero-reference gate 固化到本 plan。
+  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 4.4 requires zero-reference checks for directory names, filenames, shorthand, Markdown links, implementation prerequisites, and external truth-source wording." -->

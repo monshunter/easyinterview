@@ -1,8 +1,8 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.18
+> **版本**: 2.19
 > **状态**: active
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-07
 
 ## 1 背景与目标
 
@@ -69,7 +69,7 @@
 | D-7 | 观测埋点强制 | A3 注册 7 个 metric family；每次调用必须产出 run / latency / token / cost 指标 + DB 行 + log；fallback / validation failure 指标只在对应事件发生时递增 | F1 dashboard 可信且 counter 语义正确 |
 | D-8 | 隐私字段红线 | log / metric / DB metadata 字段中绝不出现明文 prompt / response；只允许 hash / 长度 / profile | 与 ADR-Q5 / logging 标准对齐 |
 | D-9 | OpenAI-compatible API 协议子集 | 当前可执行协议是 Chat Completions + chat streaming SSE + Audio Transcriptions + Chat tool-call wire 子集；provider-specific speech protocol 由 `doubao_speech` / `minimax_speech` 独立实现；realtime / judge 进入后续 owner plan 前必须 fail-closed | 主流 chat provider 可即插即用，同时避免假承诺 speech / realtime / judge 都兼容同一 wire shape |
-| D-9a | 当前开发 provider / model | 当前开发主力 provider ref 为 `deepseek`；chat profile 只允许 `deepseek-v4-flash` / `deepseek-v4-pro`，不得使用兼容旧别名 | 本地开发与未来部署前的 AI 调用口径稳定且可审计 |
+| D-9a | 当前开发 provider / model | 当前开发主力 provider ref 为 `deepseek`；chat profile 只允许 `deepseek-v4-flash` / `deepseek-v4-pro`，不得使用 non-current alias | 本地开发与未来部署前的 AI 调用口径稳定且可审计 |
 | D-10 | F3 profile 覆盖 | F3 baseline feature_key 必须全部能解析到 A3 profile catalog；P1/P2 capability 可先以 `status=disabled` / `status=unsupported` profile 占位，并写明 `unsupported_reason`，但不得缺命名空间 | 业务域开工前具备完整 AI 调用坐标 |
 | D-11 | Product/UI capability inventory | A3 spec 必须维护产品 / UI AI 场景到 capability family 的映射；新增 AI 场景必须先修订本表与 F3 feature_key / profile 字典 | 防止新业务回到单模型假设 |
 | D-12 | B1 AI vocabulary 边界 | `chat/stt/tts/realtime/judge` capability、provider registry/profile 字段名、AI meta 字段名与 provider/profile routing `AI_*` 错误码由 B1 生成；A3 只 alias / consume，不私造跨边界常量 | 防止 Go/TS/OpenAPI 与 runtime 常量漂移 |
@@ -147,10 +147,10 @@
 | Profile 文件内容 | F3 + 各 AI feature owner | F3 owns feature_key -> model_profile_name；A3 owns profile schema；业务 owner 负责新增场景时补 profile |
 | Profile 文件路径 / secret 注入 | A4 | `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 与 provider-specific env secret ref |
 | 真实 provider endpoint | A3 + A4 + E4/运维 | 非测试本地 app run 可直连真实 AI provider；未来 staging / prod 可接运维提供的 provider endpoint；本 spec 不部署独立代理 |
-| 业务调用现场 | `backend-targetjob` / `backend-practice` / `backend-review` / `backend-resume` / future retrieval / production voice owners | 各业务 spec / plan 引用 profile name，不引用 provider/model；`backend-debrief` 已随 product-scope D-22 删除 |
+| 业务调用现场 | `backend-targetjob` / `backend-practice` / `backend-review` / `backend-resume` / future retrieval / production voice owners | 各业务 spec / plan 引用 profile name，不引用 provider/model；`backend-debrief` 按 product-scope D-22 不在当前范围 |
 | 共享约定 | B1 | `AI_*` 错误码、AI capability、provider registry/profile 字段名、AI meta 字段名共享常量、`ApiError` / `ApiErrorResponse` 消费约定 |
 | DB 表 | B4 | `ai_task_runs` schema |
-| Metric / Dashboard | F1 | 7 个 ai_* metric + AI Cost & Quality Dashboard；任何 label 迁移（例如从旧任务分类 label 迁到 `capability`）必须先由 F1 spec / plan 承接 |
+| Metric / Dashboard | F1 | 7 个 ai_* metric + AI Cost & Quality Dashboard；任何 label 迁移（例如从非当前任务分类 label 迁到 `capability`）必须先由 F1 spec / plan 承接 |
 | 测试 stub provider | A3 | 应用内 deterministic stub，仅供单元测试 / 离线契约测试 / 显式 mock 场景 |
 
 ## 6 验收标准
@@ -160,11 +160,11 @@
 | C-1 | Stub 单测 | 单测环境（`APP_ENV=test`，无真实 provider secret） | 业务代码调用 `aiclient.Complete(ctx, "practice.followup.default", payload)` | client 路由到 stub provider；返回结构化 response + meta；`meta.provider == "stub"`；同 input 多次调用结果一致 | 001 |
 | C-2 | Registry provider route | registry 中 `deepseek` 声明 `chat` capability，并引用 env secret | 调用 `Complete` / `Stream` | 出站 HTTP 请求命中该 provider ref 的 OpenAI-compatible endpoint；header 含 `Authorization`；`meta.provider` / `meta.capability` / `meta.model_profile_name` 正确；模型 ID 只使用 `deepseek-v4-flash` / `deepseek-v4-pro` | 003 + 002 |
 | C-3 | Central fallback | profile 声明 primary + fallback provider ref，primary 超时且 fallback 成功 | 调用 `Complete` | AIClient 执行受限 fallback，`fallback_chain` 记录 provider/model hop；`ai_fallback_total` +1；业务代码无 retry-with-different-model 循环 | 003 |
-| C-4 | Registry + profile 热加载 | A3 loader 已启动 | `config/ai-providers.yaml` 或 `config/ai-profiles.yaml` 修改后保存 | client 在 ≤ 30s 内热加载；正在进行的调用使用旧快照完成；新调用使用新快照 | 003 |
+| C-4 | Registry + profile 热加载 | A3 loader 已启动 | `config/ai-providers.yaml` 或 `config/ai-profiles.yaml` 修改后保存 | client 在 ≤ 30s 内热加载；正在进行的调用使用前一快照完成；新调用使用新快照 | 003 |
 | C-5 | 观测埋点齐全 | 任一无 fallback、无 validation failure 的调用完成 | F1 metric / log / DB 三方查询 | 7 个 metric family 均已注册；run / latency / token / cost 指标增长；fallback / validation failure counter 不增长；`ai_task_runs` + `audit_events` 各写一行，无明文 | 001 + 003 |
 | C-6 | 隐私红线 | grep 全部生产代码与 log | 任意调用 | 不出现 `payload.messages[*].content` / `response.content` 明文落 log 或 DB metadata；hash / 长度 / profile 三类摘要必须出现 | 001 + 003 |
 | C-7 | 错误码合规 | provider 返回结构化输出非法 | client `validate_output` 失败 | 返回错误码 `AI_OUTPUT_INVALID`；`ai_output_validation_failures_total` +1 | 001 |
-| C-8 | active spec relation gate | 本 spec 通过 `/plan-review` | 与当前 active spec 和 future workstream 关系审查 | A3 与 F3 / B1 / A4 / F1 / release gate 引用关系自洽；A3 不重新引入已废弃的 provider-proxy 业务语义 | plan-review |
+| C-8 | active spec relation gate | 本 spec 通过 `/plan-review` | 与当前 active spec 和 future workstream 关系审查 | A3 与 F3 / B1 / A4 / F1 / release gate 引用关系自洽；A3 不重新引入 non-current provider-proxy 业务语义 | plan-review |
 | C-9 | Registry secret fail-fast | 非测试本地 app run、未来 staging / prod 缺失 registry 选中 provider 的 base URL 或 API key | 启动 backend runtime | 进程启动失败并报配置错误；不得自动回退到 stub provider | 003 + A4 |
 | C-10 | F3 baseline profile coverage | F3 9 个 baseline feature_key 已定义默认 profile name | 运行 profile coverage lint | 每个默认 profile 在 `config/ai-profiles.yaml` catalog 中存在，且 capability / provider_ref / status 合法；允许 P1/P2 profile `disabled` / `unsupported`，但必须携带 `unsupported_reason` 且不得缺 catalog entry | 003 + F3 |
 | C-11 | Product/UI capability inventory drift | 新增 AI 场景或 UI 交互依赖 AI | `/plan-review` 或 lint 检查 | 本 spec §4.5、F3 feature_key 字典与 A3 profile catalog 同步更新；不得只在业务代码 hardcode 新 profile | 003 + F3 |

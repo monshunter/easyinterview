@@ -40,7 +40,7 @@ export const en: LocaleMessages = {
   "auth.login.eyebrow": "LOGIN",
   "auth.login.title": "Continue your interview preparation.",
   "auth.login.sub":
-    "Sign in when you want to save resumes, keep mock interview history, or sync across devices.",
+    "Sign in when you want to save resumes, keep mock interview records, or sync across devices.",
   "auth.login.helpAccount": "One email can only own one account.",
   "auth.login.helpCode":
     "Code not arriving? You can resend it or switch email on the next step.",
@@ -172,7 +172,7 @@ export const en: LocaleMessages = {
   "workspace.overview": "Overview",
   "workspace.requirements": "JD Breakdown",
   "workspace.prep": "My Preparation",
-  "workspace.practices": "Mock Interview History",
+  "workspace.practices": "Mock Interview Records",
   "workspace.timeline": "Interview Progress",
   "workspace.startCore": "Start Interview",
   "workspace.launchLabel": "Pre-Interview Confirmation",
@@ -197,7 +197,7 @@ export const en: LocaleMessages = {
   "workspace.strongs": "Strengths",
   "workspace.lastReport": "Latest Report",
   "workspace.gotoReport": "Open Full Report",
-  "workspace.notePractice": "Every question in this mock interview reads JD requirements, resume evidence, risk signals, and historical report signals.",
+  "workspace.notePractice": "Every question in this mock interview reads JD requirements, resume evidence, risk signals, and previous report signals.",
   "workspace.planEyebrowTitle": "Company · Role",
   "workspace.planEyebrowStatus": "Interviewing",
   "workspace.planEyebrowSub": "Current round · Bound resume",
@@ -211,10 +211,10 @@ export const en: LocaleMessages = {
   "workspace.jdMeta": "Company · Location · Source · Match",
   "workspace.resumeTitle": "Resume Name",
   "workspace.resumeMeta": "Version · Source",
-  "workspace.intelLabel": "Company Intel",
+  "workspace.intelLabel": "Company Signals",
   "workspace.intelTitle": "Company · Location",
   "workspace.intelSub": "Source and JD summary",
-  "workspace.intelOpen": "Open Company Intel",
+  "workspace.intelOpen": "View Summary",
   "workspace.jdCardLabel": "JD BREAKDOWN",
   "workspace.historyLabel": "Sessions",
   "workspace.historyEmpty": "Your first mock interview will appear here",
@@ -258,8 +258,10 @@ export const en: LocaleMessages = {
   "workspace.planSwitcher.cancel": "Cancel",
   "workspace.planSwitcher.selected": "Selected Context",
   "workspace.resumePicker.title": "Select Resume for This Mock Interview",
-  "workspace.resumePicker.sub": "Uploaded or generated resumes retain name, version, source, and original content.",
-  "workspace.resumePicker.disabledNote": "More resume versions will be enabled once the backend listResumes API is available",
+  "workspace.resumePicker.sub": "Choose a saved resume for this mock interview context.",
+  "workspace.resumePicker.loading": "Loading resumes...",
+  "workspace.resumePicker.error": "Failed to load resumes. Please retry.",
+  "workspace.resumePicker.empty": "No resumes are available yet. Create or upload one first.",
   "workspace.resumePicker.use": "Use This Resume",
   "workspace.resumePicker.cancel": "Cancel",
   "workspace.resumePicker.selected": "Will be used as",
@@ -270,21 +272,18 @@ export const en: LocaleMessages = {
   "workspace.errors.generic": "Something went wrong. Please retry.",
   "workspace.errors.retry": "Retry",
   "workspace.errors.backHome": "Back to Home",
-  "resumeWorkshop.notImplemented.title": "Coming soon: resume version branching",
-  "resumeWorkshop.notImplemented.body":
-    "Branching from an existing version will land in a follow-up release. Resume creation is already available.",
   "resumeWorkshop.create.back": "Back to resume workshop",
-  "resumeWorkshop.create.eyebrow": "FIRST RESUME VERSION",
+  "resumeWorkshop.create.eyebrow": "CREATE RESUME",
   "resumeWorkshop.create.title":
     "Start from a file or pasted text.",
   "resumeWorkshop.create.subtitle":
-    "We keep the original source, parse it into a structured resume, and save both as a version you can revise later.",
+    "We keep the original source and parse it into an editable structured resume.",
   "resumeWorkshop.create.tabs.upload": "Upload",
   "resumeWorkshop.create.tabs.paste": "Paste",
   "resumeWorkshop.create.upload.dropzoneTitle":
     "Drop a PDF / DOCX / Markdown resume",
   "resumeWorkshop.create.upload.dropzoneBody":
-    "The source file is stored as the original version. Parsed sections become your editable structured resume.",
+    "The source file is stored as the original source. Parsed sections become your editable structured resume.",
   "resumeWorkshop.create.upload.choose": "Choose file",
   "resumeWorkshop.create.upload.selectedPrefix": "Selected: ",
   "resumeWorkshop.create.upload.uploading": "Uploading…",
@@ -292,7 +291,7 @@ export const en: LocaleMessages = {
   "resumeWorkshop.create.paste.placeholder": "Paste your resume text here…",
   "resumeWorkshop.create.paste.helper":
     "Raw text is retained, then parsed into structured sections.",
-  "resumeWorkshop.create.paste.submit": "Parse and save v1",
+  "resumeWorkshop.create.paste.submit": "Parse and save resume",
   "resumeWorkshop.create.paste.titleFallback": "Pasted resume",
   "resumeWorkshop.create.sidebar.whatSavedEyebrow": "WHAT GETS SAVED",
   "resumeWorkshop.create.sidebar.whatSaved.original.title": "Original source",
@@ -302,12 +301,12 @@ export const en: LocaleMessages = {
     "Structured resume",
   "resumeWorkshop.create.sidebar.whatSaved.structured.body":
     "Work, projects, skills, education, and evidence are editable.",
-  "resumeWorkshop.create.sidebar.whatSaved.baseline.title": "Version baseline",
+  "resumeWorkshop.create.sidebar.whatSaved.baseline.title": "Editable resume",
   "resumeWorkshop.create.sidebar.whatSaved.baseline.body":
-    "Future JD-specific resumes branch from this v1.",
+    "After saving, you can keep editing, rewrite, or save as a new resume.",
   "resumeWorkshop.create.sidebar.whatNextEyebrow": "WHAT HAPPENS NEXT",
   "resumeWorkshop.create.sidebar.whatNextBody":
-    "After you submit, we'll parse the source live, then show you a preview to confirm before saving as v1.",
+    "After you submit, we'll parse the source live, then show you a preview to confirm before saving a resume.",
   "resumeWorkshop.create.errors.validation":
     "Validation failed — review the fields and retry.",
   "resumeWorkshop.create.errors.extensionInvalid":
@@ -320,7 +319,7 @@ export const en: LocaleMessages = {
   "resumeWorkshop.create.errors.parseTimeout":
     "Parse timed out · retry or return to edit input.",
   "resumeWorkshop.create.errors.alreadyExists":
-    "Master version already exists · opening it.",
+    "A matching resume already exists · opening it.",
   "resumeWorkshop.create.errors.confirmFailed":
     "Save failed · please retry shortly.",
   "resumeWorkshop.create.auth.pendingLabel":
@@ -360,13 +359,13 @@ export const en: LocaleMessages = {
   "resumeWorkshop.parsing.failed.code.UNKNOWN":
     "Unknown error — retry or return to edit input.",
   "resumeWorkshop.preview.back": "Re-parse from input",
-  "resumeWorkshop.preview.eyebrow": "PREVIEW · CONFIRM TO SAVE AS V1",
+  "resumeWorkshop.preview.eyebrow": "PREVIEW · CONFIRM TO SAVE",
   "resumeWorkshop.preview.title":
     "Here's the structured draft. Confirm to save it as a new original.",
   "resumeWorkshop.preview.sourcePrefix": "source · ",
   "resumeWorkshop.preview.statusParsed": "parsed",
   "resumeWorkshop.preview.backCta": "Back",
-  "resumeWorkshop.preview.confirm": "Confirm and save v1",
+  "resumeWorkshop.preview.confirm": "Confirm and save resume",
   "resumeWorkshop.preview.section.summary": "SUMMARY",
   "resumeWorkshop.preview.section.experience": "EXPERIENCE",
   "resumeWorkshop.preview.section.projects": "FLAGSHIP PROJECTS",
@@ -380,63 +379,32 @@ export const en: LocaleMessages = {
     "Structured resume",
   "resumeWorkshop.preview.sidebar.whatSaved.structured.body":
     "The draft above · editable later.",
-  "resumeWorkshop.preview.sidebar.whatSaved.master.title": "Master version (v1)",
-  "resumeWorkshop.preview.sidebar.whatSaved.master.body":
-    "Future targeted versions branch from here.",
+  "resumeWorkshop.preview.sidebar.whatSaved.editable.title": "Editable resume",
+  "resumeWorkshop.preview.sidebar.whatSaved.editable.body":
+    "After saving, you can keep editing, rewrite, or save as a new resume.",
   "resumeWorkshop.preview.sidebar.notesEyebrow": "PARSE NOTES",
   "resumeWorkshop.preview.sidebar.notesBody":
     "Anything missing or wrong can be fixed in the structured editor after you save.",
-  "resumeWorkshop.preview.success": "Saved v1 master · back to workshop",
+  "resumeWorkshop.preview.success": "Saved resume · back to workshop",
   "resumeWorkshop.preview.alreadyExists":
-    "Master already exists · opening it",
+    "A matching resume already exists · opening it",
   "resumeWorkshop.create.cta": "No resume yet — create one in 1 minute",
   "resumeWorkshop.auth.eyebrow": "Resume Workshop",
-  "resumeWorkshop.auth.title": "Sign in to view your resume versions",
+  "resumeWorkshop.auth.title": "Sign in to view your resumes",
   "resumeWorkshop.auth.body":
-    "Resume listing, version detail, and export require authentication. Sign-in restores this page with route params only — no resume text is carried along.",
+    "Resume listing, detail, and export require authentication. Sign-in restores this page with route params only — no resume text is carried along.",
   "resumeWorkshop.auth.cta": "Sign in to continue",
   "resumeWorkshop.auth.pendingLabel": "Open Resume Workshop after sign-in",
   "resumeWorkshop.eyebrow": "Resume Workshop",
-  "resumeWorkshop.title": "Your resumes — originals, masters, and targeted versions.",
+  "resumeWorkshop.title": "Your resumes",
   "resumeWorkshop.subtitle":
-    "Each original file becomes one tree: a master parsed from it, plus targeted versions branched off for specific jobs. Open any version to preview, accept rewrites, or edit by hand.",
+    "Manage saved resumes. Open any resume to preview, accept rewrites, or edit by hand.",
   "resumeWorkshop.create": "New resume",
-  "resumeWorkshop.stats.originals": "Originals",
-  "resumeWorkshop.stats.originalsSub": "active / total",
-  "resumeWorkshop.stats.versions": "Versions",
-  "resumeWorkshop.stats.versionsSub": "{count} targeted",
-  "resumeWorkshop.stats.topMatch": "Top match",
-  "resumeWorkshop.stats.recent": "Last edit",
-  "resumeWorkshop.stats.empty": "—",
-  "resumeWorkshop.viewContext.tree": "Manage your source files",
-  "resumeWorkshop.viewContext.flat": "Pick the right one to send",
-  "resumeWorkshop.viewSwitcher.tree": "Group by original",
-  "resumeWorkshop.viewSwitcher.flat": "Flat by version",
   "resumeWorkshop.sourceType.upload": "Uploaded PDF",
   "resumeWorkshop.sourceType.paste": "Pasted text",
   "resumeWorkshop.sourceType.unknown": "Unknown source",
-  "resumeWorkshop.tree.versionsCount": "{count} versions",
-  "resumeWorkshop.tree.useAsBase": "Use as base",
-  "resumeWorkshop.tree.selected": "Selected",
-  "resumeWorkshop.tree.selectedHelper": "Selected as the base for the next version",
-  "resumeWorkshop.tree.clearSelection": "Clear",
-  "resumeWorkshop.tree.newVersion": "New version from this tree",
-  "resumeWorkshop.tree.uploadAnother": "Upload another original (new tree)",
-  "resumeWorkshop.tree.archived": "Archived",
-  "resumeWorkshop.tree.noVersions":
-    "No parsed versions yet. Create a resume to generate a master version.",
-  "resumeWorkshop.tree.partial":
-    "Some versions are not yet available; they will appear once loaded.",
-  "resumeWorkshop.flat.headerVersion": "Version",
-  "resumeWorkshop.flat.headerOriginal": "From original",
-  "resumeWorkshop.flat.headerTarget": "Target",
-  "resumeWorkshop.flat.headerMatch": "Match",
-  "resumeWorkshop.flat.headerUpdated": "Last edit",
-  "resumeWorkshop.flat.empty": "No versions to list",
   "resumeWorkshop.list.loading": "Loading resumes...",
   "resumeWorkshop.list.error": "Failed to load resumes. Please retry.",
-  "resumeWorkshop.list.versionsError":
-    "Failed to load resume versions. Please retry.",
   "resumeWorkshop.list.empty": "You have no resumes uploaded yet.",
   "resumeWorkshop.list.paginated": "Continue loading more",
   "resumeWorkshop.list.colResume": "Resume",
@@ -445,9 +413,7 @@ export const en: LocaleMessages = {
   "resumeWorkshop.list.colLastEdit": "Last edit",
   "resumeWorkshop.list.open": "Open",
   "resumeWorkshop.list.uploadAnother": "Upload or paste another resume",
-  "resumeWorkshop.openVersion": "Open",
   "resumeWorkshop.detail.back": "Back to Resume Workshop",
-  "resumeWorkshop.detail.crumbVersions": "Versions",
   "resumeWorkshop.detail.lastEdit": "last edit",
   "resumeWorkshop.detail.tabPreview": "Preview",
   "resumeWorkshop.detail.tabRewrites": "Rewrites",
@@ -460,96 +426,19 @@ export const en: LocaleMessages = {
   "resumeWorkshop.detail.copySuccess": "Plain text copied",
   "resumeWorkshop.detail.copyUnavailable":
     "Clipboard write is unavailable in this environment",
-  "resumeWorkshop.detail.loading": "Loading version...",
-  "resumeWorkshop.detail.error": "Failed to load this version. Please retry.",
-  "resumeWorkshop.detail.notFoundTitle": "Version not found",
+  "resumeWorkshop.detail.loading": "Loading resume...",
+  "resumeWorkshop.detail.error": "Failed to load this resume. Please retry.",
+  "resumeWorkshop.detail.notFoundTitle": "Resume not found",
   "resumeWorkshop.detail.notFoundBody":
-    "This resume version may have been deleted or the link is no longer valid. Return to Resume Workshop to choose another version.",
+    "This resume is unavailable or the link is no longer valid. Return to Resume Workshop to choose another resume.",
   "resumeWorkshop.detail.notFoundCta": "Back to list",
-  "resumeWorkshop.detail.comingSoonRewrites":
-    "The rewrites view is being prepared. For this release you can browse this version under Preview.",
-  "resumeWorkshop.detail.comingSoonEdit":
-    "The manual edit view is being prepared.",
-  "resumeWorkshop.detail.branchOriginal": "Original",
-  "resumeWorkshop.detail.branchMaster": "Master (parsed)",
-  "resumeWorkshop.detail.branchCurrent": "Current version",
   "resumeWorkshop.detail.modalTitle": "Original resume preview",
   "resumeWorkshop.detail.modalClose": "Close original preview",
   "resumeWorkshop.detail.modalDescription":
-    "The original is read-only. Edits and JD-specific rewrites create versions beside it.",
+    "The original is read-only. Rewrites can overwrite this resume or save as a new resume.",
   "resumeWorkshop.detail.modalLoading": "Loading original source...",
   "resumeWorkshop.detail.modalError":
     "Failed to load original source. Please retry.",
-  // ── Branch flow (plan 003) ──
-  "resumeWorkshop.branch.eyebrow": "NEW TARGETED VERSION",
-  "resumeWorkshop.branch.title":
-    "Branch a targeted version from this tree.",
-  "resumeWorkshop.branch.subtitle":
-    "The original file and the master stay untouched. Only this new version receives accepted rewrites.",
-  "resumeWorkshop.branch.back": "Back to resume workshop",
-  "resumeWorkshop.branch.fromLabel": "BRANCHING FROM",
-  "resumeWorkshop.branch.fromOriginalLabel": "Original",
-  "resumeWorkshop.branch.fromMasterLabel": "Master (parsed)",
-  "resumeWorkshop.branch.fromMasterHint":
-    "Stays pristine. Read-only source for the branch.",
-  "resumeWorkshop.branch.fromEmpty": "—",
-  "resumeWorkshop.branch.nameLabel": "VERSION NAME",
-  "resumeWorkshop.branch.namePlaceholder":
-    "e.g. v3 ByteDance - FE Platform",
-  "resumeWorkshop.branch.nameHint":
-    "Shown in the version list and on JD-match results.",
-  "resumeWorkshop.branch.targetLabel": "TARGET JOB / COMPANY",
-  "resumeWorkshop.branch.targetPlaceholder":
-    "e.g. ByteDance - Frontend Platform",
-  "resumeWorkshop.branch.targetHint":
-    "Anchors the JD-match score and the rewrite suggestions.",
-  "resumeWorkshop.branch.focusLabel": "FOCUS / ANGLE",
-  "resumeWorkshop.branch.focusHint":
-    "Used to bias rewrite suggestions for this version.",
-  "resumeWorkshop.branch.focus.platform": "Platform / infra angle",
-  "resumeWorkshop.branch.focus.collaboration": "Collaboration & impact",
-  "resumeWorkshop.branch.focus.fullstack": "Full-stack breadth",
-  "resumeWorkshop.branch.focus.leadership": "Tech leadership",
-  "resumeWorkshop.branch.focus.custom": "Custom — I'll write it",
-  "resumeWorkshop.branch.seedLabel": "HOW TO SEED BULLETS",
-  "resumeWorkshop.branch.seed.copy_master.label": "Start from master",
-  "resumeWorkshop.branch.seed.copy_master.desc":
-    "All bullets copied from the master. AI rewrites suggested per JD.",
-  "resumeWorkshop.branch.seed.blank.label": "Start blank",
-  "resumeWorkshop.branch.seed.blank.desc":
-    "Empty version. You write or accept rewrites bullet by bullet.",
-  "resumeWorkshop.branch.seed.ai_select.label": "AI picks bullets",
-  "resumeWorkshop.branch.seed.ai_select.desc":
-    "Match the JD against the master, keep top-N most relevant.",
-  "resumeWorkshop.branch.readyHint": "Ready to branch.",
-  "resumeWorkshop.branch.canSubmitHint":
-    "Fill in version name and target to continue.",
-  "resumeWorkshop.branch.cancel": "Cancel",
-  "resumeWorkshop.branch.submit": "Create version",
-  "resumeWorkshop.branch.submitting": "Creating...",
-  "resumeWorkshop.branch.loading": "Loading branching source...",
-  "resumeWorkshop.branch.notFound.title": "Source resume not found",
-  "resumeWorkshop.branch.notFound.body":
-    "This original resume may have been deleted or the link is no longer valid. Return to Resume Workshop to choose another source.",
-  "resumeWorkshop.branch.notFound.cta": "Back to list",
-  "resumeWorkshop.branch.missingId.title": "Missing source parameter",
-  "resumeWorkshop.branch.missingId.body":
-    "Branching needs an original resume selection. Return to Resume Workshop to pick one.",
-  "resumeWorkshop.branch.pendingLabel": "Resume branching after sign-in",
-  "resumeWorkshop.branch.toast.copyMaster": "Targeted version created",
-  "resumeWorkshop.branch.toast.blank": "Blank starter version created",
-  "resumeWorkshop.branch.toast.aiSelect":
-    "Targeted version created - AI is generating bullets",
-  "resumeWorkshop.branch.error.parentMissing":
-    "Source or target is unavailable - return and pick again",
-  "resumeWorkshop.branch.error.validation":
-    "Please review the form fields and retry.",
-  "resumeWorkshop.branch.error.targetInvalid":
-    "Target must resolve to a saved job. Return from a workspace target or paste a valid target job id.",
-  "resumeWorkshop.branch.error.idempotencyConflict":
-    "Previous submission is still pending - please retry shortly",
-  "resumeWorkshop.branch.error.generic":
-    "Could not create the version. Please retry.",
   // ── Rewrites tab (plan 003) ──
   "resumeWorkshop.rewrites.scopeBanner.body":
     "Each suggestion has a single action: Accept. Doing nothing skips it. Accepted rewrites are saved only after the preview step, where you choose overwrite this resume or save as a new resume.",
@@ -566,7 +455,7 @@ export const en: LocaleMessages = {
   "resumeWorkshop.rewrites.status.rejected": "REJECTED",
   "resumeWorkshop.rewrites.diff.sectionFallback": "Rewrite suggestion",
   "resumeWorkshop.rewrites.diff.original": "ORIGINAL",
-  "resumeWorkshop.rewrites.diff.originalFrom": "from master",
+  "resumeWorkshop.rewrites.diff.originalFrom": "from current resume",
   "resumeWorkshop.rewrites.diff.rewritten": "REWRITTEN",
   "resumeWorkshop.rewrites.diff.manualEdit": "MANUAL EDIT",
   "resumeWorkshop.rewrites.diff.confidence": "confidence - high",
@@ -601,11 +490,11 @@ export const en: LocaleMessages = {
   "resumeWorkshop.rewrites.toast.savedAsNew":
     "Saved as a new resume: {resumeName}",
   "resumeWorkshop.rewrites.toast.alreadyDecided":
-    "This bullet has already been decided - create a new suggestion or branch",
+    "This bullet has already been decided - rerun rewrites to try again",
   "resumeWorkshop.rewrites.error.generic":
     "The operation failed. Please retry.",
   "resumeWorkshop.rewrites.error.crossUser":
-    "Version not found - it may have been deleted.",
+    "Resume not found - choose another resume and retry.",
   "resumeWorkshop.rewrites.error.validation":
     "Validation failed. Please retry.",
   "resumeWorkshop.rewrites.error.manualPendingRetry":
@@ -629,10 +518,6 @@ export const en: LocaleMessages = {
   "resumeWorkshop.rewrites.save.confirmNew": "Save as new resume",
   "resumeWorkshop.rewrites.save.confirmOverwrite": "Overwrite this resume",
   // ── Edit tab (plan 003) ──
-  "resumeWorkshop.edit.scope.master":
-    "Editing the master. Targeted versions branched from this master keep their accepted bullets but unedited fields follow.",
-  "resumeWorkshop.edit.scope.targeted":
-    "Editing {versionName}. Changes here do not affect the master or other versions.",
   "resumeWorkshop.edit.scope.body":
     "Editing {resumeName}. Changes save into this resume; the original source stays read-only.",
   "resumeWorkshop.edit.displayNameLabel": "RESUME NAME",
@@ -651,7 +536,7 @@ export const en: LocaleMessages = {
   "resumeWorkshop.edit.error.idempotency":
     "Previous save is still processing - please retry shortly",
   "resumeWorkshop.edit.error.crossUser":
-    "Version not found - it may have been deleted.",
+    "Resume not found - choose another resume and retry.",
   "resumeWorkshop.edit.error.generic": "Save failed. Please retry.",
   // ── Practice screen (plan 002) ──
   "practice.toolbar.companySkeleton": "Target company",
@@ -723,7 +608,7 @@ export const en: LocaleMessages = {
   "generating.header.eyebrow": "GENERATING REPORT · ASYNC",
   "generating.header.title": "Reading every turn. Evidence first.",
   "generating.header.subtitle":
-    "Typical: 8-15s. You can close this tab; the report opens from this session history when it's done.",
+    "Typical: 8-15s. You can close this tab; the report opens from this session records when it's done.",
   "generating.progress.done": "done",
   "generating.phase.1": "Transcribing & aligning turns",
   "generating.phase.1.hint": "8 questions · 23 turns",
@@ -762,7 +647,7 @@ export const en: LocaleMessages = {
   "report.loading": "Opening report...",
   "report.header.title": "Evidence report",
   "report.header.subtitle":
-    "This report belongs to a completed mock interview. Open it from session history.",
+    "This report belongs to a completed mock interview. Open it from session records.",
   "report.header.cta.replay": "Replay current round",
   "report.header.cta.nextRound": "Start next round",
   "report.context.session": "Session ID",
@@ -883,7 +768,7 @@ export const en: LocaleMessages = {
   "report.missingReport.eyebrow": "REPORT NEEDS ID",
   "report.missingReport.title": "This report cannot be located.",
   "report.missingReport.desc":
-    "Without reportId the report API is not called. Open the dashboard from completed session history or the generating handoff.",
+    "Without reportId the report API is not called. Open the dashboard from completed session records or the generating handoff.",
   "report.missingReport.cta": "Back to workspace",
   "report.body.dimensions.eyebrow": "DIMENSIONS",
   "report.body.dimensions.open": "Open detail",

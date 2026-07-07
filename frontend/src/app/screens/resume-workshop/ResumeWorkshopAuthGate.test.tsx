@@ -176,8 +176,7 @@ describe("ResumeWorkshopScreen auth boundary", () => {
     expect(params.structuredProfile).toBeUndefined();
     expect(params.originalText).toBeUndefined();
     expect(params.suggestion).toBeUndefined();
-    // D-20 flat model: there is no version tree / branch flow. The retired
-    // branch-draft and version params must NEVER ride along on the
+    // D-20 flat model: non-current branch-draft and version params must NEVER ride along on the
     // pendingAction; only flat route params are restored after sign-in.
     expect(params.name).toBeUndefined();
     expect(params.target).toBeUndefined();

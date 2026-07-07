@@ -4,7 +4,6 @@ metadata:
   subspec: e2e-scenarios-p0
   name: 001-full-funnel-happy-journey
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
     to: 1.1
@@ -58,8 +57,8 @@ spec:
       - outbox
       - idempotency replay
       - privacy red line
-      - legacy negative
-      - route-aware legacy negative
+      - non-current negative
+      - route-aware non-current negative
       - preserve cleanup exit status
       - frontend scope gate
       - VITE_EI_API_MODE
@@ -82,7 +81,7 @@ spec:
         - ../../../backend-async-runner/spec.md
         - ../../../backend-targetjob/spec.md
         - ../../../backend-practice/spec.md
-        - ../../../backend-practice/plans/004-derived-plans-debrief/plan.md
+        - ../../../backend-practice/plans/004-report-derived-practice-plans/plan.md
         - ../../../backend-review/spec.md
         - ../../../backend-resume/spec.md
         - ../../../frontend-home-job-picks-and-parse/spec.md

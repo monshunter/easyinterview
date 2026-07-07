@@ -7,7 +7,7 @@ import { resolve } from "node:path";
  * ResumeCreateFlow / ResumeParseFlow / ResumePreviewConfirm screens.
  *
  * Truth source: ui-design/src/screen-resume-workshop.jsx, exporting:
- *   ResumeCreateFlow (Upload / Paste tabs; guided intake removed by D-20)
+ *   ResumeCreateFlow (Upload / Paste tabs; guided intake outside D-20 current scope)
  *   ResumeParseFlow (Agent Parsing 7-step ticker)
  *   ResumePreviewConfirm (structured draft preview + WHAT WILL BE SAVED + PARSE NOTES)
  *
@@ -228,7 +228,7 @@ test.describe("ResumeCreateFlow pixel parity — input stages", () => {
     expect(buf.byteLength).toBeGreaterThan(0);
   });
 
-  test("Guided tab is removed by D-20 and cannot be selected", async ({ page }) => {
+  test("Guided tab stays outside D-20 current scope and cannot be selected", async ({ page }) => {
     await gotoCreateFlow(page);
     await expect(page.getByTestId("resume-create-tab-guided")).toHaveCount(0);
     await expect(page.getByTestId("resume-create-guided-panel")).toHaveCount(0);

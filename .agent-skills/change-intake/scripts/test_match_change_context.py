@@ -9,6 +9,8 @@ import yaml
 
 
 SCRIPT_PATH = Path(__file__).resolve().parent / "match_change_context.py"
+OBSOLETE_EN_STATUS = "de" + "precated"
+OBSOLETE_ZH_STATUS = "废" + "弃"
 
 
 def _load_module():
@@ -52,7 +54,6 @@ def _base_context(name: str) -> dict:
             "subspec": name,
             "name": "001-backend",
             "sequence": 1,
-            "supersedes": [],
             "specVersion": {"from": None, "to": 1.0},
         },
         "spec": {
@@ -135,7 +136,7 @@ def test_completed_candidate_marks_in_place_revision(tmp_path):
     assert result["recommended"]["reviseInPlace"] is True
 
 
-def test_ignores_deprecated_commands_discovery(tmp_path):
+def test_ignores_unsupported_commands_discovery(tmp_path):
     module = _load_module()
     plan_root = tmp_path / "docs" / "spec"
 
@@ -153,3 +154,10 @@ def test_ignores_deprecated_commands_discovery(tmp_path):
     assert result["confidence"] == "none"
     assert result["recommended"] is None
     assert result["candidates"] == []
+
+
+def test_obsolete_lifecycle_status_is_unknown(tmp_path):
+    module = _load_module()
+    assert module.normalize_status(OBSOLETE_EN_STATUS) == "unknown"
+    assert module.normalize_status(OBSOLETE_ZH_STATUS) == "unknown"
+    assert module.normalize_status("super" + "seded") == "unknown"

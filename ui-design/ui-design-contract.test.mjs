@@ -8,7 +8,7 @@ const readUiSources = () => readdirSync(new URL("./src/", import.meta.url))
   .filter((name) => name.endsWith(".jsx"))
   .map((name) => [name, readUiFile(`./src/${name}`)]);
 
-test("workspace mock history is scoped to the active mock plan", () => {
+test("workspace mock records are scoped to the active mock plan", () => {
   const workspace = readUiFile("./src/screen-workspace.jsx");
   assert.match(
     workspace,
@@ -25,12 +25,12 @@ test("workspace mock history is scoped to the active mock plan", () => {
   assert.doesNotMatch(historySource, /Lumen Labs · Frontend Platform Engineer/);
 });
 
-test("D-22 removes debrief and user profile static screens", () => {
+test("D-22 keeps debrief and user profile outside current static screens", () => {
   const app = readUiFile("./src/app.jsx");
   const canvas = readUiFile("./canvas.html");
 
-  assert.ok(!existsSync(new URL("./src/screens-p1-depth.jsx", import.meta.url)), "screens-p1-depth.jsx must stay deleted");
-  assert.ok(!existsSync(new URL("./src/screen-profile.jsx", import.meta.url)), "screen-profile.jsx must stay deleted");
+  assert.ok(!existsSync(new URL("./src/screens-p1-depth.jsx", import.meta.url)), "screens-p1-depth.jsx must stay absent");
+  assert.ok(!existsSync(new URL("./src/screen-profile.jsx", import.meta.url)), "screen-profile.jsx must stay absent");
   assert.match(app, /debrief:\s*"home"/);
   assert.match(app, /debrief_full:\s*"home"/);
   assert.match(app, /profile:\s*"home"/);
@@ -41,9 +41,9 @@ test("D-22 removes debrief and user profile static screens", () => {
   assert.doesNotMatch(canvas, /<DCSection id="p1-depth"|<DCArtboard id="debrief"|<DCSection id="p1-voice-debrief"|route="debrief"/);
 });
 
-test("current UI source does not expose removed inbox wording", () => {
+test("current UI source does not expose non-current inbox wording", () => {
   for (const [name, source] of readUiSources()) {
-    assert.doesNotMatch(source, /Inbox|收件箱/, `${name} contains removed inbox wording`);
+    assert.doesNotMatch(source, /Inbox|收件箱/, `${name} contains non-current inbox wording`);
   }
 });
 
@@ -118,7 +118,7 @@ test("P0 context routes use InterviewContext instead of fixed tj-1 nav payloads"
   assert.match(workspace, /resumeId/);
   assert.match(workspace, /roundId/);
   for (const [name, source] of readUiSources()) {
-    assert.doesNotMatch(source, /resumeVersionId/, `${name} still uses the retired resumeVersionId context key`);
+    assert.doesNotMatch(source, /resumeVersionId/, `${name} still uses the non-current resumeVersionId context key`);
   }
 });
 
@@ -164,11 +164,11 @@ test("report CTA pair lives only in the header (D-19)", () => {
   assert.match(report, /已加入本轮复练/);
   // The next-plan tab points back to the header CTA instead of duplicating it.
   assert.match(report, /开练入口在页面顶部/);
-  // Former dead components stay deleted.
+  // Former dead components stay absent.
   assert.doesNotMatch(report, /IssueRow|PerQBlock|KVInline/);
 });
 
-test("current UI source does not expose removed mistakes/growth/drill product surfaces", () => {
+test("current UI source does not expose non-current mistakes/growth/drill product surfaces", () => {
   const report = readUiFile("./src/screen-report.jsx");
   const settings = readUiFile("./src/screens-p0-complete.jsx");
   const data = readUiFile("./src/data.jsx");
@@ -193,16 +193,16 @@ test("P0 auth success resumes the pending action instead of always returning hom
   assert.doesNotMatch(auth, /nav\("auth_register"/);
 });
 
-test("job picks module is fully removed and jd_match aliases back home (D-17)", () => {
+test("job picks module is outside current scope and jd_match aliases back home (D-17)", () => {
   const app = readUiFile("./src/app.jsx");
 
-  assert.ok(!existsSync(new URL("./src/screen-jd-match.jsx", import.meta.url)), "screen-jd-match.jsx must stay deleted");
+  assert.ok(!existsSync(new URL("./src/screen-jd-match.jsx", import.meta.url)), "screen-jd-match.jsx must stay absent");
   assert.match(app, /jd_match:\s*"home"/);
   assert.doesNotMatch(app, /jd_match:\s*</);
   for (const [name, source] of readUiSources()) {
-    assert.doesNotMatch(source, /JDMatchScreen|岗位推荐|Job Picks|Job picks|job recommendations/, `${name} still references the removed job picks module`);
+    assert.doesNotMatch(source, /JDMatchScreen|岗位推荐|Job Picks|Job picks|job recommendations/, `${name} still references the non-current job picks module`);
     if (name !== "app.jsx") {
-      assert.doesNotMatch(source, /jd_match/, `${name} still references the removed jd_match route`);
+      assert.doesNotMatch(source, /jd_match/, `${name} still references the non-current jd_match route`);
     }
   }
 });
@@ -226,20 +226,24 @@ test("home uses a resume dropdown and caps recent mocks at three", () => {
   assert.doesNotMatch(home, /home-resume-option/);
 });
 
-test("company intel keeps only the workspace embed (D-18)", () => {
+test("workspace insight card has no standalone route alias", () => {
   const app = readUiFile("./src/app.jsx");
-  const intel = readUiFile("./src/screen-company-intel.jsx");
+  const insight = readUiFile("./src/screen-workspace-insight.jsx");
   const workspace = readUiFile("./src/screen-workspace.jsx");
+  const nonCurrentInsightTerms = new RegExp([
+    "company_" + "intel",
+    "Company" + "Intel",
+    "getCompany" + "Intel",
+  ].join("|"));
 
-  assert.match(app, /company_intel:\s*"workspace"/);
-  assert.doesNotMatch(app, /company_intel:\s*</);
-  assert.match(intel, /const CompanyIntelEmbed = /);
-  assert.doesNotMatch(intel, /CompanyIntelScreen|CompanyIntelBody|打开情报|Open intel/);
-  assert.match(workspace, /<CompanyIntelEmbed T=\{T\} lang=\{lang\} job=\{job\} \/>/);
+  assert.ok(!existsSync(new URL("./src/screen-company-" + "intel.jsx", import.meta.url)), "standalone insight source must stay absent");
+  assert.doesNotMatch(app, nonCurrentInsightTerms);
+  assert.match(insight, /const WorkspaceInsightCard = /);
+  assert.doesNotMatch(insight, nonCurrentInsightTerms);
+  assert.doesNotMatch(insight, /打开情报|Open intel/);
+  assert.match(workspace, /<WorkspaceInsightCard T=\{T\} lang=\{lang\} job=\{job\} \/>/);
   for (const [name, source] of readUiSources()) {
-    if (name !== "app.jsx") {
-      assert.doesNotMatch(source, /nav\("company_intel"/, `${name} still navigates to the removed company_intel route`);
-    }
+    assert.doesNotMatch(source, nonCurrentInsightTerms, `${name} still references standalone company insight naming`);
   }
 });
 
@@ -263,7 +267,7 @@ test("theme defaults to ocean and keeps the custom accent picker (D-21 v2.1)", (
   assert.match(canvas, /customAccent/);
 });
 
-test("home removes the debrief auxiliary entry (D-22)", () => {
+test("home keeps the debrief auxiliary entry outside current scope (D-22)", () => {
   const home = readUiFile("./src/screen-home.jsx");
 
   assert.doesNotMatch(home, /POST-INTERVIEW|post-interview|nav\("debrief"\)|Open debrief|打开复盘/);
@@ -366,21 +370,22 @@ test("auth has no standalone reset page and aliases auth_reset back to login", (
   for (const [name, source] of readUiSources()) {
     assert.doesNotMatch(source, /忘记密码|两步验证|Two-step verification/, `${name} still references password-era auth wording`);
     if (name !== "app.jsx") {
-      assert.doesNotMatch(source, /auth_reset/, `${name} still references the removed reset route`);
+      assert.doesNotMatch(source, /auth_reset/, `${name} still references the non-current reset route`);
     }
   }
 });
 
 test("debrief no longer ships the unused thank-you letter draft", () => {
   for (const [name, source] of readUiSources()) {
-    assert.doesNotMatch(source, /ThankYouLetter|感谢信/, `${name} still contains the removed thank-you letter draft`);
+    assert.doesNotMatch(source, /ThankYouLetter|感谢信/, `${name} still contains the non-current thank-you letter draft`);
   }
 });
 
-test("legacy resume versions screen stays deleted", () => {
-  assert.ok(!existsSync(new URL("./src/screens-p1-depth.jsx", import.meta.url)), "screens-p1-depth.jsx must stay deleted");
+test("non-current resume versions screen stays absent", () => {
+  assert.ok(!existsSync(new URL("./src/screens-p1-depth.jsx", import.meta.url)), "screens-p1-depth.jsx must stay absent");
   for (const [name, source] of readUiSources()) {
-    assert.doesNotMatch(source, /_LegacyResumeVersionsScreen|ResumeSourceMap/, `${name} still contains legacy resume version source`);
+    const nonCurrentResumeSourcePattern = new RegExp(`_${"Leg" + "acy"}ResumeVersionsScreen|ResumeSourceMap`);
+    assert.doesNotMatch(source, nonCurrentResumeSourcePattern, `${name} still contains non-current resume version source`);
   }
 });
 

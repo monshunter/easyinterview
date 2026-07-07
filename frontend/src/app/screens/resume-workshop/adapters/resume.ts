@@ -87,7 +87,7 @@ const normalizeStatus = (status: Resume["status"]): ResumeStatus =>
 
 /**
  * Maps the flat OpenAPI `Resume` to the UI source shape consumed by the list
- * row and detail header (D-20: no version tree). `displayName` is the editable
+ * row and detail header. `displayName` is the editable
  * label; `title` is the original-source title fallback.
  */
 export const mapResumeToUiSource = (resume: Resume): UiResumeSource => ({

@@ -14,7 +14,7 @@ SCENARIO_ENV_CLEANUP := $(ROOT_DIR)/test/scenarios/env-cleanup.sh
 SCENARIO_ENV_REDEPLOY := $(ROOT_DIR)/test/scenarios/env-redeploy.sh
 TARGET ?= all
 
-.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-legacy lint-runner-legacy lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-core-loop-pruning-surface lint-secrets-pattern lint-observability lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build eval-offline eval-offline-resolve dev-up dev-down dev-doctor dev-reset dev-logs dev-pull scenario-env-setup scenario-env-status scenario-env-verify scenario-env-cleanup scenario-env-redeploy codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
+.PHONY: help fmt lint lint-conventions lint-config lint-getenv-boundary lint-env-dict lint-ai-provider-terminology lint-ai-profile-coverage lint-backend-practice-non-current lint-runner-non-current lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-core-loop-pruning-surface lint-secrets-pattern lint-observability lint-events lint-runtime-topology lint-openapi openapi-diff validate-fixtures sync-fixtures-from-prototype render-openapi-fixture-examples test build eval-offline eval-offline-resolve dev-up dev-down dev-doctor dev-reset dev-logs dev-pull scenario-env-setup scenario-env-status scenario-env-verify scenario-env-cleanup scenario-env-redeploy codegen codegen-conventions codegen-events codegen-openapi codegen-events-check codegen-check docs-check docs-openapi migrate migrate-up migrate-down migrate-status migrate-create migrate-check privacy-delete-dry-run install-hooks
 
 help: ## List all top-level make targets with their descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
@@ -23,7 +23,7 @@ fmt: ## Format Go and frontend sources (delegates to backend/ and frontend/)
 	@$(call recurse_target,fmt,backend/Makefile,backend)
 	@$(call recurse_target,fmt,frontend/Makefile,frontend)
 
-lint: lint-conventions lint-config lint-ai-profile-coverage lint-backend-practice-legacy lint-runner-legacy lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-core-loop-pruning-surface lint-runtime-topology lint-observability ## Lint Go and frontend sources (B1/A4/A3-F3/E1/runtime-topology/F1 local gates, then backend golangci-lint + frontend pnpm lint)
+lint: lint-conventions lint-config lint-ai-profile-coverage lint-backend-practice-non-current lint-runner-non-current lint-prompts lint-rubrics lint-prompts-hardcode lint-mock-contract lint-core-loop-pruning-surface lint-runtime-topology lint-observability ## Lint Go and frontend sources (B1/A4/A3-F3/E1/runtime-topology/F1 local gates, then backend golangci-lint + frontend pnpm lint)
 	@cd "$(ROOT_DIR)/backend" && golangci-lint run ./...
 	@pnpm --filter @easyinterview/frontend lint
 
@@ -39,17 +39,17 @@ lint-getenv-boundary: ## Reject os.Getenv usage outside platform/config / platfo
 lint-env-dict: ## Verify .env.example, code-side os.Getenv calls, and spec §3.1.1 dictionary stay aligned (spec C-9 / C-11)
 	@python3 "$(ROOT_DIR)/scripts/lint/env_dict.py" --repo-root "$(ROOT_DIR)"
 
-lint-ai-provider-terminology: ## Reject retired AI gateway terminology in active AI provider surfaces
+lint-ai-provider-terminology: ## Reject non-current AI gateway terminology in active AI provider surfaces
 	@python3 "$(ROOT_DIR)/scripts/lint/ai_provider_terminology.py" --repo-root "$(ROOT_DIR)"
 
 lint-ai-profile-coverage: ## Validate A3/F3/Product-UI AI profile coverage
 	@python3 "$(ROOT_DIR)/scripts/lint/ai_profile_coverage.py" --repo-root "$(ROOT_DIR)"
 
-lint-backend-practice-legacy: ## Reject backend-practice plan 001 retired mode/module terms
-	@python3 "$(ROOT_DIR)/scripts/lint/backend_practice_legacy.py" --repo-root "$(ROOT_DIR)" --phase all
+lint-backend-practice-non-current: ## Reject backend-practice plan 001 non-current mode/module terms
+	@python3 "$(ROOT_DIR)/scripts/lint/backend_practice_non_current.py" --repo-root "$(ROOT_DIR)" --phase all
 
-lint-runner-legacy: ## Reject backend-async-runner retired runner/drainer/dispatcher entry points
-	@python3 "$(ROOT_DIR)/scripts/lint/runner_legacy.py" --repo-root "$(ROOT_DIR)" --phase all
+lint-runner-non-current: ## Reject backend-async-runner non-current runner/drainer/dispatcher entry points
+	@python3 "$(ROOT_DIR)/scripts/lint/runner_non_current.py" --repo-root "$(ROOT_DIR)" --phase all
 
 lint-prompts: ## lint-prompts (F3): validate config/prompts/ schema, hash, and seed-migration drift
 	@python3 "$(ROOT_DIR)/scripts/lint/prompt_lint.py" --prompts-dir "$(ROOT_DIR)/config/prompts" --migrations-dir "$(ROOT_DIR)/migrations"
@@ -60,11 +60,11 @@ lint-rubrics: ## lint-rubrics (F3): validate config/rubrics/ schema, weight tole
 lint-prompts-hardcode: ## lint-prompts-hardcode (F3): reject raw / long-string prompt assignments outside config/prompts/
 	@cd "$(ROOT_DIR)" && python3 scripts/lint/prompt_hardcode_lint.py
 
-lint-mock-contract: validate-fixtures lint-openapi ## Validate fixture coverage, registry metadata, mock runtime boundaries, and retired mock/API tokens
+lint-mock-contract: validate-fixtures lint-openapi ## Validate fixture coverage, registry metadata, mock runtime boundaries, and non-current mock/API tokens
 	@python3 -m unittest scripts.mock_contract.fixture_registry_test
 	@python3 "$(ROOT_DIR)/scripts/lint/mock_runtime_boundary.py" --repo-root "$(ROOT_DIR)"
 
-lint-core-loop-pruning-surface: ## Bucket D-22 retired Debrief/Profile/JD Match runtime/generated references and fail real residuals
+lint-core-loop-pruning-surface: ## Bucket D-22 non-current Debrief/Profile/JD Match runtime/generated references and fail real residuals
 	@python3 "$(ROOT_DIR)/scripts/lint/core_loop_pruning_surface.py" --repo-root "$(ROOT_DIR)"
 
 lint-secrets-pattern: ## Scan staged + tracked files for AKIA / sk- / xox secret prefixes (defense-in-depth; pre-commit hook is the primary gate)
@@ -76,7 +76,7 @@ lint-observability: ## lint-observability (F1): observability-stack metrics/log 
 lint-events: ## Validate event/job baselines and local B3 contract drift
 	@python3 "$(ROOT_DIR)/scripts/lint/lint_events.py" --repo-root "$(ROOT_DIR)"
 
-lint-runtime-topology: ## Reject retired standalone backend worker process terminology in active code/docs
+lint-runtime-topology: ## Reject non-current standalone backend worker process terminology in active code/docs
 	@python3 "$(ROOT_DIR)/scripts/lint/runtime_topology.py" --repo-root "$(ROOT_DIR)"
 
 test: ## A5 test aggregator: backend Go + frontend pnpm; AI tests use stub/fixture only, no provider secrets

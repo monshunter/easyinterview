@@ -4,7 +4,6 @@ metadata:
   subspec: secrets-and-config
   name: 001-bootstrap
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
     to: 1.9

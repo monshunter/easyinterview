@@ -76,7 +76,7 @@ test.describe("frontend dist layout + bounding box parity", () => {
     });
   });
 
-  test("four primary nav buttons stay in viewport with no pairwise overlap (D-17)", async ({
+  test("three primary nav buttons stay in viewport with no pairwise overlap", async ({
     page,
   }) => {
     await page.goto("/");
@@ -99,7 +99,11 @@ test.describe("frontend dist layout + bounding box parity", () => {
         };
       });
     });
-    expect(navRects.length).toBe(4);
+    expect(navRects.map((r) => r.testid)).toEqual([
+      "topbar-nav-home",
+      "topbar-nav-workspace",
+      "topbar-nav-resume_versions",
+    ]);
     const viewport = page.viewportSize()!;
     for (const r of navRects) {
       expect(r.width, `${r.testid} width`).toBeGreaterThan(0);

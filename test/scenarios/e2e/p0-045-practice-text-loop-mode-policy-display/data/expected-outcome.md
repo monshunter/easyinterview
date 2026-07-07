@@ -14,7 +14,7 @@ Trigger output evidence:
 
 Verify gates:
 
-- retired practice goal literal not present in `frontend/src/app/screens/practice/`.
+- non-current practice goal literal not present in `frontend/src/app/screens/practice/`.
 - `切到语音` and `Switch to voice` literals not present in i18n catalogs (only `practice.toolbar.modeText / modeVoice` shipping copy).
 - `Idempotency-Key.*appendSessionEvent` reverse-grep zero hits.
 - Voice surface DOM (`VoiceSessionSurface`, `PracticeWaveformBars`, `PracticeAnnotatedWaveform`, `VoiceExpressionPanel`) zero hits in practice runtime files.

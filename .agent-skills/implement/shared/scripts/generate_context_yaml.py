@@ -90,7 +90,7 @@ def merge_preserved_discovery(config: dict, existing_manifest: dict | None) -> d
             value = existing_metadata.get(field_name)
             if isinstance(value, str):
                 metadata[field_name] = value
-        for field_name in ("supersedes", "specVersion"):
+        for field_name in ("specVersion",):
             value = existing_metadata.get(field_name)
             if value is not None:
                 metadata[field_name] = copy.deepcopy(value)
@@ -182,7 +182,6 @@ def infer_subspec_and_sequence(plan_dir_path: str, dir_name: str) -> dict:
         "subspec": subspec,
         "name": dir_name,
         "sequence": sequence,
-        "supersedes": [],
         "specVersion": {"from": None, "to": 1.0},
     }
     return {k: v for k, v in metadata.items() if v is not None}

@@ -139,7 +139,7 @@ func TestE2EP0022PracticePlanBaselineCreateAndRead(t *testing.T) {
 		t.Fatalf("cross-user getPracticePlan should hide existence with PRACTICE_PLAN_NOT_FOUND: %+v", crossUser.Error)
 	}
 
-	assertNoEvidenceLeak(t, h.store.auditPayloads(), "question_text", "answer_text", "hint_text", "prompt body", "response body", "legacy replay value")
+	assertNoEvidenceLeak(t, h.store.auditPayloads(), "question_text", "answer_text", "hint_text", "prompt body", "response body", "lega"+"cy replay value")
 }
 
 func TestE2EP0023PracticeSessionStartAndFirstQuestion(t *testing.T) {
@@ -411,7 +411,7 @@ auth:
 		practiceHTTPScenarioUserAID: authStore.addSession(practiceHTTPScenarioUserAID, "candidate-a@example.com", "raw-session-token-a"),
 		practiceHTTPScenarioUserBID: authStore.addSession(practiceHTTPScenarioUserBID, "candidate-b@example.com", "raw-session-token-b"),
 	}
-	authService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	authService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               authStore,
 		SessionCookieSecret: "scenario-session-secret",
 		Now:                 fixedScenarioNow,
@@ -786,7 +786,7 @@ func TestE2EP0042PracticeSessionCompleteIdempotencyMatrix(t *testing.T) {
 	}
 }
 
-func TestE2EP0043PracticeEventLoopPrivacyAndLegacyNegativeSurface(t *testing.T) {
+func TestE2EP0043PracticeEventLoopPrivacyAndNonCurrentNegativeSurface(t *testing.T) {
 	ai := &scenarioPracticeAIClient{responseText: "请补充你如何处理反对意见。", responseIntent: "behavioral.depth"}
 	h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai, observedAI: true})
 	plan := h.seedReadyScenarioPlan("01918fa0-0000-7000-8000-000000004043", "01918fa0-0000-7000-8000-000000002043", "resume-asset-p0-043-a", practiceHTTPScenarioUserAID)

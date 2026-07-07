@@ -171,7 +171,7 @@ func readPrompt(yamlPath string) (*promptEntry, error) {
 		return nil, fmt.Errorf("registry: prompt %s missing required meta field", yamlPath)
 	}
 	switch raw.Status {
-	case "draft", "active", "deprecated":
+	case "draft", "active":
 	default:
 		return nil, fmt.Errorf("registry: prompt %s status %q invalid", yamlPath, raw.Status)
 	}

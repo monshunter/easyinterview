@@ -8,7 +8,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 )
 
-func TestPasswordlessConfigBoundaryConstants(t *testing.T) {
+func TestEmailCodeConfigBoundaryConstants(t *testing.T) {
 	if auth.SessionCookieName != "ei_session" {
 		t.Fatalf("SessionCookieName = %q", auth.SessionCookieName)
 	}

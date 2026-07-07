@@ -71,7 +71,7 @@ def test_design_skill_requires_explicit_coverage_matrix_for_plan_and_tests():
     assert "Boundary condition" in text
     assert "Cross-layer contract" in text
     assert "Privacy / security / observability" in text
-    assert "Regression / legacy-negative" in text
+    assert "Regression / non-current-negative" in text
     assert "Every non-docs checklist item must name its verification source" in text
     assert "Test plans must include a coverage matrix" in text
     assert "BDD scenario selection must cover the primary user journey plus the highest-risk alternate or failure/recovery journey" in text

@@ -1,0 +1,73 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: backend-auth
+  name: 001-email-code-session-bootstrap
+  sequence: 1
+  specVersion:
+    from: null
+    to: 2.0
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - backend-auth
+      - email-code-session-bootstrap
+      - auth session cookie
+    keywords:
+      - email-code challenge
+      - email code
+      - first-party session cookie
+      - pendingAction backend
+      - runtime config
+      - auth challenge
+      - logout
+      - deleteMe auth handoff
+      - email_dispatch
+      - backend-internal mail dispatcher
+      - dev mail sink runner
+      - protected session middleware
+      - unified email login
+      - profileCompletionRequired
+      - completeMyProfile
+      - first-login profile setup
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../engineering-roadmap/spec.md
+        - ../../../engineering-roadmap/decisions/ADR-Q1-auth.md
+        - ../../../product-scope/spec.md
+        - ../../../frontend-shell/spec.md
+        - ../../../openapi-v1-contract/spec.md
+        - ../../../event-and-outbox-contract/spec.md
+        - ../../../db-migrations-baseline/spec.md
+        - ../../../secrets-and-config/spec.md
+        - ../../../shared-conventions-codified/spec.md
+        - ../../../observability-stack/spec.md
+      discovery:
+        packages:
+          - backend/cmd/api
+          - backend/internal/api
+          - backend/internal/platform/config
+          - backend/internal/platform/secrets
+          - backend/internal/shared/jobs
+          - migrations
+        uiRoutes:
+          - auth_login
+          - auth_verify
+          - auth_profile_setup
+          - auth_logout
+          - settings
+        apiNames:
+          - startAuthEmailChallenge
+          - verifyAuthEmailChallenge
+          - getMe
+          - completeMyProfile
+          - deleteMe
+          - logout
+          - getRuntimeConfig

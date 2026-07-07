@@ -6,7 +6,7 @@
 
 ## 1 进行中（Active）
 
-*暂无 active 计划文档；历史 contract lock 只创建本 subspec 的 spec.md / history.md / plans/INDEX.md。当前 roadmap v3.0 将本 subject 保留为 active Quality spec，impl plan 由 F1 自身后续 `/implement` 启动。*
+*暂无 active 计划文档；本 subspec 当前只维护 spec.md / history.md / plans/INDEX.md。impl plan 由 F1 自身后续 `/implement` 启动。*
 
 ## 2 已完成（Completed）
 

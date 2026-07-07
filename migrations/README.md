@@ -21,5 +21,6 @@ Owner subspec: [db-migrations-baseline](../docs/spec/db-migrations-baseline/spec
 backfill manifest 或 migration wrapper 后，至少运行 `make migrate-check`，并按
 [backend README](../backend/README.md) 与 B4 spec 补充对应 Go 测试。
 
-本仓库尚未上线；当前产品范围以 active spec 为准。历史迁移文件可以记录曾经加入又被
-后续 migration 删除的 pre-launch 表，但不得把已退役模块重新登记为当前 baseline。
+本仓库尚未上线；当前产品范围以 active spec 为准。Pre-launch 迁移链可以保留中间态
+DDL 和最终态 cleanup，但当前 baseline inventory 必须以 B4 spec、现行 migration lint
+和 privacy matrix 为准。

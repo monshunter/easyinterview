@@ -32,9 +32,9 @@
 - `docs/development.md` §2 规定本地集成为 `make dev-up` 外部依赖 + host-run backend/frontend + repo-tracked runner，不默认 Kind / K8s / Helm。
 - `backend/cmd/api` 在 `APP_ENV=dev` 下会通过 A3 `bootstrap.NewClient` 构建真实 AIClient；`APP_ENV=test` 才允许 stub。
 - `cmd/api` 启动 auth runtime 需要 `SESSION_COOKIE_SECRET` 与 `AUTH_CHALLENGE_TOKEN_PEPPER`；真实本地联调必须用 `deploy/dev-stack/.env` 承接 auth、AI、frontend real-mode 和共享依赖配置，不得再让单个场景维护独立 env。
-- passwordless local dev 登录已由 `local-dev-stack/001` Mailpit revision 承接：`make dev-up` 启动 Mailpit，`EMAIL_PROVIDER=mailpit` 的真实 `go run ./backend/cmd/api` 通过 SMTP writer 投递 6 位 email code。
+- email-code local dev 登录已由 `local-dev-stack/001` Mailpit revision 承接：`make dev-up` 启动 Mailpit，`EMAIL_PROVIDER=mailpit` 的真实 `go run ./backend/cmd/api` 通过 SMTP writer 投递 6 位 email code。
 
-因此本计划必须明确：真实 UAT 不能复用 001 的 test server；账号入口必须走真实 passwordless flow + Mailpit 本地邮箱，不得通过 direct DB session bootstrap、新增 `backend/cmd` / Go helper 或真实外部邮箱账号完成。
+因此本计划必须明确：真实 UAT 不能复用 001 的 test server；账号入口必须走真实 email-code flow + Mailpit 本地邮箱，不得通过 direct DB session bootstrap、新增 `backend/cmd` / Go helper 或真实外部邮箱账号完成。
 
 ## 3 质量门禁分类
 
@@ -166,7 +166,7 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 - 账号登录态。
 - Home -> Parse -> Workspace -> Practice -> Generating -> Report -> next_round。
 - AI 真实调用证据：至少检查 backend log / `ai_task_runs` / report/provider metadata 中的 provider/profile/model 摘要，不要求在 tracked 文件中保存 provider response。
-- 隐私与 legacy-negative spot-check。
+- 隐私与 non-current-negative spot-check。
 
 ### Phase 4: Gate 与收口
 

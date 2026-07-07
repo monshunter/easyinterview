@@ -136,7 +136,6 @@ Routing rule:
 - `active` / `draft`: the plan is still live; continue with the original plan context
 - `completed`: revise the original spec / plan / checklist in place before coding
 - Do not create sibling follow-up / bugfix docs for same-subject revisions by default.
-- `superseded` / `deprecated`: do not implement against it; locate the successor or ask the user
 
 ## Classification Workflow
 

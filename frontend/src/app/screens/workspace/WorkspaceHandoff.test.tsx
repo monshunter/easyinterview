@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  *
- * Phase 5.4: Workspace embedded-only tests — CompanyIntelEmbed action +
- * sessionHistory placeholder + negative assertions (getCompanyIntel/getFeedbackReport not called).
+ * Phase 5.4: Workspace embedded insight action +
+ * Records placeholder + report handoff negative assertions.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -96,17 +96,17 @@ function renderWorkspace(nav: ReturnType<typeof vi.fn>) {
 }
 
 describe("WorkspaceHandoff (Phase 5.4)", () => {
-  it("CompanyIntelEmbed 'open' stays on workspace with targetJobId/jdId", async () => {
+  it("WorkspaceInsightCard action stays on workspace with targetJobId/jdId", async () => {
     const nav = vi.fn();
     renderWorkspace(nav);
 
     const user = userEvent.setup();
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-companyintel-open")).toBeDefined();
+      expect(screen.getByTestId("workspace-insight-open")).toBeDefined();
     });
 
-    await user.click(screen.getByTestId("workspace-companyintel-open"));
+    await user.click(screen.getByTestId("workspace-insight-open"));
 
     expect(nav).toHaveBeenCalled();
     const navCall = nav.mock.calls[0]![0] as Record<string, unknown>;
@@ -129,7 +129,7 @@ describe("WorkspaceHandoff (Phase 5.4)", () => {
     expect(fbSpy).not.toHaveBeenCalled();
   });
 
-  it("sessionHistory renders EmptyHistory placeholder", async () => {
+  it("records area renders Empty placeholder", async () => {
     const nav = vi.fn();
     renderWorkspace(nav);
 
@@ -140,7 +140,7 @@ describe("WorkspaceHandoff (Phase 5.4)", () => {
     expect(screen.getByTestId("workspace-history-empty")).toBeDefined();
   });
 
-  it("sessionHistory empty placeholder clicking does NOT trigger report nav", async () => {
+  it("records empty placeholder clicking does NOT trigger report nav", async () => {
     const nav = vi.fn();
     renderWorkspace(nav);
 

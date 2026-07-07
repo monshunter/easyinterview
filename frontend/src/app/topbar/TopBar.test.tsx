@@ -47,11 +47,11 @@ describe("TopBar primary nav", () => {
     );
   });
 
-  it("does not render legacy / removed entries (mistakes / growth / voice / drill / debrief / profile)", () => {
+  it("does not render non-current entries (mistakes / growth / voice / drill / debrief / profile)", () => {
     renderInProvider(<TopBar activeRoute="home" onNavigate={() => {}} />);
-    for (const legacy of ["mistakes", "growth", "voice", "drill", "welcome", "debrief", "profile"]) {
+    for (const nonCurrent of ["mistakes", "growth", "voice", "drill", "welcome", "debrief", "profile"]) {
       expect(
-        screen.queryByTestId(`topbar-nav-${legacy}`),
+        screen.queryByTestId(`topbar-nav-${nonCurrent}`),
       ).not.toBeInTheDocument();
     }
   });

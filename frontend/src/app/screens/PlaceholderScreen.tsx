@@ -4,15 +4,13 @@ import { useI18n } from "../i18n/messages";
 import type { Route } from "../routes";
 
 /**
- * D1 placeholder for screens whose business surface is owned by D2-D6 follow-on
- * workstreams. Renders only the route name and params via data attributes so
- * route-state tests can assert routing behavior without coupling to screen
- * markup that the follow-on owners will replace.
+ * Generic fallback shell for retained route-state tests and unsupported route
+ * states. It renders route name / params via data attributes without coupling
+ * those tests to a business screen implementation.
  *
- * D2 visual contract: emits the same ei-screen-shell + ei-screen-card scaffold
- * as the live screens so D2-D6 owners can grow their content inside an already
- * styled card without re-doing the shell. The card body shows three skeleton
- * stripes derived from `ui-design/src/primitives.jsx::Placeholder`.
+ * Visual contract: emits the same ei-screen-shell + ei-screen-card scaffold as
+ * live screens, with skeleton stripes derived from
+ * `ui-design/src/primitives.jsx::Placeholder`.
  */
 export const PlaceholderScreen: FC<{ route: Route }> = ({ route }) => {
   const { t } = useI18n();
@@ -32,11 +30,10 @@ export const PlaceholderScreen: FC<{ route: Route }> = ({ route }) => {
       </header>
       <div className="ei-screen-card ei-screen-card--placeholder">
         <p className="ei-text-body">
-          {/* Generic body line; D2-D6 owners replace the placeholder body with
-              their domain content. */}
+          {/* Generic body line for route-state assertions. */}
           {route.name}
         </p>
-        <div className="ei-skeleton-stripe">D2-D6</div>
+        <div className="ei-skeleton-stripe">fallback shell</div>
         <div className="ei-skeleton-line" />
         <div className="ei-skeleton-line" style={{ width: "70%" }} />
       </div>

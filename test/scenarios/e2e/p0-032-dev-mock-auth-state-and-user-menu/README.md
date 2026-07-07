@@ -15,7 +15,7 @@ dev mock transport 使用 OpenAPI Auth fixtures，但必须维护本地 session 
 ## 2 When
 
 场景在 jsdom 中渲染 `<App client={createDevMockClient()} />`，模拟用户完成
-passwordless mock 登录，打开 TopBar 头像菜单，进入 settings，
+email-code mock 登录，打开 TopBar 头像菜单，进入 settings，
 再从头像菜单执行退出登录确认。
 
 ## 3 Then
@@ -27,7 +27,7 @@ passwordless mock 登录，打开 TopBar 头像菜单，进入 settings，
 - 头像 dropdown 展示用户姓名、脱敏邮箱、设置与隐私、退出登录，
   且 settings/logout 均能从 dropdown 正确分流。
 - logout 确认后 `/me` 回到 unauthenticated，TopBar 回到登录 / 注册。
-- 旧 inline 三按钮结构不回流，登录态菜单不会读取 `ui-design/src/data.jsx`。
+- 非当前 inline 三按钮结构不回流，登录态菜单不会读取 `ui-design/src/data.jsx`。
 
 ## 4 执行
 
@@ -42,4 +42,4 @@ passwordless mock 登录，打开 TopBar 头像菜单，进入 settings，
 
 场景在 vitest + jsdom 中运行，不写共享数据库，不启动 Kind cluster；trigger.sh
 仅产生 `.test-output/e2e/p0-032-dev-mock-auth-state-and-user-menu/trigger.log`
-作为验证证据，cleanup.sh 移除 setup marker，保留日志。
+作为验证证据，cleanup.sh 删除 setup marker，保留日志。

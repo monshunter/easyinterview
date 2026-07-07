@@ -98,17 +98,17 @@ describe("WorkspaceScreen static shell (Phase 1)", () => {
     expect(screen.getByTestId("workspace-cta-start").tagName).toBe("BUTTON");
   });
 
-  it("renders Main Left with CompanyIntelEmbed placeholder + JD breakdown", () => {
+  it("renders Main Left with WorkspaceInsightCard placeholder + JD breakdown", () => {
     withProviders(<WorkspaceScreen route={WORKSPACE_ROUTE} />, WORKSPACE_ROUTE);
-    expect(screen.getByTestId("workspace-companyintel-summary")).toBeDefined();
-    expect(screen.getByTestId("workspace-companyintel-open")).toBeDefined();
+    expect(screen.getByTestId("workspace-insight-summary")).toBeDefined();
+    expect(screen.getByTestId("workspace-insight-open")).toBeDefined();
     expect(screen.getByTestId("workspace-jd-card")).toBeDefined();
     expect(screen.getByTestId("workspace-jd-block-must")).toBeDefined();
     expect(screen.getByTestId("workspace-jd-block-nice")).toBeDefined();
     expect(screen.getByTestId("workspace-jd-block-hidden")).toBeDefined();
   });
 
-  it("renders Main Right with risks/strengths + sessionHistory placeholder", () => {
+  it("renders Main Right with risks/strengths + records placeholder", () => {
     withProviders(<WorkspaceScreen route={WORKSPACE_ROUTE} />, WORKSPACE_ROUTE);
     expect(screen.getByTestId("workspace-prep-card")).toBeDefined();
     expect(screen.getByTestId("workspace-prep-strongs")).toBeDefined();
@@ -140,8 +140,8 @@ describe("WorkspaceScreen static shell (Phase 1)", () => {
       "workspace-cta-start",
       "workspace-binding-jd",
       "workspace-binding-resume",
-      "workspace-companyintel-summary",
-      "workspace-companyintel-open",
+      "workspace-insight-summary",
+      "workspace-insight-open",
       "workspace-jd-card",
       "workspace-jd-block-must",
       "workspace-jd-block-nice",
@@ -170,7 +170,7 @@ describe("WorkspaceScreen static shell (Phase 1)", () => {
     expect(el.tagName).toBe("BUTTON");
   });
 
-  it("negative: old prototype testids do NOT exist", () => {
+  it("negative: non-current prototype testids do NOT exist", () => {
     withProviders(<WorkspaceScreen route={WORKSPACE_ROUTE} />, WORKSPACE_ROUTE);
     expect(screen.queryByTestId("practice-mode-card-warmup")).toBeNull();
     expect(screen.queryByTestId("practice-mode-card-single_drill")).toBeNull();
@@ -249,11 +249,11 @@ describe("WorkspaceScreen static shell (Phase 1)", () => {
       <WorkspaceScreen route={WORKSPACE_ROUTE} />,
       WORKSPACE_ROUTE,
     );
-    screen.getByTestId("workspace-companyintel-open").click();
+    screen.getByTestId("workspace-insight-open").click();
     expect(nav).toHaveBeenCalled();
   });
 
-  it("sessionHistory row click is disabled / stub-only", () => {
+  it("records placeholder click is disabled / stub-only", () => {
     withProviders(<WorkspaceScreen route={WORKSPACE_ROUTE} />, WORKSPACE_ROUTE);
     expect(screen.getByTestId("workspace-history-empty")).toBeDefined();
   });

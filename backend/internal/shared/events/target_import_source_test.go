@@ -52,7 +52,7 @@ func TestMapAPISourceTypeToEvent_RejectsUnknown(t *testing.T) {
 	if _, err := MapAPISourceTypeToEvent(""); err == nil {
 		t.Errorf("expected error for empty string")
 	}
-	if _, err := MapAPISourceTypeToEvent("legacy_alias"); err == nil {
+	if _, err := MapAPISourceTypeToEvent("non_current_alias"); err == nil {
 		t.Errorf("expected error for unknown variant")
 	}
 }

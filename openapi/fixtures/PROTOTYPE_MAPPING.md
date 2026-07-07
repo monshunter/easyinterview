@@ -37,7 +37,7 @@
 ## 4 归一化规则（同步工具内部约定）
 
 - **id**: 同步工具用 `uuidv7_from_prototype("<section>:<prototype-id>")` 生成稳定 UUIDv7 字面量；同一 prototype id 多次跑产生相同 UUIDv7（保证幂等）。
-- **datetime**: 所有时间字段统一固定为 prototype 的「现在」=`2026-04-28T13:45:12Z` 与历史锚点 `2026-04-28T12:00:00Z` / `2026-04-22T09:30:00Z`，不读取真实当前时间。
+- **datetime**: 所有时间字段统一固定为 prototype 的「现在」=`2026-04-28T13:45:12Z` 与固定锚点 `2026-04-28T12:00:00Z` / `2026-04-22T09:30:00Z`，不读取真实当前时间。
 - **enum 翻译**:
     - `targetJobs[].status` 中文 → `TargetJobStatus`：`面试中→interviewing`、`准备中→preparing`、`草稿→draft`。
     - `targetJobs[].language` → `targetLanguage`：`中文→zh-CN`、`英文→en`。

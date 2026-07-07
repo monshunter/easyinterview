@@ -13,11 +13,11 @@ grep -Fq 'practiceGoalParity.test.tsx' "$LOG_FILE" || { echo "E2E.P0.045: practi
 grep -Fq 'practiceHints.test.tsx' "$LOG_FILE" || { echo "E2E.P0.045: practiceHints.test.tsx did not run" >&2; exit 1; }
 grep -Fq 'practiceStrictToggleLocked.test.tsx' "$LOG_FILE" || { echo "E2E.P0.045: practiceStrictToggleLocked.test.tsx did not run" >&2; exit 1; }
 if rg -n "practiceMode\s*[=:]\s*['\"]debrief['\"]|PracticeGoalDebrief|goal\s*[=:]\s*['\"]debrief['\"]" "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then
-  echo "E2E.P0.045: retired practice goal literal leaked" >&2
+  echo "E2E.P0.045: non-current practice goal literal leaked" >&2
   exit 1
 fi
 if rg -n '切到语音|Switch to voice' "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then
-  echo "E2E.P0.045: legacy mode-switch copy leaked" >&2
+  echo "E2E.P0.045: non-current mode-switch copy leaked" >&2
   exit 1
 fi
 # usePracticeEvents must NOT set the Idempotency-Key header on the request.

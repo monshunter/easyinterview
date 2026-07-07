@@ -26,14 +26,11 @@ STATUS_PRIORITY = {
     "active": 0,
     "draft": 1,
     "completed": 2,
-    "superseded": 3,
-    "deprecated": 4,
-    "unknown": 5,
+    "unknown": 3,
 }
 HISTORICAL_STATUS_MAP = {
     "实施中": "active",
     "已完成": "completed",
-    "废弃": "deprecated",
 }
 FIELD_WEIGHTS = {
     "aliases": (8, 4),

@@ -44,7 +44,7 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 #### 2.1 25 张当前应用 / auth 支撑表
 
-落地当前产品范围内的 22 张应用表，加 ADR-Q1 的 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表；旧 `mistake_entries`、JD Match、简历版本树、候选人画像与真实复盘表不再作为 current baseline 创建。`make migrate-up` 后 public schema 至少 27 张表（含 `schema_migrations` / `schema_backfills`）。
+落地当前产品范围内的 22 张应用表，加 ADR-Q1 的 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表；非当前 `mistake_entries`、JD Match、简历版本树、候选人画像与真实复盘表不再作为 current baseline 创建。`make migrate-up` 后 public schema 至少 27 张表（含 `schema_migrations` / `schema_backfills`）。
 
 #### 2.2 B3 outbox / async columns
 
@@ -126,7 +126,7 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 |------|------|------|------|
 | 2026-07-06 | 1.7 | product-scope D-17/D-20/D-22 后续收敛：本 completed bootstrap plan 的当前正向表数、public schema gate 与 B3/B2 job type 口径更新为 22 应用表 + 3 auth 支撑表、public schema ≥27、B3 8 canonical jobs、B2 6 API-facing jobs；历史删除表只保留在 remediation / history 语境。 | product-scope/001-core-loop-module-pruning Phase 6.10 |
 | 2026-05-08 | 1.6 | 对齐 A2 用户决策：本地迁移验证前提升级为 Postgres 18。 | local-dev-stack/001 post-pass revision |
-| 2026-05-03 | 1.4 | 修正 Phase 2 / Phase 4 中遗留的旧表数量口径：当时 baseline 为应用表 + auth 支撑表 + 迁移元数据表。 | readiness reconcile |
+| 2026-05-03 | 1.4 | 修正 Phase 2 / Phase 4 中既有表数量口径：当时 baseline 为应用表 + auth 支撑表 + 迁移元数据表。 | readiness reconcile |
 | 2026-05-08 | 1.5 | 对齐 A3 003 Phase 6：删除向量扩展、向量检索表/索引与 extension drop gate；当前 baseline 为 25 应用表 + 3 auth 支撑表 + 2 迁移元数据表，public schema count gate ≥30。 | ai-provider-and-model-routing/003 Phase 6 |
 | 2026-05-03 | 1.3 | 原地 reopen，新增 Phase 5 remediation：按 product-scope v1.2 删除独立 `mistake_entries` 表，迁移字段改为报告题目回顾 / 本轮复练语义。 | db-migrations-baseline v1.6 |
 | 2026-04-30 | 1.2 | 原地 reopen 001-bootstrap，修复 L2 code-review 发现的 prod down fail-fast 顺序、dev-only extension drop 限制、B1/B2/B3 enum source drift gate 与 ALTER TABLE check 发现能力。 | plan-code-review remediation |

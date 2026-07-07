@@ -10,7 +10,7 @@
 | Local mailbox | `http://127.0.0.1:8025` (Mailpit Web UI) |
 | Cookie name | `ei_session` |
 
-The account is created through the real passwordless auth flow. Do not create a session by writing the database directly for this hybrid UAT.
+The account is created through the real email-code auth flow. Do not create a session by writing the database directly for this hybrid UAT.
 
 ## Sign-In Steps
 

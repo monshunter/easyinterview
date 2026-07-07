@@ -380,7 +380,7 @@ const ResumeRewritesTabContainer: FC<ResumeRewritesTabContainerProps> = ({
   };
 
   // Merge accepted rewrites into every supported structured-profile bullet
-  // collection used by flat resumes and older backend parse output.
+  // collection used by flat resumes and alternate backend parse output.
   const buildStructuredProfileWith = (
     acceptedRewrites: { original: string; rewritten: string }[],
   ): Record<string, unknown> => {

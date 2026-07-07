@@ -4,7 +4,6 @@ metadata:
   subspec: event-and-outbox-contract
   name: 002-resume-tailor-mode-drift-fix
   sequence: 2
-  supersedes: []
   specVersion:
     from: 2.3
     to: 2.4
@@ -29,7 +28,7 @@ spec:
       - baseline manifest
       - lint-events
       - codegen-events
-      - inline rewrite mirror retired
+      - inline rewrite mirror non-current
       - cross-spec enum alignment
       - b2 d-18 sync
       - b4 002 sync
@@ -45,8 +44,8 @@ spec:
         - ../../../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md
         - ../../../openapi-v1-contract/plans/004-resume-additive-coverage/checklist.md
         - ../../../db-migrations-baseline/spec.md
-        - ../../../db-migrations-baseline/plans/002-resume-versions-additive/plan.md
-        - ../../../db-migrations-baseline/plans/002-resume-versions-additive/checklist.md
+        - ../../../db-migrations-baseline/plans/002-flat-resume-migration/plan.md
+        - ../../../db-migrations-baseline/plans/002-flat-resume-migration/checklist.md
       discovery:
         packages:
           - shared

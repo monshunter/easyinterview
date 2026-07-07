@@ -206,7 +206,6 @@ metadata:
   subspec: ${subspec}
   name: ${NNN-plan}
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
     to: 1.0

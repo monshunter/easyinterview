@@ -4,10 +4,9 @@ metadata:
   subspec: engineering-roadmap
   name: 001-decompose-subspecs
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
-    to: 3.16
+    to: 3.29
 spec:
   defaultTarget: docs
   discovery:
@@ -19,8 +18,9 @@ spec:
     keywords:
       - subspec decomposition
       - 工程拆分
-      - roadmap rebaseline
-      - pending 占位删除
+      - current execution map
+      - roadmap current map
+      - no-pending INDEX model
       - on-demand child spec
       - mock-first 集成
       - dependency dag
@@ -36,9 +36,11 @@ spec:
       - product-scope alignment
       - ui-design alignment
       - owner matrix
-      - retired-name zero-reference
-      - 已迁移技术草稿移除
-      - deletion gate
+      - non-current-name zero-reference
+      - technical draft zero-reference
+      - non-current route boundary
+      - current owner spec
+      - pruning gate
   targets:
     docs:
       plan: ./plan.md

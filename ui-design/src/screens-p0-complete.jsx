@@ -404,7 +404,7 @@ const ReportGeneratingScreen = ({ T, lang, nav, params = {} }) => {
           {lang === "en" ? "Reading every turn. Evidence first." : "在逐轮读——先找证据，再打分。"}
         </h1>
         <div style={{ fontSize: 14, color: T.ink3, marginBottom: 32, lineHeight: 1.5, maxWidth: 540 }}>
-          {lang === "en" ? "Typical: 8-15s. You can close this tab; the report opens from this session history when it's done." : "通常 8-15 秒。可以关掉这个页面；报告生成后可从本场会话历史打开。"}
+          {lang === "en" ? "Typical: 8-15s. You can close this tab; the report opens from this session records when it's done." : "通常 8-15 秒。可以关掉这个页面；报告生成后可从本场会话记录打开。"}
         </div>
 
         {/* Progress */}
@@ -540,7 +540,7 @@ const SettingsPrivacy = ({ T, lang }) => {
         <div style={{ display: "flex", flexDirection: "column", gap: 0, background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 2 }}>
           {[
             { k: "audio", t: lang === "en" ? "Keep voice recordings (session only)" : "保留语音录音（仅当次会话）", d: lang === "en" ? "Deleted within 24h of the report. Off → no recording, text only." : "报告生成后 24h 内自动删除。关闭 → 不录音，仅文字。" },
-            { k: "transcript", t: lang === "en" ? "Keep text transcripts long-term" : "长期保留文字转写", d: lang === "en" ? "Used to review past answers and compare readiness over time." : "用来回看历史回答，并比较准备度变化。" },
+            { k: "transcript", t: lang === "en" ? "Keep text transcripts long-term" : "长期保留文字转写", d: lang === "en" ? "Used to review past answers and compare readiness over time." : "用来回看过往回答，并比较准备度变化。" },
             { k: "resume", t: lang === "en" ? "Keep uploaded resumes" : "保留上传的简历", d: lang === "en" ? "Used only to suggest stories during practice." : "只在练习时用来推荐故事。" },
             { k: "anon", t: lang === "en" ? "Contribute anonymized samples to improve rubrics" : "匿名贡献样本用于改进评分", d: lang === "en" ? "Off by default. Names, companies, numbers are stripped." : "默认关闭。姓名、公司、数字会被去除。" },
           ].map((r, i, arr) => (

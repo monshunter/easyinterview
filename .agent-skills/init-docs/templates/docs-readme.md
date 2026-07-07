@@ -19,7 +19,7 @@
 
 ```markdown
 > **版本**: X.Y
-> **状态**: draft | active | completed | superseded | deprecated
+> **状态**: draft | active | completed
 > **更新日期**: YYYY-MM-DD
 ```
 
@@ -29,9 +29,7 @@
 |------|------|
 | `draft` | 草稿，尚未正式生效 |
 | `active` | 生效中，当前有效版本 |
-| `completed` | 已完成，作为历史交付记录保留 |
-| `superseded` | 已被取代，需注明新文档路径 |
-| `deprecated` | 已废弃，不再适用 |
+| `completed` | 已完成，作为交付记录保留 |
 
 Spec-centric plan 补充约定：
 

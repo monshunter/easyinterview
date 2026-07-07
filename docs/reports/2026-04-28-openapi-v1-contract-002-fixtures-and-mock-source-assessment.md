@@ -35,7 +35,7 @@
   - **影响**：Phase 4 close-out 多一次切分命令的等待与说明；hook 看到 `git checkout dev` 把当前分支换成 dev，再去检查「当前分支有没有这个 commit」——dev 当时确实还没合，于是 false-negative。
 - **`make codegen-check` 在未提交 generated 改动时 dirty-tree 失败（与 001-bootstrap remediation 报告同因再现）**
   - **证据**：Phase 3 把 `openapi/openapi.yaml` 的 inline example 删掉之后，`make codegen-openapi` 把改动传播到 `backend/internal/api/generated/openapi.yaml` 与 `frontend/src/api/generated/spec.ts`；这些改动尚未提交时 `make codegen-check` 因 `git diff --exit-code` 退出 1。提交 Phase 3 commit 之后立即恢复。
-  - **影响**：与 [`2026-04-28-openapi-v1-contract-001-bootstrap-remediation-assessment.md`](./2026-04-28-openapi-v1-contract-001-bootstrap-remediation-assessment.md) §2 同因；本会话不重复改 skill / Makefile，但再增一笔证据。
+  - **影响**：与 001-bootstrap remediation 的 codegen-check dirty-tree issue 同因；本会话不重复改 skill / Makefile，但再增一笔证据。
 
 ## 3 根因归类
 
@@ -69,7 +69,7 @@
 - **建议 4（medium）**：调整 `/tdd` SKILL.md 中 Step 9.5 的样例命令——把 `git checkout <base> && git merge <feature> --ff-only && git checkout <feature>` 拆成 3 个独立 Bash 步骤；或在 `--auto` 模式里由 `/work-journal` 显式管理 merge，让本仓库的 phase-commit hook 看到与单步命令相同的现场。
   - **落点**：skill（`.agent-skills/tdd/SKILL.md`）
   - **优先级**：medium
-- **建议 5（low）**：建议 4 与本会话第 5 个痛点同 reflect 的「`make codegen-check` 在未提交 generated 改动上的 dirty-tree 限制」已在 [`001-bootstrap-remediation-assessment.md`](./2026-04-28-openapi-v1-contract-001-bootstrap-remediation-assessment.md) §4 提过；本次只是累计第二笔证据，不重复出建议。等同类痛点再出现 1-2 次再触发流程改造（例如新增 `make codegen-openapi-verify` 仅做重生成 + lint，不做 `git diff --exit-code`）。
+- **建议 5（low）**：建议 4 与本会话第 5 个痛点同 reflect 的「`make codegen-check` 在未提交 generated 改动上的 dirty-tree 限制」已由 001-bootstrap remediation 记录过；本次只是累计第二笔证据，不重复出建议。等同类痛点再出现 1-2 次再触发流程改造（例如新增 `make codegen-openapi-verify` 仅做重生成 + lint，不做 `git diff --exit-code`）。
   - **落点**：spec-plan（openapi-v1-contract spec §4.5 / `Makefile` 设计）+ 可选 skill
   - **优先级**：low（保持已知项观察）
 

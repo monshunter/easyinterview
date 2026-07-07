@@ -41,7 +41,7 @@ func TestResolveCanonicalMultiLanguage(t *testing.T) {
 		t.Errorf("FeatureFlag: want 'none', got %q", res.FeatureFlag)
 	}
 	if res.UserMessageTemplate == "" {
-		t.Errorf("UserMessageTemplate must be populated for plan 001 baseline")
+		t.Errorf("UserMessageTemplate must be populated for current baseline")
 	}
 	if got := client.FallbackCount(); got != 0 {
 		t.Errorf("FallbackCount: canonical multi hit must not increment, got %d", got)
@@ -138,7 +138,7 @@ func TestResolvePracticeSessionBaselineFeatures(t *testing.T) {
 				t.Errorf("ModelProfileName: want %s, got %s", profileName, res.ModelProfileName)
 			}
 			if res.UserMessageTemplate == "" {
-				t.Errorf("UserMessageTemplate must be populated for plan 001 baseline")
+				t.Errorf("UserMessageTemplate must be populated for current baseline")
 			}
 		})
 	}

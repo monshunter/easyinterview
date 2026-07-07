@@ -25,7 +25,7 @@ Checks and repairs document Header / INDEX drift across spec-centric `docs/spec/
 
 ```
 > **版本**: X.Y
-> **状态**: draft|active|completed|superseded|deprecated
+> **状态**: draft|active|completed
 > **更新日期**: YYYY-MM-DD
 ```
 
@@ -33,7 +33,7 @@ Checks and repairs document Header / INDEX drift across spec-centric `docs/spec/
 
 ```
 > **版本**: X.Y
-> **状态**: draft|active|completed|superseded|deprecated
+> **状态**: draft|active|completed
 > **更新日期**: YYYY-MM-DD
 ```
 
@@ -43,15 +43,14 @@ Field order is **fixed**. Fields must appear in exactly this order.
 
 ### Status Enum
 
-Valid values: `draft`, `active`, `completed`, `superseded`, `deprecated`
+Valid values: `draft`, `active`, `completed`
 
-Legacy value mapping:
+Status alias mapping:
 
-| Legacy | Normalized |
+| Alias | Normalized |
 |--------|-----------|
 | `实施中` | `active` |
 | `已完成` | `completed` |
-| `废弃` | `deprecated` |
 
 ## Modes
 
@@ -133,7 +132,6 @@ Review the output. If Post-fix Verification shows zero issues, done. Otherwise p
 
 `--fix-index` automatically migrates plan rows between active / draft / completed sections in `docs/spec/<subspec>/plans/INDEX.md` (creating the destination section if absent). The **Post-fix Verification** section only lists items that still need LLM intervention. For each:
 
-- **INDEX row migration involving `superseded`** (column shape differs): Read the affected `docs/spec/<subspec>/plans/INDEX.md`. Move the row to the correct group manually because the superseded section drops version/date columns. Use Edit tool.
 - **Sub-row (`↳`) status mismatch**: These are advisory continuations of the parent plan. Decide whether the parent's status changed by mistake or whether the sub-row should be detached, then edit manually.
 - **Orphan: document not in INDEX** (`missing_from_index`): Read the document's Header. Determine the correct INDEX group and position. Use Edit tool to add a new row.
 - **Orphan: dangling INDEX entry** (`dangling_index_entries`): Report to the user. Do NOT delete the entry — let the user decide.
@@ -147,12 +145,11 @@ python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check --json
 
 | Issue | Script auto-fixes? | LLM action |
 |-------|:---:|---------------|
-| Legacy status (实施中→active) | Yes | — |
+| Status alias (实施中→active) | Yes | — |
 | Wrong field order | Yes | — |
 | Missing `更新日期` | Yes | — |
 | INDEX version/date column mismatch | Yes | — |
 | INDEX row in wrong status group (active / draft / completed) | Yes | — |
-| INDEX row migration involving `superseded` (column shape differs) | **No** | Move row manually; superseded section has different columns |
 | Sub-row (`↳`) status mismatch | **No** | Decide parent vs. sub-row resolution manually |
 | Missing `状态` | **No** | Read INDEX context, set via Edit |
 | Missing `版本` | **No** | Read INDEX context, set via Edit |
@@ -167,7 +164,7 @@ The following entries are considered **non-standard** and must NOT be auto-rewri
 - `README.md` files
 - `TEMPLATES.md` files
 - INDEX rows pointing to non-existent files
-- INDEX rows with no link (e.g., placeholder text like `工作进展（已移除）`)
+- INDEX rows with no link (e.g., placeholder text like `工作进展（占位）`)
 - `↳` sub-plan rows when the parent is not a standard plan
 - Entries in `docs/spec/INDEX.md` that link outside `docs/spec/` (e.g., `../reports/`)
 

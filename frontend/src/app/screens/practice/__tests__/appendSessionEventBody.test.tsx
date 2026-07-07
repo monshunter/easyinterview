@@ -122,7 +122,7 @@ function assertSchemaShape(body: Record<string, unknown>): void {
   expect(typeof body.kind).toBe("string");
   expect(ALLOWED_KINDS.has(body.kind as string)).toBe(true);
   expect(typeof body.payload).toBe("object");
-  // No legacy / disallowed top-level keys.
+  // No non-current / disallowed top-level keys.
   for (const key of Object.keys(body)) {
     expect(REQUIRED_KEYS).toContain(key as (typeof REQUIRED_KEYS)[number]);
   }

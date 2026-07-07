@@ -13,4 +13,4 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-passwordless-session-bootstrap](./001-passwordless-session-bootstrap/plan.md) | [plan](./001-passwordless-session-bootstrap/plan.md) / [checklist](./001-passwordless-session-bootstrap/checklist.md) / [context](./001-passwordless-session-bootstrap/context.yaml) / [bdd-plan](./001-passwordless-session-bootstrap/bdd-plan.md) / [bdd-checklist](./001-passwordless-session-bootstrap/bdd-checklist.md) | 1.7 | completed | 2026-05-28 |
+| [001-email-code-session-bootstrap](./001-email-code-session-bootstrap/plan.md) | [plan](./001-email-code-session-bootstrap/plan.md) / [checklist](./001-email-code-session-bootstrap/checklist.md) / [context](./001-email-code-session-bootstrap/context.yaml) / [bdd-plan](./001-email-code-session-bootstrap/bdd-plan.md) / [bdd-checklist](./001-email-code-session-bootstrap/bdd-checklist.md) | 1.9 | completed | 2026-07-07 |

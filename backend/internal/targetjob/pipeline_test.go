@@ -359,7 +359,7 @@ func TestParseExecutor_AIOutputInvalid_WhenRequirementsAreSemanticallyInvalid(t 
 		{
 			name: "all invalid kind",
 			content: `{"requirements":[
-				{"kind":"legacy_signal","label":"Legacy signal","evidenceLevel":"explicit"}
+				{"kind":"prior_signal","label":"Prior signal","evidenceLevel":"explicit"}
 			]}`,
 		},
 		{
@@ -378,7 +378,7 @@ func TestParseExecutor_AIOutputInvalid_WhenRequirementsAreSemanticallyInvalid(t 
 			name: "mixed valid and invalid",
 			content: `{"requirements":[
 				{"kind":"must_have","label":"Go","evidenceLevel":"explicit"},
-				{"kind":"legacy_signal","label":"Legacy signal","evidenceLevel":"explicit"}
+				{"kind":"prior_signal","label":"Prior signal","evidenceLevel":"explicit"}
 			]}`,
 		},
 	}

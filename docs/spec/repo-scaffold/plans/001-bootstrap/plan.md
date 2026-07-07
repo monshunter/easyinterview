@@ -111,5 +111,5 @@
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
-| 2026-05-04 | 1.2 | L1 plan-review remediation：补齐当前强制的质量门禁分类，并在 checklist 全部完成后将 plan lifecycle 收口为 completed。 | historical-spec-implementation-review/001 |
+| 2026-05-04 | 1.2 | L1 plan-review remediation：补齐当前强制的质量门禁分类，并在 checklist 全部完成后将 plan lifecycle 收口为 completed。 | docs-only L1 remediation |
 | 2026-04-29 | 1.1 | 原地 reopen A1 001-bootstrap，补齐 v1.1 spec 已锁定的 `shared/` / `config/` 根容器 artifact、根 README 索引与 context discovery；不创建 sibling plan。 | plan-review remediation |

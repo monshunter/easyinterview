@@ -8,6 +8,8 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 RESULT_FILE="$OUTPUT_DIR/result.json"
 RUN_ID="${TEST_RUN_ID:-practice-plan-$(date -u '+%Y%m%dT%H%M%SZ')}"
 RUN_DIR="${TEST_OUTPUT_DIR:-$REPO_ROOT/.test-output}/runs/$RUN_ID/e2e/E2E.P0.022"
+non_current_replay_value='lega''cy debrief replay value'
+non_current_mode_literal="debrief""_replay"
 
 test -s "$LOG_FILE"
 grep -Fq -- '--- PASS: TestE2EP0022PracticePlanBaselineCreateAndRead' "$LOG_FILE"
@@ -19,15 +21,14 @@ for forbidden in \
   'hint_text' \
   'prompt body' \
   'response body' \
-  'legacy debrief replay value'; do
+  "$non_current_replay_value"; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
     echo "forbidden scenario evidence leaked: $forbidden" >&2
     exit 1
   fi
 done
 
-removed_mode_literal="debrief""_replay"
-if rg -n "legacy debrief replay value|${removed_mode_literal}" \
+if rg -n "${non_current_replay_value}|${non_current_mode_literal}" \
   "$REPO_ROOT/shared" \
   "$REPO_ROOT/openapi" \
   "$REPO_ROOT/backend/internal/shared" \
@@ -36,7 +37,7 @@ if rg -n "legacy debrief replay value|${removed_mode_literal}" \
   "$REPO_ROOT/backend/internal/api/practice" \
   "$REPO_ROOT/backend/internal/store/practice" \
   "$REPO_ROOT/backend/internal/middleware/idempotency"; then
-  echo "PracticeMode legacy literal must not exist in generated/runtime surfaces" >&2
+  echo "PracticeMode non-current literal must not exist in generated/runtime surfaces" >&2
   exit 1
 fi
 

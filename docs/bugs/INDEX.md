@@ -57,7 +57,7 @@
 | [BUG-0071](./BUG-0071.md) | frontend debrief record modes drifted from ui-design parity | medium | resolved | 2026-05-17 | `fix(frontend-debrief): restore record mode ui parity (BUG-0071)` |
 | [BUG-0069](./BUG-0069.md) | debrief real backend flows were blocked by mock-only contract drift | high | resolved | 2026-05-17 | `fix(frontend-debrief): repair real backend debrief flows (BUG-0068)` |
 | [BUG-0068](./BUG-0068.md) | frontend debrief L2 review exposed route hydration and pixel gate drift | high | resolved | 2026-05-17 | `fix(frontend-debrief): close debrief L2 gaps (BUG-0067)` |
-| [BUG-0065](./BUG-0065.md) | debrief.generate prompt baseline used retired output schema | high | resolved | 2026-05-16 | `feat(backend-debrief): close 001 debrief record and analysis baseline` |
+| [BUG-0065](./BUG-0065.md) | debrief.generate prompt baseline used non-current output schema | high | resolved | 2026-05-16 | `feat(backend-debrief): close 001 debrief record and analysis baseline` |
 
 ## Eval
 
@@ -168,7 +168,7 @@
 | [BUG-0129](./BUG-0129.md) | core-loop pruning left stale profile and codegen test gates | medium | resolved | 2026-06-30 | `fix(core-loop): close pruning gate drift (BUG-0129)` |
 | [BUG-0128](./BUG-0128.md) | core-loop pruning gates missed design canvas and privacy hook drift | medium | resolved | 2026-06-29 | `fix(core-loop): close pruning review drift (BUG-0128)` |
 | [BUG-0124](./BUG-0124.md) | resume Phase 8 flat gate drifted on current profile fields | medium | resolved | 2026-06-14 | `fix(test): close resume phase8 flat gate drift (BUG-0124)` |
-| [BUG-0120](./BUG-0120.md) | D-20 resume gates missed retired fixture keys and stale scenario scripts | medium | resolved | 2026-06-14 | `fix(test): close resume d20 gate drift (BUG-0120)` |
+| [BUG-0120](./BUG-0120.md) | D-20 resume gates missed non-current fixture keys and stale scenario scripts | medium | resolved | 2026-06-14 | `fix(test): close resume d20 gate drift (BUG-0120)` |
 | [BUG-0118](./BUG-0118.md) | D-17/D-18/D-20 refactor left stale scenario and contract gates | medium | resolved | 2026-06-14 | `fix(test): close ux funnel refactor drift (BUG-0118)` |
 | [BUG-0111](./BUG-0111.md) | scenario env review follow-ups exposed stale env and evidence gates | medium | resolved | 2026-05-27 | `fix(test): close scenario env review follow-ups (BUG-0111)` |
 | [BUG-0110](./BUG-0110.md) | real-provider UAT bypassed the standard scenario runner | medium | resolved | 2026-05-27 | `fix(test): use dev-stack env for hybrid scenario (BUG-0110)` |
@@ -183,6 +183,6 @@
 | [BUG-0082](./BUG-0082.md) | jd-match BDD closure treated smoke wrappers as completed gates | high | resolved | 2026-05-22 | `fix(backend-jobs): harden jd-match runtime contracts (BUG-0082, BUG-0083)` |
 | [BUG-0066](./BUG-0066.md) | debrief scenario wrappers were missing or under-asserted | high | resolved | 2026-05-17 | `fix(test): close debrief scenario wrapper evidence (BUG-0066)` |
 | [BUG-0034](./BUG-0034.md) | mockruntime named scenario test copied stale fixture expectation | medium | resolved | 2026-05-10 | `fix(mock-contract): align mockruntime named scenarios` |
-| [BUG-0011](./BUG-0011.md) | mock contract gate ignored empty retired fixture tag directories | medium | resolved | 2026-05-06 | `fix(mock-contract): reject retired fixture tag dirs` |
+| [BUG-0011](./BUG-0011.md) | mock contract gate ignored empty non-current fixture tag directories | medium | resolved | 2026-05-06 | `fix(mock-contract): reject non-current fixture tag dirs` |
 | [BUG-0010](./BUG-0010.md) | mock contract runtime gate missed registry and stale route count | medium | resolved | 2026-05-05 | `fix(mock-contract): harden runtime drift gates` |
 | [BUG-0003](./BUG-0003.md) | local quality gates skipped real backend and frontend execution | medium | resolved | 2026-04-30 | `fix(ci-pipeline): remediate local quality gates` |

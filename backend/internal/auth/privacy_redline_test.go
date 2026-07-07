@@ -16,7 +16,7 @@ import (
 func TestAuthPrivacyObservableSurfacesDoNotLeakSecretsOrPII(t *testing.T) {
 	dispatcher := &payloadRecordingDispatcher{}
 	sink := auth.NewDevMailSink(auth.DevMailSinkOptions{VerifyBaseURL: "http://api.test/api/v1/auth/email/verify"})
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:           &recordingChallengeStore{},
 		Dispatcher:      dispatcher,
 		DeliverySecrets: sink,
@@ -39,7 +39,7 @@ func TestAuthPrivacyObservableSurfacesDoNotLeakSecretsOrPII(t *testing.T) {
 		challenge: auth.ChallengeRecord{ID: "challenge-privacy", Email: "candidate@example.com", ExpiresAt: time.Now().Add(auth.ChallengeTTL)},
 		user:      auth.UserContext{ID: "user-privacy", Email: "candidate@example.com"},
 	}
-	verifyService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	verifyService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:                 verifyStore,
 		SessionTokenGenerator: fixedTokenGenerator("raw-session-cookie"),
 		ChallengePepper:       "pepper-secret",
@@ -47,7 +47,7 @@ func TestAuthPrivacyObservableSurfacesDoNotLeakSecretsOrPII(t *testing.T) {
 		Now:                   func() time.Time { return time.Date(2026, 5, 6, 11, 10, 0, 0, time.UTC) },
 		NewID:                 fixedIDs("user-privacy", "session-privacy"),
 	})
-	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: verifyService})
+	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: verifyService})
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/email/verify?token=123456", nil)
 	rec := httptest.NewRecorder()
 	handler.VerifyAuthEmailChallenge(rec, req)

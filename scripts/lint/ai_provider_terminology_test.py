@@ -46,7 +46,7 @@ class AIProviderTerminologyLintTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("ai_provider_terminology: OK", result.stdout)
 
-    def test_rejects_retired_active_env_and_schema_terms(self) -> None:
+    def test_rejects_non_current_active_env_and_schema_terms(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = Path(td)
             write(repo / ".env.example", "AI_GATEWAY_BASE_URL=\n")
@@ -61,7 +61,7 @@ class AIProviderTerminologyLintTest(unittest.TestCase):
             self.assertIn("AI_GATEWAY env key", result.stderr)
             self.assertIn("gateway_route schema key", result.stderr)
 
-    def test_ignores_historical_evidence_paths(self) -> None:
+    def test_ignores_evidence_paths(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = Path(td)
             write(repo / "docs" / "work-journal" / "2026-05-05.md", "AI_GATEWAY_BASE_URL\n")
@@ -73,7 +73,7 @@ class AIProviderTerminologyLintTest(unittest.TestCase):
                 / "spec"
                 / "ai-provider-and-model-routing"
                 / "history.md",
-                "AI gateway historical wording\n",
+                "AI gateway prior wording\n",
             )
 
             result = run_lint(repo)

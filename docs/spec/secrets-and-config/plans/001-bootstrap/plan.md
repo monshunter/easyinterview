@@ -1,8 +1,8 @@
 # Secrets and Config Bootstrap
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-07-07
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -30,7 +30,7 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `platform-config + code-internal + contract + tooling`。本 plan 修改 backend config/secrets/featureflag packages、config truth source、secret lint hooks、runtime-config builder/stub、frontend runtime-config fetcher 和本地 lint gate；不直接交付用户可见 workflow。
-- **TDD 策略**: 历史实现以 checklist 每项的 Go tests、TS tests、lint negative cases、pre-commit secret redline、runtime-config allowlist tests 和 config fail-fast smoke 作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行。
+- **TDD 策略**: 本 plan 既有实现以 checklist 每项的 Go tests、TS tests、lint negative cases、pre-commit secret redline、runtime-config allowlist tests 和 config fail-fast smoke 作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行。
 - **BDD 策略**: BDD 不适用。本 plan 是内部配置/secret/feature flag contract 与 tooling；后续 D1/B2/C workstream 把 runtime-config 暴露到用户流程时维护自身 BDD gate。
 - **替代验证 gate**: `go test ./backend/internal/platform/config/... ./backend/internal/platform/secrets/... ./backend/internal/platform/featureflag/...`、frontend runtime-config tests/typecheck、`make lint-config`、secret hook negative tests、`make lint`、runtime-config allowlist smoke、`sync-doc-index --check`。
 
@@ -40,7 +40,7 @@
 
 #### 1.1 落地 `backend/internal/platform/config/` 包骨架
 
-按 [secrets-and-config spec §5](../../spec.md#5-模块边界) 把 `loader.go` / `validator.go` / `redactor.go` / `getters.go` / `doc.go` 落到 `backend/internal/platform/config/`，module path 沿用 [B1 §1.2](../../../shared-conventions-codified/plans/001-bootstrap/plan.md#12-go-module-初始化) 锁定的 `github.com/monshunter/easyinterview/backend`。`doc.go` 用一段 godoc 概述说明三层优先级（与 [secrets-and-config spec §3.1 D-1](../../spec.md#31-已锁定决策含-p0-必备-env-key-字典) 对齐）以及对外可见的 `Get*` API 命名约定。
+按 [secrets-and-config spec §5](../../spec.md#5-模块边界) 把 `loader.go` / `validator.go` / `redactor.go` / `getters.go` / `doc.go` 落到 `backend/internal/platform/config/`，module path 沿用 [B1 shared helper contract](../../../shared-conventions-codified/plans/001-bootstrap/plan.md#phase-2-go--ts-shared-helpers) 锁定的 `github.com/monshunter/easyinterview/backend`。`doc.go` 用一段 godoc 概述说明三层优先级（与 [secrets-and-config spec §3.1 D-1](../../spec.md#31-已锁定决策含-p0-必备-env-key-字典) 对齐）以及对外可见的 `Get*` API 命名约定。
 
 #### 1.2 接入 `koanf` 作为 loader 实现
 
@@ -113,7 +113,7 @@ type FeatureFlagClient interface {
 
 #### 3.4 落地 `config/feature-flags.yaml` baseline
 
-按 product-scope v1.2 / UI scope 写入 6 项 baseline flag（`practice_hint_enabled` / `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled` / `practice_assistance_mode_enabled`）。每个 flag 必须显式标注 `public: true|false`：除 `ai_fallback_model_enabled` 外均为 `public: true`（前端可见）；`ai_fallback_model_enabled` 设 `public: false`（operator-only），由 Phase 5 runtime-config builder 在 allowlist 中过滤。旧 `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 不得恢复。
+按 product-scope v1.2 / UI scope 写入 6 项 baseline flag（`practice_hint_enabled` / `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled` / `practice_assistance_mode_enabled`）。每个 flag 必须显式标注 `public: true|false`：除 `ai_fallback_model_enabled` 外均为 `public: true`（前端可见）；`ai_fallback_model_enabled` 设 `public: false`（operator-only），由 Phase 5 runtime-config builder 在 allowlist 中过滤。Non-current `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 不得恢复。
 
 #### 3.5 落地 `config/README.md`
 
@@ -127,7 +127,7 @@ type FeatureFlagClient interface {
 
 #### 4.1 golangci-lint 自定义规则（拒绝 `os.Getenv` 越界）
 
-按 [secrets-and-config spec §4.1](../../spec.md#41-边界约束) 落地：在 [B1](../../../shared-conventions-codified/plans/001-bootstrap/plan.md#31-go-lint-与错误码校验) 已落地的 `backend/.golangci.yml` 中追加一条本地可执行规则。优先选择 `revive` 自定义 rule（如 `disallow-direct-env-access`）；若 `revive` 表达不动，则在 `scripts/lint/` 下落 `getenv_boundary.go`（Go AST checker），由 `make lint-config` / `make lint` 调用 `go run scripts/lint/getenv_boundary.go -root backend` 扫描 `backend/...`。规则 allowlist 仅放行 `backend/internal/platform/config/`、`backend/internal/platform/secrets/`、`backend/cmd/api/`、`backend/cmd/migrate/`，与当前 spec §4.1 一致；其它包出现 `os.Getenv` 必须 lint 失败（关闭 [secrets-and-config spec §6 C-7](../../spec.md#6-验收标准)）。
+按 [secrets-and-config spec §4.1](../../spec.md#41-边界约束) 落地：在 [B1 lint gate](../../../shared-conventions-codified/plans/001-bootstrap/plan.md#phase-3-lint-and-naming-gates) 已落地的 `backend/.golangci.yml` 中追加一条本地可执行规则。优先选择 `revive` 自定义 rule（如 `disallow-direct-env-access`）；若 `revive` 表达不动，则在 `scripts/lint/` 下落 `getenv_boundary.go`（Go AST checker），由 `make lint-config` / `make lint` 调用 `go run scripts/lint/getenv_boundary.go -root backend` 扫描 `backend/...`。规则 allowlist 仅放行 `backend/internal/platform/config/`、`backend/internal/platform/secrets/`、`backend/cmd/api/`、`backend/cmd/migrate/`，与当前 spec §4.1 一致；其它包出现 `os.Getenv` 必须 lint 失败（关闭 [secrets-and-config spec §6 C-7](../../spec.md#6-验收标准)）。
 
 #### 4.2 `make lint-config`：env key dictionary drift 检查
 
@@ -255,15 +255,15 @@ type FeatureFlagClient interface {
 
 #### 8.1 Red
 
-先调整 feature flag / runtime-config tests，要求旧 `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 不得出现在 public runtime config。当前配置仍包含旧 flag 时测试必须失败。
+先调整 feature flag / runtime-config tests，要求 non-current `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 不得出现在 public runtime config。当前配置仍包含 non-current flag 时测试必须失败。
 
 #### 8.2 Green
 
-修订 `config/feature-flags.yaml`、runtime-config tests 与相关文档：新增 `report_retry_plan_enabled` / `readiness_signals_enabled` / `practice_assistance_mode_enabled`，删除旧独立错题本、成长中心和 dual-track flag。
+修订 `config/feature-flags.yaml`、runtime-config tests 与相关文档：新增 `report_retry_plan_enabled` / `readiness_signals_enabled` / `practice_assistance_mode_enabled`，删除非当前独立错题本、成长中心和 dual-track flag。
 
 #### 8.3 Verify
 
-运行 `make lint-config`、focused runtime-config tests；repo 搜索确认实现侧不再出现旧三项 feature flag key。
+运行 `make lint-config`、focused runtime-config tests；repo 搜索确认实现侧不再出现三项 non-current feature flag key。
 
 ## 5 验收标准
 
@@ -286,9 +286,10 @@ type FeatureFlagClient interface {
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
-| 2026-05-05 | 1.6 | L2 深审修正文档 allowlist 旧口径：`cmd/migrate` 是 B4 迁移 CLI 的合法 env 读取入口；plan 与当前 spec §4.1 / `getenv_boundary.go` 对齐。 | historical deep reconcile |
-| 2026-05-04 | 1.5 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 config/secret/feature flag 范围。 | historical-spec-implementation-review/001 |
-| 2026-05-03 | 1.4 | 原地 reopen，新增 Phase 8 remediation：按 product-scope v1.2 替换旧错题本 / 成长中心 / dual-track feature flag baseline。 | secrets-and-config v1.9 |
+| 2026-07-07 | 1.8 | Wording cleanup：收敛 feature flag 与 TDD gate 说明为当前 non-current flag / 既有实现口径，不改变可执行契约。 | product-scope/001 Phase 6.89 |
+| 2026-05-05 | 1.6 | L2 深审修正文档 allowlist 非当前口径：`cmd/migrate` 是 B4 迁移 CLI 的合法 env 读取入口；plan 与当前 spec §4.1 / `getenv_boundary.go` 对齐。 | deep reconcile |
+| 2026-05-04 | 1.5 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 config/secret/feature flag 范围。 | docs-only L1 remediation |
+| 2026-05-03 | 1.4 | 原地 reopen，新增 Phase 8 remediation：按 product-scope v1.2 替换非当前错题本 / 成长中心 / dual-track feature flag baseline。 | secrets-and-config v1.9 |
 | 2026-04-30 | 1.3 | L2 code-review remediation：补 prod/staging required config 覆盖与 dev-default runtime override 防线。 | plan-code-review --fix |
-| 2026-04-30 | 1.2 | L2 code-review remediation：retired worker config bindings、AI base URL fail-fast、env_dict code-side binding discovery、runtime-config cold PostHog projection。 | plan-code-review --fix |
+| 2026-04-30 | 1.2 | L2 code-review remediation：non-current worker config bindings、AI base URL fail-fast、env_dict code-side binding discovery、runtime-config cold PostHog projection。 | plan-code-review --fix |
 | 2026-04-29 | 1.1 | 对齐 spec v1.7：24 项 env key、`async.queueWeights` config-only 字段、PostHog last-known-good 缓存降级、secret 样本只允许临时生成不入文档。 | plan-review remediation |

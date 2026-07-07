@@ -54,7 +54,7 @@ describe("Settings shell visual contract (Phase 5.1 / Phase 12.2)", () => {
       container.querySelector("[data-testid='settings-privacy']"),
     ).toBeFalsy();
 
-    // D-21: P1 placeholder tabs are removed for good.
+    // D-21: P1 placeholder tabs are outside current scope.
     expect(
       container.querySelector(
         "[data-testid='settings-notifications-placeholder']",
@@ -66,7 +66,7 @@ describe("Settings shell visual contract (Phase 5.1 / Phase 12.2)", () => {
       ),
     ).toBeFalsy();
 
-    // D-16: login security only states the passwordless method.
+    // D-16: login security only states the email-code method.
     const security = container.querySelector(
       "[data-testid='settings-login-security']",
     );
@@ -95,7 +95,7 @@ describe("Settings shell visual contract (Phase 5.1 / Phase 12.2)", () => {
     ).toBeFalsy();
   });
 
-  it("rejects retired Growth / Experiences / Mistakes / Drill / 独立 voice copy and testid", () => {
+  it("rejects non-current Growth / Experiences / Mistakes / Drill / 独立 voice copy and testid", () => {
     const { container } = render(
       withProvider(<SettingsScreen route={{ name: "settings", params: {} }} />),
     );
@@ -109,7 +109,7 @@ describe("Settings shell visual contract (Phase 5.1 / Phase 12.2)", () => {
     ]) {
       expect(
         new RegExp(`data-testid=["']settings-${banned}["']`).test(html),
-        `legacy testid settings-${banned} must not appear`,
+        `non-current testid settings-${banned} must not appear`,
       ).toBe(false);
     }
     expect(html).not.toMatch(/错题本|成长中心|经历库|目标角色|技能标签/);
@@ -117,7 +117,7 @@ describe("Settings shell visual contract (Phase 5.1 / Phase 12.2)", () => {
 });
 
 describe("PlaceholderScreen card skeleton (Phase 5.2)", () => {
-  it("renders a card skeleton (title + description + skeleton stripes) for D2-D6 routes", () => {
+  it("renders a card skeleton (title + description + fallback stripe) for retained fallback routes", () => {
     const { container } = render(
       withProvider(
         <PlaceholderScreen
@@ -137,7 +137,10 @@ describe("PlaceholderScreen card skeleton (Phase 5.2)", () => {
     expect(heading?.className).toMatch(/\bei-text-display\b/);
     const card = root!.querySelector(".ei-screen-card");
     expect(card).toBeTruthy();
-    expect(card!.querySelector(".ei-skeleton-stripe")).toBeTruthy();
+    const stripe = card!.querySelector(".ei-skeleton-stripe");
+    expect(stripe).toBeTruthy();
+    expect(stripe!.textContent).toBe("fallback shell");
+    expect(card!.textContent).not.toContain(["D2", "D6"].join("-"));
   });
 
   it("falls back to placeholder.default copy for retained placeholder routes", () => {

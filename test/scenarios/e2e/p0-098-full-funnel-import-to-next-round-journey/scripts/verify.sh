@@ -24,7 +24,7 @@ fi
 for marker in \
   "--- PASS: TestE2EP0098FullFunnelImportToNextRound" \
   "--- PASS: TestE2EP0098CreatePracticePlanAcceptsEmptyFocusCodes" \
-  "--- PASS: TestE2EP0098FullFunnelLegacyNegativeRoutePattern" \
+  "--- PASS: TestE2EP0098FullFunnelNonCurrentNegativeRoutePattern" \
   "job_type=resume_parse" \
   "job_type=target_import" \
   "job_type=report_generate" \
@@ -60,7 +60,7 @@ import sys
 
 root = pathlib.Path(sys.argv[1])
 pattern = re.compile(r"""(^|[\s'"'/#?&=:-])(welcome|growth|mistakes|drill|followup|experiences|star(_editor)?|onboarding)([\s'"'/#?&=:-]|$)|mode=debrief|name=['"](plan|resume|voice)['"]|route=['"](plan|resume|voice)['"]|#route=(plan|resume|voice)([\s'"'/#?&=:-]|$)""")
-d22_retired = re.compile(
+d22_non_current = re.compile(
     r"""Debriefs|/debriefs\b|createDebrief|suggestDebriefQuestions|getDebrief|"""
     r"""getMyProfile|updateMyProfile|listExperienceCards|createExperienceCard|updateExperienceCard|"""
     r"""CandidateProfile|ExperienceCard|sourceDebriefId|source_debrief_id|"""
@@ -77,7 +77,7 @@ allowed = [
 ]
 for sample in allowed:
     if pattern.search(sample):
-        print(f"verify: legacy regex falsely matched canonical token {sample}", file=sys.stderr)
+        print(f"verify: non-current regex falsely matched canonical token {sample}", file=sys.stderr)
         sys.exit(1)
 
 scan_paths = [
@@ -101,10 +101,10 @@ for rel in scan_paths:
     for file_path in files:
         text = file_path.read_text(encoding="utf-8", errors="ignore")
         if pattern.search(text):
-            print(f"verify: legacy route vocabulary found in {file_path.relative_to(root)}", file=sys.stderr)
+            print(f"verify: non-current route vocabulary found in {file_path.relative_to(root)}", file=sys.stderr)
             sys.exit(1)
-        if d22_retired.search(text):
-            print(f"verify: D-22 retired debrief/profile token found in {file_path.relative_to(root)}", file=sys.stderr)
+        if d22_non_current.search(text):
+            print(f"verify: D-22 non-current debrief/profile token found in {file_path.relative_to(root)}", file=sys.stderr)
             sys.exit(1)
 PY
 

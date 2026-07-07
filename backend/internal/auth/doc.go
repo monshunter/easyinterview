@@ -1,6 +1,6 @@
-// Package auth implements the C1 passwordless session boundary.
+// Package auth implements the C1 email-code session boundary.
 //
-// C1 keeps passwordless timing and dev sink defaults as code constants, not
+// C1 keeps email-code timing and dev sink defaults as code constants, not
 // A4 runtime knobs: challenges live for 15 minutes, server-side sessions live
 // for 30 days, and the third same-email or same-IP challenge request inside a
 // one-minute window is deduped/rate-limited. The first-party cookie name is

@@ -1,0 +1,72 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: backend-resume
+  name: 002-tailor-runs-and-save-v1
+  sequence: 2
+  specVersion:
+    from: 1.7
+    to: 1.7
+spec:
+  defaultTarget: backend
+  discovery:
+    aliases:
+      - backend-resume
+      - 002-tailor-runs-and-save-v1
+      - requestResumeTailor
+      - getResumeTailorRun
+      - resume.tailor
+      - resume.tailor.completed
+      - C7
+      - D-20
+      - resumes
+      - resumeId
+      - updateResume
+      - duplicateResume
+      - flat resume save
+      - tailor ephemeral ai_task_runs
+    keywords:
+      - request resume tailor async job
+      - get resume tailor run status machine
+      - resume tailor in-process drainer
+      - resume tailor completed outbox event
+      - update resume flat structured profile
+      - duplicate resume save as new flat asset
+      - idempotency key replay
+      - cross user isolation 404
+      - PII boundary no suggested bullet
+      - events drift inline rewrite mirror negative
+      - tailor suggestions stored in ai_task_runs output
+  targets:
+    backend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      discovery:
+        packages:
+          - backend/internal/resume
+          - backend/internal/resume/handler
+          - backend/internal/resume/store
+          - backend/internal/resume/jobs
+          - backend/cmd/api
+          - backend/internal/api/generated
+          - backend/internal/ai
+          - backend/internal/shared/events
+          - openapi
+          - openapi/fixtures/Resumes
+          - openapi/fixtures/ResumeTailor
+          - shared
+          - migrations
+          - config
+          - test/scenarios/e2e
+          - frontend/src/api
+        uiRoutes: []
+        apiNames:
+          - getResume
+          - listResumes
+          - updateResume
+          - duplicateResume
+          - requestResumeTailor
+          - getResumeTailorRun

@@ -115,7 +115,7 @@ featureFlag:
 			AnalyticsOptIn: true,
 		},
 	}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:                 store,
 		Dispatcher:            auth.NewImmediateMailDispatcher(sink),
 		DeliverySecrets:       sink,
@@ -267,7 +267,7 @@ runtime:
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
@@ -315,7 +315,7 @@ upload:
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
@@ -345,7 +345,7 @@ runtime:
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
@@ -400,7 +400,7 @@ runtime:
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
@@ -446,7 +446,7 @@ runtime:
 	}
 }
 
-func TestBuildAPIHandlerDoesNotMountRetiredDebriefOrProfileRoutes(t *testing.T) {
+func TestBuildAPIHandlerDoesNotMountNonCurrentDebriefOrProfileRoutes(t *testing.T) {
 	dir := t.TempDir()
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
 runtime:
@@ -457,7 +457,7 @@ runtime:
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
@@ -491,7 +491,7 @@ runtime:
 		req := httptest.NewRequest(tc.method, tc.path, strings.NewReader(tc.body))
 		handler.ServeHTTP(rec, req)
 		if rec.Code != http.StatusNotFound {
-			t.Fatalf("%s %s status = %d body=%s; retired route must not be mounted", tc.method, tc.path, rec.Code, rec.Body.String())
+			t.Fatalf("%s %s status = %d body=%s; non-current route must not be mounted", tc.method, tc.path, rec.Code, rec.Body.String())
 		}
 	}
 }
@@ -508,7 +508,7 @@ runtime:
 		t.Fatalf("Load: %v", err)
 	}
 	sessionTime := time.Date(2026, 6, 13, 10, 45, 0, 0, time.UTC)
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store: &apiAuthStore{
 			session: auth.SessionRecord{
 				ID:        "session-1",
@@ -680,7 +680,7 @@ runtime:
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
@@ -728,7 +728,7 @@ runtime:
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
@@ -1172,7 +1172,7 @@ ai:
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
 	if runtime.Handles("debrief_generate") {
-		t.Fatalf("runtime must not contribute retired debrief_generate handler")
+		t.Fatalf("runtime must not contribute non-current debrief_generate handler")
 	}
 }
 
@@ -1250,7 +1250,7 @@ runtime:
 		t.Fatalf("Load: %v", err)
 	}
 	store := &apiAuthStore{lookupErr: errors.New("database unavailable for session-1")}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               store,
 		SessionCookieSecret: "session-secret",
 		Now:                 func() time.Time { return time.Date(2026, 5, 6, 21, 0, 0, 0, time.UTC) },
@@ -1293,7 +1293,7 @@ runtime:
 	} {
 		t.Run(name, func(t *testing.T) {
 			store := &apiAuthStore{lookupErr: lookupErr}
-			service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+			service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 				Store:               store,
 				SessionCookieSecret: "session-secret",
 				Now:                 func() time.Time { return time.Date(2026, 5, 6, 21, 0, 0, 0, time.UTC) },

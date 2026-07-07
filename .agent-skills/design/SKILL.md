@@ -61,7 +61,7 @@ Present the Brief to the user in a structured format:
 1. **Summary table** with subject, goals, key decisions
 2. **Recommended output scope** — which documents will be generated and why (see Step 3 logic)
 3. **BDD strategy** — whether BDD phase gates are recommended and the reasoning
-4. **Coverage matrix** — primary flows, important edge conditions, failure paths, regression/legacy-negative checks, and which plan/test/BDD artifact will cover each one
+4. **Coverage matrix** — primary flows, important edge conditions, failure paths, regression/non-current-negative checks, and which plan/test/BDD artifact will cover each one
 5. **Acceptance criteria summary** (if any criteria were extracted) + BDD scenario matrix (when BDD is active)
 
 Wait for explicit user confirmation before proceeding. If the user cancels, stop without
@@ -142,13 +142,13 @@ For every behavior, invariant, interface, data transition, or risk in scope, cla
 - **Cross-layer contract**: API/schema/OpenAPI/shared type/codegen parity, generated client behavior, fixture/mock parity, event/job contract, database constraint, runtime config, and scenario data contract.
 - **Privacy / security / observability**: auth boundary, sensitive data redaction, audit/log/metric expectations, OWASP-relevant input handling, and no secret/token persistence.
 - **UX quality**: loading/empty/error states, accessibility semantics, localization fallback, display preference behavior, responsive layout, and copy visible to the user.
-- **Regression / legacy-negative**: retired route/module/tag/table/event/config/model/provider/feature flag terminology must not reappear when the current design rejects it.
+- **Regression / non-current-negative**: non-current route/module/tag/table/event/config/model/provider/feature flag terminology must not reappear when the current design rejects it.
 
 For UI plans whose truth source is `ui-design/`, add explicit source-level parity rows instead of relying only on visual similarity:
 
 - **UI source structure parity**: DOM composition, component nesting, control type, menu/popover hierarchy, icons, labels, aria state, keyboard/close behavior, and primary interaction paths must map from `ui-design/src/*.jsx`, `ui-design/src/app.jsx`, and `ui-design/src/primitives.jsx` to concrete frontend components/tests.
 - **UI visual geometry parity**: computed style, spacing, typography, colors, responsive layout, bounding boxes, and screenshot/baseline checks must be verified separately from source structure parity. A passing screenshot or bounding-box gate is not sufficient evidence for source-level replication.
-- **UI stale-contract negative**: old positive UI contracts such as retired `data-testid`s, old route labels, old dropdown/select controls, old screen names, and old prototype shorthand must be searched across spec/plan/README/scenario/test/runtime files when they conflict with the current truth source.
+- **UI stale-contract negative**: old positive UI contracts such as non-current `data-testid`s, old route labels, old dropdown/select controls, old screen names, and old prototype shorthand must be searched across spec/plan/README/scenario/test/runtime files when they conflict with the current truth source.
 
 Each coverage row must map to one or more concrete artifacts:
 
@@ -158,7 +158,7 @@ Each coverage row must map to one or more concrete artifacts:
 | `category` | One of the categories above |
 | `plan_phase` | The phase/checklist item that implements or verifies it |
 | `verification` | Unit test, contract test, lint/drift check, migration check, smoke, or BDD scenario ID |
-| `negative_scope` | Deprecated or intentionally excluded behavior to search for, when relevant |
+| `negative_scope` | Non-current or intentionally excluded behavior to search for, when relevant |
 | `ui_source_anchor` | Required for UI parity rows; cite the concrete `ui-design/src/*.jsx` function/component/constant or docs/ui-design section that owns the target shape |
 
 Do not create synthetic edge cases for irrelevant categories, but do not silently omit a category just because the user did not name it. If a high-risk category is not applicable, write a short `N/A` rationale in the plan quality gate or test plan.
@@ -196,7 +196,7 @@ owns the repository's document creation mechanics.
 - Every implementation plan must include `## 3 质量门禁分类` with Plan 类型, TDD 策略, BDD 策略, and 替代验证 gate.
 - Every non-docs checklist item must name its verification source: a unit/contract/integration test, lint/drift gate, migration check, smoke, or BDD-Gate that covers the row in the coverage matrix.
 - UI implementation checklist items that migrate from `ui-design/` must include both source-structure parity and visual-geometry parity verification. The checklist must name the source anchors, target components, and tests that fail on control-type or interaction-shape drift (for example select/dropdown vs menu/toggle).
-- Each implementation phase must cover its primary path and any directly coupled failure, cleanup, idempotency, privacy/security, or legacy-negative checks before the phase can be marked closable.
+- Each implementation phase must cover its primary path and any directly coupled failure, cleanup, idempotency, privacy/security, or non-current-negative checks before the phase can be marked closable.
 - If an edge condition is deferred, the plan must say which later phase owns it and why the current phase remains safely deployable without it.
 
 #### 4.3 Unit Test Plan + Checklist
@@ -207,8 +207,8 @@ owns the repository's document creation mechanics.
 - Write unit-test completion items against the planned test set itself, for example `Phase N 本计划定义的单元测试项全部通过`.
 - Do not generate hard coverage-percentage gates in acceptance criteria or checklist items.
 - If coverage is mentioned at all, keep it as observational background rather than a completion, commit, or phase-exit condition.
-- Test plans must include a coverage matrix that maps primary, alternate, failure/recovery, boundary, cross-layer contract, privacy/security/observability, UX quality, and regression/legacy-negative rows to concrete test files or commands.
-- Unit/contract test checklists must include negative and boundary assertions for meaningful risks, not only success assertions. Prefer deterministic checks for malformed input, empty data, unknown identifiers, duplicate/conflict handling, rerun/idempotency, config fallback, generated contract drift, and deprecated terminology reintroduction when those risks are in scope.
+- Test plans must include a coverage matrix that maps primary, alternate, failure/recovery, boundary, cross-layer contract, privacy/security/observability, UX quality, and regression/non-current-negative rows to concrete test files or commands.
+- Unit/contract test checklists must include negative and boundary assertions for meaningful risks, not only success assertions. Prefer deterministic checks for malformed input, empty data, unknown identifiers, duplicate/conflict handling, rerun/idempotency, config fallback, generated contract drift, and non-current terminology reintroduction when those risks are in scope.
 - UI-related test plans must consider loading, empty, error, auth, localization fallback, display preference, accessibility, responsive-state risks, and source-level UI parity; include only the rows that matter for the subject and mark high-risk exclusions explicitly.
 - For `ui-design/` parity, test plans must split assertions into source-structure tests (DOM shape, control type, menu/popover hierarchy, icons, labels, aria state, primary interactions), visual-geometry tests (computed style, bounding boxes, responsive layout, screenshots), and stale-contract negative searches. Do not treat pixel/screenshot parity as a substitute for DOM/interaction parity.
 - Backend/tooling/migration test plans must consider validation errors, persistence failures, transaction/concurrency behavior, retry/idempotency, non-empty data, rerun safety, generated artifacts, logs/metrics/audit redaction, and drift gates.
@@ -223,8 +223,8 @@ owns the repository's document creation mechanics.
 - `bdd-plan.md` contains detailed Given/When/Then scenarios grouped by Phase and does not contain execution progress checkboxes
 - `bdd-checklist.md` contains scenario asset and execution tasks for each scenario ID: create scenario directory, prepare data, implement setup/trigger/verify/cleanup, execute verification, and record evidence
 - Each scenario uses a behavior-oriented scenario ID such as `E2E.P0.001` or `E2E.P1.003`; if needed, map back to spec acceptance criteria inside `bdd-plan.md`, not in `BDD-Gate` items
-- BDD scenario selection must cover the primary user journey plus the highest-risk alternate or failure/recovery journey for each independently deployable behavior phase. Do not push unit-level edge cases into BDD, but do include user-visible auth, permission, empty/error, recovery, and legacy-negative flows when they define product correctness.
-- `bdd-plan.md` must include a scenario matrix that labels each scenario as primary, alternate, failure/recovery, or regression/legacy-negative, and maps it to the plan phase and checklist BDD-Gate.
+- BDD scenario selection must cover the primary user journey plus the highest-risk alternate or failure/recovery journey for each independently deployable behavior phase. Do not push unit-level edge cases into BDD, but do include user-visible auth, permission, empty/error, recovery, and non-current-negative flows when they define product correctness.
+- `bdd-plan.md` must include a scenario matrix that labels each scenario as primary, alternate, failure/recovery, or regression/non-current-negative, and maps it to the plan phase and checklist BDD-Gate.
 - `bdd-checklist.md` must make setup, data isolation, cleanup, pollution recovery, execution command, and evidence capture explicit for every scenario.
 
 #### 4.5 context.yaml
@@ -274,7 +274,7 @@ Run validation and present a summary:
    - Every UI source parity row maps to a `ui_source_anchor`, a target component/file, and at least one source-structure test plus one visual-geometry or explicit N/A rationale
    - Every BDD-Gate item maps to a scenario labeled in the BDD scenario matrix
    - Any high-risk category marked `N/A` includes a rationale
-   - Regression/legacy-negative rows include explicit search targets when retired terminology, routes, modules, schemas, events, configs, or model/provider assumptions are part of the risk
+   - Regression/non-current-negative rows include explicit search targets when non-current terminology, routes, modules, schemas, events, configs, or model/provider assumptions are part of the risk
 
 4. **Output summary**:
    - Files generated (with paths)
@@ -302,7 +302,7 @@ Run validation and present a summary:
 - Invoking `/create-doc`, creating spec / plan directories, or updating INDEX files before
   the Step 2.5 branch guard succeeds
 - Generating test plan acceptance criteria or checklist items that use raw code coverage percentages as hard gates
-- Generating plan/checklist/test-plan/BDD artifacts that only verify the primary path while omitting obvious failure, boundary, security/privacy, UX, contract, or regression/legacy-negative risks
+- Generating plan/checklist/test-plan/BDD artifacts that only verify the primary path while omitting obvious failure, boundary, security/privacy, UX, contract, or regression/non-current-negative risks
 - Marking edge coverage as "later" without assigning a concrete owner phase and explaining why the current phase is still independently deployable
 - Proceeding past Step 2 without explicit user confirmation of the Brief
 - Persisting the Brief as a file (it is a transient conversation artifact)

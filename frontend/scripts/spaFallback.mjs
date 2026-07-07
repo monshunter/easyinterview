@@ -32,15 +32,14 @@ export const FRONTEND_CANONICAL_PATHS = Object.freeze([
 ]);
 
 /**
- * Retired paths that the host still serves with `index.html` so the App can
+ * Non-current paths that the host still serves with `index.html` so the App can
  * normalize them to the current retained route (product-scope D-16:
  * `/auth/reset` folds back into `auth_login`). Mirrors
- * `routeUrl.LEGACY_PATH_TO_ROUTE`.
+ * `routeUrl.NON_CURRENT_PATH_TO_ROUTE`.
  */
-export const FRONTEND_LEGACY_PATHS = Object.freeze([
+export const FRONTEND_NON_CURRENT_PATHS = Object.freeze([
   "/auth/reset",
   "/jd-match",
-  "/company-intel",
   "/debrief",
   "/profile",
 ]);
@@ -62,7 +61,7 @@ export const FALLBACK_DENY_PREFIXES = Object.freeze([
  * Behaviour:
  *  - `/workspace`, `/workspace/`, `/workspace?x=1` → true
  *  - `/`                                            → true (root)
- *  - `/totally-unknown`                             → false (legacy fallback
+ *  - `/totally-unknown`                             → false (semantic fallback
  *    is handled in the App, not in the host)
  *  - `/workspace.json` (any file extension)         → false
  *  - `/api/...`, `/health`, `/ui-design/...`        → false
@@ -87,7 +86,7 @@ export function isCanonicalFrontendPath(path) {
       : cleaned;
   return (
     FRONTEND_CANONICAL_PATHS.includes(normalized) ||
-    FRONTEND_LEGACY_PATHS.includes(normalized)
+    FRONTEND_NON_CURRENT_PATHS.includes(normalized)
   );
 }
 

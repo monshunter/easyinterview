@@ -180,6 +180,7 @@ test.describe("parse screen DOM anchor parity", () => {
   test("home jd textarea accepts input and submit enables", async ({
     page,
   }) => {
+    await mockParseReadyApis(page);
     await page.goto("/");
     await page.waitForSelector("[data-testid='home-jd-textarea']");
 
@@ -188,7 +189,16 @@ test.describe("parse screen DOM anchor parity", () => {
       "Senior Frontend Engineer needed at Acme Corp",
     );
 
-    // Submit button should become enabled
+    await page.waitForSelector(
+      "[data-testid='home-resume-option-01918fa0-0000-7000-8000-000000001000']",
+      { state: "attached" },
+    );
+    await page.selectOption(
+      "[data-testid='home-resume-select']",
+      "01918fa0-0000-7000-8000-000000001000",
+    );
+
+    // Submit requires both JD text and an explicit bound resume.
     await expect(page.locator("[data-testid='home-jd-submit']")).toBeEnabled();
   });
 

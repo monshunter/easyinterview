@@ -72,8 +72,8 @@ var EmailDispatchAllowedPayloadFields = []string{
 }
 
 var EmailDispatchRedactedFields = []string{
-	"rawMagicLinkToken",
-	"magicLinkUrl",
+	"rawEmailCode",
+	"emailVerificationUrl",
 	"recipientEmail",
 	"recipientEmailHash",
 	"emailBody",
@@ -92,12 +92,12 @@ func BuildEmailDispatchPayload(input map[string]string) (EmailDispatchPayload, e
 		"userId":            {},
 	}
 	redacted := map[string]struct{}{
-		"rawMagicLinkToken":  {},
-		"magicLinkUrl":       {},
-		"recipientEmail":     {},
-		"recipientEmailHash": {},
-		"emailBody":          {},
-		"emailSubject":       {},
+		"rawEmailCode":         {},
+		"emailVerificationUrl": {},
+		"recipientEmail":       {},
+		"recipientEmailHash":   {},
+		"emailBody":            {},
+		"emailSubject":         {},
 	}
 	payload := make(EmailDispatchPayload, len(input))
 	for field, value := range input {

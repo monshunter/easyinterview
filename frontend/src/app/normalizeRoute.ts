@@ -1,14 +1,13 @@
 /**
  * Route normalization for the formal frontend App shell.
  *
- * Truth source: ui-design/src/app.jsx ROUTE_ALIASES, docs/ui-design/auth-and-entry.md §9
- * (welcome removed), docs/ui-design/removed-modules-and-scope.md (growth / mistakes /
- * drill / followup / experiences / star removed; standalone voice alias deleted),
+ * Truth source: ui-design/src/app.jsx ROUTE_ALIASES, docs/ui-design/auth-and-entry.md §9,
+ * docs/ui-design/module-map.md §5.2,
  * docs/spec/frontend-shell/spec.md §2.2 / §4.
  *
- * Design constraint (frontend-shell §4): old route names must NEVER materialize
- * standalone screens. They normalize to the current retained route, or to `home`
- * when no obvious target exists.
+ * Design constraint (frontend-shell §4): non-current route names must never
+ * materialize standalone screens. Only explicitly retained aliases normalize to
+ * a current route; all other inputs fall back to `home`.
  */
 
 import { isKnownRouteName, type Route, type RouteName } from "./routes";
@@ -25,16 +24,13 @@ const ROUTE_ALIASES: Record<string, RouteName> = {
   resume: "resume_versions",
   onboarding: "resume_versions",
   auth_register: "auth_login",
-  // product-scope D-17: the job-recommendation module is deleted; the
-  // retired jd_match entry folds back into home (JD intake lives there).
+  // product-scope D-17: job recommendations are outside current scope; the
+  // non-current jd_match entry folds back into home (JD intake lives there).
   jd_match: "home",
-  // product-scope D-18: company intel is only an embedded workspace card.
-  company_intel: "workspace",
-  // product-scope D-16: passwordless email code is the only sign-in flow.
-  // The retired reset page folds back into the single login entry.
+  // product-scope D-16: email-code is the only sign-in flow.
   auth_reset: "auth_login",
-  // product-scope D-22: debrief and user profile are deleted. Legacy saved
-  // state and deep links fold back to home instead of materializing screens.
+  // product-scope D-22: debrief and user profile are outside current scope.
+  // Saved state and deep links fold back to home instead of materializing screens.
   debrief: "home",
   debrief_full: "home",
   profile: "home",

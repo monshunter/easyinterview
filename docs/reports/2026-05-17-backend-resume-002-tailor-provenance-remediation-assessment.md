@@ -5,7 +5,7 @@
 
 ## 1 复盘范围与成功证据
 
-- 范围：`backend-resume/002-versions-tailor-runs-and-save-v1` L2 review follow-up，修复 `ResumeTailorRun` ready response 在 DB roundtrip 后 provenance required 字段不完整的问题。
+- 范围：`backend-resume/002-tailor-runs-and-save-v1` L2 review follow-up，修复 `ResumeTailorRun` ready response 在 DB roundtrip 后 provenance required 字段不完整的问题。
 - 修复内容：新增 `resume_tailor_runs.language / feature_flag / data_source_version` migration；更新 tailor run ready/success 写库、读取、suggestion provenance join；补充 Phase 7 remediation checklist 与 BUG-0073。
 - 成功证据：
   - RED: `DATABASE_URL=*** go test ./internal/resume/store -tags=integration -run TestCompleteTailorRunSuccessWritesSuggestionsAndReadyOnlyOutbox -count=1 -v` 失败于 `tailor run provenance after DB roundtrip`。

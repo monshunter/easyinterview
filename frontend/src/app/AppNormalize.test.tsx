@@ -5,7 +5,7 @@ import { render, screen } from "@testing-library/react";
 import { App } from "./App";
 
 describe("App route normalization", () => {
-  const legacyAliases: Array<[string, string]> = [
+  const nonCurrentAliases: Array<[string, string]> = [
     ["welcome", "home"],
     ["growth", "home"],
     ["plan", "workspace"],
@@ -19,11 +19,11 @@ describe("App route normalization", () => {
     ["voice", "home"],
   ];
 
-  it.each(legacyAliases)(
-    "renders %s as the normalized %s view (no standalone legacy screen)",
-    (legacy, current) => {
+  it.each(nonCurrentAliases)(
+    "renders %s as the normalized %s view (no standalone non-current screen)",
+    (nonCurrent, current) => {
       const { unmount } = render(
-        <App initialRoute={{ name: legacy, params: {} }} />,
+        <App initialRoute={{ name: nonCurrent, params: {} }} />,
       );
       // workspace now renders WorkspaceScreen; empty params → WorkspaceEmptyState
       // resume_versions now renders ResumeWorkshopScreen
@@ -40,7 +40,7 @@ describe("App route normalization", () => {
                 ? "report-missing-session"
                 : `route-${current}`;
       expect(screen.getByTestId(currentTestId)).toBeInTheDocument();
-      expect(screen.queryByTestId(`route-${legacy}`)).not.toBeInTheDocument();
+      expect(screen.queryByTestId(`route-${nonCurrent}`)).not.toBeInTheDocument();
       unmount();
     },
   );

@@ -4,10 +4,9 @@ metadata:
   subspec: backend-practice
   name: 003-mode-policies-and-provenance
   sequence: 3
-  supersedes: []
   specVersion:
-    from: 1.7
-    to: 1.8
+    from: 1.16
+    to: 1.16
 spec:
   defaultTarget: backend
   discovery:
@@ -16,28 +15,21 @@ spec:
       - backend-practice/003
       - 003-mode-policies-and-provenance
       - mode-policies-and-provenance
-    keywords:
-      - practice
-      - hint
+      - appendSessionEvent
       - hint_requested
-      - hint_text
       - show_hint
-      - assisted
-      - strict
-      - practice_mode
-      - mode_policy
-      - assistantaction
-      - generationprovenance
-      - provenance
-      - lightweight_observe
+      - hint_generate
+    keywords:
+      - practice hint mode policy
+      - assisted hint show_hint
+      - strict hint conflict
+      - AssistantAction provenance wire boundary
       - practice.turn.lightweight_observe
       - practice.turn_observe.default
-      - hint_generate
-      - ai_task_runs
-      - graceful_degrade
-      - session_wait
-      - hint_unavailable
-      - hint_disabled_in_mode
+      - ai_task_runs hint_generate
+      - graceful degrade session_wait
+      - practice_turns hint_text
+      - backend practice non-current lint
   targets:
     backend:
       plan: ./plan.md
@@ -54,7 +46,8 @@ spec:
           - backend/internal/store/practice
           - backend/internal/ai/aiclient
           - backend/internal/ai/registry
-          - backend/internal/middleware/idempotency
+          - backend/cmd/api
+          - backend/internal/migrations
           - migrations
           - openapi/fixtures/PracticeSessions
           - scripts/lint

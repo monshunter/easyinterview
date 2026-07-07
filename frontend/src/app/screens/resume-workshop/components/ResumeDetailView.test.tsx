@@ -381,7 +381,7 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
         ],
         experiences: [
           {
-            company: "Legacy Acme",
+            company: "Example Acme",
             bullets: ["Led design-system migration."],
           },
         ],
@@ -431,7 +431,7 @@ describe("ResumeDetailView container (Phase 3.1)", () => {
       ],
       experiences: [
         {
-          company: "Legacy Acme",
+          company: "Example Acme",
           bullets: [
             "Led design-system migration across 12 teams; reduced UI defect rate by 38% over 6 weeks.",
           ],

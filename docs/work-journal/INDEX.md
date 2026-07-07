@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-07](2026-07-07.md) | `fix(core-loop): close repo pruning cleanup` | #fix #test #docs #api #ui |
 | [2026-07-06](2026-07-06.md) | `fix(core-loop): add runtime pruning surface allowlist` | #fix #test #docs #ui |
 | [2026-07-06](2026-07-06.md) | `fix(core-loop): close active doc pruning drift (BUG-0135)` | #fix #test #docs #api #ui |
 | [2026-07-06](2026-07-06.md) | `fix(frontend-home): integrate source controls into input card (BUG-0134)` | #fix #ui #test #docs #bdd |
@@ -464,7 +465,7 @@
 | [2026-05-02](2026-05-02.md) | `chore(ui): migrate prototype and docs to ui-design` | #chore #ui #docs #test |
 | [2026-05-02](2026-05-02.md) | `fix(ui): scope mock history and debrief context pickers` | #fix #ui #docs #test |
 | [2026-05-02](2026-05-02.md) | `refactor(ui): clean deprecated prototype screens and debrief label` | #refactor #ui #docs |
-| [2026-05-02](2026-05-02.md) | `docs(ui-design): sync prototype docs and deprecated scope` | #docs #ui |
+| [2026-05-02](2026-05-02.md) | `docs(ui-refine): sync prototype docs and deprecated scope` | #docs #ui |
 | [2026-05-01](2026-05-01.md) | `docs(reports): land ui canvas runner path fix retrospective` | #docs |
 | [2026-05-01](2026-05-01.md) | `feat(ui): add theme palettes, font presets and prototype interactions` | #feat #ui |
 | [2026-05-01](2026-05-01.md) | `fix(ui-runner): correct default entry filename casing` | #fix #ui |

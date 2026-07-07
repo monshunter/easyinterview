@@ -4,10 +4,9 @@ metadata:
   subspec: practice-voice-mvp
   name: 001-cascaded-stt-llm-tts
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
-    to: 1.2
+    to: 1.6
 spec:
   defaultTarget: backend
   discovery:
@@ -47,9 +46,9 @@ spec:
         - ../../../product-scope/spec.md
         - ../../../../development.md
         - ../../../../ui-design/module-practice-review.md
+        - ../../../../ui-design/module-map.md
         - ../../../../ui-design/user-flow.md
         - ../../../../ui-design/ui-architecture.md
-        - ../../../../ui-design/removed-modules-and-scope.md
       discovery:
         packages:
           - openapi/openapi.yaml
@@ -72,9 +71,9 @@ spec:
       references:
         - ../../../../development.md
         - ../../../../ui-design/module-practice-review.md
+        - ../../../../ui-design/module-map.md
         - ../../../../ui-design/user-flow.md
         - ../../../../ui-design/ui-architecture.md
-        - ../../../../ui-design/removed-modules-and-scope.md
       discovery:
         packages:
           - frontend/src/app/screens/PracticeScreen.tsx

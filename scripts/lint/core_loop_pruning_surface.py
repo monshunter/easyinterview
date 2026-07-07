@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bucket retired core-loop module references after product-scope D-22 pruning."""
+"""Bucket non-current core-loop module references after product-scope D-22 pruning."""
 
 from __future__ import annotations
 
@@ -12,8 +12,8 @@ from typing import Iterable
 
 
 BUCKETS = (
-    "historical_migrations",
-    "legacy_normalization",
+    "migration_records",
+    "non_current_normalization",
     "negative_tests",
     "real_residuals",
 )
@@ -74,7 +74,7 @@ TEST_FILE_SUFFIXES = (
     ".spec.mjs",
 )
 
-LEGACY_NORMALIZATION_PATHS = {
+NON_CURRENT_NORMALIZATION_PATHS = {
     Path("frontend/src/app/normalizeRoute.ts"),
     Path("frontend/src/app/routeUrl.ts"),
     Path("frontend/src/app/auth/pendingAction.ts"),
@@ -87,9 +87,29 @@ NEGATIVE_PATH_PREFIXES = (
     Path("test/scenarios"),
 )
 
+STRICT_LIFECYCLE_CONTEXT_TERMS = (
+    "退" "役",
+    "ret" "ired",
+    "de" "precated",
+)
+OBSOLETE_ZH_STATUS_TERMS = (
+    "废" "弃",
+)
+OLD_SCOPE_CONTEXT_TERMS = (
+    "\u65e7",
+    "\u5386" "\u53f2",
+)
+STRICT_LIFECYCLE_CONTEXT_RE = "|".join(
+    re.escape(term)
+    for term in STRICT_LIFECYCLE_CONTEXT_TERMS + OBSOLETE_ZH_STATUS_TERMS + OLD_SCOPE_CONTEXT_TERMS
+)
 NEGATIVE_CONTEXT_RE = re.compile(
-    r"删除|移除|退役|废弃|旧|历史|负向|回流|归一|不(?:再|得|允许|存在|出现|保留|作为)|"
-    r"only as|retired|removed|legacy|negative|zero-reference|absent|forbidden|"
+    r"删除|移除|"
+    + STRICT_LIFECYCLE_CONTEXT_RE
+    + r"|负向|回流|归一|不(?:再|得|允许|存在|出现|保留|作为)|"
+    r"only as|removed|"
+    + "leg" "acy"
+    + r"|negative|zero-reference|absent|forbidden|"
     r"must not|should not|not remain|do not|drop|delete|reject|fail|guard|"
     r"cleanup|prun(?:e|ing)|obsolete",
     re.IGNORECASE,
@@ -97,13 +117,13 @@ NEGATIVE_CONTEXT_RE = re.compile(
 
 
 @dataclass(frozen=True)
-class RetiredPattern:
+class NonCurrentPattern:
     label: str
     pattern: re.Pattern[str]
 
 
-RETIRED_PATTERNS = (
-    RetiredPattern(
+NON_CURRENT_PATTERNS = (
+    NonCurrentPattern(
         "debrief surface",
         re.compile(
             r"\bDebriefs?\b|\bdebrief(?:s|_full|_generate|\.generate|\.created|\.completed|"
@@ -111,7 +131,7 @@ RETIRED_PATTERNS = (
             r"backend/internal/debrief|frontend/src/app/screens/debrief|/debrief\b|route=debrief"
         ),
     ),
-    RetiredPattern(
+    NonCurrentPattern(
         "candidate profile surface",
         re.compile(
             r"\bCandidateProfile\b|\bcandidate_profiles\b|\bcandidate[- ]profiles?\b|"
@@ -119,11 +139,11 @@ RETIRED_PATTERNS = (
             r"route=profile|topbar-user-profile|nav\([\"']profile[\"']"
         ),
     ),
-    RetiredPattern(
+    NonCurrentPattern(
         "experience card surface",
         re.compile(r"\bExperienceCard\b|\bexperience_cards\b|\bexperience[- ]cards?\b"),
     ),
-    RetiredPattern(
+    NonCurrentPattern(
         "jd match surface",
         re.compile(
             r"\bJD Match\b|\bJob Picks\b|\bJobMatch\b|\bjobs-recommendations\b|"
@@ -186,9 +206,9 @@ def iter_scan_files(repo_root: Path) -> Iterable[Path]:
 
 def classify(rel: Path, line: str) -> str:
     if rel.parts and rel.parts[0] == "migrations":
-        return "historical_migrations"
-    if rel in LEGACY_NORMALIZATION_PATHS:
-        return "legacy_normalization"
+        return "migration_records"
+    if rel in NON_CURRENT_NORMALIZATION_PATHS:
+        return "non_current_normalization"
     if is_test_path(rel):
         return "negative_tests"
     if any(is_relative_to(rel, prefix) for prefix in NEGATIVE_PATH_PREFIXES):
@@ -207,8 +227,8 @@ def scan_file(repo_root: Path, path: Path) -> list[Finding]:
     rel = path.relative_to(repo_root)
     findings: list[Finding] = []
     for lineno, line in enumerate(text.splitlines(), start=1):
-        for retired in RETIRED_PATTERNS:
-            if not retired.pattern.search(line):
+        for pattern in NON_CURRENT_PATTERNS:
+            if not pattern.pattern.search(line):
                 continue
             bucket = classify(rel, line)
             findings.append(
@@ -216,7 +236,7 @@ def scan_file(repo_root: Path, path: Path) -> list[Finding]:
                     bucket=bucket,
                     path=rel.as_posix(),
                     line=lineno,
-                    label=retired.label,
+                    label=pattern.label,
                     text=line.strip(),
                 )
             )

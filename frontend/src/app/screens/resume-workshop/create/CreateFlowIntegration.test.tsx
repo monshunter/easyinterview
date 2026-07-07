@@ -107,7 +107,7 @@ describe("Old onboarding route alias", () => {
   });
 });
 
-describe("Retired-module negative grep is enforced inline", () => {
+describe("Non-current module negative grep is enforced inline", () => {
   beforeEach(() => {
     vi.resetModules();
   });

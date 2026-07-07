@@ -14,7 +14,7 @@ import { expect, test } from "@playwright/test";
  *     classNames and the structural equivalent on ui-design (a sticky `<h1>`
  *     hero column + a card on the right).
  *   - `settings` and other protected routes either require a signed-in session
- *     or arrive only after navigating through D2-D6 business flows. The
+ *     or arrive only after navigating through feature flows. The
  *     DOM-anchor parity for those routes is covered by the
  *     in-process scenario test
  *     `frontend/src/app/scenarios/p0-005-app-shell-visual-system-smoke.test
@@ -53,7 +53,7 @@ test.describe("auth_login DOM anchor parity", () => {
       root.locator("[data-testid='auth-login-submit-email']"),
     ).toHaveClass(/\bei-auth-cta\b/);
     // product-scope D-12 / D-16: the single email-code entry has no password
-    // or OAuth stubs and no reset link; the static passwordless help copy
+    // or OAuth stubs and no reset link; the static email-code help copy
     // replaces them (ui-design/src/screen-auth.jsx login footer).
     await expect(
       root.locator("[data-testid='auth-login-password-stub']"),
@@ -139,7 +139,7 @@ test.describe("auth_login DOM anchor parity", () => {
     expect(padding).toEqual(["28px", "28px", "28px", "28px"]);
   });
 
-  test("retired entries (welcome / mistakes / growth / drill / standalone voice) do not appear in DOM", async ({
+  test("non-current entries (welcome / mistakes / growth / drill / standalone voice) do not appear in DOM", async ({
     page,
   }) => {
     await page.goto(FRONTEND_PATH);

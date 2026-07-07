@@ -58,7 +58,7 @@
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createUploadPresign` | `openapi/fixtures/Uploads/createUploadPresign.json` `default`（201 success）；purpose / size / auth / IK failure 由 handler tests 与 E2E.P0.033 直接断言，除非 B2 后续修订 fixture，否则本 plan 不私自声明 error fixture variant | `frontend-resume-workshop/002-create-flow-and-onboarding` upload tab (future), `backend-targetjob` file-import consumers via generated client | `backend/internal/upload/handler/presign.go` real handler | `file_objects` (`purpose`, `upload_status`, `byte_size`, `object_key`) + object storage object | none | E2E.P0.033 + handler/store unit/integration tests |
+| `createUploadPresign` | `openapi/fixtures/Uploads/createUploadPresign.json` `default`（201 success）；purpose / size / auth / IK failure 由 handler tests 与 E2E.P0.033 直接断言，除非 B2 adds explicit error fixtures，否则本 plan 不私自声明 error fixture variant | `frontend-resume-workshop/002-create-flow` upload tab, `backend-targetjob` file-import consumers via generated client | `backend/internal/upload/handler/presign.go` real handler | `file_objects` (`purpose`, `upload_status`, `byte_size`, `object_key`) + object storage object | none | E2E.P0.033 + handler/store unit/integration tests |
 
 Config dependency: existing A4 `objectStorage.endpoint` / `bucket` / `accessKey` / `secretKey` map to `OBJECT_STORAGE_*`; this plan must add config-only paths `objectStorage.provider`, `upload.presignTTLSeconds`, and `upload.maxBytes.{resume,targetJobAttachment,privacyExport}` before handler code. If an env override is required, first revise A4 env dictionary and `.env.example`; do not introduce `UPLOAD_*` or `OBJECT_STORE_*` reads locally.
 
@@ -168,7 +168,7 @@ Config dependency: existing A4 `objectStorage.endpoint` / `bucket` / `accessKey`
 #### 5.4 通知下游 owner
 
 - 通知 `backend-resume/001-asset-register-parse-and-listing` owner：createUploadPresign + file_objects + Register internal API 已就位，可启动 registerResume 真实落地；
-- 通知 `frontend-resume-workshop/002-create-flow-and-onboarding`（未来 plan）：upload tab 可消费真实 backend presign；
+- 通知 `frontend-resume-workshop/002-create-flow`：upload tab 可消费真实 backend presign；
 - 通知 `backend-targetjob` owner：现有 fixture-backed file 流可保持不变，未来切真时调用相同 handler。
 
 ### Phase 6: L2 remediation hardening

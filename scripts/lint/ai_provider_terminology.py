@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Reject retired AI gateway terminology in active AI provider surfaces.
+"""Reject non-current AI gateway terminology in active AI provider surfaces.
 
-This gate is intentionally narrower than a whole-repo grep: historical
-evidence under docs/work-journal, docs/reports, docs/bugs, and spec history
-files may retain old wording, but active code, config, deploy assets, ADRs, and
+This gate is intentionally narrower than a whole-repo grep: evidence under
+docs/work-journal, docs/reports, docs/bugs, and spec history files may retain
+non-current wording, but active code, config, deploy assets, ADRs, and
 generated AI convention artifacts must use provider-neutral terminology.
 """
 from __future__ import annotations
@@ -55,23 +55,23 @@ SCAN_PATHS = [
 
 
 @dataclass(frozen=True)
-class RetiredPattern:
+class NonCurrentPattern:
     label: str
     pattern: re.Pattern[str]
 
 
-RETIRED_PATTERNS = [
-    RetiredPattern("AI_GATEWAY env key", re.compile(r"\bAI_GATEWAY_[A-Z0-9_]+\b")),
-    RetiredPattern("gateway_route schema key", re.compile(r"\bgateway_route\b")),
-    RetiredPattern("GatewayRoute API field", re.compile(r"\bGatewayRoute\b")),
-    RetiredPattern("GatewayBaseURL API field", re.compile(r"\bGatewayBaseURL\b")),
-    RetiredPattern("GatewayAPIKey API field", re.compile(r"\bGatewayAPIKey\b")),
-    RetiredPattern(
+NON_CURRENT_PATTERNS = [
+    NonCurrentPattern("AI_GATEWAY env key", re.compile(r"\bAI_GATEWAY_[A-Z0-9_]+\b")),
+    NonCurrentPattern("gateway_route schema key", re.compile(r"\bgateway_route\b")),
+    NonCurrentPattern("GatewayRoute API field", re.compile(r"\bGatewayRoute\b")),
+    NonCurrentPattern("GatewayBaseURL API field", re.compile(r"\bGatewayBaseURL\b")),
+    NonCurrentPattern("GatewayAPIKey API field", re.compile(r"\bGatewayAPIKey\b")),
+    NonCurrentPattern(
         "ErrMissingGatewayConfig API error",
         re.compile(r"\bErrMissingGatewayConfig\b"),
     ),
-    RetiredPattern("ai.gateway config path", re.compile(r"\bai\.gateway[A-Za-z0-9_]*\b")),
-    RetiredPattern("gateway terminology", re.compile(r"\bgateway\b", re.IGNORECASE)),
+    NonCurrentPattern("ai.gateway config path", re.compile(r"\bai\.gateway[A-Za-z0-9_]*\b")),
+    NonCurrentPattern("gateway terminology", re.compile(r"\bgateway\b", re.IGNORECASE)),
 ]
 
 
@@ -108,9 +108,9 @@ def scan_file(repo: Path, path: Path) -> list[str]:
     findings: list[str] = []
     rel = path.relative_to(repo)
     for lineno, line in enumerate(text.splitlines(), start=1):
-        for retired in RETIRED_PATTERNS:
-            if retired.pattern.search(line):
-                findings.append(f"{rel}:{lineno}: {retired.label}: {line.strip()}")
+        for pattern in NON_CURRENT_PATTERNS:
+            if pattern.pattern.search(line):
+                findings.append(f"{rel}:{lineno}: {pattern.label}: {line.strip()}")
                 break
     return findings
 
@@ -126,12 +126,12 @@ def main() -> int:
         findings.extend(scan_file(repo, path))
 
     if findings:
-        print("ai_provider_terminology: retired terminology found", file=sys.stderr)
+        print("ai_provider_terminology: non-current terminology found", file=sys.stderr)
         for finding in findings:
             print(f"  - {finding}", file=sys.stderr)
         print(
             "Fix: use AI provider registry/profile/provider-ref terminology in active surfaces; "
-            "keep historical wording only in history, work-journal, report, or bug records.",
+            "keep non-current wording only in history, work-journal, report, or bug records.",
             file=sys.stderr,
         )
         return 1

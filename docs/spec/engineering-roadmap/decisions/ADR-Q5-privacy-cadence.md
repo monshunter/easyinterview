@@ -1,16 +1,16 @@
 # ADR-Q5 · 隐私节奏
 
-> **版本**: 1.7
+> **版本**: 1.9
 > **状态**: accepted
-> **更新日期**: 2026-05-06
+> **更新日期**: 2026-07-07
 
 ## 1 背景
 
-`B1 shared-conventions-codified` §「隐私请求类型」定义 `export` / `delete` 两个枚举；`B2 openapi-v1-contract` §「privacy tag」预留 `POST /privacy/exports` + `POST /privacy/deletions`；`B4 db-migrations-baseline` §「privacy_requests」表已就位；`F1 observability-stack` §「Privacy Completion」要求「99% 在 24h 内完成」。`README.md` §「待评审的 5 个决策点」第 5 项只作为历史决策输入。
+`B1 shared-conventions-codified` §「隐私请求类型」定义 `export` / `delete` 两个枚举；`B2 openapi-v1-contract` §「privacy tag」预留 `POST /privacy/exports` + `POST /privacy/deletions`；`B4 db-migrations-baseline` §「privacy_requests」表已就位；`F1 observability-stack` §「Privacy Completion」要求「99% 在 24h 内完成」。`README.md` §「待评审的 5 个决策点」第 5 项只作为决策输入。
 
 产品红线（`docs/spec/product-scope/spec.md` §4.4 / §9.3）：
 
-- 默认保守：音视频 / 简历 / 画像 / 面试内容必须可解释、可关闭、可删除
+- 默认保守：音视频 / 简历 / 用户数据 / 面试内容必须可解释、可关闭、可删除
 - 不做隐形作弊 / 不做企业候选人评估 / 不做实时面试辅助
 
 业务背景：
@@ -49,7 +49,7 @@
 - 会提前创建尚未启动的 privacy export / advanced audit workstream，与 roadmap v3.0 的 on-demand child 创建策略冲突
 - 需要冻结 export schema 版本（与 B2 OpenAPI v1.0.0 freeze 同时锁定）
 - 跨 B4 baseline 多表 dump 涉及 audio / 简历 / 报告原文等多种格式，复杂度近一个独立子系统
-- 会挤压当前 P0 闭环中的 backend-auth、backend async runner、backend-practice / review / debrief 与 release gate workstream
+- 会挤压当前 P0 闭环中的 backend-auth、backend async runner、backend-practice / review 与 release gate workstream
 
 ### 选项 C · 不做隐私链路（仅靠手动后台处理）
 
@@ -82,7 +82,7 @@
 - **B2 `openapi-v1-contract`** —— 冻结 `/privacy/deletions` + `/privacy/exports`（后者 stub 501）+ `DELETE /api/v1/me`
 - **B4 `db-migrations-baseline`** —— `privacy_requests` / `audit_events` 0001 迁移
 - **backend async runner future subject** —— public `privacy_delete` job_type；内部 handler 可为 `privacy.delete`；优先级 critical；P0 不要求独立 worker 进程
-- **frontend-shell / Settings & Privacy** —— 「删除我的账号」UI + 「导出即将上线」占位；不得把导出延后误写成复盘或独立成长中心功能
+- **frontend-shell / Settings & Privacy** —— 「删除我的账号」UI + 「导出即将上线」占位；不得把导出延后误写成独立业务功能
 - **F1 `observability-stack`** —— privacy 指标接入
 - **`release-gate-and-rollout`** —— 创建时校验 P0 删除链路 SLA、audit 完整性与 privacy export 501 例外说明
 - **`engineering-roadmap/spec.md`** —— §3.2 Q-5 记录「P0 删除-only；导出延后并以 501 / UI 占位解释」，§5.3 将完整 privacy export / advanced audit 作为 future candidate
@@ -96,7 +96,7 @@
 - 用户调研显示 ≥ 30% 受访者把「数据可移植」作为关键决策因素 → 升格 export
 - 删除 SLA 24h 在生产无法稳定达到 → 重新评估 backend internal runner 拓扑与跨表 dependency
 
-修订流程：本 ADR 状态由 `accepted` → `superseded`，新 ADR 显式标注 `supersedes: ADR-Q5-privacy-cadence.md`；同步 roadmap §3.2 Q-5、§5.3 future candidates、B2/B4/C8/F1 相关 spec 与 Settings / Privacy UI 文档。
+修订流程：如需推翻本决策，新增修订 ADR；同步 roadmap §3.2 Q-5、§5.3 future candidates、B2/B4/C8/F1 相关 spec 与 Settings / Privacy UI 文档。
 
 ## 6 关联
 
@@ -109,9 +109,9 @@
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-07 | 1.8 | 对齐当前产品隐私红线和核心闭环，删除非当前模块叙述。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-06 | 1.7 | 对齐 backend-runtime-topology：P0 删除链路执行方从独立 worker 改为 backend internal runner，`privacy_delete` jobType 保留。 | backend-runtime-topology/001-worker-consolidation |
-| 2026-05-04 | 1.6 | 对齐 engineering-roadmap v3.0：删除对旧 C12/F4/W4 phase 的当前执行口径引用，改为 privacy export / advanced audit future candidate + P0 删除链路由现有契约和后续 release gate 承接。 | engineering-roadmap v3.0 L2 remediation |
-| 2026-05-03 | 1.5 | 对齐 engineering-roadmap v2.2：D6 已改为 P0 `frontend-debrief`，Settings 隐私入口归 D1；不再引用 `frontend-debrief-and-growth`。 | engineering-roadmap v2.2 |
-| 2026-05-03 | 1.4 | 同步产品真理源迁移：隐私产品红线引用从根目录旧 spec 改为 `docs/spec/product-scope/spec.md`，不改变 Q5 的 P0 删除-only 决策。 | docs-only |
+| 2026-05-04 | 1.6 | 对齐 engineering-roadmap v3.0：删除对原 C12/F4/W4 phase 的当前执行口径引用，改为 privacy export / advanced audit future candidate + P0 删除链路由现有契约和后续 release gate 承接。 | engineering-roadmap v3.0 L2 remediation |
+| 2026-05-03 | 1.4 | 同步产品真理源迁移：隐私产品红线引用改为 `docs/spec/product-scope/spec.md`，不改变 Q5 的 P0 删除-only 决策。 | docs-only |
 | 2026-04-29 | 1.3 | 对齐 B2 / B4 remediation：明确 `DELETE /api/v1/me` 必须进入 OpenAPI freeze 并返回 `202 + PrivacyRequestWithJob`；删除范围改为引用 B4 §3.1.2 per-table matrix，区分 hard delete / cascade / retain / audit tombstone。 | plan-review remediation |
-| 2026-04-29 | 1.2 | 对齐 B4 `db-migrations-baseline` v1.4：移除旧「29 表」背景口径，改为引用 B4 baseline 多表范围；删除范围中的 `resumes` 改为当前表名 `resume_assets`，并纳入 ADR-Q1 指派给 B4 的 `external_identities` 支撑表。 | db-migrations-baseline plan-review remediation |
+| 2026-04-29 | 1.2 | 对齐 B4 `db-migrations-baseline` v1.4：移除原「29 表」背景口径，改为引用 B4 baseline 多表范围；删除范围中的 `resumes` 改为当前表名 `resume_assets`，并纳入 ADR-Q1 指派给 B4 的 `external_identities` 支撑表。 | db-migrations-baseline plan-review remediation |

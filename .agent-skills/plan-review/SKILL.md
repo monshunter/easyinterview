@@ -1,6 +1,6 @@
 ---
 name: plan-review
-description: "Review or fix spec/plan/checklist/context documents for a spec-centric plan target. Use when the user wants L1 review or document remediation for spec/plan/checklist consistency, including spec-owned issues that should be repaired in the same fix pass. Reuses implement-owned shared context validator to resolve the target docs, then performs semantic review directly on the validated markdown, including coverage-matrix review for primary paths, edge conditions, failure/recovery paths, cross-layer contracts, BDD/TDD gates, and regression/legacy-negative checks. Supports /plan-review [subspec/plan] [target] [--fix]."
+description: "Review or fix spec/plan/checklist/context documents for a spec-centric plan target. Use when the user wants L1 review or document remediation for spec/plan/checklist consistency, including spec-owned issues that should be repaired in the same fix pass. Reuses implement-owned shared context validator to resolve the target docs, then performs semantic review directly on the validated markdown, including coverage-matrix review for primary paths, edge conditions, failure/recovery paths, cross-layer contracts, BDD/TDD gates, and regression/non-current-negative checks. Supports /plan-review [subspec/plan] [target] [--fix]."
 ---
 
 # Plan Review Skill
@@ -180,7 +180,7 @@ Coverage-matrix review:
 - UX quality: loading/empty/error states, accessibility semantics, localization
   fallback, display preferences, responsive-state risk, and user-visible copy
   are considered for UI-facing plans.
-- Regression / legacy-negative: retired route/module/tag/table/event/job/config
+- Regression / non-current-negative: non-current route/module/tag/table/event/job/config
   flag/model/provider/feature-key terminology has explicit negative search or
   drift-gate ownership when the current design rejects it.
 

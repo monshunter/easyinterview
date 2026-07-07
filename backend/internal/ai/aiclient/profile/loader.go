@@ -220,7 +220,7 @@ func readCatalog(path string) ([]*aiclient.ModelProfile, error) {
 		if item.Kind != yaml.MappingNode {
 			return nil, profileValidationError(path, yamlNodeLine(item), "profile entry must be a mapping")
 		}
-		if err := rejectRetiredSchemaKeys(path, item); err != nil {
+		if err := rejectNonCurrentSchemaKeys(path, item); err != nil {
 			return nil, err
 		}
 		var raw aiclient.ModelProfile
@@ -278,7 +278,7 @@ func validateProfile(path string, doc *yaml.Node, raw *aiclient.ModelProfile) er
 	return nil
 }
 
-func rejectRetiredSchemaKeys(path string, doc *yaml.Node) error {
+func rejectNonCurrentSchemaKeys(path string, doc *yaml.Node) error {
 	root := yamlRoot(doc)
 	if root == nil || root.Kind != yaml.MappingNode {
 		return nil
@@ -288,9 +288,9 @@ func rejectRetiredSchemaKeys(path string, doc *yaml.Node) error {
 		value := root.Content[i+1]
 		switch key.Value {
 		case "task_type":
-			return profileValidationError(path, yamlNodeLine(key), "retired schema key 'task_type'; use 'capability'")
+			return profileValidationError(path, yamlNodeLine(key), "non-current schema key 'task_type'; use 'capability'")
 		case "default":
-			if err := rejectRetiredMappingKey(path, value, "provider", "default.provider", "default.provider_ref"); err != nil {
+			if err := rejectNonCurrentMappingKey(path, value, "provider", "default.provider", "default.provider_ref"); err != nil {
 				return err
 			}
 		case "fallback":
@@ -298,10 +298,10 @@ func rejectRetiredSchemaKeys(path string, doc *yaml.Node) error {
 				continue
 			}
 			for _, item := range value.Content {
-				if err := rejectRetiredMappingKey(path, item, "provider", "fallback[].provider", "fallback[].provider_ref"); err != nil {
+				if err := rejectNonCurrentMappingKey(path, item, "provider", "fallback[].provider", "fallback[].provider_ref"); err != nil {
 					return err
 				}
-				if err := rejectRetiredMappingKey(path, item, "trigger", "fallback[].trigger", "fallback[].when"); err != nil {
+				if err := rejectNonCurrentMappingKey(path, item, "trigger", "fallback[].trigger", "fallback[].when"); err != nil {
 					return err
 				}
 			}
@@ -310,14 +310,14 @@ func rejectRetiredSchemaKeys(path string, doc *yaml.Node) error {
 	return nil
 }
 
-func rejectRetiredMappingKey(path string, node *yaml.Node, keyName, retired, replacement string) error {
+func rejectNonCurrentMappingKey(path string, node *yaml.Node, keyName, nonCurrent, replacement string) error {
 	if node == nil || node.Kind != yaml.MappingNode {
 		return nil
 	}
 	for i := 0; i+1 < len(node.Content); i += 2 {
 		key := node.Content[i]
 		if key.Value == keyName {
-			return profileValidationError(path, yamlNodeLine(key), "retired schema key '%s'; use '%s'", retired, replacement)
+			return profileValidationError(path, yamlNodeLine(key), "non-current schema key '%s'; use '%s'", nonCurrent, replacement)
 		}
 	}
 	return nil

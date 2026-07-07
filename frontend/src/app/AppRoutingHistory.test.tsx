@@ -3,7 +3,7 @@
  * Plan 004 Phase 2.2 + 2.3 integration tests — Browser History routing.
  *
  * Validates that the formal frontend App shell uses Browser History as the
- * canonical route source (push / replace / popstate), keeps the legacy
+ * canonical route source (push / replace / popstate), keeps the non-current
  * `navigate(next)` API for screens, and preserves TopBar active state +
  * chrome hidden behavior under back / forward navigation.
  */
@@ -191,7 +191,7 @@ describe("App browser-aware routing — Phase 2.3 popstate / chrome parity", () 
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
   });
 
-  it("popstate to unknown / retired path falls back to home", async () => {
+  it("popstate to unknown / non-current path falls back to home", async () => {
     render(<App />);
     act(() => {
       window.history.pushState(null, "", "/totally-unknown");

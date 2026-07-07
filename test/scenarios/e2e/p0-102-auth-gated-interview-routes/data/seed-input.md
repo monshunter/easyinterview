@@ -12,7 +12,7 @@
   - `generating`
   - `report`
   - `settings`
-- Retired route negatives:
+- Non-current route negatives:
   - `debrief`
   - `debrief_full`
   - `profile`

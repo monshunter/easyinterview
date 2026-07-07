@@ -80,7 +80,7 @@ import sys
 
 root = pathlib.Path(sys.argv[1])
 pattern = re.compile(r"""route-(welcome|growth|mistakes|drill|followup|experiences|star(_editor)?|onboarding|voice)\b|/[#]?(welcome|growth|mistakes|drill|followup|experiences|star|onboarding|voice)([\s'"?/#:]|$)|#route=(welcome|growth|mistakes|drill|followup|experiences|star|onboarding|plan|resume|voice)([\s'"'/#?&=:-]|$)|\b(name|route)\s*[:=]\s*['"](welcome|growth|mistakes|drill|followup|experiences|star|onboarding|plan|resume|voice)['"]|\bmode\s*=\s*['"]debrief['"]|mode=debrief""")
-d22_retired_ui = re.compile(
+d22_non_current_ui = re.compile(
     r"""DebriefScreen|ProfileScreen|topbar-nav-debrief|topbar-user-profile|"""
     r"""home-aux-debrief|debriefId|debriefJobId|SET_DEBRIEF_CONTEXT|"""
     r"""createDebrief|suggestDebriefQuestions|getDebrief|Debriefs/|Profile/"""
@@ -95,7 +95,7 @@ allowed = [
 ]
 for sample in allowed:
     if pattern.search(sample):
-        print(f"verify: legacy regex falsely matched canonical token {sample}", file=sys.stderr)
+        print(f"verify: non-current regex falsely matched canonical token {sample}", file=sys.stderr)
         sys.exit(1)
 
 scan_paths = [
@@ -119,10 +119,10 @@ for rel in scan_paths:
             continue
         text = file_path.read_text(encoding="utf-8", errors="ignore")
         if pattern.search(text):
-            print(f"verify: legacy route vocabulary found in {file_path.relative_to(root)}", file=sys.stderr)
+            print(f"verify: non-current route vocabulary found in {file_path.relative_to(root)}", file=sys.stderr)
             sys.exit(1)
-        if d22_retired_ui.search(text):
-            print(f"verify: D-22 retired debrief/profile UI token found in {file_path.relative_to(root)}", file=sys.stderr)
+        if d22_non_current_ui.search(text):
+            print(f"verify: D-22 non-current debrief/profile UI token found in {file_path.relative_to(root)}", file=sys.stderr)
             sys.exit(1)
 PY
 

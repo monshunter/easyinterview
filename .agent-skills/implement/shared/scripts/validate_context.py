@@ -91,7 +91,7 @@ def validate_discovery_block(
     prefix: str,
     errors: list[str],
     known_fields: dict[str, dict],
-    deprecated_fields: dict[str, str] | None = None,
+    unsupported_fields: dict[str, str] | None = None,
 ):
     """Validate a discovery metadata block when present.
 
@@ -114,9 +114,9 @@ def validate_discovery_block(
             require_md_suffix=options.get("require_md_suffix", False),
         )
 
-    for deprecated_field, error_message in (deprecated_fields or {}).items():
-        if deprecated_field in discovery:
-            errors.append(f"{prefix}.{field_name}.{deprecated_field} {error_message}")
+    for unsupported_field, error_message in (unsupported_fields or {}).items():
+        if unsupported_field in discovery:
+            errors.append(f"{prefix}.{field_name}.{unsupported_field} {error_message}")
 
 
 def uniq_preserve_order(items: list[str]) -> list[str]:
@@ -269,8 +269,8 @@ def validate_schema(data: dict) -> list[str]:
             f"spec.targets.{name}",
             errors,
             known_fields=target_discovery_fields,
-            deprecated_fields={
-                "commands": "is deprecated and must not be used",
+            unsupported_fields={
+                "commands": "is unsupported and must not be used",
             },
         )
 

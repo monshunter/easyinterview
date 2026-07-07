@@ -1,87 +1,31 @@
-# 002 Practice Text Event Loop Checklist
+# 002 — Practice Text Event Loop Checklist
 
-> **版本**: 1.7
-> **状态**: active
-> **更新日期**: 2026-07-06
+> **版本**: 1.10
+> **状态**: completed
+> **更新日期**: 2026-07-07
 
 **关联计划**: [plan](./plan.md)
 
-> 本 checklist 跟踪 plan 002 文本面试事件循环 + 完成异步流 + generating 入口 + 失败恢复 5 个 Phase 的实现项与 BDD-Gate；每个 Phase 收尾前必须把 `BDD-Gate:` 行点亮并在 [bdd-checklist](./bdd-checklist.md) 留存证据。`Prefer: example=<scenario>` fixture variant 与 `EI_FIXTURE_SCENARIO_*` 环境变量约定见 plan §3.5。
+## Current Contract
 
-> Product-scope reconcile（2026-07-06）：`practiceGoal='debrief'` 已从当前枚举删除；显隐 gate 覆盖 `baseline / retry_current_round / next_round`，旧 debrief 只作为 legacy-negative。
+- [x] `PracticeScreen` 渲染当前 text event loop shell：TopBar、SessionMap、QuestionCard、Transcript、InputBar、RightPanel、HintBanner、FinishCta、lost state 和 mobile layout 都有 DOM anchor / a11y / i18n / theme 覆盖。
+- [x] `usePracticeSessionLoader` 只通过 generated `getPracticeSession` 读取 session，覆盖 loading、data、refresh、404 和 error 状态。
+- [x] `usePracticeEvents` 只通过 generated `appendSessionEvent` 提交 answer / hint / skip / pause / resume，body 含 `clientEventId`，request 不带 `Idempotency-Key`。
+- [x] AssistantAction renderer 覆盖 `ask_question / ask_follow_up / show_hint / session_wait / session_completed`，provenance 只进 AI transparency UI。
+- [x] `usePracticeAssistance` 只由 `practiceMode` 决定辅助显隐；`baseline / retry_current_round / next_round` 对显隐无副作用。
+- [x] `useCompletePracticeSession` 只通过 generated `completePracticeSession` 完成会话，body 只含 `clientCompletedAt`，side-effect request 带 `Idempotency-Key` 并处理 replay / mismatch / 5xx / StrictMode 防抖。
+- [x] `buildPracticeHandoffParams` 使用 `resumeId` 与稳定 owner IDs handoff 到 `generating`，不携带 answer / question / hint / prompt / model provenance。
+- [x] voice turn 只允许出现在 `hooks/usePracticeVoiceTurn.ts`；text event loop 不调用 `getFeedbackReport`、不直接轮询 report、不绕过 generated client。
+- [x] BDD-Gate: `E2E.P0.044` assisted happy path、`E2E.P0.045` mode policy、`E2E.P0.046` failure recovery、`E2E.P0.047` completion handoff 场景资产和 verify scripts 齐全。
 
-## Phase 1: PracticeScreen 静态壳 + 路由替换 + i18n + sessionId 守卫
+## Verification
 
-- [x] 1.1 新增 `frontend/src/app/screens/practice/PracticeScreen.tsx`：源级复刻 `ui-design/src/screen-practice.jsx::PracticeScreen` 文本分支（lines 184-326）的 TopBar / 中部 grid (260/1fr/280) / SessionMap / QuestionCard / Transcript / InputBar / RightPanel / 底部固定 CTA；本 phase 全部动态字段渲染占位 skeleton；callback props（onSubmit / onHint / onSkip / onPause / onResume / onFinish / onSwitchMode）只记录调用次数；voice mode 后续由 `practice-voice-mvp/001` owner 接管；Vitest 断言 ≥ 20 个 `practice-*` testid + 控件类型断言（segmented mode 不是 `<select>`、strict toggle role='switch' aria-checked、RoleDropdown 是 menu 而非 select）
-- [x] 1.2 新增 `frontend/src/app/screens/practice/components/{TopBar,SessionMap,QuestionCard,Transcript,InputBar,RightPanel,HintBanner,LiveNotes,FinishCta,PracticeSessionLostState,RoleDropdown,ExpCard,ErrorState}.tsx`：每个组件接受 typed props，对应 plan §3.5 UI source structure parity 行；DOM 从 `ui-design/src/screen-practice.jsx` 同名片段复刻；text 输入区语音转写失败 banner 仅允许以本地组件等价实现，不从 ui-design voice surface import；voice surface 组件由 `practice-voice-mvp/001` owner 维护
-- [x] 1.3 新增 `frontend/src/app/screens/practice/hooks/usePracticeSessionLoader.ts`：通过 D1 generated client 调 `getPracticeSession(sessionId)`；React state 跟踪 idle / loading / data / sessionLost (404) / error (5xx) 五态；mount 时 `InterviewContext.sessionId` 缺失 → 立即返回 sessionLost；成功数据通过 `MERGE_SESSION` 写入 InterviewContext；暴露 `refresh()`；监听 visibility / focus / online 自动 refresh；Vitest `hooks/usePracticeSessionLoader.test.ts` 断言 5 态、refresh 调用、自动 refresh 触发与 MERGE_SESSION 调用次数
-- [x] 1.4 路由壳替换：在 `frontend/src/app/App.tsx` `renderRouteScreen` 中绑定 `practice` → `<PracticeScreen route={route} />`，替换 D1 `PlaceholderScreen`；`generating` / `report` 由其他 owner 接管，旧 `company_intel` route 归一回 `workspace` 且不 materialize；Vitest 断言 `App.tsx` 内 `practice` route render 命中 `PracticeScreen` 而非 PlaceholderScreen，`generating` / `report` 不由本 plan 接管
-- [x] 1.5 扩展 `frontend/src/app/i18n/locales/zh.ts` 与 `en.ts` 新增 `practice.*` 命名空间（≥ 40 key 与 `screen-practice.jsx::L` zh/en 字典等价：toolbar.* / sessionMap.* / question.* / transcript.* / input.* / hint.* / rightpanel.* / voice owner copy / sessionLost.* / errors.*）；`messages.ts` 类型聚合补齐；Vitest `i18n` 套件断言新 namespace zh/en 同步无缺漏
-- [x] 1.6 新增 `practice/__tests__/PracticeScreen.test.tsx`：测 i18n zh/en 切换重绘、≥ 20 个 testid 存在、callback prop 触发、控件类型断言、voice owner co-location 边界、不出现旧 prototype testid（`practice-mode-card-*` / `growth-*` / `drill-builder-*` / `mistakes-queue-*`）
-- [x] 1.7 BDD-Gate: 验证 `E2E.P0.044` 中 practice 静态壳 + sessionId 守卫部分资产构建到 ready 态 <!-- verified: 2026-05-14 method=scenario+vitest evidence=p0-044 setup→trigger→verify→cleanup PASS; trigger 8 files / 62 tests PASS; full bdd-checklist complete -->
-
-## Phase 2: appendSessionEvent 单 endpoint + 5 kind 路由 + AssistantAction 渲染
-
-- [x] 2.1 新增 `frontend/src/app/screens/practice/hooks/usePracticeEvents.ts`：暴露 `submitAnswer / requestHint / skipTurn / pauseSession / resumeSession` 5 个 mutation；内部 `buildEventRequest(kind, payload)` 通过 `lib/ids.ts::uuidv7()` 派生 `clientEventId`；fetch init **不**传 `Idempotency-Key`；同一 user-action 失败 retry 时复用同一 `clientEventId`（hook 内 `inFlightRef` 缓存），fresh action 生成新 batch；Vitest `hooks/usePracticeEvents.test.ts` 断言 5 个 kind 的 body / fetch init 反向 header 检查 / retry 复用与 fresh action 切换
-- [x] 2.2 新增 `frontend/src/app/screens/practice/components/AssistantActionRenderer.tsx`：消费 `SessionEventResult.assistantAction` 5 type；`ask_question` 推进 qIdx + 标记 SessionMap turn status；`ask_follow_up` append AI message + followUp badge；`show_hint` 渲染 HintBanner + `INCREMENT_HINT_COUNT` 写回 InterviewContext；`session_wait` 输入禁用 + 「正在生成下一题…」；`session_completed` 触发底部 CTA 高亮 + auto-scroll；`provenance` 仅渲染到 RightPanel.AI TRANSPARENCY 卡（promptVersion / rubricVersion / modelId / language / featureFlag），主对话流负向断言不渲染；Vitest `components/AssistantActionRenderer.test.tsx` 断言 5 type 分支 + provenance 隔离
-- [x] 2.3 新增 `frontend/src/app/screens/practice/hooks/usePracticeSession.ts`：消费 `SessionStatus` 七值；`queued` 等待首题 / 会话准备中、`running` 主交互、`waiting_user_input` 输入禁用 + 暂停态、`completing` 按钮置灰 + 生成提示、`completed` 自动 nav generating（仅一次防抖）、`failed` ErrorState + retry / 返回 workspace、`cancelled` PracticeSessionLostState + 返回 workspace；负向断言实现中不引用旧值 `draft / archived`；Vitest `hooks/usePracticeSession.test.ts` 七分支断言
-- [x] 2.4 fixture variant 扩展：与 mock-contract-suite owner / backend-practice/002 owner 协同在 `openapi/fixtures/PracticeSessions/appendSessionEvent.json` 新增或消费 canonical variants `follow-up` / `turn-skipped` / `pause-resume` / `replay` / `mismatch` / `completed` / `hint-strict-conflict`，如需 AI timeout UI 则新增 `ai-timeout` 并在 mock-contract-suite 记录；在 `getPracticeSession.json` 新增 `running-with-history` / `queued` / `completing`；`make validate-fixtures` (或 `python3 scripts/lint/validate_fixtures.py --repo-root .`) 通过；`make codegen-check` zero drift
-- [x] 2.5 新增 `practice/__tests__/idempotencyContract.test.ts`：appendSessionEvent 反向断言 fetch init `Idempotency-Key` 0 命中；completePracticeSession 正向断言（在 Phase 4 完善）；scenario verify.sh 同款 grep 0 命中
-- [x] 2.6 新增 `practice/__tests__/appendSessionEventBody.test.ts`：body 与 OpenAPI `PracticeSessionEventRequest` schema 一致；payload 按 kind 类型化（answer_submitted={turnId,answerText}；hint_requested/turn_skipped={turnId}；session_paused/session_resumed={}）；mock-contract-suite parity
-- [x] 2.7 BDD-Gate: 验证 `E2E.P0.044` 中 answer_submitted 主路径 + AssistantAction `ask_follow_up` / `ask_question` 渲染部分通过 <!-- verified: 2026-05-14 method=scenario+vitest evidence=p0-044 setup→trigger→verify→cleanup PASS; usePracticeEvents/AssistantActionRenderer/idempotency/append body tests covered in trigger -->
-
-## Phase 3: assisted / strict 显隐 + RoleDropdown + 提示 / 跳过 / 暂停-恢复 + transcript
-
-- [x] 3.1 新增 `frontend/src/app/screens/practice/hooks/usePracticeAssistance.ts`：派生 `{showLiveNotes, showHintButton, showExperienceCards, showStrictBanner}` 仅依赖 `practiceMode==='strict'` 二值；负向断言 `practiceGoal` 不参与计算；Vitest `hooks/usePracticeAssistance.test.ts` strict / assisted × baseline / retry_current_round / next_round 6 组合
-- [x] 3.2 InputBar 提示流接线：assisted + 点击「提示」 → `requestHint({turnId})` → 成功 200 后 `INCREMENT_HINT_COUNT` 写回 InterviewContext + HintBanner 渲染 `assistantAction.hint`；再点击「提示」隐藏 banner（不重复请求）；strict 模式 hint button DOM 不渲染；Vitest `__tests__/practiceHints.test.tsx` 断言 assisted 流 + hintCount 自增 + strict DOM 缺失
-- [x] 3.3 InputBar 跳过 / 暂停-恢复接线：跳过 → `skipTurn({turnId})` → renderer 推进 + SessionMap 标记 `status='skipped'`；暂停 → `pauseSession({})` + 本地 timer 暂停 + UI 切「已暂停」；恢复 → `resumeSession({})` + timer 恢复；暂停期间 submit / hint / skip 三按钮 disabled 不发请求；Vitest `__tests__/practiceSkip.test.tsx` + `__tests__/practicePauseResume.test.tsx`
-- [x] 3.4 RoleDropdown 接线（UI-only）：从 InterviewContext 派生当前 `interviewerPersona`；切换 dropdown 仅改本地 React state + RightPanel.AI TRANSPARENCY 卡 role label；负向断言 generated client 调用次数 = 0；Vitest `__tests__/RoleDropdown.test.tsx`
-- [x] 3.5 SessionMap turn 历史接线：题目地图通过 `assistantAction` 推进 `qIdx` + 维护本地 turn 状态数组（client-side cache，不持久化 localStorage）；`turn.status` 渲染为 done ✓ / active 圆点 / pending 空圈 / skipped ↷ / follow_up_requested 圆点+颜色；Vitest `__tests__/SessionMap.test.tsx`
-- [x] 3.6 模式切换 segmented control：voice 选项点击 → `nav("practice", {...ctx, mode:'voice', modality:'voice'})`；`practice-voice-mvp/001` 后续接管 voice surface / `usePracticeVoiceTurn`；本 plan 的 text-loop gate 只要求 text path 不直接消费 voice turn
-- [x] 3.7 strict toggle 运行时锁定：顶部 strict toggle 保持 ui-design 视觉 parity（role='switch' aria-checked），但 click handler 触发 toast「严格模拟需在新建规划时设定，本场已锁定」；不调 backend；Vitest 锁定 toast 文案 + generated client 调用次数 = 0
-- [x] 3.8 新增 `practice/__tests__/practiceGoalParity.test.tsx`：当前 core-loop practiceGoal 组合（assisted+baseline / assisted+retry_current_round / strict+baseline / strict+next_round）的显隐快照一致性；负向 grep `goal === 'debrief'` 在 practice 模块只在 legacy-negative 测试断言中出现
-- [x] 3.9 BDD-Gate: 验证 `E2E.P0.045` 中 strict / assisted × current practiceGoal 显隐主路径 + hint / skip / pause-resume 副路径通过 <!-- verified: 2026-05-14 method=scenario+vitest evidence=p0-045 setup→trigger→verify→cleanup PASS; trigger 9 files / 27 tests PASS; 2026-07-06 doc reconcile confirms current scenario slug p0-045-practice-text-loop-mode-policy-display -->
-
-## Phase 4: completePracticeSession + handoff + 错误恢复 + sessionLost / conflict 兜底
-
-- [x] 4.1 新增 `frontend/src/app/screens/practice/hooks/useCompletePracticeSession.ts`：通过 `lib/conventions/idempotency.ts::newIdempotencyBatch().complete` 派生 `Idempotency-Key`；body 仅 `{clientCompletedAt: isoNow()}`；`inFlightRef` + `Promise` 缓存防 StrictMode 双触发；retry 复用同一 key；3 次失败展示「回到 workspace」fallback；Vitest `hooks/useCompletePracticeSession.test.ts` 断言：（a）happy path → 202 → nav generating；（b）replay 同 key 二次返回首次 response；（c）mismatch 409；（d）网络 / 5xx retry 复用 key；（e）StrictMode 双触发去重 nav 调用次数 = 1
-- [x] 4.2 新增 `frontend/src/app/screens/practice/utils/practiceHandoffParams.ts`：输出稳定 `InterviewContext` ID（`planId / targetJobId / jdId / resumeVersionId / roundId / sessionId / reportId`）+ `PracticeDisplayContext`（`mode / modality / practiceMode / practiceGoal / hintUsed / hintCount`）；Vitest `__tests__/practiceHandoff.test.ts` 断言完整字段集 + nav 路径；隐私负向只禁止 raw answer/question/hint/prompt/provenance 明文进入 URL
-- [x] 4.3 新增 `practice/__tests__/completePracticeSessionBody.test.ts`：body 仅 `{clientCompletedAt}`；负向断言 mode/modality/practiceMode/practiceGoal/hintUsed/hintCount 不出现在 body JSON；mock-contract-suite parity
-- [x] 4.4 错误映射实现：6 错误码（502 append / complete 5xx / 404 sessionLost / 409 strict-hint / 409 mismatch / 网络）各自渲染 inline error + 对应动作；Vitest `__tests__/practiceErrors.test.tsx` 三大子用例（AI / network / 5xx）<!-- verified: 2026-05-14 method=vitest+scenario evidence=practiceErrors.test.tsx + practiceConflict.test.tsx + practiceSessionLost.test.tsx + p0-046 PASS -->
-- [x] 4.5 sessionLost 兜底实现：`getPracticeSession` / `appendSessionEvent` / `completePracticeSession` 任一返回 404 → 渲染 `PracticeSessionLostState`，CTA「返回 workspace」调 `nav("workspace", {targetJobId, jdId, planId, resumeVersionId})`；InterviewContext 仍保留 workspace 上下文；Vitest `__tests__/practiceSessionLost.test.tsx`
-- [x] 4.6 client_event_fingerprint_mismatch 409 兜底：渲染「同步异常，请刷新」InlineError；触发 `getPracticeSession` refresh；refresh 期间 UI 进入 `refreshing` 锁定态（输入禁用 + spinner）；server wins 重置本地 transcript；refresh 完成后解锁；Vitest `__tests__/practiceClientEventConflict.test.tsx` 锁定 race <!-- verified: 2026-05-14 method=vitest+scenario evidence=practiceClientEventConflict.test.tsx refresh assertion + p0-046 PASS -->
-- [x] 4.7 InterviewContext reducer 扩展：在 001 reducer 基础上追加 `INCREMENT_HINT_COUNT` action（自增 `hintCount` 数字 + 设 `hintUsed='true'`）；在 001 `interview-context/InterviewContext.test.tsx` 文件追加该 action 测试，不创建并行 reducer
-- [x] 4.8 新增 `practice/__tests__/practiceCompletion.test.tsx`：`session_completed` assistant action 触发底部 CTA 高亮 + auto-scroll；点击 CTA → `completePracticeSession`；防抖断言
-- [x] 4.9 fixture variant 扩展：在 `openapi/fixtures/PracticeSessions/completePracticeSession.json` 新增 / 消费 canonical variants `replay`（同 `Idempotency-Key` 二次返回首次 response）/ `mismatch` / `session-already-completed` / `cross-user-not-found`；complete path 无 AI timeout fixture；`make validate-fixtures` 通过 <!-- 现有 fixtures 已包含 default / replay / mismatch / session-already-completed / cross-user-not-found 5 variants（mock-contract-suite parity）；validate-fixtures 通过 -->
-- [x] 4.10 BDD-Gate: 验证 `E2E.P0.046` 失败恢复 + `E2E.P0.047` 完成 handoff 主路径 + 隐私红线通过 <!-- verified: 2026-05-14 method=scenario+vitest evidence=p0-046 and p0-047 setup→trigger→verify→cleanup PASS; privacy/handoff/error tests included in triggers -->
-
-## Phase 5: Pixel parity + 4 个 scenario + regression 重跑 + 文档与索引同步
-
-- [x] 5.1 新增 `frontend/tests/pixel-parity/practice.spec.ts` 覆盖 desktop (1440×900) + mobile (390×844) 两 chromium project：fixture-backed practice mount（assisted + strict + voice surface + session-lost + completing + completed + HintBanner）的 DOM 锚点 + bounding box stays in viewport + warm/light → dark → customAccent 三态切换 + toHaveScreenshot baseline；mobile 断言中部 grid 折单列 + 输入 sheet sticky + RoleDropdown drawer <!-- verified: 2026-05-14 method=playwright evidence=pnpm --filter @easyinterview/frontend test:pixel-parity tests/pixel-parity/practice.spec.ts => 11 passed / 1 desktop-only mobile check skipped; voice owner boundary revised 2026-05-23 -->
-
-- [x] 5.2 `pnpm --filter @easyinterview/frontend test:pixel-parity` 在 D2/D3 + home plan + workspace plan 现有基础上累加 practice 新增 spec 全 PASS <!-- verified: 2026-05-14 method=playwright evidence=practice.spec.ts desktop/mobile PASS; also fixed practice runtime theme-token drift detected by this gate -->
-- [x] 5.3 派生 4 个 scenario 目录 `test/scenarios/e2e/p0-044-practice-text-loop-assisted-happy-path/`、`p0-045-practice-text-loop-mode-policy-display/`、`p0-046-practice-text-loop-failure-and-recovery/`、`p0-047-practice-text-loop-complete-and-generating-handoff/`，各含 README.md + scripts/{setup,trigger,verify,cleanup}.sh + data/seed-input.md + data/expected-outcome.md
-- [x] 5.4 `test/scenarios/e2e/INDEX.md` P0 表追加 4 行（P0.044-P0.047），关联需求 `frontend-workspace-and-practice C-4 / C-8 / C-9 / C-10 / C-12`，状态 Ready，automated
-- [x] 5.5 Regression 重跑：workspace `E2E.P0.018/019/020/021` 全 PASS；backend-practice `E2E.P0.022/023/024/025/026` 全 PASS；backend-practice 002 `E2E.P0.038/039/040/041/042/043` 真实 Go HTTP scenario 全 PASS（`cd backend && go test ./cmd/api -run 'TestE2EP0038|TestE2EP0039|TestE2EP0040|TestE2EP0041|TestE2EP0042|TestE2EP0043' -count=1`）；`pnpm --filter @easyinterview/frontend test`（全量 Vitest）+ `pnpm --filter @easyinterview/frontend typecheck` + `pnpm --filter @easyinterview/frontend build` + `make build` 全 PASS <!-- verified: 2026-05-14 evidence=workspace p0-018..021 PASS; backend-practice p0-022..026 PASS; Go p0-038..043 PASS; frontend full Vitest 154 files / 907 tests PASS; typecheck/build/make build PASS -->
-- [x] 5.6 文档与索引同步：本 checklist、bdd-checklist、test-checklist 与 plans INDEX 同步至最新；`make docs-check` + `/sync-doc-index --fix-index` zero drift gate；`check-md-links` OK；`docs/spec/frontend-workspace-and-practice/history.md` 追加 plan 002 启动条目
-- [x] 5.7 负向搜索（全部 0 命中，仅注释 / 测试断言命中除外）：
-  - `frontend/src/app/screens/practice/` 不 import `ui-design/src/data.jsx` / `window.EI_DATA` / `getPracticeSampleQuestions` / `getPracticeSampleTranscript` / `getPracticeWaveformSamples`
-  - `frontend/src/app/screens/practice/` 不 import `VoiceSessionSurface` / `PracticeWaveformBars` / `PracticeAnnotatedWaveform` / `VoiceExpressionPanel`
-  - 旧 prototype practice 业务 testid（`practice-mode-card-*` / `growth-*` / `drill-builder-*` / `mistakes-queue-*` / `practice-voice-*` voice surface dom）
-  - 旧 route alias（独立 `voice` / `voice_practice` / `welcome` / `growth` / `mistakes` / `drill` / `followup` / `experiences` / `star`）（除 `app/normalizeRoute.ts` alias map）
-  - 旧 enum 值 `practiceMode='debrief'` / `practiceGoal='debrief'` / 旧文案 `切到语音` / `Switch to voice`
-  - raw answer / question / hint / provenance modelId 在 console.log / URL / localStorage / telemetry 调用
-  - LLM/provider key / provider registry / prompt registry / AIClient / LLM endpoint / ad hoc fetch 绕过 generated client
-  - generated client `getFeedbackReport` runtime 调用次数 = 0；`createPracticeVoiceTurn` 只允许在 voice owner hook 出现
-  - `appendSessionEvent` 请求 init `Idempotency-Key` header 0 命中（仅在 completePracticeSession 命中）
-- [x] 5.8 BDD-Gate: 验证 `E2E.P0.044 / 045 / 046 / 047` 全部 `setup → trigger → verify → cleanup` PASS；workspace regression PASS；backend-practice 契约 regression PASS <!-- verified: 2026-05-14 method=scenario evidence=p0-044/045/046/047 setup→trigger→verify→cleanup all PASS; workspace p0-018..021 PASS; backend-practice p0-022..026 and Go p0-038..043 PASS -->
-
-- [x] 5.9 L2 real-backend generated-client gate：P0.044-P0.047 trigger 前置 `frontendOwners.realApiMode.test.ts`；verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker，证明 practice/report/resume real client routing 不停留在 fixture-only。 <!-- verified: 2026-05-23 method=focused-vitest evidence=frontendOwners.realApiMode.test.ts PASS; scenario scripts updated with shared real-backend gate/verify helpers -->
-- [x] 5.10 Voice owner handoff drift gate：P0.044/P0.047 verify 不再要求 `createPracticeVoiceTurn` repo-wide 0 命中；只禁止 `getFeedbackReport` 进入 practice runtime，并断言 `createPracticeVoiceTurn` 仅出现在 `hooks/usePracticeVoiceTurn.ts`，与 `practice-voice-mvp/001` 已完成事实一致。 <!-- verified: 2026-05-23 method=scenario-verify evidence=p0-044 exposed stale negative; verify scripts revised -->
-
-## Phase 6: D-20 简历扁平化 resumeId 透传
-
-> product-scope D-20 / spec D-15。
-
-- [ ] 6.1 session context / handoff payload `resumeVersionId`→`resumeId`（验证：vitest + handoff param test PASS）
-- [ ] 6.2 收口：full vitest + typecheck + build + 零 `resumeVersionId` 残留 grep（验证：全 gate PASS + 负向 grep）
+- [x] `validate_context.py frontend-workspace-and-practice/002 frontend`
+- [x] Focused practice Vitest suite covers screen, hooks, components, handoff utils and privacy gates.
+- [x] `pnpm --filter @easyinterview/frontend exec tsc --noEmit`
+- [x] `make validate-fixtures`
+- [x] P0.044-P0.047 scenario scripts execute `setup -> trigger -> verify -> cleanup`.
+- [x] Owner wording grep has no pre-D20 resume binding field, placeholder voice surface token, stepwise build narrative, plan-reservation note, or out-of-owner generated-client positive surface.
+- [x] `sync-doc-index --check`
+- [x] `make docs-check`
+- [x] `git diff --check`

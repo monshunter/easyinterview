@@ -27,14 +27,14 @@ func TestActiveScopeNegativeSearch(t *testing.T) {
 		{`embedding`, "embedding capability was removed from the active AI provider scope"},
 		{`rerank`, "rerank capability was removed from the active AI provider scope"},
 		{`interview_round`, "interview_round was rejected as a separate module; rounds live inside practice"},
-		// F3 prompt-rubric-registry/001-baseline phase 3 retire scope:
+		// F3 prompt-rubric-registry/001-baseline phase 3 removal scope:
 		// the StaticPromptRegistry bridge plus its four constants must
 		// stay deleted now that RegistryAdapter is the only route to F3.
-		{`StaticPromptRegistry`, "retired in plan 001-baseline phase 3; use RegistryAdapter instead"},
-		{`defaultTargetImportPromptVersion`, "retired in plan 001-baseline phase 3; F3 owns prompt versions now"},
-		{`defaultTargetImportRubricVersion`, "retired in plan 001-baseline phase 3; F3 owns rubric versions now"},
-		{`defaultTargetImportModelProfileName`, "retired in plan 001-baseline phase 3; A3 owns profile names now"},
-		{`defaultTargetImportDataSourceVersion`, "retired in plan 001-baseline phase 3; F3 owns data source versions now"},
+		{`StaticPromptRegistry`, "non-current after plan 001-baseline phase 3; use RegistryAdapter instead"},
+		{`defaultTargetImportPromptVersion`, "non-current after plan 001-baseline phase 3; F3 owns prompt versions now"},
+		{`defaultTargetImportRubricVersion`, "non-current after plan 001-baseline phase 3; F3 owns rubric versions now"},
+		{`defaultTargetImportModelProfileName`, "non-current after plan 001-baseline phase 3; A3 owns profile names now"},
+		{`defaultTargetImportDataSourceVersion`, "non-current after plan 001-baseline phase 3; F3 owns data source versions now"},
 	}
 
 	matches, err := filepath.Glob("*.go")

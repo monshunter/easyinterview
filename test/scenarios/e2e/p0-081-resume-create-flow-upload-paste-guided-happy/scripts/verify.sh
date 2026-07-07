@@ -34,7 +34,7 @@ for spec in \
   useResumePresignUpload.test.tsx \
   useResumeRegistration.test.tsx \
   ParsingStage.test.tsx \
-  CreateFlowLegacyNegative.test.ts; do
+  CreateFlowNonCurrentNegative.test.ts; do
   grep -Fq "$spec" "$LOG_FILE" || {
     echo "$SCENARIO_ID: spec $spec did not run" >&2
     exit 1

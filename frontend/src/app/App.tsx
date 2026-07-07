@@ -49,9 +49,9 @@ import { TopBar } from "./topbar/TopBar";
 
 export interface AppProps {
   /**
-   * Optional initial route. Accepts loose input (legacy alias names, missing
-   * params) and runs it through {@link normalizeRoute} before mounting so old
-   * URLs / saved state cannot materialize standalone legacy screens. Production
+   * Optional initial route. Accepts loose input (non-current alias names, missing
+   * params) and runs it through {@link normalizeRoute} before mounting so non-current
+   * URLs / saved state cannot materialize standalone non-current screens. Production
    * bootstrap (Phase 1.3) wires this from URL hash + saved state and falls back
    * to {@link DEFAULT_ROUTE}.
    */
@@ -80,9 +80,9 @@ function renderRouteScreen(
   runtime: AppRuntimeValue | null,
   lang: Lang,
 ): ReactNode {
-  // Settings / Home shells are pure UI and do not depend on
-  // runtime; render them whether or not a client is mounted so D2-D6 owners
-  // can iterate without the auth bootstrap.
+  // Settings / Home shells are pure UI and do not depend on runtime; render
+  // them whether or not a client is mounted so feature owners can iterate
+  // without the auth bootstrap.
   if (route.name === "settings") {
     return <SettingsScreen route={route} />;
   }

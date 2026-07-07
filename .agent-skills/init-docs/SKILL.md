@@ -95,7 +95,7 @@ Template rule:
 
 - `docs/*/README.md` and the matching `*-readme.md` template must stay semantically aligned.
 - `docs/*/TEMPLATES.md` and the matching `*-templates.md` template must stay semantically aligned when the directory owns a local template asset.
-- New project scaffold 默认只输出当前项目契约，不应在 README 或 `TEMPLATES.md` 中混入历史兼容 patch 正文。
+- New project scaffold 默认只输出当前项目契约，不应在 README 或 `TEMPLATES.md` 中混入临时兼容 patch 正文。
 - Latest flow is spec-centric: executable plans live under `docs/spec/<subspec>/plans/<NNN-plan>/`; only the per-subspec plan index lives under `docs/spec/<subspec>/plans/INDEX.md`; plan rules live in `docs/spec/README.md`; plan templates live only in `docs/spec/TEMPLATES.md`; do not create top-level `docs/plan/`.
 
 ### Step 4: Report results

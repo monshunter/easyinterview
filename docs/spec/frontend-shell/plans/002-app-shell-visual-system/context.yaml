@@ -4,42 +4,35 @@ metadata:
   subspec: frontend-shell
   name: 002-app-shell-visual-system
   sequence: 2
-  supersedes: []
   specVersion:
     from: 1.4
-    to: 1.23
+    to: 1.26
 spec:
   defaultTarget: frontend
   discovery:
     aliases:
       - frontend-shell
       - app-shell-visual-system
-      - D2 frontend visual system
+      - ui-design-native-visual-system
     keywords:
       - design token
       - theme wiring
       - dark mode
       - custom accent
       - typography scale
-      - open source font
-      - Cormorant Garamond
-      - EB Garamond
-      - Inter
       - fontsource
       - CSS variables
       - data-theme attribute
       - data-mode attribute
       - ui-design native parity
-      - no external design reference
       - EI_THEMES
-      - visual contract test
-      - visual regression
+      - EI_FONT_PRESETS
+      - TopBar visual contract
+      - Auth visual contract
+      - Settings visual contract
       - visual smoke
-      - Playwright
-      - placeholder shell
-      - card rhythm
-      - no tailwind
-      - no styled-components
+      - E2E.P0.005
+      - no external design system
       - no private fonts
   targets:
     frontend:
@@ -52,11 +45,11 @@ spec:
         - ../../../../ui-design/README.md
         - ../../../../ui-design/INDEX.md
         - ../../../../ui-design/ui-architecture.md
+        - ../../../../ui-design/module-map.md
         - ../../../../ui-design/auth-and-entry.md
-        - ../../../../ui-design/user-profile-and-settings.md
-        - ../../../../ui-design/removed-modules-and-scope.md
         - ../001-app-shell-auth-settings/plan.md
         - ../001-app-shell-auth-settings/checklist.md
+        - ../003-ui-design-pixel-parity-gate/plan.md
       discovery:
         packages:
           - frontend/src/app/theme

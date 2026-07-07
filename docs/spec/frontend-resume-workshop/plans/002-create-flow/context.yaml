@@ -1,0 +1,68 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: frontend-resume-workshop
+  name: 002-create-flow
+  sequence: 2
+  specVersion:
+    from: 1.0
+    to: 1.5
+spec:
+  defaultTarget: frontend
+  discovery:
+    aliases:
+      - frontend-resume-workshop
+      - 002-create-flow
+      - ResumeCreateFlow
+      - ResumeParseFlow
+      - ResumePreviewConfirm
+      - resume-create-flow
+      - resume-1-minute-create
+      - workspace-missing-resume-cta
+      - home-resume-create-cta
+    keywords:
+      - resume create flow upload paste
+      - createUploadPresign frontend hook
+      - browser PUT signed url
+      - registerResume hook upload paste
+      - getResume parse status polling
+      - resume parsing retry cancel
+      - resume preview updateResume save
+      - home create CTA
+      - workspace missing resume CTA
+      - resume create auth pending action
+      - resume create privacy red line
+      - resume create i18n en zh
+      - resume create a11y tablist focus
+      - resume create ui parity desktop mobile
+      - mock-first fixture parity
+      - real backend generated client gate
+  targets:
+    frontend:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
+      discovery:
+        packages:
+          - frontend/src/app/screens/resume-workshop
+          - frontend/src/app/screens/resume-workshop/create
+          - frontend/src/app/screens/home
+          - frontend/src/app/screens/workspace
+          - frontend/src/app/i18n
+          - frontend/src/api/generated
+          - frontend/tests/pixel-parity
+          - ui-design/src
+          - docs/ui-design
+          - test/scenarios/e2e
+        uiRoutes:
+          - resume_versions
+          - home
+          - workspace
+        apiNames:
+          - createUploadPresign
+          - registerResume
+          - getResume
+          - updateResume
+          - listResumes

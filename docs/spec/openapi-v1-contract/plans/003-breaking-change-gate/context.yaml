@@ -4,10 +4,9 @@ metadata:
   subspec: openapi-v1-contract
   name: 003-breaking-change-gate
   sequence: 3
-  supersedes: []
   specVersion:
-    from: null
-    to: 1.9
+    from: 1.35
+    to: 1.35
 spec:
   defaultTarget: contract
   discovery:
@@ -17,28 +16,23 @@ spec:
       - openapi-diff
       - additive-only
       - v1-freeze
-      - deleteMe
-      - 34 endpoints
+      - 35 operations
+      - 10 tags
       - breaking-change-linter
       - baseline-snapshot
     keywords:
       - openapi-diff
-      - openapitools
       - additive only
       - breaking change
       - baseline yaml
       - v1.0.0 freeze
       - privacy export whitelist
       - 501 to 202
-      - adr template
-      - semver upgrade
-      - history append rule
-      - reclassify
-      - wrapper script
+      - ADR template
+      - baseline README
+      - diff wrapper script
       - local quality gate
-      - deferred CI
-      - b2 freeze handoff
-      - w2 implementation gate
+      - B2 freeze handoff
   targets:
     contract:
       plan: ./plan.md

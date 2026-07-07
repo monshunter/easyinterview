@@ -6,7 +6,7 @@ This hybrid scenario uses synthetic user-entered materials, not mock responses.
 
 - Email: `manual-uat-full-funnel@example.test`
 - Local mailbox: `http://127.0.0.1:8025`
-- Auth flow: real passwordless challenge through Mailpit 6-digit email code
+- Auth flow: real email-code challenge through Mailpit 6-digit email code
 
 ## Materials
 

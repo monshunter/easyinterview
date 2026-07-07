@@ -1,8 +1,8 @@
 # Observability Stack Spec
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: active
-> **更新日期**: 2026-05-08
+> **更新日期**: 2026-07-07
 
 ## 1 背景与目标
 
@@ -10,7 +10,7 @@
 
 当前 metric、label、log、trace、dashboard 和 alerting 可执行契约由本 spec、F1 后续编码 truth source 与 product-scope 当前范围决定。F1 独立承接 metric 命名、allowed/forbidden labels、log 字段集、PII redaction、trace attributes、dashboard baseline、alert rules 与上线观测 gate。
 
-本 spec 历史上由 `engineering-roadmap/001-decompose-subspecs` 的 contract lock 创建；当前执行口径是固定 baseline 指标命名约定（Prometheus / OTel label / log 字段 / span attributes），防止后续 P0 backend / frontend / analytics / mock workstream 各自取名。真实 helper、lint、dashboard 与 alerting rules 由 F1 `001` plan 验证。
+本 spec 由 `engineering-roadmap/001-decompose-subspecs` 的 contract lock 创建；当前执行口径是固定 baseline 指标命名约定（Prometheus / OTel label / log 字段 / span attributes），防止后续 P0 backend / frontend / analytics / mock workstream 各自取名。真实 helper、lint、dashboard 与 alerting rules 由 F1 `001` plan 验证。
 
 目标是：
 
@@ -101,9 +101,9 @@
 | TargetJob | `target_job_parse_duration_seconds` | Histogram | service,job_type,source_type,language,result |
 | TargetJob | `target_job_parse_failures_total` | Counter | service,job_type,source_type,language,error_code,result |
 
-Auth 指标由 C1 `backend-auth/001-passwordless-session-bootstrap` 在自身 plan 中接入；F1 仅登记 metric 名和 label contract。Auth metric labels 只能使用 `service` / `operation` / `result`，不得包含 `user_id`、`session_id`、邮箱、token、完整 URL 或任意自由文本。
+Auth 指标由 C1 `backend-auth/001-email-code-session-bootstrap` 在自身 plan 中接入；F1 仅登记 metric 名和 label contract。Auth metric labels 只能使用 `service` / `operation` / `result`，不得包含 `user_id`、`session_id`、邮箱、token、完整 URL 或任意自由文本。
 
-业务域（target / practice / report / resume / debrief / privacy）指标由各 C 域在自己的 plan 中接入。F1 仅锁 label 集合与命名前缀（domain prefix `target_` / `practice_` / `report_` / `resume_` / `debrief_` / `privacy_`）；已移除的旧独立域前缀不得恢复。
+业务域（target / practice / report / resume / privacy）指标由各 C 域在自己的 plan 中接入。F1 仅锁 label 集合与命名前缀（domain prefix `target_` / `practice_` / `report_` / `resume_` / `privacy_`）；非当前独立域前缀不得作为新增指标前缀。
 
 TargetJob 指标由 C4 `backend-targetjob/001` 接入：`source_type` 只能是 `url` / `text` / `file` / `manual_form` 等有界导入来源，`error_code` 只能是 B1 错误码常量，`language` 只能是 BCP-47 归一化值；不得把 target id、user id、source URL、prompt version 或任意自由文本作为 label。
 

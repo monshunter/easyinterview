@@ -5,7 +5,7 @@ Walks a directory recursively, parses inline markdown links `[text](target)`,
 and verifies that each non-external `target` resolves to an existing path
 relative to the source file. External links (http://, https://, mailto:, ftp://,
 data:, javascript:) are skipped. Fragment checks are opt-in via
-`--check-fragments` so legacy path-only calls keep their existing behavior.
+`--check-fragments` so path-only calls keep their existing behavior.
 
 Wired into `make docs-check` per [ci-pipeline-baseline plan §4.1.4](../../docs/spec/ci-pipeline-baseline/plans/001-local-quality-gates/plan.md).
 

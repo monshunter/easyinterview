@@ -4,10 +4,9 @@ metadata:
   subspec: prompt-rubric-registry
   name: 002-output-schema-contract
   sequence: 2
-  supersedes: []
   specVersion:
     from: 2.4
-    to: 2.13
+    to: 2.14
 spec:
   defaultTarget: backend
   discovery:
@@ -29,7 +28,7 @@ spec:
       - prompt body example JSON
       - complete JSON output example
       - seed migration coverage
-      - retired feature key rejection
+      - non-current feature key rejection
       - prompt lint invalid schema traceback
       - prompt_versions rubric_versions baseline
       - OpenAPI schema negative prompt example

@@ -21,8 +21,8 @@ func TestGetMeReturnsMaskedCurrentUser(t *testing.T) {
 		PreferredPracticeLanguage: "en",
 		AnalyticsOptIn:            true,
 	}}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{Store: store})
-	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{Store: store})
+	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
 	req = req.WithContext(auth.ContextWithCurrentSession(req.Context(), auth.CurrentSession{
 		SessionID: "session-1",
@@ -62,8 +62,8 @@ func TestGetMeReturnsProfileCompletionRequiredForIncompleteUser(t *testing.T) {
 		PreferredPracticeLanguage: "en",
 		ProfileCompletionRequired: true,
 	}}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{Store: store})
-	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{Store: store})
+	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
 	req = req.WithContext(auth.ContextWithCurrentSession(req.Context(), auth.CurrentSession{
 		SessionID: "session-1",
@@ -94,8 +94,8 @@ func TestCompleteMyProfileRequiresSessionAndTermsThenClearsFlag(t *testing.T) {
 		PreferredPracticeLanguage: "en",
 		ProfileCompletionRequired: true,
 	}}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{Store: store})
-	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{Store: store})
+	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
 
 	unauth := httptest.NewRecorder()
 	handler.CompleteMyProfile(unauth, httptest.NewRequest(http.MethodPatch, "/api/v1/me", nil))

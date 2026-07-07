@@ -38,7 +38,7 @@ describe("App shell", () => {
   });
 
   it("keeps chrome rendered for context routes (parse / report)", () => {
-    // `parse` still goes through PlaceholderScreen — assert via route-${name}.
+    // `parse` exposes its route marker while keeping chrome visible.
     // `report` is now wired to ReportScreen; with no
     // sessionId it falls back to ReportMissingSessionState which still keeps
     // App chrome visible (per frontend-report-dashboard/001 §4 routing).
@@ -94,7 +94,7 @@ describe("App shell", () => {
       />,
     );
     expect(screen.getByTestId("parse-loading-step-0")).toBeInTheDocument();
-    expect(screen.queryByText("D2-D6")).not.toBeInTheDocument();
+    expect(screen.queryByText("fallback shell")).not.toBeInTheDocument();
   });
 
   it("propagates voice mode route params into PracticeScreen voice surface", () => {
@@ -121,7 +121,7 @@ describe("App shell", () => {
     );
     expect(screen.getByTestId("resume-workshop-screen")).toBeInTheDocument();
     expect(screen.queryByTestId("route-resume_versions")).not.toBeInTheDocument();
-    expect(screen.queryByText("D2-D6")).not.toBeInTheDocument();
+    expect(screen.queryByText("fallback shell")).not.toBeInTheDocument();
   });
 
   it("renders WorkspaceScreen on workspace route instead of PlaceholderScreen", () => {
@@ -194,7 +194,7 @@ describe("App shell", () => {
     expect(screen.getByTestId("practice-topbar")).toBeInTheDocument();
     // route-practice testid is the PlaceholderScreen marker — must NOT appear.
     expect(screen.queryByTestId("route-practice")).not.toBeInTheDocument();
-    expect(screen.queryByText("D2-D6")).not.toBeInTheDocument();
+    expect(screen.queryByText("fallback shell")).not.toBeInTheDocument();
   });
 
   it("generating route mounts GeneratingScreen with reportId in params (frontend-report-dashboard/001 Phase 1)", () => {
@@ -210,10 +210,10 @@ describe("App shell", () => {
     expect(screen.queryByTestId("route-generating")).not.toBeInTheDocument();
   });
 
-  it("company_intel route is retired and normalizes to workspace", () => {
-    render(<App initialRoute={{ name: "company_intel", params: {} }} />);
-    expect(screen.queryByTestId("route-company_intel")).not.toBeInTheDocument();
-    expect(screen.getByTestId("workspace-empty")).toBeInTheDocument();
+  it("standalone insight route falls back to home", () => {
+    render(<App initialRoute={{ name: "standalone_insight", params: {} }} />);
+    expect(screen.queryByTestId("route-standalone_insight")).not.toBeInTheDocument();
+    expect(screen.getByTestId("route-home")).toBeInTheDocument();
   });
 
   it("report route mounts ReportScreen — dispatches missingSession when sessionId absent (frontend-report-dashboard/001 Phase 2)", () => {

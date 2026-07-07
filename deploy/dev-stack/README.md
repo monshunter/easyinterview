@@ -61,7 +61,7 @@
 | `make scenario-env-cleanup` | 通过 `test/scenarios/env-cleanup.sh` 清理共享环境，默认保留卷 |
 | `make scenario-env-redeploy` | 通过 `test/scenarios/env-redeploy.sh` 按 `TARGET=deps|backend|frontend|all` 刷新依赖或 build artifacts |
 
-`dev-up` 启动顺序：先只读检查 Postgres 18 命名卷布局是否仍是旧 `/var/lib/postgresql/data` 或半初始化状态 → 按 `--wait` 等 4 个依赖 healthy → 启动 `minio-init` 并轮询其退出码 (timeout 60s) → 调用 `dev-doctor.sh` 作为最终 gate；任何阶段失败时 `up` 退出非 0 并把每个 dependency / init 服务最近 50 行 `docker logs` 打到 stderr。
+`dev-up` 启动顺序：先只读检查 Postgres 18 命名卷布局是否命中不兼容 `/var/lib/postgresql/data` 或半初始化状态 → 按 `--wait` 等 4 个依赖 healthy → 启动 `minio-init` 并轮询其退出码 (timeout 60s) → 调用 `dev-doctor.sh` 作为最终 gate；任何阶段失败时 `up` 退出非 0 并把每个 dependency / init 服务最近 50 行 `docker logs` 打到 stderr。
 
 ## 4 配置
 
@@ -155,7 +155,7 @@ Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启
 | 现象 | 应对 |
 |------|------|
 | `make dev-up` 报 `bind: address already in use` | `make dev-doctor` 会指出占用端口的 pid 与 cmd；通过 `.env` 的 `*_HOST_PORT` 字段 override 端口，不要修改容器内端口 |
-| Postgres healthcheck 反复失败但容器在跑 | `make dev-logs SERVICE=postgres-dev`；常见原因：旧卷里 `POSTGRES_PASSWORD` / `POSTGRES_USER` 与 `.env` 不一致，或历史 compose 曾把卷挂到 Postgres 18 不兼容的 `/var/lib/postgresql/data`；确认要清空本地开发数据后再执行 `DEV_RESET_FORCE=1 make dev-reset` 并重新 up |
+| Postgres healthcheck 反复失败但容器在跑 | `make dev-logs SERVICE=postgres-dev`；常见原因：卷内 `POSTGRES_PASSWORD` / `POSTGRES_USER` 与 `.env` 不一致，或曾把卷挂到 Postgres 18 不兼容的 `/var/lib/postgresql/data`；确认要清空本地开发数据后再执行 `DEV_RESET_FORCE=1 make dev-reset` 并重新 up |
 | MinIO 启动报 `volume not writable` | macOS Docker Desktop 偶发权限缓存问题；`docker volume rm easyinterview-minio-data` 后重新 up |
 | 镜像首次拉取超过 60s healthy 预算 | 先 `make dev-pull` 预热再 `make dev-up`；预算只针对 image 已在本地的稳态 |
 | `make dev-doctor` 对启用 AIClient 的组件报 DOWN | 检查 `.env` 中 `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` 是否指向 repo 内 catalog，并确认 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 填了真实 provider；勿提交真实 key |

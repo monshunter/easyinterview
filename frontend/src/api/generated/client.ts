@@ -89,7 +89,7 @@ export class EasyInterviewClient {
 	}
 
 
-	/** startAuthEmailChallenge — post /auth/email/start: Issue a passwordless email-code challenge */
+	/** startAuthEmailChallenge — post /auth/email/start: Issue an email-code challenge */
 	async startAuthEmailChallenge(body: Types.AuthEmailStartRequest, opts?: RequestOptions): Promise<unknown> {
 		return this.request<unknown>(
 			"POST",

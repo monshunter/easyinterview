@@ -12,12 +12,12 @@ import (
 )
 
 type HandlerOptions struct {
-	Passwordless *PasswordlessService
+	EmailCode    *EmailCodeService
 	CookiePolicy *CookiePolicy
 }
 
 type Handler struct {
-	passwordless *PasswordlessService
+	emailCode    *EmailCodeService
 	cookiePolicy CookiePolicy
 }
 
@@ -26,7 +26,7 @@ func NewHandler(opts HandlerOptions) *Handler {
 	if opts.CookiePolicy != nil {
 		policy = *opts.CookiePolicy
 	}
-	return &Handler{passwordless: opts.Passwordless, cookiePolicy: policy}
+	return &Handler{emailCode: opts.EmailCode, cookiePolicy: policy}
 }
 
 type CookiePolicy struct {
@@ -50,8 +50,8 @@ func (h *Handler) StartAuthEmailChallenge(w http.ResponseWriter, r *http.Request
 		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "invalid JSON request body", false)
 		return
 	}
-	if h == nil || h.passwordless == nil {
-		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "passwordless service is not configured", false)
+	if h == nil || h.emailCode == nil {
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "email-code service is not configured", false)
 		return
 	}
 	returnTo := ""
@@ -59,7 +59,7 @@ func (h *Handler) StartAuthEmailChallenge(w http.ResponseWriter, r *http.Request
 		returnTo = *body.ReturnTo
 	}
 	ctx := ContextWithAuthTraceID(r.Context(), TraceIDFromTraceparent(r.Header.Get("traceparent")))
-	_, err := h.passwordless.StartEmailChallenge(ctx, StartEmailChallengeInput{
+	_, err := h.emailCode.StartEmailChallenge(ctx, StartEmailChallengeInput{
 		Email:        body.Email,
 		ReturnTo:     returnTo,
 		RemoteAddr:   r.RemoteAddr,
@@ -74,12 +74,12 @@ func (h *Handler) StartAuthEmailChallenge(w http.ResponseWriter, r *http.Request
 }
 
 func (h *Handler) VerifyAuthEmailChallenge(w http.ResponseWriter, r *http.Request) {
-	if h == nil || h.passwordless == nil {
-		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "passwordless service is not configured", false)
+	if h == nil || h.emailCode == nil {
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "email-code service is not configured", false)
 		return
 	}
 	ctx := ContextWithAuthTraceID(r.Context(), TraceIDFromTraceparent(r.Header.Get("traceparent")))
-	result, err := h.passwordless.VerifyEmailChallenge(ctx, VerifyEmailChallengeInput{
+	result, err := h.emailCode.VerifyEmailChallenge(ctx, VerifyEmailChallengeInput{
 		Token:      r.URL.Query().Get("token"),
 		RemoteAddr: r.RemoteAddr,
 		UserAgent:  r.UserAgent(),
@@ -119,11 +119,11 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required or invalid", false)
 		return
 	}
-	if h == nil || h.passwordless == nil {
-		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "passwordless service is not configured", false)
+	if h == nil || h.emailCode == nil {
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "email-code service is not configured", false)
 		return
 	}
-	user, err := h.passwordless.CurrentUser(r.Context(), current.UserID)
+	user, err := h.emailCode.CurrentUser(r.Context(), current.UserID)
 	if err != nil {
 		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required or invalid", false)
 		return
@@ -145,8 +145,8 @@ func (h *Handler) CompleteMyProfile(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required or invalid", false)
 		return
 	}
-	if h == nil || h.passwordless == nil {
-		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "passwordless service is not configured", false)
+	if h == nil || h.emailCode == nil {
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "email-code service is not configured", false)
 		return
 	}
 	var body generated.CompleteProfileRequest
@@ -160,7 +160,7 @@ func (h *Handler) CompleteMyProfile(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "acceptedTerms must be true", false)
 		return
 	}
-	user, err := h.passwordless.CompleteProfile(r.Context(), CompleteProfileInput{
+	user, err := h.emailCode.CompleteProfile(r.Context(), CompleteProfileInput{
 		UserID:        current.UserID,
 		DisplayName:   body.DisplayName,
 		AcceptedTerms: body.AcceptedTerms,
@@ -182,13 +182,13 @@ func (h *Handler) CompleteMyProfile(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	if current, ok := CurrentSessionFromContext(r.Context()); ok {
-		if h == nil || h.passwordless == nil {
+		if h == nil || h.emailCode == nil {
 			h.clearSessionCookie(w)
-			writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "passwordless service is not configured", false)
+			writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "email-code service is not configured", false)
 			return
 		}
 		ctx := ContextWithAuthTraceID(r.Context(), TraceIDFromTraceparent(r.Header.Get("traceparent")))
-		if err := h.passwordless.Logout(ctx, current); err != nil {
+		if err := h.emailCode.Logout(ctx, current); err != nil {
 			h.clearSessionCookie(w)
 			writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "logout could not revoke session", false)
 			return
@@ -204,12 +204,12 @@ func (h *Handler) DeleteMe(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required or invalid", false)
 		return
 	}
-	if h == nil || h.passwordless == nil {
-		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "passwordless service is not configured", false)
+	if h == nil || h.emailCode == nil {
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "email-code service is not configured", false)
 		return
 	}
 	ctx := ContextWithAuthTraceID(r.Context(), TraceIDFromTraceparent(r.Header.Get("traceparent")))
-	handoff, err := h.passwordless.DeleteMe(ctx, current, r.Header.Get("Idempotency-Key"))
+	handoff, err := h.emailCode.DeleteMe(ctx, current, r.Header.Get("Idempotency-Key"))
 	if err != nil {
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "privacy delete handoff could not be created", false)
 		return

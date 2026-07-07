@@ -292,7 +292,7 @@ runtime:
 		},
 		user: auth.UserContext{ID: targetJobHTTPScenarioUserID, Email: "candidate@example.com"},
 	}
-	authService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	authService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               authStore,
 		SessionCookieSecret: "session-secret",
 		Now:                 fixedScenarioNow,
@@ -823,7 +823,7 @@ func (r scenarioRegistry) Resolve(ctx context.Context, featureKey string, langua
 	return newStaticTestPromptRegistry().Resolve(ctx, featureKey, language)
 }
 
-// staticTestPromptRegistry replaces the retired targetjob.StaticPromptRegistry
+// staticTestPromptRegistry replaces the non-current targetjob.StaticPromptRegistry
 // for cmd/api scenario tests. It mirrors the F3 RegistryAdapter shape with a
 // fixed target.import.parse resolution so HTTP scenarios can assert the
 // provenance flow without spinning up a real registry.Client.

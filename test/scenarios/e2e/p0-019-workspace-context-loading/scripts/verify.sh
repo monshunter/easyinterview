@@ -10,8 +10,8 @@ test -s "$LOG_FILE"
 grep -Eq 'Test Files +[0-9]+ passed \([0-9]+\)' "$LOG_FILE" || { echo "$SCENARIO_ID: no passing test files" >&2; exit 1; }
 grep -Fq 'App.test.tsx' "$LOG_FILE" || { echo "$SCENARIO_ID: App route hydration test did not run" >&2; exit 1; }
 grep -Fq 'useWorkspacePracticePlan.test.tsx' "$LOG_FILE" || { echo "$SCENARIO_ID: practice plan refresh test did not run" >&2; exit 1; }
-removed_legacy_mode="debrief""_replay"
-if rg -n "questionText|${removed_legacy_mode}|JD original|resume body" \
+non_current_mode="debrief""_replay"
+if rg -n "questionText|${non_current_mode}|JD original|resume body" \
   "$REPO_ROOT/frontend/src/app/screens/workspace" \
   "$REPO_ROOT/frontend/src/app/interview-context" \
   -g '!*.test.tsx'; then

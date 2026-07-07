@@ -1,10 +1,10 @@
 # Core Loop Module Pruning BDD Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-07
 
-> Reopened with product-scope/001 Phase 6 document deletion cleanup; completed D-22 scenario updates remain evidence, and active verification is tracked in the main checklist Phase 6.
+> Product-scope/001 Phase 6 tracks owner-document current boundary verification; completed D-22 scenario updates remain evidence, and active verification is tracked in the main checklist Phase 6.
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -18,20 +18,20 @@
 ## E2E.P0.088 canonical route 不再包含 debrief/profile
 
 - [x] 更新 canonical path matrix，删除 `/debrief` 和 `/profile` 正向 deep-link。
-  <!-- verified: 2026-06-29 method=scenario-assets evidence="p0-088 README/seed/expected/verify updated; frontend scenario test now treats /debrief and /profile as retired paths folding to home." -->
+  <!-- verified: 2026-06-29 method=scenario-assets evidence="p0-088 README/seed/expected/verify updated; frontend scenario test now treats /debrief and /profile as non-current paths folding to home." -->
 - [x] 执行当前 frontend BDD runner 并记录证据。
   <!-- verified: 2026-06-29 method=frontend-bdd-runner evidence="pnpm --filter @easyinterview/frontend test src/app/scenarios/p0-088-url-addressable-routing-canonical.test.tsx PASS (included in 39-test BDD gate run)." -->
 
-## E2E.P0.090 hash legacy route 不 materialize retired modules
+## E2E.P0.090 hash non-current route 不 materialize non-current modules
 
-- [x] 增加 `debrief`、`debrief_full`、`profile` legacy-negative 输入。
-  <!-- verified: 2026-06-29 method=scenario-assets evidence="p0-090 README/seed/expected/verify updated; frontend scenario test now includes debrief/debrief_full/profile retired aliases." -->
+- [x] 增加 `debrief`、`debrief_full`、`profile` non-current-negative 输入。
+  <!-- verified: 2026-06-29 method=scenario-assets evidence="p0-090 README/seed/expected/verify updated; frontend scenario test now includes debrief/debrief_full/profile non-current aliases." -->
 - [x] 执行当前 frontend BDD runner 并记录证据。
-  <!-- verified: 2026-06-29 method=frontend-bdd-runner evidence="pnpm --filter @easyinterview/frontend test src/app/scenarios/p0-090-url-routing-hash-legacy-negative.test.tsx PASS (included in 39-test BDD gate run)." -->
+  <!-- verified: 2026-06-29 method=frontend-bdd-runner evidence="pnpm --filter @easyinterview/frontend test src/app/scenarios/p0-090-url-routing-hash-non-current-negative.test.tsx PASS (included in 39-test BDD gate run)." -->
 
-## E2E.P0.102 未登录保护路由不把旧模块当业务目标
+## E2E.P0.102 未登录保护路由不把非当前模块当业务目标
 
-- [x] 更新 auth-gated route matrix，删除旧模块 pendingAction 正向路径。
+- [x] 更新 auth-gated route matrix，删除非当前模块 pendingAction 正向路径。
   <!-- verified: 2026-06-29 method=scenario-assets evidence="p0-102 README/seed/expected/verify updated; AppAuthDispatch/HomeAuthGate tests no longer treat debrief/profile as protected business routes." -->
 - [x] 执行当前 frontend BDD runner 并记录证据。
   <!-- verified: 2026-06-29 method=frontend-bdd-runner evidence="pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeAuthGate.test.tsx src/app/AppAuthDispatch.test.tsx PASS (included in 39-test BDD gate run)." -->
@@ -50,13 +50,13 @@
 - [x] 执行 setup / trigger / verify / cleanup 并记录当前 runner 证据。
   <!-- verified: 2026-06-29 method=scenario-runner evidence="test/scenarios/e2e/p0-099-full-funnel-fullstack-ui-journey/scripts/setup.sh && trigger.sh PASS with target_import/report_generate succeeded; verify.sh PASS; cleanup.sh PASS. Scenario harness now completes first-login profile setup and cleanup targets current resumes table." -->
 
-## Retired 场景删除矩阵
+## Non-current 场景删除矩阵
 
 - [x] 删除 E2E.P0.060-E2E.P0.069 正向场景目录和 `test/scenarios/e2e/INDEX.md` 行。
-  <!-- verified: 2026-06-29 method=scenario-assets evidence="Removed P0.060-P0.069 directories and INDEX rows." -->
+  <!-- verified: 2026-06-29 method=scenario-assets evidence="Cleaned P0.060-P0.069 directories and INDEX rows." -->
 - [x] 删除 E2E.P0.071、E2E.P0.073 正向场景目录和 `test/scenarios/e2e/INDEX.md` 行。
-  <!-- verified: 2026-06-29 method=scenario-assets evidence="Removed P0.071/P0.073 directories and INDEX rows; P0.070/P0.072 now cover report-derived retry/next-round only." -->
+  <!-- verified: 2026-06-29 method=scenario-assets evidence="Cleaned P0.071/P0.073 directories and INDEX rows; P0.070/P0.072 now cover report-derived retry/next-round only." -->
 - [x] 删除 E2E.P0.091-E2E.P0.093 正向场景目录和 `test/scenarios/e2e/INDEX.md` 行。
-  <!-- verified: 2026-06-29 method=scenario-assets evidence="Removed P0.091-P0.093 directories and INDEX rows." -->
-- [x] 运行 scenario INDEX negative grep，确认 retired 场景不再显示 Ready。
-  <!-- verified: 2026-06-29 method=scenario-contract-test evidence="python3 -m pytest -q scripts/lint/scenario_script_contract_test.py PASS (2 tests); retired scenario IDs absent from test/scenarios/e2e/INDEX.md." -->
+  <!-- verified: 2026-06-29 method=scenario-assets evidence="Cleaned P0.091-P0.093 directories and INDEX rows." -->
+- [x] 运行 scenario INDEX negative grep，确认 non-current 场景不再显示 Ready。
+  <!-- verified: 2026-06-29 method=scenario-contract-test evidence="python3 -m pytest -q scripts/lint/scenario_script_contract_test.py PASS (2 tests); non-current scenario IDs absent from test/scenarios/e2e/INDEX.md." -->

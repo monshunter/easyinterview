@@ -54,8 +54,6 @@ docs/spec/
 | `draft` | 草稿，尚未正式生效 |
 | `active` | 生效中或正在执行 |
 | `completed` | 已完成，作为历史交付记录保留 |
-| `superseded` | 已被取代，需注明新文档路径 |
-| `deprecated` | 已废弃 |
 
 ## 4 命名规范
 

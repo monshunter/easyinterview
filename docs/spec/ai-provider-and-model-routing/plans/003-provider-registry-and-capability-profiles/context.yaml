@@ -4,7 +4,6 @@ metadata:
   subspec: ai-provider-and-model-routing
   name: 003-provider-registry-and-capability-profiles
   sequence: 3
-  supersedes: []
   specVersion:
     from: 1.8
     to: 1.9
@@ -41,11 +40,10 @@ spec:
         - ../../../engineering-roadmap/spec.md
         - ../../../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md
         - ../../../../ui-design/INDEX.md
+        - ../../../../ui-design/module-map.md
         - ../../../../ui-design/module-practice-review.md
         - ../../../../ui-design/report-dashboard.md
         - ../../../../ui-design/resume-module.md
-        - ../../../../ui-design/review-module.md
-        - ../../../../ui-design/removed-modules-and-scope.md
       discovery:
         packages:
           - backend/internal/ai/aiclient

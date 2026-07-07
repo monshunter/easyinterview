@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  *
  * Phase 1/3.6 covered the segmented control. practice-voice-mvp Phase 4.1
- * reverses the former VoiceSurfaceComingSoon placeholder: voice mode now
+ * proves the current voice surface path: voice mode now
  * renders the real ui-design voice surface inside PracticeScreen.
  */
 

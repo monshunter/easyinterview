@@ -65,11 +65,11 @@ def test_step5_no_inline_module_mapping():
         f"Step 5 still hardcodes {inline_count} module mapping entries"
 
 
-# --- Phase 5.3: no retired skill references ---
+# --- Phase 5.3: no non-current skill references ---
 
 
-def test_no_retired_test_investigate_reference():
-    """SKILL.md must not reference retired /test-investigate (C-13, D-14)."""
+def test_no_non_current_test_investigate_reference():
+    """SKILL.md must not reference non-current /test-investigate (C-13, D-14)."""
     text = _skill_text()
     assert "/test-investigate" not in text, \
-        "SKILL.md still references retired /test-investigate"
+        "SKILL.md still references non-current /test-investigate"

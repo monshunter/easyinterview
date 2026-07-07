@@ -8,7 +8,7 @@
 ## 1 Given
 
 - Fixture-backed mock-first client：`Uploads/createUploadPresign.json default`、`Resumes/registerResume.json default / paste-text`、`Resumes/getResume.json default`、`Auth/getRuntimeConfig.json`、`Auth/getMe.json authenticated`
-- Mock harness 在 fixture 未覆盖 `parseStatus` 多态时使用 deterministic attempt-aware stepping（[plan.md §6 R2](../../../docs/spec/frontend-resume-workshop/plans/002-create-flow-and-onboarding/plan.md#6-风险与应对) 显式声明）
+- Mock harness 在 fixture 未覆盖 `parseStatus` 多态时使用 deterministic attempt-aware stepping（[plan.md §6](../../../docs/spec/frontend-resume-workshop/plans/002-create-flow/plan.md#6-风险与应对) 显式声明）
 - 用户：未登录 → 登录态切换 + lang 切换
 
 ## 2 When
@@ -20,12 +20,12 @@
 ## 3 Then
 
 - ResumeCreateFlow 渲染：`resume-create-flow` testid 命中
-- 两个 tab DOM anchors 覆盖：`resume-create-tab-upload/-paste` + `data-active=true` 当前 tab；retired guided tab/panel 不渲染
+- 两个 tab DOM anchors 覆盖：`resume-create-tab-upload/-paste` + `data-active=true` 当前 tab；non-current guided tab/panel 不渲染
 - Upload：`Idempotency-Key` header on presign + register，`fetch(uploadUrl, { method: 'PUT', body: file })` 调用形态
 - Paste：textarea / submit disabled-when-empty / IK on register
 - ParseFlow：`resume-parse-flow` testid + 7-step ticker DOM
 - 隐私：rawText / parsedTextSnapshot / parsedSummary / file binary 不出现在 console / URL / pendingAction / localStorage / mock transport log
-- 旧入口 grep：`welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true` 0 命中
+- 非当前入口 grep：`welcome|mistake|growth|drill|followup|STAR|experiences|voice|OnboardingScreen|onboarding=true` 0 命中
 - prototype import grep：`ui-design/src/(data|screen-resume-workshop)` 0 命中
 - mock harness 切换显式标注 `method=mock-fixture-client`
 
@@ -39,13 +39,13 @@
 - `src/app/screens/resume-workshop/create/hooks/useResumePresignUpload.test.tsx`
 - `src/app/screens/resume-workshop/create/hooks/useResumeRegistration.test.tsx`
 - `src/app/screens/resume-workshop/create/ParsingStage.test.tsx`
-- `src/app/screens/resume-workshop/create/CreateFlowLegacyNegative.test.ts`
+- `src/app/screens/resume-workshop/create/CreateFlowNonCurrentNegative.test.ts`
 
 `scripts/verify.sh` 在 `.test-output/e2e/p0-081-resume-create-flow-upload-paste-guided-happy/trigger.log` 内执行：
 
 - `Test Files +[0-9]+ passed` 匹配
 - 关联 test file 名称命中
-- privacy / legacy grep 命中 0
+- privacy / non-current grep 命中 0
 
 ## 5 fixture / mock baseline
 

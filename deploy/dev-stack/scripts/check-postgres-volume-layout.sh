@@ -17,10 +17,10 @@ fail() {
 check_path() {
   root=$1
   if [ -s "${root}/PG_VERSION" ]; then
-    fail "[dev-stack] incompatible Postgres volume '${VOLUME_NAME}': found legacy database files at volume root."
+    fail "[dev-stack] incompatible Postgres volume '${VOLUME_NAME}': found database files at volume root."
   fi
   if [ -s "${root}/data/PG_VERSION" ]; then
-    fail "[dev-stack] incompatible Postgres volume '${VOLUME_NAME}': found legacy database files at /var/lib/postgresql/data."
+    fail "[dev-stack] incompatible Postgres volume '${VOLUME_NAME}': found database files at /var/lib/postgresql/data."
   fi
   if [ -d "${root}/18" ] && [ ! -s "${root}/18/docker/PG_VERSION" ]; then
     fail "[dev-stack] incomplete Postgres 18 volume '${VOLUME_NAME}': found /var/lib/postgresql/18 without a valid /18/docker database."

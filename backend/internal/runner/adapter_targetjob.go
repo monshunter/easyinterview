@@ -6,7 +6,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
-// FromTargetjobHandler adapts a legacy targetjob.JobHandler to the kernel
+// FromTargetjobHandler adapts a targetjob.JobHandler to the kernel
 // Handler interface (spec D-2). It lets Phase 2 register existing domain
 // handlers against the kernel without rewriting their bodies; the shim is
 // removable once every handler implements runner.Handler natively.

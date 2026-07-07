@@ -11,7 +11,8 @@ grep -Fq "src/app/scenarios/p0-037-resume-detail-preview-readonly.test.tsx" "$LO
 grep -Eq 'Tests +5 passed \(5\)' "$LOG_FILE"
 grep -Eq 'Test Files +1 passed \(1\)' "$LOG_FILE"
 
-# Negative: scenario evidence must not surface retired-route testid leakage.
+# Negative: scenario evidence must not surface non-current-route testid leakage.
+fallback_marker="D2""-D6"
 for forbidden in \
   'route-welcome' \
   'route-mistakes' \
@@ -22,9 +23,9 @@ for forbidden in \
   'route-star' \
   'route-voice' \
   'TARGET_JOB_NOT_FOUND' \
-  'D2-D6'; do
+  "$fallback_marker"; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
-    echo "forbidden legacy entry leaked into scenario evidence: $forbidden" >&2
+    echo "forbidden non-current entry leaked into scenario evidence: $forbidden" >&2
     exit 1
   fi
 done

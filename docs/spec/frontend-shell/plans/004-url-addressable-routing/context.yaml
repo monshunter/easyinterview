@@ -4,10 +4,9 @@ metadata:
   subspec: frontend-shell
   name: 004-url-addressable-routing
   sequence: 4
-  supersedes: []
   specVersion:
     from: 1.14
-    to: 1.16
+    to: 1.26
 spec:
   defaultTarget: frontend
   discovery:
@@ -27,7 +26,7 @@ spec:
       - hash adapter
       - parseInitialRouteHash
       - pendingAction
-      - retired route params rejected
+      - unsupported route params rejected
       - safe route params
       - autoStartPractice
       - reportId
@@ -37,7 +36,7 @@ spec:
       - resumeId
       - sourceReportId
       - URL privacy
-      - standalone voice negative
+      - voice mode safe params
       - E2E.P0.088
       - E2E.P0.089
       - E2E.P0.090

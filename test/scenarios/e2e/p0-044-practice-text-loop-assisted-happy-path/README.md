@@ -20,7 +20,7 @@
 - send 触发 `appendSessionEvent` body 含 UUIDv7 `clientEventId`，request init 不含 `Idempotency-Key` header
 - `assistantAction.type=ask_follow_up` 在 transcript 追加 follow-up 标记的 AI 消息
 - assisted 模式下 LIVE NOTES、hint button、experience cards 全部渲染
-- 旧 prototype testid `practice-mode-card-*` / `growth-*` / `drill-builder-*` / `mistakes-queue-*` 0 命中
+- 非当前 prototype testid `practice-mode-card-*` / `growth-*` / `drill-builder-*` / `mistakes-queue-*` 0 命中
 
 ## 4 执行
 

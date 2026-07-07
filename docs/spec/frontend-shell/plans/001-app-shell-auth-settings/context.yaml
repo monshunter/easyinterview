@@ -4,64 +4,48 @@ metadata:
   subspec: frontend-shell
   name: 001-app-shell-auth-settings
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
-    to: 1.23
+    to: 1.26
 spec:
   defaultTarget: frontend
   discovery:
     aliases:
       - frontend-shell
       - app-shell-auth-settings
-      - D1 frontend shell
+      - app shell auth settings
     keywords:
       - TopBar
       - three entry navigation
+      - route normalization
+      - Browser History routing
       - pendingAction
       - auth gate
-      - user menu
-      - settings privacy
-      - profile route retired alias
-      - display controls
-      - parse route
-      - runtime config bootstrap
-      - generated client bootstrap
-      - passwordless session cookie
-      - i18n
-      - locale
-      - locale file
-      - language dropdown
-      - Accept-Language
-      - defaultUiLanguage
-      - uiLanguage
-      - browser locale
-      - navigator.language
-      - English fallback
-      - dev mock session state
-      - stateful auth mock
-      - logout unauthenticated
-      - user avatar dropdown
-      - topbar user chip
-      - unified email login
+      - email code auth
+      - auth_verify
       - auth_profile_setup
       - profileCompletionRequired
       - completeMyProfile
-      - protected route guard
-      - Recent mock interviews
-      - unauthenticated home
-      - listTargetJobs auth gate
-      - auth verify recovery
-      - post-verify /me refresh failure
-      - skipInitialAuthProbe
-      - authNonce
-      - auth_reset removal
-      - forgot password removal
-      - passwordless only login
-      - settings two tabs
-      - notifications subscription placeholder removal
+      - settings privacy
+      - settings profile tab
+      - display controls
+      - language dropdown
+      - Accept-Language
+      - browser locale
       - ocean default theme
       - custom accent fallback
+      - runtime config bootstrap
+      - generated client bootstrap
+      - session cookie
+      - dev mock session state
+      - logout unauthenticated
+      - user avatar dropdown
+      - protected route guard
+      - Recent mock interviews
+      - listTargetJobs auth gate
+      - auth verify recovery
+      - post-verify me refresh failure
+      - skipInitialAuthProbe
   targets:
     frontend:
       plan: ./plan.md
@@ -70,17 +54,11 @@ spec:
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
       references:
-        - ../../../engineering-roadmap/spec.md
         - ../../../product-scope/spec.md
-        - ../../../mock-contract-suite/spec.md
         - ../../../backend-auth/spec.md
-        - ../../../../ui-design/README.md
-        - ../../../../ui-design/INDEX.md
-        - ../../../../ui-design/ui-architecture.md
-        - ../../../../ui-design/user-flow.md
+        - ../../../mock-contract-suite/spec.md
         - ../../../../ui-design/auth-and-entry.md
-        - ../../../../ui-design/user-profile-and-settings.md
-        - ../../../../ui-design/removed-modules-and-scope.md
+        - ../../../../ui-design/ui-architecture.md
       discovery:
         packages:
           - frontend/src

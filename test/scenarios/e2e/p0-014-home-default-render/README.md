@@ -22,13 +22,13 @@ Verifies the home screen renders correctly in three states:
 
 ## Verification Points
 
-- Hero label/title DOM anchors, with retired hero sub copy absent
+- Hero label/title DOM anchors, with non-current hero sub copy absent
 - JD input card integrates paste textarea with upload/URL source actions
 - Upload/URL source actions live inside `home-jd-input-card`; independent upload source panel is absent
 - Existing ready resume dropdown is compact, with create-resume CTA on the same row
 - Main CTA sits below resume selection rather than inside the JD input card
 - Main CTA copy is `立即面试` / `Start interview now`
-- Retired aux cards (JOB PICKS, POST-INTERVIEW) remain absent
+- Non-current aux cards (JOB PICKS, POST-INTERVIEW) remain absent
 - Real backend mode generated-client gate for TargetJobs home/import/parse operations
 - TopBar highlights home
 - i18n zh/en switching

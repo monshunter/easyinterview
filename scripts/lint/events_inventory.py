@@ -280,8 +280,8 @@ EMAIL_DISPATCH_PAYLOAD = {
     "dedupeKey": "string",
 }
 EMAIL_DISPATCH_REDACTED_FIELDS = [
-    "rawMagicLinkToken",
-    "magicLinkUrl",
+    "rawEmailCode",
+    "emailVerificationUrl",
     "recipientEmail",
     "recipientEmailHash",
     "emailBody",

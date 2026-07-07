@@ -1,12 +1,12 @@
 # Local Dev Stack Spec
 
-> **版本**: 1.20
+> **版本**: 1.22
 > **状态**: active
-> **更新日期**: 2026-06-15
+> **更新日期**: 2026-07-07
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 A2 `local-dev-stack` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它承接 A1 已占位的 `make dev-up` / `make dev-down` target；当前执行口径锁定本地开发栈的最小依赖、应用组件启动契约、Make target 行为与健康检查口径，真实「克隆仓库 → 一条命令 → 本项目本地环境启动完成」由 A2 child `001` plan 验证。
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将原始 A2 `local-dev-stack` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它承接 A1 已占位的 `make dev-up` / `make dev-down` target；当前执行口径锁定本地开发栈的最小依赖、应用组件启动契约、Make target 行为与健康检查口径，真实「克隆仓库 → 一条命令 → 本项目本地环境启动完成」由 A2 child `001` plan 验证。
 
 本地开发环境不是生产观测环境的缩小版。默认 `make dev-up` 只启动开发 P0 闭环必须的外部依赖；当前仓库内可运行的 backend / frontend 组件默认在宿主机用 dev command 管理，避免把生产才需要的 OTel Collector、Grafana、Loki、Prometheus 等高占用组件变成本地开发前置条件。
 
@@ -20,7 +20,7 @@
 6. **环境生命周期独立化**：测试环境与本地前后端联调环境必须能通过 scenario environment skill 和 repo-tracked env entrypoints 独立 setup / status / verify / cleanup / redeploy，不依附任一具体 `p0-*` 场景脚本；开发者可只构建环境，再人工或由 Agent 执行目标场景验证。
 7. **单一真实 env 来源**：本地真实前后端联调只使用 `deploy/dev-stack/.env` 一个文件承接共享依赖、host-run backend、frontend real mode、auth secrets 与真实 AI provider 配置；具体场景不得复制独立 `.env`。
 8. **本地 AI raw output 可调试**：local dev/test 与本地真实联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，让 AI Agent 能确认真实 provider 输出格式；raw output 只进入本机 backend stderr / `.test-output/` 调试日志，不进入持久化审计、runtime-config、staging 或 prod 默认配置。
-9. **重建后开发者可接管**：创建、验证或重建测试环境后，脚本必须明确输出 frontend/backend/Mailpit/MinIO 地址、host-run 进程 PID、日志路径和容器日志命令；`env-redeploy.sh backend|frontend|all` 必须重启对应宿主机前后端进程，避免“build 已更新但浏览器仍连旧进程”的假闭环。
+9. **重建后开发者可接管**：创建、验证或重建测试环境后，脚本必须明确输出 frontend/backend/Mailpit/MinIO 地址、host-run 进程 PID、日志路径和容器日志命令；`env-redeploy.sh backend|frontend|all` 必须重启对应宿主机前后端进程，避免“build 已更新但浏览器仍连未刷新进程”的假闭环。
 10. **Host-run backend 只暴露 loopback 调试入口**：本地场景环境启动宿主机 backend 时，必须把通配监听地址收敛为 `127.0.0.1:${API_HOST_PORT:-8080}`，避免无关 Docker / Kind bridge listener 占用非 loopback 8080 时阻断本地重启。
 
 本 spec 不实现业务代码、不接入 K8s / Kind / Helm，也不部署 staging。当前 P0 本地测试与 smoke 以 Docker Compose 外部依赖 + 宿主机前后端运行 + `test/scenarios/` 本地 runner 脚本为准；[E4 `release-gate-and-rollout`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 后续如需部署级环境，必须重新评估并显式修订。
@@ -35,7 +35,7 @@
 - `make dev-doctor`：结构化健康检查，对每个依赖服务与项目组件返回 `OK / DEGRADED / DOWN` 与人类可读原因（输出 JSON + 退出码）。
 - 初始化脚本：MinIO 创建默认 bucket；Postgres 不启用未使用扩展。
 - `.env` 与 `config.yaml` / `config/dev.yaml` / `config/test.yaml` 的最小 dev/test override（连接串、bucket 名、端口、应用组件默认 host/port、auth secrets、frontend real-mode env、AI provider endpoint 与 key 占位、local raw output debug 默认值）；具体 secrets 抽象与 feature flag 由 [A4 `secrets-and-config`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 承接，本 spec 只锁 dev 默认值与字段名。
-- 数据卷管理：默认命名 `easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data`；Postgres 18 卷挂载到 `/var/lib/postgresql`，由官方镜像管理 `PGDATA=/var/lib/postgresql/18/docker`；`make dev-up` 必须只读检测旧布局或半初始化卷并给出显式 reset 指引；提供 `make dev-reset` 用于显式清空（非默认）。
+- 数据卷管理：默认命名 `easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data`；Postgres 18 卷挂载到 `/var/lib/postgresql`，由官方镜像管理 `PGDATA=/var/lib/postgresql/18/docker`；`make dev-up` 必须只读检测不兼容布局或半初始化卷并给出显式 reset 指引；提供 `make dev-reset` 用于显式清空（非默认）。
 - 文档：`deploy/dev-stack/README.md` 一屏说明 + 故障排查 + 本地 Mailpit 登录边界 + 与 `test/scenarios/` 本地 runner 场景契约的 cross-link。
 - 场景环境入口：`test/scenarios/env-setup.sh` / `env-status.sh` / `env-verify.sh` / `env-cleanup.sh` / `env-redeploy.sh` 作为 framework-owned 环境生命周期入口；根 `Makefile` 提供 `scenario-env-*` target 委派这些脚本，供 `/scenario-env` 和 `/scenario-redeploy` skill 调用。
 
@@ -59,11 +59,11 @@
 | D-3 | 服务端口 | Postgres 5432 / Redis 6379 / MinIO 9000(API) + 9001(Console) / Mailpit 8025(Web UI) + 1025(SMTP)；项目组件端口由各组件 dev defaults 声明（frontend 默认 5173，backend 默认 8080） | 不预留 worker host port、Grafana 3000 / Prometheus 9090 / Loki 3100 / OTLP 4317/4318 给默认本地栈 |
 | D-4 | network 命名 | `easyinterview-dev`（bridge 模式）；依赖服务与 optional compose app service 通过短名互访 | 宿主机 backend 默认通过 localhost 连接依赖；optional app service 启动时使用 `postgres-dev` / `redis-dev` / `minio-dev` 等命名解析 |
 | D-5 | Postgres 扩展启用 | 当前不启用未使用扩展；后续 `pg_trgm` / `pg_stat_statements` 或向量扩展由 B4 决定是否前置 | A2 默认栈保持最小依赖 |
-| D-6 | dev-up 健康检查口径 | `make dev-doctor` 返回 JSON：`{services:[{name,type:dependency\|app,status:OK\|DEGRADED\|DOWN,reason}], summary:{ok,degraded,down,total}}`；`make dev-up` 在所有启用服务 OK 后才 exit 0 | E4 release-gate 与未来 A5 远端 CI（仅触发条件成立后）可消费此输出；不得硬编码旧的 7-service 口径 |
+| D-6 | dev-up 健康检查口径 | `make dev-doctor` 返回 JSON：`{services:[{name,type:dependency\|app,status:OK\|DEGRADED\|DOWN,reason}], summary:{ok,degraded,down,total}}`；`make dev-up` 在所有启用服务 OK 后才 exit 0 | E4 release-gate 与未来 A5 远端 CI（仅触发条件成立后）可消费此输出；不得硬编码固定 7-service 口径 |
 | D-7 | 数据持久化默认 | 命名卷（非 bind mount）：`easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data`；Postgres 18 命名卷必须挂到 `/var/lib/postgresql`，保持官方镜像 `PGDATA=/var/lib/postgresql/18/docker` 位于卷内，不挂到 `/var/lib/postgresql/data`；`make dev-down` 不删卷，`make dev-reset` 才删 | 避免误操作丢失本地开发数据，并兼容 Postgres 18 官方镜像目录布局 |
 | D-8 | 本地观测口径 | 默认依赖容器日志与应用 `/metrics`；`make dev-logs` 汇总容器日志，`make dev-doctor` 可检查已启用 HTTP 组件的 `/metrics` | F1 可以消费这些出口，但不能要求 A2 默认安装观测栈 |
 | D-9 | 本地 AI provider 配置 | `deploy/dev-stack/.env.example` 必须列出 `AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml`、`AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml` 与 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位；启用 AIClient 的非测试项目组件启动时缺少 catalog path 或当前 provider endpoint / key 必须 fail-fast；A2 不启动 AI provider 容器 | 本地 app run 验证真实 LLM 服务，同时保持 A2 依赖最小化 |
-| D-10 | 本地邮件 sink | 默认依赖包含 Mailpit；`deploy/dev-stack/.env.example` 必须列出 `MAILPIT_WEB_HOST_PORT` / `MAILPIT_SMTP_HOST_PORT` 与 C1/A4 邮件 env（`EMAIL_PROVIDER=mailpit`、SMTP host/port、from、verify base URL）。host-run backend 默认通过 `127.0.0.1:1025` 投递 code-only 邮件到 Mailpit，正文只包含 6 位验证码和 5 分钟过期提示，不包含 frontend `/auth/verify?token=...` 或 backend verify API 链接；`EMAIL_VERIFY_BASE_URL` 仅作为本地 frontend origin / dev CORS 推导来源保留，人工通过 `http://127.0.0.1:8025` 收信并在前端验证页输入 code | 本地测试不依赖真实外部邮箱服务或真实邮箱账号；账号验收走真实 passwordless flow，不需要场景专属 backend cmd |
+| D-10 | 本地邮件 sink | 默认依赖包含 Mailpit；`deploy/dev-stack/.env.example` 必须列出 `MAILPIT_WEB_HOST_PORT` / `MAILPIT_SMTP_HOST_PORT` 与 C1/A4 邮件 env（`EMAIL_PROVIDER=mailpit`、SMTP host/port、from、verify base URL）。host-run backend 默认通过 `127.0.0.1:1025` 投递 code-only 邮件到 Mailpit，正文只包含 6 位验证码和 5 分钟过期提示，不包含 frontend `/auth/verify?token=...` 或 backend verify API 链接；`EMAIL_VERIFY_BASE_URL` 仅作为本地 frontend origin / dev CORS 推导来源保留，人工通过 `http://127.0.0.1:8025` 收信并在前端验证页输入 code | 本地测试不依赖真实外部邮箱服务或真实邮箱账号；账号验收走真实 email-code flow，不需要场景专属 backend cmd |
 | D-11 | 独立场景环境生命周期 | `test/scenarios/env-setup.sh` 调 `make dev-up` 并可选执行 migrations；`env-status.sh` / `env-verify.sh` 消费 `make dev-doctor`；`env-cleanup.sh` 默认 `make dev-down`，显式 `--with-volumes` 才走 `DEV_RESET_FORCE=1 make dev-reset`；`env-redeploy.sh` 支持 `deps` / `backend` / `frontend` / `all`，其中 `backend` / `frontend` / `all` 必须在 build artifact 刷新后重启对应 host-run 进程 | 环境管理从具体 `test/scenarios/e2e/p0-*` 场景脚本中抽离；skill 可按用户意图只管理环境、重建并重启组件，或再交给场景 runner/人工 UAT |
 | D-12 | 单一真实 env 来源 | `deploy/dev-stack/.env.example` 必须列出真实本地联调所需的 backend auth secrets、AI provider、邮件、共享依赖、frontend real-mode env；`deploy/dev-stack/.env` 是唯一被 host-run backend/frontend 与 hybrid 场景读取的本地真实 env 文件 | 防止每个场景复制独立 `.env`，保证本地测试环境和真实联调环境通过同一配置构建 |
 | D-13 | local raw output debug 默认开启 | `config/dev.yaml`、`config/test.yaml` 与 `deploy/dev-stack/.env.example` 必须默认 `AI_DEBUG_PRINT_RAW_OUTPUT=true`；`config/config.yaml`、staging、prod 仍默认 false；本地 hybrid 场景 preflight 必须拒绝未开启 raw debug 的真实 provider run | 支持 AI Agent 以本机 raw log 调试 schema/格式问题，同时不扩大生产或共享持久化泄露面 |
@@ -87,7 +87,7 @@
 ### 4.2 健康检查约束
 
 - 每个 compose service 必须配置容器级 `healthcheck`（compose `healthcheck:` 字段），间隔 ≤ 5s，重试 ≥ 3；纯一次性 init job 可通过退出码进入 `dev-doctor` 汇总。Mailpit healthcheck 使用 HTTP `/readyz`。
-- `make dev-up` 在启动 Postgres 前必须只读检测 `easyinterview-pg-data` 是否包含旧根目录 `PG_VERSION`、旧 `/var/lib/postgresql/data/PG_VERSION` 或半初始化 `/var/lib/postgresql/18` 布局；命中时退出非 0，提示用户确认本地数据后用 `make dev-reset` 重建，不得自动删除卷。
+- `make dev-up` 在启动 Postgres 前必须只读检测 `easyinterview-pg-data` 是否包含 root-level `PG_VERSION`、不兼容 `/var/lib/postgresql/data/PG_VERSION` 或半初始化 `/var/lib/postgresql/18` 布局；命中时退出非 0，提示用户确认本地数据后用 `make dev-reset` 重建，不得自动删除卷。
 - `make dev-doctor` 在容器健康基础上，对 Postgres / Redis / MinIO 必须执行端到端 probe（连接 + 读写最小操作 + 拆解延迟），不能只看容器状态。
 - 对已接入 compose 的 optional HTTP 项目组件，`make dev-doctor` 至少检查 `/healthz`；若组件已声明 `/metrics`，还必须检查 `/metrics` 可访问。P0 不接入独立 worker 进程；backend background runner 随 backend 组件观测。
 - 对已接入 compose 且启用 AIClient 的 optional 项目组件，A2 只检查必要 env 是否存在并把结果纳入 `dev-doctor`；不得在 `dev-doctor` 中发起真实 LLM 付费调用。宿主机运行组件的真实 provider smoke 由 A3 / feature owner 的本地验证负责。

@@ -230,7 +230,7 @@ func assertGeneratedErrorEnvelope(t *testing.T, rec *httptest.ResponseRecorder, 
 		t.Fatalf("decode error envelope: %v; body=%s", err, rec.Body.String())
 	}
 	if _, ok := raw["errors"]; ok {
-		t.Fatalf("legacy errors envelope must not be present: %s", rec.Body.String())
+		t.Fatalf("non-current errors envelope must not be present: %s", rec.Body.String())
 	}
 	errRaw, ok := raw["error"]
 	if !ok {

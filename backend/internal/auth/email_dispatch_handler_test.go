@@ -67,10 +67,10 @@ func TestEmailDispatchHandler_DeliversValidPayload(t *testing.T) {
 func TestEmailDispatchHandler_RejectsForbiddenField(t *testing.T) {
 	writer := &recordingDeliveryWriter{}
 	h := auth.NewEmailDispatchHandler(writer)
-	// rawMagicLinkToken is a redacted field; the payload validator must reject it.
+	// rawEmailCode is a redacted field; the payload validator must reject it.
 	raw, _ := json.Marshal(map[string]string{
-		"authChallengeId":   "challenge-1",
-		"rawMagicLinkToken": "secret-token",
+		"authChallengeId": "challenge-1",
+		"rawEmailCode":    "123456",
 	})
 	out := h.Handle(context.Background(), runner.ClaimedJob{Payload: raw})
 	if out.Succeeded || out.Retryable {
@@ -146,7 +146,7 @@ func TestStartAuthEmailChallenge_EnqueuesEmailDispatchJob(t *testing.T) {
 	exec := &captureExecer{}
 	sink := auth.NewDevMailSink(auth.DevMailSinkOptions{VerifyBaseURL: "http://api.test/verify"})
 	enq := auth.NewEmailDispatchEnqueuer(exec, func() string { return "job-1" }, func() time.Time { return time.Unix(0, 0).UTC() })
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               &recordingChallengeStore{},
 		Dispatcher:          enq,
 		DeliverySecrets:     sink,

@@ -4,10 +4,9 @@ metadata:
   subspec: prompt-rubric-registry
   name: 001-baseline
   sequence: 1
-  supersedes: []
   specVersion:
     from: 2.0
-    to: 2.1
+    to: 2.17
 spec:
   defaultTarget: backend
   discovery:
@@ -19,14 +18,12 @@ spec:
     keywords:
       - prompt registry
       - rubric registry
-      - Resolve
       - ResolveActive
       - template_hash
       - feature_key
       - feature_flag
       - data_source_version
       - ai_task_runs typed provenance
-      - B1 B4 A3 provenance remediation
       - model_profile_name
       - lint-prompts
       - lint-rubrics
@@ -34,12 +31,10 @@ spec:
       - lint-ai-profile-coverage
       - prompt_versions
       - rubric_versions
-      - ai_task_runs
-      - LLM Judge
-      - NotImplementedJudge
       - GenerationProvenance
-      - StaticPromptRegistry retire
+      - RegistryAdapter
       - language fallback multi
+      - 9 baseline feature keys
   targets:
     backend:
       plan: ./plan.md
@@ -47,13 +42,9 @@ spec:
       spec: ../../spec.md
       references:
         - ../../../ai-provider-and-model-routing/spec.md
-        - ../../../backend-practice/spec.md
         - ../../../backend-targetjob/spec.md
         - ../../../db-migrations-baseline/spec.md
         - ../../../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md
-        - ../../../engineering-roadmap/spec.md
-        - ../../../observability-stack/spec.md
-        - ../../../secrets-and-config/spec.md
         - ../../../shared-conventions-codified/spec.md
       discovery:
         packages:

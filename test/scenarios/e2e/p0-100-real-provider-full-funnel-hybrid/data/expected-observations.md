@@ -27,7 +27,7 @@ Use these observations as manual review prompts. They are not fixture outputs an
 
 - The report should summarize strengths, gaps, evidence, and next actions related to the JD and answer.
 - Provider/model evidence should be recorded only as a redacted summary in `.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/evidence.md`.
-- The report should not display unrelated legacy modules such as mistakes, growth, drill, standalone voice, or `mode=debrief`.
+- The report should not display unrelated non-current modules such as mistakes, growth, drill, standalone voice, or `mode=debrief`.
 
 ## Next Round
 

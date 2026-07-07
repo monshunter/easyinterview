@@ -4,7 +4,6 @@ metadata:
   subspec: ci-pipeline-baseline
   name: 001-local-quality-gates
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
     to: 1.3

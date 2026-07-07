@@ -8,6 +8,6 @@ trigger.log 含：
 
 verify.sh 在 trigger.log 中校验：
 
-- 不出现 retired testid 字面量：`route-welcome`、`route-mistakes`、`route-drill`、`route-followup`、`route-onboarding`、`route-experiences`、`route-star`、`route-voice`
+- 不出现 non-current testid 字面量：`route-welcome`、`route-mistakes`、`route-drill`、`route-followup`、`route-onboarding`、`route-experiences`、`route-star`、`route-voice`
 - 不直接回显 fixture error.code 字面量 `TARGET_JOB_NOT_FOUND`
-- 不出现 placeholder fallback 文本 `D2-D6`
+- 不出现旧 fallback phase marker

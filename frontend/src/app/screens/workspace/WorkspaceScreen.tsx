@@ -9,7 +9,7 @@ import { useWorkspaceTargetJob } from "./hooks/useWorkspaceTargetJob";
 import { useWorkspaceResume } from "./hooks/useWorkspaceResume";
 import { useStartPractice } from "./hooks/useStartPractice";
 import { useWorkspacePracticePlan } from "./hooks/useWorkspacePracticePlan";
-import { CompanyIntelEmbed } from "./CompanyIntelEmbed";
+import { WorkspaceInsightCard } from "./WorkspaceInsightCard";
 import { PlanSwitcherModal } from "./modals/PlanSwitcherModal";
 import { ResumePickerModal } from "./modals/ResumePickerModal";
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
@@ -19,10 +19,6 @@ interface WorkspaceScreenProps {
   route: Route;
 }
 
-/**
- * Phase 2: WorkspaceScreen wired with useWorkspaceTargetJob data hook.
- * Dynamic fields render real data when available, fallback to placeholder.
- */
 export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
   const { t, lang } = useI18n();
   const { navigate } = useNavigation();
@@ -1166,8 +1162,8 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
             minWidth: 0,
           }}
         >
-          {/* CompanyIntelEmbed */}
-          <CompanyIntelEmbed
+          {/* WorkspaceInsightCard */}
+          <WorkspaceInsightCard
             companyName={tj?.companyName}
             locationText={tj?.locationText}
             sourceType={tj?.sourceType}
@@ -1393,7 +1389,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
             </div>
           </div>
 
-          {/* Session history placeholder */}
+          {/* Current-plan records placeholder */}
           <div
             data-testid="workspace-history-card"
             style={{
@@ -1476,6 +1472,9 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
         open={resumePickerOpen}
         onClose={() => setResumePickerOpen(false)}
         boundResumeId={ctx.resumeId}
+        onSelectResume={(resumeId) => {
+          dispatch({ type: "MERGE_RESUME", resume: { id: resumeId } });
+        }}
       />
     </div>
   );

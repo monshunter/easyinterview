@@ -20,9 +20,9 @@ class TestImplementSkillContract:
         assert "--review-code" not in usage_block
         assert "--fix-code" not in usage_block
 
-    def test_legacy_flags_redirect_to_new_skills(self):
+    def test_unsupported_review_flags_redirect_to_owner_skills(self):
         text = _skill_text()
-        assert "The following `/implement` flags no longer exist" in text
+        assert "The following `/implement` flags are unsupported" in text
         assert "L1 document review/fix → `/plan-review`" in text
         assert "L2 code review/fix → `/plan-code-review`" in text
 
@@ -56,7 +56,7 @@ class TestImplementSkillContract:
         assert "continue implementing" in text
         assert "resume an in-flight plan" in text
 
-    def test_legacy_parallel_docs_no_longer_drive_dispatch(self):
+    def test_non_sequential_dispatch_docs_do_not_drive_dispatch(self):
         text = _skill_text()
         assert "`/implement` does not perform DAG parsing, Wave dispatch, teammate fan-out, or" in text
         assert "markdown-format linting." in text

@@ -135,7 +135,7 @@ test.describe("dark + customAccent visual diff (Phase 4.2)", () => {
     ).toHaveCount(1);
   });
 
-  test("retired entries (welcome / mistakes / growth / drill / standalone voice) do not flow back into rendered DOM", async ({
+  test("non-current entries (welcome / mistakes / growth / drill / standalone voice) do not flow back into rendered DOM", async ({
     page,
   }) => {
     await page.goto("/");

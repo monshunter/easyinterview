@@ -29,7 +29,7 @@ const WorkspaceScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
     overview: "Overview",
     requirements: "Requirements",
     prep: "My preparation",
-    practices: "Current plan mock history",
+    practices: "Current plan mock records",
     timeline: "Real progress",
     startCore: "Start interview now",
     launchTitle: "Confirm the context before this mock interview starts.",
@@ -60,7 +60,7 @@ const WorkspaceScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
     overview: "概览",
     requirements: "要求拆解",
     prep: "我的准备",
-    practices: "当前规划的模拟面试历史",
+    practices: "当前规划的模拟面试记录",
     timeline: "面试进展",
     startCore: "立即面试",
     launchTitle: "开始前确认这场模拟面试的上下文。",
@@ -85,7 +85,7 @@ const WorkspaceScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
     strongs: "直接命中",
     lastReport: "最近一次报告",
     gotoReport: "打开完整报告",
-    notePractice: "这场模拟面试中的每一道题都会读取 JD 要求、简历证据、风险提示和历史报告信号。",
+    notePractice: "这场模拟面试中的每一道题都会读取 JD 要求、简历证据、风险提示和过往报告信号。",
   };
 
   if (!job) return <WorkspaceEmptyState T={T} lang={lang} nav={nav} />;
@@ -199,8 +199,8 @@ const WorkspaceScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 24 }}>
         {/* left column */}
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-          {/* company intel — embed (sole intel surface, D-18) */}
-          <CompanyIntelEmbed T={T} lang={lang} job={job} />
+          {/* workspace insight summary */}
+          <WorkspaceInsightCard T={T} lang={lang} job={job} />
 
           {/* requirements */}
           <Card T={T} pad={0}>
@@ -238,7 +238,7 @@ const WorkspaceScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
             </div>
           </Card>
 
-          {/* practice history */}
+          {/* practice records */}
           <Card T={T} pad={0}>
             <div style={{ padding: "16px 20px", borderBottom: `1px solid ${T.rule}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>

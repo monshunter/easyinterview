@@ -39,7 +39,7 @@ EXPECTED_TOP_LEVEL = {
 }
 
 EXPECTED_STRUCTURES = {"PageInfo", "ApiError"}
-EXPECTED_ENUM_SECTIONS = {f"5.{i}" for i in range(1, 12)} | {"5.13"}  # D-22 retired §5.12 debrief and D-20 retired §5.14-5.16 resume version enums
+EXPECTED_ENUM_SECTIONS = {f"5.{i}" for i in range(1, 12)} | {"5.13"}  # D-22 skips §5.12 debrief and D-20 skips §5.14-5.16 resume version enums
 EXPECTED_JOB_STATUSES = {"queued", "running", "succeeded", "failed", "cancelled", "dead"}
 EXPECTED_PRODUCT_ENUM_VALUES = {
     "PracticeMode": ["assisted", "strict"],

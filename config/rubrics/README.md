@@ -123,7 +123,7 @@ places to stay well inside the tolerance window.
 
 The lint gate rejects:
 
-- Retired-module names from earlier product iterations. The exact list lives
+- Module names outside current product scope. The exact list lives
   in `scripts/lint/rubric_lint.py` so this README can stay under the same
   recursive grep scan as the rubrics it governs.
 - Provider names, model identifiers, or secret material in `description`

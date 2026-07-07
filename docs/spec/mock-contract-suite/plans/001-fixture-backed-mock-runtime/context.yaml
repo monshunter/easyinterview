@@ -4,10 +4,9 @@ metadata:
   subspec: mock-contract-suite
   name: 001-fixture-backed-mock-runtime
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
-    to: 1.11
+    to: 1.13
 spec:
   defaultTarget: tooling
   discovery:
@@ -24,6 +23,8 @@ spec:
       - operationId registry
       - prototype data boundary
       - P0 mock runway
+      - 35 operation fixtures
+      - VITE_EI_API_BASE_URL
   targets:
     tooling:
       plan: ./plan.md

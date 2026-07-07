@@ -68,21 +68,21 @@ describe("ResumeWorkshopScreen route param parsing", () => {
   });
 });
 
-describe("ResumeWorkshopScreen flow dispatch (D-20 flatten — no branch flow)", () => {
+describe("ResumeWorkshopScreen flow dispatch (D-20 flat Resume)", () => {
   it("renders the flat list for flow=list", () => {
     renderResumeWorkshop({});
     expect(screen.getByTestId("resume-workshop-list")).toBeInTheDocument();
   });
 
-  it("renders the create flow for flow=create (no branch flow remains)", () => {
+  it("renders the create flow for flow=create", () => {
     renderResumeWorkshop({ flow: "create" });
     expect(screen.getByTestId("resume-create-flow")).toBeInTheDocument();
     expect(screen.queryByTestId("resume-workshop-list")).not.toBeInTheDocument();
   });
 
-  it("does not expose a retired branch flow surface for any flow value", () => {
+  it("does not expose a non-current branch flow surface for any flow value", () => {
     renderResumeWorkshop({ flow: "branch" });
-    // D-20 removed the version-tree branch flow. An unknown flow falls back to
+    // D-20 keeps branch flow outside current scope. An unknown flow falls back to
     // the flat list; the branch surface must never render.
     expect(screen.queryByTestId("resume-branch-flow")).not.toBeInTheDocument();
     expect(screen.getByTestId("resume-workshop-list")).toBeInTheDocument();

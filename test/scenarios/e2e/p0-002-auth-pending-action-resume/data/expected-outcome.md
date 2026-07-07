@@ -6,7 +6,7 @@
   6 位登录 code 并触发 `verifyAuthEmailChallenge` 成功。
 - 最终 `route-practice` 渲染，且 `data-route-params` 同时包含 `planId` /
   `targetJobId` / `jdId` / `resumeId` / `roundId` 五个原始值。
-- 整个过程 vitest 报告 `1 passed`，且 trigger.log 不出现旧入口
+- 整个过程 vitest 报告 `1 passed`，且 trigger.log 不出现非当前入口
   (`topbar-nav-mistakes` / `topbar-nav-growth` / `topbar-nav-drill` /
   `topbar-nav-voice` / `topbar-nav-welcome`) 或 prototype data 引用
   (`ui-design/src/data`)。

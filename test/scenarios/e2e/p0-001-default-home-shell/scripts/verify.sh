@@ -21,7 +21,7 @@ for forbidden in \
   'topbar-nav-profile' \
   'topbar-user-profile'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
-    echo "forbidden legacy entry leaked into scenario evidence: $forbidden" >&2
+    echo "forbidden non-current entry leaked into scenario evidence: $forbidden" >&2
     exit 1
   fi
 done

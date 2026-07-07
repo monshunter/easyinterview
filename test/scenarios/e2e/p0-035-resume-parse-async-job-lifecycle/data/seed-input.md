@@ -4,7 +4,7 @@
 - Resume asset variants:
   - `upload`: object-store backed file object read through backend-upload objectstore abstraction.
   - `paste`: raw text source stored in `resume_assets.original_text`.
-  - retired `guided`: absent from current parse inputs; flatten migration drops
+  - non-current `guided`: absent from current parse inputs; flatten migration drops
     `guided_answers` on the active schema.
 - AI response variants:
   - success JSON with `basics`, `experiences`, `projects`, `education`, `skills`, and `languages`.

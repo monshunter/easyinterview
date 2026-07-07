@@ -19,7 +19,7 @@ for forbidden in \
   'topbar-nav-welcome' \
   'ui-design/src/data'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
-    echo "forbidden legacy entry leaked into scenario evidence: $forbidden" >&2
+    echo "forbidden non-current entry leaked into scenario evidence: $forbidden" >&2
     exit 1
   fi
 done

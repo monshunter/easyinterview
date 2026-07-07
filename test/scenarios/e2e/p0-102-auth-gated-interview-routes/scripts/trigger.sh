@@ -27,5 +27,5 @@ run_step() {
   run_step backend-session-policy \
     bash -c 'cd backend && go test -v ./internal/auth -run TestSessionPolicyClassifiesPublicOptionalAndProtectedOperations -count=1'
   run_step backend-route-middleware \
-    bash -c 'cd backend && go test -v ./cmd/api -run '"'"'TestBuildAPIHandlerMounts(TargetJobRoutes|UploadPresign|ResumeRoutes|PracticeRoutes|ReportRoutes|JobRoute)BehindSessionMiddleware|TestBuildAPIHandlerDoesNotMountRetiredDebriefOrProfileRoutes|TestJDMatchRoutesAreGonePerD17'"'"' -count=1'
+    bash -c 'cd backend && go test -v ./cmd/api -run '"'"'TestBuildAPIHandlerMounts(TargetJobRoutes|UploadPresign|ResumeRoutes|PracticeRoutes|ReportRoutes|JobRoute)BehindSessionMiddleware|TestBuildAPIHandlerDoesNotMountNonCurrentDebriefOrProfileRoutes|TestJDMatchRoutesRemainUnmountedPerD17'"'"' -count=1'
 ) | tee "$OUTPUT_DIR/trigger.log"

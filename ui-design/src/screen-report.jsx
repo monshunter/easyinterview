@@ -13,7 +13,7 @@ const ReportScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
   const context = lang === "en" ? {
     breadcrumb: `Mock interview / ${params.sessionId} / Report`,
     title: `${job.title} · ${r.round} mock report`,
-    subtitle: "This report belongs to one completed mock interview. It is opened from interview history or after a session ends.",
+    subtitle: "This report belongs to one completed mock interview. It is opened from interview records or after a session ends.",
     session: params.sessionId,
     target: `${job.company} · ${job.title}`,
     round: params.roundName || r.round,
@@ -27,7 +27,7 @@ const ReportScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
   } : {
     breadcrumb: `模拟面试 / ${params.sessionId} / 面试报告`,
     title: `${job.title} · ${r.round}模拟报告`,
-    subtitle: "这份报告隶属于一次已完成的模拟面试，只从会话历史或面试结束后进入。",
+    subtitle: "这份报告隶属于一次已完成的模拟面试，只从会话记录或面试结束后进入。",
     session: params.sessionId,
     target: `${job.company} · ${job.title}`,
     round: params.roundName || r.round,
@@ -51,9 +51,9 @@ const ReportMissingSessionState = ({ T, lang, nav, context }) => (
         {lang === "en" ? "Open a report from a completed session." : "请从已完成会话打开报告。"}
       </div>
       <div style={{ fontSize: 14, color: T.ink3, lineHeight: 1.6, marginBottom: 18 }}>
-        {lang === "en" ? "Without sessionId the prototype returns to the current mock plan instead of inventing report data." : "没有 sessionId 时不展示假报告数据，而是回到当前面试规划或历史列表。"}
+        {lang === "en" ? "Without sessionId the prototype returns to the current mock plan instead of inventing report data." : "没有 sessionId 时不展示假报告数据，而是回到当前面试规划或记录列表。"}
       </div>
-      <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => nav("workspace", context)}>{lang === "en" ? "Back to mock history" : "返回面试历史"}</Btn>
+      <Btn T={T} variant="accent" iconRight="arrow_right" onClick={() => nav("workspace", context)}>{lang === "en" ? "Back to mock records" : "返回面试记录"}</Btn>
     </Card>
   </div>
 );
@@ -66,11 +66,11 @@ const ReportFailureState = ({ T, lang, nav, context }) => (
         {lang === "en" ? "We could not generate evidence for this session." : "这场会话暂时没有生成可用证据。"}
       </div>
       <div style={{ fontSize: 14, color: T.ink3, lineHeight: 1.6, marginBottom: 18 }}>
-        {lang === "en" ? "Retry generation or return to session history. No placeholder score is shown." : "可以重试生成或回到会话历史；这里不会显示占位分数。"}
+        {lang === "en" ? "Retry generation or return to session records. No placeholder score is shown." : "可以重试生成或回到会话记录；这里不会显示占位分数。"}
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <Btn T={T} variant="accent" icon="replay" onClick={() => nav("generating", context)}>{lang === "en" ? "Retry generation" : "重新生成"}</Btn>
-        <Btn T={T} variant="secondary" onClick={() => nav("workspace", context)}>{lang === "en" ? "Back to history" : "返回历史"}</Btn>
+        <Btn T={T} variant="secondary" onClick={() => nav("workspace", context)}>{lang === "en" ? "Back to records" : "返回记录"}</Btn>
       </div>
     </Card>
   </div>

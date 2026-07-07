@@ -74,7 +74,7 @@ describe("mapParsedSummaryToStructuredProfileDraft", () => {
     expect(draft.skills).toEqual([]);
   });
 
-  it("normalises legacy alias keys (company → co, title → role, dates → period, highlights → bullets)", () => {
+  it("normalises source alias keys (company → co, title → role, dates → period, highlights → bullets)", () => {
     const draft = mapParsedSummaryToStructuredProfileDraft({
       ...baseAsset,
       parsedSummary: {

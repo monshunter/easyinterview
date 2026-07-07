@@ -31,16 +31,16 @@ does **not** run extra markdown format checkers.
 
 Use the shared reference for common file-role mapping and error templates.
 
-## Removed Legacy Flags
+## Unsupported Review Flags
 
-The following `/implement` flags no longer exist:
+The following `/implement` flags are unsupported:
 
 - `--review`
 - `--fix`
 - `--review-code`
 - `--fix-code`
 
-If the user asks for one of these removed modes, stop and redirect:
+If the user asks for one of these review modes, stop and redirect:
 
 - L1 document review/fix → `/plan-review`
 - L2 code review/fix → `/plan-code-review`
@@ -59,7 +59,7 @@ If the user asks for one of these removed modes, stop and redirect:
 - If user passes `-h` or `--help`, show: skill name, description, usage.
 - If user passes `-h -v` or `--help --verbose`, also show full workflow.
 - In both cases, stop after help output.
-- If the user passes any removed legacy review flag, stop and tell them to use `/plan-review` or `/plan-code-review`.
+- If the user passes any unsupported review flag, stop and tell them to use `/plan-review` or `/plan-code-review`.
 
 ### Step 1: Resolve plan name
 

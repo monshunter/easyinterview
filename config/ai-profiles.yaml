@@ -1,5 +1,5 @@
 # A3 Model Profile catalog.
-# Schema uses capability + provider_ref; retired legacy profile keys are
+# Schema uses capability + provider_ref; non-current profile keys are
 # rejected by backend/internal/ai/aiclient/profile loader tests.
 profiles:
   - name: judge.default

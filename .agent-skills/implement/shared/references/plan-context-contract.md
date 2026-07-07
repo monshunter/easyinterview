@@ -62,7 +62,6 @@ metadata:
   subspec: example
   name: 001-backend
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
     to: 1.0

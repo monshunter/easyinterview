@@ -65,16 +65,16 @@ def test_scenario_env_has_no_script_fallback():
         "scenario-env SKILL.md must reference manual bootstrap fallback"
 
 
-# --- Phase 8.3: retired skill name scan ---
+# --- Phase 8.3: non-current skill name scan ---
 
 
-def test_all_skill_files_no_retired_names():
-    """No SKILL.md may reference retired skill names (C-17, D-14)."""
+def test_all_skill_files_no_non_current_names():
+    """No SKILL.md may reference non-current skill names (C-17, D-14)."""
     violations = []
     for skill_file in SKILLS_ROOT.rglob("SKILL.md"):
         text = skill_file.read_text(encoding="utf-8")
         for name in RETIRED_SKILL_NAMES:
             if name in text:
                 rel = skill_file.relative_to(REPO_ROOT)
-                violations.append(f"{rel} references retired '{name}'")
-    assert not violations, "Retired skill references found:\n" + "\n".join(violations)
+                violations.append(f"{rel} references non-current '{name}'")
+    assert not violations, "Non-current skill references found:\n" + "\n".join(violations)

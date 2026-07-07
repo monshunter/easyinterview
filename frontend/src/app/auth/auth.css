@@ -179,7 +179,7 @@
   gap: var(--ei-space-2);
 }
 
-/* Static passwordless help copy under the login CTA.
+/* Static email-code help copy under the login CTA.
    Source: ui-design/src/screen-auth.jsx login footer (marginTop 16,
    fontSize 12.5, color T.ink3, lineHeight 1.6; second line marginTop 4). */
 .ei-auth-help {

@@ -4,10 +4,9 @@ metadata:
   subspec: backend-practice
   name: 002-event-loop-and-completion
   sequence: 2
-  supersedes: []
   specVersion:
-    from: 1.5
-    to: 1.6
+    from: 1.16
+    to: 1.16
 spec:
   defaultTarget: backend
   discovery:
@@ -30,11 +29,14 @@ spec:
       - report_generate
       - triggereventsemantic
       - source_event_only
+      - 5-value turn status
       - practice.turn.completed
       - practice.session.completed
       - idempotency
       - state_machine
       - turn_status
+      - queued report job handoff
+      - runtime boundary lint
   targets:
     backend:
       plan: ./plan.md

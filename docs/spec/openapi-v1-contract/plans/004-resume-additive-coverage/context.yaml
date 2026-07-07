@@ -4,56 +4,43 @@ metadata:
   subspec: openapi-v1-contract
   name: 004-resume-additive-coverage
   sequence: 4
-  supersedes: []
   specVersion:
     from: 1.16
-    to: 1.30
+    to: 1.35
 spec:
   defaultTarget: contract
   discovery:
     aliases:
       - openapi-v1-contract
       - 004-resume-additive-coverage
-      - resume-additive
-      - resume-workshop
-      - D-18
+      - flat-resume-contract
+      - current-resume-openapi
       - listResumes
-      - branchResumeVersion
-      - resume-versions
       - resume-tailor
-      - RESUME_EXPORT_NOT_AVAILABLE
-      - ResumeVersionType
-      - ResumeSeedStrategy
-      - ResumeTailorSuggestionStatus
-      - D-20
-      - D-26
-      - resume-flatten
       - resumeId
       - updateResume
       - duplicateResume
       - archiveResume
       - exportResume
+      - RESUME_EXPORT_NOT_AVAILABLE
     keywords:
-      - resume workshop additive
-      - resume versions
-      - resume tailor suggestion
-      - branch resume version
-      - register resume sourceType
-      - resume export not available
-      - additive operation matrix
-      - openapi 43 endpoint
-      - workspace listResumes unblock
-      - resume picker active list
-      - resume vocabulary D-10
+      - flat resume contract
+      - current resume operations
+      - openapi 35 operations
+      - openapi 10 tags
+      - Resume schema
+      - PaginatedResume
+      - RegisterResumeRequest
+      - UpdateResumeRequest
+      - DuplicateResumeRequest
+      - requestResumeTailor
+      - getResumeTailorRun
+      - resume picker current list
       - resume provenance schema
       - resume idempotency-key
       - resume archive endpoint
-      - D-20 resume flatten contract collapse
-      - delete resume version operations
-      - resumeAssetId resumeVersionId rename resumeId
-      - duplicateResume save as new
-      - ResumeAsset rename Resume schema
-      - jd_match endpoint count reconcile 60 48 43
+      - resume export typed 501
+      - current operation matrix
   targets:
     contract:
       plan: ./plan.md
@@ -61,23 +48,18 @@ spec:
       spec: ../../spec.md
       references:
         - ../../../shared-conventions-codified/spec.md
-        - ../../../shared-conventions-codified/history.md
         - ../../../mock-contract-suite/spec.md
-        - ../../../mock-contract-suite/history.md
         - ../../../engineering-roadmap/spec.md
-        - ../../../engineering-roadmap/history.md
         - ../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/plan.md
-        - ../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/checklist.md
       discovery:
         packages:
           - openapi
           - openapi/fixtures/Resumes
+          - openapi/fixtures/ResumeTailor
           - openapi/baseline
           - scripts/lint
-          - shared
-          - backend/internal/shared/types
-          - backend/internal/shared/errors
-          - frontend/src/lib/conventions
+          - backend/internal/api/generated
+          - frontend/src/api/generated
           - docs/spec/openapi-v1-contract
           - docs/spec/shared-conventions-codified
           - docs/spec/mock-contract-suite
@@ -85,11 +67,11 @@ spec:
         uiRoutes: []
         apiNames:
           - listResumes
-          - listResumeVersions
-          - getResumeVersion
-          - branchResumeVersion
-          - updateResumeVersion
-          - acceptResumeTailorSuggestion
-          - rejectResumeTailorSuggestion
-          - archiveResumeAsset
-          - exportResumeVersion
+          - registerResume
+          - getResume
+          - updateResume
+          - duplicateResume
+          - archiveResume
+          - exportResume
+          - requestResumeTailor
+          - getResumeTailorRun

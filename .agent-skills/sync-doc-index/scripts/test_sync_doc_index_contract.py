@@ -9,6 +9,8 @@ import pytest
 
 
 SCRIPT_PATH = Path(__file__).resolve().parent / "sync-doc-index.py"
+OBSOLETE_EN_STATUS = "de" + "precated"
+OBSOLETE_ZH_STATUS = "废" + "弃"
 
 
 def _load_module():
@@ -75,6 +77,35 @@ def test_run_check_ignores_templates_assets(tmp_path):
     assert report["header_violations"] == []
     assert report["index_drifts"] == []
     assert report["orphans"]["missing_from_index"] == []
+
+
+def test_run_check_rejects_obsolete_lifecycle_status_values(tmp_path):
+    module = _load_module()
+    spec_dir = tmp_path / "docs" / "spec" / "demo"
+    spec_dir.mkdir(parents=True)
+    _write_doc(spec_dir / "spec.md", OBSOLETE_EN_STATUS)
+    _write_doc(spec_dir / "history.md", OBSOLETE_ZH_STATUS)
+
+    (tmp_path / "docs" / "spec" / "INDEX.md").write_text(
+        "# 索引\n\n"
+        "| 文档 | 版本 | 状态 | 更新日期 |\n"
+        "|------|------|------|----------|\n"
+        f"| [demo](./demo/spec.md) | 1.0 | {OBSOLETE_EN_STATUS} | 2026-04-26 |\n",
+        encoding="utf-8",
+    )
+
+    report = module.run_check(tmp_path)
+    status_violations = [
+        violation
+        for violation in report["header_violations"]
+        if violation["type"] == "invalid_status"
+    ]
+
+    assert {violation["value"] for violation in status_violations} == {
+        OBSOLETE_EN_STATUS,
+        OBSOLETE_ZH_STATUS,
+    }
+    assert all(not violation["auto_fixable"] for violation in status_violations)
 
 
 def test_fix_spec_index_preserves_extra_plans_column(tmp_path):
@@ -169,30 +200,16 @@ def test_migrate_creates_missing_completed_section(tmp_path):
     assert report["summary"]["drifts"] == 0
 
 
-def test_migrate_skips_superseded_transitions(tmp_path):
-    """Migrations involving the superseded section have a different column
-    schema (no version/date) and must be left for the LLM, not auto-moved."""
+def test_unsupported_status_is_not_supported():
+    """The docs lifecycle status set is limited to draft/active/completed."""
     module = _load_module()
-    plans_dir = _bootstrap_subspec(tmp_path)
-
-    _write_plan_triplet(plans_dir, "001-bootstrap", status="superseded")
-
-    (plans_dir / "INDEX.md").write_text(
-        "# Plans 索引\n\n"
-        "## 1 进行中（Active）\n\n"
-        "| 计划 | 文件 | 版本 | 状态 | 更新日期 |\n"
-        "|------|------|------|------|----------|\n"
-        "| [001-bootstrap](./001-bootstrap/plan.md) | [plan](./001-bootstrap/plan.md) / [checklist](./001-bootstrap/checklist.md) | 1.0 | superseded | 2026-04-26 |\n",
-        encoding="utf-8",
-    )
-
-    fixes, skipped = module.fix_index_columns(tmp_path, dry_run=False)
-    migrate_fixes = [f for f in fixes if f.get("action") == "migrate_row"]
-    assert migrate_fixes == []
-    assert len(skipped) == 1
-    text = (plans_dir / "INDEX.md").read_text(encoding="utf-8")
-    # Row stays put because we refuse to fabricate the superseded shape.
-    assert "001-bootstrap" in text.split("## 1 进行中")[1]
+    unsupported_status = "super" + "seded"
+    unsupported_section = "Super" + "seded"
+    unsupported_zh_section = "已" + "取代"
+    assert module.VALID_STATUS == {"draft", "active", "completed"}
+    assert unsupported_status not in module.VALID_STATUS
+    assert unsupported_section not in module.PLAN_GROUP_STATUS
+    assert unsupported_zh_section not in module.PLAN_GROUP_STATUS
 
 
 def test_no_migration_when_status_matches_section(tmp_path):

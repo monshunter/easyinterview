@@ -56,7 +56,7 @@ describe("parseInitialRouteHash", () => {
     );
   });
 
-  it("retired aliases via hash normalize to retained routes without materializing legacy screens", () => {
+  it("non-current aliases via hash normalize to retained routes without materializing standalone screens", () => {
     const cases: Array<[string, { name: string; path: string }]> = [
       ["#route=welcome", { name: "home", path: "/" }],
       ["#route=growth", { name: "home", path: "/" }],

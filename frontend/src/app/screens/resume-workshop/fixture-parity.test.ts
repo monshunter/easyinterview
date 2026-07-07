@@ -47,7 +47,7 @@ describe("Resumes fixture parity (flat D-20 model, counts derived from fixture b
     expect(result.pageInfo.nextCursor).toBeTruthy();
   });
 
-  it("listResumes default scenario items are all flat resumes (no version tree fields)", async () => {
+  it("listResumes default scenario items are all flat resumes without tree fields", async () => {
     const client = buildClient("default");
     const result = await client.listResumes();
     expect(result.items.every((r) => typeof r.id === "string")).toBe(true);

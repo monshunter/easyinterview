@@ -4,10 +4,9 @@ metadata:
   subspec: ai-provider-and-model-routing
   name: 001-aiclient-and-profile-bootstrap
   sequence: 1
-  supersedes: []
   specVersion:
-    from: null
-    to: 1.8
+    from: 2.19
+    to: 2.19
 spec:
   defaultTarget: backend
   discovery:
@@ -20,13 +19,17 @@ spec:
     keywords:
       - ai client
       - ai provider
+      - provider registry
       - model profile
+      - profile catalog
       - openai compatible
       - stub provider
       - ai call meta
+      - ai task runs
       - audit hook
       - fail fast
       - hot reload
+      - provider-neutral terminology
   targets:
     backend:
       plan: ./plan.md
@@ -35,7 +38,9 @@ spec:
       discovery:
         packages:
           - backend/internal/ai/aiclient
-          - config/ai-profiles
+          - config/ai-profiles.yaml
+          - config/ai-providers.yaml
           - backend/internal/platform/config
+          - scripts/lint
         uiRoutes: []
         apiNames: []

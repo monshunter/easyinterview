@@ -15,7 +15,7 @@
 
 > 备注：编号承接 `practice-voice-mvp/spec.md §4.3` 已预留的 `E2E.P0.007` / `E2E.P0.008` / `E2E.P0.009`；本计划接续使用 `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013`。
 >
-> L2 remediation 备注（2026-05-08）：`test/scenarios/e2e/p0-010..013-*` 已迁移到 `cmd/api` HTTP 场景 harness，覆盖 auth middleware / HTTP API / TargetJob handler-service / cmd/api in-process drainer / ParseExecutor。`verify.sh` 输出 `method=cmd-api-http` 与 `validBddEvidence=true`；历史包级 focused tests 只保留为 TDD 辅助证据。
+> L2 remediation 备注（2026-05-08）：`test/scenarios/e2e/p0-010..013-*` 使用 `cmd/api` HTTP 场景 harness，覆盖 auth middleware / HTTP API / TargetJob handler-service / cmd/api in-process drainer / ParseExecutor。`verify.sh` 输出 `method=cmd-api-http` 与 `validBddEvidence=true`；focused tests 作为 TDD 辅助证据。
 
 ## Phase 6: TargetJob backend behavior
 

@@ -28,11 +28,11 @@ mkdir -p "$OUT"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/resume/store([[:space:]]|$)' "$LOG"
   cd "$ROOT"
   if rg -n 'inline|mirror' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: retired inline/mirror vocabulary found"
+    echo "ERROR: non-current inline/mirror vocabulary found"
     exit 1
   fi
   if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: retired mistakes/growth/drill vocabulary found"
+    echo "ERROR: non-current mistakes/growth/drill vocabulary found"
     exit 1
   fi
   if rg -n 'Private resume body|secret-response|suggested bullet text|raw resume text|match_summary' "$OUT"; then

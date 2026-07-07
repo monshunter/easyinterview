@@ -4,7 +4,6 @@ metadata:
   subspec: e2e-scenarios-p0
   name: 002-manual-uat-real-provider-full-funnel
   sequence: 2
-  supersedes: []
   specVersion:
     from: 1.1
     to: 1.7

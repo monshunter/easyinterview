@@ -25,10 +25,10 @@ grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsTargetJobRoutesBehindSessionMidd
 grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsUploadPresignBehindSessionMiddleware" "$LOG_FILE"
 grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware" "$LOG_FILE"
 grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsPracticeRoutesBehindSessionMiddleware" "$LOG_FILE"
-grep -Fq -- "--- PASS: TestBuildAPIHandlerDoesNotMountRetiredDebriefOrProfileRoutes" "$LOG_FILE"
+grep -Fq -- "--- PASS: TestBuildAPIHandlerDoesNotMountNonCurrentDebriefOrProfileRoutes" "$LOG_FILE"
 grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsReportRoutesBehindSessionMiddleware" "$LOG_FILE"
 grep -Fq -- "--- PASS: TestBuildAPIHandlerMountsJobRouteBehindSessionMiddleware" "$LOG_FILE"
-grep -Fq -- "--- PASS: TestJDMatchRoutesAreGonePerD17" "$LOG_FILE"
+grep -Fq -- "--- PASS: TestJDMatchRoutesRemainUnmountedPerD17" "$LOG_FILE"
 grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/cmd/api' "$LOG_FILE"
 
 for forbidden in \

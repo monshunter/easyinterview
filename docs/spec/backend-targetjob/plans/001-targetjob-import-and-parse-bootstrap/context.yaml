@@ -4,7 +4,6 @@ metadata:
   subspec: backend-targetjob
   name: 001-targetjob-import-and-parse-bootstrap
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
     to: 1.4

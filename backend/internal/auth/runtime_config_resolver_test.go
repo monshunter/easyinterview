@@ -25,7 +25,7 @@ func TestRuntimeConfigSessionResolverOnlyAffectsA4Allowlist(t *testing.T) {
 		Email:          "candidate@example.com",
 		AnalyticsOptIn: true,
 	}}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               userStore,
 		SessionCookieSecret: "session-secret",
 		Now:                 func() time.Time { return now },

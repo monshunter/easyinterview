@@ -1,22 +1,23 @@
 # Local Dev Stack History
 
-> **版本**: 1.20
+> **版本**: 1.21
 > **状态**: active
-> **更新日期**: 2026-06-15
+> **更新日期**: 2026-07-07
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
-| 2026-06-15 | 1.20 | 修订 host-run backend redeploy 监听契约：本地场景环境将通配 `APP_LISTEN_ADDR` 收敛到 loopback，避免无关 bridge listener 占用 8080 时重启失败并导致前端简历页继续命中旧/不可用 backend。 | local-dev-stack/001 Phase 9 |
+| 2026-07-07 | 1.21 | 收敛 Postgres volume preflight、dev-doctor 与 host-run redeploy 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。 | product-scope/001 Phase 6.58 |
+| 2026-06-15 | 1.20 | 修订 host-run backend redeploy 监听契约：本地场景环境将通配 `APP_LISTEN_ADDR` 收敛到 loopback，避免无关 bridge listener 占用 8080 时重启失败并导致前端简历页继续命中未刷新或不可用 backend。 | local-dev-stack/001 Phase 9 |
 | 2026-05-27 | 1.19 | 对齐 backend-auth / frontend-shell 的 email-code 修订：Mailpit 本地邮件改为 6 位验证码、5 分钟有效，`EMAIL_VERIFY_BASE_URL` 仅保留为本地 frontend origin / CORS 推导来源，不再拼入邮件链接。 | backend-auth/001 Phase 7 + frontend-shell/001 Phase 8 |
 | 2026-05-27 | 1.18 | 将 scenario redeploy 闭环修订为 rebuild + 重启 host-run backend/frontend，并要求 env setup/status/verify/redeploy 输出服务地址、PID、日志路径和容器日志命令，便于开发者接管调试。 | local-dev-stack/001 developer debug handoff |
 | 2026-05-27 | 1.17 | 修订本地 Mailpit 登录闭环：默认邮件链接进入 frontend `/auth/verify` callback，由前端调用 backend verify API、刷新 session 并清理 URL token；手动 token 仅保留为 fallback。 | frontend-shell/001 Phase 7 |
 | 2026-05-27 | 1.16 | 本地测试与本地真实联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，并要求 P0.100 hybrid preflight 校验该开关；staging/prod 默认仍关闭，raw output 不进入持久化审计。 | local-dev-stack/001 raw debug local default |
 | 2026-05-27 | 1.15 | 明确 `deploy/dev-stack/.env` 是本地真实前后端联调唯一 env 来源，`.env.example` 覆盖 auth secrets、frontend real mode、AI provider 与共享依赖配置；场景不得维护独立 `.env`。 | local-dev-stack/001 + e2e-scenarios-p0/002 |
 | 2026-05-27 | 1.14 | 将共享测试环境与本地前后端联调环境生命周期从具体场景脚本中抽离：新增 `test/scenarios/env-*.sh` 与根 `scenario-env-*` Make target 作为 setup / status / verify / cleanup / redeploy 真理源，供 `/scenario-env` 与 `/scenario-redeploy` skill 调用。 | local-dev-stack/001 environment lifecycle revision |
-| 2026-05-26 | 1.13 | 将 Mailpit 纳入默认本地依赖：新增 `mailpit-dev`（Web 8025 / SMTP 1025）、dev-doctor `/readyz` 与 SMTP 端口探测、`.env.example` 邮件配置；本地 magic-link 登录走真实 backend auth flow，不再依赖真实外部邮箱服务、真实邮箱账号或场景专属 backend cmd。 | local-dev-stack/001 Mailpit revision |
-| 2026-05-22 | 1.12 | 修复 Postgres 18 官方镜像 PGDATA / volume 挂载契约：`easyinterview-pg-data` 挂到 `/var/lib/postgresql`，由镜像管理 `/18/docker` 子目录；`make dev-up` 增加只读旧卷布局 preflight，避免旧 `/var/lib/postgresql/data` 或半初始化卷表现为不明原因 unhealthy。 | local-dev-stack/001 L2 runtime remediation |
+| 2026-05-26 | 1.13 | 将 Mailpit 纳入默认本地依赖：新增 `mailpit-dev`（Web 8025 / SMTP 1025）、dev-doctor `/readyz` 与 SMTP 端口探测、`.env.example` 邮件配置；本地 email-code 登录走真实 backend auth flow，不再依赖真实外部邮箱服务、真实邮箱账号或场景专属 backend cmd。 | local-dev-stack/001 Mailpit revision |
+| 2026-05-22 | 1.12 | 修复 Postgres 18 官方镜像 PGDATA / volume 挂载契约：`easyinterview-pg-data` 挂到 `/var/lib/postgresql`，由镜像管理 `/18/docker` 子目录；`make dev-up` 增加只读不兼容卷布局 preflight，避免不兼容 `/var/lib/postgresql/data` 或半初始化卷表现为不明原因 unhealthy。 | local-dev-stack/001 L2 runtime remediation |
 | 2026-05-22 | 1.11 | 按用户确认的方案 A 对齐部署与测试环境：默认 `make dev-up` 只管理 Docker Compose 外部依赖，backend/frontend 由宿主机 dev command 管理；`test/scenarios/` 默认使用 repo-tracked 本地 runner，不再把 Kind / K8s / Helm 作为 P0 本地测试、smoke 或部署前提。 | local-dev-stack/001 post-pass revision |
 | 2026-05-08 | 1.10 | 按用户决策将默认本地 Postgres 镜像从 16 升级到 18，并同步 B4 迁移基线的本地 DB 前提。 | local-dev-stack/001 post-pass revision |
 | 2026-05-08 | 1.9 | 对齐 A3/B4 当前决策：默认本地依赖收敛为普通 Postgres / Redis / MinIO；删除未使用扩展 init/probe 口径，未来需要时重新设计。 | ai-provider-and-model-routing/003 Phase 6 |

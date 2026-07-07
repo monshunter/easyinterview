@@ -16,6 +16,6 @@ for spec in ResumeRewritesTab.test.tsx useResumeTailorRunPolling.test.tsx useReq
   grep -qF "$spec" "$LOG_FILE" || { echo "$SCENARIO_ID: spec $spec not exercised" >&2; exit 1; }
 done
 cd "$REPO_ROOT"
-if git grep -nE "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" -- frontend/src/app/screens/resume-workshop/tabs/ > "$OUTPUT_DIR/retired-tailor-mode-grep.log"; then
-  echo "$SCENARIO_ID: retired tailor mode grep matched" >&2; exit 1
+if git grep -nE "(^|[^A-Za-z0-9_])(inline|rewrite|mirror)([^A-Za-z0-9_]|$)" -- frontend/src/app/screens/resume-workshop/tabs/ > "$OUTPUT_DIR/non-current-tailor-mode-grep.log"; then
+  echo "$SCENARIO_ID: non-current tailor mode grep matched" >&2; exit 1
 fi

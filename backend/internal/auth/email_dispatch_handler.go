@@ -17,10 +17,10 @@ type asyncJobExecer interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
-// EmailDispatchEnqueuer is the C1 producer (spec D-10): it replaces the old
-// in-process mail dispatcher channel by inserting an
+// EmailDispatchEnqueuer is the C1 producer (spec D-10): it uses the runner
+// kernel by inserting an
 // async_jobs(job_type=email_dispatch) row that the runner kernel leases. It
-// satisfies the MailDispatcher interface so the passwordless service enqueue
+// satisfies the MailDispatcher interface so the email-code service enqueue
 // path is unchanged.
 type EmailDispatchEnqueuer struct {
 	db    asyncJobExecer

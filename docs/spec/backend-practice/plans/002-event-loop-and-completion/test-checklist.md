@@ -1,27 +1,34 @@
-# 002 — Event Loop and Completion Test Checklist
+# Backend Practice Event Loop and Completion Test Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-14
+> **更新日期**: 2026-07-07
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
-## Phase 0: 跨 spec 前置修订 + Preflight
+## Contract / Drift
 
-- [x] Phase 0 本计划定义的 `triggerEventSemantic` enum + `make lint-events` / `make codegen-events-check` / generated `JobTriggerEventSemantic*` 常量 + `IsSourceEventOnly` 谓词单元测试 / OpenAPI codegen / fixtures validator / sync-doc-index 与 F3 baseline preflight 测试项全部通过（注：runtime outbox→asynq dispatcher 集成测试归 future `backend-async-runner` plan，002 阶段不在范围内）
+- [x] Event/job source-event-only contract is covered（验证：`make lint-events`、`make codegen-events-check`、`go test ./backend/internal/shared/jobs -count=1`）
+- [x] OpenAPI turn status and generated artifacts are current（验证：`make codegen-check`、`python3 scripts/lint/conventions_drift.py --repo-root .`）
+- [x] PracticeSessions fixtures cover current append and completion variants（验证：`make validate-fixtures`）
 
-## Phase 1: AppendSessionEvent state machine 与 turn-status 域
+## Append Event Tests
 
-- [x] Phase 1 本计划定义的 `SessionEventService` 状态机、handleAnswerSubmitted / handleHintRequested / handleTurnSkipped / handleSessionPaused / handleSessionResumed、unknown kind、AssistantAction provenance 与 `turn_status` mapping 单元测试项全部通过
+- [x] State machine tests cover all five event kinds, answer branches, strict hint default, provenance defaults and malformed payload fail-fast（验证：`cd backend && go test ./internal/practice -count=1`）
+- [x] Store tests cover transaction writes, replay/mismatch, row lock sequencing, cross-user boundary and no-audit append behavior（验证：`cd backend && go test ./internal/store/practice -run TestAppendSessionEvent -count=1`）
+- [x] Handler tests cover generated request/response mapping, `Idempotency-Key` rejection, required `occurredAt` and error mapping（验证：`cd backend && go test ./internal/api/practice -run TestAppendSessionEvent -count=1`）
 
-## Phase 2: AppendSessionEvent vertical slice
+## Completion Tests
 
-- [x] Phase 2 本计划定义的 repository（主流程 / stale-turn conflict / replay / mismatch / cross-user）、outbox_emitter practice.turn.completed、service（含 F3 follow_up、AI 失败退化、`answer_submitted` 缺失 `payload.answerText` 校验、server-owned `follow_up_count` 决策）、handler（拒 header / required `occurredAt` / 200 wire shape）、error mapping、router 单元 + 集成 + contract 测试项全部通过
+- [x] Store tests cover queued report/job creation, D-35 replay, status guard, cross-user boundary, outbox and audit rows（验证：`cd backend && go test ./internal/store/practice -run TestCompleteSession -count=1`）
+- [x] Handler and middleware tests cover idempotency reserve/replay/mismatch, required `clientCompletedAt` and resource handoff（验证：`cd backend && go test ./internal/api/practice -run TestCompletePracticeSession -count=1`、`cd backend && go test ./internal/middleware/idempotency -count=1`）
 
-## Phase 3: CompletePracticeSession vertical slice
+## BDD / Runtime Boundary
 
-- [x] Phase 3 本计划定义的 repository（主流程 / D-35 replay + `async_jobs.dedupe_key=sessionId` lookup / status guard / cross-user / async_jobs dedupe）、outbox_emitter practice.session.completed、service replay、handler（idempotency middleware + required `clientCompletedAt` + 双 key + cross-user + illegal completion status conflict）、idempotency middleware 复用、error mapping 单元 + 集成 + contract 测试项全部通过
+- [x] BDD P0.038-P0.043 cmd/api scenario suite is covered（验证：`cd backend && go test ./cmd/api -run 'TestE2EP0038|TestE2EP0039|TestE2EP0040|TestE2EP0041|TestE2EP0042|TestE2EP0043' -count=1`）
+- [x] Runtime boundary lint is covered（验证：`python3 scripts/lint/backend_practice_non_current.py --repo-root . --phase all`、`python3 -m pytest scripts/lint/backend_practice_non_current_test.py -q`）
+- [x] Privacy redaction is covered by unit tests and `TestE2EP0043PracticeEventLoopPrivacyAndNonCurrentNegativeSurface`
 
-## Phase 4: 隐私 / 观测 / Legacy-Negative
+## Closeout
 
-- [x] Phase 4 本计划定义的 redaction、metric label allowlist、out-of-scope boundary、legacy-negative grep、BDD 编号碰撞反查与 `make codegen-check` / `make lint-events` / `make codegen-events-check` / `cd backend && go test ./...` / `python3 scripts/lint/conventions_drift.py --repo-root .` 收口 gate 全部通过
+- [x] Owner context, docs index and repo whitespace gates are covered（验证：`validate_context.py backend-practice/002 backend`、`sync-doc-index --check`、`make docs-check`、`git diff --check`）

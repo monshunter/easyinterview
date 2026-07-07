@@ -146,9 +146,9 @@ describe("E2E.P0.004 app shell language switch", () => {
     );
 
     expect(screen.queryByTestId("route-welcome")).not.toBeInTheDocument();
-    for (const legacy of ["mistakes", "growth", "voice", "drill", "welcome"]) {
+    for (const nonCurrent of ["mistakes", "growth", "voice", "drill", "welcome"]) {
       expect(
-        screen.queryByTestId(`topbar-nav-${legacy}`),
+        screen.queryByTestId(`topbar-nav-${nonCurrent}`),
       ).not.toBeInTheDocument();
     }
     console.log("E2E.P0.004 evidence: language dropdown Home Mock Interview Resume Sign in Accept-Language: en");

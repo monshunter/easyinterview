@@ -1,8 +1,8 @@
 # Practice Voice MVP Spec
 
-> **版本**: 1.4
+> **版本**: 1.6
 > **状态**: active
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-07-07
 
 ## 1 背景与目标
 
@@ -128,7 +128,7 @@ Fixture-backed mock responses must follow the same HTTP response playback semant
 | C-3 | 打断不污染上下文 | AI TTS 播放中，前端已报告完整 chunk 或 partial `playedTextLength` | 用户插话 | 后端只提交已播放文本范围；未播放 assistant draft 不进入下一轮 prompt；下一轮 prompt 明确上一条回复被打断 | 001 |
 | C-4 | TTS 失败降级 | STT 与 chat 成功，TTS provider 失败 | 用户等待回复 | 前端展示 assistant 文本与错误提示；用户可继续文本面试或重试播放；session 不失败 | 001 |
 | C-5 | Secret fail-fast | 非测试本地 app run 或未来 staging/prod 选中 active speech profile 但缺 provider secret | 启动或调用 voice turn | 返回配置错误或启动失败；不得静默回退 stub | 001 + A3 004 |
-| C-6 | UI route negative | 用户访问旧 `voice` route 或文档/代码出现独立 voice page 口径 | 路由归一或 scope test 执行 | 不进入独立 voice 页面；语音面试只能从 `practice` 显式参数进入 | 001 |
+| C-6 | UI route negative | 用户访问 non-current `voice` route input 或文档/代码出现独立 voice page 口径 | 路由归一或 scope test 执行 | 不进入独立 voice 页面；语音面试只能从 `practice` 显式参数进入 | 001 |
 | C-7 | 隐私红线 | 任意 voice turn 完成或失败 | 查询 log / DB metadata / metric / audit | 不含 raw audio、TTS audio、transcript 明文、provider secret；只含 hash/长度/duration/profile/provider/cost 摘要 | 001 + A3 004 |
 
 ## 7 关联计划

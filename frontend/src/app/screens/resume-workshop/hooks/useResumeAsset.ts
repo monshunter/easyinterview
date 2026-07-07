@@ -13,7 +13,7 @@ export interface UseResumeAssetResult {
 }
 
 /**
- * Loads a single flat resume via `getResume(resumeId)` (D-20: no version tree).
+ * Loads a single flat resume via `getResume(resumeId)`.
  * Used as the detail-view primary loader and the "view original" source.
  */
 export function useResumeAsset(resumeId: string | null): UseResumeAssetResult {

@@ -9,7 +9,7 @@ const artifactRoot = path.join(
   repoRoot,
   ".test-output",
   "e2e",
-  "p0-101-auth-email-code-login-register",
+  "p0-101-auth-email-code-profile-setup",
 );
 
 const frontendOrigin =

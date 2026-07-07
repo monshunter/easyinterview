@@ -109,7 +109,7 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         for row in resume_ops:
             self.assertIn(row, inventory.EXPECTED_OPERATIONS)
 
-        retired_ops = {
+        non_current_ops = {
             "listResumeVersions",
             "getResumeVersion",
             "branchResumeVersion",
@@ -119,7 +119,7 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
             "archiveResumeAsset",
             "exportResumeVersion",
         }
-        self.assertFalse(retired_ops & {opid for *_rest, opid in inventory.EXPECTED_OPERATIONS})
+        self.assertFalse(non_current_ops & {opid for *_rest, opid in inventory.EXPECTED_OPERATIONS})
         self.assertNotIn("ResumeVersions", inventory.EXPECTED_TAGS)
         self.assertIn("Resume", inventory.AI_PROVENANCE_SCHEMAS)
         self.assertEqual(
@@ -272,7 +272,7 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertTrue(any("Voice" in err for err in errors), errors)
         self.assertTrue(any("/voice" in err for err in errors), errors)
 
-    def test_product_scope_semantic_invariants_reject_legacy_practice_values(self) -> None:
+    def test_product_scope_semantic_invariants_reject_non_current_practice_values(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
         mutated = copy.deepcopy(data)
         mutated["components"]["schemas"]["PracticeMode"]["enum"] = ["warmup", "core_interview", "single_drill"]

@@ -21,13 +21,13 @@ English，并进入 auth / settings / placeholder shell。
 ## 3 Then
 
 - TopBar 三个一级导航从中文切换为英文。
-- 未登录用户区从 `登录` 切换为 `Sign in`，不恢复独立注册入口。
+- 未登录用户区从 `登录` 切换为 `Sign in`，不出现独立注册入口。
 - 已登录用户菜单、auth shell、settings shell 与 placeholder shell 的
   D1 静态文案随 locale 切换。
 - RouteName、testid、route params 与业务字段不被 locale 改写。
 - D1 generated client 请求携带当前 UI locale 的 `Accept-Language` display hint。
 - 语言选择控件是 `ui-design/src/app.jsx` 一致的 icon dropdown，不是 native select、按钮组或纯状态占位。
-- 旧入口 `welcome`、独立 `voice`、`growth` / `mistakes` / `drill`
+- 非当前入口 `welcome`、独立 `voice`、`growth` / `mistakes` / `drill`
   仍不可达，且场景不读取 `ui-design/src/data.jsx`。
 
 ## 4 执行
@@ -43,4 +43,4 @@ English，并进入 auth / settings / placeholder shell。
 
 场景在 vitest + jsdom 中运行，不写共享数据库，不启动 Kind cluster；trigger.sh
 仅产生 `.test-output/e2e/p0-004-app-shell-language-switch/trigger.log` 作为验证证据，
-cleanup.sh 移除 setup marker，保留日志。
+cleanup.sh 删除 setup marker，保留日志。

@@ -1,168 +1,30 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.3
+> **版本**: 2.5
 > **状态**: completed
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-07
 
 **关联计划**: [plan](./plan.md)
 
-> **2026-07-06 product-scope pruning reconcile**：当前 active checklist 只覆盖 Home + Parse。Phase 5 / P0.017 `jd_match` placeholder、TopBar Job Picks、Home `home-aux-jobpicks` / `home-aux-debrief`、`frontend/src/app/screens/jd_match/`、`frontend/tests/pixel-parity/jd_match.spec.ts` 和 `test/scenarios/e2e/p0-017-jd-match-placeholder/` 已随 D-17 / D-22 退役；以下历史勾选项不得作为恢复实现的依据，当前 gate 是归一与零残留负向验证。
+## Phase 1: Home 当前入口
 
-## Phase 1: Home shell 静态壳 + 路由壳 + i18n（无数据）
+- [x] 1.1 Home 源级复刻当前 `ui-design/src/screen-home.jsx::HomeScreen`：Hero label/title、JD 输入卡、输入卡底部 upload/URL source actions、ready 简历下拉框、创建简历入口、提交区、最近 3 张模拟面试卡片和 More handoff。
+- [x] 1.2 Home 使用 generated client 调 `listResumes`、`listTargetJobs`、`createUploadPresign`、`importTargetJob`；paste/file/URL source discriminator、side-effect idempotency key、错误态和 pending import continuation 均有 focused Vitest 覆盖。
+- [x] 1.3 Home import 前必须显式选择 ready 简历；成功进入 `parse` 时 params 携带真实 `resumeId`。
+- [x] 1.4 BDD-Gate: `E2E.P0.014` 覆盖默认渲染、empty/one/twelve-plus fixtures、3-card cap、More handoff、theme/i18n 和 source/resume/submit layout。
+- [x] 1.5 BDD-Gate: `E2E.P0.015` 覆盖 paste/upload/URL import、4xx/failed path、privacy gate、generated client request contract 和 real-mode generated-client preflight。
 
-- [x] 1.1 新增 `frontend/src/app/screens/home/HomeScreen.tsx`，按当前 `ui-design/src/screen-home.jsx::HomeScreen` 源级复刻 Hero（label/title）+ JD textarea card（含 upload / URL source actions / Submit Btn）+ Resume create CTA；退役 aux cards（JOB PICKS / POST-INTERVIEW）不得渲染。当前 Vitest 断言 `home-hero-label` / `home-hero-title` / `home-jd-textarea` / `home-jd-submit` 存在，并反向断言 `home-hero-sub` / `home-aux-jobpicks` / `home-aux-debrief` 0 命中
-- [x] 1.2 在 `frontend/src/app/App.tsx` route table 中绑定 `home` → `<HomeScreen />`，替换 D1 PlaceholderScreen；Vitest 断言 `App.tsx` 内 `home` route render 命中 `HomeScreen` 而非 PlaceholderScreen
-- [x] 1.3 扩展 `frontend/src/app/i18n/locales/zh.ts` 与 `en.ts` 新增 `home.*` 命名空间（≥14 key 覆盖 tag/title/sub/ph/importBtn/orUpload/active/activeSub/startAfter/startAfterSub/startAfterBtn/jobPicks/jobPicksSub/jobPicksBtn/resumeCreate）；`frontend/src/app/i18n/messages.ts` 类型聚合补齐；Vitest `i18n` 套件断言新 namespace zh/en 同步无缺漏
-- [x] 1.4 新增/维护 `home/HomeScreen.test.tsx`：测 i18n zh/en 切换重绘、空 textarea Submit 按钮 disabled、Resume create CTA 点击调用 `nav("resume_versions", { flow: "create" })`；当前反向断言退役 aux cards 与旧 prototype 中存在但当前真理源已移除的 testid 不命中（`home-aux-jobpicks` / `home-aux-debrief` / `home-pasted-success-*` / `home-mocked-recent-*` 等）
-- [x] 1.5 BDD-Gate: 验证 `E2E.P0.014` 中 home 静态部分（hero + textarea card + aux cards + topbar 高亮）资产构建到 ready 态
-<!-- verified: 2026-05-08 method=vitest HomeScreen 10 tests + App 5 tests PASS; BDD scenario assets deferred to Phase 6 -->
+## Phase 2: Parse 当前确认与 handoff
 
-## Phase 2: Recent mock interviews 列表（消费 listTargetJobs）
+- [x] 2.1 Parse 源级复刻当前 `ui-design/src/screens-p0-complete.jsx::ParseScreen`：4-step loading、preview、failed state、editable basics、requirements、hidden signals、round assumptions、resume binding 和 footer actions。
+- [x] 2.2 Parse 使用 generated client 调 `getTargetJob`、`listResumes`、`updateTargetJob`；polling、same-route target switch、partial update body、idempotency key、failed state 与 privacy gate 均有 focused Vitest 覆盖。
+- [x] 2.3 Parse 继承有效 route `resumeId`；缺失或无效时 Save/Start disabled，直到用户选择 ready 简历或进入创建流程。
+- [x] 2.4 Save plan 进入 `workspace`；Start interview 进入 `workspace(autoStartPractice=1)`；两条路径都必须携带真实 `resumeId`。
+- [x] 2.5 BDD-Gate: `E2E.P0.016` 覆盖 route resume inheritance、explicit resume selection、Save/Start browser gates、request body schema、auth continuation 和 privacy checks。
 
-- [x] 2.1 在 `HomeScreen` 中新增 `useRecentTargetJobs()` hook，通过 D1 generated client 调 `listTargetJobs`（pagination 取首页，`RequestOptions.query.pageSize=12`）；React state 跟踪 loading / data / error 三态；Vitest 断言 generated client `listTargetJobs` 被调用 1 次、query 参数 `pageSize=12`、返回 mockTransport fixture
-- [x] 2.2 新增 `MockInterviewCard.tsx` 与 `MiniRoundRail.tsx` 组件，按 `ui-design/src/screen-home.jsx::MockInterviewCard` lines 148-178 + `MiniRoundRail` lines 188-216 源级复刻；testid `home-recent-mock-card-${id}` 与 `home-recent-mock-rail-${id}`；card view model 只能读取 generated `TargetJob` 字段（`companyName` / `title` / `locationText` / `status` / `updatedAt`），`statusTone` 从 `TargetJob.status` 派生并通过 D2 token 渲染（不硬编码颜色、不读取不存在的 `level` / `nextRound` / `statusTone` fixture 字段）；Vitest 断言 fixture 中 N 张卡片渲染、status pill computed background 对应 token、MiniRoundRail 圆点 currentIndex fallback 正确
-- [x] 2.3 在 `HomeScreen` 中按 `updatedAt desc` 排序；Phase 9 后首页只展示最近 3 条并通过“更多”进入 `workspace` 列表；卡片点击调 `nav("workspace", interviewContextFromTargetJob(j))`，`interviewContextFromTargetJob` 抽到 `frontend/src/app/navigation/interviewContext.ts` 锁定字段集合与 fallback（`targetJobId=id` / `jobId=id` / `planId=plan-${id}` / `jdId=jd-${id}` / `resumeVersionId=resume-unbound` / `roundId=round-technical-1` / `roundName` locale fallback）；Vitest 断言点击 callback 携带完整 7 个字段且不依赖 OpenAPI 未声明字段
-<!-- verified: 2026-05-08 method=vitest HomeRecentMocks.test.tsx 6 tests PASS; L2 remediation confirms a013 latest included and a001 oldest excluded after updatedAt desc sort -->
-- [x] 2.4 在 `openapi/fixtures/TargetJobs/listTargetJobs.json` 扩展 `listTargetJobs` variants（empty / one / 12+），通过 `createFixtureBackedFetch({ scenario })` 按 variant 选择；`make validate-fixtures` 通过
-- [x] 2.5 新增 `home/HomeRecentMocks.test.tsx`：测 fixture variant 三态（empty → 无 card 渲染；1 条 → 1 张卡片；13 条 → 只展示最近 3 张 + `更多` + `updatedAt desc` 排序）；卡片点击 callback 携带正确 params；4xx/5xx → 错误占位
-<!-- verified: 2026-05-08 method=vitest HomeRecentMocks.test.tsx red→green for twelve-plus updatedAt desc order -->
-- [x] 2.6 BDD-Gate: 验证 `E2E.P0.014` 完整版（含 Recent mocks 三态）
-<!-- verified: 2026-05-08 method=vitest HomeRecentMocks 6 tests (default/empty/one-job/twelve-plus variants, sort+limit, interviewContext nav) + HomeScreen 10 tests + MockInterviewCard 6 tests PASS; BDD scenario assets deferred to Phase 6 -->
+## Phase 3: 收口验证
 
-## Phase 3: JD 导入（textarea + upload + URL → importTargetJob）
-
-- [x] 3.1 新增 `JDAssistModal.tsx` 组件，按 `ui-design/src/screen-home.jsx::JDAssistModal` lines 218-262 源级复刻；testid `home-modal-upload-{dropzone,continue,cancel,close}` 与 `home-modal-url-{input,continue,cancel,close}`；外层遮罩点击关闭、ESC 关闭、Continue / Cancel 按钮；Vitest 断言两种模态 DOM、关闭 4 路径（X / 遮罩 / Cancel / ESC）、Continue 调用 `onConfirm` 携带正确 source variant
-- [x] 3.2 在 `HomeScreen` 中接入提交逻辑，三种 source variants 通过 generated client：textarea paste → `importTargetJob` `{ type: "manual_text", rawText }`；upload modal Continue → 先调 `createUploadPresign({ purpose: "target_job_attachment", fileName, contentType, byteSize }, { idempotencyKey })`，取返回 `fileObjectId` 后调 `importTargetJob` `{ type: "file", fileObjectId }`；URL modal Continue → `importTargetJob` `{ type: "url", url }`；`importTargetJob` 同样带 `idempotencyKey`；`targetLanguage` 取当前 UI locale；Vitest 断言三 variants request body schema、`createUploadPresign` fixture、`Idempotency-Key` header 与 OpenAPI discriminator 一致
-<!-- verified: 2026-05-08 method=vitest HomeImport.test.tsx + HomeAuthGate.test.tsx 15 tests PASS; L2 remediation adds en targetLanguage assertion -->
-- [x] 3.3 提交成功后 `nav("parse", { targetJobId, source })`；4xx → 内联错误（textarea 下方 / modal 内）保留输入；5xx → 通用错误 + 重试按钮；Vitest fixture variant 覆盖 422 / 401 / 500 三种 negative 路径
-- [x] 3.4 接入 `requestAuth` pending action：未登录提交时调 `requestAuth({ type: "import_jd", route: "home", params: { source, pendingImportId }, label })`，`pendingImportId` 只引用当前 SPA 会话内存中的待提交 source payload，不携带 JD 原文 / source URL；登录恢复时回到 home 自动重新提交保留的 form state；Vitest `home/HomeAuthGate.test.tsx` 断言 pending action 触发与登录后恢复
-<!-- verified: 2026-05-08 method=vitest HomeAuthGate.test.tsx 4 tests PASS; L2 remediation restores paste import through opaque pendingImportId -->
-- [x] 3.5 隐私反查：Vitest 断言 JD raw text / rawDescription / url 不出现在 `console.log` / URL query / `localStorage` / telemetry payload；redact lint 反查通过；mockTransport spy 仅记录 status code + 调用次数，不记录 body
-<!-- verified: 2026-05-08 method=vitest HomeImport privacy tests + HomeAuthGate route serialization assertions PASS -->
-- [x] 3.6 BDD-Gate: 验证 `E2E.P0.015` paste→import→parse 主路径已具备 home/import 阶段（pre-parse 步骤）
-<!-- verified: 2026-05-08 method=vitest HomeImport 6 tests (paste/url/upload discriminator + Idempotency-Key + error) + HomeAuthGate 3 tests PASS; BDD scenario assets deferred to Phase 6 -->
-
-## Phase 4: Parse 屏（loading + preview + confirm）
-
-- [x] 4.1 新增 `frontend/src/app/screens/parse/ParseScreen.tsx`，按 `ui-design/src/screens-p0-complete.jsx::ParseScreen` lines 6-242 + `RequirementBlock` lines 244-264 源级复刻；loading footer 作为 backend parse metadata / fixture metadata 展示，DOM 与文案追溯 `ui-design`，但不接入前端 LLM；Basic fields 保持 5 槽位 testid `parse-basics-${field}`，其中 title/company/location/notes 可保存，level/language read-only；testid 还包含 `parse-loading-step-${i}`（i=0..3）/ `parse-loading-footer` / `parse-requirement-${kind}-${idx}` / `parse-requirement-${kind}-${idx}-toggle` / `parse-hidden-signal-${idx}` / `parse-round-${idx}` / `parse-action-{cancel,reparse,confirm}`；Vitest 断言所有 testid 存在
-<!-- verified: 2026-05-08 method=vitest ParseScreen.test.tsx 5 tests PASS -->
-- [x] 4.2 状态机驱动 loading→preview：进入 parse 屏只通过 generated client 调 `getTargetJob(targetJobId)`，`analysisStatus=queued|processing` → 轮询；`ready` → 切 preview；`failed` → 错误态；polling 节奏 ≥600ms；progress step 推进与 polling 次数挂钩但不假装代表真实模型步骤；Vitest fake timer 断言 polling 行为、progress 推进节奏、状态切换，并负向断言组件不调用 AI provider、prompt registry、provider secret、LLM endpoint 或 ad hoc parse fetch
-<!-- verified: 2026-05-08 method=vitest ParseFlow.test.tsx 6 tests PASS (ready/failed/queued polling/unmount cleanup) -->
-- [x] 4.3 Preview 渲染 fixture/backend response 中的 title / companyName / locationText / requirements / summary.interviewHypotheses / summary.coreThemes / fitSummary.riskSignals；Basic fields 中 title/company/location/notes inline editable（onChange 仅更新 React state），level/language read-only 且不得进入 `UpdateTargetJobRequest`；Requirements label / evidenceLevel 只读；hit toggle 三态切换 ephemeral；Hidden signals 只展示 backend/API 返回字段 + confidence tag，summary / fitSummary `GenerationProvenance` 缺失时不得本地推断或补写；Round assumptions 4 卡 grid；Vitest 断言 fixture 字段与 UI 双向映射
-<!-- verified: 2026-05-08 method=vitest ParseEdit.test.tsx 10 tests PASS (inline editing, hit toggle, confirm, 4xx error) -->
-- [x] 4.4 Confirm 调 `updateTargetJob(targetJobId, body, { idempotencyKey })`，body 仅 supplied fields（titleHint / companyNameHint / locationText / notes 至多 4 字段）；OpenAPI `UpdateTargetJobRequest.description: All fields optional — only supplied fields are updated.` 由 Vitest request body 与 `Idempotency-Key` header 反查锁定；成功后 `nav("workspace", interviewContextFromTargetJob(targetJob))`；4xx → inline 错误保留编辑态
-<!-- verified: 2026-05-08 method=vitest ParseEdit.test.tsx confirm test validates request body, Idempotency-Key, workspace nav, 4xx error -->
-- [x] 4.5 Re-parse 重置 `stage=loading` 并重新调 `getTargetJob` 触发 polling；abort 当前 polling effect 防止 race；Cancel 跳 `home`；Vitest 断言两种行为
-<!-- verified: 2026-05-08 method=vitest ParseScreen.test.tsx + ParseEdit.test.tsx 17 tests PASS; L2 remediation confirms jsdom scrollTo unavailable path emits no stderr -->
-<!-- verified: 2026-05-08 method=vitest ParseEdit.test.tsx re-parse test + ParseScreen.test.tsx cancel nav test + ParseFlow.test.tsx unmount cleanup -->
-- [x] 4.6 接入 `requestAuth` pending action：Confirm 未登录时调 `requestAuth({ type: "confirm_interview", route: "workspace", params: interviewContextFromTargetJob(targetJob) })`；params 与已登录 `nav("workspace", interviewContextFromTargetJob(targetJob))` 一致，必须携带 `targetJobId` / `jobId` / `jdId` / `planId` / `resumeVersionId` / `roundId` / `roundName`；登录后回到 workspace；Vitest `parse/ParseAuthGate.test.tsx` 断言
-<!-- verified: 2026-05-08 method=vitest ParseAuthGate.test.tsx 1 test PASS (redirects to auth_login, does not call updateTargetJob) -->
-- [x] 4.7 扩展 `frontend/src/app/i18n/locales/zh.ts` / `en.ts` 新增 `parse.*` 命名空间（≥30 key 覆盖 4 步 loading 文案、Basic fields label、Must Have / Nice to Have、Hidden signals、Round assumptions、footer actions、failed state）；i18n test 断言 zh/en 同步
-<!-- verified: 2026-05-08 method=vitest localeFiles.test.ts + localeRuntime.test.tsx + i18nShell.test.tsx 7 tests PASS; parse.* 50 keys zh/en synced -->
-- [x] 4.8 隐私反查：Vitest 断言 JD raw text / GenerationProvenance.promptTemplate / rubric id 完整 hash 不出现在 URL / localStorage / telemetry；mockTransport spy 仅记录 status code
-<!-- verified: 2026-05-08 method=vitest ParseScreen.test.tsx footer negative assertion PASS; loading footer no longer contains provider-specific model or prompt hash -->
-<!-- verified: 2026-05-08 method=code-design ParseScreen only passes data through generated client; no direct JD raw text in console/URL/localStorage/telemetry -->
-- [x] 4.9 新增 5 个测试文件：`parse/ParseScreen.test.tsx`（DOM 锚点）+ `parse/ParseFlow.test.tsx`（polling 三态）+ `parse/ParseEdit.test.tsx`（inline 编辑、hit toggle、Confirm 携带 body schema、4xx inline 错误）+ `parse/ParseFailedState.test.tsx`（failed UI 渲染、重新解析 / 返回首页 2 button）+ `parse/ParseAuthGate.test.tsx`（Confirm pending action）；`pnpm test` Phase 4 测试全 PASS
-<!-- verified: 2026-05-08 method=vitest 24 tests across 5 files all PASS -->
-- [x] 4.10 BDD-Gate: 验证 `E2E.P0.015`（主路径完整 import→parse→preview）+ `E2E.P0.016`（preview 编辑 + Confirm → workspace）
-<!-- verified: 2026-05-08 method=scenario P0.015 setup→trigger→verify→cleanup PASS; P0.016 PASS -->
-- [x] 4.11 L2 regression remediation: `ParseScreen` 在首次 `getTargetJob.analysisStatus=ready` 时不得直接跳 preview；必须先渲染 `parse-loading-step-0..3` 并按 `ui-design` tick 完成 loading 演示后再显示 `parse-basics-title`。Red-Green：`ParseFlow.test.tsx` 先复现 ready 立即 preview，修复后 `pnpm --filter @easyinterview/frontend test src/app/screens/parse` PASS；BDD overlay：`E2E.P0.015` setup→trigger→verify→cleanup PASS。 <!-- evidence: 2026-05-24 focused ParseFlow ready-loading regression PASS; parse suite 27 tests PASS; P0.015 scenario trigger real-mode gate 1/1 + home/parse 54 tests PASS; verify PASS -->
-- [x] 4.12 Scenario browser gate hardening: `E2E.P0.015` trigger 必须运行 `frontend/tests/pixel-parity/parse.spec.ts` 的 ready-response Playwright gate；fixture-backed ready `getTargetJob` 响应下截图 `route-parse` loading DOM，断言 `parse-basics-title` 在 loading window 内不存在，tick 完成后才出现；verify.sh 必须 grep browser gate marker 与 screenshot bytes。 <!-- evidence: 2026-05-24 P0.015 trigger includes Playwright parse.spec ready-response browser gate + screenshotBytes marker; verify PASS -->
-- [x] 4.13 P0.016 route/context remediation: `ParseScreen` Confirm 必须复用 `interviewContextFromTargetJob(targetJob)`；已登录 navigate 与未登录 `requestAuth(pendingAction)` 均携带 `targetJobId` / `jobId` / `jdId` / `planId` / `resumeVersionId` / `roundId` / `roundName`；`E2E.P0.016` trigger 必须运行 Playwright browser gate，点击 Confirm 后验证 `/workspace` query、`workspace-missing-resume` DOM 与 screenshot bytes marker，verify.sh 必须 grep 完整 contextKeys marker。 <!-- evidence: 2026-05-24 Red: ParseEdit/AuthGate failed missing jobId/roundName; Green: focused ParseEdit/AuthGate 13 tests PASS; frontend build PASS; focused Playwright parse confirm gate desktop/mobile PASS screenshotBytes=20243/83490; P0.016 setup→trigger→verify→cleanup PASS -->
-- [x] 4.14 Same-route `targetJobId` switch remediation: 同一 mounted `ParseScreen` 从 preview 收到新的 `targetJobId` 时必须清空旧 `targetJob` / editable fields / hit toggles / error / pending ready state，回到 loading gate，并在 tick 完成后 hydrate 新 TargetJob；`ParseFlow.test.tsx` 必须用 `rerender` 覆盖旧 title 消失、新 loading DOM 出现、新 title 最终渲染。 <!-- evidence: 2026-05-24 Red: focused ParseFlow rerender regression stayed on old preview; Green: focused ParseFlow 7 tests PASS; parse suite 28 tests PASS; frontend build PASS; P0.015/P0.016 setup→trigger→verify PASS -->
-
-## Phase 5: jd_match P1 Placeholder Shell（历史，D-17 后退役）
-
-> 历史记录：以下勾选项曾在 2026-05-08 完成，但 D-17 后不再是当前 implementation target。当前 active gate 是 `jd_match` / Job Picks / JobMatch / P0.017 零残留与 legacy route 归一。
-
-- [x] 5.1 历史新增 `frontend/src/app/screens/jd_match/JDMatchScreen.tsx`；当前已退役，不得恢复。当前负向 gate 要求 active source 中 `frontend/src/app/screens/jd_match/`、`jdmatch-hero-*`、`jdmatch-tab-*`、`jdmatch-placeholder*` 0 命中（历史文档除外）
-<!-- verified: 2026-05-08 method=vitest JDMatchPlaceholder.test.tsx 6 tests PASS -->
-- [x] 5.2 历史 route binding 已退役；当前 `jd_match` route key / `/jd-match` 只允许 normalize 回 `home`，TopBar `topbar-nav-jd_match` 与 Home Job Picks aux card 0 命中
-<!-- verified: 2026-05-08 method=vitest route binding verified via JDMatchPlaceholder.test.tsx shell data-route-name assertion -->
-- [x] 5.3 历史 i18n `jdMatch.*` 命名空间已退役；当前 active locale 不得恢复 `jdMatch.*` 或 `nav.jd_match`
-<!-- verified: 2026-05-08 method=vitest localeFiles.test.ts + localeRuntime.test.tsx PASS; 16 jdMatch keys zh/en synced -->
-- [x] 5.4 历史 placeholder tests 已退役；当前测试应覆盖 legacy route normalize 与 retired business testid / Home aux card / TopBar 入口 0 命中
-<!-- verified: 2026-05-08 method=vitest JDMatchPlaceholder.test.tsx 6 tests PASS (hero, profile chip, 3 tabs, placeholder, negative assertions) -->
-- [x] 5.5 Historical BDD-Gate: `E2E.P0.017` 已退役，不再作为当前 gate；零残留由 product-scope pruning / frontend negative gates 承接
-<!-- verified: 2026-05-08 method=scenario P0.017 setup→trigger→verify→cleanup PASS -->
-
-## Phase 6: 验证收口（pixel parity + scenario + regression rerun）
-
-- [x] 6.1 新增 `frontend/tests/pixel-parity/home.spec.ts` 覆盖 desktop (1440×900) + mobile (390×844) 两 chromium project：DOM 锚点 + bounding box stays in viewport, no overlap + warm/light → dark → customAccent 三态切换 computed 颜色变化 + toHaveScreenshot baseline；mobile 断言 textarea card 不溢出、Recent mocks 网格自然成单列、aux cards 折叠
-<!-- verified: 2026-05-08 method=playwright --list discovers 4 home tests × 2 viewports; execution requires pnpm build + pixel parity server -->
-- [x] 6.2 新增 `frontend/tests/pixel-parity/parse.spec.ts` 覆盖 desktop + mobile：loading 4 步进度条与 footer DOM；preview Basic fields / Requirements 双列 / Hidden signals / Round assumptions / footer actions 锚点；mobile 断言 Requirements 折单列、Round assumptions grid 折单/双列；warm/light → dark → customAccent 三态可见变化
-<!-- verified: 2026-05-08 method=playwright --list discovers 3 parse tests × 2 viewports; full fixture-backed parse flow deferred to E2E.P0.015/016 scenarios -->
-- [x] 6.3 历史 `frontend/tests/pixel-parity/jd_match.spec.ts` 已退役；当前 active parity 只覆盖 home / parse，并通过负向搜索确保 jd_match parity spec 不恢复
-<!-- verified: 2026-05-08 method=playwright --list discovers 3 jd_match tests × 2 viewports; negative testid assertions cover jdmatch-card-*, jdmatch-saved-search-*, jdmatch-watchlist-*, jdmatch-market-signal-*, jdmatch-search-bar -->
-- [x] 6.4 `pnpm --filter @easyinterview/frontend test:pixel-parity` 当前只累加 home / parse active spec；历史 jd_match parity spec 不再计入当前完成条件
-<!-- verified: 2026-05-08 method=playwright 68/68 PASS (34 specs × 2 viewports); baseline updated for home screen changes -->
-- [x] 6.5 当前 active scenario 目录为 `test/scenarios/e2e/p0-014-home-default-render/` `p0-015-jd-import-and-parse/` `p0-016-parse-confirm-to-workspace/`；历史 `p0-017-jd-match-placeholder/` 已退役。active verify 脚本断言对应 testid 命中、retired-entry grep 0 命中、新增 spec 全 PASS marker
-<!-- verified: 2026-05-08 method=scenario P0.014/P0.015/P0.016/P0.017 setup→trigger→verify→cleanup PASS; P0.006 verify repaired to current 68-test parity suite -->
-- [x] 6.6 `test/scenarios/e2e/INDEX.md` P0 表当前只保留 Home / Parse active 场景；历史 jd_match P1 placeholder 行随 D-17 删除
-<!-- verified: 2026-05-08 method=fs INDEX.md updated with P0.014-P0.017 rows -->
-- [x] 6.7 Regression 重跑：`E2E.P0.001 / 002 / 004 / 005 / 006` 全部 setup→trigger→verify→cleanup PASS
-<!-- verified: 2026-05-08 method=scenario P0.001/P0.002/P0.004/P0.005/P0.006 setup→trigger→verify→cleanup PASS; P0.006 Playwright 68/68 PASS -->
-- [x] 6.8 全量验证：`pnpm --filter @easyinterview/frontend test`、`pnpm --filter @easyinterview/frontend typecheck`、`pnpm --filter @easyinterview/frontend build` 全 PASS；`make build` 全 PASS
-<!-- verified: 2026-05-08 method=vitest frontend 52 files / 324 tests PASS; typecheck PASS; frontend build PASS; make build PASS; make validate-fixtures PASS -->
-- [x] 6.9 文档与索引同步：`/sync-doc-index --fix-index` 把 `docs/spec/INDEX.md` 与 `docs/spec/frontend-home-job-picks-and-parse/plans/INDEX.md` 同步到 Header 当前；`check_md_links` 双 OK
-<!-- verified: 2026-05-08 method=make docs-check zero drift; check_md_links double OK -->
-- [x] 6.10 负向搜索：`frontend/src/` 内不 import `ui-design/src/data.jsx` / `window.EI_DATA` 0 命中；旧 prototype jd_match 业务 testid 与旧 route alias 0 命中（除 negative 断言文件与 `normalizeRoute` alias map）；JD raw text 不在 console.log/URL/localStorage/telemetry 0 命中；AI provider key / provider registry / prompt registry / AIClient / LLM endpoint / bypass generated client 的 parse fetch 0 命中（除测试负向断言与纯 UI 文案 fixture）
-<!-- verified: 2026-05-08 method=rg runtime source negative searches passed; excluded README/test negative assertions and normalizeRoute alias map where applicable -->
-- [x] 6.11 BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016` 全部 setup→trigger→verify→cleanup PASS + D1+D2+D3 P0.001/002/004/005/006 regression PASS；`E2E.P0.017` 已退役
-<!-- verified: 2026-05-08 method=scenario P0.014/P0.015/P0.016/P0.017 plus P0.001/P0.002/P0.004/P0.005/P0.006 all setup→trigger→verify→cleanup PASS -->
-- [x] 6.12 L2 remediation：真实 backend 联调闭环。新增 `frontend/src/api/targetJob.realApiMode.test.ts` 覆盖 `VITE_EI_API_MODE=real` 下 `listTargetJobs` / `createUploadPresign` / `importTargetJob` / `getTargetJob` / `updateTargetJob` 的真实 backend base URL、`credentials: "include"`、默认无 fixture `Prefer` header、3 个 side-effect `Idempotency-Key` 与 `GenerationProvenance` roundtrip；P0.014-P0.016 trigger/verify 必须先跑该 real-mode gate 再跑 fixture-backed UI variants；原地更新 plan/spec/BDD/scenario docs，删除 TargetJobs/import/parse 仍为 `not-yet-implemented` 的 stale 口径；重跑 P0.014-P0.016 + backend P0.010-P0.013 + upload focused route/handler tests + docs drift gates。 <!-- evidence: 2026-05-22 focused real-mode vitest PASS (1 file / 1 test); P0.014 PASS (real gate 1/1 + Home 3 files / 22 tests); P0.015 PASS (real gate 1/1 + Home/Parse import flow 7 files / 54 tests; existing React act warnings only); P0.016 PASS (real gate 1/1 + Parse confirm 2 files / 13 tests); backend P0.010/P0.011/P0.012/P0.013 all setup→trigger→verify→cleanup PASS; backend upload focused tests PASS (`go test ./cmd/api -run TestBuildUploadRoutesAlignsIdempotencyTTLWithPresignTTL -count=1`; `go test ./internal/upload/handler -run 'TestCreateUploadPresignReturnsCreatedResponse|TestCreateUploadPresignIdempotencyReplayAndTTL' -count=1`) -->
-
-## Phase 7: Parse 简历绑定强制门禁（2026-06-30 修订）
-
-- [x] 7.1 新增 `frontend/src/app/screens/parse/ParseResumeBinding.test.tsx` 红灯：ready Parse preview 必须调用 `listResumes`，渲染 `parse-launch`、`parse-resume-binding`、`parse-action-save-plan`、`parse-action-start-interview`；有 ready 简历时不得默认选中，Save/Start 在用户显式选择前必须 disabled。
-  - Evidence 2026-06-30: Red `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/parse/ParseResumeBinding.test.tsx` failed with `expected "listResumes" to be called 1 times, but got 0 times`; Green same command passed after `ParseScreen` added resume binding.
-- [x] 7.2 实现 Parse resume binding：`ParseScreen` 读取 `listResumes`，过滤 `parseStatus=ready` 且未 archived 的简历，不默认选中；渲染简历绑定卡、显式选择列表 / 弹窗锚点和创建简历入口；无 ready 简历或读取失败时禁用 `立即面试` 与 `仅保存规划`，点击 `parse-resume-create` 导航 `resume_versions` `{ flow: "create" }`。
-  - Evidence 2026-06-30: `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/parse/ParseResumeBinding.test.tsx` passed after explicit-selection remediation, covering ready list no-default disabled state, user click enablement, empty-state disabled actions, and Start handoff with the clicked resume id.
-- [x] 7.3 修复 Parse handoff：用户显式选择简历后，`仅保存规划` 保存 `updateTargetJob` 后进入 `workspace` 并携带真实 `resumeId`；`立即面试` 保存同一编辑字段后进入 `workspace` 并携带 `autoStartPractice=1`，由现有 workspace `useStartPractice` 链路创建 session 后进入 `practice`；focused tests 反向断言 `resume-unbound` 不在成功 params 中，未登录且无 verified ready 简历时不得产生成功 pendingAction。
-  - Evidence 2026-06-30: `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/parse` passed 6 files / 32 tests, including Save plan real `resumeId`, Start interview `autoStartPractice=1`, and unauthenticated disabled no-handoff negative coverage.
-- [x] 7.4 BDD-Gate: 修订并验证 `E2E.P0.016`：trigger/verify/README/expected outcome 证明 Parse 成功出口不再渲染 `workspace-missing-resume`，并拒绝 `resume-unbound` 成功 marker。
-  - Evidence 2026-06-30: `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` all PASS. Trigger includes real API gate, focused Parse Vitest, frontend build, and Playwright desktop/mobile Save/Start browser gates with real ready `resumeId`.
-
-## Phase 8: Home 首页选择已有简历后立即面试（2026-07-06 修订）
-
-- [x] 8.1 修订 UI 真理源与文档：`ui-design/src/screen-home.jsx` 删除旧 hero sub，主按钮改为「立即面试」/ `Start interview now`，新增“选择已有简历”控件并与“还没有简历？1 分钟创建 →”并排；同步 `docs/ui-design/*` 与 owner spec / plan / BDD。
-  - Evidence 2026-07-06: `ui-design/src/screen-home.jsx`, `docs/ui-design/{ui-architecture,module-job-workspace,jd-resume-management,removed-modules-and-scope}.md`, owner spec / plan / BDD docs updated; `test/scenarios/e2e/p0-014-home-default-render/scripts/verify.sh` rejects the retired Home copy outside tests.
-- [x] 8.2 新增 Red 测试 `frontend/src/app/screens/home/HomeResumeSelection.test.tsx`：Home 必须调用 `listResumes`、过滤 ready + active 简历、渲染 `home-resume-select` / `home-resume-option-*`，未显式选择时 `home-jd-submit` disabled 且不调用 `importTargetJob` / `requestAuth`；旧 `home-hero-sub` 与「解析并确认面试」在 Home 0 命中。
-  - Evidence 2026-07-06: focused Red failed before implementation on missing `home-resume-select` / old hero sub / missing `listResumes`; Green `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeResumeSelection.test.tsx` passed 3 tests.
-- [x] 8.3 实现 Home resume binding：显式选择 ready 简历后才允许 paste / upload / URL import；成功 `navigate("parse")` params 必须包含真实 `resumeId`；无 ready 简历或读取失败时展示创建入口，点击 `home-resume-create` 进入 `resume_versions` `{ flow: "create" }`。
-  - Evidence 2026-07-06: `HomeScreen` calls `listResumes`, filters ready active resumes, disables import before selection, and passes selected `resumeId` to parse; `HomeImport.test.tsx`, `HomeAuthGate.test.tsx`, `HomeRecentMocks.test.tsx`, and `HomeScreen.test.tsx` all passed.
-- [x] 8.4 实现 Parse 继承首页显式 `resumeId`：`route.params.resumeId` 命中 ready 简历时作为当前选择；缺失、无效或已归档时仍保持 Phase 7 阻断；focused tests 反向断言不恢复默认选中最近简历。
-  - Evidence 2026-07-06: `ParseResumeBinding.test.tsx` passed 5 tests including `inherits a valid route resumeId from the Home immediate interview handoff`; missing route `resumeId` path still requires explicit selection.
-- [x] 8.5 BDD-Gate: 修订并验证 `E2E.P0.015` / `E2E.P0.016`：Home gate 证明旧 hero sub 0 命中、按钮为「立即面试」、选择前 disabled、选择后 import 跳 parse 且带真实 `resumeId`；Parse gate 证明继承 route `resumeId` 后 Save/Start handoff 仍拒绝 `resume-unbound`。
-  - Evidence 2026-07-06: `test/scenarios/e2e/p0-014-home-default-render/scripts/trigger.sh` + `verify.sh`, `p0-015-jd-import-and-parse/scripts/trigger.sh` + `verify.sh`, and `p0-016-parse-confirm-to-workspace/scripts/trigger.sh` + `verify.sh` all exited 0.
-
-## Phase 9: Home 下拉选择简历 + Recent mocks 三条快捷入口（2026-07-06 修订）
-
-- [x] 9.1 修订 UI 真理源与文档：`ui-design/src/screen-home.jsx` 把“选择已有简历”改为 dropdown / combobox，Recent mock interviews 最多 3 张卡片并在超过 3 条时显示“更多”；同步 `docs/ui-design/*`、owner spec / plan / BDD 与 P0.014 / P0.015 场景说明。
-  - Evidence 2026-07-06: `ui-design/src/screen-home.jsx`, `ui-design/ui-design-contract.test.mjs`, `docs/ui-design/{ui-architecture,module-job-workspace,jd-resume-management}.md`, owner spec / plan / BDD docs, and P0.014 / P0.015 scenario docs were updated for dropdown resume selection, 3-card recent cap, and `更多` workspace handoff.
-- [x] 9.2 新增 Red 测试：`HomeResumeSelection.test.tsx` 断言 `home-resume-select` 是下拉框、选择通过 `selectOptions` 完成，旧平铺 button 列表不出现；`HomeRecentMocks.test.tsx` 断言 `twelve-plus` 仅渲染 3 张卡片，`home-recent-more` 点击跳转 `workspace`。
-  - Evidence 2026-07-06: Red failed before implementation because `home-resume-select` was a `DIV` instead of `SELECT`, and `HomeRecentMocks.test.tsx` rendered 12 cards instead of 3 for the twelve-plus variant.
-- [x] 9.3 实现 Home 行为：正式前端使用 native select / combobox 选择 ready 简历，保留未选择时 import disabled 与真实 `resumeId` 透传；recent mocks 仍按 `updatedAt desc` 排序但 UI `slice(0, 3)`；“更多”通过受保护路由跳转 `workspace`。
-  - Evidence 2026-07-06: `HomeScreen` renders `home-resume-select` as native `select`, keeps the explicit ready resume import gate, slices recent mocks to 3 after `updatedAt desc` sorting, and navigates `home-recent-more` to `workspace`; focused Home tests, i18n tests, UI contract, typecheck, frontend build, and home pixel-parity gate all passed.
-- [x] 9.4 BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015`：P0.014 证明 dropdown、3-card cap、`更多` 跳转；P0.015 证明 dropdown 选择的真实 `resumeId` 继续随 import route 进入 parse。
-  - Evidence 2026-07-06: `test/scenarios/e2e/p0-014-home-default-render/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` all exited 0; `test/scenarios/e2e/p0-015-jd-import-and-parse/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` all exited 0.
-
-## Phase 10: Home 新建规划输入源与 CTA 布局收敛（2026-07-06 修订）
-
-- [x] 10.1 修订 UI 真理源与文档：`ui-design/src/screen-home.jsx` 将 Home 新建规划入口拆清 JD 输入/source controls 区、简历选择区和提交区，简历下拉框定宽并与“还没有简历？1 分钟创建 →”同排，`立即面试` 移到简历选择下方；source actions 当前输入卡内归属由 Phase 11 精化；同步 `docs/ui-design/*`、owner spec / plan / BDD 与 P0.014 / P0.015 场景说明。Evidence: 2026-07-06 updated `ui-design/src/screen-home.jsx`, `docs/ui-design/*`, owner spec/plan/BDD docs, and P0.014/P0.015 scenario docs/scripts.
-- [x] 10.2 新增 Red 测试：`HomeLayout.test.tsx` 断言 `home-resume-row`、`home-submit-row` 的层级与顺序；断言 `home-resume-select` 不撑满整页，`home-jd-submit` 不在 textarea card 内；原 source panel 归属断言已被 Phase 11 输入卡内整合 gate 替换。Evidence: red run `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeLayout.test.tsx` failed 3/3 before implementation on missing layout anchors.
-- [x] 10.3 实现 Home 布局：正式前端源级复刻 `ui-design`，保留 paste / upload / URL 的 generated client 行为、ready resume gate、真实 `resumeId` 透传、import error 与 pending auth 行为。
-  - Evidence 2026-07-06: `HomeScreen.tsx` renders compact `home-resume-row` and `home-submit-row`; Phase 11 supersedes the temporary independent source panel with `home-jd-source-controls` inside `home-jd-input-card`; focused command `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeLayout.test.tsx src/app/screens/home/HomeScreen.test.tsx src/app/screens/home/HomeResumeSelection.test.tsx src/app/screens/home/HomeImport.test.tsx src/app/screens/home/HomeAuthGate.test.tsx src/app/screens/home/HomeRecentMocks.test.tsx src/app/i18n/localeFiles.test.ts` passed 7 files / 41 tests; `node ui-design/ui-design-contract.test.mjs` passed 29 tests; typecheck and build exited 0.
-- [x] 10.4 BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015`：P0.014 证明新布局锚点和几何关系；P0.015 证明新布局下 paste / upload / URL 仍使用同一个显式 ready 简历并传到 parse。
-  - Evidence 2026-07-06: `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend exec playwright test tests/pixel-parity/home.spec.ts` passed 10 tests across desktop/mobile; `test/scenarios/env-setup.sh` and `env-verify.sh` exited 0; `test/scenarios/e2e/p0-014-home-default-render/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` exited 0; `test/scenarios/e2e/p0-015-jd-import-and-parse/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` exited 0.
-
-## Phase 11: Home JD source actions 输入卡内整合（2026-07-06 修订）
-
-- [x] 11.1 修订 UI 真理源与文档：`ui-design/src/screen-home.jsx` 把上传 JD 文件与 URL 导入回收到 `home-jd-input-card` 底部 `home-jd-source-controls`，删除独立 `home-upload-source-panel` / `home-source-layout` 双栏结构；同步 `docs/ui-design/*`、owner spec / plan / BDD 与 P0.014 / P0.015 场景说明。
-  - Evidence 2026-07-06: updated `ui-design/src/screen-home.jsx`, `docs/ui-design/{ui-architecture,module-job-workspace,jd-resume-management,INDEX}.md`, owner spec / plan / checklist / BDD docs, and P0.014 / P0.015 scenario docs for integrated source controls.
-- [x] 11.2 更新 Red 测试：`HomeLayout.test.tsx` 断言 `home-jd-input-card` 包含 `home-jd-source-controls`、`home-upload-trigger`、`home-url-trigger`，并反向断言 `home-upload-source-panel` / `home-source-layout` 0 命中；`home-jd-submit` 仍在 `home-submit-row` 且不在输入卡内。
-  - Evidence 2026-07-06: red run `CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeLayout.test.tsx` failed before implementation on missing `home-jd-source-controls` and existing old source layout; green focused rerun passed 3 tests after implementation.
-- [x] 11.3 实现 Home 输入卡内 source controls：正式前端源级复刻 `ui-design`，保留 paste / upload / URL generated client 行为、ready resume gate、真实 `resumeId` 透传、import error 与 pending auth 行为。
-  - Evidence 2026-07-06: `HomeScreen.tsx` renders `home-jd-source-controls` inside `home-jd-input-card` and no longer renders `home-source-layout` / `home-upload-source-panel`; focused Home command passed 7 files / 41 tests; `node ui-design/ui-design-contract.test.mjs` passed 29 tests; typecheck and build exited 0; Home pixel parity passed 10 desktop/mobile tests.
-- [x] 11.4 BDD-Gate: 验证 `E2E.P0.014` / `E2E.P0.015`：P0.014 证明 source actions 在输入卡内、独立 upload panel 不存在、简历与 submit 布局不回退；P0.015 证明整合布局下 paste / upload / URL 仍使用同一个显式 ready 简历并传到 parse。
-  - Evidence 2026-07-06: `test/scenarios/env-setup.sh` and `env-verify.sh` exited 0; `test/scenarios/e2e/p0-014-home-default-render/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` exited 0; `test/scenarios/e2e/p0-015-jd-import-and-parse/scripts/setup.sh`, `trigger.sh`, `verify.sh`, `cleanup.sh` exited 0.
+- [x] 3.1 `validate_context.py frontend-home-job-picks-and-parse/001 frontend` 通过。
+- [x] 3.2 Focused Home/Parse Vitest、frontend typecheck 与 `make validate-fixtures` 通过。
+- [x] 3.3 `E2E.P0.014`、`E2E.P0.015`、`E2E.P0.016` 的 `setup -> trigger -> verify -> cleanup` 通过。
+- [x] 3.4 `sync-doc-index --check`、`make docs-check`、`git diff --check` 和 `make lint-core-loop-pruning-surface` 通过。

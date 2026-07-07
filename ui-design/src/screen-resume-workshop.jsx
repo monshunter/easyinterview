@@ -1,5 +1,5 @@
 // Resume workshop — flat IA (D-20): a plain list of resume assets.
-// No version tree, no master/targeted split, no branch flow. Each resume keeps
+// Flat resume list. Each resume keeps
 // its read-only original source plus structured content. Rewrites are
 // accept-only; accepted rewrites are saved via an explicit preview step that
 // either overwrites this resume or saves a new one.
@@ -989,7 +989,7 @@ const ResumePreviewConfirm = ({ T, lang, sourceLabel, onConfirm, onBack }) => {
   );
 };
 
-// ─── Create flow — upload or paste only (guided Q&A removed, D-20) ──
+// ─── Create flow — upload or paste only (guided Q&A outside current scope, D-20) ──
 const ResumeCreateFlow = ({ T, lang, nav, onBack, onCreateResume }) => {
   const [stage, setStage] = React.useState("input"); // "input" | "parsing" | "preview"
   const [createMode, setCreateMode] = React.useState("upload");

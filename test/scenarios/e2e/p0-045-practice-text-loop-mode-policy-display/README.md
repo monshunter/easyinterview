@@ -25,7 +25,7 @@ practice fixture 数据就绪：`getPracticeSession=default`；`appendSessionEve
 - strict 模式下 hint button DOM 0 命中 + strict-mode banner 渲染
 - pause 后 send / hint / skip 三按钮 disabled，再点击 0 个 POST
 - RoleDropdown 切换 0 个 generated client 调用
-- 旧口径负向 grep（retired practice goal / `切到语音` / `Switch to voice` / voice imports / 旧 testid / `Idempotency-Key.*appendSessionEvent` / 独立 voice route）全部 0 命中
+- 非当前输入负向 grep（non-current practice goal / `切到语音` / `Switch to voice` / voice imports / 非当前 testid / `Idempotency-Key.*appendSessionEvent` / 独立 voice route）全部 0 命中
 
 ## 4 执行
 

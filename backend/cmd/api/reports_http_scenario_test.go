@@ -261,7 +261,7 @@ func TestE2EP0054ReportAIFailureAndRetry(t *testing.T) {
 	}
 }
 
-func TestE2EP0055ReportPrivacyAndLegacy(t *testing.T) {
+func TestE2EP0055ReportPrivacyAndNonCurrent(t *testing.T) {
 	h := newReportHTTPScenarioHarness(t)
 	now := time.Date(2026, 5, 15, 23, 30, 0, 0, time.UTC)
 	privateID := reportScenarioUUID(55)
@@ -282,10 +282,10 @@ func TestE2EP0055ReportPrivacyAndLegacy(t *testing.T) {
 	assertNoReportScenarioLeak(t, raw, "question_text", "answer_text", "hint_text", "prompt body", "response body", "provider secret")
 	assertNoReportScenarioLeak(t, targetRaw, "question_text", "answer_text", "hint_text", "prompt body", "response body", "provider secret")
 
-	cmd := exec.Command("python3", "../../../scripts/lint/backend_review_legacy.py", "--repo-root", "../../..", "--phase", "all")
+	cmd := exec.Command("python3", "../../../scripts/lint/backend_review_non_current.py", "--repo-root", "../../..", "--phase", "all")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("backend_review_legacy failed: %v\n%s", err, string(out))
+		t.Fatalf("backend_review_non_current failed: %v\n%s", err, string(out))
 	}
 }
 
@@ -312,7 +312,7 @@ runtime:
 		reportScenarioUserAID: authStore.addSession(reportScenarioUserAID, "candidate-a@example.com", "report-token-a"),
 		reportScenarioUserBID: authStore.addSession(reportScenarioUserBID, "candidate-b@example.com", "report-token-b"),
 	}
-	authService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	authService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               authStore,
 		SessionCookieSecret: "report-scenario-secret",
 		Now:                 fixedScenarioNow,

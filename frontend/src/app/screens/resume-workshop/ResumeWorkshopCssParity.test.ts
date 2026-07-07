@@ -38,7 +38,7 @@ describe("Resume Workshop source-level CSS parity", () => {
     expect(source).toContain("box-shadow: 0 18px 50px rgba(30, 22, 15, 0.10)");
   });
 
-  it("does not keep retired tree/version/branch styling after D-20", () => {
+  it("does not keep non-current tree/version/branch styling after D-20", () => {
     const source = css();
     for (const selector of [
       ".ei-resume-workshop-stats",
@@ -50,7 +50,7 @@ describe("Resume Workshop source-level CSS parity", () => {
       ".ei-resume-detail-branch-graph",
       ".ei-resume-branch-flow",
     ]) {
-      expect(source, `${selector} should remain retired`).not.toContain(selector);
+      expect(source, `${selector} should remain absent`).not.toContain(selector);
     }
   });
 });

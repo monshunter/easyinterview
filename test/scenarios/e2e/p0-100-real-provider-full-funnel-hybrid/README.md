@@ -24,7 +24,7 @@
 - storage: `make dev-up` 提供的真实 Postgres / Redis / MinIO / Mailpit。
 - AI: `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 指向真实 OpenAI-compatible provider，当前默认 DeepSeek。
 - raw debug: `AI_DEBUG_PRINT_RAW_OUTPUT=true` 必须来自 `deploy/dev-stack/.env`，用于本地捕获真实 provider 输出格式；raw 内容只保留在本机 backend stderr / `.test-output/` 调试日志，不写入验收报告。
-- account: 使用 synthetic 邮箱 `manual-uat-full-funnel@example.test` 触发真实 passwordless flow，并从 Mailpit `http://127.0.0.1:8025` 读取 6 位 code。
+- account: 使用 synthetic 邮箱 `manual-uat-full-funnel@example.test` 触发真实 email-code flow，并从 Mailpit `http://127.0.0.1:8025` 读取 6 位 code。
 
 `test/scenarios` 目录只承接 runbook、材料、shell/Python 辅助和检查脚本；不得新增 `backend/cmd` / Go helper，也不得通过直接写 `sessions` 表绕过被测 auth flow。
 
@@ -118,7 +118,7 @@ go run ./backend/cmd/api
 
 - 后端监听 `:8080`。
 - 缺 `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` 时 fail-fast。
-- 缺真实 `AI_PROVIDER_API_KEY` 时 AIClient-enabled runtime fail-fast 或后续 AI 调用失败；不得自动降级到 stub。
+- 缺真实 `AI_PROVIDER_API_KEY` 时 AIClient-enabled runtime fail-fast 或后续 AI 调用失败；不得自动回退到 stub。
 
 ### 6.3 Mailpit Email-Code 登录
 

@@ -25,7 +25,7 @@ if rg -n 'window\.EI_DATA|getPracticeSampleQuestions|getPracticeSampleTranscript
   exit 1
 fi
 if rg -n 'practice-mode-card-|growth-summary|drill-builder-|mistakes-queue-' "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then
-  echo "E2E.P0.044: forbidden legacy testid leaked into practice runtime" >&2
+  echo "E2E.P0.044: forbidden non-current testid leaked into practice runtime" >&2
   exit 1
 fi
 if rg -n '\bgetFeedbackReport\b' "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then

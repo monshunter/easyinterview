@@ -32,7 +32,7 @@ describe('enum union literals', () => {
     expect(ALL_PRIVACY_REQUEST_STATUSES).toContain('queued');
     expect(ALL_PRIVACY_REQUEST_STATUSES).toContain('cancelled');
   });
-  it('D-20 retired the resume version-tree enums (flatten)', () => {
+  it('D-20 keeps resume version-tree enums out of current generated types (flatten)', () => {
     // ResumeVersionType / ResumeSeedStrategy / ResumeTailorSuggestionStatus
     // were dropped when resumes flattened to a single asset (no version tree,
     // no structured master, accept-only rewrites). Guard zero residue.

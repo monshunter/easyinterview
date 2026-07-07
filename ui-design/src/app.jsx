@@ -64,7 +64,6 @@ const ROUTE_ALIASES = {
   auth_register: "auth_login",
   auth_reset: "auth_login",
   jd_match: "home",
-  company_intel: "workspace",
   debrief: "home",
   debrief_full: "home",
   profile: "home",

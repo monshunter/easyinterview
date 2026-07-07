@@ -1,8 +1,8 @@
 # Backend Resume Asset Register Parse and Listing Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-07
 
 **关联计划**: [plan](./plan.md)
 

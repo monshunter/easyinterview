@@ -4,7 +4,7 @@ import "testing"
 
 func TestBuildEmailDispatchPayload(t *testing.T) {
 	t.Run("rejects redacted fields", func(t *testing.T) {
-		for _, field := range []string{"rawMagicLinkToken", "magicLinkUrl", "recipientEmail", "emailBody"} {
+		for _, field := range []string{"rawEmailCode", "emailVerificationUrl", "recipientEmail", "emailBody"} {
 			_, err := BuildEmailDispatchPayload(map[string]string{
 				"authChallengeId": "challenge-1",
 				field:             "secret",

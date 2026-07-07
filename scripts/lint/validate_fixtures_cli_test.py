@@ -114,7 +114,7 @@ class ValidatorCliTest(unittest.TestCase):
         self.assertNotEqual(out.returncode, 0)
         self.assertIn("operationId", out.stderr + out.stdout)
 
-    def test_d20_retired_resume_fixture_key_fails(self) -> None:
+    def test_d20_non_current_resume_fixture_key_fails(self) -> None:
         rel = "openapi/fixtures/ResumeTailor/requestResumeTailor.json"
         data = self._read(rel)
         body = data["scenarios"]["default"]["request"]["body"]

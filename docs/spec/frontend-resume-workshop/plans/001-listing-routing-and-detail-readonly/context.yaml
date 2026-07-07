@@ -4,10 +4,9 @@ metadata:
   subspec: frontend-resume-workshop
   name: 001-listing-routing-and-detail-readonly
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
-    to: 1.3
+    to: 1.7
 spec:
   defaultTarget: frontend
   discovery:
@@ -16,33 +15,23 @@ spec:
       - 001-listing-routing-and-detail-readonly
       - ResumeWorkshopScreen
       - ResumeListView
-      - ResumeTreeView
-      - ResumeFlatView
       - ResumeDetailView
-      - ResumeVersionRow
-      - resume-workshop-route-takeover
-      - D-X
+      - resume-workshop-flat-list
+      - resume-detail-preview
     keywords:
-      - resume workshop route takeover
-      - placeholder screen replacement
-      - resume list view tree flat
-      - resume detail preview readonly
-      - 查看原件 modal focus trap
-      - resume version row indent tag match
-      - adapter resume asset to source
-      - generated client mock first
+      - resume workshop route shell
+      - flat resume list table
+      - resumeId detail preview
       - resume auth gate no fetch before login
-      - listResumeVersions scenario scoped aggregation
-      - fixture derived counts pagination partial failure
-      - getResume original asset modal source text
-      - exportResumeVersion P0 501 toast fallback Idempotency-Key
-      - ui parity gate desktop mobile
-      - bounding box screenshot smoke optional diff
+      - listResumes fixture backed rows
+      - getResume original modal source text
+      - exportResume P0 501 toast fallback Idempotency-Key
       - resume workshop i18n en zh
-      - resume workshop a11y focus
-      - retired modules grep negative
+      - resume workshop a11y modal focus
+      - resume workshop privacy route params
+      - ui parity desktop mobile
+      - non-current route testid negative
       - ui-design data screen runtime import forbidden
-      - resumeDefaultTab MASTER preview TARGETED rewrites
   targets:
     frontend:
       plan: ./plan.md
@@ -53,10 +42,10 @@ spec:
       discovery:
         packages:
           - frontend/src/app
-          - frontend/src/app/screens
           - frontend/src/app/screens/resume-workshop
           - frontend/src/app/screens/resume-workshop/components
           - frontend/src/app/screens/resume-workshop/adapters
+          - frontend/src/app/screens/resume-workshop/hooks
           - frontend/src/app/i18n
           - frontend/src/api/generated
           - frontend/src/lib/conventions
@@ -68,7 +57,5 @@ spec:
           - resume_versions
         apiNames:
           - listResumes
-          - listResumeVersions
           - getResume
-          - getResumeVersion
-          - exportResumeVersion
+          - exportResume

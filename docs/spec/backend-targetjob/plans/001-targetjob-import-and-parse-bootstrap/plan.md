@@ -19,7 +19,7 @@
 
 [engineering-roadmap §5.2](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 把 `Home / Job Picks / Parse` workstream 的 backend owner 锁定为 `backend-targetjob`，但当前仓库尚无任何 backend handler / service 实现：[`backend/internal/`](../../../../../backend/internal) 只覆盖 auth / migrations / 共享脚手架。OpenAPI v1 已定义 4 个 TargetJob operation，B4 baseline 已包含三张表，B3 已冻结 `target.import.requested` / `target.parsed` / `target.analysis.failed` 与 `target_import` job，F3 已锁定 `target.import.parse` feature_key。本计划是把这些已就位的契约缝合成一个可上线的后端域。
 
-[backend-auth/001-passwordless-session-bootstrap](../../../backend-auth/plans/001-passwordless-session-bootstrap/plan.md) 已经为本计划建立了重要先例：
+[backend-auth/001-email-code-session-bootstrap](../../../backend-auth/plans/001-email-code-session-bootstrap/plan.md) 已经为本计划建立了重要先例：
 
 - 在 `cmd/api` 进程内用 backend-internal goroutine drainer 完成异步派发，不引入独立 worker。
 - 通过 generated `BuildEmailDispatchPayload` 强制 redact PII；本计划同样要使用 generated outbox payload helper 守 `target.*` 事件红线。
@@ -177,7 +177,7 @@ privacy grep 必须覆盖：log / metric label / audit / outbox payload / async 
 
 #### 7.5 Generated error envelope remediation
 
-TargetJob handler 必须返回 B1/B2 generated `ApiErrorResponse` envelope：所有错误响应统一为 `{ "error": { "code", "message", "requestId", "retryable" } }`，不得再返回 legacy `{"errors":[...]}`。focused tests 必须覆盖 import / list / get / update 的鉴权、idempotency、not-found、invalid-source、source-unavailable 与 invalid-transition 错误，且断言没有 legacy `errors` key。
+TargetJob handler 必须返回 B1/B2 generated `ApiErrorResponse` envelope：所有错误响应统一为 `{ "error": { "code", "message", "requestId", "retryable" } }`，不得再返回 non-current `{"errors":[...]}`。focused tests 必须覆盖 import / list / get / update 的鉴权、idempotency、not-found、invalid-source、source-unavailable 与 invalid-transition 错误，且断言没有 non-current `errors` key。
 
 #### 7.6 List pagination envelope remediation
 

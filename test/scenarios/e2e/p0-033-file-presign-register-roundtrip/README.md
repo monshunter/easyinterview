@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-Validate the backend-upload baseline path for `createUploadPresign`, object registration, idempotency replay, purpose validation, cross-user isolation, and privacy deletion ordering.
+Validate the backend-upload baseline path for `createUploadPresign`, object registration, idempotency replay, purpose validation, cross-user isolation, and privacy data-erasure ordering.
 
 ## 2. Requirements
 
@@ -13,7 +13,7 @@ Validate the backend-upload baseline path for `createUploadPresign`, object regi
 
 - `scripts/setup.sh`: prepares deterministic scenario files and records current environment capability.
 - `scripts/trigger.sh`: runs the backend-upload focused test suite plus the live `TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip` gate that exercises HTTP presign, signed PUT, register, and privacy delete behavior.
-- `scripts/verify.sh`: checks fixture parity, state-machine evidence, privacy tombstone redlines, and retired-pattern negative searches.
+- `scripts/verify.sh`: checks fixture parity, state-machine evidence, privacy tombstone redlines, and non-current-pattern negative searches.
 - `scripts/cleanup.sh`: removes temporary binary inputs while preserving logs under `.test-output/`.
 
 ## 4. Evidence

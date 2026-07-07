@@ -366,12 +366,17 @@ with selected_plan as (
              and r.kind in ('must_have','interview_focus','nice_to_have')
            order by r.display_order asc, r.created_at asc
            limit 6
-         ), ', '), ''), 'target job requirements') as top_skills
+         ), ', '), ''), 'target job requirements') as top_skills,
+         ra.structured_profile
   from practice_plans p
   left join target_jobs tj
     on tj.id = p.target_job_id
    and tj.user_id = p.user_id
    and tj.deleted_at is null
+  left join resumes ra
+    on ra.id = p.resume_id
+   and ra.user_id = p.user_id
+   and ra.deleted_at is null
   where p.id = $3
     and p.user_id = $2
     and p.status = 'ready'
@@ -388,7 +393,9 @@ inserted as (
 select inserted.id, inserted.plan_id, inserted.target_job_id,
        selected_plan.goal, selected_plan.mode, selected_plan.interviewer_persona,
        inserted.language, selected_plan.role_title, selected_plan.seniority,
-       selected_plan.top_skills, inserted.hints_enabled,
+       selected_plan.top_skills,
+       coalesce(nullif(selected_plan.structured_profile::text, '{}'::text), '') as resume_profile,
+       inserted.hints_enabled,
        inserted.created_at, inserted.updated_at
 from inserted
 join selected_plan on selected_plan.id = inserted.plan_id`,
@@ -408,6 +415,7 @@ join selected_plan on selected_plan.id = inserted.plan_id`,
 		&reservation.RoleTitle,
 		&reservation.Seniority,
 		&topSkills,
+		&reservation.ResumeProfile,
 		&reservation.HintsEnabled,
 		&reservation.CreatedAt,
 		&reservation.UpdatedAt,

@@ -14,7 +14,7 @@
  *      App.test.tsx that pre-stage a route without touching window.location).
  *   2. `window.__EASYINTERVIEW_INITIAL_ROUTE__` test harness override.
  *   3. Canonical path + query parsed via {@link parseUrlToRoute}.
- *   4. Legacy `#route=...` hash adapter (preserved for static preview /
+ *   4. Non-current `#route=...` hash adapter (preserved for static preview /
  *      pixel parity / scenario harness).
  *   5. `DEFAULT_ROUTE` (home).
  */

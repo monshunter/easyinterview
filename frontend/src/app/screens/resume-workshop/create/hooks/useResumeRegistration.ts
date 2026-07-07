@@ -21,7 +21,7 @@ export type RegisterPasteInput = {
   language: string;
 };
 
-// D-20: guided Q&A intake removed. Resume creation is upload or paste only.
+// D-20: guided Q&A intake is outside current scope. Resume creation is upload or paste only.
 export type RegisterInput = RegisterUploadInput | RegisterPasteInput;
 
 export interface UseResumeRegistrationResult {

@@ -112,8 +112,8 @@
       },
       "priority": "low",
       "redactedFields": [
-        "rawMagicLinkToken",
-        "magicLinkUrl",
+        "rawEmailCode",
+        "emailVerificationUrl",
         "recipientEmail",
         "recipientEmailHash",
         "emailBody",

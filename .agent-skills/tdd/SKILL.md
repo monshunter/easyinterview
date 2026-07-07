@@ -23,7 +23,7 @@ Any code logic implementation must use this skill: front-end, back-end, tooling,
 ## Argument Contract
 
 - `--file <path>`: checklist markdown file
-- `--test-checklist <path>`: associated test checklist; prefer section headings that mirror implementation phase numbers, with legacy `<!-- phase-mapping: -->` support
+- `--test-checklist <path>`: associated test checklist; prefer section headings that mirror implementation phase numbers, with `<!-- phase-mapping: -->` compatibility support
 - `--phase-commit <plan-name>`: enable phase-boundary auto-commit via `/work-journal --auto`
 - `--references <p1>,<p2>,...`: comma-separated markdown references (plan/spec/test-plan)
 - `--section <prefix>`: Section ID/prefix (for example `1` or `W1.Auth`) to scope execution to a single checklist section
@@ -42,7 +42,7 @@ When `--section <prefix>` is provided, `/tdd` operates in **section-scoped mode*
 2. **Step 2 (lifecycle status) is skipped**. The caller (for example `/implement` or another higher-level remediation/orchestration skill) is responsible for lifecycle management.
 3. **Step 3 (select next item)** only considers items within the matched section.
 4. **Steps 4-8** are unchanged (Red-Green-Refactor + immediate checklist update).
-5. **Step 10 (completion lifecycle sync) is replaced**: when all items in the section are checked, report `Section {prefix} complete` and stop. Do NOT trigger global lifecycle sync.
+5. **Step 10 (completion lifecycle sync) is no longer used**: when all items in the section are checked, report `Section {prefix} complete` and stop. Do NOT trigger global lifecycle sync.
 6. **Prohibited**: modifying checklist items outside the matched section.
 
 When `--section` and `--phase-commit` are both present, trigger Step 9.5 exactly once when that section's last item and mapped test items are complete.
@@ -63,7 +63,7 @@ When `--section` and `--phase-commit` are both present, trigger Step 9.5 exactly
 3. If exactly one loaded reference has basename `bdd-plan.md` or `bdd-test-plan.md`,
    classify it as the BDD scenario source for Step 5B. New canonical plans key BDD verification by behavior-oriented
    scenario IDs such as `E2E.P0.001` / `E2E.P0.004`;
-   legacy plans may still carry `AC-*` mappings as compatibility input.
+   some active plan files may still carry `AC-*` mappings as compatibility input.
 4. If exactly one loaded reference has basename `bdd-checklist.md`, classify it as the BDD
    asset/execution checklist for Step 5B.
 5. If multiple loaded references match either BDD role, stop and ask the user to
@@ -72,7 +72,7 @@ When `--section` and `--phase-commit` are both present, trigger Step 9.5 exactly
    a. Read the test checklist file.
    b. Build a mapping table by reading each `## ` section heading:
       - default: infer the implementation phase from the heading itself (for example `## Phase 2: API tests` → `2`)
-      - legacy: if an immediate `<!-- phase-mapping: {id} -->` comment exists, use that explicit mapping instead
+      - compatibility: if an immediate `<!-- phase-mapping: {id} -->` comment exists, use that explicit mapping instead
    c. Build a mapping table: `{impl-phase-id} → [test-section-heading, ...]`.
    d. Log the mapping summary (e.g., "Phase 2 → test sections 1, 2, 14").
 
@@ -169,12 +169,12 @@ Red phase note: test already passes (pre-existing implementation). Continue with
 This step applies only when Step 3B identified a `BDD-Gate:` item. It replaces the Red-Green-Refactor cycle (Steps 4-8) for that item.
 
 1. **Parse scenario references**: Extract scenario identifiers from the item text (for example `BDD-Gate: 验证 E2E.P0.001, E2E.P0.004 通过` → `[E2E.P0.001, E2E.P0.004]`).
-2. **Load BDD scenarios**: Prefer the loaded reference whose basename is `bdd-plan.md` or `bdd-test-plan.md`; when the caller handed off validated files from `context.yaml`, this is the first-class `bddPlan` document. Use the parsed scenario IDs as the primary lookup key. If the current checklist item is an older `AC-*` style gate, treat that as a legacy compatibility path and resolve through the historical AC mapping in `bdd-plan.md`, `bdd-test-plan.md`, or the spec §验收标准 table.
+2. **Load BDD scenarios**: Prefer the loaded reference whose basename is `bdd-plan.md` or `bdd-test-plan.md`; when the caller handed off validated files from `context.yaml`, this is the first-class `bddPlan` document. Use the parsed scenario IDs as the primary lookup key. If the current checklist item is an AC-style compatibility gate, treat that as compatibility input and resolve through the AC mapping in `bdd-plan.md`, `bdd-test-plan.md`, or the spec §验收标准 table.
 3. **Check BDD checklist prerequisite**: If a loaded `bdd-checklist.md` exists, find the checklist section/items for the parsed scenario IDs. Every asset and execution item for those scenarios must already be checked before the main checklist `BDD-Gate` can be marked complete. If any related BDD checklist item is unchecked, stop and report the exact missing items instead of running or marking the gate.
 4. **Deploy and verify**:
    a. If a matching scenario test directory exists under `test/scenarios/` for the parsed scenario IDs → require the documented script contract and execute the scenario scripts (setup → trigger → verify → cleanup) after confirming the framework-defined environment is ready.
    b. If the scenario directory exists but the required scripts are missing → stop and report that the BDD asset contract is incomplete. Do not fall back to manual verification for repo-defined scenarios.
-   c. If no scenario directory exists and the plan/framework explicitly documents a legacy manual-only verification path → execute that manual verification and record evidence.
+   c. If no scenario directory exists and the plan/framework explicitly documents a manual-only compatibility verification path → execute that manual verification and record evidence.
 5. **Judge result**:
    - **Pass** → Mark the BDD-Gate item complete. Append verification evidence as an HTML comment on the line below: `<!-- verified: YYYY-MM-DD method={scenario|manual} bddChecklist=complete -->`.
    - **Fail** → Do NOT mark the item complete. Report failure reason and return to fix the implementation. The current phase cannot advance until the BDD-Gate passes.
@@ -198,7 +198,7 @@ Before marking the current item complete, apply this gate whenever the item chan
 1. Update all repo-tracked direct consumers required by the change before checking the item off.
 2. Rebuild or regenerate any repo-tracked artifacts that derive from the changed contract.
 3. Run focused verification on the direct consumer surfaces named by the checklist, test checklist, or references.
-4. Run a repo-wide search for the retired or replaced contract shape and confirm any remaining matches are intentional.
+4. Run a repo-wide search for the non-current contract shape and confirm any remaining matches are intentional.
 5. If verification depends on built binaries, deployed components, or cluster-installed schemas, confirm the consumer artifact under test is freshly rebuilt or re-synced rather than stale.
 
 Environment-specific consumer surfaces and live verification steps belong to the relevant framework README or layer README; use those documents as the source of truth.
@@ -226,8 +226,8 @@ When `--test-checklist` is provided and the current implementation phase is comp
 Phase completion detection:
 
 - New canonical format: the implementation checklist is grouped by `## Phase N: ...` sections. When the last unchecked item in a section is marked complete, Step 9 triggers.
-- Legacy sequential and legacy parallel section headings remain readable for compatibility.
-- Test checklist mapping prefers section-heading inference and only falls back to `<!-- phase-mapping: {id} -->` when that legacy annotation is present.
+- Sequential and parallel section headings remain readable for compatibility.
+- Test checklist mapping prefers section-heading inference and only falls back to `<!-- phase-mapping: {id} -->` when that compatibility annotation is present.
 
 ### Step 9.5: Phase Commit Gate
 

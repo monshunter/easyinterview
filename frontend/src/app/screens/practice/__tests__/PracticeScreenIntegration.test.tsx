@@ -6,7 +6,7 @@
  * colocated `PracticeScreen.test.tsx` cannot cover:
  *  - i18n zh ↔ en switching live re-renders the static shell
  *  - source files do not import voice surface DOM from `ui-design/`
- *  - source files do not import legacy prototype helpers
+ *  - source files do not import non-current prototype helpers
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -139,7 +139,7 @@ describe("PracticeScreen integration (item 1.6)", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("source files do not reference legacy prototype testids or routes", () => {
+  it("source files do not reference non-current prototype testids or routes", () => {
     const root = practiceSourceRoot();
     const files = collectSourceFiles(root);
     const offenders: string[] = [];

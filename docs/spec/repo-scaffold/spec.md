@@ -1,12 +1,12 @@
 # Repo Scaffold Spec
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-07-07
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 A1 `repo-scaffold` 保留为当前 active Foundation spec（无上游依赖）。它是最早落地的基础 spec 之一（与历史 B1 `shared-conventions-codified` 并列），决定了：
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将原始 A1 `repo-scaffold` 保留为当前 active Foundation spec（无上游依赖）。它是最早落地的基础 spec 之一（与原始 B1 `shared-conventions-codified` 并列），决定了：
 
 - 后端、前端、OpenAPI 契约、DB migrations、共享真理源、配置、运维脚本在仓库中分别落在哪个目录；
 - 顶层 `Makefile`、`.editorconfig`、`.tool-versions`、git hooks 提供给所有 child subspec 共享的根入口；

@@ -172,7 +172,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     expect(search.get("tailorRunId")).toBe(TAILOR_RUN_ID);
   });
 
-  it("direct-open retired /debrief and /profile paths fold back to home without retired params", () => {
+  it("direct-open non-current /debrief and /profile paths fold back to home without non-current params", () => {
     for (const path of [
       `/debrief?targetJobId=${TARGET_JOB_ID}&debriefId=01918fa0-0000-7000-8000-00000000c000`,
       "/profile",

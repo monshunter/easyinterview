@@ -26,4 +26,4 @@
 - Store/job tests cover queued async job dispatch, state transitions, concurrent
   claim, rollback, ready suggestions in task output, and ready-only outbox.
 - Trigger log contains no skipped or no-op focused gates.
-- Retired vocabulary and privacy negative greps return zero hits for backend resume implementation and scenario evidence.
+- Non-current vocabulary and privacy negative greps return zero hits for backend resume implementation and scenario evidence.

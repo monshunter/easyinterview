@@ -54,7 +54,7 @@ func TestOutboxDispatcher_RedactsLastError(t *testing.T) {
 
 	d := NewOutboxDispatcher(OutboxDispatcherOptions{Store: store, Now: clock.Now})
 	d.RegisterConsumer("runner.redact.event", OutboxConsumerFunc(func(context.Context, OutboxEvent) error {
-		return errors.New("raw provider response: magic-link-token-SHOULD-NOT-PERSIST")
+		return errors.New("raw provider response: provider-secret-SHOULD-NOT-PERSIST")
 	}))
 
 	if _, err := d.RunOnce(context.Background()); err != nil {
@@ -70,7 +70,7 @@ func TestOutboxDispatcher_RedactsLastError(t *testing.T) {
 	if msg.String != "consumer rejected event" {
 		t.Fatalf("last_error_message = %q, want redacted summary", msg.String)
 	}
-	if containsToken(msg.String, "magic-link-token-SHOULD-NOT-PERSIST") || containsToken(msg.String, "raw provider response") {
+	if containsToken(msg.String, "provider-secret-SHOULD-NOT-PERSIST") || containsToken(msg.String, "raw provider response") {
 		t.Fatalf("redaction red line violated: %q", msg.String)
 	}
 }

@@ -132,8 +132,8 @@ EMAIL_DISPATCH_PAYLOAD = {
     "dedupeKey": "string",
 }
 EMAIL_DISPATCH_REDACTED = [
-    "rawMagicLinkToken",
-    "magicLinkUrl",
+    "rawEmailCode",
+    "emailVerificationUrl",
     "recipientEmail",
     "recipientEmailHash",
     "emailBody",
@@ -531,7 +531,7 @@ class EventsInventoryJobsTest(unittest.TestCase):
     def test_requires_email_dispatch_redacted_fields(self) -> None:
         data = valid_jobs_data()
         email_dispatch = next(job for job in data["jobs"] if job["canonical"] == "email_dispatch")
-        email_dispatch["redactedFields"] = ["rawMagicLinkToken"]
+        email_dispatch["redactedFields"] = ["rawEmailCode"]
 
         errs = self.linter.validate_jobs_yaml(data, valid_events_data())
 

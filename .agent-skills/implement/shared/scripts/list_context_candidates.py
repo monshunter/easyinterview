@@ -25,7 +25,7 @@ except ImportError:
 
 HEADER_STATUS_RE = re.compile(r"^\s*>\s*\*\*状态\*\*:\s*(.+?)\s*$", re.MULTILINE)
 HEADER_DATE_RE = re.compile(r"^\s*>\s*\*\*更新日期\*\*:\s*(\d{4}-\d{2}-\d{2})\s*$", re.MULTILINE)
-STATUS_ORDER = {"active": 0, "draft": 1, "completed": 2, "superseded": 3, "deprecated": 4, "unknown": 5}
+STATUS_ORDER = {"active": 0, "draft": 1, "completed": 2, "unknown": 3}
 
 
 def find_contexts(root: str) -> list[str]:

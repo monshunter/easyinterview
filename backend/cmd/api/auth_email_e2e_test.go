@@ -45,7 +45,7 @@ func TestAuthEmailEndToEnd(t *testing.T) {
 
 	sink := auth.NewDevMailSink(auth.DevMailSinkOptions{VerifyBaseURL: "http://api.test/api/v1/auth/email/verify"})
 	enqueuer := auth.NewEmailDispatchEnqueuer(db, func() string { return idx.NewID() }, func() time.Time { return time.Now().UTC() })
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               auth.NewSQLStore(db),
 		Dispatcher:          enqueuer,
 		DeliverySecrets:     sink,

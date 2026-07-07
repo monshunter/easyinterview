@@ -1,15 +1,16 @@
 # Backend TargetJob History
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-07
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
-| 2026-07-06 | 1.7 | 对齐 product-scope D-17/D-18 后的 TargetJob active owner 边界：背景从 `Home / Job Picks / Parse` 收敛为 JD import / parse；Out of Scope 明确 Job Picks / JD Match 已删除，不新增 recommendation/search/data-source plan；删除 backend-jobs-recommendations `CountTargetJobsForUser` cross-owner 正向边界。 | product-scope/001-core-loop-module-pruning Phase 6 |
-| 2026-06-29 | 1.6 | product-scope D-22 后同步 downstream 边界：真实面试复盘已退役，backend-targetjob 不再声明 backend-debrief downstream owner。 | product-scope/001-core-loop-module-pruning |
+| 2026-07-07 | 1.8 | 同步当前 backend internal runner 事实：`target_import` / `source_refresh` 已由 `backend-async-runner` kernel 接管，backend-targetjob 仅保留 handler / service / store / executor 业务实现与 B3 payload red-line。 | product-scope/001-core-loop-module-pruning Phase 6 |
+| 2026-07-06 | 1.7 | 对齐 product-scope D-17/D-18 后的 TargetJob active owner 边界：背景收敛为 JD import / parse；不新增 recommendation/search/data-source plan；`CountTargetJobsForUser` 不作为当前 cross-owner 正向边界。 | product-scope/001-core-loop-module-pruning Phase 6 |
+| 2026-06-29 | 1.6 | product-scope D-22 后同步 downstream 边界：backend-targetjob 只声明当前 TargetJob / practice / report downstream owner。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-21 | 1.5 | 登记 backend-jobs-recommendations/001 cross-owner additive：新增 `CountTargetJobsForUser(ctx, db, userID) (int, error)` 内部 API（`backend/internal/targetjob/count.go`），read-only `SELECT COUNT(*) FROM target_jobs WHERE user_id = $1 AND deleted_at IS NULL`；cross-user 隔离由 caller userId 保证；不写 audit_events。单元测试 `count_test.go` 覆盖 happy / cross-user / nil-db / empty-userId。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.13 |
 | 2026-05-08 | 1.4 | 完成 001 plan 真实 HTTP BDD gate：p0-010..013 场景脚本迁移为 `cmd/api` HTTP harness，覆盖 auth middleware、generated route、TargetJob handler/service、in-process drainer、F3 contract bridge、A3 test fixture 与 URL fetch，verify 输出 `method=cmd-api-http` / `validBddEvidence=true`。 | 001-targetjob-import-and-parse-bootstrap |
 | 2026-05-08 | 1.3 | L2 plan-code-review remediation：重新打开 001 plan 与 BDD gate，记录 `cmd/api` 缺真实 TargetJob drainer / F3 runtime wiring 的 blocker，并补充 URL fetch DNS rebinding 与 update 状态机事务内校验修复项。 | 001-targetjob-import-and-parse-bootstrap |

@@ -1,23 +1,23 @@
 # 认证与默认入口
 
-> **版本**: 1.18
+> **版本**: 1.20
 > **状态**: active
-> **更新日期**: 2026-06-29
+> **更新日期**: 2026-07-07
 
 ## 1 文档目的
 
-本文档定义当前默认入口、认证触发点、pendingAction 恢复和用户菜单边界。当前 UI 已按 D-22 删除复盘和用户画像入口。
+本文档定义当前默认入口、认证触发点、pendingAction 接续和用户菜单边界。当前用户菜单只包含设置与隐私、退出登录和未登录入口。
 
 ## 2 已确认决策
 
 1. App 默认进入 `home`。
 2. 登录方式只有邮箱验证码。
 3. 登录是操作级拦截，不是默认前置页。
-4. 登录成功后若 `profileCompletionRequired=true`，进入 `auth_profile_setup`；完成账号资料补全后恢复 pendingAction。
+4. 登录成功后若 `profileCompletionRequired=true`，进入 `auth_profile_setup`；完成账号资料补全后接续 pendingAction。
 5. `auth_profile_setup` 是账号资料补全，不是用户画像。
 6. 已登录用户菜单只显示 `设置与隐私` 和 `退出登录`。
-7. `用户画像` 不再是用户菜单入口。
-8. `复盘` 不再是业务入口或登录触发点。
+7. `用户画像` 不是用户菜单入口。
+8. `复盘` 不是业务入口或登录触发点。
 
 ## 3 默认入口
 
@@ -46,18 +46,18 @@
 auth_login
   -> auth_verify
      -> profileCompletionRequired?
-        ├─ true -> auth_profile_setup -> restore pendingAction
-        └─ false -> restore pendingAction
+        ├─ true -> auth_profile_setup -> continue pendingAction
+        └─ false -> continue pendingAction
 
 auth_logout
   -> home
 ```
 
-旧 `auth_register` 和 `auth_reset` 归一到 `auth_login`。
+非当前 `auth_register` 和 `auth_reset` 归一到 `auth_login`。
 
 ## 6 Pending Action
 
-可恢复的 pendingAction 只覆盖当前核心业务动作：
+可接续的 pendingAction 只覆盖当前核心业务动作：
 
 | 动作 | 目标 route | 说明 |
 |------|------------|------|
@@ -69,7 +69,7 @@ auth_logout
 
 不得创建 pendingAction 到 `debrief`、`debrief_full` 或 `profile`。
 
-## 7 旧入口归一
+## 7 非当前入口归一
 
 | 输入 | 处理 |
 |------|------|
@@ -80,7 +80,7 @@ auth_logout
 
 ## 8 后续实现输入
 
-1. TopBar 用户菜单不得恢复 `用户画像`。
+1. TopBar 用户菜单不得包含 `用户画像`。
 2. 未登录保护路由不得把 `debrief` 或 `profile` 当业务目标。
-3. 正式前端、URL fallback 和 scenario 都必须覆盖旧入口负向。
+3. 正式前端、URL fallback 和 scenario 都必须覆盖非当前入口负向。
 4. 设置页只承载账号、界面偏好和隐私数据控制。

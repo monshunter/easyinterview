@@ -1,63 +1,46 @@
 # Event and Outbox Contract Bootstrap Checklist
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-07
 
 **关联计划**: [plan](./plan.md)
 
-## Phase 1: `shared/events.yaml` 真理源（envelope + 14 事件 payload）
+## 1 Event truth source
 
-- [x] 1.1 落地 `shared/events.yaml` envelope schema：8 字段（`eventId` UUIDv7 / `eventName` dot.case / `eventVersion` int 起始 1 / `aggregateType` snake_case / `aggregateId` UUIDv7 / `occurredAt` RFC3339 / `producer` enum（`api` / `backend_async` / `dispatcher` / `review`）/ `traceId` optional, soft-required / `payload` polymorphic per eventName）；UUIDv7 / `aggregateId` 通过 `$ref`-style alias 引用 [B1 shared/conventions.yaml](../../../shared-conventions-codified/spec.md)，不复制；验证: `python3 scripts/lint/events_inventory.py shared/events.yaml` 对缺失 envelope 字段、复制 UUIDv7 正则、非法 producer enum 失败，合法 envelope 通过
-- [x] 1.2 写入 `events:` 列表 14 项，每项含 `name` / `version: 1` / `producer` / `aggregateType` / `requiredPayload` / `optionalPayload` (v1 空 slot) / `piiBoundary`，与 [spec §3.1.3](../../spec.md#313-14-个事件全集v1) 与 [§3.1.4](../../spec.md#314-v1-payload-schema-inventory) 严格对齐；复用 B1 enum 字段以 alias 引用；验证: `python3 scripts/lint/events_inventory.py shared/events.yaml` 对事件缺项、payload required 字段漂移、B1 enum 复制字面量失败，14 项完整时通过
-- [x] 1.3 在 `eventLocalEnums:` 顶层节落地 `TargetImportSourceType` (`url`/`text`/`file`) / `ResumeTailorMode` (`inline`/`rewrite`/`mirror`) / `SourceFreshnessStatus` (`fresh`/`stale`/`failed`) 三组 event-local enum，并在描述中写明「不进入 B1 / B2 公共 enum」；验证: `python3 scripts/lint/events_inventory.py shared/events.yaml shared/conventions.yaml` 对 event-local enum 与 B1 enum 重名失败，三组 enum 完整且描述存在时通过
-- [x] 1.4 落地 `scripts/lint/events_inventory.py`（或等价 `make` 内联脚本）：断言事件数 == 14、`name` 唯一且匹配 dot.case 正则、动词来自过去式白名单、domain 来自 6 个固定前缀、`requiredPayload` 与 §3.1.4 一致、`producer` 与 §3.1.3 一致；验证: `python3 -m pytest scripts/lint/events_inventory_test.py -q` 覆盖 duplicate name、非法 domain、非法过去式、required payload 漂移的失败 case 与合法 fixture 通过 case
+- [x] 1.1 `shared/events.yaml` defines the current 14 event inventory.
+- [x] 1.2 Event domains are limited to `target`, `practice`, `report`, `resume`, `source`, and `privacy`.
+- [x] 1.3 Event payload fields use B1 enum refs where available and event-local enums where B1 ownership does not apply.
+- [x] 1.4 `scripts/lint/events_inventory.py` validates event count, names, producers, payload inventory, domain set and enum boundaries.
 
-## Phase 2: `shared/jobs.yaml` 真理源（8 canonical jobType + `email_dispatch` 红线）
+## 2 Job truth source
 
-- [x] 2.1 落地 `shared/jobs.yaml.jobs:` 列表 8 项，每项含 `canonical` / `asynqTask` / `apiFacing` / `triggerEvent` / `ownerDomain` / `priority`，与 [spec §3.1.1](../../spec.md#311-dbbackend-runner-canonical-job_type--asynq-dotted-task-name-映射) 与 [ADR-Q2 §3.5](../../../engineering-roadmap/decisions/ADR-Q2-async-orchestration.md) 严格对齐；验证: `python3 scripts/lint/events_inventory.py shared/events.yaml shared/jobs.yaml` 对 job 缺项、priority 非法、triggerEvent 不存在失败，8 项完整时通过
-- [x] 2.2 落地 `shared/jobs.yaml.apiFacingSubset:` 6 项 (`target_import` / `resume_parse` / `report_generate` / `resume_tailor` / `privacy_export` / `privacy_delete`)；`source_refresh` / `email_dispatch` 标记 `apiFacing: false` 且不进入 subset；验证: `python3 scripts/lint/events_inventory.py shared/events.yaml shared/jobs.yaml` 对 subset 长度 != 6、internal-only job 被标 true、subset 项 `apiFacing=false` 失败，固定 6 项通过
-- [x] 2.3 在 `email_dispatch.payloadSchema` 中只允许 `authChallengeId` / `userId` / `templateKey` / `locale` / `deliverySecretRef` / `dedupeKey`；落地 `redactedFields:` 黑名单 (`rawMagicLinkToken` / `magicLinkUrl` / `recipientEmail` / `recipientEmailHash` / `emailBody` / `emailSubject`)；与 [ADR-Q1 §3.4](../../../engineering-roadmap/decisions/ADR-Q1-auth.md) + [spec D-12](../../spec.md#31-已锁定决策含-jobtype-映射表) 一致；验证: `python3 scripts/lint/events_inventory.py shared/events.yaml shared/jobs.yaml` 对 payloadSchema 偷加任一 redacted 字段失败，只含允许字段通过
-- [x] 2.4 落地 dotted name 自检脚本：断言每条 `(canonical, asynqTask)` pair 与 §3.1.1 严格相等（`target_import ↔ target.import` 等）；任一笔误 fail；验证: `python3 -m pytest scripts/lint/events_inventory_test.py -q` 覆盖 `target_import -> target.imports`、canonical 删除、apiFacing subset 误扩失败 case 与合法 jobs fixture 通过 case
+- [x] 2.1 `shared/jobs.yaml` defines the current 8 canonical job_type values and Asynq dotted task names.
+- [x] 2.2 API-facing job_type subset is fixed to 6 values; `source_refresh` and `email_dispatch` are internal-only.
+- [x] 2.3 `email_dispatch` payload schema only allows audit fields and lists redacted fields for auth token, auth URL, email address and email body boundaries.
+- [x] 2.4 Inventory lint validates job count, dotted mapping, API-facing subset and redaction schema.
 
-## Phase 3: B3 generator 与 Go / TS / JSON Schema 输出
+## 3 Codegen and baselines
 
-- [x] 3.1 落地 `backend/cmd/codegen/events/main.go` 作为 B3-owned generator（独立 Go 程序，**不**并入 [B1 backend/cmd/codegen/conventions](../../../shared-conventions-codified/plans/001-bootstrap/plan.md#13-写入-generator)）；通过 import 引用 B1 generated shared types，不修改 B1 源码；验证: `(cd backend && go test ./cmd/codegen/events -run TestGeneratorEntrypointAndB1Boundary -count=1)` 断言独立 main、B1 import 可用、B1 generator 源码未被改写
-- [x] 3.2 generator 输出 Go 端：`backend/internal/shared/events/envelope.go`（envelope struct + JSON marshal）+ `backend/internal/shared/events/events.go`（14 个 `EventName*` 常量 + 14 个 `<EventName>Payload` struct）+ `backend/internal/shared/jobs/jobs.go`（8 个 `JobType*` + 8 个 `AsynqTask*` + 6 项 `APIFacingJobTypes` slice + `email_dispatch` redaction policy 常量）；验证: `(cd backend && go test ./cmd/codegen/events -run TestGenerateGoOutputs -count=1)` 与 `(cd backend && go test ./internal/shared/events ./internal/shared/jobs -count=1)` 断言文件、常量、payload struct 与 redaction policy 生成完整
-- [x] 3.3 generator 输出 TS 端：`frontend/src/lib/events/envelope.ts`（discriminated union + `EventEnvelope<T>` generic）+ `frontend/src/lib/events/events.ts`（14 个 `EVENT_NAME_*` 字面量 + payload type alias + `EventNameToPayload` map）+ `frontend/src/lib/jobs/jobs.ts`（8 个 `JOB_TYPE_*` + 8 个 `ASYNQ_TASK_*` + `API_FACING_JOB_TYPES` readonly tuple + `email_dispatch` redaction policy export）；验证: `(cd backend && go test ./cmd/codegen/events -run TestGenerateTSOutputs -count=1)` 与 `pnpm --dir frontend test src/lib/events src/lib/jobs` 断言 TS 常量、payload type 与 subset 导出完整
-- [x] 3.4 generator 输出 JSON Schema：`shared/events/schemas/<eventName>.v1.json`（Draft 2020-12，每个事件一个文件，envelope + payload；B1 enum 字段由 generator inline 当前值，或引用 B3-owned `shared/events/refs/<EnumName>.json` 桥接文件）；输出 idempotent；验证: `(cd backend && go test ./cmd/codegen/events -run TestGenerateJSONSchemas -count=1)` 与 `make codegen-events` 断言 14 个 schema 文件、B1 enum inline/ref、重复生成无 diff
-- [x] 3.5 根 `Makefile` 追加 `codegen-events` target（调用 `go run ./backend/cmd/codegen/events`）；把 `make codegen` 升级为 `codegen: codegen-conventions codegen-events codegen-openapi`；`make help` 自动收录；验证: `make help` 输出包含 `codegen-events`，`make -n codegen` 顺序包含 `codegen-conventions` → `codegen-events` → `codegen-openapi`
-- [x] 3.6 落地 committed baseline manifests：`shared/events/baseline/events.v1.json` 与 `shared/jobs/baseline/jobs.v1.json` 由 generator 生成并提交；`make lint-events` 比较当前真理源与 baseline，breaking 变更必须 fail；验证: `(cd backend && go test ./cmd/codegen/events -run TestBaselineManifests -count=1)` 与 `make lint-events` 对删除 eventName / jobType、改 required 字段、internal-only 改 apiFacing 的 fixture 失败
-- [x] 3.7 L2 remediation: B3 generator 的 B1 enum JSON Schema refs 必须从 `shared/conventions.yaml` 读取当前值，不得在 B3 generator 内硬编码 B1 enum 字面量；缺失 B1 enum ref 必须 fail-fast；验证: `(cd backend && go test ./cmd/codegen/events -run 'TestGeneratorReadsB1EnumRefsFromConventionsYaml|TestGeneratorFailsWhenB1EnumRefMissingFromConventions' -count=1)` 先红后绿，`make codegen-events` 后 generated refs 与 B1 truth source 保持一致
+- [x] 3.1 `backend/cmd/codegen/events` remains a B3-owned generator independent from B1 conventions codegen.
+- [x] 3.2 `make codegen-events` renders backend event/job packages, frontend event/job packages, JSON Schema files and baseline manifests.
+- [x] 3.3 Generated artifacts are deterministic and missing generated contract files fail fast.
+- [x] 3.4 B1 enum JSON Schema refs are read from `shared/conventions.yaml`, not duplicated in generator code.
 
-## Phase 4: `make lint-events` 与本地 drift gate
+## 4 Lint and tests
 
-- [x] 4.1 落地 `scripts/lint/lint_events.py`（或等价 Go 工具）作为 `make lint-events` 实体：扫描 `backend/` 与 `frontend/`（白名单仅 `backend/internal/shared/{events,jobs}` 与 `frontend/src/lib/{events,jobs}`），拒绝 14 事件名 / 8 canonical jobType / 8 dotted task name 的裸字面量；验证: `python3 -m pytest scripts/lint/lint_events_test.py -q` 覆盖 backend/frontend 裸字面量失败、generated 白名单通过、文档/fixture 允许 case
-- [x] 4.2 `make lint-events` 校验 generated 文件中事件名集合长度 == 14 且与 `shared/events.yaml` 一致；任何 generated 文件之外手写 `EventName*` 常量声明 fail；验证: `make lint-events` 在临时删除 generated event、额外手写 `EventName*` fixture 时失败，恢复后通过
-- [x] 4.3 `make lint-events` 校验 generated `APIFacingJobTypes` 长度 == 6 且与 `shared/jobs.yaml.apiFacingSubset` 一致；任一项 `apiFacing != true` fail（防止 `email_dispatch` 误扩）；验证: `make lint-events` 在临时把 `email_dispatch` 标为 API-facing 或 subset 增至 7 项时失败，恢复后通过
-- [x] 4.4 落地本地 drift gate 命令：`make codegen-events && make lint-events && git diff --exit-code -- shared/events.yaml shared/jobs.yaml backend/internal/shared/events/{envelope.go,events.go} backend/internal/shared/jobs/jobs.go frontend/src/lib/events/{envelope.ts,events.ts} frontend/src/lib/jobs/jobs.ts shared/events/{schemas,refs,baseline} shared/jobs/baseline`；手写 `*_test.*` 与 fixtures 由 lint / Go / TS tests 覆盖，不作为 generated drift 路径；在 `Makefile` 注释中说明远端 CI 仅在 [A5 ci-pipeline-baseline](../../../ci-pipeline-baseline/spec.md) 触发条件成立后再接入；验证: 完整 drift gate 命令 exit 0，临时修改 generated 文件后 `git diff --exit-code -- ...` 失败并指出 drift；2026-05-05 A5 deep review 增加 `scripts/lint/makefile_dry_run_test.py` 断言 `codegen-events-check` 只列出 generator 实际输出文件，不覆盖手写 tests / fixtures
-- [x] 4.5 L2 remediation: `make lint-events` 必须在任一 generated contract 文件缺失时 fail-fast，而不是跳过缺失路径；验证: `python3 -m pytest scripts/lint/lint_events_test.py -q` 覆盖 Go/TS events/jobs generated 文件缺失失败 case，`make lint-events` 仍通过当前仓库完整产物
+- [x] 4.1 `make lint-events` rejects bare event/job literals outside generated packages.
+- [x] 4.2 `make lint-events` verifies generated event and job sets match `shared/events.yaml` / `shared/jobs.yaml`.
+- [x] 4.3 Go tests cover generator behavior, shared event/job packages and email_dispatch redaction.
+- [x] 4.4 Frontend tests cover generated event/job types, envelope round-trip and emailDispatch helpers.
 
-## Phase 5: 单元测试（envelope / trace 透传 / breaking-change 拦截 / `email_dispatch` 红线）
+## 5 Downstream contract
 
-- [x] 5.1 envelope round-trip 测试：Go (`backend/internal/shared/events/envelope_test.go`) + TS (`frontend/src/lib/events/envelope.test.ts`) 至少覆盖 3 个事件（`target.import.requested` / `report.generated` / `privacy.request.completed`），共享 fixture 在 `shared/events/__fixtures__/`，断言序列化 + 反序列化字段等值；验证: `(cd backend && go test ./internal/shared/events -run TestEnvelopeRoundTrip -count=1)` 与 `pnpm --dir frontend test src/lib/events/envelope.test.ts` 共享 fixture 全部通过
-- [x] 5.2 `traceId` soft-required 双码路测试：缺失分支断言 producer 仅 warn log 且 publish 允许通过；存在分支断言 envelope 透传字面量；Go / TS 各 ≥ 2 case；验证: `(cd backend && go test ./internal/shared/events -run TestTraceIDSoftRequired -count=1)` 与 `pnpm --dir frontend test src/lib/events/envelope.test.ts` 覆盖 `traceId` nil / present 两条路径
-- [x] 5.3 breaking-change 拦截测试：4 类 negative fixture（类型变更 / required 字段删除 / dot.case 改 snake / enum 成员移除）必须让 `make lint-events` fail，错误信息含 `breaking change requires eventVersion + 1`；验证: `(cd backend && go test ./cmd/codegen/events -run TestBreakingChangeFixtures -count=1)` 与 `python3 -m pytest scripts/lint/lint_events_test.py -q` 均断言 4 类 negative fixture 失败文案
-- [x] 5.4 additive change 通过测试：positive fixture 给某事件新增 optional 字段，断言 `make codegen-events` + `make lint-events` 通过；生成的 Go struct 该字段为 pointer，TS 该字段为 `?:`；验证: `(cd backend && go test ./cmd/codegen/events -run TestAdditiveOptionalFieldFixture -count=1)` 断言 optional Go pointer / TS `?:` 输出，fixture lint 通过
-- [x] 5.5 `email_dispatch` 红线测试：构造含 `rawMagicLinkToken` / `magicLinkUrl` / `recipientEmail` / `emailBody` 的 payload 必须被 `BuildEmailDispatchPayload` helper 拒绝；只含合法字段必须通过；fixture yaml 中偷加 redacted 字段必须被 Phase 4 lint 拒绝；验证: `(cd backend && go test ./internal/shared/jobs -run TestBuildEmailDispatchPayload -count=1)`、`pnpm --dir frontend test src/lib/jobs/emailDispatch.test.ts` 与 `make lint-events` redacted-field fixture 均通过
+- [x] 5.1 B4 owns outbox/async_jobs DDL and consumes B3 field names and job_type set.
+- [x] 5.2 `backend-async-runner` owns dispatcher polling, retry and handler execution.
+- [x] 5.3 F1/F2/C-domain owners consume metrics, analytics namespace and producer/consumer rules from this contract.
 
-## Phase 6: Verification + handoff
+## 6 Current owner compression gate
 
-- [x] 6.1 自检 spec C-1 / C-2 / C-6 / C-7：`make codegen-events` 跑两次后 `git status` clean；删除生成文件可还原；14 事件常量 + payload struct / type 与 §3.1.4 字段清单逐字段一致；`source_refresh` / `email_dispatch` 标 internal-only 不进 `APIFacingJobTypes`；临时 breaking change 让 `make lint-events` fail，revert 恢复；`jobs.AsynqTaskTargetImport == "target.import"` 等映射成立；验证: 记录 `make codegen-events` x2、删除生成文件后再生成、`make lint-events` negative / restore、Go / TS job mapping tests 的 exit 0 证据
-- [x] 6.2 自检 spec C-10：grep `target.import.requested` / `target_import_requested` / `report.generated` / `report_generated` 四种命名空间；dot.case 仅出现在 yaml / generated / 测试 fixture / 文档；snake_case 在本 plan 输出中**完全不出现**（属 [F2 analytics-funnel](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 命名空间）；验证: `rg -n 'target\\.import\\.requested|target_import_requested|report\\.generated|report_generated'` 审计输出仅命中允许路径，禁止命名空间无实现侧命中
-- [x] 6.3 在 plan Phase 6.3 handoff 章节内列明 [B4 db-migrations-baseline](../../../db-migrations-baseline/spec.md) 的 `outbox_events` operational columns + 复合索引、[`backend-async-runner`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) dispatcher 协议、[F1 observability-stack](../../../observability-stack/spec.md) 必产 metric、[F2 analytics-funnel](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 命名空间分离、[C1 backend-auth](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) `email_dispatch` 必须通过 `BuildEmailDispatchPayload` helper；明示本 plan **不写 SQL**；不新建独立 `handoff.md`；验证: `rg -n 'outbox_events|BuildEmailDispatchPayload|outbox_events_pending|privacy.delete|email_dispatch' docs/spec/event-and-outbox-contract/plans/001-bootstrap/plan.md` 命中 handoff 文案，`test -f docs/spec/event-and-outbox-contract/plans/001-bootstrap/handoff.md` 返回不存在
-- [x] 6.4 文档与 INDEX 同步：本 plan 自身 checklist 与 Phase 6 完成后将 plan/checklist Header 切到 `completed`，并用 `/sync-doc-index --fix-index` 同步 [event-and-outbox-contract/plans/INDEX.md](../INDEX.md)；`/sync-doc-index --check` 通过；不修改 [engineering-roadmap/001-decompose-subspecs](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md) 已完成的 roadmap checklist；关键命令日志贴入工作日志；验证: `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` zero drift，`git diff -- docs/spec/engineering-roadmap/plans/001-decompose-subspecs/checklist.md` 为空，工作日志包含 Phase 6 命令证据
-
-## Phase 8: product-scope v1.2 event remediation
-
-- [x] 8.1 Red: 调整 event inventory / lint 期望到 16 events、7 domains 后，旧 `mistake.created` / `mistake.status.changed`、`mistakeCount`、`generatedMistakeCount` 仍存在时必须失败
-  - 2026-05-03: `python3 scripts/lint/events_inventory.py shared/events.yaml shared/jobs.yaml shared/conventions.yaml` exit 1，报出 `mistake.created` / `mistake.status.changed` 非法 domain 与 unexpected names，且 `report.generated` / `debrief.completed` requiredPayload 仍是旧字段；`make lint-events` exit 2，product-scope guard 拦住 `mistakeCount`、`generatedMistakeCount` 和两个旧 mistake events。focused pytest 40 passed。
-- [x] 8.2 Green: 更新 `shared/events.yaml`、baseline、JSON Schema、Go / TS generated events，删除独立 `mistake` domain，改为 `questionIssueCount` / `practiceFocusCount`
-  - 2026-05-03: 修订 `shared/events.yaml` 删除 `mistake.created` / `mistake.status.changed`，`report.generated.mistakeCount` 改 `questionIssueCount`，`debrief.completed.generatedMistakeCount` 改 `practiceFocusCount`；`make codegen-events` 重新生成 baseline、Go / TS events、JSON Schema 与 refs，并删除旧 `MistakeStatus` ref 和两个 mistake schema。
-- [x] 8.3 Verify: `make codegen-events`、`make lint-events`、Go / TS events tests 通过；repo 搜索确认实现侧无旧 mistake event、`MistakeStatus` event refs、`mistakeCount` 或 `generatedMistakeCount`
-  - 2026-05-03: `make codegen-events && make lint-events` exit 0；`python3 scripts/lint/events_inventory.py shared/events.yaml shared/jobs.yaml shared/conventions.yaml` exit 0；`python3 -m pytest scripts/lint/events_inventory_test.py scripts/lint/lint_events_test.py -q` 40 passed；`cd backend && go test ./cmd/codegen/events ./internal/shared/events ./internal/shared/jobs -count=1` pass；`pnpm --dir frontend test src/lib/events src/lib/jobs` 9 tests pass；实现侧 `rg` 未命中旧 `mistake.created|mistake.status.changed|MistakeStatus|mistakeCount|generatedMistakeCount|mistake_entry|MistakeCreated|MistakeStatusChanged`。
+- [x] 6.1 `event-and-outbox-contract/spec.md`, `plan.md`, `checklist.md`, `context.yaml` and plans INDEX align to the current 14-event / 8-job / 6 API-facing event-job contract.
+  <!-- verified: 2026-07-07 method=current-owner-compression evidence="Updated event-and-outbox-contract spec.md to v2.12, plan.md to v1.10, checklist.md to v1.9, context specVersion to v2.12, and synced docs/spec plus event-and-outbox plans INDEX. PASS: targeted stale-wording grep returned no matches; validate_context.py event-and-outbox-contract/001 backend PASS; python3 scripts/lint/events_inventory.py shared/events.yaml shared/jobs.yaml shared/conventions.yaml PASS; make codegen-events PASS; make lint-events PASS; go test ./backend/cmd/codegen/events ./backend/internal/shared/events ./backend/internal/shared/jobs -count=1 PASS; pnpm --dir frontend test src/lib/events src/lib/jobs PASS (11 tests); make codegen-check PASS." -->

@@ -1,4 +1,4 @@
-# E2E.P0.087 Resume Detail Export PDF + Copy Text Consistency + Three-Screen UI Parity + Retired-Module Negative
+# E2E.P0.087 Resume Detail Export PDF + Copy Text Consistency + Three-Screen UI Parity + Non-current-Module Negative
 
 > **场景 ID**: E2E.P0.087
 > **执行方式**: automated (vitest jsdom + frontend build + Playwright pixel parity / axe + repo greps)
@@ -10,7 +10,7 @@
 - Plan 001 P0.037 verification now targets flat `exportResume.json p0-501-not-available` toast and `buildResumePlainText` clipboard fallback in `ResumeDetailExport.test.tsx`.
 - Current flat ResumeDetailView / ResumeRewritesTab / ResumeEditTab are enforced via Vitest DOM testid assertions plus Playwright viewport/style/screenshot/axe checks.
 - Authenticated user; lang default; flat resume ready.
-- Retired branch / suggestion decision / updateVersion / version-read ops are covered by negative grep and backend retired-route gates.
+- Non-current branch / suggestion decision / updateVersion / version-read ops are covered by negative grep and backend non-current-route gates.
 
 ## 2 When
 
@@ -31,8 +31,8 @@
 - Playwright proves the flat detail/Rewrites/Edit surfaces are non-blank,
   viewport-safe, and axe-clean on desktop + mobile, using
   `frontend/tests/pixel-parity/resume-workshop-branch-rewrites-edit.spec.ts`.
-- Retired grep: `welcome|mistake|growth|drill|followup|STAR|ExperiencesScreen|experiences-route|voice|OnboardingScreen|onboarding=true|ResumeBranchFlow|branchResumeVersion|seedStrategy|updateResumeVersion|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion` 0 hits in runtime Resume Workshop source. D-20 flat profile `experiences[]` is allowed and covered by `ResumeDetailView.test.tsx`.
-- Retired tailor mode grep: `(inline|rewrite|mirror)` 0 hits in `tabs/` (B3 D-14 alignment).
+- Non-current grep: `welcome|mistake|growth|drill|followup|STAR|ExperiencesScreen|experiences-route|voice|OnboardingScreen|onboarding=true|ResumeBranchFlow|branchResumeVersion|seedStrategy|updateResumeVersion|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion` 0 hits in runtime Resume Workshop source. D-20 flat profile `experiences[]` is allowed and covered by `ResumeDetailView.test.tsx`.
+- Non-current tailor mode grep: `(inline|rewrite|mirror)` 0 hits in `tabs/` (B3 D-14 alignment).
 - Prototype import grep: `ui-design/src/(data|screen-resume-workshop)` 0 hits in `tabs/`.
 - Privacy: structured profile / suggestion text never appears in URL / localStorage / fetch transport log (covered by per-tab privacy specs).
 

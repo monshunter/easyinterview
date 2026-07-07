@@ -4,10 +4,9 @@ metadata:
   subspec: frontend-resume-workshop
   name: 003-branch-rewrites-and-edit
   sequence: 3
-  supersedes: []
   specVersion:
     from: 1.0
-    to: 1.3
+    to: 1.4
 spec:
   defaultTarget: frontend
   discovery:
@@ -31,8 +30,7 @@ spec:
       - resume-target-job-context
       - resume-export-pdf-stub-consistency
     keywords:
-      - D-20 flat resume Phase 8 closure
-      - ResumeBranchFlow branchResumeVersion seedStrategy retired negative
+      - D-20 flat resume current closure
       - rewrites tab scope banner aria-live
       - rewrites tab suggestions list counts
       - resume tailor run polling exponential backoff
@@ -47,13 +45,12 @@ spec:
       - resume edit tab headline summary updateResume
       - resume detail export PDF idempotency-key 501 stub
       - resume detail copy plain text clipboard fallback
-      - retired tailor mode negative inline rewrite mirror
-      - retired operations negative accept reject updateResumeVersion resumeVersionId resumeAssetId
-      - retired modules negative onboarding screen welcome growth drill
+      - non-current tailor mode negative inline rewrite mirror
+      - non-current modules negative onboarding screen welcome growth drill
       - ui-design data screen runtime import forbidden
       - resume workshop flat detail rewrites edit i18n en zh
-      - resume workshop branch rewrites edit a11y
-      - resume workshop branch rewrites edit ui parity desktop mobile
+      - resume workshop rewrites edit a11y
+      - resume workshop rewrites edit ui parity desktop mobile
       - fixture-backed frontend real-backend preflight
       - upstream gate current backend route fixture parity
   targets:

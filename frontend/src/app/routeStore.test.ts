@@ -75,7 +75,7 @@ describe("resolveInitialRoute priority", () => {
     });
   });
 
-  it("normalizes legacy hash aliases through normalizeRoute", () => {
+  it("normalizes non-current hash aliases through normalizeRoute", () => {
     setLocation("/#route=voice");
     expect(resolveInitialRoute()).toEqual({ name: "home", params: {} });
   });

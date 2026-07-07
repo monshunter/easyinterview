@@ -1,6 +1,6 @@
 ---
 name: plan-code-review
-description: "Review or fix code against spec/plan/checklist context. Use when the user wants L2 code review or remediation for already-implemented checklist phases, especially after product/UI spec changes, historical implementation drift, or requests to ignore old checklist/PASS state. Reuses implement-owned shared context validator, then performs artifact-level semantic review against validated markdown, current truth sources, generated artifacts, tests, fixtures, scripts, coverage-matrix expectations, and negative legacy-scope searches. Supports /plan-code-review SUBSPEC/PLAN [target] [--base-rev REV] [--fix]."
+description: "Review or fix code against spec/plan/checklist context. Use when the user wants L2 code review or remediation for already-implemented checklist phases, especially after product/UI spec changes, implementation drift, or requests to ignore checked checklist/PASS state. Reuses implement-owned shared context validator, then performs artifact-level semantic review against validated markdown, current truth sources, generated artifacts, tests, fixtures, scripts, coverage-matrix expectations, and negative non-current-scope searches. Supports /plan-code-review SUBSPEC/PLAN [target] [--base-rev REV] [--fix]."
 ---
 
 # Plan Code Review Skill
@@ -41,7 +41,7 @@ Reviewer rule:
 - New plan docs are sequential-only by default.
 - Checked checklist items define the primary implementation scope.
 - Task `**文件**:` declarations are optional hints, not required scope contracts.
-- Historical `completed` status, checked checklist items, previous PASS reports,
+- Existing `completed` status, checked checklist items, previous PASS reports,
   and small git diffs are never sufficient evidence. Treat them as leads to
   verify against current artifacts.
 - When product or UI scope may have changed, derive current semantic invariants
@@ -95,7 +95,7 @@ If yes, read the current execution contracts and include them in `Deep Evidence`
 5. Local integration/scenario targets: `deploy/dev-stack/README.md` and
    `test/scenarios/README.md`, with Docker Compose external dependencies,
    host-run app commands, and repo-tracked local scenario runner boundaries
-   checked against current docs rather than historical reports.
+   checked against current docs rather than previous reports.
 
 If the reviewed plan lacks the operation matrix required by
 `docs/development.md` §2.1, record a blocking finding. In `--fix` mode, map the
@@ -167,8 +167,8 @@ For each in-scope phase:
    non-goals, risks, and active product/UI truth sources. For each completed
    checklist item, verify the artifact map proves the relevant primary,
    alternate, failure/recovery, boundary, cross-layer contract, privacy/security/
-   observability, UX, and regression/legacy-negative rows.
-8. Run negative legacy-scope searches relevant to the target. At minimum, cover
+   observability, UX, and regression/non-current-negative rows.
+8. Run negative non-current-scope searches relevant to the target. At minimum, cover
    stale route/tag/schema/table/event/job/config flag names, vendor/model
    assumptions, feature-key routing assumptions, and product modules that the
    current spec/UI has dropped.
@@ -178,7 +178,7 @@ For each in-scope phase:
      menu/toggle), old screen labels, old component shorthands, and outdated
      prototype route names.
 9. Check whether existing gates prove the current semantic contract. If a gate
-   only proves structure counts or historical expectations, record the gap and
+   only proves structure counts or previous expectations, record the gap and
    prefer adding lint, unit tests, negative fixtures, smoke tests, or drift checks
    before moving to the next target.
    - For Docker Compose / dev-infra targets, `docker compose config` is only a
@@ -242,7 +242,7 @@ Coverage rows to verify:
 - **UX quality**: UI loading/empty/error states, accessibility, localization
   fallback, display preferences, responsive-state behavior, and visible copy are
   checked against current UI truth sources when relevant.
-- **Regression / legacy-negative**: retired routes/modules/tags/schema names,
+- **Regression / non-current-negative**: non-current routes/modules/tags/schema names,
   events/jobs/config flags, feature keys, and model/provider assumptions are
   absent from active code or guarded by explicit drift gates.
 
@@ -251,7 +251,7 @@ Review dimensions:
 - `R-series`: consistency with spec definitions
 - `P-series`: completeness against plan tasks and error handling
 - `E-series`: best-practice code quality, tests, naming, security
-- `D-series`: deep reconcile evidence, artifact coverage, negative legacy-scope
+- `D-series`: deep reconcile evidence, artifact coverage, negative non-current-scope
   search, and semantic gate adequacy
 - `C-series`: coverage matrix proof; primary, alternate, failure/recovery,
   boundary, cross-layer contract, privacy/security/observability, UX, and

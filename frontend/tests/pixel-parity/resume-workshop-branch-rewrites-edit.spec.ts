@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 
 /**
  * frontend-resume-workshop/003 D-20 remediation — pixel-parity and axe gate for:
- *   retired BranchFlow route fallback
+ *   non-current BranchFlow route fallback
  *   ResumeRewritesTab
  *   ResumeEditTab
  *
@@ -205,7 +205,7 @@ async function expectAxeClean(page: Page, selector: string): Promise<void> {
   ).toEqual([]);
 }
 
-async function assertRetiredBranchFlowFallback(page: Page): Promise<void> {
+async function assertNonCurrentBranchFlowFallback(page: Page): Promise<void> {
   await gotoHashRoute(page, {
     flow: "branch",
     branchOriginalId: RESUME_ID,
@@ -298,12 +298,12 @@ async function assertEditTab(page: Page): Promise<void> {
   await expectAxeClean(page, "[data-testid='resume-workshop-detail']");
 }
 
-test.describe("resume workshop retired branch / rewrites / edit pixel parity", () => {
+test.describe("resume workshop non-current branch / rewrites / edit pixel parity", () => {
   test("renders the D-20 flat workshop surfaces with DOM, style, bounding-box, screenshot, and axe coverage", async ({
     page,
   }) => {
     await mockResumeWorkshopApis(page, { exportHeaders: [] });
-    await assertRetiredBranchFlowFallback(page);
+    await assertNonCurrentBranchFlowFallback(page);
     await assertRewritesTab(page);
     await assertEditTab(page);
   });

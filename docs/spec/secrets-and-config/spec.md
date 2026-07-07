@@ -1,12 +1,12 @@
 # Secrets and Config Spec
 
-> **版本**: 2.11
+> **版本**: 2.12
 > **状态**: active
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-07-07
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 A4 `secrets-and-config` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它承接 [ADR-Q6](../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md) 第 4 段「运维注入」与 [ADR-Q3](../engineering-roadmap/decisions/ADR-Q3-analytics-platform.md) 自托管 PostHog 的接入凭证落点，决定了：
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将原始 A4 `secrets-and-config` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它承接 [ADR-Q6](../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md) 第 4 段「运维注入」与 [ADR-Q3](../engineering-roadmap/decisions/ADR-Q3-analytics-platform.md) 自托管 PostHog 的接入凭证落点，决定了：
 
 - 后端 API / backend internal runner / 前端 dev / 未来 staging / prod（以及未来需要时的 CI）各类环境如何拿到自己需要的连接串、API key、AI provider registry、feature flag 状态；
 - secrets / config 在仓库里如何 layered（默认值、env override、运行时 secret），不被 hardcode；
@@ -97,7 +97,7 @@
 | `POSTHOG_SELF_HOSTED` | 条件 | `false` | staging / prod 使用 PostHog 时必须为 `true`；防止误接 PostHog Cloud | A4（F2 owner） |
 | `POSTHOG_PROJECT_API_KEY` | 条件 | `(空)` | secret | A4（F2 owner） |
 | `POSTHOG_PUBLIC_KEY` | 条件 | `(空，dev 占位)` | 暴露给前端的 public key；仅前端 analytics 初始化需要 | A4（F2 owner） |
-| `EMAIL_PROVIDER` | prod 必填 | `mailpit`（local dev） | passwordless email code 发件方；local dev 默认走 Mailpit，本地测试不依赖外部邮箱服务 | A4（C1 owner，ADR-Q1） |
+| `EMAIL_PROVIDER` | prod 必填 | `mailpit`（local dev） | email-code 发件方；local dev 默认走 Mailpit，本地测试不依赖外部邮箱服务 | A4（C1 owner，ADR-Q1） |
 | `EMAIL_SMTP_HOST` | 条件 | `127.0.0.1` | `EMAIL_PROVIDER=mailpit` 或 SMTP writer 时的 SMTP host | A4（C1 owner） |
 | `EMAIL_SMTP_PORT` | 条件 | `1025` | `EMAIL_PROVIDER=mailpit` 或 SMTP writer 时的 SMTP port | A4（C1 owner） |
 | `EMAIL_FROM_ADDRESS` | 条件 | `noreply@easyinterview.local` | email-code 邮件 envelope/header From；不得写个人邮箱 | A4（C1 owner） |
@@ -176,7 +176,7 @@
 | `internal/platform/featureflag/` | A4 | `FeatureFlagClient` + file / posthog provider |
 | `frontend/src/lib/runtime-config/` | A4 + D1 | `runtime-config` fetcher 与本地缓存；A4 锁字段，D1 集成 React hooks |
 | `config/*.yaml` 内容 | 各业务 owner 增量 | A4 锁文件位置与 schema，业务字段由各 child 在 spec 修订时新增 |
-| `config/feature-flags.yaml` 字段集 | F2 + 各业务 owner | A4 锁文件位置；当前 6 项 baseline flag 为 `practice_hint_enabled` / `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled` / `practice_assistance_mode_enabled`；旧 `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 已按 product-scope v1.2 删除 |
+| `config/feature-flags.yaml` 字段集 | F2 + 各业务 owner | A4 锁文件位置；当前 6 项 baseline flag 为 `practice_hint_enabled` / `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled` / `practice_assistance_mode_enabled`；`mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 不属于当前 flag inventory |
 | AI provider registry / env keys 默认值 | A3（决策） + A4（落 env 字典） | A3 决定 provider registry 与 profile schema；A4 写进 env/config 字典并负责被选中 provider secret 缺失 fail-fast |
 | Auth / Email env keys | C1 + A4 | C1 决定字段名（ADR-Q1），A4 写进字典 |
 | 部署侧 secret 注入 | E4 + 运维 | A4 提供接口；E4 后续按实际部署目标选择 Vault / SOPS / platform secret / K8s Secret |

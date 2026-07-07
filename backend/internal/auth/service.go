@@ -13,7 +13,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 )
 
-type PasswordlessServiceOptions struct {
+type EmailCodeServiceOptions struct {
 	Store                 Store
 	Dispatcher            MailDispatcher
 	DeliverySecrets       DeliverySecretStore
@@ -27,7 +27,7 @@ type PasswordlessServiceOptions struct {
 	NewID                 func() string
 }
 
-type PasswordlessService struct {
+type EmailCodeService struct {
 	store                 Store
 	dispatcher            MailDispatcher
 	deliverySecrets       DeliverySecretStore
@@ -79,7 +79,7 @@ type CurrentSession struct {
 	ExpiresAt time.Time
 }
 
-func NewPasswordlessService(opts PasswordlessServiceOptions) *PasswordlessService {
+func NewEmailCodeService(opts EmailCodeServiceOptions) *EmailCodeService {
 	now := opts.Now
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
@@ -96,7 +96,7 @@ func NewPasswordlessService(opts PasswordlessServiceOptions) *PasswordlessServic
 	if newID == nil {
 		newID = NewID
 	}
-	return &PasswordlessService{
+	return &EmailCodeService{
 		store:                 opts.Store,
 		dispatcher:            opts.Dispatcher,
 		deliverySecrets:       opts.DeliverySecrets,
@@ -111,15 +111,15 @@ func NewPasswordlessService(opts PasswordlessServiceOptions) *PasswordlessServic
 	}
 }
 
-func (s *PasswordlessService) StartEmailChallenge(ctx context.Context, in StartEmailChallengeInput) (StartEmailChallengeResult, error) {
+func (s *EmailCodeService) StartEmailChallenge(ctx context.Context, in StartEmailChallengeInput) (StartEmailChallengeResult, error) {
 	if s == nil || s.store == nil {
-		return StartEmailChallengeResult{}, fmt.Errorf("passwordless service store is nil")
+		return StartEmailChallengeResult{}, fmt.Errorf("email-code service store is nil")
 	}
 	if s.dispatcher == nil {
-		return StartEmailChallengeResult{}, fmt.Errorf("passwordless service dispatcher is nil")
+		return StartEmailChallengeResult{}, fmt.Errorf("email-code service dispatcher is nil")
 	}
 	if s.deliverySecrets == nil {
-		return StartEmailChallengeResult{}, fmt.Errorf("passwordless service delivery secrets are nil")
+		return StartEmailChallengeResult{}, fmt.Errorf("email-code service delivery secrets are nil")
 	}
 	email := normalizeEmail(in.Email)
 	if email == "" {
@@ -180,9 +180,9 @@ func (s *PasswordlessService) StartEmailChallenge(ctx context.Context, in StartE
 	return StartEmailChallengeResult{ChallengeID: challengeID, Accepted: true}, nil
 }
 
-func (s *PasswordlessService) VerifyEmailChallenge(ctx context.Context, in VerifyEmailChallengeInput) (VerifyEmailChallengeResult, error) {
+func (s *EmailCodeService) VerifyEmailChallenge(ctx context.Context, in VerifyEmailChallengeInput) (VerifyEmailChallengeResult, error) {
 	if s == nil || s.store == nil {
-		return VerifyEmailChallengeResult{}, fmt.Errorf("passwordless service store is nil")
+		return VerifyEmailChallengeResult{}, fmt.Errorf("email-code service store is nil")
 	}
 	token := strings.TrimSpace(in.Token)
 	if !isSixDigitCode(token) {
@@ -244,9 +244,9 @@ func (s *PasswordlessService) VerifyEmailChallenge(ctx context.Context, in Verif
 	}, nil
 }
 
-func (s *PasswordlessService) ResolveSession(ctx context.Context, rawToken string) (CurrentSession, error) {
+func (s *EmailCodeService) ResolveSession(ctx context.Context, rawToken string) (CurrentSession, error) {
 	if s == nil || s.store == nil {
-		return CurrentSession{}, fmt.Errorf("passwordless service store is nil")
+		return CurrentSession{}, fmt.Errorf("email-code service store is nil")
 	}
 	token := strings.TrimSpace(rawToken)
 	if token == "" {
@@ -283,16 +283,16 @@ func (s *PasswordlessService) ResolveSession(ctx context.Context, rawToken strin
 	}, nil
 }
 
-func (s *PasswordlessService) CurrentUser(ctx context.Context, userID string) (UserContext, error) {
+func (s *EmailCodeService) CurrentUser(ctx context.Context, userID string) (UserContext, error) {
 	if s == nil || s.store == nil {
-		return UserContext{}, fmt.Errorf("passwordless service store is nil")
+		return UserContext{}, fmt.Errorf("email-code service store is nil")
 	}
 	return s.store.GetUserContext(ctx, userID)
 }
 
-func (s *PasswordlessService) CompleteProfile(ctx context.Context, in CompleteProfileInput) (UserContext, error) {
+func (s *EmailCodeService) CompleteProfile(ctx context.Context, in CompleteProfileInput) (UserContext, error) {
 	if s == nil || s.store == nil {
-		return UserContext{}, fmt.Errorf("passwordless service store is nil")
+		return UserContext{}, fmt.Errorf("email-code service store is nil")
 	}
 	userID := strings.TrimSpace(in.UserID)
 	displayName := normalizeDisplayName(in.DisplayName)
@@ -308,9 +308,9 @@ func (s *PasswordlessService) CompleteProfile(ctx context.Context, in CompletePr
 	return s.store.CompleteUserProfile(ctx, userID, displayName, s.now().UTC())
 }
 
-func (s *PasswordlessService) Logout(ctx context.Context, current CurrentSession) error {
+func (s *EmailCodeService) Logout(ctx context.Context, current CurrentSession) error {
 	if s == nil || s.store == nil {
-		return fmt.Errorf("passwordless service store is nil")
+		return fmt.Errorf("email-code service store is nil")
 	}
 	if current.SessionID == "" {
 		return nil
@@ -323,9 +323,9 @@ func (s *PasswordlessService) Logout(ctx context.Context, current CurrentSession
 	return nil
 }
 
-func (s *PasswordlessService) DeleteMe(ctx context.Context, current CurrentSession, idempotencyKey string) (PrivacyDeleteHandoff, error) {
+func (s *EmailCodeService) DeleteMe(ctx context.Context, current CurrentSession, idempotencyKey string) (PrivacyDeleteHandoff, error) {
 	if s == nil || s.store == nil {
-		return PrivacyDeleteHandoff{}, fmt.Errorf("passwordless service store is nil")
+		return PrivacyDeleteHandoff{}, fmt.Errorf("email-code service store is nil")
 	}
 	now := s.now().UTC()
 	if idempotencyKey == "" {
@@ -340,7 +340,7 @@ func (s *PasswordlessService) DeleteMe(ctx context.Context, current CurrentSessi
 	return handoff, nil
 }
 
-func (s *PasswordlessService) RuntimeConfigSessionResolver() func(*http.Request) bool {
+func (s *EmailCodeService) RuntimeConfigSessionResolver() func(*http.Request) bool {
 	return func(r *http.Request) bool {
 		if s == nil || r == nil {
 			return false
@@ -396,7 +396,7 @@ func localeOrDefault(locale string) string {
 	return "en"
 }
 
-func (s *PasswordlessService) recordChallengeStarted(ctx context.Context, challengeID string, result string) {
+func (s *EmailCodeService) recordChallengeStarted(ctx context.Context, challengeID string, result string) {
 	s.metrics.recordChallengeStarted(result)
 	s.recordAuthAudit(ctx, AuthAuditEvent{
 		Action:      AuthAuditActionChallengeStarted,
@@ -406,7 +406,7 @@ func (s *PasswordlessService) recordChallengeStarted(ctx context.Context, challe
 	})
 }
 
-func (s *PasswordlessService) recordSessionMinted(ctx context.Context, userID string, challengeID string) {
+func (s *EmailCodeService) recordSessionMinted(ctx context.Context, userID string, challengeID string) {
 	s.metrics.recordSessionMinted("success")
 	s.recordAuthAudit(ctx, AuthAuditEvent{
 		Action:      AuthAuditActionSessionMinted,
@@ -417,7 +417,7 @@ func (s *PasswordlessService) recordSessionMinted(ctx context.Context, userID st
 	})
 }
 
-func (s *PasswordlessService) recordLogout(ctx context.Context, userID string) {
+func (s *EmailCodeService) recordLogout(ctx context.Context, userID string) {
 	s.metrics.recordLogout("success")
 	s.recordAuthAudit(ctx, AuthAuditEvent{
 		Action:     AuthAuditActionLogout,
@@ -427,7 +427,7 @@ func (s *PasswordlessService) recordLogout(ctx context.Context, userID string) {
 	})
 }
 
-func (s *PasswordlessService) recordDeleteHandoff(ctx context.Context, userID string, handoff PrivacyDeleteHandoff) {
+func (s *EmailCodeService) recordDeleteHandoff(ctx context.Context, userID string, handoff PrivacyDeleteHandoff) {
 	s.metrics.recordDeleteHandoff("success")
 	s.recordAuthAudit(ctx, AuthAuditEvent{
 		Action:           AuthAuditActionDeleteHandoff,
@@ -439,7 +439,7 @@ func (s *PasswordlessService) recordDeleteHandoff(ctx context.Context, userID st
 	})
 }
 
-func (s *PasswordlessService) recordAuthFailure(ctx context.Context, operation string, result string, userID string, challengeID string) {
+func (s *EmailCodeService) recordAuthFailure(ctx context.Context, operation string, result string, userID string, challengeID string) {
 	result = authMetricResult(result)
 	operation = authMetricOperation(operation)
 	s.metrics.recordFailure(operation, result)
@@ -453,14 +453,14 @@ func (s *PasswordlessService) recordAuthFailure(ctx context.Context, operation s
 	})
 }
 
-func (s *PasswordlessService) recordAuthAudit(ctx context.Context, event AuthAuditEvent) {
+func (s *EmailCodeService) recordAuthAudit(ctx context.Context, event AuthAuditEvent) {
 	if s == nil || s.audit == nil {
 		return
 	}
 	_ = s.audit.RecordAuthAuditEvent(ctx, event)
 }
 
-func (s *PasswordlessService) auditUserIDHash(userID string) string {
+func (s *EmailCodeService) auditUserIDHash(userID string) string {
 	if strings.TrimSpace(userID) == "" {
 		return ""
 	}

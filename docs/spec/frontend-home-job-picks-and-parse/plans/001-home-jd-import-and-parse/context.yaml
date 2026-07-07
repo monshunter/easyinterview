@@ -4,10 +4,9 @@ metadata:
   subspec: frontend-home-job-picks-and-parse
   name: 001-home-jd-import-and-parse
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
-    to: 2.7
+    to: 2.11
 spec:
   defaultTarget: frontend
   discovery:
@@ -23,6 +22,7 @@ spec:
       - importTargetJob
       - createUploadPresign
       - listTargetJobs
+      - listResumes
       - getTargetJob
       - updateTargetJob
       - JDAssistModal
@@ -33,36 +33,20 @@ spec:
       - hidden signals
       - round assumptions
       - analysisStatus polling
-      - parse loading demo regression
-      - ready response loading gate
-      - ready response browser gate
-      - parse loading screenshot gate
-      - parse confirm workspace context gate
-      - workspace missing resume browser gate
-      - jobId roundName handoff
-      - parse targetJobId route switch
-      - same route stale preview
-      - target switch loading gate
-      - parse resume binding
-      - explicit resume selection
-      - require resume before interview
-      - listResumes
-      - resume-unbound
+      - parse loading gate
+      - parse route resumeId
+      - parse targetJobId switch
+      - ready resume selection
       - start interview from parse
       - save plan only
-      - eiCreateInterviewContext
       - requestAuth import_jd
-      - requestAuth confirm_interview
+      - requestAuth start_practice
       - E2E.P0.014
       - E2E.P0.015
       - E2E.P0.016
-      - home source layout
-      - upload file source
-      - integrated source controls
       - home-jd-source-controls
-      - input card source actions
-      - resume select row
-      - submit below resume selection
+      - home-resume-select
+      - home-recent-more
   targets:
     frontend:
       plan: ./plan.md
@@ -97,6 +81,7 @@ spec:
           - openapi
           - openapi/fixtures/TargetJobs
           - openapi/fixtures/Uploads
+          - openapi/fixtures/Resumes
           - test/scenarios/e2e/p0-014-home-default-render
           - test/scenarios/e2e/p0-015-jd-import-and-parse
           - test/scenarios/e2e/p0-016-parse-confirm-to-workspace
@@ -109,5 +94,6 @@ spec:
           - importTargetJob
           - createUploadPresign
           - listTargetJobs
+          - listResumes
           - getTargetJob
           - updateTargetJob

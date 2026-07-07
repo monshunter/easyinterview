@@ -45,9 +45,9 @@ func TestCursorRejectsTampered(t *testing.T) {
 	}
 }
 
-func TestCursorRejectsLegacyFormat(t *testing.T) {
-	legacy := base64.RawURLEncoding.EncodeToString([]byte("2026-05-15T10:20:30Z|0197d120-0000-7000-8000-000000000501"))
-	if _, _, err := DecodeCursor(legacy); err == nil {
-		t.Fatal("DecodeCursor accepted legacy pipe-delimited cursor")
+func TestCursorRejectsNonCurrentFormat(t *testing.T) {
+	nonCurrent := base64.RawURLEncoding.EncodeToString([]byte("2026-05-15T10:20:30Z|0197d120-0000-7000-8000-000000000501"))
+	if _, _, err := DecodeCursor(nonCurrent); err == nil {
+		t.Fatal("DecodeCursor accepted non-current pipe-delimited cursor")
 	}
 }

@@ -38,23 +38,24 @@ type StartSessionReservationInput struct {
 }
 
 type SessionReservation struct {
-	IdempotencyRecordID        string
-	SessionID                  string
-	UserID                     string
-	PlanID                     string
-	TargetJobID                string
-	Goal                       sharedtypes.PracticeGoal
-	Mode                       sharedtypes.PracticeMode
-	InterviewerPersona         sharedtypes.InterviewerRole
-	Language                   string
-	HintsEnabled               bool
-	RoleTitle                  string
-	Seniority                  string
-	TopSkills                  []string
-	RubricDimensions           []string
-	CreatedAt                  time.Time
-	UpdatedAt                  time.Time
-	ReplaySession              *SessionRecord
+	IdempotencyRecordID string
+	SessionID           string
+	UserID              string
+	PlanID              string
+	TargetJobID         string
+	Goal                sharedtypes.PracticeGoal
+	Mode                sharedtypes.PracticeMode
+	InterviewerPersona  sharedtypes.InterviewerRole
+	Language            string
+	HintsEnabled        bool
+	RoleTitle           string
+	Seniority           string
+	TopSkills           []string
+	ResumeProfile       string
+	RubricDimensions    []string
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+	ReplaySession       *SessionRecord
 }
 
 type CommitSessionStartInput struct {
@@ -285,6 +286,7 @@ func renderFirstQuestionTemplate(template string, reservation SessionReservation
 		"{{role_title}}", fallbackText(reservation.RoleTitle, "target role"),
 		"{{seniority}}", fallbackText(reservation.Seniority, "not specified"),
 		"{{top_skills}}", fallbackList(reservation.TopSkills, "target job requirements"),
+		"{{resume_profile}}", fallbackText(reservation.ResumeProfile, "resume profile unavailable"),
 		"{{rubric_dimensions}}", fallbackList(reservation.RubricDimensions, "practice_depth, practice_dimension_coverage, language_consistency"),
 		"{{practice_goal}}", fallbackText(string(reservation.Goal), string(sharedtypes.PracticeGoalBaseline)),
 	)

@@ -31,7 +31,7 @@ topology, bootstrap, verify, cleanup, rebuild, and redeploy behavior.
 
 Read these documents before any environment command. Do not infer cluster
 topology, component names, namespaces, helper scripts, or deploy commands from
-historical projects.
+assumptions that are not declared by the current repo docs.
 
 In this repo the environment is host-run: Docker Compose provides external
 dependencies, backend/frontend processes are managed as host-run commands, and

@@ -40,7 +40,7 @@
 - JD / 面试题 / 复盘素材
 
 ## Preconditions
-- 已存在的用户资料、目标岗位或历史会话
+- 已存在的用户资料、目标岗位或过往会话
 ```
 
 ### `data/expected-outcome.md`

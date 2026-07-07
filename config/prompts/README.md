@@ -45,7 +45,7 @@ feature_key: <string>
 version: <semver-string>
 language: <multi | iso-639>
 template_hash: <sha256-hex>
-status: <draft | active | deprecated>
+status: <draft | active>
 created_at: <RFC 3339 timestamp>
 ```
 
@@ -66,7 +66,7 @@ Rules:
    suffix (`.<language>` segment between version and extension) must match
    this field exactly when present.
 5. **`template_hash`** is the result of the canonical hash algorithm in §3.
-6. **`status`** is one of `draft`, `active`, `deprecated`. Only `active` rows
+6. **`status`** is one of `draft`, `active`. Only `active` rows
    are seeded into the database with `is_active = true`; toggles between
    `is_active` rows are runtime-derived and do not write back into this YAML.
 7. **`created_at`** is RFC 3339 (`2026-05-09T12:00:00Z`). Humans write this
@@ -88,7 +88,7 @@ Where:
 - `template_body_bytes` is the entire Markdown sibling file's contents,
   read as UTF-8, with `\n` line endings.
 - `meta_for_hash` is the parsed YAML map with the `template_hash` field
-  **removed** (so the hash never references its own value).
+  **excluded** (so the hash never references its own value).
 - `canonical_json_bytes(meta_for_hash)` is `json.dumps(meta, sort_keys=True,
   ensure_ascii=False, separators=(",", ":"))` encoded as UTF-8 plus a single
   trailing `\n`. The Go loader uses `encoding/json` with the same key sort
@@ -104,8 +104,8 @@ Concretely, the linter and loader both:
 6. Compare against the stored `template_hash` field.
 
 Any drift — body edit without hash bump, hash bump without body edit, key
-reordering without canonicalization, or substituting an empty/old/new hash
-into the YAML before re-hashing — fails the lint gate.
+reordering without canonicalization, or substituting an empty or unregistered
+hash into the YAML before re-hashing — fails the lint gate.
 
 ## 4 Output schema truth source
 
@@ -126,8 +126,6 @@ Rules:
    `anyOf`, `additionalProperties`, `format`, `minimum`, `maximum`, or SDK
    private fields.
 3. **Top-level shape**: chat feature keys use top-level `type: object`.
-   (The retired jd_match feature keys were the only top-level `array`
-   schemas; they were removed with the module per product-scope v2.1 D-17.)
    Voice / STT / TTS feature keys do not produce JSON content and must not
    have output schema files.
 4. **Required fields**: `required` contains only fields the backend parser or
@@ -138,10 +136,9 @@ Rules:
    consumer's json tags or explicitly documented parser-required keys. For
    `json.RawMessage` consumers, alignment is against the keys the parser checks
    before persisting the raw payload.
-6. **Alias policy**: parser aliases kept for historical outputs are
-   compatibility behavior, not new prompt contract fields. For example, a
-   parser may accept legacy aliases while the schema-rendered prompt block uses
-   only the canonical key.
+6. **Alias policy**: parser aliases are compatibility behavior, not new prompt
+   contract fields. For example, a parser may accept non-current aliases while
+   the schema-rendered prompt block uses only the canonical key.
 7. **Template hash boundary**: output schema bytes do not participate in
    `template_hash`. Prompt body edits still require YAML hash refresh; schema
    edits are validated by schema/prompt/struct lint gates instead.
@@ -222,10 +219,6 @@ The rendered block contract is:
   database; the lint gate accepts it but Phase 4 seed migration excludes it.
 - `active`: file is seeded into the database with `is_active = true`. Only
   one `active` YAML may exist per `(feature_key, language)` pair.
-- `deprecated`: file is kept for history but not seeded as `active`. The
-  lint gate accepts it; Phase 4 seed migration writes the row with
-  `is_active = false` (or excludes it, depending on Phase 4.4 design).
-
 DB-level `is_active` reflects staging/prod runtime state and does not write
 back into this YAML. Edits to YAML `status` are pull-request reviewable.
 
@@ -233,7 +226,7 @@ back into this YAML. Edits to YAML `status` are pull-request reviewable.
 
 The lint gate rejects:
 
-- Retired-module names from earlier product iterations. The exact list lives
+- Non-current module names from current product boundaries. The exact list lives
   in `scripts/lint/prompt_lint.py` so this README can stay under the same
   recursive grep scan as the bodies it governs.
 - Bare hardcoded prompt assignments inside Go business packages — these

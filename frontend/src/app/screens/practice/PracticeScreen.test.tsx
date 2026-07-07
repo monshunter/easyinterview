@@ -150,9 +150,9 @@ describe("PracticeScreen static shell (item 1.1)", () => {
     expect(screen.queryByTestId("practice-voice-expression-panel")).toBeNull();
   });
 
-  it("does not render legacy prototype testids (negative gate)", () => {
+  it("does not render non-current prototype testids (negative gate)", () => {
     withProviders(<PracticeScreen route={PRACTICE_ROUTE} />);
-    // Legacy practice prototype surfaces deprecated by the current spec.
+    // Non-current practice prototype surfaces excluded by the current spec.
     expect(screen.queryByTestId("practice-mode-card-strict")).toBeNull();
     expect(screen.queryByTestId("practice-mode-card-assisted")).toBeNull();
     expect(screen.queryByTestId("growth-summary")).toBeNull();

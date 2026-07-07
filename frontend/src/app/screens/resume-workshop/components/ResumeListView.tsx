@@ -9,7 +9,7 @@ import { ResumeWorkshopIcon } from "./ResumeWorkshopIcon";
 /**
  * D-20 flat list view — source-level replica of `ResumeListView` in
  * ui-design/src/screen-resume-workshop.jsx. A single flat table of resumes
- * sorted by last edit; no version tree, no stats strip, no view switcher.
+ * sorted by last edit.
  */
 export const ResumeListView: FC = () => {
   const { t } = useI18n();

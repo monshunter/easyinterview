@@ -89,7 +89,7 @@ describe("App auth route dispatch", () => {
     }
   });
 
-  it("renders the login screen when the retired auth_reset route is requested (D-16)", () => {
+  it("renders the login screen when the non-current auth_reset route is requested (D-16)", () => {
     render(
       <App
         client={buildClient()}
@@ -204,7 +204,7 @@ describe("App auth route dispatch", () => {
     }
   });
 
-  it("normalizes legacy auth_register route names to the single login screen", () => {
+  it("normalizes non-current auth_register route names to the single login screen", () => {
     render(
       <App
         client={buildClient()}

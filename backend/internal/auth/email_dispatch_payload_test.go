@@ -13,7 +13,7 @@ func TestStartEmailChallengeUsesGeneratedEmailDispatchPayloadRedaction(t *testin
 	store := &recordingChallengeStore{}
 	dispatcher := &payloadRecordingDispatcher{}
 	sink := auth.NewDevMailSink(auth.DevMailSinkOptions{})
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:           store,
 		Dispatcher:      dispatcher,
 		DeliverySecrets: sink,

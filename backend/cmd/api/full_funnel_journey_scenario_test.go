@@ -119,8 +119,8 @@ where id = $1
 	}
 }
 
-func TestE2EP0098FullFunnelLegacyNegativeRoutePattern(t *testing.T) {
-	pattern := regexp.MustCompile(fullFunnelLegacyRoutePattern)
+func TestE2EP0098FullFunnelNonCurrentNegativeRoutePattern(t *testing.T) {
+	pattern := regexp.MustCompile(fullFunnelNonCurrentRoutePattern)
 	for _, allowed := range []string{
 		"startPracticeSession",
 		"createPracticePlan",
@@ -130,18 +130,18 @@ func TestE2EP0098FullFunnelLegacyNegativeRoutePattern(t *testing.T) {
 		"/api/v1/practice/sessions/{sessionId}/voice-turns",
 	} {
 		if pattern.MatchString(allowed) {
-			t.Fatalf("legacy route pattern falsely matched canonical token %q", allowed)
+			t.Fatalf("non-current route pattern falsely matched canonical token %q", allowed)
 		}
 	}
 	root := scenarioRepoRoot(t)
-	for _, rel := range fullFunnelLegacyScanPaths() {
+	for _, rel := range fullFunnelNonCurrentScanPaths() {
 		path := filepath.Join(root, rel)
 		info, err := os.Stat(path)
 		if err != nil {
-			t.Fatalf("stat legacy scan path %s: %v", rel, err)
+			t.Fatalf("stat non-current scan path %s: %v", rel, err)
 		}
 		if !info.IsDir() {
-			assertFullFunnelLegacyCleanFile(t, pattern, path, rel)
+			assertFullFunnelNonCurrentCleanFile(t, pattern, path, rel)
 			continue
 		}
 		err = filepath.WalkDir(path, func(candidate string, entry fs.DirEntry, walkErr error) error {
@@ -151,11 +151,11 @@ func TestE2EP0098FullFunnelLegacyNegativeRoutePattern(t *testing.T) {
 			if entry.IsDir() {
 				return nil
 			}
-			assertFullFunnelLegacyCleanFile(t, pattern, candidate, rel)
+			assertFullFunnelNonCurrentCleanFile(t, pattern, candidate, rel)
 			return nil
 		})
 		if err != nil {
-			t.Fatalf("walk legacy scan path %s: %v", rel, err)
+			t.Fatalf("walk non-current scan path %s: %v", rel, err)
 		}
 	}
 }
@@ -218,7 +218,7 @@ func newFullFunnelResumeSeedHarness(t *testing.T) *fullFunnelResumeSeedHarness {
 	t.Cleanup(func() { cleanupFullFunnelScenarioUser(t, db, userID) })
 
 	loader := loadFullFunnelResumeSeedConfig(t)
-	authService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	authService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               auth.NewSQLStore(db),
 		ChallengePepper:     fullFunnelAuthPepper,
 		SessionCookieSecret: fullFunnelSessionSecret,
@@ -282,7 +282,7 @@ func newFullFunnelJourneyHarnessWithTimeout(t *testing.T, timeout time.Duration)
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	loader := loadFullFunnelResumeSeedConfig(t)
-	authService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	authService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               auth.NewSQLStore(db),
 		ChallengePepper:     fullFunnelAuthPepper,
 		SessionCookieSecret: fullFunnelSessionSecret,
@@ -762,9 +762,9 @@ select response_body::text from idempotency_records where user_id = $1 and respo
 	return payloads
 }
 
-const fullFunnelLegacyRoutePattern = `(^|[[:space:]'"'/#?&=:-])(welcome|growth|mistakes|drill|followup|experiences|star(_editor)?|onboarding)([[:space:]'"'/#?&=:-]|$)|mode=debrief|name=['"](plan|resume|voice)['"]|route=['"](plan|resume|voice)['"]|#route=(plan|resume|voice)([[:space:]'"'/#?&=:-]|$)`
+const fullFunnelNonCurrentRoutePattern = `(^|[[:space:]'"'/#?&=:-])(welcome|growth|mistakes|drill|followup|experiences|star(_editor)?|onboarding)([[:space:]'"'/#?&=:-]|$)|mode=debrief|name=['"](plan|resume|voice)['"]|route=['"](plan|resume|voice)['"]|#route=(plan|resume|voice)([[:space:]'"'/#?&=:-]|$)`
 
-func fullFunnelLegacyScanPaths() []string {
+func fullFunnelNonCurrentScanPaths() []string {
 	return []string{
 		"backend/cmd/api/main.go",
 		"backend/internal/api/generated",
@@ -782,14 +782,14 @@ func fullFunnelLegacyScanPaths() []string {
 	}
 }
 
-func assertFullFunnelLegacyCleanFile(t *testing.T, pattern *regexp.Regexp, path, scope string) {
+func assertFullFunnelNonCurrentCleanFile(t *testing.T, pattern *regexp.Regexp, path, scope string) {
 	t.Helper()
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("read legacy scan file %s: %v", path, err)
+		t.Fatalf("read non-current scan file %s: %v", path, err)
 	}
 	if match := pattern.Find(raw); len(match) > 0 {
-		t.Fatalf("legacy route token %q found in %s within scope %s", string(match), path, scope)
+		t.Fatalf("non-current route token %q found in %s within scope %s", string(match), path, scope)
 	}
 }
 
@@ -1003,7 +1003,7 @@ func loginFullFunnelScenarioUser(t *testing.T, ctx context.Context, db *sql.DB, 
 	challengeToken := "424242"
 	sessionToken := "full-funnel-session-" + tokenSuffix
 	sink := auth.NewDevMailSink(auth.DevMailSinkOptions{VerifyBaseURL: "http://api.test/api/v1/auth/email/verify"})
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:                 auth.NewSQLStore(db),
 		Dispatcher:            auth.NewImmediateMailDispatcher(sink),
 		DeliverySecrets:       sink,

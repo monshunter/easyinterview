@@ -1,8 +1,8 @@
 # URL-Addressable Routing
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-07
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,33 +11,18 @@
 
 ## 1 目标
 
-把 `frontend-shell` 从仅内存 route + `#route=` bootstrap 升级为可复制、可刷新、可直开的 URL-addressable SPA routing。正式前端继续保留单页应用和现有 `Route { name, params }` / `LooseRoute` 内部合约，但 canonical 用户地址改为 Browser History path + query。
+本计划把正式前端 route 从 in-memory state 扩展为 Browser History canonical URL，同时保留内部 `Route { name, params }` / `LooseRoute` 合同。URL 只表达用户所在页面、稳定资源 ID 和轻量 display hint；后端 action、表单正文、AI prompt/response、验证码和 session secret 不进入 URL、history state、pendingAction 或 browser storage。
 
-本计划不把前端 URL 做成 REST API 的 1:1 镜像。URL 表达的是用户所在页面、稳定服务端资源 ID 和轻量 display hint；后端 action、raw payload、AI prompt / response、表单草稿和 auth secret 都不进入 URL。
+## 2 当前合同
 
-## 2 背景
+### 2.1 Route and history
 
-当前 `App` 以 React state 保存 route，`navigate()` 只调用 `setRoute(normalizeRoute(next))`；启动入口只解析 `window.__EASYINTERVIEW_INITIAL_ROUTE__` 或 `#route=...`。这足以支撑 static preview 和 pixel parity，但无法支撑用户复制业务页链接、刷新当前任务、直接打开 report / workspace / resume detail、或用浏览器 back / forward 还原路线。
+- App 初始 route 优先级：test harness route > canonical path > hash adapter > default `home`。
+- `NavigationProvider.navigate(next)` 继续作为屏幕层 API；内部统一 normalize、safe-param filter、serialize、`pushState` / `replaceState` and React state update。
+- `popstate` 必须恢复 route params、TopBar active state、chrome hidden state and InterviewContext hydration，并清理 hostile `history.state`。
+- `#route=...` adapter 继续服务 static preview、pixel parity and scenario harness；正常浏览器模式下替换为 canonical path。
 
-EasyInterview 的核心工作流已经围绕真实 JD、target job、resume version、practice session、report 和 debrief 展开。随着 `frontend-resume-workshop`、`frontend-workspace-and-practice`、`frontend-report-dashboard` 等页面接入，路由需要表达稳定资源上下文，否则用户在刷新或分享链接后会丢失当前工作台状态。
-
-## 3 质量门禁分类
-
-- **Plan 类型**: `feature-behavior` + `frontend` + `routing`。本计划改变用户可见导航行为、deep-link 能力、auth 恢复路径和部署 fallback。
-- **TDD 策略**: 通过 `/implement frontend-shell/004-url-addressable-routing frontend` -> `/tdd` 执行。每个 checklist item 先写失败断言，再实现最小改动：route codec / path table / hash adapter 用 Vitest 单测；History push/replace/popstate 用 jsdom 集成测试；auth pendingAction + privacy 用 focused component / hook test；server fallback 与 pixel harness 用现有 Playwright / scenario wrapper 验证。
-- **BDD 策略**: 适用。本计划引入用户可感知 URL 行为，维护 [bdd-plan](./bdd-plan.md) / [bdd-checklist](./bdd-checklist.md)，主 checklist 使用 `BDD-Gate:` 引用 `E2E.P0.088`、`E2E.P0.089`、`E2E.P0.090`。
-- **替代验证 gate**: 不适用；BDD 是本计划的用户流 gate。补充 gate 包括 route codec 单测、privacy negative grep、`test:pixel-parity` hash adapter regression、`make docs-check` 和 context validator。
-
-## 4 Operation Matrix / Contract Boundary
-
-| operationId / Boundary | Fixture / Contract | Frontend Consumer | Backend Handler | Persistence | AI dependency | Scenario Coverage |
-|------------------------|--------------------|-------------------|-----------------|-------------|---------------|-------------------|
-| N/A - Browser History router | 前端 route codec，不新增 OpenAPI operation | `frontend/src/app/*` route adapter、NavigationProvider、TopBar、auth pendingAction | n/a | browser history only | none | E2E.P0.088 / E2E.P0.089 / E2E.P0.090 |
-| N/A - Static preview hash adapter | `#route=...` adapter，继续走 `normalizeRoute` | `bootstrapRoute.ts` / pixel parity harness | n/a | none | none | E2E.P0.090 + existing E2E.P0.006 |
-| Existing generated API client | 不变；URL route 不新增 API、fixture 或 generated client contract | route params 只作为已有 screen/hook 的输入 | 各 owner handler 不变 | 各 owner store 不变 | none in frontend；owner 后端 AI 依赖不由 URL router 新增 | E2E.P0.088 / owner scenarios |
-| N/A - Server fallback rewrite | 部署 / dev server 配置：known frontend path -> `index.html`，`/api/*` 不被吞掉 | direct open / reload | backend API routes remain API-owned | n/a | none | E2E.P0.088 / E2E.P0.090 |
-
-## 5 Canonical URL Contract
+### 2.2 Canonical route table
 
 | Route | Canonical URL | Safe Params | Chrome |
 |-------|---------------|-------------|--------|
@@ -49,94 +34,72 @@ EasyInterview 的核心工作流已经围绕真实 JD、target job、resume vers
 | `generating` | `/generating` | `sessionId`, `reportId`, `planId`, `targetJobId`, `jobId`, `jdId`, `resumeId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `hintUsed`, `hintCount` | hidden |
 | `report` | `/report` | `sessionId`, `reportId`, `targetJobId`, `jobId`, `jdId`, `resumeId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `hintUsed`, `hintCount`, `reportStatus`, `errorCode` | visible |
 | `settings` | `/settings` | `tab` | visible |
-| `auth_login` | `/auth/login` | `next`, `email` display hint only, plus encoded pendingAction safe params (`pendingRoute`, `pendingType`, `pendingLabel` and target-route safe params) | visible |
-| `auth_verify` | `/auth/verify` | `email` display hint only, short-lived verification code handled by the auth form/client boundary, plus encoded pendingAction safe params | visible |
-| `auth_profile_setup` | `/auth/profile` | `email` display hint only, plus encoded pendingAction safe params | visible |
+| `auth_login` | `/auth/login` | `next`, `email`, encoded pendingAction safe params | visible |
+| `auth_verify` | `/auth/verify` | `email`, encoded pendingAction safe params | visible |
+| `auth_profile_setup` | `/auth/profile` | `email`, encoded pendingAction safe params | visible |
 | `auth_logout` | `/auth/logout` | `next` | visible |
 
-Retired paths are not canonical routes and must never materialize standalone screens:
+Unsupported paths and malformed query input must normalize to the current route catalog or `home`; canonical output must never emit unsupported paths.
 
-- `/auth/reset` normalizes to `auth_login`.
-- `/jd-match` normalizes to `home`.
-- `/company-intel` normalizes to `workspace`.
-- `/debrief` normalizes to `home`.
-- `/profile` normalizes to `home`.
+## 3 质量门禁分类
 
-`voice` is intentionally absent. Voice interview remains `practice?mode=voice&modality=voice`.
+- **Plan 类型**: `feature-behavior` + `frontend` + `routing`。
+- **TDD 策略**: 本计划按 `/implement frontend-shell/004-url-addressable-routing frontend` -> `/tdd` 完成。Current regression gate covers route codec, hash adapter, route store, History integration, auth pendingAction serialization, privacy redline and host fallback tests.
+- **BDD 策略**: 需要 BDD。本计划维护 [bdd-plan](./bdd-plan.md) / [bdd-checklist](./bdd-checklist.md)，主 checklist 使用 `BDD-Gate:` 引用 `E2E.P0.088`、`E2E.P0.089`、`E2E.P0.090`。
+- **替代验证 gate**: 不适用；BDD 是用户行为 gate。Supplemental gates include focused Vitest, host fallback tests, context validator, `make docs-check` and `git diff --check`。
 
-The allowlist above is a current cross-owner contract, not an aspirational sample. It is derived from `frontend/src/app/routeUrl.ts`, `frontend/src/app/routes.ts`, `frontend/src/app/interview-context/InterviewContext.tsx`, `frontend/src/app/auth/pendingAction.ts`, and active owner specs for home / parse, workspace / practice / generating, report, resume workshop and settings. `jd_match` search query / saved-search labels and debrief IDs are retired workflow payloads and must not survive canonical URL, pendingAction, storage or history restoration.
+## 4 Operation Matrix / Contract Boundary
 
-## 6 实施步骤
+| Boundary | Contract | Frontend Consumer | Backend Handler | Persistence | AI dependency | Scenario Coverage |
+|----------|----------|-------------------|-----------------|-------------|---------------|-------------------|
+| Browser History router | Route codec + safe-param allowlist | route adapter, NavigationProvider, TopBar, auth pendingAction | N/A | browser history only | none | E2E.P0.088 / E2E.P0.089 / E2E.P0.090 |
+| Hash adapter | `#route=...` -> `LooseRoute` -> normalize -> canonical replace | `bootstrapRoute.ts`, pixel parity harness, scenario harness | N/A | none | none | E2E.P0.090 + E2E.P0.006 |
+| Generated API client | No new OpenAPI operation, fixture or generated client contract | Route params only feed existing screen hooks | owner handlers unchanged | owner stores unchanged | owner-specific only | E2E.P0.088 and owner scenarios |
+| Host fallback | Known frontend paths return `index.html`; API/static/script paths stay owned by their handlers | direct open / reload / preview / pixel server | API routes unchanged | N/A | none | E2E.P0.088 / E2E.P0.090 |
 
-### Phase 1: Route codec and compatibility adapter
+## 5 Privacy Redline
 
-#### 1.1 Route-to-URL table
+The shared safe-param allowlist must drop unknown params and raw payload fields. Tests must prove zero leakage across canonical URL, `window.history.state`, pendingAction, `localStorage`, `sessionStorage`, console capture and mock transport logs.
 
-Create a typed route codec next to the existing route catalog. It must convert every retained `Route.name` to canonical path + sorted query params, and parse canonical URL back into `LooseRoute`. Unknown routes fallback to `home`; old aliases still pass through `normalizeRouteName` and never become canonical route names.
+Blocked payload categories:
 
-#### 1.2 Safe param allowlist
+- JD / resume original text, pasted content, source URLs and file bodies.
+- Practice answers, question text, hints and report evidence text.
+- Parsed summaries, structured resume content, rewrite suggestions and generated AI output.
+- Prompt body, provider raw response, model raw payload and auth/session secret values.
 
-Introduce a route-param allowlist shared by URL serialization, auth pendingAction serialization, and tests. Unknown params are dropped from canonical URLs unless explicitly allowed by the route owner. The allowlist must preserve current owner handoff keys such as `autoStartPractice`, `practiceMode`, `practiceGoal`, `reportId`, `reportStatus`, `errorCode`, `tailorRunId`, `pendingImportId`, `resumeId`, `sourceReportId`, `hintUsed` and `hintCount`. Retired `selectedJobMatchId`, `pendingJdMatchActionId`, `sourceJobMatchId`, `debriefId` and `debriefJobId` must be rejected unless a future product-scope revision restores the workflow. Raw payload fields such as `rawText`, `rawDescription`, `sourceUrl`, `query`, `label`, `guidedAnswers`, `parsedSummary`, `structuredProfile`, `suggestion`, `originalBullet`, `suggestedBullet`, `questionText`, `answerText`, `notes`, `prompt`, `response`, `file`, `token`, `password` and auth/session secrets must fail privacy tests if they appear in URL / storage / history.
+## 6 Current Implementation Summary
 
-#### 1.3 Hash adapter preservation
-
-Keep `#route=...` parsing for static preview, pixel parity and old harness entrypoints. The adapter must produce the same `LooseRoute` input as canonical URL parsing, run through `normalizeRoute`, and then allow the router to replace browser state with the canonical path when mounted in normal browser mode.
-
-### Phase 2: Browser History integration
-
-#### 2.1 Router state source
-
-Replace App-only in-memory navigation with a browser-aware route store. Initial route priority must be: explicit test harness `window.__EASYINTERVIEW_INITIAL_ROUTE__` > canonical path > `#route=` adapter > `DEFAULT_ROUTE`. The route store owns `pushState`, `replaceState`, `popstate`, and URL equality checks.
-
-#### 2.2 NavigationProvider handoff
-
-Keep the public `navigate(next: LooseRoute)` contract so existing screens do not need cross-owner rewrites. Internally, navigation normalizes route, serializes safe params to canonical URL, pushes/replaces history, and updates React state exactly once.
-
-#### 2.3 Back/forward and chrome parity
-
-Browser back / forward must update route state, TopBar active route, chrome hidden behavior and InterviewContext hydration without double renders or lost params. `practice` and `generating` remain chrome-hidden even when opened directly by canonical URL.
-
-### Phase 3: Auth and privacy
-
-#### 3.1 pendingAction canonical restore
-
-`requestAuth(pendingAction)` stores canonical route identity and safe params only. Login success restores the same canonical URL and route params; logout / auth pages must not preserve raw form body or auth secrets beyond the auth contract.
-
-#### 3.2 URL privacy negative tests
-
-Add automated negative checks for URL, `window.history.state`, `pendingAction`, `localStorage`, `sessionStorage`, console/log capture and mock transport logs. The checks must use representative raw JD, resume text, guided answers, parsed summary, suggestion text and AI prompt tokens, and assert zero leakage during navigation, auth restore, direct-open and browser `popstate` recovery from hostile history entries.
-
-### Phase 4: Host fallback and regression
-
-#### 4.1 Dev / static host fallback
-
-Ensure dev server, preview server and pixel parity server can serve known frontend paths by returning `index.html`; `/api/*`, generated client fixture endpoints and scenario script paths must not be swallowed by frontend fallback.
-
-#### 4.2 Legacy route negative regression
-
-Retired routes (`welcome`, `growth`, `plan`, `mistakes`, `drill`, `followup`, `experiences`, `star`, `onboarding`, standalone `voice`) must still normalize to retained routes or `home`, and must not appear as screen files, TopBar entries, route path constants, scenario names or canonical path outputs.
-
-#### 4.3 Documentation and handoff
-
-Update frontend README / route comments only where implementation needs operator guidance. The handoff must tell implementers how to run route codec tests, History integration tests, pixel parity hash regression and E2E.P0.088-090 scenario wrappers.
+- `routeUrl.ts` owns route-to-URL serialize/parse, route param allowlist and canonical path table.
+- `bootstrapRoute.ts` preserves hash adapter input and feeds the same normalization path.
+- `routeStore.ts` owns initial route resolution, `pushState`, `replaceState`, `popstate` and URL equality checks.
+- `NavigationProvider` keeps screen-level `navigate(next)` stable while routing through Browser History.
+- Auth pendingAction serialization shares the safe-param allowlist with URL serialization.
+- `spaFallback.mjs`, Vite SPA config and pixel parity server tests separate known frontend paths from API/static/script paths.
 
 ## 7 验收标准
 
-- `frontend-shell` spec C-11 / C-12 / C-13 have executable coverage.
-- Every retained route has canonical path parsing and serialization tests, including unknown / malformed / old alias fallback.
-- Direct open, reload, App navigation, back, forward and `replaceState` behave consistently across primary nav, context routes, auth pages and chrome-hidden routes.
-- `#route=...` static preview and pixel parity entrypoints remain supported until those harnesses are explicitly migrated.
-- URL / history / pendingAction / storage privacy negative tests block raw JD, resume, guided answers, parsed result, suggestion, AI prompt / response and auth secret leakage.
-- No OpenAPI / generated client / fixture contract changes are introduced by this plan.
-- `E2E.P0.088`、`E2E.P0.089`、`E2E.P0.090` are created and pass before this plan is marked completed.
+- Every current route serializes to and parses from its canonical URL with sorted safe query params.
+- Direct open, reload, App navigation, replace, back and forward preserve route state without double-push behavior.
+- `practice` and `generating` stay chrome-hidden when opened by canonical URL.
+- Hash adapter inputs continue to work for static preview and pixel parity harness.
+- Auth pendingAction restore returns to the original canonical route using safe params only.
+- Hostile URL / hash / history state input is scrubbed into canonical safe state.
+- Host fallback returns `index.html` for known frontend paths and does not swallow API/static/script paths.
+- `E2E.P0.088`、`E2E.P0.089`、`E2E.P0.090` pass.
 
 ## 8 风险与应对
 
 | 风险 | 应对措施 |
 |------|----------|
-| Treating frontend URL as REST API mirror creates brittle paths tied to backend implementation | Keep URL contract route-centric and user-centric; only stable resource IDs enter URL; action verbs remain API/client concerns |
-| URL leaks sensitive payloads through query, history, storage or pendingAction | Shared safe-param allowlist + negative grep / runtime capture; auth restore stores route identity, not raw draft |
-| Hash migration breaks ui-design / pixel parity harness | Preserve `#route=` adapter and add E2E.P0.090 regression; migrate harness only after owner plans update |
-| Server fallback swallows API paths | Explicit fallback tests distinguish known frontend paths from `/api/*` and fixture/script paths |
-| Components bypass router and mutate `window.location` directly | Route adapter becomes the only write path; tests grep for direct writes outside adapter/tests |
-| Legacy route compatibility resurrects removed modules | Old aliases normalize only to retained route names or `home`; canonical output never emits retired route path |
+| Frontend URL mirrors backend implementation too closely | Keep the URL route-centric and user-centric; action verbs remain API/client concerns |
+| Sensitive payload leaks through query, history or pendingAction | Shared safe-param allowlist + runtime privacy redline tests |
+| Hash compatibility breaks preview or parity harness | Keep hash adapter and cover it with E2E.P0.090 |
+| Host fallback swallows API paths | Explicit fallback tests distinguish known frontend paths from API/static/script paths |
+| Components bypass router | Route adapter remains the only write path; focused tests cover navigation behavior |
+
+## 9 修订记录
+
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-07-07 | 1.4 | Compress URL routing owner docs to the current canonical URL, safe-param, hash adapter, privacy and host fallback contract. |

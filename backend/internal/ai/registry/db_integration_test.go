@@ -166,12 +166,12 @@ func extractSeedMigrationRows(t *testing.T, repoRoot string) map[string][]insert
 	// Later module-removal migrations (e.g. product-scope v2.1 D-17 dropping
 	// the jd_match feature keys) delete previously seeded rows. The net DB
 	// state — not the raw seed inserts — is what must match the on-disk
-	// config truth source, so subtract retired feature keys here.
-	retired := retiredFeatureKeys(t, repoRoot)
+	// config truth source, so subtract non-current feature keys here.
+	nonCurrent := nonCurrentFeatureKeys(t, repoRoot)
 	for table, rows := range out {
 		kept := rows[:0]
 		for _, row := range rows {
-			if !retired[row.featureKey] {
+			if !nonCurrent[row.featureKey] {
 				kept = append(kept, row)
 			}
 		}
@@ -180,10 +180,10 @@ func extractSeedMigrationRows(t *testing.T, repoRoot string) map[string][]insert
 	return out
 }
 
-// retiredFeatureKeys parses `DELETE FROM prompt_versions ... feature_key IN
+// nonCurrentFeatureKeys parses `DELETE FROM prompt_versions ... feature_key IN
 // (...)` statements from module-removal migrations so the static seed gate
 // tracks the post-migration net state.
-func retiredFeatureKeys(t *testing.T, repoRoot string) map[string]bool {
+func nonCurrentFeatureKeys(t *testing.T, repoRoot string) map[string]bool {
 	t.Helper()
 
 	out := map[string]bool{}

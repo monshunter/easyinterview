@@ -4,17 +4,16 @@ metadata:
   subspec: frontend-shell
   name: 003-ui-design-pixel-parity-gate
   sequence: 3
-  supersedes: []
   specVersion:
     from: 1.7
-    to: 1.8
+    to: 1.26
 spec:
   defaultTarget: frontend
   discovery:
     aliases:
       - frontend-shell
       - ui-design-pixel-parity-gate
-      - D2 follow-up Playwright gate
+      - Playwright pixel parity gate
       - frontend pixel parity
     keywords:
       - playwright
@@ -28,7 +27,7 @@ spec:
       - clean checkout
       - screenshot smoke
       - workspace initial route bootstrap
-      - hydrated workspace
+      - server-bound workspace
       - golden preview
       - ui-design parity
       - real browser visual smoke
@@ -46,7 +45,6 @@ spec:
         - ../../../../ui-design/README.md
         - ../../../../ui-design/INDEX.md
         - ../../../../ui-design/ui-architecture.md
-        - ../../../../reports/2026-05-07-frontend-shell-app-shell-visual-system-assessment.md
         - ../002-app-shell-visual-system/plan.md
         - ../002-app-shell-visual-system/checklist.md
         - ../002-app-shell-visual-system/bdd-plan.md

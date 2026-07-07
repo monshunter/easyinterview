@@ -1,8 +1,8 @@
 # Internal Job and Outbox Runner
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-07
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Test Plan**: [test-plan](./test-plan.md)
@@ -30,6 +30,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-07 | 1.7 | Wording cleanup：收敛 runner non-current gate 与 auth email smoke 为当前 non-current / email-code 口径，不改变 runner 可执行契约。 |
 | 2026-07-06 | 1.6 | D-22 后裁剪复查：当前 runner 正向范围收敛为 7 个可执行 handler + `privacy_export` contract-only；`debrief_generate` / `jd_match_agent_scan` / `jd_match_search` 不再作为当前 plan/context/test 的正向 target surface。 |
 
 ## 3 质量门禁分类
@@ -41,7 +42,7 @@
   - **Contract test**：kernel `Runtime{Register,RunOnce,ReapOnce,Start,Shutdown}` 接口语义 unit test；`BackoffPolicy.Next` table 测试。
   - **Integration test**：outbox dispatcher 5s scan + FOR UPDATE SKIP LOCKED + retry / dead-letter / metrics 在真 PG 上覆盖；`async.queueWeights` typed config 注入测试。
   - **Regression rerun**：`backend/internal/targetjob/pipeline_test.go` / `targetjob/e2e_scenario_test.go` / `privacy/runner/delete_handler_test.go` / `resume/jobs/*_test.go` / `cmd/api/resume_parse_drainer_scenario_test.go` / `cmd/api/resume_tailor_drainer_scenario_test.go` / `cmd/api/reports_http_scenario_test.go` 在 kernel 接管后必须 PASS；各仍保留 owner spec BDD 场景 P4 rerun。
-  - **Legacy negative search**：`make lint-runner-legacy`（新增 lint script）扫描 spec D-12 列出的旧 entry point；本 plan 自身 zero-reference gate 在 P4 收口。
+  - **Non-current negative search**：`make lint-runner-non-current`（新增 lint script）扫描 spec D-12 列出的 non-current entry point；本 plan 自身 zero-reference gate 在 P4 收口。
   - **Doc reconcile**：spec D-* 决策落实后必须同步修订 `backend-runtime-topology` § 模块边界、`backend-review` D-13 / D-16、`backend-targetjob` D-5、`backend-resume` § 模块边界、`backend-auth` D-* / `email_dispatch` 章节、`event-and-outbox-contract` § 模块边界、`secrets-and-config` 新增 `async.*` typed config 节点。doc reconcile gate 以 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` + 针对各 owner spec D-* 边界条款的精确 grep 为准（本仓库未维护独立 `scripts/check_docs/` 工具集）。
   - **Drift gate**：`cd backend && go build ./...`、`cd backend && go vet ./...`、Go race test、`make codegen-check`（如新增 generated 资源）、`validate_context.py`、`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`、`git diff --check`。
 
@@ -51,7 +52,7 @@
 
 | canonical job_type | 触发 operationId（OpenAPI） | fixture | frontend consumer | 当前 backend handler | 本 plan 迁移目标 handler | persistence | AI dependency | scenario coverage |
 |--------------------|---------------------------|---------|-------------------|----------------------|--------------------------|-------------|---------------|-------------------|
-| `email_dispatch` | `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json` | passwordless login UI（auth flow） | `backend/internal/auth/mail.go::BackgroundMailDispatcher`（进程内 channel） | `backend/internal/auth/email_dispatch_handler.go` 注册到 kernel；producer 改为 `INSERT INTO async_jobs(job_type='email_dispatch')` | `async_jobs(email_dispatch)`（新接入）+ `DeliveryWriter` sink | stub/fixture（dev `DevMailSink`） | BDD `E2E.P0.003`；smoke `TestAuthEmailEndToEnd`（1 个 scan 周期内 magic link 可见） |
+| `email_dispatch` | `startAuthEmailChallenge` | `openapi/fixtures/Auth/startAuthEmailChallenge.json` | email-code login UI（auth flow） | `backend/internal/auth/email_dispatch_handler.go` | `backend/internal/auth/email_dispatch_handler.go` 注册到 kernel；producer 改为 `INSERT INTO async_jobs(job_type='email_dispatch')` | `async_jobs(email_dispatch)` + `DeliveryWriter` sink | stub/fixture（dev `DevMailSink`） | BDD `E2E.P0.003`；smoke `TestAuthEmailEndToEnd`（1 个 scan 周期内 email code 可见） |
 | `privacy_delete` | `deleteMe` (`DELETE /v1/me`) | `openapi/fixtures/Auth/deleteMe.json` | account / privacy 设置面 | `backend/internal/privacy/runner/delete_handler.go` 注册到 `targetJobRuntime.Drainer` | 同 handler 注册到 kernel `runner.Runtime` | `privacy_requests` + `async_jobs(privacy_delete)` + 用户级资源级联删除 | none | BDD `E2E.P0.003` + `E2E.P0.033` + `E2E.P0.093`；smoke `DELETE /api/v1/me` → `privacy_requests.status='completed'` |
 | `report_generate` | source event：`completePracticeSession`（同事务写 `feedback_reports` placeholder + `async_jobs(report_generate)`）；查询：`getFeedbackReport` / `listTargetJobReports` | `openapi/fixtures/PracticeSessions/completePracticeSession.json` / `openapi/fixtures/Reports/getFeedbackReport.json` / `openapi/fixtures/Reports/listTargetJobReports.json` | 报告面 | `backend/internal/review/runner.go` + `reaper.go` + `lease.go`（独立 polling worker） | 新建 `backend/internal/review/generate_handler.go` 实现 `runner.Handler`；删除 `review.Runner` / `Reaper` / `ComputeReportFailureBackoff` | `feedback_reports` + `async_jobs(report_generate)` + `outbox_events('report.generated')` | A3/F3 评审 AI profile | BDD `E2E.P0.041` + `E2E.P0.052` / `053` / `054` / `055`（Go HTTP BDD tests）；regression `review/runner_test.go`（重写到 kernel）+ `cmd/api/reports_http_scenario_test.go` |
 | `target_import` | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | 目标导入面 | `backend/internal/targetjob/drainer.go` 实例化在 `cmd/api/main.go::buildTargetJobRuntime` | 同 handler 通过 `runner.FromTargetjobHandler` 注册到 kernel；删除独立 drainer 实例 | `target_jobs` + `async_jobs(target_import)` + `outbox_events('target.import.requested')` | A3 解析 profile | BDD `E2E.P0.010` / `011` / `012` / `013`；regression `targetjob/pipeline_test.go` + `e2e_scenario_test.go` |
@@ -59,7 +60,7 @@
 | `resume_parse` | `registerResume` / `confirmResumeStructuredMaster` | `openapi/fixtures/Resumes/registerResume.json` / `openapi/fixtures/Resumes/confirmResumeStructuredMaster.json` | 简历上传面 | `backend/internal/resume/jobs/parse.go` + `resume/store/async.go`（固定 15s retry） | `resumejobs.NewParseHandler(...)` 注册到 kernel；删除 `resumeRuntime.Drainer` 与 store-side 15s retry 副本 | `resume_assets` + `async_jobs(resume_parse)` | A3 简历解析 profile | BDD `E2E.P0.034` / `035`；regression `resume/jobs/parse_test.go` + `cmd/api/resume_parse_drainer_scenario_test.go` |
 | `resume_tailor` | `requestResumeTailor`（查询 `getResumeTailorRun` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion`） | `openapi/fixtures/ResumeTailor/requestResumeTailor.json` / `openapi/fixtures/ResumeTailor/getResumeTailorRun.json` / `openapi/fixtures/Resumes/acceptResumeTailorSuggestion.json` / `openapi/fixtures/Resumes/rejectResumeTailorSuggestion.json` | 简历适配面 | `backend/internal/resume/jobs/tailor.go` | `resumejobs.NewTailorHandler(...)` 注册到 kernel；退避走 kernel `BackoffPolicy` | `resume_tailor_runs` + `async_jobs(resume_tailor)` | A3 简历适配 profile | BDD `E2E.P0.077` / `078` / `080`；regression `resume/jobs/tailor_test.go` + `cmd/api/resume_tailor_drainer_scenario_test.go` |
 
-矩阵字段 `frontend consumer` 仅列出受影响入口的语义所属，无前端实现修改；本计划属于 backend-internal 重构，所有仍保留 user-facing operation 的 OpenAPI envelope / fixture / scenario 行为不变，由 P4 `BDD-Gate:` owner scenario rerun + P2 handler test rerun 提供 evidence handoff。D-22 裁剪后，已删除模块的历史 job/event 不再作为本计划当前正向矩阵行。
+矩阵字段 `frontend consumer` 仅列出受影响入口的语义所属，无前端实现修改；本计划属于 backend-internal 重构，所有仍保留 user-facing operation 的 OpenAPI envelope / fixture / scenario 行为不变，由 P4 `BDD-Gate:` owner scenario rerun + P2 handler test rerun 提供 evidence handoff。D-22 裁剪后，非当前模块的 job/event 不再作为本计划当前正向矩阵行。
 
 ## 4 实施步骤
 
@@ -105,11 +106,11 @@
 
 #### 2.2 `privacy_delete` 迁移
 
-把 `privacyrunner.NewPrivacyDeleteHandler(...)` 注册到 kernel；删除 `cmd/api` 中 privacy 通过 targetJobRuntime.Drainer 注册的旧路径（adapter 期间允许并存）。
+把 `privacyrunner.NewPrivacyDeleteHandler(...)` 注册到 kernel；删除 `cmd/api` 中 privacy 通过 targetJobRuntime.Drainer 注册的 non-current 路径（adapter 期间允许并存）。
 
-#### 2.3 Retired module reconciliation
+#### 2.3 Non-current module reconciliation
 
-D-22 后复盘模块已删除，当前不再注册对应 runner handler；本 plan 的当前收口只要求已删除模块不能作为正向 target surface 回流。
+D-22 后复盘模块非当前，当前不再注册对应 runner handler；本 plan 的当前收口只要求非当前模块不能作为正向 target surface 回流。
 
 #### 2.4 `resume_parse` + `resume_tailor` 迁移
 
@@ -119,9 +120,9 @@ D-22 后复盘模块已删除，当前不再注册对应 runner handler；本 pl
 
 新建 `review.GenerateHandler` 实现 `runner.Handler`（迁移 `review/runner.go` 中 `LeaseAsyncJob → service.GenerateReport → UpdateAsyncJobSucceeded/Failed` 逻辑）；删除 `review.Runner` / `review.Reaper` / `review.ComputeReportFailureBackoff` / `review.DefaultReportFailureBackoff`；保留 `review.Service` / `review.LeaseAsyncJob`（如有业务态变更需求，迁到 kernel-side store）。
 
-#### 2.6 Retired jobs-recommendations reconciliation
+#### 2.6 Non-current jobs-recommendations reconciliation
 
-D-22 后 Jobs Recommendations / JD Match 模块已删除；当前 runner 不再注册对应 scan/search handler。`make lint-runner-legacy` 仍保留旧 runtime 形态的负向断言，防止历史 drainer 命名回流。
+D-22 后 Jobs Recommendations / JD Match 模块非当前；当前 runner 不再注册对应 scan/search handler。`make lint-runner-non-current` 仍保留 non-current runtime 形态的负向断言，防止 drainer 命名回流。
 
 #### 2.7 退避收口
 
@@ -151,7 +152,7 @@ dispatcher 在调用 consumer 前从 outbox payload / envelope 中读取 `traceI
 
 #### 3.6 `email_dispatch` 收口
 
-修订 `auth.PasswordlessService` enqueue 路径，把 `MailDispatcher.Enqueue(ctx, payload)` 改为 `INSERT INTO async_jobs(job_type='email_dispatch', payload, ...)` 同事务 enqueue；kernel 注册 `EmailDispatchHandler{writer DeliveryWriter}` 通过既有 `DevMailSink` / 生产 sink 发邮件；保留 `EmailDispatchPayload` validator；删除 `auth.BackgroundMailDispatcher` / `NewBackgroundMailDispatcher` 与 `cmd/api` 对应 defer。
+修订 `auth.EmailCodeService` enqueue 路径，把 auth challenge 发信请求改为 `INSERT INTO async_jobs(job_type='email_dispatch', payload, ...)` 同事务 enqueue；kernel 注册 `EmailDispatchHandler{writer DeliveryWriter}` 通过既有 `DevMailSink` / 生产 sink 发邮件；保留 `EmailDispatchPayload` validator；`cmd/api` 的发件生命周期由 runner kernel 统一管理。
 
 ### Phase 4: 收口 / 文档同步 / lint negative gate
 
@@ -159,13 +160,13 @@ dispatcher 在调用 consumer 前从 outbox payload / envelope 中读取 `traceI
 
 `main()` 持有单一 `runtime *runner.Runtime`；所有当前保留 handler 在 `buildTargetJobRuntime` / `buildResumeRuntime` / `buildReportRuntime` / `buildAuth*` 中 build 完成后注册到 runtime；signal context 触发 → `runtime.Shutdown(ctx)` 单调 drain。
 
-#### 4.2 删除旧形态
+#### 4.2 删除 non-current 形态
 
-删除 `review.Runner` / `review.Reaper` legacy 实现文件；把 `review/runner_test.go` / `review/reaper_test.go` 中仍有价值的租约、退避、回收断言迁移为 kernel / `GenerateHandler` 测试或结构性负向测试，避免删除测试覆盖；删除 `auth.BackgroundMailDispatcher` 与对应 legacy 测试；删除 `cmd/api` 中独立 `targetJobRuntime.Drainer` / `resumeRuntime.Drainer` / `reportRuntime.Runner` / `reportRuntime.Reaper` / `mailDispatcher` 字段；保留 history 证据。
+删除 `review.Runner` / `review.Reaper` non-current 实现文件；把 `review/runner_test.go` / `review/reaper_test.go` 中仍有价值的租约、退避、回收断言迁移为 kernel / `GenerateHandler` 测试或结构性负向测试，避免删除测试覆盖；删除 `auth.BackgroundMailDispatcher` 与对应 non-current 测试；删除 `cmd/api` 中独立 `targetJobRuntime.Drainer` / `resumeRuntime.Drainer` / `reportRuntime.Runner` / `reportRuntime.Reaper` / `mailDispatcher` 字段；保留 history 证据。
 
-#### 4.3 Legacy negative lint
+#### 4.3 Non-current negative lint
 
-新增 `scripts/lint/runner_legacy.py`（+ `runner_legacy_test.py`，与既有 `backend_review_legacy.py` / `backend_practice_legacy.py` 同风格的 Python lint），扫描 [spec D-12](../../spec.md#31-已锁定决策) 列出的旧 entry point；接入 `make lint-runner-legacy`；history / tests / lint 自身允许保留历史证据。
+新增 `scripts/lint/runner_non_current.py`（+ `runner_non_current_test.py`，与既有 `backend_review_non_current.py` / `backend_practice_non_current.py` 同风格的 Python lint），扫描 [spec D-12](../../spec.md#31-已锁定决策) 列出的 non-current entry point；接入 `make lint-runner-non-current`；audit / tests / lint 自身允许保留证据。
 
 #### 4.4 同步 owner spec 边界条款
 
@@ -173,7 +174,7 @@ dispatcher 在调用 consumer 前从 outbox payload / envelope 中读取 `traceI
 - `backend-review` D-13 / D-16：标注 `review.Runner` / `review.Reaper` 已由 `backend-async-runner/001` 接管；保留 history 证据。
 - `backend-targetjob` D-5 / §模块边界：Drainer 抽象迁到 kernel；保留 handler 业务实现。
 - `backend-resume` §模块边界：handler 注册改为 kernel。
-- `backend-auth` D-* / `email_dispatch`：`BackgroundMailDispatcher` 已删除；producer 通过 `async_jobs(email_dispatch)` enqueue。
+- `backend-auth` D-* / `email_dispatch`：`BackgroundMailDispatcher` 非当前；producer 通过 `async_jobs(email_dispatch)` enqueue。
 - `event-and-outbox-contract` §5 模块边界：「backend internal runner 实现」改为 `backend-async-runner` owner。
 - `secrets-and-config` D-9 / §config dictionary：additive 新增 `async.leaseTimeoutSeconds` / `async.shutdownGraceSeconds` / `async.reaperIntervalSeconds` / `async.scanIntervalSeconds` typed config 节点。
 - `engineering-roadmap` §5.2 / §6.3 S2：确认 `backend-async-runner` 已作为 active subject 引用，负向 gate 拦截 `backend-async-runner.*未创建` / `未创建.*backend-async-runner` 回流。
@@ -188,7 +189,7 @@ dispatcher 在调用 consumer 前从 outbox payload / envelope 中读取 `traceI
 
 #### 4.7 L2 scheduler/backoff remediation
 
-针对 code review 暴露的 scheduling 与 retry-finalization 缺口补齐 runtime hardening：`Runtime.Start` 的生产 lease loop 按 registered job_type 独立运行，防止 long-running `report_generate` / `resume_parse` 阻塞 low-priority `email_dispatch`；`Runtime.dispatch` 的 retry `available_at` 与 terminal `completed_at` 使用 handler 返回后的 fresh timestamp；`review.GenerateHandler` 将 failure outcome 归一化给 kernel finalize，`review.Repository.PersistReportFailure` 只维护 `feedback_reports` / outbox / audit 域状态，不再更新 `async_jobs` 或复用旧 review-store backoff。
+针对 code review 暴露的 scheduling 与 retry-finalization 缺口补齐 runtime hardening：`Runtime.Start` 的生产 lease loop 按 registered job_type 独立运行，防止 long-running `report_generate` / `resume_parse` 阻塞 low-priority `email_dispatch`；`Runtime.dispatch` 的 retry `available_at` 与 terminal `completed_at` 使用 handler 返回后的 fresh timestamp；`review.GenerateHandler` 将 failure outcome 归一化给 kernel finalize，`review.Repository.PersistReportFailure` 只维护 `feedback_reports` / outbox / audit 域状态，不再更新 `async_jobs` 或复用 non-current review-store backoff。
 
 #### 4.8 BUG-0106 privacy identity cleanup remediation
 
@@ -197,7 +198,7 @@ dispatcher 在调用 consumer 前从 outbox payload / envelope 中读取 `traceI
 ## 5 验收标准
 
 - 本计划列出的实现 / 测试项全部通过（覆盖 [spec C-1~C-22](../../spec.md#6-验收标准)，含 C-13a missing-consumer safety 与 BUG-0106 privacy identity cleanup）。
-- 替代验证 gate 全部 PASS：contract / integration / regression rerun / legacy negative lint / doc reconcile / drift gate。
+- 替代验证 gate 全部 PASS：contract / integration / regression rerun / non-current negative lint / doc reconcile / drift gate。
 - 不存在新增的用户可见行为缺口；既有 owner spec BDD 场景 rerun 通过。
 
 ## 6 风险与应对
@@ -205,9 +206,9 @@ dispatcher 在调用 consumer 前从 outbox payload / envelope 中读取 `traceI
 | 风险 | 应对措施 |
 |------|----------|
 | review.Runner 删除后报告生成回归 | Phase 2.5 完成时 rerun `review/runner_test.go` + `cmd/api/reports_http_scenario_test.go`；任何失败必须先修复再进入下一 phase |
-| email_dispatch 切到 async_jobs 后 magic link 投递延迟 | 把 `email_dispatch` 列入 `low` priority bucket，且 production `Runtime.Start` 对每个 registered job_type 启动独立 lease loop；P3/P4 收口阶段 smoke 验证 auth email start → DevMailSink delivery 延迟 ≤ 1 个 scan 周期，并用 scheduler regression 证明 long-running critical/default handler 不会阻塞 email loop |
+| email_dispatch 切到 async_jobs 后 email code 投递延迟 | 把 `email_dispatch` 列入 `low` priority bucket，且 production `Runtime.Start` 对每个 registered job_type 启动独立 lease loop；P3/P4 收口阶段 smoke 验证 auth email start → DevMailSink delivery 延迟 ≤ 1 个 scan 周期，并用 scheduler regression 证明 long-running critical/default handler 不会阻塞 email loop |
 | Outbox dispatcher 上线后 consumer 缺失导致 outbox 行被误确认或长期积压 | runtime 缺少 consumer 时不得置 `published`；dry-run consumer 仅允许测试显式注入；缺少 consumer 的 event 走 retry/dead-letter 并暴露 `outbox_publish_failures_total`，P3 完成前与 F2 / 各 owner 明确启用边界 |
-| 历史已删除模块的 runner 名称回流 | P2.3 / P2.6 作为 retired-negative reconcile；`make lint-runner-legacy` 和 active-doc grep 继续拦截旧 drainer / deleted module positive surface |
+| 非当前模块的 runner 名称回流 | P2.3 / P2.6 作为 negative reconcile；`make lint-runner-non-current` 和 active-doc grep 继续拦截 non-current drainer / deleted module positive surface |
 | 多 owner spec D-* 边界条款同步遗漏 | Phase 4.4 用 checklist 逐项打勾；P4 收尾必须运行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` |
 | 退避收口期间 in-flight job 行为变化导致已部署环境异常 | 本仓库无线上环境，P0 不需要兼容 layer；本 plan 仅需保证 dev / test scenario 通过 |
 | typed config 节点新增导致 A4 owner spec 需要 additive 修订 | Phase 1.6 把 A4 修订作为前置 checklist item；若实施期发现 A4 owner spec 已有冲突决策，停止进入 plan-review / design 修订，不以 kernel default 常量绕过 |

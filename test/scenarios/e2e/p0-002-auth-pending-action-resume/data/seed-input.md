@@ -2,7 +2,7 @@
 
 - 用户登录态：未登录（`getMe` `unauthenticated` scenario，401 + B1 error envelope）。
 - 起始 route：`workspace`，无业务参数。
-- 待恢复 pending action：
+- 待接续 pending action：
 
 | 字段 | 值 |
 |------|----|

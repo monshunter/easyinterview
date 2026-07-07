@@ -12,7 +12,7 @@
 
 - Upload tab：`alice.pdf` size 2048 bytes, mime `application/pdf`
 - Paste tab：`Hello, I am Alice and I lead frontend work.`
-- Retired guided tab：negative only; the tab and panel must not render.
+- Non-current guided tab：negative only; the tab and panel must not render.
 
 ## Mock Harness Notes
 

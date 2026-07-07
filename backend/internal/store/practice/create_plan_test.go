@@ -497,7 +497,7 @@ func TestSQLRepositoryReserveSessionStartReusesFailedRetryableRecord(t *testing.
 		WithArgs(in.SessionID, in.UserID, in.PlanID, in.HintsEnabled, in.Now).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "plan_id", "target_job_id", "goal", "mode", "interviewer_persona",
-			"language", "role_title", "seniority", "top_skills", "hints_enabled", "created_at", "updated_at",
+			"language", "role_title", "seniority", "top_skills", "resume_profile", "hints_enabled", "created_at", "updated_at",
 		}).AddRow(
 			in.SessionID,
 			in.PlanID,
@@ -509,6 +509,7 @@ func TestSQLRepositoryReserveSessionStartReusesFailedRetryableRecord(t *testing.
 			"Staff Frontend Architect",
 			"staff",
 			"React, design systems",
+			`{"summary":"Candidate led GraphQL platform migration."}`,
 			true,
 			in.Now,
 			in.Now,
@@ -521,6 +522,9 @@ func TestSQLRepositoryReserveSessionStartReusesFailedRetryableRecord(t *testing.
 	}
 	if reservation.IdempotencyRecordID != "idem-existing" || reservation.SessionID != in.SessionID {
 		t.Fatalf("unexpected reservation: %+v", reservation)
+	}
+	if !strings.Contains(reservation.ResumeProfile, "GraphQL platform migration") {
+		t.Fatalf("reservation did not carry flat resume structured profile: %+v", reservation)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
@@ -627,7 +631,7 @@ func TestSQLRepositoryReserveSessionStartResetsExpiredPendingRecord(t *testing.T
 		WithArgs(in.SessionID, in.UserID, in.PlanID, in.HintsEnabled, in.Now).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "plan_id", "target_job_id", "goal", "mode", "interviewer_persona",
-			"language", "role_title", "seniority", "top_skills", "hints_enabled", "created_at", "updated_at",
+			"language", "role_title", "seniority", "top_skills", "resume_profile", "hints_enabled", "created_at", "updated_at",
 		}).AddRow(
 			in.SessionID,
 			in.PlanID,
@@ -639,6 +643,7 @@ func TestSQLRepositoryReserveSessionStartResetsExpiredPendingRecord(t *testing.T
 			"Staff Frontend Architect",
 			"staff",
 			"React, design systems",
+			`{"summary":"Candidate led GraphQL platform migration."}`,
 			true,
 			in.Now,
 			in.Now,
@@ -704,7 +709,7 @@ func TestSQLRepositoryReserveSessionStartResetsExpiredSucceededRecord(t *testing
 		WithArgs(in.SessionID, in.UserID, in.PlanID, in.HintsEnabled, in.Now).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "plan_id", "target_job_id", "goal", "mode", "interviewer_persona",
-			"language", "role_title", "seniority", "top_skills", "hints_enabled", "created_at", "updated_at",
+			"language", "role_title", "seniority", "top_skills", "resume_profile", "hints_enabled", "created_at", "updated_at",
 		}).AddRow(
 			in.SessionID,
 			in.PlanID,
@@ -716,6 +721,7 @@ func TestSQLRepositoryReserveSessionStartResetsExpiredSucceededRecord(t *testing
 			"Staff Frontend Architect",
 			"staff",
 			"React, design systems",
+			`{"summary":"Candidate led GraphQL platform migration."}`,
 			true,
 			in.Now,
 			in.Now,
@@ -764,7 +770,7 @@ func TestSQLRepositoryReserveSessionStartScopesIdempotencyByUser(t *testing.T) {
 		WithArgs(in.SessionID, in.UserID, in.PlanID, in.HintsEnabled, in.Now).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "plan_id", "target_job_id", "goal", "mode", "interviewer_persona",
-			"language", "role_title", "seniority", "top_skills", "hints_enabled", "created_at", "updated_at",
+			"language", "role_title", "seniority", "top_skills", "resume_profile", "hints_enabled", "created_at", "updated_at",
 		}).AddRow(
 			in.SessionID,
 			in.PlanID,
@@ -776,6 +782,7 @@ func TestSQLRepositoryReserveSessionStartScopesIdempotencyByUser(t *testing.T) {
 			"Product Manager",
 			"mid",
 			"prioritization, stakeholder communication",
+			`{"summary":"Candidate led launch planning."}`,
 			false,
 			in.Now,
 			in.Now,

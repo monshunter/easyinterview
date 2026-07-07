@@ -22,7 +22,7 @@ practice fixture 数据就绪：`getPracticeSession=default / completing`；`app
 - nav `generating` 携带稳定 InterviewContext ID（planId / targetJobId / jdId / resumeId / roundId / sessionId / reportId）+ PracticeDisplayContext（mode / modality / practiceMode / practiceGoal / hintUsed / hintCount）
 - URL params 不含 raw `answerText / questionText / hint / promptVersion / rubricVersion / modelId`
 - 双击 finish CTA 仅一次 POST + 一次 nav
-- 负向断言：`getFeedbackReport` / `createPracticeVoiceTurn` 调用次数 = 0；旧 testid / 旧 route alias / `Idempotency-Key.*appendSessionEvent` 全部 0 命中
+- 负向断言：`getFeedbackReport` / `createPracticeVoiceTurn` 调用次数 = 0；非当前 testid / 非当前 route alias / `Idempotency-Key.*appendSessionEvent` 全部 0 命中
 
 ## 4 执行
 

@@ -12,4 +12,4 @@
 - Stable route/test IDs remain unchanged; no localized route names are introduced.
 - Generated client requests made after locale toggle include
   `Accept-Language: en`.
-- Legacy entries and prototype data imports remain absent from scenario output.
+- Non-current entries and prototype data imports remain absent from scenario output.

@@ -15,7 +15,7 @@ Phase 1.3 scope (per `002-fixtures-and-mock-source` plan §3 / spec C-6 / C-11):
        string with `tmp_` prefix is rejected.
     6. coverage  — every operationId currently exposed by openapi.yaml must
        have a fixture file.
-    7. D-20 retired resume contract keys — flat resume fixtures must not
+    7. D-20 non-current resume contract keys — flat resume fixtures must not
        reintroduce resumeAssetId / resumeVersionId request or response fields.
 """
 
@@ -135,7 +135,7 @@ REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
         }
     ),
 }
-RETIRED_D20_FIXTURE_KEYS = frozenset({"resumeAssetId", "resumeVersionId"})
+NON_CURRENT_D20_FIXTURE_KEYS = frozenset({"resumeAssetId", "resumeVersionId"})
 
 
 # ---------- helpers -----------------------------------------------------------
@@ -592,12 +592,12 @@ def check_privacy_and_ids(opid: str, data: dict, errors: List[str]) -> None:
             )
 
 
-def check_d20_retired_fixture_keys(opid: str, data: dict, errors: List[str]) -> None:
+def check_d20_non_current_fixture_keys(opid: str, data: dict, errors: List[str]) -> None:
     for path, key in _walk_keys(data):
-        if key in RETIRED_D20_FIXTURE_KEYS:
+        if key in NON_CURRENT_D20_FIXTURE_KEYS:
             errors.append(
                 f"{opid}.{path}: D-20 flat resume fixtures must use resumeId, "
-                f"not retired key {key!r}"
+                f"not non-current key {key!r}"
             )
 
 
@@ -634,7 +634,7 @@ def validate(repo_root: Path) -> List[str]:
         check_practice_voice_playable_refs(opid, scenarios, errors)
         check_provenance(opid, scenarios.get("default") or {}, errors)
         check_p0_export_error_code(opid, scenarios, errors)
-        check_d20_retired_fixture_keys(opid, data, errors)
+        check_d20_non_current_fixture_keys(opid, data, errors)
         check_privacy_and_ids(opid, data, errors)
 
     expected = {opid for _tag, opid in expected_fixture_operations(spec)}

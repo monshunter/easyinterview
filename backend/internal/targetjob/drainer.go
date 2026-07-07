@@ -45,7 +45,7 @@ type DrainerOptions struct {
 	Logger *slog.Logger
 }
 
-// Drainer is a legacy in-process job runner retained only for focused domain
+// Drainer is an in-process job runner retained only for focused domain
 // tests. Production lifecycle is owned by the backend-async-runner kernel
 // (runner.Runtime); see docs/spec/backend-async-runner. It claims async_jobs
 // rows over a DB-backed store so jobs survive process restarts.

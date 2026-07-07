@@ -17,7 +17,7 @@
 
 ## Phase 2: baseline DDL 与索引
 
-- [x] 2.1 落地当前产品范围内 22 张应用表 + ADR-Q1 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表；旧 `mistake_entries`、JD Match、简历版本树、候选人画像与真实复盘表不再作为 current baseline 创建。验证: SQL inventory probe 断言 25 张当前应用 / auth 支撑表全部存在，且关键 FK / soft-delete / sensitive hash 字段符合 spec §4.2 / §4.4
+- [x] 2.1 落地当前产品范围内 22 张应用表 + ADR-Q1 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表；非当前 `mistake_entries`、JD Match、简历版本树、候选人画像与真实复盘表不再作为 current baseline 创建。验证: SQL inventory probe 断言 25 张当前应用 / auth 支撑表全部存在，且关键 FK / soft-delete / sensitive hash 字段符合 spec §4.2 / §4.4
 - [x] 2.2 `make migrate-up` 后 public schema table count ≥27（含 `schema_migrations` / `schema_backfills`）。验证: 干净 Postgres 上 `make migrate-up` 后执行 `select count(*) from information_schema.tables where table_schema='public'`，结果 ≥27 并记录在 handoff
 - [x] 2.3 `outbox_events` 包含 `publish_attempts` / `next_attempt_at` / `locked_at` / `last_error_code` / `last_error_message`，并有 `(publish_status, next_attempt_at, created_at)` pending due 查询索引。验证: information_schema column probe + `pg_indexes` probe + pending due `EXPLAIN` 命中对应索引
 - [x] 2.4 `async_jobs.job_type` check 包含 B3 当前 8 个 canonical jobType（含 internal-only `source_refresh` / `email_dispatch` 与 contract-only `privacy_export`），且 B2 API-facing subset 仍为 6 项。验证: migration lint 读取 B3/B2 manifests 后断言 DB check 值等于 B3 canonical 8 项，且 B2 API-facing subset 未被 internal-only `source_refresh` / `email_dispatch` 扩大
@@ -44,9 +44,9 @@
 
 ## Phase 5: product-scope v1.2 schema remediation
 
-- [x] 5.1 Red: migration inventory / contract tests 期望排除 `mistake_entries`、旧字段和旧 practice enum 后，当前 SQL / probes 必须失败
+- [x] 5.1 Red: migration inventory / contract tests 期望排除 `mistake_entries`、非当前字段和旧 practice enum 后，当前 SQL / probes 必须失败
   - 2026-05-03: `python3 scripts/lint/migrations_lint.py --repo-root .` exit 1，报 `mistake_entries.status` 的 `MistakeStatus` source 缺失，以及 `practice_plans.goal` / `mode` 与 B1 新枚举漂移；更新 SQL contract expectation 后，`cd backend && go test ./internal/migrations -run TestBaselineMigrationDefinesAllOwnedTables -count=1` exit 1，失败于仍创建 removed `mistake_entries` table。
 - [x] 5.2 Green: 修订 baseline migration、enum source、privacy matrix 和 SQL contract tests，删除独立 `mistake_entries`，字段改为 `open_question_issue_count` / `included_in_retry_plan` / `review_status`
   - 2026-05-03: 删除 baseline migration 中 `mistake_entries` DDL / indexes / FK / down drop；`target_jobs.open_mistake_count` 改 `open_question_issue_count`；`question_assessments.written_to_mistake_book` 改 `review_status` + `included_in_retry_plan`；`practice_plans` enum 更新为 B1 当前 `PracticeGoal` / `PracticeMode`；`enum-sources.yaml` 和 privacy matrix 同步。
 - [x] 5.3 Verify: `make migrate-check` 或 migration lint / SQL contract tests 通过；repo 搜索确认实现侧无 `mistake_entries`、`open_mistake_count`、`written_to_mistake_book`、旧 practice mode / goal check 值
-  - 2026-05-03: `python3 scripts/lint/migrations_lint.py --repo-root .` exit 0；`python3 -m pytest scripts/lint/migrations_lint_test.py -q` 8 passed；`cd backend && go test ./internal/migrations ./cmd/migrate -count=1` pass；`make privacy-delete-dry-run` 输出不含 removed `mistake_entries`；实现侧搜索仅剩 SQL contract 负向断言，未在 migration/runtime 实现中命中旧字段或旧 enum 值。完整 `make migrate-check` 需真实 DB wrapper，本阶段按 checklist 采用 migration lint / SQL contract tests 验证。
+  - 2026-05-03: `python3 scripts/lint/migrations_lint.py --repo-root .` exit 0；`python3 -m pytest scripts/lint/migrations_lint_test.py -q` 8 passed；`cd backend && go test ./internal/migrations ./cmd/migrate -count=1` pass；`make privacy-delete-dry-run` 输出不含 removed `mistake_entries`；实现侧搜索仅剩 SQL contract 负向断言，未在 migration/runtime 实现中命中非当前字段或非当前 enum 值。完整 `make migrate-check` 需真实 DB wrapper，本阶段按 checklist 采用 migration lint / SQL contract tests 验证。

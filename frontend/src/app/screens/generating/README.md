@@ -29,4 +29,4 @@ On success the screen navigates to `report` with the 13-key handoff plus the res
 - No practice operation calls (`getPracticeSession`, `appendSessionEvent`, etc.).
 - No `listTargetJobReports` invocation (dashboard-only D-7).
 
-Enforced by `src/app/screens/generating/__tests__/legacyNegative.test.ts` and `scripts/lint/frontend_report_dashboard_legacy.py`.
+Enforced by `src/app/screens/generating/__tests__/nonCurrentNegative.test.ts` and `scripts/lint/frontend_report_dashboard_non_current.py`.

@@ -69,7 +69,7 @@ Two truth sources feed the contract:
 `openapi.yaml` itself **must not** carry hand-written `examples` (B2 002 §3.1):
 fixtures are the single source of truth for example bodies, projected into the
 derived `openapi-with-fixtures.yaml`. The P0 export 501 examples live only in
-fixtures (`requestPrivacyExport` / `exportResumeVersion`) and are enforced by
+fixtures (`requestPrivacyExport` / `exportResume`) and are enforced by
 `validate-fixtures`. See
 [`openapi/fixtures/README.md`](./fixtures/README.md) for the full fixtures
 contract and the Prism smoke matrix.
@@ -149,15 +149,12 @@ spec.
   (`>=22.12.0 || >=20.19.0 <21.0.0`) plus npm ≥ 10. The current local
   verification used Node `v23.10.0` and npm `10.9.2`.
 - Python ≥ 3.11 for `scripts/lint/openapi_inventory.py`.
-- `@apidevtools/swagger-cli@4.0.4` is deprecated upstream, but remains the
-  locked validator for this v1.0.0 OpenAPI 3.1 contract until the B2 spec is
-  revised with replacement-tool evidence.
+- `@apidevtools/swagger-cli@4.0.4` remains the locked validator for this
+  v1.0.0 OpenAPI 3.1 contract. Any validator change must revise the B2 spec
+  and record the pinned toolchain evidence here.
 - `@redocly/cli@2.30.1` is the locked local docs renderer used by
-  `make docs-openapi` via `redocly build-docs`. It replaces
-  `redoc-cli@0.13.21`, which is deprecated upstream and must not be
-  reintroduced without revising the B2 spec. Any new npm tooling added under
-  `openapi/` must pin an explicit version and record deprecation /
-  replacement status here.
+  `make docs-openapi` via `redocly build-docs`. Any new npm tooling added under
+  `openapi/` must pin an explicit version and record toolchain evidence here.
 
 If the generator templates change, run `make codegen-check` to confirm the
 output stays idempotent.

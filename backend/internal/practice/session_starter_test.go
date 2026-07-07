@@ -31,6 +31,7 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 			Seniority:          "staff",
 			TopSkills:          []string{"React", "design systems", "cross-team migration"},
 			RubricDimensions:   []string{"practice_depth", "language_consistency"},
+			ResumeProfile:      "Candidate led GraphQL platform migration and owned frontend reliability for a high-traffic SaaS product.",
 			CreatedAt:          now.Add(-time.Hour),
 			UpdatedAt:          now.Add(-time.Hour),
 		},
@@ -43,7 +44,7 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 		FeatureFlag:         "none",
 		DataSourceVersion:   "registry.v1",
 		OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
-		UserMessageTemplate: "Respond in {{language}}. Role: {{role_title}} ({{seniority}}). Top required skills: {{top_skills}}. Rubric dimensions: {{rubric_dimensions}}. Practice goal: {{practice_goal}}.",
+		UserMessageTemplate: "Respond in {{language}}. Role: {{role_title}} ({{seniority}}). Top required skills: {{top_skills}}. Resume profile: {{resume_profile}}. Rubric dimensions: {{rubric_dimensions}}. Practice goal: {{practice_goal}}.",
 	}}
 	ai := &fakeAIClient{content: `{"question":"请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。","intent":"behavioral.leadership.design_system","focus_dimension":"leadership","expected_signals":["scope","tradeoffs"],"time_budget_seconds":180}`, store: store}
 	service := NewService(ServiceOptions{
@@ -108,12 +109,12 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 		t.Fatalf("AI task run context incomplete: %+v", meta.TaskRun)
 	}
 	userPrompt := ai.payload.Messages[len(ai.payload.Messages)-1].Content
-	for _, forbidden := range []string{"{{language}}", "{{role_title}}", "{{top_skills}}", "{{practice_goal}}", "{{rubric_dimensions}}"} {
+	for _, forbidden := range []string{"{{language}}", "{{role_title}}", "{{top_skills}}", "{{resume_profile}}", "{{practice_goal}}", "{{rubric_dimensions}}"} {
 		if strings.Contains(userPrompt, forbidden) {
 			t.Fatalf("first-question prompt still contains raw placeholder %q: %s", forbidden, userPrompt)
 		}
 	}
-	for _, required := range []string{"zh-CN", "Staff Frontend Architect", "React, design systems, cross-team migration", "practice_depth, language_consistency", "baseline"} {
+	for _, required := range []string{"zh-CN", "Staff Frontend Architect", "React, design systems, cross-team migration", "Candidate led GraphQL platform migration", "practice_depth, language_consistency", "baseline"} {
 		if !strings.Contains(userPrompt, required) {
 			t.Fatalf("first-question prompt missing %q: %s", required, userPrompt)
 		}

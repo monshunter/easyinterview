@@ -54,6 +54,6 @@ class TestPlanReviewSkill:
         assert "Boundary condition" in text
         assert "Cross-layer contract" in text
         assert "Privacy / security / observability" in text
-        assert "Regression / legacy-negative" in text
+        assert "Regression / non-current-negative" in text
         assert "`S-007`: coverage matrix adequacy" in text
         assert "`X-L1-Coverage`: coverage matrix clarity" in text

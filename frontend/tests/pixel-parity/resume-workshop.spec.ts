@@ -261,19 +261,19 @@ test.describe("Resume Workshop list DOM anchors", () => {
     });
   });
 
-  test("flat rows expose real Open buttons and no retired tree/view-switcher anchors", async ({ page }) => {
+  test("flat rows expose real Open buttons and no non-current tree/view-switcher anchors", async ({ page }) => {
     await goToList(page);
     await freezeAnimations(page);
     const open = page.locator("[data-testid^='resume-list-open-']").first();
     await expect(open).toBeVisible();
     expect((await open.evaluate((node) => node.tagName)).toLowerCase()).toBe("button");
-    for (const retired of [
+    for (const nonCurrent of [
       "resume-workshop-view-switcher-tree",
       "resume-workshop-view-switcher-flat",
       "resume-workshop-stats-originals",
       "resume-detail-branch-graph",
     ]) {
-      await expect(page.locator(`[data-testid='${retired}']`)).toHaveCount(0);
+      await expect(page.locator(`[data-testid='${nonCurrent}']`)).toHaveCount(0);
     }
     await expect(page.locator("[data-testid^='resume-tree-row-']")).toHaveCount(0);
     await expect(page.locator("[data-testid^='resume-flat-row-']")).toHaveCount(0);

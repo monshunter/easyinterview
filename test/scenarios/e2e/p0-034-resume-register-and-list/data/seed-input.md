@@ -5,7 +5,7 @@
 - Register scenarios:
   - `upload`: `fileObjectId=01918fa0-0000-7000-8000-000000001100`
   - `paste`: `rawText` contains a private resume body and must not appear in scenario logs.
-  - retired `guided`: validation-only negative input; it must return 422 and
+  - non-current `guided`: validation-only negative input; it must return 422 and
     must not create an asset/job.
 - Fixture scenarios:
   - `openapi/fixtures/Resumes/registerResume.json`: `default`, `paste-text`

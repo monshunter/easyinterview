@@ -1,133 +1,123 @@
 # Roadmap Rebaseline and Subspec Governance
 
-> **版本**: 3.3
+> **版本**: 3.4
 > **状态**: completed
-> **更新日期**: 2026-05-05
+> **更新日期**: 2026-07-06
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-把 `engineering-roadmap` 从旧的“38 child + W0-W5 pending spawn”模型修订为当前产品 / UI / 契约事实驱动的实施地图：
+`engineering-roadmap` 作为当前产品、UI、契约和编码 truth source 的实施地图。本计划固化以下治理合同：
 
-- `docs/spec/INDEX.md` 只保留真实存在的 spec，不再承载 pending backlog。
-- 已存在的 A/B/F 基础、契约和质量 spec 保持 active，作为后续实现依赖。
-- 未启动的 P0 workstream 只在进入设计或实现时创建 child spec / plan / checklist / context。
-- P1/P2 方向只作为 future candidates 记录，不创建空 spec、空 plan 或 draft 占位。
-- 当前 product-scope 和 UI 已丢弃的旧模块不再通过 roadmap 间接恢复。
+- `docs/spec/INDEX.md` 只投影真实存在的 `docs/spec/*/spec.md`。
+- 已存在的基础、契约、质量和产品 owner spec 作为后续实施依赖。
+- 候选 workstream 只有在产品范围、UI 真理源或用户指令明确进入设计 / 实施时才创建 child spec / plan / checklist / context。
+- P1/P2 方向只保留在 roadmap spec 的 future candidate 区域，不创建空 spec、空 plan 或 pending INDEX 行。
+- 非当前 root spec、route、模块和技术草稿只作为边界输入，不能作为当前 owner 或恢复依据。
 
 ## 2 背景
 
-旧 plan 已完成 W0/W1 阶段的历史职责：ADR-Q1..Q6 accepted，A1-A5、B1-B4、F1、F3 等基础 / 契约 / 质量文档与部分编码 truth source 已落地。之后产品范围和 UI 设计发生收敛，旧 plan 中尚未执行的 Phase 4-7 仍要求 spawn 大量 P0/P1/P2 subject，并让 `docs/spec/INDEX.md` 保留 `_pending_` 占位。
+当前产品范围已经收敛到 `JD / 简历 -> 模拟面试 -> 报告 -> 复练当前轮 / 进入下一轮`。Roadmap 的职责不是承载 backlog 占位，而是把当前可执行 owner、依赖顺序和创建规则写清楚，避免后续设计或实现绕过 `product-scope`、`docs/ui-design/`、`ui-design/` 和编码 truth source。
 
-这会造成两个问题：
-
-1. 未创建的 subject 看起来像已批准 backlog，容易绕过 product-scope 的默认丢弃规则恢复旧模块。
-2. INDEX 不再是 Header 投影，而变成了混合真实文档和计划占位的二义性列表。
-
-本次原地修订保留已完成历史事实，删除 pending 占位模型，并把后续 workstream 的创建条件写回 roadmap spec。
+本计划保持 docs-only：它只维护 roadmap spec、plan、checklist、context 和索引投影，不修改运行时代码。
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: `docs-only`。
-- **TDD 策略**: 不适用：本 plan 只修订 `docs/spec/` 文档和索引，不修改前端 / 后端 / 工具脚本 / 迁移 / codegen / 测试辅助逻辑。
-- **BDD 策略**: 不适用：本 plan 不新增用户可见 UI、API 行为、业务流程或端到端功能；后续任何 P0 workstream 创建实现 plan 时必须单独维护 BDD gate。
-- **替代验证 gate**: `validate_context.py` 校验本 plan context；`sync-doc-index --check` 校验 Header / INDEX；`check_md_links.py docs` 校验 Markdown 链接；全仓 retired-name zero-reference search 校验已迁移技术草稿的目录名、文件名和旧 shorthand 均为零匹配；`git diff --check` 校验文本格式。
+- **TDD 策略**: 不适用；本计划只修订 `docs/spec/` 文档和索引，不修改前端、后端、工具脚本、迁移、codegen 或测试辅助逻辑。
+- **BDD 策略**: 不适用；本计划不新增用户可见 UI、API 行为、业务流程或端到端功能。后续用户可见 workstream 的实施计划必须维护 BDD gate。
+- **替代验证 gate**: `validate_context.py` 校验本 plan context；`sync-doc-index --check` 校验 Header / INDEX；`make docs-check` 校验 Markdown 链接；technical-draft zero-reference search 校验非当前草稿目录名、文件名和 shorthand；`git diff --check` 校验文本格式。
 
 ## 4 实施步骤
 
-### Phase 1: 历史完成事实保留
+### Phase 1: 当前 truth source 投影
 
-#### 1.1 保留 W0 ADR 决策
+#### 1.1 ADR 约束投影
 
-ADR-Q1..Q6 继续作为架构约束保留在 `docs/spec/engineering-roadmap/decisions/`。它们不再生成 pending child，但认证、异步、分析、部署、隐私和 AI 路由结论仍约束后续 P0 workstream。
+ADR-Q1..Q6 作为认证、异步、分析、部署、隐私和 AI 路由的架构约束，由 `engineering-roadmap/decisions/` 持有，并在 roadmap spec 中摘要为当前约束。
 
-#### 1.2 保留已落地基础 / 契约 / 质量 spec
+#### 1.2 Active owner spec 投影
 
-确认 A1-A5、B1-B4、F1、F3 等现有 active spec 仍与 current product-scope 和 UI scope 相容；后续实现直接引用这些 spec 与编码 truth source。
+确认当前基础、契约、质量、产品和 UI owner spec 与 `product-scope`、`docs/ui-design/`、`ui-design/` 保持一致；后续实施直接引用这些 owner spec 与编码 truth source。
 
-#### 1.3 关闭旧 pending INDEX 模型
+#### 1.3 INDEX 真实投影
 
-旧 plan 中 “38 行 child subspec 占位” 的任务保留为历史记录，但当前策略改为：未创建真实 `spec.md` 的 subject 不进入 `docs/spec/INDEX.md`。
+`docs/spec/INDEX.md` 只列真实存在且 Header 合规的 spec。未创建实体的候选项只出现在 roadmap spec 正文的 candidate / sequence 区域。
 
-### Phase 2: Roadmap rebaseline
+### Phase 2: Roadmap 当前实施地图
 
 #### 2.1 对齐产品与 UI 真理源
 
-读取并对齐 `docs/spec/product-scope/spec.md`、`docs/ui-design/` 和 `ui-design/src/app.jsx` 的当前模块、路由、上下文和删除范围。
+读取并对齐 `docs/spec/product-scope/spec.md`、`docs/ui-design/` 和 `ui-design/src/app.jsx` 的当前模块、route、上下文和非当前边界。
 
-#### 2.2 重写 roadmap spec
+#### 2.2 修订 roadmap spec
 
-把 `engineering-roadmap/spec.md` 改为当前实施地图：保留 active spec 清单、当前 P0 workstream 候选、future candidates、实施顺序和验收标准。
+`engineering-roadmap/spec.md` 只描述当前 truth source 关系、active owner、P0 workstream、future candidates、实施顺序和验收标准。
 
 #### 2.3 修订本 plan / checklist / context
 
-把本 plan 从旧 wave spawn 计划改为 roadmap rebaseline 与 child 创建治理计划；同步 checklist、context discovery keywords 和 plans/INDEX。
+本 plan、checklist 和 context discovery 只表达 roadmap rebaseline、按需 child 创建和 no-pending INDEX 合同。
 
-#### 2.4 删除 pending 索引占位
+#### 2.4 同步交叉引用
 
-从 `docs/spec/INDEX.md` 删除所有 `_pending_` 行和“待 spawn”分组说明，只保留真实存在的 spec row。
+`product-scope`、`docs/spec/INDEX.md` 和本 subject plans INDEX 必须指向当前 roadmap 版本和当前 plan 版本。
 
-#### 2.5 同步交叉引用
+#### 2.5 验证文档一致性
 
-修订 product-scope 中指向旧 engineering-roadmap v2.2 的说明，使其指向当前 v3.0 的“无 pending 占位 + on-demand child 创建”策略。
+运行本 plan §3 的替代验证 gate；任何失败都在当前 owner 文档内原地修正后复跑。
 
-#### 2.6 验证文档一致性
-
-运行本 plan §3 的替代验证 gate；若失败，原地修正文档后再复跑。
-
-### Phase 3: 后续 P0 workstream 创建规则
+### Phase 3: 后续 child 创建规则
 
 #### 3.1 创建前置条件
 
-本 phase 只记录后续 P0 workstream 的创建规则，不创建 child spec / plan，也不把这些候选项转成当前 implementation target。任何 P0 workstream 只有在明确进入设计或实现时才能创建 child spec。创建时必须满足：
+任一 child spec / plan 创建前必须满足：
 
-- product-scope 和 UI 文档已明确保留该用户行为或工程能力。
-- 已有同主题 spec / plan 不存在；若存在必须原地修订。
+- `product-scope` 与 UI 真理源已明确保留该用户行为或工程能力。
+- 同主题 owner 不存在；若已存在，必须原地修订现有 owner。
 - `context.yaml`、`plan.md`、`checklist.md` 成对完整。
 - 涉及代码逻辑时写明 TDD 策略；涉及用户行为时维护 BDD plan / checklist。
 
 #### 3.2 推荐创建顺序
 
-后续实现优先按以下顺序推进：
+后续实现优先按当前产品闭环推进：
 
-1. `mock-contract-suite` + `frontend-shell`，建立 fixture-backed mock 和 App 壳。
-2. D2-D6 当前 UI workstream：Home / Job Picks / Parse、Workspace / Practice、Report、Resume、Debrief。
-3. 后端基础：`backend-auth`、`backend-upload`、`backend-profile`、`backend-async-runner`（backend 内部 runner，不是独立 worker 进程）。
-4. 后端业务域：`backend-targetjob`、`backend-practice`、`backend-review`、`backend-resume`、`backend-debrief`。
-5. 集成与上线：`e2e-scenarios-p0`、`analytics-funnel`、`release-gate-and-rollout`。
+1. App shell、auth、settings 与 fixture-backed mock。
+2. Home / Parse、Workspace / Practice、Report Dashboard、Resume Workshop。
+3. Backend auth、upload、target job、practice、review、resume、async runner。
+4. E2E scenarios、analytics funnel、release gate 与 rollout。
 
 #### 3.3 Future candidates 延后
 
-嵌入式 readiness、retrieval、privacy export、company/source intel、production voice 和 multi-platform job search 不提前建 spec。触发时必须先确认 product-scope / UI / 合规边界。
+Readiness、retrieval、privacy export、production voice、company/source intel 和 multi-platform job search 只有在产品 / UI / 合规设计确认后才创建 owner 文档。
 
-### Phase 4: 已迁移技术草稿移除
+### Phase 4: 技术草稿引用边界
 
 #### 4.1 继承统一 owner matrix
 
-技术契约职责只由 `product-scope` §1.5 统一持有。本 roadmap 消费该矩阵，不复制第二套 API / DB / event / metrics / logging / config 映射。
+技术契约职责由 `product-scope` §1.5 owner matrix 持有。本 roadmap 消费该矩阵，不复制第二套 API / DB / event / metrics / logging / config 映射。
 
-#### 4.2 移除目录名与文件名引用
+#### 4.2 技术草稿 zero-reference
 
-所有当前项目文档、代码注释、生成源、生成物、日志与报告都不得保留已迁移技术草稿的目录名或文件名。需要描述责任来源时，正文只能引用当前 owner spec、history 或编码 truth source。
+当前项目文档、代码注释、生成源、生成物、日志与报告不得把非当前技术草稿目录名或文件名作为 truth source。需要描述责任来源时，正文只能引用当前 owner spec、history 或编码 truth source。
 
-#### 4.3 规范编码 truth source 注释
+#### 4.3 编码 truth source 注释规范
 
-`shared/conventions.yaml`、`scripts/lint/conventions_yaml.py`、codegen source 与 generated artifacts 不得把已迁移技术草稿称为外部真理源。共享约定、OpenAPI、DB、event、observability 的字段和 gate 必须由当前 owner 独立说明。
+`shared/conventions.yaml`、lint 脚本、codegen source 与 generated artifacts 必须把共享约定、OpenAPI、DB、event、observability 的字段和 gate 归属到当前 owner。
 
-#### 4.4 固化删除 gate
+#### 4.4 固化 zero-reference gate
 
-删除目录前必须重新运行本 plan §3 gate，并额外确认 retired-name zero-reference search 为零匹配。不允许剩余目录名、文件名、旧 shorthand、Markdown 链接、当前实施前置或外部真理源口径。
+技术草稿处置前必须重新运行本 plan §3 gate，并额外确认目录名、文件名、shorthand、Markdown 链接、当前实施前置和外部 truth-source 口径均为零匹配。
 
 ## 5 验收标准
 
-- `engineering-roadmap/spec.md` 不再声明 38 child / W0-W5 pending spawn 为当前执行模型。
-- `docs/spec/INDEX.md` 只包含真实存在的 `docs/spec/*/spec.md`，无 `_pending_` 行。
-- `product-scope` 对 roadmap 的交叉引用不再停留在 v2.2。
-- 当前已存在 active spec 均保留，且没有为 P1/P2 future candidates 创建空 spec 或空 plan。
-- 技术契约 owner matrix 已由 product-scope §1.5 持有，roadmap 和 child spec 只消费当前 owner spec / 编码 truth source。
-- 当前文档和编码 truth source 不再保留已迁移技术草稿的目录名、文件名、Markdown 链接或外部真理源口径。
+- `engineering-roadmap/spec.md` 只描述当前实施地图、active owner、候选项和创建规则。
+- `docs/spec/INDEX.md` 只包含真实存在的 `docs/spec/*/spec.md`。
+- `product-scope` 对 roadmap 的交叉引用指向当前版本。
+- P1/P2 future candidates 没有空 spec、空 plan 或 pending INDEX 行。
+- 技术契约 owner matrix 由 `product-scope` §1.5 持有，roadmap 和 child spec 只消费当前 owner spec / 编码 truth source。
+- 当前文档和编码 truth source 不把非当前技术草稿目录名、文件名、Markdown 链接或外部 truth source 作为当前依据。
 - 本 plan checklist 与 Header / INDEX 投影一致。
 - 本 plan §3 的替代验证 gate 全部通过。
 
@@ -135,18 +125,18 @@ ADR-Q1..Q6 继续作为架构约束保留在 `docs/spec/engineering-roadmap/deci
 
 | 风险 | 应对措施 |
 |------|----------|
-| 删除 pending 行后看不到未来方向 | 将未来方向保留在 roadmap spec §5.2 / §5.3，而不是放入 INDEX |
-| 旧 completed plan 中仍有历史术语 | 保留历史证据，但当前执行口径以本 plan v3.3 与 roadmap spec v3.4 为准 |
-| 后续实现重新创建旧模块 | product-scope 默认丢弃规则 + UI 文档删除清单 + roadmap §4.1 共同拦截 |
-| P1/P2 能力被提前空壳化 | child 创建规则要求进入设计或实现时才创建 spec / plan |
-| A/B/F active spec 与新 roadmap 表述漂移 | 通过 `sync-doc-index --check`、链接检查和后续 plan-review 原地修订 |
-| 删除已迁移技术草稿后出现断链或上游缺口 | product-scope §1.5 owner matrix + Phase 4 deletion gate + retired-name zero-reference search |
+| 未来方向缺少可见入口 | 未来方向只放在 roadmap spec candidate 区域，进入设计 / 实施时再创建 owner 文档 |
+| 后续实现绕过当前 owner | child 创建规则要求先检查 product-scope、UI 真理源和现有 owner |
+| P1/P2 能力提前空壳化 | child 创建规则要求进入设计或实现时才创建 spec / plan |
+| A/B/F active spec 与 roadmap 表述漂移 | 通过 `sync-doc-index --check`、链接检查和后续 plan-review 原地修订 |
+| 技术草稿处置后出现断链或上游缺口 | product-scope §1.5 owner matrix + Phase 4 zero-reference gate |
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
-| 2026-05-05 | 3.3 | 按零残留口径执行旧技术草稿删除：移除实体目录，扩展 zero-reference gate 到目录名、文件名和旧 shorthand，并要求当前 owner spec / coded truth source 独立承接。 | product-scope v1.7 / engineering-roadmap v3.4 |
-| 2026-05-05 | 3.2 | 增加已迁移技术草稿移除 Phase 4：清理目录名和文件名引用，规范编码 truth source 注释，并把 zero-reference gate 固化到本 plan。 | product-scope v1.6 / engineering-roadmap v3.3 |
-| 2026-05-05 | 3.1 | L1 plan-review remediation：确认 Phase 3 只是后续 child 创建治理规则，不创建当前 P0 workstream；本 docs-only plan 完成收口为 completed。 | historical-spec-implementation-review L1 |
-| 2026-05-03 | 3.0 | 原地重写为 roadmap rebaseline：删除 pending 占位模型，保留 active spec truth source，改为 on-demand child 创建。 | product-scope v1.5 / docs-ui current |
+| 2026-07-06 | 3.4 | Reword plan to current execution-map governance, no-pending INDEX model, child-creation rules, and technical-draft zero-reference gates. | product-scope v1.38 / engineering-roadmap v3.29 |
+| 2026-05-05 | 3.3 | Codify technical-draft zero-reference gates and current owner-spec responsibility. | product-scope v1.7 / engineering-roadmap v3.4 |
+| 2026-05-05 | 3.2 | Add technical-draft reference governance and source-comment ownership rules. | product-scope v1.6 / engineering-roadmap v3.3 |
+| 2026-05-05 | 3.1 | L1 plan-review remediation: confirm Phase 3 only records future child-creation governance. | docs-only L1 remediation |
+| 2026-05-03 | 3.0 | Rebaseline roadmap to real spec index projection, active owner truth sources, and on-demand child creation. | product-scope v1.5 / docs-ui current |

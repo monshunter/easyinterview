@@ -38,7 +38,7 @@ for spec in \
     exit 1
   }
 done
-# Sanity-check current D-20 preview confirm and removed guided branches exercised.
+# Sanity-check current D-20 preview confirm and guided branches exercised.
 for term in updateResume 422 guided; do
   grep -Fq "$term" "$LOG_FILE" || {
     echo "$SCENARIO_ID: branch $term was not run" >&2

@@ -1,20 +1,20 @@
 # ADR-Q2 · 异步编排
 
-> **版本**: 1.6
+> **版本**: 1.8
 > **状态**: accepted
-> **更新日期**: 2026-05-26
+> **更新日期**: 2026-07-07
 
 ## 1 背景
 
-`engineering-roadmap` 历史上曾把后端拆成 `api` + `worker` 两个进程；`backend-runtime-topology` v1.0 已将 P0 拓扑收敛为 `frontend` + `backend`，后台任务由 backend internal runner 承接。`B1 shared-conventions-codified` §4 把所有长耗时操作统一为「异步 Job 模式」；`B4 db-migrations-baseline` 已定义 `async_jobs` 与 `outbox_events` 两张表。`README.md` §「待评审的 5 个决策点」第 2 项只作为历史决策输入。
+`backend-runtime-topology` v1.0 已将 P0 拓扑收敛为 `frontend` + `backend`，后台任务由 backend internal runner 承接。`B1 shared-conventions-codified` §4 把所有长耗时操作统一为「异步 Job 模式」；`B4 db-migrations-baseline` 已定义 `async_jobs` 与 `outbox_events` 两张表。`README.md` §「待评审的 5 个决策点」第 2 项只作为决策输入。
 
 P0 已识别的异步链路：
 
 - JD 解析（public `jobType=target_import`，internal Asynq handler 可映射为 `target.import`）
 - 模拟面试报告生成（public `jobType=report_generate`，internal Asynq handler 可映射为 `report.generate`）
 - 简历定制（`resume.tailor`）
-- 报告题目回顾与本轮复练上下文物化（`review.materialize_report_items`）；不生成独立错题本或 Drill 队列
-- Email magic link / 通知派发（internal-only canonical `jobType=email_dispatch`，backend internal handler 可映射为 `email.dispatch`）
+- 报告题目回顾与本轮复练上下文物化（`review.materialize_report_items`）；不生成独立题目集队列
+- Email code / 通知派发（internal-only canonical `jobType=email_dispatch`，backend internal handler 可映射为 `email.dispatch`）
 - Outbox event publish（backend internal runner drain / `outbox.dispatch` handler）
 
 特征：
@@ -46,7 +46,7 @@ P0 已识别的异步链路：
 
 **Pros**：
 
-- workflow as code、versioning、replay、长运行历史
+- workflow as code、versioning、replay、长运行执行记录
 - 内置 signal / query / 人工干预；适合多步补偿
 - 多语言 SDK，跨服务编排自然
 
@@ -80,7 +80,7 @@ P0 已识别的异步链路：
 4. **重试策略**：默认指数退避（30s/2m/10m/1h/6h），最多 5 次；超限后落 `dead_letter` 并写 audit_event
 5. **优先级队列**：`critical`（user-facing：`report_generate` / `privacy_delete`）/ `default`（`target_import` / `resume_tailor`）/ `low`（`email_dispatch` / `analytics_dispatch` / batch）；`email_dispatch` 由 B3 / B4 作为 internal-only canonical jobType 纳入契约，`analytics_dispatch` 新增前必须由 B3 / B4 additive 更新
 6. **可观测性**：每个 task 必须落 `async_job_duration_seconds` + `async_jobs_processed_total{result=succ|fail|retry}` + Sentry breadcrumb
-7. **outbox**：`outbox_events` 表由业务事务写入；backend internal runner 按 B3 协议 drain 未发布行并投递对应 handler。未来如拆出独立部署单元，必须由新 ADR 明确 supersede 本拓扑。
+7. **outbox**：`outbox_events` 表由业务事务写入；backend internal runner 按 B3 协议 drain 未发布行并投递对应 handler。未来如拆出独立部署单元，必须由新 ADR 明确更新本拓扑。
 8. **Asynq Web UI**：不作为 P0 默认 dev/staging 前置；如未来采用 Asynq server，可由可选运维 profile 暴露给 ops。
 
 ## 4 影响范围
@@ -90,7 +90,7 @@ P0 已识别的异步链路：
 - **A2 `local-dev-stack`** —— 默认启动 Postgres / Redis / MinIO / Mailpit；不包含 Asynq Web UI 或独立 worker health gate
 - **B3 `event-and-outbox-contract`** —— 当前 16 个内部事件 envelope + outbox publish_status 状态机；新增事件必须走 B3 additive 更新
 - **B4 `db-migrations-baseline`** —— `async_jobs` / `outbox_events` 0001 迁移；`async_jobs.job_type` check 必须包含 internal-only `email_dispatch`
-- **C1 `backend-auth`** —— magic link 邮件派发通过 C1 backend-internal dispatcher / future `email_dispatch` job contract，handler 不同步等待 provider
+- **C1 `backend-auth`** —— email code 邮件派发通过 C1 backend-internal dispatcher / `email_dispatch` job contract，handler 不同步等待 provider
 - **C4 / C5 / C6 / C7** —— 所有异步链路统一通过 backend async runner / B3 job contract enqueue，禁止业务代码直接 import concrete queue SDK
 - **F1 `observability-stack`** —— `async_jobs_*` + `outbox_publish_lag_seconds` 指标接入；queue depth alert 阈值锁定
 - **A4 `secrets-and-config`** —— Redis 连接串 / Asynq 队列权重作为 config 节点
@@ -105,7 +105,7 @@ P0 已识别的异步链路：
 - backend internal runner 吞吐影响 API SLO，或 task throughput ≥ 10k/s 持续 → 评估拆出独立运行单元和更强调度器
 - 出现需要 workflow versioning / replay 调试的复杂业务 → Temporal
 
-修订流程：本 ADR 状态由 `accepted` → `superseded`，新 ADR 显式标注 `supersedes: ADR-Q2-async-orchestration.md`。
+修订流程：如需推翻本决策，新增修订 ADR 并同步 roadmap Q-2 与相关 owner spec。
 
 ## 6 关联
 
@@ -118,8 +118,9 @@ P0 已识别的异步链路：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-07 | 1.7 | 对齐当前 backend-auth email-code flow 与 backend internal runner 口径。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-26 | 1.6 | 对齐 local-dev-stack Mailpit revision：默认依赖增加 Mailpit 本地邮箱 sink，但仍不新增独立 worker 或 Asynq Web UI 前置。 | local-dev-stack/001 Mailpit revision |
 | 2026-05-06 | 1.5 | 按 backend-runtime-topology v1.0 取消 P0 独立 worker 进程前置：保留 B3 job/outbox/handler 命名契约，将运行形态改为 backend internal runner。 | backend-runtime-topology/001-worker-consolidation |
-| 2026-05-03 | 1.4 | 对齐 B3 当前可执行事件契约：event/outbox 当前为 16 个内部事件，不再沿用旧 18 事件口径。 | event-and-outbox-contract / product-scope v1.2 |
-| 2026-05-03 | 1.3 | 对齐 product-scope v1.1：异步 review 物化只服务报告内题目回顾与本轮复练上下文，不再承接独立 Mistake / Drill 队列。 | product-scope / engineering-roadmap v2.2 |
-| 2026-04-29 | 1.2 | 将 magic link / 通知派发所需的 `email_dispatch` 明确纳入 internal-only canonical jobType，锁定 `email.dispatch` Asynq dotted name、low priority 队列与 B3/B4 契约同步要求；同时把早期示例 dotted name 对齐 B3 规范。 | plan-review remediation |
+| 2026-05-03 | 1.4 | 对齐 B3 当前可执行事件契约：event/outbox 当前为 16 个内部事件，不再沿用原 18 事件口径。 | event-and-outbox-contract / product-scope v1.2 |
+| 2026-05-03 | 1.3 | 对齐 product-scope v1.1：异步 review 物化只服务报告内题目回顾与本轮复练上下文，不再承接独立题目集队列。 | product-scope / engineering-roadmap v2.2 |
+| 2026-04-29 | 1.2 | 将 email code / 通知派发所需的 `email_dispatch` 明确纳入 internal-only canonical jobType，锁定 `email.dispatch` Asynq dotted name、low priority 队列与 B3/B4 契约同步要求；同时把早期示例 dotted name 对齐 B3 规范。 | plan-review remediation |

@@ -26,7 +26,7 @@ done
 for forbidden in \
   'topbar-user-inline' \
   'topbar-user-profile' \
-  'legacy inline user menu' \
+  'non-current inline user menu' \
   'ui-design/src/data'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
     echo "forbidden auth-state evidence leaked: $forbidden" >&2

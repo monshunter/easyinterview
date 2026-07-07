@@ -13,11 +13,11 @@
   `--ei-color-accent` 与 `--ei-color-accent-soft` 两个 oklch 值，base palette
   token 没有被覆盖；`topbar-custom-accent-hue` / `-chroma` slider 渲染。
 - `route-auth_login` 渲染 `ei-auth-shell` 双列布局，`auth-login-email-form` /
-  `auth-login-submit-email` 存在，旧 password / OAuth stub 不渲染；
+  `auth-login-submit-email` 存在，非当前 password / OAuth stub 不渲染；
   `route-settings` 渲染 `ei-screen-shell` + `ei-screen-card`；
-  retired `company_intel` 输入不渲染 `route-company_intel`，而是归一到
-  workspace 空态。
-- retired 入口 / 旧路由 / 旧文案在 DOM 中均不可见。
+  非当前 standalone insight 输入不渲染 `route-standalone_insight`，而是 fallback 到
+  home。
+- non-current 入口 / 非当前路由 / 非当前文案在 DOM 中均不可见。
 - `ui-design/src/{app,screen-auth}.jsx` 字面量尺寸（height 58
   / padding 0 32 / gap 28 / max-width 1160 / padding 54 48 96 / grid
   0.88fr 1.12fr / card padding 28）能在 D2 CSS 内对应位置找到。

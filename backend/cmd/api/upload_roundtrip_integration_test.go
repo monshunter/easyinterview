@@ -64,7 +64,7 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 		t.Fatalf("buildUploadRoutes: %v", err)
 	}
 	authSink := auth.NewDevMailSink(auth.DevMailSinkOptions{VerifyBaseURL: "http://api.test/api/v1/auth/email/verify"})
-	authService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	authService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:                 auth.NewSQLStore(db),
 		Dispatcher:            auth.NewImmediateMailDispatcher(authSink),
 		DeliverySecrets:       authSink,

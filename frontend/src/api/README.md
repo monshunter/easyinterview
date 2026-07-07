@@ -9,7 +9,7 @@ Fixture-backed API entrypoint for frontend workstreams.
 - To hit the real backend during dev, run `VITE_EI_API_MODE=real VITE_EI_API_BASE_URL=<full-api-base> pnpm --filter @easyinterview/frontend dev`. Dev real mode requires an explicit API base so runtime ports stay environment-owned.
 - Build the registry with `createFixtureRegistry([...])`, using JSON files from `openapi/fixtures/<tag>/<operationId>.json`.
 - Scenario selection is explicit: pass `Prefer: example=<scenario>` through request headers. Missing scenarios fail loudly instead of falling back to `default`.
-- Seed profiles currently available for frontend shell and follow-on D2-D6 workstreams:
+- Seed profiles currently available for frontend shell and follow-on product workstreams:
   - `getMe`: `default`, `authenticated`, `unauthenticated`, `prototype-baseline`
   - `getPracticeSession`: `default`, `missing-session`, `prototype-baseline`
   - `createPracticePlan`: `default`, `missing-resume`

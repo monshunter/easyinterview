@@ -6,7 +6,7 @@
  *               + bdd-checklist.md.
  *
  * Given the default fixture-backed Vite dev mock client, the mounted App must
- * start signed out, sign in through passwordless auth, expose the ui-design
+ * start signed out, sign in through email-code auth, expose the ui-design
  * aligned avatar dropdown, route settings/logout from that dropdown,
  * and return to signed out after logout.
  */

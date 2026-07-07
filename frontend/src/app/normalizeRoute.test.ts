@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import { normalizeRoute, normalizeRouteName } from "./normalizeRoute";
 
 describe("normalizeRouteName", () => {
-  it("maps every retained legacy alias documented in ui-design to a current route", () => {
+  it("maps every retained non-current alias documented in ui-design to a current route", () => {
     // Sourced from ui-design/src/app.jsx ROUTE_ALIASES + auth-and-entry.md §9.1.
-    // `voice` is intentionally excluded: current product-scope deletes the
-    // route alias and keeps voice only as practice route params.
+    // `voice` is intentionally excluded: current product-scope keeps voice
+    // only as practice route params, not as a route alias.
     expect(normalizeRouteName("welcome")).toBe("home");
     expect(normalizeRouteName("growth")).toBe("home");
     expect(normalizeRouteName("plan")).toBe("workspace");
@@ -19,27 +19,26 @@ describe("normalizeRouteName", () => {
     expect(normalizeRouteName("onboarding")).toBe("resume_versions");
   });
 
-  it("does not preserve the retired standalone voice route alias", () => {
+  it("does not preserve the non-current standalone voice route alias", () => {
     expect(normalizeRouteName("voice")).toBe("home");
   });
 
-  it("normalizes the retired auth_reset route to the single login entry", () => {
+  it("normalizes the non-current auth_reset route to the single login entry", () => {
     // product-scope D-16 / frontend-shell spec v1.22 C-17 — email code is the
     // only sign-in flow; auth_reset must not materialize a standalone screen.
     expect(normalizeRouteName("auth_reset")).toBe("auth_login");
   });
 
-  it("normalizes retired debrief/profile aliases to home", () => {
-    // product-scope D-22 deletes the debrief and user-profile modules. Saved
-    // local route names must fold back to the core intake home.
+  it("normalizes non-current debrief/profile aliases to home", () => {
+    // product-scope D-22 keeps debrief and user-profile outside the current
+    // route catalog. Saved local route names fold back to the core intake home.
     expect(normalizeRouteName("debrief")).toBe("home");
     expect(normalizeRouteName("debrief_full")).toBe("home");
     expect(normalizeRouteName("profile")).toBe("home");
   });
 
-  it("normalizes the retired company_intel route to workspace", () => {
-    // product-scope D-18 — company intel is an embedded workspace card only.
-    expect(normalizeRouteName("company_intel")).toBe("workspace");
+  it("does not retain standalone insight route aliases", () => {
+    expect(normalizeRouteName("standalone_insight")).toBe("home");
   });
 
   it("preserves valid current route names", () => {

@@ -1,16 +1,16 @@
 # ADR-Q4 · 部署与测试目标
 
-> **版本**: 1.8
+> **版本**: 2.0
 > **状态**: accepted
-> **更新日期**: 2026-05-26
+> **更新日期**: 2026-07-07
 
 ## 1 背景
 
-`engineering-roadmap decisions` 历史上把 P0 / P1 部署形态锁定为「3 个运行单元」（`web-app` / `api` / `worker`）+「共享基础设施」。`backend-runtime-topology` v1.0 已将 P0 运行单元收敛为 `frontend` + `backend`，后台任务在 backend internal runner 中执行；`README.md` §「待评审的 5 个决策点」第 4 项只作为历史决策输入。
+`backend-runtime-topology` v1.0 已将 P0 运行单元收敛为 `frontend` + `backend`，后台任务在 backend internal runner 中执行；`README.md` §「待评审的 5 个决策点」第 4 项只作为决策输入。
 
 2026-05-22 重新对齐后，仓库当前事实是：
 
-- A2 `local-dev-stack` 只需要 Docker Compose 管理 Postgres / Redis / MinIO / Mailpit 外部依赖；Mailpit 只承接本地 passwordless magic-link 收信，不表示应用进程进入 compose。
+- A2 `local-dev-stack` 只需要 Docker Compose 管理 Postgres / Redis / MinIO / Mailpit 外部依赖；Mailpit 只承接本地 email-code 收信，不表示应用进程进入 compose。
 - backend / frontend 当前可通过宿主机 dev command 直接运行并连接这些依赖；把它们强制打包进镜像或 Kind 集群会增加本地反馈成本。
 - `test/scenarios/` 当前 Ready 场景主要通过 repo-tracked Go / Vitest / Playwright / browser runner 验证行为契约，不需要部署级 Kind / K8s 环境。
 - 当前单人阶段 A5 只保留本地质量门禁，不构建远端 CI pipeline。
@@ -85,14 +85,14 @@
 4. **AI provider（关联 Q-6）**：非测试本地 app run、未来 staging 和 production 必须通过 provider registry / model profile / provider-specific secret env ref 注入真实 provider；`APP_ENV=test` 的 stub/fixture 只能用于单元测试、离线契约测试或显式 mock 场景。
 5. **容器化 app service**：后续组件只有在 owner plan 明确需要可复现容器化 app runtime 时，才新增 Dockerfile / compose service / healthcheck / resource budget，并同步 A2 spec。
 6. **CI/CD 延后**：当前个人单人开发阶段不构建远端 CI pipeline，也不做 CI deploy；A5 只约束本地手动质量门禁。
-7. **Release 目标重评估**：E4 `release-gate-and-rollout` 创建时，必须基于当时真实团队规模、SLO、运维带宽和成本重新评估单机 compose、PaaS、ECS 或 K8s；不得把历史 K8s / Kind 口径当作默认答案。
+7. **Release 目标重评估**：E4 `release-gate-and-rollout` 创建时，必须基于当时真实团队规模、SLO、运维带宽和成本重新评估单机 compose、PaaS、ECS 或 K8s；不得把 Kind / K8s 当作默认答案。
 
 ## 4 影响范围
 
 - **A2 `local-dev-stack`** —— Docker Compose 默认覆盖外部依赖；backend/frontend 默认宿主机运行；optional app service 必须由 owner 显式接入。
 - **A5 `ci-pipeline-baseline`** —— 当前只保留本地质量门禁；远端 CI pipeline / image push / branch protection 延后。
 - **`test/scenarios/`** —— 场景环境文档从 Kind 目标改为本地 runner 契约；场景验证必须读取具体 README / wrapper，而不是假设部署环境。
-- **E4 `release-gate-and-rollout`** —— 未创建；后续 release/staging/prod 目标必须重新设计，不继承旧 K8s 默认值。
+- **E4 `release-gate-and-rollout`** —— 未创建；后续 release/staging/prod 目标必须重新设计，不继承 Kind / K8s 默认值。
 - **F1 `observability-stack`** —— 当前只消费应用 `/metrics`、日志和本地 runner 证据；不要求本地默认启动 Prometheus / Loki / Grafana / OTel Collector。
 - **A3 `ai-provider-and-model-routing`** —— 非测试运行环境继续 fail-fast 要求真实 provider registry/profile/secret 注入；不因为去掉 Kind 而放宽 AI provider 边界。
 - **A4 `secrets-and-config`** —— 继续 owner env 字典、secret ref 和 fail-fast 规则；不新增 K8s Secret 作为当前 P0 前提。
@@ -107,7 +107,7 @@
 - 单机/宿主机开发环境导致高频环境漂移或故障复现困难 → 评估把具体 app service 接入 compose，而不是直接跳到 K8s。
 - 出现 HA、自动扩缩容、多 region active-active、强 SLO 或复杂 secret rotation 需求 → 新 ADR 评估 K8s / managed platform / PaaS。
 
-修订流程：本 ADR 状态由 `accepted` → `superseded`，新 ADR 显式标注 `supersedes: ADR-Q4-cloud-deploy-target.md`。
+修订流程：如需推翻本决策，新增修订 ADR 并同步 roadmap Q-4 与相关 owner spec。
 
 ## 6 关联
 
@@ -121,11 +121,10 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-07 | 1.9 | 对齐当前 email-code 登录、本地 runner 和 Kind / K8s 非默认部署边界。 |
 | 2026-05-26 | 1.8 | 对齐 local-dev-stack Mailpit revision：默认 Docker Compose 外部依赖增加 Mailpit 本地邮箱 sink，仍保持宿主机 backend/frontend app runtime 与本地 scenario runner 口径。 |
 | 2026-05-22 | 1.7 | 按方案 A 重定部署与测试目标：P0 默认 Docker Compose 外部依赖 + 宿主机 app runtime + 本地 scenario runner；Kind / K8s / Helm 不再作为默认测试或部署前提。 |
 | 2026-05-06 | 1.6 | 对齐 backend-runtime-topology：P0 部署拓扑从 web/api/worker 三应用单元改为 web/backend 两应用单元，后台任务默认由 backend internal runner 承接。 |
 | 2026-05-05 | 1.5 | 对齐 A3 003 Provider Registry：部署注入从单一 endpoint/key 口径更新为 registry/profile/provider-specific secret 组合，`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 仅作为默认 provider ref 可引用 env。 |
 | 2026-05-05 | 1.4 | 对齐 ADR-Q6 provider 口径：业务 deployment 只通过 `AI_PROVIDER_BASE_URL` 接入 OpenAI-compatible provider endpoint，不把独立转发层写成应用部署前提。 |
 | 2026-04-27 | 1.3 | 对齐个人单人开发阶段决策：P0 当前不构建远端 CI pipeline，不做 CI deploy；A5 只约束本地手动质量门禁，自动化 CI/CD 待多人协作、公开 release 或自动发版需求出现后再建。 |
-| 2026-04-27 | 1.2 | 历史记录：曾将 Kind 场景测试视为本地部署路径并要求注入真实 AI provider endpoint / key；v1.7 已推翻该默认场景环境口径。 |
-| 2026-04-27 | 1.1 | 历史记录：曾将普通本地开发和 Kind 场景测试设为双轨；v1.7 已收敛为 Docker Compose 外部依赖 + 本地 runner。 |

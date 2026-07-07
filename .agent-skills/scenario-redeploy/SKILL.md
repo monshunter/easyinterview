@@ -48,10 +48,10 @@ never print secret values.
 
 ## Rules
 
-- Do not assume historical cluster types, Helm charts, namespaces, or component
+- Do not assume cluster types, Helm charts, namespaces, or component
   names.
 - When only one component changed, prefer the narrowest redeploy that the repo
   documents.
 - Treat `test/scenarios/env-redeploy.sh` as a framework-owned shim. Concrete
   component names, aliases, and rebuild steps must come from the active suite
-  README and repo scripts, not from historical projects.
+  README and repo scripts.

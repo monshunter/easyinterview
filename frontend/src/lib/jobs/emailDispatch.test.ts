@@ -4,7 +4,7 @@ import { buildEmailDispatchPayload } from './jobs';
 
 describe('email_dispatch payload helper', () => {
   it('rejects redacted fields', () => {
-    for (const field of ['rawMagicLinkToken', 'magicLinkUrl', 'recipientEmail', 'emailBody']) {
+    for (const field of ['rawEmailCode', 'emailVerificationUrl', 'recipientEmail', 'emailBody']) {
       expect(() => buildEmailDispatchPayload({
         authChallengeId: 'challenge-1',
         [field]: 'secret',

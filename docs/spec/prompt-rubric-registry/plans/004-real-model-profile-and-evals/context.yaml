@@ -4,10 +4,9 @@ metadata:
   subspec: prompt-rubric-registry
   name: 004-real-model-profile-and-evals
   sequence: 4
-  supersedes: []
   specVersion:
     from: 2.7
-    to: 2.9
+    to: 2.17
 spec:
   defaultTarget: backend
   discovery:
@@ -27,7 +26,8 @@ spec:
       - CompleteJudge judge capability dispatch
       - judge_compatible adapter activation
       - judge-deepseek provider ref
-      - offline eval set >=50 questions
+      - offline eval set >=36 questions
+      - 36 recorded eval cases
       - Promptfoo registry-driven eval
       - pinned Promptfoo pnpm dependency
       - recorded fixture golden transcript

@@ -26,8 +26,8 @@ from pathlib import Path
 
 # ── Constants ──────────────────────────────────────────────────────────
 
-VALID_STATUS = {"draft", "active", "completed", "superseded", "deprecated"}
-LEGACY_STATUS = {"实施中": "active", "已完成": "completed", "废弃": "deprecated"}
+VALID_STATUS = {"draft", "active", "completed"}
+STATUS_ALIASES = {"实施中": "active", "已完成": "completed"}
 EXEC_MODES = {"parallel", "sequential"}
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 HEADER_RE = re.compile(r"^>\s*\*\*(.+?)\*\*\s*:\s*(.+)$")
@@ -45,8 +45,6 @@ PLAN_GROUP_STATUS = {
     "Draft": "draft",
     "已完成": "completed",
     "Completed": "completed",
-    "已取代": "superseded",
-    "Superseded": "superseded",
 }
 
 
@@ -176,7 +174,7 @@ def parse_plan_index(index_path):
     """Parse plan INDEX.md. Returns list of entries with status group info."""
     entries = []
     current_status = None
-    has_version_col = True  # Superseded group has no version/date columns
+    has_version_col = True
 
     with open(index_path, "r", encoding="utf-8") as f:
         all_lines = strip_html_comment_lines(f.readlines())
@@ -200,8 +198,6 @@ def parse_plan_index(index_path):
             for keyword, status in PLAN_GROUP_STATUS.items():
                 if keyword in section_name:
                     current_status = status
-                    if status == "superseded":
-                        has_version_col = False
                     break
             continue
 
@@ -286,15 +282,15 @@ def validate_header(filepath, header, required_fields, root):
     # Status validation
     if "状态" in std:
         s = std["状态"]
-        if s in LEGACY_STATUS:
+        if s in STATUS_ALIASES:
             violations.append({
                 "file": rel,
-                "type": "legacy_status",
+                "type": "status_alias",
                 "field": "状态",
                 "current": s,
-                "normalized": LEGACY_STATUS[s],
+                "normalized": STATUS_ALIASES[s],
                 "auto_fixable": True,
-                "message": f"Legacy status '{s}' → '{LEGACY_STATUS[s]}'",
+                "message": f"Status alias '{s}' → '{STATUS_ALIASES[s]}'",
             })
         elif s not in VALID_STATUS:
             violations.append({
@@ -414,9 +410,6 @@ def check_plan_drift(plan_dir, root):
             # Status group drift
             if "状态" in std and std["状态"] != entry["expected_status"]:
                 severity = "advisory" if entry["is_sub"] else "error"
-                # Auto-fixable when both source and target sections share the same
-                # column shape: active / draft / completed. Superseded uses a different
-                # schema (no version/date columns), so leave it for human judgment.
                 same_shape = {"active", "draft", "completed"}
                 auto_fixable = (
                     not entry["is_sub"]
@@ -450,7 +443,7 @@ def check_plan_drift(plan_dir, root):
             std = header["standard"]
             rel = str(doc_path.relative_to(root))
 
-            # Version drift (skip for groups without version column, e.g. Superseded)
+            # Version drift.
             if entry.get("has_version_col", True) and "版本" in std and entry["version"] and std["版本"] != entry["version"]:
                 drifts.append({
                     "file": rel,
@@ -632,13 +625,13 @@ def fix_header_file(filepath, header, required_fields, dry_run=False):
 
     modified = False
 
-    # 1. Normalize legacy status
+    # 1. Normalize status aliases
     for i, line in enumerate(lines):
         m = HEADER_RE.match(line.strip())
         if m and m.group(1).strip() == "状态":
             val = m.group(2).strip()
-            if val in LEGACY_STATUS:
-                new_val = LEGACY_STATUS[val]
+            if val in STATUS_ALIASES:
+                new_val = STATUS_ALIASES[val]
                 lines[i] = line.replace(f"**: {val}", f"**: {new_val}")
                 fixes.append({"action": "normalize_status", "from": val, "to": new_val})
                 modified = True
@@ -752,8 +745,8 @@ def fix_headers(root, dry_run=False):
 def fix_index_columns(root, dry_run=False):
     """Auto-fix INDEX column values (version/date) to match headers, and migrate
     rows to the section that matches their underlying doc Header `状态`. Returns
-    (fixes, skipped) — skipped covers transitions that share status mismatch but
-    cannot be auto-migrated (e.g., superseded → active, where column shape differs).
+    (fixes, skipped) — skipped covers manual placements such as sub-row
+    continuations or unsupported status groups.
     """
     fixes = []
     skipped = []
@@ -802,9 +795,8 @@ def _new_plan_section(status, number):
 def _migrate_plan_index_rows(plans_dir, index_path, root, dry_run):
     """Move plans/INDEX.md rows to the section whose group `状态` matches the row's
     underlying plan doc Header `状态`. Same-shape transitions (active / draft /
-    completed) are auto-fixed; superseded transitions are returned as `skipped`
-    because their section drops the version/date columns and the migration would
-    have to fabricate or drop column data.
+    completed) are auto-fixed. Unsupported status groups are returned as
+    `skipped` for manual placement.
 
     Returns (fixes, skipped). Each entry in `fixes` describes the migration; each
     entry in `skipped` matches the schema used by `format_fix_result`'s Skipped
@@ -924,7 +916,7 @@ def _migrate_plan_index_rows(plans_dir, index_path, root, dry_run):
                     "skipped": [{
                         "action": "migrate_row",
                         "field": "状态(group)",
-                        "reason": f"superseded sections use a different column shape; migrate manually (header={doc_status}, section={sec['status']})",
+                        "reason": f"unsupported status group; manual placement required (header={doc_status}, section={sec['status']})",
                     }],
                 })
                 continue

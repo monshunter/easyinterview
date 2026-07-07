@@ -40,18 +40,15 @@ export const ROUTE_TO_PATH: Readonly<Record<RouteName, string>> = {
 };
 
 /**
- * Retired canonical paths that must not fall back to `home`. They normalize to
- * the current retained route per product-scope D-16 / frontend-shell spec §2.2.
+ * Explicit non-current paths that still have a current retained destination per
+ * product-scope D-16 / D-17 / D-22 and frontend-shell spec §2.2.
  */
-export const LEGACY_PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = new Map([
+export const NON_CURRENT_PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = new Map([
   ["/auth/reset", "auth_login"],
-  // product-scope D-17: the jd_match module is deleted; old deep links land
-  // on home where JD intake lives.
+  // product-scope D-17: jd_match is outside the current route catalog; saved
+  // deep links land on home where JD intake lives.
   ["/jd-match", "home"],
-  // product-scope D-18: the company intel detail route is deleted; old deep
-  // links land on workspace where the embedded card lives.
-  ["/company-intel", "workspace"],
-  // product-scope D-22: debrief and user profile modules are deleted.
+  // product-scope D-22: non-current product entries are outside the current route catalog.
   ["/debrief", "home"],
   ["/profile", "home"],
 ]);
@@ -157,8 +154,8 @@ const PARSE_SAFE = new Set([
   "resumeId",
   "importId",
   "source",
-  // product-scope D-17 removed the jd_match -> parse reverse handoff; the
-  // sourceJobMatchId param no longer has a producer.
+  // product-scope D-17 keeps the jd_match -> parse reverse handoff outside
+  // the current parse allowlist.
 ]);
 
 const HOME_SAFE = new Set(["pendingImportId", "source", "resumeId"]);
@@ -271,7 +268,7 @@ export function formatRouteUrl(input: LooseRoute): string {
  * slash) into a normalized `Route`. Unknown paths fall back to `home`.
  * Unsafe params are silently dropped — they never enter App state. Fragment
  * (`#...`) is ignored here so the canonical parser stays orthogonal to the
- * legacy `#route=...` hash adapter.
+ * non-current `#route=...` hash adapter.
  */
 export function parseUrlToRoute(rawUrl: string): Route {
   const trimmed = (rawUrl ?? "").trim();
@@ -291,7 +288,7 @@ export function parseUrlToRoute(rawUrl: string): Route {
   const pathname = url.pathname || "/";
   const name =
     PATH_TO_ROUTE.get(pathname) ??
-    LEGACY_PATH_TO_ROUTE.get(pathname) ??
+    NON_CURRENT_PATH_TO_ROUTE.get(pathname) ??
     DEFAULT_ROUTE.name;
   const rawParams: Record<string, string> = {};
   for (const [key, value] of url.searchParams.entries()) rawParams[key] = value;

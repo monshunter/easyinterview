@@ -11,7 +11,7 @@ export interface AuthLoginScreenProps {
   route: Route;
   onNavigate: (next: LooseRoute) => void;
   /**
-   * Wires the passwordless email-code challenge. Implementations delegate to
+   * Wires the email-code challenge. Implementations delegate to
    * the generated `startAuthEmailChallenge` operation.
    */
   onStartChallenge: (req: AuthEmailStartRequest) => Promise<void>;

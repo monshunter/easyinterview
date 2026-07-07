@@ -10,8 +10,9 @@ import (
 // fields mirror the targetjob.PromptResolution shape so RegistryAdapter can
 // translate between the two without losing context. The last three fields
 // reserve room for spec §3.1 D-12 (provider-neutral tools / structured
-// output / streaming hints); plan 001 does not consume them but downstream
-// callers can already see their shape through this struct.
+// output / streaming hints). Callers can already see their shape through this
+// struct, but producers only populate them when the owning implementation is
+// wired.
 type PromptResolution struct {
 	FeatureKey          string
 	PromptVersion       string
@@ -22,15 +23,15 @@ type PromptResolution struct {
 	SystemMessage       string
 	UserMessageTemplate string
 
-	// D-12 reserved fields (plan 001: declared, not consumed).
+	// D-12 reserved fields. Producers leave them empty until the owning
+	// implementation is wired.
 	Tools        []ToolDescriptor
 	OutputSchema *json.RawMessage
 	StreamWire   *string
 }
 
 // ToolDescriptor is the provider-neutral tool descriptor reserved by D-12
-// for future Resolve outputs. Plan 002 may attach a non-empty Tools slice;
-// plan 001 always returns an empty slice.
+// for optional Resolve outputs.
 type ToolDescriptor struct {
 	Name        string
 	Description string
@@ -96,8 +97,7 @@ type Reasoning struct {
 // reasoning)` with the Go-idiomatic context.Context prepended and an error
 // trailing return. The first return evolved from a single Score to a
 // per-dimension []Score at spec v2.8 so multi-dimension rubrics are scored
-// dimension-by-dimension. Plan 001 shipped NotImplementedJudge; plan 004 adds
-// the real LLMJudge implementation.
+// dimension-by-dimension.
 type Judge interface {
 	Judge(
 		ctx context.Context,
@@ -117,6 +117,5 @@ var ErrPromptUnsupported = errors.New("registry: feature_key has no active basel
 var ErrLanguageUnsupported = errors.New("registry: language coordinate unavailable for feature_key")
 
 // ErrJudgeNotImplemented is returned by NotImplementedJudge for every call.
-// Plan 002 replaces the implementation; plan 001 callers must treat the
-// error as a hard fail-closed signal.
-var ErrJudgeNotImplemented = errors.New("registry: LLM Judge is not implemented in plan 001")
+// Callers must treat it as a hard fail-closed signal.
+var ErrJudgeNotImplemented = errors.New("registry: LLM Judge is not configured")

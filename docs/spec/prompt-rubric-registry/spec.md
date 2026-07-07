@@ -1,8 +1,8 @@
 # Prompt Rubric Registry Spec
 
-> **版本**: 2.13
+> **版本**: 2.17
 > **状态**: active
-> **更新日期**: 2026-06-30
+> **更新日期**: 2026-07-07
 
 ## 1 背景与目标
 
@@ -12,13 +12,13 @@
 
 [ADR-Q6 §3.6](../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md) 已锁定：F3 只持有 `(feature_key, prompt_version, rubric_version, model_profile_name)` 四元组，不持有 provider / model 字符串（后者归 A3 Provider Registry + Model Profile）。A3 v2.8 进一步要求 F3 9 个 baseline feature_key 的默认 `model_profile_name` 必须全部能在 A3 `config/ai-profiles.yaml` catalog 中解析到合法 capability profile。A3 v2.7 打开 Tools / provider-side streaming / STT 后，F3 可在后续编码 truth source 中为 Resolve 输出追加 provider-neutral `tools[]`、`output_schema` 与 `stream_wire` hints，但这些字段不得包含 provider/model 字符串。
 
-本 spec 历史上由 `engineering-roadmap/001-decompose-subspecs` 的 contract lock 创建；当前执行口径是固定 baseline prompt/rubric 的命名空间、文件落点、`feature_key + version` 坐标与 Resolve 调用契约。真实 baseline prompt / rubric 文件、loader 与 lint 由 F3 后续 plan 验证；未通过前，后续业务域不得 hardcode prompt 文本，也不得启动依赖 F3 的 AI 调用 implementation。
+本 spec 由 `engineering-roadmap/001-decompose-subspecs` 的 contract lock 创建；当前执行口径是固定 baseline prompt/rubric 的命名空间、文件落点、`feature_key + version` 坐标与 Resolve 调用契约。真实 baseline prompt / rubric 文件、loader 与 lint 由 F3 后续 plan 验证；未通过前，后续业务域不得 hardcode prompt 文本，也不得启动依赖 F3 的 AI 调用 implementation。
 
 目标是：
 
 1. **contract 就绪**：每个 P0 AI task 至少有稳定 `feature_key + version` 坐标与文件落点；真实 baseline prompt + rubric 文件由 F3 `001` plan 落地并验证后，后续业务域才能引用。
 2. **跨语言、跨任务、跨灰度统一**：9 个当前 baseline feature_key（见 §3.1.1）共享同一 schema（feature_key / prompt_version / rubric_version / language / template_hash）；baseline 文件只维护 canonical `multi` 坐标，运行时 `language` 仍作为用户目标输出语言与 provenance 字段。
-3. **评估升级路径**：F3 `004-real-model-profile-and-evals` 切到真实 judge Model Profile + 落地 ≥ 36 题离线评估集（当前 9 个 feature_key，按约 4 题/键保留覆盖；新增 feature_key 时同步扩充）；本 spec 锁定接口、边界与 gate，代码实施由该 plan 承接。
+3. **评估升级路径**：F3 `004-real-model-profile-and-evals` 切到真实 judge Model Profile + 落地 ≥ 36 题离线评估集（当前 9 个 feature_key 共 36 个 fixture case；新增 feature_key 时同步扩充）；本 spec 锁定接口、边界与 gate，代码实施由该 plan 承接。
 4. **LLM Judge 接口**：本 spec 锁定 LLM Judge 接入契约，`004-real-model-profile-and-evals` 负责把 `NotImplementedJudge` 替换为真实实现。
 
 本 spec 不实现具体业务调用现场（归各 C 域）、不实现 AIClient（归 [A3](./../ai-provider-and-model-routing/spec.md)）、不实现 DB 表（归 B4）。
@@ -48,7 +48,7 @@
 - 模型解码期强约束（向 provider 下发 `response_format` / `json_schema` mode）与 provider 侧结构化输出：归 [A3](./../ai-provider-and-model-routing/spec.md)；F3 只产 provider-neutral `output_schema`，由 A3 决定是否向具体 provider 下发，或仅在返回后做 fail-close 校验。
 - 业务调用现场（C4-C7 / C9 在哪一行调用）：归各 C 域。
 - LLM Judge 实现：归 F3 `004-real-model-profile-and-evals`。
-- 离线评估集 ≥ 36 题（当前 9 个 feature_key，约 4 题/键）：归 F3 `004-real-model-profile-and-evals`，并在相关 backend / release workstream 进入实现前重新确认。
+- 离线评估集 ≥ 36 题（当前 9 个 feature_key 共 36 个 fixture case）：归 F3 `004-real-model-profile-and-evals`，并在相关 backend / release workstream 进入实现前重新确认。
 - prompt / rubric 编辑 UI：当前 P0 不在范围。
 - DB 表本身：归 B4。
 
@@ -69,12 +69,10 @@
 | D-9 | LLM Judge 接口 | 签名按 spec 版本演进：v2.8 起返回 `([]Score, Reasoning, error)`，`[]Score` 每个 rubric dimension 一项（`Score{Dimension, Value}`，`Value ∈ [0,1]`，可按 rubric `score_levels[].threshold` 映射 label）；`Reasoning` 保留 `Summary` + `EvidenceQuotes`；`TestJudgeSignature` 断言新签名；实现归 `004` | 多维度 rubric 评估需逐维度评分；接口演进不创建 sibling，原地随 spec 版本更新 |
 | D-10 | 不入 log 明文 | template_body 不写入 log；只写 prompt_version + template_hash；与 [F1 D-6](../observability-stack/spec.md#31-已锁定决策含命名约定字典) 一致 | – |
 | D-11 | A3 profile coverage | §3.1.1 中每个默认 `model_profile_name` 必须在 A3 `config/ai-profiles.yaml` catalog 中存在，并能解析到合法 `capability` / `provider_ref` / `status`；P1/P2 项可为 `status=disabled` / `status=unsupported`，但必须携带 `unsupported_reason` 且不得缺命名空间；本 gate 由 `make lint-ai-profile-coverage` 和顶层 `make lint` 触发 | 防止 F3 Resolve 输出悬空 profile |
-| D-12 | JD-Match feature_key cross-owner additive | backend-jobs-recommendations/001 携带 F3 spec/history additive：§3.1.1 字典从 11 升至 13，新增 `jd_match.recommendation`（默认 profile `jd_match.recommendation.default`，由 `jd_match_agent_scan` job 内联调用，每次产出 `JobMatchRecommendation` JSON 数组 + `GenerationProvenance`）+ `jd_match.search`（默认 profile `jd_match.search.default`，30s sync 调用 + 输出 ranked recommendations 数组）；baseline prompt / rubric canonical 文件为 `config/prompts/jd_match.{recommendation,search}/v0.1.0.{yaml,md}` + `config/rubrics/jd_match.{recommendation,search}/v0.1.0.yaml`，不再维护无差异 `en` 副本；recommendation/search 输出必须保留内部 jobs 池的 `jobMatchId` 以便 search handler join 已有 `jd_match_recommendations`；且明确禁止 LLM 输出引用 LinkedIn / Boss / 脉脉 / 拉勾 等外部招聘平台或私人 PII。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.5 + L2 hardening + `003-language-coordinate-simplification`；**2026-06-13 起随 product-scope v2.1 D-17 整体退役**：两个 jd_match feature_key、prompt/rubric/eval 资产与 registry seed 行已删除（drop migration 000014），字典回到 11 | 
 | D-12 | Provider-neutral AI invocation hints | 后续 F3 编码 truth source 可为 Resolve 输出追加 `tools[]`、`output_schema`、`stream_wire`，供 A3 `CompletePayload` / `Stream` 消费；字段只表达业务 schema / wire preference，不表达 provider、model、API endpoint 或 SDK 私有字段 | 让 tools / structured output / streaming handoff 可治理，同时不破坏 A3 provider-neutral 边界 |
-| D-13 | output_schema 契约落地（由 002 实施） | 每个 chat feature_key 落地 `config/prompts/<feature_key>/<version>.schema.json`（**语言无关**，JSON Schema 子集校验关键字 `type`/`required`/`properties`/`items`/`enum`，允许 `description` 作为非校验注解，描述后端实际反序列化契约）；`RegistryClient` 加载并随 `ResolveActive` 输出填充 `OutputSchema`；A3 `aiclient` observability `validateOutputSchema` 扩展支持 `enum` 并对模型输出做 fail-close 校验；prompt body 输出段统一为 schema 渲染/校验的「输出契约 + complete example JSON output」，schema 是唯一字段真理源；schema `required` 必须 ⊆ prompt body 声明的输出 key，且字段必须与后端反序列化 struct 的 json tag 对齐（drift → `make lint-prompts` exit 1）；example JSON 必须覆盖 schema 声明的 required + optional 字段、使用业务形态值而非 `string` / `1` 占位，并明确禁止模型返回 JSON Schema / OpenAPI schema。允许模型产出 schema 未声明的额外字段（向后兼容），但 prompt body 不应要求后端不消费且无评估价值的字段。`response_format` 解码期强约束属 A3 后续；语音（STT/TTS）feature 不产 JSON content，不在范围 | 把 D-12 规划的 `output_schema` 从「可追加」升级为可机器校验、可渲染、可评估的锁定契约，消除 prompt 形状 ↔ struct drift（BUG-0065 类），并降低 prompt 字段清单重复维护成本，同时让 prompt 内示例成为可执行的完整 JSON 输出样例而非 schema 文档。注：`jd_match.recommendation` / `jd_match.search` 顶层为 array，其余 11 个 chat feature_key 顶层为 object |
+| D-13 | output_schema 契约落地（由 002 实施） | 每个 chat feature_key 落地 `config/prompts/<feature_key>/<version>.schema.json`（**语言无关**，JSON Schema 子集校验关键字 `type`/`required`/`properties`/`items`/`enum`，允许 `description` 作为非校验注解，描述后端实际反序列化契约）；`RegistryClient` 加载并随 `ResolveActive` 输出填充 `OutputSchema`；A3 `aiclient` observability `validateOutputSchema` 扩展支持 `enum` 并对模型输出做 fail-close 校验；prompt body 输出段统一为 schema 渲染/校验的「输出契约 + complete example JSON output」，schema 是唯一字段真理源；schema `required` 必须 ⊆ prompt body 声明的输出 key，且字段必须与后端反序列化 struct 的 json tag 对齐（drift → `make lint-prompts` exit 1）；example JSON 必须覆盖 schema 声明的 required + optional 字段、使用业务形态值而非 `string` / `1` 占位，并明确禁止模型返回 JSON Schema / OpenAPI schema。允许模型产出 schema 未声明的额外字段（向后兼容），但 prompt body 不应要求后端不消费且无评估价值的字段。`response_format` 解码期强约束属 A3 后续；语音（STT/TTS）feature 不产 JSON content，不在范围 | 把 D-12 规划的 `output_schema` 从「可追加」升级为可机器校验、可渲染、可评估的锁定契约，消除 prompt 形状 ↔ struct drift（BUG-0065 类），并降低 prompt 字段清单重复维护成本，同时让 prompt 内示例成为可执行的完整 JSON 输出样例而非 schema 文档。当前 9 个 chat feature_key 顶层均为 object |
 | D-14 | language-coordinate simplification | Baseline prompt/rubric truth source 只维护 `multi` coordinate；`en` 等用户语言不再默认复制成隐藏配置文件。`ResolveActive(featureKey, requestedLanguage)` 保持 exact → `multi` fallback，prompt 通过 `{{language}}` 指令对齐用户目标语言；rubric 默认语言无关。新增 language override 必须说明真实语义差异并有 lint/seed/loader gate 覆盖 | 保留多语言用户体验，同时去掉 prompt/rubric 重复维护成本 |
 | D-15 | 评估框架与 judge 决策（`004` 锁定） | Promptfoo（pnpm Node）承载离线 eval runner，经 `RegistryClient.ResolveActive` 消费同一份 `config/prompts` 真理源（禁止复制第二份 prompt 正文）；录制 fixture 为默认执行模式，真实 provider 调用经 `EVAL_LIVE` 显式 opt-in 且不进 `make test` / 默认 `make eval-offline`；LLM Judge 走 `judge.default` profile（与业务 chat profile 隔离）；评估维度复用现有 rubric `dimensions[]`，不新造同义维度；被评估的 9 个 business prompt 经 `RegistryClient` single-source 消费，而 LLM Judge 自身的评分指令模板是 eval-harness 资产，落 `config/evals/`（F3 `004` 命名空间）由 judge 从文件加载，不内联字面量、不占用 §3.1.1 业务 feature_key 坐标 | 把 spec §3.2 defer 给评估 plan 的选型固化；保证 single-source、确定性与 provider 隔离，并区分「被评估的业务 prompt」与「judge 自身指令」两类资产 |
-| D-16 | Core-loop pruning feature_key removal | product-scope v2.2 D-22 删除真实面试 debrief 与候选人画像模块；`debrief.generate` / `debrief.suggest_questions` 及其 prompt/rubric/eval/profile seed 已从 active registry truth source 删除，当前 baseline 字典回到 9 个 feature_key | 防止退役模块继续通过 AI profile coverage gate 被误认为 active 能力 |
 
 #### 3.1.1 9 个当前 baseline feature_key 字典
 
@@ -90,7 +88,7 @@
 | `resume.tailor.gap_review` | 简历 gap review | C7 | `resume.tailor.default` |
 | `resume.tailor.bullet_suggestions` | 简历 bullet 改写 | C7 | `resume.tailor.default`（共享） |
 
-> 备注：当前删除 C11 资料检索类占位，个人开发阶段先不维护对应 prompt/rubric/profile 命名空间；未来如果产品确认资料规模与质量评估需求，再由新的设计重新引入。C9 真实面试复盘已随 product-scope v2.2 D-22 退役；报告内题目回顾与本轮复练由 `report.generate` / `report.question_assessment` 承载，不再保留独立 `mistake.extract` 或 debrief prompt。
+> 备注：当前不维护资料检索类占位，个人开发阶段先保持 §3.1.1 的 9 个 baseline feature_key；未来如果产品确认资料规模与质量评估需求，再由新的设计重新引入。报告内题目回顾与本轮复练由 `report.generate` / `report.question_assessment` 承载。
 
 ### 3.2 待确认事项
 
@@ -103,11 +101,11 @@
 
 ### 4.1 schema 约束
 
-- prompt 元信息字段顺序固定（与 DB 表列顺序一致）：`feature_key / version / language / template_hash / status / created_at`；`status ∈ {draft, active, deprecated}`。
+- prompt 元信息字段顺序固定（与 DB 表列顺序一致）：`feature_key / version / language / template_hash / status / created_at`；`status ∈ {draft, active}`。
 - rubric `dimensions[].name` 必须使用 F1 / F3 推荐质量指标中定义的命名 +（业务域专有维度 by C 域 owner）；不允许重新发明同义维度。
 - `version` 必须递增并使用 SemVer 字符串（baseline 从 `v0.1.0` 起）；同 `(feature_key, version, language)` 不允许覆盖（CI 拦截）。Baseline active 文件只要求 `language: multi`；language override 是例外路径，必须有业务 rationale。
 - output schema 文件 `config/prompts/<feature_key>/<version>.schema.json` **语言无关**（每个 `(feature_key, version)` 唯一一份，multi 与各 language 变体共用），不混入 per-language `template_hash`；允许的 JSON Schema 校验关键字限于 `type` / `required` / `properties` / `items` / `enum` 子集，允许 `description` 作为非校验注解，且必须与 A3 `aiclient` 的 `outputSchema` 校验器实现保持同一校验子集；当前 9 个 active chat feature_key 顶层 `type` 均为 `object`。schema `required` key 集合必须 ⊆ 对应 prompt body 声明的输出 key，并与后端反序列化 struct 的 json tag 对齐；prompt body 输出段必须由 schema 渲染或 lint 校验，三者一致性由 `make lint-prompts` 静态校验，drift 即 exit 1；example JSON 必须是完整代表性 output 值，包含 schema 声明的 optional 字段，不得退化为 OpenAPI / JSON Schema 文档或 `string` / `1` 形式的最小占位。
-- schema enum 必须对齐 B1/shared enum、DB CHECK 与后端 consumer 的实际可接受值；prompt body 的 output contract 与 example JSON 不得使用 schema enum 外的展示词或旧值。`report.question_assessment.review_status` 当前只允许 `open` / `queued_for_retry` / `resolved`，不得使用旧示例值 `ready`。
+- schema enum 必须对齐 B1/shared enum、DB CHECK 与后端 consumer 的实际可接受值；prompt body 的 output contract 与 example JSON 不得使用 schema enum 外的展示词。`report.question_assessment.review_status` 当前只允许 `open` / `queued_for_retry` / `resolved`，不得使用 `ready`。
 - `practice.turn.lightweight_observe.answerSummary` 是 report handoff 的最佳努力摘要字段：prompt 必须要求模型尽量返回，parser 必须消费 camelCase / snake_case 变体，但 JSON schema 不得把它列为 required，避免辅助观察因真实 provider 偶发漏字段而阻断答题主链路；缺失时由 practice owner 生成降级摘要并保留可观测错误码。
 
 ### 4.2 边界约束
@@ -144,11 +142,11 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 9 个 baseline 全集 | F3 后续 001 完成 + 003 收敛 | `find config/prompts -mindepth 1 -maxdepth 1 -type d -print` 与 `find config/rubrics -mindepth 1 -maxdepth 1 -type d -print` | 各输出 9 个 feature_key 目录；`README.md` 等根级说明文件不计入；每个目录恰有 canonical `v0.1.0` `multi` baseline（prompt yaml+md、rubric yaml）和 1 份语言无关 output schema；无默认 `v0.1.0.en.*` 副本 | F3 `001` + `002` + `003` |
+| C-1 | 9 个 baseline 全集 | F3 后续 001 完成 + 003 收敛 | `find config/prompts -mindepth 1 -maxdepth 1 -type d -print` 与 `find config/rubrics -mindepth 1 -maxdepth 1 -type d -print` | 各输出 9 个 feature_key 目录；`README.md` 等根级说明文件不计入；每个目录恰有 canonical `v0.1.0` `multi` baseline（prompt yaml+md、rubric yaml）和 1 份语言无关 output schema；无语言特定 baseline 副本 | F3 `001` + `002` + `003` |
 | C-2 | template_hash 一致 | 修改 prompt template body 但忘改 hash | CI | `lint-prompts` 失败；提示重新生成 hash | F3 后续 001 + A5 |
 | C-3 | Resolve 业务调用 | C5 调用 `registry.Resolve("practice.session.follow_up", "en")` | 单测 | 返回 `(prompt_version, rubric_version, model_profile_name)` 三元组 | F3 后续 001 + C5 |
 | C-4 | 业务不允许 hardcode prompt | 故意在 `internal/practice/` 中加 `prompt := "You are an interviewer..."` | CI | `lint-prompts-hardcode` 失败 | F3 后续 001 + A5 |
-| C-5 | 灰度切换 | F3 自行 plan `is_active` 字段 | DB 直接修改 | 同 `(feature_key, language)` 旧 prompt → deprecated；新 prompt → active；Resolve 输出新 version | F3 `005` |
+| C-5 | 灰度切换 | F3 自行 plan `is_active` 字段 | DB 直接修改 | 同 `(feature_key, language)` previous prompt → inactive DB row；selected prompt → active；Resolve 输出 selected version | F3 `005` |
 | C-6 | 多 language fallback | 调 `Resolve("report.generate", "fr")`，`fr` baseline 不存在 | 加载逻辑 | 退化到 `multi` baseline；log warn | F3 后续 001 |
 | C-7 | LLM Judge 接口（v2.8 演进） | 编译期 | F3 包 export `Judge` 接口 | 接口按 spec 版本演进：返回 `([]Score, Reasoning, error)`，`[]Score` 逐 rubric dimension；`TestJudgeSignature` 断言新签名；业务代码可 import 抽象 | F3 `001`（接口）+ `004`（演进+实现） |
 | C-8 | F3 executable baseline handoff | 本 spec 的 contract lock 已完成，F3 后续 `001` 完成 baseline | active spec 关系已保留 | 9 个 baseline prompt / rubric 文件、loader 与 lint 均通过验证；依赖 F3 的后续 implementation 可启动；roadmap 只保留 active spec 关系，不单独冒充本项已通过 | F3 后续 `001` |
@@ -156,7 +154,7 @@
 | C-10 | 评估升级 | F3 `004` 完成 ≥ 36 题离线评估集（当前 9-key 基线） + 真实 LLM Judge | 运行 `make eval-offline`（录制 fixture 默认）/ `EVAL_LIVE=1` opt-in | 评估集 ≥ 36（当前 9-key 基线）、`LLMJudge` 逐维度产出、`judge.default` active 与录制/ live 执行模式均已验证 | F3 `004` |
 | C-11 | A3 profile coverage | A3 003 完成 provider registry + capability profile catalog | 运行 `make lint-ai-profile-coverage` 或顶层 `make lint` | §3.1.1 的默认 `model_profile_name` 全部存在于 `config/ai-profiles.yaml`，且 capability / provider_ref / status 合法；`disabled` / `unsupported` profile 必须显式标记并携带 `unsupported_reason` | A3 003 + F3 后续 001 |
 | C-12 | output_schema 契约闭环 | F3 002 完成 9 个 chat feature_key 的 `<version>.schema.json` 与 resolver 接线 | 运行 `make lint-prompts` + `go test ./backend/internal/ai/registry/...` + `go test ./backend/internal/ai/aiclient/...` | 每个 chat feature_key 有 1 份语言无关 schema；`ResolveActive` 输出非空 `OutputSchema`；prompt body 输出段可由 schema 重新渲染，且 complete example JSON output 覆盖 schema 声明的 required + optional 字段、使用业务形态值、通过 schema 校验、明确不是 JSON Schema / OpenAPI schema；故意让 prompt 输出 key 与 schema/struct 不一致 → `make lint-prompts` 失败；`validateOutputSchema` 对违反 `enum` 或缺 required 的模型输出 fail-close（`AI_OUTPUT_INVALID`） | F3 002 |
-| C-13 | language-coordinate 收敛 | F3 003 完成 | 运行 prompt/rubric lint、registry tests、seed coverage、migration check 与 stale-contract grep | `config/prompts` / `config/rubrics` 无默认 `v0.1.0.en.*`；seed migration 无 active `en` rows；loader snapshot 9 个 baseline coordinates；`ResolveActive(featureKey, "en")` / unknown locale fallback 到 `multi` 且返回同一语言无关 schema；active README/spec/lint/test 不再正向要求 `multi + en` 或 `>=2 language coordinates` | F3 003 |
+| C-13 | language-coordinate 收敛 | F3 003 完成 | 运行 prompt/rubric lint、registry tests、seed coverage、migration check 与 current-contract grep | `config/prompts` / `config/rubrics` 只保留 canonical `multi` baseline；seed migration 只写 active `multi` rows；loader snapshot 9 个 baseline coordinates；`ResolveActive(featureKey, "en")` / unknown locale fallback 到 `multi` 且返回同一语言无关 schema；active README/spec/lint/test 的正向要求均为 canonical `multi` | F3 003 |
 | C-14 | judge.default 激活 + profile coverage | F3 `004` 翻 judge.default active | 运行 `make lint-ai-profile-coverage` | `judge.default` `status=active` 且 default provider_ref 非 placeholder；§3.1.1 的 9 个 chat profile 全部解析到非 placeholder provider；负向 placeholder → gate fail；A3 已 active 业务 profile status 不被翻动 | F3 `004` + A3 |
 | C-15 | eval prompt single-source | F3 `004` Promptfoo 接线 | 运行 eval drift gate + `make lint-prompts-hardcode` | Promptfoo 经 `RegistryClient.ResolveActive` 消费同一份 prompt；无第二份 prompt 副本；prompt 漂移 → drift gate exit 1；`lint-prompts-hardcode` 仍 green | F3 `004` |
 

@@ -112,9 +112,9 @@
               "经理面: 影响力、冲突处理、目标一致性"
             ],
             "provenance": {
-              "promptVersion": "v0.1.0",
-              "rubricVersion": "v0.1.0",
-              "modelId": "fixture-model:target-import-parse",
+              "promptVersion": "target_job_summary.v3",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:prototype-baseline.default",
               "language": "zh-CN",
               "featureFlag": "none",
               "dataSourceVersion": "prototype-baseline.v1"
@@ -172,9 +172,9 @@
               "面试官团队倾向听到可量化的改进故事"
             ],
             "provenance": {
-              "promptVersion": "v0.1.0",
+              "promptVersion": "target_job_fit.v2",
               "rubricVersion": "not_applicable",
-              "modelId": "fixture-model:target-import-parse",
+              "modelId": "model-profile:prototype-baseline.default",
               "language": "zh-CN",
               "featureFlag": "none",
               "dataSourceVersion": "prototype-baseline.v1"

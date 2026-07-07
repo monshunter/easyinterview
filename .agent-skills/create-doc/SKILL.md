@@ -71,7 +71,7 @@ Follow naming conventions from the README and structure examples from `TEMPLATES
 > **更新日期**: YYYY-MM-DD
 ```
 
-Valid status values: `draft`, `active`, `completed`, `superseded`, `deprecated`.
+Valid status values: `draft`, `active`, `completed`.
 New documents default to `draft`. Field order is fixed and must not be rearranged.
 
 **For specs**: create a spec-centric directory. Do not create flat `docs/spec/${subject}-design.md` files for new projects.
@@ -110,7 +110,6 @@ metadata:
   subspec: ${subspec}
   name: ${NNN-plan}
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
     to: 1.0

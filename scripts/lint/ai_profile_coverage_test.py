@@ -187,7 +187,7 @@ def test_fails_when_active_profile_uses_stub_provider(tmp_path: Path) -> None:
     assert "active profile must not use stub provider" in result.stderr
 
 
-def test_fails_when_dev_stack_env_uses_legacy_profile_directory(tmp_path: Path) -> None:
+def test_fails_when_dev_stack_env_uses_non_current_profile_directory(tmp_path: Path) -> None:
     repo = make_repo(
         tmp_path,
         textwrap.dedent(

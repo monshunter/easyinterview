@@ -1,6 +1,8 @@
-import { type FC } from "react";
+import { useEffect, useMemo, useState, type FC } from "react";
 
 import { useI18n } from "../../../i18n/messages";
+import { mapResumeToUiSource } from "../../resume-workshop/adapters/resume";
+import { useResumeAssets } from "../../resume-workshop/hooks/useResumeAssets";
 import { useModalA11y } from "./useModalA11y";
 
 interface ResumePickerModalProps {
@@ -8,27 +10,40 @@ interface ResumePickerModalProps {
   onClose: () => void;
   /** Currently bound resume id (if any) */
   boundResumeId?: string;
-  /** Callback when user confirms the same (only) resume */
-  onUseResume?: () => void;
+  /** Callback when user confirms a selected resume */
+  onSelectResume?: (resumeId: string) => void;
 }
 
 /**
- * Phase 3 historical behavior: ResumePickerModal in disabled-list mode.
- * Only the currently bound resume is enabled + selected;
- * remaining slots render disabled placeholder cards.
- * Phase 7/D-20 should replace this with a listResumes active-list flow.
+ * Flat resume picker backed by the current listResumes contract.
  */
 export const ResumePickerModal: FC<ResumePickerModalProps> = ({
   open,
   onClose,
   boundResumeId,
-  onUseResume,
+  onSelectResume,
 }) => {
   const { t } = useI18n();
+  const resumesQuery = useResumeAssets();
+  const [selectedResumeId, setSelectedResumeId] = useState(boundResumeId ?? "");
   const { modalRef, handleKeyDown, handleBackdropClick } = useModalA11y({
     open,
     onClose,
   });
+
+  const resumes = useMemo(
+    () =>
+      (resumesQuery.data?.items ?? [])
+        .map(mapResumeToUiSource)
+        .filter((resume) => resume.status === "active")
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    [resumesQuery.data],
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    setSelectedResumeId(boundResumeId ?? "");
+  }, [boundResumeId, open]);
 
   if (!open) return null;
 
@@ -101,38 +116,91 @@ export const ResumePickerModal: FC<ResumePickerModalProps> = ({
         </div>
 
         <div style={{ padding: 20, flex: 1 }}>
-          {/* Current bound resume card */}
-          <div
-            data-testid={`workspace-resume-modal-card-${boundResumeId ?? "none"}`}
-            style={{
-              padding: 14,
-              border: "1px solid var(--ei-color-rule)",
-              borderRadius: 3,
-              marginBottom: 10,
-              background: "var(--ei-color-bgSoft)",
-            }}
-          >
-            <div style={{ fontSize: 13, color: "var(--ei-color-ink)" }}>
-              {boundResumeId
-                ? `${t("workspace.resumePicker.selected")} ${boundResumeId}`
-                : t("workspace.resumePicker.selected")}
+          {resumesQuery.loading ? (
+            <div
+              data-testid="workspace-resume-modal-loading"
+              role="status"
+              style={{ fontSize: 13, color: "var(--ei-color-ink3)" }}
+            >
+              {t("workspace.resumePicker.loading")}
             </div>
-          </div>
-
-          {/* Disabled placeholder cards */}
-          <div
-            data-testid="workspace-resume-modal-disabled-note"
-            style={{
-              padding: 14,
-              border: "1px dashed var(--ei-color-rule)",
-              borderRadius: 3,
-              fontSize: 12.5,
-              color: "var(--ei-color-ink3)",
-              textAlign: "center",
-            }}
-          >
-            {t("workspace.resumePicker.disabledNote")}
-          </div>
+          ) : resumesQuery.error ? (
+            <div
+              data-testid="workspace-resume-modal-error"
+              role="alert"
+              style={{ display: "grid", gap: 10 }}
+            >
+              <div style={{ fontSize: 13, color: "var(--ei-color-danger)" }}>
+                {t("workspace.resumePicker.error")}
+              </div>
+              <button
+                type="button"
+                onClick={resumesQuery.retry}
+                style={{
+                  height: 32,
+                  padding: "0 12px",
+                  justifySelf: "start",
+                  fontSize: 13,
+                  background: "transparent",
+                  color: "var(--ei-color-ink2)",
+                  border: "1px solid var(--ei-color-rule)",
+                  borderRadius: 2,
+                  cursor: "pointer",
+                }}
+              >
+                {t("workspace.errors.retry")}
+              </button>
+            </div>
+          ) : resumes.length === 0 ? (
+            <div
+              data-testid="workspace-resume-modal-empty"
+              style={{ fontSize: 13, color: "var(--ei-color-ink3)" }}
+            >
+              {t("workspace.resumePicker.empty")}
+            </div>
+          ) : (
+            <div data-testid="workspace-resume-modal-options" style={{ display: "grid", gap: 10 }}>
+              {resumes.map((resume) => {
+                const selected = selectedResumeId === resume.id;
+                return (
+                  <button
+                    key={resume.id}
+                    type="button"
+                    data-testid={`workspace-resume-modal-option-${resume.id}`}
+                    aria-pressed={selected}
+                    onClick={() => setSelectedResumeId(resume.id)}
+                    style={{
+                      display: "grid",
+                      gap: 4,
+                      width: "100%",
+                      padding: 14,
+                      textAlign: "left",
+                      border: selected
+                        ? "1px solid var(--ei-color-accent)"
+                        : "1px solid var(--ei-color-rule)",
+                      borderRadius: 3,
+                      background: selected
+                        ? "var(--ei-color-bgSoft)"
+                        : "var(--ei-color-bgCard)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span style={{ fontSize: 13, color: "var(--ei-color-ink)" }}>
+                      {resume.name}
+                    </span>
+                    <span style={{ fontSize: 12, color: "var(--ei-color-ink3)" }}>
+                      {resume.sourceName} · {resume.langTag} · {resume.updatedAt}
+                    </span>
+                    {resume.summary ? (
+                      <span style={{ fontSize: 12, color: "var(--ei-color-ink3)" }}>
+                        {resume.summary}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div
@@ -162,8 +230,9 @@ export const ResumePickerModal: FC<ResumePickerModalProps> = ({
           </button>
           <button
             data-testid="workspace-resume-modal-confirm"
+            disabled={!selectedResumeId}
             onClick={() => {
-              onUseResume?.();
+              if (selectedResumeId) onSelectResume?.(selectedResumeId);
               onClose();
             }}
             style={{
@@ -174,7 +243,8 @@ export const ResumePickerModal: FC<ResumePickerModalProps> = ({
               color: "#fff",
               border: "1px solid var(--ei-color-accent)",
               borderRadius: 2,
-              cursor: "pointer",
+              cursor: selectedResumeId ? "pointer" : "not-allowed",
+              opacity: selectedResumeId ? 1 : 0.5,
             }}
           >
             {t("workspace.resumePicker.use")}

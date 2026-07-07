@@ -1,20 +1,11 @@
 # Backend Auth History
 
-> **版本**: 1.9
+> **版本**: 2.0
 > **状态**: active
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-07
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
-| 2026-07-06 | 1.9 | 删除已随 JD Match 模块移除的 `GetUserIdentityForUser` cross-owner internal API 模块边界；当前 backend-auth 只保留认证、资料补全、session、email dispatch 与 privacy delete handoff，旧 aggregation helper 不再作为 active contract。 | product-scope/001-core-loop-module-pruning |
-| 2026-05-28 | 1.8 | 修订为单入口邮箱验证码登录：`AuthEmailStartRequest` 不再暴露 `purpose` / `displayName`，发码前不泄露邮箱存在性；新邮箱 verify 后创建资料未补全账号，`/me.profileCompletionRequired` 驱动前端资料补全，`PATCH /me` 完成 displayName + 条款确认；邮箱唯一，displayName 不唯一。 | 001-passwordless-session-bootstrap Phase 8 |
-| 2026-05-27 | 1.7 | 修订 passwordless 认证为 6 位 email-code：challenge TTL 改 5 分钟，`purpose=signup|login` 区分注册/登录，注册邮箱即后续登录邮箱且唯一，displayName 只在 signup 创建用户时写入。 | 001-passwordless-session-bootstrap Phase 7 |
-| 2026-05-27 | 1.6 | 修订 local Mailpit magic-link handoff：SMTP writer 可生成 frontend `/auth/verify` callback 链接，frontend 再调用 backend `GET /api/v1/auth/email/verify` 兑换 session 并清理 URL token；backend verify API 路径不变。 | frontend-shell/001 Phase 7 |
-| 2026-05-26 | 1.5 | BUG-0106 修订：对齐 ADR-Q5 与 B4 privacy deletion matrix，明确 `DELETE /api/v1/me` 受理期由 C1 同步软删 `users.deleted_at` / `users.status='deleted'` 并撤销该用户所有 session，backend internal runner 完成逐域删除后负责用户行最终 hard delete。 | backend-async-runner/001-internal-job-outbox-runner BUG-0106 remediation |
-| 2026-05-26 | 1.4 | 登记 local-dev-stack Mailpit revision：`EMAIL_PROVIDER=mailpit` 时 `cmd/api` 使用 SMTP `DeliveryWriter` 投递 magic-link 到 Mailpit；writer 从 `auth_challenges` 查询收件人、从 transient delivery secret store 取 token，保持 `email_dispatch` payload redaction，不引入独立后台进程或场景专属 `backend/cmd` helper。 | local-dev-stack/001 Mailpit revision |
-| 2026-05-21 | 1.3 | 登记 backend-jobs-recommendations/001 cross-owner additive：新增 `GetUserIdentityForUser(ctx, db, userID) (UserIdentity, error)` 内部 API（`backend/internal/auth/identity.go`），返回 `UserIdentity{DisplayName, AvatarURL, EmailMasked}`；read-only `SELECT email, display_name FROM users WHERE id = $1 AND deleted_at IS NULL`；emailMasked 通过既有 `maskEmail` helper (first + *** + last char of local part + domain) 派生，不返回 raw email；不写 audit_events，不改 user/session 状态；missing user 返回 `ErrUserNotFound`，caller 应 fallback 到非 PII anonymous display name `Candidate`。模块边界表追加 cross-owner internal API 行；新增 spec D-X 决策内容由本 history 行替代（保持 §3.1 D-1..D-N 表稳定）。单元测试 `identity_test.go` 覆盖 seeded happy / missing display_name fallback / ErrUserNotFound / does-not-write-audit / nil-db / empty-userId 6 项断言，emailMasked 显式断言含 `***`、不含 raw local-part `alice`、domain 保留。 | backend-jobs-recommendations/001-jd-match-real-backend-baseline Phase 0.19 |
-| 2026-05-06 | 1.2 | 对齐 backend-runtime-topology：C1 backend-internal mail dispatcher 从过渡 workaround 升为 P0 默认实现，不再引用独立 C8 worker 进程作为未来前置。 | backend-runtime-topology/001-worker-consolidation |
-| 2026-05-06 | 1.1 | L1 plan-review remediation：补齐 C1 backend-internal mail dispatcher 过渡实现、B3 `email_dispatch` redaction、B2 generated `deleteMe` idempotent auth handoff、session middleware / logout optional-session、ADR-Q1 rate-limit / TTL / renewal 边界、F1 auth metrics registry gate 与 BDD 错误路径。 | 001-passwordless-session-bootstrap |
-| 2026-05-05 | 1.0 | 从 engineering-roadmap S2 与 ADR-Q1 派生 backend auth subject，锁定 passwordless challenge、first-party session、/me、logout 和 runtime-config session resolver 边界。 | 001-passwordless-session-bootstrap |
+| 2026-07-07 | 2.0 | 当前 backend-auth 统一为 email-code session bootstrap：`EmailCodeService` 承接邮箱验证码、first-party session、资料补全、logout、`DELETE /me` handoff 与 `email_dispatch` code-only redaction contract；P0.003 / P0.101 场景目录和 active owner plan 均使用当前命名。 | 001-email-code-session-bootstrap; product-scope/001-core-loop-module-pruning |

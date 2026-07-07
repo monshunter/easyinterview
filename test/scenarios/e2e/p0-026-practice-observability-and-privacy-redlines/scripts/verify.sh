@@ -20,9 +20,9 @@ for forbidden in 'question_text' 'answer_text' 'hint_text' 'prompt body' 'respon
   fi
 done
 
-python3 "$REPO_ROOT/scripts/lint/backend_practice_legacy.py" --repo-root "$REPO_ROOT" --phase all
+python3 "$REPO_ROOT/scripts/lint/backend_practice_non_current.py" --repo-root "$REPO_ROOT" --phase all
 
 mkdir -p "$RUN_DIR"
 cp "$LOG_FILE" "$RUN_DIR/trigger.log"
-printf '{"scenario":"E2E.P0.026","status":"passed","method":"cmd-api-http","validBddEvidence":true,"verifiedAt":"%s","evidence":"%s","snapshot":"observed AI typed columns metric allowlist privacy redlines and backend-practice legacy gate"}\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$RUN_DIR/trigger.log" > "$RUN_DIR/result.json"
+printf '{"scenario":"E2E.P0.026","status":"passed","method":"cmd-api-http","validBddEvidence":true,"verifiedAt":"%s","evidence":"%s","snapshot":"observed AI typed columns metric allowlist privacy redlines and backend-practice non-current gate"}\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$RUN_DIR/trigger.log" > "$RUN_DIR/result.json"
 cp "$RUN_DIR/result.json" "$RESULT_FILE"

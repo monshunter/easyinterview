@@ -116,9 +116,9 @@ version: 1.0.0
 	}
 }
 
-func TestLoaderRejectsRetiredProfileSchemaKeys(t *testing.T) {
+func TestLoaderRejectsNonCurrentProfileSchemaKeys(t *testing.T) {
 	cases := map[string]string{
-		"task-type": `name: old
+		"task-type": `name: sample
 task_type: chat
 status: active
 default:
@@ -127,7 +127,7 @@ default:
 timeout_ms: 1
 version: 1
 `,
-		"default-provider": `name: old
+		"default-provider": `name: sample
 capability: chat
 status: active
 default:
@@ -136,7 +136,7 @@ default:
 timeout_ms: 1
 version: 1
 `,
-		"fallback-provider-trigger": `name: old
+		"fallback-provider-trigger": `name: sample
 capability: chat
 status: active
 default:
@@ -155,17 +155,17 @@ version: 1
 			path := writeProfileCatalog(t, catalog(body))
 			_, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
 			if err == nil {
-				t.Fatalf("expected retired schema key to be rejected")
+				t.Fatalf("expected non-current schema key to be rejected")
 			}
-			if !strings.Contains(err.Error(), "retired schema key") {
-				t.Fatalf("expected retired schema key error, got %v", err)
+			if !strings.Contains(err.Error(), "non-current schema key") {
+				t.Fatalf("expected non-current schema key error, got %v", err)
 			}
 		})
 	}
 }
 
 func TestLoaderRejectsUnknownCatalogTopLevelField(t *testing.T) {
-	path := writeProfileCatalog(t, "profile:\n  name: old\n")
+	path := writeProfileCatalog(t, "profile:\n  name: sample\n")
 	_, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
 	if err == nil {
 		t.Fatal("expected unknown top-level field to be rejected")
@@ -195,7 +195,7 @@ func TestLoaderMissingRequiredFields(t *testing.T) {
 		"missing-model":              "name: x\ncapability: chat\nstatus: active\ndefault:\n  provider_ref: unit-test-stub\ntimeout_ms: 1\nversion: 1\n",
 		"bad-capability":             "name: x\ncapability: image\nstatus: active\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
 		"missing-status":             "name: x\ncapability: chat\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
-		"bad-status":                 "name: x\ncapability: chat\nstatus: deprecated\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
+		"bad-status":                 "name: x\ncapability: chat\nstatus: inactive\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
 		"unsupported-without-reason": "name: x\ncapability: stt\nstatus: unsupported\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
 		"disabled-without-reason":    "name: x\ncapability: stt\nstatus: disabled\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 1\nversion: 1\n",
 		"non-positive-to":            "name: x\ncapability: chat\nstatus: active\ndefault:\n  provider_ref: unit-test-stub\n  model: m\ntimeout_ms: 0\nversion: 1\n",
@@ -336,10 +336,10 @@ version: 1
 
 	got, err := loader.Resolve("practice.followup.default")
 	if err != nil {
-		t.Fatalf("old snapshot should remain resolvable: %v", err)
+		t.Fatalf("previous snapshot should remain resolvable: %v", err)
 	}
 	if got.Version != "1.0.0" {
-		t.Fatalf("failed reload polluted old snapshot: %+v", got)
+		t.Fatalf("failed reload polluted previous snapshot: %+v", got)
 	}
 }
 
@@ -387,14 +387,14 @@ version: 1
 	}
 }
 
-func TestLoaderRejectsLegacyDirectoryPath(t *testing.T) {
+func TestLoaderRejectsNonCurrentDirectoryPath(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "practice.followup.default.yaml"), []byte(sampleProfile), 0o600); err != nil {
-		t.Fatalf("WriteFile legacy profile: %v", err)
+		t.Fatalf("WriteFile non-current profile: %v", err)
 	}
 	_, err := profile.NewLoader(profile.Options{Path: dir, PollInterval: -1})
 	if err == nil {
-		t.Fatal("expected legacy profile directory to be rejected")
+		t.Fatal("expected non-current profile directory to be rejected")
 	}
 	if !strings.Contains(err.Error(), "read") && !strings.Contains(err.Error(), "open") {
 		t.Fatalf("expected file-path load error, got %v", err)

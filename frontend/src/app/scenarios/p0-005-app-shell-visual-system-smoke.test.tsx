@@ -8,7 +8,7 @@
  * Coverage classes (delegated):
  *   - **Verified here (vitest + jsdom)**: DOM anchors, className wiring,
  *     data-attribute flips on theme / dark / customAccent, inline-style
- *     overrides for customAccent oklch swatch, retired-module negative
+ *     overrides for customAccent oklch swatch, non-current-module negative
  *     assertions, i18n switch, and getComputedStyle for declared CSS
  *     variables (jsdom resolves `:root[data-theme=...][data-mode=...]`
  *     selectors and var() lookups against injected stylesheets).
@@ -230,17 +230,17 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
     render(
       <App
         client={client}
-        initialRoute={{ name: "company_intel", params: { jobId: "tj-1" } }}
+        initialRoute={{ name: "standalone_insight", params: { jobId: "tj-1" } }}
         requestOptions={{
           getMe: { headers: { Prefer: "example=authenticated" } },
         }}
       />,
     );
-    expect(screen.queryByTestId("route-company_intel")).not.toBeInTheDocument();
-    expect(await screen.findByTestId("workspace-empty")).toBeInTheDocument();
+    expect(screen.queryByTestId("route-standalone_insight")).not.toBeInTheDocument();
+    expect(await screen.findByTestId("route-home")).toBeInTheDocument();
   });
 
-  it("legacy entries (welcome / standalone voice / growth / mistakes / drill) do not flow back", async () => {
+  it("non-current entries (welcome / standalone voice / growth / mistakes / drill) do not flow back", async () => {
     const client = buildClient();
     render(
       <App
@@ -251,13 +251,13 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
       />,
     );
     expect(screen.queryByTestId("route-welcome")).not.toBeInTheDocument();
-    for (const legacy of ["welcome", "growth", "mistakes", "drill", "voice"]) {
+    for (const nonCurrent of ["welcome", "growth", "mistakes", "drill", "voice"]) {
       expect(
-        screen.queryByTestId(`topbar-nav-${legacy}`),
+        screen.queryByTestId(`topbar-nav-${nonCurrent}`),
       ).not.toBeInTheDocument();
-      expect(screen.queryByTestId(`route-${legacy}`)).not.toBeInTheDocument();
+      expect(screen.queryByTestId(`route-${nonCurrent}`)).not.toBeInTheDocument();
     }
-    // Settings must not surface retired-module copy.
+    // Settings must not surface non-current module copy.
     const html = document.documentElement.outerHTML;
     expect(html).not.toMatch(/错题本|成长中心|经历库|目标角色|技能标签/);
   });

@@ -23,11 +23,11 @@ type GenerateHandlerOptions struct {
 	Now     func() time.Time
 }
 
-// GenerateHandler is the report_generate runner.Handler. It replaces the
-// standalone review.Runner: the kernel leases the async_jobs row, this handler
-// flips the report to generating and runs the AI report service. Success may be
-// finalized by the report service transaction; failures are always normalized
-// back through the kernel so the shared BackoffPolicy owns retry/dead-letter.
+// GenerateHandler is the report_generate runner.Handler. The kernel leases the
+// async_jobs row, this handler flips the report to generating and runs the AI
+// report service. Success may be finalized by the report service transaction;
+// failures are always normalized back through the kernel so the shared
+// BackoffPolicy owns retry/dead-letter.
 type GenerateHandler struct {
 	store   ReportStatusStore
 	service ReportService

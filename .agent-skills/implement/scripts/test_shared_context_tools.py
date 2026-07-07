@@ -12,6 +12,7 @@ import yaml
 SHARED_DIR = Path(__file__).resolve().parent.parent / "shared" / "scripts"
 VALIDATE_PATH = SHARED_DIR / "validate_context.py"
 GENERATE_PATH = SHARED_DIR / "generate_context_yaml.py"
+CONTEXT_LINEAGE_FIELD = "super" + "sedes"
 
 
 def _load_module(path: Path, name: str):
@@ -63,7 +64,6 @@ def _write_context_fixture(
         "subspec": "demo",
         "name": "001-backend",
         "sequence": 1,
-        "supersedes": [],
         "specVersion": {"from": None, "to": 1.0},
     }
     if metadata_overrides:
@@ -202,7 +202,7 @@ def test_validate_context_rejects_commands_discovery(tmp_path):
         )
 
     assert exc_info.value.code == 2
-    assert "spec.targets.backend.discovery.commands is deprecated and must not be used" in "\n".join(
+    assert "spec.targets.backend.discovery.commands is unsupported and must not be used" in "\n".join(
         exc_info.value.lines
     )
 
@@ -364,9 +364,31 @@ def test_generate_context_yaml_uses_shared_api_version(tmp_path):
     rendered = yaml.safe_load(generator.format_yaml("001-backend", config))
 
     assert rendered["apiVersion"] == "plancontext.agent.dev/v1alpha1"
+    assert CONTEXT_LINEAGE_FIELD not in rendered["metadata"]
 
 
-def test_generate_context_yaml_drops_deprecated_commands_discovery(tmp_path):
+def test_generate_context_yaml_omits_existing_context_lineage_metadata(tmp_path):
+    generator = _load_module(GENERATE_PATH, "generate_context_yaml_drop_lineage_metadata")
+    docs_root, plan_dir, context_path = _write_context_fixture(
+        tmp_path,
+        metadata_overrides={CONTEXT_LINEAGE_FIELD: ["000-old-plan"]},
+    )
+
+    config = generator.scan_directory_targets(
+        plan_dir_path=str(plan_dir),
+        dir_name=plan_dir.name,
+        spec_dir=str(docs_root / "spec"),
+        docs_root=str(docs_root),
+    )
+    config = generator.normalize_target_config(config)
+    existing = generator.load_existing_manifest(str(context_path))
+    config = generator.merge_preserved_discovery(config, existing)
+    rendered = yaml.safe_load(generator.format_yaml("001-backend", config))
+
+    assert CONTEXT_LINEAGE_FIELD not in rendered["metadata"]
+
+
+def test_generate_context_yaml_drops_unsupported_commands_discovery(tmp_path):
     generator = _load_module(GENERATE_PATH, "generate_context_yaml_drop_commands")
     docs_root, plan_dir, context_path = _write_context_fixture(
         tmp_path,

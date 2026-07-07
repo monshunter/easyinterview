@@ -4,7 +4,6 @@ metadata:
   subspec: ai-provider-and-model-routing
   name: 004-cascaded-speech-provider-foundation
   sequence: 4
-  supersedes: []
   specVersion:
     from: 2.8
     to: 2.9

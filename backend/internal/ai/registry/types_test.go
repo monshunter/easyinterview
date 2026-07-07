@@ -7,7 +7,7 @@ import (
 )
 
 // TestTypeShape freezes the struct field set and order for downstream
-// consumers (RegistryAdapter, future plan 002 Judge implementations).
+// consumers such as RegistryAdapter and concrete Judge implementations.
 // Adding a field is fine; reordering or removing requires a spec revision.
 func TestTypeShape(t *testing.T) {
 	t.Parallel()

@@ -4,10 +4,9 @@ metadata:
   subspec: event-and-outbox-contract
   name: 001-bootstrap
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
-    to: 1.8
+    to: 2.12
 spec:
   defaultTarget: backend
   discovery:
@@ -20,6 +19,8 @@ spec:
     keywords:
       - event envelope
       - 14 events
+      - 8 canonical jobs
+      - 6 api-facing jobs
       - dot case event name
       - question issue count
       - canonical jobtype

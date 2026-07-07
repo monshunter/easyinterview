@@ -8,22 +8,22 @@
     dropdown + logout flow parity。
   - `screens.spec.ts`：navigates to auth_login + ei-auth-shell
     渲染、ei-text-display 头部、ei-auth-eyebrow 字体族、ui-design hash
-    route h1 hero、auth_login 卡片 padding 28、retired entries 0 命中。
+    route h1 hero、auth_login 卡片 padding 28、non-current entries 0 命中。
   - `layout.spec.ts`：TopBar fits viewport、三入口不重叠、display
     controls + user area 不重叠、auth_login 两栏在 desktop 双列 / mobile
     单列堆叠。
   - `screenshot.spec.ts`：home warm/light screenshot smoke、dark
     toggle 翻转 token + body bg、customAccent 内联仅覆盖 accent / accent-
-    soft、retired entries 0 命中。
+    soft、non-current entries 0 命中。
   - `home.spec.ts`：Home hero / textarea / aux cards DOM 锚点、
     viewport 内布局与 dark mode token 变化。
   - `parse.spec.ts`：Home 到 parse 入口、textarea submit enable、
     upload modal DOM 锚点。
   - `workspace.spec.ts`：empty state、server-bound full-state、
-    modal、bounding box、theme、screenshot smoke 与 retired entry negative。
+    modal、bounding box、theme、screenshot smoke 与 non-current entry negative。
   - `resume-workshop.spec.ts` / `resume-workshop-create.spec.ts` /
     `resume-workshop-branch-rewrites-edit.spec.ts`：flat list、upload/paste
-    create flow、rewrites/edit/detail parity、retired tree/branch/guided
+    create flow、rewrites/edit/detail parity、non-current tree/branch/guided
     negative。
   - `practice.spec.ts` / `generating.spec.ts` / `report.spec.ts`：
     面试、生成与报告页面 parity。
@@ -32,6 +32,6 @@
   - 不含 failed summary
   - 不含 `topbar-nav-welcome` / `topbar-nav-mistakes` / `topbar-nav-growth` /
     `topbar-nav-drill` / `topbar-nav-voice` / `topbar-nav-jd_match` /
-    `route-welcome` / `route-jd_match` / `route-company_intel` 的 failing
+    `route-welcome` / `route-jd_match` 的 failing
     trace。
 - Playwright report 写到 `.playwright-output/`（gitignored）。

@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.14
+> **版本**: 1.16
 > **状态**: completed
-> **更新日期**: 2026-06-15
+> **更新日期**: 2026-07-07
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,18 +11,18 @@
 
 把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-10 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与 optional 项目组件接入约定，把 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 占位的 `make dev-up` / `make dev-down` 替换为真实实现并新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO / Mailpit healthy；backend / frontend 通过宿主机 dev command 连接这些依赖」可由开发者本机重复跑通；其中启用 AIClient 的非测试组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
 
-本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。1.13 revision 将本地 redeploy 收口为 build + 重启 host-run backend/frontend，并把服务地址、日志路径、PID 文件与容器日志入口作为 env 脚本固定输出，避免开发者在 Agent 启动环境后无法接管调试。本次 1.14 revision 修复 host-run backend 继承通配 `APP_LISTEN_ADDR=:8080` 导致无关 bridge listener 阻断重启的问题，要求本地场景 redeploy 启动 backend 时收敛到 loopback 监听。
+本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。1.13 revision 将本地 redeploy 收口为 build + 重启 host-run backend/frontend，并把服务地址、日志路径、PID 文件与容器日志入口作为 env 脚本固定输出，避免开发者在 Agent 启动环境后无法接管调试。本次 1.14 revision 修复 host-run backend 继承通配 `APP_LISTEN_ADDR=:8080` 导致无关 bridge listener 阻断重启的问题，要求本地场景 redeploy 启动 backend 时收敛到 loopback 监听。1.15 revision 仅收敛 Postgres volume preflight、dev-doctor 与 pidfile 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。
 
 ## 2 背景
 
-[engineering-roadmap §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 A2 保留为当前 active Foundation spec；后续 workstream 依赖本地数据库 / 缓存 / 对象存储以及统一项目启动入口。本 plan 通过 §4 的 4 个 phase 验收 spec §6 C-1..C-9，关闭 roadmap 历史 rebaseline 中保留的 A2 executable gate 承诺。
+[engineering-roadmap §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 A2 保留为当前 active Foundation spec；后续 workstream 依赖本地数据库 / 缓存 / 对象存储以及统一项目启动入口。本 plan 通过 §4 的 4 个 phase 验收 spec §6 C-1..C-9，关闭 roadmap rebaseline 中保留的 A2 executable gate 承诺。
 
 每个 phase 是可独立部署 / 验证的纵向行为切片：Phase 1 起来就能用 `docker compose` 直连最小外部依赖；Phase 2 起来就能用 `make` 管理生命周期；Phase 3 起来就能机器消费 `make dev-doctor` JSON；Phase 4 收口 optional 应用 `/metrics`、依赖容器日志与文档。本 plan 不引入 BDD 资产；当前 `test/scenarios/` 场景覆盖由具体 feature plan 通过 repo-tracked 本地 runner 维护，AC 验证完全由 `make dev-*` 命令驱动。
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: `tooling + dev-infra + code-internal`。本 plan 修改本地 docker-compose dev stack、Make targets、doctor 脚本、README 与健康检查约定；不产生用户可见 UI、HTTP API 行为或业务 workflow。
-- **TDD 策略**: 历史实现以 checklist 中每个 phase 的 `自检` 命令作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，优先以 `make dev-*`、`dev-doctor` JSON schema/probe、端口冲突复现、volume idempotency 和 README smoke 作为 focused assertions。
+- **TDD 策略**: 本 plan 既有实现以 checklist 中每个 phase 的 `自检` 命令作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，优先以 `make dev-*`、`dev-doctor` JSON schema/probe、端口冲突复现、volume idempotency 和 README smoke 作为 focused assertions。
 - **BDD 策略**: BDD 不适用。本 plan 只交付开发环境基础设施；后续 P0 用户行为场景由 `e2e-scenarios-p0` 或具体 feature plan 维护 BDD。
 - **替代验证 gate**: `make dev-up`、`make dev-doctor`、`make dev-down`、`make dev-reset`、`make scenario-env-setup` / `status` / `verify` / `cleanup` / `redeploy` dry-run 与 focused live gate、host-run backend loopback bind contract、端口冲突复现、Postgres connectivity probe、AI provider fail-fast smoke、local raw debug config tests、P0.100 preflight contract、`sync-doc-index --check`、Markdown link check、`git diff --check`。
 
@@ -49,7 +49,7 @@
 
 #### 1.3 数据卷命名（D-7）
 
-`docker-compose.yaml` 顶层 `volumes:` 节声明 `easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data` 三个命名卷；不使用 bind mount。Postgres 18 的 `easyinterview-pg-data` 必须挂到 `/var/lib/postgresql`，不挂到 `/var/lib/postgresql/data`，让官方镜像保持 `PGDATA=/var/lib/postgresql/18/docker` 并把真实数据库目录放进命名卷。`make dev-up` 在启动 Postgres 前必须只读检测旧根目录 `PG_VERSION`、旧 `/var/lib/postgresql/data/PG_VERSION` 或半初始化 `/var/lib/postgresql/18` 布局；命中时明确提示用户确认数据后用 `make dev-reset` 重建，不自动删除卷。
+`docker-compose.yaml` 顶层 `volumes:` 节声明 `easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data` 三个命名卷；不使用 bind mount。Postgres 18 的 `easyinterview-pg-data` 必须挂到 `/var/lib/postgresql`，不挂到 `/var/lib/postgresql/data`，让官方镜像保持 `PGDATA=/var/lib/postgresql/18/docker` 并把真实数据库目录放进命名卷。`make dev-up` 在启动 Postgres 前必须只读检测 root-level `PG_VERSION`、不兼容 `/var/lib/postgresql/data/PG_VERSION` 或半初始化 `/var/lib/postgresql/18` 布局；命中时明确提示用户确认数据后用 `make dev-reset` 重建，不自动删除卷。
 
 #### 1.4 dev `.env` 与 config 默认值
 
@@ -85,7 +85,7 @@
 
 - 干净仓库 `make dev-up` 一次 → 再次 `make dev-up`：第二次 < 5s 完成且日志含 `already healthy`。
 - 写入 Postgres 一行测试数据 → `make dev-down` → `make dev-up` → 再次查询：数据仍在。
-- `DEV_RESET_FORCE=1 make dev-reset` → `docker volume ls`：3 个命名卷已删除；下一次 `make dev-up` 从空卷重建。
+- `DEV_RESET_FORCE=1 make dev-reset` → `docker volume ls`：不再列出 3 个命名卷；下一次 `make dev-up` 从空卷重建。
 - 不带 `DEV_RESET_FORCE` 时 stdin 输入 `no`：reset 必须 abort 且不删卷。
 
 ### Phase 3: dev-doctor 结构化健康检查
@@ -103,7 +103,7 @@
 }
 ```
 
-退出码：`summary.down == 0 && summary.degraded == 0` 时 exit 0；否则 exit 1。`make dev-doctor` 把脚本输出原样打到 stdout，stderr 留给执行过程日志。脚本可以固定 3 个默认依赖名，但项目组件列表必须来自 compose service labels 或统一配置，不能硬编码旧的 7-service 口径。
+退出码：`summary.down == 0 && summary.degraded == 0` 时 exit 0；否则 exit 1。`make dev-doctor` 把脚本输出原样打到 stdout，stderr 留给执行过程日志。脚本可以固定 3 个默认依赖名，但项目组件列表必须来自 compose service labels 或统一配置，不能硬编码固定 7-service 口径。
 
 #### 3.2 端到端 probe 实现（spec §4.2）
 
@@ -178,7 +178,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - 端口冲突路径（C-2 复跑一次）。
 - 重复 `make dev-up`（C-3 复跑一次）。
 
-完成后在工作日志贴出 8 条 AC 的执行证据；spec §6 表格中 C-1..C-9 全部成立。roadmap 历史 rebaseline 中保留的 A2 executable gate 承诺由本 phase 关闭；不再修改 parent checklist。
+完成后在工作日志贴出 8 条 AC 的执行证据；spec §6 表格中 C-1..C-9 全部成立。roadmap rebaseline 中保留的 A2 executable gate 承诺由本 phase 关闭；不再修改 parent checklist。
 
 #### 4.5 文档收口
 
@@ -295,7 +295,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 `test/scenarios/env-redeploy.sh backend|frontend|all` 必须在 build artifact gate 通过后：
 
-- 停止旧 PID 文件指向的进程组，并 fallback 停止对应端口 listener。
+- 停止现有 PID 文件指向的进程组，并 fallback 停止对应端口 listener。
 - 使用 detached host-run process 重新启动 backend/frontend，让 Agent 启动的服务在命令结束后仍可由开发者访问。
 - 等待对应端口可连接；失败时打印对应日志尾段并非零退出。
 - 输出统一调试摘要。
@@ -320,7 +320,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 #### 9.2 Runtime implementation
 
-`restart_backend_runtime` 必须在停止旧 pidfile 进程后、启动新 backend 前：
+`restart_backend_runtime` 必须在停止现有 pidfile 进程后、启动新 backend 前：
 
 - 通过 `api_port` 取得对外 API host port。
 - 通过 `backend_listen_addr` 把通配监听地址收敛为 loopback 地址；已显式设置为具体地址的用户配置保持原样。
@@ -343,7 +343,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-16 全部成立，证据贴入工作日志或当前 `.test-output/`。
 - 本 plan checklist 全部勾选；Phase 3 / Phase 4 的 `make dev-*` 自检命令日志贴入工作日志。
-- engineering-roadmap 历史 rebaseline 中保留的 A2 executable gate 承诺由 Phase 4.4 关闭；不重复修改父 roadmap checklist。
+- engineering-roadmap rebaseline 中保留的 A2 executable gate 承诺由 Phase 4.4 关闭；不重复修改父 roadmap checklist。
 
 ## 6 风险与应对
 
@@ -360,14 +360,16 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-07 | 1.16 | Wording cleanup：收敛 local-dev-stack owner 文档为当前 rebaseline、既有 gate 与 email-code 口径，不改变可执行契约。 | product-scope/001 Phase 6.87 |
+| 2026-07-07 | 1.15 | Wording cleanup：收敛 Postgres volume preflight、dev-doctor 与 pidfile 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。 | product-scope/001 Phase 6.58 |
 | 2026-06-15 | 1.14 | Host-run backend loopback bind revision：`env-redeploy.sh backend|all` 启动 backend 时将通配 `APP_LISTEN_ADDR` 收敛到 `127.0.0.1:${API_HOST_PORT:-8080}`，避免无关 bridge listener 阻断本地重启并导致简历页 500。 | BUG investigation |
 | 2026-05-27 | 1.13 | Developer debug handoff revision：`env-redeploy.sh backend|frontend|all` 从 build-only 修订为 build + 重启 host-run 进程，并输出 endpoint/log/PID/container log 调试入口。 | user feedback |
 | 2026-05-27 | 1.12 | Raw debug local default revision：local dev/test 与本地真实联调默认开启 `AI_DEBUG_PRINT_RAW_OUTPUT=true`，P0.100 preflight 校验该开关，staging/prod 默认关闭。 | user feedback |
 | 2026-05-27 | 1.11 | Single env source revision：`deploy/dev-stack/.env` 成为本地真实前后端联调唯一 env 来源，`.env.example` 补齐 auth secrets、frontend real mode、AI provider 与共享依赖 keys，禁止场景复制独立 `.env`。 | user feedback / BUG-0110 follow-up |
 | 2026-05-27 | 1.10 | Environment lifecycle revision：把共享测试环境与本地前后端联调环境 lifecycle 抽到 `test/scenarios/env-*.sh`、根 `scenario-env-*` Make target 与 scenario skill 入口，支持独立 setup/status/verify/cleanup/redeploy。 | user objective / scenario-env independent lifecycle |
-| 2026-05-26 | 1.9 | Mailpit revision：默认 dev-stack 新增 Mailpit，backend `EMAIL_PROVIDER=mailpit` 走 SMTP writer，manual UAT 账号入口回到真实 magic-link flow；`test/scenarios` 继续禁止新增 Go / `backend/cmd` 场景 helper。 | user feedback / manual UAT boundary fix |
-| 2026-05-22 | 1.8 | L2 runtime remediation：修复 Postgres 18 命名卷挂载路径，`easyinterview-pg-data` 改挂 `/var/lib/postgresql` 以兼容官方镜像 PGDATA 布局，并增加旧卷布局 preflight。 | local-dev-stack/001 L2 code review |
-| 2026-05-04 | 1.4 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 dev stack 范围。 | historical-spec-implementation-review/001 |
+| 2026-05-26 | 1.9 | Mailpit revision：默认 dev-stack 新增 Mailpit，backend `EMAIL_PROVIDER=mailpit` 走 SMTP writer，manual UAT 账号入口回到真实 email-code flow；`test/scenarios` 继续禁止新增 Go / `backend/cmd` 场景 helper。 | user feedback / manual UAT boundary fix |
+| 2026-05-22 | 1.8 | L2 runtime remediation：修复 Postgres 18 命名卷挂载路径，`easyinterview-pg-data` 改挂 `/var/lib/postgresql` 以兼容官方镜像 PGDATA 布局，并增加不兼容卷布局 preflight。 | local-dev-stack/001 L2 code review |
+| 2026-05-04 | 1.4 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 dev stack 范围。 | docs-only L1 remediation |
 | 2026-05-08 | 1.5 | 对齐 A3/B4 当前决策：默认 dev stack 删除未使用扩展依赖与 probe，仅保留普通 Postgres；未来需要时重新设计。 | ai-provider-and-model-routing/003 Phase 6 |
 | 2026-05-08 | 1.6 | 按用户决策将默认 dev stack Postgres 镜像升级到 18，并同步迁移基线前提。 | local-dev-stack/001 post-pass revision |
 | 2026-05-22 | 1.7 | 按方案 A 对齐本地部署与测试环境：compose 默认只管理外部依赖，backend/frontend 默认宿主机运行；`test/scenarios/` 默认本地 runner 验证，不再把 Kind / K8s / Helm 当作 P0 前提。 | local-dev-stack/001 post-pass revision |

@@ -135,7 +135,7 @@ paths:
     post:
       tags: [Auth]
       operationId: startAuthEmailChallenge
-      summary: Issue a passwordless email-code challenge
+      summary: Issue an email-code challenge
       description: |
         Public endpoint per ADR-Q1. Sends a single-use 6-digit code to the
         supplied email. This is the only sign-in entry: existing emails log in

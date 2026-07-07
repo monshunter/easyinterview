@@ -15,11 +15,11 @@ import (
 
 func TestLogoutRevokesCurrentSessionAndClearsCookie(t *testing.T) {
 	store := &logoutStore{}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store: store,
 		Now:   func() time.Time { return time.Date(2026, 5, 6, 10, 45, 0, 0, time.UTC) },
 	})
-	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
+	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
 	req = req.WithContext(auth.ContextWithCurrentSession(req.Context(), auth.CurrentSession{
 		SessionID: "session-1",
@@ -73,11 +73,11 @@ func TestLogoutCanUseExplicitDevInsecureCookiePolicy(t *testing.T) {
 
 func TestLogoutRevokeFailureReturnsErrorEnvelopeAndClearsCookie(t *testing.T) {
 	store := &logoutStore{revokeErr: errors.New("database unavailable for session-1")}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store: store,
 		Now:   func() time.Time { return time.Date(2026, 5, 6, 20, 30, 0, 0, time.UTC) },
 	})
-	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
+	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
 	req = req.WithContext(auth.ContextWithCurrentSession(req.Context(), auth.CurrentSession{
 		SessionID: "session-1",

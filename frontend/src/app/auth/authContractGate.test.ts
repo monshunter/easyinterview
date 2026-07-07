@@ -1,6 +1,6 @@
 /**
  * Auth contract gate (Phase 3.3) — keeps the D1 frontend within the C1 / B2
- * passwordless contract. Any new auth surface (password login, OAuth,
+ * email-code contract. Any new auth surface (password login, OAuth,
  * Bearer-style headers, custom session storage) must first land an explicit
  * spec / OpenAPI revision; this test enforces the freeze.
  */
@@ -178,9 +178,9 @@ describe("auth contract gate (Phase 3.3)", () => {
   });
 
   it("keeps zero auth_reset / forgot-password residue in the auth surface (D-16)", () => {
-    // product-scope D-16: passwordless email code is the only sign-in flow.
+    // product-scope D-16: email-code is the only sign-in flow.
     // The reset screen file must be gone and no non-test auth source may
-    // reference the retired route or forgot-password vocabulary.
+    // reference the non-current route or forgot-password vocabulary.
     expect(existsSync(resolve(AUTH_DIR, "AuthResetScreen.tsx"))).toBe(false);
 
     const offenders: Array<{ file: string; needle: string }> = [];

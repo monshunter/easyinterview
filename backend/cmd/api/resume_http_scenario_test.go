@@ -42,7 +42,7 @@ runtime:
 		},
 		user: auth.UserContext{ID: userID, Email: "resume@example.com"},
 	}
-	authService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	authService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               authStore,
 		SessionCookieSecret: "session-secret",
 	})
@@ -133,7 +133,7 @@ runtime:
 		},
 		user: auth.UserContext{ID: userID, Email: "resume@example.com"},
 	}
-	authService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	authService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               authStore,
 		SessionCookieSecret: "session-secret",
 	})

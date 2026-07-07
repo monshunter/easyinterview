@@ -1,8 +1,8 @@
 # Cascaded STT LLM TTS Voice MVP
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-07-07
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -27,7 +27,7 @@ S2S / realtime voice 成本高且 provider 形态差异大；面试训练的 P0 
 - **替代验证 gate**: 不适用；本计划是用户行为功能计划。
 - **Review-fix runtime gate**: BUG-0070 后续要求 voice playback 证据覆盖 response `audioRef` 浏览器可播放、persisted session event 不保存 audio data、barge-in 前 partial `tts_chunk_played`、store replay committed context into next prompt；证据命令：`go test ./internal/practice ./internal/store/practice -count=1` + `pnpm --dir frontend test src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx --run`。
 - **Review-fix fixture gate**: BUG-0072 后续要求 `createPracticeVoiceTurn` HTTP fixture 与真实 service audioRef 语义一致；fixture/default response 的 `ttsChunks[].audioRef` 必须为浏览器可播放 `data:audio/...;base64,...` 或同计划 resolver URL，禁止 `fixture-audio://...` 这类 mock-only scheme 进入 generated fixture client。
-- **Review-fix lint precision gate**: 2026-05-22 后续要求 backend-practice legacy lint 继续禁止独立 `/voice` route / alias，但必须允许本计划拥有的 `POST /practice/sessions/{sessionId}/voice-turns`、`createPracticeVoiceTurn`、`practice.voice.stt.default` / `practice.voice.tts.default` profile 与 `practice.voice.stt` / `practice.voice.tts` feature key；证据命令：`python3 -m pytest scripts/lint/backend_practice_legacy_test.py -q` + `make lint-backend-practice-legacy` + `make lint`。
+- **Review-fix lint precision gate**: 2026-05-22 后续要求 backend-practice non-current lint 继续禁止独立 `/voice` route / alias，但必须允许本计划拥有的 `POST /practice/sessions/{sessionId}/voice-turns`、`createPracticeVoiceTurn`、`practice.voice.stt.default` / `practice.voice.tts.default` profile 与 `practice.voice.stt` / `practice.voice.tts` feature key；证据命令：`python3 -m pytest scripts/lint/backend_practice_non_current_test.py -q` + `make lint-backend-practice-non-current` + `make lint`。
 
 ## 4 Operation Matrix
 
@@ -47,8 +47,8 @@ S2S / realtime voice 成本高且 provider 形态差异大；面试训练的 P0 
 | PV-MVP-C5 | Boundary condition | spec C-3 | Phase 3 | committed context unit tests + store replay tests + frontend partial playback event test + `E2E.P0.008` | unplayed draft in prompt |
 | PV-MVP-C6 | Privacy/security/observability | spec C-7 | Phase 2/5 | privacy grep + backend tests + persisted audioRef summary gate | raw audio/transcript/TTS text in log/DB/metric/session event summary |
 | PV-MVP-C7 | UX quality | docs/ui-design/module-practice-review | Phase 4 | frontend tests + visual parity gates | independent voice route/page |
-| PV-MVP-C8 | Regression/legacy-negative | product-scope D-6 | Phase 5 | scope tests + negative search | `voice` route alias, S2S marked active |
-| PV-MVP-C9 | Current drift preflight | current code truth source | Phase 0 | source grep + focused smoke tests | `VoiceSurfaceComingSoon` remains active after voice MVP; backend README points to a legacy placeholder owner |
+| PV-MVP-C8 | Regression/non-current-negative | product-scope D-6 | Phase 5 | scope tests + negative search | `voice` route alias, S2S marked active |
+| PV-MVP-C9 | Current drift preflight | current code truth source | Phase 0 | source grep + focused smoke tests | `VoiceSurfaceComingSoon` remains active after voice MVP; backend README points to a non-current placeholder owner |
 
 ## 6 实施步骤
 
@@ -126,7 +126,7 @@ session event 只保存必要 transcript / committed text / event摘要；AI/aud
 
 #### 5.2 Regression gates
 
-重跑 app shell / practice 相关 frontend tests、OpenAPI fixture validation、codegen drift、A3 profile coverage、privacy grep、旧 route negative search。BUG-0070 后续 gate 必须额外验证 response `audioRef` 可播放、stored TTS summary 不含 audio data、store replay committed context、barge-in partial playback event。
+重跑 app shell / practice 相关 frontend tests、OpenAPI fixture validation、codegen drift、A3 profile coverage、privacy grep、非当前 route negative search。BUG-0070 后续 gate 必须额外验证 response `audioRef` 可播放、stored TTS summary 不含 audio data、store replay committed context、barge-in partial playback event。
 
 ## 7 验收标准
 

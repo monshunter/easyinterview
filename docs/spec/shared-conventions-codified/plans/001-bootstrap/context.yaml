@@ -4,10 +4,9 @@ metadata:
   subspec: shared-conventions-codified
   name: 001-bootstrap
   sequence: 1
-  supersedes: []
   specVersion:
-    from: null
-    to: 1.8
+    from: 1.24
+    to: 1.24
 spec:
   defaultTarget: backend
   discovery:
@@ -27,11 +26,13 @@ spec:
       - go module
       - pnpm workspace
       - typescript toolchain
-      - enum count
+      - current enum catalog
+      - 22 error codes
+      - ai shared vocabulary
       - practice mode assisted strict
       - question review status
       - local quality gate
-      - deferred CI
+      - codegen check
   targets:
     backend:
       plan: ./plan.md

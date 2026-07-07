@@ -6,7 +6,6 @@ metadata:
   sequence: 1
   branch: core-loop-module-pruning
   baseBranch: main
-  supersedes: []
   specVersion:
     from: 2.1
     to: 2.2

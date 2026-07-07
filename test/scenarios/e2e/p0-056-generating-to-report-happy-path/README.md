@@ -17,7 +17,7 @@ This scenario verifies the end-to-end mount → poll → report dispatch loop:
 
 The verify step asserts the testid set is present, the read path never carries
 `Idempotency-Key`, `listTargetJobReports` is never invoked, and the negative
-vocabulary (legacy `reportLayout`, `mistakesQueue`, voice surface imports, etc.)
+vocabulary (non-current `reportLayout`, `mistakesQueue`, voice surface imports, etc.)
 stays out of the implementation.
 
 ## Pipeline

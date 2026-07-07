@@ -36,7 +36,7 @@
 | A3-004-C4 | Alternate path | 用户确认 STT/TTS 独立配置 | Phase 4 | profile coverage lint + loader tests | STT/TTS 共享同一 provider 必填 |
 | A3-004-C5 | Failure/recovery | A3 spec C-17 | Phase 5 | timeout/secret missing/provider error tests + practice voice handoff reference | A3 provider error 被吞掉；业务 orchestration 在 A3 内实现 |
 | A3-004-C6 | Privacy/security/observability | ADR-Q5 + A3 §4.3 | Phase 5 | observability privacy tests + grep gate | audio bytes、transcript、TTS text/audio 明文进 log/DB/metric |
-| A3-004-C7 | Regression/legacy-negative | A3 spec D-15 | Phase 6 | active-scope negative search | cascade 被标为 `realtime`；恢复独立 `voice` route；恢复一 profile 一文件 truth source |
+| A3-004-C7 | Regression/non-current-negative | A3 spec D-15 | Phase 6 | active-scope negative search | cascade 被标为 `realtime`；恢复独立 `voice` route；恢复一 profile 一文件 truth source |
 
 ### 4.1 Operation Matrix
 
@@ -126,7 +126,7 @@ A3 owns provider/client failure semantics：provider timeout / secret missing / 
 
 #### 6.2 Drift gates
 
-运行 `make codegen-check`、`make lint-ai-profile-coverage`、`make lint-config`、`make docs-check`，并记录 negative search：不得把 cascade 标成 `realtime`，不得恢复独立 `voice` route，不得恢复旧 provider key 或一 profile 一目录 truth source。
+运行 `make codegen-check`、`make lint-ai-profile-coverage`、`make lint-config`、`make docs-check`，并记录 negative search：不得把 cascade 标成 `realtime`，不得恢复独立 `voice` route，不得恢复非当前 provider key 或一 profile 一目录 truth source。
 
 #### 6.3 Handoff to practice voice MVP
 

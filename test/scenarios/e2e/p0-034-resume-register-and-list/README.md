@@ -13,7 +13,7 @@ Validate the backend-resume baseline path for resume asset registration, get/lis
 
 Given two authenticated users and the two supported resume input modes
 (`upload`, `paste`), plus B2 fixtures for `registerResume`, `getResume`, and
-`listResumes`. The retired `guided` sourceType is covered only as an invalid
+`listResumes`. The non-current `guided` sourceType is covered only as an invalid
 input regression.
 
 When user A registers resumes, replays the same idempotency key, fetches one resume, lists the collection with cursor pagination, and user B attempts to fetch user A's asset.
@@ -24,7 +24,7 @@ Then the API returns fixture-compatible payloads, creates `resume_assets` and `a
 
 - `scripts/setup.sh`: prepares output directories and copies expected evidence notes.
 - `scripts/trigger.sh`: runs the focused `cmd/api` HTTP scenario, handler fixture parity tests, upload register validation, store state-machine tests, and the live DB integration gate.
-- `scripts/verify.sh`: rejects skips/no-op focused gates, checks required test evidence, reruns fixture parity, and performs legacy/privacy negative searches.
+- `scripts/verify.sh`: rejects skips/no-op focused gates, checks required test evidence, reruns fixture parity, and performs privacy / non-current negative searches.
 - `scripts/cleanup.sh`: records cleanup completion while preserving logs under `.test-output/`.
 
 ## 5. Evidence

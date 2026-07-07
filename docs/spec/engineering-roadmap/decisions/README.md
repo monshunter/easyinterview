@@ -7,8 +7,8 @@
 ## 1 命名规范
 
 - 文件名：`ADR-Q{n}-{kebab-case-topic}.md`，其中 `Q{n}` 与 `engineering-roadmap/spec.md` §3.2 表中的决策 ID 一一对应
-- Header 字段顺序固定：`版本 / 状态 / 更新日期`，状态枚举只取 `draft`/`active`/`accepted`/`superseded`/`deprecated`
-- 一个 ADR 只承担一个决策，多次修订原地更新版本号；推翻历史决策时新 ADR 显式 `supersedes` 旧 ADR
+- Header 字段顺序固定：`版本 / 状态 / 更新日期`，状态枚举只取 `draft` / `active` / `accepted`
+- 一个 ADR 只承担一个决策，多次修订原地更新版本号；推翻既有决策时新增修订 ADR 并同步 owner spec
 
 ## 2 文档结构
 

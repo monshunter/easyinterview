@@ -4,10 +4,9 @@ metadata:
   subspec: backend-async-runner
   name: 001-internal-job-outbox-runner
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
-    to: 1.6
+    to: 1.7
   baseBranch: main
   branch: feat/backend-async-runner-001-internal-job-outbox-runner-0522
 spec:
@@ -48,7 +47,7 @@ spec:
       - async.scanIntervalSeconds
       - privacy_export
       - requestPrivacyExport
-      - lint-runner-legacy
+      - lint-runner-non-current
       - publish_status
       - next_attempt_at
       - publish_attempts

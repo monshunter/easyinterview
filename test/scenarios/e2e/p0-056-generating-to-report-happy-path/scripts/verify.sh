@@ -24,8 +24,8 @@ if [ "$testid_count" -lt 30 ]; then
   exit 1
 fi
 
-# Legacy vocabulary guard.
-python3 "$REPO_ROOT/scripts/lint/frontend_report_dashboard_legacy.py" --repo-root "$REPO_ROOT" --phase E2E.P0.056
+# Non-current vocabulary guard.
+python3 "$REPO_ROOT/scripts/lint/frontend_report_dashboard_non_current.py" --repo-root "$REPO_ROOT" --phase E2E.P0.056
 
 # listTargetJobReports must not appear in implementation code.
 if grep -RnE 'listTargetJobReports' "$REPO_ROOT/frontend/src/app/screens/generating" "$REPO_ROOT/frontend/src/app/screens/report" --include='*.tsx' --include='*.ts' --exclude-dir=__tests__; then

@@ -18,11 +18,10 @@ governance violation — it bypasses the audit trail and produces silent
 incompatibility for downstream consumers (Go DTOs, TS client, Prism mock,
 docs site).
 
-Current `openapi-v1.0.0.yaml` inventory: 35 operations across 10 tags,
-including `DELETE /api/v1/me` (`operationId=deleteMe`), excluding the discarded
-independent Mistakes / Growth endpoints, the removed JobMatch module, retired
-Profile / Debriefs endpoints, and retired Resume Workshop version/suggestion
-operations. It keeps the flat Resume operations, Practice session / voice
+Current `openapi-v1.0.0.yaml` inventory: 35 operations across 10 tags:
+Auth, Uploads, Resumes, TargetJobs, PracticePlans, PracticeSessions, Reports,
+ResumeTailor, Jobs, and Privacy. It includes `DELETE /api/v1/me`
+(`operationId=deleteMe`), flat Resume operations, Practice session / voice
 contracts, and Auth `completeMyProfile` profile-completion endpoint. The
 project is still in a pre-launch P0 phase, so accepted v1.0.0 freeze
 corrections may re-freeze this file in place only when the same change updates
@@ -41,7 +40,7 @@ until that decision is recorded.
 | 升级类型 | 触发条件 | 是否新增 baseline 文件 | history.md / spec / ADR 要求 |
 |----------|----------|----------------------|------------------------------|
 | **v1.0.x patch** | 仅 fixture / example / 文案修订；schema 与 endpoint 集合不变 | 不强制递增；如要递增需在 PR 描述中说明动机 | 仍需 `history.md` 增量记录；不需要 ADR；spec 通常不升版 |
-| **v1.x.0 minor** | release-ready baseline 已发布后，additive 累积 ≥ 5 个新 endpoint，或显著新 tag / 新业务领域 | **必须**新增 `openapi-v1.<X>.0.yaml`；旧 baseline 保留 | `history.md` 递增 + 相关 plan 增量；不强制 ADR（仅 additive 时） |
+| **v1.x.0 minor** | release-ready baseline 已发布后，additive 累积 ≥ 5 个新 endpoint，或显著新 tag / 新业务领域 | **必须**新增 `openapi-v1.<X>.0.yaml`；既有 baseline 保留 | `history.md` 递增 + 相关 plan 增量；不强制 ADR（仅 additive 时） |
 | **v2.0.0 major** | 任何 breaking change：删字段 / 改字段类型 / required 新增 / 删 endpoint / 删 enum 值 / 改 method / 重命名 path（除已纳入白名单的 P0 例外） | **必须**新增 `openapi-v2.0.0.yaml` | `history.md` 递增 + spec 修订 + **必须**有 `状态: accepted` 的 ADR（[OPENAPI-NNN-...](../../docs/spec/openapi-v1-contract/decisions/TEMPLATE.md)） |
 
 阈值校准触发条件：每次实际触发 minor / major 时，spec §3.2 owner 把当时的执行
@@ -59,7 +58,7 @@ until that decision is recorded.
 `make openapi-diff` 默认使用 [openapi/diff-config.yaml](../diff-config.yaml)
 中的 `tooling.historyDiffBase`（当前为 `main`）与 `HEAD` 的 merge-base 作为
 privacy export 白名单 history 增量比较基准；如果该 ref 不存在，会回退到
-`main` / `master` 候选，最后才回退 `HEAD`。需要复现旧自检或临时指定基准时，
+`main` / `master` 候选，最后才回退 `HEAD`。需要复现既有自检或临时指定基准时，
 使用 `HISTORY_REF=<git-ref> make openapi-diff`。
 
 ## Whitelist

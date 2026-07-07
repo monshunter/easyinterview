@@ -44,7 +44,7 @@
 ## 5 Output
 
 - `.test-output/e2e/p0-085-resume-rewrites-tab-tailor-run-polling/trigger.log` Vitest pass output.
-- verify.sh asserts vitest summary + spec presence + retired-grep gates.
+- verify.sh asserts vitest summary + spec presence + non-current-grep gates.
 
 ## 6 Baseline
 

@@ -58,12 +58,12 @@ def test_bdd_gate_prefers_behavior_scenario_ids():
     assert "Extract scenario identifiers from the item text" in text
 
 
-def test_bdd_gate_keeps_legacy_ac_mapping_as_compatibility_path():
+def test_bdd_gate_keeps_ac_style_mapping_as_compatibility_input():
     text = _skill_text()
 
-    assert "older `AC-*` style gate" in text
-    assert "legacy compatibility path" in text
-    assert "historical AC mapping in `bdd-plan.md`, `bdd-test-plan.md`, or the spec §验收标准 table" in text
+    assert "AC-style compatibility gate" in text
+    assert "compatibility input" in text
+    assert "AC mapping in `bdd-plan.md`, `bdd-test-plan.md`, or the spec §验收标准 table" in text
 
 
 def test_bdd_gate_requires_bdd_checklist_completion_before_gate():

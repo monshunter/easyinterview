@@ -165,7 +165,6 @@ func (d *ImmediateMailDispatcher) Enqueue(_ context.Context, payload jobs.EmailD
 	return d.sink.Write(payload)
 }
 
-// The legacy in-process background mail dispatcher has been removed: email
-// delivery now flows through async_jobs(job_type=email_dispatch) via
+// Email delivery now flows through async_jobs(job_type=email_dispatch) via
 // EmailDispatchEnqueuer (producer) and EmailDispatchHandler (kernel handler),
 // per backend-async-runner spec D-10.

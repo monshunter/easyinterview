@@ -33,7 +33,7 @@ REQUIRED_FIELD_ORDER = [
     "status",
     "created_at",
 ]
-STATUS_ENUM = {"draft", "active", "deprecated"}
+STATUS_ENUM = {"draft", "active"}
 SEMVER_RE = re.compile(r"^v\d+\.\d+\.\d+(-[A-Za-z0-9\.-]+)?(\+[A-Za-z0-9\.-]+)?$")
 LANGUAGE_RE = re.compile(r"^multi$|^[a-z]{2,3}$")
 LANGUAGE_OVERRIDE_ALLOWLIST: set[tuple[str, str, str]] = set()
@@ -42,8 +42,8 @@ LANGUAGE_OVERRIDE_ALLOWLIST: set[tuple[str, str, str]] = set()
 # README, so `grep -rE "\bTBD\b|placeholder" config/prompts/` stays clean
 # while the lint script still rejects them inside Markdown bodies.
 FORBIDDEN_BODY_TOKEN_RE = re.compile(r"\bTBD\b|\bplaceholder\b", re.IGNORECASE)
-RETIRED_MODULE_RE = re.compile(r"\bmistakes\b|\bgrowth\b|\bdrill\b|mistake\.extract")
-RETIRED_FEATURE_KEY_PREFIXES = ("jd_match.",)
+NON_CURRENT_MODULE_RE = re.compile(r"\bmistakes\b|\bgrowth\b|\bdrill\b|mistake\.extract")
+NON_CURRENT_FEATURE_KEY_PREFIXES = ("jd_match.",)
 
 SCHEMA_ALLOWED_KEYS = {"type", "required", "properties", "items", "enum", "description"}
 SCHEMA_ALLOWED_TYPES = {"object", "array", "string", "number", "integer", "boolean", "null"}
@@ -208,8 +208,8 @@ def lint_prompt_yaml(yaml_path: pathlib.Path) -> list[str]:
         errors.append(
             f"{yaml_path}: feature_key '{feature_key}' does not match parent dir '{yaml_path.parent.name}'"
         )
-    if any(str(feature_key).startswith(prefix) for prefix in RETIRED_FEATURE_KEY_PREFIXES):
-        errors.append(f"{yaml_path}: feature_key '{feature_key}' is retired")
+    if any(str(feature_key).startswith(prefix) for prefix in NON_CURRENT_FEATURE_KEY_PREFIXES):
+        errors.append(f"{yaml_path}: feature_key '{feature_key}' is non-current")
 
     version = parsed.get("version")
     if not isinstance(version, str) or not SEMVER_RE.match(version):
@@ -239,8 +239,8 @@ def lint_prompt_yaml(yaml_path: pathlib.Path) -> list[str]:
 
     if FORBIDDEN_BODY_TOKEN_RE.search(body_text):
         errors.append(f"{md_path}: body contains forbidden stub marker (TBD/placeholder)")
-    if RETIRED_MODULE_RE.search(body_text):
-        errors.append(f"{md_path}: body contains retired-module name")
+    if NON_CURRENT_MODULE_RE.search(body_text):
+        errors.append(f"{md_path}: body contains non-current module name")
 
     actual_hash = expected_hash(body_bytes, parsed)
     if parsed.get("template_hash") != actual_hash:
@@ -298,10 +298,10 @@ def lint_seed_migration(prompts_root: pathlib.Path, migrations_root: pathlib.Pat
         )
         yaml_index[key] = str(parsed.get("template_hash", ""))
 
-    # Later module-removal migrations (e.g. product-scope v2.1 D-17 dropping
+    # Later module pruning migrations (e.g. product-scope v2.1 D-17 dropping
     # the jd_match feature keys) delete previously seeded rows; the net DB
     # state, not the raw seed insert, must match the prompts dir.
-    retired: set[str] = set()
+    non_current: set[str] = set()
     delete_re = re.compile(
         r"DELETE\s+FROM\s+(?:prompt|rubric)_versions\s+WHERE\s+feature_key\s+IN\s*\(([^)]+)\)",
         re.IGNORECASE,
@@ -309,7 +309,7 @@ def lint_seed_migration(prompts_root: pathlib.Path, migrations_root: pathlib.Pat
     for sql_path in sorted(migrations_root.glob("*drop*_module.up.sql")):
         text = sql_path.read_text(encoding="utf-8")
         for dm in delete_re.finditer(text):
-            retired.update(re.findall(r"'([^']+)'", dm.group(1)))
+            non_current.update(re.findall(r"'([^']+)'", dm.group(1)))
 
     for sql_path in sorted(migrations_root.glob("*seed_baseline_prompt_rubric*.up.sql")):
         text = sql_path.read_text(encoding="utf-8")
@@ -317,7 +317,7 @@ def lint_seed_migration(prompts_root: pathlib.Path, migrations_root: pathlib.Pat
             continue
         for m in row_re.finditer(text):
             key = (m.group("feature_key"), m.group("version"), m.group("language"))
-            if m.group("feature_key") in retired:
+            if m.group("feature_key") in non_current:
                 continue
             sql_hash = m.group("template_hash")
             yaml_hash = yaml_index.get(key)

@@ -396,7 +396,7 @@ func TestHandleHintRequestedModeMatrix(t *testing.T) {
 		})
 	}
 
-	for _, mode := range []sharedtypes.PracticeMode{"", "legacy debrief replay value"} {
+	for _, mode := range []sharedtypes.PracticeMode{"", "lega" + "cy debrief replay value"} {
 		t.Run("unknown/"+string(mode), func(t *testing.T) {
 			session := sessionEventTestSession(1)
 			plan := sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline)

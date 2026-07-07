@@ -1,157 +1,98 @@
-# Shared Conventions Codified Bootstrap
+# Shared Conventions Bootstrap
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-04
+> **更新日期**: 2026-07-07
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-把 [shared-conventions-codified spec](../../spec.md) §3.1 锁定的 6 项决策落到代码：建立 `shared/conventions.yaml` 真理源、跨语言 generator、Go 共享 module（`backend/go.mod` + `internal/shared/{types,errors,idx}/`）、TS 共享 lib（`frontend/package.json` + `src/lib/{conventions,ids}/`）、UUIDv7 / Idempotency-Key 工具、错误码与枚举命名的本地可执行 lint gate，并通过本 plan 的 verification phase 证明 Go / TS 双侧测试可以编译并通过最小用例。
+本 plan 承接 B1 shared conventions foundation：
 
-本 plan 只覆盖必须先冻结的最小共享集合；后续如需扩展（本地 drift detection、prompt registry 接入、跨语言 contract test），递增 spec 与本 plan 版本，必要时启用 `002-codegen-pipeline` 等续集 plan。远端 CI drift detection 仅在 A5 触发条件成立后再评估。
+- `shared/conventions.yaml` 是 Go / TypeScript 共享枚举、错误码、分页结构、ID 规则、idempotency TTL 和 AI shared vocabulary 的可执行真理源。
+- `backend/cmd/codegen/conventions` 从同一 YAML 生成 Go shared types/errors/AI vocabulary/ID constants 与 frontend conventions/ids files。
+- Go shared module 落点为 `backend/internal/shared/{types,errors,idx,ai}`；TypeScript shared lib 落点为 `frontend/src/lib/{conventions,ids}`。
+- UUIDv7、`tmp_` 前缀拒绝、24h `Idempotency-Key` 解析/生成和 `ApiError` inner object 在 Go/TS 双端保持一致。
+- 本地 lint gate 约束错误码 `UPPER_SNAKE_CASE`、枚举值 `lower_snake_case`、JSON field `camelCase`、generator drift 和跨语言 parity。
 
-## 2 背景
+## 2 当前合同
 
-[engineering-roadmap spec §5.1](../../../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将 B1 保留为当前 active Contract spec，并要求后续实现复用 B1 共享枚举、错误码和 drift gate：A1 提供根目录与 Make 入口，B1 在 A1 创建的 `backend/` 与 `frontend/` 容器里写入第一份 `go.mod` / `package.json` 与共享 lib。这两件事必须先于依赖共享契约的 B2 / C / D workstream，否则后续实现会缺少共享枚举与错误码常量。
+| surface | current behavior | truth / generated files | coverage |
+|---------|------------------|-------------------------|----------|
+| conventions truth source | current enum catalog, 22 error codes, job statuses, UUID/idempotency/pagination constants, AI vocabulary | `shared/conventions.yaml` | `make lint-conventions` |
+| Go generated shared types | enums, HTTP DTOs, error codes, AI vocabulary, ID constants | `backend/internal/shared/{types,errors,idx,ai}` | `go test ./backend/internal/shared/...`, `make codegen-check` |
+| TS generated shared types | enum literals, error codes, pagination, AI vocabulary, ID constants | `frontend/src/lib/{conventions,ids}` | frontend conventions Vitest/typecheck gates |
+| UUID / server ID tools | UUIDv7 generation, `tmp_` rejection, shared ID regex | Go `idx`, TS `ids` | Go/TS id tests |
+| Idempotency-Key tools | shared 24h TTL and strict decimal timestamp parsing | Go `idx/idempotency.go`, TS `conventions/idempotency.ts` | Go/TS idempotency tests |
+| naming / drift lint | generated files match YAML and naming rules | `scripts/lint/conventions_yaml.py`, `make codegen-check` | lint and codegen gates |
 
-执行本 plan 前必须确认 A1 已创建根 `Makefile`、`backend/`、`frontend/`、`scripts/` 等容器目录；若 A1 尚未完成，先暂停本 plan 并实施 `repo-scaffold/001-bootstrap`。
+## 3 质量门禁
 
-本 plan 不接入 OpenAPI codegen（B2 持有），不实现业务 handler，不依赖 docker / db。所有产出限于仓库内文件 + Go test / TS test 跑得通。
-
-## 3 质量门禁分类
-
-- **Plan 类型**: `contract + tooling + code-internal`。本 plan 修改 B1 shared-conventions-codified truth source、Go/TS shared modules、generator、idempotency helpers、lint rules 与 parity tests；不引入用户可见 UI、HTTP API 行为或端到端业务流程。
-- **TDD 策略**: 历史实现以 generator idempotency、Go shared package tests、TS typecheck/tests、error-code lint negative cases 和 conventions drift tests 作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行。
-- **BDD 策略**: BDD 不适用。本 plan 是内部共享契约和工具链；后续 API/UI/业务 workstream 在消费 B1 时维护自身 BDD gate。
-- **替代验证 gate**: `make codegen-conventions`、`make lint-conventions`、`go test ./backend/internal/shared/...`、`go vet ./backend/...`、frontend TS typecheck/tests、cross-language parity tests、repo search for retired enum values、`sync-doc-index --check`。
+- **Plan 类型**: `contract + tooling + code-internal`。
+- **TDD 策略**: 适用。Focused tests cover generator idempotency, Go/TS shared parity, error-code lint, UUID/idempotency helpers and conventions drift.
+- **BDD 策略**: 不适用。本 plan 是内部共享契约和工具链；用户可见 API/UI flows由消费方 owner 的 BDD gate 覆盖。
+- **替代验证 gate**:
+  - `make lint-conventions`
+  - `make codegen-conventions`
+  - `make codegen-check`
+  - `go test ./backend/internal/shared/...`
+  - `go vet ./backend/...`
+  - `pnpm --filter @easyinterview/frontend exec tsc --noEmit`
+  - `pnpm --dir frontend test src/lib/conventions src/lib/ids`
+  - `python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/shared-conventions-codified/plans/001-bootstrap/context.yaml --target backend`
+  - `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`
+  - `make docs-check`
 
 ## 4 实施步骤
 
-本 plan v1.1 为完成态文档修订：按已验证的实际依赖关系回写 Phase 1 / Phase 2 的执行顺序与所有权边界，不改变已落地代码范围。执行顺序必须遵循依赖图：先落地真理源与 Go module，再运行归属 `backend/go.mod` 的 generator；TS toolchain 必须先于 TS helper 的原生 typecheck / test gate 完成。
+### Phase 1: truth source and generator
 
-### Phase 1: 跨语言真理源与 generator 前置依赖
+- Maintain `shared/conventions.yaml` as the single B1 source.
+- Generate Go and TS shared artifacts from the same source.
+- Keep generator output idempotent and covered by `make codegen-check`.
 
-#### 1.1 落地 `shared/conventions.yaml`
+### Phase 2: Go / TS shared helpers
 
-按 `B1 shared-conventions-codified §5` 写入 13 个上游小节覆盖的 14 个生成枚举类型（§5.13 拆为隐私请求 type/status 两个并行类型），按 §3.2 写入错误码示例（`AUTH_UNAUTHORIZED` / `TARGET_IMPORT_FAILED` / `PRACTICE_SESSION_CONFLICT` / `REPORT_NOT_READY` / `VALIDATION_FAILED` / `RATE_LIMITED` 等），按 §4.2 写入 Job 状态，按 §3 写入 `PageInfo` / `ApiError` 结构。文件结构必须可被 `gopkg.in/yaml.v3` 与 `js-yaml` 同等解析。
+- Provide Go shared `types`, `errors`, `idx` and AI vocabulary packages.
+- Provide frontend `conventions` and `ids` libs.
+- Keep UUIDv7 and `tmp_` prefix semantics aligned.
+- Keep `Idempotency-Key` generation/parsing/TTL semantics aligned across languages.
 
-#### 1.2 Go module 初始化
+### Phase 3: lint and naming gates
 
-- 在 `backend/` 下落地 `go.mod`，module path 锁定 `github.com/monshunter/easyinterview/backend`（spec D-2）；Go 版本对齐 [.tool-versions](../../../repo-scaffold/plans/001-bootstrap/plan.md#12-根-editorconfig--gitignore--tool-versions) 中的 `golang` 字段。
-- 在 `backend/internal/shared/` 下创建 `types/`、`errors/`、`idx/` 三个包目录与 `doc.go` 占位；generator 在 1.3 中写入生成文件。
+- Reject invalid error-code names/values.
+- Reject enum and JSON field naming drift.
+- Keep generated Go/TS parity tests current.
 
-#### 1.3 写入 generator
+### Phase 4: product-scope enum contract
 
-在 `backend/cmd/codegen/conventions/` 下落地 generator，使 generator 归属 `backend/go.mod`：
+- Keep `PracticeMode=assisted|strict`.
+- Keep `PracticeGoal=baseline|retry_current_round|next_round`.
+- Keep `QuestionReviewStatus=open|queued_for_retry|resolved`.
+- Keep removed practice mode/goal/status values out of generated runtime surfaces.
 
-- `main.go`（Go 实现，由 `make codegen-conventions` 调用 `go run ./backend/cmd/codegen/conventions`）：读取 `shared/conventions.yaml`，按模板渲染 `backend/internal/shared/types/enums.go`、`backend/internal/shared/types/http_dto.go`（`PageInfo` 与共享常量）、`backend/internal/shared/errors/codes.go`、`backend/internal/shared/idx/generated.go`。
-- 同一个二进制额外渲染 TS 文件到 `frontend/src/lib/conventions/{enums,errors,pagination}.ts` 与 `frontend/src/lib/ids/generated.ts`；TS `errors.ts` 持有 generator 输出的 `ApiError` interface，Go `APIError` 结构归属手写 `backend/internal/shared/errors/errors.go`。
-- 输出必须 idempotent：再跑一次 `git diff --exit-code` 不变。
+### Phase 5: closeout
 
-### Phase 2: Go / TS 共享 module 骨架
-
-#### 2.1 Go shared helpers
-
-- `backend/internal/shared/idx/` 中手写 `RequireServerID(string) error`：拒绝 `tmp_` 前缀；`NewID()` 调用 UUIDv7 实现（依赖 `github.com/google/uuid` v1.6+）。
-- `backend/internal/shared/errors/` 中手写 `APIError struct` 基类与 `Wrap(code string, msg string, retryable bool)` helper；常量由 generator 写入。
-
-#### 2.2 Go Idempotency-Key 工具
-
-- 在 `backend/internal/shared/idx/idempotency.go` 中手写与 TS 端一致的 `GenerateIdempotencyKey()` / `ParseIdempotencyKey()` / `IsIdempotencyKeyExpired(...)`：生成 24h TTL 的 `Idempotency-Key`（`v1.{unixSeconds}.{uuidv7}`），拒绝非十进制时间戳、非 UUIDv7 与 `tmp_` 前缀。
-
-#### 2.3 TS workspace 与测试工具链初始化
-
-- 在 `frontend/` 下落地最小 `package.json`（name `@easyinterview/frontend`、private true、`build` / `lint` 可保持 D1 前的占位入口，`typecheck` / `test` 必须真实调用 `tsc --noEmit` 与 vitest）。
-- 安装最小 TS 验证 devDep（`typescript` / `vitest` / `@types/node`）与 `uuid >=10` 运行依赖；落地 strict `frontend/tsconfig.json`，启用 `noUncheckedIndexedAccess`。
-- 在仓库根落地 `pnpm-workspace.yaml`，packages 字段含 `frontend`；若后续新增 TS 工具包，再由对应 plan 扩展 workspace packages。
-
-#### 2.4 TS 共享 lib 与 Idempotency-Key 工具
-
-- 在 `frontend/src/lib/conventions/` 与 `frontend/src/lib/ids/` 下创建占位 `index.ts`，由 generator 写入实际内容。
-- `frontend/src/lib/ids/index.ts` 中手写 `requireServerId(s: string)` 与 `newId()`（基于 `uuid >=10` 的 UUIDv7 实现）。
-- `frontend/src/lib/conventions/idempotency.ts` 与 Go 端对偶：生成 24h TTL 的 `Idempotency-Key`（UUIDv7 + 时间戳头）。
-
-#### 2.5 Idempotency-Key 解析对偶修订
-
-- L2 remediation: TS 端 `parseIdempotencyKey` 的时间戳解析必须与 Go 端 `strconv.ParseInt(..., 10, 64)` 的十进制语义保持一致，拒绝指数、十六进制、空白等非十进制秒数字符串。
-
-### Phase 3: Lint 与命名约束
-
-#### 3.1 Go lint 与错误码校验
-
-在 `backend/.golangci.yml` 落地最小配置：启用 `revive` 的 `var-naming` 规则；同时提供本地可执行的错误码校验（可放在 generator 或 `scripts/lint/` 下），扫描 `backend/internal/shared/errors/` 与 `frontend/src/lib/conventions/errors.ts`，强制错误码常量和值为 `UPPER_SNAKE_CASE`。当前单人开发阶段不接入远端 CI；B1 必须让 `make lint` 在本地能验证该规则，A5 只记录本地质量门禁与远端 CI 延后边界。
-
-#### 3.2 TS lint 与错误码边界
-
-在 `frontend/.eslintrc.cjs`（或 `eslint.config.js`）中加入最小可执行规则或脚本入口：拒绝在 `frontend/src/lib/conventions/errors.ts` 之外定义错误码字面量；约束错误码必须 `UPPER_SNAKE_CASE`。D1 可在前端壳 plan 中扩展 ESLint 体系，但不得放宽 B1 的错误码边界。
-
-L2 remediation: `scripts/lint/error_codes.py` 必须解析 `ERROR_CODES = { ... }` 内的全部条目并拒绝任何非 `UPPER_SNAKE_CASE` 的 key/value，不能只匹配已经合法的条目。
-
-### Phase 4: Verification
-
-#### 4.1 Generator idempotency
-
-- 跑两次 `make codegen-conventions`；第二次后 `git status` 必须 clean。
-- 删除任意一个生成文件再重跑，确认完整还原。
-
-#### 4.2 Go test 自检
-
-- `go test ./backend/internal/shared/...` 通过：
-  - `idx_test.go` 验证 `NewID()` 返回 UUIDv7 字符串、`RequireServerID("tmp_xxx")` 返回 error。
-  - `idempotency_test.go` 验证 Go 端 `Idempotency-Key` 生成、解析、24h TTL 与非法格式拒绝。
-  - `errors_test.go` 验证 `Wrap(...)` 输出 JSON 满足 `B1 shared-conventions-codified §3.2` 结构。
-- `go vet ./backend/...` 通过。
-- L2 remediation: 仓库根必须提供 Go workspace 或等价入口，使上述根级 `go test ./backend/...` / `go vet ./backend/...` 命令无需手动 `cd backend` 即可真实运行。
-
-#### 4.3 TS test 自检
-
-- `pnpm --filter @easyinterview/frontend exec tsc --noEmit` 通过。
-- 加入最小 test runner（vitest 或 node:test）跑 `lib/ids` / `lib/conventions` 的最小用例：`requireServerId('tmp_x')` 抛错；枚举 union 类型在 type 层正确；TS 端 `Idempotency-Key` 与 Go 端 wire-format / TTL 语义一致。
-
-#### 4.4 文档同步
-
-- 确认 `docs/spec/INDEX.md` 的 `shared-conventions-codified` 行已指向真实链接且状态 / 版本 / 更新日期与 spec Header 一致；若已有内容一致，不重复改写。
-- 不修改 [engineering-roadmap/001-decompose-subspecs/checklist.md](../../../engineering-roadmap/plans/001-decompose-subspecs/checklist.md) 中已经完成的 Phase 2 spawn 项；若需要重新打开父 plan，必须由 roadmap owner 明确触发。
-- 把 generator 命令、Go test、TS test 的输出贴入工作日志。
-
-### Phase 5: product-scope v1.2 enum remediation
-
-#### 5.1 Red: conventions drift gate
-
-先调整 B1 enum 期望与测试，使旧 `PracticeMode`（`warmup` / `core_interview` / `single_drill` / `counter_questions`）、旧 `PracticeGoal.fix_mistake` 与旧 `MistakeStatus` 触发 drift / parity 失败，证明旧模式卡片、单题 Drill、反问专练和独立错题本状态仍被代码保留时不能通过 gate。
-
-#### 5.2 Green: 更新共享真理源与生成物
-
-修订 `shared/conventions.yaml`：`PracticeMode` 改为 `assisted` / `strict` / `legacy debrief replay value`；`PracticeGoal` 改为 `baseline` / `retry_current_round` / `next_round` / `debrief`；`MistakeStatus` 重命名为 `QuestionReviewStatus`，值为 `open` / `queued_for_retry` / `resolved`。随后运行 `make codegen-conventions` 重新生成 Go / TS shared types，并同步 B2/B3/B4 引用。
-
-#### 5.3 Verify
-
-运行 `make lint-conventions`、`make codegen-conventions`、Go / TS shared type parity tests；repo 搜索确认实现侧不再出现旧练习模式枚举值、`fix_mistake` 或 `MistakeStatus` generated type。
+- Run focused conventions, Go shared and frontend conventions gates.
+- Sync owner index and product-scope evidence.
+- Leave remote CI integration to CI owner gates; B1 retains local executable gates.
 
 ## 5 验收标准
 
-- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-5 全部成立（C-6 由 B2 plan 在引用 B1 时验证）。
-- 本 plan checklist 全部勾选；Phase 4 的关键命令日志贴入工作日志。
-- engineering-roadmap/001 已完成 roadmap rebaseline；本 plan 完结状态作为 B1 后续实施证据记录在本 checklist 与工作日志中。
+| ID | 验收点 | 验证 |
+|----|--------|------|
+| A-1 | `shared/conventions.yaml` validates current enum/error/job/id contract | `make lint-conventions` |
+| A-2 | Go and TS generated artifacts match the truth source | `make codegen-check` |
+| A-3 | Go shared helpers pass UUID/idempotency/error tests | `go test ./backend/internal/shared/...` |
+| A-4 | Frontend conventions and ids helpers pass type/test gates | `pnpm --filter @easyinterview/frontend exec tsc --noEmit`; `pnpm --dir frontend test src/lib/conventions src/lib/ids` |
+| A-5 | Error code and enum naming remain enforceable locally | conventions lint and parity tests |
+| A-6 | Current product-scope enum values stay aligned across generated surfaces | conventions parity tests and pruning-surface lint |
 
-## 6 风险与应对
+## 6 修订记录
 
-| 风险 | 应对措施 |
-|------|----------|
-| Go / TS UUIDv7 库版本漂移导致格式不一致 | Phase 1 在 `shared/conventions.yaml` 显式写出测试 UUID 样本；generator 在两侧都引用相同正则进行格式校验；当前由本地测试与 lint 门禁收口，远端 CI 仅在 A5 触发条件成立后再评估 |
-| pnpm workspace 在 macOS / Linux / CI 环境差异（symlink / hoisting） | Phase 2.3 启用 `pnpm-workspace.yaml` + `package.json#packageManager` 字段锁定 pnpm 版本；A2 dev stack 在 docker 镜像中预装相同版本 |
-| Generator idempotency 被 IDE 自动 format 或 import sorter 破坏 | Phase 1.3 在 generator 输出固定 import 顺序与 build tag；Phase 4.1 通过本地 `git diff --exit-code` 强制；编辑器 format 必须由 `.editorconfig` 与 generator 模板一致 |
-| Go module path 与 GitHub repo 名称不一致导致 import 失败 | spec D-2 锁定为 `github.com/monshunter/easyinterview/backend`，Phase 1.2 写入 `backend/go.mod` 时直接复用此值；任何重命名必须先递增 B1 spec 版本 |
-| TS 共享 lib 被前端 child（D1+）放在不同 path alias 中导致依赖混乱 | 本 plan 锁定 `frontend/src/lib/{conventions,ids}/` 路径；前端 child 只能加 alias，不能改物理路径；spec D-3 与 §4.3 对此明确禁令 |
-
-## 7 修订记录
-
-| 日期 | 版本 | 变更 | 证据 |
-|------|------|------|------|
-| 2026-05-04 | 1.4 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 shared conventions 范围。 | historical-spec-implementation-review/001 |
-| 2026-05-03 | 1.3 | 原地 reopen，新增 Phase 5 remediation：对齐 product-scope v1.2 与 UI scope，移除旧模式卡片、单题 Drill、反问专练和独立错题本状态枚举。 | product-scope v1.2 / docs/ui-design |
-| 2026-04-27 | 1.2 | 对齐 A5 单人开发阶段决策：B1 的 lint/codegen drift 只要求本地质量门禁，远端 CI / PR required check / CI drift detection 不作为当前 P0 前置。 | 文档一致性修订；不新增运行时代码范围。 |
-| 2026-04-27 | 1.1 | 回写 [shared-conventions-codified/001-bootstrap 交付复盘报告](../../../../reports/2026-04-27-shared-conventions-codified-001-bootstrap-assessment.md) 中确认真实的 spec-plan 漂移：重排 generator 前置依赖、明确 Go/TS `APIError` 归属、统一 13 个上游小节 / 14 个生成类型口径、补齐 Go/TS idempotency 双端 checklist 落点、把 TS toolchain 上移到 Phase 2。 | 当前代码已落地并通过 Phase 4 验证；本修订不新增运行时代码范围。 |
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-07-07 | 1.5 | Compress owner docs to current shared truth source, generator, Go/TS helper and local lint contract. |
+| 2026-05-04 | 1.4 | Complete quality gate classification for shared conventions foundation. |

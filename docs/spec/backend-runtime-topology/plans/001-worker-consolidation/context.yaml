@@ -4,10 +4,9 @@ metadata:
   subspec: backend-runtime-topology
   name: 001-worker-consolidation
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
-    to: 1.4
+    to: 1.5
   baseBranch: main
   branch: backend-worker-consolidation
 spec:
@@ -19,17 +18,16 @@ spec:
       - backend internal runner
       - worker process removal
     keywords:
-      - WORKER_LISTEN_ADDR
-      - worker.listenAddr
-      - cmd/worker
+      - standalone process listen env
+      - standalone process listen config
+      - standalone process entrypoint
       - backend_async
       - backend internal runner
       - app-produced metrics
       - Prometheus not dev dependency
       - OTel optional profile
-      - backend-async-runtime
-      - "producer: worker"
-      - '"producer": "worker"'
+      - async-runtime shorthand
+      - non-current producer value fixtures
       - scripts runtime topology lint
   targets:
     repo:

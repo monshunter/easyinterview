@@ -6,7 +6,7 @@
 ## 1 复盘范围与成功证据
 
 - 范围：修复 Resume Workshop additive L2 review 暴露的 generated TS client response typing、P0 export 501 typed fallback、dev fixture consumer 漏同步，以及 `resume_versions` live migration test cleanup 泄漏。
-- 关联 owner docs 已原地修订并完成：`openapi-v1-contract/004-resume-additive-coverage` v1.1、`db-migrations-baseline/002-resume-versions-additive` v1.1、B2 spec v1.18、B4 spec v1.16、[BUG-0044](../bugs/BUG-0044.md)。
+- 关联 owner docs 已原地修订并完成：`openapi-v1-contract/004-resume-additive-coverage` v1.1、`db-migrations-baseline/002-flat-resume-migration` v1.1、B2 spec v1.18、B4 spec v1.16、[BUG-0044](../bugs/BUG-0044.md)。
 - 成功证据：`go test ./backend/cmd/codegen/openapi -count=1`、`pnpm --filter @easyinterview/frontend test src/api/devMockClient.test.ts`、`pnpm --filter @easyinterview/frontend typecheck`、`make lint-openapi`、`make validate-fixtures`、`make openapi-diff`、`make docs-check` 均通过。
 - 迁移 live test 证据：`cd backend && go test ./internal/migrations/... -run 'TestResumeVersions|TestResumeAssetDeleteRequiresVersionCleanup' -count=2 -v` 通过；当前 `DATABASE_URL` 未设置，live cases 明确 skip，contract-only migration test PASS。
 

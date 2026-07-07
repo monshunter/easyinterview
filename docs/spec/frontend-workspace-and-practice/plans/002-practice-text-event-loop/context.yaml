@@ -4,10 +4,9 @@ metadata:
   subspec: frontend-workspace-and-practice
   name: 002-practice-text-event-loop
   sequence: 2
-  supersedes: []
   specVersion:
     from: 1.2
-    to: 1.6
+    to: 1.8
 spec:
   defaultTarget: frontend
   discovery:
@@ -24,8 +23,9 @@ spec:
       - practice display context
     keywords:
       - PracticeScreen
-      - VoiceSurfaceComingSoon
       - PracticeSessionLostState
+      - PracticeVoiceSurface
+      - usePracticeVoiceTurn
       - usePracticeSessionLoader
       - usePracticeEvents
       - usePracticeAssistance
@@ -43,6 +43,7 @@ spec:
       - ExpCard
       - LiveNotes
       - ErrorState
+      - resumeId
       - getPracticeSession
       - appendSessionEvent
       - completePracticeSession
@@ -91,12 +92,10 @@ spec:
         - ../../../../ui-design/ui-architecture.md
         - ../../../backend-practice/spec.md
         - ../../../backend-practice/plans/002-event-loop-and-completion/plan.md
-        - ../../../backend-practice/plans/002-event-loop-and-completion/test-plan.md
         - ../../../openapi-v1-contract/spec.md
         - ../../../mock-contract-suite/spec.md
         - ../../../shared-conventions-codified/spec.md
         - ../../../frontend-shell/spec.md
-        - ../../../frontend-home-job-picks-and-parse/spec.md
         - ../001-workspace-and-interview-context/plan.md
       discovery:
         packages:
@@ -115,14 +114,12 @@ spec:
           - frontend/src/lib/ids.ts
           - frontend/tests/pixel-parity
           - ui-design/src
-          - openapi
           - openapi/fixtures/PracticeSessions
           - test/scenarios/e2e/p0-044-practice-text-loop-assisted-happy-path
           - test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display
           - test/scenarios/e2e/p0-046-practice-text-loop-failure-and-recovery
           - test/scenarios/e2e/p0-047-practice-text-loop-complete-and-generating-handoff
         uiRoutes:
-          - workspace
           - practice
           - generating
         apiNames:

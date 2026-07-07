@@ -43,10 +43,9 @@ func resolveSnapshot(snap *snapshot, featureKey, language string, fallbackCounte
 		fallbackCounter.Add(1)
 	}
 
-	// Plan 001 ships SystemMessage empty and UserMessageTemplate as the
-	// full markdown body; targetjob's existing executor consumes the body
-	// through UserMessageTemplate. Plan 002 may split body into system /
-	// user sections per feature_key.
+	// Current baselines keep SystemMessage empty and put the full markdown body
+	// in UserMessageTemplate, which existing executors consume directly.
+	// Feature-specific system/user splits must be introduced by the owning spec.
 	pe := prompt.(promptEntry)
 	re := rubric.(rubricEntry)
 	return PromptResolution{

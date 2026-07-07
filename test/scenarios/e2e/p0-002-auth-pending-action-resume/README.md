@@ -26,7 +26,7 @@ interview-context 参数；用户在 `auth_login` 输入邮箱、提交挑战、
 - 验证成功后 App 切换到 `practice`，`route-practice` 的 `data-route-params`
   必须包含 planId / targetJobId / jdId / resumeId / roundId 全部 5 个原始值。
 - `verify.sh` 负向 grep 必须确认 trigger.log 不出现 `route-auth_login`
-  之外的旧 auth alias 与 prototype data 痕迹，且最终断言 5 个 interview
+  之外的非当前 auth alias 与 prototype data 痕迹，且最终断言 5 个 interview
   context key 全部回填。
 
 ## 4 执行
@@ -42,4 +42,4 @@ interview-context 参数；用户在 `auth_login` 输入邮箱、提交挑战、
 
 场景在 vitest + jsdom 中运行，不写共享数据库，不启动 Kind cluster；trigger.sh
 仅产生 `.test-output/e2e/p0-002-auth-pending-action-resume/trigger.log` 作为
-验证证据，cleanup.sh 移除 setup marker，保留日志。
+验证证据，cleanup.sh 删除 setup marker，保留日志。

@@ -3,6 +3,7 @@ package registry
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -18,6 +19,9 @@ func TestNotImplementedJudgeAlwaysFails(t *testing.T) {
 	)
 	if !errors.Is(err, ErrJudgeNotImplemented) {
 		t.Fatalf("want ErrJudgeNotImplemented, got %v", err)
+	}
+	if strings.Contains(err.Error(), "plan ") {
+		t.Fatalf("ErrJudgeNotImplemented must not expose implementation plan wording, got %q", err.Error())
 	}
 	if scores != nil {
 		t.Errorf("Scores must be nil on fail-closed, got %+v", scores)

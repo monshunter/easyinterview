@@ -31,7 +31,7 @@
 
 ## Negative Greps
 
-- Source tree under `frontend/src/app/screens/resume-workshop/create/` contains zero retired-module references
+- Source tree under `frontend/src/app/screens/resume-workshop/create/` contains zero non-current-module references
 - Source tree does not import `ui-design/src/data` or `ui-design/src/screen-resume-workshop`
 
 ## Trigger Log Assertions

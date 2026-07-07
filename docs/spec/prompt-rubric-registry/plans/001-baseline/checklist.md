@@ -1,89 +1,38 @@
 # F3 Baseline Registry, Resolve and Lint Gates Checklist
 
-> **版本**: 1.2
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-09
+> **更新日期**: 2026-07-07
 
 **关联计划**: [plan](./plan.md)
 
-## Phase 0: 上游契约复核（无代码 / 契约写入；只记录 handoff snapshot）
+## Phase 1: Config truth source
 
-- [x] 0.1 抽出 `config/ai-profiles.yaml` 中 spec §3.1.1 列出的 10 个默认 `model_profile_name` 当前 `status` / `capability` / `provider_ref` / `unsupported_reason`，记入 plan §8.1.1 Phase 0 handoff snapshot，作为 Phase 5 `make lint-ai-profile-coverage` 预期输入。验证: 笔记小节包含 10 行；`grep -E "^(target|practice|report|resume|debrief)\\." /tmp/phase0-profile-snapshot.md` 命中 10 行
-- [x] 0.2 复核 `migrations/000001_create_baseline.up.sql` L341-396 的 `prompt_versions` / `rubric_versions` / `ai_task_runs` schema，确认 Phase 4 seed migration 字段集与 spec §4.1 一致，并客观记录当前 `ai_task_runs` 缺少 `feature_key` / `feature_flag` / `data_source_version` typed columns 的缺口。验证: schema 字段对照表与缺口表写入 plan §8.1.1 Phase 0 handoff snapshot
-- [x] 0.3 复核 `backend/internal/targetjob/prompt_registry.go` 与 `backend/internal/targetjob/parse_executor.go` L20-44，确认 `StaticPromptRegistry` retire scope（含 4 个 `defaultTargetImport*` 常量）与 `PromptResolution` 7 字段，且 `featureKey` 由 Resolve 入参和 A3 metadata 承载。验证: retire 标识符清单写入 plan §8.1.1 Phase 0 handoff snapshot
-- [x] 0.4 复核 `docs/spec/backend-practice/spec.md` v1.3 D-29 + `openapi/openapi.yaml` `GenerationProvenance` 6 字段（`promptVersion` / `rubricVersion` / `modelId` / `language` / `featureFlag` / `dataSourceVersion`），作为 Phase 3 cross-layer assertion 对齐目标。验证: 字段对照表写入 plan §8.1.1 Phase 0 handoff snapshot
-- [x] 0.5 复核 B1/B4/A3 provenance contract：`shared/conventions.yaml`、`backend/internal/shared/ai/vocabulary.go`、`docs/spec/shared-conventions-codified/spec.md`、`docs/spec/db-migrations-baseline/spec.md`、`backend/internal/ai/aiclient/{payload.go,meta.go,writers.go}` 与 observability decorator。验证: B1 缺 `feature_key`、B4 缺 `ai_task_runs` prompt provenance typed columns、A3 writer 缺三字段的事实表写入 plan §8.1.1 Phase 0 handoff snapshot
+- [x] 1.1 `config/prompts/README.md` 与 `config/rubrics/README.md` 固化文件布局、字段、hash、language coordinate、schema 和 dimension rules；验证: prompt/rubric lint tests 覆盖 README 约束。
+- [x] 1.2 9 个 baseline feature_key 均有 `v0.1.0` prompt YAML/MD、语言无关 schema 与 rubric YAML；验证: `make lint-prompts`、`make lint-rubrics` 和 directory-count checks 通过。
+- [x] 1.3 Prompt/rubric seed migration 与 config truth source 保持一致；验证: `prompt_lint.py` seed hash gate 与 `migrations_lint.py` static SQL gate 通过。
 
-## Phase 1: Truth source 文件 + 3 套 lint script
+## Phase 2: Registry runtime
 
-- [x] 1.1 新增 `config/prompts/README.md` + `config/rubrics/README.md`：固定字段顺序、canonical hash 算法、维度命名 allowlist、multi-language 命名约定，与 `scripts/lint/prompt_lint.py` 共享算法描述。验证: lint 单测 `prompt_lint_test.py::TestCanonicalHashAgainstReadme` 红→绿
-- [x] 1.2 落地 10 个 `config/prompts/<feature_key>/v0.1.0*.{yaml,md}` baseline（每个 feature_key ≥2 language，含 `multi`，文件命名遵守 spec D-2），template body 写真实可用文案，无「TBD」字样。验证: `find config/prompts -mindepth 1 -maxdepth 1 -type d | wc -l` = 10；`find config/prompts -mindepth 2 -name 'v0.1.0*.yaml' | wc -l` ≥ 20；`! grep -rE "\\bTBD\\b|placeholder" config/prompts/`
-- [x] 1.3 落地 10 个 `config/rubrics/<feature_key>/v0.1.0*.yaml` baseline（每个 feature_key ≥2 language，含 `multi`，且与 prompt language 集合一致），每个 ≥3 dimensions、weight 总和 = 1.0、score_levels ≥3 段，维度名命中 spec §4.1 allowlist。验证: `find config/rubrics -mindepth 1 -maxdepth 1 -type d | wc -l` = 10；`find config/rubrics -mindepth 2 -name 'v0.1.0*.yaml' | wc -l` ≥ 20；`rubric_lint_test.py::TestWeightSumTolerance` + `TestDimensionNameAllowlist` 通过
-- [x] 1.4 实现 `scripts/lint/prompt_lint.py` + `prompt_lint_test.py`，覆盖字段顺序、status enum、SemVer、template_hash drift、language 枚举、canonical algorithm。验证: `python3 -m pytest scripts/lint/prompt_lint_test.py` 全绿；2 个 negative fixture（hash drift / 字段顺序错乱）红→绿
-- [x] 1.5 实现 `scripts/lint/rubric_lint.py` + `rubric_lint_test.py`，覆盖 dimensions 非空、weight sum 容差、score_levels schema、维度 allowlist。验证: `python3 -m pytest scripts/lint/rubric_lint_test.py` 全绿；2 个 negative fixture（缺 weight / 违反 allowlist）红→绿
-- [x] 1.6 实现 `scripts/lint/prompt_hardcode_lint.py` + `prompt_hardcode_lint_test.py`，AST 扫 `backend/internal/{practice,report,resume,debrief,targetjob}/**/*.go` 中 `prompt :=` / `Prompt = "..."` / `systemMessage := "..."` 字面量。验证: 注入 `backend/internal/practice/` 临时 `prompt := "..."` fixture → exit 1；移除后 → exit 0
-- [x] 1.7 在 `Makefile` 追加 `lint-prompts` / `lint-rubrics` / `lint-prompts-hardcode` target，并加入聚合 `lint`；migration lint 仍由 `make migrate-check` 覆盖。验证: `make lint-prompts && make lint-rubrics && make lint-prompts-hardcode && make lint && make migrate-check` 全绿
-- [x] 1.8 Regression-negative scope grep：`! grep -rE "mistakes|growth|drill|mistake.extract" config/prompts/ config/rubrics/` 通过；spec §3.1.1 删除的 C11 资料检索类占位不出现。验证: grep 命令 0 行命中（写入 plan §8 handoff Phase 1 收口）
+- [x] 2.1 `backend/internal/ai/registry` 提供 types、loader、resolver、cache、registry client、Judge interface 和 errors；验证: registry Go tests 覆盖 load/hash drift/resolve/cache/judge/startup budget。
+- [x] 2.2 `ResolveActive` 返回 feature_key、prompt/rubric version、model profile、feature flag、data source version、templates 和 output schema；验证: registry resolver tests 与 schema lint 通过。
+- [x] 2.3 Registry 包边界保持 provider-neutral；验证: boundary grep / tests 断言 registry 不直接调用 AIClient、不读 secret、不写业务 metric。
 
-## Phase 2: `backend/internal/ai/registry/` Go 包
+## Phase 3: TargetJob / provenance bridge
 
-- [x] 2.1 新增 `backend/internal/ai/registry/doc.go`：包注释 + 红线（不依赖 targetjob、不调 aiclient、不写业务 metric / log）。验证: `! grep -rE "github.com/.*/targetjob|aiclient\.|metric\.Counter" backend/internal/ai/registry/` 通过；如需在 doc 注释中记录红线，测试需显式过滤注释而不是放宽源码命中
-- [x] 2.2 实现 `types.go`：`PromptResolution`（包含 `FeatureKey` + 兼容 targetjob 7 字段 + D-12 预留 Tools/OutputSchema/StreamWire）、`PromptMeta`、`RubricSchema`、`RubricDimension`、`ScoreLevel`、`Judge` interface（签名 = spec D-9）、错误类型。验证: `go test ./backend/internal/ai/registry -run TestTypeShape -race` 通过；反射断言 `Judge` 入参顺序与 spec D-9 一致
-- [x] 2.3 实现 `loader.go` + `loader_test.go`：扫 `config/prompts/` + `config/rubrics/`，逐项校验 template_hash drift；canonical algorithm 与 `prompt_lint.py` 共享。验证: `go test ./backend/internal/ai/registry -run TestLoad -race` 全绿（happy / hash drift / missing meta / yaml 解析失败）
-- [x] 2.4 实现 `resolver.go` + `resolver_test.go`：`ResolveActive` 精确 language → `multi` fallback；unknown feature_key → `ErrPromptUnsupported`；空字符串拒绝。验证: `go test ./backend/internal/ai/registry -run TestResolve -race` 全绿（精确 language / fallback to multi 含 warn 计数 / unknown feature_key / unknown language warn / 空字符串）
-- [x] 2.5 实现 `cache.go` + `cache_test.go`：atomic.Value snapshot + 30s TTL + Reload 钩子。验证: `go test ./backend/internal/ai/registry -run TestCache -race` 全绿（TTL expiry / Reload idempotent ×5 / 100 goroutine 并发 + Reload 交错无 race）
-- [x] 2.6 实现 `judge.go` + `judge_test.go`：`NotImplementedJudge` 默认实现，始终返回 `ErrJudgeNotImplemented`；签名 freeze 反射断言。验证: `go test ./backend/internal/ai/registry -run TestJudge -race` 全绿
-- [x] 2.7 实现 `registry.go` + `registry_test.go`：`NewRegistryClient(opts)` 全量加载；不允许悬空 feature_key（prompt 有 rubric 无或反之 → 启动 fail）。验证: `go test ./backend/internal/ai/registry -run TestNewRegistryClient -race` 全绿
-- [x] 2.8 实现 `perf_test.go`：`BenchmarkResolve` P95 ≤ 5ms 硬断言；`TestStartupBudget` < 1s。验证: `go test -bench=. -benchtime=200x ./backend/internal/ai/registry/...` 输出 P95 通过；`go test -run TestStartupBudget ./backend/internal/ai/registry/...` 通过
-- [x] 2.9 边界 grep red-line：registry 包不持 secret、不调 AI、不写 metric、不读 env。验证: `! grep -rE "AIClient|aiclient\.|metric\.Counter|secret\.|Secret\.|os\.Getenv" backend/internal/ai/registry/` 通过；如需在 doc 注释中记录红线，测试需显式过滤注释而不是放宽源码命中
+- [x] 3.1 `targetjob.RegistryAdapter` 将 registry resolution 映射到 parse pipeline；验证: adapter tests 显式断言 7 字段映射与 feature_key 一致。
+- [x] 3.2 `backend/cmd/api` 注入 shared registry client + TargetJob adapter；验证: backend cmd/api 和 targetjob tests 通过。
+- [x] 3.3 TargetJobs fixtures 与 OpenAPI `GenerationProvenance` 使用 A3 resolved model id + F3 prompt/rubric provenance；验证: `make validate-fixtures` 通过。
 
-## Phase 3: targetjob StaticPromptRegistry retire + cross-layer 对齐
+## Phase 4: B1/B4/A3 provenance and migrations
 
-- [x] 3.1 替换 `backend/internal/targetjob/prompt_registry.go`：删除 `StaticPromptRegistry` + 4 个 `defaultTargetImport*` 常量；新增 `RegistryAdapter`，构造 `NewRegistryAdapter(client *registry.Client)`，实现 `targetjob.PromptRegistryClient.Resolve` 并映射 7 字段，同时断言 Resolve 入参 `featureKey` 与 registry `FeatureKey` 一致。验证: `go test ./backend/internal/targetjob -run TestRegistryAdapter -race` 全绿，单测显式列出 7 字段映射
-- [x] 3.2 更新 `backend/cmd/api/` DI wire：`NewStaticPromptRegistry()` → `registry.NewRegistryClient(opts)` + `targetjob.NewRegistryAdapter(...)`；ParseExecutor 与未来 C5/C6/C7 handler 共享同一 `*registry.Client`。验证: `go build ./backend/cmd/api/...` 通过；`go vet ./backend/...` 无未使用 import
-- [x] 3.3 新增 `backend/internal/targetjob/active_scope_negative_test.go`：用 `go/types` 断言 package 不再 export `StaticPromptRegistry` / `NewStaticPromptRegistry` / 4 个 `defaultTargetImport*`；断言 `mistakes` / `growth` / `drill` / `mistake.extract` 不出现在 targetjob test fixture / golden output。验证: `go test ./backend/internal/targetjob -run TestActiveScopeNegative -race` 全绿
-- [x] 3.4 在 `parse_executor_test.go` 已有 fake AI writer 路径追加 cross-layer assertion：① ParseExecutor 收到的 7 字段 PromptResolution 与 `config/prompts/target.import.parse/v0.1.0*.yaml` meta 一致；② `provenance` JSON 含 `promptVersion / rubricVersion / modelId / language / featureFlag / dataSourceVersion` 6 字段。验证: `go test ./backend/internal/targetjob -run TestParseExecutor -race` 全绿
-- [x] 3.5 更新 `openapi/fixtures/TargetJobs/getTargetJob.json` 中 `summary.provenance` / `fitSummary.provenance` 示例，与 F3 `target.import.parse` baseline 坐标和 B2 `GenerationProvenance` 6 字段一致；确认 `openapi/fixtures/TargetJobs/importTargetJob.json` 路径大小写与 operation matrix 一致且 request/response shape 不变。验证: `make validate-fixtures` 全绿；`frontend/src/app/screens/parse/ParseScreen.tsx` 仍通过 generated `client.getTargetJob` polling
-- [x] 3.6 Phase 3 退出 grep red-line：`! grep -rE "StaticPromptRegistry|defaultTargetImport(Prompt|Rubric|ModelProfile|DataSource)" backend/` 通过；`go vet ./backend/...` 无警告。验证: grep 命令 0 行命中（写入 plan §8 handoff Phase 3 收口）
+- [x] 4.1 B1 shared vocabulary、B4 migrations、A3 aiclient metadata/writer 都承载 `feature_key`、`feature_flag`、`data_source_version`；验证: shared/aiclient tests 与 migration lint 通过。
+- [x] 4.2 `ai_task_runs` typed row 与 TargetJob fake writer tests 对齐；验证: targetjob cross-layer tests 断言 row fields 与 registry/A3 meta 一致。
+- [x] 4.3 Baseline prompt/rubric seed migration idempotent 且 down SQL 范围限定；验证: static SQL parse gate 覆盖 9-key `multi` rows。
 
-## Phase 4: B1/B4/A3 provenance remediation + DB seed migration
+## Phase 5: Lint / handoff
 
-- [x] 4.1 修订 B1 AI vocabulary：`docs/spec/shared-conventions-codified/spec.md`、`shared/conventions.yaml`、`backend/internal/shared/ai/vocabulary.go` 在既有 `feature_flag` / `data_source_version` 旁增加 `feature_key`，并说明三者不进入 F1 metric labels。验证: B1 generator/lint 测试缺 `feature_key` 时红，补齐后绿
-- [x] 4.2 修订 B4 `ai_task_runs` schema contract：`docs/spec/db-migrations-baseline/spec.md` C-12 / D-15 / §2.1 增加 `feature_key` / `feature_flag` / `data_source_version` typed columns；按 migration workflow 新增 `NNNNNN_add_ai_task_runs_prompt_provenance.{up,down}.sql` 或在 dev baseline 允许时修订 `000001` 并记录原因；更新 `scripts/lint/migrations_lint.py` 允许且要求 `ai_task_runs.feature_key`。验证: `make migrate-check` 全绿；migration lint 对缺列 fixture 失败
-- [x] 4.3 修订 A3 aiclient metadata / writer：`CallMetadata` 增加 `FeatureFlag`；`AICallMeta` / `AITaskRunRow` / observability decorator 显式携带 `FeatureKey` / `FeatureFlag` / `DataSourceVersion`。验证: `go test ./backend/internal/ai/aiclient/... -race` 全绿；缺三字段 negative test 红→绿
-- [x] 4.4 新增 `migrations/NNNNNN_seed_baseline_prompt_rubric_versions.up.sql`：写入 10 个 feature_key × N language baseline 行（`version='v0.1.0'`、`is_active=true`、`template_hash` 与 yaml 一致、`schema_json` 来自 rubric yaml canonical 化）；`INSERT ... ON CONFLICT DO NOTHING`。验证: static SQL parse + prompt lint seed hash gate 全绿；live `make migrate-up` 需配置 `DATABASE_URL`
-- [x] 4.5 新增 `migrations/NNNNNN_seed_baseline_prompt_rubric_versions.down.sql`：`DELETE FROM prompt_versions WHERE version='v0.1.0' AND feature_key IN (...)`，rubric 同；范围限定避免误删后续版本。验证: down SQL 范围静态复核通过；live `make migrate-down && make migrate-up` 需配置 `DATABASE_URL`
-- [x] 4.6 增强 `scripts/lint/prompt_lint.py`：扫 `migrations/*seed_baseline*.up.sql` 中 `template_hash` 与对应 `config/prompts/<feature_key>/v0.1.0*.yaml` 的 `template_hash` 一致性。验证: 注入 hash 不一致 fixture → `make lint-prompts` exit 1；恢复后 → exit 0
-- [x] 4.7 新增 `backend/internal/ai/registry/db_integration_test.go` static SQL parse gate：解析当前 migration chain + 本 plan seed migration，断言 prompt_versions / rubric_versions 行覆盖 10 个 feature_key × 实际 language 坐标（至少 20 行）且 prompt/rubric language 集合一致 + `template_hash` 与 yaml 一致 + `ai_task_runs` 三个 provenance typed columns 存在。验证: `go test ./backend/internal/ai/registry/... -race` 全绿；live PG down/up 需配置 `DATABASE_URL`
-- [x] 4.8 新增真实执行的 `TestParseExecutorAITaskRuns`：通过 observability wrapper + in-memory writer 断言 `ai_task_runs.feature_key / prompt_version / rubric_version / model_profile_name / model_id / data_source_version / feature_flag` 与 RegistryAdapter / A3 meta 一致，并确认 F1 不新增高基数 metric labels。验证: `go test ./backend/internal/targetjob -run TestParseExecutorAITaskRuns -race` 全绿
-
-## Phase 5: 收口 + A3 coverage gate + sync-doc-index
-
-- [x] 5.1 跑 `make lint-ai-profile-coverage`：验证 spec §3.1.1 列出的 10 个默认 `model_profile_name` 全部存在于 `config/ai-profiles.yaml`，`disabled` / `unsupported` 携带合法 capability/provider_ref + `unsupported_reason`；本 plan 不修改任何 profile status。验证: `make lint-ai-profile-coverage` 退出码 0；profile catalog 当前状态写入 plan §8 handoff Phase 5 收口
-- [x] 5.2 跑顶层 `make lint`（含 `lint-prompts` / `lint-rubrics` / `lint-prompts-hardcode` / `lint-ai-profile-coverage`）+ migration static gates + 全量 verification one-liner；`make migrate-check` live DB 子步骤需 `DATABASE_URL`，本地未配置时记录 blocker，不记为绿色 DB gate。验证: F3 scoped gates 全绿；`make migrate-check` 本地因缺 `DATABASE_URL` 阻塞 live DB check
-- [x] 5.3 确认 `docs/spec/prompt-rubric-registry/plans/INDEX.md` 已写入 001-baseline active 行；维护 `docs/spec/prompt-rubric-registry/history.md` v2.1 entry；`spec.md` Header 保持 v2.1 并同步 `docs/spec/INDEX.md`。验证: `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` 通过
-- [x] 5.4 跑 `python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/prompt-rubric-registry/plans/001-baseline/context.yaml --docs-root docs --target backend`。验证: 退出码 0
-- [x] 5.5 §8 handoff 记录 retrospective 候选清单：StaticPromptRegistry retire 节奏 / template_hash Go ↔ Python canonical 算法对齐策略 / B1/B4/A3 provenance remediation 对后续 F1 / backend-practice plan 的影响；不直接生成 retrospective 报告。验证: handoff 小节存在；由用户决定是否触发 `/retrospective`
-- [x] 5.6 全体 11 AC 自检：plan §8 handoff 列出 C-1~C-11 × 命令证据 × 通过判据；将 plan/checklist Header 切到 `completed`，同步 INDEX 与工作日志。验证: 11 AC 全过；INDEX 显示 completed；最近 `docs/work-journal/` 条目链接到本 plan
-
-## Phase 6: L2 remediation（2026-05-09 code review follow-up）
-
-- [x] 6.1 修订 `ParseExecutor`：`GenerationProvenance.modelId` 使用 `AIClient.Complete` 返回的 `AICallMeta.ModelID`，`CallMetadata` 显式携带 `FeatureFlag` 与 B4 `TaskRun` context。验证: `go test ./backend/internal/targetjob -run 'TestParseExecutor_(HappyPath|MetadataCarriesF3Triple|AITaskRuns)' -count=1 -race` + `go test ./backend/internal/targetjob -count=1 -race` 全绿
-- [x] 6.2 修订 TargetJobs fixture provenance 与 `validate-fixtures` contract：TargetJobs 示例使用 provider-neutral fixture model id 而非 registry profile id，同时继续拒绝 vendor/model token。验证: `python3 -m pytest scripts/lint/validate_fixtures_test.py -q`（20 passed, 2384 subtests）+ `make validate-fixtures` 全绿
-- [x] 6.3 修订 Phase 4.7 / 4.8 / 5.2 gate evidence：4.7 明确为 static SQL parse gate，`make migrate-check` 标注本地 `DATABASE_URL` blocker，4.8 由真实执行的 `TestParseExecutorAITaskRuns` 承接。验证: `python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/prompt-rubric-registry/plans/001-baseline/context.yaml --docs-root docs --target backend` + `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` 全绿
-
-## BDD-Gate
-
-> **BDD 不适用**: 本 plan 是 F3-owned 内部 Go 包（`backend/internal/ai/registry/`）+ `config/` truth source + `scripts/lint/` 静态校验，不新增用户可见 UI、HTTP API 行为或端到端业务工作流；TargetJobs fixture 仅做既有 provenance 示例对齐并由 `make validate-fixtures` 验证。Resolve 契约是 Go interface 与 yaml schema，不可通过浏览器或外部 API 触发。后续 P0 用户行为（first_question / followup / hint / report 等）由 `backend-practice` / `backend-report` / `backend-resume` / `backend-debrief` 各自 plan 维护 BDD/E2E gate。
->
-> **替代验证 gate**:
->
-> 1. `make lint-prompts && make lint-rubrics && make lint-prompts-hardcode && make lint-ai-profile-coverage` 静态门禁
-> 2. `go test ./backend/internal/ai/registry/... -race`（含 `BenchmarkResolve` P95 + `TestStartupBudget` 1s budget）
-> 3. `go test ./backend/internal/targetjob/... -race` 跨包契约对齐 + active-scope negative grep
-> 4. `go test ./backend/internal/ai/aiclient/... -race` 覆盖 `CallMetadata` / `AICallMeta` / `AITaskRunRow` provenance 映射
-> 5. `go test ./backend/internal/ai/registry/... -race` static SQL parse + seed migration cross-layer
-> 6. `make migrate-check` 在配置 `DATABASE_URL` 的环境覆盖 B4 live DB down/up；本地未配置时必须记录 blocker
-> 7. `make validate-fixtures` 验证 TargetJobs fixtures 与 B2 schema / provenance shape
-> 8. grep red-line：旧 `StaticPromptRegistry` / 4 个 `defaultTargetImport*` 常量 / 业务包 hardcode prompt / 已退役 `mistakes` / `growth` / `drill` / `mistake.extract` 模块名
-> 9. `python3 .agent-skills/implement/shared/scripts/validate_context.py` + `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`
+- [x] 5.1 `lint-prompts`、`lint-rubrics`、`lint-prompts-hardcode`、`lint-ai-profile-coverage` 接入本地 Make targets；验证: 四个 Make targets 通过。
+  <!-- verified: 2026-07-07 method=focused-registry-gates evidence="validate_context.py prompt-rubric-registry/001 backend PASS; targeted owner wording grep returned no matches; make lint-prompts PASS (9 files); make lint-rubrics PASS (9 files); make lint-prompts-hardcode PASS; make lint-ai-profile-coverage PASS; python3 scripts/lint/migrations_lint.py --repo-root . PASS; cd backend && go test ./internal/ai/registry/... ./internal/targetjob/... ./internal/ai/aiclient/... ./internal/shared/ai/... ./internal/shared/types/... -count=1 PASS; make validate-fixtures PASS (35 fixtures)" -->
+- [x] 5.2 BDD-Gate: 不适用；验证: plan 明确该 owner 只提供内部 registry/config/lint/migration/adapter contract，用户可见 AI 行为由业务 owner 各自维护 BDD。
+- [x] 5.3 Owner handoff 保留当前验证入口和与 F3 002/003/004 的分工；验证: context validator 和 sync-doc-index 通过。

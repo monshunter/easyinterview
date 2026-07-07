@@ -19,12 +19,12 @@ func TestDeleteMeSoftDeletesUserRevokesAllSessionsAndCreatesPrivacyHandoff(t *te
 		CreatedAt:        now,
 		UpdatedAt:        now,
 	}}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store: store,
 		Now:   func() time.Time { return now },
 		NewID: fixedIDs("privacy-request-1", "job-1"),
 	})
-	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
+	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
 
 	for i := 0; i < 2; i++ {
 		req := httptest.NewRequest(http.MethodDelete, "/api/v1/me", nil)

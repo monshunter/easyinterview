@@ -133,7 +133,7 @@ func TestServiceCreatePracticePlanRejectsInvalidSourceRules(t *testing.T) {
 	}
 }
 
-func TestServiceCreatePracticePlanRejectsLegacyDebriefMode(t *testing.T) {
+func TestServiceCreatePracticePlanRejectsNonCurrentDebriefMode(t *testing.T) {
 	service := NewService(ServiceOptions{Store: &recordingPlanStore{}, NewID: sequenceIDs("plan-1", "audit-1")})
 
 	_, err := service.CreatePracticePlan(context.Background(), validCreatePlanRequest(func(in *CreatePlanRequest) {

@@ -4,7 +4,6 @@ metadata:
   subspec: shared-conventions-codified
   name: 002-codegen-pipeline
   sequence: 2
-  supersedes: []
   specVersion:
     from: 1.5
     to: 1.8

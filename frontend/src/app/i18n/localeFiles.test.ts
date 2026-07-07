@@ -59,7 +59,7 @@ describe("D1 shell i18n locale file structure", () => {
       "home.resumeCreateLink",
     ];
 
-    // product-scope D-22 removes the home debrief CTA with the debrief module.
+    // product-scope D-22 keeps the home debrief CTA outside current scope.
     expect(requiredKeys.length).toBeGreaterThanOrEqual(14);
 
     for (const key of requiredKeys) {
@@ -68,7 +68,7 @@ describe("D1 shell i18n locale file structure", () => {
     }
   });
 
-  it("does not keep retired Resume Workshop per-row tree toast keys", () => {
+  it("does not keep non-current Resume Workshop per-row tree toast keys", () => {
     const zhSource = readFileSync(
       new URL("./locales/zh.ts", import.meta.url),
       "utf8",
@@ -84,7 +84,38 @@ describe("D1 shell i18n locale file structure", () => {
     }
   });
 
-  it("does not keep retired Resume Workshop guided create keys", () => {
+  it("does not keep non-current Resume Workshop tree, branch, or placeholder namespaces", () => {
+    const zhSource = readFileSync(
+      new URL("./locales/zh.ts", import.meta.url),
+      "utf8",
+    );
+    const enSource = readFileSync(
+      new URL("./locales/en.ts", import.meta.url),
+      "utf8",
+    );
+
+    for (const source of [zhSource, enSource]) {
+      expect(source).not.toContain("resumeWorkshop.notImplemented.");
+      expect(source).not.toContain("resumeWorkshop.branch.");
+      expect(source).not.toContain("resumeWorkshop.tree.");
+      expect(source).not.toContain("resumeWorkshop.flat.");
+      expect(source).not.toContain("resumeWorkshop.stats.");
+      expect(source).not.toContain("resumeWorkshop.viewSwitcher.");
+      expect(source).not.toContain("resumeWorkshop.openVersion");
+      expect(source).not.toContain("resumeWorkshop.list.versionsError");
+      expect(source).not.toContain("resumeWorkshop.preview.sidebar.whatSaved.master");
+      expect(source).not.toContain("resumeWorkshop.detail.crumbVersions");
+      expect(source).not.toContain("resumeWorkshop.detail.comingSoon");
+      expect(source).not.toContain("resumeWorkshop.edit.scope.master");
+      expect(source).not.toContain("resumeWorkshop.edit.scope.targeted");
+      expect(source).not.toMatch(
+        /from master|master version|targeted version|create a new suggestion or branch/i,
+      );
+      expect(source).not.toMatch(/主版本|定制版本|分叉|版本内容/);
+    }
+  });
+
+  it("does not keep non-current Resume Workshop guided create keys", () => {
     const zhSource = readFileSync(
       new URL("./locales/zh.ts", import.meta.url),
       "utf8",

@@ -4,10 +4,9 @@ metadata:
   subspec: frontend-workspace-and-practice
   name: 001-workspace-and-interview-context
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
-    to: 1.6
+    to: 1.8
 spec:
   defaultTarget: frontend
   discovery:
@@ -28,7 +27,7 @@ spec:
       - ResumePickerModal
       - WorkspaceEmptyState
       - WorkspaceMissingResumeState
-      - CompanyIntelEmbed
+      - WorkspaceInsightCard
       - InterviewRoundRail
       - BindingPill
       - listTargetJobs
@@ -45,11 +44,10 @@ spec:
       - autoStartPractice
       - practiceMode
       - hintsEnabled
-      - companyIntel embedded-only
-      - report handoff
-      - sessionHistory placeholder
-      - listResumes Phase 7 active-list
-      - getCompanyIntel removed
+      - workspace insight embedded-only
+      - records placeholder
+      - listResumes active-list
+      - target job summary insight card
       - workspace pixel parity
       - E2E.P0.018
       - E2E.P0.019

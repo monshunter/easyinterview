@@ -53,7 +53,7 @@ DIMENSION_ALLOWLIST = frozenset(
     }
 )
 
-RETIRED_MODULE_RE = re.compile(r"\bmistakes\b|\bgrowth\b|\bdrill\b|mistake\.extract")
+NON_CURRENT_MODULE_RE = re.compile(r"\bmistakes\b|\bgrowth\b|\bdrill\b|mistake\.extract")
 
 
 def _filename_language(yaml_path: pathlib.Path) -> str:
@@ -141,8 +141,8 @@ def lint_rubric_yaml(yaml_path: pathlib.Path) -> list[str]:
             f"{yaml_path}: weight sum {weight_total} not within {WEIGHT_TOLERANCE} of 1.0"
         )
 
-    if RETIRED_MODULE_RE.search(text):
-        errors.append(f"{yaml_path}: retired-module name detected (mistakes/growth/drill/mistake.extract)")
+    if NON_CURRENT_MODULE_RE.search(text):
+        errors.append(f"{yaml_path}: non-current module name detected (mistakes/growth/drill/mistake.extract)")
 
     return errors
 

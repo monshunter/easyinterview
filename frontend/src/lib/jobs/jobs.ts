@@ -38,7 +38,7 @@ export function isSourceEventOnly(jobType: JobType): boolean {
   return JOB_TRIGGER_EVENT_SEMANTICS[jobType] === JOB_TRIGGER_EVENT_SEMANTIC_SOURCE_EVENT_ONLY;
 }
 export const EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELDS = ["authChallengeId", "dedupeKey", "deliverySecretRef", "locale", "templateKey", "userId"] as const;
-export const EMAIL_DISPATCH_REDACTED_FIELDS = ["rawMagicLinkToken", "magicLinkUrl", "recipientEmail", "recipientEmailHash", "emailBody", "emailSubject"] as const;
+export const EMAIL_DISPATCH_REDACTED_FIELDS = ["rawEmailCode", "emailVerificationUrl", "recipientEmail", "recipientEmailHash", "emailBody", "emailSubject"] as const;
 export type EmailDispatchPayload = Partial<Record<typeof EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELDS[number], string>>;
 const EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELD_SET = new Set<string>(EMAIL_DISPATCH_ALLOWED_PAYLOAD_FIELDS);
 const EMAIL_DISPATCH_REDACTED_FIELD_SET = new Set<string>(EMAIL_DISPATCH_REDACTED_FIELDS);

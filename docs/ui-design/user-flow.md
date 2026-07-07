@@ -1,8 +1,8 @@
 # EasyInterview 目标用户流程
 
-> **版本**: 2.11
+> **版本**: 2.14
 > **状态**: active
-> **更新日期**: 2026-06-29
+> **更新日期**: 2026-07-07
 
 ## 1 文档目的
 
@@ -56,7 +56,7 @@ Parse & Confirm
 └─ 仅保存规划 -> Workspace
 ```
 
-首次导入链路只有一次全页确认。`workspace` 不再插在 parse 与 session 之间作为第二确认页。
+首次导入链路只有一次全页确认。`workspace` 是既有规划回访枢纽，不是 parse 与 session 之间的第二确认页。
 
 ## 5 模拟面试回访
 
@@ -65,7 +65,7 @@ Workspace
 ├─ 当前面试规划
 ├─ JD / 简历 / 轮次
 ├─ 公司轻情报卡片
-├─ 当前规划会话历史
+├─ 当前规划会话记录
 └─ 立即面试
 ```
 
@@ -126,11 +126,11 @@ Auth
 └─ auth_logout
 ```
 
-`auth_profile_setup` 是首次账号资料补全，用于登录后恢复 pendingAction 前的账号基础信息确认，不是用户画像。
+`auth_profile_setup` 是首次账号资料补全，用于登录后接续 pendingAction 前的账号基础信息确认，不是用户画像。
 
-## 9 已删除流程
+## 9 非当前流程
 
-以下流程不再作为目标用户流程、静态原型页面或正式前端入口：
+以下流程不属于目标用户流程、静态原型页面或正式前端入口：
 
 - 真实面试复盘
 - 复盘面试
@@ -148,7 +148,7 @@ Auth
 |------|------|
 | 用户没有 JD | 首页提示粘贴、上传或 URL 导入 |
 | 用户没有简历 | 首页和 Parse 提供创建简历入口 |
-| 用户未登录执行写入动作 | 进入邮箱验证码登录，成功后恢复 pendingAction |
+| 用户未登录执行写入动作 | 进入邮箱验证码登录，成功后接续 pendingAction |
 | `#route=debrief` / `#route=debrief_full` | 归一到 `home` |
 | `#route=profile` | 归一到 `home` |
-| 旧 `auth_reset` | 归一到 `auth_login` |
+| 非当前 `auth_reset` | 归一到 `auth_login` |

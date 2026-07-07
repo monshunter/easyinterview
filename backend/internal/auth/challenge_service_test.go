@@ -19,7 +19,7 @@ func TestStartAuthEmailChallengeCreatesHashedChallengeAndDispatchesDevLink(t *te
 	})
 	dispatcher := auth.NewImmediateMailDispatcher(sink)
 	now := time.Date(2026, 5, 6, 10, 0, 0, 0, time.UTC)
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:           store,
 		Dispatcher:      dispatcher,
 		DeliverySecrets: sink,
@@ -28,7 +28,7 @@ func TestStartAuthEmailChallengeCreatesHashedChallengeAndDispatchesDevLink(t *te
 		Now:             func() time.Time { return now },
 		NewID:           fixedIDs("018f2a40-0000-7000-9000-000000000010"),
 	})
-	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
+	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
 
 	body := bytes.NewBufferString(`{"email":"Candidate@Example.COM","returnTo":"/practice?planId=plan_1"}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", body)
@@ -182,7 +182,7 @@ func TestStartAuthEmailChallengeDoesNotProbeOrRevealExistingEmail(t *testing.T) 
 		},
 	}
 	sink := auth.NewDevMailSink(auth.DevMailSinkOptions{})
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:           store,
 		Dispatcher:      auth.NewImmediateMailDispatcher(sink),
 		DeliverySecrets: sink,
@@ -191,7 +191,7 @@ func TestStartAuthEmailChallengeDoesNotProbeOrRevealExistingEmail(t *testing.T) 
 		Now:             func() time.Time { return time.Date(2026, 5, 27, 10, 0, 0, 0, time.UTC) },
 		NewID:           fixedIDs("018f2a40-0000-7000-9000-000000000011"),
 	})
-	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
+	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
 
 	req := httptest.NewRequest(
 		http.MethodPost,

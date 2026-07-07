@@ -29,7 +29,7 @@ for forbidden in 'parse-basics-level' 'parse-basics-language'; do
 done
 for forbidden in 'resume-unbound' 'workspace-missing-resume'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
-    echo "retired success marker found in test output: $forbidden" >&2
+    echo "non-current success marker found in test output: $forbidden" >&2
     exit 1
   fi
 done

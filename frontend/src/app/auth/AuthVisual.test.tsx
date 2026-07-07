@@ -189,7 +189,7 @@ describe("auth screen D1 regression after visual parity (Phase 4.1)", () => {
     expect(container.querySelector("[data-testid='auth-verify-email-hint']")).toBeTruthy();
   });
 
-  it("AuthLoginScreen renders the static passwordless help copy (D-16)", () => {
+  it("AuthLoginScreen renders the static email-code help copy (D-16)", () => {
     const { container } = render(
       withProvider(
         <AuthLoginScreen

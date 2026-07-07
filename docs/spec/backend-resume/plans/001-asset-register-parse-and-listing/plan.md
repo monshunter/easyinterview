@@ -1,8 +1,8 @@
 # Backend Resume Asset Register Parse and Listing
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-07
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -20,7 +20,7 @@
 - 在 `cmd/api` 挂载 `registerResume` / `getResume` / `listResumes` route，验证 session middleware、IK middleware、path params 与 backend-internal `resume_parse` runner wiring 都走真实 runtime；
 - 明确本 plan 只落地 `ResumeAsset` source 登记、解析草稿与列表读取，不在用户 Preview Confirm 前创建正式 `structured_master` `ResumeVersion`；保存 v1 与版本读写由 backend-resume/002 承接；
 - 通过 spec §6 C-1..C-8 + C-13 验收 + 新增 E2E.P0.034 / E2E.P0.035 两个 BDD 场景；
-- 不实现 versions / suggestions / tailor / branch / export 流程（归 plan 002 / 003）；真实 PDF 导出按 spec D-6 的 P0 `501 RESUME_EXPORT_NOT_AVAILABLE` / P1 plan 003 处理，本 plan 不实现。
+- 不实现 update / duplicate / tailor / export 流程（归 plan 002 / 003）；真实 PDF 导出按 spec D-6 的 P0 `501 RESUME_EXPORT_NOT_AVAILABLE` / P1 plan 003 处理，本 plan 不实现。
 
 ## 2 背景
 
@@ -34,7 +34,7 @@
 
 - [B2 D-18](../../../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) Phase 1-5 已完成（B1 vocabulary、OpenAPI schema/operation、fixtures、inventory lint、generated server/client artifacts 全部就位；`registerResume` sourceType 扩展与 `listResumes` fixtures 可被真实 handler 字节比对）。
 - [B3 D-14](../../../event-and-outbox-contract/plans/002-resume-tailor-mode-drift-fix/plan.md) Phase 1-4 已完成（ResumeTailorMode enum、baseline manifest、generated 类型、negative grep 与 B3 spec 描述全部对齐）；本 plan 直接消费 `resume.parse.completed` envelope，不消费 `resume.tailor.completed`，但 events drift gate 必须 PASS。
-- [B4 002 resume_versions / resume_version_suggestions / resume_assets 字段补充](../../../db-migrations-baseline/plans/002-resume-versions-additive/plan.md) 已完成（resume_assets 已有 `source_type` / `original_text` / `guided_answers` / `parsed_text_snapshot` 字段）。
+- [B4 002 flat Resume migration](../../../db-migrations-baseline/plans/002-flat-resume-migration/plan.md) 已完成，当前 schema 使用 `resumes` 与 `practice_plans.resume_id`。
 - [backend-upload/001](../../../backend-upload/plans/001-file-objects-and-presign-baseline/plan.md) 是完成条件（createUploadPresign + Register internal API 可用）。截至 2026-05-13 backend-upload/001 completed，`createUploadPresign` handler、`RegisterFileObject` internal service、privacy delete baseline、Register-time object `Stat` + actual size mismatch rejection、live roundtrip no-op/skip guard 均已可用；backend-resume/001 必须消费这个当前契约，upload path 不得只检查 fileObject row 存在。
 - [F3 001 baseline](../../../prompt-rubric-registry/plans/001-baseline/plan.md) 已 ready（`resume.parse` feature_key + prompt / rubric / model profile 就位）。
 - [A3 003](../../../ai-provider-and-model-routing/plans/003-provider-registry-and-capability-profiles/plan.md) 已 ready（AIClient + provider registry + Capability Model Profile）。
@@ -66,7 +66,7 @@
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `registerResume` | `openapi/fixtures/Resumes/registerResume.json` `default` / `paste-text` / `guided-answers`; validation / IK mismatch cases are handler tests unless B2 adds explicit error fixtures | `frontend-resume-workshop/002-create-flow-and-onboarding` (future), backend scenario harness in E2E.P0.034 | `backend/internal/resume/handler/register.go` real handler + `cmd/api` `POST /api/v1/resumes` route with session + IK middleware | `resume_assets` + `file_objects` reference for upload + `async_jobs` resume_parse in the same transaction; no `structured_master` `resume_versions` row before Preview Confirm | `resume.parse.default` through A3/F3 stub in tests | E2E.P0.034 + E2E.P0.035 |
+| `registerResume` | `openapi/fixtures/Resumes/registerResume.json` `default` / `paste-text`; validation / IK mismatch cases are handler tests unless B2 adds explicit error fixtures | `frontend-resume-workshop/002-create-flow`, backend scenario harness in E2E.P0.034 | `backend/internal/resume/handler/register.go` real handler + `cmd/api` `POST /api/v1/resumes` route with session + IK middleware | `resumes` + `file_objects` reference for upload + `async_jobs` resume_parse in the same transaction | `resume.parse.default` through A3/F3 stub in tests | E2E.P0.034 + E2E.P0.035 |
 | `getResume` | `openapi/fixtures/Resumes/getResume.json` `default` / `not-found` | `frontend-resume-workshop` adapter/detail flows (future real switch) | `backend/internal/resume/handler/get.go` real handler + `cmd/api` `GET /api/v1/resumes/{resumeAssetId}` route | `resume_assets` | none | E2E.P0.034 |
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` `default` / `empty` / `paginated` | `frontend-resume-workshop/001` list view and `frontend-workspace-and-practice` ResumePicker unblock | `backend/internal/resume/handler/list.go` real handler + `cmd/api` `GET /api/v1/resumes` route | `resume_assets` cursor pagination | none | E2E.P0.034 |
 
@@ -120,7 +120,7 @@
 #### 3.3 resume_parse backend-internal runner wiring
 - 沿用 [backend-targetjob](../../../backend-targetjob/spec.md) 的 backend-internal runner 口径：`cmd/api` 进程内 claim `async_jobs(job_type=resume_parse)` 并调用 `backend/internal/resume/jobs/parse.go`
 - 提供 `RunOnce` 或等价 deterministic stepping，方便 BDD / `cmd/api` scenario test 在无 timer race 的情况下验证 queued → ready / failed / retry
-- `Start(ctx)` / `Shutdown(ctx)` 必须随 `cmd/api` lifecycle 管理；不得新增独立后台执行 binary、后台执行专用 config 或 `backend-async-runner` 之外的旧 shorthand
+- `Start(ctx)` / `Shutdown(ctx)` 必须随 `cmd/api` lifecycle 管理；不得新增独立后台执行 binary、后台执行专用 config 或 `backend-async-runner` 之外的非当前 shorthand
 
 #### 3.4 unit test
 - `parse_test.go`（stub AIClient）：成功 / parse JSON 失败 / AI timeout retryable / output_invalid
@@ -177,7 +177,7 @@
 #### 5.4 spec / history / INDEX 同步
 
 - backend-resume spec.md 本次 L1 修订后保持 1.1 active；实施完成时再追加完成行
-- backend-resume history.md 已记录 2026-05-12 既有 L1 修订；本轮若改变 spec 版本、日期或历史语义，收尾阶段再追加 history 行；plan 001 落地后追加新行（如完成）
+- backend-resume subject chronology 已记录 2026-05-12 既有 L1 修订；本轮若改变 spec 版本、日期或既有语义，收尾阶段再追加记录行；plan 001 落地后追加新行（如完成）
 - 同步 `docs/spec/engineering-roadmap/spec.md` §5.2 `backend-resume` 状态从 "未创建" 改为 "active"（roadmap spec 3.11 → 3.12 if not already）
 
 ### Phase 6: L2 remediation - handler errors, parse retry state, and gate hardening
@@ -199,7 +199,7 @@
 
 ### Phase 7: D-20 简历扁平化适配（resumes / resumeId / structured_profile）
 
-> product-scope D-20 / backend-resume D-13。把 register / get / list / parse 迁移到扁平 `resumes` 单表口径。依赖 [B4 002 Phase 6](../../../db-migrations-baseline/plans/002-resume-versions-additive/plan.md) flatten migration + [B2 004 Phase 7](../../../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) contract collapse。Red 优先。
+> product-scope D-20 / backend-resume D-13。把 register / get / list / parse 迁移到扁平 `resumes` 单表口径。依赖 [B4 002 flat Resume migration](../../../db-migrations-baseline/plans/002-flat-resume-migration/plan.md) + [B2 004 Phase 7](../../../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) contract collapse。Red 优先。
 
 #### 7.1 store 迁移 resume_assets → resumes
 
@@ -240,7 +240,7 @@
 | 风险 | 应对 |
 |------|------|
 | R1: resume.parse AI 输出 JSON 不稳定（schema 漂移） | F3 prompt 设计含 output schema example + [B2 §4.6 GenerationProvenance](../../../openapi-v1-contract/spec.md#46-ai-生成结果-provenance-约束) 强制 + parse 失败 retryable + `output_schema_version` typed column 追踪 |
-| R2: `resume_assets.source_type` 字段为 NULL（baseline 数据） | Phase 2 store 实现兼容 NULL（未设置时不强制三路；新写必带）；migration 不回填历史行 |
+| R2: `resume_assets.source_type` 字段为 NULL（存量数据） | Phase 2 store 实现兼容 NULL（未设置时不强制三路；新写必带）；migration 不回填存量行 |
 | R3: cross-user isolation 漏洞导致越权 | handler 层 + store 层双层 `user_id` 过滤；integration test 强制覆盖 cross-user case |
 | R4: backend-upload 未完成时本 plan 启动 | Plan 2 背景写明前置依赖；本 plan 不在 backend-upload/001 完成前启动 |
 | R5: workspace 001 修订时序 | 本 plan Phase 5.3 仅发信号，不直接修订；workspace owner 在收到信号后启动 plan 1.2 → 1.3 原地修订，不创建 sibling |

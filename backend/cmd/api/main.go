@@ -267,7 +267,7 @@ func buildRunnerKernel(opts runnerKernelOptions) (*runner.Runtime, error) {
 	return kernel, nil
 }
 
-func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessService, auth.DeliveryWriter, error) {
+func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.EmailCodeService, auth.DeliveryWriter, error) {
 	challengePepper := strings.TrimSpace(loader.GetSecret("auth.challengeTokenPepper").Reveal())
 	sessionCookieSecret := strings.TrimSpace(loader.GetSecret("auth.sessionCookieSecret").Reveal())
 	var missing []string
@@ -310,7 +310,7 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessServ
 	// Producer enqueues email_dispatch async_jobs rows (spec D-10); the kernel
 	// EmailDispatchHandler delivers them through the configured writer.
 	enqueuer := auth.NewEmailDispatchEnqueuer(db, idx.NewID, func() time.Time { return time.Now().UTC() })
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               auth.NewSQLStore(db),
 		Dispatcher:          enqueuer,
 		DeliverySecrets:     sink,
@@ -320,12 +320,12 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.PasswordlessServ
 	return service, writer, nil
 }
 
-func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, db *sql.DB) http.Handler {
+func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.EmailCodeService, db *sql.DB) http.Handler {
 	upload, _ := buildUploadRoutes(loader, db)
 	return buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, buildTargetJobHandler(loader, targetjob.NewSQLStore(db)), practiceRoutes{}, upload, resumeRoutes{})
 }
 
-func buildAPIHandlerWithTargetJobHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler) http.Handler {
+func buildAPIHandlerWithTargetJobHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.EmailCodeService, targetJobHandler *targetjob.Handler) http.Handler {
 	return buildAPIHandlerWithHandlers(loader, flagsClient, authService, targetJobHandler, practiceRoutes{})
 }
 
@@ -374,22 +374,22 @@ type resumeRoutes struct {
 	Idempotency *idempotency.Middleware
 }
 
-func buildAPIHandlerWithHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes) http.Handler {
+func buildAPIHandlerWithHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.EmailCodeService, targetJobHandler *targetjob.Handler, practice practiceRoutes) http.Handler {
 	return buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, uploadRoutes{}, resumeRoutes{})
 }
 
-func buildAPIHandlerWithUploadAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes) http.Handler {
+func buildAPIHandlerWithUploadAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.EmailCodeService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes) http.Handler {
 	return buildAPIHandlerWithUploadReportAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, upload, resume, reportRoutes{})
 }
 
-func buildAPIHandlerWithUploadReportAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes) http.Handler {
+func buildAPIHandlerWithUploadReportAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.EmailCodeService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes) http.Handler {
 	return buildAPIHandlerWithUploadReportJobsAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, upload, resume, reports, jobsRoutes{})
 }
 
-func buildAPIHandlerWithUploadReportJobsAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.PasswordlessService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes, jobs jobsRoutes) http.Handler {
+func buildAPIHandlerWithUploadReportJobsAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.EmailCodeService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes, jobs jobsRoutes) http.Handler {
 	mux := http.NewServeMux()
 	authHandler := auth.NewHandler(auth.HandlerOptions{
-		Passwordless: authService,
+		EmailCode:    authService,
 		CookiePolicy: pointer(auth.CookiePolicyForAppEnv(loader.AppEnv())),
 	})
 	mux.Handle("POST /api/v1/auth/email/start", auth.SessionMiddleware(authService, "startAuthEmailChallenge", http.HandlerFunc(authHandler.StartAuthEmailChallenge)))

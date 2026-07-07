@@ -1,12 +1,12 @@
 # Local Quality Gate and Deferred CI Spec
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
-> **更新日期**: 2026-04-29
+> **更新日期**: 2026-07-07
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将历史 A5 `ci-pipeline-baseline` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md) 与 [A2 `local-dev-stack`](./../local-dev-stack/spec.md)）。该 subject 名称保留历史占位，但当前项目是个人单人开发者项目，P0 阶段不需要构建 GitHub Actions / GitLab CI 等远端 CI pipeline。
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将原始 A5 `ci-pipeline-baseline` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md) 与 [A2 `local-dev-stack`](./../local-dev-stack/spec.md)）。该 subject 名称保留既有占位，但当前项目是个人单人开发者项目，P0 阶段不需要构建 GitHub Actions / GitLab CI 等远端 CI pipeline。
 
 本 spec 在当前阶段只决定：
 
@@ -59,7 +59,7 @@
 | D-3 | 本地 gate owner | A5 只组织入口；B1/B2/A4/F1 等 owner 提供各自 lint / generator / check 实现 | 避免 A5 变成工具大杂烩 |
 | D-4 | 业务 secret | DB / Redis / AI provider / PostHog secrets 不进入任何远端 runner；本地单测默认走 stub / fixtures | 防止过早引入 secret 管理复杂度 |
 | D-5 | 远端 CI 升级触发条件 | 满足任一条件才重新评估：第二位长期贡献者加入、公开 release branch、付费用户上线、需要自动发版、回归频率高到本地门禁不足以控制 | CI 在需要时再建 |
-| D-6 | 分支保护 | 当前不强制 branch protection；是否用 `dev/main` 线性历史由人工执行 | 单人项目避免流程噪声 |
+| D-6 | 分支保护 | 当前不强制 branch protection；是否用 `dev/main` 线性提交记录由人工执行 | 单人项目避免流程噪声 |
 | D-7 | artifact | 当前不上传 artifact；构建产物只保留在本地工作区 | 降低维护成本 |
 
 ### 3.2 待确认事项

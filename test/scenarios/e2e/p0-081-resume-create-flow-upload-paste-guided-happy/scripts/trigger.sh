@@ -15,5 +15,5 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/resume-workshop/create/hooks/useResumePresignUpload.test.tsx \
     src/app/screens/resume-workshop/create/hooks/useResumeRegistration.test.tsx \
     src/app/screens/resume-workshop/create/ParsingStage.test.tsx \
-    src/app/screens/resume-workshop/create/CreateFlowLegacyNegative.test.ts
+    src/app/screens/resume-workshop/create/CreateFlowNonCurrentNegative.test.ts
 ) | tee "$OUTPUT_DIR/trigger.log"

@@ -271,10 +271,10 @@ export const ResumePreviewConfirm: FC<ResumePreviewConfirmProps> = ({
                 <ResumeWorkshopIcon name="layers" size={15} />
                 <div>
                   <div className="ei-resume-create-sidebar-item-title">
-                    {t("resumeWorkshop.preview.sidebar.whatSaved.master.title")}
+                    {t("resumeWorkshop.preview.sidebar.whatSaved.editable.title")}
                   </div>
                   <p className="ei-resume-create-sidebar-item-body">
-                    {t("resumeWorkshop.preview.sidebar.whatSaved.master.body")}
+                    {t("resumeWorkshop.preview.sidebar.whatSaved.editable.body")}
                   </p>
                 </div>
               </li>

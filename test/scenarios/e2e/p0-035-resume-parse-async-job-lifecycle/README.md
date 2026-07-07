@@ -22,7 +22,7 @@ Then success writes `parsed_summary`, `parsed_text_snapshot`, `parse_status=read
 
 - `scripts/setup.sh`: prepares output directories and copies expected evidence notes.
 - `scripts/trigger.sh`: runs the `cmd/api` drainer scenario, runtime wiring test, parse handler tests, and live DB integration gate.
-- `scripts/verify.sh`: rejects skips/no-op focused gates, checks required parse lifecycle evidence, and performs legacy/privacy negative searches.
+- `scripts/verify.sh`: rejects skips/no-op focused gates, checks required parse lifecycle evidence, and performs privacy / non-current negative searches.
 - `scripts/cleanup.sh`: records cleanup completion while preserving logs under `.test-output/`.
 
 ## 5. Evidence

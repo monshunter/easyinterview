@@ -13,4 +13,4 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-home-jd-import-and-parse](./001-home-jd-import-and-parse/plan.md) | [plan](./001-home-jd-import-and-parse/plan.md) / [checklist](./001-home-jd-import-and-parse/checklist.md) / [context](./001-home-jd-import-and-parse/context.yaml) / [bdd-plan](./001-home-jd-import-and-parse/bdd-plan.md) / [bdd-checklist](./001-home-jd-import-and-parse/bdd-checklist.md) | 2.3 | completed | 2026-07-06 |
+| [001-home-jd-import-and-parse](./001-home-jd-import-and-parse/plan.md) | [plan](./001-home-jd-import-and-parse/plan.md) / [checklist](./001-home-jd-import-and-parse/checklist.md) / [context](./001-home-jd-import-and-parse/context.yaml) / [bdd-plan](./001-home-jd-import-and-parse/bdd-plan.md) / [bdd-checklist](./001-home-jd-import-and-parse/bdd-checklist.md) | 2.5 | completed | 2026-07-07 |

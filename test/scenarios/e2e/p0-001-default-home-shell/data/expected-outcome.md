@@ -8,7 +8,7 @@
   `topbar-theme-custom-option` 可达。
 - 未登录 user-area `topbar-user-area` 的 `data-signed-in` 为 `false`，渲染
   `topbar-login`，不渲染 `topbar-register`。
-- 旧入口（`welcome` route、`jd_match` route、独立 `voice`、`growth` /
+- 非当前入口（`welcome` route、`jd_match` route、独立 `voice`、`growth` /
   `mistakes` / `drill`、`debrief` / `profile`）
   在 DOM 中不可见。
-- 场景日志中不得出现以上旧入口的 `data-testid` 字符串，否则视为回流污染。
+- 场景日志中不得出现以上非当前入口的 `data-testid` 字符串，否则视为回流污染。

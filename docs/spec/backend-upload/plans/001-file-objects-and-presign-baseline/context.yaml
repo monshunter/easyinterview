@@ -4,7 +4,6 @@ metadata:
   subspec: backend-upload
   name: 001-file-objects-and-presign-baseline
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
     to: 1.0

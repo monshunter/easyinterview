@@ -7,7 +7,7 @@
 
 ## 1 Given
 5 子场景：(A1) 已登录+无 plan→首次面试；(A2) createPracticePlan 422 missing-resume；
-(A3) startPracticeSession 502+重试；(B1) 有 plan+ready→跳过 create；(C1) 未登录→requestAuth→登录恢复
+(A3) startPracticeSession 502+重试；(B1) 有 plan+ready→跳过 create；(C1) 未登录→requestAuth→登录接续
 
 ## 2 When
 点击 workspace-cta-start 触发立即面试流程

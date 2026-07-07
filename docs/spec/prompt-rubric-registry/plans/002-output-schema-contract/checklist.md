@@ -1,8 +1,8 @@
 # F3 Output Schema Contract Checklist
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-07
 
 **关联计划**: [plan](./plan.md)
 
@@ -18,7 +18,7 @@
 
 - [x] 1.1 `config/prompts/README.md` 新增 output schema 约定（文件落点、语言无关、JSON Schema 校验子集、`description` 非校验注解、不混入 `template_hash`、与 prompt body / struct 一致性）。验证: README 含 output schema 章节；`make lint-prompts` 仍绿
 - [x] 1.2 在 README 固化 prompt body 输出契约块规范：字段顺序来自 schema，字段说明来自 `description`，complete example JSON output 由 schema 生成并可解析，覆盖 schema 声明的 required + optional 字段，使用业务形态值，并明确不是 JSON Schema / OpenAPI schema；人不在当前 18 个 `.md` 手工维护第二份字段表。验证: README 明确 schema 是唯一字段真理源，并说明 renderer/lint 的 drift 行为
-- [x] 1.3 在 README / handoff 规则中明确 alias / optional 字段策略：parser legacy alias 不自动进入新 prompt contract；prompt-only 可选字段必须有 `description` 说明评估价值。验证: README 或 plan §8 handoff 模板包含 alias/optional 判定项
+- [x] 1.3 在 README / handoff 规则中明确 alias / optional 字段策略：parser non-current alias 不自动进入新 prompt contract；prompt-only 可选字段必须有 `description` 说明评估价值。验证: README 或 plan §8 handoff 模板包含 alias/optional 判定项
 
 ## Phase 2: 13 份语言无关 output schema 文件
 
@@ -53,7 +53,7 @@
 - [x] 7.1 `targetjob.PromptResolution` 加 `OutputSchema` 字段 + `RegistryAdapter` 映射 + `parse_executor.go` 填 `CallMetadata.OutputSchema`。验证: `go test ./backend/internal/targetjob/... -race` 全绿，cross-layer test 断言透传 + fail-close
 - [x] 7.2 `resume/jobs.PromptResolution` 加 `OutputSchema` + adapter 映射 + `parse.go`/`tailor.go` 填 metadata。验证: `go test ./backend/internal/resume/jobs/... -race` 全绿
 - [x] 7.3 `review`/`practice`(chat) 直接读 `resolution.OutputSchema` 填 metadata；`practice/voice_turn_service.go` STT/TTS 跳过，仅 chat 接线。验证: `go test ./backend/internal/{review,practice}/... -race` 全绿
-- [x] 7.4 Retired feature_key negative gate：Debrief / JD Match 不再出现在当前 `config/prompts` / `config/rubrics` truth source，且 lint 对退休 key fail-fast。验证: prompt/rubric retired-key negative tests 全绿
+- [x] 7.4 Non-current feature_key negative gate：Debrief / JD Match 不再出现在当前 `config/prompts` / `config/rubrics` truth source，且 lint 对 non-current key fail-fast。验证: prompt/rubric non-current-key negative tests 全绿
 - [x] 7.5 grep red-line：语音 feature_key 不落 schema、不接 `OutputSchema`；业务包无 `response_format`/`json_schema` 请求字段。验证: `find config/prompts -name '*.schema.json' | grep -E 'voice|stt|tts|dictation'` 返回 0 行（语音 feature_key 无 schema）；`! grep -rnE '"response_format"|json_schema' backend/internal` provider 请求字段命中为 0
 - [x] 7.6 收口：`make lint-prompts` + `go test ./backend/internal/ai/registry/... ./backend/internal/ai/aiclient/... ./backend/internal/{targetjob,resume/jobs,review,practice}/... -race` + `validate_context.py` + `sync-doc-index --check`；§8 handoff 列 C-12 证据；Header 切 `completed` 同步 INDEX 与工作日志。验证: 全部命令绿；INDEX 显示 completed
 
@@ -66,14 +66,14 @@
 ## Phase 9: L2 seed migration coverage remediation（active truth source 全量覆盖）
 
 - [x] 9.1 重写 seed migration 静态覆盖测试，从 `config/prompts` active YAML 与 `config/rubrics` YAML 反推出期望坐标，扫描 seed / delete migrations 的净效果，拒绝 missing / extra / duplicate row 与 prompt `template_hash` drift。验证: focused seed coverage red→green
-- [x] 9.2 Retired feature_key seed net-zero gate：历史 retired seed rows 可作为 migration audit trail 保留，但当前迁移链最终不得留下 retired active prompt/rubric coordinate。验证: prompt/rubric/migration lint 与 migrate-check 全绿
+- [x] 9.2 Non-current feature_key seed net-zero gate：non-current seed rows 可作为 migration audit rows 保留，但当前迁移链最终不得留下 non-current active prompt/rubric coordinate。验证: prompt/rubric/migration lint 与 migrate-check 全绿
 - [x] 9.3 执行 migration/runtime 收口 gate。验证: `go test ./backend/internal/ai/registry -count=1` → pass；`python3 scripts/lint/prompt_lint.py` → `prompt_lint: 9 files clean`；`python3 scripts/lint/rubric_lint.py` → `rubric_lint: 9 files clean`；`python3 scripts/lint/migrations_lint.py` → `migration lint: ok`；`DATABASE_URL=postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable make migrate-check` → pass
 
-## Phase 10: L2 review follow-up（retired key rejection + lint diagnostic hardening）
+## Phase 10: L2 review follow-up（non-current key rejection + lint diagnostic hardening）
 
-- [x] 10.1 Retired feature_key rejection：当前 config truth source 中无 Debrief / JD Match prompt/rubric 目录；人为写入退休 key 时 lint 返回 clear diagnostic。验证: `python3 -m pytest scripts/lint/prompt_lint_test.py -q -k 'retired_jd_match or missing_schema_description'` → pass
+- [x] 10.1 Non-current feature_key rejection：当前 config truth source 中无 Debrief / JD Match prompt/rubric 目录；人为写入 non-current key 时 lint 返回 clear diagnostic。验证: `python3 -m pytest scripts/lint/prompt_lint_test.py -q -k 'jd_match or missing_schema_description'` → pass
 - [x] 10.2 修复 `prompt_lint.py` 在 invalid schema 已产生 subset/contract error 时仍调用 renderer 导致 traceback 的缺口。验证: `test_missing_schema_description_reports_lint_error_without_traceback` 先红后绿，断言 stderr 包含 `missing non-empty description` 且不含 `Traceback`
-- [x] 10.3 执行收口验证并同步 Bug / retrospective 文档。验证: `python3 -m pytest scripts/lint/prompt_lint_test.py -q` → pass；`python3 scripts/lint/prompt_lint.py` → `prompt_lint: 9 files clean`；`python3 scripts/lint/rubric_lint.py` → `rubric_lint: 9 files clean`；`python3 scripts/lint/migrations_lint.py` → `migration lint: ok`；`DATABASE_URL=postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable make migrate-check` → `migration lint: ok`；`go test ./backend/internal/ai/registry -count=1` → pass；retired feature key negative tests → pass；`go test ./backend/internal/ai/aiclient/observability -run TestDecorator_OutputSchema -count=1` → pass；`validate_context.py --context docs/spec/prompt-rubric-registry/plans/002-output-schema-contract/context.yaml --docs-root docs --target backend` → pass；`sync-doc-index.py --check` → zero drift；`git diff --check` → pass
+- [x] 10.3 执行收口验证并同步 Bug / retrospective 文档。验证: `python3 -m pytest scripts/lint/prompt_lint_test.py -q` → pass；`python3 scripts/lint/prompt_lint.py` → `prompt_lint: 9 files clean`；`python3 scripts/lint/rubric_lint.py` → `rubric_lint: 9 files clean`；`python3 scripts/lint/migrations_lint.py` → `migration lint: ok`；`DATABASE_URL=postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable make migrate-check` → `migration lint: ok`；`go test ./backend/internal/ai/registry -count=1` → pass；non-current feature key negative tests → pass；`go test ./backend/internal/ai/aiclient/observability -run TestDecorator_OutputSchema -count=1` → pass；`validate_context.py --context docs/spec/prompt-rubric-registry/plans/002-output-schema-contract/context.yaml --docs-root docs --target backend` → pass；`sync-doc-index.py --check` → zero drift；`git diff --check` → pass
 
 ## BDD-Gate
 

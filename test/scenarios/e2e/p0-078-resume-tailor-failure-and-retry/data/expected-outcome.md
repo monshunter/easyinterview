@@ -12,4 +12,4 @@
 
 - `method=cmd-api-http` appears in verify output.
 - Trigger log contains no skipped or no-op focused gates.
-- Retired vocabulary and privacy negative greps return zero hits for backend resume implementation and scenario evidence.
+- Non-current vocabulary and privacy negative greps return zero hits for backend resume implementation and scenario evidence.

@@ -10,8 +10,8 @@ test -s "$LOG_FILE"
 grep -Eq 'Test Files +[0-9]+ passed \([0-9]+\)' "$LOG_FILE" || { echo "$SCENARIO_ID: no passing test files" >&2; exit 1; }
 grep -Fq 'WorkspaceStartPractice.test.tsx' "$LOG_FILE" || { echo "$SCENARIO_ID: start practice test did not run" >&2; exit 1; }
 grep -Fq 'WorkspaceAuthGate.test.tsx' "$LOG_FILE" || { echo "$SCENARIO_ID: auth gate test did not run" >&2; exit 1; }
-removed_legacy_mode="debrief""_replay"
-if rg -n "${removed_legacy_mode}|answerText|hintText|promptHash|questionText" \
+non_current_mode="debrief""_replay"
+if rg -n "${non_current_mode}|answerText|hintText|promptHash|questionText" \
   "$REPO_ROOT/frontend/src/app/screens/workspace" \
   "$REPO_ROOT/frontend/src/app/interview-context" \
   -g '!*.test.tsx'; then

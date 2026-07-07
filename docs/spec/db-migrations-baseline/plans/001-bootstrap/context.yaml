@@ -4,7 +4,6 @@ metadata:
   subspec: db-migrations-baseline
   name: 001-bootstrap
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
     to: 1.8

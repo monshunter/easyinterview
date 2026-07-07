@@ -28,8 +28,8 @@ export interface UsePracticeSessionResult {
  *  - failed                → ErrorState + retry / back-to-workspace
  *  - cancelled             → PracticeSessionLost + back-to-workspace
  *
- * Negative gate: this hook does NOT recognise the deprecated `draft` /
- * `archived` values. Their union member is removed from `SessionStatus`,
+ * Negative gate: this hook does NOT recognise the non-current `draft` /
+ * `archived` values. `SessionStatus` excludes that union member,
  * so call sites should fail typecheck rather than reach runtime.
  */
 export function usePracticeSession(
@@ -84,7 +84,7 @@ export function usePracticeSession(
         });
       default:
         // Unknown / null statuses fall through to a safe default that locks
-        // the input. This protects against deprecated `draft` / `archived`
+        // the input. This protects against non-current `draft` / `archived`
         // values reaching runtime through an untyped boundary.
         return base({
           status: status ?? null,

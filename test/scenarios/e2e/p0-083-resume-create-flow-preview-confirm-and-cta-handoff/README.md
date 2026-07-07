@@ -24,7 +24,7 @@
 - `updateResume` 请求带 `Idempotency-Key` 与 `Accept-Language` header
 - 成功路径：toast + nav 回 list（不携带 structuredProfile 字段进 URL 或 localStorage）
 - 422 路径：inline error 渲染 + 不 nav
-- Home / Workspace CTA：未登录态显示 auth gate；登录恢复后渲染 ResumeCreateFlow
+- Home / Workspace CTA：未登录态显示 auth gate；登录接续后渲染 ResumeCreateFlow
 - pendingAction 只携带 `{ flow: 'create', createMode? }`，不携带 rawText / file binary
 
 ## 4 Verification Entry

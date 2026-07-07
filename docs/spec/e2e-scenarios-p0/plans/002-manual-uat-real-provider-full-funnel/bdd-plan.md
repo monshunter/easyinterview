@@ -14,4 +14,4 @@
 
 | 场景 ID | 类型 | 覆盖计划阶段 | 主 checklist Gate |
 |---------|------|--------------|-------------------|
-| E2E.P0.100 | primary + cross-layer + privacy/security + regression/legacy-negative + hybrid/manual-required | Phase 1 / 2 / 3 / 4 / 5 / 6 / 7 | 3.4 / 4.3 / 5.4 / 7.1 / 7.2 |
+| E2E.P0.100 | primary + cross-layer + privacy/security + regression/non-current-negative + hybrid/manual-required | Phase 1 / 2 / 3 / 4 / 5 / 6 / 7 | 3.4 / 4.3 / 5.4 / 7.1 / 7.2 |

@@ -49,16 +49,16 @@ describe('generated event contract', () => {
       ...gapReview,
       mode: 'bullet_suggestions',
     };
-    const retiredMode = ['in', 'line'].join('');
-    const retiredModePayload: ResumeTailorCompletedPayload = {
+    const nonCurrentMode = ['in', 'line'].join('');
+    const nonCurrentModePayload: ResumeTailorCompletedPayload = {
       ...gapReview,
-      // @ts-expect-error retired modes must stay rejected by generated types.
-      mode: retiredMode,
+      // @ts-expect-error non-current modes must stay rejected by generated types.
+      mode: nonCurrentMode,
     };
 
     expect(EVENT_NAME_RESUME_TAILOR_COMPLETED).toBe('resume.tailor.completed');
     expect(gapReview.mode).toBe('gap_review');
     expect(bulletSuggestions.mode).toBe('bullet_suggestions');
-    expect(retiredModePayload.mode).toBe(retiredMode);
+    expect(nonCurrentModePayload.mode).toBe(nonCurrentMode);
   });
 });

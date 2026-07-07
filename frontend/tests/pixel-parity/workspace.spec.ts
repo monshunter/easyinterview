@@ -15,7 +15,7 @@ import { resolve } from "node:path";
  * - Bounding box stays in viewport, no overlap
  * - default (ocean)/light -> dark -> customAccent theme switching
  * - non-empty screenshot smoke
- * - Negative: old prototype testids absent
+ * - Negative: non-current prototype testids absent
  *
  * Full data-driven rendering is reached through an explicit initial route
  * bootstrap with server-bound IDs. TopBar navigation still covers the
@@ -91,6 +91,10 @@ async function mockWorkspaceApis(page: import("@playwright/test").Page): Promise
     }
     if (path.startsWith("/resumes/")) {
       await fulfillFixture(route, "openapi/fixtures/Resumes/getResume.json");
+      return;
+    }
+    if (path === "/resumes") {
+      await fulfillFixture(route, "openapi/fixtures/Resumes/listResumes.json");
       return;
     }
     if (path.startsWith("/practice/plans/")) {
@@ -221,8 +225,8 @@ test.describe("workspace DOM anchor parity", () => {
       "workspace-cta-start",
       "workspace-binding-jd",
       "workspace-binding-resume",
-      "workspace-companyintel-summary",
-      "workspace-companyintel-open",
+      "workspace-insight-summary",
+      "workspace-insight-open",
       "workspace-jd-card",
       "workspace-jd-block-must",
       "workspace-jd-block-nice",
@@ -249,7 +253,11 @@ test.describe("workspace DOM anchor parity", () => {
 
     await page.click("[data-testid='workspace-binding-resume-change']");
     await expect(page.locator("[data-testid='workspace-resume-modal-card']")).toBeVisible();
-    await expect(page.locator("[data-testid='workspace-resume-modal-disabled-note']")).toBeVisible();
+    await expect(page.locator("[data-testid='workspace-resume-modal-options']")).toBeVisible();
+    await expect(
+      page.locator(`[data-testid='workspace-resume-modal-option-${WORKSPACE_RESUME_ID}']`),
+    ).toBeVisible();
+    await expect(page.locator("[data-testid='workspace-resume-modal-disabled-note']")).toHaveCount(0);
   });
 });
 
@@ -296,7 +304,7 @@ test.describe("workspace bounding box parity", () => {
       "workspace-plan-eyebrow",
       "workspace-header",
       "workspace-launcher",
-      "workspace-companyintel-summary",
+      "workspace-insight-summary",
       "workspace-jd-card",
       "workspace-prep-card",
       "workspace-history-card",
@@ -370,8 +378,8 @@ test.describe("workspace screenshot regression", () => {
   });
 });
 
-test.describe("old prototype testid negative gate (workspace)", () => {
-  test("retired workspace prototype testids do not appear in DOM", async ({ page }) => {
+test.describe("non-current prototype testid negative gate (workspace)", () => {
+  test("non-current workspace prototype testids do not appear in DOM", async ({ page }) => {
     await goToWorkspace(page);
 
     const banned = [
@@ -388,7 +396,7 @@ test.describe("old prototype testid negative gate (workspace)", () => {
     }
   });
 
-  test("retired route names do not appear as TopBar entries", async ({ page }) => {
+  test("non-current route names do not appear as TopBar entries", async ({ page }) => {
     await goToWorkspace(page);
     for (const banned of [
       "topbar-nav-welcome", "topbar-nav-mistakes",

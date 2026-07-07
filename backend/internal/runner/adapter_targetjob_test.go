@@ -18,7 +18,7 @@ func (h *recordingTargetjobHandler) Handle(_ context.Context, job targetjob.Clai
 }
 
 func TestFromTargetjobHandler_PreservesOutcome(t *testing.T) {
-	legacy := &recordingTargetjobHandler{
+	nonCurrent := &recordingTargetjobHandler{
 		outcome: targetjob.JobOutcome{
 			Succeeded:    false,
 			Retryable:    true,
@@ -26,7 +26,7 @@ func TestFromTargetjobHandler_PreservesOutcome(t *testing.T) {
 			ErrorMessage: "retry me",
 		},
 	}
-	adapted := FromTargetjobHandler(legacy)
+	adapted := FromTargetjobHandler(nonCurrent)
 	got := adapted.Handle(context.Background(), ClaimedJob{
 		JobID:       "job-1",
 		JobType:     "target_import",
@@ -35,11 +35,11 @@ func TestFromTargetjobHandler_PreservesOutcome(t *testing.T) {
 		Attempts:    2,
 		MaxAttempts: 5,
 	})
-	if legacy.saw.JobID != "job-1" || legacy.saw.JobType != "target_import" {
-		t.Fatalf("legacy handler saw %+v, want job-1/target_import", legacy.saw)
+	if nonCurrent.saw.JobID != "job-1" || nonCurrent.saw.JobType != "target_import" {
+		t.Fatalf("targetjob handler saw %+v, want job-1/target_import", nonCurrent.saw)
 	}
-	if legacy.saw.Attempts != 2 || string(legacy.saw.Payload) != `{"k":"v"}` {
-		t.Fatalf("claimed-job fields not preserved: %+v", legacy.saw)
+	if nonCurrent.saw.Attempts != 2 || string(nonCurrent.saw.Payload) != `{"k":"v"}` {
+		t.Fatalf("claimed-job fields not preserved: %+v", nonCurrent.saw)
 	}
 	want := JobOutcome{Succeeded: false, Retryable: true, ErrorCode: "TRANSIENT", ErrorMessage: "retry me"}
 	if got != want {

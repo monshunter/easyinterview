@@ -4,7 +4,6 @@ metadata:
   subspec: ai-provider-and-model-routing
   name: 002-tools-streaming-and-stt
   sequence: 2
-  supersedes: []
   specVersion:
     from: 2.4
     to: 2.5

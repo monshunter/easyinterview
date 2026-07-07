@@ -7,33 +7,93 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 
+import { EasyInterviewClient } from "../../../../api/generated/client";
+import {
+  createFixtureBackedFetch,
+  createFixtureRegistry,
+} from "../../../../api/mockTransport";
+import { DisplayPreferencesProvider } from "../../../display/DisplayPreferencesProvider";
 import { InterviewContextProvider } from "../../../interview-context/InterviewContext";
 import { NavigationProvider } from "../../../navigation/NavigationProvider";
+import { AppRuntimeContext } from "../../../runtime/AppRuntimeProvider";
 import { ResumePickerModal } from "./ResumePickerModal";
 
-function withProviders(ui: ReactNode) {
+import listResumesFixture from "../../../../../../openapi/fixtures/Resumes/listResumes.json";
+
+function buildClient(): EasyInterviewClient {
+  return new EasyInterviewClient({
+    fetch: createFixtureBackedFetch(
+      createFixtureRegistry([listResumesFixture]),
+      { scenario: "default" },
+    ),
+  });
+}
+
+function withProviders(ui: ReactNode, client = buildClient()) {
   const nav = vi.fn();
   return {
+    client,
     nav,
     ...render(
-      <InterviewContextProvider>
-        <NavigationProvider value={{ navigate: nav }}>
-          {ui}
-        </NavigationProvider>
-      </InterviewContextProvider>,
+      <DisplayPreferencesProvider>
+        <InterviewContextProvider>
+          <AppRuntimeContext.Provider
+            value={{
+              client,
+              runtime: {
+                status: "ready",
+                config: {
+                  analyticsEnabled: false,
+                  appVersion: "test",
+                  defaultUiLanguage: "zh",
+                  featureFlags: {},
+                },
+              },
+              auth: {
+                status: "authenticated",
+                user: {
+                  id: "user-1",
+                  emailMasked: "u***@example.com",
+                  displayName: "User",
+                  preferredPracticeLanguage: "zh",
+                  profileCompletionRequired: false,
+                  uiLanguage: "zh",
+                },
+              },
+              refreshAuth: vi.fn(),
+            }}
+          >
+            <NavigationProvider value={{ navigate: nav }}>
+              {ui}
+            </NavigationProvider>
+          </AppRuntimeContext.Provider>
+        </InterviewContextProvider>
+      </DisplayPreferencesProvider>,
     ),
   };
 }
 
-describe("ResumePickerModal (Phase 3.3)", () => {
-  it("renders when open with correct testids and i18n", () => {
+const DEFAULT_RESUME_ID =
+  listResumesFixture.scenarios.default.response.body.items[0]!.id;
+const SECOND_RESUME_ID =
+  listResumesFixture.scenarios.default.response.body.items[1]!.id;
+
+describe("ResumePickerModal", () => {
+  it("renders the active flat resume list from listResumes", async () => {
     withProviders(
-      <ResumePickerModal open onClose={vi.fn()} boundResumeId="rv-1" />,
+      <ResumePickerModal open onClose={vi.fn()} boundResumeId={DEFAULT_RESUME_ID} />,
     );
     expect(screen.getByTestId("workspace-resume-modal-overlay")).toBeDefined();
     expect(screen.getByTestId("workspace-resume-modal-card")).toBeDefined();
-    expect(screen.getByTestId("workspace-resume-modal-card-rv-1")).toBeDefined();
-    expect(screen.getByTestId("workspace-resume-modal-disabled-note")).toBeDefined();
+    expect(
+      await screen.findByTestId(`workspace-resume-modal-option-${DEFAULT_RESUME_ID}`),
+    ).toBeDefined();
+    expect(
+      screen.getByTestId(`workspace-resume-modal-option-${SECOND_RESUME_ID}`),
+    ).toBeDefined();
+    expect(
+      screen.queryByTestId("workspace-resume-modal-disabled-note"),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("workspace-resume-modal-close")).toBeDefined();
     expect(screen.getByTestId("workspace-resume-modal-cancel")).toBeDefined();
     expect(screen.getByTestId("workspace-resume-modal-confirm")).toBeDefined();
@@ -54,20 +114,23 @@ describe("ResumePickerModal (Phase 3.3)", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("closes on Confirm button click and calls onUseResume", async () => {
+  it("confirms the selected resume id", async () => {
     const onClose = vi.fn();
-    const onUseResume = vi.fn();
+    const onSelectResume = vi.fn();
     withProviders(
       <ResumePickerModal
         open
         onClose={onClose}
-        boundResumeId="rv-1"
-        onUseResume={onUseResume}
+        boundResumeId={DEFAULT_RESUME_ID}
+        onSelectResume={onSelectResume}
       />,
     );
     const user = userEvent.setup();
+    await user.click(
+      await screen.findByTestId(`workspace-resume-modal-option-${SECOND_RESUME_ID}`),
+    );
     await user.click(screen.getByTestId("workspace-resume-modal-confirm"));
-    expect(onUseResume).toHaveBeenCalled();
+    expect(onSelectResume).toHaveBeenCalledWith(SECOND_RESUME_ID);
     expect(onClose).toHaveBeenCalled();
   });
 

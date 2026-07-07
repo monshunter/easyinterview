@@ -53,7 +53,7 @@ func TestAuthObservabilityEventsUseF1LabelsAndRedactedAuditFields(t *testing.T) 
 	audit := &recordingAuthAudit{}
 	ctx := auth.ContextWithAuthTraceID(context.Background(), "4bf92f3577b34da6a3ce929d0e0e4736")
 
-	startService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	startService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:           &recordingChallengeStore{},
 		Dispatcher:      &recordingDispatcher{},
 		DeliverySecrets: auth.NewDevMailSink(auth.DevMailSinkOptions{VerifyBaseURL: "http://api.test/api/v1/auth/email/verify"}),
@@ -72,7 +72,7 @@ func TestAuthObservabilityEventsUseF1LabelsAndRedactedAuditFields(t *testing.T) 
 		t.Fatalf("StartEmailChallenge: %v", err)
 	}
 
-	verifyService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	verifyService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store: &verifyStore{
 			challenge: auth.ChallengeRecord{ID: "challenge-observe", Email: "candidate@example.com", ExpiresAt: time.Now().Add(auth.ChallengeTTL)},
 			user:      auth.UserContext{ID: "user-observe", Email: "candidate@example.com"},
@@ -93,7 +93,7 @@ func TestAuthObservabilityEventsUseF1LabelsAndRedactedAuditFields(t *testing.T) 
 		t.Fatalf("VerifyEmailChallenge: %v", err)
 	}
 
-	logoutService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	logoutService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:           &logoutStore{},
 		ChallengePepper: "pepper-secret",
 		Metrics:         metrics,
@@ -104,7 +104,7 @@ func TestAuthObservabilityEventsUseF1LabelsAndRedactedAuditFields(t *testing.T) 
 		t.Fatalf("Logout: %v", err)
 	}
 
-	deleteService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	deleteService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store: &deleteMeStore{handoff: auth.PrivacyDeleteHandoff{
 			PrivacyRequestID: "privacy-request-observe",
 			JobID:            "job-observe",
@@ -121,7 +121,7 @@ func TestAuthObservabilityEventsUseF1LabelsAndRedactedAuditFields(t *testing.T) 
 		t.Fatalf("DeleteMe: %v", err)
 	}
 
-	failureService := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	failureService := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               &verifyStore{consumeErr: auth.ErrChallengeInvalid},
 		ChallengePepper:     "pepper-secret",
 		SessionCookieSecret: "session-secret",

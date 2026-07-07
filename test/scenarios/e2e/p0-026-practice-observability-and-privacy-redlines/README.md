@@ -12,11 +12,11 @@
 
 ## 2 When
 
-场景触发 `startPracticeSession`，采集 in-process store 中的 audit / outbox 快照、A3 observed AI logs / metrics / audit rows / `ai_task_runs` 行，并运行 backend-practice legacy gate。
+场景触发 `startPracticeSession`，采集 in-process store 中的 audit / outbox 快照、A3 observed AI logs / metrics / audit rows / `ai_task_runs` 行，并运行 backend-practice non-current gate。
 
 ## 3 Then
 
-用户获得 running session 与同步首题；observability typed columns 完整；metric label 使用 A3 allowlist；audit / outbox / logs / metrics / AI task run metadata 只保留允许的证据摘要；backend-practice 当前实现面不包含已退役模块入口。
+用户获得 running session 与同步首题；observability typed columns 完整；metric label 使用 A3 allowlist；audit / outbox / logs / metrics / AI task run metadata 只保留允许的证据摘要；backend-practice 当前实现面不包含非当前模块入口。
 
 ## 4 执行
 

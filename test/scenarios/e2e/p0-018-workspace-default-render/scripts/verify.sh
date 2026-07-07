@@ -22,11 +22,17 @@ if [ "$testid_count" -lt 20 ]; then
   exit 1
 fi
 if rg -n 'practice-mode-card-|growth-center|drill-builder|mistake-queue' "$REPO_ROOT/frontend/src/app/screens/workspace" -g '!*.test.tsx'; then
-  echo "E2E.P0.018: forbidden legacy runtime testid leaked" >&2
+  echo "E2E.P0.018: forbidden non-current runtime testid leaked" >&2
   exit 1
 fi
-if rg -n '\.listResumes\(' "$REPO_ROOT/frontend/src/app/screens/workspace" -g '!*.test.tsx'; then
-  echo "E2E.P0.018: workspace runtime calls listResumes" >&2
+grep -Fq 'useResumeAssets' "$REPO_ROOT/frontend/src/app/screens/workspace/modals/ResumePickerModal.tsx" || {
+  echo "E2E.P0.018: resume picker is not wired to current resume assets hook" >&2
+  exit 1
+}
+if rg -n 'workspace-resume-modal-disabled-note|resumePicker\.disabledNote' \
+  "$REPO_ROOT/frontend/src/app/screens/workspace" \
+  -g '!*.test.tsx'; then
+  echo "E2E.P0.018: non-current disabled resume picker wording leaked" >&2
   exit 1
 fi
 echo "E2E.P0.018 PASS"

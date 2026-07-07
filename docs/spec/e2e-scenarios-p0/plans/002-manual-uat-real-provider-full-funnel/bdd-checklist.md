@@ -13,7 +13,7 @@
 - [x] 准备账号材料：UAT email、Mailpit URL、email-code 验证步骤、cookie 检查和 cleanup
 - [x] 准备输入材料：双语 JD、双语简历、作答样例、期望观察点
 - [x] 准备真实环境 runbook：dev-stack、migrate、backend real provider、frontend real mode、secret redline、无 mock/stub 边界
-- [x] 准备人工执行 checklist：全漏斗、AI provider evidence、隐私、legacy-negative、证据路径
+- [x] 准备人工执行 checklist：全漏斗、AI provider evidence、隐私、non-current-negative、证据路径
 - [x] 执行一次真实 provider hybrid UAT，记录脱敏证据
   <!-- verified: 2026-05-27 evidence=".test-output/e2e/p0-100-real-provider-full-funnel-hybrid/evidence.md records run_id e2e-p0-100-20260527T081532Z-38774, Mailpit auth, ready resume parse, ready target import, baseline practice, acknowledged ask_follow_up, ready report, next-round practice, 6 ai_task_runs, and screenshots without prompt/response bodies or secrets" -->
 - [x] 完成 cleanup 或明确保留现场的人工确认

@@ -73,7 +73,7 @@ type UserContext struct {
 	ProfileCompletionRequired bool
 }
 
-// Store is the P0 passwordless session persistence surface. It intentionally
+// Store is the P0 email-code session persistence surface. It intentionally
 // omits external_identities methods; that table is only a P1 SSO slot.
 type Store interface {
 	CountRecentChallenges(context.Context, string, string, time.Time) (int, error)

@@ -124,7 +124,7 @@ describe("GeneratingScreen", () => {
     for (const id of anchors) {
       expect(screen.queryByTestId(id), `${id} missing`).not.toBeNull();
     }
-    // Negative anchors for retired modules.
+    // Negative anchors for non-current modules.
     expect(screen.queryByTestId("mistakes-queue")).toBeNull();
     expect(screen.queryByTestId("report-timeline")).toBeNull();
   });

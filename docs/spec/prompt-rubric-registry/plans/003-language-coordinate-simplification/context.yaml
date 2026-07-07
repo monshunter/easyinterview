@@ -4,10 +4,9 @@ metadata:
   subspec: prompt-rubric-registry
   name: 003-language-coordinate-simplification
   sequence: 3
-  supersedes: []
   specVersion:
     from: 2.6
-    to: 2.7
+    to: 2.16
 spec:
   defaultTarget: backend
   discovery:
@@ -17,17 +16,15 @@ spec:
       - prompt-rubric-registry-language
       - 003-language-coordinate-simplification
     keywords:
-      - language coordinate simplification
       - canonical multi truth source
-      - v0.1.0.en
-      - multi baseline
+      - current 9 feature keys
       - exact language fallback
-      - prompt rubric duplicate language
+      - language override policy
       - rubric language-independent
       - seed migration language rows
       - ResolveActive language fallback
-      - prompt_lint language coordinates
-      - rubric_lint language coordinates
+      - prompt_lint canonical multi
+      - rubric_lint canonical multi
   targets:
     backend:
       plan: ./plan.md
@@ -36,6 +33,7 @@ spec:
       references:
         - ../001-baseline/plan.md
         - ../002-output-schema-contract/plan.md
+        - ../004-real-model-profile-and-evals/plan.md
         - ../../../ai-provider-and-model-routing/spec.md
         - ../../../shared-conventions-codified/spec.md
       discovery:

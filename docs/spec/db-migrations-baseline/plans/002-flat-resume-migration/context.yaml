@@ -1,0 +1,45 @@
+apiVersion: plancontext.agent.dev/v1alpha1
+kind: PlanContext
+metadata:
+  subspec: db-migrations-baseline
+  name: 002-flat-resume-migration
+  sequence: 2
+  specVersion:
+    from: 1.14
+    to: 1.27
+spec:
+  defaultTarget: contract
+  discovery:
+    aliases:
+      - db-migrations-baseline
+      - 002-flat-resume-migration
+      - flat-resume-migration
+      - resume_flatten
+      - resumes
+      - resume_id
+      - migration net-state
+    keywords:
+      - flat Resume migration
+      - current resumes table
+      - practice plan resume_id binding
+      - structured_profile display_name
+      - source_type upload paste
+      - migration enum source lint
+      - privacy deletion matrix resumes
+      - schema_backfills ledger
+      - migration contract tests
+      - make migrate-check
+  targets:
+    contract:
+      plan: ./plan.md
+      checklist: ./checklist.md
+      spec: ../../spec.md
+      discovery:
+        packages:
+          - migrations
+          - migrations/backfill
+          - backend/cmd/migrate
+          - backend/internal/migrations
+          - docs/spec/db-migrations-baseline
+        uiRoutes: []
+        apiNames: []

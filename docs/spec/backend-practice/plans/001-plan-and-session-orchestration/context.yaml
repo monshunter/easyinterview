@@ -4,10 +4,9 @@ metadata:
   subspec: backend-practice
   name: 001-plan-and-session-orchestration
   sequence: 1
-  supersedes: []
   specVersion:
     from: null
-    to: 1.12
+    to: 1.17
 spec:
   defaultTarget: backend
   discovery:

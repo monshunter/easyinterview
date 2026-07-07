@@ -28,7 +28,7 @@ func TestVerifyAuthEmailChallengeConsumesTokenAndSetsSessionCookie(t *testing.T)
 		},
 	}
 	now := time.Date(2026, 5, 6, 10, 15, 0, 0, time.UTC)
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:                 store,
 		SessionTokenGenerator: fixedTokenGenerator("raw-session-token"),
 		ChallengePepper:       "pepper",
@@ -36,7 +36,7 @@ func TestVerifyAuthEmailChallengeConsumesTokenAndSetsSessionCookie(t *testing.T)
 		Now:                   func() time.Time { return now },
 		NewID:                 fixedIDs("018f2a40-0000-7000-9000-000000000101"),
 	})
-	handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
+	handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/email/verify?token=123456", nil)
 	req.RemoteAddr = "203.0.113.30:5588"
 	req.Header.Set("User-Agent", "unit-test-agent")
@@ -105,7 +105,7 @@ func TestVerifyAuthEmailChallengeRejectsInvalidExpiredOrConsumedToken(t *testing
 	} {
 		t.Run(name, func(t *testing.T) {
 			store := &verifyStore{consumeErr: err}
-			service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+			service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 				Store:                 store,
 				SessionTokenGenerator: fixedTokenGenerator("raw-session-token"),
 				ChallengePepper:       "pepper",
@@ -113,7 +113,7 @@ func TestVerifyAuthEmailChallengeRejectsInvalidExpiredOrConsumedToken(t *testing
 				Now:                   func() time.Time { return time.Date(2026, 5, 6, 10, 15, 0, 0, time.UTC) },
 				NewID:                 fixedIDs("018f2a40-0000-7000-9000-000000000102"),
 			})
-			handler := auth.NewHandler(auth.HandlerOptions{Passwordless: service})
+			handler := auth.NewHandler(auth.HandlerOptions{EmailCode: service})
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/email/verify?token=000000", nil)
 			rec := httptest.NewRecorder()
 
@@ -148,7 +148,7 @@ func TestVerifyNewEmailCreatesIncompleteUserAndSession(t *testing.T) {
 		findErr: auth.ErrUserNotFound,
 	}
 	now := time.Date(2026, 5, 28, 10, 15, 0, 0, time.UTC)
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:                 store,
 		SessionTokenGenerator: fixedTokenGenerator("raw-session-token"),
 		ChallengePepper:       "pepper",
@@ -185,7 +185,7 @@ func TestVerifyExistingEmailLogsInWithoutCreatingUser(t *testing.T) {
 			AnalyticsOptIn:            true,
 		},
 	}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:                 store,
 		SessionTokenGenerator: fixedTokenGenerator("raw-session-token"),
 		ChallengePepper:       "pepper",

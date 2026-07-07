@@ -1,26 +1,26 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.16
+> **版本**: 2.19
 > **状态**: active
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-07
 
 ## 1 文档目的
 
-本文档定义当前静态 UI 原型对应的目标信息架构。当前版本已按 product-scope D-22 执行方案 B：删除真实面试复盘和用户画像，核心入口收敛为首页、模拟面试和简历。
+本文档定义当前静态 UI 原型对应的目标信息架构。当前 UI 范围的核心入口为首页、模拟面试和简历；真实面试复盘和用户画像不属于当前 UI 范围。
 
 目标 UI 必须与 `ui-design/index.html` 和 `ui-design/src/app.jsx` 当前运行时交互一致。
 
 ## 2 已确认决策
 
-1. App 默认进入首页，不再有未登录欢迎页或登录前置页。
+1. App 默认进入首页；未登录状态由当前页面内的登录入口和业务前置登录处理。
 2. 顶部导航为：`首页`、`模拟面试`、`简历`。
 3. 用户菜单为：`设置与隐私`、`退出登录`；未登录时只显示登录入口。
-4. `复盘` 和 `用户画像` 已删除，不再是一级导航、用户菜单入口、目标 route、静态原型页面或后续默认 workstream。
-5. `debrief`、`debrief_full`、`profile` 旧 hash / route 输入在静态原型中归一到 `home`，不得渲染旧页面。
+4. `复盘` 和 `用户画像` 不属于当前 UI 范围，不是一级导航、用户菜单入口、目标 route、静态原型页面或后续默认 workstream。
+5. `debrief`、`debrief_full`、`profile` 等非当前 hash / route 输入在静态原型中归一到 `home`，不得 materialize 非当前页面。
 6. `auth_profile_setup` 仍保留为首次登录资料补全页；这是账号资料补全，不是用户画像。
 7. 报告只有 session-scoped Dashboard；报告后续动作只有 `复练当前轮` 与 `进入下一轮`。
 8. 简历是一级模块：平铺列表、上传 / 粘贴创建、解析预览确认、详情预览 / 改写 / 编辑。
-9. 语音是面试形式，只能通过 `practice` 显式参数进入；不得恢复独立 `voice` route。
+9. 语音是面试形式，只能通过 `practice` 显式参数进入；不得暴露独立 `voice` route。
 10. 顶栏主题色、暗色模式、语言下拉和设置页字体预设是全局显示控制，不属于业务模块。
 
 ## 3 目标产品骨架
@@ -44,7 +44,7 @@
 │  ├─ 当前面试规划
 │  ├─ JD / 简历 / InterviewRound
 │  ├─ 公司情报嵌入卡片
-│  ├─ 会话历史
+│  ├─ 会话记录
 │  └─ 立即面试
 ├─ Interview Session
 │  ├─ 文本面试 / 语音面试
@@ -85,7 +85,7 @@
       └─ 退出登录
 ```
 
-不进入顶部导航或用户菜单的旧能力：
+顶部导航或用户菜单范围外能力：
 
 - `复盘 / Debrief`
 - `用户画像 / User Profile`
@@ -157,7 +157,7 @@ AuthProfileSetup
 AuthLogout
 ```
 
-## 7 历史 route 归一
+## 7 非当前 route 输入归一
 
 ```text
 ROUTE_ALIASES
@@ -174,18 +174,17 @@ ROUTE_ALIASES
 ├─ auth_register -> auth_login
 ├─ auth_reset -> auth_login
 ├─ jd_match -> home
-├─ company_intel -> workspace
 ├─ debrief -> home
 ├─ debrief_full -> home
 └─ profile -> home
 ```
 
-`voice` 不保留 route alias。判断目标架构时以 `normalizeRoute` 后的 `activeRouteName` 和实际渲染内容为准，不以旧 hash、旧画板标签或已删除组件为准。
+`voice` 不保留 route alias。判断目标架构时以 `normalizeRoute` 后的 `activeRouteName` 和实际渲染内容为准，不以非当前 hash、非当前画板标签或非当前组件为准。
 
 ## 8 后续实现输入
 
 1. 正式前端 TopBar 必须源级复刻当前三入口静态原型。
-2. `frontend` 不得再注册 `debrief` / `profile` RouteName、primary nav、user menu 或 screen 分支。
-3. OpenAPI、backend、migrations、shared、config 和 scenario 的复盘 / 用户画像实体删除由 product-scope/001-core-loop-module-pruning 承接。
+2. `frontend` 不得注册 `debrief` / `profile` RouteName、primary nav、user menu 或 screen 分支。
+3. OpenAPI、backend、migrations、shared、config 和 scenario 的复盘 / 用户画像范围收敛由 product-scope/001-core-loop-module-pruning 承接。
 4. `auth_profile_setup` 保留为账号资料补全，不得写成用户画像。
-5. Pixel parity 和 route tests 必须增加旧入口负向断言。
+5. Pixel parity 和 route tests 必须覆盖非当前入口负向断言。

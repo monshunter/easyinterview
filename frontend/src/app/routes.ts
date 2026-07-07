@@ -5,14 +5,14 @@
  * docs/ui-design/ui-architecture.md, ui-design/src/app.jsx.
  *
  * Three primary nav entries: home / workspace / resume_versions
- * (product-scope D-22 removed the debrief and user profile entries).
+ * (non-current product entries are outside the current route catalog).
  * Context routes: parse / practice / generating / report.
  * User-menu routes: settings / auth_logout.
  * Auth pages: auth_login / auth_verify / auth_profile_setup / auth_logout.
- * auth_reset retired per product-scope D-16; it normalizes back to auth_login.
+ * auth_reset is outside the current route catalog per product-scope D-16; it normalizes back to auth_login.
  *
  * D1 frontend-shell keeps the formal route catalog to current product routes.
- * Retired aliases are handled outside this catalog and must never appear as
+ * Non-current aliases are handled outside this catalog and must never appear as
  * materialized app routes.
  */
 

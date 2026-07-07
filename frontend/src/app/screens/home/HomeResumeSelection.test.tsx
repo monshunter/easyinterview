@@ -61,7 +61,7 @@ function renderHome(client: EasyInterviewClient) {
 }
 
 describe("Home resume selection", () => {
-  it("renders the home quick-start copy without the retired hero sub or old CTA", async () => {
+  it("renders the home quick-start copy without the non-current hero sub or CTA", async () => {
     const client = createClient("default");
     renderHome(client);
 

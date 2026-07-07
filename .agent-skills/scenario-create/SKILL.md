@@ -52,5 +52,5 @@ directory structure required by the repository's active suite.
 - When the suite tracks isolation metadata, write the same `隔离级别` / parallel-safety decision into both the scenario `README.md` metadata and the suite `INDEX.md`.
 - Cleanup must be idempotent when the suite contract requires cleanup.
 - Do not invent scenario IDs, directory shapes, or scripts that are not documented by the framework or suite docs.
-- Do not generate manual-only scenarios under `test/scenarios/` unless the framework README explicitly declares a legacy manual path.
+- Do not generate manual-only scenarios under `test/scenarios/` unless the framework README explicitly declares a manual compatibility path.
 - Keep top-level framework helpers generic. If the scenario needs suite-specific resource names, environment defaults, or assertions, place that logic under `test/scenarios/<suite-id>/_shared/`.

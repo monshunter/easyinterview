@@ -31,7 +31,7 @@ describe("AuthLoginScreen", () => {
     expect(screen.queryByTestId("auth-login-link-reset")).not.toBeInTheDocument();
   });
 
-  it("renders static passwordless help copy instead of a reset entry (D-16)", () => {
+  it("renders static email-code help copy instead of a reset entry (D-16)", () => {
     const zh = render(
       <DisplayPreferencesProvider initial={{ lang: "zh" }}>
         <AuthLoginScreen
@@ -72,7 +72,7 @@ describe("AuthLoginScreen", () => {
         route={{
           name: "auth_login",
           params: {
-            returnTo: "/practice?planId=legacy-return-to",
+            returnTo: "/practice?planId=non-current-return-to",
             pendingRoute: "practice",
             pendingType: "start_practice",
             pendingLabel: "立即面试",

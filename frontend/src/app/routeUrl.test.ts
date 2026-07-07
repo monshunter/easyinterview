@@ -65,7 +65,7 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/workspace?targetJobId=tj-1");
   });
 
-  it("serializes the retired jd_match route name to the home canonical path (D-17)", () => {
+  it("serializes the non-current jd_match route name to the home canonical path (D-17)", () => {
     expect(
       formatRouteUrl({
         name: "jd_match",
@@ -74,17 +74,17 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/");
   });
 
-  it("serializes the retired company_intel route name to workspace (D-18)", () => {
+  it("serializes standalone insight route names to home", () => {
     expect(
       formatRouteUrl({
-        name: "company_intel",
+        name: "standalone_insight",
         params: {
           targetJobId: "tj-1",
           jdId: "jd-1",
           companyId: "company-private",
         },
       }),
-    ).toBe("/workspace?jdId=jd-1&targetJobId=tj-1");
+    ).toBe("/");
   });
 
   it("retains generating/report/resume_versions deep-link params", () => {
@@ -136,7 +136,7 @@ describe("serializeRouteToUrl", () => {
   });
 
 
-  it("normalizes legacy route names back to retained routes", () => {
+  it("normalizes non-current route names back to retained routes", () => {
     expect(serializeRouteToUrl({ name: "welcome", params: {} }).path).toBe("/");
     expect(serializeRouteToUrl({ name: "growth", params: {} }).path).toBe("/");
     expect(serializeRouteToUrl({ name: "plan", params: {} }).path).toBe(
@@ -322,9 +322,9 @@ describe("parseUrlToRoute", () => {
     expect(parseUrlToRoute("/")).toEqual({ name: "home", params: {} });
   });
 
-  it("normalizes the retired /auth/reset path back to the login entry", () => {
-    // product-scope D-16 — auth_reset is no longer a live route; the legacy
-    // path must land on auth_login instead of materializing a reset screen.
+  it("normalizes the non-current /auth/reset path back to the login entry", () => {
+    // product-scope D-16 — auth_reset is outside the current route catalog;
+    // the path must land on auth_login instead of materializing a reset screen.
     expect(parseUrlToRoute("/auth/reset")).toEqual({
       name: "auth_login",
       params: {},
@@ -374,6 +374,10 @@ describe("parseUrlToRoute", () => {
 
   it("falls back to home on unknown path", () => {
     expect(parseUrlToRoute("/unknown")).toEqual({ name: "home", params: {} });
+    expect(parseUrlToRoute("/standalone-insight")).toEqual({
+      name: "home",
+      params: {},
+    });
     expect(parseUrlToRoute("/voice")).toEqual({ name: "home", params: {} });
     expect(parseUrlToRoute("/welcome")).toEqual({ name: "home", params: {} });
     expect(parseUrlToRoute("/auth/register")).toEqual({
@@ -507,8 +511,8 @@ describe("isSafeRouteParam", () => {
     expect(isSafeRouteParam("auth_verify", "token", {})).toBe(false);
     expect(isSafeRouteParam("auth_login", "token", {})).toBe(false);
     expect(isSafeRouteParam("workspace", "token", {})).toBe(false);
-    // product-scope D-17: the retired jd_match -> parse reverse handoff
-    // param is no longer on the parse allowlist.
+    // product-scope D-17: the jd_match -> parse reverse handoff param is
+    // outside the current parse allowlist.
     expect(isSafeRouteParam("parse", "sourceJobMatchId", {})).toBe(false);
   });
 

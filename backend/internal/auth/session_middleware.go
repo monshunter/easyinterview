@@ -19,7 +19,7 @@ func CurrentSessionFromContext(ctx context.Context) (CurrentSession, bool) {
 	return current, ok
 }
 
-func SessionMiddleware(service *PasswordlessService, operationID string, next http.Handler) http.Handler {
+func SessionMiddleware(service *EmailCodeService, operationID string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requirement, ok := SessionPolicyForOperation(operationID)
 		if !ok {

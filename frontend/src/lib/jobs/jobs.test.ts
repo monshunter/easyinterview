@@ -40,7 +40,7 @@ describe('generated job contract', () => {
   });
 
   it('exports email_dispatch redaction policy', () => {
-    expect(EMAIL_DISPATCH_REDACTED_FIELDS).toContain('rawMagicLinkToken');
+    expect(EMAIL_DISPATCH_REDACTED_FIELDS).toContain('rawEmailCode');
     expect(EMAIL_DISPATCH_REDACTED_FIELDS).toContain('emailBody');
   });
 });

@@ -240,7 +240,7 @@ describe("InterviewContextProvider + useInterviewContext", () => {
     expect(result.current.ctx.targetJobId).toBe("");
   });
 
-  it("ignores retired debrief params while retaining current session context", () => {
+  it("ignores non-current debrief params while retaining current session context", () => {
     const next = interviewContextReducer(DEFAULT_INTERVIEW_CONTEXT, {
       type: "HYDRATE_FROM_ROUTE",
       params: {
@@ -275,7 +275,7 @@ describe("INTERVIEW_CONTEXT_ROUTES parity with ui-design/src/app.jsx", () => {
     expect(shouldCarryInterviewContext("practice")).toBe(true);
     expect(shouldCarryInterviewContext("generating")).toBe(true);
     expect(shouldCarryInterviewContext("report")).toBe(true);
-    expect(shouldCarryInterviewContext("company_intel")).toBe(false);
+    expect(shouldCarryInterviewContext("standalone_insight")).toBe(false);
   });
 
   it("shouldCarryInterviewContext returns false for non-context routes", () => {

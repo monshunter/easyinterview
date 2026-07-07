@@ -75,60 +75,6 @@
         }
       }
     },
-    "report-generating": {
-      "response": {
-        "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-report-generating"
-        },
-        "body": {
-          "id": "01918fa0-0000-7000-8000-000000007000",
-          "sessionId": "01918fa0-0000-7000-8000-000000005000",
-          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
-          "status": "generating",
-          "preparednessLevel": "needs_practice",
-          "highlights": [],
-          "issues": [],
-          "nextActions": [],
-          "questionAssessments": [],
-          "retryFocusTurnIds": [],
-          "provenance": {
-            "promptVersion": "feedback_report.v3",
-            "rubricVersion": "feedback_report.rubric.v2",
-            "modelId": "model-profile:contract.default",
-            "language": "zh-CN",
-            "featureFlag": "none",
-            "dataSourceVersion": "practice_session.v9"
-          },
-          "createdAt": "2026-04-28T12:00:00Z",
-          "updatedAt": "2026-04-28T13:45:12Z"
-        }
-      }
-    },
-    "report-failed": {
-      "response": {
-        "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-05-15T10-20-00-report-failed"
-        },
-        "body": {
-          "id": "01918fa0-0000-7000-8000-0000000070f0",
-          "sessionId": "01918fa0-0000-7000-8000-0000000050f0",
-          "targetJobId": "01918fa0-0000-7000-8000-0000000020f0",
-          "status": "failed",
-          "errorCode": "AI_PROVIDER_TIMEOUT",
-          "preparednessLevel": null,
-          "highlights": [],
-          "issues": [],
-          "nextActions": [],
-          "questionAssessments": [],
-          "retryFocusTurnIds": [],
-          "provenance": null,
-          "createdAt": "2026-05-15T10:00:00Z",
-          "updatedAt": "2026-05-15T10:20:00Z"
-        }
-      }
-    },
     "prototype-baseline": {
       "response": {
         "status": 200,
@@ -289,6 +235,60 @@
           },
           "createdAt": "2026-04-28T12:00:00Z",
           "updatedAt": "2026-04-28T13:45:12Z"
+        }
+      }
+    },
+    "report-generating": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-report-generating"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000007000",
+          "sessionId": "01918fa0-0000-7000-8000-000000005000",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "status": "generating",
+          "preparednessLevel": "needs_practice",
+          "highlights": [],
+          "issues": [],
+          "nextActions": [],
+          "questionAssessments": [],
+          "retryFocusTurnIds": [],
+          "provenance": {
+            "promptVersion": "feedback_report.v3",
+            "rubricVersion": "feedback_report.rubric.v2",
+            "modelId": "model-profile:contract.default",
+            "language": "zh-CN",
+            "featureFlag": "none",
+            "dataSourceVersion": "practice_session.v9"
+          },
+          "createdAt": "2026-04-28T12:00:00Z",
+          "updatedAt": "2026-04-28T13:45:12Z"
+        }
+      }
+    },
+    "report-failed": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-05-15T10-20-00-report-failed"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-0000000070f0",
+          "sessionId": "01918fa0-0000-7000-8000-0000000050f0",
+          "targetJobId": "01918fa0-0000-7000-8000-0000000020f0",
+          "status": "failed",
+          "errorCode": "AI_PROVIDER_TIMEOUT",
+          "preparednessLevel": null,
+          "highlights": [],
+          "issues": [],
+          "nextActions": [],
+          "questionAssessments": [],
+          "retryFocusTurnIds": [],
+          "provenance": null,
+          "createdAt": "2026-05-15T10:00:00Z",
+          "updatedAt": "2026-05-15T10:20:00Z"
         }
       }
     }

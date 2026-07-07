@@ -4,7 +4,7 @@ The scenario is successful when all of the following evidence is produced:
 
 - Initial Home render is unauthenticated and shows `topbar-login` plus
   `topbar-register`.
-- Passwordless mock login changes the mounted App to authenticated state without
+- Email-code mock login changes the mounted App to authenticated state without
   replacing the client.
 - Authenticated TopBar exposes `topbar-user-chip` and `topbar-user-avatar`.
 - `topbar-user-settings` and `topbar-user-logout` are
@@ -15,4 +15,4 @@ The scenario is successful when all of the following evidence is produced:
   logout operation, and refreshes `/me` to unauthenticated.
 - The final TopBar state shows `登录` / `注册` again.
 - Evidence log contains `dev mock unauthenticated login avatar dropdown settings logout`.
-- Evidence log does not contain retired inline or prototype-source markers.
+- Evidence log does not contain non-current inline or prototype-source markers.

@@ -73,8 +73,8 @@ jobs:
       deliverySecretRef: { type: opaque_ref }
       dedupeKey: { type: string }
     redactedFields:
-      - rawMagicLinkToken
-      - magicLinkUrl
+      - rawEmailCode
+      - emailVerificationUrl
       - recipientEmail
       - recipientEmailHash
       - emailBody

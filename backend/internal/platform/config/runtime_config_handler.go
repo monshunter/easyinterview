@@ -25,10 +25,9 @@ type RuntimeConfigHandlerOptions struct {
 // in B2 openapi-v1-contract; this handler only wires the field allowlist
 // declared in BuildRuntimeConfig and serializes the result as JSON.
 //
-// C1 backend-auth replaces SessionResolver with a session-aware resolver;
-// D1 frontend-shell consumes the response through the runtime-config
-// fetcher. Neither is allowed to mutate the field allowlist without a
-// spec revision (D-2).
+// backend-auth may provide a session-aware SessionResolver; frontend-shell
+// consumes the response through the runtime-config fetcher. Neither owner may
+// mutate the field allowlist without a spec revision (D-2).
 func NewRuntimeConfigHandler(opts RuntimeConfigHandlerOptions) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()

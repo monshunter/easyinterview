@@ -20,7 +20,7 @@ func TestSessionMiddlewareResolvesActiveSessionAndTouchesUpdatedAt(t *testing.T)
 		Status:    auth.SessionStatusActive,
 		ExpiresAt: now.Add(auth.SessionTTL),
 	}}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               store,
 		SessionCookieSecret: "session-secret",
 		Now:                 func() time.Time { return now },
@@ -67,7 +67,7 @@ func TestSessionMiddlewareRejectsMissingInvalidRevokedOrExpiredSession(t *testin
 	} {
 		t.Run(name, func(t *testing.T) {
 			store := &sessionStore{lookupErr: setup.err}
-			service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+			service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 				Store:               store,
 				SessionCookieSecret: "session-secret",
 				Now:                 func() time.Time { return time.Date(2026, 5, 6, 10, 30, 0, 0, time.UTC) },
@@ -108,7 +108,7 @@ func TestSessionMiddlewareTreatsTouchLostRaceAsAuthState(t *testing.T) {
 		},
 		touchErr: sql.ErrNoRows,
 	}
-	service := auth.NewPasswordlessService(auth.PasswordlessServiceOptions{
+	service := auth.NewEmailCodeService(auth.EmailCodeServiceOptions{
 		Store:               store,
 		SessionCookieSecret: "session-secret",
 		Now:                 func() time.Time { return now },

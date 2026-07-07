@@ -16,10 +16,10 @@
 ## 3 Then
 
 - workspace plan eyebrow、header summary、Interview Launcher、Main Left/Right 渲染
-- Plan Switcher Modal 通过 `listTargetJobs` 拉取数据；Resume Picker Modal 渲染 disabled list
+- Plan Switcher Modal 通过 `listTargetJobs` 拉取数据；Resume Picker Modal 通过 flat `listResumes` 渲染 active list
 - 两 Modal 支持 ESC/遮罩/X 关闭、focus trap
 - zh/en 切换重绘、dark/customAccent 可见变化
-- 旧 prototype testid 0 命中
+- 非当前 prototype testid 0 命中
 
 ## 4 执行
 

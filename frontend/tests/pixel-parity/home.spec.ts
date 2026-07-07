@@ -8,7 +8,7 @@ import { expect, test } from "@playwright/test";
  * parse/plan.md §4 Phase 6.
  *
  * Covers desktop (1440x900) and mobile (390x844) projects:
- * - DOM anchors (hero, integrated source controls, textarea, resume picker, retired aux-card negatives)
+ * - DOM anchors (hero, integrated source controls, textarea, resume picker, non-current aux-card negatives)
  * - Bounding box stays in viewport, no overlap
  * - default (ocean)/light -> dark -> customAccent theme switching
  * - Mobile: textarea card not overflowing
@@ -83,8 +83,7 @@ test.describe("home screen DOM anchor parity", () => {
       "tagName",
       "SELECT",
     );
-    // product-scope D-17 removed the JOB PICKS aux card, and D-22 removed the
-    // post-interview debrief card.
+    // product-scope D-17/D-22 keep these aux cards outside the current Home UI.
     await expect(page.locator("[data-testid='home-aux-jobpicks']")).toHaveCount(
       0,
     );
@@ -172,7 +171,7 @@ test.describe("home screen DOM anchor parity", () => {
     expect(textareaRect.right).toBeLessThanOrEqual(viewport!.width + 1);
   });
 
-  test("home retired aux cards stay absent", async ({
+  test("home non-current aux cards stay absent", async ({
     page,
   }) => {
     await page.goto("/");
