@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: active
 > **更新日期**: 2026-07-07
 
@@ -55,7 +55,7 @@
 | D-6 | Detail read-only | 简历详情页不提供 export / copy / view-original / rewrites / edit / preview-confirm 操作；原始简历预览就是当前只读原文正文 | 用奥卡姆剃刀收敛详情页，只保留用户要看的简历内容 |
 | D-7 | Negative gate | product-scope pruning gate owns non-current route/module/input regression scan | 防止范围外入口回流 |
 | D-8 | Flat CreateFlow | CreateFlow 只提供 upload / paste；`registerResume` 成功后直接打开只读详情；解析动画和 preview confirm 不属于当前流程 | 与“上传后一步到位查看原始简历内容”诉求对齐 |
-| D-9 | LLM display name | 创建后完成态 `displayName` 由 backend parse 从 LLM 结构化结果中派生；frontend 不展示通用“上传/粘贴的简历”，也不得把 raw resume 第一行当作列表或详情名称；解析前仅可显示中性“名称生成中”占位或来源信息 | 列表和详情使用 LLM-derived 可识别名称，避免 Markdown 标题或正文首行误当名称 |
+| D-9 | LLM display name | 创建后完成态 `displayName` 由 backend parse 从 LLM 结构化结果中派生；frontend 不展示通用“上传/粘贴的简历”，也不得把 raw resume 第一行、上传文件名或与来源 `title` 相同的文件名 `displayName` 当作列表或详情名称；解析前仅可显示中性“名称生成中”占位或来源信息 | 列表和详情使用 LLM-derived 可识别名称，避免 Markdown 标题、正文首行或 PDF 文件名误当名称 |
 
 ### 3.2 待确认事项
 
@@ -105,9 +105,9 @@
 |----|------|-------|------|------|-----------|
 | C-1 | Route shell | Authenticated user opens `resume_versions` | Route renders | Resume Workshop shell appears and TopBar highlights resume nav | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-2 | List view | `listResumes` returns items | List loads | Flat table, create entrypoint and detail entrypoints render | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
-| C-3 | Detail read-only | User opens a resume | Detail renders | The original resume content itself renders read-only from `parsedTextSnapshot` / `originalText`; if upload parse is still `queued/processing`, the read-only detail may poll `getResume` until the text snapshot arrives, but it must not show parser animation / preview-confirm; export / copy / original preview / rewrite / edit surfaces are absent; legacy tab params are ignored | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
+| C-3 | Detail read-only | User opens a resume | Detail renders | The original resume content itself renders read-only from `parsedTextSnapshot` / `originalText`; if upload parse is still `queued/processing`, the read-only detail may poll `getResume` until the text snapshot arrives; if parse is `failed` but a snapshot exists, the snapshot still renders; it must not show parser animation / preview-confirm; export / copy / original preview / rewrite / edit surfaces are absent; legacy tab params are ignored | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-4 | Create upload | User selects valid file | Submit | Presign, PUT, register complete; app navigates directly to `resume_versions?resumeId=<id>`; parsing animation / preview confirm / `updateResume` save path are absent | [002](./plans/002-create-flow/plan.md) |
-| C-5 | Create paste | User enters text | Submit | Register completes and app navigates directly to detail; request title remains a neutral source placeholder, and visible list/detail name comes from backend LLM-derived `displayName` after parse, never from the raw first line | [002](./plans/002-create-flow/plan.md) |
+| C-5 | Create paste | User enters text | Submit | Register completes and app navigates directly to detail; request title remains a neutral source placeholder, and visible list/detail name comes from backend LLM-derived `displayName` after parse, never from the raw first line or source filename/title fallback | [002](./plans/002-create-flow/plan.md) |
 | C-6 | Create recovery | Register or upload fails | User retries from input | Input is preserved locally and no raw content leaks | [002](./plans/002-create-flow/plan.md) |
 | C-7 | CTA handoff | Home or Workspace create CTA | Click | Route lands on CreateFlow and auth pending action is safe | [002](./plans/002-create-flow/plan.md) |
 | C-10 | Privacy | User browses or creates resumes | App logs/routes/stores update | Raw resume content stays out of passive channels | 001 / 002 |

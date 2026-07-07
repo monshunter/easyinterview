@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-07](2026-07-07.md) | `fix(resume-workshop): read full upload PDFs (BUG-0137)` | #fix #api #ui #test #docs #bdd |
 | [2026-07-07](2026-07-07.md) | `fix(resume-workshop): use parse-derived names and upload text (BUG-0137)` | #fix #ui #api #test #docs #bdd |
 | [2026-07-07](2026-07-07.md) | `fix(resume-workshop): make resume creation direct and detail readonly (BUG-0137)` | #fix #ui #test #docs #bdd |
 | [2026-07-07](2026-07-07.md) | `fix(review): close repo pruning cleanup findings (BUG-0136)` | #fix #test #docs #ui |

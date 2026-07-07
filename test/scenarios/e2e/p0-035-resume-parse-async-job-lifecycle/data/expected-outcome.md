@@ -4,7 +4,8 @@
 - The drainer claims queued jobs and finalizes async job attempts through the shared `targetjob` drainer contract.
 - Upload and paste sources are read from their own persisted source columns;
   unsupported source types fail instead of deserializing non-current guided fields.
-- Upload PDF / DOCX / Markdown / text sources write readable prompt input and `parsed_text_snapshot`, not file names or binary bytes.
+- Upload PDF / DOCX / Markdown / text sources write readable prompt input and `parsed_text_snapshot`, not file names, binary bytes, or PDF literal乱码.
+- Unreadable PDF fallback is rejected before AI and never writes a garbage snapshot.
 - Queued resume creation keeps `display_name` empty; successful parse writes ready state, parsed summary, parsed text snapshot, LLM-derived `displayName`, typed AI task run metadata, and one `resume.parse.completed` outbox event with only envelope fields.
 - Invalid output, timeout, and retry-exhausted paths do not emit completed events and do not introduce `failed_retryable` into `resume_assets.parse_status`.
 - Parse completion before Preview Confirm does not create `resume_versions` rows.

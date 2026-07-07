@@ -7,12 +7,19 @@
 
 本次交付覆盖 Resume Workshop 创建和详情闭环的二次修复：详情页只读展示原始简历正文；upload / paste 注册成功后直接打开 `resume_versions?resumeId=<id>`；删除解析动画页、预览确认页和确认保存页；列表/详情名称只能来自 LLM-derived `displayName` 或 LLM/结构化 headline，不能使用通用来源名、raw resume 第一行或文件名；上传 PDF / DOCX / Markdown / text 会提取可读正文作为 AI prompt input 和 `parsed_text_snapshot`。
 
+第三轮补修覆盖真实 PDF 空白/乱码问题：resume.parse upload object 读取预算从 256KiB 提升到 8MiB，避免真实浏览器生成 PDF 的 xref / 字体映射被截断；PDF 抽取优先使用 `pdftotext -layout - -`，并给 Go parser / literal fallback 增加可读性 gate；`CompleteParseFailure` 支持保存已抽取的 `parsed_text_snapshot`，使原文预览不依赖 LLM 结构化解析成功；frontend adapter 继续过滤与来源 title 相同的 PDF 文件名 `displayName`。
+
 已通过的主要证据：
 
 - `go test ./internal/resume/jobs -run 'TestParseHandlerExtractsReadableUploadText|TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox' -count=1`
 - `go test ./internal/resume/store -run 'TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady|TestCreateWithParseJobInsertsResumeAndJobAtomically|TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1`
 - `go test ./internal/resume/... ./cmd/api -run 'TestResume|TestParse|TestCreateWithParseJob|TestCompleteParse|TestBuildResumeRuntime' -count=1`
 - `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop src/app/scenarios/p0-037-resume-detail-preview-readonly.test.tsx`
+- `go test ./internal/resume/jobs -run 'TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox|TestParseHandlerExtractsReadableUploadText|TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox' -count=1`
+- `go test ./internal/resume/jobs -run 'TestParseHandlerRejectsUnreadablePDFText|TestParseHandlerExtractsReadableUploadText' -count=1`
+- `go test ./internal/resume/store -run 'TestCompleteParseFailureCanPersistExtractedTextSnapshot|TestCompleteParseFailureMarksFailedWithoutCompletedOutbox|TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically|TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady' -count=1`
+- `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/adapters/resume.test.ts`
+- local UAT：真实 PDF resume `019f3bfb-7d9d-76d2-a82d-08bcbac225ce` 重排后 `parse_status=failed` / `AI_OUTPUT_INVALID`，但 `parsed_text_snapshot` 长度 3083，开头为 `谭章毓 | AI Infra / Agent / 平台工程师` 等可读中文正文。
 - E2E.P0.035 / P0.037 / P0.081 `trigger -> verify`
 - `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --fix-index` post-fix verification: zero drift
 - `BUG-0137` 已修订并登记到 `docs/bugs/INDEX.md`
@@ -39,6 +46,18 @@
   - **证据**：`backend/internal/resume/jobs/parse.go` upload 分支直接 `raw = string(body)`；新增红测 `TestParseHandlerExtractsReadableUploadText` 在 PDF / DOCX case 中先失败，snapshot 包含 `%PDF` / `PK` / XML 片段。
   - **影响**：上传 PDF/DOCX 后详情页无法展示真实原文，LLM prompt 也可能消费不可读二进制。
 
+- 真实 PDF 样本暴露了小型合成 PDF gate 不足。
+  - **证据**：用户复测 PDF 详情仍为空；本地 DB 中失败 resume 对应 file_object size 为 554631 bytes，旧 parse handler 默认只读 262144 bytes；从 MinIO 取回 PDF 后 `pdftotext -layout` 能提取正文，证明文件可读但 runtime 读取被截断。
+  - **影响**：之前的合成 PDF unit test 只证明 parser 分支存在，不能证明真实 PDF 不会因 xref / 字体映射缺失而空白。
+
+- PDF fallback 缺少可读性 gate。
+  - **证据**：扩大读取预算后，同一真实 PDF 曾得到 3285 字符 snapshot，但内容开头是 `%¡À` 和控制字符，不是简历正文；旧逻辑只检查“非空”，没有拒绝 PDF literal / binary 乱码。
+  - **影响**：页面不再空白但仍不可读，等价于没有展示原始简历。
+
+- 原文快照写入依赖 LLM 结构化成功。
+  - **证据**：旧 `CompleteParseFailure` 只写 `parse_status='failed' + error_code`，不接受 `parsed_text_snapshot`；只要 AI provider 或 output validation 失败，详情页仍可能空白。
+  - **影响**：用户核心诉求是“预览就是原始简历内容”，不应被 LLM 名称/profile 结构化成功率牵连。
+
 ## 3 根因归类
 
 - Runtime / spec-plan 漂移：
@@ -57,6 +76,18 @@
   - **类别**：spec-plan
   - **根因**：backend-resume D-14 只覆盖 displayName，未把 upload 白名单格式和 `parsed_text_snapshot` 的 readable body extraction 写成 D-15 gate。
 
+- 真实样本覆盖不足：
+  - **类别**：test-gate
+  - **根因**：PDF gate 使用极小 synthetic PDF，未断言 object reader 的读取预算，也未用真实失败样本大小建立下限。
+
+- PDF 可读性验证不足：
+  - **类别**：test-gate
+  - **根因**：旧 PDF extraction fallback 只以非空作为成功标准，未检查 replacement/control characters，也没有验证真实样本的正文开头。
+
+- 原文预览与 LLM 结构化耦合：
+  - **类别**：runtime-contract
+  - **根因**：parse success 事务同时承担结构化 profile、displayName 和原文快照写入；failure path 没有保留已抽取的原文快照。
+
 ## 4 对流程资产的改进建议
 
 - UI 删除类变更应在 plan gate 中固定“runtime source + locale + CSS + ui-design contract + scenario README/data/scripts”的零残留检查。
@@ -69,6 +100,18 @@
 
 - Upload 白名单格式必须有 readable text extraction gate，至少覆盖 PDF / DOCX / Markdown / text 的 prompt input 与 `parsed_text_snapshot` 一致性。
   - **落点**：spec-plan / scenario scripts
+  - **优先级**：high
+
+- PDF gate 必须断言真实文件读取预算，并保留至少一个接近真实浏览器导出大小的 fixture 下限；小型 synthetic PDF 只能作为 parser smoke。
+  - **落点**：unit test / scenario scripts
+  - **优先级**：high
+
+- PDF gate 必须断言 extracted text 可读；非空但含大量不可打印字符、replacement char 或 PDF literal 乱码时必须失败，不能进入 AI prompt / snapshot。
+  - **落点**：unit test / backend-resume D-15
+  - **优先级**：high
+
+- 原文快照写入应先于或独立于 LLM 结构化成功；failure path 已抽取正文时必须保存 snapshot，completed event 仍仅 ready 成功发出。
+  - **落点**：backend-resume store/job contract
   - **优先级**：high
 
 - P0 scenario verify 中涉及“retired UI”的场景，应优先断言不存在旧 DOM / 旧 imports，而不是保留旧目录名里的正向语义作为说明。

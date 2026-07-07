@@ -1,6 +1,6 @@
 # Backend Resume Asset Register Parse and Listing Checklist
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
 > **更新日期**: 2026-07-07
 
@@ -81,3 +81,5 @@
 
 - [x] 9.1 `backend/internal/resume/jobs/parse.go` 对 upload source 提取 PDF / DOCX / Markdown / text 可读正文，AI prompt input 与 `parsed_text_snapshot` 使用同一正文，不能使用文件名或二进制 bytes（验证：`cd backend && go test ./internal/resume/jobs -run 'TestParseHandlerExtractsReadableUploadText|TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox' -count=1` PASS）<!-- verified: 2026-07-07 method=go-test+scenario -->
 - [x] 9.2 `CreateWithParseJob` 创建 queued resume 时只保存来源 `title`，不写 `display_name`；ready 后只由 parse success 写入 LLM-derived `display_name`（验证：`cd backend && go test ./internal/resume/store -run 'TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady|TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1` PASS）<!-- verified: 2026-07-07 method=go-test+scenario -->
+- [x] 9.3 `resume.parse` upload 对象读取预算覆盖真实浏览器生成 PDF，不因 256KiB 截断导致 `parsed_text_snapshot` 为空，并拒绝 PDF literal / binary 乱码正文（验证：`cd backend && go test ./internal/resume/jobs -run 'TestParseHandlerRejectsUnreadablePDFText|TestParseHandlerExtractsReadableUploadText' -count=1` PASS，assert read budget >= 554631 bytes；local UAT 真实 PDF snapshot 以中文正文开头）<!-- verified: 2026-07-07 method=go-test+local-uat -->
+- [x] 9.4 `resume.parse` 在已抽取正文后遇到 AI provider / AI output 失败，仍写入 `parsed_text_snapshot` 供只读详情显示，且不发 completed event（验证：`cd backend && go test ./internal/resume/jobs -run TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox -count=1` PASS；`cd backend && go test ./internal/resume/store -run TestCompleteParseFailureCanPersistExtractedTextSnapshot -count=1` PASS；local UAT 真实 PDF `parse_status=failed` / `AI_OUTPUT_INVALID` 时 snapshot_len=3083）<!-- verified: 2026-07-07 method=go-test+local-uat -->

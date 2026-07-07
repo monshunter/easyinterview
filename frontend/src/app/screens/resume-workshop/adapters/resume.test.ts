@@ -82,6 +82,23 @@ describe("mapResumeToUiSource", () => {
     expect(ui.name).not.toContain(".pdf");
   });
 
+  it("treats a displayName equal to the upload file title as pending, not a resume name", () => {
+    const ui = mapResumeToUiSource({
+      ...baseResume,
+      sourceType: "upload",
+      title: "谭章毓简历-后端工程师AI.pdf",
+      displayName: "谭章毓简历-后端工程师AI.pdf",
+      parseStatus: "failed",
+      originalText: null,
+      parsedTextSnapshot: null,
+      parsedSummary: null,
+      structuredProfile: {},
+    });
+    expect(ui.name).toBe("名称生成中");
+    expect(ui.name).not.toContain(".pdf");
+    expect(ui.sourceName).toBe("谭章毓简历-后端工程师AI.pdf");
+  });
+
   it("uses a neutral pending name while parsing has no LLM-derived name", () => {
     const ui = mapResumeToUiSource({
       ...baseResume,

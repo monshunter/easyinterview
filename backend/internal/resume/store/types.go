@@ -229,8 +229,9 @@ type CompleteParseSuccessInput struct {
 }
 
 type CompleteParseFailureInput struct {
-	UserID    string
-	AssetID   string
-	ErrorCode string
-	Now       time.Time
+	UserID             string
+	AssetID            string
+	ErrorCode          string
+	ParsedTextSnapshot string
+	Now                time.Time
 }

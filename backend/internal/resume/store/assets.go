@@ -373,7 +373,11 @@ insert into outbox_events (
 }
 
 func (r *Repository) CompleteParseFailure(ctx context.Context, in CompleteParseFailureInput) error {
-	return r.MarkFailed(ctx, MarkFailedInput{UserID: in.UserID, AssetID: in.AssetID, ErrorCode: in.ErrorCode, Now: in.Now})
+	var parsedTextSnapshot *string
+	if strings.TrimSpace(in.ParsedTextSnapshot) != "" {
+		parsedTextSnapshot = &in.ParsedTextSnapshot
+	}
+	return r.updateStatus(ctx, in.UserID, in.AssetID, "", sharedtypes.TargetJobParseStatusFailed, nil, nil, parsedTextSnapshot, in.ErrorCode, in.Now)
 }
 
 func (r *Repository) DeleteForUser(ctx context.Context, userID string, now time.Time) error {
@@ -427,6 +431,15 @@ where id = $6 and user_id = $7 and parse_status = $8 and deleted_at is null`,
 			string(to), parsedSummary, structuredProfile, nullableStringPtr(parsedTextSnapshot), now, resumeID, userID, string(from),
 		)
 	case to == sharedtypes.TargetJobParseStatusFailed:
+		if parsedTextSnapshot != nil && strings.TrimSpace(*parsedTextSnapshot) != "" {
+			res, err = r.db.ExecContext(ctx, `
+update resumes
+set parse_status = $1, error_code = $2, parsed_text_snapshot = $3, updated_at = $4
+where id = $5 and user_id = $6 and parse_status in ('queued','processing') and deleted_at is null`,
+				string(to), nullableString(errorCode), *parsedTextSnapshot, now, resumeID, userID,
+			)
+			break
+		}
 		res, err = r.db.ExecContext(ctx, `
 update resumes
 set parse_status = $1, error_code = $2, updated_at = $3

@@ -16,7 +16,7 @@ Given registered resume assets for `upload` and `paste` sources, an in-process
 
 When the drainer claims queued jobs and invokes the resume parse handler for success, invalid output, timeout, and retry-exhausted variants.
 
-Then upload PDF / DOCX / Markdown / text sources are converted to readable prompt input and `parsed_text_snapshot`; queued rows keep `display_name` empty until parse success; success writes `parsed_summary`, `parsed_text_snapshot`, `parse_status=ready`, LLM-derived `displayName`, typed `ai_task_runs` metadata, and one `resume.parse.completed` outbox event; failures write `parse_status=failed` with `error_code` and no completed event; parse does not create `resume_versions` before Preview Confirm.
+Then upload PDF / DOCX / Markdown / text sources are converted to readable prompt input and `parsed_text_snapshot`; unreadable PDF literal / binary fallback is rejected before AI; queued rows keep `display_name` empty until parse success; success writes `parsed_summary`, `parsed_text_snapshot`, `parse_status=ready`, LLM-derived `displayName`, typed `ai_task_runs` metadata, and one `resume.parse.completed` outbox event; failures write `parse_status=failed` with `error_code`, keep any already extracted readable snapshot, and no completed event; parse does not create `resume_versions` before Preview Confirm.
 
 ## 4. Scripts
 

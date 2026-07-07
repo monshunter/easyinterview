@@ -173,18 +173,20 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 func TestParseHandlerExtractsReadableUploadText(t *testing.T) {
 	now := time.Date(2026, 7, 7, 9, 0, 0, 0, time.UTC)
 	cases := []struct {
-		name       string
-		objectKey  string
-		body       []byte
-		wantText   string
-		forbidText []string
+		name             string
+		objectKey        string
+		body             []byte
+		wantText         string
+		wantMinReadBytes int64
+		forbidText       []string
 	}{
 		{
-			name:       "pdf",
-			objectKey:  "user-1/resume/tan-ai-backend.pdf",
-			body:       minimalPDFWithText("PDF Extracted Resume Text"),
-			wantText:   "PDF Extracted Resume Text",
-			forbidText: []string{"%PDF", "tan-ai-backend.pdf"},
+			name:             "pdf",
+			objectKey:        "user-1/resume/tan-ai-backend.pdf",
+			body:             minimalPDFWithText("PDF Extracted Resume Text"),
+			wantText:         "PDF Extracted Resume Text",
+			wantMinReadBytes: 554631,
+			forbidText:       []string{"%PDF", "tan-ai-backend.pdf"},
 		},
 		{
 			name:       "docx",
@@ -239,6 +241,9 @@ func TestParseHandlerExtractsReadableUploadText(t *testing.T) {
 			if store.success == nil {
 				t.Fatal("expected CompleteParseSuccess")
 			}
+			if tc.wantMinReadBytes > 0 && len(objects.maxBytes) > 0 && objects.maxBytes[0] < tc.wantMinReadBytes {
+				t.Fatalf("object read maxBytes = %d, want at least %d", objects.maxBytes[0], tc.wantMinReadBytes)
+			}
 			if got := normalizeComparableText(store.success.ParsedTextSnapshot); got != tc.wantText {
 				t.Fatalf("parsed text snapshot = %q, want %q", got, tc.wantText)
 			}
@@ -255,38 +260,84 @@ func TestParseHandlerExtractsReadableUploadText(t *testing.T) {
 	}
 }
 
+func TestParseHandlerRejectsUnreadablePDFText(t *testing.T) {
+	now := time.Date(2026, 7, 7, 9, 15, 0, 0, time.UTC)
+	store := &fakeParseStore{asset: resumestore.ParseAssetRecord{
+		ID:            "asset-upload-binary-pdf",
+		UserID:        "user-1",
+		Language:      "zh-CN",
+		ParseStatus:   sharedtypes.TargetJobParseStatusQueued,
+		SourceType:    "upload",
+		FileObjectID:  "file-1",
+		FileObjectKey: "user-1/resume/binary.pdf",
+	}}
+	objects := &fakeObjectReader{objectBytes: map[string][]byte{
+		store.asset.FileObjectKey: []byte("%PDF-1.4\n1 0 obj\n(\x03p\x03\x13y\x03y$) Tj\nendobj\n%%EOF"),
+	}}
+	ai := &captureAI{resp: aiclient.CompleteResponse{Content: validResumeParseJSON}}
+	handler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
+		Store:    store,
+		Registry: fakeRegistry{resolution: parseResolution()},
+		AI:       ai,
+		Objects:  objects,
+		NewID:    idSeq("event-1"),
+		Now:      func() time.Time { return now },
+	})
+
+	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: store.asset.ID, Attempts: 1, MaxAttempts: 5,
+	})
+
+	if outcome.Succeeded || outcome.ErrorCode != sharederrors.CodeValidationFailed {
+		t.Fatalf("Handle outcome = %+v, want validation failure", outcome)
+	}
+	if store.failure == nil || store.failure.ParsedTextSnapshot != "" {
+		t.Fatalf("failure should not persist unreadable snapshot: %+v", store.failure)
+	}
+	if store.success != nil {
+		t.Fatalf("unreadable PDF must not complete parse: %+v", store.success)
+	}
+	if ai.payload.Messages != nil {
+		t.Fatalf("unreadable PDF should fail before AI call: %+v", ai.payload.Messages)
+	}
+}
+
 func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) {
 	now := time.Date(2026, 5, 13, 7, 30, 0, 0, time.UTC)
 	cases := []struct {
-		name       string
-		ai         *captureAI
-		job        targetjob.ClaimedJob
-		wantCode   string
-		wantRetry  bool
-		wantFailed bool
+		name                string
+		ai                  *captureAI
+		job                 targetjob.ClaimedJob
+		wantCode            string
+		wantRetry           bool
+		wantFailed          bool
+		wantFailureSnapshot string
 	}{
 		{
-			name:       "invalid json output",
-			ai:         &captureAI{resp: aiclient.CompleteResponse{Content: "not-json"}},
-			job:        targetjob.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 1, MaxAttempts: 5},
-			wantCode:   sharederrors.CodeAiOutputInvalid,
-			wantFailed: true,
+			name:                "invalid json output",
+			ai:                  &captureAI{resp: aiclient.CompleteResponse{Content: "not-json"}},
+			job:                 targetjob.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 1, MaxAttempts: 5},
+			wantCode:            sharederrors.CodeAiOutputInvalid,
+			wantFailed:          true,
+			wantFailureSnapshot: "private resume body",
 		},
 		{
-			name:       "retryable timeout before exhaustion",
-			ai:         &captureAI{err: errors.New(sharederrors.CodeAiProviderTimeout + " provider slow")},
-			job:        targetjob.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 1, MaxAttempts: 5},
-			wantCode:   sharederrors.CodeAiProviderTimeout,
-			wantRetry:  true,
-			wantFailed: true,
+			name:                "retryable timeout before exhaustion",
+			ai:                  &captureAI{err: errors.New(sharederrors.CodeAiProviderTimeout + " provider slow")},
+			job:                 targetjob.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 1, MaxAttempts: 5},
+			wantCode:            sharederrors.CodeAiProviderTimeout,
+			wantRetry:           true,
+			wantFailed:          true,
+			wantFailureSnapshot: "private resume body",
 		},
 		{
-			name:       "retryable timeout exhausted",
-			ai:         &captureAI{err: errors.New(sharederrors.CodeAiProviderTimeout + " provider slow")},
-			job:        targetjob.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 5, MaxAttempts: 5},
-			wantCode:   sharederrors.CodeAiProviderTimeout,
-			wantRetry:  true,
-			wantFailed: true,
+			name:                "retryable timeout exhausted",
+			ai:                  &captureAI{err: errors.New(sharederrors.CodeAiProviderTimeout + " provider slow")},
+			job:                 targetjob.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 5, MaxAttempts: 5},
+			wantCode:            sharederrors.CodeAiProviderTimeout,
+			wantRetry:           true,
+			wantFailed:          true,
+			wantFailureSnapshot: "private resume body",
 		},
 	}
 
@@ -316,6 +367,9 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 			if tc.wantFailed {
 				if store.failure == nil || store.failure.ErrorCode != tc.wantCode {
 					t.Fatalf("failure = %+v, want code %s", store.failure, tc.wantCode)
+				}
+				if store.failure.ParsedTextSnapshot != tc.wantFailureSnapshot {
+					t.Fatalf("failure snapshot = %q, want %q", store.failure.ParsedTextSnapshot, tc.wantFailureSnapshot)
 				}
 			} else if store.failure != nil {
 				t.Fatalf("retryable non-exhausted failure should not mark resume failed: %+v", store.failure)
@@ -598,11 +652,13 @@ func (r fakeRegistry) Resolve(_ context.Context, featureKey string, language str
 type fakeObjectReader struct {
 	objects     map[string]string
 	objectBytes map[string][]byte
+	maxBytes    []int64
 	readCalls   int
 }
 
-func (r *fakeObjectReader) Read(_ context.Context, objectKey string, _ int64) ([]byte, error) {
+func (r *fakeObjectReader) Read(_ context.Context, objectKey string, maxBytes int64) ([]byte, error) {
 	r.readCalls++
+	r.maxBytes = append(r.maxBytes, maxBytes)
 	if value, ok := r.objectBytes[objectKey]; ok {
 		return append([]byte(nil), value...), nil
 	}

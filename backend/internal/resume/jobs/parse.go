@@ -9,10 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
 
 	pdf "github.com/ledongthuc/pdf"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
@@ -27,7 +29,7 @@ import (
 
 const FeatureKeyResumeParse = string(featurekeys.ResumeParse)
 
-const defaultMaxResumeInputBytes int64 = 256 * 1024
+const defaultMaxResumeInputBytes int64 = 8 * 1024 * 1024
 
 var ErrPromptUnsupported = errors.New("prompt registry: feature/language is not enabled")
 
@@ -119,11 +121,11 @@ func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) tar
 
 	input, err := h.resumeInput(ctx, asset)
 	if err != nil {
-		return h.fail(ctx, asset, job, sharederrors.CodeValidationFailed, err.Error(), false)
+		return h.fail(ctx, asset, job, sharederrors.CodeValidationFailed, err.Error(), false, "")
 	}
 	resolution, err := h.registry.Resolve(ctx, FeatureKeyResumeParse, asset.Language)
 	if err != nil {
-		return h.fail(ctx, asset, job, sharederrors.CodeAiProviderConfigInvalid, err.Error(), false)
+		return h.fail(ctx, asset, job, sharederrors.CodeAiProviderConfigInvalid, err.Error(), false, input)
 	}
 	metadata := aiclient.CallMetadata{
 		FeatureKey:        FeatureKeyResumeParse,
@@ -149,11 +151,11 @@ func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) tar
 	})
 	if err != nil {
 		code, retryable := translateAIClientError(err)
-		return h.fail(ctx, asset, job, code, err.Error(), retryable)
+		return h.fail(ctx, asset, job, code, err.Error(), retryable, input)
 	}
 	parsed, displayName, err := decodeResumeParseResponse(complete.Content)
 	if err != nil {
-		return h.fail(ctx, asset, job, sharederrors.CodeAiOutputInvalid, err.Error(), false)
+		return h.fail(ctx, asset, job, sharederrors.CodeAiOutputInvalid, err.Error(), false, input)
 	}
 	payload, err := json.Marshal(events.ResumeParseCompletedPayload{
 		ResumeID:    asset.ID,
@@ -161,10 +163,10 @@ func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) tar
 		ParseStatus: sharedtypes.TargetJobParseStatusReady,
 	})
 	if err != nil {
-		return h.fail(ctx, asset, job, sharederrors.CodeTargetImportFailed, err.Error(), true)
+		return h.fail(ctx, asset, job, sharederrors.CodeTargetImportFailed, err.Error(), true, input)
 	}
 	if h.newID == nil {
-		return h.fail(ctx, asset, job, sharederrors.CodeTargetImportFailed, "resume parse event id generator not configured", true)
+		return h.fail(ctx, asset, job, sharederrors.CodeTargetImportFailed, "resume parse event id generator not configured", true, input)
 	}
 	// D-20: parse directly produces the flat resume's structured content; the
 	// parsed JSON is both the summary and the structured_profile.
@@ -245,25 +247,49 @@ func extractUploadResumeText(objectKey string, body []byte) (string, error) {
 }
 
 func extractPDFText(body []byte) (string, error) {
+	if text, err := extractPDFTextWithPdftotext(body); err == nil && isReadableExtractedResumeText(text) {
+		return text, nil
+	}
 	reader, err := pdf.NewReader(bytes.NewReader(body), int64(len(body)))
 	if err == nil {
 		plain, plainErr := reader.GetPlainText()
 		if plainErr == nil {
 			data, readErr := io.ReadAll(plain)
 			if readErr == nil {
-				if text := normalizeExtractedResumeText(string(data)); text != "" {
+				if text := normalizeExtractedResumeText(string(data)); isReadableExtractedResumeText(text) {
 					return text, nil
 				}
 			}
 		}
 	}
-	if text := extractPDFLiteralText(body); text != "" {
+	if text := extractPDFLiteralText(body); isReadableExtractedResumeText(text) {
 		return text, nil
 	}
 	if err != nil {
 		return "", fmt.Errorf("extract pdf text: %w", err)
 	}
 	return "", fmt.Errorf("extract pdf text: no readable text found")
+}
+
+func extractPDFTextWithPdftotext(body []byte) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "pdftotext", "-layout", "-", "-")
+	cmd.Stdin = bytes.NewReader(body)
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	if err := cmd.Run(); err != nil {
+		if ctx.Err() != nil {
+			return "", fmt.Errorf("pdftotext timeout")
+		}
+		return "", fmt.Errorf("pdftotext unavailable or failed")
+	}
+	text := normalizeExtractedResumeText(stdout.String())
+	if text == "" {
+		return "", fmt.Errorf("pdftotext returned empty text")
+	}
+	return text, nil
 }
 
 func extractDOCXText(body []byte) (string, error) {
@@ -369,12 +395,32 @@ func normalizeExtractedResumeText(value string) string {
 	return strings.TrimSpace(strings.Join(normalized, "\n"))
 }
 
-func (h *ParseHandler) fail(ctx context.Context, asset resumestore.ParseAssetRecord, job targetjob.ClaimedJob, code, message string, retryable bool) targetjob.JobOutcome {
+func isReadableExtractedResumeText(value string) bool {
+	value = normalizeExtractedResumeText(value)
+	runes := []rune(value)
+	if len(runes) < 8 {
+		return false
+	}
+	readable := 0
+	nonPrintable := 0
+	for _, r := range runes {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			readable++
+		}
+		if r == unicode.ReplacementChar || (!unicode.IsPrint(r) && !unicode.IsSpace(r)) {
+			nonPrintable++
+		}
+	}
+	return readable >= 8 && nonPrintable == 0
+}
+
+func (h *ParseHandler) fail(ctx context.Context, asset resumestore.ParseAssetRecord, job targetjob.ClaimedJob, code, message string, retryable bool, parsedTextSnapshot string) targetjob.JobOutcome {
 	if err := h.store.CompleteParseFailure(ctx, resumestore.CompleteParseFailureInput{
-		UserID:    asset.UserID,
-		AssetID:   asset.ID,
-		ErrorCode: code,
-		Now:       h.now(),
+		UserID:             asset.UserID,
+		AssetID:            asset.ID,
+		ErrorCode:          code,
+		ParsedTextSnapshot: parsedTextSnapshot,
+		Now:                h.now(),
 	}); err != nil {
 		return targetjob.JobOutcome{
 			ErrorCode:    sharederrors.CodeTargetImportFailed,

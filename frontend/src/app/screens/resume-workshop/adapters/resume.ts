@@ -82,6 +82,12 @@ const isGenericResumeName = (value: string): boolean => {
   return GENERIC_RESUME_NAMES.has(normalized.toLowerCase());
 };
 
+const isSameName = (left: string, right: string): boolean =>
+  normalizeName(left).toLowerCase() === normalizeName(right).toLowerCase();
+
+const looksLikeUploadFileName = (value: string): boolean =>
+  /\.(pdf|docx?|txt|md|markdown)$/i.test(normalizeName(value));
+
 const splitContentLines = (content: string | null | undefined): string[] => {
   if (typeof content !== "string" || content.trim().length === 0) return [];
   return content
@@ -121,16 +127,22 @@ const deriveStructuredName = (resume: Resume): string => {
   return "";
 };
 
-const firstNonGeneric = (values: string[]): string => {
-  const value = values.find((candidate) => !isGenericResumeName(candidate));
+const firstNonGeneric = (values: string[], forbidden: string[] = []): string => {
+  const value = values.find(
+    (candidate) =>
+      !isGenericResumeName(candidate) &&
+      !forbidden.some((blocked) => isSameName(candidate, blocked)),
+  );
   return value ? normalizeName(value) : "";
 };
 
 const deriveDisplayName = (resume: Resume): string =>
-  firstNonGeneric([
-    safeString(resume.displayName),
-    deriveStructuredName(resume),
-  ]) || PENDING_DISPLAY_NAME;
+  firstNonGeneric(
+    [safeString(resume.displayName), deriveStructuredName(resume)],
+    [safeString(resume.title)].filter(
+      (value) => isGenericResumeName(value) || looksLikeUploadFileName(value),
+    ),
+  ) || PENDING_DISPLAY_NAME;
 
 const deriveSourceName = (resume: Resume): string => {
   if (resume.sourceType === "paste") return deriveSourceTypeLabel("paste");
