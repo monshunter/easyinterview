@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-07](2026-07-07.md) | `fix(review): close repo pruning cleanup findings (BUG-0136)` | #fix #test #docs #ui |
 | [2026-07-07](2026-07-07.md) | `fix(core-loop): close repo pruning cleanup` | #fix #test #docs #api #ui |
 | [2026-07-06](2026-07-06.md) | `fix(core-loop): add runtime pruning surface allowlist` | #fix #test #docs #ui |
 | [2026-07-06](2026-07-06.md) | `fix(core-loop): close active doc pruning drift (BUG-0135)` | #fix #test #docs #api #ui |

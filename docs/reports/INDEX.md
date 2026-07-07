@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-07](./2026-07-07-repo-pruning-cleanup-review-remediation-assessment.md) | Repo Pruning Cleanup Review Remediation 交付复盘 | #assessment |
 
 ## 2026-06
 

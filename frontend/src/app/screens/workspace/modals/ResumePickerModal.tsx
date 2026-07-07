@@ -39,13 +39,29 @@ export const ResumePickerModal: FC<ResumePickerModalProps> = ({
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     [resumesQuery.data],
   );
+  const activeResumeIds = useMemo(
+    () => new Set(resumes.map((resume) => resume.id)),
+    [resumes],
+  );
 
   useEffect(() => {
     if (!open) return;
-    setSelectedResumeId(boundResumeId ?? "");
-  }, [boundResumeId, open]);
+    if (resumesQuery.loading) {
+      setSelectedResumeId(boundResumeId ?? "");
+      return;
+    }
+    setSelectedResumeId((current) => {
+      if (current && activeResumeIds.has(current)) return current;
+      if (boundResumeId && activeResumeIds.has(boundResumeId)) {
+        return boundResumeId;
+      }
+      return "";
+    });
+  }, [activeResumeIds, boundResumeId, open, resumesQuery.loading]);
 
   if (!open) return null;
+
+  const selectedResumeIsActive = activeResumeIds.has(selectedResumeId);
 
   return (
     <div
@@ -161,7 +177,7 @@ export const ResumePickerModal: FC<ResumePickerModalProps> = ({
           ) : (
             <div data-testid="workspace-resume-modal-options" style={{ display: "grid", gap: 10 }}>
               {resumes.map((resume) => {
-                const selected = selectedResumeId === resume.id;
+                const selected = selectedResumeIsActive && selectedResumeId === resume.id;
                 return (
                   <button
                     key={resume.id}
@@ -230,9 +246,10 @@ export const ResumePickerModal: FC<ResumePickerModalProps> = ({
           </button>
           <button
             data-testid="workspace-resume-modal-confirm"
-            disabled={!selectedResumeId}
+            disabled={!selectedResumeIsActive}
             onClick={() => {
-              if (selectedResumeId) onSelectResume?.(selectedResumeId);
+              if (!selectedResumeIsActive) return;
+              onSelectResume?.(selectedResumeId);
               onClose();
             }}
             style={{
@@ -243,8 +260,8 @@ export const ResumePickerModal: FC<ResumePickerModalProps> = ({
               color: "#fff",
               border: "1px solid var(--ei-color-accent)",
               borderRadius: 2,
-              cursor: selectedResumeId ? "pointer" : "not-allowed",
-              opacity: selectedResumeId ? 1 : 0.5,
+              cursor: selectedResumeIsActive ? "pointer" : "not-allowed",
+              opacity: selectedResumeIsActive ? 1 : 0.5,
             }}
           >
             {t("workspace.resumePicker.use")}

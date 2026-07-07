@@ -134,6 +134,27 @@ describe("ResumePickerModal", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("does not confirm synthetic or stale bound resume ids", async () => {
+    const onClose = vi.fn();
+    const onSelectResume = vi.fn();
+    withProviders(
+      <ResumePickerModal
+        open
+        onClose={onClose}
+        boundResumeId="resume-unbound"
+        onSelectResume={onSelectResume}
+      />,
+    );
+
+    const user = userEvent.setup();
+    await screen.findByTestId(`workspace-resume-modal-option-${DEFAULT_RESUME_ID}`);
+    expect(screen.getByTestId("workspace-resume-modal-confirm")).toBeDisabled();
+
+    await user.click(screen.getByTestId("workspace-resume-modal-confirm"));
+    expect(onSelectResume).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("has aria-modal attribute", () => {
     withProviders(<ResumePickerModal open onClose={vi.fn()} />);
     expect(screen.getByTestId("workspace-resume-modal-card")).toHaveAttribute(

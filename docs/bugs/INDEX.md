@@ -165,6 +165,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0136](./BUG-0136.md) | repo pruning cleanup review exposed lint and frontend guard drift | medium | resolved | 2026-07-07 | `fix(review): close repo pruning cleanup findings (BUG-0136)` |
 | [BUG-0129](./BUG-0129.md) | core-loop pruning left stale profile and codegen test gates | medium | resolved | 2026-06-30 | `fix(core-loop): close pruning gate drift (BUG-0129)` |
 | [BUG-0128](./BUG-0128.md) | core-loop pruning gates missed design canvas and privacy hook drift | medium | resolved | 2026-06-29 | `fix(core-loop): close pruning review drift (BUG-0128)` |
 | [BUG-0124](./BUG-0124.md) | resume Phase 8 flat gate drifted on current profile fields | medium | resolved | 2026-06-14 | `fix(test): close resume phase8 flat gate drift (BUG-0124)` |

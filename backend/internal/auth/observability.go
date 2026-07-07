@@ -81,11 +81,11 @@ func RegisterAuthMetrics(r AuthMetricRegisterer, opts AuthMetricsOptions) AuthMe
 	if r == nil {
 		return metrics
 	}
-		metrics.challengeStarted = r.Counter(MetricAuthChallengeStartedTotal, "Total email-code auth challenge start requests.", AuthServiceResultLabelKeys)
-		metrics.sessionMinted = r.Counter(MetricAuthSessionMintedTotal, "Total email-code sessions minted after challenge verification.", AuthServiceResultLabelKeys)
-		metrics.logout = r.Counter(MetricAuthLogoutTotal, "Total email-code logout requests with an authenticated session.", AuthServiceResultLabelKeys)
+	metrics.challengeStarted = r.Counter(MetricAuthChallengeStartedTotal, "Total email-code auth challenge start requests.", AuthServiceResultLabelKeys)
+	metrics.sessionMinted = r.Counter(MetricAuthSessionMintedTotal, "Total email-code sessions minted after challenge verification.", AuthServiceResultLabelKeys)
+	metrics.logout = r.Counter(MetricAuthLogoutTotal, "Total email-code logout requests with an authenticated session.", AuthServiceResultLabelKeys)
 	metrics.deleteHandoff = r.Counter(MetricAuthDeleteHandoffTotal, "Total authenticated privacy delete handoffs created by auth.", AuthServiceResultLabelKeys)
-		metrics.failure = r.Counter(MetricAuthFailureTotal, "Total email-code auth failures partitioned by operation.", AuthOperationResultLabelKeys)
+	metrics.failure = r.Counter(MetricAuthFailureTotal, "Total email-code auth failures partitioned by operation.", AuthOperationResultLabelKeys)
 	return metrics
 }
 

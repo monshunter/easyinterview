@@ -213,8 +213,6 @@ def classify(rel: Path, line: str) -> str:
         return "negative_tests"
     if any(is_relative_to(rel, prefix) for prefix in NEGATIVE_PATH_PREFIXES):
         return "negative_tests"
-    if NEGATIVE_CONTEXT_RE.search(line):
-        return "negative_tests"
     return "real_residuals"
 
 

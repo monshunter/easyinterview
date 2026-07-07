@@ -100,6 +100,21 @@ def test_buckets_non_current_surface_hits_by_allowed_context(tmp_path: Path) -> 
     ]
 
 
+def test_negative_context_words_do_not_allow_production_runtime_residuals(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    write(
+        repo / "backend" / "internal" / "api" / "debriefs" / "handler.go",
+        "package debriefs // delete this debrief handler before release\n",
+    )
+
+    report = audit.scan_repo(repo)
+
+    assert bucket_paths(report, "real_residuals") == [
+        "backend/internal/api/debriefs/handler.go"
+    ]
+    assert bucket_paths(report, "negative_tests") == []
+
+
 def test_cli_fails_when_real_residuals_exist(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     write(
