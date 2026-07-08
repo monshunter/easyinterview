@@ -17,7 +17,7 @@ import (
 func TestSQLStoreIntegration_GetTargetJobByUser_AllowsFailedJobWithoutRequirements(t *testing.T) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		t.Skip("DATABASE_URL not set; skipping targetjob store integration test")
+		t.Fatal("DATABASE_URL is required for BUG-0142 targetjob schema-drift integration gate")
 	}
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
@@ -28,7 +28,7 @@ func TestSQLStoreIntegration_GetTargetJobByUser_AllowsFailedJobWithoutRequiremen
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := db.PingContext(ctx); err != nil {
-		t.Skipf("postgres ping failed (%v); skipping targetjob store integration test", err)
+		t.Fatalf("postgres ping failed for BUG-0142 targetjob schema-drift integration gate: %v", err)
 	}
 
 	userID := "019f40d0-0000-7000-8000-000000000001"

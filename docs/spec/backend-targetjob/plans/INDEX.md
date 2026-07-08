@@ -13,4 +13,4 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-targetjob-import-and-parse-bootstrap](./001-targetjob-import-and-parse-bootstrap/plan.md) | [plan](./001-targetjob-import-and-parse-bootstrap/plan.md) / [checklist](./001-targetjob-import-and-parse-bootstrap/checklist.md) / [context](./001-targetjob-import-and-parse-bootstrap/context.yaml) / [bdd-plan](./001-targetjob-import-and-parse-bootstrap/bdd-plan.md) / [bdd-checklist](./001-targetjob-import-and-parse-bootstrap/bdd-checklist.md) | 1.5 | completed | 2026-07-08 |
+| [001-targetjob-import-and-parse-bootstrap](./001-targetjob-import-and-parse-bootstrap/plan.md) | [plan](./001-targetjob-import-and-parse-bootstrap/plan.md) / [checklist](./001-targetjob-import-and-parse-bootstrap/checklist.md) / [context](./001-targetjob-import-and-parse-bootstrap/context.yaml) / [bdd-plan](./001-targetjob-import-and-parse-bootstrap/bdd-plan.md) / [bdd-checklist](./001-targetjob-import-and-parse-bootstrap/bdd-checklist.md) | 1.6 | completed | 2026-07-08 |

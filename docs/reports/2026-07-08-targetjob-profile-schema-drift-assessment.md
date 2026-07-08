@@ -10,6 +10,7 @@
   - Red 阶段：`DATABASE_URL=<local-dev-postgres-dsn> go test -tags=integration ./internal/targetjob -run TestSQLStoreIntegration_GetTargetJobByUser_AllowsFailedJobWithoutRequirements -count=1` 失败，错误为 `pq: column "profile_id" does not exist`。
   - Focused green：`go test ./internal/targetjob -count=1` 通过。
   - Real DB gate：`DATABASE_URL=<local-dev-postgres-dsn> go test -tags=integration ./internal/targetjob -run TestSQLStoreIntegration_GetTargetJobByUser_AllowsFailedJobWithoutRequirements -count=1` 通过。
+  - Skip-proof gate hardening：未设置 `DATABASE_URL` 时同一 focused integration gate 非 0 失败且无 `--- SKIP`；设置真实 local-dev Postgres `DATABASE_URL` 后通过。
   - HTTP scenario regression：`go test ./cmd/api -run 'TestBuildTargetJobRuntimeWiresDrainerAndAIClient|TestBuildAPIHandlerMountsTargetJobRoutesBehindSessionMiddleware|TestE2EP0012HTTPParseFailureRetryableAndNonRetryable' -count=1` 通过。
   - Runtime smoke：`test/scenarios/env-verify.sh` 通过；截图同款 `GET /api/v1/targets/{targetJobId}` 返回 200，body 包含 `analysisStatus="failed"` 和空 `requirements`。
   - 文档与负向 gate：`validate_context.py`、`sync-doc-index --check` 通过；`rg 'profile_id|ProfileID|profileID' backend/internal/targetjob backend/cmd/api openapi/fixtures/TargetJobs openapi/openapi.yaml migrations shared` 无 active 命中。
@@ -25,6 +26,9 @@
 - owner plan 没有把退役 profile schema 列作为长期负向 invariant。
   - **证据**：`backend-targetjob` spec / plan 原先覆盖 import / parse / source / BDD，但没有要求 active SQL 与当前 B4 DDL 做 `profile_id` zero-reference 搜索。
   - **影响**：D-20/D-17 退役 profile 后，TargetJob owner 没有独立防止旧列回流的 gate。
+- 首版真实 DB gate 仍允许缺依赖时 `SKIP`。
+  - **证据**：review 发现 `store_integration_test.go` 在 `DATABASE_URL` 缺失或 DB ping 失败时调用 `t.Skip` / `t.Skipf`，`go test -tags=integration` 会整体 PASS。
+  - **影响**：BUG-0142 文档声明的强制 schema-drift 防线可能没有执行，却被误读为绿色。
 
 ## 3 根因归类
 
@@ -32,6 +36,8 @@
   - **类别**：spec-plan。
 - 根因：plan/checklist 缺少“退役列 zero active reference + real DB-backed failed-state detail read”的组合 gate。
   - **类别**：spec-plan。
+- 根因：强制 integration gate 没有区分可选 smoke 与必需 schema-drift 防线，环境缺口被 `t.Skip` 弱化。
+  - **类别**：test-gate。
 - 根因：接口错误 envelope 只暴露通用 `TARGET_IMPORT_FAILED`，定位时需要回查 store/integration 错误链才能看到真实 SQL 根因。
   - **类别**：无需仓库改动。本次已通过 Bug 记录和 plan gate 固化诊断入口，暂无必要改 handler envelope。
 
@@ -42,6 +48,9 @@
   - **优先级**：high
 - 对 mock-heavy store 包，凡 SQL 列集合跟随 DDL 删除或新增，都要至少有一条 integration test 证明当前 DDL 下 production store 能读写最小有效 row。
   - **落点**：spec-plan
+  - **优先级**：high
+- 对被 owner plan / Bug 标为强制防线的 integration gate，测试 helper 必须 fail fast，verify 证据必须拒绝 `--- SKIP` / `no tests to run`。
+  - **落点**：test-gate
   - **优先级**：high
 - 对业务失败态详情页，测试不应只覆盖 happy-path ready；应覆盖 failed / no child rows / source snapshot present 的可读失败态。
   - **落点**：spec-plan

@@ -135,3 +135,4 @@
   2. sqlmock 列集合不能作为 schema truth source；同一 owner 至少保留一条 `-tags=integration` 或等价真实 DB-backed gate，直接插入当前 DDL 允许的最小 row 后调用 production store read/write path。
   3. 对业务失败态对象（如 parse failed / async failed / no child rows），详情接口仍应有 focused 或 integration regression，断言返回可展示状态而不是把 store error 包装成业务操作失败。
   4. 完成退役列修复时，把 plan/checklist gate 写成当前 schema 对齐和 zero active reference 搜索，避免后续只运行 mock-focused tests 又把旧列带回。
+  5. 若真实 DB-backed gate 被 owner plan 或 Bug 记录列为强制防线，缺少 `DATABASE_URL`、DB 不可达或 focused test 未执行时必须 fail fast；不得用 `t.Skip` 让 `go test` 整体 PASS，verify 证据也要显式拒绝 `--- SKIP` 和 `no tests to run`。
