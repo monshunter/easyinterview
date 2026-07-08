@@ -1,8 +1,8 @@
 # Backend TargetJob Spec
 
-> **版本**: 1.9
+> **版本**: 2.0
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-08
 
 ## 1 背景与目标
 
@@ -91,6 +91,7 @@
 - 所有写入必须在事务内完成；`target.import.requested` / `target.parsed` / `target.analysis.failed` 必须通过 outbox（B3 工作集）发出，与业务写入同事务，避免双写。
 - `target_job_requirements.kind` 仅允许 B4 已有 CHECK 列表（`must_have` / `nice_to_have` / `hidden_signal` / `interview_focus`）；B2 OpenAPI / fixtures 必须在 Phase 0 additive 扩展到同一列表后，backend 才能在 API response 中返回 `hidden_signal` / `interview_focus`。
 - `target_job_sources.freshness_status` 默认 `fresh`，URL 抓取后写 `fetched_at`、sanitized `url` 与 `snapshot_text`；后续 internal-only `source_refresh` job 由 `target.parsed` 触发，本 plan 仅保证占位入口可观测，不实现真实抓取刷新。
+- TargetJob store / handler / runner SQL 只能引用当前 B4 `target_jobs` 表真实列；退役 profile 模块的 `profile_id` 不得出现在 active TargetJob 读写路径、sqlmock 列集合或 integration gate 中。
 - 软删：`deleted_at IS NOT NULL` 的 `target_jobs` 不参与列表 / 详情 / 解析；查询必须显式过滤。
 
 ### 4.3 安全 / 隐私约束
@@ -148,10 +149,11 @@
 | C-12 | Idempotency dedupe | 用户用同一 `Idempotency-Key` 重复 `importTargetJob` | 同一秒内重复发起 | 返回同一 `targetJobId` 与同一 active `target_import` job，DB 不出现重复 row，outbox 不重复发事件 | 001 |
 | C-13 | 契约前置修订 | B1/B2/B3/F1 当前 contract 缺少本域所需错误码、fixture scenario、sourceType 映射说明或 metric 名 | 执行 001 Phase 0 | `shared/conventions.yaml` / OpenAPI fixtures / B3 sourceType 说明 / F1 metric dictionary 与本 spec 场景一致，`make codegen-check` / `make validate-fixtures` / `make lint-events` / metric registry tests 可执行 | 001 |
 | C-14 | 文档与修订记录治理 | 本 spec 状态变更或字段调整 | 更新 spec / history / `plans/INDEX.md` / `docs/spec/INDEX.md` | 文档保持单一 owner，无 sibling spec；non-current `feature_key` / `voice` route / `mistake.*` 等口径不出现在 active 文档 | docs-only |
+| C-15 | 当前 B4 schema 对齐 | D-20/D-17 后 profile 模块已退役，`target_jobs.profile_id` 不存在 | `GET /targets/{id}` / `GET /targets` / `PATCH /targets/{id}` / `target_import` drainer 读取 TargetJob | active SQL 不引用 `profile_id`；失败态 TargetJob 即使无 requirements 也返回 200 + `analysisStatus='failed'`，不因旧列漂移返回 500 | 001 |
 
 ## 7 关联计划
 
-- [001-targetjob-import-and-parse-bootstrap](./plans/001-targetjob-import-and-parse-bootstrap/plan.md)（active）：先修 B1/B2/B3/F1 owner 契约，再落地 4 个 TargetJob operation、4 类导入源处理、`target_import` 异步解析管线、隐私 / 观测红线、`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 四个 BDD 场景；当前 4 个 BDD gate 已通过 `cmd/api` HTTP scenario harness，计划生命周期待单独确认后切换为 `completed`。
+- [001-targetjob-import-and-parse-bootstrap](./plans/001-targetjob-import-and-parse-bootstrap/plan.md)（completed）：先修 B1/B2/B3/F1 owner 契约，再落地 4 个 TargetJob operation、4 类导入源处理、`target_import` 异步解析管线、隐私 / 观测红线、`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 四个 BDD 场景；2026-07-08 已追加 `profile_id` 退役列漂移修复 gate，确保当前 B4 schema 下失败态详情读取不返回 500。
 
 ## 8 相关文档
 

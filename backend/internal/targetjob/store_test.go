@@ -47,7 +47,6 @@ func TestSQLStore_InsertTargetJob_WritesAllColumnsAndDefaultsJSON(t *testing.T) 
 		WithArgs(
 			"018f2a40-0000-7000-9000-0000000000a1", // id
 			"018f2a40-0000-7000-9000-0000000000b1", // user_id
-			nil,                                    // profile_id (empty)
 			"draft",                                // status
 			"queued",                               // analysis_status
 			"Backend Engineer",                     // title
@@ -133,14 +132,14 @@ func TestSQLStore_GetTargetJobByUser_ReturnsRecordWithRequirementsAndSources(t *
 
 	now := time.Date(2026, 5, 9, 11, 0, 0, 0, time.UTC)
 	rows := sqlmock.NewRows([]string{
-		"id", "user_id", "profile_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"id", "user_id", "status", "analysis_status", "title", "company_name", "location_text",
 		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
 		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
 		"created_at", "updated_at",
 	}).AddRow(
 		"018f2a40-0000-7000-9000-0000000000a1",
 		"018f2a40-0000-7000-9000-0000000000b1",
-		nil, "draft", "ready",
+		"draft", "ready",
 		"Backend Engineer", "Acme", nil, nil, nil,
 		"en", "manual_text", nil, nil,
 		"raw jd",
@@ -197,6 +196,60 @@ func TestSQLStore_GetTargetJobByUser_ReturnsRecordWithRequirementsAndSources(t *
 	}
 }
 
+func TestSQLStore_GetTargetJobByUser_AllowsFailedJobWithoutParsedSummaries(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 7, 8, 16, 10, 0, 0, time.UTC)
+	rows := sqlmock.NewRows([]string{
+		"id", "user_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
+		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
+		"created_at", "updated_at",
+	}).AddRow(
+		"018f2a40-0000-7000-9000-0000000000a1",
+		"018f2a40-0000-7000-9000-0000000000b1",
+		"draft", "failed",
+		"Backend Engineer", "Acme", nil, nil, nil,
+		"zh-CN", "manual_text", nil, nil,
+		"raw jd", nil, nil, nil, nil, int32(0),
+		now, now,
+	)
+	mock.ExpectQuery(`from target_jobs\s+where id = \$1 and user_id = \$2 and deleted_at is null`).
+		WithArgs("018f2a40-0000-7000-9000-0000000000a1", "018f2a40-0000-7000-9000-0000000000b1").
+		WillReturnRows(rows)
+	mock.ExpectQuery(`from target_job_requirements`).
+		WithArgs("018f2a40-0000-7000-9000-0000000000a1").
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "target_job_id", "kind", "label", "description", "evidence_level", "display_order", "created_at",
+		}))
+	mock.ExpectQuery(`from target_job_sources`).
+		WithArgs("018f2a40-0000-7000-9000-0000000000a1").
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "target_job_id", "source_type", "url", "file_object_id", "snapshot_text", "fetched_at", "freshness_status", "created_at",
+		}))
+
+	got, reqs, sources, err := store.GetTargetJobByUser(context.Background(),
+		"018f2a40-0000-7000-9000-0000000000b1",
+		"018f2a40-0000-7000-9000-0000000000a1",
+	)
+	if err != nil {
+		t.Fatalf("GetTargetJobByUser failed job with nil summaries: %v", err)
+	}
+	if got.AnalysisStatus != sharedtypes.TargetJobParseStatusFailed {
+		t.Fatalf("expected failed analysis status, got %+v", got)
+	}
+	if got.Summary != nil || got.FitSummary != nil {
+		t.Fatalf("expected nil summaries for failed parse, got summary=%q fitSummary=%q", got.Summary, got.FitSummary)
+	}
+	if len(reqs) != 0 || len(sources) != 0 {
+		t.Fatalf("expected empty joined rows, got reqs=%+v sources=%+v", reqs, sources)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestSQLStore_GetTargetJobByUser_NotFoundForCrossUserOrSoftDeleted(t *testing.T) {
 	store, mock, cleanup := newMockStore(t)
 	defer cleanup()
@@ -225,7 +278,7 @@ func TestSQLStore_ListTargetJobsForUser_AppliesFiltersAndClampsPageSize(t *testi
 	analysis := sharedtypes.TargetJobParseStatusReady
 
 	rows := sqlmock.NewRows([]string{
-		"id", "user_id", "profile_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"id", "user_id", "status", "analysis_status", "title", "company_name", "location_text",
 		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
 		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
 		"created_at", "updated_at",
@@ -236,7 +289,7 @@ func TestSQLStore_ListTargetJobsForUser_AppliesFiltersAndClampsPageSize(t *testi
 		rows.AddRow(
 			"018f2a40-0000-7000-9000-0000000000a1",
 			"018f2a40-0000-7000-9000-0000000000b1",
-			nil, "preparing", "ready",
+			"preparing", "ready",
 			"Backend Engineer", "Acme", nil, nil, nil,
 			"en", "manual_text", nil, nil,
 			"raw jd", []byte(`{}`), []byte(`{}`), nil, nil, int32(0),
@@ -282,7 +335,7 @@ func TestSQLStore_ListTargetJobsForUser_PaginationCursorOnOverflow(t *testing.T)
 
 	now := time.Date(2026, 5, 9, 13, 0, 0, 0, time.UTC)
 	rows := sqlmock.NewRows([]string{
-		"id", "user_id", "profile_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"id", "user_id", "status", "analysis_status", "title", "company_name", "location_text",
 		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
 		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
 		"created_at", "updated_at",
@@ -291,7 +344,7 @@ func TestSQLStore_ListTargetJobsForUser_PaginationCursorOnOverflow(t *testing.T)
 		rows.AddRow(
 			"018f2a40-0000-7000-9000-00000000000"+string(rune('a'+i)),
 			"018f2a40-0000-7000-9000-0000000000b1",
-			nil, "draft", "ready",
+			"draft", "ready",
 			"Backend", "Acme", nil, nil, nil,
 			"en", "manual_text", nil, nil,
 			"raw jd", []byte(`{}`), []byte(`{}`), nil, nil, int32(0),
@@ -347,7 +400,7 @@ func TestSQLStore_UpdateTargetJobLifecycle_ScopesByUser_ReturnsRow(t *testing.T)
 
 	now := time.Date(2026, 5, 9, 14, 0, 0, 0, time.UTC)
 	rowCols := []string{
-		"id", "user_id", "profile_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"id", "user_id", "status", "analysis_status", "title", "company_name", "location_text",
 		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
 		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
 		"created_at", "updated_at",
@@ -361,7 +414,7 @@ func TestSQLStore_UpdateTargetJobLifecycle_ScopesByUser_ReturnsRow(t *testing.T)
 		WillReturnRows(sqlmock.NewRows(rowCols).AddRow(
 			"018f2a40-0000-7000-9000-0000000000a1",
 			"018f2a40-0000-7000-9000-0000000000b1",
-			nil, "draft", "ready",
+			"draft", "ready",
 			"Backend Engineer", "Acme", nil, nil, nil,
 			"en", "manual_text", nil, nil,
 			"raw jd", []byte(`{}`), []byte(`{}`), nil, nil, int32(0),
@@ -375,7 +428,7 @@ func TestSQLStore_UpdateTargetJobLifecycle_ScopesByUser_ReturnsRow(t *testing.T)
 		WillReturnRows(sqlmock.NewRows(rowCols).AddRow(
 			"018f2a40-0000-7000-9000-0000000000a1",
 			"018f2a40-0000-7000-9000-0000000000b1",
-			nil, "preparing", "ready",
+			"preparing", "ready",
 			"Backend Engineer", "Acme", "Remote", nil, nil,
 			"en", "manual_text", nil, nil,
 			"raw jd", []byte(`{}`), []byte(`{}`), "applied via portal", nil, int32(0),
@@ -409,7 +462,7 @@ func TestSQLStore_UpdateTargetJobLifecycle_OverwritesTitleAndCompanyHints(t *tes
 
 	now := time.Date(2026, 5, 9, 14, 5, 0, 0, time.UTC)
 	rowCols := []string{
-		"id", "user_id", "profile_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"id", "user_id", "status", "analysis_status", "title", "company_name", "location_text",
 		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
 		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
 		"created_at", "updated_at",
@@ -422,7 +475,7 @@ func TestSQLStore_UpdateTargetJobLifecycle_OverwritesTitleAndCompanyHints(t *tes
 		WillReturnRows(sqlmock.NewRows(rowCols).AddRow(
 			"018f2a40-0000-7000-9000-0000000000a1",
 			"018f2a40-0000-7000-9000-0000000000b1",
-			nil, "draft", "ready",
+			"draft", "ready",
 			"Senior Frontend Engineer", "Acme Labs", nil, nil, nil,
 			"en", "manual_text", nil, nil,
 			"raw jd", []byte(`{}`), []byte(`{}`), nil, nil, int32(0),
@@ -457,7 +510,7 @@ func TestSQLStore_UpdateTargetJobLifecycle_DedupeHitReturnsExistingWithoutMutati
 	targetID := "018f2a40-0000-7000-9000-0000000000a1"
 	userID := "018f2a40-0000-7000-9000-0000000000b1"
 	rowCols := []string{
-		"id", "user_id", "profile_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"id", "user_id", "status", "analysis_status", "title", "company_name", "location_text",
 		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
 		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
 		"created_at", "updated_at",
@@ -475,7 +528,7 @@ func TestSQLStore_UpdateTargetJobLifecycle_DedupeHitReturnsExistingWithoutMutati
 		WillReturnRows(sqlmock.NewRows(rowCols).AddRow(
 			targetID,
 			userID,
-			nil, "preparing", "ready",
+			"preparing", "ready",
 			"Backend Engineer", "Acme", "Remote", nil, nil,
 			"en", "manual_text", nil, nil,
 			"raw jd", []byte(`{}`), []byte(`{}`), "already updated", nil, int32(0),
@@ -514,7 +567,7 @@ func TestSQLStore_UpdateTargetJobLifecycle_IdempotentRejectsStaleStatusTransitio
 	targetID := "018f2a40-0000-7000-9000-0000000000a1"
 	userID := "018f2a40-0000-7000-9000-0000000000b1"
 	rowCols := []string{
-		"id", "user_id", "profile_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"id", "user_id", "status", "analysis_status", "title", "company_name", "location_text",
 		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
 		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
 		"created_at", "updated_at",
@@ -532,7 +585,7 @@ func TestSQLStore_UpdateTargetJobLifecycle_IdempotentRejectsStaleStatusTransitio
 		WillReturnRows(sqlmock.NewRows(rowCols).AddRow(
 			targetID,
 			userID,
-			nil, "applied", "ready",
+			"applied", "ready",
 			"Backend Engineer", "Acme", "Remote", nil, nil,
 			"en", "manual_text", nil, nil,
 			"raw jd", []byte(`{}`), []byte(`{}`), "current state changed", nil, int32(0),

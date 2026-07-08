@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-08](2026-07-08.md) | `fix(targetjob): align store with pruned profile schema (BUG-0142)` | #fix #api #test #docs |
 | [2026-07-08](2026-07-08.md) | `fix(resume): close source preview and picker regressions (BUG-0139, BUG-0140, BUG-0141)` | #fix #api #ui #test #docs #bdd |
 | [2026-07-07](2026-07-07.md) | `fix(resume-workshop): generate names and stop detail polling (BUG-0138)` | #fix #ui #api #test #docs #bdd |
 | [2026-07-07](2026-07-07.md) | `fix(resume-workshop): read full upload PDFs (BUG-0137)` | #fix #api #ui #test #docs #bdd |

@@ -125,3 +125,13 @@
   2. route-param switch regression 必须断言旧 DOM 消失、新 loading/skeleton/error boundary 出现，以及最终 hydrate 新 entity；只断言新请求发出不够。
   3. screen 内 editable fields、temporary toggles、pending ready job、error state、polling timeout 和 in-flight UI stage 必须以 owner identity 变化作为 reset boundary。
   4. 如果 App route table 不给 screen 加 `key`，不要假设 React 会 remount；需要生产代码显式 reset 或在 route composition 层引入明确 key，并用测试锁定。
+
+## 模式 11：退役 schema 列残留在 active SQL 和 mock 列集合
+
+- **相关 Bug**：BUG-0142
+- **典型症状**：当前迁移 / DDL 已删除某列或模块，但真实后端接口返回 500，错误链里出现 `pq: column "<column>" does not exist`；sqlmock 单测继续通过，因为 mock rows 和 production SQL 一起保留了旧列；OpenAPI / fixture / codegen gate 全绿但真实 DB-backed 详情、列表、runner 读取失败。
+- **检查清单**：
+  1. 删除表列、模块 foreign key、profile/resume/session 等 owner 字段后，对 active SQL 做 scoped negative grep：handler、store、runner、generated fixture、migration、shared contract 都要覆盖，但允许历史 Bug/report/work-journal 记录保留脱敏说明。
+  2. sqlmock 列集合不能作为 schema truth source；同一 owner 至少保留一条 `-tags=integration` 或等价真实 DB-backed gate，直接插入当前 DDL 允许的最小 row 后调用 production store read/write path。
+  3. 对业务失败态对象（如 parse failed / async failed / no child rows），详情接口仍应有 focused 或 integration regression，断言返回可展示状态而不是把 store error 包装成业务操作失败。
+  4. 完成退役列修复时，把 plan/checklist gate 写成当前 schema 对齐和 zero active reference 搜索，避免后续只运行 mock-focused tests 又把旧列带回。

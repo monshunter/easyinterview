@@ -6,6 +6,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0142](./BUG-0142.md) | targetjob failed detail returned 500 after profile schema pruning | high | resolved | 2026-07-08 | `fix(targetjob): align store with pruned profile schema (BUG-0142)` |
 | [BUG-0028](./BUG-0028.md) | targetjob review exposed error envelope and parse runtime drift | medium | resolved | 2026-05-08 | `fix(backend-targetjob): align targetjob review contracts` |
 | [BUG-0027](./BUG-0027.md) | targetjob L2 review exposed runtime gate and SSRF gaps | medium | resolved | 2026-05-08 | `fix(backend-targetjob): harden targetjob L2 runtime gates` |
 | [BUG-0026](./BUG-0026.md) | targetjob L2 review exposed import parse contract drift | medium | resolved | 2026-05-08 | `fix(backend-targetjob): remediate import parse L2 findings` |

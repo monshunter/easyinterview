@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 1.4
+    to: 1.5
 spec:
   defaultTarget: backend
   discovery:
@@ -28,6 +28,7 @@ spec:
       - target.import.parse feature_key
       - target.import.default profile
       - target_jobs table
+      - target_jobs profile_id retired
       - target_job_requirements table
       - target_job_sources table
       - E2E.P0.013 manual_form terminal job

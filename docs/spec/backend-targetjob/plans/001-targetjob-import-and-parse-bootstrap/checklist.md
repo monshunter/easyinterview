@@ -1,8 +1,8 @@
 # TargetJob Import and Parse Bootstrap Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-07-08
 
 **关联计划**: [plan](./plan.md)
 
@@ -75,3 +75,4 @@
 - [x] 7.8 Remediation: AI parse 输出无有效 requirement 或含非法 kind / label / evidence level 时走 `AI_OUTPUT_INVALID`；验证: `cd backend && go test ./internal/targetjob -run 'TestParseExecutor_AIOutputInvalid_WhenRequirementsAreSemanticallyInvalid' -count=1` 通过，覆盖 all-invalid requirements、空 label、非法 kind、非法 evidence level 均写 `target.analysis.failed` 且不把 TargetJob 标记为 `ready`
 - [x] 7.9 Remediation: BDD handoff 文案与场景状态对齐，包级 focused tests 不再被记录为真实 BDD PASS；验证: `backend/internal/targetjob/doc.go`、`test/scenarios/e2e/INDEX.md` 与 p0-010..013 README / verify outputs 标注 `cmd-api-http` / `validBddEvidence=true`，`bash -n test/scenarios/e2e/p0-010-targetjob-text-import-parse-ready/scripts/trigger.sh test/scenarios/e2e/p0-010-targetjob-text-import-parse-ready/scripts/verify.sh test/scenarios/e2e/p0-011-targetjob-url-import-fetch-and-parse/scripts/trigger.sh test/scenarios/e2e/p0-011-targetjob-url-import-fetch-and-parse/scripts/verify.sh test/scenarios/e2e/p0-012-targetjob-parse-failure-retryable/scripts/trigger.sh test/scenarios/e2e/p0-012-targetjob-parse-failure-retryable/scripts/verify.sh test/scenarios/e2e/p0-013-targetjob-manual-form-ready/scripts/trigger.sh test/scenarios/e2e/p0-013-targetjob-manual-form-ready/scripts/verify.sh` 通过，主 checklist 6.1-6.4 已用 `.test-output/runs/targetjob-http-20260508/e2e/E2E.P0.010..013/result.json` 证据闭合
 - [x] 7.10 将 E2E.P0.010 / 011 / 012 / 013 迁移为 auth -> HTTP API -> cmd/api drainer 的真实场景；验证: 新增 `backend/cmd/api` HTTP scenario harness，p0-010..013 `trigger.sh` 执行 `go test -v ./cmd/api -run 'TestE2EP0010HTTPTextImportParseReady|TestE2EP0011HTTPURLImportFetchAndParse|TestE2EP0012HTTPParseFailureRetryableAndNonRetryable|TestE2EP0013HTTPManualFormReady'` 对应场景，`verify.sh` 输出 `status=passed` / `method=cmd-api-http` / `validBddEvidence=true`，证据位于 `.test-output/runs/targetjob-http-20260508/e2e/E2E.P0.010..013/result.json`
+- [x] 7.11 Remediation: 删除 TargetJob active SQL 对退役 `target_jobs.profile_id` 列的依赖；验证: `cd backend && go test ./internal/targetjob -run 'TestSQLStore_|TestService_GetTargetJob|TestHandler_ErrorResponsesUseGeneratedEnvelope' -count=1` 通过，`cd backend && DATABASE_URL=<local-dev-postgres-dsn> go test -tags=integration ./internal/targetjob -run TestSQLStoreIntegration_GetTargetJobByUser_AllowsFailedJobWithoutRequirements -count=1` 通过，`rg 'profile_id|ProfileID|profileID' backend/internal/targetjob backend/cmd/api openapi/fixtures/TargetJobs openapi/openapi.yaml migrations shared` 无 active 命中，host-run backend 上截图同款 `GET /api/v1/targets/{targetJobId}` 返回 200 + `analysisStatus='failed'`

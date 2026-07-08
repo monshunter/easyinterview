@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-08](./2026-07-08-targetjob-profile-schema-drift-assessment.md) | TargetJob Profile Schema Drift 交付复盘 | #assessment |
 | [2026-07-08](./2026-07-08-home-resume-picker-assessment.md) | Home Resume Picker 交付复盘 | #assessment |
 | [2026-07-08](./2026-07-08-resume-source-preview-surface-assessment.md) | Resume Source Preview Surface 交付复盘 | #assessment |
 | [2026-07-08](./2026-07-08-resume-pdf-page-stack-assessment.md) | Resume PDF Page Stack 交付复盘 | #assessment |

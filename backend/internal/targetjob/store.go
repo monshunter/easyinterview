@@ -66,7 +66,6 @@ var ErrTargetJobNotFound = errors.New("target job not found")
 type TargetJobRecord struct {
 	ID                     string
 	UserID                 string
-	ProfileID              string
 	Status                 sharedtypes.TargetJobStatus
 	AnalysisStatus         sharedtypes.TargetJobParseStatus
 	Title                  string
@@ -323,7 +322,6 @@ func (s *SQLStore) InsertTargetJob(ctx context.Context, rec TargetJobRecord) err
 insert into target_jobs (
   id,
   user_id,
-  profile_id,
   status,
   analysis_status,
   title,
@@ -342,10 +340,9 @@ insert into target_jobs (
   open_question_issue_count,
   created_at,
   updated_at
-) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
 		rec.ID,
 		nullableUUID(rec.UserID),
-		nullableUUID(rec.ProfileID),
 		string(rec.Status),
 		string(rec.AnalysisStatus),
 		nullableString(rec.Title),
@@ -417,7 +414,6 @@ func (s *SQLStore) GetTargetJobByUser(ctx context.Context, userID string, target
 	}
 	rec := TargetJobRecord{ID: targetJobID, UserID: userID}
 	var (
-		profileID          sql.NullString
 		title              sql.NullString
 		companyName        sql.NullString
 		locationText       sql.NullString
@@ -435,7 +431,7 @@ func (s *SQLStore) GetTargetJobByUser(ctx context.Context, userID string, target
 		sourceType         string
 	)
 	err := s.db.QueryRowContext(ctx, `
-select id, user_id, profile_id, status, analysis_status, title, company_name, location_text,
+select id, user_id, status, analysis_status, title, company_name, location_text,
        employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
        raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
        created_at, updated_at
@@ -446,7 +442,6 @@ where id = $1 and user_id = $2 and deleted_at is null`,
 	).Scan(
 		&rec.ID,
 		&rec.UserID,
-		&profileID,
 		&status,
 		&analysisStatus,
 		&title,
@@ -473,7 +468,6 @@ where id = $1 and user_id = $2 and deleted_at is null`,
 	if err != nil {
 		return TargetJobRecord{}, nil, nil, fmt.Errorf("select target_jobs: %w", err)
 	}
-	rec.ProfileID = profileID.String
 	rec.Status = sharedtypes.TargetJobStatus(status)
 	rec.AnalysisStatus = sharedtypes.TargetJobParseStatus(analysisStatus)
 	rec.Title = title.String
@@ -548,7 +542,7 @@ func (s *SQLStore) ListTargetJobsForUser(ctx context.Context, userID string, fil
 
 	limitArg := nextArg(int(pageSize) + 1)
 	query := `
-select id, user_id, profile_id, status, analysis_status, title, company_name, location_text,
+select id, user_id, status, analysis_status, title, company_name, location_text,
        employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
        raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
        created_at, updated_at
@@ -728,7 +722,7 @@ func updateTargetJobLifecycleRow(ctx context.Context, q rowQueryer, userID strin
 update target_jobs
 set %s
 where id = $%d and user_id = $%d and deleted_at is null
-returning id, user_id, profile_id, status, analysis_status, title, company_name, location_text,
+returning id, user_id, status, analysis_status, title, company_name, location_text,
           employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
           raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
           created_at, updated_at`,
@@ -780,7 +774,7 @@ limit 1`,
 
 func selectTargetJobRecordByUserForUpdate(ctx context.Context, q rowQueryer, userID string, targetJobID string) (TargetJobRecord, error) {
 	rec, err := scanTargetJobRow(q.QueryRowContext(ctx, `
-select id, user_id, profile_id, status, analysis_status, title, company_name, location_text,
+select id, user_id, status, analysis_status, title, company_name, location_text,
        employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
        raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
        created_at, updated_at
@@ -801,7 +795,7 @@ for update`,
 
 func selectTargetJobRecordByUser(ctx context.Context, q rowQueryer, userID string, targetJobID string) (TargetJobRecord, error) {
 	rec, err := scanTargetJobRow(q.QueryRowContext(ctx, `
-select id, user_id, profile_id, status, analysis_status, title, company_name, location_text,
+select id, user_id, status, analysis_status, title, company_name, location_text,
        employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
        raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
        created_at, updated_at
@@ -1406,7 +1400,6 @@ func (s *SQLStore) GetTargetJobForParse(ctx context.Context, targetJobID string)
 	}
 	var rec TargetJobRecord
 	var (
-		profileID          sql.NullString
 		title              sql.NullString
 		companyName        sql.NullString
 		locationText       sql.NullString
@@ -1424,7 +1417,7 @@ func (s *SQLStore) GetTargetJobForParse(ctx context.Context, targetJobID string)
 		sourceType         string
 	)
 	err := s.db.QueryRowContext(ctx, `
-select id, user_id, profile_id, status, analysis_status, title, company_name, location_text,
+select id, user_id, status, analysis_status, title, company_name, location_text,
        employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
        raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
        created_at, updated_at
@@ -1432,7 +1425,7 @@ from target_jobs
 where id = $1 and deleted_at is null`,
 		targetJobID,
 	).Scan(
-		&rec.ID, &rec.UserID, &profileID, &status, &analysisStatus,
+		&rec.ID, &rec.UserID, &status, &analysisStatus,
 		&title, &companyName, &locationText, &employmentType, &seniorityLevel,
 		&rec.TargetLanguage, &sourceType, &sourceURL, &sourceFileObjectID,
 		&rawJDText, &summary, &fitSummary, &notes, &latestReportID,
@@ -1444,7 +1437,6 @@ where id = $1 and deleted_at is null`,
 	if err != nil {
 		return TargetJobRecord{}, nil, fmt.Errorf("select target_jobs for parse: %w", err)
 	}
-	rec.ProfileID = profileID.String
 	rec.Status = sharedtypes.TargetJobStatus(status)
 	rec.AnalysisStatus = sharedtypes.TargetJobParseStatus(analysisStatus)
 	rec.Title = title.String
@@ -1593,7 +1585,6 @@ type execer interface {
 func scanTargetJobRow(scanner rowScanner) (TargetJobRecord, error) {
 	var (
 		rec                TargetJobRecord
-		profileID          sql.NullString
 		title              sql.NullString
 		companyName        sql.NullString
 		locationText       sql.NullString
@@ -1613,7 +1604,6 @@ func scanTargetJobRow(scanner rowScanner) (TargetJobRecord, error) {
 	err := scanner.Scan(
 		&rec.ID,
 		&rec.UserID,
-		&profileID,
 		&status,
 		&analysisStatus,
 		&title,
@@ -1637,7 +1627,6 @@ func scanTargetJobRow(scanner rowScanner) (TargetJobRecord, error) {
 	if err != nil {
 		return TargetJobRecord{}, err
 	}
-	rec.ProfileID = profileID.String
 	rec.Status = sharedtypes.TargetJobStatus(status)
 	rec.AnalysisStatus = sharedtypes.TargetJobParseStatus(analysisStatus)
 	rec.Title = title.String

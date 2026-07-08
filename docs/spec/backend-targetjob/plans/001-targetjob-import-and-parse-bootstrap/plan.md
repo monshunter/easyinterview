@@ -1,8 +1,8 @@
 # TargetJob Import and Parse Bootstrap
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-07-08
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -195,6 +195,14 @@ AI parse 输出必须在写 DB 前严格校验：无有效 requirement、非法 
 
 `backend/internal/targetjob/doc.go`、`test/scenarios/e2e/INDEX.md` 与 `p0-010..013` 场景脚本必须一致标注当前 HTTP scenario harness 入口；包级 `go test` 结果可以作为 TDD 辅助证据，但不得替代 `cmd/api` HTTP BDD PASS。真实 BDD evidence 必须可追溯到 p0-010..013 `result.json`，并保持 `validBddEvidence=true`。
 
+#### 7.10 HTTP scenario migration remediation
+
+`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 必须通过 `cmd/api` HTTP scenario harness 执行，覆盖 auth middleware、HTTP API、TargetJob handler/service、in-process drainer 与 parse executor。验证输出必须保留 `status=passed` / `method=cmd-api-http` / `validBddEvidence=true`，不得退化成包级 focused test 代理证据。
+
+#### 7.11 Retired `profile_id` schema-drift remediation
+
+TargetJob store / service / handler / drainer 所有 active SQL 必须与当前 B4 `target_jobs` 表结构一致，不得继续 select / insert / scan 已退役 profile 模块的 `profile_id` 列。验证必须覆盖 sqlmock 列集合、真实 Postgres integration gate，以及截图同款 `GET /targets/{id}` 失败态详情读取：解析失败且无 requirements 时应返回 200 + `analysisStatus='failed'`，而不是 `TARGET_IMPORT_FAILED` 500。
+
 ## 5 验收标准
 
 - Phase 0 owner contract gates 通过：B1/B2 codegen drift clean，TargetJobs fixture scenarios schema-valid，B3 sourceType mapping lint clean，F1 TargetJob metrics registry tests 通过。
@@ -205,6 +213,7 @@ AI parse 输出必须在写 DB 前严格校验：无有效 requirement、非法 
 - privacy grep 0 命中 `raw_jd_text` / `source_url` 完整 URL / 文件 URL / prompt / response / `Authorization:` 等敏感模式。
 - F1 metric registry preflight 通过；`make codegen-events` / `make codegen-conventions` / `make codegen-openapi` / `make validate-fixtures` / `make migrations_lint` / `make lint-config` / `make lint-events` / `make docs-check` 全绿。
 - BDD-Gate `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 全部通过，verify 输出可追溯证据；包级 `go test` 代理证据不得作为该 gate 的完成依据。
+- TargetJob active SQL 与当前 B4 schema 对齐，`rg "profile_id|ProfileID|profileID" backend/internal/targetjob ...` 无命中，真实 Postgres integration gate 覆盖失败态无 requirements 的 `GetTargetJobByUser`，本地 host-run backend 上 `GET /targets/{id}` 不再返回 500。
 - Active-scope 负向搜索 0 命中已丢弃模块 / route / capability。
 
 ## 6 风险与应对
