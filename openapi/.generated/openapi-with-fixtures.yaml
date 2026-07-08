@@ -187,7 +187,7 @@ paths:
       tags:
       - Auth
       operationId: startAuthEmailChallenge
-      summary: Issue a passwordless email-code challenge
+      summary: Issue an email-code challenge
       description: 'Public endpoint per ADR-Q1. Sends a single-use 6-digit code to the
 
         supplied email. This is the only sign-in entry: existing emails log in
@@ -550,11 +550,14 @@ paths:
                     parsedSummary:
                       headline: Senior frontend engineer focused on growth-stage SaaS
                       yearsOfExperience: 5
-                    parsedTextSnapshot: 'Original resume parsed text snapshot
+                    parsedTextSnapshot: '# Original resume parsed text snapshot
 
-                      Led platform release guardrail work across frontend surfaces
 
-                      Improved incident follow-up quality with measurable owner handoff'
+                      ## Release guardrails
+
+                      - Led **platform release guardrail** work across frontend surfaces
+
+                      - Improved incident follow-up quality with measurable [owner handoff](https://github.com/monshunter/easyinterview)'
                     originalText: Original uploaded resume raw text fallback
                     structuredProfile:
                       headline: Senior frontend engineer for platform-heavy product teams
@@ -706,6 +709,47 @@ paths:
                         dataSourceVersion: resume.v1
                     createdAt: '2026-05-12T08:45:00Z'
                     updatedAt: '2026-05-12T08:45:00Z'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+  /resumes/{resumeId}/source:
+    get:
+      tags:
+      - Resumes
+      operationId: getResumeSource
+      summary: Get the uploaded PDF source for inline resume preview
+      description: Read-only endpoint for upload-backed PDF resumes. Paste, Markdown, text, missing, archived, or cross-user
+        resumes return 404.
+      parameters:
+      - name: resumeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - $ref: '#/components/parameters/XRequestID'
+      - $ref: '#/components/parameters/Traceparent'
+      - $ref: '#/components/parameters/AcceptLanguage'
+      - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Uploaded PDF source.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              examples:
+                default:
+                  summary: Default fixture for getResumeSource
+                  value: '%PDF-1.4
+
+                    %fixture
+
+                    '
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /resumes/{resumeId}/archive:

@@ -16,19 +16,20 @@ type RegisterRequestPayload struct {
 }
 
 type CreateAssetInput struct {
-	AssetID        string
-	UserID         string
-	JobID          string
-	DedupeKey      string
-	SourceType     string
-	FileObjectID   *string
-	Title          string
-	Language       string
-	RawText        string
-	ParseStatus    sharedtypes.TargetJobParseStatus
-	JobStatus      sharedtypes.JobStatus
-	RequestPayload RegisterRequestPayload
-	Now            time.Time
+	AssetID          string
+	UserID           string
+	JobID            string
+	DedupeKey        string
+	SourceType       string
+	FileObjectID     *string
+	Title            string
+	Language         string
+	RawText          string
+	ParseStatus      sharedtypes.TargetJobParseStatus
+	JobStatus        sharedtypes.JobStatus
+	MaxActiveForUser int
+	RequestPayload   RegisterRequestPayload
+	Now              time.Time
 }
 
 type CreateAssetResult struct {
@@ -181,6 +182,13 @@ type ListResult struct {
 	NextCursor string
 	HasMore    bool
 	PageSize   int
+}
+
+type SourceFileRecord struct {
+	ObjectKey   string
+	FileName    string
+	ContentType string
+	ByteSize    int64
 }
 
 type StatusUpdateInput struct {

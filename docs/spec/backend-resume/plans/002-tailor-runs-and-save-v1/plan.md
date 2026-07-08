@@ -46,7 +46,7 @@
 - All handlers implement generated OpenAPI server interfaces.
 - Session and IK middleware match the B2 contract.
 - `cmd/api` owns in-process resume.parse and resume.tailor drainer wiring; this plan does not introduce another worker binary.
-- Generated route catalog must expose only the current 9 Resume / ResumeTailor operations.
+- Generated route catalog must expose only the current 10 Resume / ResumeTailor operations.
 
 ## 3 质量门禁
 
@@ -69,7 +69,7 @@
 ### Phase 0: current contract preflight
 
 - Read `docs/development.md` §2, backend/openapi/scenario READMEs, [backend-resume spec](../../spec.md), B2 OpenAPI inventory, fixtures, generated artifacts and current handler/store/job code.
-- Confirm B2 exposes 9 current Resume / ResumeTailor operationIds and 35 total OpenAPI operations.
+- Confirm B2 exposes 10 current Resume / ResumeTailor operationIds and 36 total OpenAPI operations.
 - Confirm backend-resume context points at current handler/store/job packages, fixtures and scenario directories.
 
 ### Phase 1: flat API and removed-route boundary
@@ -107,7 +107,7 @@
 
 | ID | 验收点 | 验证 |
 |----|--------|------|
-| A-1 | Current Resume route catalog has 9 operationIds and no removed route family | `make lint-openapi`; `TestGeneratedRouteCatalogHasNoResumeVersionOperations` |
+| A-1 | Current Resume route catalog has 10 operationIds and no removed route family | `make lint-openapi`; `TestGeneratedRouteCatalogHasNoResumeVersionOperations` |
 | A-2 | Flat read/update/duplicate APIs match fixtures and enforce IK/cross-user rules | handler/service/store tests + `cmd/api` scenarios + P0.074-P0.076 |
 | A-3 | Tailor request/read/job flow uses `resumeId`, `async_jobs`, typed `ai_task_runs` and task output suggestions | tailor handler/store/job/drainer tests + P0.077-P0.078 |
 | A-4 | `resume.tailor.completed` is ready-only and privacy-safe | outbox tests + P0.080 |

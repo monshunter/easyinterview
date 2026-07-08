@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-07-07
 
@@ -9,13 +9,13 @@
 
 ## 1 目标
 
-维护 `openapi/fixtures/` 作为当前 HTTP mock 数据的唯一真理源：当前 10 个 tag / 35 个 operationId 必须各有一份 fixture，`default` scenario 覆盖规范响应，`prototype-baseline` scenario 由 `ui-design/src/data.jsx` 同步，fixtures 再投影为 Prism / 文档站消费的 OpenAPI named examples。
+维护 `openapi/fixtures/` 作为当前 HTTP mock 数据的唯一真理源：当前 10 个 tag / 36 个 operationId 必须各有一份 fixture，`default` scenario 覆盖规范响应，`prototype-baseline` scenario 由 `ui-design/src/data.jsx` 同步，fixtures 再投影为 Prism / 文档站消费的 OpenAPI named examples。
 
 本 plan 只拥有 fixture 数据、fixture validator、prototype sync、fixture example render、Prism byte-equal smoke 和对应文档。正式 mock server 运行壳、前端 MSW runtime、后端 handler、OpenAPI schema 变更与 breaking-change policy 分别归对应 owner；它们只能消费这里的 fixture truth source，不在这里重建第二份 example。
 
 ## 2 当前合同
 
-- `openapi/fixtures/<tag>/<operationId>.json` 当前必须覆盖 `openapi/openapi.yaml` 的 35 个 operationId，目录 tag 顺序跟随 OpenAPI spec。
+- `openapi/fixtures/<tag>/<operationId>.json` 当前必须覆盖 `openapi/openapi.yaml` 的 36 个 operationId，目录 tag 顺序跟随 OpenAPI spec。
 - 每个 fixture 必须包含 `scenarios.default`，并且该 key 是 `scenarios` 的第一项。声明 requestBody 的 operation 必须给出 `request.body`；header-only idempotent operation 可只给 `request.headers`。
 - `response.status` 必须是 operation 声明的状态码，或被 `default` error response 覆盖。`requestPrivacyExport` 固定返回 `501 + PRIVACY_EXPORT_NOT_AVAILABLE`；`exportResume` 固定返回 `501 + RESUME_EXPORT_NOT_AVAILABLE`。
 - 所有 scenario 的 request/response body 必须按 `openapi/openapi.yaml` schema 校验通过。AI 生成相关 schema 必须带非空 `provenance`；隐私字段只能使用保留域名、保留电话号码和通用公司名；所有 UUID 字段使用 UUIDv7 字面量；`tmp_` id 直接失败。
@@ -33,7 +33,7 @@
 
 ### 4.1 Fixture inventory and validation
 
-`openapi/fixtures/` 当前保有 35 个 JSON fixture 文件，和 OpenAPI operationId 一一对应。`scripts/lint/validate_fixtures.py` 负责以下检查：
+`openapi/fixtures/` 当前保有 36 个 JSON fixture 文件，和 OpenAPI operationId 一一对应。`scripts/lint/validate_fixtures.py` 负责以下检查：
 
 - fixture 文件名、`operationId` 字段和 OpenAPI operationId 一致。
 - 所有 operationId 都有 fixture，且没有 OpenAPI 不认识的 fixture。
@@ -48,7 +48,7 @@
 
 ### 4.3 Example projection and Prism smoke
 
-`make render-openapi-fixture-examples` 把每个 fixture 的 `scenarios.default.response.body` 投影到 `openapi/.generated/openapi-with-fixtures.yaml`。投影必须覆盖 35 个 operationId，并保证 named example body 与 fixture body 字节级一致。
+`make render-openapi-fixture-examples` 把每个 fixture 的 `scenarios.default.response.body` 投影到 `openapi/.generated/openapi-with-fixtures.yaml`。投影必须覆盖 36 个 operationId，并保证 named example body 与 fixture body 字节级一致。
 
 Prism smoke 使用生成物启动本地 mock，并用固定 operation matrix 校验响应 body 与 fixture body 字节级一致。当前固定 matrix 包括 `getMe`、`listTargetJobs`、`getPracticeSession`、`getFeedbackReport`、`requestPrivacyExport`。
 
@@ -64,7 +64,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 ## 5 验收标准
 
-- `openapi/fixtures/` 覆盖当前 35 个 operationId，没有多余 operation fixture。
+- `openapi/fixtures/` 覆盖当前 36 个 operationId，没有多余 operation fixture。
 - `make validate-fixtures` 通过，并能拒绝缺 fixture、schema drift、缺 provenance、非保留隐私值、非 UUIDv7 id 和 `tmp_` id。
 - `make sync-fixtures-from-prototype` 幂等，且 P0 closed-loop endpoints 的 `prototype-baseline` scenario 非空并 schema-valid。
 - `make render-openapi-fixture-examples` 通过，生成 examples 与 fixture body 字节级一致。
@@ -85,7 +85,8 @@ Mock consumer 的 scenario 选择规则固定为：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
-| 2026-07-07 | 1.5 | 压缩 owner 文档为当前 35-operation fixture truth source、prototype sync、example projection and Prism smoke contract。 | product-scope/001-core-loop-module-pruning |
+| 2026-07-07 | 1.6 | 新增 `getResumeSource` fixture，fixture truth source 与 example projection 覆盖当前 36-operation contract。 | backend-resume/001 Phase 12 |
+| 2026-07-07 | 1.5 | 压缩 owner 文档为当时 fixture truth source、prototype sync、example projection and Prism smoke contract。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-04 | 1.4 | 补齐质量门禁分类。 | docs-only L1 review |
 | 2026-05-03 | 1.3 | 刷新 fixture / example coverage 与 prototype-baseline endpoint 范围。 | product-scope v1.2 / openapi-v1-contract v1.9 |
 | 2026-05-03 | 1.2 | 调整 fixture coverage、报告字段与 prototype mapping。 | openapi-v1-contract v1.9 |

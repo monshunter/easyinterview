@@ -8,7 +8,7 @@
 
 ## Phase 1: baseline and diff entrypoint
 
-- [x] `openapi/baseline/openapi-v1.0.0.yaml` represents current 35 operation / 10 tag freeze baseline（验证：`make openapi-diff` PASS）
+- [x] `openapi/baseline/openapi-v1.0.0.yaml` represents current 36 operation / 10 tag freeze baseline（验证：`make openapi-diff` PASS）<!-- verified: 2026-07-07 method=make target=openapi-diff expected=36 baseline=36 current=36 -->
 - [x] `make openapi-diff` runs the wrapper-backed local diff gate from the repo root（验证：Makefile target exists and passes）
 - [x] baseline selection supports explicit override for future baselines（验证：wrapper/openapi baseline tests cover version selection）
 
@@ -27,7 +27,7 @@
 
 ## Phase 4: closeout
 
-- [x] `make lint-openapi` passes with current 10 tags / 35 operations
+- [x] `make lint-openapi` passes with current 10 tags / 36 operations<!-- verified: 2026-07-07 method=make target=lint-openapi -->
 - [x] `make validate-fixtures` passes
 - [x] `make codegen-check` passes
 - [x] `make openapi-diff` passes

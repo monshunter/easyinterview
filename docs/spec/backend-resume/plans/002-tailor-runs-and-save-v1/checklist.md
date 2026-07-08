@@ -8,7 +8,7 @@
 
 ## Phase 0: current contract preflight
 
-- [x] 0.1 读取 backend-resume spec、B2 OpenAPI/fixtures/generated artifacts、backend handler/store/job/runtime 和 P0.074-P0.080 场景，确认当前合同为 flat `resumes` + 9 个 Resume / ResumeTailor operation（验证：`make lint-openapi` PASS，inventory 为 10 tags / 35 operations；`openapi/openapi.yaml` 仅包含 current Resume operationIds）
+- [x] 0.1 读取 backend-resume spec、B2 OpenAPI/fixtures/generated artifacts、backend handler/store/job/runtime 和 P0.074-P0.080 场景，确认当前合同为 flat `resumes` + 10 个 Resume / ResumeTailor operation（验证：`make lint-openapi` PASS，inventory 为 10 tags / 36 operations；`openapi/openapi.yaml` 仅包含 current Resume operationIds）
 - [x] 0.2 context manifest 指向当前 backend owner surface，不再以 removed package path 作为主入口（验证：`python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/backend-resume/plans/002-tailor-runs-and-save-v1/context.yaml --target backend` PASS）
 - [x] 0.3 front/back contract pre-read 已覆盖 `docs/development.md` §2、`backend/README.md`、`openapi/README.md`、`test/scenarios/README.md` 与相关 scenario README（验证：本 plan 后续 gates 只使用 current OpenAPI/generated/fixture/runtime/scenario truth sources）
 

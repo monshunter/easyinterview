@@ -77,6 +77,9 @@ func (l *Loader) Validate() error {
 				problems = append(problems, fmt.Sprintf("%s must be positive", path))
 			}
 		}
+		if l.GetInt("resume.maxActive") <= 0 {
+			problems = append(problems, "resume.maxActive must be positive")
+		}
 
 		// Async queue weights must declare three positive entries.
 		if l.GetInt("async.queueWeights.critical") <= 0 ||

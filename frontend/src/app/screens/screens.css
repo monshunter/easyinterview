@@ -208,7 +208,7 @@
 .ei-resume-workshop-table-head,
 .ei-resume-workshop-table-row {
   display: grid;
-  grid-template-columns: 1.8fr 1.4fr 0.6fr 1fr 100px;
+  grid-template-columns: 1.8fr 1.4fr 0.6fr 1fr 132px;
   gap: 14px;
   align-items: center;
 }
@@ -297,19 +297,36 @@
   font-size: 12px;
 }
 
-.ei-resume-workshop-upload-cta {
-  display: flex;
+.ei-resume-workshop-table-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ei-resume-workshop-table-delete {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-top: 14px;
-  padding: 18px;
+  width: 28px;
+  height: 28px;
   color: var(--ei-color-fg-tertiary);
   background: transparent;
-  border: 1px dashed var(--ei-color-rule-strong);
-  border-radius: 3px;
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 2px;
+}
+
+.ei-resume-workshop-table-delete:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ei-resume-workshop-delete-error {
+  margin: 14px 0 0;
+  color: var(--ei-color-danger);
   font-family: var(--ei-font-sans);
-  font-size: 13.5px;
+  font-size: 13px;
 }
 
 .ei-resume-detail {
@@ -366,22 +383,24 @@
 .ei-resume-detail-preview-card {
   width: min(100%, 860px);
   min-height: 720px;
-  padding: 44px 56px;
+  padding: 28px;
   color: #222222;
-  background: #ffffff;
+  background: #f6f3ee;
   border: 1px solid var(--ei-color-rule-strong);
   border-radius: 3px;
   box-shadow: 0 18px 50px rgba(30, 22, 15, 0.10);
   font-family: Georgia, serif;
 }
 
-.ei-resume-detail-preview-card .ei-text-title {
-  margin: 0 0 4px;
-  color: #222222;
-  font-family: Georgia, serif;
-  font-size: 28px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+.ei-resume-detail-markdown-page {
+  width: min(100%, 720px);
+  min-height: 664px;
+  margin: 0 auto;
+  padding: 44px 56px;
+  background: #ffffff;
+  border: 1px solid var(--ei-color-rule-strong);
+  box-shadow: 0 10px 30px rgba(30, 22, 15, 0.08);
+  box-sizing: border-box;
 }
 
 .ei-resume-detail-preview-card .ei-text-body {
@@ -389,6 +408,127 @@
   font-family: Georgia, serif;
   font-size: 13.5px;
   line-height: 1.75;
+}
+
+.ei-resume-detail-preview-body h1,
+.ei-resume-detail-preview-body h2,
+.ei-resume-detail-preview-body h3 {
+  margin: 20px 0 8px;
+  color: #222222;
+  font-family: Georgia, serif;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.ei-resume-detail-preview-body h1 {
+  margin-top: 0;
+  font-size: 26px;
+}
+
+.ei-resume-detail-preview-body h2 {
+  font-size: 18px;
+}
+
+.ei-resume-detail-preview-body h3 {
+  font-size: 15px;
+}
+
+.ei-resume-detail-preview-body p {
+  margin: 0 0 8px;
+}
+
+.ei-resume-detail-preview-body ul {
+  margin: 0 0 12px;
+  padding-left: 18px;
+}
+
+.ei-resume-detail-pdf-stack {
+  display: flex;
+  width: 100%;
+  min-height: 664px;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+}
+
+.ei-resume-detail-pdf-page {
+  width: min(100%, 720px);
+  min-height: 320px;
+  background: #ffffff;
+  border: 1px solid var(--ei-color-rule-strong);
+  box-shadow: 0 10px 30px rgba(30, 22, 15, 0.08);
+  overflow: hidden;
+}
+
+.ei-resume-detail-pdf-canvas {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  background: #ffffff;
+}
+
+.ei-resume-detail-pdf-loading,
+.ei-resume-detail-pdf-error {
+  display: flex;
+  width: min(100%, 720px);
+  min-height: 320px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: var(--ei-color-fg-tertiary);
+  background: #ffffff;
+  border: 1px solid var(--ei-color-rule-strong);
+  box-shadow: 0 10px 30px rgba(30, 22, 15, 0.08);
+}
+
+.ei-resume-detail-parse-state {
+  display: flex;
+  min-height: 460px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.ei-resume-detail-parse-icon {
+  display: inline-flex;
+  width: 56px;
+  height: 56px;
+  align-items: center;
+  justify-content: center;
+  color: var(--ei-color-accent);
+  background: var(--ei-color-accent-soft);
+  border: 1px solid var(--ei-color-rule-strong);
+  border-radius: 50%;
+  animation: ei-resume-parse-pulse 1.2s ease-in-out infinite;
+}
+
+.ei-resume-detail-parse-state .ei-text-display {
+  margin: 0;
+  color: var(--ei-color-fg-primary);
+  font-size: 30px;
+}
+
+.ei-resume-detail-parse-state .ei-text-body {
+  max-width: 520px;
+  margin: 0;
+  color: var(--ei-color-fg-secondary);
+  line-height: 1.6;
+}
+
+@keyframes ei-resume-parse-pulse {
+  0%,
+  100% {
+    opacity: 0.72;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
 }
 
 .ei-resume-detail-preview-section {
@@ -510,6 +650,11 @@
 
   .ei-resume-detail-preview-card {
     min-height: 520px;
+    padding: 20px;
+  }
+
+  .ei-resume-detail-markdown-page {
+    min-height: 480px;
     padding: 32px 28px;
   }
 
@@ -580,9 +725,10 @@
 
 .ei-resume-create-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 860px);
   gap: 22px;
   align-items: start;
+  justify-content: center;
 }
 
 .ei-resume-create-card {
@@ -751,56 +897,6 @@
 .ei-resume-create-cta-ghost:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.ei-resume-create-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.ei-resume-create-sidebar-card {
-  background: var(--ei-color-bg-card);
-  border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 3px;
-  padding: 20px;
-}
-
-.ei-resume-create-sidebar-eyebrow {
-  display: block;
-  color: var(--ei-color-fg-tertiary);
-  margin-bottom: 12px;
-}
-
-.ei-resume-create-sidebar-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.ei-resume-create-sidebar-list li {
-  display: grid;
-  grid-template-columns: 26px 1fr;
-  gap: 10px;
-  padding: 12px 0;
-  border-bottom: 1px dotted var(--ei-color-rule-strong);
-}
-
-.ei-resume-create-sidebar-list li:last-child {
-  border-bottom: none;
-}
-
-.ei-resume-create-sidebar-item-title {
-  font-size: 13.5px;
-  color: var(--ei-color-fg-primary);
-  font-weight: 500;
-}
-
-.ei-resume-create-sidebar-item-body {
-  margin: 2px 0 0;
-  font-size: 12.5px;
-  color: var(--ei-color-fg-tertiary);
-  line-height: 1.5;
 }
 
 .ei-resume-create-error {

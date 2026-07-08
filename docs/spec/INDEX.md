@@ -30,7 +30,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [shared-conventions-codified](./shared-conventions-codified/spec.md) | 1.24 | active | 2026-07-07 | [plans](./shared-conventions-codified/plans/) |
-| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.35 | active | 2026-07-07 | [plans](./openapi-v1-contract/plans/) |
+| [openapi-v1-contract](./openapi-v1-contract/spec.md) | 1.36 | active | 2026-07-07 | [plans](./openapi-v1-contract/plans/) |
 | [event-and-outbox-contract](./event-and-outbox-contract/spec.md) | 2.12 | active | 2026-07-07 | [plans](./event-and-outbox-contract/plans/) |
 | [db-migrations-baseline](./db-migrations-baseline/spec.md) | 1.27 | active | 2026-07-07 | [plans](./db-migrations-baseline/plans/) |
 
@@ -55,7 +55,7 @@
 | [backend-review](./backend-review/spec.md) | 1.3 | active | 2026-07-07 | [plans](./backend-review/plans/) |
 | [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.6 | active | 2026-07-07 | [plans](./practice-voice-mvp/plans/) |
 | [backend-upload](./backend-upload/spec.md) | 1.3 | active | 2026-07-07 | [plans](./backend-upload/plans/) |
-| [backend-resume](./backend-resume/spec.md) | 2.1 | active | 2026-07-07 | [plans](./backend-resume/plans/) |
-| [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 2.2 | active | 2026-07-07 | [plans](./frontend-resume-workshop/plans/) |
+| [backend-resume](./backend-resume/spec.md) | 2.3 | active | 2026-07-07 | [plans](./backend-resume/plans/) |
+| [frontend-resume-workshop](./frontend-resume-workshop/spec.md) | 2.7 | active | 2026-07-08 | [plans](./frontend-resume-workshop/plans/) |
 | [frontend-report-dashboard](./frontend-report-dashboard/spec.md) | 1.6 | active | 2026-07-07 | [plans](./frontend-report-dashboard/plans/) |
 | [e2e-scenarios-p0](./e2e-scenarios-p0/spec.md) | 1.8 | active | 2026-07-06 | [plans](./e2e-scenarios-p0/plans/) |

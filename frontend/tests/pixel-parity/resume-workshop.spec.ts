@@ -38,6 +38,14 @@ interface OperationFixture {
   >;
 }
 
+interface MockResumeWorkshopOptions {
+  detailRenderer?: "markdown" | "pdf";
+}
+
+const RESUME_DETAIL_ID = "01918fa0-0000-7000-8000-000000001000";
+const PDF_SOURCE_FIXTURE_BASE64 =
+  "JVBERi0xLjMKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiAzIDAgUgo+PgplbmRvYmoKMiAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYSAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvTmFtZSAvRjEgL1N1YnR5cGUgL1R5cGUxIC9UeXBlIC9Gb250Cj4+CmVuZG9iagozIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGQgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgL05hbWUgL0YyIC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udAo+PgplbmRvYmoKNCAwIG9iago8PAovQ29udGVudHMgOSAwIFIgL01lZGlhQm94IFsgMCAwIDYxMiA3OTIgXSAvUGFyZW50IDggMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0NvbnRlbnRzIDEwIDAgUiAvTWVkaWFCb3ggWyAwIDAgNjEyIDc5MiBdIC9QYXJlbnQgOCAwIFIgL1Jlc291cmNlcyA8PAovRm9udCAxIDAgUiAvUHJvY1NldCBbIC9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUkgXQo+PiAvUm90YXRlIDAgL1RyYW5zIDw8Cgo+PiAKICAvVHlwZSAvUGFnZQo+PgplbmRvYmoKNiAwIG9iago8PAovUGFnZU1vZGUgL1VzZU5vbmUgL1BhZ2VzIDggMCBSIC9UeXBlIC9DYXRhbG9nCj4+CmVuZG9iago3IDAgb2JqCjw8Ci9BdXRob3IgKGFub255bW91cykgL0NyZWF0aW9uRGF0ZSAoRDoyMDI2MDcwODAwMjYxOCswOCcwMCcpIC9DcmVhdG9yIChhbm9ueW1vdXMpIC9LZXl3b3JkcyAoKSAvTW9kRGF0ZSAoRDoyMDI2MDcwODAwMjYxOCswOCcwMCcpIC9Qcm9kdWNlciAoUmVwb3J0TGFiIFBERiBMaWJyYXJ5IC0gXChvcGVuc291cmNlXCkpIAogIC9TdWJqZWN0ICh1bnNwZWNpZmllZCkgL1RpdGxlICh1bnRpdGxlZCkgL1RyYXBwZWQgL0ZhbHNlCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9Db3VudCAyIC9LaWRzIFsgNCAwIFIgNSAwIFIgXSAvVHlwZSAvUGFnZXMKPj4KZW5kb2JqCjkgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdIC9MZW5ndGggMTgyCj4+CnN0cmVhbQpHYXJXMTVta0lfJjRRPVZgRiNYJ2cnTDJmQnFfXDdMdVxXMjouY2QnLSZKOygyY2MlbEE7OSg3IzJVXmFIImFwRSIkMjszSk5zOTdLQSpuajRKSjFtYlFVRStrK1xPQCdsNj1xcixsLS5YVmh1UzZiL1t0UzJvRkgwLVJOXFguU1ssNzNVRlA1LWdBUDhQZDBSckZlPDcwUmVdRyhbKlJLYCZZYks5Xkg0bzwxbk88PD5tZSJ+PmVuZHN0cmVhbQplbmRvYmoKMTAgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdIC9MZW5ndGggMTgwCj4+CnN0cmVhbQpHYXJXcVltUz81JSolaE46W3NHMEUmTDRjXGVaYiROcSEuMUNGVV8hK19fSTdIdHNKYSs6L3FiX182W2opT2RrdUpWcF1xJyQsWi86Z2pfIykpWiZKXCJOXSM+O0c8RGR0Y1QvQmxlNlM8VzBGYyMpUVs7aSM/cTQtMnVAJFUtLSlGLllWYm44Z2VLZj5hKlcrPzBETCZmXGdkOkxvbjZzZUUiWkdATVhIVDRUU11zMjRzfj5lbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCAxMQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwNjEgMDAwMDAgbiAKMDAwMDAwMDEwMiAwMDAwMCBuIAowMDAwMDAwMjA5IDAwMDAwIG4gCjAwMDAwMDAzMjEgMDAwMDAgbiAKMDAwMDAwMDUxNCAwMDAwMCBuIAowMDAwMDAwNzA4IDAwMDAwIG4gCjAwMDAwMDA3NzYgMDAwMDAgbiAKMDAwMDAwMTAzNyAwMDAwMCBuIAowMDAwMDAxMTAyIDAwMDAwIG4gCjAwMDAwMDEzNzQgMDAwMDAgbiAKdHJhaWxlcgo8PAovSUQgCls8Nzg0NjVjYmQ5M2YwMjNiNmUxOTQwMTIwN2JjMmQ1NGU+PDc4NDY1Y2JkOTNmMDIzYjZlMTk0MDEyMDdiYzJkNTRlPl0KJSBSZXBvcnRMYWIgZ2VuZXJhdGVkIFBERiBkb2N1bWVudCAtLSBkaWdlc3QgKG9wZW5zb3VyY2UpCgovSW5mbyA3IDAgUgovUm9vdCA2IDAgUgovU2l6ZSAxMQo+PgpzdGFydHhyZWYKMTY0NQolJUVPRgo=";
+
 function fixtureResponse(relativePath: string, scenario = "default") {
   const absolutePath = resolve(process.cwd(), "..", relativePath);
   const fixture = JSON.parse(
@@ -65,8 +73,20 @@ async function fulfillFixture(
   });
 }
 
+async function fulfillPdfSource(route: import("@playwright/test").Route) {
+  await route.fulfill({
+    status: 200,
+    headers: {
+      "content-type": "application/pdf",
+      "content-disposition": 'inline; filename="alice-example.pdf"',
+    },
+    body: Buffer.from(PDF_SOURCE_FIXTURE_BASE64, "base64"),
+  });
+}
+
 async function mockResumeWorkshopApis(
   page: import("@playwright/test").Page,
+  options: MockResumeWorkshopOptions = {},
 ): Promise<void> {
   await page.route("**/api/v1/**", async (route) => {
     const url = new URL(route.request().url());
@@ -87,8 +107,33 @@ async function mockResumeWorkshopApis(
       await fulfillFixture(route, "openapi/fixtures/Resumes/listResumes.json");
       return;
     }
+    if (/^\/resumes\/[^/]+\/source$/.test(path)) {
+      await fulfillPdfSource(route);
+      return;
+    }
     if (/^\/resumes\/[^/]+$/.test(path)) {
-      await fulfillFixture(route, "openapi/fixtures/Resumes/getResume.json");
+      const response = fixtureResponse("openapi/fixtures/Resumes/getResume.json");
+      const body =
+        options.detailRenderer === "pdf" &&
+        typeof response.body === "object" &&
+        response.body !== null
+          ? {
+              ...(response.body as Record<string, unknown>),
+              id: RESUME_DETAIL_ID,
+              title: "Alice Example Resume.pdf",
+              displayName: "Alice Example — Senior Frontend Engineer",
+              sourceType: "upload",
+              fileObjectId: "01918fa0-0000-7000-8000-000000001100",
+            }
+          : response.body;
+      await route.fulfill({
+        status: response.status,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          ...(response.headers ?? {}),
+        },
+        body: JSON.stringify(body),
+      });
       return;
     }
     await route.fulfill({
@@ -179,9 +224,9 @@ async function goToList(page: import("@playwright/test").Page): Promise<void> {
 
 async function goToDetail(
   page: import("@playwright/test").Page,
+  options: MockResumeWorkshopOptions = {},
 ): Promise<void> {
-  await mockResumeWorkshopApis(page);
-  const resumeId = "01918fa0-0000-7000-8000-000000001000";
+  await mockResumeWorkshopApis(page, options);
   await page.addInitScript(
     (route) => {
       (
@@ -196,7 +241,7 @@ async function goToDetail(
     {
       name: "resume_versions",
       params: {
-        resumeId,
+        resumeId: RESUME_DETAIL_ID,
         tab: "rewrites",
         tailorRunId: "01918fa0-0000-7000-8000-000000009000",
       },
@@ -215,10 +260,10 @@ test.describe("Resume Workshop list DOM anchors", () => {
       "resume-workshop-list",
       "resume-workshop-table",
       "resume-workshop-create",
-      "resume-workshop-upload-cta",
     ]) {
       await expect(page.locator(`[data-testid='${anchor}']`)).toBeVisible();
     }
+    await expect(page.locator("[data-testid='resume-workshop-upload-cta']")).toHaveCount(0);
     await expect(
       page.locator("[data-testid^='resume-list-row-'][role='row']"),
     ).toHaveCount(2);
@@ -305,6 +350,12 @@ test.describe("Resume Workshop detail DOM anchors", () => {
     ]) {
       await expect(page.locator(`[data-testid='${removed}']`)).toHaveCount(0);
     }
+    await expect(page.locator(".ei-resume-detail-preview-body")).toBeVisible();
+    await expect(page.locator("[data-testid='resume-detail-markdown-page']")).toBeVisible();
+    await expect(
+      page.locator("[data-testid='resume-detail-markdown-page']"),
+    ).not.toContainText("Alice Example — Senior Frontend Engineer");
+    await expect(page.locator("[data-testid='resume-detail-pdf-preview']")).toHaveCount(0);
 
     const viewport = page.viewportSize();
     expect(viewport).not.toBeNull();
@@ -320,18 +371,86 @@ test.describe("Resume Workshop detail DOM anchors", () => {
     const cardStyle = await computedStyleOf(
       page,
       ".ei-resume-detail-preview-card",
-      ["width", "padding-top", "box-shadow", "font-family"],
+      ["width", "padding-top", "background-color", "box-shadow", "font-family"],
     );
     expect(cardStyle["padding-top"]).toBe(
-      viewport!.width > 700 ? "44px" : "32px",
+      viewport!.width > 700 ? "28px" : "20px",
     );
+    expect(cardStyle["background-color"]).toBe("rgb(246, 243, 238)");
     expect(cardStyle["width"]).not.toBe("auto");
     expect(cardStyle["box-shadow"]).toContain("rgba(30, 22, 15, 0.1)");
     expect(cardStyle["font-family"].toLowerCase()).toContain("georgia");
 
+    const markdownPageStyle = await computedStyleOf(
+      page,
+      "[data-testid='resume-detail-markdown-page']",
+      ["width", "padding-top", "background-color", "box-shadow"],
+    );
+    expect(markdownPageStyle["padding-top"]).toBe(
+      viewport!.width > 700 ? "44px" : "32px",
+    );
+    expect(markdownPageStyle["background-color"]).toBe("rgb(255, 255, 255)");
+    expect(markdownPageStyle["width"]).not.toBe("auto");
+    expect(markdownPageStyle["box-shadow"]).toContain(
+      "rgba(30, 22, 15, 0.08)",
+    );
+
     const screenshot = await page.screenshot();
     expect(screenshot.length).toBeGreaterThan(0);
     await testInfo.attach("resume-workshop-detail", {
+      body: screenshot,
+      contentType: "image/png",
+    });
+  });
+
+  test("upload-backed PDF detail uses a top-to-bottom PDF page stack", async ({ page }, testInfo) => {
+    await goToDetail(page, { detailRenderer: "pdf" });
+    await freezeAnimations(page);
+
+    const preview = page.locator("[data-testid='resume-detail-pdf-preview-stack']");
+    await expect(preview).toBeVisible();
+    await expect(page.locator(".ei-resume-detail-preview-card")).not.toHaveClass(
+      /ei-resume-detail-preview-card--pdf/,
+    );
+    await expect(preview).toHaveAttribute(
+      "data-source-url",
+      new RegExp(`/api/v1/resumes/${RESUME_DETAIL_ID}/source$`),
+    );
+    await expect(page.locator("object, iframe, embed")).toHaveCount(0);
+    await expect(page.locator(".ei-resume-detail-preview-body")).toHaveCount(0);
+    await expect(
+      page.locator("[data-testid^='resume-detail-pdf-page-']"),
+    ).toHaveCount(2);
+    await expect(page.locator("[data-testid='resume-detail-pdf-page-1']")).toHaveAttribute(
+      "data-render-state",
+      "ready",
+      { timeout: 10000 },
+    );
+    await expect(page.locator("[data-testid='resume-detail-pdf-page-2']")).toHaveAttribute(
+      "data-render-state",
+      "ready",
+      { timeout: 10000 },
+    );
+
+    const previewBox = await rectOf(
+      page,
+      "[data-testid='resume-detail-pdf-preview-stack']",
+    );
+    expect(previewBox.width).toBeGreaterThan(280);
+    expect(previewBox.height).toBeGreaterThanOrEqual(680);
+
+    const firstPage = await rectOf(
+      page,
+      "[data-testid='resume-detail-pdf-page-1']",
+    );
+    expect(firstPage.width).toBeGreaterThan(280);
+    expect(firstPage.height).toBeGreaterThan(360);
+
+    const screenshot = await page
+      .locator("[data-testid='resume-detail-preview-content']")
+      .screenshot();
+    expect(screenshot.length).toBeGreaterThan(0);
+    await testInfo.attach("resume-workshop-detail-pdf-source", {
       body: screenshot,
       contentType: "image/png",
     });

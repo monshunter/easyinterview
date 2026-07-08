@@ -23,7 +23,7 @@ spec:
       - operationId registry
       - prototype data boundary
       - P0 mock runway
-      - 35 operation fixtures
+      - 36 operation fixtures
       - VITE_EI_API_BASE_URL
   targets:
     tooling:
@@ -56,6 +56,7 @@ spec:
           - listResumes
           - registerResume
           - getResume
+          - getResumeSource
           - updateResume
           - duplicateResume
           - archiveResume

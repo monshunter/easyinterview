@@ -68,6 +68,37 @@ func TestCreateUploadPresignCreatesPendingFileObjectAndPresignsObject(t *testing
 	}
 }
 
+func TestCreateUploadPresignRejectsResumeDOCXBeforePresign(t *testing.T) {
+	repo := &fakeRepository{}
+	objects := &fakeObjectStore{}
+	svc := service.New(service.Options{
+		Repository: repo,
+		Objects:    objects,
+		Now:        fixedNow,
+		NewID:      func() string { return "file-1" },
+	})
+
+	_, err := svc.CreateUploadPresign(context.Background(), service.CreatePresignInput{
+		UserID:         "user-1",
+		IdempotencyKey: "idem-1",
+		Purpose:        string(store.PurposeResume),
+		FileName:       "resume.docx",
+		ContentType:    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		ByteSize:       1024,
+		PresignTTL:     10 * time.Minute,
+		MaxBytes:       10485760,
+	})
+	if !errors.Is(err, service.ErrValidationFailed) {
+		t.Fatalf("err = %v, want ErrValidationFailed", err)
+	}
+	if repo.created.ID != "" {
+		t.Fatalf("must not create file_object for docx: %+v", repo.created)
+	}
+	if objects.presignObjectKey != "" {
+		t.Fatalf("must not presign docx object: %q", objects.presignObjectKey)
+	}
+}
+
 func TestRegisterFileObjectMarksPendingUploadedAfterObjectExists(t *testing.T) {
 	repo := &fakeRepository{record: fileObject("file-1", store.StatusPending)}
 	objects := &fakeObjectStore{exists: true, statSize: 1024}

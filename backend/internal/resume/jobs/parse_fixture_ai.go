@@ -18,7 +18,7 @@ func NewDeterministicParseAIClient(inner aiclient.AIClient) *DeterministicParseA
 
 func (c *DeterministicParseAIClient) Complete(ctx context.Context, profileName string, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
 	if payload.Metadata.FeatureKey == FeatureKeyResumeParse {
-		return aiclient.CompleteResponse{Content: `{"basics":{"name":"Fixture Candidate"},"experiences":[{"company":"Fixture Co","title":"Engineer","start":"2024-01","end":"","summary":"Built interview preparation systems.","bullets":["Led reliable product delivery"]}],"projects":[],"education":[],"skills":["Go","React"],"languages":["en"]}`}, aiclient.AICallMeta{
+		return aiclient.CompleteResponse{Content: `{"displayName":"Fixture Candidate - Engineer","markdownText":"# Fixture Candidate\n\n## Experience\n- Engineer at Fixture Co\n- Built interview preparation systems.","basics":{"name":"Fixture Candidate","headline":"Engineer"},"experiences":[{"company":"Fixture Co","title":"Engineer","start":"2024-01","end":"","summary":"Built interview preparation systems.","bullets":["Led reliable product delivery"]}],"projects":[],"education":[],"skills":["Go","React"],"languages":["en"]}`}, aiclient.AICallMeta{
 			Provider:         "stub",
 			ModelFamily:      "stub",
 			ModelID:          "resume-parse-fixture",

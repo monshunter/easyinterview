@@ -5,8 +5,8 @@ metadata:
   name: 003-breaking-change-gate
   sequence: 3
   specVersion:
-    from: 1.35
-    to: 1.35
+    from: 1.36
+    to: 1.36
 spec:
   defaultTarget: contract
   discovery:
@@ -16,7 +16,7 @@ spec:
       - openapi-diff
       - additive-only
       - v1-freeze
-      - 35 operations
+      - 36 operations
       - 10 tags
       - breaking-change-linter
       - baseline-snapshot

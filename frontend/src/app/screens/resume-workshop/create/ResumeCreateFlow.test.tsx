@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { EasyInterviewClient } from "../../../../api/generated/client";
@@ -82,16 +82,11 @@ describe("ResumeCreateFlow container", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders the sidebar `WHAT GETS SAVED` and `WHAT HAPPENS NEXT` cards", () => {
+  it("does not render the redundant `WHAT GETS SAVED` or `WHAT HAPPENS NEXT` sidebar", () => {
     renderCreateFlow();
-    const sidebar = screen.getByTestId("resume-create-sidebar");
-    expect(sidebar).toBeInTheDocument();
-    expect(
-      within(sidebar).getAllByText(/会保存什么|WHAT GETS SAVED/i).length,
-    ).toBeGreaterThanOrEqual(1);
-    expect(
-      within(sidebar).getAllByText(/接下来|WHAT HAPPENS NEXT/i).length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByTestId("resume-create-sidebar")).not.toBeInTheDocument();
+    expect(screen.queryByText(/会保存什么|WHAT GETS SAVED/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/接下来|WHAT HAPPENS NEXT/i)).not.toBeInTheDocument();
   });
 
   it("switches to the paste tab when the user clicks it", async () => {

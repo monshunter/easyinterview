@@ -25,6 +25,7 @@ import archiveResumeFixture from "../../../openapi/fixtures/Resumes/archiveResum
 import duplicateResumeFixture from "../../../openapi/fixtures/Resumes/duplicateResume.json";
 import exportResumeFixture from "../../../openapi/fixtures/Resumes/exportResume.json";
 import getResumeFixture from "../../../openapi/fixtures/Resumes/getResume.json";
+import getResumeSourceFixture from "../../../openapi/fixtures/Resumes/getResumeSource.json";
 import listResumesFixture from "../../../openapi/fixtures/Resumes/listResumes.json";
 import registerResumeFixture from "../../../openapi/fixtures/Resumes/registerResume.json";
 import updateResumeFixture from "../../../openapi/fixtures/Resumes/updateResume.json";
@@ -72,6 +73,7 @@ const DEV_MOCK_FIXTURES = [
 	listResumesFixture,
 	registerResumeFixture,
 	getResumeFixture,
+	getResumeSourceFixture,
 	updateResumeFixture,
 	duplicateResumeFixture,
 	archiveResumeFixture,

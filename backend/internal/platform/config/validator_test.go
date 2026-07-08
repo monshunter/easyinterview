@@ -40,9 +40,11 @@ objectStorage:
 upload:
   presignTTLSeconds: 600
   maxBytes:
-    resume: 10485760
+    resume: 2097152
     targetJobAttachment: 10485760
     privacyExport: 5242880
+resume:
+  maxActive: 10
 async:
   queueWeights:
     critical: 6
@@ -442,7 +444,8 @@ func TestDefaultUploadConfigPaths(t *testing.T) {
 		t.Fatalf("upload.presignTTLSeconds = %d", got)
 	}
 	for path, want := range map[string]int{
-		"upload.maxBytes.resume":              10485760,
+		"resume.maxActive":                    10,
+		"upload.maxBytes.resume":              2097152,
 		"upload.maxBytes.targetJobAttachment": 10485760,
 		"upload.maxBytes.privacyExport":       5242880,
 	} {
@@ -460,7 +463,7 @@ objectStorage:
 upload:
   presignTTLSeconds: 600
   maxBytes:
-    resume: 10485760
+    resume: 2097152
     targetJobAttachment: 10485760
     privacyExport: 5242880
 async:
@@ -478,7 +481,7 @@ objectStorage:
 upload:
   presignTTLSeconds: 0
   maxBytes:
-    resume: 10485760
+    resume: 2097152
     targetJobAttachment: 10485760
     privacyExport: 5242880
 async:
@@ -508,6 +511,30 @@ featureFlag:
   source: file
   filePath: "./feature-flags.yaml"
 `,
+		"resume-max-active": `
+objectStorage:
+  provider: filesystem
+upload:
+  presignTTLSeconds: 600
+  maxBytes:
+    resume: 2097152
+    targetJobAttachment: 10485760
+    privacyExport: 5242880
+async:
+  queueWeights:
+    critical: 6
+    default: 3
+    low: 1
+  leaseTimeoutSeconds: 300
+  shutdownGraceSeconds: 10
+  reaperIntervalSeconds: 60
+  scanIntervalSeconds: 5
+resume:
+  maxActive: 0
+featureFlag:
+  source: file
+  filePath: "./feature-flags.yaml"
+`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			dir := t.TempDir()
@@ -521,8 +548,10 @@ featureFlag:
 			if err == nil {
 				t.Fatal("expected upload config validation error")
 			}
-			if !strings.Contains(err.Error(), "upload") && !strings.Contains(err.Error(), "objectStorage.provider") {
-				t.Fatalf("error must mention upload config boundary: %v", err)
+			if !strings.Contains(err.Error(), "upload") &&
+				!strings.Contains(err.Error(), "objectStorage.provider") &&
+				!strings.Contains(err.Error(), "resume.maxActive") {
+				t.Fatalf("error must mention upload/resume config boundary: %v", err)
 			}
 		})
 	}

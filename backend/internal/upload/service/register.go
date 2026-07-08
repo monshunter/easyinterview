@@ -81,8 +81,11 @@ func (s *Service) CreateUploadPresign(ctx context.Context, in CreatePresignInput
 	userID := strings.TrimSpace(in.UserID)
 	purpose, ok := publicPurpose(strings.TrimSpace(in.Purpose))
 	fileName := strings.TrimSpace(in.FileName)
-	contentType := strings.TrimSpace(in.ContentType)
+	contentType := strings.ToLower(strings.TrimSpace(in.ContentType))
 	if userID == "" || !ok || fileName == "" || contentType == "" || in.ByteSize <= 0 || in.PresignTTL <= 0 || in.MaxBytes <= 0 || in.ByteSize > in.MaxBytes {
+		return api.UploadPresign{}, ErrValidationFailed
+	}
+	if !isSupportedUploadForPurpose(purpose, fileName, contentType) {
 		return api.UploadPresign{}, ErrValidationFailed
 	}
 
@@ -182,6 +185,23 @@ func publicPurpose(raw string) (store.Purpose, bool) {
 		return store.Purpose(raw), true
 	default:
 		return "", false
+	}
+}
+
+func isSupportedUploadForPurpose(purpose store.Purpose, fileName string, contentType string) bool {
+	if purpose != store.PurposeResume {
+		return true
+	}
+	ext := strings.ToLower(filepath.Ext(fileName))
+	switch ext {
+	case ".pdf":
+		return contentType == "application/pdf"
+	case ".md", ".markdown":
+		return contentType == "text/markdown" || contentType == "text/plain"
+	case ".txt":
+		return contentType == "text/plain"
+	default:
+		return false
 	}
 }
 

@@ -1,0 +1,32 @@
+{
+  "operationId": "getResumeSource",
+  "scenarios": {
+    "default": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-07-07T10-00-00-resume-source",
+          "Content-Type": "application/pdf",
+          "Content-Disposition": "inline; filename=\"alice-platform.pdf\""
+        },
+        "body": "%PDF-1.4\n%fixture\n"
+      }
+    },
+    "not-found": {
+      "response": {
+        "status": 404,
+        "headers": {
+          "X-Request-ID": "req_2026-07-07T10-00-00-resume-source-not-found"
+        },
+        "body": {
+          "error": {
+            "code": "RESOURCE_NOT_FOUND",
+            "message": "resume source not found",
+            "requestId": "req_2026-07-07T10-00-00-resume-source-not-found",
+            "retryable": false
+          }
+        }
+      }
+    }
+  }
+}

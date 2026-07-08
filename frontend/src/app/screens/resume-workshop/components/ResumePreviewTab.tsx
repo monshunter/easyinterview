@@ -1,15 +1,27 @@
 import type { FC } from "react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-import { buildResumeBodyLines, mapResumeToUiSource } from "../adapters/resume";
+import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
+import {
+  buildResumeBodyMarkdown,
+  getResumeDetailRenderer,
+  getResumeSourceUrl,
+  mapResumeToUiSource,
+} from "../adapters/resume";
 import type { Resume } from "../../../../api/generated/types";
+import { PdfPageStackPreview } from "./PdfPageStackPreview";
 
 export interface ResumePreviewTabProps {
   resume: Resume;
 }
 
 export const ResumePreviewTab: FC<ResumePreviewTabProps> = ({ resume }) => {
+  const runtime = useAppRuntimeOptional();
   const uiResume = mapResumeToUiSource(resume);
-  const bodyLines = buildResumeBodyLines(resume);
+  const bodyMarkdown = buildResumeBodyMarkdown(resume);
+  const renderer = getResumeDetailRenderer(resume);
+  const sourceUrl = getResumeSourceUrl(resume, runtime?.client.baseUrl);
 
   return (
     <div
@@ -17,17 +29,28 @@ export const ResumePreviewTab: FC<ResumePreviewTabProps> = ({ resume }) => {
       className="ei-resume-detail-preview"
     >
       <article className="ei-resume-detail-preview-card">
-        <h3 className="ei-text-title">{uiResume.name}</h3>
-        {bodyLines.length > 0 ? (
-          <div className="ei-text-body ei-resume-detail-preview-body">
-            {bodyLines.map((line, index) => (
-              <p key={`${index}-${line}`}>{line}</p>
-            ))}
+        {renderer === "pdf" ? (
+          <PdfPageStackPreview sourceUrl={sourceUrl} label={uiResume.name} />
+        ) : bodyMarkdown.trim() ? (
+          <div
+            data-testid="resume-detail-markdown-page"
+            className="ei-resume-detail-markdown-page"
+          >
+            <div className="ei-text-body ei-resume-detail-preview-body">
+              <Markdown remarkPlugins={[remarkGfm]} skipHtml>
+                {bodyMarkdown}
+              </Markdown>
+            </div>
           </div>
         ) : (
-          <p className="ei-text-body ei-resume-detail-preview-empty">
-            {uiResume.summary}
-          </p>
+          <div
+            data-testid="resume-detail-markdown-page"
+            className="ei-resume-detail-markdown-page"
+          >
+            <p className="ei-text-body ei-resume-detail-preview-empty">
+              暂无可读简历正文。
+            </p>
+          </div>
         )}
       </article>
     </div>

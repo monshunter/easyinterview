@@ -12,7 +12,7 @@ import (
 // C-domain handler packages must implement this interface; the runtime
 // router (registered by RegisterHandlers) dispatches by `(method, path)` to
 // the corresponding ServerInterface method. operationId order matches the
-// 35-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
+// 36-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 
 	// startAuthEmailChallenge — post /auth/email/start: Issue an email-code challenge
@@ -99,6 +99,9 @@ type ServerInterface interface {
 	// exportResume — post /resumes/{resumeId}/exports: Export a resume
 	ExportResume(w http.ResponseWriter, r *http.Request, resumeId string)
 
+	// getResumeSource — get /resumes/{resumeId}/source: Get the uploaded PDF source for inline resume preview
+	GetResumeSource(w http.ResponseWriter, r *http.Request, resumeId string)
+
 	// getRuntimeConfig — get /runtime-config: Get public runtime configuration
 	GetRuntimeConfig(w http.ResponseWriter, r *http.Request)
 
@@ -162,6 +165,7 @@ var AllRoutes = []Route{
 	{OperationID: "archiveResume", Method: "post", Path: "/resumes/{resumeId}/archive", PathParams: []string{"resumeId"}},
 	{OperationID: "duplicateResume", Method: "post", Path: "/resumes/{resumeId}/duplicate", PathParams: []string{"resumeId"}},
 	{OperationID: "exportResume", Method: "post", Path: "/resumes/{resumeId}/exports", PathParams: []string{"resumeId"}},
+	{OperationID: "getResumeSource", Method: "get", Path: "/resumes/{resumeId}/source", PathParams: []string{"resumeId"}},
 	{OperationID: "getRuntimeConfig", Method: "get", Path: "/runtime-config", PathParams: nil},
 	{OperationID: "listTargetJobs", Method: "get", Path: "/targets", PathParams: nil},
 	{OperationID: "importTargetJob", Method: "post", Path: "/targets/import", PathParams: nil},

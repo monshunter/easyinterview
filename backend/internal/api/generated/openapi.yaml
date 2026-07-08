@@ -429,6 +429,37 @@ paths:
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
+  /resumes/{resumeId}/source:
+    get:
+      tags: [Resumes]
+      operationId: getResumeSource
+      summary: Get the uploaded PDF source for inline resume preview
+      description: Read-only endpoint for upload-backed PDF resumes. Paste, Markdown, text, missing, archived, or cross-user resumes return 404.
+      parameters:
+        - name: resumeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '200':
+          description: Uploaded PDF source.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
   /resumes/{resumeId}/archive:
     post:
       tags: [Resumes]

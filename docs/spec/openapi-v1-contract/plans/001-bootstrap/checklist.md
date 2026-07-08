@@ -8,8 +8,7 @@
 
 ## Completed Owner Gates
 
-- [x] Current OpenAPI inventory is 10 tags and 35 operations.
-  <!-- verified: 2026-07-07 method=openapi-inventory evidence="make lint-openapi validates current 10-tag / 35-operation inventory." -->
+- [x] Current OpenAPI inventory is 10 tags and 36 operations.<!-- verified: 2026-07-07 method=make target=lint-openapi -->
 - [x] OpenAPI generated Go and TS artifacts are reproducible from `openapi/openapi.yaml`.
   <!-- verified: 2026-05-04 method=codegen evidence="make codegen-openapi and make codegen-check passed for generated Go/TS artifacts." -->
 - [x] B1 shared conventions and B2 error envelope ownership are represented in generated artifacts.
@@ -18,8 +17,7 @@
   <!-- verified: 2026-05-04 method=docs-openapi evidence="make docs-openapi generated openapi/dist/index.html with current renderer target." -->
 - [x] Child plan handoff is clear: 002 owns fixtures/mock source, 003 owns breaking-change baseline/gate, and 004 owns resume additive coverage.
   <!-- verified: 2026-05-04 method=handoff evidence="plans INDEX and context manifests identify downstream B2 owners." -->
-- [x] Current owner docs describe only the 35-operation / 10-tag OpenAPI contract and executable evidence index.
-  <!-- verified: 2026-07-07 method=openapi-001-owner-compression evidence="Updated openapi-v1-contract/001 owner docs to v1.7 completed. PASS: targeted stale-wording grep returned only current completeMyProfile operationId; validate_context.py openapi-v1-contract/001 contract PASS; sync-doc-index --fix-index updated openapi plans INDEX; make lint-openapi PASS (10 tags, 35 operations); make codegen-check PASS; sync-doc-index --check PASS; make docs-check PASS after preserving current Make-target anchor; git diff --check PASS; make lint-core-loop-pruning-surface PASS real_residuals=0." -->
+- [x] Current owner docs describe only the 36-operation / 10-tag OpenAPI contract and executable evidence index.<!-- verified: 2026-07-07 method=targeted-grep+context-validation -->
 
 ## BDD-Gate
 

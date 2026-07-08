@@ -273,7 +273,7 @@ export const zh = {
     "保存后直接打开只读详情；详情展示的就是原始简历内容本身。",
   "resumeWorkshop.create.tabs.upload": "上传文件",
   "resumeWorkshop.create.tabs.paste": "粘贴内容",
-  "resumeWorkshop.create.upload.dropzoneTitle": "拖入 PDF / DOCX / Markdown 简历",
+  "resumeWorkshop.create.upload.dropzoneTitle": "拖入 PDF / Markdown 简历",
   "resumeWorkshop.create.upload.dropzoneBody":
     "上传成功后直接打开简历详情，原始内容保留为正文来源。",
   "resumeWorkshop.create.upload.choose": "选择文件",
@@ -284,22 +284,9 @@ export const zh = {
   "resumeWorkshop.create.paste.helper": "原始文本会完整保留，保存后直接打开详情。",
   "resumeWorkshop.create.paste.submit": "保存并打开简历",
   "resumeWorkshop.create.paste.titleFallback": "粘贴文本",
-  "resumeWorkshop.create.sidebar.whatSavedEyebrow": "会保存什么",
-  "resumeWorkshop.create.sidebar.whatSaved.original.title": "原始来源",
-  "resumeWorkshop.create.sidebar.whatSaved.original.body":
-    "文件或粘贴文本都会保留来源。",
-  "resumeWorkshop.create.sidebar.whatSaved.structured.title": "结构化简历",
-  "resumeWorkshop.create.sidebar.whatSaved.structured.body":
-    "后台解析结果只用于命名和后续匹配，不替换详情正文。",
-  "resumeWorkshop.create.sidebar.whatSaved.baseline.title": "只读详情",
-  "resumeWorkshop.create.sidebar.whatSaved.baseline.body":
-    "保存后打开简历详情，看到的就是简历内容本身。",
-  "resumeWorkshop.create.sidebar.whatNextEyebrow": "接下来",
-  "resumeWorkshop.create.sidebar.whatNextBody":
-    "提交成功后直接打开简历详情，页面只读显示原始内容。",
   "resumeWorkshop.create.errors.validation": "字段校验失败，请检查后重试。",
   "resumeWorkshop.create.errors.extensionInvalid":
-    "暂不支持该文件类型，仅支持 .pdf / .docx / .md / .txt。",
+    "暂不支持该文件类型，仅支持 .pdf / .md / .markdown / .txt。",
   "resumeWorkshop.create.errors.sizeExceeded":
     "文件超出大小限制 ({maxMb} MB)，请压缩后再试。",
   "resumeWorkshop.create.errors.uploadFailed": "上传失败 · 请重试。",
@@ -332,11 +319,18 @@ export const zh = {
   "resumeWorkshop.list.colLang": "语言",
   "resumeWorkshop.list.colLastEdit": "最近编辑",
   "resumeWorkshop.list.open": "打开",
-  "resumeWorkshop.list.uploadAnother": "上传或粘贴另一份简历",
+  "resumeWorkshop.list.delete": "删除简历",
+  "resumeWorkshop.list.deleteError": "删除失败，请稍后重试。",
   "resumeWorkshop.detail.back": "返回简历工坊",
   "resumeWorkshop.detail.lastEdit": "最近编辑",
   "resumeWorkshop.detail.loading": "加载简历中…",
   "resumeWorkshop.detail.error": "加载简历失败，请重试。",
+  "resumeWorkshop.detail.waitingTitle": "正在解析简历",
+  "resumeWorkshop.detail.waitingBody":
+    "我们正在提取正文并统一转译为 Markdown，完成后会自动展示详情。",
+  "resumeWorkshop.detail.failedTitle": "简历解析失败",
+  "resumeWorkshop.detail.failedBody":
+    "当前文件未能完成解析，请返回列表删除后重新上传或粘贴文本。",
   "resumeWorkshop.detail.notFoundTitle": "未找到该简历",
   "resumeWorkshop.detail.notFoundBody":
     "该简历不可用或链接已失效，请返回简历工坊重新选择。",

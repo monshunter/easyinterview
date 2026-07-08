@@ -138,6 +138,80 @@ func TestCreateWithParseJobRollsBackWhenJobInsertFails(t *testing.T) {
 	}
 }
 
+func TestCreateWithParseJobRejectsNewResumeWhenActiveLimitReached(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	now := time.Date(2026, 7, 7, 11, 0, 0, 0, time.UTC)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(`select resource_id, id, status, created_at, updated_at from async_jobs`)).
+		WithArgs("resume_parse", "dedupe-limit").
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery("select count").
+		WithArgs("user-1").
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(10))
+	mock.ExpectRollback()
+
+	_, err := repo.CreateWithParseJob(context.Background(), resumestore.CreateAssetInput{
+		AssetID:          "resume-limit",
+		UserID:           "user-1",
+		JobID:            "job-limit",
+		DedupeKey:        "dedupe-limit",
+		SourceType:       "paste",
+		Title:            "Pasted text",
+		Language:         "en",
+		RawText:          "resume text",
+		ParseStatus:      sharedtypes.TargetJobParseStatusQueued,
+		JobStatus:        sharedtypes.JobStatusQueued,
+		MaxActiveForUser: 10,
+		Now:              now,
+	})
+	if !errors.Is(err, resumestore.ErrResumeLimitExceeded) {
+		t.Fatalf("err = %v, want ErrResumeLimitExceeded", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestCreateWithParseJobAllowsIdempotentReplayAtActiveLimit(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+	createdAt := time.Date(2026, 7, 7, 10, 30, 0, 0, time.UTC)
+	updatedAt := time.Date(2026, 7, 7, 10, 31, 0, 0, time.UTC)
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(regexp.QuoteMeta(`select resource_id, id, status, created_at, updated_at from async_jobs`)).
+		WithArgs("resume_parse", "dedupe-limit").
+		WillReturnRows(sqlmock.NewRows([]string{"resource_id", "id", "status", "created_at", "updated_at"}).
+			AddRow("resume-existing", "job-existing", string(sharedtypes.JobStatusQueued), createdAt, updatedAt))
+	mock.ExpectCommit()
+
+	got, err := repo.CreateWithParseJob(context.Background(), resumestore.CreateAssetInput{
+		AssetID:          "resume-new",
+		UserID:           "user-1",
+		JobID:            "job-new",
+		DedupeKey:        "dedupe-limit",
+		SourceType:       "paste",
+		Title:            "Pasted text",
+		Language:         "en",
+		RawText:          "resume text",
+		ParseStatus:      sharedtypes.TargetJobParseStatusQueued,
+		JobStatus:        sharedtypes.JobStatusQueued,
+		MaxActiveForUser: 10,
+		Now:              time.Date(2026, 7, 7, 11, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatalf("CreateWithParseJob replay: %v", err)
+	}
+	if !got.Existing || got.AssetID != "resume-existing" || got.JobID != "job-existing" {
+		t.Fatalf("replay result = %+v", got)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
 func TestRepositoryExposesFlatResumeMethods(t *testing.T) {
 	var _ interface {
 		CreateWithParseJob(context.Context, resumestore.CreateAssetInput) (resumestore.CreateAssetResult, error)
@@ -638,6 +712,44 @@ func TestListCursorPagination(t *testing.T) {
 	_, err = repo.List(context.Background(), "user-1", resumestore.ListFilter{Cursor: "not-a-valid-cursor"})
 	if !errors.Is(err, resumestore.ErrInvalidCursor) {
 		t.Fatalf("invalid cursor err = %v, want ErrInvalidCursor", err)
+	}
+}
+
+func TestGetSourceFileScopesToCurrentUserUploadResume(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+
+	mock.ExpectQuery(regexp.QuoteMeta(`select fo.object_key, fo.original_file_name, fo.content_type, fo.byte_size`)).
+		WithArgs("resume-1", "user-1").
+		WillReturnRows(sqlmock.NewRows([]string{"object_key", "original_file_name", "content_type", "byte_size"}).
+			AddRow("user-1/resume/file-1.pdf", "alice-platform.pdf", "application/pdf", int64(128)))
+
+	got, err := repo.GetSourceFile(context.Background(), "user-1", "resume-1")
+	if err != nil {
+		t.Fatalf("GetSourceFile: %v", err)
+	}
+	if got.ObjectKey != "user-1/resume/file-1.pdf" || got.FileName != "alice-platform.pdf" || got.ContentType != "application/pdf" || got.ByteSize != 128 {
+		t.Fatalf("source file = %+v", got)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestGetSourceFileMissingOrPasteReturnsAssetNotFound(t *testing.T) {
+	repo, mock, cleanup := newMockRepository(t)
+	defer cleanup()
+
+	mock.ExpectQuery(regexp.QuoteMeta(`select fo.object_key, fo.original_file_name, fo.content_type, fo.byte_size`)).
+		WithArgs("resume-paste", "user-1").
+		WillReturnError(sql.ErrNoRows)
+
+	_, err := repo.GetSourceFile(context.Background(), "user-1", "resume-paste")
+	if !errors.Is(err, resumestore.ErrAssetNotFound) {
+		t.Fatalf("err = %v, want ErrAssetNotFound", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
 	}
 }
 

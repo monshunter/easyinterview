@@ -264,7 +264,7 @@ objectStorage:
 upload:
   presignTTLSeconds: 600
   maxBytes:
-    resume: 10485760
+    resume: 2097152
     targetJobAttachment: 10485760
     privacyExport: 5242880
 ai:

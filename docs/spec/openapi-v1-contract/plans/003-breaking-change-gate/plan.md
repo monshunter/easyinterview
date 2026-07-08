@@ -11,7 +11,7 @@
 
 本 plan 承接 [openapi-v1-contract spec](../../spec.md) 的 v1.0.0 freeze gate：
 
-- `openapi/baseline/openapi-v1.0.0.yaml` 是当前 35 operation / 10 tag contract 的 baseline snapshot。
+- `openapi/baseline/openapi-v1.0.0.yaml` 是当前 36 operation / 10 tag contract 的 baseline snapshot。
 - `make openapi-diff` 比对 baseline 与 `openapi/openapi.yaml`，并按 B2 additive-only rules 拦截 breaking changes。
 - wrapper rules reject endpoint deletion, method/path change, schema field deletion, type change, required-field addition and enum value removal.
 - additive changes are allowed only when OpenAPI, fixtures, generated artifacts, inventory lint and spec records move together.
@@ -28,7 +28,7 @@
 |---------|------------------|--------------|
 | Baseline snapshot | `openapi/baseline/openapi-v1.0.0.yaml` mirrors current freeze shape | `make openapi-diff` confirms baseline/current compatibility |
 | Diff wrapper | `scripts/lint/openapi_diff.py` reclassifies raw diff output to B2 rules | wrapper unit tests + `make openapi-diff` |
-| Diff config | `openapi/diff-config.yaml` pins 35 operation inventory and privacy export whitelist | `make openapi-diff`, openapi diff unit tests |
+| Diff config | `openapi/diff-config.yaml` pins 36 operation inventory and privacy export whitelist | `make openapi-diff`, openapi diff unit tests |
 | ADR workflow | `docs/spec/openapi-v1-contract/decisions/TEMPLATE.md` defines accepted ADR shape for breaking changes | docs link checks + owner review |
 | Baseline guide | `openapi/baseline/README.md` defines baseline selection and versioning rules | docs link checks + owner review |
 | Contract handoff | B2 001/002/003 gates must pass before implementation owners consume generated clients | `make lint-openapi`, `make validate-fixtures`, `make codegen-check`, `make openapi-diff` |
@@ -120,5 +120,5 @@ The wrapper must verify the exact path, method and statuses. Any other status tr
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
-| 2026-07-07 | 1.6 | Compress owner docs to the current 35-operation breaking-change gate contract. |
+| 2026-07-07 | 1.6 | Compress owner docs to the current 36-operation breaking-change gate contract. |
 | 2026-05-04 | 1.5 | Add quality-gate classification for the completed breaking-change gate. |

@@ -6,8 +6,8 @@ import { useResumePresignUpload } from "./hooks/useResumePresignUpload";
 import { useResumeRegistration } from "./hooks/useResumeRegistration";
 import { deriveDefaultTitle } from "./util/title";
 
-const MAX_RESUME_UPLOAD_BYTES = 10 * 1024 * 1024;
-const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".md", ".txt"];
+const MAX_RESUME_UPLOAD_BYTES = 2 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = [".pdf", ".md", ".markdown", ".txt"];
 
 const hasAllowedExtension = (name: string): boolean => {
   const lower = name.toLowerCase();
@@ -17,9 +17,7 @@ const hasAllowedExtension = (name: string): boolean => {
 const getMimeFor = (fileName: string): string => {
   const lower = fileName.toLowerCase();
   if (lower.endsWith(".pdf")) return "application/pdf";
-  if (lower.endsWith(".docx"))
-    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  if (lower.endsWith(".md")) return "text/markdown";
+  if (lower.endsWith(".md") || lower.endsWith(".markdown")) return "text/markdown";
   if (lower.endsWith(".txt")) return "text/plain";
   return "application/octet-stream";
 };
@@ -135,7 +133,7 @@ export const UploadTab: FC<UploadTabProps> = ({
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf,.docx,.md,.txt"
+          accept=".pdf,.md,.markdown,.txt"
           data-testid="resume-create-upload-input"
           className="ei-resume-create-upload-input"
           onChange={(event) => {

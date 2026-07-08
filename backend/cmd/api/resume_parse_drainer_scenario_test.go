@@ -58,7 +58,7 @@ func TestResumeParseDrainerHTTPScenario(t *testing.T) {
 	if !processed || !asyncStore.outcome.Succeeded {
 		t.Fatalf("drainer did not process resume_parse successfully: processed=%v outcome=%+v", processed, asyncStore.outcome)
 	}
-	if parseStore.success == nil || parseStore.success.AssetID != assetID || parseStore.success.ParsedTextSnapshot != "Private resume body" {
+	if parseStore.success == nil || parseStore.success.AssetID != assetID || parseStore.success.ParsedTextSnapshot != "# Fixture Candidate\n\n## Experience\n- Engineer at Fixture Co\n- Built interview preparation systems." {
 		t.Fatalf("parse success not persisted: %+v", parseStore.success)
 	}
 	if parseStore.success.DisplayName == nil || *parseStore.success.DisplayName != "Fixture Candidate - Engineer" {
@@ -109,7 +109,7 @@ func TestResumeParseDrainerRetryableFailureScenario(t *testing.T) {
 		AI: &apiSequenceAIClient{
 			errs: []error{errors.New(sharederrors.CodeAiProviderTimeout + " provider slow")},
 			responses: []aiclient.CompleteResponse{{
-				Content: `{"basics":{"name":"Fixture Candidate"},"experiences":[],"projects":[],"education":[],"skills":["Go"],"languages":["en"]}`,
+				Content: `{"displayName":"Fixture Candidate","markdownText":"# Fixture Candidate\n\n## Skills\n- Go","basics":{"name":"Fixture Candidate"},"experiences":[],"projects":[],"education":[],"skills":["Go"],"languages":["en"]}`,
 			}},
 		},
 		NewID: apiFixedIDs("01918fa0-0000-7000-8000-00000000b004"),

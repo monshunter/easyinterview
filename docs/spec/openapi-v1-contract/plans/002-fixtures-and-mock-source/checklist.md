@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Fixtures & Mock Source Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
 > **更新日期**: 2026-07-07
 
@@ -8,7 +8,7 @@
 
 ## 1 Fixture inventory and validation
 
-- [x] 1.1 `openapi/fixtures/` 覆盖当前 10 tag / 35 operationId，一份 operationId 对应一份 JSON fixture。
+- [x] 1.1 `openapi/fixtures/` 覆盖当前 10 tag / 36 operationId，一份 operationId 对应一份 JSON fixture。<!-- verified: 2026-07-07 method=make target=validate-fixtures fixtures=36 -->
 - [x] 1.2 每份 fixture 的 `operationId` 与文件名一致，`scenarios.default` 必填且排在第一位；声明 requestBody 的 operation 带 `request.body`。
 - [x] 1.3 `scripts/lint/validate_fixtures.py` 校验 operation coverage、request/response schema、response status、AI provenance、privacy allowlist / blacklist、UUIDv7 和 `tmp_` id rule。
 - [x] 1.4 P0 export exceptions 固定：`requestPrivacyExport` 返回 `501 + PRIVACY_EXPORT_NOT_AVAILABLE`，`exportResume` 返回 `501 + RESUME_EXPORT_NOT_AVAILABLE`。
@@ -22,7 +22,7 @@
 
 ## 3 Example projection and Prism smoke
 
-- [x] 3.1 `make render-openapi-fixture-examples` 从 fixtures 生成 `openapi/.generated/openapi-with-fixtures.yaml`，覆盖 35 个 operationId。
+- [x] 3.1 `make render-openapi-fixture-examples` 从 fixtures 生成 `openapi/.generated/openapi-with-fixtures.yaml`，覆盖 36 个 operationId。<!-- verified: 2026-07-07 method=make target=render-openapi-fixture-examples sha256=56cce69426dd -->
 - [x] 3.2 生成的 OpenAPI named example body 与 fixture `scenarios.default.response.body` 字节级一致。
 - [x] 3.3 Prism smoke 固定 matrix 校验 `getMe`、`listTargetJobs`、`getPracticeSession`、`getFeedbackReport`、`requestPrivacyExport` 的 response body 与 fixture body 字节级一致。
 - [x] 3.4 OpenAPI 主文件不手写 response examples；mock / docs consumer 只消费 fixtures 或生成 examples。
@@ -36,5 +36,4 @@
 
 ## 5 Current owner compression gate
 
-- [x] 5.1 `plan.md`、`checklist.md`、`context.yaml` 与 plans INDEX 对齐当前 35-operation fixture/mock-source contract。
-  <!-- verified: 2026-07-07 method=current-owner-compression evidence="Updated plan.md to v1.5, checklist.md to v1.4, and context specVersion to v1.35; sync-doc-index --fix-index updated openapi-v1-contract plans INDEX. PASS: targeted stale-wording grep returned no matches; validate_context.py openapi-v1-contract/002 contract PASS; make sync-fixtures-from-prototype PASS (5 fixtures populated); make render-openapi-fixture-examples PASS; make validate-fixtures PASS (35 fixtures); python3 -m unittest scripts.codegen.render_openapi_fixture_examples_test scripts.lint.validate_fixtures_test scripts.codegen.sync_fixtures_from_prototype_test PASS (32 tests); make lint-openapi PASS (10 tags, 35 operations); make codegen-check PASS." -->
+- [x] 5.1 `plan.md`、`checklist.md`、`context.yaml` 与 plans INDEX 对齐当前 36-operation fixture/mock-source contract。<!-- verified: 2026-07-07 method=context-validation+sync-doc-index target=openapi-v1-contract/002 -->

@@ -20,7 +20,7 @@
             "headline": "Senior frontend engineer focused on growth-stage SaaS",
             "yearsOfExperience": 5
           },
-          "parsedTextSnapshot": "Original resume parsed text snapshot\nLed platform release guardrail work across frontend surfaces\nImproved incident follow-up quality with measurable owner handoff",
+          "parsedTextSnapshot": "# Original resume parsed text snapshot\n\n## Release guardrails\n- Led **platform release guardrail** work across frontend surfaces\n- Improved incident follow-up quality with measurable [owner handoff](https://github.com/monshunter/easyinterview)",
           "originalText": "Original uploaded resume raw text fallback",
           "structuredProfile": {
             "headline": "Senior frontend engineer for platform-heavy product teams",

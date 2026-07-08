@@ -904,7 +904,7 @@ func (h *fullFunnelResumeSeedHarness) assertReadyResume(t *testing.T, seed fullF
 	if detail.ParsedSummary == nil || len(*detail.ParsedSummary) == 0 {
 		t.Fatalf("seed resume missing parsed summary: %+v", detail)
 	}
-	if detail.ParsedTextSnapshot == nil || *detail.ParsedTextSnapshot != fullFunnelSeedResumeText {
+	if detail.ParsedTextSnapshot == nil || *detail.ParsedTextSnapshot != "# Fixture Candidate\n\n## Experience\n- Engineer at Fixture Co\n- Built interview preparation systems." {
 		t.Fatalf("seed resume parsed text snapshot mismatch: %+v", detail.ParsedTextSnapshot)
 	}
 	var (

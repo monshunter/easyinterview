@@ -185,7 +185,7 @@ openapi-diff: ## Compare openapi/openapi.yaml against the latest baseline under 
 		$(if $(HISTORY_REF),--history-ref $(HISTORY_REF),) \
 		--fail-on-incompatible
 
-validate-fixtures: ## Validate openapi/fixtures/*.json against openapi.yaml (B2 002 — schema, provenance, privacy, UUIDv7, 34-coverage)
+validate-fixtures: ## Validate openapi/fixtures/*.json against openapi.yaml (B2 002 — schema, provenance, privacy, UUIDv7, operation coverage)
 	@python3 "$(ROOT_DIR)/scripts/lint/validate_fixtures.py" --repo-root "$(ROOT_DIR)"
 
 sync-fixtures-from-prototype: ## Refresh `scenarios.prototype-baseline` of every P0 fixture from ui-design/src/data.jsx (B2 002, idempotent — fail-fast on mapping gaps)

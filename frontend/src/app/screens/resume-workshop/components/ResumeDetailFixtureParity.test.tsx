@@ -60,6 +60,14 @@ describe("getResume fixture parity (Phase 3.6)", () => {
     expect(screen.getByTestId("resume-detail-preview-content")).toHaveTextContent(
       "Original resume parsed text snapshot",
     );
+    expect(
+      screen.getByTestId("resume-detail-preview-content").querySelector("strong"),
+    ).toHaveTextContent("platform release guardrail");
+    expect(
+      screen
+        .getByTestId("resume-detail-preview-content")
+        .querySelector('a[href="https://github.com/monshunter/easyinterview"]'),
+    ).toHaveTextContent("owner handoff");
     expect(screen.getByTestId("resume-detail-preview-content")).not.toHaveTextContent(
       "Senior frontend engineer for platform-heavy product teams",
     );

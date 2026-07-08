@@ -1,7 +1,6 @@
 package jobs_test
 
 import (
-	"archive/zip"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -35,6 +34,30 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 		wantReadObject  bool
 	}{
 		{
+			name: "persists markdownText snapshot",
+			asset: resumestore.ParseAssetRecord{
+				ID:           "asset-markdown",
+				UserID:       "user-1",
+				Language:     "en",
+				ParseStatus:  sharedtypes.TargetJobParseStatusQueued,
+				SourceType:   "paste",
+				OriginalText: "Ada Lovelace\nEngineer",
+			},
+			aiContent: `{
+  "displayName": "Ada Lovelace - Engineer",
+  "markdownText": "# Ada Lovelace\n\n## Experience\n- Engineer",
+  "basics": {"name": "Ada Lovelace", "headline": "Engineer"},
+  "experiences": [],
+  "projects": [],
+  "education": [],
+  "skills": ["Analytical Engine"],
+  "languages": ["en"]
+}`,
+			wantPrompt:      "Ada Lovelace\nEngineer",
+			wantSnapshot:    "# Ada Lovelace\n\n## Experience\n- Engineer",
+			wantDisplayName: "Ada Lovelace - Engineer",
+		},
+		{
 			name: "paste original_text",
 			asset: resumestore.ParseAssetRecord{
 				ID:           "asset-paste",
@@ -45,7 +68,7 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 				OriginalText: "paste resume text",
 			},
 			wantPrompt:   "paste resume text",
-			wantSnapshot: "paste resume text",
+			wantSnapshot: validResumeParseMarkdownText,
 		},
 		{
 			name: "upload file object",
@@ -60,7 +83,7 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 			},
 			objectText:     "uploaded resume text",
 			wantPrompt:     "uploaded resume text",
-			wantSnapshot:   "uploaded resume text",
+			wantSnapshot:   validResumeParseMarkdownText,
 			wantReadObject: true,
 		},
 		{
@@ -75,6 +98,7 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 			},
 			aiContent: `{
   "headline": "后端平台工程师",
+  "markdownText": "# 张三\n\n## 定位\n后端平台工程师",
   "basics": {"name": "粘贴的简历"},
   "experiences": [],
   "projects": [{"name": "Ferry"}],
@@ -83,7 +107,7 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
   "languages": ["zh-CN"]
 }`,
 			wantPrompt:      "张三\n后端平台工程师",
-			wantSnapshot:    "张三\n后端平台工程师",
+			wantSnapshot:    "# 张三\n\n## 定位\n后端平台工程师",
 			wantDisplayName: "后端平台工程师",
 		},
 		{
@@ -98,6 +122,7 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 			},
 			aiContent: `{
   "displayName": "谭章毓 - AI Infra DevOps 平台工程师",
+  "markdownText": "# 谭章毓\n\n## 核心能力\n- AI Workflow\n- Kubernetes\n- GitOps",
   "basics": {"name": "谭章毓", "headline": "平台工程师"},
   "experiences": [],
   "projects": [{"name": "EasyInterview"}],
@@ -106,7 +131,7 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
   "languages": ["zh-CN"]
 }`,
 			wantPrompt:      "谭章毓 | AI / Infra / DevOps 平台工程师",
-			wantSnapshot:    "谭章毓 | AI / Infra / DevOps 平台工程师\n核心能力：AI Workflow、Kubernetes、GitOps",
+			wantSnapshot:    "# 谭章毓\n\n## 核心能力\n- AI Workflow\n- Kubernetes\n- GitOps",
 			wantDisplayName: "谭章毓 - AI Infra DevOps 平台工程师",
 		},
 	}
@@ -212,13 +237,6 @@ func TestParseHandlerExtractsReadableUploadText(t *testing.T) {
 			forbidText:       []string{"%PDF", "tan-ai-backend.pdf"},
 		},
 		{
-			name:       "docx",
-			objectKey:  "user-1/resume/tan-ai-backend.docx",
-			body:       minimalDOCXWithText(t, "DOCX Extracted Resume Text"),
-			wantText:   "DOCX Extracted Resume Text",
-			forbidText: []string{"PK", "word/document.xml"},
-		},
-		{
 			name:      "markdown",
 			objectKey: "user-1/resume/tan-ai-backend.md",
 			body:      []byte("# Markdown Resume\nGo platform engineer"),
@@ -267,8 +285,8 @@ func TestParseHandlerExtractsReadableUploadText(t *testing.T) {
 			if tc.wantMinReadBytes > 0 && len(objects.maxBytes) > 0 && objects.maxBytes[0] < tc.wantMinReadBytes {
 				t.Fatalf("object read maxBytes = %d, want at least %d", objects.maxBytes[0], tc.wantMinReadBytes)
 			}
-			if got := normalizeComparableText(store.success.ParsedTextSnapshot); got != tc.wantText {
-				t.Fatalf("parsed text snapshot = %q, want %q", got, tc.wantText)
+			if got := normalizeComparableText(store.success.ParsedTextSnapshot); got != normalizeComparableText(validResumeParseMarkdownText) {
+				t.Fatalf("parsed text snapshot = %q, want markdown %q", got, normalizeComparableText(validResumeParseMarkdownText))
 			}
 			prompt := normalizeComparableText(ai.lastUserMessage())
 			if !strings.Contains(prompt, tc.wantText) {
@@ -280,6 +298,48 @@ func TestParseHandlerExtractsReadableUploadText(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestParseHandlerRejectsDOCXUploadText(t *testing.T) {
+	now := time.Date(2026, 7, 7, 9, 10, 0, 0, time.UTC)
+	store := &fakeParseStore{asset: resumestore.ParseAssetRecord{
+		ID:            "asset-upload-docx",
+		UserID:        "user-1",
+		Language:      "zh-CN",
+		ParseStatus:   sharedtypes.TargetJobParseStatusQueued,
+		SourceType:    "upload",
+		FileObjectID:  "file-1",
+		FileObjectKey: "user-1/resume/tan-ai-backend.docx",
+	}}
+	objects := &fakeObjectReader{objectBytes: map[string][]byte{
+		store.asset.FileObjectKey: []byte("not used because docx is unsupported"),
+	}}
+	ai := &captureAI{resp: aiclient.CompleteResponse{Content: validResumeParseJSON}}
+	handler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
+		Store:    store,
+		Registry: fakeRegistry{resolution: parseResolution()},
+		AI:       ai,
+		Objects:  objects,
+		NewID:    idSeq("event-1"),
+		Now:      func() time.Time { return now },
+	})
+
+	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: store.asset.ID, Attempts: 1, MaxAttempts: 5,
+	})
+
+	if outcome.Succeeded || outcome.ErrorCode != sharederrors.CodeValidationFailed {
+		t.Fatalf("Handle outcome = %+v, want validation failure", outcome)
+	}
+	if store.success != nil {
+		t.Fatalf("DOCX must not complete parse: %+v", store.success)
+	}
+	if ai.payload.Messages != nil {
+		t.Fatalf("DOCX should fail before AI call: %+v", ai.payload.Messages)
+	}
+	if store.failure == nil || store.failure.ParsedTextSnapshot != "" {
+		t.Fatalf("DOCX failure should not persist snapshot: %+v", store.failure)
 	}
 }
 
@@ -325,6 +385,77 @@ func TestParseHandlerRejectsUnreadablePDFText(t *testing.T) {
 	}
 }
 
+func TestParseHandlerMarkdownFallbackSurvivesPDFAIOutputFailure(t *testing.T) {
+	now := time.Date(2026, 7, 7, 18, 30, 0, 0, time.UTC)
+	store := &fakeParseStore{asset: resumestore.ParseAssetRecord{
+		ID:            "asset-upload-markdown-fallback",
+		UserID:        "user-1",
+		Language:      "zh-CN",
+		ParseStatus:   sharedtypes.TargetJobParseStatusQueued,
+		SourceType:    "upload",
+		FileObjectID:  "file-1",
+		FileObjectKey: "user-1/resume/tan-ai-infra.pdf",
+	}}
+	pdfText := strings.Join([]string{
+		"Tan Zhangyu | AI / Infra / DevOps Platform Engineer",
+		"Summary",
+		"Backend and platform engineering.",
+		"Core Skills",
+		"AI Agent: model workflows.",
+		"Infra: Kubernetes controllers.",
+		"Experience",
+		"Yuanbi Tech | Infra Owner | 2025 - Present",
+	}, "\n")
+	objects := &fakeObjectReader{objectBytes: map[string][]byte{
+		store.asset.FileObjectKey: minimalPDFWithText(pdfText),
+	}}
+	ai := &captureAI{resp: aiclient.CompleteResponse{Content: "not-json"}}
+	handler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
+		Store:    store,
+		Registry: fakeRegistry{resolution: parseResolution()},
+		AI:       ai,
+		Objects:  objects,
+		NewID:    idSeq("event-1"),
+		Now:      func() time.Time { return now },
+	})
+
+	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: store.asset.ID, Attempts: 1, MaxAttempts: 5,
+	})
+
+	if outcome.Succeeded || outcome.ErrorCode != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("Handle outcome = %+v, want AI_OUTPUT_INVALID", outcome)
+	}
+	if store.success != nil {
+		t.Fatalf("AI output failure must not write success: %+v", store.success)
+	}
+	if store.failure == nil {
+		t.Fatal("expected failed resume with readable markdown fallback")
+	}
+	snapshot := store.failure.ParsedTextSnapshot
+	for _, want := range []string{
+		"# Tan Zhangyu - AI / Infra / DevOps Platform Engineer",
+		"## Summary",
+		"## Core Skills",
+		"- **AI Agent**: model workflows.",
+		"- **Infra**: Kubernetes controllers.",
+		"## Experience",
+	} {
+		if !strings.Contains(snapshot, want) {
+			t.Fatalf("markdown fallback missing %q:\n%s", want, snapshot)
+		}
+	}
+	if strings.Contains(snapshot, "%PDF") || strings.Contains(snapshot, "tan-ai-infra.pdf") {
+		t.Fatalf("markdown fallback leaked PDF bytes or file name:\n%s", snapshot)
+	}
+	if store.failure.DisplayName == nil || *store.failure.DisplayName != "Tan Zhangyu - AI / Infra / DevOps Platform Engineer" {
+		t.Fatalf("failure display name = %#v", store.failure.DisplayName)
+	}
+	if !strings.Contains(ai.lastUserMessage(), "Tan Zhangyu | AI / Infra / DevOps Platform Engineer") {
+		t.Fatalf("AI prompt did not receive extracted PDF text: %q", ai.lastUserMessage())
+	}
+}
+
 func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) {
 	now := time.Date(2026, 5, 13, 7, 30, 0, 0, time.UTC)
 	cases := []struct {
@@ -343,7 +474,7 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 			job:                 targetjob.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 1, MaxAttempts: 5},
 			wantCode:            sharederrors.CodeAiOutputInvalid,
 			wantFailed:          true,
-			wantFailureSnapshot: "谭章毓 | AI / Infra / DevOps 平台工程师\n核心能力：AI Workflow、Kubernetes、GitOps",
+			wantFailureSnapshot: "# 谭章毓 - AI / Infra / DevOps 平台工程师\n\n## 核心能力\n- AI Workflow、Kubernetes、GitOps",
 			wantDisplayName:     "谭章毓 - AI / Infra / DevOps 平台工程师",
 		},
 		{
@@ -353,7 +484,7 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 			wantCode:            sharederrors.CodeAiProviderTimeout,
 			wantRetry:           true,
 			wantFailed:          true,
-			wantFailureSnapshot: "谭章毓 | AI / Infra / DevOps 平台工程师\n核心能力：AI Workflow、Kubernetes、GitOps",
+			wantFailureSnapshot: "# 谭章毓 - AI / Infra / DevOps 平台工程师\n\n## 核心能力\n- AI Workflow、Kubernetes、GitOps",
 			wantDisplayName:     "谭章毓 - AI / Infra / DevOps 平台工程师",
 		},
 		{
@@ -363,7 +494,7 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 			wantCode:            sharederrors.CodeAiProviderTimeout,
 			wantRetry:           true,
 			wantFailed:          true,
-			wantFailureSnapshot: "谭章毓 | AI / Infra / DevOps 平台工程师\n核心能力：AI Workflow、Kubernetes、GitOps",
+			wantFailureSnapshot: "# 谭章毓 - AI / Infra / DevOps 平台工程师\n\n## 核心能力\n- AI Workflow、Kubernetes、GitOps",
 			wantDisplayName:     "谭章毓 - AI / Infra / DevOps 平台工程师",
 		},
 	}
@@ -411,6 +542,47 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 				t.Fatalf("outcome leaked resume body: %+v", outcome)
 			}
 		})
+	}
+}
+
+func TestParseHandlerRequiresMarkdownTextInAIResponse(t *testing.T) {
+	now := time.Date(2026, 7, 7, 12, 0, 0, 0, time.UTC)
+	store := &fakeParseStore{asset: resumestore.ParseAssetRecord{
+		ID:           "asset-missing-markdown",
+		UserID:       "user-1",
+		Language:     "en",
+		ParseStatus:  sharedtypes.TargetJobParseStatusQueued,
+		SourceType:   "paste",
+		OriginalText: "Ada Lovelace\nEngineer",
+	}}
+	handler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
+		Store:    store,
+		Registry: fakeRegistry{resolution: parseResolution()},
+		AI: &captureAI{resp: aiclient.CompleteResponse{Content: `{
+  "displayName": "Ada Lovelace - Engineer",
+  "basics": {"name": "Ada Lovelace", "headline": "Engineer"},
+  "experiences": [],
+  "projects": [],
+  "education": [],
+  "skills": ["Analytical Engine"],
+  "languages": ["en"]
+}`}},
+		NewID: idSeq("event-1"),
+		Now:   func() time.Time { return now },
+	})
+
+	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: store.asset.ID, Attempts: 1, MaxAttempts: 5,
+	})
+
+	if outcome.Succeeded || outcome.ErrorCode != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("Handle outcome = %+v, want AI_OUTPUT_INVALID", outcome)
+	}
+	if store.success != nil {
+		t.Fatalf("missing markdownText must not write success: %+v", store.success)
+	}
+	if store.failure == nil || store.failure.ParsedTextSnapshot != "# Ada Lovelace\nEngineer" {
+		t.Fatalf("failure snapshot = %+v", store.failure)
 	}
 }
 
@@ -606,6 +778,7 @@ func TestParseHandlerPIIRedlineForLogsAuditTaskRunsAndOutbox(t *testing.T) {
 
 const validResumeParseJSON = `{
   "displayName": "Ada Lovelace - Engineer",
+  "markdownText": "# Ada Lovelace\n\n## Experience\n- Engineer at Analytical Engines\n- Built systems\n\n## Skills\n- Go\n- PostgreSQL",
   "basics": {"name": "Ada Lovelace"},
   "experiences": [{"company": "Analytical Engines", "title": "Engineer", "start": "2024-01", "end": "", "summary": "Built systems", "bullets": ["Led platform work"]}],
   "projects": [],
@@ -613,6 +786,8 @@ const validResumeParseJSON = `{
   "skills": ["Go", "PostgreSQL"],
   "languages": ["en"]
 }`
+
+const validResumeParseMarkdownText = "# Ada Lovelace\n\n## Experience\n- Engineer at Analytical Engines\n- Built systems\n\n## Skills\n- Go\n- PostgreSQL"
 
 func parseResolution() resumejobs.PromptResolution {
 	return resumejobs.PromptResolution{
@@ -701,7 +876,17 @@ func (r *fakeObjectReader) Read(_ context.Context, objectKey string, maxBytes in
 }
 
 func minimalPDFWithText(text string) []byte {
-	stream := fmt.Sprintf("BT /F1 16 Tf 72 720 Td (%s) Tj ET", escapePDFText(text))
+	lines := strings.Split(text, "\n")
+	var streamBuilder strings.Builder
+	streamBuilder.WriteString("BT /F1 16 Tf 72 720 Td ")
+	for index, line := range lines {
+		if index > 0 {
+			streamBuilder.WriteString("0 -20 Td ")
+		}
+		fmt.Fprintf(&streamBuilder, "(%s) Tj ", escapePDFText(line))
+	}
+	streamBuilder.WriteString("ET")
+	stream := streamBuilder.String()
 	objects := []string{
 		"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
 		"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
@@ -722,23 +907,6 @@ func minimalPDFWithText(text string) []byte {
 		fmt.Fprintf(&buf, "%010d 00000 n \n", offset)
 	}
 	fmt.Fprintf(&buf, "trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n", len(objects)+1, xref)
-	return buf.Bytes()
-}
-
-func minimalDOCXWithText(t *testing.T, text string) []byte {
-	t.Helper()
-	var buf bytes.Buffer
-	writer := zip.NewWriter(&buf)
-	file, err := writer.Create("word/document.xml")
-	if err != nil {
-		t.Fatalf("create docx document.xml: %v", err)
-	}
-	if _, err := file.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>` + text + `</w:t></w:r></w:p></w:body></w:document>`)); err != nil {
-		t.Fatalf("write docx document.xml: %v", err)
-	}
-	if err := writer.Close(); err != nil {
-		t.Fatalf("close docx zip: %v", err)
-	}
 	return buf.Bytes()
 }
 

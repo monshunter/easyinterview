@@ -114,7 +114,7 @@ describe("E2E.P0.037 resume detail read-only view + 404 fallback", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("polls pending upload detail until extracted original text is readable and LLM displayName is shown", async () => {
+  it("polls pending PDF upload detail until the source page stack and LLM displayName are shown", async () => {
     const client = buildClient("default");
     const queued: Resume = {
       ...(getResumeFixture.scenarios.default.response.body as Resume),
@@ -164,15 +164,21 @@ describe("E2E.P0.037 resume detail read-only view + 404 fallback", () => {
       screen.getAllByRole("heading", { name: "谭章毓 - 后端工程师 AI" })
         .length,
     ).toBeGreaterThanOrEqual(1);
-    expect(screen.getByTestId("resume-detail-preview-content")).toHaveTextContent(
+    const stack = screen.getByTestId("resume-detail-pdf-preview-stack");
+    expect(stack).toHaveAttribute(
+      "data-source-url",
+      "/api/v1/resumes/01918fa0-0000-7000-8000-000000001000/source",
+    );
+    expect(screen.getByTestId("resume-detail-preview-content")).not.toHaveTextContent(
       "service-registry-operator / korder / ohmykube",
     );
+    expect(document.querySelector("object, iframe, embed")).toBeNull();
     expect(
       screen.queryByRole("heading", { name: "谭章毓简历-后端工程师AI.pdf" }),
     ).not.toBeInTheDocument();
   });
 
-  it("does not poll again when an upload has failed but readable text and displayName are available", async () => {
+  it("does not poll again when a PDF upload has failed but the source page stack and displayName are available", async () => {
     const client = buildClient("default");
     const failed: Resume = {
       ...(getResumeFixture.scenarios.default.response.body as Resume),
@@ -203,13 +209,15 @@ describe("E2E.P0.037 resume detail read-only view + 404 fallback", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("resume-detail-preview-content")).toHaveTextContent(
-        "AI Workflow",
-      );
+      expect(screen.getByTestId("resume-detail-pdf-preview-stack")).toBeInTheDocument();
     });
     await new Promise((resolve) => setTimeout(resolve, 350));
 
     expect(getResumeSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("resume-detail-preview-content")).not.toHaveTextContent(
+      "AI Workflow",
+    );
+    expect(document.querySelector("object, iframe, embed")).toBeNull();
     expect(
       screen.getAllByRole("heading", {
         name: "谭章毓 - AI Infra DevOps 平台工程师",

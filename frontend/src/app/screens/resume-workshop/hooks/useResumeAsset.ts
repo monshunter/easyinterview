@@ -12,15 +12,8 @@ export interface UseResumeAssetResult {
   retry: () => void;
 }
 
-const hasReadableResumeBody = (resume: Resume): boolean =>
-  [resume.parsedTextSnapshot, resume.originalText].some(
-    (value) => typeof value === "string" && value.trim().length > 0,
-  );
-
-const shouldPollForReadableUploadBody = (resume: Resume): boolean =>
-  resume.sourceType === "upload" &&
-  (resume.parseStatus === "queued" || resume.parseStatus === "processing") &&
-  !hasReadableResumeBody(resume);
+const shouldPollForParseCompletion = (resume: Resume): boolean =>
+  resume.parseStatus === "queued" || resume.parseStatus === "processing";
 
 /**
  * Loads a single flat resume via `getResume(resumeId)`.
@@ -64,7 +57,7 @@ export function useResumeAsset(resumeId: string | null): UseResumeAssetResult {
       .then((resume) => {
         if (!active || requestSeqRef.current !== requestSeq) return;
         setData(resume);
-        if (shouldPollForReadableUploadBody(resume)) {
+        if (shouldPollForParseCompletion(resume)) {
           pollTimer = setTimeout(() => {
             if (!active || requestSeqRef.current !== requestSeq) return;
             setReloadSeq((value) => value + 1);

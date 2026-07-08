@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 1.8
+    to: 2.6
 spec:
   defaultTarget: frontend
   discovery:
@@ -27,6 +27,9 @@ spec:
       - resume auth gate no fetch before login
       - listResumes fixture backed rows
       - getResume read-only detail body
+      - getResumeSource PDF page stack source
+      - markdown body displayName injection forbidden
+      - markdown pdf shared reading surface
       - detail export copy original rewrites edit absent
       - resume workshop i18n en zh
       - resume workshop a11y read-only detail
@@ -60,3 +63,4 @@ spec:
         apiNames:
           - listResumes
           - getResume
+          - getResumeSource

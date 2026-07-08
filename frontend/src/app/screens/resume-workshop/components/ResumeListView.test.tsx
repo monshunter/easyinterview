@@ -17,8 +17,14 @@ import { ResumeWorkshopScreen } from "../ResumeWorkshopScreen";
 import getRuntimeConfigFixture from "../../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../../openapi/fixtures/Auth/getMe.json";
 import listResumesFixture from "../../../../../../openapi/fixtures/Resumes/listResumes.json";
+import archiveResumeFixture from "../../../../../../openapi/fixtures/Resumes/archiveResume.json";
 
-const FIXTURES = [getRuntimeConfigFixture, getMeFixture, listResumesFixture];
+const FIXTURES = [
+  getRuntimeConfigFixture,
+  getMeFixture,
+  listResumesFixture,
+  archiveResumeFixture,
+];
 
 function buildClient(scenario: string): EasyInterviewClient {
   return new EasyInterviewClient({
@@ -28,12 +34,16 @@ function buildClient(scenario: string): EasyInterviewClient {
   });
 }
 
-function renderListView(route: Route, scenario = "default") {
+function renderListView(
+  route: Route,
+  scenario = "default",
+  client: EasyInterviewClient = buildClient(scenario),
+) {
   const nav = vi.fn();
   const result = render(
     <DisplayPreferencesProvider initial={{ lang: "zh" }}>
       <AppRuntimeProvider
-        client={buildClient(scenario)}
+        client={client}
         requestOptions={{
           getMe: { headers: { Prefer: "example=authenticated" } },
         }}
@@ -111,22 +121,56 @@ describe("ResumeListView default fixture rendering", () => {
     });
   });
 
-  it("navigates to the create flow from the upload-another CTA", async () => {
-    const { nav } = renderListView(LIST_ROUTE);
+  it("does not render the duplicate upload-or-paste CTA below the table", async () => {
+    renderListView(LIST_ROUTE);
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("resume-workshop-upload-cta"),
-      ).toBeInTheDocument();
+      expect(screen.getByTestId("resume-workshop-table")).toBeInTheDocument();
     });
 
-    await userEvent
-      .setup()
-      .click(screen.getByTestId("resume-workshop-upload-cta"));
-    expect(nav).toHaveBeenCalledWith({
-      name: "resume_versions",
-      params: { flow: "create" },
+    expect(screen.queryByTestId("resume-workshop-upload-cta")).not.toBeInTheDocument();
+    expect(screen.queryByText("上传或粘贴另一份简历")).not.toBeInTheDocument();
+  });
+
+  it("archives a resume from the row delete action and hides it from the list", async () => {
+    const client = buildClient("default");
+    const archiveSpy = vi.spyOn(client, "archiveResume");
+
+    renderListView(LIST_ROUTE, "default", client);
+    await waitFor(() => {
+      expect(screen.getByTestId(`resume-list-row-${FIRST_ID}`)).toBeInTheDocument();
     });
+
+    await userEvent.setup().click(screen.getByTestId(`resume-list-delete-${FIRST_ID}`));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId(`resume-list-row-${FIRST_ID}`)).not.toBeInTheDocument();
+    });
+    expect(archiveSpy).toHaveBeenCalledWith(
+      FIRST_ID,
+      expect.objectContaining({
+        idempotencyKey: expect.stringMatching(/^v1\.\d+\.[0-9a-f-]{36}$/),
+      }),
+    );
+  });
+
+  it("keeps the row visible and shows an error when archiveResume fails", async () => {
+    const client = buildClient("default");
+    vi.spyOn(client, "archiveResume").mockRejectedValueOnce(
+      new Error("HTTP 500 archive failed"),
+    );
+
+    renderListView(LIST_ROUTE, "default", client);
+    await waitFor(() => {
+      expect(screen.getByTestId(`resume-list-row-${FIRST_ID}`)).toBeInTheDocument();
+    });
+
+    await userEvent.setup().click(screen.getByTestId(`resume-list-delete-${FIRST_ID}`));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-workshop-delete-error")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId(`resume-list-row-${FIRST_ID}`)).toBeInTheDocument();
   });
 
   it("shows the empty state when listResumes returns no items", async () => {

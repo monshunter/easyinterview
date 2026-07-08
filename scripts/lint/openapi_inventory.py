@@ -43,6 +43,7 @@ EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("Resumes", "post", "/resumes", "registerResume"),
     ("Resumes", "get", "/resumes", "listResumes"),
     ("Resumes", "get", "/resumes/{resumeId}", "getResume"),
+    ("Resumes", "get", "/resumes/{resumeId}/source", "getResumeSource"),
     ("Resumes", "patch", "/resumes/{resumeId}", "updateResume"),
     ("Resumes", "post", "/resumes/{resumeId}/duplicate", "duplicateResume"),
     ("Resumes", "post", "/resumes/{resumeId}/archive", "archiveResume"),

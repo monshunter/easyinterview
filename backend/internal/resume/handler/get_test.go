@@ -21,6 +21,7 @@ import (
 func TestHandlerImplementsGetResumeSurface(t *testing.T) {
 	var _ interface {
 		GetResume(http.ResponseWriter, *http.Request, string)
+		GetResumeSource(http.ResponseWriter, *http.Request, string)
 	} = (*resumehandler.Handler)(nil)
 }
 
@@ -63,6 +64,53 @@ func TestGetResumeNotFoundAndCrossUserReturns404(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	h.GetResume(rec, httptest.NewRequest(http.MethodGet, "/api/v1/resumes/resume-owned-by-user-1", nil), "resume-owned-by-user-1")
+
+	assertAPIError(t, rec, http.StatusNotFound, sharederrors.CodeResourceNotFound)
+}
+
+func TestGetResumeSourceServesInlinePDF(t *testing.T) {
+	svc := &fakeGetSourceService{out: resume.SourceFile{
+		FileName:    "alice-platform.pdf",
+		ContentType: "application/pdf",
+		Body:        []byte("%PDF-1.4 fixture"),
+	}}
+	h := resumehandler.New(resumehandler.Options{
+		Service: svc,
+		Session: func(context.Context) (string, bool) {
+			return "user-1", true
+		},
+	})
+	rec := httptest.NewRecorder()
+
+	h.GetResumeSource(rec, httptest.NewRequest(http.MethodGet, "/api/v1/resumes/resume-1/source", nil), "resume-1")
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if svc.userID != "user-1" || svc.resumeID != "resume-1" {
+		t.Fatalf("service scope user=%q resume=%q", svc.userID, svc.resumeID)
+	}
+	if got := rec.Header().Get("Content-Type"); got != "application/pdf" {
+		t.Fatalf("content-type = %q", got)
+	}
+	if got := rec.Header().Get("Content-Disposition"); got != `inline; filename="alice-platform.pdf"` {
+		t.Fatalf("content-disposition = %q", got)
+	}
+	if rec.Body.String() != "%PDF-1.4 fixture" {
+		t.Fatalf("body = %q", rec.Body.String())
+	}
+}
+
+func TestGetResumeSourceNotFoundAndCrossUserReturns404(t *testing.T) {
+	h := resumehandler.New(resumehandler.Options{
+		Service: &fakeGetSourceService{err: resume.ErrNotFound},
+		Session: func(context.Context) (string, bool) {
+			return "user-2", true
+		},
+	})
+	rec := httptest.NewRecorder()
+
+	h.GetResumeSource(rec, httptest.NewRequest(http.MethodGet, "/api/v1/resumes/resume-owned-by-user-1/source", nil), "resume-owned-by-user-1")
 
 	assertAPIError(t, rec, http.StatusNotFound, sharederrors.CodeResourceNotFound)
 }
@@ -128,6 +176,20 @@ type fakeGetService struct {
 }
 
 func (s *fakeGetService) GetResume(_ context.Context, userID string, resumeID string) (api.Resume, error) {
+	s.userID = userID
+	s.resumeID = resumeID
+	return s.out, s.err
+}
+
+type fakeGetSourceService struct {
+	fakeRegisterService
+	userID   string
+	resumeID string
+	out      resume.SourceFile
+	err      error
+}
+
+func (s *fakeGetSourceService) GetResumeSource(_ context.Context, userID string, resumeID string) (resume.SourceFile, error) {
 	s.userID = userID
 	s.resumeID = resumeID
 	return s.out, s.err

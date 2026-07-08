@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow Checklist
 
-> **版本**: 1.5
+> **版本**: 1.8
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-08
 
 **关联计划**: [plan](./plan.md)
 
@@ -37,3 +37,19 @@
 - [x] 5.3 BDD-Gate: E2E.P0.083 Home / Workspace CTA direct-create handoff is maintained without preview confirm.
 - [x] 5.4 `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/create` PASS.
 - [x] 5.5 `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/ResumeWorkshopScreen.test.tsx src/app/screens/resume-workshop/fixture-parity.test.ts` PASS.
+
+## Phase 6: Resume module UX optimization
+
+- [x] 6.1 `UploadTab` 将默认文件大小上限改为 2MiB，并在本地校验中过大文件不触发 presign/register；验证: `UploadTab.test.tsx` focused red/green。<!-- verified: 2026-07-07 method=vitest command="corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/create/UploadTab.test.tsx" -->
+- [x] 6.2 `ResumeCreateFlow` 删除右侧“会保存什么 / 接下来”sidebar，静态原型与正式前端 DOM 均不再出现对应 testid/copy；验证: `ResumeCreateFlow.test.tsx` + `ui-design` source grep。<!-- verified: 2026-07-07 method=vitest+source-grep tests=ResumeCreateFlow.test.tsx -->
+- [x] 6.3 上传/粘贴注册成功后仍只导航到 `resume_versions?resumeId=<id>`，等待/成功/失败显示由 `ResumeDetailView` owner 接管，create-flow 不恢复 preview confirm 或 `updateResume`；验证: create focused tests。<!-- verified: 2026-07-07 method=vitest tests=ResumeCreateFlow.test.tsx,ResumeDetailView.test.tsx -->
+
+## Phase 7: Resume upload source format support
+
+- [x] 7.1 `UploadTab` 仅接受 PDF / Markdown / TXT，`.docx` 在本地校验中被拒绝且不会触发 presign/register；文案、`accept` 和静态原型同步；验证: `UploadTab.test.tsx` + UI source grep。<!-- verified: 2026-07-07 method=vitest+source-grep tests=UploadTab.test.tsx ui=ui-design/src/screen-resume-workshop.jsx -->
+
+## Phase 8: Home existing resume selection regression
+
+- [x] 8.1 BDD-Gate: E2E.P0.084 用 focused Home/Parse regression tests 覆盖 `listResumes` 返回非归档且已有可读正文的简历时，首页下拉不得为空或禁用。<!-- verified: 2026-07-08 method=vitest tests=HomeResumeSelection.test.tsx,ParseResumeBinding.test.tsx -->
+- [x] 8.2 Home 和 Parse 复用同一可选简历判断：`ready` 或已有 `parsedTextSnapshot` / `originalText` / structured profile 的非归档简历可选；无可读证据的 queued/processing 简历仍不可选。<!-- verified: 2026-07-08 method=vitest tests=selectableResume.test.ts -->
+- [x] 8.3 截图闭环：浏览器打开 Home，展开或聚焦已有简历选择控件，截图证明选项可见且不再显示 `还没有可用简历`。<!-- verified: 2026-07-08 method=playwright-screenshot artifact=.test-output/screenshots/home-resume-picker-fixed-2026-07-08.png -->

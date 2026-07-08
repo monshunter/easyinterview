@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow
 
-> **版本**: 1.5
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-08
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -14,10 +14,10 @@
 
 - `resume_versions?flow=create` 渲染 `ResumeCreateFlow`。
 - 创建入口只提供 upload / paste 两种输入。
-- Upload 路径通过 `createUploadPresign`、browser PUT 和 `registerResume` 完成注册。
+- Upload 路径只接受 PDF / Markdown / TXT，先执行默认 2MiB 文件大小和扩展名校验，再通过 `createUploadPresign`、browser PUT 和 `registerResume` 完成注册；DOCX 不属于当前 Resume 上传支持范围。
 - Paste 路径通过 `registerResume` 完成注册，但只提交中性来源标题；用户可见简历名称等待 backend parse 的 LLM-derived `displayName`，不得把原始文本第一行作为最终或列表名称。
-- 注册成功后直接导航到 `resume_versions?resumeId=<id>`，打开只读详情页展示原始内容。
-- 创建流不渲染解析动画页、预览确认页或确认保存页；不在 create-flow 中轮询 `getResume` 或调用 `updateResume`。
+- 注册成功后导航到 `resume_versions?resumeId=<id>`，由详情 route 展示解析等待态，直到 parse 成功后按来源格式展示 PDF 页面栈或 Markdown 只读详情，或失败后展示失败态。
+- 创建流不渲染右侧“会保存什么 / 接下来”说明 rail、预览确认页或确认保存页；不在 create-flow 中轮询 `getResume` 或调用 `updateResume`。
 - Home “1 分钟创建” 与 Workspace missing-resume CTA 都进入当前 create flow。
 
 本计划不实现 backend upload/resume handler、OpenAPI 契约、Resume Rewrites/Edit、PDF 导出或 Practice handoff。
@@ -29,17 +29,19 @@
 当前实现事实：
 
 - `frontend/src/app/screens/resume-workshop/ResumeWorkshopScreen.tsx` 将 `flow=create` dispatch 到 `ResumeCreateFlow`。
-- `frontend/src/app/screens/resume-workshop/create/` 包含 create-flow 容器、tabs、upload/paste hooks 和旧 parsing/preview-confirm negative tests。
+- `frontend/src/app/screens/resume-workshop/create/` 包含 create-flow 容器、tabs、upload/paste hooks、2MiB upload validation 和旧 parsing/preview-confirm negative tests。
 - P0.081 / P0.083 场景资产覆盖直接详情跳转、CTA handoff 和隐私边界；原 P0.082 parse-failure 场景退役为 non-current negative，因为创建流不再暴露解析进度页。
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior` + `frontend` + `contract`
-- **TDD 策略**: 当前实现已完成。修改 create-flow 逻辑时，先更新 Vitest component / hook / adapter tests，再改组件或 generated-client adapter。
-- **BDD 策略**: 适用。当前 BDD gate 为 E2E.P0.081、E2E.P0.083；E2E.P0.082 只保留为 retired/non-current negative，不再作为正向 gate。
+- **TDD 策略**: 当前实现已完成。修改 create-flow 或 Home 入口简历选择逻辑时，先更新 Vitest component / hook / adapter tests，再改组件或 generated-client adapter。
+- **BDD 策略**: 适用。当前 BDD gate 为 E2E.P0.081、E2E.P0.083、E2E.P0.084；E2E.P0.082 只保留为 retired/non-current negative，不再作为正向 gate。
 - **替代验证 gate**:
   - `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/create`
   - `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/ResumeWorkshopScreen.test.tsx src/app/screens/resume-workshop/fixture-parity.test.ts`
+  - `corepack pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeResumeSelection.test.tsx src/app/screens/parse/ParseResumeBinding.test.tsx`
+  - browser screenshot proof for the Home existing resume picker showing selectable options from `listResumes`
   - `python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/frontend-resume-workshop/plans/002-create-flow/context.yaml --target frontend`
   - `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`
   - `make docs-check`
@@ -53,14 +55,14 @@
 
 ### Phase 2: Upload / Paste Registration
 
-- Upload tab validates file extension and size, requests a presigned upload, uploads the file through browser `fetch`, then calls `registerResume`.
+- Upload tab validates file extension (`.pdf` / `.md` / `.markdown` / `.txt`) and default 2MiB size, requests a presigned upload, uploads the file through browser `fetch`, then calls `registerResume`; `.docx` is rejected before presign.
 - Paste tab validates non-empty text, sends a neutral source title, and calls `registerResume`; visible naming is owned by backend parse after LLM structured output.
 - Side-effect calls use `Idempotency-Key`; `getResume` polling does not.
 - Request headers carry language where required.
 
-### Phase 3: Direct-to-detail Navigation
+### Phase 3: Waiting/detail handoff
 
-On successful `registerResume`, upload and paste paths call `navigate({ name: "resume_versions", params: { resumeId } })`. The create flow does not render parser progress, does not poll `getResume`, and does not show a confirm/save page.
+On successful `registerResume`, upload and paste paths call `navigate({ name: "resume_versions", params: { resumeId } })`. The detail route owns parser waiting / ready / failed states; the create flow does not poll `getResume` and does not show a confirm/save page.
 
 ### Phase 4: Retired parsing / preview confirm surfaces
 
@@ -70,17 +72,30 @@ On successful `registerResume`, upload and paste paths call `navigate({ name: "r
 
 Home and Workspace CTA paths enter `resume_versions?flow=create`. CreateFlow keeps current i18n keys, tablist semantics, focus behavior, and privacy redlines. The negative tests prevent non-current CreateFlow inputs or prototype runtime imports from returning.
 
+### Phase 6: Create page simplification
+
+`ResumeCreateFlow` removes the right-side “会保存什么 / 接下来” sidebar from both static UI truth source and formal frontend implementation. The input card becomes the only main content surface.
+
+### Phase 7: Resume upload source format support
+
+Resume upload keeps the existing name generation and route handoff behavior. It only narrows the upload whitelist to PDF / Markdown / TXT, rejects DOCX before presign/register, and leaves renderer selection to the detail route based on the registered source format.
+
+### Phase 8: Home existing resume selection regression
+
+Home `选择已有简历` consumes the current `listResumes` result and keeps non-archived resumes selectable when they already carry readable resume evidence (`ready` parse status, `parsedTextSnapshot`, `originalText`, or structured profile). It must not show `还没有可用简历` while `listResumes` returns selectable records, and it must preserve the explicit-selection rule before importing a JD.
+
 ## 5 验收标准
 
 | ID | 场景 | Given | When | Then | 证据 |
 |----|------|-------|------|------|------|
 | C-1 | Create route | Authenticated user opens `resume_versions?flow=create` | App renders route | `ResumeCreateFlow` appears with upload tab active by default | focused Vitest |
-| C-2 | Upload path | Valid file selected | Submit | Presign + PUT + register flow runs with IK and language headers | hook / component tests |
+| C-2 | Upload path | Valid PDF / Markdown / TXT file selected | Submit | DOCX and unsupported extensions are rejected before presign; 2MiB file limit is enforced before presign; valid file presign + PUT + register flow runs with IK and language headers | hook / component tests |
 | C-3 | Paste path | Non-empty text | Submit | `registerResume` receives paste payload with a neutral source title, raw text is not used as a visible name, and direct detail navigation follows | hook / component tests |
 | C-4 | Register recovery | Upload/register fails | User retries or returns | Input stays local and content does not leak | upload/paste tests |
-| C-5 | Old surfaces absent | Register succeeds | Route updates | Parser animation, preview confirm and create-flow `updateResume` save path do not render or run | negative tests |
+| C-5 | Old surfaces absent | Register succeeds | Route updates | Sidebar, preview confirm and create-flow `updateResume` save path do not render or run; waiting state and source-format renderer belong to detail route | negative tests |
 | C-6 | CTA handoff | Home or Workspace create CTA | Click | Route lands on current CreateFlow without raw data in pending action | integration tests |
 | C-7 | BDD gates | P0.081 / P0.083 assets plus P0.082 retired negative | Scenario verify | Direct-to-detail main path, old parser/confirm absence and CTA handoff are covered | BDD docs + scenario scripts |
+| C-8 | Home existing resume picker | `listResumes` returns non-archived resumes with readable evidence | Home renders JD quick-start | Native select is enabled, options are selectable, empty state is absent, and selected `resumeId` is carried to import / parse handoff | HomeResumeSelection Vitest + browser screenshot |
 
 ## 6 风险与应对
 
@@ -94,4 +109,8 @@ Home and Workspace CTA paths enter `resume_versions?flow=create`. CreateFlow kee
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-08 | 1.9 | 修复首页已有简历下拉回归：有可读简历时不得显示空态或禁用选择。 |
+| 2026-07-08 | 1.8 | 对齐详情 route 当前 PDF 页面栈合同，创建流仍只负责注册后跳转。 |
 | 2026-07-07 | 1.5 | 修订未闭环命名回归：paste 创建不再提交原文首行作为标题，列表/详情名称等待 backend LLM-derived displayName。 |
+| 2026-07-07 | 1.6 | 本轮优化：upload 默认 2MiB 校验、注册后交给详情等待态、删除右侧冗余说明 rail。 |
+| 2026-07-07 | 1.7 | 本轮讨论决策：Resume upload 退役 DOCX，仅支持 PDF / Markdown / TXT；详情渲染由来源格式自适应，create-flow 交互和名称生成逻辑保持不变。 |

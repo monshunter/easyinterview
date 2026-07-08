@@ -1,6 +1,7 @@
 import type { Resume } from "../../../../api/generated/types";
 
 export type ResumeStatus = "active" | "archived";
+export type ResumeDetailRenderer = "markdown" | "pdf";
 
 export interface UiResumeSource {
   id: string;
@@ -86,7 +87,12 @@ const isSameName = (left: string, right: string): boolean =>
   normalizeName(left).toLowerCase() === normalizeName(right).toLowerCase();
 
 const looksLikeUploadFileName = (value: string): boolean =>
-  /\.(pdf|docx?|txt|md|markdown)$/i.test(normalizeName(value));
+  /\.(pdf|txt|md|markdown)$/i.test(normalizeName(value));
+
+const hasSourceExtension = (value: string, extensions: string[]): boolean => {
+  const normalized = normalizeName(value).toLowerCase();
+  return extensions.some((ext) => normalized.endsWith(ext));
+};
 
 const splitContentLines = (content: string | null | undefined): string[] => {
   if (typeof content !== "string" || content.trim().length === 0) return [];
@@ -171,11 +177,15 @@ export const mapResumeToUiSource = (resume: Resume): UiResumeSource => ({
 });
 
 export const buildResumeBodyLines = (resume: Resume): string[] => {
-  const originalLines = splitContentLines(resume.parsedTextSnapshot);
-  if (originalLines.length > 0) return originalLines;
+  return splitContentLines(buildResumeBodyMarkdown(resume));
+};
 
-  const rawLines = splitContentLines(resume.originalText);
-  if (rawLines.length > 0) return rawLines;
+export const buildResumeBodyMarkdown = (resume: Resume): string => {
+  const parsedMarkdown = safeString(resume.parsedTextSnapshot);
+  if (parsedMarkdown) return parsedMarkdown;
+
+  const rawText = safeString(resume.originalText);
+  if (rawText) return rawText;
 
   const profile = profileRecord(resume);
   const sectionsRaw = profile.sections;
@@ -197,5 +207,27 @@ export const buildResumeBodyLines = (resume: Resume): string[] => {
     safeString(profile.summary),
     ...sections.flatMap((section) => [section.title, ...section.bullets]),
     safeStringArray(profile.skills).join(" · "),
-  ].filter((line) => line.length > 0);
+  ]
+    .filter((line) => line.length > 0)
+    .join("\n");
+};
+
+export const getResumeDetailRenderer = (
+  resume: Resume,
+): ResumeDetailRenderer => {
+  if (
+    resume.sourceType === "upload" &&
+    hasSourceExtension(safeString(resume.title), [".pdf"])
+  ) {
+    return "pdf";
+  }
+  return "markdown";
+};
+
+export const getResumeSourceUrl = (
+  resume: Resume,
+  baseUrl = "/api/v1",
+): string => {
+  const normalizedBase = baseUrl.replace(/\/+$/, "");
+  return `${normalizedBase}/resumes/${encodeURIComponent(resume.id)}/source`;
 };

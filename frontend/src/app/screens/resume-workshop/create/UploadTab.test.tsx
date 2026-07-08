@@ -125,7 +125,38 @@ describe("UploadTab pre-check + presign + register", () => {
     expect(registerSpy).not.toHaveBeenCalled();
   });
 
-  it("rejects an oversized file inline using the 10 MB ceiling from backend-upload D-7", async () => {
+  it("rejects DOCX files because the resume module only supports PDF, Markdown, and text upload", async () => {
+    const client = buildClient();
+    const presignSpy = vi.spyOn(client, "createUploadPresign");
+    const registerSpy = vi.spyOn(client, "registerResume");
+
+    renderUploadTab(client);
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-create-upload-input")).toBeInTheDocument(),
+    );
+    const input = screen.getByTestId(
+      "resume-create-upload-input",
+    ) as HTMLInputElement;
+    expect(input.accept).toBe(".pdf,.md,.markdown,.txt");
+    fireEvent.change(input, {
+      target: {
+        files: [
+          makeFile(
+            "resume.docx",
+            1024,
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          ),
+        ],
+      },
+    });
+    expect(
+      screen.getByTestId("resume-create-upload-error"),
+    ).toHaveTextContent(/不支持|Unsupported/);
+    expect(presignSpy).not.toHaveBeenCalled();
+    expect(registerSpy).not.toHaveBeenCalled();
+  });
+
+  it("accepts .markdown resume files using Markdown content type", async () => {
     const client = buildClient();
     const presignSpy = vi.spyOn(client, "createUploadPresign");
 
@@ -138,12 +169,34 @@ describe("UploadTab pre-check + presign + register", () => {
     ) as HTMLInputElement;
     fireEvent.change(input, {
       target: {
-        files: [makeFile("huge.pdf", 11 * 1024 * 1024, "application/pdf")],
+        files: [makeFile("resume.markdown", 1024, "")],
+      },
+    });
+    await waitFor(() => expect(presignSpy).toHaveBeenCalled());
+    expect(presignSpy.mock.calls[0]?.[0]?.contentType).toBe(
+      "text/markdown",
+    );
+  });
+
+  it("rejects an oversized file inline using the default 2 MB resume upload ceiling", async () => {
+    const client = buildClient();
+    const presignSpy = vi.spyOn(client, "createUploadPresign");
+
+    renderUploadTab(client);
+    await waitFor(() =>
+      expect(screen.getByTestId("resume-create-upload-input")).toBeInTheDocument(),
+    );
+    const input = screen.getByTestId(
+      "resume-create-upload-input",
+    ) as HTMLInputElement;
+    fireEvent.change(input, {
+      target: {
+        files: [makeFile("huge.pdf", 3 * 1024 * 1024, "application/pdf")],
       },
     });
     expect(
       screen.getByTestId("resume-create-upload-error"),
-    ).toHaveTextContent(/10 MB|超出|exceeds/i);
+    ).toHaveTextContent(/2 MB|超出|exceeds/i);
     expect(presignSpy).not.toHaveBeenCalled();
   });
 

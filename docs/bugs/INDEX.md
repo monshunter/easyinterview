@@ -43,6 +43,8 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0140](./BUG-0140.md) | resume detail injected display name into Markdown body and split source preview surfaces | medium | resolved | 2026-07-08 | `fix(resume): close source preview and picker regressions (BUG-0139, BUG-0140, BUG-0141)` |
+| [BUG-0139](./BUG-0139.md) | resume detail rendered Markdown as plain text and PDF AI failure kept non-Markdown snapshot | medium | resolved | 2026-07-07 | `fix(resume): close source preview and picker regressions (BUG-0139, BUG-0140, BUG-0141)` |
 | [BUG-0138](./BUG-0138.md) | resume detail kept generated-name placeholder and repeated polling risk | high | resolved | 2026-07-07 | `fix(resume-workshop): generate names and stop detail polling (BUG-0138)` |
 | [BUG-0137](./BUG-0137.md) | resume creation kept generic names and obsolete parse steps | medium | resolved | 2026-07-07 | `fix(resume-workshop): read full upload PDFs (BUG-0137)` |
 | [BUG-0123](./BUG-0123.md) | resume detail accepted rewrites missed flat profile and JD context | high | resolved | 2026-06-14 | `fix(resume): close detail rewrite review regressions (BUG-0123)` |
@@ -77,6 +79,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0141](./BUG-0141.md) | home resume picker hid readable existing resumes | medium | resolved | 2026-07-08 | `fix(resume): close source preview and picker regressions (BUG-0139, BUG-0140, BUG-0141)` |
 | [BUG-0134](./BUG-0134.md) | home JD source controls over-separated from input card | medium | resolved | 2026-07-06 | `fix(frontend-home): integrate source controls into input card (BUG-0134)` |
 | [BUG-0133](./BUG-0133.md) | home quick-start source and CTA layout drifted from planning flow | medium | resolved | 2026-07-06 | `fix(frontend-home): separate source and submit layout (BUG-0133)` |
 | [BUG-0132](./BUG-0132.md) | home resume selector and recent mocks drifted from compact shortcut UX | medium | resolved | 2026-07-06 | `fix(frontend-home): use resume dropdown and cap recent mocks (BUG-0132)` |

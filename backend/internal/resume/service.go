@@ -14,16 +14,20 @@ import (
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
+	"github.com/monshunter/easyinterview/backend/internal/upload/objectstore"
 	uploadservice "github.com/monshunter/easyinterview/backend/internal/upload/service"
 	uploadstore "github.com/monshunter/easyinterview/backend/internal/upload/store"
 )
 
 var (
-	ErrValidationFailed = errors.New("resume validation failed")
-	ErrNotFound         = errors.New("resume not found")
-	ErrAlreadyArchived  = errors.New("resume already archived")
-	ErrInvalidCursor    = errors.New("invalid resume cursor")
+	ErrValidationFailed    = errors.New("resume validation failed")
+	ErrNotFound            = errors.New("resume not found")
+	ErrAlreadyArchived     = errors.New("resume already archived")
+	ErrInvalidCursor       = errors.New("invalid resume cursor")
+	ErrResumeLimitExceeded = errors.New("resume active limit exceeded")
 )
+
+const DefaultMaxActiveResumes = 10
 
 type RegisterInput struct {
 	UserID         string
@@ -42,6 +46,10 @@ type RegisterStore interface {
 type ReadStore interface {
 	Get(ctx context.Context, userID string, resumeID string) (resumestore.ResumeRecord, error)
 	List(ctx context.Context, userID string, filter resumestore.ListFilter) (resumestore.ListResult, error)
+}
+
+type SourceStore interface {
+	GetSourceFile(ctx context.Context, userID string, resumeID string) (resumestore.SourceFileRecord, error)
 }
 
 type UpdateStore interface {
@@ -65,20 +73,28 @@ type UploadRegistrar interface {
 	RegisterFileObject(ctx context.Context, in uploadservice.RegisterFileObjectInput) (uploadstore.FileObject, error)
 }
 
+type ObjectReader interface {
+	Read(ctx context.Context, objectKey string, maxBytes int64) ([]byte, error)
+}
+
 type ServiceOptions struct {
-	Store          RegisterStore
-	UploadRegister UploadRegistrar
-	Now            func() time.Time
-	NewID          func() string
-	DedupePepper   string
+	Store            RegisterStore
+	UploadRegister   UploadRegistrar
+	SourceObjects    ObjectReader
+	Now              func() time.Time
+	NewID            func() string
+	DedupePepper     string
+	MaxActiveResumes int
 }
 
 type Service struct {
-	store          RegisterStore
-	uploadRegister UploadRegistrar
-	now            func() time.Time
-	newID          func() string
-	dedupePepper   string
+	store            RegisterStore
+	uploadRegister   UploadRegistrar
+	sourceObjects    ObjectReader
+	now              func() time.Time
+	newID            func() string
+	dedupePepper     string
+	maxActiveResumes int
 }
 
 func NewService(opts ServiceOptions) *Service {
@@ -90,12 +106,18 @@ func NewService(opts ServiceOptions) *Service {
 	if newID == nil {
 		newID = idx.NewID
 	}
+	maxActiveResumes := opts.MaxActiveResumes
+	if maxActiveResumes <= 0 {
+		maxActiveResumes = DefaultMaxActiveResumes
+	}
 	return &Service{
-		store:          opts.Store,
-		uploadRegister: opts.UploadRegister,
-		now:            now,
-		newID:          newID,
-		dedupePepper:   opts.DedupePepper,
+		store:            opts.Store,
+		uploadRegister:   opts.UploadRegister,
+		sourceObjects:    opts.SourceObjects,
+		now:              now,
+		newID:            newID,
+		dedupePepper:     opts.DedupePepper,
+		maxActiveResumes: maxActiveResumes,
 	}
 }
 
@@ -112,18 +134,19 @@ func (s *Service) RegisterResume(ctx context.Context, in RegisterInput) (api.Res
 	resumeID := s.newID()
 	jobID := s.newID()
 	storeIn := resumestore.CreateAssetInput{
-		AssetID:        resumeID,
-		UserID:         userID,
-		JobID:          jobID,
-		DedupeKey:      s.dedupeKey(userID, in.IdempotencyKey),
-		SourceType:     sourceType,
-		Title:          strings.TrimSpace(in.Title),
-		Language:       strings.TrimSpace(in.Language),
-		RawText:        strings.TrimSpace(in.RawText),
-		ParseStatus:    sharedtypes.TargetJobParseStatusQueued,
-		JobStatus:      sharedtypes.JobStatusQueued,
-		Now:            now,
-		RequestPayload: resumestore.RegisterRequestPayload{SourceType: sourceType, Title: strings.TrimSpace(in.Title), Language: strings.TrimSpace(in.Language)},
+		AssetID:          resumeID,
+		UserID:           userID,
+		JobID:            jobID,
+		DedupeKey:        s.dedupeKey(userID, in.IdempotencyKey),
+		SourceType:       sourceType,
+		Title:            strings.TrimSpace(in.Title),
+		Language:         strings.TrimSpace(in.Language),
+		RawText:          strings.TrimSpace(in.RawText),
+		ParseStatus:      sharedtypes.TargetJobParseStatusQueued,
+		JobStatus:        sharedtypes.JobStatusQueued,
+		MaxActiveForUser: s.maxActiveResumes,
+		Now:              now,
+		RequestPayload:   resumestore.RegisterRequestPayload{SourceType: sourceType, Title: strings.TrimSpace(in.Title), Language: strings.TrimSpace(in.Language)},
 	}
 	switch sourceType {
 	case "upload":
@@ -150,6 +173,9 @@ func (s *Service) RegisterResume(ctx context.Context, in RegisterInput) (api.Res
 	}
 	res, err := s.store.CreateWithParseJob(ctx, storeIn)
 	if err != nil {
+		if errors.Is(err, resumestore.ErrResumeLimitExceeded) {
+			return api.ResumeWithJob{}, ErrResumeLimitExceeded
+		}
 		return api.ResumeWithJob{}, err
 	}
 	return api.ResumeWithJob{
@@ -212,6 +238,54 @@ func (s *Service) ListResumes(ctx context.Context, in ListRequest) (api.Paginate
 		HasMore:    res.HasMore,
 	}
 	return out, nil
+}
+
+type SourceFile struct {
+	FileName    string
+	ContentType string
+	Body        []byte
+}
+
+func (s *Service) GetResumeSource(ctx context.Context, userID string, resumeID string) (SourceFile, error) {
+	if s == nil {
+		return SourceFile{}, fmt.Errorf("resume source store is not configured")
+	}
+	store, ok := s.store.(SourceStore)
+	if !ok {
+		return SourceFile{}, fmt.Errorf("resume source store is not configured")
+	}
+	if s.sourceObjects == nil {
+		return SourceFile{}, fmt.Errorf("resume source object reader is not configured")
+	}
+	rec, err := store.GetSourceFile(ctx, strings.TrimSpace(userID), strings.TrimSpace(resumeID))
+	switch {
+	case errors.Is(err, resumestore.ErrAssetNotFound):
+		return SourceFile{}, ErrNotFound
+	case err != nil:
+		return SourceFile{}, err
+	}
+	contentType := strings.TrimSpace(rec.ContentType)
+	if contentType == "" && strings.HasSuffix(strings.ToLower(rec.FileName), ".pdf") {
+		contentType = "application/pdf"
+	}
+	if contentType != "application/pdf" {
+		return SourceFile{}, ErrNotFound
+	}
+	if rec.ByteSize <= 0 {
+		return SourceFile{}, ErrValidationFailed
+	}
+	body, err := s.sourceObjects.Read(ctx, rec.ObjectKey, rec.ByteSize)
+	switch {
+	case errors.Is(err, objectstore.ErrObjectNotFound):
+		return SourceFile{}, ErrNotFound
+	case err != nil:
+		return SourceFile{}, err
+	}
+	return SourceFile{
+		FileName:    strings.TrimSpace(rec.FileName),
+		ContentType: contentType,
+		Body:        body,
+	}, nil
 }
 
 type UpdateResumeRequest struct {

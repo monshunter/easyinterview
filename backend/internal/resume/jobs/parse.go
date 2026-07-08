@@ -1,17 +1,16 @@
 package jobs
 
 import (
-	"archive/zip"
 	"bytes"
 	"context"
 	"encoding/json"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 	"unicode"
@@ -33,7 +32,7 @@ const defaultMaxResumeInputBytes int64 = 8 * 1024 * 1024
 
 var ErrPromptUnsupported = errors.New("prompt registry: feature/language is not enabled")
 
-var resumeFileNamePattern = regexp.MustCompile(`(?i)\.(pdf|docx?|txt|md|markdown)$`)
+var resumeFileNamePattern = regexp.MustCompile(`(?i)\.(pdf|txt|md|markdown)$`)
 
 type PromptResolution struct {
 	PromptVersion       string
@@ -155,7 +154,7 @@ func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) tar
 		code, retryable := translateAIClientError(err)
 		return h.fail(ctx, asset, job, code, err.Error(), retryable, input)
 	}
-	parsed, displayName, err := decodeResumeParseResponse(complete.Content, input)
+	parsed, displayName, markdownText, err := decodeResumeParseResponse(complete.Content, input)
 	if err != nil {
 		return h.fail(ctx, asset, job, sharederrors.CodeAiOutputInvalid, err.Error(), false, input)
 	}
@@ -177,7 +176,7 @@ func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) tar
 		AssetID:            asset.ID,
 		ParsedSummary:      parsed,
 		StructuredProfile:  parsed,
-		ParsedTextSnapshot: input,
+		ParsedTextSnapshot: markdownText,
 		DisplayName:        displayName,
 		OutboxEventID:      h.newID(),
 		OutboxEventPayload: payload,
@@ -231,12 +230,10 @@ func extractUploadResumeText(objectKey string, body []byte) (string, error) {
 	switch ext {
 	case ".pdf":
 		raw, err = extractPDFText(body)
-	case ".docx":
-		raw, err = extractDOCXText(body)
 	case ".md", ".markdown", ".txt", "":
 		raw = strings.ToValidUTF8(string(body), "")
 	default:
-		raw = strings.ToValidUTF8(string(body), "")
+		return "", fmt.Errorf("unsupported resume upload type %q", ext)
 	}
 	if err != nil {
 		return "", err
@@ -292,65 +289,6 @@ func extractPDFTextWithPdftotext(body []byte) (string, error) {
 		return "", fmt.Errorf("pdftotext returned empty text")
 	}
 	return text, nil
-}
-
-func extractDOCXText(body []byte) (string, error) {
-	reader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
-	if err != nil {
-		return "", fmt.Errorf("open docx: %w", err)
-	}
-	for _, file := range reader.File {
-		if file.Name != "word/document.xml" {
-			continue
-		}
-		handle, err := file.Open()
-		if err != nil {
-			return "", fmt.Errorf("open docx document: %w", err)
-		}
-		defer handle.Close()
-		text, err := extractDOCXDocumentText(handle)
-		if err != nil {
-			return "", err
-		}
-		if text == "" {
-			return "", fmt.Errorf("docx text is empty")
-		}
-		return text, nil
-	}
-	return "", fmt.Errorf("docx document.xml not found")
-}
-
-func extractDOCXDocumentText(reader io.Reader) (string, error) {
-	decoder := xml.NewDecoder(reader)
-	var parts []string
-	inText := false
-	for {
-		token, err := decoder.Token()
-		if errors.Is(err, io.EOF) {
-			break
-		}
-		if err != nil {
-			return "", fmt.Errorf("decode docx document: %w", err)
-		}
-		switch value := token.(type) {
-		case xml.StartElement:
-			if value.Name.Local == "t" {
-				inText = true
-			}
-		case xml.CharData:
-			if inText {
-				parts = append(parts, string(value))
-			}
-		case xml.EndElement:
-			if value.Name.Local == "t" {
-				inText = false
-			}
-			if value.Name.Local == "p" {
-				parts = append(parts, "\n")
-			}
-		}
-	}
-	return normalizeExtractedResumeText(strings.Join(parts, " ")), nil
 }
 
 var pdfLiteralTextPattern = regexp.MustCompile(`\((?:\\.|[^\\()])*\)`)
@@ -417,12 +355,13 @@ func isReadableExtractedResumeText(value string) bool {
 }
 
 func (h *ParseHandler) fail(ctx context.Context, asset resumestore.ParseAssetRecord, job targetjob.ClaimedJob, code, message string, retryable bool, parsedTextSnapshot string) targetjob.JobOutcome {
+	markdownSnapshot := buildResumeMarkdownFallback(parsedTextSnapshot)
 	if err := h.store.CompleteParseFailure(ctx, resumestore.CompleteParseFailureInput{
 		UserID:             asset.UserID,
 		AssetID:            asset.ID,
 		ErrorCode:          code,
-		ParsedTextSnapshot: parsedTextSnapshot,
-		DisplayName:        deriveDisplayNameFromResumeText(parsedTextSnapshot),
+		ParsedTextSnapshot: markdownSnapshot,
+		DisplayName:        deriveDisplayNameFromResumeText(markdownSnapshot),
 		Now:                h.now(),
 	}); err != nil {
 		return targetjob.JobOutcome{
@@ -436,6 +375,211 @@ func (h *ParseHandler) fail(ctx context.Context, asset resumestore.ParseAssetRec
 		ErrorMessage: safeFailureMessage(code, message),
 		Retryable:    retryable,
 	}
+}
+
+var resumeFallbackSectionHeadings = []string{
+	"个人摘要",
+	"核心能力",
+	"工作经历",
+	"项目经历",
+	"教育经历",
+	"教育背景",
+	"专业技能",
+	"技能",
+	"Summary",
+	"Profile",
+	"Core Skills",
+	"Skills",
+	"Experience",
+	"Work Experience",
+	"Projects",
+	"Education",
+}
+
+func buildResumeMarkdownFallback(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	lines := splitFallbackResumeLines(value)
+	if len(lines) == 0 {
+		return ""
+	}
+
+	title := fallbackTitleLine(lines[0])
+	out := []string{title}
+	currentSection := ""
+	for _, line := range lines[1:] {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, "#") {
+			out = appendWithBlank(out, normalizeMarkdownHeading(line))
+			currentSection = strings.TrimSpace(strings.TrimLeft(line, "#"))
+			continue
+		}
+		if isKnownResumeFallbackSection(line) {
+			out = appendWithBlank(out, "## "+line)
+			currentSection = line
+			continue
+		}
+		if heading, rest, ok := splitFallbackSectionPrefix(line); ok {
+			out = appendWithBlank(out, "## "+heading)
+			currentSection = heading
+			if rest != "" {
+				out = appendFallbackContent(out, currentSection, rest)
+			}
+			continue
+		}
+		out = appendFallbackContent(out, currentSection, line)
+	}
+	return strings.TrimSpace(strings.Join(out, "\n"))
+}
+
+func splitFallbackResumeLines(value string) []string {
+	normalized := normalizeExtractedResumeText(value)
+	normalized = regexp.MustCompile(`(?i)(Phone:|Email:|GitHub:)`).ReplaceAllString(normalized, "\n$1")
+	headings := append([]string(nil), resumeFallbackSectionHeadings...)
+	sort.SliceStable(headings, func(i, j int) bool {
+		return len([]rune(headings[i])) > len([]rune(headings[j]))
+	})
+	placeholders := make(map[string]string, len(headings))
+	for index, heading := range headings {
+		placeholder := fmt.Sprintf("@@EI_RESUME_HEADING_%d@@", index)
+		if strings.Contains(normalized, heading) {
+			normalized = strings.ReplaceAll(normalized, heading, "\n"+placeholder+"\n")
+			placeholders[placeholder] = heading
+		}
+	}
+	for placeholder, heading := range placeholders {
+		normalized = strings.ReplaceAll(normalized, placeholder, heading)
+	}
+	rawLines := strings.Split(normalized, "\n")
+	lines := make([]string, 0, len(rawLines))
+	for _, line := range rawLines {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			lines = append(lines, line)
+		}
+	}
+	return lines
+}
+
+func fallbackTitleLine(line string) string {
+	line = strings.TrimSpace(strings.TrimPrefix(line, "#"))
+	if name, headline := splitNameHeadlineLine(line); name != "" && headline != "" {
+		return "# " + name + " - " + headline
+	}
+	return "# " + line
+}
+
+func normalizeMarkdownHeading(line string) string {
+	level := 0
+	for _, r := range line {
+		if r != '#' {
+			break
+		}
+		level++
+	}
+	if level <= 0 {
+		return line
+	}
+	if level > 3 {
+		level = 3
+	}
+	text := strings.TrimSpace(strings.TrimLeft(line, "#"))
+	if text == "" {
+		return ""
+	}
+	return strings.Repeat("#", level) + " " + text
+}
+
+func isKnownResumeFallbackSection(line string) bool {
+	for _, heading := range resumeFallbackSectionHeadings {
+		if line == heading {
+			return true
+		}
+	}
+	return false
+}
+
+func splitFallbackSectionPrefix(line string) (string, string, bool) {
+	if isContactLikeLine(line) {
+		return "", "", false
+	}
+	for _, sep := range []string{"：", ":"} {
+		parts := strings.SplitN(line, sep, 2)
+		if len(parts) != 2 {
+			continue
+		}
+		heading := strings.TrimSpace(parts[0])
+		rest := strings.TrimSpace(parts[1])
+		if heading == "" || rest == "" || len([]rune(heading)) > 48 {
+			continue
+		}
+		if isKnownResumeFallbackSection(heading) {
+			return heading, rest, true
+		}
+	}
+	return "", "", false
+}
+
+func appendFallbackContent(out []string, currentSection string, line string) []string {
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return out
+	}
+	line = strings.TrimSpace(strings.TrimLeft(line, "：:"))
+	if line == "" {
+		return out
+	}
+	if strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "* ") {
+		return append(out, line)
+	}
+	if isSkillsLikeSection(currentSection) {
+		if label, rest, sep, ok := splitFallbackLabelValue(line); ok {
+			return append(out, "- **"+label+"**"+sep+" "+rest)
+		}
+		return append(out, "- "+line)
+	}
+	return append(out, line)
+}
+
+func appendWithBlank(out []string, line string) []string {
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return out
+	}
+	if len(out) > 0 && out[len(out)-1] != "" {
+		out = append(out, "")
+	}
+	return append(out, line)
+}
+
+func isSkillsLikeSection(section string) bool {
+	switch section {
+	case "核心能力", "专业技能", "技能", "Core Skills", "Skills":
+		return true
+	default:
+		return false
+	}
+}
+
+func splitFallbackLabelValue(line string) (string, string, string, bool) {
+	for _, sep := range []string{"：", ":"} {
+		parts := strings.SplitN(line, sep, 2)
+		if len(parts) != 2 {
+			continue
+		}
+		label := strings.TrimSpace(parts[0])
+		rest := strings.TrimSpace(parts[1])
+		if label == "" || rest == "" || len([]rune(label)) > 64 || strings.Contains(label, "@") {
+			continue
+		}
+		return label, rest, sep, true
+	}
+	return "", "", "", false
 }
 
 func buildPromptMessages(resolution PromptResolution, resumeText string) []aiclient.Message {
@@ -454,25 +598,29 @@ func buildPromptMessages(resolution PromptResolution, resumeText string) []aicli
 	return messages
 }
 
-func decodeResumeParseResponse(content string, resumeText string) (json.RawMessage, *string, error) {
+func decodeResumeParseResponse(content string, resumeText string) (json.RawMessage, *string, string, error) {
 	content = strings.TrimSpace(content)
 	if content == "" {
-		return nil, nil, fmt.Errorf("AI response content was empty")
+		return nil, nil, "", fmt.Errorf("AI response content was empty")
 	}
 	var parsed map[string]any
 	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
-		return nil, nil, fmt.Errorf("AI response is not valid JSON: %v", err)
+		return nil, nil, "", fmt.Errorf("AI response is not valid JSON: %v", err)
 	}
-	for _, key := range []string{"basics", "experiences", "projects", "education", "skills", "languages"} {
+	for _, key := range []string{"markdownText", "basics", "experiences", "projects", "education", "skills", "languages"} {
 		if _, ok := parsed[key]; !ok {
-			return nil, nil, fmt.Errorf("AI response missing %s", key)
+			return nil, nil, "", fmt.Errorf("AI response missing %s", key)
 		}
+	}
+	markdownText := strings.TrimSpace(fieldString(parsed, "markdownText"))
+	if markdownText == "" {
+		return nil, nil, "", fmt.Errorf("AI response markdownText was empty")
 	}
 	raw, err := json.Marshal(parsed)
 	if err != nil {
-		return nil, nil, fmt.Errorf("marshal parsed resume summary: %w", err)
+		return nil, nil, "", fmt.Errorf("marshal parsed resume summary: %w", err)
 	}
-	return raw, deriveResumeDisplayName(parsed, resumeText), nil
+	return raw, deriveResumeDisplayName(parsed, resumeText), markdownText, nil
 }
 
 func deriveResumeDisplayName(parsed map[string]any, resumeText string) *string {

@@ -10,6 +10,7 @@ import {
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useI18n } from "../../i18n/messages";
+import { isSelectableInterviewResume } from "../../interview-context/selectableResume";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import { interviewContextFromTargetJob } from "../../navigation/interviewContext";
 import type { Route } from "../../routes";
@@ -50,14 +51,6 @@ const defaultPracticeParams = {
   hintUsed: "false",
   hintCount: "0",
 } as const;
-
-function isSelectableResume(resume: Resume): boolean {
-  return (
-    resume.parseStatus === "ready" &&
-    resume.status !== "archived" &&
-    !resume.deletedAt
-  );
-}
 
 function sortByMostRecentResume(a: Resume, b: Resume): number {
   return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
@@ -281,7 +274,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       .then((page) => {
         if (!active || resumeRequestSeqRef.current !== requestSeq) return;
         const ready = page.items
-          .filter(isSelectableResume)
+          .filter(isSelectableInterviewResume)
           .sort(sortByMostRecentResume);
         setReadyResumes(ready);
         setSelectedResumeId((current) => {

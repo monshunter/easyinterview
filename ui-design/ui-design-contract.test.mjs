@@ -75,7 +75,10 @@ test("resume workshop detail is read-only original content without source previe
 
   assert.match(resume, /const ResumeDetailView = /);
   assert.match(resume, /const lines = Array\.isArray\(resume\.text\) && resume\.text\.length > 0/);
-  assert.match(resume, /\{lines\.join\("\\n"\)\}/);
+  assert.match(resume, /background: "#f6f3ee"/);
+  assert.match(resume, /minHeight: 664, margin: "0 auto", background: "#ffffff"/);
+  assert.doesNotMatch(resume, /fontSize: 28, fontWeight: 600, letterSpacing: "-0\.02em" \}\}>\{resume\.name\}/);
+  assert.doesNotMatch(resume, /fontSize: 14, color: "#666", marginTop: 4 \}\}>\{resume\.summary\}/);
   assert.doesNotMatch(resume, /sourcePreviewOpen|OriginalResumePreviewModal|onPreviewOriginal/);
   assert.doesNotMatch(resume, /onExport|exportPdf|onCopy|copyText/);
   assert.doesNotMatch(resume, /navigator\.clipboard\.writeText/);

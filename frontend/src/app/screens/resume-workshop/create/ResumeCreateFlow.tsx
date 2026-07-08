@@ -211,51 +211,6 @@ export const ResumeCreateFlow: FC<ResumeCreateFlowProps> = ({
             ) : null}
           </div>
         </section>
-
-        <aside
-          className="ei-resume-create-sidebar"
-          data-testid="resume-create-sidebar"
-        >
-          <div className="ei-resume-create-sidebar-card">
-            <span className="ei-text-label ei-resume-create-sidebar-eyebrow">
-              {t("resumeWorkshop.create.sidebar.whatSavedEyebrow")}
-            </span>
-            <ul className="ei-resume-create-sidebar-list">
-              <li>
-                <ResumeWorkshopIcon name="file" size={15} />
-                <div>
-                  <div className="ei-resume-create-sidebar-item-title">
-                    {t("resumeWorkshop.create.sidebar.whatSaved.original.title")}
-                  </div>
-                  <p className="ei-resume-create-sidebar-item-body">
-                    {t("resumeWorkshop.create.sidebar.whatSaved.original.body")}
-                  </p>
-                </div>
-              </li>
-              <li>
-                <ResumeWorkshopIcon name="resume" size={15} />
-                <div>
-                  <div className="ei-resume-create-sidebar-item-title">
-                    {t(
-                      "resumeWorkshop.create.sidebar.whatSaved.structured.title",
-                    )}
-                  </div>
-                  <p className="ei-resume-create-sidebar-item-body">
-                    {t("resumeWorkshop.create.sidebar.whatSaved.structured.body")}
-                  </p>
-                </div>
-              </li>
-            </ul>
-          </div>
-          <div className="ei-resume-create-sidebar-card">
-            <span className="ei-text-label ei-resume-create-sidebar-eyebrow">
-              {t("resumeWorkshop.create.sidebar.whatNextEyebrow")}
-            </span>
-            <p className="ei-resume-create-sidebar-item-body">
-              {t("resumeWorkshop.create.sidebar.whatNextBody")}
-            </p>
-          </div>
-        </aside>
       </div>
     </div>
   );

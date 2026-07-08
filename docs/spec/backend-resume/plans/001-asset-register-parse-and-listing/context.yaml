@@ -15,6 +15,7 @@ spec:
       - 001-asset-register-parse-and-listing
       - registerResume
       - getResume
+      - getResumeSource
       - listResumes
       - resume.parse
       - resume.parse.completed
@@ -28,6 +29,7 @@ spec:
     keywords:
       - resume register handler
       - resume get handler
+      - resume source PDF preview handler
       - resume list handler cursor pagination
       - resume parse async job
       - resume parse completed event
@@ -72,4 +74,5 @@ spec:
         apiNames:
           - registerResume
           - getResume
+          - getResumeSource
           - listResumes

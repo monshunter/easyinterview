@@ -21,6 +21,50 @@ const defaultListResumesResponse = listResumesFixture.scenarios.default.response
   .body as ListResumesResponse;
 const emptyListResumesResponse = listResumesFixture.scenarios.empty.response
   .body as ListResumesResponse;
+const readableNonReadyListResumesResponse = {
+  ...defaultListResumesResponse,
+  items: [
+    {
+      ...defaultListResumesResponse.items[0]!,
+      id: "01918fa0-0000-7000-8000-000000001101",
+      title: "failed-readable.pdf",
+      displayName: "Readable Failed Resume",
+      parseStatus: "failed",
+      sourceType: "upload",
+      originalText: null,
+      parsedTextSnapshot: "# Readable Failed Resume\n\nRecovered PDF text.",
+      updatedAt: "2026-05-15T08:00:00Z",
+      deletedAt: null,
+      status: "active",
+    },
+    {
+      ...defaultListResumesResponse.items[0]!,
+      id: "01918fa0-0000-7000-8000-000000001102",
+      title: "Queued Paste Source",
+      displayName: "Queued Paste Source",
+      parseStatus: "queued",
+      sourceType: "paste",
+      originalText: "Queued paste resume body",
+      parsedTextSnapshot: null,
+      updatedAt: "2026-05-14T08:00:00Z",
+      deletedAt: null,
+      status: "active",
+    },
+    {
+      ...defaultListResumesResponse.items[0]!,
+      id: "01918fa0-0000-7000-8000-000000001103",
+      title: "Processing Markdown Source",
+      displayName: "Processing Markdown Source",
+      parseStatus: "processing",
+      sourceType: "upload",
+      originalText: null,
+      parsedTextSnapshot: "Processing markdown resume body",
+      updatedAt: "2026-05-13T08:00:00Z",
+      deletedAt: null,
+      status: "active",
+    },
+  ],
+} satisfies ListResumesResponse;
 
 function createClient(scenario?: string) {
   const fetch = createFixtureBackedFetch(
@@ -127,6 +171,48 @@ describe("Home resume selection", () => {
         }),
       );
     });
+  });
+
+  it("keeps readable existing resumes selectable when parseStatus is not ready", async () => {
+    const client = createClient("default");
+    vi.mocked(client.listResumes).mockResolvedValue(
+      readableNonReadyListResumesResponse,
+    );
+    renderHome(client);
+
+    const resumeSelect = await screen.findByTestId("home-resume-select");
+
+    await waitFor(() => {
+      expect(resumeSelect).not.toBeDisabled();
+    });
+    expect(screen.queryByTestId("home-resume-empty")).not.toBeInTheDocument();
+    expect(
+      await screen.findByTestId(
+        "home-resume-option-01918fa0-0000-7000-8000-000000001101",
+      ),
+    ).toHaveTextContent("Readable Failed Resume");
+    expect(
+      screen.getByTestId(
+        "home-resume-option-01918fa0-0000-7000-8000-000000001102",
+      ),
+    ).toHaveTextContent("Queued Paste Source");
+    expect(
+      screen.getByTestId(
+        "home-resume-option-01918fa0-0000-7000-8000-000000001103",
+      ),
+    ).toHaveTextContent("Processing Markdown Source");
+
+    await userEvent.selectOptions(
+      resumeSelect,
+      "01918fa0-0000-7000-8000-000000001101",
+    );
+
+    expect(resumeSelect).toHaveValue(
+      "01918fa0-0000-7000-8000-000000001101",
+    );
+    expect(screen.getByTestId("home-resume-selection-status")).toHaveTextContent(
+      "Readable Failed Resume",
+    );
   });
 
   it("keeps immediate interview disabled when no ready resume exists and keeps the create CTA", async () => {

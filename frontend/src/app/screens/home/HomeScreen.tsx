@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type FC } from "react";
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useI18n } from "../../i18n/messages";
+import { isSelectableInterviewResume } from "../../interview-context/selectableResume";
 import { interviewContextFromTargetJob } from "../../navigation/interviewContext";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import type { Route } from "../../routes";
@@ -18,14 +19,6 @@ import type { Resume } from "../../../api/generated/types";
 
 function idempotencyKey(): string {
   return `ik-${crypto.randomUUID()}`;
-}
-
-function isSelectableResume(resume: Resume): boolean {
-  return (
-    resume.parseStatus === "ready" &&
-    resume.status !== "archived" &&
-    !resume.deletedAt
-  );
 }
 
 function sortByMostRecentResume(a: Resume, b: Resume): number {
@@ -107,7 +100,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
       .then((page) => {
         if (!active) return;
         const ready = page.items
-          .filter(isSelectableResume)
+          .filter(isSelectableInterviewResume)
           .sort(sortByMostRecentResume);
         setReadyResumes(ready);
         setSelectedResumeId((current) => {

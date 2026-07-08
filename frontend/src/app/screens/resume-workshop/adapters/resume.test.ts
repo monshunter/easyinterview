@@ -4,6 +4,8 @@ import type { Resume } from "../../../../api/generated/types";
 
 import {
   buildResumeBodyLines,
+  getResumeDetailRenderer,
+  getResumeSourceUrl,
   mapResumeToUiSource,
 } from "./resume";
 
@@ -165,5 +167,33 @@ describe("buildResumeBodyLines", () => {
       "Original line 1",
       "Original line 2",
     ]);
+  });
+});
+
+describe("resume source-format renderer selection", () => {
+  it("uses the PDF engine for upload-backed PDF resumes", () => {
+    const pdfResume = {
+      ...baseResume,
+      title: "alice-platform.pdf",
+      sourceType: "upload" as const,
+      fileObjectId: "01918fa0-0000-7000-8000-000000001100",
+    };
+
+    expect(getResumeDetailRenderer(pdfResume)).toBe("pdf");
+    expect(getResumeSourceUrl(pdfResume, "/api/v1")).toBe(
+      "/api/v1/resumes/01918fa0-0000-7000-8000-000000001000/source",
+    );
+  });
+
+  it("keeps paste, Markdown, and text sources on the Markdown engine", () => {
+    expect(getResumeDetailRenderer({ ...baseResume, sourceType: "paste" })).toBe(
+      "markdown",
+    );
+    expect(getResumeDetailRenderer({ ...baseResume, title: "alice.md" })).toBe(
+      "markdown",
+    );
+    expect(getResumeDetailRenderer({ ...baseResume, title: "alice.txt" })).toBe(
+      "markdown",
+    );
   });
 });

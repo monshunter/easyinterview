@@ -371,6 +371,16 @@ export class EasyInterviewClient {
 		);
 	}
 
+	/** getResumeSource — get /resumes/{resumeId}/source: Get the uploaded PDF source for inline resume preview */
+	async getResumeSource(resumeId: string, opts?: RequestOptions): Promise<unknown> {
+		return this.request<unknown>(
+			"GET",
+			buildPath("/resumes/{resumeId}/source", { resumeId: resumeId }),
+			undefined,
+			opts,
+		);
+	}
+
 	/** getRuntimeConfig — get /runtime-config: Get public runtime configuration */
 	async getRuntimeConfig(opts?: RequestOptions): Promise<Types.RuntimeConfig> {
 		return this.request<Types.RuntimeConfig>(
@@ -472,6 +482,7 @@ export const ALL_OPERATION_IDS = [
 	"archiveResume",
 	"duplicateResume",
 	"exportResume",
+	"getResumeSource",
 	"getRuntimeConfig",
 	"listTargetJobs",
 	"importTargetJob",
@@ -518,6 +529,7 @@ export const ALL_ROUTES = [
 	{ operationId: "archiveResume", method: "POST", path: "/resumes/{resumeId}/archive" },
 	{ operationId: "duplicateResume", method: "POST", path: "/resumes/{resumeId}/duplicate" },
 	{ operationId: "exportResume", method: "POST", path: "/resumes/{resumeId}/exports" },
+	{ operationId: "getResumeSource", method: "GET", path: "/resumes/{resumeId}/source" },
 	{ operationId: "getRuntimeConfig", method: "GET", path: "/runtime-config" },
 	{ operationId: "listTargetJobs", method: "GET", path: "/targets" },
 	{ operationId: "importTargetJob", method: "POST", path: "/targets/import" },

@@ -107,6 +107,20 @@ func TestCreateUploadPresignByteSizeLimit(t *testing.T) {
 	assertAPIError(t, rec, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed)
 }
 
+func TestCreateUploadPresignRejectsResumeDOCX(t *testing.T) {
+	svc := &fakePresignService{}
+	h := newTestHandler(svc)
+	req := newPresignRequest(`{"purpose":"resume","fileName":"resume.docx","contentType":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","byteSize":128}`)
+	rec := httptest.NewRecorder()
+
+	h.CreateUploadPresign(rec, req)
+
+	assertAPIError(t, rec, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed)
+	if svc.in.FileName != "" {
+		t.Fatalf("service must not be called for DOCX resume upload: %+v", svc.in)
+	}
+}
+
 func TestCreateUploadPresignReturnsCreatedResponse(t *testing.T) {
 	svc := &fakePresignService{out: api.UploadPresign{
 		FileObjectId: "01918fa0-0000-7000-8000-000000001100",
@@ -137,7 +151,7 @@ func TestCreateUploadPresignReturnsCreatedResponse(t *testing.T) {
 	if svc.in.UserID != "user-1" || svc.in.IdempotencyKey != "idem-1" || svc.in.Purpose != "resume" {
 		t.Fatalf("service input = %+v", svc.in)
 	}
-	if svc.in.PresignTTL != 10*time.Minute || svc.in.MaxBytes != 10485760 {
+	if svc.in.PresignTTL != 10*time.Minute || svc.in.MaxBytes != 2097152 {
 		t.Fatalf("config input ttl=%s max=%d", svc.in.PresignTTL, svc.in.MaxBytes)
 	}
 }
@@ -204,7 +218,7 @@ func newTestHandler(svc uploadhandler.PresignService) *uploadhandler.Handler {
 		},
 		PresignTTL: 10 * time.Minute,
 		MaxBytesByPurpose: map[string]int64{
-			"resume":                10485760,
+			"resume":                2097152,
 			"target_job_attachment": 10485760,
 			"privacy_export":        5242880,
 		},

@@ -6,7 +6,7 @@ metadata:
   sequence: 4
   specVersion:
     from: 1.16
-    to: 1.35
+    to: 1.36
 spec:
   defaultTarget: contract
   discovery:
@@ -22,11 +22,12 @@ spec:
       - duplicateResume
       - archiveResume
       - exportResume
+      - getResumeSource
       - RESUME_EXPORT_NOT_AVAILABLE
     keywords:
       - flat resume contract
       - current resume operations
-      - openapi 35 operations
+      - openapi 36 operations
       - openapi 10 tags
       - Resume schema
       - PaginatedResume
@@ -69,6 +70,7 @@ spec:
           - listResumes
           - registerResume
           - getResume
+          - getResumeSource
           - updateResume
           - duplicateResume
           - archiveResume

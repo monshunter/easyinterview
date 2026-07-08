@@ -124,6 +124,7 @@ FEATURE_CONTRACTS = {
         "type": "object",
         "required_paths": {
             "$.displayName",
+            "$.markdownText",
             "$.basics",
             "$.experiences",
             "$.projects",
@@ -610,6 +611,7 @@ ENUM_EXAMPLE_BY_PATH = {
 
 STRING_EXAMPLE_BY_PATH = {
     "$.displayName": "Candidate A - Backend engineer",
+    "$.markdownText": "# Candidate A\n\n## Experience\n- Reduced p95 latency by 32% by redesigning cache invalidation.\n\n## Skills\n- Go",
     "$.basics.name": "Candidate A",
     "$.dimension_scores[].name": "System design",
     "$.dimension_scores[].reasoning": "Clear architecture tradeoffs, but limited quantified impact.",

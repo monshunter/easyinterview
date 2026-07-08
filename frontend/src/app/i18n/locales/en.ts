@@ -281,7 +281,7 @@ export const en: LocaleMessages = {
   "resumeWorkshop.create.tabs.upload": "Upload",
   "resumeWorkshop.create.tabs.paste": "Paste",
   "resumeWorkshop.create.upload.dropzoneTitle":
-    "Drop a PDF / DOCX / Markdown resume",
+    "Drop a PDF / Markdown resume",
   "resumeWorkshop.create.upload.dropzoneBody":
     "After upload, the app opens resume detail and keeps the source content as the body.",
   "resumeWorkshop.create.upload.choose": "Choose file",
@@ -293,24 +293,10 @@ export const en: LocaleMessages = {
     "Raw text is retained, then the detail opens directly.",
   "resumeWorkshop.create.paste.submit": "Save and open resume",
   "resumeWorkshop.create.paste.titleFallback": "Pasted text",
-  "resumeWorkshop.create.sidebar.whatSavedEyebrow": "WHAT GETS SAVED",
-  "resumeWorkshop.create.sidebar.whatSaved.original.title": "Original source",
-  "resumeWorkshop.create.sidebar.whatSaved.original.body":
-    "File or pasted text stays traceable.",
-  "resumeWorkshop.create.sidebar.whatSaved.structured.title":
-    "Structured resume",
-  "resumeWorkshop.create.sidebar.whatSaved.structured.body":
-    "Backend parsing helps naming and downstream matching; it does not replace the detail body.",
-  "resumeWorkshop.create.sidebar.whatSaved.baseline.title": "Read-only detail",
-  "resumeWorkshop.create.sidebar.whatSaved.baseline.body":
-    "After saving, opening the resume shows the resume itself.",
-  "resumeWorkshop.create.sidebar.whatNextEyebrow": "WHAT HAPPENS NEXT",
-  "resumeWorkshop.create.sidebar.whatNextBody":
-    "After submission succeeds, resume detail opens directly and shows the original content read-only.",
   "resumeWorkshop.create.errors.validation":
     "Validation failed — review the fields and retry.",
   "resumeWorkshop.create.errors.extensionInvalid":
-    "Unsupported file type — only .pdf / .docx / .md / .txt are allowed.",
+    "Unsupported file type — only .pdf / .md / .markdown / .txt are allowed.",
   "resumeWorkshop.create.errors.sizeExceeded":
     "File exceeds {maxMb} MB. Compress or trim before retrying.",
   "resumeWorkshop.create.errors.uploadFailed": "Upload failed · please retry.",
@@ -348,11 +334,18 @@ export const en: LocaleMessages = {
   "resumeWorkshop.list.colLang": "Lang",
   "resumeWorkshop.list.colLastEdit": "Last edit",
   "resumeWorkshop.list.open": "Open",
-  "resumeWorkshop.list.uploadAnother": "Upload or paste another resume",
+  "resumeWorkshop.list.delete": "Delete resume",
+  "resumeWorkshop.list.deleteError": "Delete failed. Please retry shortly.",
   "resumeWorkshop.detail.back": "Back to Resume Workshop",
   "resumeWorkshop.detail.lastEdit": "last edit",
   "resumeWorkshop.detail.loading": "Loading resume...",
   "resumeWorkshop.detail.error": "Failed to load this resume. Please retry.",
+  "resumeWorkshop.detail.waitingTitle": "Parsing resume",
+  "resumeWorkshop.detail.waitingBody":
+    "We are extracting the text and normalizing it to Markdown. The detail view will open automatically when parsing completes.",
+  "resumeWorkshop.detail.failedTitle": "Resume parse failed",
+  "resumeWorkshop.detail.failedBody":
+    "This resume could not be parsed. Return to the list, delete it, then upload or paste again.",
   "resumeWorkshop.detail.notFoundTitle": "Resume not found",
   "resumeWorkshop.detail.notFoundBody":
     "This resume is unavailable or the link is no longer valid. Return to Resume Workshop to choose another resume.",

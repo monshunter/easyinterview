@@ -81,6 +81,10 @@ func (h *Handler) CreateUploadPresign(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "byteSize exceeds purpose limit", map[string]any{"field": "byteSize"})
 		return
 	}
+	if purpose == "resume" && !isSupportedResumeUpload(body.FileName, body.ContentType) {
+		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "resume upload type is not supported", map[string]any{"field": "fileName"})
+		return
+	}
 	out, err := h.service.CreateUploadPresign(r.Context(), uploadservice.CreatePresignInput{
 		UserID:         userID,
 		IdempotencyKey: idempotencyKey,
@@ -134,6 +138,21 @@ func writeAPIError(w http.ResponseWriter, status int, code string, message strin
 		Details:   details,
 	}})
 	_, _ = w.Write(raw)
+}
+
+func isSupportedResumeUpload(fileName string, contentType string) bool {
+	lowerName := strings.ToLower(strings.TrimSpace(fileName))
+	mediaType := strings.ToLower(strings.TrimSpace(contentType))
+	switch {
+	case strings.HasSuffix(lowerName, ".pdf"):
+		return mediaType == "application/pdf"
+	case strings.HasSuffix(lowerName, ".md"), strings.HasSuffix(lowerName, ".markdown"):
+		return mediaType == "text/markdown" || mediaType == "text/plain"
+	case strings.HasSuffix(lowerName, ".txt"):
+		return mediaType == "text/plain"
+	default:
+		return false
+	}
 }
 
 func cloneMaxBytes(in map[string]int64) map[string]int64 {

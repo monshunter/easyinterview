@@ -1,7 +1,10 @@
-import { useCallback, useMemo, type FC } from "react";
+import { useCallback, useMemo, useState, type FC } from "react";
 
+import { generateIdempotencyKey } from "../../../../lib/conventions/idempotency";
+import { useDisplayPreferencesOptional } from "../../../display/DisplayPreferencesProvider";
 import { useI18n } from "../../../i18n/messages";
 import { useNavigation } from "../../../navigation/NavigationProvider";
+import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 import { mapResumeToUiSource, type UiResumeSource } from "../adapters/resume";
 import { useResumeAssets } from "../hooks/useResumeAssets";
 import { ResumeWorkshopIcon } from "./ResumeWorkshopIcon";
@@ -14,11 +17,19 @@ import { ResumeWorkshopIcon } from "./ResumeWorkshopIcon";
 export const ResumeListView: FC = () => {
   const { t } = useI18n();
   const { navigate } = useNavigation();
+  const runtime = useAppRuntimeOptional();
+  const lang = useDisplayPreferencesOptional()?.lang ?? "zh";
   const resumesQuery = useResumeAssets();
+  const [archivedIds, setArchivedIds] = useState<Set<string>>(() => new Set());
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const resumes = useMemo<UiResumeSource[]>(
-    () => resumesQuery.data?.items.map(mapResumeToUiSource) ?? [],
-    [resumesQuery.data],
+    () =>
+      resumesQuery.data?.items
+        .filter((resume) => !archivedIds.has(resume.id))
+        .map(mapResumeToUiSource) ?? [],
+    [archivedIds, resumesQuery.data],
   );
 
   const sorted = useMemo(
@@ -41,6 +52,29 @@ export const ResumeListView: FC = () => {
       params: { flow: "create" },
     });
   }, [navigate]);
+  const onDelete = useCallback(
+    async (resumeId: string) => {
+      if (!runtime?.client || runtime.auth.status !== "authenticated") return;
+      setDeletingId(resumeId);
+      setDeleteError(null);
+      try {
+        await runtime.client.archiveResume(resumeId, {
+          headers: { "Accept-Language": lang },
+          idempotencyKey: generateIdempotencyKey(),
+        });
+        setArchivedIds((current) => {
+          const next = new Set(current);
+          next.add(resumeId);
+          return next;
+        });
+      } catch {
+        setDeleteError(t("resumeWorkshop.list.deleteError"));
+      } finally {
+        setDeletingId((current) => (current === resumeId ? null : current));
+      }
+    },
+    [lang, runtime, t],
+  );
 
   if (resumesQuery.loading) {
     return (
@@ -131,28 +165,41 @@ export const ResumeListView: FC = () => {
               <div className="ei-resume-workshop-table-date">
                 {resume.updatedAt}
               </div>
-              <button
-                type="button"
-                data-testid={`resume-list-open-${resume.id}`}
-                className="ei-resume-workshop-table-open"
-                onClick={() => onOpen(resume.id)}
-              >
-                {t("resumeWorkshop.list.open")}
-              </button>
+              <div className="ei-resume-workshop-table-actions">
+                <button
+                  type="button"
+                  data-testid={`resume-list-open-${resume.id}`}
+                  className="ei-resume-workshop-table-open"
+                  onClick={() => onOpen(resume.id)}
+                >
+                  {t("resumeWorkshop.list.open")}
+                </button>
+                <button
+                  type="button"
+                  aria-label={t("resumeWorkshop.list.delete")}
+                  title={t("resumeWorkshop.list.delete")}
+                  data-testid={`resume-list-delete-${resume.id}`}
+                  className="ei-resume-workshop-table-delete"
+                  disabled={deletingId === resume.id}
+                  onClick={() => void onDelete(resume.id)}
+                >
+                  <ResumeWorkshopIcon name="trash" size={13} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      <button
-        type="button"
-        className="ei-resume-workshop-upload-cta"
-        data-testid="resume-workshop-upload-cta"
-        onClick={onCreate}
-      >
-        <ResumeWorkshopIcon name="upload" size={14} />
-        {t("resumeWorkshop.list.uploadAnother")}
-      </button>
+      {deleteError ? (
+        <p
+          className="ei-resume-workshop-delete-error"
+          data-testid="resume-workshop-delete-error"
+          role="alert"
+        >
+          {deleteError}
+        </p>
+      ) : null}
 
       {resumesQuery.data?.pageInfo.hasMore ? (
         <div

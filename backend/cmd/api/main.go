@@ -455,6 +455,9 @@ func buildAPIHandlerWithUploadReportJobsAndHandlers(loader *config.Loader, flags
 		mux.Handle("GET /api/v1/resumes/{resumeId}", auth.SessionMiddleware(authService, "getResume", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			resume.Handler.GetResume(w, r, r.PathValue("resumeId"))
 		})))
+		mux.Handle("GET /api/v1/resumes/{resumeId}/source", auth.SessionMiddleware(authService, "getResumeSource", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resume.Handler.GetResumeSource(w, r, r.PathValue("resumeId"))
+		})))
 		mux.Handle("PATCH /api/v1/resumes/{resumeId}", auth.SessionMiddleware(authService, "updateResume", updateResume))
 		mux.Handle("POST /api/v1/resumes/{resumeId}/duplicate", auth.SessionMiddleware(authService, "duplicateResume", duplicateResume))
 		mux.Handle("POST /api/v1/resumes/{resumeId}/archive", auth.SessionMiddleware(authService, "archiveResume", archiveResume))
@@ -770,10 +773,12 @@ func buildResumeRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, 
 		string(jobs.JobTypeResumeTailor): runner.FromTargetjobHandler(tailorHandler),
 	}
 	service := domainresume.NewService(domainresume.ServiceOptions{
-		Store:          store,
-		UploadRegister: upload.Service,
-		NewID:          idx.NewID,
-		DedupePepper:   loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+		Store:            store,
+		UploadRegister:   upload.Service,
+		SourceObjects:    upload.Objects,
+		NewID:            idx.NewID,
+		DedupePepper:     loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+		MaxActiveResumes: loader.GetInt("resume.maxActive"),
 	})
 	return &resumeRuntime{
 		Handler: resumehandler.New(resumehandler.Options{

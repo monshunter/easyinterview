@@ -1,7 +1,7 @@
 # Backend Resume Asset Register Parse and Listing Checklist
 
-> **版本**: 1.9
-> **状态**: active
+> **版本**: 2.2
+> **状态**: completed
 > **更新日期**: 2026-07-07
 
 **关联计划**: [plan](./plan.md)
@@ -79,7 +79,7 @@
 
 ## Phase 9: Upload file readable text snapshot
 
-- [x] 9.1 `backend/internal/resume/jobs/parse.go` 对 upload source 提取 PDF / DOCX / Markdown / text 可读正文，AI prompt input 与 `parsed_text_snapshot` 使用同一正文，不能使用文件名或二进制 bytes（验证：`cd backend && go test ./internal/resume/jobs -run 'TestParseHandlerExtractsReadableUploadText|TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox' -count=1` PASS）<!-- verified: 2026-07-07 method=go-test+scenario -->
+- [x] 9.1 `backend/internal/resume/jobs/parse.go` 对 upload source 提取 PDF / Markdown / text 可读正文，AI prompt input 与 `parsed_text_snapshot` 使用同一正文，不能使用文件名或二进制 bytes；DOCX 不再属于当前上传白名单（验证：`cd backend && go test ./internal/resume/jobs -run 'TestParseHandlerExtractsReadableUploadText|TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox' -count=1` PASS）<!-- verified: 2026-07-07 method=go-test+scenario -->
 - [x] 9.2 `CreateWithParseJob` 创建 queued resume 时只保存来源 `title`，不写 `display_name`；ready 后只由 parse success 写入 LLM-derived `display_name`（验证：`cd backend && go test ./internal/resume/store -run 'TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady|TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1` PASS）<!-- verified: 2026-07-07 method=go-test+scenario -->
 - [x] 9.3 `resume.parse` upload 对象读取预算覆盖真实浏览器生成 PDF，不因 256KiB 截断导致 `parsed_text_snapshot` 为空，并拒绝 PDF literal / binary 乱码正文（验证：`cd backend && go test ./internal/resume/jobs -run 'TestParseHandlerRejectsUnreadablePDFText|TestParseHandlerExtractsReadableUploadText' -count=1` PASS，assert read budget >= 554631 bytes；local UAT 真实 PDF snapshot 以中文正文开头）<!-- verified: 2026-07-07 method=go-test+local-uat -->
 - [x] 9.4 `resume.parse` 在已抽取正文后遇到 AI provider / AI output 失败，仍写入 `parsed_text_snapshot` 供只读详情显示，且不发 completed event（验证：`cd backend && go test ./internal/resume/jobs -run TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox -count=1` PASS；`cd backend && go test ./internal/resume/store -run TestCompleteParseFailureCanPersistExtractedTextSnapshot -count=1` PASS；local UAT 真实 PDF `parse_status=failed` / `AI_OUTPUT_INVALID` 时 snapshot_len=3083）<!-- verified: 2026-07-07 method=go-test+local-uat -->
@@ -90,3 +90,17 @@
 - [x] 10.2 `decodeResumeParseResponse` 优先使用 AI `displayName`，并拒绝通用上传/粘贴标题、上传文件名和 raw 第一行直出；验证: `cd backend && go test ./internal/resume/jobs -run TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox -count=1`。<!-- verified: 2026-07-07 method=go-test -->
 - [x] 10.3 AI provider / output 失败但已有可读正文时，`CompleteParseFailure` 同时写入 fallback `display_name`，确保 failed-with-snapshot 详情不再长期显示“名称生成中”；验证: `cd backend && go test ./internal/resume/jobs -run TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox -count=1` 与 `cd backend && go test ./internal/resume/store -run TestCompleteParseFailureCanPersistExtractedTextSnapshot -count=1`。<!-- verified: 2026-07-07 method=go-test -->
 - [x] 10.4 `ResumeDetailView` / `useResumeAsset` 对 `failed` 或已有正文的上传详情停止轮询 `getResume`，避免同一详情 URL 重复请求；验证: `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/components/ResumeDetailView.test.tsx`。<!-- verified: 2026-07-07 method=vitest -->
+
+## Phase 11: Markdown snapshot and active resume limits
+
+- [x] 11.1 `resume.parse` prompt schema / prompt body required `markdownText`，要求 LLM 保持原简历结构和事实并输出 Markdown；验证: `make lint-prompts`。<!-- verified: 2026-07-07 method=prompt-lint command="python3 scripts/lint/prompt_lint.py --prompts-dir config/prompts --migrations-dir migrations" -->
+- [x] 11.2 `decodeResumeParseResponse` 校验并返回 `markdownText`，parse success 将 `ParsedTextSnapshot` 写为 Markdown；验证: `cd backend && go test ./internal/resume/jobs -run 'TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox|TestParseHandlerRequiresMarkdownTextInAIResponse' -count=1`。<!-- verified: 2026-07-07 method=go-test -->
+- [x] 11.3 `resume.maxActive` 默认 10 并由 `RegisterResume` / `CreateWithParseJob` 强制；达到上限的新 IK 返回 validation error，不创建 resume/job；相同 IK replay 不误拒；验证: focused service/store tests。<!-- verified: 2026-07-07 method=go-test command="cd backend && go test ./internal/resume/... ./internal/platform/config ./cmd/api -count=1" -->
+- [x] 11.4 `upload.maxBytes.resume` 默认改为 2MiB，配置校验与前端本地校验一致；验证: config/cmd-api focused tests。<!-- verified: 2026-07-07 method=go-test+vitest -->
+- [x] 11.5 AI provider / output validation 失败但已抽取 PDF 可读正文时，失败态 `parsed_text_snapshot` 保存 Markdown fallback（标题、章节、技能 bullet），不保存原始折叠文本；验证: `cd backend && go test ./internal/resume/jobs -run TestParseHandlerMarkdownFallbackSurvivesPDFAIOutputFailure -count=1`。<!-- verified: 2026-07-07 method=go-test -->
+
+## Phase 12: Source-format preview and DOCX retirement
+
+- [x] 12.1 `createUploadPresign` / upload register 对 `purpose=resume` 仅允许 PDF / Markdown / TXT，DOCX 在 presign/register 前返回 validation error；验证: upload handler/service focused tests。<!-- verified: 2026-07-07 method=go-test packages=./internal/upload/service,./internal/upload/handler tests=TestCreateUploadPresignRejectsResumeDOCX,TestCreateUploadPresignRejectsResumeDOCXBeforePresign -->
+- [x] 12.2 `resume.parse` 删除 DOCX 解包路径，历史 DOCX object 误入 parse 时返回 unsupported source text error，不进入 AI prompt；验证: parse focused tests。<!-- verified: 2026-07-07 method=go-test package=./internal/resume/jobs tests=TestParseHandlerRejectsDOCXUploadText,TestParseHandlerExtractsReadableUploadText -->
+- [x] 12.3 `getResumeSource` 按 `user_id + resumeId` scoped lookup upload-backed PDF 原件并返回 inline `application/pdf`；paste / Markdown / TXT / missing / archived / cross-user 返回 404；验证: store/service/handler/cmd-api focused tests。<!-- verified: 2026-07-07 method=go-test packages=./internal/resume,./internal/resume/handler,./internal/resume/store,./cmd/api tests=TestGetResumeSource,TestGetSourceFile,TestGeneratedRouteCatalogHasNoResumeVersionOperations -->

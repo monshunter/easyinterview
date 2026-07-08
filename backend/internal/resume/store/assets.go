@@ -137,6 +137,30 @@ where user_id = $1 and deleted_at is null`
 	return ListResult{Items: items, NextCursor: nextCursor, HasMore: hasMore, PageSize: pageSize}, nil
 }
 
+func (r *Repository) GetSourceFile(ctx context.Context, userID string, resumeID string) (SourceFileRecord, error) {
+	if r == nil || r.db == nil {
+		return SourceFileRecord{}, fmt.Errorf("resume store db is nil")
+	}
+	row := r.db.QueryRowContext(ctx, `
+select fo.object_key, fo.original_file_name, fo.content_type, fo.byte_size
+from resumes rs
+join file_objects fo on fo.id = rs.file_object_id and fo.deleted_at is null
+where rs.id = $1
+  and rs.user_id = $2
+  and rs.source_type = 'upload'
+  and rs.deleted_at is null`,
+		resumeID,
+		userID,
+	)
+	var rec SourceFileRecord
+	if err := row.Scan(&rec.ObjectKey, &rec.FileName, &rec.ContentType, &rec.ByteSize); errors.Is(err, sql.ErrNoRows) {
+		return SourceFileRecord{}, ErrAssetNotFound
+	} else if err != nil {
+		return SourceFileRecord{}, err
+	}
+	return rec, nil
+}
+
 // UpdateResume overwrites only the editable fields present in the request on an
 // existing resume (D-20 C-17: save accepted rewrites by overwrite).
 func (r *Repository) UpdateResume(ctx context.Context, in UpdateResumeInput) (ResumeRecord, error) {
@@ -533,6 +557,11 @@ func (r *Repository) CreateWithParseJob(ctx context.Context, in CreateAssetInput
 			return existing, nil
 		}
 	}
+	if in.MaxActiveForUser > 0 {
+		if err := ensureActiveResumeLimit(ctx, tx, in.UserID, in.MaxActiveForUser); err != nil {
+			return CreateAssetResult{}, err
+		}
+	}
 
 	if _, err := tx.ExecContext(ctx, `
 	insert into resumes (
@@ -592,6 +621,22 @@ insert into async_jobs (
 		JobCreatedAt: now,
 		JobUpdatedAt: now,
 	}, nil
+}
+
+func ensureActiveResumeLimit(ctx context.Context, tx *sql.Tx, userID string, maxActive int) error {
+	var count int
+	if err := tx.QueryRowContext(ctx, `
+select count(*)
+from resumes
+where user_id = $1 and deleted_at is null`,
+		userID,
+	).Scan(&count); err != nil {
+		return fmt.Errorf("count active resumes: %w", err)
+	}
+	if count >= maxActive {
+		return ErrResumeLimitExceeded
+	}
+	return nil
 }
 
 func lookupActiveRegisterDedupe(ctx context.Context, tx *sql.Tx, dedupeKey string) (CreateAssetResult, bool, error) {
@@ -703,6 +748,7 @@ var (
 	ErrTailorRunNotFound      = errors.New("resume tailor run not found")
 	ErrInvalidStateTransition = errors.New("invalid resume parse status transition")
 	ErrInvalidCursor          = errors.New("invalid resume list cursor")
+	ErrResumeLimitExceeded    = errors.New("resume active limit exceeded")
 )
 
 func encodeCursor(updatedAt time.Time, id string) string {

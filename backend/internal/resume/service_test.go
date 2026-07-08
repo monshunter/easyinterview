@@ -46,6 +46,30 @@ func TestRegisterUploadPathVerifiesFileObjectBeforeCreate(t *testing.T) {
 	}
 }
 
+func TestRegisterResumePassesConfiguredActiveLimitToStore(t *testing.T) {
+	store := &fakeStore{out: resumestore.CreateAssetResult{AssetID: "resume-1", JobID: "job-1", JobStatus: sharedtypes.JobStatusQueued}}
+	svc := resume.NewService(resume.ServiceOptions{
+		Store:            store,
+		NewID:            sequenceIDs("resume-1", "job-1"),
+		MaxActiveResumes: 7,
+	})
+
+	_, err := svc.RegisterResume(context.Background(), resume.RegisterInput{
+		UserID:         "user-1",
+		IdempotencyKey: "idem-1",
+		SourceType:     "paste",
+		RawText:        "resume text",
+		Title:          "Pasted text",
+		Language:       "en",
+	})
+	if err != nil {
+		t.Fatalf("RegisterResume: %v", err)
+	}
+	if store.createIn.MaxActiveForUser != 7 {
+		t.Fatalf("MaxActiveForUser = %d, want 7", store.createIn.MaxActiveForUser)
+	}
+}
+
 func TestRegisterPasteRejectsBlankIdempotencyKey(t *testing.T) {
 	svc := resume.NewService(resume.ServiceOptions{Store: &fakeStore{}, NewID: sequenceIDs("resume-1", "job-1")})
 	_, err := svc.RegisterResume(context.Background(), resume.RegisterInput{
@@ -136,6 +160,47 @@ func TestGetResumeMapsStoreNotFound(t *testing.T) {
 	_, err := svc.GetResume(context.Background(), "user-1", "missing")
 	if !errors.Is(err, resume.ErrNotFound) {
 		t.Fatalf("GetResume err = %v, want ErrNotFound", err)
+	}
+}
+
+func TestGetResumeSourceReadsUploadObjectWithUserScope(t *testing.T) {
+	body := []byte("%PDF-1.4 resume")
+	store := &fakeStore{sourceOut: resumestore.SourceFileRecord{
+		ObjectKey:   "user-1/resume/file-1.pdf",
+		FileName:    "alice-platform.pdf",
+		ContentType: "application/pdf",
+		ByteSize:    int64(len(body)),
+	}}
+	objects := &fakeObjectReader{objects: map[string][]byte{
+		"user-1/resume/file-1.pdf": body,
+	}}
+	svc := resume.NewService(resume.ServiceOptions{
+		Store:         store,
+		SourceObjects: objects,
+	})
+
+	got, err := svc.GetResumeSource(context.Background(), "user-1", "resume-1")
+	if err != nil {
+		t.Fatalf("GetResumeSource: %v", err)
+	}
+	if got.FileName != "alice-platform.pdf" || got.ContentType != "application/pdf" || string(got.Body) != string(body) {
+		t.Fatalf("source = %+v body=%q", got, string(got.Body))
+	}
+	if store.sourceUserID != "user-1" || store.sourceResumeID != "resume-1" {
+		t.Fatalf("source scope user=%q resume=%q", store.sourceUserID, store.sourceResumeID)
+	}
+	if objects.readKey != "user-1/resume/file-1.pdf" || objects.maxBytes != int64(len(body)) {
+		t.Fatalf("object read key=%q max=%d", objects.readKey, objects.maxBytes)
+	}
+}
+
+func TestGetResumeSourceMapsMissingUploadToNotFound(t *testing.T) {
+	store := &fakeStore{sourceErr: resumestore.ErrAssetNotFound}
+	svc := resume.NewService(resume.ServiceOptions{Store: store, SourceObjects: &fakeObjectReader{}})
+
+	_, err := svc.GetResumeSource(context.Background(), "user-1", "missing")
+	if !errors.Is(err, resume.ErrNotFound) {
+		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
 }
 
@@ -515,6 +580,11 @@ type fakeStore struct {
 	listOut    resumestore.ListResult
 	listErr    error
 
+	sourceUserID   string
+	sourceResumeID string
+	sourceOut      resumestore.SourceFileRecord
+	sourceErr      error
+
 	updateIn  resumestore.UpdateResumeInput
 	updateOut resumestore.ResumeRecord
 	updateErr error
@@ -553,6 +623,12 @@ func (s *fakeStore) List(_ context.Context, userID string, filter resumestore.Li
 	s.listUserID = userID
 	s.listFilter = filter
 	return s.listOut, s.listErr
+}
+
+func (s *fakeStore) GetSourceFile(_ context.Context, userID string, resumeID string) (resumestore.SourceFileRecord, error) {
+	s.sourceUserID = userID
+	s.sourceResumeID = resumeID
+	return s.sourceOut, s.sourceErr
 }
 
 func (s *fakeStore) UpdateResume(_ context.Context, in resumestore.UpdateResumeInput) (resumestore.ResumeRecord, error) {
@@ -595,4 +671,20 @@ func sequenceIDs(ids ...string) func() string {
 
 func ptr(in string) *string {
 	return &in
+}
+
+type fakeObjectReader struct {
+	objects  map[string][]byte
+	readKey  string
+	maxBytes int64
+	err      error
+}
+
+func (r *fakeObjectReader) Read(_ context.Context, objectKey string, maxBytes int64) ([]byte, error) {
+	r.readKey = objectKey
+	r.maxBytes = maxBytes
+	if r.err != nil {
+		return nil, r.err
+	}
+	return r.objects[objectKey], nil
 }

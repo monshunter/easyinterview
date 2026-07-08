@@ -253,7 +253,7 @@ turn clearly needs another retry, in which case use `queued_for_retry`; use
 summarized observations only; do not request raw interview text or direct
 quotes.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('410f16c3-3ea9-5327-a87a-027f039368b3', 'resume.parse', 'v0.1.0', 'multi', '4e9243f53364021a87dcf810965c3c7b7dbc6d331f490e1262b675029cb961e3', $body$You are a resume parser. Extract structured experience from the supplied
+  ('410f16c3-3ea9-5327-a87a-027f039368b3', 'resume.parse', 'v0.1.0', 'multi', '71f57bc206d0e983ff918d776d6ebb7c2ece1de1959a4238de91fdd5c612ed5d', $body$You are a resume parser. Extract structured experience from the supplied
 resume text. Respond in the language indicated by `{{language}}` (default
 English) regardless of the resume's source language.
 
@@ -266,6 +266,11 @@ name plus headline, role, or strongest technical positioning when available.
 Never use "uploaded resume", "pasted resume", the file name, or a raw first-line
 copy as `displayName`.
 
+Generate `markdownText` as the complete resume body converted to Markdown for
+UI rendering. Preserve the original writing order, section structure, wording,
+bullets, and factual content. Do not summarize, rewrite, add, remove, or reorder
+resume content; only normalize the representation to Markdown syntax.
+
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
 Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
@@ -273,6 +278,7 @@ Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 Output shape:
 - `$` (required, object): Structured resume summary parsed from supplied resume text.
 - `$.displayName` (required, string): Short meaningful resume name for UI display, derived from candidate name plus headline, role, or strongest technical positioning; never use uploaded/pasted resume, the file name, or a raw first-line copy.
+- `$.markdownText` (required, string): Complete resume text converted to Markdown while preserving the source resume's writing order, section structure, wording, bullets, and factual content. Do not summarize, rewrite, add, remove, or reorder resume content.
 - `$.basics` (required, object): Basic candidate identity and contact summary.
 - `$.basics.name` (optional, string): Candidate name when present.
 - `$.basics.headline` (optional, string): Candidate headline or target positioning.
@@ -310,6 +316,7 @@ Example complete JSON output:
 ```json
 {
   "displayName": "Candidate A - Backend engineer",
+  "markdownText": "# Candidate A\n\n## Experience\n- Reduced p95 latency by 32% by redesigning cache invalidation.\n\n## Skills\n- Go",
   "basics": {
     "name": "Candidate A",
     "headline": "Backend engineer focused on distributed systems",

@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow BDD Checklist
 
-> **版本**: 1.4
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-08
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -10,6 +10,8 @@
 
 - [x] Scenario assets exist for E2E.P0.081.
 - [x] Verify script covers upload / paste happy path, IK, direct detail navigation, parser/preview absence, privacy, UI parity assertions, and raw-first-line naming negative. <!-- verified: 2026-07-07 method=scenario scenario=E2E.P0.081 -->
+- [x] P0.081 或 focused substitute gate 覆盖 2MiB 上传上限、右侧 sidebar absent，以及注册后 waiting/detail route handoff。<!-- verified: 2026-07-07 method=focused-substitute tests=UploadTab.test.tsx,ResumeCreateFlow.test.tsx,ResumeDetailView.test.tsx -->
+- [x] P0.081 或 focused substitute gate 覆盖 Resume upload 仅支持 PDF / Markdown / TXT，DOCX 在 presign/register 前被拒绝。<!-- verified: 2026-07-07 method=focused-substitute tests=UploadTab.test.tsx -->
 
 ## E2E.P0.082 Retired Parser UI Negative
 
@@ -20,3 +22,9 @@
 
 - [x] Scenario assets exist under `test/scenarios/e2e/p0-083-resume-create-flow-preview-confirm-and-cta-handoff/`.
 - [x] Verify script covers Home CTA, Workspace CTA, direct detail navigation and auth pending action boundary without preview confirm.
+
+## E2E.P0.084 Home Existing Resume Picker Regression
+
+- [x] Focused Home regression test covers readable non-archived `listResumes` records remaining selectable even when `parseStatus` is not `ready`.<!-- verified: 2026-07-08 method=vitest test=HomeResumeSelection.test.tsx -->
+- [x] Focused Parse regression test covers the same selectable-resume rule after JD parse handoff.<!-- verified: 2026-07-08 method=vitest test=ParseResumeBinding.test.tsx -->
+- [x] Browser screenshot evidence shows the Home resume select populated and not empty.<!-- verified: 2026-07-08 method=playwright-screenshot artifact=.test-output/screenshots/home-resume-picker-fixed-2026-07-08.png -->

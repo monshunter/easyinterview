@@ -8,7 +8,7 @@
 
 ## 1 Fixture registry and coverage
 
-- [x] 1.1 Registry reads `openapi/fixtures/<tag>/<operationId>.json` and exposes operationId lookup for all current 35 operations.
+- [x] 1.1 Registry reads `openapi/fixtures/<tag>/<operationId>.json` and exposes operationId lookup for all current 36 operations.<!-- verified: 2026-07-07 method=python-unittest tests=scripts.mock_contract.fixture_registry_test,frontend devMockClient.test.ts -->
 - [x] 1.2 Registry tests fail on missing fixture, extra fixture, unexpected tag directory, mismatched operationId and non-current mock/API token.
 - [x] 1.3 `make lint-mock-contract` includes `make validate-fixtures`, `make lint-openapi`, fixture registry tests and mock runtime boundary lint.
 
@@ -34,5 +34,5 @@
 
 ## 5 Current owner compression gate
 
-- [x] 5.1 `spec.md`, `plan.md`, `checklist.md`, `context.yaml` and plans INDEX align to the current 35-operation fixture-backed mock runtime contract.
+- [x] 5.1 `spec.md`, `plan.md`, `checklist.md`, `context.yaml` and plans INDEX align to the current 36-operation fixture-backed mock runtime contract.<!-- verified: 2026-07-07 method=targeted-doc-update+context-validation -->
   <!-- verified: 2026-07-07 method=current-owner-compression evidence="Updated mock-contract-suite spec.md to v1.13, plan.md/checklist.md to v1.7, context specVersion to v1.13, and synced docs/spec plus mock-contract-suite plans INDEX. PASS: targeted stale-wording grep returned no matches except current completeMyProfile operation when broad Profile token is included; validate_context.py mock-contract-suite/001 tooling PASS; make lint-mock-contract PASS; python3 -m pytest scripts/lint/mock_runtime_boundary_test.py -q PASS (7 tests); go test ./backend/internal/api/mockruntime -count=1 PASS; pnpm --filter @easyinterview/frontend test src/api/mockTransport.test.ts src/api/devMockClient.test.ts src/api/clientFactory.test.ts PASS (13 tests); make codegen-check PASS." -->

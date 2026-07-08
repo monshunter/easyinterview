@@ -133,7 +133,7 @@ describe("ResumeDetailView read-only contract", () => {
     expect(updateSpy).not.toHaveBeenCalled();
   });
 
-  it("polls a pending upload until the extracted original text snapshot is visible", async () => {
+  it("polls a pending PDF upload until the source page stack and display name are visible", async () => {
     const client = buildClient("default");
     const queued: Resume = {
       ...(getResumeFixture.scenarios.default.response.body as Resume),
@@ -165,6 +165,10 @@ describe("ResumeDetailView read-only contract", () => {
       params: { resumeId: RESUME_ID },
     });
 
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-detail-parse-waiting")).toBeInTheDocument();
+    });
+
     await waitFor(
       () => {
         expect(getResumeSpy).toHaveBeenCalledTimes(2);
@@ -175,9 +179,15 @@ describe("ResumeDetailView read-only contract", () => {
       screen.getAllByRole("heading", { name: "谭章毓 - 后端工程师 AI" })
         .length,
     ).toBeGreaterThanOrEqual(1);
-    expect(screen.getByTestId("resume-detail-preview-content")).toHaveTextContent(
+    const stack = screen.getByTestId("resume-detail-pdf-preview-stack");
+    expect(stack).toHaveAttribute(
+      "data-source-url",
+      "/api/v1/resumes/01918fa0-0000-7000-8000-000000001000/source",
+    );
+    expect(screen.getByTestId("resume-detail-preview-content")).not.toHaveTextContent(
       "service-registry-operator / korder / ohmykube",
     );
+    expect(document.querySelector("object, iframe, embed")).toBeNull();
     expect(
       screen.queryByRole("heading", { name: "谭章毓简历-后端工程师AI.pdf" }),
     ).not.toBeInTheDocument();
@@ -185,7 +195,34 @@ describe("ResumeDetailView read-only contract", () => {
     expect(screen.queryByTestId("resume-preview-confirm")).not.toBeInTheDocument();
   });
 
-  it("does not keep polling a failed upload once a readable snapshot is available", async () => {
+  it("renders a failed parse state when no readable snapshot exists", async () => {
+    const client = buildClient("default");
+    const failedEmpty: Resume = {
+      ...(getResumeFixture.scenarios.default.response.body as Resume),
+      id: RESUME_ID,
+      title: "failed.pdf",
+      displayName: "",
+      sourceType: "upload",
+      parseStatus: "failed",
+      originalText: null,
+      parsedTextSnapshot: null,
+      parsedSummary: null,
+      structuredProfile: {},
+    };
+    vi.spyOn(client, "getResume").mockResolvedValue(failedEmpty);
+
+    renderDetailWithClient(client, {
+      name: "resume_versions",
+      params: { resumeId: RESUME_ID },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resume-detail-parse-failed")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("resume-detail-preview-content")).not.toBeInTheDocument();
+  });
+
+  it("does not keep polling a failed PDF upload once the source page stack is available", async () => {
     const client = buildClient("default");
     const failedWithSnapshot: Resume = {
       ...(getResumeFixture.scenarios.default.response.body as Resume),
@@ -210,13 +247,15 @@ describe("ResumeDetailView read-only contract", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("resume-detail-preview-content")).toHaveTextContent(
-        "AI Workflow",
-      );
+      expect(screen.getByTestId("resume-detail-pdf-preview-stack")).toBeInTheDocument();
     });
     await new Promise((resolve) => setTimeout(resolve, 350));
 
     expect(getResumeSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("resume-detail-preview-content")).not.toHaveTextContent(
+      "AI Workflow",
+    );
+    expect(document.querySelector("object, iframe, embed")).toBeNull();
   });
 
   it("shows a retryable detail error for non-404 getResume failures", async () => {

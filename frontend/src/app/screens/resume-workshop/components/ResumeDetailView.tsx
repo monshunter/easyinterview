@@ -2,10 +2,11 @@ import type { FC } from "react";
 
 import { useI18n } from "../../../i18n/messages";
 import { useNavigation } from "../../../navigation/NavigationProvider";
-import { mapResumeToUiSource } from "../adapters/resume";
+import { buildResumeBodyMarkdown, mapResumeToUiSource } from "../adapters/resume";
 import { useResumeAsset } from "../hooks/useResumeAsset";
 import { NotFoundEmptyState } from "./NotFoundEmptyState";
 import { ResumePreviewTab } from "./ResumePreviewTab";
+import { ResumeWorkshopIcon } from "./ResumeWorkshopIcon";
 
 export interface ResumeDetailViewProps {
   resumeId: string;
@@ -56,6 +57,35 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({ resumeId }) => {
 
   const resume = resumeQuery.data;
   const ui = mapResumeToUiSource(resume);
+  const isParsing =
+    resume.parseStatus === "queued" || resume.parseStatus === "processing";
+  const hasReadableBody = buildResumeBodyMarkdown(resume).trim().length > 0;
+
+  if (isParsing) {
+    return (
+      <ResumeParseState
+        testId="resume-detail-parse-waiting"
+        icon="sparkle"
+        title={t("resumeWorkshop.detail.waitingTitle")}
+        body={t("resumeWorkshop.detail.waitingBody")}
+        backLabel={t("resumeWorkshop.detail.back")}
+        onBack={onBack}
+      />
+    );
+  }
+
+  if (resume.parseStatus === "failed" && !hasReadableBody) {
+    return (
+      <ResumeParseState
+        testId="resume-detail-parse-failed"
+        icon="file"
+        title={t("resumeWorkshop.detail.failedTitle")}
+        body={t("resumeWorkshop.detail.failedBody")}
+        backLabel={t("resumeWorkshop.detail.back")}
+        onBack={onBack}
+      />
+    );
+  }
 
   return (
     <div data-testid="resume-detail-container" className="ei-resume-detail">
@@ -88,3 +118,37 @@ export const ResumeDetailView: FC<ResumeDetailViewProps> = ({ resumeId }) => {
     </div>
   );
 };
+
+interface ResumeParseStateProps {
+  testId: string;
+  icon: "file" | "sparkle";
+  title: string;
+  body: string;
+  backLabel: string;
+  onBack: () => void;
+}
+
+const ResumeParseState: FC<ResumeParseStateProps> = ({
+  testId,
+  icon,
+  title,
+  body,
+  backLabel,
+  onBack,
+}) => (
+  <div data-testid={testId} className="ei-resume-detail-parse-state">
+    <div className="ei-resume-detail-parse-icon" aria-hidden="true">
+      <ResumeWorkshopIcon name={icon} size={22} />
+    </div>
+    <h1 className="ei-text-display">{title}</h1>
+    <p className="ei-text-body">{body}</p>
+    <button
+      type="button"
+      data-testid="resume-detail-parse-back"
+      className="ei-resume-detail-back"
+      onClick={onBack}
+    >
+      {backLabel}
+    </button>
+  </div>
+);

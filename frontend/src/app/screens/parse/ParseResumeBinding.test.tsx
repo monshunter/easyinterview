@@ -66,6 +66,56 @@ function emptyListResumesFixture(): OperationFixture {
   };
 }
 
+function readableNonReadyListResumesFixture(): OperationFixture {
+  const body = (
+    listResumesFixture.scenarios.default as {
+      response: { body: { items: Array<Record<string, unknown>> } };
+    }
+  ).response.body;
+  const base = body.items[0] ?? {};
+  return {
+    operationId: "listResumes",
+    scenarios: {
+      default: {
+        response: {
+          status: 200,
+          body: {
+            ...body,
+            items: [
+              {
+                ...base,
+                id: "01918fa0-0000-7000-8000-000000001101",
+                title: "failed-readable.pdf",
+                displayName: "Readable Failed Resume",
+                parseStatus: "failed",
+                sourceType: "upload",
+                originalText: null,
+                parsedTextSnapshot: "# Readable Failed Resume\n\nRecovered PDF text.",
+                updatedAt: "2026-05-15T08:00:00Z",
+                deletedAt: null,
+                status: "active",
+              },
+              {
+                ...base,
+                id: "01918fa0-0000-7000-8000-000000001102",
+                title: "Queued Paste Source",
+                displayName: "Queued Paste Source",
+                parseStatus: "queued",
+                sourceType: "paste",
+                originalText: "Queued paste resume body",
+                parsedTextSnapshot: null,
+                updatedAt: "2026-05-14T08:00:00Z",
+                deletedAt: null,
+                status: "active",
+              },
+            ],
+          },
+        },
+      },
+    },
+  };
+}
+
 function renderParse(
   client: EasyInterviewClient,
   routeParams: Record<string, string> = {},
@@ -169,6 +219,31 @@ describe("ParseResumeBinding", () => {
 
     expect(screen.getByTestId("parse-resume-binding")).toHaveTextContent(
       "Alice Example - Product Platform Resume",
+    );
+    expect(screen.getByTestId("parse-action-save-plan")).toBeEnabled();
+    expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
+  });
+
+  it("keeps readable non-ready resumes selectable after JD parse handoff", async () => {
+    const client = createClient([readableNonReadyListResumesFixture()]);
+    await renderReadyParse(client);
+
+    expect(await screen.findByTestId("parse-launch")).toBeInTheDocument();
+    expect(screen.queryByTestId("parse-resume-empty")).not.toBeInTheDocument();
+    expect(
+      await screen.findByTestId(
+        "parse-resume-option-01918fa0-0000-7000-8000-000000001101",
+      ),
+    ).toHaveTextContent("Readable Failed Resume");
+
+    fireEvent.click(
+      screen.getByTestId(
+        "parse-resume-option-01918fa0-0000-7000-8000-000000001101",
+      ),
+    );
+
+    expect(screen.getByTestId("parse-resume-binding")).toHaveTextContent(
+      "Readable Failed Resume",
     );
     expect(screen.getByTestId("parse-action-save-plan")).toBeEnabled();
     expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
