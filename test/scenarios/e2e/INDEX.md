@@ -24,7 +24,7 @@
 | E2E.P0.014 | frontend-home-job-picks-and-parse C-1, C-4 | `p0-014-home-default-render/` | Home 默认渲染：empty/non-empty/12+ 三态，DOM 锚点，排序，TopBar 高亮 | automated | Ready |
 | E2E.P0.015 | frontend-home-job-picks-and-parse C-2, C-3, C-6 | `p0-015-jd-import-and-parse/` | Paste/Upload/URL → import → parse loading → preview 主路径 + failed | automated | Ready |
 | E2E.P0.016 | frontend-home-job-picks-and-parse C-5, C-7, C-17 | `p0-016-parse-confirm-to-workspace/` | Parse 编辑 + 绑定简历 + Save/Start handoff | automated | Ready |
-| E2E.P0.018 | frontend-workspace-and-practice C-2, C-7, C-8, C-9 | `p0-018-workspace-default-render/` | Workspace 默认渲染：plan eyebrow + header + Interview Launcher + Main Left/Right + Modals | automated | Ready |
+| E2E.P0.018 | frontend-workspace-and-practice C-2, C-7, C-8, C-9 | `p0-018-workspace-default-render/` | 面试入口规划列表 + Workspace 当前规划详情：plan list、plan eyebrow、header、Interview Launcher、Main Left/Right + Modals | automated | Ready |
 | E2E.P0.019 | frontend-workspace-and-practice C-2, C-3, C-8, C-9 | `p0-019-workspace-context-loading/` | Workspace context loading：empty/missing-resume 空态 + getPracticePlan refresh | automated | Ready |
 | E2E.P0.020 | frontend-workspace-and-practice C-1, C-3, C-12 | `p0-020-workspace-start-practice/` | 立即面试 双步契约 + Idempotency-Key + pendingAction 未登录接续 | automated | Ready |
 | E2E.P0.021 | frontend-workspace-and-practice C-7, C-9, C-10, C-12 | `p0-021-workspace-handoff/` | Workspace handoff + 隐私红线 + non-current negative grep | automated | Ready |

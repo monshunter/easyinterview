@@ -7,6 +7,9 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 test -s "$LOG_FILE"
 "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}"
 grep -Eq 'Test Files +[0-9]+ passed \([0-9]+\)' "$LOG_FILE" || { echo "E2E.P0.018: no passing test files found" >&2; exit 1; }
+grep -Fq 'TopBar.test.tsx' "$LOG_FILE" || { echo "E2E.P0.018: TopBar label test did not run" >&2; exit 1; }
+grep -Fq 'p0-004-app-shell-language-switch.test.tsx' "$LOG_FILE" || { echo "E2E.P0.018: app shell language scenario did not run" >&2; exit 1; }
+grep -Fq 'WorkspaceEmptyState.test.tsx' "$LOG_FILE" || { echo "E2E.P0.018: workspace no-context landing test did not run" >&2; exit 1; }
 grep -Fq 'WorkspaceModalIntegration.test.tsx' "$LOG_FILE" || { echo "E2E.P0.018: modal integration test did not run" >&2; exit 1; }
 grep -Fq 'PlanSwitcherModal.test.tsx' "$LOG_FILE" || { echo "E2E.P0.018: plan switcher test did not run" >&2; exit 1; }
 grep -Fq 'ResumePickerModal.test.tsx' "$LOG_FILE" || { echo "E2E.P0.018: resume picker test did not run" >&2; exit 1; }
@@ -35,4 +38,44 @@ if rg -n 'workspace-resume-modal-disabled-note|resumePicker\.disabledNote' \
   echo "E2E.P0.018: non-current disabled resume picker wording leaked" >&2
   exit 1
 fi
+grep -Fq 'workspace-plan-list' "$REPO_ROOT/frontend/src/app/screens/workspace/WorkspaceScreen.tsx" || {
+  echo "E2E.P0.018: workspace no-context plan-list anchor missing" >&2
+  exit 1
+}
+grep -Fq 'workspace-plan-list-card-body-' "$REPO_ROOT/frontend/src/app/screens/workspace/WorkspaceScreen.tsx" || {
+  echo "E2E.P0.018: workspace plan-list card body section missing" >&2
+  exit 1
+}
+grep -Fq 'workspace-plan-list-card-footer-' "$REPO_ROOT/frontend/src/app/screens/workspace/WorkspaceScreen.tsx" || {
+  echo "E2E.P0.018: workspace plan-list card footer section missing" >&2
+  exit 1
+}
+grep -Fq 'boxShadow: "var(--ei-shadow-elev2)"' "$REPO_ROOT/frontend/src/app/screens/workspace/WorkspaceScreen.tsx" || {
+  echo "E2E.P0.018: workspace plan-list cards lack elevation token" >&2
+  exit 1
+}
+if rg -n 'workspace\.planList\.cardMeta|job\.targetLanguage\?\.toUpperCase|job\.sourceType \? formatSourceType' "$REPO_ROOT/frontend/src/app/screens/workspace/WorkspaceScreen.tsx"; then
+  echo "E2E.P0.018: workspace plan-list cards leaked source/language metadata" >&2
+  exit 1
+fi
+if rg -n '"workspace\.planList\.cardMeta"' "$REPO_ROOT/frontend/src/app/i18n/locales"; then
+  echo "E2E.P0.018: obsolete plan-list cardMeta locale key remains" >&2
+  exit 1
+fi
+grep -Fq 'background: "var(--ei-color-accent)"' "$REPO_ROOT/frontend/src/app/screens/workspace/WorkspaceScreen.tsx" || {
+  echo "E2E.P0.018: workspace plan-list open CTA is not theme accent" >&2
+  exit 1
+}
+grep -Fq 'workspace-plan-list-card-footer-' "$REPO_ROOT/ui-design/src/screen-workspace.jsx" || {
+  echo "E2E.P0.018: ui-design plan-list card footer source missing" >&2
+  exit 1
+}
+grep -Fq '"nav.workspace": "面试"' "$REPO_ROOT/frontend/src/app/i18n/locales/zh.ts" || {
+  echo "E2E.P0.018: zh TopBar workspace label is not concise 面试" >&2
+  exit 1
+}
+grep -Fq '"nav.workspace": "Interview"' "$REPO_ROOT/frontend/src/app/i18n/locales/en.ts" || {
+  echo "E2E.P0.018: en TopBar workspace label is not concise Interview" >&2
+  exit 1
+}
 echo "E2E.P0.018 PASS"

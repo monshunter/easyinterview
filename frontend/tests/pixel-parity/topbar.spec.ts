@@ -29,7 +29,7 @@ const REPO_ROOT = resolve(process.cwd(), "..");
 
 const PRIMARY_NAV_LABELS_EN = [
   "Home",
-  "Mock Interview",
+  "Interview",
   "Resume",
 ] as const;
 

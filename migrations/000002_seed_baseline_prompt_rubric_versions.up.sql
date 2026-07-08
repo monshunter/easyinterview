@@ -439,10 +439,13 @@ Example complete JSON output:
 ```
 <!-- output-schema-contract:end -->
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('3e4dae23-7bc3-56cb-868e-72e7c8a6c331', 'target.import.parse', 'v0.1.0', 'multi', 'd328a40d0ae3fbd39907e484c0dc230d30c8d76eb88b85c3c2699f7d739eb091', $body$You are an expert technical interviewer assistant. Extract the interview-ready
+  ('3e4dae23-7bc3-56cb-868e-72e7c8a6c331', 'target.import.parse', 'v0.1.0', 'multi', 'dbdad42b8852894e4272141ad8f779380210bd2d5965bd191814fe86827486e2', $body$You are an expert technical interviewer assistant. Extract the interview-ready
 target job model from the following job description. Respond strictly in the
 language identified by the `{{language}}` variable; if `{{language}}` is empty
 or unknown, respond in English.
+Always extract the canonical job title and company or hiring organization name
+when they are present anywhere in the JD text, source URL, page heading, or
+metadata-like lines. Do not leave them out when the JD includes them.
 
 JD source URL (empty for non-URL imports): `{{jd_source_url}}`
 JD raw text:
@@ -455,6 +458,8 @@ Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
 - `$` (required, object): Structured target job model extracted from a job description.
+- `$.title` (required, string): Canonical job title or role name extracted from the JD.
+- `$.companyName` (required, string): Canonical company or hiring organization name extracted from the JD.
 - `$.coreThemes` (required, array): Concise technical or domain themes from the role.
 - `$.coreThemes[]` (required, string): One role theme.
 - `$.interviewHypotheses` (required, array): Likely interview focus hypotheses grounded in the JD.
@@ -475,6 +480,8 @@ Output shape:
 Example complete JSON output:
 ```json
 {
+  "title": "Senior Backend Engineer",
+  "companyName": "Acme",
   "coreThemes": [
     "Distributed systems reliability"
   ],

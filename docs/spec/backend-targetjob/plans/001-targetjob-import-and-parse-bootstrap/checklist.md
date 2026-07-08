@@ -1,8 +1,8 @@
 # TargetJob Import and Parse Bootstrap Checklist
 
-> **版本**: 1.6
+> **版本**: 1.8
 > **状态**: completed
-> **更新日期**: 2026-07-08
+> **更新日期**: 2026-07-09
 
 **关联计划**: [plan](./plan.md)
 
@@ -77,3 +77,16 @@
 - [x] 7.10 将 E2E.P0.010 / 011 / 012 / 013 迁移为 auth -> HTTP API -> cmd/api drainer 的真实场景；验证: 新增 `backend/cmd/api` HTTP scenario harness，p0-010..013 `trigger.sh` 执行 `go test -v ./cmd/api -run 'TestE2EP0010HTTPTextImportParseReady|TestE2EP0011HTTPURLImportFetchAndParse|TestE2EP0012HTTPParseFailureRetryableAndNonRetryable|TestE2EP0013HTTPManualFormReady'` 对应场景，`verify.sh` 输出 `status=passed` / `method=cmd-api-http` / `validBddEvidence=true`，证据位于 `.test-output/runs/targetjob-http-20260508/e2e/E2E.P0.010..013/result.json`
 - [x] 7.11 Remediation: 删除 TargetJob active SQL 对退役 `target_jobs.profile_id` 列的依赖；验证: `cd backend && go test ./internal/targetjob -run 'TestSQLStore_|TestService_GetTargetJob|TestHandler_ErrorResponsesUseGeneratedEnvelope' -count=1` 通过，`cd backend && DATABASE_URL=<local-dev-postgres-dsn> go test -tags=integration ./internal/targetjob -run TestSQLStoreIntegration_GetTargetJobByUser_AllowsFailedJobWithoutRequirements -count=1` 通过，`rg 'profile_id|ProfileID|profileID' backend/internal/targetjob backend/cmd/api openapi/fixtures/TargetJobs openapi/openapi.yaml migrations shared` 无 active 命中，host-run backend 上截图同款 `GET /api/v1/targets/{targetJobId}` 返回 200 + `analysisStatus='failed'`
 - [x] 7.12 Remediation: BUG-0142 真实 Postgres integration gate 不得在缺少 DB 环境时 `SKIP` 假绿；验证: 未设置 `DATABASE_URL` 时 `cd backend && go test -tags=integration ./internal/targetjob -run TestSQLStoreIntegration_GetTargetJobByUser_AllowsFailedJobWithoutRequirements -count=1 -v` 非 0 且不输出 `--- SKIP`，设置真实 local-dev Postgres `DATABASE_URL` 后同一 focused gate 通过
+
+## Phase 8: JD identity and current-plan binding remediation
+
+- [x] 8.1 `target.import.parse` prompt/schema/parse executor require and persist `title` / `companyName` on parse success（验证：`cd backend && go test ./internal/targetjob -run 'TestParseExecutor|TestTargetImportPrompt|TestSQLStore_' -count=1`; `make lint-prompts` PASS）
+- [x] 8.2 `TargetJob` list/detail responses expose optional current plan binding (`currentPracticePlanId`, `resumeId`) from latest ready `practice_plans` without changing target_jobs schema（验证：`cd backend && go test ./internal/targetjob -count=1`; `make validate-fixtures`; `make lint-openapi` PASS）
+- [x] 8.3 BDD-Gate: `E2E.P0.010` target import parse ready and `E2E.P0.018` workspace plan-card selection remain aligned with the additive response contract（验证：`cd backend && go test ./cmd/api -run 'TestE2EP0010HTTPTextImportParseReady|TestE2EP0022PracticePlanBaselineCreateAndRead' -count=1`; focused frontend workspace suites PASS）
+
+## Phase 9: TargetJob-level resume binding remediation
+
+- [x] 9.1 OpenAPI, fixtures, generated Go/TS types and migration define required `ImportTargetJobRequest.resumeId` plus persisted `target_jobs.resume_id`（验证：`make codegen-openapi`; `make validate-fixtures`; local migration column check PASS）
+- [x] 9.2 `importTargetJob` validates the resume belongs to the current user and persists `target_jobs.resume_id` for all source variants without leaking cross-user resume existence（验证：`cd backend && go test ./internal/targetjob -count=1` PASS）
+- [x] 9.3 `listTargetJobs` / `getTargetJob` expose `TargetJob.resumeId` from `target_jobs.resume_id` even when no ready `practice_plans` row exists; `currentPracticePlanId` remains the only latest-plan projection（验证：targetjob store/service/handler tests PASS; local HTTP smoke imported a target with no practice plan and read back `resumeId` from DB/list/detail）
+- [x] 9.4 BDD-Gate: `E2E.P0.010` import parse ready and `E2E.P0.018` workspace list re-entry stay aligned with target job-level resume binding（验证：focused backend cmd/api + frontend workspace tests + `E2E.P0.018` scenario wrapper + local API smoke PASS）

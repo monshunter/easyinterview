@@ -18,8 +18,8 @@ import { resolve } from "node:path";
  * - Negative: non-current prototype testids absent
  *
  * Full data-driven rendering is reached through an explicit initial route
- * bootstrap with server-bound IDs. TopBar navigation still covers the
- * no-context empty state, and Home recent cards keep their product
+ * bootstrap with server-bound IDs. TopBar navigation covers the no-context
+ * interview plan-list landing, and Home recent cards keep their product
  * `resume-unbound` behavior outside this pixel harness.
  */
 
@@ -140,12 +140,12 @@ async function freezeAnimations(page: import("@playwright/test").Page): Promise<
 }
 
 /**
- * Navigate to workspace by clicking the TopBar Mock Interview button.
+ * Navigate to workspace by clicking the TopBar Interview button.
  *
  * `workspace` is an auth-gated business route (frontend-shell Phase 10 /
  * BUG-0115): the route guard renders `auth-route-gate` and redirects to
  * `auth_login` until runtime auth resolves to authenticated. Mock the auth
- * APIs first so the TopBar-click path reaches the workspace empty state
+ * APIs first so the TopBar-click path reaches the workspace plan-list landing
  * instead of the auth gate.
  */
 async function goToWorkspace(page: import("@playwright/test").Page) {
@@ -153,7 +153,7 @@ async function goToWorkspace(page: import("@playwright/test").Page) {
   await page.goto("/");
   await page.waitForSelector("[data-testid='topbar-nav-workspace']");
   await page.click("[data-testid='topbar-nav-workspace']");
-  await page.waitForSelector("[data-testid='workspace-empty']", {
+  await page.waitForSelector("[data-testid='workspace-plan-list']", {
     timeout: 5000,
   });
 }
@@ -193,16 +193,16 @@ async function goToHydratedWorkspace(page: import("@playwright/test").Page) {
 test.describe("workspace DOM anchor parity", () => {
   test("workspace route is reachable via TopBar and renders workspace-specific chrome", async ({ page }) => {
     await goToWorkspace(page);
-    // Without targetJobId, workspace renders empty state. Verify empty state elements exist.
-    await expect(page.locator("[data-testid='workspace-empty']")).toHaveCount(1, { timeout: 5000 });
+    await expect(page.locator("[data-testid='workspace-plan-list']")).toHaveCount(1, { timeout: 5000 });
+    await expect(page.locator("[data-testid='workspace-empty']")).toHaveCount(0);
   });
 
-  test("workspace empty state renders all expected sub-elements", async ({ page }) => {
+  test("workspace plan-list landing renders all expected sub-elements", async ({ page }) => {
     await goToWorkspace(page);
-    await expect(page.locator("[data-testid='workspace-empty-eyebrow']")).toHaveCount(1);
-    await expect(page.locator("[data-testid='workspace-empty-title']")).toHaveCount(1);
-    await expect(page.locator("[data-testid='workspace-empty-desc']")).toHaveCount(1);
-    await expect(page.locator("[data-testid='workspace-empty-cta']")).toHaveCount(1);
+    await expect(page.locator("[data-testid='workspace-plan-list-eyebrow']")).toHaveCount(1);
+    await expect(page.locator("[data-testid='workspace-plan-list-title']")).toHaveCount(1);
+    await expect(page.locator("[data-testid='workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000']")).toHaveCount(1);
+    await expect(page.locator("[data-testid='workspace-plan-list-create']")).toHaveCount(1);
   });
 
   test("TopBar workspace nav button has aria-current=page after navigation", async ({ page }) => {
@@ -262,16 +262,19 @@ test.describe("workspace DOM anchor parity", () => {
 });
 
 test.describe("workspace bounding box parity", () => {
-  test("workspace empty state elements do not overlap and stay in viewport", async ({ page }) => {
+  test("workspace plan-list elements do not overlap and stay in viewport", async ({ page }) => {
     await goToWorkspace(page);
     const viewport = page.viewportSize();
     expect(viewport).toBeTruthy();
 
     const anchorIds = [
-      "workspace-empty-eyebrow",
-      "workspace-empty-title",
-      "workspace-empty-desc",
-      "workspace-empty-cta",
+      "workspace-plan-list-eyebrow",
+      "workspace-plan-list-title",
+      "workspace-plan-list-subtitle",
+      "workspace-plan-list-create",
+      `workspace-plan-list-card-${WORKSPACE_TARGET_ID}`,
+      `workspace-plan-list-card-body-${WORKSPACE_TARGET_ID}`,
+      `workspace-plan-list-card-footer-${WORKSPACE_TARGET_ID}`,
     ];
 
     const rects: Array<{ id: string; r: Rect }> = [];
@@ -293,6 +296,60 @@ test.describe("workspace bounding box parity", () => {
       expect(r.top, `${id} top is negative`).toBeGreaterThanOrEqual(-5);
       expect(r.left, `${id} left is negative`).toBeGreaterThanOrEqual(-5);
     }
+  });
+
+  test("workspace plan-list cards keep visible card affordance", async ({ page }) => {
+    await goToWorkspace(page);
+
+    const styles = await page.evaluate((targetId) => {
+      const card = document.querySelector(`[data-testid='workspace-plan-list-card-${targetId}']`) as HTMLElement | null;
+      const body = document.querySelector(`[data-testid='workspace-plan-list-card-body-${targetId}']`) as HTMLElement | null;
+      const footer = document.querySelector(`[data-testid='workspace-plan-list-card-footer-${targetId}']`) as HTMLElement | null;
+      const openButton = document.querySelector(`[data-testid='workspace-plan-list-open-${targetId}']`) as HTMLButtonElement | null;
+      if (!card || !body || !footer || !openButton) {
+        throw new Error("workspace plan-list card sections missing");
+      }
+      const cardStyle = getComputedStyle(card);
+      const bodyStyle = getComputedStyle(body);
+      const footerStyle = getComputedStyle(footer);
+      const buttonStyle = getComputedStyle(openButton);
+      const probe = document.createElement("div");
+      probe.style.color = getComputedStyle(document.documentElement).getPropertyValue("--ei-color-accent").trim();
+      document.body.appendChild(probe);
+      const accentColor = getComputedStyle(probe).color;
+      probe.remove();
+      return {
+        cardBg: cardStyle.backgroundColor,
+        bodyBg: bodyStyle.backgroundColor,
+        footerBg: footerStyle.backgroundColor,
+        borderTopWidth: cardStyle.borderTopWidth,
+        borderTopStyle: cardStyle.borderTopStyle,
+        boxShadow: cardStyle.boxShadow,
+        bodyPaddingTop: Number.parseFloat(bodyStyle.paddingTop),
+        footerPaddingTop: Number.parseFloat(footerStyle.paddingTop),
+        footerBorderTopWidth: footerStyle.borderTopWidth,
+        footerDisplay: footerStyle.display,
+        footerJustifyContent: footerStyle.justifyContent,
+        footerText: footer.innerText,
+        buttonBg: buttonStyle.backgroundColor,
+        buttonBorderColor: buttonStyle.borderTopColor,
+        accentColor,
+      };
+    }, WORKSPACE_TARGET_ID);
+
+    expect(styles.cardBg).toBe(styles.bodyBg);
+    expect(styles.footerBg).toBe(styles.cardBg);
+    expect(styles.borderTopWidth).toBe("1px");
+    expect(styles.borderTopStyle).toBe("solid");
+    expect(styles.boxShadow).not.toBe("none");
+    expect(styles.bodyPaddingTop).toBeGreaterThanOrEqual(18);
+    expect(styles.footerPaddingTop).toBeGreaterThanOrEqual(12);
+    expect(styles.footerBorderTopWidth).toBe("1px");
+    expect(styles.footerDisplay).toBe("flex");
+    expect(styles.footerJustifyContent).toBe("flex-end");
+    expect(styles.footerText).not.toMatch(/URL import|Manual input|ZH-CN/i);
+    expect(styles.buttonBg).toBe(styles.accentColor);
+    expect(styles.buttonBorderColor).toBe(styles.accentColor);
   });
 
   test("hydrated workspace primary anchors stay in viewport", async ({ page }) => {
@@ -361,10 +418,10 @@ test.describe("workspace dark mode + customAccent visual diff", () => {
 });
 
 test.describe("workspace screenshot regression", () => {
-  test("workspace empty state renders a non-empty screenshot without a baseline prerequisite", async ({ page }) => {
+  test("workspace plan-list landing renders a non-empty screenshot without a baseline prerequisite", async ({ page }) => {
     await goToWorkspace(page);
     await freezeAnimations(page);
-    await expect(page.locator("[data-testid='workspace-empty']")).toBeVisible();
+    await expect(page.locator("[data-testid='workspace-plan-list']")).toBeVisible();
     const screenshot = await page.screenshot({ fullPage: false });
     expect(screenshot.length).toBeGreaterThan(10_000);
   });

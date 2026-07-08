@@ -1,8 +1,8 @@
 # TargetJob Import and Parse Bootstrap
 
-> **版本**: 1.6
+> **版本**: 1.8
 > **状态**: completed
-> **更新日期**: 2026-07-08
+> **更新日期**: 2026-07-09
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -40,9 +40,9 @@
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` (`default`, Phase 0 add `manual-text-primary`, `manual-form-ready-terminal-job`, `url-invalid-source`, `url-source-unavailable`) | future `frontend-home-job-picks-and-parse` home / parse flow via generated client; `ui-design/src/screens-p0-complete.jsx::ParseScreen` 已提供 `Re-parse / 重新解析` 前端体验，但后端不新增 rerun operation | `backend/internal/api` generated `ServerInterface` adapter → `backend/internal/targetjob` handler / service / store；实施前状态为 `not-yet-implemented` | `url/manual_text/file`: `target_jobs` + `target_job_sources` + `async_jobs(target_import)` + outbox `target.import.requested`（`manual_text` event `sourceType=text`）；`manual_form`: 同步写 `target_jobs` + `target_job_requirements` 草稿，返回 terminal `Job(type=target_import,status=succeeded)`，不派发 runner job / import requested event | `target.import.default` only for async parse sources; `manual_form` is `none` | `E2E.P0.010` manual_text primary + idempotency；`E2E.P0.011` URL source；`E2E.P0.012` parse failure；`E2E.P0.013` manual_form ready |
-| `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` (`default`, `prototype-baseline`) | future TargetJob list / workspace pickers via generated client; current frontend may stay fixture-backed until this row handler status is real | `backend/internal/targetjob` list handler / store cursor query；实施前状态为 `not-yet-implemented` | read `target_jobs` + joined summaries / requirements as generated `PaginatedTargetJob`; soft-deleted rows filtered | none | `E2E.P0.010` verifies imported job is visible in list; focused handler / store tests cover filters, cursor, empty page |
-| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` (`default`, `prototype-baseline`) | parse confirmation / workspace detail via generated client | `backend/internal/targetjob` get handler / store detail query；实施前状态为 `not-yet-implemented` | read `target_jobs` + `target_job_requirements` + summary / fit JSON; user-scoped 404 on missing / cross-user / soft-delete | none after parse completion; provenance is persisted output | `E2E.P0.010` and `E2E.P0.012`; focused handler tests cover cross-user 404 and soft-delete |
+| `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` (`default`, Phase 0 add `manual-text-primary`, `manual-form-ready-terminal-job`, `url-invalid-source`, `url-source-unavailable`) | `frontend-home-job-picks-and-parse` home / parse flow via generated client, including selected `resumeId` | `backend/internal/api` generated `ServerInterface` adapter → `backend/internal/targetjob` handler / service / store | `url/manual_text/file`: `target_jobs.resume_id` + `target_jobs` + `target_job_sources` + `async_jobs(target_import)` + outbox `target.import.requested`（`manual_text` event `sourceType=text`）；`manual_form`: 同步写 `target_jobs.resume_id` + `target_jobs` + `target_job_requirements` 草稿，返回 terminal `Job(type=target_import,status=succeeded)`，不派发 runner job / import requested event | `target.import.default` only for async parse sources; `manual_form` is `none` | `E2E.P0.010` manual_text primary + idempotency；`E2E.P0.011` URL source；`E2E.P0.012` parse failure；`E2E.P0.013` manual_form ready |
+| `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` (`default`, `prototype-baseline`) | TargetJob list / workspace pickers via generated client | `backend/internal/targetjob` list handler / store cursor query | read `target_jobs.resume_id` + `target_jobs` + optional latest ready `practice_plans.currentPracticePlanId`; soft-deleted rows filtered | none | `E2E.P0.010` verifies imported job is visible in list; `E2E.P0.018` verifies workspace list re-entry carries resume binding |
+| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` (`default`, `prototype-baseline`) | parse confirmation / workspace detail via generated client | `backend/internal/targetjob` get handler / store detail query | read `target_jobs.resume_id` + `target_jobs` + `target_job_requirements` + summary / fit JSON + optional latest ready practice plan; user-scoped 404 on missing / cross-user / soft-delete | none after parse completion; provenance is persisted output | `E2E.P0.010`, `E2E.P0.012`, `E2E.P0.018`; focused handler tests cover cross-user 404, soft-delete and resume binding recovery |
 | `updateTargetJob` | `openapi/fixtures/TargetJobs/updateTargetJob.json` (`default`, Phase 0 add `invalid-state-transition`, `cross-user-hidden-not-found`) | workspace lifecycle / notes edits via generated client | `backend/internal/targetjob` update handler / idempotency service / store update；实施前状态为 `not-yet-implemented` | update `target_jobs.status` / `location_text` / `notes` / hints scoped by `(user_id, id)` and `(user_id, idempotency_key)` | none | `E2E.P0.010` verifies minimal status / notes update after parse; focused handler tests cover `TARGET_INVALID_STATE_TRANSITION` and cross-user idempotency |
 
 ## 4 实施步骤
@@ -65,7 +65,7 @@ F1 metrics dictionary 必须登记 `target_job_imports_total`、`target_job_pars
 
 #### 1.1 锁定 store 接口与 SQL 实现
 
-复用 B4 baseline 的 `target_jobs` / `target_job_requirements` / `target_job_sources` 三张表与现有索引。store 接口必须覆盖：插入 target_job（含初始 `analysis_status='queued'` 或 `'ready'`）、读取按 `(user_id, id)`、列表按 `(user_id, status, analysis_status, q, cursor, page_size)`、更新生命周期字段、写入 requirements 批量、更新 `analysis_status` + `summary` + `fit_summary`、写入 / 更新 `target_job_sources`，并提供解析成功 / 失败的原子提交方法。所有方法必须按 `user_id` 过滤；越权返回 `sql.ErrNoRows` 等价语义，handler 层映射为 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND`。不新增 migration；如需新列必须先停止并修订 [B4](../../../db-migrations-baseline/spec.md)。
+复用 B4 baseline 的 `target_jobs` / `target_job_requirements` / `target_job_sources` 三张表与现有索引。store 接口必须覆盖：插入 target_job（含初始 `analysis_status='queued'` 或 `'ready'` 和创建时绑定的 `resume_id`）、读取按 `(user_id, id)`、列表按 `(user_id, status, analysis_status, q, cursor, page_size)`、更新生命周期字段、写入 requirements 批量、更新 `analysis_status` + `summary` + `fit_summary`、写入 / 更新 `target_job_sources`，并提供解析成功 / 失败的原子提交方法。所有方法必须按 `user_id` 过滤；越权返回 `sql.ErrNoRows` 等价语义，handler 层映射为 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND`。本次 v1.8 明确允许新增 migration 为 `target_jobs.resume_id` 建立当前产品绑定字段，并要求真实 Postgres gate 覆盖迁移后的 import/list/get 行为。
 
 #### 1.2 锁定 config / secret 边界
 
@@ -128,6 +128,19 @@ A3 / source 错误映射：`AI_PROVIDER_TIMEOUT` / `AI_FALLBACK_EXHAUSTED` / `TA
 #### 4.5 占位 `source_refresh` 触发入口
 
 `target.parsed` 事件触发 internal-only `async_jobs(job_type=source_refresh)` 占位（B3 dotted task name `source.refresh`，但 DB canonical 使用 `source_refresh`）；本 plan 不实现真实抓取刷新，仅保证 job 写入路径可观测、payload 不泄露 source URL 完整路径，并在 drainer 端用空 handler 标记 `freshness_status='stale'` 等待后续 plan 接管。
+
+### Phase 8: JD identity and current-plan binding remediation
+
+- `target.import.parse` AI output must include canonical `title` and `companyName`; parse success persists non-empty values to `target_jobs` in the same success transaction as summary / fitSummary / requirements / outbox.
+- `listTargetJobs` / `getTargetJob` expose optional current practice-plan binding projection (`currentPracticePlanId`, `resumeId`) derived from the latest ready `practice_plans` row so frontend plan-list cards can open the bound-resume detail path without synthetic route ids.
+- Verified focused backend suites, prompt lint, OpenAPI lint and fixture validation on 2026-07-08.
+
+### Phase 9: TargetJob-level resume binding remediation
+
+- `ImportTargetJobRequest.resumeId` is required for all source variants and must reference a non-archived resume owned by the current user.
+- `target_jobs.resume_id` stores the JD-level resume binding selected at Home import time. `listTargetJobs` / `getTargetJob` expose `TargetJob.resumeId` from this column, while `currentPracticePlanId` remains derived from the latest ready `practice_plans` row.
+- If a ready practice plan exists, its `resume_id` must match the target job binding for the plan card path; practice plan creation uses the route/context `resumeId` and the backend response continues to echo `PracticePlan.resumeId`.
+- Runtime smoke must prove the local DB row created from `importTargetJob` has `target_jobs.resume_id`, and `GET /targets` returns that value before any practice plan row exists.
 
 ### Phase 5: Privacy / observability / idempotency redlines
 
@@ -218,6 +231,7 @@ BUG-0142 的真实 Postgres gate 是强制 schema-drift 防线，不得在缺少
 - F1 metric registry preflight 通过；`make codegen-events` / `make codegen-conventions` / `make codegen-openapi` / `make validate-fixtures` / `make migrations_lint` / `make lint-config` / `make lint-events` / `make docs-check` 全绿。
 - BDD-Gate `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 全部通过，verify 输出可追溯证据；包级 `go test` 代理证据不得作为该 gate 的完成依据。
 - TargetJob active SQL 与当前 B4 schema 对齐，`rg "profile_id|ProfileID|profileID" backend/internal/targetjob ...` 无命中，真实 Postgres integration gate 覆盖失败态无 requirements 的 `GetTargetJobByUser`，缺 DB 时 fail fast 而不是 `SKIP` 假绿，本地 host-run backend 上 `GET /targets/{id}` 不再返回 500。
+- TargetJob import/list/get persist and expose the JD-level resume binding: `ImportTargetJobRequest.resumeId` is required, `target_jobs.resume_id` is non-null for created rows, and list/detail responses keep `TargetJob.resumeId` present even when no `practice_plans` row exists.
 - Active-scope 负向搜索 0 命中已丢弃模块 / route / capability。
 
 ## 6 风险与应对

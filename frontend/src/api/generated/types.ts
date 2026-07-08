@@ -210,6 +210,7 @@ export type TargetJobImportSource = unknown;
 
 export interface ImportTargetJobRequest {
 	companyNameHint?: string;
+	resumeId: string;
 	source: TargetJobImportSource;
 	targetLanguage: string;
 	titleHint?: string;
@@ -244,12 +245,14 @@ export interface TargetJob {
 	analysisStatus: TargetJobParseStatus;
 	companyName: string;
 	createdAt: string;
+	currentPracticePlanId?: string | null;
 	fitSummary?: TargetJobFitSummary | null;
 	id: string;
 	latestReportId?: string | null;
 	locationText?: string | null;
 	openQuestionIssueCount: number;
 	requirements: TargetJobRequirement[];
+	resumeId?: string | null;
 	sourceType: "manual_text" | "url" | "file" | "manual_form";
 	sourceUrl?: string | null;
 	status: TargetJobStatus;
@@ -295,6 +298,7 @@ export interface PracticePlan {
 	language: string;
 	mode: PracticeMode;
 	questionBudget: number;
+	resumeId: string;
 	sourceReportId?: string | null;
 	status: "draft" | "ready" | "archived";
 	targetJobId: string;

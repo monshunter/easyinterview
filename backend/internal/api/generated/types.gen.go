@@ -318,6 +318,7 @@ type TargetJobImportSource = any
 
 type ImportTargetJobRequest struct {
 	CompanyNameHint *string               `json:"companyNameHint,omitempty"`
+	ResumeId        string                `json:"resumeId"`
 	Source          TargetJobImportSource `json:"source"`
 	TargetLanguage  string                `json:"targetLanguage"`
 	TitleHint       *string               `json:"titleHint,omitempty"`
@@ -352,12 +353,14 @@ type TargetJob struct {
 	AnalysisStatus         TargetJobParseStatus   `json:"analysisStatus"`
 	CompanyName            string                 `json:"companyName"`
 	CreatedAt              string                 `json:"createdAt"`
+	CurrentPracticePlanId  *string                `json:"currentPracticePlanId,omitempty"`
 	FitSummary             *TargetJobFitSummary   `json:"fitSummary,omitempty"`
 	Id                     string                 `json:"id"`
 	LatestReportId         *string                `json:"latestReportId,omitempty"`
 	LocationText           *string                `json:"locationText,omitempty"`
 	OpenQuestionIssueCount int32                  `json:"openQuestionIssueCount"`
 	Requirements           []TargetJobRequirement `json:"requirements"`
+	ResumeId               *string                `json:"resumeId,omitempty"`
 	SourceType             string                 `json:"sourceType"`
 	SourceUrl              *string                `json:"sourceUrl,omitempty"`
 	Status                 TargetJobStatus        `json:"status"`
@@ -403,6 +406,7 @@ type PracticePlan struct {
 	Language           string          `json:"language"`
 	Mode               PracticeMode    `json:"mode"`
 	QuestionBudget     int32           `json:"questionBudget"`
+	ResumeId           string          `json:"resumeId"`
 	SourceReportId     *string         `json:"sourceReportId,omitempty"`
 	Status             string          `json:"status"`
 	TargetJobId        string          `json:"targetJobId"`

@@ -26,6 +26,7 @@ import type { Route } from "../../routes";
 import { WorkspaceScreen } from "./WorkspaceScreen";
 
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
+import listTargetJobsFixture from "../../../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
 import getResumeFixture from "../../../../../openapi/fixtures/Resumes/getResume.json";
 import createPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/createPracticePlan.json";
 import startPracticeSessionFixture from "../../../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
@@ -37,6 +38,7 @@ const BASE_FIXTURES = [
   getRuntimeConfigFixture,
   getMeFixture,
   getTargetJobFixture,
+  listTargetJobsFixture,
   getResumeFixture,
   createPracticePlanFixture,
   startPracticeSessionFixture,
@@ -159,7 +161,7 @@ describe("WorkspaceHandoff (Phase 5.4)", () => {
     expect(reportCalls).toHaveLength(0);
   });
 
-  it("workspace empty state CTA navigates to home", async () => {
+  it("workspace plan-list landing CTA navigates to home", async () => {
     const nav = vi.fn();
     const emptyRoute: Route = {
       name: "workspace",
@@ -186,11 +188,11 @@ describe("WorkspaceHandoff (Phase 5.4)", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-empty")).toBeDefined();
+      expect(screen.getByTestId("workspace-plan-list")).toBeDefined();
     });
 
     const user = userEvent.setup();
-    await user.click(screen.getByTestId("workspace-empty-cta"));
+    await user.click(screen.getByTestId("workspace-plan-list-create"));
 
     expect(nav).toHaveBeenCalledWith(
       expect.objectContaining({ name: "home" }),
@@ -208,6 +210,10 @@ describe("WorkspaceHandoff (Phase 5.4)", () => {
     };
 
     const client = buildClient();
+    vi.spyOn(client, "getTargetJob").mockResolvedValue({
+      ...getTargetJobFixture.scenarios.default.response.body,
+      resumeId: null,
+    } as Awaited<ReturnType<EasyInterviewClient["getTargetJob"]>>);
     render(
       <DisplayPreferencesProvider>
         <InterviewContextProvider>

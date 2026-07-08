@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.11
+> **版本**: 1.16
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联计划**: [plan](./plan.md)
 
@@ -54,3 +54,37 @@
 - [x] 6.2 Pixel parity passed for workspace desktop/mobile and theme states（验证：`pnpm --filter @easyinterview/frontend test:pixel-parity`）
 - [x] 6.3 Fixtures remain valid for TargetJobs, Resumes, PracticePlans and PracticeSessions（验证：`make validate-fixtures`）
 - [x] 6.4 Owner docs/index/context are current and completed（验证：`validate_context.py frontend-workspace-and-practice/001 frontend`; `sync-doc-index --check`; `make docs-check`）
+
+## Phase 7: interview nav and plan-list landing revision
+
+- [x] 7.1 Product/UI truth sources and static prototype use TopBar `面试` / `Interview` and define `workspace` no-context plan-list landing（验证：`ui-design/src/app.jsx`, `ui-design/src/screen-workspace.jsx`, `docs/ui-design/module-job-workspace.md`, `docs/ui-design/ui-architecture.md`）
+- [x] 7.2 Formal TopBar labels and i18n use `面试` / `Interview` while route/testid remains `workspace`（验证：`TopBar.test.tsx`, `TopBarVisual.test.tsx`, `p0-004-app-shell-language-switch.test.tsx`）
+- [x] 7.3 `WorkspacePlanList` consumes generated `listTargetJobs`, renders loading/empty/error/list states, and plan cards navigate to current-plan detail without fabricating resume/report data（验证：`WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`, `WorkspaceHandoff.test.tsx`）
+- [x] 7.4 Workspace parity and route regression gates distinguish no-context list landing from hydrated current-plan detail（验证：`frontend/tests/pixel-parity/workspace.spec.ts`, `p0-088-url-addressable-routing-canonical.test.tsx`, `p0-090-url-routing-hash-non-current-negative.test.tsx`）
+- [x] 7.5 BDD-Gate: `E2E.P0.018` covers TopBar `面试` landing, plan-list card selection, and existing current-plan detail anchors（验证：scenario trigger/verify）
+
+## Phase 8: plan-list card visual hardening
+
+- [x] 8.1 UI truth sources define the no-context plan list as visible list cards with card background, border, subtle elevation, internal body/footer sections, and responsive desktop/mobile grid（验证：`docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-workspace.jsx`）
+- [x] 8.2 `WorkspacePlanList` mirrors the card treatment and keeps generated `listTargetJobs` + safe navigation semantics unchanged（验证：`WorkspaceEmptyState.test.tsx` red/green assertions）
+- [x] 8.3 Pixel parity catches loose text-column regression through computed style and bounding-box assertions for card, body and footer sections（验证：`frontend/tests/pixel-parity/workspace.spec.ts`）
+- [x] 8.4 BDD-Gate: `E2E.P0.018` remains green after card visual hardening and continues to cover TopBar `面试` landing + plan-card selection（验证：scenario trigger/verify）
+
+## Phase 9: plan-list card simplification and theme consistency
+
+- [x] 9.1 UI truth sources define concise no-context plan cards with no source/language metadata and theme accent CTA（验证：`docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-workspace.jsx`）
+- [x] 9.2 `WorkspacePlanList` removes `workspace.planList.cardMeta`, `sourceType` and `targetLanguage` display from cards while preserving generated `listTargetJobs` navigation（验证：`WorkspaceEmptyState.test.tsx` red/green assertions）
+- [x] 9.3 Pixel parity catches metadata/secondary-button regression and verifies card/page separation via existing theme tokens（验证：`frontend/tests/pixel-parity/workspace.spec.ts`）
+- [x] 9.4 BDD-Gate: `E2E.P0.018` remains green after simplification and rejects source/language metadata returning to the no-context plan cards（验证：scenario trigger/verify）
+
+## Phase 10: plan-list bound resume navigation remediation
+
+- [x] 10.1 `WorkspacePlanList` card navigation uses declared `currentPracticePlanId` / `resumeId` projection fields and never fabricates `plan-${targetJobId}` or `resume-unbound`（验证：`pnpm --filter @easyinterview/frontend test src/app/screens/workspace/WorkspaceEmptyState.test.tsx ...` PASS）
+- [x] 10.2 Generated OpenAPI/TS TargetJob contract exposes current practice-plan binding for plan-list consumers（验证：`make codegen-openapi`; `pnpm --filter @easyinterview/frontend typecheck` PASS）
+- [x] 10.3 BDD-Gate: `E2E.P0.018` keeps plan-card selection on the current bound-resume detail path（验证：focused equivalent `WorkspaceEmptyState.test.tsx`, `WorkspaceScreen.test.tsx`, `WorkspaceHandoff.test.tsx` PASS）
+
+## Phase 11: target job-level resume binding remediation
+
+- [x] 11.1 `WorkspacePlanList` opens detail with target job-level `resumeId` even when `currentPracticePlanId` is absent and no `practice_plans` row exists（验证：`WorkspaceEmptyState.test.tsx` PASS）
+- [x] 11.2 `TargetJob.resumeId` contract is documented as the target job-level binding used by plan-list re-entry, with practice-plan projection only contributing `currentPracticePlanId`（验证：OpenAPI/generated types + `make validate-fixtures` PASS）
+- [x] 11.3 BDD-Gate: `E2E.P0.018` keeps plan-card selection on the bound-resume detail path for imported jobs without an existing practice plan（验证：focused equivalent workspace tests + local API smoke + `E2E.P0.018` scenario wrapper PASS）

@@ -63,6 +63,8 @@ FEATURE_CONTRACTS = {
     "target.import.parse": {
         "type": "object",
         "required_paths": {
+            "$.title",
+            "$.companyName",
             "$.coreThemes",
             "$.interviewHypotheses",
             "$.strengths",
@@ -629,6 +631,7 @@ STRING_EXAMPLE_BY_PATH = {
     "$.questions[].interviewerReaction": "Asked for concrete failure metrics.",
     "$.questions[].myAnswerSummary": "Explained queue sizing and retry policy.",
     "$.questions[].questionText": "How did you handle backpressure in the migration?",
+    "$.companyName": "Acme",
     "$.requirements[].description": "The JD explicitly calls for owning high-availability backend systems.",
     "$.requirements[].label": "Design reliable distributed services",
     "$.riskItems[].label": "Thin rollback detail",

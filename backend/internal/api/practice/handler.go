@@ -236,6 +236,7 @@ func toAPIPracticePlan(plan domain.PlanRecord) api.PracticePlan {
 		Language:           plan.Language,
 		TimeBudgetMinutes:  plan.TimeBudgetMinutes,
 		QuestionBudget:     plan.QuestionBudget,
+		ResumeId:           plan.ResumeID,
 		Status:             plan.Status,
 		CreatedAt:          plan.CreatedAt.UTC().Format(timeFormatRFC3339),
 	}

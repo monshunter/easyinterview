@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-08
 
 **关联计划**: [plan](./plan.md)
 
@@ -42,3 +42,8 @@
   <!-- verified: 2026-07-07 method=red-green-focused-go evidence="Red: go test ./internal/practice -run TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions -count=1 failed because SessionReservation lacked ResumeProfile. Green: go test ./internal/practice ./internal/store/practice -run 'TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions|TestSQLRepositoryReserveSessionStartReusesFailedRetryableRecord' -count=1 PASS; cd backend && go test ./internal/practice ./internal/api/practice ./internal/store/practice -count=1 PASS." -->
 - [x] 5.3 Phase 5 closeout gate passed.
   <!-- verified: 2026-07-07 method=focused-go-and-negative-grep evidence="cd backend && go test ./internal/practice/... ./cmd/api -count=1 PASS; flat-resume residual grep over backend practice packages returned no matches." -->
+
+## Phase 6: PracticePlan resumeId response remediation
+
+- [x] 6.1 `PracticePlan` OpenAPI/generated/fixtures include persisted `resumeId` on create/read responses（验证：`make codegen-openapi`; `make validate-fixtures` PASS）
+- [x] 6.2 Practice handler/service/store return `practice_plans.resume_id` for create/read and preserve user isolation（验证：`cd backend && go test ./internal/practice ./internal/api/practice ./internal/store/practice -count=1` PASS）

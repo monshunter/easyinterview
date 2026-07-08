@@ -72,6 +72,8 @@ func deterministicParseFixtureContent(language string) string {
 		language = "en"
 	}
 	raw, _ := json.Marshal(parseAIResponse{
+		Title:               "Backend Platform Engineer",
+		CompanyName:         "Acme",
 		CoreThemes:          []string{"backend", "ownership"},
 		InterviewHypotheses: []string{"Discuss API design and async pipelines."},
 		Strengths:           []string{"Backend service experience"},

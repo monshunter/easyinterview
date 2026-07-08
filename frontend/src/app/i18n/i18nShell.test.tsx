@@ -28,10 +28,10 @@ describe("D1 shell i18n", () => {
     );
 
     expect(screen.getAllByTestId("topbar-nav-home")[0]).toHaveTextContent(
-      "Home",
+      /^Home$/,
     );
     expect(screen.getAllByTestId("topbar-nav-workspace")[0]).toHaveTextContent(
-      "Mock Interview",
+      /^Interview$/,
     );
     expect(screen.getAllByTestId("topbar-login")[0]).toHaveTextContent(
       "Sign in",

@@ -89,6 +89,8 @@ func NewParseExecutor(opts ParseExecutorOptions) *ParseExecutor {
 // drift from this shape surfaces as AI_OUTPUT_INVALID (non-retryable). The
 // upstream prompt is owned by F3 so the schema lives here as the consumer.
 type parseAIResponse struct {
+	Title               string               `json:"title"`
+	CompanyName         string               `json:"companyName"`
 	CoreThemes          []string             `json:"coreThemes"`
 	InterviewHypotheses []string             `json:"interviewHypotheses"`
 	Strengths           []string             `json:"strengths"`
@@ -182,6 +184,11 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 	if err != nil {
 		return p.fail(ctx, targetJobID, sharederrors.CodeAiOutputInvalid, err.Error(), false)
 	}
+	parsed.Title = strings.TrimSpace(parsed.Title)
+	parsed.CompanyName = strings.TrimSpace(parsed.CompanyName)
+	if parsed.Title == "" || parsed.CompanyName == "" {
+		return p.fail(ctx, targetJobID, sharederrors.CodeAiOutputInvalid, "AI output missing title or companyName", false)
+	}
 
 	requirements, err := buildRequirements(parsed.Requirements, p.newID)
 	if err != nil {
@@ -227,6 +234,8 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 	rawParsed, _ := json.Marshal(parsedPayload)
 	if err := p.store.CompleteParseSuccess(ctx, CompleteParseSuccessInput{
 		TargetJobID:        targetJobID,
+		Title:              parsed.Title,
+		CompanyName:        parsed.CompanyName,
 		AnalysisStatus:     sharedtypes.TargetJobParseStatusReady,
 		Summary:            summary,
 		FitSummary:         fitSummary,

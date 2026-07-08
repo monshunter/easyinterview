@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type FC } from "react";
 
+import type { TargetJob } from "../../../api/generated/types";
 import { useI18n, type MessageKey } from "../../i18n/messages";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import { useInterviewContext } from "../../interview-context/InterviewContext";
 import { normalizeServerBoundId } from "../../interview-context/apiIds";
 import type { Route } from "../../routes";
 import { useWorkspaceTargetJob } from "./hooks/useWorkspaceTargetJob";
+import { useWorkspaceTargetJobs } from "./hooks/useWorkspaceTargetJobs";
 import { useWorkspaceResume } from "./hooks/useWorkspaceResume";
 import { useStartPractice } from "./hooks/useStartPractice";
 import { useWorkspacePracticePlan } from "./hooks/useWorkspacePracticePlan";
@@ -37,6 +39,13 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
   const [resumePickerOpen, setResumePickerOpen] = useState(false);
   const autoStartRef = useRef(false);
   const compactLayout = useWorkspaceCompactLayout();
+  const hasCurrentPlanContext =
+    Boolean(route.params.targetJobId) ||
+    Boolean(route.params.jobId) ||
+    Boolean(route.params.planId) ||
+    Boolean(ctx.targetJobId) ||
+    Boolean(ctx.jobId) ||
+    Boolean(ctx.planId);
 
   // ── Empty / missing states ──
   const hasBoundResume = !!normalizeServerBoundId(ctx.resumeId);
@@ -166,6 +175,10 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
       navigateToPractice(result);
     }
   };
+
+  if (!hasCurrentPlanContext) {
+    return <WorkspacePlanList compactLayout={compactLayout} />;
+  }
 
   if (showTargetError) {
     return (
@@ -1476,6 +1489,299 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
           dispatch({ type: "MERGE_RESUME", resume: { id: resumeId } });
         }}
       />
+    </div>
+  );
+};
+
+interface WorkspacePlanListProps {
+  compactLayout: boolean;
+}
+
+const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
+  const { t } = useI18n();
+  const { navigate } = useNavigation();
+  const { loading, jobs, error } = useWorkspaceTargetJobs();
+
+  const openPlan = (job: TargetJob) => {
+    const currentPracticePlanId = job.currentPracticePlanId?.trim();
+    const resumeId = job.resumeId?.trim();
+    navigate({
+      name: "workspace",
+      params: {
+        targetJobId: job.id,
+        jobId: job.id,
+        jdId: `jd-${job.id}`,
+        ...(currentPracticePlanId ? { planId: currentPracticePlanId } : {}),
+        ...(resumeId ? { resumeId } : {}),
+      },
+    });
+  };
+
+  return (
+    <div
+      data-testid="workspace-plan-list"
+      className="ei-fadein"
+      style={{
+        maxWidth: 1120,
+        margin: "0 auto",
+        padding: compactLayout ? "32px 16px 72px" : "48px 48px 96px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 24,
+          flexWrap: "wrap",
+          marginBottom: 28,
+        }}
+      >
+        <div style={{ maxWidth: 640 }}>
+          <div
+            data-testid="workspace-plan-list-eyebrow"
+            className="ei-label"
+            style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 8 }}
+          >
+            {t("workspace.planList.eyebrow")}
+          </div>
+          <h1
+            data-testid="workspace-plan-list-title"
+            className="ei-serif"
+            style={{
+              fontSize: compactLayout ? 30 : 40,
+              color: "var(--ei-color-fg-primary)",
+              margin: 0,
+              lineHeight: 1.14,
+            }}
+          >
+            {t("workspace.planList.title")}
+          </h1>
+          <div
+            data-testid="workspace-plan-list-subtitle"
+            style={{
+              fontSize: 14,
+              color: "var(--ei-color-fg-secondary)",
+              marginTop: 10,
+              lineHeight: 1.6,
+            }}
+          >
+            {t("workspace.planList.subtitle")}
+          </div>
+        </div>
+        <button
+          data-testid="workspace-plan-list-create"
+          type="button"
+          onClick={() => navigate({ name: "home", params: {} })}
+          style={{
+            height: 34,
+            padding: "0 16px",
+            fontSize: 13,
+            fontWeight: 500,
+            background: "var(--ei-color-accent)",
+            color: "#fff",
+            border: "1px solid var(--ei-color-accent)",
+            borderRadius: 2,
+            cursor: "pointer",
+            fontFamily: "var(--ei-sans)",
+          }}
+        >
+          {t("workspace.planList.create")}
+        </button>
+      </div>
+
+      {loading ? (
+        <div
+          data-testid="workspace-plan-list-loading"
+          style={{
+            background: "var(--ei-color-bg-card)",
+            border: "1px solid var(--ei-color-rule-strong)",
+            borderRadius: 3,
+            padding: 24,
+            color: "var(--ei-color-fg-tertiary)",
+            fontSize: 13,
+          }}
+        >
+          {t("workspace.planList.loading")}
+        </div>
+      ) : error ? (
+        <div
+          data-testid="workspace-plan-list-error"
+          style={{
+            background: "var(--ei-color-bg-card)",
+            border: "1px solid var(--ei-color-rule-strong)",
+            borderRadius: 3,
+            padding: 24,
+            color: "var(--ei-color-fg-tertiary)",
+            fontSize: 13,
+          }}
+        >
+          {t("workspace.planList.error")}
+        </div>
+      ) : jobs.length === 0 ? (
+        <div
+          data-testid="workspace-plan-list-empty"
+          style={{
+            background: "var(--ei-color-bg-card)",
+            border: "1px solid var(--ei-color-rule-strong)",
+            borderRadius: 3,
+            padding: 32,
+            textAlign: "center",
+          }}
+        >
+          <div
+            className="ei-serif"
+            style={{ fontSize: 18, color: "var(--ei-color-fg-primary)", marginBottom: 10 }}
+          >
+            {t("workspace.planList.emptyTitle")}
+          </div>
+          <div style={{ fontSize: 13, color: "var(--ei-color-fg-tertiary)", lineHeight: 1.55 }}>
+            {t("workspace.planList.emptyDesc")}
+          </div>
+        </div>
+      ) : (
+        <div
+          data-testid="workspace-plan-list-grid"
+          style={{
+            display: "grid",
+            gridTemplateColumns: compactLayout
+              ? "minmax(0, 1fr)"
+              : "repeat(auto-fit, minmax(300px, 1fr))",
+            gap: 16,
+            alignItems: "stretch",
+          }}
+        >
+          {jobs.map((job) => {
+            const statusTone = getStatusTone(job.status);
+            return (
+              <article
+                key={job.id}
+                data-testid={`workspace-plan-list-card-${job.id}`}
+                style={{
+                  background: "var(--ei-color-bg-card)",
+                  border: "1px solid var(--ei-color-rule-strong)",
+                  borderRadius: 3,
+                  boxShadow: "var(--ei-shadow-elev2)",
+                  minHeight: 178,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  data-testid={`workspace-plan-list-card-body-${job.id}`}
+                  style={{
+                    padding: 20,
+                    flex: 1,
+                    background: "var(--ei-color-bg-card)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      alignItems: "center",
+                      marginBottom: 10,
+                    }}
+                  >
+                    <span
+                      className="ei-mono"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        padding: "3px 8px",
+                        borderRadius: 3,
+                        fontSize: 11.5,
+                        letterSpacing: "0.04em",
+                        background:
+                          statusTone === "amber"
+                            ? "var(--ei-color-amber-soft)"
+                            : statusTone === "muted"
+                              ? "var(--ei-color-bg-soft)"
+                              : "transparent",
+                        color:
+                          statusTone === "amber"
+                            ? "var(--ei-color-warn)"
+                            : statusTone === "muted"
+                              ? "var(--ei-color-fg-tertiary)"
+                              : "var(--ei-color-fg-secondary)",
+                        border:
+                          statusTone === "neutral"
+                            ? "1px solid var(--ei-color-rule-strong)"
+                            : "1px solid transparent",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {formatStatus(job.status, t)}
+                    </span>
+                    <span
+                      className="ei-mono"
+                      style={{ fontSize: 12, color: "var(--ei-color-fg-tertiary)" }}
+                    >
+                      {t("workspace.planList.updated").replace("{date}", formatDate(job.updatedAt))}
+                    </span>
+                  </div>
+                  <div
+                    className="ei-serif"
+                    style={{
+                      fontSize: 20,
+                      color: "var(--ei-color-fg-primary)",
+                      lineHeight: 1.25,
+                      marginBottom: 6,
+                    }}
+                  >
+                    {job.title}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "var(--ei-color-fg-secondary)",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {[job.companyName, job.locationText].filter(Boolean).join(" · ")}
+                  </div>
+                </div>
+                <div
+                  data-testid={`workspace-plan-list-card-footer-${job.id}`}
+                  style={{
+                    borderTop: "1px solid var(--ei-color-rule-strong)",
+                    padding: "14px 20px",
+                    background: "var(--ei-color-bg-card)",
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
+                  <button
+                    data-testid={`workspace-plan-list-open-${job.id}`}
+                    type="button"
+                    onClick={() => openPlan(job)}
+                    style={{
+                      flex: "0 0 auto",
+                      height: 32,
+                      padding: "0 12px",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      background: "var(--ei-color-accent)",
+                      color: "#fff",
+                      border: "1px solid var(--ei-color-accent)",
+                      borderRadius: 2,
+                      cursor: "pointer",
+                      fontFamily: "var(--ei-sans)",
+                    }}
+                  >
+                    {t("workspace.planList.open")}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

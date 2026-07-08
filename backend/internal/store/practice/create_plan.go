@@ -68,7 +68,7 @@ where tj.id = $3
   )
 returning id, target_job_id, source_report_id::text,
           goal, mode, interviewer_persona, difficulty,
-          language, time_budget_minutes, question_budget, status, created_at`,
+          language, time_budget_minutes, question_budget, resume_id::text, status, created_at`,
 		in.PlanID,
 		in.UserID,
 		in.TargetJobID,
@@ -94,6 +94,7 @@ returning id, target_job_id, source_report_id::text,
 		&plan.Language,
 		&plan.TimeBudgetMinutes,
 		&plan.QuestionBudget,
+		&plan.ResumeID,
 		&plan.Status,
 		&plan.CreatedAt,
 	)
@@ -148,7 +149,7 @@ func (r *SQLRepository) GetPlan(ctx context.Context, userID, planID string) (dom
 	err := r.db.QueryRowContext(ctx, `
 select id, target_job_id, source_report_id::text,
        goal, mode, interviewer_persona, difficulty,
-       language, time_budget_minutes, question_budget, status, created_at
+       language, time_budget_minutes, question_budget, resume_id::text, status, created_at
 from practice_plans
 where user_id = $1
   and id = $2`,
@@ -165,6 +166,7 @@ where user_id = $1
 		&plan.Language,
 		&plan.TimeBudgetMinutes,
 		&plan.QuestionBudget,
+		&plan.ResumeID,
 		&plan.Status,
 		&plan.CreatedAt,
 	)

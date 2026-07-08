@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse
 
-> **版本**: 2.5
+> **版本**: 2.6
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -17,7 +17,7 @@
 
 ```text
 Home JD source + ready Resume
-  -> importTargetJob
+  -> importTargetJob(resumeId)
   -> Parse loading / preview
   -> updateTargetJob
   -> workspace / workspace(autoStartPractice=1)
@@ -36,7 +36,7 @@ UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-desig
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` | Home recent mock interviews | `backend-targetjob` | TargetJob read | none in frontend | `E2E.P0.014` |
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home resume select + Parse binding | `backend-resume` | Resume read | none | `E2E.P0.015` / `E2E.P0.016` |
 | `createUploadPresign` | `openapi/fixtures/Uploads/createUploadPresign.json` | Home upload source | `backend-upload` | `file_objects` create | none | `E2E.P0.015` |
-| `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | Home paste / file / URL import | `backend-targetjob` | TargetJob create + parse job | backend-only | `E2E.P0.015` |
+| `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | Home paste / file / URL import with selected `resumeId` | `backend-targetjob` | TargetJob create + target job-level resume binding + parse job | backend-only | `E2E.P0.015` |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse polling + preview | `backend-targetjob` | TargetJob read | backend-only parse result | `E2E.P0.015` |
 | `updateTargetJob` | `openapi/fixtures/TargetJobs/updateTargetJob.json` | Parse save / start | `backend-targetjob` | TargetJob partial update | none | `E2E.P0.016` |
 
@@ -53,7 +53,7 @@ UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-desig
 
 - 渲染 Hero label/title、`home-jd-input-card`、`home-jd-textarea`、输入卡底部 `home-jd-source-controls`、upload/URL source actions、`home-resume-row`、`home-resume-select`、`home-resume-create`、`home-submit-row` 与 `home-jd-submit`。
 - `listResumes` 只把 ready 且可用的简历作为下拉选项；用户未显式选择简历时，paste / upload / URL import 均不得提交。
-- paste 提交 `ImportTargetJobRequest.source.type=manual_text`；upload 先 `createUploadPresign(purpose=target_job_attachment)`，再提交 `source.type=file`；URL 提交 `source.type=url`。
+- paste 提交 `ImportTargetJobRequest.source.type=manual_text` + selected `resumeId`；upload 先 `createUploadPresign(purpose=target_job_attachment)`，再提交 `source.type=file` + selected `resumeId`；URL 提交 `source.type=url` + selected `resumeId`。
 - `createUploadPresign`、`importTargetJob` 都必须通过 generated client 发送，并携带 side-effect idempotency key。
 - 成功 import 后导航到 `parse`，params 必须包含 `targetJobId`、source 与真实 `resumeId`。
 - `listTargetJobs` 只渲染最近 3 张模拟面试卡片，排序按 `updatedAt desc`；`更多` 进入 `workspace`。
@@ -118,9 +118,24 @@ Parse 使用 `getTargetJob`、`listResumes` 和 `updateTargetJob`。同 route ta
 
 运行 context validation、doc index check、docs-check、diff whitespace check 与 core-loop pruning surface lint。
 
+### Phase 4: Import resume binding remediation
+
+#### 4.1 Generated client request contract
+
+Home must include the selected ready `resumeId` in every `importTargetJob` request body for paste, upload and URL sources. Missing resume remains a client-side block before request dispatch.
+
+#### 4.2 Route continuity
+
+Successful import still navigates to Parse with `targetJobId`, source and `resumeId`, but route params are no longer the only persistence layer for the binding; the backend TargetJob response is authoritative after reload or list re-entry.
+
+#### 4.3 BDD-Gate
+
+`E2E.P0.015` must continue to cover Home import request shape and privacy behavior, with `resumeId` treated as an allowed business identifier and JD raw text/source secrets still excluded from URL/pending action storage.
+
 ## 6 验收标准
 
 - Home/Parse owner 文档只描述当前 Home + Parse 合同、operation matrix、BDD gate 和验证入口。
 - `context.yaml` 只列当前正向 route、operationId、source package 与场景目录。
 - `E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016` 场景文档和脚本覆盖当前 Home/Parse 主路径、失败路径、privacy gate 与 real-mode generated-client gate。
+- Home import request bodies include the selected `resumeId`, and backend list/detail can recover the binding without depending on transient Parse route params.
 - `sync-doc-index --check`、`make docs-check`、`git diff --check` 和 `make lint-core-loop-pruning-surface` 通过。

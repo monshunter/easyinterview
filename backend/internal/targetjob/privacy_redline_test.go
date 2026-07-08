@@ -193,13 +193,13 @@ func TestImportTargetJob_DedupeKeyIsUserScopedAcrossServices(t *testing.T) {
 	svc2 := targetjob.NewService(targetjob.ServiceOptions{Store: store2, NewID: gen2, Now: func() time.Time { return now }, DedupePepper: "shared-pepper"})
 
 	if _, err := svc1.ImportTargetJob(context.Background(), targetjob.ImportRequest{
-		UserID: "user-A", IdempotencyKey: "key-overlap", TargetLanguage: "en",
+		UserID: "user-A", IdempotencyKey: "key-overlap", TargetLanguage: "en", ResumeID: "resume-A",
 		Source: map[string]any{"type": "manual_text", "rawText": "JD A"},
 	}); err != nil {
 		t.Fatalf("svc1 import: %v", err)
 	}
 	if _, err := svc2.ImportTargetJob(context.Background(), targetjob.ImportRequest{
-		UserID: "user-B", IdempotencyKey: "key-overlap", TargetLanguage: "en",
+		UserID: "user-B", IdempotencyKey: "key-overlap", TargetLanguage: "en", ResumeID: "resume-B",
 		Source: map[string]any{"type": "manual_text", "rawText": "JD B"},
 	}); err != nil {
 		t.Fatalf("svc2 import: %v", err)
@@ -236,6 +236,7 @@ func TestImportTargetJob_URLQuerySecretDoesNotEnterStoreOrPayloads(t *testing.T)
 		UserID:         "user-url",
 		IdempotencyKey: "url-key",
 		TargetLanguage: "en",
+		ResumeID:       "resume-url",
 		Source: map[string]any{
 			"type": "url",
 			"url":  "https://jobs.example.com/role/123?token=super-secret#share",

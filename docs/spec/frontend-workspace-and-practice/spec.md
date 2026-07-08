@@ -1,8 +1,8 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.9
+> **版本**: 1.12
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-08
 
 ## 1 背景与目标
 
@@ -10,7 +10,7 @@
 
 本 subspec 的终稿范围收敛为三条当前 owner 路由：
 
-- `workspace`：当前面试规划，确认 JD、目标岗位、绑定简历、轮次与会话记录，并发起 practice session。
+- `workspace`：面试规划列表 + 当前面试规划详情。无上下文一级进入时展示规划列表；带 `targetJobId` / `planId` 时确认 JD、目标岗位、绑定简历、轮次与会话记录，并发起 practice session。
 - `practice`：文本 / 语音共享的 Interview Session 外层骨架、状态机消费、提示/严格模拟显隐、答题事件提交与结束动作。
 - `generating`：`completePracticeSession` 后的报告生成过渡态，轮询 `getFeedbackReport(reportId)`，并把完成/失败状态 handoff 给下游 `report` owner。
 
@@ -23,6 +23,7 @@
 ### 2.1 In Scope
 
 - `workspace` 屏（`route=workspace`）：
+  - 面试规划列表 landing：顶部一级 `面试` 入口无上下文时展示已有规划卡片列表，使用 generated `listTargetJobs`；每个规划必须有独立卡片背景、1px 边框、轻阴影、内部分区和底部操作区，不能退化成无容器文本列；卡片只展示状态、更新时间、岗位、公司和地点，不展示来源类型 / 目标语言 / `手动输入` 等导入元信息；点击主题强调色 CTA 进入当前规划详情；无规划时引导回首页导入 JD。
   - 当前面试规划页头：`公司·岗位` / 状态标签 / `当前轮次·绑定简历` / `切换规划` / `新建规划`，源级复刻 `ui-design/src/screen-workspace.jsx::WorkspaceScreen`。
   - Interview Launcher：面试轮次节点条 + 面试前确认 + `立即面试` 主 CTA + 目标岗位/JD + 绑定简历（`更换 → Resume Picker Modal`）。
   - Main Left：公司轻情报摘要卡片（嵌入式，交互停留在 workspace）+ JD 拆解。
@@ -83,6 +84,8 @@
 | D-13 | 完成是异步流 | `completePracticeSession` 返回 202 + `ReportWithJob{reportId,job}`；generating 用 `reportId` 轮询 `getFeedbackReport`，完成后 handoff 到 report owner | 前端不阻塞等待报告，不伪造 LLM 进度 |
 | D-15 | 简历扁平化绑定（product-scope D-20） | `InterviewContext` 简历绑定 `resumeId`；`ResumePickerModal` 直接列 `listResumes` 选简历；`workspace` route 推荐参数使用 `resumeId`；`WorkspaceMissingResumeState` 缺简历空态语义不变 | 由 frontend-workspace-and-practice/001 + 002 的 D-20 phase 落地 `InterviewContext` / `routeUrl` / `useWorkspaceResume` / `ResumePickerModal` rename；与 [B2 D-26](../openapi-v1-contract/spec.md) / [frontend-resume-workshop D-8](../frontend-resume-workshop/spec.md) 同步 |
 | D-14 | fixture-backed + real-backend gate 红线 | completed frontend owner plan 可以保留 fixture-backed UI variants，但当对应 backend owner 已落地真实 handler 时，必须原地补 `VITE_EI_API_MODE=real` generated-client gate + scenario verify marker；缺失 operation 或 fixture 时仍先回 B2 / mock-contract-suite / backend owner，不用本地 mock 兜底 | 保护前后端分离契约，避免 fixture UI PASS 被误判为真实 backend 闭环 |
+| D-16 | 面试入口列表化 | TopBar 文案为 `面试` / `Interview`；`workspace` 无 `targetJobId` / `planId` 等上下文时展示面试规划列表，不再直接落到缺 JD 空态 | 与 product-scope D-23、module-job-workspace v1.19 一致；列表消费现有 `listTargetJobs`，不新增 `MockInterviewPlan` API 或独立多轮计划 |
+| D-17 | 面试规划卡片信息取舍 | 列表卡片只保留继续规划所需的状态、更新时间、岗位、公司和地点；导入来源、目标语言和 `手动输入` 等字段不在卡片展示；进入动作使用主题强调色 CTA | 与 module-job-workspace v1.21 一致；避免把低价值技术元信息放大为主要阅读负担 |
 
 ### 3.2 当前执行约束
 
@@ -100,7 +103,7 @@
 
 | Route | 本 spec owner | 最小上下文 | 缺失处理 |
 |-------|---------------|------------|----------|
-| `workspace` | 是 | `targetJobId`；推荐携带 `planId/jdId/resumeId/roundId` | 缺 target/JD 显示 `WorkspaceEmptyState`；缺 resume 显示 `WorkspaceMissingResumeState` |
+| `workspace` | 是 | 无上下文显示面试规划列表；详情最小键为 `targetJobId`，推荐携带 `planId/jdId/resumeId/roundId` | 无 `targetJobId/planId` 显示规划列表；列表为空显示友好空态并返回首页导入 JD；详情缺 target/JD 显示 `WorkspaceEmptyState`；详情缺 resume 显示 `WorkspaceMissingResumeState` |
 | `practice` | 是 | `sessionId` 或可启动的 `planId`；推荐携带完整 InterviewContext | 缺 session/plan 时回 workspace 空态，不展示假问题 |
 | `generating` | 是 | `sessionId + reportId` | 缺 `reportId` 显示生成态错误/返回 workspace |
 | `report` | 否 | `sessionId + reportId` | 由 report owner 处理 |
@@ -153,7 +156,8 @@
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
 | C-1 | owner route 专属 Screen 接管 | `frontend-shell` D1 已交付，owner route 当前由正式 screen 或外部 owner screen 接管 | 进入 `workspace` / `practice` / `generating` | `workspace` / `practice` 渲染正式 Screen；`practice/generating` 隐藏 chrome；`report` 不由本 spec 实现 | 001 / 002 / frontend-report-dashboard |
-| C-2 | Workspace 渲染 + 空态 | InterviewContext 至少包含 `targetJobId`，可选 `planId/jdId/resumeId/roundId` | 进入 `workspace` | 渲染当前规划、Interview Launcher、JD 拆解、绑定简历、公司轻情报摘要入口、准备信号、会话记录；缺 JD/target 或 resume 时进入对应空态；不展示假数据 | 001 |
+| C-2 | Workspace 渲染 + 空态 | 用户从一级 `面试` 无上下文进入，或 InterviewContext 至少包含 `targetJobId`，可选 `planId/jdId/resumeId/roundId` | 进入 `workspace` | 无上下文时渲染面试规划列表；点击规划进入当前规划详情；详情渲染当前规划、Interview Launcher、JD 拆解、绑定简历、公司轻情报摘要入口、准备信号、会话记录；缺 JD/target 或 resume 时进入对应空态；不展示假数据 | 001 |
+| C-2a | 面试规划列表卡片化与简化 | `listTargetJobs` 返回至少一条规划 | 进入无上下文 `workspace` | 列表项以响应式卡片呈现，卡片拥有背景、边框、轻阴影、body/footer 分区和主题强调色操作按钮；desktop 多列，mobile 单列，不出现无样式文本列；卡片不展示来源类型、目标语言或 `手动输入` 等低价值导入元信息 | 001 |
 | C-3 | Workspace 交互闭环 | 已渲染 workspace | 用户点击 `切换规划` / `更换简历` / `立即面试` | 切换规划更新 InterviewContext；更换简历按 B2/listResumes 决策执行；立即面试用 generated client 调 `createPracticePlan`（必要时）→ `startPracticeSession`，副作用请求带 `Idempotency-Key`；未登录 pendingAction 恢复到 workspace 后自动执行双步启动，再进入 practice | 001 |
 | C-4 | Practice 文本 happy path | 用户进入 `practice?mode=text&modality=text&practiceMode=assisted`，session=`running` | 用户输入回答、请求提示/跳过/暂停/恢复、提交事件、结束 | TextSurface 源级复刻；操作通过 `appendSessionEvent({clientEventId,kind,payload})`；AssistantAction 驱动下一题/追问/完成；结束调用 `completePracticeSession` 后进入 `generating?sessionId&reportId` | 002 |
 | C-5 | Practice 语音 surface + core-goal 显隐 | 用户进入 `practice?mode=voice&modality=voice&practiceMode=strict`，以及 `practiceGoal=baseline/retry_current_round/next_round` 分别组合 assisted/strict | 用户进行语音回答或切换形式 | VoiceSurface 源级复刻；strict 隐藏提示、实时观察、可调用经历和现场提示；practiceGoal 不改变辅助度显隐；不直连 STT/TTS provider；voice turn flow 由 practice-voice owner gate 验证 | practice-voice-mvp/001 |
@@ -187,5 +191,8 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.12 | 2026-07-08 | 固化面试规划列表卡片的信息取舍：移除来源/语言/手动输入等低价值元信息，进入规划 CTA 使用主题强调色并保持卡片/page 层次。 |
+| 1.11 | 2026-07-08 | 固化无上下文面试规划列表的卡片视觉合同，防止退化成无容器文本列。 |
+| 1.10 | 2026-07-08 | 将 `workspace` 一级入口拆为面试规划列表 landing 与当前规划详情；同步 TopBar `面试` 命名和无上下文友好入口。 |
 | 1.9 | 2026-07-07 | 将关联计划章节收敛为当前 completed 001/002 owner，并把 voice/report/generating 边界改为当前外部 owner gate。 |
 | 1.8 | 2026-07-07 | 将 workspace 会话区域统一表述为 records，避免 active spec 使用过期口径描述当前记录占位和 handoff。 |

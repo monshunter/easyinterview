@@ -123,6 +123,7 @@ type PlanRecord struct {
 	ID                 string
 	TargetJobID        string
 	SourceReportID     string
+	ResumeID           string
 	Goal               sharedtypes.PracticeGoal
 	Mode               sharedtypes.PracticeMode
 	InterviewerPersona sharedtypes.InterviewerRole

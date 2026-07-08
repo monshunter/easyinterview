@@ -17,6 +17,7 @@ import (
 
 const (
 	scenarioUserID   = "018f2a40-0000-7000-9000-0000000000b1"
+	scenarioResumeID = "018f2a40-0000-7000-9000-0000000000r1"
 	scenarioTargetID = "018f2a40-0000-7000-9000-0000000000a1"
 )
 
@@ -32,6 +33,7 @@ func TestE2EP0010TextImportParseReady(t *testing.T) {
 		UserID:          scenarioUserID,
 		IdempotencyKey:  "e2e-p0-010-import",
 		TargetLanguage:  "zh-CN",
+		ResumeID:        scenarioResumeID,
 		TitleHint:       "Senior Frontend Engineer",
 		CompanyNameHint: "Acme",
 		Source: map[string]any{
@@ -146,6 +148,7 @@ func TestE2EP0011URLImportFetchAndParse(t *testing.T) {
 		UserID:         scenarioUserID,
 		IdempotencyKey: "e2e-p0-011-url",
 		TargetLanguage: "en",
+		ResumeID:       scenarioResumeID,
 		Source:         map[string]any{"type": "url", "url": "https://jobs.example.com/role/1?token=secret#frag"},
 	})
 	if err != nil {
@@ -189,6 +192,7 @@ func TestE2EP0011URLImportFetchAndParse(t *testing.T) {
 		UserID:         scenarioUserID,
 		IdempotencyKey: "e2e-p0-011-invalid",
 		TargetLanguage: "en",
+		ResumeID:       scenarioResumeID,
 		Source:         map[string]any{"type": "url", "url": "http://169.254.169.254/latest/meta-data"},
 	})
 	var apiErr *targetjob.ServiceImportError
@@ -270,6 +274,7 @@ func TestE2EP0013ManualFormReady(t *testing.T) {
 		UserID:         scenarioUserID,
 		IdempotencyKey: "e2e-p0-013-manual-form",
 		TargetLanguage: "zh-CN",
+		ResumeID:       scenarioResumeID,
 		Source: map[string]any{
 			"type":           "manual_form",
 			"title":          "Frontend Architect",

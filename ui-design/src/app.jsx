@@ -343,7 +343,7 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
   const RAINBOW = "conic-gradient(from 0deg, oklch(60% 0.2 0), oklch(60% 0.2 60), oklch(60% 0.2 120), oklch(60% 0.2 180), oklch(60% 0.2 240), oklch(60% 0.2 300), oklch(60% 0.2 360))";
   const nav_items = [
     { k: "home", labelZh: "首页", labelEn: "Home", icon: "target" },
-    { k: "workspace", labelZh: "模拟面试", labelEn: "Mock Interview", icon: "play" },
+    { k: "workspace", labelZh: "面试", labelEn: "Interview", icon: "play" },
     { k: "resume_versions", labelZh: "简历", labelEn: "Resume", icon: "file" },
   ];
   return (

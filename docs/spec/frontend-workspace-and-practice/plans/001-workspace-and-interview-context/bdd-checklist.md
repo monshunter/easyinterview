@@ -1,18 +1,22 @@
 # 001 BDD Checklist
 
-> **版本**: 1.4
+> **版本**: 1.8
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-08
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
-## E2E.P0.018 Workspace 默认渲染 + Plan Switcher + active Resume Picker
+## E2E.P0.018 面试入口规划列表 + Workspace 当前规划详情 + Plan Switcher + active Resume Picker
 
 - [x] Scenario assets exist under `test/scenarios/e2e/p0-018-workspace-default-render/`
 - [x] Given fixtures cover `getTargetJob=with-rounds`, `getResume=default`, `getPracticePlan=default(ready)`, and `listTargetJobs` candidates
 - [x] Trigger runs App, Workspace, Header, modal integration, Plan Switcher, Resume Picker and modal a11y tests
 - [x] Verify covers workspace DOM anchors, Plan Switcher `listTargetJobs`, Resume Picker flat `listResumes` active-list, modal a11y and non-current testid negative grep
 - [x] Scenario `setup -> trigger -> verify -> cleanup` passes
+- [x] Revision 2026-07-08 trigger covers TopBar `面试` / `Interview`, no-context `WorkspacePlanList`, plan-card selection, and hydrated current-plan detail
+- [x] Revision 2026-07-08 verify covers `workspace-plan-list-*` anchors, absence of `workspace-empty` on no-context landing, and updated scenario evidence
+- [x] Revision 2026-07-08 card visual hardening covers plan-list card background, border, elevation, body/footer sections and responsive geometry
+- [x] Revision 2026-07-08 card simplification covers removal of source/language metadata and theme accent `进入规划` CTA on no-context plan cards
 
 ## E2E.P0.019 Workspace context loading
 

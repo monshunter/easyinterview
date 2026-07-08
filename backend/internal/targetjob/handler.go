@@ -73,6 +73,7 @@ func (h *Handler) ImportTargetJob(w http.ResponseWriter, r *http.Request) {
 		UserID:          userID,
 		IdempotencyKey:  idempotencyKey,
 		TargetLanguage:  body.TargetLanguage,
+		ResumeID:        body.ResumeId,
 		TitleHint:       derefString(body.TitleHint),
 		CompanyNameHint: derefString(body.CompanyNameHint),
 		Source:          body.Source,

@@ -153,6 +153,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
           {
             source: { type: "file", fileObjectId: presign.fileObjectId },
             targetLanguage,
+            resumeId,
           },
           { idempotencyKey: ik },
         );
@@ -163,6 +164,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
           {
             source: { type: "url", url: source.url },
             targetLanguage,
+            resumeId,
           },
           { idempotencyKey: ik },
         );
@@ -173,6 +175,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
           {
             source: { type: "manual_text", rawText: source.rawText },
             targetLanguage,
+            resumeId,
           },
           { idempotencyKey: ik },
         );

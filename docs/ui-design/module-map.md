@@ -1,8 +1,8 @@
 # EasyInterview UI 目标模块地图
 
-> **版本**: 2.10
+> **版本**: 2.11
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-08
 
 ## 1 文档目的
 
@@ -13,7 +13,7 @@
 | 模块 | 用户任务 | 页面/能力 | 说明 |
 |------|----------|----------------|------|
 | Home / 首页 | 粘贴 JD 或继续最近模拟面试 | JD 输入、JD 文件/URL 弹窗、最近模拟面试、创建简历入口 | 默认入口；JD 获取唯一入口 |
-| Mock Interview / 模拟面试 | 回访既有面试规划并再次发起 session | 当前面试规划、切换/新建规划、JD/简历绑定、面试轮次、公司情报嵌入卡片、立即面试、会话记录 | 一级导航 |
+| Interview / 面试 | 浏览并回访既有面试规划，再次发起 session | 面试规划列表、当前面试规划、切换/新建规划、JD/简历绑定、面试轮次、公司情报嵌入卡片、立即面试、会话记录 | 一级导航 |
 | Interview Session | 完成一场完整模拟面试 | 文本面试、语音面试、语音转文字、带提示练习 / 严格模拟、问题推进、结束生成报告 | 会话级页面 |
 | Report Dashboard | 查看一次已完成模拟面试的报告 | 仪表盘、上下文条、准备度、维度、题目回顾、证据、复练计划；Header 唯一一对复练 / 下一轮 CTA | 隶属于 session，不是一级导航 |
 | Resume / 简历 | 管理简历资产 | 平铺简历列表、上传/粘贴创建后直接打开详情、只读原始正文、LLM-derived displayName、禁止 raw 第一行/文件名命名 | 一级导航 |
@@ -25,8 +25,8 @@
 
 | 当前能力 | 目标归属 | 调整方式 |
 |----------|----------|----------|
-| `workspace` | Mock Interview / 当前面试规划 | 回访枢纽；首次导入启动决策由 `parse` 承载 |
-| 公司情报 | Mock Interview | 只保留模拟面试规划页内嵌轻量卡片 |
+| `workspace` | Interview / 面试规划列表 + 当前面试规划 | 无上下文时展示面试规划列表；带 `targetJobId` / `planId` 时展示当前规划详情；首次导入启动决策由 `parse` 承载 |
+| 公司情报 | Interview | 只保留当前面试规划页内嵌轻量卡片 |
 | `resume_versions` | Resume | 一级简历模块当前入口 |
 | `practice` | Interview Session | 文本面试与语音面试共享会话页面 |
 | `generating` | Interview / Report 过渡态 | 报告生成状态，不作为顶部导航 |
@@ -54,7 +54,7 @@
 |------------|----------|----------|
 | `home` | Home / 首页 | 默认入口 |
 | `parse` | JD Parse & Confirm | JD 解析确认与启动页 |
-| `workspace` | Mock Interview / 当前面试规划 | 一级导航 |
+| `workspace` | Interview / 面试规划列表 + 当前面试规划 | 一级导航 |
 | `practice` | Interview Session | 会话级页面 |
 | `generating` | ReportGenerating | 报告生成过渡态 |
 | `report` | Report Dashboard(sessionId) | 会话级详情 |
@@ -105,7 +105,7 @@ User
 
 ## 7 一致性约束
 
-1. 顶部导航只出现 `首页 / 模拟面试 / 简历`。
+1. 顶部导航只出现 `首页 / 面试 / 简历`。
 2. 用户菜单只出现 `设置与隐私 / 退出登录`。
 3. `debrief`、`debrief_full`、`profile` 不得作为目标 route、screen key、data-testid 正向锚点或场景正向入口。
 4. `auth_profile_setup` 是账号资料补全，不是用户画像。

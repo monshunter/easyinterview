@@ -8,9 +8,14 @@ mkdir -p "$OUTPUT_DIR"
   cd "$REPO_ROOT"
   "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test \
+    src/app/topbar/TopBar.test.tsx \
+    src/app/topbar/TopBarVisual.test.tsx \
+    src/app/scenarios/p0-004-app-shell-language-switch.test.tsx \
     src/app/App.test.tsx \
     src/app/screens/workspace/WorkspaceScreen.test.tsx \
+    src/app/screens/workspace/WorkspaceEmptyState.test.tsx \
     src/app/screens/workspace/WorkspaceHeader.test.tsx \
+    src/app/screens/workspace/WorkspaceHandoff.test.tsx \
     src/app/screens/workspace/WorkspaceModalIntegration.test.tsx \
     src/app/screens/workspace/modals/PlanSwitcherModal.test.tsx \
     src/app/screens/workspace/modals/ResumePickerModal.test.tsx \

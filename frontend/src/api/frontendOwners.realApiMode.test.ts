@@ -60,6 +60,7 @@ function buildPracticePlan(overrides: Partial<PracticePlan> = {}): PracticePlan 
 		language: "en",
 		mode: "assisted",
 		questionBudget: 4,
+		resumeId: RESUME_ID,
 		status: "ready",
 		targetJobId: TARGET_JOB_ID,
 		timeBudgetMinutes: 30,

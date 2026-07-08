@@ -87,17 +87,17 @@ describe("InterviewContext reducer", () => {
     expect(next.jdId).toBe("jd-tj-2");
   });
 
-  it("HYDRATE_FROM_ROUTE derives planId fallback from targetJobId", () => {
+  it("HYDRATE_FROM_ROUTE does not fabricate planId from targetJobId", () => {
     const state: InterviewContextState = { ...DEFAULT_INTERVIEW_CONTEXT };
     const action: InterviewContextAction = {
       type: "HYDRATE_FROM_ROUTE",
       params: { targetJobId: "tj-3" },
     };
     const next = interviewContextReducer(state, action);
-    expect(next.planId).toBe("plan-tj-3");
+    expect(next.planId).toBeUndefined();
   });
 
-  it("MERGE_TARGET_JOB updates jobId from targetJob.id and merges round info", () => {
+  it("MERGE_TARGET_JOB updates jobId and persisted target-job bindings", () => {
     const state: InterviewContextState = {
       ...DEFAULT_INTERVIEW_CONTEXT,
       targetJobId: "tj-1",
@@ -110,11 +110,15 @@ describe("InterviewContext reducer", () => {
         companyName: "Acme Corp",
         locationText: "Shanghai",
         sourceType: "linkedin",
+        resumeId: "rv-1",
+        currentPracticePlanId: "plan-1",
       } as any,
     };
     const next = interviewContextReducer(state, action);
     expect(next.jobId).toBe("tj-1");
     expect(next.targetJobId).toBe("tj-1");
+    expect(next.resumeId).toBe("rv-1");
+    expect(next.planId).toBe("plan-1");
   });
 
   it("MERGE_RESUME sets resumeId from resume data", () => {
@@ -222,7 +226,7 @@ describe("InterviewContextProvider + useInterviewContext", () => {
     expect(result.current.ctx.targetJobId).toBe("tj-5");
     expect(result.current.ctx.roundName).toBe("经理面");
     expect(result.current.ctx.jdId).toBe("jd-tj-5");
-    expect(result.current.ctx.planId).toBe("plan-tj-5");
+    expect(result.current.ctx.planId).toBeUndefined();
   });
 
   it("dispatch CLEAR resets context", () => {

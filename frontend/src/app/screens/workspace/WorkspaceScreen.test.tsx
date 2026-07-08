@@ -53,6 +53,20 @@ const WORKSPACE_ROUTE: Route = {
 };
 
 describe("WorkspaceScreen static shell (Phase 1)", () => {
+  it("renders the no-context workspace as the interview plan-list landing", async () => {
+    withProviders(
+      <WorkspaceScreen route={{ name: "workspace", params: {} }} />,
+      { name: "workspace", params: {} },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-plan-list")).toBeDefined();
+    });
+    expect(screen.getByTestId("workspace-plan-list-empty")).toBeDefined();
+    expect(screen.queryByTestId("workspace-empty")).toBeNull();
+    expect(screen.queryByTestId("workspace-plan-eyebrow")).toBeNull();
+  });
+
   it("renders plan eyebrow section with testids", () => {
     const { nav } = withProviders(
       <WorkspaceScreen route={WORKSPACE_ROUTE} />,

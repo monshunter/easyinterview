@@ -13,6 +13,8 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
+const testResumeID = "018f2a40-0000-7000-9000-0000000000r1"
+
 type fakeStore struct {
 	captured  targetjob.ImportTargetJobInput
 	result    targetjob.ImportTargetJobResult
@@ -178,6 +180,7 @@ func TestService_ImportTargetJob_ManualTextRunnerPath(t *testing.T) {
 		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
 		IdempotencyKey: "key-1",
 		TargetLanguage: "en",
+		ResumeID:       testResumeID,
 		Source: map[string]any{
 			"type":    "manual_text",
 			"rawText": "We are hiring a Backend Engineer with strong Go experience.",
@@ -212,6 +215,29 @@ func TestService_ImportTargetJob_ManualTextRunnerPath(t *testing.T) {
 	if store.captured.SourceSnapshotText == "" {
 		t.Fatal("manual_text snapshot_text must be set to rawText")
 	}
+	if store.captured.ResumeID != testResumeID {
+		t.Fatalf("resume binding was not passed to store: %+v", store.captured)
+	}
+}
+
+func TestService_ImportTargetJob_RequiresResumeID(t *testing.T) {
+	svc, _ := newServiceWithFake(
+		"018f2a40-0000-7000-9000-0000000000a1",
+		"018f2a40-0000-7000-9000-0000000000f1",
+	)
+	_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
+		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
+		IdempotencyKey: "key-missing-resume",
+		TargetLanguage: "en",
+		Source: map[string]any{
+			"type":    "manual_text",
+			"rawText": "We are hiring a Backend Engineer.",
+		},
+	})
+	var svcErr *targetjob.ServiceImportError
+	if !errors.As(err, &svcErr) || svcErr.Code != "VALIDATION_FAILED" {
+		t.Fatalf("expected VALIDATION_FAILED for missing resumeId, got %v", err)
+	}
 }
 
 func TestService_ImportTargetJob_URLRunnerPathValidatesHttps(t *testing.T) {
@@ -226,6 +252,7 @@ func TestService_ImportTargetJob_URLRunnerPathValidatesHttps(t *testing.T) {
 		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
 		IdempotencyKey: "key-2",
 		TargetLanguage: "zh-CN",
+		ResumeID:       testResumeID,
 		Source: map[string]any{
 			"type": "url",
 			"url":  "https://jobs.example.com/role/123?token=secret#share",
@@ -257,6 +284,7 @@ func TestService_ImportTargetJob_URLRejectsHTTP(t *testing.T) {
 		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
 		IdempotencyKey: "key-3",
 		TargetLanguage: "en",
+		ResumeID:       testResumeID,
 		Source: map[string]any{
 			"type": "url",
 			"url":  "http://insecure.example.com",
@@ -284,6 +312,7 @@ func TestService_ImportTargetJob_FilePath(t *testing.T) {
 		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
 		IdempotencyKey: "key-4",
 		TargetLanguage: "en",
+		ResumeID:       testResumeID,
 		Source: map[string]any{
 			"type":         "file",
 			"fileObjectId": "018f2a40-0000-7000-9000-0000000000ff",
@@ -307,6 +336,7 @@ func TestService_ImportTargetJob_FilePath_RejectsCrossUserOrDeleted(t *testing.T
 		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
 		IdempotencyKey: "k",
 		TargetLanguage: "en",
+		ResumeID:       testResumeID,
 		Source: map[string]any{
 			"type":         "file",
 			"fileObjectId": "018f2a40-0000-7000-9000-0000000000ff",
@@ -329,6 +359,7 @@ func TestService_ImportTargetJob_FilePath_RejectsWrongPurpose(t *testing.T) {
 		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
 		IdempotencyKey: "k",
 		TargetLanguage: "en",
+		ResumeID:       testResumeID,
 		Source: map[string]any{
 			"type":         "file",
 			"fileObjectId": "018f2a40-0000-7000-9000-0000000000ff",
@@ -350,6 +381,7 @@ func TestService_ImportTargetJob_ManualFormSyncReady(t *testing.T) {
 		UserID:         "018f2a40-0000-7000-9000-0000000000b1",
 		IdempotencyKey: "key-5",
 		TargetLanguage: "en",
+		ResumeID:       testResumeID,
 		Source: map[string]any{
 			"type":           "manual_form",
 			"title":          "Senior PM",
@@ -392,6 +424,7 @@ func TestService_ImportTargetJob_DedupeKeyIsUserScoped(t *testing.T) {
 		UserID:         "user-1",
 		IdempotencyKey: "shared-key",
 		TargetLanguage: "en",
+		ResumeID:       testResumeID,
 		Source:         map[string]any{"type": "manual_text", "rawText": "JD A"},
 	})
 	keyForUser1 := store.captured.DedupeKey
@@ -401,6 +434,7 @@ func TestService_ImportTargetJob_DedupeKeyIsUserScoped(t *testing.T) {
 		UserID:         "user-2",
 		IdempotencyKey: "shared-key", // same idempotency key as user-1
 		TargetLanguage: "en",
+		ResumeID:       testResumeID,
 		Source:         map[string]any{"type": "manual_text", "rawText": "JD B"},
 	})
 	keyForUser2 := store2.captured.DedupeKey
@@ -673,6 +707,7 @@ func TestService_ImportTargetJob_RejectsUnknownSource(t *testing.T) {
 		UserID:         "u",
 		IdempotencyKey: "k",
 		TargetLanguage: "en",
+		ResumeID:       testResumeID,
 		Source:         map[string]any{"type": "satellite_uplink"},
 	})
 	var apiErr *targetjob.ServiceImportError

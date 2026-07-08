@@ -82,6 +82,8 @@ type TargetJobRecord struct {
 	FitSummary             json.RawMessage
 	Notes                  string
 	LatestReportID         string
+	CurrentPracticePlanID  string
+	ResumeID               string
 	OpenQuestionIssueCount int32
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
@@ -147,6 +149,8 @@ type UpdateLifecycleFields struct {
 // a single transaction with the target_jobs analysis-status / summary fields.
 type ApplyParseResultInput struct {
 	TargetJobID    string
+	Title          string
+	CompanyName    string
 	AnalysisStatus sharedtypes.TargetJobParseStatus
 	Summary        json.RawMessage
 	FitSummary     json.RawMessage
@@ -159,6 +163,8 @@ type ApplyParseResultInput struct {
 // and the source_refresh placeholder in one database transaction.
 type CompleteParseSuccessInput struct {
 	TargetJobID        string
+	Title              string
+	CompanyName        string
 	AnalysisStatus     sharedtypes.TargetJobParseStatus
 	Summary            json.RawMessage
 	FitSummary         json.RawMessage
@@ -200,6 +206,7 @@ type ImportTargetJobInput struct {
 	EmploymentType         string
 	SeniorityLevel         string
 	TargetLanguage         string
+	ResumeID               string
 	APISourceType          SourceType
 	SourceURL              string
 	SourceFileObjectID     string
@@ -336,11 +343,12 @@ insert into target_jobs (
   raw_jd_text,
   summary,
   fit_summary,
+  resume_id,
   notes,
   open_question_issue_count,
   created_at,
   updated_at
-) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
 		rec.ID,
 		nullableUUID(rec.UserID),
 		string(rec.Status),
@@ -357,6 +365,7 @@ insert into target_jobs (
 		nullableString(rec.RawJDText),
 		summary,
 		fitSummary,
+		nullableUUID(rec.ResumeID),
 		nullableString(rec.Notes),
 		rec.OpenQuestionIssueCount,
 		rec.CreatedAt,
@@ -424,6 +433,8 @@ func (s *SQLStore) GetTargetJobByUser(ctx context.Context, userID string, target
 		rawJDText          sql.NullString
 		notes              sql.NullString
 		latestReportID     sql.NullString
+		currentPlanID      sql.NullString
+		resumeID           sql.NullString
 		summary            []byte
 		fitSummary         []byte
 		status             string
@@ -434,6 +445,16 @@ func (s *SQLStore) GetTargetJobByUser(ctx context.Context, userID string, target
 select id, user_id, status, analysis_status, title, company_name, location_text,
        employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
        raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
+       target_jobs.resume_id::text as resume_id,
+       (
+         select pp.id::text
+         from practice_plans pp
+         where pp.user_id = target_jobs.user_id
+           and pp.target_job_id = target_jobs.id
+           and pp.status = 'ready'
+         order by pp.created_at desc, pp.id desc
+         limit 1
+       ) as current_practice_plan_id,
        created_at, updated_at
 from target_jobs
 where id = $1 and user_id = $2 and deleted_at is null`,
@@ -459,6 +480,8 @@ where id = $1 and user_id = $2 and deleted_at is null`,
 		&notes,
 		&latestReportID,
 		&rec.OpenQuestionIssueCount,
+		&resumeID,
+		&currentPlanID,
 		&rec.CreatedAt,
 		&rec.UpdatedAt,
 	)
@@ -481,6 +504,8 @@ where id = $1 and user_id = $2 and deleted_at is null`,
 	rec.RawJDText = rawJDText.String
 	rec.Notes = notes.String
 	rec.LatestReportID = latestReportID.String
+	rec.CurrentPracticePlanID = currentPlanID.String
+	rec.ResumeID = resumeID.String
 	if len(summary) > 0 {
 		rec.Summary = append(json.RawMessage{}, summary...)
 	}
@@ -545,6 +570,16 @@ func (s *SQLStore) ListTargetJobsForUser(ctx context.Context, userID string, fil
 select id, user_id, status, analysis_status, title, company_name, location_text,
        employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
        raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
+       target_jobs.resume_id::text as resume_id,
+       (
+         select pp.id::text
+         from practice_plans pp
+         where pp.user_id = target_jobs.user_id
+           and pp.target_job_id = target_jobs.id
+           and pp.status = 'ready'
+         order by pp.created_at desc, pp.id desc
+         limit 1
+       ) as current_practice_plan_id,
        created_at, updated_at
 from target_jobs
 where ` + strings.Join(clauses, " and ") + `
@@ -559,7 +594,7 @@ limit ` + limitArg
 
 	out := ListResult{}
 	for rows.Next() {
-		rec, err := scanTargetJobRow(rows)
+		rec, err := scanTargetJobRowWithCurrentPlan(rows)
 		if err != nil {
 			return ListResult{}, err
 		}
@@ -724,7 +759,7 @@ set %s
 where id = $%d and user_id = $%d and deleted_at is null
 returning id, user_id, status, analysis_status, title, company_name, location_text,
           employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
-          raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
+          raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count, resume_id::text,
           created_at, updated_at`,
 		strings.Join(sets, ", "),
 		len(args)-1,
@@ -776,7 +811,7 @@ func selectTargetJobRecordByUserForUpdate(ctx context.Context, q rowQueryer, use
 	rec, err := scanTargetJobRow(q.QueryRowContext(ctx, `
 select id, user_id, status, analysis_status, title, company_name, location_text,
        employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
-       raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
+       raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count, resume_id::text,
        created_at, updated_at
 from target_jobs
 where id = $1 and user_id = $2 and deleted_at is null
@@ -797,7 +832,7 @@ func selectTargetJobRecordByUser(ctx context.Context, q rowQueryer, userID strin
 	rec, err := scanTargetJobRow(q.QueryRowContext(ctx, `
 select id, user_id, status, analysis_status, title, company_name, location_text,
        employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
-       raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
+       raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count, resume_id::text,
        created_at, updated_at
 from target_jobs
 where id = $1 and user_id = $2 and deleted_at is null`,
@@ -844,6 +879,8 @@ func (s *SQLStore) CompleteParseSuccess(ctx context.Context, in CompleteParseSuc
 
 	if err := s.applyParseResultTx(ctx, tx, ApplyParseResultInput{
 		TargetJobID:    in.TargetJobID,
+		Title:          in.Title,
+		CompanyName:    in.CompanyName,
 		AnalysisStatus: in.AnalysisStatus,
 		Summary:        in.Summary,
 		FitSummary:     in.FitSummary,
@@ -949,11 +986,15 @@ insert into target_job_requirements (
 
 	res, err := tx.ExecContext(ctx, `
 update target_jobs
-set analysis_status = $1,
-    summary = $2,
-    fit_summary = $3,
-    updated_at = $4
-where id = $5 and deleted_at is null`,
+set title = coalesce(nullif($1, ''), title),
+    company_name = coalesce(nullif($2, ''), company_name),
+    analysis_status = $3,
+    summary = $4,
+    fit_summary = $5,
+    updated_at = $6
+where id = $7 and deleted_at is null`,
+		strings.TrimSpace(in.Title),
+		strings.TrimSpace(in.CompanyName),
 		string(in.AnalysisStatus),
 		nullJSON(in.Summary),
 		nullJSON(in.FitSummary),
@@ -991,8 +1032,8 @@ func (s *SQLStore) ImportTargetJob(ctx context.Context, in ImportTargetJobInput)
 	if err := s.checkDB(); err != nil {
 		return ImportTargetJobResult{}, err
 	}
-	if in.UserID == "" || in.TargetJobID == "" || in.DedupeKey == "" {
-		return ImportTargetJobResult{}, fmt.Errorf("import target job requires userId, targetJobId, dedupeKey")
+	if in.UserID == "" || in.TargetJobID == "" || in.DedupeKey == "" || in.ResumeID == "" {
+		return ImportTargetJobResult{}, fmt.Errorf("import target job requires userId, targetJobId, dedupeKey, resumeId")
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -1013,13 +1054,17 @@ func (s *SQLStore) ImportTargetJob(ctx context.Context, in ImportTargetJobInput)
 		return existing, nil
 	}
 
+	if err := assertResumeOwnedByUser(ctx, tx, in.UserID, in.ResumeID); err != nil {
+		return ImportTargetJobResult{}, err
+	}
+
 	if _, err := tx.ExecContext(ctx, `
 insert into target_jobs (
   id, user_id, status, analysis_status, title, company_name, location_text,
   employment_type, seniority_level, target_language, source_type, source_url,
-  source_file_object_id, raw_jd_text, summary, fit_summary,
+  source_file_object_id, raw_jd_text, summary, fit_summary, resume_id,
   open_question_issue_count, created_at, updated_at
-) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
 		in.TargetJobID,
 		in.UserID,
 		string(in.InitialLifecycleStatus),
@@ -1036,6 +1081,7 @@ insert into target_jobs (
 		nullableString(in.RawJDText),
 		[]byte(`{}`),
 		[]byte(`{}`),
+		nullableUUID(in.ResumeID),
 		int32(0),
 		in.Now,
 		in.Now,
@@ -1514,6 +1560,24 @@ where id = $1 and user_id = $2 and deleted_at is null`,
 	return rec, nil
 }
 
+func assertResumeOwnedByUser(ctx context.Context, q rowQueryer, userID string, resumeID string) error {
+	var found string
+	err := q.QueryRowContext(ctx, `
+select id
+from resumes
+where id = $1 and user_id = $2 and deleted_at is null`,
+		resumeID,
+		userID,
+	).Scan(&found)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrTargetJobNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("lookup resumes: %w", err)
+	}
+	return nil
+}
+
 func (s *SQLStore) UpdateSourceFreshness(ctx context.Context, targetJobID string, freshness FreshnessStatus, now time.Time) error {
 	if err := s.checkDB(); err != nil {
 		return err
@@ -1583,6 +1647,14 @@ type execer interface {
 }
 
 func scanTargetJobRow(scanner rowScanner) (TargetJobRecord, error) {
+	return scanTargetJobRowSelected(scanner, false)
+}
+
+func scanTargetJobRowWithCurrentPlan(scanner rowScanner) (TargetJobRecord, error) {
+	return scanTargetJobRowSelected(scanner, true)
+}
+
+func scanTargetJobRowSelected(scanner rowScanner, includeCurrentPlan bool) (TargetJobRecord, error) {
 	var (
 		rec                TargetJobRecord
 		title              sql.NullString
@@ -1595,13 +1667,15 @@ func scanTargetJobRow(scanner rowScanner) (TargetJobRecord, error) {
 		rawJDText          sql.NullString
 		notes              sql.NullString
 		latestReportID     sql.NullString
+		currentPlanID      sql.NullString
+		resumeID           sql.NullString
 		summary            []byte
 		fitSummary         []byte
 		status             string
 		analysisStatus     string
 		sourceType         string
 	)
-	err := scanner.Scan(
+	dest := []any{
 		&rec.ID,
 		&rec.UserID,
 		&status,
@@ -1621,9 +1695,15 @@ func scanTargetJobRow(scanner rowScanner) (TargetJobRecord, error) {
 		&notes,
 		&latestReportID,
 		&rec.OpenQuestionIssueCount,
-		&rec.CreatedAt,
-		&rec.UpdatedAt,
-	)
+	}
+	if includeCurrentPlan {
+		dest = append(dest, &resumeID, &currentPlanID)
+	} else {
+		dest = append(dest, &resumeID)
+	}
+	dest = append(dest, &rec.CreatedAt, &rec.UpdatedAt)
+
+	err := scanner.Scan(dest...)
 	if err != nil {
 		return TargetJobRecord{}, err
 	}
@@ -1640,6 +1720,8 @@ func scanTargetJobRow(scanner rowScanner) (TargetJobRecord, error) {
 	rec.RawJDText = rawJDText.String
 	rec.Notes = notes.String
 	rec.LatestReportID = latestReportID.String
+	rec.CurrentPracticePlanID = currentPlanID.String
+	rec.ResumeID = resumeID.String
 	if len(summary) > 0 {
 		rec.Summary = append(json.RawMessage{}, summary...)
 	}

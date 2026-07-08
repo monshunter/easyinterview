@@ -126,6 +126,8 @@ func TestTargetImportPromptMatchesParseResponseSchema(t *testing.T) {
 			}
 			body := resolved.UserMessageTemplate
 			for _, key := range []string{
+				"title",
+				"companyName",
 				"coreThemes",
 				"interviewHypotheses",
 				"strengths",
@@ -246,7 +248,7 @@ type captureAIClient struct {
 
 func (c *captureAIClient) Complete(_ context.Context, _ string, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
 	c.metadata = payload.Metadata
-	return aiclient.CompleteResponse{Content: `{"requirements":[]}`}, aiclient.AICallMeta{
+	return aiclient.CompleteResponse{Content: `{"title":"Backend Engineer","companyName":"Acme","requirements":[{"kind":"must_have","label":"Go","evidenceLevel":"explicit"}]}`}, aiclient.AICallMeta{
 		Provider:         "unit-test-provider",
 		ModelFamily:      "fixture",
 		ModelID:          "fixture-model:target-import-parse",

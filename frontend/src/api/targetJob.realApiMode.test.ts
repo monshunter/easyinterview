@@ -10,6 +10,7 @@ import type {
 
 const API_BASE_URL = "http://api.test/api/v1";
 const TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000000014";
+const RESUME_ID = "01918fa0-0000-7000-8000-000000000010";
 const FILE_OBJECT_ID = "01918fa0-0000-7000-8000-000000000015";
 const RAW_JD_TEXT = "Lead React platform and design system programs.";
 const SOURCE_URL = "https://jobs.example.test/frontend-platform?secret=redacted";
@@ -163,6 +164,7 @@ describe("TargetJob real API mode", () => {
 			{
 				source: { type: "manual_text", rawText: RAW_JD_TEXT },
 				targetLanguage: "en",
+				resumeId: RESUME_ID,
 				titleHint: "Senior Frontend Engineer",
 			},
 			{ idempotencyKey: "ik_real_import" },

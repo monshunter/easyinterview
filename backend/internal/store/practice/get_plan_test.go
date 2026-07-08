@@ -22,7 +22,7 @@ func TestSQLRepositoryGetPlanScopesByUser(t *testing.T) {
 		WithArgs("user-1", "plan-1").
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "target_job_id", "source_report_id", "goal", "mode", "interviewer_persona", "difficulty",
-			"language", "time_budget_minutes", "question_budget", "status", "created_at",
+			"language", "time_budget_minutes", "question_budget", "resume_id", "status", "created_at",
 		}).AddRow(
 			"plan-1",
 			"target-1",
@@ -34,6 +34,7 @@ func TestSQLRepositoryGetPlanScopesByUser(t *testing.T) {
 			"zh-CN",
 			30,
 			6,
+			"resume-1",
 			"ready",
 			createdAt,
 		))
@@ -42,7 +43,7 @@ func TestSQLRepositoryGetPlanScopesByUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetPlan returned error: %v", err)
 	}
-	if plan.ID != "plan-1" || plan.TargetJobID != "target-1" || plan.SourceReportID != "report-1" || plan.CreatedAt != createdAt {
+	if plan.ID != "plan-1" || plan.TargetJobID != "target-1" || plan.SourceReportID != "report-1" || plan.ResumeID != "resume-1" || plan.CreatedAt != createdAt {
 		t.Fatalf("unexpected plan: %+v", plan)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {

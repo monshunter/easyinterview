@@ -249,6 +249,8 @@ func newParseExecutorWithFakes(t *testing.T) (*targetjob.ParseExecutor, *pipelin
 }
 
 const happyResponseJSON = `{
+  "title": "Senior Backend Engineer",
+  "companyName": "Acme",
   "coreThemes": ["api"],
   "interviewHypotheses": ["microservices"],
   "strengths": ["Go"],
@@ -278,6 +280,9 @@ func TestParseExecutor_HappyPath(t *testing.T) {
 	}
 	if store.completeSuccessIn == nil || len(store.completeSuccessIn.Requirements) != 2 {
 		t.Fatalf("expected 2 requirements applied atomically, got %+v", store.completeSuccessIn)
+	}
+	if store.completeSuccessIn.Title != "Senior Backend Engineer" || store.completeSuccessIn.CompanyName != "Acme" {
+		t.Fatalf("parse success must persist title/company from AI output, got title=%q company=%q", store.completeSuccessIn.Title, store.completeSuccessIn.CompanyName)
 	}
 	if store.applyResultIn != nil {
 		t.Fatalf("parse executor must not apply results before atomic outbox write: %+v", store.applyResultIn)

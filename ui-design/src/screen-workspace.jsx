@@ -15,6 +15,10 @@ const WorkspaceScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
   const jobs = D.targetJobs || [];
   const resumeOptions = getWorkspaceResumeOptions(lang);
   const planOptions = getWorkspacePlanOptions(lang, jobs);
+  const hasPlanContext = Boolean(params.targetJobId || params.jobId || params.planId || params.jdId);
+  if (!hasPlanContext) {
+    return <WorkspacePlanList T={T} lang={lang} nav={nav} jobs={jobs} planOptions={planOptions} />;
+  }
   const activePlan = planOptions.find((plan) => plan.jobId === activeJobId) || planOptions[0];
   const job = jobs.find((j) => j.id === activeJobId) || jobs[0];
   const jd = getWorkspaceJDSample(job, D.jdSample);
@@ -297,6 +301,72 @@ const WorkspaceScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
             setPlannerOpen(false);
           }}
         />
+      )}
+    </div>
+  );
+};
+
+const WorkspacePlanList = ({ T, lang, nav, jobs = [], planOptions = [] }) => {
+  const L = lang === "en" ? {
+    eyebrow: "INTERVIEW PLANS",
+    title: "Choose an interview plan to continue.",
+    subtitle: "Saved target JDs and interview plans live here. Open one to review the current plan detail; new plans still start from importing a JD on Home.",
+    create: "Import JD",
+    emptyTitle: "No interview plans yet",
+    emptyDesc: "Import a target JD from Home first, then continue the plan here.",
+    updated: "Updated",
+    open: "Open plan",
+  } : {
+    eyebrow: "面试规划",
+    title: "选择要继续的面试规划。",
+    subtitle: "这里展示已保存的目标 JD / 面试规划。选择一项后进入当前规划详情；新建规划仍从首页导入 JD 开始。",
+    create: "导入 JD",
+    emptyTitle: "还没有面试规划",
+    emptyDesc: "先从首页导入一个目标 JD，再回来继续面试规划。",
+    updated: "更新于",
+    open: "进入规划",
+  };
+  const openPlan = (job) => nav("workspace", {
+    targetJobId: job.id,
+    jobId: job.id,
+    jdId: `jd-${job.id}`,
+    planId: `plan-${job.id}`,
+  });
+  return (
+    <div data-testid="workspace-plan-list" className="ei-fadein" style={{ maxWidth: 1120, margin: "0 auto", padding: "48px 48px 96px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24, flexWrap: "wrap", marginBottom: 28 }}>
+        <div style={{ maxWidth: 640 }}>
+          <div data-testid="workspace-plan-list-eyebrow" className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{L.eyebrow}</div>
+          <h1 data-testid="workspace-plan-list-title" className="ei-serif" style={{ fontSize: 40, color: T.ink, margin: 0, lineHeight: 1.14 }}>{L.title}</h1>
+          <div data-testid="workspace-plan-list-subtitle" style={{ fontSize: 14, color: T.ink2, marginTop: 10, lineHeight: 1.6 }}>{L.subtitle}</div>
+        </div>
+        <Btn variant="primary" icon="plus" onClick={() => nav("home")} T={T}>{L.create}</Btn>
+      </div>
+      {jobs.length === 0 ? (
+        <div data-testid="workspace-plan-list-empty" style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 32, textAlign: "center" }}>
+          <div className="ei-serif" style={{ fontSize: 18, color: T.ink, marginBottom: 10 }}>{L.emptyTitle}</div>
+          <div style={{ fontSize: 13, color: T.ink3, lineHeight: 1.55 }}>{L.emptyDesc}</div>
+        </div>
+      ) : (
+        <div data-testid="workspace-plan-list-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, alignItems: "stretch" }}>
+          {jobs.map((job) => {
+            return (
+              <article key={job.id} data-testid={`workspace-plan-list-card-${job.id}`} style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3, boxShadow: "0 12px 36px rgba(20, 15, 10, 0.16)", minHeight: 178, display: "flex", flexDirection: "column", justifyContent: "space-between", overflow: "hidden" }}>
+                <div data-testid={`workspace-plan-list-card-body-${job.id}`} style={{ padding: 20, flex: 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 10 }}>
+                    <Tag tone={job.statusTone === "neutral" ? "muted" : job.statusTone || "amber"} T={T}>{job.status}</Tag>
+                    <span style={{ fontSize: 12, color: T.ink3, fontFamily: "var(--ei-mono)" }}>{L.updated} {job.updatedAt}</span>
+                  </div>
+                  <div className="ei-serif" style={{ fontSize: 20, color: T.ink, lineHeight: 1.25, marginBottom: 6 }}>{job.title}</div>
+                  <div style={{ fontSize: 13, color: T.ink2, lineHeight: 1.5 }}>{job.company} · {job.location}</div>
+                </div>
+                <div data-testid={`workspace-plan-list-card-footer-${job.id}`} style={{ borderTop: `1px solid ${T.rule}`, padding: "14px 20px", background: T.bgCard, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
+                  <Btn variant="accent" icon="arrow_right" onClick={() => openPlan(job)} T={T}>{L.open}</Btn>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       )}
     </div>
   );

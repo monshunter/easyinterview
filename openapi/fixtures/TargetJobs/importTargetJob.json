@@ -9,9 +9,10 @@
             "type": "url",
             "url": "https://acme.example/careers/senior-frontend"
           },
-          "titleHint": "Senior Frontend Engineer",
-          "companyNameHint": "Acme",
-          "targetLanguage": "zh-CN"
+        "titleHint": "Senior Frontend Engineer",
+        "companyNameHint": "Acme",
+        "targetLanguage": "zh-CN",
+        "resumeId": "01918fa0-0000-7000-8000-000000001000"
         }
       },
       "response": {
@@ -41,10 +42,11 @@
           "source": {
             "type": "manual_text",
             "rawText": "We are hiring a Senior Frontend Engineer to lead our design system program. Required: 5+ years React, SSR experience, design-system leadership."
-          },
-          "titleHint": "Senior Frontend Engineer",
-          "companyNameHint": "Acme",
-          "targetLanguage": "zh-CN"
+        },
+        "titleHint": "Senior Frontend Engineer",
+        "companyNameHint": "Acme",
+        "targetLanguage": "zh-CN",
+        "resumeId": "01918fa0-0000-7000-8000-000000001000"
         }
       },
       "response": {
@@ -76,8 +78,9 @@
             "title": "Frontend Architect",
             "companyName": "Acme",
             "rawDescription": "Lead frontend architecture across 12 squads. Must have prior staff/principal-level scope and React platform experience."
-          },
-          "targetLanguage": "zh-CN"
+        },
+        "targetLanguage": "zh-CN",
+        "resumeId": "01918fa0-0000-7000-8000-000000001000"
         }
       },
       "response": {
@@ -107,8 +110,9 @@
           "source": {
             "type": "url",
             "url": "http://192.0.2.1/job"
-          },
-          "targetLanguage": "zh-CN"
+        },
+        "targetLanguage": "zh-CN",
+        "resumeId": "01918fa0-0000-7000-8000-000000001000"
         }
       },
       "response": {
@@ -133,8 +137,9 @@
           "source": {
             "type": "url",
             "url": "https://acme.example/careers/temporarily-down"
-          },
-          "targetLanguage": "zh-CN"
+        },
+        "targetLanguage": "zh-CN",
+        "resumeId": "01918fa0-0000-7000-8000-000000001000"
         }
       },
       "response": {

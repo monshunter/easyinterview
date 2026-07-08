@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.5
+> **版本**: 2.6
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联计划**: [plan](./plan.md)
 
@@ -28,3 +28,9 @@
 - [x] 3.2 Focused Home/Parse Vitest、frontend typecheck 与 `make validate-fixtures` 通过。
 - [x] 3.3 `E2E.P0.014`、`E2E.P0.015`、`E2E.P0.016` 的 `setup -> trigger -> verify -> cleanup` 通过。
 - [x] 3.4 `sync-doc-index --check`、`make docs-check`、`git diff --check` 和 `make lint-core-loop-pruning-surface` 通过。
+
+## Phase 4: Import resume binding remediation
+
+- [x] 4.1 Home paste/upload/URL imports include the selected `resumeId` in generated `importTargetJob` request bodies（验证：`HomeImport.test.tsx`, `HomeResumeSelection.test.tsx`, `HomeAuthGate.test.tsx` PASS）
+- [x] 4.2 Parse route handoff still carries `resumeId`, but reload/list re-entry can recover binding from `TargetJob.resumeId` instead of transient route-only state（验证：Workspace focused tests and `InterviewContext` merge tests PASS）
+- [x] 4.3 BDD-Gate: `E2E.P0.015` import request contract remains aligned with allowed `resumeId` and privacy redlines（验证：focused equivalent Home import tests + `make validate-fixtures` PASS）

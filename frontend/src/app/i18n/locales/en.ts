@@ -2,7 +2,7 @@ import type { LocaleMessages } from "./zh";
 
 export const en: LocaleMessages = {
   "nav.home": "Home",
-  "nav.workspace": "Mock Interview",
+  "nav.workspace": "Interview",
   "nav.resume_versions": "Resume",
   "theme.warm": "Warm clay",
   "theme.forest": "Forest moss",
@@ -198,6 +198,17 @@ export const en: LocaleMessages = {
   "workspace.lastReport": "Latest Report",
   "workspace.gotoReport": "Open Full Report",
   "workspace.notePractice": "Every question in this mock interview reads JD requirements, resume evidence, risk signals, and previous report signals.",
+  "workspace.planList.eyebrow": "INTERVIEW PLANS",
+  "workspace.planList.title": "Choose an interview plan to continue.",
+  "workspace.planList.subtitle":
+    "Saved target JDs and interview plans live here. Open one to review the current plan detail; new plans still start from importing a JD on Home.",
+  "workspace.planList.create": "Import JD",
+  "workspace.planList.loading": "Loading interview plans…",
+  "workspace.planList.error": "Interview plans cannot be loaded right now. Try again later.",
+  "workspace.planList.emptyTitle": "No interview plans yet",
+  "workspace.planList.emptyDesc": "Import a target JD from Home first, then continue the plan here.",
+  "workspace.planList.updated": "Updated {date}",
+  "workspace.planList.open": "Open plan",
   "workspace.planEyebrowTitle": "Company · Role",
   "workspace.planEyebrowStatus": "Interviewing",
   "workspace.planEyebrowSub": "Current round · Bound resume",

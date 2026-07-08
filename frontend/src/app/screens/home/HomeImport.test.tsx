@@ -21,6 +21,7 @@ type ListResumesResponse = Awaited<ReturnType<EasyInterviewClient["listResumes"]
 
 const defaultListResumesResponse = listResumesFixture.scenarios.default.response
   .body as ListResumesResponse;
+const RESUME_ID = "01918fa0-0000-7000-8000-000000001000";
 
 function createClient(scenario?: string) {
   const fetch = createFixtureBackedFetch(
@@ -44,7 +45,7 @@ async function selectDefaultResume() {
   );
   await userEvent.selectOptions(
     screen.getByTestId("home-resume-select"),
-    "01918fa0-0000-7000-8000-000000001000",
+    RESUME_ID,
   );
 }
 
@@ -93,6 +94,7 @@ describe("HomeImport — paste (manual_text)", () => {
         type: "manual_text",
         rawText: "Senior Frontend Engineer needed",
       },
+      resumeId: RESUME_ID,
       targetLanguage: "zh-CN",
     });
 
@@ -173,6 +175,7 @@ describe("HomeImport — url import", () => {
         type: "url",
         url: "https://acme.example/careers/senior",
       },
+      resumeId: RESUME_ID,
       targetLanguage: "zh-CN",
     });
 
@@ -254,6 +257,7 @@ describe("HomeImport — upload flow", () => {
         type: "file",
         fileObjectId: "01918fa0-0000-7000-8000-000000001100",
       },
+      resumeId: RESUME_ID,
       targetLanguage: "zh-CN",
     });
   });

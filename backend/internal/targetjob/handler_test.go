@@ -105,6 +105,7 @@ func TestHandler_ImportTargetJob_Returns202WithTargetJobWithJob(t *testing.T) {
 			"rawText": "Backend Engineer needed.",
 		},
 		TargetLanguage: "en",
+		ResumeId:       "018f2a40-0000-7000-9000-0000000000r1",
 	}
 	raw, _ := json.Marshal(body)
 	req := httptest.NewRequest(http.MethodPost, "/targets/import", bytes.NewReader(raw))
@@ -133,6 +134,7 @@ func TestHandler_ImportTargetJob_RejectsMissingIdempotencyKey(t *testing.T) {
 	body, _ := json.Marshal(api.ImportTargetJobRequest{
 		Source:         map[string]any{"type": "manual_text", "rawText": "x"},
 		TargetLanguage: "en",
+		ResumeId:       "018f2a40-0000-7000-9000-0000000000r1",
 	})
 	req := httptest.NewRequest(http.MethodPost, "/targets/import", bytes.NewReader(body))
 	req = req.WithContext(context.WithValue(req.Context(), testUserKey{}, "user-1"))
@@ -149,6 +151,7 @@ func TestHandler_ImportTargetJob_RejectsMissingSession(t *testing.T) {
 	body, _ := json.Marshal(api.ImportTargetJobRequest{
 		Source:         map[string]any{"type": "manual_text", "rawText": "x"},
 		TargetLanguage: "en",
+		ResumeId:       "018f2a40-0000-7000-9000-0000000000r1",
 	})
 	req := httptest.NewRequest(http.MethodPost, "/targets/import", bytes.NewReader(body))
 	req.Header.Set("Idempotency-Key", "k")
@@ -165,6 +168,7 @@ func TestHandler_ErrorResponsesUseGeneratedEnvelope(t *testing.T) {
 		body, _ := json.Marshal(api.ImportTargetJobRequest{
 			Source:         map[string]any{"type": "manual_text", "rawText": "x"},
 			TargetLanguage: "en",
+			ResumeId:       "018f2a40-0000-7000-9000-0000000000r1",
 		})
 		return body
 	}

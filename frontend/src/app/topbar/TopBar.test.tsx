@@ -47,6 +47,17 @@ describe("TopBar primary nav", () => {
     );
   });
 
+  it("renders the workspace nav as the concise Interview entry", () => {
+    render(
+      <DisplayPreferencesProvider initial={{ lang: "zh" }}>
+        <TopBar activeRoute="workspace" onNavigate={() => {}} />
+      </DisplayPreferencesProvider>,
+    );
+    expect(screen.getByTestId("topbar-nav-workspace")).toHaveTextContent(
+      /^面试$/,
+    );
+  });
+
   it("does not render non-current entries (mistakes / growth / voice / drill / debrief / profile)", () => {
     renderInProvider(<TopBar activeRoute="home" onNavigate={() => {}} />);
     for (const nonCurrent of ["mistakes", "growth", "voice", "drill", "welcome", "debrief", "profile"]) {

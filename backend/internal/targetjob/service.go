@@ -79,6 +79,7 @@ type ImportRequest struct {
 	UserID          string
 	IdempotencyKey  string
 	TargetLanguage  string
+	ResumeID        string
 	TitleHint       string
 	CompanyNameHint string
 	Source          any // B2 TargetJobImportSource oneOf, decoded as map[string]any
@@ -108,6 +109,10 @@ func (s *Service) ImportTargetJob(ctx context.Context, in ImportRequest) (Import
 	if strings.TrimSpace(in.TargetLanguage) == "" {
 		return ImportResponse{}, &ServiceImportError{Code: sharederrors.CodeValidationFailed, Message: "targetLanguage is required"}
 	}
+	resumeID := strings.TrimSpace(in.ResumeID)
+	if resumeID == "" {
+		return ImportResponse{}, &ServiceImportError{Code: sharederrors.CodeValidationFailed, Message: "resumeId is required"}
+	}
 
 	decoded, err := decodeImportSource(in.Source)
 	if err != nil {
@@ -124,6 +129,7 @@ func (s *Service) ImportTargetJob(ctx context.Context, in ImportRequest) (Import
 		DedupeKey:              dedupeKey,
 		TargetJobID:            targetJobID,
 		TargetLanguage:         strings.TrimSpace(in.TargetLanguage),
+		ResumeID:               resumeID,
 		APISourceType:          decoded.SourceType,
 		InitialLifecycleStatus: sharedtypes.TargetJobStatusDraft,
 		Title:                  pickHint(in.TitleHint, decoded.Title),
@@ -194,6 +200,9 @@ func (s *Service) ImportTargetJob(ctx context.Context, in ImportRequest) (Import
 
 	res, err := s.store.ImportTargetJob(ctx, storeIn)
 	if err != nil {
+		if errors.Is(err, ErrTargetJobNotFound) {
+			return ImportResponse{}, &ServiceImportError{Code: sharederrors.CodeTargetJobNotFound, Message: "resume not found"}
+		}
 		return ImportResponse{}, err
 	}
 
@@ -539,10 +548,12 @@ func recordToAPI(rec TargetJobRecord, reqs []RequirementRecord) api.TargetJob {
 		AnalysisStatus:         rec.AnalysisStatus,
 		CompanyName:            rec.CompanyName,
 		CreatedAt:              rec.CreatedAt.UTC().Format(time.RFC3339),
+		CurrentPracticePlanId:  optionalString(rec.CurrentPracticePlanID),
 		Id:                     rec.ID,
 		LocationText:           optionalString(rec.LocationText),
 		OpenQuestionIssueCount: rec.OpenQuestionIssueCount,
 		Requirements:           []api.TargetJobRequirement{},
+		ResumeId:               optionalString(rec.ResumeID),
 		SourceType:             string(rec.SourceType),
 		SourceUrl:              optionalString(rec.SourceURL),
 		Status:                 rec.Status,

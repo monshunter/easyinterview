@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-09](2026-07-09.md) | `fix(workspace): close plan list UX and context regressions (BUG-0143, BUG-0144, BUG-0145)` | #fix #ui #api #test #docs #bdd |
 | [2026-07-08](2026-07-08.md) | `fix(targetjob): require postgres for schema drift gate (BUG-0142)` | #fix #api #test #docs |
 | [2026-07-08](2026-07-08.md) | `fix(targetjob): align store with pruned profile schema (BUG-0142)` | #fix #api #test #docs |
 | [2026-07-08](2026-07-08.md) | `fix(resume): close source preview and picker regressions (BUG-0139, BUG-0140, BUG-0141)` | #fix #api #ui #test #docs #bdd |

@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-08
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -56,6 +56,12 @@ AI task run metadata、audit metadata、outbox payload、metric label 与 log re
 ### Phase 5: Flat Resume Binding
 
 `createPracticePlan` 使用 `resumeId` 与 `practice_plans.resume_id`。`startPracticeSession` reservation 从 flat `resumes.structured_profile` 读取简历摘要，并渲染到 first-question prompt 的 `{{resume_profile}}` context。
+
+### Phase 6: PracticePlan resumeId response remediation
+
+`createPracticePlan` / `getPracticePlan` responses must return the persisted `resumeId` from `practice_plans.resume_id`, matching the request contract and enabling frontend current-plan refresh to keep the bound resume.
+
+Verified focused practice suites, OpenAPI generated contract, fixture validation and cmd/api E2E focused gates on 2026-07-08.
 
 ## 5 验收标准
 

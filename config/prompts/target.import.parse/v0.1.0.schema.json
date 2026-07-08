@@ -2,6 +2,8 @@
   "type": "object",
   "description": "Structured target job model extracted from a job description.",
   "required": [
+    "title",
+    "companyName",
     "coreThemes",
     "interviewHypotheses",
     "strengths",
@@ -10,6 +12,14 @@
     "requirements"
   ],
   "properties": {
+    "title": {
+      "type": "string",
+      "description": "Canonical job title or role name extracted from the JD."
+    },
+    "companyName": {
+      "type": "string",
+      "description": "Canonical company or hiring organization name extracted from the JD."
+    },
     "coreThemes": {
       "type": "array",
       "description": "Concise technical or domain themes from the role.",

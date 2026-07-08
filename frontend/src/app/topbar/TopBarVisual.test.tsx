@@ -239,16 +239,16 @@ describe("TopBar i18n regression after visual parity (Phase 3.2)", () => {
       </DisplayPreferencesProvider>,
     );
     const user = userEvent.setup();
-    expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent("首页");
+    expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent(/^首页$/);
     expect(screen.getByTestId("topbar-nav-workspace")).toHaveTextContent(
-      "模拟面试",
+      /^面试$/,
     );
 
     await user.click(screen.getByTestId("topbar-lang-toggle"));
     await user.click(screen.getByTestId("topbar-lang-option-en"));
-    expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent("Home");
+    expect(screen.getByTestId("topbar-nav-home")).toHaveTextContent(/^Home$/);
     expect(screen.getByTestId("topbar-nav-workspace")).toHaveTextContent(
-      "Mock Interview",
+      /^Interview$/,
     );
   });
 });

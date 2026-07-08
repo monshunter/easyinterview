@@ -228,6 +228,7 @@ func (s *recordingPlanStore) CreatePlan(ctx context.Context, in CreatePlanStoreI
 		ID:                 in.PlanID,
 		TargetJobID:        in.TargetJobID,
 		SourceReportID:     in.SourceReportID,
+		ResumeID:           in.ResumeID,
 		Goal:               in.Goal,
 		Mode:               in.Mode,
 		InterviewerPersona: in.InterviewerPersona,

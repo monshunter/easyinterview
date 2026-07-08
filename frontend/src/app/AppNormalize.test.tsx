@@ -25,13 +25,13 @@ describe("App route normalization", () => {
       const { unmount } = render(
         <App initialRoute={{ name: nonCurrent, params: {} }} />,
       );
-      // workspace now renders WorkspaceScreen; empty params → WorkspaceEmptyState
+      // workspace now renders WorkspaceScreen; empty params → WorkspacePlanList
       // resume_versions now renders ResumeWorkshopScreen
       // practice now renders PracticeScreen; empty params → PracticeSessionLostState
       // report now renders ReportScreen; empty params → ReportMissingSessionState
       const currentTestId =
         current === "workspace"
-          ? "workspace-empty"
+          ? "workspace-plan-list"
           : current === "resume_versions"
             ? "resume-workshop-screen"
             : current === "practice"

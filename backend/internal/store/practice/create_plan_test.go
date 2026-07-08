@@ -46,7 +46,7 @@ func TestSQLRepositoryCreatePlanWritesPlanAndAuditInOneTransaction(t *testing.T)
 		).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "target_job_id", "source_report_id", "goal", "mode", "interviewer_persona", "difficulty",
-			"language", "time_budget_minutes", "question_budget", "status", "created_at",
+			"language", "time_budget_minutes", "question_budget", "resume_id", "status", "created_at",
 		}).AddRow(
 			in.PlanID,
 			in.TargetJobID,
@@ -58,6 +58,7 @@ func TestSQLRepositoryCreatePlanWritesPlanAndAuditInOneTransaction(t *testing.T)
 			in.Language,
 			in.TimeBudgetMinutes,
 			in.QuestionBudget,
+			in.ResumeID,
 			"ready",
 			in.Now,
 		))
@@ -93,6 +94,9 @@ func TestSQLRepositoryCreatePlanWritesPlanAndAuditInOneTransaction(t *testing.T)
 	if plan.SourceReportID != "" {
 		t.Fatalf("baseline plan should not have a source report id: %+v", plan)
 	}
+	if plan.ResumeID != in.ResumeID {
+		t.Fatalf("plan resume binding not returned: got %q want %q", plan.ResumeID, in.ResumeID)
+	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
 	}
@@ -126,7 +130,7 @@ func TestSQLRepositoryCreatePlanNormalizesEmptyFocusCompetencyCodes(t *testing.T
 		).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "target_job_id", "source_report_id", "goal", "mode", "interviewer_persona", "difficulty",
-			"language", "time_budget_minutes", "question_budget", "status", "created_at",
+			"language", "time_budget_minutes", "question_budget", "resume_id", "status", "created_at",
 		}).AddRow(
 			in.PlanID,
 			in.TargetJobID,
@@ -138,6 +142,7 @@ func TestSQLRepositoryCreatePlanNormalizesEmptyFocusCompetencyCodes(t *testing.T
 			in.Language,
 			in.TimeBudgetMinutes,
 			in.QuestionBudget,
+			in.ResumeID,
 			"ready",
 			in.Now,
 		))
@@ -213,7 +218,7 @@ func TestSQLRepositoryCreatePlanWritesDerivedSourceAndAudit(t *testing.T) {
 				).
 				WillReturnRows(sqlmock.NewRows([]string{
 					"id", "target_job_id", "source_report_id", "goal", "mode", "interviewer_persona", "difficulty",
-					"language", "time_budget_minutes", "question_budget", "status", "created_at",
+					"language", "time_budget_minutes", "question_budget", "resume_id", "status", "created_at",
 				}).AddRow(
 					in.PlanID,
 					in.TargetJobID,
@@ -225,6 +230,7 @@ func TestSQLRepositoryCreatePlanWritesDerivedSourceAndAudit(t *testing.T) {
 					in.Language,
 					in.TimeBudgetMinutes,
 					in.QuestionBudget,
+					in.ResumeID,
 					"ready",
 					in.Now,
 				))

@@ -1,19 +1,19 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.21
+> **版本**: 2.22
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-08
 
 ## 1 文档目的
 
-本文档定义当前静态 UI 原型对应的目标信息架构。当前 UI 范围的核心入口为首页、模拟面试和简历；真实面试复盘和用户画像不属于当前 UI 范围。
+本文档定义当前静态 UI 原型对应的目标信息架构。当前 UI 范围的核心入口为首页、面试和简历；真实面试复盘和用户画像不属于当前 UI 范围。
 
 目标 UI 必须与 `ui-design/index.html` 和 `ui-design/src/app.jsx` 当前运行时交互一致。
 
 ## 2 已确认决策
 
 1. App 默认进入首页；未登录状态由当前页面内的登录入口和业务前置登录处理。
-2. 顶部导航为：`首页`、`模拟面试`、`简历`。
+2. 顶部导航为：`首页`、`面试`、`简历`。
 3. 用户菜单为：`设置与隐私`、`退出登录`；未登录时只显示登录入口。
 4. `复盘` 和 `用户画像` 不属于当前 UI 范围，不是一级导航、用户菜单入口、目标 route、静态原型页面或后续默认 workstream。
 5. `debrief`、`debrief_full`、`profile` 等非当前 hash / route 输入在静态原型中归一到 `home`，不得 materialize 非当前页面。
@@ -29,7 +29,7 @@
 [EasyInterview App]
 ├─ TopBar
 │  ├─ Brand: E mark + EasyInterview
-│  ├─ Primary nav: 首页 / 模拟面试 / 简历
+│  ├─ Primary nav: 首页 / 面试 / 简历
 │  ├─ Theme / dark / language
 │  └─ User menu: 设置与隐私 / 退出登录
 ├─ Home / 首页
@@ -40,7 +40,8 @@
 │  │  └─ 还没有简历？1 分钟创建（右侧同行）
 │  ├─ 立即面试（简历选择下方）
 │  └─ 最近模拟面试（最多 3 条 + 更多）
-├─ Mock Interview / 模拟面试
+├─ Interview / 面试
+│  ├─ 面试规划列表（一级入口默认 landing）
 │  ├─ 当前面试规划
 │  ├─ JD / 简历 / InterviewRound
 │  ├─ 公司情报嵌入卡片
@@ -73,7 +74,7 @@
 ```text
 [Top Navigation]
 ├─ 首页
-├─ 模拟面试
+├─ 面试
 ├─ 简历
 ├─ 主题色菜单
 ├─ 暗色模式
@@ -113,7 +114,13 @@ Home
 │     └─ Interview Session 或 Mock Interview Plan
 ├─ 最近模拟面试
 │  ├─ 最多 3 条快捷卡片
-│  └─ 更多 -> Mock Interview Plan 列表
+│  └─ 更多 -> 面试规划列表
+
+Interview / 面试
+├─ 面试规划列表
+│  ├─ 已有 TargetJob / JD 候选规划
+│  ├─ 打开当前规划详情
+│  └─ 从新 JD 创建规划 -> Home
 
 Mock Interview Plan
 ├─ TargetJob / JD

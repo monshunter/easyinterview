@@ -46,7 +46,7 @@ func TestE2EP0098FullFunnelImportToNextRound(t *testing.T) {
 	}
 
 	seed := h.seedReadyResume(t)
-	imported := h.importTargetJob(t)
+	imported := h.importTargetJob(t, seed.ResumeID)
 	h.runKernelOnce(t, "target_import")
 	target := h.getTargetJob(t, imported.TargetJobId)
 	if target.AnalysisStatus != sharedtypes.TargetJobParseStatusReady {
@@ -85,7 +85,7 @@ func TestE2EP0098FullFunnelImportToNextRound(t *testing.T) {
 func TestE2EP0098CreatePracticePlanAcceptsEmptyFocusCodes(t *testing.T) {
 	h := newFullFunnelJourneyHarness(t)
 	seed := h.seedReadyResume(t)
-	imported := h.importTargetJob(t)
+	imported := h.importTargetJob(t, seed.ResumeID)
 	h.runKernelOnce(t, "target_import")
 
 	raw := h.doJSON(t, http.MethodPost, "/api/v1/practice/plans", "e2e-p0-098-create-empty-focus-plan", api.CreatePracticePlanRequest{
@@ -330,7 +330,7 @@ func newFullFunnelJourneyHarnessWithTimeout(t *testing.T, timeout time.Duration)
 	}
 }
 
-func (h *fullFunnelJourneyHarness) importTargetJob(t *testing.T) api.TargetJobWithJob {
+func (h *fullFunnelJourneyHarness) importTargetJob(t *testing.T, resumeID string) api.TargetJobWithJob {
 	t.Helper()
 	title := "Backend Platform Engineer"
 	company := "Full Funnel Systems"
@@ -340,6 +340,7 @@ func (h *fullFunnelJourneyHarness) importTargetJob(t *testing.T) api.TargetJobWi
 			"rawText": fullFunnelJourneyJDText,
 		},
 		TargetLanguage:  "en",
+		ResumeId:        resumeID,
 		TitleHint:       &title,
 		CompanyNameHint: &company,
 	}, http.StatusAccepted)
@@ -851,7 +852,7 @@ func (c *fullFunnelScenarioAIClient) Complete(ctx context.Context, profileName s
 }
 
 func fullFunnelTargetImportJSON() string {
-	return `{"coreThemes":["backend platform","async ownership"],"interviewHypotheses":["Probe API design, persistence, and migration tradeoffs."],"strengths":["Backend service ownership"],"gaps":["Clarify production scale evidence"],"riskSignals":[],"requirements":[{"kind":"must_have","label":"Backend service ownership","description":"Own APIs, persistence, and asynchronous job processing.","evidenceLevel":"explicit"}]}`
+	return `{"title":"Backend Platform Engineer","companyName":"Acme","coreThemes":["backend platform","async ownership"],"interviewHypotheses":["Probe API design, persistence, and migration tradeoffs."],"strengths":["Backend service ownership"],"gaps":["Clarify production scale evidence"],"riskSignals":[],"requirements":[{"kind":"must_have","label":"Backend service ownership","description":"Own APIs, persistence, and asynchronous job processing.","evidenceLevel":"explicit"}]}`
 }
 
 func (c *fullFunnelScenarioAIClient) Transcribe(context.Context, string, aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {

@@ -1,13 +1,16 @@
 # Frontend Workspace and Practice History
 
-> **版本**: 1.8
+> **版本**: 1.11
 > **状态**: active
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-08
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-08 | 1.11 | Spec v1.12 and plan 001 v1.14 reopen the workspace owner to simplify interview plan list cards: remove source/language metadata, use theme accent CTA, and strengthen card/page separation after screenshot review. | 001-workspace-and-interview-context Phase 9 |
+| 2026-07-08 | 1.10 | Spec v1.11 and plan 001 v1.13 reopen the workspace owner to harden the no-context interview plan list as visible list cards after screenshot review. | 001-workspace-and-interview-context Phase 8 |
+| 2026-07-08 | 1.9 | Spec v1.10 and plan 001 v1.12 reopen the workspace owner to make the first-level `面试` entry land on an interview plan list, while context-bearing `workspace` routes continue to render the current plan detail. | 001-workspace-and-interview-context Phase 7 |
 | 2026-07-07 | 1.8 | Spec §7 now lists the current completed 001/002 owner plans and routes voice/report/generating responsibility to the active external owner gates. | product-scope/001-core-loop-module-pruning Phase 6.115 |
 | 2026-07-06 | 1.7 | Active spec and context discovery use only current route owner, embedded company insight, flat Resume binding, and the three current practice goals. | product-scope/001-core-loop-module-pruning Phase 6.33 |
 | 2026-07-06 | 1.6 | Workspace company insight and practice goal contracts aligned with product-scope current loop. | product-scope/001-core-loop-module-pruning Phase 6 |

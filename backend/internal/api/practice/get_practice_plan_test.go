@@ -26,7 +26,7 @@ func TestGetPracticePlanReturnsUserScopedPlan(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
 		t.Fatalf("decode PracticePlan: %v", err)
 	}
-	if out.Id != fixturePlanRecord().ID || out.Status != "ready" {
+	if out.Id != fixturePlanRecord().ID || out.Status != "ready" || out.ResumeId != fixturePlanRecord().ResumeID {
 		t.Fatalf("unexpected response: %+v", out)
 	}
 	if service.getUserID != "user-1" || service.getPlanID != fixturePlanRecord().ID {

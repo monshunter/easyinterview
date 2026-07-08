@@ -35,6 +35,7 @@
           "language": "zh-CN",
           "timeBudgetMinutes": 30,
           "questionBudget": 6,
+          "resumeId": "01918fa0-0000-7000-8000-000000001000",
           "status": "ready",
           "createdAt": "2026-04-28T12:00:00Z"
         }
@@ -74,6 +75,7 @@
           "language": "en",
           "timeBudgetMinutes": 20,
           "questionBudget": 4,
+          "resumeId": "01918fa0-0000-7000-8000-000000001000",
           "sourceReportId": "01918fa0-0000-7000-8000-00000000f001",
           "status": "ready",
           "createdAt": "2026-05-16T09:00:00Z"

@@ -10,7 +10,7 @@
 
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
-| [product-scope](./product-scope/spec.md) | 2.8 | active | 2026-07-07 | [plans](./product-scope/plans/) |
+| [product-scope](./product-scope/spec.md) | 2.9 | active | 2026-07-08 | [plans](./product-scope/plans/) |
 | [engineering-roadmap](./engineering-roadmap/spec.md) | 3.31 | active | 2026-07-07 | [plans](./engineering-roadmap/plans/) |
 
 ## 2 Foundation
@@ -48,7 +48,7 @@
 | [mock-contract-suite](./mock-contract-suite/spec.md) | 1.13 | active | 2026-07-07 | [plans](./mock-contract-suite/plans/) |
 | [frontend-shell](./frontend-shell/spec.md) | 1.26 | active | 2026-07-07 | [plans](./frontend-shell/plans/) |
 | [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 2.11 | completed | 2026-07-07 | [plans](./frontend-home-job-picks-and-parse/plans/) |
-| [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.9 | active | 2026-07-07 | [plans](./frontend-workspace-and-practice/plans/) |
+| [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.12 | active | 2026-07-08 | [plans](./frontend-workspace-and-practice/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 2.0 | active | 2026-07-07 | [plans](./backend-auth/plans/) |
 | [backend-targetjob](./backend-targetjob/spec.md) | 2.0 | active | 2026-07-08 | [plans](./backend-targetjob/plans/) |
 | [backend-practice](./backend-practice/spec.md) | 1.17 | active | 2026-07-07 | [plans](./backend-practice/plans/) |

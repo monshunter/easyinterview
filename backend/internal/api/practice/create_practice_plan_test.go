@@ -37,7 +37,7 @@ func TestCreatePracticePlanReturns201WithGeneratedPracticePlan(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
 		t.Fatalf("decode PracticePlan: %v", err)
 	}
-	if out.Id != service.record.ID || out.Status != "ready" || out.TargetJobId != service.record.TargetJobID {
+	if out.Id != service.record.ID || out.Status != "ready" || out.TargetJobId != service.record.TargetJobID || out.ResumeId != service.record.ResumeID {
 		t.Fatalf("unexpected response: %+v", out)
 	}
 	if service.last.UserID != "user-1" || service.last.TargetJobID != "01918fa0-0000-7000-8000-000000002000" {
@@ -299,6 +299,7 @@ func fixturePlanRecord() domain.PlanRecord {
 	return domain.PlanRecord{
 		ID:                 "01918fa0-0000-7000-8000-000000004000",
 		TargetJobID:        "01918fa0-0000-7000-8000-000000002000",
+		ResumeID:           "01918fa0-0000-7000-8000-000000001000",
 		Goal:               sharedtypes.PracticeGoalBaseline,
 		Mode:               sharedtypes.PracticeModeAssisted,
 		InterviewerPersona: sharedtypes.InterviewerRoleHiringManager,
@@ -342,6 +343,7 @@ func planRecordFromFixture(plan api.PracticePlan) domain.PlanRecord {
 		ID:                 plan.Id,
 		TargetJobID:        plan.TargetJobId,
 		SourceReportID:     stringValue(plan.SourceReportId),
+		ResumeID:           plan.ResumeId,
 		Goal:               plan.Goal,
 		Mode:               plan.Mode,
 		InterviewerPersona: plan.InterviewerPersona,

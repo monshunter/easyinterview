@@ -90,7 +90,7 @@ export function interviewContextReducer(
       return {
         ...state,
         planId:
-          p.planId !== undefined ? (p.planId || undefined) : (targetJobId ? `plan-${targetJobId}` : state.planId),
+          p.planId !== undefined ? (p.planId || undefined) : state.planId,
         targetJobId,
         jobId: targetJobId,
         jdId:
@@ -109,12 +109,23 @@ export function interviewContextReducer(
         autoStartPractice: p.autoStartPractice ?? state.autoStartPractice,
       };
     }
-    case "MERGE_TARGET_JOB":
+    case "MERGE_TARGET_JOB": {
+      const resumeId =
+        typeof action.targetJob.resumeId === "string" && action.targetJob.resumeId.trim()
+          ? action.targetJob.resumeId.trim()
+          : state.resumeId;
+      const planId =
+        typeof action.targetJob.currentPracticePlanId === "string" && action.targetJob.currentPracticePlanId.trim()
+          ? action.targetJob.currentPracticePlanId.trim()
+          : state.planId;
       return {
         ...state,
         jobId: action.targetJob.id,
         targetJobId: action.targetJob.id,
+        planId,
+        resumeId,
       };
+    }
     case "MERGE_RESUME":
       return {
         ...state,

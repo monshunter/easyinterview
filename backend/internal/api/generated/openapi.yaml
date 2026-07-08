@@ -1927,7 +1927,7 @@ components:
 
     ImportTargetJobRequest:
       type: object
-      required: [source, targetLanguage]
+      required: [source, targetLanguage, resumeId]
       properties:
         source:
           $ref: '#/components/schemas/TargetJobImportSource'
@@ -1937,6 +1937,10 @@ components:
           type: string
         targetLanguage:
           type: string
+        resumeId:
+          type: string
+          format: uuid
+          description: Resume selected for this target job at import time. The backend persists this target job-level binding for workspace re-entry before any practice plan exists.
 
     TargetJobWithJob:
       type: object
@@ -2049,6 +2053,18 @@ components:
             - type: string
               format: uuid
             - type: 'null'
+        currentPracticePlanId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+          description: Latest ready practice plan for this target job, when one exists.
+        resumeId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+          description: Resume selected and persisted for this target job at import time. This target job-level binding is returned even before a practice plan exists.
         openQuestionIssueCount:
           type: integer
           format: int32
@@ -2129,7 +2145,7 @@ components:
 
     PracticePlan:
       type: object
-      required: [id, targetJobId, goal, mode, interviewerPersona, difficulty, language, timeBudgetMinutes, questionBudget, status, createdAt]
+      required: [id, targetJobId, goal, mode, interviewerPersona, difficulty, language, timeBudgetMinutes, questionBudget, resumeId, status, createdAt]
       properties:
         id:
           type: string
@@ -2156,6 +2172,9 @@ components:
           type: integer
           format: int32
           minimum: 1
+        resumeId:
+          type: string
+          format: uuid
         sourceReportId:
           type: string
           format: uuid

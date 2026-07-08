@@ -6,6 +6,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0144](./BUG-0144.md) | workspace plan cards dropped bound resume context | high | resolved | 2026-07-08 | `fix(workspace): close plan list UX and context regressions (BUG-0143, BUG-0144, BUG-0145)` |
 | [BUG-0142](./BUG-0142.md) | targetjob failed detail returned 500 after profile schema pruning | high | resolved | 2026-07-08 | `fix(targetjob): align store with pruned profile schema (BUG-0142)` |
 | [BUG-0028](./BUG-0028.md) | targetjob review exposed error envelope and parse runtime drift | medium | resolved | 2026-05-08 | `fix(backend-targetjob): align targetjob review contracts` |
 | [BUG-0027](./BUG-0027.md) | targetjob L2 review exposed runtime gate and SSRF gaps | medium | resolved | 2026-05-08 | `fix(backend-targetjob): harden targetjob L2 runtime gates` |
@@ -68,6 +69,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0145](./BUG-0145.md) | target import parse prompt omitted JD identity fields | medium | resolved | 2026-07-08 | `fix(workspace): close plan list UX and context regressions (BUG-0143, BUG-0144, BUG-0145)` |
 | [BUG-0102](./BUG-0102.md) | Promptfoo eval output was written under config | medium | resolved | 2026-05-24 | `fix(prompt-rubric): keep promptfoo eval output in test output (BUG-0102)` |
 | [BUG-0098](./BUG-0098.md) | prompt output schema review exposed jd_match posted drift and lint traceback | medium | resolved | 2026-05-24 | `fix(prompt-rubric): close output schema review findings (BUG-0098)` |
 | [BUG-0097](./BUG-0097.md) | prompt registry seed migration missed jd_match feature keys | medium | resolved | 2026-05-24 | `fix(prompt-rubric): seed jd match prompt registry rows (BUG-0097)` |
@@ -80,6 +82,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0143](./BUG-0143.md) | interview plan list cards lacked visual hierarchy and concise content | medium | resolved | 2026-07-08 | `fix(workspace): close plan list UX and context regressions (BUG-0143, BUG-0144, BUG-0145)` |
 | [BUG-0141](./BUG-0141.md) | home resume picker hid readable existing resumes | medium | resolved | 2026-07-08 | `fix(resume): close source preview and picker regressions (BUG-0139, BUG-0140, BUG-0141)` |
 | [BUG-0134](./BUG-0134.md) | home JD source controls over-separated from input card | medium | resolved | 2026-07-06 | `fix(frontend-home): integrate source controls into input card (BUG-0134)` |
 | [BUG-0133](./BUG-0133.md) | home quick-start source and CTA layout drifted from planning flow | medium | resolved | 2026-07-06 | `fix(frontend-home): separate source and submit layout (BUG-0133)` |

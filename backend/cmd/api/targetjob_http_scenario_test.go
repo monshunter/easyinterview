@@ -28,7 +28,10 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
 )
 
-const targetJobHTTPScenarioUserID = "scenario-user-targetjob-http"
+const (
+	targetJobHTTPScenarioUserID   = "scenario-user-targetjob-http"
+	targetJobHTTPScenarioResumeID = "scenario-resume-targetjob-http"
+)
 
 func TestE2EP0010HTTPTextImportParseReady(t *testing.T) {
 	h := newTargetJobHTTPScenarioHarness(t, targetJobHTTPScenarioOptions{})
@@ -39,6 +42,7 @@ func TestE2EP0010HTTPTextImportParseReady(t *testing.T) {
 			"rawText": "Private scenario JD text that must stay out of evidence logs.",
 		},
 		TargetLanguage:  "zh-CN",
+		ResumeId:        targetJobHTTPScenarioResumeID,
 		TitleHint:       strPtr("Senior Frontend Engineer"),
 		CompanyNameHint: strPtr("Acme"),
 	}
@@ -121,6 +125,7 @@ func TestE2EP0011HTTPURLImportFetchAndParse(t *testing.T) {
 	raw := h.doJSON(t, http.MethodPost, "/api/v1/targets/import", "e2e-p0-011-url", api.ImportTargetJobRequest{
 		Source:         map[string]any{"type": "url", "url": "https://jobs.example.test/role/1?token=secret#frag"},
 		TargetLanguage: "en",
+		ResumeId:       targetJobHTTPScenarioResumeID,
 	}, http.StatusAccepted)
 	var imported api.TargetJobWithJob
 	decodeJSON(t, raw, &imported)
@@ -143,6 +148,7 @@ func TestE2EP0011HTTPURLImportFetchAndParse(t *testing.T) {
 	errorRaw := h.doJSON(t, http.MethodPost, "/api/v1/targets/import", "e2e-p0-011-invalid", api.ImportTargetJobRequest{
 		Source:         map[string]any{"type": "url", "url": "http://169.254.169.254/latest/meta-data"},
 		TargetLanguage: "en",
+		ResumeId:       targetJobHTTPScenarioResumeID,
 	}, http.StatusBadRequest)
 	var errResp api.ApiErrorResponse
 	decodeJSON(t, errorRaw, &errResp)
@@ -191,6 +197,7 @@ func TestE2EP0012HTTPParseFailureRetryableAndNonRetryable(t *testing.T) {
 			raw := h.doJSON(t, http.MethodPost, "/api/v1/targets/import", "e2e-p0-012-"+tc.name, api.ImportTargetJobRequest{
 				Source:         map[string]any{"type": "manual_text", "rawText": "Private JD body that must not leak."},
 				TargetLanguage: "en",
+				ResumeId:       targetJobHTTPScenarioResumeID,
 			}, http.StatusAccepted)
 			var imported api.TargetJobWithJob
 			decodeJSON(t, raw, &imported)
@@ -230,6 +237,7 @@ func TestE2EP0013HTTPManualFormReady(t *testing.T) {
 			"rawDescription": "Lead frontend architecture across squads. Must have React platform experience.",
 		},
 		TargetLanguage: "zh-CN",
+		ResumeId:       targetJobHTTPScenarioResumeID,
 	}, http.StatusAccepted)
 	var imported api.TargetJobWithJob
 	decodeJSON(t, raw, &imported)
