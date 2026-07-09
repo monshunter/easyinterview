@@ -18,7 +18,7 @@
 | Subject | 版本 | 状态 | 更新日期 | Plans |
 |---------|------|------|----------|-------|
 | [repo-scaffold](./repo-scaffold/spec.md) | 1.5 | active | 2026-07-07 | [plans](./repo-scaffold/plans/) |
-| [local-dev-stack](./local-dev-stack/spec.md) | 1.22 | active | 2026-07-07 | [plans](./local-dev-stack/plans/) |
+| [local-dev-stack](./local-dev-stack/spec.md) | 1.23 | active | 2026-07-09 | [plans](./local-dev-stack/plans/) |
 | [backend-runtime-topology](./backend-runtime-topology/spec.md) | 1.7 | active | 2026-07-07 | [plans](./backend-runtime-topology/plans/) |
 | [backend-async-runner](./backend-async-runner/spec.md) | 1.9 | active | 2026-07-07 | [plans](./backend-async-runner/plans/) |
 | [ai-provider-and-model-routing](./ai-provider-and-model-routing/spec.md) | 2.19 | active | 2026-07-07 | [plans](./ai-provider-and-model-routing/plans/) |

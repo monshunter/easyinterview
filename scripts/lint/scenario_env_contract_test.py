@@ -144,6 +144,50 @@ def test_root_makefile_exposes_scenario_env_targets() -> None:
         assert expected_script in result.stdout
 
 
+def test_root_makefile_exposes_scenario_env_reset_redeploy_target() -> None:
+    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+
+    assert "scenario-env-reset-redeploy" in makefile
+    assert "SCENARIO_ENV_CLEANUP" in makefile
+    assert "SCENARIO_ENV_SETUP" in makefile
+    assert "SCENARIO_ENV_REDEPLOY" in makefile
+    assert "SCENARIO_ENV_VERIFY" in makefile
+    assert "--with-volumes" in makefile
+    assert "--with-migrations" in makefile
+
+    result = subprocess.run(
+        ["make", "scenario-env-reset-redeploy", "ARGS=--dry-run"],
+        cwd=REPO_ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    output = result.stdout + result.stderr
+    ordered_markers = [
+        "dry-run: DEV_RESET_FORCE=1 make dev-reset",
+        "dry-run: make dev-up",
+        "make migrate-up",
+        "dry-run: cd backend && go build ./cmd/...",
+        "dry-run: restart backend host-run process",
+        "pnpm --filter @easyinterview/frontend build",
+        "dry-run: restart frontend host-run process",
+    ]
+    positions = []
+    start = 0
+    for marker in ordered_markers:
+        position = output.find(marker, start)
+        assert position != -1, output
+        positions.append(position)
+        start = position + len(marker)
+
+    final_verify = output.rfind("dry-run: make dev-doctor")
+    assert final_verify > positions[-1], output
+    assert positions == sorted(positions), output
+
+
 def test_scenario_env_skills_prefer_top_level_env_entrypoints() -> None:
     scenario_env = (REPO_ROOT / ".agent-skills" / "scenario-env" / "SKILL.md").read_text(
         encoding="utf-8"
@@ -175,6 +219,7 @@ def test_scenario_docs_describe_independent_env_lifecycle() -> None:
         assert "test/scenarios/env-setup.sh" in text
         assert "test/scenarios/env-redeploy.sh" in text
         assert "scenario-env" in text
+        assert "scenario-env-reset-redeploy" in text
         assert "具体场景" in text or "specific scenario" in text.lower()
 
     assert "手动引导" in suite

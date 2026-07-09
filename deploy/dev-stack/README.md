@@ -60,6 +60,7 @@
 | `make scenario-env-verify` | 通过 `test/scenarios/env-verify.sh` 验证共享环境 readiness |
 | `make scenario-env-cleanup` | 通过 `test/scenarios/env-cleanup.sh` 清理共享环境，默认保留卷 |
 | `make scenario-env-redeploy` | 通过 `test/scenarios/env-redeploy.sh` 按 `TARGET=deps|backend|frontend|all` 刷新依赖或 build artifacts |
+| `make scenario-env-reset-redeploy` | 一键清理共享环境数据卷、重跑 migrations、重编译并重启 host-run backend/frontend、最后 verify；`ARGS=--dry-run` 可预览且不改变环境 |
 
 `dev-up` 启动顺序：先只读检查 Postgres 18 命名卷布局是否命中不兼容 `/var/lib/postgresql/data` 或半初始化状态 → 按 `--wait` 等 4 个依赖 healthy → 启动 `minio-init` 并轮询其退出码 (timeout 60s) → 调用 `dev-doctor.sh` 作为最终 gate；任何阶段失败时 `up` 退出非 0 并把每个 dependency / init 服务最近 50 行 `docker logs` 打到 stderr。
 
@@ -148,6 +149,7 @@ Mailpit Web UI 默认在 `http://127.0.0.1:8025`。backend 以 `APP_ENV=dev` 启
 - 应用 dev → 用 `make dev-up` 启动 Postgres / Redis / MinIO / Mailpit 依赖；backend/frontend 进程默认在宿主机单独启动并消费这些连接串。
 - BDD / E2E 场景 → 以 [test/scenarios/README.md](../../test/scenarios/README.md) 和目标套件 README 为准。共享环境生命周期由 `test/scenarios/env-setup.sh` / `test/scenarios/env-status.sh` / `test/scenarios/env-verify.sh` / `test/scenarios/env-cleanup.sh` / `test/scenarios/env-redeploy.sh` 管理，根 Makefile 提供 `make scenario-env-*` 等价入口；这些入口独立于具体场景目录。当前 P0 场景默认由 shell / Python 脚本编排既有产品 runner（例如已有包测试、Vitest、Playwright、browser smoke）验证同一行为契约；场景专属依赖不得新增正式 `backend/cmd` / Go helper 进程，不要求 Kind / K8s / Helm 环境。
 - 本地前后端联调 / manual UAT → 先用 `make scenario-env-setup` 准备 host-run 依赖环境；`make scenario-env-redeploy TARGET=backend|frontend|all` / `test/scenarios/env-redeploy.sh backend|frontend|all` 会重新构建并重启对应 host-run backend/frontend 进程，同时输出服务地址、PID 与日志路径，供开发者继续调试。
+- 需要干净数据重新调试 → 使用 `make scenario-env-reset-redeploy`，它等价于 `env-cleanup.sh --with-volumes` → `env-setup.sh --with-migrations` → `env-redeploy.sh all` → `env-verify.sh`。普通“重启 / 重新加载当前代码”不清数据，应继续使用 `make scenario-env-redeploy TARGET=all`。
 - 需要真实 AI provider 的应用部署不得降级到单元测试 stub；`APP_ENV=test` 以外缺真实 provider config 时必须 fail-fast。
 
 ## 6 故障排查

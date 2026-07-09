@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.16
+> **版本**: 1.17
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联计划**: [plan](./plan.md)
 
@@ -96,3 +96,14 @@
   <!-- verified: 2026-06-15 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q; bash -n test/scenarios/_shared/scripts/local-dev-runtime.sh; bash -n test/scenarios/env-redeploy.sh" evidence="12 scenario env contract tests passed; both shell scripts parsed successfully; bash emitted only existing locale warning" -->
 - [x] 9.5 Live/user regression gate：存在无关 8080 bridge listener 时 `test/scenarios/env-redeploy.sh backend` 成功；`/api/v1/runtime-config` 返回 200；新 synthetic 首次登录用户 `GET /api/v1/resumes` 返回 200 empty list。
   <!-- verified: 2026-06-15 command="test/scenarios/env-redeploy.sh backend; curl http://127.0.0.1:8080/api/v1/runtime-config; node first-login smoke; agent-browser /resume-versions smoke" evidence="netstat still showed unrelated 172.18.0.6:8080 listener; redeploy started backend with APP_LISTEN_ADDR=127.0.0.1:8080; runtime-config 200; new synthetic user resumes before and after profile setup returned 200 empty list; browser page showed resume empty state and in-page fetch /api/v1/resumes returned status 200 itemCount 0 errorCode null" -->
+
+## Phase 10: one-click reset/redeploy Make target revision
+
+- [x] 10.1 Red contract：`scripts/lint/scenario_env_contract_test.py` 覆盖 `scenario-env-reset-redeploy` 的 Makefile target、phony/help、script reuse 和 dry-run 顺序；implementation 前 focused pytest 必须失败。
+  <!-- verified: 2026-07-09 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k reset_redeploy" evidence="red failed before Makefile target existed; focused gate passed after adding the target and dry-run order assertion" -->
+- [x] 10.2 Makefile implementation：根 `Makefile` 新增 `scenario-env-reset-redeploy`，依次调用 `env-cleanup.sh --with-volumes`、`env-setup.sh --with-migrations`、`env-redeploy.sh all`、`env-verify.sh`，并支持 `ARGS=--dry-run` 无副作用预览。
+  <!-- verified: 2026-07-09 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k reset_redeploy" evidence="Makefile target uses SCENARIO_ENV_* variables and dry-run output shows reset, setup/migrations, redeploy backend/frontend, final verify order" -->
+- [x] 10.3 Docs/runbook：`deploy/dev-stack/README.md`、`test/scenarios/README.md`、`test/scenarios/e2e/README.md` 说明一键清数据重编译重部署入口，并区分普通重启 `scenario-env-redeploy TARGET=all`。
+  <!-- verified: 2026-07-09 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k \"reset_redeploy or scenario_docs_describe\"" evidence="focused contract verifies Makefile target plus dev-stack/scenario/e2e README reset-redeploy wording" -->
+- [x] 10.4 Phase 10 self-check：focused contract pytest、`make scenario-env-reset-redeploy ARGS=--dry-run`、`make docs-check`、`sync-doc-index --check`、`git diff --check` 全部通过。
+  <!-- verified: 2026-07-09 command="make scenario-env-reset-redeploy ARGS=--dry-run; python3 -m pytest scripts/lint/scenario_env_contract_test.py -q; python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check; make docs-check; git diff --check" evidence="dry-run previewed reset/setup-migrations/redeploy/verify without changing environment; 13 scenario env contract tests passed; docs/index/link gates and whitespace gate passed" -->

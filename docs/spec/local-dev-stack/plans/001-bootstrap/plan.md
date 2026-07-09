@@ -1,8 +1,8 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.16
+> **版本**: 1.17
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-10 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与 optional 项目组件接入约定，把 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 占位的 `make dev-up` / `make dev-down` 替换为真实实现并新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO / Mailpit healthy；backend / frontend 通过宿主机 dev command 连接这些依赖」可由开发者本机重复跑通；其中启用 AIClient 的非测试组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
 
-本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。1.13 revision 将本地 redeploy 收口为 build + 重启 host-run backend/frontend，并把服务地址、日志路径、PID 文件与容器日志入口作为 env 脚本固定输出，避免开发者在 Agent 启动环境后无法接管调试。本次 1.14 revision 修复 host-run backend 继承通配 `APP_LISTEN_ADDR=:8080` 导致无关 bridge listener 阻断重启的问题，要求本地场景 redeploy 启动 backend 时收敛到 loopback 监听。1.15 revision 仅收敛 Postgres volume preflight、dev-doctor 与 pidfile 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。
+本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。1.13 revision 将本地 redeploy 收口为 build + 重启 host-run backend/frontend，并把服务地址、日志路径、PID 文件与容器日志入口作为 env 脚本固定输出，避免开发者在 Agent 启动环境后无法接管调试。本次 1.14 revision 修复 host-run backend 继承通配 `APP_LISTEN_ADDR=:8080` 导致无关 bridge listener 阻断重启的问题，要求本地场景 redeploy 启动 backend 时收敛到 loopback 监听。1.15 revision 仅收敛 Postgres volume preflight、dev-doctor 与 pidfile 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。1.17 revision 新增一键 `scenario-env-reset-redeploy` Make target，用于调试时按固定顺序清理数据、重跑迁移、重编译并重启 host-run backend/frontend、再执行环境 verify。
 
 ## 2 背景
 
@@ -24,7 +24,7 @@
 - **Plan 类型**: `tooling + dev-infra + code-internal`。本 plan 修改本地 docker-compose dev stack、Make targets、doctor 脚本、README 与健康检查约定；不产生用户可见 UI、HTTP API 行为或业务 workflow。
 - **TDD 策略**: 本 plan 既有实现以 checklist 中每个 phase 的 `自检` 命令作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，优先以 `make dev-*`、`dev-doctor` JSON schema/probe、端口冲突复现、volume idempotency 和 README smoke 作为 focused assertions。
 - **BDD 策略**: BDD 不适用。本 plan 只交付开发环境基础设施；后续 P0 用户行为场景由 `e2e-scenarios-p0` 或具体 feature plan 维护 BDD。
-- **替代验证 gate**: `make dev-up`、`make dev-doctor`、`make dev-down`、`make dev-reset`、`make scenario-env-setup` / `status` / `verify` / `cleanup` / `redeploy` dry-run 与 focused live gate、host-run backend loopback bind contract、端口冲突复现、Postgres connectivity probe、AI provider fail-fast smoke、local raw debug config tests、P0.100 preflight contract、`sync-doc-index --check`、Markdown link check、`git diff --check`。
+- **替代验证 gate**: `make dev-up`、`make dev-doctor`、`make dev-down`、`make dev-reset`、`make scenario-env-setup` / `status` / `verify` / `cleanup` / `redeploy` dry-run 与 focused live gate、`make scenario-env-reset-redeploy ARGS=--dry-run` 组合顺序 gate、host-run backend loopback bind contract、端口冲突复现、Postgres connectivity probe、AI provider fail-fast smoke、local raw debug config tests、P0.100 preflight contract、`sync-doc-index --check`、Markdown link check、`git diff --check`。
 
 ## 4 实施步骤
 
@@ -339,9 +339,42 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - Live redeploy gate：在当前本机仍存在无关 8080 bridge listener 的前提下运行 `test/scenarios/env-redeploy.sh backend`，确认 backend 监听 `127.0.0.1:${API_HOST_PORT:-8080}`、runtime-config 返回 200、PID/log 写入 `.test-output/local-dev/`。
 - User regression gate：用新 synthetic `.example.test` 邮箱走 Mailpit 登录/首次用户链路后请求 `GET /api/v1/resumes`，确认返回 200 empty list，不再出现用户截图中的简历模块 500。
 
+### Phase 10: one-click reset/redeploy Make target revision
+
+#### 10.1 Regression contract
+
+`scripts/lint/scenario_env_contract_test.py` 必须覆盖根 `Makefile` 中 `scenario-env-reset-redeploy` 的存在、help 文案、phony 声明和 dry-run 命令顺序。该 target 必须依次调用：
+
+1. `test/scenarios/env-cleanup.sh --with-volumes`
+2. `test/scenarios/env-setup.sh --with-migrations`
+3. `test/scenarios/env-redeploy.sh all`
+4. `test/scenarios/env-verify.sh`
+
+Red gate 必须先证明当前 Makefile 缺少该组合入口。
+
+#### 10.2 Makefile implementation
+
+根 `Makefile` 新增 `scenario-env-reset-redeploy` target，作为开发调试的一键全量闭环入口。实现规则：
+
+- 复用既有 `SCENARIO_ENV_CLEANUP` / `SCENARIO_ENV_SETUP` / `SCENARIO_ENV_REDEPLOY` / `SCENARIO_ENV_VERIFY` 变量，不复制脚本内部逻辑。
+- 默认实际执行会删除 named volumes、重跑 migrations、重编译并重启 host-run backend/frontend，再验证 readiness。
+- 支持 `ARGS=--dry-run`，四段命令都只输出 dry-run，不清理数据、不重启进程。
+- 不接收具体场景 ID，不引用任何 `test/scenarios/e2e/p0-*` 目录，不新增 backend/cmd helper。
+
+#### 10.3 Docs and runbook
+
+`deploy/dev-stack/README.md`、`test/scenarios/README.md` 与 `test/scenarios/e2e/README.md` 必须说明：`make scenario-env-reset-redeploy` 是“清理数据 + 迁移 + 重新编译 + 重新部署 + verify”的组合入口；普通重启仍使用 `make scenario-env-redeploy TARGET=all`，不要把“重启”误解成清数据。
+
+#### 10.4 Phase 10 self-check
+
+- Red gate：`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k reset_redeploy` 在 implementation 前失败。
+- Green static gate：`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k "scenario_env_reset_redeploy or root_makefile_exposes_scenario_env_targets"` 通过。
+- Dry-run gate：`make scenario-env-reset-redeploy ARGS=--dry-run` 输出四段 dry-run，顺序为 cleanup with volumes、setup with migrations、redeploy all、verify。
+- Syntax/docs gate：`make docs-check`、`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`、`git diff --check` 通过。
+
 ## 5 验收标准
 
-- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-16 全部成立，证据贴入工作日志或当前 `.test-output/`。
+- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-17 全部成立，证据贴入工作日志或当前 `.test-output/`。
 - 本 plan checklist 全部勾选；Phase 3 / Phase 4 的 `make dev-*` 自检命令日志贴入工作日志。
 - engineering-roadmap rebaseline 中保留的 A2 executable gate 承诺由 Phase 4.4 关闭；不重复修改父 roadmap checklist。
 
@@ -360,6 +393,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-09 | 1.17 | One-click reset/redeploy revision：新增 `make scenario-env-reset-redeploy` 合同，用现有 env scripts 串联清数据、迁移、重编译、重启和 verify。 | user feedback |
 | 2026-07-07 | 1.16 | Wording cleanup：收敛 local-dev-stack owner 文档为当前 rebaseline、既有 gate 与 email-code 口径，不改变可执行契约。 | product-scope/001 Phase 6.87 |
 | 2026-07-07 | 1.15 | Wording cleanup：收敛 Postgres volume preflight、dev-doctor 与 pidfile 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。 | product-scope/001 Phase 6.58 |
 | 2026-06-15 | 1.14 | Host-run backend loopback bind revision：`env-redeploy.sh backend|all` 启动 backend 时将通配 `APP_LISTEN_ADDR` 收敛到 `127.0.0.1:${API_HOST_PORT:-8080}`，避免无关 bridge listener 阻断本地重启并导致简历页 500。 | BUG investigation |

@@ -1,13 +1,14 @@
 # Local Dev Stack History
 
-> **版本**: 1.21
+> **版本**: 1.23
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-09 | 1.23 | 新增一键 `scenario-env-reset-redeploy` 调试入口合同：按清理数据卷、重跑迁移、重编译并重启 host-run backend/frontend、verify 的顺序复用顶层 env scripts。 | local-dev-stack/001 Phase 10 |
 | 2026-07-07 | 1.21 | 收敛 Postgres volume preflight、dev-doctor 与 host-run redeploy 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。 | product-scope/001 Phase 6.58 |
 | 2026-06-15 | 1.20 | 修订 host-run backend redeploy 监听契约：本地场景环境将通配 `APP_LISTEN_ADDR` 收敛到 loopback，避免无关 bridge listener 占用 8080 时重启失败并导致前端简历页继续命中未刷新或不可用 backend。 | local-dev-stack/001 Phase 9 |
 | 2026-05-27 | 1.19 | 对齐 backend-auth / frontend-shell 的 email-code 修订：Mailpit 本地邮件改为 6 位验证码、5 分钟有效，`EMAIL_VERIFY_BASE_URL` 仅保留为本地 frontend origin / CORS 推导来源，不再拼入邮件链接。 | backend-auth/001 Phase 7 + frontend-shell/001 Phase 8 |
