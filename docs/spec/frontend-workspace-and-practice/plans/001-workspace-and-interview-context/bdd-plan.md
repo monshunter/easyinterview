@@ -1,6 +1,6 @@
 # 001 BDD Plan
 
-> **版本**: 1.10
+> **版本**: 1.12
 > **状态**: completed
 > **更新日期**: 2026-07-09
 
@@ -12,7 +12,7 @@
 
 | 场景 ID | 名称 | 类别 | 验证入口 |
 |---------|------|------|----------|
-| `E2E.P0.018` | 面试入口规划列表 + 统一面试规划详情 + Plan Switcher + active Resume Picker | primary + alternate + UX regression | `test/scenarios/e2e/p0-018-workspace-default-render/` |
+| `E2E.P0.018` | 面试入口规划列表 + parse 统一面试规划详情 handoff | primary + alternate + UX regression | `test/scenarios/e2e/p0-018-workspace-default-render/` |
 | `E2E.P0.019` | Workspace context loading + empty/missing-resume + plan refresh | primary + boundary + recovery | `test/scenarios/e2e/p0-019-workspace-context-loading/` |
 | `E2E.P0.020` | 立即面试 + idempotency + auth recovery | primary + alternate + failure | `test/scenarios/e2e/p0-020-workspace-start-practice/` |
 | `E2E.P0.021` | Embedded insight + records placeholder + privacy/non-current negative | regression + privacy | `test/scenarios/e2e/p0-021-workspace-handoff/` |
@@ -23,7 +23,7 @@
 
 | Given | When | Then |
 |-------|------|------|
-| 用户已登录；`listTargetJobs=default`；无上下文点击顶部 `面试`；另有 hydrated route params 含 `targetJobId / jdId / resumeId / roundId` | 进入 workspace 默认 landing；点击一个规划卡片；再进入 hydrated workspace 详情；打开简历选择；切换 zh/en、dark/customAccent | TopBar 只显示 `首页 / 面试 / 简历`；无上下文 landing 渲染面试规划列表且不显示缺 JD 死胡同；规划卡片以卡片背景、边框、轻阴影、body/footer 分区和主题强调色按钮呈现，卡片内不展示 `手动输入` / 来源类型 / 目标语言等导入元信息，并通过 `listTargetJobs` 返回的 target job-level `resumeId` 打开统一“面试规划详情 / 面试上下文确认”母版；有 `currentPracticePlanId` 时携带真实 `planId`，无 plan 时不得伪造；详情 DOM 与 Parse ready state 同源，旧独立 workspace detail anchors 不出现；Resume Picker 通过 flat `listResumes` 渲染 active list；非当前 prototype testid 0 命中 |
+| 用户已登录；`listTargetJobs=default` 且可能混入 failed / blank-title 历史脏数据；点击顶部 `面试`；另有 legacy workspace route params 含 `targetJobId / jdId / resumeId / roundId` | 进入 workspace 默认 landing；点击一个规划卡片；进入 parse 统一详情；从详情页再次点击 TopBar `面试`；切换 zh/en、dark/customAccent | TopBar 只显示 `首页 / 面试 / 简历`；workspace canonicalize 为 `/workspace`、始终渲染面试规划列表且不显示缺 JD 死胡同；列表请求 `analysisStatus=ready`，failed / blank-title TargetJob 不渲染为卡片；规划卡片以卡片背景、边框、轻阴影、body/footer 分区和主题强调色按钮呈现，卡片内不展示 `手动输入` / 来源类型 / 目标语言等导入元信息，并通过 `listTargetJobs` 返回的 target job-level `resumeId` 导航 `parse`；legacy workspace params 不触发 `getTargetJob` / `parse-error`；有 `currentPracticePlanId` 时携带真实 `planId`，无 plan 时不得伪造；详情 DOM 与 Parse ready state 同源，旧独立 workspace detail anchors 不出现；非当前 prototype testid 0 命中 |
 
 ### E2E.P0.019 Workspace context loading
 
@@ -57,11 +57,11 @@ test/scenarios/e2e/p0-021-workspace-handoff/scripts/setup.sh && test/scenarios/e
 | spec AC / decision | 覆盖场景 |
 |--------------------|----------|
 | C-1 owner route takeover | `E2E.P0.018` |
-| C-2 workspace plan-list landing, unified detail render and empty states | `E2E.P0.018`, `E2E.P0.019` |
+| C-2 workspace pure plan-list landing and parse detail handoff | `E2E.P0.018`, `E2E.P0.019` |
 | C-2a workspace plan-list card visual affordance + concise metadata boundary | `E2E.P0.018` |
 | C-3 workspace interactions and start practice | `E2E.P0.018`, `E2E.P0.020` |
 | C-7 downstream handoff boundary | `E2E.P0.021` |
 | C-8 / C-9 UI parity | `E2E.P0.018` |
 | C-10 non-current negative search | `E2E.P0.021` |
 | C-12 privacy redline | `E2E.P0.020`, `E2E.P0.021` |
-| C-13 unified detail regression | `E2E.P0.018`, `E2E.P0.020` |
+| C-13 parse detail regression and workspace legacy-param purity | `E2E.P0.018`, parse/report focused gates |

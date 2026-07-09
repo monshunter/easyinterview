@@ -5,6 +5,8 @@ import { useNavigation } from "../../navigation/NavigationProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import type { Route } from "../../routes";
+import { useI18n } from "../../i18n/messages";
+import { startPracticeFromParams } from "../../interview-context/startPractice";
 import {
   buildNextRoundPayload,
   buildReplayPayload,
@@ -25,10 +27,10 @@ export interface ReplayCtaHandlers {
  * Centralizes the replay / next-round CTA flow so both `ReportHeader` (top
  * CTAs) and `NextTab` (path A/B cards) share one source of truth.
  *
- * - Signed-in users land on `workspace` with the path's payload so the
- *   workspace owner can create a fresh session before entering practice.
- * - Signed-out users go through `useRequestAuth({type:'replay_practice', …})`
- *   so login auto-resumes to the same workspace auto-start payload.
+ * - Signed-in users create/start a fresh practice session from report scope,
+ *   then land directly on `practice`.
+ * - Signed-out users go through auth and return to report; replay can be
+ *   retried there without using `workspace` as a side-effect route.
  */
 export function useReplayCtaHandlers(
   input: ReplayCtaHandlersInput,
@@ -37,6 +39,7 @@ export function useReplayCtaHandlers(
   const { navigate } = useNavigation();
   const requestAuth = useRequestAuth();
   const runtime = useAppRuntimeOptional();
+  const { lang } = useI18n();
   const authenticated = runtime?.auth.status === "authenticated";
 
   const replayParams = useMemo(
@@ -47,40 +50,40 @@ export function useReplayCtaHandlers(
     () => buildNextRoundPayload({ route, report, sessionId }),
     [report, route, sessionId],
   );
-  const replayStartParams = useMemo(
-    () => ({ ...replayParams, autoStartPractice: "1" }),
-    [replayParams],
-  );
-  const nextRoundStartParams = useMemo(
-    () => ({ ...nextRoundParams, autoStartPractice: "1" }),
-    [nextRoundParams],
+  const startPractice = useCallback(
+    async (params: Record<string, string>) => {
+      if (!runtime) return;
+      const started = await startPracticeFromParams(runtime.client, params, lang);
+      navigate({ name: "practice", params: started.params });
+    },
+    [lang, navigate, runtime],
   );
 
   const goReplay = useCallback(() => {
     if (authenticated) {
-      navigate({ name: "workspace", params: replayStartParams });
+      void startPractice(replayParams);
       return;
     }
     requestAuth({
       type: "replay_practice",
       label: "replay",
-      route: "workspace",
-      params: replayStartParams,
+      route: "report",
+      params: route.params,
     });
-  }, [authenticated, navigate, replayStartParams, requestAuth]);
+  }, [authenticated, replayParams, requestAuth, route.params, startPractice]);
 
   const goNextRound = useCallback(() => {
     if (authenticated) {
-      navigate({ name: "workspace", params: nextRoundStartParams });
+      void startPractice(nextRoundParams);
       return;
     }
     requestAuth({
       type: "replay_practice",
       label: "next-round",
-      route: "workspace",
-      params: nextRoundStartParams,
+      route: "report",
+      params: route.params,
     });
-  }, [authenticated, navigate, nextRoundStartParams, requestAuth]);
+  }, [authenticated, nextRoundParams, requestAuth, route.params, startPractice]);
 
   return { goReplay, goNextRound };
 }

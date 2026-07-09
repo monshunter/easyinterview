@@ -10,7 +10,7 @@ export interface UseWorkspaceTargetJobsResult {
 }
 
 /**
- * Calls listTargetJobs to fetch all candidate plans for Plan Switcher Modal.
+ * Calls listTargetJobs to fetch ready candidate plans for workspace surfaces.
  */
 export function useWorkspaceTargetJobs(): UseWorkspaceTargetJobsResult {
   const runtime = useAppRuntimeOptional();
@@ -32,10 +32,10 @@ export function useWorkspaceTargetJobs(): UseWorkspaceTargetJobsResult {
     setError(null);
 
     runtime.client
-      .listTargetJobs({ query: { pageSize: "12" } })
+      .listTargetJobs({ query: { analysisStatus: "ready", pageSize: "12" } })
       .then((page) => {
         if (cancelled) return;
-        setJobs(page.items);
+        setJobs(page.items.filter(isVisibleWorkspaceTargetJob));
         setError(null);
       })
       .catch((err: unknown) => {
@@ -55,4 +55,8 @@ export function useWorkspaceTargetJobs(): UseWorkspaceTargetJobsResult {
   }, [fetch]);
 
   return { loading, jobs, error };
+}
+
+export function isVisibleWorkspaceTargetJob(job: TargetJob): boolean {
+  return job.analysisStatus === "ready" && job.title.trim().length > 0;
 }

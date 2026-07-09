@@ -5,7 +5,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { EasyInterviewClient } from "../../../api/generated/client";
 import {
@@ -65,7 +65,11 @@ function clientWithScenarios(opts: {
   });
 }
 
-function renderScreen(route: Route, client = clientWithScenarios()) {
+function renderScreen(
+  route: Route,
+  client = clientWithScenarios(),
+  opts: { seedParams?: Record<string, string> } = {},
+) {
   const nav = vi.fn();
   return {
     client,
@@ -82,14 +86,34 @@ function renderScreen(route: Route, client = clientWithScenarios()) {
             }}
           >
             <NavigationProvider value={{ navigate: nav }}>
-              <HydrateContext route={route} />
-              <WorkspaceScreen route={route} />
+              <ContextGate seedParams={opts.seedParams}>
+                <HydrateContext route={route} />
+                <WorkspaceScreen route={route} />
+              </ContextGate>
             </NavigationProvider>
           </AppRuntimeContext.Provider>
         </InterviewContextProvider>
       </DisplayPreferencesProvider>,
     ),
   };
+}
+
+function ContextGate({
+  seedParams,
+  children,
+}: {
+  seedParams?: Record<string, string>;
+  children: ReactNode;
+}) {
+  const { dispatch } = useInterviewContext();
+  const [ready, setReady] = useState(!seedParams);
+  useEffect(() => {
+    if (seedParams) {
+      dispatch({ type: "HYDRATE_FROM_ROUTE", params: seedParams });
+      setReady(true);
+    }
+  }, [dispatch, seedParams]);
+  return ready ? <>{children}</> : null;
 }
 
 function HydrateContext({ route }: { route: Route }) {
@@ -137,6 +161,71 @@ describe("WorkspaceEmptyState", () => {
     expect((openButton as HTMLElement).style.border).toBe("1px solid var(--ei-color-accent)");
   });
 
+  it("requests ready plans and filters failed or blank-title dirty records", async () => {
+    const client = clientWithScenarios();
+    const readyJob = listTargetJobsFixture.scenarios.default.response.body.items[0]!;
+    const failedJob = {
+      ...readyJob,
+      id: "01918fa0-0000-7000-8000-000000009991",
+      title: "Failed JD",
+      analysisStatus: "failed",
+    };
+    const blankJob = {
+      ...readyJob,
+      id: "01918fa0-0000-7000-8000-000000009992",
+      title: "   ",
+      analysisStatus: "ready",
+    };
+    const listSpy = vi.spyOn(client, "listTargetJobs").mockResolvedValue({
+      items: [readyJob, failedJob, blankJob],
+      pageInfo: { hasMore: false, nextCursor: null, pageSize: 12 },
+    } as Awaited<ReturnType<EasyInterviewClient["listTargetJobs"]>>);
+
+    renderScreen({ name: "workspace", params: {} }, client);
+
+    await waitFor(() => {
+      expect(screen.getByTestId(`workspace-plan-list-card-${readyJob.id}`)).toBeDefined();
+    });
+
+    expect(listSpy).toHaveBeenCalledWith({
+      query: expect.objectContaining({
+        analysisStatus: "ready",
+        pageSize: "12",
+      }),
+    });
+    expect(screen.queryByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000009991")).toBeNull();
+    expect(screen.queryByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000009992")).toBeNull();
+    expect(screen.queryByText("Failed JD")).toBeNull();
+  });
+
+  it("ignores stale detail context when route has no workspace params", async () => {
+    const client = clientWithScenarios();
+    const listSpy = vi.spyOn(client, "listTargetJobs");
+    const targetSpy = vi.spyOn(client, "getTargetJob");
+
+    renderScreen(
+      { name: "workspace", params: {} },
+      client,
+      {
+        seedParams: {
+          targetJobId: "01918fa0-0000-7000-8000-000000002000",
+          jobId: "01918fa0-0000-7000-8000-000000002000",
+          planId: "01918fa0-0000-7000-8000-000000004000",
+          resumeId: "01918fa0-0000-7000-8000-000000001000",
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-plan-list")).toBeDefined();
+      expect(listSpy).toHaveBeenCalled();
+    });
+
+    expect(targetSpy).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("parse-error")).toBeNull();
+    expect(screen.queryByText("缺少目标岗位 ID.")).toBeNull();
+  });
+
   it("plan-list create CTA navigates to home", async () => {
     const { nav } = renderScreen({ name: "workspace", params: {} });
 
@@ -159,11 +248,9 @@ describe("WorkspaceEmptyState", () => {
     await user.click(screen.getByTestId("workspace-plan-list-open-01918fa0-0000-7000-8000-000000002000"));
 
     expect(nav).toHaveBeenCalledWith({
-      name: "workspace",
+      name: "parse",
       params: {
         targetJobId: "01918fa0-0000-7000-8000-000000002000",
-        jobId: "01918fa0-0000-7000-8000-000000002000",
-        jdId: "jd-01918fa0-0000-7000-8000-000000002000",
         planId: "01918fa0-0000-7000-8000-000000004000",
         resumeId: "01918fa0-0000-7000-8000-000000001000",
       },
@@ -176,7 +263,7 @@ describe("WorkspaceEmptyState", () => {
     vi.spyOn(client, "listTargetJobs").mockResolvedValue({
       items: [
         {
-          ...listTargetJobsFixture.scenarios.default.response.body.items[0],
+          ...listTargetJobsFixture.scenarios.default.response.body.items[0]!,
           currentPracticePlanId: null,
           resumeId: "01918fa0-0000-7000-8000-000000001000",
         },
@@ -196,11 +283,9 @@ describe("WorkspaceEmptyState", () => {
     await user.click(screen.getByTestId("workspace-plan-list-open-01918fa0-0000-7000-8000-000000002000"));
 
     expect(nav).toHaveBeenCalledWith({
-      name: "workspace",
+      name: "parse",
       params: {
         targetJobId: "01918fa0-0000-7000-8000-000000002000",
-        jobId: "01918fa0-0000-7000-8000-000000002000",
-        jdId: "jd-01918fa0-0000-7000-8000-000000002000",
         resumeId: "01918fa0-0000-7000-8000-000000001000",
       },
     });
@@ -220,118 +305,4 @@ describe("WorkspaceEmptyState", () => {
     expect(screen.getByTestId("workspace-plan-list-create")).toBeDefined();
   });
 
-  it("renders unified detail error state when getTargetJob returns not found", async () => {
-    renderScreen(
-      {
-        name: "workspace",
-        params: {
-          targetJobId: "01918fa0-0000-7000-8000-000000009999",
-          resumeId: "01918fa0-0000-7000-8000-000000001000",
-        },
-      },
-      clientWithScenarios({ targetJobScenario: "not-found" }),
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId("parse-error")).toBeDefined();
-    });
-
-    expect(screen.getByTestId("route-workspace")).toBeDefined();
-    expect(screen.queryByTestId("workspace-empty")).toBeNull();
-    expect(screen.queryByTestId("workspace-launcher")).toBeNull();
-  });
-
-  it("renders unified detail error state when getTargetJob returns 5xx", async () => {
-    const client = clientWithScenarios({ targetJobScenario: "5xx" });
-    const spy = vi.spyOn(client, "getTargetJob");
-    renderScreen(
-      {
-        name: "workspace",
-        params: {
-          targetJobId: "01918fa0-0000-7000-8000-000000002000",
-          resumeId: "01918fa0-0000-7000-8000-000000001000",
-        },
-      },
-      client,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId("parse-error")).toBeDefined();
-    });
-
-    expect(spy).toHaveBeenCalled();
-    expect(screen.queryByTestId("workspace-empty")).toBeNull();
-    expect(screen.queryByTestId("workspace-launcher")).toBeNull();
-  });
-});
-
-describe("WorkspaceMissingResumeState", () => {
-  it("does not render when getTargetJob returns target job-level resume binding", async () => {
-    renderScreen({
-      name: "workspace",
-      params: {
-        targetJobId: "01918fa0-0000-7000-8000-000000002000",
-      },
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId("unified-plan-detail")).toBeDefined();
-    });
-
-    expect(screen.queryByTestId("workspace-missing-resume")).toBeNull();
-    expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
-  });
-
-  it("blocks Save/Start in unified detail when targetJobId exists but resumeId is missing", async () => {
-    const client = clientWithScenarios();
-    vi.spyOn(client, "getTargetJob").mockResolvedValue({
-      ...getTargetJobFixture.scenarios.default.response.body,
-      resumeId: null,
-    } as Awaited<ReturnType<EasyInterviewClient["getTargetJob"]>>);
-    renderScreen({
-      name: "workspace",
-      params: {
-        targetJobId: "01918fa0-0000-7000-8000-000000002000",
-      },
-    }, client);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("parse-resume-required")).toBeDefined();
-    });
-
-    expect(screen.queryByTestId("workspace-missing-resume")).toBeNull();
-    expect(screen.getByTestId("parse-action-save-plan")).toBeDisabled();
-    expect(screen.getByTestId("parse-action-start-interview")).toBeDisabled();
-  });
-
-  it("resume create CTA is only shown by unified detail when no selectable resume exists", async () => {
-    const client = clientWithScenarios();
-    vi.spyOn(client, "getTargetJob").mockResolvedValue({
-      ...getTargetJobFixture.scenarios.default.response.body,
-      resumeId: null,
-    } as Awaited<ReturnType<EasyInterviewClient["getTargetJob"]>>);
-    vi.spyOn(client, "listResumes").mockResolvedValue({
-      items: [],
-      pageInfo: { hasMore: false, nextCursor: null, pageSize: 20 },
-    } as Awaited<ReturnType<EasyInterviewClient["listResumes"]>>);
-    const { nav } = renderScreen({
-      name: "workspace",
-      params: {
-        targetJobId: "01918fa0-0000-7000-8000-000000002000",
-      },
-    }, client);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("parse-resume-create")).toBeDefined();
-    });
-
-    screen.getByTestId("parse-resume-create").click();
-    expect(nav).toHaveBeenCalledWith({
-      name: "resume_versions",
-      params: {
-        flow: "create",
-        targetJobId: "01918fa0-0000-7000-8000-000000002000",
-      },
-    });
-  });
 });

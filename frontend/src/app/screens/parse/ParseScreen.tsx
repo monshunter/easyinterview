@@ -11,6 +11,7 @@ import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useI18n } from "../../i18n/messages";
 import { isSelectableInterviewResume } from "../../interview-context/selectableResume";
+import { startPracticeFromParams } from "../../interview-context/startPractice";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import { interviewContextFromTargetJob } from "../../navigation/interviewContext";
 import type { Route } from "../../routes";
@@ -429,14 +430,14 @@ export const ParseScreen: FC<ParseScreenProps> = ({
 
   const handleSavePlan = useCallback(async () => {
     if (!targetJob || !selectedResume || confirming) return;
-    const workspaceParams = buildInterviewParams(targetJob, selectedResume.id);
+    const parseParams = buildInterviewParams(targetJob, selectedResume.id);
 
     if (runtime?.auth.status !== "authenticated") {
       requestAuth({
         type: "save_interview_plan",
         label: t("parse.savePlanOnly"),
-        route: "workspace",
-        params: workspaceParams,
+        route: "parse",
+        params: parseParams,
       });
       return;
     }
@@ -444,7 +445,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     if (await saveTargetJobEdits()) {
       navigate({
         name: "workspace",
-        params: workspaceParams,
+        params: {},
       });
     }
   }, [
@@ -459,33 +460,44 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   ]);
 
   const handleStartInterview = useCallback(async () => {
-    if (!targetJob || !selectedResume || confirming) return;
-    const workspaceParams = {
-      ...buildInterviewParams(targetJob, selectedResume.id),
-      autoStartPractice: "1",
-    };
+    if (!targetJob || !selectedResume || confirming || !runtime) return;
+    const practiceParams = buildInterviewParams(targetJob, selectedResume.id);
 
     if (runtime?.auth.status !== "authenticated") {
       requestAuth({
         type: "start_practice",
         label: t("parse.startInterview"),
-        route: "workspace",
-        params: workspaceParams,
+        route: "parse",
+        params: practiceParams,
       });
       return;
     }
 
     if (await saveTargetJobEdits()) {
-      navigate({
-        name: "workspace",
-        params: workspaceParams,
-      });
+      setConfirmError(null);
+      setConfirming(true);
+      try {
+        const started = await startPracticeFromParams(
+          runtime.client,
+          practiceParams,
+          lang,
+        );
+        navigate({
+          name: "practice",
+          params: started.params,
+        });
+      } catch (err: unknown) {
+        setConfirmError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setConfirming(false);
+      }
     }
   }, [
     confirming,
+    lang,
     navigate,
     requestAuth,
-    runtime?.auth.status,
+    runtime,
     saveTargetJobEdits,
     selectedResume,
     t,

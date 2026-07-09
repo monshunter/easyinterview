@@ -29,7 +29,7 @@ import { useNavigation } from "../navigation/NavigationProvider";
 const SESSION_ID = "01918fa0-0000-7000-8000-000000005000";
 const REPORT_ID = "01918fa0-0000-7000-8000-00000000a000";
 // Non-UUID id intentionally: WorkspaceScreen falls through to
-// `workspace-empty` placeholder (no network fetch) without a runtime
+// `workspace-plan-list` landing (no network fetch) without a runtime
 // client, keeping the scenario URL-only and contract-light.
 const TARGET_JOB_ID = "tj-canonical";
 const RESUME_VERSION_ID = "01918fa0-0000-7000-8000-000000001000";
@@ -104,20 +104,16 @@ const NavBatch: FC = () => {
 };
 
 describe("E2E.P0.088 canonical path deep-link / reload / browser history", () => {
-  it("direct-open /workspace?targetJobId=...&autoStartPractice=1 keeps URL canonical and TopBar active", () => {
+  it("direct-open /workspace?targetJobId=...&autoStartPractice=1 strips legacy params and keeps TopBar active", () => {
     window.history.replaceState(
       null,
       "",
       `/workspace?targetJobId=${TARGET_JOB_ID}&resumeId=${RESUME_VERSION_ID}&planId=${PLAN_ID}&autoStartPractice=1`,
     );
     render(<App />);
-    expect(screen.getByTestId("workspace-empty")).toBeInTheDocument();
+    expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/workspace");
-    const search = new URLSearchParams(window.location.search);
-    expect(search.get("targetJobId")).toBe(TARGET_JOB_ID);
-    expect(search.get("resumeId")).toBe(RESUME_VERSION_ID);
-    expect(search.get("planId")).toBe(PLAN_ID);
-    expect(search.get("autoStartPractice")).toBe("1");
+    expect(window.location.search).toBe("");
     expect(screen.getByTestId("topbar-nav-workspace")).toHaveAttribute(
       "aria-current",
       "page",
@@ -195,7 +191,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     );
     const user = userEvent.setup();
     await user.click(screen.getByTestId("go-workspace-replay"));
-    await waitFor(() => screen.getByTestId("workspace-empty"));
+    await waitFor(() => screen.getByTestId("workspace-plan-list"));
     await user.click(screen.getByTestId("go-practice-voice"));
     await waitFor(() => screen.getByTestId("practice-voice-waveform"));
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
@@ -215,7 +211,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
       window.history.back();
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
-    await waitFor(() => screen.getByTestId("workspace-empty"));
+    await waitFor(() => screen.getByTestId("workspace-plan-list"));
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
 
     // FORWARD twice: workspace → practice → report
@@ -238,8 +234,8 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
       "/workspace?bogusKey=42&targetJobId=tj-ok&another=zz",
     );
     render(<App />);
-    expect(screen.getByTestId("workspace-empty")).toBeInTheDocument();
-    expect(window.location.search).toBe("?targetJobId=tj-ok");
+    expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
+    expect(window.location.search).toBe("");
   });
 
   it("hash `#route=workspace&targetJobId=...` boot rewrites URL to canonical /workspace", () => {
@@ -251,7 +247,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     render(<App />);
     expect(window.location.pathname).toBe("/workspace");
     expect(window.location.hash).toBe("");
-    expect(window.location.search).toBe(`?targetJobId=${TARGET_JOB_ID}`);
-    expect(screen.getByTestId("workspace-empty")).toBeInTheDocument();
+    expect(window.location.search).toBe("");
+    expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
   });
 });

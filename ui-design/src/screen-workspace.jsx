@@ -15,7 +15,7 @@ const WorkspaceScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
   const jobs = D.targetJobs || [];
   const resumeOptions = getWorkspaceResumeOptions(lang);
   const planOptions = getWorkspacePlanOptions(lang, jobs);
-  const hasPlanContext = Boolean(params.targetJobId || params.jobId || params.planId || params.jdId);
+  const hasPlanContext = false;
   if (!hasPlanContext) {
     return <WorkspacePlanList T={T} lang={lang} nav={nav} jobs={jobs} planOptions={planOptions} />;
   }
@@ -326,11 +326,8 @@ const WorkspacePlanList = ({ T, lang, nav, jobs = [], planOptions = [] }) => {
     updated: "更新于",
     open: "进入规划",
   };
-  const openPlan = (job) => nav("workspace", {
+  const openPlan = (job) => nav("parse", {
     targetJobId: job.id,
-    jobId: job.id,
-    jdId: `jd-${job.id}`,
-    planId: `plan-${job.id}`,
   });
   return (
     <div data-testid="workspace-plan-list" className="ei-fadein" style={{ maxWidth: 1120, margin: "0 auto", padding: "48px 48px 96px" }}>

@@ -245,8 +245,8 @@ describe("E2E.P0.089 auth pendingAction + URL privacy redline", () => {
     const safe = new URLSearchParams(window.location.search);
     expect(safe.get("pendingRoute")).toBe("workspace");
     expect(safe.get("pendingType")).toBe("start_practice");
-    expect(safe.get("planId")).toBe("plan-1");
-    expect(safe.get("targetJobId")).toBe("tj-1");
+    expect(safe.has("planId")).toBe(false);
+    expect(safe.has("targetJobId")).toBe(false);
     expectNoRawMarkerLeak("after hostile direct-open of /auth/login");
   });
 
@@ -266,10 +266,10 @@ describe("E2E.P0.089 auth pendingAction + URL privacy redline", () => {
       );
     });
 
-    await waitFor(() => screen.getByTestId("workspace-empty"));
+    await waitFor(() => screen.getByTestId("workspace-plan-list"));
     expect(
       window.location.pathname + window.location.search + window.location.hash,
-    ).toBe("/workspace?targetJobId=tj-popstate");
+    ).toBe("/workspace");
     expectNoRawMarkerLeak("after hostile popstate route restore");
   });
 });

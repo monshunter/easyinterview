@@ -65,9 +65,8 @@ export function isChromeHidden(name: RouteName): boolean {
   return NO_CHROME_ROUTES.has(name);
 }
 
-/** Routes that carry InterviewContext across navigation per ui-design/src/app.jsx line 76. */
+/** Routes that carry InterviewContext across navigation. `workspace` is list-only. */
 export const INTERVIEW_CONTEXT_ROUTES: ReadonlySet<string> = new Set([
-  "workspace",
   "practice",
   "generating",
   "report",

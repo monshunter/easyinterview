@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 1.13
+    to: 1.15
 spec:
   defaultTarget: frontend
   discovery:
@@ -22,32 +22,12 @@ spec:
       - InterviewContext
       - InterviewContextProvider
       - useInterviewContext
-      - useStartPractice
-      - PlanSwitcherModal
-      - ResumePickerModal
       - WorkspaceEmptyState
-      - WorkspaceMissingResumeState
-      - WorkspaceInsightCard
-      - InterviewRoundRail
-      - BindingPill
       - listTargetJobs
-      - getTargetJob
-      - getResume
-      - getPracticePlan
-      - createPracticePlan
-      - startPracticeSession
-      - Idempotency-Key
-      - newIdempotencyBatch
-      - requestAuth start_practice
-      - pendingAction
+      - startPracticeFromParams
       - PracticeDisplayContext
-      - autoStartPractice
       - practiceMode
       - hintsEnabled
-      - workspace insight embedded-only
-      - records placeholder
-      - listResumes active-list
-      - target job summary insight card
       - workspace pixel parity
       - WorkspacePlanList
       - interview plan list landing
@@ -57,6 +37,9 @@ spec:
       - interview plan detail
       - context confirm
       - parse detail reuse
+      - workspace route purity
+      - workspace pure list
+      - parse detail handoff
       - topbar Interview nav
       - 面试规划列表
       - 面试规划详情
@@ -94,7 +77,6 @@ spec:
         packages:
           - frontend/src/app/screens/workspace
           - frontend/src/app/screens/workspace/hooks
-          - frontend/src/app/screens/workspace/modals
           - frontend/src/app/interview-context
           - frontend/src/app/i18n/locales
           - frontend/src/app/auth
@@ -124,9 +106,9 @@ spec:
           - resume_versions
         apiNames:
           - listTargetJobs
-          - getTargetJob
-          - getResume
           - getPracticePlan
           - createPracticePlan
           - startPracticeSession
+          - getTargetJob
+          - getResume
           - updateTargetJob

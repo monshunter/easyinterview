@@ -3,10 +3,10 @@
  *
  * Phase 4 — Replay CTA path A + path B wire. Verified through ReportHeader
  * inside the live dashboard so the test exercises the actual handoff:
- *  - authenticated → nav workspace with autoStartPractice, then the workspace
- *    owner creates a fresh practice session and lands on practice
+ *  - authenticated → report owner creates a fresh practice session and lands
+ *    on practice
  *  - unauthenticated → useRequestAuth (nav auth_login carrying replay_practice
- *    pending action for workspace auto-start) and no direct nav practice
+ *    pending action for report recovery) and no direct nav practice
  *  - payload integrity: 9+ owner / display knob fields, no raw text
  *  - getFeedbackReport not re-invoked on click
  *  - listTargetJobReports never invoked from report scope
@@ -204,7 +204,7 @@ const Harness: FC<{
 );
 
 describe("Replay CTAs", () => {
-  it("authenticated user clicking replay CTA creates a fresh practice session through workspace auto-start (TestReplayCtaPathA_AuthenticatedAutoStartPractice)", async () => {
+  it("authenticated user clicking replay CTA creates a fresh practice session directly (TestReplayCtaPathA_AuthenticatedAutoStartPractice)", async () => {
     const client = makeClient({ authenticated: true });
     const startSpy = client.startPracticeSession as ReturnType<typeof vi.fn>;
     render(

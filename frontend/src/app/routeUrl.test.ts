@@ -35,7 +35,7 @@ describe("serializeRouteToUrl", () => {
     });
   });
 
-  it("emits sorted query string for workspace handoff params", () => {
+  it("drops all context params for workspace because it is a pure list route", () => {
     expect(
       formatRouteUrl({
         name: "workspace",
@@ -46,9 +46,7 @@ describe("serializeRouteToUrl", () => {
           autoStartPractice: "1",
         },
       }),
-    ).toBe(
-      "/workspace?autoStartPractice=1&planId=plan-1&resumeId=rv-1&targetJobId=tj-1",
-    );
+    ).toBe("/workspace");
   });
 
   it("drops empty and unknown params", () => {
@@ -62,7 +60,7 @@ describe("serializeRouteToUrl", () => {
           planId: "",
         },
       }),
-    ).toBe("/workspace?targetJobId=tj-1");
+    ).toBe("/workspace");
   });
 
   it("serializes the non-current jd_match route name to the home canonical path (D-17)", () => {
@@ -190,7 +188,7 @@ describe("serializeRouteToUrl", () => {
         },
       }),
     ).toBe(
-      "/auth/login?email=alice%40example.com&jdId=jd-1&next=%2Fworkspace&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice&planId=plan-1&resumeId=rv-1&roundId=round-1&targetJobId=tj-1",
+      "/auth/login?email=alice%40example.com&next=%2Fworkspace&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice",
     );
   });
 
@@ -221,7 +219,7 @@ describe("serializeRouteToUrl", () => {
         },
       }),
     ).toBe(
-      "/auth/verify?email=alice%40example.com&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice&targetJobId=tj-1",
+      "/auth/verify?email=alice%40example.com&pendingLabel=%E7%AB%8B%E5%8D%B3%E9%9D%A2%E8%AF%95&pendingRoute=workspace&pendingType=start_practice",
     );
     expect(
       formatRouteUrl({
@@ -250,7 +248,7 @@ describe("serializeRouteToUrl", () => {
     );
   });
 
-  it("preserves report replay params for autoStartPractice / sourceSessionId / replayItems / evidenceGaps / nextRoundId on workspace", () => {
+  it("drops report replay params from workspace because replay starts from report owner", () => {
     expect(
       formatRouteUrl({
         name: "workspace",
@@ -265,9 +263,7 @@ describe("serializeRouteToUrl", () => {
           nextRoundId: "round-2",
         },
       }),
-    ).toBe(
-      "/workspace?autoStartPractice=1&evidenceGaps=technical_depth%7Cnarrative&nextRoundId=round-2&planId=plan-1&replayItems=turn-1%2Cturn-3&resumeId=rv-1&sourceSessionId=s-prior&targetJobId=tj-1",
-    );
+    ).toBe("/workspace");
   });
 
   it("drops raw payload, AI prompt, auth secret keys from URL even when present", () => {
@@ -297,9 +293,7 @@ describe("serializeRouteToUrl", () => {
         name: "workspace",
         params: { targetJobId: "tj-1", [key]: "leaked-value" },
       });
-      expect(url, `workspace must drop ${key}`).toBe(
-        "/workspace?targetJobId=tj-1",
-      );
+      expect(url, `workspace must drop ${key}`).toBe("/workspace");
     }
     for (const key of PRIVATE_KEYS) {
       const url = formatRouteUrl({
@@ -331,19 +325,14 @@ describe("parseUrlToRoute", () => {
     });
   });
 
-  it("parses canonical workspace deep link", () => {
+  it("parses canonical workspace URL but strips legacy context params", () => {
     expect(
       parseUrlToRoute(
         "/workspace?targetJobId=tj-1&resumeId=rv-1&planId=plan-1&autoStartPractice=1",
       ),
     ).toEqual({
       name: "workspace",
-      params: {
-        targetJobId: "tj-1",
-        resumeId: "rv-1",
-        planId: "plan-1",
-        autoStartPractice: "1",
-      },
+      params: {},
     });
   });
 
@@ -368,7 +357,7 @@ describe("parseUrlToRoute", () => {
       parseUrlToRoute("/workspace?targetJobId=tj-1&rawText=raw+jd&query=secret"),
     ).toEqual({
       name: "workspace",
-      params: { targetJobId: "tj-1" },
+      params: {},
     });
   });
 
@@ -397,8 +386,6 @@ describe("parseUrlToRoute", () => {
         pendingRoute: "workspace",
         pendingType: "start_practice",
         pendingLabel: "立即面试",
-        planId: "plan-1",
-        targetJobId: "tj-1",
       },
     });
   });
@@ -429,7 +416,6 @@ describe("parseUrlToRoute", () => {
         pendingRoute: "workspace",
         pendingType: "complete_profile_resume",
         pendingLabel: "workspace",
-        planId: "plan-1",
       },
     });
   });
@@ -437,14 +423,14 @@ describe("parseUrlToRoute", () => {
   it("supports plain URL input without leading slash", () => {
     expect(parseUrlToRoute("workspace?targetJobId=tj-1")).toEqual({
       name: "workspace",
-      params: { targetJobId: "tj-1" },
+      params: {},
     });
   });
 
   it("strips fragment during canonical parse (hash adapter remains separate)", () => {
     expect(
       parseUrlToRoute("/workspace?targetJobId=tj-1#anything"),
-    ).toEqual({ name: "workspace", params: { targetJobId: "tj-1" } });
+    ).toEqual({ name: "workspace", params: {} });
   });
 
   it("normalizes home query-only deep link", () => {
@@ -464,14 +450,15 @@ describe("parseUrlToRoute", () => {
 });
 
 describe("isSafeRouteParam", () => {
-  it("approves cross-owner safe params (handoff keys must survive)", () => {
+  it("approves cross-owner safe params but keeps workspace param-free", () => {
     expect(isSafeRouteParam("home", "pendingImportId", {})).toBe(true);
-    expect(isSafeRouteParam("workspace", "autoStartPractice", {})).toBe(true);
-    expect(isSafeRouteParam("workspace", "sourceSessionId", {})).toBe(true);
-    expect(isSafeRouteParam("workspace", "sourceReportId", {})).toBe(true);
-    expect(isSafeRouteParam("workspace", "replayItems", {})).toBe(true);
-    expect(isSafeRouteParam("workspace", "evidenceGaps", {})).toBe(true);
-    expect(isSafeRouteParam("workspace", "nextRoundId", {})).toBe(true);
+    expect(isSafeRouteParam("workspace", "targetJobId", {})).toBe(false);
+    expect(isSafeRouteParam("workspace", "autoStartPractice", {})).toBe(false);
+    expect(isSafeRouteParam("workspace", "sourceSessionId", {})).toBe(false);
+    expect(isSafeRouteParam("workspace", "sourceReportId", {})).toBe(false);
+    expect(isSafeRouteParam("workspace", "replayItems", {})).toBe(false);
+    expect(isSafeRouteParam("workspace", "evidenceGaps", {})).toBe(false);
+    expect(isSafeRouteParam("workspace", "nextRoundId", {})).toBe(false);
     expect(isSafeRouteParam("report", "reportStatus", {})).toBe(true);
     expect(isSafeRouteParam("report", "errorCode", {})).toBe(true);
     expect(isSafeRouteParam("resume_versions", "tailorRunId", {})).toBe(false);
@@ -519,6 +506,9 @@ describe("isSafeRouteParam", () => {
   it("expands auth_login allowlist with target route safe params when pendingRoute is present", () => {
     expect(
       isSafeRouteParam("auth_login", "planId", { pendingRoute: "workspace" }),
+    ).toBe(false);
+    expect(
+      isSafeRouteParam("auth_login", "planId", { pendingRoute: "practice" }),
     ).toBe(true);
     expect(
       isSafeRouteParam("auth_login", "tailorRunId", {

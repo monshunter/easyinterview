@@ -204,7 +204,7 @@ export function useInterviewContext(): InterviewContextValue {
 
 /**
  * Derives the context needed for starting a practice session — used by
- * workspace > useStartPractice() hook.
+ * practice/report handoff code.
  */
 export function useStartPracticeContext(): InterviewContextState {
   const { ctx } = useInterviewContext();

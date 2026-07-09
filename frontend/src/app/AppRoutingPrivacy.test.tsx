@@ -142,12 +142,10 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
     );
     const user = userEvent.setup();
     await user.click(screen.getByTestId("go-workspace-raw"));
-    await waitFor(() => screen.getByTestId("workspace-empty"));
+    await waitFor(() => screen.getByTestId("workspace-plan-list"));
     expectNoRawMarkerLeak();
-    // Legitimate handoff keys must still survive.
-    expect(window.location.search).toContain("targetJobId=tj-redline");
-    expect(window.location.search).toContain("planId=plan-redline");
-    expect(window.location.search).toContain("resumeId=rv-redline");
+    // workspace is a pure list route; even legacy context keys are stripped.
+    expect(window.location.search).toBe("");
   });
 
   it("navigate(report) with reportStatus + raw markers keeps handoff keys but drops raw markers", async () => {
@@ -275,10 +273,10 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
       );
     });
 
-    await waitFor(() => screen.getByTestId("workspace-empty"));
+    await waitFor(() => screen.getByTestId("workspace-plan-list"));
     expect(
       window.location.pathname + window.location.search + window.location.hash,
-    ).toBe("/workspace?targetJobId=tj-popstate");
+    ).toBe("/workspace");
     expectNoRawMarkerLeak();
   });
 });

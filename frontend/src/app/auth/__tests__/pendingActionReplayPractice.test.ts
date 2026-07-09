@@ -1,8 +1,8 @@
 /**
  * Phase 4.0 — Pending action `replay_practice` round-trip and allowlist
- * coverage. Report replay resumes to the workspace owner with
- * autoStartPractice=1 so it can create a fresh session before entering
- * practice. The base PendingAction.type is a free-form string so the gate is
+ * coverage. Report replay resumes to the report owner; report owns the replay
+ * CTA and creates a fresh session directly instead of routing through
+ * workspace. The base PendingAction.type is a free-form string so the gate is
  * round-trip integrity + privacy red lines (no raw text on URL params).
  */
 
@@ -17,12 +17,10 @@ import {
 const REPLAY_ACTION: PendingAction = {
   type: "replay_practice",
   label: "复练当前轮",
-  route: "workspace",
+  route: "report",
   params: {
-    sourceSessionId: "session-prior",
-    replayItems: "turn-1,turn-3",
-    evidenceGaps: "technical_depth|narrative",
-    planId: "plan-1",
+    sessionId: "session-prior",
+    reportId: "report-1",
     targetJobId: "tj-1",
     jdId: "jd-1",
     resumeId: "frontend-v3",
@@ -31,7 +29,8 @@ const REPLAY_ACTION: PendingAction = {
     modality: "text",
     practiceMode: "strict",
     practiceGoal: "retry_current_round",
-    autoStartPractice: "1",
+    hintUsed: "1",
+    hintCount: "2",
   },
 };
 
@@ -39,20 +38,18 @@ describe("PendingAction replay_practice", () => {
   it("encodes the type / label / route / params on URL-safe keys (TestPendingActionEncodeDecodeReplayPractice)", () => {
     const encoded = encodePendingAction(REPLAY_ACTION);
     expect(encoded).toMatchObject({
-      pendingRoute: "workspace",
+      pendingRoute: "report",
       pendingType: "replay_practice",
       pendingLabel: "复练当前轮",
-      sourceSessionId: "session-prior",
-      replayItems: "turn-1,turn-3",
-      evidenceGaps: "technical_depth|narrative",
+      sessionId: "session-prior",
+      reportId: "report-1",
       practiceGoal: "retry_current_round",
-      autoStartPractice: "1",
     });
   });
 
   it("decodes back to the same route + params and never spills reserved keys (TestPendingActionEncodeDecodeReplayPractice)", () => {
     const decoded = decodePendingActionRoute(encodePendingAction(REPLAY_ACTION));
-    expect(decoded?.name).toBe("workspace");
+    expect(decoded?.name).toBe("report");
     expect(decoded?.params).toEqual(REPLAY_ACTION.params);
     // The 3 reserved keys must not bleed into restored params.
     const params = decoded?.params ?? {};

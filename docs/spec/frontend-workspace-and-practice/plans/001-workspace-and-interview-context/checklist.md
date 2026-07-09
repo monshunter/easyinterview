@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.17
+> **版本**: 1.19
 > **状态**: completed
 > **更新日期**: 2026-07-09
 
@@ -21,29 +21,29 @@
 
 ## Phase 2: TargetJob, resume and workspace data
 
-- [x] 2.1 `useWorkspaceTargetJob` consumes generated `getTargetJob` and handles loading, ready, not-found and retry states（验证：`WorkspaceHeader.test.tsx`, hook tests）
-- [x] 2.2 `useWorkspaceResume` consumes generated `getResume`, binds `resumeId`, and renders missing-resume state when needed（验证：`WorkspaceEmptyState.test.tsx`, `useWorkspaceResume.test.tsx`）
-- [x] 2.3 Header, launcher, JD breakdown and preparation signals derive only from declared `TargetJob` fields（验证：field-mapping and unsupported-field negative tests）
-- [x] 2.4 BDD-Gate: `E2E.P0.019` covers context loading, empty state, missing resume and plan refresh（验证：scenario trigger/verify）
+- [x] 2.1 Historical `useWorkspaceTargetJob` detail hook is retired from workspace owner; parse owner consumes generated `getTargetJob`（验证：source negative gate）
+- [x] 2.2 Historical `useWorkspaceResume` detail hook is retired from workspace owner; parse owner consumes resume selection/list data（验证：`ParseResumeBinding.test.tsx`）
+- [x] 2.3 Workspace list derives only declared `TargetJob` list fields and does not render detail header/launcher/JD breakdown（验证：`WorkspaceEmptyState.test.tsx`, source negative gate）
+- [x] 2.4 BDD-Gate: `E2E.P0.018` covers workspace list and parse detail handoff; historical P0.019 detail loading belongs to external owner（验证：scenario trigger/verify）
 
 ## Phase 3: Plan and resume switching
 
-- [x] 3.1 `PlanSwitcherModal` consumes generated `listTargetJobs`, switches current plan and supports new-plan handoff to home（验证：`PlanSwitcherModal.test.tsx`, `WorkspaceModalIntegration.test.tsx`）
-- [x] 3.2 `ResumePickerModal` consumes current flat `listResumes` active-list and dispatches selected `resumeId` back into `InterviewContext`（验证：`ResumePickerModal.test.tsx`）
-- [x] 3.3 Modal a11y supports ESC, backdrop, close button, focus trap and focus return（验证：`useModalA11y.test.tsx`）
-- [x] 3.4 BDD-Gate: `E2E.P0.018` covers plan switcher and active resume picker（验证：scenario trigger/verify）
+- [x] 3.1 Historical `PlanSwitcherModal` runtime is retired from workspace owner; list cards now open parse detail（验证：source negative gate）
+- [x] 3.2 Historical `ResumePickerModal` runtime is retired from workspace owner; parse detail owns resume selection（验证：`ParseResumeBinding.test.tsx`）
+- [x] 3.3 Modal a11y is no longer a workspace gate; parse owner covers its picker behavior（验证：parse focused tests）
+- [x] 3.4 BDD-Gate: `E2E.P0.018` covers workspace list and parse detail handoff（验证：scenario trigger/verify）
 
 ## Phase 4: Start practice and auth recovery
 
-- [x] 4.1 `useWorkspacePracticePlan` refreshes ready plans and clears absent plans before launch（验证：hook tests and `WorkspaceStartPractice.test.tsx`）
-- [x] 4.2 `useStartPractice` creates a baseline plan when needed, starts a session, and uses stable idempotency keys for side effects and retry（验证：`WorkspaceStartPractice.test.tsx`）
-- [x] 4.3 Unauthenticated start uses `requestAuth({ type: "start_practice" })`, returns to workspace, clears `autoStartPractice`, and resumes launch（验证：`WorkspaceAuthGate.test.tsx`）
-- [x] 4.4 BDD-Gate: `E2E.P0.020` covers happy path, retry and pendingAction recovery（验证：scenario trigger/verify）
+- [x] 4.1 Historical workspace practice-plan refresh hook is retired; parse/report handoff validates existing plan context（验证：`ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx`）
+- [x] 4.2 Shared `startPracticeFromParams` creates a plan when needed, starts a session, and uses stable idempotency keys for side effects（验证：`ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx`）
+- [x] 4.3 `workspace(autoStartPractice=1)` is removed from current runtime; pending actions no longer rely on workspace side effects（验证：source negative gate）
+- [x] 4.4 BDD-Gate: start-practice behavior is covered by parse/report focused gates and external owner scenario（验证：focused tests）
 
 ## Phase 5: Embedded insight, records placeholder and privacy
 
-- [x] 5.1 `WorkspaceInsightCard` stays embedded and does not call a standalone company signal API（验证：`WorkspaceHandoff.test.tsx`）
-- [x] 5.2 Records area renders placeholder only and does not synthesize report rows from untyped fixture data（验证：`WorkspaceHandoff.test.tsx`）
+- [x] 5.1 Historical `WorkspaceInsightCard` runtime is retired from workspace owner（验证：source negative gate）
+- [x] 5.2 Historical records placeholder runtime is retired from workspace owner（验证：source negative gate）
 - [x] 5.3 Workspace runtime does not import prototype data helpers or call report APIs for records placeholder（验证：`E2E.P0.021` verify grep）
 - [x] 5.4 Sensitive fields are absent from URL, localStorage, console, telemetry and fixture transport logs（验证：privacy negative tests and scenario verify）
 - [x] 5.5 BDD-Gate: `E2E.P0.021` covers embedded-only behavior, records placeholder and privacy/non-current negative gates（验证：scenario trigger/verify）
@@ -59,7 +59,7 @@
 
 - [x] 7.1 Product/UI truth sources and static prototype use TopBar `面试` / `Interview` and define `workspace` no-context plan-list landing（验证：`ui-design/src/app.jsx`, `ui-design/src/screen-workspace.jsx`, `docs/ui-design/module-job-workspace.md`, `docs/ui-design/ui-architecture.md`）
 - [x] 7.2 Formal TopBar labels and i18n use `面试` / `Interview` while route/testid remains `workspace`（验证：`TopBar.test.tsx`, `TopBarVisual.test.tsx`, `p0-004-app-shell-language-switch.test.tsx`）
-- [x] 7.3 `WorkspacePlanList` consumes generated `listTargetJobs`, renders loading/empty/error/list states, and plan cards navigate to current-plan detail without fabricating resume/report data（验证：`WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`, `WorkspaceHandoff.test.tsx`）
+- [x] 7.3 `WorkspacePlanList` consumes generated `listTargetJobs`, renders loading/empty/error/list states, and plan cards navigate to `parse` detail without fabricating resume/report data（验证：`WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`）
 - [x] 7.4 Workspace parity and route regression gates distinguish no-context list landing from hydrated current-plan detail（验证：`frontend/tests/pixel-parity/workspace.spec.ts`, `p0-088-url-addressable-routing-canonical.test.tsx`, `p0-090-url-routing-hash-non-current-negative.test.tsx`）
 - [x] 7.5 BDD-Gate: `E2E.P0.018` covers TopBar `面试` landing, plan-list card selection, and existing current-plan detail anchors（验证：scenario trigger/verify）
 
@@ -81,7 +81,7 @@
 
 - [x] 10.1 `WorkspacePlanList` card navigation uses declared `currentPracticePlanId` / `resumeId` projection fields and never fabricates `plan-${targetJobId}` or `resume-unbound`（验证：`pnpm --filter @easyinterview/frontend test src/app/screens/workspace/WorkspaceEmptyState.test.tsx ...` PASS）
 - [x] 10.2 Generated OpenAPI/TS TargetJob contract exposes current practice-plan binding for plan-list consumers（验证：`make codegen-openapi`; `pnpm --filter @easyinterview/frontend typecheck` PASS）
-- [x] 10.3 BDD-Gate: `E2E.P0.018` keeps plan-card selection on the current bound-resume detail path（验证：focused equivalent `WorkspaceEmptyState.test.tsx`, `WorkspaceScreen.test.tsx`, `WorkspaceHandoff.test.tsx` PASS）
+- [x] 10.3 BDD-Gate: `E2E.P0.018` keeps plan-card selection on the parse bound-resume detail path（验证：focused equivalent `WorkspaceEmptyState.test.tsx`, `WorkspaceScreen.test.tsx` PASS）
 
 ## Phase 11: target job-level resume binding remediation
 
@@ -91,8 +91,23 @@
 
 ## Phase 12: unified detail route remediation
 
-- [x] 12.1 Ordinary `workspace?targetJobId=...` re-entry renders the Parse-derived `面试规划详情 / 面试上下文确认` mother page and no longer renders independent workspace detail anchors（验证：`WorkspaceScreen.test.tsx`, `WorkspaceHandoff.test.tsx`, `WorkspaceHeader.test.tsx` PASS）
-- [x] 12.2 Workspace no-context `WorkspacePlanList` and plan-card navigation remain generated `listTargetJobs` backed, carrying declared `resumeId/currentPracticePlanId` only（验证：`WorkspaceEmptyState.test.tsx`, `frontend/src/app/navigation/interviewContext.ts` tests PASS）
-- [x] 12.3 `autoStartPractice=1` remains owned by workspace `useStartPractice`, including auth recovery and idempotency; unified detail does not duplicate session start logic（验证：`WorkspaceStartPractice.test.tsx`, `WorkspaceAuthGate.test.tsx` PASS）
-- [x] 12.4 Pixel/source parity verifies workspace list + unified detail routing split across desktop/mobile and rejects retired independent workspace detail geometry（验证：`frontend/tests/pixel-parity/workspace.spec.ts` PASS）
-- [x] 12.5 BDD-Gate: `E2E.P0.018` covers list re-entry to unified detail and `E2E.P0.020` covers auto-start still launching practice（验证：scenario trigger/verify PASS）
+- [x] 12.1 Historical `workspace?targetJobId=...` detail re-entry is superseded; parse route renders the `面试规划详情 / 面试上下文确认` mother page（验证：`ParseResumeBinding.test.tsx`, pixel parity parse detail PASS）
+- [x] 12.2 Workspace `WorkspacePlanList` and plan-card navigation remain generated `listTargetJobs` backed, carrying declared `resumeId/currentPracticePlanId` only to `parse`（验证：`WorkspaceEmptyState.test.tsx`, `frontend/src/app/navigation/interviewContext.ts` tests PASS）
+- [x] 12.3 `autoStartPractice=1` workspace ownership is superseded; parse/report handoff owns session start logic（验证：`ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx` PASS）
+- [x] 12.4 Pixel/source parity verifies workspace list + parse detail routing split across desktop/mobile and rejects retired independent workspace detail geometry（验证：`frontend/tests/pixel-parity/workspace.spec.ts` PASS）
+- [x] 12.5 BDD-Gate: `E2E.P0.018` covers list re-entry to parse detail and parse/report focused gates cover direct practice start（验证：scenario trigger/verify PASS）
+
+## Phase 13: plan-list admission and stale-context navigation remediation
+
+- [x] 13.1 `useWorkspaceTargetJobs` requests `listTargetJobs` with `analysisStatus=ready` and ready page size, without ad hoc fetch（验证：`WorkspaceEmptyState.test.tsx` spy asserts query PASS）
+- [x] 13.2 `WorkspacePlanList` defensively excludes failed / queued / processing / blank-title TargetJob records from visible cards（验证：`WorkspaceEmptyState.test.tsx` PASS）
+- [x] 13.3 TopBar / legacy-param `workspace` navigation clears or ignores stale detail `InterviewContext`, rendering `workspace-plan-list` instead of `parse-error` / “缺少目标岗位 ID”（验证：`WorkspaceScreen.test.tsx`, `App.test.tsx` PASS）
+- [x] 13.4 BDD-Gate: `E2E.P0.018` covers failed/blank record exclusion and no-context TopBar landing after detail navigation（验证：focused equivalent PASS）
+
+## Phase 14: workspace route purity remediation
+
+- [x] 14.1 `WorkspaceScreen` is a pure list surface and no longer imports TargetJob detail/start/modal hooks（验证：source negative gate + `pnpm --filter @easyinterview/frontend test src/app/screens/workspace ...` PASS）
+- [x] 14.2 `WorkspacePlanList` cards navigate to `parse`, while `App` clears InterviewContext whenever route name is `workspace`（验证：`WorkspaceEmptyState.test.tsx`, `App.test.tsx` PASS）
+- [x] 14.3 Retired workspace detail/start/modal runtime files and tests are removed from current owner（验证：`rg` negative + deleted files）
+- [x] 14.4 Parse/report owners start practice directly through generated `getPracticePlan` / `createPracticePlan` / `startPracticeSession`, not through `workspace(autoStartPractice=1)`（验证：`ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx` PASS）
+- [x] 14.5 BDD-Gate: `E2E.P0.018` trigger/verify now covers workspace pure list + parse detail handoff and rejects retired workspace context files（验证：scenario assets updated）

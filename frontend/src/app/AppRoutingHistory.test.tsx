@@ -40,10 +40,9 @@ describe("App browser-aware routing — Phase 2.2 navigate via History", () => {
   it("bootstraps from canonical window.location on mount (workspace empty fallback)", () => {
     window.history.replaceState(null, "", "/workspace?targetJobId=tj-bootstrap");
     render(<App />);
-    // Without a runtime client, WorkspaceScreen falls back to workspace-empty.
-    expect(screen.getByTestId("workspace-empty")).toBeInTheDocument();
+    expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/workspace");
-    expect(window.location.search).toBe("?targetJobId=tj-bootstrap");
+    expect(window.location.search).toBe("");
   });
 
   it("navigate(next) updates URL via pushState and TopBar aria-current", async () => {
@@ -64,9 +63,7 @@ describe("App browser-aware routing — Phase 2.2 navigate via History", () => {
         "page",
       ),
     );
-    expect(window.location.pathname + window.location.search).toBe(
-      "/workspace?targetJobId=tj-1",
-    );
+    expect(window.location.pathname + window.location.search).toBe("/workspace");
     expect(window.history.length).toBe(startLength + 1);
   });
 
@@ -105,10 +102,10 @@ describe("App browser-aware routing — Phase 2.2 navigate via History", () => {
     const user = userEvent.setup();
     await user.click(screen.getByTestId("go-workspace-leak"));
     await waitFor(() =>
-      expect(screen.getByTestId("workspace-empty")).toBeInTheDocument(),
+      expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument(),
     );
     const url = window.location.pathname + window.location.search;
-    expect(url).toBe("/workspace?targetJobId=tj-1");
+    expect(url).toBe("/workspace");
     expect(url.includes("rawText")).toBe(false);
     expect(url.includes("query=secret")).toBe(false);
   });
@@ -140,7 +137,7 @@ describe("App browser-aware routing — Phase 2.2 navigate via History", () => {
     render(<App />);
     // The route-store mount effect must rewrite the URL to canonical form.
     expect(window.location.pathname).toBe("/workspace");
-    expect(window.location.search).toBe("?targetJobId=tj-1");
+    expect(window.location.search).toBe("");
     expect(window.location.hash).toBe("");
   });
 });
@@ -169,7 +166,7 @@ describe("App browser-aware routing — Phase 2.3 popstate / chrome parity", () 
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
     await waitFor(() =>
-      expect(screen.getByTestId("workspace-empty")).toBeInTheDocument(),
+      expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument(),
     );
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/workspace");

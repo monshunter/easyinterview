@@ -10,17 +10,17 @@ import { resolve } from "node:path";
  * context/plan.md §4 Phase 6.
  *
  * Covers desktop (1440x900) and mobile (390x844) projects:
- * - DOM anchors (plan-list landing, unified plan-detail mother page,
- *   empty/missing states)
+ * - DOM anchors (workspace plan-list landing and parse unified plan-detail
+ *   mother page)
  * - Bounding box stays in viewport, no overlap
  * - default (ocean)/light -> dark -> customAccent theme switching
  * - non-empty screenshot smoke
  * - Negative: non-current prototype testids absent
  *
  * Full data-driven rendering is reached through an explicit initial route
- * bootstrap with server-bound IDs. TopBar navigation covers the no-context
- * interview plan-list landing, and Home recent cards keep their product
- * `resume-unbound` behavior outside this pixel harness.
+ * bootstrap with server-bound IDs on the parse route. TopBar navigation covers
+ * the no-context interview plan-list landing, and Home recent cards keep their
+ * product `resume-unbound` behavior outside this pixel harness.
  */
 
 interface Rect {
@@ -158,8 +158,8 @@ async function goToWorkspace(page: import("@playwright/test").Page) {
   });
 }
 
-/** Navigate to a hydrated workspace through server-bound initial route params. */
-async function goToHydratedWorkspace(page: import("@playwright/test").Page) {
+/** Navigate to parse detail through server-bound initial route params. */
+async function goToParseDetail(page: import("@playwright/test").Page) {
   await mockWorkspaceApis(page);
   await page.addInitScript((route) => {
     (
@@ -171,7 +171,7 @@ async function goToHydratedWorkspace(page: import("@playwright/test").Page) {
       }
     ).__EASYINTERVIEW_INITIAL_ROUTE__ = route;
   }, {
-    name: "workspace",
+    name: "parse",
     params: {
       targetJobId: WORKSPACE_TARGET_ID,
       jobId: WORKSPACE_TARGET_ID,
@@ -214,10 +214,10 @@ test.describe("workspace DOM anchor parity", () => {
     expect(ariaCurrent).toBe("page");
   });
 
-  test("hydrated workspace renders the unified plan-detail anchor set", async ({ page }) => {
-    await goToHydratedWorkspace(page);
+  test("parse detail renders the unified plan-detail anchor set", async ({ page }) => {
+    await goToParseDetail(page);
     const anchorIds = [
-      "route-workspace",
+      "route-parse",
       "unified-plan-detail",
       "unified-plan-detail-title",
       "parse-basics-title",
@@ -236,8 +236,8 @@ test.describe("workspace DOM anchor parity", () => {
     }
   });
 
-  test("hydrated workspace exposes the unified resume picker and hides retired modals", async ({ page }) => {
-    await goToHydratedWorkspace(page);
+  test("parse detail exposes the unified resume picker and hides retired workspace modals", async ({ page }) => {
+    await goToParseDetail(page);
 
     await expect(page.locator("[data-testid='workspace-plan-modal-card']")).toHaveCount(0);
     await expect(page.locator("[data-testid='workspace-resume-modal-card']")).toHaveCount(0);
@@ -340,8 +340,8 @@ test.describe("workspace bounding box parity", () => {
     expect(styles.buttonBorderColor).toBe(styles.accentColor);
   });
 
-  test("hydrated workspace primary anchors stay in viewport", async ({ page }) => {
-    await goToHydratedWorkspace(page);
+  test("parse detail primary anchors stay in viewport", async ({ page }) => {
+    await goToParseDetail(page);
     const viewport = page.viewportSize();
     expect(viewport).toBeTruthy();
 
@@ -412,8 +412,8 @@ test.describe("workspace screenshot regression", () => {
     expect(screenshot.length).toBeGreaterThan(10_000);
   });
 
-  test("hydrated workspace renders a non-empty screenshot without a baseline prerequisite", async ({ page }) => {
-    await goToHydratedWorkspace(page);
+  test("parse detail renders a non-empty screenshot without a baseline prerequisite", async ({ page }) => {
+    await goToParseDetail(page);
     await freezeAnimations(page);
     await expect(page.locator("[data-testid='unified-plan-detail']")).toBeVisible();
     const screenshot = await page.screenshot({ fullPage: false });
@@ -422,8 +422,8 @@ test.describe("workspace screenshot regression", () => {
 });
 
 test.describe("retired workspace detail negative gate", () => {
-  test("ordinary hydrated detail does not render the old independent workspace anchors", async ({ page }) => {
-    await goToHydratedWorkspace(page);
+  test("parse detail does not render the old independent workspace anchors", async ({ page }) => {
+    await goToParseDetail(page);
     for (const retired of [
       "workspace-header",
       "workspace-launcher",

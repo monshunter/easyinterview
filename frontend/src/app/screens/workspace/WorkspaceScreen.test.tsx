@@ -64,11 +64,13 @@ describe("WorkspaceScreen route split", () => {
     expect(screen.queryByTestId("workspace-plan-eyebrow")).toBeNull();
   });
 
-  it("ordinary context route delegates to the unified plan-detail mother page", () => {
+  it("workspace remains the plan-list landing even when stale detail params are present", async () => {
     withProviders(<WorkspaceScreen route={WORKSPACE_ROUTE} />, WORKSPACE_ROUTE);
 
-    expect(screen.getByTestId("route-workspace")).toBeDefined();
-    expect(screen.getByTestId("parse-loading-step-0")).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-plan-list")).toBeDefined();
+    });
+    expect(screen.queryByTestId("parse-loading-step-0")).toBeNull();
     expect(screen.queryByTestId("workspace-header")).toBeNull();
     expect(screen.queryByTestId("workspace-launcher")).toBeNull();
     expect(screen.queryByTestId("workspace-jd-card")).toBeNull();

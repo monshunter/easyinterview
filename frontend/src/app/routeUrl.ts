@@ -61,29 +61,9 @@ const PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = (() => {
   return map;
 })();
 
-const WORKSPACE_SAFE = new Set([
-  "targetJobId",
-  "jobId",
-  "resumeId",
-  "sourceReportId",
-  "planId",
-  "roundId",
-  "roundName",
-  "jdId",
-  "sessionId",
-  "sourceSessionId",
-  "replayItems",
-  "evidenceGaps",
-  "nextRoundId",
-  "mode",
-  "modality",
-  "practiceMode",
-  "practiceGoal",
-  "hintUsed",
-  "hintCount",
-  "autoStartPractice",
-  "language",
-]);
+// workspace is a collection/list route. Item context belongs to parse,
+// practice, generating, and report routes; legacy workspace params are dropped.
+const WORKSPACE_SAFE = new Set<string>();
 
 const PRACTICE_SAFE = new Set([
   "sessionId",

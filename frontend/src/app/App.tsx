@@ -399,6 +399,10 @@ const InterviewContextRouteSync: FC<{ route: Route }> = ({ route }) => {
   const { dispatch } = useInterviewContext();
 
   useEffect(() => {
+    if (route.name === "workspace") {
+      dispatch({ type: "CLEAR" });
+      return;
+    }
     if (shouldCarryInterviewContext(route.name)) {
       dispatch({ type: "HYDRATE_FROM_ROUTE", params: route.params });
       return;

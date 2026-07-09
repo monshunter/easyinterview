@@ -79,7 +79,7 @@ const DEFAULT_INTERVIEW_CONTEXT = {
   roundName: "经理面",
 };
 
-const INTERVIEW_CONTEXT_ROUTES = new Set(["workspace", "practice", "generating", "report"]);
+const INTERVIEW_CONTEXT_ROUTES = new Set(["practice", "generating", "report"]);
 const normalizeRouteName = (name) => ROUTE_ALIASES[name] || name;
 const shouldCarryInterviewContext = (name) => INTERVIEW_CONTEXT_ROUTES.has(normalizeRouteName(name));
 const paramsFromSearch = (params) => {

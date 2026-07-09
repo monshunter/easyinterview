@@ -18,6 +18,9 @@ import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
 import updateTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/updateTargetJob.json";
 import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
+import createPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/createPracticePlan.json";
+import getPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
+import startPracticeSessionFixture from "../../../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
 
 const LOADING_PREVIEW_DELAY = 3200;
 
@@ -50,6 +53,9 @@ function createClient(
       getMeFixture,
       makeReadyFixture(targetOverrides),
       updateTargetJobFixture,
+      createPracticePlanFixture,
+      getPracticePlanFixture,
+      startPracticeSessionFixture,
       ...fixtures,
     ]),
     { scenario: "default" },
@@ -278,9 +284,11 @@ describe("ParseResumeBinding", () => {
     });
   });
 
-  it("starts interview through workspace auto-start with a real resumeId", async () => {
+  it("starts interview directly from parse with a real resumeId", async () => {
     const client = createClient();
     const updateSpy = vi.spyOn(client, "updateTargetJob");
+    const createSpy = vi.spyOn(client, "createPracticePlan");
+    const startSpy = vi.spyOn(client, "startPracticeSession");
     const { navigate } = await renderReadyParse(client);
 
     fireEvent.click(await screen.findByTestId("parse-resume-picker-toggle"));
@@ -294,14 +302,37 @@ describe("ParseResumeBinding", () => {
     await waitFor(() => {
       expect(updateSpy).toHaveBeenCalledTimes(1);
     });
+    await waitFor(() => {
+      expect(startSpy).toHaveBeenCalledTimes(1);
+    });
 
+    expect(createSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetJobId: "01918fa0-0000-7000-8000-000000002000",
+        resumeId: "0195f2d0-0000-7000-8000-000000001010",
+        goal: "baseline",
+      }),
+      expect.objectContaining({
+        idempotencyKey: expect.stringMatching(/^v1\./),
+      }),
+    );
+    expect(startSpy).toHaveBeenCalledWith(
+      {
+        planId: "01918fa0-0000-7000-8000-000000004000",
+        hintsEnabled: false,
+      },
+      expect.objectContaining({
+        idempotencyKey: expect.stringMatching(/^v1\./),
+      }),
+    );
     await waitFor(() => {
       expect(navigate).toHaveBeenCalledWith({
-        name: "workspace",
+        name: "practice",
         params: expect.objectContaining({
           targetJobId: "01918fa0-0000-7000-8000-000000002000",
           resumeId: "0195f2d0-0000-7000-8000-000000001010",
-          autoStartPractice: "1",
+          sessionId: "01918fa0-0000-7000-8000-000000005000",
+          planId: "01918fa0-0000-7000-8000-000000004000",
           practiceMode: "strict",
           mode: "text",
           modality: "text",
@@ -309,6 +340,7 @@ describe("ParseResumeBinding", () => {
       });
     });
     const params = navigate.mock.calls[0]?.[0].params as Record<string, string>;
+    expect(params.autoStartPractice).toBeUndefined();
     expect(JSON.stringify(params)).not.toContain("resume-unbound");
   });
 });

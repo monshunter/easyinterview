@@ -45,17 +45,13 @@ describe("resolveInitialRoute priority", () => {
     });
   });
 
-  it("falls back to canonical path when window override is absent", () => {
+  it("falls back to canonical workspace path and strips legacy context params", () => {
     setLocation(
       "/workspace?targetJobId=tj-1&resumeId=rv-1&planId=plan-1",
     );
     expect(resolveInitialRoute()).toEqual({
       name: "workspace",
-      params: {
-        targetJobId: "tj-1",
-        resumeId: "rv-1",
-        planId: "plan-1",
-      },
+      params: {},
     });
   });
 
@@ -63,7 +59,7 @@ describe("resolveInitialRoute priority", () => {
     setLocation("/workspace?targetJobId=tj-1&rawText=raw");
     expect(resolveInitialRoute()).toEqual({
       name: "workspace",
-      params: { targetJobId: "tj-1" },
+      params: {},
     });
   });
 

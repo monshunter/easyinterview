@@ -1,10 +1,10 @@
 import type { TargetJob } from "../../api/generated/types";
 
 /**
- * Interview context derived from a TargetJob for workspace navigation.
+ * Interview context derived from a TargetJob for parse/practice navigation.
  *
- * Plan §3.7: derives workspace params from TargetJob plus declared server
- * bindings. It must not fabricate practice plan or resume IDs.
+ * Derives route params from TargetJob plus declared server bindings. It must
+ * not fabricate practice plan or resume IDs.
  */
 export interface InterviewContext {
   targetJobId: string;

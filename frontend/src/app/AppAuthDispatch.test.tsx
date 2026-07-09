@@ -331,7 +331,7 @@ describe("App auth route dispatch", () => {
     expect(screen.getByTestId("auth-side-pending-action")).toBeInTheDocument();
     expect(window.location.href).toContain("/auth/login");
     expect(window.location.href).toContain("pendingRoute=workspace");
-    expect(window.location.href).toContain("targetJobId=tj-1");
+    expect(window.location.href).not.toContain("targetJobId=tj-1");
     expect(calls.some((c) => c.url.includes("/api/v1/targets"))).toBe(false);
   });
 

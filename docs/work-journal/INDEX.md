@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-09](2026-07-09.md) | `feat(workspace): close unified detail route, plan-list admission, and route purity remediation` | #feat #ui #api #test #docs #bdd |
 | [2026-07-09](2026-07-09.md) | `feat(targetjob): close jd identity, resume binding, and parse robustness remediation` | #feat #api #test #docs #bdd |
 | [2026-07-09](2026-07-09.md) | `feat(frontend): unify interview plan detail` | #feat #ui #test #docs #i18n |
 | [2026-07-09](2026-07-09.md) | `fix(workspace): close plan list UX and context regressions (BUG-0143, BUG-0144, BUG-0145)` | #fix #ui #api #test #docs #bdd |
