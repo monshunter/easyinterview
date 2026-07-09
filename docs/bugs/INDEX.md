@@ -6,6 +6,8 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0147](./BUG-0147.md) | failed JD parse entered interview list and workspace kept route context | high | resolved | 2026-07-09 | `fix(workspace): enforce parse failure admission and route purity (BUG-0147)` |
+| [BUG-0146](./BUG-0146.md) | target import parse rejected valid JD without company name | high | resolved | 2026-07-09 | `fix(targetjob): accept valid JD parses without company names (BUG-0146)` |
 | [BUG-0144](./BUG-0144.md) | workspace plan cards dropped bound resume context | high | resolved | 2026-07-08 | `fix(workspace): close plan list UX and context regressions (BUG-0143, BUG-0144, BUG-0145)` |
 | [BUG-0142](./BUG-0142.md) | targetjob failed detail returned 500 after profile schema pruning | high | resolved | 2026-07-08 | `fix(targetjob): align store with pruned profile schema (BUG-0142)` |
 | [BUG-0028](./BUG-0028.md) | targetjob review exposed error envelope and parse runtime drift | medium | resolved | 2026-05-08 | `fix(backend-targetjob): align targetjob review contracts` |
