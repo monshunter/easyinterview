@@ -75,22 +75,39 @@ func deterministicParseFixtureContent(language string) string {
 		Title:       "Backend Platform Engineer",
 		CompanyName: "Acme",
 		CoreThemes:  []string{"backend", "ownership"},
-		InterviewRounds: []parseAIResponseRound{{
-			Sequence:        1,
-			Type:            "technical",
-			Name:            "Backend architecture deep dive",
-			DurationMinutes: 45,
-			Focus:           "Discuss API design and async pipelines.",
-		}},
+		InterviewRounds: []parseAIResponseRound{
+			{
+				Sequence:        1,
+				Type:            "technical",
+				Name:            "Backend architecture deep dive",
+				DurationMinutes: 45,
+				Focus:           "Discuss API design and async pipelines.",
+			},
+			{
+				Sequence:        2,
+				Type:            "manager",
+				Name:            "Hiring manager ownership interview",
+				DurationMinutes: 40,
+				Focus:           "Assess service ownership, incident response, and cross-team collaboration.",
+			},
+		},
 		Strengths:   []string{"Backend service experience"},
 		Gaps:        []string{"Clarify production scale evidence"},
-		RiskSignals: []string{},
-		Requirements: []parseAIResponseReq{{
-			Kind:          string(RequirementMustHave),
-			Label:         "Backend service ownership",
-			Description:   "Own APIs, persistence, and asynchronous job processing.",
-			EvidenceLevel: string(EvidenceExplicit),
-		}},
+		RiskSignals: []string{"The JD implies production ownership without naming on-call or incident response expectations."},
+		Requirements: []parseAIResponseReq{
+			{
+				Kind:          string(RequirementMustHave),
+				Label:         "Backend service ownership",
+				Description:   "Own APIs, persistence, and asynchronous job processing.",
+				EvidenceLevel: string(EvidenceExplicit),
+			},
+			{
+				Kind:          string(RequirementHiddenSignal),
+				Label:         "Production ownership expectations",
+				Description:   "The role likely screens for incident response and operational ownership evidence.",
+				EvidenceLevel: string(EvidenceInferred),
+			},
+		},
 	})
 	return string(raw)
 }

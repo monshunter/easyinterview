@@ -821,6 +821,51 @@ func TestDeterministicParseAIClient_OnlyInterceptsTargetImportParse(t *testing.T
 		t.Fatalf("fixture returned invalid requirements: %+v", parsed.Requirements)
 	}
 
+	store := &pipelineFakeStore{
+		target: targetjob.TargetJobRecord{
+			ID:             "tgt-1",
+			UserID:         "user-1",
+			SourceType:     targetjob.SourceTypeManualText,
+			TargetLanguage: "en",
+			RawJDText:      "JD text",
+		},
+	}
+	exec := targetjob.NewParseExecutor(targetjob.ParseExecutorOptions{
+		Store: store,
+		Registry: &fakeRegistry{
+			resolution: targetjob.PromptResolution{
+				PromptVersion:     "v1.0.0",
+				RubricVersion:     "v1.0.0",
+				ModelProfileName:  "target.import.default",
+				DataSourceVersion: "v1",
+			},
+		},
+		AI:      client,
+		Fetcher: &fakeFetcher{},
+		NewID:   idSeq("fixture-req"),
+		Now:     func() time.Time { return time.Date(2026, 5, 9, 22, 0, 0, 0, time.UTC) },
+	})
+	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-1",
+	})
+	if !outcome.Succeeded {
+		t.Fatalf("deterministic parse fixture must satisfy current ParseExecutor contract, got %+v", outcome)
+	}
+	var foundHidden bool
+	for _, req := range store.completeSuccessIn.Requirements {
+		if req.Kind == targetjob.RequirementHiddenSignal {
+			foundHidden = true
+		}
+	}
+	if !foundHidden {
+		t.Fatalf("deterministic parse fixture must include hidden_signal coverage: %+v", store.completeSuccessIn.Requirements)
+	}
+	summary := decodeSummaryForTest(t, store.completeSuccessIn.Summary)
+	rounds, ok := summary["interviewRounds"].([]any)
+	if !ok || len(rounds) < 2 || len(rounds) > 5 {
+		t.Fatalf("deterministic parse fixture must persist 2 to 5 structured rounds, got %s", string(store.completeSuccessIn.Summary))
+	}
+
 	delegated, _, err := client.Complete(context.Background(), "practice.followup.default", aiclient.CompletePayload{
 		Messages: []aiclient.Message{{Role: "user", Content: "other"}},
 		Metadata: aiclient.CallMetadata{FeatureKey: "practice.followup"},
