@@ -16,7 +16,6 @@ import { ParseScreen } from "./ParseScreen";
 import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
-import updateTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/updateTargetJob.json";
 import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
 import createPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/createPracticePlan.json";
 import getPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
@@ -52,7 +51,6 @@ function createClient(
       getRuntimeConfigFixture,
       getMeFixture,
       makeReadyFixture(targetOverrides),
-      updateTargetJobFixture,
       createPracticePlanFixture,
       getPracticePlanFixture,
       startPracticeSessionFixture,
@@ -61,66 +59,6 @@ function createClient(
     { scenario: "default" },
   );
   return new EasyInterviewClient({ fetch });
-}
-
-function emptyListResumesFixture(): OperationFixture {
-  const emptyScenario = listResumesFixture.scenarios.empty;
-  return {
-    operationId: "listResumes",
-    scenarios: {
-      default: emptyScenario,
-    },
-  };
-}
-
-function readableNonReadyListResumesFixture(): OperationFixture {
-  const body = (
-    listResumesFixture.scenarios.default as {
-      response: { body: { items: Array<Record<string, unknown>> } };
-    }
-  ).response.body;
-  const base = body.items[0] ?? {};
-  return {
-    operationId: "listResumes",
-    scenarios: {
-      default: {
-        response: {
-          status: 200,
-          body: {
-            ...body,
-            items: [
-              {
-                ...base,
-                id: "01918fa0-0000-7000-8000-000000001101",
-                title: "failed-readable.pdf",
-                displayName: "Readable Failed Resume",
-                parseStatus: "failed",
-                sourceType: "upload",
-                originalText: null,
-                parsedTextSnapshot: "# Readable Failed Resume\n\nRecovered PDF text.",
-                updatedAt: "2026-05-15T08:00:00Z",
-                deletedAt: null,
-                status: "active",
-              },
-              {
-                ...base,
-                id: "01918fa0-0000-7000-8000-000000001102",
-                title: "Queued Paste Source",
-                displayName: "Queued Paste Source",
-                parseStatus: "queued",
-                sourceType: "paste",
-                originalText: "Queued paste resume body",
-                parsedTextSnapshot: null,
-                updatedAt: "2026-05-14T08:00:00Z",
-                deletedAt: null,
-                status: "active",
-              },
-            ],
-          },
-        },
-      },
-    },
-  };
 }
 
 function renderParse(
@@ -167,7 +105,25 @@ afterEach(() => {
 });
 
 describe("ParseResumeBinding", () => {
-  it("inherits a valid route resumeId from the Home immediate interview handoff", async () => {
+  it("shows the saved bound resume as readonly context", async () => {
+    const client = createClient();
+
+    await renderReadyParse(client);
+
+    expect(await screen.findByTestId("parse-launch")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("parse-resume-binding")).toHaveTextContent(
+        "Alice Example - Senior Frontend Engineer",
+      );
+    });
+    expect(screen.queryByTestId("parse-resume-required")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("parse-resume-picker-toggle")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("parse-resume-picker")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("parse-resume-create")).not.toBeInTheDocument();
+    expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
+  });
+
+  it("can inherit route resumeId only when the saved TargetJob lacks one", async () => {
     const client = createClient([listResumesFixture], {
       currentPracticePlanId: null,
       resumeId: null,
@@ -177,18 +133,16 @@ describe("ParseResumeBinding", () => {
       resumeId: "01918fa0-0000-7000-8000-000000001000",
     });
 
-    expect(await screen.findByTestId("parse-launch")).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByTestId("parse-resume-binding")).toHaveTextContent(
         "Alice Example - Senior Frontend Engineer",
       );
     });
-    expect(screen.queryByTestId("parse-resume-required")).not.toBeInTheDocument();
-    expect(screen.getByTestId("parse-action-save-plan")).toBeEnabled();
     expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
+    expect(screen.queryByTestId("parse-resume-option-01918fa0-0000-7000-8000-000000001000")).not.toBeInTheDocument();
   });
 
-  it("loads ready resumes but requires an explicit resume selection before any handoff", async () => {
+  it("blocks start when the saved plan has no bound resume without offering in-place binding", async () => {
     const client = createClient([listResumesFixture], {
       currentPracticePlanId: null,
       resumeId: null,
@@ -202,120 +156,38 @@ describe("ParseResumeBinding", () => {
     });
 
     expect(await screen.findByTestId("parse-launch")).toBeInTheDocument();
-    expect(screen.getByTestId("parse-resume-binding")).toHaveTextContent(
-      "Choose the resume for this interview",
-    );
+    expect(screen.getByTestId("parse-resume-binding")).toBeInTheDocument();
     expect(screen.getByTestId("parse-resume-required")).toBeInTheDocument();
     expect(screen.queryByTestId("parse-resume-picker-toggle")).not.toBeInTheDocument();
-    expect(screen.getByTestId("parse-action-save-plan")).toBeDisabled();
-    expect(screen.getByTestId("parse-action-start-interview")).toBeDisabled();
+    expect(screen.queryByTestId("parse-resume-picker")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("parse-resume-create")).not.toBeInTheDocument();
     expect(
-      screen.getByTestId(
+      screen.queryByTestId(
         "parse-resume-option-01918fa0-0000-7000-8000-000000001000",
       ),
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId("parse-action-confirm")).not.toBeInTheDocument();
-  });
-
-  it("enables launch actions only after the user chooses a ready resume", async () => {
-    const client = createClient([listResumesFixture], {
-      currentPracticePlanId: null,
-      resumeId: null,
-    });
-    await renderReadyParse(client);
-
-    expect(await screen.findByTestId("parse-resume-required")).toBeInTheDocument();
-    expect(screen.getByTestId("parse-action-save-plan")).toBeDisabled();
-
-    fireEvent.click(
-      screen.getByTestId(
-        "parse-resume-option-0195f2d0-0000-7000-8000-000000001010",
-      ),
-    );
-
-    expect(screen.getByTestId("parse-resume-binding")).toHaveTextContent(
-      "Alice Example - Product Platform Resume",
-    );
-    expect(screen.getByTestId("parse-action-save-plan")).toBeEnabled();
-    expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
-  });
-
-  it("keeps readable non-ready resumes selectable after JD parse handoff", async () => {
-    const client = createClient([readableNonReadyListResumesFixture()]);
-    await renderReadyParse(client);
-
-    expect(await screen.findByTestId("parse-launch")).toBeInTheDocument();
-    expect(screen.queryByTestId("parse-resume-empty")).not.toBeInTheDocument();
-    expect(
-      await screen.findByTestId(
-        "parse-resume-option-01918fa0-0000-7000-8000-000000001101",
-      ),
-    ).toHaveTextContent("Readable Failed Resume");
-
-    fireEvent.click(
-      screen.getByTestId(
-        "parse-resume-option-01918fa0-0000-7000-8000-000000001101",
-      ),
-    );
-
-    expect(screen.getByTestId("parse-resume-binding")).toHaveTextContent(
-      "Readable Failed Resume",
-    );
-    expect(screen.getByTestId("parse-action-save-plan")).toBeEnabled();
-    expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
-  });
-
-  it("blocks save and start when no ready resume exists and routes to resume creation", async () => {
-    const client = createClient([emptyListResumesFixture()]);
-    const { navigate } = await renderReadyParse(client);
-
-    expect(await screen.findByTestId("parse-resume-empty")).toBeInTheDocument();
-    expect(screen.getByTestId("parse-action-save-plan")).toBeDisabled();
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("parse-action-start-interview")).toBeDisabled();
-
-    fireEvent.click(screen.getByTestId("parse-resume-create"));
-
-    expect(navigate).toHaveBeenCalledWith({
-      name: "resume_versions",
-      params: {
-        flow: "create",
-        targetJobId: "01918fa0-0000-7000-8000-000000002000",
-      },
-    });
   });
 
-  it("starts interview directly from parse with a real resumeId", async () => {
+  it("starts interview directly from parse with the saved resumeId and no target patch", async () => {
     const client = createClient();
     const updateSpy = vi.spyOn(client, "updateTargetJob");
     const createSpy = vi.spyOn(client, "createPracticePlan");
+    const getPlanSpy = vi.spyOn(client, "getPracticePlan");
     const startSpy = vi.spyOn(client, "startPracticeSession");
     const { navigate } = await renderReadyParse(client);
 
-    fireEvent.click(await screen.findByTestId("parse-resume-picker-toggle"));
-    fireEvent.click(
-      await screen.findByTestId(
-        "parse-resume-option-0195f2d0-0000-7000-8000-000000001010",
-      ),
-    );
     fireEvent.click(await screen.findByTestId("parse-action-start-interview"));
 
-    await waitFor(() => {
-      expect(updateSpy).toHaveBeenCalledTimes(1);
-    });
     await waitFor(() => {
       expect(startSpy).toHaveBeenCalledTimes(1);
     });
 
-    expect(createSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        targetJobId: "01918fa0-0000-7000-8000-000000002000",
-        resumeId: "0195f2d0-0000-7000-8000-000000001010",
-        goal: "baseline",
-      }),
-      expect.objectContaining({
-        idempotencyKey: expect.stringMatching(/^v1\./),
-      }),
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(getPlanSpy).toHaveBeenCalledWith(
+      "01918fa0-0000-7000-8000-000000004000",
     );
+    expect(createSpy).not.toHaveBeenCalled();
     expect(startSpy).toHaveBeenCalledWith(
       {
         planId: "01918fa0-0000-7000-8000-000000004000",
@@ -330,7 +202,7 @@ describe("ParseResumeBinding", () => {
         name: "practice",
         params: expect.objectContaining({
           targetJobId: "01918fa0-0000-7000-8000-000000002000",
-          resumeId: "0195f2d0-0000-7000-8000-000000001010",
+          resumeId: "01918fa0-0000-7000-8000-000000001000",
           sessionId: "01918fa0-0000-7000-8000-000000005000",
           planId: "01918fa0-0000-7000-8000-000000004000",
           practiceMode: "strict",

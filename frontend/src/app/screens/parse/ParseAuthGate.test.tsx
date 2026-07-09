@@ -82,21 +82,20 @@ afterEach(() => {
 });
 
 describe("ParseAuthGate — resume-required launch", () => {
-  it("keeps save and start disabled for unauthenticated users without a verified ready resume", async () => {
+  it("keeps start disabled for unauthenticated users without a saved bound resume", async () => {
     const client = createUnauthClient();
     const { navigate } = await renderReadyUnauth(client);
     const updateSpy = vi.spyOn(client, "updateTargetJob");
     const listSpy = vi.spyOn(client, "listResumes");
 
-    const saveBtn = await screen.findByTestId("parse-action-save-plan");
     const startBtn = await screen.findByTestId("parse-action-start-interview");
 
-    expect(saveBtn).toBeDisabled();
+    expect(screen.queryByTestId("parse-action-save-plan")).not.toBeInTheDocument();
     expect(startBtn).toBeDisabled();
     expect(screen.getByTestId("parse-resume-empty")).toBeInTheDocument();
+    expect(screen.queryByTestId("parse-resume-picker")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-action-confirm")).not.toBeInTheDocument();
 
-    saveBtn.click();
     startBtn.click();
 
     expect(navigate).not.toHaveBeenCalled();

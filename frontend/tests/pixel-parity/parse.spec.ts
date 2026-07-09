@@ -256,7 +256,7 @@ test.describe("parse screen DOM anchor parity", () => {
     await expect(page.locator("[data-testid='parse-basics-title']")).toBeVisible();
   });
 
-  test("save plan navigates to workspace with bound resume context", async ({
+  test("readonly plan detail exposes only direct start with bound resume context", async ({
     page,
   }, testInfo) => {
     const updateCalls: Array<{
@@ -275,54 +275,29 @@ test.describe("parse screen DOM anchor parity", () => {
     await expect(page.locator("[data-testid='parse-resume-binding']")).toContainText(
       "Alice Example - Senior Frontend Engineer",
     );
-    await expect(page.locator("[data-testid='parse-action-save-plan']")).toBeEnabled();
-    await page.click("[data-testid='parse-action-save-plan']");
-    await page.waitForURL(/\/workspace\?/);
-    await expect(page.locator("[data-testid='workspace-missing-resume']")).toHaveCount(0);
     await expect(page.locator("[data-testid='unified-plan-detail']")).toBeVisible();
-    await expect(page.locator("[data-testid='workspace-cta-start']")).toHaveCount(0);
-
-    expect(updateCalls).toHaveLength(1);
-    expect(updateCalls[0]?.idempotencyKey).toBeTruthy();
-    expect(updateCalls[0]?.body).toMatchObject({
-      titleHint: "Senior Frontend Engineer",
-      companyNameHint: "Acme",
-      locationText: "Shanghai · Hybrid",
-    });
-    expect(updateCalls[0]?.body).not.toHaveProperty("level");
-    expect(updateCalls[0]?.body).not.toHaveProperty("language");
-
-    const url = new URL(page.url());
-    const expectedParams = {
-      targetJobId: "01918fa0-0000-7000-8000-000000002000",
-      jobId: "01918fa0-0000-7000-8000-000000002000",
-      jdId: "jd-01918fa0-0000-7000-8000-000000002000",
-      planId: "01918fa0-0000-7000-8000-000000004000",
-      resumeId: "01918fa0-0000-7000-8000-000000001000",
-      roundId: "round-technical-1",
-      roundName: "Technical Round 1",
-    };
-    expect(url.pathname).toBe("/workspace");
-    for (const [key, value] of Object.entries(expectedParams)) {
-      expect(url.searchParams.get(key), key).toBe(value);
-    }
-    expect(url.searchParams.get("rawText")).toBeNull();
-    expect(url.searchParams.get("sourceUrl")).toBeNull();
-    expect(url.search).not.toContain("resume-unbound");
+    await expect(page.locator("[data-testid='parse-basics-title'] input")).toHaveCount(0);
+    await expect(page.locator("[data-testid='parse-action-save-plan']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='parse-action-cancel']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='parse-action-reparse']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='parse-resume-picker']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='parse-resume-picker-toggle']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='parse-action-start-interview']")).toBeEnabled();
+    expect(updateCalls).toHaveLength(0);
 
     await freezeVisualAnimations(page);
     const screenshot = await page.locator("[data-testid='unified-plan-detail']").screenshot();
-    await testInfo.attach("parse-save-plan-workspace-bound-resume", {
+    await testInfo.attach("parse-readonly-detail-bound-resume", {
       body: screenshot,
       contentType: "image/png",
     });
     expect(screenshot.length).toBeGreaterThan(10_000);
     console.log(
-      `E2E.P0.016 parse save-plan workspace browser gate contextKeys=${Object.keys(expectedParams).join(",")} resumeId=${expectedParams.resumeId} screenshotBytes=${screenshot.length}`,
+      `E2E.P0.016 parse readonly-detail browser gate resumeId=01918fa0-0000-7000-8000-000000001000 screenshotBytes=${screenshot.length}`,
     );
   });
 
-  test("start interview hands off through workspace autoStart with bound resume", async ({
+  test("start interview hands off directly to practice with bound resume", async ({
     page,
   }) => {
     const updateCalls: Array<{
@@ -347,8 +322,7 @@ test.describe("parse screen DOM anchor parity", () => {
     await expect(page.locator("[data-testid='practice-screen']")).toBeVisible({
       timeout: 10_000,
     });
-    expect(updateCalls).toHaveLength(1);
-    expect(updateCalls[0]?.idempotencyKey).toBeTruthy();
+    expect(updateCalls).toHaveLength(0);
 
     const url = new URL(page.url());
     expect(url.pathname).toBe("/practice");
@@ -360,7 +334,7 @@ test.describe("parse screen DOM anchor parity", () => {
     );
     expect(url.search).not.toContain("resume-unbound");
     console.log(
-      "E2E.P0.016 parse start-interview autoStart browser gate resumeId=01918fa0-0000-7000-8000-000000001000 route=practice",
+      "E2E.P0.016 parse start-interview direct browser gate resumeId=01918fa0-0000-7000-8000-000000001000 route=practice noUpdateTargetJob=true",
     );
   });
 });

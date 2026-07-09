@@ -2,16 +2,11 @@
 
 - `targetJob.realApiMode.test.ts` proves TargetJob read/update/import-path operations route to the real backend base URL with cookie credentials and side-effect `Idempotency-Key`.
 - `ParseEdit.test.tsx`, `ParseAuthGate.test.tsx`, and `ParseResumeBinding.test.tsx` run and report passed tests.
-- Save plan / Start interview send only editable fields such as title, company, location, and notes; hit toggle state, level, and language are not submitted.
-- Parse preview reads ready resumes and inherits a valid Home route `resumeId`; when no valid route resume is present, Save/Start remain disabled until the user explicitly selects a resume.
-- Parse disables Save/Start when no ready resume exists.
-- Authenticated Save plan navigates to workspace with interview context fields and the inherited or explicitly selected real ready `resumeId`.
-- Browser-level Save plan reaches `/workspace` with all context query params:
-  `targetJobId`, `jobId`, `jdId`, `planId`, `resumeId`, `roundId`, and
-  `roundName`; `resumeId` is a real ready resume id and `workspace-missing-resume`
-  is not rendered.
-- Browser-level Start interview uses the explicitly selected `resumeId`, then uses workspace `autoStartPractice=1` and reaches `practice`.
-- Unauthenticated users without a verified ready resume cannot trigger Save/Start pendingAction.
-- Validation error remains inline and preserves edit state.
-- Trigger log contains no read-only field identifiers such as `parse-basics-level` or `parse-basics-language`.
-- Trigger log contains no `resume-unbound` success marker.
+- Parse success detail renders Basic fields as readonly text; notes/edit inputs are absent.
+- Requirement evidence, hidden signals, round assumptions, and bound resume display have no edit/toggle/remove/picker controls.
+- Parse preview inherits the saved TargetJob `resumeId`; route `resumeId` is accepted only as a legacy fallback when TargetJob lacks one.
+- Parse disables Start when no saved bound resume is available, without offering in-place binding.
+- Browser-level readonly detail exposes only Start as the success footer action and makes no `updateTargetJob` request.
+- Browser-level Start reaches `/practice` with real ready `resumeId`, `targetJobId`, `planId`, and `sessionId`.
+- Unauthenticated users without a verified saved resume cannot trigger Start pendingAction.
+- Trigger log contains no success markers for `resume-unbound`, `workspace-missing-resume`, or workspace auto-start.

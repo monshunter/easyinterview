@@ -42,12 +42,11 @@
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` | `WorkspacePlanList` 一级面试规划列表 landing | `backend-targetjob/001` | `target_jobs.resume_id` + optional latest ready `practice_plans` | none | `E2E.P0.018` |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse unified detail owner, not workspace | `backend-targetjob/001` | `target_jobs.resume_id` + requirements/sources + optional latest ready `practice_plans` | none | parse owner + P0.018 focused gate |
 | `getResume` | `openapi/fixtures/Resumes/getResume.json` | Parse / resume owners only | `backend-resume/001` | `resume_assets` | none | external owner gates |
-| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Parse Resume Picker / resume workshop | `backend-resume/001` | `resume_assets` | none | parse owner gate |
+| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home select + Parse bound resume display / resume workshop | `backend-resume/001` | `resume_assets` | none | parse owner gate |
 | `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` | Parse/report start handoff validates existing plan context | `backend-practice/001` | `practice_plans` | none | parse/report focused gates |
 | `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` | Parse/report handoff creates baseline / retry / next-round plan when needed | `backend-practice/001` | `practice_plans` | backend-only first question prep | parse/report focused gates |
 | `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` | Parse/report handoff starts practice and navigates `practice` | `backend-practice/001` | `practice_sessions` + first turn | backend-only `practice.session.first_question` | parse/report focused gates |
 | `getFeedbackReport` | N/A | 本 plan 不消费；report owner handles replay/next-round CTA | external owner | external | none | external owner gates |
-| `updateTargetJob` | `openapi/fixtures/TargetJobs/updateTargetJob.json` | Parse unified detail Save/Start before handoff | `backend-targetjob/001` | `target_jobs` partial update | none | parse owner gate |
 
 ### 2.2 UI / Route Boundary
 
@@ -174,7 +173,7 @@
 |----|--------|------|
 | A-1 | `workspace` route renders the pure plan-list page and preserves UI parity | WorkspaceScreen tests, pixel parity, `E2E.P0.018` |
 | A-2 | InterviewContext route hydration and carry/clear behavior are deterministic | `InterviewContext.test.tsx`, `App.test.tsx` |
-| A-3 | Workspace owner no longer contains Plan Switcher / Resume Picker runtime; parse owner consumes resume picker | source negative gate + `ParseResumeBinding.test.tsx` |
+| A-3 | Workspace owner no longer contains Plan Switcher / Resume Picker runtime; parse detail displays the saved resume binding readonly | source negative gate + `ParseResumeBinding.test.tsx` |
 | A-4 | Start practice runs from parse/report owner through `getPracticePlan` / `createPracticePlan` / `startPracticeSession` with idempotency | `ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx` |
 | A-5 | Workspace owner no longer contains embedded insight / records placeholder runtime | source negative gate |
 | A-6 | Privacy and non-current route/module gates have zero runtime residuals | scenario verify scripts, pruning-surface lint |

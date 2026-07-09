@@ -27,12 +27,6 @@ interface ParseScreenProps {
 
 type HitState = true | "partial" | false;
 
-function nextHit(current: HitState): HitState {
-  if (current === true) return "partial";
-  if (current === "partial") return false;
-  return true;
-}
-
 const loadingStepKeys = [
   "parse.loadingStep1",
   "parse.loadingStep2",
@@ -66,6 +60,12 @@ function buildInterviewParams(
     ...defaultPracticeParams,
     language: job.targetLanguage || "",
   };
+}
+
+function hitStateFromEvidence(level: string | undefined): HitState {
+  if (level === "explicit") return true;
+  if (level === "implicit" || level === "inferred") return "partial";
+  return false;
 }
 
 function resumeMeta(resume: Resume): string {
@@ -117,11 +117,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const [targetJob, setTargetJob] = useState<TargetJob | null>(
     _mockTargetJob ?? null,
   );
-  const [editedTitle, setEditedTitle] = useState("");
-  const [editedCompany, setEditedCompany] = useState("");
-  const [editedLocation, setEditedLocation] = useState("");
-  const [editedNotes, setEditedNotes] = useState("");
-  const [hitToggles, setHitToggles] = useState<Record<string, HitState>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -129,7 +124,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const [readyResumes, setReadyResumes] = useState<Resume[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState("");
   const [resumeError, setResumeError] = useState<string | null>(null);
-  const [resumePickerOpen, setResumePickerOpen] = useState(false);
   const [pollNonce, setPollNonce] = useState(0);
   const [pendingReadyJob, setPendingReadyJob] = useState<TargetJob | null>(null);
   const [loadingComplete, setLoadingComplete] = useState(false);
@@ -151,9 +145,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
 
   const hydrateReadyJob = useCallback((job: TargetJob) => {
     setTargetJob(job);
-    setEditedTitle(job.title ?? "");
-    setEditedCompany(job.companyName ?? "");
-    setEditedLocation(job.locationText ?? "");
   }, []);
 
   useEffect(() => {
@@ -164,17 +155,11 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       pollingRef.current = null;
     }
     setTargetJob(null);
-    setEditedTitle("");
-    setEditedCompany("");
-    setEditedLocation("");
-    setEditedNotes("");
-    setHitToggles({});
     setErrorMessage(null);
     setConfirmError(null);
     setReadyResumes([]);
     setSelectedResumeId("");
     setResumeError(null);
-    setResumePickerOpen(false);
     setPendingReadyJob(null);
     setLoadingComplete(false);
     setStep(0);
@@ -295,7 +280,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       setReadyResumes([]);
       setSelectedResumeId("");
       setResumeError(null);
-      setResumePickerOpen(false);
       return;
     }
 
@@ -314,25 +298,14 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           .filter(isSelectableInterviewResume)
           .sort(sortByMostRecentResume);
         setReadyResumes(ready);
-        setSelectedResumeId((current) => {
-          if (current && ready.some((resume) => resume.id === current)) {
-            return current;
-          }
-          if (
-            routeResumeId &&
-            ready.some((resume) => resume.id === routeResumeId)
-          ) {
-            return routeResumeId;
-          }
-          const targetJobResumeId = targetJob.resumeId?.trim();
-          if (
-            targetJobResumeId &&
-            ready.some((resume) => resume.id === targetJobResumeId)
-          ) {
-            return targetJobResumeId;
-          }
-          return "";
-        });
+        const targetJobResumeId = targetJob.resumeId?.trim();
+        const inheritedResumeId = targetJobResumeId || routeResumeId || "";
+        setSelectedResumeId(
+          inheritedResumeId &&
+            ready.some((resume) => resume.id === inheritedResumeId)
+            ? inheritedResumeId
+            : "",
+        );
       })
       .catch((err: unknown) => {
         if (!active || resumeRequestSeqRef.current !== requestSeq) return;
@@ -358,21 +331,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     targetJob,
   ]);
 
-  const toggleHit = useCallback(
-    (reqId: string) => {
-      setHitToggles((prev) => ({
-        ...prev,
-        [reqId]: nextHit(prev[reqId] ?? false),
-      }));
-    },
-    [],
-  );
-
-  const getHitState = useCallback(
-    (reqId: string): HitState => hitToggles[reqId] ?? false,
-    [hitToggles],
-  );
-
   const handleCancel = useCallback(() => {
     navigate(isWorkspaceDetail ? { name: "workspace", params: {} } : { name: "home", params: {} });
   }, [isWorkspaceDetail, navigate]);
@@ -396,69 +354,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     [readyResumes, selectedResumeId],
   );
 
-  const saveTargetJobEdits = useCallback(async (): Promise<boolean> => {
-    if (!targetJob || !runtime) return false;
-    setConfirmError(null);
-    setConfirming(true);
-    const ik = `ik-${crypto.randomUUID()}`;
-    try {
-      await runtime.client.updateTargetJob(
-        targetJob.id,
-        {
-          titleHint: editedTitle || undefined,
-          companyNameHint: editedCompany || undefined,
-          locationText: editedLocation || undefined,
-          notes: editedNotes || undefined,
-        },
-        { idempotencyKey: ik },
-      );
-      return true;
-    } catch (err: unknown) {
-      setConfirmError(err instanceof Error ? err.message : String(err));
-      return false;
-    } finally {
-      setConfirming(false);
-    }
-  }, [
-    editedCompany,
-    editedLocation,
-    editedNotes,
-    editedTitle,
-    runtime,
-    targetJob,
-  ]);
-
-  const handleSavePlan = useCallback(async () => {
-    if (!targetJob || !selectedResume || confirming) return;
-    const parseParams = buildInterviewParams(targetJob, selectedResume.id);
-
-    if (runtime?.auth.status !== "authenticated") {
-      requestAuth({
-        type: "save_interview_plan",
-        label: t("parse.savePlanOnly"),
-        route: "parse",
-        params: parseParams,
-      });
-      return;
-    }
-
-    if (await saveTargetJobEdits()) {
-      navigate({
-        name: "workspace",
-        params: {},
-      });
-    }
-  }, [
-    confirming,
-    navigate,
-    requestAuth,
-    runtime?.auth.status,
-    saveTargetJobEdits,
-    selectedResume,
-    t,
-    targetJob,
-  ]);
-
   const handleStartInterview = useCallback(async () => {
     if (!targetJob || !selectedResume || confirming || !runtime) return;
     const practiceParams = buildInterviewParams(targetJob, selectedResume.id);
@@ -473,24 +368,22 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       return;
     }
 
-    if (await saveTargetJobEdits()) {
-      setConfirmError(null);
-      setConfirming(true);
-      try {
-        const started = await startPracticeFromParams(
-          runtime.client,
-          practiceParams,
-          lang,
-        );
-        navigate({
-          name: "practice",
-          params: started.params,
-        });
-      } catch (err: unknown) {
-        setConfirmError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setConfirming(false);
-      }
+    setConfirmError(null);
+    setConfirming(true);
+    try {
+      const started = await startPracticeFromParams(
+        runtime.client,
+        practiceParams,
+        lang,
+      );
+      navigate({
+        name: "practice",
+        params: started.params,
+      });
+    } catch (err: unknown) {
+      setConfirmError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setConfirming(false);
     }
   }, [
     confirming,
@@ -498,20 +391,10 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     navigate,
     requestAuth,
     runtime,
-    saveTargetJobEdits,
     selectedResume,
     t,
     targetJob,
   ]);
-
-  const handleCreateResume = useCallback(() => {
-    navigate({
-      name: "resume_versions",
-      params: targetJob?.id
-        ? { flow: "create", targetJobId: targetJob.id }
-        : { flow: "create" },
-    });
-  }, [navigate, targetJob?.id]);
 
   const HitDot: FC<{ hit: HitState }> = ({ hit }) => {
     const color =
@@ -988,33 +871,28 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           {[
             {
               label: t("parse.basicsTitle"),
-              value: editedTitle,
+              value: targetJob?.title ?? "—",
               field: "title" as const,
-              readOnly: false,
             },
             {
               label: t("parse.basicsCompany"),
-              value: editedCompany,
+              value: targetJob?.companyName ?? "—",
               field: "company" as const,
-              readOnly: false,
             },
             {
               label: t("parse.basicsLevel"),
               value: "—",
               field: "level" as const,
-              readOnly: true,
             },
             {
               label: t("parse.basicsLocation"),
-              value: editedLocation,
+              value: targetJob?.locationText ?? "—",
               field: "location" as const,
-              readOnly: false,
             },
             {
               label: t("parse.basicsLanguage"),
               value: targetJob?.targetLanguage ?? "—",
               field: "language" as const,
-              readOnly: true,
             },
           ].map((r, i, arr) => (
             <div
@@ -1041,97 +919,20 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               >
                 {r.label}
               </div>
-              {r.readOnly ? (
-                <div
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    fontSize: 14,
-                    color: "var(--ei-color-fg-primary)",
-                    padding: "2px 0",
-                    fontFamily: "var(--ei-font-sans)",
-                  }}
-                >
-                  {r.value}
-                </div>
-              ) : (
-                <input
-                  value={r.value}
-                  onChange={(e) => {
-                    if (r.field === "title") setEditedTitle(e.target.value);
-                    if (r.field === "company") setEditedCompany(e.target.value);
-                    if (r.field === "location")
-                      setEditedLocation(e.target.value);
-                  }}
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    fontSize: 14,
-                    color: "var(--ei-color-fg-primary)",
-                    background: "transparent",
-                    border: "none",
-                    outline: "none",
-                    borderBottom: "1px dashed transparent",
-                    padding: "2px 0",
-                    fontFamily: "var(--ei-font-sans)",
-                  }}
-                  onFocus={(e) =>
-                    (e.target.style.borderBottomColor =
-                      "var(--ei-color-accent)")
-                  }
-                  onBlur={(e) =>
-                    (e.target.style.borderBottomColor = "transparent")
-                  }
-                />
-              )}
+              <div
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  fontSize: 14,
+                  color: "var(--ei-color-fg-primary)",
+                  padding: "2px 0",
+                  fontFamily: "var(--ei-font-sans)",
+                }}
+              >
+                {r.value}
+              </div>
             </div>
           ))}
-
-          {/* Notes field */}
-          <div
-            data-testid="parse-basics-notes"
-            style={{
-              display: "flex",
-              gap: 14,
-              padding: "12px 0",
-              gridColumn: "1 / -1",
-              alignItems: "baseline",
-            }}
-          >
-            <div
-              className="ei-label"
-              style={{
-                color: "var(--ei-color-fg-tertiary)",
-                minWidth: 68,
-                fontSize: 10.5,
-              }}
-            >
-              {t("parse.basicsNotes")}
-            </div>
-            <input
-              value={editedNotes}
-              onChange={(e) => setEditedNotes(e.target.value)}
-              placeholder={t("parse.basicsNotesPlaceholder")}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                fontSize: 14,
-                color: "var(--ei-color-fg-primary)",
-                background: "transparent",
-                border: "none",
-                outline: "none",
-                borderBottom: "1px dashed transparent",
-                padding: "2px 0",
-                fontFamily: "var(--ei-font-sans)",
-              }}
-              onFocus={(e) =>
-                (e.target.style.borderBottomColor = "var(--ei-color-accent)")
-              }
-              onBlur={(e) =>
-                (e.target.style.borderBottomColor = "transparent")
-              }
-            />
-          </div>
         </div>
       </div>
 
@@ -1187,19 +988,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                   alignItems: "flex-start",
                 }}
               >
-                <button
-                  data-testid={`parse-requirement-must_have-${i}-toggle`}
-                  onClick={() => toggleHit(item.id)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    padding: 0,
-                    cursor: "pointer",
-                    marginTop: 2,
-                  }}
-                >
-                  <HitDot hit={getHitState(item.id)} />
-                </button>
+                <div style={{ marginTop: 2 }}>
+                  <HitDot hit={hitStateFromEvidence(item.evidenceLevel)} />
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
@@ -1259,19 +1050,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                   alignItems: "flex-start",
                 }}
               >
-                <button
-                  data-testid={`parse-requirement-nice_to_have-${i}-toggle`}
-                  onClick={() => toggleHit(item.id)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    padding: 0,
-                    cursor: "pointer",
-                    marginTop: 2,
-                  }}
-                >
-                  <HitDot hit={getHitState(item.id)} />
-                </button>
+                <div style={{ marginTop: 2 }}>
+                  <HitDot hit={hitStateFromEvidence(item.evidenceLevel)} />
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
@@ -1376,18 +1157,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               >
                 {h}
               </div>
-              <button
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "var(--ei-color-fg-tertiary)",
-                  cursor: "pointer",
-                  fontSize: 11,
-                  fontFamily: "var(--ei-font-mono)",
-                }}
-              >
-                {t("parse.hiddenRemove")}
-              </button>
             </div>
           ))}
         </div>
@@ -1584,22 +1353,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                 >
                   {resumeMeta(selectedResume)}
                 </div>
-                <button
-                  data-testid="parse-resume-picker-toggle"
-                  onClick={() => setResumePickerOpen((open) => !open)}
-                  style={{
-                    padding: "7px 12px",
-                    fontSize: 12.5,
-                    fontFamily: "var(--ei-font-sans)",
-                    background: "transparent",
-                    border: "1px solid var(--ei-color-rule-strong)",
-                    borderRadius: "var(--ei-radius-sm)",
-                    color: "var(--ei-color-fg-primary)",
-                    cursor: "pointer",
-                  }}
-                >
-                  {t("parse.resumeChange")}
-                </button>
               </>
             ) : readyResumes.length > 0 ? (
               <div data-testid="parse-resume-required">
@@ -1646,78 +1399,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                 >
                   {resumeError ?? t("parse.resumeEmptyBody")}
                 </div>
-                <button
-                  data-testid="parse-resume-create"
-                  onClick={handleCreateResume}
-                  style={{
-                    padding: "7px 12px",
-                    fontSize: 12.5,
-                    fontFamily: "var(--ei-font-sans)",
-                    background: "var(--ei-color-accent)",
-                    border: "none",
-                    borderRadius: "var(--ei-radius-sm)",
-                    color: "#fff",
-                    cursor: "pointer",
-                  }}
-                >
-                  {t("parse.resumeCreate")}
-                </button>
-              </div>
-            )}
-
-            {(resumePickerOpen || (!selectedResume && readyResumes.length > 0)) &&
-              readyResumes.length > 0 && (
-              <div
-                data-testid="parse-resume-picker"
-                style={{
-                  marginTop: 12,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                {readyResumes.map((resume) => {
-                  const active = resume.id === selectedResumeId;
-                  return (
-                    <button
-                      key={resume.id}
-                      data-testid={`parse-resume-option-${resume.id}`}
-                      onClick={() => {
-                        setSelectedResumeId(resume.id);
-                        setResumePickerOpen(false);
-                      }}
-                      style={{
-                        textAlign: "left",
-                        padding: "9px 10px",
-                        background: active
-                          ? "var(--ei-color-accent-soft)"
-                          : "transparent",
-                        border: `1px solid ${
-                          active
-                            ? "var(--ei-color-accent)"
-                            : "var(--ei-color-rule-strong)"
-                        }`,
-                        borderRadius: "var(--ei-radius-sm)",
-                        color: "var(--ei-color-fg-primary)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div style={{ fontSize: 12.5, fontWeight: 600 }}>
-                        {resume.displayName || resume.title}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: "var(--ei-color-fg-tertiary)",
-                          fontFamily: "var(--ei-font-mono)",
-                          marginTop: 2,
-                        }}
-                      >
-                        {resumeMeta(resume)}
-                      </div>
-                    </button>
-                  );
-                })}
               </div>
             )}
           </div>
@@ -1771,59 +1452,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
             justifyContent: compactLayout ? "flex-start" : "flex-end",
           }}
         >
-          <button
-            data-testid="parse-action-cancel"
-            onClick={handleCancel}
-            style={{
-              padding: "8px 18px",
-              fontSize: 13.5,
-              fontFamily: "var(--ei-font-sans)",
-              background: "transparent",
-              border: "1px solid var(--ei-color-rule-strong)",
-              borderRadius: "var(--ei-radius-sm)",
-              color: "var(--ei-color-fg-primary)",
-              cursor: "pointer",
-            }}
-          >
-            {t("parse.cancel")}
-          </button>
-          {!isWorkspaceDetail && (
-            <button
-              data-testid="parse-action-reparse"
-              onClick={handleReparse}
-              style={{
-                padding: "8px 18px",
-                fontSize: 13.5,
-                fontFamily: "var(--ei-font-sans)",
-                background: "var(--ei-color-bg-soft)",
-                border: "1px solid var(--ei-color-rule-strong)",
-                borderRadius: "var(--ei-radius-sm)",
-                color: "var(--ei-color-fg-primary)",
-                cursor: "pointer",
-              }}
-            >
-              {t("parse.reparse")}
-            </button>
-          )}
-          <button
-            data-testid="parse-action-save-plan"
-            onClick={handleSavePlan}
-            disabled={launchDisabled}
-            style={{
-              padding: "8px 18px",
-              fontSize: 13.5,
-              fontFamily: "var(--ei-font-sans)",
-              background: "var(--ei-color-bg-soft)",
-              border: "1px solid var(--ei-color-rule-strong)",
-              borderRadius: "var(--ei-radius-sm)",
-              color: "var(--ei-color-fg-primary)",
-              cursor: launchDisabled ? "not-allowed" : "pointer",
-              opacity: launchDisabled ? 0.5 : 1,
-              fontWeight: 500,
-            }}
-          >
-            {t("parse.savePlanOnly")}
-          </button>
           <button
             data-testid="parse-action-start-interview"
             onClick={handleStartInterview}

@@ -1,8 +1,9 @@
 # Seed Input
 
-- TargetJob update fixture: `openapi/fixtures/TargetJobs/updateTargetJob.json` with success and validation error variants.
+- TargetJob detail fixture: `openapi/fixtures/TargetJobs/getTargetJob.json` with ready status, saved `resumeId`, and optional `currentPracticePlanId`.
 - Resume list fixture: `openapi/fixtures/Resumes/listResumes.json` with ready and empty variants.
+- Practice fixtures: `openapi/fixtures/PracticePlans/getPracticePlan.json`, `openapi/fixtures/PracticePlans/createPracticePlan.json`, and `openapi/fixtures/PracticeSessions/startPracticeSession.json`.
 - Auth fixture: `openapi/fixtures/Auth/getMe.json` with authenticated and unauthenticated variants.
-- Parse edit fields: title, company, location, notes, hit toggles, read-only level, and read-only language.
-- Navigation target: workspace with interview context parameters for target job, JD, real ready resume, round, and related context; Start interview adds `autoStartPractice=1`.
+- Parse readonly fields: title, company, location, level, language, requirements, hidden signals, round assumptions, and bound resume display.
+- Navigation target: direct `practice` route with target job, JD, real ready resume, round, plan, and session context.
 - Real backend overlay: `targetJob.realApiMode.test.ts` under `VITE_EI_API_MODE=real`.

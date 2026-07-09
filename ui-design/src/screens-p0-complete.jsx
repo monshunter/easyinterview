@@ -32,8 +32,8 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
     return () => { cancel = true; };
   }, [stage]);
 
-  // Mock parsed data — exposed for user confirmation
-  const [parsed, setParsed] = React.useState({
+  // Mock parsed data — exposed as a readonly saved interview-plan receipt.
+  const parsed = {
     title: "资深前端工程师",
     company: "星环科技",
     level: "P6 / Senior",
@@ -63,17 +63,16 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
       { r: lang === "en" ? "Tech round 2 · 60m" : "技术二面 · 60 分钟", focus: lang === "en" ? "Architecture, trade-offs" : "架构 · 权衡" },
       { r: lang === "en" ? "Hiring manager · 40m" : "经理面 · 40 分钟", focus: lang === "en" ? "Influence, conflict" : "影响力 · 冲突" },
     ],
-  });
+  };
 
-  // Interview launch decision lives on this page (D-14): bind resume, pick round, start.
+  // Interview launch uses the saved resume + round snapshot; this page does not edit binding.
   const resumeOptions = window.getWorkspaceResumeOptions ? window.getWorkspaceResumeOptions(lang) : [];
-  const [selectedResumeId, setSelectedResumeId] = React.useState("");
-  const [resumePickerOpen, setResumePickerOpen] = React.useState(false);
-  const [currentRoundIdx, setCurrentRoundIdx] = React.useState(0);
+  const selectedResumeId = resumeOptions[0]?.id || "";
   const selectedResume = resumeOptions.find((resume) => resume.id === selectedResumeId);
 
   const PARSE_ROUND_IDS = ["round-hr", "round-tech-1", "round-tech-2", "round-manager"];
   const buildParseInterviewContext = () => {
+    const currentRoundIdx = 1;
     const base = {
       resumeId: selectedResumeId,
       roundId: PARSE_ROUND_IDS[currentRoundIdx] || "round-hr",
@@ -148,15 +147,6 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
   }
 
   // Preview / confirm
-  const setField = (k, v) => setParsed((p) => ({ ...p, [k]: v }));
-  const toggleHit = (section, idx) => setParsed((p) => {
-    const copy = { ...p, [section]: [...p[section]] };
-    const cur = copy[section][idx];
-    const cycle = { true: "partial", partial: false, false: true };
-    copy[section][idx] = { ...cur, hit: cycle[String(cur.hit)] };
-    return copy;
-  });
-
   const HitDot = ({ hit }) => {
     const color = hit === true ? T.ok : hit === "partial" ? T.warn : T.ink4;
     const label = hit === true ? (lang === "en" ? "hit" : "命中") : hit === "partial" ? (lang === "en" ? "partial" : "部分") : (lang === "en" ? "gap" : "缺口");
@@ -180,8 +170,8 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
           </h1>
           <div style={{ fontSize: 14, color: T.ink3, marginTop: 8, maxWidth: 620, lineHeight: 1.5 }}>
             {lang === "en"
-              ? "Confirm the JD, resume binding, and interview round before saving or starting."
-              : "开始前确认 JD、绑定简历和面试轮次；保存规划和立即面试使用同一份上下文。"}
+              ? "Review the saved JD, bound resume, and interview round snapshot before starting."
+              : "开始前核对已保存的 JD、绑定简历和面试轮次快照。"}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
@@ -208,7 +198,7 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
           ].map((r, i) => (
             <div key={r.f} style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: i < 3 ? `1px dotted ${T.rule}` : "none", alignItems: "baseline" }}>
               <div className="ei-label" style={{ color: T.ink3, minWidth: 68, fontSize: 10.5 }}>{r.k}</div>
-              <input value={r.v} onChange={(e) => setField(r.f, e.target.value)} style={{ flex: 1, fontSize: 14, color: T.ink, background: "transparent", border: "none", outline: "none", borderBottom: `1px dashed transparent`, padding: "2px 0", fontFamily: "var(--ei-sans)" }} onFocus={(e) => e.target.style.borderBottomColor = T.accent} onBlur={(e) => e.target.style.borderBottomColor = "transparent"} />
+              <div style={{ flex: 1, fontSize: 14, color: T.ink, padding: "2px 0", fontFamily: "var(--ei-sans)" }}>{r.v}</div>
             </div>
           ))}
         </div>
@@ -216,8 +206,8 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
 
       {/* Requirements */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
-        <RequirementBlock T={T} lang={lang} title={lang === "en" ? "MUST HAVE" : "必需项"} items={parsed.mustHave} onToggle={(i) => toggleHit("mustHave", i)} HitDot={HitDot} />
-        <RequirementBlock T={T} lang={lang} title={lang === "en" ? "NICE TO HAVE" : "加分项"} items={parsed.niceToHave} onToggle={(i) => toggleHit("niceToHave", i)} HitDot={HitDot} />
+        <RequirementBlock T={T} lang={lang} title={lang === "en" ? "MUST HAVE" : "必需项"} items={parsed.mustHave} HitDot={HitDot} />
+        <RequirementBlock T={T} lang={lang} title={lang === "en" ? "NICE TO HAVE" : "加分项"} items={parsed.niceToHave} HitDot={HitDot} />
       </div>
 
       {/* Hidden signals */}
@@ -237,50 +227,41 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
             <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 12px", background: T.bgSoft, borderRadius: 2 }}>
               <Icon name="sparkle" size={12} color={T.accent} style={{ marginTop: 3, flexShrink: 0 }} />
               <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.5, flex: 1 }}>{h}</div>
-              <button style={{ background: "transparent", border: "none", color: T.ink3, cursor: "pointer", fontSize: 11, fontFamily: "var(--ei-mono)" }}>
-                {lang === "en" ? "remove" : "移除"}
-              </button>
             </div>
           ))}
         </div>
       </Card>
 
-      {/* Round assumptions — pick the round to practice now */}
+      {/* Round assumptions — readonly saved context */}
       <Card T={T} style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "ROUND ASSUMPTIONS" : "轮次假设"}</div>
           <div style={{ fontSize: 11, color: T.ink3, fontFamily: "var(--ei-mono)" }}>
-            {lang === "en" ? "click to pick the current round · editable later" : "点选当前要练的轮次 · 之后仍可改"}
+            {lang === "en" ? "saved with this plan" : "创建后只读"}
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
-          {parsed.rounds.map((r, i) => {
-            const current = i === currentRoundIdx;
-            return (
-              <button key={i} onClick={() => setCurrentRoundIdx(i)} style={{ textAlign: "left", fontFamily: "var(--ei-sans)", cursor: "pointer", padding: "12px 14px", background: current ? T.accentSoft : T.bgSoft, border: `1px solid ${current ? T.accent : T.rule}`, borderRadius: 2, position: "relative" }}>
+          {parsed.rounds.map((r, i) => (
+              <div key={i} style={{ textAlign: "left", fontFamily: "var(--ei-sans)", padding: "12px 14px", background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 2, position: "relative" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-                  <span style={{ fontFamily: "var(--ei-mono)", fontSize: 10.5, color: current ? T.accent : T.ink4, letterSpacing: "0.06em" }}>R{i + 1}</span>
-                  {current && <span style={{ fontFamily: "var(--ei-mono)", fontSize: 10, color: T.accent }}>{lang === "en" ? "CURRENT" : "当前轮"}</span>}
+                  <span style={{ fontFamily: "var(--ei-mono)", fontSize: 10.5, color: T.ink4, letterSpacing: "0.06em" }}>R{i + 1}</span>
                 </div>
                 <div style={{ fontSize: 13, color: T.ink, fontWeight: 500, marginBottom: 4 }}>{r.r}</div>
                 <div style={{ fontSize: 11.5, color: T.ink3, lineHeight: 1.45 }}>{r.focus}</div>
-              </button>
-            );
-          })}
+              </div>
+          ))}
         </div>
       </Card>
 
-      {/* Interview launch — resume binding + start, no second confirm page */}
+      {/* Interview launch — readonly binding + start, no second confirm page */}
       <Card T={T} style={{ marginBottom: 28 }}>
         <div className="ei-label" style={{ color: T.ink3, marginBottom: 12 }}>{lang === "en" ? "INTERVIEW LAUNCH" : "面试启动"}</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <window.BindingPill T={T} icon="briefcase" label={lang === "en" ? "Target job / JD" : "目标岗位 / JD"} title={parsed.title} meta={`${parsed.company} · ${parsed.level}`} />
           {selectedResume ? (
-            <window.BindingPill T={T} icon="resume" label={lang === "en" ? "Bound resume" : "绑定简历"} title={selectedResume.name} meta={selectedResume.meta} action={lang === "en" ? "Change" : "更换"} onClick={() => setResumePickerOpen(true)} />
-          ) : resumeOptions.length ? (
-            <window.BindingPill T={T} icon="resume" label={lang === "en" ? "Bound resume" : "绑定简历"} title={lang === "en" ? "Choose a resume" : "选择简历"} meta={lang === "en" ? "Save and Start stay locked until you choose" : "未选择前不能保存或启动"} action={lang === "en" ? "Choose" : "去选择"} onClick={() => setResumePickerOpen(true)} />
+            <window.BindingPill T={T} icon="resume" label={lang === "en" ? "Bound resume" : "绑定简历"} title={selectedResume.name} meta={selectedResume.meta} />
           ) : (
-            <window.BindingPill T={T} icon="resume" label={lang === "en" ? "Bound resume" : "绑定简历"} title={lang === "en" ? "No resume yet" : "还没有简历"} meta={lang === "en" ? "The interview needs resume evidence" : "面试生成需要简历证据"} action={lang === "en" ? "Create" : "去创建"} onClick={() => nav("resume_versions", { flow: "create" })} />
+            <window.BindingPill T={T} icon="resume" label={lang === "en" ? "Bound resume" : "绑定简历"} title={lang === "en" ? "Missing bound resume" : "缺少绑定简历"} meta={lang === "en" ? "Create a new plan from Home" : "请从首页重新创建规划"} />
           )}
         </div>
         <div style={{ fontSize: 12, color: T.ink3, marginTop: 12, display: "flex", gap: 6, alignItems: "center" }}>
@@ -291,34 +272,17 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
       {/* Footer actions */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderTop: `1px solid ${T.rule}`, gap: 16, flexWrap: "wrap" }}>
         <div style={{ fontSize: 12, color: T.ink3, fontFamily: "var(--ei-mono)", lineHeight: 1.6, maxWidth: 420 }}>
-          {lang === "en" ? "Start now with what you confirmed here, or save the plan and come back later." : "确认后直接开始这场模拟面试；也可以仅保存规划，稍后从模拟面试页回访。"}
+          {lang === "en" ? "This saved plan uses the JD and bound resume shown above." : "面试规划会使用这份 JD 和已绑定简历。"}
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Btn T={T} variant="ghost" onClick={() => nav("home")}>{lang === "en" ? "Cancel" : "取消"}</Btn>
-          <Btn T={T} variant="ghost" icon="edit" onClick={() => { setStep(0); setStage("loading"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>{lang === "en" ? "Re-parse" : "重新解析"}</Btn>
-          <Btn T={T} variant="secondary" icon="layers" disabled={!selectedResume} onClick={() => selectedResume && nav("workspace", buildParseInterviewContext())}>{lang === "en" ? "Save plan only" : "仅保存规划"}</Btn>
           <Btn T={T} variant="accent" icon="play" disabled={!selectedResume} onClick={startInterview}>{lang === "en" ? "Start interview now" : "立即面试"}</Btn>
         </div>
       </div>
-
-      {resumePickerOpen && (
-        <window.ResumePickerModal
-          T={T}
-          lang={lang}
-          resumes={resumeOptions}
-          selectedId={selectedResumeId}
-          onClose={() => setResumePickerOpen(false)}
-          onConfirm={(resumeId) => {
-            setSelectedResumeId(resumeId);
-            setResumePickerOpen(false);
-          }}
-        />
-      )}
     </div>
   );
 };
 
-const RequirementBlock = ({ T, lang, title, items, onToggle, HitDot }) => (
+const RequirementBlock = ({ T, title, items, HitDot }) => (
   <Card T={T} pad={0}>
     <div style={{ padding: "14px 20px", borderBottom: `1px solid ${T.rule}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       <div className="ei-label" style={{ color: T.ink3 }}>{title}</div>
@@ -327,9 +291,9 @@ const RequirementBlock = ({ T, lang, title, items, onToggle, HitDot }) => (
     <div>
       {items.map((item, i) => (
         <div key={i} style={{ padding: "12px 20px", borderBottom: i < items.length - 1 ? `1px dotted ${T.rule}` : "none", display: "flex", gap: 12, alignItems: "flex-start" }}>
-          <button onClick={() => onToggle(i)} style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", marginTop: 2 }}>
+          <div style={{ marginTop: 2 }}>
             <HitDot hit={item.hit} />
-          </button>
+          </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.45 }}>{item.t}</div>
             {item.note && <div style={{ fontSize: 11.5, color: T.warn, marginTop: 4, fontStyle: "italic" }}>{item.note}</div>}

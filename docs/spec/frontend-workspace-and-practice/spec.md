@@ -25,7 +25,7 @@
 - `workspace` 屏（`route=workspace`）：
   - 面试规划列表 landing：顶部一级 `面试` 入口和任何 `/workspace` route 都展示已有规划卡片列表，使用 generated `listTargetJobs(analysisStatus=ready)`；每个规划必须有独立卡片背景、1px 边框、轻阴影、内部分区和底部操作区，不能退化成无容器文本列；卡片只展示状态、更新时间、岗位、公司和地点，不展示来源类型 / 目标语言 / `手动输入` 等导入元信息；失败解析、非 ready、空标题 TargetJob 不得进入列表；点击主题强调色 CTA 导航到 `parse` 统一面试规划详情；无规划时引导回首页导入 JD。
   - 路由纯度：`workspace` 不拥有 TargetJob 详情、Resume Picker、Plan Switcher、`autoStartPractice` 或 session 创建；即使 URL / stale context 带有 `targetJobId` / `planId` / `resumeId`，也必须清理/忽略并继续渲染列表。
-  - 规划详情与启动：统一详情、保存规划、切换/绑定简历和 `立即面试` 由 `frontend-home-job-picks-and-parse` / practice/report handoff owner 通过 generated REST client 承接；`workspace` 不作为副作用中转页。
+  - 规划详情与启动：统一只读详情和 `立即面试` 由 `frontend-home-job-picks-and-parse` / practice/report handoff owner 通过 generated REST client 承接；简历绑定在创建规划时确定，`workspace` 不作为副作用中转页。
 - `practice` 屏（`route=practice`，`mode/modality∈{text,voice}` × `practiceMode∈{assisted,strict}`；`practiceGoal∈{baseline,retry_current_round,next_round}`）：
   - 顶部工具区（chrome 隐藏）：公司/岗位 + 面试官角色 + 题号/总数 + 计时 + 暂停 + 文本/语音形式切换 + 严格模拟开关。
   - 文本面试 `TextSurface`：对话记录 + 输入区 + `语音转文字` 麦克风 + 提示 + 跳过 + 提交。
@@ -130,7 +130,7 @@
 | Practice backend | `backend-practice` | 6 个 Practice operation handler/service/store、state machine、AssistantAction、outbox、idempotency |
 | Voice orchestration | `practice-voice-mvp` + `backend-practice` voice extension | `createPracticeVoiceTurn` contract/handler、STT/LLM/TTS、barge-in、committed-context |
 | Report generation data | `backend-review` | `feedback_reports`、question assessments、readiness、report job result |
-| Resume data | [`backend-resume`](../backend-resume/spec.md) | 扁平 Resume list / detail（D-20，无 version）；workspace 消费绑定 resume（`resumeId`）只读字段，active picker 消费 `listResumes` |
+| Resume data | [`backend-resume`](../backend-resume/spec.md) | 扁平 Resume list / detail（D-20，无 version）；workspace / parse 消费绑定 resume（`resumeId`）只读字段，当前规划详情不提供 active picker |
 | OpenAPI / fixtures / codegen | `openapi-v1-contract` + `mock-contract-suite` | `openapi/openapi.yaml`、fixtures、generated Go/TS artifacts、fixture-backed mock transport |
 
 ### 5.1 Operation Matrix
@@ -140,7 +140,7 @@
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` (`default`, `prototype-baseline`) | `WorkspaceScreen` pure plan list only | `backend/internal/targetjob` implemented | `target_jobs` | none in frontend | `001-workspace-and-interview-context` |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` (`default`, `prototype-baseline`) | Parse unified detail JD / requirements / source context | `backend/internal/targetjob` implemented | `target_jobs`, requirements/sources | none in frontend | `frontend-home-job-picks-and-parse/001` + parse tests |
 | `getResume` | `openapi/fixtures/Resumes/getResume.json` (`default`) | Parse / resume owners only | backend-resume real handler | resume assets | none | external owner gates |
-| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` (`default`) | Parse resume picker list / resume workshop | backend-resume real handler | resume assets | none | external owner gates |
+| `listResumes` | `openapi/fixtures/Resumes/listResumes.json` (`default`) | Home select + Parse bound resume display / resume workshop | backend-resume real handler | resume assets | none | external owner gates |
 | `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` (`default`, `missing-resume`) | Parse detail start; report-derived retry / next round paths | backend-practice real handler | `practice_plans` | backend-only first-question prep | parse/report focused gates + `frontendOwners.realApiMode.test.ts` |
 | `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` (`default`) | Parse/report handoff verifies existing plan matches target/resume context | backend-practice real handler | `practice_plans` | none | parse/report focused gates + real-mode gate |
 | `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` (`default`) | Parse detail start + report-derived replay/next-round | backend-practice real handler | `practice_sessions`, first turn | backend-only `practice.session.first_question` | parse/report focused gates + real-mode gate |
@@ -158,7 +158,7 @@
 | C-1 | owner route 专属 Screen 接管 | `frontend-shell` D1 已交付，owner route 当前由正式 screen 或外部 owner screen 接管 | 进入 `workspace` / `practice` / `generating` | `workspace` / `practice` 渲染正式 Screen；`practice/generating` 隐藏 chrome；`report` 不由本 spec 实现 | 001 / 002 / frontend-report-dashboard |
 | C-2 | Workspace 渲染 + 空态 | 用户从一级 `面试` 进入，或 legacy URL 带有 `targetJobId/planId/resumeId` | 进入 `workspace` | 始终渲染面试规划列表且清理 stale InterviewContext；不调用 `getTargetJob`；不显示 `parse-error` / “缺少目标岗位 ID”；点击规划进入 `parse` 统一面试规划详情；不展示假数据 | 001 |
 | C-2a | 面试规划列表卡片化与简化 | `listTargetJobs` 返回至少一条 ready 规划，并可能混入历史失败/空标题脏数据 | 进入无上下文 `workspace` | 列表请求带 `analysisStatus=ready`；列表项以响应式卡片呈现，卡片拥有背景、边框、轻阴影、body/footer 分区和主题强调色操作按钮；desktop 多列，mobile 单列，不出现无样式文本列；卡片不展示来源类型、目标语言或 `手动输入` 等低价值导入元信息；failed / blank-title TargetJob 不渲染 | 001 |
-| C-3 | Workspace 交互闭环 | 已渲染 workspace 列表 | 用户点击 `进入规划` | 列表进入 `parse` 统一详情母版，携带真实 `targetJobId` 和可选真实 `currentPracticePlanId/resumeId`；不伪造 `jobId` / `jdId` / plan / resume / report id；更换简历、保存、立即面试和 session 创建由 parse/report/practice owner 执行 | 001 |
+| C-3 | Workspace 交互闭环 | 已渲染 workspace 列表 | 用户点击 `进入规划` | 列表进入 `parse` 统一只读详情母版，携带真实 `targetJobId` 和可选真实 `currentPracticePlanId/resumeId`；不伪造 `jobId` / `jdId` / plan / resume / report id；立即面试和 session 创建由 parse/report/practice owner 执行 | 001 |
 | C-4 | Practice 文本 happy path | 用户进入 `practice?mode=text&modality=text&practiceMode=assisted`，session=`running` | 用户输入回答、请求提示/跳过/暂停/恢复、提交事件、结束 | TextSurface 源级复刻；操作通过 `appendSessionEvent({clientEventId,kind,payload})`；AssistantAction 驱动下一题/追问/完成；结束调用 `completePracticeSession` 后进入 `generating?sessionId&reportId` | 002 |
 | C-5 | Practice 语音 surface + core-goal 显隐 | 用户进入 `practice?mode=voice&modality=voice&practiceMode=strict`，以及 `practiceGoal=baseline/retry_current_round/next_round` 分别组合 assisted/strict | 用户进行语音回答或切换形式 | VoiceSurface 源级复刻；strict 隐藏提示、实时观察、可调用经历和现场提示；practiceGoal 不改变辅助度显隐；不直连 STT/TTS provider；voice turn flow 由 practice-voice owner gate 验证 | practice-voice-mvp/001 |
 | C-6 | Generating 轮询 + report handoff | Practice 已 `completePracticeSession` 收到 `ReportWithJob{reportId,job}` | 用户在 generating 屏等待 | 4 步进度态与 `ReportGeneratingScreen` 一致；`queued/running` 保持等待，`succeeded` 导航 `report?sessionId&reportId`，`failed` 显示错误/重试/返回 workspace；不渲染 Report Dashboard | frontend-report-dashboard / backend-review |
@@ -166,7 +166,7 @@
 | C-8 | UI source structure parity | C-1~C-7 通过 | Vitest+jsdom 加载 owner Screen | DOM 锚点、控件类型、icon、aria、keyboard、menu/modal 层级可追溯到 `screen-workspace.jsx` / `screen-practice.jsx` / `ReportGeneratingScreen` / `primitives.jsx` | 001 / 002 / external owner gates |
 | C-9 | UI visual geometry parity | C-8 通过 | Playwright desktop + mobile 加载 owner 三屏 | 关键区块不重叠且 stays in viewport；theme/dark/customAccent 可见；workspace/practice/generating mobile 布局符合原型 | 001 / 002 / external owner gates |
 | C-10 | UI current-scope negative search | C-8 + C-9 通过 | lint/grep gate 扫描 active runtime、positive tests、README、scenario | 非当前 route/module 不作为 live route、TopBar 项、正向 testid、正向 scenario 或用户入口出现；负向断言/禁止清单命中被分类允许 | 001 / 002 / product-scope gate |
-| C-11 | BDD 主流程 + 关键分支 | owner route + parity gate 已就绪 | 创建并执行 E2E 场景 | 覆盖 workspace 渲染/切换/更换简历决策、未登录立即面试恢复、practice 文本、practice 语音 surface、strict 显隐、generating report handoff、非当前入口负向 | 001 / 002 / external owner gates |
+| C-11 | BDD 主流程 + 关键分支 | owner route + parity gate 已就绪 | 创建并执行 E2E 场景 | 覆盖 workspace 渲染/切换、只读简历绑定决策、未登录立即面试恢复、practice 文本、practice 语音 surface、strict 显隐、generating report handoff、非当前入口负向 | 001 / 002 / external owner gates |
 | C-12 | Privacy 红线 | 用户完成 workspace→practice→generating 流程（文本 + 语音 surface 各一） | 检查 URL/localStorage/log/telemetry/fixture transport | raw audio / TTS audio / transcript 明文 / LLM prompt-response 明文 / JD 原文 / 简历正文不泄漏；只允许 IDs、状态、摘要和必要 route context | 001 / 002 / external owner gates |
 | C-13 | 详情页归一化回归 | `parse?targetJobId=...` 可加载 TargetJob，`workspace?targetJobId=...` 是 legacy URL | 分别进入 parse 详情和 workspace | parse 共享统一详情 DOM/文案/布局；workspace canonicalize 为 `/workspace` 并仍为列表，不出现独立 `workspace-header` / `workspace-launcher` / `workspace-jd-card` 全页确认锚点，也不执行 `autoStartPractice` | 001 + frontend-home-job-picks-and-parse 001 |
 

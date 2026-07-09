@@ -89,6 +89,12 @@ describe("ParseScreen", () => {
                 label: "WAI-ARIA experience",
                 evidenceLevel: "implicit" as const,
               },
+              {
+                id: "req-3",
+                kind: "nice_to_have" as const,
+                label: "Edge runtime familiarity",
+                evidenceLevel: "inferred" as const,
+              },
             ],
             summary: {
               coreThemes: ["frontend architecture"],
@@ -120,6 +126,7 @@ describe("ParseScreen", () => {
     );
 
     expect(screen.getByTestId("parse-basics-title")).toBeInTheDocument();
+    expect(screen.getByTestId("parse-basics-title").querySelector("input")).toBeNull();
     expect(screen.getByTestId("unified-plan-detail")).toBeInTheDocument();
     expect(screen.getByTestId("unified-plan-detail-title")).toHaveTextContent(
       "Interview plan detail",
@@ -128,7 +135,7 @@ describe("ParseScreen", () => {
     expect(document.body).not.toHaveTextContent("Here's what I read from the JD");
     expect(screen.getByTestId("parse-basics-company")).toBeInTheDocument();
     expect(screen.getByTestId("parse-basics-location")).toBeInTheDocument();
-    expect(screen.getByTestId("parse-basics-notes")).toBeInTheDocument();
+    expect(screen.queryByTestId("parse-basics-notes")).not.toBeInTheDocument();
     expect(screen.getByTestId("parse-basics-level")).toBeInTheDocument();
     expect(screen.getByTestId("parse-basics-language")).toBeInTheDocument();
 
@@ -136,18 +143,27 @@ describe("ParseScreen", () => {
       screen.getByTestId("parse-requirement-must_have-0"),
     ).toBeInTheDocument();
     expect(
-      screen.getByTestId("parse-requirement-must_have-0-toggle"),
-    ).toBeInTheDocument();
+      screen.queryByTestId("parse-requirement-must_have-0-toggle"),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByTestId("parse-requirement-nice_to_have-0"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("parse-requirement-must_have-0"),
+    ).toHaveTextContent(/HIT|命中/);
+    expect(
+      screen.getByTestId("parse-requirement-nice_to_have-0"),
+    ).toHaveTextContent(/PARTIAL|部分/);
+    expect(
+      screen.getByTestId("parse-requirement-nice_to_have-1"),
+    ).toHaveTextContent(/PARTIAL|部分/);
 
     expect(screen.getByTestId("parse-hidden-signal-0")).toBeInTheDocument();
     expect(screen.getByTestId("parse-round-0")).toBeInTheDocument();
     expect(screen.getByTestId("parse-launch")).toBeInTheDocument();
-    expect(screen.getByTestId("parse-action-cancel")).toBeInTheDocument();
-    expect(screen.getByTestId("parse-action-reparse")).toBeInTheDocument();
-    expect(screen.getByTestId("parse-action-save-plan")).toBeInTheDocument();
+    expect(screen.queryByTestId("parse-action-cancel")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("parse-action-reparse")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("parse-action-save-plan")).not.toBeInTheDocument();
     expect(screen.getByTestId("parse-action-start-interview")).toBeInTheDocument();
     expect(screen.queryByTestId("parse-action-confirm")).not.toBeInTheDocument();
   });
@@ -181,7 +197,7 @@ describe("ParseScreen", () => {
     expect(langEl.tagName).not.toBe("INPUT");
   });
 
-  it("cancel button navigates to home", () => {
+  it("success preview does not expose a cancel action", () => {
     const navigate = vi.fn();
     render(
       wrap(
@@ -206,7 +222,7 @@ describe("ParseScreen", () => {
       ),
     );
 
-    screen.getByTestId("parse-action-cancel").click();
-    expect(navigate).toHaveBeenCalledWith({ name: "home", params: {} });
+    expect(screen.queryByTestId("parse-action-cancel")).not.toBeInTheDocument();
+    expect(navigate).not.toHaveBeenCalled();
   });
 });

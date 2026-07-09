@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-09](2026-07-09.md) | `fix(frontend): close readonly plan detail review` | #fix #ui #test #docs #bdd |
 | [2026-07-09](2026-07-09.md) | `docs(reports): sync bugs and reports INDEX` | #docs |
 | [2026-07-09](2026-07-09.md) | `feat(workspace): close unified detail route, plan-list admission, and route purity remediation` | #feat #ui #api #test #docs #bdd |
 | [2026-07-09](2026-07-09.md) | `feat(targetjob): close jd identity, resume binding, and parse robustness remediation` | #feat #api #test #docs #bdd |

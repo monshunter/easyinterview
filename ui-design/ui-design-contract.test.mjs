@@ -333,22 +333,20 @@ test("P0 voice interview keeps the shared practice shell and renders the voice s
   assert.doesNotMatch(practice, /if\s*\(\s*k\s*===\s*"voice"\s*\)\s*nav\("voice"/);
 });
 
-test("parse confirm page owns the interview launch decision", () => {
+test("parse confirm page is a readonly saved-plan receipt with direct launch", () => {
   const p0 = readUiFile("./src/screens-p0-complete.jsx");
   const app = readUiFile("./src/app.jsx");
-  const workspace = readUiFile("./src/screen-workspace.jsx");
 
   assert.match(p0, /const ParseScreen = \(\{ T, lang, nav, requestAuth \}\) =>/);
   assert.match(p0, /window\.getWorkspaceResumeOptions/);
-  assert.match(p0, /ResumePickerModal/);
   assert.match(p0, /立即面试/);
-  assert.match(p0, /仅保存规划/);
   assert.match(p0, /type: "create_session"/);
   assert.match(p0, /nav\("practice", startContext\)/);
-  assert.match(p0, /nav\("workspace", buildParseInterviewContext\(\)\)/);
+  assert.doesNotMatch(p0, /ResumePickerModal/);
+  assert.doesNotMatch(p0, /仅保存规划|Save plan only/);
+  assert.doesNotMatch(p0, /nav\("workspace", buildParseInterviewContext\(\)\)/);
   assert.doesNotMatch(p0, /确认并进入面试前确认|Confirm & open interview setup/);
   assert.match(app, /parse:\s*<ParseScreen[^>]*requestAuth=\{requestAuth\}/);
-  assert.match(workspace, /Object\.assign\(window, \{ ResumePickerModal, BindingPill, getWorkspaceResumeOptions \}\);/);
 });
 
 test("D-22 does not leave debrief source or navigation hooks", () => {

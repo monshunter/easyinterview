@@ -188,9 +188,10 @@ async function goToParseDetail(page: import("@playwright/test").Page) {
   await expect(page.locator("[data-testid='unified-plan-detail-title']")).toContainText(
     "Interview plan detail",
   );
-  await expect(page.locator("[data-testid='parse-basics-title'] input")).toHaveValue(
+  await expect(page.locator("[data-testid='parse-basics-title']")).toContainText(
     "Senior Frontend Engineer",
   );
+  await expect(page.locator("[data-testid='parse-basics-title'] input")).toHaveCount(0);
 }
 
 test.describe("workspace DOM anchor parity", () => {
@@ -228,7 +229,6 @@ test.describe("workspace DOM anchor parity", () => {
       "parse-round-0",
       "parse-launch",
       "parse-resume-binding",
-      "parse-action-save-plan",
       "parse-action-start-interview",
     ];
     for (const id of anchorIds) {
@@ -236,16 +236,19 @@ test.describe("workspace DOM anchor parity", () => {
     }
   });
 
-  test("parse detail exposes the unified resume picker and hides retired workspace modals", async ({ page }) => {
+  test("parse detail keeps resume binding readonly and hides retired workspace modals", async ({ page }) => {
     await goToParseDetail(page);
 
     await expect(page.locator("[data-testid='workspace-plan-modal-card']")).toHaveCount(0);
     await expect(page.locator("[data-testid='workspace-resume-modal-card']")).toHaveCount(0);
-    await page.click("[data-testid='parse-resume-picker-toggle']");
-    await expect(page.locator("[data-testid='parse-resume-picker']")).toBeVisible();
+    await expect(page.locator("[data-testid='parse-resume-binding']")).toContainText(
+      "Alice Example - Senior Frontend Engineer",
+    );
+    await expect(page.locator("[data-testid='parse-resume-picker-toggle']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='parse-resume-picker']")).toHaveCount(0);
     await expect(
       page.locator(`[data-testid='parse-resume-option-${WORKSPACE_RESUME_ID}']`),
-    ).toBeVisible();
+    ).toHaveCount(0);
   });
 });
 

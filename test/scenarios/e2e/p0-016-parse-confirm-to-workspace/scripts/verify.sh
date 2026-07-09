@@ -11,23 +11,24 @@ grep -Fq 'targetJob.realApiMode.test.ts' "$LOG_FILE"
 grep -Fq "ParseEdit.test.tsx" "$LOG_FILE"
 grep -Fq "ParseAuthGate.test.tsx" "$LOG_FILE"
 grep -Fq "ParseResumeBinding.test.tsx" "$LOG_FILE"
-grep -Fq "inherits a valid route resumeId from the Home immediate interview handoff" "$LOG_FILE"
+grep -Fq "can inherit route resumeId only when the saved TargetJob lacks one" "$LOG_FILE"
+grep -Fq "starts interview directly from parse with the saved resumeId and no target patch" "$LOG_FILE"
 grep -Fq "tests/pixel-parity/parse.spec.ts" "$LOG_FILE"
-grep -Fq "save plan navigates to workspace with bound resume context" "$LOG_FILE"
-grep -Fq "start interview hands off through workspace autoStart with bound resume" "$LOG_FILE"
-grep -Fq "E2E.P0.016 parse save-plan workspace browser gate contextKeys=targetJobId,jobId,jdId,planId,resumeId,roundId,roundName resumeId=01918fa0-0000-7000-8000-000000001000 screenshotBytes=" "$LOG_FILE"
-grep -Fq "E2E.P0.016 parse start-interview autoStart browser gate resumeId=01918fa0-0000-7000-8000-000000001000 route=practice" "$LOG_FILE"
+grep -Fq "readonly plan detail exposes only direct start with bound resume context" "$LOG_FILE"
+grep -Fq "start interview hands off directly to practice with bound resume" "$LOG_FILE"
+grep -Fq "E2E.P0.016 parse readonly-detail browser gate resumeId=01918fa0-0000-7000-8000-000000001000 screenshotBytes=" "$LOG_FILE"
+grep -Fq "E2E.P0.016 parse start-interview direct browser gate resumeId=01918fa0-0000-7000-8000-000000001000 route=practice noUpdateTargetJob=true" "$LOG_FILE"
 grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE"
 grep -Eq 'Tests +[0-9]+ passed' "$LOG_FILE"
 grep -Eq '[0-9]+ passed' "$LOG_FILE"
-# Verify: updateTargetJob body schema does NOT contain read-only fields
-for forbidden in 'parse-basics-level' 'parse-basics-language'; do
+# Verify: removed success-detail controls do not appear as positive markers
+for forbidden in 'parse-action-save-plan' 'parse-action-cancel' 'parse-action-reparse' 'parse-resume-picker-toggle' 'parse-resume-picker'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
-    echo "read-only field name found in test output: $forbidden" >&2
+    echo "removed parse control found in test output: $forbidden" >&2
     exit 1
   fi
 done
-for forbidden in 'resume-unbound' 'workspace-missing-resume'; do
+for forbidden in 'resume-unbound' 'workspace-missing-resume' 'autoStart browser gate'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
     echo "non-current success marker found in test output: $forbidden" >&2
     exit 1

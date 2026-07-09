@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 2.12
+    to: 2.13
 spec:
   defaultTarget: frontend
   discovery:
@@ -24,12 +24,13 @@ spec:
       - listTargetJobs
       - listResumes
       - getTargetJob
-      - updateTargetJob
+      - createPracticePlan
+      - getPracticePlan
+      - startPracticeSession
       - JDAssistModal
       - MockInterviewCard
       - MiniRoundRail
       - RequirementBlock
-      - hit toggle
       - hidden signals
       - round assumptions
       - analysisStatus polling
@@ -37,8 +38,8 @@ spec:
       - parse route resumeId
       - parse targetJobId switch
       - ready resume selection
+      - readonly plan receipt
       - start interview from parse
-      - save plan only
       - unified plan detail
       - interview plan detail
       - context confirm
@@ -88,6 +89,8 @@ spec:
           - openapi/fixtures/TargetJobs
           - openapi/fixtures/Uploads
           - openapi/fixtures/Resumes
+          - openapi/fixtures/PracticePlans
+          - openapi/fixtures/PracticeSessions
           - test/scenarios/e2e/p0-014-home-default-render
           - test/scenarios/e2e/p0-015-jd-import-and-parse
           - test/scenarios/e2e/p0-016-parse-confirm-to-workspace
@@ -103,4 +106,6 @@ spec:
           - listTargetJobs
           - listResumes
           - getTargetJob
-          - updateTargetJob
+          - createPracticePlan
+          - getPracticePlan
+          - startPracticeSession

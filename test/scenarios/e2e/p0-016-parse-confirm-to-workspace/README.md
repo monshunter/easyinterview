@@ -1,4 +1,4 @@
-# E2E.P0.016 — Parse Resume Binding + Save/Start Handoff
+# E2E.P0.016 — Parse Readonly Receipt + Start Handoff
 
 > **Scenario ID**: E2E.P0.016
 > **Owner**: frontend-home-job-picks-and-parse/001-home-jd-import-and-parse
@@ -7,49 +7,43 @@
 
 ## Scope
 
-Verifies the parse preview editing and resume-bound launch flow:
-- Edit title/company/location/notes in Basic fields
-- Level/language read-only (no input elements)
-- Hit toggle cycling (false → true → partial → false)
-- Parse preview reads ready resumes, inherits a valid `resumeId` from Home immediate-interview handoff, and otherwise requires an explicit resume click before exit
-- Save plan / Start interview call updateTargetJob with only supplied fields + Idempotency-Key
-- Successful save navigates to workspace with real resumeId interviewContext params
-- Successful start uses workspace autoStartPractice=1 and reaches practice
-- 4xx inline error preserves editing state
-- Unauthenticated without a verified ready resume: Save/Start disabled, no pendingAction
+Verifies the parse success detail as a readonly saved-plan receipt:
+- Basic fields render as readonly text; notes/edit inputs are absent.
+- Requirement evidence badges are not toggle buttons.
+- Hidden signals and round assumptions are display-only.
+- The saved bound `resumeId` is inherited from TargetJob, with route `resumeId` only as a legacy first-import fallback.
+- Missing bound resume disables Start without exposing resume picker, resume options, create-resume fallback, Save plan, Cancel, or success Re-parse controls.
+- Start interview does not call `updateTargetJob`; it directly uses `getPracticePlan` / `createPracticePlan` / `startPracticeSession` and reaches `practice`.
+- Unauthenticated users without a verified saved resume cannot trigger Start pendingAction.
 
 ## Fixture Variants
 
-- `openapi/fixtures/TargetJobs/updateTargetJob.json`: success + 4xx validation
-- `openapi/fixtures/Resumes/listResumes.json`: ready list + empty variant
-- `openapi/fixtures/Auth/getMe.json`: authenticated + unauthenticated
+- `openapi/fixtures/TargetJobs/getTargetJob.json`: ready TargetJob with saved `resumeId` and `currentPracticePlanId`.
+- `openapi/fixtures/Resumes/listResumes.json`: ready list + empty variant.
+- `openapi/fixtures/PracticePlans/getPracticePlan.json` / `createPracticePlan.json`: existing or newly created plan.
+- `openapi/fixtures/PracticeSessions/startPracticeSession.json`: started session.
+- `openapi/fixtures/Auth/getMe.json`: authenticated + unauthenticated.
 
 ## Verification Points
 
-- updateTargetJob request body: titleHint/companyNameHint/locationText/notes only
-- Hit toggle state NOT in request body
-- Level/language NOT in request body
-- Idempotency-Key header present
-- Real backend mode generated-client gate for TargetJobs read/update and import path operations
-- Nav to workspace with real `resumeId` interviewContext fields
-- Route `resumeId` from Home is accepted only when it matches a ready resume
-- Browser-level Save plan reaches `/workspace` with real ready `resumeId` and does not render `workspace-missing-resume`
-- Browser-level Start interview reaches `practice` through workspace `autoStartPractice=1`
-- `resume-unbound` never appears in success markers
-- 4xx error inline, edit state preserved
+- Parse detail exposes no editable inputs, requirement toggles, hidden remove buttons, resume picker, Save plan, Cancel, or success Re-parse.
+- Parse detail does not call `updateTargetJob` during Start.
+- Browser-level readonly detail keeps real ready `resumeId` visible and never emits `resume-unbound`.
+- Browser-level Start reaches `/practice` directly with `targetJobId`, `resumeId`, `planId`, and `sessionId`.
+- Real backend mode generated-client gate still proves TargetJobs read/import/update API routing; the UI subcase separately proves Parse success detail is not an `updateTargetJob` consumer.
 
 ## Scripts
 
 - `scripts/setup.sh` — auth state selection (signed-in/out)
-- `scripts/trigger.sh` — execute save/start flow (A: bound save, B: bound start, C: empty resume gate, D: 4xx)
-- `scripts/verify.sh` — assert route resume inheritance, request body schema, disabled unauth/empty gate, nav params, no `resume-unbound`
+- `scripts/trigger.sh` — execute readonly detail and direct Start flow
+- `scripts/verify.sh` — assert readonly controls, no target patch, practice route, no `resume-unbound`
 - `scripts/cleanup.sh` — reset auth state
 
 ## Offline Limitations
 
-- Requires getMe fixture variant for auth state selection
-- Requires updateTargetJob fixture for success/error paths
-- Requires listResumes fixture for ready/empty variants
+- Requires getMe fixture variant for auth state selection.
+- Requires listResumes fixture for ready/empty variants.
+- Requires practice plan/session fixtures for direct Start handoff.
 
 ## Real Backend Overlay
 
@@ -60,17 +54,14 @@ Verifies the parse preview editing and resume-bound launch flow:
   `importTargetJob`, `getTargetJob`, and `updateTargetJob` to the real backend
   base URL with cookie credentials, Idempotency-Key side effects, and
   provenance roundtrip.
-- The parse edit/auth UI subcases remain fixture-backed for deterministic
-  request-body, empty/unauth disabled gate, 4xx, and workspace/practice handoff assertions.
-  Backend E2E.P0.010-P0.013 pair this frontend routing proof with live
-  TargetJob route/persistence/auth/IK/privacy/provenance semantics.
+- The parse UI subcases remain fixture-backed for deterministic readonly DOM,
+  missing-resume disabled gate, no-PATCH assertion, and direct practice handoff.
 
 ## Browser Route/Context Gate
 
 - The trigger builds `frontend/dist` and runs Playwright
-  `tests/pixel-parity/parse.spec.ts --grep "save plan navigates|start interview hands off"`.
+  `tests/pixel-parity/parse.spec.ts --grep "readonly plan detail exposes|start interview hands off directly"`.
 - The browser gate opens `/parse?targetJobId=...`, mocks generated API
-  responses, verifies route resume inheritance in unit tests, first verifies Save/Start are disabled until the user clicks a ready resume when no valid route resume is present, then clicks Save plan and Start interview, asserts `updateTargetJob` body/Idempotency-Key,
-  verifies `/workspace` carries `targetJobId / jobId / jdId / planId /
-  resumeId / roundId / roundName` with a real ready resume, verifies Start reaches
-  `practice`, and rejects `workspace-missing-resume` / `resume-unbound` success markers.
+  responses, verifies the readonly receipt has only Start as the success action,
+  asserts no `updateTargetJob` PATCH calls were made, verifies Start reaches
+  `practice`, and rejects `resume-unbound` / `workspace-missing-resume` success markers.

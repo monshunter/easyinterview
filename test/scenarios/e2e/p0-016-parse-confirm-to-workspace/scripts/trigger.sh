@@ -19,5 +19,5 @@ mkdir -p "$OUTPUT_DIR"
   COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend build
   COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend exec playwright test \
     tests/pixel-parity/parse.spec.ts \
-    --grep "save plan navigates|start interview hands off"
+    --grep "readonly plan detail exposes|start interview hands off directly"
 ) | tee "$OUTPUT_DIR/trigger.log"

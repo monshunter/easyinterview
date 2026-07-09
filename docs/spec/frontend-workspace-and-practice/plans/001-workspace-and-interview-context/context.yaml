@@ -111,4 +111,3 @@ spec:
           - startPracticeSession
           - getTargetJob
           - getResume
-          - updateTargetJob
