@@ -1,8 +1,8 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.22
+> **版本**: 2.23
 > **状态**: active
-> **更新日期**: 2026-07-08
+> **更新日期**: 2026-07-09
 
 ## 1 文档目的
 
@@ -42,10 +42,8 @@
 │  └─ 最近模拟面试（最多 3 条 + 更多）
 ├─ Interview / 面试
 │  ├─ 面试规划列表（一级入口默认 landing）
-│  ├─ 当前面试规划
+│  ├─ 面试规划详情 / 面试上下文确认（Parse 母版统一承接首次核对与回访）
 │  ├─ JD / 简历 / InterviewRound
-│  ├─ 公司情报嵌入卡片
-│  ├─ 会话记录
 │  └─ 立即面试
 ├─ Interview Session
 │  ├─ 文本面试 / 语音面试
@@ -110,8 +108,8 @@ Home
 │     └─ Resume Intake
 │
 ├─ 立即面试（选择简历下方）
-│  └─ Parse & Confirm Interview(resumeId 已绑定)
-│     └─ Interview Session 或 Mock Interview Plan
+│  └─ Interview Plan Detail / Context Confirm(resumeId 已绑定)
+│     └─ Interview Session 或保存后回到面试规划列表
 ├─ 最近模拟面试
 │  ├─ 最多 3 条快捷卡片
 │  └─ 更多 -> 面试规划列表
@@ -119,7 +117,7 @@ Home
 Interview / 面试
 ├─ 面试规划列表
 │  ├─ 已有 TargetJob / JD 候选规划
-│  ├─ 打开当前规划详情
+│  ├─ 打开统一面试规划详情
 │  └─ 从新 JD 创建规划 -> Home
 
 Mock Interview Plan
@@ -148,7 +146,7 @@ Resume
 ### 6.2 上下文 / 会话级页面
 
 ```text
-ParseAndConfirmInterview
+InterviewPlanDetail / ContextConfirm
 InterviewSession(sessionId)
 ReportGenerating(sessionId)
 ReportDashboard(sessionId)

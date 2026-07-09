@@ -21,7 +21,7 @@ import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResu
 
 const LOADING_PREVIEW_DELAY = 3200;
 
-function makeReadyFixture() {
+function makeReadyFixture(overrides: Record<string, unknown> = {}) {
   const body = (
     getTargetJobFixture.scenarios.default as {
       response: { body: Record<string, unknown> };
@@ -33,7 +33,7 @@ function makeReadyFixture() {
       default: {
         response: {
           status: 200,
-          body: { ...body, analysisStatus: "ready" as const },
+          body: { ...body, analysisStatus: "ready" as const, ...overrides },
         },
       },
     },
@@ -42,12 +42,13 @@ function makeReadyFixture() {
 
 function createClient(
   fixtures: readonly OperationFixture[] = [listResumesFixture],
+  targetOverrides: Record<string, unknown> = {},
 ) {
   const fetch = createFixtureBackedFetch(
     createFixtureRegistry([
       getRuntimeConfigFixture,
       getMeFixture,
-      makeReadyFixture(),
+      makeReadyFixture(targetOverrides),
       updateTargetJobFixture,
       ...fixtures,
     ]),
@@ -161,7 +162,10 @@ afterEach(() => {
 
 describe("ParseResumeBinding", () => {
   it("inherits a valid route resumeId from the Home immediate interview handoff", async () => {
-    const client = createClient();
+    const client = createClient([listResumesFixture], {
+      currentPracticePlanId: null,
+      resumeId: null,
+    });
 
     await renderReadyParse(client, {
       resumeId: "01918fa0-0000-7000-8000-000000001000",
@@ -179,7 +183,10 @@ describe("ParseResumeBinding", () => {
   });
 
   it("loads ready resumes but requires an explicit resume selection before any handoff", async () => {
-    const client = createClient();
+    const client = createClient([listResumesFixture], {
+      currentPracticePlanId: null,
+      resumeId: null,
+    });
     const listSpy = vi.spyOn(client, "listResumes");
 
     await renderReadyParse(client);
@@ -205,7 +212,10 @@ describe("ParseResumeBinding", () => {
   });
 
   it("enables launch actions only after the user chooses a ready resume", async () => {
-    const client = createClient();
+    const client = createClient([listResumesFixture], {
+      currentPracticePlanId: null,
+      resumeId: null,
+    });
     await renderReadyParse(client);
 
     expect(await screen.findByTestId("parse-resume-required")).toBeInTheDocument();
@@ -273,6 +283,7 @@ describe("ParseResumeBinding", () => {
     const updateSpy = vi.spyOn(client, "updateTargetJob");
     const { navigate } = await renderReadyParse(client);
 
+    fireEvent.click(await screen.findByTestId("parse-resume-picker-toggle"));
     fireEvent.click(
       await screen.findByTestId(
         "parse-resume-option-0195f2d0-0000-7000-8000-000000001010",

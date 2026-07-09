@@ -120,6 +120,12 @@ describe("ParseScreen", () => {
     );
 
     expect(screen.getByTestId("parse-basics-title")).toBeInTheDocument();
+    expect(screen.getByTestId("unified-plan-detail")).toBeInTheDocument();
+    expect(screen.getByTestId("unified-plan-detail-title")).toHaveTextContent(
+      "Interview plan detail",
+    );
+    expect(document.body).not.toHaveTextContent("这是我从 JD 里读出来的内容");
+    expect(document.body).not.toHaveTextContent("Here's what I read from the JD");
     expect(screen.getByTestId("parse-basics-company")).toBeInTheDocument();
     expect(screen.getByTestId("parse-basics-location")).toBeInTheDocument();
     expect(screen.getByTestId("parse-basics-notes")).toBeInTheDocument();

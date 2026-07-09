@@ -1,13 +1,14 @@
 # Frontend Workspace and Practice History
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
-> **更新日期**: 2026-07-08
+> **更新日期**: 2026-07-09
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-09 | 1.12 | Spec v1.13 and plan 001 v1.17 reopen the workspace owner so context-bearing workspace routes reuse the Parse-derived "面试规划详情 / 面试上下文确认" mother page while workspace keeps list landing and start-practice ownership. | 001-workspace-and-interview-context Phase 12 |
 | 2026-07-08 | 1.11 | Spec v1.12 and plan 001 v1.14 reopen the workspace owner to simplify interview plan list cards: remove source/language metadata, use theme accent CTA, and strengthen card/page separation after screenshot review. | 001-workspace-and-interview-context Phase 9 |
 | 2026-07-08 | 1.10 | Spec v1.11 and plan 001 v1.13 reopen the workspace owner to harden the no-context interview plan list as visible list cards after screenshot review. | 001-workspace-and-interview-context Phase 8 |
 | 2026-07-08 | 1.9 | Spec v1.10 and plan 001 v1.12 reopen the workspace owner to make the first-level `面试` entry land on an interview plan list, while context-bearing `workspace` routes continue to render the current plan detail. | 001-workspace-and-interview-context Phase 7 |

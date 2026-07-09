@@ -1,24 +1,25 @@
 # Frontend Home / Parse Spec
 
-> **版本**: 2.11
-> **状态**: completed
-> **更新日期**: 2026-07-07
+> **版本**: 2.12
+> **状态**: active
+> **更新日期**: 2026-07-09
 
 ## 1 背景与目标
 
-`frontend-home-job-picks-and-parse` 是当前新建模拟面试入口的前端 owner，负责 `home` 与 `parse` 两个屏幕。它承接 `frontend-shell` 的 App 壳、route normalization、auth continuation、runtime config、generated client 与 fixture-backed transport，把用户从“带着 JD 来”推进到“确认 JD 解析、绑定简历并进入模拟面试规划或直接开始面试”。
+`frontend-home-job-picks-and-parse` 是当前新建模拟面试入口的前端 owner，负责 `home` 与 `parse` 两个屏幕，并拥有由原 `JD 解析结果` 页演进而来的统一面试规划详情母版。它承接 `frontend-shell` 的 App 壳、route normalization、auth continuation、runtime config、generated client 与 fixture-backed transport，把用户从“带着 JD 来”推进到“在面试规划详情 / 面试上下文确认页核对 JD、绑定简历并保存规划或直接开始面试”。
 
 当前目标链路：
 
 ```text
 Home 输入 / 上传 / URL 导入 JD
   -> 显式选择 ready Resume
-  -> Parse 解析确认
+  -> Parse loading
+  -> 面试规划详情 / 面试上下文确认
   -> 仅保存规划 / 立即面试
   -> Workspace / Practice handoff
 ```
 
-本 subspec 只维护 Home + Parse。Workspace、Practice、Report、Resume 管理、TargetJob 后端、Upload 后端、AI 解析与 persistence 分属各自 owner。
+本 subspec 维护 Home + Parse loading + 统一详情母版。Workspace 列表、workspace route auto-start、Practice、Report、Resume 管理、TargetJob 后端、Upload 后端、AI 解析与 persistence 分属各自 owner；workspace 带上下文回访时复用本母版，不再维护第二套详情视觉。
 
 ## 2 范围
 
@@ -34,12 +35,12 @@ Home 输入 / 上传 / URL 导入 JD
   - Empty state 引导继续创建模拟面试，不展示占位业务数据。
   - 未登录 import 通过 opaque pending import id 接续。
   - i18n 支持 zh/en，所有文案通过 typed locale helper。
-- Parse 屏（`route=parse`）：
+- Parse / Unified Plan Detail（`route=parse` 首次导入；`route=workspace` 带上下文回访时复用同一母版）：
   - 源级复刻 `ui-design/src/screens-p0-complete.jsx::ParseScreen` 当前结构。
   - Loading 阶段渲染 4 步进度条与 backend parse metadata footer。
   - 通过 generated `getTargetJob(targetJobId)` 轮询 `analysisStatus`，进入 preview 或 failed state。
-  - Preview 阶段支持 Basic fields 行内编辑、requirements hit/partial/gap toggle、hidden signals、round assumptions、ready 简历绑定。
-  - Footer actions：Cancel -> `home`、Re-parse、仅保存规划 -> `workspace`、立即面试 -> `workspace(autoStartPractice=1)`。
+  - Preview 阶段用户可见名称为“面试规划详情 / 面试上下文确认”，支持 Basic fields 行内编辑、requirements hit/partial/gap toggle、hidden signals、round assumptions、ready 简历绑定。
+  - Footer actions：Cancel/Back 根据入口返回 `home` 或 `workspace` 列表；Re-parse 只在 parse loading 入口显示；仅保存规划 -> `workspace` 同一详情上下文；立即面试 -> `workspace(autoStartPractice=1)`。
   - 两个成功出口均必须携带真实 `resumeId`。
   - 未登录启动通过 auth continuation 接续到 workspace / practice。
 - Parity 与验证：
@@ -47,7 +48,8 @@ Home 输入 / 上传 / URL 导入 JD
 
 ### 2.2 Out of Scope
 
-- `workspace` 屏内规划列表、轮次切换、workspace auto-start session 创建：由 `frontend-workspace-and-practice` 承接。
+- `workspace` 无上下文规划列表、workspace auto-start session 创建、practice session 启动编排：由 `frontend-workspace-and-practice` 承接。
+- 独立于 Parse 母版之外的第二套 workspace 当前规划详情页：不属于当前范围，必须删除或改为复用统一详情母版。
 - `practice` / `report` / `resume_versions` 业务屏：由各自 subspec 承接。
 - 真实 URL fetch、文件对象持久化、TargetJob import / parse / update handler、AI provider、prompt/rubric、DB migration、event/outbox：由 backend / contract owner 承接。
 - 前端不直接调用 LLM、provider-specific endpoint、prompt registry 或 ad hoc parse fetch。
@@ -64,13 +66,14 @@ Home 输入 / 上传 / URL 导入 JD
 | D-6 | Recent mocks | Home 最多展示 3 张最近模拟面试卡片，更多列表入口交给 `workspace` | 首页保持新建任务优先 |
 | D-7 | i18n | 只维护当前 `home.*` 与 `parse.*` namespace | 与 typed locale helper 一致 |
 | D-8 | Privacy | JD 原文、source URL、rawDescription 不进入 URL/localStorage/console/telemetry | 只允许通过 generated request body 与 React state 传递 |
+| D-9 | 统一详情母版 | 原 `JD 解析结果` 页改名为“面试规划详情 / 面试上下文确认”，同时服务首次导入和 workspace 回访 | 用户只学习一个确认页面；workspace 不再维护第二套全页确认 |
 
 ## 4 设计约束
 
 - DOM 构图、控件类型、间距、字体层级、状态、响应式行为和交互节奏必须可追溯到 `ui-design/` 当前源码。
 - Home `home-jd-input-card` 同时承载 textarea 与 `home-jd-source-controls`；主按钮位于简历选择行下方。
 - Home resume select 使用紧凑下拉框；不得平铺所有简历。
-- Parse loading 即使首个 `getTargetJob` 已 ready，也必须先展示当前 UI 真理源定义的 loading gate，再进入 preview。
+- `route=parse` loading 即使首个 `getTargetJob` 已 ready，也必须先展示当前 UI 真理源定义的 loading gate，再进入 detail；`route=workspace` 回访已解析规划时不得强制播放 parse loading，应直接渲染同一详情母版的 ready 状态。
 - Parse hit toggle 是前端临时状态，不写回 `TargetJobRequirement.evidenceLevel`。
 - `createUploadPresign`、`importTargetJob`、`updateTargetJob` 均为 side-effect operation，必须携带 `Idempotency-Key`。
 - 保存规划 / 立即面试只写回 `UpdateTargetJobRequest` 允许的字段，不把 read-only UI slot 写入后端。
@@ -80,12 +83,12 @@ Home 输入 / 上传 / URL 导入 JD
 
 | 边界 | Owner | 说明 |
 |------|-------|------|
-| Home / Parse UI | `frontend-home-job-picks-and-parse` | React 组件、route 业务内容、i18n、source parity、pixel parity |
+| Home / Parse / Unified Plan Detail UI | `frontend-home-job-picks-and-parse` | React 组件、route 业务内容、i18n、source parity、pixel parity；workspace 回访复用该详情母版 |
 | App shell / auth / runtime | `frontend-shell` | TopBar、route normalization、auth continuation、generated client bootstrap |
 | TargetJobs API | `openapi-v1-contract` + `backend-targetjob` | `importTargetJob` / `listTargetJobs` / `getTargetJob` / `updateTargetJob` schema、fixtures、handler |
 | Upload presign | `backend-upload` | `createUploadPresign` handler 与 file object persistence |
 | Resume list | `backend-resume` | `listResumes` 只读 ready resume selection |
-| Workspace handoff | `frontend-workspace-and-practice` | workspace route、auto-start、session 创建、practice 跳转 |
+| Workspace handoff | `frontend-workspace-and-practice` | workspace 列表 route、auto-start、session 创建、practice 跳转；带上下文详情复用统一母版 |
 | Mock transport | `mock-contract-suite` | fixture-backed deterministic variants |
 
 ## 6 Operation Matrix
@@ -96,7 +99,7 @@ Home 输入 / 上传 / URL 导入 JD
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home resume select + Parse resume binding | `backend-resume` | `resumes` read | none | `E2E.P0.015` / `E2E.P0.016` |
 | `createUploadPresign` | `openapi/fixtures/Uploads/createUploadPresign.json` | Home upload source action | `backend-upload` | `file_objects` create | none | `E2E.P0.015` |
 | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | Home paste / file / URL import | `backend-targetjob` | `target_jobs` / `target_job_sources` create | backend-only parse job | `E2E.P0.015` |
-| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse polling + preview | `backend-targetjob` | `target_jobs` / requirements read | backend-generated summary only | `E2E.P0.015` |
+| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse polling + unified detail preview | `backend-targetjob` | `target_jobs` / requirements read | backend-generated summary only | `E2E.P0.015` / `E2E.P0.016` / `E2E.P0.018` |
 | `updateTargetJob` | `openapi/fixtures/TargetJobs/updateTargetJob.json` | Parse save / start actions | `backend-targetjob` | `target_jobs` update | none | `E2E.P0.016` |
 
 ## 7 验收标准
@@ -108,15 +111,16 @@ Home 输入 / 上传 / URL 导入 JD
 | C-3 | Paste JD import | 用户选择 ready 简历并粘贴 JD | 点击「立即面试」 | 调用 `importTargetJob` manual_text，成功进入 `parse` 且 route params 含真实 `resumeId` | 001 |
 | C-4 | Upload / URL import | 用户使用 source actions | Confirm | Upload 先 `createUploadPresign` 再 `importTargetJob(file)`；URL 调 `importTargetJob(url)`；均带 `Idempotency-Key` | 001 |
 | C-5 | Recent mocks | `listTargetJobs` 返回多条记录 | Home 加载完成 | 只展示最近 3 张，排序按 `updatedAt desc`；「更多」进入 `workspace` | 001 |
-| C-6 | Parse ready flow | `getTargetJob` 返回 ready | 用户进入 `parse` | 先展示 loading gate，再渲染 preview；Hidden signals / requirements / round assumptions 只来自 API response | 001 |
+| C-6 | Parse ready flow | `getTargetJob` 返回 ready | 用户进入 `parse` | 先展示 loading gate，再渲染“面试规划详情 / 面试上下文确认”；Hidden signals / requirements / round assumptions 只来自 API response | 001 |
 | C-7 | Parse failed flow | `analysisStatus=failed` 或轮询超时 | Parse polling | 渲染失败态、重新解析和返回首页；不伪造 preview 数据 | 001 |
 | C-8 | Save plan | Preview 已选择 ready 简历 | 点击「仅保存规划」 | `updateTargetJob` 只写 supplied fields，成功进入 `workspace` 且携带真实 `resumeId` | 001 |
 | C-9 | Start interview | Preview 已选择 ready 简历 | 点击「立即面试」 | `updateTargetJob` 后进入 `workspace(autoStartPractice=1)`，由 workspace owner 创建 session | 001 |
 | C-10 | Privacy | 用户提交 JD 原文或 URL | 检查 URL/localStorage/console/telemetry | 不出现 raw JD、source URL 或 rawDescription；fixture transport 不记录 request body | 001 |
+| C-11 | Workspace 回访统一详情 | `listTargetJobs` 返回已保存规划且有 `targetJobId/resumeId` | 用户从 `workspace` 规划列表打开规划 | 页面渲染同一个面试规划详情母版，不出现独立 workspace Header/Launcher/JD card 二次确认；返回动作回到面试规划列表 | 001 / frontend-workspace-and-practice 001 |
 
 ## 8 关联计划
 
-- [001-home-jd-import-and-parse](./plans/001-home-jd-import-and-parse/plan.md) — Home + Parse 当前 owner 计划，覆盖 source parity、generated-client request、real-mode gate、resume selection、recent mocks、parse handoff 和 P0.014-P0.016 BDD。
+- [001-home-jd-import-and-parse](./plans/001-home-jd-import-and-parse/plan.md) — Home + Parse + unified plan detail 当前 owner 计划，覆盖 source parity、generated-client request、real-mode gate、resume selection、recent mocks、parse/workspace unified detail handoff 和 P0.014-P0.016/P0.018 BDD。
 
 ## 9 关联文档
 

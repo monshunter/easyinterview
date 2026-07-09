@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: completed
 > **更新日期**: 2026-07-09
 
@@ -11,21 +11,22 @@
 
 ## 1 目标
 
-本计划交付当前 Home + Parse 新建模拟面试入口。用户从首页输入、上传或 URL 导入 JD，显式选择一份 ready 简历，进入 Parse 核对岗位解析结果，并选择仅保存规划或立即进入面试链路。
+本计划交付当前 Home + Parse 新建模拟面试入口，并在 v2.7 原地修订中把原 `JD 解析结果` 页升级为统一的“面试规划详情 / 面试上下文确认”母版。用户从首页输入、上传或 URL 导入 JD，显式选择一份 ready 简历，进入统一详情页核对 JD、简历和轮次；既有规划从 `workspace` 列表回访时也使用同一母版，不再出现第二套 workspace 当前规划详情页。
 
 交付后的当前链路：
 
 ```text
 Home JD source + ready Resume
   -> importTargetJob(resumeId)
-  -> Parse loading / preview
+  -> Parse loading
+  -> Unified Plan Detail / Context Confirm
   -> updateTargetJob
   -> workspace / workspace(autoStartPractice=1)
 ```
 
 ## 2 背景
 
-`frontend-shell` 提供 App 壳、route normalization、auth pending action、runtime config、generated client bootstrap 与 fixture-backed transport。本 owner 只负责 `home` 与 `parse` 两个业务屏。
+`frontend-shell` 提供 App 壳、route normalization、auth pending action、runtime config、generated client bootstrap 与 fixture-backed transport。本 owner 负责 `home`、`parse` loading 和统一详情母版。Workspace 无上下文列表、`autoStartPractice=1` 触发的 create/start session 编排仍归 `frontend-workspace-and-practice`。
 
 UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-design/src/screens-p0-complete.jsx::ParseScreen` 与 `ui-design/src/primitives.jsx`。正式前端只允许为真实数据、generated client、鉴权接续和可访问性做工程适配。
 
@@ -43,8 +44,8 @@ UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-desig
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior` + `contract`
-- **TDD 策略**: 已通过 `/implement` -> `/tdd` 交付。当前 Red-Green-Refactor 证据保留在 focused Vitest：`frontend/src/app/screens/home/*`、`frontend/src/app/screens/parse/*`、`frontend/src/api/targetJob.realApiMode.test.ts`。
-- **BDD 策略**: Feature plan requires BDD；当前 BDD gate 为 `E2E.P0.014`、`E2E.P0.015`、`E2E.P0.016`。
+- **TDD 策略**: v2.7 继续通过 `/implement` -> `/tdd` 执行；Red-Green-Refactor 覆盖 `frontend/src/app/screens/parse/*`、`frontend/src/app/screens/workspace/*`、`frontend/src/app/navigation/interviewContext.ts`、`frontend/tests/pixel-parity/{parse,workspace}.spec.ts`。
+- **BDD 策略**: Feature plan requires BDD；当前 BDD gate 为 `E2E.P0.014`、`E2E.P0.015`、`E2E.P0.016`，v2.7 追加 `E2E.P0.018` 作为 workspace 列表进入统一详情的回访 gate。
 - **替代验证 gate**: 不适用；本计划具备 TDD + BDD 双层验证。
 
 ## 4 当前实现合同
@@ -60,12 +61,13 @@ UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-desig
 
 ### 4.2 Parse
 
-- 进入 Parse 后先展示 4 步 loading gate，再根据 `getTargetJob.analysisStatus` 进入 preview 或 failed state。
-- Preview 只渲染 API response 中的 title、companyName、locationText、requirements、summary、fitSummary、round assumptions 与 provenance 信息。
+- 进入 Parse 后先展示 4 步 loading gate，再根据 `getTargetJob.analysisStatus` 进入 detail 或 failed state。
+- Preview / workspace 回访详情对用户命名为“面试规划详情 / 面试上下文确认”，只渲染 API response 中的 title、companyName、locationText、requirements、summary、fitSummary、round assumptions 与 provenance 信息。
 - Basic fields 的 title/company/location/notes 可编辑；requirements hit toggle 是前端临时确认状态，不写回后端。
 - Parse 读取 ready 简历列表；若 route `resumeId` 命中 ready 简历则继承绑定，否则 Save/Start 保持 disabled，直到用户显式选择或创建简历。
 - Save plan 与 Start interview 均先调用 `updateTargetJob`，request body 只包含 supplied editable fields，并携带 idempotency key。
 - Save plan 进入 `workspace`；Start interview 进入 `workspace` 并携带 `autoStartPractice=1`，由 workspace owner 创建 session。
+- `workspace?targetJobId=...` 普通回访不得强制播放 parse loading；应直接拉取 `getTargetJob` 并渲染同一详情母版 ready state。`workspace(autoStartPractice=1)` 仍交给 workspace owner 执行 create/start session，不能在详情母版里复制 session 启动逻辑。
 
 ### 4.3 Privacy / Auth
 
@@ -132,10 +134,35 @@ Successful import still navigates to Parse with `targetJobId`, source and `resum
 
 `E2E.P0.015` must continue to cover Home import request shape and privacy behavior, with `resumeId` treated as an allowed business identifier and JD raw text/source secrets still excluded from URL/pending action storage.
 
+### Phase 5: Unified plan detail remediation
+
+#### 5.1 UI truth source and copy
+
+Rename the Parse preview user-facing concept from "JD parse result" to "Interview Plan Detail / Context Confirm" in `ui-design/src/screens-p0-complete.jsx`, `docs/ui-design/`, formal locales and pixel parity expectations, while keeping the 4-step parse loading state for first import only.
+
+#### 5.2 Shared route implementation
+
+Refactor the Parse-derived detail so `route=parse` after loading and `route=workspace` with `targetJobId` render the same DOM structure, fields, resume binding, Save and Start actions. Workspace no-context list remains in `WorkspacePlanList`; workspace `autoStartPractice=1` remains owned by `useStartPractice`.
+
+#### 5.3 Route context and non-current negative
+
+Stop fabricating `plan-${targetJobId}` or `resume-unbound` from shared detail navigation; use declared `TargetJob.currentPracticePlanId` / `TargetJob.resumeId` when present, omit absent IDs, and add negative coverage for the retired independent workspace detail anchors.
+
+#### 5.4 BDD-Gate
+
+`E2E.P0.016` must continue to prove first-import detail Save/Start, and `E2E.P0.018` must prove workspace list card re-entry lands on the same unified detail mother page rather than a second workspace detail page.
+
 ## 6 验收标准
 
 - Home/Parse owner 文档只描述当前 Home + Parse 合同、operation matrix、BDD gate 和验证入口。
 - `context.yaml` 只列当前正向 route、operationId、source package 与场景目录。
 - `E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016` 场景文档和脚本覆盖当前 Home/Parse 主路径、失败路径、privacy gate 与 real-mode generated-client gate。
 - Home import request bodies include the selected `resumeId`, and backend list/detail can recover the binding without depending on transient Parse route params.
+- Parse and workspace detail routes share the same "面试规划详情 / 面试上下文确认" page structure, copy, resume binding and action semantics; workspace no longer renders an independent full-page current-plan confirmation.
 - `sync-doc-index --check`、`make docs-check`、`git diff --check` 和 `make lint-core-loop-pruning-surface` 通过。
+
+## 7 修订记录
+
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-07-09 | 2.7 | Reopen owner plan to unify Parse preview and workspace current-plan detail into one Interview Plan Detail / Context Confirm mother page. |

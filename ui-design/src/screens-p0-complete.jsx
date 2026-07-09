@@ -176,12 +176,12 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
             {lang === "en" ? "STEP 2 OF 2 · REVIEW & LAUNCH" : "第 2 / 2 步 · 核对并启动"}
           </div>
           <h1 className="ei-serif" style={{ fontSize: 32, margin: 0, color: T.ink, letterSpacing: "-0.02em", lineHeight: 1.2 }}>
-            {lang === "en" ? "Here's what I read from the JD." : "这是我从 JD 里读出来的内容。"}
+            {lang === "en" ? "Interview plan detail" : "面试规划详情"}
           </h1>
           <div style={{ fontSize: 14, color: T.ink3, marginTop: 8, maxWidth: 620, lineHeight: 1.5 }}>
             {lang === "en"
-              ? "Fix anything that's off. The generator will use exactly what you confirm here — no silent extras."
-              : "看一眼有没有偏的。练习题生成器只会用你在这里确认的内容——不会偷偷加料。"}
+              ? "Confirm the JD, resume binding, and interview round before saving or starting."
+              : "开始前确认 JD、绑定简历和面试轮次；保存规划和立即面试使用同一份上下文。"}
           </div>
         </div>
         <div style={{ textAlign: "right" }}>

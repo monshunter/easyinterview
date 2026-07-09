@@ -25,6 +25,7 @@ import { WorkspaceScreen } from "./WorkspaceScreen";
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
 import listTargetJobsFixture from "../../../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
 import getResumeFixture from "../../../../../openapi/fixtures/Resumes/getResume.json";
+import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
 
 function clientWithScenarios(opts: {
   targetJobScenario?: string;
@@ -56,6 +57,7 @@ function clientWithScenarios(opts: {
               default: getResumeFixture.scenarios[(opts.resumeScenario ?? "default") as keyof typeof getResumeFixture.scenarios]!,
             },
           },
+          listResumesFixture,
         ],
       ),
       { scenario: "default" },
@@ -218,7 +220,7 @@ describe("WorkspaceEmptyState", () => {
     expect(screen.getByTestId("workspace-plan-list-create")).toBeDefined();
   });
 
-  it("renders recovery empty state when getTargetJob returns not found", async () => {
+  it("renders unified detail error state when getTargetJob returns not found", async () => {
     renderScreen(
       {
         name: "workspace",
@@ -231,15 +233,15 @@ describe("WorkspaceEmptyState", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-empty")).toBeDefined();
+      expect(screen.getByTestId("parse-error")).toBeDefined();
     });
 
+    expect(screen.getByTestId("route-workspace")).toBeDefined();
+    expect(screen.queryByTestId("workspace-empty")).toBeNull();
     expect(screen.queryByTestId("workspace-launcher")).toBeNull();
-    expect(screen.getByTestId("workspace-empty-cta")).toBeDefined();
   });
 
-  it("renders recoverable target error state with retry when getTargetJob returns 5xx", async () => {
-    const user = userEvent.setup();
+  it("renders unified detail error state when getTargetJob returns 5xx", async () => {
     const client = clientWithScenarios({ targetJobScenario: "5xx" });
     const spy = vi.spyOn(client, "getTargetJob");
     renderScreen(
@@ -254,16 +256,12 @@ describe("WorkspaceEmptyState", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-target-error")).toBeDefined();
+      expect(screen.getByTestId("parse-error")).toBeDefined();
     });
 
+    expect(spy).toHaveBeenCalled();
     expect(screen.queryByTestId("workspace-empty")).toBeNull();
     expect(screen.queryByTestId("workspace-launcher")).toBeNull();
-
-    await user.click(screen.getByTestId("workspace-target-error-retry"));
-    await waitFor(() => {
-      expect(spy.mock.calls.length).toBeGreaterThanOrEqual(2);
-    });
   });
 });
 
@@ -277,13 +275,14 @@ describe("WorkspaceMissingResumeState", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-launcher")).toBeDefined();
+      expect(screen.getByTestId("unified-plan-detail")).toBeDefined();
     });
 
     expect(screen.queryByTestId("workspace-missing-resume")).toBeNull();
+    expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
   });
 
-  it("renders when targetJobId exists but resumeId missing", async () => {
+  it("blocks Save/Start in unified detail when targetJobId exists but resumeId is missing", async () => {
     const client = clientWithScenarios();
     vi.spyOn(client, "getTargetJob").mockResolvedValue({
       ...getTargetJobFixture.scenarios.default.response.body,
@@ -297,20 +296,24 @@ describe("WorkspaceMissingResumeState", () => {
     }, client);
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-missing-resume")).toBeDefined();
+      expect(screen.getByTestId("parse-resume-required")).toBeDefined();
     });
 
-    expect(screen.getByTestId("workspace-missing-resume-eyebrow")).toBeDefined();
-    expect(screen.getByTestId("workspace-missing-resume-title")).toBeDefined();
-    expect(screen.getByTestId("workspace-missing-resume-cta")).toBeDefined();
+    expect(screen.queryByTestId("workspace-missing-resume")).toBeNull();
+    expect(screen.getByTestId("parse-action-save-plan")).toBeDisabled();
+    expect(screen.getByTestId("parse-action-start-interview")).toBeDisabled();
   });
 
-  it("CTA navigates to resume_versions with flow=create", async () => {
+  it("resume create CTA is only shown by unified detail when no selectable resume exists", async () => {
     const client = clientWithScenarios();
     vi.spyOn(client, "getTargetJob").mockResolvedValue({
       ...getTargetJobFixture.scenarios.default.response.body,
       resumeId: null,
     } as Awaited<ReturnType<EasyInterviewClient["getTargetJob"]>>);
+    vi.spyOn(client, "listResumes").mockResolvedValue({
+      items: [],
+      pageInfo: { hasMore: false, nextCursor: null, pageSize: 20 },
+    } as Awaited<ReturnType<EasyInterviewClient["listResumes"]>>);
     const { nav } = renderScreen({
       name: "workspace",
       params: {
@@ -319,13 +322,16 @@ describe("WorkspaceMissingResumeState", () => {
     }, client);
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-missing-resume-cta")).toBeDefined();
+      expect(screen.getByTestId("parse-resume-create")).toBeDefined();
     });
 
-    screen.getByTestId("workspace-missing-resume-cta").click();
+    screen.getByTestId("parse-resume-create").click();
     expect(nav).toHaveBeenCalledWith({
       name: "resume_versions",
-      params: { flow: "create" },
+      params: {
+        flow: "create",
+        targetJobId: "01918fa0-0000-7000-8000-000000002000",
+      },
     });
   });
 });

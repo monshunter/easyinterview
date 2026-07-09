@@ -82,6 +82,26 @@ function safeScrollToTop(): void {
   }
 }
 
+function useParseCompactLayout(): boolean {
+  const [compact, setCompact] = useState(() => {
+    if (typeof window === "undefined") return false;
+    if (typeof window.matchMedia !== "function") return false;
+    return window.matchMedia("(max-width: 720px)").matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia("(max-width: 720px)");
+    const update = () => setCompact(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  return compact;
+}
+
 export const ParseScreen: FC<ParseScreenProps> = ({
   route,
   _mockStage,
@@ -120,6 +140,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     typeof route.params?.targetJobId === "string"
       ? route.params.targetJobId
       : undefined;
+  const isWorkspaceDetail = route.name === "workspace";
+  const compactLayout = useParseCompactLayout();
+  const routeTestId = isWorkspaceDetail ? "route-workspace" : "route-parse";
   const routeResumeId =
     typeof route.params?.resumeId === "string"
       ? route.params.resumeId
@@ -212,7 +235,12 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         if (cancelled) return;
 
         if (job.analysisStatus === "ready") {
-          setPendingReadyJob(job);
+          if (isWorkspaceDetail) {
+            hydrateReadyJob(job);
+            setStage("preview");
+          } else {
+            setPendingReadyJob(job);
+          }
         } else if (job.analysisStatus === "failed") {
           setStage("failed");
         } else {
@@ -242,7 +270,15 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       setPendingReadyJob(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runtime, targetJobId, _mockStage, _mockTargetJob, pollNonce]);
+  }, [
+    runtime,
+    targetJobId,
+    _mockStage,
+    _mockTargetJob,
+    pollNonce,
+    isWorkspaceDetail,
+    hydrateReadyJob,
+  ]);
 
   useEffect(() => {
     if (_mockTargetJob) {
@@ -287,6 +323,13 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           ) {
             return routeResumeId;
           }
+          const targetJobResumeId = targetJob.resumeId?.trim();
+          if (
+            targetJobResumeId &&
+            ready.some((resume) => resume.id === targetJobResumeId)
+          ) {
+            return targetJobResumeId;
+          }
           return "";
         });
       })
@@ -330,8 +373,8 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   );
 
   const handleCancel = useCallback(() => {
-    navigate({ name: "home", params: {} });
-  }, [navigate]);
+    navigate(isWorkspaceDetail ? { name: "workspace", params: {} } : { name: "home", params: {} });
+  }, [isWorkspaceDetail, navigate]);
 
   const handleReparse = useCallback(() => {
     if (pollingRef.current) {
@@ -517,7 +560,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   if (stage === "failed") {
     return (
       <section
-        data-testid="route-parse"
+        data-testid={routeTestId}
         data-route-name={route.name}
         data-route-params={JSON.stringify(route.params)}
         className="ei-fadein"
@@ -529,7 +572,10 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           padding: 48,
         }}
       >
-        <div style={{ maxWidth: 520, width: "100%", textAlign: "center" }}>
+        <div
+          data-testid="parse-error"
+          style={{ maxWidth: 520, width: "100%", textAlign: "center" }}
+        >
           <div
             data-testid="parse-failed-title"
             className="ei-serif"
@@ -595,7 +641,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   if (stage === "error") {
     return (
       <section
-        data-testid="route-parse"
+        data-testid={routeTestId}
         data-route-name={route.name}
         data-route-params={JSON.stringify(route.params)}
         className="ei-fadein"
@@ -607,7 +653,10 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           padding: 48,
         }}
       >
-        <div style={{ maxWidth: 520, width: "100%", textAlign: "center" }}>
+        <div
+          data-testid="parse-error"
+          style={{ maxWidth: 520, width: "100%", textAlign: "center" }}
+        >
           <div
             className="ei-serif"
             style={{
@@ -651,7 +700,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   if (stage === "loading") {
     return (
       <section
-        data-testid="route-parse"
+        data-testid={routeTestId}
         data-route-name={route.name}
         data-route-params={JSON.stringify(route.params)}
         className="ei-fadein"
@@ -809,22 +858,25 @@ export const ParseScreen: FC<ParseScreenProps> = ({
 
   return (
     <section
-      data-testid="route-parse"
+      data-testid={routeTestId}
       data-route-name={route.name}
       data-route-params={JSON.stringify(route.params)}
       className="ei-fadein"
       style={{
         maxWidth: 1200,
         margin: "0 auto",
-        padding: "32px 48px 96px",
+        padding: compactLayout ? "24px 16px 72px" : "32px 48px 96px",
       }}
     >
       {/* Header */}
       <div
+        data-testid="unified-plan-detail"
         style={{
           display: "flex",
+          flexDirection: compactLayout ? "column" : "row",
           justifyContent: "space-between",
           alignItems: "flex-start",
+          gap: compactLayout ? 16 : 24,
           marginBottom: 24,
         }}
       >
@@ -839,9 +891,10 @@ export const ParseScreen: FC<ParseScreenProps> = ({
             {t("parse.stepLabel")}
           </div>
           <h1
+            data-testid="unified-plan-detail-title"
             className="ei-serif"
             style={{
-              fontSize: 32,
+              fontSize: compactLayout ? 28 : 32,
               margin: 0,
               color: "var(--ei-color-fg-primary)",
               letterSpacing: "-0.02em",
@@ -862,7 +915,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
             {t("parse.previewSub")}
           </div>
         </div>
-        <div style={{ textAlign: "right" }}>
+        <div style={{ textAlign: compactLayout ? "left" : "right" }}>
           <div
             className="ei-label"
             style={{
@@ -916,7 +969,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(2, 1fr)",
+            gridTemplateColumns: compactLayout ? "1fr" : "repeat(2, 1fr)",
             padding: "6px 24px",
           }}
         >
@@ -980,6 +1033,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                 <div
                   style={{
                     flex: 1,
+                    minWidth: 0,
                     fontSize: 14,
                     color: "var(--ei-color-fg-primary)",
                     padding: "2px 0",
@@ -999,6 +1053,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
                   }}
                   style={{
                     flex: 1,
+                    minWidth: 0,
                     fontSize: 14,
                     color: "var(--ei-color-fg-primary)",
                     background: "transparent",
@@ -1047,6 +1102,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               placeholder={t("parse.basicsNotesPlaceholder")}
               style={{
                 flex: 1,
+                minWidth: 0,
                 fontSize: 14,
                 color: "var(--ei-color-fg-primary)",
                 background: "transparent",
@@ -1071,7 +1127,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          gridTemplateColumns: compactLayout ? "1fr" : "1fr 1fr",
           gap: 20,
           marginBottom: 20,
         }}
@@ -1354,7 +1410,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
+            gridTemplateColumns: compactLayout ? "1fr" : "repeat(4, 1fr)",
             gap: 10,
           }}
         >
@@ -1419,7 +1475,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr minmax(260px, 360px)",
+            gridTemplateColumns: compactLayout
+              ? "minmax(0, 1fr)"
+              : "1fr minmax(260px, 360px)",
             gap: 24,
             alignItems: "start",
           }}
@@ -1465,7 +1523,8 @@ export const ParseScreen: FC<ParseScreenProps> = ({
               background: "var(--ei-color-bg-soft)",
               border: "1px solid var(--ei-color-rule-strong)",
               borderRadius: "var(--ei-radius-sm)",
-            }}
+              minWidth: 0,
+	            }}
           >
             <div
               className="ei-label"
@@ -1673,8 +1732,10 @@ export const ParseScreen: FC<ParseScreenProps> = ({
       <div
         style={{
           display: "flex",
+          flexDirection: compactLayout ? "column" : "row",
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: compactLayout ? "stretch" : "center",
+          gap: compactLayout ? 14 : 24,
           padding: "16px 0",
           borderTop: "1px solid var(--ei-color-rule-strong)",
         }}
@@ -1690,7 +1751,14 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         >
           {t("parse.footerHint")}
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            flexWrap: "wrap",
+            justifyContent: compactLayout ? "flex-start" : "flex-end",
+          }}
+        >
           <button
             data-testid="parse-action-cancel"
             onClick={handleCancel}
@@ -1707,22 +1775,24 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           >
             {t("parse.cancel")}
           </button>
-          <button
-            data-testid="parse-action-reparse"
-            onClick={handleReparse}
-            style={{
-              padding: "8px 18px",
-              fontSize: 13.5,
-              fontFamily: "var(--ei-font-sans)",
-              background: "var(--ei-color-bg-soft)",
-              border: "1px solid var(--ei-color-rule-strong)",
-              borderRadius: "var(--ei-radius-sm)",
-              color: "var(--ei-color-fg-primary)",
-              cursor: "pointer",
-            }}
-          >
-            {t("parse.reparse")}
-          </button>
+          {!isWorkspaceDetail && (
+            <button
+              data-testid="parse-action-reparse"
+              onClick={handleReparse}
+              style={{
+                padding: "8px 18px",
+                fontSize: 13.5,
+                fontFamily: "var(--ei-font-sans)",
+                background: "var(--ei-color-bg-soft)",
+                border: "1px solid var(--ei-color-rule-strong)",
+                borderRadius: "var(--ei-radius-sm)",
+                color: "var(--ei-color-fg-primary)",
+                cursor: "pointer",
+              }}
+            >
+              {t("parse.reparse")}
+            </button>
+          )}
           <button
             data-testid="parse-action-save-plan"
             onClick={handleSavePlan}

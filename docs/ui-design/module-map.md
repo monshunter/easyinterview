@@ -25,7 +25,7 @@
 
 | 当前能力 | 目标归属 | 调整方式 |
 |----------|----------|----------|
-| `workspace` | Interview / 面试规划列表 + 当前面试规划 | 无上下文时展示面试规划列表；带 `targetJobId` / `planId` 时展示当前规划详情；首次导入启动决策由 `parse` 承载 |
+| `workspace` | Interview / 面试规划列表 + 面试规划详情 | 无上下文时展示面试规划列表；带 `targetJobId` / `planId` 时复用统一面试规划详情母版；首次导入启动决策由 `parse` 承载 |
 | 公司情报 | Interview | 只保留当前面试规划页内嵌轻量卡片 |
 | `resume_versions` | Resume | 一级简历模块当前入口 |
 | `practice` | Interview Session | 文本面试与语音面试共享会话页面 |

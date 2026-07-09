@@ -10,7 +10,7 @@ import { resolve } from "node:path";
  * context/plan.md §4 Phase 6.
  *
  * Covers desktop (1440x900) and mobile (390x844) projects:
- * - DOM anchors (workspace crumbs, plan eyebrow, launcher, main columns, modals,
+ * - DOM anchors (plan-list landing, unified plan-detail mother page,
  *   empty/missing states)
  * - Bounding box stays in viewport, no overlap
  * - default (ocean)/light -> dark -> customAccent theme switching
@@ -183,9 +183,12 @@ async function goToHydratedWorkspace(page: import("@playwright/test").Page) {
     },
   });
   await page.goto("/");
-  await page.waitForSelector("[data-testid='workspace-header-title']");
+  await page.waitForSelector("[data-testid='unified-plan-detail']");
   await page.evaluate(() => window.scrollTo(0, 0));
-  await expect(page.locator("[data-testid='workspace-header-title']")).toContainText(
+  await expect(page.locator("[data-testid='unified-plan-detail-title']")).toContainText(
+    "Interview plan detail",
+  );
+  await expect(page.locator("[data-testid='parse-basics-title'] input")).toHaveValue(
     "Senior Frontend Engineer",
   );
 }
@@ -211,53 +214,38 @@ test.describe("workspace DOM anchor parity", () => {
     expect(ariaCurrent).toBe("page");
   });
 
-  test("hydrated workspace renders full source-level anchor set", async ({ page }) => {
+  test("hydrated workspace renders the unified plan-detail anchor set", async ({ page }) => {
     await goToHydratedWorkspace(page);
     const anchorIds = [
-      "workspace-crumbs",
-      "workspace-plan-eyebrow",
-      "workspace-plan-eyebrow-title",
-      "workspace-plan-action-switch",
-      "workspace-header",
-      "workspace-header-title",
-      "workspace-launcher",
-      "workspace-round-rail",
-      "workspace-cta-start",
-      "workspace-binding-jd",
-      "workspace-binding-resume",
-      "workspace-insight-summary",
-      "workspace-insight-open",
-      "workspace-jd-card",
-      "workspace-jd-block-must",
-      "workspace-jd-block-nice",
-      "workspace-jd-block-hidden",
-      "workspace-prep-card",
-      "workspace-prep-strongs",
-      "workspace-prep-risks",
-      "workspace-history-card",
-      "workspace-history-empty",
+      "route-workspace",
+      "unified-plan-detail",
+      "unified-plan-detail-title",
+      "parse-basics-title",
+      "parse-basics-company",
+      "parse-requirement-must_have-0",
+      "parse-requirement-nice_to_have-0",
+      "parse-hidden-signal-0",
+      "parse-round-0",
+      "parse-launch",
+      "parse-resume-binding",
+      "parse-action-save-plan",
+      "parse-action-start-interview",
     ];
     for (const id of anchorIds) {
       await expect(page.locator(`[data-testid='${id}']`), id).toHaveCount(1);
     }
   });
 
-  test("hydrated workspace opens plan switcher and resume picker modals", async ({ page }) => {
+  test("hydrated workspace exposes the unified resume picker and hides retired modals", async ({ page }) => {
     await goToHydratedWorkspace(page);
 
-    await page.click("[data-testid='workspace-plan-action-switch']");
-    await expect(page.locator("[data-testid='workspace-plan-modal-card']")).toBeVisible();
-    await expect(page.locator("[data-testid^='workspace-plan-modal-card-']")).toHaveCount(2);
-    await page.keyboard.press("Escape");
     await expect(page.locator("[data-testid='workspace-plan-modal-card']")).toHaveCount(0);
-
-    await page.click("[data-testid='workspace-binding-resume-change']");
-    await expect(page.locator("[data-testid='workspace-resume-modal-card']")).toBeVisible();
-    await expect(page.locator("[data-testid='workspace-resume-modal-options']")).toBeVisible();
+    await expect(page.locator("[data-testid='workspace-resume-modal-card']")).toHaveCount(0);
+    await page.click("[data-testid='parse-resume-picker-toggle']");
+    await expect(page.locator("[data-testid='parse-resume-picker']")).toBeVisible();
     await expect(
-      page.locator(`[data-testid='workspace-resume-modal-option-${WORKSPACE_RESUME_ID}']`),
+      page.locator(`[data-testid='parse-resume-option-${WORKSPACE_RESUME_ID}']`),
     ).toBeVisible();
-    await expect(page.locator("[data-testid='workspace-resume-modal-disabled-note']")).toHaveCount(0);
   });
 });
 
@@ -358,13 +346,11 @@ test.describe("workspace bounding box parity", () => {
     expect(viewport).toBeTruthy();
 
     const anchorIds = [
-      "workspace-plan-eyebrow",
-      "workspace-header",
-      "workspace-launcher",
-      "workspace-insight-summary",
-      "workspace-jd-card",
-      "workspace-prep-card",
-      "workspace-history-card",
+      "unified-plan-detail",
+      "parse-basics-title",
+      "parse-requirement-must_have-0",
+      "parse-launch",
+      "parse-resume-binding",
     ];
 
     for (const id of anchorIds) {
@@ -429,9 +415,24 @@ test.describe("workspace screenshot regression", () => {
   test("hydrated workspace renders a non-empty screenshot without a baseline prerequisite", async ({ page }) => {
     await goToHydratedWorkspace(page);
     await freezeAnimations(page);
-    await expect(page.locator("[data-testid='workspace-header-title']")).toBeVisible();
+    await expect(page.locator("[data-testid='unified-plan-detail']")).toBeVisible();
     const screenshot = await page.screenshot({ fullPage: false });
     expect(screenshot.length).toBeGreaterThan(10_000);
+  });
+});
+
+test.describe("retired workspace detail negative gate", () => {
+  test("ordinary hydrated detail does not render the old independent workspace anchors", async ({ page }) => {
+    await goToHydratedWorkspace(page);
+    for (const retired of [
+      "workspace-header",
+      "workspace-launcher",
+      "workspace-jd-card",
+      "workspace-prep-card",
+      "workspace-history-card",
+    ]) {
+      await expect(page.locator(`[data-testid='${retired}']`)).toHaveCount(0);
+    }
   });
 });
 

@@ -319,7 +319,7 @@ const WorkspacePlanList = ({ T, lang, nav, jobs = [], planOptions = [] }) => {
   } : {
     eyebrow: "面试规划",
     title: "选择要继续的面试规划。",
-    subtitle: "这里展示已保存的目标 JD / 面试规划。选择一项后进入当前规划详情；新建规划仍从首页导入 JD 开始。",
+    subtitle: "这里展示已保存的目标 JD / 面试规划。选择一项后进入面试规划详情；新建规划仍从首页导入 JD 开始。",
     create: "导入 JD",
     emptyTitle: "还没有面试规划",
     emptyDesc: "先从首页导入一个目标 JD，再回来继续面试规划。",

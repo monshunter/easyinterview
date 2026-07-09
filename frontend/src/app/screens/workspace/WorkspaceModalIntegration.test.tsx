@@ -4,7 +4,6 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { useEffect } from "react";
 
 import { EasyInterviewClient } from "../../../api/generated/client";
@@ -24,12 +23,8 @@ import { WorkspaceScreen } from "./WorkspaceScreen";
 
 import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
-import listTargetJobsFixture from "../../../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
-import getResumeFixture from "../../../../../openapi/fixtures/Resumes/getResume.json";
-import getPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
-import createPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/createPracticePlan.json";
-import startPracticeSessionFixture from "../../../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
+import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
 
 const WORKSPACE_ROUTE: Route = {
   name: "workspace",
@@ -48,12 +43,8 @@ function buildClient(): EasyInterviewClient {
       createFixtureRegistry([
         getRuntimeConfigFixture,
         getMeFixture,
-        listTargetJobsFixture,
         getTargetJobFixture,
-        getResumeFixture,
-        getPracticePlanFixture,
-        createPracticePlanFixture,
-        startPracticeSessionFixture,
+        listResumesFixture,
       ]),
       { scenario: "default" },
     ),
@@ -70,58 +61,34 @@ function HydrateContext({ route }: { route: Route }) {
 
 function renderWorkspace(route: Route = WORKSPACE_ROUTE) {
   const client = buildClient();
-  const nav = vi.fn();
-  return {
-    client,
-    nav,
-    ...render(
-      <DisplayPreferencesProvider>
-        <InterviewContextProvider>
-          <AppRuntimeProvider
-            client={client}
-            requestOptions={{ getMe: { headers: { Prefer: "example=authenticated" } } }}
-          >
-            <NavigationProvider value={{ navigate: nav }}>
-              <HydrateContext route={route} />
-              <WorkspaceScreen route={route} />
-            </NavigationProvider>
-          </AppRuntimeProvider>
-        </InterviewContextProvider>
-      </DisplayPreferencesProvider>,
-    ),
-  };
+  return render(
+    <DisplayPreferencesProvider>
+      <InterviewContextProvider>
+        <AppRuntimeProvider
+          client={client}
+          requestOptions={{ getMe: { headers: { Prefer: "example=authenticated" } } }}
+        >
+          <NavigationProvider value={{ navigate: vi.fn() }}>
+            <HydrateContext route={route} />
+            <WorkspaceScreen route={route} />
+          </NavigationProvider>
+        </AppRuntimeProvider>
+      </InterviewContextProvider>
+    </DisplayPreferencesProvider>,
+  );
 }
 
-describe("WorkspaceScreen modal integration", () => {
-  it("opens PlanSwitcherModal from the switch plan action", async () => {
+describe("Workspace retired modal integration", () => {
+  it("ordinary unified detail does not expose the old plan switcher or resume picker actions", async () => {
     renderWorkspace();
-    const user = userEvent.setup();
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-plan-action-switch")).toBeInTheDocument();
+      expect(screen.getByTestId("unified-plan-detail")).toBeInTheDocument();
     });
 
-    await user.click(screen.getByTestId("workspace-plan-action-switch"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-plan-modal-card")).toBeInTheDocument();
-    });
-    expect(screen.getByTestId("workspace-plan-modal-confirm")).toBeInTheDocument();
-  });
-
-  it("opens ResumePickerModal from the change resume action", async () => {
-    renderWorkspace();
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-binding-resume-change")).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByTestId("workspace-binding-resume-change"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-resume-modal-card")).toBeInTheDocument();
-    });
-    expect(screen.getByTestId("workspace-resume-modal-confirm")).toBeInTheDocument();
+    expect(screen.queryByTestId("workspace-plan-action-switch")).toBeNull();
+    expect(screen.queryByTestId("workspace-binding-resume-change")).toBeNull();
+    expect(screen.queryByTestId("workspace-plan-modal-card")).toBeNull();
+    expect(screen.queryByTestId("workspace-resume-modal-card")).toBeNull();
   });
 });

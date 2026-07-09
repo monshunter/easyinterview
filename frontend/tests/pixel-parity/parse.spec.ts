@@ -273,20 +273,14 @@ test.describe("parse screen DOM anchor parity", () => {
     await page.goto("/parse?targetJobId=01918fa0-0000-7000-8000-000000002000");
     await page.waitForSelector("[data-testid='parse-basics-title']", { timeout: 5_000 });
     await expect(page.locator("[data-testid='parse-resume-binding']")).toContainText(
-      "Choose the resume for this interview",
-    );
-    await expect(page.locator("[data-testid='parse-action-save-plan']")).toBeDisabled();
-    await page.click(
-      "[data-testid='parse-resume-option-01918fa0-0000-7000-8000-000000001000']",
-    );
-    await expect(page.locator("[data-testid='parse-resume-binding']")).toContainText(
       "Alice Example - Senior Frontend Engineer",
     );
     await expect(page.locator("[data-testid='parse-action-save-plan']")).toBeEnabled();
     await page.click("[data-testid='parse-action-save-plan']");
     await page.waitForURL(/\/workspace\?/);
     await expect(page.locator("[data-testid='workspace-missing-resume']")).toHaveCount(0);
-    await expect(page.locator("[data-testid='workspace-cta-start']")).toBeVisible();
+    await expect(page.locator("[data-testid='unified-plan-detail']")).toBeVisible();
+    await expect(page.locator("[data-testid='workspace-cta-start']")).toHaveCount(0);
 
     expect(updateCalls).toHaveLength(1);
     expect(updateCalls[0]?.idempotencyKey).toBeTruthy();
@@ -303,7 +297,7 @@ test.describe("parse screen DOM anchor parity", () => {
       targetJobId: "01918fa0-0000-7000-8000-000000002000",
       jobId: "01918fa0-0000-7000-8000-000000002000",
       jdId: "jd-01918fa0-0000-7000-8000-000000002000",
-      planId: "plan-01918fa0-0000-7000-8000-000000002000",
+      planId: "01918fa0-0000-7000-8000-000000004000",
       resumeId: "01918fa0-0000-7000-8000-000000001000",
       roundId: "round-technical-1",
       roundName: "Technical Round 1",
@@ -317,7 +311,7 @@ test.describe("parse screen DOM anchor parity", () => {
     expect(url.search).not.toContain("resume-unbound");
 
     await freezeVisualAnimations(page);
-    const screenshot = await page.locator("[data-testid='workspace-launcher']").screenshot();
+    const screenshot = await page.locator("[data-testid='unified-plan-detail']").screenshot();
     await testInfo.attach("parse-save-plan-workspace-bound-resume", {
       body: screenshot,
       contentType: "image/png",
@@ -346,10 +340,7 @@ test.describe("parse screen DOM anchor parity", () => {
     await page.waitForSelector("[data-testid='parse-basics-title']", { timeout: 5_000 });
     await expect(
       page.locator("[data-testid='parse-action-start-interview']"),
-    ).toBeDisabled();
-    await page.click(
-      "[data-testid='parse-resume-option-01918fa0-0000-7000-8000-000000001000']",
-    );
+    ).toBeEnabled();
     await expect(page.locator("[data-testid='parse-action-start-interview']")).toBeEnabled();
     await page.click("[data-testid='parse-action-start-interview']");
 

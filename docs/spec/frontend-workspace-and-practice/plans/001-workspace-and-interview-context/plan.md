@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.16
+> **版本**: 1.17
 > **状态**: completed
 > **更新日期**: 2026-07-09
 
@@ -11,18 +11,19 @@
 
 ## 1 目标
 
-本 plan 已完成 `workspace` 当前面试规划页、`InterviewContext`、规划/简历切换、立即面试启动和未登录恢复合同。本次 v1.12 原地修订追加一级 `面试` 入口优化：`workspace` 无上下文时不再展示缺 JD 死胡同，而是展示面试规划列表；带上下文时继续进入当前规划详情。
+本 plan 已完成 `workspace` 当前面试规划页、`InterviewContext`、规划/简历切换、立即面试启动和未登录恢复合同。本次 v1.12 原地修订追加一级 `面试` 入口优化：`workspace` 无上下文时不再展示缺 JD 死胡同，而是展示面试规划列表；带上下文时进入统一面试规划详情。
 本次 v1.13 原地修订追加面试规划列表卡片化视觉收口：列表项必须是清晰可感知的卡片，而不是无容器的文本列。
 本次 v1.14 原地修订追加面试规划列表卡片简化：卡片不得展示 `sourceType` / `targetLanguage` 等低价值技术字段，底部只保留主题色进入 CTA，并使用现有卡片 / 边框 / elevation token 拉开与页面背景的层次。
-本次 v1.15 原地修订修复 `进入规划` 回归：列表卡片必须消费后端投影的当前 practice plan / bound resume 信息，导航到当前规划详情时携带真实 `planId` / `resumeId`，不得回落到缺简历空态或合成不存在的 plan/resume id。
+本次 v1.15 原地修订修复 `进入规划` 回归：列表卡片必须消费后端投影的当前 practice plan / bound resume 信息，导航到统一面试规划详情时携带真实 `planId` / `resumeId`，不得回落到缺简历空态或合成不存在的 plan/resume id。
 本次 v1.16 原地修订修复方案 A 数据持久化缺口：创建 JD/规划时选中的简历必须作为 `target_jobs.resume_id` 持久化；`listTargetJobs` / `getTargetJob` 的 `resumeId` 优先来自 target job 级绑定，列表卡片重新进入规划时即使尚未创建 `practice_plans` 也必须携带真实 `resumeId`。
+本次 v1.17 原地修订收敛规划详情体验：`workspace` 无上下文继续展示面试规划列表；带上下文普通回访复用 `frontend-home-job-picks-and-parse` 的 Parse-derived “面试规划详情 / 面试上下文确认”母版，不再渲染独立 workspace Header / Launcher / JD card 第二套详情页；`autoStartPractice=1` 仍由 workspace owner 执行 create/start session。
 
 - TopBar `workspace` 文案改为 `面试` / `Interview`，route/testid 仍保持 `workspace`。
-- `workspace` 无 `targetJobId` / `planId` 时渲染面试规划列表，使用 generated `listTargetJobs`，点击卡片进入当前规划详情。
+- `workspace` 无 `targetJobId` / `planId` 时渲染面试规划列表，使用 generated `listTargetJobs`，点击卡片进入统一面试规划详情。
 - 面试规划列表每个 plan item 必须具备独立卡片容器、卡片背景、1px 边框、轻阴影、内部分区和底部操作区；desktop 使用响应式多列，mobile 折叠为单列。
 - 面试规划列表卡片只展示对继续规划有决策价值的信息：状态、更新时间、岗位、公司和地点；不展示 `手动输入` / 来源类型 / 目标语言等导入元信息；`进入规划` 必须使用主题强调色按钮。
-- 面试规划列表卡片进入当前规划详情时必须使用 `listTargetJobs` 返回的当前 `currentPracticePlanId` / `resumeId`；`resumeId` 是 target job 创建时的持久绑定，若当前还没有 ready practice plan，也必须携带该 `resumeId` 进入详情页。
-- `workspace` route 渲染正式 `WorkspaceScreen`，复刻 `ui-design/src/screen-workspace.jsx` 的当前面试规划、Interview Launcher、公司信号嵌入卡片、JD 拆解、我的准备和当前规划记录区域。
+- 面试规划列表卡片进入统一面试规划详情时必须使用 `listTargetJobs` 返回的当前 `currentPracticePlanId` / `resumeId`；`resumeId` 是 target job 创建时的持久绑定，若当前还没有 ready practice plan，也必须携带该 `resumeId` 进入详情页。
+- `workspace` route 无上下文渲染正式 `WorkspacePlanList`；带上下文普通回访复用统一详情母版；`autoStartPractice=1` 仍渲染/执行 workspace 启动合同并跳转 practice。
 - `InterviewContext` 在 `workspace / practice / generating` owner route 内携带 `targetJobId / jdId / resumeId / roundId / planId / practiceMode / practiceGoal / hintUsed / hintCount`；离开 owner route 清理上下文。
 - Plan Switcher 使用 generated `listTargetJobs` 切换当前规划；Resume Picker 使用当前 flat `listResumes` active-list 选择绑定简历。
 - `立即面试` 使用 generated `getPracticePlan` / `createPracticePlan` / `startPracticeSession`，副作用请求带 `Idempotency-Key`；未登录时通过 `requestAuth({ type: "start_practice" })` 回到 `workspace` 后自动续跑。
@@ -44,11 +45,12 @@
 | `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` | 无可用 plan 时创建 baseline plan | `backend-practice/001` | `practice_plans` | backend-only first question prep | `E2E.P0.020` |
 | `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` | 启动 practice session 并 handoff 到 `practice` | `backend-practice/001` | `practice_sessions` + first turn | backend-only `practice.session.first_question` | `E2E.P0.020` |
 | `getFeedbackReport` | N/A | 本 plan 不消费；records placeholder 不拼 report row | external owner | external | none | `E2E.P0.021` negative |
+| `updateTargetJob` | `openapi/fixtures/TargetJobs/updateTargetJob.json` | 统一详情母版 Save/Start 前保存允许编辑字段 | `backend-targetjob/001` | `target_jobs` partial update | none | `E2E.P0.016`, `E2E.P0.018` shared detail |
 
 ### 2.2 UI / Route Boundary
 
 - `workspace` 保留 App chrome；`practice` 和 `generating` 由下游 owner 隐藏 chrome。
-- TopBar 显示 `面试` / `Interview`；`workspace` 无上下文时展示面试规划列表，带上下文时展示当前规划详情。
+- TopBar 显示 `面试` / `Interview`；`workspace` 无上下文时展示面试规划列表，带上下文时复用统一面试规划详情母版。
 - 当前面试规划不展示练习模式卡片、成长中心、单题深钻、专项练习、独立 voice route 或独立公司信号页面。
 - `resumeId` 是当前简历绑定键；`resumeVersionId` 不作为本 plan 正向 route/context 字段。
 - Records placeholder 只说明当前规划下的模拟面试记录区域存在；真实记录行必须来自 typed records contract owner。
@@ -137,6 +139,13 @@
 - Update formal `WorkspacePlanList` to source-level mirror that card treatment while keeping generated `listTargetJobs` data flow and safe plan navigation unchanged.
 - Add jsdom and Playwright pixel-parity assertions that fail when plan items render as loose text columns or lose card elevation/sectioning.
 
+### Phase 12: Unified detail route remediation
+
+- Reopen the completed owner because user review confirmed that the standalone workspace detail and Parse result page duplicate the same JD / resume / round confirmation job.
+- Keep `WorkspacePlanList` as the no-context `面试` landing, but route ordinary `workspace?targetJobId=...` detail traffic into the Parse-derived “面试规划详情 / 面试上下文确认” mother page.
+- Preserve workspace-owned `autoStartPractice=1`: after unified detail Start navigates to workspace with auto-start, `useStartPractice` still performs `getPracticePlan` / `createPracticePlan` / `startPracticeSession` with idempotency and auth recovery.
+- Add regression coverage that the old independent workspace detail anchors (`workspace-header`, `workspace-launcher`, `workspace-jd-card`, `workspace-prep-card`, `workspace-history-card`) do not appear on ordinary detail re-entry, while `workspace-plan-list` and start-practice gates remain live.
+
 ### Phase 9: Plan-list card simplification and theme consistency
 
 - Reopen the completed owner after screenshot review because Phase 8 still rendered low-value source/language metadata and a secondary CTA that visually competed with the theme.
@@ -158,12 +167,14 @@
 | A-8 | Plan-list landing visually renders as list cards, not loose text columns | `WorkspaceEmptyState.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts`, `E2E.P0.018` |
 | A-9 | Plan-list cards stay concise and theme-consistent: no source/language metadata, accent CTA, clear card/page separation | `WorkspaceEmptyState.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts`, `E2E.P0.018` |
 | A-10 | Target job import persists selected resume binding and workspace plan-list re-entry carries `resumeId` even before any `practice_plans` row exists | backend targetjob tests, Home import tests, Workspace plan-list regression, local API smoke |
+| A-11 | Workspace list card re-entry renders the unified Parse-derived plan detail and no longer shows the independent workspace detail page; `autoStartPractice=1` still launches practice through workspace start contract | `WorkspaceScreen.test.tsx`, `WorkspaceHandoff.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts`, `E2E.P0.018`, `E2E.P0.020` |
 
 ## 6 变更记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
 | 2026-07-09 | 1.16 | Reopen owner plan for target job-level resume binding persistence so workspace plan-list re-entry no longer loses the resume selected during JD import. |
+| 2026-07-09 | 1.17 | Reopen owner plan to route workspace current-plan detail into the unified Parse-derived Interview Plan Detail / Context Confirm mother page while preserving workspace start-practice ownership. |
 | 2026-07-08 | 1.14 | Reopen owner plan for plan-list card simplification, metadata removal and theme-consistent CTA styling after screenshot review. |
 | 2026-07-08 | 1.13 | Reopen owner plan for interview plan-list card visual hardening after screenshot review. |
 | 2026-07-08 | 1.12 | Reopen owner plan for Interview nav naming and workspace plan-list landing revision. |

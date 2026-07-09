@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.16
+> **版本**: 1.17
 > **状态**: completed
 > **更新日期**: 2026-07-09
 
@@ -88,3 +88,11 @@
 - [x] 11.1 `WorkspacePlanList` opens detail with target job-level `resumeId` even when `currentPracticePlanId` is absent and no `practice_plans` row exists（验证：`WorkspaceEmptyState.test.tsx` PASS）
 - [x] 11.2 `TargetJob.resumeId` contract is documented as the target job-level binding used by plan-list re-entry, with practice-plan projection only contributing `currentPracticePlanId`（验证：OpenAPI/generated types + `make validate-fixtures` PASS）
 - [x] 11.3 BDD-Gate: `E2E.P0.018` keeps plan-card selection on the bound-resume detail path for imported jobs without an existing practice plan（验证：focused equivalent workspace tests + local API smoke + `E2E.P0.018` scenario wrapper PASS）
+
+## Phase 12: unified detail route remediation
+
+- [x] 12.1 Ordinary `workspace?targetJobId=...` re-entry renders the Parse-derived `面试规划详情 / 面试上下文确认` mother page and no longer renders independent workspace detail anchors（验证：`WorkspaceScreen.test.tsx`, `WorkspaceHandoff.test.tsx`, `WorkspaceHeader.test.tsx` PASS）
+- [x] 12.2 Workspace no-context `WorkspacePlanList` and plan-card navigation remain generated `listTargetJobs` backed, carrying declared `resumeId/currentPracticePlanId` only（验证：`WorkspaceEmptyState.test.tsx`, `frontend/src/app/navigation/interviewContext.ts` tests PASS）
+- [x] 12.3 `autoStartPractice=1` remains owned by workspace `useStartPractice`, including auth recovery and idempotency; unified detail does not duplicate session start logic（验证：`WorkspaceStartPractice.test.tsx`, `WorkspaceAuthGate.test.tsx` PASS）
+- [x] 12.4 Pixel/source parity verifies workspace list + unified detail routing split across desktop/mobile and rejects retired independent workspace detail geometry（验证：`frontend/tests/pixel-parity/workspace.spec.ts` PASS）
+- [x] 12.5 BDD-Gate: `E2E.P0.018` covers list re-entry to unified detail and `E2E.P0.020` covers auto-start still launching practice（验证：scenario trigger/verify PASS）

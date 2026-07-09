@@ -194,11 +194,6 @@ describe("ParseEdit — save plan call", () => {
     const spy = vi.spyOn(client, "updateTargetJob");
     const { navigate } = await renderReadyParse(client);
 
-    fireEvent.click(
-      await screen.findByTestId(
-        "parse-resume-option-01918fa0-0000-7000-8000-000000001000",
-      ),
-    );
     const saveBtn = await screen.findByTestId("parse-action-save-plan");
     fireEvent.click(saveBtn);
 
@@ -231,7 +226,7 @@ describe("ParseEdit — save plan call", () => {
           targetJobId: "01918fa0-0000-7000-8000-000000002000",
           jobId: "01918fa0-0000-7000-8000-000000002000",
           jdId: "jd-01918fa0-0000-7000-8000-000000002000",
-          planId: "plan-01918fa0-0000-7000-8000-000000002000",
+          planId: "01918fa0-0000-7000-8000-000000004000",
           resumeId: "01918fa0-0000-7000-8000-000000001000",
           roundId: "round-technical-1",
           roundName: "Technical Round 1",
@@ -240,6 +235,7 @@ describe("ParseEdit — save plan call", () => {
     });
     const params = navigate.mock.calls[0]?.[0].params as Record<string, string>;
     expect(JSON.stringify(params)).not.toContain("resume-unbound");
+    expect(JSON.stringify(params)).not.toContain("plan-01918fa0");
   });
 
   it("shows inline error on updateTargetJob 4xx", async () => {
@@ -274,11 +270,6 @@ describe("ParseEdit — save plan call", () => {
 
     await renderReadyParse(client);
 
-    fireEvent.click(
-      await screen.findByTestId(
-        "parse-resume-option-01918fa0-0000-7000-8000-000000001000",
-      ),
-    );
     const saveBtn = await screen.findByTestId("parse-action-save-plan");
     fireEvent.click(saveBtn);
 

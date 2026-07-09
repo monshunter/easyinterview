@@ -5,7 +5,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 
 import { EasyInterviewClient } from "../../../api/generated/client";
 import {
@@ -104,6 +104,13 @@ function HydrateContext({ route }: { route: Route }) {
   return null;
 }
 
+function mockTargetJobWithoutCurrentPlan(client: EasyInterviewClient) {
+  vi.spyOn(client, "getTargetJob").mockResolvedValue({
+    ...getTargetJobFixture.scenarios.default.response.body,
+    currentPracticePlanId: null,
+  } as Awaited<ReturnType<EasyInterviewClient["getTargetJob"]>>);
+}
+
 const FULL_ROUTE: Route = {
   name: "workspace",
   params: {
@@ -112,6 +119,7 @@ const FULL_ROUTE: Route = {
     resumeId: "01918fa0-0000-7000-8000-000000001000",
     roundId: "round-hr",
     planId: "",
+    autoStartPractice: "1",
   },
 };
 
@@ -123,6 +131,7 @@ const PLAN_EXISTS_ROUTE: Route = {
     resumeId: "01918fa0-0000-7000-8000-000000001000",
     roundId: "round-hr",
     planId: "01918fa0-0000-7000-8000-000000004000",
+    autoStartPractice: "1",
   },
 };
 
@@ -134,6 +143,7 @@ const SYNTHETIC_PLAN_ROUTE: Route = {
     resumeId: "01918fa0-0000-7000-8000-000000001000",
     roundId: "round-hr",
     planId: "plan-01918fa0-0000-7000-8000-000000002000",
+    autoStartPractice: "1",
   },
 };
 
@@ -141,16 +151,11 @@ const SYNTHETIC_PLAN_ROUTE: Route = {
 
 describe("WorkspaceStartPractice (Phase 4.7)", () => {
   it("happy path: no plan → createPracticePlan → startPracticeSession → nav practice", async () => {
-    const { nav, client } = renderScreen(FULL_ROUTE);
+    const client = buildClient();
+    mockTargetJobWithoutCurrentPlan(client);
     const createSpy = vi.spyOn(client, "createPracticePlan");
     const startSpy = vi.spyOn(client, "startPracticeSession");
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("workspace-cta-start"));
+    const { nav } = renderScreen(FULL_ROUTE, client);
 
     await waitFor(() => {
       expect(nav).toHaveBeenCalled();
@@ -178,16 +183,9 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
 
   it("happy path: plan exists + ready → skip createPracticePlan, only startPracticeSession", async () => {
     const client = buildClient();
-    const { nav } = renderScreen(PLAN_EXISTS_ROUTE, client);
     const createSpy = vi.spyOn(client, "createPracticePlan");
     const startSpy = vi.spyOn(client, "startPracticeSession");
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("workspace-cta-start"));
+    const { nav } = renderScreen(PLAN_EXISTS_ROUTE, client);
 
     await waitFor(() => {
       expect(nav).toHaveBeenCalled();
@@ -204,17 +202,10 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
 
   it("synthetic plan id is ignored before generated client calls", async () => {
     const client = buildClient();
-    const { nav } = renderScreen(SYNTHETIC_PLAN_ROUTE, client);
     const getPlanSpy = vi.spyOn(client, "getPracticePlan");
     const createSpy = vi.spyOn(client, "createPracticePlan");
     const startSpy = vi.spyOn(client, "startPracticeSession");
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("workspace-cta-start"));
+    const { nav } = renderScreen(SYNTHETIC_PLAN_ROUTE, client);
 
     await waitFor(() => {
       expect(nav).toHaveBeenCalled();
@@ -223,7 +214,10 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
     expect(getPlanSpy).not.toHaveBeenCalledWith(
       SYNTHETIC_PLAN_ROUTE.params.planId,
     );
-    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(getPlanSpy).toHaveBeenCalledWith(
+      "01918fa0-0000-7000-8000-000000004000",
+    );
+    expect(createSpy).not.toHaveBeenCalled();
     expect(startSpy).toHaveBeenCalledTimes(1);
     const startRequest = startSpy.mock.calls[0]![0] as unknown as {
       planId: string;
@@ -246,13 +240,6 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
     const getPlanSpy = vi.spyOn(archivedPlanClient, "getPracticePlan");
     const startSpy = vi.spyOn(archivedPlanClient, "startPracticeSession");
     const { nav } = renderScreen(PLAN_EXISTS_ROUTE, archivedPlanClient);
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("workspace-cta-start"));
 
     await waitFor(() => {
       expect(nav).toHaveBeenCalled();
@@ -279,15 +266,9 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
     ]);
 
     const startSpy = vi.spyOn(missingResumeClient, "startPracticeSession");
-    const user = userEvent.setup();
+    mockTargetJobWithoutCurrentPlan(missingResumeClient);
 
     renderScreen(FULL_ROUTE, missingResumeClient);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("workspace-cta-start"));
 
     // Wait for error state (manual error from the hook, not a fixture error)
     await waitFor(
@@ -321,12 +302,6 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
     );
 
     const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("workspace-cta-start"));
 
     // Wait for error state
     await waitFor(() => {
@@ -363,12 +338,6 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
 
     const user = userEvent.setup();
 
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("workspace-cta-start"));
-
     // Wait for error state
     await waitFor(() => {
       expect(screen.getByTestId("workspace-cta-error")).toBeDefined();
@@ -390,15 +359,10 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
   });
 
   it("nav practice params carry complete InterviewContext + PracticeDisplayContext", async () => {
-    const { nav, client } = renderScreen(FULL_ROUTE);
+    const client = buildClient();
+    mockTargetJobWithoutCurrentPlan(client);
     const createSpy = vi.spyOn(client, "createPracticePlan");
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("workspace-cta-start"));
+    const { nav } = renderScreen(FULL_ROUTE, client);
 
     await waitFor(() => {
       expect(nav).toHaveBeenCalled();
@@ -424,13 +388,6 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
     const client = buildClient();
     const startSpy = vi.spyOn(client, "startPracticeSession");
     const { nav } = renderScreen(FULL_ROUTE, client);
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("workspace-cta-start"));
 
     await waitFor(() => {
       expect(nav).toHaveBeenCalled();
@@ -443,14 +400,7 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
   });
 
   it("negative: workspace does NOT produce the non-current replay value in practiceMode", async () => {
-    const { nav, client } = renderScreen(FULL_ROUTE);
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("workspace-cta-start"));
+    const { nav } = renderScreen(FULL_ROUTE);
 
     await waitFor(() => {
       expect(nav).toHaveBeenCalled();
@@ -466,16 +416,11 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
   });
 
   it("StrictMode: generated client call counts are within expected range", async () => {
-    const { nav, client } = renderScreen(FULL_ROUTE);
+    const client = buildClient();
+    mockTargetJobWithoutCurrentPlan(client);
     const createSpy = vi.spyOn(client, "createPracticePlan");
     const startSpy = vi.spyOn(client, "startPracticeSession");
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("workspace-cta-start"));
+    const { nav } = renderScreen(FULL_ROUTE, client);
 
     await waitFor(() => {
       expect(nav).toHaveBeenCalled();
@@ -488,15 +433,9 @@ describe("WorkspaceStartPractice (Phase 4.7)", () => {
 
   it("createPracticePlan body matches expected schema", async () => {
     const client = buildClient();
+    mockTargetJobWithoutCurrentPlan(client);
     const createSpy = vi.spyOn(client, "createPracticePlan");
     const { nav } = renderScreen(FULL_ROUTE, client);
-    const user = userEvent.setup();
-
-    await waitFor(() => {
-      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("workspace-cta-start"));
 
     await waitFor(() => {
       expect(nav).toHaveBeenCalled();

@@ -93,14 +93,15 @@ function renderWorkspace(
   client: EasyInterviewClient,
   nav: ReturnType<typeof vi.fn>,
   requestOptions?: { getMe?: { headers: Record<string, string> } },
+  route: Route = AUTO_START_ROUTE,
 ) {
   return render(
     <DisplayPreferencesProvider>
       <InterviewContextProvider>
         <AppRuntimeProvider client={client} requestOptions={requestOptions}>
           <NavigationProvider value={{ navigate: nav }}>
-            <HydrateContext route={WORKSPACE_ROUTE} />
-            <WorkspaceScreen route={WORKSPACE_ROUTE} />
+              <HydrateContext route={route} />
+              <WorkspaceScreen route={route} />
           </NavigationProvider>
         </AppRuntimeProvider>
       </InterviewContextProvider>

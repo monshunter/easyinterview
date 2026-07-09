@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-09](./2026-07-09-unified-plan-detail-assessment.md) | Unified Plan Detail 交付复盘 | #assessment |
 | [2026-07-09](./2026-07-09-target-job-resume-binding-assessment.md) | Target Job Resume Binding 交付复盘 | #assessment #BUG-0144 |
 | [2026-07-08](./2026-07-08-plan-resume-binding-and-jd-identity-assessment.md) | Plan Resume Binding and JD Identity 交付复盘 | #assessment #BUG-0144 #BUG-0145 |
 | [2026-07-08](./2026-07-08-interview-plan-list-card-ui-assessment.md) | Interview Plan List Card UI 交付复盘 | #assessment #BUG-0143 |

@@ -3,8 +3,8 @@ import type { TargetJob } from "../../api/generated/types";
 /**
  * Interview context derived from a TargetJob for workspace navigation.
  *
- * Plan §3.7: derives workspace params from TargetJob.id plus deterministic defaults.
- * Must not depend on OpenAPI-undeclared fields.
+ * Plan §3.7: derives workspace params from TargetJob plus declared server
+ * bindings. It must not fabricate practice plan or resume IDs.
  */
 export interface InterviewContext {
   targetJobId: string;
@@ -25,12 +25,13 @@ export function interviewContextFromTargetJob(
   options: InterviewContextOptions = {},
 ): InterviewContext {
   const id = job.id;
-  const resumeId = options.resumeId?.trim() || "resume-unbound";
+  const planId = job.currentPracticePlanId?.trim() || "";
+  const resumeId = options.resumeId?.trim() || job.resumeId?.trim() || "";
   return {
     targetJobId: id,
     jobId: id,
     jdId: `jd-${id}`,
-    planId: `plan-${id}`,
+    planId,
     resumeId,
     roundId: "round-technical-1",
     roundName: "Technical Round 1",

@@ -28,9 +28,11 @@ import { WorkspaceScreen } from "./WorkspaceScreen";
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
 import listTargetJobsFixture from "../../../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
 import getResumeFixture from "../../../../../openapi/fixtures/Resumes/getResume.json";
+import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
 import createPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/createPracticePlan.json";
 import startPracticeSessionFixture from "../../../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
 import getPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
+import updateTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/updateTargetJob.json";
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 
@@ -40,6 +42,8 @@ const BASE_FIXTURES = [
   getTargetJobFixture,
   listTargetJobsFixture,
   getResumeFixture,
+  listResumesFixture,
+  updateTargetJobFixture,
   createPracticePlanFixture,
   startPracticeSessionFixture,
   getPracticePlanFixture,
@@ -98,24 +102,49 @@ function renderWorkspace(nav: ReturnType<typeof vi.fn>) {
 }
 
 describe("WorkspaceHandoff (Phase 5.4)", () => {
-  it("WorkspaceInsightCard action stays on workspace with targetJobId/jdId", async () => {
+  it("ordinary workspace detail re-entry renders the unified plan detail mother page", async () => {
     const nav = vi.fn();
     renderWorkspace(nav);
 
+    await waitFor(() => {
+      expect(screen.getByTestId("unified-plan-detail")).toBeDefined();
+    });
+
+    expect(screen.getByTestId("route-workspace")).toBeDefined();
+    expect(screen.getByTestId("unified-plan-detail-title")).toHaveTextContent(
+      "Interview plan detail",
+    );
+    expect(screen.queryByTestId("workspace-header")).toBeNull();
+    expect(screen.queryByTestId("workspace-launcher")).toBeNull();
+    expect(screen.queryByTestId("workspace-jd-card")).toBeNull();
+    expect(screen.queryByTestId("workspace-prep-card")).toBeNull();
+    expect(screen.queryByTestId("workspace-history-card")).toBeNull();
+  });
+
+  it("unified detail Save plan stays on workspace with declared target, plan, and resume IDs", async () => {
+    const nav = vi.fn();
+    const { client } = renderWorkspace(nav);
+    const updateSpy = vi.spyOn(client, "updateTargetJob");
     const user = userEvent.setup();
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-insight-open")).toBeDefined();
+      expect(screen.getByTestId("parse-action-save-plan")).toBeEnabled();
     });
 
-    await user.click(screen.getByTestId("workspace-insight-open"));
+    await user.click(screen.getByTestId("parse-action-save-plan"));
 
-    expect(nav).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+    });
     const navCall = nav.mock.calls[0]![0] as Record<string, unknown>;
     expect(navCall.name).toBe("workspace");
     const params = navCall.params as Record<string, string>;
     expect(params.targetJobId).toBe(WORKSPACE_ROUTE.params.targetJobId);
-    expect(params.jdId).toBe(WORKSPACE_ROUTE.params.jdId);
+    expect(params.jobId).toBe(WORKSPACE_ROUTE.params.targetJobId);
+    expect(params.planId).toBe("01918fa0-0000-7000-8000-000000004000");
+    expect(params.resumeId).toBe(WORKSPACE_ROUTE.params.resumeId);
+    expect(JSON.stringify(params)).not.toContain("plan-01918fa0");
+    expect(JSON.stringify(params)).not.toContain("resume-unbound");
   });
 
   it("getFeedbackReport is NOT called during workspace render", async () => {
@@ -124,37 +153,33 @@ describe("WorkspaceHandoff (Phase 5.4)", () => {
     const fbSpy = vi.spyOn(client, "getFeedbackReport");
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-cta-start")).toBeDefined();
+      expect(screen.getByTestId("parse-action-start-interview")).toBeDefined();
     });
 
     // The workspace should never call getFeedbackReport
     expect(fbSpy).not.toHaveBeenCalled();
   });
 
-  it("records area renders Empty placeholder", async () => {
+  it("ordinary unified detail no longer renders the old workspace records placeholder", async () => {
     const nav = vi.fn();
     renderWorkspace(nav);
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-history-card")).toBeDefined();
+      expect(screen.getByTestId("unified-plan-detail")).toBeDefined();
     });
 
-    expect(screen.getByTestId("workspace-history-empty")).toBeDefined();
+    expect(screen.queryByTestId("workspace-history-card")).toBeNull();
+    expect(screen.queryByTestId("workspace-history-empty")).toBeNull();
   });
 
-  it("records empty placeholder clicking does NOT trigger report nav", async () => {
+  it("ordinary unified detail exposes no report navigation surface", async () => {
     const nav = vi.fn();
     renderWorkspace(nav);
 
-    const user = userEvent.setup();
-
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-history-empty")).toBeDefined();
+      expect(screen.getByTestId("unified-plan-detail")).toBeDefined();
     });
 
-    await user.click(screen.getByTestId("workspace-history-empty"));
-
-    // Verify no report navigation happened
     const reportCalls = nav.mock.calls.filter(
       ([call]) => (call as Record<string, unknown>).name === "report",
     );
@@ -199,7 +224,7 @@ describe("WorkspaceHandoff (Phase 5.4)", () => {
     );
   });
 
-  it("workspace missing resume state CTA navigates to resume_versions?flow=create", async () => {
+  it("workspace detail with no bound resume blocks Save/Start inside the unified detail", async () => {
     const nav = vi.fn();
     const missingResumeRoute: Route = {
       name: "workspace",
@@ -233,17 +258,12 @@ describe("WorkspaceHandoff (Phase 5.4)", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-missing-resume")).toBeDefined();
+      expect(screen.getByTestId("parse-resume-required")).toBeDefined();
     });
 
-    const user = userEvent.setup();
-    await user.click(screen.getByTestId("workspace-missing-resume-cta"));
-
-    expect(nav).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "resume_versions" }),
-    );
-    const navCall = nav.mock.calls[0]![0] as Record<string, unknown>;
-    const params = navCall.params as Record<string, string>;
-    expect(params.flow).toBe("create");
+    expect(screen.queryByTestId("workspace-missing-resume")).toBeNull();
+    expect(screen.getByTestId("parse-action-save-plan")).toBeDisabled();
+    expect(screen.getByTestId("parse-action-start-interview")).toBeDisabled();
+    expect(nav).not.toHaveBeenCalled();
   });
 });

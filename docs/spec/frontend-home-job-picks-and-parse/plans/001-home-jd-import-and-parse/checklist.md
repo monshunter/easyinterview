@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: completed
 > **更新日期**: 2026-07-09
 
@@ -34,3 +34,10 @@
 - [x] 4.1 Home paste/upload/URL imports include the selected `resumeId` in generated `importTargetJob` request bodies（验证：`HomeImport.test.tsx`, `HomeResumeSelection.test.tsx`, `HomeAuthGate.test.tsx` PASS）
 - [x] 4.2 Parse route handoff still carries `resumeId`, but reload/list re-entry can recover binding from `TargetJob.resumeId` instead of transient route-only state（验证：Workspace focused tests and `InterviewContext` merge tests PASS）
 - [x] 4.3 BDD-Gate: `E2E.P0.015` import request contract remains aligned with allowed `resumeId` and privacy redlines（验证：focused equivalent Home import tests + `make validate-fixtures` PASS）
+
+## Phase 5: Unified plan detail remediation
+
+- [x] 5.1 UI truth source and formal copy rename the Parse preview to `面试规划详情 / 面试上下文确认` while preserving first-import loading（验证：`ui-design/src/screens-p0-complete.jsx`, `docs/ui-design/module-job-workspace.md`, `frontend/src/app/i18n/locales/{zh,en}.ts`, `frontend/tests/pixel-parity/parse.spec.ts` PASS）
+- [x] 5.2 `route=parse` ready state and `route=workspace` with `targetJobId` render the same Parse-derived detail DOM, resume binding and Save/Start actions; workspace no-context still renders `WorkspacePlanList`（验证：`ParseScreen.test.tsx`, `ParseEdit.test.tsx`, `ParseResumeBinding.test.tsx`, `WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx` PASS）
+- [x] 5.3 Shared detail navigation uses declared `TargetJob.currentPracticePlanId` / `TargetJob.resumeId` without fabricating `plan-${targetJobId}` or `resume-unbound`, and retired independent workspace detail anchors are covered by negative tests（验证：`frontend/src/app/navigation/interviewContext.ts`, `interviewContext.test.ts`, `WorkspaceHandoff.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts` PASS）
+- [x] 5.4 BDD-Gate: `E2E.P0.016` and `E2E.P0.018` prove first-import detail and workspace list re-entry land on the same unified detail mother page（验证：scenario trigger/verify PASS）

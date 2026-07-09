@@ -1,12 +1,12 @@
 # 001 BDD Checklist
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-07-08
+> **更新日期**: 2026-07-09
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
-## E2E.P0.018 面试入口规划列表 + Workspace 当前规划详情 + Plan Switcher + active Resume Picker
+## E2E.P0.018 面试入口规划列表 + 统一面试规划详情 + active Resume Picker
 
 - [x] Scenario assets exist under `test/scenarios/e2e/p0-018-workspace-default-render/`
 - [x] Given fixtures cover `getTargetJob=with-rounds`, `getResume=default`, `getPracticePlan=default(ready)`, and `listTargetJobs` candidates
@@ -17,6 +17,8 @@
 - [x] Revision 2026-07-08 verify covers `workspace-plan-list-*` anchors, absence of `workspace-empty` on no-context landing, and updated scenario evidence
 - [x] Revision 2026-07-08 card visual hardening covers plan-list card background, border, elevation, body/footer sections and responsive geometry
 - [x] Revision 2026-07-08 card simplification covers removal of source/language metadata and theme accent `进入规划` CTA on no-context plan cards
+- [x] Revision 2026-07-09 trigger covers plan-card selection into the unified `面试规划详情 / 面试上下文确认` mother page instead of the independent workspace detail.
+- [x] Revision 2026-07-09 verify covers shared detail marker, absence of `workspace-header` / `workspace-launcher` / `workspace-jd-card` independent detail anchors, active resume binding and privacy.
 
 ## E2E.P0.019 Workspace context loading
 
@@ -33,6 +35,8 @@
 - [x] Trigger runs start-practice and auth-gate tests
 - [x] Verify covers create-then-start, ready-plan direct start, idempotency retry, pendingAction auto-start and sensitive-param negative assertions
 - [x] Scenario `setup -> trigger -> verify -> cleanup` passes
+- [x] Revision 2026-07-09 trigger covers `autoStartPractice=1` after unified detail Start and verifies workspace still owns `createPracticePlan` / `startPracticeSession`.
+- [x] Revision 2026-07-09 verify covers no duplicated session start logic in unified detail and no sensitive param leakage.
 
 ## E2E.P0.021 Embedded insight + records placeholder + privacy/non-current negative
 

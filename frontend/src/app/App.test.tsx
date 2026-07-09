@@ -13,6 +13,7 @@ import getRuntimeConfigFixture from "../../../openapi/fixtures/Auth/getRuntimeCo
 import getMeFixture from "../../../openapi/fixtures/Auth/getMe.json";
 import getTargetJobFixture from "../../../openapi/fixtures/TargetJobs/getTargetJob.json";
 import getResumeFixture from "../../../openapi/fixtures/Resumes/getResume.json";
+import listResumesFixture from "../../../openapi/fixtures/Resumes/listResumes.json";
 import getPracticePlanFixture from "../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
 
 function buildWorkspaceClient(): EasyInterviewClient {
@@ -23,6 +24,7 @@ function buildWorkspaceClient(): EasyInterviewClient {
         getMeFixture,
         getTargetJobFixture,
         getResumeFixture,
+        listResumesFixture,
         getPracticePlanFixture,
       ]),
       { scenario: "default" },
@@ -124,17 +126,23 @@ describe("App shell", () => {
     expect(screen.queryByText("fallback shell")).not.toBeInTheDocument();
   });
 
-  it("renders WorkspaceScreen on workspace route instead of PlaceholderScreen", () => {
+  it("renders WorkspaceScreen on workspace route instead of PlaceholderScreen", async () => {
+    const client = buildWorkspaceClient();
     render(
       <App
+        client={client}
+        requestOptions={{ getMe: { headers: { Prefer: "example=authenticated" } } }}
         initialRoute={{
           name: "workspace",
           params: { targetJobId: "01918fa0-0000-7000-8000-000000002000" },
         }}
       />,
     );
-    expect(screen.getByTestId("workspace-crumbs")).toBeInTheDocument();
-    expect(screen.queryByTestId("route-workspace")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("unified-plan-detail")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("route-workspace")).toBeInTheDocument();
+    expect(screen.queryByText("fallback shell")).not.toBeInTheDocument();
   });
 
   it("hydrates workspace route params into InterviewContext and loads fixture data", async () => {
@@ -158,10 +166,14 @@ describe("App shell", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("workspace-header-title")).toHaveTextContent(
-        "Senior Frontend Engineer",
+      expect(screen.getByTestId("unified-plan-detail-title")).toHaveTextContent(
+        "Interview plan detail",
       );
     });
+    const titleInput = screen
+      .getByTestId("parse-basics-title")
+      .querySelector("input");
+    expect(titleInput).toHaveValue("Senior Frontend Engineer");
     expect(getTargetJobSpy).toHaveBeenCalledWith(
       "01918fa0-0000-7000-8000-000000002000",
     );

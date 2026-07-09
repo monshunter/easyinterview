@@ -14,6 +14,7 @@ import { useWorkspacePracticePlan } from "./hooks/useWorkspacePracticePlan";
 import { WorkspaceInsightCard } from "./WorkspaceInsightCard";
 import { PlanSwitcherModal } from "./modals/PlanSwitcherModal";
 import { ResumePickerModal } from "./modals/ResumePickerModal";
+import { ParseScreen } from "../parse/ParseScreen";
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
 
@@ -46,6 +47,8 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
     Boolean(ctx.targetJobId) ||
     Boolean(ctx.jobId) ||
     Boolean(ctx.planId);
+  const autoStartRequested =
+    route.params.autoStartPractice === "1" || ctx.autoStartPractice === "1";
 
   // ── Empty / missing states ──
   const hasBoundResume = !!normalizeServerBoundId(ctx.resumeId);
@@ -126,6 +129,7 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
   useEffect(() => {
     if (ctx.autoStartPractice !== "1") return;
     if (autoStartRef.current) return;
+    if (loading || !tj) return;
     if (runtime?.auth.status !== "authenticated") return;
     if (!normalizeServerBoundId(ctx.targetJobId) || !normalizeServerBoundId(ctx.resumeId)) return;
 
@@ -142,8 +146,10 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
     ctx.resumeId,
     dispatch,
     doStart,
+    loading,
     navigateToPractice,
     runtime?.auth.status,
+    tj,
   ]);
 
   const handleStart = async () => {
@@ -178,6 +184,10 @@ export const WorkspaceScreen: FC<WorkspaceScreenProps> = ({ route }) => {
 
   if (!hasCurrentPlanContext) {
     return <WorkspacePlanList compactLayout={compactLayout} />;
+  }
+
+  if (!autoStartRequested) {
+    return <ParseScreen route={route} />;
   }
 
   if (showTargetError) {

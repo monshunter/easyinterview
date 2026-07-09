@@ -265,7 +265,7 @@ const JDAssistModal = ({ T, lang, type, onClose, onConfirm }) => {
             <label className="ei-label" style={{ display: "block", color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "JD URL" : "JD 链接"}</label>
             <input placeholder={lang === "en" ? "https://company.com/careers/job..." : "https://company.com/careers/job..."} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${T.rule}`, background: T.bgSoft, color: T.ink, borderRadius: 3, padding: "12px 14px", fontSize: 14, outline: "none", fontFamily: "var(--ei-sans)" }} />
             <div style={{ fontSize: 12.5, color: T.ink3, marginTop: 8 }}>
-              {lang === "en" ? "The system will fetch the JD, then ask you to confirm the parsed content." : "系统会读取 JD 内容，然后进入解析结果确认。"}
+              {lang === "en" ? "The system will fetch the JD, then open the interview plan detail for confirmation." : "系统会读取 JD 内容，然后进入面试规划详情确认。"}
             </div>
           </div>
         )}
