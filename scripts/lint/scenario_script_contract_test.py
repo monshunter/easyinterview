@@ -5,7 +5,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 API_PACKAGE = "github.com/monshunter/easyinterview/backend/cmd/api"
 CMD_API_EXACT_GO_SCENARIOS = {
     "p0-048-practice-hint-assisted-across-goals": "TestE2EP0048PracticeHintAssistedAcrossGoals",
-    "p0-049-practice-hint-strict-refusal": "TestE2EP0049PracticeHintStrictRefusalAcrossGoals",
     "p0-050-practice-hint-provenance-task-runs": "TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns",
     "p0-051-practice-hint-degrade-privacy": "TestE2EP0051PracticeHintDegradeAndPrivacy",
     "p0-070-practice-derived-plan-create-read-replay": "TestE2EP0070PracticeDerivedPlanCreateReadReplay",

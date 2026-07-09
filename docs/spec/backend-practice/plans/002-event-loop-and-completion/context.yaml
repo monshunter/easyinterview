@@ -5,8 +5,8 @@ metadata:
   name: 002-event-loop-and-completion
   sequence: 2
   specVersion:
-    from: 1.16
-    to: 1.16
+    from: 1.17
+    to: 1.18
 spec:
   defaultTarget: backend
   discovery:
@@ -29,7 +29,7 @@ spec:
       - report_generate
       - triggereventsemantic
       - source_event_only
-      - 5-value turn status
+      - 4-value turn status
       - practice.turn.completed
       - practice.session.completed
       - idempotency

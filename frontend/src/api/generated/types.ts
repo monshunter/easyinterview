@@ -323,7 +323,7 @@ export interface PracticeTurn {
 	id: string;
 	questionIntent?: string;
 	questionText: string;
-	status: "asked" | "answered" | "follow_up_requested" | "assessed" | "skipped";
+	status: "asked" | "answered" | "follow_up_requested" | "assessed";
 	turnIndex: number;
 }
 
@@ -401,7 +401,7 @@ export interface PracticeVoiceTTSError {
 
 export interface PracticeSessionEventRequest {
 	clientEventId: string;
-	kind: "answer_submitted" | "hint_requested" | "turn_skipped" | "session_paused" | "session_resumed" | "tts_chunk_started" | "tts_chunk_played" | "barge_in_detected" | "assistant_context_committed";
+	kind: "answer_submitted" | "hint_requested" | "session_paused" | "session_resumed" | "tts_chunk_started" | "tts_chunk_played" | "barge_in_detected" | "assistant_context_committed";
 	occurredAt: string;
 	payload?: Record<string, unknown>;
 }

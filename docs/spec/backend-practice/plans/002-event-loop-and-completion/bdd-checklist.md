@@ -1,8 +1,8 @@
 # Backend Practice Event Loop and Completion BDD Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -17,12 +17,12 @@
 
 ## 场景断言
 
-- [x] P0.038 verifies `answer_submitted` follow-up, next-question and session-completed branches, server-owned follow-up state, current 5-value turn status and turn-completed outbox behavior.
-- [x] P0.039 verifies append replay/mismatch semantics, all five event kinds, strict hint conflict, `Idempotency-Key` header refusal and cross-user 404.
+- [x] P0.038 verifies `answer_submitted` follow-up, next-question and session-completed branches, server-owned follow-up state, current 4-value turn status and turn-completed outbox behavior.
+- [x] P0.039 verifies append replay/mismatch semantics, all four current text event kinds, legacy strict hint `show_hint`, `Idempotency-Key` header refusal and cross-user 404.
 - [x] P0.040 verifies accepted event `seq_no` continuity, stale-turn conflict and sanitized conflict envelope.
 - [x] P0.041 verifies HTTP 202 `ReportWithJob`, queued report/job rows, session completion event, outbox row and idempotency snapshot.
 - [x] P0.042 verifies same-key replay, mismatch conflict, another-key completed-session replay, cross-user 404 and illegal status conflict without duplicate report/job/outbox rows.
-- [x] P0.043 verifies redaction, append no-audit boundary, source-event-only job boundary, current turn-status drift gate and runtime boundary lint.
+- [x] P0.043 verifies redaction, append no-audit boundary, source-event-only job boundary, current 4-value turn-status drift gate and runtime boundary lint.
 
 ## 收口命令
 

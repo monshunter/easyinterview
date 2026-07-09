@@ -20,7 +20,6 @@ func TestAppendSessionEventReturns200ForSupportedKinds(t *testing.T) {
 	kinds := []string{
 		"answer_submitted",
 		"hint_requested",
-		"turn_skipped",
 		"session_paused",
 		"session_resumed",
 		"tts_chunk_started",
@@ -318,10 +317,6 @@ func fixtureAppendResult(kind string) domain.AppendSessionEventResult {
 		action.Type = "ask_follow_up"
 		action.TurnID = "turn-1"
 		action.QuestionText = "Follow up?"
-	case "turn_skipped":
-		action.Type = "ask_question"
-		action.TurnID = "turn-2"
-		action.QuestionText = "Next question?"
 	}
 	return domain.AppendSessionEventResult{
 		Acknowledged:    true,

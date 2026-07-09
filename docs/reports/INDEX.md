@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-09](./2026-07-09-practice-real-interview-session-assessment.md) | Practice Real Interview Session 交付复盘 | #assessment |
 | [2026-07-09](./2026-07-09-quick-start-target-context-assessment.md) | Quick Start Target Context 交付复盘 | #assessment #BUG-0152 |
 | [2026-07-09](./2026-07-09-targetjob-archive-import-terminal-assessment.md) | TargetJob Archive Import Terminal 交付复盘 | #assessment #BUG-0151 |
 | [2026-07-09](./2026-07-09-workspace-persistent-archive-delete-assessment.md) | Workspace Persistent Archive Delete 交付复盘 | #assessment #BUG-0150 |

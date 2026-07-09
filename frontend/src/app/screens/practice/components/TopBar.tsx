@@ -1,6 +1,4 @@
-import { type FC } from "react";
-
-import { RoleDropdown, type InterviewerPersona } from "./RoleDropdown";
+import { type FC, type ReactNode } from "react";
 
 export interface TopBarProps {
   company: string;
@@ -11,19 +9,18 @@ export interface TopBarProps {
   budget: string;
   paused: boolean;
   onTogglePause: () => void;
-  activeMode: "text" | "voice";
-  onSwitchMode: (mode: "text" | "voice") => void;
-  strict: boolean;
-  onToggleStrict: () => void;
-  persona: InterviewerPersona;
-  onPersonaChange: (next: InterviewerPersona) => void;
+  activeMode: "text" | "phone";
+  onSwitchMode: (mode: "text" | "phone") => void;
+  interviewerLabel: string;
+  textModeLabel: string;
+  phoneModeLabel: string;
+  phoneLiveLabel: string;
+  finishCta: ReactNode;
 }
 
 /**
- * Source-level mirror of `ui-design/src/screen-practice.jsx::PracticeScreen`
- * top bar block (lines 76-134). Strict toggle stays role='switch' for parity
- * but the click handler is owned higher up in PracticeScreen so the run-time
- * lock toast (Phase 3.7) can fire instead of mutating state.
+ * Source-level mirror of `ui-design/src/screen-practice.jsx::PracticeScreen`.
+ * The interviewer identity is display-only and comes from the round plan.
  */
 export const TopBar: FC<TopBarProps> = ({
   company,
@@ -36,10 +33,11 @@ export const TopBar: FC<TopBarProps> = ({
   onTogglePause,
   activeMode,
   onSwitchMode,
-  strict,
-  onToggleStrict,
-  persona,
-  onPersonaChange,
+  interviewerLabel,
+  textModeLabel,
+  phoneModeLabel,
+  phoneLiveLabel,
+  finishCta,
 }) => {
   return (
     <div
@@ -88,7 +86,22 @@ export const TopBar: FC<TopBarProps> = ({
           minWidth: 0,
         }}
       >
-        <RoleDropdown persona={persona} onChange={onPersonaChange} />
+        <span
+          data-testid="practice-topbar-interviewer"
+          className="ei-mono"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            padding: "3px 8px",
+            borderRadius: 3,
+            fontSize: 11.5,
+            background: "var(--ei-color-bg-soft)",
+            color: "var(--ei-color-fg-tertiary)",
+            border: "1px solid var(--ei-color-rule-strong)",
+          }}
+        >
+          {interviewerLabel}
+        </span>
         <span
           data-testid="practice-topbar-question"
           className="ei-mono"
@@ -157,15 +170,18 @@ export const TopBar: FC<TopBarProps> = ({
             gap: 2,
           }}
         >
-          {(["text", "voice"] as const).map((k) => {
-            const on = activeMode === k;
+          {([
+            ["text", textModeLabel],
+            ["phone", phoneModeLabel],
+          ] as const).map(([mode, label]) => {
+            const on = activeMode === mode;
             return (
               <button
-                key={k}
-                data-testid={`practice-topbar-mode-${k}`}
+                key={mode}
+                data-testid={`practice-topbar-mode-${mode}`}
                 type="button"
                 aria-pressed={on}
-                onClick={() => onSwitchMode(k)}
+                onClick={() => onSwitchMode(mode)}
                 style={{
                   background: on ? "var(--ei-color-bg-card)" : "transparent",
                   border: `1px solid ${
@@ -182,7 +198,7 @@ export const TopBar: FC<TopBarProps> = ({
                   fontFamily: "var(--ei-font-sans)",
                 }}
               >
-                {k}
+                {label}
               </button>
             );
           })}
@@ -197,7 +213,7 @@ export const TopBar: FC<TopBarProps> = ({
             background: "var(--ei-color-accent-soft)",
             border: "1px solid var(--ei-color-accent)",
             borderRadius: 2,
-            visibility: activeMode === "voice" ? "visible" : "hidden",
+            visibility: activeMode === "phone" ? "visible" : "hidden",
           }}
         >
           <span
@@ -216,69 +232,17 @@ export const TopBar: FC<TopBarProps> = ({
               fontFamily: "var(--ei-font-mono)",
             }}
           >
-            live
+            {phoneLiveLabel}
           </span>
         </div>
-        <div style={{ height: 18, width: 1, background: "var(--ei-color-rule-strong)" }} />
-        <button
-          data-testid="practice-topbar-strict"
-          type="button"
-          role="switch"
-          aria-checked={strict}
-          onClick={onToggleStrict}
+        <div
           style={{
-            background: strict
-              ? "var(--ei-color-accent-soft)"
-              : "transparent",
-            border: `1px solid ${
-              strict ? "var(--ei-color-accent)" : "var(--ei-color-rule-strong)"
-            }`,
-            padding: "5px 9px",
-            borderRadius: 2,
-            display: "flex",
-            gap: 7,
-            alignItems: "center",
-            cursor: "pointer",
-            userSelect: "none",
+            height: 18,
+            width: 1,
+            background: "var(--ei-color-rule-strong)",
           }}
-        >
-          <span
-            style={{
-              fontSize: 11.5,
-              color: strict
-                ? "var(--ei-color-accent)"
-                : "var(--ei-color-fg-tertiary)",
-              fontFamily: "var(--ei-font-mono)",
-            }}
-          >
-            strict
-          </span>
-          <span
-            aria-hidden="true"
-            style={{
-              width: 28,
-              height: 15,
-              borderRadius: 8,
-              background: strict
-                ? "var(--ei-color-accent)"
-                : "var(--ei-color-rule-strong)",
-              position: "relative",
-              flexShrink: 0,
-            }}
-          >
-            <span
-              style={{
-                width: 11,
-                height: 11,
-                borderRadius: 6,
-                background: "#fff",
-                position: "absolute",
-                top: 2,
-                left: strict ? 15 : 2,
-              }}
-            />
-          </span>
-        </button>
+        />
+        {finishCta}
       </div>
     </div>
   );

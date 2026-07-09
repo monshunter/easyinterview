@@ -1,9 +1,8 @@
 /**
  * @vitest-environment jsdom
  *
- * Phase 1/3.6 covered the segmented control. practice-voice-mvp Phase 4.1
- * proves the current voice surface path: voice mode now
- * renders the real ui-design voice surface inside PracticeScreen.
+ * Current segmented control exposes text / phone. Legacy voice route params
+ * normalize into the phone surface without rendering the retired voice UI.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -49,18 +48,19 @@ function withProviders(ui: ReactNode) {
   };
 }
 
-describe("PracticeScreen mode switch (Phase 1 + 3.6 contract)", () => {
-  it("voice mode renders the formal voice surface instead of the placeholder", () => {
+describe("PracticeScreen mode switch", () => {
+  it("legacy voice params render the current phone surface", () => {
     const voiceRoute: Route = {
       ...ROUTE_BASE,
       params: { ...ROUTE_BASE.params, mode: "voice", modality: "voice" },
     };
     withProviders(<PracticeScreen route={voiceRoute} />);
     expect(screen.queryByTestId("practice-voice-coming-soon")).toBeNull();
-    expect(screen.getByTestId("practice-voice-surface")).toBeDefined();
-    expect(screen.getByTestId("practice-voice-waveform")).toBeDefined();
-    expect(screen.getByTestId("practice-voice-annotated-waveform")).toBeDefined();
-    expect(screen.getByTestId("practice-voice-expression-panel")).toBeDefined();
+    expect(screen.getByTestId("practice-phone-surface")).toBeDefined();
+    expect(screen.getByTestId("practice-phone-waveform")).toBeDefined();
+    expect(screen.getByTestId("practice-phone-captions-toggle")).toBeDefined();
+    expect(screen.queryByTestId("practice-voice-annotated-waveform")).toBeNull();
+    expect(screen.queryByTestId("practice-voice-expression-panel")).toBeNull();
   });
 
   it("clicking the text segmented control from voice mode navigates back to mode='text'", async () => {
@@ -79,19 +79,19 @@ describe("PracticeScreen mode switch (Phase 1 + 3.6 contract)", () => {
     );
   });
 
-  it("clicking the voice segmented control nav-s with mode='voice'", async () => {
+  it("clicking the phone segmented control navigates with mode='phone'", async () => {
     const { nav } = withProviders(<PracticeScreen route={ROUTE_BASE} />);
-    const voiceBtn = screen.getByTestId("practice-topbar-mode-voice");
-    await userEvent.click(voiceBtn);
+    const phoneBtn = screen.getByTestId("practice-topbar-mode-phone");
+    await userEvent.click(phoneBtn);
     expect(nav).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "practice",
-        params: expect.objectContaining({ mode: "voice", modality: "voice" }),
+        params: expect.objectContaining({ mode: "phone", modality: "phone" }),
       }),
     );
   });
 
-  it("text mode keeps voice surface DOM out of the text surface", () => {
+  it("text mode keeps phone / retired voice DOM out of the text surface", () => {
     const voiceRoute: Route = {
       ...ROUTE_BASE,
       params: { ...ROUTE_BASE.params, mode: "text", modality: "text" },
@@ -100,5 +100,6 @@ describe("PracticeScreen mode switch (Phase 1 + 3.6 contract)", () => {
     expect(screen.queryByTestId("practice-voice-waveform")).toBeNull();
     expect(screen.queryByTestId("practice-voice-annotated-waveform")).toBeNull();
     expect(screen.queryByTestId("practice-voice-expression-panel")).toBeNull();
+    expect(screen.queryByTestId("practice-phone-surface")).toBeNull();
   });
 });

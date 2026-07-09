@@ -111,7 +111,6 @@ describe("idempotency contract — appendSessionEvent", () => {
   it.each([
     ["submitAnswer", { turnId: TURN_A, answerText: "x" }],
     ["requestHint", { turnId: TURN_A }],
-    ["skipTurn", { turnId: TURN_A }],
     ["pauseSession", undefined],
     ["resumeSession", undefined],
   ] as const)(
@@ -130,8 +129,6 @@ describe("idempotency contract — appendSessionEvent", () => {
           await result.current.submitAnswer(payload as { turnId: string; answerText: string });
         if (mutation === "requestHint")
           await result.current.requestHint(payload as { turnId: string });
-        if (mutation === "skipTurn")
-          await result.current.skipTurn(payload as { turnId: string });
         if (mutation === "pauseSession") await result.current.pauseSession();
         if (mutation === "resumeSession") await result.current.resumeSession();
       });

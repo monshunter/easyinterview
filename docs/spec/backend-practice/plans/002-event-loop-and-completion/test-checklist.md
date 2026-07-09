@@ -1,8 +1,8 @@
 # Backend Practice Event Loop and Completion Test Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -14,7 +14,7 @@
 
 ## Append Event Tests
 
-- [x] State machine tests cover all five event kinds, answer branches, strict hint default, provenance defaults and malformed payload fail-fast（验证：`cd backend && go test ./internal/practice -count=1`）
+- [x] State machine tests cover all four current text event kinds, answer branches, optional legacy strict hint, provenance defaults and malformed payload fail-fast（验证：`cd backend && go test ./internal/practice -count=1`）
 - [x] Store tests cover transaction writes, replay/mismatch, row lock sequencing, cross-user boundary and no-audit append behavior（验证：`cd backend && go test ./internal/store/practice -run TestAppendSessionEvent -count=1`）
 - [x] Handler tests cover generated request/response mapping, `Idempotency-Key` rejection, required `occurredAt` and error mapping（验证：`cd backend && go test ./internal/api/practice -run TestAppendSessionEvent -count=1`）
 

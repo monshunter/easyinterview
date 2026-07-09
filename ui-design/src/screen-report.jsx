@@ -10,6 +10,7 @@ const ReportScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
   if (!params?.sessionId) {
     return <ReportMissingSessionState T={T} lang={lang} nav={nav} context={routeContext} />;
   }
+  const isPhoneModality = params.modality === "phone" || params.modality === "voice";
   const context = lang === "en" ? {
     breadcrumb: `Mock interview / ${params.sessionId} / Report`,
     title: `${job.title} · ${r.round} mock report`,
@@ -21,7 +22,7 @@ const ReportScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
     resume: "Liu Zhe · resume v3",
     time: "Apr 20 · 15:48",
     duration: r.duration,
-    modality: params.modality === "voice" ? "Voice" : "Text",
+    modality: isPhoneModality ? "Phone" : "Text",
     practiceMode: params.practiceMode === "assisted" ? "Assisted practice" : "Strict mock",
     hints: params.hintUsed === "true" ? "Hint used" : "No hint used",
   } : {
@@ -35,7 +36,7 @@ const ReportScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
     resume: "刘哲 · 简历 v3",
     time: "4/20 · 15:48",
     duration: r.duration,
-    modality: params.modality === "voice" ? "语音" : "文本",
+    modality: isPhoneModality ? "电话模式" : "文本",
     practiceMode: params.practiceMode === "assisted" ? "带提示练习" : "严格模拟",
     hints: params.hintUsed === "true" ? "使用过提示" : "未使用提示",
   };

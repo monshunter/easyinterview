@@ -2,13 +2,12 @@ package practice
 
 import "testing"
 
-func TestTurnStatusRoundTripFiveWireValues(t *testing.T) {
+func TestTurnStatusRoundTripCurrentWireValues(t *testing.T) {
 	values := []TurnStatus{
 		TurnStatusAsked,
 		TurnStatusAnswered,
 		TurnStatusFollowUpRequested,
 		TurnStatusAssessed,
-		TurnStatusSkipped,
 	}
 	for _, status := range values {
 		t.Run(string(status), func(t *testing.T) {
@@ -38,7 +37,7 @@ func TestTurnStatusRoundTripFiveWireValues(t *testing.T) {
 }
 
 func TestTurnStatusRejectsUnknownAndDoesNotCompressRuntimeValues(t *testing.T) {
-	for _, raw := range []string{"", "followup_requested", "done", "unknown"} {
+	for _, raw := range []string{"", "followup_requested", "done", "skipped", "unknown"} {
 		if _, err := ParseTurnStatus(raw); err == nil {
 			t.Fatalf("ParseTurnStatus(%q) expected error", raw)
 		}

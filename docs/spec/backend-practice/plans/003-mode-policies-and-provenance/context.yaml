@@ -5,8 +5,8 @@ metadata:
   name: 003-mode-policies-and-provenance
   sequence: 3
   specVersion:
-    from: 1.16
-    to: 1.16
+    from: 1.17
+    to: 1.18
 spec:
   defaultTarget: backend
   discovery:
@@ -22,7 +22,7 @@ spec:
     keywords:
       - practice hint mode policy
       - assisted hint show_hint
-      - strict hint conflict
+      - legacy strict optional hint
       - AssistantAction provenance wire boundary
       - practice.turn.lightweight_observe
       - practice.turn_observe.default

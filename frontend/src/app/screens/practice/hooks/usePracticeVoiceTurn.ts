@@ -57,20 +57,36 @@ export function usePracticeVoiceTurn({
   const [state, setState] = useState<PracticeVoiceTurnState>({ kind: "idle" });
   const [manualTranscriptFallback, setManualTranscriptFallback] = useState("");
 
+  const discardRecorder = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state === "inactive") return;
+    recorder.ondataavailable = null;
+    recorder.onstop = null;
+    recorder.onerror = null;
+    recorder.stop();
+  }, []);
+
   const cleanupStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     recorderRef.current = null;
   }, []);
 
-  useEffect(() => cleanupStream, [cleanupStream]);
+  useEffect(
+    () => () => {
+      discardRecorder();
+      cleanupStream();
+    },
+    [cleanupStream, discardRecorder],
+  );
 
   const reset = useCallback(() => {
+    discardRecorder();
     chunksRef.current = [];
     startedAtRef.current = 0;
     cleanupStream();
     setState({ kind: "idle" });
-  }, [cleanupStream]);
+  }, [cleanupStream, discardRecorder]);
 
   const startRecording = useCallback(async () => {
     if (!client) {

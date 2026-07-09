@@ -1,4 +1,4 @@
-# E2E.P0.045 Practice text loop mode policy display
+# E2E.P0.045 Practice text loop assistance policy display
 
 > **场景 ID**: E2E.P0.045
 > **执行方式**: automated
@@ -7,25 +7,23 @@
 
 ## 1 Given
 
-practice fixture 数据就绪：`getPracticeSession=default`；`appendSessionEvent` 多个 variant 可切换（`default / show-hint / hint-strict-conflict / turn-skipped / pause-resume`）。strict / assisted × baseline / retry_current_round / next_round 组合驱动显隐对照。
+practice fixture 数据就绪：`getPracticeSession=default`；`appendSessionEvent` 多个 variant 可切换（`default / show-hint / hint-conflict / pause-resume`）。legacy strict / assisted × baseline / retry_current_round / next_round 组合只用于确认当前 UI 不再按旧模式隐藏提示。
 
 ## 2 When
 
-- assisted + baseline / retry_current_round / next_round：渲染 LIVE NOTES + hint button
-- strict + baseline / retry_current_round / next_round：上述辅助区隐藏 + 渲染 strict-mode banner
+- assisted + baseline / retry_current_round / next_round：渲染 hint button
+- legacy strict + baseline / retry_current_round / next_round：hint button 仍渲染，不出现 strict-mode banner
 - 点击 hint（assisted）触发 `hint_requested`，渲染 HintBanner、`INCREMENT_HINT_COUNT`
-- 点击 skip 触发 `turn_skipped`，SessionMap 标记 `skipped`
-- 点击 pause / resume 触发 `session_paused / session_resumed`，三按钮 disable / enable
-- 点击 strict toggle 弹 lock toast，不调 backend
+- 点击 pause / resume 触发 `session_paused / session_resumed`，send / hint disable / enable
+- mode segment 只保留 text / phone，不能出现 role switch、strict switch、skip button
 
 ## 3 Then
 
-- 6 个组合的显隐快照（assisted/strict × baseline/retry_current_round/next_round）pairwise 一致
+- legacy mode / goal 组合的显隐快照 pairwise 一致
 - assisted 模式下 hint button 渲染 + 点击触发 `appendSessionEvent({kind:"hint_requested"})`
-- strict 模式下 hint button DOM 0 命中 + strict-mode banner 渲染
-- pause 后 send / hint / skip 三按钮 disabled，再点击 0 个 POST
-- RoleDropdown 切换 0 个 generated client 调用
-- 非当前输入负向 grep（non-current practice goal / `切到语音` / `Switch to voice` / voice imports / 非当前 testid / `Idempotency-Key.*appendSessionEvent` / 独立 voice route）全部 0 命中
+- legacy strict 参数下 hint button 仍渲染，strict switch / strict banner DOM 0 命中
+- pause 后 send / hint disabled，skip button DOM 0 命中，再点击 0 个 POST
+- 非当前输入负向 grep（non-current practice goal / `切到语音` / `Switch to voice` / old voice imports / strict switch / skip button / `Idempotency-Key.*appendSessionEvent` / 独立 voice route）全部 0 命中
 
 ## 4 执行
 

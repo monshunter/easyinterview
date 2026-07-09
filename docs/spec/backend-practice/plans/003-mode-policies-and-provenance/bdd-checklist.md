@@ -1,8 +1,8 @@
 # 003 BDD Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -13,12 +13,12 @@
 - [x] Verify covers 200 `show_hint`, six-field provenance, hint_text write, replay snapshot, no turn/outbox/audit side effect and success `ai_task_runs(hint_generate)`
 - [x] Go HTTP scenario `TestE2EP0048PracticeHintAssistedAcrossGoals` passes
 
-## E2E.P0.049 strict hint 拒绝 × goal 矩阵
+## E2E.P0.049 legacy strict optional hint × goal 矩阵
 
 - [x] Scenario uses three current goals with `mode='strict'`
 - [x] Trigger covers `hint_requested` plus replay
-- [x] Verify covers 409 `PRACTICE_SESSION_CONFLICT`, sanitized replay payload, no pending reservation, no AI call, no hint_text, no outbox/audit/task-run increase
-- [x] Go HTTP scenario `TestE2EP0049PracticeHintStrictRefusalAcrossGoals` passes
+- [x] Verify covers 200 `show_hint`, replay snapshot, no pending reservation, hint_text write, no turn-completed outbox and no AI call inside the reservation transaction
+- [x] Go HTTP scenario `TestE2EP0049PracticeHintOptionalAcrossLegacyStrictGoals` passes
 
 ## E2E.P0.050 AssistantAction provenance wire 边界
 

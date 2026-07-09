@@ -580,9 +580,8 @@ func TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T)
 
 	headerRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "must-not-use", api.PracticeSessionEventRequest{
 		ClientEventId: "e2e-p0-039-header",
-		Kind:          "turn_skipped",
+		Kind:          "session_paused",
 		OccurredAt:    "2026-04-28T13:46:12Z",
-		Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
 	}, http.StatusBadRequest)
 	if !strings.Contains(string(headerRaw), "use_client_event_id") {
 		t.Fatalf("header rejection missing policy: %s", headerRaw)
@@ -613,23 +612,6 @@ func TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T)
 		t.Fatalf("session_resumed should route back to running session_wait: %+v", resumed)
 	}
 
-	skipPlan := h.seedReadyScenarioPlan("practice-plan-p0-039-skip", "target-job-p0-039-skip", "resume-asset-p0-039-skip", practiceHTTPScenarioUserAID)
-	skipSession := h.startScenarioSession(t, skipPlan.ID, "e2e-p0-039-skip-start")
-	skipRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+skipSession.Id+"/events", "", api.PracticeSessionEventRequest{
-		ClientEventId: "e2e-p0-039-skip",
-		Kind:          "turn_skipped",
-		OccurredAt:    "2026-04-28T13:46:55Z",
-		Payload:       map[string]any{"turnId": skipSession.CurrentTurn.Id, "nextQuestionText": "下一题请讲一个你推动对齐的案例。"},
-	}, http.StatusOK)
-	var skipped api.SessionEventResult
-	decodeJSON(t, skipRaw, &skipped)
-	if skipped.AssistantAction.Type != "ask_question" ||
-		skipped.Session.CurrentTurn == nil ||
-		skipped.Session.CurrentTurn.Id == skipSession.CurrentTurn.Id ||
-		skipped.Session.CurrentTurn.Status != "asked" {
-		t.Fatalf("turn_skipped should route to ask_question and advance turn: %+v", skipped)
-	}
-
 	answerPlan := h.seedReadyScenarioPlan("practice-plan-p0-039-answer", "target-job-p0-039-answer", "resume-asset-p0-039-answer", practiceHTTPScenarioUserAID)
 	answerSession := h.startScenarioSession(t, answerPlan.ID, "e2e-p0-039-answer-start")
 	answerRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+answerSession.Id+"/events", "", api.PracticeSessionEventRequest{
@@ -649,9 +631,11 @@ func TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T)
 		Kind:          "hint_requested",
 		OccurredAt:    "2026-04-28T13:47:12Z",
 		Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
-	}, http.StatusConflict)
-	if !strings.Contains(string(hintRaw), "hint_disabled_in_mode") {
-		t.Fatalf("hint strict conflict missing policy: %s", hintRaw)
+	}, http.StatusOK)
+	var hinted api.SessionEventResult
+	decodeJSON(t, hintRaw, &hinted)
+	if hinted.AssistantAction.Type != "show_hint" {
+		t.Fatalf("hint should remain available under legacy strict plan mode: %+v", hinted)
 	}
 
 	crossRaw := h.doJSON(t, practiceHTTPScenarioUserBID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
@@ -909,7 +893,7 @@ func TestE2EP0048PracticeHintAssistedAcrossGoals(t *testing.T) {
 	}
 }
 
-func TestE2EP0049PracticeHintStrictRefusalAcrossGoals(t *testing.T) {
+func TestE2EP0049PracticeHintOptionalAcrossLegacyStrictGoals(t *testing.T) {
 	for _, goal := range []sharedtypes.PracticeGoal{sharedtypes.PracticeGoalBaseline, sharedtypes.PracticeGoalRetryCurrentRound, sharedtypes.PracticeGoalNextRound} {
 		t.Run(string(goal), func(t *testing.T) {
 			h := newPracticeHTTPScenarioHarness(t)
@@ -924,19 +908,23 @@ func TestE2EP0049PracticeHintStrictRefusalAcrossGoals(t *testing.T) {
 				OccurredAt:    "2026-04-28T13:47:32Z",
 				Payload:       map[string]any{"turnId": started.CurrentTurn.Id},
 			}
-			raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", body, http.StatusConflict)
-			replay := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", body, http.StatusConflict)
-			if !strings.Contains(string(raw), "hint_disabled_in_mode") || !strings.Contains(string(replay), "hint_disabled_in_mode") {
-				t.Fatalf("strict hint conflict/replay missing policy: first=%s replay=%s", raw, replay)
+			raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", body, http.StatusOK)
+			replay := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", body, http.StatusOK)
+			var first api.SessionEventResult
+			var replayed api.SessionEventResult
+			decodeJSON(t, raw, &first)
+			decodeJSON(t, replay, &replayed)
+			if first.AssistantAction.Type != "show_hint" || replayed.AssistantAction.Type != "show_hint" {
+				t.Fatalf("hint should remain available and replayable: first=%+v replay=%+v", first.AssistantAction, replayed.AssistantAction)
 			}
 			if h.store.sessionEventCount(started.Id) != 2 || h.store.pendingSessionEventCount(started.Id) != 0 {
-				t.Fatalf("strict hint should finalize exactly one conflict event without pending rows: events=%d pending=%d", h.store.sessionEventCount(started.Id), h.store.pendingSessionEventCount(started.Id))
+				t.Fatalf("hint should append one event and keep no pending rows: events=%d pending=%d", h.store.sessionEventCount(started.Id), h.store.pendingSessionEventCount(started.Id))
 			}
-			if got := h.store.hintTextForTurn(started.Id, started.CurrentTurn.Id); got != "" {
-				t.Fatalf("strict hint should not persist hint_text, got %q", got)
+			if got := h.store.hintTextForTurn(started.Id, started.CurrentTurn.Id); got == "" {
+				t.Fatalf("hint should persist hint_text")
 			}
-			if h.store.sessions[started.Id].Status != sharedtypes.SessionStatusRunning || h.store.outboxCount() != 1 || h.store.auditCount() != 2 || len(h.aiTaskRuns.rows) != 0 || h.store.aiCalledInsideTransaction {
-				t.Fatalf("strict hint side effects drifted: session=%+v outbox=%d audit=%d taskRuns=%d aiInTx=%v", h.store.sessions[started.Id], h.store.outboxCount(), h.store.auditCount(), len(h.aiTaskRuns.rows), h.store.aiCalledInsideTransaction)
+			if h.store.sessions[started.Id].Status != sharedtypes.SessionStatusRunning || h.store.outboxCount() != 1 || h.store.aiCalledInsideTransaction {
+				t.Fatalf("hint side effects drifted: session=%+v outbox=%d taskRuns=%d aiInTx=%v", h.store.sessions[started.Id], h.store.outboxCount(), len(h.aiTaskRuns.rows), h.store.aiCalledInsideTransaction)
 			}
 		})
 	}
@@ -991,18 +979,6 @@ func TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns(t *testing.T) {
 	decodeJSON(t, raw, &out)
 	actions = append(actions, out.AssistantAction)
 
-	skipTaskRunStart := len(h.aiTaskRuns.Rows())
-	skipRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
-		ClientEventId: "e2e-p0-050-skip",
-		Kind:          "turn_skipped",
-		OccurredAt:    "2026-04-28T13:47:40Z",
-		Payload:       map[string]any{"turnId": started.CurrentTurn.Id, "nextQuestionText": "Next question."},
-	}, http.StatusOK)
-	assertScenarioTaskRunDelta(t, h.aiTaskRuns.Rows()[skipTaskRunStart:], nil)
-	var skipped api.SessionEventResult
-	decodeJSON(t, skipRaw, &skipped)
-	actions = append(actions, skipped.AssistantAction)
-
 	pauseTaskRunStart := len(h.aiTaskRuns.Rows())
 	pauseRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
 		ClientEventId: "e2e-p0-050-pause",
@@ -1019,7 +995,7 @@ func TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns(t *testing.T) {
 		ClientEventId: "e2e-p0-050-complete-action",
 		Kind:          "answer_submitted",
 		OccurredAt:    "2026-04-28T13:48:00Z",
-		Payload:       map[string]any{"turnId": skipped.Session.CurrentTurn.Id, "answerText": "final answer"},
+		Payload:       map[string]any{"turnId": started.CurrentTurn.Id, "answerText": "final answer"},
 	}, http.StatusOK)
 	assertScenarioTaskRunDelta(t, h.aiTaskRuns.Rows()[completeTaskRunStart:], []scenarioExpectedTaskRun{{
 		Capability:       aiclient.AITaskRunTaskHintGenerate,
@@ -1030,7 +1006,7 @@ func TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns(t *testing.T) {
 	decodeJSON(t, completeRaw, &completed)
 	actions = append(actions, completed.AssistantAction)
 
-	wantTypes := []string{"ask_follow_up", "show_hint", "ask_question", "session_wait", "session_completed"}
+	wantTypes := []string{"ask_follow_up", "show_hint", "session_wait", "ask_question"}
 	for i, action := range actions {
 		if action.Type != wantTypes[i] {
 			t.Fatalf("action[%d] type = %q, want %q", i, action.Type, wantTypes[i])

@@ -1,10 +1,9 @@
 /**
  * @vitest-environment jsdom
  *
- * Item 1.1: PracticeScreen static shell + ≥ 20 practice-* testids + control
- * type assertions. Source-level mirror of `ui-design/src/screen-practice.jsx::
- * PracticeScreen` text branch (lines 184-326). This test asserts the static
- * skeleton; data-driven assertions land in later phases.
+ * PracticeScreen current real-interview shell. Source-level mirror of
+ * `ui-design/src/screen-practice.jsx::PracticeScreen` after the phone-mode
+ * simplification.
  *
  * Truth source: docs/spec/frontend-workspace-and-practice/plans/
  *   002-practice-text-event-loop/plan.md §3.5 + checklist.md item 1.1.
@@ -62,33 +61,26 @@ describe("PracticeScreen static shell (item 1.1)", () => {
     expect(screen.getByTestId("practice-topbar-timer")).toBeDefined();
     expect(screen.getByTestId("practice-topbar-pause")).toBeDefined();
     expect(screen.getByTestId("practice-topbar-mode-text")).toBeDefined();
-    expect(screen.getByTestId("practice-topbar-mode-voice")).toBeDefined();
-    expect(screen.getByTestId("practice-topbar-strict")).toBeDefined();
-    expect(screen.getByTestId("practice-topbar-role")).toBeDefined();
+    expect(screen.getByTestId("practice-topbar-mode-phone")).toBeDefined();
+    expect(screen.getByTestId("practice-finish-cta").tagName).toBe("BUTTON");
+    expect(screen.queryByTestId("practice-topbar-mode-voice")).toBeNull();
+    expect(screen.queryByTestId("practice-topbar-strict")).toBeNull();
+    expect(screen.queryByTestId("practice-topbar-role")).toBeNull();
   });
 
-  it("strict toggle is a switch (role + aria-checked) — not a checkbox / select", () => {
+  it("does not render strict or role controls inside the session", () => {
     withProviders(<PracticeScreen route={PRACTICE_ROUTE} />);
-    const strict = screen.getByTestId("practice-topbar-strict");
-    expect(strict.getAttribute("role")).toBe("switch");
-    // assisted route param → aria-checked="false"
-    expect(strict.getAttribute("aria-checked")).toBe("false");
-    expect(strict.tagName).not.toBe("SELECT");
-    expect(strict.tagName).not.toBe("INPUT");
+    expect(screen.queryByTestId("practice-topbar-strict")).toBeNull();
+    expect(screen.queryByTestId("practice-topbar-role")).toBeNull();
+    expect(screen.queryByTestId("practice-strict-locked-toast")).toBeNull();
   });
 
   it("segmented mode controls are buttons (not <select>)", () => {
     withProviders(<PracticeScreen route={PRACTICE_ROUTE} />);
     const text = screen.getByTestId("practice-topbar-mode-text");
-    const voice = screen.getByTestId("practice-topbar-mode-voice");
+    const phone = screen.getByTestId("practice-topbar-mode-phone");
     expect(text.tagName).toBe("BUTTON");
-    expect(voice.tagName).toBe("BUTTON");
-  });
-
-  it("RoleDropdown is a menu trigger button (not a <select>)", () => {
-    withProviders(<PracticeScreen route={PRACTICE_ROUTE} />);
-    const role = screen.getByTestId("practice-topbar-role");
-    expect(role.tagName).toBe("BUTTON");
+    expect(phone.tagName).toBe("BUTTON");
   });
 
   it("renders SessionMap on the left rail with label + at least one item", () => {
@@ -111,25 +103,22 @@ describe("PracticeScreen static shell (item 1.1)", () => {
     expect(screen.getByTestId("practice-transcript-helper")).toBeDefined();
   });
 
-  it("renders InputBar with textarea + send / skip / dictate buttons + hint (assisted)", () => {
+  it("renders InputBar with textarea + send + optional hint only", () => {
     withProviders(<PracticeScreen route={PRACTICE_ROUTE} />);
     const textarea = screen.getByTestId("practice-input-textarea");
     expect(textarea.tagName).toBe("TEXTAREA");
     expect(screen.getByTestId("practice-input-send").tagName).toBe("BUTTON");
-    expect(screen.getByTestId("practice-input-skip").tagName).toBe("BUTTON");
-    expect(screen.getByTestId("practice-input-dictate").tagName).toBe("BUTTON");
-    // assisted route param → hint button rendered
     expect(screen.getByTestId("practice-input-hint")).toBeDefined();
+    expect(screen.queryByTestId("practice-input-skip")).toBeNull();
+    expect(screen.queryByTestId("practice-input-dictate")).toBeNull();
   });
 
-  it("renders RightPanel with JD link card + AI transparency + finish CTA", () => {
+  it("does not render a right panel in text mode", () => {
     withProviders(<PracticeScreen route={PRACTICE_ROUTE} />);
-    expect(screen.getByTestId("practice-rightpanel")).toBeDefined();
-    expect(screen.getByTestId("practice-rightpanel-jd")).toBeDefined();
-    expect(screen.getByTestId("practice-rightpanel-ai-transparency")).toBeDefined();
-    expect(screen.getByTestId("practice-rightpanel-cta-finish").tagName).toBe(
-      "BUTTON",
-    );
+    expect(screen.queryByTestId("practice-rightpanel")).toBeNull();
+    expect(screen.queryByTestId("practice-rightpanel-jd")).toBeNull();
+    expect(screen.queryByTestId("practice-rightpanel-ai-transparency")).toBeNull();
+    expect(screen.queryByTestId("practice-rightpanel-cta-finish")).toBeNull();
   });
 
   it("provides ≥ 20 unique practice-* testids on the static shell", () => {
@@ -141,13 +130,13 @@ describe("PracticeScreen static shell (item 1.1)", () => {
     expect(unique.size).toBeGreaterThanOrEqual(20);
   });
 
-  it("does not render any voice surface DOM in text mode (negative gate)", () => {
+  it("does not render any phone surface DOM in text mode (negative gate)", () => {
     withProviders(<PracticeScreen route={PRACTICE_ROUTE} />);
     expect(screen.queryByTestId("practice-voice-coming-soon")).toBeNull();
-    // Voice waveform / annotated waveform / expression panel must not appear.
     expect(screen.queryByTestId("practice-voice-waveform")).toBeNull();
     expect(screen.queryByTestId("practice-voice-annotated-waveform")).toBeNull();
     expect(screen.queryByTestId("practice-voice-expression-panel")).toBeNull();
+    expect(screen.queryByTestId("practice-phone-surface")).toBeNull();
   });
 
   it("does not render non-current prototype testids (negative gate)", () => {
@@ -160,21 +149,20 @@ describe("PracticeScreen static shell (item 1.1)", () => {
     expect(screen.queryByTestId("mistakes-queue-list")).toBeNull();
   });
 
-  it("renders the ui-design voice surface anchors when mode='voice'", () => {
-    const voiceRoute: Route = {
+  it("renders the phone surface anchors when mode='phone'", () => {
+    const phoneRoute: Route = {
       ...PRACTICE_ROUTE,
-      params: { ...PRACTICE_ROUTE.params, mode: "voice", modality: "voice" },
+      params: { ...PRACTICE_ROUTE.params, mode: "phone", modality: "phone" },
     };
-    withProviders(<PracticeScreen route={voiceRoute} />);
+    withProviders(<PracticeScreen route={phoneRoute} />);
     expect(screen.queryByTestId("practice-voice-coming-soon")).toBeNull();
-    expect(screen.getByTestId("practice-voice-surface")).toBeDefined();
-    expect(screen.getByTestId("practice-voice-waveform")).toBeDefined();
-    expect(screen.getByTestId("practice-voice-annotated-waveform")).toBeDefined();
-    expect(screen.getByTestId("practice-voice-live-transcript")).toBeDefined();
-    expect(screen.getByTestId("practice-voice-expression-panel")).toBeDefined();
-    expect(screen.getByTestId("practice-topbar-live").style.visibility).toBe(
-      "visible",
-    );
+    expect(screen.getByTestId("practice-phone-surface")).toBeDefined();
+    expect(screen.getByTestId("practice-phone-waveform")).toBeDefined();
+    expect(screen.getByTestId("practice-phone-captions-toggle")).toBeDefined();
+    expect(screen.getByTestId("practice-phone-hangup")).toBeDefined();
+    expect(screen.getByTestId("practice-phone-restart")).toBeDefined();
+    expect(screen.queryByTestId("practice-voice-annotated-waveform")).toBeNull();
+    expect(screen.queryByTestId("practice-voice-expression-panel")).toBeNull();
   });
 
   it("renders PracticeSessionLostState when sessionId is missing", () => {
@@ -189,18 +177,14 @@ describe("PracticeScreen static shell (item 1.1)", () => {
     );
   });
 
-  it("hides hint button + LIVE NOTES + experience cards when practiceMode='strict'", () => {
+  it("keeps hint available even when legacy practiceMode='strict'", () => {
     const strictRoute: Route = {
       ...PRACTICE_ROUTE,
       params: { ...PRACTICE_ROUTE.params, practiceMode: "strict" },
     };
     withProviders(<PracticeScreen route={strictRoute} />);
-    expect(screen.queryByTestId("practice-input-hint")).toBeNull();
-    expect(screen.queryByTestId("practice-sessionmap-live-notes")).toBeNull();
-    expect(screen.queryByTestId("practice-rightpanel-exp-0")).toBeNull();
-    expect(screen.getByTestId("practice-rightpanel-strict-banner")).toBeDefined();
-    // strict route → strict toggle aria-checked='true'
-    const strict = screen.getByTestId("practice-topbar-strict");
-    expect(strict.getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByTestId("practice-input-hint")).toBeDefined();
+    expect(screen.queryByTestId("practice-rightpanel-strict-banner")).toBeNull();
+    expect(screen.queryByTestId("practice-topbar-strict")).toBeNull();
   });
 });

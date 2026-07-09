@@ -5,37 +5,29 @@ export interface InputBarProps {
   onChange: (next: string) => void;
   placeholder: string;
   hintLabel: string;
-  skipLabel: string;
   sendLabel: string;
-  dictateLabel: string;
   showHintButton: boolean;
   disabled: boolean;
   onHint: () => void;
-  onSkip: () => void;
   onSend: () => void;
-  onDictate: () => void;
   hintBanner: ReactNode | null;
 }
 
 /**
  * Source-level mirror of `ui-design/src/screen-practice.jsx` lines 218-254
- * (input region + hint button + skip + send). The dictation banner / failure
- * banner derive from lines 230-236 / 583-590 — those land in Phase 3.
+ * (input region + optional hint + send). Text mode does not expose dictation
+ * or turn-bypass controls.
  */
 export const InputBar: FC<InputBarProps> = ({
   value,
   onChange,
   placeholder,
   hintLabel,
-  skipLabel,
   sendLabel,
-  dictateLabel,
   showHintButton,
   disabled,
   onHint,
-  onSkip,
   onSend,
-  onDictate,
   hintBanner,
 }) => {
   return (
@@ -103,42 +95,8 @@ export const InputBar: FC<InputBarProps> = ({
                 {hintLabel}
               </button>
             )}
-            <button
-              data-testid="practice-input-dictate"
-              type="button"
-              onClick={onDictate}
-              disabled={disabled}
-              style={{
-                background: "transparent",
-                border: "1px solid var(--ei-color-rule-strong)",
-                padding: "6px 10px",
-                borderRadius: 2,
-                fontSize: 12,
-                color: "var(--ei-color-fg-secondary)",
-                cursor: disabled ? "default" : "pointer",
-              }}
-            >
-              {dictateLabel}
-            </button>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button
-              data-testid="practice-input-skip"
-              type="button"
-              onClick={onSkip}
-              disabled={disabled}
-              style={{
-                background: "transparent",
-                border: "1px solid var(--ei-color-rule-strong)",
-                color: "var(--ei-color-fg-secondary)",
-                padding: "6px 12px",
-                borderRadius: 2,
-                fontSize: 12,
-                cursor: disabled ? "default" : "pointer",
-              }}
-            >
-              {skipLabel}
-            </button>
             <button
               data-testid="practice-input-send"
               type="button"

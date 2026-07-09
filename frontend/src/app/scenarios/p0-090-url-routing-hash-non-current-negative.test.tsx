@@ -59,7 +59,7 @@ describe("E2E.P0.090 hash compatibility + non-current route negative regression"
     expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
   });
 
-  it("`#route=practice&mode=voice&modality=voice&sessionId=...` rewrites to canonical /practice with chrome hidden", () => {
+  it("legacy `#route=practice&mode=voice&modality=voice&sessionId=...` rewrites to canonical /practice with phone surface and chrome hidden", () => {
     window.history.replaceState(
       null,
       "",
@@ -70,7 +70,7 @@ describe("E2E.P0.090 hash compatibility + non-current route negative regression"
     expect(window.location.search).toContain("mode=voice");
     expect(window.location.search).toContain("modality=voice");
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
-    expect(screen.getByTestId("practice-voice-waveform")).toBeInTheDocument();
+    expect(screen.getByTestId("practice-phone-waveform")).toBeInTheDocument();
   });
 
   it("`#route=voice` normalizes to home (standalone voice route never materializes)", () => {

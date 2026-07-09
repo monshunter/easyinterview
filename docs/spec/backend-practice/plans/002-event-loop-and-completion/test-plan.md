@@ -1,8 +1,8 @@
 # Backend Practice Event Loop and Completion Test Plan
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 
@@ -23,9 +23,9 @@
 | 测试源 | 覆盖 | 命令 / 文件 |
 |--------|------|-------------|
 | event/job source-event-only contract | `report_generate` ownership, generated constants, B3 drift | `make lint-events`, `make codegen-events-check`, `go test ./backend/internal/shared/jobs -count=1` |
-| OpenAPI turn status and generated artifacts | 5-value `PracticeTurn.status`, generated Go/TS sync | `make codegen-check`, `python3 scripts/lint/conventions_drift.py --repo-root .` |
+| OpenAPI turn status and generated artifacts | 4-value `PracticeTurn.status`, generated Go/TS sync | `make codegen-check`, `python3 scripts/lint/conventions_drift.py --repo-root .` |
 | fixtures | append/complete named variants match current schema | `make validate-fixtures` |
-| state machine | five event kinds, answer branches, strict hint default, provenance defaults, malformed answer fail-fast | `cd backend && go test ./internal/practice -count=1` |
+| state machine | four current text event kinds, answer branches, optional legacy strict hint, provenance defaults, malformed answer fail-fast | `cd backend && go test ./internal/practice -count=1` |
 | append repository | transaction writes, replay/mismatch, row lock, cross-user, outbox boundary | `cd backend && go test ./internal/store/practice -run TestAppendSessionEvent -count=1` |
 | append handler | generated request/response, header policy, required `occurredAt`, error mapping | `cd backend && go test ./internal/api/practice -run TestAppendSessionEvent -count=1` |
 | completion repository | queued report/job/outbox/audit, D-35 replay, status guard, cross-user | `cd backend && go test ./internal/store/practice -run TestCompleteSession -count=1` |
@@ -40,7 +40,7 @@
 |------|---------------|-----------------|
 | `clientEventId` replay | second same-key request writes another event, AI call or outbox row | second same-key same-fingerprint request returns original result with unchanged side-effect counts |
 | `clientEventId` mismatch | changed payload is accepted or prior payload leaks in error | 409 conflict with sanitized envelope and no new side effects |
-| append sequencing | accepted events have duplicate or skipped `seq_no` | accepted events are contiguous per session and stale-turn requests conflict |
+| append sequencing | accepted events have duplicate or gapped `seq_no` | accepted events are contiguous per session and stale-turn requests conflict |
 | completion replay | same session creates a second report/job/outbox with another idempotency key | service returns the existing report/job and records the new idempotency snapshot |
 | report handoff | source event replay can create a second `report_generate` job | handler/store path is the single report job creator and active dedupe/replay blocks duplicates |
 | wire boundary | turn status is compressed or runtime-only provenance fields leak | five statuses and six provenance fields are preserved exactly |

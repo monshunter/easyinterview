@@ -6,7 +6,7 @@
  *  - server returns assistantAction.show_hint
  *  - HintBanner becomes visible; hintCount increments via INCREMENT_HINT_COUNT
  *  - clicking hint again hides the banner without re-posting
- *  - strict mode does NOT render the hint button (DOM negative)
+ *  - legacy strict route params still keep the hint button available
  */
 
 import { describe, expect, it } from "vitest";
@@ -48,9 +48,9 @@ describe("practice hints (item 3.2)", () => {
     await waitFor(() => {
       expect(screen.getByTestId("practice-hint-banner")).toBeDefined();
     });
-    // hintCount written into right panel CTA usage note
+    // hintCount is displayed next to the global finish action.
     await waitFor(() => {
-      expect(screen.getByTestId("practice-rightpanel-hint-count")).toBeDefined();
+      expect(screen.getByTestId("practice-finish-hint-count")).toBeDefined();
     });
   });
 
@@ -79,14 +79,14 @@ describe("practice hints (item 3.2)", () => {
     expect(eventCalls(calls).length).toBe(before);
   });
 
-  it("strict mode: hint button DOM is not rendered", async () => {
+  it("legacy strict mode: hint button DOM is still rendered", async () => {
     mountPracticeScreen({
       routeParams: { practiceMode: "strict" },
     });
     await waitFor(() => {
       expect(screen.getByTestId("practice-screen")).toBeDefined();
     });
-    expect(screen.queryByTestId("practice-input-hint")).toBeNull();
-    expect(screen.getByTestId("practice-rightpanel-strict-banner")).toBeDefined();
+    expect(screen.getByTestId("practice-input-hint")).toBeDefined();
+    expect(screen.queryByTestId("practice-topbar-strict")).toBeNull();
   });
 });

@@ -6,7 +6,7 @@ metadata:
   sequence: 2
   specVersion:
     from: 1.2
-    to: 1.8
+    to: 1.21
 spec:
   defaultTarget: frontend
   discovery:
@@ -16,6 +16,8 @@ spec:
       - practice text event loop
       - practice screen text mode
       - practice text surface
+      - practice phone mode
+      - real interview session
       - practice event loop
       - appendSessionEvent
       - completePracticeSession
@@ -24,7 +26,7 @@ spec:
     keywords:
       - PracticeScreen
       - PracticeSessionLostState
-      - PracticeVoiceSurface
+      - PracticePhoneSurface
       - usePracticeVoiceTurn
       - usePracticeSessionLoader
       - usePracticeEvents
@@ -37,12 +39,19 @@ spec:
       - QuestionCard
       - Transcript
       - InputBar
-      - RightPanel
-      - RoleDropdown
       - FinishCta
-      - ExpCard
-      - LiveNotes
       - ErrorState
+      - PhoneSurface
+      - phone captions
+      - hang up call
+      - restart call
+      - deleted RightPanel
+      - deleted RoleDropdown
+      - deleted speech-to-text
+      - deleted skip
+      - deleted strict switch
+      - deleted voice analysis
+      - real environment screenshot
       - resumeId
       - getPracticeSession
       - appendSessionEvent
@@ -60,8 +69,8 @@ spec:
       - INCREMENT_HINT_COUNT
       - MERGE_SESSION
       - hintsEnabled
-      - practiceMode strict
-      - practiceMode assisted
+      - practiceMode compatibility
+      - hintUsed hintCount
       - practiceGoal baseline retry_current_round next_round
       - SessionStatus
       - assistantAction.type ask_question

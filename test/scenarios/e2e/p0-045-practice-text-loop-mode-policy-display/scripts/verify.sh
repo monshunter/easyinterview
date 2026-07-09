@@ -11,13 +11,19 @@ grep -Eq 'Test Files +[0-9]+ passed \([0-9]+\)' "$LOG_FILE" || { echo "E2E.P0.04
 grep -Fq 'usePracticeAssistance.test.ts' "$LOG_FILE" || { echo "E2E.P0.045: usePracticeAssistance.test.ts did not run" >&2; exit 1; }
 grep -Fq 'practiceGoalParity.test.tsx' "$LOG_FILE" || { echo "E2E.P0.045: practiceGoalParity.test.tsx did not run" >&2; exit 1; }
 grep -Fq 'practiceHints.test.tsx' "$LOG_FILE" || { echo "E2E.P0.045: practiceHints.test.tsx did not run" >&2; exit 1; }
-grep -Fq 'practiceStrictToggleLocked.test.tsx' "$LOG_FILE" || { echo "E2E.P0.045: practiceStrictToggleLocked.test.tsx did not run" >&2; exit 1; }
+grep -Fq 'practiceVoiceTurn.test.tsx' "$LOG_FILE" || { echo "E2E.P0.045: practiceVoiceTurn.test.tsx did not run" >&2; exit 1; }
+grep -Fq 'practiceModeSwitch.test.tsx' "$LOG_FILE" || { echo "E2E.P0.045: practiceModeSwitch.test.tsx did not run" >&2; exit 1; }
+grep -Fq 'SessionMap.test.tsx' "$LOG_FILE" || { echo "E2E.P0.045: SessionMap.test.tsx did not run" >&2; exit 1; }
 if rg -n "practiceMode\s*[=:]\s*['\"]debrief['\"]|PracticeGoalDebrief|goal\s*[=:]\s*['\"]debrief['\"]" "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then
   echo "E2E.P0.045: non-current practice goal literal leaked" >&2
   exit 1
 fi
 if rg -n '切到语音|Switch to voice' "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then
   echo "E2E.P0.045: non-current mode-switch copy leaked" >&2
+  exit 1
+fi
+if rg -n 'practice-input-skip|practice-topbar-strict|practice-topbar-role|VoiceSessionSurface|PracticeAnnotatedWaveform|VoiceExpressionPanel' "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then
+  echo "E2E.P0.045: retired strict/skip/role/voice surface leaked" >&2
   exit 1
 fi
 # usePracticeEvents must NOT set the Idempotency-Key header on the request.

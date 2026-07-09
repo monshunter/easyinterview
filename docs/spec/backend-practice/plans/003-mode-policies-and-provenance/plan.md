@@ -1,8 +1,8 @@
 # Backend Practice Mode Policies and Provenance
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -13,9 +13,8 @@
 
 本 plan 承接 `appendSessionEvent` 的 hint 分支、mode policy、AssistantAction provenance 和 hint AI observability 合同：
 
-- `mode='assisted'` 时，`hint_requested` 通过 F3 `practice.turn.lightweight_observe` + A3 observed AIClient 返回 `AssistantAction{type:'show_hint'}`，并写入 `practice_turns.hint_text`。
-- `mode='strict'` 或未知 mode 时，`hint_requested` 返回 `409 PRACTICE_SESSION_CONFLICT`，不调用 AI，不写 hint_text。
-- goal 仅决定练习来源，hint 策略只由 `mode` 决定；`baseline` / `retry_current_round` / `next_round` 均遵守同一 mode policy。
+- `mode='assisted'` 或 legacy `mode='strict'` 时，`hint_requested` 通过 F3 `practice.turn.lightweight_observe` + A3 observed AIClient 返回 `AssistantAction{type:'show_hint'}`，并写入 `practice_turns.hint_text`。
+- goal 仅决定练习来源，不改变 hint 可用性；`baseline` / `retry_current_round` / `next_round` 均遵守同一 optional hint policy。
 - hint AI 失败走 graceful degrade：HTTP 200 + `AssistantAction{type:'session_wait'}`，session 保持 running，不写 `failure_code`，失败摘要进入 `ai_task_runs(task_type='hint_generate')`。
 - `AssistantAction.provenance` wire JSON 只暴露 B2 `GenerationProvenance` 六字段；runtime 字段只进入 typed task run / service-local evidence。
 - hint 路径不递增 turn count、不发 `practice.turn.completed` outbox、不写 domain audit event，且 payload / logs / metrics / ai_task_runs 不包含 question、answer、hint、prompt 或 provider secret 明文。
@@ -27,7 +26,7 @@
 | surface | fixture / scenario | backend behavior | persistence | AI dependency | coverage |
 |---------|--------------------|------------------|-------------|---------------|----------|
 | `appendSessionEvent` assisted hint | `appendSessionEvent.json` `hint-assisted-show` | `hint_requested` returns `200 + show_hint`; replay returns original hint snapshot | `practice_session_events`, `practice_turns.hint_text`, `ai_task_runs(hint_generate)` | F3 `practice.turn.lightweight_observe`, A3 Chat profile `practice.turn_observe.default` | `E2E.P0.048`, unit/store tests |
-| `appendSessionEvent` strict hint | `appendSessionEvent.json` `hint-strict-conflict` | `hint_requested` returns `409 PRACTICE_SESSION_CONFLICT`; finalized replay payload is sanitized | `practice_session_events` only | none | `E2E.P0.049`, unit/store tests |
+| `appendSessionEvent` legacy strict hint | `appendSessionEvent.json` `show-hint` | `hint_requested` returns `200 + show_hint`; replay returns original hint snapshot and leaves no pending event row | `practice_session_events`, `practice_turns.hint_text`, `ai_task_runs(hint_generate)` | F3 `practice.turn.lightweight_observe`, A3 Chat profile `practice.turn_observe.default` | `E2E.P0.049`, unit/store tests |
 | AssistantAction provenance | current generated `GenerationProvenance` | response provenance key set is exactly six wire fields for show_hint / ask_question / ask_follow_up / session_wait / session_completed | runtime metadata excluded from wire | only AI-backed actions call A3 | `E2E.P0.050`, provenance tests |
 | hint graceful degrade | `appendSessionEvent.json` `hint-assisted-ai-failed-degrade` | F3/A3/parser failures return `200 + session_wait` and keep session running | failed `ai_task_runs(hint_generate)` row where applicable | F3/A3 failure branches | `E2E.P0.051`, service tests |
 | privacy / runtime boundary | no public fixture | no hint text, prompt, answer text, provider secret, or raw response in log/metric/audit/event/task-run payloads | sanitized event payloads and typed task columns only | observed AIClient redaction | `E2E.P0.051`, backend-practice non-current lint |
@@ -49,8 +48,8 @@
 ## 3 质量门禁
 
 - **Plan 类型**: `feature-behavior + contract + code-internal`。
-- **TDD 策略**: 适用。Focused tests cover mode dispatch, strict replay finalization, assisted AI success, graceful degrade, provenance JSON shape, store persistence, task-run writer, redaction and runtime boundary lint.
-- **BDD 策略**: 适用。`E2E.P0.048` - `E2E.P0.051` cover assisted hint, strict hint, provenance/task-run boundary and graceful degrade/privacy.
+- **TDD 策略**: 适用。Focused tests cover optional hint dispatch across assisted / legacy strict, AI success, graceful degrade, provenance JSON shape, store persistence, task-run writer, redaction and runtime boundary lint.
+- **BDD 策略**: 适用。`E2E.P0.048` - `E2E.P0.051` cover assisted hint, legacy strict optional hint, provenance/task-run boundary and graceful degrade/privacy.
 - **替代验证 gate**:
   - `cd backend && go test ./cmd/api -run 'TestE2EP0048|TestE2EP0049|TestE2EP0050|TestE2EP0051' -count=1`
   - `cd backend && go test ./internal/api/practice ./internal/practice ./internal/store/practice ./internal/ai/aiclient ./internal/ai/registry ./cmd/api -count=1`
@@ -69,19 +68,19 @@
 - Confirm backend-practice spec current decisions for `PracticeMode`, graceful degrade, hint lifecycle and provenance.
 - Confirm B4 baseline and A3 writer accept `hint_generate`.
 - Confirm F3 `practice.turn.lightweight_observe` and model profile `practice.turn_observe.default` resolve in tests.
-- Confirm `appendSessionEvent` fixtures include assisted success, assisted degrade and strict conflict variants.
+- Confirm `appendSessionEvent` fixtures include assisted success, legacy strict success and assisted degrade variants.
 
-### Phase 1: mode dispatch and strict boundary
+### Phase 1: optional hint dispatch and legacy strict compatibility
 
-- Dispatch `hint_requested` by `plan.mode`.
-- Assisted mode returns a pending `show_hint` outcome for service AI application.
-- Strict/unknown modes return sanitized 409 and finalize the reserved event for replay.
-- Unit tests cover mode × goal matrix and no-AI strict path.
+- Dispatch `hint_requested` as optional in-session assistance.
+- Assisted and legacy strict modes return a pending `show_hint` outcome for service AI application.
+- Replay preserves the original hint response and leaves no pending event row.
+- Unit tests cover mode × goal matrix and legacy strict compatibility.
 
 ### Phase 2: assisted hint AI and persistence
 
-- Apply F3/A3 hint generation only for assisted hint.
-- Persist `practice_turns.hint_text` only on assisted success.
+- Apply F3/A3 hint generation for assisted and legacy strict hint.
+- Persist `practice_turns.hint_text` only on hint success.
 - Preserve turn/session lifecycle: no turn count increment, no turn status change, no outbox, no audit event.
 - Store replay payload preserves the original hint response snapshot.
 
@@ -102,7 +101,7 @@
 | ID | 验收点 | 验证 |
 |----|--------|------|
 | A-1 | Assisted hint returns show_hint and writes hint_text/task-run evidence | `TestE2EP0048PracticeHintAssistedAcrossGoals`, service/store tests |
-| A-2 | Strict/unknown hint returns sanitized 409 and no AI call | `TestE2EP0049PracticeHintStrictRefusalAcrossGoals`, strict replay tests |
+| A-2 | Legacy strict hint remains available, replayable and leaves no pending reservation | `TestE2EP0049PracticeHintOptionalAcrossLegacyStrictGoals`, legacy strict replay tests |
 | A-3 | AssistantAction provenance wire JSON has exactly six keys | `TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns`, provenance unit tests |
 | A-4 | Hint AI failures degrade without failing the session | `TestE2EP0051PracticeHintDegradeAndPrivacy`, `TestApplyHintAIGracefulDegradeMatrix` |
 | A-5 | Privacy/runtime boundary has no real residuals | backend-practice non-current lint, redaction tests, pruning-surface lint |
@@ -113,3 +112,4 @@
 |------|------|------|
 | 2026-07-07 | 1.4 | Compress owner docs to current hint mode policy, provenance, task-run and privacy contract. |
 | 2026-07-06 | 1.3 | Reconcile current goal matrix and non-current gate wording after product-scope pruning. |
+| 2026-07-09 | 1.5 | Align docs with real-interview simplification: legacy strict no longer rejects hints; hint remains optional assistance across current goals. |

@@ -6,33 +6,25 @@ export interface UsePracticeAssistanceInput {
 }
 
 export interface UsePracticeAssistanceResult {
-  showLiveNotes: boolean;
   showHintButton: boolean;
-  showExperienceCards: boolean;
   showStrictBanner: boolean;
 }
 
 /**
- * Item 3.1 — display flags driven by `practiceMode==='strict'` ONLY.
+ * Current practice UI treats assistance as an in-session optional action.
  *
  * `practiceGoal` (baseline / retry_current_round / next_round)
- * affects question sourcing on the backend; it MUST NOT influence the
- * front-end strict-vs-assisted display switch (spec D-3 verifier).
- *
- * `practiceGoal` is intentionally not read in this hook. The argument is
- * accepted only so call sites can keep their full context object intact.
+ * affects question sourcing only; legacy `practiceMode` is accepted for
+ * handoff compatibility but must not hide hints or create a visible banner.
  */
 export function usePracticeAssistance(
-  input: UsePracticeAssistanceInput,
+  _input: UsePracticeAssistanceInput,
 ): UsePracticeAssistanceResult {
-  const isStrict = input.practiceMode === "strict";
   return useMemo<UsePracticeAssistanceResult>(
     () => ({
-      showLiveNotes: !isStrict,
-      showHintButton: !isStrict,
-      showExperienceCards: !isStrict,
-      showStrictBanner: isStrict,
+      showHintButton: true,
+      showStrictBanner: false,
     }),
-    [isStrict],
+    [],
   );
 }

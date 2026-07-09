@@ -362,7 +362,7 @@ func isClosedSessionStatus(status sharedtypes.SessionStatus) bool {
 
 func isClosedTurnStatus(status string) bool {
 	switch domain.TurnStatus(strings.TrimSpace(status)) {
-	case domain.TurnStatusAnswered, domain.TurnStatusAssessed, domain.TurnStatusSkipped:
+	case domain.TurnStatusAnswered, domain.TurnStatusAssessed:
 		return true
 	default:
 		return false
@@ -373,7 +373,7 @@ func updateLatestTurn(ctx context.Context, tx *sql.Tx, in domain.AppendSessionEv
 	answerText := payloadString(in.RequestPayload, "answerText")
 	followUpCount := in.Outcome.NextTurn.FollowUpCount
 	completedAt := any(nil)
-	if in.Outcome.NextTurn.Status == string(domain.TurnStatusAssessed) || in.Outcome.NextTurn.Status == string(domain.TurnStatusSkipped) {
+	if in.Outcome.NextTurn.Status == string(domain.TurnStatusAssessed) {
 		completedAt = in.OccurredAt.UTC()
 	}
 	answeredAt := any(nil)

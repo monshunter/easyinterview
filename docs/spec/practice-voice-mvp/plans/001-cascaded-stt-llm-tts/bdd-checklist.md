@@ -1,8 +1,8 @@
 # Cascaded STT LLM TTS Voice MVP BDD Checklist
 
-> **版本**: 1.2
-> **状态**: completed
-> **更新日期**: 2026-05-17
+> **版本**: 1.3
+> **状态**: active
+> **更新日期**: 2026-07-09
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -13,6 +13,7 @@
 - [x] 验证 BUG-0070 playback ref 边界：response `ttsChunks[].audioRef` 可被浏览器播放；persisted voice turn summary 使用 opaque `voice-turn://...` 且不包含 audio bytes
 - [x] 实现 setup / trigger / verify / cleanup；trigger 写入真实 runner 日志，verify 断言 runner marker、目标测试路径、pass marker、transcript、assistant text、TTS playback state、voice turn event、profile meta 摘要和下一题入口
 - [x] 更新 `test/scenarios/e2e/INDEX.md` 并执行场景，记录验证证据；证据: `test/scenarios/e2e/p0-007-cascaded-voice-turn/scripts/setup.sh && test/scenarios/e2e/p0-007-cascaded-voice-turn/scripts/trigger.sh && test/scenarios/e2e/p0-007-cascaded-voice-turn/scripts/verify.sh && test/scenarios/e2e/p0-007-cascaded-voice-turn/scripts/cleanup.sh`
+- [ ] Phase 6 revision: 场景 README / expected outcome 改为用户可见电话模式，不再要求语音分析或手动转写 fallback UI。
 
 ## E2E.P0.008 插话只提交已播放上下文
 
@@ -28,3 +29,9 @@
 - [x] 准备测试数据：STT secret missing、TTS provider error、unsupported realtime profile 三类 fixture
 - [x] 实现 setup / trigger / verify / cleanup；trigger 写入真实 runner 日志，verify 断言 runner marker、目标测试路径、pass marker、fail-fast / 文本 fallback / 不走 stub 或 realtime / privacy grep 无明文
 - [x] 更新 `test/scenarios/e2e/INDEX.md` 并执行场景，记录验证证据；证据: `test/scenarios/e2e/p0-009-voice-provider-failure-fallback/scripts/setup.sh && test/scenarios/e2e/p0-009-voice-provider-failure-fallback/scripts/trigger.sh && test/scenarios/e2e/p0-009-voice-provider-failure-fallback/scripts/verify.sh && test/scenarios/e2e/p0-009-voice-provider-failure-fallback/scripts/cleanup.sh`
+
+## REAL.ENV.PHONE.SCREENSHOT
+
+- [ ] Verify local dev dependencies/backend/frontend are running from the current branch.
+- [ ] Open real phone practice flow in browser and capture screenshot evidence under `.test-output/`.
+- [ ] Verify screenshot shows phone-mode UI with captions / hang-up / restart and no right panel, voice analysis, manual transcript fallback, start-recording main button or submit-turn main button.

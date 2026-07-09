@@ -105,8 +105,7 @@ REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
         {
             "default",
             "follow-up",
-            "hint-strict-conflict",
-            "turn-skipped",
+            "hint-conflict",
             "pause-resume",
             "replay",
             "mismatch",

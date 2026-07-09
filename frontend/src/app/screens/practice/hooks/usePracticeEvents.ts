@@ -21,7 +21,6 @@ export interface UsePracticeEventsResult {
   ready: boolean;
   submitAnswer: (input: SubmitAnswerInput) => Promise<SessionEventResult>;
   requestHint: (input: TurnTargetedInput) => Promise<SessionEventResult>;
-  skipTurn: (input: TurnTargetedInput) => Promise<SessionEventResult>;
   pauseSession: () => Promise<SessionEventResult>;
   resumeSession: () => Promise<SessionEventResult>;
 }
@@ -37,7 +36,8 @@ interface InflightRecord {
 /**
  * Item 2.1 — usePracticeEvents.
  *
- * Five mutations map 1:1 to the 5 spec D-12 event kinds. Each mutation
+ * Four user-facing mutations map 1:1 to the current spec D-12 event kinds.
+ * Each mutation
  * builds a `PracticeSessionEventRequest` with a UUIDv7 `clientEventId` and
  * an `occurredAt` ISO timestamp; the request is sent through the generated
  * client (no `Idempotency-Key` header — append events are non-side-effect
@@ -104,10 +104,6 @@ export function usePracticeEvents(
     (input) => send("hint_requested", { turnId: input.turnId }),
     [send],
   );
-  const skipTurn = useCallback<UsePracticeEventsResult["skipTurn"]>(
-    (input) => send("turn_skipped", { turnId: input.turnId }),
-    [send],
-  );
   const pauseSession = useCallback<UsePracticeEventsResult["pauseSession"]>(
     () => send("session_paused", {}),
     [send],
@@ -122,11 +118,10 @@ export function usePracticeEvents(
       ready: !!client && !!sessionId,
       submitAnswer,
       requestHint,
-      skipTurn,
       pauseSession,
       resumeSession,
     }),
-    [client, sessionId, submitAnswer, requestHint, skipTurn, pauseSession, resumeSession],
+    [client, sessionId, submitAnswer, requestHint, pauseSession, resumeSession],
   );
 }
 

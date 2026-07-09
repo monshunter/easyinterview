@@ -5,7 +5,6 @@
  * OpenAPI PracticeSessionEventRequest schema. Payload typing per kind:
  *   answer_submitted   → { turnId, answerText }
  *   hint_requested     → { turnId }
- *   turn_skipped       → { turnId }
  *   session_paused     → {}
  *   session_resumed    → {}
  */
@@ -36,7 +35,6 @@ const REQUIRED_KEYS = ["clientEventId", "kind", "occurredAt", "payload"] as cons
 const ALLOWED_KINDS = new Set([
   "answer_submitted",
   "hint_requested",
-  "turn_skipped",
   "session_paused",
   "session_resumed",
 ]);
@@ -148,10 +146,7 @@ describe("appendSessionEvent body schema", () => {
     expect(body.payload).toEqual({ turnId: TURN_A, answerText: "hello world" });
   });
 
-  it.each([
-    ["hint_requested", "requestHint"],
-    ["turn_skipped", "skipTurn"],
-  ] as const)("%s: payload = {turnId} only", async (expectedKind, mutation) => {
+  it("hint_requested: payload = {turnId} only", async () => {
     const { client, calls } = buildClient();
     const { result } = renderHook(() => usePracticeEvents(), {
       wrapper: ({ children }) => (
@@ -159,14 +154,11 @@ describe("appendSessionEvent body schema", () => {
       ),
     });
     await act(async () => {
-      if (mutation === "requestHint")
-        await result.current.requestHint({ turnId: TURN_A });
-      if (mutation === "skipTurn")
-        await result.current.skipTurn({ turnId: TURN_A });
+      await result.current.requestHint({ turnId: TURN_A });
     });
     const body = eventBodies(calls).at(-1)!;
     assertSchemaShape(body);
-    expect(body.kind).toBe(expectedKind);
+    expect(body.kind).toBe("hint_requested");
     expect(body.payload).toEqual({ turnId: TURN_A });
   });
 

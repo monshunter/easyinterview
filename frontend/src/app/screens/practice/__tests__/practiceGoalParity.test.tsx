@@ -1,9 +1,8 @@
 /**
  * @vitest-environment jsdom
  *
- * Item 3.8 — display under (assisted | strict) × current core-loop goals is
- * indistinguishable across the two practiceGoal values for the same
- * practiceMode. Snapshots over the 4 combinations are pairwise equal.
+ * Item 3.8 — display remains stable when legacy route practiceMode and
+ * current core-loop goals vary. Hints stay optional in-session assistance.
  */
 
 import { describe, expect, it } from "vitest";
@@ -15,9 +14,9 @@ function snapshotKey(): Record<string, string | null> {
   // Capture display-relevant testids' presence + textContent shape.
   const ids = [
     "practice-input-hint",
-    "practice-sessionmap-live-notes",
-    "practice-rightpanel-strict-banner",
-    "practice-rightpanel-experience-label",
+    "practice-finish-cta",
+    "practice-topbar-strict",
+    "practice-topbar-role",
   ];
   const out: Record<string, string | null> = {};
   for (const id of ids) {

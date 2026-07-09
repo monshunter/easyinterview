@@ -1,8 +1,8 @@
 # Cascaded STT LLM TTS Voice MVP Checklist
 
-> **版本**: 1.5
-> **状态**: completed
-> **更新日期**: 2026-07-07
+> **版本**: 1.6
+> **状态**: active
+> **更新日期**: 2026-07-09
 
 **关联计划**: [plan](./plan.md)
 
@@ -49,3 +49,11 @@
 - [x] 5.2 BDD-Gate: 创建并执行 `E2E.P0.008` 插话 / 打断 committed context 场景；证据: `test/scenarios/e2e/p0-008-voice-barge-in-committed-context/scripts/setup.sh && test/scenarios/e2e/p0-008-voice-barge-in-committed-context/scripts/trigger.sh && test/scenarios/e2e/p0-008-voice-barge-in-committed-context/scripts/verify.sh && test/scenarios/e2e/p0-008-voice-barge-in-committed-context/scripts/cleanup.sh`
 - [x] 5.3 BDD-Gate: 创建并执行 `E2E.P0.009` provider failure / fallback 场景；证据: `test/scenarios/e2e/p0-009-voice-provider-failure-fallback/scripts/setup.sh && test/scenarios/e2e/p0-009-voice-provider-failure-fallback/scripts/trigger.sh && test/scenarios/e2e/p0-009-voice-provider-failure-fallback/scripts/verify.sh && test/scenarios/e2e/p0-009-voice-provider-failure-fallback/scripts/cleanup.sh`
 - [x] 5.4 重跑 regression gates：OpenAPI fixture validation、codegen drift、frontend tests、backend tests、A3 profile coverage、privacy grep、非当前 route negative search、scenario wrapper contract；证据: `make codegen-check`、`make validate-fixtures`、`pnpm --filter @easyinterview/frontend test src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx src/api/devMockClient.test.ts src/app/screens/practice/PracticeScreen.test.tsx src/app/screens/practice/__tests__/practiceModeSwitch.test.tsx src/app/App.test.tsx`、`cd backend && go test ./internal/practice ./internal/api/practice ./internal/store/practice ./cmd/api ./internal/ai/aiclient ./internal/ai/aiclient/profile -count=1`、`python3 scripts/lint/ai_profile_coverage.py --repo-root .`、runtime privacy grep 零命中、non-current voice route / coming-soon 负向搜索零命中、`test/scenarios/e2e/p0-007-cascaded-voice-turn/scripts/verify.sh`、`test/scenarios/e2e/p0-008-voice-barge-in-committed-context/scripts/verify.sh`、`test/scenarios/e2e/p0-009-voice-provider-failure-fallback/scripts/verify.sh`、`make docs-check`、`git diff --check`
+
+## Phase 6: Real-interview phone-mode simplification
+
+- [ ] 6.1 用户可见 phone-mode copy：UI / docs / scenarios 使用 `电话模式 / Phone`，底层 `voice` 仅保留为工程能力名；验证: frontend/i18n/source grep + scenario expected-outcome grep。
+- [ ] 6.2 删除语音分析和手动转写 fallback surface：无语速/停顿/口头禅/音量 UI，无 manual transcript fallback 主流程；验证: focused phone Vitest + deleted-surface zero-reference search。
+- [ ] 6.3 电话控制：phone surface 提供字幕、切断和重新开始，不以 `开始录音` / `提交本轮` 作为主流程；验证: focused phone controller tests + pixel parity。
+- [ ] 6.4 真实环境截图验收：本地真实前后端环境中打开 phone practice 页面并保存截图证据，截图证明 phone surface 无语音分析、无右侧边栏、无开始录音/提交本轮主按钮；验证: scenario-env verify + browser screenshot artifacts。
+- [ ] 6.5 Regression gates：OpenAPI/codegen/fixtures/backend voice turn tests、committed-context/privacy gates、BDD P0.007-P0.009、docs/index/diff gates 通过。

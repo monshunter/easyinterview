@@ -84,12 +84,10 @@ describe("practice completion CTA (item 4.8)", () => {
 
     const user = userEvent.setup();
     await waitFor(() =>
-      expect(screen.getByTestId("practice-rightpanel-cta-finish")).toBeDefined(),
+      expect(screen.getByTestId("practice-finish-cta")).toBeDefined(),
     );
 
-    const cta = screen.getByTestId(
-      "practice-rightpanel-cta-finish",
-    ) as HTMLButtonElement;
+    const cta = screen.getByTestId("practice-finish-cta") as HTMLButtonElement;
     await waitFor(() => expect(cta.disabled).toBe(false));
     await user.click(cta);
 
@@ -117,11 +115,9 @@ describe("practice completion CTA (item 4.8)", () => {
 
     const user = userEvent.setup();
     await waitFor(() =>
-      expect(screen.getByTestId("practice-rightpanel-cta-finish")).toBeDefined(),
+      expect(screen.getByTestId("practice-finish-cta")).toBeDefined(),
     );
-    const cta = screen.getByTestId(
-      "practice-rightpanel-cta-finish",
-    ) as HTMLButtonElement;
+    const cta = screen.getByTestId("practice-finish-cta") as HTMLButtonElement;
     await waitFor(() => expect(cta.disabled).toBe(false));
     await user.click(cta);
     await user.click(cta);

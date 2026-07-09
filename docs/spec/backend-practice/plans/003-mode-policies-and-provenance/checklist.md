@@ -1,8 +1,8 @@
 # Backend Practice Mode Policies and Provenance Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联计划**: [plan](./plan.md)
 
@@ -11,13 +11,13 @@
 - [x] 0.1 backend-practice spec contains current mode, graceful degrade, hint lifecycle and provenance decisions（验证：`docs/spec/backend-practice/spec.md` v1.16 active；C-7/C-8/C-12/C-17 still map to this plan）
 - [x] 0.2 B4 baseline and A3 task-run writer support `hint_generate`（验证：migration/A3 writer focused tests are listed in [test-plan](./test-plan.md) and pass in owner closeout）
 - [x] 0.3 F3 `practice.turn.lightweight_observe` preflight is executable and model profile resolves（验证：`backend/internal/ai/registry/backend_practice_preflight_test.go` owner evidence）
-- [x] 0.4 `appendSessionEvent` fixtures include assisted success, assisted degrade and strict conflict variants（验证：`make validate-fixtures` PASS in owner closeout）
+- [x] 0.4 `appendSessionEvent` fixtures include assisted success, legacy strict success and assisted degrade variants（验证：`make validate-fixtures` PASS in owner closeout）
 
-## Phase 1: mode dispatch and strict boundary
+## Phase 1: optional hint dispatch and legacy strict compatibility
 
-- [x] 1.1 `handleHintRequested` dispatches by `plan.mode` only; goal does not change hint policy（验证：`TestHandleHintRequestedModeMatrix` covers current goals × assisted/strict）
-- [x] 1.2 strict and unknown modes return `409 PRACTICE_SESSION_CONFLICT`, do not call AI, and finalize sanitized replay payload（验证：`TestAppendSessionEventHintStrictDoesNotLeavePendingReservation`, `TestE2EP0049PracticeHintStrictRefusalAcrossGoals`）
-- [x] 1.3 BDD-Gate: `E2E.P0.049` strict hint refusal across goals is covered（验证：`cd backend && go test ./cmd/api -run TestE2EP0049PracticeHintStrictRefusalAcrossGoals -count=1` PASS）
+- [x] 1.1 `handleHintRequested` keeps hint optional across current goals and legacy modes（验证：`TestSessionEventServiceRouteCoversAllKinds` + legacy strict service tests）
+- [x] 1.2 legacy strict returns `show_hint`, calls AI outside the reservation transaction, persists `hint_text`, and replays without pending rows（验证：`TestAppendSessionEventHintLegacyStrictRunsAIAndAppends`, `TestServiceAppliesHintAIForLegacyStrict`, `TestE2EP0049PracticeHintOptionalAcrossLegacyStrictGoals`）
+- [x] 1.3 BDD-Gate: `E2E.P0.049` legacy strict optional hint across goals is covered（验证：`cd backend && go test ./cmd/api -run TestE2EP0049PracticeHintOptionalAcrossLegacyStrictGoals -count=1` PASS）
 
 ## Phase 2: assisted hint AI and persistence
 

@@ -1,8 +1,8 @@
 # Backend Practice Event Loop and Completion
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -13,9 +13,9 @@
 
 本 plan 承接 Practice API 的答题事件循环与会话完成合同：
 
-- `POST /practice/sessions/{sessionId}/events` (`appendSessionEvent`) 通过 body `clientEventId` 做 per-session replay，拒绝 `Idempotency-Key` header，处理 `answer_submitted` / `hint_requested` / `turn_skipped` / `session_paused` / `session_resumed` 五种 event kind。
+- `POST /practice/sessions/{sessionId}/events` (`appendSessionEvent`) 通过 body `clientEventId` 做 per-session replay，拒绝 `Idempotency-Key` header，处理 `answer_submitted` / `hint_requested` / `session_paused` / `session_resumed` 四种文本 event kind；`turn_skipped` 不再是正向用户动作。
 - `POST /practice/sessions/{sessionId}/complete` (`completePracticeSession`) 通过 shared idempotency middleware 返回 `202 + ReportWithJob`，同事务创建 queued `feedback_reports`、`async_jobs(job_type='report_generate')`、`practice.session.completed` outbox 和 session completion event。
-- `PracticeTurn.status` wire enum 与 DB 5 值保持一致：`asked` / `answered` / `follow_up_requested` / `assessed` / `skipped`。
+- `PracticeTurn.status` wire enum 与 DB 4 值保持一致：`asked` / `answered` / `follow_up_requested` / `assessed`。
 - `report_generate` job 由 completion handler 创建；`practice.session.completed` 是 source event / analytics fact，`shared/jobs.yaml` 用 `triggerEventSemantic: source_event_only` 固化该边界。
 - 事件、outbox、audit、log、metric 和 task-run payload 不包含 question、answer、hint、prompt、response 或 provider secret 明文。
 
@@ -25,12 +25,12 @@
 
 | operationId | fixture / scenario | backend behavior | persistence | AI dependency | coverage |
 |-------------|--------------------|------------------|-------------|---------------|----------|
-| `appendSessionEvent` answer flow | `appendSessionEvent.json` answer / follow-up / skip / pause / resume variants | returns `200 + SessionEventResult`; routes all 5 event kinds; rejects `Idempotency-Key` with `400 VALIDATION_FAILED` | `practice_session_events`, `practice_turns`, `practice_sessions`, `practice.turn.completed` outbox when a turn is assessed/skipped | F3 `practice.session.follow_up` only for follow-up branch | `E2E.P0.038`, `E2E.P0.039`, `E2E.P0.040`, unit/store tests |
+| `appendSessionEvent` answer flow | `appendSessionEvent.json` answer / follow-up / pause / resume variants | returns `200 + SessionEventResult`; routes all 4 current text event kinds; rejects `Idempotency-Key` with `400 VALIDATION_FAILED` | `practice_session_events`, `practice_turns`, `practice_sessions`, `practice.turn.completed` outbox when a turn is assessed | F3 `practice.session.follow_up` only for follow-up branch | `E2E.P0.038`, `E2E.P0.039`, `E2E.P0.040`, unit/store tests |
 | `appendSessionEvent` replay / mismatch | `appendSessionEvent.json` replay and mismatch variants | same `clientEventId` + same fingerprint returns original result; changed fingerprint returns 409 | no duplicate event/outbox/audit rows | no repeated AI call on replay | `E2E.P0.039`, repository tests |
-| `appendSessionEvent` hint default | `appendSessionEvent.json` `hint-strict-conflict` | this owner returns strict conflict for hint; assisted hint behavior is owned by plan 003 | sanitized event response only | none in this owner | `E2E.P0.039`, mode tests |
+| `appendSessionEvent` hint optional | `appendSessionEvent.json` `show-hint` / `hint-assisted-show` | legacy strict and assisted sessions keep hint available; AI-backed `show_hint` behavior is owned by plan 003 | sanitized event response only | `practice.turn.lightweight_observe` via plan 003 | `E2E.P0.039`, mode tests |
 | `completePracticeSession` create | `completePracticeSession.json` `default` | returns `202 + ReportWithJob{jobType:'report_generate', status:'queued'}` | `practice_sessions`, `practice_session_events`, `feedback_reports`, `async_jobs`, `outbox_events`, `audit_events`, `idempotency_records` | none | `E2E.P0.041`, store/handler tests |
 | `completePracticeSession` replay / mismatch / cross-user | `completePracticeSession.json` replay, mismatch, session-already-completed, cross-user variants | same key replays; same key changed fingerprint returns 409; completed session with another key returns existing report/job; cross-user returns 404 | no duplicate report/job/outbox rows | none | `E2E.P0.042`, middleware/store tests |
-| privacy and runtime boundary | no public fixture | source-event-only job boundary, 5-value turn status, no raw text leakage, no duplicate `report_generate` insert path | sanitized payloads and typed rows only | observed AI labels stay bounded | `E2E.P0.043`, lint and redaction tests |
+| privacy and runtime boundary | no public fixture | source-event-only job boundary, 4-value turn status, no raw text leakage, no duplicate `report_generate` insert path | sanitized payloads and typed rows only | observed AI labels stay bounded | `E2E.P0.043`, lint and redaction tests |
 
 ### 2.2 Persistence Boundary
 
@@ -43,7 +43,7 @@
 ### 2.3 Wire Boundary
 
 - `AssistantAction.provenance` exposes only B2 `GenerationProvenance` fields.
-- `PracticeTurn.status` exposes all five current turn statuses.
+- `PracticeTurn.status` exposes all four current turn statuses.
 - `Job` response does not expose internal `dedupe_key`.
 - Error envelopes use B1/B2 codes and do not disclose another user's resources or a prior request body.
 
@@ -71,13 +71,13 @@
 ### Phase 0: contract preflight
 
 - Confirm `shared/jobs.yaml` marks `report_generate` as `source_event_only` and generated jobs constants expose `IsSourceEventOnly`.
-- Confirm OpenAPI `PracticeTurn.status` contains the five current values and generated Go/TS artifacts are in sync.
+- Confirm OpenAPI `PracticeTurn.status` contains the four current values and generated Go/TS artifacts are in sync.
 - Confirm `appendSessionEvent` and `completePracticeSession` fixtures cover main, replay, mismatch and cross-user variants.
 - Confirm F3 `practice.session.follow_up` resolves for follow-up generation.
 
 ### Phase 1: append event state machine
 
-- Route all five event kinds.
+- Route all four current text event kinds.
 - Generate `ask_question`, `ask_follow_up`, `session_wait` or `session_completed` actions from server-owned session/turn state.
 - Preserve the current turn-status wire boundary.
 - Reject malformed answer payloads before AI or persistence side effects.

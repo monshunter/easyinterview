@@ -1,19 +1,19 @@
 # Cascaded STT LLM TTS Voice MVP
 
-> **版本**: 1.5
-> **状态**: completed
-> **更新日期**: 2026-07-07
+> **版本**: 1.6
+> **状态**: active
+> **更新日期**: 2026-07-09
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-在现有 `PracticeScreen` 会话骨架内落地 P0 语音面试 MVP：前端采集用户音频，后端执行 `STT -> LLM -> TTS` 级联编排，前端播放 TTS 并上报播放 / 打断事件，后端只把已播放完成的 assistant chunk 提交到上下文。
+在现有 `PracticeScreen` 会话骨架内落地 P0 电话模式：前端以真实电话交互呈现通话状态、字幕、切断和重新开始；底层后端继续执行 `STT -> LLM -> TTS` 级联编排，前端播放 TTS 并上报播放 / 打断事件，后端只把已播放完成的 assistant chunk 提交到上下文。
 
 ## 2 背景
 
-S2S / realtime voice 成本高且 provider 形态差异大；面试训练的 P0 价值在追问质量、证据化 transcript、报告和复练闭环。级联方案允许先用豆包 STT、DeepSeek chat、豆包或 MiniMax TTS 组合完成可用语音体验，同时保持 realtime S2S 后续可插拔。
+S2S / realtime voice 成本高且 provider 形态差异大；面试训练的 P0 价值在追问质量、证据化 transcript、报告和复练闭环。级联方案允许先用豆包 STT、DeepSeek chat、豆包或 MiniMax TTS 组合完成可用电话模式体验，同时保持 realtime S2S 后续可插拔。
 
 本计划依赖 A3 `004-cascaded-speech-provider-foundation` 提供 `tts` capability 与 speech adapters。若 A3 004 未完成，本计划可先以 fixture/stub 进行 UI/contract 开发，但不得宣称真实 provider 闭环。
 
@@ -28,6 +28,7 @@ S2S / realtime voice 成本高且 provider 形态差异大；面试训练的 P0 
 - **Review-fix runtime gate**: BUG-0070 后续要求 voice playback 证据覆盖 response `audioRef` 浏览器可播放、persisted session event 不保存 audio data、barge-in 前 partial `tts_chunk_played`、store replay committed context into next prompt；证据命令：`go test ./internal/practice ./internal/store/practice -count=1` + `pnpm --dir frontend test src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx --run`。
 - **Review-fix fixture gate**: BUG-0072 后续要求 `createPracticeVoiceTurn` HTTP fixture 与真实 service audioRef 语义一致；fixture/default response 的 `ttsChunks[].audioRef` 必须为浏览器可播放 `data:audio/...;base64,...` 或同计划 resolver URL，禁止 `fixture-audio://...` 这类 mock-only scheme 进入 generated fixture client。
 - **Review-fix lint precision gate**: 2026-05-22 后续要求 backend-practice non-current lint 继续禁止独立 `/voice` route / alias，但必须允许本计划拥有的 `POST /practice/sessions/{sessionId}/voice-turns`、`createPracticeVoiceTurn`、`practice.voice.stt.default` / `practice.voice.tts.default` profile 与 `practice.voice.stt` / `practice.voice.tts` feature key；证据命令：`python3 -m pytest scripts/lint/backend_practice_non_current_test.py -q` + `make lint-backend-practice-non-current` + `make lint`。
+- **Real-interview phone gate**: 2026-07-09 后续要求用户可见 UI / docs / scenarios 使用 `电话模式 / Phone`，删除语音分析、manual transcript fallback 主流程、开始录音/提交本轮主按钮，并提供切断 / 重新开始 / 字幕动作；底层 `createPracticeVoiceTurn`、`practice.voice.*` profile 和 persisted `voice-turn://` ref 仍允许作为工程能力名。
 
 ## 4 Operation Matrix
 
@@ -46,7 +47,7 @@ S2S / realtime voice 成本高且 provider 形态差异大；面试训练的 P0 
 | PV-MVP-C4 | Failure/recovery | spec C-4/C-5 | Phase 2-4 | service tests + `E2E.P0.009` | TTS failure drops text |
 | PV-MVP-C5 | Boundary condition | spec C-3 | Phase 3 | committed context unit tests + store replay tests + frontend partial playback event test + `E2E.P0.008` | unplayed draft in prompt |
 | PV-MVP-C6 | Privacy/security/observability | spec C-7 | Phase 2/5 | privacy grep + backend tests + persisted audioRef summary gate | raw audio/transcript/TTS text in log/DB/metric/session event summary |
-| PV-MVP-C7 | UX quality | docs/ui-design/module-practice-review | Phase 4 | frontend tests + visual parity gates | independent voice route/page |
+| PV-MVP-C7 | UX quality | docs/ui-design/module-practice-review | Phase 4 + Phase 6 | frontend tests + visual parity gates | independent voice route/page, user-visible Voice copy, voice analysis panel |
 | PV-MVP-C8 | Regression/non-current-negative | product-scope D-6 | Phase 5 | scope tests + negative search | `voice` route alias, S2S marked active |
 | PV-MVP-C9 | Current drift preflight | current code truth source | Phase 0 | source grep + focused smoke tests | `VoiceSurfaceComingSoon` remains active after voice MVP; backend README points to a non-current placeholder owner |
 
@@ -128,11 +129,25 @@ session event 只保存必要 transcript / committed text / event摘要；AI/aud
 
 重跑 app shell / practice 相关 frontend tests、OpenAPI fixture validation、codegen drift、A3 profile coverage、privacy grep、非当前 route negative search。BUG-0070 后续 gate 必须额外验证 response `audioRef` 可播放、stored TTS summary 不含 audio data、store replay committed context、barge-in partial playback event。
 
+### Phase 6: Real-interview phone-mode simplification
+
+#### 6.1 Phone-mode UI language and controls
+
+将用户可见语音面试改为 `电话模式 / Phone`，删除 `开始录音` / `提交本轮` 主按钮，改为真实电话控制：接通状态、切断、重新开始、显示字幕。历史 `voice` API/profile 命名仅作为底层能力保留。
+
+#### 6.2 Remove voice analysis and manual transcript fallback surface
+
+删除语速、停顿、口头禅、音量等语音分析 UI 和测试期望；删除用户可见 manual transcript fallback / speech-to-text fallback surface。STT 失败只能走电话错误恢复、切断/重开或切换文本面试，不提供“补录文字转写”替代入口。
+
+#### 6.3 Contract and scenario negative gates
+
+更新 OpenAPI 描述、fixtures、generated client/server tests、scenario README/expected outcome，证明 phone mode 不再要求语音分析或手动转写 UI，同时底层 voice turn privacy、audioRef 和 committed-context gates 继续通过。
+
 ## 7 验收标准
 
 - `createPracticeVoiceTurn` contract、fixtures、generated client/server artifacts 完成并无 drift。
 - 后端 voice turn service 覆盖 STT/chat/TTS happy path 与独立失败路径。
-- 前端 voice controller 可展示 transcript、播放 TTS、处理 barge-in，并保留文本 fallback。
+- 前端 phone controller 可按需展示字幕、播放 TTS、处理 barge-in、切断和重新开始；不保留用户可见手动转写 fallback。
 - HTTP response 的 TTS `audioRef` 可被浏览器播放，持久化 session event summary 不保存 audio bytes。
 - Committed context builder + store replay 证明已播放文本进入下一轮 prompt，未播放 assistant draft 不进入下一轮 prompt。
 - `E2E.P0.007` / `E2E.P0.008` / `E2E.P0.009` BDD-Gate 通过。
@@ -145,3 +160,9 @@ session event 只保存必要 transcript / committed text / event摘要；AI/aud
 | 打断误触发 | MVP 使用持续语音阈值 + 播放起始保护窗；误触发仍只影响当前播放，不污染上下文 |
 | TTS 延迟影响面试节奏 | 前端先展示文本回复，TTS 可异步播放；TTS failure 保持文本继续 |
 | 隐私边界不清 | transcript 作为业务 session event 明确建模，AI metadata 只存摘要 |
+
+## 9 修订记录
+
+| 日期 | 版本 | 说明 |
+|------|------|------|
+| 2026-07-09 | 1.6 | Reopen for real-interview phone-mode simplification: user-visible voice becomes phone mode, voice analysis/manual transcript fallback surfaces are removed, and phone hang-up/restart/captions become the target UI. |

@@ -67,7 +67,7 @@ const NavBatch: FC = () => {
       </button>
       <button
         type="button"
-        data-testid="go-practice-voice"
+        data-testid="go-practice-phone"
         onClick={() =>
           navigate({
             name: "practice",
@@ -80,7 +80,7 @@ const NavBatch: FC = () => {
           })
         }
       >
-        practice voice
+        practice phone
       </button>
       <button
         type="button"
@@ -120,14 +120,14 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     );
   });
 
-  it("direct-open /practice?mode=voice&modality=voice hides chrome and mounts voice surface", () => {
+  it("direct-open legacy /practice?mode=voice&modality=voice hides chrome and mounts phone surface", () => {
     window.history.replaceState(
       null,
       "",
       `/practice?sessionId=${SESSION_ID}&mode=voice&modality=voice&planId=${PLAN_ID}`,
     );
     render(<App />);
-    expect(screen.getByTestId("practice-voice-waveform")).toBeInTheDocument();
+    expect(screen.getByTestId("practice-phone-waveform")).toBeInTheDocument();
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
     expect(window.location.pathname).toBe("/practice");
   });
@@ -192,8 +192,8 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     const user = userEvent.setup();
     await user.click(screen.getByTestId("go-workspace-replay"));
     await waitFor(() => screen.getByTestId("workspace-plan-list"));
-    await user.click(screen.getByTestId("go-practice-voice"));
-    await waitFor(() => screen.getByTestId("practice-voice-waveform"));
+    await user.click(screen.getByTestId("go-practice-phone"));
+    await waitFor(() => screen.getByTestId("practice-phone-waveform"));
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
     await user.click(screen.getByTestId("go-report-failed"));
     await waitFor(() => screen.getByTestId("report-failure-state"));
@@ -204,7 +204,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
       window.history.back();
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
-    await waitFor(() => screen.getByTestId("practice-voice-waveform"));
+    await waitFor(() => screen.getByTestId("practice-phone-waveform"));
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
 
     act(() => {
@@ -219,7 +219,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
       window.history.forward();
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
-    await waitFor(() => screen.getByTestId("practice-voice-waveform"));
+    await waitFor(() => screen.getByTestId("practice-phone-waveform"));
     act(() => {
       window.history.forward();
       window.dispatchEvent(new PopStateEvent("popstate"));

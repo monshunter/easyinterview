@@ -3,8 +3,7 @@
  *
  * Item 2.2 — AssistantActionRenderer dispatches the 5 assistantAction.type
  * branches via callbacks, and never leaks `provenance` into the main
- * conversation surface. Provenance must only be rendered by RightPanel's
- * AI TRANSPARENCY card.
+ * conversation surface.
  */
 
 import { describe, expect, it, vi } from "vitest";

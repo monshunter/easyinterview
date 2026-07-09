@@ -11,8 +11,8 @@ import {
 
 import type {
   AssistantAction,
-  GenerationProvenance,
   PracticeMode,
+  PracticeVoiceTurnResult,
 } from "../../../api/generated/types";
 import { useI18n, type MessageKey } from "../../i18n/messages";
 import { useInterviewContext } from "../../interview-context/InterviewContext";
@@ -20,26 +20,21 @@ import { useNavigation } from "../../navigation/NavigationProvider";
 import type { Route } from "../../routes";
 import { TopBar } from "./components/TopBar";
 import { SessionMap, type SessionMapItem } from "./components/SessionMap";
-import { LiveNotes } from "./components/LiveNotes";
 import { QuestionCard } from "./components/QuestionCard";
 import { Transcript, type TranscriptMessage } from "./components/Transcript";
 import { InputBar } from "./components/InputBar";
 import { HintBanner } from "./components/HintBanner";
-import { RightPanel } from "./components/RightPanel";
 import { FinishCta } from "./components/FinishCta";
-import { PracticeVoiceSurface } from "./components/PracticeVoiceSurface";
-import { PracticeVoiceRightPanel } from "./components/PracticeVoiceRightPanel";
+import { PracticePhoneSurface } from "./components/PracticePhoneSurface";
 import { PracticeSessionLostState } from "./components/PracticeSessionLostState";
 import { ErrorState } from "./components/ErrorState";
 import { AssistantActionRenderer } from "./components/AssistantActionRenderer";
-import type { InterviewerPersona } from "./components/RoleDropdown";
 import { usePracticeSessionLoader } from "./hooks/usePracticeSessionLoader";
 import { usePracticeEvents } from "./hooks/usePracticeEvents";
-import { usePracticeAssistance } from "./hooks/usePracticeAssistance";
 import { usePracticeSession } from "./hooks/usePracticeSession";
 import { useCompletePracticeSession } from "./hooks/useCompletePracticeSession";
-import { usePracticeVoiceTurn } from "./hooks/usePracticeVoiceTurn";
 import { usePracticeVoicePlayback } from "./hooks/usePracticeVoicePlayback";
+import { usePracticeVoiceTurn } from "./hooks/usePracticeVoiceTurn";
 import { buildPracticeHandoffParams } from "./utils/practiceHandoffParams";
 
 interface PracticeScreenProps {
@@ -61,19 +56,12 @@ interface PracticeErrorState {
 
 type RetryAction = () => Promise<void>;
 
-const PERSONA_LABEL_KEY: Record<InterviewerPersona, MessageKey> = {
-  general: "practice.toolbar.role.general",
-  hr: "practice.toolbar.role.hr",
-  manager: "practice.toolbar.role.manager",
-};
-
 /**
- * PracticeScreen — text-mode mock interview surface.
+ * PracticeScreen — shared text / phone interview surface.
  *
  * Source-level mirror of `ui-design/src/screen-practice.jsx::PracticeScreen`
- * text branch. Phase 1 landed the static shell; Phase 2 added the event
- * loop hooks; Phase 3 wires them to user interactions: hint / skip /
- * pause-resume / send / role switch / strict-locked toast.
+ * current real-interview branch. It exposes no right panel, no in-session role
+ * switch, no strict switch, no text dictation and no turn-bypass control.
  */
 export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const { t, lang } = useI18n();
@@ -84,38 +72,33 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const mode = route.params.mode || ctx.mode || "text";
   const modality = route.params.modality || ctx.modality || mode;
   const practiceMode =
-    route.params.practiceMode || ctx.practiceMode || "strict";
+    route.params.practiceMode || ctx.practiceMode || "assisted";
   const practiceGoal =
     route.params.practiceGoal || ctx.practiceGoal || "baseline";
-  const isStrict = practiceMode === "strict";
-  const activeMode = modality === "voice" ? "voice" : "text";
+  const activeMode =
+    modality === "phone" || modality === "voice" ? "phone" : "text";
+  const roundName = route.params.roundName || ctx.roundName || "";
+  const interviewerLabel =
+    roundName || t("practice.toolbar.role.manager");
 
   const loader = usePracticeSessionLoader(sessionId);
   const events = usePracticeEvents(sessionId);
   const completion = useCompletePracticeSession(sessionId);
-  const assistance = usePracticeAssistance({
-    practiceMode,
-    practiceGoal,
-  });
-  const generatedPracticeMode: PracticeMode = isStrict ? "strict" : "assisted";
+  const sessionFlags = usePracticeSession(loader.data?.status ?? null);
+  const voicePracticeMode: PracticeMode =
+    practiceMode === "strict" ? "strict" : "assisted";
   const voiceTurn = usePracticeVoiceTurn({
     sessionId,
     turnId: loader.data?.currentTurn?.id ?? "",
     lang,
-    practiceMode: generatedPracticeMode,
+    practiceMode: voicePracticeMode,
   });
   const voicePlayback = usePracticeVoicePlayback({
     sessionId,
-    result: voiceTurn.state.kind === "success"
-      ? voiceTurn.state.result
-      : null,
+    result: voiceTurn.state.kind === "success" ? voiceTurn.state.result : null,
   });
-  const sessionFlags = usePracticeSession(loader.data?.status ?? null);
   const isNarrow = useNarrowPracticeLayout();
 
-  const [persona, setPersona] = useState<InterviewerPersona>("general");
-  const [strictToastOpen, setStrictToastOpen] = useState(false);
-  const strictToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [paused, setPaused] = useState(false);
   const [input, setInput] = useState("");
   const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
@@ -123,14 +106,12 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const [hintBannerText, setHintBannerText] = useState("");
   const [activeAssistantAction, setActiveAssistantAction] =
     useState<AssistantAction | null>(null);
-  const [aiTransparency, setAiTransparency] =
-    useState<GenerationProvenance | null>(null);
   const [errorState, setErrorState] = useState<PracticeErrorState | null>(null);
   const retryActionRef = useRef<RetryAction | null>(null);
   const [refreshingAfterConflict, setRefreshingAfterConflict] = useState(false);
   const conflictRefreshStartedRef = useRef(false);
   const [sessionLostByMutation, setSessionLostByMutation] = useState(false);
-  type TurnAnnotation = "skipped" | "follow_up_requested" | "done";
+  type TurnAnnotation = "follow_up_requested" | "done";
   const [turnAnnotations, setTurnAnnotations] = useState<
     Map<number, TurnAnnotation>
   >(() => new Map());
@@ -174,7 +155,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   }, [navigate, route.params, ctx]);
 
   const handleSwitchMode = useCallback(
-    (k: "text" | "voice") => {
+    (k: "text" | "phone") => {
       navigate({
         name: "practice",
         params: {
@@ -188,25 +169,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     [navigate, route.params, sessionId],
   );
 
-  const handleStrictToggleClick = useCallback(() => {
-    if (strictToastTimerRef.current) {
-      clearTimeout(strictToastTimerRef.current);
-    }
-    setStrictToastOpen(true);
-    strictToastTimerRef.current = setTimeout(() => {
-      setStrictToastOpen(false);
-    }, 4000);
-  }, []);
-
-  useEffect(
-    () => () => {
-      if (strictToastTimerRef.current) clearTimeout(strictToastTimerRef.current);
-    },
-    [],
-  );
-
   const applyAssistantAction = useCallback((action: AssistantAction) => {
-    setAiTransparency(action.provenance);
     setActiveAssistantAction(action);
   }, []);
 
@@ -272,9 +235,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
         }
       }
       const annotation = turnAnnotations.get(i);
-      if (annotation === "skipped") {
-        status = "skipped";
-      } else if (annotation === "follow_up_requested") {
+      if (annotation === "follow_up_requested") {
         status = "follow_up_requested";
       } else if (annotation === "done") {
         status = "done";
@@ -298,6 +259,34 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
 
   // ── handlers ──────────────────────────────────────────────────────────
+  const appendPhoneVoiceTurnResult = useCallback(
+    (result: PracticeVoiceTurnResult) => {
+      setTranscript((prev) => [
+        ...prev,
+        {
+          role: "user",
+          text: result.userTranscriptFinal,
+          t: fmtElapsed(elapsed),
+        },
+        {
+          role: "ai",
+          text: result.assistantTextDraft,
+          t: fmtElapsed(elapsed + 1),
+          followUp: true,
+        },
+      ]);
+      const turnIndex = loader.data?.currentTurn?.turnIndex;
+      if (turnIndex) {
+        setTurnAnnotations((prev) => {
+          const next = new Map(prev);
+          next.set(turnIndex, "follow_up_requested");
+          return next;
+        });
+      }
+    },
+    [elapsed, loader.data?.currentTurn?.turnIndex],
+  );
+
   const onSend = useCallback(async () => {
     if (inputDisabled || !input.trim()) return;
     const turnId = loader.data?.currentTurn?.id ?? "";
@@ -346,22 +335,67 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     showHintBanner,
   ]);
 
-  const onSkip = useCallback(async () => {
-    if (inputDisabled) return;
-    const turn = loader.data?.currentTurn;
-    if (!turn) return;
-    const turnIndex = turn.turnIndex;
+  const handlePhoneStart = useCallback(async () => {
+    if (
+      inputDisabled ||
+      activeMode !== "phone" ||
+      !voiceTurn.ready ||
+      voiceTurn.state.kind === "recording" ||
+      voiceTurn.state.kind === "submitting"
+    ) {
+      return;
+    }
     const action = async () => {
-      const result = await events.skipTurn({ turnId: turn.id });
-      setTurnAnnotations((prev) => {
-        const next = new Map(prev);
-        next.set(turnIndex, "skipped");
-        return next;
-      });
-      applyAssistantAction(result.assistantAction);
+      await voicePlayback.bargeIn();
+      await voiceTurn.startRecording();
     };
     await runPracticeAction(action, action);
-  }, [applyAssistantAction, events, inputDisabled, loader.data, runPracticeAction]);
+  }, [
+    activeMode,
+    inputDisabled,
+    runPracticeAction,
+    voicePlayback,
+    voiceTurn,
+  ]);
+
+  const handlePhoneHangUp = useCallback(async () => {
+    const action = async () => {
+      if (voiceTurn.state.kind === "recording") {
+        const result = await voiceTurn.stopAndSubmit();
+        appendPhoneVoiceTurnResult(result);
+        return;
+      }
+      await voicePlayback.bargeIn();
+    };
+    await runPracticeAction(action, action);
+  }, [
+    appendPhoneVoiceTurnResult,
+    runPracticeAction,
+    voicePlayback,
+    voiceTurn,
+  ]);
+
+  const handlePhonePauseCapture = useCallback(() => {
+    if (voiceTurn.state.kind === "recording") {
+      voiceTurn.reset();
+    }
+  }, [voiceTurn]);
+
+  const handlePhoneRestart = useCallback(async () => {
+    if (inputDisabled || activeMode !== "phone" || !voiceTurn.ready) return;
+    const action = async () => {
+      await voicePlayback.bargeIn();
+      voiceTurn.reset();
+      await voiceTurn.startRecording();
+    };
+    await runPracticeAction(action, action);
+  }, [
+    activeMode,
+    inputDisabled,
+    runPracticeAction,
+    voicePlayback,
+    voiceTurn,
+  ]);
 
   const onTogglePause = useCallback(async () => {
     if (paused) {
@@ -433,41 +467,6 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const handleSessionCompleted = useCallback(() => {
     setErrorState(null);
   }, []);
-
-  const handleVoiceTurnSubmit = useCallback(async () => {
-    const turnIndex = loader.data?.currentTurn?.turnIndex;
-    try {
-      const result = await voiceTurn.stopAndSubmit();
-      setTranscript((prev) => [
-        ...prev,
-        {
-          role: "user",
-          text: result.userTranscriptFinal,
-          t: fmtElapsed(elapsed),
-        },
-        {
-          role: "ai",
-          text: result.assistantTextDraft,
-          t: fmtElapsed(elapsed + 1),
-          followUp: true,
-        },
-      ]);
-      if (turnIndex) {
-        setTurnAnnotations((prev) => {
-          const next = new Map(prev);
-          next.set(turnIndex, "follow_up_requested");
-          return next;
-        });
-      }
-    } catch {
-      // usePracticeVoiceTurn owns the visible voice-specific error state.
-    }
-  }, [elapsed, loader.data?.currentTurn?.turnIndex, voiceTurn]);
-
-  const handleVoiceRecordingStart = useCallback(async () => {
-    await voicePlayback.bargeIn();
-    await voiceTurn.startRecording();
-  }, [voicePlayback, voiceTurn]);
 
   const handoffNavigatedRef = useRef(false);
   const onFinish = useCallback(async () => {
@@ -541,9 +540,9 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const hintCount = Number(ctx.hintCount) || 0;
   const finishCta = (
     <FinishCta
-      label={t("practice.rightpanel.finishCta")}
+      label={t("practice.finishCta")}
       hintCount={hintCount}
-      hintUsageNote={t("practice.rightpanel.hintUsageNote")}
+      hintUsageNote={t("practice.hintUsageNote")}
       disabled={
         sessionFlags.completionCtaDisabled ||
         completion.state.kind === "loading"
@@ -587,33 +586,12 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
         onTogglePause={onTogglePause}
         activeMode={activeMode}
         onSwitchMode={handleSwitchMode}
-        strict={isStrict}
-        onToggleStrict={handleStrictToggleClick}
-        persona={persona}
-        onPersonaChange={setPersona}
+        interviewerLabel={interviewerLabel}
+        textModeLabel={t("practice.toolbar.modeText")}
+        phoneModeLabel={t("practice.toolbar.modePhone")}
+        phoneLiveLabel={t("practice.toolbar.phoneLive")}
+        finishCta={finishCta}
       />
-
-      {strictToastOpen && (
-        <div
-          data-testid="practice-strict-locked-toast"
-          role="status"
-          style={{
-            position: "fixed",
-            top: 72,
-            right: 24,
-            zIndex: 50,
-            padding: "10px 14px",
-            background: "var(--ei-color-bg-card)",
-            border: "1px solid var(--ei-color-rule-strong)",
-            borderRadius: 4,
-            fontSize: 13,
-            color: "var(--ei-color-fg-secondary)",
-            boxShadow: "0 6px 24px rgba(0,0,0,0.08)",
-          }}
-        >
-          {t("practice.toolbar.strictLockedToast")}
-        </div>
-      )}
 
       <div
         data-testid="practice-main"
@@ -622,7 +600,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
           display: "grid",
           gridTemplateColumns: isNarrow
             ? "minmax(0, 1fr)"
-            : "260px minmax(0, 1fr) 280px",
+            : "260px minmax(0, 1fr)",
           gridAutoRows: isNarrow ? "max-content" : undefined,
           minHeight: 0,
           overflowY: isNarrow ? "auto" : "hidden",
@@ -642,70 +620,21 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
             items={sessionMapItems}
             activeIndex={Math.max(activeIndex, 0)}
           />
-          {assistance.showLiveNotes && (
-            <LiveNotes
-              label={t("practice.sessionMap.liveNotes")}
-              okText={t("practice.sessionMap.liveNotesOk")}
-              warnText={t("practice.sessionMap.liveNotesWarn")}
-              note={t("practice.sessionMap.liveNotesNote")}
-            />
-          )}
         </div>
 
         <div
           data-testid="practice-center"
           style={{ display: "flex", flexDirection: "column", minHeight: 0 }}
         >
-          {activeMode === "voice" ? (
-            <PracticeVoiceSurface
+          {activeMode === "phone" ? (
+            <PracticePhoneSurface
               lang={lang}
-              questionBadge={t("practice.question.tagPrefix").replace(
-                "{n}",
-                String(currentTurn?.turnIndex ?? 1),
-              )}
-              topic={
-                currentTurn?.questionIntent ??
-                t("practice.sessionMap.itemTopicSkeleton")
-              }
-              prompt={
-                currentTurn?.questionText ??
-                t("practice.question.skeletonPrompt")
-              }
-              recording={voiceTurn.state.kind === "recording"}
-              messages={transcript}
+              active={!inputDisabled}
               captureState={voiceTurn.state.kind}
-              manualTranscriptFallback={voiceTurn.manualTranscriptFallback}
-              onManualTranscriptFallbackChange={
-                voiceTurn.setManualTranscriptFallback
-              }
-              onStartRecording={() => {
-                void handleVoiceRecordingStart();
-              }}
-              onSubmitRecording={() => {
-                void handleVoiceTurnSubmit();
-              }}
-              controlsDisabled={inputDisabled || !voiceTurn.ready}
+              playbackState={voicePlayback.state.kind}
               voiceError={
                 voiceTurn.state.kind === "error"
                   ? voiceTurn.state.message
-                  : null
-              }
-              ttsError={
-                voiceTurn.state.kind === "success"
-                  ? voiceTurn.state.result.ttsError
-                  : null
-              }
-              ttsChunkCount={
-                voiceTurn.state.kind === "success"
-                  ? voiceTurn.state.result.ttsChunks.length
-                  : null
-              }
-              playbackState={voicePlayback.state.kind}
-              activePlaybackChunkId={
-                voicePlayback.state.kind === "playing" ||
-                voicePlayback.state.kind === "completed" ||
-                voicePlayback.state.kind === "interrupted"
-                  ? voicePlayback.state.chunkId
                   : null
               }
               playbackError={
@@ -713,6 +642,14 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
                   ? voicePlayback.state.message
                   : null
               }
+              messages={transcript}
+              aiLabel={t("practice.transcript.aiLabel")}
+              userLabel={t("practice.transcript.userLabel")}
+              followUpLabel={t("practice.transcript.followUp")}
+              onStartCall={handlePhoneStart}
+              onPauseCapture={handlePhonePauseCapture}
+              onHangUp={handlePhoneHangUp}
+              onRestartCall={handlePhoneRestart}
             />
           ) : (
             <>
@@ -769,18 +706,14 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
                 onChange={setInput}
                 placeholder={t("practice.input.placeholder")}
                 hintLabel={t("practice.input.hint")}
-                skipLabel={t("practice.input.skip")}
                 sendLabel={t("practice.input.send")}
-                dictateLabel={t("practice.input.dictateOn")}
-                showHintButton={assistance.showHintButton}
+                showHintButton
                 disabled={inputDisabled}
                 onHint={onHint}
-                onSkip={onSkip}
                 onSend={onSend}
-                onDictate={() => undefined}
                 hintBanner={
                   <HintBanner
-                    show={assistance.showHintButton && showHintBanner}
+                    show={showHintBanner}
                     prefix={t("practice.hint.prefix")}
                     text={hintBannerText}
                   />
@@ -790,40 +723,6 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
           )}
         </div>
 
-        {activeMode === "voice" ? (
-          <PracticeVoiceRightPanel
-            lang={lang}
-            strict={isStrict}
-            aiTransparencyLabel={t("practice.rightpanel.aiTransparency")}
-            aiTransparencyMeta={{
-              promptVersion: aiTransparency?.promptVersion ?? "pending",
-              rubricVersion: aiTransparency?.rubricVersion ?? "pending",
-              modelId: aiTransparency?.modelId ?? "model-profile:pending",
-              language: aiTransparency?.language ?? lang,
-              personaLabel: t(PERSONA_LABEL_KEY[persona]),
-            }}
-            finishCta={finishCta}
-          />
-        ) : (
-          <RightPanel
-            jdLinkLabel={t("practice.rightpanel.jdLink")}
-            jdProbesLabel={t("practice.rightpanel.jdProbes")}
-            jdProbesText={t("practice.rightpanel.jdProbesSkeleton")}
-            experienceLabel={t("practice.rightpanel.experienceLabel")}
-            aiTransparencyLabel={t("practice.rightpanel.aiTransparency")}
-            aiTransparencyMeta={{
-              promptVersion: aiTransparency?.promptVersion ?? "pending",
-              rubricVersion: aiTransparency?.rubricVersion ?? "pending",
-              modelId: aiTransparency?.modelId ?? "model-profile:pending",
-              language: aiTransparency?.language ?? lang,
-              personaLabel: t(PERSONA_LABEL_KEY[persona]),
-            }}
-            strict={isStrict}
-            strictBannerText={t("practice.rightpanel.strictBanner")}
-            experiences={[]}
-            finishCta={finishCta}
-          />
-        )}
       </div>
 
       <AssistantActionRenderer
@@ -852,14 +751,6 @@ function classifyPracticeError(err: unknown): ClassifiedPracticeError {
     return {
       messageKey: "practice.errors.aiTimeout",
       retryable: true,
-      refreshSession: false,
-      sessionLost: false,
-    };
-  }
-  if (message.includes("hint_disabled_in_mode")) {
-    return {
-      messageKey: "practice.errors.strictHintConflict",
-      retryable: false,
       refreshSession: false,
       sessionLost: false,
     };

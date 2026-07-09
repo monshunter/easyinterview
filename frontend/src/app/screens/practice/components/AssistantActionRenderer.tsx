@@ -13,9 +13,8 @@ export interface AssistantActionRendererProps {
 
 /**
  * Side-effect-only component: dispatches one callback per AssistantAction
- * change, keyed on the action object reference. Provenance MUST stay in
- * RightPanel's AI TRANSPARENCY card; this renderer never reads or echoes
- * provenance fields, so they cannot leak into the main conversation flow.
+ * change, keyed on the action object reference. Provenance is intentionally
+ * ignored here, so model metadata cannot leak into the main conversation flow.
  *
  * The renderer emits a tiny sentinel `<span>` with no text content so
  * tests can confirm it mounted without it producing any visible UI.

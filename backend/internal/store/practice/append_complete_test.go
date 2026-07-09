@@ -239,10 +239,9 @@ func TestMarshalAppendEventErrorPayloadSanitizesRequestPayload(t *testing.T) {
 		},
 		Error: &domain.ServiceError{
 			Code:    sharederrors.CodePracticeSessionConflict,
-			Message: "hints are disabled for strict practice mode",
+			Message: "client event payload mismatch",
 			Details: map[string]any{
-				"mode":   "strict",
-				"policy": "hint_disabled_in_mode",
+				"policy": "client_event_payload_mismatch",
 			},
 		},
 	})
@@ -266,7 +265,7 @@ func TestMarshalAppendEventErrorPayloadSanitizesRequestPayload(t *testing.T) {
 	if decoded.Error == nil || decoded.Error.Code != sharederrors.CodePracticeSessionConflict {
 		t.Fatalf("unexpected error envelope: %+v", decoded.Error)
 	}
-	if decoded.Error.Details["policy"] != "hint_disabled_in_mode" {
+	if decoded.Error.Details["policy"] != "client_event_payload_mismatch" {
 		t.Fatalf("unexpected error details: %+v", decoded.Error.Details)
 	}
 }

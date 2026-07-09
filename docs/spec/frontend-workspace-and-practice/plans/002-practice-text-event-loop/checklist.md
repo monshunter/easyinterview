@@ -1,16 +1,16 @@
 # 002 — Practice Text Event Loop Checklist
 
-> **版本**: 1.10
-> **状态**: completed
-> **更新日期**: 2026-07-07
+> **版本**: 1.11
+> **状态**: active
+> **更新日期**: 2026-07-09
 
 **关联计划**: [plan](./plan.md)
 
-## Current Contract
+## Historical Contract through 2026-07-07
 
-- [x] `PracticeScreen` 渲染当前 text event loop shell：TopBar、SessionMap、QuestionCard、Transcript、InputBar、RightPanel、HintBanner、FinishCta、lost state 和 mobile layout 都有 DOM anchor / a11y / i18n / theme 覆盖。
+- [x] `PracticeScreen` 曾渲染 2026-07-07 text event loop shell（含 RightPanel 等旧结构）；该历史合同已由 Phase 6 真实面试 UI 合同取代。
 - [x] `usePracticeSessionLoader` 只通过 generated `getPracticeSession` 读取 session，覆盖 loading、data、refresh、404 和 error 状态。
-- [x] `usePracticeEvents` 只通过 generated `appendSessionEvent` 提交 answer / hint / skip / pause / resume，body 含 `clientEventId`，request 不带 `Idempotency-Key`。
+- [x] `usePracticeEvents` 只通过 generated `appendSessionEvent` 提交 answer / hint / pause / resume，body 含 `clientEventId`，request 不带 `Idempotency-Key`；skip 正向路径已由 Phase 6 删除。
 - [x] AssistantAction renderer 覆盖 `ask_question / ask_follow_up / show_hint / session_wait / session_completed`，provenance 只进 AI transparency UI。
 - [x] `usePracticeAssistance` 只由 `practiceMode` 决定辅助显隐；`baseline / retry_current_round / next_round` 对显隐无副作用。
 - [x] `useCompletePracticeSession` 只通过 generated `completePracticeSession` 完成会话，body 只含 `clientCompletedAt`，side-effect request 带 `Idempotency-Key` 并处理 replay / mismatch / 5xx / StrictMode 防抖。
@@ -29,3 +29,20 @@
 - [x] `sync-doc-index --check`
 - [x] `make docs-check`
 - [x] `git diff --check`
+
+## Phase 6: Real-interview session simplification
+
+- [x] 6.1 UI truth source: 更新 `docs/ui-design/module-practice-review.md` 和 `ui-design/src/screen-practice.jsx`，删除右侧边栏、语音分析、语音转文字、跳过、RoleDropdown、用户可见 strict switch，并新增电话模式字幕、切断、重新开始；验证: `node --test ui-design/ui-design-contract.test.mjs` + focused source grep。
+  <!-- verified: 2026-07-09 method=tdd-red-green command="node --test ui-design/ui-design-contract.test.mjs" grep="rg -n forbidden terms ui-design/src/screen-practice.jsx ui-design/canvas.html" -->
+- [x] 6.2 Frontend runtime: 删除 `RightPanel` / `PracticeVoiceRightPanel` / `ExpCard` / rightpanel testids、`practice-input-dictate`、`practice-input-skip`、RoleDropdown 本地切换、strict switch 和 voice expression metrics；结束 CTA 移出右栏；验证: focused `PracticeScreen` / `InputBar` / `TopBar` / `practiceModeSwitch` / negative Vitest。
+  <!-- verified: 2026-07-09 method=tdd-red-green commands="corepack pnpm --filter @easyinterview/frontend test src/app/screens/practice/PracticeScreen.test.tsx ... nonCurrentNegative.test.ts (13 files, 61 tests); corepack pnpm --filter @easyinterview/frontend exec tsc --noEmit" -->
+- [x] 6.3 Contract/backend: 从正向 OpenAPI fixtures、generated artifacts、frontend hooks、backend service/handler tests 和 scenario scripts 中删除 `turn_skipped` 作为用户动作；验证: `make codegen-openapi`、`make lint-openapi`、`make validate-fixtures`、focused backend practice tests。
+  <!-- verified: 2026-07-09 method=tdd-red-green commands="make codegen-openapi; make lint-openapi; make validate-fixtures; python3 scripts/lint/migrations_lint.py --repo-root .; go test ./backend/internal/practice ./backend/internal/api/practice ./backend/internal/store/practice ./backend/cmd/api -run 'TestSessionEventService|TestTurnStatus|TestAppendSessionEvent|TestServiceAppliesHint|TestApplyHint|TestE2EP0039|TestE2EP0048|TestE2EP0049|TestE2EP0050|TestSQLRepositoryAppendSessionEvent|TestSQLRepositoryRecordPracticeVoiceTurn|TestMarshalAppendEvent' -count=1" -->
+- [x] 6.4 Phone mode: 用户可见 `voice` 文案改为 `电话模式 / Phone`，phone surface 支持显示字幕、切断和重新开始，并隐藏 `开始录音` / `提交本轮` 主流程；验证: focused phone-mode Vitest + pixel parity practice spec。
+  <!-- verified: 2026-07-09 commands="node --test ui-design/ui-design-contract.test.mjs; corepack pnpm --filter @easyinterview/frontend test src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx src/app/screens/practice/__tests__/practiceModeSwitch.test.tsx src/app/screens/practice/PracticeScreen.test.tsx; ./test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/setup.sh && ./test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/trigger.sh && ./test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/verify.sh" result="PASS" -->
+- [x] 6.5 BDD-Gate: 更新并执行 `E2E.P0.044`-`E2E.P0.047` wrapper，覆盖 text/phone、无右栏、无转写、无跳过、无语音分析、轮次面试官和 generating handoff。
+  <!-- verified: 2026-07-09 commands="./test/scenarios/e2e/p0-044-practice-text-loop-assisted-happy-path/scripts/setup.sh && ./test/scenarios/e2e/p0-044-practice-text-loop-assisted-happy-path/scripts/trigger.sh && ./test/scenarios/e2e/p0-044-practice-text-loop-assisted-happy-path/scripts/verify.sh; ./test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/setup.sh && ./test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/trigger.sh && ./test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/verify.sh; ./test/scenarios/e2e/p0-046-practice-text-loop-failure-and-recovery/scripts/setup.sh && ./test/scenarios/e2e/p0-046-practice-text-loop-failure-and-recovery/scripts/trigger.sh && ./test/scenarios/e2e/p0-046-practice-text-loop-failure-and-recovery/scripts/verify.sh; ./test/scenarios/e2e/p0-047-practice-text-loop-complete-and-generating-handoff/scripts/setup.sh && ./test/scenarios/e2e/p0-047-practice-text-loop-complete-and-generating-handoff/scripts/trigger.sh && ./test/scenarios/e2e/p0-047-practice-text-loop-complete-and-generating-handoff/scripts/verify.sh" result="PASS" -->
+- [x] 6.6 Real environment close-loop: 启动/验证本地真实前后端环境，浏览器进入 practice 文本与电话模式真实页面，完成核心会话闭环并保存截图证据；验证: scenario-env verify + browser screenshot artifacts。
+  <!-- verified: 2026-07-09 commands="./test/scenarios/env-redeploy.sh all; ./test/scenarios/env-verify.sh; Playwright real browser closed-loop" result="PASS" artifacts=".test-output/real-practice-session/practice-text-real-closed-loop.png .test-output/real-practice-session/practice-phone-real-default.png .test-output/real-practice-session/practice-phone-real-captions.png .test-output/real-practice-session/practice-generating-real-stable.png .test-output/real-practice-session/real-browser-closed-loop-result.json" -->
+- [x] 6.7 Closeout gates: `validate_context.py`、`sync-doc-index --check`、`make docs-check`、`git diff --check`、deleted-surface zero-reference search 通过。
+  <!-- verified: 2026-07-09 commands="python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/frontend-workspace-and-practice/plans/002-practice-text-event-loop/context.yaml --target frontend; python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check; make docs-check; git diff --check; make lint-backend-practice-non-current; make validate-fixtures; make lint-openapi; corepack pnpm --filter @easyinterview/frontend exec tsc --noEmit; runtime deleted-surface rg" result="PASS" -->

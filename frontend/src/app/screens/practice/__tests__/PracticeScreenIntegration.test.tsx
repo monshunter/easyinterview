@@ -74,13 +74,13 @@ describe("PracticeScreen integration (item 1.6)", () => {
     // en defaults (DEFAULT_LANG = "en")
     expect(screen.getByTestId("practice-input-textarea").getAttribute("placeholder"))
       .toContain("answer");
-    expect(screen.getByTestId("practice-rightpanel-cta-finish").textContent)
+    expect(screen.getByTestId("practice-finish-cta").textContent)
       .toContain("Finish");
     // switch to zh
     act(() => harness.setLang("zh"));
     expect(screen.getByTestId("practice-input-textarea").getAttribute("placeholder"))
       .toContain("回答");
-    expect(screen.getByTestId("practice-rightpanel-cta-finish").textContent)
+    expect(screen.getByTestId("practice-finish-cta").textContent)
       .toContain("结束并生成报告");
   });
 

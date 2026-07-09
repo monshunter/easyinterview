@@ -1,11 +1,11 @@
 /**
  * @vitest-environment jsdom
  *
- * practice-voice-mvp item 4.2:
- * - record audio with MediaRecorder
- * - submit createPracticeVoiceTurn through the generated client + fixture
- * - render final transcript / assistant draft and keep manual transcript
- *   fallback usable when TTS fails after chat succeeds
+ * practice-voice-mvp item 4.2 current contract:
+ * - user-visible "voice" routes render as phone mode
+ * - phone mode has call-layer controls only: captions, hang up, restart
+ * - the phone controller still records a voice turn, submits
+ *   createPracticeVoiceTurn, plays returned TTS, and reports playback events
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,8 +24,9 @@ import {
 
 const IDEMPOTENCY_KEY_REGEX = /^v1\.\d+\.[0-9a-f-]{36}$/;
 const DATA_AUDIO_REF_REGEX = /^data:audio\/[a-z0-9.+-]+;base64,/i;
+let fakeAudioStop: ReturnType<typeof vi.fn> | null = null;
 
-describe("practice voice turn controller (item 4.2)", () => {
+describe("practice phone mode controller (item 4.2)", () => {
   beforeEach(() => {
     localStorage.setItem("ei-lang", "zh");
     installFakeAudioCapture();
@@ -38,7 +39,7 @@ describe("practice voice turn controller (item 4.2)", () => {
     localStorage.clear();
   });
 
-  it("captures audio, posts createPracticeVoiceTurn, and renders transcript output", async () => {
+  it("normalizes legacy voice routes to phone UI while submitting the real voice turn", async () => {
     const { client, calls } = buildPracticeClient();
     mountPracticeScreen({
       client,
@@ -46,20 +47,38 @@ describe("practice voice turn controller (item 4.2)", () => {
     });
 
     const user = userEvent.setup();
-    await user.click(await screen.findByTestId("practice-voice-record-toggle"));
+    expect(await screen.findByTestId("practice-phone-surface")).toBeDefined();
+    expect(screen.getByTestId("practice-phone-call-state")).toHaveAttribute(
+      "data-state",
+      "connected",
+    );
     await waitFor(() =>
-      expect(screen.getByTestId("practice-voice-capture-status")).toHaveAttribute(
-        "data-state",
+      expect(screen.getByTestId("practice-phone-call-state")).toHaveAttribute(
+        "data-capture-state",
         "recording",
       ),
     );
-    expect(
-      (screen.getByTestId("practice-voice-submit") as HTMLButtonElement).disabled,
-    ).toBe(false);
 
-    await user.click(screen.getByTestId("practice-voice-submit"));
+    expect(screen.getByText("电话模式进行中")).toBeDefined();
+    expect(screen.getByTestId("practice-phone-waveform")).toBeDefined();
+    expect(screen.getByTestId("practice-phone-captions-toggle")).toBeDefined();
+    expect(screen.getByTestId("practice-phone-hangup")).toBeDefined();
+    expect(screen.getByTestId("practice-phone-restart")).toBeDefined();
+    expect(screen.queryByTestId("practice-phone-question")).toBeNull();
+    expect(screen.queryByText(/STAR/)).toBeNull();
+    expect(screen.queryByTestId("practice-voice-record-toggle")).toBeNull();
+    expect(screen.queryByTestId("practice-voice-submit")).toBeNull();
+    expect(screen.queryByTestId("practice-voice-manual-fallback")).toBeNull();
+    expect(screen.queryByTestId("practice-voice-annotated-waveform")).toBeNull();
+    expect(screen.queryByTestId("practice-voice-expression-panel")).toBeNull();
+
+    await user.click(screen.getByTestId("practice-phone-hangup"));
 
     await waitFor(() => expect(voiceTurnCalls(calls)).toHaveLength(1));
+    expect(screen.getByTestId("practice-phone-call-state")).toHaveAttribute(
+      "data-state",
+      "ended",
+    );
     const call = voiceTurnCalls(calls)[0]!;
     expect(call.headers.get("Idempotency-Key")).toMatch(IDEMPOTENCY_KEY_REGEX);
 
@@ -79,58 +98,25 @@ describe("practice voice turn controller (item 4.2)", () => {
       (body.audio as { durationMs?: number }).durationMs,
     ).toBeGreaterThan(0);
 
+    expect(screen.queryByTestId("practice-transcript")).toBeNull();
+    await user.click(screen.getByTestId("practice-phone-captions-toggle"));
     expect(
       await screen.findByText("我主导了设计系统迁移，先把 12 个团队按风险分组。"),
     ).toBeDefined();
     expect(
       screen.getByText("你提到按风险分组。请具体说明你如何处理最高风险团队的迁移窗口。"),
     ).toBeDefined();
-    expect(screen.getByTestId("practice-voice-tts-status").textContent).toContain(
-      "1",
-    );
-  });
-
-  it("submits manual transcript fallback and keeps assistant text visible on TTS failure", async () => {
-    const { client, calls } = buildPracticeClient({
-      scenarioByOp: { createPracticeVoiceTurn: "tts-failed" },
-    });
-    mountPracticeScreen({
-      client,
-      routeParams: { mode: "voice", modality: "voice", practiceMode: "assisted" },
-    });
-
-    const user = userEvent.setup();
-    await user.type(
-      await screen.findByTestId("practice-voice-manual-fallback"),
-      "我先做风险分组，再让高风险团队先跑试点。",
-    );
-    await user.click(screen.getByTestId("practice-voice-record-toggle"));
-    await user.click(screen.getByTestId("practice-voice-submit"));
-
-    await waitFor(() => expect(voiceTurnCalls(calls)).toHaveLength(1));
-    const body = readBody(voiceTurnCalls(calls)[0]!);
-    expect(body.manualTranscriptFallback).toBe(
-      "我先做风险分组，再让高风险团队先跑试点。",
-    );
-
-    expect(await screen.findByText("我先做风险分组，再让高风险团队先跑试点。"))
-      .toBeDefined();
-    expect(screen.getByText("高风险团队试点时，你如何证明迁移没有影响线上体验？"))
-      .toBeDefined();
-    expect(screen.getByTestId("practice-voice-tts-error").textContent).toContain(
-      "TTS_PROVIDER_FAILED",
-    );
   });
 
   it("autoplays the returned TTS chunk and reports started, played, and committed context", async () => {
     const { client, calls } = buildPracticeClient();
     mountPracticeScreen({
       client,
-      routeParams: { mode: "voice", modality: "voice", practiceMode: "assisted" },
+      routeParams: { mode: "phone", modality: "phone", practiceMode: "assisted" },
     });
 
     const user = userEvent.setup();
-    await submitDefaultVoiceTurn(user);
+    await submitDefaultPhoneTurn(user, calls);
 
     await waitFor(() => {
       expect(eventBodies(calls).some((body) => body.kind === "tts_chunk_started"))
@@ -139,10 +125,6 @@ describe("practice voice turn controller (item 4.2)", () => {
     expect(FakeAudioElement.instances[0]?.src).toMatch(DATA_AUDIO_REF_REGEX);
     expect(FakeAudioElement.instances[0]?.src).not.toMatch(
       /^fixture-audio:\/\//,
-    );
-    expect(screen.getByTestId("practice-voice-playback-status")).toHaveAttribute(
-      "data-state",
-      "playing",
     );
 
     FakeAudioElement.instances[0]!.finish();
@@ -181,22 +163,71 @@ describe("practice voice turn controller (item 4.2)", () => {
     expect(playedCall.headers.get("Idempotency-Key")).toBeNull();
   });
 
-  it("stops active TTS playback and reports barge_in_detected before recording the next user speech", async () => {
+  it("stops and discards active microphone capture when phone mode is paused", async () => {
     const { client, calls } = buildPracticeClient();
     mountPracticeScreen({
       client,
-      routeParams: { mode: "voice", modality: "voice", practiceMode: "assisted" },
+      routeParams: { mode: "phone", modality: "phone", practiceMode: "assisted" },
     });
 
     const user = userEvent.setup();
-    await submitDefaultVoiceTurn(user);
+    await waitFor(() =>
+      expect(screen.getByTestId("practice-phone-call-state")).toHaveAttribute(
+        "data-capture-state",
+        "recording",
+      ),
+    );
+
+    await user.click(screen.getByTestId("practice-topbar-pause"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("practice-phone-call-state")).toHaveAttribute(
+        "data-state",
+        "paused",
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("practice-phone-call-state")).toHaveAttribute(
+        "data-capture-state",
+        "idle",
+      ),
+    );
+    expect(fakeAudioStop).toHaveBeenCalledTimes(1);
+    expect(voiceTurnCalls(calls)).toHaveLength(0);
+
+    await user.click(screen.getByTestId("practice-topbar-pause"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("practice-phone-call-state")).toHaveAttribute(
+        "data-state",
+        "connected",
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("practice-phone-call-state")).toHaveAttribute(
+        "data-capture-state",
+        "recording",
+      ),
+    );
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports barge_in_detected when restarting during active assistant playback", async () => {
+    const { client, calls } = buildPracticeClient();
+    mountPracticeScreen({
+      client,
+      routeParams: { mode: "phone", modality: "phone", practiceMode: "assisted" },
+    });
+
+    const user = userEvent.setup();
+    await submitDefaultPhoneTurn(user, calls);
     await waitFor(() =>
       expect(eventBodies(calls).some((body) => body.kind === "tts_chunk_started"))
         .toBe(true),
     );
     FakeAudioElement.instances[0]!.currentTime = 1.42;
 
-    await user.click(screen.getByTestId("practice-voice-record-toggle"));
+    await user.click(screen.getByTestId("practice-phone-restart"));
 
     await waitFor(() => {
       expect(eventBodies(calls).some((body) => body.kind === "barge_in_detected"))
@@ -212,8 +243,6 @@ describe("practice voice turn controller (item 4.2)", () => {
         playedTextHash: "sha256:voice-default-chunk-001",
       }),
     );
-    expect((played.payload as { playedTextLength?: number }).playedTextLength)
-      .toBeGreaterThan(0);
     const bargeIn = eventBodies(calls).find(
       (body) => body.kind === "barge_in_detected",
     )!;
@@ -230,33 +259,39 @@ describe("practice voice turn controller (item 4.2)", () => {
     )!;
     expect(bargeInCall.headers.get("Idempotency-Key")).toBeNull();
     expect(FakeAudioElement.instances[0]!.paused).toBe(true);
-    expect(screen.getByTestId("practice-voice-capture-status")).toHaveAttribute(
-      "data-state",
-      "recording",
+    await waitFor(() =>
+      expect(screen.getByTestId("practice-phone-call-state")).toHaveAttribute(
+        "data-capture-state",
+        "recording",
+      ),
     );
+    expect(voiceTurnCalls(calls)).toHaveLength(1);
   });
 });
 
-async function submitDefaultVoiceTurn(
+async function submitDefaultPhoneTurn(
   user: ReturnType<typeof userEvent.setup>,
+  calls: Parameters<typeof voiceTurnCalls>[0],
 ): Promise<void> {
-  await user.click(await screen.findByTestId("practice-voice-record-toggle"));
   await waitFor(() =>
-    expect(screen.getByTestId("practice-voice-capture-status")).toHaveAttribute(
-      "data-state",
+    expect(screen.getByTestId("practice-phone-call-state")).toHaveAttribute(
+      "data-capture-state",
       "recording",
     ),
   );
-  await user.click(screen.getByTestId("practice-voice-submit"));
-  await screen.findByText("我主导了设计系统迁移，先把 12 个团队按风险分组。");
+  await user.click(screen.getByTestId("practice-phone-hangup"));
+  await waitFor(() => expect(voiceTurnCalls(calls)).toHaveLength(1));
 }
 
-function eventBodies(calls: ReturnType<typeof eventCalls>): Record<string, unknown>[] {
+function eventBodies(
+  calls: Parameters<typeof eventCalls>[0],
+): Record<string, unknown>[] {
   return eventCalls(calls).map(readBody);
 }
 
 function installFakeAudioCapture(): void {
-  const tracks = [{ stop: vi.fn() }];
+  fakeAudioStop = vi.fn();
+  const tracks = [{ stop: fakeAudioStop }];
   Object.defineProperty(navigator, "mediaDevices", {
     configurable: true,
     value: {

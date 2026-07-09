@@ -21,6 +21,8 @@ export interface ReportContextStripProps {
  */
 export const ReportContextStrip: FC<ReportContextStripProps> = (props) => {
   const { t, lang } = useI18n();
+  const isPhoneModality =
+    props.modality === "phone" || props.modality === "voice";
   const fields: Array<{
     testId: string;
     labelKey: MessageKey;
@@ -50,8 +52,8 @@ export const ReportContextStrip: FC<ReportContextStripProps> = (props) => {
       testId: "report-context-modality",
       labelKey: "report.context.modality",
       value: t(
-        props.modality === "voice"
-          ? "report.context.modality.voice"
+        isPhoneModality
+          ? "report.context.modality.phone"
           : "report.context.modality.text",
       ),
     },

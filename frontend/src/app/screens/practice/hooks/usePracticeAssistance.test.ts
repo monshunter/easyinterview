@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  *
- * Item 3.1 — usePracticeAssistance derives UI display flags from
- * `practiceMode==='strict'` ONLY. `practiceGoal` MUST NOT affect display.
+ * usePracticeAssistance keeps hints optional inside the session. Legacy
+ * practiceMode values and practiceGoal must not hide assistance controls.
  */
 
 import { describe, expect, it } from "vitest";
@@ -15,33 +15,17 @@ describe("usePracticeAssistance", () => {
     ["assisted", "baseline"],
     ["assisted", "retry_current_round"],
     ["assisted", "next_round"],
-  ] as const)(
-    "assisted × %s × %s shows live notes / hint button / experience cards",
-    (mode, goal) => {
-      const { result } = renderHook(() =>
-        usePracticeAssistance({ practiceMode: mode, practiceGoal: goal }),
-      );
-      expect(result.current.showLiveNotes).toBe(true);
-      expect(result.current.showHintButton).toBe(true);
-      expect(result.current.showExperienceCards).toBe(true);
-      expect(result.current.showStrictBanner).toBe(false);
-    },
-  );
-
-  it.each([
     ["strict", "baseline"],
     ["strict", "retry_current_round"],
     ["strict", "next_round"],
   ] as const)(
-    "strict × %s × %s hides live notes / hint button / experience cards",
+    "%s × %s keeps hint controls available",
     (mode, goal) => {
       const { result } = renderHook(() =>
         usePracticeAssistance({ practiceMode: mode, practiceGoal: goal }),
       );
-      expect(result.current.showLiveNotes).toBe(false);
-      expect(result.current.showHintButton).toBe(false);
-      expect(result.current.showExperienceCards).toBe(false);
-      expect(result.current.showStrictBanner).toBe(true);
+      expect(result.current.showHintButton).toBe(true);
+      expect(result.current.showStrictBanner).toBe(false);
     },
   );
 
@@ -61,7 +45,7 @@ describe("usePracticeAssistance", () => {
     expect(b).toEqual(a);
   });
 
-  it("baseline vs next_round snapshot under strict is identical", () => {
+  it("baseline vs next_round snapshot under legacy strict is identical", () => {
     const a = renderHook(() =>
       usePracticeAssistance({
         practiceMode: "strict",

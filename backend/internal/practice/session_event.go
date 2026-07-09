@@ -14,7 +14,6 @@ import (
 const (
 	sessionEventKindAnswerSubmitted  = "answer_submitted"
 	sessionEventKindHintRequested    = "hint_requested"
-	sessionEventKindTurnSkipped      = "turn_skipped"
 	sessionEventKindSessionPaused    = "session_paused"
 	sessionEventKindSessionResumed   = "session_resumed"
 	sessionEventKindTTSChunkStarted  = "tts_chunk_started"
@@ -102,8 +101,6 @@ func (s SessionEventService) Route(
 		return s.handleAnswerSubmitted(input, session, latestTurn, plan), nil
 	case sessionEventKindHintRequested:
 		return s.handleHintRequested(session, plan), nil
-	case sessionEventKindTurnSkipped:
-		return s.handleTurnSkipped(input, session, latestTurn, plan), nil
 	case sessionEventKindSessionPaused:
 		return s.handleSessionPaused(session), nil
 	case sessionEventKindSessionResumed:
@@ -156,7 +153,7 @@ func isClosedSessionStatus(status sharedtypes.SessionStatus) bool {
 
 func isClosedTurnStatus(status string) bool {
 	switch TurnStatus(strings.TrimSpace(status)) {
-	case TurnStatusAnswered, TurnStatusAssessed, TurnStatusSkipped:
+	case TurnStatusAnswered, TurnStatusAssessed:
 		return true
 	default:
 		return false
@@ -217,62 +214,21 @@ func (s SessionEventService) handleAnswerSubmitted(
 }
 
 func (s SessionEventService) handleHintRequested(session SessionRecord, plan PlanRecord) SessionEventOutcome {
-	if plan.Mode == sharedtypes.PracticeModeAssisted {
-		return SessionEventOutcome{
-			Acknowledged:      true,
-			NextSessionStatus: session.Status,
-			AssistantAction: AssistantActionRecord{
-				Type:          assistantActionShowHint,
-				SessionStatus: session.Status,
-				RequiresAI:    true,
-			},
-			AuditMetadata: map[string]any{
-				"event_kind": sessionEventKindHintRequested,
-				"mode":       string(sharedtypes.PracticeModeAssisted),
-			},
-		}
-	}
 	mode := string(plan.Mode)
 	if strings.TrimSpace(mode) == "" {
-		mode = "strict"
-	}
-	return SessionEventOutcome{
-		Acknowledged:      false,
-		NextSessionStatus: session.Status,
-		Error: &ServiceError{
-			Code:    sharederrors.CodePracticeSessionConflict,
-			Message: "hints are disabled in this phase",
-			Details: map[string]any{
-				"policy": "hint_disabled_in_mode",
-				"mode":   mode,
-			},
-		},
-	}
-}
-
-func (s SessionEventService) handleTurnSkipped(
-	input SessionEventInput,
-	session SessionRecord,
-	latestTurn TurnRecord,
-	plan PlanRecord,
-) SessionEventOutcome {
-	nextTurn := latestTurn
-	nextTurn.Status = string(TurnStatusSkipped)
-	actionType := assistantActionAskQuestion
-	nextStatus := sharedtypes.SessionStatusRunning
-	if session.TurnCount >= plan.QuestionBudget {
-		actionType = assistantActionSessionCompleted
-		nextStatus = sharedtypes.SessionStatusCompleted
+		mode = string(sharedtypes.PracticeModeAssisted)
 	}
 	return SessionEventOutcome{
 		Acknowledged:      true,
-		NextSessionStatus: nextStatus,
-		NextTurn:          &nextTurn,
-		AssistantAction:   s.assistantAction(actionType, latestTurn.ID, "", "", nextStatus, session.Language, false),
+		NextSessionStatus: session.Status,
+		AssistantAction: AssistantActionRecord{
+			Type:          assistantActionShowHint,
+			SessionStatus: session.Status,
+			RequiresAI:    true,
+		},
 		AuditMetadata: map[string]any{
-			"event_kind":  sessionEventKindTurnSkipped,
-			"turn_id":     latestTurn.ID,
-			"occurred_at": input.OccurredAt.UTC().Format(time.RFC3339),
+			"event_kind": sessionEventKindHintRequested,
+			"mode":       mode,
 		},
 	}
 }

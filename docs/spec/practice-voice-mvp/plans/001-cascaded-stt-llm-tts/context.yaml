@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 1.6
+    to: 1.7
 spec:
   defaultTarget: backend
   discovery:
@@ -15,6 +15,8 @@ spec:
       - cascaded-stt-llm-tts
       - voice MVP
       - practice voice
+      - phone mode
+      - 电话模式
       - barge-in
       - audioRef
       - data:audio
@@ -30,6 +32,12 @@ spec:
       - assistant_text_draft
       - tts_chunk_played
       - barge_in_detected
+      - hang up call
+      - restart call
+      - captions
+      - deleted voice analysis
+      - deleted manual transcript fallback
+      - real environment screenshot
       - E2E.P0.007
       - E2E.P0.008
       - E2E.P0.009

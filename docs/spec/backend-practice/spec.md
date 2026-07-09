@@ -1,12 +1,12 @@
 # Backend Practice Spec
 
-> **版本**: 1.17
+> **版本**: 1.18
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 ## 1 背景与目标
 
-`backend-practice` 承接模拟面试后端域：用户基于 JD 与扁平简历创建练习计划，启动文本或语音面试会话，逐轮提交事件，在结束时创建报告生成 handoff。域边界以 [openapi-v1-contract](../openapi-v1-contract/spec.md)、[event-and-outbox-contract](../event-and-outbox-contract/spec.md)、[db-migrations-baseline](../db-migrations-baseline/spec.md)、[shared-conventions-codified](../shared-conventions-codified/spec.md)、[prompt-rubric-registry](../prompt-rubric-registry/spec.md) 与 [ai-provider-and-model-routing](../ai-provider-and-model-routing/spec.md) 为上游契约。
+`backend-practice` 承接模拟面试后端域：用户基于 JD 与扁平简历创建练习计划，启动文本或电话模式面试会话，逐轮提交事件，在结束时创建报告生成 handoff。域边界以 [openapi-v1-contract](../openapi-v1-contract/spec.md)、[event-and-outbox-contract](../event-and-outbox-contract/spec.md)、[db-migrations-baseline](../db-migrations-baseline/spec.md)、[shared-conventions-codified](../shared-conventions-codified/spec.md)、[prompt-rubric-registry](../prompt-rubric-registry/spec.md) 与 [ai-provider-and-model-routing](../ai-provider-and-model-routing/spec.md) 为上游契约。
 
 当前 P0 后端闭环只服务三类目标：`baseline`、`retry_current_round`、`next_round`。`baseline` 使用 `target_jobs` + 扁平 `resumes.structured_profile`；`retry_current_round` 与 `next_round` 使用 `sourceReportId` 关联既有报告。
 
@@ -29,7 +29,7 @@
 
 - `practice_plans` 绑定 `target_job_id`、`resume_id`、`goal`、`mode`、`source_report_id`、`focus_competency_codes` 与计划配置。
 - `PracticeGoal` 只包含 `baseline`、`retry_current_round`、`next_round`。
-- `PracticeMode` 只包含 `assisted`、`strict`；mode 只控制 hint / lightweight observe。
+- `PracticeMode` 仍保留 `assisted`、`strict` 作为兼容字段；legacy `strict` 不再阻断 `hint_requested`，提示按 in-session optional assistance 处理。
 - `practice_sessions` 状态集合为 `queued`、`running`、`waiting_user_input`、`completing`、`completed`、`failed`、`cancelled`。
 - `practice_session_events` 记录有序会话事件；`appendSessionEvent` 以 `(session_id, client_event_id)` 去重。
 - `practice_turns` 保存题目、回答、hint 与 turn 状态；事件与 outbox payload 不携带题目或回答正文。
@@ -74,7 +74,7 @@
 | C-3 | session 启动 | ready plan + active prompt profile | `startPracticeSession` | 201，同步返回 `currentTurn`，首题 prompt 携带 flat resume profile context | 001 |
 | C-4 | AI 失败恢复 | 首题 AI 返回可映射错误 | `startPracticeSession` | 失败 reservation 写 `failed` / `failure_code`；可重试错误允许同 key 重试 | 001 |
 | C-5 | event loop | running session | `appendSessionEvent` | 写有序 event，按 mode/goal 生成下一步 AssistantAction | 002 / 003 |
-| C-6 | hint policy | strict 或 assisted session | `hint_requested` | strict 返回 conflict；assisted 返回 `show_hint` 或 graceful degrade | 003 |
+| C-6 | hint policy | strict 或 assisted session | `hint_requested` | legacy strict 与 assisted 都可返回 `show_hint`；AI / parse 失败时 graceful degrade 为 `session_wait` | 003 |
 | C-7 | complete handoff | running session | `completePracticeSession` | 202，创建 queued report、queued `report_generate` job 与 completed source event | 002 |
 | C-8 | 幂等与隔离 | 重试、mismatch、跨用户或并发请求 | side-effect operations | replay / conflict / 404 / single-executor 行为符合 B1/B4 | 001 / 002 |
 | C-9 | 隐私红线 | 任意 practice flow | 检查 log/metric/audit/outbox/async payload | 无题目、回答、hint、prompt、response 或 secret 明文 | 001 / 002 / 003 / voice owner |

@@ -9,9 +9,8 @@ export interface FinishCtaProps {
 }
 
 /**
- * Source-level mirror of `ui-design/src/screen-practice.jsx` lines 303-321
- * (pinned bottom CTA + hint usage note). Wired to `completePracticeSession`
- * + `Idempotency-Key` in Phase 4.1.
+ * Global finish action for the practice top bar. Wired to
+ * `completePracticeSession` + `Idempotency-Key` in Phase 4.1.
  */
 export const FinishCta: FC<FinishCtaProps> = ({
   label,
@@ -22,22 +21,18 @@ export const FinishCta: FC<FinishCtaProps> = ({
 }) => {
   return (
     <div
-      data-testid="practice-rightpanel-cta-finish-wrap"
+      data-testid="practice-finish-cta-wrap"
       style={{
-        padding: "14px 18px",
-        borderTop: "1px solid var(--ei-color-rule-strong)",
-        background: "var(--ei-color-bg-card)",
         flexShrink: 0,
       }}
     >
       <button
-        data-testid="practice-rightpanel-cta-finish"
+        data-testid="practice-finish-cta"
         type="button"
         onClick={onFinish}
         disabled={disabled}
         style={{
-          width: "100%",
-          padding: "11px 14px",
+          padding: "7px 12px",
           background: disabled
             ? "var(--ei-color-fg-muted)"
             : "var(--ei-color-accent)",
@@ -45,7 +40,7 @@ export const FinishCta: FC<FinishCtaProps> = ({
           border: "none",
           borderRadius: 2,
           cursor: disabled ? "default" : "pointer",
-          fontSize: 13.5,
+          fontSize: 12.5,
           fontWeight: 500,
           fontFamily: "var(--ei-font-sans)",
         }}
@@ -54,7 +49,7 @@ export const FinishCta: FC<FinishCtaProps> = ({
       </button>
       {hintCount > 0 && (
         <div
-          data-testid="practice-rightpanel-hint-count"
+          data-testid="practice-finish-hint-count"
           style={{
             fontSize: 11,
             color: "var(--ei-color-fg-tertiary)",

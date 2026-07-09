@@ -1,9 +1,9 @@
 /**
  * @vitest-environment jsdom
  *
- * Defensive strict-hint conflict coverage. The normal strict UI hides the
- * hint button, but the runtime still maps a backend 409 hint policy conflict
- * to a non-retryable inline warning.
+ * Hint conflict coverage. Hints are optional in-session assistance, so the
+ * frontend keeps the hint control visible and maps backend conflicts to the
+ * normal session-conflict recovery path.
  */
 
 import { describe, expect, it } from "vitest";
@@ -16,10 +16,10 @@ import {
   mountPracticeScreen,
 } from "./practiceTestUtils";
 
-describe("practice strict-hint conflict (item 4.4)", () => {
-  it("maps hint_disabled_in_mode to the strict hint warning without retry", async () => {
+describe("practice hint conflict (item 4.4)", () => {
+  it("maps backend hint conflicts to session recovery without strict-mode UI", async () => {
     const { client, calls } = buildPracticeClient({
-      scenarioByOp: { appendSessionEvent: "hint-strict-conflict" },
+      scenarioByOp: { appendSessionEvent: "hint-conflict" },
     });
     mountPracticeScreen({ client });
 
@@ -33,16 +33,18 @@ describe("practice strict-hint conflict (item 4.4)", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("practice-error-state-message").textContent).toContain(
-        "Hints are disabled",
+        "Sync conflict",
       );
     });
+    expect(screen.queryByTestId("practice-topbar-strict")).toBeNull();
     expect(screen.queryByTestId("practice-error-state-retry")).toBeNull();
     expect(eventCalls(calls).length).toBe(1);
   });
 
-  it("strict mode still hides the hint button at the DOM boundary", async () => {
+  it("legacy strict route params keep the hint control available", async () => {
     mountPracticeScreen({ routeParams: { practiceMode: "strict" } });
     await waitFor(() => expect(screen.getByTestId("practice-screen")).toBeDefined());
-    expect(screen.queryByTestId("practice-input-hint")).toBeNull();
+    expect(screen.getByTestId("practice-input-hint")).toBeDefined();
+    expect(screen.queryByTestId("practice-topbar-strict")).toBeNull();
   });
 });

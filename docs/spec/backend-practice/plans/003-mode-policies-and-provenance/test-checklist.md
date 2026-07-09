@@ -1,15 +1,15 @@
 # 003 Test Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
 ## Current Test Gates
 
-- [x] Mode dispatch tests cover assisted, strict, unknown mode and goal orthogonality（验证：`TestHandleHintRequestedModeMatrix` / `TestHandleHintRequestedTurnLifecycle`）
-- [x] Strict reservation finalization tests prove sanitized 409 replay and no pending event row（验证：`TestAppendSessionEventHintStrictDoesNotLeavePendingReservation`）
+- [x] Mode dispatch tests cover assisted, legacy strict and goal orthogonality（验证：`TestAppendSessionEventHintLegacyStrictRunsAIAndAppends` / `TestServiceAppliesHintAIForLegacyStrict`）
+- [x] Legacy strict replay tests prove `show_hint` replay and no pending event row（验证：`TestE2EP0049PracticeHintOptionalAcrossLegacyStrictGoals`）
 - [x] Assisted hint tests prove F3/A3 success, hint_text write, lifecycle invariants and replay snapshot（验证：`TestApplyHintAISuccess`, `TestSQLRepositoryAppendSessionEventWritesHintTextForAssistedSuccess`, `TestSQLRepositoryReserveSessionEventReplaysOriginalHintSnapshot`）
 - [x] Task-run contract tests prove `hint_generate` migration/A3 support and typed columns（验证：migration/A3 writer focused tests）
 - [x] Provenance tests prove six-field wire JSON and `show_hint` `rubricVersion='not_applicable'`（验证：`TestAssistantActionProvenanceJSONShape`）

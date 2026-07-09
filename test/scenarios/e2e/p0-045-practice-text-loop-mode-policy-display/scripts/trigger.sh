@@ -11,10 +11,8 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/practice/hooks/usePracticeAssistance.test.ts \
     src/app/screens/practice/__tests__/practiceGoalParity.test.tsx \
     src/app/screens/practice/__tests__/practiceHints.test.tsx \
-    src/app/screens/practice/__tests__/practiceSkip.test.tsx \
     src/app/screens/practice/__tests__/practicePauseResume.test.tsx \
-    src/app/screens/practice/__tests__/RoleDropdown.test.tsx \
+    src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx \
     src/app/screens/practice/__tests__/practiceModeSwitch.test.tsx \
-    src/app/screens/practice/__tests__/practiceStrictToggleLocked.test.tsx \
     src/app/screens/practice/__tests__/SessionMap.test.tsx
 ) | tee "$OUTPUT_DIR/trigger.log"

@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.34
+> **版本**: 1.38
 > **状态**: active
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-09
 
 ## 1 修订规则
 
@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-09 | 1.38 | pre-launch correction：`PracticeTurn.status` 从当前 v1.0.0 baseline 删除 `skipped`，`PracticeSessionEventRequest.kind` 删除 `turn_skipped`，对齐真实面试会话不再暴露跳过题目的运行时契约。 | practice-real-interview-session-0709 review remediation |
 | 2026-07-07 | 1.36 | 新增 `getResumeSource` PDF 原件预览 operation、fixture 与 inventory，当前 OpenAPI contract 调整为 10 tag / 36 operation。 | backend-resume/001 Phase 12 + frontend-resume-workshop/001 Phase 8 |
 | 2026-07-06 | 1.34 | docs-only：将 B2 active spec 的 scope、决策表、endpoint 总结、schema inventory 与关联计划收敛为当前 10 tag / 35 operation contract；OpenAPI yaml、fixtures、baseline 与 generated artifacts 未变更，inventory lint 仍以当前可执行契约为准。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-06 | 1.33 | docs-only：收敛 B2 active spec 决策表到当前 35 operation / 10 tag inventory，移除 JobMatch、Debriefs、Profile 和旧 ResumeVersion additive 明细行；D-9 / D-11 / D-21 / D-22 / D-25 回到当前可执行契约口径。 | product-scope/001-core-loop-module-pruning |

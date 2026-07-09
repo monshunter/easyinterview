@@ -4,7 +4,7 @@ export interface SessionMapItem {
   id: string;
   topic: string;
   duration: string;
-  status: "active" | "done" | "pending" | "skipped" | "follow_up_requested";
+  status: "active" | "done" | "pending" | "follow_up_requested";
 }
 
 export interface SessionMapProps {
@@ -29,9 +29,7 @@ export const SessionMap: FC<SessionMapProps> = ({ label, items, activeIndex }) =
       </div>
       {items.map((item, idx) => {
         const explicit =
-          item.status === "skipped" ||
-          item.status === "done" ||
-          item.status === "follow_up_requested"
+          item.status === "done" || item.status === "follow_up_requested"
             ? item.status
             : null;
         const isActive = !explicit && idx === activeIndex;
@@ -89,7 +87,7 @@ export const SessionMap: FC<SessionMapProps> = ({ label, items, activeIndex }) =
                 fontFamily: "var(--ei-font-mono)",
               }}
             >
-              {isDone ? "✓" : explicit === "skipped" ? "↷" : idx + 1}
+              {isDone ? "✓" : idx + 1}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div

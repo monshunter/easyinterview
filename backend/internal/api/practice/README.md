@@ -10,7 +10,7 @@ This package owns the HTTP adapter for the backend-practice operations. It maps 
 
 ## 003 Mode Policies and Provenance
 
-- `handleHintRequested` dispatches only on `practice_plans.mode`: `assisted` routes to `applyHintAI`, while `strict` and unknown values return `409 PRACTICE_SESSION_CONFLICT` with `details.policy=hint_disabled_in_mode`.
+- `handleHintRequested` treats hints as optional in-session assistance: legacy `practice_plans.mode` values do not block the request, and successful hint actions route through `applyHintAI` without advancing the turn lifecycle.
 - `applyHintAI` resolves `practice.turn.lightweight_observe`, calls the observed AI client, and uses `AITaskRunTaskHintGenerate` so `ai_task_runs.task_type='hint_generate'` records the hint path.
 - `cmd/api` wraps the Practice AI client with the A3 observability decorator when a profile resolver is available and passes the SQL `ai_task_runs` writer into the service. F3/parse failures that occur before or after `AIClient.Complete` use the same writer for explicit failed `hint_generate` rows.
 - Assisted hint success returns `AssistantAction{type=show_hint}` and writes `practice_turns.hint_text`; it does not advance `turn_count`, change turn status, emit `practice.turn.completed`, or write `audit_events`.
@@ -22,7 +22,7 @@ Handlers wrapped by `idempotency.Middleware` must call `idempotency.SetResponseR
 
 ## Handoff Boundaries
 
-- `003-mode-policies-and-provenance` delivered assisted-mode hint behavior, `practice.turn.lightweight_observe` wiring, `hint_generate` task-run provenance, and strict-mode hint conflict replay.
+- `003-mode-policies-and-provenance` delivered optional hint behavior across assisted and legacy strict modes, `practice.turn.lightweight_observe` wiring, `hint_generate` task-run provenance, and hint replay semantics.
 - `004-report-derived-practice-plans` owns report-derived retry and next-round plan paths.
 - `practice-voice-mvp/001-cascaded-stt-llm-tts` owns voice/audio routes and the `createPracticeVoiceTurn` handoff. 002 does not mount independent voice endpoints.
 - `006-privacy-cascade-and-cleanup` owns account deletion cascade and timeout sweeps.

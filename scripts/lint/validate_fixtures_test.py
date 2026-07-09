@@ -63,8 +63,8 @@ IK_REQUIRED_OPERATION_IDS = {
 class FixtureSkeletonTest(unittest.TestCase):
     """Phase 1.1 structural contract."""
 
-    def test_thirty_six_operations_expected(self) -> None:
-        self.assertEqual(len(EXPECTED_OPERATIONS), 36)
+    def test_thirty_seven_operations_expected(self) -> None:
+        self.assertEqual(len(EXPECTED_OPERATIONS), 37)
 
     def test_ten_unique_tags(self) -> None:
         tags = {tag for tag, *_ in EXPECTED_OPERATIONS}
@@ -200,8 +200,7 @@ REQUIRED_PRACTICE_SESSION_SCENARIOS = {
     "appendSessionEvent": {
         "default",
         "follow-up",
-        "hint-strict-conflict",
-        "turn-skipped",
+        "hint-conflict",
         "pause-resume",
         "replay",
         "mismatch",

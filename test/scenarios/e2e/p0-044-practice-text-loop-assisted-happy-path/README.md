@@ -15,8 +15,8 @@
 
 ## 3 Then
 
-- 顶部 TopBar 渲染 ≥ 9 个控件 testid（company / title / question / timer / pause / mode-text / mode-voice / strict / role）
-- 中部 grid 三栏渲染 SessionMap / QuestionCard / Transcript / InputBar / RightPanel
+- 顶部 TopBar 渲染当前控件 testid（company / title / question / timer / pause / mode-text / mode-phone / finish CTA）
+- 中部 grid 渲染 SessionMap / QuestionCard / Transcript / InputBar，且不出现 RightPanel
 - send 触发 `appendSessionEvent` body 含 UUIDv7 `clientEventId`，request init 不含 `Idempotency-Key` header
 - `assistantAction.type=ask_follow_up` 在 transcript 追加 follow-up 标记的 AI 消息
 - assisted 模式下 LIVE NOTES、hint button、experience cards 全部渲染

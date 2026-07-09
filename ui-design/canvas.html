@@ -22,7 +22,7 @@
   const ART_W = 1280, ART_H = 860, FRAME_W = 420;
   const UI_VERSION = "20260612-ocean-default";
   const FRAME_H = Math.round(ART_H * FRAME_W / ART_W);
-  const Screen = ({ route, jobId = "tj-1", mode, sessionId, dark, lang = "zh", theme, customAccent, fontPreset, role, practiceMode }) => {
+  const Screen = ({ route, jobId = "tj-1", mode, sessionId, dark, lang = "zh", theme, customAccent, fontPreset }) => {
     const params = new URLSearchParams();
     params.set("route", route); params.set("nochrome", "0"); params.set("lang", lang);
     if (jobId) params.set("jobId", jobId);
@@ -32,14 +32,12 @@
     params.set("resumeId", "frontend-v3");
     params.set("roundId", "round-manager");
     params.set("roundName", lang === "en" ? "Manager round" : "经理面");
-    if (sessionId || ["practice", "voice", "generating", "report"].includes(route)) params.set("sessionId", sessionId || "session-24");
+    if (sessionId || ["practice", "generating", "report"].includes(route)) params.set("sessionId", sessionId || "session-24");
     if (mode) params.set("mode", mode);
     if (dark) params.set("dark", "1");
     if (theme) params.set("theme", theme);
     if (customAccent) params.set("customAccent", `${customAccent.h},${customAccent.c}`);
     if (fontPreset) params.set("fontPreset", fontPreset);
-    if (role) params.set("role", role);
-    if (practiceMode) params.set("practiceMode", practiceMode);
     return (
       <div style={{ width: FRAME_W, height: FRAME_H, background: dark ? "#16130e" : "#fdfcf8", overflow: "hidden" }}>
         <iframe src={"index.html?v=" + UI_VERSION + "#" + params.toString()} loading="lazy"
@@ -53,7 +51,7 @@
       <DCSection id="flow" title="EasyInterview · 核心用户闭环" subtitle="从一份 JD 到下一轮更强的准备">
         <DCArtboard id="home" label="01 · 首页（JD 导入）" width={FRAME_W} height={FRAME_H}><Screen route="home" /></DCArtboard>
         <DCArtboard id="ws" label="02 · 模拟面试规划" width={FRAME_W} height={FRAME_H}><Screen route="workspace" /></DCArtboard>
-        <DCArtboard id="practice" label="03 · 模拟面试进行中" width={FRAME_W} height={FRAME_H}><PracticeScreen mode="core" /></DCArtboard>
+        <DCArtboard id="practice" label="03 · 模拟面试进行中" width={FRAME_W} height={FRAME_H}><PracticeScreen mode="text" /></DCArtboard>
         <DCArtboard id="report" label="04 · 证据化报告仪表盘" width={FRAME_W} height={FRAME_H}><Screen route="report" /></DCArtboard>
       </DCSection>
       <DCSection id="auth" title="账户体系 · 登录 / 验证 / 首次资料补全" subtitle="M0 入口">
@@ -67,14 +65,13 @@
         <DCArtboard id="generating" label="报告生成中 · 异步观察流" width={FRAME_W} height={FRAME_H}><Screen route="generating" /></DCArtboard>
         <DCArtboard id="settings" label="设置 · 隐私 / 导出 / 删除" width={FRAME_W} height={FRAME_H}><Screen route="settings" /></DCArtboard>
       </DCSection>
-      <DCSection id="voice" title="语音模式 · 统一 Session 骨架" subtitle="同一题目地图 / 顶部控制 / 语音表达层反馈">
-        <DCArtboard id="voice-light" label="语音面试 · 统一骨架" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="voice" /></DCArtboard>
-        <DCArtboard id="voice-dark" label="语音面试 · 统一骨架 · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="voice" dark /></DCArtboard>
+      <DCSection id="phone" title="电话模式 · 统一 Session 骨架" subtitle="同一题目地图 / 顶部控制 / 可选字幕">
+        <DCArtboard id="phone-light" label="电话模式 · 统一骨架" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="phone" /></DCArtboard>
+        <DCArtboard id="phone-dark" label="电话模式 · 统一骨架 · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="phone" dark /></DCArtboard>
       </DCSection>
-      <DCSection id="p1-coaching" title="P1 · Session 练习方式" subtitle="严格模拟（提示隐藏）vs 带提示练习 · 外层框架 switch 开关">
-        <DCArtboard id="practice-assisted" label="带提示练习（默认）" width={FRAME_W} height={FRAME_H}><Screen route="practice" practiceMode="assisted" /></DCArtboard>
-        <DCArtboard id="practice-strict" label="严格模拟 · 提示与经历隐藏" width={FRAME_W} height={FRAME_H}><Screen route="practice" practiceMode="strict" /></DCArtboard>
-        <DCArtboard id="practice-strict-voice" label="严格模拟 · 语音模式" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="voice" practiceMode="strict" /></DCArtboard>
+      <DCSection id="practice-session" title="Session 练习方式" subtitle="文本 / 电话共享同一套面试会话">
+        <DCArtboard id="practice-text" label="文本面试 · 可选提示" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="text" /></DCArtboard>
+        <DCArtboard id="practice-phone" label="电话模式 · 可选字幕" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="phone" /></DCArtboard>
       </DCSection>
       <DCSection id="resume-workshop" title="简历工坊 · 简历资产" subtitle="简历列表、预览、改写与导出">
         <DCArtboard id="resume-versions" label="简历工坊 · 平铺列表" width={FRAME_W} height={FRAME_H}><Screen route="resume_versions" /></DCArtboard>
@@ -96,11 +93,6 @@
         <DCArtboard id="font-editorial" label="编辑级 · Noto Serif SC + Inter" width={FRAME_W} height={FRAME_H}><Screen route="report" fontPreset="editorial" /></DCArtboard>
         <DCArtboard id="font-modern" label="现代 · Source Serif Pro + Geist" width={FRAME_W} height={FRAME_H}><Screen route="report" fontPreset="modern" /></DCArtboard>
         <DCArtboard id="font-magazine" label="杂志 · Cormorant + IBM Plex Sans" width={FRAME_W} height={FRAME_H}><Screen route="report" fontPreset="magazine" /></DCArtboard>
-      </DCSection>
-      <DCSection id="roles" title="面试官角色 · 综合 / HR / 用人经理">
-        <DCArtboard id="general" label="综合面试官" width={FRAME_W} height={FRAME_H}><PracticeScreen role="general" /></DCArtboard>
-        <DCArtboard id="hr" label="HR / 初筛" width={FRAME_W} height={FRAME_H}><PracticeScreen role="hr" /></DCArtboard>
-        <DCArtboard id="manager" label="用人经理" width={FRAME_W} height={FRAME_H}><PracticeScreen role="manager" /></DCArtboard>
       </DCSection>
       <DCPostIt top={-28} left={60} rotate={-3} width={220}>提示：点击任一画板右上角 ⤢ 展开 → 可按 ← → 翻页、Esc 退出。</DCPostIt>
       <DCPostIt top={330} right={60} rotate={2.5} width={210}>所有画板都是真实 iframe（loading=lazy）。Tweaks 改完主题、字体、accent，这里会同步更新。</DCPostIt>

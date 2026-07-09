@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  *
- * Item 2.1 — usePracticeEvents: 5 mutations (submitAnswer / requestHint /
- * skipTurn / pauseSession / resumeSession), UUIDv7 clientEventId, NO
+ * Item 2.1 — usePracticeEvents: 4 mutations (submitAnswer / requestHint /
+ * pauseSession / resumeSession), UUIDv7 clientEventId, NO
  * Idempotency-Key header on appendSessionEvent (spec D-12), retry of the
  * same user action reuses clientEventId, fresh action mints a new id.
  */
@@ -148,7 +148,6 @@ describe("usePracticeEvents", () => {
 
   it.each([
     ["requestHint", "hint_requested", { turnId: TURN_A }],
-    ["skipTurn", "turn_skipped", { turnId: TURN_A }],
     ["pauseSession", "session_paused", {}],
     ["resumeSession", "session_resumed", {}],
   ] as const)(
@@ -164,7 +163,6 @@ describe("usePracticeEvents", () => {
 
       await act(async () => {
         if (mutation === "requestHint") await result.current.requestHint({ turnId: TURN_A });
-        if (mutation === "skipTurn") await result.current.skipTurn({ turnId: TURN_A });
         if (mutation === "pauseSession") await result.current.pauseSession();
         if (mutation === "resumeSession") await result.current.resumeSession();
       });

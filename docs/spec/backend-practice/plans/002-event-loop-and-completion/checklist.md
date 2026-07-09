@@ -1,23 +1,23 @@
 # Backend Practice Event Loop and Completion Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联计划**: [plan](./plan.md)
 
 ## Phase 0: contract preflight
 
 - [x] 0.1 `shared/jobs.yaml` marks `report_generate` as `triggerEventSemantic: source_event_only` and generated jobs constants expose the source-event-only predicate（验证：`make lint-events`、`make codegen-events-check`、`go test ./backend/internal/shared/jobs -count=1`）
-- [x] 0.2 OpenAPI `PracticeTurn.status` contains `asked` / `answered` / `follow_up_requested` / `assessed` / `skipped` and generated Go/TS artifacts are current（验证：`make codegen-check`、`python3 scripts/lint/conventions_drift.py --repo-root .`）
+- [x] 0.2 OpenAPI `PracticeTurn.status` contains `asked` / `answered` / `follow_up_requested` / `assessed` and generated Go/TS artifacts are current（验证：`make codegen-check`、`python3 scripts/lint/conventions_drift.py --repo-root .`）
 - [x] 0.3 PracticeSessions fixtures cover append main/replay/mismatch/completed variants and completion main/replay/mismatch/cross-user variants（验证：`make validate-fixtures`）
 - [x] 0.4 F3 `practice.session.follow_up` is resolvable for follow-up generation（验证：backend-practice preflight tests）
 
 ## Phase 1: append event state machine
 
-- [x] 1.1 `SessionEventService` routes `answer_submitted` / `hint_requested` / `turn_skipped` / `session_paused` / `session_resumed`（验证：`TestSessionEventServiceRoutesAllKinds`）
+- [x] 1.1 `SessionEventService` routes `answer_submitted` / `hint_requested` / `session_paused` / `session_resumed`（验证：`TestSessionEventServiceRouteCoversAllKinds`）
 - [x] 1.2 `answer_submitted` chooses `ask_follow_up`, `ask_question` or `session_completed` from DB-owned turn/session state（验证：`TestHandleAnswerSubmittedDecisionBranches`）
-- [x] 1.3 `hint_requested` in this owner returns strict conflict without AI side effects; plan 003 owns assisted hint behavior（验证：`TestHandleHintRequestedDefaultsToStrictConflict`）
+- [x] 1.3 `hint_requested` remains available for legacy strict and assisted sessions; plan 003 owns AI-backed hint behavior（验证：`TestAppendSessionEventHintLegacyStrictRunsAIAndAppends`）
 - [x] 1.4 turn status mapping preserves all five current values and rejects unknown values（验证：`TestTurnStatus`）
 - [x] 1.5 malformed answer payloads and missing client timestamps fail before AI or repository side effects（验证：`TestAppendSessionEventRejectsMissingAnswerText`、`TestAppendSessionEventRequiresOccurredAt`）
 

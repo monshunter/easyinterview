@@ -11,7 +11,7 @@ test -s "$LOG_FILE"
 grep -Eq 'Test Files +[0-9]+ passed \([0-9]+\)' "$LOG_FILE" || { echo "E2E.P0.046: no passing test files found" >&2; exit 1; }
 grep -Fq 'practiceSessionLost.test.tsx' "$LOG_FILE" || { echo "E2E.P0.046: practiceSessionLost.test.tsx did not run" >&2; exit 1; }
 grep -Fq 'useCompletePracticeSession.test.tsx' "$LOG_FILE" || { echo "E2E.P0.046: useCompletePracticeSession.test.tsx did not run" >&2; exit 1; }
-for key in aiTimeout network sessionConflict strictHintConflict unknown retry backToWorkspace; do
+for key in aiTimeout network sessionConflict unknown retry backToWorkspace; do
   grep -q "\"practice.errors.${key}\":" "$LOCALES_DIR/zh.ts" || { echo "E2E.P0.046: missing zh practice.errors.${key}" >&2; exit 1; }
   grep -q "\"practice.errors.${key}\":" "$LOCALES_DIR/en.ts" || { echo "E2E.P0.046: missing en practice.errors.${key}" >&2; exit 1; }
 done

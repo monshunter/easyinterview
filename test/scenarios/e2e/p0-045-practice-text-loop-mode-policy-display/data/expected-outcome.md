@@ -3,18 +3,17 @@
 Trigger output evidence:
 
 - `Test Files  N passed`
-- `usePracticeAssistance.test.ts` runs and passes (10 cases)
+- `usePracticeAssistance.test.ts` runs and passes
 - `practiceGoalParity.test.tsx` runs and passes
 - `practiceHints.test.tsx` runs and passes
-- `practiceSkip.test.tsx` runs and passes
+- `practiceVoiceTurn.test.tsx` runs and passes
 - `practicePauseResume.test.tsx` runs and passes
-- `RoleDropdown.test.tsx` runs and passes
 - `practiceModeSwitch.test.tsx` runs and passes
-- `practiceStrictToggleLocked.test.tsx` runs and passes
+- `SessionMap.test.tsx` runs and passes
 
 Verify gates:
 
 - non-current practice goal literal not present in `frontend/src/app/screens/practice/`.
-- `切到语音` and `Switch to voice` literals not present in i18n catalogs (only `practice.toolbar.modeText / modeVoice` shipping copy).
+- `切到语音` and `Switch to voice` literals not present in i18n catalogs.
 - `Idempotency-Key.*appendSessionEvent` reverse-grep zero hits.
-- Voice surface DOM (`VoiceSessionSurface`, `PracticeWaveformBars`, `PracticeAnnotatedWaveform`, `VoiceExpressionPanel`) zero hits in practice runtime files.
+- Old voice/strict/skip DOM (`VoiceSessionSurface`, `PracticeAnnotatedWaveform`, `VoiceExpressionPanel`, `practice-topbar-strict`, `practice-input-skip`) zero hits in practice runtime files.

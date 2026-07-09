@@ -9,6 +9,6 @@ Trigger output evidence:
 
 Verify gates:
 
-- `practice.errors.aiTimeout / network / sessionConflict / strictHintConflict / unknown / retry / backToWorkspace` keys exist in both `zh.ts` and `en.ts`.
+- `practice.errors.aiTimeout / network / sessionConflict / unknown / retry / backToWorkspace` keys exist in both `zh.ts` and `en.ts`.
 - `frontend/src/app/screens/practice/` source files do NOT contain LLM provider keys, prompt registry, AIClient, or LLM endpoints (negative grep).
 - `practice.errors.*` ErrorState renders the right copy per HTTP code.

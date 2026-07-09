@@ -316,8 +316,7 @@ test("P0 empty and failure states avoid showing fake data", () => {
   assert.match(workspace, /WorkspaceMissingResumeState/);
   assert.match(report, /ReportMissingSessionState/);
   assert.match(report, /ReportFailureState/);
-  assert.match(practice, /transcriptFailed/);
-  assert.match(practice, /VoiceTranscriptionFailure/);
+  assert.doesNotMatch(practice, /VoiceTranscriptionFailure|transcriptFailed/);
 });
 
 test("Home recent mock interviews are signed-in only", () => {
@@ -350,19 +349,35 @@ test("Home and workspace share action card behavior", () => {
   assert.doesNotMatch(workspace, /open:\s*"Open plan"|open:\s*"进入规划"|L\.open/);
 });
 
-test("P0 voice interview keeps the shared practice shell and renders the voice surface", () => {
+test("P0 phone interview keeps the shared practice shell without retired assistant surfaces", () => {
   const practice = readUiFile("./src/screen-practice.jsx");
+  const phoneSurface = practice.slice(
+    practice.indexOf("const PhoneSessionSurface = "),
+    practice.indexOf("const TranscriptMsg = "),
+  );
 
-  assert.match(practice, /const VoiceSessionSurface = /);
-  assert.match(practice, /activeMode === "voice"\s*\?/);
-  assert.match(practice, /<VoiceSessionSurface/);
+  assert.match(practice, /const PhoneSessionSurface = /);
+  assert.match(practice, /const isPhone = activeMode === "phone";/);
+  assert.match(practice, /<PhoneSessionSurface/);
+  assert.match(practice, /电话模式|Phone/);
+  assert.match(practice, /显示字幕|Show captions/);
+  assert.match(practice, /切断|Hang up/);
+  assert.match(practice, /重新开始|Restart/);
   assert.match(practice, /WaveformBars/);
-  assert.match(practice, /AnnotatedWaveform/);
-  assert.match(practice, /表达层指标/);
-  assert.match(practice, /实时转写/);
-  assert.match(practice, /音频仅在本次会话缓存/);
-  assert.match(practice, /VoiceTranscriptionFailure/);
+  assert.doesNotMatch(phoneSurface, /QuestionHeader|currentQ|qIdx/);
+  assert.doesNotMatch(practice, /RightPanel|VoiceExpressionPanel|PracticeAnnotatedWaveform|ExpCard|RoleDropdown/);
+  assert.doesNotMatch(practice, /严格模拟|Strict|Speech-to-text|语音转文字|插入转写|Skip|跳过|表达层指标|口头禅|长停顿|语速|音量/);
   assert.doesNotMatch(practice, /if\s*\(\s*k\s*===\s*"voice"\s*\)\s*nav\("voice"/);
+});
+
+test("P0 report renders phone modality copy for current and legacy voice params", () => {
+  const report = readUiFile("./src/screen-report.jsx");
+
+  assert.match(report, /params\.modality === "phone" \|\| params\.modality === "voice"/);
+  assert.match(report, /"Phone"/);
+  assert.match(report, /"电话模式"/);
+  assert.doesNotMatch(report, /modality:\s*params\.modality === "voice" \? "Voice" : "Text"/);
+  assert.doesNotMatch(report, /modality:\s*params\.modality === "voice" \? "语音" : "文本"/);
 });
 
 test("parse confirm page is a readonly saved-plan receipt with direct launch", () => {
@@ -423,7 +438,7 @@ test("non-current resume versions screen stays absent", () => {
   }
 });
 
-test("voice interview only enters through explicit practice modality params", () => {
+test("phone interview only enters through explicit practice modality params", () => {
   const app = readUiFile("./src/app.jsx");
   const canvas = readUiFile("./canvas.html");
 
@@ -431,5 +446,5 @@ test("voice interview only enters through explicit practice modality params", ()
   assert.doesNotMatch(app, /rawRoute === "voice"/);
   assert.doesNotMatch(app, /voice:\s*<VoicePracticeScreen/);
   assert.doesNotMatch(app, /route\.name === "voice"/);
-  assert.match(canvas, /route="practice" mode="voice"/);
+  assert.match(canvas, /route="practice" mode="phone"/);
 });

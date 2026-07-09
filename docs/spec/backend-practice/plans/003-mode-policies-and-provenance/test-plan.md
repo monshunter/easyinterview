@@ -1,8 +1,8 @@
 # 003 Test Plan
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联 Plan**: [plan](./plan.md)
 **关联 Test Checklist**: [test-checklist](./test-checklist.md)
@@ -11,7 +11,7 @@
 
 | Test area | Required assertions | Representative tests / commands |
 |-----------|---------------------|----------------------------------|
-| Mode dispatch | assisted produces show_hint AI path; strict/unknown produces sanitized 409; goal is orthogonal | `cd backend && go test ./internal/practice -run 'TestHandleHintRequested|TestAppendSessionEventHintStrict' -count=1` |
+| Mode dispatch | assisted and legacy strict produce `show_hint` AI path; goal is orthogonal | `cd backend && go test ./internal/practice -run 'Test.*Hint.*LegacyStrict|TestServiceAppliesHintAIForAssisted' -count=1` |
 | Assisted hint persistence | success writes `practice_turns.hint_text`; replay returns original hint snapshot; no turn/outbox/audit side effects | `cd backend && go test ./internal/store/practice ./internal/practice -run 'Test.*Hint.*' -count=1` |
 | AI/task-run contract | `hint_generate` is accepted by migration/A3 writer; F3/A3 success and failure write typed task-run evidence | `cd backend && go test ./internal/ai/aiclient ./internal/ai/registry ./internal/migrations -count=1` |
 | Provenance wire shape | AssistantAction provenance JSON has exactly six B2 fields and no runtime fields | `cd backend && go test ./internal/practice -run 'TestAssistantActionProvenance' -count=1` |

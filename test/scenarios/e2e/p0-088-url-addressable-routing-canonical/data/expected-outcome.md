@@ -3,7 +3,7 @@
 | 维度 | 期望 |
 |------|------|
 | Workspace direct-open | `workspace-empty` 渲染；URL 保持 `/workspace?...` canonical 顺序；TopBar `workspace` `aria-current="page"` |
-| Practice voice direct-open | `practice-voice-waveform` 出现；`app-shell-topbar` 不在 DOM；URL `/practice` 携带 `mode=voice&modality=voice` |
+| Practice legacy voice direct-open | `practice-phone-waveform` 出现；`app-shell-topbar` 不在 DOM；URL `/practice` 兼容携带 `mode=voice&modality=voice` |
 | Generating direct-open | `generating-screen` 出现，chrome 隐藏 |
 | Report failed direct-open | `report-failure-state` 出现，chrome 保留；search 含 `reportStatus=failed&errorCode=AI_PROVIDER_TIMEOUT` |
 | Resume workshop direct-open | `resume-workshop-screen` 出现；URL 过滤 `tab=rewrites&tailorRunId=...` 并保持 `/resume-versions` |

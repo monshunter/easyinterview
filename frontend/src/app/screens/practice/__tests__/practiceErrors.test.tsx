@@ -60,9 +60,7 @@ describe("practice error recovery (items 4.4 / 4.6)", () => {
     mountPracticeScreen({ client });
 
     const user = userEvent.setup();
-    const finish = screen.getByTestId(
-      "practice-rightpanel-cta-finish",
-    ) as HTMLButtonElement;
+    const finish = screen.getByTestId("practice-finish-cta") as HTMLButtonElement;
     await waitFor(() => expect(finish.disabled).toBe(false));
 
     await user.click(finish);

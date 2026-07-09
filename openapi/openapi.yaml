@@ -2273,7 +2273,7 @@ components:
           type: string
         status:
           type: string
-          enum: [asked, answered, follow_up_requested, assessed, skipped]
+          enum: [asked, answered, follow_up_requested, assessed]
         askedAt:
           type: string
           format: date-time
@@ -2484,7 +2484,7 @@ components:
           description: Client-generated event id; unique per session.
         kind:
           type: string
-          enum: [answer_submitted, hint_requested, turn_skipped, session_paused, session_resumed, tts_chunk_started, tts_chunk_played, barge_in_detected, assistant_context_committed]
+          enum: [answer_submitted, hint_requested, session_paused, session_resumed, tts_chunk_started, tts_chunk_played, barge_in_detected, assistant_context_committed]
         occurredAt:
           type: string
           format: date-time

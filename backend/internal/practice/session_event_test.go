@@ -26,7 +26,6 @@ func TestSessionEventServiceRouteCoversAllKinds(t *testing.T) {
 	}{
 		{kind: "answer_submitted", wantAction: "ask_follow_up", wantStatus: sharedtypes.SessionStatusRunning},
 		{kind: "hint_requested", wantAction: "show_hint", wantStatus: sharedtypes.SessionStatusRunning},
-		{kind: "turn_skipped", wantAction: "ask_question", wantStatus: sharedtypes.SessionStatusRunning},
 		{kind: "session_paused", wantAction: "session_wait", wantStatus: sharedtypes.SessionStatusWaitingUserInput},
 		{kind: "session_resumed", wantAction: "session_wait", wantStatus: sharedtypes.SessionStatusRunning},
 	}
@@ -304,15 +303,6 @@ func TestRouteRejectsClosedSessionAndTerminalTurnEvents(t *testing.T) {
 				return turn
 			}(),
 		},
-		{
-			name:    "skipped turn rejects new answer event on running session",
-			session: sessionEventTestSession(1),
-			turn: func() TurnRecord {
-				turn := sessionEventTestTurn(1)
-				turn.Status = string(TurnStatusSkipped)
-				return turn
-			}(),
-		},
 	}
 
 	for _, tc := range cases {
@@ -334,7 +324,7 @@ func TestRouteRejectsClosedSessionAndTerminalTurnEvents(t *testing.T) {
 	}
 }
 
-func TestHandleHintRequestedModeMatrix(t *testing.T) {
+func TestHandleHintRequestedModeMatrixAllowsOptionalHints(t *testing.T) {
 	service := SessionEventService{}
 	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
 	goals := []sharedtypes.PracticeGoal{
@@ -344,79 +334,39 @@ func TestHandleHintRequestedModeMatrix(t *testing.T) {
 	}
 
 	for _, goal := range goals {
-		t.Run("assisted/"+string(goal), func(t *testing.T) {
-			session := sessionEventTestSession(1)
-			plan := sessionEventTestPlan(3, goal)
-			plan.Mode = sharedtypes.PracticeModeAssisted
-			out, err := service.Route(context.Background(), SessionEventInput{
-				SessionID:     session.ID,
-				ClientEventID: "client-event-1",
-				Kind:          "hint_requested",
-				OccurredAt:    now,
-				Payload: map[string]any{
-					"turnId": "turn-1",
-				},
-			}, session, sessionEventTestTurn(1), plan)
-			if err != nil {
-				t.Fatalf("Route returned error: %v", err)
-			}
-			if out.Error != nil {
-				t.Fatalf("unexpected assisted error: %+v", out.Error)
-			}
-			if out.AssistantAction.Type != assistantActionShowHint || !out.AssistantAction.RequiresAI {
-				t.Fatalf("AssistantAction = %+v, want show_hint requiring AI", out.AssistantAction)
-			}
-			if out.NextSessionStatus != session.Status || out.OutboxRecord != nil || out.NextTurn != nil {
-				t.Fatalf("hint should preserve lifecycle: %+v", out)
-			}
-		})
-
-		t.Run("strict/"+string(goal), func(t *testing.T) {
-			session := sessionEventTestSession(1)
-			plan := sessionEventTestPlan(3, goal)
-			plan.Mode = sharedtypes.PracticeModeStrict
-			out, err := service.Route(context.Background(), SessionEventInput{
-				SessionID:     session.ID,
-				ClientEventID: "client-event-1",
-				Kind:          "hint_requested",
-				OccurredAt:    now,
-				Payload: map[string]any{
-					"turnId": "turn-1",
-				},
-			}, session, sessionEventTestTurn(1), plan)
-			if err != nil {
-				t.Fatalf("Route returned error: %v", err)
-			}
-			if out.Error == nil || out.Error.Code != sharederrors.CodePracticeSessionConflict {
-				t.Fatalf("Error = %+v, want PRACTICE_SESSION_CONFLICT", out.Error)
-			}
-			if out.Error.Details["policy"] != "hint_disabled_in_mode" || out.Error.Details["mode"] != string(sharedtypes.PracticeModeStrict) {
-				t.Fatalf("unexpected details: %+v", out.Error.Details)
-			}
-		})
-	}
-
-	for _, mode := range []sharedtypes.PracticeMode{"", "lega" + "cy debrief replay value"} {
-		t.Run("unknown/"+string(mode), func(t *testing.T) {
-			session := sessionEventTestSession(1)
-			plan := sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline)
-			plan.Mode = mode
-			out, err := service.Route(context.Background(), SessionEventInput{
-				SessionID:     session.ID,
-				ClientEventID: "client-event-1",
-				Kind:          "hint_requested",
-				OccurredAt:    now,
-				Payload: map[string]any{
-					"turnId": "turn-1",
-				},
-			}, session, sessionEventTestTurn(1), plan)
-			if err != nil {
-				t.Fatalf("Route returned error: %v", err)
-			}
-			if out.Error == nil || out.Error.Code != sharederrors.CodePracticeSessionConflict {
-				t.Fatalf("Error = %+v, want PRACTICE_SESSION_CONFLICT", out.Error)
-			}
-		})
+		for _, mode := range []sharedtypes.PracticeMode{
+			sharedtypes.PracticeModeAssisted,
+			sharedtypes.PracticeModeStrict,
+			"",
+			"lega" + "cy debrief replay value",
+		} {
+			t.Run(string(goal)+"/"+string(mode), func(t *testing.T) {
+				session := sessionEventTestSession(1)
+				plan := sessionEventTestPlan(3, goal)
+				plan.Mode = mode
+				out, err := service.Route(context.Background(), SessionEventInput{
+					SessionID:     session.ID,
+					ClientEventID: "client-event-1",
+					Kind:          "hint_requested",
+					OccurredAt:    now,
+					Payload: map[string]any{
+						"turnId": "turn-1",
+					},
+				}, session, sessionEventTestTurn(1), plan)
+				if err != nil {
+					t.Fatalf("Route returned error: %v", err)
+				}
+				if out.Error != nil {
+					t.Fatalf("unexpected hint error: %+v", out.Error)
+				}
+				if out.AssistantAction.Type != assistantActionShowHint || !out.AssistantAction.RequiresAI {
+					t.Fatalf("AssistantAction = %+v, want show_hint requiring AI", out.AssistantAction)
+				}
+				if out.NextSessionStatus != session.Status || out.OutboxRecord != nil || out.NextTurn != nil {
+					t.Fatalf("hint should preserve lifecycle: %+v", out)
+				}
+			})
+		}
 	}
 }
 

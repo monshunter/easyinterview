@@ -3,8 +3,7 @@
  *
  * Item 3.5 — SessionMap turn history. After a successful answer →
  * ask_follow_up, the active turn shifts and the previous turn is marked
- * follow_up_requested via data-status. Skip events mark turn status as
- * "skipped".
+ * follow_up_requested via data-status.
  */
 
 import { describe, expect, it } from "vitest";
@@ -39,25 +38,6 @@ describe("SessionMap (item 3.5)", () => {
     await waitFor(() => {
       const item = screen.getByTestId("practice-sessionmap-item-0");
       expect(item.getAttribute("data-status")).not.toBe("active");
-    });
-  });
-
-  it("skipping marks the active turn as skipped", async () => {
-    const { client } = buildPracticeClient({
-      scenarioByOp: { appendSessionEvent: "turn-skipped" },
-    });
-    mountPracticeScreen({ client });
-
-    const user = userEvent.setup();
-    await waitFor(() =>
-      expect(
-        (screen.getByTestId("practice-input-skip") as HTMLButtonElement).disabled,
-      ).toBe(false),
-    );
-    await user.click(screen.getByTestId("practice-input-skip"));
-    await waitFor(() => {
-      const item = screen.getByTestId("practice-sessionmap-item-0");
-      expect(item.getAttribute("data-status")).toBe("skipped");
     });
   });
 

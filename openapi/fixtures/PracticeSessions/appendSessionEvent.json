@@ -115,7 +115,7 @@
         }
       }
     },
-    "hint-strict-conflict": {
+    "hint-conflict": {
       "request": {
         "headers": {},
         "body": {
@@ -135,12 +135,11 @@
         "body": {
           "error": {
             "code": "PRACTICE_SESSION_CONFLICT",
-            "message": "Hints are disabled for strict practice mode.",
+            "message": "Practice session state changed before the hint could be applied.",
             "requestId": "req_2026-04-28T13-47-12-abcdef",
             "retryable": false,
             "details": {
-              "policy": "hint_disabled_in_mode",
-              "mode": "strict"
+              "policy": "hint_conflict"
             }
           }
         }
@@ -253,63 +252,6 @@
               "language": "en",
               "featureFlag": "none",
               "dataSourceVersion": "static"
-            }
-          }
-        }
-      }
-    },
-    "turn-skipped": {
-      "request": {
-        "headers": {},
-        "body": {
-          "clientEventId": "01918fa0-0000-7000-8000-00000000e003",
-          "kind": "turn_skipped",
-          "occurredAt": "2026-04-28T13:48:12Z",
-          "payload": {
-            "turnId": "01918fa0-0000-7000-8000-000000006000",
-            "reason": "candidate_requested_next"
-          }
-        }
-      },
-      "response": {
-        "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-48-12-abcdef"
-        },
-        "body": {
-          "acknowledged": true,
-          "session": {
-            "id": "01918fa0-0000-7000-8000-000000005000",
-            "planId": "01918fa0-0000-7000-8000-000000004000",
-            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
-            "status": "running",
-            "language": "zh-CN",
-            "hintsEnabled": true,
-            "turnCount": 1,
-            "currentTurn": {
-              "id": "01918fa0-0000-7000-8000-000000006000",
-              "turnIndex": 1,
-              "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
-              "questionIntent": "behavioral.leadership.design_system",
-              "status": "skipped",
-              "askedAt": "2026-04-28T13:40:00Z"
-            },
-            "createdAt": "2026-04-28T12:00:00Z",
-            "updatedAt": "2026-04-28T13:48:12Z"
-          },
-          "assistantAction": {
-            "type": "ask_question",
-            "turnId": "01918fa0-0000-7000-8000-000000006001",
-            "questionText": "请描述一次你在范围变化后重新排优先级的经历。",
-            "hint": null,
-            "sessionStatus": "running",
-            "provenance": {
-              "promptVersion": "practice.session.first_question.v1",
-              "rubricVersion": "not_applicable",
-              "modelId": "model-profile:contract.default",
-              "language": "zh-CN",
-              "featureFlag": "next_question_v1",
-              "dataSourceVersion": "practice_session.v9"
             }
           }
         }
@@ -433,7 +375,7 @@
         "headers": {},
         "body": {
           "clientEventId": "01918fa0-0000-7000-8000-00000000e000",
-          "kind": "turn_skipped",
+          "kind": "hint_requested",
           "occurredAt": "2026-04-28T13:50:12Z",
           "payload": {
             "turnId": "01918fa0-0000-7000-8000-000000006000"

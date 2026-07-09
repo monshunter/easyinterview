@@ -10,7 +10,7 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
     def test_product_scope_v21_inventory_includes_delete_me(self) -> None:
         # Current v1.0.0 pre-launch freeze after D-17 JD match removal and
         # D-20 flat resume contract.
-        self.assertEqual(35, len(inventory.EXPECTED_OPERATIONS))
+        self.assertEqual(37, len(inventory.EXPECTED_OPERATIONS))
         self.assertIn(("Auth", "delete", "/me", "deleteMe"), inventory.EXPECTED_OPERATIONS)
         self.assertIn(("delete", "/me"), inventory.IK_REQUIRED)
 
@@ -174,9 +174,31 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         schemas = data["components"]["schemas"]
 
         self.assertEqual(
-            ["asked", "answered", "follow_up_requested", "assessed", "skipped"],
+            ["asked", "answered", "follow_up_requested", "assessed"],
             schemas["PracticeTurn"]["properties"]["status"]["enum"],
         )
+
+    def test_practice_turn_status_owner_spec_and_baseline_are_in_sync(self) -> None:
+        expected_statuses = ["asked", "answered", "follow_up_requested", "assessed"]
+        baseline = yaml.safe_load(Path("openapi/baseline/openapi-v1.0.0.yaml").read_text(encoding="utf-8"))
+        baseline_schemas = baseline["components"]["schemas"]
+        owner_spec = Path("docs/spec/openapi-v1-contract/spec.md").read_text(encoding="utf-8")
+
+        self.assertEqual(
+            expected_statuses,
+            baseline_schemas["PracticeTurn"]["properties"]["status"]["enum"],
+        )
+        self.assertNotIn(
+            "turn_skipped",
+            baseline_schemas["PracticeSessionEventRequest"]["properties"]["kind"]["enum"],
+        )
+        self.assertIn(
+            "`PracticeTurn.status` wire enum 原地 rebase 为 4 值："
+            "`asked` / `answered` / `follow_up_requested` / `assessed`",
+            owner_spec,
+        )
+        self.assertNotIn("`skipped`", owner_spec)
+        self.assertNotIn("turn_skipped", owner_spec)
 
     def test_practice_voice_event_kinds_extend_append_session_event_schema(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
@@ -189,15 +211,16 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
             "assistant_context_committed",
         ):
             self.assertIn(kind, kinds)
+        self.assertNotIn("turn_skipped", kinds)
 
     def test_practice_turn_status_generated_artifacts_are_in_sync(self) -> None:
         generated = yaml.safe_load(Path("backend/internal/api/generated/openapi.yaml").read_text(encoding="utf-8"))
         generated_status = generated["components"]["schemas"]["PracticeTurn"]["properties"]["status"]["enum"]
         ts_types = Path("frontend/src/api/generated/types.ts").read_text(encoding="utf-8")
 
-        self.assertEqual(["asked", "answered", "follow_up_requested", "assessed", "skipped"], generated_status)
+        self.assertEqual(["asked", "answered", "follow_up_requested", "assessed"], generated_status)
         self.assertIn(
-            'status: "asked" | "answered" | "follow_up_requested" | "assessed" | "skipped";',
+            'status: "asked" | "answered" | "follow_up_requested" | "assessed";',
             ts_types,
         )
 

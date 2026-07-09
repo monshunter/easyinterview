@@ -40,7 +40,7 @@ describe("practice privacy redlines (item 4.10 / Phase 5)", () => {
     await user.click(screen.getByTestId("practice-input-send"));
     await waitFor(() => expect(textarea.value).toBe(""));
 
-    await user.click(screen.getByTestId("practice-rightpanel-cta-finish"));
+    await user.click(screen.getByTestId("practice-finish-cta"));
     await waitFor(() => expect(nav).toHaveBeenCalled());
 
     const params = nav.mock.calls.at(-1)?.[0]?.params ?? {};

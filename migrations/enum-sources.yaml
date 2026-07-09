@@ -25,8 +25,8 @@ checks:
   - {table: practice_plans, column: status, source: db-local, values: [draft, ready, archived], checksum: "sha256:272f8f3f29256b61"}
   - {table: idempotency_records, column: status, source: db-local, values: [pending, succeeded, failed_retryable, failed_terminal], checksum: "sha256:c37e9049b27ec756"}
   - {table: practice_sessions, column: status, source: shared-conventions-codified, values: [queued, running, waiting_user_input, completing, completed, failed, cancelled], checksum: "sha256:ded4ea5f66cc1e82"}
-  - {table: practice_session_events, column: event_type, source: db-local, values: [session_started, question_started, answer_submitted, hint_requested, follow_up_generated, turn_skipped, turn_completed, session_paused, session_resumed, session_completed, tts_chunk_started, tts_chunk_played, barge_in_detected, assistant_context_committed], checksum: "sha256:8c00b262866968d5"}
-  - {table: practice_turns, column: status, source: db-local, values: [asked, answered, follow_up_requested, assessed, skipped], checksum: "sha256:0c9f3ca09f13faee"}
+  - {table: practice_session_events, column: event_type, source: db-local, values: [session_started, question_started, answer_submitted, hint_requested, follow_up_generated, turn_completed, session_paused, session_resumed, session_completed, tts_chunk_started, tts_chunk_played, barge_in_detected, assistant_context_committed], checksum: "sha256:7cf50a89053631ce"}
+  - {table: practice_turns, column: status, source: db-local, values: [asked, answered, follow_up_requested, assessed], checksum: "sha256:78415dbfb9b4776d"}
   - {table: feedback_reports, column: status, source: shared-conventions-codified, values: [queued, generating, ready, failed], checksum: "sha256:1f7af1bf73e4cb81"}
   - {table: feedback_reports, column: preparedness_level, source: shared-conventions-codified, values: [not_ready, needs_practice, basically_ready, well_prepared], checksum: "sha256:20e386cac70ba83e"}
   - {table: question_assessments, column: overall_status, source: shared-conventions-codified, values: [strong, meets_bar, needs_work], checksum: "sha256:8be58f5899e49899"}

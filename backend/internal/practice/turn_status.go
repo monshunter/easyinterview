@@ -12,7 +12,6 @@ const (
 	TurnStatusAnswered          TurnStatus = "answered"
 	TurnStatusFollowUpRequested TurnStatus = "follow_up_requested"
 	TurnStatusAssessed          TurnStatus = "assessed"
-	TurnStatusSkipped           TurnStatus = "skipped"
 )
 
 func ParseTurnStatus(raw string) (TurnStatus, error) {
@@ -39,8 +38,7 @@ func (s TurnStatus) valid() bool {
 	case TurnStatusAsked,
 		TurnStatusAnswered,
 		TurnStatusFollowUpRequested,
-		TurnStatusAssessed,
-		TurnStatusSkipped:
+		TurnStatusAssessed:
 		return true
 	default:
 		return false

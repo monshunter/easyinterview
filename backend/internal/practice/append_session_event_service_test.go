@@ -201,10 +201,9 @@ func TestAppendSessionEventReplayReturnsStoredErrorBeforeResult(t *testing.T) {
 	replay := AppendSessionEventResult{Acknowledged: true}
 	replayErr := &ServiceError{
 		Code:    sharederrors.CodePracticeSessionConflict,
-		Message: "Hints are disabled for strict practice mode.",
+		Message: "client event payload mismatch",
 		Details: map[string]any{
-			"policy": "hint_disabled_in_mode",
-			"mode":   "strict",
+			"policy": "client_event_payload_mismatch",
 		},
 	}
 	store := &recordingPlanStore{
@@ -267,7 +266,7 @@ func TestAppendSessionEventFollowUpAIFailureFallsBackToAskQuestion(t *testing.T)
 	}
 }
 
-func TestAppendSessionEventHintStrictDoesNotLeavePendingReservation(t *testing.T) {
+func TestAppendSessionEventHintLegacyStrictRunsAIAndAppends(t *testing.T) {
 	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
 	store := &recordingPlanStore{
 		eventReservation: SessionEventReservation{
@@ -281,13 +280,16 @@ func TestAppendSessionEventHintStrictDoesNotLeavePendingReservation(t *testing.T
 			LatestTurn: sessionEventTestTurn(1),
 		},
 	}
+	ai := &fakeAIClient{content: `{"hint":"Use one measurable tradeoff."}`, store: store}
 	service := NewService(ServiceOptions{
-		Store: store,
-		Now:   func() time.Time { return now },
-		NewID: sequenceIDs("event-1", "error-event-unused"),
+		Store:    store,
+		Registry: &fakePromptResolver{resolution: hintTestResolution()},
+		AI:       ai,
+		Now:      func() time.Time { return now },
+		NewID:    sequenceIDs("event-1", "outbox-1"),
 	})
 
-	_, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
+	result, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
 		UserID:        "user-1",
 		SessionID:     "session-1",
 		ClientEventID: "client-event-1",
@@ -295,18 +297,14 @@ func TestAppendSessionEventHintStrictDoesNotLeavePendingReservation(t *testing.T
 		OccurredAt:    now,
 		Payload:       map[string]any{"turnId": "turn-1"},
 	})
-	var svcErr *ServiceError
-	if !errors.As(err, &svcErr) || svcErr.Code != sharederrors.CodePracticeSessionConflict {
-		t.Fatalf("expected strict hint conflict, got %v", err)
+	if err != nil {
+		t.Fatalf("AppendSessionEvent returned error: %v", err)
 	}
-	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "finalize-event-error"}) {
-		t.Fatalf("strict hint should finalize reserved error payload, steps=%v", store.steps)
+	if result.AssistantAction.Type != assistantActionShowHint || result.AssistantAction.Hint != "Use one measurable tradeoff." {
+		t.Fatalf("unexpected hint result: %+v", result.AssistantAction)
 	}
-	if store.finalizeEventError.EventID != "event-1" || store.finalizeEventError.Error.Code != sharederrors.CodePracticeSessionConflict {
-		t.Fatalf("unexpected finalize input: %+v", store.finalizeEventError)
-	}
-	if store.finalizeEventError.Error.Details["policy"] != "hint_disabled_in_mode" {
-		t.Fatalf("strict conflict policy missing: %+v", store.finalizeEventError.Error.Details)
+	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "ai", "append-event"}) {
+		t.Fatalf("legacy strict hint should append the event, steps=%v", store.steps)
 	}
 }
 
@@ -375,7 +373,7 @@ func TestServiceAppliesHintAIForAssisted(t *testing.T) {
 	}
 }
 
-func TestServiceSkipsHintAIForStrict(t *testing.T) {
+func TestServiceAppliesHintAIForLegacyStrict(t *testing.T) {
 	now := time.Date(2026, 4, 28, 13, 47, 32, 0, time.UTC)
 	store := &recordingPlanStore{
 		eventReservation: SessionEventReservation{
@@ -389,16 +387,16 @@ func TestServiceSkipsHintAIForStrict(t *testing.T) {
 			LatestTurn: sessionEventTestTurn(1),
 		},
 	}
-	ai := &fakeAIClient{content: `{"hint":"must not be called"}`, store: store}
+	ai := &fakeAIClient{content: `{"hint":"Use a measurable tradeoff."}`, store: store}
 	service := NewService(ServiceOptions{
 		Store:    store,
-		Registry: &fakePromptResolver{resolution: registry.PromptResolution{ModelProfileName: "practice.turn_observe.default"}},
+		Registry: &fakePromptResolver{resolution: hintTestResolution()},
 		AI:       ai,
 		Now:      func() time.Time { return now },
 		NewID:    sequenceIDs("event-1", "outbox-1"),
 	})
 
-	_, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
+	result, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
 		UserID:        "01918fa0-0010-7a00-8a00-000000000001",
 		SessionID:     "session-1",
 		ClientEventID: "client-event-1",
@@ -406,15 +404,14 @@ func TestServiceSkipsHintAIForStrict(t *testing.T) {
 		OccurredAt:    now,
 		Payload:       map[string]any{"turnId": "turn-1"},
 	})
-	var svcErr *ServiceError
-	if !errors.As(err, &svcErr) || svcErr.Code != sharederrors.CodePracticeSessionConflict {
-		t.Fatalf("expected strict hint conflict, got %v", err)
+	if err != nil {
+		t.Fatalf("AppendSessionEvent returned error: %v", err)
 	}
-	if ai.profileName != "" {
-		t.Fatalf("strict hint path must not invoke AI, profile=%q", ai.profileName)
+	if result.AssistantAction.Type != assistantActionShowHint || result.AssistantAction.Hint != "Use a measurable tradeoff." {
+		t.Fatalf("unexpected strict hint action: %+v", result.AssistantAction)
 	}
-	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "finalize-event-error"}) {
-		t.Fatalf("strict hint should reserve and finalize only, steps=%v", store.steps)
+	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "ai", "append-event"}) {
+		t.Fatalf("legacy strict hint should call AI and append, steps=%v", store.steps)
 	}
 }
 

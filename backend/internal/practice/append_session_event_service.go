@@ -222,7 +222,7 @@ func (s *Service) AppendSessionEvent(ctx context.Context, in AppendSessionEventR
 
 func requiresCurrentTurn(kind string) bool {
 	switch strings.TrimSpace(kind) {
-	case sessionEventKindAnswerSubmitted, sessionEventKindHintRequested, sessionEventKindTurnSkipped:
+	case sessionEventKindAnswerSubmitted, sessionEventKindHintRequested:
 		return true
 	default:
 		return false
