@@ -65,6 +65,9 @@ func (s *pipelineFakeStore) LookupUpdateDedupe(context.Context, string, string) 
 func (s *pipelineFakeStore) UpdateTargetJobLifecycle(context.Context, string, string, targetjob.UpdateLifecycleFields, time.Time) (targetjob.TargetJobRecord, error) {
 	return targetjob.TargetJobRecord{}, nil
 }
+func (s *pipelineFakeStore) ArchiveTargetJob(context.Context, targetjob.ArchiveTargetJobInput) (targetjob.TargetJobRecord, error) {
+	return targetjob.TargetJobRecord{}, nil
+}
 func (s *pipelineFakeStore) ApplyParseResult(_ context.Context, in targetjob.ApplyParseResultInput) error {
 	cp := in
 	s.applyResultIn = &cp

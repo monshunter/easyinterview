@@ -423,30 +423,32 @@ func assertNoEvidenceLeak(t *testing.T, payloads [][]byte, forbidden ...string) 
 }
 
 type scenarioTargetJobStore struct {
-	seq          int
-	targets      map[string]targetjob.TargetJobRecord
-	requirements map[string][]targetjob.RequirementRecord
-	sources      map[string][]targetjob.SourceRecord
-	importDedupe map[string]string
-	updateDedupe map[string]string
-	jobByTarget  map[string]string
-	jobStatus    map[string]sharedtypes.JobStatus
-	jobs         []targetjob.ClaimedJob
-	finalized    map[string]targetjob.JobOutcome
-	outbox       [][]byte
-	failed       [][]byte
+	seq           int
+	targets       map[string]targetjob.TargetJobRecord
+	requirements  map[string][]targetjob.RequirementRecord
+	sources       map[string][]targetjob.SourceRecord
+	importDedupe  map[string]string
+	updateDedupe  map[string]string
+	archiveDedupe map[string]string
+	jobByTarget   map[string]string
+	jobStatus     map[string]sharedtypes.JobStatus
+	jobs          []targetjob.ClaimedJob
+	finalized     map[string]targetjob.JobOutcome
+	outbox        [][]byte
+	failed        [][]byte
 }
 
 func newScenarioTargetJobStore() *scenarioTargetJobStore {
 	return &scenarioTargetJobStore{
-		targets:      map[string]targetjob.TargetJobRecord{},
-		requirements: map[string][]targetjob.RequirementRecord{},
-		sources:      map[string][]targetjob.SourceRecord{},
-		importDedupe: map[string]string{},
-		updateDedupe: map[string]string{},
-		jobByTarget:  map[string]string{},
-		jobStatus:    map[string]sharedtypes.JobStatus{},
-		finalized:    map[string]targetjob.JobOutcome{},
+		targets:       map[string]targetjob.TargetJobRecord{},
+		requirements:  map[string][]targetjob.RequirementRecord{},
+		sources:       map[string][]targetjob.SourceRecord{},
+		importDedupe:  map[string]string{},
+		updateDedupe:  map[string]string{},
+		archiveDedupe: map[string]string{},
+		jobByTarget:   map[string]string{},
+		jobStatus:     map[string]sharedtypes.JobStatus{},
+		finalized:     map[string]targetjob.JobOutcome{},
 	}
 }
 
@@ -540,7 +542,7 @@ func (s *scenarioTargetJobStore) InsertTargetJobSource(context.Context, targetjo
 
 func (s *scenarioTargetJobStore) GetTargetJobByUser(_ context.Context, userID string, targetJobID string) (targetjob.TargetJobRecord, []targetjob.RequirementRecord, []targetjob.SourceRecord, error) {
 	rec, ok := s.targets[targetJobID]
-	if !ok || rec.UserID != userID || rec.AnalysisStatus == sharedtypes.TargetJobParseStatusFailed {
+	if !ok || rec.UserID != userID || rec.DeletedAt != nil || rec.AnalysisStatus == sharedtypes.TargetJobParseStatusFailed {
 		return targetjob.TargetJobRecord{}, nil, nil, targetjob.ErrTargetJobNotFound
 	}
 	return rec, append([]targetjob.RequirementRecord{}, s.requirements[targetJobID]...), append([]targetjob.SourceRecord{}, s.sources[targetJobID]...), nil
@@ -550,6 +552,9 @@ func (s *scenarioTargetJobStore) ListTargetJobsForUser(_ context.Context, userID
 	items := make([]targetjob.TargetJobRecord, 0, len(s.targets))
 	for _, rec := range s.targets {
 		if rec.UserID != userID {
+			continue
+		}
+		if rec.DeletedAt != nil {
 			continue
 		}
 		if rec.AnalysisStatus == sharedtypes.TargetJobParseStatusFailed {
@@ -564,6 +569,30 @@ func (s *scenarioTargetJobStore) ListTargetJobsForUser(_ context.Context, userID
 		items = append(items, rec)
 	}
 	return targetjob.ListResult{Items: items}, nil
+}
+
+func (s *scenarioTargetJobStore) ArchiveTargetJob(_ context.Context, in targetjob.ArchiveTargetJobInput) (targetjob.TargetJobRecord, error) {
+	if targetID, ok := s.archiveDedupe[in.DedupeKey]; ok {
+		rec, ok := s.targets[targetID]
+		if !ok || rec.UserID != in.UserID {
+			return targetjob.TargetJobRecord{}, targetjob.ErrTargetJobNotFound
+		}
+		return rec, nil
+	}
+	rec, ok := s.targets[in.TargetJobID]
+	if !ok || rec.UserID != in.UserID {
+		return targetjob.TargetJobRecord{}, targetjob.ErrTargetJobNotFound
+	}
+	if rec.DeletedAt != nil {
+		return targetjob.TargetJobRecord{}, targetjob.ErrTargetJobAlreadyArchived
+	}
+	deletedAt := in.Now
+	rec.Status = sharedtypes.TargetJobStatusArchived
+	rec.DeletedAt = &deletedAt
+	rec.UpdatedAt = in.Now
+	s.targets[in.TargetJobID] = rec
+	s.archiveDedupe[in.DedupeKey] = in.TargetJobID
+	return rec, nil
 }
 
 func (s *scenarioTargetJobStore) LookupUpdateDedupe(_ context.Context, userID string, dedupeKey string) (targetjob.TargetJobRecord, []targetjob.RequirementRecord, bool, error) {

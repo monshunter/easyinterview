@@ -9,6 +9,7 @@ import (
 	"time"
 
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
@@ -37,6 +38,9 @@ type fakeStore struct {
 	updateDedupeRecord   targetjob.TargetJobRecord
 	updateDedupeReqs     []targetjob.RequirementRecord
 	updateDedupeErr      error
+	archiveResult        targetjob.TargetJobRecord
+	archiveErr           error
+	capturedArchiveInput targetjob.ArchiveTargetJobInput
 	fileLookup           targetjob.FileAttachmentRecord
 	fileLookupErr        error
 }
@@ -96,6 +100,14 @@ func (f *fakeStore) LookupUpdateDedupe(_ context.Context, _ string, _ string) (t
 		return targetjob.TargetJobRecord{}, nil, false, f.updateDedupeErr
 	}
 	return f.updateDedupeRecord, f.updateDedupeReqs, f.updateDedupeHit, nil
+}
+
+func (f *fakeStore) ArchiveTargetJob(_ context.Context, in targetjob.ArchiveTargetJobInput) (targetjob.TargetJobRecord, error) {
+	f.capturedArchiveInput = in
+	if f.archiveErr != nil {
+		return targetjob.TargetJobRecord{}, f.archiveErr
+	}
+	return f.archiveResult, nil
 }
 
 func (f *fakeStore) ApplyParseResult(context.Context, targetjob.ApplyParseResultInput) error {
@@ -694,6 +706,81 @@ func TestService_UpdateTargetJob_AllowsArchivedFromAnyState(t *testing.T) {
 func TestService_UpdateTargetJob_RequiresIdempotencyKey(t *testing.T) {
 	svc, _ := newServiceWithFake()
 	_, err := svc.UpdateTargetJob(context.Background(), targetjob.UpdateRequest{
+		UserID: "u1", TargetJobID: "t1",
+	})
+	if !errors.Is(err, targetjob.ErrIdempotencyKeyRequired) {
+		t.Fatalf("expected ErrIdempotencyKeyRequired, got %v", err)
+	}
+}
+
+func TestService_ArchiveTargetJob_PersistsWithUserScopedDedupe(t *testing.T) {
+	svc, store := newServiceWithFake("018f2a40-0000-7000-9000-0000000000d9")
+	now := time.Date(2026, 7, 9, 13, 45, 0, 0, time.UTC)
+	store.archiveResult = targetjob.TargetJobRecord{
+		ID:             "018f2a40-0000-7000-9000-0000000000a1",
+		UserID:         "user-1",
+		Status:         sharedtypes.TargetJobStatusArchived,
+		AnalysisStatus: sharedtypes.TargetJobParseStatusReady,
+		Title:          "Backend Engineer",
+		CompanyName:    "Acme",
+		SourceType:     targetjob.SourceTypeManualText,
+		TargetLanguage: "en",
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+
+	out, err := svc.ArchiveTargetJob(context.Background(), targetjob.ArchiveRequest{
+		UserID:         "user-1",
+		TargetJobID:    "018f2a40-0000-7000-9000-0000000000a1",
+		IdempotencyKey: "same-client-key",
+	})
+	if err != nil {
+		t.Fatalf("ArchiveTargetJob: %v", err)
+	}
+	if out.Status != sharedtypes.TargetJobStatusArchived {
+		t.Fatalf("status = %s, want archived", out.Status)
+	}
+	if store.capturedArchiveInput.UserID != "user-1" || store.capturedArchiveInput.TargetJobID != "018f2a40-0000-7000-9000-0000000000a1" {
+		t.Fatalf("archive input not scoped: %+v", store.capturedArchiveInput)
+	}
+	if store.capturedArchiveInput.DedupeKey == "" || strings.Contains(store.capturedArchiveInput.DedupeKey, "same-client-key") {
+		t.Fatalf("dedupe key must be hashed/redacted, got %q", store.capturedArchiveInput.DedupeKey)
+	}
+	if store.capturedArchiveInput.DedupeMarkerID != "018f2a40-0000-7000-9000-0000000000d9" {
+		t.Fatalf("dedupe marker = %q", store.capturedArchiveInput.DedupeMarkerID)
+	}
+}
+
+func TestService_ArchiveTargetJob_MapsNotFoundAndAlreadyArchived(t *testing.T) {
+	svc, store := newServiceWithFake(
+		"018f2a40-0000-7000-9000-0000000000d8",
+		"018f2a40-0000-7000-9000-0000000000d7",
+	)
+	store.archiveErr = targetjob.ErrTargetJobNotFound
+	_, err := svc.ArchiveTargetJob(context.Background(), targetjob.ArchiveRequest{
+		UserID:         "user-1",
+		TargetJobID:    "target-1",
+		IdempotencyKey: "k",
+	})
+	var apiErr *targetjob.ServiceImportError
+	if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeTargetJobNotFound {
+		t.Fatalf("expected TARGET_JOB_NOT_FOUND, got %v", err)
+	}
+
+	store.archiveErr = targetjob.ErrTargetJobAlreadyArchived
+	_, err = svc.ArchiveTargetJob(context.Background(), targetjob.ArchiveRequest{
+		UserID:         "user-1",
+		TargetJobID:    "target-1",
+		IdempotencyKey: "k2",
+	})
+	if !errors.Is(err, targetjob.ErrTargetJobAlreadyArchived) {
+		t.Fatalf("expected ErrTargetJobAlreadyArchived, got %v", err)
+	}
+}
+
+func TestService_ArchiveTargetJob_RequiresIdempotencyKey(t *testing.T) {
+	svc, _ := newServiceWithFake()
+	_, err := svc.ArchiveTargetJob(context.Background(), targetjob.ArchiveRequest{
 		UserID: "u1", TargetJobID: "t1",
 	})
 	if !errors.Is(err, targetjob.ErrIdempotencyKeyRequired) {

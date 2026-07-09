@@ -38,6 +38,15 @@ func newMockStore(t *testing.T) (*targetjob.SQLStore, sqlmock.Sqlmock, func()) {
 	return targetjob.NewSQLStore(db), mock, func() { db.Close() }
 }
 
+func targetJobStoreRowCols() []string {
+	return []string{
+		"id", "user_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
+		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
+		"resume_id", "created_at", "updated_at",
+	}
+}
+
 func TestSQLStore_InsertTargetJob_WritesAllColumnsAndDefaultsJSON(t *testing.T) {
 	store, mock, cleanup := newMockStore(t)
 	defer cleanup()
@@ -624,6 +633,174 @@ func TestSQLStore_UpdateTargetJobLifecycle_NotFoundForCrossUser(t *testing.T) {
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_ArchiveTargetJob_PersistsDeletedAtAndDedupeMarker(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 7, 9, 13, 45, 0, 0, time.UTC)
+	targetID := "018f2a40-0000-7000-9000-0000000000a1"
+	userID := "018f2a40-0000-7000-9000-0000000000b1"
+	dedupeKey := "targetjob:archive:user1:key1"
+	markerID := "018f2a40-0000-7000-9000-0000000000d1"
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`pg_advisory_xact_lock`).
+		WithArgs(dedupeKey).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
+		WithArgs("target_import", dedupeKey).
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`select deleted_at\s+from target_jobs\s+where id = \$1 and user_id = \$2\s+for update`).
+		WithArgs(targetID, userID).
+		WillReturnRows(sqlmock.NewRows([]string{"deleted_at"}).AddRow(nil))
+	mock.ExpectQuery(`update target_jobs\s+set status = \$1, deleted_at = \$2, updated_at = \$2\s+where id = \$3 and user_id = \$4 and deleted_at is null\s+returning`).
+		WithArgs("archived", now, targetID, userID).
+		WillReturnRows(sqlmock.NewRows(targetJobStoreRowCols()).AddRow(
+			targetID,
+			userID,
+			"archived", "ready",
+			"Backend Engineer", "Acme", "Remote", nil, nil,
+			"en", "manual_text", nil, nil,
+			"raw jd", []byte(`{}`), []byte(`{}`), nil, nil, int32(0), nil,
+			now.Add(-time.Hour), now,
+		))
+	mock.ExpectExec(`insert into async_jobs`).
+		WithArgs(
+			markerID,
+			"target_import",
+			"target_job_archive",
+			targetID,
+			dedupeKey,
+			"succeeded",
+			sqlmock.AnyArg(),
+			sqlmock.AnyArg(),
+			now,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	rec, err := store.ArchiveTargetJob(context.Background(), targetjob.ArchiveTargetJobInput{
+		UserID:         userID,
+		TargetJobID:    targetID,
+		DedupeKey:      dedupeKey,
+		DedupeMarkerID: markerID,
+		Now:            now,
+	})
+	if err != nil {
+		t.Fatalf("ArchiveTargetJob: %v", err)
+	}
+	if rec.Status != sharedtypes.TargetJobStatusArchived {
+		t.Fatalf("status = %s, want archived", rec.Status)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_ArchiveTargetJob_DedupeHitReturnsArchivedRecord(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 7, 9, 13, 50, 0, 0, time.UTC)
+	targetID := "018f2a40-0000-7000-9000-0000000000a1"
+	userID := "018f2a40-0000-7000-9000-0000000000b1"
+	dedupeKey := "targetjob:archive:user1:key1"
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`pg_advisory_xact_lock`).
+		WithArgs(dedupeKey).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
+		WithArgs("target_import", dedupeKey).
+		WillReturnRows(sqlmock.NewRows([]string{"resource_id"}).AddRow(targetID))
+	mock.ExpectQuery(`from target_jobs\s+where id = \$1 and user_id = \$2`).
+		WithArgs(targetID, userID).
+		WillReturnRows(sqlmock.NewRows(targetJobStoreRowCols()).AddRow(
+			targetID,
+			userID,
+			"archived", "ready",
+			"Backend Engineer", "Acme", "Remote", nil, nil,
+			"en", "manual_text", nil, nil,
+			"raw jd", []byte(`{}`), []byte(`{}`), nil, nil, int32(0), nil,
+			now.Add(-time.Hour), now,
+		))
+	mock.ExpectCommit()
+
+	rec, err := store.ArchiveTargetJob(context.Background(), targetjob.ArchiveTargetJobInput{
+		UserID:         userID,
+		TargetJobID:    targetID,
+		DedupeKey:      dedupeKey,
+		DedupeMarkerID: "018f2a40-0000-7000-9000-0000000000d1",
+		Now:            now,
+	})
+	if err != nil {
+		t.Fatalf("ArchiveTargetJob dedupe hit: %v", err)
+	}
+	if rec.Status != sharedtypes.TargetJobStatusArchived {
+		t.Fatalf("status = %s, want archived", rec.Status)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_ArchiveTargetJob_AlreadyArchivedAndNotFound(t *testing.T) {
+	tests := []struct {
+		name       string
+		selectRows *sqlmock.Rows
+		selectErr  error
+		want       error
+	}{
+		{
+			name:       "already archived",
+			selectRows: sqlmock.NewRows([]string{"deleted_at"}).AddRow(time.Date(2026, 7, 9, 13, 40, 0, 0, time.UTC)),
+			want:       targetjob.ErrTargetJobAlreadyArchived,
+		},
+		{
+			name:      "not found",
+			selectErr: sql.ErrNoRows,
+			want:      targetjob.ErrTargetJobNotFound,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store, mock, cleanup := newMockStore(t)
+			defer cleanup()
+
+			dedupeKey := "targetjob:archive:user1:key2"
+			mock.ExpectBegin()
+			mock.ExpectExec(`pg_advisory_xact_lock`).
+				WithArgs(dedupeKey).
+				WillReturnResult(sqlmock.NewResult(0, 0))
+			mock.ExpectQuery(`from async_jobs\s+where job_type = \$1 and dedupe_key = \$2`).
+				WithArgs("target_import", dedupeKey).
+				WillReturnError(sql.ErrNoRows)
+			selectQuery := mock.ExpectQuery(`select deleted_at\s+from target_jobs\s+where id = \$1 and user_id = \$2\s+for update`).
+				WithArgs("target-1", "user-1")
+			if tt.selectErr != nil {
+				selectQuery.WillReturnError(tt.selectErr)
+			} else {
+				selectQuery.WillReturnRows(tt.selectRows)
+			}
+			mock.ExpectRollback()
+
+			_, err := store.ArchiveTargetJob(context.Background(), targetjob.ArchiveTargetJobInput{
+				UserID:         "user-1",
+				TargetJobID:    "target-1",
+				DedupeKey:      dedupeKey,
+				DedupeMarkerID: "marker-1",
+				Now:            time.Date(2026, 7, 9, 13, 55, 0, 0, time.UTC),
+			})
+			if !errors.Is(err, tt.want) {
+				t.Fatalf("err = %v, want %v", err, tt.want)
+			}
+			if err := mock.ExpectationsWereMet(); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
 
@@ -1294,7 +1471,7 @@ func TestRetryPolicy_PermanentFailAtMax(t *testing.T) {
 // "GetByID" / "FindByID" methods that don't take user_id, which would break
 // spec D-9 cross-user isolation.
 func TestStoreSurfaceRequiresUserScopeOnReadsAndWrites(t *testing.T) {
-	want := []string{"GetTargetJobByUser", "ListTargetJobsForUser", "UpdateTargetJobLifecycle"}
+	want := []string{"GetTargetJobByUser", "ListTargetJobsForUser", "UpdateTargetJobLifecycle", "ArchiveTargetJob"}
 	storeType := reflectStoreType()
 	for _, name := range want {
 		if !storeHasMethod(storeType, name) {

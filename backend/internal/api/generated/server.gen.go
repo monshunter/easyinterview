@@ -12,7 +12,7 @@ import (
 // C-domain handler packages must implement this interface; the runtime
 // router (registered by RegisterHandlers) dispatches by `(method, path)` to
 // the corresponding ServerInterface method. operationId order matches the
-// 36-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
+// 37-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.
 type ServerInterface interface {
 
 	// startAuthEmailChallenge — post /auth/email/start: Issue an email-code challenge
@@ -117,6 +117,9 @@ type ServerInterface interface {
 	// updateTargetJob — patch /targets/{targetJobId}: Update target-job lifecycle status or metadata
 	UpdateTargetJob(w http.ResponseWriter, r *http.Request, targetJobId string)
 
+	// archiveTargetJob — post /targets/{targetJobId}/archive: Archive a target job
+	ArchiveTargetJob(w http.ResponseWriter, r *http.Request, targetJobId string)
+
 	// listTargetJobReports — get /targets/{targetJobId}/reports: List feedback reports for a target job (cursor-paginated)
 	ListTargetJobReports(w http.ResponseWriter, r *http.Request, targetJobId string)
 
@@ -171,6 +174,7 @@ var AllRoutes = []Route{
 	{OperationID: "importTargetJob", Method: "post", Path: "/targets/import", PathParams: nil},
 	{OperationID: "getTargetJob", Method: "get", Path: "/targets/{targetJobId}", PathParams: []string{"targetJobId"}},
 	{OperationID: "updateTargetJob", Method: "patch", Path: "/targets/{targetJobId}", PathParams: []string{"targetJobId"}},
+	{OperationID: "archiveTargetJob", Method: "post", Path: "/targets/{targetJobId}/archive", PathParams: []string{"targetJobId"}},
 	{OperationID: "listTargetJobReports", Method: "get", Path: "/targets/{targetJobId}/reports", PathParams: []string{"targetJobId"}},
 	{OperationID: "createUploadPresign", Method: "post", Path: "/uploads/presign", PathParams: nil},
 }

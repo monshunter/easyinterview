@@ -1,7 +1,7 @@
 # Backend TargetJob BDD Checklist
 
-> **版本**: 1.6
-> **状态**: completed
+> **版本**: 1.7
+> **状态**: active
 > **更新日期**: 2026-07-09
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
@@ -46,3 +46,11 @@
 - [x] 断言 outbox 不包含 `target.import.requested` / `target.parsed`，event / metric label / log / audit 不含 `raw_jd_text` / prompt body / response body
 - [x] 执行并通过场景验证，记录 `.test-output/runs/.../E2E.P0.013/result.json` 证据
   <!-- verified: 2026-05-08 method=cmd-api-http run=targetjob-http-20260508 validBddEvidence=true -->
+
+## E2E.P0.018 Workspace 删除图标持久归档
+
+- [x] `test/scenarios/e2e/p0-018-workspace-default-render/` trigger/verify 覆盖 generated `archiveTargetJob` frontend 调用路径、右上角删除按钮定位和事件隔离；local real-backend browser smoke 覆盖 delete refresh 语义（关联需求：backend-targetjob C-7a/C-8）
+- [x] 准备测试数据：已登录用户、ready TargetJob、workspace real API mode、generated `Idempotency-Key`、archive 后 DB readback
+- [x] 实现并验证 smoke：打开 workspace → 点击右上角删除图标 → DB readback `status='archived'` + `deleted_at is not null` → 刷新 workspace → 列表不含该 target
+- [x] 重复归档 `TARGET_INVALID_STATE_TRANSITION` conflict、跨用户归档 `TARGET_JOB_NOT_FOUND` 由 focused backend tests 覆盖；删除不触发卡片主体导航由 focused frontend tests 覆盖
+- [x] 执行并通过场景/浏览器验证，记录 `E2E.P0.018 PASS`、`.test-output/e2e/workspace-archive-real-browser/workspace-card-before-delete.png`、`.test-output/e2e/workspace-archive-real-browser/workspace-after-delete.png`、`archive-db-state.txt` 和 `workspace-after-refresh-text.txt`

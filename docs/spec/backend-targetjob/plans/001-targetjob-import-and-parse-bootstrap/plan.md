@@ -1,7 +1,7 @@
 # TargetJob Import and Parse Bootstrap
 
-> **版本**: 1.10
-> **状态**: completed
+> **版本**: 1.11
+> **状态**: active
 > **更新日期**: 2026-07-09
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -11,15 +11,16 @@
 
 ## 1 目标
 
-落地 P0 后端 TargetJob 域：把 [B2 OpenAPI](../../../openapi-v1-contract/spec.md) 已定义的 `importTargetJob` / `listTargetJobs` / `getTargetJob` / `updateTargetJob` 接到真实 handler / service / store，把 4 类导入源（`url` / `manual_text` / `file` / `manual_form`）写入 [B4 baseline](../../../db-migrations-baseline/spec.md) 的 `target_jobs` / `target_job_requirements` / `target_job_sources` 三张表，把 [B3](../../../event-and-outbox-contract/spec.md) 的 `target_import` 异步 job 通过 backend-internal goroutine drainer drain，并在事务内调用 [F3 RegistryClient](../../../prompt-rubric-registry/spec.md) `Resolve("target.import.parse", language)` + [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 完成 JD 解析。解析成功发出 `target.parsed` 并保留 ready TargetJob；解析失败只发出 `target.analysis.failed` 诊断事件并删除失败 TargetJob 资产，不允许失败 JD 作为可继续规划持久化。
+落地 P0 后端 TargetJob 域：把 [B2 OpenAPI](../../../openapi-v1-contract/spec.md) 已定义的 `importTargetJob` / `listTargetJobs` / `getTargetJob` / `updateTargetJob` / `archiveTargetJob` 接到真实 handler / service / store，把 4 类导入源（`url` / `manual_text` / `file` / `manual_form`）写入 [B4 baseline](../../../db-migrations-baseline/spec.md) 的 `target_jobs` / `target_job_requirements` / `target_job_sources` 三张表，把 [B3](../../../event-and-outbox-contract/spec.md) 的 `target_import` 异步 job 通过 backend-internal goroutine drainer drain，并在事务内调用 [F3 RegistryClient](../../../prompt-rubric-registry/spec.md) `Resolve("target.import.parse", language)` + [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 完成 JD 解析。解析成功发出 `target.parsed` 并保留 ready TargetJob；解析失败只发出 `target.analysis.failed` 诊断事件并删除失败 TargetJob 资产，不允许失败 JD 作为可继续规划持久化；用户删除面试列表卡片时通过 `archiveTargetJob` 持久软归档，避免刷新后回灌。
 
 本次 v1.10 原地修订修复解析失败准入缺口：`target_import` 失败事务必须删除 `target_jobs`，级联清理 source / requirements，保留 async job/outbox 失败证据；`listTargetJobs` / `getTargetJob` 不得再返回 `analysisStatus=failed` 的脏规划。
+本次 v1.11 原地修订新增 TargetJob 持久归档合同：`POST /targets/{targetJobId}/archive` 与 generated `archiveTargetJob` 必须设置 `status='archived'` 和 `deleted_at`，并让 `listTargetJobs` / `getTargetJob` 继续通过 `deleted_at is null` 隐藏已归档卡片。
 
 本计划闭环后，[`frontend-home-job-picks-and-parse`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 的 parse 屏可从 mock fixture 切到真实 backend，剩余 Job Picks 推荐与 practice plan 创建归后续 plan / 后续 subspec。
 
 ## 2 背景
 
-[engineering-roadmap §5.2](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 把 `Home / Job Picks / Parse` workstream 的 backend owner 锁定为 `backend-targetjob`，但当前仓库尚无任何 backend handler / service 实现：[`backend/internal/`](../../../../../backend/internal) 只覆盖 auth / migrations / 共享脚手架。OpenAPI v1 已定义 4 个 TargetJob operation，B4 baseline 已包含三张表，B3 已冻结 `target.import.requested` / `target.parsed` / `target.analysis.failed` 与 `target_import` job，F3 已锁定 `target.import.parse` feature_key。本计划是把这些已就位的契约缝合成一个可上线的后端域。
+[engineering-roadmap §5.2](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 把 `Home / Job Picks / Parse` workstream 的 backend owner 锁定为 `backend-targetjob`，但当前仓库尚无任何 backend handler / service 实现：[`backend/internal/`](../../../../../backend/internal) 只覆盖 auth / migrations / 共享脚手架。OpenAPI v1 已定义 5 个 TargetJob operation，B4 baseline 已包含三张表，B3 已冻结 `target.import.requested` / `target.parsed` / `target.analysis.failed` 与 `target_import` job，F3 已锁定 `target.import.parse` feature_key。本计划是把这些已就位的契约缝合成一个可上线的后端域。
 
 [backend-auth/001-email-code-session-bootstrap](../../../backend-auth/plans/001-email-code-session-bootstrap/plan.md) 已经为本计划建立了重要先例：
 
@@ -33,7 +34,7 @@
 
 - **Plan 类型**: `feature-behavior` + `backend` + `contract` + `async-pipeline`。
 - **TDD 策略**: 通过 `/implement backend-targetjob/001-targetjob-import-and-parse-bootstrap backend` → `/tdd` 执行；Phase 0 先以 contract tests / codegen drift tests 修订 B1/B2/B3/F1 owner truth source，后续每个 backend checklist item 先写 focused Go test（handler contract test、service test、store test、URL fetcher SSRF test、drainer test、outbox emit test、privacy grep test）再实现最小代码；checklist 的 `验证:` 后必须列出测试断言。
-- **BDD 策略**: 需要 BDD。本计划引入用户可见 API 行为（4 个 operation + 异步解析观测 + manual_form 同步兜底），必须维护 `bdd-plan.md` / `bdd-checklist.md`，并在主 checklist 用 `BDD-Gate:` 引用 `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013`。2026-05-08 L2 code review 重新打开该 gate 后，p0-010..013 已迁移为 `auth -> HTTP API -> cmd/api runtime drainer -> F3 prompt registry + A3 AI client + urlfetch -> store/outbox` 的 HTTP scenario harness，verify 输出 `method=cmd-api-http` / `validBddEvidence=true`。
+- **BDD 策略**: 需要 BDD。本计划引入用户可见 API 行为（5 个 operation + 异步解析观测 + manual_form 同步兜底 + workspace 归档删除），必须维护 `bdd-plan.md` / `bdd-checklist.md`，并在主 checklist 用 `BDD-Gate:` 引用 `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` / `E2E.P0.018`。2026-05-08 L2 code review 重新打开该 gate 后，p0-010..013 已迁移为 `auth -> HTTP API -> cmd/api runtime drainer -> F3 prompt registry + A3 AI client + urlfetch -> store/outbox` 的 HTTP scenario harness，verify 输出 `method=cmd-api-http` / `validBddEvidence=true`。
 - **替代验证 gate**: 不适用；BDD gate 是行为入口。补充 gate 包括 focused Go tests、OpenAPI generated contract tests、B1/B2 codegen drift check（`make codegen-conventions && make codegen-openapi && make codegen-check`）、fixtures validation（`make validate-fixtures`）、events.yaml / jobs.yaml drift check（`make codegen-events && make lint-events`）、`migrations_lint`、F1 metric registry tests、privacy grep（`raw_jd_text` / `Authorization` / `prompt body`）、URL fetch SSRF unit test 矩阵、drainer drain / shutdown test、F3 Resolve fail-closed test、`make docs-check`、`make lint-config`。
 
 ### 3.1 Operation Matrix
@@ -46,6 +47,7 @@
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` (`default`, `prototype-baseline`) | TargetJob list / workspace pickers via generated client | `backend/internal/targetjob` list handler / store cursor query | read `target_jobs.resume_id` + `target_jobs` + optional latest ready `practice_plans.currentPracticePlanId`; soft-deleted rows filtered | none | `E2E.P0.010` verifies imported job is visible in list; `E2E.P0.018` verifies workspace list re-entry carries resume binding |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` (`default`, `prototype-baseline`) | parse confirmation / workspace detail via generated client | `backend/internal/targetjob` get handler / store detail query | read `target_jobs.resume_id` + `target_jobs` + `target_job_requirements` + summary / fit JSON + optional latest ready practice plan; user-scoped 404 on missing / cross-user / soft-delete | none after parse completion; provenance is persisted output | `E2E.P0.010`, `E2E.P0.012`, `E2E.P0.018`; focused handler tests cover cross-user 404, soft-delete and resume binding recovery |
 | `updateTargetJob` | `openapi/fixtures/TargetJobs/updateTargetJob.json` (`default`, Phase 0 add `invalid-state-transition`, `cross-user-hidden-not-found`) | workspace lifecycle / notes edits via generated client | `backend/internal/targetjob` update handler / idempotency service / store update；实施前状态为 `not-yet-implemented` | update `target_jobs.status` / `location_text` / `notes` / hints scoped by `(user_id, id)` and `(user_id, idempotency_key)` | none | `E2E.P0.010` verifies minimal status / notes update after parse; focused handler tests cover `TARGET_INVALID_STATE_TRANSITION` and cross-user idempotency |
+| `archiveTargetJob` | `openapi/fixtures/TargetJobs/archiveTargetJob.json` | Workspace delete icon via generated client | `backend/internal/targetjob` archive handler / idempotency service / store archive | update `target_jobs.status='archived'`, `deleted_at=now`, `updated_at=now` scoped by `(user_id, id)` and `(user_id, idempotency_key)`; list/detail keep filtering `deleted_at is null` | none | `E2E.P0.018` verifies workspace delete persists across refresh; focused handler/store tests cover already-archived conflict and cross-user 404 |
 
 ## 4 实施步骤
 
@@ -75,7 +77,7 @@ F1 metrics dictionary 必须登记 `target_job_imports_total`、`target_job_pars
 
 #### 1.3 锁定 generated handler / outbox / job surface
 
-使用 [B2 generated `ServerInterface`](../../../openapi-v1-contract/spec.md) 注册 `importTargetJob` / `listTargetJobs` / `getTargetJob` / `updateTargetJob` 四个 handler；确认 generated request / response types 与本计划一致，差异时回到 B2 修订。outbox 写入与 `target_import` job 派发必须使用 [B3 generated payload / event helper](../../../event-and-outbox-contract/spec.md)；事件 payload 不得携带 `raw_jd_text` / `source_url` / 文件 URL / prompt / response 明文（PiiBoundary 已锁定）。
+使用 [B2 generated `ServerInterface`](../../../openapi-v1-contract/spec.md) 注册 `importTargetJob` / `listTargetJobs` / `getTargetJob` / `updateTargetJob` / `archiveTargetJob` 五个 handler；确认 generated request / response types 与本计划一致，差异时回到 B2 修订。outbox 写入与 `target_import` job 派发必须使用 [B3 generated payload / event helper](../../../event-and-outbox-contract/spec.md)；事件 payload 不得携带 `raw_jd_text` / `source_url` / 文件 URL / prompt / response 明文（PiiBoundary 已锁定）。
 
 ### Phase 2: Synchronous TargetJob CRUD
 
@@ -239,10 +241,28 @@ BUG-0142 的真实 Postgres gate 是强制 schema-drift 防线，不得在缺少
 
 后端 read-side 不允许返回失败解析资产；前端 `WorkspacePlanList` / `PlanSwitcherModal` 仍必须请求 `analysisStatus=ready` 并过滤空标题作为防御，避免历史脏数据或非当前环境回灌到面试列表。验证必须覆盖 `listTargetJobs` query filter、failed / blank title negative card、TopBar 空参数回到列表而不是复用 stale context。
 
+### Phase 12: TargetJob archive/delete integration
+
+#### 12.1 B2 OpenAPI and generated archive surface
+
+Additive 修订 `openapi/openapi.yaml`、TargetJobs fixture 与 operation inventory，新增 `POST /targets/{targetJobId}/archive` / `archiveTargetJob`。该 endpoint 必须要求 `Idempotency-Key`，返回 generated `TargetJob`，错误继续使用 generated `ApiErrorResponse`。`make codegen-openapi`、`make lint-openapi`、`make validate-fixtures` 必须证明 generated Go server / TS client / fixture 统一包含 `archiveTargetJob`。
+
+#### 12.2 Store / service / handler persistent archive
+
+`backend/internal/targetjob` 必须新增 user-scoped archive store/service/handler。成功路径写 `target_jobs.status='archived'`、`deleted_at=now`、`updated_at=now`，且 read-side 继续通过 `deleted_at is null` 隐藏归档记录；越权/不存在返回 `TARGET_JOB_NOT_FOUND`，已归档重复请求返回 `TARGET_INVALID_STATE_TRANSITION` conflict，同一用户同一 idempotency key 可返回同一 archived TargetJob。验证必须覆盖 handler signature、缺 `Idempotency-Key`、success、already archived conflict、cross-user 404、list/get 不再返回归档记录。
+
+#### 12.3 Frontend generated-client delete integration
+
+`WorkspacePlanList` 删除图标必须调用 generated `archiveTargetJob`，携带 `Idempotency-Key`，成功后从当前列表移除卡片；失败时不执行导航、不乐观删除并显示可恢复错误。Home 最近模拟面试复用卡片主体但不展示删除按钮。验证必须覆盖 mock transport / real generated client path，禁止继续把删除实现为纯本地隐藏。
+
+#### 12.4 BDD and screenshot acceptance
+
+`E2E.P0.018` / local browser smoke 必须在 real backend 模式下证明：workspace 卡片点击主体仍进入 `parse`，`立即面试` 仍启动 practice，删除图标调用后卡片从 UI 消失，刷新后仍不回灌。验收产物必须包含浏览器截图和后端 API/DB 证据。
+
 ## 5 验收标准
 
 - Phase 0 owner contract gates 通过：B1/B2 codegen drift clean，TargetJobs fixture scenarios schema-valid，B3 sourceType mapping lint clean，F1 TargetJob metrics registry tests 通过。
-- 4 个 TargetJob operation 的 handler / service / store focused Go tests 全部通过；URL fetcher SSRF / length / timeout / redirect / metadata-IP 矩阵全部覆盖；drainer drain / shutdown / pending-on-restart tests 通过。
+- 5 个 TargetJob operation 的 handler / service / store focused Go tests 全部通过；URL fetcher SSRF / length / timeout / redirect / metadata-IP 矩阵全部覆盖；drainer drain / shutdown / pending-on-restart tests 通过。
 - 异步解析成功 / 失败（retryable / non-retryable）路径事务一致；outbox 在事务内写入 `target.import.requested` / `target.parsed` / `target.analysis.failed`，成功路径写入下游 internal-only `source_refresh` 占位 job；失败路径删除失败 TargetJob 资产，`listTargetJobs` / `getTargetJob` 均不可返回失败解析产物。
 - F3 Resolve fail-closed 与 A3 缺 secret fail-closed 路径覆盖；除 `APP_ENV=test` 外不静默回退 stub。
 - TargetJob handler 错误响应符合 generated `ApiErrorResponse`，`listTargetJobs.pageInfo.pageSize` 符合 B1/B2 envelope，AI parse 输出无有效 requirement 或非法字段时走 `AI_OUTPUT_INVALID`。
@@ -251,6 +271,7 @@ BUG-0142 的真实 Postgres gate 是强制 schema-drift 防线，不得在缺少
 - BDD-Gate `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 全部通过，verify 输出可追溯证据；包级 `go test` 代理证据不得作为该 gate 的完成依据。
 - TargetJob active SQL 与当前 B4 schema 对齐，`rg "profile_id|ProfileID|profileID" backend/internal/targetjob ...` 无命中，真实 Postgres integration gate 覆盖 ready TargetJob 详情与失败后 404 行为，缺 DB 时 fail fast 而不是 `SKIP` 假绿，本地 host-run backend 上解析失败后的 `GET /targets/{id}` 不再返回可见 failed 资产。
 - TargetJob import/list/get persist and expose the JD-level resume binding: `ImportTargetJobRequest.resumeId` is required, `target_jobs.resume_id` is non-null for created rows, and list/detail responses keep `TargetJob.resumeId` present even when no `practice_plans` row exists.
+- TargetJob archive persists user delete from workspace: `archiveTargetJob` sets `status='archived'` and `deleted_at`, list/detail hide the row after refresh, repeated archive is conflict-scoped, and frontend delete uses generated client rather than local-only hiding.
 - Valid JDs that omit company names parse successfully with a language-specific fallback company display value, strict fenced-JSON-only normalization, `ai_task_runs` evidence, and real browser proof that `/parse` no longer renders `JD 解析失败`.
 - Active-scope 负向搜索 0 命中已丢弃模块 / route / capability。
 

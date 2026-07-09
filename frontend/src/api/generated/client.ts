@@ -431,6 +431,16 @@ export class EasyInterviewClient {
 		);
 	}
 
+	/** archiveTargetJob — post /targets/{targetJobId}/archive: Archive a target job */
+	async archiveTargetJob(targetJobId: string, opts?: RequestOptions): Promise<Types.TargetJob> {
+		return this.request<Types.TargetJob>(
+			"POST",
+			buildPath("/targets/{targetJobId}/archive", { targetJobId: targetJobId }),
+			undefined,
+			opts,
+		);
+	}
+
 	/** listTargetJobReports — get /targets/{targetJobId}/reports: List feedback reports for a target job (cursor-paginated) */
 	async listTargetJobReports(targetJobId: string, opts?: RequestOptions): Promise<Types.PaginatedFeedbackReport> {
 		return this.request<Types.PaginatedFeedbackReport>(
@@ -488,6 +498,7 @@ export const ALL_OPERATION_IDS = [
 	"importTargetJob",
 	"getTargetJob",
 	"updateTargetJob",
+	"archiveTargetJob",
 	"listTargetJobReports",
 	"createUploadPresign",
 ] as const;
@@ -535,6 +546,7 @@ export const ALL_ROUTES = [
 	{ operationId: "importTargetJob", method: "POST", path: "/targets/import" },
 	{ operationId: "getTargetJob", method: "GET", path: "/targets/{targetJobId}" },
 	{ operationId: "updateTargetJob", method: "PATCH", path: "/targets/{targetJobId}" },
+	{ operationId: "archiveTargetJob", method: "POST", path: "/targets/{targetJobId}/archive" },
 	{ operationId: "listTargetJobReports", method: "GET", path: "/targets/{targetJobId}/reports" },
 	{ operationId: "createUploadPresign", method: "POST", path: "/uploads/presign" },
 ] as const satisfies readonly Route[];

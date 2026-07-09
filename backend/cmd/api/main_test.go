@@ -282,6 +282,7 @@ runtime:
 		{http.MethodPost, "/api/v1/targets/import"},
 		{http.MethodGet, "/api/v1/targets/018f2a40-0000-7000-9000-0000000000a1"},
 		{http.MethodPatch, "/api/v1/targets/018f2a40-0000-7000-9000-0000000000a1"},
+		{http.MethodPost, "/api/v1/targets/018f2a40-0000-7000-9000-0000000000a1/archive"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.method+" "+tc.path, func(t *testing.T) {

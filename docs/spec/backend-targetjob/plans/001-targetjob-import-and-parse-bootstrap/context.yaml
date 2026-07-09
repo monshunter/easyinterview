@@ -20,6 +20,7 @@ spec:
       - listTargetJobs
       - getTargetJob
       - updateTargetJob
+      - archiveTargetJob
       - target_import job
       - target.import.requested
       - target.parsed
@@ -83,3 +84,4 @@ spec:
           - listTargetJobs
           - getTargetJob
           - updateTargetJob
+          - archiveTargetJob

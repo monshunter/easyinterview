@@ -484,6 +484,9 @@ func buildAPIHandlerWithUploadReportJobsAndHandlers(loader *config.Loader, flags
 	mux.Handle("PATCH /api/v1/targets/{targetJobId}", auth.SessionMiddleware(authService, "updateTargetJob", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		targetJobHandler.UpdateTargetJob(w, r, r.PathValue("targetJobId"))
 	})))
+	mux.Handle("POST /api/v1/targets/{targetJobId}/archive", auth.SessionMiddleware(authService, "archiveTargetJob", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targetJobHandler.ArchiveTargetJob(w, r, r.PathValue("targetJobId"))
+	})))
 	if practice.Handler != nil {
 		createPracticePlan := http.HandlerFunc(practice.Handler.CreatePracticePlan)
 		if practice.Idempotency != nil {

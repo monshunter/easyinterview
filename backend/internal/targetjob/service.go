@@ -17,7 +17,7 @@ import (
 )
 
 // ErrIdempotencyKeyRequired is returned when the handler did not pass an
-// `Idempotency-Key` header. Per spec D-6 the four TargetJob mutating
+// `Idempotency-Key` header. Per spec D-6 the TargetJob mutating
 // operations all require this header.
 var ErrIdempotencyKeyRequired = errors.New("idempotency key required")
 
@@ -256,6 +256,10 @@ func (s *Service) importDedupeKey(userID, idempotencyKey string) string {
 
 func (s *Service) updateDedupeKey(userID, idempotencyKey string) string {
 	return s.dedupeKey("targetjob.update.v1", userID, idempotencyKey)
+}
+
+func (s *Service) archiveDedupeKey(userID, idempotencyKey string) string {
+	return s.dedupeKey("targetjob.archive.v1", userID, idempotencyKey)
 }
 
 func (s *Service) dedupeKey(namespace, userID, idempotencyKey string) string {
@@ -497,6 +501,37 @@ func (s *Service) UpdateTargetJob(ctx context.Context, in UpdateRequest) (api.Ta
 		return recordToAPI(updated, nil), nil
 	}
 	return recordToAPI(updated, reqs), nil
+}
+
+// ArchiveRequest is the service-layer command for `archiveTargetJob`.
+type ArchiveRequest struct {
+	UserID         string
+	TargetJobID    string
+	IdempotencyKey string
+}
+
+// ArchiveTargetJob soft-hides a TargetJob for the current user.
+func (s *Service) ArchiveTargetJob(ctx context.Context, in ArchiveRequest) (api.TargetJob, error) {
+	if in.UserID == "" || in.TargetJobID == "" {
+		return api.TargetJob{}, fmt.Errorf("userId and targetJobId are required")
+	}
+	if strings.TrimSpace(in.IdempotencyKey) == "" {
+		return api.TargetJob{}, ErrIdempotencyKeyRequired
+	}
+	rec, err := s.store.ArchiveTargetJob(ctx, ArchiveTargetJobInput{
+		UserID:         in.UserID,
+		TargetJobID:    in.TargetJobID,
+		DedupeKey:      s.archiveDedupeKey(in.UserID, in.IdempotencyKey),
+		DedupeMarkerID: s.newID(),
+		Now:            s.now(),
+	})
+	if err != nil {
+		if errors.Is(err, ErrTargetJobNotFound) {
+			return api.TargetJob{}, &ServiceImportError{Code: sharederrors.CodeTargetJobNotFound, Message: "target job not found"}
+		}
+		return api.TargetJob{}, err
+	}
+	return recordToAPI(rec, nil), nil
 }
 
 // allowedLifecycleTransitions captures spec §3.1 D-* state-machine rules.

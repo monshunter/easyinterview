@@ -14,7 +14,7 @@ import (
 )
 
 // IdempotencyKeyHeader is the canonical name of the header callers must
-// supply for the four mutating TargetJob operations (D-6).
+// supply for TargetJob mutating operations (D-6).
 const IdempotencyKeyHeader = "Idempotency-Key"
 
 // SessionResolver returns the authenticated user id for the request, or an
@@ -23,7 +23,7 @@ const IdempotencyKeyHeader = "Idempotency-Key"
 // shape so the handler does not import auth directly.
 type SessionResolver func(ctx context.Context) (userID string, ok bool)
 
-// Handler binds the four B2-defined TargetJob OpenAPI operations into the
+// Handler binds the B2-defined TargetJob OpenAPI operations into the
 // targetjob domain.
 type Handler struct {
 	service *Service
@@ -186,6 +186,38 @@ func (h *Handler) UpdateTargetJob(w http.ResponseWriter, r *http.Request, target
 	writeJSON(w, http.StatusOK, res)
 }
 
+// ArchiveTargetJob is the POST /targets/{targetJobId}/archive binding.
+func (h *Handler) ArchiveTargetJob(w http.ResponseWriter, r *http.Request, targetJobID string) {
+	if h == nil || h.service == nil {
+		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeTargetImportFailed, "targetjob service is not configured")
+		return
+	}
+	userID, ok := h.resolveUser(r)
+	if !ok {
+		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required")
+		return
+	}
+	idempotencyKey := strings.TrimSpace(r.Header.Get(IdempotencyKeyHeader))
+	if idempotencyKey == "" {
+		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "Idempotency-Key header is required")
+		return
+	}
+	res, err := h.service.ArchiveTargetJob(r.Context(), ArchiveRequest{
+		UserID:         userID,
+		TargetJobID:    targetJobID,
+		IdempotencyKey: idempotencyKey,
+	})
+	if err != nil {
+		if errors.Is(err, ErrTargetJobAlreadyArchived) {
+			writeAPIError(w, http.StatusConflict, sharederrors.CodeTargetInvalidStateTransition, "target job is already archived")
+			return
+		}
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusAccepted, res)
+}
+
 func lifecycleStatusFrom(s string) sharedtypes.TargetJobStatus {
 	return sharedtypes.TargetJobStatus(s)
 }
@@ -212,14 +244,15 @@ func (h *Handler) resolveUser(r *http.Request) (string, bool) {
 }
 
 // targetJobServerSurface mirrors the B2 generated ServerInterface for the
-// four TargetJob operations exactly. handler_test.go pins this against the
-// real ServerInterface via reflection so any B2 wire-shape change surfaces
-// here as a compile error or test failure.
+// TargetJob operations exactly. handler_test.go pins this against the real
+// ServerInterface via reflection so any B2 wire-shape change surfaces here as
+// a compile error or test failure.
 type targetJobServerSurface interface {
 	ImportTargetJob(w http.ResponseWriter, r *http.Request)
 	ListTargetJobs(w http.ResponseWriter, r *http.Request)
 	GetTargetJob(w http.ResponseWriter, r *http.Request, targetJobID string)
 	UpdateTargetJob(w http.ResponseWriter, r *http.Request, targetJobID string)
+	ArchiveTargetJob(w http.ResponseWriter, r *http.Request, targetJobID string)
 }
 
 var _ targetJobServerSurface = (*Handler)(nil)

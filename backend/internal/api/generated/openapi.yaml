@@ -668,6 +668,37 @@ paths:
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
+  /targets/{targetJobId}/archive:
+    post:
+      tags: [TargetJobs]
+      operationId: archiveTargetJob
+      summary: Archive a target job
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Soft-hides the target job from list/detail reads by setting `deleted_at`.
+      parameters:
+        - name: targetJobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '202':
+          description: Target job archived.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TargetJob'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
   /practice/plans:
     post:
       tags: [PracticePlans]

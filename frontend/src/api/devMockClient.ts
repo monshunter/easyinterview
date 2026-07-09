@@ -30,6 +30,7 @@ import listResumesFixture from "../../../openapi/fixtures/Resumes/listResumes.js
 import registerResumeFixture from "../../../openapi/fixtures/Resumes/registerResume.json";
 import updateResumeFixture from "../../../openapi/fixtures/Resumes/updateResume.json";
 import getTargetJobFixture from "../../../openapi/fixtures/TargetJobs/getTargetJob.json";
+import archiveTargetJobFixture from "../../../openapi/fixtures/TargetJobs/archiveTargetJob.json";
 import importTargetJobFixture from "../../../openapi/fixtures/TargetJobs/importTargetJob.json";
 import listTargetJobsFixture from "../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
 import updateTargetJobFixture from "../../../openapi/fixtures/TargetJobs/updateTargetJob.json";
@@ -83,6 +84,7 @@ const DEV_MOCK_FIXTURES = [
 	importTargetJobFixture,
 	getTargetJobFixture,
 	updateTargetJobFixture,
+	archiveTargetJobFixture,
 	listTargetJobReportsFixture,
 	createUploadPresignFixture,
 ] as readonly OperationFixture[];

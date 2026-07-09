@@ -17,7 +17,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
-// targetJobOperationNames are the four B2-defined operations the targetjob
+// targetJobOperationNames are the B2-defined operations the targetjob
 // domain owns. Renaming any of these (e.g., due to B2 churn) must surface
 // as a test failure here so the wiring in cmd/api/main.go stays in sync.
 var targetJobOperationNames = []string{
@@ -25,6 +25,7 @@ var targetJobOperationNames = []string{
 	"ListTargetJobs",
 	"GetTargetJob",
 	"UpdateTargetJob",
+	"ArchiveTargetJob",
 }
 
 func TestHandlerSignaturesMatchB2ServerInterface(t *testing.T) {
@@ -225,6 +226,65 @@ func TestHandler_ErrorResponsesUseGeneratedEnvelope(t *testing.T) {
 		}
 		assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeTargetInvalidStateTransition, false)
 	})
+
+	t.Run("archive already archived", func(t *testing.T) {
+		h, store := newWiredHandler(t, "marker-archive")
+		store.archiveErr = targetjob.ErrTargetJobAlreadyArchived
+		req := httptest.NewRequest(http.MethodPost, "/targets/target-1/archive", nil)
+		req.Header.Set(targetjob.IdempotencyKeyHeader, "key-archive")
+		req = req.WithContext(context.WithValue(req.Context(), testUserKey{}, "user-1"))
+		rec := httptest.NewRecorder()
+		h.ArchiveTargetJob(rec, req, "target-1")
+		if rec.Code != http.StatusConflict {
+			t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+		}
+		assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeTargetInvalidStateTransition, false)
+	})
+}
+
+func TestHandler_ArchiveTargetJob_Returns202AndRequiresIdempotencyKey(t *testing.T) {
+	h, store := newWiredHandler(t, "marker-archive")
+	now := time.Date(2026, 7, 9, 13, 45, 0, 0, time.UTC)
+	store.archiveResult = targetjob.TargetJobRecord{
+		ID:             "018f2a40-0000-7000-9000-0000000000a1",
+		UserID:         "user-1",
+		Status:         sharedtypes.TargetJobStatusArchived,
+		AnalysisStatus: sharedtypes.TargetJobParseStatusReady,
+		Title:          "Backend Engineer",
+		CompanyName:    "Acme",
+		SourceType:     targetjob.SourceTypeManualText,
+		TargetLanguage: "en",
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/targets/018f2a40-0000-7000-9000-0000000000a1/archive", nil)
+	req.Header.Set(targetjob.IdempotencyKeyHeader, "key-archive")
+	req = req.WithContext(context.WithValue(req.Context(), testUserKey{}, "user-1"))
+	rec := httptest.NewRecorder()
+	h.ArchiveTargetJob(rec, req, "018f2a40-0000-7000-9000-0000000000a1")
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var out api.TargetJob
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatalf("decode archive response: %v", err)
+	}
+	if out.Status != sharedtypes.TargetJobStatusArchived {
+		t.Fatalf("status = %s, want archived", out.Status)
+	}
+	if store.capturedArchiveInput.DedupeMarkerID != "marker-archive" {
+		t.Fatalf("dedupe marker = %q", store.capturedArchiveInput.DedupeMarkerID)
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/targets/018f2a40-0000-7000-9000-0000000000a1/archive", nil)
+	req = req.WithContext(context.WithValue(req.Context(), testUserKey{}, "user-1"))
+	rec = httptest.NewRecorder()
+	h.ArchiveTargetJob(rec, req, "018f2a40-0000-7000-9000-0000000000a1")
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("missing key status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeValidationFailed, false)
 }
 
 func assertGeneratedErrorEnvelope(t *testing.T, rec *httptest.ResponseRecorder, wantCode string, wantRetryable bool) {
@@ -277,6 +337,9 @@ func TestHandlerMissingServiceReturnsInternalConfigurationError(t *testing.T) {
 		}},
 		{"UpdateTargetJob", func(w http.ResponseWriter, r *http.Request) {
 			h.UpdateTargetJob(w, r, "018f2a40-0000-7000-9000-0000000000a1")
+		}},
+		{"ArchiveTargetJob", func(w http.ResponseWriter, r *http.Request) {
+			h.ArchiveTargetJob(w, r, "018f2a40-0000-7000-9000-0000000000a1")
 		}},
 	}
 	for _, tc := range cases {

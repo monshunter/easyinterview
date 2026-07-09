@@ -62,6 +62,10 @@ const ListMaxPageSize = 100
 // TARGET_JOB_NOT_FOUND, never to FORBIDDEN.
 var ErrTargetJobNotFound = errors.New("target job not found")
 
+// ErrTargetJobAlreadyArchived is returned when a caller tries to archive a
+// target job that has already been soft-hidden.
+var ErrTargetJobAlreadyArchived = errors.New("target job already archived")
+
 // TargetJobRecord is the in-process representation of a row in target_jobs.
 type TargetJobRecord struct {
 	ID                     string
@@ -143,6 +147,16 @@ type UpdateLifecycleFields struct {
 	CompanyNameHint *string
 	DedupeKey       string
 	DedupeMarkerID  string
+}
+
+// ArchiveTargetJobInput is the store command for archiveTargetJob. DedupeKey
+// is user-scoped and opaque; DedupeMarkerID stores replay metadata.
+type ArchiveTargetJobInput struct {
+	UserID         string
+	TargetJobID    string
+	DedupeKey      string
+	DedupeMarkerID string
+	Now            time.Time
 }
 
 // ApplyParseResultInput is the parse-pipeline output the store will merge in
@@ -289,6 +303,7 @@ type Store interface {
 	ListTargetJobsForUser(ctx context.Context, userID string, filter ListFilter) (ListResult, error)
 	LookupUpdateDedupe(ctx context.Context, userID string, dedupeKey string) (TargetJobRecord, []RequirementRecord, bool, error)
 	UpdateTargetJobLifecycle(ctx context.Context, userID string, targetJobID string, fields UpdateLifecycleFields, now time.Time) (TargetJobRecord, error)
+	ArchiveTargetJob(ctx context.Context, in ArchiveTargetJobInput) (TargetJobRecord, error)
 	ApplyParseResult(ctx context.Context, in ApplyParseResultInput) error
 	CompleteParseSuccess(ctx context.Context, in CompleteParseSuccessInput) error
 	CompleteParseFailure(ctx context.Context, in CompleteParseFailureInput) error
@@ -626,6 +641,102 @@ func (s *SQLStore) UpdateTargetJobLifecycle(ctx context.Context, userID string, 
 	return updateTargetJobLifecycleRow(ctx, s.db, userID, targetJobID, fields, now)
 }
 
+func (s *SQLStore) ArchiveTargetJob(ctx context.Context, in ArchiveTargetJobInput) (TargetJobRecord, error) {
+	if err := s.checkDB(); err != nil {
+		return TargetJobRecord{}, err
+	}
+	if in.DedupeKey == "" || in.DedupeMarkerID == "" {
+		return TargetJobRecord{}, fmt.Errorf("archive target job requires dedupe key and marker id")
+	}
+	now := in.Now
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return TargetJobRecord{}, fmt.Errorf("begin archive target job: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, `select pg_advisory_xact_lock(hashtext($1))`, in.DedupeKey); err != nil {
+		return TargetJobRecord{}, fmt.Errorf("lock archive dedupe key: %w", err)
+	}
+	existingTargetID, hit, err := lookupExistingUpdateDedupe(ctx, tx, in.DedupeKey)
+	if err != nil {
+		return TargetJobRecord{}, err
+	}
+	if hit {
+		rec, err := selectTargetJobRecordByUserIncludingDeleted(ctx, tx, in.UserID, existingTargetID)
+		if err != nil {
+			return TargetJobRecord{}, err
+		}
+		if err := tx.Commit(); err != nil {
+			return TargetJobRecord{}, fmt.Errorf("commit archive target job dedupe hit: %w", err)
+		}
+		return rec, nil
+	}
+
+	var deletedAt sql.NullTime
+	err = tx.QueryRowContext(ctx, `
+select deleted_at
+from target_jobs
+where id = $1 and user_id = $2
+for update`,
+		in.TargetJobID,
+		in.UserID,
+	).Scan(&deletedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return TargetJobRecord{}, ErrTargetJobNotFound
+	}
+	if err != nil {
+		return TargetJobRecord{}, fmt.Errorf("select target job archive state: %w", err)
+	}
+	if deletedAt.Valid {
+		return TargetJobRecord{}, ErrTargetJobAlreadyArchived
+	}
+
+	rec, err := scanTargetJobRow(tx.QueryRowContext(ctx, `
+update target_jobs
+set status = $1, deleted_at = $2, updated_at = $2
+where id = $3 and user_id = $4 and deleted_at is null
+returning id, user_id, status, analysis_status, title, company_name, location_text,
+          employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
+          raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count, resume_id::text,
+          created_at, updated_at`,
+		string(sharedtypes.TargetJobStatusArchived),
+		now,
+		in.TargetJobID,
+		in.UserID,
+	))
+	if errors.Is(err, sql.ErrNoRows) {
+		return TargetJobRecord{}, ErrTargetJobAlreadyArchived
+	}
+	if err != nil {
+		return TargetJobRecord{}, fmt.Errorf("archive target_jobs: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+insert into async_jobs (
+  id, job_type, resource_type, resource_id, dedupe_key, status, payload, result,
+  available_at, completed_at, created_at, updated_at
+) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$9,$9)`,
+		in.DedupeMarkerID,
+		string(jobs.JobTypeTargetImport),
+		"target_job_archive",
+		in.TargetJobID,
+		in.DedupeKey,
+		string(sharedtypes.JobStatusSucceeded),
+		[]byte(`{}`),
+		[]byte(`{}`),
+		now,
+	); err != nil {
+		return TargetJobRecord{}, fmt.Errorf("insert archive dedupe marker: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return TargetJobRecord{}, fmt.Errorf("commit archive target job: %w", err)
+	}
+	return rec, nil
+}
+
 func (s *SQLStore) updateTargetJobLifecycleLocked(ctx context.Context, userID string, targetJobID string, fields UpdateLifecycleFields, now time.Time) (TargetJobRecord, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -844,6 +955,26 @@ where id = $1 and user_id = $2 and deleted_at is null`,
 	}
 	if err != nil {
 		return TargetJobRecord{}, fmt.Errorf("select target_jobs by update dedupe: %w", err)
+	}
+	return rec, nil
+}
+
+func selectTargetJobRecordByUserIncludingDeleted(ctx context.Context, q rowQueryer, userID string, targetJobID string) (TargetJobRecord, error) {
+	rec, err := scanTargetJobRow(q.QueryRowContext(ctx, `
+select id, user_id, status, analysis_status, title, company_name, location_text,
+       employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
+       raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count, resume_id::text,
+       created_at, updated_at
+from target_jobs
+where id = $1 and user_id = $2`,
+		targetJobID,
+		userID,
+	))
+	if errors.Is(err, sql.ErrNoRows) {
+		return TargetJobRecord{}, ErrTargetJobNotFound
+	}
+	if err != nil {
+		return TargetJobRecord{}, fmt.Errorf("select target_jobs including deleted: %w", err)
 	}
 	return rec, nil
 }
