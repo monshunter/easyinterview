@@ -18,9 +18,14 @@ import getPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlan
 import startPracticeSessionFixture from "../../../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
 
 type ListResumesResponse = Awaited<ReturnType<EasyInterviewClient["listResumes"]>>;
+type ListTargetJobsResponse = Awaited<
+  ReturnType<EasyInterviewClient["listTargetJobs"]>
+>;
 
 const defaultListResumesResponse = listResumesFixture.scenarios.default.response
   .body as ListResumesResponse;
+const defaultListTargetJobsResponse = listTargetJobsFixture.scenarios.default
+  .response.body as ListTargetJobsResponse;
 
 function createClient(scenario?: string) {
   const fetch = createFixtureBackedFetch(
@@ -93,8 +98,50 @@ describe("HomeRecentMocks", () => {
     renderHome(client);
 
     await waitFor(() => {
-      expect(spy).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledWith({
+        query: {
+          analysisStatus: "ready",
+          pageSize: "12",
+        },
+      });
     });
+  });
+
+  it("filters non-ready or blank-title recent jobs", async () => {
+    const client = createClient();
+    const readyJob = defaultListTargetJobsResponse.items[0]!;
+    const queuedJob: ListTargetJobsResponse["items"][number] = {
+      ...readyJob,
+      id: "01918fa0-0000-7000-8000-000000009991",
+      title: "Queued JD",
+      analysisStatus: "processing",
+    };
+    const blankJob: ListTargetJobsResponse["items"][number] = {
+      ...readyJob,
+      id: "01918fa0-0000-7000-8000-000000009992",
+      title: "   ",
+      analysisStatus: "ready",
+    };
+    vi.spyOn(client, "listTargetJobs").mockResolvedValue({
+      ...defaultListTargetJobsResponse,
+      items: [queuedJob, blankJob, readyJob],
+    });
+
+    renderHome(client);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`home-recent-mock-card-${readyJob.id}`),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("Queued JD")).toBeNull();
+    expect(
+      screen.queryByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-000000009991"),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-000000009992"),
+    ).toBeNull();
   });
 
   it("renders 2 cards from default fixture", async () => {
@@ -234,6 +281,8 @@ describe("HomeRecentMocks", () => {
         targetJobId: "01918fa0-0000-7000-8000-000000002000",
         planId: "01918fa0-0000-7000-8000-000000004000",
         resumeId: "01918fa0-0000-7000-8000-000000001000",
+        roundId: "round-2-manager",
+        roundName: "Hiring manager impact interview · 50m",
         sessionId: "01918fa0-0000-7000-8000-000000005000",
       }),
     });

@@ -4,6 +4,11 @@ import type { TargetJob } from "../../../api/generated/types";
 import { generateIdempotencyKey } from "../../../lib/conventions/idempotency";
 import { startPracticeFromParams } from "../../interview-context/startPractice";
 import { useI18n } from "../../i18n/messages";
+import {
+  isTargetJobPracticeStartable,
+  targetJobDetailRouteParams,
+  targetJobPracticeRouteParams,
+} from "../../navigation/interviewContext";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import type { Route } from "../../routes";
@@ -36,26 +41,21 @@ const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
 
   const visibleJobs = jobs.filter((job) => !archivedJobIds.has(job.id));
 
-  const planParamsFromJob = (job: TargetJob): Record<string, string> => {
-    const currentPracticePlanId = job.currentPracticePlanId?.trim();
-    const resumeId = job.resumeId?.trim();
-    return {
-      targetJobId: job.id,
-      ...(currentPracticePlanId ? { planId: currentPracticePlanId } : {}),
-      ...(resumeId ? { resumeId } : {}),
-    };
-  };
-
   const openPlan = (job: TargetJob) => {
     navigate({
       name: "parse",
-      params: planParamsFromJob(job),
+      params: targetJobDetailRouteParams(job),
     });
   };
 
   const startInterview = async (job: TargetJob) => {
-    const params = planParamsFromJob(job);
-    if (!runtime || runtime.auth.status !== "authenticated" || !params.resumeId) {
+    const params = targetJobPracticeRouteParams(job);
+    if (
+      !runtime ||
+      runtime.auth.status !== "authenticated" ||
+      !params.resumeId ||
+      !params.roundId
+    ) {
       openPlan(job);
       return;
     }
@@ -246,7 +246,7 @@ const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
                 onClick: () => startInterview(job),
                 disabled:
                   startingJobId === job.id ||
-                  !job.resumeId?.trim(),
+                  !isTargetJobPracticeStartable(job),
               }}
               deleteAction={{
                 label: t("workspace.planList.delete"),

@@ -8,7 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [001-workspace-and-interview-context](./001-workspace-and-interview-context/plan.md) | [plan](./001-workspace-and-interview-context/plan.md) / [checklist](./001-workspace-and-interview-context/checklist.md) / [context](./001-workspace-and-interview-context/context.yaml) / [bdd-plan](./001-workspace-and-interview-context/bdd-plan.md) / [bdd-checklist](./001-workspace-and-interview-context/bdd-checklist.md) | 1.24 | active | 2026-07-09 |
+| [001-workspace-and-interview-context](./001-workspace-and-interview-context/plan.md) | [plan](./001-workspace-and-interview-context/plan.md) / [checklist](./001-workspace-and-interview-context/checklist.md) / [context](./001-workspace-and-interview-context/context.yaml) / [bdd-plan](./001-workspace-and-interview-context/bdd-plan.md) / [bdd-checklist](./001-workspace-and-interview-context/bdd-checklist.md) | 1.25 | active | 2026-07-09 |
 
 ## 2 已完成（Completed）
 

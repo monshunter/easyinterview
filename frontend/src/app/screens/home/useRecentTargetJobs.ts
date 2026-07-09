@@ -28,10 +28,14 @@ export function useRecentTargetJobs(): UseRecentTargetJobsResult {
     setLoading(true);
 
     runtime.client
-      .listTargetJobs({ query: { pageSize: "12" } })
+      .listTargetJobs({ query: { analysisStatus: "ready", pageSize: "12" } })
       .then((page) => {
         if (!cancelled) {
-          setJobs(Array.isArray(page.items) ? page.items : []);
+          setJobs(
+            Array.isArray(page.items)
+              ? page.items.filter(isVisibleRecentTargetJob)
+              : [],
+          );
           setError(null);
         }
       })
@@ -55,4 +59,8 @@ export function useRecentTargetJobs(): UseRecentTargetJobsResult {
   }, [fetch]);
 
   return { jobs, loading, error, refetch: fetch };
+}
+
+function isVisibleRecentTargetJob(job: TargetJob): boolean {
+  return job.analysisStatus === "ready" && job.title.trim().length > 0;
 }

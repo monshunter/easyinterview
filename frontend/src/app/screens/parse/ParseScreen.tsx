@@ -14,7 +14,7 @@ import { buildTargetJobRoundAssumptions } from "../../interview-context/roundAss
 import { isSelectableInterviewResume } from "../../interview-context/selectableResume";
 import { startPracticeFromParams } from "../../interview-context/startPractice";
 import { useNavigation } from "../../navigation/NavigationProvider";
-import { interviewContextFromTargetJob } from "../../navigation/interviewContext";
+import { targetJobPracticeRouteParams } from "../../navigation/interviewContext";
 import type { Route } from "../../routes";
 import type { Resume, TargetJob } from "../../../api/generated/types";
 
@@ -39,15 +39,6 @@ const loadingStepTicks = [600, 900, 800, 700] as const;
 const loadingPreviewDelay =
   loadingStepTicks.reduce((total, tick) => total + tick, 0) + 200;
 
-const defaultPracticeParams = {
-  mode: "text",
-  modality: "text",
-  practiceMode: "strict",
-  practiceGoal: "baseline",
-  hintUsed: "false",
-  hintCount: "0",
-} as const;
-
 function sortByMostRecentResume(a: Resume, b: Resume): number {
   return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
 }
@@ -56,11 +47,7 @@ function buildInterviewParams(
   job: TargetJob,
   resumeId: string,
 ): Record<string, string> {
-  return {
-    ...interviewContextFromTargetJob(job, { resumeId }),
-    ...defaultPracticeParams,
-    language: job.targetLanguage || "",
-  };
+  return targetJobPracticeRouteParams(job, { resumeId });
 }
 
 function hitStateFromEvidence(level: string | undefined): HitState {

@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.12
+> **版本**: 2.13
 > **状态**: completed
 > **更新日期**: 2026-07-09
 
@@ -78,5 +78,6 @@
 
 - [x] 10.1 UI truth source defines Home recent cards as the shared Interview list action card with `立即面试` and without delete controls（验证：`docs/ui-design/jd-resume-management.md`, `docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-home.jsx`）
 - [x] 10.2 Formal `MockInterviewCard` supports quick-start action props and Home passes no delete action（验证：`MockInterviewCard.test.tsx`, `HomeRecentMocks.test.tsx`）
-- [x] 10.3 Home recent quick-start calls shared generated practice handoff and card-body click remains planning-detail navigation（验证：`HomeRecentMocks.test.tsx`）
+- [x] 10.3 Home recent quick-start calls shared generated practice handoff with structured `roundId/roundName`, and card-body click remains planning-detail navigation（验证：`HomeRecentMocks.test.tsx` PASS）
 - [x] 10.4 Browser screenshot acceptance captures Home recent card with `立即面试` and no delete icon（验证：`.test-output/screenshots/home-recent-action-card.png`）
+- [x] 10.5 Home recent requests `listTargetJobs(analysisStatus=ready)` and filters failed / processing / queued / blank-title dirty records before rendering cards（验证：`HomeRecentMocks.test.tsx` PASS）

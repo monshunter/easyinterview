@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-09](2026-07-09.md) | `fix(frontend): preserve quick-start target context (BUG-0152)` | #fix #ui #test #docs |
 | [2026-07-09](2026-07-09.md) | `fix(targetjob): terminate archived target imports (BUG-0151)` | #fix #api #test #docs |
 | [2026-07-09](2026-07-09.md) | `feat(theme): prune warm and forest themes, keep ocean and plum` | #feat #ui #docs #test |
 | [2026-07-09](2026-07-09.md) | `feat(frontend): add archive and direct start to workspace plan list` | #feat #ui #api #test #docs #bdd |

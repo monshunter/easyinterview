@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.24
+> **版本**: 1.25
 > **状态**: active
 > **更新日期**: 2026-07-09
 
@@ -21,7 +21,7 @@
 本次 v1.19 原地修订收敛 workspace route purity：`workspace` 是纯列表页，不再承接 `targetJobId/planId/resumeId/autoStartPractice` 参数上下文；规划卡片导航 `parse`，`parse` / report owner 直接创建 practice plan / session。
 本次 v1.20 原地修订修复面试列表卡片规格回归：desktop plan-list grid 必须使用固定最大列宽，1/2/3 张卡片的规格保持稳定，不得因单卡数量被拉伸为整行宽卡。
 本次 v1.21 原地修订融合 Home 最近模拟面试与 workspace 面试列表卡片：workspace 卡片必须复用 Home recent card 的主体结构、公司/状态 eyebrow、岗位/地点层级和 mini round rail。本次 v1.22 原地修订把列表卡片的 `进入规划` 可见 footer CTA 改为点击卡片主体承接，并增加 `立即面试` 主按钮和使用简历列表 trash 图标样式的删除能力；Home recent 复用同一卡片动作模型但不展示删除按钮。
-本次 v1.23 原地修订把删除按钮从本地列表隐藏升级为 generated `archiveTargetJob` 持久软归档；删除成功后卡片移除，刷新后不得回灌，删除失败时保留卡片并展示可恢复错误。本次 v1.24 原地修订把删除图标移到卡片右上角，footer 只保留 `立即面试` 主按钮。
+本次 v1.23 原地修订把删除按钮从本地列表隐藏升级为 generated `archiveTargetJob` 持久软归档；删除成功后卡片移除，刷新后不得回灌，删除失败时保留卡片并展示可恢复错误。本次 v1.24 原地修订把删除图标移到卡片右上角，footer 只保留 `立即面试` 主按钮。v1.25 review remediation 要求 workspace list quick-start 必须把结构化 `roundId/roundName` 带入 practice route。
 
 - TopBar `workspace` 文案改为 `面试` / `Interview`，route/testid 仍保持 `workspace`。
 - `workspace` 始终渲染面试规划列表，使用 generated `listTargetJobs(analysisStatus=ready)`，点击卡片主体导航 `parse` 统一面试规划详情。
@@ -30,7 +30,7 @@
 - 面试规划列表只展示已解析成功且具备岗位标题的 TargetJob：generated `listTargetJobs` 请求必须带 `analysisStatus=ready`，UI 层必须防御性排除 failed / processing / queued / 空标题记录。
 - 顶栏 `面试` 或 legacy `/workspace?targetJobId=...` 都必须 canonicalize 为 `/workspace`、清理 stale InterviewContext 并展示面试规划列表，不得渲染缺目标岗位错误页。
 - 面试规划列表卡片进入统一面试规划详情时必须使用 `listTargetJobs` 返回的当前 `currentPracticePlanId` / `resumeId`；`resumeId` 是 target job 创建时的持久绑定，若当前还没有 ready practice plan，也必须携带该 `resumeId` 进入详情页。
-- `workspace` 不渲染统一详情母版，不拥有 `autoStartPractice` route side effect；列表页 `立即面试` 使用 shared generated practice handoff (`getPracticePlan` / `createPracticePlan` / `startPracticeSession`) 显式启动 session。
+- `workspace` 不渲染统一详情母版，不拥有 `autoStartPractice` route side effect；列表页 `立即面试` 使用 shared generated practice handoff (`getPracticePlan` / `createPracticePlan` / `startPracticeSession`) 显式启动 session，并携带 saved TargetJob 的 `targetJobId/resumeId/currentPracticePlanId` 与结构化 `roundId/roundName`。
 - 列表页删除图标使用 generated `archiveTargetJob` 和 `Idempotency-Key` 持久软归档 TargetJob；成功后从当前列表移除，失败时不导航、不隐藏卡片，并展示错误；不得继续使用本地-only hidden set 作为删除合同。
 - `InterviewContext` 不在 `workspace` route carry；`practice / generating / report` owner route 按各自最小上下文携带 `targetJobId / jdId / resumeId / roundId / planId / practiceMode / practiceGoal / hintUsed / hintCount`。
 - Plan Switcher、Resume Picker、WorkspaceInsightCard 和 workspace start-practice hooks 已退出本 owner 当前 runtime。
@@ -183,7 +183,7 @@
 
 - Reopen the completed owner because user review asks the visible `进入规划` footer CTA to become invisible and be replaced by clicking the card itself.
 - Update `docs/ui-design/module-job-workspace.md` and `ui-design/src/screen-workspace.jsx` so workspace cards append `立即面试` and a top-right trash icon delete action; the card root remains the planning-detail navigation control.
-- Update formal `WorkspacePlanList` to start practice directly through shared generated practice handoff when `立即面试` is clicked, keep delete isolated from card navigation, and let Phase 18 own backend-persistent archive behavior.
+- Update formal `WorkspacePlanList` to start practice directly through shared generated practice handoff with structured `roundId/roundName` when `立即面试` is clicked, keep delete isolated from card navigation, and let Phase 18 own backend-persistent archive behavior.
 - Add focused regression coverage that fails when `进入规划` appears as a visible footer button, when Home recent shows a delete action, when delete triggers navigation/backend deletion, or when `立即面试` opens the planning detail instead of starting practice.
 
 ### Phase 18: Persistent TargetJob archive integration
@@ -219,13 +219,14 @@
 | A-11 | Workspace list card re-entry navigates to `parse` detail and no longer shows the independent workspace detail page or starts sessions | `WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts`, `E2E.P0.018` |
 | A-12 | Workspace plan list requests ready TargetJobs only, filters failed / blank-title records defensively, and TopBar / legacy-param workspace navigation clears stale detail context | `WorkspaceEmptyState.test.tsx`, `WorkspaceScreen.test.tsx`, `App.test.tsx`, `E2E.P0.018` |
 | A-13 | Parse/report handoff owners start practice directly and do not route through `workspace(autoStartPractice=1)` | `ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx` |
-| A-14 | Workspace card click opens planning detail while footer provides quick start and top-right delete performs persistent `archiveTargetJob`; Home recent reuses quick start and omits delete | `MockInterviewCard.test.tsx`, `HomeRecentMocks.test.tsx`, `WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`, browser screenshots |
+| A-14 | Workspace card click opens planning detail while footer provides quick start carrying structured `roundId/roundName`, and top-right delete performs persistent `archiveTargetJob`; Home recent reuses quick start and omits delete | `MockInterviewCard.test.tsx`, `HomeRecentMocks.test.tsx`, `WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`, browser screenshots |
 | A-15 | Workspace delete is durable across refresh and never implemented as local-only hiding | generated-client tests, real-backend smoke, `E2E.P0.018`, screenshot acceptance |
 
 ## 6 变更记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-09 | 1.25 | Review remediation: preserve structured round params in workspace list quick-start practice handoff. |
 | 2026-07-09 | 1.24 | Move the workspace card delete icon to the card top-right; keep footer for `立即面试` only. |
 | 2026-07-09 | 1.23 | Reopen owner plan to integrate generated `archiveTargetJob` for persistent workspace card delete. |
 | 2026-07-09 | 1.22 | Reopen owner plan to replace visible Open plan footer CTA with card-click planning plus quick-start and delete actions. |

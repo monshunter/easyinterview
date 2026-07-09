@@ -6,6 +6,11 @@ import { useI18n } from "../../i18n/messages";
 import { isSelectableInterviewResume } from "../../interview-context/selectableResume";
 import { startPracticeFromParams } from "../../interview-context/startPractice";
 import { useNavigation } from "../../navigation/NavigationProvider";
+import {
+  isTargetJobPracticeStartable,
+  targetJobDetailRouteParams,
+  targetJobPracticeRouteParams,
+} from "../../navigation/interviewContext";
 import type { Route } from "../../routes";
 import { JDAssistModal, type JDAssistModalSource } from "./JDAssistModal";
 import { MockInterviewCard } from "./MockInterviewCard";
@@ -29,16 +34,6 @@ function resumeMeta(resume: Resume): string {
   return [resume.language, resume.sourceType, resume.updatedAt.slice(0, 10)]
     .filter(Boolean)
     .join(" · ");
-}
-
-function planParamsFromTargetJob(job: TargetJob): Record<string, string> {
-  const planId = job.currentPracticePlanId?.trim();
-  const resumeId = job.resumeId?.trim();
-  return {
-    targetJobId: job.id,
-    ...(planId ? { planId } : {}),
-    ...(resumeId ? { resumeId } : {}),
-  };
 }
 
 export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
@@ -277,7 +272,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
       openProtectedRoute(
         {
           name: "parse",
-          params: planParamsFromTargetJob(job),
+          params: targetJobDetailRouteParams(job),
         },
         job.title,
       );
@@ -287,8 +282,13 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
 
   const startRecentInterview = useCallback(
     async (job: TargetJob) => {
-      const params = planParamsFromTargetJob(job);
-      if (!runtime || runtime.auth.status !== "authenticated" || !params.resumeId) {
+      const params = targetJobPracticeRouteParams(job);
+      if (
+        !runtime ||
+        runtime.auth.status !== "authenticated" ||
+        !params.resumeId ||
+        !params.roundId
+      ) {
         openRecentPlan(job);
         return;
       }
@@ -755,7 +755,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
                     onClick: () => startRecentInterview(j),
                     disabled:
                       startingRecentJobId === j.id ||
-                      !j.resumeId?.trim(),
+                      !isTargetJobPracticeStartable(j),
                   }}
                 />
               ))}

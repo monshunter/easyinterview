@@ -87,6 +87,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0152](./BUG-0152.md) | home and workspace quick-start dropped target context | medium | resolved | 2026-07-09 | `fix(frontend): preserve quick-start target context (BUG-0152)` |
 | [BUG-0148](./BUG-0148.md) | round assumptions ignored structured LLM-derived interview rounds | medium | resolved | 2026-07-09 | `-` |
 | [BUG-0143](./BUG-0143.md) | interview plan list cards lacked visual hierarchy and concise content | medium | resolved | 2026-07-08 | `fix(workspace): close plan list UX and context regressions (BUG-0143, BUG-0144, BUG-0145)` |
 | [BUG-0141](./BUG-0141.md) | home resume picker hid readable existing resumes | medium | resolved | 2026-07-08 | `fix(resume): close source preview and picker regressions (BUG-0139, BUG-0140, BUG-0141)` |

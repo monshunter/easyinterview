@@ -366,6 +366,8 @@ describe("WorkspaceEmptyState", () => {
         targetJobId: "01918fa0-0000-7000-8000-000000002000",
         planId: "01918fa0-0000-7000-8000-000000004000",
         resumeId: "01918fa0-0000-7000-8000-000000001000",
+        roundId: "round-2-manager",
+        roundName: "Hiring manager impact interview · 50m",
         sessionId: "01918fa0-0000-7000-8000-000000005000",
       }),
     });

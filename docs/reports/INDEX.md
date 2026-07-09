@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-09](./2026-07-09-quick-start-target-context-assessment.md) | Quick Start Target Context 交付复盘 | #assessment #BUG-0152 |
 | [2026-07-09](./2026-07-09-targetjob-archive-import-terminal-assessment.md) | TargetJob Archive Import Terminal 交付复盘 | #assessment #BUG-0151 |
 | [2026-07-09](./2026-07-09-workspace-persistent-archive-delete-assessment.md) | Workspace Persistent Archive Delete 交付复盘 | #assessment #BUG-0150 |
 | [2026-07-09](./2026-07-09-workspace-plan-card-theme-pruning-assessment.md) | Interview Card Fusion, Action Row, and Theme Pruning 交付复盘 | #assessment |

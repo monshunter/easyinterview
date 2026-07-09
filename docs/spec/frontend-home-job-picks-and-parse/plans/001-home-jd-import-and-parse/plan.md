@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse
 
-> **版本**: 2.12
+> **版本**: 2.13
 > **状态**: completed
 > **更新日期**: 2026-07-09
 
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-本计划交付当前 Home + Parse 新建模拟面试入口，并在 v2.10 原地修订中把轮次假设升级为结构化 LLM/JD parse 合同：Parse 详情、Home 最近模拟面试卡片、Workspace 规划回访 handoff 和共享导航上下文必须使用同一份 TargetJob structured round mapper；卡片视觉仍复刻 UI 真理源，但轮次数量必须为 2~5，轮次类型、标题、时长和 focus 都必须来自后端保存的 `TargetJob.summary.interviewRounds[]`。v2.11 原地修订把 Home 最近模拟面试卡片和 workspace 面试列表卡片收敛到同一个 `MockInterviewCard` 主体：Home recent grid 使用固定最大列宽，workspace 只追加 footer CTA。本次 v2.12 原地修订要求 Home recent 继续复用 workspace 面试列表卡片动作模型：点击卡片主体进入统一规划详情，`立即面试` 主按钮直接启动 practice，但 Home 不展示删除按钮。用户从首页输入、上传或 URL 导入 JD，显式选择一份 ready 简历，进入统一详情页核对已保存的 JD、简历和由 LLM 推断的面试轮次；既有规划从 `workspace` 列表回访时也使用同一母版，不再出现第二套 workspace 当前规划详情页。
+本计划交付当前 Home + Parse 新建模拟面试入口，并在 v2.10 原地修订中把轮次假设升级为结构化 LLM/JD parse 合同：Parse 详情、Home 最近模拟面试卡片、Workspace 规划回访 handoff 和共享导航上下文必须使用同一份 TargetJob structured round mapper；卡片视觉仍复刻 UI 真理源，但轮次数量必须为 2~5，轮次类型、标题、时长和 focus 都必须来自后端保存的 `TargetJob.summary.interviewRounds[]`。v2.11 原地修订把 Home 最近模拟面试卡片和 workspace 面试列表卡片收敛到同一个 `MockInterviewCard` 主体：Home recent grid 使用固定最大列宽，workspace 只追加 footer CTA。本次 v2.12 原地修订要求 Home recent 继续复用 workspace 面试列表卡片动作模型：点击卡片主体进入统一规划详情，`立即面试` 主按钮直接启动 practice，但 Home 不展示删除按钮。v2.13 review remediation 要求 Home recent 只准入 ready TargetJob，并且 quick-start 必须把结构化 `roundId/roundName` 带入 practice route。用户从首页输入、上传或 URL 导入 JD，显式选择一份 ready 简历，进入统一详情页核对已保存的 JD、简历和由 LLM 推断的面试轮次；既有规划从 `workspace` 列表回访时也使用同一母版，不再出现第二套 workspace 当前规划详情页。
 
 交付后的当前链路：
 
@@ -34,7 +34,7 @@ UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-desig
 
 | operationId | Fixture | Frontend consumer | Backend owner | Persistence | AI dependency | Scenario |
 |-------------|---------|-------------------|---------------|-------------|---------------|----------|
-| `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` | Home recent mock interviews | `backend-targetjob` | TargetJob read | none in frontend | `E2E.P0.014` |
+| `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` | Home recent mock interviews, ready TargetJob only | `backend-targetjob` | TargetJob read | none in frontend | `E2E.P0.014` |
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home resume select + Parse readonly bound resume display | `backend-resume` | Resume read | none | `E2E.P0.015` / `E2E.P0.016` |
 | `createUploadPresign` | `openapi/fixtures/Uploads/createUploadPresign.json` | Home upload source | `backend-upload` | `file_objects` create | none | `E2E.P0.015` |
 | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | Home paste / file / URL import with selected `resumeId` | `backend-targetjob` | TargetJob create + target job-level resume binding + parse job | backend-only | `E2E.P0.015` |
@@ -57,7 +57,7 @@ UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-desig
 - paste 提交 `ImportTargetJobRequest.source.type=manual_text` + selected `resumeId`；upload 先 `createUploadPresign(purpose=target_job_attachment)`，再提交 `source.type=file` + selected `resumeId`；URL 提交 `source.type=url` + selected `resumeId`。
 - `createUploadPresign`、`importTargetJob` 都必须通过 generated client 发送，并携带 side-effect idempotency key。
 - 成功 import 后导航到 `parse`，params 必须包含 `targetJobId`、source 与真实 `resumeId`。
-- `listTargetJobs` 只渲染最近 3 张模拟面试卡片，排序按 `updatedAt desc`；卡片 grid 使用固定最大列宽，单卡不得被 `1fr` 拉伸；`MockInterviewCard` 主体也被 workspace 面试列表复用；Home 卡片点击主体进入统一规划详情，`立即面试` 主按钮启动 practice，且不展示删除按钮；`更多` 进入 `workspace`。
+- `listTargetJobs` 请求必须带 `analysisStatus=ready`，UI 层防御性排除 failed / processing / queued / 空标题 TargetJob，只渲染最近 3 张模拟面试卡片，排序按 `updatedAt desc`；卡片 grid 使用固定最大列宽，单卡不得被 `1fr` 拉伸；`MockInterviewCard` 主体也被 workspace 面试列表复用；Home 卡片点击主体进入统一规划详情，`立即面试` 主按钮启动 practice 并携带结构化 `roundId/roundName`，且不展示删除按钮；`更多` 进入 `workspace`。
 
 ### 4.2 Parse
 
@@ -232,7 +232,7 @@ Extend `MockInterviewCard` with reusable action props so Home can pass a quick-s
 
 #### 10.3 Regression gates
 
-Focused tests must prove Home recent cards show the quick-start action, do not show delete controls, and quick-start uses the generated practice handoff instead of navigating to the planning detail.
+Focused tests must prove Home recent cards show the quick-start action, do not show delete controls, request/filter ready TargetJob records only, and quick-start uses the generated practice handoff with structured `roundId/roundName` instead of navigating to the planning detail.
 
 ## 6 验收标准
 
@@ -242,13 +242,14 @@ Focused tests must prove Home recent cards show the quick-start action, do not s
 - Home import request bodies include the selected `resumeId`, and backend list/detail can recover the binding without depending on transient Parse route params.
 - Parse and workspace detail routes share the same "面试规划详情 / 面试上下文确认" page structure, copy, resume binding and action semantics; workspace no longer renders an independent full-page current-plan confirmation.
 - Parse round assumptions, Home recent mock rails and shared TargetJob navigation context display/use backend/LLM `TargetJob.summary.interviewRounds[]`; round count is 2~5, and type/name, duration and focus are not front-end fixed values.
-- Home recent mock cards and workspace plan-list cards share the same `MockInterviewCard` body, mini round rail, fixed max-width grid and quick-start action; Home omits delete controls while workspace includes them.
+- Home recent mock cards and workspace plan-list cards share the same `MockInterviewCard` body, mini round rail, fixed max-width grid and quick-start action; quick-start preserves structured `roundId/roundName`; Home omits delete controls while workspace includes them.
 - `sync-doc-index --check`、`make docs-check`、`git diff --check` 和 `make lint-core-loop-pruning-surface` 通过。
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-09 | 2.13 | Review remediation: constrain Home recent to ready TargetJobs and preserve structured round params in quick-start practice handoff. |
 | 2026-07-09 | 2.12 | Reopen owner plan so Home recent cards reuse the Interview list action card, show quick start, and omit delete. |
 | 2026-07-09 | 2.11 | Reopen owner plan to give Home recent cards a fixed max-width grid and share `MockInterviewCard` with the workspace plan list. |
 | 2026-07-09 | 2.10 | Reopen owner plan to upgrade round assumptions from string-only `interviewHypotheses` focus text to structured LLM-derived `interviewRounds[]` covering round count, type/name, duration and focus. |
