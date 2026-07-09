@@ -207,11 +207,14 @@ func TestE2EP0012HTTPParseFailureRetryableAndNonRetryable(t *testing.T) {
 			if outcome.Succeeded || outcome.ErrorCode != tc.wantCode || outcome.Retryable != tc.retryable {
 				t.Fatalf("unexpected finalize outcome: %+v", outcome)
 			}
-			detailRaw := h.doJSON(t, http.MethodGet, "/api/v1/targets/"+imported.TargetJobId, "", nil, http.StatusOK)
-			var detail api.TargetJob
-			decodeJSON(t, detailRaw, &detail)
-			if detail.AnalysisStatus != sharedtypes.TargetJobParseStatusFailed {
-				t.Fatalf("failed parse did not mark target failed: %+v", detail)
+			h.doJSON(t, http.MethodGet, "/api/v1/targets/"+imported.TargetJobId, "", nil, http.StatusNotFound)
+			listRaw := h.doJSON(t, http.MethodGet, "/api/v1/targets?pageSize=20", "", nil, http.StatusOK)
+			var list api.PaginatedTargetJob
+			decodeJSON(t, listRaw, &list)
+			for _, item := range list.Items {
+				if item.Id == imported.TargetJobId {
+					t.Fatalf("failed parse target must not be visible in list: %+v", list)
+				}
 			}
 			payload := h.store.lastFailedPayload()
 			var failed struct {
@@ -537,7 +540,7 @@ func (s *scenarioTargetJobStore) InsertTargetJobSource(context.Context, targetjo
 
 func (s *scenarioTargetJobStore) GetTargetJobByUser(_ context.Context, userID string, targetJobID string) (targetjob.TargetJobRecord, []targetjob.RequirementRecord, []targetjob.SourceRecord, error) {
 	rec, ok := s.targets[targetJobID]
-	if !ok || rec.UserID != userID {
+	if !ok || rec.UserID != userID || rec.AnalysisStatus == sharedtypes.TargetJobParseStatusFailed {
 		return targetjob.TargetJobRecord{}, nil, nil, targetjob.ErrTargetJobNotFound
 	}
 	return rec, append([]targetjob.RequirementRecord{}, s.requirements[targetJobID]...), append([]targetjob.SourceRecord{}, s.sources[targetJobID]...), nil
@@ -547,6 +550,9 @@ func (s *scenarioTargetJobStore) ListTargetJobsForUser(_ context.Context, userID
 	items := make([]targetjob.TargetJobRecord, 0, len(s.targets))
 	for _, rec := range s.targets {
 		if rec.UserID != userID {
+			continue
+		}
+		if rec.AnalysisStatus == sharedtypes.TargetJobParseStatusFailed {
 			continue
 		}
 		if filter.Status != nil && rec.Status != *filter.Status {
@@ -638,13 +644,12 @@ func (s *scenarioTargetJobStore) CompleteParseSuccess(_ context.Context, in targ
 }
 
 func (s *scenarioTargetJobStore) CompleteParseFailure(_ context.Context, in targetjob.CompleteParseFailureInput) error {
-	rec := s.targets[in.TargetJobID]
-	rec.AnalysisStatus = sharedtypes.TargetJobParseStatusFailed
-	rec.UpdatedAt = in.Now
-	s.targets[in.TargetJobID] = rec
 	payload := append([]byte{}, in.FailedEventPayload...)
 	s.failed = append(s.failed, payload)
 	s.outbox = append(s.outbox, payload)
+	delete(s.targets, in.TargetJobID)
+	delete(s.requirements, in.TargetJobID)
+	delete(s.sources, in.TargetJobID)
 	return nil
 }
 
@@ -729,11 +734,10 @@ func (s *scenarioTargetJobStore) GetTargetJobForParse(_ context.Context, targetJ
 	return rec, append([]targetjob.SourceRecord{}, s.sources[targetJobID]...), nil
 }
 
-func (s *scenarioTargetJobStore) UpdateTargetJobAnalysisFailure(_ context.Context, targetJobID string, now time.Time) error {
-	rec := s.targets[targetJobID]
-	rec.AnalysisStatus = sharedtypes.TargetJobParseStatusFailed
-	rec.UpdatedAt = now
-	s.targets[targetJobID] = rec
+func (s *scenarioTargetJobStore) UpdateTargetJobAnalysisFailure(_ context.Context, targetJobID string, _ time.Time) error {
+	delete(s.targets, targetJobID)
+	delete(s.requirements, targetJobID)
+	delete(s.sources, targetJobID)
 	return nil
 }
 

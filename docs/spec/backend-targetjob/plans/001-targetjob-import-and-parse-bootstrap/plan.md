@@ -1,6 +1,6 @@
 # TargetJob Import and Parse Bootstrap
 
-> **版本**: 1.8
+> **版本**: 1.10
 > **状态**: completed
 > **更新日期**: 2026-07-09
 
@@ -11,7 +11,9 @@
 
 ## 1 目标
 
-落地 P0 后端 TargetJob 域：把 [B2 OpenAPI](../../../openapi-v1-contract/spec.md) 已定义的 `importTargetJob` / `listTargetJobs` / `getTargetJob` / `updateTargetJob` 接到真实 handler / service / store，把 4 类导入源（`url` / `manual_text` / `file` / `manual_form`）写入 [B4 baseline](../../../db-migrations-baseline/spec.md) 的 `target_jobs` / `target_job_requirements` / `target_job_sources` 三张表，把 [B3](../../../event-and-outbox-contract/spec.md) 的 `target_import` 异步 job 通过 backend-internal goroutine drainer drain，并在事务内调用 [F3 RegistryClient](../../../prompt-rubric-registry/spec.md) `Resolve("target.import.parse", language)` + [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 完成 JD 解析，最后发出 `target.parsed` 或 `target.analysis.failed` 事件。
+落地 P0 后端 TargetJob 域：把 [B2 OpenAPI](../../../openapi-v1-contract/spec.md) 已定义的 `importTargetJob` / `listTargetJobs` / `getTargetJob` / `updateTargetJob` 接到真实 handler / service / store，把 4 类导入源（`url` / `manual_text` / `file` / `manual_form`）写入 [B4 baseline](../../../db-migrations-baseline/spec.md) 的 `target_jobs` / `target_job_requirements` / `target_job_sources` 三张表，把 [B3](../../../event-and-outbox-contract/spec.md) 的 `target_import` 异步 job 通过 backend-internal goroutine drainer drain，并在事务内调用 [F3 RegistryClient](../../../prompt-rubric-registry/spec.md) `Resolve("target.import.parse", language)` + [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 完成 JD 解析。解析成功发出 `target.parsed` 并保留 ready TargetJob；解析失败只发出 `target.analysis.failed` 诊断事件并删除失败 TargetJob 资产，不允许失败 JD 作为可继续规划持久化。
+
+本次 v1.10 原地修订修复解析失败准入缺口：`target_import` 失败事务必须删除 `target_jobs`，级联清理 source / requirements，保留 async job/outbox 失败证据；`listTargetJobs` / `getTargetJob` 不得再返回 `analysisStatus=failed` 的脏规划。
 
 本计划闭环后，[`frontend-home-job-picks-and-parse`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 的 parse 屏可从 mock fixture 切到真实 backend，剩余 Job Picks 推荐与 practice plan 创建归后续 plan / 后续 subspec。
 
@@ -123,7 +125,7 @@ F1 metrics dictionary 必须登记 `target_job_imports_total`、`target_job_pars
 
 #### 4.4 实现失败路径与 retryable 语义
 
-A3 / source 错误映射：`AI_PROVIDER_TIMEOUT` / `AI_FALLBACK_EXHAUSTED` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` → `retryable=true`；`AI_OUTPUT_INVALID` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID` / `TARGET_IMPORT_SOURCE_INVALID` → `retryable=false`。事务内更新 `target_jobs.analysis_status='failed'` 并写入 `target.analysis.failed` outbox 事件（`targetJobId / errorCode / retryable`）。失败不删除已写入的 `target_job_sources` 记录，保证用户可重新 import。
+A3 / source 错误映射：`AI_PROVIDER_TIMEOUT` / `AI_FALLBACK_EXHAUSTED` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` → `retryable=true`；`AI_OUTPUT_INVALID` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID` / `TARGET_IMPORT_SOURCE_INVALID` → `retryable=false`。失败事务内写入 `target.analysis.failed` outbox 事件（`targetJobId / errorCode / retryable`），随后删除失败 `target_jobs` 行并级联清理 `target_job_sources` / `target_job_requirements`，保证失败 JD 不作为可继续规划或列表资产持久化；用户重试必须重新 import。
 
 #### 4.5 占位 `source_refresh` 触发入口
 
@@ -141,6 +143,13 @@ A3 / source 错误映射：`AI_PROVIDER_TIMEOUT` / `AI_FALLBACK_EXHAUSTED` / `TA
 - `target_jobs.resume_id` stores the JD-level resume binding selected at Home import time. `listTargetJobs` / `getTargetJob` expose `TargetJob.resumeId` from this column, while `currentPracticePlanId` remains derived from the latest ready `practice_plans` row.
 - If a ready practice plan exists, its `resume_id` must match the target job binding for the plan card path; practice plan creation uses the route/context `resumeId` and the backend response continues to echo `PracticePlan.resumeId`.
 - Runtime smoke must prove the local DB row created from `importTargetJob` has `target_jobs.resume_id`, and `GET /targets` returns that value before any practice plan row exists.
+
+### Phase 10: Real-provider parse robustness remediation
+
+- `target.import.parse` success requires a non-empty `title`, but `companyName` is a display field that may be absent from valid JDs. Empty `companyName` must coalesce to a language-specific placeholder (`未提供` for `zh-*`, `Unknown company` otherwise) instead of failing the whole parse as `AI_OUTPUT_INVALID`.
+- A3 output-schema validation and TargetJob response decoding may normalize one provider deviation: a single complete JSON value wrapped in a markdown code fence. Prose before/after the fence or multiple JSON values remain invalid to preserve strict BUG-0095 behavior.
+- `cmd/api` TargetJob runtime must wrap parse AI with A3 observability and write `ai_task_runs` for `jd_parse`, including provider/model/status/validation status. Real-provider parse failures must have task-run evidence for diagnosis.
+- Runtime smoke must prove the screenshot class of JD imports reaches `analysisStatus='ready'`, persists fallback `companyName`, renders the parse route without `JD 解析失败`, and records a successful `ai_task_runs` row.
 
 ### Phase 5: Privacy / observability / idempotency redlines
 
@@ -214,24 +223,35 @@ AI parse 输出必须在写 DB 前严格校验：无有效 requirement、非法 
 
 #### 7.11 Retired `profile_id` schema-drift remediation
 
-TargetJob store / service / handler / drainer 所有 active SQL 必须与当前 B4 `target_jobs` 表结构一致，不得继续 select / insert / scan 已退役 profile 模块的 `profile_id` 列。验证必须覆盖 sqlmock 列集合、真实 Postgres integration gate，以及截图同款 `GET /targets/{id}` 失败态详情读取：解析失败且无 requirements 时应返回 200 + `analysisStatus='failed'`，而不是 `TARGET_IMPORT_FAILED` 500。
+TargetJob store / service / handler / drainer 所有 active SQL 必须与当前 B4 `target_jobs` 表结构一致，不得继续 select / insert / scan 已退役 profile 模块的 `profile_id` 列。验证必须覆盖 sqlmock 列集合与真实 Postgres integration gate；解析失败资产由 Phase 11 删除，`GET /targets/{id}` 应返回 404 + `TARGET_JOB_NOT_FOUND`，而不是暴露 failed TargetJob 或旧列漂移 500。
 
 #### 7.12 Required integration gate skip-proof remediation
 
-BUG-0142 的真实 Postgres gate 是强制 schema-drift 防线，不得在缺少 `DATABASE_URL`、DB 不可达或 focused test 未执行时以 `SKIP` / `no tests to run` 形式整体 PASS。`TestSQLStoreIntegration_GetTargetJobByUser_AllowsFailedJobWithoutRequirements` 必须 fail fast 暴露环境缺口；验证记录必须同时包含缺 DB 时的失败证据与真实 DB 下的通过证据，防止后续把可选 integration smoke 当成强制 gate。
+BUG-0142 的真实 Postgres gate 是强制 schema-drift 防线，不得在缺少 `DATABASE_URL`、DB 不可达或 focused test 未执行时以 `SKIP` / `no tests to run` 形式整体 PASS。该 gate 已随 Phase 11 准入语义改为 `TestSQLStoreIntegration_CompleteParseFailureDeletesTargetAndSources`：既要 fail fast 暴露环境缺口，也要在真实 DB 下证明失败解析写出 `target.analysis.failed` 后删除 `target_jobs` 并级联 source / requirements，防止后续把可选 integration smoke 当成强制 gate。
+
+### Phase 11: Parse failure admission remediation
+
+#### 11.1 Failure commit deletes failed TargetJob assets
+
+`CompleteParseFailure` 必须在同一事务中写入 `target.analysis.failed` outbox 后删除失败 `target_jobs` 行，依赖现有 FK cascade 删除 `target_job_sources` / `target_job_requirements`。失败证据只保留在 async job/outbox 中，用户重试必须通过新的 import 创建新的 `targetJobId`。验证必须覆盖 SQL store 事务、ParseExecutor 失败路径、cmd/api HTTP 场景中失败后详情 404 / 列表不可见。
+
+#### 11.2 Read-side and frontend defense alignment
+
+后端 read-side 不允许返回失败解析资产；前端 `WorkspacePlanList` / `PlanSwitcherModal` 仍必须请求 `analysisStatus=ready` 并过滤空标题作为防御，避免历史脏数据或非当前环境回灌到面试列表。验证必须覆盖 `listTargetJobs` query filter、failed / blank title negative card、TopBar 空参数回到列表而不是复用 stale context。
 
 ## 5 验收标准
 
 - Phase 0 owner contract gates 通过：B1/B2 codegen drift clean，TargetJobs fixture scenarios schema-valid，B3 sourceType mapping lint clean，F1 TargetJob metrics registry tests 通过。
 - 4 个 TargetJob operation 的 handler / service / store focused Go tests 全部通过；URL fetcher SSRF / length / timeout / redirect / metadata-IP 矩阵全部覆盖；drainer drain / shutdown / pending-on-restart tests 通过。
-- 异步解析成功 / 失败（retryable / non-retryable）路径事务一致；outbox 在事务内写入 `target.import.requested` / `target.parsed` / `target.analysis.failed`，并写入下游 internal-only `source_refresh` 占位 job。
+- 异步解析成功 / 失败（retryable / non-retryable）路径事务一致；outbox 在事务内写入 `target.import.requested` / `target.parsed` / `target.analysis.failed`，成功路径写入下游 internal-only `source_refresh` 占位 job；失败路径删除失败 TargetJob 资产，`listTargetJobs` / `getTargetJob` 均不可返回失败解析产物。
 - F3 Resolve fail-closed 与 A3 缺 secret fail-closed 路径覆盖；除 `APP_ENV=test` 外不静默回退 stub。
 - TargetJob handler 错误响应符合 generated `ApiErrorResponse`，`listTargetJobs.pageInfo.pageSize` 符合 B1/B2 envelope，AI parse 输出无有效 requirement 或非法字段时走 `AI_OUTPUT_INVALID`。
 - privacy grep 0 命中 `raw_jd_text` / `source_url` 完整 URL / 文件 URL / prompt / response / `Authorization:` 等敏感模式。
 - F1 metric registry preflight 通过；`make codegen-events` / `make codegen-conventions` / `make codegen-openapi` / `make validate-fixtures` / `make migrations_lint` / `make lint-config` / `make lint-events` / `make docs-check` 全绿。
 - BDD-Gate `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 全部通过，verify 输出可追溯证据；包级 `go test` 代理证据不得作为该 gate 的完成依据。
-- TargetJob active SQL 与当前 B4 schema 对齐，`rg "profile_id|ProfileID|profileID" backend/internal/targetjob ...` 无命中，真实 Postgres integration gate 覆盖失败态无 requirements 的 `GetTargetJobByUser`，缺 DB 时 fail fast 而不是 `SKIP` 假绿，本地 host-run backend 上 `GET /targets/{id}` 不再返回 500。
+- TargetJob active SQL 与当前 B4 schema 对齐，`rg "profile_id|ProfileID|profileID" backend/internal/targetjob ...` 无命中，真实 Postgres integration gate 覆盖 ready TargetJob 详情与失败后 404 行为，缺 DB 时 fail fast 而不是 `SKIP` 假绿，本地 host-run backend 上解析失败后的 `GET /targets/{id}` 不再返回可见 failed 资产。
 - TargetJob import/list/get persist and expose the JD-level resume binding: `ImportTargetJobRequest.resumeId` is required, `target_jobs.resume_id` is non-null for created rows, and list/detail responses keep `TargetJob.resumeId` present even when no `practice_plans` row exists.
+- Valid JDs that omit company names parse successfully with a language-specific fallback company display value, strict fenced-JSON-only normalization, `ai_task_runs` evidence, and real browser proof that `/parse` no longer renders `JD 解析失败`.
 - Active-scope 负向搜索 0 命中已丢弃模块 / route / capability。
 
 ## 6 风险与应对

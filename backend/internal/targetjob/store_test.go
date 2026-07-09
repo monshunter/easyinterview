@@ -206,55 +206,20 @@ func TestSQLStore_GetTargetJobByUser_ReturnsRecordWithRequirementsAndSources(t *
 	}
 }
 
-func TestSQLStore_GetTargetJobByUser_AllowsFailedJobWithoutParsedSummaries(t *testing.T) {
+func TestSQLStore_GetTargetJobByUser_HidesFailedAnalysisRows(t *testing.T) {
 	store, mock, cleanup := newMockStore(t)
 	defer cleanup()
 
-	now := time.Date(2026, 7, 8, 16, 10, 0, 0, time.UTC)
-	rows := sqlmock.NewRows([]string{
-		"id", "user_id", "status", "analysis_status", "title", "company_name", "location_text",
-		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
-		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
-		"resume_id", "current_practice_plan_id", "created_at", "updated_at",
-	}).AddRow(
-		"018f2a40-0000-7000-9000-0000000000a1",
-		"018f2a40-0000-7000-9000-0000000000b1",
-		"draft", "failed",
-		"Backend Engineer", "Acme", nil, nil, nil,
-		"zh-CN", "manual_text", nil, nil,
-		"raw jd", nil, nil, nil, nil, int32(0),
-		"018f2a40-0000-7000-9000-0000000000r1", nil,
-		now, now,
-	)
-	mock.ExpectQuery(`from target_jobs\s+where id = \$1 and user_id = \$2 and deleted_at is null`).
+	mock.ExpectQuery(`from target_jobs\s+where id = \$1 and user_id = \$2 and deleted_at is null and analysis_status <> 'failed'`).
 		WithArgs("018f2a40-0000-7000-9000-0000000000a1", "018f2a40-0000-7000-9000-0000000000b1").
-		WillReturnRows(rows)
-	mock.ExpectQuery(`from target_job_requirements`).
-		WithArgs("018f2a40-0000-7000-9000-0000000000a1").
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "target_job_id", "kind", "label", "description", "evidence_level", "display_order", "created_at",
-		}))
-	mock.ExpectQuery(`from target_job_sources`).
-		WithArgs("018f2a40-0000-7000-9000-0000000000a1").
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "target_job_id", "source_type", "url", "file_object_id", "snapshot_text", "fetched_at", "freshness_status", "created_at",
-		}))
+		WillReturnError(sql.ErrNoRows)
 
-	got, reqs, sources, err := store.GetTargetJobByUser(context.Background(),
+	_, _, _, err := store.GetTargetJobByUser(context.Background(),
 		"018f2a40-0000-7000-9000-0000000000b1",
 		"018f2a40-0000-7000-9000-0000000000a1",
 	)
-	if err != nil {
-		t.Fatalf("GetTargetJobByUser failed job with nil summaries: %v", err)
-	}
-	if got.AnalysisStatus != sharedtypes.TargetJobParseStatusFailed {
-		t.Fatalf("expected failed analysis status, got %+v", got)
-	}
-	if got.Summary != nil || got.FitSummary != nil {
-		t.Fatalf("expected nil summaries for failed parse, got summary=%q fitSummary=%q", got.Summary, got.FitSummary)
-	}
-	if len(reqs) != 0 || len(sources) != 0 {
-		t.Fatalf("expected empty joined rows, got reqs=%+v sources=%+v", reqs, sources)
+	if !errors.Is(err, targetjob.ErrTargetJobNotFound) {
+		t.Fatalf("expected failed analysis row to be hidden, got %v", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
@@ -310,7 +275,7 @@ func TestSQLStore_ListTargetJobsForUser_AppliesFiltersAndClampsPageSize(t *testi
 		)
 	}
 
-	mock.ExpectQuery(`from target_jobs\s+where user_id = \$1 and deleted_at is null and status = \$2 and analysis_status = \$3 and to_tsvector\('simple'.*plainto_tsquery\('simple', \$4\)\s+order by updated_at desc, id desc\s+limit \$5`).
+	mock.ExpectQuery(`from target_jobs\s+where user_id = \$1 and deleted_at is null and analysis_status <> 'failed' and status = \$2 and analysis_status = \$3 and to_tsvector\('simple'.*plainto_tsquery\('simple', \$4\)\s+order by updated_at desc, id desc\s+limit \$5`).
 		WithArgs(
 			"018f2a40-0000-7000-9000-0000000000b1",
 			"preparing",
@@ -373,7 +338,7 @@ func TestSQLStore_ListTargetJobsForUser_PaginationCursorOnOverflow(t *testing.T)
 		)
 	}
 
-	mock.ExpectQuery(`from target_jobs\s+where user_id = \$1 and deleted_at is null\s+order by updated_at desc, id desc\s+limit \$2`).
+	mock.ExpectQuery(`from target_jobs\s+where user_id = \$1 and deleted_at is null and analysis_status <> 'failed'\s+order by updated_at desc, id desc\s+limit \$2`).
 		WithArgs("018f2a40-0000-7000-9000-0000000000b1", int(3)).
 		WillReturnRows(rows)
 
@@ -831,7 +796,7 @@ func TestSQLStore_CompleteParseSuccess_RollsBackWhenParsedOutboxInsertFails(t *t
 	}
 }
 
-func TestSQLStore_CompleteParseFailure_WritesFailedStateAndOutboxAtomically(t *testing.T) {
+func TestSQLStore_CompleteParseFailure_DeletesFailedTargetAndWritesOutboxAtomically(t *testing.T) {
 	store, mock, cleanup := newMockStore(t)
 	defer cleanup()
 
@@ -839,9 +804,6 @@ func TestSQLStore_CompleteParseFailure_WritesFailedStateAndOutboxAtomically(t *t
 	targetID := "018f2a40-0000-7000-9000-0000000000a1"
 
 	mock.ExpectBegin()
-	mock.ExpectExec(`update target_jobs\s+set analysis_status = 'failed', updated_at = \$1\s+where id = \$2 and deleted_at is null`).
-		WithArgs(now, targetID).
-		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`insert into outbox_events`).
 		WithArgs(
 			"018f2a40-0000-7000-9000-0000000000e2",
@@ -850,6 +812,9 @@ func TestSQLStore_CompleteParseFailure_WritesFailedStateAndOutboxAtomically(t *t
 			[]byte(`{"targetJobId":"018f2a40-0000-7000-9000-0000000000a1","errorCode":"AI_OUTPUT_INVALID"}`),
 			now,
 		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`delete from target_jobs\s+where id = \$1 and deleted_at is null`).
+		WithArgs(targetID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 

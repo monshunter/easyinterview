@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/outputschema"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
@@ -185,9 +186,9 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 		return p.fail(ctx, targetJobID, sharederrors.CodeAiOutputInvalid, err.Error(), false)
 	}
 	parsed.Title = strings.TrimSpace(parsed.Title)
-	parsed.CompanyName = strings.TrimSpace(parsed.CompanyName)
-	if parsed.Title == "" || parsed.CompanyName == "" {
-		return p.fail(ctx, targetJobID, sharederrors.CodeAiOutputInvalid, "AI output missing title or companyName", false)
+	parsed.CompanyName = coalesceCompanyName(parsed.CompanyName, target.TargetLanguage)
+	if parsed.Title == "" {
+		return p.fail(ctx, targetJobID, sharederrors.CodeAiOutputInvalid, "AI output missing title", false)
 	}
 
 	requirements, err := buildRequirements(parsed.Requirements, p.newID)
@@ -360,7 +361,7 @@ func translateAIClientError(err error) (string, bool) {
 // as AI_OUTPUT_INVALID upstream.
 func decodeParseResponse(content string) (parseAIResponse, error) {
 	var out parseAIResponse
-	content = strings.TrimSpace(content)
+	content = outputschema.NormalizeJSONContent(content)
 	if content == "" {
 		return parseAIResponse{}, fmt.Errorf("AI response content was empty")
 	}
@@ -454,6 +455,16 @@ func coalesceFlag(v string) string {
 		return "none"
 	}
 	return v
+}
+
+func coalesceCompanyName(companyName string, language string) string {
+	if companyName = strings.TrimSpace(companyName); companyName != "" {
+		return companyName
+	}
+	if strings.HasPrefix(strings.ToLower(strings.TrimSpace(language)), "zh") {
+		return "未提供"
+	}
+	return "Unknown company"
 }
 
 func safeFailureMessage(code, msg string) string {

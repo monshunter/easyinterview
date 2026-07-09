@@ -1,8 +1,8 @@
 # Backend TargetJob BDD Checklist
 
-> **版本**: 1.4
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-05-21
+> **更新日期**: 2026-07-09
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -14,6 +14,8 @@
 - [x] 断言 outbox 中存在 `target.import.requested` 与 `target.parsed`，且 payload 不含 `raw_jd_text` / 完整 URL / prompt body
 - [x] 执行并通过场景验证，记录 `.test-output/runs/.../E2E.P0.010/result.json` 证据
   <!-- verified: 2026-05-08 method=cmd-api-http run=targetjob-http-20260508 validBddEvidence=true -->
+- [x] BUG-0146 C-16 regression: valid real-provider manual_text JD without company name parses ready, uses fallback company display, renders authenticated `/parse` without `JD 解析失败`, and records `ai_task_runs` jd_parse evidence
+  <!-- verified: 2026-07-09 method=local-real-provider-browser targetJobId=019f44a1-b43e-754f-ba0b-3cd9ed11ce1f evidence=analysisStatus=ready companyName=未提供 title=AI应用技术负责人 browserRoute=route-parse aiTaskRun=success -->
 
 ## E2E.P0.011 URL JD import 守护与抓取
 
@@ -28,10 +30,12 @@
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-012-targetjob-parse-failure-retryable/`，并在 `test/scenarios/e2e/INDEX.md` 添加 `E2E.P0.012` 行（关联需求：backend-targetjob C-4/C-5/C-10）
 - [x] 准备测试数据：可注入失败的 stub provider（`AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID`）、F3 unsupported / disabled profile 配置 fixture、已存在的 manual_text TargetJob、cookie jar、`Idempotency-Key`
-- [x] 实现 setup / trigger / verify / cleanup：start auth → 注入 `AI_PROVIDER_TIMEOUT` → import → drainer drain → 验证 `target.analysis.failed.retryable=true` 与 `analysis_status='failed'`；切换 stub 到 `AI_OUTPUT_INVALID` → 重新 import → 验证 `retryable=false`；切换 F3 `target.import.parse` 为 disabled / unsupported → 验证 import 启动 / drainer 阶段 fail-closed；切换 A3 缺 secret / config invalid → 验证 `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID`
-- [x] 断言 error envelope / log / metric label / audit / outbox payload 不含 prompt body、response body、provider secret、`Authorization:` 等敏感模式；失败 TargetJob 的 `target_job_sources` 行保留以便用户重试
+- [x] 实现 setup / trigger / verify / cleanup：start auth → 注入 `AI_PROVIDER_TIMEOUT` → import → drainer drain → 验证 `target.analysis.failed.retryable=true`、`GET /targets/{id}` 返回 404 且 `GET /targets` 不含失败 job；切换 stub 到 `AI_OUTPUT_INVALID` → 重新 import → 验证 `retryable=false` 与同样的不可见资产语义；切换 F3 `target.import.parse` 为 disabled / unsupported → 验证 import 启动 / drainer 阶段 fail-closed；切换 A3 缺 secret / config invalid → 验证 `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID`
+- [x] 断言 error envelope / log / metric label / audit / outbox payload 不含 prompt body、response body、provider secret、`Authorization:` 等敏感模式；失败 TargetJob / source / raw JD 不作为可继续规划资产持久化，用户重试必须重新 import
 - [x] 执行并通过场景验证，记录 `.test-output/runs/.../E2E.P0.012/result.json` 证据
   <!-- verified: 2026-05-08 method=cmd-api-http run=targetjob-http-20260508 validBddEvidence=true -->
+- [x] Revision 2026-07-09 trigger covers parse-failure admission: failed imports emit `target.analysis.failed` but `GET /targets/{id}` is 404 and `GET /targets` excludes the failed job.
+- [x] Revision 2026-07-09 verify covers failed TargetJob deletion / no dirty interview-list admission / no prompt-response or raw JD leakage.
 
 ## E2E.P0.013 Manual form import ready 直达
 

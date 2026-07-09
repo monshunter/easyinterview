@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"io"
@@ -964,6 +965,90 @@ ai:
 	}
 }
 
+func TestBuildTargetJobRuntimeWrapsParseAIWithObservability(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock.New: %v", err)
+	}
+	defer db.Close()
+
+	dir := t.TempDir()
+	providersPath := filepath.Join(dir, "ai-providers.yaml")
+	profilesPath := filepath.Join(dir, "ai-profiles.yaml")
+	writeAPIFile(t, providersPath, `
+providers:
+  - name: unit-test-stub
+    protocol: stub
+    capabilities: [chat]
+    version: 1.0.0
+`)
+	writeAPIFile(t, profilesPath, `
+profiles:
+  - name: target.import.default
+    capability: chat
+    status: active
+    default:
+      provider_ref: unit-test-stub
+      model: stub-chat
+    fallback: []
+    timeout_ms: 1000
+    max_tokens: 256
+    rate_limit:
+      rps: 1
+      tpm: 1000
+    route: target.import
+    version: 1.0.0
+`)
+	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+ai:
+  providerRegistryPath: "`+providersPath+`"
+  modelProfilePath: "`+profilesPath+`"
+  promptsDir: "`+promptsDir+`"
+  rubricsDir: "`+rubricsDir+`"
+  debugPrintRawOutput: false
+`)
+	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	mock.ExpectExec("insert into ai_task_runs").
+		WithArgs(anySQLArgs(30)...).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	runtime, err := buildTargetJobRuntime(loader, db, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+	if err != nil {
+		t.Fatalf("buildTargetJobRuntime: %v", err)
+	}
+	defer runtime.Close()
+
+	_, _, err = runtime.ParseAI.Complete(context.Background(), "target.import.default", aiclient.CompletePayload{
+		Messages: []aiclient.Message{{Role: "user", Content: "Backend Engineer JD"}},
+		Metadata: aiclient.CallMetadata{
+			FeatureKey:        targetjob.FeatureKeyTargetImportParse,
+			PromptVersion:     "v0.1.0",
+			RubricVersion:     "v0.1.0",
+			Language:          "en",
+			FeatureFlag:       "none",
+			DataSourceVersion: "test",
+			TaskRun: aiclient.AITaskRunContext{
+				Capability:   aiclient.AITaskRunTaskJDParse,
+				ResourceType: aiclient.AITaskRunResourceTargetJob,
+				ResourceID:   "019f4495-1057-72ab-942b-687d0ca4e818",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("observed target import parse fixture: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestBuildTargetJobRuntimeRegistersPrivacyDeleteHandler(t *testing.T) {
 	dir := t.TempDir()
 	providersPath := filepath.Join(dir, "ai-providers.yaml")
@@ -1015,6 +1100,14 @@ ai:
 	if !runtime.Handles(string(jobs.JobTypePrivacyDelete)) {
 		t.Fatalf("runtime does not contribute handler for %s", jobs.JobTypePrivacyDelete)
 	}
+}
+
+func anySQLArgs(count int) []driver.Value {
+	args := make([]driver.Value, count)
+	for i := range args {
+		args[i] = sqlmock.AnyArg()
+	}
+	return args
 }
 
 func TestPrivacyDeleteRemovesAccountIdentityAfterJobCompletion(t *testing.T) {

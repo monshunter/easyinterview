@@ -23,6 +23,9 @@ func TestValidate(t *testing.T) {
 		{"wrong type", objectSchema, `{"a":123}`, true},
 		{"empty content", objectSchema, ``, true},
 		{"trailing tokens", objectSchema, `{"a":"hello"} {"a":"again"}`, true},
+		{"markdown fenced object", objectSchema, "```json\n{\"a\":\"hello\"}\n```", false},
+		{"markdown fenced object with prose rejected", objectSchema, "Here is the JSON:\n```json\n{\"a\":\"hello\"}\n```", true},
+		{"markdown fenced object with trailing prose rejected", objectSchema, "```json\n{\"a\":\"hello\"}\n```\nDone.", true},
 		{"array of objects", json.RawMessage(`{"type":"array","items":{"type":"object","required":["k"],"properties":{"k":{"type":"string"}}}}`), `[{"k":"v"}]`, false},
 		{"array item invalid", json.RawMessage(`{"type":"array","items":{"type":"object","required":["k"]}}`), `[{"other":"v"}]`, true},
 	}

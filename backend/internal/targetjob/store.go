@@ -176,7 +176,7 @@ type CompleteParseSuccessInput struct {
 }
 
 // CompleteParseFailureInput is the parse executor's failure-side commit
-// bundle. The analysis_status flip and target.analysis.failed outbox event
+// bundle. The target.analysis.failed outbox event and failed target deletion
 // are written atomically so consumers never observe split-brain state.
 type CompleteParseFailureInput struct {
 	TargetJobID        string
@@ -457,7 +457,7 @@ select id, user_id, status, analysis_status, title, company_name, location_text,
        ) as current_practice_plan_id,
        created_at, updated_at
 from target_jobs
-where id = $1 and user_id = $2 and deleted_at is null`,
+where id = $1 and user_id = $2 and deleted_at is null and analysis_status <> 'failed'`,
 		targetJobID,
 		userID,
 	).Scan(
@@ -544,7 +544,7 @@ func (s *SQLStore) ListTargetJobsForUser(ctx context.Context, userID string, fil
 		}
 	)
 	args = append(args, userID)
-	clauses = append(clauses, "user_id = $1", "deleted_at is null")
+	clauses = append(clauses, "user_id = $1", "deleted_at is null", "analysis_status <> 'failed'")
 	if filter.Status != nil {
 		clauses = append(clauses, "status = "+nextArg(string(*filter.Status)))
 	}
@@ -913,15 +913,16 @@ func (s *SQLStore) CompleteParseFailure(ctx context.Context, in CompleteParseFai
 	}
 	defer tx.Rollback()
 
+	if err := s.writeOutboxTx(ctx, tx, in.FailedEventID, string(events.EventNameTargetAnalysisFailed), in.TargetJobID, in.FailedEventPayload, in.Now); err != nil {
+		return err
+	}
 	res, err := tx.ExecContext(ctx, `
-update target_jobs
-set analysis_status = 'failed', updated_at = $1
-where id = $2 and deleted_at is null`,
-		in.Now,
+delete from target_jobs
+where id = $1 and deleted_at is null`,
 		in.TargetJobID,
 	)
 	if err != nil {
-		return fmt.Errorf("update target_jobs analysis_status=failed: %w", err)
+		return fmt.Errorf("delete failed target_job: %w", err)
 	}
 	rows, err := res.RowsAffected()
 	if err != nil {
@@ -929,9 +930,6 @@ where id = $2 and deleted_at is null`,
 	}
 	if rows == 0 {
 		return ErrTargetJobNotFound
-	}
-	if err := s.writeOutboxTx(ctx, tx, in.FailedEventID, string(events.EventNameTargetAnalysisFailed), in.TargetJobID, in.FailedEventPayload, in.Now); err != nil {
-		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit complete parse failure: %w", err)
@@ -1510,21 +1508,21 @@ where id = $1 and deleted_at is null`,
 	return rec, sources, nil
 }
 
-// UpdateTargetJobAnalysisFailure flips analysis_status to 'failed' on the
-// target_jobs row without touching summary / fit_summary.
-func (s *SQLStore) UpdateTargetJobAnalysisFailure(ctx context.Context, targetJobID string, now time.Time) error {
+// UpdateTargetJobAnalysisFailure removes a failed parse asset. New parse
+// executor code uses CompleteParseFailure so the failure event and deletion
+// stay atomic; this legacy helper keeps older callers from persisting failed
+// TargetJobs.
+func (s *SQLStore) UpdateTargetJobAnalysisFailure(ctx context.Context, targetJobID string, _ time.Time) error {
 	if err := s.checkDB(); err != nil {
 		return err
 	}
 	_, err := s.db.ExecContext(ctx, `
-update target_jobs
-set analysis_status = 'failed', updated_at = $1
-where id = $2 and deleted_at is null`,
-		now,
+delete from target_jobs
+where id = $1 and deleted_at is null`,
 		targetJobID,
 	)
 	if err != nil {
-		return fmt.Errorf("update target_jobs analysis_status=failed: %w", err)
+		return fmt.Errorf("delete failed target_job: %w", err)
 	}
 	return nil
 }

@@ -825,6 +825,16 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 	if targetjob.IsTestAppEnv(loader.AppEnv()) {
 		parseAI = targetjob.NewDeterministicParseAIClient(parseAI)
 	}
+	taskRuns := storeai.NewTaskRunWriter(db)
+	if db != nil {
+		wrapped, err := observability.New(parseAI,
+			aiObservabilityOptions(loader, taskRuns, aiRuntime.Client.Resolver())...,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("build targetjob AI observability: %w", err)
+		}
+		parseAI = wrapped
+	}
 
 	registryClient, err := registry.NewRegistryClient(registry.RegistryOptions{
 		PromptsDir: registryDirOrDefault(loader, "ai.promptsDir", "config/prompts"),

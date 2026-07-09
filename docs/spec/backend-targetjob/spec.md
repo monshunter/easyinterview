@@ -1,8 +1,8 @@
 # Backend TargetJob Spec
 
-> **版本**: 2.0
+> **版本**: 2.2
 > **状态**: active
-> **更新日期**: 2026-07-08
+> **更新日期**: 2026-07-09
 
 ## 1 背景与目标
 
@@ -30,7 +30,7 @@
 - Idempotency：`importTargetJob` / `updateTargetJob` 必须按 `(user_id, idempotency_key)` 去重；同 key 重复请求返回同一 `targetJobId` / 同一 `target_import` job，不创建多余记录或多余 job。
 - 隐私 / 观测红线：`raw_jd_text`、`source_url` 完整 query 串、文件对象 URL、AI prompt body / response body、provider secret 不进入 log / metric label / audit / 事件 payload；只允许 hash、长度、status、profile、provider、cost micros、error code 摘要。
 - F1 metric 注册边界：所有新增的 target-job metric / audit 类型必须先在 [F1 `observability-stack`](../observability-stack/spec.md) baseline 字典登记或由 F1 owner 承接，不得在本域私造 metric / label。
-- 解析失败语义：AI 调用失败、超时、provider 缺 secret、URL fetch 失败、超长输入、空白文本都必须映射到 B1 共享错误码 `AI_*` / `TARGET_*`，并通过 `target.analysis.failed` 事件 + `target_jobs.analysis_status='failed'` 写入；retryable 标志必须与 A3 / B1 错误码语义一致。实施前 Phase 0 必须先把本 spec 需要的 TargetJob 错误码同步到 B1/B2 可执行契约。
+- 解析失败准入语义：AI 调用失败、超时、provider 缺 secret、URL fetch 失败、超长输入、空白文本都必须映射到 B1 共享错误码 `AI_*` / `TARGET_*`，并通过 `target.analysis.failed` 事件保留失败诊断；失败解析不得留下可见 TargetJob / JD 资产，`target_jobs` 与级联 source / requirement 行必须在失败提交事务中删除，`GET /targets` 与 `GET /targets/{id}` 不得返回失败解析产物。retryable 标志必须与 A3 / B1 错误码语义一致。实施前 Phase 0 必须先把本 spec 需要的 TargetJob 错误码同步到 B1/B2 可执行契约。
 
 ### 2.2 Out of Scope
 
@@ -93,6 +93,7 @@
 - `target_job_sources.freshness_status` 默认 `fresh`，URL 抓取后写 `fetched_at`、sanitized `url` 与 `snapshot_text`；后续 internal-only `source_refresh` job 由 `target.parsed` 触发，本 plan 仅保证占位入口可观测，不实现真实抓取刷新。
 - TargetJob store / handler / runner SQL 只能引用当前 B4 `target_jobs` 表真实列；退役 profile 模块的 `profile_id` 不得出现在 active TargetJob 读写路径、sqlmock 列集合或 integration gate 中。
 - 软删：`deleted_at IS NOT NULL` 的 `target_jobs` 不参与列表 / 详情 / 解析；查询必须显式过滤。
+- `target.import.parse` 输出的 `title` 是必需岗位身份；`companyName` 是可选展示字段。JD 未披露公司名时，parse success path 必须写入语言相关兜底展示值（`zh-*` 为 `未提供`，其他语言为 `Unknown company`），不得把有效 JD 标记为 `AI_OUTPUT_INVALID`。
 
 ### 4.3 安全 / 隐私约束
 
@@ -106,6 +107,7 @@
 
 - 必须复用 [backend-auth](../backend-auth/spec.md) 同款 backend-internal goroutine drainer 模式，drainer 必须有 graceful shutdown / drain timeout 测试。
 - AI 调用与 outbox 写入必须可观测：`target_job_imports_total` / `target_job_parse_duration_seconds` / `target_job_parse_failures_total` 等 metric 名实施前先在 [F1 baseline](../observability-stack/spec.md) 字典登记；label 仅使用 F1 allowed labels，`error_code` 来自 B1，`source_type` 来自 B2/B3 有界枚举。
+- `cmd/api` TargetJob parse AI runtime 必须复用 A3 observability decorator 并写入 `ai_task_runs`，记录 task type、resource id、provider/model、status、validation status 与错误摘要；真实 provider 失败不得缺少 task-run 证据。
 - 解析延迟 P95 要求作为观测目标登记，但不作为本 plan 验收 gate；评估在后续质量 / SLO plan 决策。
 
 ### 4.5 文档治理约束
@@ -138,8 +140,8 @@
 | C-1 | TargetJob 文本导入 | 已登录用户提交 `manual_text` JD 与 `targetLanguage` | `POST /targets/import` | 返回 202 + `TargetJobWithJob`，DB 写入 `target_jobs` + `target_job_sources`，派发 `target_import` job，发出 `target.import.requested` | 001 |
 | C-2 | URL 导入与抓取 | 用户提交合规 `https` JD URL | `POST /targets/import` 后 drainer 处理 | URL 抓取受 SSRF / 长度 / timeout 守护，snapshot 写入 `target_job_sources.fetched_at` / `freshness_status`，敏感 query 串不入库 / 不入日志 | 001 |
 | C-3 | 异步解析成功 | `target_import` job 入队，F3 / A3 active | drainer 处理 job | 业务侧 Resolve `target.import.parse` → A3 `Complete` → 写入 requirements + summary + fit + provenance，事务内 `analysis_status='ready'`，发出 `target.parsed` | 001 |
-| C-4 | 异步解析失败 retryable | 解析过程 A3 返回 `AI_PROVIDER_TIMEOUT` | drainer 处理 job | `analysis_status='failed'`，事件 `target.analysis.failed.retryable=true`，error envelope / log 不含 prompt / response 明文 | 001 |
-| C-5 | 解析失败 non-retryable | 解析返回 `AI_OUTPUT_INVALID` 或 `TARGET_IMPORT_SOURCE_INVALID` | drainer 处理 job | `analysis_status='failed'`，事件 `retryable=false`，UI 可展示用户级提示 | 001 |
+| C-4 | 异步解析失败 retryable | 解析过程 A3 返回 `AI_PROVIDER_TIMEOUT` | drainer 处理 job | 失败事务写入 `target.analysis.failed.retryable=true` 并删除失败 TargetJob 资产；`GET /targets` 不返回该 job，`GET /targets/{id}` 返回 404 + `TARGET_JOB_NOT_FOUND`；error envelope / log 不含 prompt / response 明文 | 001 |
+| C-5 | 解析失败 non-retryable | 解析返回 `AI_OUTPUT_INVALID` 或 `TARGET_IMPORT_SOURCE_INVALID` | drainer 处理 job | 失败事务写入 `target.analysis.failed.retryable=false` 并删除失败 TargetJob 资产；失败 JD 原文、空标题、source snapshot 不作为可继续规划持久化，用户重试必须重新 import 创建新 `targetJobId` | 001 |
 | C-6 | 列表与游标 | 用户已有多个 TargetJob，含不同 `status` / `analysisStatus` | `GET /targets` 携带过滤 + cursor | 仅返回当前用户的活跃记录，按 `updated_at DESC` 排序，分页字段符合 `PaginatedTargetJob` | 001 |
 | C-7 | 详情与状态更新 | 用户拥有某 `targetJobId` | `GET /targets/{id}` + `PATCH /targets/{id}` | 详情包含 requirements / summary / fitSummary / provenance；patch 验证状态机迁移合法并要求 `Idempotency-Key` | 001 |
 | C-8 | Cross-user 隔离 | 用户 A 持有 jobX，用户 B 携带相同 `Idempotency-Key` 与不同 source 调 import / get / patch | 用户 B 调用 4 个 operation | 用户 B 不能读到 / 改到 jobX；Idempotency dedupe 仅在同 user 范围生效；越权返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND` | 001 |
@@ -149,11 +151,12 @@
 | C-12 | Idempotency dedupe | 用户用同一 `Idempotency-Key` 重复 `importTargetJob` | 同一秒内重复发起 | 返回同一 `targetJobId` 与同一 active `target_import` job，DB 不出现重复 row，outbox 不重复发事件 | 001 |
 | C-13 | 契约前置修订 | B1/B2/B3/F1 当前 contract 缺少本域所需错误码、fixture scenario、sourceType 映射说明或 metric 名 | 执行 001 Phase 0 | `shared/conventions.yaml` / OpenAPI fixtures / B3 sourceType 说明 / F1 metric dictionary 与本 spec 场景一致，`make codegen-check` / `make validate-fixtures` / `make lint-events` / metric registry tests 可执行 | 001 |
 | C-14 | 文档与修订记录治理 | 本 spec 状态变更或字段调整 | 更新 spec / history / `plans/INDEX.md` / `docs/spec/INDEX.md` | 文档保持单一 owner，无 sibling spec；non-current `feature_key` / `voice` route / `mistake.*` 等口径不出现在 active 文档 | docs-only |
-| C-15 | 当前 B4 schema 对齐 | D-20/D-17 后 profile 模块已退役，`target_jobs.profile_id` 不存在 | `GET /targets/{id}` / `GET /targets` / `PATCH /targets/{id}` / `target_import` drainer 读取 TargetJob | active SQL 不引用 `profile_id`；失败态 TargetJob 即使无 requirements 也返回 200 + `analysisStatus='failed'`，不因旧列漂移返回 500 | 001 |
+| C-15 | 当前 B4 schema 对齐 | D-20/D-17 后 profile 模块已退役，`target_jobs.profile_id` 不存在 | `GET /targets/{id}` / `GET /targets` / `PATCH /targets/{id}` / `target_import` drainer 读取 TargetJob | active SQL 不引用 `profile_id`；解析成功/ready TargetJob 详情不因旧列漂移返回 500；解析失败 TargetJob 已被删除，详情返回 404 而非脏失败态资产 | 001 |
+| C-16 | 有效 JD 未披露公司名 | 用户提交有效 JD，AI 输出包含 title / requirements 但 `companyName` 为空 | `target_import` drainer 调用真实 provider 并完成 parse | TargetJob 进入 `analysisStatus='ready'`，`companyName` 写入语言相关兜底值，requirements 可见，`ai_task_runs` 记录 jd_parse provider/model/status/validation 摘要；markdown fenced JSON 可解析，带 prose 的输出仍失败 | 001 |
 
 ## 7 关联计划
 
-- [001-targetjob-import-and-parse-bootstrap](./plans/001-targetjob-import-and-parse-bootstrap/plan.md)（completed）：先修 B1/B2/B3/F1 owner 契约，再落地 4 个 TargetJob operation、4 类导入源处理、`target_import` 异步解析管线、隐私 / 观测红线、`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 四个 BDD 场景；2026-07-08 已追加 `profile_id` 退役列漂移修复 gate，确保当前 B4 schema 下失败态详情读取不返回 500。
+- [001-targetjob-import-and-parse-bootstrap](./plans/001-targetjob-import-and-parse-bootstrap/plan.md)（active）：先修 B1/B2/B3/F1 owner 契约，再落地 4 个 TargetJob operation、4 类导入源处理、`target_import` 异步解析管线、隐私 / 观测红线、`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 四个 BDD 场景；2026-07-08 已追加 `profile_id` 退役列漂移修复 gate；2026-07-09 已追加有效 JD 缺公司名兜底、parse AI task-run observability gate，以及解析失败不得持久化 TargetJob 资产的准入修复 gate。
 
 ## 8 相关文档
 

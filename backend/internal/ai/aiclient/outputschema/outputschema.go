@@ -38,7 +38,7 @@ func Validate(schemaRaw json.RawMessage, content string) error {
 		return fmt.Errorf("parse output_schema: %w", err)
 	}
 	var v any
-	dec := json.NewDecoder(strings.NewReader(content))
+	dec := json.NewDecoder(strings.NewReader(NormalizeJSONContent(content)))
 	dec.UseNumber()
 	if err := dec.Decode(&v); err != nil {
 		return err
@@ -51,6 +51,30 @@ func Validate(schemaRaw json.RawMessage, content string) error {
 		return errors.New("multiple JSON values in output")
 	}
 	return validateAgainstSchema(schema, v, "$")
+}
+
+// NormalizeJSONContent accepts the one provider deviation this app can safely
+// recover from: the whole JSON value wrapped in a markdown code fence. It does
+// not strip prose or multiple JSON values; those remain validation failures.
+func NormalizeJSONContent(content string) string {
+	content = strings.TrimSpace(strings.TrimPrefix(content, "\ufeff"))
+	if !strings.HasPrefix(content, "```") {
+		return content
+	}
+	lines := strings.Split(content, "\n")
+	if len(lines) < 3 || !isJSONFenceOpening(lines[0]) || strings.TrimSpace(lines[len(lines)-1]) != "```" {
+		return content
+	}
+	return strings.TrimSpace(strings.Join(lines[1:len(lines)-1], "\n"))
+}
+
+func isJSONFenceOpening(line string) bool {
+	line = strings.TrimSpace(line)
+	if !strings.HasPrefix(line, "```") {
+		return false
+	}
+	info := strings.TrimSpace(strings.TrimPrefix(line, "```"))
+	return info == "" || strings.EqualFold(info, "json")
 }
 
 func validateAgainstSchema(schema Schema, value any, path string) error {

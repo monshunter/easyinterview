@@ -16,7 +16,7 @@
 
 ## 3 Then
 
-retryable 失败写入 `target.analysis.failed.retryable=true`；non-retryable 失败写入 `retryable=false`；`target_jobs.analysis_status=failed`，source row 保留；error envelope、outbox payload、log 与 metric 证据不含 prompt body、response body、provider secret 或 `Authorization:`。
+retryable 失败写入 `target.analysis.failed.retryable=true`；non-retryable 失败写入 `retryable=false`；失败 `target_jobs` 资产被删除并级联清理 source / requirement，`GET /targets/{id}` 返回 404 且 `GET /targets` 不含失败 job；error envelope、outbox payload、log 与 metric 证据不含 prompt body、response body、provider secret 或 `Authorization:`。
 
 ## 4 执行
 

@@ -322,6 +322,53 @@ func TestParseExecutor_HappyPath(t *testing.T) {
 	}
 }
 
+func TestParseExecutor_HappyPathAcceptsFencedJSON(t *testing.T) {
+	exec, store, _, ai, _ := newParseExecutorWithFakes(t)
+	ai.resp = aiclient.CompleteResponse{Content: "```json\n" + happyResponseJSON + "\n```"}
+	store.target = targetjob.TargetJobRecord{
+		ID:             "tgt-1",
+		UserID:         "user-1",
+		SourceType:     targetjob.SourceTypeManualText,
+		TargetLanguage: "zh-CN",
+		RawJDText:      "JD text",
+	}
+
+	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-1",
+	})
+
+	if !outcome.Succeeded {
+		t.Fatalf("fenced JSON should be normalized and parsed, got %+v", outcome)
+	}
+	if store.completeSuccessIn == nil || store.completeSuccessIn.Title != "Senior Backend Engineer" ||
+		store.completeSuccessIn.CompanyName != "Acme" || len(store.completeSuccessIn.Requirements) != 2 {
+		t.Fatalf("fenced JSON parse result was not committed: %+v", store.completeSuccessIn)
+	}
+}
+
+func TestParseExecutor_HappyPathCoalescesMissingCompanyName(t *testing.T) {
+	exec, store, _, ai, _ := newParseExecutorWithFakes(t)
+	ai.resp = aiclient.CompleteResponse{Content: strings.Replace(happyResponseJSON, `"companyName": "Acme"`, `"companyName": ""`, 1)}
+	store.target = targetjob.TargetJobRecord{
+		ID:             "tgt-1",
+		UserID:         "user-1",
+		SourceType:     targetjob.SourceTypeManualText,
+		TargetLanguage: "zh-CN",
+		RawJDText:      "JD text",
+	}
+
+	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-1",
+	})
+
+	if !outcome.Succeeded {
+		t.Fatalf("missing companyName should not fail a JD without company evidence, got %+v", outcome)
+	}
+	if store.completeSuccessIn == nil || store.completeSuccessIn.CompanyName != "未提供" {
+		t.Fatalf("missing companyName fallback drift: %+v", store.completeSuccessIn)
+	}
+}
+
 func TestParseExecutor_UsesPromptMessagesFromRegistryResolution(t *testing.T) {
 	exec, store, registry, ai, _ := newParseExecutorWithFakes(t)
 	registry.resolution.SystemMessage = "registry-owned target import system prompt"
@@ -385,6 +432,14 @@ func TestParseExecutor_AIOutputInvalid_WhenRequirementsAreSemanticallyInvalid(t 
 				{"kind":"must_have","label":"Go","evidenceLevel":"explicit"},
 				{"kind":"prior_signal","label":"Prior signal","evidenceLevel":"explicit"}
 			]}`,
+		},
+		{
+			name:    "valid json followed by prose",
+			content: happyResponseJSON + "\nDone.",
+		},
+		{
+			name:    "fenced json with leading prose",
+			content: "Here is the JSON:\n```json\n" + happyResponseJSON + "\n```",
 		},
 	}
 	for _, tc := range cases {
