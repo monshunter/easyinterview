@@ -1,7 +1,7 @@
 # 001 BDD Checklist
 
-> **版本**: 1.11
-> **状态**: completed
+> **版本**: 1.13
+> **状态**: active
 > **更新日期**: 2026-07-09
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
@@ -21,6 +21,8 @@
 - [x] Revision 2026-07-09 verify covers parse detail marker, absence of `workspace-header` / `workspace-launcher` / `workspace-jd-card` independent detail anchors, active resume binding and privacy.
 - [x] Revision 2026-07-09 trigger covers `analysisStatus=ready` list query, failed/blank TargetJob exclusion, and TopBar / legacy-param `workspace` landing after a detail page.
 - [x] Revision 2026-07-09 verify covers absence of dirty failed JD cards, absence of `parse-error` / “缺少目标岗位 ID” on workspace, updated scenario evidence, and workspace retired context negative grep.
+- [x] Revision 2026-07-09 trigger covers generated `archiveTargetJob` delete from the workspace card top-right icon and verifies delete does not bubble to card navigation.
+- [x] Revision 2026-07-09 verify covers archived TargetJob absent after workspace refresh, delete failure preserving the card, and screenshot evidence for the post-delete list.
 
 ## E2E.P0.019 Workspace context loading
 
@@ -50,7 +52,7 @@
 
 ## Closeout
 
-- [x] `validate_context.py --context docs/spec/frontend-workspace-and-practice/plans/001-workspace-and-interview-context/context.yaml --target frontend` passes
-- [x] `sync-doc-index --check` passes
-- [x] `make docs-check` passes
-- [x] `git diff --check` passes
+- [ ] `validate_context.py --context docs/spec/frontend-workspace-and-practice/plans/001-workspace-and-interview-context/context.yaml --target frontend` passes
+- [ ] `sync-doc-index --check` passes
+- [ ] `make docs-check` passes
+- [ ] `git diff --check` passes

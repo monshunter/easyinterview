@@ -265,7 +265,10 @@ test.describe("workspace bounding box parity", () => {
       "workspace-plan-list-create",
       `workspace-plan-list-card-${WORKSPACE_TARGET_ID}`,
       `workspace-plan-list-card-body-${WORKSPACE_TARGET_ID}`,
+      `workspace-plan-list-rail-${WORKSPACE_TARGET_ID}`,
       `workspace-plan-list-card-footer-${WORKSPACE_TARGET_ID}`,
+      `workspace-plan-list-start-${WORKSPACE_TARGET_ID}`,
+      `workspace-plan-list-delete-${WORKSPACE_TARGET_ID}`,
     ];
 
     const rects: Array<{ id: string; r: Rect }> = [];
@@ -295,15 +298,18 @@ test.describe("workspace bounding box parity", () => {
     const styles = await page.evaluate((targetId) => {
       const card = document.querySelector(`[data-testid='workspace-plan-list-card-${targetId}']`) as HTMLElement | null;
       const body = document.querySelector(`[data-testid='workspace-plan-list-card-body-${targetId}']`) as HTMLElement | null;
+      const rail = document.querySelector(`[data-testid='workspace-plan-list-rail-${targetId}']`) as HTMLElement | null;
       const footer = document.querySelector(`[data-testid='workspace-plan-list-card-footer-${targetId}']`) as HTMLElement | null;
-      const openButton = document.querySelector(`[data-testid='workspace-plan-list-open-${targetId}']`) as HTMLButtonElement | null;
-      if (!card || !body || !footer || !openButton) {
+      const startButton = document.querySelector(`[data-testid='workspace-plan-list-start-${targetId}']`) as HTMLButtonElement | null;
+      const deleteButton = document.querySelector(`[data-testid='workspace-plan-list-delete-${targetId}']`) as HTMLButtonElement | null;
+      if (!card || !body || !rail || !footer || !startButton || !deleteButton) {
         throw new Error("workspace plan-list card sections missing");
       }
       const cardStyle = getComputedStyle(card);
       const bodyStyle = getComputedStyle(body);
       const footerStyle = getComputedStyle(footer);
-      const buttonStyle = getComputedStyle(openButton);
+      const buttonStyle = getComputedStyle(startButton);
+      const deleteButtonStyle = getComputedStyle(deleteButton);
       const probe = document.createElement("div");
       probe.style.color = getComputedStyle(document.documentElement).getPropertyValue("--ei-color-accent").trim();
       document.body.appendChild(probe);
@@ -315,15 +321,21 @@ test.describe("workspace bounding box parity", () => {
         footerBg: footerStyle.backgroundColor,
         borderTopWidth: cardStyle.borderTopWidth,
         borderTopStyle: cardStyle.borderTopStyle,
-        boxShadow: cardStyle.boxShadow,
+        railText: rail.innerText,
         bodyPaddingTop: Number.parseFloat(bodyStyle.paddingTop),
         footerPaddingTop: Number.parseFloat(footerStyle.paddingTop),
         footerBorderTopWidth: footerStyle.borderTopWidth,
         footerDisplay: footerStyle.display,
         footerJustifyContent: footerStyle.justifyContent,
         footerText: footer.innerText,
+        footerContainsDelete: footer.contains(deleteButton),
         buttonBg: buttonStyle.backgroundColor,
         buttonBorderColor: buttonStyle.borderTopColor,
+        deleteButtonBg: deleteButtonStyle.backgroundColor,
+        deleteButtonBorderColor: deleteButtonStyle.borderTopColor,
+        deleteButtonPosition: deleteButtonStyle.position,
+        deleteButtonRight: deleteButtonStyle.right,
+        deleteButtonTop: deleteButtonStyle.top,
         accentColor,
       };
     }, WORKSPACE_TARGET_ID);
@@ -332,15 +344,23 @@ test.describe("workspace bounding box parity", () => {
     expect(styles.footerBg).toBe(styles.cardBg);
     expect(styles.borderTopWidth).toBe("1px");
     expect(styles.borderTopStyle).toBe("solid");
-    expect(styles.boxShadow).not.toBe("none");
-    expect(styles.bodyPaddingTop).toBeGreaterThanOrEqual(18);
+    expect(styles.railText).toContain("Frontend architecture screen");
+    expect(styles.railText).toContain("Hiring manager impact interview");
+    expect(styles.bodyPaddingTop).toBe(0);
     expect(styles.footerPaddingTop).toBeGreaterThanOrEqual(12);
     expect(styles.footerBorderTopWidth).toBe("1px");
     expect(styles.footerDisplay).toBe("flex");
     expect(styles.footerJustifyContent).toBe("flex-end");
     expect(styles.footerText).not.toMatch(/URL import|Manual input|ZH-CN/i);
+    expect(styles.footerText).not.toMatch(/Open plan|进入规划/i);
+    expect(styles.footerText).toMatch(/Start interview now|立即面试/i);
+    expect(styles.footerContainsDelete).toBe(false);
     expect(styles.buttonBg).toBe(styles.accentColor);
     expect(styles.buttonBorderColor).toBe(styles.accentColor);
+    expect(styles.deleteButtonBg).not.toBe(styles.accentColor);
+    expect(styles.deleteButtonPosition).toBe("absolute");
+    expect(Number.parseFloat(styles.deleteButtonRight)).toBeGreaterThanOrEqual(10);
+    expect(Number.parseFloat(styles.deleteButtonTop)).toBeGreaterThanOrEqual(10);
   });
 
   test("parse detail primary anchors stay in viewport", async ({ page }) => {
@@ -402,7 +422,7 @@ test.describe("workspace dark mode + customAccent visual diff", () => {
     await page.click("[data-testid='topbar-theme-button']");
     await page.waitForSelector("[data-testid='topbar-theme-menu']");
     await expect(page.locator("[data-testid='topbar-theme-menu']")).toBeVisible();
-    await expect(page.locator("[data-testid^='topbar-theme-option-']")).toHaveCount(4);
+    await expect(page.locator("[data-testid^='topbar-theme-option-']")).toHaveCount(2);
   });
 });
 

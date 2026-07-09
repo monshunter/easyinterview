@@ -1,9 +1,13 @@
 import { useEffect, useState, type FC } from "react";
 
 import type { TargetJob } from "../../../api/generated/types";
-import { useI18n, type MessageKey } from "../../i18n/messages";
+import { generateIdempotencyKey } from "../../../lib/conventions/idempotency";
+import { startPracticeFromParams } from "../../interview-context/startPractice";
+import { useI18n } from "../../i18n/messages";
 import { useNavigation } from "../../navigation/NavigationProvider";
+import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import type { Route } from "../../routes";
+import { MockInterviewCard } from "../home/MockInterviewCard";
 import { useWorkspaceTargetJobs } from "./hooks/useWorkspaceTargetJobs";
 
 interface WorkspaceScreenProps {
@@ -20,21 +24,76 @@ interface WorkspacePlanListProps {
 }
 
 const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
-  const { t } = useI18n();
+  const { lang, t } = useI18n();
+  const runtime = useAppRuntimeOptional();
   const { navigate } = useNavigation();
   const { loading, jobs, error } = useWorkspaceTargetJobs();
+  const [archivedJobIds, setArchivedJobIds] = useState<Set<string>>(() => new Set());
+  const [startingJobId, setStartingJobId] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const openPlan = (job: TargetJob) => {
+  const visibleJobs = jobs.filter((job) => !archivedJobIds.has(job.id));
+
+  const planParamsFromJob = (job: TargetJob): Record<string, string> => {
     const currentPracticePlanId = job.currentPracticePlanId?.trim();
     const resumeId = job.resumeId?.trim();
+    return {
+      targetJobId: job.id,
+      ...(currentPracticePlanId ? { planId: currentPracticePlanId } : {}),
+      ...(resumeId ? { resumeId } : {}),
+    };
+  };
+
+  const openPlan = (job: TargetJob) => {
     navigate({
       name: "parse",
-      params: {
-        targetJobId: job.id,
-        ...(currentPracticePlanId ? { planId: currentPracticePlanId } : {}),
-        ...(resumeId ? { resumeId } : {}),
-      },
+      params: planParamsFromJob(job),
     });
+  };
+
+  const startInterview = async (job: TargetJob) => {
+    const params = planParamsFromJob(job);
+    if (!runtime || runtime.auth.status !== "authenticated" || !params.resumeId) {
+      openPlan(job);
+      return;
+    }
+
+    setStartError(null);
+    setStartingJobId(job.id);
+    try {
+      const started = await startPracticeFromParams(runtime.client, params, lang);
+      navigate({ name: "practice", params: started.params });
+    } catch (err: unknown) {
+      setStartError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setStartingJobId(null);
+    }
+  };
+
+  const deletePlan = async (job: TargetJob) => {
+    if (!runtime || runtime.auth.status !== "authenticated") {
+      setDeleteError(t("workspace.planList.deleteAuthError"));
+      return;
+    }
+
+    setDeleteError(null);
+    setDeletingJobId(job.id);
+    try {
+      await runtime.client.archiveTargetJob(job.id, {
+        idempotencyKey: generateIdempotencyKey(),
+      });
+      setArchivedJobIds((current) => {
+        const next = new Set(current);
+        next.add(job.id);
+        return next;
+      });
+    } catch (err: unknown) {
+      setDeleteError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDeletingJobId(null);
+    }
   };
 
   return (
@@ -138,7 +197,7 @@ const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
         >
           {t("workspace.planList.error")}
         </div>
-      ) : jobs.length === 0 ? (
+      ) : visibleJobs.length === 0 ? (
         <div
           data-testid="workspace-plan-list-empty"
           style={{
@@ -166,183 +225,66 @@ const WorkspacePlanList: FC<WorkspacePlanListProps> = ({ compactLayout }) => {
             display: "grid",
             gridTemplateColumns: compactLayout
               ? "minmax(0, 1fr)"
-              : "repeat(auto-fit, minmax(300px, 1fr))",
+              : "repeat(auto-fill, minmax(300px, 360px))",
+            justifyContent: "start",
             gap: 16,
             alignItems: "stretch",
           }}
         >
-          {jobs.map((job) => {
-            const statusTone = getStatusTone(job.status);
-            return (
-              <article
-                key={job.id}
-                data-testid={`workspace-plan-list-card-${job.id}`}
-                style={{
-                  background: "var(--ei-color-bg-card)",
-                  border: "1px solid var(--ei-color-rule-strong)",
-                  borderRadius: 3,
-                  boxShadow: "var(--ei-shadow-elev2)",
-                  minHeight: 178,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  data-testid={`workspace-plan-list-card-body-${job.id}`}
-                  style={{
-                    padding: 20,
-                    flex: 1,
-                    background: "var(--ei-color-bg-card)",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      alignItems: "center",
-                      marginBottom: 10,
-                    }}
-                  >
-                    <span
-                      className="ei-mono"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        padding: "3px 8px",
-                        borderRadius: 3,
-                        fontSize: 11.5,
-                        letterSpacing: "0.04em",
-                        background:
-                          statusTone === "amber"
-                            ? "var(--ei-color-amber-soft)"
-                            : statusTone === "muted"
-                              ? "var(--ei-color-bg-soft)"
-                              : "transparent",
-                        color:
-                          statusTone === "amber"
-                            ? "var(--ei-color-warn)"
-                            : statusTone === "muted"
-                              ? "var(--ei-color-fg-tertiary)"
-                              : "var(--ei-color-fg-secondary)",
-                        border:
-                          statusTone === "neutral"
-                            ? "1px solid var(--ei-color-rule-strong)"
-                            : "1px solid transparent",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {formatStatus(job.status, t)}
-                    </span>
-                    <span
-                      className="ei-mono"
-                      style={{ fontSize: 12, color: "var(--ei-color-fg-tertiary)" }}
-                    >
-                      {t("workspace.planList.updated").replace("{date}", formatDate(job.updatedAt))}
-                    </span>
-                  </div>
-                  <div
-                    className="ei-serif"
-                    style={{
-                      fontSize: 20,
-                      color: "var(--ei-color-fg-primary)",
-                      lineHeight: 1.25,
-                      marginBottom: 6,
-                    }}
-                  >
-                    {job.title}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: "var(--ei-color-fg-secondary)",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {[job.companyName, job.locationText].filter(Boolean).join(" · ")}
-                  </div>
-                </div>
-                <div
-                  data-testid={`workspace-plan-list-card-footer-${job.id}`}
-                  style={{
-                    borderTop: "1px solid var(--ei-color-rule-strong)",
-                    padding: "14px 20px",
-                    background: "var(--ei-color-bg-card)",
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    alignItems: "center",
-                    gap: 12,
-                  }}
-                >
-                  <button
-                    data-testid={`workspace-plan-list-open-${job.id}`}
-                    type="button"
-                    onClick={() => openPlan(job)}
-                    style={{
-                      flex: "0 0 auto",
-                      height: 32,
-                      padding: "0 12px",
-                      fontSize: 13,
-                      fontWeight: 500,
-                      background: "var(--ei-color-accent)",
-                      color: "#fff",
-                      border: "1px solid var(--ei-color-accent)",
-                      borderRadius: 2,
-                      cursor: "pointer",
-                      fontFamily: "var(--ei-sans)",
-                    }}
-                  >
-                    {t("workspace.planList.open")}
-                  </button>
-                </div>
-              </article>
-            );
-          })}
+          {visibleJobs.map((job) => (
+            <MockInterviewCard
+              key={job.id}
+              job={job}
+              onClick={() => openPlan(job)}
+              cardTestId={`workspace-plan-list-card-${job.id}`}
+              bodyTestId={`workspace-plan-list-card-body-${job.id}`}
+              railTestId={`workspace-plan-list-rail-${job.id}`}
+              footerTestId={`workspace-plan-list-card-footer-${job.id}`}
+              primaryAction={{
+                label: t("workspace.planList.start"),
+                testId: `workspace-plan-list-start-${job.id}`,
+                onClick: () => startInterview(job),
+                disabled:
+                  startingJobId === job.id ||
+                  !job.resumeId?.trim(),
+              }}
+              deleteAction={{
+                label: t("workspace.planList.delete"),
+                testId: `workspace-plan-list-delete-${job.id}`,
+                onClick: () => deletePlan(job),
+                disabled: deletingJobId === job.id,
+              }}
+            />
+          ))}
         </div>
       )}
+      {deleteError ? (
+        <div
+          data-testid="workspace-plan-list-delete-error"
+          style={{
+            color: "var(--ei-color-danger)",
+            fontSize: 13,
+            marginTop: 12,
+          }}
+        >
+          {deleteError}
+        </div>
+      ) : null}
+      {startError ? (
+        <div
+          data-testid="workspace-plan-list-start-error"
+          style={{
+            color: "var(--ei-color-danger)",
+            fontSize: 13,
+            marginTop: 12,
+          }}
+        >
+          {startError}
+        </div>
+      ) : null}
     </div>
   );
 };
-
-type StatusTone = "amber" | "muted" | "neutral";
-
-function getStatusTone(status: string): StatusTone {
-  switch (status) {
-    case "applied":
-    case "interviewing":
-      return "amber";
-    case "draft":
-    case "preparing":
-      return "muted";
-    default:
-      return "neutral";
-  }
-}
-
-function formatStatus(status: string, t: (key: MessageKey) => string): string {
-  const map: Record<string, MessageKey> = {
-    draft: "workspace.status.draft",
-    preparing: "workspace.status.preparing",
-    applied: "workspace.status.applied",
-    interviewing: "workspace.status.interviewing",
-    offer: "workspace.status.offer",
-    rejected: "workspace.status.rejected",
-    archived: "workspace.status.archived",
-  };
-  const key = map[status];
-  return key ? t(key) : status;
-}
-
-function formatDate(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return `${d.getMonth() + 1}/${d.getDate()}`;
-  } catch {
-    return "—";
-  }
-}
 
 function useWorkspaceCompactLayout(): boolean {
   const [compact, setCompact] = useState(() => {

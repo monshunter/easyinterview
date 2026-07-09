@@ -1,4 +1,4 @@
-import type { FC } from "react";
+import type { FC, MouseEvent, ReactNode } from "react";
 
 import type { TargetJob, TargetJobStatus } from "../../../api/generated/types";
 import { useI18n } from "../../i18n/messages";
@@ -6,6 +6,7 @@ import {
   buildTargetJobRoundAssumptions,
   roundIndexFromTargetJobStatus,
 } from "../../interview-context/roundAssumptions";
+import { ResumeWorkshopIcon } from "../resume-workshop/components/ResumeWorkshopIcon";
 
 function statusTone(
   status: TargetJobStatus,
@@ -189,41 +190,96 @@ const MiniRoundRail: FC<MiniRoundRailProps> = ({ rounds, currentIndex }) => (
 
 // ─── MockInterviewCard ────────────────────────────────────────────
 
+interface MockInterviewCardAction {
+  label: string;
+  testId: string;
+  onClick: () => void | Promise<void>;
+  disabled?: boolean;
+}
+
 interface MockInterviewCardProps {
   job: TargetJob;
-  onClick: () => void;
+  onClick?: () => void;
+  cardTestId?: string;
+  bodyTestId?: string;
+  railTestId?: string;
+  footerTestId?: string;
+  footer?: ReactNode;
+  primaryAction?: MockInterviewCardAction;
+  deleteAction?: MockInterviewCardAction;
 }
 
 export const MockInterviewCard: FC<MockInterviewCardProps> = ({
   job,
   onClick,
+  cardTestId,
+  bodyTestId,
+  railTestId,
+  footerTestId,
+  footer,
+  primaryAction,
+  deleteAction,
 }) => {
   const { t } = useI18n();
   const tone = statusTone(job.status);
   const colors = statusColorMap[tone] ?? { bg: "transparent", fg: "var(--ei-color-fg-tertiary)" };
   const rounds = buildTargetJobRoundAssumptions(job, t);
   const ci = roundIndexFromTargetJobStatus(job.status, rounds.length);
+  const hasFooter = Boolean(footer || primaryAction);
+
+  const runAction = (
+    event: MouseEvent<HTMLButtonElement>,
+    action: MockInterviewCardAction,
+  ) => {
+    event.stopPropagation();
+    if (!action.disabled) {
+      void action.onClick();
+    }
+  };
 
   return (
     <div
-      data-testid={`home-recent-mock-card-${job.id}`}
+      data-testid={cardTestId ?? `home-recent-mock-card-${job.id}`}
       onClick={onClick}
       style={{
         background: "var(--ei-color-bg-card)",
         border: "1px solid var(--ei-color-rule-strong)",
         borderRadius: 3,
         padding: 20,
-        cursor: "pointer",
+        cursor: onClick ? "pointer" : "default",
         display: "flex",
         flexDirection: "column",
         gap: 14,
+        position: "relative",
       }}
     >
+      {deleteAction ? (
+        <button
+          data-testid={deleteAction.testId}
+          type="button"
+          aria-label={deleteAction.label}
+          title={deleteAction.label}
+          className="ei-resume-workshop-table-delete"
+          disabled={deleteAction.disabled}
+          onClick={(event) => runAction(event, deleteAction)}
+          style={{
+            position: "absolute",
+            top: 14,
+            right: 14,
+            zIndex: 1,
+          }}
+        >
+          <ResumeWorkshopIcon name="trash" size={13} />
+        </button>
+      ) : null}
       <div
+        data-testid={bodyTestId}
         style={{
           display: "flex",
           justifyContent: "space-between",
           gap: 12,
+          background: "var(--ei-color-bg-card)",
+          paddingRight: deleteAction ? 44 : undefined,
         }}
       >
         <div>
@@ -273,12 +329,52 @@ export const MockInterviewCard: FC<MockInterviewCardProps> = ({
           {statusLabel(job.status)}
         </div>
       </div>
-      <div data-testid={`home-recent-mock-rail-${job.id}`}>
+      <div data-testid={railTestId ?? `home-recent-mock-rail-${job.id}`}>
         <MiniRoundRail
           rounds={rounds.map((round) => round.name)}
           currentIndex={ci}
         />
       </div>
+      {hasFooter ? (
+        <div
+          data-testid={footerTestId}
+          style={{
+            borderTop: "1px solid var(--ei-color-rule-strong)",
+            paddingTop: 14,
+            background: "var(--ei-color-bg-card)",
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          {footer}
+          {primaryAction ? (
+            <button
+              data-testid={primaryAction.testId}
+              type="button"
+              disabled={primaryAction.disabled}
+              onClick={(event) => runAction(event, primaryAction)}
+              style={{
+                flex: "0 0 auto",
+                height: 32,
+                padding: "0 12px",
+                fontSize: 13,
+                fontWeight: 500,
+                background: "var(--ei-color-accent)",
+                color: "#fff",
+                border: "1px solid var(--ei-color-accent)",
+                borderRadius: 2,
+                cursor: primaryAction.disabled ? "not-allowed" : "pointer",
+                fontFamily: "var(--ei-font-sans)",
+                opacity: primaryAction.disabled ? 0.58 : 1,
+              }}
+            >
+              {primaryAction.label}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 };

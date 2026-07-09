@@ -95,7 +95,7 @@ requestAuth({
 #### Design tokens 入口
 
 - 语义 token：[`src/app/theme/tokens.ts`](./src/app/theme/tokens.ts) — 仅导出 CSS variable 名（`--ei-color-*` / `--ei-radius-*` / `--ei-shadow-*` / `--ei-space-*` / `--ei-text-*` / `--ei-font-*`），不导出 hex 字面量。
-- 主题数据：[`src/app/theme/themes.data.ts`](./src/app/theme/themes.data.ts)（私有）— 4 主题 × 2 模式 21 色板与 7 字体预设，逐项转写自 `ui-design/src/primitives.jsx::EI_THEMES` / `EI_FONT_PRESETS` / `EI_THEME_LIST`。
+- 主题数据：[`src/app/theme/themes.data.ts`](./src/app/theme/themes.data.ts)（私有）— `ocean` / `plum` 2 主题 × 2 模式 21 色板与 7 字体预设，逐项转写自 `ui-design/src/primitives.jsx::EI_THEMES` / `EI_FONT_PRESETS` / `EI_THEME_LIST`；TopBar 另保留 custom accent。
 - 主题 CSS：[`src/app/theme/themes.css`](./src/app/theme/themes.css) — `:root[data-theme=X][data-mode=Y]` 8 组合声明所有色板。
 - Custom accent helper：[`src/app/theme/customAccent.ts`](./src/app/theme/customAccent.ts) — 镜像 `app.jsx` oklch 公式（light=58 / dark=68 / soft 92/28，chroma clamp [0,0.28]，hue normalize [0,360)），仅覆盖 `--ei-color-accent` / `--ei-color-accent-soft`。
 
@@ -106,7 +106,7 @@ requestAuth({
 [`src/app/display/DisplayPreferencesProvider.tsx`](./src/app/display/DisplayPreferencesProvider.tsx) 在 `theme` / `dark` / `customAccent` 任一切换时立即把 `<html>` 的 `data-theme` / `data-mode` / `data-custom-accent` 翻转，并把 customAccent overlay 写入根元素 inline style。**所有主题相关样式必须走 `:root[data-theme][data-mode]` selector + var() token，不在组件内 hardcode hex / rgb。**
 
 - TopBar 主题 menu、暗色 toggle、custom accent 控件、语言 dropdown 的 testid / aria 契约见 §2.5 与 [`src/app/topbar/TopBar.tsx`](./src/app/topbar/TopBar.tsx)。
-- D2 testid 新增：`topbar-theme-button` / `topbar-theme-menu` / `topbar-theme-option-{warm,forest,ocean,plum}` / `topbar-theme-custom-option` / `topbar-custom-accent-{swatch,picker,hue,chroma,clear}`。
+- D2 testid 新增：`topbar-theme-button` / `topbar-theme-menu` / `topbar-theme-option-{ocean,plum}` / `topbar-theme-custom-option` / `topbar-custom-accent-{swatch,picker,hue,chroma,clear}`。
 
 #### 字体加载
 

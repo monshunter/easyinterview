@@ -1,7 +1,7 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.19
-> **状态**: completed
+> **版本**: 1.24
+> **状态**: active
 > **更新日期**: 2026-07-09
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -19,15 +19,19 @@
 本次 v1.17 原地修订曾将 workspace 普通回访复用 `frontend-home-job-picks-and-parse` 的 Parse-derived 母版；该过渡合同已被 v1.19 取代，当前 workspace 不再渲染详情或执行 create/start session。
 本次 v1.18 原地修订修复面试列表准入与顶栏导航回归：no-context workspace 必须只以当前 route params 判定，不得继承 stale `InterviewContext`；列表请求 `listTargetJobs` 必须带 `analysisStatus=ready`，并过滤 failed / 空标题 TargetJob，防止解析失败脏数据进入面试列表。
 本次 v1.19 原地修订收敛 workspace route purity：`workspace` 是纯列表页，不再承接 `targetJobId/planId/resumeId/autoStartPractice` 参数上下文；规划卡片导航 `parse`，`parse` / report owner 直接创建 practice plan / session。
+本次 v1.20 原地修订修复面试列表卡片规格回归：desktop plan-list grid 必须使用固定最大列宽，1/2/3 张卡片的规格保持稳定，不得因单卡数量被拉伸为整行宽卡。
+本次 v1.21 原地修订融合 Home 最近模拟面试与 workspace 面试列表卡片：workspace 卡片必须复用 Home recent card 的主体结构、公司/状态 eyebrow、岗位/地点层级和 mini round rail。本次 v1.22 原地修订把列表卡片的 `进入规划` 可见 footer CTA 改为点击卡片主体承接，并增加 `立即面试` 主按钮和使用简历列表 trash 图标样式的删除能力；Home recent 复用同一卡片动作模型但不展示删除按钮。
+本次 v1.23 原地修订把删除按钮从本地列表隐藏升级为 generated `archiveTargetJob` 持久软归档；删除成功后卡片移除，刷新后不得回灌，删除失败时保留卡片并展示可恢复错误。本次 v1.24 原地修订把删除图标移到卡片右上角，footer 只保留 `立即面试` 主按钮。
 
 - TopBar `workspace` 文案改为 `面试` / `Interview`，route/testid 仍保持 `workspace`。
-- `workspace` 始终渲染面试规划列表，使用 generated `listTargetJobs(analysisStatus=ready)`，点击卡片导航 `parse` 统一面试规划详情。
-- 面试规划列表每个 plan item 必须具备独立卡片容器、卡片背景、1px 边框、轻阴影、内部分区和底部操作区；desktop 使用响应式多列，mobile 折叠为单列。
-- 面试规划列表卡片只展示对继续规划有决策价值的信息：状态、更新时间、岗位、公司和地点；不展示 `手动输入` / 来源类型 / 目标语言等导入元信息；`进入规划` 必须使用主题强调色按钮。
+- `workspace` 始终渲染面试规划列表，使用 generated `listTargetJobs(analysisStatus=ready)`，点击卡片主体导航 `parse` 统一面试规划详情。
+- 面试规划列表每个 plan item 必须具备独立卡片容器，并以 Home 最近模拟面试卡片主体为主：公司/状态 eyebrow、岗位、地点和 mini round rail 保持同源；desktop 使用固定最大列宽的响应式多列，1/2/3 张卡片规格保持稳定，mobile 折叠为单列；workspace 只在同一卡片底部追加 `立即面试` 主按钮，删除图标固定在卡片右上角。
+- 面试规划列表卡片只展示对继续规划有决策价值的信息：状态、更新时间、岗位、公司和地点；不展示 `手动输入` / 来源类型 / 目标语言等导入元信息；不展示可见的 `进入规划` footer button。
 - 面试规划列表只展示已解析成功且具备岗位标题的 TargetJob：generated `listTargetJobs` 请求必须带 `analysisStatus=ready`，UI 层必须防御性排除 failed / processing / queued / 空标题记录。
 - 顶栏 `面试` 或 legacy `/workspace?targetJobId=...` 都必须 canonicalize 为 `/workspace`、清理 stale InterviewContext 并展示面试规划列表，不得渲染缺目标岗位错误页。
 - 面试规划列表卡片进入统一面试规划详情时必须使用 `listTargetJobs` 返回的当前 `currentPracticePlanId` / `resumeId`；`resumeId` 是 target job 创建时的持久绑定，若当前还没有 ready practice plan，也必须携带该 `resumeId` 进入详情页。
-- `workspace` 不渲染统一详情母版，不拥有 `autoStartPractice` / session 启动合同；启动由 `parse` / report owner 使用 generated `getPracticePlan` / `createPracticePlan` / `startPracticeSession` 完成。
+- `workspace` 不渲染统一详情母版，不拥有 `autoStartPractice` route side effect；列表页 `立即面试` 使用 shared generated practice handoff (`getPracticePlan` / `createPracticePlan` / `startPracticeSession`) 显式启动 session。
+- 列表页删除图标使用 generated `archiveTargetJob` 和 `Idempotency-Key` 持久软归档 TargetJob；成功后从当前列表移除，失败时不导航、不隐藏卡片，并展示错误；不得继续使用本地-only hidden set 作为删除合同。
 - `InterviewContext` 不在 `workspace` route carry；`practice / generating / report` owner route 按各自最小上下文携带 `targetJobId / jdId / resumeId / roundId / planId / practiceMode / practiceGoal / hintUsed / hintCount`。
 - Plan Switcher、Resume Picker、WorkspaceInsightCard 和 workspace start-practice hooks 已退出本 owner 当前 runtime。
 - 当前规划记录区只展示 typed records placeholder，不从 `TargetJob` fixture extension、`any` 或 report API 拼接记录行。
@@ -40,12 +44,13 @@
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|----------|
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` | `WorkspacePlanList` 一级面试规划列表 landing | `backend-targetjob/001` | `target_jobs.resume_id` + optional latest ready `practice_plans` | none | `E2E.P0.018` |
+| `archiveTargetJob` | `openapi/fixtures/TargetJobs/archiveTargetJob.json` | `WorkspacePlanList` 删除图标 | `backend-targetjob/001` Phase 12 | `target_jobs.status='archived'` + `deleted_at` | none | `E2E.P0.018` persistent delete gate |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse unified detail owner, not workspace | `backend-targetjob/001` | `target_jobs.resume_id` + requirements/sources + optional latest ready `practice_plans` | none | parse owner + P0.018 focused gate |
 | `getResume` | `openapi/fixtures/Resumes/getResume.json` | Parse / resume owners only | `backend-resume/001` | `resume_assets` | none | external owner gates |
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home select + Parse bound resume display / resume workshop | `backend-resume/001` | `resume_assets` | none | parse owner gate |
-| `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` | Parse/report start handoff validates existing plan context | `backend-practice/001` | `practice_plans` | none | parse/report focused gates |
-| `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` | Parse/report handoff creates baseline / retry / next-round plan when needed | `backend-practice/001` | `practice_plans` | backend-only first question prep | parse/report focused gates |
-| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` | Parse/report handoff starts practice and navigates `practice` | `backend-practice/001` | `practice_sessions` + first turn | backend-only `practice.session.first_question` | parse/report focused gates |
+| `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` | Workspace list quick start and parse/report start handoff validate existing plan context | `backend-practice/001` | `practice_plans` | none | workspace + parse/report focused gates |
+| `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` | Workspace list quick start and parse/report handoff create baseline / retry / next-round plan when needed | `backend-practice/001` | `practice_plans` | backend-only first question prep | workspace + parse/report focused gates |
+| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` | Workspace list quick start and parse/report handoff start practice and navigate `practice` | `backend-practice/001` | `practice_sessions` + first turn | backend-only `practice.session.first_question` | workspace + parse/report focused gates |
 | `getFeedbackReport` | N/A | 本 plan 不消费；report owner handles replay/next-round CTA | external owner | external | none | external owner gates |
 
 ### 2.2 UI / Route Boundary
@@ -160,6 +165,35 @@
 - Remove `workspace` from `INTERVIEW_CONTEXT_ROUTES`; App route sync clears context whenever route name is `workspace`.
 - Move start-practice side effects to parse/report handoff owners through generated `getPracticePlan` / `createPracticePlan` / `startPracticeSession`, with `Idempotency-Key` on side effects and no `autoStartPractice` workspace hop.
 
+### Phase 15: Plan-list card size stability
+
+- Reopen the completed owner because screenshot review showed the desktop list grid stretched a single plan card across the full content width.
+- Update `docs/ui-design/module-job-workspace.md` and `ui-design/src/screen-workspace.jsx` so the plan-list grid uses `auto-fill` with a fixed maximum column width instead of `auto-fit + 1fr`.
+- Update formal `WorkspacePlanList` and focused tests so the grid contract rejects `1fr` desktop stretching while keeping compact mobile single-column behavior.
+- Verify with focused Vitest, source/UI design contract tests, typecheck, build, and browser screenshots.
+
+### Phase 16: Home recent card / workspace list card fusion
+
+- Reopen the completed owner because user review asked the Home "最近模拟面试" card and Interview list card to become one visual object instead of two separate card systems.
+- Update `docs/ui-design/module-job-workspace.md` and `ui-design/src/screen-workspace.jsx` so workspace plan cards use the Home recent card body, including mini round rail driven by `TargetJob.summary.interviewRounds[]`.
+- Update formal `WorkspacePlanList` to reuse the Home recent card component/body while appending the workspace-specific footer CTA; the card grid keeps the fixed `360px` desktop max width from Phase 15.
+- Add focused regression coverage that fails when workspace cards lose the home recent mini rail or reintroduce a separate workspace-only body.
+
+### Phase 17: Plan-list action row and card-click planning
+
+- Reopen the completed owner because user review asks the visible `进入规划` footer CTA to become invisible and be replaced by clicking the card itself.
+- Update `docs/ui-design/module-job-workspace.md` and `ui-design/src/screen-workspace.jsx` so workspace cards append `立即面试` and a top-right trash icon delete action; the card root remains the planning-detail navigation control.
+- Update formal `WorkspacePlanList` to start practice directly through shared generated practice handoff when `立即面试` is clicked, keep delete isolated from card navigation, and let Phase 18 own backend-persistent archive behavior.
+- Add focused regression coverage that fails when `进入规划` appears as a visible footer button, when Home recent shows a delete action, when delete triggers navigation/backend deletion, or when `立即面试` opens the planning detail instead of starting practice.
+
+### Phase 18: Persistent TargetJob archive integration
+
+- Reopen the completed owner because backend-targetjob now owns `archiveTargetJob`, so workspace delete must no longer be local-only.
+- Update `WorkspacePlanList` to call generated `archiveTargetJob(targetJobId)` with an `Idempotency-Key`; only remove the card after the backend returns success.
+- Preserve card-click planning and quick-start propagation boundaries: delete and quick-start must stop bubbling to card navigation.
+- Add focused regression coverage that fails when delete is implemented via local-only hidden state, when `archiveTargetJob` is missing from generated client usage, when delete success does not remove the card, when delete failure hides the card, or when Home recent renders a delete control.
+- Add real-backend browser smoke and screenshot proof that an archived TargetJob disappears from workspace after refresh.
+
 ### Phase 9: Plan-list card simplification and theme consistency
 
 - Reopen the completed owner after screenshot review because Phase 8 still rendered low-value source/language metadata and a secondary CTA that visually competed with the theme.
@@ -178,17 +212,24 @@
 | A-5 | Workspace owner no longer contains embedded insight / records placeholder runtime | source negative gate |
 | A-6 | Privacy and non-current route/module gates have zero runtime residuals | scenario verify scripts, pruning-surface lint |
 | A-7 | TopBar shows `面试` / `Interview`; no-context `workspace` shows a plan list landing; plan cards open current-plan detail | TopBar tests, WorkspaceScreen tests, `E2E.P0.018`, pixel parity workspace spec |
-| A-8 | Plan-list landing visually renders as list cards, not loose text columns | `WorkspaceEmptyState.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts`, `E2E.P0.018` |
-| A-9 | Plan-list cards stay concise and theme-consistent: no source/language metadata, accent CTA, clear card/page separation | `WorkspaceEmptyState.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts`, `E2E.P0.018` |
+| A-8 | Workspace plan-list cards keep stable desktop width regardless of 1/2/3 card count | `WorkspaceScreen.test.tsx`, browser screenshot |
+| A-8 | Plan-list landing visually renders as Home recent-style cards with mini round rail, not loose text columns or a separate workspace-only body | `WorkspaceEmptyState.test.tsx`, `WorkspaceScreen.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts`, `E2E.P0.018` |
+| A-9 | Plan-list cards stay concise and theme-consistent: no source/language metadata, accent quick-start CTA, clear card/page separation | `WorkspaceEmptyState.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts`, `E2E.P0.018` |
 | A-10 | Target job import persists selected resume binding and workspace plan-list re-entry carries `resumeId` even before any `practice_plans` row exists | backend targetjob tests, Home import tests, Workspace plan-list regression, local API smoke |
 | A-11 | Workspace list card re-entry navigates to `parse` detail and no longer shows the independent workspace detail page or starts sessions | `WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts`, `E2E.P0.018` |
 | A-12 | Workspace plan list requests ready TargetJobs only, filters failed / blank-title records defensively, and TopBar / legacy-param workspace navigation clears stale detail context | `WorkspaceEmptyState.test.tsx`, `WorkspaceScreen.test.tsx`, `App.test.tsx`, `E2E.P0.018` |
 | A-13 | Parse/report handoff owners start practice directly and do not route through `workspace(autoStartPractice=1)` | `ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx` |
+| A-14 | Workspace card click opens planning detail while footer provides quick start and top-right delete performs persistent `archiveTargetJob`; Home recent reuses quick start and omits delete | `MockInterviewCard.test.tsx`, `HomeRecentMocks.test.tsx`, `WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`, browser screenshots |
+| A-15 | Workspace delete is durable across refresh and never implemented as local-only hiding | generated-client tests, real-backend smoke, `E2E.P0.018`, screenshot acceptance |
 
 ## 6 变更记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-09 | 1.24 | Move the workspace card delete icon to the card top-right; keep footer for `立即面试` only. |
+| 2026-07-09 | 1.23 | Reopen owner plan to integrate generated `archiveTargetJob` for persistent workspace card delete. |
+| 2026-07-09 | 1.22 | Reopen owner plan to replace visible Open plan footer CTA with card-click planning plus quick-start and delete actions. |
+| 2026-07-09 | 1.21 | Reopen owner plan to fuse Home recent mock cards and workspace plan-list cards into one shared card body with a workspace footer CTA. |
 | 2026-07-09 | 1.16 | Reopen owner plan for target job-level resume binding persistence so workspace plan-list re-entry no longer loses the resume selected during JD import. |
 | 2026-07-09 | 1.17 | Reopen owner plan to route workspace current-plan detail into the unified Parse-derived Interview Plan Detail / Context Confirm mother page while preserving workspace start-practice ownership. |
 | 2026-07-09 | 1.18 | Reopen owner plan for parse-failure dirty-data admission defense and stale InterviewContext-free TopBar workspace navigation. |

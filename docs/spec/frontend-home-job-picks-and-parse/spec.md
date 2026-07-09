@@ -1,6 +1,6 @@
 # Frontend Home / Parse Spec
 
-> **版本**: 2.15
+> **版本**: 2.17
 > **状态**: active
 > **更新日期**: 2026-07-09
 
@@ -31,7 +31,7 @@ Home 输入 / 上传 / URL 导入 JD
   - JD 输入卡承载 textarea、上传 JD 文件与 URL 导入 source actions。
   - `listResumes` 读取 ready 且未归档的简历；用户必须显式选择一份简历后才能点击「立即面试」。
   - `还没有简历？1 分钟创建 ->` 与下拉框同行，点击进入 `resume_versions?flow=create`。
-  - `listTargetJobs` 渲染最近 3 张 mock interview card；超过 3 条时展示「更多」并跳转 `workspace`。
+  - `listTargetJobs` 渲染最近 3 张 mock interview card；超过 3 条时展示「更多」并跳转 `workspace`；最近卡片使用固定最大列宽并与 workspace 面试列表共享卡片主体、mini round rail 和 `立即面试 / Start interview now` 主按钮，但不展示删除按钮。
   - Empty state 引导继续创建模拟面试，不展示占位业务数据。
   - 未登录 import 通过 opaque pending import id 接续。
   - i18n 支持 zh/en，所有文案通过 typed locale helper。
@@ -48,7 +48,7 @@ Home 输入 / 上传 / URL 导入 JD
 
 ### 2.2 Out of Scope
 
-- `workspace` 无上下文规划列表、workspace auto-start session 创建、practice session 启动编排：由 `frontend-workspace-and-practice` 承接。
+- `workspace` 无上下文规划列表、workspace 列表删除按钮和 workspace 列表启动实践编排：由 `frontend-workspace-and-practice` 承接。
 - 独立于 Parse 母版之外的第二套 workspace 当前规划详情页：不属于当前范围，必须删除或改为复用统一详情母版。
 - `practice` / `report` / `resume_versions` 业务屏：由各自 subspec 承接。
 - 真实 URL fetch、文件对象持久化、TargetJob import / parse / update handler、AI provider、prompt/rubric、DB migration、event/outbox：由 backend / contract owner 承接。
@@ -68,6 +68,8 @@ Home 输入 / 上传 / URL 导入 JD
 | D-8 | Privacy | JD 原文、source URL、rawDescription 不进入 URL/localStorage/console/telemetry | 只允许通过 generated request body 与 React state 传递 |
 | D-9 | 统一详情母版 | 原 `JD 解析结果` 页改名为“面试规划详情 / 面试上下文确认”，同时服务首次导入和 workspace 回访 | 用户只学习一个确认页面；workspace 不再维护第二套全页确认 |
 | D-10 | 结构化轮次数据源 | 所有 TargetJob 关联的轮次展示与导航上下文使用 `TargetJob.summary.interviewRounds[]`；数组长度必须为 2~5，轮次类型、标题、时长和 focus 均由后端 LLM 结合 JD、岗位级别、公司/行业性质、团队/业务上下文与招聘流程线索推断并持久化 | 避免 Parse、Home 最近卡片、Workspace 回访或共享上下文保留固定 4 轮 / 固定 HR/技术/经理面 / 固定时长模板 |
+| D-11 | Recent card fixed grid and shared body | Home 最近模拟面试卡片使用固定最大列宽，并与 workspace 面试列表共用 `MockInterviewCard` 主体；Home 复用 `立即面试` 主按钮但不展示删除按钮 | 保证 Home recent 与 Interview list 不再表现为两套不同卡片规格 |
+| D-12 | Recent card planning and start actions | Home 最近模拟面试卡片点击主体进入统一规划详情，`立即面试 / Start interview now` 主按钮直接使用 generated practice handoff 启动 PracticeSession；删除按钮只属于 workspace 面试列表 | 保留继续规划和快速启动两个明确动作，避免 Home recent 与 Interview list 行为分叉 |
 
 ## 4 设计约束
 
@@ -103,7 +105,7 @@ Home 输入 / 上传 / URL 导入 JD
 | `createUploadPresign` | `openapi/fixtures/Uploads/createUploadPresign.json` | Home upload source action | `backend-upload` | `file_objects` create | none | `E2E.P0.015` |
 | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | Home paste / file / URL import | `backend-targetjob` | `target_jobs` / `target_job_sources` create | backend-only parse job | `E2E.P0.015` |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse polling + unified detail readonly preview, including structured `summary.interviewRounds[]` | `backend-targetjob` | `target_jobs.summary` / requirements read | backend-generated `target.import.parse` structured rounds | `E2E.P0.015` / `E2E.P0.016` / `E2E.P0.018` |
-| `createPracticePlan` / `getPracticePlan` / `startPracticeSession` | `openapi/fixtures/PracticePlans/*`, `openapi/fixtures/PracticeSessions/*` | Parse readonly detail Start action | `backend-practice` | `practice_plans` / `practice_sessions` create/read | none | `E2E.P0.016` |
+| `createPracticePlan` / `getPracticePlan` / `startPracticeSession` | `openapi/fixtures/PracticePlans/*`, `openapi/fixtures/PracticeSessions/*` | Parse readonly detail Start action and Home recent quick start | `backend-practice` | `practice_plans` / `practice_sessions` create/read | none | `E2E.P0.016` |
 
 ## 7 验收标准
 
@@ -113,7 +115,7 @@ Home 输入 / 上传 / URL 导入 JD
 | C-2 | Home resume gate | `listResumes` 返回 ready 简历 | 用户尚未选择简历 | 「立即面试」disabled，不调用 import；选择 ready 简历后才允许提交 | 001 |
 | C-3 | Paste JD import | 用户选择 ready 简历并粘贴 JD | 点击「立即面试」 | 调用 `importTargetJob` manual_text，成功进入 `parse` 且 route params 含真实 `resumeId` | 001 |
 | C-4 | Upload / URL import | 用户使用 source actions | Confirm | Upload 先 `createUploadPresign` 再 `importTargetJob(file)`；URL 调 `importTargetJob(url)`；均带 `Idempotency-Key` | 001 |
-| C-5 | Recent mocks | `listTargetJobs` 返回多条记录 | Home 加载完成 | 只展示最近 3 张，排序按 `updatedAt desc`；「更多」进入 `workspace` | 001 |
+| C-5 | Recent mocks | `listTargetJobs` 返回多条记录 | Home 加载完成 | 只展示最近 3 张，排序按 `updatedAt desc`；卡片固定最大列宽并展示 structured mini round rail；卡片主体点击进入统一规划详情，`立即面试` 直接启动 practice；不展示删除按钮；「更多」进入 `workspace`，workspace 列表复用同一卡片主体与动作模型 | 001 |
 | C-6 | Parse ready flow | `getTargetJob` 返回 ready 且 `summary.interviewRounds[]` 已由 LLM 根据 JD、行业/公司性质、岗位级别、团队/业务上下文和招聘流程线索生成 2~5 轮 | 用户进入 `parse` | 先展示 loading gate，再渲染“面试规划详情 / 面试上下文确认”；Basic fields / Hidden signals / requirements / round assumptions / bound resume 只读且只来自 API response 与已绑定 resume；round assumptions 的轮数、类型、标题、时长和 focus 均显示 `summary.interviewRounds[]`，不得退回固定 4 轮模板；验收必须包含 Playwright 截图附件或 `screenshotBytes=` marker | 001 |
 | C-7 | Parse failed flow | `analysisStatus=failed` 或轮询超时 | Parse polling | 渲染失败态、重新解析和返回首页；不伪造 preview 数据 | 001 |
 | C-8 | Readonly plan receipt | Preview 已绑定 ready 简历 | 用户查看详情 | 不出现字段编辑、requirements toggle、hidden signal 移除、重新解析、保存规划、取消或更换简历入口；缺少绑定简历时只阻断开始，不提供 picker 兜底 | 001 |

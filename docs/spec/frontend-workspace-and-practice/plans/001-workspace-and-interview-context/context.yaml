@@ -24,6 +24,7 @@ spec:
       - useInterviewContext
       - WorkspaceEmptyState
       - listTargetJobs
+      - archiveTargetJob
       - startPracticeFromParams
       - PracticeDisplayContext
       - practiceMode
@@ -106,6 +107,7 @@ spec:
           - resume_versions
         apiNames:
           - listTargetJobs
+          - archiveTargetJob
           - getPracticePlan
           - createPracticePlan
           - startPracticeSession

@@ -158,7 +158,9 @@ describe("TopBar three-entry + display controls visual (D-22)", () => {
     expect(themeButton).toHaveAttribute("title", "Theme");
     await user.click(themeButton);
     expect(screen.getByTestId("topbar-theme-menu")).toBeInTheDocument();
-    expect(screen.getAllByTestId(/^topbar-theme-option-/)).toHaveLength(4);
+    expect(screen.getAllByTestId(/^topbar-theme-option-/)).toHaveLength(2);
+    expect(screen.queryByText("Warm")).not.toBeInTheDocument();
+    expect(screen.queryByText("Forest")).not.toBeInTheDocument();
     expect(screen.getByTestId("topbar-theme-custom-option")).toHaveTextContent(
       "Custom",
     );

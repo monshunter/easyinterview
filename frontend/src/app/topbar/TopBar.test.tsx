@@ -199,7 +199,11 @@ describe("TopBar display controls", () => {
 
     await user.click(themeButton);
     expect(themeButton).toHaveAttribute("aria-expanded", "true");
-    await user.click(screen.getByTestId("topbar-theme-option-forest"));
+    expect(screen.getByTestId("topbar-theme-option-ocean")).toBeInTheDocument();
+    expect(screen.getByTestId("topbar-theme-option-plum")).toBeInTheDocument();
+    expect(screen.queryByTestId("topbar-theme-option-warm")).toBeNull();
+    expect(screen.queryByTestId("topbar-theme-option-forest")).toBeNull();
+    await user.click(screen.getByTestId("topbar-theme-option-plum"));
     expect(themeButton).toHaveAttribute("aria-expanded", "false");
 
     await user.click(darkToggle);

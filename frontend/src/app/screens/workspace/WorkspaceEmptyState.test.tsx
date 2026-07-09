@@ -23,9 +23,12 @@ import type { Route } from "../../routes";
 import { WorkspaceScreen } from "./WorkspaceScreen";
 
 import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
+import archiveTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/archiveTargetJob.json";
 import listTargetJobsFixture from "../../../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
 import getResumeFixture from "../../../../../openapi/fixtures/Resumes/getResume.json";
 import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
+import getPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
+import startPracticeSessionFixture from "../../../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
 
 function clientWithScenarios(opts: {
   targetJobScenario?: string;
@@ -57,6 +60,7 @@ function clientWithScenarios(opts: {
               default: getResumeFixture.scenarios[(opts.resumeScenario ?? "default") as keyof typeof getResumeFixture.scenarios]!,
             },
           },
+          archiveTargetJobFixture,
           listResumesFixture,
         ],
       ),
@@ -148,17 +152,36 @@ describe("WorkspaceEmptyState", () => {
     expect(planCard).toBeDefined();
     expect((planCard as HTMLElement).style.background).toBe("var(--ei-color-bg-card)");
     expect((planCard as HTMLElement).style.border).toBe("1px solid var(--ei-color-rule-strong)");
-    expect((planCard as HTMLElement).style.boxShadow).toBe("var(--ei-shadow-elev2)");
+    expect((planCard as HTMLElement).style.padding).toBe("20px");
+    expect((planCard as HTMLElement).style.position).toBe("relative");
     expect(within(planCard).queryByText(/URL import|Manual input|ZH-CN/i)).toBeNull();
+    const rail = screen.getByTestId("workspace-plan-list-rail-01918fa0-0000-7000-8000-000000002000");
+    expect(rail).toHaveTextContent("Frontend architecture screen · 45m");
+    expect(rail).toHaveTextContent("Hiring manager impact interview · 50m");
     expect(screen.getByTestId("workspace-plan-list-card-body-01918fa0-0000-7000-8000-000000002000")).toBeDefined();
     const cardFooter = screen.getByTestId("workspace-plan-list-card-footer-01918fa0-0000-7000-8000-000000002000");
     expect(cardFooter).toBeDefined();
     expect((cardFooter as HTMLElement).style.borderTop).toBe("1px solid var(--ei-color-rule-strong)");
     expect((cardFooter as HTMLElement).style.background).toBe("var(--ei-color-bg-card)");
     expect((cardFooter as HTMLElement).style.justifyContent).toBe("flex-end");
-    const openButton = screen.getByTestId("workspace-plan-list-open-01918fa0-0000-7000-8000-000000002000");
-    expect((openButton as HTMLElement).style.background).toBe("var(--ei-color-accent)");
-    expect((openButton as HTMLElement).style.border).toBe("1px solid var(--ei-color-accent)");
+    expect(cardFooter).toHaveTextContent("Start interview now");
+    expect(cardFooter).not.toHaveTextContent("Open plan");
+    expect(
+      cardFooter.querySelector(
+        "[data-testid='workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000']",
+      ),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId("workspace-plan-list-open-01918fa0-0000-7000-8000-000000002000"),
+    ).toBeNull();
+    const startButton = screen.getByTestId("workspace-plan-list-start-01918fa0-0000-7000-8000-000000002000");
+    expect((startButton as HTMLElement).style.background).toBe("var(--ei-color-accent)");
+    expect((startButton as HTMLElement).style.border).toBe("1px solid var(--ei-color-accent)");
+    const deleteButton = screen.getByTestId("workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000");
+    expect(deleteButton).toHaveAttribute("aria-label", "Delete");
+    expect((deleteButton as HTMLElement).style.position).toBe("absolute");
+    expect((deleteButton as HTMLElement).style.right).toBe("14px");
+    expect(deleteButton.querySelector('[data-icon="trash"]')).not.toBeNull();
   });
 
   it("requests ready plans and filters failed or blank-title dirty records", async () => {
@@ -245,7 +268,7 @@ describe("WorkspaceEmptyState", () => {
       expect(screen.getByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000")).toBeDefined();
     });
 
-    await user.click(screen.getByTestId("workspace-plan-list-open-01918fa0-0000-7000-8000-000000002000"));
+    await user.click(screen.getByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000"));
 
     expect(nav).toHaveBeenCalledWith({
       name: "parse",
@@ -280,7 +303,7 @@ describe("WorkspaceEmptyState", () => {
       expect(screen.getByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000")).toBeDefined();
     });
 
-    await user.click(screen.getByTestId("workspace-plan-list-open-01918fa0-0000-7000-8000-000000002000"));
+    await user.click(screen.getByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000"));
 
     expect(nav).toHaveBeenCalledWith({
       name: "parse",
@@ -303,6 +326,104 @@ describe("WorkspaceEmptyState", () => {
 
     expect(screen.queryByTestId("workspace-empty")).toBeNull();
     expect(screen.getByTestId("workspace-plan-list-create")).toBeDefined();
+  });
+
+  it("quick-starts a plan card without opening parse detail", async () => {
+    const user = userEvent.setup();
+    const client = clientWithScenarios();
+    const getPlanSpy = vi
+      .spyOn(client, "getPracticePlan")
+      .mockResolvedValue(
+        getPracticePlanFixture.scenarios.default.response.body as Awaited<
+          ReturnType<EasyInterviewClient["getPracticePlan"]>
+        >,
+      );
+    const createPlanSpy = vi.spyOn(client, "createPracticePlan");
+    const startSpy = vi
+      .spyOn(client, "startPracticeSession")
+      .mockResolvedValue(
+        startPracticeSessionFixture.scenarios.default.response.body as Awaited<
+          ReturnType<EasyInterviewClient["startPracticeSession"]>
+        >,
+      );
+    const { nav } = renderScreen({ name: "workspace", params: {} }, client);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-plan-list-start-01918fa0-0000-7000-8000-000000002000")).toBeDefined();
+    });
+
+    await user.click(screen.getByTestId("workspace-plan-list-start-01918fa0-0000-7000-8000-000000002000"));
+
+    await waitFor(() => {
+      expect(startSpy).toHaveBeenCalled();
+    });
+
+    expect(getPlanSpy).toHaveBeenCalledWith("01918fa0-0000-7000-8000-000000004000");
+    expect(createPlanSpy).not.toHaveBeenCalled();
+    expect(nav).toHaveBeenCalledWith({
+      name: "practice",
+      params: expect.objectContaining({
+        targetJobId: "01918fa0-0000-7000-8000-000000002000",
+        planId: "01918fa0-0000-7000-8000-000000004000",
+        resumeId: "01918fa0-0000-7000-8000-000000001000",
+        sessionId: "01918fa0-0000-7000-8000-000000005000",
+      }),
+    });
+    expect(nav).not.toHaveBeenCalledWith(expect.objectContaining({ name: "parse" }));
+  });
+
+  it("archives the plan card through the generated client before removing it", async () => {
+    const user = userEvent.setup();
+    const client = clientWithScenarios();
+    const archiveSpy = vi
+      .spyOn(client, "archiveTargetJob")
+      .mockResolvedValue(
+        archiveTargetJobFixture.scenarios.default.response.body as Awaited<
+          ReturnType<EasyInterviewClient["archiveTargetJob"]>
+        >,
+      );
+    const getPlanSpy = vi.spyOn(client, "getPracticePlan");
+    const startSpy = vi.spyOn(client, "startPracticeSession");
+    const { nav } = renderScreen({ name: "workspace", params: {} }, client);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000")).toBeDefined();
+    });
+
+    await user.click(screen.getByTestId("workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000"));
+
+    await waitFor(() => {
+      expect(archiveSpy).toHaveBeenCalled();
+    });
+    expect(archiveSpy).toHaveBeenCalledWith(
+      "01918fa0-0000-7000-8000-000000002000",
+      expect.objectContaining({
+        idempotencyKey: expect.stringMatching(/^v1\.\d+\.[0-9a-f-]{36}$/),
+      }),
+    );
+    expect(nav).not.toHaveBeenCalled();
+    expect(getPlanSpy).not.toHaveBeenCalled();
+    expect(startSpy).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000")).toBeNull();
+  });
+
+  it("keeps the card visible when archiveTargetJob fails", async () => {
+    const user = userEvent.setup();
+    const client = clientWithScenarios();
+    vi.spyOn(client, "archiveTargetJob").mockRejectedValue(new Error("archive failed"));
+    const { nav } = renderScreen({ name: "workspace", params: {} }, client);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000")).toBeDefined();
+    });
+
+    await user.click(screen.getByTestId("workspace-plan-list-delete-01918fa0-0000-7000-8000-000000002000"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("workspace-plan-list-delete-error")).toHaveTextContent("archive failed");
+    });
+    expect(screen.getByTestId("workspace-plan-list-card-01918fa0-0000-7000-8000-000000002000")).toBeDefined();
+    expect(nav).not.toHaveBeenCalled();
   });
 
 });

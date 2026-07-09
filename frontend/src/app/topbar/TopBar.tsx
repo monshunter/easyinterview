@@ -35,17 +35,12 @@ const NAV_LABEL_KEYS: Record<(typeof PRIMARY_NAV_ROUTES)[number], Parameters<typ
   resume_versions: "nav.resume_versions",
 };
 
-const THEME_LABEL_KEYS: Record<Theme, Parameters<typeof translate>[1]> = {
-  warm: "theme.warm",
-  forest: "theme.forest",
+const THEME_OPTIONS = ["ocean", "plum"] as const satisfies readonly Theme[];
+const THEME_LABEL_KEYS: Record<(typeof THEME_OPTIONS)[number], Parameters<typeof translate>[1]> = {
   ocean: "theme.ocean",
   plum: "theme.plum",
 };
-
-const THEME_OPTIONS: readonly Theme[] = ["warm", "forest", "ocean", "plum"];
 const CUSTOM_ACCENT_SEEDS: Record<Theme, CustomAccent> = {
-  warm: { h: 30, c: 0.16 },
-  forest: { h: 130, c: 0.13 },
   ocean: { h: 255, c: 0.16 },
   plum: { h: 340, c: 0.15 },
 };

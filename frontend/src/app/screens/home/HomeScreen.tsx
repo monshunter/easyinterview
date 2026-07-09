@@ -4,7 +4,7 @@ import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useI18n } from "../../i18n/messages";
 import { isSelectableInterviewResume } from "../../interview-context/selectableResume";
-import { interviewContextFromTargetJob } from "../../navigation/interviewContext";
+import { startPracticeFromParams } from "../../interview-context/startPractice";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import type { Route } from "../../routes";
 import { JDAssistModal, type JDAssistModalSource } from "./JDAssistModal";
@@ -15,7 +15,7 @@ import {
   type PendingImportSource,
 } from "./pendingImportState";
 import { useRecentTargetJobs } from "./useRecentTargetJobs";
-import type { Resume } from "../../../api/generated/types";
+import type { Resume, TargetJob } from "../../../api/generated/types";
 
 function idempotencyKey(): string {
   return `ik-${crypto.randomUUID()}`;
@@ -31,6 +31,16 @@ function resumeMeta(resume: Resume): string {
     .join(" · ");
 }
 
+function planParamsFromTargetJob(job: TargetJob): Record<string, string> {
+  const planId = job.currentPracticePlanId?.trim();
+  const resumeId = job.resumeId?.trim();
+  return {
+    targetJobId: job.id,
+    ...(planId ? { planId } : {}),
+    ...(resumeId ? { resumeId } : {}),
+  };
+}
+
 export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const { lang, t } = useI18n();
   const runtime = useAppRuntimeOptional();
@@ -44,6 +54,8 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const [selectedResumeId, setSelectedResumeId] = useState("");
   const [resumesLoading, setResumesLoading] = useState(false);
   const [resumeError, setResumeError] = useState<string | null>(null);
+  const [startingRecentJobId, setStartingRecentJobId] = useState<string | null>(null);
+  const [recentStartError, setRecentStartError] = useState<string | null>(null);
   const { jobs: rawJobs, loading, error } = useRecentTargetJobs();
   const targetLanguage = lang === "zh" ? "zh-CN" : "en";
   const routeResumeId =
@@ -259,6 +271,41 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
 
     await submitImportSource(pendingSource, selectedResume.id);
   };
+
+  const openRecentPlan = useCallback(
+    (job: TargetJob) => {
+      openProtectedRoute(
+        {
+          name: "parse",
+          params: planParamsFromTargetJob(job),
+        },
+        job.title,
+      );
+    },
+    [openProtectedRoute],
+  );
+
+  const startRecentInterview = useCallback(
+    async (job: TargetJob) => {
+      const params = planParamsFromTargetJob(job);
+      if (!runtime || runtime.auth.status !== "authenticated" || !params.resumeId) {
+        openRecentPlan(job);
+        return;
+      }
+
+      setRecentStartError(null);
+      setStartingRecentJobId(job.id);
+      try {
+        const started = await startPracticeFromParams(runtime.client, params, lang);
+        navigate({ name: "practice", params: started.params });
+      } catch (err: unknown) {
+        setRecentStartError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setStartingRecentJobId(null);
+      }
+    },
+    [lang, navigate, openRecentPlan, runtime],
+  );
 
   return (
     <section
@@ -689,9 +736,11 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
             </div>
           ) : (
             <div
+              data-testid="home-recent-mock-grid"
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fill, minmax(300px, 360px))",
+                justifyContent: "start",
                 gap: 16,
               }}
             >
@@ -699,21 +748,31 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
                 <MockInterviewCard
                   key={j.id}
                   job={j}
-                  onClick={() =>
-                    openProtectedRoute(
-                      {
-                        name: "workspace",
-                        params: interviewContextFromTargetJob(
-                          j,
-                        ) as unknown as Record<string, string>,
-                      },
-                      j.title,
-                    )
-                  }
+                  onClick={() => openRecentPlan(j)}
+                  primaryAction={{
+                    label: t("home.importBtn"),
+                    testId: `home-recent-mock-start-${j.id}`,
+                    onClick: () => startRecentInterview(j),
+                    disabled:
+                      startingRecentJobId === j.id ||
+                      !j.resumeId?.trim(),
+                  }}
                 />
               ))}
             </div>
           )}
+          {recentStartError ? (
+            <div
+              data-testid="home-recent-start-error"
+              style={{
+                color: "var(--ei-color-danger)",
+                fontSize: 13,
+                marginTop: 10,
+              }}
+            >
+              {recentStartError}
+            </div>
+          ) : null}
         </div>
       )}
 

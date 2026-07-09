@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { MockInterviewCard } from "./MockInterviewCard";
@@ -126,5 +126,87 @@ describe("MockInterviewCard", () => {
 
     screen.getByTestId("home-recent-mock-card-job-001").click();
     expect(clicked).toBe(true);
+  });
+
+  it("supports workspace-owned testids and shared quick-start/delete actions", () => {
+    const cardClick = vi.fn();
+    const start = vi.fn();
+    const remove = vi.fn();
+
+    render(
+      <MockInterviewCard
+        job={mockJob}
+        onClick={cardClick}
+        cardTestId="workspace-plan-list-card-job-001"
+        bodyTestId="workspace-plan-list-card-body-job-001"
+        railTestId="workspace-plan-list-rail-job-001"
+        footerTestId="workspace-plan-list-card-footer-job-001"
+        primaryAction={{
+          label: "Start interview now",
+          testId: "workspace-plan-list-start-job-001",
+          onClick: start,
+        }}
+        deleteAction={{
+          label: "Delete",
+          testId: "workspace-plan-list-delete-job-001",
+          onClick: remove,
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("workspace-plan-list-card-job-001"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("workspace-plan-list-card-body-job-001"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("workspace-plan-list-rail-job-001"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("workspace-plan-list-card-footer-job-001"),
+    ).toHaveTextContent("Start interview now");
+    expect(
+      screen.getByTestId("workspace-plan-list-card-footer-job-001"),
+    ).not.toHaveTextContent("Open plan");
+    expect(
+      screen
+        .getByTestId("workspace-plan-list-card-footer-job-001")
+        .querySelector("[data-testid='workspace-plan-list-delete-job-001']"),
+    ).toBeNull();
+
+    screen.getByTestId("workspace-plan-list-start-job-001").click();
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(cardClick).not.toHaveBeenCalled();
+
+    const deleteButton = screen.getByTestId("workspace-plan-list-delete-job-001");
+    expect(deleteButton).toHaveAttribute("aria-label", "Delete");
+    expect((deleteButton as HTMLElement).style.position).toBe("absolute");
+    expect((deleteButton as HTMLElement).style.right).toBe("14px");
+    expect((deleteButton as HTMLElement).style.top).toBe("14px");
+    expect(deleteButton.querySelector('[data-icon="trash"]')).not.toBeNull();
+    deleteButton.click();
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(cardClick).not.toHaveBeenCalled();
+  });
+
+  it("can render a quick-start action without a delete action for Home recent cards", () => {
+    render(
+      <MockInterviewCard
+        job={mockJob}
+        primaryAction={{
+          label: "Start interview now",
+          testId: "home-recent-mock-start-job-001",
+          onClick: () => {},
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("home-recent-mock-start-job-001"),
+    ).toHaveTextContent("Start interview now");
+    expect(
+      screen.queryByTestId("home-recent-mock-delete-job-001"),
+    ).toBeNull();
   });
 });

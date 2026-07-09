@@ -19,10 +19,10 @@ const Probe: FC<{ signedIn: boolean }> = ({ signedIn }) => {
       <span data-testid="signed-in">{String(signedIn)}</span>
       <button
         type="button"
-        data-testid="set-theme-forest"
-        onClick={() => prefs.setTheme("forest")}
+        data-testid="set-theme-plum"
+        onClick={() => prefs.setTheme("plum")}
       >
-        theme forest
+        theme plum
       </button>
       <button
         type="button"
@@ -114,23 +114,23 @@ describe("DisplayPreferencesProvider", () => {
     render(<Harness />);
     const user = userEvent.setup();
 
-    await user.click(screen.getByTestId("set-theme-forest"));
+    await user.click(screen.getByTestId("set-theme-plum"));
     await user.click(screen.getByTestId("set-dark-true"));
     await user.click(screen.getByTestId("set-lang-en"));
 
-    expect(screen.getByTestId("theme")).toHaveTextContent("forest");
+    expect(screen.getByTestId("theme")).toHaveTextContent("plum");
     expect(screen.getByTestId("dark")).toHaveTextContent("true");
     expect(screen.getByTestId("lang")).toHaveTextContent("en");
 
     await user.click(screen.getByTestId("toggle-auth"));
     expect(screen.getByTestId("signed-in")).toHaveTextContent("true");
-    expect(screen.getByTestId("theme")).toHaveTextContent("forest");
+    expect(screen.getByTestId("theme")).toHaveTextContent("plum");
     expect(screen.getByTestId("dark")).toHaveTextContent("true");
     expect(screen.getByTestId("lang")).toHaveTextContent("en");
 
     await user.click(screen.getByTestId("toggle-auth"));
     expect(screen.getByTestId("signed-in")).toHaveTextContent("false");
-    expect(screen.getByTestId("theme")).toHaveTextContent("forest");
+    expect(screen.getByTestId("theme")).toHaveTextContent("plum");
     expect(screen.getByTestId("dark")).toHaveTextContent("true");
     expect(screen.getByTestId("lang")).toHaveTextContent("en");
   });

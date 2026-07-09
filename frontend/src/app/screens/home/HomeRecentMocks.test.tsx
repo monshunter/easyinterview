@@ -14,6 +14,8 @@ import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRun
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
 import listTargetJobsFixture from "../../../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
+import getPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
+import startPracticeSessionFixture from "../../../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
 
 type ListResumesResponse = Awaited<ReturnType<EasyInterviewClient["listResumes"]>>;
 
@@ -127,6 +129,10 @@ describe("HomeRecentMocks", () => {
         screen.getByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-000000000001"),
       ).toBeInTheDocument();
     });
+    const grid = screen.getByTestId("home-recent-mock-grid");
+    expect(grid.style.gridTemplateColumns).toContain("360px");
+    expect(grid.style.gridTemplateColumns).not.toContain("1fr");
+    expect(grid.style.justifyContent).toBe("start");
   });
 
   it("renders at most 3 cards for twelve-plus variant and exposes More navigation", async () => {
@@ -155,31 +161,84 @@ describe("HomeRecentMocks", () => {
     });
   });
 
-  it("navigates to workspace on card click with interviewContext", async () => {
-    const client = createClient("one-job");
+  it("opens parse detail on card click and shows quick-start without delete", async () => {
+    const client = createClient("default");
     const { navigate } = renderHome(client);
 
     await waitFor(() => {
       expect(
-        screen.getByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-000000000001"),
+        screen.getByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-000000002000"),
       ).toBeInTheDocument();
     });
 
-    screen.getByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-000000000001").click();
+    expect(
+      screen.getByTestId("home-recent-mock-start-01918fa0-0000-7000-8000-000000002000"),
+    ).toHaveTextContent("Start interview now");
+    expect(
+      screen.queryByTestId("home-recent-mock-delete-01918fa0-0000-7000-8000-000000002000"),
+    ).toBeNull();
+
+    screen.getByTestId("home-recent-mock-card-01918fa0-0000-7000-8000-000000002000").click();
 
     expect(navigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: "workspace",
+        name: "parse",
         params: expect.objectContaining({
-          targetJobId: "01918fa0-0000-7000-8000-000000000001",
-          jobId: "01918fa0-0000-7000-8000-000000000001",
-          jdId: "jd-01918fa0-0000-7000-8000-000000000001",
-          planId: "",
-          resumeId: "",
-          roundId: "",
-          roundName: "",
+          targetJobId: "01918fa0-0000-7000-8000-000000002000",
+          planId: "01918fa0-0000-7000-8000-000000004000",
+          resumeId: "01918fa0-0000-7000-8000-000000001000",
         }),
       }),
+    );
+  });
+
+  it("quick-starts a recent mock without opening parse detail", async () => {
+    const user = userEvent.setup();
+    const client = createClient("default");
+    const getPlanSpy = vi
+      .spyOn(client, "getPracticePlan")
+      .mockResolvedValue(
+        getPracticePlanFixture.scenarios.default.response.body as Awaited<
+          ReturnType<EasyInterviewClient["getPracticePlan"]>
+        >,
+      );
+    const createPlanSpy = vi.spyOn(client, "createPracticePlan");
+    const startSpy = vi
+      .spyOn(client, "startPracticeSession")
+      .mockResolvedValue(
+        startPracticeSessionFixture.scenarios.default.response.body as Awaited<
+          ReturnType<EasyInterviewClient["startPracticeSession"]>
+        >,
+      );
+    const { navigate } = renderHome(client);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("home-recent-mock-start-01918fa0-0000-7000-8000-000000002000"),
+      ).toBeInTheDocument();
+    });
+
+    await user.click(
+      screen.getByTestId("home-recent-mock-start-01918fa0-0000-7000-8000-000000002000"),
+    );
+
+    await waitFor(() => {
+      expect(startSpy).toHaveBeenCalled();
+    });
+
+    expect(getPlanSpy).toHaveBeenCalledWith("01918fa0-0000-7000-8000-000000004000");
+    expect(createPlanSpy).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith({
+      name: "practice",
+      params: expect.objectContaining({
+        targetJobId: "01918fa0-0000-7000-8000-000000002000",
+        planId: "01918fa0-0000-7000-8000-000000004000",
+        resumeId: "01918fa0-0000-7000-8000-000000001000",
+        sessionId: "01918fa0-0000-7000-8000-000000005000",
+      }),
+    });
+    expect(navigate).not.toHaveBeenCalledWith(
+      expect.objectContaining({ name: "parse" }),
     );
   });
 });

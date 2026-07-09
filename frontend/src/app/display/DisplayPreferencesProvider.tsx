@@ -15,6 +15,7 @@ import {
   ROOT_CUSTOM_ACCENT_ATTR,
   ROOT_MODE_ATTR,
   ROOT_THEME_ATTR,
+  type Theme,
 } from "../theme/tokens";
 import {
   DEFAULT_LANG,
@@ -23,6 +24,7 @@ import {
 } from "../i18n/localeCatalog";
 
 export type { Lang } from "../i18n/localeCatalog";
+export type { Theme } from "../theme/tokens";
 
 /**
  * Global display preferences (Spec D-4 / docs/ui-design/auth-and-entry.md §4):
@@ -41,8 +43,6 @@ export type { Lang } from "../i18n/localeCatalog";
  * `fontPreset` is owned by the settings page (Phase 4.2), not by TopBar; it is
  * therefore not exposed here.
  */
-
-export type Theme = "warm" | "forest" | "ocean" | "plum";
 
 export interface CustomAccent {
   /** Hue in degrees, [0, 360). Out-of-range inputs are normalized. */

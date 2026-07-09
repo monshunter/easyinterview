@@ -8,6 +8,8 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-09](./2026-07-09-workspace-persistent-archive-delete-assessment.md) | Workspace Persistent Archive Delete 交付复盘 | #assessment #BUG-0150 |
+| [2026-07-09](./2026-07-09-workspace-plan-card-theme-pruning-assessment.md) | Interview Card Fusion, Action Row, and Theme Pruning 交付复盘 | #assessment |
 | [2026-07-09](./2026-07-09-local-dev-reset-redeploy-assessment.md) | Local Dev Reset Redeploy 交付复盘 | #assessment |
 | [2026-07-09](./2026-07-09-round-assumptions-data-binding-assessment.md) | Structured Interview Rounds Data Binding 交付复盘 | #assessment #BUG-0148 |
 | [2026-07-09](./2026-07-09-interview-plan-readonly-detail-assessment.md) | Interview Plan Readonly Detail 交付复盘 | #assessment |

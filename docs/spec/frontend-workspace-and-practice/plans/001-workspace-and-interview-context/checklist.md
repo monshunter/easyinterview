@@ -1,7 +1,7 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.19
-> **状态**: completed
+> **版本**: 1.24
+> **状态**: active
 > **更新日期**: 2026-07-09
 
 **关联计划**: [plan](./plan.md)
@@ -111,3 +111,31 @@
 - [x] 14.3 Retired workspace detail/start/modal runtime files and tests are removed from current owner（验证：`rg` negative + deleted files）
 - [x] 14.4 Parse/report owners start practice directly through generated `getPracticePlan` / `createPracticePlan` / `startPracticeSession`, not through `workspace(autoStartPractice=1)`（验证：`ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx` PASS）
 - [x] 14.5 BDD-Gate: `E2E.P0.018` trigger/verify now covers workspace pure list + parse detail handoff and rejects retired workspace context files（验证：scenario assets updated）
+
+## Phase 15: plan-list card size stability
+
+- [x] 15.1 UI truth source defines fixed desktop plan-card column sizing and rejects single-card full-row stretching（验证：`docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-workspace.jsx`）
+- [x] 15.2 Formal `WorkspacePlanList` uses `auto-fill` with fixed max column width and `justifyContent:start` on desktop, while compact layout remains single-column（验证：`WorkspaceScreen.test.tsx`）
+- [x] 15.3 Browser screenshot acceptance captures the corrected single-card plan-list layout（验证：agent-browser screenshot）
+
+## Phase 16: home recent / workspace list card fusion
+
+- [x] 16.1 UI truth source defines workspace plan-list card as Home recent card body plus workspace footer CTA（验证：`docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-workspace.jsx`, `node --test ui-design/ui-design-contract.test.mjs` PASS）
+- [x] 16.2 Formal `WorkspacePlanList` reuses the Home recent card body/mini round rail and appends `进入规划` / `Open plan` CTA without losing fixed-width grid behavior（验证：`pnpm --filter @easyinterview/frontend test src/app/screens/home/MockInterviewCard.test.tsx src/app/screens/home/HomeRecentMocks.test.tsx src/app/screens/workspace/WorkspaceScreen.test.tsx src/app/screens/workspace/WorkspaceEmptyState.test.tsx` PASS）
+- [x] 16.3 Browser screenshot acceptance captures the fused workspace card and theme menu after the optimization（验证：agent-browser screenshot + `pnpm --filter @easyinterview/frontend test:pixel-parity tests/pixel-parity/workspace.spec.ts` PASS）
+
+## Phase 17: plan-list action row and card-click planning
+
+- [x] 17.1 UI truth source defines workspace card body click as the planning-detail navigation, footer `立即面试`, and top-right resume-list trash icon delete（验证：`docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-workspace.jsx`, `node --test ui-design/ui-design-contract.test.mjs`）
+- [x] 17.2 Formal `MockInterviewCard` supports quick-start and top-right delete actions, stops action propagation, and uses the resume-list trash icon for delete（验证：`MockInterviewCard.test.tsx`）
+- [x] 17.3 `WorkspacePlanList` removes visible `进入规划` footer button, starts practice through shared generated practice handoff, and keeps delete isolated from card navigation; Phase 18 owns backend-persistent archive（验证：`WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`）
+- [x] 17.4 Home recent cards reuse the same quick-start action card and omit delete controls（验证：`HomeRecentMocks.test.tsx`）
+- [x] 17.5 Browser screenshot acceptance captures workspace card actions and Home recent card actions after the optimization（验证：`.test-output/screenshots/workspace-plan-list-action-card.png`, `.test-output/screenshots/home-recent-action-card.png`, pixel parity workspace spec）
+
+## Phase 18: persistent TargetJob archive integration
+
+- [x] 18.1 UI truth source updates delete semantics from local-only hiding to persistent `archiveTargetJob`, with the delete icon fixed at the card top-right and footer kept for `立即面试` only; 验证: `docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-workspace.jsx`, `node --test ui-design/ui-design-contract.test.mjs` PASS
+- [x] 18.2 Generated client / mock transport expose and call `archiveTargetJob`; 验证: `make lint-openapi`, `make validate-fixtures`, `make lint-mock-contract`, generated `client.archiveTargetJob`
+- [x] 18.3 `WorkspacePlanList` calls `archiveTargetJob` with `Idempotency-Key`, removes the card only on success, keeps the card on failure, and prevents top-right delete/quick-start events from bubbling to card navigation; 验证: `pnpm --filter @easyinterview/frontend test src/app/screens/home/MockInterviewCard.test.tsx src/app/screens/home/HomeRecentMocks.test.tsx src/app/screens/workspace/WorkspaceScreen.test.tsx src/app/screens/workspace/WorkspaceEmptyState.test.tsx` PASS, `pnpm --filter @easyinterview/frontend typecheck` PASS
+- [x] 18.4 Home recent cards reuse the same card body and quick-start action but still omit delete controls; 验证: `HomeRecentMocks.test.tsx` PASS
+- [x] 18.5 BDD-Gate: real-backend browser smoke proves archived TargetJob disappears after refresh; 验证: `test/scenarios/e2e/p0-018-workspace-default-render/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS；local real-backend browser smoke captured `.test-output/e2e/workspace-archive-real-browser/workspace-card-before-delete.png` and `.test-output/e2e/workspace-archive-real-browser/workspace-after-delete.png`; DB readback `archive-db-state.txt=archived|t`, refresh text excludes the target title/id, cleanup `cleanup-db-state.txt=0`

@@ -43,13 +43,8 @@ const Probe: FC = () => {
     <div>
       <button
         type="button"
-        data-testid="probe-set-theme-forest"
-        onClick={() => prefs.setTheme("forest")}
-      />
-      <button
-        type="button"
-        data-testid="probe-set-theme-warm"
-        onClick={() => prefs.setTheme("warm")}
+        data-testid="probe-set-theme-plum"
+        onClick={() => prefs.setTheme("plum")}
       />
       <button
         type="button"
@@ -114,14 +109,12 @@ describe("DisplayPreferencesProvider root-element wiring (Phase 1.2)", () => {
       .trim();
     expect(before).toBe("#f8fafd");
 
-    await userEvent.click(screen.getByTestId("probe-set-theme-forest"));
-    expect(document.documentElement.getAttribute("data-theme")).toBe(
-      "forest",
-    );
+    await userEvent.click(screen.getByTestId("probe-set-theme-plum"));
+    expect(document.documentElement.getAttribute("data-theme")).toBe("plum");
     const after = getComputedStyle(document.documentElement)
       .getPropertyValue("--ei-color-bg-canvas")
       .trim();
-    expect(after).toBe("#f9faf3");
+    expect(after).toBe("#fcf8fa");
   });
 
   it("flips data-mode attribute and computed --ei-color-fg-primary when dark toggles", async () => {

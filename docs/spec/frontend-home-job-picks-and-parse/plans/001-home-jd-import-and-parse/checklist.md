@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.10
+> **版本**: 2.12
 > **状态**: completed
 > **更新日期**: 2026-07-09
 
@@ -67,3 +67,16 @@
 - [x] 8.4 UI truth source and docs define structured LLM rounds across Parse and Home recent rail（验证：`node --test ui-design/ui-design-contract.test.mjs`; `make sync-fixtures-from-prototype`; `make validate-fixtures` PASS).
 - [x] 8.5 BDD-Gate: `E2E.P0.016` proves readonly detail and related Home recent surface consume structured backend rounds for 2~5 count/type/duration/focus, with no fixed 4-round template in positive structured data paths; Playwright attaches the readonly-detail screenshot and emits `screenshotBytes=` marker（验证：`test/scenarios/e2e/p0-016-parse-confirm-to-workspace/scripts/trigger.sh && test/scenarios/e2e/p0-016-parse-confirm-to-workspace/scripts/verify.sh` PASS).
 - [x] 8.6 Repo gates pass after structured round contract changes（验证：`python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/frontend-home-job-picks-and-parse/plans/001-home-jd-import-and-parse/context.yaml --docs-root docs --target frontend`; `cd frontend && pnpm typecheck`; focused frontend tests; backend targetjob focused tests; `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`; `make docs-check`; `git diff --check`; `make lint-core-loop-pruning-surface` PASS).
+
+## Phase 9: Recent card fixed grid and workspace fusion
+
+- [x] 9.1 UI truth source defines Home recent cards and workspace plan-list cards as one shared card body with fixed max-width grid（验证：`docs/ui-design/jd-resume-management.md`, `docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-home.jsx`, `ui-design/src/screen-workspace.jsx`, `node --test ui-design/ui-design-contract.test.mjs` PASS）
+- [x] 9.2 Formal `MockInterviewCard` supports Home default testids plus workspace-owned card/body/rail/footer testids and optional footer CTA（验证：`pnpm --filter @easyinterview/frontend test src/app/screens/home/MockInterviewCard.test.tsx` PASS）
+- [x] 9.3 Home recent and workspace list focused tests reject `1fr` stretching and verify workspace mini round rail + footer CTA（验证：`pnpm --filter @easyinterview/frontend test src/app/screens/home/HomeRecentMocks.test.tsx src/app/screens/workspace/WorkspaceScreen.test.tsx src/app/screens/workspace/WorkspaceEmptyState.test.tsx` PASS）
+
+## Phase 10: Home recent shared action card
+
+- [x] 10.1 UI truth source defines Home recent cards as the shared Interview list action card with `立即面试` and without delete controls（验证：`docs/ui-design/jd-resume-management.md`, `docs/ui-design/module-job-workspace.md`, `ui-design/src/screen-home.jsx`）
+- [x] 10.2 Formal `MockInterviewCard` supports quick-start action props and Home passes no delete action（验证：`MockInterviewCard.test.tsx`, `HomeRecentMocks.test.tsx`）
+- [x] 10.3 Home recent quick-start calls shared generated practice handoff and card-body click remains planning-detail navigation（验证：`HomeRecentMocks.test.tsx`）
+- [x] 10.4 Browser screenshot acceptance captures Home recent card with `立即面试` and no delete icon（验证：`.test-output/screenshots/home-recent-action-card.png`）

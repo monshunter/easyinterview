@@ -14,10 +14,11 @@ grep -Fq 'ParseResumeBinding.test.tsx' "$LOG_FILE" || { echo "E2E.P0.018: parse 
 testid_count="$(
   rg -o 'data-testid=' \
     "$REPO_ROOT/frontend/src/app/screens/workspace/WorkspaceScreen.tsx" \
+    "$REPO_ROOT/frontend/src/app/screens/home/MockInterviewCard.tsx" \
     | wc -l | tr -d ' '
 )"
-if [ "$testid_count" -lt 12 ]; then
-  echo "E2E.P0.018: expected >=12 workspace list runtime testids, got $testid_count" >&2
+if [ "$testid_count" -lt 14 ]; then
+  echo "E2E.P0.018: expected >=14 workspace list/shared-card runtime testids, got $testid_count" >&2
   exit 1
 fi
 if rg -n 'practice-mode-card-|growth-center|drill-builder|mistake-queue' "$REPO_ROOT/frontend/src/app/screens/workspace" -g '!*.test.tsx'; then
@@ -50,8 +51,32 @@ grep -Fq 'workspace-plan-list-card-footer-' "$REPO_ROOT/frontend/src/app/screens
   echo "E2E.P0.018: workspace plan-list card footer section missing" >&2
   exit 1
 }
-grep -Fq 'boxShadow: "var(--ei-shadow-elev2)"' "$REPO_ROOT/frontend/src/app/screens/workspace/WorkspaceScreen.tsx" || {
-  echo "E2E.P0.018: workspace plan-list cards lack elevation token" >&2
+grep -Fq 'workspace-plan-list-start-' "$REPO_ROOT/frontend/src/app/screens/workspace/WorkspaceScreen.tsx" || {
+  echo "E2E.P0.018: workspace plan-list quick-start action missing" >&2
+  exit 1
+}
+grep -Fq 'workspace-plan-list-delete-' "$REPO_ROOT/frontend/src/app/screens/workspace/WorkspaceScreen.tsx" || {
+  echo "E2E.P0.018: workspace plan-list delete action missing" >&2
+  exit 1
+}
+grep -Fq 'position: "absolute"' "$REPO_ROOT/frontend/src/app/screens/home/MockInterviewCard.tsx" || {
+  echo "E2E.P0.018: workspace plan-list delete action is not positioned at card top-right" >&2
+  exit 1
+}
+grep -Fq 'right: 14' "$REPO_ROOT/frontend/src/app/screens/home/MockInterviewCard.tsx" || {
+  echo "E2E.P0.018: workspace plan-list delete action is not anchored to the card right edge" >&2
+  exit 1
+}
+if rg -n 'workspace-plan-list-open-' "$REPO_ROOT/frontend/src/app/screens/workspace" -g '!*.test.tsx'; then
+  echo "E2E.P0.018: visible Open plan footer button returned to workspace runtime" >&2
+  exit 1
+fi
+grep -Fq 'MockInterviewCard' "$REPO_ROOT/frontend/src/app/screens/workspace/WorkspaceScreen.tsx" || {
+  echo "E2E.P0.018: workspace plan-list cards do not reuse the Home recent card body" >&2
+  exit 1
+}
+grep -Fq 'railTestId' "$REPO_ROOT/frontend/src/app/screens/home/MockInterviewCard.tsx" || {
+  echo "E2E.P0.018: shared interview card lacks mini round rail test hook" >&2
   exit 1
 }
 if rg -n 'workspace\.planList\.cardMeta|job\.targetLanguage\?\.toUpperCase|job\.sourceType \? formatSourceType' "$REPO_ROOT/frontend/src/app/screens/workspace/WorkspaceScreen.tsx"; then
@@ -62,8 +87,8 @@ if rg -n '"workspace\.planList\.cardMeta"' "$REPO_ROOT/frontend/src/app/i18n/loc
   echo "E2E.P0.018: obsolete plan-list cardMeta locale key remains" >&2
   exit 1
 fi
-grep -Fq 'background: "var(--ei-color-accent)"' "$REPO_ROOT/frontend/src/app/screens/workspace/WorkspaceScreen.tsx" || {
-  echo "E2E.P0.018: workspace plan-list open CTA is not theme accent" >&2
+grep -Fq 'background: "var(--ei-color-accent)"' "$REPO_ROOT/frontend/src/app/screens/home/MockInterviewCard.tsx" || {
+  echo "E2E.P0.018: workspace plan-list quick-start CTA is not theme accent" >&2
   exit 1
 }
 if rg -n 'autoStartPractice|useStartPractice|PlanSwitcherModal|ResumePickerModal|WorkspaceInsightCard|useWorkspaceTargetJob\W|useWorkspaceResume|useWorkspacePracticePlan' \
@@ -78,6 +103,18 @@ grep -Fq 'startPracticeFromParams' "$REPO_ROOT/frontend/src/app/screens/parse/Pa
 }
 grep -Fq 'workspace-plan-list-card-footer-' "$REPO_ROOT/ui-design/src/screen-workspace.jsx" || {
   echo "E2E.P0.018: ui-design plan-list card footer source missing" >&2
+  exit 1
+}
+grep -Fq 'Icon name="trash"' "$REPO_ROOT/ui-design/src/screen-workspace.jsx" || {
+  echo "E2E.P0.018: ui-design plan-list delete icon missing" >&2
+  exit 1
+}
+grep -Fq 'position: "absolute", top: 20, right: 20' "$REPO_ROOT/ui-design/src/screen-workspace.jsx" || {
+  echo "E2E.P0.018: ui-design plan-list delete icon is not fixed at card top-right" >&2
+  exit 1
+}
+grep -Fq 'workspace-plan-list-rail-' "$REPO_ROOT/ui-design/src/screen-workspace.jsx" || {
+  echo "E2E.P0.018: ui-design plan-list card mini round rail missing" >&2
   exit 1
 }
 grep -Fq 'nav("parse"' "$REPO_ROOT/ui-design/src/screen-workspace.jsx" || {
