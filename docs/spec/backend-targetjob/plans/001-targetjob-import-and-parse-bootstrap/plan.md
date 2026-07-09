@@ -1,6 +1,6 @@
 # TargetJob Import and Parse Bootstrap
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
 > **更新日期**: 2026-07-09
 
@@ -15,6 +15,7 @@
 
 本次 v1.10 原地修订修复解析失败准入缺口：`target_import` 失败事务必须删除 `target_jobs`，级联清理 source / requirements，保留 async job/outbox 失败证据；`listTargetJobs` / `getTargetJob` 不得再返回 `analysisStatus=failed` 的脏规划。
 本次 v1.11 原地修订新增 TargetJob 持久归档合同：`POST /targets/{targetJobId}/archive` 与 generated `archiveTargetJob` 必须设置 `status='archived'` 和 `deleted_at`，并让 `listTargetJobs` / `getTargetJob` 继续通过 `deleted_at is null` 隐藏已归档卡片。
+本次 v1.12 原地修订补齐归档与异步解析的边界：若归档发生在 `target_import` job 排队或重试期间，parse worker 读取到 TargetJob 已不可见时必须终结该 async job，不得再走失败清理并制造 retry storm。
 
 本计划闭环后，[`frontend-home-job-picks-and-parse`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 的 parse 屏可从 mock fixture 切到真实 backend，剩余 Job Picks 推荐与 practice plan 创建归后续 plan / 后续 subspec。
 
@@ -47,7 +48,7 @@
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` (`default`, `prototype-baseline`) | TargetJob list / workspace pickers via generated client | `backend/internal/targetjob` list handler / store cursor query | read `target_jobs.resume_id` + `target_jobs` + optional latest ready `practice_plans.currentPracticePlanId`; soft-deleted rows filtered | none | `E2E.P0.010` verifies imported job is visible in list; `E2E.P0.018` verifies workspace list re-entry carries resume binding |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` (`default`, `prototype-baseline`) | parse confirmation / workspace detail via generated client | `backend/internal/targetjob` get handler / store detail query | read `target_jobs.resume_id` + `target_jobs` + `target_job_requirements` + summary / fit JSON + optional latest ready practice plan; user-scoped 404 on missing / cross-user / soft-delete | none after parse completion; provenance is persisted output | `E2E.P0.010`, `E2E.P0.012`, `E2E.P0.018`; focused handler tests cover cross-user 404, soft-delete and resume binding recovery |
 | `updateTargetJob` | `openapi/fixtures/TargetJobs/updateTargetJob.json` (`default`, Phase 0 add `invalid-state-transition`, `cross-user-hidden-not-found`) | workspace lifecycle / notes edits via generated client | `backend/internal/targetjob` update handler / idempotency service / store update；实施前状态为 `not-yet-implemented` | update `target_jobs.status` / `location_text` / `notes` / hints scoped by `(user_id, id)` and `(user_id, idempotency_key)` | none | `E2E.P0.010` verifies minimal status / notes update after parse; focused handler tests cover `TARGET_INVALID_STATE_TRANSITION` and cross-user idempotency |
-| `archiveTargetJob` | `openapi/fixtures/TargetJobs/archiveTargetJob.json` | Workspace delete icon via generated client | `backend/internal/targetjob` archive handler / idempotency service / store archive | update `target_jobs.status='archived'`, `deleted_at=now`, `updated_at=now` scoped by `(user_id, id)` and `(user_id, idempotency_key)`; list/detail keep filtering `deleted_at is null` | none | `E2E.P0.018` verifies workspace delete persists across refresh; focused handler/store tests cover already-archived conflict and cross-user 404 |
+| `archiveTargetJob` | `openapi/fixtures/TargetJobs/archiveTargetJob.json` | Workspace delete icon via generated client | `backend/internal/targetjob` archive handler / idempotency service / store archive; `ParseExecutor` treats post-archive target invisibility as terminal `TARGET_JOB_NOT_FOUND` | update `target_jobs.status='archived'`, `deleted_at=now`, `updated_at=now` scoped by `(user_id, id)` and `(user_id, idempotency_key)`; list/detail/parse reads keep filtering `deleted_at is null` | none | `E2E.P0.018` verifies workspace delete persists across refresh; focused handler/store tests cover already-archived conflict and cross-user 404; `TestParseExecutor_MissingTargetIsTerminalWithoutFailureCleanup` covers queued/retrying import after archive |
 
 ## 4 实施步骤
 

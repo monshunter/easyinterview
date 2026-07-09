@@ -126,6 +126,13 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 	targetJobID := job.ResourceID
 	target, sources, err := p.store.GetTargetJobForParse(ctx, targetJobID)
 	if err != nil {
+		if errors.Is(err, ErrTargetJobNotFound) {
+			return JobOutcome{
+				ErrorCode:    sharederrors.CodeTargetJobNotFound,
+				ErrorMessage: safeFailureMessage(sharederrors.CodeTargetJobNotFound, err.Error()),
+				Retryable:    false,
+			}
+		}
 		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportFailed, err.Error(), false)
 	}
 

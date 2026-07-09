@@ -6,6 +6,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0151](./BUG-0151.md) | archived TargetJob import jobs retried failure cleanup | medium | resolved | 2026-07-09 | `fix(targetjob): terminate archived target imports (BUG-0151)` |
 | [BUG-0150](./BUG-0150.md) | archiveTargetJob handler was generated but not mounted in API mux | high | resolved | 2026-07-09 | `fix(targetjob): persist workspace archive delete (BUG-0150)` |
 | [BUG-0149](./BUG-0149.md) | hidden signals stayed blank when JD parse omitted hidden_signal classification | medium | resolved | 2026-07-09 | `fix(frontend-home): derive hidden signals from JD parse (BUG-0149)` |
 | [BUG-0147](./BUG-0147.md) | failed JD parse entered interview list and workspace kept route context | high | resolved | 2026-07-09 | `fix(workspace): enforce parse failure admission and route purity (BUG-0147)` |

@@ -1,6 +1,6 @@
 # TargetJob Import and Parse Bootstrap Checklist
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: active
 > **更新日期**: 2026-07-09
 
@@ -111,3 +111,4 @@
 - [x] 12.2 Backend store/service/handler persist archive; 验证: `cd backend && go test ./internal/targetjob -run 'TestHandlerSignaturesMatchB2ServerInterface|TestHandler_ArchiveTargetJob|TestService_ArchiveTargetJob|TestSQLStore_ArchiveTargetJob|TestStoreSurfaceRequiresUserScopeOnReadsAndWrites' -count=1` PASS；`cd backend && go test ./internal/targetjob -count=1` PASS；覆盖 generated handler signature、缺 `Idempotency-Key`、success `status='archived' + deleted_at`、idempotent replay、already-archived conflict、cross-user 404 与 read-side soft-delete contract
 - [x] 12.3 Frontend workspace delete calls generated `archiveTargetJob`; 验证: workspace tests prove delete sends `Idempotency-Key`, removes card only after success, does not navigate, reports failure, and no source path remains that implements delete as local-only hiding；`pnpm --filter @easyinterview/frontend test src/app/screens/home/MockInterviewCard.test.tsx src/app/screens/home/HomeRecentMocks.test.tsx src/app/screens/workspace/WorkspaceScreen.test.tsx src/app/screens/workspace/WorkspaceEmptyState.test.tsx` PASS
 - [x] 12.4 BDD-Gate: `E2E.P0.018` and local screenshot acceptance prove persistent workspace archive; 验证: `test/scenarios/e2e/p0-018-workspace-default-render/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS；local real-backend browser smoke shows deleted card absent after refresh, DB readback `status='archived'` and `deleted_at is not null`, and screenshots capture top-right delete before archive plus post-delete workspace list
+- [x] 12.5 Remediation: queued or retrying `target_import` jobs must terminate after their TargetJob is archived or otherwise no longer visible to parse reads; 验证: `go test ./backend/internal/targetjob -run TestParseExecutor_MissingTargetIsTerminalWithoutFailureCleanup -count=1` RED before fix then PASS after fix；`go test ./backend/internal/targetjob -run 'TestParseExecutor|TestSQLStore_ArchiveTargetJob|TestService_ArchiveTargetJob|TestHandler_ArchiveTargetJob|TestSQLStore_CompleteParseFailure' -count=1` PASS；`go test ./backend/internal/targetjob -count=1` PASS

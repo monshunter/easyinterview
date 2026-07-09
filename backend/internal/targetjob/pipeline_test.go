@@ -911,6 +911,22 @@ func TestParseExecutor_SuccessCommitFailureDoesNotWriteFailureAfterPartialSucces
 	}
 }
 
+func TestParseExecutor_MissingTargetIsTerminalWithoutFailureCleanup(t *testing.T) {
+	exec, store, _, _, _ := newParseExecutorWithFakes(t)
+	store.getErr = targetjob.ErrTargetJobNotFound
+
+	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-archived",
+	})
+
+	if outcome.Succeeded || outcome.Retryable || outcome.ErrorCode != "TARGET_JOB_NOT_FOUND" {
+		t.Fatalf("missing or archived target must be terminal TARGET_JOB_NOT_FOUND, got %+v", outcome)
+	}
+	if store.completeFailureIn != nil || store.failedOutboxPayload != nil {
+		t.Fatalf("missing or archived target must not run parse-failure cleanup: failure=%+v payload=%s", store.completeFailureIn, string(store.failedOutboxPayload))
+	}
+}
+
 func TestParseExecutor_F3FailClosed(t *testing.T) {
 	exec, store, registry, _, _ := newParseExecutorWithFakes(t)
 	registry.err = targetjob.ErrPromptUnsupported

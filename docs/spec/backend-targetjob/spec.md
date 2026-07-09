@@ -1,6 +1,6 @@
 # Backend TargetJob Spec
 
-> **版本**: 2.3
+> **版本**: 2.4
 > **状态**: active
 > **更新日期**: 2026-07-09
 
@@ -147,7 +147,7 @@
 | C-5 | 解析失败 non-retryable | 解析返回 `AI_OUTPUT_INVALID` 或 `TARGET_IMPORT_SOURCE_INVALID` | drainer 处理 job | 失败事务写入 `target.analysis.failed.retryable=false` 并删除失败 TargetJob 资产；失败 JD 原文、空标题、source snapshot 不作为可继续规划持久化，用户重试必须重新 import 创建新 `targetJobId` | 001 |
 | C-6 | 列表与游标 | 用户已有多个 TargetJob，含不同 `status` / `analysisStatus` | `GET /targets` 携带过滤 + cursor | 仅返回当前用户的活跃记录，按 `updated_at DESC` 排序，分页字段符合 `PaginatedTargetJob` | 001 |
 | C-7 | 详情与状态更新 | 用户拥有某 `targetJobId` | `GET /targets/{id}` + `PATCH /targets/{id}` | 详情包含 requirements / summary / fitSummary / provenance；patch 验证状态机迁移合法并要求 `Idempotency-Key` | 001 |
-| C-7a | TargetJob 持久归档 | 用户在 workspace 列表点击删除图标 | `POST /targets/{targetJobId}/archive` | 返回 archived `TargetJob`，DB 写 `status='archived'` 与 `deleted_at`；随后 `GET /targets` 不再返回该 job，`GET /targets/{id}` 返回 404；重复归档返回 `TARGET_INVALID_STATE_TRANSITION` conflict | 001 |
+| C-7a | TargetJob 持久归档 | 用户在 workspace 列表点击删除图标 | `POST /targets/{targetJobId}/archive` | 返回 archived `TargetJob`，DB 写 `status='archived'` 与 `deleted_at`；随后 `GET /targets` 不再返回该 job，`GET /targets/{id}` 返回 404；重复归档返回 `TARGET_INVALID_STATE_TRANSITION` conflict；若已有 `target_import` job 后续读取到该 TargetJob 已归档 / 不可见，worker 必须以 non-retryable `TARGET_JOB_NOT_FOUND` 终结，不写二次 `target.analysis.failed` 清理事件 | 001 |
 | C-8 | Cross-user 隔离 | 用户 A 持有 jobX，用户 B 携带相同 `Idempotency-Key` 与不同 source 调 import / get / patch / archive | 用户 B 调用 5 个 operation | 用户 B 不能读到 / 改到 / 归档 jobX；Idempotency dedupe 仅在同 user 范围生效；越权返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND` | 001 |
 | C-9 | 隐私红线 | 任意 import / parse / failure 完成 | 检查 log / metric label / audit / 事件 payload | 不含 `raw_jd_text`、`source_url` 完整路径、文件 object URL、AI prompt / response body、provider secret；只含 hash / 长度 / status / profile / provider / model_id / cost / error code | 001 |
 | C-10 | F3 / A3 fail-closed | 选中的 `target.import.default` profile 不可解析或 provider 缺 secret | drainer 处理 job 或 import 启动 | 整个 import 返回 B1 错误并写 `target.analysis.failed`；缺 secret 映射 `AI_PROVIDER_SECRET_MISSING`，配置无效映射 `AI_PROVIDER_CONFIG_INVALID`，不静默回退 stub（除 `APP_ENV=test`） | 001 |

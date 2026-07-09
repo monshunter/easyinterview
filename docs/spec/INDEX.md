@@ -50,7 +50,7 @@
 | [frontend-home-job-picks-and-parse](./frontend-home-job-picks-and-parse/spec.md) | 2.17 | active | 2026-07-09 | [plans](./frontend-home-job-picks-and-parse/plans/) |
 | [frontend-workspace-and-practice](./frontend-workspace-and-practice/spec.md) | 1.20 | active | 2026-07-09 | [plans](./frontend-workspace-and-practice/plans/) |
 | [backend-auth](./backend-auth/spec.md) | 2.0 | active | 2026-07-07 | [plans](./backend-auth/plans/) |
-| [backend-targetjob](./backend-targetjob/spec.md) | 2.3 | active | 2026-07-09 | [plans](./backend-targetjob/plans/) |
+| [backend-targetjob](./backend-targetjob/spec.md) | 2.4 | active | 2026-07-09 | [plans](./backend-targetjob/plans/) |
 | [backend-practice](./backend-practice/spec.md) | 1.17 | active | 2026-07-07 | [plans](./backend-practice/plans/) |
 | [backend-review](./backend-review/spec.md) | 1.3 | active | 2026-07-07 | [plans](./backend-review/plans/) |
 | [practice-voice-mvp](./practice-voice-mvp/spec.md) | 1.6 | active | 2026-07-07 | [plans](./practice-voice-mvp/plans/) |
