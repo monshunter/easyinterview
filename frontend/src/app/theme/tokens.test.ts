@@ -87,7 +87,7 @@ describe("design token module (Phase 1.1)", () => {
       mono: "--ei-font-mono",
     });
 
-    expect(THEME_KEYS).toEqual(["warm", "forest", "ocean", "plum"]);
+    expect(THEME_KEYS).toEqual(["ocean", "plum"]);
     expect(MODE_KEYS).toEqual(["light", "dark"]);
   });
 
@@ -104,8 +104,6 @@ describe("theme palette data (Phase 1.1)", () => {
 
   it("transcribes EI_THEMES from ui-design/src/primitives.jsx", () => {
     expect(Object.keys(THEME_PALETTE)).toEqual([
-      "warm",
-      "forest",
       "ocean",
       "plum",
     ]);
@@ -170,7 +168,7 @@ describe("themes.css CSS variable wiring (Phase 1.1)", () => {
     "cool-soft",
   ] as const;
 
-  it("defines every base color variable on all 8 theme-mode selectors", () => {
+  it("defines every base color variable on all 4 theme-mode selectors", () => {
     for (const theme of THEME_KEYS) {
       for (const mode of MODE_KEYS) {
         const selector = `:root[data-theme="${theme}"][data-mode="${mode}"]`;

@@ -14,8 +14,6 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 // Seed values used when the user first switches to "Custom" — chosen to match
 // each base theme's natural accent so the slider starts on the current colour.
 const CUSTOM_ACCENT_SEEDS = {
-  warm:   { h: 30,  c: 0.16 },
-  forest: { h: 130, c: 0.13 },
   ocean:  { h: 255, c: 0.16 },
   plum:   { h: 340, c: 0.15 },
 };

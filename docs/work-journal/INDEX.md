@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-09](2026-07-09.md) | `feat(theme): prune warm and forest themes, keep ocean and plum` | #feat #ui #docs #test |
 | [2026-07-09](2026-07-09.md) | `feat(frontend): add archive and direct start to workspace plan list` | #feat #ui #api #test #docs #bdd |
 | [2026-07-09](2026-07-09.md) | `feat(targetjob): implement archive target job endpoint` | #feat #api #test #docs |
 | [2026-07-09](2026-07-09.md) | `feat(local-dev): add reset redeploy scenario target` | #feat #test #docs |

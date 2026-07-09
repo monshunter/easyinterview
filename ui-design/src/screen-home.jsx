@@ -136,8 +136,18 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
             )}
           </div>
           {recentJobs.length ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
-              {recentPreviewJobs.map((j) => <MockInterviewCard key={j.id} job={j} rounds={D.jdSample.rounds} T={T} onClick={() => nav("workspace", { targetJobId: j.id, jobId: j.id, planId: `plan-${j.id}`, jdId: `jd-${j.id}` })} lang={lang} />)}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 360px))", justifyContent: "start", gap: 16 }}>
+              {recentPreviewJobs.map((j) => (
+                <MockInterviewCard
+                  key={j.id}
+                  job={j}
+                  rounds={D.jdSample.rounds}
+                  T={T}
+                  onClick={() => nav("parse", { targetJobId: j.id })}
+                  onStart={() => nav("practice", { targetJobId: j.id, sessionId: `session-${j.id}-new` })}
+                  lang={lang}
+                />
+              ))}
             </div>
           ) : (
             <HomeEmptyState T={T} lang={lang} onImport={() => document.querySelector("textarea")?.focus()} />
@@ -163,7 +173,7 @@ const HomeEmptyState = ({ T, lang, onImport }) => (
   </div>
 );
 
-const MockInterviewCard = ({ job, rounds, T, onClick, lang }) => {
+const MockInterviewCard = ({ job, rounds, T, onClick, onStart, onDelete, showDelete = false, lang }) => {
   const statusMap = {
     amber: { bg: T.amberSoft, fg: T.warn },
     neutral: { bg: T.bgSoft, fg: T.ink2 },
@@ -190,6 +200,28 @@ const MockInterviewCard = ({ job, rounds, T, onClick, lang }) => {
         </div>
       </div>
       <MiniRoundRail T={T} lang={lang} rounds={rounds} currentIndex={currentRoundIndex} />
+      {(onStart || showDelete) && (
+        <div style={{ borderTop: `1px solid ${T.rule}`, paddingTop: 14, background: T.bgCard, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
+          {onStart && (
+            <button
+              onClick={(event) => { event.stopPropagation(); onStart(); }}
+              style={{ flex: "0 0 auto", height: 32, padding: "0 12px", fontSize: 13, fontWeight: 500, background: T.accent, color: "#fff", border: `1px solid ${T.accent}`, borderRadius: 2, cursor: "pointer", fontFamily: "var(--ei-sans)" }}
+            >
+              {lang === "en" ? "Start interview now" : "立即面试"}
+            </button>
+          )}
+          {showDelete && (
+            <button
+              aria-label={lang === "en" ? "Delete" : "删除"}
+              title={lang === "en" ? "Delete" : "删除"}
+              onClick={(event) => { event.stopPropagation(); onDelete && onDelete(job.id); }}
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, color: T.ink3, background: "transparent", border: `1px solid ${T.rule}`, borderRadius: 2, cursor: "pointer" }}
+            >
+              <Icon name="trash" size={13} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

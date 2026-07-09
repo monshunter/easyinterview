@@ -1,8 +1,8 @@
 # Frontend Shell Spec
 
-> **版本**: 1.26
+> **版本**: 1.27
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 ## 1 背景与目标
 
@@ -25,7 +25,7 @@
 - Runtime bootstrap：`getRuntimeConfig`、`getMe`、generated client、fixture-backed mock transport and dev mock session state。
 - URL-addressable routing：Browser History canonical path + query，支持直开、刷新、复制链接和 back/forward。
 - Protected route guard：业务 route 只在 runtime auth 明确 authenticated 后挂载 screen 和调用受保护 API。
-- Display preferences：主题、暗色、语言下拉、字体预设；默认主题和无效值 fallback 为 `ocean`。
+- Display preferences：主题、暗色、语言下拉、字体预设；默认主题和无效值 fallback 为 `ocean`；当前 TopBar 只提供 `ocean` / `plum` 两个预定义主题和 custom accent。
 
 ### 2.2 Out of Scope
 
@@ -47,6 +47,7 @@
 | D-6 | Display preferences | 前端持有语言、主题、暗色和字体预设 | 登录态和 runtime config 不覆盖用户显式选择 |
 | D-7 | Canonical URL | Browser History path + safe query | URL 表达页面和稳定上下文，不表达后端 action 或敏感正文 |
 | D-8 | UI truth source | `docs/ui-design/` + `ui-design/` | 可见 UI 变更先更新静态原型，再迁移正式前端 |
+| D-9 | 主题色范围 | 预定义主题只保留 `ocean` / `plum`，另保留 custom accent | 移除 `warm` / `forest` active palette、TopBar option 和 locale 文案 |
 
 ## 4 设计约束
 
@@ -98,4 +99,5 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.27 | 2026-07-09 | 收敛 TopBar 主题色范围为 deep ocean / plum / custom accent，移除 warm / forest active UI 合同。 |
 | 1.26 | 2026-07-07 | 压缩 active spec 为当前 App shell、email-code auth、settings、display、URL 和 route-guard 合同。 |

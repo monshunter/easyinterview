@@ -3,7 +3,7 @@
  * (EI_THEMES) and ui-design/src/app.jsx. Every hex value is transcribed
  * verbatim; the matching focused tests in `tokens.test.ts` assert traceability.
  *
- * Selector contract: `[data-theme=<warm|forest|ocean|plum>]` × `[data-mode=
+ * Selector contract: `[data-theme=<ocean|plum>]` × `[data-mode=
  * <light|dark>]` is set on `:root` by `DisplayPreferencesProvider`. Custom
  * accent is an overlay applied via inline style on `:root` and only overrides
  * `--ei-color-accent` / `--ei-color-accent-soft`.
@@ -44,102 +44,6 @@
   --ei-serif: var(--ei-font-serif);
   --ei-sans: var(--ei-font-sans);
   --ei-mono: var(--ei-font-mono);
-}
-
-:root[data-theme="warm"][data-mode="light"] {
-  --ei-color-bg-canvas: #fdfcf8;
-  --ei-color-bg-soft: #f7f3ea;
-  --ei-color-bg-card: #ffffff;
-  --ei-color-fg-primary: #1c1917;
-  --ei-color-fg-secondary: #44403c;
-  --ei-color-fg-tertiary: #78716c;
-  --ei-color-fg-muted: #a8a29e;
-  --ei-color-rule-strong: #e7e2d6;
-  --ei-color-rule-soft: #efeadc;
-  --ei-color-accent: #c96442;
-  --ei-color-accent-soft: #fbe8dc;
-  --ei-color-amber: #d9893a;
-  --ei-color-amber-soft: #fbe9ce;
-  --ei-color-ok: #5a7a4a;
-  --ei-color-ok-soft: #e7efd9;
-  --ei-color-warn: #b8813a;
-  --ei-color-warn-soft: #f6ead0;
-  --ei-color-danger: #a8452a;
-  --ei-color-danger-soft: #f6dcd0;
-  --ei-color-cool: #4a6670;
-  --ei-color-cool-soft: #dce6ea;
-}
-
-:root[data-theme="warm"][data-mode="dark"] {
-  --ei-color-bg-canvas: #16130e;
-  --ei-color-bg-soft: #1f1b15;
-  --ei-color-bg-card: #1a1611;
-  --ei-color-fg-primary: #f5f0e4;
-  --ei-color-fg-secondary: #d6cdb8;
-  --ei-color-fg-tertiary: #968d7a;
-  --ei-color-fg-muted: #6b6455;
-  --ei-color-rule-strong: #2d2820;
-  --ei-color-rule-soft: #24201a;
-  --ei-color-accent: #e08061;
-  --ei-color-accent-soft: #3a2318;
-  --ei-color-amber: #e6a25a;
-  --ei-color-amber-soft: #3b2a16;
-  --ei-color-ok: #8fae7c;
-  --ei-color-ok-soft: #24301a;
-  --ei-color-warn: #d9a868;
-  --ei-color-warn-soft: #362812;
-  --ei-color-danger: #d4694a;
-  --ei-color-danger-soft: #3a1e14;
-  --ei-color-cool: #89a4ae;
-  --ei-color-cool-soft: #1c2830;
-}
-
-:root[data-theme="forest"][data-mode="light"] {
-  --ei-color-bg-canvas: #f9faf3;
-  --ei-color-bg-soft: #eef2e3;
-  --ei-color-bg-card: #ffffff;
-  --ei-color-fg-primary: #181d14;
-  --ei-color-fg-secondary: #3c4434;
-  --ei-color-fg-tertiary: #6f7565;
-  --ei-color-fg-muted: #a3a895;
-  --ei-color-rule-strong: #dde3ce;
-  --ei-color-rule-soft: #e8ecdc;
-  --ei-color-accent: #5a7d3a;
-  --ei-color-accent-soft: #dfe9c9;
-  --ei-color-amber: #b8813a;
-  --ei-color-amber-soft: #f3e4c4;
-  --ei-color-ok: #5a7a4a;
-  --ei-color-ok-soft: #dde7cd;
-  --ei-color-warn: #a87832;
-  --ei-color-warn-soft: #f0e0bf;
-  --ei-color-danger: #a8452a;
-  --ei-color-danger-soft: #f3d9cd;
-  --ei-color-cool: #4a6670;
-  --ei-color-cool-soft: #d6e1e5;
-}
-
-:root[data-theme="forest"][data-mode="dark"] {
-  --ei-color-bg-canvas: #0e120a;
-  --ei-color-bg-soft: #161b10;
-  --ei-color-bg-card: #11160c;
-  --ei-color-fg-primary: #eaeed8;
-  --ei-color-fg-secondary: #cbcfb0;
-  --ei-color-fg-tertiary: #888c70;
-  --ei-color-fg-muted: #5e6250;
-  --ei-color-rule-strong: #252a1c;
-  --ei-color-rule-soft: #1c2014;
-  --ei-color-accent: #8fae60;
-  --ei-color-accent-soft: #1f2a14;
-  --ei-color-amber: #d9a868;
-  --ei-color-amber-soft: #352712;
-  --ei-color-ok: #9ab78a;
-  --ei-color-ok-soft: #212c16;
-  --ei-color-warn: #cda06a;
-  --ei-color-warn-soft: #332512;
-  --ei-color-danger: #d4694a;
-  --ei-color-danger-soft: #361d12;
-  --ei-color-cool: #89a4ae;
-  --ei-color-cool-soft: #1a242a;
 }
 
 :root[data-theme="ocean"][data-mode="light"] {

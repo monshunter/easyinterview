@@ -79,20 +79,17 @@
       <DCSection id="resume-workshop" title="简历工坊 · 简历资产" subtitle="简历列表、预览、改写与导出">
         <DCArtboard id="resume-versions" label="简历工坊 · 平铺列表" width={FRAME_W} height={FRAME_H}><Screen route="resume_versions" /></DCArtboard>
       </DCSection>
-      <DCSection id="theme-palette" title="主题色板 · 4 个预定义主题" subtitle="主题与暗/浅色正交 · 默认深海">
-        <DCArtboard id="theme-warm" label="Warm · 暖陶" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="warm" /></DCArtboard>
-        <DCArtboard id="theme-forest" label="Forest · 苔林" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="forest" /></DCArtboard>
+      <DCSection id="theme-palette" title="主题色板 · 2 个预定义主题" subtitle="主题与暗/浅色正交 · 默认深海 · 可自定义 accent">
         <DCArtboard id="theme-ocean" label="Ocean · 深海（默认）" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="ocean" /></DCArtboard>
         <DCArtboard id="theme-plum" label="Plum · 梅子" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="plum" /></DCArtboard>
       </DCSection>
       <DCSection id="theme-dark" title="主题色板 · 暗色矩阵">
-        <DCArtboard id="theme-warm-dark" label="Warm · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="warm" dark /></DCArtboard>
         <DCArtboard id="theme-ocean-dark" label="Ocean · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="ocean" dark /></DCArtboard>
         <DCArtboard id="theme-plum-dark" label="Plum · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="plum" dark /></DCArtboard>
       </DCSection>
       <DCSection id="custom-accent" title="自定义 accent · 任意色相 × 任意饱和度" subtitle="OKLch 取色器">
-        <DCArtboard id="custom-orange" label="Custom · 橙金 (h=50)" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="warm" customAccent={{ h: 50, c: 0.18 }} /></DCArtboard>
-        <DCArtboard id="custom-teal" label="Custom · 青苔 (h=180)" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="forest" customAccent={{ h: 180, c: 0.14 }} /></DCArtboard>
+        <DCArtboard id="custom-orange" label="Custom · 橙金 (h=50)" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="ocean" customAccent={{ h: 50, c: 0.18 }} /></DCArtboard>
+        <DCArtboard id="custom-teal" label="Custom · 青绿 (h=180)" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="ocean" customAccent={{ h: 180, c: 0.14 }} /></DCArtboard>
         <DCArtboard id="custom-violet" label="Custom · 紫罗兰 (h=290)" width={FRAME_W} height={FRAME_H}><Screen route="workspace" theme="ocean" customAccent={{ h: 290, c: 0.20 }} /></DCArtboard>
       </DCSection>
       <DCSection id="font-presets" title="字体预设 · 编辑级 / 现代 / 杂志">

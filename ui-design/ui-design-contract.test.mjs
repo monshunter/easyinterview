@@ -335,6 +335,21 @@ test("Home recent mock interviews are signed-in only", () => {
   assert.doesNotMatch(home, /解析并确认面试/);
 });
 
+test("Home and workspace share action card behavior", () => {
+  const home = readUiFile("./src/screen-home.jsx");
+  const workspace = readUiFile("./src/screen-workspace.jsx");
+
+  assert.match(home, /onClick=\{\(\) => nav\("parse", \{ targetJobId: j\.id \}\)\}/);
+  assert.match(home, /onStart=\{\(\) => nav\("practice"/);
+  assert.match(home, /Start interview now/);
+  assert.doesNotMatch(home, /showDelete=\{true\}/);
+  assert.match(workspace, /onClick=\{\(\) => openPlan\(job\)\}/);
+  assert.match(workspace, /startInterview\(job\)/);
+  assert.match(workspace, /Icon name="trash"/);
+  assert.match(workspace, /position:\s*"absolute", top:\s*20, right:\s*20/);
+  assert.doesNotMatch(workspace, /open:\s*"Open plan"|open:\s*"进入规划"|L\.open/);
+});
+
 test("P0 voice interview keeps the shared practice shell and renders the voice surface", () => {
   const practice = readUiFile("./src/screen-practice.jsx");
 

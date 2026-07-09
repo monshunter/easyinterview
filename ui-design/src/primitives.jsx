@@ -1,59 +1,11 @@
 // Shared primitives — design tokens, icons, small UI atoms
-// EasyInterview · warm editorial aesthetic
+// EasyInterview · editorial aesthetic
 
 // Theme palettes — orthogonal to dark/light mode.
 // Structure: EI_THEMES[themeKey][mode]  where mode is "light" | "dark".
 // Each theme is a coordinated bg/ink/rule/accent set; the dark/light toggle
 // just flips the mode within the chosen theme.
 window.EI_THEMES = {
-  warm: {
-    light: {
-      bg: "#fdfcf8", bgSoft: "#f7f3ea", bgCard: "#ffffff",
-      ink: "#1c1917", ink2: "#44403c", ink3: "#78716c", ink4: "#a8a29e",
-      rule: "#e7e2d6", ruleSoft: "#efeadc",
-      accent: "#c96442", accentSoft: "#fbe8dc",
-      amber: "#d9893a", amberSoft: "#fbe9ce",
-      ok: "#5a7a4a", okSoft: "#e7efd9",
-      warn: "#b8813a", warnSoft: "#f6ead0",
-      danger: "#a8452a", dangerSoft: "#f6dcd0",
-      cool: "#4a6670", coolSoft: "#dce6ea",
-    },
-    dark: {
-      bg: "#16130e", bgSoft: "#1f1b15", bgCard: "#1a1611",
-      ink: "#f5f0e4", ink2: "#d6cdb8", ink3: "#968d7a", ink4: "#6b6455",
-      rule: "#2d2820", ruleSoft: "#24201a",
-      accent: "#e08061", accentSoft: "#3a2318",
-      amber: "#e6a25a", amberSoft: "#3b2a16",
-      ok: "#8fae7c", okSoft: "#24301a",
-      warn: "#d9a868", warnSoft: "#362812",
-      danger: "#d4694a", dangerSoft: "#3a1e14",
-      cool: "#89a4ae", coolSoft: "#1c2830",
-    },
-  },
-  forest: {
-    light: {
-      bg: "#f9faf3", bgSoft: "#eef2e3", bgCard: "#ffffff",
-      ink: "#181d14", ink2: "#3c4434", ink3: "#6f7565", ink4: "#a3a895",
-      rule: "#dde3ce", ruleSoft: "#e8ecdc",
-      accent: "#5a7d3a", accentSoft: "#dfe9c9",
-      amber: "#b8813a", amberSoft: "#f3e4c4",
-      ok: "#5a7a4a", okSoft: "#dde7cd",
-      warn: "#a87832", warnSoft: "#f0e0bf",
-      danger: "#a8452a", dangerSoft: "#f3d9cd",
-      cool: "#4a6670", coolSoft: "#d6e1e5",
-    },
-    dark: {
-      bg: "#0e120a", bgSoft: "#161b10", bgCard: "#11160c",
-      ink: "#eaeed8", ink2: "#cbcfb0", ink3: "#888c70", ink4: "#5e6250",
-      rule: "#252a1c", ruleSoft: "#1c2014",
-      accent: "#8fae60", accentSoft: "#1f2a14",
-      amber: "#d9a868", amberSoft: "#352712",
-      ok: "#9ab78a", okSoft: "#212c16",
-      warn: "#cda06a", warnSoft: "#332512",
-      danger: "#d4694a", dangerSoft: "#361d12",
-      cool: "#89a4ae", coolSoft: "#1a242a",
-    },
-  },
   ocean: {
     light: {
       bg: "#f8fafd", bgSoft: "#eef2f7", bgCard: "#ffffff",
@@ -106,8 +58,6 @@ window.EI_THEMES = {
 
 // Theme metadata — drives the topbar swatches and tweaks panel.
 window.EI_THEME_LIST = [
-  { key: "warm",   labelZh: "暖陶",   labelEn: "Warm",   swatch: "#c96442" },
-  { key: "forest", labelZh: "苔林",   labelEn: "Forest", swatch: "#5a7d3a" },
   { key: "ocean",  labelZh: "深海",   labelEn: "Ocean",  swatch: "#3a5fc4" },
   { key: "plum",   labelZh: "梅子",   labelEn: "Plum",   swatch: "#9c3a5c" },
 ];

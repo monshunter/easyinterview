@@ -143,11 +143,13 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
     ).toBe("#e8edf6");
 
     await user.click(screen.getByTestId("topbar-theme-button"));
-    await user.click(screen.getByTestId("topbar-theme-option-warm"));
-    expect(root.getAttribute("data-theme")).toBe("warm");
+    expect(screen.queryByTestId("topbar-theme-option-warm")).toBeNull();
+    expect(screen.queryByTestId("topbar-theme-option-forest")).toBeNull();
+    await user.click(screen.getByTestId("topbar-theme-option-plum"));
+    expect(root.getAttribute("data-theme")).toBe("plum");
     expect(
       getComputedStyle(root).getPropertyValue("--ei-color-bg-canvas").trim(),
-    ).toBe("#16130e");
+    ).toBe("#15101a");
   });
 
   it("activates customAccent overlay → only --ei-color-accent / -soft are inline-overridden", async () => {

@@ -307,28 +307,37 @@ const WorkspaceScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
 };
 
 const WorkspacePlanList = ({ T, lang, nav, jobs = [], planOptions = [] }) => {
+  const [hiddenJobIds, setHiddenJobIds] = React.useState([]);
   const L = lang === "en" ? {
     eyebrow: "INTERVIEW PLANS",
     title: "Choose an interview plan to continue.",
-    subtitle: "Saved target JDs and interview plans live here. Open one to review the current plan detail; new plans still start from importing a JD on Home.",
+    subtitle: "Saved target JDs and interview plans live here. Click a card to review the plan detail, or start the interview directly.",
     create: "Import JD",
     emptyTitle: "No interview plans yet",
     emptyDesc: "Import a target JD from Home first, then continue the plan here.",
     updated: "Updated",
-    open: "Open plan",
+    start: "Start interview now",
+    delete: "Delete",
   } : {
     eyebrow: "面试规划",
     title: "选择要继续的面试规划。",
-    subtitle: "这里展示已保存的目标 JD / 面试规划。选择一项后进入面试规划详情；新建规划仍从首页导入 JD 开始。",
+    subtitle: "这里展示已保存的目标 JD / 面试规划。点击卡片进入规划详情，也可以直接开始面试。",
     create: "导入 JD",
     emptyTitle: "还没有面试规划",
     emptyDesc: "先从首页导入一个目标 JD，再回来继续面试规划。",
     updated: "更新于",
-    open: "进入规划",
+    start: "立即面试",
+    delete: "删除",
   };
   const openPlan = (job) => nav("parse", {
     targetJobId: job.id,
   });
+  const startInterview = (job) => nav("practice", {
+    targetJobId: job.id,
+    sessionId: `session-${job.id}-new`,
+  });
+  const deletePlan = (job) => setHiddenJobIds((prev) => [...new Set([...prev, job.id])]);
+  const visibleJobs = jobs.filter((job) => !hiddenJobIds.includes(job.id));
   return (
     <div data-testid="workspace-plan-list" className="ei-fadein" style={{ maxWidth: 1120, margin: "0 auto", padding: "48px 48px 96px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24, flexWrap: "wrap", marginBottom: 28 }}>
@@ -339,26 +348,53 @@ const WorkspacePlanList = ({ T, lang, nav, jobs = [], planOptions = [] }) => {
         </div>
         <Btn variant="primary" icon="plus" onClick={() => nav("home")} T={T}>{L.create}</Btn>
       </div>
-      {jobs.length === 0 ? (
+      {visibleJobs.length === 0 ? (
         <div data-testid="workspace-plan-list-empty" style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 32, textAlign: "center" }}>
           <div className="ei-serif" style={{ fontSize: 18, color: T.ink, marginBottom: 10 }}>{L.emptyTitle}</div>
           <div style={{ fontSize: 13, color: T.ink3, lineHeight: 1.55 }}>{L.emptyDesc}</div>
         </div>
       ) : (
-        <div data-testid="workspace-plan-list-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, alignItems: "stretch" }}>
-          {jobs.map((job) => {
+        <div data-testid="workspace-plan-list-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 360px))", justifyContent: "start", gap: 16, alignItems: "stretch" }}>
+          {visibleJobs.map((job) => {
+            const rounds = window.EI_DATA?.jdSample?.rounds || [];
+            const currentRoundIndex = getCurrentRoundIndex(job, rounds);
+            const statusMap = {
+              amber: { bg: T.amberSoft, fg: T.warn },
+              neutral: { bg: T.bgSoft, fg: T.ink2 },
+              muted: { bg: "transparent", fg: T.ink3 },
+            };
+            const s = statusMap[job.statusTone] || statusMap.amber;
             return (
-              <article key={job.id} data-testid={`workspace-plan-list-card-${job.id}`} style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3, boxShadow: "0 12px 36px rgba(20, 15, 10, 0.16)", minHeight: 178, display: "flex", flexDirection: "column", justifyContent: "space-between", overflow: "hidden" }}>
-                <div data-testid={`workspace-plan-list-card-body-${job.id}`} style={{ padding: 20, flex: 1 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 10 }}>
-                    <Tag tone={job.statusTone === "neutral" ? "muted" : job.statusTone || "amber"} T={T}>{job.status}</Tag>
-                    <span style={{ fontSize: 12, color: T.ink3, fontFamily: "var(--ei-mono)" }}>{L.updated} {job.updatedAt}</span>
+              <article key={job.id} data-testid={`workspace-plan-list-card-${job.id}`} onClick={() => openPlan(job)} style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 20, cursor: "pointer", display: "flex", flexDirection: "column", gap: 14, position: "relative" }}>
+                <button
+                  aria-label={L.delete}
+                  title={L.delete}
+                  data-testid={`workspace-plan-list-delete-${job.id}`}
+                  onClick={(event) => { event.stopPropagation(); deletePlan(job); }}
+                  style={{ position: "absolute", top: 20, right: 20, zIndex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, color: T.ink3, background: "transparent", border: `1px solid ${T.rule}`, borderRadius: 2, cursor: "pointer" }}
+                >
+                  <Icon name="trash" size={13} />
+                </button>
+                <div data-testid={`workspace-plan-list-card-body-${job.id}`} style={{ display: "flex", justifyContent: "space-between", gap: 12, paddingRight: 48 }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontFamily: "var(--ei-mono)", color: T.ink3, marginBottom: 4 }}>{String(job.company || "").toUpperCase()} · {job.status}</div>
+                    <div className="ei-serif" style={{ fontSize: 19, color: T.ink, letterSpacing: "-0.01em" }}>{job.title}</div>
+                    <div style={{ fontSize: 12.5, color: T.ink3, marginTop: 4 }}>{job.location || "Remote / TBD"}</div>
                   </div>
-                  <div className="ei-serif" style={{ fontSize: 20, color: T.ink, lineHeight: 1.25, marginBottom: 6 }}>{job.title}</div>
-                  <div style={{ fontSize: 13, color: T.ink2, lineHeight: 1.5 }}>{job.company} · {job.location}</div>
+                  <div style={{ padding: "3px 8px", height: "fit-content", background: s.bg, color: s.fg, fontSize: 11, fontFamily: "var(--ei-mono)", borderRadius: 2, whiteSpace: "nowrap" }}>
+                    {job.status}
+                  </div>
                 </div>
-                <div data-testid={`workspace-plan-list-card-footer-${job.id}`} style={{ borderTop: `1px solid ${T.rule}`, padding: "14px 20px", background: T.bgCard, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
-                  <Btn variant="accent" icon="arrow_right" onClick={() => openPlan(job)} T={T}>{L.open}</Btn>
+                <div data-testid={`workspace-plan-list-rail-${job.id}`}>
+                  <WorkspaceMiniRoundRail T={T} rounds={rounds} currentIndex={currentRoundIndex} />
+                </div>
+                <div data-testid={`workspace-plan-list-card-footer-${job.id}`} style={{ borderTop: `1px solid ${T.rule}`, paddingTop: 14, background: T.bgCard, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
+                  <button
+                    onClick={(event) => { event.stopPropagation(); startInterview(job); }}
+                    style={{ flex: "0 0 auto", height: 32, padding: "0 12px", fontSize: 13, fontWeight: 500, background: T.accent, color: "#fff", border: `1px solid ${T.accent}`, borderRadius: 2, cursor: "pointer", fontFamily: "var(--ei-sans)" }}
+                  >
+                    {L.start}
+                  </button>
                 </div>
               </article>
             );
@@ -368,6 +404,36 @@ const WorkspacePlanList = ({ T, lang, nav, jobs = [], planOptions = [] }) => {
     </div>
   );
 };
+
+const WorkspaceMiniRoundRail = ({ T, rounds, currentIndex }) => (
+  <div style={{ marginTop: 18 }}>
+    <div style={{ position: "relative", height: 34 }}>
+      <div style={{ position: "absolute", top: 9, left: 8, right: 8, height: 1, background: T.rule }} />
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${rounds.length}, 1fr)` }}>
+        {rounds.map((round, i) => {
+          const done = i < currentIndex;
+          const current = i === currentIndex;
+          return (
+            <div key={round.name} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: i === 0 ? "flex-start" : i === rounds.length - 1 ? "flex-end" : "center" }}>
+              <div style={{
+                width: 18, height: 18, borderRadius: 9,
+                border: `1px solid ${done ? T.ok : current ? T.accent : T.rule}`,
+                background: done ? T.ok : current ? T.accent : T.bgCard,
+                color: done || current ? "#fff" : T.ink3,
+                display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1,
+              }}>
+                {done ? <Icon name="check" size={10} stroke={2.2} /> : <span className="ei-mono" style={{ fontSize: 9 }}>{i + 1}</span>}
+              </div>
+              <div style={{ marginTop: 6, fontSize: 10.5, color: current ? T.ink : T.ink3, maxWidth: 68, textAlign: i === 0 ? "left" : i === rounds.length - 1 ? "right" : "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {round.name}{round.durationMinutes ? ` · ${round.durationMinutes}m` : ""}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </div>
+);
 
 const WorkspaceEmptyState = ({ T, lang, nav }) => (
   <div className="ei-fadein" style={{ maxWidth: 820, margin: "0 auto", padding: "72px 48px" }}>

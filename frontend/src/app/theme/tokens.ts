@@ -13,10 +13,10 @@
  * combination), and the matching focused tests in `tokens.test.ts`.
  */
 
-export type Theme = "warm" | "forest" | "ocean" | "plum";
+export type Theme = "ocean" | "plum";
 export type Mode = "light" | "dark";
 
-export const THEME_KEYS: readonly Theme[] = ["warm", "forest", "ocean", "plum"];
+export const THEME_KEYS: readonly Theme[] = ["ocean", "plum"];
 export const MODE_KEYS: readonly Mode[] = ["light", "dark"];
 
 export const COLOR_TOKENS = {

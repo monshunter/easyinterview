@@ -1,8 +1,8 @@
 # App Shell Visual System
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-09
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -37,7 +37,7 @@
 
 ### 4.1 Token / theme
 
-`frontend/src/app/theme/` 以 CSS variables 表达语义 token。TS 侧只导出语义键名，不能导出 hex 字面量；`themes.css` 必须覆盖 warm / forest / ocean / plum × light / dark 8 个组合；默认与 fallback 均为 `ocean`。
+`frontend/src/app/theme/` 以 CSS variables 表达语义 token。TS 侧只导出语义键名，不能导出 hex 字面量；`themes.css` 必须覆盖 ocean / plum × light / dark 4 个组合；默认与 fallback 均为 `ocean`。TopBar 主题菜单只暴露 `深海 / Ocean`、`梅子 / Plum` 和 `自定义 / Custom`，不得再展示 `暖陶 / Warm` 或 `苔林 / Forest`。
 
 ### 4.2 Display preferences
 
@@ -84,4 +84,5 @@ pnpm --filter @easyinterview/frontend build
 
 | 日期 | 版本 | 说明 |
 |------|------|------|
+| 2026-07-09 | 1.7 | 收敛可选主题为 deep ocean / plum / custom accent，移除 warm / forest active palette、TopBar option、locale key 和 theme matrix 口径。 |
 | 2026-07-07 | 1.6 | Compress owner docs to the current ui-design-native visual system contract and executable gates. |
