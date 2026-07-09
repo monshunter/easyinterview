@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-09](2026-07-09.md) | `feat(frontend): bind structured round assumptions across parse, home, and navigation` | #feat #ui #test #docs #bdd |
 | [2026-07-09](2026-07-09.md) | `feat(targetjob): upgrade parse contract with structured interview rounds and hidden signal enforcement` | #feat #api #test #docs |
 | [2026-07-09](2026-07-09.md) | `fix(frontend): close readonly plan detail review` | #fix #ui #test #docs #bdd |
 | [2026-07-09](2026-07-09.md) | `docs(reports): sync bugs and reports INDEX` | #docs |

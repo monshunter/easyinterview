@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-09](./2026-07-09-round-assumptions-data-binding-assessment.md) | Structured Interview Rounds Data Binding 交付复盘 | #assessment #BUG-0148 |
 | [2026-07-09](./2026-07-09-interview-plan-readonly-detail-assessment.md) | Interview Plan Readonly Detail 交付复盘 | #assessment |
 | [2026-07-09](./2026-07-09-workspace-route-purity-and-parse-failure-admission-assessment.md) | Workspace Route Purity and Parse Failure Admission 交付复盘 | #assessment #BUG-0147 |
 | [2026-07-09](./2026-07-09-targetjob-parse-company-fallback-assessment.md) | TargetJob Parse Company Fallback 交付复盘 | #assessment #BUG-0146 |

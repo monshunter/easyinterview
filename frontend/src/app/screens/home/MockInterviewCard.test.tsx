@@ -20,6 +20,15 @@ const mockJob: TargetJob = {
   openQuestionIssueCount: 0,
 };
 
+const provenance = {
+  modelId: "fixture-model:target-import-parse",
+  promptVersion: "v0.1.0",
+  rubricVersion: "v0.1.0",
+  dataSourceVersion: "registry.v1",
+  featureFlag: "none",
+  language: "en",
+};
+
 describe("MockInterviewCard", () => {
   it("renders card with testid", () => {
     render(
@@ -65,6 +74,43 @@ describe("MockInterviewCard", () => {
     expect(
       screen.getByTestId("home-recent-mock-rail-job-001"),
     ).toBeInTheDocument();
+  });
+
+  it("renders MiniRoundRail labels from target-job structured interview rounds", () => {
+    render(
+      <MockInterviewCard
+        job={{
+          ...mockJob,
+          summary: {
+            coreThemes: [],
+            interviewRounds: [
+              {
+                sequence: 1,
+                type: "hr",
+                name: "Recruiter screen",
+                durationMinutes: 30,
+                focus: "LLM HR screen probes motivation fit",
+              },
+              {
+                sequence: 2,
+                type: "technical",
+                name: "Frontend architecture interview",
+                durationMinutes: 55,
+                focus: "LLM technical round probes frontend architecture",
+              },
+            ],
+            provenance,
+          },
+        }}
+        onClick={() => {}}
+      />,
+    );
+
+    const rail = screen.getByTestId("home-recent-mock-rail-job-001");
+    expect(rail).toHaveTextContent("Recruiter screen · 30m");
+    expect(rail).toHaveTextContent("Frontend architecture interview · 55m");
+    expect(rail).not.toHaveTextContent("R1 Phone Screen");
+    expect(rail).not.toHaveTextContent("HR screen · 20m");
   });
 
   it("calls onClick when clicked", () => {

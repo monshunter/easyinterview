@@ -1,6 +1,6 @@
 # Interview 面试规划目标模块
 
-> **版本**: 1.25
+> **版本**: 1.26
 > **状态**: active
 > **更新日期**: 2026-07-09
 
@@ -65,10 +65,10 @@
 ├─ Hidden Signals
 │  └─ 隐性关注点
 ├─ Round Assumptions
-│  ├─ HR 初筛
-│  ├─ 技术一面
-│  ├─ 技术二面
-│  └─ 经理面
+│  ├─ R1（name / type / duration / focus 来自 TargetJob.summary.interviewRounds[0]）
+│  ├─ R2（name / type / duration / focus 来自 TargetJob.summary.interviewRounds[1]）
+│  ├─ R3（name / type / duration / focus 来自 TargetJob.summary.interviewRounds[2]）
+│  └─ Rn（轮次数量由 TargetJob.summary.interviewRounds.length 决定）
 ├─ Interview Launch
 │  ├─ 已绑定简历
 │  └─ 缺简历时阻断开始
@@ -225,6 +225,6 @@ Resume
 2. `workspace` 永远展示 `面试规划列表`；即使 URL 或历史上下文残留 `targetJobId` / `planId`，也必须清空或忽略这些上下文，不进入详情页；不得再用 `当前岗位` 表示一级模块。
 3. 面试规划列表必须是列表卡片式：每个规划有独立卡片背景、边框、轻阴影、状态/更新时间顶栏、正文信息区、底部操作区和明确的主题 accent 进入按钮；卡片不展示来源类型、目标语言或 `手动输入` 等导入元信息；列表只展示 `analysisStatus=ready` 且标题非空的 TargetJob。
 4. 列表卡片 CTA 文案为 `进入规划` / `Open plan`，点击后进入 `parse` 详情。
-5. 真实面试轮次、已绑定简历和启动面试只出现在 parse 只读详情或后续 owner。
+5. 真实面试轮次、已绑定简历和启动面试只出现在 parse 只读详情或后续 owner；parse round assumptions 与 Home 最近模拟面试卡片的迷你轮次轨道保持 UI 真理源样式，但轮次数量、type/name、duration 和 focus 必须来自同一个 `TargetJob.summary.interviewRounds[]` mapper。该数组由后端 LLM 根据 JD、岗位级别、公司/行业性质、团队/业务上下文和招聘流程线索推断；前端不得用静态 4 轮、静态 HR/技术/经理面或静态分钟数 fallback。Workspace 规划列表保持紧凑卡片，但进入详情的 handoff 不得生成另一套静态 round name。
 6. 已绑定简历展示、启动面试、公司信号、记录区等详情能力由 `parse` / practice / report 对应 owner 承接，不属于 workspace 列表页。
 7. 本页是回访入口：不得把首次 JD 导入用户从 `parse` 强制带回本页做第二次全页确认；解析成功即代表规划已保存，详情页不再提供“仅保存规划”。

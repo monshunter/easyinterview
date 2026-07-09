@@ -264,9 +264,8 @@ describe("InterviewContextProvider + useInterviewContext", () => {
 });
 
 describe("INTERVIEW_CONTEXT_ROUTES parity with ui-design/src/app.jsx", () => {
-  it("contains exact set from ui-design/src/app.jsx line 76", () => {
+  it("contains exact set from ui-design/src/app.jsx route mapping", () => {
     const expected = new Set([
-      "workspace",
       "practice",
       "generating",
       "report",
@@ -275,7 +274,6 @@ describe("INTERVIEW_CONTEXT_ROUTES parity with ui-design/src/app.jsx", () => {
   });
 
   it("shouldCarryInterviewContext returns true for context routes", () => {
-    expect(shouldCarryInterviewContext("workspace")).toBe(true);
     expect(shouldCarryInterviewContext("practice")).toBe(true);
     expect(shouldCarryInterviewContext("generating")).toBe(true);
     expect(shouldCarryInterviewContext("report")).toBe(true);
@@ -284,6 +282,7 @@ describe("INTERVIEW_CONTEXT_ROUTES parity with ui-design/src/app.jsx", () => {
 
   it("shouldCarryInterviewContext returns false for non-context routes", () => {
     expect(shouldCarryInterviewContext("home")).toBe(false);
+    expect(shouldCarryInterviewContext("workspace")).toBe(false);
     expect(shouldCarryInterviewContext("settings")).toBe(false);
     expect(shouldCarryInterviewContext("debrief")).toBe(false);
     expect(shouldCarryInterviewContext("profile")).toBe(false);

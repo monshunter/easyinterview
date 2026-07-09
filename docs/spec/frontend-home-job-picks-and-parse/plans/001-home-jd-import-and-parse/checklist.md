@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.8
+> **版本**: 2.10
 > **状态**: completed
 > **更新日期**: 2026-07-09
 
@@ -49,3 +49,21 @@
 - [x] 6.3 Start interview uses the saved `targetJobId/resumeId/roundId/currentPracticePlanId` snapshot and must not call `updateTargetJob`; missing bound resume blocks Start without offering in-place binding（验证：focused Parse tests + generated client spy PASS）
 - [x] 6.4 BDD-Gate: `E2E.P0.016` proves readonly receipt and direct Start handoff; `E2E.P0.018` proves workspace list re-entry lands on the same readonly detail mother page（验证：P0.016 trigger/verify PASS；focused workspace pixel parity PASS）
 - [x] 6.5 Repo gates pass after doc/code/test changes（验证：context validation, sync-doc-index, docs-check, diff whitespace check, touched frontend tests/typecheck PASS）
+
+## Phase 7: LLM-derived round assumptions shared data binding
+
+- [x] 7.1 Historical UI truth source and owner docs first moved TargetJob round assumptions off local-only copy; Phase 8 supersedes the string-only shape with `TargetJob.summary.interviewRounds[]` across Parse, Home recent cards, Workspace handoff and shared navigation context（当前验证见 Phase 8.1-8.5).
+- [x] 7.2 Focused Parse tests prove `parse-round-*` cards render backend-provided structured rounds and do not show static locale focus when structured rounds exist（当前验证见 8.3).
+- [x] 7.3 Focused Home/navigation tests prove `home-recent-mock-rail-*` and `interviewContextFromTargetJob` consume the same backend-provided structured rounds instead of a local `DEFAULT_ROUNDS` / static round name（当前验证见 8.3).
+- [x] 7.4 Frontend implementation uses a shared TargetJob round assumption mapper without changing the Parse layout, Home card layout, Workspace list layout or Start handoff（验证：`frontend/src/app/interview-context/roundAssumptions.ts`, focused frontend tests, `pnpm --dir frontend typecheck` PASS).
+- [x] 7.5 BDD-Gate: `E2E.P0.016` / focused equivalent proves readonly detail and related Home recent surface consume saved backend structured rounds for round assumptions and reject fixed positive-path fallback（当前验证见 8.5).
+- [x] 7.6 Repo gates pass after doc/code/test changes（验证：context validation PASS; `node --test ui-design/ui-design-contract.test.mjs` PASS; `pnpm --dir frontend typecheck` PASS; `pnpm --dir frontend test` PASS, 140 files / 825 tests; `E2E.P0.016` setup/trigger/verify/cleanup PASS; `sync-doc-index --check`, `make docs-check`, `git diff --check`, `make lint-core-loop-pruning-surface` PASS).
+
+## Phase 8: Structured LLM-derived interview rounds
+
+- [x] 8.1 OpenAPI / prompt / fixture contract defines `TargetJob.summary.interviewRounds[]` with 2~5 LLM-derived rounds, each carrying `sequence`, `type`, `name`, `durationMinutes` and `focus`; prompt explicitly instructs inference from JD, role seniority, company/industry nature, team/business context, hiring-process hints and common interview practices, and generated Go/TS artifacts are refreshed（验证：`make lint-prompts`, `cd backend && go test ./internal/targetjob -run TestTargetImportPromptMatchesParseResponseSchema -count=1`, `make codegen-openapi`, `make lint-openapi`, `make validate-fixtures` PASS).
+- [x] 8.2 Backend parser validates and persists 2~5 structured `interviewRounds[]` from `target.import.parse` without fabricating fixed 4-round defaults（验证：`cd backend && go test ./internal/targetjob -run 'TestParseExecutor|TestDecodeParseResponse|TestTargetImportParse' -count=1` focused PASS).
+- [x] 8.3 Frontend Parse/Home/navigation consume structured rounds with variable count, type/name and duration from `summary.interviewRounds[]`; fixed strings such as `HR 初筛 · 20m` / `技术一面 · 45m` are not used when structured rounds exist（验证：`cd frontend && pnpm test --run src/app/navigation/interviewContext.test.ts src/app/screens/home/MockInterviewCard.test.tsx src/app/screens/home/HomeRecentMocks.test.tsx src/app/screens/parse/ParseScreen.test.tsx src/app/screens/parse/ParseEdit.test.tsx src/api/targetJob.realApiMode.test.ts`; `cd frontend && pnpm typecheck` PASS).
+- [x] 8.4 UI truth source and docs define structured LLM rounds across Parse and Home recent rail（验证：`node --test ui-design/ui-design-contract.test.mjs`; `make sync-fixtures-from-prototype`; `make validate-fixtures` PASS).
+- [x] 8.5 BDD-Gate: `E2E.P0.016` proves readonly detail and related Home recent surface consume structured backend rounds for 2~5 count/type/duration/focus, with no fixed 4-round template in positive structured data paths; Playwright attaches the readonly-detail screenshot and emits `screenshotBytes=` marker（验证：`test/scenarios/e2e/p0-016-parse-confirm-to-workspace/scripts/trigger.sh && test/scenarios/e2e/p0-016-parse-confirm-to-workspace/scripts/verify.sh` PASS).
+- [x] 8.6 Repo gates pass after structured round contract changes（验证：`python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/frontend-home-job-picks-and-parse/plans/001-home-jd-import-and-parse/context.yaml --docs-root docs --target frontend`; `cd frontend && pnpm typecheck`; focused frontend tests; backend targetjob focused tests; `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`; `make docs-check`; `git diff --check`; `make lint-core-loop-pruning-surface` PASS).

@@ -1,6 +1,6 @@
 # Frontend Home / Parse Spec
 
-> **版本**: 2.13
+> **版本**: 2.15
 > **状态**: active
 > **更新日期**: 2026-07-09
 
@@ -67,6 +67,7 @@ Home 输入 / 上传 / URL 导入 JD
 | D-7 | i18n | 只维护当前 `home.*` 与 `parse.*` namespace | 与 typed locale helper 一致 |
 | D-8 | Privacy | JD 原文、source URL、rawDescription 不进入 URL/localStorage/console/telemetry | 只允许通过 generated request body 与 React state 传递 |
 | D-9 | 统一详情母版 | 原 `JD 解析结果` 页改名为“面试规划详情 / 面试上下文确认”，同时服务首次导入和 workspace 回访 | 用户只学习一个确认页面；workspace 不再维护第二套全页确认 |
+| D-10 | 结构化轮次数据源 | 所有 TargetJob 关联的轮次展示与导航上下文使用 `TargetJob.summary.interviewRounds[]`；数组长度必须为 2~5，轮次类型、标题、时长和 focus 均由后端 LLM 结合 JD、岗位级别、公司/行业性质、团队/业务上下文与招聘流程线索推断并持久化 | 避免 Parse、Home 最近卡片、Workspace 回访或共享上下文保留固定 4 轮 / 固定 HR/技术/经理面 / 固定时长模板 |
 
 ## 4 设计约束
 
@@ -75,6 +76,8 @@ Home 输入 / 上传 / URL 导入 JD
 - Home resume select 使用紧凑下拉框；不得平铺所有简历。
 - `route=parse` loading 即使首个 `getTargetJob` 已 ready，也必须先展示当前 UI 真理源定义的 loading gate，再进入 detail；`route=workspace` 回访已解析规划时不得强制播放 parse loading，应直接渲染同一详情母版的 ready 状态。
 - Parse requirements evidence 只读展示 API 返回的 `evidenceLevel`；前端不得在详情页维护临时 hit toggle 或把确认状态写回后端。
+- Parse round assumptions 的卡片布局仍追溯 UI 真理源，但卡片数量必须来自 2~5 条 `TargetJob.summary.interviewRounds[]`；R 序号、标题、轮次类型、时长和 focus 也必须来自该数组。这些轮次由后端 LLM 根据 JD、行业/公司性质、岗位级别、团队/业务上下文和招聘流程线索推断，前端不得用 locale 或本地常量补齐轮数、HR/技术/经理面类型或分钟数。
+- Home 最近模拟面试卡片与 Workspace plan handoff 不得维护独立 `DEFAULT_ROUNDS`、固定 4 轮、静态 `roundName` 或静态 duration 分支；相关显示或 route params 必须通过同一个 TargetJob structured round mapper 派生。
 - `createUploadPresign`、`importTargetJob` 均为 side-effect operation，必须携带 `Idempotency-Key`。
 - Parse success detail 不调用 `updateTargetJob`；规划上下文来自已保存的 TargetJob + Resume binding 快照。
 - Dark / customAccent 必须在 Home 与 Parse 生效；移动端不得横向溢出。
@@ -99,7 +102,7 @@ Home 输入 / 上传 / URL 导入 JD
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home resume select + Parse bound resume display | `backend-resume` | `resumes` read | none | `E2E.P0.015` / `E2E.P0.016` |
 | `createUploadPresign` | `openapi/fixtures/Uploads/createUploadPresign.json` | Home upload source action | `backend-upload` | `file_objects` create | none | `E2E.P0.015` |
 | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | Home paste / file / URL import | `backend-targetjob` | `target_jobs` / `target_job_sources` create | backend-only parse job | `E2E.P0.015` |
-| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse polling + unified detail readonly preview | `backend-targetjob` | `target_jobs` / requirements read | backend-generated summary only | `E2E.P0.015` / `E2E.P0.016` / `E2E.P0.018` |
+| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse polling + unified detail readonly preview, including structured `summary.interviewRounds[]` | `backend-targetjob` | `target_jobs.summary` / requirements read | backend-generated `target.import.parse` structured rounds | `E2E.P0.015` / `E2E.P0.016` / `E2E.P0.018` |
 | `createPracticePlan` / `getPracticePlan` / `startPracticeSession` | `openapi/fixtures/PracticePlans/*`, `openapi/fixtures/PracticeSessions/*` | Parse readonly detail Start action | `backend-practice` | `practice_plans` / `practice_sessions` create/read | none | `E2E.P0.016` |
 
 ## 7 验收标准
@@ -111,7 +114,7 @@ Home 输入 / 上传 / URL 导入 JD
 | C-3 | Paste JD import | 用户选择 ready 简历并粘贴 JD | 点击「立即面试」 | 调用 `importTargetJob` manual_text，成功进入 `parse` 且 route params 含真实 `resumeId` | 001 |
 | C-4 | Upload / URL import | 用户使用 source actions | Confirm | Upload 先 `createUploadPresign` 再 `importTargetJob(file)`；URL 调 `importTargetJob(url)`；均带 `Idempotency-Key` | 001 |
 | C-5 | Recent mocks | `listTargetJobs` 返回多条记录 | Home 加载完成 | 只展示最近 3 张，排序按 `updatedAt desc`；「更多」进入 `workspace` | 001 |
-| C-6 | Parse ready flow | `getTargetJob` 返回 ready | 用户进入 `parse` | 先展示 loading gate，再渲染“面试规划详情 / 面试上下文确认”；Basic fields / Hidden signals / requirements / round assumptions / bound resume 只读且只来自 API response 与已绑定 resume | 001 |
+| C-6 | Parse ready flow | `getTargetJob` 返回 ready 且 `summary.interviewRounds[]` 已由 LLM 根据 JD、行业/公司性质、岗位级别、团队/业务上下文和招聘流程线索生成 2~5 轮 | 用户进入 `parse` | 先展示 loading gate，再渲染“面试规划详情 / 面试上下文确认”；Basic fields / Hidden signals / requirements / round assumptions / bound resume 只读且只来自 API response 与已绑定 resume；round assumptions 的轮数、类型、标题、时长和 focus 均显示 `summary.interviewRounds[]`，不得退回固定 4 轮模板；验收必须包含 Playwright 截图附件或 `screenshotBytes=` marker | 001 |
 | C-7 | Parse failed flow | `analysisStatus=failed` 或轮询超时 | Parse polling | 渲染失败态、重新解析和返回首页；不伪造 preview 数据 | 001 |
 | C-8 | Readonly plan receipt | Preview 已绑定 ready 简历 | 用户查看详情 | 不出现字段编辑、requirements toggle、hidden signal 移除、重新解析、保存规划、取消或更换简历入口；缺少绑定简历时只阻断开始，不提供 picker 兜底 | 001 |
 | C-9 | Start interview | Preview 已绑定 ready 简历 | 点击「立即面试」 | 不调用 `updateTargetJob`，直接使用已保存 `targetJobId/resumeId/roundId/currentPracticePlanId` 创建或读取 PracticePlan 并启动 PracticeSession | 001 |

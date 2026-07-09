@@ -1,6 +1,6 @@
 # 001 BDD Checklist
 
-> **版本**: 2.7
+> **版本**: 2.10
 > **状态**: completed
 > **更新日期**: 2026-07-09
 
@@ -27,6 +27,11 @@
 - [x] Historical revision 2026-07-09 verify confirmed Save/Start used generated `updateTargetJob` and handed off to workspace auto-start without raw JD / source leakage before the readonly simplification.
 - [x] Revision 2026-07-09 readonly trigger covers inherited bound resume display, disabled Start when saved plan lacks bound resume, absence of editable inputs / requirement toggles / hidden remove / resume picker / create fallback / success Re-parse / Save plan / Cancel, and direct Start click.
 - [x] Revision 2026-07-09 readonly verify confirms Parse success detail does not call `updateTargetJob`, enters practice through practice handoff, and does not leak raw JD / source URL.
+- [x] Revision 2026-07-09 round-data trigger now covers saved `TargetJob.summary.interviewRounds[]` rendering inside `home-recent-mock-rail-*`, `parse-round-*` cards and shared navigation context, including variable round count, round type/name, duration and focus.
+- [x] Revision 2026-07-09 round-data verify confirms related surfaces and shared navigation context do not use static `parse.round*Focus` / local default round strings when structured backend rounds exist.
+- [x] Revision 2026-07-09 structured-rounds trigger covers saved 2~5 item `TargetJob.summary.interviewRounds[]` rendering inside `home-recent-mock-rail-*`, `parse-round-*` cards and shared navigation context, including variable round count, round type/name, duration and focus.
+- [x] Revision 2026-07-09 structured-rounds verify rejects fixed 4-round template strings and fixed duration defaults when structured backend rounds exist.
+- [x] Revision 2026-07-09 screenshot acceptance verifies readonly detail through Playwright screenshot attachment plus `E2E.P0.016 ... screenshotBytes=` marker.
 
 ## E2E.P0.018 Workspace 列表回访统一详情
 
@@ -39,3 +44,5 @@
 - [x] P0.014、P0.015、P0.016、P0.018 均执行 `setup -> trigger -> verify -> cleanup` 或记录 focused equivalent + scenario wrapper 证据。
 - [x] `make validate-fixtures` 确认相关 fixture 仍在 35-operation 合同内。
 - [x] Owner 文档、context、INDEX 与 product-scope / workspace 证据同步。
+- [x] Round assumptions shared data-binding regression and focused equivalent evidence are linked back to owner checklist Phase 7.
+- [x] Structured interview rounds contract and scenario evidence are linked back to owner checklist Phase 8.

@@ -12,9 +12,13 @@ mkdir -p "$OUTPUT_DIR"
   VITE_EI_API_MODE="$REAL_API_MODE" VITE_EI_API_BASE_URL="$REAL_API_BASE_URL" COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend exec vitest run \
     src/api/targetJob.realApiMode.test.ts
   COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend test \
+    src/app/screens/parse/ParseScreen.test.tsx \
     src/app/screens/parse/ParseEdit.test.tsx \
     src/app/screens/parse/ParseAuthGate.test.tsx \
     src/app/screens/parse/ParseResumeBinding.test.tsx \
+    src/app/screens/home/MockInterviewCard.test.tsx \
+    src/app/screens/home/HomeRecentMocks.test.tsx \
+    src/app/navigation/interviewContext.test.ts \
     --reporter=verbose
   COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend build
   COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack pnpm --filter @easyinterview/frontend exec playwright test \

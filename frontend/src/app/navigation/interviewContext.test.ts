@@ -21,6 +21,15 @@ function targetJob(overrides: Partial<TargetJob> = {}): TargetJob {
   };
 }
 
+const provenance = {
+  modelId: "fixture-model:target-import-parse",
+  promptVersion: "v0.1.0",
+  rubricVersion: "v0.1.0",
+  dataSourceVersion: "registry.v1",
+  featureFlag: "none",
+  language: "en",
+};
+
 describe("interviewContextFromTargetJob", () => {
   it("uses server-declared practice plan and resume IDs", () => {
     const ctx = interviewContextFromTargetJob(
@@ -56,5 +65,37 @@ describe("interviewContextFromTargetJob", () => {
 
     expect(ctx.planId).toBe("01918fa0-0000-7000-8000-000000004000");
     expect(ctx.resumeId).toBe("01918fa0-0000-7000-8000-000000001010");
+  });
+
+  it("derives route round context through target-job round assumptions", () => {
+    const ctx = interviewContextFromTargetJob(
+      targetJob({
+        status: "interviewing",
+        summary: {
+          coreThemes: [],
+          interviewRounds: [
+            {
+              sequence: 1,
+              type: "hr",
+              name: "Recruiter screen",
+              durationMinutes: 30,
+              focus: "LLM HR screen probes motivation fit",
+            },
+            {
+              sequence: 2,
+              type: "technical",
+              name: "Frontend architecture interview",
+              durationMinutes: 55,
+              focus: "LLM technical round probes frontend architecture",
+            },
+          ],
+          provenance,
+        },
+      }),
+    );
+
+    expect(ctx.roundId).toBe("round-2-technical");
+    expect(ctx.roundName).toBe("Frontend architecture interview · 55m");
+    expect(JSON.stringify(ctx)).not.toContain("Technical Round 1");
   });
 });

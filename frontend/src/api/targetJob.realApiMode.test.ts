@@ -44,7 +44,15 @@ function buildTargetJob(overrides: Partial<TargetJob> = {}): TargetJob {
 		],
 		summary: {
 			coreThemes: ["frontend platform"],
-			interviewHypotheses: ["Expect design-system tradeoff questions."],
+			interviewRounds: [
+				{
+					sequence: 1,
+					type: "technical",
+					name: "Frontend platform architecture",
+					durationMinutes: 55,
+					focus: "Expect design-system tradeoff questions.",
+				},
+			],
 			provenance: PROVENANCE,
 		},
 		fitSummary: {

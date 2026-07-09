@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse
 
-> **版本**: 2.8
+> **版本**: 2.10
 > **状态**: completed
 > **更新日期**: 2026-07-09
 
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-本计划交付当前 Home + Parse 新建模拟面试入口，并在 v2.8 原地修订中把统一的“面试规划详情 / 面试上下文确认”母版收敛为只读上下文收据。用户从首页输入、上传或 URL 导入 JD，显式选择一份 ready 简历，进入统一详情页核对已保存的 JD、简历和轮次；既有规划从 `workspace` 列表回访时也使用同一母版，不再出现第二套 workspace 当前规划详情页。
+本计划交付当前 Home + Parse 新建模拟面试入口，并在 v2.10 原地修订中把轮次假设升级为结构化 LLM/JD parse 合同：Parse 详情、Home 最近模拟面试卡片、Workspace 规划回访 handoff 和共享导航上下文必须使用同一份 TargetJob structured round mapper；卡片视觉仍复刻 UI 真理源，但轮次数量必须为 2~5，轮次类型、标题、时长和 focus 都必须来自后端保存的 `TargetJob.summary.interviewRounds[]`。这些轮次由 LLM 结合 JD、岗位级别、公司/行业性质、团队/业务上下文、职责范围、招聘流程线索和同类岗位常见面试实践推断。用户从首页输入、上传或 URL 导入 JD，显式选择一份 ready 简历，进入统一详情页核对已保存的 JD、简历和由 LLM 推断的面试轮次；既有规划从 `workspace` 列表回访时也使用同一母版，不再出现第二套 workspace 当前规划详情页。
 
 交付后的当前链路：
 
@@ -38,14 +38,14 @@ UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-desig
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home resume select + Parse readonly bound resume display | `backend-resume` | Resume read | none | `E2E.P0.015` / `E2E.P0.016` |
 | `createUploadPresign` | `openapi/fixtures/Uploads/createUploadPresign.json` | Home upload source | `backend-upload` | `file_objects` create | none | `E2E.P0.015` |
 | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | Home paste / file / URL import with selected `resumeId` | `backend-targetjob` | TargetJob create + target job-level resume binding + parse job | backend-only | `E2E.P0.015` |
-| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse polling + readonly preview | `backend-targetjob` | TargetJob read | backend-only parse result | `E2E.P0.015` / `E2E.P0.016` |
+| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse polling + readonly preview, including structured rounds from `summary.interviewRounds[]` | `backend-targetjob` | TargetJob read from `target_jobs.summary` | backend-only `target.import.parse` structured round result | `E2E.P0.015` / `E2E.P0.016` |
 | `createPracticePlan` / `getPracticePlan` / `startPracticeSession` | `openapi/fixtures/PracticePlans/*`, `openapi/fixtures/PracticeSessions/*` | Parse readonly detail Start action | `backend-practice` | PracticePlan / PracticeSession create-read-start | none | `E2E.P0.016` |
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior` + `contract`
-- **TDD 策略**: v2.8 继续通过 `/implement` -> `/tdd` 执行；Red-Green-Refactor 覆盖 `frontend/src/app/screens/parse/*`、`frontend/src/app/screens/workspace/*`、`frontend/src/app/navigation/interviewContext.ts`、`frontend/tests/pixel-parity/{parse,workspace}.spec.ts`。
-- **BDD 策略**: Feature plan requires BDD；当前 BDD gate 为 `E2E.P0.014`、`E2E.P0.015`、`E2E.P0.016`，v2.7 追加 `E2E.P0.018` 作为 workspace 列表进入统一详情的回访 gate。
+- **TDD 策略**: v2.10 继续通过 `/implement` -> `/tdd` 执行；Red-Green-Refactor 覆盖 `config/prompts/target.import.parse/*`、`openapi/openapi.yaml`、`backend/internal/targetjob/*`、`frontend/src/app/interview-context/roundAssumptions.ts`、`frontend/src/app/screens/{parse,home}/*`、`frontend/src/app/navigation/interviewContext.ts`、`ui-design/src/*` 和 P0.016 scenario wrappers。
+- **BDD 策略**: Feature plan requires BDD；当前 BDD gate 为 `E2E.P0.014`、`E2E.P0.015`、`E2E.P0.016`，v2.7 追加 `E2E.P0.018` 作为 workspace 列表进入统一详情的回访 gate；v2.10 继续使用 `E2E.P0.016` 证明结构化轮次在 Parse、Home recent rail 和 shared navigation context 中同源消费，并要求 Playwright 截图附件或 `screenshotBytes=` marker 作为验收证据。
 - **替代验证 gate**: 不适用；本计划具备 TDD + BDD 双层验证。
 
 ## 4 当前实现合同
@@ -63,6 +63,7 @@ UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-desig
 
 - 进入 Parse 后先展示 4 步 loading gate，再根据 `getTargetJob.analysisStatus` 进入 detail 或 failed state。
 - Preview / workspace 回访详情对用户命名为“面试规划详情 / 面试上下文确认”，只读渲染 API response 中的 title、companyName、locationText、requirements、summary、fitSummary、round assumptions、已绑定 resume 与 provenance 信息。
+- Round assumptions 的数组长度必须为 2~5，R 序号、标题、轮次类型、时长和 focus 均来自 `TargetJob.summary.interviewRounds[]`。该数组由后端 LLM 根据 JD、岗位级别、公司/行业性质、团队/业务上下文、职责范围、招聘流程线索和同类岗位常见面试实践推断。前端只负责展示 API 保存的 round 数组，不得用 locale 静态文案或本地常量补齐固定 4 轮、固定 HR/技术/经理面类型或固定分钟数。
 - Basic fields、requirements evidence、hidden signals、round assumptions 和 resume binding 均不可在详情页修改；详情页不提供 notes 编辑、requirements hit toggle、hidden signal 移除、resume picker、创建简历兜底、重新解析、取消或仅保存规划入口。
 - Parse 读取 ready 简历列表仅用于展示已绑定 `resumeId` 摘要；若 TargetJob / route 缺少有效 `resumeId`，Start 保持 disabled 并展示缺失上下文状态，不在当前规划上补绑简历。
 - Start interview 不调用 `updateTargetJob`，直接使用已保存 `targetJobId/resumeId/roundId/currentPracticePlanId` 调 `createPracticePlan` / `getPracticePlan` / `startPracticeSession` 并进入 practice。
@@ -169,6 +170,42 @@ Vitest, pixel parity and scenario gates must assert the absence of editable inpu
 
 `E2E.P0.016` must prove the readonly plan receipt and direct Start handoff. `E2E.P0.018` must continue to prove workspace list re-entry lands on the same readonly detail mother page.
 
+### Phase 7: LLM-derived round assumptions shared data binding
+
+#### 7.1 UI truth source and formal contract
+
+Historical note: this phase first moved Parse/Home/navigation off purely local copy and onto backend-provided round-assumption data. Phase 8 supersedes the string-only shape with structured `TargetJob.summary.interviewRounds[]`; current UI truth no longer uses `TargetJob.summary.interviewHypotheses`, fixed four-card assumptions, or missing-slot static fallback.
+
+#### 7.2 Frontend TDD
+
+The current focused regression coverage proves `parse-round-*` cards and `home-recent-mock-rail-*` labels render backend-provided structured rounds when present and do not use static `parse.round*Focus` / `DEFAULT_ROUNDS` strings for those slots.
+
+#### 7.3 Shared implementation
+
+Replace per-surface static round arrays with a shared TargetJob round assumption mapper consumed by Parse detail, Home recent mock cards, and `interviewContextFromTargetJob` route params. Workspace plan cards remain compact, but their open-plan handoff must not fabricate a conflicting static round name.
+
+#### 7.4 BDD-Gate
+
+`E2E.P0.016` / focused equivalent must cover the readonly detail and related Home recent card surface showing saved `TargetJob.summary.interviewRounds[]` count/type/name/duration/focus in round assumptions, with no static four-round fallback in positive structured data paths.
+
+### Phase 8: Structured LLM-derived interview rounds
+
+#### 8.1 Contract and prompt schema
+
+Upgrade `target.import.parse` output, OpenAPI `TargetJobSummary`, fixtures and generated Go/TS artifacts from string-only `interviewHypotheses` to structured `interviewRounds[]`. The array must contain 2~5 rounds. Each round must carry `sequence`, `type`, `name`, `durationMinutes` and `focus`; the LLM parse result is authoritative for round count, round type/name and duration and must be inferred from JD evidence plus role seniority, company/industry nature, team/business context, hiring-process hints and common interview practices for similar roles.
+
+#### 8.2 Backend parser and persistence
+
+Update backend targetjob parse executor and tests so successful JD parse validates and persists structured rounds into `target_jobs.summary.interviewRounds[]`, preserving provenance and rejecting malformed round entries instead of silently fabricating default rounds.
+
+#### 8.3 Frontend structured round mapper
+
+Update Parse detail, Home recent card rail and `interviewContextFromTargetJob` to consume `summary.interviewRounds[]` directly. Focused tests must prove variable round counts and variable durations render from fixtures, and old fixed strings such as `HR 初筛 · 20m` are not used when structured rounds exist.
+
+#### 8.4 UI truth source and BDD gate
+
+Update `ui-design/`, `docs/ui-design/module-job-workspace.md` and `E2E.P0.016` so the visible contract is structured LLM rounds: 2~5 rounds, inferred type/name, inferred duration and inferred focus across Parse, Home recent cards and shared navigation context. The browser acceptance path must attach a screenshot or emit a positive `screenshotBytes=` marker while asserting the rendered round cards.
+
 ## 6 验收标准
 
 - Home/Parse owner 文档只描述当前 Home + Parse 合同、operation matrix、BDD gate 和验证入口。
@@ -176,10 +213,13 @@ Vitest, pixel parity and scenario gates must assert the absence of editable inpu
 - `E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016` 场景文档和脚本覆盖当前 Home/Parse 主路径、失败路径、privacy gate 与 real-mode generated-client gate。
 - Home import request bodies include the selected `resumeId`, and backend list/detail can recover the binding without depending on transient Parse route params.
 - Parse and workspace detail routes share the same "面试规划详情 / 面试上下文确认" page structure, copy, resume binding and action semantics; workspace no longer renders an independent full-page current-plan confirmation.
+- Parse round assumptions, Home recent mock rails and shared TargetJob navigation context display/use backend/LLM `TargetJob.summary.interviewRounds[]`; round count is 2~5, and type/name, duration and focus are not front-end fixed values.
 - `sync-doc-index --check`、`make docs-check`、`git diff --check` 和 `make lint-core-loop-pruning-surface` 通过。
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-09 | 2.10 | Reopen owner plan to upgrade round assumptions from string-only `interviewHypotheses` focus text to structured LLM-derived `interviewRounds[]` covering round count, type/name, duration and focus. |
+| 2026-07-09 | 2.9 | Reopen owner plan to bind Parse, Home recent card rails and shared TargetJob navigation context to backend-generated `summary.interviewHypotheses` instead of static round focus text. |
 | 2026-07-09 | 2.7 | Reopen owner plan to unify Parse preview and workspace current-plan detail into one Interview Plan Detail / Context Confirm mother page. |

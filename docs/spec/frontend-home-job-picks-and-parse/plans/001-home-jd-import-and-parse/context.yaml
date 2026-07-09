@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 2.13
+    to: 2.15
 spec:
   defaultTarget: frontend
   discovery:
@@ -33,6 +33,15 @@ spec:
       - RequirementBlock
       - hidden signals
       - round assumptions
+      - interviewRounds
+      - LLM-derived round assumptions
+      - structured interview rounds
+      - LLM-derived interview rounds
+      - round duration minutes
+      - round type
+      - backend-generated round focus
+      - home recent round rail
+      - TargetJob round mapper
       - analysisStatus polling
       - parse loading gate
       - parse route resumeId
@@ -82,6 +91,9 @@ spec:
           - frontend/src/app/i18n/locales
           - frontend/src/api
           - frontend/src/api/generated
+          - backend/internal/targetjob
+          - backend/internal/api/generated
+          - config/prompts/target.import.parse
           - frontend/tests/pixel-parity
           - ui-design/src
           - ui-design

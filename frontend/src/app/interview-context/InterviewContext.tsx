@@ -8,8 +8,9 @@ import {
 } from "react";
 
 /**
- * InterviewContext shared store — truth source for workspace / practice /
- * generating route context per plan §3.7 mapping.
+ * InterviewContext shared store — truth source for practice / generating /
+ * report route context. The workspace route is a pure plan list and clears
+ * stale context before opening Parse detail.
  *
  * Fields that are route-param or fetched-data-derived; CLEAR resets to
  * DEFAULT_INTERVIEW_CONTEXT.

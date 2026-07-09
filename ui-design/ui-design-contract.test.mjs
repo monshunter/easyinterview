@@ -230,6 +230,23 @@ test("home uses a resume dropdown and caps recent mocks at three", () => {
   assert.doesNotMatch(home, /home-resume-option/);
 });
 
+test("TargetJob round assumptions use structured interview rounds across parse and recent mocks", () => {
+  const home = readUiFile("./src/screen-home.jsx");
+  const parse = readUiFile("./src/screens-p0-complete.jsx");
+  const data = readUiFile("./src/data.jsx");
+
+  assert.match(data, /const jdSampleInterviewRounds = \[/);
+  assert.match(data, /interviewRounds: jdSampleInterviewRounds/);
+  assert.match(data, /durationMinutes: 45/);
+  assert.match(home, /round\.durationMinutes/);
+  assert.match(parse, /roundId: currentRound \? `round-\$\{currentRound\.sequence\}-\$\{currentRound\.type\}` : ""/);
+  assert.match(parse, /gridTemplateColumns: `repeat\(\$\{Math\.min\(parsed\.rounds\.length \|\| 1, 4\)\}, 1fr\)`/);
+  assert.doesNotMatch(data, /interviewHypotheses/);
+  assert.doesNotMatch(parse, /interviewHypotheses/);
+  assert.doesNotMatch(data, /focus: "动机、求职节奏、薪资期望"/);
+  assert.doesNotMatch(parse, /focus: lang === "en" \? "Motivation, timing, comp"/);
+});
+
 test("workspace insight card has no standalone route alias", () => {
   const app = readUiFile("./src/app.jsx");
   const insight = readUiFile("./src/screen-workspace-insight.jsx");

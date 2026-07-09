@@ -102,7 +102,7 @@ describe("pendingAction encode/decode", () => {
 
   it("drops raw payload / AI prompt / auth secret keys at decode (plan 004 §3.1)", () => {
     const decoded = decodePendingActionRoute({
-      pendingRoute: "workspace",
+      pendingRoute: "practice",
       pendingType: "replay_practice",
       pendingLabel: "复练当前轮",
       planId: "plan-1",
@@ -114,7 +114,7 @@ describe("pendingAction encode/decode", () => {
       password: "hunter2",
     });
     expect(decoded).not.toBeNull();
-    expect(decoded?.name).toBe("workspace");
+    expect(decoded?.name).toBe("practice");
     expect(decoded?.params).toEqual({
       planId: "plan-1",
       targetJobId: "tj-1",

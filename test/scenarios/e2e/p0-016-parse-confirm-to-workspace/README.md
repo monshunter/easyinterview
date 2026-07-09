@@ -11,6 +11,8 @@ Verifies the parse success detail as a readonly saved-plan receipt:
 - Basic fields render as readonly text; notes/edit inputs are absent.
 - Requirement evidence badges are not toggle buttons.
 - Hidden signals and round assumptions are display-only.
+- Round assumptions shown in Parse and Home recent cards use saved 2~5 item `TargetJob.summary.interviewRounds[]`; count, type/name, duration, and focus come from the backend LLM parse result with no static four-round fallback.
+- Shared TargetJob navigation context derives round IDs/names through the same round-assumption mapper instead of local default round strings.
 - The saved bound `resumeId` is inherited from TargetJob, with route `resumeId` only as a legacy first-import fallback.
 - Missing bound resume disables Start without exposing resume picker, resume options, create-resume fallback, Save plan, Cancel, or success Re-parse controls.
 - Start interview does not call `updateTargetJob`; it directly uses `getPracticePlan` / `createPracticePlan` / `startPracticeSession` and reaches `practice`.
@@ -30,6 +32,9 @@ Verifies the parse success detail as a readonly saved-plan receipt:
 - Parse detail does not call `updateTargetJob` during Start.
 - Browser-level readonly detail keeps real ready `resumeId` visible and never emits `resume-unbound`.
 - Browser-level Start reaches `/practice` directly with `targetJobId`, `resumeId`, `planId`, and `sessionId`.
+- Focused UI tests prove `parse-round-*` and `home-recent-mock-rail-*` consume backend-generated structured interview rounds.
+- Focused navigation tests prove `interviewContextFromTargetJob` no longer emits local default round strings.
+- Browser-level readonly detail attaches a screenshot and emits `screenshotBytes=` after asserting the rendered round cards.
 - Real backend mode generated-client gate still proves TargetJobs read/import/update API routing; the UI subcase separately proves Parse success detail is not an `updateTargetJob` consumer.
 
 ## Scripts
@@ -55,7 +60,7 @@ Verifies the parse success detail as a readonly saved-plan receipt:
   base URL with cookie credentials, Idempotency-Key side effects, and
   provenance roundtrip.
 - The parse UI subcases remain fixture-backed for deterministic readonly DOM,
-  missing-resume disabled gate, no-PATCH assertion, and direct practice handoff.
+  missing-resume disabled gate, no-PATCH assertion, screenshot acceptance, and direct practice handoff.
 
 ## Browser Route/Context Gate
 
@@ -63,5 +68,6 @@ Verifies the parse success detail as a readonly saved-plan receipt:
   `tests/pixel-parity/parse.spec.ts --grep "readonly plan detail exposes|start interview hands off directly"`.
 - The browser gate opens `/parse?targetJobId=...`, mocks generated API
   responses, verifies the readonly receipt has only Start as the success action,
-  asserts no `updateTargetJob` PATCH calls were made, verifies Start reaches
+  asserts no `updateTargetJob` PATCH calls were made, checks the 2~5 rendered
+  structured rounds, attaches a readonly-detail screenshot, verifies Start reaches
   `practice`, and rejects `resume-unbound` / `workspace-missing-resume` success markers.

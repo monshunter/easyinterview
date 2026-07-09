@@ -228,9 +228,17 @@ export interface TargetJobRequirement {
 	label: string;
 }
 
+export interface TargetJobInterviewRound {
+	durationMinutes: number;
+	focus: string;
+	name: string;
+	sequence: number;
+	type: "hr" | "technical" | "manager" | "cross_functional" | "culture" | "final" | "other";
+}
+
 export interface TargetJobSummary {
 	coreThemes?: string[];
-	interviewHypotheses?: string[];
+	interviewRounds?: TargetJobInterviewRound[];
 	provenance: GenerationProvenance;
 }
 

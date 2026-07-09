@@ -10,6 +10,7 @@ import {
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useI18n } from "../../i18n/messages";
+import { buildTargetJobRoundAssumptions } from "../../interview-context/roundAssumptions";
 import { isSelectableInterviewResume } from "../../interview-context/selectableResume";
 import { startPracticeFromParams } from "../../interview-context/startPractice";
 import { useNavigation } from "../../navigation/NavigationProvider";
@@ -742,13 +743,10 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const requirements = targetJob?.requirements ?? [];
   const mustHave = requirements.filter((r) => r.kind === "must_have");
   const niceToHave = requirements.filter((r) => r.kind === "nice_to_have");
-  const hiddenSignals = targetJob?.summary?.interviewHypotheses ?? [];
-  const rounds: { name: string; focus: string }[] = [
-    { name: t("parse.round1Name"), focus: t("parse.round1Focus") },
-    { name: t("parse.round2Name"), focus: t("parse.round2Focus") },
-    { name: t("parse.round3Name"), focus: t("parse.round3Focus") },
-    { name: t("parse.round4Name"), focus: t("parse.round4Focus") },
-  ];
+  const hiddenSignals = requirements
+    .filter((r) => r.kind === "hidden_signal")
+    .map((r) => r.label);
+  const rounds = buildTargetJobRoundAssumptions(targetJob, t);
   const launchDisabled = resumesLoading || !selectedResume || confirming;
 
   return (
@@ -1191,7 +1189,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: compactLayout ? "1fr" : "repeat(4, 1fr)",
+            gridTemplateColumns: compactLayout
+              ? "1fr"
+              : `repeat(${Math.min(Math.max(rounds.length, 1), 4)}, 1fr)`,
             gap: 10,
           }}
         >

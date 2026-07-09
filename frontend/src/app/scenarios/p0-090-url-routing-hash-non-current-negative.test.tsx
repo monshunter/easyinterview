@@ -46,7 +46,7 @@ describe("E2E.P0.090 hash compatibility + non-current route negative regression"
     expect(window.location.hash).toBe("");
   });
 
-  it("`#route=workspace&targetJobId=...` bootstrap rewrites URL to canonical /workspace", () => {
+  it("`#route=workspace&targetJobId=...` bootstrap rewrites URL to canonical pure /workspace list", () => {
     window.history.replaceState(
       null,
       "",
@@ -54,9 +54,9 @@ describe("E2E.P0.090 hash compatibility + non-current route negative regression"
     );
     render(<App />);
     expect(window.location.pathname).toBe("/workspace");
-    expect(window.location.search).toBe("?targetJobId=tj-1");
+    expect(window.location.search).toBe("");
     expect(window.location.hash).toBe("");
-    expect(screen.getByTestId("workspace-empty")).toBeInTheDocument();
+    expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
   });
 
   it("`#route=practice&mode=voice&modality=voice&sessionId=...` rewrites to canonical /practice with chrome hidden", () => {

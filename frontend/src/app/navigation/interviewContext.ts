@@ -1,4 +1,8 @@
 import type { TargetJob } from "../../api/generated/types";
+import {
+  buildTargetJobRoundAssumptions,
+  roundIndexFromTargetJobStatus,
+} from "../interview-context/roundAssumptions";
 
 /**
  * Interview context derived from a TargetJob for parse/practice navigation.
@@ -27,13 +31,16 @@ export function interviewContextFromTargetJob(
   const id = job.id;
   const planId = job.currentPracticePlanId?.trim() || "";
   const resumeId = options.resumeId?.trim() || job.resumeId?.trim() || "";
+  const rounds = buildTargetJobRoundAssumptions(job);
+  const roundIndex = roundIndexFromTargetJobStatus(job.status, rounds.length);
+  const round = rounds[roundIndex] ?? rounds[0];
   return {
     targetJobId: id,
     jobId: id,
     jdId: `jd-${id}`,
     planId,
     resumeId,
-    roundId: "round-technical-1",
-    roundName: "Technical Round 1",
+    roundId: round?.id ?? "",
+    roundName: round?.name ?? "",
   };
 }

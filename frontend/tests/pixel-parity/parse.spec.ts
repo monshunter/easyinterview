@@ -283,6 +283,20 @@ test.describe("parse screen DOM anchor parity", () => {
     await expect(page.locator("[data-testid='parse-resume-picker']")).toHaveCount(0);
     await expect(page.locator("[data-testid='parse-resume-picker-toggle']")).toHaveCount(0);
     await expect(page.locator("[data-testid='parse-action-start-interview']")).toBeEnabled();
+    const roundCards = page.locator("[data-testid^='parse-round-']");
+    await expect(roundCards).toHaveCount(3);
+    const roundCount = await roundCards.count();
+    expect(roundCount).toBeGreaterThanOrEqual(2);
+    expect(roundCount).toBeLessThanOrEqual(5);
+    await expect(roundCards.nth(0)).toContainText("Frontend architecture screen · 45m");
+    await expect(roundCards.nth(0)).toContainText(
+      "Probe scaling design systems across 10+ teams.",
+    );
+    await expect(roundCards.nth(1)).toContainText("Hiring manager impact interview · 50m");
+    await expect(roundCards.nth(2)).toContainText("Collaboration and operating style · 40m");
+    console.log(
+      "E2E.P0.016 structured-rounds browser gate count=3 first='Frontend architecture screen · 45m' second='Hiring manager impact interview · 50m' third='Collaboration and operating style · 40m'",
+    );
     expect(updateCalls).toHaveLength(0);
 
     await freezeVisualAnimations(page);

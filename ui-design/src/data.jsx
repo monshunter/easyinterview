@@ -1,4 +1,35 @@
 // Mock data for EasyInterview prototype — 贴近 spec 的真实示例
+const jdSampleInterviewRounds = [
+  {
+    sequence: 1,
+    type: "hr",
+    name: "HR 初筛",
+    durationMinutes: 20,
+    focus: "HR 会围绕求职动机、B 端产品兴趣和节奏稳定性追问",
+  },
+  {
+    sequence: 2,
+    type: "technical",
+    name: "技术一面",
+    durationMinutes: 45,
+    focus: "技术一面会聚焦 Design System 推进、TS 类型设计和性能证据",
+  },
+  {
+    sequence: 3,
+    type: "technical",
+    name: "技术二面",
+    durationMinutes: 60,
+    focus: "技术二面会追问 Monorepo / 微前端架构取舍与大型协作案例",
+  },
+  {
+    sequence: 4,
+    type: "manager",
+    name: "经理面",
+    durationMinutes: 40,
+    focus: "经理面会关注跨团队影响力、冲突处理和目标一致性",
+  },
+];
+
 window.EI_DATA = {
   user: {
     name: "林舟",
@@ -87,12 +118,8 @@ window.EI_DATA = {
       "团队近期在推 Monorepo + 微前端架构",
       "面试官团队倾向听到可量化的改进故事",
     ],
-    rounds: [
-      { name: "HR 初筛", focus: "动机、求职节奏、薪资期望" },
-      { name: "技术一面", focus: "React 底层、TS 类型设计、性能" },
-      { name: "技术二面", focus: "架构决策、大型协作案例" },
-      { name: "经理面", focus: "影响力、冲突处理、目标一致性" },
-    ],
+    interviewRounds: jdSampleInterviewRounds,
+    rounds: jdSampleInterviewRounds,
   },
 
   questions: [

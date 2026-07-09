@@ -223,7 +223,7 @@ const MiniRoundRail = ({ T, lang, rounds, currentIndex }) => (
                 {done ? <Icon name="check" size={10} stroke={2.2} /> : <span className="ei-mono" style={{ fontSize: 9 }}>{i + 1}</span>}
               </div>
               <div style={{ marginTop: 6, fontSize: 10.5, color: current ? T.ink : T.ink3, maxWidth: 68, textAlign: i === 0 ? "left" : i === rounds.length - 1 ? "right" : "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {round.name}
+                {round.name}{round.durationMinutes ? ` · ${round.durationMinutes}m` : ""}
               </div>
             </div>
           );

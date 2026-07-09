@@ -6,6 +6,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0149](./BUG-0149.md) | hidden signals stayed blank when JD parse omitted hidden_signal classification | medium | resolved | 2026-07-09 | `fix(frontend-home): derive hidden signals from JD parse (BUG-0149)` |
 | [BUG-0147](./BUG-0147.md) | failed JD parse entered interview list and workspace kept route context | high | resolved | 2026-07-09 | `fix(workspace): enforce parse failure admission and route purity (BUG-0147)` |
 | [BUG-0146](./BUG-0146.md) | target import parse rejected valid JD without company name | high | resolved | 2026-07-09 | `fix(targetjob): accept valid JD parses without company names (BUG-0146)` |
 | [BUG-0144](./BUG-0144.md) | workspace plan cards dropped bound resume context | high | resolved | 2026-07-08 | `fix(workspace): close plan list UX and context regressions (BUG-0143, BUG-0144, BUG-0145)` |
@@ -84,6 +85,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0148](./BUG-0148.md) | round assumptions ignored structured LLM-derived interview rounds | medium | resolved | 2026-07-09 | `-` |
 | [BUG-0143](./BUG-0143.md) | interview plan list cards lacked visual hierarchy and concise content | medium | resolved | 2026-07-08 | `fix(workspace): close plan list UX and context regressions (BUG-0143, BUG-0144, BUG-0145)` |
 | [BUG-0141](./BUG-0141.md) | home resume picker hid readable existing resumes | medium | resolved | 2026-07-08 | `fix(resume): close source preview and picker regressions (BUG-0139, BUG-0140, BUG-0141)` |
 | [BUG-0134](./BUG-0134.md) | home JD source controls over-separated from input card | medium | resolved | 2026-07-06 | `fix(frontend-home): integrate source controls into input card (BUG-0134)` |

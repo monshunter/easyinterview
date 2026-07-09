@@ -58,10 +58,10 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
       lang === "en" ? "Ambiguity tolerance — startup at Series-B stage" : "对模糊性的容忍 —— B 轮阶段",
     ],
     rounds: [
-      { r: lang === "en" ? "HR screen · 20m" : "HR 初筛 · 20 分钟", focus: lang === "en" ? "Motivation, timing, comp" : "动机 · 节奏 · 薪资" },
-      { r: lang === "en" ? "Tech round 1 · 45m" : "技术一面 · 45 分钟", focus: lang === "en" ? "React internals, perf, TS" : "React 底层 · 性能 · TS" },
-      { r: lang === "en" ? "Tech round 2 · 60m" : "技术二面 · 60 分钟", focus: lang === "en" ? "Architecture, trade-offs" : "架构 · 权衡" },
-      { r: lang === "en" ? "Hiring manager · 40m" : "经理面 · 40 分钟", focus: lang === "en" ? "Influence, conflict" : "影响力 · 冲突" },
+      { sequence: 1, type: "hr", name: lang === "en" ? "HR screen" : "HR 初筛", durationMinutes: 20, focus: lang === "en" ? "HR will probe motivation, timing, and fit with B2B frontend work" : "HR 会围绕求职动机、B 端产品兴趣和节奏稳定性追问" },
+      { sequence: 2, type: "technical", name: lang === "en" ? "Technical architecture interview" : "技术一面", durationMinutes: 45, focus: lang === "en" ? "Tech round will focus on design-system rollout, TS types, and performance evidence" : "技术一面会聚焦 Design System 推进、TS 类型设计和性能证据" },
+      { sequence: 3, type: "technical", name: lang === "en" ? "System design deep dive" : "技术二面", durationMinutes: 60, focus: lang === "en" ? "Technical deep dive will probe monorepo / micro-frontend trade-offs and collaboration scale" : "技术二面会追问 Monorepo / 微前端架构取舍与大型协作案例" },
+      { sequence: 4, type: "manager", name: lang === "en" ? "Hiring manager interview" : "经理面", durationMinutes: 40, focus: lang === "en" ? "Manager round will test influence, conflict handling, and goal alignment" : "经理面会关注跨团队影响力、冲突处理和目标一致性" },
     ],
   };
 
@@ -70,13 +70,14 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
   const selectedResumeId = resumeOptions[0]?.id || "";
   const selectedResume = resumeOptions.find((resume) => resume.id === selectedResumeId);
 
-  const PARSE_ROUND_IDS = ["round-hr", "round-tech-1", "round-tech-2", "round-manager"];
+  const roundLabel = (round) => `${round?.name || ""}${round?.durationMinutes ? ` · ${round.durationMinutes}m` : ""}`;
   const buildParseInterviewContext = () => {
     const currentRoundIdx = 1;
+    const currentRound = parsed.rounds[currentRoundIdx];
     const base = {
       resumeId: selectedResumeId,
-      roundId: PARSE_ROUND_IDS[currentRoundIdx] || "round-hr",
-      roundName: parsed.rounds[currentRoundIdx]?.r,
+      roundId: currentRound ? `round-${currentRound.sequence}-${currentRound.type}` : "",
+      roundName: roundLabel(currentRound),
     };
     return window.eiCreateInterviewContext ? window.eiCreateInterviewContext(base, base) : base;
   };
@@ -240,13 +241,13 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
             {lang === "en" ? "saved with this plan" : "创建后只读"}
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(parsed.rounds.length || 1, 4)}, 1fr)`, gap: 10 }}>
           {parsed.rounds.map((r, i) => (
               <div key={i} style={{ textAlign: "left", fontFamily: "var(--ei-sans)", padding: "12px 14px", background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 2, position: "relative" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
                   <span style={{ fontFamily: "var(--ei-mono)", fontSize: 10.5, color: T.ink4, letterSpacing: "0.06em" }}>R{i + 1}</span>
                 </div>
-                <div style={{ fontSize: 13, color: T.ink, fontWeight: 500, marginBottom: 4 }}>{r.r}</div>
+                <div style={{ fontSize: 13, color: T.ink, fontWeight: 500, marginBottom: 4 }}>{roundLabel(r)}</div>
                 <div style={{ fontSize: 11.5, color: T.ink3, lineHeight: 1.45 }}>{r.focus}</div>
               </div>
           ))}

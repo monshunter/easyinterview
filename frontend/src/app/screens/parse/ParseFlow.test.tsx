@@ -236,7 +236,9 @@ describe("ParseFlow — analysisStatus polling", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
     });
-    expect(screen.getByDisplayValue("Senior Frontend Engineer")).toBeInTheDocument();
+    expect(screen.getByTestId("parse-basics-title")).toHaveTextContent(
+      "Senior Frontend Engineer",
+    );
 
     rerender(renderParseWithTarget(client, "target-b"));
 
@@ -244,13 +246,15 @@ describe("ParseFlow — analysisStatus polling", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(screen.getByTestId("parse-loading-step-0")).toBeInTheDocument();
-    expect(screen.queryByDisplayValue("Senior Frontend Engineer")).not.toBeInTheDocument();
+    expect(screen.queryByText("Senior Frontend Engineer")).not.toBeInTheDocument();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(LOADING_PREVIEW_DELAY);
     });
 
-    expect(screen.getByDisplayValue("Backend Platform Engineer")).toBeInTheDocument();
+    expect(screen.getByTestId("parse-basics-title")).toHaveTextContent(
+      "Backend Platform Engineer",
+    );
   });
 
   it("cleans up polling on unmount", async () => {

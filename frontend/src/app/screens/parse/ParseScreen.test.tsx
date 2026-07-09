@@ -91,14 +91,29 @@ describe("ParseScreen", () => {
               },
               {
                 id: "req-3",
-                kind: "nice_to_have" as const,
-                label: "Edge runtime familiarity",
+                kind: "hidden_signal" as const,
+                label: "Hiring team values architecture influence",
                 evidenceLevel: "inferred" as const,
               },
             ],
             summary: {
               coreThemes: ["frontend architecture"],
-              interviewHypotheses: ["Cross-team influence"],
+              interviewRounds: [
+                {
+                  sequence: 1,
+                  type: "hr",
+                  name: "Recruiter screen",
+                  durationMinutes: 30,
+                  focus: "LLM HR screen probes motivation fit",
+                },
+                {
+                  sequence: 2,
+                  type: "technical",
+                  name: "Frontend architecture interview",
+                  durationMinutes: 55,
+                  focus: "LLM technical round probes frontend architecture",
+                },
+              ],
               provenance: {
                 modelId: "claude-haiku-4.5",
                 promptVersion: "prompt@a8f2e1",
@@ -154,12 +169,24 @@ describe("ParseScreen", () => {
     expect(
       screen.getByTestId("parse-requirement-nice_to_have-0"),
     ).toHaveTextContent(/PARTIAL|部分/);
-    expect(
-      screen.getByTestId("parse-requirement-nice_to_have-1"),
-    ).toHaveTextContent(/PARTIAL|部分/);
-
-    expect(screen.getByTestId("parse-hidden-signal-0")).toBeInTheDocument();
-    expect(screen.getByTestId("parse-round-0")).toBeInTheDocument();
+    expect(screen.getByTestId("parse-hidden-signal-0")).toHaveTextContent(
+      "Hiring team values architecture influence",
+    );
+    expect(screen.getByTestId("parse-round-0")).toHaveTextContent(
+      "Recruiter screen · 30m",
+    );
+    expect(screen.getByTestId("parse-round-0")).toHaveTextContent(
+      "LLM HR screen probes motivation fit",
+    );
+    expect(screen.getByTestId("parse-round-1")).toHaveTextContent(
+      "Frontend architecture interview · 55m",
+    );
+    expect(screen.getByTestId("parse-round-1")).toHaveTextContent(
+      "LLM technical round probes frontend architecture",
+    );
+    expect(screen.getByTestId("parse-round-0")).not.toHaveTextContent(
+      /Motivation, timing|动机/,
+    );
     expect(screen.getByTestId("parse-launch")).toBeInTheDocument();
     expect(screen.queryByTestId("parse-action-cancel")).not.toBeInTheDocument();
     expect(screen.queryByTestId("parse-action-reparse")).not.toBeInTheDocument();

@@ -1,14 +1,11 @@
 import type { FC } from "react";
 
 import type { TargetJob, TargetJobStatus } from "../../../api/generated/types";
-
-/** Default interview rounds when no real round data is available. */
-const DEFAULT_ROUNDS = [
-  "R1 Phone Screen",
-  "R2 Technical",
-  "R3 Culture",
-  "R4 Final",
-];
+import { useI18n } from "../../i18n/messages";
+import {
+  buildTargetJobRoundAssumptions,
+  roundIndexFromTargetJobStatus,
+} from "../../interview-context/roundAssumptions";
 
 function statusTone(
   status: TargetJobStatus,
@@ -43,25 +40,6 @@ function statusLabel(status: TargetJobStatus): string {
       return "Rejected";
     case "archived":
       return "Archived";
-  }
-}
-
-function roundIndexFromStatus(
-  status: TargetJobStatus,
-  roundCount: number,
-): number {
-  if (roundCount === 0) return 0;
-  switch (status) {
-    case "draft":
-    case "preparing":
-      return 0;
-    case "applied":
-    case "interviewing":
-      return 1;
-    case "offer":
-    case "rejected":
-    case "archived":
-      return roundCount - 1;
   }
 }
 
@@ -220,9 +198,11 @@ export const MockInterviewCard: FC<MockInterviewCardProps> = ({
   job,
   onClick,
 }) => {
+  const { t } = useI18n();
   const tone = statusTone(job.status);
   const colors = statusColorMap[tone] ?? { bg: "transparent", fg: "var(--ei-color-fg-tertiary)" };
-  const ci = roundIndexFromStatus(job.status, DEFAULT_ROUNDS.length);
+  const rounds = buildTargetJobRoundAssumptions(job, t);
+  const ci = roundIndexFromTargetJobStatus(job.status, rounds.length);
 
   return (
     <div
@@ -295,7 +275,7 @@ export const MockInterviewCard: FC<MockInterviewCardProps> = ({
       </div>
       <div data-testid={`home-recent-mock-rail-${job.id}`}>
         <MiniRoundRail
-          rounds={DEFAULT_ROUNDS}
+          rounds={rounds.map((round) => round.name)}
           currentIndex={ci}
         />
       </div>

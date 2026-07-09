@@ -131,6 +131,12 @@ describe("ParseEdit — readonly plan receipt", () => {
     expect(signal0.querySelector("button")).toBeNull();
     expect(round0).toBeInTheDocument();
     expect(round1).toBeInTheDocument();
+    expect(signal0).toHaveTextContent("Hiring team values cross-team RFC ownership");
+    expect(round0).toHaveTextContent("Frontend architecture screen · 45m");
+    expect(round0).toHaveTextContent("Probe scaling design systems across 10+ teams.");
+    expect(round1).toHaveTextContent("Hiring manager impact interview · 50m");
+    expect(round1).toHaveTextContent("Assess cross-team RFC ownership and influence.");
+    expect(round0).not.toHaveTextContent(/Motivation, timing|动机/);
     expect(round0.tagName).not.toBe("BUTTON");
     expect(round1.tagName).not.toBe("BUTTON");
   });

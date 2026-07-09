@@ -1,6 +1,7 @@
 # Seed Input
 
-- TargetJob detail fixture: `openapi/fixtures/TargetJobs/getTargetJob.json` with ready status, saved `resumeId`, and optional `currentPracticePlanId`.
+- TargetJob detail fixture: `openapi/fixtures/TargetJobs/getTargetJob.json` with ready status, saved `resumeId`, optional `currentPracticePlanId`, and `summary.interviewRounds[]`.
+- TargetJob list fixture: `openapi/fixtures/TargetJobs/listTargetJobs.json` with ready cards and `summary.interviewRounds[]` for recent-card round rails.
 - Resume list fixture: `openapi/fixtures/Resumes/listResumes.json` with ready and empty variants.
 - Practice fixtures: `openapi/fixtures/PracticePlans/getPracticePlan.json`, `openapi/fixtures/PracticePlans/createPracticePlan.json`, and `openapi/fixtures/PracticeSessions/startPracticeSession.json`.
 - Auth fixture: `openapi/fixtures/Auth/getMe.json` with authenticated and unauthenticated variants.
