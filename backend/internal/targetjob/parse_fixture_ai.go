@@ -72,13 +72,19 @@ func deterministicParseFixtureContent(language string) string {
 		language = "en"
 	}
 	raw, _ := json.Marshal(parseAIResponse{
-		Title:               "Backend Platform Engineer",
-		CompanyName:         "Acme",
-		CoreThemes:          []string{"backend", "ownership"},
-		InterviewHypotheses: []string{"Discuss API design and async pipelines."},
-		Strengths:           []string{"Backend service experience"},
-		Gaps:                []string{"Clarify production scale evidence"},
-		RiskSignals:         []string{},
+		Title:       "Backend Platform Engineer",
+		CompanyName: "Acme",
+		CoreThemes:  []string{"backend", "ownership"},
+		InterviewRounds: []parseAIResponseRound{{
+			Sequence:        1,
+			Type:            "technical",
+			Name:            "Backend architecture deep dive",
+			DurationMinutes: 45,
+			Focus:           "Discuss API design and async pipelines.",
+		}},
+		Strengths:   []string{"Backend service experience"},
+		Gaps:        []string{"Clarify production scale evidence"},
+		RiskSignals: []string{},
 		Requirements: []parseAIResponseReq{{
 			Kind:          string(RequirementMustHave),
 			Label:         "Backend service ownership",

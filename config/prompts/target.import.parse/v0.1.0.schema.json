@@ -5,7 +5,7 @@
     "title",
     "companyName",
     "coreThemes",
-    "interviewHypotheses",
+    "interviewRounds",
     "strengths",
     "gaps",
     "riskSignals",
@@ -28,12 +28,50 @@
         "description": "One role theme."
       }
     },
-    "interviewHypotheses": {
+    "interviewRounds": {
       "type": "array",
-      "description": "Likely interview focus hypotheses grounded in the JD.",
+      "description": "Likely 2 to 5 interview rounds inferred from JD evidence, role seniority, company or industry nature, team or business context, and hiring-process hints, including count, type, display name, duration, and focus.",
       "items": {
-        "type": "string",
-        "description": "One interview hypothesis."
+        "type": "object",
+        "description": "One inferred interview round.",
+        "required": [
+          "sequence",
+          "type",
+          "name",
+          "durationMinutes",
+          "focus"
+        ],
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "description": "One-based round order inferred from the likely interview process."
+          },
+          "type": {
+            "type": "string",
+            "description": "Stable round category inferred from the JD.",
+            "enum": [
+              "hr",
+              "technical",
+              "manager",
+              "cross_functional",
+              "culture",
+              "final",
+              "other"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "Candidate-facing round name in the response language."
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "description": "Estimated interview duration in minutes inferred from the round category and JD context."
+          },
+          "focus": {
+            "type": "string",
+            "description": "Concise likely focus for this round, grounded in the JD and the inferred company, industry, seniority, and role context."
+          }
+        }
       }
     },
     "strengths": {
@@ -54,7 +92,7 @@
     },
     "riskSignals": {
       "type": "array",
-      "description": "Risk or ambiguity signals in the JD.",
+      "description": "Risk or ambiguity signals in the JD; also source material for inferred hidden_signal requirements.",
       "items": {
         "type": "string",
         "description": "One risk signal."
@@ -62,7 +100,7 @@
     },
     "requirements": {
       "type": "array",
-      "description": "Interview-ready requirements used to build target job requirement records.",
+      "description": "Interview-ready requirements used to build target job requirement records. Must include at least one hidden_signal item with inferred evidence.",
       "items": {
         "type": "object",
         "description": "One parsed requirement.",

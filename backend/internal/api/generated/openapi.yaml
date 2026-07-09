@@ -1968,6 +1968,33 @@ components:
           type: string
           enum: [explicit, implicit, inferred]
 
+    TargetJobInterviewRound:
+      type: object
+      required: [sequence, type, name, durationMinutes, focus]
+      description: AI-generated interview round inferred from JD evidence, role seniority, company or industry nature, team or business context, and hiring-process hints. A ready TargetJob summary carries 2 to 5 rounds.
+      properties:
+        sequence:
+          type: integer
+          format: int32
+          minimum: 1
+          description: One-based round order inferred from the likely interview process.
+        type:
+          type: string
+          enum: [hr, technical, manager, cross_functional, culture, final, other]
+          description: Stable round category inferred from the JD.
+        name:
+          type: string
+          description: Candidate-facing round name in the target job language.
+        durationMinutes:
+          type: integer
+          format: int32
+          minimum: 10
+          maximum: 180
+          description: Estimated interview duration in minutes inferred from the JD and round category.
+        focus:
+          type: string
+          description: Concise likely focus for this round, grounded in the JD and inferred company, industry, seniority, and role context.
+
     TargetJobSummary:
       type: object
       required: [provenance]
@@ -1980,10 +2007,12 @@ components:
           type: array
           items:
             type: string
-        interviewHypotheses:
+        interviewRounds:
           type: array
+          minItems: 2
+          maxItems: 5
           items:
-            type: string
+            $ref: '#/components/schemas/TargetJobInterviewRound'
         provenance:
           $ref: '#/components/schemas/GenerationProvenance'
 

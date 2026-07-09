@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -90,14 +91,22 @@ func NewParseExecutor(opts ParseExecutorOptions) *ParseExecutor {
 // drift from this shape surfaces as AI_OUTPUT_INVALID (non-retryable). The
 // upstream prompt is owned by F3 so the schema lives here as the consumer.
 type parseAIResponse struct {
-	Title               string               `json:"title"`
-	CompanyName         string               `json:"companyName"`
-	CoreThemes          []string             `json:"coreThemes"`
-	InterviewHypotheses []string             `json:"interviewHypotheses"`
-	Strengths           []string             `json:"strengths"`
-	Gaps                []string             `json:"gaps"`
-	RiskSignals         []string             `json:"riskSignals"`
-	Requirements        []parseAIResponseReq `json:"requirements"`
+	Title           string                 `json:"title"`
+	CompanyName     string                 `json:"companyName"`
+	CoreThemes      []string               `json:"coreThemes"`
+	InterviewRounds []parseAIResponseRound `json:"interviewRounds"`
+	Strengths       []string               `json:"strengths"`
+	Gaps            []string               `json:"gaps"`
+	RiskSignals     []string               `json:"riskSignals"`
+	Requirements    []parseAIResponseReq   `json:"requirements"`
+}
+
+type parseAIResponseRound struct {
+	Sequence        int    `json:"sequence"`
+	Type            string `json:"type"`
+	Name            string `json:"name"`
+	DurationMinutes int    `json:"durationMinutes"`
+	Focus           string `json:"focus"`
 }
 
 type parseAIResponseReq struct {
@@ -190,14 +199,18 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 	if parsed.Title == "" {
 		return p.fail(ctx, targetJobID, sharederrors.CodeAiOutputInvalid, "AI output missing title", false)
 	}
+	parsed.Requirements, err = ensureHiddenSignalRequirements(parsed.Requirements, parsed.RiskSignals)
+	if err != nil {
+		return p.fail(ctx, targetJobID, sharederrors.CodeAiOutputInvalid, err.Error(), false)
+	}
 
 	requirements, err := buildRequirements(parsed.Requirements, p.newID)
 	if err != nil {
 		return p.fail(ctx, targetJobID, sharederrors.CodeAiOutputInvalid, err.Error(), false)
 	}
 	summary := mustMarshal(map[string]any{
-		"coreThemes":          parsed.CoreThemes,
-		"interviewHypotheses": parsed.InterviewHypotheses,
+		"coreThemes":      parsed.CoreThemes,
+		"interviewRounds": parsed.InterviewRounds,
 		"provenance": map[string]string{
 			"language":          target.TargetLanguage,
 			"featureFlag":       coalesceFlag(resolution.FeatureFlag),
@@ -371,6 +384,11 @@ func decodeParseResponse(content string) (parseAIResponse, error) {
 	if len(out.Requirements) == 0 {
 		return parseAIResponse{}, fmt.Errorf("AI response has no requirements")
 	}
+	rounds, err := validateInterviewRounds(out.InterviewRounds)
+	if err != nil {
+		return parseAIResponse{}, err
+	}
+	out.InterviewRounds = rounds
 	return out, nil
 }
 
@@ -422,6 +440,77 @@ func buildRequirements(input []parseAIResponseReq, newID IDGenerator) ([]Require
 		return nil, fmt.Errorf("AI response has no valid requirements")
 	}
 	return out, nil
+}
+
+func ensureHiddenSignalRequirements(input []parseAIResponseReq, riskSignals []string) ([]parseAIResponseReq, error) {
+	for _, r := range input {
+		if strings.TrimSpace(r.Kind) == string(RequirementHiddenSignal) && strings.TrimSpace(r.Label) != "" {
+			return input, nil
+		}
+	}
+
+	out := append([]parseAIResponseReq{}, input...)
+	for _, signal := range riskSignals {
+		label := strings.TrimSpace(signal)
+		if label == "" {
+			continue
+		}
+		out = append(out, parseAIResponseReq{
+			Kind:          string(RequirementHiddenSignal),
+			Label:         label,
+			EvidenceLevel: string(EvidenceInferred),
+		})
+	}
+	if len(out) == len(input) {
+		return nil, fmt.Errorf("AI response must include at least one hidden_signal requirement or riskSignals item")
+	}
+	return out, nil
+}
+
+func validateInterviewRounds(input []parseAIResponseRound) ([]parseAIResponseRound, error) {
+	if len(input) < 2 || len(input) > 5 {
+		return nil, fmt.Errorf("AI response must include 2 to 5 interview rounds")
+	}
+	out := make([]parseAIResponseRound, 0, len(input))
+	seenSequence := map[int]struct{}{}
+	for i, round := range input {
+		round.Type = strings.TrimSpace(round.Type)
+		round.Name = strings.TrimSpace(round.Name)
+		round.Focus = strings.TrimSpace(round.Focus)
+		if round.Sequence < 1 {
+			return nil, fmt.Errorf("AI response interview round %d has invalid sequence", i)
+		}
+		if _, ok := seenSequence[round.Sequence]; ok {
+			return nil, fmt.Errorf("AI response interview round %d has duplicate sequence", i)
+		}
+		seenSequence[round.Sequence] = struct{}{}
+		if !validInterviewRoundType(round.Type) {
+			return nil, fmt.Errorf("AI response interview round %d has invalid type", i)
+		}
+		if round.Name == "" {
+			return nil, fmt.Errorf("AI response interview round %d has empty name", i)
+		}
+		if round.DurationMinutes < 10 || round.DurationMinutes > 180 {
+			return nil, fmt.Errorf("AI response interview round %d has invalid durationMinutes", i)
+		}
+		if round.Focus == "" {
+			return nil, fmt.Errorf("AI response interview round %d has empty focus", i)
+		}
+		out = append(out, round)
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		return out[i].Sequence < out[j].Sequence
+	})
+	return out, nil
+}
+
+func validInterviewRoundType(value string) bool {
+	switch value {
+	case "hr", "technical", "manager", "cross_functional", "culture", "final", "other":
+		return true
+	default:
+		return false
+	}
 }
 
 func validRequirementKind(k RequirementKind) bool {

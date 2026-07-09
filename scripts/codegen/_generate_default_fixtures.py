@@ -10,6 +10,7 @@ Make target. It exists as a reproducible record of the Phase 1.2 bootstrap.
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from collections import OrderedDict
 from pathlib import Path
 
@@ -56,6 +57,7 @@ PRIVACY_REQUEST_ID_ME_DEL  = u7(0xC2)
 TARGET_REQ_ID_1            = u7(0xD0)
 TARGET_REQ_ID_2            = u7(0xD1)
 TARGET_REQ_ID_3            = u7(0xD2)
+TARGET_REQ_ID_4            = u7(0xD3)
 CLIENT_EVENT_ID_1          = u7(0xE0)
 REQUEST_ID                 = "req_2026-04-28T13-45-12-abcdef"
 FIXTURE_MODEL_PROFILE_ID   = "model-profile:contract.default"
@@ -76,8 +78,8 @@ def prov(prompt: str, rubric: str, model: str, lang: str, flag: str, dsv: str) -
     ])
 
 PROV_TARGET_SUMMARY = prov(
-    "target_job_summary.v3", "not_applicable", FIXTURE_MODEL_PROFILE_ID,
-    "zh-CN", "none", "target_job.v17",
+    "v0.1.0", "v0.1.0", "fixture-model:target-import-parse",
+    "zh-CN", "none", "registry.v1",
 )
 PROV_TARGET_FIT = prov(
     "target_job_fit.v2", "not_applicable", FIXTURE_MODEL_PROFILE_ID,
@@ -290,9 +292,28 @@ TARGET_JOB_FULL = OrderedDict([
             "Performance budgets and SSR pipelines",
             "Cross-team RFC ownership",
         ]),
-        ("interviewHypotheses", [
-            "Will probe scaling design systems across 10+ teams",
-            "Likely STAR follow-up on observability for FE infra",
+        ("interviewRounds", [
+            OrderedDict([
+                ("sequence", 1),
+                ("type", "technical"),
+                ("name", "Frontend architecture screen"),
+                ("durationMinutes", 45),
+                ("focus", "Probe scaling design systems across 10+ teams."),
+            ]),
+            OrderedDict([
+                ("sequence", 2),
+                ("type", "manager"),
+                ("name", "Hiring manager impact interview"),
+                ("durationMinutes", 50),
+                ("focus", "Assess cross-team RFC ownership and influence."),
+            ]),
+            OrderedDict([
+                ("sequence", 3),
+                ("type", "culture"),
+                ("name", "Collaboration and operating style"),
+                ("durationMinutes", 40),
+                ("focus", "Validate observability stories and collaboration signals."),
+            ]),
         ]),
         ("provenance", PROV_TARGET_SUMMARY),
     ])),
@@ -315,6 +336,12 @@ TARGET_JOB_FULL = OrderedDict([
             ("label", "Familiarity with edge runtime deployments"),
             ("evidenceLevel", "inferred"),
         ]),
+        OrderedDict([
+            ("id", TARGET_REQ_ID_4),
+            ("kind", "hidden_signal"),
+            ("label", "Hiring team values cross-team RFC ownership"),
+            ("evidenceLevel", "inferred"),
+        ]),
     ]),
     ("fitSummary", OrderedDict([
         ("strengths", [
@@ -330,6 +357,8 @@ TARGET_JOB_FULL = OrderedDict([
         ("provenance", PROV_TARGET_FIT),
     ])),
     ("latestReportId", REPORT_ID_1),
+    ("currentPracticePlanId", PRACTICE_PLAN_ID_1),
+    ("resumeId", RESUME_ASSET_ID),
     ("openQuestionIssueCount", 2),
     ("createdAt", EARLIEST),
     ("updatedAt", EARLIER),
@@ -349,10 +378,137 @@ TARGET_JOB_LIST_ITEM_2 = OrderedDict([
     ("requirements", []),
     ("fitSummary", None),
     ("latestReportId", None),
+    ("currentPracticePlanId", None),
+    ("resumeId", None),
     ("openQuestionIssueCount", 0),
     ("createdAt", EARLIEST),
     ("updatedAt", EARLIER),
 ])
+
+def target_job_list_item(
+    id_: str,
+    *,
+    status: str,
+    title: str,
+    company: str,
+    location: str,
+    created_at: str,
+    updated_at: str,
+) -> OrderedDict:
+    return OrderedDict([
+        ("id", id_),
+        ("status", status),
+        ("analysisStatus", "ready"),
+        ("title", title),
+        ("companyName", company),
+        ("locationText", location),
+        ("targetLanguage", "en"),
+        ("sourceType", "manual_text"),
+        ("sourceUrl", None),
+        ("summary", None),
+        ("requirements", []),
+        ("fitSummary", None),
+        ("latestReportId", None),
+        ("currentPracticePlanId", None),
+        ("resumeId", None),
+        ("openQuestionIssueCount", 0),
+        ("createdAt", created_at),
+        ("updatedAt", updated_at),
+    ])
+
+
+def list_target_jobs_body(items: list[OrderedDict], *, has_more: bool = False) -> OrderedDict:
+    return OrderedDict([
+        ("items", items),
+        ("pageInfo", OrderedDict([
+            ("nextCursor", "cursor-next" if has_more else None),
+            ("pageSize", 20),
+            ("hasMore", has_more),
+        ])),
+    ])
+
+
+def target_jobs_scenario(items: list[OrderedDict], *, request_id: str, has_more: bool = False) -> OrderedDict:
+    return OrderedDict([
+        ("response", OrderedDict([
+            ("status", 200),
+            ("headers", OrderedDict([("X-Request-ID", request_id)])),
+            ("body", list_target_jobs_body(items, has_more=has_more)),
+        ])),
+    ])
+
+
+LIST_TARGET_JOB_VARIANT_NAMES = [
+    "Job Alpha",
+    "Job Bravo",
+    "Job Charlie",
+    "Job Delta",
+    "Job Echo",
+    "Job Foxtrot",
+    "Job Golf",
+    "Job Hotel",
+    "Job India",
+    "Job Juliet",
+    "Job Kilo",
+    "Job Lima",
+    "Job Mike",
+]
+
+LIST_TARGET_JOB_VARIANT_STATUSES = [
+    "draft",
+    "preparing",
+    "applied",
+    "interviewing",
+    "offer",
+    "rejected",
+    "archived",
+    "draft",
+    "preparing",
+    "applied",
+    "interviewing",
+    "offer",
+    "rejected",
+]
+
+LIST_TARGET_JOB_TWELVE_PLUS = [
+    target_job_list_item(
+        f"01918fa0-0000-7000-8000-00000000a{i:03d}",
+        status=LIST_TARGET_JOB_VARIANT_STATUSES[i - 1],
+        title=LIST_TARGET_JOB_VARIANT_NAMES[i - 1],
+        company="ManyCo",
+        location=f"City {chr(64 + i)}",
+        created_at=f"2026-04-{i:02d}T00:00:00Z",
+        updated_at=f"2026-05-{i:02d}T00:00:00Z",
+    )
+    for i in range(1, 14)
+]
+
+LIST_TARGET_JOBS_DEFAULT_BODY = list_target_jobs_body([TARGET_JOB_FULL, TARGET_JOB_LIST_ITEM_2])
+
+LIST_TARGET_JOBS_FIXTURE = fixture("listTargetJobs", LIST_TARGET_JOBS_DEFAULT_BODY)
+LIST_TARGET_JOBS_FIXTURE["scenarios"]["empty"] = target_jobs_scenario(
+    [],
+    request_id="req_empty_variant",
+)
+LIST_TARGET_JOBS_FIXTURE["scenarios"]["one-job"] = target_jobs_scenario(
+    [
+        target_job_list_item(
+            "01918fa0-0000-7000-8000-000000000001",
+            status="preparing",
+            title="Software Engineer",
+            company="SingleCo",
+            location="Remote",
+            created_at="2026-05-01T00:00:00Z",
+            updated_at="2026-05-08T00:00:00Z",
+        ),
+    ],
+    request_id="req_one_job_variant",
+)
+LIST_TARGET_JOBS_FIXTURE["scenarios"]["twelve-plus"] = target_jobs_scenario(
+    deepcopy(LIST_TARGET_JOB_TWELVE_PLUS),
+    request_id="req_twelve_plus_variant",
+)
+
 
 FIXTURES[("TargetJobs", "importTargetJob")] = fixture(
     "importTargetJob",
@@ -381,17 +537,7 @@ FIXTURES[("TargetJobs", "importTargetJob")] = fixture(
     ]),
 )
 
-FIXTURES[("TargetJobs", "listTargetJobs")] = fixture(
-    "listTargetJobs",
-    OrderedDict([
-        ("items", [TARGET_JOB_FULL, TARGET_JOB_LIST_ITEM_2]),
-        ("pageInfo", OrderedDict([
-            ("nextCursor", None),
-            ("pageSize", 20),
-            ("hasMore", False),
-        ])),
-    ]),
-)
+FIXTURES[("TargetJobs", "listTargetJobs")] = LIST_TARGET_JOBS_FIXTURE
 
 FIXTURES[("TargetJobs", "getTargetJob")] = fixture("getTargetJob", TARGET_JOB_FULL)
 

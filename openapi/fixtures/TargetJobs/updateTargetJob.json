@@ -30,17 +30,36 @@
               "Performance budgets and SSR pipelines",
               "Cross-team RFC ownership"
             ],
-            "interviewHypotheses": [
-              "Will probe scaling design systems across 10+ teams",
-              "Likely STAR follow-up on observability for FE infra"
+            "interviewRounds": [
+              {
+                "sequence": 1,
+                "type": "technical",
+                "name": "Frontend architecture screen",
+                "durationMinutes": 45,
+                "focus": "Probe scaling design systems across 10+ teams."
+              },
+              {
+                "sequence": 2,
+                "type": "manager",
+                "name": "Hiring manager impact interview",
+                "durationMinutes": 50,
+                "focus": "Assess cross-team RFC ownership and influence."
+              },
+              {
+                "sequence": 3,
+                "type": "culture",
+                "name": "Collaboration and operating style",
+                "durationMinutes": 40,
+                "focus": "Validate observability stories and collaboration signals."
+              }
             ],
             "provenance": {
-              "promptVersion": "target_job_summary.v3",
-              "rubricVersion": "not_applicable",
-              "modelId": "model-profile:contract.default",
+              "promptVersion": "v0.1.0",
+              "rubricVersion": "v0.1.0",
+              "modelId": "fixture-model:target-import-parse",
               "language": "zh-CN",
               "featureFlag": "none",
-              "dataSourceVersion": "target_job.v17"
+              "dataSourceVersion": "registry.v1"
             }
           },
           "requirements": [
@@ -60,6 +79,12 @@
               "id": "01918fa0-0000-7000-8000-00000000d200",
               "kind": "nice_to_have",
               "label": "Familiarity with edge runtime deployments",
+              "evidenceLevel": "inferred"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000d300",
+              "kind": "hidden_signal",
+              "label": "Hiring team values cross-team RFC ownership",
               "evidenceLevel": "inferred"
             }
           ],
@@ -86,51 +111,9 @@
           "latestReportId": "01918fa0-0000-7000-8000-000000007000",
           "openQuestionIssueCount": 2,
           "createdAt": "2026-04-22T09:30:00Z",
-          "updatedAt": "2026-04-28T12:00:00Z"
-        }
-      }
-    },
-    "invalid-state-transition": {
-      "request": {
-        "headers": {},
-        "body": {
-          "status": "draft"
-        }
-      },
-      "response": {
-        "status": 409,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-invtrn"
-        },
-        "body": {
-          "error": {
-            "code": "TARGET_INVALID_STATE_TRANSITION",
-            "message": "target job state transition is not allowed",
-            "requestId": "req_2026-04-28T13-45-12-invtrn",
-            "retryable": false
-          }
-        }
-      }
-    },
-    "cross-user-hidden-not-found": {
-      "request": {
-        "headers": {},
-        "body": {
-          "status": "interviewing"
-        }
-      },
-      "response": {
-        "status": 404,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-xuhide"
-        },
-        "body": {
-          "error": {
-            "code": "TARGET_JOB_NOT_FOUND",
-            "message": "target job not found",
-            "requestId": "req_2026-04-28T13-45-12-xuhide",
-            "retryable": false
-          }
+          "updatedAt": "2026-04-28T12:00:00Z",
+          "currentPracticePlanId": "01918fa0-0000-7000-8000-000000004000",
+          "resumeId": "01918fa0-0000-7000-8000-000000001000"
         }
       }
     }

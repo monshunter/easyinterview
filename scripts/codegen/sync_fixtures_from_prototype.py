@@ -191,14 +191,19 @@ def _build_target_job(raw: dict, jd: dict | None = None) -> OrderedDict:
     ])
     if jd is not None:
         themes = list(jd.get("hidden", [])) or ["Cross-team alignment"]
-        hypotheses = []
-        for r in jd.get("rounds", []):
-            label = f"{r.get('name', 'Round')}: {r.get('focus', '')}"
-            hypotheses.append(label)
+        rounds = []
+        for i, r in enumerate(jd.get("rounds", [])):
+            rounds.append(OrderedDict([
+                ("sequence", int(r.get("sequence") or i + 1)),
+                ("type", r.get("type") or "other"),
+                ("name", r.get("name") or f"Round {i + 1}"),
+                ("durationMinutes", int(r.get("durationMinutes") or 45)),
+                ("focus", r.get("focus") or ""),
+            ]))
         base["summary"] = OrderedDict([
             ("coreThemes", themes),
-            ("interviewHypotheses", hypotheses),
-            ("provenance", _prov("target_job_summary.v3")),
+            ("interviewRounds", rounds),
+            ("provenance", _prov("v0.1.0", "v0.1.0")),
         ])
         requirements = []
         for i, label in enumerate(jd.get("mustHave", [])):
@@ -214,6 +219,13 @@ def _build_target_job(raw: dict, jd: dict | None = None) -> OrderedDict:
                 ("kind", "nice_to_have"),
                 ("label", label),
                 ("evidenceLevel", "implicit"),
+            ]))
+        for i, label in enumerate(jd.get("hidden", [])):
+            requirements.append(OrderedDict([
+                ("id", uuidv7_for(f"req:hidden:{raw['id']}:{i}")),
+                ("kind", "hidden_signal"),
+                ("label", label),
+                ("evidenceLevel", "inferred"),
             ]))
         base["requirements"] = requirements
         hits = list(raw.get("hits", []))

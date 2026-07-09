@@ -439,13 +439,24 @@ Example complete JSON output:
 ```
 <!-- output-schema-contract:end -->
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('3e4dae23-7bc3-56cb-868e-72e7c8a6c331', 'target.import.parse', 'v0.1.0', 'multi', 'dbdad42b8852894e4272141ad8f779380210bd2d5965bd191814fe86827486e2', $body$You are an expert technical interviewer assistant. Extract the interview-ready
+  ('3e4dae23-7bc3-56cb-868e-72e7c8a6c331', 'target.import.parse', 'v0.1.0', 'multi', '979db6afdd08218d7593379f9b477952e4eddf743fedbafe1b46bf53144f2a2a', $body$You are an expert technical interviewer assistant. Extract the interview-ready
 target job model from the following job description. Respond strictly in the
 language identified by the `{{language}}` variable; if `{{language}}` is empty
 or unknown, respond in English.
 Always extract the canonical job title and company or hiring organization name
 when they are present anywhere in the JD text, source URL, page heading, or
 metadata-like lines. Do not leave them out when the JD includes them.
+For `interviewRounds`, infer a reasonable interview plan from JD evidence,
+role seniority, company or industry nature, team or business context,
+role scope, hiring-process hints, and common interview practices for
+similar roles. Emit 2 to 5 rounds. The number of rounds, round type, duration,
+and focus must be specific to that inferred context. Do not emit a fixed
+four-round template.
+For `requirements`, always include at least one `hidden_signal` item with
+`evidenceLevel` set to `inferred`. Hidden signals are unstated but likely
+interview concerns inferred from JD omissions, company or industry nature,
+business scenario, seniority, hiring-process wording, and risk or ambiguity
+signals.
 
 JD source URL (empty for non-URL imports): `{{jd_source_url}}`
 JD raw text:
@@ -462,15 +473,20 @@ Output shape:
 - `$.companyName` (required, string): Canonical company or hiring organization name extracted from the JD.
 - `$.coreThemes` (required, array): Concise technical or domain themes from the role.
 - `$.coreThemes[]` (required, string): One role theme.
-- `$.interviewHypotheses` (required, array): Likely interview focus hypotheses grounded in the JD.
-- `$.interviewHypotheses[]` (required, string): One interview hypothesis.
+- `$.interviewRounds` (required, array): Likely 2 to 5 interview rounds inferred from JD evidence, role seniority, company or industry nature, team or business context, and hiring-process hints, including count, type, display name, duration, and focus.
+- `$.interviewRounds[]` (required, object): One inferred interview round.
+- `$.interviewRounds[].sequence` (required, integer): One-based round order inferred from the likely interview process.
+- `$.interviewRounds[].type` (required, string enum(hr, technical, manager, cross_functional, culture, final, other)): Stable round category inferred from the JD.
+- `$.interviewRounds[].name` (required, string): Candidate-facing round name in the response language.
+- `$.interviewRounds[].durationMinutes` (required, integer): Estimated interview duration in minutes inferred from the round category and JD context.
+- `$.interviewRounds[].focus` (required, string): Concise likely focus for this round, grounded in the JD and the inferred company, industry, seniority, and role context.
 - `$.strengths` (required, array): Candidate-fit strengths that the JD would reward.
 - `$.strengths[]` (required, string): One strength signal.
 - `$.gaps` (required, array): Preparation gaps implied by the JD.
 - `$.gaps[]` (required, string): One gap or preparation area.
-- `$.riskSignals` (required, array): Risk or ambiguity signals in the JD.
+- `$.riskSignals` (required, array): Risk or ambiguity signals in the JD; also source material for inferred hidden_signal requirements.
 - `$.riskSignals[]` (required, string): One risk signal.
-- `$.requirements` (required, array): Interview-ready requirements used to build target job requirement records.
+- `$.requirements` (required, array): Interview-ready requirements used to build target job requirement records. Must include at least one hidden_signal item with inferred evidence.
 - `$.requirements[]` (required, object): One parsed requirement.
 - `$.requirements[].kind` (required, string enum(must_have, nice_to_have, hidden_signal, interview_focus)): Requirement category.
 - `$.requirements[].label` (required, string): Short requirement phrase.
@@ -485,8 +501,21 @@ Example complete JSON output:
   "coreThemes": [
     "Distributed systems reliability"
   ],
-  "interviewHypotheses": [
-    "Interviewer may probe cache invalidation and rollback decisions."
+  "interviewRounds": [
+    {
+      "sequence": 1,
+      "type": "technical",
+      "name": "Technical system design",
+      "durationMinutes": 60,
+      "focus": "Probe distributed systems reliability and rollback decisions."
+    },
+    {
+      "sequence": 2,
+      "type": "manager",
+      "name": "Hiring manager ownership interview",
+      "durationMinutes": 45,
+      "focus": "Assess ownership scope, incident judgment, and cross-team collaboration."
+    }
   ],
   "strengths": [
     "Quantified backend reliability impact."
@@ -509,8 +538,7 @@ Example complete JSON output:
 ```
 <!-- output-schema-contract:end -->
 
-Do not include markdown fences in the JSON output.
-$body$, TRUE, '2026-05-09T11:30:00Z')
+Do not include markdown fences in the JSON output.$body$, TRUE, '2026-05-09T11:30:00Z')
 ON CONFLICT (feature_key, version, language) DO NOTHING;
 
 INSERT INTO rubric_versions (id, feature_key, version, language, schema_json, is_active, created_at) VALUES

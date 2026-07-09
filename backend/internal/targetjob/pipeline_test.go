@@ -252,12 +252,28 @@ const happyResponseJSON = `{
   "title": "Senior Backend Engineer",
   "companyName": "Acme",
   "coreThemes": ["api"],
-  "interviewHypotheses": ["microservices"],
+  "interviewRounds": [
+    {
+      "sequence": 1,
+      "type": "technical",
+      "name": "Backend architecture deep dive",
+      "durationMinutes": 45,
+      "focus": "Probe API design and async pipelines."
+    },
+    {
+      "sequence": 2,
+      "type": "manager",
+      "name": "Hiring manager ownership interview",
+      "durationMinutes": 40,
+      "focus": "Assess ownership, incident handling, and collaboration."
+    }
+  ],
   "strengths": ["Go"],
   "gaps": ["k8s"],
-  "riskSignals": [],
+  "riskSignals": ["The JD implies on-call ownership without naming support coverage."],
   "requirements": [
     {"kind":"must_have","label":"Go","evidenceLevel":"explicit"},
+    {"kind":"hidden_signal","label":"On-call ownership ambiguity","evidenceLevel":"inferred"},
     {"kind":"interview_focus","label":"system design"}
   ]
 }`
@@ -278,8 +294,8 @@ func TestParseExecutor_HappyPath(t *testing.T) {
 	if !outcome.Succeeded {
 		t.Fatalf("happy path must succeed, got %+v", outcome)
 	}
-	if store.completeSuccessIn == nil || len(store.completeSuccessIn.Requirements) != 2 {
-		t.Fatalf("expected 2 requirements applied atomically, got %+v", store.completeSuccessIn)
+	if store.completeSuccessIn == nil || len(store.completeSuccessIn.Requirements) != 3 {
+		t.Fatalf("expected 3 requirements applied atomically, got %+v", store.completeSuccessIn)
 	}
 	if store.completeSuccessIn.Title != "Senior Backend Engineer" || store.completeSuccessIn.CompanyName != "Acme" {
 		t.Fatalf("parse success must persist title/company from AI output, got title=%q company=%q", store.completeSuccessIn.Title, store.completeSuccessIn.CompanyName)
@@ -309,6 +325,23 @@ func TestParseExecutor_HappyPath(t *testing.T) {
 	}
 	if summaryProv["featureFlag"] != "rollout-f3-target-import" {
 		t.Fatalf("summary provenance featureFlag drift: %+v", summaryProv)
+	}
+	summary := decodeSummaryForTest(t, store.completeSuccessIn.Summary)
+	if _, ok := summary["interviewHypotheses"]; ok {
+		t.Fatalf("summary must not persist legacy interviewHypotheses: %s", string(store.completeSuccessIn.Summary))
+	}
+	rounds, ok := summary["interviewRounds"].([]any)
+	if !ok || len(rounds) != 2 {
+		t.Fatalf("summary must persist structured interviewRounds, got %s", string(store.completeSuccessIn.Summary))
+	}
+	firstRound, ok := rounds[0].(map[string]any)
+	if !ok ||
+		firstRound["sequence"] != float64(1) ||
+		firstRound["type"] != "technical" ||
+		firstRound["name"] != "Backend architecture deep dive" ||
+		firstRound["durationMinutes"] != float64(45) ||
+		firstRound["focus"] != "Probe API design and async pipelines." {
+		t.Fatalf("first persisted interview round drift: %+v", firstRound)
 	}
 	fitProv := decodeProvenanceForTest(t, store.completeSuccessIn.FitSummary)
 	if fitProv["modelId"] != "fixture-model:target-import-parse" {
@@ -341,8 +374,90 @@ func TestParseExecutor_HappyPathAcceptsFencedJSON(t *testing.T) {
 		t.Fatalf("fenced JSON should be normalized and parsed, got %+v", outcome)
 	}
 	if store.completeSuccessIn == nil || store.completeSuccessIn.Title != "Senior Backend Engineer" ||
-		store.completeSuccessIn.CompanyName != "Acme" || len(store.completeSuccessIn.Requirements) != 2 {
+		store.completeSuccessIn.CompanyName != "Acme" || len(store.completeSuccessIn.Requirements) != 3 {
 		t.Fatalf("fenced JSON parse result was not committed: %+v", store.completeSuccessIn)
+	}
+}
+
+func TestParseExecutor_BackfillsHiddenSignalRequirementsFromRiskSignals(t *testing.T) {
+	exec, store, _, ai, _ := newParseExecutorWithFakes(t)
+	ai.resp = aiclient.CompleteResponse{Content: `{
+  "title": "AI Application Engineer",
+  "companyName": "Acme Logistics",
+  "coreThemes": ["AI agents", "RAG"],
+  "interviewRounds": [
+    {"sequence":1,"type":"technical","name":"Technical foundation","durationMinutes":60,"focus":"Probe Go/Python and AI agent implementation."},
+    {"sequence":2,"type":"manager","name":"Business landing interview","durationMinutes":45,"focus":"Assess logistics scenario delivery and cross-team collaboration."}
+  ],
+  "strengths": ["AI agent delivery"],
+  "gaps": ["Logistics domain depth"],
+  "riskSignals": ["The JD emphasizes logistics landing, so domain implementation evidence may be an unstated screen."],
+  "requirements": [
+    {"kind":"must_have","label":"AI agent implementation","evidenceLevel":"explicit"}
+  ]
+}`}
+	store.target = targetjob.TargetJobRecord{
+		ID:             "tgt-1",
+		UserID:         "user-1",
+		SourceType:     targetjob.SourceTypeManualText,
+		TargetLanguage: "en",
+		RawJDText:      "JD text",
+	}
+
+	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-1",
+	})
+
+	if !outcome.Succeeded {
+		t.Fatalf("riskSignals-derived hidden signal path must succeed, got %+v", outcome)
+	}
+	var foundHidden bool
+	for _, req := range store.completeSuccessIn.Requirements {
+		if req.Kind == targetjob.RequirementHiddenSignal {
+			foundHidden = true
+			if req.Label != "The JD emphasizes logistics landing, so domain implementation evidence may be an unstated screen." ||
+				req.EvidenceLevel != targetjob.EvidenceInferred {
+				t.Fatalf("derived hidden_signal drift: %+v", req)
+			}
+		}
+	}
+	if !foundHidden {
+		t.Fatalf("expected hidden_signal derived from riskSignals, got %+v", store.completeSuccessIn.Requirements)
+	}
+}
+
+func TestParseExecutor_AIOutputInvalid_WhenHiddenSignalsAreMissing(t *testing.T) {
+	exec, store, _, ai, _ := newParseExecutorWithFakes(t)
+	ai.resp = aiclient.CompleteResponse{Content: `{
+  "title": "Backend Engineer",
+  "companyName": "Acme",
+  "coreThemes": ["api"],
+  "interviewRounds": [
+    {"sequence":1,"type":"technical","name":"Technical","durationMinutes":45,"focus":"Probe APIs."},
+    {"sequence":2,"type":"manager","name":"Manager","durationMinutes":40,"focus":"Assess ownership."}
+  ],
+  "strengths": ["Go"],
+  "gaps": ["k8s"],
+  "riskSignals": [],
+  "requirements": [
+    {"kind":"must_have","label":"Go","evidenceLevel":"explicit"}
+  ]
+}`}
+	store.target = targetjob.TargetJobRecord{
+		ID:             "tgt-1",
+		UserID:         "user-1",
+		SourceType:     targetjob.SourceTypeManualText,
+		TargetLanguage: "en",
+		RawJDText:      "JD text",
+	}
+
+	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+
+	if outcome.Succeeded || outcome.ErrorCode != "AI_OUTPUT_INVALID" || outcome.Retryable {
+		t.Fatalf("missing hidden signal must fail non-retryable AI_OUTPUT_INVALID, got %+v", outcome)
+	}
+	if store.completeSuccessIn != nil {
+		t.Fatalf("missing hidden signal must not mark target ready: %+v", store.completeSuccessIn)
 	}
 }
 
@@ -469,6 +584,69 @@ func TestParseExecutor_AIOutputInvalid_WhenRequirementsAreSemanticallyInvalid(t 
 	}
 }
 
+func TestParseExecutor_AIOutputInvalid_WhenInterviewRoundsAreSemanticallyInvalid(t *testing.T) {
+	cases := []struct {
+		name  string
+		round string
+	}{
+		{
+			name:  "at least two rounds required",
+			round: `{"sequence":1,"type":"technical","name":"Technical","durationMinutes":45,"focus":"Probe APIs"}`,
+		},
+		{
+			name: "at most five rounds allowed",
+			round: `{"sequence":1,"type":"hr","name":"Recruiter","durationMinutes":30,"focus":"Motivation"},
+				{"sequence":2,"type":"technical","name":"Technical 1","durationMinutes":45,"focus":"APIs"},
+				{"sequence":3,"type":"technical","name":"Technical 2","durationMinutes":60,"focus":"Architecture"},
+				{"sequence":4,"type":"manager","name":"Manager","durationMinutes":45,"focus":"Ownership"},
+				{"sequence":5,"type":"culture","name":"Culture","durationMinutes":30,"focus":"Collaboration"},
+				{"sequence":6,"type":"final","name":"Final","durationMinutes":30,"focus":"Calibration"}`,
+		},
+		{
+			name:  "sequence must be one based",
+			round: `{"sequence":0,"type":"technical","name":"Technical","durationMinutes":45,"focus":"Probe APIs"}`,
+		},
+		{
+			name:  "type must be known enum",
+			round: `{"sequence":1,"type":"screen","name":"Screen","durationMinutes":30,"focus":"Probe APIs"}`,
+		},
+		{
+			name:  "name must be present",
+			round: `{"sequence":1,"type":"technical","name":"  ","durationMinutes":45,"focus":"Probe APIs"}`,
+		},
+		{
+			name:  "duration must be positive",
+			round: `{"sequence":1,"type":"technical","name":"Technical","durationMinutes":0,"focus":"Probe APIs"}`,
+		},
+		{
+			name:  "focus must be present",
+			round: `{"sequence":1,"type":"technical","name":"Technical","durationMinutes":45,"focus":"  "}`,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			exec, store, _, ai, _ := newParseExecutorWithFakes(t)
+			ai.resp = aiclient.CompleteResponse{Content: targetImportResponseWithRounds(tc.round)}
+			store.target = targetjob.TargetJobRecord{
+				ID:             "tgt-1",
+				UserID:         "user-1",
+				SourceType:     targetjob.SourceTypeManualText,
+				TargetLanguage: "en",
+				RawJDText:      "JD text",
+			}
+
+			outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+
+			if outcome.Succeeded || outcome.ErrorCode != "AI_OUTPUT_INVALID" || outcome.Retryable {
+				t.Fatalf("invalid interview rounds must fail non-retryable AI_OUTPUT_INVALID, got %+v", outcome)
+			}
+			if store.completeSuccessIn != nil {
+				t.Fatalf("invalid interview rounds must not mark target ready: %+v", store.completeSuccessIn)
+			}
+		})
+	}
+}
+
 func TestParseExecutorAITaskRuns(t *testing.T) {
 	exec, store, registry, ai, _ := newParseExecutorWithFakes(t)
 	store.target = targetjob.TargetJobRecord{
@@ -558,6 +736,30 @@ func decodeProvenanceForTest(t *testing.T, raw json.RawMessage) map[string]strin
 		t.Fatalf("decode provenance: %v", err)
 	}
 	return envelope.Provenance
+}
+
+func decodeSummaryForTest(t *testing.T, raw json.RawMessage) map[string]any {
+	t.Helper()
+	var out map[string]any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatalf("decode summary: %v", err)
+	}
+	return out
+}
+
+func targetImportResponseWithRounds(rounds string) string {
+	return `{
+  "title": "Senior Backend Engineer",
+  "companyName": "Acme",
+  "coreThemes": ["api"],
+  "interviewRounds": [` + rounds + `],
+  "strengths": ["Go"],
+  "gaps": ["k8s"],
+  "riskSignals": [],
+  "requirements": [
+    {"kind":"must_have","label":"Go","evidenceLevel":"explicit"}
+  ]
+}`
 }
 
 type targetjobMemTaskRunWriter struct {

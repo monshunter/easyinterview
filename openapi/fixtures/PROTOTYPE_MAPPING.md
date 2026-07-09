@@ -1,8 +1,8 @@
 # PROTOTYPE_MAPPING
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: active
-> **更新日期**: 2026-06-29
+> **更新日期**: 2026-07-09
 
 把 [ui-design/src/data.jsx](../../ui-design/src/data.jsx) 的 mock 数据节映射到 OpenAPI v1 contract 的 P0 关键 operationId。`make sync-fixtures-from-prototype` 只读这张表 + data.jsx，把映射结果写入 §3 列出的 fixture 的 `scenarios.prototype-baseline` 节。该 scenario 是 spec §4.7 锁定的「ui 原型同源」入口；同步工具不会改写任何 fixture 的 `scenarios.default`。
 
@@ -20,7 +20,7 @@
 |-------------|---------------------|------|-----|------|
 | `user` | `getMe` | 1:1 | Auth | `email` → `emailMasked`（脱敏）；`name` → `displayName`；`locale` → `uiLanguage` / `preferredPracticeLanguage`。 |
 | `targetJobs[]` | `listTargetJobs` | 1:N | TargetJobs | 每个 `tj-N` 映射为 `TargetJob`：`title/company → companyName/locationText/language → targetLanguage/source → sourceType`；`status` 取 OpenAPI enum 中最贴近的值；`statusTone/level/source/updatedAt` 等展示字段不入 fixture。 |
-| `targetJobs[0]` + `jdSample` | `getTargetJob` | N:1 | TargetJobs | 取第一个 target job 的核心字段，再用 `jdSample.mustHave` / `jdSample.nice` 填 `requirements[]`，`jdSample.hidden` 折成 `summary.coreThemes` / `interviewHypotheses`，`jdSample.rounds` 不入 fixture。 |
+| `targetJobs[0]` + `jdSample` | `getTargetJob` | N:1 | TargetJobs | 取第一个 target job 的核心字段，再用 `jdSample.mustHave` / `jdSample.nice` 填 `requirements[]`，`jdSample.hidden` 折成 `summary.coreThemes`，`jdSample.rounds` 折成 2~5 条 `summary.interviewRounds[]`（含 `sequence/type/name/durationMinutes/focus`）。 |
 | `questions[]` + `targetJobs[0]` + `sessionTranscript` | `getPracticeSession` | N:1 | PracticeSessions | `questions[0]` 折成 `currentTurn`（`questionText/questionIntent`）；`sessionTranscript` 用于推导 `turnCount` 与 `status`。 |
 | `report` | `getFeedbackReport` | 1:1 | Reports | `report.readiness` → `preparednessLevel`（按 §4 翻译）；`highlights/issues/perQuestion` → `highlights/issues/questionAssessments`；`dimensions` 折成 `questionAssessments[i].dimensionResults`；`perQuestion.state=待加强` 映射为 `reviewStatus=queued_for_retry` 与 `includedInRetryPlan=true`，并把对应 `turnId` 写入 `retryFocusTurnIds`。`provenance` 由同步工具按 §4 默认填入。 |
 

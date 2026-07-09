@@ -23,9 +23,28 @@
               "Performance budgets and SSR pipelines",
               "Cross-team RFC ownership"
             ],
-            "interviewHypotheses": [
-              "Will probe scaling design systems across 10+ teams",
-              "Likely STAR follow-up on observability for FE infra"
+            "interviewRounds": [
+              {
+                "sequence": 1,
+                "type": "technical",
+                "name": "Frontend architecture screen",
+                "durationMinutes": 45,
+                "focus": "Probe scaling design systems across 10+ teams."
+              },
+              {
+                "sequence": 2,
+                "type": "manager",
+                "name": "Hiring manager impact interview",
+                "durationMinutes": 50,
+                "focus": "Assess cross-team RFC ownership and influence."
+              },
+              {
+                "sequence": 3,
+                "type": "culture",
+                "name": "Collaboration and operating style",
+                "durationMinutes": 40,
+                "focus": "Validate observability stories and collaboration signals."
+              }
             ],
             "provenance": {
               "promptVersion": "v0.1.0",
@@ -54,6 +73,12 @@
               "kind": "nice_to_have",
               "label": "Familiarity with edge runtime deployments",
               "evidenceLevel": "inferred"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-00000000d300",
+              "kind": "hidden_signal",
+              "label": "Hiring team values cross-team RFC ownership",
+              "evidenceLevel": "inferred"
             }
           ],
           "fitSummary": {
@@ -68,20 +93,20 @@
               "Role mentions hiring manager prefers very deep observability stories"
             ],
             "provenance": {
-              "promptVersion": "v0.1.0",
+              "promptVersion": "target_job_fit.v2",
               "rubricVersion": "not_applicable",
-              "modelId": "fixture-model:target-import-parse",
+              "modelId": "model-profile:contract.default",
               "language": "zh-CN",
-              "featureFlag": "none",
-              "dataSourceVersion": "registry.v1"
+              "featureFlag": "fit_summary_v2",
+              "dataSourceVersion": "target_job.v17"
             }
           },
           "latestReportId": "01918fa0-0000-7000-8000-000000007000",
-          "currentPracticePlanId": "01918fa0-0000-7000-8000-000000004000",
-          "resumeId": "01918fa0-0000-7000-8000-000000001000",
           "openQuestionIssueCount": 2,
           "createdAt": "2026-04-22T09:30:00Z",
-          "updatedAt": "2026-04-28T12:00:00Z"
+          "updatedAt": "2026-04-28T12:00:00Z",
+          "currentPracticePlanId": "01918fa0-0000-7000-8000-000000004000",
+          "resumeId": "01918fa0-0000-7000-8000-000000001000"
         }
       }
     },
@@ -107,15 +132,39 @@
               "团队近期在推 Monorepo + 微前端架构",
               "面试官团队倾向听到可量化的改进故事"
             ],
-            "interviewHypotheses": [
-              "HR 初筛: 动机、求职节奏、薪资期望",
-              "技术一面: React 底层、TS 类型设计、性能",
-              "技术二面: 架构决策、大型协作案例",
-              "经理面: 影响力、冲突处理、目标一致性"
+            "interviewRounds": [
+              {
+                "sequence": 1,
+                "type": "hr",
+                "name": "HR 初筛",
+                "durationMinutes": 20,
+                "focus": "HR 会围绕求职动机、B 端产品兴趣和节奏稳定性追问"
+              },
+              {
+                "sequence": 2,
+                "type": "technical",
+                "name": "技术一面",
+                "durationMinutes": 45,
+                "focus": "技术一面会聚焦 Design System 推进、TS 类型设计和性能证据"
+              },
+              {
+                "sequence": 3,
+                "type": "technical",
+                "name": "技术二面",
+                "durationMinutes": 60,
+                "focus": "技术二面会追问 Monorepo / 微前端架构取舍与大型协作案例"
+              },
+              {
+                "sequence": 4,
+                "type": "manager",
+                "name": "经理面",
+                "durationMinutes": 40,
+                "focus": "经理面会关注跨团队影响力、冲突处理和目标一致性"
+              }
             ],
             "provenance": {
-              "promptVersion": "target_job_summary.v3",
-              "rubricVersion": "not_applicable",
+              "promptVersion": "v0.1.0",
+              "rubricVersion": "v0.1.0",
               "modelId": "model-profile:prototype-baseline.default",
               "language": "zh-CN",
               "featureFlag": "none",
@@ -158,6 +207,24 @@
               "kind": "nice_to_have",
               "label": "熟悉可观测性与前端监控",
               "evidenceLevel": "implicit"
+            },
+            {
+              "id": "01918fa0-5681-70e5-8e10-3d3c374c7c41",
+              "kind": "hidden_signal",
+              "label": "岗位上下文偏向 B 端复杂表单与数据可视化",
+              "evidenceLevel": "inferred"
+            },
+            {
+              "id": "01918fa0-c6ef-76aa-8a39-6fb264bac178",
+              "kind": "hidden_signal",
+              "label": "团队近期在推 Monorepo + 微前端架构",
+              "evidenceLevel": "inferred"
+            },
+            {
+              "id": "01918fa0-4dcf-7356-8b88-0a1bccf528a4",
+              "kind": "hidden_signal",
+              "label": "面试官团队倾向听到可量化的改进故事",
+              "evidenceLevel": "inferred"
             }
           ],
           "fitSummary": {
@@ -186,147 +253,6 @@
           "openQuestionIssueCount": 0,
           "createdAt": "2026-04-22T09:30:00Z",
           "updatedAt": "2026-04-28T12:00:00Z"
-        }
-      }
-    },
-    "with-rounds": {
-      "response": {
-        "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-05-09T10-00-00-with-rounds"
-        },
-        "body": {
-          "id": "01918fa0-0000-7000-8000-000000003000",
-          "status": "interviewing",
-          "analysisStatus": "ready",
-          "title": "Staff Frontend Engineer",
-          "companyName": "Vercel",
-          "locationText": "Remote · US",
-          "targetLanguage": "en",
-          "sourceType": "url",
-          "sourceUrl": "https://vercel.example/careers/staff-frontend",
-          "summary": {
-            "coreThemes": [
-              "Edge runtime architecture and streaming SSR at scale",
-              "Framework-level contributions to Next.js ecosystem",
-              "Cross-functional platform team leadership"
-            ],
-            "interviewHypotheses": [
-              "Will probe understanding of React Server Components internals",
-              "Likely deep-dive on streaming partial hydration trade-offs"
-            ],
-            "provenance": {
-              "promptVersion": "v0.1.0",
-              "rubricVersion": "v0.1.0",
-              "modelId": "fixture-model:target-import-parse",
-              "language": "en",
-              "featureFlag": "none",
-              "dataSourceVersion": "registry.v1"
-            }
-          },
-          "requirements": [
-            {
-              "id": "01918fa0-0000-7000-8000-00000000e000",
-              "kind": "must_have",
-              "label": "8+ years building production React applications at scale",
-              "evidenceLevel": "explicit"
-            },
-            {
-              "id": "01918fa0-0000-7000-8000-00000000e100",
-              "kind": "must_have",
-              "label": "Deep understanding of React Server Components and streaming SSR",
-              "evidenceLevel": "explicit"
-            },
-            {
-              "id": "01918fa0-0000-7000-8000-00000000e200",
-              "kind": "must_have",
-              "label": "Experience contributing to or maintaining a major JS framework",
-              "evidenceLevel": "explicit"
-            },
-            {
-              "id": "01918fa0-0000-7000-8000-00000000e300",
-              "kind": "nice_to_have",
-              "label": "Published technical writing or conference talks on web performance",
-              "evidenceLevel": "implicit"
-            },
-            {
-              "id": "01918fa0-0000-7000-8000-00000000e400",
-              "kind": "nice_to_have",
-              "label": "Experience with WebAssembly or Rust-based tooling",
-              "evidenceLevel": "implicit"
-            },
-            {
-              "id": "01918fa0-0000-7000-8000-00000000e500",
-              "kind": "hidden_signal",
-              "label": "JD language emphasizes platform thinking over feature delivery",
-              "evidenceLevel": "inferred"
-            },
-            {
-              "id": "01918fa0-0000-7000-8000-00000000e600",
-              "kind": "hidden_signal",
-              "label": "Multiple references to cross-team enablement suggest IC influence expectations",
-              "evidenceLevel": "inferred"
-            }
-          ],
-          "fitSummary": {
-            "strengths": [
-              "React Server Components expertise (matches must-have #2)",
-              "Maintained open-source framework with 5k+ GitHub stars (matches must-have #3)",
-              "Published 3 conference talks on streaming SSR performance"
-            ],
-            "gaps": [
-              "No direct WebAssembly or Rust experience",
-              "Limited platform-level observability stories"
-            ],
-            "riskSignals": [
-              "Hiring manager explicitly values framework-level contributions",
-              "Role may require frequent public communication (talks, RFCs, GitHub discussions)"
-            ],
-            "provenance": {
-              "promptVersion": "v0.1.0",
-              "rubricVersion": "not_applicable",
-              "modelId": "fixture-model:target-import-parse",
-              "language": "en",
-              "featureFlag": "none",
-              "dataSourceVersion": "registry.v1"
-            }
-          },
-          "latestReportId": "01918fa0-0000-7000-8000-000000008000",
-          "openQuestionIssueCount": 0,
-          "createdAt": "2026-05-01T10:00:00Z",
-          "updatedAt": "2026-05-05T08:30:00Z"
-        }
-      }
-    },
-    "not-found": {
-      "response": {
-        "status": 404,
-        "headers": {
-          "X-Request-ID": "req_2026-05-09T10-00-00-not-found"
-        },
-        "body": {
-          "error": {
-            "code": "NOT_FOUND",
-            "message": "TargetJob not found",
-            "requestId": "req_2026-05-09T10-00-00-not-found",
-            "retryable": false
-          }
-        }
-      }
-    },
-    "5xx": {
-      "response": {
-        "status": 500,
-        "headers": {
-          "X-Request-ID": "req_2026-05-09T10-00-00-5xx"
-        },
-        "body": {
-          "error": {
-            "code": "INTERNAL",
-            "message": "TargetJob fetch failed",
-            "requestId": "req_2026-05-09T10-00-00-5xx",
-            "retryable": true
-          }
         }
       }
     }

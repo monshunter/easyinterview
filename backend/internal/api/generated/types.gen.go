@@ -336,10 +336,18 @@ type TargetJobRequirement struct {
 	Label         string `json:"label"`
 }
 
+type TargetJobInterviewRound struct {
+	DurationMinutes int32  `json:"durationMinutes"`
+	Focus           string `json:"focus"`
+	Name            string `json:"name"`
+	Sequence        int32  `json:"sequence"`
+	Type            string `json:"type"`
+}
+
 type TargetJobSummary struct {
-	CoreThemes          []string             `json:"coreThemes,omitempty"`
-	InterviewHypotheses []string             `json:"interviewHypotheses,omitempty"`
-	Provenance          GenerationProvenance `json:"provenance"`
+	CoreThemes      []string                  `json:"coreThemes,omitempty"`
+	InterviewRounds []TargetJobInterviewRound `json:"interviewRounds,omitempty"`
+	Provenance      GenerationProvenance      `json:"provenance"`
 }
 
 type TargetJobFitSummary struct {

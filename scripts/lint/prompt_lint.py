@@ -66,7 +66,12 @@ FEATURE_CONTRACTS = {
             "$.title",
             "$.companyName",
             "$.coreThemes",
-            "$.interviewHypotheses",
+            "$.interviewRounds",
+            "$.interviewRounds[].sequence",
+            "$.interviewRounds[].type",
+            "$.interviewRounds[].name",
+            "$.interviewRounds[].durationMinutes",
+            "$.interviewRounds[].focus",
             "$.strengths",
             "$.gaps",
             "$.riskSignals",
@@ -602,6 +607,7 @@ def render_output_contract(schema: dict) -> str:
 
 ENUM_EXAMPLE_BY_PATH = {
     "$[].level": "senior",
+    "$.interviewRounds[].type": "technical",
     "$.overall_status": "meets_bar",
     "$.questions[].severity": "medium",
     "$.requirements[].evidenceLevel": "explicit",
@@ -632,6 +638,8 @@ STRING_EXAMPLE_BY_PATH = {
     "$.questions[].myAnswerSummary": "Explained queue sizing and retry policy.",
     "$.questions[].questionText": "How did you handle backpressure in the migration?",
     "$.companyName": "Acme",
+    "$.interviewRounds[].focus": "Probe distributed systems reliability and rollback decisions.",
+    "$.interviewRounds[].name": "Technical system design",
     "$.requirements[].description": "The JD explicitly calls for owning high-availability backend systems.",
     "$.requirements[].label": "Design reliable distributed services",
     "$.riskItems[].label": "Thin rollback detail",
@@ -709,7 +717,13 @@ ARRAY_ITEM_EXAMPLE_BY_KEY = {
     },
     "gaps": "Needs deeper rollback and failure-mode analysis.",
     "highlights": "Strong ownership of backend reliability work.",
-    "interviewHypotheses": "Interviewer may probe cache invalidation and rollback decisions.",
+    "interviewRounds": {
+        "sequence": 1,
+        "type": "technical",
+        "name": "Technical system design",
+        "durationMinutes": 60,
+        "focus": "Probe distributed systems reliability and rollback decisions.",
+    },
     "issues": {
         "dimension": "Risk handling",
         "evidence": "Rollback plan was mentioned but not made concrete.",
@@ -757,6 +771,8 @@ INTEGER_EXAMPLE_BY_KEY = {
     "score": 86,
     "similarInterviewers": 3,
     "timeBudgetSeconds": 180,
+    "durationMinutes": 60,
+    "sequence": 1,
     "total": 5,
     "totalPlus": 3,
 }
@@ -817,7 +833,19 @@ def example_for_schema(schema: dict, path: str = "$") -> object:
         return out
     if schema_type == "array":
         item = schema.get("items")
-        return [example_for_schema(item, path + "[]")] if isinstance(item, dict) else []
+        if not isinstance(item, dict):
+            return []
+        first = example_for_schema(item, path + "[]")
+        if path == "$.interviewRounds":
+            second = {
+                "sequence": 2,
+                "type": "manager",
+                "name": "Hiring manager ownership interview",
+                "durationMinutes": 45,
+                "focus": "Assess ownership scope, incident judgment, and cross-team collaboration.",
+            }
+            return [first, second]
+        return [first]
     if schema_type == "integer":
         return INTEGER_EXAMPLE_BY_KEY.get(_path_key(path), 2)
     if schema_type == "number":

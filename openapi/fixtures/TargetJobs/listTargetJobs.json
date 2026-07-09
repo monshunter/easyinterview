@@ -25,17 +25,36 @@
                   "Performance budgets and SSR pipelines",
                   "Cross-team RFC ownership"
                 ],
-                "interviewHypotheses": [
-                  "Will probe scaling design systems across 10+ teams",
-                  "Likely STAR follow-up on observability for FE infra"
+                "interviewRounds": [
+                  {
+                    "sequence": 1,
+                    "type": "technical",
+                    "name": "Frontend architecture screen",
+                    "durationMinutes": 45,
+                    "focus": "Probe scaling design systems across 10+ teams."
+                  },
+                  {
+                    "sequence": 2,
+                    "type": "manager",
+                    "name": "Hiring manager impact interview",
+                    "durationMinutes": 50,
+                    "focus": "Assess cross-team RFC ownership and influence."
+                  },
+                  {
+                    "sequence": 3,
+                    "type": "culture",
+                    "name": "Collaboration and operating style",
+                    "durationMinutes": 40,
+                    "focus": "Validate observability stories and collaboration signals."
+                  }
                 ],
                 "provenance": {
-                  "promptVersion": "target_job_summary.v3",
-                  "rubricVersion": "not_applicable",
-                  "modelId": "model-profile:contract.default",
+                  "promptVersion": "v0.1.0",
+                  "rubricVersion": "v0.1.0",
+                  "modelId": "fixture-model:target-import-parse",
                   "language": "zh-CN",
                   "featureFlag": "none",
-                  "dataSourceVersion": "target_job.v17"
+                  "dataSourceVersion": "registry.v1"
                 }
               },
               "requirements": [
@@ -55,6 +74,12 @@
                   "id": "01918fa0-0000-7000-8000-00000000d200",
                   "kind": "nice_to_have",
                   "label": "Familiarity with edge runtime deployments",
+                  "evidenceLevel": "inferred"
+                },
+                {
+                  "id": "01918fa0-0000-7000-8000-00000000d300",
+                  "kind": "hidden_signal",
+                  "label": "Hiring team values cross-team RFC ownership",
                   "evidenceLevel": "inferred"
                 }
               ],
@@ -79,11 +104,11 @@
                 }
               },
               "latestReportId": "01918fa0-0000-7000-8000-000000007000",
-              "currentPracticePlanId": "01918fa0-0000-7000-8000-000000004000",
-              "resumeId": "01918fa0-0000-7000-8000-000000001000",
               "openQuestionIssueCount": 2,
               "createdAt": "2026-04-22T09:30:00Z",
-              "updatedAt": "2026-04-28T12:00:00Z"
+              "updatedAt": "2026-04-28T12:00:00Z",
+              "currentPracticePlanId": "01918fa0-0000-7000-8000-000000004000",
+              "resumeId": "01918fa0-0000-7000-8000-000000001000"
             },
             {
               "id": "01918fa0-0000-7000-8000-000000002100",
@@ -99,11 +124,11 @@
               "requirements": [],
               "fitSummary": null,
               "latestReportId": null,
-              "currentPracticePlanId": null,
-              "resumeId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-04-22T09:30:00Z",
-              "updatedAt": "2026-04-28T12:00:00Z"
+              "updatedAt": "2026-04-28T12:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             }
           ],
           "pageInfo": {
@@ -225,7 +250,9 @@
               "latestReportId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-05-01T00:00:00Z",
-              "updatedAt": "2026-05-08T00:00:00Z"
+              "updatedAt": "2026-05-08T00:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             }
           ],
           "pageInfo": {
@@ -260,7 +287,9 @@
               "latestReportId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-04-01T00:00:00Z",
-              "updatedAt": "2026-05-01T00:00:00Z"
+              "updatedAt": "2026-05-01T00:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             },
             {
               "id": "01918fa0-0000-7000-8000-00000000a002",
@@ -278,7 +307,9 @@
               "latestReportId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-04-02T00:00:00Z",
-              "updatedAt": "2026-05-02T00:00:00Z"
+              "updatedAt": "2026-05-02T00:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             },
             {
               "id": "01918fa0-0000-7000-8000-00000000a003",
@@ -296,7 +327,9 @@
               "latestReportId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-04-03T00:00:00Z",
-              "updatedAt": "2026-05-03T00:00:00Z"
+              "updatedAt": "2026-05-03T00:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             },
             {
               "id": "01918fa0-0000-7000-8000-00000000a004",
@@ -314,7 +347,9 @@
               "latestReportId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-04-04T00:00:00Z",
-              "updatedAt": "2026-05-04T00:00:00Z"
+              "updatedAt": "2026-05-04T00:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             },
             {
               "id": "01918fa0-0000-7000-8000-00000000a005",
@@ -332,7 +367,9 @@
               "latestReportId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-04-05T00:00:00Z",
-              "updatedAt": "2026-05-05T00:00:00Z"
+              "updatedAt": "2026-05-05T00:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             },
             {
               "id": "01918fa0-0000-7000-8000-00000000a006",
@@ -350,11 +387,13 @@
               "latestReportId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-04-06T00:00:00Z",
-              "updatedAt": "2026-05-06T00:00:00Z"
+              "updatedAt": "2026-05-06T00:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             },
             {
               "id": "01918fa0-0000-7000-8000-00000000a007",
-              "status": "draft",
+              "status": "archived",
               "analysisStatus": "ready",
               "title": "Job Golf",
               "companyName": "ManyCo",
@@ -368,11 +407,13 @@
               "latestReportId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-04-07T00:00:00Z",
-              "updatedAt": "2026-05-07T00:00:00Z"
+              "updatedAt": "2026-05-07T00:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             },
             {
               "id": "01918fa0-0000-7000-8000-00000000a008",
-              "status": "preparing",
+              "status": "draft",
               "analysisStatus": "ready",
               "title": "Job Hotel",
               "companyName": "ManyCo",
@@ -386,11 +427,13 @@
               "latestReportId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-04-08T00:00:00Z",
-              "updatedAt": "2026-05-08T00:00:00Z"
+              "updatedAt": "2026-05-08T00:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             },
             {
               "id": "01918fa0-0000-7000-8000-00000000a009",
-              "status": "applied",
+              "status": "preparing",
               "analysisStatus": "ready",
               "title": "Job India",
               "companyName": "ManyCo",
@@ -404,11 +447,13 @@
               "latestReportId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-04-09T00:00:00Z",
-              "updatedAt": "2026-05-09T00:00:00Z"
+              "updatedAt": "2026-05-09T00:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             },
             {
               "id": "01918fa0-0000-7000-8000-00000000a010",
-              "status": "interviewing",
+              "status": "applied",
               "analysisStatus": "ready",
               "title": "Job Juliet",
               "companyName": "ManyCo",
@@ -422,11 +467,13 @@
               "latestReportId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-04-10T00:00:00Z",
-              "updatedAt": "2026-05-10T00:00:00Z"
+              "updatedAt": "2026-05-10T00:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             },
             {
               "id": "01918fa0-0000-7000-8000-00000000a011",
-              "status": "offer",
+              "status": "interviewing",
               "analysisStatus": "ready",
               "title": "Job Kilo",
               "companyName": "ManyCo",
@@ -440,11 +487,13 @@
               "latestReportId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-04-11T00:00:00Z",
-              "updatedAt": "2026-05-11T00:00:00Z"
+              "updatedAt": "2026-05-11T00:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             },
             {
               "id": "01918fa0-0000-7000-8000-00000000a012",
-              "status": "rejected",
+              "status": "offer",
               "analysisStatus": "ready",
               "title": "Job Lima",
               "companyName": "ManyCo",
@@ -458,13 +507,15 @@
               "latestReportId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-04-12T00:00:00Z",
-              "updatedAt": "2026-05-12T00:00:00Z"
+              "updatedAt": "2026-05-12T00:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             },
             {
               "id": "01918fa0-0000-7000-8000-00000000a013",
-              "status": "draft",
+              "status": "rejected",
               "analysisStatus": "ready",
-              "title": "Job Mike (excluded)",
+              "title": "Job Mike",
               "companyName": "ManyCo",
               "locationText": "City M",
               "targetLanguage": "en",
@@ -476,7 +527,9 @@
               "latestReportId": null,
               "openQuestionIssueCount": 0,
               "createdAt": "2026-04-13T00:00:00Z",
-              "updatedAt": "2026-05-13T00:00:00Z"
+              "updatedAt": "2026-05-13T00:00:00Z",
+              "currentPracticePlanId": null,
+              "resumeId": null
             }
           ],
           "pageInfo": {
