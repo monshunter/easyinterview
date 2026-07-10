@@ -127,7 +127,7 @@ func TestE2EP0053ReportReadAndListing(t *testing.T) {
 	var queued map[string]any
 	decodeJSON(t, h.doJSON(t, reportScenarioUserAID, http.MethodGet, "/api/v1/reports/"+queuedID, http.StatusOK), &queued)
 	if queued["status"] != string(sharedtypes.ReportStatusQueued) || queued["provenance"] != nil {
-		t.Fatalf("queued placeholder = %+v", queued)
+		t.Fatalf("queued report = %+v", queued)
 	}
 
 	var failedOut map[string]any
@@ -261,7 +261,7 @@ func TestE2EP0054ReportAIFailureAndRetry(t *testing.T) {
 	}
 }
 
-func TestE2EP0055ReportPrivacyAndNonCurrent(t *testing.T) {
+func TestE2EP0055ReportPrivacyAndOutOfScope(t *testing.T) {
 	h := newReportHTTPScenarioHarness(t)
 	now := time.Date(2026, 5, 15, 23, 30, 0, 0, time.UTC)
 	privateID := reportScenarioUUID(55)
@@ -282,10 +282,10 @@ func TestE2EP0055ReportPrivacyAndNonCurrent(t *testing.T) {
 	assertNoReportScenarioLeak(t, raw, "question_text", "answer_text", "hint_text", "prompt body", "response body", "provider secret")
 	assertNoReportScenarioLeak(t, targetRaw, "question_text", "answer_text", "hint_text", "prompt body", "response body", "provider secret")
 
-	cmd := exec.Command("python3", "../../../scripts/lint/backend_review_non_current.py", "--repo-root", "../../..", "--phase", "all")
+	cmd := exec.Command("python3", "../../../scripts/lint/backend_review_out_of_scope.py", "--repo-root", "../../..", "--phase", "all")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("backend_review_non_current failed: %v\n%s", err, string(out))
+		t.Fatalf("backend_review_out_of_scope failed: %v\n%s", err, string(out))
 	}
 }
 

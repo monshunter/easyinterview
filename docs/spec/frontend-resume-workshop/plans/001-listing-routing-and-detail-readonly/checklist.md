@@ -1,14 +1,14 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 2.4
+> **版本**: 2.7
 > **状态**: completed
-> **更新日期**: 2026-07-08
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
 ## Phase 1: Route Shell / Auth Boundary
 
-- [x] 1.1 `ResumeWorkshopScreen` 分派当前 `flow=create|list`、`resumeId`、`targetJobId`、`createMode` route params，忽略旧 `tab` / `tailorRunId`；验证: `ResumeWorkshopScreen.test.tsx`。
+- [x] 1.1 `ResumeWorkshopScreen` 分派当前 `flow=create|list`、`resumeId`、`targetJobId`、`createMode` route params，忽略 out-of-scope `tab` / `tailorRunId`；验证: `ResumeWorkshopScreen.test.tsx`。
 - [x] 1.2 未登录态不触发 `listResumes` / `getResume` 或详情二次操作，pending action 只携带安全 route params；验证: `ResumeWorkshopAuthGate.test.tsx` 与 P0.036。
 
 ## Phase 2: Flat List View
@@ -19,7 +19,7 @@
 
 ## Phase 3: Read-only Detail
 
-- [x] 3.1 `ResumeDetailView` 使用 `getResume(resumeId)` 渲染 crumb、header 和只读简历正文；旧 `tab=rewrites|edit` 不能 materialize tab；验证: `ResumeDetailView.test.tsx` 与 P0.037。
+- [x] 3.1 `ResumeDetailView` 使用 `getResume(resumeId)` 渲染 crumb、header 和只读简历正文；out-of-scope `tab=rewrites|edit` 不能 materialize tab；验证: `ResumeDetailView.test.tsx` 与 P0.037。
 - [x] 3.2 `ResumePreviewTab` 优先渲染 `parsedTextSnapshot` / `originalText` 原始正文，不因 structured projection 丢失原文信息；不渲染 copy text、original modal、export、rewrite、preview-confirm 或 edit 控件；验证: `ResumePreviewTab.test.tsx`、`ResumeDetailView.test.tsx`、`ResumeDetailExport.test.tsx`、P0.037。
 - [x] 3.3 详情页不调用 `exportResume` / `requestResumeTailor` / detail `updateResume`；验证: `ResumeDetailView.test.tsx`、`ResumeDetailExport.test.tsx` 与 P0.037。
 - [x] 3.4 不存在的 `resumeId` 渲染 generic NotFoundEmptyState，不回显 fixture `error.code`；验证: `ResumeDetailFixtureParity.test.tsx` 与 P0.037。

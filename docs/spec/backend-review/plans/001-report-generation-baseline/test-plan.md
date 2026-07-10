@@ -1,8 +1,8 @@
 # 001 - Report Generation Baseline Test Plan
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 **关联 Test Checklist**: [test-checklist](./test-checklist.md)
@@ -15,15 +15,15 @@
 | Question assessments | `TestAssessQuestionsForAllTurns`, `TestPersistReportWritesQuestionAssessments`, `TestE2EP0052ReportGenerationHappyPath` |
 | Readiness / DimensionStatus | `TestComputeReadinessTier`, `TestComputeReadinessTierScoreLevelsAndDimensionStatusMapping`, `TestComputeReadinessTierPropertyRandomDimensions` |
 | Retry focus / next action | `TestSelectRetryFocusTurns`, `TestDecideNextAction`, `TestE2EP0052ReportGenerationHappyPath` |
-| Placeholder / failed read | report handler/service/store tests, `TestE2EP0053ReportReadAndListing` |
-| Listing pagination / ownership | cursor, ownership, handler/service/store tests, `TestE2EP0053ReportReadAndListing`, `TestE2EP0055ReportPrivacyAndNonCurrent` |
+| Queued/generating / failed read | report handler/service/store tests, `TestE2EP0053ReportReadAndListing` |
+| Listing pagination / ownership | cursor, ownership, handler/service/store tests, `TestE2EP0053ReportReadAndListing`, `TestE2EP0055ReportPrivacyAndOutOfScope` |
 | AI failure matrix | `TestGenerateReportFailedMatrix`, `TestE2EP0054ReportAIFailureAndRetry` |
 | Retry / permanent failure | `TestRunnerRetryPolicyAndPermanentFail`, `TestPersistReportFailureRetryAndPermanent`, `TestE2EP0054ReportAIFailureAndRetry` |
 | Runtime wiring | `TestBuildReportRuntimeWiresRoutesRunnerReaperAndAI`, `TestBuildReportRuntimeRejectsMissingAIClient` |
 | Contract / generated artifacts | `make codegen-check`, `make validate-fixtures`, `migrations/lint.sh`, `make lint-events`, `make codegen-events-check`, `python3 scripts/lint/conventions_drift.py --repo-root .` |
 | Prompt / rubric | `TestF3ReportGenerateAndAssessmentPreflight`, `python3 scripts/lint/prompt_lint.py`, `python3 scripts/lint/rubric_lint.py` |
-| Privacy / observability | redaction tests, outbox PII tests, metric-label tests, `TestE2EP0055ReportPrivacyAndNonCurrent` |
-| Current-scope boundary | `python3 scripts/lint/backend_review_non_current.py --repo-root . --phase all`, `python3 -m pytest scripts/lint/backend_review_non_current_test.py -q` |
+| Privacy / observability | redaction tests, outbox PII tests, metric-label tests, `TestE2EP0055ReportPrivacyAndOutOfScope` |
+| Current-scope boundary | `python3 scripts/lint/backend_review_out_of_scope.py --repo-root . --phase all`, `python3 -m pytest scripts/lint/backend_review_out_of_scope_test.py -q` |
 
 ## 2 Owner Evidence Commands
 
@@ -36,8 +36,8 @@ migrations/lint.sh
 make lint-events
 make codegen-events-check
 python3 scripts/lint/conventions_drift.py --repo-root .
-python3 scripts/lint/backend_review_non_current.py --repo-root . --phase all
-python3 -m pytest scripts/lint/backend_review_non_current_test.py -q
+python3 scripts/lint/backend_review_out_of_scope.py --repo-root . --phase all
+python3 -m pytest scripts/lint/backend_review_out_of_scope_test.py -q
 python3 scripts/lint/prompt_lint.py
 python3 scripts/lint/rubric_lint.py
 make docs-check

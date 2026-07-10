@@ -174,7 +174,7 @@ type ApplyParseResultInput struct {
 
 // CompleteParseSuccessInput is the parse executor's success-side commit
 // bundle. The store applies target_jobs, requirements, target.parsed outbox,
-// and the source_refresh placeholder in one database transaction.
+// and the source_refresh follow-up job in one database transaction.
 type CompleteParseSuccessInput struct {
 	TargetJobID        string
 	Title              string
@@ -316,7 +316,6 @@ type Store interface {
 	WriteParseFailedOutbox(ctx context.Context, eventID string, targetJobID string, payload []byte, now time.Time) error
 	WriteTargetParsedOutbox(ctx context.Context, eventID string, targetJobID string, payload []byte, now time.Time) error
 	GetTargetJobForParse(ctx context.Context, targetJobID string) (TargetJobRecord, []SourceRecord, error)
-	UpdateTargetJobAnalysisFailure(ctx context.Context, targetJobID string, now time.Time) error
 }
 
 // SQLStore is the default Postgres-backed Store implementation.
@@ -1505,9 +1504,9 @@ where id = $4`,
 	return nil
 }
 
-// EnqueueSourceRefresh writes the placeholder source_refresh async_jobs row
-// (D-3 / plan 4.5). Payload is intentionally empty: the row exists only as
-// a downstream trigger for a future refresh implementation.
+// EnqueueSourceRefresh writes the internal-only source_refresh async_jobs row
+// (D-3 / plan 4.5). Payload is intentionally empty; the handler consumes the
+// job to mark the source stale without exposing the source URL.
 func (s *SQLStore) EnqueueSourceRefresh(ctx context.Context, jobID string, targetJobID string, now time.Time) error {
 	if err := s.checkDB(); err != nil {
 		return err
@@ -1637,25 +1636,6 @@ where id = $1 and deleted_at is null`,
 		return TargetJobRecord{}, nil, err
 	}
 	return rec, sources, nil
-}
-
-// UpdateTargetJobAnalysisFailure removes a failed parse asset. New parse
-// executor code uses CompleteParseFailure so the failure event and deletion
-// stay atomic; this legacy helper keeps older callers from persisting failed
-// TargetJobs.
-func (s *SQLStore) UpdateTargetJobAnalysisFailure(ctx context.Context, targetJobID string, _ time.Time) error {
-	if err := s.checkDB(); err != nil {
-		return err
-	}
-	_, err := s.db.ExecContext(ctx, `
-delete from target_jobs
-where id = $1 and deleted_at is null`,
-		targetJobID,
-	)
-	if err != nil {
-		return fmt.Errorf("delete failed target_job: %w", err)
-	}
-	return nil
 }
 
 // LookupFileAttachmentForUser confirms the referenced file_object belongs

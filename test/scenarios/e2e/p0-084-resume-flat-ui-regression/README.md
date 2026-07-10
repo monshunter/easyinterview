@@ -11,25 +11,25 @@
   `Resumes/getResume.json default` + current flat fixtures used by
   `ResumeWorkshopScreen` / `ResumeDetailView` / `ResumeCreateFlow`。
 - 用户：未登录 → 登录态，lang 默认。
-- Non-current form and operation tokens remain absent from runtime source.
+- Out-of-scope form and operation tokens remain absent from runtime source.
 
 ## 2 When
 
 - 未登录访问 Resume Workshop/detail/create 路由 → 显示 auth gate。
 - 登录态渲染 flat `ResumeWorkshopScreen`、read-only `ResumeDetailView` 与
   `ResumeCreateFlow`。
-- 旧 `tab=rewrites` / edit surface 不 materialize。
-- Source grep 检查 non-current operation token 不回流。
+- Out-of-scope `tab=rewrites` / edit surface 不 materialize。
+- Source grep 检查 out-of-scope operation token 不回流。
 
 ## 3 Then
 
-- pendingAction 不携带 non-current form draft 或 wire 字段。
+- pendingAction 不携带 out-of-scope form draft 或 wire 字段。
 - `ResumeBranchFlow`、`branchResumeVersion`、`seedStrategy`、
   `acceptResumeTailorSuggestion`、`rejectResumeTailorSuggestion`、
   `updateResumeVersion` 在 runtime source 中 0 命中。
 - Flat list/detail/create surfaces stay functional under Vitest.
 - Resume detail renders `parsedTextSnapshot` / `originalText` as the read-only body before any structured fallback.
-- Non-current tailor mode `(inline|rewrite|mirror)` 0 命中；prototype import
+- Out-of-scope tailor mode `(inline|rewrite|mirror)` 0 命中；prototype import
   `ui-design/src/(data|screen-resume-workshop)` 0 命中。
 
 ## 4 Verification Entry
@@ -48,7 +48,7 @@
 
 ## 6 Baseline
 
-- `make codegen-check` 已通过的 generated client, with non-current operations
+- `make codegen-check` 已通过的 generated client, with out-of-scope operations
   absent.
 - Current flat resume fixtures: `listResumes` / `getResume` / `registerResume`.
 
@@ -58,5 +58,5 @@
 
 ## 8 方法标注
 
-`method=fixture-backed-frontend`。Backend non-current-route evidence is covered by
+`method=fixture-backed-frontend`。Backend out-of-scope route evidence is covered by
 P0.074/P0.079.

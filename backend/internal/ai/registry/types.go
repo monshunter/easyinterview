@@ -116,6 +116,6 @@ var ErrPromptUnsupported = errors.New("registry: feature_key has no active basel
 // (and the multi fallback) are both absent for a feature_key.
 var ErrLanguageUnsupported = errors.New("registry: language coordinate unavailable for feature_key")
 
-// ErrJudgeNotImplemented is returned by NotImplementedJudge for every call.
+// ErrJudgeUnavailable is returned by FailClosedJudge for every call.
 // Callers must treat it as a hard fail-closed signal.
-var ErrJudgeNotImplemented = errors.New("registry: LLM Judge is not configured")
+var ErrJudgeUnavailable = errors.New("registry: LLM Judge is not configured")

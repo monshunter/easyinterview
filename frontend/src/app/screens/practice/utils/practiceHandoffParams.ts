@@ -12,9 +12,9 @@ import type { InterviewContextState } from "../../../interview-context/Interview
 export interface PracticeHandoffSource {
   ctx: InterviewContextState;
   reportId: string;
-  /** mode at the time of handoff (text / voice). */
+  /** mode at the time of handoff (text / phone). */
   mode: string;
-  /** modality at the time of handoff (text / voice). */
+  /** modality at the time of handoff (text / phone). */
   modality: string;
   /** practiceMode at the time of handoff (assisted / strict). */
   practiceMode: string;

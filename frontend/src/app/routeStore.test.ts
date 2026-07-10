@@ -45,7 +45,7 @@ describe("resolveInitialRoute priority", () => {
     });
   });
 
-  it("falls back to canonical workspace path and strips legacy context params", () => {
+  it("falls back to canonical workspace path and strips out-of-scope context params", () => {
     setLocation(
       "/workspace?targetJobId=tj-1&resumeId=rv-1&planId=plan-1",
     );
@@ -71,7 +71,7 @@ describe("resolveInitialRoute priority", () => {
     });
   });
 
-  it("normalizes non-current hash aliases through normalizeRoute", () => {
+  it("normalizes out-of-scope hash aliases through normalizeRoute", () => {
     setLocation("/#route=voice");
     expect(resolveInitialRoute()).toEqual({ name: "home", params: {} });
   });

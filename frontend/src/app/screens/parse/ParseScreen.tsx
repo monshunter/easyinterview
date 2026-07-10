@@ -67,7 +67,7 @@ function safeScrollToTop(): void {
   try {
     window.scrollTo({ top: 0, behavior: "smooth" });
   } catch {
-    // jsdom exposes scrollTo but throws because it is not implemented.
+    // jsdom exposes scrollTo but still throws inside the test environment.
   }
 }
 
@@ -126,11 +126,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
   const isWorkspaceDetail = route.name === "workspace";
   const compactLayout = useParseCompactLayout();
   const routeTestId = isWorkspaceDetail ? "route-workspace" : "route-parse";
-  const routeResumeId =
-    typeof route.params?.resumeId === "string"
-      ? route.params.resumeId
-      : undefined;
-
   const hydrateReadyJob = useCallback((job: TargetJob) => {
     setTargetJob(job);
   }, []);
@@ -286,8 +281,7 @@ export const ParseScreen: FC<ParseScreenProps> = ({
           .filter(isSelectableInterviewResume)
           .sort(sortByMostRecentResume);
         setReadyResumes(ready);
-        const targetJobResumeId = targetJob.resumeId?.trim();
-        const inheritedResumeId = targetJobResumeId || routeResumeId || "";
+        const inheritedResumeId = targetJob.resumeId?.trim() || "";
         setSelectedResumeId(
           inheritedResumeId &&
             ready.some((resume) => resume.id === inheritedResumeId)
@@ -314,7 +308,6 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     lang,
     runtime?.auth.status,
     runtime?.client,
-    routeResumeId,
     stage,
     targetJob,
   ]);

@@ -73,8 +73,8 @@ const NavBatch: FC = () => {
             name: "practice",
             params: {
               sessionId: SESSION_ID,
-              mode: "voice",
-              modality: "voice",
+              mode: "phone",
+              modality: "phone",
               planId: PLAN_ID,
             },
           })
@@ -104,7 +104,7 @@ const NavBatch: FC = () => {
 };
 
 describe("E2E.P0.088 canonical path deep-link / reload / browser history", () => {
-  it("direct-open /workspace?targetJobId=...&autoStartPractice=1 strips legacy params and keeps TopBar active", () => {
+  it("direct-open /workspace?targetJobId=...&autoStartPractice=1 strips out-of-scope params and keeps TopBar active", () => {
     window.history.replaceState(
       null,
       "",
@@ -120,11 +120,11 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     );
   });
 
-  it("direct-open legacy /practice?mode=voice&modality=voice hides chrome and mounts phone surface", () => {
+  it("direct-open /practice?mode=phone&modality=phone hides chrome and mounts phone surface", () => {
     window.history.replaceState(
       null,
       "",
-      `/practice?sessionId=${SESSION_ID}&mode=voice&modality=voice&planId=${PLAN_ID}`,
+      `/practice?sessionId=${SESSION_ID}&mode=phone&modality=phone&planId=${PLAN_ID}`,
     );
     render(<App />);
     expect(screen.getByTestId("practice-phone-waveform")).toBeInTheDocument();
@@ -154,7 +154,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
   });
 
-  it("direct-open /resume-versions?tab=rewrites&tailorRunId=... filters non-current resume detail tab keys", () => {
+  it("direct-open /resume-versions?tab=rewrites&tailorRunId=... filters out-of-scope resume detail tab keys", () => {
     window.history.replaceState(
       null,
       "",
@@ -166,7 +166,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     expect(window.location.search).toBe("");
   });
 
-  it("direct-open non-current /debrief and /profile paths fold back to home without non-current params", () => {
+  it("direct-open out-of-scope /debrief and /profile paths fold back to home without out-of-scope params", () => {
     for (const path of [
       `/debrief?targetJobId=${TARGET_JOB_ID}&debriefId=01918fa0-0000-7000-8000-00000000c000`,
       "/profile",

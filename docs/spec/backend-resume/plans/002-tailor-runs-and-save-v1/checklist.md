@@ -1,8 +1,8 @@
 # Backend Resume Tailor Runs and Save v1 Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -41,7 +41,7 @@
 
 - [x] 5.1 tailor job 通过 A3 AIClient + F3 feature_key 路由，覆盖 success、timeout、output_invalid、retry-to-ready（验证：`go test ./backend/internal/resume/jobs -run 'TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox|TestTailorHandlerModeRoutingAndFailurePaths' -count=1` PASS）
 - [x] 5.2 success 写 typed `ai_task_runs` 和 ready-only `resume.tailor.completed` outbox；payload allowlist 不含 prompt/raw resume/match summary/suggested bullet 文本（验证：`go test ./backend/internal/resume/store ./backend/cmd/api -run 'TestCompleteTailorRunSuccessWritesResultAndOutbox|TestResumeTailorDrainerHTTPScenario|TestResumeTailorDrainerFailureScenario' -count=1` PASS）
-- [x] 5.3 BDD-Gate: `E2E.P0.080` tailor privacy and non-current negative 场景保持 Ready（验证：`test/scenarios/e2e/p0-080-resume-tailor-privacy-negative/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS）
+- [x] 5.3 BDD-Gate: `E2E.P0.080` tailor privacy and out-of-scope negative 场景保持 Ready（验证：`test/scenarios/e2e/p0-080-resume-tailor-privacy-negative/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS）
 
 ## Phase 6: flat save fixture parity and read-only detail boundary
 

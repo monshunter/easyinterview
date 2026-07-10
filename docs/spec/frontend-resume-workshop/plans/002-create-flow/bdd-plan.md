@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow BDD Plan
 
-> **版本**: 1.7
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-07-08
+> **更新日期**: 2026-07-10
 
 **关联 Plan**: [plan](./plan.md)
 
@@ -11,8 +11,8 @@
 | 场景 ID | 类别 | 覆盖范围 | 关联 Checklist |
 |---------|------|----------|----------------|
 | E2E.P0.081 | primary | CreateFlow upload / paste happy path, PDF / Markdown / TXT whitelist, DOCX rejection, 2MiB file limit, presign, register, waiting/detail navigation, privacy and UI parity | 5.1 / 6.1 / 6.3 / 7.1 |
-| E2E.P0.082 | retired negative | Parser animation / parse failure UI are non-current and absent from create flow | 5.2 |
-| E2E.P0.083 | primary + handoff | Home CTA, Workspace CTA and auth pending action direct-create handoff | 5.3 |
+| E2E.P0.082 | absence gate | Parser animation / parse failure UI are absent from create flow | 5.2 |
+| E2E.P0.083 | primary + handoff | Home CTA and auth pending action direct-create handoff | 5.3 |
 | E2E.P0.084 | regression | Home existing resume picker consumes `listResumes` selectable records and does not show an empty/disabled picker while readable resumes exist | 8.1 / 8.2 / 8.3 |
 
 ## 2 场景说明
@@ -31,7 +31,7 @@ Then parser animation, parser failure retry UI and preview confirm surfaces are 
 
 ### E2E.P0.083
 
-Given Home / Workspace CTA enters resume creation.
+Given Home CTA enters resume creation.
 When upload or paste registration succeeds, or unauthenticated auth pending action is created.
 Then direct detail navigation is used and auth pending action keeps only safe route params.
 

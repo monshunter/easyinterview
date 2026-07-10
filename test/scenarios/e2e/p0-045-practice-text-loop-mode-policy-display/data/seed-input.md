@@ -9,5 +9,5 @@
 
 Route param matrix:
 
-- assisted / legacy strict × baseline / retry_current_round / next_round
+- assisted / out-of-scope strict input × baseline / retry_current_round / next_round
 - `practiceGoal` enum values must NOT influence the visibility snapshot.

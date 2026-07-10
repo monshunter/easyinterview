@@ -1,17 +1,23 @@
 # Secrets and Config Bootstrap
 
-> **版本**: 1.8
+> **版本**: 1.11
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-把 [secrets-and-config spec](../../spec.md) §3.1 已锁定的 D-1..D-9 决策与 §3.1.1 / §3.1.2 锁定的 P0 必备 env key 字典、canonical config schema、`async.queueWeights` config-only 字段落到代码：建立 `backend/internal/platform/{config,secrets,featureflag}/` 三个 Go 包真理源、`config/*.yaml` + `.env.example` + `config/feature-flags.yaml` 默认值集合、`make lint-config` 与 `scripts/git-hooks/pre-commit-secrets.sh` 本地质量门禁、`frontend/src/lib/runtime-config/` 前端 fetcher，以及最小 `GET /api/v1/runtime-config` handler stub，并通过本 plan 的 verification phase 证明 [secrets-and-config spec §6](../../spec.md#6-验收标准) C-1..C-12 在本仓库可重复跑通（C-6 与 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 共担最终 schema 一致性，本 plan 完成 A4 侧 builder 与 stub）。
+把 [secrets-and-config spec](../../spec.md) §3.1 已锁定的 D-1..D-9 决策与 §3.1.1 / §3.1.2 锁定的 P0 必备 env key 字典、canonical config schema、`async.queueWeights` config-only 字段落到代码：建立 `backend/internal/platform/{config,secrets,featureflag}/` 三个 Go 包真理源、`config/*.yaml` + `.env.example` + `config/feature-flags.yaml` 默认值集合、`make lint-config` 与 `scripts/git-hooks/pre-commit-secrets.sh` 本地质量门禁、`frontend/src/lib/runtime-config/` 前端 fetcher，以及 `GET /api/v1/runtime-config` handler，并通过本 plan 的 verification phase 证明 [secrets-and-config spec §6](../../spec.md#6-验收标准) C-1..C-12 在本仓库可重复跑通（C-6 与 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 共担最终 schema 一致性，本 plan 完成 A4 侧 builder 与 handler）。
 
 本 plan 是 `secrets-and-config` 唯一的 plan；后续若需扩展（Vault / SOPS / platform secret / K8s Secret provider，自动 secret rotation，分桶 feature flag），按 §7 约束递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。
+
+本次 v1.9 技术债清理删除未引用的 runtime-config 类型边界文件；A4 只拥有 framework-free `fetchRuntimeConfig()` 与 `types.ts`，正式 React runtime 入口由 D1 `AppRuntimeProvider` 持有。
+
+本次 v1.10 技术债清理同步当前实现事实：`runtime_config_handler.go` 支持由 C1 backend-auth 注入 session-aware resolver；resolver 缺省时才使用 anonymous opt-out 默认，不再将 handler 描述为 stub。
+
+本次 v1.11 技术债清理将 `config/config.yaml` 与 `.env.example` 的 secret 默认值描述收敛为空字符串 / 说明注释，不改变配置文件合同或 lint 行为。
 
 ## 2 背景
 
@@ -23,13 +29,13 @@
 - [B1 `shared-conventions-codified/001-bootstrap`](../../../shared-conventions-codified/plans/001-bootstrap/plan.md) 已落地 `backend/go.mod` 与 `backend/internal/shared/` 共享包；本 plan 的 Go 代码引用其常量。
 - [A2 `local-dev-stack/001-bootstrap`](../../../local-dev-stack/plans/001-bootstrap/plan.md) 的 `deploy/dev-stack/.env.example` 字段名已与 spec §3.1.1 字典对齐；本 plan 的 `.env.example` 是仓库根真理源，A2 dev stack 在本地启动时复用同一字典。
 
-每个 phase 是可独立部署 / 验证的纵向行为切片：Phase 1 起来即可由 Go 代码 `config.Get*` 读取三层合并的配置；Phase 2 起来即可由业务代码通过 `SecretSource` / `FeatureFlagClient` 接口隔离 provider；Phase 3 起来即有完整的 `.env.example` 与 `config/*.yaml` 字典；Phase 4 起来即有 `make lint-config` 与 pre-commit secret 拦截；Phase 5 起来即有最小 `runtime-config` 端到端链路；Phase 6 收口验证 C-1..C-11 并完成 handoff。
+每个 phase 是可独立部署 / 验证的纵向行为切片：Phase 1 起来即可由 Go 代码 `config.Get*` 读取三层合并的配置；Phase 2 起来即可由业务代码通过 `SecretSource` / `FeatureFlagClient` 接口隔离 provider；Phase 3 起来即有完整的 `.env.example` 与 `config/*.yaml` 字典；Phase 4 起来即有 `make lint-config` 与 pre-commit secret 拦截；Phase 5 起来即有 `runtime-config` 端到端链路；Phase 6 收口验证 C-1..C-11 并完成 handoff。
 
-本 plan 不部署 PostHog（归 [F2 `analytics-funnel`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 与 [E4 `release-gate-and-rollout`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)），不实现 Vault / SOPS / platform secret / K8s Secret provider（归 P1 / E4），不冻结 `/api/v1/runtime-config` 的 OpenAPI schema（归 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md)；A4 在本 plan 中只交付 response builder + 最小 stub handler）。
+本 plan 不部署 PostHog（归 [F2 `analytics-funnel`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 与 [E4 `release-gate-and-rollout`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)），不实现 Vault / SOPS / platform secret / K8s Secret provider（归 P1 / E4），不冻结 `/api/v1/runtime-config` 的 OpenAPI schema（归 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md)；A4 在本 plan 中只交付 response builder + handler）。
 
 ## 3 质量门禁分类
 
-- **Plan 类型**: `platform-config + code-internal + contract + tooling`。本 plan 修改 backend config/secrets/featureflag packages、config truth source、secret lint hooks、runtime-config builder/stub、frontend runtime-config fetcher 和本地 lint gate；不直接交付用户可见 workflow。
+- **Plan 类型**: `platform-config + code-internal + contract + tooling`。本 plan 修改 backend config/secrets/featureflag packages、config truth source、secret lint hooks、runtime-config builder/handler、frontend runtime-config fetcher 和本地 lint gate；不直接交付用户可见 workflow。
 - **TDD 策略**: 本 plan 既有实现以 checklist 每项的 Go tests、TS tests、lint negative cases、pre-commit secret redline、runtime-config allowlist tests 和 config fail-fast smoke 作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行。
 - **BDD 策略**: BDD 不适用。本 plan 是内部配置/secret/feature flag contract 与 tooling；后续 D1/B2/C workstream 把 runtime-config 暴露到用户流程时维护自身 BDD gate。
 - **替代验证 gate**: `go test ./backend/internal/platform/config/... ./backend/internal/platform/secrets/... ./backend/internal/platform/featureflag/...`、frontend runtime-config tests/typecheck、`make lint-config`、secret hook negative tests、`make lint`、runtime-config allowlist smoke、`sync-doc-index --check`。
@@ -101,7 +107,7 @@ type FeatureFlagClient interface {
 
 #### 3.1 落地 `config/config.yaml` 默认值
 
-按 [secrets-and-config spec §3.1.2](../../spec.md#312-canonical-config-schema-分类) 锁定的 canonical config schema 写入仓库根 `config/config.yaml`（D-1 第一层默认值）。所有 secret 字段（`database.url` / `redis.url` / `objectStorage.accessKey` / `objectStorage.secretKey` / `auth.sessionCookieSecret` / `auth.challengeTokenPepper` / `email.providerApiKey` / `ai.providerApiKey` / `featureFlag.posthogProjectApiKey`）必须留空字符串占位，禁止写入真实凭证；明文字段（如 `runtime.appVersion` / `runtime.defaultUiLanguage` / `app.listenAddr` / `featureFlag.source`）写入 spec 默认值。`auth.sessionCookieName` 固定字面量 `ei_session`，与 [ADR-Q1 §3](../../../engineering-roadmap/decisions/ADR-Q1-auth.md#3-决策) 与 spec D-8 一致；`async.queueWeights` 默认 `critical: 6` / `default: 3` / `low: 1`，不提供 env override；本 plan 不允许任何 env key 覆盖 `ei_session`。
+按 [secrets-and-config spec §3.1.2](../../spec.md#312-canonical-config-schema-分类) 锁定的 canonical config schema 写入仓库根 `config/config.yaml`（D-1 第一层默认值）。所有 secret 字段（`database.url` / `redis.url` / `objectStorage.accessKey` / `objectStorage.secretKey` / `auth.sessionCookieSecret` / `auth.challengeTokenPepper` / `email.providerApiKey` / `ai.providerApiKey` / `featureFlag.posthogProjectApiKey`）必须留空字符串，禁止写入真实凭证；明文字段（如 `runtime.appVersion` / `runtime.defaultUiLanguage` / `app.listenAddr` / `featureFlag.source`）写入 spec 默认值。`auth.sessionCookieName` 固定字面量 `ei_session`，与 [ADR-Q1 §3](../../../engineering-roadmap/decisions/ADR-Q1-auth.md#3-决策) 与 spec D-8 一致；`async.queueWeights` 默认 `critical: 6` / `default: 3` / `low: 1`，不提供 env override；本 plan 不允许任何 env key 覆盖 `ei_session`。
 
 #### 3.2 落地 `config/{dev,staging,prod}.yaml` 环境 override
 
@@ -109,7 +115,7 @@ type FeatureFlagClient interface {
 
 #### 3.3 落地 `.env.example` 与 env key 字典
 
-按 [secrets-and-config spec §3.1.1](../../spec.md#311-p0-必备-env-key-字典) 写入仓库根 `.env.example`，包含全部 env key（`APP_ENV` / `APP_LISTEN_ADDR` / `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_*` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `LOG_LEVEL` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `AI_PROVIDER_*` / `AI_MODEL_PROFILE_PATH` / `FEATURE_FLAG_*` / `POSTHOG_*` / `EMAIL_PROVIDER` / `EMAIL_SMTP_*` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL` / `EMAIL_PROVIDER_API_KEY`）。所有 secret 字段只写占位说明（如 `# secret; populate via runtime secret in prod`），不允许写真实 key 样本。每行注释必须标注「Owner subspec」与「prod required: yes/no/conditional」，与 spec §3.1.1 表格一一对应。`async.queueWeights` 是 config-only 字段，不进入 `.env.example`。
+按 [secrets-and-config spec §3.1.1](../../spec.md#311-p0-必备-env-key-字典) 写入仓库根 `.env.example`，包含全部 env key（`APP_ENV` / `APP_LISTEN_ADDR` / `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_*` / `OTEL_EXPORTER_OTLP_ENDPOINT` / `LOG_LEVEL` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `AI_PROVIDER_*` / `AI_MODEL_PROFILE_PATH` / `FEATURE_FLAG_*` / `POSTHOG_*` / `EMAIL_PROVIDER` / `EMAIL_SMTP_*` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL` / `EMAIL_PROVIDER_API_KEY`）。所有 secret 字段只写说明注释（如 `# secret; populate via runtime secret in prod`），不允许写真实 key 样本。每行注释必须标注「Owner subspec」与「prod required: yes/no/conditional」，与 spec §3.1.1 表格一一对应。`async.queueWeights` 是 config-only 字段，不进入 `.env.example`。
 
 #### 3.4 落地 `config/feature-flags.yaml` baseline
 
@@ -154,7 +160,7 @@ type FeatureFlagClient interface {
 
 ### Phase 5: `runtime-config` endpoint 接入与前端 fetcher
 
-#### 5.1 后端 `runtime-config` builder 与最小 stub handler
+#### 5.1 后端 `runtime-config` builder 与 handler
 
 按 [secrets-and-config spec D-2 / §3.1.2 / §6 C-6](../../spec.md#31-已锁定决策含-p0-必备-env-key-字典) 在 `backend/internal/platform/config/runtime_config.go` 落地 `BuildRuntimeConfig(ctx, session) RuntimeConfig`：
 
@@ -163,7 +169,7 @@ type FeatureFlagClient interface {
 - 若 `ctx` 携带有效 session 且 `user_settings.analytics_opt_in == false`，则 `analyticsEnabled = false` 且不返回 `postHogPublicKey`（与 D-2 一致）；
 - 任何 secret 字段绝对不能进入 response。
 
-`backend/internal/platform/config/runtime_config_handler.go` 落地最小 `GET /api/v1/runtime-config` HTTP handler stub：直接调用 `BuildRuntimeConfig`，序列化为 JSON。OpenAPI schema 真理源由 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 持有；本 plan 仅交付 builder + stub handler，schema 与 fixture 一致性由 B2 在引用 A4 时验证。`user_settings` 真实接入由 [C1 `backend-auth`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 后续完成；本 plan 用 in-memory fake 与 nil session 路径覆盖测试。
+`backend/internal/platform/config/runtime_config_handler.go` 落地 `GET /api/v1/runtime-config` HTTP handler：直接调用 `BuildRuntimeConfig`，序列化为 JSON，并接受 C1 backend-auth 注入的 session-aware resolver；resolver 缺省时使用 anonymous opt-out 默认。OpenAPI schema 真理源由 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 持有；本 plan 仅交付 builder + handler，schema 与 fixture 一致性由 B2 在引用 A4 时验证。
 
 #### 5.2 前端 `frontend/src/lib/runtime-config/` fetcher
 
@@ -171,7 +177,7 @@ type FeatureFlagClient interface {
 
 - `index.ts` 暴露 `fetchRuntimeConfig(): Promise<RuntimeConfig>`：调用 `GET /api/v1/runtime-config`，缓存到 module-scoped `let cached` 直到下一个 page load。
 - `types.ts` 与后端 `RuntimeConfig` 字段同名（`appVersion` / `defaultUiLanguage` / `analyticsEnabled` / `featureFlags: Record<string, FlagDecision>` / `postHogPublicKey?`）。
-- `hooks.placeholder.ts` 留 `useRuntimeConfig()` 占位 React hook（仅类型签名，不导入 React），由 [D1 `frontend-shell`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 在自身 plan 中实现完整 hook + provider；本 plan 只锁字段与 fetcher 行为。
+- A4 不提供 React hook 文件；[D1 `frontend-shell`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 持有正式 `AppRuntimeProvider` / `useAppRuntime` 入口，本 plan 只锁字段与 fetcher 行为。
 
 前端任何代码不得直接读取 `import.meta.env.VITE_*` 之外的 build-time 变量，与 [secrets-and-config spec §4.1](../../spec.md#41-边界约束) 一致；运行时配置统一通过本 fetcher。
 
@@ -211,9 +217,9 @@ type FeatureFlagClient interface {
 
 #### 6.3 AC C-6 部分验证 + handoff
 
-按 [secrets-and-config spec §6 C-6](../../spec.md#6-验收标准) 与 §1 边界，C-6 完整验收需 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 提供 OpenAPI schema 与 fixture，[D1 `frontend-shell`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 提供前端 React provider 实装，本 plan 只覆盖 builder + stub handler + 前端 fetcher。在工作日志与本 plan §4 验收标准中明确：
+按 [secrets-and-config spec §6 C-6](../../spec.md#6-验收标准) 与 §1 边界，C-6 完整验收需 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 提供 OpenAPI schema 与 fixture，[D1 `frontend-shell`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 提供前端 React provider 实装，本 plan 只覆盖 builder + handler + 前端 fetcher。在工作日志与本 plan §4 验收标准中明确：
 
-- A4 已交付：builder allowlist 实装、handler stub、前端 fetcher、单测断言「不返回 secret / 不返回 operator-only flag / 尊重 analytics_opt_in」。
+- A4 已交付：builder allowlist 实装、handler、前端 fetcher、单测断言「不返回 secret / 不返回 operator-only flag / 尊重 analytics_opt_in」。
 - 待 B2 在 OpenAPI schema 锁定 response shape 后，A4 在工作日志记录一次跨 plan 验证 token；B2 plan 引用本 plan 时不得反向修改 builder。
 - 待 D1 在 frontend-shell plan 接入 React provider 后，C-6 完整闭环关闭；A4 不再额外开 sibling plan。
 
@@ -267,7 +273,7 @@ type FeatureFlagClient interface {
 
 ## 5 验收标准
 
-- [secrets-and-config spec §6 验收标准](../../spec.md#6-验收标准) C-1..C-5、C-7..C-12 全部成立，证据贴入工作日志；C-6 partial 验收（A4 builder + stub + 前端 fetcher + 单测）成立，跨 plan 完整 verification 由 B2 / D1 后续 plan 关闭并 cross-link 回本工作日志。
+- [secrets-and-config spec §6 验收标准](../../spec.md#6-验收标准) C-1..C-5、C-7..C-12 全部成立，证据贴入工作日志；C-6 partial 验收（A4 builder + handler + 前端 fetcher + 单测）成立，跨 plan 完整 verification 由 B2 / D1 后续 plan 关闭并 cross-link 回本工作日志。
 - 本 plan checklist 全部勾选；Phase 6 的 AC 验证命令日志贴入工作日志。
 - engineering-roadmap/001 保留的 A4 bootstrap 承诺由 Phase 6.3 关闭 partial、Phase 6.4 关闭文档侧；不重复修改父 roadmap checklist。
 
@@ -286,6 +292,8 @@ type FeatureFlagClient interface {
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.11 | 将 `config/config.yaml` 与 `.env.example` 的 secret 默认值描述收敛为空字符串 / 说明注释。 | tech-debt pruning |
+| 2026-07-10 | 1.10 | 将 runtime-config handler 口径从 stub 收敛为当前 session-aware handler + anonymous opt-out default。 | tech-debt pruning |
 | 2026-07-07 | 1.8 | Wording cleanup：收敛 feature flag 与 TDD gate 说明为当前 non-current flag / 既有实现口径，不改变可执行契约。 | product-scope/001 Phase 6.89 |
 | 2026-05-05 | 1.6 | L2 深审修正文档 allowlist 非当前口径：`cmd/migrate` 是 B4 迁移 CLI 的合法 env 读取入口；plan 与当前 spec §4.1 / `getenv_boundary.go` 对齐。 | deep reconcile |
 | 2026-05-04 | 1.5 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 config/secret/feature flag 范围。 | docs-only L1 remediation |

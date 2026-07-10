@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.13
+> **版本**: 2.17
 > **状态**: completed
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -18,7 +18,7 @@
 
 - [x] 2.1 Historical pre-Phase 6 Parse parity covered loading, preview, failed state, editable basics, requirements, hidden signals, round assumptions, resume binding and footer actions; Phase 6 now supersedes success preview with a readonly receipt.
 - [x] 2.2 Historical generated-client gates covered `getTargetJob`, `listResumes` and `updateTargetJob` contract behavior; current Parse success detail uses `getTargetJob` / `listResumes` / practice handoff and must not consume `updateTargetJob`.
-- [x] 2.3 Historical route `resumeId` inheritance and picker fallback were covered; current Parse success detail only displays the saved binding and disables Start when that binding is missing.
+- [x] 2.3 Current Parse success detail ignores route-only `resumeId` for binding, only displays the saved TargetJob binding, and disables Start when that binding is missing.
 - [x] 2.4 Historical Save plan / workspace auto-start handoff was covered before readonly simplification; current success path has no Save plan action and Start enters practice directly.
 - [x] 2.5 BDD-Gate: `E2E.P0.016` keeps the historical import-to-detail lineage and now covers readonly receipt, direct Start handoff, auth continuation and privacy checks.
 
@@ -39,7 +39,7 @@
 
 - [x] 5.1 UI truth source and formal copy rename the Parse preview to `面试规划详情 / 面试上下文确认` while preserving first-import loading（验证：`ui-design/src/screens-p0-complete.jsx`, `docs/ui-design/module-job-workspace.md`, `frontend/src/app/i18n/locales/{zh,en}.ts`, `frontend/tests/pixel-parity/parse.spec.ts` PASS）
 - [x] 5.2 `route=parse` ready state and `route=workspace` with `targetJobId` render the same Parse-derived detail DOM, readonly resume binding and Start action; workspace no-context still renders `WorkspacePlanList`（验证：`ParseScreen.test.tsx`, `ParseEdit.test.tsx`, `ParseResumeBinding.test.tsx`, `WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx` PASS）
-- [x] 5.3 Shared detail navigation uses declared `TargetJob.currentPracticePlanId` / `TargetJob.resumeId` without fabricating `plan-${targetJobId}` or `resume-unbound`, and retired independent workspace detail anchors are covered by negative tests（验证：`frontend/src/app/navigation/interviewContext.ts`, `interviewContext.test.ts`, `WorkspaceHandoff.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts` PASS）
+- [x] 5.3 Shared detail navigation uses declared `TargetJob.currentPracticePlanId` / `TargetJob.resumeId` without fabricating `plan-${targetJobId}` or `resume-unbound`, and out-of-scope independent workspace detail anchors are covered by negative tests（验证：`frontend/src/app/navigation/interviewContext.ts`, `interviewContext.test.ts`, `frontend/src/app/screens/workspace/WorkspaceEmptyState.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts` PASS）
 - [x] 5.4 BDD-Gate: `E2E.P0.016` and `E2E.P0.018` prove first-import detail and workspace list re-entry land on the same unified detail mother page（验证：scenario trigger/verify PASS）
 
 ## Phase 6: Readonly plan detail simplification

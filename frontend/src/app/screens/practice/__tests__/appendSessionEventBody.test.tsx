@@ -120,7 +120,7 @@ function assertSchemaShape(body: Record<string, unknown>): void {
   expect(typeof body.kind).toBe("string");
   expect(ALLOWED_KINDS.has(body.kind as string)).toBe(true);
   expect(typeof body.payload).toBe("object");
-  // No non-current / disallowed top-level keys.
+  // No out-of-scope / disallowed top-level keys.
   for (const key of Object.keys(body)) {
     expect(REQUIRED_KEYS).toContain(key as (typeof REQUIRED_KEYS)[number]);
   }
@@ -182,12 +182,4 @@ describe("appendSessionEvent body schema", () => {
     expect(body.payload).toEqual({});
   });
 
-  it("rejects unknown payload keys at compile time (kind-typed inputs)", () => {
-    // This test is documentation: the hook accepts only the typed inputs
-    // (SubmitAnswerInput / TurnTargetedInput) per usePracticeEvents.
-    // Adding `extra` as a key to any input below should produce a TS error
-    // — keep this assertion as the runtime smoke that the inputs typing
-    // remains reachable to consumers.
-    expect(true).toBe(true);
-  });
 });

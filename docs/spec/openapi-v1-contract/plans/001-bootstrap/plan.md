@@ -1,8 +1,8 @@
 # 001 - OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 落地当前 B2 OpenAPI v1 contract bootstrap：
 
-- `openapi/openapi.yaml` is the single HTTP contract truth source for current 36 operations / 10 tags.
+- `openapi/openapi.yaml` is the single HTTP contract truth source for current 37 operations / 10 tags.
 - Go generated server/types live in `backend/internal/api/generated/`.
 - TypeScript generated client/types live in `frontend/src/api/generated/`.
 - Root Make targets provide `codegen-openapi`, `codegen-check`, `lint-openapi`, and `docs-openapi`.
@@ -24,7 +24,7 @@ This completed owner plan is now an executable evidence index. It does not prese
 
 | Surface | Current contract | Gate |
 |---------|------------------|------|
-| OpenAPI inventory | 10 tags, 36 operations, `/api/v1` prefix, session-cookie auth, public/protected operation security | `make lint-openapi`, inventory tests |
+| OpenAPI inventory | 10 tags, 37 operations, `/api/v1` prefix, session-cookie auth, public/protected operation security | `make lint-openapi`, inventory tests |
 | Error envelope | B1 `ApiError` inner object + B2 `ApiErrorResponse` wire envelope | generator tests, codegen-check |
 | Shared types | B1 enum/page/error conventions are reused; OpenAPI does not duplicate shared enum ownership | conventions drift and generated tests |
 | Codegen | Go server/types and TS client/types are reproducible from `openapi/openapi.yaml` | `make codegen-openapi`, `make codegen-check` |
@@ -37,8 +37,8 @@ This completed owner plan is now an executable evidence index. It does not prese
 |-----|------------|
 | Auth | `getMe`, `completeMyProfile`, `deleteMe`, `startAuthEmailChallenge`, `verifyAuthEmailChallenge`, `logout`, `getRuntimeConfig` |
 | Uploads | `createUploadPresign` |
-| Resumes | `listResumes`, `registerResume`, `getResume`, `updateResume`, `duplicateResume`, `archiveResume`, `exportResume` |
-| TargetJobs | `importTargetJob`, `listTargetJobs`, `getTargetJob`, `updateTargetJob` |
+| Resumes | `listResumes`, `registerResume`, `getResume`, `getResumeSource`, `updateResume`, `duplicateResume`, `archiveResume`, `exportResume` |
+| TargetJobs | `importTargetJob`, `listTargetJobs`, `getTargetJob`, `updateTargetJob`, `archiveTargetJob` |
 | PracticePlans | `createPracticePlan`, `getPracticePlan` |
 | PracticeSessions | `listPracticeSessions`, `startPracticeSession`, `getPracticeSession`, `appendSessionEvent`, `completePracticeSession`, `createPracticeVoiceTurn` |
 | Reports | `getFeedbackReport`, `listTargetJobReports` |
@@ -59,7 +59,7 @@ This completed owner plan is now an executable evidence index. It does not prese
 
 Current root Make targets owned by this plan:
 
-- `make lint-openapi`: validates `openapi/openapi.yaml` and the current 10-tag / 36-operation inventory.
+- `make lint-openapi`: validates `openapi/openapi.yaml` and the current 10-tag / 37-operation inventory.
 - `make codegen-openapi`: regenerates Go and TypeScript OpenAPI artifacts.
 - `make codegen-check`: verifies generated OpenAPI artifacts are reproducible and not drifted.
 - `make docs-openapi`: renders the local OpenAPI HTML document.
@@ -86,5 +86,6 @@ BDD is not applicable. This plan owns internal API contract and generated artifa
 
 | Date | Version | Change |
 |------|---------|--------|
-| 2026-07-07 | 1.7 | Compress owner plan to current 36-operation / 10-tag OpenAPI contract and executable evidence index. |
+| 2026-07-10 | 1.8 | Align owner inventory with the current 37-operation contract including `getResumeSource` and `archiveTargetJob`. |
+| 2026-07-07 | 1.7 | Compress owner plan to the 2026-07-07 36-operation / 10-tag OpenAPI contract and executable evidence index. |
 | 2026-05-04 | 1.6 | Complete OpenAPI v1 bootstrap delivery. |

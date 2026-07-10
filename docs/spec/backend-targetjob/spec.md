@@ -1,8 +1,8 @@
 # Backend TargetJob Spec
 
-> **版本**: 2.4
+> **版本**: 2.7
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -25,7 +25,7 @@
 - 4 类导入源（`url` / `manual_text` / `file` / `manual_form`）的写入路径与归一化：source snapshot 写入 `target_job_sources`，`raw_jd_text` 只在 `target_jobs` 表内部保留，事件 / 日志 / metric / audit 不携带原文。
 - URL 导入的 fetch 边界：scheme / DNS-IP SSRF 防护、length cap、timeout、`fetched_at` 与 `freshness_status` 写入；不抓登录后内容、不绕过 robots / ToS、不抓非 HTML 资源。
 - File 导入的 `file_objects` 引用：仅接受 `purpose='target_job_attachment'` 的 file object；缺失或越权返回 B1 error envelope，不泄露文件内容。
-- 异步 JD 解析管线：消费 `target_import` job → 使用 [F3 `RegistryClient.Resolve("target.import.parse", language)`](../prompt-rubric-registry/spec.md) 解析三元组 → 调用 [A3 `AIClient`](../ai-provider-and-model-routing/spec.md) → 写入 `target_job_requirements` + `target_jobs.summary` + `target_jobs.fit_summary` + `provenance`，事务内更新 `analysis_status`，并与 `target.parsed` / `target.analysis.failed` outbox 事件及 `source_refresh` 占位 job 保持原子提交。
+- 异步 JD 解析管线：消费 `target_import` job → 使用 [F3 `RegistryClient.Resolve("target.import.parse", language)`](../prompt-rubric-registry/spec.md) 解析三元组 → 调用 [A3 `AIClient`](../ai-provider-and-model-routing/spec.md) → 写入 `target_job_requirements` + `target_jobs.summary` + `target_jobs.fit_summary` + `provenance`，事务内更新 `analysis_status`，并与 `target.parsed` / `target.analysis.failed` outbox 事件及 internal-only `source_refresh` follow-up job 保持原子提交。
 - 异步执行边界：`target_import` / `source_refresh` 已由 [backend-async-runner](../backend-async-runner/spec.md) 的单一 backend-internal kernel 接管；本 subject 保留 TargetJob handler / service / store / executor 业务实现，不引入独立 worker 进程，也不自建 Asynq 集群。
 - Cross-user / cross-tenant 隔离：所有 read / write 必须按 `user_id` 过滤；越权访问返回 404，不泄露目标存在性。
 - Idempotency：`importTargetJob` / `updateTargetJob` / `archiveTargetJob` 必须按 `(user_id, idempotency_key)` 去重；同 key 重复请求返回同一 `targetJobId` / 同一 `target_import` job 或同一 archived TargetJob，不创建多余记录或多余 job。
@@ -38,7 +38,7 @@
 - 不实现岗位推荐（Job Picks / JD Match）：该模块按 product-scope D-17 不在当前范围；本 subject 不新增 recommendation endpoint、JD search endpoint 或 data-source plan。
 - 不实现 `MockInterviewPlan` / `practice_plans` 创建、修改、列表；归 `backend-practice` owner。
 - 不实现简历或 `resume_versions` 的解析、改写、绑定到 plan；归 `backend-resume` owner。
-- 不实现独立 `company_intel` 抓取、聚合、刷新或详情页数据源；本 spec 只允许 `target.parsed` 事件触发 internal-only `source_refresh` job 的占位入口，供 workspace 内嵌公司轻情报摘要消费当前 TargetJob 公开摘要，实际抓取刷新需要先回 owner spec 重新设计。
+- 不实现独立 `company_intel` 抓取、聚合、刷新或详情页数据源；本 spec 只允许 `target.parsed` 事件触发 internal-only `source_refresh` job，由 handler 将 source 标记为 `stale`，供 workspace 内嵌公司轻情报摘要消费当前 TargetJob 公开摘要；真实外部抓取刷新不在本 subject 内，需先回 owner spec 重新设计。
 - 不实现独立 worker / Asynq dispatcher / 生产级 outbox consumer；P0 用 backend-internal drainer 完成本地与 BDD 验证。
 - 不修改 B2 OpenAPI、B3 events.yaml / jobs.yaml、B4 baseline 表结构、A3 provider 协议、F3 `target.import.parse` baseline prompt / rubric 文本；任何修改先回到 owner spec。
 - 不实现报告生成、证据回收或错题回顾；这些归 `backend-review` 等 owner。真实面试复盘按 product-scope D-22 不在当前范围，不再作为 downstream owner。
@@ -60,7 +60,7 @@
 | D-7 | URL fetch 安全 | 仅允许 `https` scheme；阻止私网 / 链路本地 / 元数据服务 IP；总 body cap 1 MiB；fetch 超时 10s；不跟随 cross-origin redirect 进入私网；user agent 显式标注 EasyInterview crawler 版本；保存 snapshot 时去除 query secret | 防止 SSRF、爬虫滥用与日志泄露 |
 | D-8 | 隐私红线 | 事件 / metric label / log / audit / async payload 不得包含 `raw_jd_text`、`source_url` 完整路径、文件 object URL、AI prompt / response body、provider secret；只允许 hash、长度、language、status、profile、provider、model_id、cost micros、error code | 与 product-scope §9.3 / F1 一致 |
 | D-9 | Cross-user 隔离 | 所有 read / write SQL 必须按 `user_id` 过滤；越权访问 `getTargetJob` / `updateTargetJob` 返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND` 而不是 `FORBIDDEN`，避免泄露存在性 | 与 [backend-auth `DELETE /me` 同 key 用户隔离](../backend-auth/spec.md) 一致 |
-| D-10 | 解析失败可重试 | A3 返回 `AI_PROVIDER_TIMEOUT` / `AI_FALLBACK_EXHAUSTED` 等 retryable 错误时 `target.analysis.failed.retryable=true`；`AI_OUTPUT_INVALID` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID` / `TARGET_IMPORT_SOURCE_INVALID` 为 `retryable=false`；URL 上游暂时不可达映射 `TARGET_IMPORT_SOURCE_UNAVAILABLE` 且 `retryable=true` | 让前端、运维与未来 retry plan 有一致重试语义；禁止使用未登记的 non-current alias |
+| D-10 | 解析失败可重试 | A3 返回 `AI_PROVIDER_TIMEOUT` / `AI_FALLBACK_EXHAUSTED` 等 retryable 错误时 `target.analysis.failed.retryable=true`；`AI_OUTPUT_INVALID` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID` / `TARGET_IMPORT_SOURCE_INVALID` 为 `retryable=false`；URL 上游暂时不可达映射 `TARGET_IMPORT_SOURCE_UNAVAILABLE` 且 `retryable=true` | 让前端、运维与未来 retry plan 有一致重试语义；禁止使用未登记的 out-of-scope alias |
 | D-11 | manual_form 同步路径 | 用户手工录入的 `manual_form` 直接写入 requirements 草稿且 `analysis_status='ready'`，跳过异步解析；HTTP 仍返回 `202 + TargetJobWithJob`，其中 `job.status='succeeded'` 表示 terminal compatibility job，不派发 `target.import.requested` / `target.parsed` | 让“手工兜底”不被 AI 故障阻塞，同时保持 B2 wire shape 与 generated client 不分叉 |
 | D-12 | 重新解析 owner 边界 | `ui-design/src/screens-p0-complete.jsx::ParseScreen` 已提供前端 `Re-parse / 重新解析` 体验；后端 P0 不新增 rerun endpoint 或 rerun job，前端重新解析需要落地真实数据时通过现有 `importTargetJob` 创建新的 import / TargetJob，或在后续 frontend plan 内消费既有 generated client | 避免后端 plan 把前端交互按钮误列为后端待确认事项 |
 | D-13 | import source event 映射 | `target.import.requested.sourceType` 复用 B3 event-local `url/text/file`：B2 `manual_text` 映射为 `text`，B2 `manual_form` 不发该事件；exact API source variant 只存在于 B2 request / DB `source_type` | 保持事件 payload 表达“需要异步导入/解析的请求”，避免同步兜底场景污染 runner 语义 |
@@ -93,8 +93,8 @@
 
 - 所有写入必须在事务内完成；`target.import.requested` / `target.parsed` / `target.analysis.failed` 必须通过 outbox（B3 工作集）发出，与业务写入同事务，避免双写。
 - `target_job_requirements.kind` 仅允许 B4 已有 CHECK 列表（`must_have` / `nice_to_have` / `hidden_signal` / `interview_focus`）；B2 OpenAPI / fixtures 必须在 Phase 0 additive 扩展到同一列表后，backend 才能在 API response 中返回 `hidden_signal` / `interview_focus`。
-- `target_job_sources.freshness_status` 默认 `fresh`，URL 抓取后写 `fetched_at`、sanitized `url` 与 `snapshot_text`；后续 internal-only `source_refresh` job 由 `target.parsed` 触发，本 plan 仅保证占位入口可观测，不实现真实抓取刷新。
-- TargetJob store / handler / runner SQL 只能引用当前 B4 `target_jobs` 表真实列；退役 profile 模块的 `profile_id` 不得出现在 active TargetJob 读写路径、sqlmock 列集合或 integration gate 中。
+- `target_job_sources.freshness_status` 默认 `fresh`，URL 抓取后写 `fetched_at`、sanitized `url` 与 `snapshot_text`；后续 internal-only `source_refresh` job 由 `target.parsed` 触发，handler 将 source 标记为 `stale`，不执行真实外部抓取刷新。
+- TargetJob store / handler / runner SQL 只能引用当前 B4 `target_jobs` 表真实列；已移除 profile 模块的 `profile_id` 不得出现在 active TargetJob 读写路径、sqlmock 列集合或 integration gate 中。
 - 软删：`archiveTargetJob` 必须原子写入 `target_jobs.status='archived'` 与 `deleted_at`；`deleted_at IS NOT NULL` 的 `target_jobs` 不参与列表 / 详情 / 解析；查询必须显式过滤。
 - `target.import.parse` 输出的 `title` 是必需岗位身份；`companyName` 是可选展示字段。JD 未披露公司名时，parse success path 必须写入语言相关兜底展示值（`zh-*` 为 `未提供`，其他语言为 `Unknown company`），不得把有效 JD 标记为 `AI_OUTPUT_INVALID`。
 
@@ -154,13 +154,13 @@
 | C-11 | manual_form 同步路径 | 用户提交 `manual_form` 含 `title` / `companyName` / `rawDescription` | `POST /targets/import` | 同步写入 `target_jobs.analysis_status='ready'` + 草稿 requirements；返回 `202 + TargetJobWithJob` 且 `job.status='succeeded'`；不派发 runner job、不发出 `target.import.requested` / `target.parsed` | 001 |
 | C-12 | Idempotency dedupe | 用户用同一 `Idempotency-Key` 重复 `importTargetJob` | 同一秒内重复发起 | 返回同一 `targetJobId` 与同一 active `target_import` job，DB 不出现重复 row，outbox 不重复发事件 | 001 |
 | C-13 | 契约前置修订 | B1/B2/B3/F1 当前 contract 缺少本域所需错误码、fixture scenario、sourceType 映射说明或 metric 名 | 执行 001 Phase 0 | `shared/conventions.yaml` / OpenAPI fixtures / B3 sourceType 说明 / F1 metric dictionary 与本 spec 场景一致，`make codegen-check` / `make validate-fixtures` / `make lint-events` / metric registry tests 可执行 | 001 |
-| C-14 | 文档与修订记录治理 | 本 spec 状态变更或字段调整 | 更新 spec / history / `plans/INDEX.md` / `docs/spec/INDEX.md` | 文档保持单一 owner，无 sibling spec；non-current `feature_key` / `voice` route / `mistake.*` 等口径不出现在 active 文档 | docs-only |
-| C-15 | 当前 B4 schema 对齐 | D-20/D-17 后 profile 模块已退役，`target_jobs.profile_id` 不存在 | `GET /targets/{id}` / `GET /targets` / `PATCH /targets/{id}` / `target_import` drainer 读取 TargetJob | active SQL 不引用 `profile_id`；解析成功/ready TargetJob 详情不因旧列漂移返回 500；解析失败 TargetJob 已被删除，详情返回 404 而非脏失败态资产 | 001 |
+| C-14 | 文档与修订记录治理 | 本 spec 状态变更或字段调整 | 更新 spec / history / `plans/INDEX.md` / `docs/spec/INDEX.md` | 文档保持单一 owner，无 sibling spec；out-of-scope `feature_key` / `voice` route / `mistake.*` 等口径不出现在 active 文档 | docs-only |
+| C-15 | 当前 B4 schema 对齐 | D-20/D-17 后 profile 模块已移除，`target_jobs.profile_id` 不存在 | `GET /targets/{id}` / `GET /targets` / `PATCH /targets/{id}` / `target_import` drainer 读取 TargetJob | active SQL 不引用 `profile_id`；解析成功/ready TargetJob 详情不因已移除列引用漂移返回 500；解析失败 TargetJob 已被删除，详情返回 404 而非脏失败态资产 | 001 |
 | C-16 | 有效 JD 未披露公司名 | 用户提交有效 JD，AI 输出包含 title / requirements 但 `companyName` 为空 | `target_import` drainer 调用真实 provider 并完成 parse | TargetJob 进入 `analysisStatus='ready'`，`companyName` 写入语言相关兜底值，requirements 可见，`ai_task_runs` 记录 jd_parse provider/model/status/validation 摘要；markdown fenced JSON 可解析，带 prose 的输出仍失败 | 001 |
 
 ## 7 关联计划
 
-- [001-targetjob-import-and-parse-bootstrap](./plans/001-targetjob-import-and-parse-bootstrap/plan.md)（active）：先修 B1/B2/B3/F1 owner 契约，再落地 5 个 TargetJob operation、4 类导入源处理、`target_import` 异步解析管线、持久归档、隐私 / 观测红线、`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` / `E2E.P0.018` BDD 场景；2026-07-08 已追加 `profile_id` 退役列漂移修复 gate；2026-07-09 已追加有效 JD 缺公司名兜底、parse AI task-run observability gate、解析失败不得持久化 TargetJob 资产的准入修复 gate，以及 workspace 删除图标调用 `archiveTargetJob` 的持久归档 gate。
+- [001-targetjob-import-and-parse-bootstrap](./plans/001-targetjob-import-and-parse-bootstrap/plan.md)（active）：先修 B1/B2/B3/F1 owner 契约，再落地 5 个 TargetJob operation、4 类导入源处理、`target_import` 异步解析管线、持久归档、隐私 / 观测红线、`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` / `E2E.P0.018` BDD 场景；2026-07-08 已追加 `profile_id` 已移除列漂移修复 gate；2026-07-09 已追加有效 JD 缺公司名兜底、parse AI task-run observability gate、解析失败不得持久化 TargetJob 资产的准入修复 gate，以及 workspace 删除图标调用 `archiveTargetJob` 的持久归档 gate。
 
 ## 8 相关文档
 

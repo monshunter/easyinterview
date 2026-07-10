@@ -113,12 +113,26 @@ describe("PracticeScreen static shell (item 1.1)", () => {
     expect(screen.queryByTestId("practice-input-dictate")).toBeNull();
   });
 
-  it("does not render a right panel in text mode", () => {
+  it("renders the current two-column session layout in text mode", () => {
     withProviders(<PracticeScreen route={PRACTICE_ROUTE} />);
-    expect(screen.queryByTestId("practice-rightpanel")).toBeNull();
-    expect(screen.queryByTestId("practice-rightpanel-jd")).toBeNull();
-    expect(screen.queryByTestId("practice-rightpanel-ai-transparency")).toBeNull();
-    expect(screen.queryByTestId("practice-rightpanel-cta-finish")).toBeNull();
+    const main = screen.getByTestId("practice-main");
+    const center = screen.getByTestId("practice-center");
+    expect(main.contains(screen.getByTestId("practice-sessionmap"))).toBe(
+      true,
+    );
+    expect(main.contains(center)).toBe(true);
+    expect(center.contains(screen.getByTestId("practice-question"))).toBe(
+      true,
+    );
+    expect(center.contains(screen.getByTestId("practice-transcript"))).toBe(
+      true,
+    );
+    expect(center.contains(screen.getByTestId("practice-input"))).toBe(true);
+    expect(
+      screen
+        .getByTestId("practice-finish-cta-wrap")
+        .closest("[data-testid='practice-topbar']"),
+    ).not.toBeNull();
   });
 
   it("provides ≥ 20 unique practice-* testids on the static shell", () => {
@@ -139,9 +153,9 @@ describe("PracticeScreen static shell (item 1.1)", () => {
     expect(screen.queryByTestId("practice-phone-surface")).toBeNull();
   });
 
-  it("does not render non-current prototype testids (negative gate)", () => {
+  it("does not render out-of-scope prototype testids (negative gate)", () => {
     withProviders(<PracticeScreen route={PRACTICE_ROUTE} />);
-    // Non-current practice prototype surfaces excluded by the current spec.
+    // Out-of-scope practice prototype surfaces excluded by the current spec.
     expect(screen.queryByTestId("practice-mode-card-strict")).toBeNull();
     expect(screen.queryByTestId("practice-mode-card-assisted")).toBeNull();
     expect(screen.queryByTestId("growth-summary")).toBeNull();
@@ -177,14 +191,13 @@ describe("PracticeScreen static shell (item 1.1)", () => {
     );
   });
 
-  it("keeps hint available even when legacy practiceMode='strict'", () => {
+  it("keeps hint available even when out-of-scope practiceMode='strict'", () => {
     const strictRoute: Route = {
       ...PRACTICE_ROUTE,
       params: { ...PRACTICE_ROUTE.params, practiceMode: "strict" },
     };
     withProviders(<PracticeScreen route={strictRoute} />);
     expect(screen.getByTestId("practice-input-hint")).toBeDefined();
-    expect(screen.queryByTestId("practice-rightpanel-strict-banner")).toBeNull();
     expect(screen.queryByTestId("practice-topbar-strict")).toBeNull();
   });
 });

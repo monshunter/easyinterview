@@ -322,7 +322,7 @@ class ConventionsYAMLTest(unittest.TestCase):
             errs,
         )
 
-    def test_rejects_non_current_practice_mode_values(self) -> None:
+    def test_rejects_out_of_scope_practice_mode_values(self) -> None:
         data = copy.deepcopy(valid_data())
         for enum in data["enums"]:
             if enum["name"] == "PracticeMode":

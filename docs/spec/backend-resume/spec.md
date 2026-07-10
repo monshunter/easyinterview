@@ -1,6 +1,6 @@
 # Backend Resume Spec
 
-> **版本**: 2.3
+> **版本**: 2.4
 > **状态**: active
 > **更新日期**: 2026-07-07
 
@@ -50,7 +50,7 @@
 |----|------|--------|------|
 | D-1 | 术语映射 | 后端、OpenAPI 和前端统一使用单一 `Resume` / `resumeId`；持久化表为 `resumes` | 与 [B2 D-26](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围)、[B4 D-22](../db-migrations-baseline/spec.md) 和当前 frontend-resume-workshop 扁平简历 UI 一致 |
 | D-4 | parse 路径区分 | `RegisterResumeRequest.sourceType` 只允许 `upload | paste`：upload 必带 `fileObjectId`；paste 必带 `rawText`；其他组合返回 422 | [B2 D-26](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围) schema 已约束；handler 层 enforce；字段由 `resumes` 表承接 |
-| D-5 | tailor 模式 | `RequestResumeTailorRequest.mode` ∈ `gap_review | bullet_suggestions`（与 [B3 D-14](../event-and-outbox-contract/spec.md#31-已锁定决策含-jobtype-映射表) 对齐）；不启用非当前 `inline | rewrite | mirror` | events / API / DB 三层 mode enum 同源 |
+| D-5 | tailor 模式 | `RequestResumeTailorRequest.mode` ∈ `gap_review | bullet_suggestions`（与 [B3 D-14](../event-and-outbox-contract/spec.md#31-已锁定决策含-jobtype-映射表) 对齐）；不启用范围外 `inline | rewrite | mirror` | events / API / DB 三层 mode enum 同源 |
 | D-6 | RESUME_EXPORT_NOT_AVAILABLE 行为 | `exportResume` P0 默认返回 `501` + `error.code = "RESUME_EXPORT_NOT_AVAILABLE"`；P1 切到异步生成属于 additive 行为变化 | 类比 [B2 D-12 privacy export 例外](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围)；frontend toast 兜底 + copyText 真实可用 |
 | D-7 | listResumes pagination | 默认 pageSize=20，cursor 分页；返回 `PaginatedResume` | 与 [B2 D-5](../openapi-v1-contract/spec.md#31-已锁定决策v100-freeze-范围) 分页规则一致 |
 | D-8 | Resume side-effect operation 必带 IK | `registerResume` / `updateResume` / `duplicateResume` / `archiveResume` / `exportResume` / `requestResumeTailor` 共 6 个 side-effect operation 必带 `Idempotency-Key` | 防止网络抖动产生重复 resume、重复改写请求或重复归档 / 导出请求 |

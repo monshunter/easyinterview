@@ -8,7 +8,7 @@
  * Coverage classes (delegated):
  *   - **Verified here (vitest + jsdom)**: DOM anchors, className wiring,
  *     data-attribute flips on theme / dark / customAccent, inline-style
- *     overrides for customAccent oklch swatch, non-current-module negative
+ *     overrides for customAccent oklch swatch, out-of-scope-module negative
  *     assertions, i18n switch, and getComputedStyle for declared CSS
  *     variables (jsdom resolves `:root[data-theme=...][data-mode=...]`
  *     selectors and var() lookups against injected stylesheets).
@@ -204,13 +204,9 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
     expect(screen.getByTestId("auth-login-submit-email").className).toMatch(
       /\bei-auth-cta\b/,
     );
-    expect(
-      screen.queryByTestId("auth-login-password-stub"),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByTestId("auth-login-oauth-stub")).not.toBeInTheDocument();
   });
 
-  it("settings / placeholder render the ei-screen-shell + ei-screen-card scaffold", async () => {
+  it("settings / route shell render the ei-screen-shell + ei-screen-card scaffold", async () => {
     const client = buildClient();
     const { unmount: unmountSettings } = render(
       <App
@@ -242,7 +238,7 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
     expect(await screen.findByTestId("route-home")).toBeInTheDocument();
   });
 
-  it("non-current entries (welcome / standalone voice / growth / mistakes / drill) do not flow back", async () => {
+  it("out-of-scope entries (welcome / standalone voice / growth / mistakes / drill) do not flow back", async () => {
     const client = buildClient();
     render(
       <App
@@ -253,13 +249,13 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
       />,
     );
     expect(screen.queryByTestId("route-welcome")).not.toBeInTheDocument();
-    for (const nonCurrent of ["welcome", "growth", "mistakes", "drill", "voice"]) {
+    for (const outOfScope of ["welcome", "growth", "mistakes", "drill", "voice"]) {
       expect(
-        screen.queryByTestId(`topbar-nav-${nonCurrent}`),
+        screen.queryByTestId(`topbar-nav-${outOfScope}`),
       ).not.toBeInTheDocument();
-      expect(screen.queryByTestId(`route-${nonCurrent}`)).not.toBeInTheDocument();
+      expect(screen.queryByTestId(`route-${outOfScope}`)).not.toBeInTheDocument();
     }
-    // Settings must not surface non-current module copy.
+    // Settings must not surface out-of-scope module copy.
     const html = document.documentElement.outerHTML;
     expect(html).not.toMatch(/错题本|成长中心|经历库|目标角色|技能标签/);
   });

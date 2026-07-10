@@ -7,9 +7,8 @@
 # Reports file + line number; does NOT print the matched secret literal
 # itself (prevents the log from re-leaking the credential).
 #
-# This hook is registered through the umbrella scripts/git-hooks/pre-commit
-# placeholder owned by repo-scaffold; call it from there or from the
-# committer's local pre-commit framework.
+# This hook is registered through scripts/git-hooks/pre-commit; call it from
+# there or from the committer's local pre-commit framework.
 
 set -euo pipefail
 

@@ -31,7 +31,7 @@
 //     async_jobs row up, fetches the source body for url paths, asks F3 for
 //     prompt / rubric / model_profile, calls A3, persists requirements +
 //     summary, emits target.parsed, then enqueues an internal-only
-//     source_refresh placeholder.
+//     source_refresh follow-up job.
 //   - manual_form: sync stage writes target_jobs (analysis_status = ready) +
 //     target_job_requirements(must_have draft) + async_jobs(succeeded). It
 //     does not emit target.import.requested or target.parsed and is not

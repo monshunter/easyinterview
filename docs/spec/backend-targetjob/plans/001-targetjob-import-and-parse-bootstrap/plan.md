@@ -1,8 +1,8 @@
 # TargetJob Import and Parse Bootstrap
 
-> **版本**: 1.12
+> **版本**: 1.17
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -16,6 +16,9 @@
 本次 v1.10 原地修订修复解析失败准入缺口：`target_import` 失败事务必须删除 `target_jobs`，级联清理 source / requirements，保留 async job/outbox 失败证据；`listTargetJobs` / `getTargetJob` 不得再返回 `analysisStatus=failed` 的脏规划。
 本次 v1.11 原地修订新增 TargetJob 持久归档合同：`POST /targets/{targetJobId}/archive` 与 generated `archiveTargetJob` 必须设置 `status='archived'` 和 `deleted_at`，并让 `listTargetJobs` / `getTargetJob` 继续通过 `deleted_at is null` 隐藏已归档卡片。
 本次 v1.12 原地修订补齐归档与异步解析的边界：若归档发生在 `target_import` job 排队或重试期间，parse worker 读取到 TargetJob 已不可见时必须终结该 async job，不得再走失败清理并制造 retry storm。
+本次 v1.13 清理 `profile_id` schema-drift gate 的范围外生命周期标签口径，保留 active SQL 零引用和真实 Postgres gate。
+本次 v1.14 收敛 `source_refresh` 当前事实：解析成功事务写入 internal-only follow-up job，`SourceRefreshHandler` 消费后将 source 标记为 `stale`，文档不再描述为空触发入口。
+本次 v1.15 收敛 `latestReportId` 当前事实：它是 TargetJob 上的可空最新报告指针，`null` 表示该 JD 尚无关联报告，不再作为 scaffold 字段表述。
 
 本计划闭环后，[`frontend-home-job-picks-and-parse`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 的 parse 屏可从 mock fixture 切到真实 backend，剩余 Job Picks 推荐与 practice plan 创建归后续 plan / 后续 subspec。
 
@@ -92,7 +95,7 @@ F1 metrics dictionary 必须登记 `target_job_imports_total`、`target_job_pars
 
 #### 2.3 实现 `getTargetJob`
 
-按 `(user_id, target_job_id)` 读取；包含 requirements 数组（按 `display_order` 排序）、`summary` / `fitSummary` / `provenance`、`latestReportId`（当前为 nil 占位）、`openQuestionIssueCount`；越权或软删返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND`。
+按 `(user_id, target_job_id)` 读取；包含 requirements 数组（按 `display_order` 排序）、`summary` / `fitSummary` / `provenance`、`latestReportId`（可空最新报告指针；无关联报告时为 `null`）、`openQuestionIssueCount`；越权或软删返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND`。
 
 #### 2.4 实现 `updateTargetJob`
 
@@ -124,15 +127,15 @@ F1 metrics dictionary 必须登记 `target_job_imports_total`、`target_job_pars
 
 #### 4.3 写入解析结果与发出 `target.parsed`
 
-事务内 upsert `target_job_requirements`（按 `(target_job_id, kind, label)` 去重，`display_order` 累加）；更新 `target_jobs.summary` / `fit_summary` / `analysis_status='ready'`；事务内 outbox 写入 `target.parsed` 事件（payload 仅 `targetJobId / userId / analysisStatus / requirementCount / coreThemes`），并写入 `source_refresh` 占位 async job。事务外不再读取 AI response 明文。
+事务内 upsert `target_job_requirements`（按 `(target_job_id, kind, label)` 去重，`display_order` 累加）；更新 `target_jobs.summary` / `fit_summary` / `analysis_status='ready'`；事务内 outbox 写入 `target.parsed` 事件（payload 仅 `targetJobId / userId / analysisStatus / requirementCount / coreThemes`），并写入 internal-only `source_refresh` follow-up job。事务外不再读取 AI response 明文。
 
 #### 4.4 实现失败路径与 retryable 语义
 
 A3 / source 错误映射：`AI_PROVIDER_TIMEOUT` / `AI_FALLBACK_EXHAUSTED` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` → `retryable=true`；`AI_OUTPUT_INVALID` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_SECRET_MISSING` / `AI_PROVIDER_CONFIG_INVALID` / `TARGET_IMPORT_SOURCE_INVALID` → `retryable=false`。失败事务内写入 `target.analysis.failed` outbox 事件（`targetJobId / errorCode / retryable`），随后删除失败 `target_jobs` 行并级联清理 `target_job_sources` / `target_job_requirements`，保证失败 JD 不作为可继续规划或列表资产持久化；用户重试必须重新 import。
 
-#### 4.5 占位 `source_refresh` 触发入口
+#### 4.5 Internal-only `source_refresh` follow-up job
 
-`target.parsed` 事件触发 internal-only `async_jobs(job_type=source_refresh)` 占位（B3 dotted task name `source.refresh`，但 DB canonical 使用 `source_refresh`）；本 plan 不实现真实抓取刷新，仅保证 job 写入路径可观测、payload 不泄露 source URL 完整路径，并在 drainer 端用空 handler 标记 `freshness_status='stale'` 等待后续 plan 接管。
+`target.parsed` 事件触发 internal-only `async_jobs(job_type=source_refresh)`（B3 dotted task name `source.refresh`，但 DB canonical 使用 `source_refresh`）；本 plan 不实现真实外部抓取刷新，当前 handler 只消费该 job 并将 `target_job_sources.freshness_status` 标记为 `stale`，同时保证 job 写入路径可观测、payload 不泄露 source URL 完整路径。
 
 ### Phase 8: JD identity and current-plan binding remediation
 
@@ -149,7 +152,7 @@ A3 / source 错误映射：`AI_PROVIDER_TIMEOUT` / `AI_FALLBACK_EXHAUSTED` / `TA
 
 ### Phase 10: Real-provider parse robustness remediation
 
-- `target.import.parse` success requires a non-empty `title`, but `companyName` is a display field that may be absent from valid JDs. Empty `companyName` must coalesce to a language-specific placeholder (`未提供` for `zh-*`, `Unknown company` otherwise) instead of failing the whole parse as `AI_OUTPUT_INVALID`.
+- `target.import.parse` success requires a non-empty `title`, but `companyName` is a display field that may be absent from valid JDs. Empty `companyName` must coalesce to a language-specific fallback display value (`未提供` for `zh-*`, `Unknown company` otherwise) instead of failing the whole parse as `AI_OUTPUT_INVALID`.
 - A3 output-schema validation and TargetJob response decoding may normalize one provider deviation: a single complete JSON value wrapped in a markdown code fence. Prose before/after the fence or multiple JSON values remain invalid to preserve strict BUG-0095 behavior.
 - `cmd/api` TargetJob runtime must wrap parse AI with A3 observability and write `ai_task_runs` for `jd_parse`, including provider/model/status/validation status. Real-provider parse failures must have task-run evidence for diagnosis.
 - Runtime smoke must prove the screenshot class of JD imports reaches `analysisStatus='ready'`, persists fallback `companyName`, renders the parse route without `JD 解析失败`, and records a successful `ai_task_runs` row.
@@ -180,7 +183,7 @@ privacy grep 必须覆盖：log / metric label / audit / outbox payload / async 
 
 #### 6.3 Active-scope 负向搜索
 
-代码 / 文档 active scope 不得引入：`mistake.*` / `growth.*` / 独立 `voice` route / 独立 `report` 一级 route / 旧 `feature_key` 命名（如 `jd.parse` / `target.parse` 旧别名）/ embedding / rerank capability / 独立 worker 进程依赖 / 旧 `interview_round` 独立模块假设。除本 gate 文本、negative test token、test fake 未实现方法和 handler service-not-configured guard 外，grep 命中即视为 plan 失败。
+代码 / 文档 active scope 不得引入：`mistake.*` / `growth.*` / 独立 `voice` route / 独立 `report` 一级 route / out-of-scope `feature_key` 命名（如 `jd.parse` / `target.parse` 范围外别名）/ embedding / rerank capability / 独立 worker 进程依赖 / out-of-scope `interview_round` 独立模块假设。除本 gate 文本、negative test token、test fake 未实现方法和 handler service-not-configured guard 外，grep 命中即视为 plan 失败。
 
 ### Phase 7: L2 remediation and reopened BDD gate
 
@@ -202,7 +205,7 @@ privacy grep 必须覆盖：log / metric label / audit / outbox payload / async 
 
 #### 7.5 Generated error envelope remediation
 
-TargetJob handler 必须返回 B1/B2 generated `ApiErrorResponse` envelope：所有错误响应统一为 `{ "error": { "code", "message", "requestId", "retryable" } }`，不得再返回 non-current `{"errors":[...]}`。focused tests 必须覆盖 import / list / get / update 的鉴权、idempotency、not-found、invalid-source、source-unavailable 与 invalid-transition 错误，且断言没有 non-current `errors` key。
+TargetJob handler 必须返回 B1/B2 generated `ApiErrorResponse` envelope：所有错误响应统一为 `{ "error": { "code", "message", "requestId", "retryable" } }`，不得再返回 out-of-scope `{"errors":[...]}`。focused tests 必须覆盖 import / list / get / update 的鉴权、idempotency、not-found、invalid-source、source-unavailable 与 invalid-transition 错误，且断言没有 out-of-scope `errors` key。
 
 #### 7.6 List pagination envelope remediation
 
@@ -224,9 +227,9 @@ AI parse 输出必须在写 DB 前严格校验：无有效 requirement、非法 
 
 `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 必须通过 `cmd/api` HTTP scenario harness 执行，覆盖 auth middleware、HTTP API、TargetJob handler/service、in-process drainer 与 parse executor。验证输出必须保留 `status=passed` / `method=cmd-api-http` / `validBddEvidence=true`，不得退化成包级 focused test 代理证据。
 
-#### 7.11 Retired `profile_id` schema-drift remediation
+#### 7.11 Removed `profile_id` schema-drift remediation
 
-TargetJob store / service / handler / drainer 所有 active SQL 必须与当前 B4 `target_jobs` 表结构一致，不得继续 select / insert / scan 已退役 profile 模块的 `profile_id` 列。验证必须覆盖 sqlmock 列集合与真实 Postgres integration gate；解析失败资产由 Phase 11 删除，`GET /targets/{id}` 应返回 404 + `TARGET_JOB_NOT_FOUND`，而不是暴露 failed TargetJob 或旧列漂移 500。
+TargetJob store / service / handler / drainer 所有 active SQL 必须与当前 B4 `target_jobs` 表结构一致，不得继续 select / insert / scan 已移除 profile 模块的 `profile_id` 列。验证必须覆盖 sqlmock 列集合与真实 Postgres integration gate；解析失败资产由 Phase 11 删除，`GET /targets/{id}` 应返回 404 + `TARGET_JOB_NOT_FOUND`，而不是暴露 failed TargetJob 或已移除列引用漂移 500。
 
 #### 7.12 Required integration gate skip-proof remediation
 
@@ -240,7 +243,7 @@ BUG-0142 的真实 Postgres gate 是强制 schema-drift 防线，不得在缺少
 
 #### 11.2 Read-side and frontend defense alignment
 
-后端 read-side 不允许返回失败解析资产；前端 `WorkspacePlanList` / `PlanSwitcherModal` 仍必须请求 `analysisStatus=ready` 并过滤空标题作为防御，避免历史脏数据或非当前环境回灌到面试列表。验证必须覆盖 `listTargetJobs` query filter、failed / blank title negative card、TopBar 空参数回到列表而不是复用 stale context。
+后端 read-side 不允许返回失败解析资产；前端 `WorkspacePlanList` / `PlanSwitcherModal` 仍必须请求 `analysisStatus=ready` 并过滤空标题作为防御，避免历史脏数据或范围外环境回灌到面试列表。验证必须覆盖 `listTargetJobs` query filter、failed / blank title negative card、TopBar 空参数回到列表而不是复用 stale context。
 
 ### Phase 12: TargetJob archive/delete integration
 
@@ -264,7 +267,7 @@ Additive 修订 `openapi/openapi.yaml`、TargetJobs fixture 与 operation invent
 
 - Phase 0 owner contract gates 通过：B1/B2 codegen drift clean，TargetJobs fixture scenarios schema-valid，B3 sourceType mapping lint clean，F1 TargetJob metrics registry tests 通过。
 - 5 个 TargetJob operation 的 handler / service / store focused Go tests 全部通过；URL fetcher SSRF / length / timeout / redirect / metadata-IP 矩阵全部覆盖；drainer drain / shutdown / pending-on-restart tests 通过。
-- 异步解析成功 / 失败（retryable / non-retryable）路径事务一致；outbox 在事务内写入 `target.import.requested` / `target.parsed` / `target.analysis.failed`，成功路径写入下游 internal-only `source_refresh` 占位 job；失败路径删除失败 TargetJob 资产，`listTargetJobs` / `getTargetJob` 均不可返回失败解析产物。
+- 异步解析成功 / 失败（retryable / non-retryable）路径事务一致；outbox 在事务内写入 `target.import.requested` / `target.parsed` / `target.analysis.failed`，成功路径写入下游 internal-only `source_refresh` follow-up job；失败路径删除失败 TargetJob 资产，`listTargetJobs` / `getTargetJob` 均不可返回失败解析产物。
 - F3 Resolve fail-closed 与 A3 缺 secret fail-closed 路径覆盖；除 `APP_ENV=test` 外不静默回退 stub。
 - TargetJob handler 错误响应符合 generated `ApiErrorResponse`，`listTargetJobs.pageInfo.pageSize` 符合 B1/B2 envelope，AI parse 输出无有效 requirement 或非法字段时走 `AI_OUTPUT_INVALID`。
 - privacy grep 0 命中 `raw_jd_text` / `source_url` 完整 URL / 文件 URL / prompt / response / `Authorization:` 等敏感模式。
@@ -274,7 +277,7 @@ Additive 修订 `openapi/openapi.yaml`、TargetJobs fixture 与 operation invent
 - TargetJob import/list/get persist and expose the JD-level resume binding: `ImportTargetJobRequest.resumeId` is required, `target_jobs.resume_id` is non-null for created rows, and list/detail responses keep `TargetJob.resumeId` present even when no `practice_plans` row exists.
 - TargetJob archive persists user delete from workspace: `archiveTargetJob` sets `status='archived'` and `deleted_at`, list/detail hide the row after refresh, repeated archive is conflict-scoped, and frontend delete uses generated client rather than local-only hiding.
 - Valid JDs that omit company names parse successfully with a language-specific fallback company display value, strict fenced-JSON-only normalization, `ai_task_runs` evidence, and real browser proof that `/parse` no longer renders `JD 解析失败`.
-- Active-scope 负向搜索 0 命中已丢弃模块 / route / capability。
+- Active-scope 负向搜索 0 命中范围外模块 / route / capability。
 
 ## 6 风险与应对
 
@@ -285,6 +288,6 @@ Additive 修订 `openapi/openapi.yaml`、TargetJobs fixture 与 operation invent
 | URL fetch 引发 SSRF / 内网泄露 | Phase 3.3 SSRF 测试矩阵覆盖私网 / 链路本地 / 元数据 / redirect / oversize；UA 与 timeout 显式可测试 |
 | AI prompt / response 明文进入日志 / 事件 | Phase 5.1 privacy grep + generated outbox payload helper + observability decorator hash-only 摘要 |
 | Idempotency 被跨用户复用 | Phase 5.3 store-level user-scoped dedupe + handler 层 user_id 过滤 + 越权返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND` |
-| 旧 `feature_key` / 旧 voice / 旧 mistake 模块在 review 中悄悄回潮 | Phase 6.3 active-scope 负向搜索 + plan-code-review L2 检查 |
+| 已移除 `feature_key` / out-of-scope voice / out-of-scope mistake 模块在 review 中回流 | Phase 6.3 active-scope 负向搜索 + plan-code-review L2 检查 |
 | `manual_form` 草稿 requirements 质量低 | 仅作为 P0 兜底；后续若产品要求细化，由独立 plan 处理，不在本 plan 引入 AI 重解析 |
 | BDD 场景未来可能回退成只跑包级 focused tests，导致 evidence 再次被误读 | Phase 7.3 / 7.9 / 7.10 已把 p0-010..013 固定为 `cmd/api` HTTP scenario harness；verify output 必须保留 `method=cmd-api-http` / `validBddEvidence=true`，并由 6.1-6.4 BDD gate 注释记录 result.json 证据 |

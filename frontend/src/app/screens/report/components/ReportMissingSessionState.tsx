@@ -9,8 +9,8 @@ interface ReportMissingSessionStateProps {
 
 /**
  * Source-level mirror of ui-design/src/screen-report.jsx::ReportMissingSessionState
- * (lines 46-59). Renders when the route enters /report without a sessionId — we
- * never invent placeholder report data, only direct the user back to history.
+ * (lines 46-59). Renders when the route enters /report without a sessionId - we
+ * never invent synthetic report data, only direct the user back to history.
  */
 export const ReportMissingSessionState: FC<ReportMissingSessionStateProps> = ({
   kind = "missingSession",

@@ -120,8 +120,8 @@ def test_dimension_name_allowlist(tmp_path):
     TestDimensionNameAllowlist(tmp_path)
 
 
-def test_non_current_jd_match_dimension_names_are_rejected(tmp_path):
-    """JD-Match D-12 rubric dimensions are non-current."""
+def test_out_of_scope_jd_match_dimension_names_are_rejected(tmp_path):
+    """JD-Match D-12 rubric dimensions are out-of-scope."""
     dimensions = (
         '  - name: "relevance_to_profile"\n'
         '    weight: 0.2\n'

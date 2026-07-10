@@ -63,7 +63,7 @@ describe("MockInterviewCard", () => {
       <MockInterviewCard job={noLocationJob} onClick={() => {}} />,
     );
 
-    expect(screen.getByText("Remote / TBD")).toBeInTheDocument();
+    expect(screen.getByText("Location not set")).toBeInTheDocument();
   });
 
   it("renders MiniRoundRail testid", () => {

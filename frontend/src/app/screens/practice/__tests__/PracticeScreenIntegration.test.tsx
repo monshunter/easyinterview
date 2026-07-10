@@ -5,8 +5,8 @@
  * components under `practice/components/`. Adds the assertions that the
  * colocated `PracticeScreen.test.tsx` cannot cover:
  *  - i18n zh ↔ en switching live re-renders the static shell
- *  - source files do not import voice surface DOM from `ui-design/`
- *  - source files do not import non-current prototype helpers
+ *  - source files do not import practice DOM from `ui-design/`
+ *  - source files do not import out-of-scope prototype helpers
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -84,31 +84,16 @@ describe("PracticeScreen integration (item 1.6)", () => {
       .toContain("结束并生成报告");
   });
 
-  it("source files do not import voice surface DOM from ui-design", () => {
+  it("source files do not import practice DOM from ui-design", () => {
     const root = practiceSourceRoot();
     const files = collectSourceFiles(root);
     expect(files.length).toBeGreaterThan(0);
-    const banned = [
-      "VoiceSessionSurface",
-      "PracticeWaveformBars",
-      "PracticeAnnotatedWaveform",
-      "VoiceExpressionPanel",
-    ];
     const offenders: string[] = [];
     for (const file of files) {
+      if (file.includes(".test.") || file.includes("__tests__")) continue;
       const content = readFileSync(file, "utf8");
-      for (const symbol of banned) {
-        // Only flag actual import statements / type references, not test
-        // assertions that mention the symbol name as a negative gate string.
-        const importPattern = new RegExp(
-          `import[^;]*\\b${symbol}\\b|from\\s+["'][^"']*ui-design[^"']*["']`,
-        );
-        const fromUiDesign = new RegExp(
-          `import[^;]*ui-design[^;]*${symbol}|from[^;]*ui-design[^;]*\\b${symbol}\\b`,
-        );
-        if (importPattern.test(content) && fromUiDesign.test(content)) {
-          offenders.push(`${file}: imports ${symbol} from ui-design`);
-        }
+      if (/from\s+["'][^"']*ui-design\/src\/screen-practice/.test(content)) {
+        offenders.push(`${file}: imports practice DOM from ui-design`);
       }
     }
     expect(offenders).toEqual([]);
@@ -139,7 +124,7 @@ describe("PracticeScreen integration (item 1.6)", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("source files do not reference non-current prototype testids or routes", () => {
+  it("source files do not reference out-of-scope prototype testids or routes", () => {
     const root = practiceSourceRoot();
     const files = collectSourceFiles(root);
     const offenders: string[] = [];

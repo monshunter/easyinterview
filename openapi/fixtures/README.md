@@ -126,7 +126,7 @@ Per spec §4.7, fixtures **must not** contain real personal information:
 - All `format: uuid` values are UUIDv7 literals; any `tmp_*` prefix is
   forbidden.
 
-If a new placeholder pattern is added, update both this README and
+If a new reserved synthetic-value pattern is added, update both this README and
 `scripts/lint/validate_fixtures.py`'s allowlist tables.
 
 ## Prism smoke (B2 002 Phase 3)

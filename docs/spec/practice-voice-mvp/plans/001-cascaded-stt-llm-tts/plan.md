@@ -1,8 +1,8 @@
 # Cascaded STT LLM TTS Voice MVP
 
-> **版本**: 1.6
+> **版本**: 1.13
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -17,25 +17,25 @@ S2S / realtime voice 成本高且 provider 形态差异大；面试训练的 P0 
 
 本计划依赖 A3 `004-cascaded-speech-provider-foundation` 提供 `tts` capability 与 speech adapters。若 A3 004 未完成，本计划可先以 fixture/stub 进行 UI/contract 开发，但不得宣称真实 provider 闭环。
 
-2026-05-17 L1 预检结论：A3 004 checklist 已 17/17 完成，当前代码已存在 `practice.voice.stt.default` / `practice.voice.tts.default` profile、`AIClient.Transcribe` / `AIClient.Synthesize`、豆包 STT/TTS 与 MiniMax TTS adapter。当前实现仍缺 `createPracticeVoiceTurn` OpenAPI operation、fixtures、generated artifacts、backend handler/service、正式 frontend voice surface、以及 `E2E.P0.007`-`E2E.P0.009` 场景资产。本计划必须直接承接 `backend/internal/api/practice/README.md` 中的 voice/audio route handoff，不再创建同主题 sibling plan。
+2026-05-17 L1 预检结论：A3 004 checklist 已 17/17 完成，当前代码已存在 `practice.voice.stt.default` / `practice.voice.tts.default` profile、`AIClient.Transcribe` / `AIClient.Synthesize`、豆包 STT/TTS 与 MiniMax TTS adapter。当前实现仍缺 `createPracticeVoiceTurn` OpenAPI operation、fixtures、generated artifacts、backend handler/service、正式 frontend phone surface、以及 `E2E.P0.007`-`E2E.P0.009` 场景资产。本计划必须直接承接 `backend/internal/api/practice/README.md` 中的 voice/audio route handoff，不再创建同主题 sibling plan。
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior + contract + frontend + backend + ai-orchestration`。
 - **TDD 策略**: 通过 `/implement` -> `/tdd` 顺序执行。每个实现项必须有 OpenAPI/fixture/codegen gate、backend service/handler tests、frontend component/controller tests、privacy/negative tests 或 BDD-Gate 作为断言来源。
-- **BDD 策略**: 需要 BDD。用户可见语音面试流程、打断恢复和 provider failure fallback 分别由 `E2E.P0.007`、`E2E.P0.008`、`E2E.P0.009` 覆盖。
+- **BDD 策略**: 需要 BDD。用户可见电话模式流程、打断恢复和 provider failure fallback 分别由 `E2E.P0.007`、`E2E.P0.008`、`E2E.P0.009` 覆盖。
 - **替代验证 gate**: 不适用；本计划是用户行为功能计划。
 - **Review-fix runtime gate**: BUG-0070 后续要求 voice playback 证据覆盖 response `audioRef` 浏览器可播放、persisted session event 不保存 audio data、barge-in 前 partial `tts_chunk_played`、store replay committed context into next prompt；证据命令：`go test ./internal/practice ./internal/store/practice -count=1` + `pnpm --dir frontend test src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx --run`。
 - **Review-fix fixture gate**: BUG-0072 后续要求 `createPracticeVoiceTurn` HTTP fixture 与真实 service audioRef 语义一致；fixture/default response 的 `ttsChunks[].audioRef` 必须为浏览器可播放 `data:audio/...;base64,...` 或同计划 resolver URL，禁止 `fixture-audio://...` 这类 mock-only scheme 进入 generated fixture client。
-- **Review-fix lint precision gate**: 2026-05-22 后续要求 backend-practice non-current lint 继续禁止独立 `/voice` route / alias，但必须允许本计划拥有的 `POST /practice/sessions/{sessionId}/voice-turns`、`createPracticeVoiceTurn`、`practice.voice.stt.default` / `practice.voice.tts.default` profile 与 `practice.voice.stt` / `practice.voice.tts` feature key；证据命令：`python3 -m pytest scripts/lint/backend_practice_non_current_test.py -q` + `make lint-backend-practice-non-current` + `make lint`。
-- **Real-interview phone gate**: 2026-07-09 后续要求用户可见 UI / docs / scenarios 使用 `电话模式 / Phone`，删除语音分析、manual transcript fallback 主流程、开始录音/提交本轮主按钮，并提供切断 / 重新开始 / 字幕动作；底层 `createPracticeVoiceTurn`、`practice.voice.*` profile 和 persisted `voice-turn://` ref 仍允许作为工程能力名。
+- **Review-fix lint precision gate**: 2026-05-22 后续要求 backend-practice out-of-scope lint 继续禁止独立 `/voice` route / alias，但必须允许本计划拥有的 `POST /practice/sessions/{sessionId}/voice-turns`、`createPracticeVoiceTurn`、`practice.voice.stt.default` / `practice.voice.tts.default` profile 与 `practice.voice.stt` / `practice.voice.tts` feature key；证据命令：`python3 -m pytest scripts/lint/backend_practice_out_of_scope_test.py -q` + `make lint-backend-practice-out-of-scope` + `make lint`。
+- **Real-interview phone gate**: 用户可见 UI / docs / scenarios 使用 `电话模式 / Phone`，当前电话 surface 只提供通话状态、切断、重新开始和字幕动作；不提供语音分析、手动转写替代入口、开始录音主按钮或提交本轮主按钮。底层 `createPracticeVoiceTurn`、`practice.voice.*` profile 和 persisted `voice-turn://` ref 仍允许作为工程能力名。
 
 ## 4 Operation Matrix
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` scenarios `default` / `stt-config-missing` / `chat-failed` / `tts-failed` | `PracticeScreen` voice turn controller / audio capture hook | `backend/internal/practice` voice turn handler/service mounted by `backend/internal/api/practice` | session events store only metadata and opaque `voice-turn://...` refs；HTTP response `ttsChunks[].audioRef` must be browser-playable data URL or documented resolver；no long-term audio retention by default | `practice.voice.stt.default` + `practice.followup.default` + `practice.voice.tts.default` | `E2E.P0.007` / `E2E.P0.009` + BUG-0070 audioRef gate |
-| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json` scenarios `voice-tts-started` / `voice-tts-played` / `voice-barge-in` / `voice-context-committed` | voice player progress reporter | existing `appendSessionEvent` handler/service extended with voice event kinds | session events；store replay loads latest voice turn + subsequent playback events into next prompt | none; records playback, barge-in, and committed context events | `E2E.P0.008` + BUG-0070 store replay gate |
+| `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` scenarios `default` / `stt-config-missing` / `chat-failed` / `tts-failed` | `PracticeScreen` phone controller / audio capture hook | `backend/internal/practice` voice turn handler/service mounted by `backend/internal/api/practice` | session events store only metadata and opaque `voice-turn://...` refs；HTTP response `ttsChunks[].audioRef` must be browser-playable data URL or documented resolver；no long-term audio retention by default | `practice.voice.stt.default` + `practice.followup.default` + `practice.voice.tts.default` | `E2E.P0.007` / `E2E.P0.009` + BUG-0070 audioRef gate |
+| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json` scenarios `voice-tts-started` / `voice-tts-played` / `voice-barge-in` / `voice-context-committed` | phone player progress reporter | existing `appendSessionEvent` handler/service extended with voice event kinds | session events；store replay loads latest voice turn + subsequent playback events into next prompt | none; records playback, barge-in, and committed context events | `E2E.P0.008` + BUG-0070 store replay gate |
 
 ## 5 Coverage Matrix
 
@@ -48,8 +48,8 @@ S2S / realtime voice 成本高且 provider 形态差异大；面试训练的 P0 
 | PV-MVP-C5 | Boundary condition | spec C-3 | Phase 3 | committed context unit tests + store replay tests + frontend partial playback event test + `E2E.P0.008` | unplayed draft in prompt |
 | PV-MVP-C6 | Privacy/security/observability | spec C-7 | Phase 2/5 | privacy grep + backend tests + persisted audioRef summary gate | raw audio/transcript/TTS text in log/DB/metric/session event summary |
 | PV-MVP-C7 | UX quality | docs/ui-design/module-practice-review | Phase 4 + Phase 6 | frontend tests + visual parity gates | independent voice route/page, user-visible Voice copy, voice analysis panel |
-| PV-MVP-C8 | Regression/non-current-negative | product-scope D-6 | Phase 5 | scope tests + negative search | `voice` route alias, S2S marked active |
-| PV-MVP-C9 | Current drift preflight | current code truth source | Phase 0 | source grep + focused smoke tests | `VoiceSurfaceComingSoon` remains active after voice MVP; backend README points to a non-current placeholder owner |
+| PV-MVP-C8 | Regression/out-of-scope-negative | product-scope D-6 | Phase 5 | scope tests + negative search | `voice` route alias, S2S marked active |
+| PV-MVP-C9 | Current drift preflight | current code truth source | Phase 0 | source grep + focused smoke tests | phone surface still relies on a coming-soon card; backend README points to an out-of-scope voice-surface owner |
 
 ## 6 实施步骤
 
@@ -67,7 +67,7 @@ Record the current implementation gaps that must change during this plan: `front
 
 #### 1.1 OpenAPI voice turn contract
 
-新增 `POST /practice/sessions/{sessionId}/voice-turns` / `createPracticeVoiceTurn` operation。该 endpoint 是 side-effect endpoint，必须携带 `Idempotency-Key`；请求体必须包含 `clientVoiceTurnId`、`turnId`、`audio.contentBase64`、`audio.contentType`、`audio.durationMs`、`language`、`practiceMode` 与可选 `manualTranscriptFallback`。输出必须包含 `voiceTurnId`、`userTranscriptFinal`、`assistantTextDraft`、`ttsChunks[]`、`providerMetaSummary`、`session` 与可空 `ttsError`。HTTP response 的 `ttsChunks[].audioRef` 必须是浏览器可播放 data URL 或已落地 resolver URL；持久化 session event summary 只保存 chunk id、content type、duration、byte length/hash 和 opaque `voice-turn://...` ref，不保存音频数据。
+新增 `POST /practice/sessions/{sessionId}/voice-turns` / `createPracticeVoiceTurn` operation。该 endpoint 是 side-effect endpoint，必须携带 `Idempotency-Key`；请求体必须包含 `clientVoiceTurnId`、`turnId`、`audio.contentBase64`、`audio.contentType`、`audio.durationMs`、`language` 和 `practiceMode`，不接受手动转写替代字段。输出必须包含 `voiceTurnId`、`userTranscriptFinal`、`assistantTextDraft`、`ttsChunks[]`、`providerMetaSummary`、`session` 与可空 `ttsError`。HTTP response 的 `ttsChunks[].audioRef` 必须是浏览器可播放 data URL 或已落地 resolver URL；持久化 session event summary 只保存 chunk id、content type、duration、byte length/hash 和 opaque `voice-turn://...` ref，不保存音频数据。
 
 #### 1.2 Fixtures and generated clients
 
@@ -103,15 +103,15 @@ session event 只保存必要 transcript / committed text / event摘要；AI/aud
 
 ### Phase 4: Frontend voice controller
 
-#### 4.1 Voice UI source parity
+#### 4.1 Phone UI source parity
 
-在 `PracticeScreen` 内复刻 `ui-design/src/screen-practice.jsx` 语音 Surface：live 状态、暂停、转写、AI 透明度、语音现场提示、结束并生成报告入口。不得新增独立 `voice` route。
+在 `PracticeScreen` 内复刻 `ui-design/src/screen-practice.jsx` 电话 Surface：通话状态、字幕、切断、重新开始和结束并生成报告入口。不得新增独立 `voice` route，也不得把 out-of-scope `voice` query 作为电话模式入口。
 
-必须删除或反转当前 `VoiceSurfaceComingSoon` placeholder 语义：voice mode 不再展示 coming-soon 卡片，且 `practice-voice-waveform`、`practice-voice-annotated-waveform`、`practice-voice-expression-panel` 等 DOM 锚点必须进入正式前端 parity gate。保留 `voice` route fallback 到 `home` 的负向测试。
+必须删除或反转当前 `VoiceSurfaceComingSoon` coming-soon 语义：phone mode 不再展示 coming-soon 卡片，且 `practice-phone-surface`、`practice-phone-waveform`、`practice-phone-captions-toggle`、`practice-phone-hangup`、`practice-phone-restart` 等 DOM 锚点必须进入正式前端 parity gate。保留 `voice` route fallback 到 `home` 与 out-of-scope `mode=voice` query 被过滤的负向测试。
 
 #### 4.2 Audio capture and STT submission
 
-实现音频采集状态、提交 voice turn、展示 STT partial/final transcript、错误恢复和手动输入 fallback。测试使用 fixtures/stub，不打真实 provider。
+实现音频采集状态、提交 voice turn、展示 STT final transcript / 字幕、电话错误恢复和切换文本面试路径；不得提供手动转写替代字段或入口。测试使用 fixtures/stub，不打真实 provider。
 
 #### 4.3 TTS playback and barge-in
 
@@ -127,27 +127,27 @@ session event 只保存必要 transcript / committed text / event摘要；AI/aud
 
 #### 5.2 Regression gates
 
-重跑 app shell / practice 相关 frontend tests、OpenAPI fixture validation、codegen drift、A3 profile coverage、privacy grep、非当前 route negative search。BUG-0070 后续 gate 必须额外验证 response `audioRef` 可播放、stored TTS summary 不含 audio data、store replay committed context、barge-in partial playback event。
+重跑 app shell / practice 相关 frontend tests、OpenAPI fixture validation、codegen drift、A3 profile coverage、privacy grep、out-of-scope route negative search。BUG-0070 后续 gate 必须额外验证 response `audioRef` 可播放、stored TTS summary 不含 audio data、store replay committed context、barge-in partial playback event。
 
 ### Phase 6: Real-interview phone-mode simplification
 
 #### 6.1 Phone-mode UI language and controls
 
-将用户可见语音面试改为 `电话模式 / Phone`，删除 `开始录音` / `提交本轮` 主按钮，改为真实电话控制：接通状态、切断、重新开始、显示字幕。历史 `voice` API/profile 命名仅作为底层能力保留。
+将用户可见面试形式固定为 `电话模式 / Phone`，删除 `开始录音` / `提交本轮` 主按钮，改为真实电话控制：接通状态、切断、重新开始、显示字幕。历史 `voice` API/profile 命名仅作为底层能力保留。
 
-#### 6.2 Remove voice analysis and manual transcript fallback surface
+#### 6.2 Keep phone surface focused on current controls
 
-删除语速、停顿、口头禅、音量等语音分析 UI 和测试期望；删除用户可见 manual transcript fallback / speech-to-text fallback surface。STT 失败只能走电话错误恢复、切断/重开或切换文本面试，不提供“补录文字转写”替代入口。
+电话 surface 只保留通话状态、字幕、切断和重新开始；用户可见层不提供语速、停顿、口头禅、音量等语音分析，也不提供手动转写或 speech-to-text 替代入口。STT 失败只能走电话错误恢复、切断/重开或切换文本面试。
 
 #### 6.3 Contract and scenario negative gates
 
-更新 OpenAPI 描述、fixtures、generated client/server tests、scenario README/expected outcome，证明 phone mode 不再要求语音分析或手动转写 UI，同时底层 voice turn privacy、audioRef 和 committed-context gates 继续通过。
+更新 OpenAPI 描述、fixtures、generated client/server tests、scenario README/expected outcome，证明 phone mode 只暴露当前电话控件，同时底层 voice turn privacy、audioRef 和 committed-context gates 继续通过。
 
 ## 7 验收标准
 
 - `createPracticeVoiceTurn` contract、fixtures、generated client/server artifacts 完成并无 drift。
 - 后端 voice turn service 覆盖 STT/chat/TTS happy path 与独立失败路径。
-- 前端 phone controller 可按需展示字幕、播放 TTS、处理 barge-in、切断和重新开始；不保留用户可见手动转写 fallback。
+- 前端 phone controller 可按需展示字幕、播放 TTS、处理 barge-in、切断和重新开始；用户可见层不提供手动转写替代入口。
 - HTTP response 的 TTS `audioRef` 可被浏览器播放，持久化 session event summary 不保存 audio bytes。
 - Committed context builder + store replay 证明已播放文本进入下一轮 prompt，未播放 assistant draft 不进入下一轮 prompt。
 - `E2E.P0.007` / `E2E.P0.008` / `E2E.P0.009` BDD-Gate 通过。
@@ -165,4 +165,11 @@ session event 只保存必要 transcript / committed text / event摘要；AI/aud
 
 | 日期 | 版本 | 说明 |
 |------|------|------|
-| 2026-07-09 | 1.6 | Reopen for real-interview phone-mode simplification: user-visible voice becomes phone mode, voice analysis/manual transcript fallback surfaces are removed, and phone hang-up/restart/captions become the target UI. |
+| 2026-07-10 | 1.13 | Align regression gate route negative search wording to out-of-scope terminology without behavior changes. |
+| 2026-07-10 | 1.12 | Align `voice` route/query negative input wording to out-of-scope terminology without behavior changes. |
+| 2026-07-10 | 1.11 | Replace remaining VoiceSurfaceComingSoon wording with coming-soon/unavailable-surface terminology. |
+| 2026-07-10 | 1.10 | Align remaining user-visible modality wording with phone mode in the active plan. |
+| 2026-07-10 | 1.9 | Align active plan parity targets to current phone route/query and `practice-phone-*` anchors; out-of-scope `voice` query is negative input only. |
+| 2026-07-10 | 1.8 | Remove the old manual transcription request field from the active voice turn contract and align Phase 6 evidence gates. |
+| 2026-07-10 | 1.7 | Tighten Phase 6 wording around the current phone surface contract and remove old surface labels from active gates. |
+| 2026-07-09 | 1.6 | Reopen for real-interview phone-mode simplification: user-visible voice becomes phone mode, old analysis and manual transcription substitute surfaces are removed, and phone hang-up/restart/captions become the target UI. |

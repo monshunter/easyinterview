@@ -58,11 +58,11 @@ describe("TopBar primary nav", () => {
     );
   });
 
-  it("does not render non-current entries (mistakes / growth / voice / drill / debrief / profile)", () => {
+  it("does not render out-of-scope entries (mistakes / growth / voice / drill / debrief / profile)", () => {
     renderInProvider(<TopBar activeRoute="home" onNavigate={() => {}} />);
-    for (const nonCurrent of ["mistakes", "growth", "voice", "drill", "welcome", "debrief", "profile"]) {
+    for (const outOfScope of ["mistakes", "growth", "voice", "drill", "welcome", "debrief", "profile"]) {
       expect(
-        screen.queryByTestId(`topbar-nav-${nonCurrent}`),
+        screen.queryByTestId(`topbar-nav-${outOfScope}`),
       ).not.toBeInTheDocument();
     }
   });

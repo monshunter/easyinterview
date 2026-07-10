@@ -23,7 +23,7 @@ const (
 var priorityOrder = []Priority{PriorityCritical, PriorityDefault, PriorityLow}
 
 // defaultJobTypePriority is the spec D-9 fixed assignment over the currently
-// executable job_type values. contract-only and non-current job types are
+// executable job_type values. contract-only and out-of-scope job types are
 // intentionally absent from this executable priority map.
 var defaultJobTypePriority = map[jobs.JobType]Priority{
 	jobs.JobTypeReportGenerate: PriorityCritical,

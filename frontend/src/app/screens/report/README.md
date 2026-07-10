@@ -30,4 +30,4 @@ UI truth: `ui-design/src/screen-report.jsx` + `docs/ui-design/report-dashboard.m
 
 - Backend handler delivery: `docs/spec/backend-review/plans/001-report-generation-baseline`.
 - Frontend workspace + practice owner: `docs/spec/frontend-workspace-and-practice` (consumer of the `nav("generating", …)` exit + `replay_practice` resume).
-- The implementation must never call practice session operations, voice turn operations, or workspace insight-only APIs. The `nonCurrentNegative.test.ts` and `scripts/lint/frontend_report_dashboard_non_current.py` enforce the boundary.
+- The implementation must never call practice session operations, voice turn operations, or workspace insight-only APIs. The `outOfScopeNegative.test.ts` and `scripts/lint/frontend_report_dashboard_out_of_scope.py` enforce the boundary.

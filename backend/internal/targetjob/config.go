@@ -19,7 +19,7 @@ const (
 	URLFetchBodyCap = 1 << 20
 
 	// URLFetchUserAgentTemplate is the explicit crawler identifier. The
-	// %s placeholder receives the running build version; an empty version
+	// %s format verb receives the running build version; an empty version
 	// defaults to "dev". Spec D-7 forbids spoofing other UAs.
 	URLFetchUserAgentTemplate = "EasyInterview JD-Crawler/%s (+https://easyinterview.local/crawler)"
 )

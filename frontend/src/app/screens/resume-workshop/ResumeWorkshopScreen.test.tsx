@@ -79,7 +79,7 @@ describe("ResumeWorkshopScreen flow dispatch (D-20 flat Resume)", () => {
     expect(screen.queryByTestId("resume-workshop-list")).not.toBeInTheDocument();
   });
 
-  it("does not expose a non-current branch flow surface for any flow value", () => {
+  it("does not expose an out-of-scope branch flow surface for any flow value", () => {
     renderResumeWorkshop({ flow: "branch" });
     // D-20 keeps branch flow outside current scope. An unknown flow falls back to
     // the flat list; the branch surface must never render.

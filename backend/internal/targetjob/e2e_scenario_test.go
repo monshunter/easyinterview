@@ -76,7 +76,7 @@ func TestE2EP0010TextImportParseReady(t *testing.T) {
 	}
 	assertPayloadOmits(t, parseStore.parsedOutboxPayload, "Lead React platform", "prompt", "response")
 	if !parseStore.sourceRefreshCalled {
-		t.Fatal("target.parsed must enqueue source_refresh placeholder")
+		t.Fatal("target.parsed must enqueue source_refresh follow-up job")
 	}
 
 	now := time.Date(2026, 5, 9, 23, 0, 0, 0, time.UTC)

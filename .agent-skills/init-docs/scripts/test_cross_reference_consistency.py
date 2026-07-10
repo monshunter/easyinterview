@@ -5,7 +5,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 SKILLS_ROOT = REPO_ROOT / ".agent-skills"
 
-RETIRED_SKILL_NAMES = [
+NON_CURRENT_SKILL_NAMES = [
     "/test-investigate",
     "/test-env",
     "/test-scenario",
@@ -73,7 +73,7 @@ def test_all_skill_files_no_non_current_names():
     violations = []
     for skill_file in SKILLS_ROOT.rglob("SKILL.md"):
         text = skill_file.read_text(encoding="utf-8")
-        for name in RETIRED_SKILL_NAMES:
+        for name in NON_CURRENT_SKILL_NAMES:
             if name in text:
                 rel = skill_file.relative_to(REPO_ROOT)
                 violations.append(f"{rel} references non-current '{name}'")

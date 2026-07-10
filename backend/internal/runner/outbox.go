@@ -43,7 +43,9 @@ type OutboxConsumer interface {
 type OutboxConsumerFunc func(ctx context.Context, event OutboxEvent) error
 
 // Consume satisfies OutboxConsumer.
-func (f OutboxConsumerFunc) Consume(ctx context.Context, event OutboxEvent) error { return f(ctx, event) }
+func (f OutboxConsumerFunc) Consume(ctx context.Context, event OutboxEvent) error {
+	return f(ctx, event)
+}
 
 // OutboxResult is the per-row disposition the dispatcher returns to the store.
 type OutboxResult struct {
@@ -216,7 +218,7 @@ func NewOutboxDispatcher(opts OutboxDispatcherOptions) *OutboxDispatcher {
 		opts.Logger = slog.Default()
 	}
 	if opts.Metrics == nil {
-		opts.Metrics = nopMetrics{}
+		opts.Metrics = discardMetrics{}
 	}
 	if len(opts.Backoff.schedule) == 0 {
 		opts.Backoff = DefaultBackoffPolicy()

@@ -363,7 +363,6 @@ describe("frontend owner real API mode", () => {
 				clientVoiceTurnId: "client-voice-001",
 				language: "en",
 				practiceMode: "assisted",
-				manualTranscriptFallback: "I sequenced the migration.",
 				audio: {
 					contentType: "audio/webm",
 					contentBase64: "UklGRg==",

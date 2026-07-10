@@ -59,7 +59,7 @@ func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
 		}
 	}
 	if strings.Contains(up, "create table mistake_entries ") {
-		t.Fatalf("baseline migration must not create non-current mistake_entries table")
+		t.Fatalf("baseline migration must not create out-of-scope mistake_entries table")
 	}
 	for _, required := range []string{
 		"open_question_issue_count integer not null default 0",
@@ -70,7 +70,7 @@ func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
 			t.Fatalf("baseline migration missing product-scope v1.2 column/check %q", required)
 		}
 	}
-	for _, nonCurrent := range []string{
+	for _, outOfScope := range []string{
 		"open_mistake_count",
 		"written_to_mistake_book",
 		"single_drill",
@@ -78,8 +78,8 @@ func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
 		"fix_mistake",
 		"counter_questions",
 	} {
-		if strings.Contains(up, nonCurrent) {
-			t.Fatalf("baseline migration still contains non-current token %q", nonCurrent)
+		if strings.Contains(up, outOfScope) {
+			t.Fatalf("baseline migration still contains out-of-scope token %q", outOfScope)
 		}
 	}
 }
@@ -87,7 +87,7 @@ func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
 func TestPracticeIdempotencyMigrationContract(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readAllUpMigrations(t, filepath.Join(root, "migrations")))
-	nonCurrentPracticeMode := "debrief" + "_replay"
+	outOfScopePracticeMode := "debrief" + "_replay"
 
 	for _, required := range []string{
 		"create table idempotency_records",
@@ -100,8 +100,8 @@ func TestPracticeIdempotencyMigrationContract(t *testing.T) {
 			t.Fatalf("practice idempotency migration contract missing %q", required)
 		}
 	}
-	if strings.Contains(up, nonCurrentPracticeMode) {
-		t.Fatalf("practice migrations must not accept non-current mode %s", nonCurrentPracticeMode)
+	if strings.Contains(up, outOfScopePracticeMode) {
+		t.Fatalf("practice migrations must not accept out-of-scope mode %s", outOfScopePracticeMode)
 	}
 }
 
@@ -151,7 +151,7 @@ func TestBaselineMigrationAcceptsReportQuestionTaskTypes(t *testing.T) {
 		t.Fatalf("ai_task_runs.task_type CHECK must include report_assessment")
 	}
 	if strings.Contains(up, "'report_assess'") {
-		t.Fatalf("ai_task_runs.task_type CHECK must not contain non-current report_assess alias")
+		t.Fatalf("ai_task_runs.task_type CHECK must not contain out-of-scope report_assess alias")
 	}
 }
 
@@ -259,14 +259,14 @@ func TestResumeFlattenMigrationContract(t *testing.T) {
 	}
 	// D-20: create flow is upload/paste only. Existing guided rows must be
 	// rewritten before the new check is added, but the check itself must not
-	// retain the non-current value.
+	// retain the out-of-scope value.
 	guidedCleanup := strings.Index(up, "where source_type = 'guided'")
 	newCheck := strings.Index(up, "add constraint resumes_source_type_check")
 	if guidedCleanup < 0 || newCheck < 0 || guidedCleanup > newCheck {
 		t.Fatalf("resume flatten up migration must clean guided rows before adding source_type check")
 	}
 	if strings.Contains(up[newCheck:], "'guided'") {
-		t.Fatalf("resume flatten source_type check must not keep non-current 'guided' value")
+		t.Fatalf("resume flatten source_type check must not keep out-of-scope 'guided' value")
 	}
 
 	for _, required := range []string{
@@ -296,14 +296,14 @@ func TestResumeFlattenMigrationContract(t *testing.T) {
 	}
 }
 
-func TestDropJDMatchMigrationDeletesNonCurrentAsyncJobsBeforeNarrowingCheck(t *testing.T) {
+func TestDropJDMatchMigrationDeletesOutOfScopeAsyncJobsBeforeNarrowingCheck(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000014_drop_jd_match_module.up.sql")))
 
 	deleteJobs := strings.Index(up, "delete from async_jobs")
 	addCheck := strings.Index(up, "add constraint async_jobs_job_type_check")
 	if deleteJobs < 0 {
-		t.Fatalf("jd-match drop migration must delete non-current async_jobs rows before narrowing job_type")
+		t.Fatalf("jd-match drop migration must delete out-of-scope async_jobs rows before narrowing job_type")
 	}
 	if addCheck < 0 {
 		t.Fatalf("jd-match drop migration missing async_jobs_job_type_check")
@@ -311,17 +311,17 @@ func TestDropJDMatchMigrationDeletesNonCurrentAsyncJobsBeforeNarrowingCheck(t *t
 	if deleteJobs > addCheck {
 		t.Fatalf("jd-match async_jobs cleanup must run before narrowed job_type check")
 	}
-	for _, nonCurrent := range []string{"jd_match_agent_scan", "jd_match_search"} {
-		if !strings.Contains(up[:addCheck], nonCurrent) {
-			t.Fatalf("jd-match async_jobs cleanup missing non-current job_type %q", nonCurrent)
+	for _, outOfScope := range []string{"jd_match_agent_scan", "jd_match_search"} {
+		if !strings.Contains(up[:addCheck], outOfScope) {
+			t.Fatalf("jd-match async_jobs cleanup missing out-of-scope job_type %q", outOfScope)
 		}
-		if strings.Contains(up[addCheck:], nonCurrent) {
-			t.Fatalf("narrowed async_jobs job_type check must not keep non-current value %q", nonCurrent)
+		if strings.Contains(up[addCheck:], outOfScope) {
+			t.Fatalf("narrowed async_jobs job_type check must not keep out-of-scope value %q", outOfScope)
 		}
 	}
 }
 
-func TestDropJDMatchMigrationDropsNonCurrentTablesAndRegistryRows(t *testing.T) {
+func TestDropJDMatchMigrationDropsOutOfScopeTablesAndRegistryRows(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000014_drop_jd_match_module.up.sql")))
 
@@ -340,7 +340,7 @@ func TestDropJDMatchMigrationDropsNonCurrentTablesAndRegistryRows(t *testing.T) 
 		dropTable := "drop table if exists " + table
 		dropIndex := strings.Index(up, dropTable)
 		if dropIndex < 0 {
-			t.Fatalf("jd-match drop migration must remove non-current table %s", table)
+			t.Fatalf("jd-match drop migration must remove out-of-scope table %s", table)
 		}
 		if dropIndex > addCheck {
 			t.Fatalf("jd-match table cleanup for %s must run before narrowed async_jobs job_type check", table)
@@ -350,7 +350,7 @@ func TestDropJDMatchMigrationDropsNonCurrentTablesAndRegistryRows(t *testing.T) 
 	for _, registryTable := range []string{"rubric_versions", "prompt_versions"} {
 		deleteIndex := strings.Index(up, "delete from "+registryTable)
 		if deleteIndex < 0 {
-			t.Fatalf("jd-match drop migration must delete non-current rows from %s", registryTable)
+			t.Fatalf("jd-match drop migration must delete out-of-scope rows from %s", registryTable)
 		}
 		if deleteIndex > addCheck {
 			t.Fatalf("jd-match %s cleanup must run before narrowed async_jobs job_type check", registryTable)
@@ -358,7 +358,7 @@ func TestDropJDMatchMigrationDropsNonCurrentTablesAndRegistryRows(t *testing.T) 
 	}
 	for _, featureKey := range []string{"jd_match.recommendation", "jd_match.search"} {
 		if !strings.Contains(up[:addCheck], featureKey) {
-			t.Fatalf("jd-match registry cleanup missing non-current feature key %q", featureKey)
+			t.Fatalf("jd-match registry cleanup missing out-of-scope feature key %q", featureKey)
 		}
 	}
 }

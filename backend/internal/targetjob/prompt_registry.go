@@ -15,9 +15,8 @@ import (
 // registry; the executor must not import the registry package directly
 // because that would couple targetjob to F3's import path.
 //
-// Phase 3 of plan prompt-rubric-registry/001-baseline moved the previous
-// in-package static bridge and its four hardcoded version constants behind
-// this adapter.
+// F3 owns prompt and rubric version selection; targetjob only consumes the
+// resolved current metadata through this adapter.
 type RegistryAdapter struct {
 	client *registry.Client
 }

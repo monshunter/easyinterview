@@ -151,8 +151,6 @@ describe("auth screen D1 regression after visual parity (Phase 4.1)", () => {
     expect(container.querySelector("[data-testid='auth-login-email-form']")).toBeTruthy();
     expect(container.querySelector("[data-testid='auth-login-email']")).toBeTruthy();
     expect(container.querySelector("[data-testid='auth-login-submit-email']")).toBeTruthy();
-    expect(container.querySelector("[data-testid='auth-login-password-stub']")).toBeFalsy();
-    expect(container.querySelector("[data-testid='auth-login-oauth-stub']")).toBeFalsy();
     expect(container.querySelector("[data-testid='auth-login-link-register']")).toBeFalsy();
     expect(container.querySelector("[data-testid='auth-login-link-reset']")).toBeFalsy();
   });

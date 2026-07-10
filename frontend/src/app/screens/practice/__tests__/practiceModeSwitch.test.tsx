@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  *
- * Current segmented control exposes text / phone. Legacy voice route params
- * normalize into the phone surface without rendering the retired voice UI.
+ * Current segmented control exposes text / phone. Out-of-scope voice route params are
+ * not accepted as a phone-mode alias.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -49,32 +49,33 @@ function withProviders(ui: ReactNode) {
 }
 
 describe("PracticeScreen mode switch", () => {
-  it("legacy voice params render the current phone surface", () => {
+  it("out-of-scope voice params render the text surface instead of phone mode", () => {
     const voiceRoute: Route = {
       ...ROUTE_BASE,
       params: { ...ROUTE_BASE.params, mode: "voice", modality: "voice" },
     };
     withProviders(<PracticeScreen route={voiceRoute} />);
     expect(screen.queryByTestId("practice-voice-coming-soon")).toBeNull();
-    expect(screen.getByTestId("practice-phone-surface")).toBeDefined();
-    expect(screen.getByTestId("practice-phone-waveform")).toBeDefined();
-    expect(screen.getByTestId("practice-phone-captions-toggle")).toBeDefined();
+    expect(screen.getByTestId("practice-input")).toBeDefined();
+    expect(screen.queryByTestId("practice-phone-surface")).toBeNull();
+    expect(screen.queryByTestId("practice-phone-waveform")).toBeNull();
+    expect(screen.queryByTestId("practice-phone-captions-toggle")).toBeNull();
     expect(screen.queryByTestId("practice-voice-annotated-waveform")).toBeNull();
     expect(screen.queryByTestId("practice-voice-expression-panel")).toBeNull();
   });
 
-  it("clicking the text segmented control from voice mode navigates back to mode='text'", async () => {
+  it("clicking the phone segmented control from out-of-scope voice params navigates with mode='phone'", async () => {
     const voiceRoute: Route = {
       ...ROUTE_BASE,
       params: { ...ROUTE_BASE.params, mode: "voice", modality: "voice" },
     };
     const { nav } = withProviders(<PracticeScreen route={voiceRoute} />);
-    const textButton = screen.getByTestId("practice-topbar-mode-text");
-    await userEvent.click(textButton);
+    const phoneButton = screen.getByTestId("practice-topbar-mode-phone");
+    await userEvent.click(phoneButton);
     expect(nav).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "practice",
-        params: expect.objectContaining({ mode: "text", modality: "text" }),
+        params: expect.objectContaining({ mode: "phone", modality: "phone" }),
       }),
     );
   });
@@ -91,7 +92,7 @@ describe("PracticeScreen mode switch", () => {
     );
   });
 
-  it("text mode keeps phone / retired voice DOM out of the text surface", () => {
+  it("text mode keeps phone / deleted voice DOM out of the text surface", () => {
     const voiceRoute: Route = {
       ...ROUTE_BASE,
       params: { ...ROUTE_BASE.params, mode: "text", modality: "text" },

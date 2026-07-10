@@ -8,8 +8,9 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 
 test -s "$LOG_FILE"
 grep -Fq "src/app/scenarios/p0-088-url-addressable-routing-canonical.test.tsx" "$LOG_FILE"
-grep -Eq 'Tests +9 passed \(9\)' "$LOG_FILE"
-grep -Eq 'Test Files +1 passed \(1\)' "$LOG_FILE"
+grep -Fq "src/app/outOfScopeRouteNegative.test.ts" "$LOG_FILE"
+grep -Eq 'Tests +16 passed \(16\)' "$LOG_FILE"
+grep -Eq 'Test Files +2 passed \(2\)' "$LOG_FILE"
 
 for forbidden in \
   'route-welcome' \
@@ -29,7 +30,7 @@ for forbidden in \
   'route-profile' \
   'ui-design/src/data'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
-    echo "forbidden non-current entry leaked into scenario evidence: $forbidden" >&2
+    echo "forbidden out-of-scope entry leaked into scenario evidence: $forbidden" >&2
     exit 1
   fi
 done

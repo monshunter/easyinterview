@@ -41,9 +41,9 @@ test("D-22 keeps debrief and user profile outside current static screens", () =>
   assert.doesNotMatch(canvas, /<DCSection id="p1-depth"|<DCArtboard id="debrief"|<DCSection id="p1-voice-debrief"|route="debrief"/);
 });
 
-test("current UI source does not expose non-current inbox wording", () => {
+test("current UI source does not expose out-of-scope inbox wording", () => {
   for (const [name, source] of readUiSources()) {
-    assert.doesNotMatch(source, /Inbox|收件箱/, `${name} contains non-current inbox wording`);
+    assert.doesNotMatch(source, /Inbox|收件箱/, `${name} contains out-of-scope inbox wording`);
   }
 });
 
@@ -58,7 +58,7 @@ test("resume workshop is a flat list without version-tree concepts", () => {
   assert.doesNotMatch(resume, /versionType|parentVersionId|originalId/);
 });
 
-test("resume workshop keeps rewrites and second-step save surfaces retired", () => {
+test("resume workshop keeps rewrites and second-step save surfaces absent", () => {
   const resume = readUiFile("./src/screen-resume-workshop.jsx");
 
   assert.doesNotMatch(resume, /const acceptBullet = \(id\) => \{/);
@@ -122,7 +122,7 @@ test("P0 context routes use InterviewContext instead of fixed tj-1 nav payloads"
   assert.match(workspace, /resumeId/);
   assert.match(workspace, /roundId/);
   for (const [name, source] of readUiSources()) {
-    assert.doesNotMatch(source, /resumeVersionId/, `${name} still uses the non-current resumeVersionId context key`);
+    assert.doesNotMatch(source, /resumeVersionId/, `${name} still uses the out-of-scope resumeVersionId context key`);
   }
 });
 
@@ -172,7 +172,7 @@ test("report CTA pair lives only in the header (D-19)", () => {
   assert.doesNotMatch(report, /IssueRow|PerQBlock|KVInline/);
 });
 
-test("current UI source does not expose non-current mistakes/growth/drill product surfaces", () => {
+test("current UI source does not expose out-of-scope mistakes/growth/drill product surfaces", () => {
   const report = readUiFile("./src/screen-report.jsx");
   const settings = readUiFile("./src/screens-p0-complete.jsx");
   const data = readUiFile("./src/data.jsx");
@@ -204,9 +204,9 @@ test("job picks module is outside current scope and jd_match aliases back home (
   assert.match(app, /jd_match:\s*"home"/);
   assert.doesNotMatch(app, /jd_match:\s*</);
   for (const [name, source] of readUiSources()) {
-    assert.doesNotMatch(source, /JDMatchScreen|岗位推荐|Job Picks|Job picks|job recommendations/, `${name} still references the non-current job picks module`);
+    assert.doesNotMatch(source, /JDMatchScreen|岗位推荐|Job Picks|Job picks|job recommendations/, `${name} still references the out-of-scope job picks module`);
     if (name !== "app.jsx") {
-      assert.doesNotMatch(source, /jd_match/, `${name} still references the non-current jd_match route`);
+      assert.doesNotMatch(source, /jd_match/, `${name} still references the out-of-scope jd_match route`);
     }
   }
 });
@@ -251,20 +251,20 @@ test("workspace insight card has no standalone route alias", () => {
   const app = readUiFile("./src/app.jsx");
   const insight = readUiFile("./src/screen-workspace-insight.jsx");
   const workspace = readUiFile("./src/screen-workspace.jsx");
-  const nonCurrentInsightTerms = new RegExp([
+  const outOfScopeInsightTerms = new RegExp([
     "company_" + "intel",
     "Company" + "Intel",
     "getCompany" + "Intel",
   ].join("|"));
 
   assert.ok(!existsSync(new URL("./src/screen-company-" + "intel.jsx", import.meta.url)), "standalone insight source must stay absent");
-  assert.doesNotMatch(app, nonCurrentInsightTerms);
+  assert.doesNotMatch(app, outOfScopeInsightTerms);
   assert.match(insight, /const WorkspaceInsightCard = /);
-  assert.doesNotMatch(insight, nonCurrentInsightTerms);
+  assert.doesNotMatch(insight, outOfScopeInsightTerms);
   assert.doesNotMatch(insight, /打开情报|Open intel/);
   assert.match(workspace, /<WorkspaceInsightCard T=\{T\} lang=\{lang\} job=\{job\} \/>/);
   for (const [name, source] of readUiSources()) {
-    assert.doesNotMatch(source, nonCurrentInsightTerms, `${name} still references standalone company insight naming`);
+    assert.doesNotMatch(source, outOfScopeInsightTerms, `${name} still references standalone company insight naming`);
   }
 });
 
@@ -349,7 +349,7 @@ test("Home and workspace share action card behavior", () => {
   assert.doesNotMatch(workspace, /open:\s*"Open plan"|open:\s*"进入规划"|L\.open/);
 });
 
-test("P0 phone interview keeps the shared practice shell without retired assistant surfaces", () => {
+test("P0 phone interview keeps the shared practice shell without deleted assistant surfaces", () => {
   const practice = readUiFile("./src/screen-practice.jsx");
   const phoneSurface = practice.slice(
     practice.indexOf("const PhoneSessionSurface = "),
@@ -364,16 +364,20 @@ test("P0 phone interview keeps the shared practice shell without retired assista
   assert.match(practice, /切断|Hang up/);
   assert.match(practice, /重新开始|Restart/);
   assert.match(practice, /WaveformBars/);
+  assert.match(practice, /gridTemplateColumns:\s*"260px minmax\(0, 1fr\)"/);
+  assert.match(practice, /<QuestionHeader/);
+  assert.match(practice, /<TranscriptPane/);
+  assert.match(practice, /<PhoneSessionSurface/);
   assert.doesNotMatch(phoneSurface, /QuestionHeader|currentQ|qIdx/);
-  assert.doesNotMatch(practice, /RightPanel|VoiceExpressionPanel|PracticeAnnotatedWaveform|ExpCard|RoleDropdown/);
   assert.doesNotMatch(practice, /严格模拟|Strict|Speech-to-text|语音转文字|插入转写|Skip|跳过|表达层指标|口头禅|长停顿|语速|音量/);
   assert.doesNotMatch(practice, /if\s*\(\s*k\s*===\s*"voice"\s*\)\s*nav\("voice"/);
 });
 
-test("P0 report renders phone modality copy for current and legacy voice params", () => {
+test("P0 report renders phone modality copy only for current phone params", () => {
   const report = readUiFile("./src/screen-report.jsx");
 
-  assert.match(report, /params\.modality === "phone" \|\| params\.modality === "voice"/);
+  assert.match(report, /params\.modality === "phone"/);
+  assert.doesNotMatch(report, /params\.modality === "voice"/);
   assert.match(report, /"Phone"/);
   assert.match(report, /"电话模式"/);
   assert.doesNotMatch(report, /modality:\s*params\.modality === "voice" \? "Voice" : "Text"/);
@@ -419,22 +423,22 @@ test("auth has no standalone reset page and aliases auth_reset back to login", (
   for (const [name, source] of readUiSources()) {
     assert.doesNotMatch(source, /忘记密码|两步验证|Two-step verification/, `${name} still references password-era auth wording`);
     if (name !== "app.jsx") {
-      assert.doesNotMatch(source, /auth_reset/, `${name} still references the non-current reset route`);
+      assert.doesNotMatch(source, /auth_reset/, `${name} still references the out-of-scope reset route`);
     }
   }
 });
 
-test("debrief no longer ships the unused thank-you letter draft", () => {
+test("debrief thank-you letter draft stays absent", () => {
   for (const [name, source] of readUiSources()) {
-    assert.doesNotMatch(source, /ThankYouLetter|感谢信/, `${name} still contains the non-current thank-you letter draft`);
+    assert.doesNotMatch(source, /ThankYouLetter|感谢信/, `${name} still contains the out-of-scope thank-you letter draft`);
   }
 });
 
-test("non-current resume versions screen stays absent", () => {
+test("out-of-scope resume versions screen stays absent", () => {
   assert.ok(!existsSync(new URL("./src/screens-p1-depth.jsx", import.meta.url)), "screens-p1-depth.jsx must stay absent");
   for (const [name, source] of readUiSources()) {
-    const nonCurrentResumeSourcePattern = new RegExp(`_${"Leg" + "acy"}ResumeVersionsScreen|ResumeSourceMap`);
-    assert.doesNotMatch(source, nonCurrentResumeSourcePattern, `${name} still contains non-current resume version source`);
+    const outOfScopeResumeSourcePattern = new RegExp(`_${"Leg" + "acy"}ResumeVersionsScreen|ResumeSourceMap`);
+    assert.doesNotMatch(source, outOfScopeResumeSourcePattern, `${name} still contains out-of-scope resume version source`);
   }
 });
 

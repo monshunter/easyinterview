@@ -448,7 +448,7 @@ runtime:
 	}
 }
 
-func TestBuildAPIHandlerDoesNotMountNonCurrentDebriefOrProfileRoutes(t *testing.T) {
+func TestBuildAPIHandlerDoesNotMountOutOfScopeDebriefOrProfileRoutes(t *testing.T) {
 	dir := t.TempDir()
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
 runtime:
@@ -493,7 +493,7 @@ runtime:
 		req := httptest.NewRequest(tc.method, tc.path, strings.NewReader(tc.body))
 		handler.ServeHTTP(rec, req)
 		if rec.Code != http.StatusNotFound {
-			t.Fatalf("%s %s status = %d body=%s; non-current route must not be mounted", tc.method, tc.path, rec.Code, rec.Body.String())
+			t.Fatalf("%s %s status = %d body=%s; out-of-scope route must not be mounted", tc.method, tc.path, rec.Code, rec.Body.String())
 		}
 	}
 }
@@ -1266,7 +1266,7 @@ ai:
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
 	if runtime.Handles("debrief_generate") {
-		t.Fatalf("runtime must not contribute non-current debrief_generate handler")
+		t.Fatalf("runtime must not contribute out-of-scope debrief_generate handler")
 	}
 }
 
@@ -1456,7 +1456,7 @@ type apiTailorRunService struct {
 }
 
 func (s *apiTailorRunService) RegisterResume(context.Context, domainresume.RegisterInput) (api.ResumeWithJob, error) {
-	return api.ResumeWithJob{}, errors.New("not implemented")
+	return api.ResumeWithJob{}, errors.New("unexpected RegisterResume call in apiTailorRunService")
 }
 
 func (s *apiTailorRunService) RequestResumeTailor(_ context.Context, in domainresume.RequestTailorRunInput) (api.ResumeTailorRunWithJob, error) {

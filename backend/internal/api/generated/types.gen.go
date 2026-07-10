@@ -454,12 +454,11 @@ type PaginatedPracticeSession struct {
 }
 
 type CreatePracticeVoiceTurnRequest struct {
-	Audio                    PracticeVoiceAudioInput `json:"audio"`
-	ClientVoiceTurnId        string                  `json:"clientVoiceTurnId"`
-	Language                 string                  `json:"language"`
-	ManualTranscriptFallback *string                 `json:"manualTranscriptFallback,omitempty"`
-	PracticeMode             PracticeMode            `json:"practiceMode"`
-	TurnId                   string                  `json:"turnId"`
+	Audio             PracticeVoiceAudioInput `json:"audio"`
+	ClientVoiceTurnId string                  `json:"clientVoiceTurnId"`
+	Language          string                  `json:"language"`
+	PracticeMode      PracticeMode            `json:"practiceMode"`
+	TurnId            string                  `json:"turnId"`
 }
 
 type PracticeVoiceAudioInput struct {

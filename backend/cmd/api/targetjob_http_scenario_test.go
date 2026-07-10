@@ -763,13 +763,6 @@ func (s *scenarioTargetJobStore) GetTargetJobForParse(_ context.Context, targetJ
 	return rec, append([]targetjob.SourceRecord{}, s.sources[targetJobID]...), nil
 }
 
-func (s *scenarioTargetJobStore) UpdateTargetJobAnalysisFailure(_ context.Context, targetJobID string, _ time.Time) error {
-	delete(s.targets, targetJobID)
-	delete(s.requirements, targetJobID)
-	delete(s.sources, targetJobID)
-	return nil
-}
-
 func (s *scenarioTargetJobStore) targetCount() int { return len(s.targets) }
 
 func (s *scenarioTargetJobStore) firstSource(targetID string) targetjob.SourceRecord {
@@ -842,15 +835,15 @@ func (c *scenarioAIClient) Complete(_ context.Context, profileName string, paylo
 }
 
 func (c *scenarioAIClient) Transcribe(context.Context, string, aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
-	return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, errors.New("not implemented")
+	return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, errors.New("unexpected Transcribe call in targetjob scenarioAIClient")
 }
 
 func (c *scenarioAIClient) Stream(context.Context, string, aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
-	return nil, errors.New("not implemented")
+	return nil, errors.New("unexpected Stream call in targetjob scenarioAIClient")
 }
 
 func (c *scenarioAIClient) Synthesize(context.Context, string, aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
-	return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, errors.New("not implemented")
+	return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, errors.New("unexpected Synthesize call in targetjob scenarioAIClient")
 }
 
 type scenarioRegistry struct {
@@ -864,7 +857,7 @@ func (r scenarioRegistry) Resolve(ctx context.Context, featureKey string, langua
 	return newStaticTestPromptRegistry().Resolve(ctx, featureKey, language)
 }
 
-// staticTestPromptRegistry replaces the non-current targetjob.StaticPromptRegistry
+// staticTestPromptRegistry replaces the out-of-scope targetjob.StaticPromptRegistry
 // for cmd/api scenario tests. It mirrors the F3 RegistryAdapter shape with a
 // fixed target.import.parse resolution so HTTP scenarios can assert the
 // provenance flow without spinning up a real registry.Client.

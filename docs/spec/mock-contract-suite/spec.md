@@ -1,8 +1,8 @@
 # Mock Contract Suite Spec
 
-> **版本**: 1.13
+> **版本**: 1.16
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -12,7 +12,7 @@
 
 1. 让前端开发只消费 B2 fixtures 投影出的 API shape，不再直接读取 `ui-design/src/data.jsx` 作为实现数据源。
 2. 让后端或本地 dev 环境可以用同一批 fixtures 提供稳定 mock response。
-3. 为后续 `frontend-shell`、D2-D6 前端 workstream 和后端切真 API 提供一致的 fake backend。
+3. 为后续 `frontend-shell`、D2-D6 前端 workstream 和后端切真 API 提供一致的 fixture-backed backend mock runtime。
 4. 把 fixture drift、operation coverage 和当前范围负向搜索纳入可执行 gate。
 5. 让正式前端的 Vite dev preview 默认消费同一套 fixtures，使已开发页面在没有真实 backend 时也可见；显式切真实 backend 时必须通过配置开关完成。
 
@@ -20,7 +20,7 @@
 
 ### 2.1 In Scope
 
-- 读取 `openapi/fixtures/` 当前 10 tag / 36 operation fixtures；Auth `completeMyProfile`、扁平 `Resumes`、`getResumeSource` PDF 原件预览、PracticeSessions listing、PracticeVoiceTurn 与 runtime config 均属于当前 fixture coverage。落地路径由 [openapi-v1-contract/004-resume-additive-coverage](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md)、[backend-resume](../backend-resume/spec.md)、[backend-auth/001](../backend-auth/plans/001-email-code-session-bootstrap/plan.md) 与 [frontend-shell/001](../frontend-shell/plans/001-app-shell-auth-settings/plan.md) 承接。
+- 读取 `openapi/fixtures/` 当前 10 tag / 37 operation fixtures；Auth `completeMyProfile`、扁平 `Resumes`、`getResumeSource` PDF 原件预览、TargetJob archive、PracticeSessions listing、PracticeVoiceTurn 与 runtime config 均属于当前 fixture coverage。落地路径由 [openapi-v1-contract/004-resume-additive-coverage](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md)、[backend-resume](../backend-resume/spec.md)、[backend-auth/001](../backend-auth/plans/001-email-code-session-bootstrap/plan.md) 与 [frontend-shell/001](../frontend-shell/plans/001-app-shell-auth-settings/plan.md) 承接。
 - 基于 generated OpenAPI types 为前端提供 fixture-backed API client 或 mock transport。
 - 为本地后端或开发服务器提供同源 mock handler / router。
 - 校验 fixtures 与 `openapi/openapi.yaml`、generated packages 和 `openapi/fixtures/PROTOTYPE_MAPPING.md` 的一致性。
@@ -72,7 +72,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | Fixture coverage | B2 当前 36 operation fixtures 已落地（含 Auth `completeMyProfile`、扁平 `Resumes` operation、`getResumeSource` PDF 原件预览、PracticeSessions listing、PracticeVoiceTurn 与 runtime config） | 运行 mock coverage gate | 每个当前 operationId 都能被 registry 解析且 schema 校验通过；`completeMyProfile`、`listResumes` / `getResumeSource` / `duplicateResume` / `exportResume` 等当前 operation 也必须可被同一 registry 解析；非当前 operation 不得作为正向 fixture coverage 目标 | 001-fixture-backed-mock-runtime（C-1 数字随 openapi-v1-contract 与 backend-auth/backend-resume contract 升级） |
+| C-1 | Fixture coverage | B2 当前 37 operation fixtures 已落地（含 Auth `completeMyProfile`、扁平 `Resumes` operation、`getResumeSource` PDF 原件预览、`archiveTargetJob`、PracticeSessions listing、PracticeVoiceTurn 与 runtime config） | 运行 mock coverage gate | 每个当前 operationId 都能被 registry 解析且 schema 校验通过；`completeMyProfile`、`listResumes` / `getResumeSource` / `duplicateResume` / `exportResume` / `archiveTargetJob` 等当前 operation 也必须可被同一 registry 解析；范围外 operation 不得作为正向 fixture coverage 目标 | 001-fixture-backed-mock-runtime（C-1 数字随 openapi-v1-contract 与 backend-auth/backend-resume contract 升级） |
 | C-2 | 前端 mock 同源 | 前端请求 generated client | 切到 mock transport | response shape 来自 B2 fixtures，组件不 import prototype data | 001-fixture-backed-mock-runtime |
 | C-3 | 后端 mock 同源 | 本地 API smoke 请求 mock handler | 命中任一 P0 operation | handler 返回同一 fixture registry 的 typed response | 001-fixture-backed-mock-runtime |
 | C-4 | 当前范围负向搜索 | mock runtime / fixtures / generated artifacts 已生成 | 运行 scoped negative search | 不含当前 product-scope 范围之外的 route / tag / operationId / schema key / config path；不误杀普通业务文案 | 001-fixture-backed-mock-runtime |

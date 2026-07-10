@@ -63,7 +63,7 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/workspace");
   });
 
-  it("serializes the non-current jd_match route name to the home canonical path (D-17)", () => {
+  it("serializes the out-of-scope jd_match route name to the home canonical path (D-17)", () => {
     expect(
       formatRouteUrl({
         name: "jd_match",
@@ -115,13 +115,22 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/resume-versions?resumeId=v-1");
   });
 
-  it("emits practice voice mode params under canonical path", () => {
+  it("emits practice phone mode params under canonical path", () => {
+    expect(
+      formatRouteUrl({
+        name: "practice",
+        params: { mode: "phone", modality: "phone", sessionId: "s-1" },
+      }),
+    ).toBe("/practice?modality=phone&mode=phone&sessionId=s-1");
+  });
+
+  it("drops out-of-scope voice mode values instead of preserving compatibility params", () => {
     expect(
       formatRouteUrl({
         name: "practice",
         params: { mode: "voice", modality: "voice", sessionId: "s-1" },
       }),
-    ).toBe("/practice?modality=voice&mode=voice&sessionId=s-1");
+    ).toBe("/practice?sessionId=s-1");
   });
 
   it("emits home import handoff params", () => {
@@ -134,7 +143,7 @@ describe("serializeRouteToUrl", () => {
   });
 
 
-  it("normalizes non-current route names back to retained routes", () => {
+  it("normalizes out-of-scope route names back to retained routes", () => {
     expect(serializeRouteToUrl({ name: "welcome", params: {} }).path).toBe("/");
     expect(serializeRouteToUrl({ name: "growth", params: {} }).path).toBe("/");
     expect(serializeRouteToUrl({ name: "plan", params: {} }).path).toBe(
@@ -316,7 +325,7 @@ describe("parseUrlToRoute", () => {
     expect(parseUrlToRoute("/")).toEqual({ name: "home", params: {} });
   });
 
-  it("normalizes the non-current /auth/reset path back to the login entry", () => {
+  it("normalizes the out-of-scope /auth/reset path back to the login entry", () => {
     // product-scope D-16 — auth_reset is outside the current route catalog;
     // the path must land on auth_login instead of materializing a reset screen.
     expect(parseUrlToRoute("/auth/reset")).toEqual({
@@ -325,7 +334,7 @@ describe("parseUrlToRoute", () => {
     });
   });
 
-  it("parses canonical workspace URL but strips legacy context params", () => {
+  it("parses canonical workspace URL but strips out-of-scope context params", () => {
     expect(
       parseUrlToRoute(
         "/workspace?targetJobId=tj-1&resumeId=rv-1&planId=plan-1&autoStartPractice=1",
@@ -348,6 +357,27 @@ describe("parseUrlToRoute", () => {
         reportId: "rpt-1",
         reportStatus: "failed",
         errorCode: "AI_PROVIDER_TIMEOUT",
+      },
+    });
+  });
+
+  it("drops out-of-scope voice mode values during canonical parse", () => {
+    expect(
+      parseUrlToRoute("/practice?sessionId=s-1&mode=voice&modality=voice"),
+    ).toEqual({
+      name: "practice",
+      params: {
+        sessionId: "s-1",
+      },
+    });
+    expect(
+      parseUrlToRoute("/practice?sessionId=s-1&mode=phone&modality=phone"),
+    ).toEqual({
+      name: "practice",
+      params: {
+        sessionId: "s-1",
+        mode: "phone",
+        modality: "phone",
       },
     });
   });

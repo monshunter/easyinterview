@@ -35,9 +35,9 @@ func TestLoaderFourLayerMerge(t *testing.T) {
 	t.Setenv("APP_LISTEN_ADDR", ":9090")
 
 	loader, err := config.Load(config.Options{
-		AppEnv:        "dev",
-		ConfigDir:     dir,
-		EnvBindings:   map[string]string{"APP_LISTEN_ADDR": "app.listenAddr"},
+		AppEnv:         "dev",
+		ConfigDir:      dir,
+		EnvBindings:    map[string]string{"APP_LISTEN_ADDR": "app.listenAddr"},
 		SecretBindings: map[string]string{"objectStorage.secretKey": "OBJECT_STORAGE_SECRET_KEY"},
 		SecretSource:   mapSecret{"OBJECT_STORAGE_SECRET_KEY": "runtime-secret-value"},
 	})

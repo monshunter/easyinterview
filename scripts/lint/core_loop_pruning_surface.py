@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bucket non-current core-loop module references after product-scope D-22 pruning."""
+"""Bucket out-of-scope core-loop module references after product-scope D-22 pruning."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from typing import Iterable
 
 BUCKETS = (
     "migration_records",
-    "non_current_normalization",
+    "out_of_scope_normalization",
     "negative_tests",
     "real_residuals",
 )
@@ -74,7 +74,7 @@ TEST_FILE_SUFFIXES = (
     ".spec.mjs",
 )
 
-NON_CURRENT_NORMALIZATION_PATHS = {
+OUT_OF_SCOPE_NORMALIZATION_PATHS = {
     Path("frontend/src/app/normalizeRoute.ts"),
     Path("frontend/src/app/routeUrl.ts"),
     Path("frontend/src/app/auth/pendingAction.ts"),
@@ -117,13 +117,13 @@ NEGATIVE_CONTEXT_RE = re.compile(
 
 
 @dataclass(frozen=True)
-class NonCurrentPattern:
+class OutOfScopePattern:
     label: str
     pattern: re.Pattern[str]
 
 
-NON_CURRENT_PATTERNS = (
-    NonCurrentPattern(
+OUT_OF_SCOPE_PATTERNS = (
+    OutOfScopePattern(
         "debrief surface",
         re.compile(
             r"\bDebriefs?\b|\bdebrief(?:s|_full|_generate|\.generate|\.created|\.completed|"
@@ -131,7 +131,7 @@ NON_CURRENT_PATTERNS = (
             r"backend/internal/debrief|frontend/src/app/screens/debrief|/debrief\b|route=debrief"
         ),
     ),
-    NonCurrentPattern(
+    OutOfScopePattern(
         "candidate profile surface",
         re.compile(
             r"\bCandidateProfile\b|\bcandidate_profiles\b|\bcandidate[- ]profiles?\b|"
@@ -139,11 +139,11 @@ NON_CURRENT_PATTERNS = (
             r"route=profile|topbar-user-profile|nav\([\"']profile[\"']"
         ),
     ),
-    NonCurrentPattern(
+    OutOfScopePattern(
         "experience card surface",
         re.compile(r"\bExperienceCard\b|\bexperience_cards\b|\bexperience[- ]cards?\b"),
     ),
-    NonCurrentPattern(
+    OutOfScopePattern(
         "jd match surface",
         re.compile(
             r"\bJD Match\b|\bJob Picks\b|\bJobMatch\b|\bjobs-recommendations\b|"
@@ -207,8 +207,8 @@ def iter_scan_files(repo_root: Path) -> Iterable[Path]:
 def classify(rel: Path, line: str) -> str:
     if rel.parts and rel.parts[0] == "migrations":
         return "migration_records"
-    if rel in NON_CURRENT_NORMALIZATION_PATHS:
-        return "non_current_normalization"
+    if rel in OUT_OF_SCOPE_NORMALIZATION_PATHS:
+        return "out_of_scope_normalization"
     if is_test_path(rel):
         return "negative_tests"
     if any(is_relative_to(rel, prefix) for prefix in NEGATIVE_PATH_PREFIXES):
@@ -225,7 +225,7 @@ def scan_file(repo_root: Path, path: Path) -> list[Finding]:
     rel = path.relative_to(repo_root)
     findings: list[Finding] = []
     for lineno, line in enumerate(text.splitlines(), start=1):
-        for pattern in NON_CURRENT_PATTERNS:
+        for pattern in OUT_OF_SCOPE_PATTERNS:
             if not pattern.pattern.search(line):
                 continue
             bucket = classify(rel, line)

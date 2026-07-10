@@ -118,7 +118,7 @@ func TestDefaultAIDictionaryUsesProviderRegistryPaths(t *testing.T) {
 
 	secretBindings := config.DefaultSecretBindings()
 	if _, ok := secretBindings["ai.providerApiKey"]; ok {
-		t.Fatalf("non-current ai.providerApiKey secret binding must not remain: %+v", secretBindings)
+		t.Fatalf("out-of-scope ai.providerApiKey secret binding must not remain: %+v", secretBindings)
 	}
 	if got := secretBindings["ai.defaultProviderApiKey"]; got != "AI_PROVIDER_API_KEY" {
 		t.Fatalf("ai.defaultProviderApiKey secret binding = %q", got)

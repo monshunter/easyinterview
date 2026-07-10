@@ -1,8 +1,8 @@
 # Backend Practice Event Loop and Completion
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -27,7 +27,7 @@
 |-------------|--------------------|------------------|-------------|---------------|----------|
 | `appendSessionEvent` answer flow | `appendSessionEvent.json` answer / follow-up / pause / resume variants | returns `200 + SessionEventResult`; routes all 4 current text event kinds; rejects `Idempotency-Key` with `400 VALIDATION_FAILED` | `practice_session_events`, `practice_turns`, `practice_sessions`, `practice.turn.completed` outbox when a turn is assessed | F3 `practice.session.follow_up` only for follow-up branch | `E2E.P0.038`, `E2E.P0.039`, `E2E.P0.040`, unit/store tests |
 | `appendSessionEvent` replay / mismatch | `appendSessionEvent.json` replay and mismatch variants | same `clientEventId` + same fingerprint returns original result; changed fingerprint returns 409 | no duplicate event/outbox/audit rows | no repeated AI call on replay | `E2E.P0.039`, repository tests |
-| `appendSessionEvent` hint optional | `appendSessionEvent.json` `show-hint` / `hint-assisted-show` | legacy strict and assisted sessions keep hint available; AI-backed `show_hint` behavior is owned by plan 003 | sanitized event response only | `practice.turn.lightweight_observe` via plan 003 | `E2E.P0.039`, mode tests |
+| `appendSessionEvent` hint optional | `appendSessionEvent.json` `show-hint` / `hint-assisted-show` | strict and assisted sessions keep hint available; AI-backed `show_hint` behavior is owned by plan 003 | sanitized event response only | `practice.turn.lightweight_observe` via plan 003 | `E2E.P0.039`, mode tests |
 | `completePracticeSession` create | `completePracticeSession.json` `default` | returns `202 + ReportWithJob{jobType:'report_generate', status:'queued'}` | `practice_sessions`, `practice_session_events`, `feedback_reports`, `async_jobs`, `outbox_events`, `audit_events`, `idempotency_records` | none | `E2E.P0.041`, store/handler tests |
 | `completePracticeSession` replay / mismatch / cross-user | `completePracticeSession.json` replay, mismatch, session-already-completed, cross-user variants | same key replays; same key changed fingerprint returns 409; completed session with another key returns existing report/job; cross-user returns 404 | no duplicate report/job/outbox rows | none | `E2E.P0.042`, middleware/store tests |
 | privacy and runtime boundary | no public fixture | source-event-only job boundary, 4-value turn status, no raw text leakage, no duplicate `report_generate` insert path | sanitized payloads and typed rows only | observed AI labels stay bounded | `E2E.P0.043`, lint and redaction tests |
@@ -55,8 +55,8 @@
 - **替代验证 gate**:
   - `cd backend && go test ./cmd/api -run 'TestE2EP0038|TestE2EP0039|TestE2EP0040|TestE2EP0041|TestE2EP0042|TestE2EP0043' -count=1`
   - `cd backend && go test ./internal/api/practice ./internal/practice ./internal/store/practice ./internal/middleware/idempotency ./internal/shared/jobs ./cmd/api -count=1`
-  - `python3 scripts/lint/backend_practice_non_current.py --repo-root . --phase all`
-  - `python3 -m pytest scripts/lint/backend_practice_non_current_test.py -q`
+  - `python3 scripts/lint/backend_practice_out_of_scope.py --repo-root . --phase all`
+  - `python3 -m pytest scripts/lint/backend_practice_out_of_scope_test.py -q`
   - `make lint-events`
   - `make codegen-events-check`
   - `make validate-fixtures`
@@ -112,7 +112,7 @@
 | A-3 | Concurrent/stale turn submission preserves contiguous accepted `seq_no` and returns conflict for stale input | `TestE2EP0040PracticeEventConcurrentSeqNoStaleTurnConflict`, store tests |
 | A-4 | Completion creates one queued report/job handoff and source event | `TestE2EP0041PracticeSessionCompleteCreatesQueuedReportJob`, store/handler tests |
 | A-5 | Completion idempotency matrix and D-35 replay do not duplicate report/job/outbox rows | `TestE2EP0042PracticeSessionCompleteIdempotencyMatrix`, middleware tests |
-| A-6 | Privacy/runtime boundary has no real residuals | `TestE2EP0043PracticeEventLoopPrivacyAndNonCurrentNegativeSurface`, backend-practice lint, pruning-surface lint |
+| A-6 | Privacy/runtime boundary has no real residuals | `TestE2EP0043PracticeEventLoopPrivacyAndOutOfScopeSurface`, backend-practice lint, pruning-surface lint |
 
 ## 6 修订记录
 

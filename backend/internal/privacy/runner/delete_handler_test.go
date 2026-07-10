@@ -13,10 +13,10 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/upload/store"
 )
 
-func TestPrivacyDeleteHandlerOptionsRejectsNonCurrentDomainHooks(t *testing.T) {
+func TestPrivacyDeleteHandlerOptionsRejectsOutOfScopeDomainHooks(t *testing.T) {
 	optionsType := reflect.TypeOf(runner.PrivacyDeleteHandlerOptions{})
 	if _, ok := optionsType.FieldByName("ProfileData"); ok {
-		t.Fatal("privacy delete handler must not expose non-current domain cleanup hooks")
+		t.Fatal("privacy delete handler must not expose out-of-scope domain cleanup hooks")
 	}
 }
 

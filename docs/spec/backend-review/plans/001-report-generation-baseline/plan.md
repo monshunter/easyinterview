@@ -1,8 +1,8 @@
 # 001 - Report Generation Baseline
 
-> **版本**: 1.2
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -19,7 +19,7 @@
 - 在 AI / prompt / parse failure 时写入 failed report shape 与 retry/permanent job 状态，不向 read handler 泄露 5xx。
 - 保持 user-scoped read/write、wire provenance 6 字段边界、raw QA/prompt/response/secret privacy boundary。
 
-本 plan 是 completed owner 文档，当前用途是作为 implementation / review 的 executable evidence index，不再承载阶段演进说明。
+本 plan 是 completed owner 文档，当前用途是作为 implementation / review 的 executable evidence index，不再承载阶段演进说明。v1.4 将 queued / generating 报告读取语义收敛为当前状态元数据，不再描述为空报告壳。
 
 ## 2 当前合同
 
@@ -30,7 +30,7 @@
 | Runtime | `runner.Runtime` owns lease/retry/reaper; backend-review owns `review.GenerateHandler` business logic | `TestBuildReportRuntimeWiresRoutesRunnerReaperAndAI` |
 | AI | F3 `report.generate` and `report.question_assessment`; A3 observed `AIClient.Complete` | F3 preflight, AI profile/config lint |
 | Events | `report.generated`, `report.generation.failed` | event codegen/lint and outbox emitter tests |
-| Privacy | no raw QA, prompt body, AI response body, or provider secret in report JSON, outbox, audit, logs, or metric labels | redaction tests, BDD P0.055, non-current report surface lint |
+| Privacy | no raw QA, prompt body, AI response body, or provider secret in report JSON, outbox, audit, logs, or metric labels | redaction tests, BDD P0.055, out-of-scope report surface lint |
 
 ## 3 Operation Matrix
 
@@ -47,10 +47,10 @@
 | Report happy path | runner/service/store tests plus `TestE2EP0052ReportGenerationHappyPath` |
 | Read handlers | API/service/store tests plus `TestE2EP0053ReportReadAndListing` |
 | Failure and retry | service failure matrix, runner retry policy, persist failure tests, `TestE2EP0054ReportAIFailureAndRetry` |
-| Privacy and cross-user isolation | redaction tests, ownership tests, `TestE2EP0055ReportPrivacyAndNonCurrent` |
+| Privacy and cross-user isolation | redaction tests, ownership tests, `TestE2EP0055ReportPrivacyAndOutOfScope` |
 | Contract and generated artifacts | OpenAPI codegen, fixture validation, conventions drift, migration lint/tests, event codegen/lint |
 | Runtime wiring | `TestBuildReportRuntimeWiresRoutesRunnerReaperAndAI`, `TestBuildReportRuntimeRejectsMissingAIClient` |
-| Current-scope negative surface | `python3 scripts/lint/backend_review_non_current.py --repo-root . --phase all` and its pytest suite |
+| Current-scope negative surface | `python3 scripts/lint/backend_review_out_of_scope.py --repo-root . --phase all` and its pytest suite |
 
 ## 5 Completed Implementation Slices
 
@@ -58,7 +58,7 @@
 - Runner and job handling: current runtime uses backend-async-runner kernel, with backend-review business logic in `review.GenerateHandler`; lease/retry/reaper behavior is covered by runtime and runner tests.
 - AI content generation: report and question assessment prompts are resolved through F3 and executed through A3; output schema, score-level mapping, token accounting, and failure rows are covered by review/registry/aiclient tests.
 - Persistence: report success/failure writes are transactional across report rows, assessments, async job state, outbox, and audit.
-- Read APIs: handlers preserve user isolation, placeholder/ready/failed shapes, pagination, cursor validation, and target ownership.
+- Read APIs: handlers preserve user isolation, queued/generating/ready/failed shapes, pagination, cursor validation, and target ownership.
 - Privacy and observability: redaction, metric-label allowlist, bounded error codes, outbox payload schema, and current-scope negative lint are covered.
 
 ## 6 Verification Commands
@@ -74,8 +74,8 @@ migrations/lint.sh
 make lint-events
 make codegen-events-check
 python3 scripts/lint/conventions_drift.py --repo-root .
-python3 scripts/lint/backend_review_non_current.py --repo-root . --phase all
-python3 -m pytest scripts/lint/backend_review_non_current_test.py -q
+python3 scripts/lint/backend_review_out_of_scope.py --repo-root . --phase all
+python3 -m pytest scripts/lint/backend_review_out_of_scope_test.py -q
 python3 scripts/lint/prompt_lint.py
 python3 scripts/lint/rubric_lint.py
 make docs-check

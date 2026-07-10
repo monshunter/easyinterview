@@ -1,8 +1,8 @@
 # EasyInterview UI 目标模块地图
 
-> **版本**: 2.11
+> **版本**: 2.14
 > **状态**: active
-> **更新日期**: 2026-07-08
+> **更新日期**: 2026-07-10
 
 ## 1 文档目的
 
@@ -14,7 +14,7 @@
 |------|----------|----------------|------|
 | Home / 首页 | 粘贴 JD 或继续最近模拟面试 | JD 输入、JD 文件/URL 弹窗、最近模拟面试、创建简历入口 | 默认入口；JD 获取唯一入口 |
 | Interview / 面试 | 浏览并回访既有面试规划，再次发起 session | 面试规划列表、当前面试规划、切换/新建规划、JD/简历绑定、面试轮次、公司情报嵌入卡片、立即面试、会话记录 | 一级导航 |
-| Interview Session | 完成一场完整模拟面试 | 文本面试、语音面试、语音转文字、带提示练习 / 严格模拟、问题推进、结束生成报告 | 会话级页面 |
+| Interview Session | 完成一场完整模拟面试 | 文本面试、电话模式、字幕、带提示练习 / 严格模拟、问题推进、结束生成报告 | 会话级页面 |
 | Report Dashboard | 查看一次已完成模拟面试的报告 | 仪表盘、上下文条、准备度、维度、题目回顾、证据、复练计划；Header 唯一一对复练 / 下一轮 CTA | 隶属于 session，不是一级导航 |
 | Resume / 简历 | 管理简历资产 | 平铺简历列表、上传/粘贴创建后直接打开详情、只读原始正文、LLM-derived displayName、禁止 raw 第一行/文件名命名 | 一级导航 |
 | Account & Settings / 设置与隐私 | 管理账号基础信息、登录安全、界面偏好和隐私 | 个人基础信息、登录方式、字体预设、导出、删除 | 用户菜单入口 |
@@ -28,7 +28,7 @@
 | `workspace` | Interview / 面试规划列表 + 面试规划详情 | 无上下文时展示面试规划列表；带 `targetJobId` / `planId` 时复用统一面试规划详情母版；首次导入启动决策由 `parse` 承载 |
 | 公司情报 | Interview | 只保留当前面试规划页内嵌轻量卡片 |
 | `resume_versions` | Resume | 一级简历模块当前入口 |
-| `practice` | Interview Session | 文本面试与语音面试共享会话页面 |
+| `practice` | Interview Session | 文本面试与电话模式共享会话页面 |
 | `generating` | Interview / Report 过渡态 | 报告生成状态，不作为顶部导航 |
 | `report` | Report Dashboard | 会话级报告详情，不作为顶部导航 |
 | `settings` | Account & Settings | 用户菜单入口 |
@@ -43,7 +43,7 @@
 | Job Picks / 岗位推荐 | 不作为独立模块；JD 获取唯一入口是首页导入 | 避免平行入口 |
 | 简历版本树 / 主版本 / 岗位定制版本 / 分叉流程 | 不作为当前简历管理形态 | 简历按平铺资产管理 |
 | 简历轻量问答建档 | 不作为创建入口 | 创建简历只保留上传 / 粘贴 |
-| 设置页通知 / 订阅占位 tab | 不作为当前设置页 tab | 占位能力未来按需重新设计 |
+| 设置页通知 / 订阅扩展 | 不作为当前设置页 tab | 如需通知或订阅能力，先更新 `ui-design/` 原型与本目录文档后再进入前端实施 |
 | Growth / Multi-round Plan / Experience Library / Drill / Mistakes | 不作为当前模块 | 不增强当前 JD -> 模拟 -> 报告闭环 |
 
 ## 5 当前路由到目标模块映射
@@ -65,9 +65,9 @@
 | `auth_profile_setup` | Auth | 首次账号资料补全页 |
 | `auth_logout` | Auth | 退出登录页 |
 
-### 5.2 非当前原型路由归一
+### 5.2 范围外原型路由归一
 
-| 非当前 Route | 运行时折回 | 当前边界 |
+| 范围外 Route | 运行时折回 | 当前边界 |
 |----------|------------|----------|
 | `welcome` | `home` | 不 materialize 默认欢迎页 |
 | `growth` | `home` | 不 materialize 独立成长中心 |
@@ -77,7 +77,7 @@
 | `followup` | `practice` | 不 materialize 独立追问树 |
 | `experiences` | `resume_versions` | 不 materialize 独立经历库 |
 | `star` | `resume_versions` | 不 materialize 独立 STAR 编辑器 |
-| `resume` | `resume_versions` | 不 materialize 非当前简历单页 |
+| `resume` | `resume_versions` | 不 materialize 范围外简历单页 |
 | `onboarding` | `resume_versions` | 不 materialize onboarding 单页 |
 | `auth_register` | `auth_login` | 不 materialize 独立注册页 |
 | `auth_reset` | `auth_login` | 不 materialize 独立重置登录页 |

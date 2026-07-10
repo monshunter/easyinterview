@@ -168,7 +168,7 @@ def map_get_me(data: dict) -> OrderedDict:
     body = OrderedDict([
         ("id", uuidv7_for(f"user:{user.get('email', 'fallback')}")),
         ("emailMasked", _mask_email(user.get("email", "alice@example.com"))),
-        ("displayName", "Alice Example"),  # spec §4.7: avoid real names; use placeholder
+        ("displayName", "Alice Example"),  # spec §4.7: avoid real names; use a deterministic example
         ("uiLanguage", LANGUAGE_TRANSLATION.get(user.get("locale", "zh-CN"), "zh-CN")),
         ("preferredPracticeLanguage", LANGUAGE_TRANSLATION.get(user.get("locale", "zh-CN"), "zh-CN")),
         ("profileCompletionRequired", False),

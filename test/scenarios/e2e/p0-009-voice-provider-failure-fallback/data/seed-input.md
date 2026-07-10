@@ -14,4 +14,4 @@
   - `practice.voice.realtime.default` remains unsupported
 - Frontend fixture:
   - `createPracticeVoiceTurn=tts-failed`
-  - manual transcript fallback text remains visible after TTS failure
+  - assistant text remains visible and no TTS playback starts after TTS failure

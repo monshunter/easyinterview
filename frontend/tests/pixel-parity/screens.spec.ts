@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * Phase 2.2 — Auth / Settings / Placeholder DOM anchor parity.
+ * Phase 2.2 — Auth / Settings / Screen-shell DOM anchor parity.
  *
  * Truth source: docs/spec/frontend-shell/plans/003-ui-design-pixel-parity-
  * gate/plan.md §4 Phase 2.2.
@@ -52,15 +52,9 @@ test.describe("auth_login DOM anchor parity", () => {
     await expect(
       root.locator("[data-testid='auth-login-submit-email']"),
     ).toHaveClass(/\bei-auth-cta\b/);
-    // product-scope D-12 / D-16: the single email-code entry has no password
-    // or OAuth stubs and no reset link; the static email-code help copy
-    // replaces them (ui-design/src/screen-auth.jsx login footer).
-    await expect(
-      root.locator("[data-testid='auth-login-password-stub']"),
-    ).toHaveCount(0);
-    await expect(
-      root.locator("[data-testid='auth-login-oauth-stub']"),
-    ).toHaveCount(0);
+    // product-scope D-12 / D-16: the single email-code entry has no reset
+    // link; the static email-code help copy replaces it
+    // (ui-design/src/screen-auth.jsx login footer).
     await expect(
       root.locator("[data-testid='auth-login-link-reset']"),
     ).toHaveCount(0);
@@ -139,7 +133,7 @@ test.describe("auth_login DOM anchor parity", () => {
     expect(padding).toEqual(["28px", "28px", "28px", "28px"]);
   });
 
-  test("non-current entries (welcome / mistakes / growth / drill / standalone voice) do not appear in DOM", async ({
+  test("out-of-scope entries (welcome / mistakes / growth / drill / standalone voice) do not appear in DOM", async ({
     page,
   }) => {
     await page.goto(FRONTEND_PATH);

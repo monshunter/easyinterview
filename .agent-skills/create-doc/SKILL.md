@@ -120,7 +120,7 @@ spec:
       - ${subspec}
       - ${NNN-plan}
     keywords:
-      - TODO: add issue keywords
+      - ${issue-keyword}
   targets:
     backend:
       plan: ./plan.md
@@ -128,7 +128,7 @@ spec:
       spec: ../../spec.md
       discovery:
         packages:
-          - TODO: add primary packages/modules
+          - ${primary-package-or-module}
 ```
 
 `context.yaml` 仅用于 plan 文档关联和问题检索索引。不要写入 `commands`、脚本名、Make target 或人工操作步骤；若需要稳定检索标识，可补充 `uiRoutes` / `apiNames`。

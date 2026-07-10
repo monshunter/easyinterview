@@ -1,8 +1,8 @@
 # Worker Consolidation
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -20,7 +20,7 @@
 - **Plan 类型**: `code-internal` + `contract` + `tooling` + `docs`。
 - **TDD 策略**: 通过 `/implement backend-runtime-topology/001-worker-consolidation repo` -> `/tdd` 执行；每个代码/契约 checklist item 先写或调整 focused test / lint expectation，再实现最小变更；配置、event lint、codegen drift、Go/TS contract tests 是主要 Red-Green 证据。
 - **BDD 策略**: 不适用：本计划不新增用户可见 UI、API 行为或端到端业务流程；它调整内部运行拓扑、配置字典、生成物和开发期 gate。
-- **替代验证 gate**: `validate_context.py`、`sync-doc-index --check`、`make lint-config`、`make lint-events`、`make lint-runtime-topology`、`make codegen-events-check`、focused Go/Python/TS tests、`make codegen-check`、`make docs-check`、worker/process 非当前输入负向搜索、`git diff --check`。
+- **替代验证 gate**: `validate_context.py`、`sync-doc-index --check`、`make lint-config`、`make lint-events`、`make lint-runtime-topology`、`make codegen-events-check`、focused Go/Python/TS tests、`make codegen-check`、`make docs-check`、worker/process 范围外输入负向搜索、`git diff --check`。
 
 ## 4 实施步骤
 
@@ -60,21 +60,21 @@
 
 修订 F1/A2 文档与相关 plan，使 metrics/logs 的生产、内存 registry 单测和 `/metrics` 文本出口成为 dev gate；Prometheus/Grafana/OTel/Loki 只作为生产或显式可选 profile，不得阻塞 `make dev-up`、TDD 或 BDD。
 
-#### 4.2 负向搜索非当前进程口径
+#### 4.2 负向搜索范围外进程口径
 
 对 active truth source 和 runtime code 执行 zero-reference 搜索：独立后台进程 env、entrypoint、build target、默认前置等不得残留；tests、lint fixtures 与 owner negative assertions 只作为验证输入。
 
 #### 4.3 L2 remediation: runtime topology lint gate
 
-落地 `scripts/lint/runtime_topology.py` 与 `make lint-runtime-topology`，把 non-current standalone worker process 术语从人工 `rg` 升级为可执行 lint gate。扫描范围覆盖 runtime code/config/deploy/generated contract 与 active `docs/spec/*/plans/**` handoff；tests、lint fixtures 与本 owner 负向断言只作为验证输入。同步清理 non-current code comments 与已完成 owner plan/checklist 正文中的独立进程入口、producer label、component probe、privacy runner 等当前口径残留。
+落地 `scripts/lint/runtime_topology.py` 与 `make lint-runtime-topology`，把 out-of-scope standalone worker process 术语从人工 `rg` 升级为可执行 lint gate。扫描范围覆盖 runtime code/config/deploy/generated contract 与 active `docs/spec/*/plans/**` handoff；tests、lint fixtures 与本 owner 负向断言只作为验证输入。同步清理 out-of-scope code comments 与已完成 owner plan/checklist 正文中的独立进程入口、producer label、component probe、privacy runner 等当前口径残留。
 
 #### 4.4 L2 remediation: runtime topology false-negative hardening
 
-补强 `scripts/lint/runtime_topology.py` 的语义覆盖，确保 active handoff 中的 non-current producer / listen-address / binding shorthand 与 non-current async-runtime shorthand 会失败；同步修订 B3/A4/ADR-Q3 active handoff 文案到 `backend_async`、`app listen addr` 和 `backend-async-runner`。
+补强 `scripts/lint/runtime_topology.py` 的语义覆盖，确保 active handoff 中的 out-of-scope producer / listen-address / binding shorthand 与 out-of-scope async-runtime shorthand 会失败；同步修订 B3/A4/ADR-Q3 active handoff 文案到 `backend_async`、`app listen addr` 和 `backend-async-runner`。
 
 #### 4.5 L2 remediation: scripts and raw producer false-negative hardening
 
-补强 `scripts/lint/runtime_topology.py` 的扫描范围与 producer 非当前口径匹配：`scripts/` 下 lint / tooling 脚本若重新写入 `cmd/worker`、`WORKER_LISTEN_ADDR`、`worker.listenAddr` 或 `build-worker` 必须失败；shared event truth source、baseline、schema 或 fixture 中的 raw `producer: worker` / `"producer": "worker"` 形态也必须失败。`runtime_topology.py` 自身和 tests 作为 lint 定义与负向 fixture 例外。
+补强 `scripts/lint/runtime_topology.py` 的扫描范围与 producer 范围外口径匹配：`scripts/` 下 lint / tooling 脚本若重新写入 `cmd/worker`、`WORKER_LISTEN_ADDR`、`worker.listenAddr` 或 `build-worker` 必须失败；shared event truth source、baseline、schema 或 fixture 中的 raw `producer: worker` / `"producer": "worker"` 形态也必须失败。`runtime_topology.py` 自身和 tests 作为 lint 定义与负向 fixture 例外。
 
 #### 4.6 L2 remediation: structured producer false-negative hardening
 
@@ -82,7 +82,7 @@
 
 #### 4.7 L2 remediation: owner handoff false-negative hardening
 
-补强 `scripts/lint/runtime_topology.py` 对 `backend-runtime-topology` owner plan/checklist 的当前 handoff 口径扫描：owner 负向断言、tests 与 lint 定义可保留 non-current terms 作为验证输入，但 owner plan/checklist 不得把独立进程 entrypoint、listen address、producer label 或 async-runtime shorthand 当作当前构建、运行、验证或 handoff 入口。
+补强 `scripts/lint/runtime_topology.py` 对 `backend-runtime-topology` owner plan/checklist 的当前 handoff 口径扫描：owner 负向断言、tests 与 lint 定义可保留 out-of-scope terms 作为验证输入，但 owner plan/checklist 不得把独立进程 entrypoint、listen address、producer label 或 async-runtime shorthand 当作当前构建、运行、验证或 handoff 入口。
 
 ### Phase 5: Verification and lifecycle
 
@@ -100,11 +100,11 @@
 - `job_type` / outbox / async queue 权重继续存在，但解释为 backend internal runner 消费的任务契约。
 - B3 generated Go/TS/schema/baseline 与 `shared/events.yaml` 一致，producer 使用 `backend_async`。
 - 开发期观测 gate 不依赖 Prometheus/Grafana/OTel/Loki 实例。
-- `make lint-runtime-topology` 与 `make lint` 拦截 active code/doc handoff 中的 non-current standalone worker process 口径回流。
-- `make lint-runtime-topology` 与 `make lint` 拦截 active code/doc handoff 中的 non-current producer、listen addr、binding 与 async-runtime shorthand 回流。
-- `make lint-runtime-topology` 与 `make lint` 拦截 `scripts/` tooling 面 non-current entrypoint / env / build 口径，以及 event truth source / generated artifacts 中 raw non-current producer values 回流。
+- `make lint-runtime-topology` 与 `make lint` 拦截 active code/doc handoff 中的 out-of-scope standalone worker process 口径回流。
+- `make lint-runtime-topology` 与 `make lint` 拦截 active code/doc handoff 中的 out-of-scope producer、listen addr、binding 与 async-runtime shorthand 回流。
+- `make lint-runtime-topology` 与 `make lint` 拦截 `scripts/` tooling 面 out-of-scope entrypoint / env / build 口径，以及 event truth source / generated artifacts 中 raw out-of-scope producer values 回流。
 - `make lint-runtime-topology` 与 `make lint` 拦截 event truth source / generated artifacts 中跨行 YAML / JSON producer 字段包含 `worker` 的回流。
-- `make lint-runtime-topology` 与 `make lint` 拦截 owner plan/checklist 将 non-current worker 口径写成当前 handoff / build / runtime / verification 入口。
+- `make lint-runtime-topology` 与 `make lint` 拦截 owner plan/checklist 将 out-of-scope worker 口径写成当前 handoff / build / runtime / verification 入口。
 - 本计划 checklist、Header、INDEX、context 与验证证据一致。
 
 ## 6 风险与应对
@@ -115,7 +115,7 @@
 | codegen drift 漏同步 | `make codegen-events-check` 与 `make codegen-check` 作为强 gate |
 | 观测消费端再次阻塞研发 | F1/A2 文档明确 consumer 只进生产或 opt-in profile |
 | 手工负向搜索漏扫 completed owner plan 正文 | `make lint-runtime-topology` 扫描 active code/doc handoff，并把 tests / history / owner 负向断言设为显式例外 |
-| lint 正则 false negative 放过非当前 shorthand | Phase 4.4 用 Red fixture 覆盖 non-current producer、listen addr、binding 与 async-runtime shorthand，再修 active handoff 文案 |
+| lint 正则 false negative 放过 out-of-scope shorthand | Phase 4.4 用 Red fixture 覆盖 out-of-scope producer、listen addr、binding 与 async-runtime shorthand，再修 active handoff 文案 |
 | lint 扫描范围漏掉 tooling scripts 或 raw producer 字段 | Phase 4.5 用 Red fixture 覆盖 `scripts/` 回流与 YAML/JSON producer 字段形态，并保留 lint 自身 / tests 显式例外 |
 | lint 逐行扫描漏掉跨行 producer 字段 | Phase 4.6 用结构化 YAML / JSON fixture 覆盖 producer block、enum、values 与 list 形态 |
 | owner docs 例外过宽漏掉当前 handoff 回流 | Phase 4.7 用 owner plan/checklist Red fixture 覆盖 current handoff / build / runtime / verification 形态，同时保留负向断言例外 |

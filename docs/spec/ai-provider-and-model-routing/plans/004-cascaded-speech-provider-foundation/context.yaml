@@ -6,7 +6,7 @@ metadata:
   sequence: 4
   specVersion:
     from: 2.8
-    to: 2.9
+    to: 2.21
 spec:
   defaultTarget: backend
   discovery:
@@ -28,6 +28,7 @@ spec:
       - practice.voice.tts.default
       - cascaded voice
       - realtime fail-closed
+      - deterministic TTS fixture
   targets:
     backend:
       plan: ./plan.md

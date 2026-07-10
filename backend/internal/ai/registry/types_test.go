@@ -66,10 +66,9 @@ func TestTypeShape(t *testing.T) {
 	}
 }
 
-// stubJudge is a local test placeholder so TestJudgeSignature does not
-// depend on judge.go (which lands at plan item 2.6). Once judge.go ships
-// the production NotImplementedJudge, judge_test.go re-exercises the
-// interface contract with the real implementation.
+// stubJudge is a local test double so TestJudgeSignature does not depend on
+// judge.go. judge_test.go re-exercises the interface contract with the
+// production FailClosedJudge.
 type stubJudge struct{}
 
 func (stubJudge) Judge(
@@ -97,8 +96,8 @@ func TestJudgeSignature(t *testing.T) {
 	if !ok {
 		t.Fatalf("Judge interface missing Judge method")
 	}
-	// Compile-time assertion that stubJudge satisfies Judge (and so does
-	// the production NotImplementedJudge once judge.go lands at item 2.6).
+	// Compile-time assertion that stubJudge satisfies Judge. The production
+	// FailClosedJudge is covered by judge_test.go.
 	var _ Judge = stubJudge{}
 
 	in := method.Type

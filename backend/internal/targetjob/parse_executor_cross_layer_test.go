@@ -154,7 +154,7 @@ func TestTargetImportPromptMatchesParseResponseSchema(t *testing.T) {
 					t.Errorf("target.import.parse prompt must instruct parser key %q; body=%s", key, body)
 				}
 			}
-			for _, nonCurrentKey := range []string{
+			for _, outOfScopeKey := range []string{
 				"role_title",
 				"required_skills",
 				"responsibilities",
@@ -162,8 +162,8 @@ func TestTargetImportPromptMatchesParseResponseSchema(t *testing.T) {
 				"parse_confidence",
 				"interviewHypotheses",
 			} {
-				if strings.Contains(body, nonCurrentKey) {
-					t.Errorf("target.import.parse prompt still instructs non-current parser key %q; body=%s", nonCurrentKey, body)
+				if strings.Contains(body, outOfScopeKey) {
+					t.Errorf("target.import.parse prompt still instructs out-of-scope parser key %q; body=%s", outOfScopeKey, body)
 				}
 			}
 		})

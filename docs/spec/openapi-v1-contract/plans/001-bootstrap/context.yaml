@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 1.36
+    to: 1.39
 spec:
   defaultTarget: contract
   discovery:
@@ -21,7 +21,7 @@ spec:
       - openapi 3.1
       - openapi.yaml
       - 10 tags
-      - 36 operations
+      - 37 operations
       - deleteMe
       - api/v1 prefix
       - codegen

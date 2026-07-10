@@ -56,7 +56,7 @@ func New(opts Options) *Runtime {
 		opts.Logger = slog.Default()
 	}
 	if opts.Metrics == nil {
-		opts.Metrics = nopMetrics{}
+		opts.Metrics = discardMetrics{}
 	}
 	if len(opts.Backoff.schedule) == 0 {
 		opts.Backoff = DefaultBackoffPolicy()

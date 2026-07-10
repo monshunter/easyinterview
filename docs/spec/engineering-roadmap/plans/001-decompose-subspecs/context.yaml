@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 3.29
+    to: 3.37
 spec:
   defaultTarget: docs
   discovery:
@@ -36,9 +36,9 @@ spec:
       - product-scope alignment
       - ui-design alignment
       - owner matrix
-      - non-current-name zero-reference
+      - out-of-scope-name zero-reference
       - technical draft zero-reference
-      - non-current route boundary
+      - out-of-scope route boundary
       - current owner spec
       - pruning gate
   targets:

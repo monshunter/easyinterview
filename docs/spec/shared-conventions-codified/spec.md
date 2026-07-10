@@ -1,8 +1,8 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.24
+> **版本**: 1.25
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -112,7 +112,7 @@
 | C-6 | OpenAPI codegen 复用 B1 | B2 在自己 plan 里生成 OpenAPI types | B2 codegen 完成 | 任何枚举字段直接 import B1 的常量；不出现重复定义 enum 字面量 | B2 自身 plan |
 | C-7 | OpenAPI 错误响应 envelope 复用 B1 inner error | B2 渲染 `components.schemas.ApiError` 与 `components.schemas.ApiErrorResponse` | `make codegen-openapi && make codegen-check` | `ApiError` 只包含 inner error 字段；`ApiErrorResponse.error` `$ref` 到 `ApiError`；Go generated 复用 `sharederrors.APIError`，TS generated 复用 `conventions.ApiError` | openapi-v1-contract/001-bootstrap |
 | C-8 | AI vocabulary 共享 | A3/B4/F1/B2/TS client 同时消费 AI capability、provider/profile 字段、AI meta 字段与 `AI_*` 错误码 | `make codegen-conventions && make codegen-openapi`，再跑 parity tests / drift gate | `chat/stt/realtime/judge`、provider registry 字段、Model Profile 字段、`model_profile_name` / `capability` / fallback label 等字段名由 B1 生成或校验；F3 prompt/rubric provenance 字段（`feature_key` / `feature_flag` / `data_source_version`）作为 AI vocabulary 的一部分由 [F3 `prompt-rubric-registry/001-baseline`](../prompt-rubric-registry/plans/001-baseline/plan.md) 阶段 4.1 登记，仅服务于 prompt/rubric 来源追溯，不进入 F1 metric label 集合；A3 `AICallMeta` runtime 与 B4 `ai_task_runs` typed columns 使用同一来源；B1 不生成 `AICallMeta` DTO | ai-provider-and-model-routing/003 Phase 6 + db-migrations-baseline remediation + F3 `prompt-rubric-registry/001-baseline` 阶段 4.1 |
-| C-9 | TargetJob 场景错误码共享 | C4 `backend-targetjob` 需要区分不存在/越权、非法导入源、暂时不可用导入源、非法状态迁移 | `make codegen-conventions && make codegen-openapi`，再跑 B1/B2 parity tests / drift gate | `TARGET_JOB_NOT_FOUND` / `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` / `TARGET_INVALID_STATE_TRANSITION` 出现在 `shared/conventions.yaml`、Go/TS generated 错误码和 OpenAPI `ApiErrorCode` enum；handler 不私造 non-current bare aliases | backend-targetjob/001 Phase 0 |
+| C-9 | TargetJob 场景错误码共享 | C4 `backend-targetjob` 需要区分不存在/越权、非法导入源、暂时不可用导入源、非法状态迁移 | `make codegen-conventions && make codegen-openapi`，再跑 B1/B2 parity tests / drift gate | `TARGET_JOB_NOT_FOUND` / `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` / `TARGET_INVALID_STATE_TRANSITION` 出现在 `shared/conventions.yaml`、Go/TS generated 错误码和 OpenAPI `ApiErrorCode` enum；handler 只使用上述 canonical codes，不私造 bare aliases | backend-targetjob/001 Phase 0 |
 
 ## 7 关联计划
 
@@ -127,5 +127,6 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 1.25 | 将 TargetJob 错误码验收条件收敛为 canonical codes 正向合同，并同步 history 与 001 context。 | tech-debt pruning |
 | 2026-07-07 | 1.24 | docs-only：将修订说明统一为记录表述，不改变 B1 shared conventions truth source。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-06 | 1.23 | docs-only：将 B1 active spec 收敛为当前 16 个生成枚举、当前 flat Resume vocabulary 与 `RESUME_EXPORT_NOT_AVAILABLE` 错误码边界；详细修订明细只保留在独立 history。 | product-scope/001-core-loop-module-pruning |

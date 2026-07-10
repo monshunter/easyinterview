@@ -45,9 +45,9 @@ func TestCursorRejectsTampered(t *testing.T) {
 	}
 }
 
-func TestCursorRejectsNonCurrentFormat(t *testing.T) {
-	nonCurrent := base64.RawURLEncoding.EncodeToString([]byte("2026-05-15T10:20:30Z|0197d120-0000-7000-8000-000000000501"))
-	if _, _, err := DecodeCursor(nonCurrent); err == nil {
-		t.Fatal("DecodeCursor accepted non-current pipe-delimited cursor")
+func TestCursorRejectsOutOfScopeFormat(t *testing.T) {
+	outOfScope := base64.RawURLEncoding.EncodeToString([]byte("2026-05-15T10:20:30Z|0197d120-0000-7000-8000-000000000501"))
+	if _, _, err := DecodeCursor(outOfScope); err == nil {
+		t.Fatal("DecodeCursor accepted out-of-scope pipe-delimited cursor")
 	}
 }

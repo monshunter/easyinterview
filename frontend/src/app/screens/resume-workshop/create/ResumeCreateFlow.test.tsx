@@ -103,7 +103,7 @@ describe("ResumeCreateFlow container", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("does not expose a guided tab or guided panel (D-20 guided intake is outside current scope)", () => {
+  it("renders only upload and paste tabs", () => {
     renderCreateFlow();
     expect(
       screen.queryByTestId("resume-create-tab-guided"),
@@ -184,7 +184,7 @@ describe("ResumeCreateFlow container", () => {
     const pasteTab = screen.getByTestId(
       "resume-create-tab-paste",
     ) as HTMLButtonElement;
-    // Only two tabs remain (D-20 guided is outside current scope); ArrowRight wraps back to upload.
+    // Only two tabs remain; ArrowRight wraps back to upload.
     fireEvent.keyDown(pasteTab, { key: "ArrowRight" });
     expect(screen.getByTestId("resume-create-flow")).toHaveAttribute(
       "data-create-mode",

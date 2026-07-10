@@ -1,23 +1,23 @@
 # F3 Real Model Profile and Evals Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
 ## 1 Judge contract
 
 - [x] 1.1 `Judge` interface returns per-rubric-dimension `[]Score` plus `Reasoning`.
-- [x] 1.2 `NotImplementedJudge` remains a safe default and returns `ErrJudgeNotImplemented`.
+- [x] 1.2 `FailClosedJudge` remains a safe default and returns `ErrJudgeUnavailable`.
 - [x] 1.3 `LLMJudge` validates evaluated output schema, calls judge capability through `judge.default`, returns one score per rubric dimension and fail-closes malformed judge output.
 
 ## 2 Judge profile and provider coverage
 
 - [x] 2.1 `judge.default` is active in `config/ai-profiles.yaml`.
-- [x] 2.2 `judge.default` routes to non-placeholder `judge-deepseek` / `deepseek-v4-pro`.
+- [x] 2.2 `judge.default` routes to runnable `judge-deepseek` / `deepseek-v4-pro`.
 - [x] 2.3 `config/ai-providers.yaml` includes `judge-deepseek` with `judge_compatible` protocol and `judge` capability.
-- [x] 2.4 `make lint-ai-profile-coverage` verifies judge profile/provider alignment and rejects placeholder provider/model values for judge and current chat business profiles.
+- [x] 2.4 `make lint-ai-profile-coverage` verifies judge profile/provider alignment and rejects non-runnable provider/model markers for judge and current chat business profiles.
 
 ## 3 Eval fixtures and Promptfoo
 

@@ -41,7 +41,7 @@ describe("practice hint conflict (item 4.4)", () => {
     expect(eventCalls(calls).length).toBe(1);
   });
 
-  it("legacy strict route params keep the hint control available", async () => {
+  it("out-of-scope strict route params keep the hint control available", async () => {
     mountPracticeScreen({ routeParams: { practiceMode: "strict" } });
     await waitFor(() => expect(screen.getByTestId("practice-screen")).toBeDefined());
     expect(screen.getByTestId("practice-input-hint")).toBeDefined();

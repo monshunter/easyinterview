@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  *
- * usePracticeAssistance keeps hints optional inside the session. Legacy
+ * usePracticeAssistance keeps hints optional inside the session. Out-of-scope
  * practiceMode values and practiceGoal must not hide assistance controls.
  */
 
@@ -45,7 +45,7 @@ describe("usePracticeAssistance", () => {
     expect(b).toEqual(a);
   });
 
-  it("baseline vs next_round snapshot under legacy strict is identical", () => {
+  it("baseline vs next_round snapshot under out-of-scope strict input is identical", () => {
     const a = renderHook(() =>
       usePracticeAssistance({
         practiceMode: "strict",

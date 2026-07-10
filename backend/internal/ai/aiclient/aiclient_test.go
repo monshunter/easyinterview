@@ -154,20 +154,8 @@ func defaultResolver() staticResolver {
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
 		},
-		"voice.transcription.reserved": {
-			Name:              "voice.transcription.reserved",
-			Capability:        aiclient.CapabilitySTT,
-			Status:            aiclient.ProfileStatusUnsupported,
-			UnsupportedReason: "stt adapter lands in plan 002",
-			Default: aiclient.ProviderConfig{
-				ProviderRef: stub.Name,
-				Model:       "stub-stt-1",
-			},
-			TimeoutMs: 5000,
-			Version:   "1.0.0",
-		},
-		"practice.dictation.stt.default": {
-			Name:       "practice.dictation.stt.default",
+		"practice.voice.stt.default": {
+			Name:       "practice.voice.stt.default",
 			Capability: aiclient.CapabilitySTT,
 			Status:     aiclient.ProfileStatusActive,
 			Default: aiclient.ProviderConfig{
@@ -361,13 +349,13 @@ func TestTranscribe_RoutesSTTProfileThroughProvider(t *testing.T) {
 		Language:    "en",
 		Prompt:      "Interview answer",
 		Metadata: aiclient.CallMetadata{
-			FeatureKey:    "practice.dictation.stt",
+			FeatureKey:    "practice.voice.stt",
 			PromptVersion: "stt-p1",
 			Language:      "en",
 		},
 	}
 
-	resp, meta, err := c.Transcribe(context.Background(), "practice.dictation.stt.default", input)
+	resp, meta, err := c.Transcribe(context.Background(), "practice.voice.stt.default", input)
 	if err != nil {
 		t.Fatalf("Transcribe: %v", err)
 	}
@@ -380,7 +368,7 @@ func TestTranscribe_RoutesSTTProfileThroughProvider(t *testing.T) {
 	if string(provider.lastTranscribeInput.Audio) != string(input.Audio) || provider.lastTranscribeInput.Filename != "answer.webm" {
 		t.Fatalf("transcription input not propagated: %+v", provider.lastTranscribeInput)
 	}
-	if meta.Capability != aiclient.CapabilitySTT || meta.ModelProfileName != "practice.dictation.stt.default" {
+	if meta.Capability != aiclient.CapabilitySTT || meta.ModelProfileName != "practice.voice.stt.default" {
 		t.Fatalf("expected stt meta for profile, got %+v", meta)
 	}
 }
@@ -388,7 +376,7 @@ func TestTranscribe_RoutesSTTProfileThroughProvider(t *testing.T) {
 func TestTranscribe_RequiresAudioBytesFilenameAndContentType(t *testing.T) {
 	c, provider := newTestClientWithResolver(t, defaultResolver())
 
-	_, meta, err := c.Transcribe(context.Background(), "practice.dictation.stt.default", aiclient.TranscriptionInput{})
+	_, meta, err := c.Transcribe(context.Background(), "practice.voice.stt.default", aiclient.TranscriptionInput{})
 	if err == nil {
 		t.Fatalf("expected invalid input error")
 	}
@@ -434,7 +422,7 @@ func TestComplete_DisabledProfileFailsClosedWithSharedError(t *testing.T) {
 func TestComplete_UnsupportedCapabilityFailsClosedWithSharedError(t *testing.T) {
 	c, provider := newTestClientWithResolver(t, defaultResolver())
 
-	_, meta, err := c.Complete(context.Background(), "voice.transcription.reserved", samplePayload())
+	_, meta, err := c.Complete(context.Background(), "practice.voice.stt.default", samplePayload())
 	assertUnsupportedCapabilityError(t, err, meta, aiclient.CapabilitySTT)
 	if provider.completeCalls != 0 {
 		t.Fatalf("unsupported capability must fail before provider invocation, got %d calls", provider.completeCalls)
@@ -767,7 +755,7 @@ func TestSynthesize_RequiresNonEmptyText(t *testing.T) {
 func TestSynthesize_UnsupportedCapabilityFailsClosedWithSharedError(t *testing.T) {
 	c, provider := newTestClientWithResolver(t, defaultResolver())
 
-	_, meta, err := c.Synthesize(context.Background(), "practice.dictation.stt.default", aiclient.SynthesisInput{
+	_, meta, err := c.Synthesize(context.Background(), "practice.voice.stt.default", aiclient.SynthesisInput{
 		Text: "test",
 	})
 	assertUnsupportedCapabilityError(t, err, meta, aiclient.CapabilitySTT)

@@ -9,6 +9,6 @@ mkdir -p "$OUTPUT_DIR"
   cd "$REPO_ROOT"
   "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test \
-    src/app/screens/workspace/WorkspaceHandoff.test.tsx \
-    src/app/screens/workspace/WorkspaceScreen.test.tsx
+    src/app/screens/workspace/WorkspaceScreen.test.tsx \
+    src/app/screens/report/__tests__/ReplayCta.test.tsx
 ) | tee "$OUTPUT_DIR/trigger.log"

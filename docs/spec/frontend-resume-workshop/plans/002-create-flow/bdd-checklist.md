@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow BDD Checklist
 
-> **版本**: 1.7
+> **版本**: 1.10
 > **状态**: completed
-> **更新日期**: 2026-07-08
+> **更新日期**: 2026-07-10
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -13,15 +13,15 @@
 - [x] P0.081 或 focused substitute gate 覆盖 2MiB 上传上限、右侧 sidebar absent，以及注册后 waiting/detail route handoff。<!-- verified: 2026-07-07 method=focused-substitute tests=UploadTab.test.tsx,ResumeCreateFlow.test.tsx,ResumeDetailView.test.tsx -->
 - [x] P0.081 或 focused substitute gate 覆盖 Resume upload 仅支持 PDF / Markdown / TXT，DOCX 在 presign/register 前被拒绝。<!-- verified: 2026-07-07 method=focused-substitute tests=UploadTab.test.tsx -->
 
-## E2E.P0.082 Retired Parser UI Negative
+## E2E.P0.082 Parser UI Absence
 
-- [x] Scenario assets exist under `test/scenarios/e2e/p0-082-resume-create-flow-parsing-failure-and-retry/` as retired/non-current negative evidence.
+- [x] Scenario assets exist under `test/scenarios/e2e/p0-082-resume-create-flow-direct-detail-only/` as direct detail and parser/preview absence evidence.
 - [x] Verify script proves parser failure / timeout / retry UI is absent from current create flow.
 
 ## E2E.P0.083 CTA Direct-create Handoff
 
-- [x] Scenario assets exist under `test/scenarios/e2e/p0-083-resume-create-flow-preview-confirm-and-cta-handoff/`.
-- [x] Verify script covers Home CTA, Workspace CTA, direct detail navigation and auth pending action boundary without preview confirm.
+- [x] Scenario assets exist under `test/scenarios/e2e/p0-083-resume-create-flow-direct-create-handoff/`.
+- [x] Verify script covers Home CTA, direct detail navigation and auth pending action boundary without preview confirm.
 
 ## E2E.P0.084 Home Existing Resume Picker Regression
 

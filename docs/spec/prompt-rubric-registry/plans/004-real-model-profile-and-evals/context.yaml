@@ -6,7 +6,7 @@ metadata:
   sequence: 4
   specVersion:
     from: 2.7
-    to: 2.17
+    to: 2.18
 spec:
   defaultTarget: backend
   discovery:
@@ -19,7 +19,7 @@ spec:
     keywords:
       - LLM Judge implementation
       - Judge interface per-dimension Score
-      - NotImplementedJudge replacement
+      - FailClosedJudge safe default
       - judge.default activation
       - judge capability profile
       - judge_compatible provider protocol
@@ -36,7 +36,7 @@ spec:
       - rubric dimension reuse
       - followup_relevance report_specificity score_outlier language_consistency
       - make test build final gate
-      - ai profile coverage non-placeholder gate
+      - ai profile coverage runnable gate
       - prompt single source eval drift gate
       - TestJudgeSignature evolution
       - spec D-9 Judge contract

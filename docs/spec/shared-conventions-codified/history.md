@@ -1,13 +1,15 @@
 # Shared Conventions Codified History
 
-> **版本**: 1.23
+> **版本**: 1.25
 > **状态**: active
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-10
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 1.25 | 将 TargetJob 错误码验收条件收敛为 canonical codes 正向合同，并同步 001 context。 | tech-debt pruning |
+| 2026-07-07 | 1.24 | docs-only：将修订说明统一为记录表述，不改变 B1 shared conventions truth source。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-06 | 1.23 | docs-only：将 B1 active spec 正文收敛为当前 16 个生成枚举、flat Resume vocabulary 与 `RESUME_EXPORT_NOT_AVAILABLE` 错误码边界。 | product-scope/001-core-loop-module-pruning |
 | 2026-06-29 | 1.22 | product-scope D-22 后同步 shared conventions：`PracticeGoal` 当前只保留 baseline / retry_current_round / next_round；`RESOURCE_NOT_FOUND` 保留为 generic 404。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-21 | 1.20 | 授权 backend-profile/001 Phase 1 新增 `RESOURCE_NOT_FOUND` 错误码（`httpStatus: 404`，`retryable: false`，`message: "requested resource not found or not accessible"`），作为 cross-resource generic 404 通用码；同步 `shared/conventions.yaml`、Go/TS generated errors 与 B2 OpenAPI `ApiErrorCode` enum。前缀字典追加 `RESOURCE_NOT_FOUND`。 | backend-profile/001-candidate-profile-and-experience-cards Phase 1 |

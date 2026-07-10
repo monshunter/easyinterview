@@ -16,7 +16,7 @@
 
 ## 3 Then
 
-用户 A 收到 `201 + PracticePlan{status:'ready', goal:'baseline'}`；store snapshot 只写入 1 条 practice plan 与 1 条 audit metadata；同 key 重放返回首次响应且不重复副作用；用户 A `GET` 返回完整 plan；用户 B `GET` 返回 `404 + PRACTICE_PLAN_NOT_FOUND`，不泄露存在性；audit / evidence 不包含 question / answer / hint / prompt / response 明文或 non-current PracticeMode literal。
+用户 A 收到 `201 + PracticePlan{status:'ready', goal:'baseline'}`；store snapshot 只写入 1 条 practice plan 与 1 条 audit metadata；同 key 重放返回首次响应且不重复副作用；用户 A `GET` 返回完整 plan；用户 B `GET` 返回 `404 + PRACTICE_PLAN_NOT_FOUND`，不泄露存在性；audit / evidence 不包含 question / answer / hint / prompt / response 明文或 out-of-scope PracticeMode literal。
 
 ## 4 执行
 

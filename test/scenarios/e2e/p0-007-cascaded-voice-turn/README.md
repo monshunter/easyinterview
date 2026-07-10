@@ -1,4 +1,4 @@
-# E2E.P0.007 Cascaded voice turn
+# E2E.P0.007 Cascaded phone turn
 
 > **场景 ID**: E2E.P0.007
 > **执行方式**: automated
@@ -8,11 +8,11 @@
 
 ## 1 Given
 
-用户已登录并进入 `practice?mode=voice&modality=voice`，当前 session 有 active turn。fixture 提供独立 active STT / chat / TTS profiles，浏览器端可录入一段小音频并提交 `createPracticeVoiceTurn`。
+用户已登录并进入 `practice?mode=phone&modality=phone`，当前 session 有 active turn。fixture 提供独立 active STT / chat / TTS profiles，浏览器端可在电话模式中录入一段小音频并提交底层 `createPracticeVoiceTurn`。
 
 ## 2 When
 
-用户录入语音回答并提交 voice turn。前端发送 `POST /api/v1/practice/sessions/{sessionId}/voice-turns`，携带 `Idempotency-Key`、`clientVoiceTurnId`、`turnId` 和小型 base64 audio payload；后端按 STT -> chat -> TTS 级联执行并返回 transcript、assistant draft、TTS chunk metadata 和 provider meta summary。
+用户在电话模式中回答并提交底层 voice turn。前端发送 `POST /api/v1/practice/sessions/{sessionId}/voice-turns`，携带 `Idempotency-Key`、`clientVoiceTurnId`、`turnId` 和小型 base64 audio payload；后端按 STT -> chat -> TTS 级联执行并返回 transcript、assistant draft、TTS chunk metadata 和 provider meta summary。
 
 ## 3 Then
 

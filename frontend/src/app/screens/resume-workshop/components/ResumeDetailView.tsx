@@ -3,7 +3,7 @@ import type { FC } from "react";
 import { useI18n } from "../../../i18n/messages";
 import { useNavigation } from "../../../navigation/NavigationProvider";
 import { buildResumeBodyMarkdown, mapResumeToUiSource } from "../adapters/resume";
-import { useResumeAsset } from "../hooks/useResumeAsset";
+import { useResume } from "../hooks/useResume";
 import { NotFoundEmptyState } from "./NotFoundEmptyState";
 import { ResumePreviewTab } from "./ResumePreviewTab";
 import { ResumeWorkshopIcon } from "./ResumeWorkshopIcon";
@@ -15,7 +15,7 @@ export interface ResumeDetailViewProps {
 export const ResumeDetailView: FC<ResumeDetailViewProps> = ({ resumeId }) => {
   const { t } = useI18n();
   const { navigate } = useNavigation();
-  const resumeQuery = useResumeAsset(resumeId);
+  const resumeQuery = useResume(resumeId);
 
   const onBack = () => navigate({ name: "resume_versions", params: {} });
 

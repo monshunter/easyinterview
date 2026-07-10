@@ -10,7 +10,7 @@
 ui-design/index.html
 └─ ui-design/src/app.jsx
    ├─ TopBar 一级导航
-   ├─ ROUTE_ALIASES 非当前原型路由归一
+   ├─ ROUTE_ALIASES 范围外原型路由归一
    └─ screens 当前可渲染页面
 ```
 
@@ -18,7 +18,7 @@ ui-design/index.html
 
 也就是说，本目录是当前运行时 UI 目标，不是“未来可能目标”的独立草案；它必须和当前静态页面展示的运行时交互保持一致。静态页面调整后，`docs/ui-design/` 需要同步校对，避免文档与设计稿漂移。
 
-`ui-design/canvas.html` 是设计画板总览。判断目标模块时，以 `src/app.jsx` 的一级导航、`ROUTE_ALIASES`、`normalizeRoute` 后的 `activeRouteName` 和实际 screen 返回内容为准；画板标签不能覆盖运行时交互，非当前组件不得作为目标页面依据。
+`ui-design/canvas.html` 是设计画板总览。判断目标模块时，以 `src/app.jsx` 的一级导航、`ROUTE_ALIASES`、`normalizeRoute` 后的 `activeRouteName` 和实际 screen 返回内容为准；画板标签不能覆盖运行时交互，范围外组件不得作为目标页面依据。
 
 ## 2 目录关系
 
@@ -74,16 +74,16 @@ docs/ui-design/
 - 报告、复练当前轮、进入下一轮之间的边界。
 - 简历原始来源、解析文本快照和结构化内容之间的关系（平铺简历资产，无版本树）。
 - 账号资料补全不得承担候选人画像产品语义；设置与隐私只保留账号层能力。
-- `ROUTE_ALIASES` 对非当前 route 的归一关系，以及范围外页面不得作为目标页面。
-- 通过 `ROUTE_ALIASES` 归一的非当前组件；`voice` 不保留 route alias，语音面试必须使用 `practice` 显式参数。
+- `ROUTE_ALIASES` 对范围外 route 的归一关系，以及范围外页面不得作为目标页面。
+- 通过 `ROUTE_ALIASES` 归一的范围外组件；`voice` 不保留 route alias，电话模式必须使用 `practice` 显式 `phone` 参数。
 
 ## 7 检查清单
 
 - [ ] 文档包含标准 Header
 - [ ] 文档与 `ui-design/index.html` 当前静态 UI 一致
-- [ ] 目标模块边界清晰，不与非当前模块混用
+- [ ] 目标模块边界清晰，不与范围外模块混用
 - [ ] 用户流程包含默认入口、主要动作和返回路径
 - [ ] 登录策略包含触发动作、拦截方式、取消路径和成功后接续动作
 - [ ] 全局显示控制不被误写成业务模块或认证门槛
-- [ ] 已区分当前目标路由、非当前原型归一路由、范围外直达页面和非当前组件
+- [ ] 已区分当前目标路由、范围外原型归一路由、范围外直达页面和范围外组件
 - [ ] 已更新 `docs/ui-design/INDEX.md`

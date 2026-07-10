@@ -17,10 +17,10 @@ export const ResumeWorkshopScreen: FC<ResumeWorkshopScreenProps> = ({
 }) => {
   const params = parseResumeWorkshopParams(route.params);
   const runtime = useAppRuntimeOptional();
-  // Production wires the runtime so `auth.status` reflects `/me`. The screen
-  // gates protected Resume APIs strictly on `authenticated`, but routing-only
-  // tests (no runtime mounted) bypass the gate so flow / detail dispatch can
-  // be verified in isolation per Phase 1.5 contract.
+  // Production wires the runtime so `auth.status` reflects `/me`. When this
+  // component is mounted without runtime context, the caller is responsible for
+  // applying the auth gate; isolated route tests use that mode for dispatch
+  // coverage.
   const isAuthGated = runtime !== null && runtime.auth.status !== "authenticated";
 
   const rootDataAttributes: Record<string, string> = {

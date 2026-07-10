@@ -15,7 +15,7 @@ func TestLoadBackfillManifest(t *testing.T) {
 	path := writeBackfillManifest(t, `
 backfills:
   - version: 1
-    name: baseline_noop
+    name: sample_backfill
     checksum: sha256:baseline
     reversible: true
     dryRun: true
@@ -28,7 +28,7 @@ backfills:
 
 	want := []BackfillEntry{{
 		Version:    1,
-		Name:       "baseline_noop",
+		Name:       "sample_backfill",
 		Checksum:   "sha256:baseline",
 		Reversible: true,
 		DryRun:     true,
@@ -51,11 +51,11 @@ func TestRunBackfillEntriesWritesDryRunAndApplyLedger(t *testing.T) {
 
 	err = RunBackfillEntries(context.Background(), db, Command{AppEnv: "dev"}, []BackfillEntry{{
 		Version:  1,
-		Name:     "baseline_noop",
+		Name:     "sample_backfill",
 		Checksum: "sha256:baseline",
 		DryRun:   true,
 	}}, BackfillRegistry{
-		"baseline_noop": func(_ context.Context, _ *sql.DB, mode BackfillMode) error {
+		"sample_backfill": func(_ context.Context, _ *sql.DB, mode BackfillMode) error {
 			modes = append(modes, mode)
 			return nil
 		},
@@ -88,11 +88,11 @@ func TestRunBackfillEntriesSkipsRepeatedSuccess(t *testing.T) {
 
 	err = RunBackfillEntries(context.Background(), db, Command{AppEnv: "dev"}, []BackfillEntry{{
 		Version:  1,
-		Name:     "baseline_noop",
+		Name:     "sample_backfill",
 		Checksum: "sha256:baseline",
 		DryRun:   true,
 	}}, BackfillRegistry{
-		"baseline_noop": func(context.Context, *sql.DB, BackfillMode) error {
+		"sample_backfill": func(context.Context, *sql.DB, BackfillMode) error {
 			ran = true
 			return nil
 		},
@@ -124,10 +124,10 @@ func TestRunBackfillEntriesForceRerunsOutsideProd(t *testing.T) {
 
 	err = RunBackfillEntries(context.Background(), db, Command{AppEnv: "dev", ForceBackfill: true}, []BackfillEntry{{
 		Version:  1,
-		Name:     "baseline_noop",
+		Name:     "sample_backfill",
 		Checksum: "sha256:baseline",
 	}}, BackfillRegistry{
-		"baseline_noop": func(context.Context, *sql.DB, BackfillMode) error {
+		"sample_backfill": func(context.Context, *sql.DB, BackfillMode) error {
 			ran = true
 			return nil
 		},
@@ -152,9 +152,9 @@ func TestRunBackfillEntriesRejectsProdForce(t *testing.T) {
 
 	err = RunBackfillEntries(context.Background(), db, Command{AppEnv: "prod", ForceBackfill: true}, []BackfillEntry{{
 		Version:  1,
-		Name:     "baseline_noop",
+		Name:     "sample_backfill",
 		Checksum: "sha256:baseline",
-	}}, BackfillRegistry{"baseline_noop": func(context.Context, *sql.DB, BackfillMode) error { return nil }})
+	}}, BackfillRegistry{"sample_backfill": func(context.Context, *sql.DB, BackfillMode) error { return nil }})
 	if err == nil {
 		t.Fatal("expected prod force to be rejected")
 	}

@@ -4,7 +4,7 @@
 
 Validate the backend-resume flat read path: `getResume` / `listResumes`
 fixture parity, service/store user scoping, pagination, generated route catalog
-boundaries, and non-current API route 404 behavior.
+boundaries, and out-of-scope API route 404 behavior.
 
 ## 2. Requirements
 
@@ -14,23 +14,23 @@ boundaries, and non-current API route 404 behavior.
 ## 3. Given / When / Then
 
 Given flat ready resume rows owned by user A, user B without access, B2 fixtures
-for `getResume` and `listResumes`, and route catalog tests for non-current API
+for `getResume` and `listResumes`, and route catalog tests for out-of-scope API
 inputs.
 
 When user A reads one resume and lists resumes with cursor pagination, user B
-attempts cross-user access, and non-current endpoints are probed.
+attempts cross-user access, and out-of-scope endpoints are probed.
 
 Then the API returns fixture-compatible flat resume payloads, hides cross-user
 records as 404, proves stable `updated_at DESC, id DESC` pagination, confirms
-non-current route inputs are absent from generated routes, and keeps raw resume /
+out-of-scope route inputs are absent from generated routes, and keeps raw resume /
 suggestion text out of scenario evidence.
 
 ## 4. Scripts
 
 - `scripts/setup.sh`: prepares output directories and copies seed / expected outcome notes into `.test-output`.
-- `scripts/trigger.sh`: runs fixture validation, non-current route/catalog tests,
+- `scripts/trigger.sh`: runs fixture validation, out-of-scope route/catalog tests,
   handler fixture parity, and service/store flat read tests.
-- `scripts/verify.sh`: rejects skipped or no-op gates, checks required runner markers and PASS evidence, reruns fixture parity, and performs privacy / non-current-vocabulary negative searches.
+- `scripts/verify.sh`: rejects skipped or no-op gates, checks required runner markers and PASS evidence, reruns fixture parity, and performs privacy / out-of-scope-vocabulary negative searches.
 - `scripts/cleanup.sh`: records cleanup completion while preserving logs under `.test-output/`.
 
 ## 5. Evidence

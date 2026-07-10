@@ -4,18 +4,17 @@ import { resolve } from "node:path";
 
 /**
  * frontend-resume-workshop/002 Phase 6.7 — pixel-parity gate for the
- * ResumeCreateFlow / ResumeParseFlow / ResumePreviewConfirm screens.
+ * ResumeCreateFlow direct-detail handoff.
  *
  * Truth source: ui-design/src/screen-resume-workshop.jsx, exporting:
- *   ResumeCreateFlow (Upload / Paste tabs; guided intake outside D-20 current scope)
- *   ResumeParseFlow (Agent Parsing 7-step ticker)
- *   ResumePreviewConfirm (structured draft preview + WHAT WILL BE SAVED + PARSE NOTES)
+ *   ResumeCreateFlow (Upload / Paste tabs only)
+ *   ResumeDetailView (waiting / source-format detail states after register success)
  *
- * The spec covers 5 logical viewports: Upload tab, Paste tab, guided-negative,
- * Parse Flow, and Preview Confirm, in both desktop (1440x900) and mobile
- * (390x844). The check baseline is DOM anchor + computed style + bounding
- * box parity, plus a non-empty screenshot smoke. Clean checkout PASS does
- * not depend on local snapshots.
+ * The spec covers Upload tab, Paste tab, extra-tab negative, direct detail
+ * handoff, and detail-owned waiting state in both desktop (1440x900) and
+ * mobile (390x844). The check baseline is DOM anchor + computed style +
+ * bounding box parity, plus a non-empty screenshot smoke. Clean checkout
+ * PASS does not depend on local snapshots.
  */
 
 interface Rect {
@@ -194,7 +193,7 @@ async function submitPasteResume(
 }
 
 test.describe("ResumeCreateFlow pixel parity — input stages", () => {
-  test("Upload tab — DOM anchors, sidebar cards, bounding box parity", async ({
+  test("Upload tab — DOM anchors, no sidebar, bounding box parity", async ({
     page,
   }) => {
     await gotoCreateFlow(page);
@@ -204,7 +203,7 @@ test.describe("ResumeCreateFlow pixel parity — input stages", () => {
       "true",
     );
     await expect(page.getByTestId("resume-create-upload-dropzone")).toBeVisible();
-    await expect(page.getByTestId("resume-create-sidebar")).toBeVisible();
+    await expect(page.getByTestId("resume-create-sidebar")).toHaveCount(0);
     // Bounding box: dropzone height ≥ 260
     const dropzone = await rectOf(
       page,
@@ -241,49 +240,44 @@ test.describe("ResumeCreateFlow pixel parity — input stages", () => {
   });
 });
 
-test.describe("ResumeCreateFlow pixel parity — parse and preview stages", () => {
-  test("Parse Flow — seven step ticker and cancel action", async ({ page }) => {
+test.describe("ResumeCreateFlow pixel parity — direct detail handoff", () => {
+  test("Register success hands off to detail-owned waiting state", async ({
+    page,
+  }) => {
     await gotoCreateFlow(page, {}, { getResumeParseStatus: "processing" });
     await submitPasteResume(page);
-    await expect(page.getByTestId("resume-parse-flow")).toBeVisible();
-    await expect(page.getByTestId("resume-parse-flow-source")).toBeVisible();
-    await expect(page.getByTestId("resume-parse-flow-cancel")).toBeVisible();
-    for (let i = 0; i < 7; i++) {
-      await expect(page.getByTestId(`resume-parse-step-${i}`)).toBeVisible();
-    }
-    const parseCard = await rectOf(
+    await expect(page.getByTestId("resume-detail-parse-waiting")).toBeVisible();
+    await expect(page.getByTestId("resume-parse-flow")).toHaveCount(0);
+    await expect(page.getByTestId("resume-preview-confirm")).toHaveCount(0);
+    const waitingCard = await rectOf(
       page,
-      "[data-testid='resume-parse-flow']",
+      "[data-testid='resume-detail-parse-waiting']",
     );
-    expect(parseCard.width).toBeGreaterThan(320);
-    expect(parseCard.height).toBeGreaterThan(320);
-    const buf = await page.locator("[data-testid='resume-parse-flow']").screenshot();
+    expect(waitingCard.width).toBeGreaterThan(320);
+    expect(waitingCard.height).toBeGreaterThan(180);
+    const buf = await page
+      .locator("[data-testid='resume-detail-parse-waiting']")
+      .screenshot();
     expect(buf.byteLength).toBeGreaterThan(0);
   });
 
-  test("Preview Confirm — draft, action buttons, and side rail", async ({
+  test("Register success renders source-format detail without preview confirm", async ({
     page,
   }) => {
     await gotoCreateFlow(page);
     await submitPasteResume(page);
-    await expect(page.getByTestId("resume-preview-confirm")).toBeVisible();
-    await expect(page.getByTestId("resume-preview-confirm-content")).toBeVisible();
-    await expect(page.getByTestId("resume-preview-confirm-save-button")).toBeVisible();
-    await expect(page.getByTestId("resume-preview-confirm-back-button")).toBeVisible();
-    await expect(
-      page.getByTestId("resume-preview-confirm-sidebar-what-saved"),
-    ).toBeVisible();
-    await expect(
-      page.getByTestId("resume-preview-confirm-sidebar-parse-notes"),
-    ).toBeVisible();
-    const preview = await rectOf(
+    await expect(page.getByTestId("resume-detail-container")).toBeVisible();
+    await expect(page.getByTestId("resume-detail-preview-content")).toBeVisible();
+    await expect(page.getByTestId("resume-parse-flow")).toHaveCount(0);
+    await expect(page.getByTestId("resume-preview-confirm")).toHaveCount(0);
+    const detail = await rectOf(
       page,
-      "[data-testid='resume-preview-confirm']",
+      "[data-testid='resume-detail-container']",
     );
-    expect(preview.width).toBeGreaterThan(320);
-    expect(preview.height).toBeGreaterThan(360);
+    expect(detail.width).toBeGreaterThan(320);
+    expect(detail.height).toBeGreaterThan(360);
     const buf = await page
-      .locator("[data-testid='resume-preview-confirm']")
+      .locator("[data-testid='resume-detail-container']")
       .screenshot();
     expect(buf.byteLength).toBeGreaterThan(0);
   });

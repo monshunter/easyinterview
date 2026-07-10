@@ -1,8 +1,8 @@
 # Practice Voice MVP Spec
 
-> **版本**: 1.7
+> **版本**: 1.13
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -21,7 +21,7 @@
 
 ### 2.1 In Scope
 
-- `PracticeScreen` 内的电话模式形态；用户可见参数 / 文案写作 `phone`，历史 `voice` 参数仅可作为兼容输入归一到电话模式。
+- `PracticeScreen` 内的电话模式形态；用户可见参数 / 文案写作 `phone`，正向入口只接受 `mode=phone` / `modality=phone`，out-of-scope `voice` query 不作为电话模式入口。
 - 后端 voice turn 编排：`stt profile -> chat profile -> tts profile`。
 - STT / chat / TTS 三类 profile 独立选择：默认建议 STT 豆包、chat DeepSeek、TTS 豆包，MiniMax `speech-02-turbo` 作为 TTS 备选或 fallback。
 - AI assistant 回复 draft 与 committed context 分离：未播放内容不得进入下一轮 prompt。
@@ -34,7 +34,7 @@
 - S2S / realtime voice provider 接入；`practice.voice.realtime.default` 继续 fail-closed。
 - 独立 `voice` route 或独立语音页面骨架。
 - 用户可见语音分析：语速、停顿、口头禅、音量和类似表达层指标不属于本 spec 输出。
-- 文本面试中的 `语音转文字`、`插入转写`、麦克风转写或 voice manual transcript fallback 主流程。
+- 文本面试中的 `语音转文字`、`插入转写`、麦克风转写或手动转写替代入口。
 - 长期音频留存、对象存储生命周期、24h 删除链路和用户级录音保留开关的完整生产化；本计划只保留 session 内必要播放 / 转写状态。
 - 复盘语音添加流程；它后续可复用 A3 `stt` / `tts` 底座，但不由本 MVP 实现。
 - Provider 质量评测和供应商选型最终结论；MVP 只锁接口和默认建议。
@@ -45,11 +45,11 @@
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | 语音形态 | P0 语音面试采用 `stt -> chat -> tts` 级联方案，不采用 S2S 首发 | 成本可控，工程可拆分 |
+| D-1 | 电话模式底层语音形态 | P0 电话模式采用 `stt -> chat -> tts` 级联方案，不采用 S2S 首发 | 成本可控，工程可拆分 |
 | D-2 | Provider 配置 | STT、chat、TTS 三者独立 profile，不绑定同一家 provider | 可用豆包 STT + DeepSeek chat + 豆包或 MiniMax TTS |
 | D-3 | Realtime 边界 | `realtime` 只表示 S2S / realtime multimodal voice，MVP 不打开 | 防止语义混淆和成本误判 |
 | D-4 | 打断提交 | 完整播放 chunk 或 barge-in 前已上报 `playedTextLength` 的部分播放文本可进入 committed context；未播放 draft 不得进入下一轮 prompt | 用户已听到的内容可延续上下文，未播放内容不会污染下一轮 prompt |
-| D-5 | 路由边界 | 语音面试只能通过 `practice` 显式参数进入，不恢复 `voice` route | 保持 UI 真理源一致 |
+| D-5 | 路由边界 | 电话模式只能通过 `practice` 显式 `mode=phone` / `modality=phone` 参数进入，不恢复 `voice` route 或 out-of-scope `voice` query 入口 | 保持 UI 真理源一致 |
 | D-6 | TTS 失败语义 | TTS 失败只影响语音播放，已生成文本仍展示并可继续文本面试 | 防止语音 provider 故障导致会话丢失 |
 | D-7 | 用户可见命名 | UI / docs / report 展示统一为 `电话模式 / Phone`；`voice` 只作为底层工程能力名 | 防止用户误解为调试型语音功能或独立语音页面 |
 | D-8 | 真实电话交互 | 电话模式提供切断和重新开始；不暴露 `开始录音` / `提交本轮` 作为主流程 | 对齐真实电话面试心智 |
@@ -93,7 +93,7 @@ Voice turn 必须区分：
 
 前端不得直连豆包或 MiniMax provider，也不得持有 provider key。
 
-`createPracticeVoiceTurn` 是会产生会话事件的 side-effect endpoint，必须携带 `Idempotency-Key`。请求体必须显式携带 `clientVoiceTurnId`、`turnId`、`audio.contentBase64`、`audio.contentType`、`audio.durationMs`、`language` 与 `practiceMode`；不再把 `manualTranscriptFallback` 作为用户可见主流程。不得把 raw audio 写入 URL、日志、AI metadata 或 audit metadata。响应体必须区分 `userTranscriptFinal`、`assistantTextDraft`、`ttsChunks[]`、`voiceTurnId`、`providerMetaSummary` 与可空 `ttsError`。`ttsChunks[]` 只包含 chunk id、content type、duration、byte length/hash 与 `audioRef`；`audioRef` 的播放承载与持久化边界见下段。
+`createPracticeVoiceTurn` 是会产生会话事件的 side-effect endpoint，必须携带 `Idempotency-Key`。请求体必须显式携带 `clientVoiceTurnId`、`turnId`、`audio.contentBase64`、`audio.contentType`、`audio.durationMs`、`language` 与 `practiceMode`；不接受手动转写替代字段。不得把 raw audio 写入 URL、日志、AI metadata 或 audit metadata。响应体必须区分 `userTranscriptFinal`、`assistantTextDraft`、`ttsChunks[]`、`voiceTurnId`、`providerMetaSummary` 与可空 `ttsError`。`ttsChunks[]` 只包含 chunk id、content type、duration、byte length/hash 与 `audioRef`；`audioRef` 的播放承载与持久化边界见下段。
 
 `ttsChunks[].audioRef` 的 HTTP response 值必须是浏览器可直接播放的 `data:audio/...;base64,...` 或同计划落地的 resolver URL；持久化到 `practice_session_events` 的 voice turn summary 必须改写为不含音频数据的 opaque `voice-turn://{voiceTurnId}/chunks/{chunkId}` 引用，并由测试证明 response playback ref 与 persisted summary ref 分离。
 
@@ -134,12 +134,12 @@ Fixture-backed mock responses must follow the same HTTP response playback semant
 | C-3 | 打断不污染上下文 | AI TTS 播放中，前端已报告完整 chunk 或 partial `playedTextLength` | 用户插话 | 后端只提交已播放文本范围；未播放 assistant draft 不进入下一轮 prompt；下一轮 prompt 明确上一条回复被打断 | 001 |
 | C-4 | TTS 失败降级 | STT 与 chat 成功，TTS provider 失败 | 用户等待回复 | 前端可显示字幕错误并允许切断/重开或继续文本面试；session 不失败 | 001 |
 | C-5 | Secret fail-fast | 非测试本地 app run 或未来 staging/prod 选中 active speech profile 但缺 provider secret | 启动或调用 voice turn | 返回配置错误或启动失败；不得静默回退 stub | 001 + A3 004 |
-| C-6 | UI route negative | 用户访问 non-current `voice` route input 或文档/代码出现独立 voice page 口径 | 路由归一或 scope test 执行 | 不进入独立 voice 页面；语音面试只能从 `practice` 显式参数进入 | 001 |
+| C-6 | UI route negative | 用户访问 out-of-scope `voice` route/query input 或文档/代码出现独立 voice page 口径 | 路由归一或 scope test 执行 | 不进入独立 voice 页面；电话模式只能从 `practice` 显式 `phone` 参数进入 | 001 |
 | C-7 | 隐私红线 | 任意 voice turn 完成或失败 | 查询 log / DB metadata / metric / audit | 不含 raw audio、TTS audio、transcript 明文、provider secret；只含 hash/长度/duration/profile/provider/cost 摘要 | 001 + A3 004 |
 
 ## 7 关联计划
 
-- [001-cascaded-stt-llm-tts](./plans/001-cascaded-stt-llm-tts/plan.md)（completed）：落地用户可见语音面试 MVP 的 API、backend orchestration、frontend voice controller、barge-in committed context 与 BDD 场景。
+- [001-cascaded-stt-llm-tts](./plans/001-cascaded-stt-llm-tts/plan.md)（active）：落地用户可见电话模式 MVP 的 API、backend orchestration、frontend phone controller、barge-in committed context 与 BDD 场景；Phase 6 当前负责删除手动转写替代入口和旧语音分析 surface。
 
 ## 8 相关文档
 

@@ -1,8 +1,8 @@
 # 003 BDD Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -13,12 +13,12 @@
 - [x] Verify covers 200 `show_hint`, six-field provenance, hint_text write, replay snapshot, no turn/outbox/audit side effect and success `ai_task_runs(hint_generate)`
 - [x] Go HTTP scenario `TestE2EP0048PracticeHintAssistedAcrossGoals` passes
 
-## E2E.P0.049 legacy strict optional hint × goal 矩阵
+## E2E.P0.049 strict-mode optional hint × goal 矩阵
 
 - [x] Scenario uses three current goals with `mode='strict'`
 - [x] Trigger covers `hint_requested` plus replay
 - [x] Verify covers 200 `show_hint`, replay snapshot, no pending reservation, hint_text write, no turn-completed outbox and no AI call inside the reservation transaction
-- [x] Go HTTP scenario `TestE2EP0049PracticeHintOptionalAcrossLegacyStrictGoals` passes
+- [x] Go HTTP scenario `TestE2EP0049PracticeHintOptionalAcrossStrictModeGoals` passes
 
 ## E2E.P0.050 AssistantAction provenance wire 边界
 
@@ -38,5 +38,5 @@
 ## Closeout
 
 - [x] `cd backend && go test ./cmd/api -run 'TestE2EP0048|TestE2EP0049|TestE2EP0050|TestE2EP0051' -count=1` passes
-- [x] `python3 scripts/lint/backend_practice_non_current.py --repo-root . --phase all` passes
-- [x] `python3 -m pytest scripts/lint/backend_practice_non_current_test.py -q` passes
+- [x] `python3 scripts/lint/backend_practice_out_of_scope.py --repo-root . --phase all` passes
+- [x] `python3 -m pytest scripts/lint/backend_practice_out_of_scope_test.py -q` passes

@@ -1,8 +1,8 @@
 # Backend Upload Spec
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -104,12 +104,12 @@ backend-upload 之所以独立于 `backend-resume`：`file_objects` 同时服务
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
 | C-1 | presign 主路径 | 已登录用户 + 有效 `purpose=resume` + `Idempotency-Key` | 调 `POST /api/v1/uploads/presign`，body 含 `fileName / contentType / byteSize` | 返回 201 + `UploadPresign{fileObjectId, uploadUrl, method, headers, expiresAt}`；DB 创建 `file_objects` 行 `upload_status='pending'` | 001-file-objects-and-presign-baseline |
-| C-2 | IK replay | 同 IK 重复调用，且仍在 `upload.presignTTLSeconds` TTL 内 | 同 IK 第二次 | 返回首次 `fileObjectId` + 同一 uploadUrl/method/headers/expiresAt；不创建新 DB 行；超过 presign TTL 后不得 replay 非当前 URL，而是重新执行 presign path | 001 |
+| C-2 | IK replay | 同 IK 重复调用，且仍在 `upload.presignTTLSeconds` TTL 内 | 同 IK 第二次 | 返回首次 `fileObjectId` + 同一 uploadUrl/method/headers/expiresAt；不创建新 DB 行；超过 presign TTL 后重新执行 presign path，并返回新的 uploadUrl/method/headers/expiresAt | 001 |
 | C-3 | purpose 非法 | `purpose='unknown_purpose'` | 调 presign | 422 + `error.code = "VALIDATION_FAILED"` + `details.field = "purpose"` | 001 |
 | C-4 | 跨用户隔离 | 用户 A 创建 fileObject；用户 B 调 `getFileObject` 或 register | – | 404（不暴露存在；与 B2 D-15 envelope 对齐） | 001 |
 | C-5 | state transition 非法 | DB 行 `upload_status='deleted'` 或 `scan_failed` | business handler 调 internal RegisterFileObject | 422 + `error.code = "VALIDATION_FAILED"`；不使用未登记的状态迁移专用错误码 | 001 |
 | C-6 | privacy delete 链路 | 用户 A 有 5 个 fileObject + 1 个 privacy_export pending | `DELETE /api/v1/me` 创建 `privacy_delete` async job，backend runtime drainer 执行该 job | 对象存储删除 5 行 → DB 5 行硬删 + audit tombstone 同事务写入；retryable 失败时 DB 行保留原状态等待重试；upload deleter 必须被实际挂入 `cmd/api` runtime privacy_delete path | 001（含隐私章节）+ backend-runtime-topology |
-| C-7 | 隐私 / 非当前输入负向 | grep `frontend-` / `backend-` / `docs/spec/` | – | 不出现非当前 `upload-route` / `pre-signed-by-frontend` / hardcode S3 SDK 路径等 non-current 模式 | 001 |
+| C-7 | 隐私 / 范围外输入负向 | grep `frontend-` / `backend-` / `docs/spec/` | – | 不出现范围外 `upload-route` / `pre-signed-by-frontend` / hardcode S3 SDK 路径等 out-of-scope 模式 | 001 |
 | C-8 | mock-first 对齐 | B2 fixture `createUploadPresign.json` `default` scenario | mock-server 返回该 scenario | 字段集 / status code / IK 行为与真实 handler 字节级一致 | 001 + mock-contract-suite |
 
 ## 7 关联计划

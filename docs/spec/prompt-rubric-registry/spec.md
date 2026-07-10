@@ -1,8 +1,8 @@
 # Prompt Rubric Registry Spec
 
-> **版本**: 2.17
+> **版本**: 2.19
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -19,7 +19,7 @@
 1. **contract 就绪**：每个 P0 AI task 至少有稳定 `feature_key + version` 坐标与文件落点；真实 baseline prompt + rubric 文件由 F3 `001` plan 落地并验证后，后续业务域才能引用。
 2. **跨语言、跨任务、跨灰度统一**：9 个当前 baseline feature_key（见 §3.1.1）共享同一 schema（feature_key / prompt_version / rubric_version / language / template_hash）；baseline 文件只维护 canonical `multi` 坐标，运行时 `language` 仍作为用户目标输出语言与 provenance 字段。
 3. **评估升级路径**：F3 `004-real-model-profile-and-evals` 切到真实 judge Model Profile + 落地 ≥ 36 题离线评估集（当前 9 个 feature_key 共 36 个 fixture case；新增 feature_key 时同步扩充）；本 spec 锁定接口、边界与 gate，代码实施由该 plan 承接。
-4. **LLM Judge 接口**：本 spec 锁定 LLM Judge 接入契约，`004-real-model-profile-and-evals` 负责把 `NotImplementedJudge` 替换为真实实现。
+4. **LLM Judge 接口**：本 spec 锁定 LLM Judge 接入契约，`004-real-model-profile-and-evals` 负责落地 `LLMJudge` 真实实现，并保留 `FailClosedJudge` 作为未配置 caller 的安全默认值。
 
 本 spec 不实现具体业务调用现场（归各 C 域）、不实现 AIClient（归 [A3](./../ai-provider-and-model-routing/spec.md)）、不实现 DB 表（归 B4）。
 
@@ -38,7 +38,7 @@
   - 启动时从 `config/prompts/` + `config/rubrics/` + DB 同步；DB 是 staging / prod 真理源；本地 dev 直接读文件。
 - **业务调用规约**：业务代码必须先 `Resolve(featureKey, ctx.Language)` 拿到三元组，然后传给 `AIClient.Complete(profileName, payload)`；payload 中携带 `prompt_version + rubric_version + feature_key`。
 - **lint 规则**：禁止业务包出现 `prompt :=` 字面量字符串 / 多行字符串模板；当前由本地 lint gate 接入，远端 CI 仅在 A5 触发条件成立后再接入；任何 prompt 必须从 registry 加载。
-- **contract 内容**：9 个当前 baseline feature_key 各 1 份 v0.1.0 baseline prompt + rubric 的坐标、schema 与落点在本 spec 中锁定；实际 `config/prompts/` / `config/rubrics/` 文件由 F3 `001` plan 创建，prompt 文本必须是可用 baseline 文案，不写「TBD」占位。
+- **contract 内容**：9 个当前 baseline feature_key 各 1 份 v0.1.0 baseline prompt + rubric 的坐标、schema 与落点在本 spec 中锁定；实际 `config/prompts/` / `config/rubrics/` 文件由 F3 `001` plan 创建，prompt 文本必须是可用 baseline 文案，不写「TBD」空文案。
 - **LLM Judge 接口**：`Judge(featureKey, prompt_version, output, rubric_version) → ([]score, reasoning)`；返回值自 spec v2.8（D-9）演进为**逐 rubric dimension 一项**的 `[]Score`，实现归 `004-real-model-profile-and-evals`。
 - **灰度策略**：同 `(feature_key, language)` 同时只允许 1 个 `is_active=true`；P0 baseline active language 坐标为 `multi`。灰度切换由 PostHog feature flag（[A4 D-4](../secrets-and-config/spec.md#31-已锁定决策含-p0-必备-env-key-字典)）+ `Resolve` 内部分桶逻辑实现（后续接入）。
 
@@ -70,7 +70,7 @@
 | D-10 | 不入 log 明文 | template_body 不写入 log；只写 prompt_version + template_hash；与 [F1 D-6](../observability-stack/spec.md#31-已锁定决策含命名约定字典) 一致 | – |
 | D-11 | A3 profile coverage | §3.1.1 中每个默认 `model_profile_name` 必须在 A3 `config/ai-profiles.yaml` catalog 中存在，并能解析到合法 `capability` / `provider_ref` / `status`；P1/P2 项可为 `status=disabled` / `status=unsupported`，但必须携带 `unsupported_reason` 且不得缺命名空间；本 gate 由 `make lint-ai-profile-coverage` 和顶层 `make lint` 触发 | 防止 F3 Resolve 输出悬空 profile |
 | D-12 | Provider-neutral AI invocation hints | 后续 F3 编码 truth source 可为 Resolve 输出追加 `tools[]`、`output_schema`、`stream_wire`，供 A3 `CompletePayload` / `Stream` 消费；字段只表达业务 schema / wire preference，不表达 provider、model、API endpoint 或 SDK 私有字段 | 让 tools / structured output / streaming handoff 可治理，同时不破坏 A3 provider-neutral 边界 |
-| D-13 | output_schema 契约落地（由 002 实施） | 每个 chat feature_key 落地 `config/prompts/<feature_key>/<version>.schema.json`（**语言无关**，JSON Schema 子集校验关键字 `type`/`required`/`properties`/`items`/`enum`，允许 `description` 作为非校验注解，描述后端实际反序列化契约）；`RegistryClient` 加载并随 `ResolveActive` 输出填充 `OutputSchema`；A3 `aiclient` observability `validateOutputSchema` 扩展支持 `enum` 并对模型输出做 fail-close 校验；prompt body 输出段统一为 schema 渲染/校验的「输出契约 + complete example JSON output」，schema 是唯一字段真理源；schema `required` 必须 ⊆ prompt body 声明的输出 key，且字段必须与后端反序列化 struct 的 json tag 对齐（drift → `make lint-prompts` exit 1）；example JSON 必须覆盖 schema 声明的 required + optional 字段、使用业务形态值而非 `string` / `1` 占位，并明确禁止模型返回 JSON Schema / OpenAPI schema。允许模型产出 schema 未声明的额外字段（向后兼容），但 prompt body 不应要求后端不消费且无评估价值的字段。`response_format` 解码期强约束属 A3 后续；语音（STT/TTS）feature 不产 JSON content，不在范围 | 把 D-12 规划的 `output_schema` 从「可追加」升级为可机器校验、可渲染、可评估的锁定契约，消除 prompt 形状 ↔ struct drift（BUG-0065 类），并降低 prompt 字段清单重复维护成本，同时让 prompt 内示例成为可执行的完整 JSON 输出样例而非 schema 文档。当前 9 个 chat feature_key 顶层均为 object |
+| D-13 | output_schema 契约落地（由 002 实施） | 每个 chat feature_key 落地 `config/prompts/<feature_key>/<version>.schema.json`（**语言无关**，JSON Schema 子集校验关键字 `type`/`required`/`properties`/`items`/`enum`，允许 `description` 作为非校验注解，描述后端实际反序列化契约）；`RegistryClient` 加载并随 `ResolveActive` 输出填充 `OutputSchema`；A3 `aiclient` observability `validateOutputSchema` 扩展支持 `enum` 并对模型输出做 fail-close 校验；prompt body 输出段统一为 schema 渲染/校验的「输出契约 + complete example JSON output」，schema 是唯一字段真理源；schema `required` 必须 ⊆ prompt body 声明的输出 key，且字段必须与后端反序列化 struct 的 json tag 对齐（drift → `make lint-prompts` exit 1）；example JSON 必须覆盖 schema 声明的 required + optional 字段、使用业务形态值而非 generic `string` / `1` filler values，并明确禁止模型返回 JSON Schema / OpenAPI schema。允许模型产出 schema 未声明的额外字段（向后兼容），但 prompt body 不应要求后端不消费且无评估价值的字段。`response_format` 解码期强约束属 A3 后续；语音（STT/TTS）feature 不产 JSON content，不在范围 | 把 D-12 规划的 `output_schema` 从「可追加」升级为可机器校验、可渲染、可评估的锁定契约，消除 prompt 形状 ↔ struct drift（BUG-0065 类），并降低 prompt 字段清单重复维护成本，同时让 prompt 内示例成为可执行的完整 JSON 输出样例而非 schema 文档。当前 9 个 chat feature_key 顶层均为 object |
 | D-14 | language-coordinate simplification | Baseline prompt/rubric truth source 只维护 `multi` coordinate；`en` 等用户语言不再默认复制成隐藏配置文件。`ResolveActive(featureKey, requestedLanguage)` 保持 exact → `multi` fallback，prompt 通过 `{{language}}` 指令对齐用户目标语言；rubric 默认语言无关。新增 language override 必须说明真实语义差异并有 lint/seed/loader gate 覆盖 | 保留多语言用户体验，同时去掉 prompt/rubric 重复维护成本 |
 | D-15 | 评估框架与 judge 决策（`004` 锁定） | Promptfoo（pnpm Node）承载离线 eval runner，经 `RegistryClient.ResolveActive` 消费同一份 `config/prompts` 真理源（禁止复制第二份 prompt 正文）；录制 fixture 为默认执行模式，真实 provider 调用经 `EVAL_LIVE` 显式 opt-in 且不进 `make test` / 默认 `make eval-offline`；LLM Judge 走 `judge.default` profile（与业务 chat profile 隔离）；评估维度复用现有 rubric `dimensions[]`，不新造同义维度；被评估的 9 个 business prompt 经 `RegistryClient` single-source 消费，而 LLM Judge 自身的评分指令模板是 eval-harness 资产，落 `config/evals/`（F3 `004` 命名空间）由 judge 从文件加载，不内联字面量、不占用 §3.1.1 业务 feature_key 坐标 | 把 spec §3.2 defer 给评估 plan 的选型固化；保证 single-source、确定性与 provider 隔离，并区分「被评估的业务 prompt」与「judge 自身指令」两类资产 |
 
@@ -88,7 +88,7 @@
 | `resume.tailor.gap_review` | 简历 gap review | C7 | `resume.tailor.default` |
 | `resume.tailor.bullet_suggestions` | 简历 bullet 改写 | C7 | `resume.tailor.default`（共享） |
 
-> 备注：当前不维护资料检索类占位，个人开发阶段先保持 §3.1.1 的 9 个 baseline feature_key；未来如果产品确认资料规模与质量评估需求，再由新的设计重新引入。报告内题目回顾与本轮复练由 `report.generate` / `report.question_assessment` 承载。
+> 备注：当前不维护资料检索类命名空间，个人开发阶段先保持 §3.1.1 的 9 个 baseline feature_key；未来如果产品确认资料规模与质量评估需求，再由新的设计重新引入。报告内题目回顾与本轮复练由 `report.generate` / `report.question_assessment` 承载。
 
 ### 3.2 待确认事项
 
@@ -104,7 +104,7 @@
 - prompt 元信息字段顺序固定（与 DB 表列顺序一致）：`feature_key / version / language / template_hash / status / created_at`；`status ∈ {draft, active}`。
 - rubric `dimensions[].name` 必须使用 F1 / F3 推荐质量指标中定义的命名 +（业务域专有维度 by C 域 owner）；不允许重新发明同义维度。
 - `version` 必须递增并使用 SemVer 字符串（baseline 从 `v0.1.0` 起）；同 `(feature_key, version, language)` 不允许覆盖（CI 拦截）。Baseline active 文件只要求 `language: multi`；language override 是例外路径，必须有业务 rationale。
-- output schema 文件 `config/prompts/<feature_key>/<version>.schema.json` **语言无关**（每个 `(feature_key, version)` 唯一一份，multi 与各 language 变体共用），不混入 per-language `template_hash`；允许的 JSON Schema 校验关键字限于 `type` / `required` / `properties` / `items` / `enum` 子集，允许 `description` 作为非校验注解，且必须与 A3 `aiclient` 的 `outputSchema` 校验器实现保持同一校验子集；当前 9 个 active chat feature_key 顶层 `type` 均为 `object`。schema `required` key 集合必须 ⊆ 对应 prompt body 声明的输出 key，并与后端反序列化 struct 的 json tag 对齐；prompt body 输出段必须由 schema 渲染或 lint 校验，三者一致性由 `make lint-prompts` 静态校验，drift 即 exit 1；example JSON 必须是完整代表性 output 值，包含 schema 声明的 optional 字段，不得退化为 OpenAPI / JSON Schema 文档或 `string` / `1` 形式的最小占位。
+- output schema 文件 `config/prompts/<feature_key>/<version>.schema.json` **语言无关**（每个 `(feature_key, version)` 唯一一份，multi 与各 language 变体共用），不混入 per-language `template_hash`；允许的 JSON Schema 校验关键字限于 `type` / `required` / `properties` / `items` / `enum` 子集，允许 `description` 作为非校验注解，且必须与 A3 `aiclient` 的 `outputSchema` 校验器实现保持同一校验子集；当前 9 个 active chat feature_key 顶层 `type` 均为 `object`。schema `required` key 集合必须 ⊆ 对应 prompt body 声明的输出 key，并与后端反序列化 struct 的 json tag 对齐；prompt body 输出段必须由 schema 渲染或 lint 校验，三者一致性由 `make lint-prompts` 静态校验，drift 即 exit 1；example JSON 必须是完整代表性 output 值，包含 schema 声明的 optional 字段，不得退化为 OpenAPI / JSON Schema 文档或 generic `string` / `1` filler values。
 - schema enum 必须对齐 B1/shared enum、DB CHECK 与后端 consumer 的实际可接受值；prompt body 的 output contract 与 example JSON 不得使用 schema enum 外的展示词。`report.question_assessment.review_status` 当前只允许 `open` / `queued_for_retry` / `resolved`，不得使用 `ready`。
 - `practice.turn.lightweight_observe.answerSummary` 是 report handoff 的最佳努力摘要字段：prompt 必须要求模型尽量返回，parser 必须消费 camelCase / snake_case 变体，但 JSON schema 不得把它列为 required，避免辅助观察因真实 provider 偶发漏字段而阻断答题主链路；缺失时由 practice owner 生成降级摘要并保留可观测错误码。
 
@@ -155,7 +155,7 @@
 | C-11 | A3 profile coverage | A3 003 完成 provider registry + capability profile catalog | 运行 `make lint-ai-profile-coverage` 或顶层 `make lint` | §3.1.1 的默认 `model_profile_name` 全部存在于 `config/ai-profiles.yaml`，且 capability / provider_ref / status 合法；`disabled` / `unsupported` profile 必须显式标记并携带 `unsupported_reason` | A3 003 + F3 后续 001 |
 | C-12 | output_schema 契约闭环 | F3 002 完成 9 个 chat feature_key 的 `<version>.schema.json` 与 resolver 接线 | 运行 `make lint-prompts` + `go test ./backend/internal/ai/registry/...` + `go test ./backend/internal/ai/aiclient/...` | 每个 chat feature_key 有 1 份语言无关 schema；`ResolveActive` 输出非空 `OutputSchema`；prompt body 输出段可由 schema 重新渲染，且 complete example JSON output 覆盖 schema 声明的 required + optional 字段、使用业务形态值、通过 schema 校验、明确不是 JSON Schema / OpenAPI schema；故意让 prompt 输出 key 与 schema/struct 不一致 → `make lint-prompts` 失败；`validateOutputSchema` 对违反 `enum` 或缺 required 的模型输出 fail-close（`AI_OUTPUT_INVALID`） | F3 002 |
 | C-13 | language-coordinate 收敛 | F3 003 完成 | 运行 prompt/rubric lint、registry tests、seed coverage、migration check 与 current-contract grep | `config/prompts` / `config/rubrics` 只保留 canonical `multi` baseline；seed migration 只写 active `multi` rows；loader snapshot 9 个 baseline coordinates；`ResolveActive(featureKey, "en")` / unknown locale fallback 到 `multi` 且返回同一语言无关 schema；active README/spec/lint/test 的正向要求均为 canonical `multi` | F3 003 |
-| C-14 | judge.default 激活 + profile coverage | F3 `004` 翻 judge.default active | 运行 `make lint-ai-profile-coverage` | `judge.default` `status=active` 且 default provider_ref 非 placeholder；§3.1.1 的 9 个 chat profile 全部解析到非 placeholder provider；负向 placeholder → gate fail；A3 已 active 业务 profile status 不被翻动 | F3 `004` + A3 |
+| C-14 | judge.default 激活 + profile coverage | F3 `004` 翻 judge.default active | 运行 `make lint-ai-profile-coverage` | `judge.default` `status=active` 且 default provider_ref / model 可运行；§3.1.1 的 9 个 chat profile 全部解析到可运行 provider / model；non-runnable marker → gate fail；A3 已 active 业务 profile status 不被翻动 | F3 `004` + A3 |
 | C-15 | eval prompt single-source | F3 `004` Promptfoo 接线 | 运行 eval drift gate + `make lint-prompts-hardcode` | Promptfoo 经 `RegistryClient.ResolveActive` 消费同一份 prompt；无第二份 prompt 副本；prompt 漂移 → drift gate exit 1；`lint-prompts-hardcode` 仍 green | F3 `004` |
 
 ## 7 关联计划
@@ -165,7 +165,7 @@ F3 当前 active impl plan 由 F3 自身的 plans 承接（[engineering-roadmap 
 - `001-baseline`：`internal/ai/registry/` + `config/prompts/` + `config/rubrics/` 9 个 feature_key 的 baseline truth source + Resolve 实现 + lint 规则。
 - `002-output-schema-contract`：9 个 chat feature_key 各落地**语言无关** `config/prompts/<feature_key>/<version>.schema.json` + schema 渲染/校验的 prompt body 输出契约（字段表 + complete example JSON output，非 JSON Schema / OpenAPI schema）；`RegistryClient` 加载 schema 并接线 `ResolveActive` 的 `OutputSchema`；A3 `aiclient` `validateOutputSchema` 扩展支持 `enum`；新增 schema↔prompt↔struct 一致性 lint gate（D-13）。
 - `003-language-coordinate-simplification`：删除默认 `en` prompt/rubric 副本，收敛到 canonical `multi` baseline；保留 runtime language fallback 与 output-language target。
-- `004-real-model-profile-and-evals`（completed）：真实 LLM Judge 实现（`Judge` 演进为逐维度 `[]Score`）+ `judge.default` 激活 + profile coverage 非 placeholder 门禁 + ≥ 36 题离线评估集（当前 9-key 基线；Promptfoo，registry single-source，录制 fixture 默认 + `EVAL_LIVE` opt-in）；依赖 A3 `003-provider-registry-and-capability-profiles`（completed）提供完整 profile coverage 与 judge capability profile。
+- `004-real-model-profile-and-evals`（completed）：真实 LLM Judge 实现（`Judge` 演进为逐维度 `[]Score`，`FailClosedJudge` 保留为安全默认）+ `judge.default` 激活 + runnable profile coverage 门禁 + ≥ 36 题离线评估集（当前 9-key 基线；Promptfoo，registry single-source，录制 fixture 默认 + `EVAL_LIVE` opt-in）；依赖 A3 `003-provider-registry-and-capability-profiles`（completed）提供完整 profile coverage 与 judge capability profile。
 - `005-grayscale-and-quality-feedback`（原 004）：PostHog 灰度分桶 + 报告页质量主观评分回流。
 
 后续如需扩展（多模态 prompt / 函数调用 prompt schema）：递增 spec 版本，原地修订；不创建 sibling spec。

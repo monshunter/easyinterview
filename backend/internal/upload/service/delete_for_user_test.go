@@ -32,7 +32,7 @@ func TestDeleteFileObjectsForUserDeletesObjectsBeforeDBAndWritesAudit(t *testing
 		t.Fatalf("delete/audit order mismatch: atomic=%v", repo.atomicDeletedIDs)
 	}
 	if len(repo.hardDeletedIDs) != 0 || len(repo.auditIDs) != 0 {
-		t.Fatalf("non-current split delete/audit should not be used: hard=%v audit=%v", repo.hardDeletedIDs, repo.auditIDs)
+		t.Fatalf("out-of-scope split delete/audit should not be used: hard=%v audit=%v", repo.hardDeletedIDs, repo.auditIDs)
 	}
 }
 
@@ -67,7 +67,7 @@ func TestDeleteFileObjectsForUserUsesAtomicDBDeleteAndAudit(t *testing.T) {
 		t.Fatalf("atomicDeletedIDs=%v", repo.atomicDeletedIDs)
 	}
 	if len(repo.hardDeletedIDs) != 0 || len(repo.auditIDs) != 0 {
-		t.Fatalf("non-current split delete/audit should not be used: hard=%v audit=%v", repo.hardDeletedIDs, repo.auditIDs)
+		t.Fatalf("out-of-scope split delete/audit should not be used: hard=%v audit=%v", repo.hardDeletedIDs, repo.auditIDs)
 	}
 }
 

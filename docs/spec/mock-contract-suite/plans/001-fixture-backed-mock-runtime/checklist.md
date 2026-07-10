@@ -1,15 +1,15 @@
 # Fixture-backed Mock Runtime Checklist
 
-> **版本**: 1.7
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
 ## 1 Fixture registry and coverage
 
-- [x] 1.1 Registry reads `openapi/fixtures/<tag>/<operationId>.json` and exposes operationId lookup for all current 36 operations.<!-- verified: 2026-07-07 method=python-unittest tests=scripts.mock_contract.fixture_registry_test,frontend devMockClient.test.ts -->
-- [x] 1.2 Registry tests fail on missing fixture, extra fixture, unexpected tag directory, mismatched operationId and non-current mock/API token.
+- [x] 1.1 Registry reads `openapi/fixtures/<tag>/<operationId>.json` and exposes operationId lookup for all current 37 operations.<!-- verified: 2026-07-10 method=python-unittest tests=scripts.mock_contract.fixture_registry_test,frontend devMockClient.test.ts -->
+- [x] 1.2 Registry tests fail on missing fixture, extra fixture, unexpected tag directory, mismatched operationId and out-of-scope mock/API token.
 - [x] 1.3 `make lint-mock-contract` includes `make validate-fixtures`, `make lint-openapi`, fixture registry tests and mock runtime boundary lint.
 
 ## 2 Frontend mock transport and dev client
@@ -30,9 +30,9 @@
 - [x] 4.1 Frontend runtime code cannot import `ui-design/src/data.jsx`.
 - [x] 4.2 Fixture response bodies cannot contain prototype-only display fields.
 - [x] 4.3 `openapi/fixtures/` tag directories must exactly match current OpenAPI tags.
-- [x] 4.4 Current mock/API token scan rejects non-current routes, tags, schema keys and config paths while allowing practice-voice owner operation names and fixtures.
+- [x] 4.4 Current mock/API token scan rejects out-of-scope routes, tags, schema keys and config paths while allowing practice-voice owner operation names and fixtures.
 
 ## 5 Current owner compression gate
 
-- [x] 5.1 `spec.md`, `plan.md`, `checklist.md`, `context.yaml` and plans INDEX align to the current 36-operation fixture-backed mock runtime contract.<!-- verified: 2026-07-07 method=targeted-doc-update+context-validation -->
-  <!-- verified: 2026-07-07 method=current-owner-compression evidence="Updated mock-contract-suite spec.md to v1.13, plan.md/checklist.md to v1.7, context specVersion to v1.13, and synced docs/spec plus mock-contract-suite plans INDEX. PASS: targeted stale-wording grep returned no matches except current completeMyProfile operation when broad Profile token is included; validate_context.py mock-contract-suite/001 tooling PASS; make lint-mock-contract PASS; python3 -m pytest scripts/lint/mock_runtime_boundary_test.py -q PASS (7 tests); go test ./backend/internal/api/mockruntime -count=1 PASS; pnpm --filter @easyinterview/frontend test src/api/mockTransport.test.ts src/api/devMockClient.test.ts src/api/clientFactory.test.ts PASS (13 tests); make codegen-check PASS." -->
+- [x] 5.1 `spec.md`, `plan.md`, `checklist.md`, `context.yaml` and plans INDEX align to the current 37-operation fixture-backed mock runtime contract.<!-- verified: 2026-07-10 method=targeted-doc-update+context-validation -->
+  <!-- verified: 2026-07-10 method=current-inventory-reconcile evidence="Updated mock-contract-suite spec.md to v1.14, plan.md/checklist.md to v1.8, context specVersion to v1.14, added archiveTargetJob to apiNames, and synced docs/spec plus mock-contract-suite plans INDEX. PASS: validate_context.py mock-contract-suite/001 tooling; make lint-mock-contract; python3 -m pytest scripts/lint/openapi_diff_test.py scripts/lint/openapi_inventory_test.py scripts/mock_contract/fixture_registry_test.py -q; codegen-openapi generated diff hash unchanged before/after rerun." -->

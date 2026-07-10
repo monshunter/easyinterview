@@ -4,7 +4,7 @@
 
 Validate `PATCH /api/v1/resumes/{resumeId}` for editable flat resume fields:
 structured profile overwrite, idempotency replay / mismatch, server-owned field
-rejection, cross-user hiding, fixture parity, and privacy / non-current-vocabulary
+rejection, cross-user hiding, fixture parity, and privacy / out-of-scope-vocabulary
 redlines.
 
 ## 2. Requirements
@@ -29,7 +29,7 @@ scenario evidence.
 
 - `scripts/setup.sh`: prepares output directories and copies seed / expected outcome notes into `.test-output`.
 - `scripts/trigger.sh`: runs fixture validation, focused `cmd/api` HTTP scenario, handler fixture parity, service tests, store unit tests, and live DB integration gates.
-- `scripts/verify.sh`: rejects skipped or no-op gates, checks required runner markers and PASS evidence, reruns fixture parity, and performs privacy / non-current-vocabulary negative searches.
+- `scripts/verify.sh`: rejects skipped or no-op gates, checks required runner markers and PASS evidence, reruns fixture parity, and performs privacy / out-of-scope-vocabulary negative searches.
 - `scripts/cleanup.sh`: records cleanup completion while preserving logs under `.test-output/`.
 
 ## 5. Evidence

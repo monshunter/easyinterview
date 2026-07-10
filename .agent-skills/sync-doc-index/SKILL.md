@@ -164,7 +164,7 @@ The following entries are considered **non-standard** and must NOT be auto-rewri
 - `README.md` files
 - `TEMPLATES.md` files
 - INDEX rows pointing to non-existent files
-- INDEX rows with no link (e.g., placeholder text like `工作进展（占位）`)
+- INDEX rows with no link (e.g., plain text like `工作进展（未建文档）`)
 - `↳` sub-plan rows when the parent is not a standard plan
 - Entries in `docs/spec/INDEX.md` that link outside `docs/spec/` (e.g., `../reports/`)
 

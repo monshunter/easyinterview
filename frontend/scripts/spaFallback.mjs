@@ -32,12 +32,12 @@ export const FRONTEND_CANONICAL_PATHS = Object.freeze([
 ]);
 
 /**
- * Non-current paths that the host still serves with `index.html` so the App can
+ * Out-of-scope paths that the host still serves with `index.html` so the App can
  * normalize them to the current retained route (product-scope D-16:
  * `/auth/reset` folds back into `auth_login`). Mirrors
- * `routeUrl.NON_CURRENT_PATH_TO_ROUTE`.
+ * `routeUrl.OUT_OF_SCOPE_PATH_TO_ROUTE`.
  */
-export const FRONTEND_NON_CURRENT_PATHS = Object.freeze([
+export const FRONTEND_OUT_OF_SCOPE_PATHS = Object.freeze([
   "/auth/reset",
   "/jd-match",
   "/debrief",
@@ -86,7 +86,7 @@ export function isCanonicalFrontendPath(path) {
       : cleaned;
   return (
     FRONTEND_CANONICAL_PATHS.includes(normalized) ||
-    FRONTEND_NON_CURRENT_PATHS.includes(normalized)
+    FRONTEND_OUT_OF_SCOPE_PATHS.includes(normalized)
   );
 }
 

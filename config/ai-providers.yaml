@@ -35,7 +35,7 @@ providers:
       - tts
     version: 0.1.0
 
-  - name: speech-placeholder
+  - name: realtime_audio_disabled
     protocol: realtime_audio
     base_url_env: AI_PROVIDER_BASE_URL
     api_key_env: AI_PROVIDER_API_KEY

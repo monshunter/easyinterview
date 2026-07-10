@@ -1,17 +1,17 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.17
+> **版本**: 1.19
 > **状态**: completed
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-10 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与 optional 项目组件接入约定，把 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 占位的 `make dev-up` / `make dev-down` 替换为真实实现并新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO / Mailpit healthy；backend / frontend 通过宿主机 dev command 连接这些依赖」可由开发者本机重复跑通；其中启用 AIClient 的非测试组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
+把 [local-dev-stack spec](../../spec.md) §3.1 已锁定的 D-1..D-10 决策落到仓库：在 `deploy/dev-stack/` 下创建默认最小 compose、init 脚本与 optional 项目组件接入约定，承接 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 锁定的 `make dev-up` / `make dev-down` 根入口并接入真实实现，新增 `make dev-doctor` / `make dev-reset` / `make dev-logs`，使「克隆仓库 → `make dev-up` → Postgres / Redis / MinIO / Mailpit healthy；backend / frontend 通过宿主机 dev command 连接这些依赖」可由开发者本机重复跑通；其中启用 AIClient 的非测试组件必须连接真实 AI provider / OpenAI-compatible endpoint，不默认走单元测试 stub。
 
-本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。1.13 revision 将本地 redeploy 收口为 build + 重启 host-run backend/frontend，并把服务地址、日志路径、PID 文件与容器日志入口作为 env 脚本固定输出，避免开发者在 Agent 启动环境后无法接管调试。本次 1.14 revision 修复 host-run backend 继承通配 `APP_LISTEN_ADDR=:8080` 导致无关 bridge listener 阻断重启的问题，要求本地场景 redeploy 启动 backend 时收敛到 loopback 监听。1.15 revision 仅收敛 Postgres volume preflight、dev-doctor 与 pidfile 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。1.17 revision 新增一键 `scenario-env-reset-redeploy` Make target，用于调试时按固定顺序清理数据、重跑迁移、重编译并重启 host-run backend/frontend、再执行环境 verify。
+本 plan 是 `local-dev-stack` 唯一的 plan；后续如需扩展默认依赖或新增项目组件接入，递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。1.13 revision 将本地 redeploy 收口为 build + 重启 host-run backend/frontend，并把服务地址、日志路径、PID 文件与容器日志入口作为 env 脚本固定输出，避免开发者在 Agent 启动环境后无法接管调试。本次 1.14 revision 修复 host-run backend 继承通配 `APP_LISTEN_ADDR=:8080` 导致无关 bridge listener 阻断重启的问题，要求本地场景 redeploy 启动 backend 时收敛到 loopback 监听。1.15 revision 仅收敛 Postgres volume preflight、dev-doctor 与 pidfile 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。1.17 revision 新增一键 `scenario-env-reset-redeploy` Make target，用于调试时按固定顺序清理数据、重跑迁移、重编译并重启 host-run backend/frontend、再执行环境 verify。1.18 revision 收敛 A1 根入口表述：A2 承接 repo-scaffold 已锁定的 `dev-up` / `dev-down` 入口，不再使用早期切换口径。1.19 revision 将 `.env.example` 描述收敛为空值示例 / 示例默认值，不改变 dev-stack env 合同。
 
 ## 2 背景
 
@@ -53,7 +53,7 @@
 
 #### 1.4 dev `.env` 与 config 默认值
 
-`deploy/dev-stack/.env.example` 落地连接串、bucket 名、端口、项目组件 host/port、auth secrets、frontend real-mode env、AI provider / OpenAI-compatible endpoint 的本地默认占位；字段名与 [A4 secrets-and-config spec](../../../secrets-and-config/spec.md) 对齐（如 `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_ENDPOINT` / `OBJECT_STORAGE_BUCKET` / `API_HOST_PORT` / `FRONTEND_HOST_PORT` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `VITE_EI_API_MODE` / `VITE_EI_API_BASE_URL` / `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY`）。`.env`（无 `.example` 后缀）由根 `.gitignore` 忽略；`make dev-up` 第一次运行时若 `.env` 不存在则从 `.env.example` 复制。`AI_PROVIDER_API_KEY`、auth secrets 与其它本地 secret 在 `.env.example` 中只能为空占位，不能写真实值；真实本地联调和 hybrid 场景都必须读取这一个 `.env` 文件。
+`deploy/dev-stack/.env.example` 落地连接串、bucket 名、端口、项目组件 host/port、auth secrets、frontend real-mode env、AI provider / OpenAI-compatible endpoint 的本地示例默认值；字段名与 [A4 secrets-and-config spec](../../../secrets-and-config/spec.md) 对齐（如 `DATABASE_URL` / `REDIS_URL` / `OBJECT_STORAGE_ENDPOINT` / `OBJECT_STORAGE_BUCKET` / `API_HOST_PORT` / `FRONTEND_HOST_PORT` / `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` / `VITE_EI_API_MODE` / `VITE_EI_API_BASE_URL` / `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY`）。`.env`（无 `.example` 后缀）由根 `.gitignore` 忽略；`make dev-up` 第一次运行时若 `.env` 不存在则从 `.env.example` 复制。`AI_PROVIDER_API_KEY`、auth secrets 与其它本地 secret 在 `.env.example` 中只能为空值示例，不能写真实值；真实本地联调和 hybrid 场景都必须读取这一个 `.env` 文件。
 
 #### 1.5 Phase 1 自检
 
@@ -63,9 +63,9 @@
 
 ### Phase 2: Make targets 与生命周期语义
 
-#### 2.1 替换 A1 占位 `make dev-up` / `make dev-down`
+#### 2.1 接入 A1 `make dev-up` / `make dev-down` 根入口
 
-根 `Makefile` 中 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 的两个占位 target 改为递归调用 `$(MAKE) -C deploy/dev-stack up` / `down`；`deploy/dev-stack/Makefile` 承载真实实现（`docker compose -f docker-compose.yaml --project-name easyinterview-dev up -d --wait` 等），只默认管理外部依赖和已显式接入的 optional app service。
+根 `Makefile` 中 [repo-scaffold §2.1](../../../repo-scaffold/plans/001-bootstrap/plan.md#21-根-makefile) 锁定的两个 root target 递归调用 `$(MAKE) -C deploy/dev-stack up` / `down`；`deploy/dev-stack/Makefile` 承载真实实现（`docker compose -f docker-compose.yaml --project-name easyinterview-dev up -d --wait` 等），只默认管理外部依赖和已显式接入的 optional app service。
 
 新增 phony target：`dev-doctor`、`dev-reset`、`dev-logs`、`dev-pull`，并在根 `make help` 输出。
 
@@ -155,7 +155,7 @@ Optional 项目 HTTP 组件：`GET /healthz` 返回 2xx；若该组件声明 `/m
 - Optional 项目组件表（component / compose service / host port / health endpoint / metrics endpoint）与宿主机运行边界。
 - `make dev-*` 命令清单与典型用例。
 - 常见故障排查（端口占用 / 卷不可写 / 镜像拉取失败 / Postgres 连接失败）。
-- AI provider 配置说明：非测试本地 app run 使用真实 provider / OpenAI-compatible endpoint；`.env.example` 只提供 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位，真实 key 写入被 `.gitignore` 忽略的 `.env`；单元测试 stub 不适用于本地部署。
+- AI provider 配置说明：非测试本地 app run 使用真实 provider / OpenAI-compatible endpoint；`.env.example` 只提供 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 空值示例，真实 key 写入被 `.gitignore` 忽略的 `.env`；单元测试 stub 不适用于本地部署。
 - 与 `test/scenarios/` 的边界说明：本地 docker-compose 走外部依赖，场景验证走 repo-tracked Go / Vitest / Playwright / browser runner，默认不需要 Kind / K8s / Helm。
 - 资源占用提示（≥ 8GB RAM 推荐）+ 默认依赖镜像总下载体积估算（< 1.5GB，对 spec §4.3 兑现）。
 - 明确默认本地栈不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider。
@@ -393,6 +393,8 @@ Red gate 必须先证明当前 Makefile 缺少该组合入口。
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.19 | Wording cleanup：将 `.env.example` 的 secret / provider 描述从旧 scaffold wording 收敛为空值示例 / 示例默认值。 | tech-debt pruning |
+| 2026-07-10 | 1.18 | Wording cleanup：A2 承接 repo-scaffold 锁定的 `dev-up` / `dev-down` 根入口，不再使用早期切换口径。 | tech-debt pruning |
 | 2026-07-09 | 1.17 | One-click reset/redeploy revision：新增 `make scenario-env-reset-redeploy` 合同，用现有 env scripts 串联清数据、迁移、重编译、重启和 verify。 | user feedback |
 | 2026-07-07 | 1.16 | Wording cleanup：收敛 local-dev-stack owner 文档为当前 rebaseline、既有 gate 与 email-code 口径，不改变可执行契约。 | product-scope/001 Phase 6.87 |
 | 2026-07-07 | 1.15 | Wording cleanup：收敛 Postgres volume preflight、dev-doctor 与 pidfile 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。 | product-scope/001 Phase 6.58 |

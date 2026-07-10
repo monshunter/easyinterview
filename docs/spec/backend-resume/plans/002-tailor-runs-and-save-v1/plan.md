@@ -1,8 +1,8 @@
 # Backend Resume Tailor Runs and Save v1
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -31,7 +31,7 @@
 | `requestResumeTailor` | `openapi/fixtures/ResumeTailor/requestResumeTailor.json` | Resume Workshop tailor run request | `backend/internal/resume/handler/request_tailor.go` + `POST /api/v1/resume/tailor` with IK middleware | `async_jobs(job_type='resume_tailor', resource_type='resume_tailor_run', payload.resumeId)` | async job calls F3 `resume.tailor.gap_review` / `resume.tailor.bullet_suggestions` | `E2E.P0.077` |
 | `getResumeTailorRun` | `openapi/fixtures/ResumeTailor/getResumeTailorRun.json` | Resume Workshop tailor polling | `backend/internal/resume/handler/get_tailor_run.go` + `GET /api/v1/resume/tailor-runs/{tailorRunId}` | reads `async_jobs` status/result scoped through `resumes` and `payload.resumeId`; suggestions are task output | none at read time | `E2E.P0.077`, `E2E.P0.078` |
 | `resume.tailor.completed` event | N/A | downstream event consumers | `backend/internal/resume/jobs/tailor.go`, `backend/internal/resume/store/tailor_runs.go` | `outbox_events` + typed `ai_task_runs` | A3 AIClient via F3 feature_key | `E2E.P0.077`, `E2E.P0.078`, `E2E.P0.080` |
-| removed route family boundary | N/A | current frontend uses flat resume routes | `backend/cmd/api/resume_versions_non_current_test.go` asserts route catalog and runtime absence | no current table dependency | none | `E2E.P0.074`, `E2E.P0.079`, `E2E.P0.080` |
+| removed route family boundary | N/A | current frontend uses flat resume routes | `backend/cmd/api/resume_versions_out_of_scope_test.go` asserts route catalog and runtime absence | no current table dependency | none | `E2E.P0.074`, `E2E.P0.079`, `E2E.P0.080` |
 
 ### 2.2 Persistence Contract
 
@@ -117,5 +117,6 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.6 | Align tailor privacy negative gate wording to out-of-scope terminology without behavior changes. |
 | 2026-07-07 | 1.5 | Compress owner plan to the current flat Resume save and resume.tailor contract; rename package to current owner wording. |
 | 2026-06-14 | 1.4 | Complete flat Resume save / tailor acceptance after D-20 simplification. |

@@ -6,7 +6,7 @@ metadata:
   sequence: 2
   specVersion:
     from: 1.14
-    to: 1.27
+    to: 1.28
 spec:
   defaultTarget: contract
   discovery:
@@ -37,7 +37,6 @@ spec:
       discovery:
         packages:
           - migrations
-          - migrations/backfill
           - backend/cmd/migrate
           - backend/internal/migrations
           - docs/spec/db-migrations-baseline

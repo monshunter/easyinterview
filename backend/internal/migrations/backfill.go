@@ -56,7 +56,7 @@ func RegisteredBackfills() BackfillRegistry {
 	return out
 }
 
-// LoadBackfillManifest reads migrations/backfill/manifest.yaml.
+// LoadBackfillManifest reads the optional backfill manifest path.
 func LoadBackfillManifest(path string) ([]BackfillEntry, error) {
 	b, err := os.ReadFile(path)
 	if os.IsNotExist(err) {

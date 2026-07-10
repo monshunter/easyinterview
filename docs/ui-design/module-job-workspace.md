@@ -1,8 +1,8 @@
 # Interview 面试规划目标模块
 
-> **版本**: 1.29
+> **版本**: 1.30
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 ## 1 文档目的
 
@@ -132,7 +132,7 @@ parse 统一详情 / report 复练入口
   -> startPracticeSession
   -> Interview Session(sessionId)
      ├─ 文本面试
-     └─ 语音面试
+     └─ 电话模式
 ```
 
 `立即面试` 必须携带已保存的 `planId + targetJobId + jdId + resumeId + roundId`，并通过 generated REST client 创建/启动 session。`workspace` 不读取 `autoStartPractice`，也不作为启动副作用路由。面试形式可在面试页选择或切换。规划列表页不展示模式卡片，也不让用户选择专项练习。

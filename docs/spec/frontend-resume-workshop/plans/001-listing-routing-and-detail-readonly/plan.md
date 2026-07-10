@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly
 
-> **版本**: 2.4
+> **版本**: 2.8
 > **状态**: completed
-> **更新日期**: 2026-07-08
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -12,7 +12,7 @@
 本计划承接当前 `frontend-resume-workshop` 的首屏与只读详情边界：
 
 - `resume_versions` route 渲染 `ResumeWorkshopScreen`，TopBar 选中简历入口。
-- route params 只使用当前 flat Resume 合同：`flow=create|list`、`resumeId`、`createMode=upload|paste`；旧 `tab` / `tailorRunId` 被过滤或忽略。
+- route params 只使用当前 flat Resume 合同：`flow=create|list`、`resumeId`、`createMode=upload|paste`；out-of-scope `tab` / `tailorRunId` 被过滤或忽略。
 - `ResumeListView` 使用 `listResumes` 渲染单层平铺表格、唯一 Header 创建入口、详情入口、删除入口、loading / empty / retry / pagination 状态；底部“上传或粘贴另一份简历”重复 CTA 必须删除。
 - `ResumeDetailView` 使用 `getResume(resumeId)` 渲染解析等待态、来源格式自适应只读详情、解析失败态和 generic 404 fallback。
 - `ResumePreviewTab` 必须按来源格式自动适配：upload PDF 使用 `/api/v1/resumes/{resumeId}/source` 作为 PDF 文件源，并在详情正文中从上到下平铺所有 PDF 页面；不得使用 `<object>` / `<iframe>` / `<embed>` 触发浏览器原生 PDF viewer toolbar、sidebar、download、print 或分页导航；paste、Markdown 文件和 TXT 文件使用正式 Markdown 渲染引擎渲染 `parsedTextSnapshot`，支持 heading / paragraph / list / inline strong / link / GFM 基础语法；不得用手写 block parser 把 `**bold**`、`[link](url)` 等 inline Markdown 当普通文本显示。
@@ -25,7 +25,7 @@
 
 ## 2 背景
 
-当前产品已经收敛为 flat Resume Workshop。001 作为首个前端 owner，只保留当前仍被运行时、场景和 UI 真理源共同承接的 list / preview detail 合同。旧树形列表、版本集合、分叉参数、逐版本导出和占位页接管说明不再作为计划语义存在。
+当前产品已经收敛为 flat Resume Workshop。001 作为首个前端 owner，只保留当前仍被运行时、场景和 UI 真理源共同承接的 list / preview detail 合同。旧树形列表、版本集合、分叉参数、逐版本导出和 fallback 页面接管说明不再作为计划语义存在。
 
 ## 3 质量门禁分类
 
@@ -85,7 +85,7 @@ runtime 未认证时渲染登录入口；Resume API 请求保持 0 次；pending
 
 #### 3.4 Original-content projection and meaningful names
 
-`ResumePreviewTab` 先根据来源格式选择 renderer：PDF upload 使用 source endpoint 的 PDF page-stack preview，从上到下平铺所有 PDF 页面；paste、Markdown upload 和 TXT upload 优先将 `parsedTextSnapshot` 作为 Markdown 渲染，其次将 `originalText` 作为纯文本兼容输入，最后才降级到结构化字段的只读摘要。PDF renderer 不得使用 `<object>` / `<iframe>` / `<embed>` 或暴露浏览器 PDF viewer toolbar；Markdown 渲染必须由 `react-markdown` + `remark-gfm` 等正式开源引擎承接，支持 inline strong / link 等真实 DOM 输出；上传文件刚注册后若 `parseStatus` 仍为 `queued/processing` 且正文快照为空，详情页显示等待动画并轻量轮询 `getResume`；若 `parseStatus='failed'` 或任一可读正文已到达，详情必须停止轮询并展示终态。列表和详情 header 对通用占位 `displayName` 做负向过滤，使用 backend generated 名称或 structured headline；raw resume 第一行、上传文件名或与来源 `title` 相同的文件名 `displayName` 不得作为名称兜底。
+`ResumePreviewTab` 先根据来源格式选择 renderer：PDF upload 使用 source endpoint 的 PDF page-stack preview，从上到下平铺所有 PDF 页面；paste、Markdown upload 和 TXT upload 优先将 `parsedTextSnapshot` 作为 Markdown 渲染，其次将 `originalText` 作为纯文本兼容输入，最后才降级到结构化字段的只读摘要。PDF renderer 不得使用 `<object>` / `<iframe>` / `<embed>` 或暴露浏览器 PDF viewer toolbar；Markdown 渲染必须由 `react-markdown` + `remark-gfm` 等正式开源引擎承接，支持 inline strong / link 等真实 DOM 输出；上传文件刚注册后若 `parseStatus` 仍为 `queued/processing` 且正文快照为空，详情页显示等待动画并轻量轮询 `getResume`；若 `parseStatus='failed'` 或任一可读正文已到达，详情必须停止轮询并展示终态。列表和详情 header 对通用 `displayName` 做负向过滤，使用 backend generated 名称或 structured headline；raw resume 第一行、上传文件名或与来源 `title` 相同的文件名 `displayName` 不得作为名称兜底。
 
 #### 3.3 404
 
@@ -109,11 +109,11 @@ DOM anchor、computed style、bounding box、mobile / desktop layout 和 screens
 
 #### 5.1 BDD scenarios
 
-E2E.P0.036 验证 flat list + auth boundary；E2E.P0.037 验证 read-only detail + legacy tab negative + removed actions + 404 fallback。
+E2E.P0.036 验证 flat list + auth boundary；E2E.P0.037 验证 read-only detail + out-of-scope tab negative + removed actions + 404 fallback。
 
-#### 5.2 Non-current negative gate
+#### 5.2 Out-of-scope negative gate
 
-Resume Workshop runtime source、scenario evidence 和 rendered DOM 不出现树形列表、版本 route params、版本集合 operation、分叉参数、prototype runtime import 或 non-current route testid。
+Resume Workshop runtime source、scenario evidence 和 rendered DOM 不出现树形列表、版本 route params、版本集合 operation、分叉参数、prototype runtime import 或 out-of-scope route testid。
 
 #### 5.3 Docs and index
 
@@ -175,6 +175,10 @@ PDF 与 Markdown renderer 共用同一外层阅读背景板；PDF 页面和 Mark
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 2.8 | 将 detail route、fallback 和场景负向 gate 表述统一为 out-of-scope 口径；行为不变。 |
+| 2026-07-10 | 2.7 | 将 fallback page 负向历史表述统一为 out-of-scope wording；行为不变。 |
+| 2026-07-10 | 2.6 | 将 detail route 负向输入统一为 out-of-scope tab/query 口径；行为不变。 |
+| 2026-07-10 | 2.5 | 将 out-of-scope fallback 页面和通用 displayName 文档口径收敛为当前 list/detail 合同用语。 |
 | 2026-07-08 | 2.4 | 修订来源格式阅读面：Markdown body 禁止注入 displayName/header 元数据，PDF 与 Markdown 共用阅读背景板和 page surface。 |
 | 2026-07-08 | 2.3 | 将 upload PDF 详情从浏览器原生 PDF object 改为无工具栏的纵向 page-stack renderer。 |
 | 2026-07-07 | 2.2 | 新增来源格式渲染：upload PDF 使用同源 source endpoint PDF preview，paste / Markdown / TXT 使用 Markdown engine。 |
@@ -184,5 +188,5 @@ PDF 与 Markdown renderer 共用同一外层阅读背景板；PDF 页面和 Mark
 | 2026-07-07 | 1.8 | 修订未闭环回归：禁止上传文件名 / 与来源 title 相同的文件名 displayName 作为可见名称；failed resume 只要已有 parsedTextSnapshot 仍展示原文。 |
 | 2026-07-07 | 1.6 | 修订未闭环回归：详情正文改为优先展示原始内容快照，列表/详情过滤通用上传/粘贴名称并增加内容派生兜底。 |
 | 2026-07-07 | 1.7 | 修订未闭环回归：禁止 raw 第一行作为可见名称；上传详情在原文快照到达前轻量轮询，避免 PDF 详情空白。 |
-| 2026-07-07 | 1.5 | 将详情页收敛为只读简历正文，移除 export/copy/original modal/Rewrites/Edit 正向 gate，并过滤旧 `tab` / `tailorRunId` route 口径。 |
+| 2026-07-07 | 1.5 | 将详情页收敛为只读简历正文，移除 export/copy/original modal/Rewrites/Edit 正向 gate，并过滤 out-of-scope `tab` / `tailorRunId` route 口径。 |
 | 2026-07-07 | 1.4 | 压缩 001 owner 到当前 flat Resume list/detail preview 合同，移除旧树形/版本集合/分叉参数语义，并同步 P0.036 当前场景 slug。 |

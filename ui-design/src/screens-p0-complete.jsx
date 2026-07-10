@@ -266,7 +266,7 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
           )}
         </div>
         <div style={{ fontSize: 12, color: T.ink3, marginTop: 12, display: "flex", gap: 6, alignItems: "center" }}>
-          <Icon name="info" size={12} /> {lang === "en" ? "Text and voice can be switched inside the interview." : "文本和语音可在面试过程中切换。"}
+          <Icon name="info" size={12} /> {lang === "en" ? "Text and phone mode can be switched inside the interview." : "文本和电话模式可在面试过程中切换。"}
         </div>
       </Card>
 

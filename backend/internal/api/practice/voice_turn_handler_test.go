@@ -33,8 +33,7 @@ func TestCreatePracticeVoiceTurnReturns200AndMapsRequest(t *testing.T) {
 		service.voiceRequest.ClientVoiceTurnID != "client-voice-turn-1" ||
 		service.voiceRequest.TurnID != "turn-1" ||
 		service.voiceRequest.Language != "zh-CN" ||
-		service.voiceRequest.PracticeMode != sharedtypes.PracticeModeAssisted ||
-		service.voiceRequest.ManualTranscriptFallback != "manual transcript fallback" {
+		service.voiceRequest.PracticeMode != sharedtypes.PracticeModeAssisted {
 		t.Fatalf("request not mapped to service: %+v", service.voiceRequest)
 	}
 	if string(service.voiceRequest.Audio.Content) != "OggS" ||
@@ -142,14 +141,12 @@ func newPracticeVoiceTurnHTTPRequest(t *testing.T, body api.CreatePracticeVoiceT
 }
 
 func fixtureCreatePracticeVoiceTurnRequest() api.CreatePracticeVoiceTurnRequest {
-	fallback := "manual transcript fallback"
 	byteLength := int32(128)
 	return api.CreatePracticeVoiceTurnRequest{
-		ClientVoiceTurnId:        "client-voice-turn-1",
-		TurnId:                   "turn-1",
-		Language:                 "zh-CN",
-		PracticeMode:             sharedtypes.PracticeModeAssisted,
-		ManualTranscriptFallback: &fallback,
+		ClientVoiceTurnId: "client-voice-turn-1",
+		TurnId:            "turn-1",
+		Language:          "zh-CN",
+		PracticeMode:      sharedtypes.PracticeModeAssisted,
 		Audio: api.PracticeVoiceAudioInput{
 			ContentBase64: "T2dnUw==",
 			ContentType:   "audio/webm",

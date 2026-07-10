@@ -27,10 +27,10 @@
 | P1-6 | spec D-8 shutdown 顺序 | 1 | `backend/internal/runner/runtime_test.go::TestRuntime_GracefulShutdown` | unit |
 | P2-1 | spec C-5 target_import / source_refresh | 2 | `backend/internal/targetjob/pipeline_test.go` + `e2e_scenario_test.go` rerun | regression |
 | P2-2 | spec C-6 privacy_delete | 2 | `backend/internal/privacy/runner/delete_handler_test.go` rerun + cmd/api smoke | regression + smoke |
-| P2-3 | D-22 non-current module guard | 2 | Non-current module negative search / current package absence check | regression-negative |
+| P2-3 | D-22 out-of-scope module guard | 2 | Out-of-scope module negative search / current package absence check | regression-negative |
 | P2-4 | spec C-8 resume_parse / resume_tailor | 2 | `backend/internal/resume/jobs/*_test.go` + `backend/cmd/api/resume_parse_drainer_scenario_test.go` + `resume_tailor_drainer_scenario_test.go` rerun | regression + scenario |
 | P2-5 | spec C-9 report_generate；review.Runner/Reaper 删除 | 2 | `backend/internal/review/runner_test.go` / `reaper_test.go` 有价值断言迁移到 kernel / `GenerateHandler` tests + `backend/cmd/api/reports_http_scenario_test.go` rerun | unit + regression |
-| P2-6 | D-22 non-current jobs-recommendations guard | 2 | `make lint-runner-non-current` + non-current module negative search | regression-negative |
+| P2-6 | D-22 out-of-scope jobs-recommendations guard | 2 | `make lint-runner-out-of-scope` + out-of-scope module negative search | regression-negative |
 | P3-1 | spec C-10 outbox 5s/skip-locked/batch/sort | 3 | `backend/internal/runner/outbox_integration_test.go::TestOutboxDispatcher_ClaimsPendingBatch` | integration (PG) |
 | P3-2 | spec C-15 trace_id 透传 | 3 | `backend/internal/runner/outbox_trace_test.go::TestOutboxDispatcher_PropagatesTraceParent` | unit |
 | P3-3 | spec C-14 email_dispatch 收口 | 3 | `backend/internal/auth/email_dispatch_handler_test.go::TestStartAuthEmailChallenge_EnqueuesEmailDispatchJob` + `email_dispatch_handler_test.go` | unit + integration |
@@ -65,7 +65,7 @@
 | B-3 | spec C-12 outbox at-least-once + consumer idempotency | 3 | `backend/internal/runner/outbox_integration_test.go::TestOutboxDispatcher_DuplicateEventIdHandledIdempotently` | integration |
 | B-4 | spec C-13 `source_event_only` skip | 3 | `backend/internal/runner/outbox_source_event_only_test.go::TestOutboxDispatcher_SkipsSourceEventOnly` | integration |
 | B-5 | spec C-13a 缺少 consumer 不得 ack | 3 | `backend/internal/runner/outbox_consumer_test.go::TestDispatcherMissingConsumerDoesNotAck` + `TestDispatcherDryRunConsumerRequiresExplicitRegistration` | unit + integration |
-| B-6 | non-current async job names 不回流 | 2 / 4 | `make lint-runner-non-current` 与 active-doc negative grep | lint |
+| B-6 | out-of-scope async job names 不回流 | 2 / 4 | `make lint-runner-out-of-scope` 与 active-doc negative grep | lint |
 
 ### 2.5 Cross-layer contract
 
@@ -75,7 +75,7 @@
 | X-2 | spec C-17 `async.queueWeights` typed config 注入 | 1 | `backend/internal/platform/config/loader_test.go::TestAsyncSection` + `backend/internal/runner/config_test.go` | unit + integration |
 | X-3 | spec D-10 `email_dispatch` payload validator 与 B3 `shared/jobs/jobs.go` 一致 | 3 | `backend/internal/shared/jobs/jobs_test.go::TestEmailDispatchPayloadValidator` + `backend/internal/runner/email_dispatch_integration_test.go` | unit + integration |
 | X-4 | spec D-14 新增 `async.scanIntervalSeconds` / `leaseTimeoutSeconds` / `shutdownGraceSeconds` / `reaperIntervalSeconds` typed config 注入（A4 additive config-only，不新增 env key） | 1 | `backend/internal/platform/config/loader_test.go::TestAsyncSection` + `backend/internal/runner/config_test.go::TestRuntimeConfig_AsyncTimings` | unit + integration |
-| X-5 | B3 D-18 / `shared/jobs.yaml` 8 canonical job_type 当前事实 | 2 / 4 | `python3 scripts/lint/events_inventory.py shared/events.yaml shared/jobs.yaml` + `make lint-runner-non-current` + `backend/internal/shared/jobs/jobs_test.go` | generated contract + lint |
+| X-5 | B3 D-18 / `shared/jobs.yaml` 8 canonical job_type 当前事实 | 2 / 4 | `python3 scripts/lint/events_inventory.py shared/events.yaml shared/jobs.yaml` + `make lint-runner-out-of-scope` + `backend/internal/shared/jobs/jobs_test.go` | generated contract + lint |
 | X-6 | spec C-9 / C-21 `report_generate` retryable failure 通过 kernel shared `BackoffPolicy` finalize | 4 | `backend/internal/review/generate_handler_test.go::TestGenerateHandler_NormalizesFinalizedRetryableFailureThroughKernel` + `backend/cmd/api/reports_http_scenario_test.go::TestE2EP0054ReportAIFailureAndRetry` + `backend/internal/store/review/persist_report_integration_test.go::TestPersistReportFailureRetryAndPermanent` | unit + scenario + integration (PG) |
 
 ### 2.6 Privacy / security / observability
@@ -88,13 +88,13 @@
 | O-4 | spec D-10 / B3 D-12 email_dispatch 红线（不写 raw token / URL / 邮件正文） | 3 | `backend/internal/runner/email_dispatch_integration_test.go::TestEmailDispatchHandler_PayloadRedaction` | integration |
 | O-5 | spec D-11 trace_id 字段写入 slog（runtime handler 侧） | 1 | `backend/internal/runner/runtime_trace_test.go::TestRuntime_HandlerInheritsTraceparent` + `TestRuntime_HandlerLogsTraceIdField` | unit |
 
-### 2.7 Regression / non-current-negative
+### 2.7 Regression / out-of-scope-negative
 
 | 行 | 决策 | Phase | 入口 | 类型 |
 |----|------|-------|------|------|
-| R-1 | spec D-12 zero-reference grep | 4 | `make lint-runner-non-current`（`scripts/lint/runner_non_current.py`，与既有 `backend_review_non_current.py` 同风格） | lint |
+| R-1 | spec D-12 zero-reference grep | 4 | `make lint-runner-out-of-scope`（`scripts/lint/runner_out_of_scope.py`，与既有 `backend_review_out_of_scope.py` 同风格） | lint |
 | R-2 | spec C-18 owner BDD 场景 rerun | 4 | Script BDD: `E2E.P0.003` / `010` / `011` / `012` / `013` / `033` / `034` / `035` / `077` / `078` / `080`；Go HTTP BDD: `E2E.P0.041` / `052` / `053` / `054` / `055` | BDD regression |
-| R-3 | `git ls-files backend/internal/review` 不含 `runner.go` / `reaper.go` / `lease.go` | 4 | `backend/internal/review/structure_test.go::TestNoNonCurrentRunnerFiles` 或 lint | structure test |
+| R-3 | `git ls-files backend/internal/review` 不含 `runner.go` / `reaper.go` / `lease.go` | 4 | `backend/internal/review/structure_test.go::TestNoOutOfScopeRunnerFiles` 或 lint | structure test |
 | R-4 | `git ls-files backend/internal/auth` 不含 `BackgroundMailDispatcher` 引用 | 4 | `backend/internal/auth/mail_test.go::TestNoBackgroundDispatcher` | unit |
 
 ### 2.8 UI source parity
@@ -114,7 +114,7 @@
 - `cd backend && go test ./cmd/api/...`
 - `cd backend && go test ./internal/runner ./internal/review ./cmd/api -run '^(TestRuntime_FinalizeUsesTimestampAfterHandlerReturns|TestRuntime_StartDoesNotLetCriticalJobStarveEmailDispatch|TestGenerateHandler_NormalizesFinalizedRetryableFailureThroughKernel|TestE2EP0052ReportGenerationHappyPath|TestE2EP0054ReportAIFailureAndRetry)$' -count=1`
 - `cd backend && go test -tags=integration ./internal/store/review -run '^TestPersistReportFailure' -count=1 -v`
-- `make lint-runner-non-current`
+- `make lint-runner-out-of-scope`
 - `python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/backend-async-runner/plans/001-internal-job-outbox-runner/context.yaml --docs-root docs --target backend`
 - `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`（A5 标准 doc Header / INDEX 漂移 gate）+ 针对 P4.5–4.13 列表的精确 grep（如 owner spec 用 `grep -n "未来 .backend-async-runner" docs/spec/{backend-runtime-topology,backend-review,backend-targetjob,backend-resume,backend-auth,event-and-outbox-contract}/spec.md` 期望 0 命中；roadmap 用 `grep -n "backend-async-runner.*未创建\|未创建.*backend-async-runner" docs/spec/engineering-roadmap/spec.md` 期望 0 命中；本仓库未维护独立 `scripts/check_docs/` 工具集）
 - 各 owner BDD suite 命令以各 `bdd-checklist.md` 为准

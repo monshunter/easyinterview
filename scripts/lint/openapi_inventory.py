@@ -116,7 +116,7 @@ AI_PROVENANCE_SCHEMAS: list[str] = [
     "Resume",
 ]
 
-# P0 export stubs that intentionally declare 501 Not Implemented.
+# P0 export 501 exceptions locked by the current contract.
 P0_501_ENDPOINTS: dict[tuple[str, str], str] = {
     ("post", "/privacy/exports"): "PRIVACY_EXPORT_NOT_AVAILABLE",
     ("post", "/resumes/{resumeId}/exports"): "RESUME_EXPORT_NOT_AVAILABLE",
@@ -405,7 +405,7 @@ def main(argv: list[str]) -> int:
         if operation.get("security") != []:
             errors.append(f"{method.upper()} {path_str}: must declare `security: []` (public per spec §4.1)")
 
-    # 501 uniqueness — only explicit P0 export stubs may declare it (spec D-12 / D-18).
+    # 501 uniqueness — only explicit P0 export exceptions may declare it (spec D-12 / D-18).
     five_oh_one_ops: list[tuple[str, str]] = []
     for path_str, item in paths.items():
         if not isinstance(item, dict):
@@ -417,7 +417,7 @@ def main(argv: list[str]) -> int:
                 five_oh_one_ops.append((method, path_str))
     expected_501 = sorted(P0_501_ENDPOINTS.keys())
     if sorted(five_oh_one_ops) != expected_501:
-        errors.append(f"501 must appear only on P0 export stubs {expected_501}; got {five_oh_one_ops}")
+        errors.append(f"501 must appear only on P0 export exceptions {expected_501}; got {five_oh_one_ops}")
 
     # P0 export 501 responses must declare ApiErrorResponse on JSON content.
     # The operation-specific error.code examples are owned by fixtures and

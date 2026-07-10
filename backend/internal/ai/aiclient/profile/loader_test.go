@@ -90,8 +90,8 @@ func TestLoaderResolvesParsedProfile(t *testing.T) {
 	}
 }
 
-func TestLoaderAcceptsSTTAsReservedCapability(t *testing.T) {
-	path := writeProfileCatalog(t, catalog(`name: voice.transcription.reserved
+func TestLoaderAcceptsSTTCapabilityProfile(t *testing.T) {
+	path := writeProfileCatalog(t, catalog(`name: practice.voice.stt.default
 capability: stt
 status: unsupported
 unsupported_reason: "STT adapter is not active in this build"
@@ -107,7 +107,7 @@ version: 1.0.0
 	}
 	defer loader.Close()
 
-	p, err := loader.Resolve("voice.transcription.reserved")
+	p, err := loader.Resolve("practice.voice.stt.default")
 	if err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
@@ -116,7 +116,7 @@ version: 1.0.0
 	}
 }
 
-func TestLoaderRejectsNonCurrentProfileSchemaKeys(t *testing.T) {
+func TestLoaderRejectsOutOfScopeProfileSchemaKeys(t *testing.T) {
 	cases := map[string]string{
 		"task-type": `name: sample
 task_type: chat
@@ -155,10 +155,10 @@ version: 1
 			path := writeProfileCatalog(t, catalog(body))
 			_, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
 			if err == nil {
-				t.Fatalf("expected non-current schema key to be rejected")
+				t.Fatalf("expected out-of-scope schema key to be rejected")
 			}
-			if !strings.Contains(err.Error(), "non-current schema key") {
-				t.Fatalf("expected non-current schema key error, got %v", err)
+			if !strings.Contains(err.Error(), "out-of-scope schema key") {
+				t.Fatalf("expected out-of-scope schema key error, got %v", err)
 			}
 		})
 	}
@@ -387,22 +387,22 @@ version: 1
 	}
 }
 
-func TestLoaderRejectsNonCurrentDirectoryPath(t *testing.T) {
+func TestLoaderRejectsOutOfScopeDirectoryPath(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "practice.followup.default.yaml"), []byte(sampleProfile), 0o600); err != nil {
-		t.Fatalf("WriteFile non-current profile: %v", err)
+		t.Fatalf("WriteFile out-of-scope profile: %v", err)
 	}
 	_, err := profile.NewLoader(profile.Options{Path: dir, PollInterval: -1})
 	if err == nil {
-		t.Fatal("expected non-current profile directory to be rejected")
+		t.Fatal("expected out-of-scope profile directory to be rejected")
 	}
 	if !strings.Contains(err.Error(), "read") && !strings.Contains(err.Error(), "open") {
 		t.Fatalf("expected file-path load error, got %v", err)
 	}
 }
 
-func TestLoaderAcceptsTTSAsReservedCapability(t *testing.T) {
-	path := writeProfileCatalog(t, catalog(`name: voice.tts.reserved
+func TestLoaderAcceptsTTSCapabilityProfile(t *testing.T) {
+	path := writeProfileCatalog(t, catalog(`name: practice.voice.tts.default
 capability: tts
 status: unsupported
 unsupported_reason: "TTS adapter is not active in this build"
@@ -418,7 +418,7 @@ version: 1.0.0
 	}
 	defer loader.Close()
 
-	p, err := loader.Resolve("voice.tts.reserved")
+	p, err := loader.Resolve("practice.voice.tts.default")
 	if err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}

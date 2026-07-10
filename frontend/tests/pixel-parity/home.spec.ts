@@ -8,7 +8,7 @@ import { expect, test } from "@playwright/test";
  * parse/plan.md §4 Phase 6.
  *
  * Covers desktop (1440x900) and mobile (390x844) projects:
- * - DOM anchors (hero, integrated source controls, textarea, resume picker, non-current aux-card negatives)
+ * - DOM anchors (hero, integrated source controls, textarea, resume picker, out-of-scope aux-card negatives)
  * - Bounding box stays in viewport, no overlap
  * - default (ocean)/light -> dark -> customAccent theme switching
  * - Mobile: textarea card not overflowing
@@ -171,7 +171,7 @@ test.describe("home screen DOM anchor parity", () => {
     expect(textareaRect.right).toBeLessThanOrEqual(viewport!.width + 1);
   });
 
-  test("home non-current aux cards stay absent", async ({
+  test("home out-of-scope aux cards stay absent", async ({
     page,
   }) => {
     await page.goto("/");

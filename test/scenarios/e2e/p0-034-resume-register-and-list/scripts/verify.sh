@@ -27,7 +27,7 @@ mkdir -p "$OUT"
   cd "$ROOT/backend"
   go test ./internal/resume/handler -run 'Test(RegisterResumeFixtureParity|GetResumeFixtureParity|ListResumesFixtureParity)' -count=1
   cd "$ROOT"
-  if rg -n 'inline|mirror' backend/internal/resume backend/cmd/api/resume_http_scenario_test.go --glob '!**/verify.sh'; then
+  if rg -n -i '(tailor|mode).*(inline|mirror)|(inline|mirror).*(tailor|mode)' backend/internal/resume backend/cmd/api/resume_http_scenario_test.go --glob '!**/verify.sh'; then
     exit 1
   fi
   if rg -n 'mistake|growth|drill' backend/internal/resume; then

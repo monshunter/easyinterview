@@ -1,8 +1,8 @@
 # Interview Session 与 Report Dashboard 目标模块
 
-> **版本**: 1.17
+> **版本**: 1.20
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 ## 1 文档目的
 
@@ -61,7 +61,7 @@ MockInterviewPlan
   -> ReportDashboard(sessionId)
 ```
 
-文本面试和电话模式共享同一个面试生命周期、同一套上下文、同一个 `PracticeScreen` 外层骨架和同一种报告形态。电话模式只能通过 `practice` 的显式沟通形式参数进入；非当前 `voice` hash / route 不作为 route alias，也不渲染独立的语音页面框架。底层 provider 能力或历史 API 名称可继续使用 `voice` 作为工程能力名，但用户可见 UI 文案统一为 `电话模式 / Phone`。
+文本面试和电话模式共享同一个面试生命周期、同一套上下文、同一个 `PracticeScreen` 外层骨架和同一种报告形态。电话模式只能通过 `practice` 的显式沟通形式参数进入；范围外 `voice` hash / route 不作为 route alias，也不渲染独立的语音页面框架。底层 provider 能力或历史 API 名称可继续使用 `voice` 作为工程能力名，但用户可见 UI 文案统一为 `电话模式 / Phone`。
 
 当前 `screen-report.jsx` 固定返回 `ReportDashboard`。设计画板里的报告变体标签和 `reportLayout` hash 参数不属于当前目标。
 
@@ -224,8 +224,8 @@ Report Dashboard
 
 ## 11 后续实现输入
 
-1. `practice` 是 `InterviewSession` 的目标运行 route；用户可见 `mode/modality=text` 表示文本面试，`mode/modality=phone` 表示电话模式。若工程层仍消费 `voice` 参数，必须在 UI 层映射为 `电话模式 / Phone`。
-2. 不得保留或新增 `voice` route；电话模式必须通过 `practice` 显式参数进入，不得重新进入独立语音页面骨架。
+1. `practice` 是 `InterviewSession` 的目标运行 route；用户可见 `mode/modality=text` 表示文本面试，`mode/modality=phone` 表示电话模式。底层 API / profile 可继续使用 `voice` 作为工程能力名，但 UI route/query 不消费 out-of-scope `voice` 参数。
+2. 不得保留或新增 `voice` route / alias / query 入口；电话模式必须通过 `practice` 显式 `phone` 参数进入，不得重新进入独立语音页面骨架。
 3. 文本面试输入框不得出现 `语音转文字`、`插入转写`、麦克风转写或 `跳过` 控件。
 4. 面试官角色来自当前轮次规划，不在会话内提供切换控件。
 5. `严格模拟` 不再作为用户可见模式开关；提示如保留，只能作为用户主动请求的可选辅助，并记录 `hintUsed` / `hintCount`。
@@ -239,4 +239,4 @@ Report Dashboard
 13. 任何刊物式长内容都必须挂到仪表盘模块详情，不新增报告形态。
 14. 报告不得提供时间线视图。
 15. 工作台和报告页的“再练”必须说明是复练当前轮还是进入下一轮；报告页 CTA 直接进入对应面试 session，不先回工作台二次确认。
-16. 报告生成页不得出现“错题条目 / 入本”等非当前文案；当前文案应指向报告内部题目回顾和本轮复练线索，不代表启用独立错题本。
+16. 报告生成页不得出现“错题条目 / 入本”等范围外文案；当前文案应指向报告内部题目回顾和本轮复练线索，不代表启用独立错题本。

@@ -35,8 +35,8 @@ whitelist:
       reasonRef: spec §3.1 D-12 / §4.4 "P0 例外"
 
 contractInventory:
-  endpointCount: 36
-  note: current v1.0.0 pre-launch freeze contains 36 operations across 10 tags (Auth, Uploads, Resumes, TargetJobs, PracticePlans, PracticeSessions, Reports, ResumeTailor, Jobs, Privacy), including DELETE /me (operationId=deleteMe), flat Resume operations, Resume PDF source preview, Practice session, Practice voice, Auth profile-completion, and the privacy-export whitelist as the only status-transition exception.
+  endpointCount: 37
+  note: current v1.0.0 pre-launch freeze contains 37 operations across 10 tags (Auth, Uploads, Resumes, TargetJobs, PracticePlans, PracticeSessions, Reports, ResumeTailor, Jobs, Privacy), including DELETE /me (operationId=deleteMe), flat Resume operations, Resume PDF source preview, TargetJob archive, Practice session, Practice voice, Auth profile-completion, and the privacy-export whitelist as the only status-transition exception.
 
 tooling:
   wrapperVersion: "1.0.0"

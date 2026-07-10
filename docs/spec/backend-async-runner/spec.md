@@ -1,8 +1,8 @@
 # Backend Async Runner Spec
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -11,7 +11,7 @@
 本 subject 创建时的实施前基线是：仓库已经在不同业务域生长出多套局部 runner / drainer：
 
 - `backend/internal/targetjob/drainer.go`：通用 `Drainer` 抽象 + `JobHandler` 接口，当前被 targetjob / resume 等 runtime 复用；本 subject 以单一 kernel 承接可执行 job_type 的 lifecycle。
-- `backend/internal/review/{runner,reaper,lease}.go`：[backend-review D-13 / D-16](../backend-review/spec.md) 显式承认为 P0 临时形态的独立 polling worker，仅服务 `report_generate`；spec 文本明确写明「未来 `backend-async-runner` plan 接管时统一抽象 review.Runner + drainer」。
+- `backend/internal/review/{runner,reaper,lease}.go`：实施前曾是 report-only polling worker；`001-internal-job-outbox-runner` 已将执行生命周期迁入 `backend/internal/runner/`，review 域当前只保留 `GenerateHandler` 与报告业务状态维护。
 - `backend/internal/auth/mail.go` `BackgroundMailDispatcher`：进程内 channel 直推 `DeliveryWriter` sink，绕过 `async_jobs`，与 [ADR-Q2](../engineering-roadmap/decisions/ADR-Q2-async-orchestration.md) 锁定的 `email_dispatch` canonical jobType 不一致。
 - `backend/cmd/api/main.go` 在本 subject 实施前维护多处独立 `defer ... Shutdown(ctx)` lifecycle（auth dispatcher / targetJobRuntime / resumeRuntime / reportRuntime），无统一 graceful drain 顺序。
 - `outbox_events` 表由各域业务事务写入（resume / targetjob / review / practice store），但仓库**没有任何 publisher / dispatcher 代码**消费这张表；[B3 D-7 / D-8 / D-9](../event-and-outbox-contract/spec.md) 锁定的 dispatcher 协议未实现。
@@ -32,7 +32,7 @@
 - 删除 `review.Runner` / `review.Reaper` / `review.ComputeReportFailureBackoff` / `auth.BackgroundMailDispatcher` 等局部形态；删除 targetjob / resume 等业务域内的独立 `targetjob.NewDrainer` 实例化点；`cmd/api` 单点持有 `runner.Runtime` 并编排 shutdown。
 - 接入 [A4 D-9](../secrets-and-config/spec.md) `async.queueWeights` typed config 为 kernel 优先级权重源；同步按 A4 additive 流程新增 `async.shutdownGraceSeconds` / `async.leaseTimeoutSeconds` / `async.reaperIntervalSeconds` / `async.scanIntervalSeconds` config-only typed 节点（不新增 env key）。
 - C1 `email_dispatch` producer 由进程内 channel 切换到 `INSERT INTO async_jobs(job_type='email_dispatch')`；kernel 注册 `EmailDispatchHandler` 通过 [C1 `DeliveryWriter`](../backend-auth/spec.md) sink 发邮件。
-- 负向 lint gate `make lint-runner-non-current`（或等价 scripts）：`review.NewRunner` / `review.NewReaper` / `ComputeReportFailureBackoff` / `auth.BackgroundMailDispatcher` / 散落 `targetjob.NewDrainer` 实例化（除 kernel adapter、history/tests/lint 自身外）必须 0 命中；禁止新增绕过 `runner.Runtime` 的业务域 runtime 注册路径。
+- 负向 lint gate `make lint-runner-out-of-scope`（或等价 scripts）：`review.NewRunner` / `review.NewReaper` / `ComputeReportFailureBackoff` / `auth.BackgroundMailDispatcher` / 散落 `targetjob.NewDrainer` 实例化（除 kernel adapter、history/tests/lint 自身外）必须 0 命中；禁止新增绕过 `runner.Runtime` 的业务域 runtime 注册路径。
 
 ### 2.2 Out of Scope
 
@@ -62,7 +62,7 @@
 | D-9 | Queue weights | 注入 [A4 D-9](../secrets-and-config/spec.md) `async.queueWeights{critical:6, default:3, low:1}` typed config；priority 划分按当前 `shared/jobs.yaml` 可执行集合：`critical=report_generate, privacy_delete`；`default=target_import, resume_parse, resume_tailor`；`low=source_refresh, email_dispatch`；`privacy_export` 不注册 handler | P0 `Runtime.Start` 通过每个已注册 job_type 的独立 lease loop 实现 fair scheduling，禁止生产路径按 fixed-priority bucket 串行 drain；`RunOnce` 仍保留 priority bucket 顺序作为同步测试入口；DB 列默认按 `available_at asc, created_at asc` |
 | D-10 | Email dispatch 收口 | P3 把 `email_dispatch` 从 C1 进程内 channel 迁移到 `async_jobs` 行：C1 `MailDispatcher.Enqueue` 改为 `INSERT INTO async_jobs(job_type='email_dispatch', payload, ...)`；kernel 注册 `EmailDispatchHandler` 通过既有 `DeliveryWriter` sink 发邮件；payload 仍受 [B3 D-12 redaction redline](../event-and-outbox-contract/spec.md#31-已锁定决策含-jobtype-映射表) 与 `shared/jobs/jobs.go` `EmailDispatchPayload` validator 约束 | 删除 `auth.BackgroundMailDispatcher`；C1 `DevMailSink` 写入路径不变 |
 | D-11 | TraceId 透传 | kernel 在 handler 调用前重建 W3C `traceparent` span（如 outbox payload 中存在 `traceId`）；logger 在 handler / dispatcher 日志中注入 `trace_id` 字段；缺失 `traceId` 时 dispatcher 写 warn log 后继续发布（[B3 D-10](../event-and-outbox-contract/spec.md#31-已锁定决策含-jobtype-映射表)） | 与 F1 trace propagation 对齐 |
-| D-12 | Non-current zero-reference gate | 新增 lint script `scripts/lint/runner_non_current.py`（与既有 `backend_review_non_current.py` / `backend_practice_non_current.py` 同风格的 Python lint，配套 `runner_non_current_test.py`），Makefile target 名 `lint-runner-non-current`；扫描 `review.NewRunner` / `review.NewReaper` / `review.ComputeReportFailureBackoff` / `review.DefaultReportFailureBackoff` / `auth.BackgroundMailDispatcher` / `auth.NewBackgroundMailDispatcher` / 多处 `targetjob.NewDrainer(targetjob.DrainerOptions{...})` 实例化（除 kernel adapter shim、history/tests/lint 自身与本文件审计断言外）必须 0 命中；lint 同时拒绝新增绕过 `runner.Runtime` 的业务域 runtime 注册路径 | 防止局部 runner 形态回流；history/tests/lint 自身允许保留审计证据；脚本扩展名与 `scripts/lint/` 既有 Python 工具集对齐，便于复用 grep 排除规则 |
+| D-12 | Out-of-scope zero-reference gate | 新增 lint script `scripts/lint/runner_out_of_scope.py`（与既有 `backend_review_out_of_scope.py` / `backend_practice_out_of_scope.py` 同风格的 Python lint，配套 `runner_out_of_scope_test.py`），Makefile target 名 `lint-runner-out-of-scope`；扫描 `review.NewRunner` / `review.NewReaper` / `review.ComputeReportFailureBackoff` / `review.DefaultReportFailureBackoff` / `auth.BackgroundMailDispatcher` / `auth.NewBackgroundMailDispatcher` / 多处 `targetjob.NewDrainer(targetjob.DrainerOptions{...})` 实例化（除 kernel adapter shim、history/tests/lint 自身与本文件审计断言外）必须 0 命中；lint 同时拒绝新增绕过 `runner.Runtime` 的业务域 runtime 注册路径 | 防止局部 runner 形态回流；history/tests/lint 自身允许保留审计证据；脚本扩展名与 `scripts/lint/` 既有 Python 工具集对齐，便于复用 grep 排除规则 |
 | D-13 | `Runtime.RunOnce` 必须暴露 | kernel `Runtime` 对外暴露 `RunOnce(ctx) (processed bool, err error)`（与 §4.1 接口约束一致），供 unit test / integration test 同步驱动 lease + finalize 单条流程；与既有 `targetjob.Drainer.RunOnce` / `review.Runner.RunOnce` 习惯保持一致 | 锁定测试驱动 API，避免实施期重新讨论；与 §4.1 「`Runtime` 必须暴露」清单冗余但显式 |
 | D-14 | Runtime lease loop scan 间隔 | kernel `Runtime` 默认 lease loop scan 间隔由新增 typed config `async.scanIntervalSeconds` 提供（默认 5s，与 outbox dispatcher 5s scan 对齐）；缺失或非正数 fail-fast；生产路径每个 registered job_type 独立扫描，避免长耗时 critical/default handler 阻塞 low-priority loop | 锁定 `email_dispatch` 等 low-priority job 的可见延迟上限「≤1 个 scan 周期」；配合 plan §6 风险表对 email-code 投递延迟的承诺 |
 | D-15 | Privacy account identity cleanup | `DELETE /api/v1/me` 受理期必须同步软删 `users.deleted_at` / `users.status='deleted'` 并撤销该用户所有 session；`privacy_delete` runner 在当前 domain cleanup 成功后必须执行用户行最终 hard delete，确保 completed request/job 后不能再用原邮箱查询到 UAT 用户身份 | 修复 BUG-0106；避免把 request/job terminal status 误当成账户身份 PII 已清除 |
@@ -150,7 +150,7 @@
 | C-16 | Cmd/api 单点 shutdown | SIGTERM 到达 cmd/api | signal context | 单一 `runner.Runtime.Shutdown(ctx)` 调用替代多个独立 defer；`cmd/api/main_test.go` lifecycle 断言通过 | 001 Phase 4 |
 | C-17 | Queue weights 注入 | `async.queueWeights{critical:6,default:3,low:1}` 已 typed config 化 | kernel boot | `Runtime` 初始化读取 weights；priority bucket 按 D-9 划分；缺失或非正数 fail-fast（沿用 A4 C-12） | 001 Phase 1 |
 | C-18 | 既有 BDD 场景回归 | 各 owner spec BDD 场景已存在 | P2 / P3 / P4 完成后 rerun owner BDD suite | auth email / privacy_delete / target_import / report_generate / resume_parse / resume_tailor 用户路径全部 PASS；owner negative paths 保持负向 | 001 Phase 4 |
-| C-19 | Non-current zero-reference gate | spec D-12 列出的局部 runner 形态 | `make lint-runner-non-current` | `review.NewRunner` / `review.NewReaper` / `ComputeReportFailureBackoff` / `auth.BackgroundMailDispatcher` / 多 `targetjob.NewDrainer` 实例化（除 kernel adapter 与 history/tests/lint 证据外）0 命中；lint 失败时输出文件 / 行号 | 001 Phase 4 |
+| C-19 | Out-of-scope zero-reference gate | spec D-12 列出的局部 runner 形态 | `make lint-runner-out-of-scope` | `review.NewRunner` / `review.NewReaper` / `ComputeReportFailureBackoff` / `auth.BackgroundMailDispatcher` / 多 `targetjob.NewDrainer` 实例化（除 kernel adapter 与 history/tests/lint 证据外）0 命中；lint 失败时输出文件 / 行号 | 001 Phase 4 |
 | C-20 | Runtime lease scan + grace + lease timeout + reaper interval typed config | 新增 `async.scanIntervalSeconds` / `leaseTimeoutSeconds` / `shutdownGraceSeconds` / `reaperIntervalSeconds` typed config 节点（A4 additive config-only） | kernel boot + reaper loop | scanIntervalSeconds 默认 5s 与 outbox dispatcher 一致；缺失或非正数 fail-fast（沿用 A4 C-12）；`email_dispatch` 等 low-priority job 可见延迟 ≤1 个 scan 周期，且不被 long-running critical/default handler 串行阻塞 | 001 Phase 1 |
 | C-21 | L2 scheduler/backoff review invariants | critical/default handler 长耗时、report_generate retryable AI failure、handler 执行时间超过 backoff 首档 | `Runtime.Start` 与 `GenerateHandler` / `Service.GenerateReport` 处理失败 | `email_dispatch` 不被正在运行的 critical job starvation；retry `available_at` 与 terminal `completed_at` 使用 handler 返回后的 fresh timestamp；report failure 走 kernel shared backoff 而不是 review store local schedule | 001 Phase 4 |
 | C-22 | BUG-0106 privacy identity cleanup | 用户通过 `DELETE /api/v1/me` 创建 `privacy_delete` job | 请求受理并由 kernel runner 处理完成 | 请求受理后 `users.deleted_at` 非空且该用户所有 session revoked；runner completed 后 `users` 不再存在原邮箱用户行，避免 UAT cleanup 残留 raw email | 001 Phase 4 BUG-0106 remediation |

@@ -1,15 +1,20 @@
 # Engineering Roadmap History
 
-> **版本**: 3.29
+> **版本**: 3.37
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
-| 2026-07-07 | 3.29 | 将 roadmap 修订记录压缩为当前 net-state：保留现行 workstream、35 endpoint / 10 tag、14 events / 8 jobs、25 app/auth support tables 与 9 chat feature_key 计数，不再保留非当前 workstream 的正向交付叙述。 | product-scope/001-core-loop-module-pruning |
-| 2026-07-06 | 3.28 | 将 active roadmap 的当前 workstream、mock-first 计数和 P0 后端入口说明收敛为当前范围 / 非当前范围口径；当前执行地图只保留现行 owner 和计数。 | product-scope/001-core-loop-module-pruning |
+| 2026-07-10 | 3.37 | 将 roadmap 范围外 route、技术草稿和 future candidate 边界统一为范围外口径；行为不变。 | tech-debt pruning |
+| 2026-07-10 | 3.36 | 将 roadmap pending/backlog 治理措辞收敛为索引条目、空壳与悬空索引口径。 | tech-debt pruning |
+| 2026-07-10 | 3.35 | 同步 ADR-Q5 v2.0：privacy export P0 例外表述为 501 + UI 不可用说明。 | tech-debt pruning |
+| 2026-07-10 | 3.34 | Mock Interview + Practice workstream 用户可见范围改写为文本 / 电话模式 session；`voice` 不再作为用户可见 session 形态。 | tech-debt pruning |
+| 2026-07-10 | 3.33 | 当前执行地图将电话模式正向入口收敛为 `practice?mode=phone&modality=phone`，不再把旧 `voice` query 作为电话入口。 | tech-debt pruning |
+| 2026-07-07 | 3.29 | 将 roadmap 修订记录压缩为当前 net-state：保留现行 workstream、35 endpoint / 10 tag、14 events / 8 jobs、25 app/auth support tables 与 9 chat feature_key 计数，不再保留范围外 workstream 的正向交付叙述。 | product-scope/001-core-loop-module-pruning |
+| 2026-07-06 | 3.28 | 将 active roadmap 的当前 workstream、mock-first 计数和 P0 后端入口说明收敛为当前范围 / 范围外口径；当前执行地图只保留现行 owner 和计数。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-06 | 3.27 | P0 workstream 表只列当前 owner，基础契约计数同步到当前 35 endpoint / 10 tag、14 events / 8 jobs、22 app tables + 3 auth support tables、9 chat feature_key。 | product-scope/001-core-loop-module-pruning |
 | 2026-06-29 | 3.26 | 对齐 product-scope v2.2 D-22：当前 UI 一级入口收敛为三项；核心闭环改为导入 -> 规划 -> 练习 -> 报告 -> 复练 / 下一轮。 | product-scope/001-core-loop-module-pruning |
 | 2026-06-14 | 3.25 | 收口 D-17 / D-18 / D-20 后的 roadmap 残留：当前 UI 一级入口统一为四项；B2 / mock-first 计数统一为 43 operation。 | 当前 review + D-17/D-18/D-20 closure |

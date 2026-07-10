@@ -32,7 +32,7 @@ for spec in \
   grep -Fq "tests/pixel-parity/$spec" "$LOG_FILE"
 done
 
-# Negative: trigger.log must not mention non-current entries.
+# Negative: trigger.log must not mention out-of-scope entries.
 for forbidden in \
   'route-welcome' \
   'route-jd_match' \
@@ -42,10 +42,10 @@ for forbidden in \
   'topbar-nav-drill' \
   'topbar-nav-voice'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
-    # The non-current-entries spec asserts these locators have count=0; if any of
+    # The out-of-scope-entries spec asserts these locators have count=0; if any of
     # them shows up in a failure trace we fail the gate hard.
     if grep -F "$forbidden" "$LOG_FILE" | grep -Eq 'Expected|Received|Error'; then
-      echo "[verify] non-current entry $forbidden leaked into a failing trace" >&2
+      echo "[verify] out-of-scope entry $forbidden leaked into a failing trace" >&2
       exit 1
     fi
   fi

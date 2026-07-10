@@ -1,8 +1,8 @@
 # 002 Real Provider Hybrid Full Funnel
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -166,7 +166,7 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 - 账号登录态。
 - Home -> Parse -> Workspace -> Practice -> Generating -> Report -> next_round。
 - AI 真实调用证据：至少检查 backend log / `ai_task_runs` / report/provider metadata 中的 provider/profile/model 摘要，不要求在 tracked 文件中保存 provider response。
-- 隐私与 non-current-negative spot-check。
+- 隐私与 out-of-scope-negative spot-check。
 
 ### Phase 4: Gate 与收口
 

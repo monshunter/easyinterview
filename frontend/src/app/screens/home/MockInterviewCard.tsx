@@ -311,7 +311,7 @@ export const MockInterviewCard: FC<MockInterviewCardProps> = ({
               marginTop: 4,
             }}
           >
-            {job.locationText || "Remote / TBD"}
+            {job.locationText || "Location not set"}
           </div>
         </div>
         <div

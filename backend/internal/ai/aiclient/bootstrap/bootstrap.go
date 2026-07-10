@@ -185,7 +185,7 @@ func (r *providerResolver) ResolveProvider(ref string) (aiclient.Provider, error
 			HTTPClient: r.httpClient,
 		})
 	case aiclient.ProviderProtocolRealtimeAudio:
-		return nil, sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, fmt.Sprintf("provider protocol %q is not implemented", entry.Protocol), false)
+		return nil, sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, fmt.Sprintf("provider protocol %q is unsupported in this build", entry.Protocol), false)
 	default:
 		return nil, fmt.Errorf("%w: unsupported provider protocol %q", providerregistry.ErrProviderConfigInvalid, entry.Protocol)
 	}

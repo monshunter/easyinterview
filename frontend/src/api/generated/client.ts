@@ -249,7 +249,7 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** requestPrivacyExport — post /privacy/exports: Request a privacy data export (P0 not implemented — returns 501) */
+	/** requestPrivacyExport — post /privacy/exports: Request a privacy data export (P0 unavailable - returns 501) */
 	async requestPrivacyExport(opts?: RequestOptions): Promise<Types.ApiErrorResponse> {
 		return this.request<Types.ApiErrorResponse>(
 			"POST",
@@ -270,7 +270,7 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** getFeedbackReport — get /reports/{reportId}: Get a feedback report (still-generating reports return 200 with placeholder) */
+	/** getFeedbackReport — get /reports/{reportId}: Get a feedback report (queued or generating reports return 200 with current status) */
 	async getFeedbackReport(reportId: string, opts?: RequestOptions): Promise<Types.FeedbackReport> {
 		return this.request<Types.FeedbackReport>(
 			"GET",

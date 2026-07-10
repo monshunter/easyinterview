@@ -21,7 +21,7 @@ Then failed runs persist failure state in `async_jobs` outcome/result metadata w
 
 - `scripts/setup.sh`: prepares output directories and copies seed / expected outcome notes into `.test-output`.
 - `scripts/trigger.sh`: runs focused `cmd/api`, job handler, and store gates for failure, retry, task-run, and ready-only outbox behavior.
-- `scripts/verify.sh`: rejects skipped or no-op gates, checks required runner markers and PASS evidence, and performs privacy / non-current-vocabulary negative searches.
+- `scripts/verify.sh`: rejects skipped or no-op gates, checks required runner markers and PASS evidence, and performs privacy / out-of-scope-vocabulary negative searches.
 - `scripts/cleanup.sh`: records cleanup completion while preserving logs under `.test-output/`.
 
 ## 5. Evidence

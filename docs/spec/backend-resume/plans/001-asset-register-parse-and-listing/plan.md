@@ -1,8 +1,8 @@
-# Backend Resume Asset Register Parse and Listing
+# Backend Resume Register Parse and Listing
 
-> **版本**: 2.2
+> **版本**: 2.8
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 把 [backend-resume spec](../../spec.md) §6 C-1..C-8 + C-13 落到 backend Go handler + store + AI 编排：
 
-- 实现 `POST /api/v1/resumes` (registerResume) handler，含 sourceType 三路分支（`upload` / `paste` / `guided`）+ IK + cross-user 隔离 + 调用 [backend-upload `RegisterFileObject`](../../../backend-upload/spec.md) internal API 校验 `purpose=resume`、object exists 与实际 size；
+- 实现 `POST /api/v1/resumes` (registerResume) handler，含 sourceType 双路分支（`upload` / `paste`）+ unsupported input validation + IK + cross-user 隔离 + 调用 [backend-upload `RegisterFileObject`](../../../backend-upload/spec.md) internal API 校验 `purpose=resume`、object exists 与实际 size；
 - 实现 `GET /api/v1/resumes/{resumeId}` (getResume) handler，cross-user 返回 404；
 - 实现 `GET /api/v1/resumes` (listResumes) handler，cursor pagination + `updated_at DESC, id DESC` 唯一稳定序；**直接解除 [frontend-workspace-and-practice/001](../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/plan.md) Phase 3.3 `listResumes` disabled-list 阻塞**；
 - 实现 `resumes` store layer：`CreateWithParseJob(pending + async_jobs resume_parse)` / `MarkParsing` / `MarkReady(parsedSummary, parsedTextSnapshot)` / `MarkFailed(errorCode)` / `Get` / `List(cursor, pageSize)` / `DeleteForUser`；
@@ -24,13 +24,13 @@
 - `registerResume` 必须强制 active resume 数量上限，默认 `resume.maxActive=10`，并继续强制 upload 文件大小上限，默认 `upload.maxBytes.resume=2097152`；
 - 接 [B3 events `resume.parse.completed`](../../../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory)：只有最终 ready 成功路径通过 outbox 写入 envelope 字段集（`resumeId / userId / parseStatus`）+ PII 边界（不含 raw text / parsed_summary）；失败路径不发 completed event；
 - 在 `cmd/api` 挂载 `registerResume` / `getResume` / `listResumes` route，验证 session middleware、IK middleware、path params 与 backend-internal `resume_parse` runner wiring 都走真实 runtime；
-- 明确本 plan 落地 flat `Resume` source 登记、解析、Markdown 快照与列表读取，不创建旧 `structured_master` `ResumeVersion`；
+- 明确本 plan 落地 flat `Resume` source 登记、解析、Markdown 快照与列表读取，不创建 `structured_master` `ResumeVersion`；
 - 通过 spec §6 C-1..C-8 + C-13 验收 + 新增 E2E.P0.034 / E2E.P0.035 两个 BDD 场景；
 - 不实现 update / duplicate / tailor / export 流程（归 plan 002 / 003）；真实 PDF 导出按 spec D-6 的 P0 `501 RESUME_EXPORT_NOT_AVAILABLE` / P1 plan 003 处理，本 plan 不实现。
 
 ## 2 背景
 
-[engineering-roadmap §5.2](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 标记 `backend-resume` (C7) 为 Resume Workshop 阶段 1 第 2 个 subspec：必须在 `frontend-resume-workshop` mock-first 路径切真前完成。本 plan 是 backend-resume 第一批 plan，承担 P0 用户路径 "登记原始简历 source → 等待解析 → 看到 source 列表 / parse 状态" 的 backend 端到端。`docs/ui-design/resume-onboarding.md` 要求的 "Preview Confirm → 保存 v1 主版本" 不属于本 plan，必须在后续 backend-resume/002 + frontend-resume-workshop/002 中闭合，避免未确认解析草稿成为正式版本。
+[engineering-roadmap §5.2](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 标记 `backend-resume` (C7) 为 Resume Workshop 阶段 1 第 2 个 subspec：必须在 `frontend-resume-workshop` mock-first 路径切真前完成。本 plan 是 backend-resume 第一批 plan，承担 P0 用户路径 "登记原始简历 source → 等待解析 → 看到 source 列表 / parse 状态" 的 backend 端到端。当前 flat Resume 合同中，`registerResume` + `resume.parse` 直接写入同一 `resumes` 行的正文快照、结构化内容和可识别名称。
 
 `listResumes` operation 同时是 [frontend-workspace-and-practice/001](../../../frontend-workspace-and-practice/plans/001-workspace-and-interview-context/plan.md) Phase 3.3 ResumePickerModal "disabled-list 模式" 的解锁前置：本 plan 落地后 workspace 001 owner 可启动原地修订（spec 1.2 → 1.3 / plan checklist active-list 改造），不创建 sibling。
 
@@ -49,7 +49,7 @@
 
 - **Plan 类型**: `code-internal + feature-behavior + contract`。本 plan 实现 backend handler / store / async job / AI 调用；用户可见 HTTP API 行为。
 - **TDD 策略**: 适用。Red-Green-Refactor 入口：
-  1. handler unit test：sourceType 三路参数校验 + IK + 422 / 404 / 跨用户隔离；
+  1. handler unit test：sourceType 双路参数校验 + unsupported input validation + IK + 422 / 404 / 跨用户隔离；
   2. store integration test：CRUD + parse_status 状态机 + cross-user 隔离 + cursor pagination 边界；
   3. resume.parse job unit test（stub AIClient provider）：成功路径 / 解析 JSON 失败 / AI provider timeout retryable / output_invalid;
   4. outbox event unit test：envelope 字段集 + PII 红线（不含 raw text）；
@@ -79,55 +79,55 @@
 
 ## 4 实施步骤
 
-### Phase 1: register / get handler skeleton + sourceType 三路
+### Phase 1: register / get handler skeleton + sourceType 双路
 
 #### 1.1 实现 `internal/resume/handler/register.go`
 - 实现 generated server interface `RegisterResume`
-- sourceType 三路校验（upload 必带 fileObjectId / paste 必带 rawText / guided 必带 guidedAnswers）
-- upload 路径：调 [backend-upload `RegisterFileObject(fileObjectId, expectedPurpose=resume, ownerUserId)`](../../../backend-upload/spec.md) internal API；该调用必须以对象存储 `Stat` 证明 object exists 且实际 size 与 `file_objects.byte_size` 一致后，才允许把 `resume_assets.file_object_id` 写入本 subject store
+- sourceType 双路校验（upload 必带 fileObjectId / paste 必带 rawText；guided 等 unsupported sourceType 返回 422）
+- upload 路径：调 [backend-upload `RegisterFileObject(fileObjectId, expectedPurpose=resume, ownerUserId)`](../../../backend-upload/spec.md) internal API；该调用必须以对象存储 `Stat` 证明 object exists 且实际 size 与 `file_objects.byte_size` 一致后，才允许把 `resumes.file_object_id` 写入本 subject store
 - IK + 24h TTL（B1 idempotency 工具）
-- 在同一事务内创建 `resume_assets` queued row + `async_jobs(job_type=resume_parse, resource_type=resume_asset)` row；返回 202 + `ResumeAssetWithJob{resumeAssetId, job(jobType=resume_parse, status=queued)}`，与 [B2 fixture `registerResume.json`](../../../mock-contract-suite/spec.md) `default` / `paste-text` / `guided-answers` 三个 scenario 字节一致
+- 在同一事务内创建 `resumes` queued row + `async_jobs(job_type=resume_parse, resource_type=resume_asset)` row；返回 202 + `ResumeWithJob{resumeId, job(jobType=resume_parse, status=queued)}`，与 [B2 fixture `registerResume.json`](../../../mock-contract-suite/spec.md) `default` / `paste-text` 两个 scenario 字节一致
 
 #### 1.2 实现 `internal/resume/handler/get.go`
 - 实现 generated server interface `GetResume`
 - cross-user 返回 404（不暴露存在）
-- 返回 `ResumeAsset` 字段（按 B2 schema）
+- 返回 `Resume` 字段（按 B2 schema）
 
 #### 1.3 unit test
-- `register_test.go`: 三 sourceType + IK replay + IK mismatch + 422 + 跨用户
+- `register_test.go`: 双 sourceType + unsupported/invalid input + IK replay + IK mismatch + 422 + 跨用户
 - `get_test.go`: 200 / 404 cross-user / 404 not exist
 
-### Phase 2: resume_assets store + state machine
+### Phase 2: resumes store + state machine
 
-#### 2.1 实现 `internal/resume/store/assets.go`
+#### 2.1 实现 `internal/resume/store/resumes.go`
 - Repository：`CreateWithParseJob / Get / List(cursor, pageSize) / MarkParsing / MarkReady(parsedSummary, parsedTextSnapshot) / MarkFailed / DeleteForUser`
-- `CreateWithParseJob` 必须以事务提交 `resume_assets` 与 `async_jobs`，并支持 user-scoped IK replay 返回首次 `resumeAssetId` / `job`；outbox 或 job 写入失败时不得留下 orphan asset
+- `CreateWithParseJob` 必须以事务提交 `resumes` 与 `async_jobs`，并支持 user-scoped IK replay 返回首次 `resumeId` / `job`；outbox 或 job 写入失败时不得留下 orphan resume
 - parse_status state machine：`queued → processing → ready | failed`
 - cursor pagination：按 `updated_at DESC, id DESC` 唯一稳定序
 
 #### 2.2 integration test
-- `assets_integration_test.go`：CRUD + state transition + cross-user isolation + cursor 边界（empty / single page / multiple pages / `hasMore=false`）
+- `resumes_integration_test.go`：CRUD + state transition + cross-user isolation + cursor 边界（empty / single page / multiple pages / `hasMore=false`）
 
 ### Phase 3: resume.parse async job + AIClient 集成
 
 #### 3.1 实现 `internal/resume/jobs/parse.go`
 - 注册到 `cmd/api` backend-internal runner / runtime composition（job_type=resume_parse, dotted=resume.parse）
-- 从 resume_assets 读 `file_object_id`（upload）或 `original_text`（paste）或 `guided_answers` jsonb（guided）作为 prompt input
+- 从 `resumes` 读 `file_object_id`（upload）或 `original_text`（paste）作为 prompt input
 - 通过 [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 调 [F3 `resume.parse` feature_key](../../../prompt-rubric-registry/spec.md)
 - 解析 LLM JSON 输出 → 写 `parsed_summary` + `parsed_text_snapshot` + `parse_status='ready'`
-- 用户 Preview Confirm 前不得创建正式 `structured_master` `resume_versions` 行；parse output 只是草稿，保存 v1 由 backend-resume/002 承接
-- 失败路径：写 `parse_status='failed'` + `error_code`；retryability 由 `async_jobs` attempt / retry metadata 表达，不向 `resume_assets.parse_status` 私加 `failed_retryable`
+- parse success 直接写当前 `resumes.structured_profile` / `display_name` / `parsed_text_snapshot`；不得创建 `structured_master` `resume_versions` 行
+- 失败路径：写 `parse_status='failed'` + `error_code`；retryability 由 `async_jobs` attempt / retry metadata 表达，不向 `parse_status` 私加 `failed_retryable`
 - 写入 `ai_task_runs` typed columns（model_profile_name / version / prompt_version / rubric_version 等）
 
 #### 3.2 outbox event `resume.parse.completed`
-- envelope 字段集（[B3 §3.1.4](../../../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory)）：`resumeAssetId / userId / parseStatus`
+- envelope 字段集（[B3 §3.1.4](../../../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory)）：`resumeId / userId / parseStatus`
 - 只在最终 `parse_status='ready'` 时写入；AI output invalid / provider timeout / retryable exhausted 等失败路径不发 `resume.parse.completed`
-- PII 边界：不含 raw text / guided answers / parsed_summary
+- PII 边界：不含 raw text / parsed_summary
 
 #### 3.3 resume_parse backend-internal runner wiring
 - 沿用 [backend-targetjob](../../../backend-targetjob/spec.md) 的 backend-internal runner 口径：`cmd/api` 进程内 claim `async_jobs(job_type=resume_parse)` 并调用 `backend/internal/resume/jobs/parse.go`
 - 提供 `RunOnce` 或等价 deterministic stepping，方便 BDD / `cmd/api` scenario test 在无 timer race 的情况下验证 queued → ready / failed / retry
-- `Start(ctx)` / `Shutdown(ctx)` 必须随 `cmd/api` lifecycle 管理；不得新增独立后台执行 binary、后台执行专用 config 或 `backend-async-runner` 之外的非当前 shorthand
+- `Start(ctx)` / `Shutdown(ctx)` 必须随 `cmd/api` lifecycle 管理；不得新增独立后台执行 binary、后台执行专用 config 或 `backend-async-runner` 之外的范围外 shorthand
 
 #### 3.4 unit test
 - `parse_test.go`（stub AIClient）：成功 / parse JSON 失败 / AI timeout retryable / output_invalid
@@ -138,7 +138,7 @@
 #### 4.1 实现 `internal/resume/handler/list.go`
 - 实现 generated server interface `ListResumes`
 - cursor pagination（按 `updated_at DESC, id DESC`）
-- 返回 `PaginatedResumeAsset{items, pageInfo{nextCursor, pageSize, hasMore}}`
+- 返回 `PaginatedResume{items, pageInfo{nextCursor, pageSize, hasMore}}`
 - cross-user 过滤（仅返回 `user_id = current_user_id`）
 
 #### 4.2 integration test
@@ -149,9 +149,9 @@
 - 挂载：
   - `POST /api/v1/resumes` → session middleware + IK middleware + `RegisterResume`
   - `GET /api/v1/resumes` → session middleware + `ListResumes`
-  - `GET /api/v1/resumes/{resumeAssetId}` → session middleware + path param adapter + `GetResume`
+  - `GET /api/v1/resumes/{resumeId}` → session middleware + path param adapter + `GetResume`
 - `APP_ENV=test` 可使用 deterministic resume.parse fixture AIClient，但只能拦截 `resume.parse`；真实 dev / Kind / staging / prod 必须走 A3/F3 profile fail-fast 规则
-- `cmd/api` tests 断言 route 存在、缺 session 返回 auth error、缺 IK 返回 generated error envelope、同 IK replay 不重复创建 `resume_assets` / `async_jobs` / outbox side effect
+- `cmd/api` tests 断言 route 存在、缺 session 返回 auth error、缺 IK 返回 generated error envelope、同 IK replay 不重复创建 `resumes` / `async_jobs` / outbox side effect
 
 ### Phase 5: 收口 + BDD + 解锁 workspace 001
 
@@ -161,7 +161,7 @@
 - `cd backend && go test ./...` PASS
 - `cd backend && go test ./internal/resume/...` PASS
 - `cd backend && go test ./cmd/api -run 'TestBuildResumeRuntime|TestResumeRegisterListHTTPScenario|TestResumeParseDrainerHTTPScenario' -count=1` PASS
-- mock-first 对齐：handler 真实响应与 [B2 fixtures](../../../mock-contract-suite/spec.md) `registerResume.json` (`default` / `paste-text` / `guided-answers`)、`getResume.json` (`default` / `not-found`)、`listResumes.json` (`default` / `empty` / `paginated`) 字节比对 PASS
+- mock-first 对齐：handler 真实响应与 [B2 fixtures](../../../mock-contract-suite/spec.md) `registerResume.json` (`default` / `paste-text`)、`getResume.json` (`default` / `not-found`)、`listResumes.json` (`default` / `empty` / `paginated`) 字节比对 PASS
 - grep `inline|rewrite|mirror` in `backend/internal/resume/` + resume drainer/outbox payload tests：0 命中（C-13 negative）
 - `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` PASS
 - `make docs-check` PASS
@@ -195,7 +195,7 @@
 - 补 handler unit test，证明错误 envelope 与状态码。
 
 #### 6.2 修复 resume.parse retryable failure 状态语义
-- AI timeout / retryable failure 每次失败都写 `resume_assets.parse_status='failed' + error_code`；
+- AI timeout / retryable failure 每次失败都写 `parse_status='failed' + error_code`；
 - retryable 信息只通过 `async_jobs` retry metadata 表达，不新增 `failed_retryable` parse_status；
 - 后续重试允许同一 asset 从 `failed` 重新进入 `processing`，最终 ready 后只发一次 `resume.parse.completed`。
 
@@ -208,15 +208,15 @@
 
 > product-scope D-20 / backend-resume D-13。把 register / get / list / parse 迁移到扁平 `resumes` 单表口径。依赖 [B4 002 flat Resume migration](../../../db-migrations-baseline/plans/002-flat-resume-migration/plan.md) + [B2 004 Phase 7](../../../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) contract collapse。Red 优先。
 
-#### 7.1 store 迁移 resume_assets → resumes
+#### 7.1 store filename / table alignment
 
-`internal/resume/store/assets.go` → `resumes.go`：表名改 `resumes`，新增 `structured_profile` / `display_name` 列读写；删除 `guided_answers`；`source_type` 收敛 {`upload`, `paste`}。
+`internal/resume/store/resumes.go` 使用 `resumes` 表并读写 `structured_profile` / `display_name` 列；`source_type` 当前收敛为 {`upload`, `paste`}，范围外输入只保留为 validation negative。
 
 （验证：`cd backend && go test ./internal/resume/store/...` PASS）
 
 #### 7.2 handler register/get/list 迁移 resumeId
 
-`register.go` / `get.go` / `list.go`：generated 类型 `ResumeAsset`→`Resume`、`ResumeAssetWithJob`→`ResumeWithJob`、path param `resumeAssetId`→`resumeId`、`PaginatedResumeAsset`→`PaginatedResume`；register `sourceType` 双路（删 `guided` 422 分支）。
+`register.go` / `get.go` / `list.go` 使用 generated 类型 `Resume`、`ResumeWithJob`、path param `resumeId`、`PaginatedResume`；register `sourceType` 仅支持 `upload` / `paste`，unsupported input 统一返回 validation error。
 
 （验证：handler unit test + `cmd/api` wiring test PASS）
 
@@ -228,7 +228,7 @@
 
 #### 7.4 收口
 
-`cd backend && go test ./internal/resume/... ./cmd/api`；零 `resumeAssetId` / `resume_assets` / `ResumeAsset` 残留 grep（generated 由 B2 重生除外）；`sync-doc-index --check`。
+`cd backend && go test ./internal/resume/... ./cmd/api`；owner 文档与场景用例通过 stale-token grep，`async_jobs.resource_type=resume_asset` 作为当前内部 job resource 值保留；`sync-doc-index --check`。
 
 （验证：全 gate PASS + 负向 grep 0 命中）
 
@@ -244,7 +244,7 @@
 
 #### 8.2 store 完成态写入 display_name
 
-`store/assets.go`：`CompleteParseSuccess` 在 `parse_status='ready'` 的同一事务内写入非空 `display_name`；无法可靠派生时保留空 `display_name`，不得回退到注册 title 或 raw resume 第一行。
+`store/resumes.go`：`CompleteParseSuccess` 在 `parse_status='ready'` 的同一事务内写入非空 `display_name`；无法可靠派生时保留空 `display_name`，不得回退到注册 title 或 raw resume 第一行。
 
 （验证：`cd backend && go test ./internal/resume/store -run 'TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1` PASS）
 
@@ -264,7 +264,7 @@
 
 #### 9.2 source title no longer seeds display_name
 
-`store/assets.go`：`CreateWithParseJob` 创建 queued resume 时只保存 `title` 作为来源标题，不写 `display_name`；ready 后 `display_name` 只由 parse success 写入。无法从 LLM 派生时保留空 `display_name`，由前端显示中性占位。
+`store/resumes.go`：`CreateWithParseJob` 创建 queued resume 时只保存 `title` 作为来源标题，不写 `display_name`；ready 后 `display_name` 只由 parse success 写入。无法从 LLM 派生时保留空 `display_name`，由前端显示中性 pending label。
 
 （验证：`cd backend && go test ./internal/resume/store -run 'TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady|TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1` PASS）
 
@@ -276,7 +276,7 @@
 
 #### 9.4 extracted text survives LLM failure
 
-`jobs/parse.go` / `store/assets.go`：一旦 upload / paste 正文已成功抽取，后续 prompt registry、AI provider 或 AI output validation 失败时，`CompleteParseFailure` 也必须写入 `parsed_text_snapshot`，保证只读详情仍能展示原始内容；失败路径仍不发 `resume.parse.completed`。
+`jobs/parse.go` / `store/resumes.go`：一旦 upload / paste 正文已成功抽取，后续 prompt registry、AI provider 或 AI output validation 失败时，`CompleteParseFailure` 也必须写入 `parsed_text_snapshot`，保证只读详情仍能展示原始内容；失败路径仍不发 `resume.parse.completed`。
 
 （验证：`cd backend && go test ./internal/resume/jobs -run TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox -count=1` PASS；`cd backend && go test ./internal/resume/store -run TestCompleteParseFailureCanPersistExtractedTextSnapshot -count=1` PASS）
 
@@ -296,13 +296,13 @@
 
 #### 10.3 failure path writes extracted-text fallback display_name
 
-`jobs/parse.go` / `store/assets.go`：AI provider / output 失败但 `parsed_text_snapshot` 已存在时，失败事务同时写入一个非通用 fallback `display_name`；fallback 只能从可读正文中组合候选人姓名 + headline / 技术定位，不能使用文件名或 raw 第一行单独直出。
+`jobs/parse.go` / `store/resumes.go`：AI provider / output 失败但 `parsed_text_snapshot` 已存在时，失败事务同时写入一个非通用 fallback `display_name`；fallback 只能从可读正文中组合候选人姓名 + headline / 技术定位，不能使用文件名或 raw 第一行单独直出。
 
 （验证：`cd backend && go test ./internal/resume/jobs -run TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox -count=1` PASS；`cd backend && go test ./internal/resume/store -run TestCompleteParseFailureCanPersistExtractedTextSnapshot -count=1` PASS）
 
 #### 10.4 frontend detail polling stops on terminal / readable states
 
-`frontend/src/app/screens/resume-workshop/hooks/useResumeAsset.ts`：`getResume` 轻量轮询只允许 `sourceType=upload && parseStatus in queued|processing && no parsedTextSnapshot/originalText`；`failed`、`ready` 或任一可读正文已存在时立即停止。
+`ResumeDetailView` 的 `getResume` 轻量轮询只允许 `sourceType=upload && parseStatus in queued|processing && no parsedTextSnapshot/originalText`；`failed`、`ready` 或任一可读正文已存在时立即停止。
 
 （验证：`corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/components/ResumeDetailView.test.tsx` PASS）
 
@@ -322,7 +322,7 @@
 
 #### 11.3 active resume limit
 
-`config/config.yaml` 新增 `resume.maxActive: 10`，`backend/internal/resume/store/assets.go` 在 IK replay miss 后、insert 前按 user active resumes 计数；达到上限返回 service validation error，不创建 resume / async job。`archiveResume` 的 `deleted_at` 行不计入 active 数量。
+`config/config.yaml` 新增 `resume.maxActive: 10`，`backend/internal/resume/store/resumes.go` 在 IK replay miss 后、insert 前按 user active resumes 计数；达到上限返回 service validation error，不创建 resume / async job。`archiveResume` 的 `deleted_at` 行不计入 active 数量。
 
 （验证：`cd backend && go test ./internal/resume/... -run 'TestRegisterResumePassesConfiguredActiveLimit|TestCreateWithParseJobRejectsNewResumeWhenActiveLimitReached|TestCreateWithParseJobAllowsIdempotentReplayAtActiveLimit' -count=1` PASS）
 
@@ -338,7 +338,7 @@
 
 （验证：`cd backend && go test ./internal/resume/jobs -run TestParseHandlerMarkdownFallbackSurvivesPDFAIOutputFailure -count=1` PASS）
 
-### Phase 12: Source-format preview and DOCX retirement
+### Phase 12: Source-format preview and DOCX exclusion
 
 #### 12.1 upload whitelist narrows to PDF / Markdown / text
 
@@ -354,7 +354,7 @@
 
 #### 12.3 PDF source endpoint
 
-`backend/internal/resume/store/assets.go`、`service.go`、`handler/get.go` 与 `cmd/api/main.go` 实现 `getResumeSource`：按 `user_id + resumeId` scoped lookup upload PDF 对象，返回 inline PDF bytes；paste、Markdown、TXT、缺失对象、归档和跨用户访问返回 404；响应不暴露 object key。
+`backend/internal/resume/store/resumes.go`、`service.go`、`handler/get.go` 与 `cmd/api/main.go` 实现 `getResumeSource`：按 `user_id + resumeId` scoped lookup upload PDF 对象，返回 inline PDF bytes；paste、Markdown、TXT、缺失对象、归档和跨用户访问返回 404；响应不暴露 object key。
 
 （验证：`cd backend && go test ./internal/resume ./internal/resume/handler ./internal/resume/store ./cmd/api -run 'TestGetResumeSource|TestGetSourceFile' -count=1` PASS）
 
@@ -377,13 +377,13 @@
 | 风险 | 应对 |
 |------|------|
 | R1: resume.parse AI 输出 JSON 不稳定（schema 漂移） | F3 prompt 设计含 output schema example + [B2 §4.6 GenerationProvenance](../../../openapi-v1-contract/spec.md#46-ai-生成结果-provenance-约束) 强制 + parse 失败 retryable + `output_schema_version` typed column 追踪 |
-| R2: `resume_assets.source_type` 字段为 NULL（存量数据） | Phase 2 store 实现兼容 NULL（未设置时不强制三路；新写必带）；migration 不回填存量行 |
+| R2: `source_type` 输入与当前 upload / paste 合同漂移 | Phase 1 handler tests 和 P0.034 scenario 固化 upload / paste 正向路径，并用 unsupported sourceType negative 锁定错误映射 |
 | R3: cross-user isolation 漏洞导致越权 | handler 层 + store 层双层 `user_id` 过滤；integration test 强制覆盖 cross-user case |
 | R4: backend-upload 未完成时本 plan 启动 | Plan 2 背景写明前置依赖；本 plan 不在 backend-upload/001 完成前启动 |
 | R5: workspace 001 修订时序 | 本 plan Phase 5.3 仅发信号，不直接修订；workspace owner 在收到信号后启动 plan 1.2 → 1.3 原地修订，不创建 sibling |
 | R6: B2/B3/B4 阶段 0 plan 未完成时启动本 plan | 本 plan §2 背景写明 4 个前置依赖（B2 D-18 / B3 D-14 / B4 D-17 / backend-upload 001）；任一未完成时 `/implement` 拒绝启动 |
 | R7: handler 包测试通过但真实 API / drainer 未挂载 | Phase 4.3 / checklist 4.4-4.5 强制 `cmd/api` route/runtime wiring；BDD 场景必须输出 `method=cmd-api-http` 或等价 live runtime evidence，并拒绝 no-op / skip 作为 PASS |
-| R8: AI 输出失败导致名称永久占位 | Phase 10 同时硬化 prompt `displayName` 合同和失败态 fallback `display_name` 写入；前端只在 truly pending 状态展示“名称生成中” |
+| R8: AI 输出失败导致名称永久停留在生成中状态 | Phase 10 同时硬化 prompt `displayName` 合同和失败态 fallback `display_name` 写入；前端只在 truly pending 状态展示“名称生成中” |
 | R9: Markdown 快照改变简历事实或结构 | Phase 11 将 `markdownText` 写入 prompt schema 和 decode 校验，focused tests 断言 `parsed_text_snapshot` 使用 AI Markdown 输出，prompt 文案要求保持原结构和事实 |
 | R10: 数量限制破坏 IK replay | Phase 11 在 `CreateWithParseJob` dedupe hit 后再执行 active count gate；focused tests 覆盖达到上限时新 IK 拒绝、相同 IK replay 不误拒 |
 | R11: AI 失败态把 PDF 抽取正文折叠成普通段落 | Phase 11.5 将 failure snapshot 规范为 Markdown fallback，并以 PDF upload + AI invalid output focused test 锁定标题、章节和技能 bullet |
@@ -394,4 +394,10 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
-| 2026-07-07 | 2.2 | 本轮讨论决策：新增 PDF source preview endpoint，Resume 上传退役 DOCX，仅保留 PDF / Markdown / TXT 文本提取链路。 |
+| 2026-07-10 | 2.8 | 将 parse/list sourceType 与 tailor-mode 负向 gate 统一为 out-of-scope / 范围外口径；行为不变。 |
+| 2026-07-10 | 2.7 | 收敛 backend-resume 001 / P0.034 文档到当前 `resumes`、`ResumeWithJob`、`resumeId` 与 upload/paste sourceType 口径。 |
+| 2026-07-10 | 2.6 | 将 backend resume store 文件名和 owner 文档引用从 assets 收敛到当前 resumes 表口径。 |
+| 2026-07-10 | 2.5 | 收敛 P0.035 / Phase 3 / Phase 12 文档到当前 flat Resume parse、DOCX 前置拒绝与 no-confirm flow 口径。 |
+| 2026-07-10 | 2.4 | 将失败 / pending display name 文档口径收敛为 pending label / 生成中状态，不改变 resume.parse 合同。 |
+| 2026-07-10 | 2.3 | 清理 DOCX 上传范围外标签口径；当前 Resume 上传支持范围仍仅为 PDF / Markdown / TXT 文本提取链路。 |
+| 2026-07-07 | 2.2 | 本轮讨论决策：新增 PDF source preview endpoint，Resume 上传移出 DOCX 当前支持范围，仅保留 PDF / Markdown / TXT 文本提取链路。 |

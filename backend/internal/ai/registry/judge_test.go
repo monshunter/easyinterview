@@ -7,9 +7,9 @@ import (
 	"testing"
 )
 
-func TestNotImplementedJudgeAlwaysFails(t *testing.T) {
+func TestFailClosedJudgeAlwaysFails(t *testing.T) {
 	t.Parallel()
-	var j Judge = NotImplementedJudge{}
+	var j Judge = FailClosedJudge{}
 	scores, reasoning, err := j.Judge(
 		context.Background(),
 		"practice.session.first_question",
@@ -17,11 +17,11 @@ func TestNotImplementedJudgeAlwaysFails(t *testing.T) {
 		[]byte("{\"foo\":\"bar\"}"),
 		"v0.1.0",
 	)
-	if !errors.Is(err, ErrJudgeNotImplemented) {
-		t.Fatalf("want ErrJudgeNotImplemented, got %v", err)
+	if !errors.Is(err, ErrJudgeUnavailable) {
+		t.Fatalf("want ErrJudgeUnavailable, got %v", err)
 	}
 	if strings.Contains(err.Error(), "plan ") {
-		t.Fatalf("ErrJudgeNotImplemented must not expose implementation plan wording, got %q", err.Error())
+		t.Fatalf("ErrJudgeUnavailable must not expose implementation plan wording, got %q", err.Error())
 	}
 	if scores != nil {
 		t.Errorf("Scores must be nil on fail-closed, got %+v", scores)

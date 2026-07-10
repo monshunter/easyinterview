@@ -1,17 +1,17 @@
 # Cascaded Speech Provider Foundation
 
-> **版本**: 1.1
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-05-22
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-为 P0 语音面试 MVP 落地低成本 `stt -> chat -> tts` 级联底座，替代 S2S / realtime voice 作为首发方案。本计划只 owns A3 provider foundation：`tts` capability、`Synthesize` provider-neutral 接口、豆包 / MiniMax provider-specific speech adapter、独立 STT/TTS profile 配置、观测 / 隐私 / 成本 gate。
+为 P0 电话模式 MVP 落地低成本 `stt -> chat -> tts` 级联底座，替代 S2S / realtime voice 作为首发方案。本计划只 owns A3 provider foundation：`tts` capability、`Synthesize` provider-neutral 接口、豆包 / MiniMax provider-specific speech adapter、独立 STT/TTS profile 配置、观测 / 隐私 / 成本 gate。
 
-本计划不实现用户可见 `PracticeScreen` 语音面试流程、不新增 HTTP API handler、不实现媒体留存和删除链路；这些由 `practice-voice-mvp/001-cascaded-stt-llm-tts` 承接。
+本计划不实现用户可见 `PracticeScreen` 电话模式流程、不新增 HTTP API handler、不实现媒体留存和删除链路；这些由 `practice-voice-mvp/001-cascaded-stt-llm-tts` 承接。
 
 ## 2 背景
 
@@ -23,7 +23,7 @@
 
 - **Plan 类型**: `code-internal + contract + provider-adapter + config + observability/privacy`。
 - **TDD 策略**: 通过 `/implement` -> `/tdd` 顺序执行。每个非文档 checklist item 必须先有 Red test 或 drift gate，再实现 B1 capability/codegen、A3接口、provider adapter、profile loader、observability/privacy 与 lint gate。
-- **BDD 策略**: BDD 不适用。本计划只打开内部 provider foundation，不直接产生用户行为；用户可见语音面试闭环由 `practice-voice-mvp/001` 的 BDD 覆盖。
+- **BDD 策略**: BDD 不适用。本计划只打开内部 provider foundation，不直接产生用户行为；用户可见电话模式闭环由 `practice-voice-mvp/001` 的 BDD 覆盖。
 - **替代验证 gate**: Go interface / adapter contract tests、stub deterministic tests、profile coverage lint、config lint、conventions/codegen drift gate、observability privacy tests、active-scope negative search。
 
 ## 4 Coverage Matrix
@@ -48,7 +48,7 @@
 | `N/A - aiClientSynthesize` | A3 Go contract fixtures / stub deterministic fixture | none | `backend/internal/ai/aiclient` `AIClient.Synthesize` + provider dispatch | none | `practice.voice.tts.default` capability contract; provider-neutral input/output and `AICallMeta` summary | focused Go tests + observability/privacy tests |
 | `N/A - speechProviderProtocols` | adapter mockserver fixtures for `doubao_speech` / `minimax_speech` | none | `backend/internal/ai/aiclient/providers` speech adapters | none | provider-specific STT/TTS or TTS protocol; official docs / captured contract fixture required before adapter Green | adapter contract tests + provider-specific negative tests |
 | `N/A - voiceProfileCatalog` | `config/ai-providers.yaml` + `config/ai-profiles.yaml` | none | provider registry / profile loader | none | `practice.voice.stt.default` + `practice.voice.tts.default`; chat remains `practice.followup.default` | `make lint-ai-profile-coverage` + config lint |
-| `createPracticeVoiceTurn` downstream handoff | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` owned by `practice-voice-mvp/001` | `PracticeScreen` voice turn controller, owned by `practice-voice-mvp/001` | `backend/internal/practice` voice turn handler/service, owned by `practice-voice-mvp/001` | session events and optional transient audio metadata, owned by `practice-voice-mvp/001` | A3 004 supplies profile names, provider/client error semantics, privacy summary, and cost metadata; full STT -> chat -> TTS orchestration is not implemented in A3 | `E2E.P0.007` / `E2E.P0.009` in `practice-voice-mvp/001` |
+| `createPracticeVoiceTurn` downstream handoff | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` owned by `practice-voice-mvp/001` | `PracticeScreen` voice turn controller, owned by `practice-voice-mvp/001` | `backend/internal/practice` voice turn handler/service, owned by `practice-voice-mvp/001` | session events and optional transient audio metadata, owned by `practice-voice-mvp/001` | A3 004 supplies profile names, provider/client error semantics, privacy summary, and cost metadata; full STT -> chat -> TTS orchestration remains owned by practice-voice-mvp/001 | `E2E.P0.007` / `E2E.P0.009` in `practice-voice-mvp/001` |
 
 ## 5 实施步骤
 
@@ -74,7 +74,7 @@
 
 #### 2.3 Stub provider deterministic TTS
 
-stub provider 为 TTS 返回 deterministic audio placeholder 与 meta 摘要，仅用于单元测试 / 离线契约测试，不允许非测试本地 app run 或未来 staging / prod 静默回退到 stub。
+stub provider 为 TTS 返回 deterministic audio fixture 与 meta 摘要，仅用于单元测试 / 离线契约测试，不允许非测试本地 app run 或未来 staging / prod 静默回退到 stub。
 
 ### Phase 3: 豆包与 MiniMax speech adapters
 
@@ -138,7 +138,7 @@ A3 owns provider/client failure semantics：provider timeout / secret missing / 
 - `AIClient.Synthesize`、stub provider、豆包 STT/TTS、MiniMax TTS adapter 均有 contract tests 覆盖成功与错误路径。
 - `practice.voice.stt.default` 与 `practice.voice.tts.default` 独立存在，profile coverage lint 证明 STT/TTS 不绑定同一 provider。
 - 观测与 audit 只写 hash / 长度 / duration / profile / provider / cost 摘要，不写音频、转写或 TTS 文本明文。
-- realtime S2S 继续 fail-closed，任何用户可见 voice workflow 由 `practice-voice-mvp` plan 的 BDD gate 覆盖。
+- realtime S2S 继续 fail-closed，任何用户可见电话模式 workflow 由 `practice-voice-mvp` plan 的 BDD gate 覆盖。
 
 ## 7 风险与应对
 

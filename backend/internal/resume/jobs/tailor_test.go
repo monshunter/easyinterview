@@ -538,15 +538,15 @@ func (c *captureTailorAI) Complete(_ context.Context, profileName string, payloa
 }
 
 func (c *captureTailorAI) Transcribe(context.Context, string, aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
-	return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, errors.New("not implemented")
+	return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, errors.New("unexpected Transcribe call in resume tailor captureTailorAI")
 }
 
 func (c *captureTailorAI) Stream(context.Context, string, aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
-	return nil, errors.New("not implemented")
+	return nil, errors.New("unexpected Stream call in resume tailor captureTailorAI")
 }
 
 func (c *captureTailorAI) Synthesize(context.Context, string, aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
-	return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, errors.New("not implemented")
+	return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, errors.New("unexpected Synthesize call in resume tailor captureTailorAI")
 }
 
 type tailorPrivacyFixture struct {

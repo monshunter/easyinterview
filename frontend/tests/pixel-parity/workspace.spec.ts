@@ -15,7 +15,7 @@ import { resolve } from "node:path";
  * - Bounding box stays in viewport, no overlap
  * - default (ocean)/light -> dark -> customAccent theme switching
  * - non-empty screenshot smoke
- * - Negative: non-current prototype testids absent
+ * - Negative: out-of-scope prototype testids absent
  *
  * Full data-driven rendering is reached through an explicit initial route
  * bootstrap with server-bound IDs on the parse route. TopBar navigation covers
@@ -236,7 +236,7 @@ test.describe("workspace DOM anchor parity", () => {
     }
   });
 
-  test("parse detail keeps resume binding readonly and hides retired workspace modals", async ({ page }) => {
+  test("parse detail keeps resume binding readonly and hides deleted workspace modals", async ({ page }) => {
     await goToParseDetail(page);
 
     await expect(page.locator("[data-testid='workspace-plan-modal-card']")).toHaveCount(0);
@@ -444,23 +444,23 @@ test.describe("workspace screenshot regression", () => {
   });
 });
 
-test.describe("retired workspace detail negative gate", () => {
+test.describe("deleted workspace detail negative gate", () => {
   test("parse detail does not render the old independent workspace anchors", async ({ page }) => {
     await goToParseDetail(page);
-    for (const retired of [
+    for (const oldAnchorId of [
       "workspace-header",
       "workspace-launcher",
       "workspace-jd-card",
       "workspace-prep-card",
       "workspace-history-card",
     ]) {
-      await expect(page.locator(`[data-testid='${retired}']`)).toHaveCount(0);
+      await expect(page.locator(`[data-testid='${oldAnchorId}']`)).toHaveCount(0);
     }
   });
 });
 
-test.describe("non-current prototype testid negative gate (workspace)", () => {
-  test("non-current workspace prototype testids do not appear in DOM", async ({ page }) => {
+test.describe("out-of-scope prototype testid negative gate (workspace)", () => {
+  test("out-of-scope workspace prototype testids do not appear in DOM", async ({ page }) => {
     await goToWorkspace(page);
 
     const banned = [
@@ -477,7 +477,7 @@ test.describe("non-current prototype testid negative gate (workspace)", () => {
     }
   });
 
-  test("non-current route names do not appear as TopBar entries", async ({ page }) => {
+  test("out-of-scope route names do not appear as TopBar entries", async ({ page }) => {
     await goToWorkspace(page);
     for (const banned of [
       "topbar-nav-welcome", "topbar-nav-mistakes",

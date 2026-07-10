@@ -103,7 +103,7 @@ test("E2E.P0.099 full funnel import to next-round practice", async ({
       response.request().method() === "POST" &&
       response.status() === 202,
   );
-  await page.getByTestId("practice-rightpanel-cta-finish").click();
+  await page.getByTestId("practice-finish-cta").click();
   await completeResponse;
   await expect(page.getByTestId("generating-screen")).toBeVisible({
     timeout: 10_000,

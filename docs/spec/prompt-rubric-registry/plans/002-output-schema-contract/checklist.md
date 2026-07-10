@@ -1,8 +1,8 @@
 # F3 Output Schema Contract Checklist
 
-> **版本**: 1.7
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -59,7 +59,7 @@
 
 ## Phase 8: L2 prompt example remediation（完整 JSON output）
 
-- [x] 8.1 为 renderer 增加回归测试：example JSON 必须包含 schema-declared optional properties，且不能使用 `string` / `1` 这类最小占位。验证: red `python3 -m pytest scripts/lint/prompt_lint_test.py -q -k 'rendered_example_includes_optional_properties'` 失败于 optional 字段缺失；green `python3 -m pytest scripts/lint/prompt_lint_test.py -q -k 'rendered_example'` → `2 passed`
+- [x] 8.1 为 renderer 增加回归测试：example JSON 必须包含 schema-declared optional properties，且不能使用 `string` / `1` 这类 generic filler values。验证: red `python3 -m pytest scripts/lint/prompt_lint_test.py -q -k 'rendered_example_includes_optional_properties'` 失败于 optional 字段缺失；green `python3 -m pytest scripts/lint/prompt_lint_test.py -q -k 'rendered_example'` → `2 passed`
 - [x] 8.2 重渲染当前 9 × 2 prompt body，刷新 18 个 YAML `template_hash`，同步 `migrations/000002_seed_baseline_prompt_rubric_versions.up.sql` 中已有 prompt seed row 的 body/hash，并补充 `resume.parse` project/education optional schema 字段。验证: `make lint-prompts` → `prompt_lint: 9 files clean`；`rg -n '"string"|: 1,|Example JSON:' config/prompts -g '*.md'` → 0 matches
 - [x] 8.3 同步 spec/plan/checklist/context/index 与收口验证。验证: `validate_context.py` + `sync-doc-index --check` + `git diff --check` 通过；Header 恢复 `completed`
 

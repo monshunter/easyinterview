@@ -1,8 +1,8 @@
 # E2E Scenarios P0 Spec
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -32,7 +32,7 @@
   - **API-level**（`E2E.P0.098`）：`backend/cmd/api` 内新增 `httptest` server + 真实 stack 覆盖 9 行 operation matrix（8 个主链必经 operation + `getJob` 备选轮询 / handler gate；`createPracticePlan` 复用 baseline + next_round 两次调用）的 Go scenario test。
   - **Playwright 全栈**（`E2E.P0.099`）：真后端进程 + 前端 build + 真 postgres，Playwright 驱动真实 UI 走完漏斗。
 - 真后端全栈 + scenario stub / fixture AI（`APP_ENV=test`），postgres 不可达时 `t.Skip`（沿用现有范式）。
-- handoff 链字段真实传递、异步 job（`target_import` / `report_generate`）经真实 internal runner 完成、DB 真实落库、关键写操作幂等、隐私红线、non-current-negative。
+- handoff 链字段真实传递、异步 job（`target_import` / `report_generate`）经真实 internal runner 完成、DB 真实落库、关键写操作幂等、隐私红线、out-of-scope-negative。
 - 真实 provider hybrid UAT（`E2E.P0.100`）：标准 `test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/` 场景目录 + 单一 `deploy/dev-stack/.env` 本地真实环境配置 + `APP_ENV=dev` 后端 + `VITE_EI_API_MODE=real` 前端 + 真实 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` + Mailpit 本地 6 位 email-code 登录 + synthetic JD / resume / answer materials。
 
 ### 2.2 Out of Scope
@@ -41,7 +41,7 @@
 - 失败 / 恢复 journey（报告生成失败、AI timeout、跨用户隔离贯通）—— 归后续 plan。
 - 新增或修改任何 OpenAPI operation、DB schema、event payload、prompt / rubric —— 本 subject 只**消费**现有契约。
 - 真实 LLM 质量 / 评估 —— 归 [prompt-rubric-registry §7](../prompt-rubric-registry/spec.md) 的 `004-real-model-profile-and-evals` eval workstream owner；本 subject 只用 stub。
-- 非当前模块 / 非当前 route（Welcome / Growth / Plan / Mistakes / Drill / Followup / Experiences / STAR / 独立 Voice），见 [engineering-roadmap §4.1](../engineering-roadmap/spec.md#41-产品与-ui-约束)。
+- 范围外模块 / 范围外 route（Welcome / Growth / Plan / Mistakes / Drill / Followup / Experiences / STAR / 独立 Voice），见 [engineering-roadmap §4.1](../engineering-roadmap/spec.md#41-产品与-ui-约束)。
 - Kind / K8s / Helm 部署级场景，见 [test/scenarios/e2e/README.md §2](../../../test/scenarios/e2e/README.md)。
 - 真实 provider hybrid UAT 不替代 F3 eval 的模型质量基线，也不把具体 AI 输出文案固化为自动化断言；它只要求真实 provider 调用、用户可观察质量记录和脱敏证据。
 
@@ -84,7 +84,7 @@
 - **契约消费约束**：journey 只消费 [openapi-v1-contract](../openapi-v1-contract/spec.md) 已存在的 operation，不新增 / 修改 operation、schema、event；handoff 字段以 `openapi/openapi.yaml` 真实 schema 为准。
 - **框架契约**：遵循 [test/scenarios/README.md](../../../test/scenarios/README.md) 与 [e2e/README.md](../../../test/scenarios/e2e/README.md)：每个场景目录含 `README.md` + `data/` + `scripts/{setup,trigger,verify,cleanup}.sh`；`verify.sh` 必须检查 runner 日志中的真实执行证据（命令 / runner marker + 目标 test 路径 + pass marker），拒绝 no-op；`BDD-Gate` 只引用场景编号。
 - **隐私红线**：journey 全程响应 / event / audit / log / metric 只暴露 ID / 状态 / 计数 / 错误码摘要，不泄露 JD 原文、答案文本、报告 prose（[product-scope](../product-scope/spec.md) 隐私红线）。
-- **non-current-negative**：journey 树与被消费的 active runtime 不得出现非当前 route / 非当前模块 / 非当前 `mode=debrief` / 非当前 feature_key 等被当前设计丢弃的口径；非当前 route 反查必须覆盖 `welcome` / `growth` / `plan` / `mistakes` / `drill` / `followup` / `experiences` / `star` / `onboarding` / 独立 `voice`，并用 route-aware pattern 避免误伤合法的 `createPracticePlan`、`practice_plans`、`resumeAssetId`、`resume_assets`。
+- **out-of-scope-negative**：journey 树与被消费的 active runtime 不得出现范围外 route / 范围外模块 / 范围外 `mode=debrief` / 范围外 feature_key 等被当前设计排除的口径；范围外 route 反查必须覆盖 `welcome` / `growth` / `plan` / `mistakes` / `drill` / `followup` / `experiences` / `star` / `onboarding` / 独立 `voice`，并用 route-aware pattern 避免误伤合法的 `createPracticePlan`、`practice_plans`、`resumeAssetId`、`resume_assets`。
 
 ## 5 模块边界
 
@@ -105,7 +105,7 @@
 | C-2 | 异步 job 真实完成 | `target_import` / `report_generate` 入队 | 真实 internal runner 处理 | resource status 由 queued/processing → ready，DB 真实落库；journey 轮询到 ready | 001 Phase 1 / 2 |
 | C-3 | 关键写操作幂等 | start / complete / createPlan 携带 Idempotency-Key | 同 key replay | 无重复副作用（无第二个 session / report / plan，无重复 outbox） | 001 Phase 1 |
 | C-4 | 隐私红线 | journey 全程 | 检查响应 / event / log / audit / DB 持久化的可观测面 | 不出现 JD 原文 / 答案文本 / 报告 prose；只 ID / 状态 / 计数 / 错误码 | 001 Phase 1 / 2 |
-| C-5 | non-current-negative | journey 树 + 被消费 active runtime | route-aware 负向 grep + frontend scope gate | 非当前 route / 非当前模块 / 非当前 `mode=debrief` / 非当前 feature_key 0 命中；`plan` / `resume` 仅作为独立 route key 被拒绝，不误伤合法 `createPracticePlan` / `resumeAssetId` | 001 Phase 1 / 2 |
+| C-5 | out-of-scope-negative | journey 树 + 被消费 active runtime | route-aware 负向 grep + frontend scope gate | 范围外 route / 范围外模块 / 范围外 `mode=debrief` / 范围外 feature_key 0 命中；`plan` / `resume` 仅作为独立 route key 被拒绝，不误伤合法 `createPracticePlan` / `resumeAssetId` | 001 Phase 1 / 2 |
 | C-6 | scenario gate 真实执行 | `E2E.P0.098` / `E2E.P0.099` 场景就绪 | `setup → trigger → verify → cleanup` | verify 校验 runner 日志真实执行证据（命令 marker + 目标 test 路径 + pass marker），拒绝 no-op / skip-as-pass | 001 Phase 3 |
 | C-7 | operation matrix 完整 | 跨层 journey plan | 查看 plan | 9 行 operation matrix × fixture / frontend consumer / backend handler / persistence / AI dependency / scenario coverage 全部标明真实状态（8 个主链必经 operation + `getJob` 备选轮询 / handler gate；`createPracticePlan` 复用 baseline + next_round） | 001 §3.1 operation matrix |
 | C-8 | 文档一致性 | 文档集创建 / 修订完成 | 运行校验 | `validate_context` / `sync-doc-index --check` / `make docs-check` / `git diff --check` 通过 | 001 Phase 3 |

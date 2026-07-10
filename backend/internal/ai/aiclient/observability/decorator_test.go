@@ -94,8 +94,8 @@ func newTestStack(t *testing.T, extraOpts ...observability.Option) (
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
 		},
-		"practice.dictation.stt.default": {
-			Name:       "practice.dictation.stt.default",
+		"practice.voice.stt.default": {
+			Name:       "practice.voice.stt.default",
 			Capability: aiclient.CapabilitySTT,
 			Status:     aiclient.ProfileStatusActive,
 			Default: aiclient.ProviderConfig{
@@ -104,7 +104,7 @@ func newTestStack(t *testing.T, extraOpts ...observability.Option) (
 			},
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
-			Route:     "practice.dictation.stt",
+			Route:     "practice.voice.stt",
 		},
 		"practice.voice.tts.default": {
 			Name:       "practice.voice.tts.default",
@@ -190,7 +190,7 @@ func sampleTranscriptionInput() aiclient.TranscriptionInput {
 		Language:    "en",
 		Prompt:      "private pronunciation hint",
 		Metadata: aiclient.CallMetadata{
-			FeatureKey:    "practice.dictation.stt",
+			FeatureKey:    "practice.voice.stt",
 			PromptVersion: "stt-p1",
 			Language:      "en",
 			TaskRun: aiclient.AITaskRunContext{
@@ -473,7 +473,7 @@ func TestDecorator_TranscribeRecordsSTTWithoutPlaintext(t *testing.T) {
 	wrap, registry, logger, runs, audit := newTestStack(t)
 	input := sampleTranscriptionInput()
 
-	resp, meta, err := wrap.Transcribe(context.Background(), "practice.dictation.stt.default", input)
+	resp, meta, err := wrap.Transcribe(context.Background(), "practice.voice.stt.default", input)
 	if err != nil {
 		t.Fatalf("Transcribe: %v", err)
 	}
@@ -483,7 +483,7 @@ func TestDecorator_TranscribeRecordsSTTWithoutPlaintext(t *testing.T) {
 	if meta.Capability != aiclient.CapabilitySTT {
 		t.Fatalf("expected stt capability, got %+v", meta)
 	}
-	labels := []string{stub.Name, "stub", "practice.dictation.stt.default", "practice.dictation.stt", string(aiclient.CapabilitySTT), "en", "success"}
+	labels := []string{stub.Name, "stub", "practice.voice.stt.default", "practice.voice.stt", string(aiclient.CapabilitySTT), "en", "success"}
 	if got := registry.CounterValue(observability.MetricRunsTotal, labels...); got != 1 {
 		t.Fatalf("expected stt run counter=1, got %v", got)
 	}

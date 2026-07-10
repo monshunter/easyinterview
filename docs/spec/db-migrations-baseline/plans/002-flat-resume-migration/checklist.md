@@ -1,8 +1,8 @@
 # DB Migrations Baseline Flat Resume Migration Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -26,6 +26,6 @@
 ## Phase 4: Verification evidence
 
 - [x] 4.1 `python3 scripts/lint/migrations_lint.py --repo-root .` PASS.
-- [x] 4.2 `cd backend && go test ./internal/migrations -run 'TestResumeVersionsAdditiveMigrationContract|TestResumeFlattenMigrationContract|TestDropJDMatchMigrationDeletesNonCurrentAsyncJobsBeforeNarrowingCheck|TestDropJDMatchMigrationDropsNonCurrentTablesAndRegistryRows' -count=1` PASS.
+- [x] 4.2 `cd backend && go test ./internal/migrations -run 'TestResumeVersionsAdditiveMigrationContract|TestResumeFlattenMigrationContract|TestDropJDMatchMigrationDeletesOutOfScopeAsyncJobsBeforeNarrowingCheck|TestDropJDMatchMigrationDropsOutOfScopeTablesAndRegistryRows' -count=1` PASS.
 - [x] 4.3 `cd backend && go test ./internal/migrations -count=1` PASS.
 - [x] 4.4 `DATABASE_URL` is missing in the current shell; this pass does not claim live `make migrate-check` up/down execution.

@@ -35,10 +35,10 @@ import {
 import { GeneratingScreen } from "./screens/generating/GeneratingScreen";
 import { HomeScreen } from "./screens/home/HomeScreen";
 import { ParseScreen } from "./screens/parse/ParseScreen";
-import { PlaceholderScreen } from "./screens/PlaceholderScreen";
 import { PracticeScreen } from "./screens/practice/PracticeScreen";
 import { ReportScreen } from "./screens/report/ReportScreen";
 import { ResumeWorkshopScreen } from "./screens/resume-workshop/ResumeWorkshopScreen";
+import { RouteShellScreen } from "./screens/RouteShellScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { WorkspaceScreen } from "./screens/workspace/WorkspaceScreen";
 import {
@@ -49,9 +49,9 @@ import { TopBar } from "./topbar/TopBar";
 
 export interface AppProps {
   /**
-   * Optional initial route. Accepts loose input (non-current alias names, missing
-   * params) and runs it through {@link normalizeRoute} before mounting so non-current
-   * URLs / saved state cannot materialize standalone non-current screens. Production
+   * Optional initial route. Accepts loose input (out-of-scope alias names, missing
+   * params) and runs it through {@link normalizeRoute} before mounting so out-of-scope
+   * URLs / saved state cannot materialize standalone out-of-scope screens. Production
    * bootstrap (Phase 1.3) wires this from URL hash + saved state and falls back
    * to {@link DEFAULT_ROUTE}.
    */
@@ -108,7 +108,7 @@ function renderRouteScreen(
     return <ReportScreen route={route} />;
   }
   if (!runtime) {
-    return <PlaceholderScreen route={route} />;
+    return <RouteShellScreen route={route} />;
   }
   switch (route.name) {
     case "auth_login":
@@ -175,7 +175,7 @@ function renderRouteScreen(
         />
       );
     default:
-      return <PlaceholderScreen route={route} />;
+      return <RouteShellScreen route={route} />;
   }
 }
 

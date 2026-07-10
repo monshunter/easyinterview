@@ -68,7 +68,7 @@ const READY_TARGET_JOB: TargetJob = {
   id: "01918fa0-0000-7000-8000-000000002000",
   title: "大模型应用开发工程师",
   companyName: "杭州某大型互联网电商平台上市公司",
-  locationText: "Remote / TBD",
+  locationText: "Location not set",
   status: "draft",
   analysisStatus: "ready",
   sourceType: "manual_text",
@@ -143,7 +143,7 @@ describe("WorkspaceScreen route split", () => {
     expect(screen.queryByTestId("workspace-history-card")).toBeNull();
   });
 
-  it("keeps non-current prototype testids out of the workspace route", () => {
+  it("keeps out-of-scope prototype testids out of the workspace route", () => {
     withProviders(<WorkspaceScreen route={WORKSPACE_ROUTE} />, WORKSPACE_ROUTE);
 
     expect(screen.queryByTestId("practice-mode-card-warmup")).toBeNull();

@@ -1,8 +1,8 @@
 # Email-Code Session Bootstrap Checklist
 
-> **版本**: 1.9
+> **版本**: 2.1
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -14,10 +14,10 @@
 
 ## Phase 2: Challenge issue and delivery
 
-- [x] 2.1 实现 `startAuthEmailChallenge`；验证: handler/service tests 覆盖 accepted response、token hash 入库、IP / UA hash、通过 C1 backend-internal mail dispatcher 入队，dev mail sink retrieval 收到一次性链接，且应用日志不输出 token、完整 URL、邮箱明文或邮件正文
+- [x] 2.1 实现 `startAuthEmailChallenge`；验证: handler/service tests 覆盖 accepted response、token hash 入库、IP / UA hash、通过 `EmailDispatchEnqueuer` 写入 `email_dispatch` async job，dev mail sink / Mailpit retrieval 收到 code-only delivery，且应用日志不输出 token、完整 URL、邮箱明文或邮件正文
 - [x] 2.2 实现 rate-limit / dedupe 基线；验证: tests 覆盖同邮箱或同 IP 1 分钟内第 3 次及以上请求不泄露账号存在性，响应仍符合 B2 schema，dedupe key 不含邮箱明文
-- [x] 2.3 接入 B3 `email_dispatch` redacted payload；验证: tests 使用 generated `BuildEmailDispatchPayload` 构造 allowed payload，通过包含 `rawEmailCode` / `emailVerificationUrl` / `recipientEmail` / `emailBody` 任一 redacted field 的 negative case，并确认 in-process queue / dev sink / future outbox / async payload / log / audit 不含 redacted fields
-- [x] 2.4 实现 C1 backend-internal mail dispatcher；验证: tests 覆盖 handler 不等待邮件 provider 即返回 B2 `202`、后台 goroutine / 线程 drain 队列写入 dev mail sink、派发失败不泄露 token / 邮箱、graceful shutdown drain 或明确丢弃策略可观测，且不启动独立 worker 进程也能完成本地邮件读取
+- [x] 2.3 接入 B3 `email_dispatch` redacted payload；验证: tests 使用 generated `BuildEmailDispatchPayload` 构造 allowed payload，通过包含 `rawEmailCode` / `emailVerificationUrl` / `recipientEmail` / `emailBody` 任一 redacted field 的 negative case，并确认 async job payload / log / audit 不含 redacted fields
+- [x] 2.4 实现 `email_dispatch` producer / handler delivery；验证: tests 覆盖 handler 写入 async job 后返回 B2 `202`、backend-async-runner lease 后调用 `EmailDispatchHandler` 写入 dev mail sink / Mailpit writer、派发失败不泄露 token / 邮箱、runner shutdown / graceful drain 路径可观测，且不启动独立后台执行进程也能完成本地邮件读取
 
 ## Phase 3: Verify, session, and current user
 
@@ -38,7 +38,7 @@
 - [x] 5.1 BDD-Gate: 验证 E2E.P0.003 通过
   <!-- verified: 2026-05-06 method=scenario bddChecklist=complete scenario=E2E.P0.003 run=.test-output/runs/20260506T1911-backend-auth-p0-003/e2e/E2E.P0.003/result.json -->
 - [x] 5.2 Handoff 给 frontend-shell；验证: backend README 或 package docs 说明 Auth API、cookie 行为、dev mail sink、错误码和前端 pendingAction 接入边界
-- [x] 5.3 active-scope 负向搜索通过；验证: backend-auth / API wiring active code 不引入 Bearer token P0 主认证、OAuth / SSO P0 行为、`external_identities` P0 读写 store、明文 token/session 存储、log-only raw code delivery、独立 worker 前置依赖或 non-current AI gateway / voice route 口径；允许 A3 provider adapter 内部使用 provider-side `Authorization: Bearer`，不得误判为浏览器主认证
+- [x] 5.3 active-scope 负向搜索通过；验证: backend-auth / API wiring active code 不引入 Bearer token P0 主认证、OAuth / SSO P0 行为、`external_identities` P0 读写 store、明文 token/session 存储、log-only raw code delivery、独立 worker 前置依赖或 out-of-scope AI gateway / voice route 口径；允许 A3 provider adapter 内部使用 provider-side `Authorization: Bearer`，不得误判为浏览器主认证
   <!-- verified: 2026-05-06 method=rg scope=backend/internal/auth,backend/cmd/api,backend/internal/api/generated allowed=negative-doc-comments+internal-session-hash-only -->
 
 ## Phase 6: L2 remediation
@@ -53,7 +53,7 @@
   <!-- verified: 2026-05-06 command="cd backend && go test ./internal/auth -run TestSQLStoreCountRecentChallengesCountsAllRecentAttempts -count=1" -->
 - [x] 6.5 修复 logout revoke failure response；验证: handler tests 覆盖有效 session revoke 失败时返回 B1 error envelope 而不是 204，同时清 cookie 且响应不泄露 session id / cookie / secret
   <!-- verified: 2026-05-06 command="cd backend && go test ./internal/auth -run TestLogoutRevokeFailureReturnsErrorEnvelopeAndClearsCookie -count=1" -->
-- [x] 6.6 修复 runtime Auth secret fail-fast；验证: `cmd/api` builder tests 覆盖 `AUTH_CHALLENGE_TOKEN_PEPPER` / `SESSION_COOKIE_SECRET` 缺失时返回明确错误并不构造 background dispatcher，本地 dev 不得用空 pepper / 空 session secret 启动 C1 session runtime
+- [x] 6.6 修复 runtime Auth secret fail-fast；验证: `cmd/api` builder tests 覆盖 `AUTH_CHALLENGE_TOKEN_PEPPER` / `SESSION_COOKIE_SECRET` 缺失时返回明确错误并不构造 auth email dispatch runtime，本地 dev 不得用空 pepper / 空 session secret 启动 C1 session runtime
   <!-- verified: 2026-05-06 command="cd backend && go test ./cmd/api -run TestBuildAuthServiceRejectsEmptyAuthSecrets -count=1" -->
 - [x] 6.7 修复 logout optional-session resolver error；验证: `cmd/api` route tests 覆盖 cookie-bearing logout 在 session resolver / store error 时返回 B1 error envelope 而不是 204，缺失 / invalid / expired / revoked session 仍保持 optional-session 幂等清 cookie
   <!-- verified: 2026-05-06 command="cd backend && go test ./cmd/api -run 'TestBuild(AuthServiceRejectsEmptyAuthSecrets|APIHandlerLogoutPropagatesSessionResolverErrors|APIHandlerLogoutKeepsKnownSessionErrorsOptional)' -count=1" -->
@@ -66,11 +66,11 @@
   <!-- verified: 2026-05-28 commands="make codegen-openapi; python3 scripts/lint/openapi_inventory.py openapi/openapi.yaml; python3 scripts/lint/validate_fixtures.py --repo-root .; make lint-mock-contract; make openapi-diff" evidence="OpenAPI inventory and fixtures synced to 60 operations; generated Go/TS artifacts include completeMyProfile and profileCompletionRequired" -->
 - [x] 8.2 Persistence and migration；验证: 新 migration 为 `users` 添加 `profile_completed_at` / `terms_accepted_at` 并 backfill 既有 active displayName 用户；migration up/down 或 dry-run gate 通过；store tests 覆盖新邮箱用户保持未补全、既有用户为已补全
   <!-- verified: 2026-05-28 commands="python3 scripts/lint/migrations_lint.py --repo-root .; bash -lc 'set -a; . deploy/dev-stack/.env; set +a; make migrate-status'; cd backend && go test ./..." evidence="migration lint ok; dev DB schema_migrations version=13 dirty=false; backend store tests passed in full suite" -->
-- [x] 8.3 Unified challenge start and verify semantics；验证: service/handler tests 覆盖 start 不检查账号存在、不返回 duplicate register / unknown login 差异；verify 既有邮箱直接登录、新邮箱创建未补全账号和 session；non-current `purpose=signup/login` 不参与当前分支，displayName 不在 verify 前持久化
+- [x] 8.3 Unified challenge start and verify semantics；验证: service/handler tests 覆盖 start 不检查账号存在、不返回 duplicate register / unknown login 差异；verify 既有邮箱直接登录、新邮箱创建未补全账号和 session；out-of-scope `purpose=signup/login` 不参与当前分支，displayName 不在 verify 前持久化
   <!-- verified: 2026-05-28 command="cd backend && go test ./..." evidence="auth service/handler tests cover unified start, existing-email login, new-email incomplete account creation, and no pre-verify displayName persistence" -->
 - [x] 8.4 `/me` and `completeMyProfile`；验证: handler/store tests 覆盖已登录未补全用户 `/me` 返回 200 + `profileCompletionRequired=true`，未登录仍为 B1 error；`PATCH /me` 要求 session、trimmed displayName 非空、`acceptedTerms=true`，成功后返回 `profileCompletionRequired=false` 且不修改邮箱或创建新账号
   <!-- verified: 2026-05-28 command="cd backend && go test ./..." evidence="auth /me and completeMyProfile handler/store tests passed in full backend suite" -->
-- [x] 8.5 Privacy / metrics / non-current negative gates；验证: focused grep/test 断言 raw code、session cookie、完整邮箱不进日志/audit/metric label；当前 active backend/openapi/frontend generated truth 不含注册分流完成证据、duplicate-register start rejection、displayName-before-verify、password/OAuth auth wire 或 email URL callback
+- [x] 8.5 Privacy / metrics / out-of-scope negative gates；验证: focused grep/test 断言 raw code、session cookie、完整邮箱不进日志/audit/metric label；当前 active backend/openapi/frontend generated truth 不含注册分流完成证据、duplicate-register start rejection、displayName-before-verify、password/OAuth auth wire 或 email URL callback
   <!-- verified: 2026-05-28 commands="make lint-config; rg -n 'purpose=signup|purpose=login|duplicate-register|duplicate register|AuthRegisterScreen|email URL callback|/auth/verify\\?token=|displayName-before-verify|OAuth|password auth|Bearer token' backend/internal/auth backend/cmd/api openapi/openapi.yaml frontend/src/app frontend/src/api -g '!**/*_test.go' -g '!**/*.test.ts' -g '!**/*.test.tsx'" evidence="lint-config PASS; scoped negative search only found backend/internal/auth/doc.go redline comment" -->
 - [x] 8.6 BDD-Gate: 验证 E2E.P0.101 通过；验证: real frontend/backend/Mailpit 覆盖单入口新邮箱首次登录 -> `/me.profileCompletionRequired=true` -> 重新登录仍未补全 -> `PATCH /me` -> `/me.profileCompletionRequired=false` -> 后续同邮箱登录正常；证明邮箱唯一、displayName 不唯一且不参与账号唯一性判断
   <!-- verified: 2026-05-28 command="bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/cleanup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/setup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/trigger.sh && bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/verify.sh && bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/cleanup.sh" evidence="P0.101 PASS: first-login-profile-setup profileCompletionRequired=true; cross-browser and logout relogin still profile setup; complete profile returns false; existing email login bypasses profile setup" -->

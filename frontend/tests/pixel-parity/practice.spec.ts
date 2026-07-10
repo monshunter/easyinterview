@@ -162,13 +162,12 @@ test.describe("practice screen DOM and geometry parity", () => {
       "practice-topbar-mode-segment",
       "practice-sessionmap",
       "practice-question",
+      "practice-question-prompt",
       "practice-transcript",
       "practice-input",
       "practice-input-textarea",
-      "practice-rightpanel",
-      "practice-rightpanel-ai-transparency",
-      "practice-rightpanel-cta-finish-wrap",
-      "practice-rightpanel-cta-finish",
+      "practice-finish-cta-wrap",
+      "practice-finish-cta",
     ]) {
       await expect(page.locator(`[data-testid='${id}']`), id).toHaveCount(1);
     }
@@ -182,9 +181,9 @@ test.describe("practice screen DOM and geometry parity", () => {
     for (const selector of [
       "[data-testid='practice-topbar']",
       "[data-testid='practice-main']",
+      "[data-testid='practice-sessionmap']",
       "[data-testid='practice-center']",
       "[data-testid='practice-input']",
-      "[data-testid='practice-rightpanel']",
     ]) {
       const rect = await rectOf(page, selector);
       expect(rect.left, selector).toBeGreaterThanOrEqual(-1);
@@ -192,26 +191,29 @@ test.describe("practice screen DOM and geometry parity", () => {
     }
   });
 
-  test("mobile layout folds the three columns without horizontal overflow", async ({ page }, testInfo) => {
+  test("mobile layout keeps the current shell without horizontal overflow", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "mobile", "mobile-only responsive check");
     await goToPractice(page);
     const viewport = page.viewportSize();
     expect(viewport).toBeTruthy();
     const main = await rectOf(page, "[data-testid='practice-main']");
-    const right = await rectOf(page, "[data-testid='practice-rightpanel']");
+    const center = await rectOf(page, "[data-testid='practice-center']");
     expect(main.right).toBeLessThanOrEqual(viewport!.width + 1);
-    expect(right.right).toBeLessThanOrEqual(viewport!.width + 1);
+    expect(center.right).toBeLessThanOrEqual(viewport!.width + 1);
   });
 
-  test("voice mode renders ui-design voice surface anchors and keeps them in the viewport", async ({ page }) => {
-    await goToPractice(page, { mode: "voice", modality: "voice" });
+  test("phone mode renders current phone controls and keeps them in the viewport", async ({ page }) => {
+    await goToPractice(page, { mode: "phone", modality: "phone" });
     await expect(page.locator("[data-testid='practice-voice-coming-soon']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='practice-voice-record-toggle']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='practice-voice-submit']")).toHaveCount(0);
     for (const id of [
-      "practice-voice-surface",
-      "practice-voice-waveform",
-      "practice-voice-annotated-waveform",
-      "practice-voice-live-transcript",
-      "practice-voice-expression-panel",
+      "practice-phone-surface",
+      "practice-phone-waveform",
+      "practice-phone-call-state",
+      "practice-phone-captions-toggle",
+      "practice-phone-hangup",
+      "practice-phone-restart",
     ]) {
       await expect(page.locator(`[data-testid='${id}']`), id).toHaveCount(1);
     }
@@ -219,9 +221,8 @@ test.describe("practice screen DOM and geometry parity", () => {
     const viewport = page.viewportSize();
     expect(viewport).toBeTruthy();
     for (const selector of [
-      "[data-testid='practice-voice-waveform']",
-      "[data-testid='practice-voice-annotated-waveform']",
-      "[data-testid='practice-voice-expression-panel']",
+      "[data-testid='practice-phone-surface']",
+      "[data-testid='practice-phone-waveform']",
     ]) {
       const rect = await rectOf(page, selector);
       expect(rect.left, selector).toBeGreaterThanOrEqual(-1);

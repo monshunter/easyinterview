@@ -1,8 +1,8 @@
 # 认证与默认入口
 
-> **版本**: 1.20
+> **版本**: 1.21
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 文档目的
 
@@ -53,7 +53,7 @@ auth_logout
   -> home
 ```
 
-非当前 `auth_register` 和 `auth_reset` 归一到 `auth_login`。
+范围外 `auth_register` 和 `auth_reset` 归一到 `auth_login`。
 
 ## 6 Pending Action
 
@@ -69,7 +69,7 @@ auth_logout
 
 不得创建 pendingAction 到 `debrief`、`debrief_full` 或 `profile`。
 
-## 7 非当前入口归一
+## 7 范围外入口归一
 
 | 输入 | 处理 |
 |------|------|
@@ -82,5 +82,5 @@ auth_logout
 
 1. TopBar 用户菜单不得包含 `用户画像`。
 2. 未登录保护路由不得把 `debrief` 或 `profile` 当业务目标。
-3. 正式前端、URL fallback 和 scenario 都必须覆盖非当前入口负向。
+3. 正式前端、URL fallback 和 scenario 都必须覆盖范围外入口负向。
 4. 设置页只承载账号、界面偏好和隐私数据控制。

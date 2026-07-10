@@ -4,14 +4,13 @@ import { useI18n } from "../i18n/messages";
 import type { Route } from "../routes";
 
 /**
- * D1 placeholder for the Settings & Privacy route. Mirrors
- * docs/ui-design/auth-and-entry.md §4 / §8 and
+ * Settings & Privacy route. Mirrors docs/ui-design/auth-and-entry.md §4 / §8 and
  * ui-design/src/screens-p0-complete.jsx::SettingsScreen.
  *
  * product-scope D-21: settings keeps exactly two tabs — profile and
  * privacy & data. The profile tab holds account basics, sign-in & security
  * (email code · no password, per D-16), font preset, and product info.
- * Notifications / subscription placeholder tabs are outside current scope.
+ * Notifications / subscription tabs are outside current scope.
  */
 type SettingsTab = "profile" | "privacy";
 

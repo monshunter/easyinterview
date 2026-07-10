@@ -1,8 +1,8 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.23
+> **版本**: 2.25
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 ## 1 文档目的
 
@@ -16,7 +16,7 @@
 2. 顶部导航为：`首页`、`面试`、`简历`。
 3. 用户菜单为：`设置与隐私`、`退出登录`；未登录时只显示登录入口。
 4. `复盘` 和 `用户画像` 不属于当前 UI 范围，不是一级导航、用户菜单入口、目标 route、静态原型页面或后续默认 workstream。
-5. `debrief`、`debrief_full`、`profile` 等非当前 hash / route 输入在静态原型中归一到 `home`，不得 materialize 非当前页面。
+5. `debrief`、`debrief_full`、`profile` 等范围外 hash / route 输入在静态原型中归一到 `home`，不得 materialize 范围外页面。
 6. `auth_profile_setup` 仍保留为首次登录资料补全页；这是账号资料补全，不是用户画像。
 7. 报告只有 session-scoped Dashboard；报告后续动作只有 `复练当前轮` 与 `进入下一轮`。
 8. 简历是一级模块：平铺列表、上传 / 粘贴创建、注册后直接详情、只读原始正文。
@@ -46,7 +46,7 @@
 │  ├─ JD / 简历 / InterviewRound
 │  └─ 立即面试
 ├─ Interview Session
-│  ├─ 文本面试 / 语音面试
+│  ├─ 文本面试 / 电话模式
 │  ├─ 带提示练习 / 严格模拟
 │  ├─ 问题推进
 │  └─ 结束并生成报告
@@ -162,7 +162,7 @@ AuthProfileSetup
 AuthLogout
 ```
 
-## 7 非当前 route 输入归一
+## 7 范围外 route 输入归一
 
 ```text
 ROUTE_ALIASES
@@ -184,7 +184,7 @@ ROUTE_ALIASES
 └─ profile -> home
 ```
 
-`voice` 不保留 route alias。判断目标架构时以 `normalizeRoute` 后的 `activeRouteName` 和实际渲染内容为准，不以非当前 hash、非当前画板标签或非当前组件为准。
+`voice` 不保留 route alias。判断目标架构时以 `normalizeRoute` 后的 `activeRouteName` 和实际渲染内容为准，不以范围外 hash、范围外画板标签或范围外组件为准。
 
 ## 8 后续实现输入
 
@@ -192,4 +192,4 @@ ROUTE_ALIASES
 2. `frontend` 不得注册 `debrief` / `profile` RouteName、primary nav、user menu 或 screen 分支。
 3. OpenAPI、backend、migrations、shared、config 和 scenario 的复盘 / 用户画像范围收敛由 product-scope/001-core-loop-module-pruning 承接。
 4. `auth_profile_setup` 保留为账号资料补全，不得写成用户画像。
-5. Pixel parity 和 route tests 必须覆盖非当前入口负向断言。
+5. Pixel parity 和 route tests 必须覆盖范围外入口负向断言。

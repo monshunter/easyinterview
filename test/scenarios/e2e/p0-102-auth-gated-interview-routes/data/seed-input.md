@@ -12,7 +12,7 @@
   - `generating`
   - `report`
   - `settings`
-- Non-current route negatives:
+- Out-of-scope route negatives:
   - `debrief`
   - `debrief_full`
   - `profile`

@@ -23,7 +23,7 @@ import {
   type RouteName,
 } from "./routes";
 
-/** Canonical URL pathname for each retained route. */
+/** Canonical URL pathname for each current route. */
 export const ROUTE_TO_PATH: Readonly<Record<RouteName, string>> = {
   home: "/",
   workspace: "/workspace",
@@ -40,15 +40,15 @@ export const ROUTE_TO_PATH: Readonly<Record<RouteName, string>> = {
 };
 
 /**
- * Explicit non-current paths that still have a current retained destination per
+ * Explicit out-of-scope paths that still have a current destination per
  * product-scope D-16 / D-17 / D-22 and frontend-shell spec §2.2.
  */
-export const NON_CURRENT_PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = new Map([
+export const OUT_OF_SCOPE_PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = new Map([
   ["/auth/reset", "auth_login"],
   // product-scope D-17: jd_match is outside the current route catalog; saved
   // deep links land on home where JD intake lives.
   ["/jd-match", "home"],
-  // product-scope D-22: non-current product entries are outside the current route catalog.
+  // product-scope D-22: out-of-scope product entries are outside the current route catalog.
   ["/debrief", "home"],
   ["/profile", "home"],
 ]);
@@ -62,7 +62,7 @@ const PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = (() => {
 })();
 
 // workspace is a collection/list route. Item context belongs to parse,
-// practice, generating, and report routes; legacy workspace params are dropped.
+// practice, generating, and report routes; detail params are dropped here.
 const WORKSPACE_SAFE = new Set<string>();
 
 const PRACTICE_SAFE = new Set([
@@ -175,6 +175,8 @@ const ROUTE_SAFE_PARAMS: Readonly<Record<RouteName, ReadonlySet<string>>> = {
   auth_logout: AUTH_LOGOUT_BASE,
 };
 
+const CURRENT_MODE_PARAM_VALUES = new Set(["text", "phone"]);
+
 const AUTH_ROUTES_WITH_PENDING_ACTION = new Set<RouteName>([
   "auth_login",
   "auth_verify",
@@ -228,7 +230,7 @@ export function serializeRouteToUrl(input: LooseRoute): RoutePathParts {
     })
     .sort();
   for (const key of keys) {
-    const value = params[key];
+    const value = normalizeRouteParamValue(name, key, params[key]);
     if (value !== undefined) usp.set(key, value);
   }
   const search = usp.toString();
@@ -246,7 +248,7 @@ export function formatRouteUrl(input: LooseRoute): string {
  * slash) into a normalized `Route`. Unknown paths fall back to `home`.
  * Unsafe params are silently dropped — they never enter App state. Fragment
  * (`#...`) is ignored here so the canonical parser stays orthogonal to the
- * non-current `#route=...` hash adapter.
+ * out-of-scope `#route=...` hash adapter.
  */
 export function parseUrlToRoute(rawUrl: string): Route {
   const trimmed = (rawUrl ?? "").trim();
@@ -266,7 +268,7 @@ export function parseUrlToRoute(rawUrl: string): Route {
   const pathname = url.pathname || "/";
   const name =
     PATH_TO_ROUTE.get(pathname) ??
-    NON_CURRENT_PATH_TO_ROUTE.get(pathname) ??
+    OUT_OF_SCOPE_PATH_TO_ROUTE.get(pathname) ??
     DEFAULT_ROUTE.name;
   const rawParams: Record<string, string> = {};
   for (const [key, value] of url.searchParams.entries()) rawParams[key] = value;
@@ -274,10 +276,28 @@ export function parseUrlToRoute(rawUrl: string): Route {
   const params: Record<string, string> = {};
   for (const key of Object.keys(rawParams)) {
     const value = rawParams[key];
-    if (allowed.has(key) && value !== undefined && value !== "")
-      params[key] = value;
+    if (!allowed.has(key) || value === undefined || value === "") continue;
+    const normalized = normalizeRouteParamValue(name, key, value);
+    if (normalized !== undefined) params[key] = normalized;
   }
   return { name, params };
+}
+
+function normalizeRouteParamValue(
+  routeName: RouteName,
+  key: string,
+  value: string | undefined,
+): string | undefined {
+  if (value === undefined || value === "") return undefined;
+  if (
+    (routeName === "practice" ||
+      routeName === "generating" ||
+      routeName === "report") &&
+    (key === "mode" || key === "modality")
+  ) {
+    return CURRENT_MODE_PARAM_VALUES.has(value) ? value : undefined;
+  }
+  return value;
 }
 
 /**

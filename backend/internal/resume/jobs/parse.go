@@ -444,16 +444,16 @@ func splitFallbackResumeLines(value string) []string {
 	sort.SliceStable(headings, func(i, j int) bool {
 		return len([]rune(headings[i])) > len([]rune(headings[j]))
 	})
-	placeholders := make(map[string]string, len(headings))
+	headingTokens := make(map[string]string, len(headings))
 	for index, heading := range headings {
-		placeholder := fmt.Sprintf("@@EI_RESUME_HEADING_%d@@", index)
+		token := fmt.Sprintf("@@EI_RESUME_HEADING_%d@@", index)
 		if strings.Contains(normalized, heading) {
-			normalized = strings.ReplaceAll(normalized, heading, "\n"+placeholder+"\n")
-			placeholders[placeholder] = heading
+			normalized = strings.ReplaceAll(normalized, heading, "\n"+token+"\n")
+			headingTokens[token] = heading
 		}
 	}
-	for placeholder, heading := range placeholders {
-		normalized = strings.ReplaceAll(normalized, placeholder, heading)
+	for token, heading := range headingTokens {
+		normalized = strings.ReplaceAll(normalized, token, heading)
 	}
 	rawLines := strings.Split(normalized, "\n")
 	lines := make([]string, 0, len(rawLines))

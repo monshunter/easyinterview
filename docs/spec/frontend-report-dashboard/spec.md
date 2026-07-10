@@ -1,8 +1,8 @@
 # Frontend Report Dashboard Spec
 
-> **版本**: 1.6
+> **版本**: 1.8
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 > **2026-06-12 product-scope v2.1 D-19 对齐**：报告 CTA 单点收敛——报告页只保留 Header 一对 CTA（`复练当前轮` / `进入下一轮`）；复练计划详情 tab（next）只承载路径说明与复练清单，不重复 CTA 按钮；题目回顾的 `加入本轮复练` 改为本地标记动作（per-question toggle，不直接开启 session）。见 §3.1 D-19 与 §10。
 
@@ -111,7 +111,7 @@
 - Pixel parity gate 必须在 desktop (1440×900) + mobile (390×844) 两个 viewport 下断言 owner 两屏的 DOM 锚点 / computed style / bounding box / 截图差异。
 - Mobile 响应式：generating 居中进度态不溢出视口；report 主屏三列折叠为单列 + Detail Surface 切 collapsible Accordion + 复练 CTA sticky bottom。
 - `data-testid` 遵循 D9 命名，使用 `generating-*` / `report-*` 前缀；workspace / practice / companyIntel 前缀归外部 owner。
-- stale-contract negative gate 必须区分"禁止作为 live UI/runtime 正向入口"和"允许出现在负向断言/禁止清单/修订记录"。非当前 route/module 名称不得作为 active route、TopBar 项、正向 testid、正向 scenario 或用户可见入口出现。
+- stale-contract negative gate 必须区分"禁止作为 live UI/runtime 正向入口"和"允许出现在负向断言/禁止清单/修订记录"。范围外 route/module 名称不得作为 active route、TopBar 项、正向 testid、正向 scenario 或用户可见入口出现。
 
 ## 5 模块边界
 
@@ -132,10 +132,10 @@
 
 | operationId | Fixture | Frontend consumer | Backend handler | Persistence | AI dependency | Scenario / status |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `getFeedbackReport` | `openapi/fixtures/Reports/getFeedbackReport.json`（`default` = ready 完整字段 / `report-generating` = generating 占位 / `prototype-baseline` = 中文示例 / `report-failed` = failed） | GeneratingScreen 轮询 + ReportScreen 拉取 | backend-review real handler | `feedback_reports` + `question_assessments` read | none in frontend；report 内容生成由 backend-review 完成 | `001-report-screen-and-generating-handoff` + `frontendOwners.realApiMode.test.ts` |
+| `getFeedbackReport` | `openapi/fixtures/Reports/getFeedbackReport.json`（`default` = ready 完整字段 / `report-generating` = generating 状态元数据 / `prototype-baseline` = 中文示例 / `report-failed` = failed） | GeneratingScreen 轮询 + ReportScreen 拉取 | backend-review real handler | `feedback_reports` + `question_assessments` read | none in frontend；report 内容生成由 backend-review 完成 | `001-report-screen-and-generating-handoff` + `frontendOwners.realApiMode.test.ts` |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json`（`default`） | ReportContextStrip 只读 target job title/companyName；失败时显示 targetJobId fallback，不阻塞报告正文 | backend-targetjob 既有 handler | `target_jobs` read | none | `E2E.P0.056` ContextStrip 子断言 |
 | `getResume` | `openapi/fixtures/Resumes/getResume.json`（`default`） | ReportContextStrip 只读 resume displayName；失败时显示 resumeId fallback，不读取 raw resume text | backend-resume 既有 handler | `resumes` read | none | `E2E.P0.056` ContextStrip 子断言 + privacy negative |
-| `listTargetJobReports` | `openapi/fixtures/Reports/listTargetJobReports.json`（`default` = 分页 + pageInfo / `empty` variant） | 本 plan 001 **不消费 UI**（dashboard-only D-7，无一级列表导航入口）；schema parity 和 `frontendOwners.realApiMode.test.ts` 证明 generated client 可指向真实 backend；Vitest 单元测试 + scenario verify.sh + scoped non-current grep 三层断言 `listTargetJobReports` 在 `frontend/src/app/screens/{report,generating}/` 0 调用 | backend-review real handler | `feedback_reports` cursor read | none | real-mode gate + 负向 UI 断言 |
+| `listTargetJobReports` | `openapi/fixtures/Reports/listTargetJobReports.json`（`default` = 分页 + pageInfo / `empty` variant） | 本 plan 001 **不消费 UI**（dashboard-only D-7，无一级列表导航入口）；schema parity 和 `frontendOwners.realApiMode.test.ts` 证明 generated client 可指向真实 backend；Vitest 单元测试 + scenario verify.sh + scoped out-of-scope grep 三层断言 `listTargetJobReports` 在 `frontend/src/app/screens/{report,generating}/` 0 调用 | backend-review real handler | `feedback_reports` cursor read | none | real-mode gate + 负向 UI 断言 |
 | `completePracticeSession` | 由 frontend-workspace-and-practice 002 消费；本 spec 不调用 | — | — | — | — | 负向断言（在 generating / report 模块零调用） |
 | `appendSessionEvent` | 由 frontend-workspace-and-practice 002 消费；本 spec 不调用 | — | — | — | — | 负向断言 |
 | `getPracticeSession` / `startPracticeSession` / 其他 Practice operation | 由 frontend-workspace-and-practice 消费；本 spec 不调用 | — | — | — | — | 负向断言 |
@@ -145,7 +145,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 两条 owner route 专属 Screen 接管 | frontend-shell D1 已交付；frontend-workspace-and-practice 已完成 generating handoff；owner route 当前由 PlaceholderScreen 占位 | 进入 `generating` 与 `report` | 两条 route 渲染正式 Screen；`generating` 隐藏 chrome；`report` 保留默认 App chrome / TopBar 且不进入一级导航；不展示 PlaceholderScreen；P0.056-P0.059 trigger 前置 real-mode generated-client gate | 001 |
+| C-1 | 两条 owner route 专属 Screen 接管 | frontend-shell D1 已交付；frontend-workspace-and-practice 已完成 generating handoff；owner route 从 route fallback shell 接管 | 进入 `generating` 与 `report` | 两条 route 渲染正式 Screen；`generating` 隐藏 chrome；`report` 保留默认 App chrome / TopBar 且不进入一级导航；不展示 route fallback shell；P0.056-P0.059 trigger 前置 real-mode generated-client gate | 001 |
 | C-2 | GeneratingScreen 轮询 happy path | InterviewContext 携带 `reportId, sessionId, ...passThrough`；fixture `getFeedbackReport` 配置为 `report-generating` 几次轮询后切换到 `default`（ready） | 进入 `generating` | 渲染 5 阶段进度动画 + 实时观察流；轮询调用 `getFeedbackReport(reportId)` 多次（按指数退避节奏）；status='ready' 时自动 `nav("report", { sessionId, reportId, ...passThrough })`；轮询期间不重复 nav | 001 |
 | C-3 | GeneratingScreen 失败处理 | fixture `getFeedbackReport=report-failed`（status='failed' + errorCode='AI_PROVIDER_TIMEOUT'） | 进入 `generating`，轮询命中 failed | 自动 `nav("report", { sessionId, reportId, reportStatus:'failed', errorCode:'AI_PROVIDER_TIMEOUT', ...passThrough })`；不展示 ReportDashboard | 001 |
 | C-4 | GeneratingScreen 超时 | fixture 永久返回 `report-generating`（模拟 backend 卡住） | 进入 `generating`，轮询达到 max attempts | 渲染 ErrorState「报告生成超时，请重试」+ retry / 返回 workspace CTA；retry 重启轮询 | 001 |
@@ -175,7 +175,7 @@
 
 - 上游 spec：[`engineering-roadmap`](../engineering-roadmap/spec.md) §5.2、[`product-scope`](../product-scope/spec.md) §6.9（M4 证据化报告）、[`product-scope`](../product-scope/spec.md) §4.1（产品原则）、[`frontend-shell`](../frontend-shell/spec.md)、[`frontend-workspace-and-practice`](../frontend-workspace-and-practice/spec.md)、[`backend-review`](../backend-review/spec.md)、[`backend-practice`](../backend-practice/spec.md)、[`openapi-v1-contract`](../openapi-v1-contract/spec.md)、[`mock-contract-suite`](../mock-contract-suite/spec.md)、[`shared-conventions-codified`](../shared-conventions-codified/spec.md)、[`prompt-rubric-registry`](../prompt-rubric-registry/spec.md)
 - UI 真理源：`ui-design/src/screen-report.jsx`、`ui-design/src/screens-p0-complete.jsx::ReportGeneratingScreen`、`ui-design/src/app.jsx`（route mapping / `INTERVIEW_CONTEXT_ROUTES` / `hideTopBar`）、`ui-design/src/primitives.jsx`、`ui-design/src/data.jsx`（`report` sample 数据结构）、[`docs/ui-design/report-dashboard.md`](../../ui-design/report-dashboard.md)、[`docs/ui-design/module-map.md`](../../ui-design/module-map.md)、[`docs/ui-design/INDEX.md`](../../ui-design/INDEX.md)
-- 当前正式前端入口：`frontend/src/app/{routes.ts,App.tsx,screens/PlaceholderScreen.tsx}`、`frontend/src/api/{generated/client.ts,mockTransport.ts}`、`frontend/src/app/runtime/AppRuntimeProvider.tsx`、`frontend/src/app/auth/pendingAction.ts`、`frontend/src/app/i18n/locales/{zh,en}.ts`、`frontend/src/app/theme/`、`frontend/src/app/interview-context/`、`frontend/tests/pixel-parity/`
+- 当前正式前端入口：`frontend/src/app/{routes.ts,App.tsx,screens/RouteShellScreen.tsx}`、`frontend/src/api/{generated/client.ts,mockTransport.ts}`、`frontend/src/app/runtime/AppRuntimeProvider.tsx`、`frontend/src/app/auth/pendingAction.ts`、`frontend/src/app/i18n/locales/{zh,en}.ts`、`frontend/src/app/theme/`、`frontend/src/app/interview-context/`、`frontend/tests/pixel-parity/`
 - Fixture：`openapi/fixtures/Reports/getFeedbackReport.json`、`openapi/fixtures/Reports/listTargetJobReports.json`
 - 治理 / 流程：[`AGENTS.md`](../../../AGENTS.md)、[`docs/development.md`](../../development.md) §2、[`docs/spec/README.md`](../README.md)、[`docs/spec/TEMPLATES.md`](../TEMPLATES.md)、[`test/scenarios/README.md`](../../../test/scenarios/README.md)
 - 修订记录：[history.md](./history.md)
@@ -185,5 +185,5 @@
 | 版本 | 日期 | 说明 |
 |------|------|------|
 | 1.6 | 2026-07-07 | 将报告列表候选能力和 stale-contract 例外统一为 records / 修订记录表述，避免 active spec 保留过期口径。 |
-| 1.5 | 2026-07-06 | 对齐 flat Resume contract 与当前范围表述：ReportContextStrip 使用 generated `getResume(resumeId)`，并把非当前模块表述收敛为边界和 stale-contract negative gate。 |
+| 1.5 | 2026-07-06 | 对齐 flat Resume contract 与当前范围表述：ReportContextStrip 使用 generated `getResume(resumeId)`，并把范围外模块表述收敛为边界和 stale-contract negative gate。 |
 | 1.3 | 2026-06-13 | 对齐 product-scope v2.1 D-19 报告 CTA 单点收敛：新增 D-19 决策、§2.1 next tab 去 CTA + 题目本地标记、C-16/C-17 验收行；CTA 唯一入口收敛到 Header（C-9/C-10 标注）；plan 001 重开承接，纯前端无契约变更 |

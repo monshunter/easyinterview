@@ -5,12 +5,12 @@ import userEvent from "@testing-library/user-event";
 
 import { AuthLoginScreen } from "../auth/AuthLoginScreen";
 import { DisplayPreferencesProvider } from "../display/DisplayPreferencesProvider";
-import { PlaceholderScreen } from "../screens/PlaceholderScreen";
+import { RouteShellScreen } from "../screens/RouteShellScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { TopBar } from "../topbar/TopBar";
 
 describe("D1 shell i18n", () => {
-  it("renders TopBar, auth, settings, and placeholder shell copy in English without localizing route keys", async () => {
+  it("renders TopBar, auth, settings, and route shell copy in English without localizing route keys", async () => {
     render(
       <DisplayPreferencesProvider initial={{ lang: "en" }}>
         <TopBar activeRoute="home" onNavigate={() => {}} signedIn={false} />
@@ -21,7 +21,7 @@ describe("D1 shell i18n", () => {
           onStartChallenge={vi.fn()}
         />
         <SettingsScreen route={{ name: "settings", params: {} }} />
-        <PlaceholderScreen
+        <RouteShellScreen
           route={{ name: "workspace", params: { planId: "plan-tj-1" } }}
         />
       </DisplayPreferencesProvider>,

@@ -37,7 +37,7 @@ const WorkspaceScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
     timeline: "Real progress",
     startCore: "Start interview now",
     launchTitle: "Confirm the context before this mock interview starts.",
-    launchSub: "The target job, JD, and resume form the interview context. Text and voice can be switched inside the interview.",
+    launchSub: "The target job, JD, and resume form the interview context. Text and phone mode can be switched inside the interview.",
     flow: "Interview rounds",
     roundStatus: "Current round",
     jdBound: "Target job / JD",
@@ -68,7 +68,7 @@ const WorkspaceScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
     timeline: "面试进展",
     startCore: "立即面试",
     launchTitle: "开始前确认这场模拟面试的上下文。",
-    launchSub: "目标岗位、JD 和简历组成这场模拟面试的上下文，文本和语音可在面试过程中切换。",
+    launchSub: "目标岗位、JD 和简历组成这场模拟面试的上下文，文本和电话模式可在面试过程中切换。",
     flow: "面试轮次",
     roundStatus: "当前轮次",
     jdBound: "目标岗位 / JD",
@@ -379,7 +379,7 @@ const WorkspacePlanList = ({ T, lang, nav, jobs = [], planOptions = [] }) => {
                   <div>
                     <div style={{ fontSize: 11, fontFamily: "var(--ei-mono)", color: T.ink3, marginBottom: 4 }}>{String(job.company || "").toUpperCase()} · {job.status}</div>
                     <div className="ei-serif" style={{ fontSize: 19, color: T.ink, letterSpacing: "-0.01em" }}>{job.title}</div>
-                    <div style={{ fontSize: 12.5, color: T.ink3, marginTop: 4 }}>{job.location || "Remote / TBD"}</div>
+                    <div style={{ fontSize: 12.5, color: T.ink3, marginTop: 4 }}>{job.location || "Location not set"}</div>
                   </div>
                   <div style={{ padding: "3px 8px", height: "fit-content", background: s.bg, color: s.fg, fontSize: 11, fontFamily: "var(--ei-mono)", borderRadius: 2, whiteSpace: "nowrap" }}>
                     {job.status}

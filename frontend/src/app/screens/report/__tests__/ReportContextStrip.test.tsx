@@ -47,7 +47,7 @@ describe("ReportContextStrip", () => {
     );
   });
 
-  it("shows legacy modality.voice as phone plus practiceMode.assisted variants when toggled", () => {
+  it("shows out-of-scope modality.voice as text plus practiceMode.assisted variants when toggled", () => {
     render(
       <DisplayPreferencesProvider>
         <ReportContextStrip
@@ -62,7 +62,7 @@ describe("ReportContextStrip", () => {
     const modality = screen.getByTestId("report-context-modality").textContent ?? "";
     const practiceMode = screen.getByTestId("report-context-practice-mode").textContent ?? "";
     const hints = screen.getByTestId("report-context-hints").textContent ?? "";
-    expect(modality).toContain("Phone");
+    expect(modality).toContain("Text");
     expect(practiceMode.length).toBeGreaterThan(0);
     // hintUsed=true must surface a non-default copy plus the count.
     expect(hints).not.toBe("");

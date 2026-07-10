@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.25
+> **版本**: 1.31
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -21,20 +21,20 @@
 本次 v1.19 原地修订收敛 workspace route purity：`workspace` 是纯列表页，不再承接 `targetJobId/planId/resumeId/autoStartPractice` 参数上下文；规划卡片导航 `parse`，`parse` / report owner 直接创建 practice plan / session。
 本次 v1.20 原地修订修复面试列表卡片规格回归：desktop plan-list grid 必须使用固定最大列宽，1/2/3 张卡片的规格保持稳定，不得因单卡数量被拉伸为整行宽卡。
 本次 v1.21 原地修订融合 Home 最近模拟面试与 workspace 面试列表卡片：workspace 卡片必须复用 Home recent card 的主体结构、公司/状态 eyebrow、岗位/地点层级和 mini round rail。本次 v1.22 原地修订把列表卡片的 `进入规划` 可见 footer CTA 改为点击卡片主体承接，并增加 `立即面试` 主按钮和使用简历列表 trash 图标样式的删除能力；Home recent 复用同一卡片动作模型但不展示删除按钮。
-本次 v1.23 原地修订把删除按钮从本地列表隐藏升级为 generated `archiveTargetJob` 持久软归档；删除成功后卡片移除，刷新后不得回灌，删除失败时保留卡片并展示可恢复错误。本次 v1.24 原地修订把删除图标移到卡片右上角，footer 只保留 `立即面试` 主按钮。v1.25 review remediation 要求 workspace list quick-start 必须把结构化 `roundId/roundName` 带入 practice route。
+本次 v1.23 原地修订把删除按钮从本地列表隐藏升级为 generated `archiveTargetJob` 持久软归档；删除成功后卡片移除，刷新后不得回灌，删除失败时保留卡片并展示可恢复错误。本次 v1.24 原地修订把删除图标移到卡片右上角，footer 只保留 `立即面试` 主按钮。v1.25 review remediation 要求 workspace list quick-start 必须把结构化 `roundId/roundName` 带入 practice route。v1.26 清理 out-of-scope workspace detail/start/modal 标签口径，保留负向 gate 事实但不再使用生命周期标签。v1.28 将记录区术语收敛为 records static affordance，保持记录区空状态行为不变。v1.31 修复 P0.021 wrapper 漂移，改为当前存在的 workspace source boundary 与 report replay handoff regression gate。
 
 - TopBar `workspace` 文案改为 `面试` / `Interview`，route/testid 仍保持 `workspace`。
 - `workspace` 始终渲染面试规划列表，使用 generated `listTargetJobs(analysisStatus=ready)`，点击卡片主体导航 `parse` 统一面试规划详情。
 - 面试规划列表每个 plan item 必须具备独立卡片容器，并以 Home 最近模拟面试卡片主体为主：公司/状态 eyebrow、岗位、地点和 mini round rail 保持同源；desktop 使用固定最大列宽的响应式多列，1/2/3 张卡片规格保持稳定，mobile 折叠为单列；workspace 只在同一卡片底部追加 `立即面试` 主按钮，删除图标固定在卡片右上角。
 - 面试规划列表卡片只展示对继续规划有决策价值的信息：状态、更新时间、岗位、公司和地点；不展示 `手动输入` / 来源类型 / 目标语言等导入元信息；不展示可见的 `进入规划` footer button。
 - 面试规划列表只展示已解析成功且具备岗位标题的 TargetJob：generated `listTargetJobs` 请求必须带 `analysisStatus=ready`，UI 层必须防御性排除 failed / processing / queued / 空标题记录。
-- 顶栏 `面试` 或 legacy `/workspace?targetJobId=...` 都必须 canonicalize 为 `/workspace`、清理 stale InterviewContext 并展示面试规划列表，不得渲染缺目标岗位错误页。
+- 顶栏 `面试` 或 out-of-scope `/workspace?targetJobId=...` 都必须 canonicalize 为 `/workspace`、清理 stale InterviewContext 并展示面试规划列表，不得渲染缺目标岗位错误页。
 - 面试规划列表卡片进入统一面试规划详情时必须使用 `listTargetJobs` 返回的当前 `currentPracticePlanId` / `resumeId`；`resumeId` 是 target job 创建时的持久绑定，若当前还没有 ready practice plan，也必须携带该 `resumeId` 进入详情页。
 - `workspace` 不渲染统一详情母版，不拥有 `autoStartPractice` route side effect；列表页 `立即面试` 使用 shared generated practice handoff (`getPracticePlan` / `createPracticePlan` / `startPracticeSession`) 显式启动 session，并携带 saved TargetJob 的 `targetJobId/resumeId/currentPracticePlanId` 与结构化 `roundId/roundName`。
 - 列表页删除图标使用 generated `archiveTargetJob` 和 `Idempotency-Key` 持久软归档 TargetJob；成功后从当前列表移除，失败时不导航、不隐藏卡片，并展示错误；不得继续使用本地-only hidden set 作为删除合同。
 - `InterviewContext` 不在 `workspace` route carry；`practice / generating / report` owner route 按各自最小上下文携带 `targetJobId / jdId / resumeId / roundId / planId / practiceMode / practiceGoal / hintUsed / hintCount`。
 - Plan Switcher、Resume Picker、WorkspaceInsightCard 和 workspace start-practice hooks 已退出本 owner 当前 runtime。
-- 当前规划记录区只展示 typed records placeholder，不从 `TargetJob` fixture extension、`any` 或 report API 拼接记录行。
+- 当前规划记录区只展示 typed records static affordance，不从 `TargetJob` fixture extension、`any` 或 report API 拼接记录行。
 - JD 原文、简历正文、题目文本、答案、提示、prompt/response 不进入 URL、localStorage、console 或 fixture transport 日志。
 
 ## 2 当前合同
@@ -59,13 +59,13 @@
 - TopBar 显示 `面试` / `Interview`；`workspace` 始终展示面试规划列表，详情入口是 `parse`。
 - 当前面试规划不展示练习模式卡片、成长中心、单题深钻、专项练习、独立 voice route 或独立公司信号页面。
 - `resumeId` 是当前简历绑定键；`resumeVersionId` 不作为本 plan 正向 route/context 字段。
-- Records placeholder 只说明当前规划下的模拟面试记录区域存在；真实记录行必须来自 typed records contract owner。
+- Records static affordance 只说明当前规划下的模拟面试记录区域存在；真实记录行必须来自 typed records contract owner。
 
 ## 3 质量门禁
 
 - **Plan 类型**: `feature-behavior + contract + frontend-ui + BDD`。
-- **TDD 策略**: 适用。Vitest 覆盖 route hydration、InterviewContext reducer、WorkspaceScreen list DOM anchors、parse/report direct start handoff、generated client body/header、auth pendingAction、privacy and non-current negative gates。
-- **BDD 策略**: 适用。`E2E.P0.018` - `E2E.P0.021` 覆盖 workspace 默认渲染、context loading、立即面试、embedded-only handoff、privacy 和 non-current negative gates。
+- **TDD 策略**: 适用。Vitest 覆盖 route hydration、InterviewContext reducer、WorkspaceScreen list DOM anchors、parse/report direct start handoff、generated client body/header、auth pendingAction、privacy and out-of-scope negative gates。
+- **BDD 策略**: 适用。`E2E.P0.018` - `E2E.P0.021` 覆盖 workspace 默认渲染、context loading、立即面试、handoff boundary、privacy 和 out-of-scope negative gates。
 - **替代验证 gate**:
   - `pnpm --filter @easyinterview/frontend test src/app/screens/workspace src/app/screens/parse/ParseResumeBinding.test.tsx src/app/screens/report/__tests__/ReplayCta.test.tsx src/app/App.test.tsx`
   - `pnpm --filter @easyinterview/frontend test:pixel-parity`
@@ -85,7 +85,7 @@
 ### Phase 1: Workspace shell and InterviewContext
 
 - Added `InterviewContextProvider`, reducer actions, route hydration and owner-route carry/clear behavior.
-- Replaced `workspace` placeholder with `WorkspaceScreen`; kept `practice` / `generating` for their owner plans.
+- Replaced the `workspace` route fallback shell with `WorkspaceScreen`; kept `practice` / `generating` for their owner plans.
 - Added zh/en `workspace.*` messages and DOM anchor coverage.
 
 ### Phase 2: TargetJob, resume and workspace data
@@ -94,7 +94,7 @@
 - Wired `getResume` into bound resume summary and missing-resume state.
 - Preserved source-level layout parity for desktop and mobile.
 
-### Phase 3: Plan and resume switching (retired from workspace owner)
+### Phase 3: Plan and resume switching (moved out of workspace owner)
 
 - Historical implementation added workspace-local plan/resume modals.
 - v1.19 removes those runtime files from workspace owner; parse detail owns resume selection and workspace cards only open `parse`.
@@ -106,11 +106,11 @@
 - v1.19 moves the two-step launch to parse/report handoff owners through shared `startPracticeFromParams`.
 - `workspace(autoStartPractice=1)` is no longer a valid side-effect contract; URL codec strips all workspace context params.
 
-### Phase 5: Embedded insight, records placeholder and privacy (retired from workspace owner)
+### Phase 5: Embedded insight, records static affordance and privacy (outside workspace runtime)
 
-- Historical implementation added workspace-local insight and records placeholders.
+- Workspace runtime does not own local insight or records static affordance implementation.
 - v1.19 removes those runtime files from current workspace owner; report/records owners must provide typed consumers before reintroducing user-visible rows.
-- Negative coverage remains for sensitive fields and non-current runtime routes/testids.
+- Negative coverage remains for sensitive fields and out-of-scope runtime routes/testids.
 
 ### Phase 6: Verification closeout
 
@@ -148,13 +148,13 @@
 - Reopen the completed owner because user review confirmed that the standalone workspace detail and Parse result page duplicate the same JD / resume / round confirmation job.
 - Keep `WorkspacePlanList` as the `面试` landing; v1.19 supersedes this phase by routing ordinary detail traffic to `parse` instead of `workspace?targetJobId=...`.
 - Start-practice side effects are now owned by parse/report handoff code, not workspace `autoStartPractice`.
-- Add regression coverage that the old independent workspace detail anchors (`workspace-header`, `workspace-launcher`, `workspace-jd-card`, `workspace-prep-card`, `workspace-history-card`) do not appear on ordinary detail re-entry, while `workspace-plan-list` and start-practice gates remain live.
+- Add regression coverage that the out-of-scope independent workspace detail anchors (`workspace-header`, `workspace-launcher`, `workspace-jd-card`, `workspace-prep-card`, `workspace-history-card`) do not appear on ordinary detail re-entry, while `workspace-plan-list` and start-practice gates remain live.
 
 ### Phase 13: Plan-list admission and stale-context navigation remediation
 
 - Reopen the completed owner because runtime evidence showed parse-failed / blank TargetJob rows could appear as interview-plan cards, and TopBar `面试` from a detail page reused stale context.
-- Require `useWorkspaceTargetJobs` consumers to request `analysisStatus=ready` and require `WorkspacePlanList` to ignore non-ready or blank-title records if legacy data still appears.
-- Align route split with `ui-design/src/screen-workspace.jsx`: workspace ignores stale `InterviewContext` and legacy route params, so it cannot produce “缺少目标岗位 ID”.
+- Require `useWorkspaceTargetJobs` consumers to request `analysisStatus=ready` and require `WorkspacePlanList` to ignore non-ready or blank-title records if stale data still appears.
+- Align route split with `ui-design/src/screen-workspace.jsx`: workspace ignores stale `InterviewContext` and out-of-scope route params, so it cannot produce “缺少目标岗位 ID”.
 - Add regression coverage for failed/blank record exclusion, ready-query assertion, TopBar no-context list landing after a hydrated detail context, and E2E.P0.018 scenario wording.
 
 ### Phase 14: Workspace route purity remediation
@@ -209,15 +209,15 @@
 | A-2 | InterviewContext route hydration and carry/clear behavior are deterministic | `InterviewContext.test.tsx`, `App.test.tsx` |
 | A-3 | Workspace owner no longer contains Plan Switcher / Resume Picker runtime; parse detail displays the saved resume binding readonly | source negative gate + `ParseResumeBinding.test.tsx` |
 | A-4 | Start practice runs from parse/report owner through `getPracticePlan` / `createPracticePlan` / `startPracticeSession` with idempotency | `ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx` |
-| A-5 | Workspace owner no longer contains embedded insight / records placeholder runtime | source negative gate |
-| A-6 | Privacy and non-current route/module gates have zero runtime residuals | scenario verify scripts, pruning-surface lint |
+| A-5 | Workspace owner no longer contains embedded insight / records static affordance runtime | source negative gate |
+| A-6 | Privacy and out-of-scope route/module gates have zero runtime residuals | scenario verify scripts, pruning-surface lint |
 | A-7 | TopBar shows `面试` / `Interview`; no-context `workspace` shows a plan list landing; plan cards open current-plan detail | TopBar tests, WorkspaceScreen tests, `E2E.P0.018`, pixel parity workspace spec |
 | A-8 | Workspace plan-list cards keep stable desktop width regardless of 1/2/3 card count | `WorkspaceScreen.test.tsx`, browser screenshot |
 | A-8 | Plan-list landing visually renders as Home recent-style cards with mini round rail, not loose text columns or a separate workspace-only body | `WorkspaceEmptyState.test.tsx`, `WorkspaceScreen.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts`, `E2E.P0.018` |
 | A-9 | Plan-list cards stay concise and theme-consistent: no source/language metadata, accent quick-start CTA, clear card/page separation | `WorkspaceEmptyState.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts`, `E2E.P0.018` |
 | A-10 | Target job import persists selected resume binding and workspace plan-list re-entry carries `resumeId` even before any `practice_plans` row exists | backend targetjob tests, Home import tests, Workspace plan-list regression, local API smoke |
 | A-11 | Workspace list card re-entry navigates to `parse` detail and no longer shows the independent workspace detail page or starts sessions | `WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`, `frontend/tests/pixel-parity/workspace.spec.ts`, `E2E.P0.018` |
-| A-12 | Workspace plan list requests ready TargetJobs only, filters failed / blank-title records defensively, and TopBar / legacy-param workspace navigation clears stale detail context | `WorkspaceEmptyState.test.tsx`, `WorkspaceScreen.test.tsx`, `App.test.tsx`, `E2E.P0.018` |
+| A-12 | Workspace plan list requests ready TargetJobs only, filters failed / blank-title records defensively, and TopBar / out-of-scope-param workspace navigation clears stale detail context | `WorkspaceEmptyState.test.tsx`, `WorkspaceScreen.test.tsx`, `App.test.tsx`, `E2E.P0.018` |
 | A-13 | Parse/report handoff owners start practice directly and do not route through `workspace(autoStartPractice=1)` | `ParseResumeBinding.test.tsx`, `ReplayCta.test.tsx` |
 | A-14 | Workspace card click opens planning detail while footer provides quick start carrying structured `roundId/roundName`, and top-right delete performs persistent `archiveTargetJob`; Home recent reuses quick start and omits delete | `MockInterviewCard.test.tsx`, `HomeRecentMocks.test.tsx`, `WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`, browser screenshots |
 | A-15 | Workspace delete is durable across refresh and never implemented as local-only hiding | generated-client tests, real-backend smoke, `E2E.P0.018`, screenshot acceptance |
@@ -226,6 +226,8 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.31 | Repair P0.021 wrapper drift to current workspace boundary and report replay handoff tests; rename negative labels to out-of-scope. |
+| 2026-07-10 | 1.30 | Align workspace route/list negative wording to out-of-scope/stale terminology without behavior changes. |
 | 2026-07-09 | 1.25 | Review remediation: preserve structured round params in workspace list quick-start practice handoff. |
 | 2026-07-09 | 1.24 | Move the workspace card delete icon to the card top-right; keep footer for `立即面试` only. |
 | 2026-07-09 | 1.23 | Reopen owner plan to integrate generated `archiveTargetJob` for persistent workspace card delete. |
@@ -233,10 +235,12 @@
 | 2026-07-09 | 1.21 | Reopen owner plan to fuse Home recent mock cards and workspace plan-list cards into one shared card body with a workspace footer CTA. |
 | 2026-07-09 | 1.16 | Reopen owner plan for target job-level resume binding persistence so workspace plan-list re-entry no longer loses the resume selected during JD import. |
 | 2026-07-09 | 1.17 | Reopen owner plan to route workspace current-plan detail into the unified Parse-derived Interview Plan Detail / Context Confirm mother page while preserving workspace start-practice ownership. |
+| 2026-07-10 | 1.29 | Rename workspace out-of-scope-param route purity wording while preserving canonical `/workspace` behavior. |
+| 2026-07-10 | 1.28 | Rename records-area wording to records static affordance while preserving the current workspace empty records behavior and negative gates. |
+| 2026-07-09 | 1.19 | Reopen owner plan to make workspace a pure list route, delete out-of-scope detail/start/modal runtime, route cards to parse, and move practice start side effects to parse/report owners. |
 | 2026-07-09 | 1.18 | Reopen owner plan for parse-failure dirty-data admission defense and stale InterviewContext-free TopBar workspace navigation. |
-| 2026-07-09 | 1.19 | Reopen owner plan to make workspace a pure list route, delete old detail/start/modal runtime, route cards to parse, and move practice start side effects to parse/report owners. |
 | 2026-07-08 | 1.14 | Reopen owner plan for plan-list card simplification, metadata removal and theme-consistent CTA styling after screenshot review. |
 | 2026-07-08 | 1.13 | Reopen owner plan for interview plan-list card visual hardening after screenshot review. |
 | 2026-07-08 | 1.12 | Reopen owner plan for Interview nav naming and workspace plan-list landing revision. |
-| 2026-07-07 | 1.11 | Compress owner docs to the current workspace, flat Resume Picker, start-practice, embedded insight, records placeholder and privacy contract. |
+| 2026-07-07 | 1.11 | Compress owner docs to the current workspace, flat Resume Picker, start-practice, embedded insight, records static area and privacy contract. |
 | 2026-07-07 | 1.10 | Reconcile workspace owner handoff, completion, fixture and active-list boundary wording. |

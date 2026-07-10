@@ -1,14 +1,14 @@
 # 001 - OpenAPI v1 Contract Bootstrap Checklist
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
 ## Completed Owner Gates
 
-- [x] Current OpenAPI inventory is 10 tags and 36 operations.<!-- verified: 2026-07-07 method=make target=lint-openapi -->
+- [x] Current OpenAPI inventory is 10 tags and 37 operations.<!-- verified: 2026-07-10 method=make target=lint-openapi -->
 - [x] OpenAPI generated Go and TS artifacts are reproducible from `openapi/openapi.yaml`.
   <!-- verified: 2026-05-04 method=codegen evidence="make codegen-openapi and make codegen-check passed for generated Go/TS artifacts." -->
 - [x] B1 shared conventions and B2 error envelope ownership are represented in generated artifacts.
@@ -17,7 +17,7 @@
   <!-- verified: 2026-05-04 method=docs-openapi evidence="make docs-openapi generated openapi/dist/index.html with current renderer target." -->
 - [x] Child plan handoff is clear: 002 owns fixtures/mock source, 003 owns breaking-change baseline/gate, and 004 owns resume additive coverage.
   <!-- verified: 2026-05-04 method=handoff evidence="plans INDEX and context manifests identify downstream B2 owners." -->
-- [x] Current owner docs describe only the 36-operation / 10-tag OpenAPI contract and executable evidence index.<!-- verified: 2026-07-07 method=targeted-grep+context-validation -->
+- [x] Current owner docs describe only the 37-operation / 10-tag OpenAPI contract and executable evidence index.<!-- verified: 2026-07-10 method=targeted-grep+context-validation -->
 
 ## BDD-Gate
 

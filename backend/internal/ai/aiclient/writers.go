@@ -15,14 +15,14 @@ import (
 type AITaskRunCapability string
 
 const (
-	AITaskRunTaskJDParse                 AITaskRunCapability = "jd_parse"
-	AITaskRunTaskResumeParse             AITaskRunCapability = AITaskRunCapability(jobs.JobTypeResumeParse)
-	AITaskRunTaskQuestionGenerate        AITaskRunCapability = "question_generate"
-	AITaskRunTaskFollowupGenerate        AITaskRunCapability = "followup_generate"
-	AITaskRunTaskHintGenerate            AITaskRunCapability = "hint_generate"
-	AITaskRunTaskReportGenerate          AITaskRunCapability = AITaskRunCapability(jobs.JobTypeReportGenerate)
-	AITaskRunTaskReportAssessment        AITaskRunCapability = "report_assessment"
-	AITaskRunTaskResumeTailor            AITaskRunCapability = AITaskRunCapability(jobs.JobTypeResumeTailor)
+	AITaskRunTaskJDParse          AITaskRunCapability = "jd_parse"
+	AITaskRunTaskResumeParse      AITaskRunCapability = AITaskRunCapability(jobs.JobTypeResumeParse)
+	AITaskRunTaskQuestionGenerate AITaskRunCapability = "question_generate"
+	AITaskRunTaskFollowupGenerate AITaskRunCapability = "followup_generate"
+	AITaskRunTaskHintGenerate     AITaskRunCapability = "hint_generate"
+	AITaskRunTaskReportGenerate   AITaskRunCapability = AITaskRunCapability(jobs.JobTypeReportGenerate)
+	AITaskRunTaskReportAssessment AITaskRunCapability = "report_assessment"
+	AITaskRunTaskResumeTailor     AITaskRunCapability = AITaskRunCapability(jobs.JobTypeResumeTailor)
 )
 
 var allowedAITaskRunCapabilities = map[AITaskRunCapability]struct{}{

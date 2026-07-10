@@ -1,21 +1,21 @@
 # OpenAPI v1 Contract Flat Resume Coverage
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-本 plan 固化 OpenAPI 当前 flat Resume 覆盖面：`openapi/openapi.yaml` 保持 10 tag / 36 operation 合同，`Resumes` tag 只保留 flat `Resume` 资产读写、PDF source 预览、复制、归档、导出，`ResumeTailor` tag 只保留 tailor run 请求与读取。版本树、分支、suggestion accept/reject 和 version-scoped export 不再作为当前 OpenAPI operation、schema、fixture、generated client 或 inventory lint 正向面存在。
+本 plan 固化 OpenAPI 当前 flat Resume 覆盖面：`openapi/openapi.yaml` 保持 10 tag / 37 operation 合同，`Resumes` tag 只保留 flat `Resume` 资产读写、PDF source 预览、复制、归档、导出，`ResumeTailor` tag 只保留 tailor run 请求与读取。版本树、分支、suggestion accept/reject 和 version-scoped export 不再作为当前 OpenAPI operation、schema、fixture、generated client 或 inventory lint 正向面存在。
 
 ## 2 当前 Contract Surface
 
 | Area | Current truth |
 |------|---------------|
-| OpenAPI inventory | `scripts/lint/openapi_inventory.py` enforces 10 tags and 36 operations |
+| OpenAPI inventory | `scripts/lint/openapi_inventory.py` enforces 10 tags and 37 operations |
 | Resume schemas | `Resume`, `PaginatedResume`, `ResumeWithJob`, `RegisterResumeRequest`, `UpdateResumeRequest`, `DuplicateResumeRequest`, `ResumeTailorRun`, `ResumeTailorRunWithJob` |
 | Resume fixtures | `openapi/fixtures/Resumes/{listResumes,registerResume,getResume,getResumeSource,updateResume,duplicateResume,archiveResume,exportResume}.json` |
 | ResumeTailor fixtures | `openapi/fixtures/ResumeTailor/{requestResumeTailor,getResumeTailorRun}.json` |
@@ -54,7 +54,7 @@ Current B2 gates must reject version-tree operationIds, version-scoped path para
 Current closeout evidence:
 
 - `python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/openapi-v1-contract/plans/004-resume-additive-coverage/context.yaml --target contract`
-- `python3 scripts/lint/openapi_inventory.py openapi/openapi.yaml` → 10 tags / 36 operations
+- `python3 scripts/lint/openapi_inventory.py openapi/openapi.yaml` → 10 tags / 37 operations
 - `make lint-openapi`
 - `make validate-fixtures`
 - `make codegen-check`
@@ -68,5 +68,6 @@ Current closeout evidence:
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.6 | Align current flat Resume coverage docs with the 37-operation B2 contract. |
 | 2026-07-07 | 1.5 | Add `getResumeSource` PDF source preview to the current flat Resume OpenAPI contract, fixture set, generated clients and inventory gate. |
 | 2026-07-07 | 1.4 | Compress owner docs to the then-current flat Resume / ResumeTailor OpenAPI contract, fixtures, generated clients and 501 export gate. |

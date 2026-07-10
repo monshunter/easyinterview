@@ -49,16 +49,16 @@ describe('generated event contract', () => {
       ...gapReview,
       mode: 'bullet_suggestions',
     };
-    const nonCurrentMode = ['in', 'line'].join('');
-    const nonCurrentModePayload: ResumeTailorCompletedPayload = {
+    const outOfScopeMode = ['in', 'line'].join('');
+    const outOfScopeModePayload: ResumeTailorCompletedPayload = {
       ...gapReview,
-      // @ts-expect-error non-current modes must stay rejected by generated types.
-      mode: nonCurrentMode,
+      // @ts-expect-error out-of-scope modes must stay rejected by generated types.
+      mode: outOfScopeMode,
     };
 
     expect(EVENT_NAME_RESUME_TAILOR_COMPLETED).toBe('resume.tailor.completed');
     expect(gapReview.mode).toBe('gap_review');
     expect(bulletSuggestions.mode).toBe('bullet_suggestions');
-    expect(nonCurrentModePayload.mode).toBe(nonCurrentMode);
+    expect(outOfScopeModePayload.mode).toBe(outOfScopeMode);
   });
 });

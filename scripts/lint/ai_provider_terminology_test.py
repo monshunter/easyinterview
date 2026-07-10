@@ -46,7 +46,7 @@ class AIProviderTerminologyLintTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("ai_provider_terminology: OK", result.stdout)
 
-    def test_rejects_non_current_active_env_and_schema_terms(self) -> None:
+    def test_rejects_out_of_scope_active_env_and_schema_terms(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = Path(td)
             write(repo / ".env.example", "AI_GATEWAY_BASE_URL=\n")

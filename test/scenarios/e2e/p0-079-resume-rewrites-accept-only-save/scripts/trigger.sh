@@ -12,7 +12,7 @@ mkdir -p "$OUT"
   echo "RUNNER make validate-fixtures D-20 flat resume fixtures"
   make validate-fixtures
   cd "$ROOT/backend"
-  echo "RUNNER go test cmd/api non-current suggestion routes"
+  echo "RUNNER go test cmd/api out-of-scope suggestion routes"
   go test ./cmd/api -run 'TestResumeVersionRoutesRemainUnmountedPerD20|TestGeneratedRouteCatalogHasNoResumeVersionOperations' -count=1 -v
   echo "RUNNER go test handler flat save fixture parity"
   go test ./internal/resume/handler -run 'Test(UpdateResumeFixtureParity|DuplicateResumeFixtureParity|ResumeTailorFixtureParity)' -count=1 -v
@@ -20,7 +20,7 @@ mkdir -p "$OUT"
   echo "RUNNER frontend vitest read-only detail negative flow"
   pnpm --filter @easyinterview/frontend exec vitest run --reporter=verbose \
     src/app/screens/resume-workshop/components/ResumeDetailView.test.tsx
-  echo "evidence non_current_accept_reject_routes=gone"
+  echo "evidence out_of_scope_accept_reject_routes=gone"
   echo "evidence detail_rewrites_edit_surface=gone"
   echo "evidence backend_flat_save_fixtures=updateResume_or_duplicateResume"
 } | tee "$OUT/trigger.log"

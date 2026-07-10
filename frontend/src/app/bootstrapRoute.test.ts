@@ -37,7 +37,7 @@ describe("parseInitialRouteHash", () => {
     expect(parseInitialRouteHash("#reportId=report-1")).toBeUndefined();
   });
 
-  it("hash adapter and canonical codec drop legacy workspace context params", () => {
+  it("hash adapter and canonical codec drop out-of-scope workspace context params", () => {
     const loose = parseInitialRouteHash(
       "#route=workspace&targetJobId=tj-1&resumeId=rv-1&planId=plan-1",
     );
@@ -54,7 +54,7 @@ describe("parseInitialRouteHash", () => {
     expect(formatRouteUrl(normalized)).toBe("/workspace");
   });
 
-  it("non-current aliases via hash normalize to retained routes without materializing standalone screens", () => {
+  it("out-of-scope aliases via hash normalize to retained routes without materializing standalone screens", () => {
     const cases: Array<[string, { name: string; path: string }]> = [
       ["#route=welcome", { name: "home", path: "/" }],
       ["#route=growth", { name: "home", path: "/" }],
@@ -73,13 +73,23 @@ describe("parseInitialRouteHash", () => {
     }
   });
 
-  it("hash voice mode practice entry maps to canonical /practice with mode/modality", () => {
+  it("hash phone mode practice entry maps to canonical /practice with mode/modality", () => {
+    const loose = parseInitialRouteHash(
+      "#route=practice&mode=phone&modality=phone&sessionId=s-1",
+    );
+    const normalized = normalizeRoute(loose!);
+    expect(formatRouteUrl(normalized)).toBe(
+      "/practice?modality=phone&mode=phone&sessionId=s-1",
+    );
+  });
+
+  it("hash route drops out-of-scope voice mode values instead of keeping a compatibility path", () => {
     const loose = parseInitialRouteHash(
       "#route=practice&mode=voice&modality=voice&sessionId=s-1",
     );
     const normalized = normalizeRoute(loose!);
     expect(formatRouteUrl(normalized)).toBe(
-      "/practice?modality=voice&mode=voice&sessionId=s-1",
+      "/practice?sessionId=s-1",
     );
   });
 });

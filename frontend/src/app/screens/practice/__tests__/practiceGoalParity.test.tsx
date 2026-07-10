@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  *
- * Item 3.8 — display remains stable when legacy route practiceMode and
+ * Item 3.8 — display remains stable when out-of-scope route practiceMode and
  * current core-loop goals vary. Hints stay optional in-session assistance.
  */
 
@@ -47,7 +47,7 @@ describe("practiceGoal parity (item 3.8)", () => {
     expect(b).toEqual(a);
   });
 
-  it("strict × baseline matches strict × next_round", async () => {
+  it("out-of-scope strict × baseline matches out-of-scope strict × next_round", async () => {
     const baseline = mountPracticeScreen({
       routeParams: { practiceMode: "strict", practiceGoal: "baseline" },
     });

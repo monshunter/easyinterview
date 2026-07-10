@@ -26,7 +26,7 @@ func TestRedactedStringFmtPaths(t *testing.T) {
 			fmt.Fprintln(&b, rs)
 			return b.String()
 		}(),
-		"String": rs.String(),
+		"String":   rs.String(),
 		"GoString": rs.GoString(),
 	}
 	for name, got := range cases {

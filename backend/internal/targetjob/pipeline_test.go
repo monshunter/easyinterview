@@ -40,7 +40,6 @@ type pipelineFakeStore struct {
 	sourceSnapshotURL   string
 	sourceSnapshotText  string
 	sourceSnapshotAt    *time.Time
-	updateAnalysisFail  int
 	pollMu              chan struct{}
 }
 
@@ -140,10 +139,6 @@ func (s *pipelineFakeStore) GetTargetJobForParse(context.Context, string) (targe
 	}
 	return s.target, s.sources, nil
 }
-func (s *pipelineFakeStore) UpdateTargetJobAnalysisFailure(context.Context, string, time.Time) error {
-	s.updateAnalysisFail++
-	return nil
-}
 
 type fakeRegistry struct {
 	resolution targetjob.PromptResolution
@@ -185,13 +180,13 @@ func (f *fakeAIClient) Complete(_ context.Context, profileName string, payload a
 	return f.resp, meta, nil
 }
 func (f *fakeAIClient) Transcribe(context.Context, string, aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
-	return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, errors.New("not implemented")
+	return aiclient.TranscriptionResponse{}, aiclient.AICallMeta{}, errors.New("unexpected Transcribe call in targetjob fakeAIClient")
 }
 func (f *fakeAIClient) Stream(context.Context, string, aiclient.CompletePayload) (<-chan aiclient.AIStreamEvent, error) {
-	return nil, errors.New("not implemented")
+	return nil, errors.New("unexpected Stream call in targetjob fakeAIClient")
 }
 func (f *fakeAIClient) Synthesize(context.Context, string, aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
-	return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, errors.New("not implemented")
+	return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, errors.New("unexpected Synthesize call in targetjob fakeAIClient")
 }
 
 type fakeFetcher struct {
@@ -331,7 +326,7 @@ func TestParseExecutor_HappyPath(t *testing.T) {
 	}
 	summary := decodeSummaryForTest(t, store.completeSuccessIn.Summary)
 	if _, ok := summary["interviewHypotheses"]; ok {
-		t.Fatalf("summary must not persist legacy interviewHypotheses: %s", string(store.completeSuccessIn.Summary))
+		t.Fatalf("summary must not persist out-of-scope interviewHypotheses: %s", string(store.completeSuccessIn.Summary))
 	}
 	rounds, ok := summary["interviewRounds"].([]any)
 	if !ok || len(rounds) != 2 {
@@ -354,7 +349,7 @@ func TestParseExecutor_HappyPath(t *testing.T) {
 		t.Fatal("target.parsed outbox payload missing")
 	}
 	if !store.sourceRefreshCalled {
-		t.Fatal("source_refresh placeholder not enqueued")
+		t.Fatal("source_refresh follow-up job not enqueued")
 	}
 }
 
@@ -903,8 +898,8 @@ func TestParseExecutor_SuccessCommitFailureDoesNotWriteFailureAfterPartialSucces
 	if store.completeSuccessIn == nil {
 		t.Fatal("success side effects were not delegated to the atomic store method")
 	}
-	if store.updateAnalysisFail != 0 || store.completeFailureIn != nil {
-		t.Fatalf("must not write analysis.failed after a failed success transaction: updateFail=%d failure=%+v", store.updateAnalysisFail, store.completeFailureIn)
+	if store.completeFailureIn != nil {
+		t.Fatalf("must not write analysis.failed after a failed success transaction: failure=%+v", store.completeFailureIn)
 	}
 	if store.applyResultIn != nil {
 		t.Fatalf("parse result was applied outside the atomic success transaction: %+v", store.applyResultIn)
@@ -1035,7 +1030,7 @@ func TestParseExecutor_URLFetchBodyIsPersistedAndParsed(t *testing.T) {
 		t.Fatalf("prompt did not include sanitized source URL: %q", gotPrompt)
 	}
 	if strings.Contains(gotPrompt, "token=secret") || strings.Contains(gotPrompt, "{{jd_source_url}}") {
-		t.Fatalf("prompt leaked raw source URL or unresolved placeholder: %q", gotPrompt)
+		t.Fatalf("prompt leaked raw source URL or unresolved template marker: %q", gotPrompt)
 	}
 }
 

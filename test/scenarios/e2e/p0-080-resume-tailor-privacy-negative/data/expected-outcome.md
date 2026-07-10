@@ -4,4 +4,4 @@
 - `TestAiTaskRunsPrivacyForTailorDrainer` proves typed `ai_task_runs` rows do not persist raw prompt, raw model response, match summary, or suggested bullet content.
 - `TestAuditPrivacyForTailorDrainer` proves tailor drainer audit metadata does not persist prompt or response bodies.
 - Live store and cmd/api drainer tests pass for ready and failure paths.
-- Negative grep checks report zero non-current `inline` / `rewrite` / `mirror` and Mistakes / Growth / Drill vocabulary matches in backend resume runtime code.
+- Negative grep checks report zero out-of-scope `inline` / `rewrite` / `mirror` and Mistakes / Growth / Drill vocabulary matches in backend resume runtime code.

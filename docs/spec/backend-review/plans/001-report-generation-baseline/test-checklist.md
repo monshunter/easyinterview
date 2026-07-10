@@ -19,7 +19,7 @@
 - [x] Report BDD HTTP scenario tests passed.
   <!-- verified: 2026-05-16 method=go-test evidence="go test ./cmd/api -run 'TestE2EP0052|TestE2EP0053|TestE2EP0054|TestE2EP0055' -count=1 PASS." -->
 - [x] Privacy, observability, and current-scope boundary lint tests passed.
-  <!-- verified: 2026-05-16 method=privacy-boundary-tests evidence="redaction tests, metric-label tests, backend_review_non_current.py, and backend_review_non_current_test.py passed." -->
+  <!-- verified: 2026-05-16 method=privacy-boundary-tests evidence="redaction tests, metric-label tests, backend_review_out_of_scope.py, and backend_review_out_of_scope_test.py passed." -->
 
 ## Aggregate Closeout
 

@@ -102,7 +102,7 @@ describe("HomeScreen", () => {
     );
   });
 
-  it("does not surface non-current prototype testids", () => {
+  it("does not surface out-of-scope prototype testids", () => {
     render(wrap(<HomeScreen route={{ name: "home", params: {} }} />));
 
     expect(screen.queryByTestId("home-pasted-success")).not.toBeInTheDocument();

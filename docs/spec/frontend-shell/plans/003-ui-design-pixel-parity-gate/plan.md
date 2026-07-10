@@ -20,7 +20,7 @@
 - Home / parse / workspace / resume workshop / practice / generating / report parity specs。
 - Workspace full-state 通过 server-bound route bootstrap 进入，不依赖 synthetic route params。
 - Screenshot 常规 gate 使用非空 screenshot smoke；baseline diff 只作为显式 `--update-snapshots` 维护流程。
-- Non-current route/module entries 只作为负向断言，不作为正向屏幕或可见入口。
+- Out-of-scope route/module entries 只作为负向断言，不作为正向屏幕或可见入口。
 
 ## 2 当前合同
 
@@ -39,7 +39,7 @@
 - `pnpm --filter @easyinterview/frontend build` produces `frontend/dist/index.html`.
 - `pnpm --filter @easyinterview/frontend test:pixel-parity` runs current parity specs in both viewport projects.
 - `E2E.P0.006` verify requires passing summary, desktop/mobile markers, and all current spec markers.
-- Non-current entries such as standalone `jd_match`, `debrief`, `profile`, `mistakes`, `growth`, `drill`, and standalone `voice` must not appear as live route/testid parity failures.
+- Out-of-scope entries such as standalone `jd_match`, `debrief`, `profile`, `mistakes`, `growth`, `drill`, and standalone `voice` must not appear as live route/testid parity failures.
 - `ui-design/index.html` may need CDN access unless assets are vendored; this is documented in the scenario README.
 
 ## 3 质量门禁
@@ -95,7 +95,7 @@
 | A-2 | TopBar, auth/settings shell and user menu match current UI source in real browsers | `topbar.spec.ts`, `screens.spec.ts`, `layout.spec.ts` |
 | A-3 | Current business screens have viewport-safe parity coverage | home/parse/workspace/resume/practice/generating/report specs |
 | A-4 | Screenshot smoke, dark mode and customAccent work without ignored baseline dependency | `screenshot.spec.ts` and per-screen smoke |
-| A-5 | Non-current routes/modules do not become live parity surfaces | pixel specs and P0.006 verify negative checks |
+| A-5 | Out-of-scope routes/modules do not become live parity surfaces | pixel specs and P0.006 verify negative checks |
 | A-6 | Scenario/documentation handoff is complete | `E2E.P0.006`, `frontend/README.md`, docs-check |
 
 ## 6 变更记录

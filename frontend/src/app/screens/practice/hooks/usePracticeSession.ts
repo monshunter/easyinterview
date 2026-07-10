@@ -20,7 +20,7 @@ export interface UsePracticeSessionResult {
 /**
  * Item 2.3 — derive PracticeScreen UI flags from `SessionStatus` 7 values.
  *
- *  - queued                → 占位等待首题 + input disabled
+ *  - queued                → 等待首题提示 + input disabled
  *  - running               → 主交互；input enabled
  *  - waiting_user_input    → 输入禁用 + 暂停 / 等待状态
  *  - completing            → 输入禁用 + 「正在生成报告…」notice
@@ -28,7 +28,7 @@ export interface UsePracticeSessionResult {
  *  - failed                → ErrorState + retry / back-to-workspace
  *  - cancelled             → PracticeSessionLost + back-to-workspace
  *
- * Negative gate: this hook does NOT recognise the non-current `draft` /
+ * Negative gate: this hook does NOT recognise the out-of-scope `draft` /
  * `archived` values. `SessionStatus` excludes that union member,
  * so call sites should fail typecheck rather than reach runtime.
  */
@@ -84,7 +84,7 @@ export function usePracticeSession(
         });
       default:
         // Unknown / null statuses fall through to a safe default that locks
-        // the input. This protects against non-current `draft` / `archived`
+        // the input. This protects against out-of-scope `draft` / `archived`
         // values reaching runtime through an untyped boundary.
         return base({
           status: status ?? null,

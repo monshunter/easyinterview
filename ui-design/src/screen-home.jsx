@@ -164,7 +164,7 @@ const HomeEmptyState = ({ T, lang, onImport }) => (
   <div style={{ padding: 24, border: `1px dashed ${T.rule}`, borderRadius: 3, background: T.bgSoft }}>
     <div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "NO RECENT MOCKS" : "暂无最近模拟面试"}</div>
     <div className="ei-serif" style={{ fontSize: 20, color: T.ink, marginBottom: 8 }}>
-      {lang === "en" ? "Start from a JD instead of showing placeholder interviews." : "从一份 JD 开始，不展示占位面试数据。"}
+      {lang === "en" ? "Start from a JD instead of showing sample interview data." : "从一份 JD 开始，不展示示例面试数据。"}
     </div>
     <div style={{ fontSize: 13.5, color: T.ink3, lineHeight: 1.6, marginBottom: 14 }}>
       {lang === "en" ? "Paste or upload a target job description to create the first interview context." : "粘贴或上传目标岗位 JD 后，系统会生成第一条面试上下文。"}

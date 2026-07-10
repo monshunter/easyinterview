@@ -15,7 +15,7 @@
           },
           "appVersion": "1.0.0+dev.0428",
           "analyticsEnabled": true,
-          "postHogPublicKey": "phc_local_dev_placeholder"
+          "postHogPublicKey": "phc_local_dev_public_key"
         }
       }
     }

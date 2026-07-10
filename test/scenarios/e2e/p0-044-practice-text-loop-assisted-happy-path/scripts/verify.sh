@@ -11,13 +11,14 @@ grep -Eq 'Test Files +[0-9]+ passed \([0-9]+\)' "$LOG_FILE" || { echo "E2E.P0.04
 grep -Fq 'PracticeScreen.test.tsx' "$LOG_FILE" || { echo "E2E.P0.044: PracticeScreen.test.tsx did not run" >&2; exit 1; }
 grep -Fq 'usePracticeEvents.test.tsx' "$LOG_FILE" || { echo "E2E.P0.044: usePracticeEvents.test.tsx did not run" >&2; exit 1; }
 grep -Fq 'AssistantActionRenderer.test.tsx' "$LOG_FILE" || { echo "E2E.P0.044: AssistantActionRenderer.test.tsx did not run" >&2; exit 1; }
+grep -Fq 'outOfScopeNegative.test.ts' "$LOG_FILE" || { echo "E2E.P0.044: outOfScopeNegative.test.ts did not run" >&2; exit 1; }
 testid_count="$(rg -o 'data-testid=' "$PRACTICE_DIR/PracticeScreen.tsx" "$PRACTICE_DIR/components/" | wc -l | tr -d ' ')"
 if [ "$testid_count" -lt 20 ]; then
   echo "E2E.P0.044: expected >=20 practice runtime testids, got $testid_count" >&2
   exit 1
 fi
-if rg -n 'VoiceSessionSurface|PracticeWaveformBars|PracticeAnnotatedWaveform|VoiceExpressionPanel' "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then
-  echo "E2E.P0.044: forbidden voice surface DOM import in practice runtime" >&2
+if rg -n "from\\s+[\"'][^\"']*ui-design/src/screen-practice" "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then
+  echo "E2E.P0.044: forbidden ui-design practice DOM import in practice runtime" >&2
   exit 1
 fi
 if rg -n 'window\.EI_DATA|getPracticeSampleQuestions|getPracticeSampleTranscript|getPracticeWaveformSamples' "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then
@@ -25,7 +26,7 @@ if rg -n 'window\.EI_DATA|getPracticeSampleQuestions|getPracticeSampleTranscript
   exit 1
 fi
 if rg -n 'practice-mode-card-|growth-summary|drill-builder-|mistakes-queue-' "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then
-  echo "E2E.P0.044: forbidden non-current testid leaked into practice runtime" >&2
+  echo "E2E.P0.044: forbidden out-of-scope testid leaked into practice runtime" >&2
   exit 1
 fi
 if rg -n '\bgetFeedbackReport\b' "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then

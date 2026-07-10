@@ -661,9 +661,9 @@ func optionalString(v string) *string {
 	return &v
 }
 
-// defaultDraftRequirementLabel synthesises the Phase 2.1 manual_form draft
-// requirement label. Phase 3.1 may refine this; for now we trim a leading
-// description line and fall back to a generic placeholder.
+// defaultDraftRequirementLabel synthesizes the manual_form draft requirement
+// label from the first non-empty description line, capped for compact list
+// rendering. Empty descriptions fall back to a generic draft label.
 func defaultDraftRequirementLabel(rawDescription string) string {
 	for _, line := range strings.Split(rawDescription, "\n") {
 		t := strings.TrimSpace(line)

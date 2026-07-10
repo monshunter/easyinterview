@@ -75,12 +75,20 @@ Spec-centric plan 补充约定：
 
 以下是本项目的代码目录分组，供 commit 拆分、日志分类等场景引用：
 
-<!-- TODO: 根据项目实际目录结构填写映射表 -->
 | 目录 | 分组 |
 |------|------|
-| `src/` | 核心代码 |
-| `test/` | 测试 |
-| `docs/` | 文档 |
+| `.agent-skills/` | Agent workflow skills、模板与共享校验脚本 |
+| `backend/` | Go API、领域服务、runner、迁移执行与后端测试 |
+| `config/` | AI profile、prompt、rubric 与本地运行配置 |
+| `deploy/` | 本地开发栈和依赖服务配置 |
+| `docs/` | spec、plan、报告、Bug 知识库、工作日志和 UI design 文档 |
+| `frontend/` | 正式前端应用、generated client、Vitest 与 Playwright 测试 |
+| `migrations/` | 数据库迁移与 backfill 资产 |
+| `openapi/` | OpenAPI 真理源、fixture、baseline 与生成中间产物 |
+| `scripts/` | codegen、lint、git hook 和工程辅助脚本 |
+| `shared/` | 前后端共享契约、事件、job 和 fixture |
+| `test/scenarios/` | BDD / E2E 场景资产与本地场景环境脚本 |
+| `ui-design/` | 静态 UI 原型、UI token 源和 UI 契约测试 |
 
 ## 5 关联文档
 

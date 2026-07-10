@@ -19,4 +19,4 @@
 - Store/service tests cover profile overwrite, server-owned provenance reset,
   cross-user 404, and rollback on missing rows.
 - Trigger log contains no skipped or no-op focused gates.
-- Non-current vocabulary and privacy negative greps return zero hits for backend resume implementation and scenario evidence.
+- Out-of-scope vocabulary and privacy negative greps return zero hits for backend resume implementation and scenario evidence.

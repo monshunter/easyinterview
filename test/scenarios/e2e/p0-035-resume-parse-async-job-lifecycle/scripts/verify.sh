@@ -16,6 +16,7 @@ mkdir -p "$OUT"
   grep -q 'TestResumeParseDrainerHTTPScenario' "$OUT/trigger.log"
   grep -q 'TestResumeParseDrainerRetryableFailureScenario' "$OUT/trigger.log"
   grep -q 'TestBuildResumeRuntimeWiresRoutesDrainerAndDeterministicAI' "$OUT/trigger.log"
+  grep -q 'TestParseHandlerRejectsDOCXUploadText' "$OUT/trigger.log"
   grep -q 'TestParseHandlerRejectsUnreadablePDFText' "$OUT/trigger.log"
   grep -q 'TestParseHandlerExtractsReadableUploadText' "$OUT/trigger.log"
   grep -q 'TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox' "$OUT/trigger.log"
@@ -32,7 +33,7 @@ mkdir -p "$OUT"
   go test ./cmd/api -run TestResumeParseDrainerHTTPScenario -count=1
   go test ./internal/resume/jobs -run 'TestParseHandlerPIIRedlineForLogsAuditTaskRunsAndOutbox' -count=1
   cd "$ROOT"
-  if rg -n 'inline|mirror' backend/internal/resume backend/cmd/api/resume_parse_drainer_scenario_test.go --glob '!**/verify.sh'; then
+  if rg -n -i '(tailor|mode).*(inline|mirror)|(inline|mirror).*(tailor|mode)' backend/internal/resume backend/cmd/api/resume_parse_drainer_scenario_test.go --glob '!**/verify.sh'; then
     exit 1
   fi
   if rg -n 'failed_retryable' backend/internal/resume backend/cmd/api/resume_parse_drainer_scenario_test.go; then
@@ -48,5 +49,5 @@ mkdir -p "$OUT"
   echo "outbox: ready-only resume.parse.completed payload covered"
   echo "resumes.structured_profile: ready-state persistence covered by integration gate"
   echo "resumes.display_name: queued null + LLM-derived ready-state name + failed-with-snapshot fallback covered by parse/store/drainer gates"
-  echo "upload parsed_text_snapshot: PDF/DOCX/Markdown/text readable extraction covered; unreadable PDF fallback rejected"
+  echo "upload parsed_text_snapshot: PDF/Markdown/text readable extraction covered; DOCX and unreadable PDF fallback rejected before AI"
 } | tee "$OUT/verify.log"

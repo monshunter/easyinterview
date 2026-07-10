@@ -1,8 +1,8 @@
 # Backend Practice Event Loop and Completion Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -17,7 +17,7 @@
 
 - [x] 1.1 `SessionEventService` routes `answer_submitted` / `hint_requested` / `session_paused` / `session_resumed`（验证：`TestSessionEventServiceRouteCoversAllKinds`）
 - [x] 1.2 `answer_submitted` chooses `ask_follow_up`, `ask_question` or `session_completed` from DB-owned turn/session state（验证：`TestHandleAnswerSubmittedDecisionBranches`）
-- [x] 1.3 `hint_requested` remains available for legacy strict and assisted sessions; plan 003 owns AI-backed hint behavior（验证：`TestAppendSessionEventHintLegacyStrictRunsAIAndAppends`）
+- [x] 1.3 `hint_requested` remains available for strict and assisted sessions; plan 003 owns AI-backed hint behavior（验证：`TestAppendSessionEventHintStrictModeRunsAIAndAppends`）
 - [x] 1.4 turn status mapping preserves all five current values and rejects unknown values（验证：`TestTurnStatus`）
 - [x] 1.5 malformed answer payloads and missing client timestamps fail before AI or repository side effects（验证：`TestAppendSessionEventRejectsMissingAnswerText`、`TestAppendSessionEventRequiresOccurredAt`）
 
@@ -42,8 +42,8 @@
 ## Phase 4: privacy, contract drift and closeout
 
 - [x] 4.1 outbox, audit, log, metric and task-run payloads do not contain question, answer, hint, prompt, response or provider secret text（验证：outbox/redaction tests and P0.043）
-- [x] 4.2 runtime boundary lint keeps removed practice terms, duplicate `report_generate` handoff paths and turn-status compression helpers out of runtime/scenario/generated surfaces（验证：`python3 scripts/lint/backend_practice_non_current.py --repo-root . --phase all`）
-- [x] 4.3 BDD-Gate: `E2E.P0.043` privacy/runtime boundary is covered（验证：`cd backend && go test ./cmd/api -run TestE2EP0043PracticeEventLoopPrivacyAndNonCurrentNegativeSurface -count=1`）
+- [x] 4.2 runtime boundary lint keeps removed practice terms, duplicate `report_generate` handoff paths and turn-status compression helpers out of runtime/scenario/generated surfaces（验证：`python3 scripts/lint/backend_practice_out_of_scope.py --repo-root . --phase all`）
+- [x] 4.3 BDD-Gate: `E2E.P0.043` privacy/runtime boundary is covered（验证：`cd backend && go test ./cmd/api -run TestE2EP0043PracticeEventLoopPrivacyAndOutOfScopeSurface -count=1`）
 - [x] 4.4 owner closeout gates are current（验证：`validate_context.py backend-practice/002 backend`、`sync-doc-index --check`、`make docs-check`、`git diff --check`）
 
 ## 收口命令
@@ -55,5 +55,5 @@
 - [x] `make codegen-check`
 - [x] `make validate-fixtures`
 - [x] `python3 scripts/lint/conventions_drift.py --repo-root .`
-- [x] `python3 scripts/lint/backend_practice_non_current.py --repo-root . --phase all`
-- [x] `python3 -m pytest scripts/lint/backend_practice_non_current_test.py -q`
+- [x] `python3 scripts/lint/backend_practice_out_of_scope.py --repo-root . --phase all`
+- [x] `python3 -m pytest scripts/lint/backend_practice_out_of_scope_test.py -q`

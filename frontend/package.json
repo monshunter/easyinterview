@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "lint": "echo 'TODO: full lint wired by D1; B1 only enforces error-code boundary in scripts/lint' && exit 0",
+    "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:pixel-parity": "playwright test",

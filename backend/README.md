@@ -27,5 +27,5 @@ Backend owners must keep an operation matrix for each new or materially changed 
 - API or DTO changes start in `openapi/openapi.yaml`, then `openapi/fixtures/`, then `make codegen && make codegen-check`.
 - Persistent behavior requires migrations plus `make migrate-check` when schema changes.
 - Handler work must cover success, failure, auth/session, idempotency where applicable, privacy red lines, and generated error envelope shape.
-- AI-enabled backend code must route through `internal/ai/aiclient`; unit tests use stub/fixture only, while dev/Kind/staging/prod must fail fast without real provider config.
+- AI-enabled backend code must route through `internal/ai/aiclient`; unit tests use stub/fixture only, while non-test runtimes must fail fast without real provider config.
 - Before handoff to frontend integration, run focused Go tests and the relevant repo-level gates from [docs/development.md §1](../docs/development.md#1-the-5-local-gates).

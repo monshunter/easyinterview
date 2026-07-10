@@ -145,9 +145,6 @@ func (f *fakeStore) WriteTargetParsedOutbox(context.Context, string, string, []b
 func (f *fakeStore) GetTargetJobForParse(context.Context, string) (targetjob.TargetJobRecord, []targetjob.SourceRecord, error) {
 	return targetjob.TargetJobRecord{}, nil, nil
 }
-func (f *fakeStore) UpdateTargetJobAnalysisFailure(context.Context, string, time.Time) error {
-	return nil
-}
 
 func (f *fakeStore) LookupFileAttachmentForUser(_ context.Context, userID string, fileObjectID string) (targetjob.FileAttachmentRecord, error) {
 	if f.fileLookupErr != nil {

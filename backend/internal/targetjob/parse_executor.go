@@ -603,10 +603,9 @@ func redactErrorMessage(msg string) string {
 	return msg
 }
 
-// SourceRefreshHandler is the placeholder JobHandler for source_refresh
-// rows enqueued in 4.5. The actual refresh is deferred to a future plan;
-// today we just flip target_job_sources.freshness_status to 'stale' so
-// observability has a marker.
+// SourceRefreshHandler is the minimal JobHandler for source_refresh rows
+// enqueued in 4.5. It marks target_job_sources.freshness_status as 'stale'
+// without fetching external data or exposing the source URL.
 type SourceRefreshHandler struct {
 	Store Store
 	Now   func() time.Time

@@ -157,8 +157,8 @@ func TestParseExecutor_OutboxPayloadsContainOnlyAllowedTokens(t *testing.T) {
 	}
 }
 
-// TestSourceRefreshHandler_PayloadHasNoSourceURL guards 4.5: the placeholder
-// source_refresh row must never reflect the original source URL.
+// TestSourceRefreshHandler_PayloadHasNoSourceURL guards 4.5: the internal-only
+// source_refresh job must never reflect the original source URL.
 func TestSourceRefreshHandler_PayloadHasNoSourceURL(t *testing.T) {
 	store := &pipelineFakeStore{}
 	h := &targetjob.SourceRefreshHandler{Store: store}

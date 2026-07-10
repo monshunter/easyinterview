@@ -35,7 +35,7 @@ event whose payload contains only IDs, mode, and status.
 - `scripts/trigger.sh`: runs fixture validation, focused `cmd/api` tailor HTTP
   scenarios, handler fixture parity, service tests, store unit tests, and
   drainer ready-path gates.
-- `scripts/verify.sh`: rejects skipped or no-op gates, checks required runner markers and PASS evidence, reruns fixture parity, and performs privacy / non-current-vocabulary negative searches.
+- `scripts/verify.sh`: rejects skipped or no-op gates, checks required runner markers and PASS evidence, reruns fixture parity, and performs privacy / out-of-scope-vocabulary negative searches.
 - `scripts/cleanup.sh`: records cleanup completion while preserving logs under `.test-output/`.
 
 ## 5. Evidence

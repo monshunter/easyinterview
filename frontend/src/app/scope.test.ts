@@ -29,7 +29,7 @@ describe("frontend D1 scope guards", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("never ships standalone non-current route screens (voice / growth / mistakes / drill)", () => {
+  it("never ships standalone out-of-scope route screens (voice / growth / mistakes / drill)", () => {
     const FORBIDDEN_FILE_NAMES = [
       /\bVoiceScreen\.(tsx|ts)$/,
       /\bGrowthScreen\.(tsx|ts)$/,
@@ -48,9 +48,9 @@ describe("frontend D1 scope guards", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("never references non-current route names from active code", () => {
+  it("never references out-of-scope route names from active code", () => {
     // The route alias map in normalizeRoute.ts intentionally references the
-    // non-current names for compatibility normalization. All other active code
+    // out-of-scope names for compatibility normalization. All other active code
     // must avoid referencing these aliases as live route names.
     const ALIAS_OWNER = "/app/normalizeRoute.ts";
     const FORBIDDEN_LITERALS = [
@@ -70,7 +70,7 @@ describe("frontend D1 scope guards", () => {
     const offenders: Array<{ file: string; needle: string }> = [];
     for (const file of walk(FRONTEND_SRC)) {
       if (file.endsWith(ALIAS_OWNER)) continue;
-      // Skip test files: tests legitimately exercise non-current aliases through
+      // Skip test files: tests legitimately exercise out-of-scope aliases through
       // normalizeRoute and via initialRoute={{ name: "welcome", ... }} loose
       // input. Their job is to prove the gate works.
       if (/\.test\.(ts|tsx)$/.test(file)) continue;
@@ -83,13 +83,13 @@ describe("frontend D1 scope guards", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("does not keep the non-current voice alias in normalizeRoute", () => {
+  it("does not keep the out-of-scope voice alias in normalizeRoute", () => {
     const file = join(FRONTEND_SRC, "app", "normalizeRoute.ts");
     const content = readFileSync(file, "utf8");
     expect(content).not.toMatch(/^\s*voice\s*:/m);
   });
 
-  it("does not keep non-current JD Match CSS assets", () => {
+  it("does not keep out-of-scope JD Match CSS assets", () => {
     const file = join(FRONTEND_SRC, "app", "theme", "global.css");
     const content = readFileSync(file, "utf8");
     expect(content).not.toMatch(/jdmatch-/);

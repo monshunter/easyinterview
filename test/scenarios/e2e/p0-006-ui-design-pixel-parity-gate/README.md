@@ -35,7 +35,7 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
   parity（三入口、显示控制、语言 dropdown、authenticated 头像菜单 dropdown /
   logout flow、ui-design 对照与 mode/aria contract）。
 - `tests/pixel-parity/screens.spec.ts` — auth_login 卡片 shell DOM 锚点 +
-  ui-design hash route `#route=auth_login` 对照 + non-current-module 负向断言。
+  ui-design hash route `#route=auth_login` 对照 + out-of-scope-module 负向断言。
 - `tests/pixel-parity/layout.spec.ts` — TopBar 与 auth shell 在两个 viewport
   下的 bounding box 不重叠 / 不溢出。
 - `tests/pixel-parity/screenshot.spec.ts` — 默认 warm/light screenshot smoke
@@ -51,7 +51,7 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
   initial route bootstrap 进入，不依赖 Home recent card 的 `resume-unbound`。
 - `tests/pixel-parity/resume-workshop.spec.ts`、`resume-workshop-create.spec.ts` —
   Resume Workshop flat list、read-only detail、upload/paste create flow 与
-  non-current tree/branch/guided/rewrite/edit 负向断言。
+  out-of-scope tree/branch/guided/rewrite/edit 负向断言。
 - `tests/pixel-parity/practice.spec.ts`、`generating.spec.ts`、`report.spec.ts`
   — 面试、生成与报告核心页面 DOM、布局、主题与
   screenshot smoke。
@@ -66,7 +66,7 @@ Playwright 配置同时拉起两个 project（`desktop` 1440×900 + `mobile` 390
   0 32 / border-bottom 1px solid `rgb(231, 226, 214)`。
 - 默认 home 渲染 `topbar-nav-home[aria-current=page]`、`topbar-dark-toggle`
   `aria-pressed=false`、语言 dropdown 暴露 `topbar-lang-option-zh` /
-  `topbar-lang-option-en`、non-current-module（welcome / mistakes / growth / drill /
+  `topbar-lang-option-en`、out-of-scope-module（welcome / mistakes / growth / drill /
   独立 voice）testid 不可达。
 - authenticated user menu 通过 mocked auth API 完成 login → avatar chip → dropdown
   → logout：dropdown 对齐 `ui-design/src/app.jsx` 的 220px 最小宽度、6px top gap、
@@ -98,7 +98,7 @@ pnpm --filter @easyinterview/frontend test:pixel-parity:install
 都 exit ≠ 0 并给出可读提示。`trigger.sh` 跑 Playwright 后把日志写到
 `.test-output/e2e/p0-006-ui-design-pixel-parity-gate/trigger.log`。
 `verify.sh` 断言日志包含 passing summary 且没有 failed summary，并 grep
-non-current-module testid 不在 trigger 输出里的 failing trace 出现，同时确认当前
+out-of-scope-module testid 不在 trigger 输出里的 failing trace 出现，同时确认当前
 13 个 parity spec 已实际执行。
 
 ## 5 污染控制

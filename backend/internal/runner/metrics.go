@@ -18,10 +18,10 @@ const (
 	MetricOutboxPublishFailures = "outbox_publish_failures_total"
 )
 
-// Metrics is the observability sink for the kernel (spec §4.4). Phase 1 ships a
-// no-op default; KernelMetrics is the real implementation. Keeping it an
-// interface lets the runtime and outbox dispatcher emit without depending on a
-// concrete registry.
+// Metrics is the observability sink for the kernel (spec §4.4). When no sink is
+// supplied, emissions are discarded; KernelMetrics is the registry-backed
+// implementation. Keeping it an interface lets the runtime and outbox
+// dispatcher emit without depending on a concrete registry.
 type Metrics interface {
 	// ObserveJobProcessed records one finalized job with its terminal result
 	// (succeeded / failed / dead / retried) and wall-clock duration.
@@ -37,14 +37,14 @@ type Metrics interface {
 	SetOutboxPending(pending float64)
 }
 
-// nopMetrics is the default sink used when no Metrics is supplied.
-type nopMetrics struct{}
+// discardMetrics is the default sink used when no Metrics is supplied.
+type discardMetrics struct{}
 
-func (nopMetrics) ObserveJobProcessed(string, string, time.Duration) {}
-func (nopMetrics) ObserveReaped(string, int64)                       {}
-func (nopMetrics) ObserveOutboxPublish(string, time.Duration)        {}
-func (nopMetrics) ObserveOutboxFailure()                             {}
-func (nopMetrics) SetOutboxPending(float64)                          {}
+func (discardMetrics) ObserveJobProcessed(string, string, time.Duration) {}
+func (discardMetrics) ObserveReaped(string, int64)                       {}
+func (discardMetrics) ObserveOutboxPublish(string, time.Duration)        {}
+func (discardMetrics) ObserveOutboxFailure()                             {}
+func (discardMetrics) SetOutboxPending(float64)                          {}
 
 // Counter / Gauge / Histogram are the minimal metric handle surfaces the kernel
 // needs. They mirror the Prometheus *Vec subset so an F1 adapter is a thin
@@ -159,7 +159,7 @@ type inMemMetric struct {
 	values    map[string]float64
 }
 
-func (m *inMemMetric) Inc(labelValues ...string)              { m.Add(1, labelValues...) }
+func (m *inMemMetric) Inc(labelValues ...string) { m.Add(1, labelValues...) }
 func (m *inMemMetric) Add(value float64, labelValues ...string) {
 	m.mu.Lock()
 	m.values[joinMetricLabels(labelValues)] += value

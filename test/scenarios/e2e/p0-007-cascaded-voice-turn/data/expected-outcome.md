@@ -1,6 +1,6 @@
 # E2E.P0.007 Expected Outcome
 
-- Frontend voice mode calls `createPracticeVoiceTurn` with `Idempotency-Key` and renders transcript / assistant text / TTS playback status.
+- Frontend phone mode calls `createPracticeVoiceTurn` with `Idempotency-Key` and renders transcript / assistant text / TTS playback status.
 - Backend HTTP route `POST /api/v1/practice/sessions/{sessionId}/voice-turns` returns `200 PracticeVoiceTurnResult`.
 - Idempotency replay returns the same `voiceTurnId` and does not append a duplicate session event.
 - Provider meta summary includes independent STT, chat, and TTS profile names and provider labels.

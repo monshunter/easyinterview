@@ -96,7 +96,7 @@ describe("ResumeDetailView read-only contract", () => {
     }
   });
 
-  it("ignores legacy tab=rewrites and still shows the same read-only resume content", async () => {
+  it("ignores out-of-scope tab=rewrites and still shows the same read-only resume content", async () => {
     renderDetail("default", {
       name: "resume_versions",
       params: { resumeId: RESUME_ID, tab: "rewrites" },

@@ -1,13 +1,14 @@
 # DB Migrations Baseline Change Log
 
-> **版本**: 1.27
+> **版本**: 1.28
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 1.28 | 删除 tracked `baseline_noop` backfill manifest 与空 registry；backfill runner 继续支持真实行级 manifest，缺失 manifest 时跳过。 | tech-debt pruning |
 | 2026-07-07 | 1.27 | 压缩为当前 net-state migration contract：22 app tables、3 auth support tables、2 metadata tables、flat Resume schema、privacy matrix、backfill ledger and executable gates. | product-scope/001-core-loop-module-pruning Phase 6.119 |
 | 2026-07-07 | 1.26 | 对齐 active spec 宽口径措辞，保持当前 schema inventory、job/check matrix 与 privacy matrix 一致。 | product-scope/001-core-loop-module-pruning Phase 6.84 |
 | 2026-07-06 | 1.25 | 对齐 current job/check source matrix，并用 focused migration contract test 固化 DB final-state guard。 | product-scope/001-core-loop-module-pruning Phase 6.9 |

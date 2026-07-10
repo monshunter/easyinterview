@@ -51,7 +51,7 @@
 | 4.1 | provider evidence | evidence 只记录 provider/profile/model/latency/task-run count 摘要 | ☐ Pass ☐ Fail |
 | 4.2 | no stub/mock | 无 `APP_ENV=test`、stub provider、fixture transport、`Prefer: example=` 完成证据 | ☐ Pass ☐ Fail |
 | 4.3 | URL/storage/console 隐私 | 不出现 JD 原文、答案全文、报告 prose、session cookie value | ☐ Pass ☐ Fail |
-| 4.4 | non-current-negative | 无 welcome/growth/mistakes/drill/followup/experiences/star/onboarding/独立 voice/`mode=debrief` 物化 | ☐ Pass ☐ Fail |
+| 4.4 | out-of-scope-negative | 无 welcome/growth/mistakes/drill/followup/experiences/star/onboarding/独立 voice/`mode=debrief` 物化 | ☐ Pass ☐ Fail |
 
 ## 5 Agent Preflight
 

@@ -119,8 +119,8 @@ where id = $1
 	}
 }
 
-func TestE2EP0098FullFunnelNonCurrentNegativeRoutePattern(t *testing.T) {
-	pattern := regexp.MustCompile(fullFunnelNonCurrentRoutePattern)
+func TestE2EP0098FullFunnelOutOfScopeNegativeRoutePattern(t *testing.T) {
+	pattern := regexp.MustCompile(fullFunnelOutOfScopeRoutePattern)
 	for _, allowed := range []string{
 		"startPracticeSession",
 		"createPracticePlan",
@@ -130,18 +130,18 @@ func TestE2EP0098FullFunnelNonCurrentNegativeRoutePattern(t *testing.T) {
 		"/api/v1/practice/sessions/{sessionId}/voice-turns",
 	} {
 		if pattern.MatchString(allowed) {
-			t.Fatalf("non-current route pattern falsely matched canonical token %q", allowed)
+			t.Fatalf("out-of-scope route pattern falsely matched canonical token %q", allowed)
 		}
 	}
 	root := scenarioRepoRoot(t)
-	for _, rel := range fullFunnelNonCurrentScanPaths() {
+	for _, rel := range fullFunnelOutOfScopeScanPaths() {
 		path := filepath.Join(root, rel)
 		info, err := os.Stat(path)
 		if err != nil {
-			t.Fatalf("stat non-current scan path %s: %v", rel, err)
+			t.Fatalf("stat out-of-scope scan path %s: %v", rel, err)
 		}
 		if !info.IsDir() {
-			assertFullFunnelNonCurrentCleanFile(t, pattern, path, rel)
+			assertFullFunnelOutOfScopeCleanFile(t, pattern, path, rel)
 			continue
 		}
 		err = filepath.WalkDir(path, func(candidate string, entry fs.DirEntry, walkErr error) error {
@@ -151,11 +151,11 @@ func TestE2EP0098FullFunnelNonCurrentNegativeRoutePattern(t *testing.T) {
 			if entry.IsDir() {
 				return nil
 			}
-			assertFullFunnelNonCurrentCleanFile(t, pattern, candidate, rel)
+			assertFullFunnelOutOfScopeCleanFile(t, pattern, candidate, rel)
 			return nil
 		})
 		if err != nil {
-			t.Fatalf("walk non-current scan path %s: %v", rel, err)
+			t.Fatalf("walk out-of-scope scan path %s: %v", rel, err)
 		}
 	}
 }
@@ -763,9 +763,9 @@ select response_body::text from idempotency_records where user_id = $1 and respo
 	return payloads
 }
 
-const fullFunnelNonCurrentRoutePattern = `(^|[[:space:]'"'/#?&=:-])(welcome|growth|mistakes|drill|followup|experiences|star(_editor)?|onboarding)([[:space:]'"'/#?&=:-]|$)|mode=debrief|name=['"](plan|resume|voice)['"]|route=['"](plan|resume|voice)['"]|#route=(plan|resume|voice)([[:space:]'"'/#?&=:-]|$)`
+const fullFunnelOutOfScopeRoutePattern = `(^|[[:space:]'"'/#?&=:-])(welcome|growth|mistakes|drill|followup|experiences|star(_editor)?|onboarding)([[:space:]'"'/#?&=:-]|$)|mode=debrief|name=['"](plan|resume|voice)['"]|route=['"](plan|resume|voice)['"]|#route=(plan|resume|voice)([[:space:]'"'/#?&=:-]|$)`
 
-func fullFunnelNonCurrentScanPaths() []string {
+func fullFunnelOutOfScopeScanPaths() []string {
 	return []string{
 		"backend/cmd/api/main.go",
 		"backend/internal/api/generated",
@@ -783,14 +783,14 @@ func fullFunnelNonCurrentScanPaths() []string {
 	}
 }
 
-func assertFullFunnelNonCurrentCleanFile(t *testing.T, pattern *regexp.Regexp, path, scope string) {
+func assertFullFunnelOutOfScopeCleanFile(t *testing.T, pattern *regexp.Regexp, path, scope string) {
 	t.Helper()
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("read non-current scan file %s: %v", path, err)
+		t.Fatalf("read out-of-scope scan file %s: %v", path, err)
 	}
 	if match := pattern.Find(raw); len(match) > 0 {
-		t.Fatalf("non-current route token %q found in %s within scope %s", string(match), path, scope)
+		t.Fatalf("out-of-scope route token %q found in %s within scope %s", string(match), path, scope)
 	}
 }
 

@@ -123,7 +123,7 @@ describe("ParseResumeBinding", () => {
     expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
   });
 
-  it("can inherit route resumeId only when the saved TargetJob lacks one", async () => {
+  it("does not inherit route resumeId when the saved TargetJob lacks one", async () => {
     const client = createClient([listResumesFixture], {
       currentPracticePlanId: null,
       resumeId: null,
@@ -134,11 +134,9 @@ describe("ParseResumeBinding", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("parse-resume-binding")).toHaveTextContent(
-        "Alice Example - Senior Frontend Engineer",
-      );
+      expect(screen.getByTestId("parse-resume-required")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("parse-action-start-interview")).toBeEnabled();
+    expect(screen.getByTestId("parse-action-start-interview")).toBeDisabled();
     expect(screen.queryByTestId("parse-resume-option-01918fa0-0000-7000-8000-000000001000")).not.toBeInTheDocument();
   });
 

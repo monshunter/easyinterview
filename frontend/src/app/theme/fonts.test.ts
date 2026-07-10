@@ -36,7 +36,7 @@ describe("open-source font sourcing (Phase 2.1)", () => {
     }
   });
 
-  it("does not depend on the non-current private brand font names", () => {
+  it("does not depend on the out-of-scope private brand font names", () => {
     const raw = readFileSync(PACKAGE_JSON, "utf8").toLowerCase();
     expect(raw).not.toContain("copernicus");
     expect(raw).not.toContain("styreneb");

@@ -32,7 +32,7 @@
   - `TestUseReportGenerationPollCrossUser404`（404 → 触发 onFailed callback with REPORT_NOT_FOUND）
   - `TestUseReportGenerationPollUnmountCancels`（unmount inflight 请求取消）
   - i18n zh/en 切换重绘验证（generating.* 命名空间 ≥ 20 keys）
-  - 负向断言：不出现 `mistakesQueue` / 旧 `report-timeline` testid / 旧 `reportLayout` 字面量
+  - 负向断言：不出现 `mistakesQueue` / 旧 `report-timeline` testid / 范围外 `reportLayout` 字面量
 
 ## Phase 2: ReportScreen 静态壳源级复刻 + 三态分支 + ContextStrip + Summary Cards
 
@@ -78,7 +78,7 @@
   - `TestDashboardDimensionsCardRow`（维度卡片行 horizontal scroll + 优先级 + 复练重点 3 条）
   - `TestDashboardQuestionRecap`（5 题 quick state 卡片）
   - `TestDashboardIssuesAndHighlights`（issues + highlights 列表 + 空数组 EmptyHint）
-  - 负向断言：不出现旧 5 档 readiness numeric / rubric score_levels label / 旧 `reportLayout` / `report_timeline`
+  - 负向断言：不出现范围外 5 档 readiness numeric / rubric score_levels label / 范围外 `reportLayout` / `report_timeline`
 
 ## Phase 4: 复练 CTA 行为 + ReportFailureState 完整 + GeneratingScreen handoff 完整
 
@@ -100,7 +100,7 @@
   - `TestTimeoutStateNoAutoNav`（timeout state 不自动 nav；用户点 retry 重启轮询）
   - `TestCtaDisabledWhenDataNotReady`（report status='generating' 兜底时 CTA disabled）
 
-## Phase 5: 完整状态机集成 + Playwright pixel parity + scenario 加挂 + 非当前输入负向
+## Phase 5: 完整状态机集成 + Playwright pixel parity + scenario 加挂 + 范围外输入负向
 
 - [x] Phase 5 本计划定义的测试项全部通过：
   - `pnpm --filter @easyinterview/frontend test` 全绿（覆盖 Phase 1-4 全部测试）
@@ -116,10 +116,10 @@
   - `TestErrorCodeI18nCoversAllAIErrors`（report.failureState.errorCode.* 覆盖 B1 `AI_*` enum 全集）
   - `TestReportFailureStateErrorCodeCoversReportNotFound`（显式断言 `report.failureState.errorCode.REPORT_NOT_FOUND` 与 `report.failureState.notFound.*` key 存在且 zh / en 同步；不归入 AI_* 通用映射）
   - `TestI18nKeyCountAtLeast60`（`report.*` + `generating.*` 合计 ≥ 60 keys）
-  - `frontend/src/app/screens/report/__tests__/nonCurrentNegative.test.ts` 全绿（不 import ui-design / window.EI_DATA / Voice 组件 / 不调 Practice operation；旧字面量 0 命中；含 `TestListTargetJobReportsNotInvokedInReportOrGenerating` mockTransport spy 反向断言）
-  - `frontend/src/app/screens/generating/__tests__/nonCurrentNegative.test.ts` 全绿（同上）
-  - `python3 scripts/lint/frontend_report_dashboard_non_current.py --repo-root . --phase all` 通过
-  - `python3 -m pytest scripts/lint/frontend_report_dashboard_non_current_test.py -q` 通过
+  - `frontend/src/app/screens/report/__tests__/outOfScopeNegative.test.ts` 全绿（不 import ui-design / window.EI_DATA / Voice 组件 / 不调 Practice operation；范围外字面量 0 命中；含 `TestListTargetJobReportsNotInvokedInReportOrGenerating` mockTransport spy 反向断言）
+  - `frontend/src/app/screens/generating/__tests__/outOfScopeNegative.test.ts` 全绿（同上）
+  - `python3 scripts/lint/frontend_report_dashboard_out_of_scope.py --repo-root . --phase all` 通过
+  - `python3 -m pytest scripts/lint/frontend_report_dashboard_out_of_scope_test.py -q` 通过
   - 4 个 P0 scenario 目录 setup → trigger → verify → cleanup 通过：p0-056 / p0-057 / p0-058 / p0-059
   - 跨 owner regression：scenario p0-044-047 重跑通过；backend `E2E.P0.052-055` 如已 implement 则通过
   - `frontend/src/app/screens/report/README.md` + `frontend/src/app/screens/generating/README.md` 创建完成
@@ -134,8 +134,8 @@
 - [x] `pnpm --filter @easyinterview/frontend build`
 - [x] `make codegen-check`
 - [x] `make validate-fixtures`
-- [x] `python3 scripts/lint/frontend_report_dashboard_non_current.py --repo-root . --phase all`
-- [x] `python3 -m pytest scripts/lint/frontend_report_dashboard_non_current_test.py -q`
+- [x] `python3 scripts/lint/frontend_report_dashboard_out_of_scope.py --repo-root . --phase all`
+- [x] `python3 -m pytest scripts/lint/frontend_report_dashboard_out_of_scope_test.py -q`
 - [x] 4 个 P0 scenario 执行通过
 - [x] `make docs-check`
 - [x] `git diff --check`
@@ -147,4 +147,4 @@
 - `bootstrapRoute.test.ts`: 覆盖 `#route=generating/report` hash bootstrap，保证 pixel parity 从真实 route 启动。
 - `ReportScreen.test.tsx`: 覆盖报告 header 标题包含 target job label，而非只显示 round label。
 - `tests/pixel-parity/generating.spec.ts` + `tests/pixel-parity/report.spec.ts`: 覆盖 desktop / mobile DOM anchor、computed style、bounding box、no-overflow、主题切换与三态渲染。
-- `frontend_report_dashboard_non_current.py` + pytest: 覆盖 prototype short CSS tokens 和非当前 literal 的 scoped negative gate。
+- `frontend_report_dashboard_out_of_scope.py` + pytest: 覆盖 prototype short CSS tokens 和范围外 literal 的 scoped negative gate。

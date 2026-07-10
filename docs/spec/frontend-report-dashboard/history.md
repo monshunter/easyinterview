@@ -1,14 +1,16 @@
 # Frontend Report Dashboard History
 
-> **版本**: 1.5
+> **版本**: 1.8
 > **状态**: active
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-10
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
-| 2026-07-06 | 1.5 | docs-only：对齐 flat Resume contract 与当前范围表述；ReportContextStrip 使用 generated `getResume(resumeId)` 只读 displayName，非当前模块只作为边界和 stale-contract negative gate。 | product-scope/001-core-loop-module-pruning |
+| 2026-07-10 | 1.8 | 对齐当前 route fallback 命名：frontend 入口改为 `RouteShellScreen`，report/generating owner route 验收不再引用旧组件名。 | tech-debt pruning |
+| 2026-07-10 | 1.6 | 对齐 backend-review / B2 当前表述：`report-generating` fixture 表达 generating 状态元数据，不再描述为空报告占位。 | tech-debt pruning |
+| 2026-07-06 | 1.5 | docs-only：对齐 flat Resume contract 与当前范围表述；ReportContextStrip 使用 generated `getResume(resumeId)` 只读 displayName，范围外模块只作为边界和 stale-contract negative gate。 | product-scope/001-core-loop-module-pruning |
 | 2026-06-29 | 1.4 | product-scope D-22 后同步前端 downstream 边界：ReportScreen 只声明当前报告页 owner route 与 generated Reports consumer，不声明范围外 downstream owner。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-23 | 1.2 | L2 real-backend drift 修订：backend-review/001 真实 handler 已落地，spec/operation matrix 不再保留 Phase 5/future 口径；P0.056-P0.059 trigger 前置 `frontendOwners.realApiMode.test.ts`，verify 检查 real-mode marker、默认 backend base URL 与测试文件 marker，同时保留 `listTargetJobReports` dashboard-only UI 负向断言。 | 001-report-screen-and-generating-handoff |
 | 2026-05-16 | 1.1 | L2 code review 修订：复练 / 下一轮 CTA 不再直接进入 `practice` 或复用来源 session，改为 `workspace` + `autoStartPractice=1` fresh-session handoff；P0.059 场景 gate 从确认 Playwright spec 文件存在升级为执行 frontend build + generating/report Playwright pixel parity 并检查通过日志。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |

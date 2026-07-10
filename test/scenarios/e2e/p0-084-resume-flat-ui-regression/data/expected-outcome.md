@@ -4,7 +4,7 @@
 - Resume detail remains read-only and does not expose Rewrites/Edit/export/copy
   or original-modal surfaces.
 - Resume detail body shows original/parsed text before structured fallback.
-- Non-current operation tokens stay absent from runtime source:
+- Out-of-scope operation tokens stay absent from runtime source:
   `ResumeBranchFlow`, `branchResumeVersion`, `seedStrategy`,
   `acceptResumeTailorSuggestion`, `rejectResumeTailorSuggestion`, and
   `updateResumeVersion`.

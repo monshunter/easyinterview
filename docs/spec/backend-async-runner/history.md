@@ -1,14 +1,15 @@
 # Backend Async Runner History
 
-> **版本**: 1.7
+> **版本**: 1.10
 > **状态**: active
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-10
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
-| 2026-07-06 | 1.7 | 将 active spec 改为当前 runtime 合同表述：7 个可执行 handler、`privacy_export` contract-only、单一 kernel lifecycle、current handler owner map 和 generic non-current runner gate。 | product-scope/001-core-loop-module-pruning Phase 6.30 |
+| 2026-07-10 | 1.10 | 技术债口径清理：active spec 与 completed plan 区分实施前 review runner 基线和当前 `runner.Runtime` + `review.GenerateHandler` owner 事实。 | 001-internal-job-outbox-runner |
+| 2026-07-06 | 1.7 | 将 active spec 改为当前 runtime 合同表述：7 个可执行 handler、`privacy_export` contract-only、单一 kernel lifecycle、current handler owner map 和 generic out-of-scope runner gate。 | product-scope/001-core-loop-module-pruning Phase 6.30 |
 | 2026-06-29 | 1.6 | 同步当前 runner job_type 事实：当前可执行 handler 集合收敛为 target/import、resume、report、privacy delete、email dispatch 等核心 job。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-22 | 1.4 | L2 review fix：补齐 scheduler 防饥饿、handler 返回后 fresh timestamp finalize、`report_generate` 失败走 kernel shared backoff 的验收口径与测试 gate。 | 001-internal-job-outbox-runner |
 | 2026-05-22 | 1.3 | L2 completion audit 修正文档事实口径：将 spec / plan 中的旧 runner、旧 mail dispatcher 与 outbox dispatcher 缺失描述明确为 `001` 实施前基线，并补写当前 kernel + `OutboxDispatcher` 已接入的完成态事实，避免 active spec 继续表达旧实现为当前事实。 | 001-internal-job-outbox-runner |

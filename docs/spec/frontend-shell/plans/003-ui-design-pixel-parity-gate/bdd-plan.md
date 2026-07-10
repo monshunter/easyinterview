@@ -20,7 +20,7 @@
 
 | Given | When | Then |
 |-------|------|------|
-| `frontend/dist` has been built; `ui-design/index.html` can load; Chromium is installed; current App Shell and migrated screens are available | Scenario trigger runs `pnpm --filter @easyinterview/frontend test:pixel-parity`, which starts `serve-pixel-parity.mjs` and executes the desktop/mobile Playwright projects | Current 13 parity specs pass in both projects; DOM anchors, computed styles, bounding boxes, responsive geometry, dark/customAccent and screenshot smoke are covered; current TopBar/user menu and current business screens render; non-current route/module entries stay negative-only; the gate does not require ignored local screenshot baselines |
+| `frontend/dist` has been built; `ui-design/index.html` can load; Chromium is installed; current App Shell and migrated screens are available | Scenario trigger runs `pnpm --filter @easyinterview/frontend test:pixel-parity`, which starts `serve-pixel-parity.mjs` and executes the desktop/mobile Playwright projects | Current 13 parity specs pass in both projects; DOM anchors, computed styles, bounding boxes, responsive geometry, dark/customAccent and screenshot smoke are covered; current TopBar/user menu and current business screens render; out-of-scope route/module entries stay negative-only; the gate does not require ignored local screenshot baselines |
 
 ## 3 执行入口
 
@@ -35,4 +35,4 @@ test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/scripts/setup.sh && test/s
 | C-8 UI source structure parity | `E2E.P0.006` |
 | C-9 real-browser pixel parity gate | `E2E.P0.006` |
 | C-10 authenticated user-menu browser parity | `E2E.P0.006` |
-| C-13 non-current route negative regression | `E2E.P0.006` |
+| C-13 out-of-scope route negative regression | `E2E.P0.006` |

@@ -1,8 +1,8 @@
 # Frontend Home / Parse Spec
 
-> **版本**: 2.17
+> **版本**: 2.19
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -32,7 +32,7 @@ Home 输入 / 上传 / URL 导入 JD
   - `listResumes` 读取 ready 且未归档的简历；用户必须显式选择一份简历后才能点击「立即面试」。
   - `还没有简历？1 分钟创建 ->` 与下拉框同行，点击进入 `resume_versions?flow=create`。
   - `listTargetJobs` 渲染最近 3 张 mock interview card；超过 3 条时展示「更多」并跳转 `workspace`；最近卡片使用固定最大列宽并与 workspace 面试列表共享卡片主体、mini round rail 和 `立即面试 / Start interview now` 主按钮，但不展示删除按钮。
-  - Empty state 引导继续创建模拟面试，不展示占位业务数据。
+  - Empty state 引导继续创建模拟面试，不展示示例业务数据。
   - 未登录 import 通过 opaque pending import id 接续。
   - i18n 支持 zh/en，所有文案通过 typed locale helper。
 - Parse / Unified Plan Detail（`route=parse` 首次导入；`route=workspace` 带上下文回访时复用同一母版）：

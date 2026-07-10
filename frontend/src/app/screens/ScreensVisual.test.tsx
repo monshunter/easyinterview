@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { fireEvent, render } from "@testing-library/react";
 
 import { DisplayPreferencesProvider } from "../display/DisplayPreferencesProvider";
-import { PlaceholderScreen } from "./PlaceholderScreen";
+import { RouteShellScreen } from "./RouteShellScreen";
 import { SettingsScreen } from "./SettingsScreen";
 
 const HERE = resolve(__dirname);
@@ -54,15 +54,15 @@ describe("Settings shell visual contract (Phase 5.1 / Phase 12.2)", () => {
       container.querySelector("[data-testid='settings-privacy']"),
     ).toBeFalsy();
 
-    // D-21: P1 placeholder tabs are outside current scope.
+    // D-21: P1 notifications/subscription tabs are outside current scope.
     expect(
       container.querySelector(
-        "[data-testid='settings-notifications-placeholder']",
+        "[data-testid='settings-tab-notifications']",
       ),
     ).toBeFalsy();
     expect(
       container.querySelector(
-        "[data-testid='settings-subscription-placeholder']",
+        "[data-testid='settings-tab-subscription']",
       ),
     ).toBeFalsy();
 
@@ -95,7 +95,7 @@ describe("Settings shell visual contract (Phase 5.1 / Phase 12.2)", () => {
     ).toBeFalsy();
   });
 
-  it("rejects non-current Growth / Experiences / Mistakes / Drill / 独立 voice copy and testid", () => {
+  it("rejects out-of-scope Growth / Experiences / Mistakes / Drill / 独立 voice copy and testid", () => {
     const { container } = render(
       withProvider(<SettingsScreen route={{ name: "settings", params: {} }} />),
     );
@@ -109,18 +109,18 @@ describe("Settings shell visual contract (Phase 5.1 / Phase 12.2)", () => {
     ]) {
       expect(
         new RegExp(`data-testid=["']settings-${banned}["']`).test(html),
-        `non-current testid settings-${banned} must not appear`,
+        `out-of-scope testid settings-${banned} must not appear`,
       ).toBe(false);
     }
     expect(html).not.toMatch(/错题本|成长中心|经历库|目标角色|技能标签/);
   });
 });
 
-describe("PlaceholderScreen card skeleton (Phase 5.2)", () => {
-  it("renders a card skeleton (title + description + fallback stripe) for retained fallback routes", () => {
+describe("RouteShellScreen card skeleton (Phase 5.2)", () => {
+  it("renders a card skeleton (title + description + route stripe) for retained route-shell routes", () => {
     const { container } = render(
       withProvider(
-        <PlaceholderScreen
+        <RouteShellScreen
           route={{ name: "workspace", params: { jobId: "tj-1" } }}
         />,
       ),
@@ -139,14 +139,14 @@ describe("PlaceholderScreen card skeleton (Phase 5.2)", () => {
     expect(card).toBeTruthy();
     const stripe = card!.querySelector(".ei-skeleton-stripe");
     expect(stripe).toBeTruthy();
-    expect(stripe!.textContent).toBe("fallback shell");
+    expect(stripe!.textContent).toBe("route shell");
     expect(card!.textContent).not.toContain(["D2", "D6"].join("-"));
   });
 
-  it("falls back to placeholder.default copy for retained placeholder routes", () => {
+  it("falls back to routeShell.default copy for retained route-shell routes", () => {
     const { container } = render(
       withProvider(
-        <PlaceholderScreen
+        <RouteShellScreen
           route={{ name: "parse", params: {} }}
         />,
       ),
@@ -181,7 +181,7 @@ describe("screens.css visual rhythm (Phase 5.1 + 5.2)", () => {
     expect(css).toMatch(/\.ei-screen-card\s*\{[^}]*padding:\s*28px/);
   });
 
-  it("ei-skeleton-stripe defines striped placeholder background", () => {
+  it("ei-skeleton-stripe defines striped skeleton pattern", () => {
     expect(css).toMatch(
       /\.ei-skeleton-stripe\s*\{[^}]*background:\s*repeating-linear-gradient/,
     );

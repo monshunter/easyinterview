@@ -63,13 +63,13 @@ type ServerInterface interface {
 	// requestPrivacyDelete — post /privacy/deletions: Request a privacy data deletion
 	RequestPrivacyDelete(w http.ResponseWriter, r *http.Request)
 
-	// requestPrivacyExport — post /privacy/exports: Request a privacy data export (P0 not implemented — returns 501)
+	// requestPrivacyExport — post /privacy/exports: Request a privacy data export (P0 unavailable - returns 501)
 	RequestPrivacyExport(w http.ResponseWriter, r *http.Request)
 
 	// getPrivacyRequest — get /privacy/requests/{privacyRequestId}: Get a privacy request status / result
 	GetPrivacyRequest(w http.ResponseWriter, r *http.Request, privacyRequestId string)
 
-	// getFeedbackReport — get /reports/{reportId}: Get a feedback report (still-generating reports return 200 with placeholder)
+	// getFeedbackReport — get /reports/{reportId}: Get a feedback report (queued or generating reports return 200 with current status)
 	GetFeedbackReport(w http.ResponseWriter, r *http.Request, reportId string)
 
 	// requestResumeTailor — post /resume/tailor: Start a resume-tailoring run for a target job

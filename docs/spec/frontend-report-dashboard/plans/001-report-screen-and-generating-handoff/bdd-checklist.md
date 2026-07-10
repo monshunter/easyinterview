@@ -1,8 +1,8 @@
 # 001 — Report Screen and Generating Handoff BDD Checklist
 
-> **版本**: 1.2
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-06-13
+> **更新日期**: 2026-07-10
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -33,7 +33,7 @@
   - 维度状态文案：strong / meets_bar / needs_work 三态映射正确
   - 切 zh ↔ en 关键文案重绘
   - 切 dark / customAccent 关键元素 computed background / color 可见变化
-  - 负向：`window.EI_DATA` / `data.jsx` literal grep 0 命中；voice 组件 import 0 命中；`getPracticeSession` / `appendSessionEvent` / `completePracticeSession` / `createPracticePlan` / `startPracticeSession` / `createPracticeVoiceTurn` / `getCompanyIntel` / `getDebrief` 调用 0 命中；非当前 prototype testid 0 命中
+  - 负向：`window.EI_DATA` / `data.jsx` literal grep 0 命中；voice 组件 import 0 命中；`getPracticeSession` / `appendSessionEvent` / `completePracticeSession` / `createPracticePlan` / `startPracticeSession` / `createPracticeVoiceTurn` / `getCompanyIntel` / `getDebrief` 调用 0 命中；范围外 prototype testid 0 命中
 - [x] 实现 cleanup.sh：按 [bdd-plan §6](./bdd-plan.md#6-数据隔离与污染恢复) 顺序清理 mockTransport spy buffer + InterviewContext + Playwright browser context（如有）
 - [x] 执行 `bash test/scenarios/e2e/p0-056-generating-to-report-happy-path/scripts/setup.sh && bash .../trigger.sh && bash .../verify.sh && bash .../cleanup.sh` 全绿
 - [x] 在 `test/scenarios/e2e/INDEX.md` 追加 row：`E2E.P0.056 | frontend-report-dashboard C-1 C-2 C-5 C-8 C-11 | p0-056-generating-to-report-happy-path/ | ... | automated | Ready`
@@ -75,12 +75,12 @@
 - [x] 在 INDEX 追加 row
 - [x] 记录验证证据
 
-## E2E.P0.059 Playwright pixel parity + i18n + 非当前输入负向
+## E2E.P0.059 Playwright pixel parity + i18n + 范围外输入负向
 
-- [x] 创建场景目录 `test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-non-current-negative/`，含完整资产
+- [x] 创建场景目录 `test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-out-of-scope-negative/`，含完整资产
 - [x] 准备 fixture：`getFeedbackReport=default`（ready 完整 + 准备度 basically_ready + 完整字段）；8 主题 × dark / customAccent 切换 helper；zh / en locale 切换 helper
 - [x] 实现 setup.sh：准备场景输出目录；Playwright webServer 由 frontend config 托管
-- [x] 实现 trigger.sh：执行 i18n 测试 + scoped non-current grep + frontend build + Playwright 套件 `pnpm --filter @easyinterview/frontend test:pixel-parity -- tests/pixel-parity/generating.spec.ts tests/pixel-parity/report.spec.ts`
+- [x] 实现 trigger.sh：执行 i18n 测试 + scoped out-of-scope grep + frontend build + Playwright 套件 `pnpm --filter @easyinterview/frontend test:pixel-parity -- tests/pixel-parity/generating.spec.ts tests/pixel-parity/report.spec.ts`
 - [x] 实现 verify.sh：
   - `trigger.log` 必须包含 frontend build 与 Playwright run marker
   - `trigger.log` 必须包含 `tests/pixel-parity/generating.spec.ts` / `tests/pixel-parity/report.spec.ts` 两个实际执行路径
@@ -89,27 +89,27 @@
   - Playwright report.spec.ts（desktop + mobile + ReportDashboard + 5 detail tab + ReportFailureState + ReportMissingSessionState + 8 主题 × dark）全绿
   - DOM anchor / computed style / bounding box / responsive geometry / non-empty screenshot smoke 全部通过；仅当稳定 baseline 已提交或本 phase 明确更新 baseline 时才追加 `toHaveScreenshot`
   - bounding box stays in viewport, no overlap
-  - `generating` TopBar 隐藏不占位；`report` 默认 App chrome / TopBar 可见且不进入一级导航
+  - `generating` TopBar 隐藏且不保留布局空间；`report` 默认 App chrome / TopBar 可见且不进入一级导航
   - mobile 三列折叠为单列 + Detail Surface Accordion + CTA sticky bottom
   - `TestReportNamespaceZhEnSync` 通过：`report.*` zh / en key 集合相等
   - `TestGeneratingNamespaceZhEnSync` 通过
   - `TestErrorCodeI18nCoversAllAIErrors` 通过：`report.failureState.errorCode.*` 覆盖 B1 `AI_*` enum 全集（用 generated B1 常量做 source of truth）
   - `TestI18nKeyCountAtLeast60` 通过（`report.*` + `generating.*` ≥ 60 keys）
-  - `python3 scripts/lint/frontend_report_dashboard_non_current.py --repo-root . --phase all` 通过：在 `frontend/src/app/screens/{report,generating}/` 范围 grep 以下字面量零出现：
+  - `python3 scripts/lint/frontend_report_dashboard_out_of_scope.py --repo-root . --phase all` 通过：在 `frontend/src/app/screens/{report,generating}/` 范围 grep 以下字面量零出现：
     - `reportLayout` / `report_layout`
-    - 旧 5 档 readiness 字面量（`fully_prepared` 等）
+    - 范围外 5 档 readiness 字面量（`fully_prepared` 等）
     - `readinessScore` / `readiness_score` numeric
     - `mistakes_queue` / `mistakesQueue`
     - `drill_builder` / `drillBuilder`
     - `growth_center` / `growthCenter`
     - `report_timeline` / `reportTimeline`
     - `report_form` / `reportForm`
-    - 旧独立 `mistakes` route entry
+    - 范围外独立 `mistakes` route entry
     - `createPracticeVoiceTurn` / `getCompanyIntel` / `getDebrief`
-    - `VoiceSessionSurface` / `PracticeWaveformBars` 等 voice 组件 import
+    - `ui-design/src/screen-practice` practice DOM import
     - `window.EI_DATA` / `ui-design/src/data.jsx` import
-  - 本 plan / BDD / test docs / spec §D-12 prohibition / `scripts/lint/frontend_report_dashboard_non_current.py` 自身允许枚举字面量作为禁止性断言（不属于实现 / runtime 范围）
-  - `nonCurrentNegative.test.ts`（report / generating 各一份）通过
+  - 本 plan / BDD / test docs / spec §D-12 prohibition / `scripts/lint/frontend_report_dashboard_out_of_scope.py` 自身允许枚举字面量作为禁止性断言（不属于实现 / runtime 范围）
+  - `outOfScopeNegative.test.ts`（report / generating 各一份）通过
   - 跨 owner regression：scenario `p0-044-047`（frontend-workspace-and-practice/002）重跑通过；backend-review/001 real handler regression `cd backend && go test ./cmd/api -run 'TestE2EP0052|TestE2EP0053|TestE2EP0054|TestE2EP0055' -count=1` 在真实 handler 落地后作为回归证据
 - [x] 实现 cleanup.sh
 - [x] 执行场景验证全绿
@@ -121,11 +121,11 @@
 - [x] 4 个 scenario 目录 setup / trigger / verify / cleanup 全部执行通过
 - [x] `test/scenarios/e2e/INDEX.md` P0 表追加 4 行（E2E.P0.056 / 057 / 058 / 059）；状态 Ready，automated
 - [x] `pnpm --filter @easyinterview/frontend test:pixel-parity` 全绿
-- [x] `python3 scripts/lint/frontend_report_dashboard_non_current.py --repo-root . --phase all` 通过
-- [x] `python3 -m pytest scripts/lint/frontend_report_dashboard_non_current_test.py -q` 通过
+- [x] `python3 scripts/lint/frontend_report_dashboard_out_of_scope.py --repo-root . --phase all` 通过
+- [x] `python3 -m pytest scripts/lint/frontend_report_dashboard_out_of_scope_test.py -q` 通过
 
 ## 2026-05-16 L2 review scenario evidence
 
-- `E2E.P0.056` / `057` / `058` / `059` setup → trigger → verify → cleanup 均通过，覆盖 generating ready handoff、复练 CTA A/B、失败/缺参/cross-user、pixel parity + i18n + 非当前输入负向。
+- `E2E.P0.056` / `057` / `058` / `059` setup → trigger → verify → cleanup 均通过，覆盖 generating ready handoff、复练 CTA A/B、失败/缺参/cross-user、pixel parity + i18n + 范围外输入负向。
 - `E2E.P0.044` / `045` / `046` / `047` setup → trigger → verify → cleanup 均通过，覆盖 frontend-workspace-and-practice handoff regression。
 - 2026-05-23 L2 update: P0.056-P0.059 trigger scripts now run `frontendOwners.realApiMode.test.ts` before fixture-backed report UI subcases, and verify scripts reject missing real-mode marker / default backend base URL / test-file marker; focused real-mode Vitest PASS.

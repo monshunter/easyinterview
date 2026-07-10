@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse
 
-> **版本**: 2.13
+> **版本**: 2.17
 > **状态**: completed
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-本计划交付当前 Home + Parse 新建模拟面试入口，并在 v2.10 原地修订中把轮次假设升级为结构化 LLM/JD parse 合同：Parse 详情、Home 最近模拟面试卡片、Workspace 规划回访 handoff 和共享导航上下文必须使用同一份 TargetJob structured round mapper；卡片视觉仍复刻 UI 真理源，但轮次数量必须为 2~5，轮次类型、标题、时长和 focus 都必须来自后端保存的 `TargetJob.summary.interviewRounds[]`。v2.11 原地修订把 Home 最近模拟面试卡片和 workspace 面试列表卡片收敛到同一个 `MockInterviewCard` 主体：Home recent grid 使用固定最大列宽，workspace 只追加 footer CTA。本次 v2.12 原地修订要求 Home recent 继续复用 workspace 面试列表卡片动作模型：点击卡片主体进入统一规划详情，`立即面试` 主按钮直接启动 practice，但 Home 不展示删除按钮。v2.13 review remediation 要求 Home recent 只准入 ready TargetJob，并且 quick-start 必须把结构化 `roundId/roundName` 带入 practice route。用户从首页输入、上传或 URL 导入 JD，显式选择一份 ready 简历，进入统一详情页核对已保存的 JD、简历和由 LLM 推断的面试轮次；既有规划从 `workspace` 列表回访时也使用同一母版，不再出现第二套 workspace 当前规划详情页。
+本计划交付当前 Home + Parse 新建模拟面试入口，并在 v2.10 原地修订中把轮次假设升级为结构化 LLM/JD parse 合同：Parse 详情、Home 最近模拟面试卡片、Workspace 规划回访 handoff 和共享导航上下文必须使用同一份 TargetJob structured round mapper；卡片视觉仍复刻 UI 真理源，但轮次数量必须为 2~5，轮次类型、标题、时长和 focus 都必须来自后端保存的 `TargetJob.summary.interviewRounds[]`。v2.11 原地修订把 Home 最近模拟面试卡片和 workspace 面试列表卡片收敛到同一个 `MockInterviewCard` 主体：Home recent grid 使用固定最大列宽，workspace 只追加 footer CTA。本次 v2.12 原地修订要求 Home recent 继续复用 workspace 面试列表卡片动作模型：点击卡片主体进入统一规划详情，`立即面试` 主按钮直接启动 practice，但 Home 不展示删除按钮。v2.13 review remediation 要求 Home recent 只准入 ready TargetJob，并且 quick-start 必须把结构化 `roundId/roundName` 带入 practice route。v2.14 将 workspace detail 负向锚点统一为 out-of-scope 口径。用户从首页输入、上传或 URL 导入 JD，显式选择一份 ready 简历，进入统一详情页核对已保存的 JD、简历和由 LLM 推断的面试轮次；既有规划从 `workspace` 列表回访时也使用同一母版，不再出现第二套 workspace 当前规划详情页。
 
 交付后的当前链路：
 
@@ -65,7 +65,7 @@ UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-desig
 - Preview / workspace 回访详情对用户命名为“面试规划详情 / 面试上下文确认”，只读渲染 API response 中的 title、companyName、locationText、requirements、summary、fitSummary、round assumptions、已绑定 resume 与 provenance 信息。
 - Round assumptions 的数组长度必须为 2~5，R 序号、标题、轮次类型、时长和 focus 均来自 `TargetJob.summary.interviewRounds[]`。该数组由后端 LLM 根据 JD、岗位级别、公司/行业性质、团队/业务上下文、职责范围、招聘流程线索和同类岗位常见面试实践推断。前端只负责展示 API 保存的 round 数组，不得用 locale 静态文案或本地常量补齐固定 4 轮、固定 HR/技术/经理面类型或固定分钟数。
 - Basic fields、requirements evidence、hidden signals、round assumptions 和 resume binding 均不可在详情页修改；详情页不提供 notes 编辑、requirements hit toggle、hidden signal 移除、resume picker、创建简历兜底、重新解析、取消或仅保存规划入口。
-- Parse 读取 ready 简历列表仅用于展示已绑定 `resumeId` 摘要；若 TargetJob / route 缺少有效 `resumeId`，Start 保持 disabled 并展示缺失上下文状态，不在当前规划上补绑简历。
+- Parse 读取 ready 简历列表仅用于展示已绑定 `resumeId` 摘要；若 TargetJob 缺少有效 `resumeId`，Start 保持 disabled 并展示缺失上下文状态，不从 route-only `resumeId` 补绑简历。
 - Start interview 不调用 `updateTargetJob`，直接使用已保存 `targetJobId/resumeId/roundId/currentPracticePlanId` 调 `createPracticePlan` / `getPracticePlan` / `startPracticeSession` 并进入 practice。
 - `workspace?targetJobId=...` 普通回访不得强制播放 parse loading；应直接拉取 `getTargetJob` 并渲染同一详情母版 ready state。`workspace` 不读取 `autoStartPractice`，也不作为启动副作用路由。
 
@@ -128,7 +128,7 @@ Home must include the selected ready `resumeId` in every `importTargetJob` reque
 
 #### 4.2 Route continuity
 
-Successful import still navigates to Parse with `targetJobId`, source and `resumeId`, but route params are no longer the only persistence layer for the binding; the backend TargetJob response is authoritative after reload or list re-entry.
+Successful import still navigates to Parse with `targetJobId`, source and `resumeId`, but route params are not a binding fallback; the backend TargetJob response is authoritative after reload or list re-entry.
 
 #### 4.3 BDD-Gate
 
@@ -144,9 +144,9 @@ Rename the Parse preview user-facing concept from "JD parse result" to "Intervie
 
 Refactor the Parse-derived detail so `route=parse` after loading and `route=workspace` with `targetJobId` render the same DOM structure, fields, readonly resume binding and Start action. Workspace no-context list remains in `WorkspacePlanList`; practice startup is triggered only by the explicit Start action from the readonly detail.
 
-#### 5.3 Route context and non-current negative
+#### 5.3 Route context and out-of-scope negative
 
-Stop fabricating `plan-${targetJobId}` or `resume-unbound` from shared detail navigation; use declared `TargetJob.currentPracticePlanId` / `TargetJob.resumeId` when present, omit absent IDs, and add negative coverage for the retired independent workspace detail anchors.
+Stop fabricating `plan-${targetJobId}` or `resume-unbound` from shared detail navigation; use declared `TargetJob.currentPracticePlanId` / `TargetJob.resumeId` when present, omit absent IDs, and add negative coverage for the out-of-scope independent workspace detail anchors.
 
 #### 5.4 BDD-Gate
 
@@ -200,7 +200,7 @@ Update backend targetjob parse executor and tests so successful JD parse validat
 
 #### 8.3 Frontend structured round mapper
 
-Update Parse detail, Home recent card rail and `interviewContextFromTargetJob` to consume `summary.interviewRounds[]` directly. Focused tests must prove variable round counts and variable durations render from fixtures, and old fixed strings such as `HR 初筛 · 20m` are not used when structured rounds exist.
+Update Parse detail, Home recent card rail and `interviewContextFromTargetJob` to consume `summary.interviewRounds[]` directly. Focused tests must prove variable round counts and variable durations render from fixtures, and hardcoded strings such as `HR 初筛 · 20m` are not used when structured rounds exist.
 
 #### 8.4 UI truth source and BDD gate
 
@@ -239,7 +239,7 @@ Focused tests must prove Home recent cards show the quick-start action, do not s
 - Home/Parse owner 文档只描述当前 Home + Parse 合同、operation matrix、BDD gate 和验证入口。
 - `context.yaml` 只列当前正向 route、operationId、source package 与场景目录。
 - `E2E.P0.014` / `E2E.P0.015` / `E2E.P0.016` 场景文档和脚本覆盖当前 Home/Parse 主路径、失败路径、privacy gate 与 real-mode generated-client gate。
-- Home import request bodies include the selected `resumeId`, and backend list/detail can recover the binding without depending on transient Parse route params.
+- Home import request bodies include the selected `resumeId`, and backend list/detail must recover the binding without depending on transient Parse route params.
 - Parse and workspace detail routes share the same "面试规划详情 / 面试上下文确认" page structure, copy, resume binding and action semantics; workspace no longer renders an independent full-page current-plan confirmation.
 - Parse round assumptions, Home recent mock rails and shared TargetJob navigation context display/use backend/LLM `TargetJob.summary.interviewRounds[]`; round count is 2~5, and type/name, duration and focus are not front-end fixed values.
 - Home recent mock cards and workspace plan-list cards share the same `MockInterviewCard` body, mini round rail, fixed max-width grid and quick-start action; quick-start preserves structured `roundId/roundName`; Home omits delete controls while workspace includes them.
@@ -249,6 +249,9 @@ Focused tests must prove Home recent cards show the quick-start action, do not s
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 2.17 | Normalize workspace detail out-of-scope and hardcoded-round negative wording without behavior changes. |
+| 2026-07-10 | 2.16 | Align workspace detail and fixed-round negative wording without behavior changes. |
+| 2026-07-10 | 2.15 | Parse success detail ignores route-only `resumeId` for binding; Start requires saved TargetJob binding. |
 | 2026-07-09 | 2.13 | Review remediation: constrain Home recent to ready TargetJobs and preserve structured round params in quick-start practice handoff. |
 | 2026-07-09 | 2.12 | Reopen owner plan so Home recent cards reuse the Interview list action card, show quick start, and omit delete. |
 | 2026-07-09 | 2.11 | Reopen owner plan to give Home recent cards a fixed max-width grid and share `MockInterviewCard` with the workspace plan list. |

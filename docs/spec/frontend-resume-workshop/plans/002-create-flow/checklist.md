@@ -1,8 +1,8 @@
 # Frontend Resume Workshop Create Flow Checklist
 
-> **版本**: 1.8
+> **版本**: 1.10
 > **状态**: completed
-> **更新日期**: 2026-07-08
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -24,7 +24,7 @@
 - [x] 3.2 Paste registration success navigates directly to `resume_versions?resumeId=<id>` and does not render parser animation, preview confirm, or call create-flow `updateResume`.
 - [x] 3.3 Direct navigation does not persist raw resume content into URL, pending action, storage or logs.
 
-## Phase 4: Retired parsing / preview-confirm negative
+## Phase 4: Parser / preview-confirm absence
 
 - [x] 4.1 `ResumeCreateFlow` no longer imports or renders `ParsingStage`, `ResumeParseFlow`, `PreviewStage`, or `ResumePreviewConfirm`.
 - [x] 4.2 Create-flow tests and scenario scripts no longer execute parser/preview-confirm positive tests.
@@ -33,8 +33,8 @@
 ## Phase 5: BDD / integration gates
 
 - [x] 5.1 BDD-Gate: E2E.P0.081 create-flow upload/paste direct-to-detail happy path is maintained.
-- [x] 5.2 Retired gate: E2E.P0.082 no longer validates parser failure UI; verify script records parser flow as non-current/absent.
-- [x] 5.3 BDD-Gate: E2E.P0.083 Home / Workspace CTA direct-create handoff is maintained without preview confirm.
+- [x] 5.2 Absence gate: E2E.P0.082 no longer validates parser failure UI; verify script records parser flow as absent from current create flow.
+- [x] 5.3 BDD-Gate: E2E.P0.083 Home CTA direct-create handoff is maintained without preview confirm.
 - [x] 5.4 `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/create` PASS.
 - [x] 5.5 `corepack pnpm --filter @easyinterview/frontend test src/app/screens/resume-workshop/ResumeWorkshopScreen.test.tsx src/app/screens/resume-workshop/fixture-parity.test.ts` PASS.
 

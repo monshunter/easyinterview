@@ -20,11 +20,11 @@
   - `test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/{setup,trigger,verify}.sh` PASS。
   - `test/scenarios/e2e/p0-046-practice-text-loop-failure-and-recovery/scripts/{setup,trigger,verify}.sh` PASS。
   - `test/scenarios/e2e/p0-047-practice-text-loop-privacy-and-completion/scripts/{setup,trigger,verify}.sh` PASS。
-  - `make validate-fixtures`, `make lint-openapi`, `python3 scripts/lint/migrations_lint.py --repo-root .`, `make lint-backend-practice-non-current` PASS。
+  - `make validate-fixtures`, `make lint-openapi`, `python3 scripts/lint/migrations_lint.py --repo-root .`, `make lint-backend-practice-out-of-scope` PASS。
   - `corepack pnpm --filter @easyinterview/frontend exec tsc --noEmit` PASS。
   - `validate_context.py --context docs/spec/frontend-workspace-and-practice/plans/002-practice-text-event-loop/context.yaml --target frontend`, `sync-doc-index --check`, `make docs-check`, `git diff --check` PASS。
 - Review remediation 追加证据：
-  - P0.088/P0.090 route 场景已迁移到 `practice-phone-waveform`，并通过场景包装脚本 `setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` 串行验收；trigger 日志保留在 `.test-output/e2e/p0-088-url-addressable-routing-canonical/trigger.log` 与 `.test-output/e2e/p0-090-url-routing-hash-non-current-negative/trigger.log`。
+  - P0.088/P0.090 route 场景已迁移到 `practice-phone-waveform`，并通过场景包装脚本 `setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` 串行验收；trigger 日志保留在 `.test-output/e2e/p0-088-url-addressable-routing-canonical/trigger.log` 与 `.test-output/e2e/p0-090-url-routing-hash-out-of-scope-negative/trigger.log`。
   - Report context strip 已把 current `phone` 与 legacy `voice` modality 都归一为 Phone 文案；`ReportContextStrip.test.tsx` 与 `ui-design/ui-design-contract.test.mjs` 增加回归断言并通过。
   - `backend-practice` active spec 与 002/003 plan family 已从旧 strict-hint conflict、`turn_skipped` / `skipped` 正向合同收敛到当前 optional hint、四种 event kind、四值 turn status；相关 `validate_context.py`、`sync-doc-index --check`、`make docs-check` 均通过。
   - Phone pause review remediation 已补充 `practiceVoiceTurn.test.tsx` 回归断言：暂停会丢弃当前 microphone capture、释放 media track、不提交 stale voice turn，恢复后重新自动录音；`PracticePhoneSurface` 与 `usePracticeVoiceTurn` 已同步实现。

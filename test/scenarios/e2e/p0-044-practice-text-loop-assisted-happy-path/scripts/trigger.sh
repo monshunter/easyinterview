@@ -13,6 +13,7 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/practice/hooks/usePracticeEvents.test.tsx \
     src/app/screens/practice/components/AssistantActionRenderer.test.tsx \
     src/app/screens/practice/__tests__/PracticeScreenIntegration.test.tsx \
+    src/app/screens/practice/__tests__/outOfScopeNegative.test.ts \
     src/app/screens/practice/__tests__/practiceModeSwitch.test.tsx \
     src/app/screens/practice/__tests__/idempotencyContract.test.tsx \
     src/app/screens/practice/__tests__/appendSessionEventBody.test.tsx

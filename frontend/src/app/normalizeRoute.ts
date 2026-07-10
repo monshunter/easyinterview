@@ -5,9 +5,9 @@
  * docs/ui-design/module-map.md §5.2,
  * docs/spec/frontend-shell/spec.md §2.2 / §4.
  *
- * Design constraint (frontend-shell §4): non-current route names must never
- * materialize standalone screens. Only explicitly retained aliases normalize to
- * a current route; all other inputs fall back to `home`.
+ * Design constraint (frontend-shell §4): out-of-scope route names must never
+ * materialize standalone screens. Only explicitly mapped aliases normalize to a
+ * current route; all other inputs fall back to `home`.
  */
 
 import { isKnownRouteName, type Route, type RouteName } from "./routes";
@@ -25,7 +25,7 @@ const ROUTE_ALIASES: Record<string, RouteName> = {
   onboarding: "resume_versions",
   auth_register: "auth_login",
   // product-scope D-17: job recommendations are outside current scope; the
-  // non-current jd_match entry folds back into home (JD intake lives there).
+  // out-of-scope jd_match entry folds back into home (JD intake lives there).
   jd_match: "home",
   // product-scope D-16: email-code is the only sign-in flow.
   auth_reset: "auth_login",

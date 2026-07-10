@@ -8,5 +8,5 @@
 - User action sequence:
   1. Observe default Chinese shell.
   2. Switch TopBar language control to `en`.
-  3. Navigate to auth / settings / placeholder shells.
+  3. Navigate to auth / settings / route shells.
   4. Submit D1 auth operations through fixture-backed generated client.

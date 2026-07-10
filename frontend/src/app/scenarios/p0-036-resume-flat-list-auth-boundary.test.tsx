@@ -110,7 +110,7 @@ describe("E2E.P0.036 resume flat list + auth boundary", () => {
     await waitFor(() => {
       expect(screen.getByTestId("resume-workshop-table")).toBeInTheDocument();
     });
-    // Resume workshop screen replaces the placeholder.
+    // Resume workshop screen replaces the route shell.
     expect(
       screen.queryByTestId("route-resume_versions"),
     ).not.toBeInTheDocument();
@@ -169,10 +169,10 @@ describe("E2E.P0.036 resume flat list + auth boundary", () => {
     expect(detail).not.toHaveAttribute("data-tab");
   });
 
-  it("non-current prototype testids and runtime imports are absent from the resume-workshop source", () => {
+  it("out-of-scope prototype testids and runtime imports are absent from the resume-workshop source", () => {
     // Static gate already enforced in ResumeWorkshopPrivacy.test.ts. We assert
-    // here that the rendered DOM never surfaces non-current route testids that
-    // would indicate non-current welcome / mistakes / drill / voice modules
+    // here that the rendered DOM never surfaces out-of-scope route testids that
+    // would indicate out-of-scope welcome / mistakes / drill / voice modules
     // sneaked back in.
     renderApp("authenticated");
     for (const forbidden of [

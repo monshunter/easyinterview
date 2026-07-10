@@ -668,6 +668,37 @@ paths:
         default:
           $ref: '#/components/responses/ApiErrorResponse'
 
+  /targets/{targetJobId}/archive:
+    post:
+      tags: [TargetJobs]
+      operationId: archiveTargetJob
+      summary: Archive a target job
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Soft-hides the target job from list/detail reads by setting `deleted_at`.
+      parameters:
+        - name: targetJobId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/XRequestID'
+        - $ref: '#/components/parameters/Traceparent'
+        - $ref: '#/components/parameters/AcceptLanguage'
+        - $ref: '#/components/parameters/XClientVersion'
+      responses:
+        '202':
+          description: Target job archived.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TargetJob'
+        default:
+          $ref: '#/components/responses/ApiErrorResponse'
+
   /practice/plans:
     post:
       tags: [PracticePlans]
@@ -960,7 +991,7 @@ paths:
     get:
       tags: [Reports]
       operationId: getFeedbackReport
-      summary: Get a feedback report (still-generating reports return 200 with placeholder)
+      summary: Get a feedback report (queued or generating reports return 200 with current status)
       parameters:
         - name: reportId
           in: path
@@ -974,7 +1005,7 @@ paths:
         - $ref: '#/components/parameters/XClientVersion'
       responses:
         '200':
-          description: Feedback report (placeholder shape while status != ready).
+          description: Feedback report. Queued or generating reports return status metadata until ready content is available.
           headers:
             X-Request-ID:
               $ref: '#/components/headers/XRequestID'
@@ -1137,7 +1168,7 @@ paths:
     post:
       tags: [Privacy]
       operationId: requestPrivacyExport
-      summary: Request a privacy data export (P0 not implemented — returns 501)
+      summary: Request a privacy data export (P0 unavailable - returns 501)
       description: |
         Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. **P0
         explicit exception per ADR-Q5 + spec D-12**: this endpoint must return
@@ -1927,7 +1958,7 @@ components:
 
     ImportTargetJobRequest:
       type: object
-      required: [source, targetLanguage]
+      required: [source, targetLanguage, resumeId]
       properties:
         source:
           $ref: '#/components/schemas/TargetJobImportSource'
@@ -1937,6 +1968,10 @@ components:
           type: string
         targetLanguage:
           type: string
+        resumeId:
+          type: string
+          format: uuid
+          description: Resume selected for this target job at import time. The backend persists this target job-level binding for workspace re-entry before any practice plan exists.
 
     TargetJobWithJob:
       type: object
@@ -1964,6 +1999,33 @@ components:
           type: string
           enum: [explicit, implicit, inferred]
 
+    TargetJobInterviewRound:
+      type: object
+      required: [sequence, type, name, durationMinutes, focus]
+      description: AI-generated interview round inferred from JD evidence, role seniority, company or industry nature, team or business context, and hiring-process hints. A ready TargetJob summary carries 2 to 5 rounds.
+      properties:
+        sequence:
+          type: integer
+          format: int32
+          minimum: 1
+          description: One-based round order inferred from the likely interview process.
+        type:
+          type: string
+          enum: [hr, technical, manager, cross_functional, culture, final, other]
+          description: Stable round category inferred from the JD.
+        name:
+          type: string
+          description: Candidate-facing round name in the target job language.
+        durationMinutes:
+          type: integer
+          format: int32
+          minimum: 10
+          maximum: 180
+          description: Estimated interview duration in minutes inferred from the JD and round category.
+        focus:
+          type: string
+          description: Concise likely focus for this round, grounded in the JD and inferred company, industry, seniority, and role context.
+
     TargetJobSummary:
       type: object
       required: [provenance]
@@ -1976,10 +2038,12 @@ components:
           type: array
           items:
             type: string
-        interviewHypotheses:
+        interviewRounds:
           type: array
+          minItems: 2
+          maxItems: 5
           items:
-            type: string
+            $ref: '#/components/schemas/TargetJobInterviewRound'
         provenance:
           $ref: '#/components/schemas/GenerationProvenance'
 
@@ -2049,6 +2113,18 @@ components:
             - type: string
               format: uuid
             - type: 'null'
+        currentPracticePlanId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+          description: Latest ready practice plan for this target job, when one exists.
+        resumeId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: 'null'
+          description: Resume selected and persisted for this target job at import time. This target job-level binding is returned even before a practice plan exists.
         openQuestionIssueCount:
           type: integer
           format: int32
@@ -2129,7 +2205,7 @@ components:
 
     PracticePlan:
       type: object
-      required: [id, targetJobId, goal, mode, interviewerPersona, difficulty, language, timeBudgetMinutes, questionBudget, status, createdAt]
+      required: [id, targetJobId, goal, mode, interviewerPersona, difficulty, language, timeBudgetMinutes, questionBudget, resumeId, status, createdAt]
       properties:
         id:
           type: string
@@ -2156,6 +2232,9 @@ components:
           type: integer
           format: int32
           minimum: 1
+        resumeId:
+          type: string
+          format: uuid
         sourceReportId:
           type: string
           format: uuid
@@ -2266,9 +2345,6 @@ components:
           description: BCP 47 language hint for STT and TTS profiles.
         practiceMode:
           $ref: '#/components/schemas/PracticeMode'
-        manualTranscriptFallback:
-          type: string
-          description: Optional user-entered transcript when capture is unavailable.
 
     PracticeVoiceAudioInput:
       type: object
@@ -2536,8 +2612,8 @@ components:
       required: [id, sessionId, targetJobId, status, createdAt, updatedAt]
       description: |
         Evidence-based feedback report. AI-generated; `provenance` is required
-        once `status == ready` per spec §4.6. While generating, the placeholder
-        record still returns 200 (per `B2 openapi-v1-contract §11.1`).
+        once `status == ready` per spec §4.6. Queued or generating reports
+        still return 200 with status metadata (per `B2 openapi-v1-contract §11.1`).
       properties:
         id:
           type: string

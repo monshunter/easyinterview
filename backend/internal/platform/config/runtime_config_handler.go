@@ -8,8 +8,8 @@ import (
 )
 
 // SessionAnalyticsResolver returns the analytics opt-in state for the
-// caller. Implementations are owned by C1 backend-auth; the minimal stub
-// in this package treats every request as anonymous opt-out.
+// caller. Implementations are owned by C1 backend-auth; without a resolver,
+// the runtime-config response treats the request as anonymous opt-out.
 type SessionAnalyticsResolver func(r *http.Request) bool
 
 // RuntimeConfigHandlerOptions configures NewRuntimeConfigHandler.
@@ -20,7 +20,7 @@ type RuntimeConfigHandlerOptions struct {
 	SessionResolver SessionAnalyticsResolver
 }
 
-// NewRuntimeConfigHandler returns the minimal HTTP handler that powers
+// NewRuntimeConfigHandler returns the HTTP handler that powers
 // `GET /api/v1/runtime-config`. The OpenAPI contract truth source lives
 // in B2 openapi-v1-contract; this handler only wires the field allowlist
 // declared in BuildRuntimeConfig and serializes the result as JSON.

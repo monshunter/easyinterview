@@ -3,7 +3,7 @@
  * Plan 004 Phase 2.2 + 2.3 integration tests — Browser History routing.
  *
  * Validates that the formal frontend App shell uses Browser History as the
- * canonical route source (push / replace / popstate), keeps the non-current
+ * canonical route source (push / replace / popstate), keeps the out-of-scope
  * `navigate(next)` API for screens, and preserves TopBar active state +
  * chrome hidden behavior under back / forward navigation.
  */
@@ -143,18 +143,18 @@ describe("App browser-aware routing — Phase 2.2 navigate via History", () => {
 });
 
 describe("App browser-aware routing — Phase 2.3 popstate / chrome parity", () => {
-  it("popstate from canonical practice URL hides TopBar and renders voice surface", async () => {
+  it("popstate from canonical practice URL hides TopBar and renders phone surface", async () => {
     render(<App />);
     act(() => {
       window.history.pushState(
         null,
         "",
-        "/practice?sessionId=01918fa0-0000-7000-8000-000000005000&mode=voice&modality=voice&planId=plan-1",
+        "/practice?sessionId=01918fa0-0000-7000-8000-000000005000&mode=phone&modality=phone&planId=plan-1",
       );
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
     await waitFor(() =>
-      expect(screen.getByTestId("practice-voice-waveform")).toBeInTheDocument(),
+      expect(screen.getByTestId("practice-phone-waveform")).toBeInTheDocument(),
     );
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
   });
@@ -188,7 +188,7 @@ describe("App browser-aware routing — Phase 2.3 popstate / chrome parity", () 
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
   });
 
-  it("popstate to unknown / non-current path falls back to home", async () => {
+  it("popstate to unknown / out-of-scope path falls back to home", async () => {
     render(<App />);
     act(() => {
       window.history.pushState(null, "", "/totally-unknown");

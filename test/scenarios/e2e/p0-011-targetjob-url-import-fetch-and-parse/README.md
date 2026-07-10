@@ -16,7 +16,7 @@
 
 ## 3 Then
 
-合法 URL 被规范化并剥离 query / fragment / userinfo；抓取正文写入 `target_job_sources.snapshot_text` 并驱动 parse；`target.parsed` 与 internal-only `source_refresh` 占位 job 写入；非法 URL 映射 `TARGET_IMPORT_SOURCE_INVALID` 或 `TARGET_IMPORT_SOURCE_UNAVAILABLE`；事件 / 日志 / metric 证据不包含完整 URL query、内网响应或 prompt。
+合法 URL 被规范化并剥离 query / fragment / userinfo；抓取正文写入 `target_job_sources.snapshot_text` 并驱动 parse；`target.parsed` 与 internal-only `source_refresh` follow-up job 写入，且 job payload 不包含完整 URL；非法 URL 映射 `TARGET_IMPORT_SOURCE_INVALID` 或 `TARGET_IMPORT_SOURCE_UNAVAILABLE`；事件 / 日志 / metric 证据不包含完整 URL query、内网响应或 prompt。
 
 ## 4 执行
 

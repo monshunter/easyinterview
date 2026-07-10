@@ -6,7 +6,7 @@ import { useI18n } from "../../../i18n/messages";
 import { useNavigation } from "../../../navigation/NavigationProvider";
 import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 import { mapResumeToUiSource, type UiResumeSource } from "../adapters/resume";
-import { useResumeAssets } from "../hooks/useResumeAssets";
+import { useResumes } from "../hooks/useResumes";
 import { ResumeWorkshopIcon } from "./ResumeWorkshopIcon";
 
 /**
@@ -19,7 +19,7 @@ export const ResumeListView: FC = () => {
   const { navigate } = useNavigation();
   const runtime = useAppRuntimeOptional();
   const lang = useDisplayPreferencesOptional()?.lang ?? "zh";
-  const resumesQuery = useResumeAssets();
+  const resumesQuery = useResumes();
   const [archivedIds, setArchivedIds] = useState<Set<string>>(() => new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);

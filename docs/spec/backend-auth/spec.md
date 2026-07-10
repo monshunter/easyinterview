@@ -1,8 +1,8 @@
 # Backend Auth Spec
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -21,7 +21,7 @@
 - `POST /api/v1/auth/logout` 清除 session。
 - first-party session middleware / current-user resolver：保护除 B2 public endpoints 外的 P0 API；`logout` 使用 optional-session / always-clear-cookie 路径以保持幂等；`DELETE /api/v1/me` 提供认证态、同步软删 `users.deleted_at` / `users.status='deleted'`、撤销该用户所有 session 和 idempotent privacy_delete handoff。
 - 为既有 `GET /api/v1/runtime-config` 注入 C1 session-aware resolver，供 A4 handler 合并用户级公开偏好。
-- 本 plan 内实现 C1 backend-internal mail dispatcher（Go goroutine / 后台线程）与 dev mail sink / test delivery retrieval；P0 不依赖也不保留独立后台执行进程。
+- C1 auth service 通过 `EmailDispatchEnqueuer` 写入 `async_jobs(job_type='email_dispatch')`；backend-async-runner 当前注册 `EmailDispatchHandler`，通过 `DeliveryWriter` 投递到 Mailpit / dev sink；`ImmediateMailDispatcher` 仅作为测试 helper。
 - 复用 B3 internal-only `email_dispatch` payload contract 与 generated `BuildEmailDispatchPayload` redaction policy 构造邮件派发输入；payload 只允许 helper 支持的脱敏字段。
 - session cookie 属性、安全默认值、过期、幂等 logout、错误码映射。
 - auth metrics / audit 事件最小生产边界：记录 started / minted / failure / logout / delete handoff 等可观测事实，但不落 secret / PII 明文。
@@ -31,7 +31,7 @@
 - 不实现 OAuth / SSO / 企业账号体系。
 - 不实现 Team / EDU、订阅或计费能力。
 - 不实现完整隐私导出；P0 隐私导出延后，逐域硬删除执行按 product-scope / B4 / backend internal runner owner 另行计划。C1 只负责 `DELETE /me` 的认证、请求受理期用户软删、全部 session 撤销与 privacy_delete handoff。
-- 不实现独立后台执行进程、Asynq dispatcher 或生产级 outbox consumer；当前无真实用户阶段允许 C1 用 backend 内部后台派发器作为默认 P0 实现，后续接入 backend internal runner 时必须复用同一 B3 payload 红线。
+- 不实现独立后台执行进程、Asynq dispatcher 或生产级 outbox consumer；`email_dispatch` 当前由 backend internal runner 的 in-process kernel 承接，不保留 C1 私有 goroutine queue 或 parallel mail-dispatch lifecycle。
 - 不在日志中输出验证码、完整邮箱、session secret 或 PII。
 - 当前项目未上线，Auth operation shape 可以按 active spec 进行 breaking cleanup；涉及 OpenAPI wire shape 的变更必须同步修订 `openapi-v1-contract`、fixtures 和 generated clients，不保留注册入口兼容层。
 
@@ -44,7 +44,7 @@
 | D-3 | Cookie 安全 | HttpOnly、SameSite、Secure 按环境配置 | dev 可降级 Secure，但必须可测试 |
 | D-4 | 配置来源 | A4 secrets/config 提供 `SESSION_COOKIE_SECRET`、`AUTH_CHALLENGE_TOKEN_PEPPER`、`EMAIL_PROVIDER`、`EMAIL_PROVIDER_API_KEY`、Mailpit/SMTP dev keys（`EMAIL_SMTP_HOST` / `EMAIL_SMTP_PORT` / `EMAIL_FROM_ADDRESS` / `EMAIL_VERIFY_BASE_URL`）和固定 `ei_session` cookie name；local dev `EMAIL_VERIFY_BASE_URL` 仅用于 frontend origin / callback 配置边界，backend verify API 仍固定为 `GET /api/v1/auth/email/verify`；TTL、rate-limit 与 in-memory `DevMailSink` 测试默认值由 C1 代码常量持有并在包级文档记录 | 邮件、cookie、session secret 不私造配置 key；新增 email config key 必须先修订 A4 |
 | D-5 | 错误码 | B1 shared error envelope | 认证错误必须使用共享错误 shape |
-| D-6 | P0 邮件派发 | C1 通过 `async_jobs(job_type='email_dispatch')` + backend internal runner 派发邮件；默认单测使用 in-memory `DevMailSink`，local dev `EMAIL_PROVIDER=mailpit` 时使用 SMTP `DeliveryWriter` 投递到 Mailpit。派发输入必须由 generated `BuildEmailDispatchPayload` 传 `authChallengeId` / `templateKey` / `locale` / `deliverySecretRef` / `dedupeKey`；SMTP writer 从 `auth_challenges` 查询收件人，并从 transient delivery secret store 取 6 位数字验证码；local dev 邮件正文只展示验证码和 5 分钟有效期，不包含 email URL callback 或完整 URL | 不要求独立后台执行进程；不把 raw code、完整 URL、邮箱明文、邮件正文或标题写入 in-process queue / dev sink / future outbox / async payload / 日志；本地测试不依赖真实外部邮箱服务或真实邮箱账号 |
+| D-6 | P0 邮件派发 | C1 通过 `async_jobs(job_type='email_dispatch')` + backend internal runner 派发邮件；默认单测使用 in-memory `DevMailSink`，local dev `EMAIL_PROVIDER=mailpit` 时使用 SMTP `DeliveryWriter` 投递到 Mailpit。派发输入必须由 generated `BuildEmailDispatchPayload` 传 `authChallengeId` / `templateKey` / `locale` / `deliverySecretRef` / `dedupeKey`；SMTP writer 从 `auth_challenges` 查询收件人，并从 transient delivery secret store 取 6 位数字验证码；local dev 邮件正文只展示验证码和 5 分钟有效期，不包含 email URL callback 或完整 URL | 不要求独立后台执行进程；不把 raw code、完整 URL、邮箱明文、邮件正文或标题写入 async job payload、日志或 audit；本地测试不依赖真实外部邮箱服务或真实邮箱账号 |
 | D-7 | Account deletion auth handoff | `DELETE /api/v1/me` 使用 C1 session middleware 验证当前用户，支持 `Idempotency-Key` 或等价 active-request dedupe；受理请求时同步将 `users.deleted_at` 置为当前时间、`users.status='deleted'`，撤销该用户所有 session，并返回 B2 `202 + PrivacyRequestWithJob`；逐域硬删与用户行最终 hard delete 归 backend internal runner / B4 | C1 不扩展删除 schema，不绕过 B2 contract；重复请求不得创建重复 active 删除任务；request/job success 不得早于账户身份清理 gate |
 | D-8 | 邮箱账号唯一性与单入口登录 | 邮箱是唯一账号标识，用户只有一个邮箱验证码登录入口；`AuthEmailStartRequest` 不再暴露 `purpose=login/signup` 或 `displayName`，发码前不得泄露邮箱是否已存在；verify 时既有邮箱直接登录，新邮箱创建资料未补全账号并签发 session；displayName 不唯一、不参与账号唯一性判断 | 注册页不再是 live route；重复使用同一邮箱只会登录同一账号，不创建第二个用户；账号唯一性由 normalized email 保证 |
 | D-9 | 首次登录资料补全 | 新邮箱首次 verify 创建 `profile_completed_at IS NULL`、`terms_accepted_at IS NULL` 的账号；`/me.profileCompletionRequired=true` 是前端强制进入资料补全页的唯一后端信号；`PATCH /me` 只负责首次资料补全，保存 trimmed displayName、条款确认和完成时间 | 未补全账号即使关闭浏览器、换浏览器重新登录、退出后重新登录、刷新或直开业务 URL，登录后 `/me` 仍返回 profile completion required；完成后 `/me.profileCompletionRequired=false`，后续同邮箱登录直接进入正常登录态 |

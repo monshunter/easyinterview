@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 1.13
+    to: 1.16
 spec:
   defaultTarget: tooling
   discovery:
@@ -23,7 +23,7 @@ spec:
       - operationId registry
       - prototype data boundary
       - P0 mock runway
-      - 36 operation fixtures
+      - 37 operation fixtures
       - VITE_EI_API_BASE_URL
   targets:
     tooling:
@@ -65,6 +65,7 @@ spec:
           - listTargetJobs
           - getTargetJob
           - updateTargetJob
+          - archiveTargetJob
           - createPracticePlan
           - getPracticePlan
           - listPracticeSessions

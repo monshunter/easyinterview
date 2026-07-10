@@ -150,7 +150,7 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
         const presign = await runtime.client.createUploadPresign(
           {
             purpose: "target_job_attachment",
-            fileName: "placeholder.pdf",
+            fileName: "target-job-attachment.pdf",
             contentType: "application/pdf",
             byteSize: 0,
           },

@@ -70,7 +70,7 @@ class MockRuntimeBoundaryTest(unittest.TestCase):
         self.assertIn("getMe", out.stderr + out.stdout)
         self.assertIn("statusTone", out.stderr + out.stdout)
 
-    def test_scoped_non_current_contract_token_fails_with_owner_hint(self) -> None:
+    def test_scoped_out_of_scope_contract_token_fails_with_owner_hint(self) -> None:
         rel = "openapi/fixtures/Auth/getRuntimeConfig.json"
         path = self.repo / rel
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -101,9 +101,9 @@ class MockRuntimeBoundaryTest(unittest.TestCase):
         client.write_text('export const path = "/api/v1/voice/sessions";\n', encoding="utf-8")
         out = _run_lint(self.repo)
         self.assertNotEqual(out.returncode, 0)
-        self.assertIn("non-current mock/API token '/voice'", out.stderr + out.stdout)
+        self.assertIn("out-of-scope mock/API token '/voice'", out.stderr + out.stdout)
 
-    def test_non_current_voice_tag_requires_word_boundary(self) -> None:
+    def test_out_of_scope_voice_tag_requires_word_boundary(self) -> None:
         client = self.repo / "frontend/src/api/voice-types.ts"
         client.write_text("export type PracticeVoiceTurnResult = { voiceTurnId: string };\n", encoding="utf-8")
         out = _run_lint(self.repo)
@@ -112,13 +112,13 @@ class MockRuntimeBoundaryTest(unittest.TestCase):
         client.write_text('export const tag = "Voice";\n', encoding="utf-8")
         out = _run_lint(self.repo)
         self.assertNotEqual(out.returncode, 0)
-        self.assertIn("non-current mock/API token 'Voice'", out.stderr + out.stdout)
+        self.assertIn("out-of-scope mock/API token 'Voice'", out.stderr + out.stdout)
 
-    def test_non_current_fixture_tag_directory_fails_even_when_empty(self) -> None:
-        non_current = self.repo / "openapi/fixtures/Growth"
-        if non_current.exists():
-            shutil.rmtree(non_current)
-        non_current.mkdir()
+    def test_out_of_scope_fixture_tag_directory_fails_even_when_empty(self) -> None:
+        out_of_scope = self.repo / "openapi/fixtures/Growth"
+        if out_of_scope.exists():
+            shutil.rmtree(out_of_scope)
+        out_of_scope.mkdir()
 
         out = _run_lint(self.repo)
 

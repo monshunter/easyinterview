@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 2.6
+    to: 2.12
 spec:
   defaultTarget: frontend
   discovery:
@@ -23,7 +23,7 @@ spec:
       - flat resume list table
       - resumeId detail readonly
       - resumeId detail read-only resume body
-      - legacy tab tailorRunId ignored
+      - out-of-scope tab tailorRunId ignored
       - resume auth gate no fetch before login
       - listResumes fixture backed rows
       - getResume read-only detail body
@@ -35,7 +35,7 @@ spec:
       - resume workshop a11y read-only detail
       - resume workshop privacy route params
       - ui parity desktop mobile
-      - non-current route testid negative
+      - out-of-scope route testid negative
       - ui-design data screen runtime import forbidden
   targets:
     frontend:

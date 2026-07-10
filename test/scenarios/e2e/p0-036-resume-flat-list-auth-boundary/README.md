@@ -14,13 +14,13 @@
 - 登录态默认渲染 flat table；每个 `listResumes` fixture item 对应一行。
 - 旧分组 chrome、视图切换和 selected helper 不渲染，也不触发 "即将开放" toast。
 - 点击 flat row 的 open action 进入 `resume_versions?resumeId=...` detail，默认 active tab 为 preview。
-- DOM 中不出现 non-current-route testid（`route-welcome` / `route-mistakes` / `route-drill` / `route-followup` / `route-onboarding` / `route-experiences` / `route-star` / `route-voice`）。
+- DOM 中不出现 out-of-scope route testid（`route-welcome` / `route-mistakes` / `route-drill` / `route-followup` / `route-onboarding` / `route-experiences` / `route-star` / `route-voice`）。
 
 ## 2 触发流
 
 - `setup.sh` 准备 `.test-output/e2e/p0-036-resume-flat-list-auth-boundary`
 - `trigger.sh` 在仓库根执行 `pnpm --filter @easyinterview/frontend test src/app/scenarios/p0-036-resume-flat-list-auth-boundary.test.tsx`
-- `verify.sh` 校验输出含 4 tests passed + 1 test file passed，并对 non-current testid 字面量做 negative grep。
+- `verify.sh` 校验输出含 4 tests passed + 1 test file passed，并对 out-of-scope testid 字面量做 negative grep。
 - `cleanup.sh` 清理 setup 标记。
 
 ## 3 离线限制

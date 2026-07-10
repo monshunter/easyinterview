@@ -17,7 +17,7 @@ loader、redactor 与 lint 红线；A3
 
 | 优先级 | 来源 | 用途 |
 |--------|------|------|
-| 1（最高） | runtime secret（`SecretSource`，env / 未来 K8s/Vault） | 真实凭证 |
+| 1（最高） | runtime secret（`SecretSource`，env / future secret manager） | 真实凭证 |
 | 2 | 进程 env var | 环境差异、运行时调优 |
 | 3 | `config/{APP_ENV}.yaml` | 环境 override（不含 secret） |
 | 4（最低） | `config/config.yaml` | 仓库版本化默认值 |
@@ -29,7 +29,7 @@ fail-fast 并打印缺失 key 名（spec C-2）。
 
 | 文件 | 用途 |
 |------|------|
-| `config.yaml` | canonical 默认值（spec §3.1.2）；secret 字段留空字符串占位 |
+| `config.yaml` | canonical 默认值（spec §3.1.2）；secret 字段保持空字符串 |
 | `dev.yaml` | dev 环境 override；`log.level=debug`、`featureFlag.source=file`、本地 AI raw output debug 默认开启 |
 | `test.yaml` | test 环境 override；本地测试 AI raw output debug 默认开启，secret 字段仍为空 |
 | `staging.yaml` | staging 环境 override；`featureFlag.source=posthog` + `posthogSelfHosted=true` |
@@ -55,7 +55,7 @@ flag；非当前错题本、成长看板与双轨 mock session flag 已随 produ
 1. 递增 [`secrets-and-config` spec](../docs/spec/secrets-and-config/spec.md)
    §3.1.1 表格与 history 字段，明确 Owner subspec 与 prod required。
 2. 同步本目录的 [`.env.example`](../.env.example)，每行注释包含 Owner 与
-   prod required；secret 字段只允许写占位说明，不允许真实凭证。
+   prod required；secret 字段只允许写注入说明，不允许真实凭证。
 3. 在 `backend/internal/platform/config/validator.go` 中加入 fail-fast 检查
    （或扩展 `Loader.Validate` 调用链），错误信息列出缺失 key 名。
 4. 跑 `make lint-config`：三方求差集（`.env.example` / 代码侧 `os.Getenv` /
@@ -70,11 +70,11 @@ config-only 字段同样需要先递增 spec 版本再同步 `config.yaml`。
   `base_url_env`、`api_key_env`、`capabilities[]` 和 `version`；`stub` 可不写
   secret env ref，网络出站 protocol 必须写 env ref。
 - `ai-profiles.yaml` 顶层只允许 `profiles[]`，每个 profile 必须使用 `capability` 与
-  `default.provider_ref`，不得使用 non-current task-category key 或 provider alias key。
+  `default.provider_ref`，不得使用 out-of-scope task-category key 或 provider alias key。
 - `status=disabled|unsupported` 的 profile 必须写 `unsupported_reason`，运行时
   必须 fail-closed，不得静默降级到 chat 或 stub。
 - 当前开发主力 provider ref 是 `deepseek`，profile 只使用
-  `deepseek-v4-flash` / `deepseek-v4-pro` 两个模型 ID；不得使用 non-current model alias 或 compatibility-layer name。
+  `deepseek-v4-flash` / `deepseek-v4-pro` 两个模型 ID；不得使用 out-of-scope model alias 或 compatibility-layer name。
 - `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只是 `deepseek` provider ref
   引用的 env 名，不是全局唯一 provider contract。
 - `AI_DEBUG_PRINT_RAW_OUTPUT` 在 local dev/test 和 `deploy/dev-stack/.env.example`

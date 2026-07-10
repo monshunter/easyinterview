@@ -13,7 +13,7 @@ Validate the backend-upload baseline path for `createUploadPresign`, object regi
 
 - `scripts/setup.sh`: prepares deterministic scenario files and records current environment capability.
 - `scripts/trigger.sh`: runs the backend-upload focused test suite plus the live `TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip` gate that exercises HTTP presign, signed PUT, register, and privacy delete behavior.
-- `scripts/verify.sh`: checks fixture parity, state-machine evidence, privacy tombstone redlines, and non-current-pattern negative searches.
+- `scripts/verify.sh`: checks fixture parity, state-machine evidence, privacy tombstone redlines, and current-scope negative searches.
 - `scripts/cleanup.sh`: removes temporary binary inputs while preserving logs under `.test-output/`.
 
 ## 4. Evidence
@@ -32,7 +32,7 @@ Scenario evidence is written to `.test-output/e2e/p0-033-file-presign-register-r
 
 ## 6. Baseline
 
-This baseline is intentionally backend-owned. It does not claim that `resume_assets` or `target_jobs` privacy order is globally owned by backend-upload; those cross-domain chains remain with B4 and each business owner.
+This baseline is intentionally backend-owned. It does not claim that `resumes` or `target_jobs` privacy order is globally owned by backend-upload; those cross-domain chains remain with B4 and each business owner.
 
 ## 7. Offline Limits
 

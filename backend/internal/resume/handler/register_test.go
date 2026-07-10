@@ -239,7 +239,7 @@ type registerFixture struct {
 			Body map[string]any `json:"body"`
 		} `json:"request"`
 		Response struct {
-			Status int              `json:"status"`
+			Status int               `json:"status"`
 			Body   api.ResumeWithJob `json:"body"`
 		} `json:"response"`
 	} `json:"scenarios"`
@@ -268,7 +268,7 @@ func sortedScenarioKeys(in map[string]struct {
 		Body map[string]any `json:"body"`
 	} `json:"request"`
 	Response struct {
-		Status int              `json:"status"`
+		Status int               `json:"status"`
 		Body   api.ResumeWithJob `json:"body"`
 	} `json:"response"`
 }) []string {

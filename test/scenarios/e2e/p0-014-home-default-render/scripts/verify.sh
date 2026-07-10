@@ -15,10 +15,10 @@ grep -Fq "HomeRecentMocks.test.tsx" "$LOG_FILE"
 grep -Fq "MockInterviewCard.test.tsx" "$LOG_FILE"
 grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE"
 grep -Eq 'Tests +[0-9]+ passed' "$LOG_FILE"
-# Negative: non-current testids not in output
+# Negative: out-of-scope testids not in output
 for forbidden in 'route-welcome' 'topbar-nav-mistakes' 'topbar-nav-growth' 'topbar-nav-drill' 'topbar-nav-voice' 'home-pasted-success' 'home-mocked-recent' 'jdmatch-card-' 'jdmatch-market-signal-'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
-    echo "forbidden non-current entry leaked: $forbidden" >&2
+    echo "forbidden out-of-scope entry leaked: $forbidden" >&2
     exit 1
   fi
 done
@@ -28,7 +28,7 @@ for forbidden in '粘贴 JD，或继续最近一次模拟面试。每一次练�
     "$REPO_ROOT/frontend/src/app/screens/home" \
     "$REPO_ROOT/frontend/src/app/i18n" \
     "$REPO_ROOT/ui-design/src/screen-home.jsx"; then
-    echo "non-current Home copy remains in source: $forbidden" >&2
+    echo "out-of-scope Home copy remains in source: $forbidden" >&2
     exit 1
   fi
 done

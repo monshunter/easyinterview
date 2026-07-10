@@ -1,8 +1,8 @@
 # 003 BDD Plan
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 **关联 BDD Checklist**: [bdd-checklist](./bdd-checklist.md)
@@ -12,7 +12,7 @@
 | 场景 ID | 名称 | 类别 | 验证入口 |
 |---------|------|------|----------|
 | `E2E.P0.048` | assisted hint 主路径 × goal 矩阵 | primary + alternate | `backend/cmd/api/practice_http_scenario_test.go::TestE2EP0048PracticeHintAssistedAcrossGoals` |
-| `E2E.P0.049` | legacy strict optional hint × goal 矩阵 | alternate + compatibility | `backend/cmd/api/practice_http_scenario_test.go::TestE2EP0049PracticeHintOptionalAcrossLegacyStrictGoals` |
+| `E2E.P0.049` | strict-mode optional hint × goal 矩阵 | alternate + policy boundary | `backend/cmd/api/practice_http_scenario_test.go::TestE2EP0049PracticeHintOptionalAcrossStrictModeGoals` |
 | `E2E.P0.050` | AssistantAction provenance wire 边界 + ai_task_runs runtime 字段 | cross-layer contract | `backend/cmd/api/practice_http_scenario_test.go::TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns` |
 | `E2E.P0.051` | hint AI graceful degrade + privacy + runtime boundary negative | failure/recovery + privacy + regression | `backend/cmd/api/practice_http_scenario_test.go::TestE2EP0051PracticeHintDegradeAndPrivacy` |
 
@@ -24,11 +24,11 @@
 |-------|------|------|
 | 用户 A 拥有 `baseline` / `retry_current_round` / `next_round` 三类 ready plan，mode 均为 `assisted`，session 均为 running 且 current turn 为 asked；F3/A3 fake 返回合法 hint | 用户对每个 session 发起 `hint_requested`，随后同 turn 发起第二次 hint，再 replay 第一次 `clientEventId` | 返回 200 + `show_hint`；hint 非空；provenance 六字段；`practice_turns.hint_text` 写入；turn status / turn count / outbox / audit 不变；replay 返回原始 hint snapshot；`ai_task_runs(hint_generate)` 写 success |
 
-### E2E.P0.049 legacy strict optional hint
+### E2E.P0.049 strict-mode optional hint
 
 | Given | When | Then |
 |-------|------|------|
-| 用户 A 拥有三类 current goal 的 legacy strict running session | 用户对每个 session 发起 `hint_requested` 并 replay 同一 `clientEventId` | 返回 200 + `show_hint`；hint_text 写入；replay 返回同一 hint snapshot；无 pending event row；不创建 turn-completed outbox；AI 不在 reservation transaction 内执行 |
+| 用户 A 拥有三类 current goal 的 strict-mode running session | 用户对每个 session 发起 `hint_requested` 并 replay 同一 `clientEventId` | 返回 200 + `show_hint`；hint_text 写入；replay 返回同一 hint snapshot；无 pending event row；不创建 turn-completed outbox；AI 不在 reservation transaction 内执行 |
 
 ### E2E.P0.050 provenance and task-run boundary
 
@@ -55,7 +55,7 @@ cd backend && go test ./cmd/api -run 'TestE2EP0048|TestE2EP0049|TestE2EP0050|Tes
 | spec AC / decision | 覆盖场景 |
 |--------------------|----------|
 | C-7 assisted hint | `E2E.P0.048` |
-| C-8 legacy strict optional hint | `E2E.P0.049` |
+| C-8 strict-mode optional hint | `E2E.P0.049` |
 | C-12 provenance wire boundary | `E2E.P0.050` |
 | C-16 privacy redline subset | `E2E.P0.051` |
 | C-17 auxiliary AI graceful degrade | `E2E.P0.051` |

@@ -17,7 +17,7 @@
 
 ## Phase 2: Source Boundary Reconciliation
 
-- [x] 2.1 Remove non-current source contract from plan/checklist/test/BDD/context; verification: this plan no longer lists `goal='debrief'`, `sourceDebriefId`, `source_debrief_id`, `PracticeGoalDebrief`, or raw source-question seeding as current implementation items.
+- [x] 2.1 Remove out-of-scope source contract from plan/checklist/test/BDD/context; verification: this plan no longer lists `goal='debrief'`, `sourceDebriefId`, `source_debrief_id`, `PracticeGoalDebrief`, or raw source-question seeding as current implementation items.
   <!-- verified: 2026-07-06 method=doc-rewrite evidence="plan/test/BDD docs rewritten to report-derived only; context keywords use current sourceReportId wording only." -->
 - [x] 2.2 Keep only current scenario gates for this owner; verification: active BDD docs retain only `E2E.P0.070` and `E2E.P0.072`, and no P0.071/P0.073 scenario directories exist under `test/scenarios/e2e`.
   <!-- verified: 2026-07-06 method=current-state-search evidence="find test/scenarios/e2e -maxdepth 1 -type d -name 'p0-07*' shows P0.070/P0.072 plus resume P0.074-079, no P0.071/P0.073." -->

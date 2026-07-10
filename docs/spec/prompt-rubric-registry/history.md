@@ -1,13 +1,15 @@
 # Prompt Rubric Registry History
 
-> **版本**: 2.14
+> **版本**: 2.19
 > **状态**: active
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-10
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 2.19 | 将 prompt contract 与 example JSON 表述收敛为空文案 / filler values / 命名空间口径。 | tech-debt pruning |
+| 2026-07-10 | 2.18 | 同步 F3 004 当前代码事实：`FailClosedJudge` 是未配置 caller 的安全默认，`LLMJudge` 是真实评估实现；profile coverage gate 改为 runnable / non-runnable marker 口径。 | tech-debt pruning |
 | 2026-07-06 | 2.14 | 将 F3 active spec 改为纯当前 prompt/rubric 合同：9 个 baseline feature_key、provider-neutral output schema、current profile coverage 和 current eval case count。 | product-scope/001-core-loop-module-pruning Phase 6.31 |
 | 2026-06-30 | 2.13 | 修复 core-loop module pruning 后的 F3 active truth-source drift：当前 prompt/rubric/eval/profile coverage 口径改为 9 个 active feature_key / ≥36 eval cases。 | product-scope/001-core-loop-module-pruning review remediation |
 | 2026-05-26 | 2.11 | real-provider manual UAT 修复 `practice.turn.lightweight_observe` schema 过硬问题：`answerSummary` 作为 report handoff 摘要字段保留在 prompt/example/parser 中，但不列入 schema required，避免真实 provider 偶发漏字段导致辅助 observation fail-close；practice owner 在缺失时生成降级摘要并记录错误码。 | e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel + BUG-0105 |

@@ -15,7 +15,7 @@ Phase 1.3 scope (per `002-fixtures-and-mock-source` plan §3 / spec C-6 / C-11):
        string with `tmp_` prefix is rejected.
     6. coverage  — every operationId currently exposed by openapi.yaml must
        have a fixture file.
-    7. D-20 non-current resume contract keys — flat resume fixtures must not
+    7. D-20 out-of-scope resume contract keys — flat resume fixtures must not
        reintroduce resumeAssetId / resumeVersionId request or response fields.
 """
 
@@ -134,7 +134,7 @@ REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
         }
     ),
 }
-NON_CURRENT_D20_FIXTURE_KEYS = frozenset({"resumeAssetId", "resumeVersionId"})
+OUT_OF_SCOPE_D20_FIXTURE_KEYS = frozenset({"resumeAssetId", "resumeVersionId"})
 
 
 # ---------- helpers -----------------------------------------------------------
@@ -521,8 +521,10 @@ def check_provenance(opid: str, scenario: dict, errors: List[str]) -> None:
 
 
 def check_p0_export_error_code(opid: str, scenarios: dict, errors: List[str]) -> None:
-    """Spec D-12 / D-18: P0 export stubs must return their locked 501 error
-    codes. Hand-written examples live in fixtures as the single source of truth."""
+    """Spec D-12 / D-18: P0 export exceptions return their locked 501 error codes.
+
+    Hand-written examples live in fixtures as the single source of truth.
+    """
     expected_code = P0_EXPORT_ERROR_CODES.get(opid)
     if expected_code is None:
         return
@@ -591,12 +593,12 @@ def check_privacy_and_ids(opid: str, data: dict, errors: List[str]) -> None:
             )
 
 
-def check_d20_non_current_fixture_keys(opid: str, data: dict, errors: List[str]) -> None:
+def check_d20_out_of_scope_fixture_keys(opid: str, data: dict, errors: List[str]) -> None:
     for path, key in _walk_keys(data):
-        if key in NON_CURRENT_D20_FIXTURE_KEYS:
+        if key in OUT_OF_SCOPE_D20_FIXTURE_KEYS:
             errors.append(
                 f"{opid}.{path}: D-20 flat resume fixtures must use resumeId, "
-                f"not non-current key {key!r}"
+                f"not out-of-scope key {key!r}"
             )
 
 
@@ -633,7 +635,7 @@ def validate(repo_root: Path) -> List[str]:
         check_practice_voice_playable_refs(opid, scenarios, errors)
         check_provenance(opid, scenarios.get("default") or {}, errors)
         check_p0_export_error_code(opid, scenarios, errors)
-        check_d20_non_current_fixture_keys(opid, data, errors)
+        check_d20_out_of_scope_fixture_keys(opid, data, errors)
         check_privacy_and_ids(opid, data, errors)
 
     expected = {opid for _tag, opid in expected_fixture_operations(spec)}

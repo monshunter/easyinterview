@@ -23,7 +23,7 @@ Verifies the full JD import flow with three source variants:
 
 ## Verification Points
 
-- Home omits the non-current hero sub copy and `解析并确认面试` CTA
+- Home omits the out-of-scope hero sub copy and `解析并确认面试` CTA
 - Home integrates paste textarea with upload/URL source actions inside the JD input card, keeps the resume dropdown compact with create CTA on the same row, and places `立即面试` below resume selection
 - Home requires explicit ready resume dropdown selection before importTargetJob or pending import
 - importTargetJob discriminator (type + required fields)
@@ -48,7 +48,7 @@ Verifies the full JD import flow with three source variants:
 ## Offline Limitations
 
 - Requires mock transport fixture variant selection
-- Upload path tests placeholder file metadata only (no real binary upload)
+- Upload path tests synthetic file metadata only (no real binary upload)
 
 ## Real Backend Overlay
 

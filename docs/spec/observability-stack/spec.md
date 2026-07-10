@@ -1,8 +1,8 @@
 # Observability Stack Spec
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -103,7 +103,7 @@
 
 Auth 指标由 C1 `backend-auth/001-email-code-session-bootstrap` 在自身 plan 中接入；F1 仅登记 metric 名和 label contract。Auth metric labels 只能使用 `service` / `operation` / `result`，不得包含 `user_id`、`session_id`、邮箱、token、完整 URL 或任意自由文本。
 
-业务域（target / practice / report / resume / privacy）指标由各 C 域在自己的 plan 中接入。F1 仅锁 label 集合与命名前缀（domain prefix `target_` / `practice_` / `report_` / `resume_` / `privacy_`）；非当前独立域前缀不得作为新增指标前缀。
+业务域（target / practice / report / resume / privacy）指标由各 C 域在自己的 plan 中接入。F1 仅锁 label 集合与命名前缀（domain prefix `target_` / `practice_` / `report_` / `resume_` / `privacy_`）；新增业务指标只能使用上述已登记 domain prefix。
 
 TargetJob 指标由 C4 `backend-targetjob/001` 接入：`source_type` 只能是 `url` / `text` / `file` / `manual_form` 等有界导入来源，`error_code` 只能是 B1 错误码常量，`language` 只能是 BCP-47 归一化值；不得把 target id、user id、source URL、prompt version 或任意自由文本作为 label。
 

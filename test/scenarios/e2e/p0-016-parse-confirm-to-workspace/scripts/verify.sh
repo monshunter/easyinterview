@@ -17,7 +17,7 @@ grep -Fq "HomeRecentMocks.test.tsx" "$LOG_FILE"
 grep -Fq "navigation/interviewContext.test.ts" "$LOG_FILE"
 grep -Fq "renders MiniRoundRail labels from target-job structured interview rounds" "$LOG_FILE"
 grep -Fq "derives route round context through target-job round assumptions" "$LOG_FILE"
-grep -Fq "can inherit route resumeId only when the saved TargetJob lacks one" "$LOG_FILE"
+grep -Fq "does not inherit route resumeId when the saved TargetJob lacks one" "$LOG_FILE"
 grep -Fq "starts interview directly from parse with the saved resumeId and no target patch" "$LOG_FILE"
 grep -Fq "tests/pixel-parity/parse.spec.ts" "$LOG_FILE"
 grep -Fq "readonly plan detail exposes only direct start with bound resume context" "$LOG_FILE"
@@ -39,13 +39,13 @@ for forbidden in 'parse-action-save-plan' 'parse-action-cancel' 'parse-action-re
 done
 for forbidden in 'resume-unbound' 'workspace-missing-resume' 'autoStart browser gate'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
-    echo "non-current success marker found in test output: $forbidden" >&2
+    echo "out-of-scope success marker found in test output: $forbidden" >&2
     exit 1
   fi
 done
 for forbidden in 'Technical Round 1' 'R1 Phone Screen' 'interviewHypotheses'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
-    echo "non-current round marker found in test output: $forbidden" >&2
+    echo "out-of-scope round marker found in test output: $forbidden" >&2
     exit 1
   fi
 done

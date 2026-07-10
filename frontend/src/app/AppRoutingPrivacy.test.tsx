@@ -144,7 +144,7 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
     await user.click(screen.getByTestId("go-workspace-raw"));
     await waitFor(() => screen.getByTestId("workspace-plan-list"));
     expectNoRawMarkerLeak();
-    // workspace is a pure list route; even legacy context keys are stripped.
+    // workspace is a pure list route; out-of-scope context keys are stripped.
     expect(window.location.search).toBe("");
   });
 

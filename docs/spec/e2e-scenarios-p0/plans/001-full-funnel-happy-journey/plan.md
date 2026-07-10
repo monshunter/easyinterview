@@ -1,8 +1,8 @@
 # 001 Full Funnel Happy Journey
 
-> **版本**: 1.5
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-05-24
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -12,8 +12,8 @@
 
 交付 P0 完整漏斗的 **happy 主干单条 journey**，用两种 driver 同时证明跨模块真实贯通：
 
-- **API-level**（`E2E.P0.098`）：在 `backend/cmd/api` 内新增 `httptest` server + 真实 stack 的 Go scenario test，按顺序串起 `registerResume`（前置）→ `importTargetJob` → `getTargetJob`（poll ready）→ `createPracticePlan`（baseline）→ `startPracticeSession` → `appendSessionEvent` → `completePracticeSession` → `getFeedbackReport`（poll ready）→ `createPracticePlan`（`next_round` + `sourceReportId`），并把 `getJob` 作为 job 状态备选轮询 / handler presence gate，断言 handoff 链 `targetJobId → planId → sessionId → reportId → 派生 planId` 真实传递、异步 job 经真实 internal runner 完成、关键写操作幂等、隐私红线与 non-current-negative。
-- **Playwright 全栈**（`E2E.P0.099`）：起真后端进程（连 dev-stack postgres，`APP_ENV=test`，场景 AI 使用确定性 stub / fixture client）+ 前端 build/preview 以 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1` 指向真后端，Playwright 驱动真实 UI 从首页导入走到报告并点击「进入下一轮」CTA，断言跨屏 nav、真实轮询 UI、CTA handoff 与隐私 / non-current 红线。
+- **API-level**（`E2E.P0.098`）：在 `backend/cmd/api` 内新增 `httptest` server + 真实 stack 的 Go scenario test，按顺序串起 `registerResume`（前置）→ `importTargetJob` → `getTargetJob`（poll ready）→ `createPracticePlan`（baseline）→ `startPracticeSession` → `appendSessionEvent` → `completePracticeSession` → `getFeedbackReport`（poll ready）→ `createPracticePlan`（`next_round` + `sourceReportId`），并把 `getJob` 作为 job 状态备选轮询 / handler presence gate，断言 handoff 链 `targetJobId → planId → sessionId → reportId → 派生 planId` 真实传递、异步 job 经真实 internal runner 完成、关键写操作幂等、隐私红线与 out-of-scope-negative。
+- **Playwright 全栈**（`E2E.P0.099`）：起真后端进程（连 dev-stack postgres，`APP_ENV=test`，场景 AI 使用确定性 stub / fixture client）+ 前端 build/preview 以 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1` 指向真后端，Playwright 驱动真实 UI 从首页导入走到报告并点击「进入下一轮」CTA，断言跨屏 nav、真实轮询 UI、CTA handoff 与隐私 / out-of-scope 红线。
 
 交付后，本 plan 成为 P0 闭环「真实 handoff 在真后端下端到端贯通」的首个直接 gate；复练 / 下一轮另一分支、真实复盘回流、失败 / 恢复 journey 由本 subject 后续 `002+` plan 原地派生。
 
@@ -43,7 +43,7 @@
   - operation matrix 真实性：`cd backend && go test -v ./cmd/api -run 'TestE2EP0OperationMatrixPreflight' -count=1` 断言 9 行 matrix 的 generated route、fixture 文件、`cmd/api` route wiring 与 handler 方法声明；必要时再用 `grep -rn "registerResume\|importTargetJob\|getTargetJob\|createPracticePlan\|startPracticeSession\|appendSessionEvent\|completePracticeSession\|getFeedbackReport\|getJob" backend/internal/api/generated/` 辅助人工反查真实 handler / store 路径或 matrix 中的显式备选状态。
   - 隐私红线：journey test / verify.sh 断言响应 / event / audit / log / DB 可观测面不含 JD 原文、答案文本、报告 prose；Playwright 侧扫描 URL / localStorage / sessionStorage / console。
   - Playwright 产物边界：P0.099 的 trace / screenshot / video / runner output / `trigger.log` 必须全部落在 `.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/` 下；`verify.sh` 拒绝 `frontend/.playwright-output`、`frontend/test-results` 或 repo 根外临时目录作为完成证据。
-  - non-current-negative：`verify.sh` 使用 route-aware negative pattern 反查 `(^|[[:space:]'"'/#?&=:-])(welcome|growth|mistakes|drill|followup|experiences|star(_editor)?|onboarding)([[:space:]'"'/#?&=:-]|$)|mode=debrief|name=['\"](plan|resume|voice)['\"]|route=['\"](plan|resume|voice)['\"]|#route=(plan|resume|voice)([[:space:]'"'/#?&=:-]|$)`，并确认不会误伤合法 `startPracticeSession` / `createPracticePlan` / `practice_plans` / `resumeAssetId` / `resume_assets`；P0.099 额外跑 frontend scope gate 或等价 scoped grep，证明独立 `voice` route 未回流。
+  - out-of-scope-negative：`verify.sh` 使用 route-aware negative pattern 反查 `(^|[[:space:]'"'/#?&=:-])(welcome|growth|mistakes|drill|followup|experiences|star(_editor)?|onboarding)([[:space:]'"'/#?&=:-]|$)|mode=debrief|name=['\"](plan|resume|voice)['\"]|route=['\"](plan|resume|voice)['\"]|#route=(plan|resume|voice)([[:space:]'"'/#?&=:-]|$)`，并确认不会误伤合法 `startPracticeSession` / `createPracticePlan` / `practice_plans` / `resumeAssetId` / `resume_assets`；P0.099 额外跑 frontend scope gate 或等价 scoped grep，证明独立 `voice` route 未回流。
   - 文档一致性：`validate_context.py` / `sync-doc-index --check` / `make docs-check` / `git diff --check`。
 
 ### 3.1 Operation Matrix
@@ -114,9 +114,9 @@
 
 对 `startPracticeSession` / `completePracticeSession` / `createPracticePlan` 用同 Idempotency-Key replay，断言无重复副作用（无第二 session / report / plan、无重复 outbox）。
 
-#### 1.8 隐私红线 + non-current-negative 断言
+#### 1.8 隐私红线 + out-of-scope-negative 断言
 
-断言 journey 全程响应 / event / audit / log / DB 可观测面不含 JD 原文 / 答案文本 / 报告 prose；负向断言不出现非当前 route / 非当前模块 / 非当前 `mode=debrief` / 非当前 feature_key。
+断言 journey 全程响应 / event / audit / log / DB 可观测面不含 JD 原文 / 答案文本 / 报告 prose；负向断言不出现范围外 route / 范围外模块 / 范围外 `mode=debrief` / 范围外 feature_key。
 
 ### Phase 2: Playwright full-stack journey（E2E.P0.099）
 
@@ -136,9 +136,9 @@
 
 断言 Report「进入下一轮」CTA 触发 `createPracticePlan(next_round, sourceReportId)` + `startPracticeSession`，nav 到新 workspace/practice 且 query 含派生 planId / fresh sessionId。
 
-#### 2.5 隐私 + non-current 红线
+#### 2.5 隐私 + out-of-scope 红线
 
-断言 URL / localStorage / sessionStorage / console 不泄露 JD 原文 / 答案 / 报告 prose；scenario 树 non-current 负向 grep 0 命中。
+断言 URL / localStorage / sessionStorage / console 不泄露 JD 原文 / 答案 / 报告 prose；scenario 树 out-of-scope 负向 grep 0 命中。
 
 ### Phase 3: 场景登记与收口
 
@@ -169,3 +169,10 @@
 | 异步 job 轮询超时导致 flaky | 用有界轮询 + 明确超时 + 真实 runner 同步触发；超时视为失败并记录 job 状态，不静默重试 |
 | Playwright 全栈环境（真后端进程 + 前端 build）启动成本高、易污染 | setup 显式拉起 / cleanup 显式回收；scenario README 写明 isolation；失败优先检查环境污染（框架 §8） |
 | stub AI 输出与真实报告维度结构漂移 | 只断言契约结构 / 状态 / handoff，不断言 AI 文案质量；质量归 F3 eval workstream |
+
+## 7 修订记录
+
+| 日期 | 版本 | 变更 | 关联 |
+|------|------|------|------|
+| 2026-07-10 | 1.7 | 统一 out-of-scope-negative 正文与 BDD 口径，并同步 plan 文档集版本。 | tech-debt pruning |
+| 2026-07-10 | 1.6 | 修正 Phase 0.2 旧 Red 证据口径：`TestE2EP0098` 当前已实现并由 scenario wrapper 执行。 | tech-debt pruning |

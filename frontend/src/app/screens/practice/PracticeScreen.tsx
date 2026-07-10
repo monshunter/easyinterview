@@ -60,8 +60,8 @@ type RetryAction = () => Promise<void>;
  * PracticeScreen — shared text / phone interview surface.
  *
  * Source-level mirror of `ui-design/src/screen-practice.jsx::PracticeScreen`
- * current real-interview branch. It exposes no right panel, no in-session role
- * switch, no strict switch, no text dictation and no turn-bypass control.
+ * current real-interview branch. It uses a left session map plus centered
+ * interview surface, with mode/pause/finish controls in the top bar.
  */
 export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const { t, lang } = useI18n();
@@ -75,8 +75,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     route.params.practiceMode || ctx.practiceMode || "assisted";
   const practiceGoal =
     route.params.practiceGoal || ctx.practiceGoal || "baseline";
-  const activeMode =
-    modality === "phone" || modality === "voice" ? "phone" : "text";
+  const activeMode = modality === "phone" ? "phone" : "text";
   const roundName = route.params.roundName || ctx.roundName || "";
   const interviewerLabel =
     roundName || t("practice.toolbar.role.manager");
@@ -421,7 +420,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
           { role: "ai", text: questionText, t: fmtElapsed(elapsed) },
         ]);
       }
-      // turn advance is reflected by getPracticeSession refresh; no-op here.
+      // turn advance is reflected by the next getPracticeSession refresh.
     },
     [elapsed],
   );

@@ -22,13 +22,13 @@ if [ "$testid_count" -lt 14 ]; then
   exit 1
 fi
 if rg -n 'practice-mode-card-|growth-center|drill-builder|mistake-queue' "$REPO_ROOT/frontend/src/app/screens/workspace" -g '!*.test.tsx'; then
-  echo "E2E.P0.018: forbidden non-current runtime testid leaked" >&2
+  echo "E2E.P0.018: forbidden out-of-scope runtime testid leaked" >&2
   exit 1
 fi
 if rg -n 'workspace-resume-modal-disabled-note|resumePicker\.disabledNote' \
   "$REPO_ROOT/frontend/src/app/screens/workspace" \
   -g '!*.test.tsx'; then
-  echo "E2E.P0.018: non-current disabled resume picker wording leaked" >&2
+  echo "E2E.P0.018: out-of-scope disabled resume picker wording leaked" >&2
   exit 1
 fi
 grep -Fq 'workspace-plan-list' "$REPO_ROOT/frontend/src/app/screens/workspace/WorkspaceScreen.tsx" || {
@@ -84,7 +84,7 @@ if rg -n 'workspace\.planList\.cardMeta|job\.targetLanguage\?\.toUpperCase|job\.
   exit 1
 fi
 if rg -n '"workspace\.planList\.cardMeta"' "$REPO_ROOT/frontend/src/app/i18n/locales"; then
-  echo "E2E.P0.018: obsolete plan-list cardMeta locale key remains" >&2
+  echo "E2E.P0.018: out-of-scope plan-list cardMeta locale key remains" >&2
   exit 1
 fi
 grep -Fq 'background: "var(--ei-color-accent)"' "$REPO_ROOT/frontend/src/app/screens/home/MockInterviewCard.tsx" || {
@@ -94,7 +94,7 @@ grep -Fq 'background: "var(--ei-color-accent)"' "$REPO_ROOT/frontend/src/app/scr
 if rg -n 'autoStartPractice|useStartPractice|PlanSwitcherModal|ResumePickerModal|WorkspaceInsightCard|useWorkspaceTargetJob\W|useWorkspaceResume|useWorkspacePracticePlan' \
   "$REPO_ROOT/frontend/src/app/screens/workspace" \
   -g '!*.test.tsx'; then
-  echo "E2E.P0.018: workspace list module leaked retired detail/start/modal context" >&2
+  echo "E2E.P0.018: workspace list module leaked out-of-scope detail/start/modal context" >&2
   exit 1
 fi
 grep -Fq 'startPracticeFromParams' "$REPO_ROOT/frontend/src/app/screens/parse/ParseScreen.tsx" || {

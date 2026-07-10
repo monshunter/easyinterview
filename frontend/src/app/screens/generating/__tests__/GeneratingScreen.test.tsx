@@ -71,7 +71,7 @@ function buildClient(
     },
     // The screen handoff navigates to <ReportScreen> on ready/failed; the
     // dashboard there hydrates context labels via getTargetJob / getResume.
-    // Stub them so the post-handoff render doesn't throw.
+    // Provide failing test implementations so the post-handoff render doesn't throw.
     async getTargetJob() {
       throw new Error("HTTP 404 Not Found");
     },
@@ -124,7 +124,7 @@ describe("GeneratingScreen", () => {
     for (const id of anchors) {
       expect(screen.queryByTestId(id), `${id} missing`).not.toBeNull();
     }
-    // Negative anchors for non-current modules.
+    // Negative anchors for out-of-scope modules.
     expect(screen.queryByTestId("mistakes-queue")).toBeNull();
     expect(screen.queryByTestId("report-timeline")).toBeNull();
   });

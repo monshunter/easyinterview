@@ -137,7 +137,7 @@ Rules:
    `json.RawMessage` consumers, alignment is against the keys the parser checks
    before persisting the raw payload.
 6. **Alias policy**: parser aliases are compatibility behavior, not new prompt
-   contract fields. For example, a parser may accept non-current aliases while
+   contract fields. For example, a parser may accept out-of-scope aliases while
    the schema-rendered prompt block uses only the canonical key.
 7. **Template hash boundary**: output schema bytes do not participate in
    `template_hash`. Prompt body edits still require YAML hash refresh; schema
@@ -184,7 +184,7 @@ The rendered block contract is:
   remains readable.
 - Examples are generated from schema into complete representative JSON output:
   every schema-declared required and optional property is included, values are
-  business-shaped examples rather than `string` / `1` placeholders, and the
+  business-shaped examples rather than generic `string` / `1` filler values, and the
   block explicitly says the model must return a JSON value rather than JSON
   Schema or an OpenAPI schema. The example must parse as JSON and pass the same
   schema subset validator used by lint.
@@ -226,7 +226,7 @@ back into this YAML. Edits to YAML `status` are pull-request reviewable.
 
 The lint gate rejects:
 
-- Non-current module names from current product boundaries. The exact list lives
+- Out-of-scope module names from current product boundaries. The exact list lives
   in `scripts/lint/prompt_lint.py` so this README can stay under the same
   recursive grep scan as the bodies it governs.
 - Bare hardcoded prompt assignments inside Go business packages — these

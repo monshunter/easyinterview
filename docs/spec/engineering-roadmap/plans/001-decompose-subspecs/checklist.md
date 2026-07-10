@@ -17,12 +17,12 @@
 
 ## Phase 2: Roadmap 当前实施地图
 
-- [x] 2.1 对齐 `product-scope`、`docs/ui-design/` 与 `ui-design/src/app.jsx` 当前模块、route、上下文和非当前边界。
+- [x] 2.1 对齐 `product-scope`、`docs/ui-design/` 与 `ui-design/src/app.jsx` 当前模块、route、上下文和范围外边界。
   <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 2.1 names product-scope, docs/ui-design, and ui-design/src/app.jsx as the current truth sources." -->
 - [x] 2.2 `engineering-roadmap/spec.md` 只描述当前 truth source 关系、active owner、P0 workstream、future candidates、实施顺序和验收标准。
   <!-- verified: 2026-07-06 method=engineering-roadmap-current-map-wording-reconcile evidence="engineering-roadmap spec v3.29 updated background, scope, decisions, constraints, workstreams, implementation sequence, and acceptance criteria to current execution-map wording." -->
 - [x] 2.3 修订本 plan、checklist、context 和 plans/INDEX 为 roadmap rebaseline、按需 child 创建和 no-pending INDEX 合同。
-  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan/checklist bumped to v3.4; context specVersion.to bumped to 3.29 and discovery keywords now use current-map / no-pending / non-current-boundary wording." -->
+  <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan/checklist bumped to v3.4; context specVersion.to bumped to 3.29 and discovery keywords now use current-map / no-pending / out-of-scope-boundary wording." -->
 - [x] 2.4 交叉引用和索引投影指向当前 roadmap 版本和当前 plan 版本。
   <!-- verified: 2026-07-06 method=sync-doc-index evidence="sync-doc-index --fix-index updated docs/spec/INDEX.md engineering-roadmap version to 3.29 and product-scope plans INDEX to 1.38; engineering-roadmap plans INDEX will project plan v3.4 after this checklist update." -->
 - [x] 2.5 文档一致性验证通过。
@@ -41,7 +41,7 @@
 
 - [x] 4.1 `product-scope` §1.5 持有当前技术契约 owner matrix，roadmap 只消费当前 owner spec / coded truth source。
   <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 4.1 points technical contract ownership to product-scope §1.5 owner matrix." -->
-- [x] 4.2 当前项目文档、代码注释、生成源、生成物、日志与报告不得把非当前技术草稿目录名或文件名作为 truth source。
+- [x] 4.2 当前项目文档、代码注释、生成源、生成物、日志与报告不得把范围外技术草稿目录名或文件名作为 truth source。
   <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 4.2 records technical-draft zero-reference as the current boundary." -->
 - [x] 4.3 `shared/conventions.yaml`、lint 脚本、codegen source 与 generated artifacts 的字段和 gate 归属到当前 owner。
   <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 4.3 assigns shared conventions, OpenAPI, DB, event, and observability gates to current owners." -->

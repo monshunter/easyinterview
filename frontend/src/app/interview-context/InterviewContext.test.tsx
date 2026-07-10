@@ -244,7 +244,7 @@ describe("InterviewContextProvider + useInterviewContext", () => {
     expect(result.current.ctx.targetJobId).toBe("");
   });
 
-  it("ignores non-current debrief params while retaining current session context", () => {
+  it("ignores out-of-scope debrief params while retaining current session context", () => {
     const next = interviewContextReducer(DEFAULT_INTERVIEW_CONTEXT, {
       type: "HYDRATE_FROM_ROUTE",
       params: {

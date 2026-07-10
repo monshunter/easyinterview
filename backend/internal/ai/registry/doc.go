@@ -30,6 +30,6 @@
 //   - loader.go   — filesystem walk, hash verification, snapshot building
 //   - resolver.go — ResolveActive / GetPrompt / GetRubric with language fallback
 //   - cache.go    — atomic.Value snapshot + 30s TTL + Reload hook
-//   - judge.go    — NotImplementedJudge default implementation
+//   - judge.go    — FailClosedJudge default implementation
 //   - registry.go — NewRegistryClient constructor and Client struct
 package registry

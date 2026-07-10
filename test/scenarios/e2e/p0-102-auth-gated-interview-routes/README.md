@@ -12,7 +12,7 @@
 
 - Home 首页不展示 `Recent mock interviews` 区块，也不调用 `listTargetJobs`。
 - Home 上的 JD 导入、简历工作台在未登录时编码 pendingAction 并跳转 `auth_login`；Home 不再提供复盘入口。
-- 直接访问 `parse`、`workspace`、`resume_versions`、`practice`、`generating`、`report`、`settings` 时，App 在 `/me` 判定前不得挂载业务 screen；判定未登录后跳转 `auth_login`。Non-current `jd_match`、`debrief`、`debrief_full`、`profile` 输入先归一到当前 route，不作为独立保护 route。
+- 直接访问 `parse`、`workspace`、`resume_versions`、`practice`、`generating`、`report`、`settings` 时，App 在 `/me` 判定前不得挂载业务 screen；判定未登录后跳转 `auth_login`。Out-of-scope `jd_match`、`debrief`、`debrief_full`、`profile` 输入先归一到当前 route，不作为独立保护 route。
 - 后端除 auth start/verify、runtime-config、logout optional 之外的业务 API 均保持 session middleware 保护。
 
 ## 2 When
@@ -35,7 +35,7 @@ pnpm --filter @easyinterview/frontend test \
   src/app/screens/home/HomeAuthGate.test.tsx \
   src/app/AppAuthDispatch.test.tsx
 cd backend && go test ./internal/auth -run TestSessionPolicyClassifiesPublicOptionalAndProtectedOperations -count=1
-cd backend && go test ./cmd/api -run 'TestBuildAPIHandlerMounts(TargetJobRoutes|UploadPresign|ResumeRoutes|PracticeRoutes|ReportRoutes|JobRoute)BehindSessionMiddleware|TestBuildAPIHandlerDoesNotMountNonCurrentDebriefOrProfileRoutes|TestJDMatchRoutesRemainUnmountedPerD17' -count=1
+cd backend && go test ./cmd/api -run 'TestBuildAPIHandlerMounts(TargetJobRoutes|UploadPresign|ResumeRoutes|PracticeRoutes|ReportRoutes|JobRoute)BehindSessionMiddleware|TestBuildAPIHandlerDoesNotMountOutOfScopeDebriefOrProfileRoutes|TestJDMatchRoutesRemainUnmountedPerD17' -count=1
 ```
 
 ## 3 Then

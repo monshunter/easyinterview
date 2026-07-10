@@ -1,8 +1,8 @@
 # Backend TargetJob BDD Checklist
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -21,7 +21,7 @@
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-011-targetjob-url-import-fetch-and-parse/`，并在 `test/scenarios/e2e/INDEX.md` 添加 `E2E.P0.011` 行（关联需求：backend-targetjob C-2/C-3/C-9）
 - [x] 准备测试数据：本地 HTTPS fixture server（合规 JD HTML、超长 body、cross-origin redirect 进入私网、metadata 服务模拟）；非法 URL 集合（私网 IP、链路本地、`http` scheme、超长 body、redirect 进入私网）
-- [x] 实现 setup / trigger / verify / cleanup：start auth → `POST /targets/import` import URL → drainer 抓取并解析 → `GET /targets/{id}` 验证 `target_job_sources.url` 为规范化 URL、`target_job_sources.snapshot_text` 为去密正文、`fetched_at` / `freshness_status='fresh'`；`target.parsed` 与 `source_refresh` 占位 job 写入
+- [x] 实现 setup / trigger / verify / cleanup：start auth → `POST /targets/import` import URL → drainer 抓取并解析 → `GET /targets/{id}` 验证 `target_job_sources.url` 为规范化 URL、`target_job_sources.snapshot_text` 为去密正文、`fetched_at` / `freshness_status='fresh'`；`target.parsed` 与 internal-only `source_refresh` follow-up job 写入且 payload 不含完整 URL
 - [x] 断言非法目标：所有非法 URL 返回 B1 `TARGET_IMPORT_SOURCE_INVALID` 或 `TARGET_IMPORT_SOURCE_UNAVAILABLE`；事件 / metric label / log / audit 不含完整 URL / query 串 / 内网响应内容
 - [x] 执行并通过场景验证，记录 `.test-output/runs/.../E2E.P0.011/result.json` 证据
   <!-- verified: 2026-05-08 method=cmd-api-http run=targetjob-http-20260508 validBddEvidence=true -->

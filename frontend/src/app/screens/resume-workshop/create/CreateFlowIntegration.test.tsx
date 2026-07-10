@@ -82,10 +82,10 @@ describe("Home → ResumeCreateFlow CTA integration", () => {
   });
 });
 
-describe("Old onboarding route alias", () => {
+describe("Out-of-scope onboarding route input", () => {
   afterEach(() => cleanup());
 
-  it("normalizes onboarding → resume_versions; ResumeCreateFlow is NOT invoked from the alias without flow=create", async () => {
+  it("normalizes onboarding to resume_versions without invoking ResumeCreateFlow unless flow=create is explicit", async () => {
     render(
       <App
         client={buildClient()}
@@ -100,14 +100,14 @@ describe("Old onboarding route alias", () => {
         screen.getByTestId("resume-workshop-screen"),
       ).toBeInTheDocument(),
     );
-    // No flow param → list view (or list loader) renders.
+    // No flow param means the list view or list loader renders.
     expect(
       screen.queryByTestId("resume-create-flow"),
     ).not.toBeInTheDocument();
   });
 });
 
-describe("Non-current module negative grep is enforced inline", () => {
+describe("Out-of-scope module negative grep is enforced inline", () => {
   beforeEach(() => {
     vi.resetModules();
   });

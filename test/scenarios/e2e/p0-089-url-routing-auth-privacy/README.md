@@ -10,8 +10,8 @@
 
 未登录用户在带有 Plan 004 routeStore + pendingAction safe-param 过滤的正式
 前端中触发 auth-gated workflow URL；测试 harness 还在 pendingAction params
-里塞入代表性的 raw 标记（raw JD 文本、source URL、non-current job-search 查询 /
-标签、简历正文、non-current guided answers、解析摘要、structured profile、suggestion、
+里塞入代表性的 raw 标记（raw JD 文本、source URL、out-of-scope job-search 查询 /
+标签、简历正文、out-of-scope guided answers、解析摘要、structured profile、suggestion、
 question/answer 正文、debrief 备注、AI prompt/response token、auth secret
 token / password 等）。
 

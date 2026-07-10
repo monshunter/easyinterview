@@ -43,7 +43,6 @@ func (h *Handler) CreatePracticeVoiceTurn(w http.ResponseWriter, r *http.Request
 		TurnID:                   body.TurnId,
 		Language:                 body.Language,
 		PracticeMode:             body.PracticeMode,
-		ManualTranscriptFallback: stringValue(body.ManualTranscriptFallback),
 		Audio: domain.PracticeVoiceAudioInput{
 			Content:     audioContent,
 			ContentType: body.Audio.ContentType,

@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
-	judgecompatible "github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/judge_compatible"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
+	judgecompatible "github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providers/judge_compatible"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
 

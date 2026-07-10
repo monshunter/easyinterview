@@ -2,7 +2,7 @@
 // to the current target job; it does not define a standalone route or page.
 
 const WorkspaceInsightCard = ({ T, lang, job }) => {
-  const intel = mockIntelForJob(lang, job);
+  const intel = prototypeIntelForJob(lang, job);
   return (
     <div style={{ background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 2 }}>
       <div style={{ padding: "16px 20px", borderBottom: `1px dotted ${T.rule}` }}>
@@ -43,8 +43,8 @@ const WorkspaceInsightCard = ({ T, lang, job }) => {
   );
 };
 
-// ─── mock data ───
-const mockIntelForJob = (lang, job) => {
+// ─── prototype signals ───
+const prototypeIntelForJob = (lang, job) => {
   if (job?.id === "tj-2") {
     return lang === "en" ? {
       oneLiner: "Remote frontend platform team building internal DX tools — the interview will likely test platform boundaries, async collaboration, and English technical explanation.",
@@ -99,10 +99,10 @@ const mockIntelForJob = (lang, job) => {
       sources: [{}, {}, {}, {}],
     };
   }
-  return mockIntel(lang);
+  return prototypeIntel(lang);
 };
 
-const mockIntel = (lang) => {
+const prototypeIntel = (lang) => {
   if (lang === "en") {
     return {
       company: "Star-Ring Tech",

@@ -11,7 +11,7 @@ func TestResumeTailorModeAllowedValues(t *testing.T) {
 	for _, parts := range [][]string{{"in", "line"}, {"re", "write"}, {"mir", "ror"}} {
 		forbidden := ResumeTailorMode(parts[0] + parts[1])
 		if allowed[forbidden] {
-			t.Errorf("ResumeTailorMode must not include non-current value %q", forbidden)
+			t.Errorf("ResumeTailorMode must not include out-of-scope value %q", forbidden)
 		}
 	}
 	if got := len(allowed); got != 2 {

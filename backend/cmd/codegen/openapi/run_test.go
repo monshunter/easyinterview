@@ -24,12 +24,10 @@ func TestRun_Idempotent(t *testing.T) {
 	mustCopy(t, openapiSrc, openapiDst)
 
 	conventionsPath := filepath.Join(repoRoot, "shared", "conventions.yaml")
-	templatesDir := filepath.Join(repoRoot, "openapi", "templates")
 	mirrorTemplates := filepath.Join(tmp, "openapi", "templates")
 	if err := mirrorDir(filepath.Join(repoRoot, "openapi", "templates"), mirrorTemplates); err != nil {
 		t.Fatalf("mirror templates: %v", err)
 	}
-	_ = templatesDir // unused; mirror serves the test
 
 	// First run.
 	if err := Run(openapiDst, conventionsPath, mirrorTemplates, tmp, false); err != nil {
@@ -141,13 +139,14 @@ func TestRun_ApiErrorInnerObjectAndResponseEnvelope(t *testing.T) {
 	tsClient := readFile(t, filepath.Join(tmp, "frontend/src/api/generated/client.ts"))
 	mustContain(t, tsClient, "async requestPrivacyExport(opts?: RequestOptions): Promise<Types.ApiErrorResponse>")
 	mustContain(t, tsClient, "async listResumes(opts?: RequestOptions): Promise<Types.PaginatedResume>")
-		mustContain(t, tsClient, "if (!response.ok && !okStatuses.includes(response.status))")
-		mustContain(t, tsClient, "const text = await response.text()")
-		mustContain(t, tsClient, "if (response.status === 204 || text.trim() === \"\")")
+	mustContain(t, tsClient, "if (!response.ok && !okStatuses.includes(response.status))")
+	mustContain(t, tsClient, "const text = await response.text()")
+	mustContain(t, tsClient, "if (response.status === 204 || text.trim() === \"\")")
 	mustContain(t, tsClient, "async createPracticeVoiceTurn(sessionId: string, body: Types.CreatePracticeVoiceTurnRequest, opts?: RequestOptions): Promise<Types.PracticeVoiceTurnResult>")
 
 	goServer := readFile(t, filepath.Join(tmp, "backend/internal/api/generated/server.gen.go"))
-	mustContain(t, goServer, "// 35-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
+	mustContain(t, goServer, "// 37-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
+	mustNotContain(t, goServer, "// 35-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
 	mustNotContain(t, goServer, "// 43-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
 	mustNotContain(t, goServer, "// 59-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
 }

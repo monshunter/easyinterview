@@ -12,7 +12,7 @@
 - [x] Setup verifies Chromium cache and `frontend/dist/index.html`
 - [x] Trigger runs `pnpm --filter @easyinterview/frontend test:pixel-parity`
 - [x] Verify requires passing summary, desktop/mobile project markers and all current 13 spec markers
-- [x] Verify keeps non-current route/module entries negative-only
+- [x] Verify keeps out-of-scope route/module entries negative-only
 - [x] Cleanup removes setup marker and preserves logs for evidence
 
 ## Closeout

@@ -136,7 +136,7 @@ func (p *Provider) Stream(ctx context.Context, profile *aiclient.ModelProfile, p
 	return ch, nil
 }
 
-// Synthesize implements aiclient.Provider with deterministic TTS placeholder.
+// Synthesize implements aiclient.Provider with a deterministic TTS fixture.
 func (p *Provider) Synthesize(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.SynthesisInput) (aiclient.SynthesisResponse, aiclient.AICallMeta, error) {
 	if profile == nil {
 		return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, fmt.Errorf("stub: profile is nil")

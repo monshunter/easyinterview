@@ -11,7 +11,7 @@ grep -Fq "src/app/scenarios/p0-005-app-shell-visual-system-smoke.test.tsx" "$LOG
 grep -Eq 'Tests +7 passed \(7\)' "$LOG_FILE"
 grep -Eq 'Test Files +1 passed \(1\)' "$LOG_FILE"
 
-# Negative: scenario evidence must not surface non-current-module testid leakage.
+# Negative: scenario evidence must not surface out-of-scope-module testid leakage.
 for forbidden in \
   'route-welcome' \
   'topbar-nav-mistakes' \
@@ -19,7 +19,7 @@ for forbidden in \
   'topbar-nav-drill' \
   'topbar-nav-voice'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
-    echo "forbidden non-current entry leaked into scenario evidence: $forbidden" >&2
+    echo "forbidden out-of-scope entry leaked into scenario evidence: $forbidden" >&2
     exit 1
   fi
 done

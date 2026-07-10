@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 1.1
+    to: 1.9
 spec:
   defaultTarget: scenario
   discovery:
@@ -57,8 +57,8 @@ spec:
       - outbox
       - idempotency replay
       - privacy red line
-      - non-current negative
-      - route-aware non-current negative
+      - out-of-scope negative
+      - route-aware out-of-scope negative
       - preserve cleanup exit status
       - frontend scope gate
       - VITE_EI_API_MODE

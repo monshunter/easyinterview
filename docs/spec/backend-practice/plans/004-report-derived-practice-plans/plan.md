@@ -85,7 +85,7 @@ Keep `E2E.P0.070` and `E2E.P0.072` as the active scenario proof.
 
 | 风险 | 应对措施 |
 |------|----------|
-| 非当前 source 字段看起来可用 | 只在负向断言中枚举禁止字段，正向 contract 只列 `sourceReportId` / `source_report_id` |
+| 范围外 source 字段看起来可用 | 只在负向断言中枚举禁止字段，正向 contract 只列 `sourceReportId` / `source_report_id` |
 | 不匹配的 scenario IDs 或 no-op commands 被当作 proof | BDD/test docs 限定为 P0.070/P0.072，并验证匹配 tests/scripts 存在 |
 | 禁止 source 字段回流到 generated artifacts | Negative grep 覆盖 OpenAPI、generated Go/TS、fixtures、backend runtime 和 scenario docs |
 
@@ -94,5 +94,5 @@ Keep `E2E.P0.070` and `E2E.P0.072` as the active scenario proof.
 | 日期 | 版本 | 变更 | 原因 |
 |------|------|------|------|
 | 2026-07-06 | 1.2 | Rename owner path to `004-report-derived-practice-plans`; current contract remains report-derived retry / next-round only. | Product-scope pruning requires current owner docs to use current owner language. |
-| 2026-07-06 | 1.1 | Reconcile completed plan after product-scope D-22: current positive scope is report-derived retry / next-round only; non-current source fields move to negative assertions. | Completed plan/context was still a discovery source and could reintroduce deleted work. |
+| 2026-07-06 | 1.1 | Reconcile completed plan after product-scope D-22: current positive scope is report-derived retry / next-round only; out-of-scope source fields move to negative assertions. | Completed plan/context was still a discovery source and could reintroduce deleted work. |
 | 2026-05-16 | 1.0 | Initial implementation of derived practice plans. | Initial contract delivery. |

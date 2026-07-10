@@ -11,7 +11,7 @@ mkdir -p "$OUT"
   echo "RUNNER make validate-fixtures"
   cd "$ROOT"
   make validate-fixtures
-  echo "RUNNER go test cmd/api non-current resume route gate"
+  echo "RUNNER go test cmd/api out-of-scope resume route gate"
   cd "$ROOT/backend"
   go test ./cmd/api -run 'TestResumeVersionRoutesRemainUnmountedPerD20|TestGeneratedRouteCatalogHasNoResumeVersionOperations|TestBuildAPIHandlerMountsResumeRoutesBehindSessionMiddleware' -count=1 -v
   echo "RUNNER go test resume handler flat reads"

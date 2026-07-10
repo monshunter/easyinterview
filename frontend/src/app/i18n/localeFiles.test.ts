@@ -68,7 +68,7 @@ describe("D1 shell i18n locale file structure", () => {
     }
   });
 
-  it("does not keep non-current Resume Workshop per-row tree toast keys", () => {
+  it("does not keep out-of-scope Resume Workshop per-row tree toast keys", () => {
     const zhSource = readFileSync(
       new URL("./locales/zh.ts", import.meta.url),
       "utf8",
@@ -84,7 +84,7 @@ describe("D1 shell i18n locale file structure", () => {
     }
   });
 
-  it("does not keep non-current Resume Workshop tree, branch, or placeholder namespaces", () => {
+  it("does not keep out-of-scope Resume Workshop tree, branch, or unavailable-surface namespaces", () => {
     const zhSource = readFileSync(
       new URL("./locales/zh.ts", import.meta.url),
       "utf8",
@@ -115,7 +115,7 @@ describe("D1 shell i18n locale file structure", () => {
     }
   });
 
-  it("does not keep non-current Resume Workshop guided create keys", () => {
+  it("does not keep out-of-scope Resume Workshop guided create keys", () => {
     const zhSource = readFileSync(
       new URL("./locales/zh.ts", import.meta.url),
       "utf8",

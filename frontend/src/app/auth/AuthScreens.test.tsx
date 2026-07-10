@@ -25,8 +25,6 @@ describe("AuthLoginScreen", () => {
     );
     expect(screen.getByTestId("route-auth_login")).toBeInTheDocument();
     expect(screen.getByTestId("auth-login-email")).toBeInTheDocument();
-    expect(screen.queryByTestId("auth-login-password-stub")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("auth-login-oauth-stub")).not.toBeInTheDocument();
     expect(screen.queryByTestId("auth-login-link-register")).not.toBeInTheDocument();
     expect(screen.queryByTestId("auth-login-link-reset")).not.toBeInTheDocument();
   });
@@ -72,7 +70,7 @@ describe("AuthLoginScreen", () => {
         route={{
           name: "auth_login",
           params: {
-            returnTo: "/practice?planId=non-current-return-to",
+            returnTo: "/practice?planId=out-of-scope-return-to",
             pendingRoute: "practice",
             pendingType: "start_practice",
             pendingLabel: "立即面试",

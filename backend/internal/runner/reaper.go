@@ -38,7 +38,7 @@ func NewReaper(opts ReaperOptions) *Reaper {
 		opts.Logger = slog.Default()
 	}
 	if opts.Metrics == nil {
-		opts.Metrics = nopMetrics{}
+		opts.Metrics = discardMetrics{}
 	}
 	return &Reaper{
 		store:        opts.Store,

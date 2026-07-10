@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 1.5
+    to: 1.8
   baseBranch: main
   branch: backend-worker-consolidation
 spec:
@@ -27,7 +27,7 @@ spec:
       - Prometheus not dev dependency
       - OTel optional profile
       - async-runtime shorthand
-      - non-current producer value fixtures
+      - out-of-scope producer value fixtures
       - scripts runtime topology lint
   targets:
     repo:

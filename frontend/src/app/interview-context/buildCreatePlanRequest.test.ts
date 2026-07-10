@@ -55,7 +55,7 @@ describe("buildCreatePlanRequest", () => {
     ).toThrow("invalid sourceReportId");
   });
 
-  it("rejects synthetic resume placeholders instead of sending incomplete API bodies", () => {
+  it("rejects synthetic resume identifiers instead of sending incomplete API bodies", () => {
     expect(() =>
       buildCreatePlanRequest(
         context({ resumeId: "resume-unbound" }),

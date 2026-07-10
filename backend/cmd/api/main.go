@@ -1,7 +1,7 @@
-// Command api is the easyinterview HTTP entry point. It owns the
-// minimal runtime-config endpoint required by secrets-and-config spec
-// §6 C-1 / C-2 / C-6 and is the first allowlisted callsite of os.Getenv
-// outside internal/platform/config (spec §4.1).
+// Command api is the easyinterview HTTP entry point. It owns the public
+// runtime-config endpoint required by secrets-and-config spec §6 C-1 / C-2 /
+// C-6 and is the first allowlisted callsite of os.Getenv outside
+// internal/platform/config (spec §4.1).
 package main
 
 import (

@@ -10,7 +10,7 @@ const ReportScreen = ({ T, lang, nav, params = {}, requestAuth }) => {
   if (!params?.sessionId) {
     return <ReportMissingSessionState T={T} lang={lang} nav={nav} context={routeContext} />;
   }
-  const isPhoneModality = params.modality === "phone" || params.modality === "voice";
+  const isPhoneModality = params.modality === "phone";
   const context = lang === "en" ? {
     breadcrumb: `Mock interview / ${params.sessionId} / Report`,
     title: `${job.title} · ${r.round} mock report`,
@@ -67,7 +67,7 @@ const ReportFailureState = ({ T, lang, nav, context }) => (
         {lang === "en" ? "We could not generate evidence for this session." : "这场会话暂时没有生成可用证据。"}
       </div>
       <div style={{ fontSize: 14, color: T.ink3, lineHeight: 1.6, marginBottom: 18 }}>
-        {lang === "en" ? "Retry generation or return to session records. No placeholder score is shown." : "可以重试生成或回到会话记录；这里不会显示占位分数。"}
+        {lang === "en" ? "Retry generation or return to session records. No estimated score is shown." : "可以重试生成或回到会话记录；这里不会显示估算分数。"}
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <Btn T={T} variant="accent" icon="replay" onClick={() => nav("generating", context)}>{lang === "en" ? "Retry generation" : "重新生成"}</Btn>

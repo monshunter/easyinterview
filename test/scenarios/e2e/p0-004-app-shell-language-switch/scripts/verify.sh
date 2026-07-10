@@ -34,7 +34,7 @@ for forbidden in \
   'topbar-register' \
   'ui-design/src/data'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
-    echo "forbidden non-current/prototype evidence leaked: $forbidden" >&2
+    echo "forbidden out-of-scope/prototype evidence leaked: $forbidden" >&2
     exit 1
   fi
 done

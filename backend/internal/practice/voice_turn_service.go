@@ -29,7 +29,6 @@ type CreatePracticeVoiceTurnRequest struct {
 	Language                 string
 	PracticeMode             sharedtypes.PracticeMode
 	Audio                    PracticeVoiceAudioInput
-	ManualTranscriptFallback string
 	CommittedContext         CommittedVoiceContext
 }
 
@@ -122,7 +121,7 @@ func (s *Service) CreatePracticeVoiceTurn(ctx context.Context, in CreatePractice
 	if !validPracticeMode(in.PracticeMode) {
 		return PracticeVoiceTurnResult{}, validationError("practiceMode is invalid", map[string]any{"field": "practiceMode"})
 	}
-	if len(in.Audio.Content) == 0 && strings.TrimSpace(in.ManualTranscriptFallback) == "" {
+	if len(in.Audio.Content) == 0 {
 		return PracticeVoiceTurnResult{}, validationError("audio.contentBase64 is required", map[string]any{"field": "audio.contentBase64"})
 	}
 	if strings.TrimSpace(in.Audio.ContentType) == "" && len(in.Audio.Content) > 0 {
@@ -162,9 +161,6 @@ func (s *Service) CreatePracticeVoiceTurn(ctx context.Context, in CreatePractice
 		return PracticeVoiceTurnResult{}, serviceErrorFromAI(err)
 	}
 	transcript := strings.TrimSpace(sttResp.Text)
-	if transcript == "" {
-		transcript = strings.TrimSpace(in.ManualTranscriptFallback)
-	}
 	if transcript == "" {
 		return PracticeVoiceTurnResult{}, serviceErrorFromAI(sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "voice transcript is empty", false))
 	}

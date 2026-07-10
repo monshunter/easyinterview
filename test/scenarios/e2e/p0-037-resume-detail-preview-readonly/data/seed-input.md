@@ -8,5 +8,5 @@
 
 User states:
 - 已登录访问已有 resumeId 期待只读 detail 正文渲染。
-- 已登录携带旧 `tab=rewrites` / `tailorRunId` 参数访问时，期待旧参数被忽略且不 materialize 二次操作。
+- 已登录携带 out-of-scope `tab=rewrites` / `tailorRunId` 参数访问时，期待这些参数被忽略且不 materialize 二次操作。
 - 已登录访问不存在 resumeId 期待 NotFoundEmptyState 渲染。

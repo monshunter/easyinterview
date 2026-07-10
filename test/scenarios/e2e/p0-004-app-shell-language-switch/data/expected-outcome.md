@@ -8,8 +8,8 @@
   - `topbar-nav-workspace` shows `Mock Interview`.
   - `topbar-nav-resume_versions` shows `Resume`.
   - `topbar-login` shows `Sign in`.
-  - Auth/settings/placeholder shell labels are English.
+  - Auth/settings/route shell labels are English.
 - Stable route/test IDs remain unchanged; no localized route names are introduced.
 - Generated client requests made after locale toggle include
   `Accept-Language: en`.
-- Non-current entries and prototype data imports remain absent from scenario output.
+- Out-of-scope entries and prototype data imports remain absent from scenario output.

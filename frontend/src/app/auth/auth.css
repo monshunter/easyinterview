@@ -151,17 +151,6 @@
   filter: brightness(0.95);
 }
 
-.ei-auth-stub {
-  border: 1px dashed var(--ei-color-rule-strong);
-  background: var(--ei-color-bg-soft);
-  border-radius: var(--ei-radius-sm);
-  padding: 12px 14px;
-  color: var(--ei-color-fg-tertiary);
-  display: flex;
-  flex-direction: column;
-  gap: var(--ei-space-1);
-}
-
 .ei-auth-secondary-link {
   background: transparent;
   border: none;

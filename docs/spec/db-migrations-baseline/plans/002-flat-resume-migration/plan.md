@@ -1,8 +1,8 @@
 # DB Migrations Baseline Flat Resume Migration
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -95,7 +95,7 @@ Backend Resume, Backend Practice, OpenAPI and frontend consumers use `resumeId` 
 Current green gates:
 
 - `python3 scripts/lint/migrations_lint.py --repo-root .`
-- `cd backend && go test ./internal/migrations -run 'TestResumeVersionsAdditiveMigrationContract|TestResumeFlattenMigrationContract|TestDropJDMatchMigrationDeletesNonCurrentAsyncJobsBeforeNarrowingCheck|TestDropJDMatchMigrationDropsNonCurrentTablesAndRegistryRows' -count=1`
+- `cd backend && go test ./internal/migrations -run 'TestResumeVersionsAdditiveMigrationContract|TestResumeFlattenMigrationContract|TestDropJDMatchMigrationDeletesOutOfScopeAsyncJobsBeforeNarrowingCheck|TestDropJDMatchMigrationDropsOutOfScopeTablesAndRegistryRows' -count=1`
 - `cd backend && go test ./internal/migrations -count=1`
 
 #### 4.2 Environment-dependent evidence

@@ -122,7 +122,7 @@ func TestAppendSessionEventVoicePlaybackCommitsWithoutAI(t *testing.T) {
 			},
 		},
 	}
-	ai := &fakeAIClient{content: firstQuestionJSON(t, "should not be used", "unused"), store: store}
+	ai := &fakeAIClient{content: firstQuestionJSON(t, "AI must not run", "must-not-run"), store: store}
 	service := NewService(ServiceOptions{
 		Store: store,
 		AI:    ai,
@@ -266,7 +266,7 @@ func TestAppendSessionEventFollowUpAIFailureFallsBackToAskQuestion(t *testing.T)
 	}
 }
 
-func TestAppendSessionEventHintLegacyStrictRunsAIAndAppends(t *testing.T) {
+func TestAppendSessionEventHintStrictModeRunsAIAndAppends(t *testing.T) {
 	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
 	store := &recordingPlanStore{
 		eventReservation: SessionEventReservation{
@@ -304,7 +304,7 @@ func TestAppendSessionEventHintLegacyStrictRunsAIAndAppends(t *testing.T) {
 		t.Fatalf("unexpected hint result: %+v", result.AssistantAction)
 	}
 	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "ai", "append-event"}) {
-		t.Fatalf("legacy strict hint should append the event, steps=%v", store.steps)
+		t.Fatalf("strict-mode hint should append the event, steps=%v", store.steps)
 	}
 }
 
@@ -373,7 +373,7 @@ func TestServiceAppliesHintAIForAssisted(t *testing.T) {
 	}
 }
 
-func TestServiceAppliesHintAIForLegacyStrict(t *testing.T) {
+func TestServiceAppliesHintAIForStrictMode(t *testing.T) {
 	now := time.Date(2026, 4, 28, 13, 47, 32, 0, time.UTC)
 	store := &recordingPlanStore{
 		eventReservation: SessionEventReservation{
@@ -411,7 +411,7 @@ func TestServiceAppliesHintAIForLegacyStrict(t *testing.T) {
 		t.Fatalf("unexpected strict hint action: %+v", result.AssistantAction)
 	}
 	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "ai", "append-event"}) {
-		t.Fatalf("legacy strict hint should call AI and append, steps=%v", store.steps)
+		t.Fatalf("strict-mode hint should call AI and append, steps=%v", store.steps)
 	}
 }
 
@@ -561,7 +561,7 @@ func TestApplyHintAIBuildsPromptFromF3Template(t *testing.T) {
 	}
 	for _, forbidden := range []string{"{{question}}", "{{partial_answer}}", "{{elapsed_seconds}}", "{{language}}"} {
 		if strings.Contains(rawPrompt, forbidden) {
-			t.Fatalf("hint prompt left placeholder %q: %s", forbidden, rawPrompt)
+			t.Fatalf("hint prompt left template marker %q: %s", forbidden, rawPrompt)
 		}
 	}
 }
@@ -577,14 +577,14 @@ func TestApplyHintAIGracefulDegradeMatrix(t *testing.T) {
 		{
 			name:     "f3 prompt unsupported",
 			resolver: &fakePromptResolver{err: registry.ErrPromptUnsupported},
-			ai:       &fakeAIClient{content: `{"hint":"unused"}`},
+			ai:       &fakeAIClient{content: `{"hint":"ignored"}`},
 			wantCode: sharederrors.CodeAiProviderConfigInvalid,
 			wantRows: 1,
 		},
 		{
 			name:     "f3 language unsupported",
 			resolver: &fakePromptResolver{err: registry.ErrLanguageUnsupported},
-			ai:       &fakeAIClient{content: `{"hint":"unused"}`},
+			ai:       &fakeAIClient{content: `{"hint":"ignored"}`},
 			wantCode: sharederrors.CodeAiProviderConfigInvalid,
 			wantRows: 1,
 		},
@@ -662,7 +662,7 @@ func TestApplyHintAIPrivacyRedaction(t *testing.T) {
 	rows := &recordingAITaskRunWriter{}
 	service := NewService(ServiceOptions{
 		Registry:   &fakePromptResolver{err: registry.ErrPromptUnsupported},
-		AI:         &fakeAIClient{content: `{"hint":"unused response body secret"}`},
+		AI:         &fakeAIClient{content: `{"hint":"ignored response body secret"}`},
 		AITaskRuns: rows,
 	})
 	outcome := hintPendingOutcome(reservation)
@@ -701,7 +701,7 @@ func TestApplyHintAIGracefulDegradeOnRegistryFailure(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Store:      store,
 		Registry:   &fakePromptResolver{err: registry.ErrPromptUnsupported},
-		AI:         &fakeAIClient{content: `{"hint":"unused"}`, store: store},
+		AI:         &fakeAIClient{content: `{"hint":"ignored"}`, store: store},
 		AITaskRuns: runs,
 		Now:        func() time.Time { return now },
 		NewID:      sequenceIDs("event-1", "outbox-1"),

@@ -27,7 +27,7 @@
 ## Phase 4: Host fallback and routing regression
 
 - [x] 4.1 Add host fallback coverage; verification: spaFallback tests prove known frontend paths return `index.html` and API/static/script paths are not swallowed.
-- [x] 4.2 Add unsupported route regression; verification: nonCurrentRouteNegative and routeUrl tests prove unsupported inputs do not become canonical paths or materialized screens.
+- [x] 4.2 Add unsupported route regression; verification: outOfScopeRouteNegative and routeUrl tests prove unsupported inputs do not become canonical paths or materialized screens.
 - [x] 4.3 BDD-Gate: `E2E.P0.088` canonical path deep-link / reload / back-forward passes.
 - [x] 4.4 BDD-Gate: `E2E.P0.090` hash compatibility + unsupported route regression passes.
 

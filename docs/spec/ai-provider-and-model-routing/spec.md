@@ -1,8 +1,8 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.19
+> **版本**: 2.21
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -11,7 +11,7 @@
 基于当前 [product-scope](../product-scope/spec.md) 与 `docs/ui-design/` / `ui-design/` 交互，easyinterview 的 AI 使用面已经超过“单一文本 LLM endpoint”：
 
 - JD 导入解析、workspace 内嵌公司轻情报摘要；
-- 模拟面试首题、追问、轻量观察 / hint、文本输入中的语音转写、voice interview；
+- 模拟面试首题、追问、轻量观察 / hint、电话模式底层 STT / chat / TTS 编排；
 - 报告生成、逐题评估、复练当前轮 / 下一轮上下文；
 - 简历解析、岗位定制、bullet 改写；
 - 离线 LLM Judge / eval。
@@ -70,11 +70,11 @@
 | D-8 | 隐私字段红线 | log / metric / DB metadata 字段中绝不出现明文 prompt / response；只允许 hash / 长度 / profile | 与 ADR-Q5 / logging 标准对齐 |
 | D-9 | OpenAI-compatible API 协议子集 | 当前可执行协议是 Chat Completions + chat streaming SSE + Audio Transcriptions + Chat tool-call wire 子集；provider-specific speech protocol 由 `doubao_speech` / `minimax_speech` 独立实现；realtime / judge 进入后续 owner plan 前必须 fail-closed | 主流 chat provider 可即插即用，同时避免假承诺 speech / realtime / judge 都兼容同一 wire shape |
 | D-9a | 当前开发 provider / model | 当前开发主力 provider ref 为 `deepseek`；chat profile 只允许 `deepseek-v4-flash` / `deepseek-v4-pro`，不得使用 non-current alias | 本地开发与未来部署前的 AI 调用口径稳定且可审计 |
-| D-10 | F3 profile 覆盖 | F3 baseline feature_key 必须全部能解析到 A3 profile catalog；P1/P2 capability 可先以 `status=disabled` / `status=unsupported` profile 占位，并写明 `unsupported_reason`，但不得缺命名空间 | 业务域开工前具备完整 AI 调用坐标 |
+| D-10 | F3 profile 覆盖 | F3 baseline feature_key 必须全部能解析到 A3 profile catalog；P1/P2 capability 可先以 `status=disabled` / `status=unsupported` fail-closed profile 登记，并写明 `unsupported_reason`，但不得缺命名空间 | 业务域开工前具备完整 AI 调用坐标 |
 | D-11 | Product/UI capability inventory | A3 spec 必须维护产品 / UI AI 场景到 capability family 的映射；新增 AI 场景必须先修订本表与 F3 feature_key / profile 字典 | 防止新业务回到单模型假设 |
 | D-12 | B1 AI vocabulary 边界 | `chat/stt/tts/realtime/judge` capability、provider registry/profile 字段名、AI meta 字段名与 provider/profile routing `AI_*` 错误码由 B1 生成；A3 只 alias / consume，不私造跨边界常量 | 防止 Go/TS/OpenAPI 与 runtime 常量漂移 |
 | D-13 | Provider-side streaming consumer | A3 固定消费 OpenAI-compatible SSE `data:` frames 并映射为 `AIStreamEvent` 的 `delta` / `error` / `done`；context cancel 以 B1 `AI_*` 错误码和 `partial_meta_reason` 形成 terminal event；业务 HTTP SSE / chunked wire 由 backend / frontend owner 在自身 API plan 决定 | 后续业务域可复用 provider streaming 底座，同时不提前承诺用户可见 HTTP wire |
-| D-14 | 语音 MVP 形态 | P0 语音面试优先采用 `stt -> chat -> tts` 级联方案替代 S2S / realtime voice；`stt`、`chat`、`tts` 必须是独立 profile，可选择不同 provider，不绑定同一家供应商 | 降低成本并保留 provider 切换能力 |
+| D-14 | 电话模式级联语音底座 | P0 电话模式优先采用 `stt -> chat -> tts` 级联方案替代 S2S / realtime voice；`stt`、`chat`、`tts` 必须是独立 profile，可选择不同 provider，不绑定同一家供应商 | 降低成本并保留 provider 切换能力 |
 | D-15 | TTS capability | `tts` 是独立 capability，不混入 `realtime`；TTS 失败只能影响语音播放，不得丢失已生成文本回复或用户 transcript | 防止把低成本级联语音误标为 realtime S2S |
 
 ### 3.2 待确认事项
@@ -95,7 +95,7 @@
 - `AICallMeta` 字段顺序固定：`provider` / `model_family` / `model_id` / `capability` / `prompt_version` / `rubric_version` / `model_profile_name` / `model_profile_version` / `language` / `input_tokens` / `output_tokens` / `cost_usd_micros` / `latency_ms` / `fallback_chain[]` / `route` / `validation_status` / `error_code` / `tool_invocations[]` / `partial_meta_reason`。其中跨 Go/TS/OpenAPI 边界消费的 capability、profile/provider 字段名、fallback label 字段、tool/partial meta 字段与错误码由 B1 生成；A3 owns runtime 填充与校验。
 - `Stream` 返回 `AIStreamEvent` channel，event type 固定为 `delta` / `error` / `done`；`delta` 只携带结构化增量，`error` 携带 B1 错误码，`done` 携带最终 `AICallMeta`。`Stream` 必须消费 provider-side SSE，支持 context cancellation，并在取消时尽力填充 partial meta；业务 HTTP wire 由后续 backend/frontend owner 自行决定。
 - 不支持的 capability 必须 fail-closed：profile 能加载为 `disabled` / `unsupported` 状态，且必须携带 `unsupported_reason`；运行时调用不得静默降级到 chat 模型或 stub。
-- 级联语音面试上下文提交必须由业务 owner 记录已播放边界：AI 文本回复与 TTS audio chunk 先保持 draft，只有前端确认完整播放的 chunk 才能进入下一轮 prompt；被打断后未播放内容必须丢弃，不得写入 committed context。
+- 电话模式级联语音上下文提交必须由业务 owner 记录已播放边界：AI 文本回复与 TTS audio chunk 先保持 draft，只有前端确认完整播放的 chunk 才能进入下一轮 prompt；被打断后未播放内容必须丢弃，不得写入 committed context。
 
 ### 4.2 路由与 fallback 约束
 
@@ -124,14 +124,13 @@
 | 产品 / UI 场景 | 主要输入 | Capability family | 默认 profile 命名 |
 |----------------|----------|-------------------|-------------------|
 | JD 导入解析 | JD 文本 / URL 提取文本 | `chat` 结构化抽取 | `target.import.default` |
-| 公司轻情报摘要 | source-grounded public info | `chat` source-grounded summarization | `target.intel.default`（P1/P2 占位） |
+| 公司轻情报摘要 | source-grounded public info | `chat` source-grounded summarization | `target.intel.default`（P1/P2 fail-closed） |
 | 简历解析 | 简历文本 / 上传解析结果 | `chat` 结构化抽取 | `resume.parse.default` |
 | 简历定制 / bullet 改写 | JD + 简历证据 | `chat` 写作 / 改写 | `resume.tailor.default` |
 | 模拟面试首题 | JD / round / resume / role | `chat` 对话生成 | `practice.first_question.default` |
 | 模拟面试追问 | transcript / current answer | `chat` 低延迟生成 | `practice.followup.default` |
 | assisted hint / turn observe | 当前回答 + rubric | `chat` 低延迟观察 | `practice.turn_observe.default` |
-| 文本输入语音转写 | audio chunk | `stt` | `practice.dictation.stt.default`（002+） |
-| Voice Interview | audio chunk + session state + committed context | `stt` + `chat` + `tts`（P0 MVP）或后续 `realtime` | `practice.voice.stt.default` / `practice.followup.default` / `practice.voice.tts.default`；`practice.voice.realtime.default` 继续 fail-closed |
+| 电话模式 | audio chunk + session state + committed context | `stt` + `chat` + `tts`（P0 MVP）或后续 `realtime` | `practice.voice.stt.default` / `practice.followup.default` / `practice.voice.tts.default`；`practice.voice.realtime.default` 继续 fail-closed |
 | 报告生成 | full session + JD + resume | `chat` 长上下文结构化推理 | `report.generate.default` |
 | 单题评估 | 单题回答 + rubric | `chat` rubric assessment | `report.assessment.default` |
 | 复练当前轮 / 下一轮 | report gaps + replay items | `chat` 生成 | `report.generate.default` / `report.assessment.default` / `practice.first_question.default` / `practice.followup.default` |
@@ -174,7 +173,7 @@
 | C-14 | Provider-side streaming | profile 使用 `chat` capability | 调用 `Stream` 且 provider 返回 SSE delta / done | channel 按顺序发 `delta`，最终发 `done` 并关闭；malformed chunk / provider error / context cancel 发 `error` 或带 partial meta 的 terminal event，错误码来自 B1 `AI_*` | 002 |
 | C-15 | STT transcription | profile 使用 `stt` capability 且 provider ref 支持 OpenAI-compatible Audio Transcriptions | 调用 `Transcribe` | adapter 调 `/v1/audio/transcriptions`；返回 transcript + meta；缺 secret / provider error / unsupported profile fail-fast；log / DB / audit / metric label 不含音频或转写全文明文 | 002 |
 | C-16 | TTS synthesis | profile 使用 `tts` capability 且 provider ref 支持 provider-specific synthesis wire | 调用 `Synthesize` | adapter 返回音频 bytes 或 chunk metadata + meta；缺 secret / provider error / unsupported profile fail-fast；log / DB / audit / metric label 不含待合成文本或音频明文 | 004 |
-| C-17 | Independent cascaded voice profiles | 语音面试配置分别选择 `stt`、`chat`、`tts` profile | 业务编排一轮 `stt -> chat -> tts` | STT/TTS 可指向不同 provider；TTS 失败不丢失 transcript / chat text；STT 失败不调用 chat/TTS；任何一步不得静默回退到 `realtime` 或 stub | 004 + practice-voice-mvp |
+| C-17 | Independent cascaded voice profiles | 电话模式配置分别选择 `stt`、`chat`、`tts` profile | 业务编排一轮 `stt -> chat -> tts` | STT/TTS 可指向不同 provider；TTS 失败不丢失 transcript / chat text；STT 失败不调用 chat/TTS；任何一步不得静默回退到 `realtime` 或 stub | 004 + practice-voice-mvp |
 | C-18 | Barge-in committed context | AI TTS 正在播放且用户插话 | 前端发出 barge-in / played chunk 事件 | 后端只把已完整播放 chunk 的 assistant 文本写入 committed context；未播放 draft 不进入下一轮 prompt；event log 可追溯 interrupted 状态 | practice-voice-mvp |
 
 ## 7 关联计划
@@ -184,6 +183,6 @@ A3 当前计划拆分为 completed foundation plan、active capability adapter e
 - [001-aiclient-and-profile-bootstrap](./plans/001-aiclient-and-profile-bootstrap/plan.md)（completed）：已落地 P0 `Complete` / `Embed`、`Stream` 事件合同类型、unit-test stub provider、`openai_compatible` Chat / Embeddings provider、基础 Model Profile loader 与 observability / audit decorator。
 - [002-tools-streaming-and-stt](./plans/002-tools-streaming-and-stt/plan.md)（active）：提前落地 Tools payload 扩展、provider-side streaming consumer 与 STT Audio Transcriptions 底座；realtime multimodal 仍保持 fail-closed。
 - [003-provider-registry-and-capability-profiles](./plans/003-provider-registry-and-capability-profiles/plan.md)（active）：原地修订当前开发 provider / capability scope，删除向量化 / 重排代码与基础设施，将 chat profile 收敛到 DeepSeek V4 Flash/Pro，并同步 A4/B1/B3/B4/F3 契约。
-- [004-cascaded-speech-provider-foundation](./plans/004-cascaded-speech-provider-foundation/plan.md)（active）：为 `stt -> chat -> tts` 语音 MVP 打开 `tts` capability、provider-specific speech adapters、独立 STT/TTS profile 与隐私/观测/成本 gate；realtime S2S 继续 fail-closed。
+- [004-cascaded-speech-provider-foundation](./plans/004-cascaded-speech-provider-foundation/plan.md)（active）：为 `stt -> chat -> tts` 电话模式 MVP 打开 `tts` capability、provider-specific speech adapters、独立 STT/TTS profile 与隐私/观测/成本 gate；realtime S2S 继续 fail-closed。
 
 后续如需扩展，递增本 spec 版本并原地修订对应 plan；不创建 sibling spec。

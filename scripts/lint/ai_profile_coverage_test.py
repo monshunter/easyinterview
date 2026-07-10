@@ -187,7 +187,7 @@ def test_fails_when_active_profile_uses_stub_provider(tmp_path: Path) -> None:
     assert "active profile must not use stub provider" in result.stderr
 
 
-def test_fails_when_dev_stack_env_uses_non_current_profile_directory(tmp_path: Path) -> None:
+def test_fails_when_dev_stack_env_uses_out_of_scope_profile_directory(tmp_path: Path) -> None:
     repo = make_repo(
         tmp_path,
         textwrap.dedent(
@@ -272,7 +272,7 @@ CHAT_FOLLOWUP = textwrap.dedent(
 ).strip()
 
 
-def test_passes_when_judge_default_active_and_non_placeholder(tmp_path: Path) -> None:
+def test_passes_when_judge_default_active_and_runnable(tmp_path: Path) -> None:
     repo = make_repo(tmp_path, CHAT_FOLLOWUP)
     result = run(repo)
     assert result.returncode == 0, result.stderr
@@ -307,7 +307,7 @@ def test_fails_when_judge_default_unsupported(tmp_path: Path) -> None:
     assert "active" in result.stderr
 
 
-def test_fails_when_judge_default_uses_placeholder_provider(tmp_path: Path) -> None:
+def test_fails_when_judge_default_uses_non_runnable_provider(tmp_path: Path) -> None:
     judge = textwrap.dedent(
         """
         name: judge.default
@@ -323,10 +323,10 @@ def test_fails_when_judge_default_uses_placeholder_provider(tmp_path: Path) -> N
     repo = make_repo(tmp_path, CHAT_FOLLOWUP, judge_body=judge)
     result = run(repo)
     assert result.returncode == 1
-    assert "placeholder" in result.stderr
+    assert "must be runnable" in result.stderr
 
 
-def test_fails_when_chat_profile_uses_placeholder_model(tmp_path: Path) -> None:
+def test_fails_when_chat_profile_uses_non_runnable_model(tmp_path: Path) -> None:
     chat = textwrap.dedent(
         """
         name: practice.followup.default
@@ -342,4 +342,4 @@ def test_fails_when_chat_profile_uses_placeholder_model(tmp_path: Path) -> None:
     repo = make_repo(tmp_path, chat)
     result = run(repo)
     assert result.returncode == 1
-    assert "placeholder" in result.stderr
+    assert "must be runnable" in result.stderr

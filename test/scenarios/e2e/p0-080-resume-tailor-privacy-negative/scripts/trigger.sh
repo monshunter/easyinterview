@@ -18,18 +18,18 @@ mkdir -p "$OUT"
   echo "RUNNER go test cmd/api resume tailor drainer privacy"
   go test ./cmd/api -run 'TestResumeTailorDrainerHTTPScenario|TestResumeTailorDrainerFailureScenario' -count=1 -v
   cd "$ROOT"
-  echo "RUNNER rg non-current inline rewrite mirror"
-  if rg -n 'inline|mirror' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: non-current inline/mirror vocabulary found"
+  echo "RUNNER rg out-of-scope inline rewrite mirror"
+  if rg -n -i '(tailor|mode).*(inline|rewrite|mirror)|(inline|rewrite|mirror).*(tailor|mode)' backend/internal/resume --glob '!**/*_test.go' --glob '!**/verify.sh'; then
+    echo "ERROR: out-of-scope inline/rewrite/mirror vocabulary found"
     exit 1
   fi
-  echo "evidence non_current_inline_mirror=0"
-  echo "RUNNER rg non-current mistakes growth drill"
-  if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: non-current mistakes/growth/drill vocabulary found"
+  echo "evidence out_of_scope_inline_rewrite_mirror=0"
+  echo "RUNNER rg out-of-scope mistakes growth drill"
+  if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/*_test.go' --glob '!**/verify.sh'; then
+    echo "ERROR: out-of-scope mistakes/growth/drill vocabulary found"
     exit 1
   fi
-  echo "evidence non_current_mistakes_growth_drill=0"
+  echo "evidence out_of_scope_mistakes_growth_drill=0"
   echo "evidence outbox_payload=ids_mode_status_only"
   echo "evidence ai_task_runs=no_prompt_or_raw_response"
   echo "evidence audit_metadata=no_prompt_or_response_body"

@@ -1,11 +1,10 @@
 # Seed Input
 
 - User: `user-resume-parse`
-- Resume asset variants:
+- Resume variants:
   - `upload`: object-store backed file object read through backend-upload objectstore abstraction.
-  - `paste`: raw text source stored in `resume_assets.original_text`.
-  - non-current `guided`: absent from current parse inputs; flatten migration drops
-    `guided_answers` on the active schema.
+  - `paste`: raw text source stored in `resumes.original_text`.
+  - unsupported sourceType values are validation-only cases and are not parse inputs.
 - AI response variants:
   - success JSON with `basics`, `experiences`, `projects`, `education`, `skills`, and `languages`.
   - invalid output that fails schema validation.

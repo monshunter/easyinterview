@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Reject non-current AI gateway terminology in active AI provider surfaces.
+"""Reject out-of-scope AI gateway terminology in active AI provider surfaces.
 
 This gate is intentionally narrower than a whole-repo grep: evidence under
 docs/work-journal, docs/reports, docs/bugs, and spec history files may retain
-non-current wording, but active code, config, deploy assets, ADRs, and
+out-of-scope wording, but active code, config, deploy assets, ADRs, and
 generated AI convention artifacts must use provider-neutral terminology.
 """
 from __future__ import annotations
@@ -55,23 +55,23 @@ SCAN_PATHS = [
 
 
 @dataclass(frozen=True)
-class NonCurrentPattern:
+class OutOfScopePattern:
     label: str
     pattern: re.Pattern[str]
 
 
-NON_CURRENT_PATTERNS = [
-    NonCurrentPattern("AI_GATEWAY env key", re.compile(r"\bAI_GATEWAY_[A-Z0-9_]+\b")),
-    NonCurrentPattern("gateway_route schema key", re.compile(r"\bgateway_route\b")),
-    NonCurrentPattern("GatewayRoute API field", re.compile(r"\bGatewayRoute\b")),
-    NonCurrentPattern("GatewayBaseURL API field", re.compile(r"\bGatewayBaseURL\b")),
-    NonCurrentPattern("GatewayAPIKey API field", re.compile(r"\bGatewayAPIKey\b")),
-    NonCurrentPattern(
+OUT_OF_SCOPE_PATTERNS = [
+    OutOfScopePattern("AI_GATEWAY env key", re.compile(r"\bAI_GATEWAY_[A-Z0-9_]+\b")),
+    OutOfScopePattern("gateway_route schema key", re.compile(r"\bgateway_route\b")),
+    OutOfScopePattern("GatewayRoute API field", re.compile(r"\bGatewayRoute\b")),
+    OutOfScopePattern("GatewayBaseURL API field", re.compile(r"\bGatewayBaseURL\b")),
+    OutOfScopePattern("GatewayAPIKey API field", re.compile(r"\bGatewayAPIKey\b")),
+    OutOfScopePattern(
         "ErrMissingGatewayConfig API error",
         re.compile(r"\bErrMissingGatewayConfig\b"),
     ),
-    NonCurrentPattern("ai.gateway config path", re.compile(r"\bai\.gateway[A-Za-z0-9_]*\b")),
-    NonCurrentPattern("gateway terminology", re.compile(r"\bgateway\b", re.IGNORECASE)),
+    OutOfScopePattern("ai.gateway config path", re.compile(r"\bai\.gateway[A-Za-z0-9_]*\b")),
+    OutOfScopePattern("gateway terminology", re.compile(r"\bgateway\b", re.IGNORECASE)),
 ]
 
 
@@ -108,7 +108,7 @@ def scan_file(repo: Path, path: Path) -> list[str]:
     findings: list[str] = []
     rel = path.relative_to(repo)
     for lineno, line in enumerate(text.splitlines(), start=1):
-        for pattern in NON_CURRENT_PATTERNS:
+        for pattern in OUT_OF_SCOPE_PATTERNS:
             if pattern.pattern.search(line):
                 findings.append(f"{rel}:{lineno}: {pattern.label}: {line.strip()}")
                 break
@@ -126,12 +126,12 @@ def main() -> int:
         findings.extend(scan_file(repo, path))
 
     if findings:
-        print("ai_provider_terminology: non-current terminology found", file=sys.stderr)
+        print("ai_provider_terminology: out-of-scope terminology found", file=sys.stderr)
         for finding in findings:
             print(f"  - {finding}", file=sys.stderr)
         print(
             "Fix: use AI provider registry/profile/provider-ref terminology in active surfaces; "
-            "keep non-current wording only in history, work-journal, report, or bug records.",
+            "keep out-of-scope wording only in history, work-journal, report, or bug records.",
             file=sys.stderr,
         )
         return 1

@@ -2,7 +2,6 @@
  * @vitest-environment jsdom
  *
  * practice-voice-mvp item 4.2 current contract:
- * - user-visible "voice" routes render as phone mode
  * - phone mode has call-layer controls only: captions, hang up, restart
  * - the phone controller still records a voice turn, submits
  *   createPracticeVoiceTurn, plays returned TTS, and reports playback events
@@ -39,11 +38,11 @@ describe("practice phone mode controller (item 4.2)", () => {
     localStorage.clear();
   });
 
-  it("normalizes legacy voice routes to phone UI while submitting the real voice turn", async () => {
+  it("submits the real voice turn from current phone mode", async () => {
     const { client, calls } = buildPracticeClient();
     mountPracticeScreen({
       client,
-      routeParams: { mode: "voice", modality: "voice", practiceMode: "assisted" },
+      routeParams: { mode: "phone", modality: "phone", practiceMode: "assisted" },
     });
 
     const user = userEvent.setup();
@@ -163,6 +162,30 @@ describe("practice phone mode controller (item 4.2)", () => {
     expect(playedCall.headers.get("Idempotency-Key")).toBeNull();
   });
 
+  it("renders assistant text fallback when the tts-failed fixture returns TTS_PROVIDER_FAILED", async () => {
+    const { client, calls } = buildPracticeClient({
+      scenarioByOp: { createPracticeVoiceTurn: "tts-failed" },
+    });
+    mountPracticeScreen({
+      client,
+      routeParams: { mode: "phone", modality: "phone", practiceMode: "assisted" },
+    });
+
+    const user = userEvent.setup();
+    await submitDefaultPhoneTurn(user, calls);
+
+    await user.click(screen.getByTestId("practice-phone-captions-toggle"));
+    expect(
+      await screen.findByText("我先做风险分组，再让高风险团队先跑试点。"),
+    ).toBeDefined();
+    expect(
+      screen.getByText("高风险团队试点时，你如何证明迁移没有影响线上体验？"),
+    ).toBeDefined();
+    expect(eventBodies(calls).some((body) => body.kind === "tts_chunk_started"))
+      .toBe(false);
+    expect(FakeAudioElement.instances).toHaveLength(0);
+  });
+
   it("stops and discards active microphone capture when phone mode is paused", async () => {
     const { client, calls } = buildPracticeClient();
     mountPracticeScreen({
@@ -212,7 +235,7 @@ describe("practice phone mode controller (item 4.2)", () => {
     expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(2);
   });
 
-  it("reports barge_in_detected when restarting during active assistant playback", async () => {
+  it("reports partial playback before barge_in_detected when restarting during active assistant playback", async () => {
     const { client, calls } = buildPracticeClient();
     mountPracticeScreen({
       client,
@@ -230,12 +253,18 @@ describe("practice phone mode controller (item 4.2)", () => {
     await user.click(screen.getByTestId("practice-phone-restart"));
 
     await waitFor(() => {
-      expect(eventBodies(calls).some((body) => body.kind === "barge_in_detected"))
-        .toBe(true);
+      const bodies = eventBodies(calls);
+      expect(bodies.some((body) => body.kind === "barge_in_detected")).toBe(true);
+      expect(bodies.some((body) => body.kind === "tts_chunk_played")).toBe(true);
     });
-    const played = eventBodies(calls).find(
-      (body) => body.kind === "tts_chunk_played",
-    )!;
+    const bodies = eventBodies(calls);
+    const playedIndex = bodies.findIndex((body) => body.kind === "tts_chunk_played");
+    const bargeInIndex = bodies.findIndex(
+      (body) => body.kind === "barge_in_detected",
+    );
+    expect(playedIndex).toBeGreaterThanOrEqual(0);
+    expect(bargeInIndex).toBeGreaterThan(playedIndex);
+    const played = bodies[playedIndex]!;
     expect(played.payload).toEqual(
       expect.objectContaining({
         voiceTurnId: "01918fa0-0000-7000-8000-00000000f201",
@@ -243,9 +272,7 @@ describe("practice phone mode controller (item 4.2)", () => {
         playedTextHash: "sha256:voice-default-chunk-001",
       }),
     );
-    const bargeIn = eventBodies(calls).find(
-      (body) => body.kind === "barge_in_detected",
-    )!;
+    const bargeIn = bodies[bargeInIndex]!;
     expect(bargeIn.payload).toEqual(
       expect.objectContaining({
         voiceTurnId: "01918fa0-0000-7000-8000-00000000f201",

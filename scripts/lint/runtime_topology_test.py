@@ -51,7 +51,7 @@ class RuntimeTopologyLintTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("runtime_topology: OK", result.stdout)
 
-    def test_rejects_non_current_worker_process_terms_in_active_surfaces(self) -> None:
+    def test_rejects_out_of_scope_worker_process_terms_in_active_surfaces(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             repo = Path(td)
             write(
@@ -200,7 +200,7 @@ class RuntimeTopologyLintTest(unittest.TestCase):
             )
             write(
                 repo / "scripts" / "lint" / "runtime_topology.py",
-                "NON_CURRENT_PATTERNS = ['cmd/worker', 'WORKER_LISTEN_ADDR', 'producer: worker']\n",
+                "OUT_OF_SCOPE_PATTERNS = ['cmd/worker', 'WORKER_LISTEN_ADDR', 'producer: worker']\n",
             )
 
             result = run_lint(repo)

@@ -242,7 +242,7 @@ describe("HomeImport — upload flow", () => {
     const presignBody = presignSpy.mock.calls[0]?.[0];
     expect(presignBody).toMatchObject({
       purpose: "target_job_attachment",
-      fileName: expect.stringMatching(/^placeholder\.pdf$/),
+      fileName: "target-job-attachment.pdf",
       contentType: "application/pdf",
       byteSize: 0,
     });

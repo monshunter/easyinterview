@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Spec
 
-> **版本**: 1.38
+> **版本**: 1.40
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -14,7 +14,7 @@
 
 目标是：
 
-1. **唯一真理源**：`openapi/openapi.yaml` 是 P0 所有 HTTP 端点的唯一定义；任何手写 handler stub / 手写 fetch 客户端禁止与之偏离。
+1. **唯一真理源**：`openapi/openapi.yaml` 是 P0 所有 HTTP 端点的唯一定义；任何脱离 codegen 的 handler surface / 手写 fetch 客户端禁止与之偏离。
 2. **双端 codegen**：Go DTO + chi handler 接口在 `backend/internal/api/generated/`；TypeScript SDK 在 `frontend/src/api/generated/`；本地 `make codegen-openapi` / `make codegen-check` 必须能用 `git diff --exit-code` 校验未漂移（与 [B1 D-1 idempotent generator](../shared-conventions-codified/spec.md#31-已锁定决策) 一致）。
 3. **fixtures 同源**：每个端点的 example response 落 `openapi/fixtures/<tag>/<operationId>.json`，由 [E1 `mock-contract-suite`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 转 Prism / 自建 mock server；需要给 Prism / 文档站消费的 OpenAPI examples 必须由 fixtures 生成，不手写第二份 example；前端 msw 与后端 mock-server 共享同一份 fixtures，**禁止前端 hardcode mock**。
 4. **breaking change 拦截**：本 spec 自带 breaking change linter（如 `openapi-diff` / Spectral 规则集）；v1.0.0 freeze 生效后任何修改 `openapi/openapi.yaml` 时，本地 gate 必须验证只引入 additive 变更；破坏性变更必须通过 ADR + 本 spec 修订流程。
@@ -63,7 +63,7 @@
 | D-9 | v1.0.0 freeze 范围 | §3.1.1 列出当前 37 个 endpoint + 10 tag；本 spec 锁定范围与 additive-only 规则，B2 `001` 落地 `openapi/openapi.yaml` 后强制执行（新增 endpoint / 新增可选字段 / 新增枚举值）；Auth tag 以 ADR-Q1 的 email-code challenge + session cookie 路径为准，`startAuthEmailChallenge` 只接收邮箱和 `returnTo`，不得用 `purpose` 或 `displayName` 区分注册/登录；`verifyAuthEmailChallenge` 消费 query `token` 但其语义为 6 位 code；`DELETE /api/v1/me` 按 ADR-Q5 纳入 P0 删除入口；`listPracticeSessions`、`createPracticeVoiceTurn`、`completeMyProfile`、扁平 Resume operations、`duplicateResume`、`getResumeSource` 和 `archiveTargetJob` 均属于当前 freeze | 任何 break change 必须 ADR + 本 spec 修订；当前 project pre-launch 阶段允许由 product-scope owner 授权 v1.0.0 freeze correction，并必须同步 history、baseline、fixtures、generated artifacts 和 diff-config |
 | D-10 | breaking change linter | 默认 `openapi-diff`（OpenAPITools）；规则：禁止删字段、禁止改字段类型、禁止改 required、禁止改枚举（仅允许新增）、禁止删 endpoint | 本地 gate 直接失败；远端 CI 接入由 A5 后续触发条件决定 |
 | D-11 | tags 顺序 | §2.1 10 个 tag 顺序固定；新增 tag 必须递增 spec | – |
-| D-12 | privacy export 例外 | 按 [ADR-Q5](../engineering-roadmap/decisions/ADR-Q5-privacy-cadence.md)，`POST /api/v1/privacy/exports` 在 v1.0.0 freeze 中保留路径与 schema，但 P0 必须返回 `501 Not Implemented`（`error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`）；P1 切换实现时是 additive 行为变化，不算 break | 防止 P1 复用时改路径 |
+| D-12 | privacy export 例外 | 按 [ADR-Q5](../engineering-roadmap/decisions/ADR-Q5-privacy-cadence.md)，`POST /api/v1/privacy/exports` 在 v1.0.0 freeze 中保留路径与 schema，但 P0 必须返回 `501 unavailable response`（HTTP status 仍为 501，`error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`）；P1 切换实现时是 additive 行为变化，不算 break | 防止 P1 复用时改路径 |
 | D-13 | OpenAPI tooling 锁版 | validation: `@apidevtools/swagger-cli@4.0.4`；docs: `@redocly/cli@2.30.1 build-docs`。禁止未修订 spec 时替换 C-1 validator | 避免 002 / 003 在不同 validation gate 间产生不一致错误面；docs renderer 升级必须记录实测兼容证据 |
 | D-14 | B2 专属 async enum 字面量 | `ResourceType` 与 `JobType` 独立成 OpenAPI schema；字面量见 §3.1.2。它们来自当前 B2 API-facing async response set 与 P0 privacy exception，后续新增 endpoint / async job 时必须递增本 spec 并 additive 追加 enum 值 | 不再把 `ResourceType` 留作待确认；fixtures / mock / generated DTO 可直接依赖 |
 | D-15 | 错误响应 envelope | B1 `ApiError` 表示 `error` inner object；B2 `ApiErrorResponse` 表示 wire body `{error: ApiError}`。所有 default 4xx/5xx 与 privacy export 501 响应使用 `ApiErrorResponse` envelope | 消除 Go/TS codegen 对 `ApiError` 名称的歧义 |
@@ -150,7 +150,7 @@
 | 成功状态码 | `200` / `201` / `202` / `204` | 长耗时任务统一 `202 + Job`；删除 / logout 等无响应体成功使用 `204` |
 | 客户端错误 | `400` / `401` / `403` / `404` / `409` / `422` / `429` | wire body 全部复用 B2 `ApiErrorResponse` envelope，内部 `error` 对象复用 B1 `ApiError`；`409` 覆盖状态冲突与幂等冲突 |
 | 服务端错误 | `500` | 未分类内部错误；不得暴露 provider / prompt / secret 细节 |
-| P0 显式例外 | 当前已落地 `501 Not Implemented` 仅允许 `POST /api/v1/privacy/exports` 与 `POST /api/v1/resumes/{resumeId}/exports` | privacy export 返回 `ApiErrorResponse.error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`；resume export 返回 `ApiErrorResponse.error.code = "RESUME_EXPORT_NOT_AVAILABLE"`，作用于扁平 `resumeId`；P1 将任一 endpoint 切回 `202 + *WithJob` 属于“预留能力变为可用”的兼容行为，不算 breaking change，但必须递增 spec/history、更新 fixture 与 release gate 例外记录 |
+| P0 显式例外 | 当前已落地 `501 unavailable response` 仅允许 `POST /api/v1/privacy/exports` 与 `POST /api/v1/resumes/{resumeId}/exports` | privacy export 返回 `ApiErrorResponse.error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"`；resume export 返回 `ApiErrorResponse.error.code = "RESUME_EXPORT_NOT_AVAILABLE"`，作用于扁平 `resumeId`；P1 将任一 endpoint 切回 `202 + *WithJob` 属于“预留能力变为可用”的兼容行为，不算 breaking change，但必须递增 spec/history、更新 fixture 与 release gate 例外记录 |
 | Auth public endpoints | `/api/v1/auth/email/start`、`/api/v1/auth/email/verify`、`/api/v1/runtime-config` 不要求既有 session | auth start/verify 归 ADR-Q1；runtime-config 只能返回非敏感公开配置 |
 | Protected endpoints | 除 public endpoints 外，P0 默认要求有效 first-party session cookie | `Authorization: Bearer` 不作为 P0 默认认证形态；如重新启用必须修订 ADR-Q1 与本 spec |
 | Account deletion | `DELETE /api/v1/me` 是 protected endpoint，成功返回 `202 + PrivacyRequestWithJob` | 与 `POST /api/v1/privacy/deletions` 同义；必须支持 `Idempotency-Key` 或等价 active-request dedupe，重复删除请求返回同一未完成 `privacy_delete` job；先撤销 session / 软删用户，再由 backend internal runner 按 B4 table matrix 异步硬删 |

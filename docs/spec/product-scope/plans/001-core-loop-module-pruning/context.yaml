@@ -8,7 +8,7 @@ metadata:
   baseBranch: main
   specVersion:
     from: 2.1
-    to: 2.2
+    to: 2.13
 spec:
   defaultTarget: cross-layer
   discovery:
@@ -16,19 +16,14 @@ spec:
       - product-scope
       - core-loop-module-pruning
       - module-pruning
-      - debrief-removal
-      - profile-removal
     keywords:
-      - debrief
-      - Debriefs
-      - profile
-      - CandidateProfile
-      - ExperienceCard
-      - 用户画像
-      - 复盘
-      - source_debrief_id
-      - candidate_profiles
-      - experience_cards
+      - product scope
+      - core loop
+      - scope boundary
+      - out-of-scope negative
+      - zero-reference gate
+      - current contract
+      - technical debt pruning
   targets:
     cross-layer:
       plan: ./plan.md
@@ -74,6 +69,7 @@ spec:
           - listResumes
           - registerResume
           - getResume
+          - getResumeSource
           - updateResume
           - duplicateResume
           - archiveResume
@@ -82,6 +78,7 @@ spec:
           - listTargetJobs
           - getTargetJob
           - updateTargetJob
+          - archiveTargetJob
           - createPracticePlan
           - getPracticePlan
           - listPracticeSessions

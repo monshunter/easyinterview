@@ -28,8 +28,6 @@ export interface UsePracticeVoiceTurnInput {
 export interface UsePracticeVoiceTurnResult {
   ready: boolean;
   state: PracticeVoiceTurnState;
-  manualTranscriptFallback: string;
-  setManualTranscriptFallback: (next: string) => void;
   startRecording: () => Promise<void>;
   stopAndSubmit: () => Promise<PracticeVoiceTurnResult>;
   reset: () => void;
@@ -55,7 +53,6 @@ export function usePracticeVoiceTurn({
   const startedAtRef = useRef(0);
 
   const [state, setState] = useState<PracticeVoiceTurnState>({ kind: "idle" });
-  const [manualTranscriptFallback, setManualTranscriptFallback] = useState("");
 
   const discardRecorder = useCallback(() => {
     const recorder = recorderRef.current;
@@ -90,11 +87,11 @@ export function usePracticeVoiceTurn({
 
   const startRecording = useCallback(async () => {
     if (!client) {
-      setState({ kind: "error", message: "practice voice client is missing" });
+      setState({ kind: "error", message: "practice phone client is missing" });
       return;
     }
     if (!sessionId || !turnId) {
-      setState({ kind: "error", message: "practice voice session is not ready" });
+      setState({ kind: "error", message: "practice phone session is not ready" });
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -161,12 +158,10 @@ export function usePracticeVoiceTurn({
         },
         language: lang === "zh" ? "zh-CN" : "en",
         practiceMode,
-        ...manualFallbackBody(manualTranscriptFallback),
       };
       const result = await client.createPracticeVoiceTurn(sessionId, body, {
         idempotencyKey: generateIdempotencyKey(),
       });
-      setManualTranscriptFallback("");
       setState({ kind: "success", result });
       return result;
     } catch (err) {
@@ -179,7 +174,6 @@ export function usePracticeVoiceTurn({
     cleanupStream,
     client,
     lang,
-    manualTranscriptFallback,
     practiceMode,
     sessionId,
     turnId,
@@ -189,15 +183,12 @@ export function usePracticeVoiceTurn({
     () => ({
       ready: !!client && !!sessionId && !!turnId,
       state,
-      manualTranscriptFallback,
-      setManualTranscriptFallback,
       startRecording,
       stopAndSubmit,
       reset,
     }),
     [
       client,
-      manualTranscriptFallback,
       reset,
       sessionId,
       startRecording,
@@ -259,13 +250,6 @@ function blobToBase64WithFileReader(blob: Blob): Promise<string> {
     };
     reader.readAsDataURL(blob);
   });
-}
-
-function manualFallbackBody(
-  value: string,
-): Pick<CreatePracticeVoiceTurnRequest, "manualTranscriptFallback"> {
-  const trimmed = value.trim();
-  return trimmed ? { manualTranscriptFallback: trimmed } : {};
 }
 
 function errorMessage(err: unknown): string {

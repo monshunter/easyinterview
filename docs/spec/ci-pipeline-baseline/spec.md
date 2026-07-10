@@ -1,12 +1,12 @@
 # Local Quality Gate and Deferred CI Spec
 
-> **版本**: 1.4
+> **版本**: 1.8
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将原始 A5 `ci-pipeline-baseline` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md) 与 [A2 `local-dev-stack`](./../local-dev-stack/spec.md)）。该 subject 名称保留既有占位，但当前项目是个人单人开发者项目，P0 阶段不需要构建 GitHub Actions / GitLab CI 等远端 CI pipeline。
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将原始 A5 `ci-pipeline-baseline` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md) 与 [A2 `local-dev-stack`](./../local-dev-stack/spec.md)）。该 subject 名称保留历史命名，但当前项目是个人单人开发者项目，P0 阶段不需要构建 GitHub Actions / GitLab CI 等远端 CI pipeline。
 
 本 spec 在当前阶段只决定：
 
@@ -20,7 +20,7 @@
 1. **本地质量门禁先行**：P0 用 `make lint` / `make test` / `make build` / `make docs-check` / codegen drift check 等本地命令保证基本质量；不依赖远端 CI 才能开发。
 2. **零 CI 运维负担**：当前不创建 `.github/workflows/*.yml`、不配置 required check、不开 nightly、不给 CI 注入任何业务 secret。
 3. **保留未来切换点**：当项目进入多人协作、公开发布、付费用户或需要自动化 release gate 时，再在本 spec 原地修订，创建 CI implementation plan。
-4. **与既有脚手架一致**：A1 提供顶层 Make target 占位，B1 / B2 / A4 等 owner 提供具体 lint / codegen / config check；A5 只负责把这些本地命令组织成一组可重复的质量门禁。
+4. **与既有脚手架一致**：A1 锁定顶层 Make target 名称与 owner 委托，B1 / B2 / A4 等 owner 提供具体 lint / codegen / config check；A5 只负责把这些本地命令组织成一组可重复的质量门禁。
 
 本 spec 不实现 release / deploy（归 E4）、不实现 codegen 工具本身（归 [B2 `openapi-v1-contract`](./../openapi-v1-contract/spec.md) 与 B1）、不实现镜像构建脚本细节（归 A1 + A2），也不在当前阶段实现任何远端 CI pipeline。
 
@@ -29,9 +29,9 @@
 ### 2.1 In Scope
 
 - **本地质量入口**：统一约定根 Make target：
-  - `make lint`：聚合 Go / TS / error-code / config / metrics / log lint（按对应 owner 落地情况逐步接入）。
+  - `make lint`：聚合 Go / TS / error-code / config / 当前已落地的本地 lint / contract gates；F1 metrics / log helper 由 F1 暴露真实命令后再接入，不保留 exit-zero 假 target。
   - `make test`：聚合 Go / TS 单元测试；AI 单元测试默认走 stub / fixtures，不需要真实 AI provider secret。
-  - `make build`：聚合 backend / frontend 构建；尚未落地的组件可先保留清晰占位输出。
+  - `make build`：聚合 backend / frontend 构建；当前执行真实 backend cmd build 与 frontend Vite build。
   - `make docs-check`：执行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` 与轻量链接检查（如 `python3 scripts/lint/check_md_links.py docs`）。
   - `make codegen-check`：执行已落地 generator 的 idempotency / drift check（B1、B2 按各自 plan 接入）。
 - **本地输出契约**：每个 target 失败时必须输出 5 行内的人类可读摘要，并保留原始命令日志；不要求生成 HTML artifact。
@@ -72,7 +72,7 @@
 ### 4.1 本地门禁约束
 
 - 所有本地 gate 必须可在仓库根执行，不要求开发者手动 `cd backend` / `cd frontend`。
-- 任一 target 失败时必须返回非 0；跳过尚未落地组件时必须明确输出 `not implemented yet: <owner>`，不能假装通过。
+- 任一 target 失败时必须返回非 0；A5 只调用已落地的本地 sub-target，不为尚未落地的 future owner 创建 exit-zero 假 target。
 - `make docs-check` 必须至少包含可执行的 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`；Header / INDEX drift 不能靠人工记忆或只写 slash skill 文本。
 - `make codegen-check` 只能检查已经存在的 generator；B2 OpenAPI generator 未落地前不得制造失败 gate。
 
@@ -96,7 +96,7 @@
 | 错误码 lint / 共享类型 codegen drift | B1 | A5 只聚合命令，不重写规则 |
 | OpenAPI codegen drift | B2 | B2 generator 落地后再接入 `make codegen-check` |
 | Config lint | A4 | A5 聚合 `make lint-config` 或等价入口 |
-| Metrics / log lint | F1 | F1 helper 落地后再接入 `make lint` |
+| Metrics / log lint | F1 | F1 helper 落地并暴露真实命令后再接入 `make lint` |
 | 测试镜像缓存 | A2 + `test/scenarios/` | 手动场景测试需要时调用；A5 不自动预热 |
 | 远端 CI / branch protection | Future A5 plan | 当前 deferred；触发 D-5 后再新增 plan |
 | 部署 CD | E4 | A5 不做 |
@@ -106,9 +106,9 @@
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
 | C-1 | 无远端 CI 文件 | 仓库处于 P0 单人开发阶段 | 检查 `.github/workflows/` | 不存在由 A5 创建的 `ci.yml` / `nightly.yml` / `dependabot.yml`；文档不声称 CI 已启用 | A5 后续 001（如需要） |
-| C-2 | 本地 lint gate | 已落地 B1 lint 与后续 owner lint | `make lint` | 聚合已存在 lint；任一失败返回非 0；未落地 lint 明确标记 owner，不假通过 | A5 后续 001（如需要） + B1/A4/F1 |
+| C-2 | 本地 lint gate | 已落地 B1 lint 与后续 owner lint | `make lint` | 聚合已存在 lint；任一被调用 gate 失败返回非 0；未落地 lint 不进入执行面 | A5 后续 001（如需要） + B1/A4/F1 |
 | C-3 | 本地 test gate | Go / TS 测试已落地 | `make test` | 单元测试在本地运行；AI 单测走 stub / fixtures；不需要 AI provider secret | A5 后续 001（如需要） |
-| C-4 | 本地 build gate | backend / frontend 构建入口存在 | `make build` | 已落地组件构建成功；未落地组件输出清晰占位 | A5 后续 001（如需要） |
+| C-4 | 本地 build gate | backend / frontend 构建入口存在 | `make build` | backend cmd build 与 frontend bundle build 均真实执行并成功 | A5 后续 001（如需要） |
 | C-5 | docs gate | 任意 spec Header 与 INDEX 人为制造 drift | `make docs-check` 或直接执行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` | drift 被报告并返回非 0 | A5 后续 001（如需要） |
 | C-6 | codegen drift gate | B1/B2 generator 已落地 | `make codegen-check` | 已接入 generator 重跑后无 diff；未落地 generator 不制造失败 | A5 后续 001（如需要） + B1/B2 |
 | C-7 | CI deferred guard | 搜索仓库文档 | grep `ci.yml` / `branch protection` / `required check` | 当前文档把这些能力标记为 future / out of scope，不作为 P0 必需项 | 本次 spec 修订 |

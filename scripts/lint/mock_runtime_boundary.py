@@ -29,7 +29,7 @@ PROTOTYPE_ONLY_RESPONSE_FIELDS = {
     "t",
 }
 OWNER_SPEC_HINT = "docs/spec/mock-contract-suite/spec.md"
-NON_CURRENT_CONTRACT_TOKEN_PATTERNS = (
+OUT_OF_SCOPE_CONTRACT_TOKEN_PATTERNS = (
     ("/mistakes", re.compile(r"/mistakes(?:[/?#\"'\s]|$)")),
     ("/growth", re.compile(r"/growth(?:[/?#\"'\s]|$)")),
     ("/drill", re.compile(r"/drill(?:[/?#\"'\s]|$)")),
@@ -44,15 +44,13 @@ NON_CURRENT_CONTRACT_TOKEN_PATTERNS = (
     ("default.provider", re.compile(r"\bdefault\.provider\b")),
     ("task_type", re.compile(r"\btask_type\b")),
 )
-NON_CURRENT_ROUTE_TOKENS = frozenset({"/mistakes", "/growth", "/drill", "/voice"})
-NON_CURRENT_TAG_TOKENS = frozenset({"Mistakes", "Growth", "Drill", "Voice"})
-NON_CURRENT_TOKEN_SCAN_ROOTS = (
+OUT_OF_SCOPE_TOKEN_SCAN_ROOTS = (
     "openapi/fixtures",
     "frontend/src/api",
     "backend/internal/api/mockruntime",
     "openapi/templates/ts/client.tmpl",
 )
-NON_CURRENT_TOKEN_EXTENSIONS = {".go", ".ts", ".json", ".tmpl"}
+OUT_OF_SCOPE_TOKEN_EXTENSIONS = {".go", ".ts", ".json", ".tmpl"}
 
 
 def lint(repo_root: Path) -> list[str]:
@@ -61,7 +59,7 @@ def lint(repo_root: Path) -> list[str]:
     errors.extend(_lint_fixture_tag_directories(repo_root))
     errors.extend(_lint_frontend_imports(repo_root))
     errors.extend(_lint_fixture_response_fields(repo_root))
-    errors.extend(_lint_non_current_contract_tokens(repo_root))
+    errors.extend(_lint_out_of_scope_contract_tokens(repo_root))
     return errors
 
 
@@ -135,43 +133,30 @@ def _lint_fixture_response_fields(repo_root: Path) -> list[str]:
     return errors
 
 
-def _lint_non_current_contract_tokens(repo_root: Path) -> list[str]:
+def _lint_out_of_scope_contract_tokens(repo_root: Path) -> list[str]:
     errors: list[str] = []
-    for path in _non_current_scan_files(repo_root):
+    for path in _out_of_scope_scan_files(repo_root):
         text = path.read_text(encoding="utf-8")
-        for token, pattern in NON_CURRENT_CONTRACT_TOKEN_PATTERNS:
+        for token, pattern in OUT_OF_SCOPE_CONTRACT_TOKEN_PATTERNS:
             if pattern.search(text):
                 errors.append(
-                    f"{path.relative_to(repo_root)}: non-current mock/API token {token!r} is forbidden; "
+                    f"{path.relative_to(repo_root)}: out-of-scope mock/API token {token!r} is forbidden; "
                     f"owner spec: {OWNER_SPEC_HINT}"
                 )
     return errors
 
 
-def _has_non_current_contract_token(text: str, token: str) -> bool:
-    if token in NON_CURRENT_ROUTE_TOKENS:
-        return re.search(rf"{re.escape(token)}(?:/|[\"'\s]|$)", text) is not None
-    if token in NON_CURRENT_TAG_TOKENS:
-        escaped = re.escape(token)
-        return (
-            re.search(rf"\bname:\s*{escaped}\b", text) is not None
-            or re.search(rf"\btags:\s*\[\s*{escaped}\s*\]", text) is not None
-            or re.search(rf'["\']{escaped}["\']', text) is not None
-        )
-    return token in text
-
-
-def _non_current_scan_files(repo_root: Path) -> Iterable[Path]:
-    for rel in NON_CURRENT_TOKEN_SCAN_ROOTS:
+def _out_of_scope_scan_files(repo_root: Path) -> Iterable[Path]:
+    for rel in OUT_OF_SCOPE_TOKEN_SCAN_ROOTS:
         path = repo_root / rel
         if path.is_file():
-            if path.suffix in NON_CURRENT_TOKEN_EXTENSIONS:
+            if path.suffix in OUT_OF_SCOPE_TOKEN_EXTENSIONS:
                 yield path
             continue
         if not path.is_dir():
             continue
         for child in sorted(p for p in path.rglob("*") if p.is_file()):
-            if child.suffix in NON_CURRENT_TOKEN_EXTENSIONS:
+            if child.suffix in OUT_OF_SCOPE_TOKEN_EXTENSIONS:
                 yield child
 
 

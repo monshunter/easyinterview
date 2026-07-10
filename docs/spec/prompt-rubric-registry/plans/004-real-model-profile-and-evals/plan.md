@@ -1,8 +1,8 @@
 # F3 Real Model Profile and Evals
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -17,7 +17,7 @@
 
 - `backend/internal/ai/registry.Judge` 返回 `([]Score, Reasoning, error)`；每个 `Score` 对应一个 rubric dimension，`Value` 位于 `[0,1]`。
 - `LLMJudge` 注入 rubric provider 与 judge model client，通过 `judge.default` profile 调用 judge capability；profile 不可用、output schema invalid、模型输出无法解析、维度缺失或维度不匹配时 fail-close。
-- `config/ai-profiles.yaml` 中 `judge.default` 当前为 `active`，provider ref 为 `judge-deepseek`，model 为 `deepseek-v4-pro`；13 个 chat business profiles 保持各自 A3 owner 状态，只由 coverage gate 校验非 placeholder。
+- `config/ai-profiles.yaml` 中 `judge.default` 当前为 `active`，provider ref 为 `judge-deepseek`，model 为 `deepseek-v4-pro`；当前 chat business profiles 保持各自 A3 owner 状态，只由 coverage gate 校验 runnable provider / model。
 - `config/ai-providers.yaml` 提供 `judge-deepseek`，protocol 为 `judge_compatible`，capability 为 `judge`。
 - `config/evals/` 覆盖 9 个 chat feature_key，共 36 个录制 fixture case，并包含 `en -> multi` fallback 覆盖。
 - Promptfoo pinned version 为 `0.121.12`，通过仓库依赖执行；eval output、Promptfoo config、logs 和 state 默认写入 `.test-output/evals/`，可由 `EVAL_OUTPUT_DIR` 覆盖。
@@ -35,11 +35,11 @@
 
 ### 4.1 Judge interface and LLMJudge
 
-The registry Judge contract is per-dimension. `NotImplementedJudge` remains the safe default for unconfigured callers, while `LLMJudge` is the active eval implementation. `LLMJudge` loads rubric dimensions, validates evaluated output against the feature output schema, calls the judge-capability model client and rejects malformed judge output.
+The registry Judge contract is per-dimension. `FailClosedJudge` remains the safe default for unconfigured callers, while `LLMJudge` is the active eval implementation. `LLMJudge` loads rubric dimensions, validates evaluated output against the feature output schema, calls the judge-capability model client and rejects malformed judge output.
 
 ### 4.2 Judge profile and provider coverage
 
-`judge.default` is active and routes to a non-placeholder `judge_compatible` provider. `scripts/lint/ai_profile_coverage.py` verifies judge/default capability alignment and rejects placeholder provider/model values for judge and current chat business profiles.
+`judge.default` is active and routes to a runnable `judge_compatible` provider. `scripts/lint/ai_profile_coverage.py` verifies judge/default capability alignment and rejects non-runnable provider/model markers for judge and current chat business profiles.
 
 ### 4.3 Eval fixtures and Promptfoo runner
 
@@ -52,7 +52,7 @@ Offline eval is deterministic and safe for local gates. Live eval is opt-in thro
 ## 5 验收标准
 
 - Judge interface, LLMJudge, judge adapter and profile catalog focused Go tests pass.
-- `make lint-ai-profile-coverage` proves `judge.default` active, judge provider protocol/capability valid, and current chat profiles non-placeholder.
+- `make lint-ai-profile-coverage` proves `judge.default` active, judge provider protocol/capability valid, and current chat profiles runnable.
 - `make eval-offline` runs 36 cases without network in default mode.
 - Promptfoo version is pinned in repo dependency metadata.
 - `make lint-prompts-hardcode` and registry single-source drift gate pass.
@@ -72,5 +72,6 @@ Offline eval is deterministic and safe for local gates. Live eval is opt-in thro
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.5 | 同步当前 `FailClosedJudge` / `LLMJudge` 代码事实，并将 profile coverage 表述收敛为 runnable / non-runnable marker。 | tech-debt pruning |
 | 2026-07-07 | 1.4 | 压缩 owner 文档为当前 judge.default active、LLMJudge、36-case eval-offline and Promptfoo single-source contract。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-24 | 1.3 | 完成 real model profile、judge implementation and eval-offline delivery。 | prompt-rubric-registry |

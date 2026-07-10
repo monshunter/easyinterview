@@ -42,8 +42,8 @@ LANGUAGE_OVERRIDE_ALLOWLIST: set[tuple[str, str, str]] = set()
 # README, so `grep -rE "\bTBD\b|placeholder" config/prompts/` stays clean
 # while the lint script still rejects them inside Markdown bodies.
 FORBIDDEN_BODY_TOKEN_RE = re.compile(r"\bTBD\b|\bplaceholder\b", re.IGNORECASE)
-NON_CURRENT_MODULE_RE = re.compile(r"\bmistakes\b|\bgrowth\b|\bdrill\b|mistake\.extract")
-NON_CURRENT_FEATURE_KEY_PREFIXES = ("jd_match.",)
+OUT_OF_SCOPE_MODULE_RE = re.compile(r"\bmistakes\b|\bgrowth\b|\bdrill\b|mistake\.extract")
+OUT_OF_SCOPE_FEATURE_KEY_PREFIXES = ("jd_match.",)
 
 SCHEMA_ALLOWED_KEYS = {"type", "required", "properties", "items", "enum", "description"}
 SCHEMA_ALLOWED_TYPES = {"object", "array", "string", "number", "integer", "boolean", "null"}
@@ -56,7 +56,6 @@ OUTPUT_CONTRACT_END = "<!-- output-schema-contract:end -->"
 OUTPUT_SCHEMA_EXEMPT_FEATURE_KEYS = {
     "practice.voice.stt",
     "practice.voice.tts",
-    "practice.dictation.stt",
 }
 
 FEATURE_CONTRACTS = {
@@ -217,8 +216,8 @@ def lint_prompt_yaml(yaml_path: pathlib.Path) -> list[str]:
         errors.append(
             f"{yaml_path}: feature_key '{feature_key}' does not match parent dir '{yaml_path.parent.name}'"
         )
-    if any(str(feature_key).startswith(prefix) for prefix in NON_CURRENT_FEATURE_KEY_PREFIXES):
-        errors.append(f"{yaml_path}: feature_key '{feature_key}' is non-current")
+    if any(str(feature_key).startswith(prefix) for prefix in OUT_OF_SCOPE_FEATURE_KEY_PREFIXES):
+        errors.append(f"{yaml_path}: feature_key '{feature_key}' is out-of-scope")
 
     version = parsed.get("version")
     if not isinstance(version, str) or not SEMVER_RE.match(version):
@@ -248,8 +247,8 @@ def lint_prompt_yaml(yaml_path: pathlib.Path) -> list[str]:
 
     if FORBIDDEN_BODY_TOKEN_RE.search(body_text):
         errors.append(f"{md_path}: body contains forbidden stub marker (TBD/placeholder)")
-    if NON_CURRENT_MODULE_RE.search(body_text):
-        errors.append(f"{md_path}: body contains non-current module name")
+    if OUT_OF_SCOPE_MODULE_RE.search(body_text):
+        errors.append(f"{md_path}: body contains out-of-scope module name")
 
     actual_hash = expected_hash(body_bytes, parsed)
     if parsed.get("template_hash") != actual_hash:
@@ -277,7 +276,7 @@ def lint_seed_migration(prompts_root: pathlib.Path, migrations_root: pathlib.Pat
 
     The check is enabled only when a seed migration named
     `*seed_baseline_prompt_rubric_versions*.up.sql` is present. Phase 4.4 lands
-    that migration; until then this function is a no-op.
+    that migration; until then the check returns no findings.
     """
     errors: list[str] = []
     if not migrations_root.exists():
@@ -310,7 +309,7 @@ def lint_seed_migration(prompts_root: pathlib.Path, migrations_root: pathlib.Pat
     # Later module pruning migrations (e.g. product-scope v2.1 D-17 dropping
     # the jd_match feature keys) delete previously seeded rows; the net DB
     # state, not the raw seed insert, must match the prompts dir.
-    non_current: set[str] = set()
+    out_of_scope: set[str] = set()
     delete_re = re.compile(
         r"DELETE\s+FROM\s+(?:prompt|rubric)_versions\s+WHERE\s+feature_key\s+IN\s*\(([^)]+)\)",
         re.IGNORECASE,
@@ -318,7 +317,7 @@ def lint_seed_migration(prompts_root: pathlib.Path, migrations_root: pathlib.Pat
     for sql_path in sorted(migrations_root.glob("*drop*_module.up.sql")):
         text = sql_path.read_text(encoding="utf-8")
         for dm in delete_re.finditer(text):
-            non_current.update(re.findall(r"'([^']+)'", dm.group(1)))
+            out_of_scope.update(re.findall(r"'([^']+)'", dm.group(1)))
 
     for sql_path in sorted(migrations_root.glob("*seed_baseline_prompt_rubric*.up.sql")):
         text = sql_path.read_text(encoding="utf-8")
@@ -326,7 +325,7 @@ def lint_seed_migration(prompts_root: pathlib.Path, migrations_root: pathlib.Pat
             continue
         for m in row_re.finditer(text):
             key = (m.group("feature_key"), m.group("version"), m.group("language"))
-            if m.group("feature_key") in non_current:
+            if m.group("feature_key") in out_of_scope:
                 continue
             sql_hash = m.group("template_hash")
             yaml_hash = yaml_index.get(key)

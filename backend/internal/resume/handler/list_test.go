@@ -113,7 +113,7 @@ func strPtr(v string) *string { return &v }
 type listFixture struct {
 	Scenarios map[string]struct {
 		Response struct {
-			Status int                `json:"status"`
+			Status int                 `json:"status"`
 			Body   api.PaginatedResume `json:"body"`
 		} `json:"response"`
 	} `json:"scenarios"`

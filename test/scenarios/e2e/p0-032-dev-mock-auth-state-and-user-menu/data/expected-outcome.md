@@ -15,4 +15,4 @@ The scenario is successful when all of the following evidence is produced:
   logout operation, and refreshes `/me` to unauthenticated.
 - The final TopBar state shows `登录` / `注册` again.
 - Evidence log contains `dev mock unauthenticated login avatar dropdown settings logout`.
-- Evidence log does not contain non-current inline or prototype-source markers.
+- Evidence log does not contain out-of-scope inline or prototype-source markers.

@@ -48,7 +48,7 @@ describe("Resume Workshop source-level CSS parity", () => {
     expect(source).not.toContain(".ei-resume-detail-preview-card--pdf");
   });
 
-  it("does not keep non-current tree/version/branch styling after D-20", () => {
+  it("does not keep out-of-scope tree/version/branch styling after D-20", () => {
     const source = css();
     for (const selector of [
       ".ei-resume-workshop-stats",

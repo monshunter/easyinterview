@@ -1,12 +1,12 @@
 # Local Dev Stack Spec
 
-> **版本**: 1.23
+> **版本**: 1.25
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
-[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将原始 A2 `local-dev-stack` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它承接 A1 已占位的 `make dev-up` / `make dev-down` target；当前执行口径锁定本地开发栈的最小依赖、应用组件启动契约、Make target 行为与健康检查口径，真实「克隆仓库 → 一条命令 → 本项目本地环境启动完成」由 A2 child `001` plan 验证。
+[engineering-roadmap spec §5.1](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 将原始 A2 `local-dev-stack` 保留为当前 active Foundation spec（依赖 [A1 `repo-scaffold`](../repo-scaffold/spec.md)）。它承接 A1 已锁定并委托的 `make dev-up` / `make dev-down` target；当前执行口径锁定本地开发栈的最小依赖、应用组件启动契约、Make target 行为与健康检查口径，真实「克隆仓库 → 一条命令 → 本项目本地环境启动完成」由 A2 child `001` plan 验证。
 
 本地开发环境不是生产观测环境的缩小版。默认 `make dev-up` 只启动开发 P0 闭环必须的外部依赖；当前仓库内可运行的 backend / frontend 组件默认在宿主机用 dev command 管理，避免把生产才需要的 OTel Collector、Grafana、Loki、Prometheus 等高占用组件变成本地开发前置条件。
 
@@ -32,10 +32,10 @@
 
 - 最小本地依赖清单：`PostgreSQL 18`、`Redis 7`、`MinIO`、`Mailpit` 的本地版本、端口、卷、network alias。
 - 项目组件运行边界：backend / frontend 等项目组件默认通过宿主机 dev command 运行并连接本地依赖；只有对应 child owner 明确需要可复现容器化 app service 时，才接入同一个 compose，而不是另起平行本地环境。后台任务随 backend internal runner 观测，不单独接入 worker service。
-- 顶层入口：`docker-compose.yaml`（落点 `deploy/dev-stack/docker-compose.yaml`）+ A1 已占位的 `make dev-up` / `make dev-down` 真实实现。
+- 顶层入口：`docker-compose.yaml`（落点 `deploy/dev-stack/docker-compose.yaml`）+ A1 已锁定并委托给 A2 的 `make dev-up` / `make dev-down` 真实实现。
 - `make dev-doctor`：结构化健康检查，对每个依赖服务与项目组件返回 `OK / DEGRADED / DOWN` 与人类可读原因（输出 JSON + 退出码）。
 - 初始化脚本：MinIO 创建默认 bucket；Postgres 不启用未使用扩展。
-- `.env` 与 `config.yaml` / `config/dev.yaml` / `config/test.yaml` 的最小 dev/test override（连接串、bucket 名、端口、应用组件默认 host/port、auth secrets、frontend real-mode env、AI provider endpoint 与 key 占位、local raw output debug 默认值）；具体 secrets 抽象与 feature flag 由 [A4 `secrets-and-config`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 承接，本 spec 只锁 dev 默认值与字段名。
+- `.env` 与 `config.yaml` / `config/dev.yaml` / `config/test.yaml` 的最小 dev/test override（连接串、bucket 名、端口、应用组件默认 host/port、auth secrets、frontend real-mode env、AI provider endpoint/key env ref、local raw output debug 默认值）；具体 secrets 抽象与 feature flag 由 [A4 `secrets-and-config`](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 承接，本 spec 只锁 dev 默认值与字段名。
 - 数据卷管理：默认命名 `easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data`；Postgres 18 卷挂载到 `/var/lib/postgresql`，由官方镜像管理 `PGDATA=/var/lib/postgresql/18/docker`；`make dev-up` 必须只读检测不兼容布局或半初始化卷并给出显式 reset 指引；提供 `make dev-reset` 用于显式清空（非默认）。
 - 文档：`deploy/dev-stack/README.md` 一屏说明 + 故障排查 + 本地 Mailpit 登录边界 + 与 `test/scenarios/` 本地 runner 场景契约的 cross-link。
 - 场景环境入口：`test/scenarios/env-setup.sh` / `env-status.sh` / `env-verify.sh` / `env-cleanup.sh` / `env-redeploy.sh` 作为 framework-owned 环境生命周期入口；根 `Makefile` 提供 `scenario-env-*` target 委派这些脚本，供 `/scenario-env` 和 `/scenario-redeploy` skill 调用。
@@ -64,7 +64,7 @@
 | D-6 | dev-up 健康检查口径 | `make dev-doctor` 返回 JSON：`{services:[{name,type:dependency\|app,status:OK\|DEGRADED\|DOWN,reason}], summary:{ok,degraded,down,total}}`；`make dev-up` 在所有启用服务 OK 后才 exit 0 | E4 release-gate 与未来 A5 远端 CI（仅触发条件成立后）可消费此输出；不得硬编码固定 7-service 口径 |
 | D-7 | 数据持久化默认 | 命名卷（非 bind mount）：`easyinterview-pg-data` / `easyinterview-redis-data` / `easyinterview-minio-data`；Postgres 18 命名卷必须挂到 `/var/lib/postgresql`，保持官方镜像 `PGDATA=/var/lib/postgresql/18/docker` 位于卷内，不挂到 `/var/lib/postgresql/data`；`make dev-down` 不删卷，`make dev-reset` 才删 | 避免误操作丢失本地开发数据，并兼容 Postgres 18 官方镜像目录布局 |
 | D-8 | 本地观测口径 | 默认依赖容器日志与应用 `/metrics`；`make dev-logs` 汇总容器日志，`make dev-doctor` 可检查已启用 HTTP 组件的 `/metrics` | F1 可以消费这些出口，但不能要求 A2 默认安装观测栈 |
-| D-9 | 本地 AI provider 配置 | `deploy/dev-stack/.env.example` 必须列出 `AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml`、`AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml` 与 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位；启用 AIClient 的非测试项目组件启动时缺少 catalog path 或当前 provider endpoint / key 必须 fail-fast；A2 不启动 AI provider 容器 | 本地 app run 验证真实 LLM 服务，同时保持 A2 依赖最小化 |
+| D-9 | 本地 AI provider 配置 | `deploy/dev-stack/.env.example` 必须列出 `AI_PROVIDER_REGISTRY_PATH=config/ai-providers.yaml`、`AI_MODEL_PROFILE_PATH=config/ai-profiles.yaml` 与 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` env ref；启用 AIClient 的非测试项目组件启动时缺少 catalog path 或当前 provider endpoint / key 必须 fail-fast；A2 不启动 AI provider 容器 | 本地 app run 验证真实 LLM 服务，同时保持 A2 依赖最小化 |
 | D-10 | 本地邮件 sink | 默认依赖包含 Mailpit；`deploy/dev-stack/.env.example` 必须列出 `MAILPIT_WEB_HOST_PORT` / `MAILPIT_SMTP_HOST_PORT` 与 C1/A4 邮件 env（`EMAIL_PROVIDER=mailpit`、SMTP host/port、from、verify base URL）。host-run backend 默认通过 `127.0.0.1:1025` 投递 code-only 邮件到 Mailpit，正文只包含 6 位验证码和 5 分钟过期提示，不包含 frontend `/auth/verify?token=...` 或 backend verify API 链接；`EMAIL_VERIFY_BASE_URL` 仅作为本地 frontend origin / dev CORS 推导来源保留，人工通过 `http://127.0.0.1:8025` 收信并在前端验证页输入 code | 本地测试不依赖真实外部邮箱服务或真实邮箱账号；账号验收走真实 email-code flow，不需要场景专属 backend cmd |
 | D-11 | 独立场景环境生命周期 | `test/scenarios/env-setup.sh` 调 `make dev-up` 并可选执行 migrations；`env-status.sh` / `env-verify.sh` 消费 `make dev-doctor`；`env-cleanup.sh` 默认 `make dev-down`，显式 `--with-volumes` 才走 `DEV_RESET_FORCE=1 make dev-reset`；`env-redeploy.sh` 支持 `deps` / `backend` / `frontend` / `all`，其中 `backend` / `frontend` / `all` 必须在 build artifact 刷新后重启对应 host-run 进程 | 环境管理从具体 `test/scenarios/e2e/p0-*` 场景脚本中抽离；skill 可按用户意图只管理环境、重建并重启组件，或再交给场景 runner/人工 UAT |
 | D-12 | 单一真实 env 来源 | `deploy/dev-stack/.env.example` 必须列出真实本地联调所需的 backend auth secrets、AI provider、邮件、共享依赖、frontend real-mode env；`deploy/dev-stack/.env` 是唯一被 host-run backend/frontend 与 hybrid 场景读取的本地真实 env 文件 | 防止每个场景复制独立 `.env`，保证本地测试环境和真实联调环境通过同一配置构建 |
@@ -113,12 +113,12 @@
 
 | 边界 | Owner | 说明 |
 |------|-------|------|
-| docker-compose 文件与 Make target | A2 | `deploy/dev-stack/` 全部内容、A1 占位 target 的真实实现 |
+| docker-compose 文件与 Make target | A2 | `deploy/dev-stack/` 全部内容、A1 根 target 委托的真实实现 |
 | 本地依赖服务 | A2 | Postgres / Redis / MinIO / Mailpit 的版本、端口、卷、健康检查 |
 | 项目组件运行入口 | 对应 child owner | backend / frontend 等组件提供宿主机 dev command；可选 Dockerfile / compose app service 需由 owner 显式设计 |
 | Postgres 扩展启用 | B4 | A2 默认不启用未使用扩展；新增 DB extension 必须由 B4 owner spec 决策并同步 A2 |
 | DB schema migration | B4 | A2 提供空实例 + 扩展，schema 由 B4 落地 |
-| AI provider 运行时配置 | A3 + A4 + A2 | A3 决定 AIClient / provider 行为；A4 决定 env 字典与 fail-fast；A2 只在 compose 中传递 `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` catalog 路径和 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位，不启动 AI provider，不切 stub |
+| AI provider 运行时配置 | A3 + A4 + A2 | A3 决定 AIClient / provider 行为；A4 决定 env 字典与 fail-fast；A2 只在 compose 中传递 `AI_PROVIDER_REGISTRY_PATH` / `AI_MODEL_PROFILE_PATH` catalog 路径和 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` env ref，不启动 AI provider，不切 stub |
 | 产品分析 / 自托管 PostHog | F2 | 不阻塞普通 `make dev-up` |
 | 观测 SDK / 指标命名 / dashboard | F1 | F1 消费应用 `/metrics` 与日志出口；生产或可选观测栈不归 A2 默认依赖 |
 | Secrets / config 抽象 | A4 | A2 仅锁 dev 默认值；Mailpit email env 字典由 A4/C1 承接 |
@@ -130,7 +130,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 一键拉起 | 干净 worktree（无既存容器与卷），仓库根已有 A1 `Makefile` 占位 `dev-up` | `make dev-up` | Postgres / Redis / MinIO / Mailpit 与已显式接入的 optional app service 全部启动；`make dev-doctor` 输出 `summary.ok==summary.total` 且依赖服务 OK 数为 4；exit 0；backend/frontend 可在宿主机 dev command 中连接这些依赖 | 001（A2 自身后续 plan） |
+| C-1 | 一键拉起 | 干净 worktree（无既存容器与卷），仓库根已有 A1 `Makefile` 的 `dev-up` 委托入口 | `make dev-up` | Postgres / Redis / MinIO / Mailpit 与已显式接入的 optional app service 全部启动；`make dev-doctor` 输出 `summary.ok==summary.total` 且依赖服务 OK 数为 4；exit 0；backend/frontend 可在宿主机 dev command 中连接这些依赖 | 001（A2 自身后续 plan） |
 | C-2 | 失败可观察 | Postgres 5432 / Redis 6379 / MinIO 9000/9001 / Mailpit 8025/1025 或任一已接入 optional app service host port 已被占用 | `make dev-up` | 退出码非 0；stderr 输出冲突服务名 + 占用进程提示；其它服务允许已启动；`make dev-doctor` 输出对应服务 `status=DOWN,reason="port conflict"` | 001（A2 自身后续 plan） |
 | C-3 | idempotent | 已运行 `make dev-up` 一次 | 再次执行 `make dev-up` | 已 healthy 服务保持运行不重启；输出说明 `already healthy`；exit 0；数据卷不被清空 | 001 |
 | C-4 | 安全停止 | 服务正在运行 | `make dev-down` | 容器停止；命名卷保留；下一次 `make dev-up` 数据完整可读 | 001 |
@@ -153,7 +153,7 @@
 A2 `001-bootstrap` 已完成并落地本地依赖 compose、dev lifecycle Make targets、dev-doctor 与文档入口；本 spec 现在以 `001-bootstrap` 作为唯一已完成实现计划：
 
 - 落地 `deploy/dev-stack/docker-compose.yaml` 与 MinIO init scripts。
-- 实现 `make dev-up` / `make dev-down` / `make dev-doctor` / `make dev-reset` / `make dev-logs` 的真实命令体（替换 A1 占位）。
+- 实现 `make dev-up` / `make dev-down` / `make dev-doctor` / `make dev-reset` / `make dev-logs` 的真实命令体（承接 A1 根 target 委托）。
 - 实现 `make scenario-env-reset-redeploy` 作为调试用组合入口，复用 `test/scenarios/env-*.sh` 完成数据清理、迁移、重编译、重启和验证。
 - 确保默认 compose 启动最小外部依赖与已显式接入的 optional app service，不包含 OTel Collector / Grafana / Loki / Prometheus / AI provider。
 - 确保非测试 app runtime 将真实 AI provider / OpenAI-compatible endpoint 配置传给需要 AIClient 的项目组件；缺失时 fail-fast，不默认降级到 stub。

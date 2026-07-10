@@ -294,7 +294,7 @@ func assertGeneratedErrorEnvelope(t *testing.T, rec *httptest.ResponseRecorder, 
 		t.Fatalf("decode error envelope: %v; body=%s", err, rec.Body.String())
 	}
 	if _, ok := raw["errors"]; ok {
-		t.Fatalf("non-current errors envelope must not be present: %s", rec.Body.String())
+		t.Fatalf("out-of-scope errors envelope must not be present: %s", rec.Body.String())
 	}
 	errRaw, ok := raw["error"]
 	if !ok {
@@ -350,7 +350,7 @@ func TestHandlerMissingServiceReturnsInternalConfigurationError(t *testing.T) {
 				t.Fatalf("%s: status = %d, want %d", tc.name, rec.Code, http.StatusInternalServerError)
 			}
 			if strings.Contains(rec.Body.String(), "NOT_IMPLEMENTED") {
-				t.Fatalf("%s: missing service must not expose stale NOT_IMPLEMENTED stub: %s", tc.name, rec.Body.String())
+				t.Fatalf("%s: missing service must not expose stale NOT_IMPLEMENTED response: %s", tc.name, rec.Body.String())
 			}
 		})
 	}

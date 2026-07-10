@@ -3,4 +3,4 @@
 - E2E.P0.074 through E2E.P0.079 are expected to have passed in the same Phase 9 close-out.
 - The tailor privacy fixture injects private resume summary, structured profile text, JD context, prompt body markers, match summary values, and suggested bullet values.
 - Live store integration uses the same `async_jobs`, `ai_task_runs`, and `outbox_events` tables as the backend resume runtime.
-- Non-current vocabulary searches are scoped to `backend/internal/resume/` and exclude scenario `verify.sh` files to avoid matching the regression script itself.
+- Out-of-scope vocabulary searches are scoped to `backend/internal/resume/` and exclude scenario `verify.sh` files to avoid matching the regression script itself.

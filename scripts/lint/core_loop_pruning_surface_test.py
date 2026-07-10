@@ -65,7 +65,7 @@ def test_negative_context_regexes_match_strict_lifecycle_terms() -> None:
         assert runtime_topology_lint.OWNER_NEGATIVE_CONTEXT_RE.search(token)
 
 
-def test_buckets_non_current_surface_hits_by_allowed_context(tmp_path: Path) -> None:
+def test_buckets_out_of_scope_surface_hits_by_allowed_context(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     write(
         repo / "migrations" / "000009_jd_match_baseline.up.sql",
@@ -89,7 +89,7 @@ def test_buckets_non_current_surface_hits_by_allowed_context(tmp_path: Path) -> 
     assert bucket_paths(report, "migration_records") == [
         "migrations/000009_jd_match_baseline.up.sql"
     ]
-    assert bucket_paths(report, "non_current_normalization") == [
+    assert bucket_paths(report, "out_of_scope_normalization") == [
         "frontend/src/app/normalizeRoute.ts"
     ]
     assert bucket_paths(report, "negative_tests") == [
@@ -143,7 +143,7 @@ def test_cli_passes_with_only_allowed_buckets(tmp_path: Path) -> None:
     )
     write(
         repo / "frontend" / "src" / "app" / "routeUrl.ts",
-        'const nonCurrent = { "/debrief": "home", "/profile": "home" };\n',
+        'const outOfScope = { "/debrief": "home", "/profile": "home" };\n',
     )
     write(
         repo / "scripts" / "lint" / "core_loop_pruning_surface_test.py",
@@ -160,7 +160,7 @@ def test_cli_passes_with_only_allowed_buckets(tmp_path: Path) -> None:
 
     assert result.returncode == 0, result.stderr
     assert "migration_records (1)" in result.stdout
-    assert "non_current_normalization (1)" in result.stdout
+    assert "out_of_scope_normalization (1)" in result.stdout
     assert "negative_tests (1)" in result.stdout
     assert "real_residuals (0)" in result.stdout
 

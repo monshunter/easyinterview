@@ -1,8 +1,8 @@
 # Event and Outbox Contract Spec
 
-> **版本**: 2.12
+> **版本**: 2.13
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -19,7 +19,7 @@
 目标是：
 
 1. **14 个事件 envelope freeze**：每个事件有稳定 `eventName`、`eventVersion=1`、`payload` schema；baseline 锁定后只允许 additive。
-2. **outbox 协议清晰**：业务事务 + outbox 双写 → backend internal runner 轮询 → handler 投递 → consumer 幂等；本 spec 把这套流程定义为可被 backend async runner 实现的接口。
+2. **outbox 协议清晰**：业务事务 + outbox 双写 → backend internal runner 轮询 → handler 投递 → consumer 幂等；active `backend-async-runner` 按本 spec 承接 runtime / dispatcher 实现。
 3. **DB canonical jobType ↔ dotted task name 映射**：B3 owns 这张映射表；新增 DB / backend runner jobType 必须先改本 spec 再改 B4 / runner；能暴露到 B2 OpenAPI 的 API-facing subset 另行锁定；`email_dispatch` 是 C1 email-code / 通知派发的 internal-only canonical jobType，不进入 B2 `JobType`。
 4. **避免事件爆炸**：本 spec 锁 14 个事件名为当前产品范围全集；新事件必须有 spec 修订流程。
 
@@ -41,7 +41,7 @@
 
 ### 2.2 Out of Scope
 
-- backend internal runner 实现 / handler 注册：归后续 backend async runner subject。
+- backend internal runner 实现 / handler 注册：归 active [backend-async-runner](../backend-async-runner/spec.md) subject；本 spec 只定义事件、job 与 outbox 契约。
 - 业务 producer（API 何时写 outbox）：归各 C 域。
 - 业务 consumer（backend internal runner 何时调用 AI）：归各 C 域。
 - analytics 双发去重 / 前端事件埋点：归 [F2 `analytics-funnel`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选)。
@@ -68,7 +68,7 @@
 | D-12 | `email_dispatch` payload 红线 | `email_dispatch` 为 internal-only low-priority job；payload 只允许 `authChallengeId` / `userId` / `templateKey` / `locale` / `deliverySecretRef` / `dedupeKey` 等可审计字段，不得把 raw auth token、完整 auth URL、邮箱明文或邮件正文写入 `async_jobs.payload` / outbox / log；C1 owns `deliverySecretRef` 的一次性解析语义 | 支撑 ADR-Q1 email-code dispatch，同时避免 token / 邮件内容落库 |
 | D-13 | `target.import.requested.sourceType` 语义 | `sourceType` 是异步导入请求的粗粒度输入来源，固定为 `url` / `text` / `file`；B2 `manual_text` 在事件中映射为 `text`；B2 `manual_form` 是同步 ready 兜底路径，不发 `target.import.requested`，不创建 runner 待处理事件 | 避免把 API source variant 与 async runner payload enum 混为一谈；如未来 analytics 需要 exact variant，只能新增 optional 字段或新事件版本，不能复用当前字段塞 `manual_form` |
 | D-14 | `ResumeTailorMode` 当前字面量 | `shared/events.yaml` 中 `eventLocalEnums.ResumeTailorMode` 字面量为 `[gap_review, bullet_suggestions]`，并与 [B2 `RequestResumeTailorRequest.mode`](../openapi-v1-contract/spec.md#42-schema-inventory-约束)、Go/TS generated events、JSON Schema refs 和 baseline manifest 同步 | `shared/events.yaml` `eventLocalEnums.ResumeTailorMode`；`shared/events/baseline/events.v1.json`；`backend/internal/shared/events/`；`frontend/src/lib/events/`；`shared/events/schemas/resume.tailor.completed.v1.json` |
-| D-15 | `triggerEventSemantic` job ownership 语义 | `shared/jobs.yaml.jobs[*].triggerEventSemantic` 允许 `trigger_creates_job` / `source_event_only`；缺省为 `trigger_creates_job`。`report_generate` 必须显式为 `source_event_only`，表示 `practice.session.completed` 是 source event / analytics fact，不是 dispatcher 二次创建 report job 的指令。B3 codegen 必须生成 `JobTriggerEventSemantic*` 常量与 `IsSourceEventOnly(jobType)` 谓词；未来 backend async runner / dispatcher 必须读取该谓词并跳过 `source_event_only` 任务 | 支撑 backend-practice/002 D-32：`completePracticeSession` 同事务创建 `feedback_reports` placeholder 与 `async_jobs(report_generate)`，outbox 重放不得创建第二个 report/job |
+| D-15 | `triggerEventSemantic` job ownership 语义 | `shared/jobs.yaml.jobs[*].triggerEventSemantic` 允许 `trigger_creates_job` / `source_event_only`；缺省为 `trigger_creates_job`。`report_generate` 必须显式为 `source_event_only`，表示 `practice.session.completed` 是 source event / analytics fact，不是 dispatcher 二次创建 report job 的指令。B3 codegen 必须生成 `JobTriggerEventSemantic*` 常量与 `IsSourceEventOnly(jobType)` 谓词；backend-async-runner `OutboxDispatcher` 必须读取该谓词并跳过 `source_event_only` 任务 | 支撑 backend-practice/002 D-32：`completePracticeSession` 同事务创建 `feedback_reports` queued row 与 `async_jobs(report_generate)`，outbox 重放不得创建第二个 report/job |
 | D-16 | 当前 event domain 集合 | `shared/events.yaml` 只允许 `target` / `practice` / `report` / `resume` / `source` / `privacy` 六个 domain；`scripts/lint/events_inventory.py` 校验 domain、事件数与 payload inventory | `shared/events.yaml`; `scripts/lint/events_inventory.py` |
 | D-17 | Flat Resume event identity | `resume.parse.completed` / `resume.tailor.completed` 使用 `resumeId` 指向 `resumes.id`；`resume_tailor` job_type 与 `resume.tailor.completed` event 承接 AI 改写任务完成事实；`tailorRunId` 指向 AI task run id，`targetJobId` 携带 JD-aware 上下文，`ResumeTailorMode` 使用 D-14 当前字面量 | `shared/events.yaml` resume event payload；`shared/events/baseline/events.v1.json`；`shared/events/schemas/resume.parse.completed.v1.json` / `resume.tailor.completed.v1.json`；`backend/internal/shared/events/`；`frontend/src/lib/events/`；§3.1.3 / §3.1.4 |
 | D-18 | 当前 job inventory | `shared/jobs.yaml` 固定 8 个 canonical job_type；B2 API-facing subset 固定为 §3.1.2 的 6 项；`source_refresh` / `email_dispatch` 仅用于 backend runner internal contract | `shared/jobs.yaml`; `shared/jobs/baseline/jobs.v1.json`; `backend/internal/shared/jobs/`; `frontend/src/lib/jobs/` |

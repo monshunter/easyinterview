@@ -1,4 +1,4 @@
-# E2E.P0.009 Voice provider failure fallback
+# E2E.P0.009 Phone provider failure fallback
 
 > **场景 ID**: E2E.P0.009
 > **执行方式**: automated
@@ -8,7 +8,7 @@
 
 ## 1 Given
 
-用户在语音面试中提交 voice turn。STT、chat、TTS 分别通过独立 A3 profiles 解析，realtime voice profile 仍是 unsupported reserved capability。OpenAPI fixtures 提供 `stt-config-missing`、`chat-failed`、`tts-failed` scenarios。
+用户在电话模式中提交底层 voice turn。STT、chat、TTS 分别通过独立 A3 profiles 解析，realtime voice profile 仍是 unsupported reserved capability。OpenAPI fixtures 提供 `stt-config-missing`、`chat-failed`、`tts-failed` scenarios。
 
 ## 2 When
 
@@ -20,7 +20,7 @@
 - Chat 失败不调用 TTS
 - TTS 失败保留 transcript 和 assistant text，返回结构化 `ttsError`，前端仍可文本继续
 - Realtime profile 在 STT path fail-closed，不调用 provider
-- Voice runtime 不静默走 stub 或 realtime profile，隐私 grep 不包含 raw audio、TTS bytes、provider secret 或 transcript 明文
+- Voice-turn runtime 不静默走 stub 或 realtime profile，隐私 grep 不包含 raw audio、TTS bytes、provider secret 或 transcript 明文
 
 ## 4 执行
 

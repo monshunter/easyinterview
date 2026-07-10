@@ -26,6 +26,7 @@ const ALLOWED_NON_AUTH_OPERATIONS = new Set<string>([
   // Phase 2-4 TargetJobs operations (frontend-home-job-picks-and-parse)
   "listTargetJobs",
   "importTargetJob",
+  "archiveTargetJob",
   "createUploadPresign",
   "getTargetJob",
   "updateTargetJob",
@@ -157,7 +158,7 @@ describe("auth contract gate (Phase 3.3)", () => {
     expect([...used].sort()).toEqual([...expected].sort());
   });
 
-  it("frontend/src never calls any client operation outside the allowed auth + runtime-config set", () => {
+  it("frontend/src only calls client operations covered by current owner matrices", () => {
     const allowed = new Set<string>([
       ...ALLOWED_AUTH_OPERATIONS,
       ...ALLOWED_NON_AUTH_OPERATIONS,
@@ -180,7 +181,7 @@ describe("auth contract gate (Phase 3.3)", () => {
   it("keeps zero auth_reset / forgot-password residue in the auth surface (D-16)", () => {
     // product-scope D-16: email-code is the only sign-in flow.
     // The reset screen file must be gone and no non-test auth source may
-    // reference the non-current route or forgot-password vocabulary.
+    // reference the out-of-scope route or forgot-password vocabulary.
     expect(existsSync(resolve(AUTH_DIR, "AuthResetScreen.tsx"))).toBe(false);
 
     const offenders: Array<{ file: string; needle: string }> = [];

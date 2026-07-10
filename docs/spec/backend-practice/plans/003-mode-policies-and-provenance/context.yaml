@@ -22,14 +22,14 @@ spec:
     keywords:
       - practice hint mode policy
       - assisted hint show_hint
-      - legacy strict optional hint
+      - strict-mode optional hint
       - AssistantAction provenance wire boundary
       - practice.turn.lightweight_observe
       - practice.turn_observe.default
       - ai_task_runs hint_generate
       - graceful degrade session_wait
       - practice_turns hint_text
-      - backend practice non-current lint
+      - backend practice out-of-scope lint
   targets:
     backend:
       plan: ./plan.md

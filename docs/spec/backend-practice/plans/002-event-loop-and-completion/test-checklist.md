@@ -1,8 +1,8 @@
 # Backend Practice Event Loop and Completion Test Checklist
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -14,7 +14,7 @@
 
 ## Append Event Tests
 
-- [x] State machine tests cover all four current text event kinds, answer branches, optional legacy strict hint, provenance defaults and malformed payload fail-fast（验证：`cd backend && go test ./internal/practice -count=1`）
+- [x] State machine tests cover all four current text event kinds, answer branches, optional strict-mode hint, provenance defaults and malformed payload fail-fast（验证：`cd backend && go test ./internal/practice -count=1`）
 - [x] Store tests cover transaction writes, replay/mismatch, row lock sequencing, cross-user boundary and no-audit append behavior（验证：`cd backend && go test ./internal/store/practice -run TestAppendSessionEvent -count=1`）
 - [x] Handler tests cover generated request/response mapping, `Idempotency-Key` rejection, required `occurredAt` and error mapping（验证：`cd backend && go test ./internal/api/practice -run TestAppendSessionEvent -count=1`）
 
@@ -26,8 +26,8 @@
 ## BDD / Runtime Boundary
 
 - [x] BDD P0.038-P0.043 cmd/api scenario suite is covered（验证：`cd backend && go test ./cmd/api -run 'TestE2EP0038|TestE2EP0039|TestE2EP0040|TestE2EP0041|TestE2EP0042|TestE2EP0043' -count=1`）
-- [x] Runtime boundary lint is covered（验证：`python3 scripts/lint/backend_practice_non_current.py --repo-root . --phase all`、`python3 -m pytest scripts/lint/backend_practice_non_current_test.py -q`）
-- [x] Privacy redaction is covered by unit tests and `TestE2EP0043PracticeEventLoopPrivacyAndNonCurrentNegativeSurface`
+- [x] Runtime boundary lint is covered（验证：`python3 scripts/lint/backend_practice_out_of_scope.py --repo-root . --phase all`、`python3 -m pytest scripts/lint/backend_practice_out_of_scope_test.py -q`）
+- [x] Privacy redaction is covered by unit tests and `TestE2EP0043PracticeEventLoopPrivacyAndOutOfScopeSurface`
 
 ## Closeout
 

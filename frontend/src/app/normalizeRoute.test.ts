@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import { normalizeRoute, normalizeRouteName } from "./normalizeRoute";
 
 describe("normalizeRouteName", () => {
-  it("maps every retained non-current alias documented in ui-design to a current route", () => {
+  it("maps every retained out-of-scope alias documented in ui-design to a current route", () => {
     // Sourced from ui-design/src/app.jsx ROUTE_ALIASES + auth-and-entry.md §9.1.
-    // `voice` is intentionally excluded: current product-scope keeps voice
-    // only as practice route params, not as a route alias.
+    // `voice` is intentionally excluded: current product-scope keeps it only
+    // as a backend/API engineering name, not as a route alias.
     expect(normalizeRouteName("welcome")).toBe("home");
     expect(normalizeRouteName("growth")).toBe("home");
     expect(normalizeRouteName("plan")).toBe("workspace");
@@ -19,17 +19,17 @@ describe("normalizeRouteName", () => {
     expect(normalizeRouteName("onboarding")).toBe("resume_versions");
   });
 
-  it("does not preserve the non-current standalone voice route alias", () => {
+  it("does not preserve the out-of-scope standalone voice route alias", () => {
     expect(normalizeRouteName("voice")).toBe("home");
   });
 
-  it("normalizes the non-current auth_reset route to the single login entry", () => {
+  it("normalizes the out-of-scope auth_reset route to the single login entry", () => {
     // product-scope D-16 / frontend-shell spec v1.22 C-17 — email code is the
     // only sign-in flow; auth_reset must not materialize a standalone screen.
     expect(normalizeRouteName("auth_reset")).toBe("auth_login");
   });
 
-  it("normalizes non-current debrief/profile aliases to home", () => {
+  it("normalizes out-of-scope debrief/profile aliases to home", () => {
     // product-scope D-22 keeps debrief and user-profile outside the current
     // route catalog. Saved local route names fold back to the core intake home.
     expect(normalizeRouteName("debrief")).toBe("home");

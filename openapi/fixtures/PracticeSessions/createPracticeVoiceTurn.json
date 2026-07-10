@@ -123,8 +123,7 @@
             "durationMs": 3550
           },
           "language": "en",
-          "practiceMode": "assisted",
-          "manualTranscriptFallback": "I led the migration by grouping teams by rollout risk."
+          "practiceMode": "assisted"
         }
       },
       "response": {

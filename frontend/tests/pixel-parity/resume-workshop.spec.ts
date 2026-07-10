@@ -8,7 +8,7 @@ import { resolve } from "node:path";
  *
  * Truth source: ui-design/src/screen-resume-workshop.jsx and
  * docs/spec/frontend-resume-workshop/plans/001-listing-routing-and-detail-
- * readonly/plan.md, D-20 flat resume asset model.
+ * readonly/plan.md, D-20 flat resume model.
  *
  * Covers desktop (1440x900) and mobile (390x844) projects. Clean checkout
  * gate does not depend on local screenshot snapshots; the spec asserts DOM
@@ -310,19 +310,19 @@ test.describe("Resume Workshop list DOM anchors", () => {
     });
   });
 
-  test("flat rows expose real Open buttons and no non-current tree/view-switcher anchors", async ({ page }) => {
+  test("flat rows expose real Open buttons and no out-of-scope tree/view-switcher anchors", async ({ page }) => {
     await goToList(page);
     await freezeAnimations(page);
     const open = page.locator("[data-testid^='resume-list-open-']").first();
     await expect(open).toBeVisible();
     expect((await open.evaluate((node) => node.tagName)).toLowerCase()).toBe("button");
-    for (const nonCurrent of [
+    for (const outOfScope of [
       "resume-workshop-view-switcher-tree",
       "resume-workshop-view-switcher-flat",
       "resume-workshop-stats-originals",
       "resume-detail-branch-graph",
     ]) {
-      await expect(page.locator(`[data-testid='${nonCurrent}']`)).toHaveCount(0);
+      await expect(page.locator(`[data-testid='${outOfScope}']`)).toHaveCount(0);
     }
     await expect(page.locator("[data-testid^='resume-tree-row-']")).toHaveCount(0);
     await expect(page.locator("[data-testid^='resume-flat-row-']")).toHaveCount(0);

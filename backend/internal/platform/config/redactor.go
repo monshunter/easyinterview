@@ -2,8 +2,8 @@ package config
 
 import "fmt"
 
-// redactedMarker is the canonical placeholder rendered for any secret value.
-const redactedMarker = "***"
+// redactionMarker is the canonical redacted rendering for any secret value.
+const redactionMarker = "***"
 
 // RedactedString wraps a configuration secret so that printing or marshaling
 // the value never leaks plaintext. The struct field is intentionally
@@ -36,24 +36,24 @@ func (r RedactedString) IsZero() bool {
 
 // String implements fmt.Stringer so %s / %v / Println always print ***.
 func (r RedactedString) String() string {
-	return redactedMarker
+	return redactionMarker
 }
 
 // GoString implements fmt.GoStringer so %#v never reveals plaintext.
 func (r RedactedString) GoString() string {
-	return redactedMarker
+	return redactionMarker
 }
 
 // MarshalJSON implements json.Marshaler so encoding/json output never
 // reveals plaintext.
 func (r RedactedString) MarshalJSON() ([]byte, error) {
-	return []byte(`"` + redactedMarker + `"`), nil
+	return []byte(`"` + redactionMarker + `"`), nil
 }
 
 // MarshalText implements encoding.TextMarshaler so encoders that prefer
 // text marshaling (yaml.v3, toml libs, log/slog text handler) also see ***.
 func (r RedactedString) MarshalText() ([]byte, error) {
-	return []byte(redactedMarker), nil
+	return []byte(redactionMarker), nil
 }
 
 // Format implements fmt.Formatter so verbs not handled above (e.g. %x, %q,
@@ -62,8 +62,8 @@ func (r RedactedString) MarshalText() ([]byte, error) {
 func (r RedactedString) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'q':
-		fmt.Fprintf(s, "%q", redactedMarker)
+		fmt.Fprintf(s, "%q", redactionMarker)
 	default:
-		fmt.Fprint(s, redactedMarker)
+		fmt.Fprint(s, redactionMarker)
 	}
 }

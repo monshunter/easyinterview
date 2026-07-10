@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 2.0
+    to: 2.1
 spec:
   defaultTarget: backend
   discovery:
@@ -24,8 +24,8 @@ spec:
       - logout
       - deleteMe auth handoff
       - email_dispatch
-      - backend-internal mail dispatcher
-      - dev mail sink runner
+      - email_dispatch runner
+      - dev mail sink delivery
       - protected session middleware
       - unified email login
       - profileCompletionRequired

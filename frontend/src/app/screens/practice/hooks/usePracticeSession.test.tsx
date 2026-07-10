@@ -4,7 +4,7 @@
  * Item 2.3 — usePracticeSession derives UI flags from `SessionStatus` 7-
  * value machine: queued / running / waiting_user_input / completing /
  * completed / failed / cancelled. Negative gate: must not reference
- * non-current values `draft` / `archived`.
+ * out-of-scope values `draft` / `archived`.
  */
 
 import { describe, expect, it } from "vitest";
@@ -91,12 +91,12 @@ describe("usePracticeSession", () => {
     // typecheck. Runtime sanity: passing those values triggers the unknown
     // branch and surfaces an unsupported flag.
     const draftHook = renderHook(() =>
-      // @ts-expect-error draft is a non-current SessionStatus value
+      // @ts-expect-error draft is a out-of-scope SessionStatus value
       usePracticeSession("draft"),
     );
     expect(draftHook.result.current.errorMode).toBe("none");
     const archivedHook = renderHook(() =>
-      // @ts-expect-error archived is a non-current SessionStatus value
+      // @ts-expect-error archived is a out-of-scope SessionStatus value
       usePracticeSession("archived"),
     );
     expect(archivedHook.result.current.errorMode).toBe("none");

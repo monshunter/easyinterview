@@ -1,15 +1,19 @@
 # Product Scope History
 
-> **版本**: 2.8
+> **版本**: 2.13
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 2.13 | 统一 product-scope 中文范围边界与执行 plan 的 scope-boundary gate 口径。 | tech-debt pruning |
+| 2026-07-10 | 2.12 | 将 privacy export、pending child 与设置通知/订阅边界收敛为不可用例外 / 索引模型 / 范围外能力口径。 | tech-debt pruning |
+| 2026-07-10 | 2.11 | 用户可见面试形式统一为文本面试 / 电话模式；`voice` 只保留为底层工程能力名或负向 route 输入。 | tech-debt pruning |
+| 2026-07-10 | 2.10 | 电话模式正向入口收敛为 `practice?mode=phone&modality=phone`；旧 `voice` query 不再作为电话模式入口。 | tech-debt pruning |
 | 2026-07-07 | 2.8 | 简历资产范围收敛：详情页只读展示简历正文，移除详情二次编辑/导出/复制/原件弹层；新增 LLM-derived 简历名称要求。 | resume detail readonly / LLM display name follow-up |
-| 2026-07-07 | 2.6 | 将 product-scope 正文收敛为当前合同表达；中文范围边界只描述当前行为和非当前范围。 | product-scope/001-core-loop-module-pruning |
+| 2026-07-07 | 2.6 | 将 product-scope 正文收敛为当前合同表达；中文范围边界只描述当前行为和范围外。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-06 | 2.5 | 将 active product-scope 中的范围变更过程说明收敛为当前范围合同与负向边界表述。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-06 | 2.4 | 将 UI 范围边界证据集中到 `module-map` 与当前 product-scope。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-06 | 2.3 | 将产品真理源验收改为 product-scope active；同步 UI 文档和执行 subject 入口。 | product-scope/001-core-loop-module-pruning |

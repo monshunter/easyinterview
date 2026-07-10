@@ -13,7 +13,7 @@ Trigger output evidence:
 
 Verify gates:
 
-- non-current practice goal literal not present in `frontend/src/app/screens/practice/`.
+- out-of-scope practice goal literal not present in `frontend/src/app/screens/practice/`.
 - `切到语音` and `Switch to voice` literals not present in i18n catalogs.
 - `Idempotency-Key.*appendSessionEvent` reverse-grep zero hits.
-- Old voice/strict/skip DOM (`VoiceSessionSurface`, `PracticeAnnotatedWaveform`, `VoiceExpressionPanel`, `practice-topbar-strict`, `practice-input-skip`) zero hits in practice runtime files.
+- Current-boundary grep returns zero hits for strict/role/skip testids and user-visible voice transcription / expression-metric copy in practice runtime files.

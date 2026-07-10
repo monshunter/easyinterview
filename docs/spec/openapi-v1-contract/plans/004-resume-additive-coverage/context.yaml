@@ -6,7 +6,7 @@ metadata:
   sequence: 4
   specVersion:
     from: 1.16
-    to: 1.36
+    to: 1.39
 spec:
   defaultTarget: contract
   discovery:
@@ -27,7 +27,7 @@ spec:
     keywords:
       - flat resume contract
       - current resume operations
-      - openapi 36 operations
+      - openapi 37 operations
       - openapi 10 tags
       - Resume schema
       - PaginatedResume

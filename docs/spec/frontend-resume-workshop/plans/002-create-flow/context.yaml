@@ -6,7 +6,7 @@ metadata:
   sequence: 2
   specVersion:
     from: 1.0
-    to: 1.5
+    to: 2.12
 spec:
   defaultTarget: frontend
   discovery:
@@ -17,7 +17,6 @@ spec:
       - resume-create-direct-detail
       - resume-create-flow
       - resume-1-minute-create
-      - workspace-missing-resume-cta
       - home-resume-create-cta
     keywords:
       - resume create flow upload paste
@@ -29,7 +28,6 @@ spec:
       - preview confirm absent
       - generic pasted resume title absent
       - home create CTA
-      - workspace missing resume CTA
       - resume create auth pending action
       - resume create privacy red line
       - resume create i18n en zh
@@ -49,7 +47,6 @@ spec:
           - frontend/src/app/screens/resume-workshop
           - frontend/src/app/screens/resume-workshop/create
           - frontend/src/app/screens/home
-          - frontend/src/app/screens/workspace
           - frontend/src/app/i18n
           - frontend/src/api/generated
           - frontend/tests/pixel-parity
@@ -59,7 +56,6 @@ spec:
         uiRoutes:
           - resume_versions
           - home
-          - workspace
         apiNames:
           - createUploadPresign
           - registerResume

@@ -136,7 +136,7 @@ spec:
           - test/scenarios/e2e/p0-056-generating-to-report-happy-path
           - test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b
           - test/scenarios/e2e/p0-058-report-failure-and-missing-session
-          - test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-non-current-negative
+          - test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-out-of-scope-negative
           - scripts/lint
         uiRoutes:
           - generating

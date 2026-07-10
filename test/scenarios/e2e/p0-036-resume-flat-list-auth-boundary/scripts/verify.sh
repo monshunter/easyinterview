@@ -11,7 +11,7 @@ grep -Fq "src/app/scenarios/p0-036-resume-flat-list-auth-boundary.test.tsx" "$LO
 grep -Eq 'Tests +4 passed \(4\)' "$LOG_FILE"
 grep -Eq 'Test Files +1 passed \(1\)' "$LOG_FILE"
 
-# Negative: scenario evidence must not surface non-current-route testid leakage.
+# Negative: scenario evidence must not surface out-of-scope route testid leakage.
 fallback_marker="D2""-D6"
 for forbidden in \
   'route-welcome' \
@@ -24,7 +24,7 @@ for forbidden in \
   'route-voice' \
   "$fallback_marker"; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
-    echo "forbidden non-current entry leaked into scenario evidence: $forbidden" >&2
+    echo "forbidden out-of-scope entry leaked into scenario evidence: $forbidden" >&2
     exit 1
   fi
 done

@@ -46,8 +46,8 @@ describe("App shell", () => {
     // `report` is now wired to ReportScreen; with no
     // sessionId it falls back to ReportMissingSessionState which still keeps
     // App chrome visible (per frontend-report-dashboard/001 §4 routing).
-    const placeholderContextRoutes = ["parse"] as const;
-    for (const name of placeholderContextRoutes) {
+    const routeShellContextRoutes = ["parse"] as const;
+    for (const name of routeShellContextRoutes) {
       const { unmount } = render(<App initialRoute={{ name, params: {} }} />);
       expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
       expect(screen.getByTestId(`route-${name}`)).toBeInTheDocument();
@@ -81,14 +81,14 @@ describe("App shell", () => {
     expect(screen.queryByTestId("route-generating")).not.toBeInTheDocument();
   });
 
-  it("renders HomeScreen on the home route instead of PlaceholderScreen", () => {
+  it("renders HomeScreen on the home route instead of the route shell", () => {
     render(<App />);
     expect(screen.getByTestId("home-hero-label")).toBeInTheDocument();
     expect(screen.getByTestId("home-hero-title")).toBeInTheDocument();
     expect(screen.getByTestId("home-jd-textarea")).toBeInTheDocument();
   });
 
-  it("renders ParseScreen on the parse route instead of PlaceholderScreen", () => {
+  it("renders ParseScreen on the parse route instead of the route shell", () => {
     render(
       <App
         initialRoute={{
@@ -98,37 +98,40 @@ describe("App shell", () => {
       />,
     );
     expect(screen.getByTestId("parse-loading-step-0")).toBeInTheDocument();
-    expect(screen.queryByText("fallback shell")).not.toBeInTheDocument();
+    expect(screen.queryByText("route shell")).not.toBeInTheDocument();
   });
 
-  it("propagates voice mode route params into PracticeScreen voice surface", () => {
+  it("propagates phone mode route params into PracticeScreen phone surface", () => {
     render(
       <App
         initialRoute={{
           name: "practice",
           params: {
             sessionId: "01918fa0-0000-7000-8000-000000005000",
-            mode: "voice",
-            modality: "voice",
+            mode: "phone",
+            modality: "phone",
             planId: "plan-tj-1",
           },
         }}
       />,
     );
-    expect(screen.getByTestId("practice-voice-waveform")).toBeInTheDocument();
-    expect(screen.getByTestId("practice-voice-expression-panel")).toBeInTheDocument();
+    const practice = screen.getByTestId("practice-screen");
+    expect(practice).toHaveAttribute("data-mode", "phone");
+    expect(practice).toHaveAttribute("data-modality", "phone");
+    expect(screen.getByTestId("practice-phone-surface")).toBeInTheDocument();
+    expect(screen.getByTestId("practice-phone-waveform")).toBeInTheDocument();
   });
 
-  it("renders ResumeWorkshopScreen on resume_versions route instead of PlaceholderScreen", () => {
+  it("renders ResumeWorkshopScreen on resume_versions route instead of the route shell", () => {
     render(
       <App initialRoute={{ name: "resume_versions", params: {} }} />,
     );
     expect(screen.getByTestId("resume-workshop-screen")).toBeInTheDocument();
     expect(screen.queryByTestId("route-resume_versions")).not.toBeInTheDocument();
-    expect(screen.queryByText("fallback shell")).not.toBeInTheDocument();
+    expect(screen.queryByText("route shell")).not.toBeInTheDocument();
   });
 
-  it("renders WorkspaceScreen on workspace route instead of PlaceholderScreen", async () => {
+  it("renders WorkspaceScreen on workspace route instead of the route shell", async () => {
     const client = buildWorkspaceClient();
     render(
       <App
@@ -144,7 +147,7 @@ describe("App shell", () => {
       expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
     });
     expect(screen.queryByTestId("unified-plan-detail")).not.toBeInTheDocument();
-    expect(screen.queryByText("fallback shell")).not.toBeInTheDocument();
+    expect(screen.queryByText("route shell")).not.toBeInTheDocument();
   });
 
   it("does not hydrate workspace route params into a detail context", async () => {
@@ -175,7 +178,7 @@ describe("App shell", () => {
     expect(screen.queryByTestId("workspace-empty")).not.toBeInTheDocument();
   });
 
-  it("practice route renders PracticeScreen instead of PlaceholderScreen", () => {
+  it("practice route renders PracticeScreen instead of the route shell", () => {
     render(
       <App
         initialRoute={{
@@ -199,9 +202,9 @@ describe("App shell", () => {
     );
     expect(screen.getByTestId("practice-screen")).toBeInTheDocument();
     expect(screen.getByTestId("practice-topbar")).toBeInTheDocument();
-    // route-practice testid is the PlaceholderScreen marker — must NOT appear.
+    // route-practice testid is the route-shell marker and must not appear here.
     expect(screen.queryByTestId("route-practice")).not.toBeInTheDocument();
-    expect(screen.queryByText("fallback shell")).not.toBeInTheDocument();
+    expect(screen.queryByText("route shell")).not.toBeInTheDocument();
   });
 
   it("generating route mounts GeneratingScreen with reportId in params (frontend-report-dashboard/001 Phase 1)", () => {

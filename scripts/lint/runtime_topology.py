@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Reject non-current standalone backend worker process terminology.
+"""Reject out-of-scope standalone backend worker process terminology.
 
 The P0 runtime topology is frontend + backend. Prior evidence and the
-backend-runtime-topology owner docs may still mention non-current worker terms, but
+backend-runtime-topology owner docs may still mention out-of-scope worker terms, but
 runtime code, active handoff plans, config, deploy assets, and generated
 contracts must use backend internal runner / backend_async wording.
 """
@@ -68,55 +68,55 @@ TEST_FILE_SUFFIXES = (
 
 
 @dataclass(frozen=True)
-class NonCurrentPattern:
+class OutOfScopePattern:
     label: str
     pattern: re.Pattern[str]
 
 
-NON_CURRENT_PATTERNS = [
-    NonCurrentPattern(
+OUT_OF_SCOPE_PATTERNS = [
+    OutOfScopePattern(
         "cmd/worker entrypoint",
         re.compile(r"(?:\./|backend/)?cmd/(?:\{api,)?worker(?=[,}'\"\/\s]|$)|\./cmd/worker\b"),
     ),
-    NonCurrentPattern(
+    OutOfScopePattern(
         "worker listen addr config",
         re.compile(
             r"\bWORKER_LISTEN_ADDR\b|\bworker\.listenAddr\b|\bapp/worker listen addr\b",
             re.IGNORECASE,
         ),
     ),
-    NonCurrentPattern(
+    OutOfScopePattern(
         "worker config bindings",
         re.compile(r"\bworker bindings?\b", re.IGNORECASE),
     ),
-    NonCurrentPattern(
+    OutOfScopePattern(
         "worker build target",
         re.compile(r"\bbuild-worker\b"),
     ),
-    NonCurrentPattern(
+    OutOfScopePattern(
         "worker producer enum",
         re.compile(
             r"(?:\bproducer\b.*(?:[`\"']?worker[`\"']?\b|/ worker\b|\bworker\s*/))|"
             r"(?:(?:[`\"']?worker[`\"']?\b|/ worker\b|\bworker\s*/).*\bproducer\b)"
         ),
     ),
-    NonCurrentPattern(
+    OutOfScopePattern(
         "backend async runner subject shorthand",
         re.compile(r"\bbackend-async-runtime\b"),
     ),
-    NonCurrentPattern(
+    OutOfScopePattern(
         "worker component probe",
         re.compile(r"worker 类组件"),
     ),
-    NonCurrentPattern(
+    OutOfScopePattern(
         "privacy worker wording",
         re.compile(r"\bprivacy workers?\b|\bC8 worker\b", re.IGNORECASE),
     ),
-    NonCurrentPattern(
+    OutOfScopePattern(
         "worker observability wording",
         re.compile(r"\bF1 worker span\b", re.IGNORECASE),
     ),
-    NonCurrentPattern(
+    OutOfScopePattern(
         "Asynq worker wording",
         re.compile(r"\bAsynq worker\b"),
     ),
@@ -208,7 +208,7 @@ def scan_file(repo: Path, path: Path) -> list[str]:
     if is_owner_plan_handoff_path(rel):
         return scan_owner_current_handoff_file(rel, text)
     for lineno, line in enumerate(text.splitlines(), start=1):
-        for pattern in NON_CURRENT_PATTERNS:
+        for pattern in OUT_OF_SCOPE_PATTERNS:
             if pattern.pattern.search(line):
                 findings.append(f"{rel}:{lineno}: {pattern.label}: {line.strip()}")
                 break
@@ -226,26 +226,26 @@ def scan_structured_producer_values(repo: Path, path: Path, text: str, existing:
         data = yaml.safe_load(text)
     except yaml.YAMLError:
         return []
-    if not contains_non_current_producer_value(data):
+    if not contains_out_of_scope_producer_value(data):
         return []
     if any(finding.startswith(f"{rel}:") and ": worker producer enum:" in finding for finding in existing):
         return []
 
     lineno = find_structured_worker_lineno(text)
-    finding = f"{rel}:{lineno}: worker producer enum: structured producer value contains non-current worker"
+    finding = f"{rel}:{lineno}: worker producer enum: structured producer value contains out-of-scope worker"
     return [finding]
 
 
-def contains_non_current_producer_value(value: Any) -> bool:
+def contains_out_of_scope_producer_value(value: Any) -> bool:
     if isinstance(value, dict):
         string_keys = {str(key): item for key, item in value.items()}
         if string_keys.get("name") == "producer" and contains_worker_scalar(string_keys.get("values")):
             return True
         if "producer" in string_keys and contains_worker_scalar(string_keys["producer"]):
             return True
-        return any(contains_non_current_producer_value(item) for item in value.values())
+        return any(contains_out_of_scope_producer_value(item) for item in value.values())
     if isinstance(value, list):
-        return any(contains_non_current_producer_value(item) for item in value)
+        return any(contains_out_of_scope_producer_value(item) for item in value)
     return False
 
 
@@ -295,7 +295,7 @@ def scan_owner_current_handoff_file(rel: Path, text: str) -> list[str]:
             continue
         if not OWNER_CURRENT_CUE_RE.search(line):
             continue
-        for pattern in NON_CURRENT_PATTERNS:
+        for pattern in OUT_OF_SCOPE_PATTERNS:
             if pattern.pattern.search(line):
                 findings.append(f"{rel}:{lineno}: owner current handoff: {pattern.label}: {line.strip()}")
                 break
@@ -314,11 +314,11 @@ def main() -> int:
         findings.extend(scan_file(repo, path))
 
     if findings:
-        print("runtime_topology: non-current worker process terminology found", file=sys.stderr)
+        print("runtime_topology: out-of-scope worker process terminology found", file=sys.stderr)
         for finding in findings:
             print(f"  - {finding}", file=sys.stderr)
         print(
-            "Fix: use backend internal runner / backend_async wording; keep non-current "
+            "Fix: use backend internal runner / backend_async wording; keep out-of-scope "
             "worker process terms only in history, tests, or backend-runtime-topology owner docs.",
             file=sys.stderr,
         )

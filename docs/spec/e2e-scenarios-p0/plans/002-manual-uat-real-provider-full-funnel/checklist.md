@@ -1,8 +1,8 @@
 # 002 Real Provider Hybrid Full Funnel Checklist
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-05-27
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -23,7 +23,7 @@
 ## Phase 2: 真实联调环境 runbook
 
 - [x] 2.1 补齐 `deploy/dev-stack/.env.example` 与说明，覆盖 auth secrets、DB、AI provider、frontend real mode；验证：tracked 模板不含真实 secret，`rg -n 'sk-[A-Za-z0-9_-]{16,}|ei_session=[A-Za-z0-9._~+/=-]{16,}' deploy/dev-stack/.env.example test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel` 0 命中
-  <!-- verified: 2026-05-27 command="if rg -n 'sk-[A-Za-z0-9_-]{16,}|ei_session=[A-Za-z0-9._~+/=-]{16,}' deploy/dev-stack/.env.example test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel; then exit 1; else exit 0; fi" evidence="deploy/dev-stack/.env.example contains placeholders only; E2E.P0.100 no longer has a scenario-specific env template" -->
+  <!-- verified: 2026-05-27 command="if rg -n 'sk-[A-Za-z0-9_-]{16,}|ei_session=[A-Za-z0-9._~+/=-]{16,}' deploy/dev-stack/.env.example test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel; then exit 1; else exit 0; fi" evidence="deploy/dev-stack/.env.example contains non-secret example values only; E2E.P0.100 no longer has a scenario-specific env template" -->
 - [x] 2.2 更新 runbook 启动步骤：dev-stack -> migrate -> backend `APP_ENV=dev` + `EMAIL_PROVIDER=mailpit` -> frontend real mode -> Mailpit email-code 登录；验证：runbook 命令块存在且路径/端口一致
   <!-- verified: 2026-05-27 command="rg -n 'make dev-up|make migrate-up|APP_ENV=dev|EMAIL_PROVIDER=mailpit|VITE_EI_API_MODE=real|http://127.0.0.1:8025|deploy/dev-stack/.env' test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/README.md deploy/dev-stack/.env.example" evidence="runbook and dev-stack env template cover dev-stack, migrate, backend dev env, frontend real mode, Mailpit URL, and single env source" -->
 - [x] 2.3 增加 mock/stub 禁用说明，拒绝 `APP_ENV=test`、`EI_E2E_P0_099_SERVER`、fixture mock transport、`Prefer: example=` 作为真实 UAT 完成证据；验证：runbook 负向/正向 grep
@@ -35,8 +35,8 @@
   <!-- verified: 2026-05-26 command="for f in account.md jd-backend-engineer.zh.md jd-backend-engineer.en.md resume-backend-engineer.zh.md resume-backend-engineer.en.md answer-sample-backend-engineer.zh.md answer-sample-backend-engineer.en.md expected-observations.md; do test -f \"test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/data/$f\" || exit 1; done; rg -n '不含真实 PII|expected-observations|answer-sample|jd-backend-engineer|resume-backend-engineer' test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/data test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/checklist.md" evidence="materials include account, bilingual JD/resume, bilingual answer samples, and expected observation prompts" -->
 - [x] 3.2 新增账号材料说明，包含 UAT 邮箱、Mailpit URL、email-code 验证、过期、重跑与清理；验证：材料 README grep `manual-uat-full-funnel@example.test` / `Mailpit`
   <!-- verified: 2026-05-26 command="rg -n 'manual-uat-full-funnel@example.test|Mailpit|Magic links expire|submit the email again|cleanup' test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/data/account.md test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/data/README.md" evidence="account material includes UAT email, Mailpit URL, expiry/rerun guidance, and cleanup section" -->
-- [x] 3.3 更新 full-funnel checklist，覆盖真实 provider 调用证据、环境、账号、全漏斗、隐私与 non-current-negative；验证：checklist 包含 provider/profile/model/task-run evidence rows
-  <!-- verified: 2026-05-26 command="rg -n 'provider/profile/model/latency/task-run|provider evidence|non-current-negative|URL/storage/console|session cookie value|\\.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/' test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/checklist.md test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/README.md" evidence="manual checklist covers real provider evidence, privacy, non-current-negative, evidence path, and session-cookie redline" -->
+- [x] 3.3 更新 full-funnel checklist，覆盖真实 provider 调用证据、环境、账号、全漏斗、隐私与 out-of-scope-negative；验证：checklist 包含 provider/profile/model/task-run evidence rows
+  <!-- verified: 2026-05-26 command="rg -n 'provider/profile/model/latency/task-run|provider evidence|out-of-scope-negative|URL/storage/console|session cookie value|\\.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/' test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/checklist.md test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/README.md" evidence="manual checklist covers real provider evidence, privacy, out-of-scope-negative, evidence path, and session-cookie redline" -->
 - [x] 3.4 BDD-Gate: `E2E.P0.100` 材料结构 ready，人工执行记录模板 ready；验证：`bdd-checklist.md` 对应资产项完成
   <!-- verified: 2026-05-26 command="rg -n '^-' docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel/bdd-checklist.md" evidence="BDD checklist marks all preparation assets ready while leaving real provider execution and cleanup/scene-preservation confirmation open" -->
 

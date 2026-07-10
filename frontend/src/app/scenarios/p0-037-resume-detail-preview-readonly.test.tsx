@@ -83,7 +83,7 @@ describe("E2E.P0.037 resume detail read-only view + 404 fallback", () => {
     }
   });
 
-  it("legacy ?tab=rewrites is ignored and cannot activate a rewrite surface", async () => {
+  it("out-of-scope ?tab=rewrites is ignored and cannot activate a rewrite surface", async () => {
     renderDetail("default", RESUME_ID, { tab: "rewrites" });
 
     await waitFor(() => {

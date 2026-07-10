@@ -1,8 +1,8 @@
 # Secrets and Config Spec
 
-> **版本**: 2.12
+> **版本**: 2.13
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -28,7 +28,7 @@
 - **配置文件落点**：
   - `config/config.yaml`（默认值，所有环境共享）
   - `config/dev.yaml` / `config/staging.yaml` / `config/prod.yaml`（环境 override，不含 secrets）
-  - `.env.example`（仓库版本化的占位模板，列出所有合法 env key）
+  - `.env.example`（仓库版本化的 env key 示例，列出所有合法 env key）
   - `config/feature-flags.yaml`（FileFlagProvider 的本地源，dev 默认值）
 - **Go 包**：`backend/internal/platform/config/`（loader + validator + redactor）；`backend/internal/platform/secrets/`（`SecretSource` 接口与 env provider）；`backend/internal/platform/featureflag/`（`FeatureFlagClient` 接口与 file / posthog provider）。
 - **TS 包**：`frontend/src/lib/runtime-config/`（前端只读取 build-time 注入与运行时 `/api/v1/runtime-config` 端点；不直接读浏览器 env）。
@@ -96,7 +96,7 @@
 | `POSTHOG_HOST` | 条件 | `(空)` | `FEATURE_FLAG_SOURCE=posthog` 时必填；指向自托管 PostHog；普通本地 dev 默认不填 | A4（F2 owner） |
 | `POSTHOG_SELF_HOSTED` | 条件 | `false` | staging / prod 使用 PostHog 时必须为 `true`；防止误接 PostHog Cloud | A4（F2 owner） |
 | `POSTHOG_PROJECT_API_KEY` | 条件 | `(空)` | secret | A4（F2 owner） |
-| `POSTHOG_PUBLIC_KEY` | 条件 | `(空，dev 占位)` | 暴露给前端的 public key；仅前端 analytics 初始化需要 | A4（F2 owner） |
+| `POSTHOG_PUBLIC_KEY` | 条件 | `(空；local dev 可填 public key)` | 暴露给前端的 public key；仅前端 analytics 初始化需要 | A4（F2 owner） |
 | `EMAIL_PROVIDER` | prod 必填 | `mailpit`（local dev） | email-code 发件方；local dev 默认走 Mailpit，本地测试不依赖外部邮箱服务 | A4（C1 owner，ADR-Q1） |
 | `EMAIL_SMTP_HOST` | 条件 | `127.0.0.1` | `EMAIL_PROVIDER=mailpit` 或 SMTP writer 时的 SMTP host | A4（C1 owner） |
 | `EMAIL_SMTP_PORT` | 条件 | `1025` | `EMAIL_PROVIDER=mailpit` 或 SMTP writer 时的 SMTP port | A4（C1 owner） |

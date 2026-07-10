@@ -6,7 +6,7 @@
  *  - server returns assistantAction.show_hint
  *  - HintBanner becomes visible; hintCount increments via INCREMENT_HINT_COUNT
  *  - clicking hint again hides the banner without re-posting
- *  - legacy strict route params still keep the hint button available
+ *  - out-of-scope strict route params still keep the hint button available
  */
 
 import { describe, expect, it } from "vitest";
@@ -79,7 +79,7 @@ describe("practice hints (item 3.2)", () => {
     expect(eventCalls(calls).length).toBe(before);
   });
 
-  it("legacy strict mode: hint button DOM is still rendered", async () => {
+  it("out-of-scope strict input: hint button DOM is still rendered", async () => {
     mountPracticeScreen({
       routeParams: { practiceMode: "strict" },
     });

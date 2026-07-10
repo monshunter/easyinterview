@@ -89,7 +89,7 @@ describe("App auth route dispatch", () => {
     }
   });
 
-  it("renders the login screen when the non-current auth_reset route is requested (D-16)", () => {
+  it("renders the login screen when the out-of-scope auth_reset route is requested (D-16)", () => {
     render(
       <App
         client={buildClient()}
@@ -204,7 +204,7 @@ describe("App auth route dispatch", () => {
     }
   });
 
-  it("normalizes non-current auth_register route names to the single login screen", () => {
+  it("normalizes out-of-scope auth_register route names to the single login screen", () => {
     render(
       <App
         client={buildClient()}
@@ -531,9 +531,9 @@ describe("App auth route dispatch", () => {
     ).toBeGreaterThan(0);
   });
 
-  it("falls back to PlaceholderScreen for auth_* routes when no client / runtime is mounted", () => {
+  it("falls back to RouteShellScreen for auth_* routes when no client / runtime is mounted", () => {
     render(<App initialRoute={{ name: "auth_login", params: {} }} />);
-    // PlaceholderScreen renders the bare data attributes; it does not render
+    // RouteShellScreen renders the bare data attributes; it does not render
     // the email form testid.
     expect(screen.getByTestId("route-auth_login")).toBeInTheDocument();
     expect(screen.queryByTestId("auth-login-email")).not.toBeInTheDocument();

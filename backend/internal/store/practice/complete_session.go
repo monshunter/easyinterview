@@ -103,7 +103,7 @@ insert into feedback_reports (
 				return existing, nil
 			}
 		}
-		return domain.CompleteSessionResult{}, fmt.Errorf("insert feedback report placeholder: %w", err)
+		return domain.CompleteSessionResult{}, fmt.Errorf("insert queued feedback report: %w", err)
 	}
 	jobPayload, err := json.Marshal(map[string]any{
 		"reportId":    in.ReportID,

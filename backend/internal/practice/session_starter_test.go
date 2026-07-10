@@ -111,7 +111,7 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 	userPrompt := ai.payload.Messages[len(ai.payload.Messages)-1].Content
 	for _, forbidden := range []string{"{{language}}", "{{role_title}}", "{{top_skills}}", "{{resume_profile}}", "{{practice_goal}}", "{{rubric_dimensions}}"} {
 		if strings.Contains(userPrompt, forbidden) {
-			t.Fatalf("first-question prompt still contains raw placeholder %q: %s", forbidden, userPrompt)
+			t.Fatalf("first-question prompt still contains raw template marker %q: %s", forbidden, userPrompt)
 		}
 	}
 	for _, required := range []string{"zh-CN", "Staff Frontend Architect", "React, design systems, cross-team migration", "Candidate led GraphQL platform migration", "practice_depth, language_consistency", "baseline"} {

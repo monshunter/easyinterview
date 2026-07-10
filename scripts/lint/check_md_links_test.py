@@ -180,7 +180,7 @@ class CheckMdLinksTest(unittest.TestCase):
         linter = load_linter()
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "TEMPLATES.md").write_text("# T\n[X](xxx-placeholder.md)\n", encoding="utf-8")
+            (root / "TEMPLATES.md").write_text("# T\n[X](missing-template-target.md)\n", encoding="utf-8")
             (root / "real.md").write_text("# Real\n[Y](missing.md)\n", encoding="utf-8")
             findings = linter.scan_directory(root, ignores=["**/TEMPLATES.md"])
             self.assertEqual(len(findings), 1)

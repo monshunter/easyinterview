@@ -73,9 +73,9 @@ func (h *TailorHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) ta
 	if err != nil {
 		return targetjob.JobOutcome{ErrorCode: sharederrors.CodeValidationFailed, ErrorMessage: sharederrors.CodeValidationFailed}
 	}
-		// D-20: the async_jobs row (already marked running by the runner kernel) is
-		// the only durable run record. Failures surface through JobOutcome and the
-		// kernel persists them.
+	// D-20: the async_jobs row (already marked running by the runner kernel) is
+	// the only durable run record. Failures surface through JobOutcome and the
+	// kernel persists them.
 	tailorCtx, err := h.store.GetForTailor(ctx, payload.TailorRunID)
 	if err != nil {
 		return h.fail(sharederrors.CodeTargetImportFailed, err.Error(), false)
@@ -229,8 +229,8 @@ func buildTailorPromptMessages(resolution PromptResolution, ctx resumestore.Tail
 		"{{tone}}":               "truthful, concise, impact-driven",
 		"{{language}}":           ctx.Language,
 	}
-	for placeholder, value := range replacements {
-		user = strings.ReplaceAll(user, placeholder, value)
+	for marker, value := range replacements {
+		user = strings.ReplaceAll(user, marker, value)
 	}
 	if strings.TrimSpace(user) == "" {
 		user = compactJSONString(mustMarshalTailorPromptContext(ctx))

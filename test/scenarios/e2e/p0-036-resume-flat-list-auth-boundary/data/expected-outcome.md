@@ -8,5 +8,5 @@ trigger.log 含：
 
 verify.sh 在 trigger.log 中校验：
 
-- 不含 non-current testid 字面量：`route-welcome`、`route-mistakes`、`route-drill`、`route-followup`、`route-onboarding`、`route-experiences`、`route-star`、`route-voice`
-- 不含旧 fallback phase marker（resume_versions 已由 ResumeWorkshopScreen 接管）
+- 不含 out-of-scope testid 字面量：`route-welcome`、`route-mistakes`、`route-drill`、`route-followup`、`route-onboarding`、`route-experiences`、`route-star`、`route-voice`
+- 不含 removed fallback phase marker（resume_versions 已由 ResumeWorkshopScreen 接管）

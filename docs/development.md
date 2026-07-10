@@ -1,7 +1,7 @@
 # Local Development Workflow
 
 > **Owner**: [`ci-pipeline-baseline/001-local-quality-gates`](./spec/ci-pipeline-baseline/plans/001-local-quality-gates/plan.md) (A5)
-> **Updated**: 2026-05-08
+> **Updated**: 2026-07-10
 
 This page is the canonical reference for local development workflow and the 5 local quality gates. The project is currently in **single-developer P0 phase**: there is **no remote CI pipeline**. Required checks, branch protection, and runner secrets are deferred until A5 spec [D-5](./spec/ci-pipeline-baseline/spec.md#31-已锁定决策) trigger conditions land.
 
@@ -11,13 +11,13 @@ Run from repo root:
 
 | Command | Purpose | Owner |
 |---------|---------|-------|
-| `make lint` | B1 conventions + A4 config + F1 observability (placeholder) + Go/TS lint | A5 aggregator → B1 / A4 / F1 |
+| `make lint` | B1 conventions + A4 config + A3/F3/E1/runtime-topology local gates + Go lint + frontend typecheck-backed lint | A5 aggregator → B1 / A4 / A3 / F3 / E1 / backend / frontend |
 | `make test` | Backend Go unit tests + frontend TypeScript unit tests; AI tests via stub/fixture only | A5 aggregator → backend / frontend owners |
 | `make build` | Backend `go build ./cmd/...` + frontend bundle | A5 aggregator → backend / frontend owners |
 | `make docs-check` | `sync-doc-index --check` (Header / INDEX drift) + relative-link sanity for `docs/` | A5 aggregator → `/sync-doc-index` skill + A5 `scripts/lint/check_md_links.py` |
 | `make codegen-check` | B1 conventions generator + B2 OpenAPI generator + `git diff --exit-code` on generated outputs | A5 aggregator → B1 + B2 |
 
-Each gate exits non-zero on failure. NOT-YET-LANDED owner sub-targets print a single line `not implemented yet: <owner>` and exit 0; landed sub-targets propagate their exit code (failures are not swallowed).
+Each gate exits non-zero on failure. A5 only calls landed local sub-targets; future owner gates are added when the owning implementation exposes a real command, and called sub-target failures are not swallowed.
 
 ## 2 Frontend / Backend Contract Workflow
 
@@ -146,4 +146,4 @@ When remote CI eventually lands, any new workflow that needs a runner secret **m
 - [B1 shared-conventions-codified spec](./spec/shared-conventions-codified/spec.md) — `make codegen-conventions` / `make lint-conventions` owner
 - [B2 openapi-v1-contract spec](./spec/openapi-v1-contract/spec.md) — `make codegen-openapi` / `make lint-openapi` owner
 - [A4 secrets-and-config spec](./spec/secrets-and-config/spec.md) — `make lint-config` owner
-- [F1 observability-stack spec](./spec/observability-stack/spec.md) — future `make lint-observability` owner
+- [F1 observability-stack spec](./spec/observability-stack/spec.md) — metric / log contract owner; A5 will add a local command only after F1 exposes a real helper

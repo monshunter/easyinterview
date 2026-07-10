@@ -1,5 +1,5 @@
 # A3 Model Profile catalog.
-# Schema uses capability + provider_ref; non-current profile keys are
+# Schema uses capability + provider_ref; out-of-scope profile keys are
 # rejected by backend/internal/ai/aiclient/profile loader tests.
 profiles:
   - name: judge.default
@@ -18,21 +18,6 @@ profiles:
       tpm: 60000
     route: judge.default
     version: 1.0.0
-
-  - name: practice.dictation.stt.default
-    capability: stt
-    status: unsupported
-    unsupported_reason: "DeepSeek V4 Flash/Pro do not provide STT; keep fail-closed until a speech provider is explicitly added"
-    default:
-      provider_ref: unit-test-stub
-      model: stt-provider-required
-    fallback: []
-    timeout_ms: 10000
-    rate_limit:
-      rps: 5
-      tpm: 60000
-    route: practice.dictation.stt
-    version: 0.2.0
 
   - name: practice.voice.stt.default
     capability: stt
@@ -125,8 +110,8 @@ profiles:
     status: unsupported
     unsupported_reason: "realtime voice adapter is reserved for a future speech provider implementation"
     default:
-      provider_ref: speech-placeholder
-      model: realtime-provider-required
+      provider_ref: realtime_audio_disabled
+      model: realtime-audio-disabled
     fallback: []
     timeout_ms: 10000
     rate_limit:

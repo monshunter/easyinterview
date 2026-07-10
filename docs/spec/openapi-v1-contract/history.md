@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.38
+> **版本**: 1.40
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 ## 1 修订规则
 
@@ -29,6 +29,8 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 1.40 | docs-only：将当前 P0 501 export exception 描述统一为 unavailable response 口径，并把唯一真理源约束收敛为 codegen surface 口径；保留 HTTP status、error code、endpoint 与 schema contract 不变。 | tech-debt pruning |
+| 2026-07-10 | 1.39 | pre-launch correction：`getFeedbackReport` / `FeedbackReport` 描述将 queued/generating 响应收敛为当前 status metadata shape；privacy export 501 描述从 implementation stub 口径改为当前 unavailable exception；同时将 v1.0.0 baseline、diff-config 与 owner docs 重新冻结到当前 37-operation contract（含 `archiveTargetJob`），不改 endpoint / schema / status code。 | tech-debt pruning |
 | 2026-07-09 | 1.38 | pre-launch correction：`PracticeTurn.status` 从当前 v1.0.0 baseline 删除 `skipped`，`PracticeSessionEventRequest.kind` 删除 `turn_skipped`，对齐真实面试会话不再暴露跳过题目的运行时契约。 | practice-real-interview-session-0709 review remediation |
 | 2026-07-07 | 1.36 | 新增 `getResumeSource` PDF 原件预览 operation、fixture 与 inventory，当前 OpenAPI contract 调整为 10 tag / 36 operation。 | backend-resume/001 Phase 12 + frontend-resume-workshop/001 Phase 8 |
 | 2026-07-06 | 1.34 | docs-only：将 B2 active spec 的 scope、决策表、endpoint 总结、schema inventory 与关联计划收敛为当前 10 tag / 35 operation contract；OpenAPI yaml、fixtures、baseline 与 generated artifacts 未变更，inventory lint 仍以当前可执行契约为准。 | product-scope/001-core-loop-module-pruning |

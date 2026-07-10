@@ -9,5 +9,6 @@ mkdir -p "$OUTPUT_DIR"
 (
   cd "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test \
+    src/app/outOfScopeRouteNegative.test.ts \
     src/app/scenarios/p0-088-url-addressable-routing-canonical.test.tsx
 ) | tee "$OUTPUT_DIR/trigger.log"

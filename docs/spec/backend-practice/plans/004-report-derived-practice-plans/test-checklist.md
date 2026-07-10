@@ -15,7 +15,7 @@
 
 ## Phase 2: Source Boundary Negative Tests
 
-- [x] Non-current source start tests and scenarios are no longer current owner gates.
+- [x] Out-of-scope source start tests and scenarios are no longer current owner gates.
   <!-- verified: 2026-07-06 method=current-state-search evidence="rg over backend/cmd/api and backend/internal test files found P0.070/P0.072 only for this plan; find test/scenarios/e2e found no p0-071 or p0-073 scenario directories." -->
 - [x] Prohibited source tokens are absent from positive runtime/generated/fixture contract.
   <!-- verified: 2026-07-06 method=negative-grep evidence="rg over backend/internal/practice backend/internal/api/practice backend/internal/store/practice openapi/openapi.yaml backend/internal/api/generated frontend/src/api/generated openapi/fixtures for sourceDebriefId/source_debrief_id/PracticeGoalDebrief/goal='debrief'/goal=debrief/debrief-derived/raw_questions/__DEBRIEF returned no matches." -->

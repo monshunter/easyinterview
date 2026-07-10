@@ -16,11 +16,11 @@ import { describe, expect, it } from "vitest";
 import {
   FALLBACK_DENY_PREFIXES,
   FRONTEND_CANONICAL_PATHS,
-  FRONTEND_NON_CURRENT_PATHS,
+  FRONTEND_OUT_OF_SCOPE_PATHS,
   isCanonicalFrontendPath,
   resolveSpaFallback,
 } from "../../scripts/spaFallback.mjs";
-import { NON_CURRENT_PATH_TO_ROUTE, ROUTE_TO_PATH } from "./routeUrl";
+import { OUT_OF_SCOPE_PATH_TO_ROUTE, ROUTE_TO_PATH } from "./routeUrl";
 
 describe("spaFallback canonical path drift gate", () => {
   it("covers every Route path declared by the App codec (ROUTE_TO_PATH)", () => {
@@ -41,10 +41,10 @@ describe("spaFallback canonical path drift gate", () => {
     }
   });
 
-  it("mirrors the App codec non-current path table for App-side normalization", () => {
-    const nonCurrentPaths = [...NON_CURRENT_PATH_TO_ROUTE.keys()];
-    expect([...FRONTEND_NON_CURRENT_PATHS].sort()).toEqual(nonCurrentPaths.sort());
-    for (const path of FRONTEND_NON_CURRENT_PATHS) {
+  it("mirrors the App codec out-of-scope path table for App-side normalization", () => {
+    const outOfScopePaths = [...OUT_OF_SCOPE_PATH_TO_ROUTE.keys()];
+    expect([...FRONTEND_OUT_OF_SCOPE_PATHS].sort()).toEqual(outOfScopePaths.sort());
+    for (const path of FRONTEND_OUT_OF_SCOPE_PATHS) {
       expect(
         isCanonicalFrontendPath(path),
         `${path} must still be served by the SPA fallback for App-side normalization`,
@@ -86,7 +86,7 @@ describe("isCanonicalFrontendPath", () => {
     expect(isCanonicalFrontendPath("/auth/login.css")).toBe(false);
   });
 
-  it("returns false for unknown / non-current paths so the App handles fallback semantically", () => {
+  it("returns false for unknown / out-of-scope paths so the App handles fallback semantically", () => {
     expect(isCanonicalFrontendPath("/totally-unknown")).toBe(false);
     expect(isCanonicalFrontendPath("/voice")).toBe(false);
     expect(isCanonicalFrontendPath("/welcome")).toBe(false);

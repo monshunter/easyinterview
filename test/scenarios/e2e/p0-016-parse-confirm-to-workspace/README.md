@@ -13,7 +13,7 @@ Verifies the parse success detail as a readonly saved-plan receipt:
 - Hidden signals and round assumptions are display-only.
 - Round assumptions shown in Parse and Home recent cards use saved 2~5 item `TargetJob.summary.interviewRounds[]`; count, type/name, duration, and focus come from the backend LLM parse result with no static four-round fallback.
 - Shared TargetJob navigation context derives round IDs/names through the same round-assumption mapper instead of local default round strings.
-- The saved bound `resumeId` is inherited from TargetJob, with route `resumeId` only as a legacy first-import fallback.
+- The saved bound `resumeId` is inherited from TargetJob; route-only `resumeId` is ignored for binding.
 - Missing bound resume disables Start without exposing resume picker, resume options, create-resume fallback, Save plan, Cancel, or success Re-parse controls.
 - Start interview does not call `updateTargetJob`; it directly uses `getPracticePlan` / `createPracticePlan` / `startPracticeSession` and reaches `practice`.
 - Unauthenticated users without a verified saved resume cannot trigger Start pendingAction.

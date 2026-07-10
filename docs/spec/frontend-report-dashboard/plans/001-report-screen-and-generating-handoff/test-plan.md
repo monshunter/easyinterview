@@ -31,12 +31,12 @@
 | mockTransport spy | `frontend/src/api/__tests__/mockTransport.spy.test.ts`（扩展） | `TestMockTransportSpyRecordsReportRequestsWithoutBody` | 同上 |
 | i18n 完整性 | `frontend/src/app/i18n/__tests__/reportDashboardI18nCoverage.test.ts` | `TestReportNamespaceZhEnSync` / `TestGeneratingNamespaceZhEnSync` / `TestErrorCodeI18nCoversAllAIErrors` | 同上 |
 | pixel parity desktop + mobile | `frontend/tests/pixel-parity/generating.spec.ts` + `frontend/tests/pixel-parity/report.spec.ts` | `report main + 5 tab + failure + missing-session × desktop / mobile × dark / customAccent` | `pnpm --filter @easyinterview/frontend test:pixel-parity` |
-| Non-current negative grep | `frontend/src/app/screens/report/__tests__/nonCurrentNegative.test.ts` + `frontend/src/app/screens/generating/__tests__/nonCurrentNegative.test.ts` + `scripts/lint/frontend_report_dashboard_non_current.py`（新增）+ `scripts/lint/frontend_report_dashboard_non_current_test.py`（pytest） | `test_frontend_report_dashboard_non_current_includes_terms` / `TestNonCurrentNegativeGrep` | `pnpm --filter @easyinterview/frontend test src/app/screens/{report,generating}/__tests__/nonCurrentNegative.test.ts && python3 scripts/lint/frontend_report_dashboard_non_current.py --repo-root . --phase all && python3 -m pytest scripts/lint/frontend_report_dashboard_non_current_test.py -q` |
+| Out-of-scope negative grep | `frontend/src/app/screens/report/__tests__/outOfScopeNegative.test.ts` + `frontend/src/app/screens/generating/__tests__/outOfScopeNegative.test.ts` + `scripts/lint/frontend_report_dashboard_out_of_scope.py`（新增）+ `scripts/lint/frontend_report_dashboard_out_of_scope_test.py`（pytest） | `test_frontend_report_dashboard_out_of_scope_includes_terms` / `TestOutOfScopeNegativeGrep` | `pnpm --filter @easyinterview/frontend test src/app/screens/{report,generating}/__tests__/outOfScopeNegative.test.ts && python3 scripts/lint/frontend_report_dashboard_out_of_scope.py --repo-root . --phase all && python3 -m pytest scripts/lint/frontend_report_dashboard_out_of_scope_test.py -q` |
 | Cross-owner regression | scenario rerun `p0-044-047`（frontend-workspace-and-practice/002）+ `p0-052-055`（backend-review/001 如已 implement） | scenario verify.sh chain | scenario rerun commands |
 | Phase 0 preflight: B2 errorCode / report-failed fixture / empty fixture / REPORT_NOT_FOUND | `frontend/src/app/screens/report/__tests__/preflight.test.ts` | `TestB2FeedbackReportSchemaHasErrorCode` / `TestReportFailedFixtureVariantExists`（断言 `scenarios.report-failed.response.body.status/errorCode`） / `TestListTargetJobReportsEmptyFixtureVariantExists`（断言 `scenarios.empty.response.body.items/pageInfo`） / `TestReportNotFoundErrorCodeRegistered` | `pnpm --filter @easyinterview/frontend test src/app/screens/report/__tests__/preflight.test.ts` |
 | PendingAction `replay_practice` 注册 + round-trip | `frontend/src/app/auth/__tests__/pendingActionReplayPractice.test.ts` | `TestPendingActionEncodeDecodeReplayPractice` / `TestPendingActionReplayPracticeTypeAllowed` | `pnpm --filter @easyinterview/frontend test src/app/auth` |
 | ReportFailureState 404 / `REPORT_NOT_FOUND` 文案分支 | `frontend/src/app/screens/report/__tests__/ReportFailureStateNotFound.test.tsx` | `TestReportFailureStateRendersNotFoundCopy` / `TestUseFeedbackReportEncodesNotFoundDistinctly` | `pnpm --filter @easyinterview/frontend test src/app/screens/report` |
-| `listTargetJobReports` 0 调用反向断言 | `frontend/src/app/screens/{report,generating}/__tests__/nonCurrentNegative.test.ts` | `TestListTargetJobReportsNotInvokedInReportOrGenerating` | `pnpm --filter @easyinterview/frontend test src/app/screens/{report,generating}` |
+| `listTargetJobReports` 0 调用反向断言 | `frontend/src/app/screens/{report,generating}/__tests__/outOfScopeNegative.test.ts` | `TestListTargetJobReportsNotInvokedInReportOrGenerating` | `pnpm --filter @easyinterview/frontend test src/app/screens/{report,generating}` |
 
 ## Phase 0: 跨 owner 前置 preflight
 
@@ -89,7 +89,7 @@
 
 ## Phase 3: 5 detail tab 内容源级复刻
 
-- **测试目标**：DetailSurface 5 tab 切换 + ARIA tablist + 默认 `questions`；readiness 通过显式切换覆盖；5 个 tab 内容源级复刻；4 档 readiness 文案矩阵；维度状态三态映射；不出现旧 5 档 readiness / rubric score_levels label。
+- **测试目标**：DetailSurface 5 tab 切换 + ARIA tablist + 默认 `questions`；readiness 通过显式切换覆盖；5 个 tab 内容源级复刻；4 档 readiness 文案矩阵；维度状态三态映射；不出现范围外 5 档 readiness / rubric score_levels label。
 - **测试文件**：
   - `frontend/src/app/screens/report/components/DetailSurface.tsx`（新增）+ test
   - `frontend/src/app/screens/report/components/tabs/{ReadinessTab,DimensionsTab,QuestionsTab,EvidenceTab,NextTab}.tsx`（新增 5 个 tab component）
@@ -116,14 +116,14 @@
   - Red：CTA / handoff / PendingAction registration 未实现前测试 fail
   - Green：Phase 4 完成后命令通过；BDD `E2E.P0.056` 整链 + `E2E.P0.057` + `E2E.P0.058` 通过
 
-## Phase 5: 完整状态机集成 + Playwright pixel parity + scenario 加挂 + 非当前输入负向
+## Phase 5: 完整状态机集成 + Playwright pixel parity + scenario 加挂 + 范围外输入负向
 
-- **测试目标**：全 frontend 测试 + typecheck + pixel parity + 非当前输入负向 + i18n 完整性 + 跨 owner regression；scenario 4 个目录加挂。
+- **测试目标**：全 frontend 测试 + typecheck + pixel parity + 范围外输入负向 + i18n 完整性 + 跨 owner regression；scenario 4 个目录加挂。
 - **测试文件**：
   - `frontend/tests/pixel-parity/generating.spec.ts`（新增）+ `report.spec.ts`（新增）：Playwright desktop + mobile + theme 切换 + DOM anchor / computed style / bounding box / responsive geometry / non-empty screenshot smoke；`toHaveScreenshot` 仅在稳定 baseline 已提交或本 phase 明确更新 baseline 时启用
   - `frontend/src/app/i18n/__tests__/reportDashboardI18nCoverage.test.ts`（新增）：zh/en 同步 + errorCode i18n 覆盖
-  - `frontend/src/app/screens/report/__tests__/nonCurrentNegative.test.ts`（新增）+ `frontend/src/app/screens/generating/__tests__/nonCurrentNegative.test.ts`（新增）：scoped grep negative + `TestListTargetJobReportsNotInvokedInReportOrGenerating`（mockTransport spy 反向断言）
-  - `scripts/lint/frontend_report_dashboard_non_current.py`（新增）+ `scripts/lint/frontend_report_dashboard_non_current_test.py`（pytest 新增）：scoped non-current grep + allowlist
+  - `frontend/src/app/screens/report/__tests__/outOfScopeNegative.test.ts`（新增）+ `frontend/src/app/screens/generating/__tests__/outOfScopeNegative.test.ts`（新增）：scoped grep negative + `TestListTargetJobReportsNotInvokedInReportOrGenerating`（mockTransport spy 反向断言）
+  - `scripts/lint/frontend_report_dashboard_out_of_scope.py`（新增）+ `scripts/lint/frontend_report_dashboard_out_of_scope_test.py`（pytest 新增）：scoped out-of-scope grep + allowlist
   - `test/scenarios/e2e/p0-{056,057,058,059}-*/`（新增 4 个 scenario 目录，每个含 README + data + scripts）
   - `test/scenarios/e2e/INDEX.md`（更新 P0 表追加 4 行）
   - `frontend/src/app/scenarios/p0-002-auth-pending-action-resume.test.tsx`（扩展 `replay_practice` resume path）
@@ -138,8 +138,8 @@
   - `pnpm --filter @easyinterview/frontend build`
   - `make codegen-check`
   - `make validate-fixtures`
-  - `python3 scripts/lint/frontend_report_dashboard_non_current.py --repo-root . --phase all`
-  - `python3 -m pytest scripts/lint/frontend_report_dashboard_non_current_test.py -q`
+  - `python3 scripts/lint/frontend_report_dashboard_out_of_scope.py --repo-root . --phase all`
+  - `python3 -m pytest scripts/lint/frontend_report_dashboard_out_of_scope_test.py -q`
   - scenario 4 个目录 setup → trigger → verify → cleanup
   - 跨 owner regression：scenario `p0-044-047` 重跑 + `cd backend && go test ./cmd/api -run 'TestE2EP0052|TestE2EP0053|TestE2EP0054|TestE2EP0055' -count=1`（如 backend-review/001 已 implement）
 - **预期 Red / Green 证据**：
@@ -155,8 +155,8 @@ pnpm --filter @easyinterview/frontend test:pixel-parity
 pnpm --filter @easyinterview/frontend build
 make codegen-check
 make validate-fixtures
-python3 scripts/lint/frontend_report_dashboard_non_current.py --repo-root . --phase all
-python3 -m pytest scripts/lint/frontend_report_dashboard_non_current_test.py -q
+python3 scripts/lint/frontend_report_dashboard_out_of_scope.py --repo-root . --phase all
+python3 -m pytest scripts/lint/frontend_report_dashboard_out_of_scope_test.py -q
 make docs-check
 git diff --check
 ```

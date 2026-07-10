@@ -3,7 +3,7 @@
 ## 1. Purpose
 
 Validate the current flat Resume save contract and the frontend read-only
-detail boundary: non-current accept/reject operation inputs are absent, flat
+detail boundary: out-of-scope accept/reject operation inputs are absent, flat
 save fixtures remain valid, and the frontend detail does not expose Rewrites or
 Edit surfaces.
 
@@ -17,7 +17,7 @@ Edit surfaces.
 Given the D-20 flat resume API fixtures, generated route catalog, and current
 frontend read-only Detail surface.
 
-When fixture validation runs, non-current route tests probe the suggestion
+When fixture validation runs, out-of-scope route tests probe the suggestion
 decision family, handler fixture parity runs for flat save operations, and
 frontend Vitest exercises the read-only detail negative flow.
 
@@ -28,9 +28,9 @@ parity stays green, and detail-level Rewrites/Edit UI remains absent.
 ## 4. Scripts
 
 - `scripts/setup.sh`: prepares output directories and copies seed / expected outcome notes into `.test-output`.
-- `scripts/trigger.sh`: runs fixture validation, non-current route/catalog tests,
+- `scripts/trigger.sh`: runs fixture validation, out-of-scope route/catalog tests,
   flat save fixture parity, and frontend read-only Detail negative coverage.
-- `scripts/verify.sh`: rejects skipped or no-op gates, checks required runner markers and PASS evidence, and performs privacy / non-current-vocabulary negative searches.
+- `scripts/verify.sh`: rejects skipped or no-op gates, checks required runner markers and PASS evidence, and performs privacy / out-of-scope vocabulary negative searches.
 - `scripts/cleanup.sh`: records cleanup completion while preserving logs under `.test-output/`.
 
 ## 5. Evidence

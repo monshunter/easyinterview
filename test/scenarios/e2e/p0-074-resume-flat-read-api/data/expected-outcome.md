@@ -6,7 +6,7 @@
   404 for cross-user or missing rows.
 - `GET /api/v1/resumes` returns default, empty, paginated, and invalid-cursor
   outcomes with stable ordering.
-- Non-current `/api/v1/resume-versions...` and
+- Out-of-scope `/api/v1/resume-versions...` and
   `/api/v1/resumes/{resumeId}/structured-master` routes return 404 and their
   operationIds are absent from `generated.AllRoutes`.
 
@@ -17,4 +17,4 @@
 - Service/store tests cover user scoping, invalid cursor, pagination, flat
   structured profile mapping, and repository flat methods.
 - Trigger log contains no skipped or no-op focused gates.
-- Non-current vocabulary and privacy negative greps return zero hits for backend resume implementation and scenario evidence.
+- Out-of-scope vocabulary and privacy negative greps return zero hits for backend resume implementation and scenario evidence.

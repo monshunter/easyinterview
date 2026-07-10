@@ -53,7 +53,7 @@ type LLMJudge struct {
 
 // Compile-time assertion that LLMJudge satisfies the Judge contract. The eval
 // runner obtains an LLMJudge by constructor injection (NewLLMJudge), never via
-// a global singleton; NotImplementedJudge remains the fail-closed default for
+// a global singleton; FailClosedJudge remains the fail-closed default for
 // callers that have not injected a judge dependency.
 var _ Judge = (*LLMJudge)(nil)
 
@@ -104,9 +104,9 @@ func NewLLMJudge(reg RubricProvider, model JudgeModelClient, instruction string,
 // scoring instruction prose lives in the system message (from config/evals);
 // the dimensions and the output under evaluation are passed as data.
 type judgeRequest struct {
-	FeatureKey    string               `json:"feature_key"`
-	PromptVersion string               `json:"prompt_version"`
-	RubricVersion string               `json:"rubric_version"`
+	FeatureKey    string            `json:"feature_key"`
+	PromptVersion string            `json:"prompt_version"`
+	RubricVersion string            `json:"rubric_version"`
 	Dimensions    []judgeRequestDim `json:"dimensions"`
 	Output        json.RawMessage   `json:"output_to_evaluate"`
 }

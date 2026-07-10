@@ -1,8 +1,8 @@
 # DB Migrations Baseline Spec
 
-> **版本**: 1.27
+> **版本**: 1.28
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -59,7 +59,7 @@
 - **索引 inventory**：当前 B-Tree index 与 `target_jobs` 可选 GIN 全文索引由 migration contract tests 和 lint gate 验证。
 - **Make targets**：`make migrate-up`、`make migrate-down`、`make migrate-status`、`make migrate-create NAME=...`、`make migrate-check`。
 - **本地迁移 gate**：`make migrate-check` 执行 up -> down -> up；`migrate-down` 在 prod 环境拒绝执行，除非显式 force。
-- **Backfill registry**：`migrations/backfill/manifest.yaml` 与 `backend/internal/migrations/backfills/` 共同登记行级 backfill，支持 dry-run / apply / ledger。
+- **Backfill registry**：真实行级 backfill 通过可选 `migrations/backfill/manifest.yaml` 与 `backend/internal/migrations/backfills/` 共同登记；当前没有已登记的行级 backfill，runner 在 manifest 缺失时直接跳过，仍支持 dry-run / apply / ledger。
 - **Enum/check source lint**：所有 `text + check (col in (...))` 必须能由 §3.1.1 的 owner source 或 `migrations/enum-sources.yaml` 解释。
 - **Privacy deletion matrix**：§3.1.2 是 `privacy_delete` backend internal runner 的表级真理源。
 

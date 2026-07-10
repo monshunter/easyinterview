@@ -1,15 +1,15 @@
 /*
  * D2 screen shell visual rhythm. Transcribed from
  * ui-design/src/screens-p0-complete.jsx (Settings card cadence) and the
- * generic placeholder cards used across screen-home / screen-workspace.
+ * generic screen cards used across screen-home / screen-workspace.
  *
  * Contract:
  *   - ei-screen-shell: full-bleed page wrapper, max-width 1160, padding 54
  *     48 96, vertical stack with gap 28 (var(--ei-space-7)).
  *   - ei-screen-card: bg-card + rule + radius, padding 28 inside.
  *   - ei-screen-section: spacing helper for section labels above cards.
- *   - ei-skeleton-stripe: striped placeholder transcribed from primitives.jsx
- *     `Placeholder` atom (`repeating-linear-gradient(135deg, ...)`).
+ *   - ei-skeleton-stripe: striped skeleton pattern transcribed from the
+ *     shared screen primitive (`repeating-linear-gradient(135deg, ...)`).
  */
 
 .ei-screen-shell {
@@ -118,7 +118,7 @@
   );
 }
 
-.ei-screen-card--placeholder {
+.ei-screen-card--route-shell {
   gap: var(--ei-space-4);
 }
 

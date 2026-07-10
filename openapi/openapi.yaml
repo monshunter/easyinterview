@@ -991,7 +991,7 @@ paths:
     get:
       tags: [Reports]
       operationId: getFeedbackReport
-      summary: Get a feedback report (still-generating reports return 200 with placeholder)
+      summary: Get a feedback report (queued or generating reports return 200 with current status)
       parameters:
         - name: reportId
           in: path
@@ -1005,7 +1005,7 @@ paths:
         - $ref: '#/components/parameters/XClientVersion'
       responses:
         '200':
-          description: Feedback report (placeholder shape while status != ready).
+          description: Feedback report. Queued or generating reports return status metadata until ready content is available.
           headers:
             X-Request-ID:
               $ref: '#/components/headers/XRequestID'
@@ -1168,7 +1168,7 @@ paths:
     post:
       tags: [Privacy]
       operationId: requestPrivacyExport
-      summary: Request a privacy data export (P0 not implemented — returns 501)
+      summary: Request a privacy data export (P0 unavailable - returns 501)
       description: |
         Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. **P0
         explicit exception per ADR-Q5 + spec D-12**: this endpoint must return
@@ -2345,9 +2345,6 @@ components:
           description: BCP 47 language hint for STT and TTS profiles.
         practiceMode:
           $ref: '#/components/schemas/PracticeMode'
-        manualTranscriptFallback:
-          type: string
-          description: Optional user-entered transcript when capture is unavailable.
 
     PracticeVoiceAudioInput:
       type: object
@@ -2615,8 +2612,8 @@ components:
       required: [id, sessionId, targetJobId, status, createdAt, updatedAt]
       description: |
         Evidence-based feedback report. AI-generated; `provenance` is required
-        once `status == ready` per spec §4.6. While generating, the placeholder
-        record still returns 200 (per `B2 openapi-v1-contract §11.1`).
+        once `status == ready` per spec §4.6. Queued or generating reports
+        still return 200 with status metadata (per `B2 openapi-v1-contract §11.1`).
       properties:
         id:
           type: string

@@ -30,11 +30,11 @@ func TestActiveScopeNegativeSearch(t *testing.T) {
 		// F3 prompt-rubric-registry/001-baseline phase 3 removal scope:
 		// the StaticPromptRegistry bridge plus its four constants must
 		// stay deleted now that RegistryAdapter is the only route to F3.
-		{`StaticPromptRegistry`, "non-current after plan 001-baseline phase 3; use RegistryAdapter instead"},
-		{`defaultTargetImportPromptVersion`, "non-current after plan 001-baseline phase 3; F3 owns prompt versions now"},
-		{`defaultTargetImportRubricVersion`, "non-current after plan 001-baseline phase 3; F3 owns rubric versions now"},
-		{`defaultTargetImportModelProfileName`, "non-current after plan 001-baseline phase 3; A3 owns profile names now"},
-		{`defaultTargetImportDataSourceVersion`, "non-current after plan 001-baseline phase 3; F3 owns data source versions now"},
+		{`StaticPromptRegistry`, "out-of-scope after plan 001-baseline phase 3; use RegistryAdapter instead"},
+		{`defaultTargetImportPromptVersion`, "out-of-scope after plan 001-baseline phase 3; F3 owns prompt versions now"},
+		{`defaultTargetImportRubricVersion`, "out-of-scope after plan 001-baseline phase 3; F3 owns rubric versions now"},
+		{`defaultTargetImportModelProfileName`, "out-of-scope after plan 001-baseline phase 3; A3 owns profile names now"},
+		{`defaultTargetImportDataSourceVersion`, "out-of-scope after plan 001-baseline phase 3; F3 owns data source versions now"},
 	}
 
 	matches, err := filepath.Glob("*.go")

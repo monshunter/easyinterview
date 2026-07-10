@@ -349,7 +349,6 @@ export interface CreatePracticeVoiceTurnRequest {
 	audio: PracticeVoiceAudioInput;
 	clientVoiceTurnId: string;
 	language: string;
-	manualTranscriptFallback?: string;
 	practiceMode: PracticeMode;
 	turnId: string;
 }

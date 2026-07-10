@@ -1,6 +1,6 @@
 # Expected Outcome
 
-- 渲染 Home 占位（`route-home`）。
+- 渲染默认 Home（`route-home`）。
 - 一级导航严格为三项：`home` / `workspace` / `resume_versions`，
   且 `topbar-primary-nav` 子项数量为 3。
 - 全局显示控制 `topbar-theme-button` / `topbar-dark-toggle` /

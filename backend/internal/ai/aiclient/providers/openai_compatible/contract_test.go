@@ -43,7 +43,7 @@ func chatProfile(timeoutMs int) *aiclient.ModelProfile {
 
 func sttProfile(timeoutMs int) *aiclient.ModelProfile {
 	return &aiclient.ModelProfile{
-		Name:       "practice.dictation.stt.default",
+		Name:       "practice.voice.stt.default",
 		Capability: aiclient.CapabilitySTT,
 		Status:     aiclient.ProfileStatusActive,
 		Default: aiclient.ProviderConfig{
@@ -51,7 +51,7 @@ func sttProfile(timeoutMs int) *aiclient.ModelProfile {
 			Model:       sttModelID,
 		},
 		TimeoutMs: timeoutMs,
-		Route:     "practice.dictation.stt",
+		Route:     "practice.voice.stt",
 		Version:   "1.0.0",
 	}
 }
@@ -184,7 +184,7 @@ func TestTranscribe_PostsMultipartAudioAndReturnsTranscript(t *testing.T) {
 		Language:    "en",
 		Prompt:      "interview answer",
 		Metadata: aiclient.CallMetadata{
-			FeatureKey:    "practice.dictation.stt",
+			FeatureKey:    "practice.voice.stt",
 			PromptVersion: "stt-p1",
 			Language:      "en",
 		},

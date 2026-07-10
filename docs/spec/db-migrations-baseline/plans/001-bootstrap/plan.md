@@ -1,8 +1,8 @@
 # DB Migrations Baseline Bootstrap
 
-> **版本**: 1.7
+> **版本**: 1.11
 > **状态**: completed
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -30,7 +30,7 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 #### 1.1 `golang-migrate` wrapper
 
-落地 `backend/cmd/migrate/main.go`，包装 `golang-migrate v4.18+` 与 B4 backfill registry；根 `Makefile` 提供 `make migrate-up` / `make migrate-down` / `make migrate-status` / `make migrate-create NAME=...` / `make migrate-check`，并让 A1 占位 `make migrate` 指向 `migrate-up` 或清晰 help。
+落地 `backend/cmd/migrate/main.go`，包装 `golang-migrate v4.18+` 与 B4 backfill registry；根 `Makefile` 提供 `make migrate-up` / `make migrate-down` / `make migrate-status` / `make migrate-create NAME=...` / `make migrate-check`，并让根 `make migrate` 指向 `migrate-up` 或清晰 help。
 
 #### 1.2 migration 目录与命名
 
@@ -38,13 +38,13 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 #### 1.3 schema_backfills
 
-`000001` baseline 不启用未使用 DB extension；down migration 不管理 extension 生命周期。落地 `schema_backfills` ledger 表与 `migrations/backfill/manifest.yaml`，并提供 1 个 dry-run/apply 示例 registry。
+`000001` baseline 不启用未使用 DB extension；down migration 不管理 extension 生命周期。落地 `schema_backfills` ledger 表与可选 backfill manifest contract；当前 repo 没有已登记的行级 backfill，只有真实行级回填需要登记 manifest 和 registry。
 
 ### Phase 2: baseline DDL 与索引
 
 #### 2.1 25 张当前应用 / auth 支撑表
 
-落地当前产品范围内的 22 张应用表，加 ADR-Q1 的 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表；非当前 `mistake_entries`、JD Match、简历版本树、候选人画像与真实复盘表不再作为 current baseline 创建。`make migrate-up` 后 public schema 至少 27 张表（含 `schema_migrations` / `schema_backfills`）。
+落地当前产品范围内的 22 张应用表，加 ADR-Q1 的 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表；baseline 只创建这 25 张当前应用 / auth 支撑表。`make migrate-up` 后 public schema 至少 27 张表（含 `schema_migrations` / `schema_backfills`）。
 
 #### 2.2 B3 outbox / async columns
 
@@ -124,6 +124,8 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.11 | 将 baseline inventory 改为当前 25 张应用/auth 支撑表正向合同，并统一 migration 负向 gate 术语。 | tech-debt pruning |
+| 2026-07-10 | 1.10 | 技术债口径清理：将 `make migrate` handoff 描述收敛为当前根 Make target 委托，不改变迁移工具合同。 | tech-debt pruning |
 | 2026-07-06 | 1.7 | product-scope D-17/D-20/D-22 后续收敛：本 completed bootstrap plan 的当前正向表数、public schema gate 与 B3/B2 job type 口径更新为 22 应用表 + 3 auth 支撑表、public schema ≥27、B3 8 canonical jobs、B2 6 API-facing jobs；历史删除表只保留在 remediation / history 语境。 | product-scope/001-core-loop-module-pruning Phase 6.10 |
 | 2026-05-08 | 1.6 | 对齐 A2 用户决策：本地迁移验证前提升级为 Postgres 18。 | local-dev-stack/001 post-pass revision |
 | 2026-05-03 | 1.4 | 修正 Phase 2 / Phase 4 中既有表数量口径：当时 baseline 为应用表 + auth 支撑表 + 迁移元数据表。 | readiness reconcile |

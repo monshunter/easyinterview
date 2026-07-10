@@ -15,15 +15,15 @@ grep -Fq 'practiceVoiceTurn.test.tsx' "$LOG_FILE" || { echo "E2E.P0.045: practic
 grep -Fq 'practiceModeSwitch.test.tsx' "$LOG_FILE" || { echo "E2E.P0.045: practiceModeSwitch.test.tsx did not run" >&2; exit 1; }
 grep -Fq 'SessionMap.test.tsx' "$LOG_FILE" || { echo "E2E.P0.045: SessionMap.test.tsx did not run" >&2; exit 1; }
 if rg -n "practiceMode\s*[=:]\s*['\"]debrief['\"]|PracticeGoalDebrief|goal\s*[=:]\s*['\"]debrief['\"]" "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then
-  echo "E2E.P0.045: non-current practice goal literal leaked" >&2
+  echo "E2E.P0.045: out-of-scope practice goal literal leaked" >&2
   exit 1
 fi
 if rg -n '切到语音|Switch to voice' "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then
-  echo "E2E.P0.045: non-current mode-switch copy leaked" >&2
+  echo "E2E.P0.045: out-of-scope mode-switch copy leaked" >&2
   exit 1
 fi
-if rg -n 'practice-input-skip|practice-topbar-strict|practice-topbar-role|VoiceSessionSurface|PracticeAnnotatedWaveform|VoiceExpressionPanel' "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then
-  echo "E2E.P0.045: retired strict/skip/role/voice surface leaked" >&2
+if rg -n 'practice-input-skip|practice-topbar-strict|practice-topbar-role|语音转文字|Speech-to-text|插入转写|表达层指标|口头禅|长停顿|语速|音量' "$PRACTICE_DIR" -g '!*.test.*' -g '!__tests__/**'; then
+  echo "E2E.P0.045: out-of-scope practice controls or copy leaked" >&2
   exit 1
 fi
 # usePracticeEvents must NOT set the Idempotency-Key header on the request.

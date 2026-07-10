@@ -19,13 +19,13 @@ allowlist 写入 `pushState` / `replaceState`。
 ## 2 When
 
 - 直接打开 `/workspace?targetJobId=...&resumeId=...&planId=...&autoStartPractice=1`、
-  `/practice?mode=voice&modality=voice&sessionId=...`、`/generating?sessionId=...&reportId=...`、
+  `/practice?mode=phone&modality=phone&sessionId=...`、`/generating?sessionId=...&reportId=...`、
   `/report?sessionId=...&reportId=...&reportStatus=failed&errorCode=AI_PROVIDER_TIMEOUT`、
   `/resume-versions?tab=rewrites&tailorRunId=...`。
-- 直接打开非当前 `/debrief?...` 与 `/profile`，验证它们折回首页且不保留非当前参数。
+- 直接打开范围外 `/debrief?...` 与 `/profile`，验证它们折回首页且不保留范围外参数。
 - 通过 App 内导航连续进入 workspace → practice → report，再 back / forward。
 - 直接打开带有未知 query (`/workspace?bogusKey=42&targetJobId=tj-ok&another=zz`)。
-- 直接打开非当前 hash 入口 `/#route=workspace&targetJobId=...`，校验 canonical 重写。
+- 直接打开范围外 hash 入口 `/#route=workspace&targetJobId=...`，校验 canonical 重写。
 
 ## 3 Then
 
@@ -40,7 +40,7 @@ allowlist 写入 `pushState` / `replaceState`。
 - 未知 query 被 allowlist 过滤；canonical URL 不保留 `bogusKey`、`another`。
 - `#route=workspace` hash 启动后 URL 被 `replaceState` 重写为
   `/workspace?targetJobId=...`，`location.hash` 为空。
-- `/debrief` 与 `/profile` 不再是 canonical path，非当前 deep-link 折回 `/`。
+- `/debrief` 与 `/profile` 不再是 canonical path，范围外 deep-link 折回 `/`。
 
 ## 4 执行
 

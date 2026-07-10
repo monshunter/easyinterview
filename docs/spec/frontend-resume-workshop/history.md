@@ -1,14 +1,19 @@
 # Frontend Resume Workshop Change Log
 
-> **版本**: 1.8
+> **版本**: 2.12
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
-| 2026-07-07 | 1.8 | 简历详情收敛为只读正文；移除 Rewrites/Edit/export/copy/original modal 正向 owner，旧 `tab` / `tailorRunId` 在前端 route 中不再 materialize。 | 001-listing-routing-and-detail-readonly |
+| 2026-07-10 | 2.12 | 将 frontend-resume-workshop 负向 gate 与 context discovery 统一为 out-of-scope 口径；行为不变。 | tech-debt pruning |
+| 2026-07-10 | 2.11 | 收敛 P0.083 handoff owner 到当前 Home create CTA、auth pendingAction 与 direct detail gate。 | 002-create-flow |
+| 2026-07-10 | 2.10 | 将 create-flow / detail-action / fallback 负向面表述统一为 out-of-scope wording；行为不变。 | tech-debt pruning |
+| 2026-07-10 | 2.9 | 将 detail route 负向输入统一为 out-of-scope tab/query 口径；行为不变。 | tech-debt pruning |
+| 2026-07-10 | 2.8 | Display name robustness 口径收敛为 pending label / source title，解析前名称只作为临时显示态。 | tech-debt pruning |
+| 2026-07-07 | 1.8 | 简历详情收敛为只读正文；移除 Rewrites/Edit/export/copy/original modal 正向 owner，out-of-scope `tab` / `tailorRunId` 在前端 route 中不再 materialize。 | 001-listing-routing-and-detail-readonly |
 | 2026-07-07 | 1.7 | 压缩 001 owner 到当前 flat list/detail preview contract，并校正 list 验收标准为 flat table + create/detail entrypoints. | product-scope/001-core-loop-module-pruning Phase 6.126 |
 | 2026-07-07 | 1.6 | 压缩 active spec / change log 到当前 flat Resume Workshop 合同，并同步 002 owner path. | product-scope/001-core-loop-module-pruning Phase 6.122 |
 | 2026-07-07 | 1.5 | 对齐 current flat Resume Workshop owner：002 CreateFlow completed，003 Rewrites/Edit completed，generated-client real-mode gate 保留。 | product-scope/001-core-loop-module-pruning |

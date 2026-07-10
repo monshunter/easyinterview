@@ -635,7 +635,7 @@ func TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T)
 	var hinted api.SessionEventResult
 	decodeJSON(t, hintRaw, &hinted)
 	if hinted.AssistantAction.Type != "show_hint" {
-		t.Fatalf("hint should remain available under legacy strict plan mode: %+v", hinted)
+		t.Fatalf("hint should remain available under strict plan mode: %+v", hinted)
 	}
 
 	crossRaw := h.doJSON(t, practiceHTTPScenarioUserBID, http.MethodPost, path, "", api.PracticeSessionEventRequest{
@@ -770,7 +770,7 @@ func TestE2EP0042PracticeSessionCompleteIdempotencyMatrix(t *testing.T) {
 	}
 }
 
-func TestE2EP0043PracticeEventLoopPrivacyAndNonCurrentNegativeSurface(t *testing.T) {
+func TestE2EP0043PracticeEventLoopPrivacyAndOutOfScopeSurface(t *testing.T) {
 	ai := &scenarioPracticeAIClient{responseText: "请补充你如何处理反对意见。", responseIntent: "behavioral.depth"}
 	h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai, observedAI: true})
 	plan := h.seedReadyScenarioPlan("01918fa0-0000-7000-8000-000000004043", "01918fa0-0000-7000-8000-000000002043", "resume-asset-p0-043-a", practiceHTTPScenarioUserAID)
@@ -893,7 +893,7 @@ func TestE2EP0048PracticeHintAssistedAcrossGoals(t *testing.T) {
 	}
 }
 
-func TestE2EP0049PracticeHintOptionalAcrossLegacyStrictGoals(t *testing.T) {
+func TestE2EP0049PracticeHintOptionalAcrossStrictModeGoals(t *testing.T) {
 	for _, goal := range []sharedtypes.PracticeGoal{sharedtypes.PracticeGoalBaseline, sharedtypes.PracticeGoalRetryCurrentRound, sharedtypes.PracticeGoalNextRound} {
 		t.Run(string(goal), func(t *testing.T) {
 			h := newPracticeHTTPScenarioHarness(t)

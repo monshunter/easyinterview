@@ -180,8 +180,7 @@ func TestRuntimeConfigHandlerReturnsAllowlistJSON(t *testing.T) {
 	handler := config.NewRuntimeConfigHandler(config.RuntimeConfigHandlerOptions{
 		Loader: loader,
 		Flags:  flags,
-		// SessionResolver is intentionally nil in this minimal stub —
-		// C1 backend-auth will replace it with a real session resolver.
+		// Nil SessionResolver exercises the anonymous opt-out default.
 	})
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/runtime-config", nil)

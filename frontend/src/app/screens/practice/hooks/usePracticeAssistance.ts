@@ -14,8 +14,8 @@ export interface UsePracticeAssistanceResult {
  * Current practice UI treats assistance as an in-session optional action.
  *
  * `practiceGoal` (baseline / retry_current_round / next_round)
- * affects question sourcing only; legacy `practiceMode` is accepted for
- * handoff compatibility but must not hide hints or create a visible banner.
+ * affects question sourcing only; handoff `practiceMode` is treated as
+ * opaque input and must not hide hints or create a visible banner.
  */
 export function usePracticeAssistance(
   _input: UsePracticeAssistanceInput,

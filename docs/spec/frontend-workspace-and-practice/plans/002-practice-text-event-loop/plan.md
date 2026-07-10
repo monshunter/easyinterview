@@ -1,8 +1,8 @@
 # 002 — Practice Text Event Loop Plan
 
-> **版本**: 1.11
+> **版本**: 1.13
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -13,7 +13,7 @@
 
 本 plan 固化 `practice` 文本 / 电话模式 event loop 的当前合同：
 
-- `PracticeScreen` 源级复刻 `ui-design/src/screen-practice.jsx` 当前真实面试分支，保留 TopBar、SessionMap、QuestionCard、Transcript、InputBar、PhoneSurface、HintBanner 和全局 Finish CTA 的 DOM anchor / a11y / responsive 行为；删除 RightPanel、右栏固定 CTA、RoleDropdown、严格模式开关、语音转文字、跳过和语音分析。
+- `PracticeScreen` 源级复刻 `ui-design/src/screen-practice.jsx` 当前真实面试分支，保留 TopBar、SessionMap、QuestionCard、Transcript、InputBar、PhoneSurface、HintBanner 和全局 Finish CTA 的 DOM anchor / a11y / responsive 行为；当前 UI 不包含独立辅助信息栏、固定辅助栏 CTA、会话内本地 persona switch、严格模式开关、语音转文字、跳过和语音分析。
 - 只通过 generated client 消费 `getPracticeSession`、`appendSessionEvent`、`completePracticeSession`；`appendSessionEvent` 使用 `clientEventId` 且不带 `Idempotency-Key`，`completePracticeSession` 使用 `Idempotency-Key` 且 body 只包含 `clientCompletedAt`。
 - `practiceMode` 不再作为用户可见 strict/assisted 开关；提示由用户主动请求并只记录 `hintUsed/hintCount`；`practiceGoal` 只表达 `baseline / retry_current_round / next_round` 数据来源，不能改变辅助度显隐。
 - `completePracticeSession` 返回 `ReportWithJob` 后只 handoff 到 `generating`，路由参数携带稳定 `InterviewContext` ID 与 `PracticeDisplayContext`；当前简历绑定字段为 `resumeId`。
@@ -34,7 +34,7 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior + frontend + contract + BDD`。
-- **TDD 策略**: 通过 `/implement` -> `/tdd` 执行。每个非文档 checklist item 必须先有 focused Vitest / typecheck / pixel parity / scenario wrapper 或 OpenAPI/backend contract test 断言，再修改实现；删除项必须先补 negative assertion，再删除 runtime surface。
+- **TDD 策略**: 通过 `/implement` -> `/tdd` 执行。每个非文档 checklist item 必须先有 focused Vitest / typecheck / pixel parity / scenario wrapper 或 OpenAPI/backend contract test 断言，再修改实现；范围收敛项必须先补 current-boundary negative assertion，再调整 runtime surface。
 - **BDD 策略**: 需要 BDD。真实面试会话涉及用户可见 UI、电话模式流程和跨层事件合同，继续使用 `bdd-plan.md` / `bdd-checklist.md`，并由主 checklist 的 `BDD-Gate:` 项引用 `E2E.P0.044`-`E2E.P0.047`。
 - **真实环境验收 gate**: 完成标记必须包含本地真实前后端环境闭环测试和截图证据；不能只用 jsdom、fixture contract 或静态原型 parity 作为最终完成依据。
 - **替代验证 gate**: 不适用；本计划是用户行为功能计划。
@@ -49,9 +49,9 @@
 | AssistantAction rendering | `components/AssistantActionRenderer.test.tsx`、`PracticeScreenIntegration.test.tsx` | `ask_question / ask_follow_up / show_hint / session_wait / session_completed` 映射当前 UI |
 | hint / goal policy | `hooks/usePracticeAssistance.test.ts`、`practiceGoalParity.test.tsx`、`practiceHints.test.tsx`、deleted strict-switch negative test | 提示由用户在会话中可选触发；`baseline / retry_current_round / next_round` 对显隐无副作用；不存在严格模式拦截 |
 | Pause / session map | `practicePauseResume.test.tsx`、`SessionMap.test.tsx` | pause/resume disables controls；turn map 展示 done/active/pending/follow-up states；无 skip UI / event 正向路径 |
-| Real-interview UI deletion | `PracticeScreen.test.tsx`、`practiceModeSwitch.test.tsx`、`nonCurrentNegative.test.ts`、`frontend/tests/pixel-parity/practice.spec.ts` | 无 RightPanel / rightpanel testids / RoleDropdown / strict switch / dictate / skip / voice metrics；phone mode 有字幕、切断、重新开始 |
+| Real-interview UI boundary | `PracticeScreen.test.tsx`、`practiceModeSwitch.test.tsx`、`outOfScopeNegative.test.ts`、`frontend/tests/pixel-parity/practice.spec.ts` | 无独立辅助信息栏 / 会话内本地 persona switch / strict switch / dictate / skip / voice metrics；phone mode 有字幕、切断、重新开始 |
 | Completion handoff | `hooks/useCompletePracticeSession.test.tsx`、`completePracticeSessionBody.test.tsx`、`practiceCompletion.test.tsx`、`utils/practiceHandoffParams.test.ts` | body 只含 `clientCompletedAt`；handoff 参数使用 `resumeId` |
-| Privacy / current boundary | `practicePrivacy.test.tsx`、`nonCurrentNegative.test.ts`、P0.044/P0.047 verify scripts | `getFeedbackReport` 不在 practice runtime；voice turn 只在 voice owner hook；raw answer/question/hint 不泄漏 |
+| Privacy / current boundary | `practicePrivacy.test.tsx`、`outOfScopeNegative.test.ts`、P0.044/P0.047 verify scripts | `getFeedbackReport` 不在 practice runtime；voice turn 只在 voice owner hook；raw answer/question/hint 不泄漏 |
 | Scenario behavior | `test/scenarios/e2e/p0-044` 至 `p0-047` | assisted happy path、mode policy、failure recovery、complete + generating handoff |
 
 ## 5 Operation Matrix
@@ -65,7 +65,7 @@
 ## 6 BDD-Gate
 
 - `E2E.P0.044`：文本面试 assisted happy path，覆盖 mount、answer、follow-up、Question advance、DOM anchor 和 runtime negative grep。
-- `E2E.P0.045`：真实面试显示策略，覆盖 text/phone、hint optional、pause/resume、无 right panel、无 skip、无 dictation、无 strict switch、无 role switch 和 forbidden input negative gate。
+- `E2E.P0.045`：真实面试显示策略，覆盖 text/phone、hint optional、pause/resume、无独立辅助信息栏、无 skip、无 dictation、无 strict switch、无会话内本地 persona switch 和 forbidden input negative gate。
 - `E2E.P0.046`：AI timeout、404 lost state、409 mismatch、hint retry/recovery 和 retry 复用；不得恢复严格模式冲突路径。
 - `E2E.P0.047`：complete 202、idempotency replay、`generating` handoff、privacy redline。
 
@@ -75,11 +75,11 @@
 
 #### 6.1 UI truth source revision
 
-Revise `docs/ui-design/module-practice-review.md` and `ui-design/src/screen-practice.jsx` so the current prototype removes the right panel, speech-to-text, skip, role switch, visible strict switch and voice analysis, and exposes phone mode with captions, hang-up and restart controls.
+Revise `docs/ui-design/module-practice-review.md` and `ui-design/src/screen-practice.jsx` so the current prototype uses the real-interview shell without independent side-panel controls, speech-to-text, skip, role switch, visible strict switch or voice analysis, and exposes phone mode with captions, hang-up and restart controls.
 
 #### 6.2 Frontend runtime removal
 
-Remove the matching runtime components, hooks, i18n strings, tests and pixel parity expectations from `frontend/src/app/screens/practice`. The finish action must remain available outside the right panel.
+Align the matching runtime components, hooks, i18n strings, tests and pixel parity expectations in `frontend/src/app/screens/practice`. The finish action remains available in the global top bar.
 
 #### 6.3 Contract and backend removal
 
@@ -91,7 +91,7 @@ Keep the backend voice orchestration owner intact while making the user-visible 
 
 #### 6.5 Verification closeout
 
-Run focused practice frontend tests, relevant backend/OpenAPI contract tests, pixel parity, BDD wrappers, context validation, doc/index checks, negative searches for deleted surfaces, and a real local environment browser smoke with screenshot evidence.
+Run focused practice frontend tests, relevant backend/OpenAPI contract tests, pixel parity, BDD wrappers, context validation, doc/index checks, current-boundary negative searches, and a real local environment browser smoke with screenshot evidence.
 
 ## 8 收口证据索引
 
@@ -114,5 +114,6 @@ Run focused practice frontend tests, relevant backend/OpenAPI contract tests, pi
 
 | 日期 | 版本 | 说明 |
 |------|------|------|
-| 2026-07-09 | 1.11 | Reopen plan for real-interview session simplification: remove right panel, voice analysis, dictation, skip, role switch and visible strict switch; user-visible voice becomes phone mode with hang-up/restart controls. |
+| 2026-07-10 | 1.12 | Align current-boundary wording with the real-interview shell: no independent side-panel controls, dictation, skip, role switch, visible strict switch or voice analysis; user-visible voice remains phone mode with hang-up/restart controls. |
+| 2026-07-09 | 1.11 | Reopen plan for real-interview session simplification: current practice UI excludes side-panel controls, voice analysis, dictation, skip, role switch and visible strict switch; user-visible voice becomes phone mode with hang-up/restart controls. |
 | 2026-07-07 | 1.10 | Compress owner docs to current text event loop, `resumeId` handoff, generated-client operations, voice owner boundary, BDD gates and executable evidence index. |

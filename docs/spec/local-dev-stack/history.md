@@ -1,13 +1,15 @@
 # Local Dev Stack History
 
-> **版本**: 1.23
+> **版本**: 1.25
 > **状态**: active
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 1.25 | 收敛本地 AI provider env 说明：`.env.example` 传递 catalog path 与 provider endpoint/key env ref，删除旧模板字段描述。 | tech-debt pruning |
+| 2026-07-10 | 1.24 | 同步 A1 根 Make target 口径：`dev-up` / `dev-down` 已由 A1 锁定并委托给 A2，不再按空实现 target 表述。 | tech-debt pruning |
 | 2026-07-09 | 1.23 | 新增一键 `scenario-env-reset-redeploy` 调试入口合同：按清理数据卷、重跑迁移、重编译并重启 host-run backend/frontend、verify 的顺序复用顶层 env scripts。 | local-dev-stack/001 Phase 10 |
 | 2026-07-07 | 1.21 | 收敛 Postgres volume preflight、dev-doctor 与 host-run redeploy 文案为当前不兼容布局 / 固定服务口径表述，不改变可执行契约。 | product-scope/001 Phase 6.58 |
 | 2026-06-15 | 1.20 | 修订 host-run backend redeploy 监听契约：本地场景环境将通配 `APP_LISTEN_ADDR` 收敛到 loopback，避免无关 bridge listener 占用 8080 时重启失败并导致前端简历页继续命中未刷新或不可用 backend。 | local-dev-stack/001 Phase 9 |
@@ -27,7 +29,7 @@
 | 2026-05-05 | 1.6 | 收口 AI provider 口径：A2 本地栈只传递真实 provider endpoint 配置，不启动 provider mock / proxy 容器，也不把部署切到单元测试 stub。 | ai-provider-and-model-routing/001 remediation |
 | 2026-04-29 | 1.5 | 文档侧 reconcile：把已落地 compose 的 MinIO / mc 不可变 tag 写回 D-2；A2 executable gate 明确同时覆盖 AI provider fail-fast C-9；§7 从未来计划改为 `001-bootstrap` 已完成事实，不新开 plan。 | plan-review remediation |
 | 2026-04-27 | 1.4 | 对齐 A5 单人开发阶段决策：`make dev-doctor` JSON 仍保持可被未来 CI 消费，但当前不把 A5 CI 作为本地开发栈前置。 | [001-bootstrap](./plans/001-bootstrap/plan.md) |
-| 2026-04-27 | 1.3 | 对齐 A3 / A4 AI provider 规则：docker compose 本地部署不启动 AI provider 容器，也不使用单元测试 stub；A2 只传递 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 占位，启用 AIClient 的组件缺真实 provider 配置时 fail-fast。 | [001-bootstrap](./plans/001-bootstrap/plan.md) |
+| 2026-04-27 | 1.3 | 对齐 A3 / A4 AI provider 规则：docker compose 本地部署不启动 AI provider 容器，也不使用单元测试 stub；A2 只传递 `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` env ref，启用 AIClient 的组件缺真实 provider 配置时 fail-fast。 | [001-bootstrap](./plans/001-bootstrap/plan.md) |
 | 2026-04-27 | 1.2 | 按 L1 plan-review 与用户确认修订本地开发栈边界：默认依赖收敛为当时最小 Postgres / Redis / MinIO；`make dev-up` 改为启动最小依赖 + 当前项目可运行组件；本地观测改为应用 `/metrics` + 容器日志；默认排除 OTel Collector / Grafana / Loki / Prometheus 与 AI provider。 | [001-bootstrap](./plans/001-bootstrap/plan.md) |
 | 2026-04-27 | 1.1 | spawn `001-bootstrap` impl plan：把 spec §3.1 D-1..D-7 与 §6 C-1..C-8 落到 4 个 phase（compose+init / make 生命周期 / dev-doctor / OTel 通路+收口），关闭 [engineering-roadmap/001 Phase 3.6](../engineering-roadmap/spec.md#51-当前已存在的-active-spec) 的「executable gate by A2 child」承诺。spec 内容未变，版本不动 | [001-bootstrap](./plans/001-bootstrap/plan.md) |
 | 2026-04-27 | 1.1 | 修正 W1 gate 口径：parent Phase 3 只锁定 A2 spec-contract；真实 `make dev-up` / `make dev-doctor` 可执行 gate 由 A2 child `001` plan 验证后再放行依赖本地栈的 W2 implementation | engineering-roadmap/001 Phase 3 remediation |

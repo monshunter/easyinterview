@@ -1,8 +1,8 @@
 # Backend Review Spec
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -26,7 +26,7 @@
 - `GET /reports/{reportId}` `getFeedbackReport`
   - 使用 generated handler / response type。
   - 按 `(user_id, report_id)` 过滤；不存在或越权统一返回 `404 REPORT_NOT_FOUND`。
-  - `queued` / `generating` 返回合法 placeholder：内容数组为空、`preparednessLevel=null`、`provenance=null`、`errorCode=null`。
+  - `queued` / `generating` 返回当前状态元数据：内容数组为空、`preparednessLevel=null`、`provenance=null`、`errorCode=null`。
   - `ready` 返回完整报告、逐题评估、retry focus、next action 与 6 字段 `GenerationProvenance`。
   - `failed` 返回空内容、`errorCode` 非空，供前端渲染失败态。
 - `GET /targets/{targetJobId}/reports` `listTargetJobReports`
@@ -90,7 +90,7 @@
 | C-1 | Report happy path | completed practice session has queued report and queued report job | runner handles `report_generate` | report becomes `ready`; assessments, outbox, audit, ai_task_runs, async job completion are persisted |
 | C-2 | Assessment mapping | session has assessed turns | question assessment runs per turn | each turn has `QuestionAssessment`; internal score level maps to current wire `DimensionStatus` |
 | C-3 | Readiness and next action | assessments are persisted | readiness/retry/next-action calculators run | report has current `preparednessLevel`, `retryFocusTurnIds`, and first next action type |
-| C-4 | Placeholder read | report is `queued` or `generating` | user calls `getFeedbackReport` | 200 placeholder shape, no stale content, nullable provenance |
+| C-4 | Queued / generating read | report is `queued` or `generating` | user calls `getFeedbackReport` | 200 status metadata shape, no stale content, nullable provenance |
 | C-5 | Failed read | report is `failed` | user calls `getFeedbackReport` | 200 failed shape with `errorCode`, empty content arrays |
 | C-6 | Report list | user owns target with 0/N reports | user calls `listTargetJobReports` | cursor pagination, empty list shape, and ownership gate work |
 | C-7 | AI failure | F3/A3/parse failure occurs | handler processes job | report is `failed`, retry/permanent state is correct, failure event emitted |

@@ -349,16 +349,6 @@ const Sparkline = ({ values, color, width = 80, height = 24 }) => {
   );
 };
 
-// Striped placeholder
-const Placeholder = ({ label, height = 120, T }) => (
-  <div style={{
-    height, borderRadius: 2,
-    background: `repeating-linear-gradient(135deg, ${T.bgSoft} 0 8px, ${T.ruleSoft} 8px 9px)`,
-    border: `1px solid ${T.rule}`, display: "flex", alignItems: "center", justifyContent: "center",
-    color: T.ink3, fontFamily: "var(--ei-mono)", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase",
-  }}>{label}</div>
-);
-
 // Key/value label stack (editorial list)
 const KV = ({ k, v, T, mono }) => (
   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "8px 0", borderBottom: `1px dotted ${T.rule}`, gap: 16 }}>
@@ -367,4 +357,4 @@ const KV = ({ k, v, T, mono }) => (
   </div>
 );
 
-Object.assign(window, { Icon, Tag, Btn, Card, SectionHeader, ReadinessDial, Sparkline, Placeholder, KV });
+Object.assign(window, { Icon, Tag, Btn, Card, SectionHeader, ReadinessDial, Sparkline, KV });

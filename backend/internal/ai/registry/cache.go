@@ -11,11 +11,11 @@ import (
 // 30-second TTL drives lazy refresh in production; tests can call Reload
 // directly to skip the wait.
 type snapshotCache struct {
-	current        atomic.Pointer[snapshot]
-	lastLoaded     atomic.Int64 // unix nanoseconds
-	loadFn         func() (*snapshot, error)
-	ttl            time.Duration
-	now            func() time.Time
+	current    atomic.Pointer[snapshot]
+	lastLoaded atomic.Int64 // unix nanoseconds
+	loadFn     func() (*snapshot, error)
+	ttl        time.Duration
+	now        func() time.Time
 }
 
 func newSnapshotCache(loadFn func() (*snapshot, error), ttl time.Duration, now func() time.Time) *snapshotCache {

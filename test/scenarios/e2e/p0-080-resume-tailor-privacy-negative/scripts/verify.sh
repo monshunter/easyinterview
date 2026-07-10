@@ -25,8 +25,8 @@ mkdir -p "$OUT"
   grep -q 'RUNNER go test cmd/api resume tailor drainer privacy' "$LOG"
   grep -q 'TestResumeTailorDrainerHTTPScenario' "$LOG"
   grep -q 'TestResumeTailorDrainerFailureScenario' "$LOG"
-  grep -q 'non_current_inline_mirror=0' "$LOG"
-  grep -q 'non_current_mistakes_growth_drill=0' "$LOG"
+  grep -q 'out_of_scope_inline_rewrite_mirror=0' "$LOG"
+  grep -q 'out_of_scope_mistakes_growth_drill=0' "$LOG"
   grep -q 'outbox_payload=ids_mode_status_only' "$LOG"
   grep -q 'ai_task_runs=no_prompt_or_raw_response' "$LOG"
   grep -q 'audit_metadata=no_prompt_or_response_body' "$LOG"
@@ -35,12 +35,12 @@ mkdir -p "$OUT"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/resume/store([[:space:]]|$)' "$LOG"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/cmd/api([[:space:]]|$)' "$LOG"
   cd "$ROOT"
-  if rg -n 'inline|mirror' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: non-current inline/mirror vocabulary found"
+  if rg -n -i '(tailor|mode).*(inline|rewrite|mirror)|(inline|rewrite|mirror).*(tailor|mode)' backend/internal/resume --glob '!**/*_test.go' --glob '!**/verify.sh'; then
+    echo "ERROR: out-of-scope inline/rewrite/mirror vocabulary found"
     exit 1
   fi
-  if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: non-current mistakes/growth/drill vocabulary found"
+  if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/*_test.go' --glob '!**/verify.sh'; then
+    echo "ERROR: out-of-scope mistakes/growth/drill vocabulary found"
     exit 1
   fi
   if rg -n 'PRIVATE_RESUME_SUMMARY|PRIVATE_STRUCTURED_PROFILE|PRIVATE_JD_CONTEXT|PRIVATE_TARGET_TITLE|PRIVATE_PROMPT_BODY|PRIVATE_ORIGINAL_BULLET|PRIVATE_MATCH_SUMMARY|PRIVATE_MODEL_RAW_RESPONSE|PRIVATE_SUGGESTED_BULLET|PRIVATE_SUGGESTION_REASON|raw resume text|match_summary|suggested bullet text|prompt body|model raw response' "$LOG"; then
@@ -49,5 +49,5 @@ mkdir -p "$OUT"
   fi
   echo "method=cmd-api-http"
   echo "privacy: outbox, ai_task_runs, and audit metadata keep payloads redacted"
-  echo "non-current-negative: non-current resume runtime vocabulary remains absent"
+  echo "out-of-scope-negative: out-of-scope resume runtime vocabulary remains absent"
 } | tee "$OUT/verify.log"

@@ -5,8 +5,9 @@
  *  - appendSessionEvent must NEVER carry Idempotency-Key (spec D-12).
  *  - completePracticeSession must ALWAYS carry Idempotency-Key (spec D-13).
  *
- * The complete-side positive assertion is added to a stub spec here so
- * Phase 4 can replace the placeholder with the real wired hook.
+ * Complete-side positive assertions live in
+ * hooks/useCompletePracticeSession.test.tsx and
+ * __tests__/completePracticeSessionBody.test.tsx.
  */
 
 import { describe, expect, it } from "vitest";
@@ -147,14 +148,4 @@ describe("idempotency contract — appendSessionEvent", () => {
       }
     },
   );
-});
-
-describe("idempotency contract — completePracticeSession (Phase 4 placeholder)", () => {
-  it("contract is verified inside useCompletePracticeSession (item 4.1)", () => {
-    // The complete-side positive assertion lands in
-    // src/app/screens/practice/hooks/useCompletePracticeSession.test.tsx
-    // when Phase 4 wires the hook. This test stays as a contract anchor so
-    // future regression discovers any gap immediately.
-    expect(true).toBe(true);
-  });
 });

@@ -14,7 +14,7 @@ import (
 )
 
 // writeJudgeRuntimeConfig writes a runtime config whose judge.default profile
-// routes through a non-placeholder judge_compatible provider.
+// routes through a runnable judge_compatible provider.
 func writeJudgeRuntimeConfig(t *testing.T) (string, string) {
 	t.Helper()
 	dir := t.TempDir()
@@ -47,7 +47,7 @@ func writeJudgeRuntimeConfig(t *testing.T) (string, string) {
 }
 
 // TestNewClientResolvesJudgeCompatibleProvider asserts the production resolver
-// materializes a judge_compatible adapter (no "protocol not implemented") and
+// materializes a judge_compatible adapter (no unsupported-protocol failure) and
 // routes a CompleteJudge call through it (plan 004 §2.2).
 func TestNewClientResolvesJudgeCompatibleProvider(t *testing.T) {
 	var sawPath, sawAuth bool

@@ -27,7 +27,7 @@
 ## Phase 4: Current screen parity expansion
 
 - [x] 4.1 Home, Parse and Workspace parity specs cover current DOM anchors, responsive geometry, theme and screenshot smoke（验证：`home.spec.ts`, `parse.spec.ts`, `workspace.spec.ts`）
-- [x] 4.2 Resume Workshop parity specs cover flat list, create flow, rewrites/edit/detail and non-current tree/branch negative gates（验证：resume-workshop pixel specs）
+- [x] 4.2 Resume Workshop parity specs cover flat list, create flow, rewrites/edit/detail and out-of-scope tree/branch negative gates（验证：resume-workshop pixel specs）
 - [x] 4.3 Practice, Generating and Report parity specs cover current DOM anchors, layout, theme and screenshot smoke（验证：`practice.spec.ts`, `generating.spec.ts`, `report.spec.ts`）
 - [x] 4.4 Workspace full-state uses server-bound initial route bootstrap rather than synthetic route params（验证：`workspace.spec.ts`）
 - [x] 4.5 Authenticated user-menu browser parity covers avatar chip, dropdown geometry, mobile viewport containment and logout flow（验证：`topbar.spec.ts`）
@@ -37,7 +37,7 @@
 - [x] 5.1 `E2E.P0.006` scenario assets exist with setup/trigger/verify/cleanup scripts（验证：`test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/`）
 - [x] 5.2 BDD-Gate: `E2E.P0.006` executes `pnpm --filter @easyinterview/frontend test:pixel-parity` and verifies all current spec markers（验证：scenario trigger/verify）
 - [x] 5.3 `frontend/README.md` documents Playwright install, frontend build, parity run, screenshot baseline maintenance and offline CDN limits（验证：docs-check）
-- [x] 5.4 Non-current route/module entries are negative-only and do not materialize as live parity surfaces（验证：pixel specs and scenario verify）
+- [x] 5.4 Out-of-scope route/module entries are negative-only and do not materialize as live parity surfaces（验证：pixel specs and scenario verify）
 
 ## Phase 6: closeout
 

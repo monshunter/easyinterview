@@ -24,7 +24,7 @@
 
 ## E2E.P0.090 hash compatibility + unsupported route regression
 
-- [x] 创建场景目录 `test/scenarios/e2e/p0-090-url-routing-hash-non-current-negative/`
+- [x] 创建场景目录 `test/scenarios/e2e/p0-090-url-routing-hash-out-of-scope-negative/`
 - [x] 准备 hash inputs：current route hashes、unknown hash and unsupported route inputs
 - [x] 验证 hash adapter：static preview / pixel parity entrypoint can bootstrap and normal browser mode reaches canonical route/path
 - [x] 验证 unsupported route regression：unsupported inputs do not produce canonical paths, screen files, TopBar entries or materialized routes

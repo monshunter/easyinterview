@@ -1,12 +1,12 @@
 # ADR-Q6 · AI Provider 与模型路由
 
-> **版本**: 2.4
+> **版本**: 2.6
 > **状态**: accepted
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景
 
-`easyinterview` 当前开发期依赖 LLM / STT 占位 / judge 占位三类外部 AI 能力，覆盖：
+`easyinterview` 当前开发期依赖 LLM / speech / judge 三类外部 AI 能力，覆盖：
 
 - 同步：JD 解析提示词、模拟面试首题与追问（`practice` 域）
 - 异步：报告生成（`review` 域）、简历定制（`resume` 域）、报告题目回顾 / 本轮复练上下文物化
@@ -22,7 +22,7 @@
 
 业务约束：
 
-- P0 当前开发期以 DeepSeek V4 Flash/Pro 作为主要 chat provider；STT、realtime、judge 保持 fail-closed 占位。单一全局 base URL / API key 不能作为长期契约
+- P0 当前开发期以 DeepSeek V4 Flash/Pro 作为主要 chat provider；STT 与 realtime 通过 fail-closed profile 表达不可运行状态，judge 通过 `judge.default` / `judge_compatible` provider 承接离线评估。单一全局 base URL / API key 不能作为长期契约
 - 隐私（Q-5）要求所有 AI 调用记录可观测、可审计、可关闭
 - 成本控制：每次调用必须记录 token / 美元 / 模型 / fallback 次数
 
@@ -94,12 +94,12 @@
    - Model Profile：YAML 文件 + 热加载；schema 在 A3 spec 中冻结
    - 字段：`name`（业务引用）/ `capability`（chat | stt | realtime | judge）/ `status`（active | disabled | unsupported）/ `unsupported_reason`（disabled / unsupported 时必填）/ `default.provider_ref+model+params` / `fallback[]`（provider-aware chain）/ `timeout_ms` / `max_tokens` / `rate_limit`（rps + tpm）/ `route`
    - 业务代码引用 `profile name`，不引用 provider / model 字符串
-3. **运行时注入**：非单元测试运行环境通过 `AI_PROVIDER_REGISTRY_PATH` + `AI_MODEL_PROFILE_PATH` + registry 内 provider-specific secret env ref 注入；`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只可作为默认 OpenAI-compatible provider ref 的 env 名。仓库不保留非当前 provider-proxy 连接参数兼容层。
+3. **运行时注入**：非单元测试运行环境通过 `AI_PROVIDER_REGISTRY_PATH` + `AI_MODEL_PROFILE_PATH` + registry 内 provider-specific secret env ref 注入；`AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只可作为默认 OpenAI-compatible provider ref 的 env 名。仓库不保留范围外 provider-proxy 连接参数兼容层。
 4. **Stub provider**（A3 owner）
    - 仅用于单元测试、离线 contract 测试或显式 mock 场景
    - 输入 → 输出 hash-based 确定性映射；可被 OpenAPI fixtures 反向喂养（与 E1 `mock-contract-suite` 同源）
    - 单元测试默认走 `stub`；非测试本地 app run、未来 staging / prod 不允许默认降级到 stub，缺少 provider registry、model profile path 或选中 provider 的 secret env ref 时必须 fail-fast
-5. **Provider endpoint 边界**：本 ADR 不锁死供应商、托管形态或代理实现，只锁 provider registry / profile / OpenAI-compatible API 子集和应用侧 secret ref 连接参数。当前可执行 OpenAI-compatible 子集包含 Chat Completions、chat streaming SSE 与 Audio Transcriptions；realtime multimodal、judge 仍需各自 owner 后续递增 spec 后打开
+5. **Provider endpoint 边界**：本 ADR 不锁死供应商、托管形态或代理实现，只锁 provider registry / profile / OpenAI-compatible API 子集和应用侧 secret ref 连接参数。当前可执行 OpenAI-compatible 子集包含 Chat Completions、chat streaming SSE 与 Audio Transcriptions；`judge_compatible` 由 F3 004 + A3 registry 承接；realtime multimodal 仍需 owner 后续递增 spec 后打开
 6. **F3 解耦**：`prompt-rubric-registry` 只持有 `(feature_key, prompt_version, rubric_version, model_profile_name)` 四元组；不持有 provider / model 字符串
 7. **可观测性**（F1 owner）
    - 每次 `AIClient.*` 调用必须落 `ai_task_runs_total` + `ai_task_latency_seconds` + `ai_task_input/output_tokens_total` + `ai_task_cost_usd_total` + `ai_output_validation_failures_total` + `ai_fallback_total`
@@ -144,7 +144,9 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
-| 2026-07-07 | 2.3 | 对齐当前 backend AI owner 范围，删除非当前 async owner 影响范围。 |
+| 2026-07-10 | 2.6 | 将 provider-proxy 和 async owner 负向边界统一为范围外口径；行为不变。 |
+| 2026-07-10 | 2.5 | 将 STT/realtime/judge 旧口径收敛为 fail-closed profile 与 runnable judge_compatible provider 当前事实。 |
+| 2026-07-07 | 2.3 | 对齐当前 backend AI owner 范围，删除范围外 async owner 影响范围。 |
 | 2026-05-22 | 2.2 | 对齐 ADR-Q4 v1.7：当前 P0 测试/部署不再默认 Kind / K8s / Helm；AI fail-fast 边界改写为非测试本地 app run 与未来部署必须注入真实 provider registry/profile/secret，离线 contract 测试仍可显式 stub。 |
 | 2026-05-08 | 2.1 | 对齐 A3 003 Phase 6：当前开发期删除向量化 / 重排能力与基础设施，DeepSeek V4 Flash/Pro 成为 repo-tracked chat provider 主力；未来资料检索需求需重新设计。 |
 | 2026-05-06 | 2.0 | 提前激活 A3 002：在保持 provider-neutral / 零 SDK / 隐私红线的前提下，将 Tools payload 扩展、provider-side streaming consumer 与 STT Audio Transcriptions 纳入当前 AI 底座实施范围；realtime multimodal 仍 fail-closed。 |

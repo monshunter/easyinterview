@@ -21,14 +21,14 @@ for spec in \
   grep -qF "$spec" "$LOG_FILE" || { echo "$SCENARIO_ID: spec $spec not exercised" >&2; exit 1; }
 done
 
-# Flat-resume regression gate: non-current form and operation tokens stay absent.
+# Flat-resume regression gate: out-of-scope form and operation tokens stay absent.
 cd "$REPO_ROOT"
-if rg -n "welcome|mistake|growth|drill|followup|STAR|ExperiencesScreen|experiences-route|voice|OnboardingScreen|onboarding=true|ResumeBranchFlow|branchResumeVersion|seedStrategy|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion|updateResumeVersion" frontend/src/app/screens/resume-workshop --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/non-current-modules-grep.log"; then
-  echo "$SCENARIO_ID: non-current modules grep matched something (see non-current-modules-grep.log)" >&2
+if rg -n "welcome|mistake|growth|drill|followup|STAR|ExperiencesScreen|experiences-route|voice|OnboardingScreen|onboarding=true|ResumeBranchFlow|branchResumeVersion|seedStrategy|acceptResumeTailorSuggestion|rejectResumeTailorSuggestion|updateResumeVersion" frontend/src/app/screens/resume-workshop --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/out-of-scope-modules-grep.log"; then
+  echo "$SCENARIO_ID: out-of-scope modules grep matched something (see out-of-scope-modules-grep.log)" >&2
   exit 1
 fi
-if rg -n "(^|[^A-Za-z0-9_-])(inline|rewrite|mirror)([^A-Za-z0-9_-]|$)" frontend/src/app/screens/resume-workshop --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/non-current-tailor-mode-grep.log"; then
-  echo "$SCENARIO_ID: non-current tailor mode grep matched something" >&2
+if rg -n "(^|[^A-Za-z0-9_-])(inline|rewrite|mirror)([^A-Za-z0-9_-]|$)" frontend/src/app/screens/resume-workshop --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/out-of-scope-tailor-mode-grep.log"; then
+  echo "$SCENARIO_ID: out-of-scope tailor mode grep matched something" >&2
   exit 1
 fi
 if rg -n "ui-design/src/(data|screen-resume-workshop)" frontend/src/app/screens/resume-workshop --glob '!**/*.test.ts' --glob '!**/*.test.tsx' > "$OUTPUT_DIR/prototype-import-grep.log"; then

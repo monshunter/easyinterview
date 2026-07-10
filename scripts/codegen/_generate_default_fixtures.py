@@ -203,7 +203,7 @@ FIXTURES[("Auth", "getRuntimeConfig")] = fixture(
         ])),
         ("appVersion", "1.0.0+dev.0428"),
         ("analyticsEnabled", True),
-        ("postHogPublicKey", "phc_local_dev_placeholder"),
+        ("postHogPublicKey", "phc_local_dev_public_key"),
     ]),
 )
 

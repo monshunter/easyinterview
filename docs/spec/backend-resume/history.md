@@ -1,13 +1,14 @@
 # Backend Resume History
 
-> **版本**: 1.8
+> **版本**: 2.4
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 2.4 | 将 Resume parse/tailor negative gate、sourceType validation 和 tailor mode 边界统一为 out-of-scope / 范围外口径；行为不变。 | tech-debt pruning |
 | 2026-07-07 | 1.8 | 将 `resume.parse` 完成态命名收敛为 LLM-derived `display_name`：parse 成功后从结构化输出派生可识别名称，避免 ready 简历继续显示通用上传 / 粘贴标题。 | 001-asset-register-parse-and-listing |
 | 2026-07-06 | 1.6 | 将 active spec 决策、存储边界、验收标准和关联计划收敛为 D-20 flat Resume 合同：9 个 operation、`resumes` 单表、`ai_task_runs` 承载 tailor 输出、`updateResume` / `duplicateResume` 落盘。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-06 | 1.5 | 删除已随 JD Match 模块移除的 `CountResumesForUser` cross-owner internal API 模块边界；当前 backend-resume 只承接扁平 Resume 业务域、parse/tailor 编排与删除链路，不再提供 jobs-recommendations aggregation helper。 | product-scope/001-core-loop-module-pruning |
