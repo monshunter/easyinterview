@@ -1,7 +1,7 @@
 import { useEffect, useMemo, type FC } from "react";
 
 import type { FeedbackReport } from "../../../../api/generated/types";
-import { useI18n } from "../../../i18n/messages";
+import { useI18n, type MessageKey } from "../../../i18n/messages";
 import type { SummaryDetailKey } from "./SummaryCards";
 import { ReadinessTab } from "./tabs/ReadinessTab";
 import { DimensionsTab } from "./tabs/DimensionsTab";
@@ -19,13 +19,16 @@ interface DetailSurfaceProps {
 
 type DetailKey = SummaryDetailKey | "evidence";
 
-const TAB_ORDER: DetailKey[] = [
-  "readiness",
-  "dimensions",
-  "questions",
-  "evidence",
-  "next",
-];
+const DETAIL_TABS = [
+  { key: "readiness", labelKey: "report.detail.tab.readiness" },
+  { key: "dimensions", labelKey: "report.detail.tab.dimensions" },
+  { key: "questions", labelKey: "report.detail.tab.questions" },
+  { key: "evidence", labelKey: "report.detail.tab.evidence" },
+  { key: "next", labelKey: "report.detail.tab.next" },
+] as const satisfies ReadonlyArray<{
+  key: DetailKey;
+  labelKey: MessageKey;
+}>;
 
 /**
  * Source-level mirror of ui-design/src/screen-report.jsx::ReportDetailSurface
@@ -93,7 +96,7 @@ export const DetailSurface: FC<DetailSurfaceProps> = ({
           overflowX: "auto",
         }}
       >
-        {TAB_ORDER.map((key) => {
+        {DETAIL_TABS.map(({ key, labelKey }) => {
           const active = detail === key;
           return (
             <button
@@ -118,12 +121,12 @@ export const DetailSurface: FC<DetailSurfaceProps> = ({
                 marginBottom: -1,
               }}
             >
-              {t((`report.detail.tab.${key}` as const) as never)}
+              {t(labelKey)}
             </button>
           );
         })}
       </div>
-      {TAB_ORDER.map((key) => {
+      {DETAIL_TABS.map(({ key }) => {
         const active = detail === key;
         return (
           <div

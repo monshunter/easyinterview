@@ -2,18 +2,18 @@ package registry
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/monshunter/easyinterview/backend/internal/testsupport"
 )
 
 // TestStartupBudget asserts spec §4.3: full reload of the canonical multi
 // baseline coordinates completes within 1 second on typical hardware.
 func TestStartupBudget(t *testing.T) {
 	t.Parallel()
-	prompts, rubrics := repoConfigRoots(t)
+	prompts, rubrics := testsupport.ConfigRoots(t)
 
 	start := time.Now()
 	client, err := NewRegistryClient(RegistryOptions{
@@ -35,7 +35,7 @@ func TestStartupBudget(t *testing.T) {
 // Resolve P95 <= 5ms. Benchmark provides reproducible timing via go test
 // -bench, while the unit test asserts the budget without requiring -bench.
 func BenchmarkResolve(b *testing.B) {
-	prompts, rubrics := benchConfigRoots(b)
+	prompts, rubrics := testsupport.ConfigRoots(b)
 	client, err := NewRegistryClient(RegistryOptions{
 		PromptsDir: prompts,
 		RubricsDir: rubrics,
@@ -74,29 +74,4 @@ func TestResolveP95Budget(t *testing.T) {
 	if p95 > 5*time.Millisecond {
 		t.Fatalf("Resolve P95 budget exceeded: %v > 5ms", p95)
 	}
-}
-
-// benchConfigRoots mirrors repoConfigRoots for benchmarks (which receive
-// *testing.B rather than *testing.T).
-func benchConfigRoots(b *testing.B) (string, string) {
-	b.Helper()
-	wd, err := os.Getwd()
-	if err != nil {
-		b.Fatalf("getwd: %v", err)
-	}
-	dir := wd
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			break
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			b.Skipf("could not locate backend go.mod from %s", wd)
-			return "", ""
-		}
-		dir = parent
-	}
-	repoRoot := filepath.Dir(dir)
-	return filepath.Join(repoRoot, "config", "prompts"),
-		filepath.Join(repoRoot, "config", "rubrics")
 }

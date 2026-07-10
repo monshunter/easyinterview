@@ -11,6 +11,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
 	"github.com/monshunter/easyinterview/backend/internal/runner"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
+	"github.com/monshunter/easyinterview/backend/internal/testsupport"
 )
 
 // TestParseExecutorRegistryAdapterCrossLayer wires a real F3 RegistryAdapter
@@ -25,7 +26,7 @@ import (
 func TestParseExecutorRegistryAdapterCrossLayer(t *testing.T) {
 	t.Parallel()
 
-	prompts, rubrics := repoConfigRoots(t)
+	prompts, rubrics := testsupport.ConfigRoots(t)
 	client, err := registry.NewRegistryClient(registry.RegistryOptions{
 		PromptsDir: prompts,
 		RubricsDir: rubrics,
@@ -103,7 +104,7 @@ func TestParseExecutorRegistryAdapterCrossLayer(t *testing.T) {
 func TestTargetImportPromptMatchesParseResponseSchema(t *testing.T) {
 	t.Parallel()
 
-	prompts, rubrics := repoConfigRoots(t)
+	prompts, rubrics := testsupport.ConfigRoots(t)
 	client, err := registry.NewRegistryClient(registry.RegistryOptions{
 		PromptsDir: prompts,
 		RubricsDir: rubrics,
@@ -192,7 +193,7 @@ func coalesceFlagForTest(flag string) string {
 func TestParseExecutorMetadataCarriesF3Triple(t *testing.T) {
 	t.Parallel()
 
-	prompts, rubrics := repoConfigRoots(t)
+	prompts, rubrics := testsupport.ConfigRoots(t)
 	client, err := registry.NewRegistryClient(registry.RegistryOptions{
 		PromptsDir: prompts,
 		RubricsDir: rubrics,

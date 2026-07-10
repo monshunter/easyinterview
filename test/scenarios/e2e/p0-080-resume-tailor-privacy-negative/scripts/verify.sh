@@ -35,14 +35,7 @@ mkdir -p "$OUT"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/resume/store([[:space:]]|$)' "$LOG"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/cmd/api([[:space:]]|$)' "$LOG"
   cd "$ROOT"
-  if rg -n -i '(tailor|mode).*(inline|rewrite|mirror)|(inline|rewrite|mirror).*(tailor|mode)' backend/internal/resume --glob '!**/*_test.go' --glob '!**/verify.sh'; then
-    echo "ERROR: out-of-scope inline/rewrite/mirror vocabulary found"
-    exit 1
-  fi
-  if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/*_test.go' --glob '!**/verify.sh'; then
-    echo "ERROR: out-of-scope mistakes/growth/drill vocabulary found"
-    exit 1
-  fi
+  "$ROOT/test/scenarios/_shared/scripts/resume-runtime-negative-gate.sh"
   if rg -n 'PRIVATE_RESUME_SUMMARY|PRIVATE_STRUCTURED_PROFILE|PRIVATE_JD_CONTEXT|PRIVATE_TARGET_TITLE|PRIVATE_PROMPT_BODY|PRIVATE_ORIGINAL_BULLET|PRIVATE_MATCH_SUMMARY|PRIVATE_MODEL_RAW_RESPONSE|PRIVATE_SUGGESTED_BULLET|PRIVATE_SUGGESTION_REASON|raw resume text|match_summary|suggested bullet text|prompt body|model raw response' "$LOG"; then
     echo "ERROR: private resume, JD, prompt, model response, match summary, or suggestion content leaked into scenario evidence"
     exit 1

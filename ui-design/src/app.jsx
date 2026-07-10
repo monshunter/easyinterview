@@ -1,15 +1,14 @@
 // App shell — navigation, tweaks, top bar
 const { useState, useEffect } = React;
 
-const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+const TWEAK_DEFAULTS = {
   "theme": "ocean",
   "dark": false,
   "customAccent": null,
   "fontPreset": "editorial",
   "serifFamily": "Noto Serif SC",
-  "sansFamily": "Inter",
-  "role": "general"
-}/*EDITMODE-END*/;
+  "sansFamily": "Inter"
+};
 
 // Seed values used when the user first switches to "Custom" — chosen to match
 // each base theme's natural accent so the slider starts on the current colour.
@@ -114,8 +113,6 @@ const App = () => {
   const [route, setRoute] = useState({ name: "home", params: {} });
   const [lang, setLang] = useState(getInitialLanguage);
   const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
-  const [tweaksOpen, setTweaksOpen] = useState(false);
-  const [tweaksAvailable, setTweaksAvailable] = useState(false);
   const [signedIn, setSignedIn] = useState(() => {
     const v = localStorage.getItem("ei-signed-in");
     return v === "1";
@@ -158,7 +155,7 @@ const App = () => {
     if (savedLang) setLang(savedLang);
     // tweak overrides
     const overrides = {};
-    ["dark","role","theme","serifFamily","sansFamily","fontPreset"].forEach((k) => {
+    ["dark","theme","serifFamily","sansFamily","fontPreset"].forEach((k) => {
       const v = params.get(k);
       if (v != null) overrides[k] = (k === "dark") ? (v === "1" || v === "true") : v;
     });
@@ -179,22 +176,7 @@ const App = () => {
   useEffect(() => { if (!window.location.hash) localStorage.setItem("ei-route", JSON.stringify(route)); }, [route]);
   useEffect(() => { localStorage.setItem("ei-lang", lang); }, [lang]);
 
-  // Tweaks protocol
-  useEffect(() => {
-    const onMsg = (e) => {
-      if (e.data?.type === "__activate_edit_mode") setTweaksOpen(true);
-      if (e.data?.type === "__deactivate_edit_mode") setTweaksOpen(false);
-    };
-    window.addEventListener("message", onMsg);
-    window.parent.postMessage({ type: "__edit_mode_available" }, "*");
-    setTweaksAvailable(true);
-    return () => window.removeEventListener("message", onMsg);
-  }, []);
-
-  const updateTweak = (k, v) => {
-    setTweaks((prev) => ({ ...prev, [k]: v }));
-    window.parent.postMessage({ type: "__edit_mode_set_keys", edits: { [k]: v } }, "*");
-  };
+  const updateTweak = (k, v) => setTweaks((prev) => ({ ...prev, [k]: v }));
 
   // Apply a font preset atomically (preset key + serif + sans in one update,
   // so the UI doesn't flash with a half-applied pair).
@@ -203,7 +185,6 @@ const App = () => {
     if (!p) return;
     const edits = { fontPreset: key, serifFamily: p.serif, sansFamily: p.sans };
     setTweaks((prev) => ({ ...prev, ...edits }));
-    window.parent.postMessage({ type: "__edit_mode_set_keys", edits }, "*");
   };
 
   const T = React.useMemo(() => {
@@ -288,33 +269,30 @@ const App = () => {
   };
 
   const screens = {
-    home: <HomeScreen T={T} lang={lang} nav={nav} role={tweaks.role} signedIn={signedIn} />,
-    workspace: <WorkspaceScreen T={T} lang={lang} nav={nav} requestAuth={requestAuth} params={route.params || {}} />,
-    practice: <PracticeScreen T={T} lang={lang} nav={nav} params={route.params || {}} jobId={currentContext.targetJobId} mode={route.params.mode} role={tweaks.role} setRole={(r) => updateTweak("role", r)} />,
+    home: <HomeScreen T={T} lang={lang} nav={nav} signedIn={signedIn} />,
+    workspace: <WorkspaceScreen T={T} lang={lang} nav={nav} />,
+    practice: <PracticeScreen T={T} lang={lang} nav={nav} params={route.params || {}} jobId={currentContext.targetJobId} mode={route.params.mode} />,
     report: <ReportScreen T={T} lang={lang} nav={nav} params={route.params || {}} requestAuth={requestAuth} />,
     parse: <ParseScreen T={T} lang={lang} nav={nav} requestAuth={requestAuth} />,
     generating: <ReportGeneratingScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
-    settings: <SettingsScreen T={T} lang={lang} nav={nav} fontPreset={tweaks.fontPreset} setFontPreset={setFontPreset} />,
+    settings: <SettingsScreen T={T} lang={lang} fontPreset={tweaks.fontPreset} setFontPreset={setFontPreset} />,
     resume_versions: <ResumeVersionsScreen T={T} lang={lang} nav={nav} params={route.params || {}} />,
-    auth_login: <AuthLoginScreen T={T} lang={lang} nav={nav} onSignIn={completeSignIn} pendingAction={route.params.pendingAction} />,
+    auth_login: <AuthLoginScreen T={T} lang={lang} nav={nav} pendingAction={route.params.pendingAction} />,
     auth_verify: <AuthVerifyScreen T={T} lang={lang} nav={nav} email={route.params.email} onSignIn={completeSignIn} pendingAction={route.params.pendingAction} />,
-    auth_profile_setup: <AuthProfileSetupScreen T={T} lang={lang} nav={nav} onCompleteProfile={completeProfile} pendingAction={route.params.pendingAction} />,
+    auth_profile_setup: <AuthProfileSetupScreen T={T} lang={lang} onCompleteProfile={completeProfile} pendingAction={route.params.pendingAction} />,
     auth_logout: <AuthLogoutScreen T={T} lang={lang} nav={nav} signedIn={signedIn} onSignOut={completeSignOut} />,
   };
 
   const hideTopBar = activeRouteName === "practice" || activeRouteName === "generating" || document.body.getAttribute("data-nochrome") === "1";
-
-  const isCanvasIframe = document.body.getAttribute("data-nochrome") === "1" || window.location.hash.includes("nochrome=1");
 
   const effectiveScreen = screens[activeRouteName] || screens.home;
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, color: T.ink, fontFamily: "var(--ei-sans)" }} data-screen-label={route.name}>
       {!hideTopBar && <TopBar T={T} route={{ ...route, name: activeRouteName }} nav={nav} lang={lang} setLang={setLang} dark={tweaks.dark} setDark={(v) => updateTweak("dark", v)} theme={tweaks.theme} setTheme={(v) => updateTweak("theme", v)} customAccent={tweaks.customAccent} setCustomAccent={(v) => updateTweak("customAccent", v)} signedIn={signedIn} signOut={() => nav("auth_logout")} />}
-      <div key={route.name + (route.params.jobId || "") + (route.params.flow || "")}>
+      <div key={route.name + (route.params.jobId || "")}>
         {effectiveScreen}
       </div>
-      {tweaksOpen && <TweaksPanel T={T} tweaks={tweaks} updateTweak={updateTweak} onClose={() => setTweaksOpen(false)} />}
     </div>
   );
 };
@@ -642,124 +620,5 @@ const AccentPicker = ({ T, lang, dark, value, active, onChange, onClear }) => {
     </div>
   );
 };
-
-const TweaksPanel = ({ T, tweaks, updateTweak, onClose }) => {
-  return (
-    <div style={{
-      position: "fixed", right: 20, bottom: 20, width: 320, background: T.bgCard, border: `1px solid ${T.rule}`,
-      borderRadius: 3, boxShadow: "0 8px 32px rgba(0,0,0,0.12)", padding: 18, zIndex: 200, fontFamily: "var(--ei-sans)",
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <Icon name="settings" size={14} color={T.ink2} />
-          <div className="ei-serif" style={{ fontSize: 15, color: T.ink, fontWeight: 500 }}>Tweaks</div>
-        </div>
-        <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: T.ink3 }}>
-          <Icon name="x" size={14} />
-        </button>
-      </div>
-
-      <TweakRow T={T} label="Theme">
-        <div style={{ display: "flex", gap: 6 }}>
-          {(window.EI_THEME_LIST || []).map((t) => {
-            const selected = tweaks.theme === t.key && !tweaks.customAccent;
-            return (
-              <button key={t.key} onClick={() => {
-                updateTweak("theme", t.key);
-                if (tweaks.customAccent) updateTweak("customAccent", null);
-              }} title={t.labelEn} style={{
-                width: 22, height: 22, borderRadius: 11,
-                border: selected ? `2px solid ${T.ink}` : `1px solid ${T.rule}`,
-                background: t.swatch, cursor: "pointer", padding: 0,
-              }} />
-            );
-          })}
-          <button onClick={() => {
-            if (!tweaks.customAccent) {
-              const seed = CUSTOM_ACCENT_SEEDS[tweaks.theme] || CUSTOM_ACCENT_SEEDS.ocean;
-              updateTweak("customAccent", { ...seed });
-            }
-          }} title="Custom" style={{
-            width: 22, height: 22, borderRadius: 11,
-            border: tweaks.customAccent ? `2px solid ${T.ink}` : `1px solid ${T.rule}`,
-            background: tweaks.customAccent ? T.accent
-              : "conic-gradient(from 0deg, oklch(60% 0.2 0), oklch(60% 0.2 60), oklch(60% 0.2 120), oklch(60% 0.2 180), oklch(60% 0.2 240), oklch(60% 0.2 300), oklch(60% 0.2 360))",
-            cursor: "pointer", padding: 0,
-          }} />
-        </div>
-      </TweakRow>
-
-      {tweaks.customAccent && (
-        <AccentPicker
-          T={T}
-          lang={"zh"}
-          dark={!!tweaks.dark}
-          value={tweaks.customAccent}
-          active={true}
-          onChange={(v) => updateTweak("customAccent", v)}
-          onClear={() => updateTweak("customAccent", null)}
-        />
-      )}
-
-      <TweakRow T={T} label="Mode">
-        <div style={{ display: "flex", gap: 4 }}>
-          {[
-            { v: false, label: "Light" },
-            { v: true,  label: "Dark"  },
-          ].map((m) => (
-            <button key={String(m.v)} onClick={() => updateTweak("dark", m.v)} style={{
-              padding: "4px 10px", fontSize: 12, borderRadius: 2,
-              border: `1px solid ${tweaks.dark === m.v ? T.ink : T.rule}`,
-              background: tweaks.dark === m.v ? T.bgSoft : "transparent",
-              color: T.ink2, cursor: "pointer", fontFamily: "var(--ei-sans)",
-            }}>{m.label}</button>
-          ))}
-        </div>
-      </TweakRow>
-
-      <TweakRow T={T} label="Serif font">
-        <select value={tweaks.serifFamily} onChange={(e) => updateTweak("serifFamily", e.target.value)} style={selectStyle(T)}>
-          <option>Noto Serif SC</option>
-          <option>Source Serif Pro</option>
-          <option>Georgia</option>
-          <option>Cormorant Garamond</option>
-        </select>
-      </TweakRow>
-
-      <TweakRow T={T} label="Sans font">
-        <select value={tweaks.sansFamily} onChange={(e) => updateTweak("sansFamily", e.target.value)} style={selectStyle(T)}>
-          <option>Inter</option>
-          <option>Geist</option>
-          <option>IBM Plex Sans</option>
-          <option>PingFang SC</option>
-        </select>
-      </TweakRow>
-
-      <TweakRow T={T} label="Interviewer role">
-        <select value={tweaks.role} onChange={(e) => updateTweak("role", e.target.value)} style={selectStyle(T)}>
-          <option value="general">综合面试官</option>
-          <option value="hr">HR</option>
-          <option value="manager">用人经理</option>
-        </select>
-      </TweakRow>
-
-      <div style={{ marginTop: 10, fontSize: 11, color: T.ink3, lineHeight: 1.5, fontFamily: "var(--ei-mono)" }}>
-        changes persist to disk via edit mode bridge.
-      </div>
-    </div>
-  );
-};
-
-const selectStyle = (T) => ({
-  padding: "4px 8px", fontSize: 12, borderRadius: 2, border: `1px solid ${T.rule}`,
-  background: T.bg, color: T.ink, fontFamily: "var(--ei-sans)", minWidth: 130,
-});
-
-const TweakRow = ({ T, label, children }) => (
-  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px dotted ${T.rule}` }}>
-    <div style={{ fontSize: 12.5, color: T.ink2 }}>{label}</div>
-    {children}
-  </div>
-);
 
 window.App = App;

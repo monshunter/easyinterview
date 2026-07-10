@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Create Flow
 
-> **版本**: 1.14
+> **版本**: 1.17
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -88,6 +88,18 @@ Home `选择已有简历` consumes the current `listResumes` result and keeps no
 
 `ResumeCreateFlow` keeps the real `data-stage="input"` DOM contract but removes the exported `CreateStage` alias because no production or test consumer uses it. A source negative gate prevents the standalone declaration from returning; focused create-flow tests and typecheck preserve current behavior.
 
+### Phase 10: Prototype create-flow call-surface pruning
+
+The static `ResumeCreateFlow` uses `onBack` to return to the flat list and `onCreateResume` to open the created Resume detail. Remove its unread `nav` parameter and the matching `ResumeWorkshopScreen` child argument. Keep upload/paste input state and both callbacks unchanged; do not add a compatibility parameter or wrapper. The create-to-detail route handoff must preserve the locally created asset, explicitly exit create mode, and render the waiting/ready detail instead of remounting the Resume Workshop owner.
+
+### Phase 11: Zero-consumer ghost CTA CSS pruning
+
+删除 `screens.css` 中没有正式 CreateFlow DOM、静态原型或场景消费者的 `ei-resume-create-cta-ghost` base/variant/disabled branches；保留 upload/paste 当前使用的 accent CTA 及其 disabled state。BDD 不适用，因为 ghost CTA 不可达；替代 gate 为 create-flow source RED/GREEN、class inventory、focused CreateFlow/P0.081、full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates。
+
+### Phase 12: Accent CTA rule consolidation
+
+ghost variant 删除后，`ei-resume-create-cta-accent` 不再需要“共享基础规则 + 独立颜色规则”的两段声明。将 layout、typography、interaction、accent colors 与 border 合并为一个规则，disabled state 保持独立；最终 computed values 与 upload/paste DOM 不变。BDD 不适用；替代 gate 为 source RED/GREEN、focused CreateFlow、full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates。
+
 ## 5 验收标准
 
 | ID | 场景 | Given | When | Then | 证据 |
@@ -101,6 +113,7 @@ Home `选择已有简历` consumes the current `listResumes` result and keeps no
 | C-7 | BDD gates | P0.081 / P0.083 assets plus P0.082 parser/preview absence | Scenario verify | Direct-to-detail main path, out-of-scope parser/confirm absence and CTA handoff are covered | BDD docs + scenario scripts |
 | C-8 | Home existing resume picker | `listResumes` returns non-archived resumes with readable evidence | Home renders JD quick-start | Native select is enabled, options are selectable, empty state is absent, and selected `resumeId` is carried to import / parse handoff | HomeResumeSelection Vitest + browser screenshot |
 | C-9 | Zero-reference type cleanup | `CreateStage` has no consumer | Source gate and create-flow regressions run | The alias is absent while `data-stage="input"` and create behavior remain unchanged | source negative + focused Vitest + typecheck |
+| C-10 | Prototype call surface | Static create flow receives its owner callbacks | User switches mode, returns or creates a Resume | Only `onBack` / `onCreateResume` own child transitions; no unread `nav` prop remains, and the parent preserves the created asset through waiting/ready detail | UI contract + AST inventory + browser smoke |
 
 ## 6 风险与应对
 
@@ -114,6 +127,9 @@ Home `选择已有简历` consumes the current `listResumes` result and keeps no
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.17 | Consolidate the accent CTA declarations into one equivalent rule. |
+| 2026-07-10 | 1.16 | Delete the zero-consumer CreateFlow ghost CTA CSS branches. |
+| 2026-07-10 | 1.15 | Remove the unread ResumeCreateFlow navigation prop and caller argument; preserve the created detail handoff documented by BUG-0154. |
 | 2026-07-10 | 1.14 | Remove the zero-reference CreateStage type while preserving the input-stage DOM contract. |
 | 2026-07-10 | 1.13 | 将 create-flow parser / preview-confirm 负向 gate 表述统一为 out-of-scope 口径；行为不变。 |
 | 2026-07-10 | 1.12 | 收敛 P0.083 handoff gate 到当前 Home CTA、auth pendingAction 与 direct-detail 验证。 |

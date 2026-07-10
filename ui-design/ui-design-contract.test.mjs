@@ -38,21 +38,45 @@ test("prototype runner uses the repository Python 3 toolchain only", () => {
   assert.doesNotMatch(runner, /SimpleHTTPServer|npx --yes serve|elif command -v python/);
 });
 
-test("workspace mock records are scoped to the active mock plan", () => {
-  const workspace = readUiFile("./src/screen-workspace.jsx");
+test("prototype primitive globals expose only current consumers", () => {
+  const primitives = readUiFile("./src/primitives.jsx");
+
+  assert.doesNotMatch(primitives, /const (?:Sparkline|KV) =/);
+  assert.doesNotMatch(primitives, /\b(?:Sparkline|KV)\b/);
   assert.match(
-    workspace,
-    /const sessionHistory = getWorkspaceSessionHistory\(lang, job, currentRound\?\.name, interviewContext\);/,
+    primitives,
+    /Object\.assign\(window, \{ Icon, Tag, Btn, Card, SectionHeader, ReadinessDial \}\);/,
   );
+});
 
-  const historyStart = workspace.indexOf("const getWorkspaceSessionHistory");
-  const historyEnd = workspace.indexOf("const getWorkspacePlanOptions");
-  const historySource = workspace.slice(historyStart, historyEnd);
+test("workspace static prototype is a pure plan list with no unreachable detail branch", () => {
+  const workspace = readUiFile("./src/screen-workspace.jsx");
 
-  assert.notEqual(historyStart, -1);
-  assert.notEqual(historyEnd, -1);
-  assert.match(historySource, /getWorkspaceTargetLabel/);
-  assert.doesNotMatch(historySource, /Lumen Labs · Frontend Platform Engineer/);
+  assert.match(workspace, /const WorkspaceScreen = \(\{ T, lang, nav \}\) => \{/);
+  assert.match(workspace, /return <WorkspacePlanList T=\{T\} lang=\{lang\} nav=\{nav\} jobs=\{jobs\} \/>;/);
+  assert.match(workspace, /Object\.assign\(window, \{ getWorkspaceResumeOptions \}\);/);
+  assert.doesNotMatch(workspace, /^\s+updated:/m);
+
+  for (const symbol of [
+    "hasPlanContext",
+    "WorkspaceEmptyState",
+    "WorkspaceMissingResumeState",
+    "createWorkspaceInterviewContext",
+    "getWorkspaceRoundId",
+    "getWorkspaceSessionHistory",
+    "getWorkspaceTargetLabel",
+    "getWorkspaceRoundLabel",
+    "getWorkspacePlanOptions",
+    "getWorkspaceJDSample",
+    "ResumePickerModal",
+    "PlanSwitcherModal",
+    "WorkspaceInsightCard",
+    "InterviewRoundRail",
+    "BindingPill",
+    "ReqBlock",
+  ]) {
+    assert.doesNotMatch(workspace, new RegExp(`\\b${symbol}\\b`), `${symbol} must stay absent from the pure list prototype`);
+  }
 });
 
 test("D-22 keeps debrief and user profile outside current static screens", () => {
@@ -116,11 +140,15 @@ test("resume workshop detail is read-only original content without source previe
 });
 
 test("resume workshop create flow keeps upload/paste only and opens detail directly", () => {
+  const app = readUiFile("./src/app.jsx");
   const resume = readUiFile("./src/screen-resume-workshop.jsx");
 
   assert.match(resume, /const \[createdResumes, setCreatedResumes\] = React\.useState\(\[\]\);/);
   assert.match(resume, /setCreatedResumes\(\(prev\) => \[\.\.\.prev, resume\]\);/);
+  assert.match(resume, /setCreatedResumes\(\(prev\) => \[\.\.\.prev, resume\]\);\s+setFlow\("list"\);\s+nav\("resume_versions", \{ resumeId: resume\.id \}\);/);
   assert.match(resume, /nav\("resume_versions", \{ resumeId: resume\.id \}\);/);
+  assert.match(resume, /setFlow\(params\.flow === "create" \? "create" : "list"\);/);
+  assert.match(app, /<div key=\{route\.name \+ \(route\.params\.jobId \|\| ""\)\}>/);
   assert.match(resume, /onCreateResume\(sourceLabel, createMode === "paste" \? resumeText : ""\)/);
   assert.match(resume, /onCreateResume\(f\.name, ""\)/);
   assert.match(resume, /\{ k: "upload", icon: "upload"/);
@@ -145,12 +173,8 @@ test("P0 context routes use InterviewContext instead of fixed tj-1 nav payloads"
     );
   }
 
-  assert.match(workspace, /const interviewContext = createWorkspaceInterviewContext\(/);
-  assert.match(workspace, /planId/);
-  assert.match(workspace, /targetJobId/);
-  assert.match(workspace, /jdId/);
-  assert.match(workspace, /resumeId/);
-  assert.match(workspace, /roundId/);
+  assert.match(workspace, /const openPlan = \(job\) => nav\("parse", \{/);
+  assert.match(workspace, /targetJobId: job\.id/);
   for (const [name, source] of readUiSources()) {
     assert.doesNotMatch(source, /resumeVersionId/, `${name} still uses the out-of-scope resumeVersionId context key`);
   }
@@ -283,9 +307,9 @@ test("TargetJob round assumptions use structured interview rounds across parse a
   assert.doesNotMatch(parse, /focus: lang === "en" \? "Motivation, timing, comp"/);
 });
 
-test("workspace insight card has no standalone route alias", () => {
+test("workspace insight source stays absent from the pure plan-list prototype", () => {
   const app = readUiFile("./src/app.jsx");
-  const insight = readUiFile("./src/screen-workspace-insight.jsx");
+  const index = readUiFile("./index.html");
   const workspace = readUiFile("./src/screen-workspace.jsx");
   const outOfScopeInsightTerms = new RegExp([
     "company_" + "intel",
@@ -294,11 +318,10 @@ test("workspace insight card has no standalone route alias", () => {
   ].join("|"));
 
   assert.ok(!existsSync(new URL("./src/screen-company-" + "intel.jsx", import.meta.url)), "standalone insight source must stay absent");
+  assert.ok(!existsSync(new URL("./src/screen-workspace-insight.jsx", import.meta.url)), "workspace insight source must stay absent");
   assert.doesNotMatch(app, outOfScopeInsightTerms);
-  assert.match(insight, /const WorkspaceInsightCard = /);
-  assert.doesNotMatch(insight, outOfScopeInsightTerms);
-  assert.doesNotMatch(insight, /打开情报|Open intel/);
-  assert.match(workspace, /<WorkspaceInsightCard T=\{T\} lang=\{lang\} job=\{job\} \/>/);
+  assert.doesNotMatch(index, /screen-workspace-insight\.jsx/);
+  assert.doesNotMatch(workspace, /WorkspaceInsightCard/);
   for (const [name, source] of readUiSources()) {
     assert.doesNotMatch(source, outOfScopeInsightTerms, `${name} still references standalone company insight naming`);
   }
@@ -348,8 +371,9 @@ test("P0 empty and failure states avoid showing fake data", () => {
 
   assert.match(home, /const recentJobs = /);
   assert.match(home, /HomeEmptyState/);
-  assert.match(workspace, /WorkspaceEmptyState/);
-  assert.match(workspace, /WorkspaceMissingResumeState/);
+  assert.match(workspace, /visibleJobs\.length === 0/);
+  assert.match(workspace, /data-testid="workspace-plan-list-empty"/);
+  assert.doesNotMatch(workspace, /WorkspaceEmptyState|WorkspaceMissingResumeState/);
   assert.match(report, /ReportMissingSessionState/);
   assert.match(report, /ReportFailureState/);
   assert.doesNotMatch(practice, /VoiceTranscriptionFailure|transcriptFailed/);
@@ -360,7 +384,7 @@ test("Home recent mock interviews are signed-in only", () => {
   const home = readUiFile("./src/screen-home.jsx");
 
   assert.match(app, /home:\s*<HomeScreen[^>]*signedIn=\{signedIn\}/);
-  assert.match(home, /const HomeScreen = \(\{ T, lang, nav, role, signedIn/);
+  assert.match(home, /const HomeScreen = \(\{ T, lang, nav, signedIn/);
   assert.match(home, /\{signedIn && \(/);
   assert.match(home, /Recent mock interviews/);
   assert.match(home, /选择已有简历/);
@@ -424,6 +448,9 @@ test("parse confirm page is a readonly saved-plan receipt with direct launch", (
   const p0 = readUiFile("./src/screens-p0-complete.jsx");
   const app = readUiFile("./src/app.jsx");
 
+  assert.match(p0, /const PlanBindingPill = /);
+  assert.match(p0, /<PlanBindingPill T=\{T\}/);
+  assert.doesNotMatch(p0, /window\.BindingPill/);
   assert.match(p0, /const ParseScreen = \(\{ T, lang, nav, requestAuth \}\) =>/);
   assert.match(p0, /window\.getWorkspaceResumeOptions/);
   assert.match(p0, /立即面试/);
@@ -487,4 +514,114 @@ test("phone interview only enters through explicit practice modality params", ()
   assert.doesNotMatch(app, /voice:\s*<VoicePracticeScreen/);
   assert.doesNotMatch(app, /route\.name === "voice"/);
   assert.match(canvas, /route="practice" mode="phone"/);
+});
+
+test("design canvas component surface matches its only tracked consumer", () => {
+  const wrapper = readUiFile("./design-canvas.jsx");
+  const canvas = readUiFile("./canvas.html");
+
+  assert.match(wrapper, /function DesignCanvas\(\{ children \}\)/);
+  assert.match(wrapper, /function DCViewport\(\{ children \}\)/);
+  assert.match(wrapper, /function DCSection\(\{ id, title, subtitle, children \}\)/);
+  assert.match(wrapper, /function DCPostIt\(\{ children, top, left, right, rotate = -2, width = 180 \}\)/);
+  assert.doesNotMatch(wrapper, /\bminScale\b|\bmaxScale\b/);
+  assert.doesNotMatch(wrapper, /const \{[^}]*\bstyle = \{\}[^}]*\} = artboard\.props/);
+
+  assert.match(canvas, /const Screen = \(\{ route, mode, dark, theme, customAccent, fontPreset \}\) =>/);
+  assert.doesNotMatch(canvas, /const PracticeScreen\b/);
+  assert.doesNotMatch(canvas, /params\.set\("(?:nochrome|jobId|targetJobId|planId|jdId|resumeId|roundId|roundName)"/);
+  assert.match(canvas, /params\.set\("lang", "zh"\)/);
+  assert.match(canvas, /\["practice", "generating", "report"\]\.includes\(route\).*params\.set\("sessionId", "session-24"\)/);
+});
+
+test("design canvas keeps edits in memory without an unavailable sidecar bridge", () => {
+  const wrapper = readUiFile("./design-canvas.jsx");
+
+  assert.doesNotMatch(wrapper, /\.design-canvas\.state\.json|DC_STATE_FILE|window\.omelette/);
+  assert.doesNotMatch(wrapper, /\b(?:didRead|skipNextWrite|setReady)\b/);
+  assert.doesNotMatch(wrapper, /fetch\(['"]\.\//);
+  assert.match(wrapper, /const \[state, setState\] = React\.useState\(\{ sections: \{\}, focus: null \}\)/);
+  assert.match(wrapper, /patchSection: \(id, p\) => setState/);
+  assert.match(wrapper, /<DCViewport>\{children\}<\/DCViewport>/);
+});
+
+test("prototype display controls do not depend on an unavailable edit-mode host", () => {
+  const app = readUiFile("./src/app.jsx");
+  const home = readUiFile("./src/screen-home.jsx");
+  const canvas = readUiFile("./canvas.html");
+
+  assert.doesNotMatch(app, /EDITMODE|__activate_edit_mode|__deactivate_edit_mode|__edit_mode_|window\.parent\.postMessage/);
+  assert.doesNotMatch(app, /TweaksPanel|TweakRow|selectStyle|tweaksOpen|tweaksAvailable/);
+  assert.doesNotMatch(app, /["']role["']\s*:|\["dark","role"|role=\{tweaks\.role\}|setRole=/);
+  assert.doesNotMatch(home, /const HomeScreen = \(\{ T, lang, nav, role,/);
+  assert.doesNotMatch(canvas, /\bTweaks\b|edit mode bridge/);
+
+  assert.match(app, /<TopBar[^>]*setDark=\{\(v\) => updateTweak\("dark", v\)\}/);
+  assert.match(app, /setCustomAccent=\{\(v\) => updateTweak\("customAccent", v\)\}/);
+  assert.match(app, /settings:\s*<SettingsScreen[^>]*setFontPreset=\{setFontPreset\}/);
+});
+
+test("prototype app shell has no zero-read canvas mode binding", () => {
+  const app = readUiFile("./src/app.jsx");
+
+  assert.doesNotMatch(app, /\bconst isCanvasIframe\b/);
+  assert.match(app, /const hideTopBar = [^;]*data-nochrome[^;]*;/);
+});
+
+test("auth prototype screens expose only consumed navigation and completion callbacks", () => {
+  const app = readUiFile("./src/app.jsx");
+  const auth = readUiFile("./src/screen-auth.jsx");
+
+  assert.match(auth, /const AuthLoginScreen = \(\{ T, lang, nav, pendingAction \}\) =>/);
+  assert.match(auth, /const AuthVerifyScreen = \(\{ T, lang, nav, email, onSignIn, pendingAction \}\) =>/);
+  assert.match(auth, /const AuthProfileSetupScreen = \(\{ T, lang, onCompleteProfile, pendingAction \}\) =>/);
+  assert.doesNotMatch(app, /auth_login:\s*<AuthLoginScreen[^>]*\bonSignIn=/);
+  assert.match(app, /auth_verify:\s*<AuthVerifyScreen[^>]*\bonSignIn=\{completeSignIn\}/);
+  assert.doesNotMatch(app, /auth_profile_setup:\s*<AuthProfileSetupScreen[^>]*\bnav=/);
+  assert.match(app, /auth_profile_setup:\s*<AuthProfileSetupScreen[^>]*\bonCompleteProfile=\{completeProfile\}/);
+});
+
+test("settings prototype screen exposes only consumed display dependencies", () => {
+  const app = readUiFile("./src/app.jsx");
+  const screens = readUiFile("./src/screens-p0-complete.jsx");
+
+  assert.match(screens, /const SettingsScreen = \(\{ T, lang, fontPreset, setFontPreset \}\) =>/);
+  assert.doesNotMatch(app, /settings:\s*<SettingsScreen[^>]*\bnav=/);
+  assert.match(app, /settings:\s*<SettingsScreen[^>]*\bfontPreset=\{tweaks\.fontPreset\}/);
+  assert.match(app, /settings:\s*<SettingsScreen[^>]*\bsetFontPreset=\{setFontPreset\}/);
+});
+
+test("home mini round rail exposes only rendered structured-round dependencies", () => {
+  const home = readUiFile("./src/screen-home.jsx");
+
+  assert.match(home, /const MiniRoundRail = \(\{ T, rounds, currentIndex \}\) =>/);
+  assert.match(home, /<MiniRoundRail T=\{T\} rounds=\{rounds\} currentIndex=\{currentRoundIndex\} \/>/);
+  assert.match(home, /gridTemplateColumns: `repeat\(\$\{rounds\.length\}, 1fr\)`/);
+  assert.match(home, /\{round\.name\}\{round\.durationMinutes \? ` · \$\{round\.durationMinutes\}m` : ""\}/);
+  assert.match(home, /const current = i === currentIndex/);
+});
+
+test("report detail surface exposes only report data and local detail-state dependencies", () => {
+  const report = readUiFile("./src/screen-report.jsx");
+  const detailCall = report.match(/<ReportDetailSurface[\s\S]*?\/>/)?.[0];
+
+  assert.ok(detailCall, "ReportDetailSurface call must remain present");
+  assert.match(report, /const ReportDetailSurface = \(\{ T, lang, r, detail, setDetail, context, activeQuestion, setActiveQuestion \}\) =>/);
+  assert.doesNotMatch(detailCall, /\bnav=/);
+  assert.match(report, /return <ReportDashboard T=\{T\} lang=\{lang\} nav=\{nav\}/);
+  assert.match(report, /onClick=\{\(\) => setDetail\(tab\.k\)\}/);
+  assert.match(report, /onClick=\{\(\) => setActiveQuestion\(item\.qId\)\}/);
+});
+
+test("resume create prototype exposes only input-state owner callbacks", () => {
+  const workshop = readUiFile("./src/screen-resume-workshop.jsx");
+  const createCall = workshop.match(/<ResumeCreateFlow[\s\S]*?\/>/)?.[0];
+
+  assert.ok(createCall, "ResumeCreateFlow call must remain present");
+  assert.match(workshop, /const ResumeCreateFlow = \(\{ T, lang, onBack, onCreateResume \}\) =>/);
+  assert.doesNotMatch(createCall, /\bnav=/);
+  assert.match(createCall, /onBack=\{\(\) => setFlow\("list"\)\}/);
+  assert.match(createCall, /onCreateResume=\{addCreatedResume\}/);
+  assert.match(workshop, /\{ k: "upload"[\s\S]*\{ k: "paste"/);
+  assert.match(workshop, /onCreateResume\(sourceLabel, createMode === "paste" \? resumeText : ""\)/);
 });

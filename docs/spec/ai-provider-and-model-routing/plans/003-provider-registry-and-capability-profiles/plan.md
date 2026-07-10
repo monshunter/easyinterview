@@ -1,6 +1,6 @@
 # Provider Registry and Capability Profiles
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -172,6 +172,12 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 
 运行 focused Go tests、B1/B3 codegen、profile coverage lint、config lint、migration lint、docs check 与 active-scope negative search。负向搜索应证明当前代码/配置/基础设施中没有向量化 / 重排实现、profile、provider ref、job type、migration 表或 dev-stack 依赖。
 
+### Phase 7: Provider startup error contract cleanup
+
+#### 7.1 Remove the test-only shared error mapper
+
+删除没有运行时消费者、仅由自测维持的 `providerregistry.SharedErrorCode` 及其断言。Provider registry/bootstrap 启动失败继续使用 `ErrProviderConfigInvalid` 与 `ErrProviderSecretMissing` 哨兵错误，通过 `errors.Is` 保持可判定性；运行时业务边界继续由各 owner 映射 B1 `AI_*` 错误，不在启动配置层保留重复映射 API。
+
 ## 5 验收标准
 
 - Provider registry schema、loader、secret env ref 解析与热加载已落地，负向 fixtures 覆盖重复 provider、未知 protocol、capability mismatch、网络出站 provider secret 缺失与 fallback 超限；`stub` provider 不需要伪造 secret。
@@ -205,6 +211,7 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.10 | 删除仅由测试自证的 provider 启动错误码映射层，保留哨兵错误合同。 | tech-debt pruning |
 | 2026-07-10 | 1.9 | 统一 schema、model alias 与 profile directory 的 out-of-scope 术语，修正 completed-state 表述并对齐 checklist 版本。 | tech-debt pruning |
 | 2026-07-10 | 1.8 | 将 Product/UI capability 描述收敛为 fail-closed profile，并对齐当前电话模式术语。 | tech-debt pruning |
 | 2026-07-10 | 1.7 | 删除范围外文本输入 STT profile coverage，电话模式 STT/TTS profile 继续作为 Product/UI capability coverage。 | tech-debt pruning |

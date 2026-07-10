@@ -1,6 +1,6 @@
 # 001 — Plan and Session Orchestration Test Plan
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
 > **更新日期**: 2026-07-07
 
@@ -21,6 +21,7 @@
 | privacy / observability tests | AI task metadata, audit metadata, event payload redaction | practice focused tests + `E2E.P0.026` |
 | flat resume prompt test | `resumeId`, `practice_plans.resume_id`, `resumes.structured_profile` prompt context | `TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions`, `TestSQLRepositoryReserveSessionStartReusesFailedRetryableRecord` |
 | BDD scenarios | user-visible API behavior and state transitions | `E2E.P0.022`-`E2E.P0.026` |
+| GET fixture harness regression | typed plan/session fixture bodies, exact statuses, JSON parity, user-scoped 404 | scoped API tests + `dupl` + `E2E.P0.022` / `E2E.P0.023` |
 
 ## 3 Focused Commands
 
@@ -35,3 +36,4 @@ rg -n "<flat-resume residual tokens>" backend/internal/practice backend/internal
 - `2026-07-07`: flat Resume prompt context red/green test passed.
 - `2026-07-07`: `go test ./internal/practice/... ./cmd/api -count=1` passed.
 - `2026-07-07`: practice package flat-resume residual grep returned no matches.
+- `2026-07-10`: three-file GET test `dupl` reports zero groups; P0.022/P0.023 full serial lifecycles passed.

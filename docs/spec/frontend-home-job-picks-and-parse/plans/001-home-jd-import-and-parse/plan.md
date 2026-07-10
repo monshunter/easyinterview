@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse
 
-> **版本**: 2.19
+> **版本**: 2.23
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -242,6 +242,26 @@ Focused tests must prove Home recent cards show the quick-start action, do not s
 
 The in-memory pending import store exposes only the production `storePendingImportSource` and one-shot `consumePendingImportSource` operations. Remove `clearPendingImportSourcesForTests` and its redundant teardown call: the sole test-created entry is consumed by the authenticated continuation path, and later tests cannot address an unknown generated id. A source negative gate prevents test-only reset APIs from returning to the production module.
 
+### Phase 13: Current fixture inventory wording
+
+Align the BDD closeout checklist with the current B2 truth source: `make validate-fixtures` covers 37 operations. This is a documentation-only inventory correction; Home/Parse scenarios, fixtures, generated clients and runtime behavior remain unchanged.
+
+### Phase 14: Home copy-table orphan cleanup
+
+删除 `ui-design/src/screen-home.jsx` 中定义但未渲染的 `uploadSourceSub` 双语属性，以及正式 locale catalog / 自证测试中的同名孤儿 key；Home DOM、可见 copy 与交互保持不变。
+
+### Phase 15: MiniRoundRail prototype call-surface pruning
+
+`MiniRoundRail` 只消费主题 token、结构化 `rounds` 与 `currentIndex`；轮次名称和时长已由 `TargetJob.summary.interviewRounds[]` 提供，不从 `lang` 推导任何内容。删除从未读取的 `lang` 形参与唯一调用方传参，保留轮次数量、名称、时长和当前轮高亮，不增加空转参数或 wrapper。
+
+门禁：UI contract 先对当前冗余 rail 签名和调用方传参失败，删除后以 AST 证明 `MiniRoundRail` 参数全部有读取点；focused Home、P0.014/P0.016、静态浏览器 Home rail、full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates 通过。BDD 不适用，因为本批不改变 Home recent 的可见内容、结构化轮次或导航行为。
+
+### Phase 16: Home/Parse real-backend verifier convergence
+
+让既有 `frontend-real-backend-verify.sh` 接受可选 owner test 文件参数，默认继续校验 `frontendOwners.realApiMode.test.ts`，并让 P0.014/P0.015/P0.016 显式校验 `targetJob.realApiMode.test.ts`。删除三个 caller 内联的 real-mode、base URL 和通用 Vitest summary 解析，以及 P0.015/P0.016 中被更强 summary 检查完全覆盖的 PASS grep；保留每个场景的固定 spec 文件、业务 marker、隐私与 out-of-scope 断言。
+
+门禁：共享 helper 参数行为与三个 caller source contract 先红后绿；P0.014/P0.015/P0.016 的 setup/trigger/verify/cleanup、owner/product contexts、docs/diff/pruning gates 通过。BDD 不适用，因为 trigger 测试集合、场景业务断言、浏览器覆盖和环境生命周期均不改变。
+
 ## 6 验收标准
 
 - Home/Parse owner 文档只描述当前 Home + Parse 合同、operation matrix、BDD gate 和验证入口。
@@ -252,12 +272,17 @@ The in-memory pending import store exposes only the production `storePendingImpo
 - Parse round assumptions, Home recent mock rails and shared TargetJob navigation context display/use backend/LLM `TargetJob.summary.interviewRounds[]`; round count is 2~5, and type/name, duration and focus are not front-end fixed values.
 - Home recent mock cards and workspace plan-list cards share the same `MockInterviewCard` body, mini round rail, fixed max-width grid and quick-start action; quick-start preserves structured `roundId/roundName`; Home omits delete controls while workspace includes them.
 - The pending import module exposes no test-only reset API; Home auth continuation tests cover one-shot store/consume behavior and privacy unchanged.
+- P0.014/P0.015/P0.016 reuse the shared real-backend verifier with the TargetJob generated-client owner test while retaining scenario-specific evidence checks.
 - `sync-doc-index --check`、`make docs-check`、`git diff --check` 和 `make lint-core-loop-pruning-surface` 通过。
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 2.23 | Reuse the shared real-backend verifier across the three Home/Parse scenarios. |
+| 2026-07-10 | 2.22 | Remove the unread MiniRoundRail language prop and caller argument. |
+| 2026-07-10 | 2.21 | Remove the unrendered Home upload-source subtitle from prototype and locale assets. |
+| 2026-07-10 | 2.20 | Align the BDD fixture gate wording with the current 37-operation OpenAPI contract. |
 | 2026-07-10 | 2.19 | Remove the redundant pending-import test reset API and teardown. |
 | 2026-07-10 | 2.18 | Align P0.014 scenario and BDD claims with its generated-client and Home Vitest runner evidence. |
 | 2026-07-10 | 2.17 | Normalize workspace detail out-of-scope and hardcoded-round negative wording without behavior changes. |

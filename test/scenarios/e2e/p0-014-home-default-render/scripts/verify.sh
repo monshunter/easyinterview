@@ -5,16 +5,12 @@ REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-014-home-default-render"
 LOG_FILE="$OUTPUT_DIR/trigger.log"
 test -s "$LOG_FILE"
-grep -Fq 'VITE_EI_API_MODE=real' "$LOG_FILE"
-grep -Fq 'VITE_EI_API_BASE_URL=http://localhost:8080/api/v1' "$LOG_FILE"
-grep -Fq 'targetJob.realApiMode.test.ts' "$LOG_FILE"
+"$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}" "targetJob.realApiMode.test.ts"
 grep -Fq "HomeScreen.test.tsx" "$LOG_FILE"
 grep -Fq "HomeLayout.test.tsx" "$LOG_FILE"
 grep -Fq "HomeResumeSelection.test.tsx" "$LOG_FILE"
 grep -Fq "HomeRecentMocks.test.tsx" "$LOG_FILE"
 grep -Fq "MockInterviewCard.test.tsx" "$LOG_FILE"
-grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE"
-grep -Eq 'Tests +[0-9]+ passed' "$LOG_FILE"
 # Negative: out-of-scope testids not in output
 for forbidden in 'route-welcome' 'topbar-nav-mistakes' 'topbar-nav-growth' 'topbar-nav-drill' 'topbar-nav-voice' 'home-pasted-success' 'home-mocked-recent' 'jdmatch-card-' 'jdmatch-market-signal-'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then

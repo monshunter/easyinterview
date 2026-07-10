@@ -31,23 +31,26 @@
 test/scenarios/
 ├── README.md
 ├── _shared/
-│   └── README.md
+│   ├── README.md
+│   └── scripts/
+│       ├── frontend-real-backend-gate.sh
+│       ├── frontend-real-backend-verify.sh
+│       └── local-dev-runtime.sh
 └── e2e/
     ├── README.md
     └── INDEX.md
 ```
 
-约定但非强制的辅助路径：
+当前共享脚本：
 
-- `test/scenarios/_shared/scripts/common.sh`
-- `test/scenarios/_shared/scripts/image-cache.sh`
+- `test/scenarios/_shared/scripts/frontend-real-backend-gate.sh`
+- `test/scenarios/_shared/scripts/frontend-real-backend-verify.sh`
+- `test/scenarios/_shared/scripts/local-dev-runtime.sh`
 - `test/scenarios/env-setup.sh`
 - `test/scenarios/env-status.sh`
 - `test/scenarios/env-verify.sh`
 - `test/scenarios/env-cleanup.sh`
 - `test/scenarios/env-redeploy.sh`
-
-如果这些脚本不存在，Agent 必须退回到 README 中定义的手工或 repo-tracked 命令，不能自行杜撰。
 
 需要人工参与的真实 provider / 浏览器 UAT 也必须登记为标准 `e2e` 场景目录，保留 `README.md`、`data/` 和四段脚本契约。此类 `hybrid` 场景的脚本负责环境准备、材料/配置/隐私 preflight、统一 result artifact 与 `MANUAL_REQUIRED` 状态；人工或浏览器 Agent 只补齐无法无密钥自动完成的真实操作证据。本地真实前后端联调只使用 `deploy/dev-stack/.env` 作为单一 env 来源，场景不得维护自己的独立 `.env` 副本。
 
@@ -74,13 +77,7 @@ test/scenarios/
 
 1. 先读本文件。
 2. 再读 `test/scenarios/e2e/README.md` 与 `test/scenarios/e2e/INDEX.md`。
-3. 若存在镜像缓存脚本，先执行：
-
-```bash
-./test/scenarios/_shared/scripts/image-cache.sh pull
-```
-
-4. 按 README 建立或验证目标套件声明的本地 runner 与外部依赖；缺少明确脚本时不得自行杜撰 Kind / K8s 入口。
+3. 按目标场景 README 判断是否需要共享环境；需要时使用 `env-status.sh` / `env-setup.sh` / `env-verify.sh`，纯 Go / Vitest / Playwright / pytest 场景直接运行其四段脚本。
 
 ## 5 场景编号与目录命名
 

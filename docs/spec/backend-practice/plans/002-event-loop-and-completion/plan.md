@@ -1,6 +1,6 @@
 # Backend Practice Event Loop and Completion
 
-> **版本**: 1.6
+> **版本**: 1.8
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -109,6 +109,12 @@
 - Keep all handler surfaces and request/response behavior unchanged.
 - Use backend-wide `staticcheck` U1000 as the red signal; verify with scoped staticcheck and the backend-practice package gate.
 
+### Phase 6: Turn status helper cleanup
+
+- 保留生产状态机实际使用的四个 `TurnStatus` 常量与 OpenAPI 四值枚举。
+- 删除仅由自测调用的 parse / wire / valid helper；直接常量集合测试继续锁定四个 wire 值。
+- 修正 owner checklist/test plan 中错误的“五值”表述，不增加兼容转换层。
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -124,6 +130,8 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.8 | Point strict-mode hint evidence at plan 003's single canonical service test. |
+| 2026-07-10 | 1.7 | Remove test-only turn-status conversion helpers and align owner evidence to the four-value contract. |
 | 2026-07-10 | 1.6 | Remove the unreferenced duplicate string-pointer helper from the Practice API handler. |
 | 2026-07-07 | 1.3 | Compress owner docs to current event-loop, completion, idempotency, event/job and privacy contract. |
 | 2026-05-14 | 1.2 | Complete implementation and verification for event loop and completion. |

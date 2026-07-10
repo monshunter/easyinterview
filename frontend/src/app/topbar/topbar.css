@@ -133,10 +133,6 @@
   pointer-events: none;
 }
 
-.ei-topbar-theme-swatch--custom-active {
-  background: var(--ei-color-accent);
-}
-
 .ei-topbar-theme-button {
   padding: 4px 8px;
   height: 26px;
@@ -475,17 +471,14 @@
 .ei-topbar-auth-login {
   height: 30px;
   padding: 0 12px;
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: var(--ei-radius-sm);
+  color: var(--ei-color-fg-secondary);
   font-family: var(--ei-font-sans);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-}
-
-.ei-topbar-auth-login {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--ei-color-fg-secondary);
 }
 
 .ei-topbar-auth-login:hover {

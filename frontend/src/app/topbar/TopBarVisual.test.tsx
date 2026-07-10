@@ -102,6 +102,35 @@ describe("TopBar shell visual contract (Phase 3.1)", () => {
     expect(app).toContain("zIndex: 30");
   });
 
+  it("does not keep a custom-active swatch modifier without a DOM consumer", () => {
+    const css = readFileSync(TOPBAR_CSS, "utf8");
+    expect(css).not.toContain(".ei-topbar-theme-swatch--custom-active");
+  });
+
+  it("keeps one complete login button rule and an independent hover rule", () => {
+    const css = readFileSync(TOPBAR_CSS, "utf8");
+    const baseRules =
+      css.match(/\.ei-topbar-auth-login\s*\{[^}]*\}/g) ?? [];
+    const baseDeclarations = baseRules.join("\n");
+
+    expect(baseRules).toHaveLength(1);
+    expect(baseDeclarations).toMatch(/height:\s*30px/);
+    expect(baseDeclarations).toMatch(/padding:\s*0 12px/);
+    expect(baseDeclarations).toMatch(/border-radius:\s*var\(--ei-radius-sm\)/);
+    expect(baseDeclarations).toMatch(/font-family:\s*var\(--ei-font-sans\)/);
+    expect(baseDeclarations).toMatch(/font-size:\s*13px/);
+    expect(baseDeclarations).toMatch(/font-weight:\s*500/);
+    expect(baseDeclarations).toMatch(/cursor:\s*pointer/);
+    expect(baseDeclarations).toMatch(/background:\s*transparent/);
+    expect(baseDeclarations).toMatch(/border:\s*1px solid transparent/);
+    expect(baseDeclarations).toMatch(
+      /color:\s*var\(--ei-color-fg-secondary\)/,
+    );
+    expect(
+      css.match(/\.ei-topbar-auth-login:hover\s*\{[^}]*\}/g) ?? [],
+    ).toHaveLength(1);
+  });
+
   it("regression: D1 testids and aria-current/aria-pressed contract intact", () => {
     renderTopBar();
     expect(screen.getByTestId("topbar-primary-nav")).toBeInTheDocument();

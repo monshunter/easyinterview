@@ -5,9 +5,6 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-import pytest
-
-
 SCRIPT_PATH = Path(__file__).resolve().parent / "sync-doc-index.py"
 OBSOLETE_EN_STATUS = "de" + "precated"
 OBSOLETE_ZH_STATUS = "废" + "弃"

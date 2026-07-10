@@ -58,7 +58,7 @@ requestAuth({
 - [`src/api/mockTransport.ts`](./src/api/mockTransport.ts) 提供 `createFixtureBackedFetch + createFixtureRegistry`，scenario 通过请求头 `Prefer: example=<scenario>` 选择 fixture。
 - [`src/api/clientFactory.ts`](./src/api/clientFactory.ts) 是正式 bootstrap 入口：Vite dev (`import.meta.env.DEV`) 默认使用 fixture-backed client，production 默认使用 same-origin `/api/v1`。
 - 需要在 dev 下打真实 backend 时显式运行 `VITE_EI_API_MODE=real VITE_EI_API_BASE_URL=<full-api-base> pnpm --filter @easyinterview/frontend dev`（例如 `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`）。前端 dev 端口可通过 `FRONTEND_HOST_PORT` 覆盖；不要依赖相对 `/api/v1`，否则浏览器会打到 Vite 前端 origin。
-- App 的 runtime + auth 状态通过 [`src/app/runtime/AppRuntimeProvider.tsx`](./src/app/runtime/AppRuntimeProvider.tsx) 暴露：`useAppRuntime()` 拿到 `client / runtime / auth / refreshAuth`；非 React 路径用 [`src/lib/runtime-config`](./src/lib/runtime-config) 直接读取 runtime config。
+- App 的 runtime + auth 状态通过 [`src/app/runtime/AppRuntimeProvider.tsx`](./src/app/runtime/AppRuntimeProvider.tsx) 暴露：`useAppRuntime()` 拿到 `client / runtime / auth / refreshAuth`；provider 通过 generated client 的 `getRuntimeConfig` 读取唯一 runtime-config endpoint。
 - D1 only wires `getRuntimeConfig` / `getMe` / `startAuthEmailChallenge` / `verifyAuthEmailChallenge` / `completeMyProfile` / `logout`。**新增 client 操作必须先修订 B2 + C1 spec**，然后通过 `src/app/auth/authContractGate.test.ts` 把允许集合扩到允许列表。
 
 ### 2.4 Mock 数据源边界
@@ -121,7 +121,7 @@ requestAuth({
 |------|---------------|---------|
 | TopBar | `ei-shell-topbar` / `ei-topbar-{nav,nav-button,controls,user,theme,dark,lang,custom-accent,auth-{login,register},user-button}` | [`src/app/topbar/topbar.css`](./src/app/topbar/topbar.css) |
 | 认证页 | `ei-auth-shell` / `ei-auth-{side,side-panel,card,form,field,cta,status,row}` | [`src/app/auth/auth.css`](./src/app/auth/auth.css) |
-| Settings / fallback shell / 业务屏幕 | `ei-screen-shell` / `ei-screen-card` / `ei-skeleton-{stripe,line}` / `ei-screen-card-grid` | [`src/app/screens/screens.css`](./src/app/screens/screens.css) |
+| Settings / fallback shell / 业务屏幕 | `ei-screen-shell` / `ei-screen-card` / `ei-skeleton-{stripe,line}` | [`src/app/screens/screens.css`](./src/app/screens/screens.css) |
 
 Frontend owner 替换 fallback shell 时应保留 `ei-screen-shell` 外壳与 `ei-screen-card` 节奏；新分区只在 card 内部展开内容，不在 shell 外加自定义 wrapper。
 

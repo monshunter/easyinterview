@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.21
+> **版本**: 1.25
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -79,6 +79,28 @@
 
 门禁：focused AppAuthDispatch 14 tests 通过且无 React act warning，frontend-shell focused/full frontend tests、typecheck/build 与 owner docs gates 保持绿色。BDD 不适用，因为本批只修正测试生命周期。
 
+### Phase 9: i18n catalog reachability cleanup
+
+以 TypeScript AST 建立通用 locale-key reachability gate：每个 zh/en message key 必须在 production TS/TSX 中有字面量 consumer。Report 的 tab/missing-state 动态 key 改为类型化字面量映射，Practice TopBar 接回当前原型已有的题号与暂停/继续文案；其余零 consumer 双语 key 直接删除，不保留兼容或退役清单。
+
+门禁：locale gate 先报告 46 个 orphan/dynamic key，修正后归零；focused Home/Practice/Report/Shell tests、typecheck/build、UI truth-source tests、owner contexts 与 docs/diff/pruning gates 通过。
+
+### Phase 10: auth prototype call-surface pruning
+
+`ui-design/src/app.jsx` 只向 auth 原型 screen 传递真实消费的参数：登录页保留 `nav` 以进入验证码页，验证码页保留 `onSignIn` 以完成登录，资料补全页保留 `onCompleteProfile` 以恢复 pendingAction。删除登录页从未读取的 `onSignIn` 与资料补全页从未读取的 `nav`，同时删除调用方对应传参，不增加兼容参数或空转 wrapper。
+
+门禁：UI contract 先对当前冗余签名和调用方传参失败，删除后以 AST 证明 auth 原型参数全部有读取点；focused UI/auth gates、静态浏览器 auth route smoke、full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates 通过。BDD 不适用，因为本批不改变 email-code、profile setup 或 pendingAction 用户行为。
+
+### Phase 11: settings prototype call-surface pruning
+
+`SettingsScreen` 只消费主题 token、语言、字体预设与字体更新回调；设置页内部通过本地 tab 切换展示个人资料与隐私内容，不发起 route 跳转。删除从未读取的 `nav` 形参与 `app.jsx` 对应传参，保留 `fontPreset` / `setFontPreset` 显示设置链，不增加空转参数或 wrapper。
+
+门禁：UI contract 先对当前冗余 Settings 签名和调用方传参失败，删除后以 AST 证明 Settings 参数全部有读取点；focused Settings/P0.005、静态浏览器 settings tab/font smoke、full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates 通过。BDD 不适用，因为本批不改变 settings 的可见内容、tab 或字体行为。
+
+### Phase 12: zero-consumer Auth CSS pruning
+
+删除 `auth.css` 中没有正式 Auth DOM、静态原型或场景消费者的 `ei-auth-link-row` 规则；保留当前 `ei-auth-secondary-link`、`ei-auth-help` 与 email-code 页面布局。BDD 不适用，因为该 wrapper 不可达；替代 gate 为 AuthVisual source RED/GREEN、class inventory、focused Auth/P0.005、full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates。
+
 ## 7 风险与应对
 
 | 风险 | 应对措施 |
@@ -93,5 +115,9 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.25 | Delete the zero-consumer Auth link-row CSS wrapper. |
+| 2026-07-10 | 1.24 | Remove the unread Settings prototype navigation prop and caller argument. |
+| 2026-07-10 | 1.23 | Prune two unread auth prototype props and their caller arguments. |
+| 2026-07-10 | 1.22 | Add production locale-key reachability and remove orphan catalog entries. |
 | 2026-07-10 | 1.21 | Isolate synchronous auth alias tests from unrelated runtime-provider updates. |
 | 2026-07-07 | 1.20 | Compress owner plan to the current App shell / auth / settings contract, operation matrix, and current gate surface. |

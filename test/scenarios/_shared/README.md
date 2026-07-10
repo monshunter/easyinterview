@@ -6,10 +6,9 @@
 
 | 文件 | 用途 |
 |------|------|
-| `scripts/common.sh` | 通用 helper 函数 |
-| `scripts/image-cache.sh` | 容器镜像预热脚本 |
 | `scripts/frontend-real-backend-gate.sh` | frontend owner 场景前置 real-mode generated-client gate |
-| `scripts/frontend-real-backend-verify.sh` | frontend owner 场景日志中的 real-mode gate 证据检查 |
+| `scripts/frontend-real-backend-verify.sh` | frontend owner 场景日志中的 real-mode gate、可配置 owner test marker 与 Vitest runner/summary 证据检查 |
 | `scripts/local-dev-runtime.sh` | host-run backend/frontend 重启、PID、日志与本地调试摘要 helper |
-
-这些路径只有在文件真实存在时才是可执行入口。缺失时不得杜撰命令。
+| `scripts/resume-runtime-negative-gate.sh` | Resume P0.075-P0.080 共用的 old-mode / out-of-scope-module production negative gate |
+| `scripts/scenario-evidence-setup.sh` | 从场景目录创建标准 `.test-output/e2e/<scenario>/setup.env` 证据 |
+| `scripts/scenario-evidence-cleanup.sh` | 删除标准 `setup.env`，保留 trigger/verify 证据 |

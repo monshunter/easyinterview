@@ -333,28 +333,4 @@ const ReadinessDial = ({ level, label, T, size = 56 }) => {
   );
 };
 
-// Mini sparkline
-const Sparkline = ({ values, color, width = 80, height = 24 }) => {
-  const min = Math.min(...values), max = Math.max(...values);
-  const range = max - min || 1;
-  const pts = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * width;
-    const y = height - ((v - min) / range) * (height - 4) - 2;
-    return `${x},${y}`;
-  }).join(" ");
-  return (
-    <svg width={width} height={height} style={{ display: "block" }}>
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-};
-
-// Key/value label stack (editorial list)
-const KV = ({ k, v, T, mono }) => (
-  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "8px 0", borderBottom: `1px dotted ${T.rule}`, gap: 16 }}>
-    <div className="ei-label" style={{ color: T.ink3 }}>{k}</div>
-    <div style={{ fontSize: 13, color: T.ink, fontFamily: mono ? "var(--ei-mono)" : "inherit", textAlign: "right" }}>{v}</div>
-  </div>
-);
-
-Object.assign(window, { Icon, Tag, Btn, Card, SectionHeader, ReadinessDial, Sparkline, KV });
+Object.assign(window, { Icon, Tag, Btn, Card, SectionHeader, ReadinessDial });

@@ -178,7 +178,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              loader.GetString("app.listenAddr"),
-		Handler:           withLocalDevCORS(loader.AppEnv(), localDevCORSOrigins(loader), buildAPIHandlerWithUploadReportJobsAndHandlers(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), jobsRoutes)),
+		Handler:           withLocalDevCORS(loader.AppEnv(), localDevCORSOrigins(loader), buildAPIHandler(loader, flagsClient, authService, targetJobRuntime.Handler, practiceRoutes, uploadRoutes, resumeRuntime.Routes(), reportRuntime.Routes(), jobsRoutes)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -320,15 +320,6 @@ func buildAuthService(loader *config.Loader, db *sql.DB) (*auth.EmailCodeService
 	return service, writer, nil
 }
 
-func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.EmailCodeService, db *sql.DB) http.Handler {
-	upload, _ := buildUploadRoutes(loader, db)
-	return buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, buildTargetJobHandler(loader, targetjob.NewSQLStore(db)), practiceRoutes{}, upload, resumeRoutes{})
-}
-
-func buildAPIHandlerWithTargetJobHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.EmailCodeService, targetJobHandler *targetjob.Handler) http.Handler {
-	return buildAPIHandlerWithHandlers(loader, flagsClient, authService, targetJobHandler, practiceRoutes{})
-}
-
 type practiceRoutes struct {
 	Handler     *apipractice.Handler
 	Idempotency *idempotency.Middleware
@@ -374,19 +365,7 @@ type resumeRoutes struct {
 	Idempotency *idempotency.Middleware
 }
 
-func buildAPIHandlerWithHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.EmailCodeService, targetJobHandler *targetjob.Handler, practice practiceRoutes) http.Handler {
-	return buildAPIHandlerWithUploadAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, uploadRoutes{}, resumeRoutes{})
-}
-
-func buildAPIHandlerWithUploadAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.EmailCodeService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes) http.Handler {
-	return buildAPIHandlerWithUploadReportAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, upload, resume, reportRoutes{})
-}
-
-func buildAPIHandlerWithUploadReportAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.EmailCodeService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes) http.Handler {
-	return buildAPIHandlerWithUploadReportJobsAndHandlers(loader, flagsClient, authService, targetJobHandler, practice, upload, resume, reports, jobsRoutes{})
-}
-
-func buildAPIHandlerWithUploadReportJobsAndHandlers(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.EmailCodeService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes, jobs jobsRoutes) http.Handler {
+func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.EmailCodeService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes, jobs jobsRoutes) http.Handler {
 	mux := http.NewServeMux()
 	authHandler := auth.NewHandler(auth.HandlerOptions{
 		EmailCode:    authService,
@@ -533,15 +512,6 @@ func (r *reportRuntime) Routes() reportRoutes {
 		return reportRoutes{}
 	}
 	return reportRoutes{Handler: r.Handler}
-}
-
-// Handles reports whether this runtime contributes a handler for jobType.
-func (r *reportRuntime) Handles(jobType string) bool {
-	if r == nil {
-		return false
-	}
-	_, ok := r.Handlers[jobType]
-	return ok
 }
 
 func buildReportRuntime(loader *config.Loader, db *sql.DB, ai aiclient.AIClient) (*reportRuntime, error) {
@@ -692,15 +662,6 @@ type targetJobRuntime struct {
 	ParseAI  aiclient.AIClient
 }
 
-// Handles reports whether this runtime contributes a handler for jobType.
-func (r *targetJobRuntime) Handles(jobType string) bool {
-	if r == nil {
-		return false
-	}
-	_, ok := r.Handlers[jobType]
-	return ok
-}
-
 // Close releases the AI runtime resources owned by this runtime. Job lifecycle
 // (lease / reaper / shutdown) is owned by the shared runner.Runtime kernel.
 func (r *targetJobRuntime) Close() {
@@ -724,15 +685,6 @@ func (r *resumeRuntime) Routes() resumeRoutes {
 		return resumeRoutes{}
 	}
 	return resumeRoutes{Handler: r.Handler, Idempotency: r.Idempotency}
-}
-
-// Handles reports whether this runtime contributes a handler for jobType.
-func (r *resumeRuntime) Handles(jobType string) bool {
-	if r == nil {
-		return false
-	}
-	_, ok := r.Handlers[jobType]
-	return ok
 }
 
 func buildResumeRuntime(loader *config.Loader, db *sql.DB, upload uploadRoutes, ai aiclient.AIClient) (*resumeRuntime, error) {

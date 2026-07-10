@@ -58,8 +58,14 @@ describe("PracticeScreen static shell (item 1.1)", () => {
     expect(screen.getByTestId("practice-topbar-company")).toBeDefined();
     expect(screen.getByTestId("practice-topbar-title")).toBeDefined();
     expect(screen.getByTestId("practice-topbar-question")).toBeDefined();
+    expect(screen.getByTestId("practice-topbar-question")).toHaveTextContent(
+      "Question",
+    );
     expect(screen.getByTestId("practice-topbar-timer")).toBeDefined();
     expect(screen.getByTestId("practice-topbar-pause")).toBeDefined();
+    expect(screen.getByTestId("practice-topbar-pause")).toHaveTextContent(
+      "Pause",
+    );
     expect(screen.getByTestId("practice-topbar-mode-text")).toBeDefined();
     expect(screen.getByTestId("practice-topbar-mode-phone")).toBeDefined();
     expect(screen.getByTestId("practice-finish-cta").tagName).toBe("BUTTON");

@@ -43,7 +43,11 @@ def test_auto_mode_defines_commit_message_derivation():
     assert "Auto mode commit message derivation rules:" in text
     assert "`type`: infer from the phase content; default to `feat`" in text
     assert "`scope`: derive from the plan name core term" in text
-    assert "`subject`: remove the `Phase N:` prefix from the phase heading and lowercase the remainder" in text
+    assert (
+        "`subject`: remove the `Phase N:` prefix from the phase heading, translate or summarize "
+        "the remainder into concise English, and lowercase the result where natural for "
+        "Conventional Commit style"
+    ) in text
     assert "The full commit message must also include a body summarizing checklist, phase, and completed items." in text
 
 

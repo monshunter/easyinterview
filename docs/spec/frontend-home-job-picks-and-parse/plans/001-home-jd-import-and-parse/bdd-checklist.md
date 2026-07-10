@@ -1,6 +1,6 @@
 # 001 BDD Checklist
 
-> **版本**: 2.16
+> **版本**: 2.17
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -44,7 +44,7 @@
 ## 整体收口
 
 - [x] P0.014、P0.015、P0.016、P0.018 均执行 `setup -> trigger -> verify -> cleanup` 或记录 focused equivalent + scenario wrapper 证据。
-- [x] `make validate-fixtures` 确认相关 fixture 仍在 35-operation 合同内。
+- [x] `make validate-fixtures` 确认相关 fixture 仍在当前 37-operation 合同内。
 - [x] Owner 文档、context、INDEX 与 product-scope / workspace 证据同步。
 - [x] Round assumptions shared data-binding regression and focused equivalent evidence are linked back to owner checklist Phase 7.
 - [x] Structured interview rounds contract and scenario evidence are linked back to owner checklist Phase 8.

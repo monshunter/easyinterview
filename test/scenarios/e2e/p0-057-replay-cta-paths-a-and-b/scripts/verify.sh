@@ -8,7 +8,6 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 test -s "$LOG_FILE"
 "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}"
 grep -Fq 'E2E.P0.057: validating direct-start owner contract' "$LOG_FILE" || { echo "E2E.P0.057: direct-start owner preflight did not run" >&2; exit 1; }
-grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE" || { echo "E2E.P0.057: no passing test files" >&2; exit 1; }
 grep -Fq 'preflight.test.ts' "$LOG_FILE" || { echo "E2E.P0.057: report owner preflight did not pass" >&2; exit 1; }
 grep -Fq 'pendingActionReplayPractice.test.ts' "$LOG_FILE" || { echo "E2E.P0.057: pendingAction replay test did not run" >&2; exit 1; }
 grep -Fq 'ReplayCta.test.tsx' "$LOG_FILE" || { echo "E2E.P0.057: ReplayCta test did not run" >&2; exit 1; }

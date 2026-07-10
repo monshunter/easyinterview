@@ -1,6 +1,6 @@
 # Repo Scaffold History
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 1.9 | 将根 Go 工具链与 module directive 统一为 `1.24.5`，并把 `go mod tidy -diff` 纳入根 lint 聚合入口。 | repo-scaffold/001-bootstrap |
 | 2026-07-10 | 1.8 | 收敛 git hook 当前事实：`pre-commit` 已委托 A4 secret scan，`commit-msg` 已执行 ASCII-only message gate，不再描述为占位骨架。 | repo-scaffold/001-bootstrap |
 | 2026-07-10 | 1.7 | 将根 `Makefile` D-3 / C-2 从 TODO exit-zero 占位口径收敛为当前真实委托：dev-stack、codegen 链与 backend migrate CLI 均由对应 owner 承接。 | repo-scaffold/001-bootstrap |
 | 2026-07-10 | 1.6 | 根 `make fmt` 从 child Makefile TODO fallback 改为真实 `gofmt` 入口；删除 `recurse_target` fallback。 | repo-scaffold/001-bootstrap |

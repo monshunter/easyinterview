@@ -1,6 +1,6 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.21
+> **版本**: 1.25
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -58,3 +58,39 @@
 
 - [x] 8.1 `auth_reset` / `auth_register` 同步 normalization tests 在断言后显式 unmount，清除无关 runtime-provider state update（验证：AppAuthDispatch 14 tests 无 act warning、frontend-shell/full frontend test/typecheck/build、owner context/docs gates）
   <!-- verified: 2026-07-10 method=auth-alias-test-lifecycle-isolation evidence="Focused red reproduced one AppRuntimeProvider act warning in each synchronous alias test. Explicit unmount after assertions reuses the file's existing lifecycle pattern. AppAuthDispatch 14/14 and frontend-shell auth/runtime scenarios 72/72 pass warning-free; frontend build and owner/product contexts pass. Full frontend 137 files/829 tests pass and AppAuthDispatch is absent from the remaining warning list; diff/pruning gates pass real_residuals=0." -->
+
+## Phase 9: i18n catalog reachability cleanup
+
+- [x] 9.1 新增 TypeScript AST locale reachability test，先红并精确报告 production 无字面量 consumer 的 key。
+  <!-- verified: 2026-07-10 method=locale-reachability-red evidence="Focused localeFiles test failed only the new AST gate and reported exactly 46 production-unreachable or dynamically constructed keys; the other five locale structure tests passed." -->
+- [x] 9.2 通过 domain owner 将 Report 动态 key 类型化、Practice 原型文案接回正式 TopBar，并删除其余 zh/en orphan keys 与 Home 原型孤儿属性。
+  <!-- verified: 2026-07-10 method=typed-locale-reachability-green evidence="Classified the 46-key red inventory as 13 Report dynamic keys, 3 current Practice prototype keys and 30 true orphans. Report now uses typed MessageKey maps, Practice renders Question/Pause/Resume through typed messages, both locale catalogs shrink from 397 to 367 keys, and the unrendered Home uploadSourceSub prototype property is deleted. The AST reachability gate reports zero keys." -->
+- [x] 9.3 运行 focused/full frontend、typecheck/build、UI contract/parity、owner contexts 与 docs/diff/pruning gates。
+  <!-- verified: 2026-07-10 method=frontend-locale-parity-regression evidence="Focused locale/Practice/Report tests pass 5 files/34 tests; owner directories pass 46 files/239 tests; full frontend passes 137 files/841 tests. Typecheck/build, 35 UI prototype contracts, Practice Playwright 11 pass plus 1 expected desktop skip, P0.045 real-mode 1 plus 18 tests, P0.059 real-mode 1 plus 18 Vitest plus 3 pytest plus 14 Playwright, five owner/product contexts and pruning/diff gates pass. No scenario environment restart or data cleanup occurred." -->
+
+## Phase 10: auth prototype call-surface pruning
+
+- [x] 10.1 新增 auth 原型参数消费 contract，并先红证明登录页仍接收未读取的 `onSignIn`、资料补全页仍接收未读取的 `nav`。
+  <!-- verified: 2026-07-10 method=auth-prototype-call-surface-red evidence="UI contract ran 40 tests: the new consumed-callback contract failed on the existing AuthLoginScreen onSignIn parameter while the prior 39 tests passed; the same source inventory also pins the unread AuthProfileSetupScreen nav parameter and caller arguments." -->
+- [x] 10.2 删除两个零读取参数及 `app.jsx` 对应调用方传参；验证：AST auth 参数消费 inventory 归零，验证码登录、资料补全与 pendingAction 回跳代码路径保持原样。
+  <!-- verified: 2026-07-10 method=auth-prototype-call-surface-green evidence="Removed only AuthLoginScreen.onSignIn, AuthProfileSetupScreen.nav and the two matching app.jsx arguments. UI contract passes 40/40; Babel binding inventory reports authUnread=[] while preserving AuthVerifyScreen.onSignIn, AuthLoginScreen.nav and AuthProfileSetupScreen.onCompleteProfile." -->
+- [x] 10.3 运行 UI contract、focused auth/P0.005、静态浏览器 auth route smoke、full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates。
+  <!-- verified: 2026-07-10 method=auth-prototype-regression-closeout evidence="UI contract passes 40/40 and focused auth/App/P0.005 passes 4 files/49 tests. P0.005 setup/trigger/verify/cleanup passes 8 tests; full frontend passes 137 files/841 tests, typecheck and build pass. Static browser traverses auth_login -> auth_verify -> auth_profile_setup -> home, persists both completion flags and reports no errors; server requests are 200/304. Both owner contexts, diff and pruning gates pass with real_residuals=0. No scenario environment restart or data cleanup occurred." -->
+
+## Phase 11: settings prototype call-surface pruning
+
+- [x] 11.1 新增 Settings 原型参数消费 contract，并先红证明 `SettingsScreen` 与 `app.jsx` 仍保留未读取的 `nav`。
+  <!-- verified: 2026-07-10 method=settings-prototype-call-surface-red evidence="UI contract ran 41 tests: the new Settings consumed-dependency contract failed on the existing nav parameter while the prior 40 tests passed; the same contract pins the caller argument and retained font preset dependencies." -->
+- [x] 11.2 删除 Settings 的零读取 `nav` 形参与调用方传参；验证：AST Settings 参数消费 inventory 归零，字体预设读写链保持原样。
+  <!-- verified: 2026-07-10 method=settings-prototype-call-surface-green evidence="Removed only SettingsScreen.nav and the matching app.jsx argument. UI contract passes 41/41; Babel binding inventory reports settingsUnread=[] while the contract retains fontPreset and setFontPreset at both callee and caller." -->
+- [x] 11.3 运行 UI contract、focused Settings/P0.005、静态浏览器 settings tab/font smoke、full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates。
+  <!-- verified: 2026-07-10 method=settings-prototype-regression-closeout evidence="UI contract passes 41/41 and focused Settings/display/P0.005 passes 4 files/24 tests. P0.005 setup/trigger/verify/cleanup passes 8 tests; full frontend passes 137 files/841 tests, typecheck and build pass. Static browser switches Profile/Privacy tabs and applies Modern as Source Serif Pro/Geist with no errors; server requests are 200. Both owner contexts, diff and pruning gates pass with real_residuals=0. No scenario environment restart or data cleanup occurred." -->
+
+## Phase 12: zero-consumer Auth CSS pruning
+
+- [x] 12.1 Add an AuthVisual source RED gate for the link-row wrapper with no formal DOM or prototype consumer.
+  <!-- verified: 2026-07-10 method=auth-css-source-red evidence="Focused AuthVisual ran 17 tests: all 16 existing Auth contracts passed and only the new zero-consumer gate failed on .ei-auth-link-row." -->
+- [x] 12.2 Delete the CSS rule without an alias, placeholder or removal marker; retain current secondary-link/help selectors.
+  <!-- verified: 2026-07-10 method=auth-css-source-green evidence="AuthVisual passes 17/17; ei-auth-link-row is absent outside its negative assertion, while secondary-link, help/help-line and auth-row retain current component consumers." -->
+- [x] 12.3 Run focused Auth/P0.005, full frontend, typecheck/build, owner/product contexts and docs/index/diff/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=auth-zero-consumer-css-pruning evidence="AuthVisual passes 17, Auth owner passes 6 files/49 tests, P0.005 passes 8, full frontend passes 136 files/841 tests, typecheck/build and both contexts pass. Target runtime inventory is zero and current secondary-link/help/row consumers remain; final docs/index/diff/pruning gates run during closeout. No Bug/retrospective report, environment restart or data cleanup was needed." -->

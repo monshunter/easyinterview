@@ -87,6 +87,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0154](./BUG-0154.md) | resume create prototype discarded the created detail handoff | medium | resolved | 2026-07-10 | `fix(ui-design): preserve created resume detail handoff (BUG-0154)` |
 | [BUG-0152](./BUG-0152.md) | home and workspace quick-start dropped target context | medium | resolved | 2026-07-09 | `fix(frontend): preserve quick-start target context (BUG-0152)` |
 | [BUG-0148](./BUG-0148.md) | round assumptions ignored structured LLM-derived interview rounds | medium | resolved | 2026-07-09 | `-` |
 | [BUG-0143](./BUG-0143.md) | interview plan list cards lacked visual hierarchy and concise content | medium | resolved | 2026-07-08 | `fix(workspace): close plan list UX and context regressions (BUG-0143, BUG-0144, BUG-0145)` |
@@ -130,6 +131,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0155](./BUG-0155.md) | change-intake overcounted generic terms and ignored exact scenario owners | medium | resolved | 2026-07-10 | `fix(change-intake): prioritize exact owner evidence (BUG-0155)` |
 | [BUG-0127](./BUG-0127.md) | host-run backend wildcard bind left resume page on stale 500 | medium | resolved | 2026-06-15 | `fix(local-dev-stack): bind host backend to loopback (BUG-0127)` |
 | [BUG-0114](./BUG-0114.md) | auth registration treated display name as account identity boundary | high | resolved | 2026-05-27 | `fix(auth): enforce email identity semantics (BUG-0114)` |
 | [BUG-0113](./BUG-0113.md) | scenario redeploy refreshed artifacts without restarting host-run services | high | resolved | 2026-05-27 | `fix(test): restart host-run services on redeploy (BUG-0113)` |
@@ -181,6 +183,9 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0157](./BUG-0157.md) | P0.098 shadowed TargetJob fixture left a stale persistence assertion | medium | resolved | 2026-07-10 | `fix(test): align full-funnel target fixture (BUG-0157)` |
+| [BUG-0156](./BUG-0156.md) | root test gate omitted Python tooling and skill contracts | medium | resolved | 2026-07-10 | `fix(test): aggregate Python contract tests (BUG-0156)` |
+| [BUG-0153](./BUG-0153.md) | P0.037 request-count wait raced ready DOM commit | medium | resolved | 2026-07-10 | `fix(test): wait for P0.037 ready DOM (BUG-0153)` |
 | [BUG-0136](./BUG-0136.md) | repo pruning cleanup review exposed lint and frontend guard drift | medium | resolved | 2026-07-07 | `fix(review): close repo pruning cleanup findings (BUG-0136)` |
 | [BUG-0129](./BUG-0129.md) | core-loop pruning left stale profile and codegen test gates | medium | resolved | 2026-06-30 | `fix(core-loop): close pruning gate drift (BUG-0129)` |
 | [BUG-0128](./BUG-0128.md) | core-loop pruning gates missed design canvas and privacy hook drift | medium | resolved | 2026-06-29 | `fix(core-loop): close pruning review drift (BUG-0128)` |

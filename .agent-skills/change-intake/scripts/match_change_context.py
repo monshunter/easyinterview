@@ -47,6 +47,37 @@ FIELD_WEIGHTS = {
     "specFile": (2, 1),
     "references": (2, 1),
 }
+STOP_WORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "as",
+        "at",
+        "by",
+        "for",
+        "from",
+        "in",
+        "into",
+        "is",
+        "of",
+        "on",
+        "or",
+        "the",
+        "to",
+        "with",
+    }
+)
+SCENARIO_ID_PATTERN = re.compile(r"\b(?:e2e\.)?(p\d+\.\d+)\b", re.IGNORECASE)
+SCENARIO_OWNER_PATTERN = re.compile(
+    r"^\s*>\s*Owner:\s*\[[^\]]+\]\(([^)]+)\)",
+    re.IGNORECASE | re.MULTILINE,
+)
+SCENARIO_OWNER_WEIGHT = 100
+STATUS_MATCH_BONUS = {
+    "active": 3,
+    "draft": 1,
+}
 
 
 def string_list(owner: dict, field_name: str) -> list[str]:
@@ -57,18 +88,91 @@ def string_list(owner: dict, field_name: str) -> list[str]:
     return [item for item in value if isinstance(item, str)]
 
 
+def token_variants(token: str) -> set[str]:
+    """Return low-risk lexical variants for one normalized token."""
+    if not token or token in STOP_WORDS:
+        return set()
+
+    variants = {token}
+    if not token.isascii() or not token.isalpha():
+        return variants
+
+    if len(token) > 4 and token.endswith("ing"):
+        stem = token[:-3]
+        variants.update({stem, f"{stem}e"})
+    if len(token) > 3 and token.endswith("ed"):
+        stem = token[:-2]
+        variants.update({stem, f"{stem}e", token[:-1]})
+    if len(token) > 3 and token.endswith("s"):
+        variants.add(token[:-1])
+    return variants - STOP_WORDS
+
+
 def tokenize(text: str) -> set[str]:
-    """Tokenize English identifiers and contiguous Chinese phrases."""
+    """Tokenize identifiers and phrases while dropping low-information words."""
     if not text:
         return set()
     tokens = set()
     for raw in TOKEN_PATTERN.findall(text):
         normalized = raw.lower()
-        tokens.add(normalized)
+        tokens.update(token_variants(normalized))
         for part in SPLIT_PATTERN.split(normalized):
             if part:
-                tokens.add(part)
+                tokens.update(token_variants(part))
     return tokens
+
+
+def find_repo_root(plan_root: str) -> str | None:
+    """Find the nearest repository root that owns docs and scenario assets."""
+    current = os.path.abspath(plan_root)
+    while True:
+        if os.path.isdir(os.path.join(current, "docs", "spec")) and os.path.isdir(
+            os.path.join(current, "test", "scenarios")
+        ):
+            return current
+        parent = os.path.dirname(current)
+        if parent == current:
+            return None
+        current = parent
+
+
+def find_scenario_owner_paths(plan_root: str, query_text: str) -> dict[str, set[str]]:
+    """Resolve exact scenario IDs in a query to README-declared owner plans."""
+    query_ids = {match.upper() for match in SCENARIO_ID_PATTERN.findall(query_text)}
+    repo_root = find_repo_root(plan_root)
+    if not query_ids or not repo_root:
+        return {}
+
+    owners: dict[str, set[str]] = {}
+    scenario_root = os.path.join(repo_root, "test", "scenarios")
+    for dirpath, _, files in os.walk(scenario_root):
+        if "README.md" not in files:
+            continue
+
+        readme_path = os.path.join(dirpath, "README.md")
+        with open(readme_path, "r", encoding="utf-8") as f:
+            text = f.read()
+
+        readme_ids = {
+            match.upper() for match in SCENARIO_ID_PATTERN.findall(text)
+        }
+        matched_ids = query_ids & readme_ids
+        if not matched_ids:
+            continue
+
+        owner_match = SCENARIO_OWNER_PATTERN.search(text)
+        if not owner_match:
+            continue
+        owner_ref = owner_match.group(1).strip().strip("<>").split("#", 1)[0]
+        if "://" in owner_ref:
+            continue
+
+        owner_path = os.path.realpath(os.path.join(dirpath, owner_ref))
+        if not os.path.isfile(owner_path):
+            continue
+        owners.setdefault(owner_path, set()).update(matched_ids)
+
+    return owners
 
 
 def normalize_status(raw_status: str) -> str:
@@ -208,9 +312,10 @@ def score_discovery_values(
 ) -> tuple[int, list[str]]:
     """Score one discovery field against the query."""
     exact_weight, partial_weight = FIELD_WEIGHTS[field_name]
-    score = 0
     reasons = []
     seen = set()
+    overlap_tokens = set()
+    has_exact_hit = False
 
     for value in values:
         if not isinstance(value, str) or not value.strip():
@@ -220,22 +325,22 @@ def score_discovery_values(
         value_tokens = tokenize(normalized)
         exact_hit = len(normalized) >= 2 and normalized in query_text
         overlap = query_tokens & value_tokens
-        contribution = 0
-
-        if exact_hit:
-            contribution = exact_weight
-        if overlap:
-            contribution = max(contribution, partial_weight * len(overlap))
-
-        if contribution <= 0:
+        if not overlap:
+            continue
+        new_overlap = overlap - overlap_tokens
+        if not exact_hit and not new_overlap:
             continue
 
-        score += contribution
+        has_exact_hit = has_exact_hit or exact_hit
+        overlap_tokens.update(overlap)
         reason = f"{field_name}={value}"
         if reason not in seen:
             reasons.append(reason)
             seen.add(reason)
 
+    score = partial_weight * len(overlap_tokens)
+    if has_exact_hit:
+        score = max(score, exact_weight)
     return score, reasons
 
 
@@ -289,9 +394,9 @@ def score_candidate(query_text: str, query_tokens: set[str], candidate: dict) ->
         score += field_score
         reasons.extend(field_reasons)
 
-    # Prefer active/draft plans as a tie-breaker, not as a primary score source.
-    if score > 0 and candidate["status"] == "active":
-        score += 1
+    # Status remains a bounded tie-breaker; exact owner evidence is applied later.
+    if score > 0:
+        score += STATUS_MATCH_BONUS.get(candidate["status"], 0)
 
     deduped_reasons = []
     seen = set()
@@ -324,10 +429,21 @@ def match_change_contexts(plan_root: str, query: str, limit: int = 3) -> dict:
     """Score all plan targets and return the best candidates."""
     normalized_query = query.strip().lower()
     query_tokens = tokenize(normalized_query)
+    scenario_owners = find_scenario_owner_paths(plan_root, normalized_query)
     scored = []
 
     for candidate in iter_context_targets(plan_root):
         score, reasons = score_candidate(normalized_query, query_tokens, candidate)
+        plan_path = candidate["files"].get("plan")
+        owner_scenarios = (
+            scenario_owners.get(os.path.realpath(plan_path), set()) if plan_path else set()
+        )
+        if owner_scenarios:
+            score += SCENARIO_OWNER_WEIGHT
+            reasons = [
+                *(f"scenarioOwner=E2E.{scenario_id}" for scenario_id in sorted(owner_scenarios)),
+                *reasons,
+            ]
         if score <= 0:
             continue
 

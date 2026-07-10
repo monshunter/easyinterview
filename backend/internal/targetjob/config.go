@@ -35,19 +35,6 @@ func URLFetchUserAgent(version string) string {
 	return fmt.Sprintf(URLFetchUserAgentTemplate, v)
 }
 
-// MustNotIntroduceAppLevelConfigKey is a runtime tripwire: any code that
-// tries to register a new app-level config key from inside the targetjob
-// domain panics with a clear "revise A4 first" message. New env-driven
-// configuration must originate from docs/spec/secrets-and-config (A4) so
-// the central inventory stays accurate.
-func MustNotIntroduceAppLevelConfigKey(key string) {
-	panic(fmt.Sprintf(
-		"targetjob: refusing to register app-level config key %q from this domain; "+
-			"revise docs/spec/secrets-and-config (A4) before adding it",
-		key,
-	))
-}
-
 // IsTestAppEnv reports whether the supplied APP_ENV value is the only
 // environment in which stub AI providers are permitted (spec C-10 / plan
 // 1.2). All other values must select real providers and fail-closed when

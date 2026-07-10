@@ -1,6 +1,6 @@
 # 002 BDD Plan
 
-> **版本**: 1.5
+> **版本**: 1.8
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -61,3 +61,19 @@
 | Given | When | Then | 验证入口 |
 |-------|------|------|----------|
 | P0.074-P0.079 已覆盖 flat API / persistence / runner kernel paths；privacy fixtures inject private markers | 运行 job privacy tests、live store ready-only outbox privacy gate、cmd/api runner kernel privacy gates、runtime vocabulary negative greps | outbox payload 只含 IDs/mode/status；`ai_task_runs` 和 audit metadata 不持久化 prompt/model/raw resume/match summary/suggested bullet；backend resume runtime 0 命中 `inline|mirror|mistakes|growth|drill|inline-debrief-record` | `test/scenarios/e2e/p0-080-resume-tailor-privacy-negative/` |
+
+## 3 Phase 10 regression focus
+
+- `E2E.P0.075` remains the complete update mutation regression gate after the shared handler pipeline extraction.
+- `E2E.P0.076` remains the complete duplicate mutation regression gate after the shared handler pipeline extraction.
+- No scenario asset or user-visible behavior changes; both existing lifecycles must run from setup through cleanup before completion.
+
+## 4 Phase 11 scenario-tooling regression focus
+
+- P0.075-P0.080 retain their existing Given / When / Then and evidence requirements while delegating one negative boundary to `_shared`.
+- All six scenario lifecycles run serially; the shared gate must continue to reject contextual old Resume mode vocabulary without matching legal HTTP `inline` usage.
+
+## 5 Phase 12 unified runtime-boundary regression focus
+
+- The shared gate now enforces both contextual old Resume modes and out-of-scope module vocabulary against production files only.
+- P0.075-P0.080 retain the same scenario evidence markers and complete their existing serial lifecycles after the helper rename.

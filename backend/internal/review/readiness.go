@@ -100,18 +100,6 @@ func readinessTierFromScore(score float64) sharedtypes.ReadinessTier {
 	}
 }
 
-func validReadinessTier(tier sharedtypes.ReadinessTier) bool {
-	switch tier {
-	case sharedtypes.ReadinessTierNotReady,
-		sharedtypes.ReadinessTierNeedsPractice,
-		sharedtypes.ReadinessTierBasicallyReady,
-		sharedtypes.ReadinessTierWellPrepared:
-		return true
-	default:
-		return false
-	}
-}
-
 func clamp01(v float64) float64 {
 	if v < 0 {
 		return 0

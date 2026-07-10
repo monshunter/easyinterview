@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Create Flow Checklist
 
-> **版本**: 1.11
+> **版本**: 1.17
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -58,3 +58,32 @@
 
 - [x] 9.1 RED/GREEN: create-flow source gate detects and then rejects the unconsumed `CreateStage` declaration while retaining `data-stage="input"`.<!-- verified: 2026-07-10 method=vitest-red-green evidence="RED failed only on ResumeCreateFlow.tsx; GREEN passed 3/3 after deleting the declaration." -->
 - [x] 9.2 Focused create-flow tests and frontend typecheck pass without a replacement stage abstraction.<!-- verified: 2026-07-10 method=vitest+typecheck evidence="Create-flow passed 6 files/32 tests; frontend typecheck passed; production source inventory returned zero CreateStage matches." -->
+
+## Phase 10: Prototype create-flow call-surface pruning
+
+- [x] 10.1 Add a prototype prop-consumption contract and prove RED while `ResumeCreateFlow` and its caller still carry unread `nav`.
+  <!-- verified: 2026-07-10 method=resume-create-call-surface-red evidence="UI contract ran 44 tests: the new create-flow callback contract failed on the existing ResumeCreateFlow.nav parameter while the prior 43 tests passed; retained assertions pin upload/paste modes plus onBack and onCreateResume ownership." -->
+- [x] 10.2 Delete the unread prop and caller argument; verify Babel inventory reports zero unread `ResumeCreateFlow` props while `onBack` and `onCreateResume` remain intact.
+  <!-- verified: 2026-07-10 method=resume-create-call-surface-green evidence="Removed only ResumeCreateFlow.nav and its matching child argument. UI contract passes 44/44; Babel binding inventory scans 11 prototype files and reports unusedProps=[] and unusedState=[] while retaining onBack/onCreateResume assertions." -->
+- [x] 10.3 Run UI contract, focused create-flow, P0.081, and static-browser upload/paste/back/create smoke; successful prototype creation must preserve the local asset while routing from `flow=create` to its waiting/ready detail. Then run full frontend, typecheck/build, owner contexts and docs/diff/pruning gates.
+  <!-- red: 2026-07-10 method=ui-contract+browser evidence="UI contract ran 44 tests with only the direct-detail contract failing. Browser reproduction showed Save and open returned to the three-item list because the flow-bearing App key remounted ResumeWorkshopScreen and discarded createdResumes." -->
+  <!-- red-2: 2026-07-10 method=ui-contract+browser evidence="After preserving the screen instance, browser replay from the workshop-local New resume action showed params.flow stayed empty and the effect could not exit create mode. The strengthened contract requires addCreatedResume to switch to list before resumeId navigation." -->
+  <!-- verified: 2026-07-10 method=red-green+scenario+browser+frontend+owner-gates evidence="UI contract passed 44/44 after two focused RED/GREEN loops; Babel inventory across 11 prototype files returned unusedProps=[] and unusedState=[]; create-flow focused tests passed 6 files/32 tests; P0.081 passed real-mode 1/1 and 5 files/28 tests with setup/trigger/verify/cleanup; browser proved hash create, back, local New resume, Paste, 50ms waiting detail and 1.2s ready detail with no page errors and 200/304 assets; full frontend passed 137 files/841 tests, typecheck and build; both owner contexts, git diff check and pruning surface passed. BUG-0154 records the route-key state loss. No scenario environment restart or data cleanup was performed." -->
+
+## Phase 11: zero-consumer ghost CTA CSS pruning
+
+- [x] 11.1 Add a create-flow-owned source RED gate for the ghost CTA selector with no formal DOM or prototype consumer.
+  <!-- verified: 2026-07-10 method=create-flow-css-source-red evidence="Focused CreateFlowScopeNegative ran 4 tests: all 3 existing source contracts passed and only the new ghost CTA ownership gate failed." -->
+- [x] 11.2 Delete its base/variant/disabled CSS branches without aliases, placeholders or removal markers; retain the current accent CTA and disabled state.
+  <!-- verified: 2026-07-10 method=create-flow-css-source-green evidence="CreateFlowScopeNegative passes 4/4; ghost is absent outside its negative literal, accent base/variant/disabled CSS remains, and UploadTab/PasteTab retain the two production consumers. CSS class reachability now reports only prototype-backed ei-scroll." -->
+- [x] 11.3 Run focused CreateFlow/P0.081, full frontend, typecheck/build, owner/product contexts and docs/index/diff/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=resume-create-ghost-cta-css-pruning evidence="Source gate passes 4/4; CreateFlow owner passes 6 files/33 tests; P0.081 setup/trigger/verify/cleanup passes real-mode 1 plus focused 29; full frontend passes 136 files/842 tests; typecheck/build and both contexts pass. Ghost runtime inventory is zero, accent CTA retains two consumers, and CSS reachability reports only prototype-backed ei-scroll. Final docs/index/diff/pruning gates run during closeout. No Bug/retrospective report, environment restart or data cleanup was needed." -->
+
+## Phase 12: accent CTA rule consolidation
+
+- [x] 12.1 Add a source RED gate requiring one accent CTA rule with the complete layout, typography, interaction, color and border declarations.
+  <!-- verified: 2026-07-10 method=create-accent-css-cascade-red evidence="Focused CreateFlowScopeNegative ran 5 tests: all 4 existing contracts passed and only the new unique accent CTA rule gate failed because two blocks remained." -->
+- [x] 12.2 Merge both declaration blocks into one rule without changing the disabled rule or component DOM.
+  <!-- verified: 2026-07-10 method=create-accent-css-cascade-green evidence="CreateFlowScopeNegative passes 5/5; exactly one accent CTA rule contains all effective layout, typography, interaction, background, border and color declarations, while the disabled rule and two component consumers remain unchanged." -->
+- [x] 12.3 Run focused CreateFlow, full frontend, typecheck/build, owner/product contexts and docs/index/diff/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=create-accent-css-cascade-consolidation evidence="Source gate passes 5/5; CreateFlow owner passes 6 files/34 tests; full frontend passes 136 files/844 tests; typecheck/build and both contexts pass. Exactly one complete accent CTA rule remains, while the disabled rule and both production consumers are unchanged. Final docs/index/diff/pruning gates pass during closeout. No Bug/retrospective report, environment restart or data cleanup was needed." -->

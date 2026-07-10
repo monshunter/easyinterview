@@ -1,6 +1,6 @@
 # Backend Practice Mode Policies and Provenance Checklist
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -16,7 +16,7 @@
 ## Phase 1: optional hint dispatch and strict mode
 
 - [x] 1.1 `handleHintRequested` keeps hint optional across current goals and modes（验证：`TestSessionEventServiceRouteCoversAllKinds` + strict-mode service tests）
-- [x] 1.2 strict mode returns `show_hint`, calls AI outside the reservation transaction, persists `hint_text`, and replays without pending rows（验证：`TestAppendSessionEventHintStrictModeRunsAIAndAppends`, `TestServiceAppliesHintAIForStrictMode`, `TestE2EP0049PracticeHintOptionalAcrossStrictModeGoals`）
+- [x] 1.2 strict mode returns `show_hint`, calls AI outside the reservation transaction, persists `hint_text`, and replays without pending rows（验证：`TestServiceAppliesHintAIForStrictMode`, `TestE2EP0049PracticeHintOptionalAcrossStrictModeGoals`）
 - [x] 1.3 BDD-Gate: `E2E.P0.049` strict-mode optional hint across goals is covered（验证：`cd backend && go test ./cmd/api -run TestE2EP0049PracticeHintOptionalAcrossStrictModeGoals -count=1` PASS）
 
 ## Phase 2: assisted hint AI and persistence
@@ -44,3 +44,12 @@
 
 - [x] 5.1 `scenarioPracticeAIClient` 默认成功输出使用 canonical `cue` / `answerSummary`，alias-only `hint` 仅保留在 invalid-output 负测；验证: P0.039、P0.048-P0.051 HTTP 测试与 backend-practice package/owner gates 通过。
   <!-- verified: 2026-07-10 method=canonical-hint-scenario-fixture-repair evidence="RED: broad cmd/api gate showed P0.039/P0.048/P0.049/P0.050 success paths degrading to session_wait and writing an extra AI_OUTPUT_INVALID task run because the deterministic fixture emitted alias field hint. GREEN: default success fixture now emits cue/answerSummary; focused P0.039 and P0.048-P0.051 tests PASS; full Practice/internal AI/cmd-api package gate PASS; alias-only invalid-output fixture remains; scoped Practice staticcheck and owner docs/diff/pruning gates PASS." -->
+
+## Phase 6: Duplicate strict-mode hint test removal
+
+- [x] 6.1 确认两条 strict-mode service 测试覆盖相同的 AI hint 成功路径，且旧测试名仅有 owner 文档引用；验证: scoped `dupl -t 100` RED 与 repo-wide exact-name inventory。
+  <!-- verified: 2026-07-10 method=practice-strict-hint-test-duplication-contract evidence="Scoped dupl reports the two strict-mode hint service tests as the file's only clone group; only plan 002/003 evidence consumed the earlier duplicate's exact name." -->
+- [x] 6.2 删除重复测试，保留 `TestServiceAppliesHintAIForStrictMode` 及 strict-mode E2E replay gate；验证: focused Practice tests、scoped `dupl` 与旧名称 zero-reference search。
+  <!-- verified: 2026-07-10 method=practice-strict-hint-test-removal evidence="Assisted and strict canonical tests PASS; scoped dupl reports zero clone groups; the removed exact test name has zero current-tree references." -->
+- [x] 6.3 运行 Practice owner/full backend、vet/staticcheck、owner contexts 与 docs/diff/pruning 收口门禁。
+  <!-- verified: 2026-07-10 method=practice-strict-hint-test-removal-closeout evidence="P0.049 passes all three current goals; Practice owner packages and full backend tests PASS; go vet and scoped/full staticcheck PASS; 002/003/product contexts, docs/index/diff and pruning gates PASS with real_residuals=0." -->

@@ -1,5 +1,5 @@
 // Screen 1: Home / JD 导入 / 最近模拟面试
-const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
+const HomeScreen = ({ T, lang, nav, signedIn = false }) => {
   const D = window.EI_DATA;
   const [input, setInput] = React.useState("");
   const [selectedResumeId, setSelectedResumeId] = React.useState("");
@@ -23,7 +23,6 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
     ph: "Paste the JD here…",
     pasteSource: "Paste JD",
     uploadSource: "Upload JD file",
-    uploadSourceSub: "Supports .pdf / .docx / .md, or import from URL.",
     importBtn: "Start interview now",
     orUpload: "or upload .pdf / .docx / .md",
     active: "Recent mock interviews",
@@ -41,7 +40,6 @@ const HomeScreen = ({ T, lang, nav, role, signedIn = false }) => {
     ph: "把 JD 粘贴到这里…",
     pasteSource: "粘贴 JD",
     uploadSource: "上传 JD 文件",
-    uploadSourceSub: "支持 .pdf / .docx / .md，也可以从 URL 导入。",
     importBtn: "立即面试",
     orUpload: "也可以上传 .pdf / .docx / .md",
     active: "最近模拟面试",
@@ -199,7 +197,7 @@ const MockInterviewCard = ({ job, rounds, T, onClick, onStart, onDelete, showDel
           {job.status}
         </div>
       </div>
-      <MiniRoundRail T={T} lang={lang} rounds={rounds} currentIndex={currentRoundIndex} />
+      <MiniRoundRail T={T} rounds={rounds} currentIndex={currentRoundIndex} />
       {(onStart || showDelete) && (
         <div style={{ borderTop: `1px solid ${T.rule}`, paddingTop: 14, background: T.bgCard, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
           {onStart && (
@@ -235,7 +233,7 @@ const getHomeRoundIndex = (job, rounds) => {
   return Math.min(1, rounds.length - 1);
 };
 
-const MiniRoundRail = ({ T, lang, rounds, currentIndex }) => (
+const MiniRoundRail = ({ T, rounds, currentIndex }) => (
   <div style={{ marginTop: 18 }}>
     <div style={{ position: "relative", height: 34 }}>
       <div style={{ position: "absolute", top: 9, left: 8, right: 8, height: 1, background: T.rule }} />

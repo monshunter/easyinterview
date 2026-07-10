@@ -1,6 +1,6 @@
 # Backend Practice Event Loop and Completion Checklist
 
-> **版本**: 1.6
+> **版本**: 1.8
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -17,8 +17,8 @@
 
 - [x] 1.1 `SessionEventService` routes `answer_submitted` / `hint_requested` / `session_paused` / `session_resumed`（验证：`TestSessionEventServiceRouteCoversAllKinds`）
 - [x] 1.2 `answer_submitted` chooses `ask_follow_up`, `ask_question` or `session_completed` from DB-owned turn/session state（验证：`TestHandleAnswerSubmittedDecisionBranches`）
-- [x] 1.3 `hint_requested` remains available for strict and assisted sessions; plan 003 owns AI-backed hint behavior（验证：`TestAppendSessionEventHintStrictModeRunsAIAndAppends`）
-- [x] 1.4 turn status mapping preserves all five current values and rejects unknown values（验证：`TestTurnStatus`）
+- [x] 1.3 `hint_requested` remains available for strict and assisted sessions; plan 003 owns AI-backed hint behavior（验证：`TestServiceAppliesHintAIForStrictMode`）
+- [x] 1.4 turn status contract preserves all four current values（验证：`TestTurnStatusCurrentValues`、OpenAPI/generated drift gates）
 - [x] 1.5 malformed answer payloads and missing client timestamps fail before AI or repository side effects（验证：`TestAppendSessionEventRejectsMissingAnswerText`、`TestAppendSessionEventRequiresOccurredAt`）
 
 ## Phase 2: append event vertical slice
@@ -50,6 +50,11 @@
 
 - [x] 5.1 删除 `backend/internal/api/practice/handler.go` 中无调用且与 `stringValue` 重复的 `derefString`；验证: scoped `staticcheck ./internal/api/practice/...`、Practice handler/package gate 与 owner docs gates 通过。
   <!-- verified: 2026-07-10 method=practice-handler-dead-helper-removal evidence="RED: backend staticcheck reported U1000 for the unreferenced derefString duplicate. GREEN: removed the helper; staticcheck ./internal/api/practice/... ./internal/practice/... PASS; go test ./internal/api/practice ./internal/practice ./internal/store/practice ./internal/middleware/idempotency ./internal/ai/aiclient ./internal/ai/registry ./cmd/api -count=1 PASS after the separately owned canonical scenario fixture repair; owner contexts, docs/diff/pruning gates PASS." -->
+
+## Phase 6: Turn status helper cleanup
+
+- [x] 6.1 删除仅由自测调用的 `ParseTurnStatus` / `ParseWireTurnStatus` / `WireValue` / `valid`，保留四个生产常量并以直接集合测试锁定 wire 值；验证 production deadcode、symbol inventory、Practice focused/full tests、OpenAPI/generated drift、owner contexts 与 docs/diff/pruning gates。
+  <!-- verified: 2026-07-10 method=practice-turn-status-helper-removal evidence="Production deadcode RED listed all four helpers. Removed them and replaced the round-trip self-test with direct assertions for the four production constants. Practice focused tests, P0.038-P0.043, full backend, staticcheck, codegen/conventions/runtime-boundary gates and owner contexts PASS." -->
 
 ## 收口命令
 

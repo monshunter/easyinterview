@@ -3,12 +3,10 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"strings"
 
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
-	"github.com/monshunter/easyinterview/backend/internal/middleware/idempotency"
 	"github.com/monshunter/easyinterview/backend/internal/resume"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
@@ -28,32 +26,7 @@ func (h *Handler) DuplicateResume(w http.ResponseWriter, r *http.Request, resume
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "resume service is not configured", nil)
 		return
 	}
-	userID, ok := h.resolveUser(r)
-	if !ok {
-		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required", nil)
-		return
-	}
-	if strings.TrimSpace(r.Header.Get(idempotency.HeaderName)) == "" {
-		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "Idempotency-Key header is required", nil)
-		return
-	}
-	raw, err := io.ReadAll(r.Body)
-	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "request body is malformed", nil)
-		return
-	}
-	in, err := validateDuplicateResumeInput(userID, resumeID, raw)
-	if err != nil {
-		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, err.Error(), updateResumeValidationDetails(err))
-		return
-	}
-	out, err := service.DuplicateResume(r.Context(), in)
-	if err != nil {
-		writeUpdateResumeError(w, err)
-		return
-	}
-	idempotency.SetResponseResource(w, "resume", out.Id)
-	writeJSON(w, http.StatusCreated, out)
+	handleResumeMutation(h, w, r, resumeID, http.StatusCreated, validateDuplicateResumeInput, service.DuplicateResume)
 }
 
 func validateDuplicateResumeInput(userID string, resumeID string, raw []byte) (resume.DuplicateResumeRequest, error) {

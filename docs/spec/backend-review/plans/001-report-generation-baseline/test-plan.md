@@ -19,6 +19,7 @@
 | Listing pagination / ownership | cursor, ownership, handler/service/store tests, `TestE2EP0053ReportReadAndListing`, `TestE2EP0055ReportPrivacyAndOutOfScope` |
 | AI failure matrix | `TestGenerateReportFailedMatrix`, `TestE2EP0054ReportAIFailureAndRetry` |
 | Retry / permanent failure | `TestRunnerRetryPolicyAndPermanentFail`, `TestPersistReportFailureRetryAndPermanent`, `TestE2EP0054ReportAIFailureAndRetry` |
+| GenerateHandler retry normalization | `TestGenerateHandler_PropagatesRetryableFailure`, `TestGenerateHandler_NormalizesFinalizedRetryableFailureThroughKernel` |
 | Runtime wiring | `TestBuildReportRuntimeWiresRoutesRunnerReaperAndAI`, `TestBuildReportRuntimeRejectsMissingAIClient` |
 | Contract / generated artifacts | `make codegen-check`, `make validate-fixtures`, `migrations/lint.sh`, `make lint-events`, `make codegen-events-check`, `python3 scripts/lint/conventions_drift.py --repo-root .` |
 | Prompt / rubric | `TestF3ReportGenerateAndAssessmentPreflight`, `python3 scripts/lint/prompt_lint.py`, `python3 scripts/lint/rubric_lint.py` |

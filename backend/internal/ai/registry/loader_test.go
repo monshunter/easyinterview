@@ -7,13 +7,15 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/monshunter/easyinterview/backend/internal/testsupport"
 )
 
 // TestLoad covers the loader's happy path against the real
 // config/prompts/ + config/rubrics/ shipped by plan items 1.2 + 1.3.
 func TestLoadHappyPath(t *testing.T) {
 	t.Parallel()
-	promptsRoot, rubricsRoot := repoConfigRoots(t)
+	promptsRoot, rubricsRoot := testsupport.ConfigRoots(t)
 
 	snap, err := loadFromDisk(promptsRoot, rubricsRoot)
 	if err != nil {
@@ -82,7 +84,7 @@ func TestLoadMissingMarkdownBody(t *testing.T) {
 
 func TestLoadOutputSchemaLanguageIndependent(t *testing.T) {
 	t.Parallel()
-	promptsRoot, rubricsRoot := repoConfigRoots(t)
+	promptsRoot, rubricsRoot := testsupport.ConfigRoots(t)
 
 	snap, err := loadFromDisk(promptsRoot, rubricsRoot)
 	if err != nil {
@@ -223,40 +225,11 @@ func TestLoadInvalidYAML(t *testing.T) {
 	}
 }
 
-// repoConfigRoots returns the absolute paths to the in-repo
-// config/prompts and config/rubrics roots, skipping the test if the
-// repository layout cannot be located (for example when this binary runs
-// outside a checked-out tree).
-func repoConfigRoots(t *testing.T) (string, string) {
-	t.Helper()
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("getwd: %v", err)
-	}
-	// Walk upward until we find go.mod for the backend module.
-	dir := wd
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			break
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			t.Skipf("could not locate backend go.mod from %s", wd)
-			return "", ""
-		}
-		dir = parent
-	}
-	repoRoot := filepath.Dir(dir) // backend/.. == repo root
-	prompts := filepath.Join(repoRoot, "config", "prompts")
-	rubrics := filepath.Join(repoRoot, "config", "rubrics")
-	return prompts, rubrics
-}
-
 // tempBaselineCopy clones the in-repo baseline into t.TempDir so individual
 // tests can mutate files without polluting the repo working tree.
 func tempBaselineCopy(t *testing.T) (string, string) {
 	t.Helper()
-	srcPrompts, srcRubrics := repoConfigRoots(t)
+	srcPrompts, srcRubrics := testsupport.ConfigRoots(t)
 	root := t.TempDir()
 	dstPrompts := filepath.Join(root, "config", "prompts")
 	dstRubrics := filepath.Join(root, "config", "rubrics")

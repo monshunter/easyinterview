@@ -1,6 +1,6 @@
 # Repo Scaffold Spec
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -16,7 +16,7 @@
 
 1. **统一根 layout**：在任何后续 workstream 落地业务代码之前，先冻结仓库根目录的命名与边界，避免多个 subject 同时在不同位置创建 `backend/`、`frontend/` 雪球。
 2. **提供最小可执行入口**：根 `Makefile` 必须能跑通 `help`、`fmt`、`lint`、`test` 等 target；当前 `fmt` 直接执行 Go `gofmt`，`lint` / `test` / `build` / `dev-*` / `codegen` / `migrate-*` 由对应 child（A2 / A5 / B2 / B3 / B4）提供真实实现或根级委托，根 target 名称在本 spec 锁定。
-3. **统一工具链版本声明**：通过 `.tool-versions`（asdf-style）锁定 Go / Node / pnpm / Python 等关键工具的最低版本，避免本地与 CI 漂移。
+3. **统一工具链版本声明**：通过 `.tool-versions`（asdf-style）锁定 Go / Node / pnpm / Python 等关键工具版本，避免本地与 CI 漂移；Go 版本必须与 `backend/go.mod` 的 `go` directive 一致。
 4. **统一格式化与提交前检查**：`.editorconfig` 锁定缩进 / 换行 / 末行换行；`make fmt` 格式化当前 Go 源码；git hooks（pre-commit / commit-msg）提供共享入口，当前承接 A4 secret scan 与 ASCII-only commit message gate，后续 owner 只能在既有入口中追加规则。
 
 本 spec 不写业务代码、不部署服务，也不建立 monorepo 包管理工具（pnpm workspace / Go module 拓扑），那些都归对应 child（A2 `local-dev-stack` / A5 `ci-pipeline-baseline` / B1 `shared-conventions-codified` / B2 `openapi-v1-contract`）。
@@ -50,13 +50,12 @@
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
 | D-1 | 顶层目录命名 | `backend/` / `frontend/` / `openapi/` / `migrations/` / `scripts/` / `test/` / `deploy/` / `shared/` / `config/`；由 engineering roadmap 与 B1/A3/A4 已锁定的共享真理源、配置根容器共同约束 | 所有 child 子目录必须落在这 9 个根容器之内 |
-| D-2 | 工具链锁版 | `.tool-versions` 锁定 Go / Node / pnpm / Python 的最低版本，具体版本号由 001-bootstrap plan 在 codebase 实施时确定 | 本地与 CI 走同一套 asdf 兼容版本声明 |
+| D-2 | 工具链锁版 | `.tool-versions` 锁定 Go / Node / pnpm / Python 版本；当前 Go 为 `1.24.5`，并与根 `go.work`、`backend/go.mod` 的 `go` directive 一致 | 本地与 CI 走同一套 asdf 兼容版本声明；不再叠加独立 `toolchain` directive |
 | D-3 | Make target 命名 | `help` / `fmt` / `lint` / `test` / `build` / `dev-up` / `dev-down` / `codegen` / `migrate` / `install-hooks`；当前根 `Makefile` 不保留空实现 target，已落地入口必须执行真实命令或委托到 owner script / sub-Makefile | 后续 child plan 不得新增同义 target，必须实现既定 target |
 | D-4 | git hooks 落点 | `scripts/git-hooks/`，通过 `make install-hooks` 写入 `.git/hooks/`；不直接版本化 `.git/hooks/` | 兼容 worktree / clone 后再激活 |
 
 ### 3.2 待确认事项
 
-- 是否引入 `go.work` 多 module 模式：A1 默认不创建 `go.work` 或 `go.mod`；如后续实现出现需要拆 module（例如把 `migrations/` 独立成 cmd），由 B1 `shared-conventions-codified` 修订后再落地。
 - 顶层是否接入 `pre-commit` 框架（python-based）vs 纯 shell hooks：默认纯 shell，B1 / A5 接管时可重审。
 
 ## 4 设计约束
@@ -70,6 +69,7 @@
 ### 4.2 工具链约束
 
 - `.tool-versions` 由本 spec owner（A1）锁定字段名，具体版本号写入由 001-bootstrap plan 实施时落地。
+- 根 `go.work` 与 `backend/go.mod` 必须使用 `.tool-versions` 声明的同一 Go 版本；module metadata 保持 `go mod tidy -diff` 零漂移，直接 import 的 module 不得伪标 `// indirect`，根 `lint` 聚合入口必须执行该 gate。
 - `Makefile` 必须自描述：`make help` 输出全部 target 与一行注释。
 - 根 target 不得用 TODO / echo / exit-zero 伪装为已落地能力；暂未具备完整实现的入口必须委托到对应 owner 的真实 wrapper、help 或 dry-run 命令，并让真实失败退出码穿透。
 
@@ -99,7 +99,7 @@
 | C-1 | 根目录 spawn | 当前 worktree 尚未落地 A1 根容器目录（除 docs/、AGENTS.md、原型和输入资料外没有 backend/ frontend/ 等根目录） | 执行 001-bootstrap plan 全部 checklist | 9 个根容器目录、根 Makefile、`.editorconfig`、`.tool-versions`、`scripts/git-hooks/` 全部存在；`shared/README.md`、`config/README.md`、`test/README.md` 存在且不创建 `test/scenarios/`；`make help` 成功列出所有 target | 001-bootstrap |
 | C-2 | 根 target 可执行 | 根 Makefile 已落地 | 跑或 dry-run `make fmt` / `make lint` / `make test` / `make build` / `make dev-up` / `make dev-down` / `make codegen` / `make migrate` | `make fmt` 对 Go 源码执行 `gofmt`；`lint` / `test` / `build` 调真实 backend/frontend gate；`dev-*` 委托 dev-stack；`codegen` 调真实生成链；`migrate` 进入 backend migrate CLI；真实失败不得被 TODO / exit-zero 吞掉 | 001-bootstrap |
 | C-3 | git hooks 安装 | 根仓库 clone 后 | 执行 `make install-hooks` | `.git/hooks/pre-commit`、`.git/hooks/commit-msg` 链接到 `scripts/git-hooks/` 下文件；不修改其它 hook | 001-bootstrap |
-| C-4 | 工具版本声明 | `.tool-versions` 已落地 | `asdf install`（或等价的 mise / nvm）按文件读取 | Go / Node / pnpm / Python 各能解析出锁定的最低版本 | 001-bootstrap |
+| C-4 | 工具版本声明 | `.tool-versions`、根 `go.work` 与 `backend/go.mod` 已落地 | `asdf install`（或等价的 mise / nvm）按文件读取，并执行 `make lint-go-mod-tidy` | Go / Node / pnpm / Python 各能解析出锁定版本；三处 Go 版本均为 `1.24.5` 且 module metadata 零漂移 | 001-bootstrap |
 | C-5 | 跨 subject 不冲突 | A1 完成后 | A2 / B1 / B2 / A5 等 active subject 各自 plan 进入实施 | 每个 subject 都在 A1 锁定的根目录内增量；不存在重命名根目录或新增平行业务根 | 后续 owner plan |
 
 ## 7 关联计划

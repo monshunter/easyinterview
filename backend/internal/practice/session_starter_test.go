@@ -166,36 +166,6 @@ func TestStartPracticeSessionFailsReservationWhenPromptResolutionFails(t *testin
 	}
 }
 
-func TestStartPracticeSessionRejectsMissingFirstQuestionText(t *testing.T) {
-	store := &recordingPlanStore{
-		reservation: SessionReservation{
-			SessionID:          "session-1",
-			PlanID:             "plan-1",
-			TargetJobID:        "target-1",
-			Goal:               sharedtypes.PracticeGoalBaseline,
-			Mode:               sharedtypes.PracticeModeAssisted,
-			InterviewerPersona: sharedtypes.InterviewerRoleHiringManager,
-			Language:           "zh-CN",
-		},
-	}
-	service := NewService(ServiceOptions{
-		Store:    store,
-		Registry: &fakePromptResolver{resolution: registry.PromptResolution{FeatureKey: "practice.session.first_question", PromptVersion: "p", RubricVersion: "r", ModelProfileName: "practice.first_question.default", FeatureFlag: "none", DataSourceVersion: "registry.v1"}},
-		AI:       &fakeAIClient{content: `{"questionIntent":"missing.text"}`, store: store},
-		NewID:    sequenceIDs("idem-1", "session-1", "turn-1", "event-1", "outbox-1", "audit-1"),
-	})
-
-	if _, err := service.StartPracticeSession(context.Background(), StartSessionRequest{UserID: "user-1", PlanID: "plan-1", IdempotencyKeyHash: "key-hash", RequestFingerprint: "fingerprint"}); err == nil {
-		t.Fatalf("expected invalid first question error")
-	}
-	if len(store.steps) != 3 || store.steps[0] != "reserve" || store.steps[1] != "ai" || store.steps[2] != "fail" {
-		t.Fatalf("invalid first question should persist failed reservation without commit, steps=%v", store.steps)
-	}
-	if store.fail.ErrorCode != sharederrors.CodeAiOutputInvalid || store.fail.Retryable {
-		t.Fatalf("invalid first question failure not recorded correctly: %+v", store.fail)
-	}
-}
-
 func TestParseFirstQuestionUsesCanonicalOutputKeys(t *testing.T) {
 	t.Run("rejects alias-only output", func(t *testing.T) {
 		_, err := parseFirstQuestion(`{"question":"Alias question?","intent":"alias.intent"}`)
@@ -219,33 +189,45 @@ func TestParseFirstQuestionUsesCanonicalOutputKeys(t *testing.T) {
 	})
 }
 
-func TestStartPracticeSessionRejectsNonJSONFirstQuestionResponse(t *testing.T) {
-	store := &recordingPlanStore{
-		reservation: SessionReservation{
-			SessionID:          "session-1",
-			PlanID:             "plan-1",
-			TargetJobID:        "target-1",
-			Goal:               sharedtypes.PracticeGoalBaseline,
-			Mode:               sharedtypes.PracticeModeAssisted,
-			InterviewerPersona: sharedtypes.InterviewerRoleHiringManager,
-			Language:           "zh-CN",
-		},
+func TestStartPracticeSessionRejectsInvalidFirstQuestionOutput(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+	}{
+		{name: "missing question text", content: `{"questionIntent":"missing.text"}`},
+		{name: "non-JSON response", content: `Here is a first question without strict JSON.`},
 	}
-	service := NewService(ServiceOptions{
-		Store:    store,
-		Registry: &fakePromptResolver{resolution: registry.PromptResolution{FeatureKey: "practice.session.first_question", PromptVersion: "p", RubricVersion: "r", ModelProfileName: "practice.first_question.default", FeatureFlag: "none", DataSourceVersion: "registry.v1"}},
-		AI:       &fakeAIClient{content: `Here is a first question without strict JSON.`, store: store},
-		NewID:    sequenceIDs("idem-1", "session-1", "turn-1", "event-1", "outbox-1", "audit-1"),
-	})
 
-	if _, err := service.StartPracticeSession(context.Background(), StartSessionRequest{UserID: "user-1", PlanID: "plan-1", IdempotencyKeyHash: "key-hash", RequestFingerprint: "fingerprint"}); err == nil {
-		t.Fatalf("expected non-JSON first question to be rejected")
-	}
-	if len(store.steps) != 3 || store.steps[0] != "reserve" || store.steps[1] != "ai" || store.steps[2] != "fail" {
-		t.Fatalf("non-JSON first question should persist failed reservation without commit, steps=%v", store.steps)
-	}
-	if store.fail.ErrorCode != sharederrors.CodeAiOutputInvalid || store.fail.Retryable {
-		t.Fatalf("non-JSON first question failure not recorded correctly: %+v", store.fail)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			store := &recordingPlanStore{
+				reservation: SessionReservation{
+					SessionID:          "session-1",
+					PlanID:             "plan-1",
+					TargetJobID:        "target-1",
+					Goal:               sharedtypes.PracticeGoalBaseline,
+					Mode:               sharedtypes.PracticeModeAssisted,
+					InterviewerPersona: sharedtypes.InterviewerRoleHiringManager,
+					Language:           "zh-CN",
+				},
+			}
+			service := NewService(ServiceOptions{
+				Store:    store,
+				Registry: &fakePromptResolver{resolution: registry.PromptResolution{FeatureKey: "practice.session.first_question", PromptVersion: "p", RubricVersion: "r", ModelProfileName: "practice.first_question.default", FeatureFlag: "none", DataSourceVersion: "registry.v1"}},
+				AI:       &fakeAIClient{content: tc.content, store: store},
+				NewID:    sequenceIDs("idem-1", "session-1", "turn-1", "event-1", "outbox-1", "audit-1"),
+			})
+
+			if _, err := service.StartPracticeSession(context.Background(), StartSessionRequest{UserID: "user-1", PlanID: "plan-1", IdempotencyKeyHash: "key-hash", RequestFingerprint: "fingerprint"}); err == nil {
+				t.Fatal("expected invalid first question output to be rejected")
+			}
+			if !reflect.DeepEqual(store.steps, []string{"reserve", "ai", "fail"}) {
+				t.Fatalf("invalid first question should fail the reservation without commit, steps=%v", store.steps)
+			}
+			if store.fail.ErrorCode != sharederrors.CodeAiOutputInvalid || store.fail.Retryable {
+				t.Fatalf("invalid first question failure not recorded correctly: %+v", store.fail)
+			}
+		})
 	}
 }
 

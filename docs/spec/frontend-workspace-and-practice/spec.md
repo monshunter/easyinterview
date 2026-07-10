@@ -1,6 +1,6 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.31
+> **版本**: 1.32
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -14,7 +14,7 @@
 - `practice`：文本 / 电话模式共享的 Interview Session 外层骨架、状态机消费、答题事件提交、提示使用记录与结束动作；独立辅助信息栏、语音分析、语音转文字、跳过和会话内面试官切换均不属于当前合同。
 - `generating`：`completePracticeSession` 后的报告生成过渡态，轮询 `getFeedbackReport(reportId)`，并把完成/失败状态 handoff 给下游 `report` owner。
 
-`report` 不并入本 subspec。`report` 的 dashboard、复练当前轮、进入下一轮与报告详情交互由 `frontend-report-dashboard` / `backend-review` owner 承接。公司轻情报仅作为 `workspace` 的嵌入摘要，由 TargetJob 摘要字段和当前路由上下文驱动。
+`report` 不并入本 subspec。`report` 的 dashboard、复练当前轮、进入下一轮与报告详情交互由 `frontend-report-dashboard` / `backend-review` owner 承接。
 
 本 subspec 通过 generated client + fixture-backed transport 消费已经存在的 TargetJobs / PracticePlans / PracticeSessions / Reports OpenAPI 契约；截至 2026-05-23，backend-resume、backend-practice、practice-voice-mvp 与 backend-review 已经落地本 spec 主路径依赖的真实 handler，前端 owner 的 completed plan 必须保留 fixture-backed UI variants，同时通过 `VITE_EI_API_MODE=real` generated-client gate 证明 production bootstrap 指向真实 backend base URL。任何新增或缺失 operation 仍须先回到 B2 / 对应 backend owner spec 修订，不能在前端手写 ad hoc fetch 或复制 `ui-design` mock data。
 
@@ -52,7 +52,7 @@
 ### 2.2 Out of Scope
 
 - `ReportScreen` / Report Dashboard：Header、Context Strip、Summary Cards、Detail Surface、题目回顾、证据详情、复练当前轮、进入下一轮、无 `sessionId` 空态和报告失败态，由 `frontend-report-dashboard` / `backend-review` 承接。
-- 公司轻情报独立页面、独立刷新 API 与公开来源详情页：不属于本 owner；本 spec 只消费 workspace 内嵌摘要卡片所需的 TargetJob 摘要字段。
+- 公司情报卡片、公开来源详情页与独立刷新 API：不属于当前 owner；`workspace` 列表不消费相关字段、文案或 route。
 - Home / Parse 与 JD 导入解析业务，由 `frontend-home-job-picks-and-parse` 承接。
 - Auth / TopBar / Sidebar / Theme / I18n bootstrap / requestAuth 接线 / generated client bootstrap，由 `frontend-shell` 承接。
 - TargetJobs / PracticePlans / PracticeSessions / Reports 真实 backend handler / service / store / event 发射，由 `backend-targetjob`、`backend-practice`、`event-and-outbox-contract`、`db-migrations-baseline`、`backend-review` 承接。
@@ -73,7 +73,7 @@
 | D-5 | Route 最小上下文 | `workspace` 无业务上下文；`practice/generating/report` 使用各自最小上下文，`report` 最小键是 `sessionId/reportId` | 不把可继承字段误判为所有 route 必填，避免无谓空态 |
 | D-6 | Report handoff | generating 成功后只导航到 `report?sessionId&reportId`；ReportScreen 内部渲染、复练和下一轮动作由外部 owner 实现 | 本 spec 只验证 handoff 参数与生成态，不验证 report dashboard |
 | D-7 | 电话模式入口唯一 | 用户可见沟通形式统一为 `电话模式 / Phone`；电话模式只能通过 `practice` 显式 `mode=phone` / `modality=phone` 参数进入；out-of-scope `mode/modality=voice` 不作为电话模式入口；文本输入框不得出现麦克风转写 | 不恢复独立 voice route、out-of-scope voice query、“切到语音”、`语音面试`、`语音转文字` 或 `Voice` 用户文案 |
-| D-8 | 公司轻情报嵌入边界 | workspace 可显示公司轻情报摘要和刷新/查看提示按钮；按钮停留在 `workspace` 并只携带当前 safe params；数据来自 TargetJob 摘要字段 | 防止前端在无 contract 的情况下扩展独立情报页面或 API |
+| D-8 | Workspace 信息密度 | workspace 只展示状态、岗位、公司/地点、mini round rail 与规划/启动/删除动作，不展示公司情报摘要或刷新/查看提示 | 保持列表可扫描，并确保详情能力由当前 Parse / Practice / Report owner 承接 |
 | D-9 | 立即面试契约 | `parse` / `workspace` list action / report handoff owner 无匹配 ready plan 时先 `createPracticePlan`，再 `startPracticeSession`；两步均携带 `Idempotency-Key`；不得通过 `workspace(autoStartPractice=1)` 执行 route 副作用 | 与 `module-job-workspace.md` §4.4、frontend-shell pendingAction、backend-practice D-13 对齐；不依赖 route 副作用页 |
 | D-10 | backend 契约消费 | 只通过 B2 generated client 消费 OpenAPI operation；字段变化先回 B2/backend owner 修订 | 防止 screen 内自造 endpoint 或复制 fixture JSON |
 | D-11 | phone 协作面 | 本 spec 拥有 phone surface React 组件、DOM/a11y/parity 和字幕层；`practice-voice-mvp` 拥有底层语音 provider、STT/LLM/TTS、committed context、barge-in、切断/重开语义 | 用户可见 phone UI 与底层 voice orchestration 不双 owner |
@@ -105,7 +105,7 @@
 
 - 视觉与交互必须以 `ui-design/src/screen-workspace.jsx::WorkspacePlanList`、`ui-design/src/screens-p0-complete.jsx::ParseScreen`、`ui-design/src/screen-practice.jsx`、`ui-design/src/screens-p0-complete.jsx::ReportGeneratingScreen`、`ui-design/src/app.jsx`（route mapping / `INTERVIEW_CONTEXT_ROUTES` / `hideTopBar`）、`ui-design/src/primitives.jsx` 为唯一真理源进行源级复刻；不得二次设计。
 - `WorkspacePlanList` 必须与 `screen-workspace.jsx` 当前结构一致；规划详情必须通过 `screens-p0-complete.jsx::ParseScreen` 的统一详情母版进入；workspace 不保留 `PlanSwitcherModal` / `ResumePickerModal`。
-- workspace 中的公司轻情报只作为规划页嵌入卡片；workspace 不保留 URL 上下文参数，数据只来自当前 generated TargetJob list consumer。
+- workspace 只消费当前 generated TargetJob list contract；不保留 URL 上下文参数，也不拼接详情或公司情报数据。
 - `PracticeScreen` 的 TopBar 工具区 / Left Panel / Main / text surface / phone surface / 全局结束动作必须与 `screen-practice.jsx` 当前结构一致；独立辅助信息栏、固定辅助栏 CTA、会话内本地 persona switch、严格模拟开关、语音转文字、跳过、语音表达指标均为范围外合同，必须由 current-boundary gate 防回流。
 - `ReportGeneratingScreen` 的 4 步进度态、文案、节奏和 layout 必须与 `screens-p0-complete.jsx::ReportGeneratingScreen` 一致；轮询使用 generated `getFeedbackReport(reportId)`，不得在前端引入 AI provider / prompt registry / LLM key。
 - route context 最小键必须按下表执行：
@@ -119,11 +119,11 @@
 
 - `PracticeDisplayContext = {mode, modality, practiceMode, practiceGoal, hintUsed, hintCount}` 只在 owner route/handoff context 中传递；`completePracticeSession` body 只发送 B2 `clientCompletedAt`，报告 owner 只展示练习方式和提示记录，不得推导通过率。
 - 隐私红线：raw audio / TTS audio / transcript 明文 / LLM prompt-response 明文 / JD 原文 / 简历正文不得进入 console.log / URL query / localStorage / telemetry payload；fixture transport 不得在日志中泄漏。
-- 暗色 / customAccent / 主题切换必须在 owner 三屏和 workspace 公司轻情报摘要卡片中通过 root `data-theme/data-mode/data-custom-accent` 生效。
-- I18n 必须支持 zh / en；新增 `workspace.*` / `practice.*` / `generating.*` 命名空间；report 和公司轻情报扩展文案归对应 owner。
-- Pixel parity gate 必须在 desktop (1440×900) + mobile (390×844) 两个 viewport 下断言 owner 三屏的 DOM 锚点 / computed style / bounding box / 截图差异；workspace 公司轻情报摘要卡片随 workspace gate 覆盖。
-- Mobile 响应式：workspace 主左右列折叠；practice 三栏折叠为单列 + 底部 sheet；generating 居中进度态不溢出视口。
-- `data-testid` 遵循 D1/D2 命名，使用 `workspace-*` / `practice-*` / `generating-*` 前缀；report 和公司轻情报扩展前缀归对应 owner。
+- 暗色 / customAccent / 主题切换必须在 owner 三屏通过 root `data-theme/data-mode/data-custom-accent` 生效。
+- I18n 必须支持 zh / en；使用 `workspace.*` / `practice.*` / `generating.*` 命名空间，report 扩展文案归对应 owner。
+- Pixel parity gate 必须在 desktop (1440×900) + mobile (390×844) 两个 viewport 下断言 owner 三屏的 DOM 锚点 / computed style / bounding box / 截图差异。
+- Mobile 响应式：workspace 卡片网格折叠为单列；practice 三栏折叠为单列 + 底部 sheet；generating 居中进度态不溢出视口。
+- `data-testid` 遵循 D1/D2 命名，使用 `workspace-*` / `practice-*` / `generating-*` 前缀；report 扩展前缀归对应 owner。
 - Current-scope negative gate 必须确认范围外 route/module 名称不作为 live route、TopBar 项、正向 testid、正向 scenario 或用户可见入口出现。
 
 ## 5 模块边界
@@ -132,7 +132,6 @@
 |------|-------|------|
 | workspace list / practice / generating UI | `frontend-workspace-and-practice`（本 spec） | 面试规划列表、列表页立即启动 PracticeSession、PracticeSession 消费、source parity、visual parity、i18n、a11y、responsive；workspace 不拥有详情页视觉或 route 副作用启动 |
 | Report Dashboard UI | `frontend-report-dashboard` / `backend-review` | `ReportScreen`、报告详情、复练当前轮、进入下一轮、report 空态/失败态 |
-| 公司轻情报摘要 | `frontend-workspace-and-practice` | workspace 内嵌摘要卡片；消费 TargetJob 摘要字段，不拥有独立刷新 API |
 | App shell / routes / auth / runtime / theme | `frontend-shell` | TopBar、NO_CHROME_ROUTES、requestAuth、generated client bootstrap、mock transport、display preferences |
 | Home / Parse / Unified Plan Detail | `frontend-home-job-picks-and-parse` | JD 导入、Parse loading、统一面试规划详情母版；workspace 列表卡片进入该母版 |
 | TargetJobs backend | `backend-targetjob` | `listTargetJobs/getTargetJob/updateTargetJob/importTargetJob` handler/store/event |
@@ -172,7 +171,7 @@
 | C-4 | Practice 文本 happy path | 用户进入 `practice?mode=text&modality=text`，session=`running` | 用户输入回答、可选请求提示、暂停/恢复、提交事件、结束 | TextSurface 源级复刻；没有独立辅助信息栏、语音转文字、跳过、会话内本地 persona switch 或严格开关；操作通过 `appendSessionEvent({clientEventId,kind,payload})`；AssistantAction 驱动下一题/追问/完成；结束调用 `completePracticeSession` 后进入 `generating?sessionId&reportId` | 002 |
 | C-5 | Practice 电话模式 + core-goal 显隐 | 用户进入 `practice?mode=phone&modality=phone`，且 `practiceGoal=baseline/retry_current_round/next_round`；out-of-scope `voice` 参数被过滤为非 phone 输入 | 用户接通、说话、显示/隐藏字幕、切断或重新开始 | PhoneSurface 源级复刻；默认不展示文字，字幕层按需显示；不展示语速/停顿/口头禅/音量等语音分析；不直连 STT/TTS provider；底层 voice turn flow 由 practice-voice owner gate 验证 | 002 + practice-voice-mvp/001 |
 | C-6 | Generating 轮询 + report handoff | Practice 已 `completePracticeSession` 收到 `ReportWithJob{reportId,job}` | 用户在 generating 屏等待 | 4 步进度态与 `ReportGeneratingScreen` 一致；`queued/running` 保持等待，`succeeded` 导航 `report?sessionId&reportId`，`failed` 显示错误/重试/返回 workspace；不渲染 Report Dashboard | frontend-report-dashboard / backend-review |
-| C-7 | Downstream handoff 参数 | workspace 公司轻情报卡片存在；generating 成功；records row 由 workspace records owner gate 接管 | 用户点击情报按钮 / 生成完成 / 查看 disabled records row | 情报按钮保持在 `workspace` 并携带 safe `targetJobId/jdId`；generating 对 `report` handoff 携带 `sessionId/reportId`；plan 001 的 workspace records row 保持 disabled handoff row，不伪造 `sessionId/reportId`；报告目标屏渲染归外部 owner | 001 / frontend-report-dashboard |
+| C-7 | Downstream handoff 参数 | workspace 列表已加载；generating 成功 | 用户点击规划卡片、快速启动或等待报告生成完成 | 规划卡片只把真实 `targetJobId` 与可选绑定 IDs 交给 `parse`；快速启动使用 typed round/resume context；generating 对 `report` handoff 只携带 `sessionId/reportId` | 001 / frontend-report-dashboard |
 | C-8 | UI source structure parity | C-1~C-7 通过 | Vitest+jsdom 加载 owner Screen | DOM 锚点、控件类型、icon、aria、keyboard、menu/modal 层级可追溯到 `screen-workspace.jsx` / `screen-practice.jsx` / `ReportGeneratingScreen` / `primitives.jsx` | 001 / 002 / external owner gates |
 | C-9 | UI visual geometry parity | C-8 通过 | Playwright desktop + mobile 加载 owner 三屏 | 关键区块不重叠且 stays in viewport；theme/dark/customAccent 可见；workspace/practice/generating mobile 布局符合原型 | 001 / 002 / external owner gates |
 | C-10 | UI current-scope negative search | C-8 + C-9 通过 | lint/grep gate 扫描 active runtime、positive tests、README、scenario | 范围外 route/module 不作为 live route、TopBar 项、正向 testid、正向 scenario 或用户入口出现；负向断言/禁止清单命中被分类允许 | 001 / 002 / product-scope gate |

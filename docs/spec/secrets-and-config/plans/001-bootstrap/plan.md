@@ -1,6 +1,6 @@
 # Secrets and Config Bootstrap
 
-> **版本**: 1.13
+> **版本**: 1.15
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -9,11 +9,11 @@
 
 ## 1 目标
 
-把 [secrets-and-config spec](../../spec.md) §3.1 已锁定的 D-1..D-9 决策与 §3.1.1 / §3.1.2 锁定的 P0 必备 env key 字典、canonical config schema、`async.queueWeights` config-only 字段落到代码：建立 `backend/internal/platform/{config,secrets,featureflag}/` 三个 Go 包真理源、`config/*.yaml` + `.env.example` + `config/feature-flags.yaml` 默认值集合、`make lint-config` 与 `scripts/git-hooks/pre-commit-secrets.sh` 本地质量门禁、`frontend/src/lib/runtime-config/` 前端 fetcher，以及 `GET /api/v1/runtime-config` handler，并通过本 plan 的 verification phase 证明 [secrets-and-config spec §6](../../spec.md#6-验收标准) C-1..C-12 在本仓库可重复跑通（C-6 与 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 共担最终 schema 一致性，本 plan 完成 A4 侧 builder 与 handler）。
+把 [secrets-and-config spec](../../spec.md) §3.1 已锁定的 D-1..D-9 决策与 §3.1.1 / §3.1.2 锁定的 P0 必备 env key 字典、canonical config schema、`async.queueWeights` config-only 字段落到代码：建立 `backend/internal/platform/{config,secrets,featureflag}/` 三个 Go 包真理源、`config/*.yaml` + `.env.example` + `config/feature-flags.yaml` 默认值集合、`make lint-config` 与 `scripts/git-hooks/pre-commit-secrets.sh` 本地质量门禁，以及 `GET /api/v1/runtime-config` builder/handler；前端由 B2 generated client/types 与 D1 `AppRuntimeProvider` 构成唯一消费链。通过 verification phase 证明 [secrets-and-config spec §6](../../spec.md#6-验收标准) C-1..C-12 在本仓库可重复跑通。
 
 本 plan 是 `secrets-and-config` 唯一的 plan；后续若需扩展（Vault / SOPS / platform secret / K8s Secret provider，自动 secret rotation，分桶 feature flag），按 §7 约束递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。
 
-本次 v1.9 技术债清理删除未引用的 runtime-config 类型边界文件；A4 只拥有 framework-free `fetchRuntimeConfig()` 与 `types.ts`，正式 React runtime 入口由 D1 `AppRuntimeProvider` 持有。
+本次 v1.15 技术债清理删除只被自身单测消费的平行 runtime-config fetch/cache 包；A4 只拥有 backend allowlist 与 endpoint，正式前端由 D1 `AppRuntimeProvider` 通过 B2 generated client/types 读取配置。
 
 本次 v1.10 技术债清理同步当前实现事实：`runtime_config_handler.go` 支持由 C1 backend-auth 注入 session-aware resolver；resolver 缺省时才使用 anonymous opt-out 默认，不再将 handler 描述为 stub。
 
@@ -39,10 +39,10 @@
 
 ## 3 质量门禁分类
 
-- **Plan 类型**: `platform-config + code-internal + contract + tooling`。本 plan 修改 backend config/secrets/featureflag packages、config truth source、secret lint hooks、runtime-config builder/handler、frontend runtime-config fetcher 和本地 lint gate；不直接交付用户可见 workflow。
+- **Plan 类型**: `platform-config + code-internal + contract + tooling`。本 plan 修改 backend config/secrets/featureflag packages、config truth source、secret lint hooks、runtime-config builder/handler、前端 generated-client handoff 和本地 lint gate；不直接交付用户可见 workflow。
 - **TDD 策略**: 本 plan 既有实现以 checklist 每项的 Go tests、TS tests、lint negative cases、pre-commit secret redline、runtime-config allowlist tests 和 config fail-fast smoke 作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行。
 - **BDD 策略**: BDD 不适用。本 plan 是内部配置/secret/feature flag contract 与 tooling；后续 D1/B2/C workstream 把 runtime-config 暴露到用户流程时维护自身 BDD gate。
-- **替代验证 gate**: `go test ./backend/internal/platform/config/... ./backend/internal/platform/secrets/... ./backend/internal/platform/featureflag/...`、frontend runtime-config tests/typecheck、`make lint-config`、secret hook negative tests、`make lint`、runtime-config allowlist smoke、`sync-doc-index --check`。
+- **替代验证 gate**: `go test ./backend/internal/platform/config/... ./backend/internal/platform/secrets/... ./backend/internal/platform/featureflag/...`、`AppRuntimeProvider` focused tests、frontend typecheck/build、`make lint-config`、secret hook negative tests、`make lint`、runtime-config allowlist smoke、`sync-doc-index --check`。
 
 ## 4 实施步骤
 
@@ -58,7 +58,7 @@
 
 #### 1.3 落地 `Get*` API 与类型化访问器
 
-`getters.go` 暴露 `GetString(key string) string` / `GetInt(key string) int` / `GetBool(key string) bool` / `GetDuration(key string) time.Duration` / `GetSecret(key string) RedactedString`；任何业务包通过这些 API 读取配置。错误路径（缺失 required key / 类型不符）由 validator 统一处理后返回，不由 getter 自行 panic。getter 必须以 `app.listenAddr` 形式接受点路径，与 [secrets-and-config spec §3.1.2](../../spec.md#312-canonical-config-schema-分类) 中的 `Config path` 列对齐。
+`getters.go` 暴露 `GetString(key string) string` / `GetInt(key string) int` / `GetBool(key string) bool` / `GetSecret(key string) RedactedString`；任何业务包通过这些 API 读取配置。错误路径（缺失 required key / 类型不符）由 validator 统一处理后返回，不由 getter 自行 panic。getter 必须以 `app.listenAddr` 形式接受点路径，与 [secrets-and-config spec §3.1.2](../../spec.md#312-canonical-config-schema-分类) 中的 `Config path` 列对齐。
 
 #### 1.4 实现 `RedactedString` 类型与 redactor
 
@@ -162,7 +162,7 @@ type FeatureFlagClient interface {
 
 构造一份故意越界改动跑 `make lint`：在 `backend/internal/auth/` 添加一行 `os.Getenv("SESSION_COOKIE_SECRET")` → `make lint` 必须失败并报 `os.Getenv outside platform/config`；删除 `.env.example` 中 `AI_PROVIDER_BASE_URL` → `make lint-config` 失败；在临时文件中程序化生成一行形似真实凭证的值并 `git add` → pre-commit hook 拦截。所有自检完成后必须把越界改动 revert，避免污染主分支；文档与 fixture 中不得长期保存命中 secret 正则的样本文本。
 
-### Phase 5: `runtime-config` endpoint 接入与前端 fetcher
+### Phase 5: `runtime-config` endpoint 接入与 generated-client handoff
 
 #### 5.1 后端 `runtime-config` builder 与 handler
 
@@ -175,26 +175,20 @@ type FeatureFlagClient interface {
 
 `backend/internal/platform/config/runtime_config_handler.go` 落地 `GET /api/v1/runtime-config` HTTP handler：直接调用 `BuildRuntimeConfig`，序列化为 JSON，并接受 C1 backend-auth 注入的 session-aware resolver；resolver 缺省时使用 anonymous opt-out 默认。OpenAPI schema 真理源由 [B2 `openapi-v1-contract`](../../../openapi-v1-contract/spec.md) 持有；本 plan 仅交付 builder + handler，schema 与 fixture 一致性由 B2 在引用 A4 时验证。
 
-#### 5.2 前端 `frontend/src/lib/runtime-config/` fetcher
+#### 5.2 前端 generated-client handoff
 
-按 [secrets-and-config spec §2.1 / D-2 / §5](../../spec.md#21-in-scope) 在 `frontend/src/lib/runtime-config/` 落地：
-
-- `index.ts` 暴露 `fetchRuntimeConfig(): Promise<RuntimeConfig>`：调用 `GET /api/v1/runtime-config`，缓存到 module-scoped `let cached` 直到下一个 page load。
-- `types.ts` 与后端 `RuntimeConfig` 字段同名（`appVersion` / `defaultUiLanguage` / `analyticsEnabled` / `featureFlags: Record<string, FlagDecision>` / `postHogPublicKey?`）。
-- A4 不提供 React hook 文件；[D1 `frontend-shell`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 持有正式 `AppRuntimeProvider` / `useAppRuntime` 入口，本 plan 只锁字段与 fetcher 行为。
-
-前端任何代码不得直接读取 `import.meta.env.VITE_*` 之外的 build-time 变量，与 [secrets-and-config spec §4.1](../../spec.md#41-边界约束) 一致；运行时配置统一通过本 fetcher。
+[D1 `frontend-shell`](../../../frontend-shell/spec.md) 的 `AppRuntimeProvider` 通过 B2 `EasyInterviewClient.getRuntimeConfig()` 与 generated `RuntimeConfig` 类型读取当前 endpoint，并与 auth bootstrap 共用同一个 client。A4 不维护第二套 fetch/cache/type 边界；前端任何代码不得直接读取 `import.meta.env.VITE_*` 之外的 build-time 变量。
 
 #### 5.3 contract handoff 边界与 cross-link
 
-在 `backend/internal/platform/config/runtime_config.go` 与 `frontend/src/lib/runtime-config/index.ts` 顶部 godoc / TSDoc 注释中 cross-link 到 [B2 `openapi-v1-contract` spec](../../../openapi-v1-contract/spec.md)：明确「OpenAPI schema 真理源在 B2；A4 仅持有 builder 与字段 allowlist」。本 plan 不修改 B2 spec / plan / OpenAPI 文件；如果 B2 后续在 schema 中扩展字段，必须通过 spec 修订递增 A4 spec 版本后才允许扩展 builder allowlist，避免「先暗暗开洞、后补文档」的漂移。
+在 `backend/internal/platform/config/runtime_config.go` cross-link 到 [B2 `openapi-v1-contract` spec](../../../openapi-v1-contract/spec.md)，明确「OpenAPI schema 与 generated TS 类型真理源在 B2；A4 仅持有 builder 与字段 allowlist」。如果 B2 后续扩展 schema，必须先递增 A4 spec 版本并扩展 builder allowlist。
 
 #### 5.4 Phase 5 自检
 
 构造下列单测覆盖 [secrets-and-config spec §6 C-6](../../spec.md#6-验收标准)：
 
 - `runtime_config_test.go`：当 `practice_hint_enabled.public=true`、`ai_fallback_model_enabled.public=false`、`analytics_opt_in=false` 时，response 包含 `practice_hint_enabled` 但不含 `ai_fallback_model_enabled`，`analyticsEnabled=false`，无 `postHogPublicKey`，无任何 secret 字段。
-- 前端 `runtime-config.test.ts`（vitest）：`fetchRuntimeConfig` mock 后返回字段正确解析为 TS 类型；缓存命中第二次调用不触发 `fetch`。
+- D1 `AppRuntimeProvider` focused tests：generated client 的 `getRuntimeConfig` 与 `getMe` bootstrap、失败态及 refresh 行为保持通过。
 - 手工 smoke：本地 `go run ./backend/cmd/api` 启动后 `curl http://localhost:8080/api/v1/runtime-config` 返回 allowlist response。
 
 ### Phase 6: Verification + handoff
@@ -275,13 +269,17 @@ type FeatureFlagClient interface {
 
 运行 `make lint-config`、focused runtime-config tests；repo 搜索确认实现侧不出现三项 out-of-scope feature flag key。
 
-### Phase 9: Runtime-config test reset removal
+### Phase 10: Unused duration getter removal
 
-删除 `_resetRuntimeConfigCache` production export 与测试 `beforeEach`。四个 frontend fetcher 用例分别以 `forceRefresh` 发起首个请求，继续验证响应解析、单页缓存命中、失败后重试和显式刷新；source negative 拒绝测试 reset API 回到 production module。
+删除零生产消费者的 `Loader.GetDuration`、getter 自测分支与 package doc 引用。当前 runtime 时长继续通过 typed config 或带明确单位的 `GetInt` 转换读取，不保留未使用 accessor。
+
+### Phase 11: Parallel frontend runtime-config client removal
+
+删除仅由自身单测消费、正式 `src/main.tsx` 依赖图不可达的平行 frontend runtime-config fetch/cache/type/test 包。D1 `AppRuntimeProvider` 继续通过 B2 generated client/types 获取同一 endpoint；同步 frontend README、A4 spec/plan/checklist/context 与 D1 discovery context，不保留 wrapper、兼容 export 或退役标记。
 
 ## 5 验收标准
 
-- [secrets-and-config spec §6 验收标准](../../spec.md#6-验收标准) C-1..C-5、C-7..C-12 全部成立，证据贴入工作日志；C-6 partial 验收（A4 builder + handler + 前端 fetcher + 单测）成立，跨 plan 完整 verification 由 B2 / D1 后续 plan 关闭并 cross-link 回本工作日志。
+- [secrets-and-config spec §6 验收标准](../../spec.md#6-验收标准) C-1..C-12 全部成立；C-6 由 A4 builder/handler、B2 generated contract 与 D1 `AppRuntimeProvider` 共同闭环，无平行前端 fetcher。
 - 本 plan checklist 全部勾选；Phase 6 的 AC 验证命令日志贴入工作日志。
 - engineering-roadmap/001 保留的 A4 bootstrap 承诺由 Phase 6.3 关闭 partial、Phase 6.4 关闭文档侧；不重复修改父 roadmap checklist。
 
@@ -300,6 +298,8 @@ type FeatureFlagClient interface {
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.15 | 删除无正式入口消费者的平行 frontend runtime-config fetch/cache/type/test 包。 | tech-debt pruning |
+| 2026-07-10 | 1.14 | 删除零消费者 `Loader.GetDuration` 与旧 bootstrap 合同引用。 | tech-debt pruning |
 | 2026-07-10 | 1.13 | 删除 runtime-config 测试 reset export，单测改用生产 forceRefresh 边界。 | tech-debt pruning |
 | 2026-07-10 | 1.12 | 统一 feature flag 范围术语并将 context 对齐 spec 2.13；不改变 current baseline 或负向回归输入。 | tech-debt pruning |
 | 2026-07-10 | 1.11 | 将 `config/config.yaml` 与 `.env.example` 的 secret 默认值描述收敛为空字符串 / 说明注释。 | tech-debt pruning |

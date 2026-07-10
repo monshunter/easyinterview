@@ -1,11 +1,39 @@
 import type { FC } from "react";
 
-import { useI18n } from "../../../i18n/messages";
+import { useI18n, type MessageKey } from "../../../i18n/messages";
+
+type MissingStateKind = "missingSession" | "missingReport";
 
 interface ReportMissingSessionStateProps {
-  kind?: "missingSession" | "missingReport";
+  kind?: MissingStateKind;
   onBackToWorkspace: () => void;
 }
+
+const MISSING_STATE_COPY = {
+  missingSession: {
+    eyebrow: "report.missingSession.eyebrow",
+    title: "report.missingSession.title",
+    desc: "report.missingSession.desc",
+    cta: "report.missingSession.cta",
+    testIdPrefix: "report-missing-session",
+  },
+  missingReport: {
+    eyebrow: "report.missingReport.eyebrow",
+    title: "report.missingReport.title",
+    desc: "report.missingReport.desc",
+    cta: "report.missingReport.cta",
+    testIdPrefix: "report-missing-report",
+  },
+} as const satisfies Record<
+  MissingStateKind,
+  {
+    eyebrow: MessageKey;
+    title: MessageKey;
+    desc: MessageKey;
+    cta: MessageKey;
+    testIdPrefix: string;
+  }
+>;
 
 /**
  * Source-level mirror of ui-design/src/screen-report.jsx::ReportMissingSessionState
@@ -17,10 +45,8 @@ export const ReportMissingSessionState: FC<ReportMissingSessionStateProps> = ({
   onBackToWorkspace,
 }) => {
   const { t } = useI18n();
-  const prefix =
-    kind === "missingReport" ? "report.missingReport" : "report.missingSession";
-  const testIdPrefix =
-    kind === "missingReport" ? "report-missing-report" : "report-missing-session";
+  const copy = MISSING_STATE_COPY[kind];
+  const { testIdPrefix } = copy;
   return (
     <div
       data-testid={testIdPrefix}
@@ -40,7 +66,7 @@ export const ReportMissingSessionState: FC<ReportMissingSessionStateProps> = ({
           data-testid={`${testIdPrefix}-eyebrow`}
           style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 10 }}
         >
-          {t(`${prefix}.eyebrow` as never)}
+          {t(copy.eyebrow)}
         </div>
         <div
           className="ei-serif"
@@ -52,7 +78,7 @@ export const ReportMissingSessionState: FC<ReportMissingSessionStateProps> = ({
             marginBottom: 10,
           }}
         >
-          {t(`${prefix}.title` as never)}
+          {t(copy.title)}
         </div>
         <div
           data-testid={`${testIdPrefix}-desc`}
@@ -63,7 +89,7 @@ export const ReportMissingSessionState: FC<ReportMissingSessionStateProps> = ({
             marginBottom: 18,
           }}
         >
-          {t(`${prefix}.desc` as never)}
+          {t(copy.desc)}
         </div>
         <button
           type="button"
@@ -80,7 +106,7 @@ export const ReportMissingSessionState: FC<ReportMissingSessionStateProps> = ({
             fontSize: 13,
           }}
         >
-          {t(`${prefix}.cta` as never)}
+          {t(copy.cta)}
         </button>
       </div>
     </div>

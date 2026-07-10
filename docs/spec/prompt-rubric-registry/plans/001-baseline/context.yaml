@@ -33,6 +33,7 @@ spec:
       - rubric_versions
       - GenerationProvenance
       - RegistryAdapter
+      - config roots testing TB
       - language fallback multi
       - 9 baseline feature keys
   targets:
@@ -48,6 +49,7 @@ spec:
         - ../../../shared-conventions-codified/spec.md
       discovery:
         packages:
+          - backend/internal/testsupport
           - backend/internal/ai/registry
           - backend/internal/ai/aiclient
           - backend/internal/shared/ai

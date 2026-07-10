@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	"github.com/monshunter/easyinterview/backend/internal/testsupport"
 )
 
 // fakeJudgeModel is a recorded-fixture JudgeModelClient: it never makes a
@@ -29,7 +30,7 @@ func (f *fakeJudgeModel) CompleteJudge(_ context.Context, profileName string, pa
 
 func newRepoRegistryClient(t *testing.T) *Client {
 	t.Helper()
-	prompts, rubrics := repoConfigRoots(t)
+	prompts, rubrics := testsupport.ConfigRoots(t)
 	c, err := NewRegistryClient(RegistryOptions{PromptsDir: prompts, RubricsDir: rubrics})
 	if err != nil {
 		t.Fatalf("NewRegistryClient: %v", err)

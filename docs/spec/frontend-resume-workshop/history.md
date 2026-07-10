@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Change Log
 
-> **版本**: 2.12
+> **版本**: 2.14
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -8,6 +8,8 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 2.14 | 删除 active spec 中没有决策内容的待确认段落，只保留当前锁定决策。 | tech-debt pruning |
+| 2026-07-10 | 2.13 | 删除只读详情中无消费者的 breadcrumb、structured preview 与 original modal CSS，并固化负向门禁。 | 001-listing-routing-and-detail-readonly |
 | 2026-07-10 | 2.12 | 将 frontend-resume-workshop 负向 gate 与 context discovery 统一为 out-of-scope 口径；行为不变。 | tech-debt pruning |
 | 2026-07-10 | 2.11 | 收敛 P0.083 handoff owner 到当前 Home create CTA、auth pendingAction 与 direct detail gate。 | 002-create-flow |
 | 2026-07-10 | 2.10 | 将 create-flow / detail-action / fallback 负向面表述统一为 out-of-scope wording；行为不变。 | tech-debt pruning |

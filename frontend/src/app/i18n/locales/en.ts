@@ -6,10 +6,7 @@ export const en: LocaleMessages = {
   "nav.resume_versions": "Resume",
   "theme.ocean": "Deep ocean",
   "theme.plum": "Plum",
-  "display.theme": "Theme",
   "display.language": "Language",
-  "display.dark": "Dark",
-  "display.light": "Light",
   "user.settings": "Settings & privacy",
   "user.logout": "Sign out",
   "auth.login": "Sign in",
@@ -17,11 +14,9 @@ export const en: LocaleMessages = {
   "auth.sendEmail": "Send sign-in code",
   "auth.displayName": "Display name",
   "auth.acceptTerms": "I agree to the terms and privacy policy",
-  "auth.verifyTitle": "Email verification",
   "auth.verifySentPrefix": "Sent to",
   "auth.code": "6-digit code",
   "auth.verifyContinue": "Verify and continue",
-  "auth.verifyLinkPending": "Verifying the sign-in code...",
   "auth.verifyLinkFailed":
     "The code could not be verified. Send a new code to continue.",
   "auth.resend": "Resend",
@@ -78,7 +73,6 @@ export const en: LocaleMessages = {
   "home.jdPlaceholder": "Paste the JD here…",
   "home.pasteSource": "Paste JD",
   "home.uploadSource": "Upload JD file",
-  "home.uploadSourceSub": "Supports .pdf / .docx / .md, or import from URL.",
   "home.importBtn": "Start interview now",
   "home.orUpload": "or upload .pdf / .docx / .md",
   "home.recentSection": "Recent mock interviews",
@@ -177,12 +171,10 @@ export const en: LocaleMessages = {
   "resumeWorkshop.create.upload.choose": "Choose file",
   "resumeWorkshop.create.upload.selectedPrefix": "Selected: ",
   "resumeWorkshop.create.upload.uploading": "Uploading…",
-  "resumeWorkshop.create.upload.titleFallback": "Uploaded file",
   "resumeWorkshop.create.paste.placeholder": "Paste your resume text here…",
   "resumeWorkshop.create.paste.helper":
     "Raw text is retained, then the detail opens directly.",
   "resumeWorkshop.create.paste.submit": "Save and open resume",
-  "resumeWorkshop.create.paste.titleFallback": "Pasted text",
   "resumeWorkshop.create.errors.validation":
     "Validation failed — review the fields and retry.",
   "resumeWorkshop.create.errors.extensionInvalid":
@@ -192,15 +184,6 @@ export const en: LocaleMessages = {
   "resumeWorkshop.create.errors.uploadFailed": "Upload failed · please retry.",
   "resumeWorkshop.create.errors.registerFailed":
     "Submission failed · please retry.",
-  "resumeWorkshop.create.errors.parseTimeout":
-    "Parse timed out · retry or return to edit input.",
-  "resumeWorkshop.create.errors.alreadyExists":
-    "A matching resume already exists · opening it.",
-  "resumeWorkshop.create.errors.confirmFailed":
-    "Save failed · please retry shortly.",
-  "resumeWorkshop.create.auth.pendingLabel":
-    "Continue creating a resume after sign-in",
-  "resumeWorkshop.create.cta": "No resume yet — create one in 1 minute",
   "resumeWorkshop.auth.eyebrow": "Resume Workshop",
   "resumeWorkshop.auth.title": "Sign in to view your resumes",
   "resumeWorkshop.auth.body":
@@ -212,9 +195,6 @@ export const en: LocaleMessages = {
   "resumeWorkshop.subtitle":
     "Manage saved resumes. Open any resume to read the resume itself.",
   "resumeWorkshop.create": "New resume",
-  "resumeWorkshop.sourceType.upload": "Uploaded PDF",
-  "resumeWorkshop.sourceType.paste": "Pasted text",
-  "resumeWorkshop.sourceType.unknown": "Unknown source",
   "resumeWorkshop.list.loading": "Loading resumes...",
   "resumeWorkshop.list.error": "Failed to load resumes. Please retry.",
   "resumeWorkshop.list.empty": "You have no resumes uploaded yet.",
@@ -244,26 +224,14 @@ export const en: LocaleMessages = {
   "practice.toolbar.companySkeleton": "Target company",
   "practice.toolbar.titleSkeleton": "Target role",
   "practice.toolbar.questionTag": "Question",
-  "practice.toolbar.timer": "Elapsed",
-  "practice.toolbar.budget": "Budget",
   "practice.toolbar.pause": "Pause",
   "practice.toolbar.resume": "Resume",
   "practice.toolbar.modeText": "Text",
   "practice.toolbar.modePhone": "Phone",
   "practice.toolbar.phoneLive": "live",
-  "practice.toolbar.strict": "Practice mode",
-  "practice.toolbar.strictLockedToast":
-    "Strict mode is locked once the plan starts. Set it when creating the plan.",
-  "practice.toolbar.role.general": "General interviewer",
-  "practice.toolbar.role.hr": "HR screener",
   "practice.toolbar.role.manager": "Hiring manager",
   "practice.sessionMap.label": "SESSION MAP",
   "practice.sessionMap.itemTopicSkeleton": "Question pending",
-  "practice.sessionMap.liveNotes": "LIVE NOTES",
-  "practice.sessionMap.liveNotesOk": "Clear opening structure",
-  "practice.sessionMap.liveNotesWarn": "Missing quantified impact",
-  "practice.sessionMap.liveNotesNote":
-    "Notes are written per question, not after the session.",
   "practice.question.tagPrefix": "Q{n}",
   "practice.question.skeletonPrompt": "Loading first question…",
   "practice.transcript.helper": "— you can pause, ask for a hint, or finish the interview —",
@@ -272,7 +240,6 @@ export const en: LocaleMessages = {
   "practice.transcript.followUp": "Follow-up",
   "practice.input.placeholder": "Type your answer here.",
   "practice.input.hint": "Hint",
-  "practice.input.skip": "Continue",
   "practice.input.send": "Send",
   "practice.hint.prefix": "Hint:",
   "practice.finishCta": "Finish report",
@@ -381,7 +348,6 @@ export const en: LocaleMessages = {
   "report.questions.list.review": "review",
   "report.questions.empty": "No questions to review yet.",
   "report.questions.detail.eyebrow": "ANSWER ANALYSIS",
-  "report.questions.detail.topic": "Topic",
   "report.questions.detail.good": "Answer worked",
   "report.questions.detail.good.body":
     "Pull the supporting evidence to verify the current take.",
@@ -404,13 +370,11 @@ export const en: LocaleMessages = {
   "report.next.pathA.eyebrow": "PATH A · REPLAY CURRENT ROUND",
   "report.next.pathA.body":
     "Repeat the same round and inject the issues, evidence gaps, and risks from this report.",
-  "report.next.pathA.cta": "Replay current round",
   "report.next.pathA.footer": "Start from the header CTA: Replay current round.",
   "report.next.pathB.eyebrow": "PATH B · START NEXT ROUND",
   "report.next.pathB.title": "Use only when you decide to move forward.",
   "report.next.pathB.body":
     "Keep the target job and resume, advance to the next round (e.g. tech 1 → tech 2).",
-  "report.next.pathB.cta": "Start next round",
   "report.next.pathB.footer": "Start from the header CTA: Start next round.",
   "report.next.empty": "No next-action recommendations yet.",
   "report.detail.tablistLabel": "Report detail tabs",

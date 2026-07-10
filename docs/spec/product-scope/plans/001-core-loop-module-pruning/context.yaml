@@ -37,6 +37,7 @@ spec:
           - docs/spec/engineering-roadmap
           - docs/ui-design
           - ui-design/src
+          - ui-design/ui-design-contract.test.mjs
           - frontend/src
           - frontend/tests
           - openapi
@@ -45,6 +46,13 @@ spec:
           - migrations
           - config
           - test/scenarios/e2e
+          - .tool-versions
+          - go.work
+          - backend/go.mod
+          - Makefile
+          - requirements-dev.txt
+          - scripts
+          - .agent-skills
         uiRoutes:
           - home
           - workspace

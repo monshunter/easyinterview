@@ -8,6 +8,11 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-10](./2026-07-10-p0-098-targetjob-fixture-convergence-assessment.md) | P0.098 TargetJob Fixture Convergence 交付复盘 | #assessment #BUG-0157 |
+| [2026-07-10](./2026-07-10-python-contract-test-aggregation-assessment.md) | Python Contract Test Aggregation 交付复盘 | #assessment #BUG-0156 |
+| [2026-07-10](./2026-07-10-change-intake-owner-matching-assessment.md) | Change Intake Owner Matching 交付复盘 | #assessment #BUG-0155 |
+| [2026-07-10](./2026-07-10-resume-create-prototype-handoff-assessment.md) | Resume Create Prototype Handoff 交付复盘 | #assessment #BUG-0154 |
+| [2026-07-10](./2026-07-10-p0-037-ready-dom-synchronization-assessment.md) | P0.037 Ready DOM Synchronization 交付复盘 | #assessment #BUG-0153 |
 | [2026-07-09](./2026-07-09-practice-real-interview-session-assessment.md) | Practice Real Interview Session 交付复盘 | #assessment |
 | [2026-07-09](./2026-07-09-quick-start-target-context-assessment.md) | Quick Start Target Context 交付复盘 | #assessment #BUG-0152 |
 | [2026-07-09](./2026-07-09-targetjob-archive-import-terminal-assessment.md) | TargetJob Archive Import Terminal 交付复盘 | #assessment #BUG-0151 |

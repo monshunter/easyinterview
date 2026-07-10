@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration
 
-> **版本**: 1.6
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-07-08
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -63,6 +63,18 @@ AI task run metadata、audit metadata、outbox payload、metric label 与 log re
 
 Verified focused practice suites, OpenAPI generated contract, fixture validation and cmd/api E2E focused gates on 2026-07-08.
 
+### Phase 7: First-question invalid-output test table consolidation
+
+Replace the duplicate missing-text and non-JSON first-question tests with one table-driven test and two named cases. Preserve the `reserve → ai → fail` step order plus terminal `AI_OUTPUT_INVALID` / non-retryable failure assertions. BDD behavior is unchanged; use scoped `dupl`, focused Practice tests, full backend/static/context/docs/pruning gates.
+
+### Phase 8: Create-plan SQL expectation consolidation
+
+Replace repeated successful `practice_plans` insert row setup in store tests with one test-only expectation helper. Keep baseline, empty-focus and report-derived tests, inputs, query patterns, returned rows and assertions unchanged; plan 004 remains a required regression gate.
+
+### Phase 9: Plan/session GET fixture harness consolidation
+
+Replace the duplicate `getPracticePlan` / `getPracticeSession` fixture schema, file loader, success loop and scoped-404 assertions with test-only generic helpers. Keep both top-level operation tests, typed fixture bodies, user-scoped service calls, exact error codes and production handlers unchanged.
+
 ## 5 验收标准
 
 - 4 个 operation 的 focused Go tests 与 handler/store/service tests 通过。
@@ -70,6 +82,8 @@ Verified focused practice suites, OpenAPI generated contract, fixture validation
 - practice 包内 flat-resume residual grep 零命中。
 - `startPracticeSession` first-question prompt 不含未渲染模板 token，且携带 language、role、skills、resume profile、rubric dimensions、practice goal。
 - plan / checklist / test / BDD 文档 Header 与 INDEX 同步。
+- `backend/internal/store/practice` has no create-plan test clone group at the scoped threshold.
+- `backend/internal/api/practice` has no plan/session GET fixture test clone group at the scoped threshold.
 
 ## 6 风险与应对
 

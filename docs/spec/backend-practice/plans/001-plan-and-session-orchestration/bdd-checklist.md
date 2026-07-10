@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration BDD Checklist
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -35,3 +35,10 @@
 - [x] Scenario directory, README, seed, expected outcome and setup/trigger/verify/cleanup scripts exist.
 - [x] Scenario validates audit/outbox/metric/log redaction and AI task typed metadata.
 - [x] Scenario execution passed and evidence was captured.
+
+## Phase 9 GET fixture harness regression
+
+- [x] `E2E.P0.022` completes setup / trigger / verify / cleanup after plan fixture harness consolidation.
+  <!-- verified: 2026-07-10 method=p0-022-get-fixture-regression evidence="In-process HTTP scenario passes and cleanup removes only its setup marker." -->
+- [x] `E2E.P0.023` completes setup / trigger / verify / cleanup after session fixture harness consolidation.
+  <!-- verified: 2026-07-10 method=p0-023-get-fixture-regression evidence="In-process HTTP scenario passes and cleanup removes only its setup marker." -->

@@ -40,6 +40,11 @@ describe("global.css entry (Phase 1.3)", () => {
     const css = readFileSync(THEMES_CSS, "utf8");
     expect(css.length).toBeGreaterThan(0);
   });
+
+  it("does not keep a visually-hidden utility without a formal consumer", () => {
+    const css = readFileSync(GLOBAL_CSS, "utf8");
+    expect(css).not.toMatch(/\.visually-hidden\s*\{/);
+  });
 });
 
 describe("frontend dependency boundary (Phase 1.3)", () => {

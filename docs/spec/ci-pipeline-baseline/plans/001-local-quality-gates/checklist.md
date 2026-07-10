@@ -1,6 +1,6 @@
 # Local Quality Gates Bootstrap Checklist
 
-> **版本**: 1.9
+> **版本**: 1.11
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -56,3 +56,18 @@
 
 - [x] 8.1 同步 build gate 当前合同：A5 spec / plan / checklist 改为 `make build` 真实执行 backend cmd build 与 frontend Vite build，不记录旧 frontend exit-zero 输出；验证: `make -n build` 只显示 `go build ./cmd/...` 与 `pnpm --filter @easyinterview/frontend build`
 - [x] 8.2 验证 build gate 与文档清零；验证: `make build` 通过；focused grep 确认旧 build exit-zero 文本不再出现在 A5 owner 文档；context validation、`sync-doc-index --check`、`make docs-check` 与 `git diff --check` 通过
+
+## Phase 9: Python tooling and skill contract aggregation
+
+- [x] 9.1 修正 work-journal auto-mode subject derivation 的陈旧合同断言，保持当前英文翻译/概括与自然小写规则；验证: focused test 与 full Python suite
+- [x] 9.2 新增根 `requirements-dev.txt` 声明 `pytest` / `PyYAML`，并把 `python3 -m pytest scripts .agent-skills -q` 接入既有 `make test`；验证: Makefile contract RED/GREEN 与 failure propagation
+- [x] 9.3 完整收口；验证: full Python suite、`make test`、`make lint`、A5/product contexts、README/development、docs/index/diff/pruning gates
+  <!-- red: 2026-07-10 method=python-contract-aggregation-contract evidence="The existing full Python run failed 1/463 on a stale work-journal literal. The added focused Makefile contract and the stale assertion then failed 2/2, proving both the missing suite/dependency declaration and the contract drift." -->
+  <!-- verified: 2026-07-10 method=root-python-contract-test-aggregation evidence="Focused tests pass 2/2; Python passes 464 tests plus 4269 subtests. Root make test also passes all backend packages and frontend 136 files/836 tests. A zero-match PYTEST_ADDOPTS probe exits at the Python step before Go/Vitest. Root lint, requirements temporary-target dry-run, A5/product contexts, BUG-0156, retrospective, docs/index/diff/pruning gates pass." -->
+
+## Phase 10: UI prototype Node contract aggregation
+
+- [x] 10.1 把 `node --test ui-design/ui-design-contract.test.mjs` 接入既有 `make test` 首段，不新增 target；验证: Makefile contract RED/GREEN 与 UI contract 45 tests
+- [x] 10.2 完整收口；验证: `make test` 保留 Python/backend/frontend 全量 gate，A5/product contexts、README/development、docs/index/diff/pruning gates
+  <!-- red: 2026-07-10 method=root-node-test-aggregation-contract evidence="The extended Makefile contract failed only because the repository's sole root Node test was absent from the test recipe; the UI contract itself already passed 45/45." -->
+  <!-- verified: 2026-07-10 method=ui-prototype-node-contract-aggregation evidence="Focused Makefile contract passes 1/1 and UI contract passes 45/45. Root make test then runs UI, Python 464 tests plus 4269 subtests, all backend packages and frontend 136 files/836 tests. A5/product contexts, onboarding docs, docs/index/diff/pruning gates pass. Scenario-only contracts remain outside the unit aggregator. No new Bug or retrospective report was needed." -->

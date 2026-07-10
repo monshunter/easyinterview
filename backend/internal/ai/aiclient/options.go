@@ -1,8 +1,8 @@
 package aiclient
 
 // Option mutates Client construction. The functional-option pattern lets
-// tests opt in to stub allowance and lets future plans inject custom
-// observability writers without breaking the New(cfg) signature.
+// tests opt in to stub allowance and inject routing dependencies without
+// breaking the New(cfg) signature.
 type Option func(*clientOptions)
 
 type clientOptions struct {
@@ -10,8 +10,6 @@ type clientOptions struct {
 	resolver         ProfileResolver
 	providers        map[string]Provider
 	providerResolver ProviderResolver
-	taskRunWriter    AITaskRunWriter
-	auditWriter      AuditEventWriter
 }
 
 // WithStubAllowed permits the stub provider to be instantiated even when
@@ -42,15 +40,4 @@ func WithProvider(p Provider) Option {
 // Tests usually use WithProvider; production wiring uses this option.
 func WithProviderResolver(r ProviderResolver) Option {
 	return func(o *clientOptions) { o.providerResolver = r }
-}
-
-// WithAITaskRunWriter wires the persistence path for ai_task_runs rows.
-// B4 owns the schema; A3 only fills typed columns through this interface.
-func WithAITaskRunWriter(w AITaskRunWriter) Option {
-	return func(o *clientOptions) { o.taskRunWriter = w }
-}
-
-// WithAuditEventWriter wires the persistence path for audit_events rows.
-func WithAuditEventWriter(w AuditEventWriter) Option {
-	return func(o *clientOptions) { o.auditWriter = w }
 }

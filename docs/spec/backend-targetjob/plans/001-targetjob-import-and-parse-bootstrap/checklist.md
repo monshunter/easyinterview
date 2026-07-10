@@ -1,6 +1,6 @@
 # TargetJob Import and Parse Bootstrap Checklist
 
-> **版本**: 1.20
+> **版本**: 1.22
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -122,3 +122,17 @@
 
 - [x] 14.1 忽略 `newParseExecutorWithFakes` 在 `TestParseExecutorAITaskRuns` 中从未读取的初始 executor 返回值，保留包装 observability 的真实受测 executor；验证: `go test ./internal/targetjob -run '^TestParseExecutorAITaskRuns$' -count=1`、`staticcheck ./internal/targetjob/...` 与 package gate 通过。
   <!-- verified: 2026-07-10 method=targetjob-test-dead-initialization-cleanup evidence="RED: backend-wide staticcheck reported SA4006 at pipeline_test.go because the initial executor value was overwritten unread. GREEN: ignored that return value and declared the sole effective executor at observability assembly; focused TestParseExecutorAITaskRuns, staticcheck ./internal/targetjob/... and go test ./internal/targetjob -count=1 PASS; backend-targetjob/product contexts, sync-doc-index, docs-check, diff-check and pruning surface PASS real_residuals=0." -->
+
+## Phase 15: App-config pseudo-tripwire cleanup
+
+- [x] 15.1 删除零调用 panic API/self-test 与重复本地 getenv 文本扫描，保留 proxy-key 负向测试；验证：production `deadcode` RED/GREEN、TargetJob tests/staticcheck、`make lint-getenv-boundary`、`make lint-env-dict`、owner docs gates。
+  <!-- verified: 2026-07-10 method=targetjob-app-config-pseudo-tripwire-cleanup evidence="Production deadcode RED identified MustNotIntroduceAppLevelConfigKey as test-only. Deleted the panic API/self-test and duplicate local getenv text scan; retained the domain proxy-key negative test. TargetJob tests, staticcheck, reachability/symbol inventory, lint-getenv-boundary and lint-env-dict PASS." -->
+
+## Phase 16: Cmd/api cookie JSON harness consolidation
+
+- [x] 16.1 Record scoped `cmd/api` `dupl` RED for the TargetJob and full-funnel harness request bodies.
+  <!-- verified: 2026-07-10 method=cmd-api-cookie-json-harness-dupl evidence="The two receiver methods are cmd/api's only clone group at threshold 100 and differ only in receiver-owned handler/cookie plus the canonical header constant." -->
+- [x] 16.2 Delegate the TargetJob receiver to one shared package test helper without changing P0.010-P0.013 requests or assertions.
+  <!-- verified: 2026-07-10 method=cmd-api-cookie-json-helper evidence="TargetJob keeps its receiver and IdempotencyKeyHeader while delegating only shared request mechanics. P0.010-P0.013 all PASS, live P0.098 passes and cmd/api dupl reports zero clone groups." -->
+- [x] 16.3 Run P0.010-P0.013, P0.098, cmd/api/full backend/static and owner documentation gates.
+  <!-- verified: 2026-07-10 method=cmd-api-cookie-json-harness-closeout evidence="P0.010-P0.013 and live P0.098 PASS; cmd/api/full backend, vet/staticcheck, scoped dupl, backend-targetjob/e2e/product contexts and docs/index/diff/pruning gates PASS. TargetJob owner retains its pre-existing active lifecycle." -->

@@ -741,113 +741,76 @@ func TestDecorator_FallbackChainTriggersFallbackCounterAndLog(t *testing.T) {
 	}
 }
 
-func TestDecorator_FallbackCounterDerivesModelFamilyOnlyFromDateSuffix(t *testing.T) {
-	registry := observability.NewInMemoryRegistry()
-	logger := observability.NewMemoryLogger()
-	runs := &memTaskRunWriter{}
-	audit := &memAuditWriter{}
-
-	innerStub := &fallbackInner{
-		meta: aiclient.AICallMeta{
-			Provider:         "openai_compatible",
-			ModelFamily:      "chat-primary",
-			ModelID:          "chat-primary-2026-05-05",
+func TestDecorator_FallbackCounterLabelDerivation(t *testing.T) {
+	makeMeta := func(provider, modelFamily, modelID string, fallbackChain []string) aiclient.AICallMeta {
+		return aiclient.AICallMeta{
+			Provider:         provider,
+			ModelFamily:      modelFamily,
+			ModelID:          modelID,
 			Capability:       aiclient.CapabilityChat,
 			ModelProfileName: "practice.followup.default",
 			Language:         "en",
 			InputTokens:      10,
 			OutputTokens:     20,
 			LatencyMs:        50,
-			FallbackChain:    []string{"chat-primary-2026-05-05", "chat-secondary-2026-05-05"},
+			FallbackChain:    fallbackChain,
 			Route:            "practice.followup",
 			ValidationStatus: aiclient.ValidationStatusOK,
+		}
+	}
+	tests := []struct {
+		name   string
+		meta   aiclient.AICallMeta
+		labels []string
+	}{
+		{
+			name: "date suffix derives model family only",
+			meta: makeMeta(
+				"openai_compatible",
+				"chat-primary",
+				"chat-primary-2026-05-05",
+				[]string{"chat-primary-2026-05-05", "chat-secondary-2026-05-05"},
+			),
+			labels: []string{
+				"openai_compatible", "chat-primary", "practice.followup.default", "practice.followup",
+				string(aiclient.CapabilityChat), "en", "fallback", "unknown", "chat-primary", "unknown", "chat-secondary",
+			},
+		},
+		{
+			name: "central chain splits provider and model family",
+			meta: makeMeta(
+				"fallback",
+				"chat-secondary",
+				"chat-secondary-2026-05-05",
+				[]string{"primary/chat-primary-2026-05-05", "fallback/chat-secondary-2026-05-05"},
+			),
+			labels: []string{
+				"fallback", "chat-secondary", "practice.followup.default", "practice.followup",
+				string(aiclient.CapabilityChat), "en", "fallback", "primary", "chat-primary", "fallback", "chat-secondary",
+			},
 		},
 	}
-	wrap, err := observability.New(innerStub,
-		observability.WithRegisterer(registry),
-		observability.WithLogger(logger),
-		observability.WithAITaskRunWriter(runs),
-		observability.WithAuditEventWriter(audit),
-	)
-	if err != nil {
-		t.Fatalf("observability.New: %v", err)
-	}
 
-	_, _, err = wrap.Complete(context.Background(), "practice.followup.default", samplePayload())
-	if err != nil {
-		t.Fatalf("Complete: %v", err)
-	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			registry := observability.NewInMemoryRegistry()
+			wrap, err := observability.New(&fallbackInner{meta: tc.meta},
+				observability.WithRegisterer(registry),
+				observability.WithLogger(observability.NewMemoryLogger()),
+				observability.WithAITaskRunWriter(&memTaskRunWriter{}),
+				observability.WithAuditEventWriter(&memAuditWriter{}),
+			)
+			if err != nil {
+				t.Fatalf("observability.New: %v", err)
+			}
 
-	labels := []string{
-		"openai_compatible",
-		"chat-primary",
-		"practice.followup.default",
-		"practice.followup",
-		string(aiclient.CapabilityChat),
-		"en",
-		"fallback",
-		"unknown",
-		"chat-primary",
-		"unknown",
-		"chat-secondary",
-	}
-	if got := registry.CounterValue(observability.MetricFallbackTotal, labels...); got != 1 {
-		t.Fatalf("expected fallback counter for date-suffix-derived model families, got %v", got)
-	}
-}
-
-func TestDecorator_FallbackCounterSplitsCentralChainProviderAndModelFamily(t *testing.T) {
-	registry := observability.NewInMemoryRegistry()
-	logger := observability.NewMemoryLogger()
-	runs := &memTaskRunWriter{}
-	audit := &memAuditWriter{}
-
-	innerStub := &fallbackInner{
-		meta: aiclient.AICallMeta{
-			Provider:         "fallback",
-			ModelFamily:      "chat-secondary",
-			ModelID:          "chat-secondary-2026-05-05",
-			Capability:       aiclient.CapabilityChat,
-			ModelProfileName: "practice.followup.default",
-			Language:         "en",
-			InputTokens:      10,
-			OutputTokens:     20,
-			LatencyMs:        50,
-			FallbackChain:    []string{"primary/chat-primary-2026-05-05", "fallback/chat-secondary-2026-05-05"},
-			Route:            "practice.followup",
-			ValidationStatus: aiclient.ValidationStatusOK,
-		},
-	}
-	wrap, err := observability.New(innerStub,
-		observability.WithRegisterer(registry),
-		observability.WithLogger(logger),
-		observability.WithAITaskRunWriter(runs),
-		observability.WithAuditEventWriter(audit),
-	)
-	if err != nil {
-		t.Fatalf("observability.New: %v", err)
-	}
-
-	_, _, err = wrap.Complete(context.Background(), "practice.followup.default", samplePayload())
-	if err != nil {
-		t.Fatalf("Complete: %v", err)
-	}
-
-	labels := []string{
-		"fallback",
-		"chat-secondary",
-		"practice.followup.default",
-		"practice.followup",
-		string(aiclient.CapabilityChat),
-		"en",
-		"fallback",
-		"primary",
-		"chat-primary",
-		"fallback",
-		"chat-secondary",
-	}
-	if got := registry.CounterValue(observability.MetricFallbackTotal, labels...); got != 1 {
-		t.Fatalf("expected fallback counter to split provider/model family labels, got %v", got)
+			if _, _, err := wrap.Complete(context.Background(), "practice.followup.default", samplePayload()); err != nil {
+				t.Fatalf("Complete: %v", err)
+			}
+			if got := registry.CounterValue(observability.MetricFallbackTotal, tc.labels...); got != 1 {
+				t.Fatalf("fallback counter = %v, want 1 for labels %v", got, tc.labels)
+			}
+		})
 	}
 }
 
@@ -976,12 +939,31 @@ func TestDecorator_RawOutputDebugWriterPrintsInvalidCompleteResponse(t *testing.
 }
 
 func TestDecorator_OutputSchemaRequiredFieldMismatchEmitsAIOutputInvalid(t *testing.T) {
+	assertDecoratorOutputSchemaInvalid(t,
+		`{"summary":"present-but-answer-missing"}`,
+		json.RawMessage(`{"type":"object","required":["answer"],"properties":{"answer":{"type":"string"}}}`),
+	)
+}
+
+func TestDecorator_OutputSchemaRejectsTrailingTokens(t *testing.T) {
+	assertDecoratorOutputSchemaInvalid(t,
+		`{"answer":"valid"} trailing prose`,
+		json.RawMessage(`{"type":"object","required":["answer"],"properties":{"answer":{"type":"string"}}}`),
+	)
+}
+
+func TestDecorator_OutputSchemaEnumMismatchEmitsAIOutputInvalid(t *testing.T) {
+	assertDecoratorOutputSchemaInvalid(t,
+		`{"status":"unsupported"}`,
+		json.RawMessage(`{"type":"object","required":["status"],"properties":{"status":{"type":"string","enum":["needs_work","meets_bar","strong"],"description":"Assessment status."}}}`),
+	)
+}
+
+func assertDecoratorOutputSchemaInvalid(t *testing.T, content string, schema json.RawMessage) {
+	t.Helper()
 	registry := observability.NewInMemoryRegistry()
-	logger := observability.NewMemoryLogger()
-	runs := &memTaskRunWriter{}
-	audit := &memAuditWriter{}
 	inner := &fallbackInner{
-		content: `{"summary":"present-but-answer-missing"}`,
+		content: content,
 		meta: aiclient.AICallMeta{
 			Provider:            stub.Name,
 			ModelFamily:         "stub",
@@ -998,52 +980,7 @@ func TestDecorator_OutputSchemaRequiredFieldMismatchEmitsAIOutputInvalid(t *test
 	}
 	wrap, err := observability.New(inner,
 		observability.WithRegisterer(registry),
-		observability.WithLogger(logger),
-		observability.WithAITaskRunWriter(runs),
-		observability.WithAuditEventWriter(audit),
-	)
-	if err != nil {
-		t.Fatalf("observability.New: %v", err)
-	}
-
-	payload := samplePayload()
-	payload.Metadata.OutputSchema = json.RawMessage(`{"type":"object","required":["answer"],"properties":{"answer":{"type":"string"}}}`)
-
-	_, meta, err := wrap.Complete(context.Background(), "practice.followup.default", payload)
-	if err == nil {
-		t.Fatalf("expected schema mismatch to return error")
-	}
-	var apiErr *sharederrors.APIError
-	if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {
-		t.Fatalf("expected AI_OUTPUT_INVALID, got %v", err)
-	}
-	if meta.ValidationStatus != aiclient.ValidationStatusInvalid {
-		t.Fatalf("expected ValidationStatusInvalid, got %q", meta.ValidationStatus)
-	}
-	if len(registry.CounterLabelValues(observability.MetricOutputValidationFailures)) == 0 {
-		t.Fatalf("expected validation failure counter to increment")
-	}
-}
-
-func TestDecorator_OutputSchemaRejectsTrailingTokens(t *testing.T) {
-	registry := observability.NewInMemoryRegistry()
-	logger := observability.NewMemoryLogger()
-	inner := &fallbackInner{
-		content: `{"answer":"valid"} trailing prose`,
-		meta: aiclient.AICallMeta{
-			Provider:            stub.Name,
-			ModelFamily:         "stub",
-			ModelID:             "stub-chat-1",
-			Capability:          aiclient.CapabilityChat,
-			ModelProfileName:    "practice.followup.default",
-			ModelProfileVersion: "1.0.0",
-			Language:            "en",
-			ValidationStatus:    aiclient.ValidationStatusOK,
-		},
-	}
-	wrap, err := observability.New(inner,
-		observability.WithRegisterer(registry),
-		observability.WithLogger(logger),
+		observability.WithLogger(observability.NewMemoryLogger()),
 		observability.WithAITaskRunWriter(&memTaskRunWriter{}),
 		observability.WithAuditEventWriter(&memAuditWriter{}),
 	)
@@ -1052,56 +989,11 @@ func TestDecorator_OutputSchemaRejectsTrailingTokens(t *testing.T) {
 	}
 
 	payload := samplePayload()
-	payload.Metadata.OutputSchema = json.RawMessage(`{"type":"object","required":["answer"],"properties":{"answer":{"type":"string"}}}`)
+	payload.Metadata.OutputSchema = schema
 
 	_, meta, err := wrap.Complete(context.Background(), "practice.followup.default", payload)
 	if err == nil {
-		t.Fatalf("expected trailing content to return AI_OUTPUT_INVALID")
-	}
-	var apiErr *sharederrors.APIError
-	if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {
-		t.Fatalf("expected AI_OUTPUT_INVALID, got %v", err)
-	}
-	if meta.ValidationStatus != aiclient.ValidationStatusInvalid {
-		t.Fatalf("expected ValidationStatusInvalid, got %q", meta.ValidationStatus)
-	}
-	if len(registry.CounterLabelValues(observability.MetricOutputValidationFailures)) == 0 {
-		t.Fatalf("expected validation failure counter to increment")
-	}
-}
-
-func TestDecorator_OutputSchemaEnumMismatchEmitsAIOutputInvalid(t *testing.T) {
-	registry := observability.NewInMemoryRegistry()
-	logger := observability.NewMemoryLogger()
-	inner := &fallbackInner{
-		content: `{"status":"unsupported"}`,
-		meta: aiclient.AICallMeta{
-			Provider:            stub.Name,
-			ModelFamily:         "stub",
-			ModelID:             "stub-chat-1",
-			Capability:          aiclient.CapabilityChat,
-			ModelProfileName:    "practice.followup.default",
-			ModelProfileVersion: "1.0.0",
-			Language:            "en",
-			ValidationStatus:    aiclient.ValidationStatusOK,
-		},
-	}
-	wrap, err := observability.New(inner,
-		observability.WithRegisterer(registry),
-		observability.WithLogger(logger),
-		observability.WithAITaskRunWriter(&memTaskRunWriter{}),
-		observability.WithAuditEventWriter(&memAuditWriter{}),
-	)
-	if err != nil {
-		t.Fatalf("observability.New: %v", err)
-	}
-
-	payload := samplePayload()
-	payload.Metadata.OutputSchema = json.RawMessage(`{"type":"object","required":["status"],"properties":{"status":{"type":"string","enum":["needs_work","meets_bar","strong"],"description":"Assessment status."}}}`)
-
-	_, meta, err := wrap.Complete(context.Background(), "practice.followup.default", payload)
-	if err == nil {
-		t.Fatalf("expected enum mismatch to return error")
+		t.Fatal("expected output schema validation to fail")
 	}
 	var apiErr *sharederrors.APIError
 	if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {

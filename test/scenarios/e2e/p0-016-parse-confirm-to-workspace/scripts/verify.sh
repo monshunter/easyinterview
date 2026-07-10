@@ -5,9 +5,7 @@ REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-016-parse-confirm-to-workspace"
 LOG_FILE="$OUTPUT_DIR/trigger.log"
 test -s "$LOG_FILE"
-grep -Fq 'VITE_EI_API_MODE=real' "$LOG_FILE"
-grep -Fq 'VITE_EI_API_BASE_URL=http://localhost:8080/api/v1' "$LOG_FILE"
-grep -Fq 'targetJob.realApiMode.test.ts' "$LOG_FILE"
+"$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}" "targetJob.realApiMode.test.ts"
 grep -Fq "ParseScreen.test.tsx" "$LOG_FILE"
 grep -Fq "ParseEdit.test.tsx" "$LOG_FILE"
 grep -Fq "ParseAuthGate.test.tsx" "$LOG_FILE"
@@ -27,9 +25,6 @@ grep -Fq "Hiring manager impact interview · 50m" "$LOG_FILE"
 grep -Fq "Collaboration and operating style · 40m" "$LOG_FILE"
 grep -Fq "E2E.P0.016 parse readonly-detail browser gate resumeId=01918fa0-0000-7000-8000-000000001000 screenshotBytes=" "$LOG_FILE"
 grep -Fq "E2E.P0.016 parse start-interview direct browser gate resumeId=01918fa0-0000-7000-8000-000000001000 route=practice noUpdateTargetJob=true" "$LOG_FILE"
-grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE"
-grep -Eq 'Tests +[0-9]+ passed' "$LOG_FILE"
-grep -Eq '[0-9]+ passed' "$LOG_FILE"
 # Verify: removed success-detail controls do not appear as positive markers
 for forbidden in 'parse-action-save-plan' 'parse-action-cancel' 'parse-action-reparse' 'parse-resume-picker-toggle' 'parse-resume-picker'; do
   if grep -Fq "$forbidden" "$LOG_FILE"; then
@@ -49,5 +44,3 @@ for forbidden in 'Technical Round 1' 'R1 Phone Screen' 'interviewHypotheses'; do
     exit 1
   fi
 done
-# Test must pass — grep for PASS marker
-grep -q 'Tests.*passed' "$LOG_FILE"

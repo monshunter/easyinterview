@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.19
+> **版本**: 2.23
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -91,3 +91,28 @@
 
 - [x] 12.1 RED/GREEN: Home source gate detects and then rejects the production `clearPendingImportSourcesForTests` export.<!-- verified: 2026-07-10 method=vitest-red-green evidence="RED failed only on the reset export after path validation; GREEN passed all 6 HomeAuthGate tests after deletion." -->
 - [x] 12.2 Delete the redundant Home auth teardown and pass focused Home auth tests plus frontend typecheck without a replacement reset API.<!-- verified: 2026-07-10 method=vitest+scenario+typecheck evidence="Home passed 8 files/64 tests; P0.015 passed generated-client 1/1, Home/Parse 9 files/56 tests, build and Playwright 2/2; typecheck and source inventory passed." -->
+
+## Phase 13: Current fixture inventory wording
+
+- [x] 13.1 Keep the BDD closeout fixture gate on the current 37 operations; verify OpenAPI inventory, fixture validation, owner contexts and docs/diff/pruning gates without changing runtime or scenario assets.
+  <!-- verified: 2026-07-10 method=current-openapi-inventory-wording evidence="OpenAPI inventory and fixture validation report 10 tags, 37 operations and 37 fixtures. Home BDD current-contract search has no 35/36 count, owner context passes, and runtime/scenario assets are unchanged." -->
+
+## Phase 14: Home copy-table orphan cleanup
+
+- [x] 14.1 删除 UI prototype、zh/en locale 与 locale self-test 中无渲染 consumer 的 `uploadSourceSub`；验证 Home/UI contract、locale reachability、owner contexts 与 docs/diff/pruning gates。
+  <!-- verified: 2026-07-10 method=home-copy-table-orphan-removal evidence="Deleted uploadSourceSub from both prototype language branches, both formal locale catalogs and the locale self-test requirement. Scoped runtime/prototype search is zero; locale reachability, 35 UI contracts, frontend tests/typecheck/build, Home/product contexts and docs/diff/pruning gates pass with no visible Home DOM or behavior change." -->
+
+## Phase 15: MiniRoundRail prototype call-surface pruning
+
+- [x] 15.1 新增 Home rail 参数消费 contract，并先红证明 `MiniRoundRail` 与调用方仍保留未读取的 `lang`。
+  <!-- verified: 2026-07-10 method=home-mini-round-rail-red evidence="UI contract ran 42 tests: the new structured-round dependency contract failed on the existing MiniRoundRail.lang parameter while the prior 41 tests passed; retained assertions pin round count, names, durations and current-index highlighting." -->
+- [x] 15.2 删除 rail 的零读取 `lang` 形参与调用方传参；验证：AST `MiniRoundRail` 参数消费 inventory 归零，结构化轮次和 current-index 高亮保持原样。
+  <!-- verified: 2026-07-10 method=home-mini-round-rail-green evidence="Removed only MiniRoundRail.lang and its single caller argument; MockInterviewCard.lang remains for visible action copy. UI contract passes 42/42 and Babel binding inventory reports railUnread=[] while retaining structured rounds and currentIndex assertions." -->
+- [x] 15.3 运行 UI contract、focused Home、P0.014/P0.016、静态浏览器 Home rail、full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates。
+  <!-- verified: 2026-07-10 method=home-mini-round-rail-regression-closeout evidence="UI contract passes 42/42 and focused Home passes 3 files/27 tests. P0.014 setup/trigger/verify/cleanup passes generated-client 1 plus Home 34; P0.016 passes generated-client 1, focused 37, build and desktop/mobile Playwright 4. Static browser renders signed-in Home with three recent cards and four structured round names/durations, no errors and only 200/304 requests. Full frontend passes 137 files/841 tests and typecheck passes. Both owner contexts and diff/pruning gates pass with real_residuals=0. No scenario environment restart or data cleanup occurred." -->
+
+## Phase 16: Home/Parse real-backend verifier convergence
+
+- [x] 16.1 共享 helper 支持可配置 owner test 文件，P0.014/P0.015/P0.016 删除内联 real-mode/Vitest 通用解析与冗余 PASS grep；验证 helper/caller RED/GREEN、三个 wrapper 生命周期、owner/product contexts 与 docs/diff/pruning gates。
+  <!-- red: 2026-07-10 method=scenario-env-contract evidence="The focused contract suite failed only the two new checks while the prior 16 tests passed: the helper ignored the requested targetJob owner test marker, and all three Home/Parse callers still contained inline real-mode and generic Vitest summary parsing." -->
+  <!-- verified: 2026-07-10 method=home-parse-real-backend-verifier-convergence evidence="The helper now accepts an optional owner test marker while preserving frontendOwners as its default. P0.014/P0.015/P0.016 pass targetJob.realApiMode.test.ts explicitly and retain their scenario-specific test, privacy, browser and out-of-scope assertions with no duplicate generic parsing. Contract tests pass 18/18 and all touched shell scripts pass bash syntax. Complete wrapper lifecycles pass: P0.014 real mode 1 plus Home 34; P0.015 real mode 1 plus Home/Parse 56, build and Playwright 2; P0.016 real mode 1 plus focused 37, build and Playwright 4; default-argument P0.018 real mode 1 plus focused 57. Both owner contexts, git diff check and pruning surface pass with real_residuals=0. No Bug or retrospective report was needed because scenario behavior and coverage did not change. No environment restart or data cleanup occurred." -->

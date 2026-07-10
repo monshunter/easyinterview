@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.35
+> **版本**: 1.36
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -16,7 +16,7 @@
 
 - [x] 1.1 `InterviewContextProvider` carries `targetJobId / jdId / resumeId / roundId / planId / practiceMode / practiceGoal / hintUsed / hintCount` across owner routes（验证：`InterviewContext.test.tsx`, `App.test.tsx`）
 - [x] 1.2 `workspace` route renders `WorkspaceScreen` instead of the route fallback shell; non-owner routes keep their own owners（验证：`App.test.tsx`）
-- [x] 1.3 `workspace.*` zh/en messages and DOM anchors cover plan eyebrow, header, launcher, bindings, insight, requirements, preparation and records area（验证：`WorkspaceScreen.test.tsx`）
+- [x] 1.3 `workspace.*` zh/en messages and DOM anchors cover the pure plan-list eyebrow, title, cards, mini round rail, empty state and current actions（验证：`WorkspaceScreen.test.tsx`）
 - [x] 1.4 BDD-Gate: `E2E.P0.018` covers workspace default render shell（验证：scenario trigger/verify）
 
 ## Phase 2: TargetJob, resume and workspace data
@@ -40,9 +40,9 @@
 - [x] 4.3 `workspace(autoStartPractice=1)` is removed from current runtime; pending actions no longer rely on workspace side effects（验证：source negative gate）
 - [x] 4.4 BDD-Gate: start-practice behavior is covered by parse/report focused gates and external owner scenario（验证：focused tests）
 
-## Phase 5: Embedded insight, records static affordance and privacy
+## Phase 5: Workspace boundary and privacy
 
-- [x] 5.1 `WorkspaceInsightCard` runtime stays outside workspace owner（验证：source negative gate）
+- [x] 5.1 Company insight component/API runtime stays outside workspace owner（验证：source negative gate）
 - [x] 5.2 Records static affordance runtime stays outside workspace owner（验证：source negative gate）
 - [x] 5.3 Workspace runtime does not import prototype data helpers or call report APIs for records static affordance（验证：`E2E.P0.021` verify grep）
 - [x] 5.4 Sensitive fields are absent from URL, localStorage, console, telemetry and fixture transport logs（验证：privacy negative tests and scenario verify）
@@ -175,3 +175,14 @@
   <!-- verified: 2026-07-10 method=unconsumed-context-hook-removal evidence="Deleted the function and its false consumer comment with no replacement. Focused InterviewContext passes 17/17 and non-test frontend symbol search is empty; state/reducer/provider code is unchanged." -->
 - [x] 22.3 Run focused/full frontend tests, typecheck, symbol inventory, owner/product contexts, docs, diff and pruning gates.
   <!-- verified: 2026-07-10 method=unconsumed-context-hook-removal evidence="Focused InterviewContext passes 17/17; full frontend passes 138 files/841 tests with zero React update warning; typecheck and non-test symbol inventory pass. Owner/product contexts and docs/index/link/diff/pruning gates pass with real_residuals=0." -->
+
+## Phase 23: unreachable static Workspace detail removal
+
+- [x] 23.1 Replace the old positive UI contract assertions with a focused RED gate requiring a pure plan-list prototype and zero old detail/modal/helper symbols.
+  <!-- verified: 2026-07-10 method=workspace-static-detail-source-red evidence="UI contract ran 35 tests with exactly one failure: the new pure-list assertion rejected the old WorkspaceScreen params/requestAuth signature before reaching the old-symbol zero-residual loop; the other 34 prototype contracts passed." -->
+- [x] 23.2 Delete the constant-false Workspace detail branch, all exclusive helpers and the unconsumed workspace-insight source/script; relocate the live Parse binding pill into its owner without changing the visible plan list/detail or shared resume-option provider.
+  <!-- verified: 2026-07-10 method=unreachable-static-workspace-detail-removal evidence="screen-workspace.jsx shrank from 895 to 184 lines; deleted the 196-line workspace-insight source and its script entry, removed stale app props and both unused updated labels. Dependency inventory caught the live Parse window.BindingPill consumer, which was moved to a smaller local PlanBindingPill without the unused action branch. UI contract passes 35/35 and current UI source has zero old Workspace symbols/global binding coupling." -->
+- [x] 23.3 Reconcile the active workspace/practice spec, history and spec INDEX to the current pure plan-list boundary with no positive company-insight contract.
+  <!-- verified: 2026-07-10 method=workspace-pure-list-active-spec-reconcile evidence="Spec v1.32 now defines D-8 as list information density, removes the insight ownership row, and limits C-7 to parse/quick-start/report handoff; history v1.20 and spec INDEX are synchronized. Targeted old-positive wording search is zero, both owner contexts, docs/index/link and diff checks pass." -->
+- [x] 23.4 Run UI contract, source inventory, formal workspace tests, P0.018, owner/product contexts and docs/diff/pruning gates.
+  <!-- verified: 2026-07-10 method=workspace-static-pruning-regression evidence="UI contract passes 35/35; old UI-source symbols and active-spec positive insight wording are zero. Formal Workspace/Parse passes 24/24, typecheck/build, full frontend 137 files/841 tests, desktop/mobile Playwright 44/44, and direct static-browser Workspace/Parse checks pass with no page errors or horizontal overflow. P0.018 passes real-mode 1/1 plus 57/57 and cleanup. Both owner contexts, docs/index/link/diff and pruning gates pass with real_residuals=0; no environment restart or data cleanup occurred." -->

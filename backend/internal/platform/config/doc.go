@@ -9,7 +9,7 @@
 //  4. config/config.yaml (defaults, repository-versioned)
 //
 // Public read API uses the Get* family (GetString / GetInt / GetBool /
-// GetDuration / GetSecret). Keys use dot paths that match the canonical
+// GetSecret). Keys use dot paths that match the canonical
 // config schema in spec §3.1.2 (for example app.listenAddr, log.level,
 // auth.sessionCookieSecret). Business packages must consume configuration
 // through these accessors and never call os.Getenv directly; see spec §4.1

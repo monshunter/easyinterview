@@ -1,6 +1,6 @@
 # Repo Scaffold Bootstrap
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -15,6 +15,7 @@
 
 2026-07-10 追加修订范围：当前 `dev-up` / `dev-down`、`codegen`、`migrate` 均已由对应 owner 提供真实入口；本 plan 删除旧空实现口径，改为记录根 target 委托关系和 dry-run 验证。
 2026-07-10 三次追加修订范围：当前 git hook 入口已承接真实规则，`pre-commit` 委托 A4 secret scan，`commit-msg` 执行 ASCII-only message gate；本 plan 删除旧 hook 空实现表述，保留 `make install-hooks` 幂等安装合同。
+2026-07-10 四次追加修订范围：已使用的 PDF module 最低要求 Go 1.24.1，而根工具链与 `go.work` 仍声明 1.24.0，且 `go.mod` 的直接依赖分类与 checksum 未 tidy；本 plan 联合 B1 将三处统一为当前仓库工具链 1.24.5，并把版本/tidy drift 接入根 lint 聚合，不改变业务依赖版本或运行行为。
 
 本 plan 是 `repo-scaffold` 唯一的 plan；后续如出现需要扩展（新增根目录或 Make target），递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。
 
@@ -29,7 +30,7 @@
 - **Plan 类型**: `tooling + repo-foundation + code-internal`。本 plan 修改仓库根容器目录、根 Makefile、git hook 入口、bootstrap shell 脚本和入口 README；不产生用户可见 UI、HTTP API 行为或业务 workflow。
 - **TDD 策略**: 历史实现以 checklist 中 `make` / hook / context validator / sync-doc-index 自检项作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行，focused assertions 来源为根 Make target smoke、hook symlink idempotency、bootstrap script smoke 与 context validation。
 - **BDD 策略**: BDD 不适用。本 plan 是仓库脚手架和本地工具入口，不引入用户可感知行为；后续 feature plan 维护自身 BDD gate。
-- **替代验证 gate**: `make help`、`make fmt`、`gofmt -l`、focused Go tests、`make lint`、`make test`、`make build`、`make -n dev-up`、`make -n dev-down`、`make -n codegen`、`make -n migrate`、`make install-hooks`、context validation、`sync-doc-index --check`、`git diff --check`。
+- **替代验证 gate**: `make help`、`make fmt`、`gofmt -l`、`make lint-go-mod-tidy`、focused Go tests、`make lint`、`make test`、`make build`、`make -n dev-up`、`make -n dev-down`、`make -n codegen`、`make -n migrate`、`make install-hooks`、context validation、`sync-doc-index --check`、`git diff --check`。
 
 ## 4 实施步骤
 
@@ -132,6 +133,16 @@
 
 执行 hook focused grep、context validation、`sync-doc-index --check`、`make docs-check` 与 `git diff --check`，确认当前 A1 owner 文档不再把 git hooks 描述为空实现。
 
+### Phase 8: Go toolchain and module metadata convergence
+
+#### 8.1 Single Go version contract
+
+把 `.tool-versions`、根 `go.work` 与 `backend/go.mod` 的 Go 版本统一为当前仓库实际使用的 `1.24.5`。`go.mod` 不增加第二个 `toolchain` directive；直接 import 的 modules 由标准 tidy 分类，不改 dependency version。
+
+#### 8.2 Tidy drift gate and verification
+
+增加 `lint-go-mod-tidy` 子 target 并纳入根 `lint` 聚合；先在当前 module metadata 上证明 RED，再运行 `go mod tidy -go=1.24.5 -compat=1.24`。验证 focused gate、`go test ./...`、`go build ./cmd/...`、bootstrap version output、context、docs/diff 与 pruning gates。
+
 ## 5 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-5 全部成立；C-1 的根容器计数以 v1.1 的 9 个目录为准。
@@ -151,6 +162,7 @@
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.6 | Align the Go toolchain and module directive at 1.24.5, tidy direct dependencies and checksums, and add a root tidy drift lint gate. | tech-debt pruning |
 | 2026-07-10 | 1.5 | 收敛 git hook 当前事实：pre-commit 已委托 A4 secret scan，commit-msg 已执行 ASCII-only message gate，不再描述为空实现。 | tech-debt pruning |
 | 2026-07-10 | 1.4 | 将 `dev-up` / `dev-down`、`codegen`、`migrate` 从空实现口径收敛为当前根 target 委托关系，并用 dry-run 验证。 | tech-debt pruning |
 | 2026-07-10 | 1.3 | 根 `make fmt` 改为真实 `gofmt` 入口，删除 child Makefile 空委托路径，并清理现有 Go 格式漂移。 | tech-debt pruning |

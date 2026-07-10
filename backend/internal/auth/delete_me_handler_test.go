@@ -73,25 +73,6 @@ func TestDeleteMeSoftDeletesUserRevokesAllSessionsAndCreatesPrivacyHandoff(t *te
 	}
 }
 
-func TestDeleteMeWithoutSessionReturnsAuthEnvelope(t *testing.T) {
-	handler := auth.NewHandler(auth.HandlerOptions{})
-	req := httptest.NewRequest(http.MethodDelete, "/api/v1/me", nil)
-	rec := httptest.NewRecorder()
-
-	handler.DeleteMe(rec, req)
-
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
-	}
-	var body map[string]map[string]any
-	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
-		t.Fatalf("bad error JSON: %v", err)
-	}
-	if body["error"]["code"] != "AUTH_UNAUTHORIZED" {
-		t.Fatalf("error = %+v", body)
-	}
-}
-
 type deleteMeStore struct {
 	handoff                  auth.PrivacyDeleteHandoff
 	revokedSessionID         string

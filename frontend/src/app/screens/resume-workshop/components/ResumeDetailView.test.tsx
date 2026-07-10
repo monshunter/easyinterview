@@ -171,14 +171,14 @@ describe("ResumeDetailView read-only contract", () => {
 
     await waitFor(
       () => {
-        expect(getResumeSpy).toHaveBeenCalledTimes(2);
+        expect(
+          screen.getAllByRole("heading", { name: "谭章毓 - 后端工程师 AI" })
+            .length,
+        ).toBeGreaterThanOrEqual(1);
       },
       { timeout: 2000 },
     );
-    expect(
-      screen.getAllByRole("heading", { name: "谭章毓 - 后端工程师 AI" })
-        .length,
-    ).toBeGreaterThanOrEqual(1);
+    expect(getResumeSpy).toHaveBeenCalledTimes(2);
     const stack = screen.getByTestId("resume-detail-pdf-preview-stack");
     expect(stack).toHaveAttribute(
       "data-source-url",

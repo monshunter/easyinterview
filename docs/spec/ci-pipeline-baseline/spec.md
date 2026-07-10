@@ -1,6 +1,6 @@
 # Local Quality Gate and Deferred CI Spec
 
-> **版本**: 1.8
+> **版本**: 1.10
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -30,7 +30,7 @@
 
 - **本地质量入口**：统一约定根 Make target：
   - `make lint`：聚合 Go / TS / error-code / config / 当前已落地的本地 lint / contract gates；F1 metrics / log helper 由 F1 暴露真实命令后再接入，不保留 exit-zero 假 target。
-  - `make test`：聚合 Go / TS 单元测试；AI 单元测试默认走 stub / fixtures，不需要真实 AI provider secret。
+  - `make test`：聚合 UI prototype Node contracts、Python tooling/skill contracts、Go 与 TS 单元测试；Python 外部依赖由根 `requirements-dev.txt` 声明，AI 单元测试默认走 stub / fixtures，不需要真实 AI provider secret。
   - `make build`：聚合 backend / frontend 构建；当前执行真实 backend cmd build 与 frontend Vite build。
   - `make docs-check`：执行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` 与轻量链接检查（如 `python3 scripts/lint/check_md_links.py docs`）。
   - `make codegen-check`：执行已落地 generator 的 idempotency / drift check（B1、B2 按各自 plan 接入）。
@@ -73,6 +73,7 @@
 
 - 所有本地 gate 必须可在仓库根执行，不要求开发者手动 `cd backend` / `cd frontend`。
 - 任一 target 失败时必须返回非 0；A5 只调用已落地的本地 sub-target，不为尚未落地的 future owner 创建 exit-zero 假 target。
+- `make test` 必须先执行 `ui-design/ui-design-contract.test.mjs`，再覆盖 `scripts/` 与 `.agent-skills/` 的全部 pytest contracts，最后执行 backend Go 与 frontend TypeScript tests；Python 外部依赖必须在根 `requirements-dev.txt` 中显式声明。
 - `make docs-check` 必须至少包含可执行的 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`；Header / INDEX drift 不能靠人工记忆或只写 slash skill 文本。
 - `make codegen-check` 只能检查已经存在的 generator；B2 OpenAPI generator 未落地前不得制造失败 gate。
 
@@ -93,6 +94,8 @@
 | 边界 | Owner | 说明 |
 |------|-------|------|
 | 根 `make lint` / `make test` / `make build` / `make docs-check` / `make codegen-check` 编排 | A5 + A1 | A1 提供 Makefile 结构，A5 约定本地质量入口 |
+| Python tooling / skill contract tests | A5 + scripts/skills owners | A5 聚合 `scripts/` 与 `.agent-skills/` tests；各 owner 维护自身断言，根 `requirements-dev.txt` 声明执行依赖 |
+| UI prototype contract test | A5 + product/UI owner | A5 聚合唯一根级 Node contract；测试规则继续由 `ui-design/` 当前真理源维护 |
 | 错误码 lint / 共享类型 codegen drift | B1 | A5 只聚合命令，不重写规则 |
 | OpenAPI codegen drift | B2 | B2 generator 落地后再接入 `make codegen-check` |
 | Config lint | A4 | A5 聚合 `make lint-config` 或等价入口 |
@@ -107,7 +110,7 @@
 |----|------|-------|------|------|-----------|
 | C-1 | 无远端 CI 文件 | 仓库处于 P0 单人开发阶段 | 检查 `.github/workflows/` | 不存在由 A5 创建的 `ci.yml` / `nightly.yml` / `dependabot.yml`；文档不声称 CI 已启用 | A5 后续 001（如需要） |
 | C-2 | 本地 lint gate | 已落地 B1 lint 与后续 owner lint | `make lint` | 聚合已存在 lint；任一被调用 gate 失败返回非 0；未落地 lint 不进入执行面 | A5 后续 001（如需要） + B1/A4/F1 |
-| C-3 | 本地 test gate | Go / TS 测试已落地 | `make test` | 单元测试在本地运行；AI 单测走 stub / fixtures；不需要 AI provider secret | A5 后续 001（如需要） |
+| C-3 | 本地 test gate | UI prototype、Python tooling/skill、Go 与 TS 测试已落地 | `make test` | UI prototype Node contract、`scripts/` 与 `.agent-skills/` pytest contracts、backend Go tests、frontend Vitest 全部运行；任一失败返回非 0；AI 单测走 stub / fixtures | A5 后续 001（如需要） |
 | C-4 | 本地 build gate | backend / frontend 构建入口存在 | `make build` | backend cmd build 与 frontend bundle build 均真实执行并成功 | A5 后续 001（如需要） |
 | C-5 | docs gate | 任意 spec Header 与 INDEX 人为制造 drift | `make docs-check` 或直接执行 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` | drift 被报告并返回非 0 | A5 后续 001（如需要） |
 | C-6 | codegen drift gate | B1/B2 generator 已落地 | `make codegen-check` | 已接入 generator 重跑后无 diff；未落地 generator 不制造失败 | A5 后续 001（如需要） + B1/B2 |

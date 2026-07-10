@@ -80,7 +80,7 @@ const ResumeWorkshopScreen = ({ T, lang, nav, params = {} }) => {
 
   const [flow, setFlow] = React.useState(params.flow === "create" ? "create" : "list");
   React.useEffect(() => {
-    if (params.flow === "create") setFlow("create");
+    setFlow(params.flow === "create" ? "create" : "list");
   }, [params.flow]);
 
   const isEn = lang === "en";
@@ -105,6 +105,7 @@ const ResumeWorkshopScreen = ({ T, lang, nav, params = {} }) => {
       text: [],
     };
     setCreatedResumes((prev) => [...prev, resume]);
+    setFlow("list");
     nav("resume_versions", { resumeId: resume.id });
     resumeNotify(lang, "已创建简历 · 正在解析", "Resume created · parsing");
     window.setTimeout(() => {
@@ -134,7 +135,7 @@ const ResumeWorkshopScreen = ({ T, lang, nav, params = {} }) => {
   const detailResume = resumeId ? resumes.find((r) => r.id === resumeId) : null;
 
   if (flow === "create") {
-    return <ResumeCreateFlow T={T} lang={lang} nav={nav} onBack={() => setFlow("list")} onCreateResume={addCreatedResume} />;
+    return <ResumeCreateFlow T={T} lang={lang} onBack={() => setFlow("list")} onCreateResume={addCreatedResume} />;
   }
 
   if (detailResume) {
@@ -373,7 +374,7 @@ const ResumePreviewTab = ({ T, lang, resume }) => {
 };
 
 // ─── Create flow — upload or paste only (guided Q&A outside current scope, D-20). Successful submit opens the detail route waiting state. ──
-const ResumeCreateFlow = ({ T, lang, nav, onBack, onCreateResume }) => {
+const ResumeCreateFlow = ({ T, lang, onBack, onCreateResume }) => {
   const [createMode, setCreateMode] = React.useState("upload");
   const [resumeText, setResumeText] = React.useState("");
   const [pickedFile, setPickedFile] = React.useState(null);

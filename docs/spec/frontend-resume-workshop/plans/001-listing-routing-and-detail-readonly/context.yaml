@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 2.12
+    to: 2.14
 spec:
   defaultTarget: frontend
   discovery:

@@ -5,7 +5,6 @@ from __future__ import annotations
 import pathlib
 import subprocess
 import sys
-import textwrap
 
 THIS_DIR = pathlib.Path(__file__).resolve().parent
 SCRIPT = THIS_DIR / "rubric_lint.py"
@@ -51,7 +50,7 @@ def test_baseline_passes():
     assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
 
 
-def TestWeightSumTolerance(tmp_path):
+def test_weight_sum_tolerance(tmp_path):
     """Plan §1.3 + §1.5 verification: sum(weight) outside +/-0.001 must fail."""
     bad = (
         '  - name: "language_consistency"\n'
@@ -86,13 +85,7 @@ def TestWeightSumTolerance(tmp_path):
     assert result.returncode == 1
     assert "weight sum" in result.stderr
 
-
-def test_weight_sum_tolerance(tmp_path):
-    """pytest alias for TestWeightSumTolerance."""
-    TestWeightSumTolerance(tmp_path)
-
-
-def TestDimensionNameAllowlist(tmp_path):
+def test_dimension_name_allowlist(tmp_path):
     """Plan §1.3 + §1.5 verification: unknown dimension name must fail."""
     bad = (
         '  - name: "made_up_metric"\n'
@@ -113,12 +106,6 @@ def TestDimensionNameAllowlist(tmp_path):
     result = _run(tmp_path / "config/rubrics")
     assert result.returncode == 1
     assert "not in allowlist" in result.stderr
-
-
-def test_dimension_name_allowlist(tmp_path):
-    """pytest alias for TestDimensionNameAllowlist."""
-    TestDimensionNameAllowlist(tmp_path)
-
 
 def test_out_of_scope_jd_match_dimension_names_are_rejected(tmp_path):
     """JD-Match D-12 rubric dimensions are out-of-scope."""

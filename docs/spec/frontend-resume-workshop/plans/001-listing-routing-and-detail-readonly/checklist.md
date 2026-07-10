@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 3.2
+> **版本**: 3.6
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -94,3 +94,37 @@
   <!-- verified: 2026-07-10 method=orphan-resume-toast-removal evidence="Deleted the entire unimported helper and removed P0.036's self-only global capture plus constant-false assertion. Scoped literal search is empty; privacy/P0.036 focused tests pass 2 files/9 tests. ui-design source is unchanged." -->
 - [x] 14.3 Run focused Resume Workshop/P0.036 tests, the P0.036 wrapper, owner/product contexts, docs, diff and pruning gates; then restore the owner to `completed`.
   <!-- verified: 2026-07-10 method=orphan-resume-toast-removal evidence="Scoped zero-reference gate plus P0.036 pass 9/9; P0.036 setup/trigger/verify/cleanup passes 4/4; Resume Workshop plus P0.036 passes 20 files/110 tests and typecheck. Owner/product contexts and docs/index/link/diff/pruning gates pass with real_residuals=0." -->
+
+## Phase 15: P0.037 ready DOM synchronization
+
+- [x] 15.1 Capture the full-suite RED where the second `getResume` call is observed before the ready heading commits, and identify the same request-count-only wait in both P0.037 and its owner mirror.
+  <!-- verified: 2026-07-10 method=p0-037-ready-dom-race-red evidence="A full frontend run under concurrent build load failed with 840/841 because the scenario observed getResume call 2 but synchronously found only Loading resume. Focused P0.037 then passed 6/6, proving timing sensitivity; source inspection found the same waitFor(call count 2) followed by synchronous getAllByRole in both scenario and ResumeDetailView tests." -->
+- [x] 15.2 Synchronize both tests on the ready `displayName` heading, then assert the exact two-call polling contract and unchanged PDF page-stack/content negatives.
+  <!-- verified: 2026-07-10 method=p0-037-ready-dom-race-green evidence="Both duplicate tests now wait for the ready displayName heading and only then assert exactly two getResume calls. Focused scenario plus owner mirror pass 2 files/14 tests; the request-count-first source pattern is zero and all page-stack URL/content/native-viewer negatives remain unchanged." -->
+- [x] 15.3 Run repeated focused tests, the P0.037 four-stage wrapper, Resume Workshop/full frontend regressions, owner/product contexts and docs/diff/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=p0-037-ready-dom-race-regression evidence="Four concurrent focused processes each pass 2 files/14 tests. P0.037 setup/trigger/verify/cleanup passes 6/6; Resume Workshop plus scenario passes 20 files/113 tests, typecheck passes, and full frontend passes 137 files/841 tests. Both owner contexts validate, BUG-0153 records the diagnosis, and final docs/diff/pruning gates run during closeout. No environment restart or data cleanup occurred." -->
+
+## Phase 16: zero-consumer detail CSS pruning
+
+- [x] 16.1 Add a source-level RED gate that names every zero-consumer breadcrumb, structured-preview and original-modal selector still present in `screens.css`.
+  <!-- verified: 2026-07-10 method=resume-css-source-red evidence="Focused ResumeWorkshopCssParity ran 4 tests: all 3 existing parity contracts passed and only the new zero-consumer selector contract failed, first reporting .ei-resume-detail-breadcrumb still present." -->
+- [x] 16.2 Delete those selectors and the dead shared-button/mobile branches without adding aliases, placeholders or removal markers; preserve all current list/detail selectors.
+  <!-- verified: 2026-07-10 method=resume-css-source-green evidence="ResumeWorkshopCssParity passes 4/4. Target selectors are absent from formal CSS/DOM/prototype sources and remain only as negative test literals; current back/header/Markdown/PDF/parse-state selectors retain production consumers." -->
+- [x] 16.3 Run focused Resume Workshop CSS/component tests, full Resume Workshop owner tests, typecheck/build, owner/product contexts and docs/index/diff/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=resume-detail-zero-consumer-css-pruning evidence="CSS parity passes 4/4; Resume Workshop owner passes 19 files/108 tests; full frontend passes 136 files/837 tests; typecheck and production build pass. Target CSS selectors are absent outside the negative gate, live detail selectors retain production consumers, and both owner/product contexts validate. Final docs/index/diff/pruning gates run during closeout. No environment restart or data cleanup occurred." -->
+
+## Phase 17: detail CSS cascade consolidation
+
+- [x] 17.1 Add a source RED gate requiring one detail-back rule with the complete effective declarations and no flex-preview grid declaration.
+  <!-- verified: 2026-07-10 method=resume-detail-css-cascade-red evidence="Focused ResumeWorkshopCssParity ran 5 tests: all 4 existing contracts passed and only the new cascade gate failed because two detail-back rules remained." -->
+- [x] 17.2 Merge the effective declarations into one rule and delete the ineffective media block without changing selectors, DOM or computed values.
+  <!-- verified: 2026-07-10 method=resume-detail-css-cascade-green evidence="CSS parity passes 5/5. Exactly one detail-back rule retains the effective inline-flex/padding/color/background/border/radius/font declarations, and the flex preview no longer carries grid-template-columns; all remaining grid declarations belong to grid layouts." -->
+- [x] 17.3 Run focused/full Resume Workshop, full frontend, typecheck/build, owner/product contexts and docs/index/diff/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=resume-detail-css-cascade-consolidation evidence="CSS parity passes 5; Resume Workshop passes 19 files/110 tests; full frontend passes 136 files/843 tests; typecheck/build and both contexts pass. Detail-back has one complete effective rule, the flex-preview grid declaration is absent, and final docs/index/diff/pruning gates run during closeout. No Bug/retrospective report, environment restart or data cleanup was needed." -->
+
+## Phase 18: empty pending-decision section removal
+
+- [x] 18.1 Record a scoped RED gate proving the active spec still contains an empty pending-decision section.
+  <!-- verified: 2026-07-10 method=frontend-resume-empty-pending-red evidence="The scoped absence gate failed first on the active spec's combined decisions/pending heading; source inventory confirmed the only 3.2 content was a no-pending status sentence and no active anchor referenced it." -->
+- [x] 18.2 Delete the empty section, synchronize spec/history/contexts/indexes, and run owner/product context plus docs/index/link/diff/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=frontend-resume-empty-pending-section-removal evidence="Spec v2.14 keeps only the current decisions heading and has no empty pending section or no-pending status sentence. History, both owner contexts and the top-level spec index are synchronized; 001/002/product contexts, links and final docs/index/diff/pruning gates pass. No code, UI, BDD, Bug/retrospective report, environment restart or data cleanup was needed." -->

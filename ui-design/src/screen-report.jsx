@@ -163,7 +163,6 @@ const ReportDashboard = ({ T, lang, nav, r, context, params, requestAuth }) => {
       <ReportDetailSurface
         T={T}
         lang={lang}
-        nav={nav}
         r={r}
         detail={detail}
         setDetail={setDetail}
@@ -307,7 +306,7 @@ const ReportStatButton = ({ T, active, onClick, children }) => (
   </button>
 );
 
-const ReportDetailSurface = ({ T, lang, nav, r, detail, setDetail, context, activeQuestion, setActiveQuestion }) => {
+const ReportDetailSurface = ({ T, lang, r, detail, setDetail, context, activeQuestion, setActiveQuestion }) => {
   const q = r.perQuestion.find((item) => item.qId === activeQuestion) || r.perQuestion[0];
   // Question review "add to replay" is a plan marker, not a session-start CTA (D-19).
   const [replayQueued, setReplayQueued] = React.useState({});

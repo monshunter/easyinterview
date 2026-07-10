@@ -1,6 +1,6 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.25
+> **版本**: 1.27
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -29,7 +29,7 @@
 - 跨语言 generator：从 `shared/conventions.yaml` 生成 `backend/internal/shared/types/*.go` 与 `frontend/src/lib/conventions/*.ts`。
 - Go 共享 module：`backend/internal/shared/types/`、`backend/internal/shared/idx/`（UUIDv7 + tmp_ id 工具）、`backend/internal/shared/errors/`（错误码常量与 `APIError` 类型）。
 - TS 共享 lib：`frontend/src/lib/conventions/`（`PageInfo` / `ApiError` / 枚举字面量类型）、`frontend/src/lib/ids/`（UUID 字符串工具与 tmp_ 前缀校验）。
-- monorepo 名称：`go.mod` module name（拟 `github.com/monshunter/easyinterview/backend`）、`frontend/package.json` name、可选 `pnpm-workspace.yaml`。
+- monorepo 名称与拓扑：根 `go.work` 只 use `./backend`，`backend/go.mod` module name 为 `github.com/monshunter/easyinterview/backend`，frontend package name 为 `@easyinterview/frontend`，并启用根 `pnpm-workspace.yaml`。
 - Lint 规则：`UPPER_SNAKE_CASE` 错误码常量名、`lower_snake_case` 枚举字面量、`camelCase` JSON tag；B1 提供本地可执行的最小校验，A5 只约束本地质量门禁与远端 CI 延后边界。
 - Idempotency-Key 工具：Go 与 TS 双端的 24h TTL 校验 / 生成工具骨架。
 - AI 共享 vocabulary：AI capability、provider registry 字段名、Model Profile 字段名、`AICallMeta`/GenerationProvenance/`ai_task_runs` 共同消费的 AI meta 字段名常量或生成类型；B1 不实现 `AIClient`、不拥有 `AICallMeta` runtime 结构体，也不定义 `AI_PROVIDER_*` 连接参数语义。
@@ -45,14 +45,14 @@
 - `AIClient` runtime、Model Profile schema / loader、provider adapter、fallback 消费与 `AI_PROVIDER_*` 连接参数校验：归 A3 / A4 / E4，B1 只提供字段名和错误码真理源。
 - 业务域 handler / store / backend background runner（auth / upload / practice / review …）：归 C1–C8 或对应 runtime owner。
 
-## 3 用户决策 / 待确认事项
+## 3 用户决策
 
 ### 3.1 已锁定决策
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
 | D-1 | 跨语言真理源 | `shared/conventions.yaml`（YAML），由 generator 同时输出 Go / TS | 任何枚举或错误码新增必须改一处源；不允许只改 Go 或只改 TS |
-| D-2 | Go module 名称 | `github.com/monshunter/easyinterview/backend`（落点 `backend/go.mod`） | 后续所有 Go 包必须以此为根；不允许另起 module |
+| D-2 | Go workspace / module | 根 `go.work` 只 use `./backend`；module 名称为 `github.com/monshunter/easyinterview/backend`（落点 `backend/go.mod`）；两者 `go` directive 与 `.tool-versions` 同为 `1.24.5` | 后续所有 Go 包必须以此为根；不允许另起 module 或产生版本漂移 |
 | D-3 | TS 包管理 | pnpm workspace（启用 `pnpm-workspace.yaml`），前端 package 名 `@easyinterview/frontend` | A2 `local-dev-stack` 与 B2 `openapi-v1-contract` 默认沿用 |
 | D-4 | UUID 算法 | UUIDv7（含时序）；前端临时 id 使用 `tmp_<uuidv4>` | 所有业务主键由 idx 工具生成；不允许 NewV4 直接用作 DB id |
 | D-5 | 错误码命名 | `UPPER_SNAKE_CASE`，前缀按 domain：`AUTH_*` / `TARGET_*` / `PRACTICE_*` / `REPORT_*` / `RESUME_*` / `PRIVACY_*` / `AI_*` / `RATE_LIMITED` / `VALIDATION_FAILED` / `RESOURCE_NOT_FOUND` | 任何非前缀错误码必须由本 spec 修订决定；business code 直接 import 常量；A3 已授权 `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_CONFIG_INVALID` / `AI_PROVIDER_SECRET_MISSING`；C4 已授权 `TARGET_JOB_NOT_FOUND` / `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` / `TARGET_INVALID_STATE_TRANSITION`；backend-practice/001 Phase 0 已授权 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND`；`RESOURCE_NOT_FOUND` 是当前 cross-resource generic 404 |
@@ -61,12 +61,9 @@
 | D-8 | AI shared vocabulary 归属 | B1 提供 `AI_*` 错误码、AI capability、Provider Registry 字段名、Model Profile 字段名、AI meta 字段名常量或生成类型；A3 提供 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 填充与 OpenAI-compatible provider adapter；A4 校验 `AI_PROVIDER_*` 连接参数 | 避免 B1/A3/B4/F1 对同一 AI 字段私造名称；同时避免把运行时或连接配置误下沉到 shared conventions |
 | D-9 | 当前 UI 产品范围下的练习 / 报告枚举 | `PracticeMode = assisted / strict`；`PracticeGoal = baseline / retry_current_round / next_round`；`QuestionReviewStatus = open / queued_for_retry / resolved` | 对齐 product-scope 当前范围与 `docs/ui-design`：mode 只表达辅助度；PracticeGoal 只表达创建基线、复练当前轮或进入下一轮；报告内部题目回顾与本轮复练仍保留 |
 | D-10 | Resume contract shared vocabulary | 当前 B1 仅保留 Resume shared error code `RESUME_EXPORT_NOT_AVAILABLE`，用于 B2 `exportResume` P0 `501` 响应；其它 Resume request/response schema、provenance 与 fixture contract 由 B2 OpenAPI 承接 | 业务代码 (`backend-resume` / `frontend-resume-workshop`) 不得绕过 B1 私造错误码；B2 schema 必须通过 `$ref` 引用本 spec 锁定的错误码字面量 |
+| D-11 | Generator 实现 | `backend/cmd/codegen/conventions` 使用 `yaml.v3` 将 `shared/conventions.yaml` 解码为 typed `Spec`，再由手写 Go renderer 与 `go/format` 生成当前 Go/TS 资产 | generator 保持单入口；输出完整性和幂等性由 focused tests 与 `make codegen-check` 固化 |
+| D-12 | TypeScript 生成边界 | conventions 输出固定为 `enums.ts`、`errors.ts`、`ai.ts`、`pagination.ts`，ID 输出固定为 `frontend/src/lib/ids/generated.ts` | 消费方从 conventions barrel 或 IDs 模块引用；不得把已拆分资产重新合并为单文件或复制出第二套生成入口 |
 | D-20 | 扁平 Resume vocabulary boundary | `shared/conventions.yaml` 当前生成枚举类型为 16；Resume 是单一实体，API path / request / response 使用 `resumeId` 与 `Resume`；UI resume ≡ OpenAPI `Resume` | 由 [openapi-v1-contract/004](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) 与 [backend-resume](../backend-resume/spec.md) 同步 `shared/conventions.yaml`、Go/TS generated errors、B2 `ApiErrorCode` 与 parity fixtures；新增 Resume shared vocabulary 必须先修订 owner spec |
-
-### 3.2 待确认事项
-
-- generator 工具选型：默认手写 Go template + 简单 YAML loader；如执行阶段发现 schema 复杂度提升，可改用 `cuelang` 或 `quicktype`，由 001-bootstrap plan 在执行时升级并回填 D-1。
-- `frontend/src/lib/conventions/` 是否进一步拆为 `enums.ts` / `errors.ts` / `pagination.ts`：默认拆，具体粒度由 002-codegen-pipeline plan 决定。
 
 ## 4 设计约束
 
@@ -83,7 +80,7 @@
 
 ### 4.3 边界约束
 
-- 本 spec 输出的 Go module 路径 `backend/internal/shared/...` 不得被任何 child 重命名；后续 child 只能在 `internal/<domain>/` 中 import 这些 shared 类型。
+- 根 `go.work` 只 use `./backend`，并与 `backend/go.mod`、`.tool-versions` 使用同一 Go 版本；本 spec 输出的 Go module 路径 `backend/internal/shared/...` 不得被任何 child 重命名，后续 child 只能在 `internal/<domain>/` 中 import 这些 shared 类型。
 - TS 共享 lib 路径 `frontend/src/lib/conventions/` 与 `frontend/src/lib/ids/` 不得被后续 frontend workstream 重命名；可由 `frontend-shell` 在自己的 plan 中扩展 path alias。
 
 ## 5 模块边界
@@ -93,7 +90,7 @@
 | 跨语言真理源（YAML） | B1 | 单一源 + generator |
 | Go 共享类型 | B1 | `backend/internal/shared/{types,errors,idx}/` |
 | TS 共享类型 | B1 | `frontend/src/lib/{conventions,ids}/` |
-| Go module 拓扑 | B1 + A1 | A1 创建 `backend/` 根，B1 落地 `go.mod` 名称 |
+| Go module 拓扑 | B1 + A1 | A1 锁工具版本与 `backend/` 根；B1 锁根 `go.work`、`backend/go.mod` 名称和单 module 拓扑 |
 | pnpm workspace | B1 + A2 | B1 锁名称 + workspace.yaml；A2 在 dev stack 中保证可装 |
 | OpenAPI / fixtures | B2 | 引用 B1 的枚举与错误码常量 |
 | 事件 envelope | B3 | 引用 B1 的 `eventName` 命名约束、`eventVersion` 字段 |
@@ -113,6 +110,7 @@
 | C-7 | OpenAPI 错误响应 envelope 复用 B1 inner error | B2 渲染 `components.schemas.ApiError` 与 `components.schemas.ApiErrorResponse` | `make codegen-openapi && make codegen-check` | `ApiError` 只包含 inner error 字段；`ApiErrorResponse.error` `$ref` 到 `ApiError`；Go generated 复用 `sharederrors.APIError`，TS generated 复用 `conventions.ApiError` | openapi-v1-contract/001-bootstrap |
 | C-8 | AI vocabulary 共享 | A3/B4/F1/B2/TS client 同时消费 AI capability、provider/profile 字段、AI meta 字段与 `AI_*` 错误码 | `make codegen-conventions && make codegen-openapi`，再跑 parity tests / drift gate | `chat/stt/realtime/judge`、provider registry 字段、Model Profile 字段、`model_profile_name` / `capability` / fallback label 等字段名由 B1 生成或校验；F3 prompt/rubric provenance 字段（`feature_key` / `feature_flag` / `data_source_version`）作为 AI vocabulary 的一部分由 [F3 `prompt-rubric-registry/001-baseline`](../prompt-rubric-registry/plans/001-baseline/plan.md) 阶段 4.1 登记，仅服务于 prompt/rubric 来源追溯，不进入 F1 metric label 集合；A3 `AICallMeta` runtime 与 B4 `ai_task_runs` typed columns 使用同一来源；B1 不生成 `AICallMeta` DTO | ai-provider-and-model-routing/003 Phase 6 + db-migrations-baseline remediation + F3 `prompt-rubric-registry/001-baseline` 阶段 4.1 |
 | C-9 | TargetJob 场景错误码共享 | C4 `backend-targetjob` 需要区分不存在/越权、非法导入源、暂时不可用导入源、非法状态迁移 | `make codegen-conventions && make codegen-openapi`，再跑 B1/B2 parity tests / drift gate | `TARGET_JOB_NOT_FOUND` / `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` / `TARGET_INVALID_STATE_TRANSITION` 出现在 `shared/conventions.yaml`、Go/TS generated 错误码和 OpenAPI `ApiErrorCode` enum；handler 只使用上述 canonical codes，不私造 bare aliases | backend-targetjob/001 Phase 0 |
+| C-10 | Go workspace/module metadata | 根 workspace 与 backend module 已落地 | 执行 `make lint-go-mod-tidy` | `.tool-versions`、`go.work`、`backend/go.mod` 的 Go 版本均为 `1.24.5`；workspace 只 use backend；tidy 无 diff | 001-bootstrap |
 
 ## 7 关联计划
 
@@ -127,6 +125,8 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 1.27 | 将已经实现的 generator 与 TypeScript 输出边界固化为当前决策，删除陈旧待确认段落。 | tech-debt pruning |
+| 2026-07-10 | 1.26 | 将当前 Go topology 固化为根 `go.work` 单 use backend，并统一三处 Go 版本与 tidy drift gate。 | tech-debt pruning |
 | 2026-07-10 | 1.25 | 将 TargetJob 错误码验收条件收敛为 canonical codes 正向合同，并同步 history 与 001 context。 | tech-debt pruning |
 | 2026-07-07 | 1.24 | docs-only：将修订说明统一为记录表述，不改变 B1 shared conventions truth source。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-06 | 1.23 | docs-only：将 B1 active spec 收敛为当前 16 个生成枚举、当前 flat Resume vocabulary 与 `RESUME_EXPORT_NOT_AVAILABLE` 错误码边界；详细修订明细只保留在独立 history。 | product-scope/001-core-loop-module-pruning |

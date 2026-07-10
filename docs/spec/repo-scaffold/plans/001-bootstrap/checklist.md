@@ -1,6 +1,6 @@
 # Repo Scaffold Bootstrap Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -49,3 +49,10 @@
 
 - [x] 7.1 A1 spec / plan / checklist 不再把 git hooks 描述为空实现；当前口径为 pre-commit secret scan + commit-msg ASCII gate 的共享入口
 - [x] 7.2 验证 hook 文档 gate；验证: focused grep 当前 A1 owner 文档无旧 hook 空实现表述；context validation、`sync-doc-index --check`、`make docs-check` 与 `git diff --check` 通过
+
+## Phase 8: Go toolchain and module metadata convergence
+
+- [x] 8.1 将 `.tool-versions`、根 `go.work` 与 `backend/go.mod` 的 Go 版本统一为 `1.24.5`，由标准 tidy 修正直接依赖分类和 checksum；不新增 `toolchain` directive，不改 dependency version
+- [x] 8.2 增加并验证 `lint-go-mod-tidy` 根 lint 子门禁；验证: RED/GREEN、`go test ./...`、`go build ./cmd/...`、bootstrap output、repo/product contexts、docs/diff/pruning gates
+  <!-- red: 2026-07-10 method=go-module-tidy-and-workspace-version-gate evidence="The initial gate failed on go directive/directness/checksum drift. After module tidy, full test/build exposed go.work=1.24.0 against tool/module=1.24.5; the strengthened gate then failed with the exact three-version mismatch." -->
+  <!-- verified: 2026-07-10 method=single-go-version-and-tidy-zero-drift evidence=".tool-versions, go.work and backend/go.mod all use 1.24.5; go.work has one backend use entry and no toolchain directive exists. Dependency name/version comparison against HEAD is unchanged. lint-go-mod-tidy, full make lint, all backend tests, all cmd builds, bootstrap output, A1/B1/product contexts and docs/diff/pruning gates pass." -->

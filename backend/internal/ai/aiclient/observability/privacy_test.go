@@ -51,49 +51,7 @@ func TestPrivacy_NoPlaintextLeaksAnywhere(t *testing.T) {
 		t.Fatalf("Complete: %v", err)
 	}
 
-	for _, token := range sensitiveTokens {
-		// Metric label values across every registered counter family.
-		for _, family := range []string{
-			observability.MetricRunsTotal,
-			observability.MetricInputTokensTotal,
-			observability.MetricOutputTokensTotal,
-			observability.MetricCostUSDTotal,
-			observability.MetricOutputValidationFailures,
-			observability.MetricFallbackTotal,
-		} {
-			for _, labels := range registry.CounterLabelValues(family) {
-				for _, lv := range labels {
-					if strings.Contains(lv, token) {
-						t.Errorf("plaintext token %q leaked into metric %q label %q", token, family, lv)
-					}
-				}
-			}
-		}
-
-		// Log field values.
-		for _, entry := range logger.Entries() {
-			if anyContains(entry.Fields, token) {
-				t.Errorf("plaintext token %q leaked into log fields: %+v", token, entry.Fields)
-			}
-		}
-
-		// ai_task_runs rows.
-		for _, row := range runs.Rows() {
-			if anyTaskRunContains(row, token) {
-				t.Errorf("plaintext token %q leaked into ai_task_runs row: %+v", token, row)
-			}
-		}
-
-		// audit_events metadata.
-		for _, row := range audit.Rows() {
-			meta := row.Metadata
-			if strings.Contains(meta.PromptHash, token) ||
-				strings.Contains(meta.ResponseHash, token) ||
-				strings.Contains(meta.ProfileName, token) {
-				t.Errorf("plaintext token %q leaked into audit metadata: %+v", token, meta)
-			}
-		}
-	}
+	assertNoPlaintextLeaks(t, sensitiveTokens, registry, logger, runs, audit)
 
 	// Sanity check: hashes must be present and non-empty (the decorator
 	// is not silently dropping the audit row).
@@ -154,19 +112,43 @@ func TestPrivacy_SynthesizeNoPlaintextLeaksAndUsesTTSLabels(t *testing.T) {
 		t.Fatalf("expected tts run counter=1, got %v", got)
 	}
 
-	for _, token := range sensitiveTTSTokens {
-		for _, family := range []string{
-			observability.MetricRunsTotal,
-			observability.MetricInputTokensTotal,
-			observability.MetricOutputTokensTotal,
-			observability.MetricCostUSDTotal,
-			observability.MetricOutputValidationFailures,
-			observability.MetricFallbackTotal,
-		} {
+	assertNoPlaintextLeaks(t, sensitiveTTSTokens, registry, logger, runs, audit)
+
+	auditRows := audit.Rows()
+	if len(auditRows) != 1 {
+		t.Fatalf("expected 1 audit row, got %d", len(auditRows))
+	}
+	if auditRows[0].Metadata.PromptHash == "" || auditRows[0].Metadata.ResponseHash == "" {
+		t.Fatalf("audit hashes missing: %+v", auditRows[0].Metadata)
+	}
+	if auditRows[0].Metadata.PromptCharLength != len(input.Text) {
+		t.Fatalf("expected prompt length=%d, got %+v", len(input.Text), auditRows[0].Metadata)
+	}
+}
+
+func assertNoPlaintextLeaks(
+	t *testing.T,
+	tokens []string,
+	registry *observability.InMemoryRegistry,
+	logger *observability.MemoryLogger,
+	runs *memTaskRunWriter,
+	audit *memAuditWriter,
+) {
+	t.Helper()
+	metricFamilies := []string{
+		observability.MetricRunsTotal,
+		observability.MetricInputTokensTotal,
+		observability.MetricOutputTokensTotal,
+		observability.MetricCostUSDTotal,
+		observability.MetricOutputValidationFailures,
+		observability.MetricFallbackTotal,
+	}
+	for _, token := range tokens {
+		for _, family := range metricFamilies {
 			for _, labels := range registry.CounterLabelValues(family) {
-				for _, lv := range labels {
-					if strings.Contains(lv, token) {
-						t.Errorf("plaintext token %q leaked into metric %q label %q", token, family, lv)
+				for _, label := range labels {
+					if strings.Contains(label, token) {
+						t.Errorf("plaintext token %q leaked into metric %q label %q", token, family, label)
 					}
 				}
 			}
@@ -189,17 +171,6 @@ func TestPrivacy_SynthesizeNoPlaintextLeaksAndUsesTTSLabels(t *testing.T) {
 				t.Errorf("plaintext token %q leaked into audit metadata: %+v", token, meta)
 			}
 		}
-	}
-
-	auditRows := audit.Rows()
-	if len(auditRows) != 1 {
-		t.Fatalf("expected 1 audit row, got %d", len(auditRows))
-	}
-	if auditRows[0].Metadata.PromptHash == "" || auditRows[0].Metadata.ResponseHash == "" {
-		t.Fatalf("audit hashes missing: %+v", auditRows[0].Metadata)
-	}
-	if auditRows[0].Metadata.PromptCharLength != len(input.Text) {
-		t.Fatalf("expected prompt length=%d, got %+v", len(input.Text), auditRows[0].Metadata)
 	}
 }
 

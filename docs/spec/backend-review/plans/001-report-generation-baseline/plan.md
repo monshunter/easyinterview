@@ -1,6 +1,6 @@
 # 001 - Report Generation Baseline
 
-> **版本**: 1.4
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -86,5 +86,15 @@ git diff --check
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.6 | Consolidate retryable GenerateHandler test setup while preserving exact regression names. |
+| 2026-07-10 | 1.5 | Remove the production-only readiness-tier test helper and keep the enum property assertion in test data. |
 | 2026-07-07 | 1.2 | Compress owner plan to the current report generation/read contract and executable evidence index. |
 | 2026-05-16 | 1.1 | Complete report generation baseline delivery. |
+
+## 8 Test-only readiness validator removal
+
+删除 production `validReadinessTier`，随机 readiness property test 直接使用四个 shared `ReadinessTier` 常量组成的测试集合验证输出。真实 readiness 计算与阈值映射保持不变。
+
+## 9 GenerateHandler retryable-failure test harness consolidation
+
+Keep both top-level retryable failure test names, including the BUG-0088/backend-async-runner exact gate. Move their shared store/service/job setup and output assertions into one test-only helper parameterized only by the service's incoming `AsyncJobFinalized` value; both paths must still return retryable timeout with handler output `AsyncJobFinalized=false`.

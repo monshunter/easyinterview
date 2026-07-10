@@ -318,9 +318,9 @@ runtime:
 		Now:                 fixedScenarioNow,
 	})
 	service := &reportScenarioHTTPService{reports: map[string]reviewdomain.FeedbackReportRecord{}}
-	handler := buildAPIHandlerWithUploadReportAndHandlers(loader, apiRuntimeFlags{}, authService, targetjob.NewHandler(), practiceRoutes{}, uploadRoutes{}, resumeRoutes{}, reportRoutes{
+	handler := buildAPIHandler(loader, apiRuntimeFlags{}, authService, targetjob.NewHandler(), practiceRoutes{}, uploadRoutes{}, resumeRoutes{}, reportRoutes{
 		Handler: apireports.NewHandler(apireports.HandlerOptions{Service: service, Session: currentUserFromContext}),
-	})
+	}, jobsRoutes{})
 	return &reportHTTPScenarioHarness{handler: handler, service: service, cookies: cookies}
 }
 

@@ -7,10 +7,16 @@ import (
 	"testing"
 )
 
+type mapEnv map[string]string
+
+func (e mapEnv) Getenv(key string) string {
+	return e[key]
+}
+
 func TestRunRejectsMissingDatabaseURLForMigrationCommands(t *testing.T) {
 	var stderr bytes.Buffer
 
-	exitCode := Run(context.Background(), []string{"up"}, StaticEnv{
+	exitCode := Run(context.Background(), []string{"up"}, mapEnv{
 		"APP_ENV": "dev",
 	}, nil, &stderr)
 
@@ -25,7 +31,7 @@ func TestRunRejectsMissingDatabaseURLForMigrationCommands(t *testing.T) {
 func TestRunRejectsProdDownWithoutForceBeforeOpeningDatabase(t *testing.T) {
 	var stderr bytes.Buffer
 
-	exitCode := Run(context.Background(), []string{"down"}, StaticEnv{
+	exitCode := Run(context.Background(), []string{"down"}, mapEnv{
 		"APP_ENV": "prod",
 	}, nil, &stderr)
 
@@ -44,7 +50,7 @@ func TestRunDispatchesCreateThroughGenerator(t *testing.T) {
 	tmp := t.TempDir()
 	var stdout bytes.Buffer
 
-	exitCode := Run(context.Background(), []string{"--migrations-dir", tmp, "create", "add_test_table"}, StaticEnv{}, &stdout, nil)
+	exitCode := Run(context.Background(), []string{"--migrations-dir", tmp, "create", "add_test_table"}, mapEnv{}, &stdout, nil)
 
 	if exitCode != 0 {
 		t.Fatalf("expected create to succeed, exit=%d", exitCode)
@@ -57,7 +63,7 @@ func TestRunDispatchesCreateThroughGenerator(t *testing.T) {
 func TestRunDispatchesPrivacyMatrixDryRunWithoutDatabase(t *testing.T) {
 	var stdout bytes.Buffer
 
-	exitCode := Run(context.Background(), []string{"privacy-matrix", "--dry-run"}, StaticEnv{}, &stdout, nil)
+	exitCode := Run(context.Background(), []string{"privacy-matrix", "--dry-run"}, mapEnv{}, &stdout, nil)
 
 	if exitCode != 0 {
 		t.Fatalf("expected dry-run to succeed, exit=%d", exitCode)

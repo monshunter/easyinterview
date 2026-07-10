@@ -15,10 +15,6 @@ import (
 // Profiles set in Default.ProviderRef when they want to route to stub.
 const Name = "stub"
 
-// ProviderName is exposed for cross-package references that prefer a typed
-// name over the bare const.
-func ProviderName() string { return Name }
-
 // ErrNotAllowed is returned by New when stub instantiation is rejected
 // because the resolved AppEnv is not "test" and the caller did not pass
 // WithAllowed.

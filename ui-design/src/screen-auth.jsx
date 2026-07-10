@@ -67,7 +67,7 @@ const PendingActionPanel = ({ T, lang, pendingAction }) => {
   );
 };
 
-const AuthLoginScreen = ({ T, lang, nav, onSignIn, pendingAction }) => {
+const AuthLoginScreen = ({ T, lang, nav, pendingAction }) => {
   const [email, setEmail] = React.useState("name@example.com");
   const [cooldown, startCooldown] = useResendCountdown();
   const sendCode = () => {
@@ -113,7 +113,7 @@ const AuthLoginScreen = ({ T, lang, nav, onSignIn, pendingAction }) => {
   );
 };
 
-const AuthProfileSetupScreen = ({ T, lang, nav, onCompleteProfile, pendingAction }) => {
+const AuthProfileSetupScreen = ({ T, lang, onCompleteProfile, pendingAction }) => {
   const [name, setName] = React.useState("");
   const [accepted, setAccepted] = React.useState(true);
 

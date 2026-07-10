@@ -3,7 +3,7 @@
 
 Covers:
 - Happy path: linting `config/prompts/` baseline must succeed.
-- TestCanonicalHashAgainstReadme: the canonical hash matches the README §3
+- Canonical hash parity: the canonical hash matches the README §3
   description verbatim (cross-tool source of truth).
 - Negative fixture (hash drift): body changed without hash bump.
 - Negative fixture (field order): reordered yaml fields.
@@ -51,7 +51,7 @@ def test_baseline_passes():
     assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
 
 
-def TestCanonicalHashAgainstReadme():
+def test_canonical_hash_against_readme():
     """Plan §1.1 verification gate.
 
     Recompute the canonical hash by hand exactly as `config/prompts/README.md`
@@ -80,12 +80,6 @@ def TestCanonicalHashAgainstReadme():
     ).encode("utf-8")
     expected = hashlib.sha256(body_bytes + canonical).hexdigest()
     assert actual == expected
-
-
-def test_canonical_hash_against_readme():
-    """pytest-discoverable alias for TestCanonicalHashAgainstReadme."""
-    TestCanonicalHashAgainstReadme()
-
 
 def _hint_schema() -> dict:
     return {

@@ -1,6 +1,6 @@
 # Secrets and Config Spec
 
-> **版本**: 2.13
+> **版本**: 2.14
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -31,7 +31,7 @@
   - `.env.example`（仓库版本化的 env key 示例，列出所有合法 env key）
   - `config/feature-flags.yaml`（FileFlagProvider 的本地源，dev 默认值）
 - **Go 包**：`backend/internal/platform/config/`（loader + validator + redactor）；`backend/internal/platform/secrets/`（`SecretSource` 接口与 env provider）；`backend/internal/platform/featureflag/`（`FeatureFlagClient` 接口与 file / posthog provider）。
-- **TS 包**：`frontend/src/lib/runtime-config/`（前端只读取 build-time 注入与运行时 `/api/v1/runtime-config` 端点；不直接读浏览器 env）。
+- **前端运行时入口**：`frontend/src/app/runtime/AppRuntimeProvider.tsx` 通过 B2 generated client 的 `getRuntimeConfig` 读取 `/api/v1/runtime-config`；不保留平行 fetch/cache 包，也不直接读浏览器 env。
 - **配置字段表**：本 spec §3.1 锁定 P0 必备 env key、默认值、config path、secret/public 分类与 runtime-config 暴露规则，全部由 `internal/platform/config` validator 消费。
 - **lint / hook**：
   - `make lint-config` 检查 `.env.example` 与代码 `Get*` 调用一致。
@@ -174,7 +174,7 @@
 | `internal/platform/config/` | A4 | loader / validator / redactor / `Get*` API |
 | `internal/platform/secrets/` | A4 | `SecretSource` 接口 + env provider；P1 以后可扩展 Vault / SOPS / platform secret |
 | `internal/platform/featureflag/` | A4 | `FeatureFlagClient` + file / posthog provider |
-| `frontend/src/lib/runtime-config/` | A4 + D1 | `runtime-config` fetcher 与本地缓存；A4 锁字段，D1 集成 React hooks |
+| `frontend/src/app/runtime/AppRuntimeProvider.tsx` | D1（消费） + B2（generated client/types） + A4（endpoint allowlist） | 正式 runtime/auth provider 是前端唯一运行时配置消费入口；A4 不维护平行 fetch/cache 包 |
 | `config/*.yaml` 内容 | 各业务 owner 增量 | A4 锁文件位置与 schema，业务字段由各 child 在 spec 修订时新增 |
 | `config/feature-flags.yaml` 字段集 | F2 + 各业务 owner | A4 锁文件位置；当前 6 项 baseline flag 为 `practice_hint_enabled` / `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled` / `practice_assistance_mode_enabled`；`mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 不属于当前 flag inventory |
 | AI provider registry / env keys 默认值 | A3（决策） + A4（落 env 字典） | A3 决定 provider registry 与 profile schema；A4 写进 env/config 字典并负责被选中 provider secret 缺失 fail-fast |
@@ -207,6 +207,6 @@ A4 当前暂无 active impl plan；后续由 A4 自身的 `001-bootstrap` 承接
 - 落地 `config/*.yaml`、`.env.example`、`config/feature-flags.yaml`。
 - 落地 `async.queueWeights` typed config，并由 backend internal runner 在后续 plan 中消费。
 - 落地 lint 规则与 pre-commit hook（接入 A1 `scripts/git-hooks/`）。
-- 提供 `frontend/src/lib/runtime-config/` 与最小 fetcher。
+- 提供 backend runtime-config builder/handler 与公开字段 allowlist；前端由 D1 `AppRuntimeProvider` 通过 B2 generated client 消费。
 
 后续 P1 升级（Vault / SOPS / platform secret / K8s Secret provider）由本 spec 修订递增版本后追加 plan，不创建 sibling spec。

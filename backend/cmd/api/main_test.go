@@ -34,9 +34,14 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
+	"github.com/monshunter/easyinterview/backend/internal/testsupport"
 	"github.com/monshunter/easyinterview/backend/internal/upload/objectstore"
 	"github.com/monshunter/easyinterview/backend/internal/upload/store"
 )
+
+func buildAuthTestAPIHandler(loader *config.Loader, flags featureflag.FeatureFlagClient, authService *auth.EmailCodeService) http.Handler {
+	return buildAPIHandler(loader, flags, authService, targetjob.NewHandler(), practiceRoutes{}, uploadRoutes{}, resumeRoutes{}, reportRoutes{}, jobsRoutes{})
+}
 
 func TestBuildFlagsClientLoadsPostHogPublicAllowlist(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -127,7 +132,7 @@ featureFlag:
 		Now:                   func() time.Time { return time.Date(2026, 5, 6, 20, 0, 0, 0, time.UTC) },
 		NewID:                 apiFixedIDs("challenge-1"),
 	})
-	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, nil)
+	handler := buildAuthTestAPIHandler(loader, apiRuntimeFlags{}, service)
 
 	start := httptest.NewRecorder()
 	handler.ServeHTTP(start, httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", bytes.NewBufferString(`{"email":"Candidate@Example.COM"}`)))
@@ -272,7 +277,7 @@ runtime:
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
-	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, nil)
+	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, targetjob.NewHandler(), practiceRoutes{}, uploadRoutes{}, resumeRoutes{}, reportRoutes{}, jobsRoutes{})
 
 	cases := []struct {
 		method string
@@ -321,7 +326,11 @@ upload:
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
-	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, nil)
+	upload, err := buildUploadRoutes(loader, nil)
+	if err != nil {
+		t.Fatalf("buildUploadRoutes: %v", err)
+	}
+	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, targetjob.NewHandler(), practiceRoutes{}, upload, resumeRoutes{}, reportRoutes{}, jobsRoutes{})
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/uploads/presign", strings.NewReader(`{"purpose":"resume","fileName":"resume.pdf","contentType":"application/pdf","byteSize":128}`))
@@ -351,7 +360,7 @@ runtime:
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
-	handler := buildAPIHandlerWithUploadAndHandlers(
+	handler := buildAPIHandler(
 		loader,
 		apiRuntimeFlags{},
 		service,
@@ -359,6 +368,8 @@ runtime:
 		practiceRoutes{},
 		uploadRoutes{},
 		resumeRoutes{Handler: resumehandler.New(resumehandler.Options{})},
+		reportRoutes{},
+		jobsRoutes{},
 	)
 
 	cases := []struct {
@@ -406,7 +417,7 @@ runtime:
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
-	handler := buildAPIHandlerWithUploadReportJobsAndHandlers(
+	handler := buildAPIHandler(
 		loader,
 		apiRuntimeFlags{},
 		service,
@@ -463,7 +474,7 @@ runtime:
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
-	handler := buildAPIHandlerWithUploadReportJobsAndHandlers(
+	handler := buildAPIHandler(
 		loader,
 		apiRuntimeFlags{},
 		service,
@@ -548,7 +559,7 @@ runtime:
 			UpdatedAt:   sessionTime.Format(time.RFC3339),
 		},
 	}
-	handler := buildAPIHandlerWithUploadAndHandlers(
+	handler := buildAPIHandler(
 		loader,
 		apiRuntimeFlags{},
 		service,
@@ -563,6 +574,8 @@ runtime:
 				NewID: func() string { return "idem-rec-tailor" },
 			}),
 		},
+		reportRoutes{},
+		jobsRoutes{},
 	)
 
 	t.Run("missing session", func(t *testing.T) {
@@ -625,7 +638,7 @@ runtime:
 			ResponseBody:   []byte(`{"tailorRunId":"tailor-run-replay","job":{"id":"job-replay","jobType":"resume_tailor","status":"queued","resourceType":"resume_tailor_run","resourceId":"tailor-run-replay","errorCode":null,"createdAt":"2026-06-13T10:45:00Z","updatedAt":"2026-06-13T10:45:00Z"}}`),
 		}}
 		replaySvc := &apiTailorRunService{requestOut: resumeSvc.requestOut}
-		replayHandler := buildAPIHandlerWithUploadAndHandlers(
+		replayHandler := buildAPIHandler(
 			loader,
 			apiRuntimeFlags{},
 			service,
@@ -636,6 +649,8 @@ runtime:
 				Handler:     resumehandler.New(resumehandler.Options{Service: replaySvc, Session: currentUserFromContext}),
 				Idempotency: idempotency.New(idempotency.MiddlewareOptions{Store: replayStore, Now: func() time.Time { return sessionTime }}),
 			},
+			reportRoutes{},
+			jobsRoutes{},
 		)
 		rec := httptest.NewRecorder()
 		req := authenticatedAPIRequest(http.MethodPost, "/api/v1/resume/tailor", validAPIRequestTailorBody("gap_review"), "idem-tailor")
@@ -656,7 +671,7 @@ runtime:
 		assertAPIStatusCode(t, invalid, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed)
 
 		notFoundSvc := &apiTailorRunService{requestErr: domainresume.ErrNotFound, getErr: domainresume.ErrNotFound}
-		notFoundHandler := buildAPIHandlerWithUploadAndHandlers(
+		notFoundHandler := buildAPIHandler(
 			loader,
 			apiRuntimeFlags{},
 			service,
@@ -664,6 +679,8 @@ runtime:
 			practiceRoutes{},
 			uploadRoutes{},
 			resumeRoutes{Handler: resumehandler.New(resumehandler.Options{Service: notFoundSvc, Session: currentUserFromContext})},
+			reportRoutes{},
+			jobsRoutes{},
 		)
 		rec := httptest.NewRecorder()
 		notFoundHandler.ServeHTTP(rec, authenticatedAPIRequest(http.MethodGet, "/api/v1/resume/tailor-runs/missing", "", ""))
@@ -686,7 +703,7 @@ runtime:
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
-	handler := buildAPIHandlerWithUploadReportAndHandlers(
+	handler := buildAPIHandler(
 		loader,
 		apiRuntimeFlags{},
 		service,
@@ -695,6 +712,7 @@ runtime:
 		uploadRoutes{},
 		resumeRoutes{},
 		reportRoutes{Handler: apireports.NewHandler(apireports.HandlerOptions{})},
+		jobsRoutes{},
 	)
 
 	cases := []struct {
@@ -734,7 +752,7 @@ runtime:
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
-	handler := buildAPIHandlerWithUploadReportJobsAndHandlers(
+	handler := buildAPIHandler(
 		loader,
 		apiRuntimeFlags{},
 		service,
@@ -788,7 +806,7 @@ upload:
 
 func TestBuildResumeRuntimeWiresRoutesRunnerAndDeterministicAI(t *testing.T) {
 	dir := t.TempDir()
-	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	promptsDir, rubricsDir := testsupport.ConfigRoots(t)
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
 runtime:
   appVersion: "1.2.3"
@@ -815,10 +833,10 @@ auth:
 	if runtime.Handler == nil || runtime.Idempotency == nil || runtime.Handlers == nil || runtime.ParseAI == nil {
 		t.Fatalf("runtime missing handler/idempotency/handlers/AI wiring: %+v", runtime)
 	}
-	if !runtime.Handles(string(jobs.JobTypeResumeParse)) {
+	if _, ok := runtime.Handlers[string(jobs.JobTypeResumeParse)]; !ok {
 		t.Fatalf("runtime does not contribute handler for %s", jobs.JobTypeResumeParse)
 	}
-	if !runtime.Handles(string(jobs.JobTypeResumeTailor)) {
+	if _, ok := runtime.Handlers[string(jobs.JobTypeResumeTailor)]; !ok {
 		t.Fatalf("runtime does not contribute handler for %s", jobs.JobTypeResumeTailor)
 	}
 	resp, _, err := runtime.ParseAI.Complete(context.Background(), "resume.parse.default", aiclient.CompletePayload{
@@ -839,7 +857,7 @@ auth:
 
 func TestBuildReportRuntimeWiresRoutesHandlerAndAI(t *testing.T) {
 	dir := t.TempDir()
-	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	promptsDir, rubricsDir := testsupport.ConfigRoots(t)
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
 runtime:
   appVersion: "1.2.3"
@@ -862,7 +880,7 @@ auth:
 	if runtime.Handler == nil || runtime.Handlers == nil || runtime.Service == nil {
 		t.Fatalf("runtime missing handler/handlers/service wiring: %+v", runtime)
 	}
-	if !runtime.Handles(string(jobs.JobTypeReportGenerate)) {
+	if _, ok := runtime.Handlers[string(jobs.JobTypeReportGenerate)]; !ok {
 		t.Fatalf("runtime does not contribute handler for %s", jobs.JobTypeReportGenerate)
 	}
 	if runtime.Routes().Handler != runtime.Handler {
@@ -914,7 +932,7 @@ profiles:
     route: target.import
     version: 1.0.0
 `)
-	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	promptsDir, rubricsDir := testsupport.ConfigRoots(t)
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
 runtime:
   appVersion: "1.2.3"
@@ -938,7 +956,9 @@ ai:
 	if runtime.Handler == nil || runtime.Handlers == nil || runtime.AI == nil || runtime.AI.Client == nil {
 		t.Fatalf("runtime missing handler/handlers/AI wiring: %+v", runtime)
 	}
-	if !runtime.Handles(string(jobs.JobTypeTargetImport)) || !runtime.Handles(string(jobs.JobTypeSourceRefresh)) {
+	_, handlesTargetImport := runtime.Handlers[string(jobs.JobTypeTargetImport)]
+	_, handlesSourceRefresh := runtime.Handlers[string(jobs.JobTypeSourceRefresh)]
+	if !handlesTargetImport || !handlesSourceRefresh {
 		t.Fatalf("runtime does not contribute target_import/source_refresh handlers: %+v", runtime.Handlers)
 	}
 	resp, _, err := runtime.ParseAI.Complete(context.Background(), "target.import.default", aiclient.CompletePayload{
@@ -999,7 +1019,7 @@ profiles:
     route: target.import
     version: 1.0.0
 `)
-	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	promptsDir, rubricsDir := testsupport.ConfigRoots(t)
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
 runtime:
   appVersion: "1.2.3"
@@ -1077,7 +1097,7 @@ profiles:
     route: target.import
     version: 1.0.0
 `)
-	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	promptsDir, rubricsDir := testsupport.ConfigRoots(t)
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
 runtime:
   appVersion: "1.2.3"
@@ -1097,7 +1117,7 @@ ai:
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
-	if !runtime.Handles(string(jobs.JobTypePrivacyDelete)) {
+	if _, ok := runtime.Handlers[string(jobs.JobTypePrivacyDelete)]; !ok {
 		t.Fatalf("runtime does not contribute handler for %s", jobs.JobTypePrivacyDelete)
 	}
 }
@@ -1144,7 +1164,7 @@ profiles:
     route: target.import
     version: 1.0.0
 `)
-	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	promptsDir, rubricsDir := testsupport.ConfigRoots(t)
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
 runtime:
   appVersion: "1.2.3"
@@ -1244,7 +1264,7 @@ profiles:
     route: target.import
     version: 1.0.0
 `)
-	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	promptsDir, rubricsDir := testsupport.ConfigRoots(t)
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
 runtime:
   appVersion: "1.2.3"
@@ -1264,7 +1284,7 @@ ai:
 	if err != nil {
 		t.Fatalf("buildTargetJobRuntime: %v", err)
 	}
-	if runtime.Handles("debrief_generate") {
+	if _, ok := runtime.Handlers["debrief_generate"]; ok {
 		t.Fatalf("runtime must not contribute out-of-scope debrief_generate handler")
 	}
 }
@@ -1348,7 +1368,7 @@ runtime:
 		SessionCookieSecret: "session-secret",
 		Now:                 func() time.Time { return time.Date(2026, 5, 6, 21, 0, 0, 0, time.UTC) },
 	})
-	handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, nil)
+	handler := buildAuthTestAPIHandler(loader, apiRuntimeFlags{}, service)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
 	req.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: "raw-session-token"})
 	rec := httptest.NewRecorder()
@@ -1391,7 +1411,7 @@ runtime:
 				SessionCookieSecret: "session-secret",
 				Now:                 func() time.Time { return time.Date(2026, 5, 6, 21, 0, 0, 0, time.UTC) },
 			})
-			handler := buildAPIHandler(loader, apiRuntimeFlags{}, service, nil)
+			handler := buildAuthTestAPIHandler(loader, apiRuntimeFlags{}, service)
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
 			req.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: "raw-session-token"})
 			rec := httptest.NewRecorder()
@@ -1609,31 +1629,4 @@ func (s *apiAuthStore) RevokeSession(context.Context, string, time.Time) error {
 
 func (s *apiAuthStore) CreatePrivacyDeleteHandoff(context.Context, string, string, string, string, time.Time) (auth.PrivacyDeleteHandoff, error) {
 	panic("not used")
-}
-
-// repoConfigPromptsRubrics walks upward from the test working directory
-// until it finds the backend go.mod, then returns the in-repo
-// config/prompts and config/rubrics absolute paths so cmd/api tests can
-// wire a real F3 registry without copying the truth source into a tmpdir.
-func repoConfigPromptsRubrics(t *testing.T) (string, string) {
-	t.Helper()
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("getwd: %v", err)
-	}
-	dir := wd
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			break
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			t.Skipf("could not locate backend go.mod from %s", wd)
-			return "", ""
-		}
-		dir = parent
-	}
-	repoRoot := filepath.Dir(dir)
-	return filepath.Join(repoRoot, "config", "prompts"),
-		filepath.Join(repoRoot, "config", "rubrics")
 }

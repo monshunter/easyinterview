@@ -1,6 +1,6 @@
 # 002 — Practice Text Event Loop Plan
 
-> **版本**: 1.15
+> **版本**: 1.16
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -106,6 +106,12 @@ Run focused practice frontend tests, relevant backend/OpenAPI contract tests, pi
 - Keep privacy coverage by asserting the complete forbidden-key set directly against real `buildPracticeHandoffParams` output, and delete the helper-self-test case.
 - Gate with scoped source red/green, focused handoff/privacy tests, P0.047, practice/full frontend tests, typecheck and owner/global checks.
 
+### Phase 9: Restore current TopBar copy parity
+
+- Keep the current prototype's visible `Question / 题` prefix and `Pause / Resume / 暂停 / 继续` button copy in the formal Practice TopBar.
+- Consume the existing typed locale keys directly from `PracticeScreen`; do not add a second local copy table or change pause behavior.
+- Gate with focused TopBar/Practice/pause tests, locale reachability, UI contract/pixel parity, typecheck/build and owner/global checks.
+
 ## 8 收口证据索引
 
 当前 owner 完成以最新 gate 为准，不引用旧 PASS 状态：
@@ -127,6 +133,7 @@ Run focused practice frontend tests, relevant backend/OpenAPI contract tests, pi
 
 | 日期 | 版本 | 说明 |
 |------|------|------|
+| 2026-07-10 | 1.16 | Restore typed question and pause/resume copy required by the current Practice prototype. |
 | 2026-07-10 | 1.15 | Remove the production test-only handoff inspector and assert privacy directly on real output. |
 | 2026-07-10 | 1.14 | Delete the constant-only usePracticeAssistance hook and bind P0.045 to rendered policy tests. |
 | 2026-07-10 | 1.12 | Align current-boundary wording with the real-interview shell: no independent side-panel controls, dictation, skip, role switch, visible strict switch or voice analysis; user-visible voice remains phone mode with hang-up/restart controls. |

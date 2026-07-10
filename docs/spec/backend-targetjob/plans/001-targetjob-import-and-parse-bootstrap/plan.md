@@ -1,6 +1,6 @@
 # TargetJob Import and Parse Bootstrap
 
-> **版本**: 1.20
+> **版本**: 1.22
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -273,6 +273,14 @@ Additive 修订 `openapi/openapi.yaml`、TargetJobs fixture 与 operation invent
 
 `TestParseExecutorAITaskRuns` 只使用包装 observability 的 executor；首次 `newParseExecutorWithFakes` 返回的 executor 在重新组装前从未读取。忽略该返回值，不改变 fake 依赖、task-run/audit 断言或生产代码；以 focused test 和 scoped `staticcheck` 作为验证 gate。
 
+### Phase 15: App-config pseudo-tripwire cleanup
+
+删除零生产调用的 `MustNotIntroduceAppLevelConfigKey` panic API 与只验证该 panic 的 self-test；删除被全局 A4 AST gate 完全覆盖的 TargetJob 本地 `os.Getenv` 文本扫描。保留 TargetJob proxy-key 负向测试，并以 `make lint-getenv-boundary` / `make lint-env-dict` 作为真实配置边界。
+
+### Phase 16: Cmd/api cookie JSON harness consolidation
+
+保留 `targetJobHTTPScenarioHarness.doJSON` 的 receiver API 与 TargetJob canonical idempotency header，将其 JSON marshal、cookie/header 注入、handler dispatch、status 和 response body 逻辑委托给 `cmd/api` 共享 test helper；P0.010-P0.013 行为和证据格式不变。
+
 ## 5 验收标准
 
 - Phase 0 owner contract gates 通过：B1/B2 codegen drift clean，TargetJobs fixture scenarios schema-valid，B3 sourceType mapping lint clean，F1 TargetJob metrics registry tests 通过。
@@ -288,6 +296,7 @@ Additive 修订 `openapi/openapi.yaml`、TargetJobs fixture 与 operation invent
 - TargetJob archive persists user delete from workspace: `archiveTargetJob` sets `status='archived'` and `deleted_at`, list/detail hide the row after refresh, repeated archive is conflict-scoped, and frontend delete uses generated client rather than local-only hiding.
 - Valid JDs that omit company names parse successfully with a language-specific fallback company display value, strict fenced-JSON-only normalization, `ai_task_runs` evidence, and real browser proof that `/parse` no longer renders `JD 解析失败`.
 - Active-scope 负向搜索 0 命中范围外模块 / route / capability。
+- `cmd/api` package has no duplicate full-funnel/TargetJob cookie JSON request body at the scoped threshold.
 
 ## 6 风险与应对
 

@@ -1,6 +1,6 @@
 # DB Migrations Baseline Bootstrap Checklist
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -50,3 +50,8 @@
   - 2026-05-03: 删除 baseline migration 中 `mistake_entries` DDL / indexes / FK / down drop；`target_jobs.open_mistake_count` 改 `open_question_issue_count`；`question_assessments.written_to_mistake_book` 改 `review_status` + `included_in_retry_plan`；`practice_plans` enum 更新为 B1 当前 `PracticeGoal` / `PracticeMode`；`enum-sources.yaml` 和 privacy matrix 同步。
 - [x] 5.3 Verify: `make migrate-check` 或 migration lint / SQL contract tests 通过；repo 搜索确认实现侧无 `mistake_entries`、`open_mistake_count`、`written_to_mistake_book`、旧 practice mode / goal check 值
   - 2026-05-03: `python3 scripts/lint/migrations_lint.py --repo-root .` exit 0；`python3 -m pytest scripts/lint/migrations_lint_test.py -q` 8 passed；`cd backend && go test ./internal/migrations ./cmd/migrate -count=1` pass；`make privacy-delete-dry-run` 输出不含 `mistake_entries`；实现侧搜索仅剩 SQL contract 负向断言，migration/runtime 实现中没有范围外字段或 enum 值。完整 `make migrate-check` 需真实 DB wrapper，本阶段按 checklist 采用 migration lint / SQL contract tests 验证。
+
+## Phase 6: Migration CLI test-double cleanup
+
+- [x] 6.1 删除生产包导出的 `StaticEnv` test helper，将 map-backed `Env` double 下沉到 `cli_test.go`，并确认 `Run` 仍由 `cmd/migrate.osEnv` 驱动；验证 production deadcode、symbol inventory、migration focused tests/staticcheck/lint、owner contexts 与 docs/diff/pruning gates。
+  <!-- verified: 2026-07-10 method=migration-cli-test-double-relocation evidence="Production deadcode RED listed StaticEnv.Getenv. Removed the exported production test helper, added test-local mapEnv and retained Env/osEnv. Migration focused/full backend tests, staticcheck, lint 18 tests, config lint, privacy dry-run, symbol inventory and owner contexts PASS." -->

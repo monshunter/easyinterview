@@ -8,7 +8,7 @@
 
 ## Current Test Gates
 
-- [x] Mode dispatch tests cover assisted, strict mode and goal orthogonality（验证：`TestAppendSessionEventHintStrictModeRunsAIAndAppends` / `TestServiceAppliesHintAIForStrictMode`）
+- [x] Mode dispatch tests cover assisted, strict mode and goal orthogonality（验证：`TestServiceAppliesHintAIForAssisted` / `TestServiceAppliesHintAIForStrictMode`）
 - [x] Strict-mode replay tests prove `show_hint` replay and no pending event row（验证：`TestE2EP0049PracticeHintOptionalAcrossStrictModeGoals`）
 - [x] Assisted hint tests prove F3/A3 success, hint_text write, lifecycle invariants and replay snapshot（验证：`TestApplyHintAISuccess`, `TestSQLRepositoryAppendSessionEventWritesHintTextForAssistedSuccess`, `TestSQLRepositoryReserveSessionEventReplaysOriginalHintSnapshot`）
 - [x] Task-run contract tests prove `hint_generate` migration/A3 support and typed columns（验证：migration/A3 writer focused tests）

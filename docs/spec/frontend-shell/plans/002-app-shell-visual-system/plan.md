@@ -1,6 +1,6 @@
 # App Shell Visual System
 
-> **版本**: 2.2
+> **版本**: 3.0
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -79,6 +79,34 @@ P0.005 中只做同步 DOM/source negative 断言的 default shell、auth login 
 
 `themes.data.ts` contains four palette combinations, three serif/sans font preset pairs and two TopBar theme metadata entries. Palette/font data are consumed by source-traceability tests; `THEME_METADATA` is consumed by TopBar. There is no CSS generator in this owner: `themes.css` is the checked-in runtime source verified against the data and `ui-design` truth source.
 
+### 4.12 Primitive export surface pruning
+
+`ui-design/src/primitives.jsx` 只定义并导出当前静态原型实际消费的 primitive。跨文件 AST 引用图证明 `Sparkline` 与 `KV` 只有声明和 `window` export、没有 JSX/helper consumer，因此直接删除组件与导出项，不保留兼容别名或退役标记。BDD 不适用，因为两个 primitive 没有可执行用户路径；替代 gate 为 UI contract RED/GREEN、AST/export inventory、P0.005、visual-system/full frontend tests、owner contexts 与 docs/diff/pruning gates。
+
+### 4.13 Design canvas consumer-surface pruning
+
+`ui-design/design-canvas.jsx` 的组件参数面只承接仓库内唯一消费者 `ui-design/canvas.html` 当前传入的属性；删除未被任何画板实例传入的缩放、样式、间距和定位扩展参数。`canvas.html` 的 iframe helper 只拼装会改变当前画板输出的 route、language、session、mode 和 display 参数，默认面试上下文由 `src/app.jsx::createInterviewContext` 单点提供，不重复声明相同常量。BDD 不适用，因为本批不改变画板数量、路由、尺寸、主题、字体或交互；替代 gate 为 UI contract RED/GREEN、AST consumer inventory、静态浏览器画板 smoke、P0.005、owner/full frontend 与 docs/diff/pruning gates。
+
+### 4.14 Design canvas unavailable sidecar removal
+
+设计画板只保留当前页面会话内的 React state，用于重排、重命名和聚焦；删除仓库内没有 sidecar 实体、生成入口或 host 实现的 `.design-canvas.state.json` fetch/write bridge。仓库当前 `ui-design/run.sh` 静态服务器不得为不可达的跨刷新持久化请求制造 404，也不通过延迟 gate 阻塞首次画板渲染。BDD 不适用，因为当前可执行环境从未提供该持久化能力；替代 gate 为 source RED/GREEN、零引用 inventory、静态服务器请求日志、浏览器重排/重命名/聚焦 smoke、UI/P0.005/full frontend 与 docs/diff/pruning gates。
+
+### 4.15 Unavailable prototype edit-mode bridge removal
+
+静态原型只保留当前页面可达的 TopBar 主题/暗色/语言/custom accent 与 Settings 字体预设控制。删除仓库无 host、无 listener、无文档入口的 `__edit_mode_*` message bridge，以及只能由该 bridge 打开的 `TweaksPanel`、专用 helper 和独占的 `role` tweak 通道；当前 display state 继续由 React state、hash 参数和可见控件直接驱动。BDD 不适用，因为 edit-mode 面板在仓库执行路径中不可达；替代 gate 为 source RED/GREEN、AST/message inventory、静态浏览器显示控制 smoke、UI/P0.005/full frontend 与 docs/diff/pruning gates。
+
+### 4.16 Zero-read canvas mode binding removal
+
+删除 edit-mode bridge 清理后留在 `ui-design/src/app.jsx`、没有任何读取点的 `isCanvasIframe` 局部变量；保留 `hideTopBar` 对 `data-nochrome` 的当前判断以及 canvas iframe 的无 TopBar 行为。跨文件 TypeScript reference inventory 中，位置上不可省略的 callback 首参只作为 positional placeholder 记录，不通过重写迭代结构制造替代代码。BDD 不适用，因为零读取 binding 不影响可执行页面；替代 gate 为 UI contract RED/GREEN、AST inventory、P0.005、visual-system/full frontend、owner contexts 与 docs/diff/pruning gates。
+
+### 4.17 Zero-consumer formal CSS pruning
+
+正式前端 CSS 只保留当前 DOM 消费的视觉规则。删除没有 TSX、原型或场景消费者的 `ei-screen-card-grid`、`visually-hidden` 与 `ei-topbar-theme-swatch--custom-active`，并删除 README 对 `ei-screen-card-grid` 的虚假接入说明；保留原型 Practice 正在使用且有 parity gate 的 `ei-scroll`。BDD 不适用，因为三个选择器均不可达；替代 gate 为三个 owner source RED/GREEN、class inventory、P0.005、visual-system/full frontend、build、owner contexts 与 docs/diff/pruning gates。
+
+### 4.18 TopBar login rule consolidation
+
+正式 TopBar stylesheet 中相邻的两段 `ei-topbar-auth-login` 同 selector 声明合并为一个最终计算值等价的规则，完整保留尺寸、间距、字体、交互、背景、边框、颜色及独立 hover state，不改变按钮 DOM。BDD 不适用，因为本批不改变用户可见行为；替代 gate 为 TopBar source RED/GREEN、declaration inventory、visual-system/full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates。
+
 ## 5 验收标准
 
 - Token/theme tests 证明 CSS variable 与 `ui-design` 源值可追溯，且源码不引入 Tailwind、CSS-in-JS 或私有字体。
@@ -104,6 +132,13 @@ pnpm --filter @easyinterview/frontend build
 
 | 日期 | 版本 | 说明 |
 |------|------|------|
+| 2026-07-10 | 3.0 | Consolidate the TopBar login declarations into one equivalent rule. |
+| 2026-07-10 | 2.9 | Delete three zero-consumer formal CSS selectors and the stale screen-grid handoff entry. |
+| 2026-07-10 | 2.8 | Remove the zero-read canvas iframe mode binding while preserving no-chrome TopBar behavior. |
+| 2026-07-10 | 2.7 | Remove the unavailable prototype edit-mode bridge, exclusive panel and dead role tweak channel. |
+| 2026-07-10 | 2.6 | Remove the unavailable design-canvas sidecar bridge while retaining in-memory editing. |
+| 2026-07-10 | 2.5 | Prune unused design-canvas component parameters and duplicate iframe context defaults. |
+| 2026-07-10 | 2.4 | Remove two zero-consumer prototype primitive globals and reconcile plan/checklist/INDEX metadata. |
 | 2026-07-10 | 2.2 | Correct theme data consumer and font preset documentation. |
 | 2026-07-10 | 2.1 | Align P0.005 scenario assets with the current ocean/plum fast-smoke contract and the existing P0.006 browser boundary. |
 | 2026-07-10 | 2.0 | Restrict Western font presets to the product's Latin locale subset while retaining every current family and weight. |

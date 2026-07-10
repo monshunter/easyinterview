@@ -1,6 +1,107 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
+
+const SOURCE_ROOT = fileURLToPath(new URL("../../", import.meta.url));
+
+function sourceFilesUnder(directory: string): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = resolve(directory, entry.name);
+    return entry.isDirectory() ? sourceFilesUnder(path) : [path];
+  });
+}
+
+function isProductionTypeScript(path: string): boolean {
+  const rel = relative(SOURCE_ROOT, path).replaceAll("\\", "/");
+  return (
+    /\.(ts|tsx)$/.test(rel) &&
+    !/\.test\.(ts|tsx)$/.test(rel) &&
+    !rel.includes("/__tests__/") &&
+    !rel.startsWith("app/scenarios/") &&
+    !rel.startsWith("api/generated/") &&
+    !rel.startsWith("app/i18n/locales/") &&
+    !rel.startsWith("test/")
+  );
+}
+
+function unwrapExpression(
+  expression: ts.Expression | undefined,
+): ts.Expression | undefined {
+  while (
+    expression &&
+    (ts.isAsExpression(expression) ||
+      ts.isSatisfiesExpression(expression) ||
+      ts.isParenthesizedExpression(expression))
+  ) {
+    expression = expression.expression;
+  }
+  return expression;
+}
+
+function localeKeys(path: string, exportName: string): string[] {
+  const source = readFileSync(path, "utf8");
+  const sourceFile = ts.createSourceFile(
+    path,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  const keys: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === exportName
+    ) {
+      const initializer = unwrapExpression(node.initializer);
+      if (initializer && ts.isObjectLiteralExpression(initializer)) {
+        for (const property of initializer.properties) {
+          if (
+            ts.isPropertyAssignment(property) &&
+            (ts.isStringLiteral(property.name) ||
+              ts.isNoSubstitutionTemplateLiteral(property.name))
+          ) {
+            keys.push(property.name.text);
+          }
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return keys;
+}
+
+function productionStringLiterals(): Set<string> {
+  const literals = new Set<string>();
+  for (const path of sourceFilesUnder(SOURCE_ROOT).filter(
+    isProductionTypeScript,
+  )) {
+    const source = readFileSync(path, "utf8");
+    const sourceFile = ts.createSourceFile(
+      path,
+      source,
+      ts.ScriptTarget.Latest,
+      true,
+      path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+    );
+    const visit = (node: ts.Node): void => {
+      if (
+        ts.isStringLiteral(node) ||
+        ts.isNoSubstitutionTemplateLiteral(node)
+      ) {
+        literals.add(node.text);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+  }
+  return literals;
+}
 
 describe("D1 shell i18n locale file structure", () => {
   it("keeps each supported locale in an independent locale file", () => {
@@ -27,6 +128,15 @@ describe("D1 shell i18n locale file structure", () => {
     expect(catalogSource).toContain("shortLabel");
   });
 
+  it("keeps every locale key reachable from production source", () => {
+    const zhFile = fileURLToPath(new URL("./locales/zh.ts", import.meta.url));
+    const keys = localeKeys(zhFile, "zh");
+    const literals = productionStringLiterals();
+
+    expect(keys.length).toBeGreaterThan(0);
+    expect(keys.filter((key) => !literals.has(key))).toEqual([]);
+  });
+
   it("contains home.* namespace keys in both zh and en (≥14 keys)", () => {
     const zhSource = readFileSync(
       new URL("./locales/zh.ts", import.meta.url),
@@ -43,7 +153,6 @@ describe("D1 shell i18n locale file structure", () => {
       "home.jdPlaceholder",
       "home.pasteSource",
       "home.uploadSource",
-      "home.uploadSourceSub",
       "home.importBtn",
       "home.orUpload",
       "home.recentSection",

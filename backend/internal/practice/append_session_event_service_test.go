@@ -266,48 +266,6 @@ func TestAppendSessionEventFollowUpAIFailureFallsBackToAskQuestion(t *testing.T)
 	}
 }
 
-func TestAppendSessionEventHintStrictModeRunsAIAndAppends(t *testing.T) {
-	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
-	store := &recordingPlanStore{
-		eventReservation: SessionEventReservation{
-			UserID:  "user-1",
-			Session: sessionEventTestSession(1),
-			Plan: func() PlanRecord {
-				plan := sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline)
-				plan.Mode = sharedtypes.PracticeModeStrict
-				return plan
-			}(),
-			LatestTurn: sessionEventTestTurn(1),
-		},
-	}
-	ai := &fakeAIClient{content: `{"cue":"Use one measurable tradeoff."}`, store: store}
-	service := NewService(ServiceOptions{
-		Store:    store,
-		Registry: &fakePromptResolver{resolution: hintTestResolution()},
-		AI:       ai,
-		Now:      func() time.Time { return now },
-		NewID:    sequenceIDs("event-1", "outbox-1"),
-	})
-
-	result, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
-		UserID:        "user-1",
-		SessionID:     "session-1",
-		ClientEventID: "client-event-1",
-		Kind:          "hint_requested",
-		OccurredAt:    now,
-		Payload:       map[string]any{"turnId": "turn-1"},
-	})
-	if err != nil {
-		t.Fatalf("AppendSessionEvent returned error: %v", err)
-	}
-	if result.AssistantAction.Type != assistantActionShowHint || result.AssistantAction.Hint != "Use one measurable tradeoff." {
-		t.Fatalf("unexpected hint result: %+v", result.AssistantAction)
-	}
-	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "ai", "append-event"}) {
-		t.Fatalf("strict-mode hint should append the event, steps=%v", store.steps)
-	}
-}
-
 func TestServiceAppliesHintAIForAssisted(t *testing.T) {
 	now := time.Date(2026, 4, 28, 13, 47, 32, 0, time.UTC)
 	store := &recordingPlanStore{

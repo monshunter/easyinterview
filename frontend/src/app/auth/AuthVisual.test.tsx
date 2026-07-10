@@ -135,6 +135,11 @@ describe("auth screen card visual contract (Phase 4.1)", () => {
     );
     expect(global).toMatch(/@import\s+["']\.\.\/auth\/auth\.css["'];/);
   });
+
+  it("does not keep a link-row wrapper without a DOM or prototype consumer", () => {
+    const css = readFileSync(AUTH_CSS, "utf8");
+    expect(css).not.toMatch(/\.ei-auth-link-row\s*\{/);
+  });
 });
 
 describe("auth screen D1 regression after visual parity (Phase 4.1)", () => {

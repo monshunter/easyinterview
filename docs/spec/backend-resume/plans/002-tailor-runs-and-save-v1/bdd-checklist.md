@@ -1,6 +1,6 @@
 # 002 BDD Checklist
 
-> **版本**: 1.5
+> **版本**: 1.8
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -61,4 +61,25 @@
 - [x] `scripts/verify.sh` 拒绝 skip/no-op，检查 outbox payload allowlist、`ai_task_runs`/audit privacy、runtime negative 和 private marker absence
 - [x] 场景脚本使用当前测试名 `TestCompleteTailorRunSuccessWritesResultAndOutbox`
 - [x] 在 `test/scenarios/e2e/INDEX.md` 保留 P0.080 Ready 行
-- [x] P0.077/P0.078/P0.080 verify 的 tailor mode negative gate 使用 contextual production regex 并排除 `*_test.go`；合法 `Content-Disposition: inline` 不误报，三场景串行 PASS
+- [x] P0.075-P0.080 verify 的 Resume mode negative gate 使用 contextual production regex 并排除 `*_test.go`；合法 `Content-Disposition: inline` 不误报，六份脚本由 contract test 固化
+
+## Phase 10 mutation pipeline regression
+
+- [x] `E2E.P0.075` setup / trigger / verify / cleanup serial lifecycle passes after the update handler delegates to the shared mutation pipeline.
+  <!-- verified: 2026-07-10 method=p0-075-full-lifecycle evidence="The initial verify exposed the pre-existing bare inline|mirror false positive. A contract RED now covers P0.075-P0.080; the established contextual mode regex and *_test.go exclusion restore 4 contract passes and the rerun lifecycle passes through cleanup." -->
+- [x] `E2E.P0.076` setup / trigger / verify / cleanup serial lifecycle passes after the duplicate handler delegates to the shared mutation pipeline.
+  <!-- verified: 2026-07-10 method=p0-076-full-lifecycle evidence="Setup, trigger, verify and cleanup pass with fixture, route, handler, service, store, rollback and privacy evidence after the contextual mode negative gate fix." -->
+
+## Phase 11 shared gate regression
+
+- [x] P0.075-P0.080 verify scripts and the P0.080 trigger call the same `_shared` Resume mode gate; caller scripts contain no contextual regex copy.
+  <!-- verified: 2026-07-10 method=resume-mode-gate-consumer-contract evidence="Contract test enumerates six verify consumers plus the P0.080 trigger, requires the shared invocation, rejects inline regex copies and asserts the shared regex/test exclusion." -->
+- [x] `E2E.P0.075` through `E2E.P0.080` complete setup / trigger / verify / cleanup serially after the extraction.
+  <!-- verified: 2026-07-10 method=p0-075-through-p0-080-shared-gate-regression evidence="All six scenario lifecycles pass in order; each verify invokes the shared gate and each cleanup completes without shared-environment operations." -->
+
+## Phase 12 unified runtime gate regression
+
+- [x] Six verify scripts and the P0.080 trigger call `resume-runtime-negative-gate.sh`; no caller regex or `resume-mode-negative-gate.sh` remains.
+  <!-- verified: 2026-07-10 method=resume-runtime-gate-consumer-contract evidence="The contract enumerates seven consumers, requires the runtime helper, rejects both inline patterns and verifies the old helper file is absent." -->
+- [x] `E2E.P0.075` through `E2E.P0.080` complete setup / trigger / verify / cleanup serially with both evidence markers preserved.
+  <!-- verified: 2026-07-10 method=p0-075-through-p0-080-unified-runtime-gate evidence="All six lifecycles pass in order; P0.080 trigger and verify preserve the mode/module evidence pair and every cleanup completes." -->

@@ -1,8 +1,8 @@
 # Shared Conventions Bootstrap
 
-> **版本**: 1.5
+> **版本**: 1.8
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -16,6 +16,7 @@
 - Go shared module 落点为 `backend/internal/shared/{types,errors,idx,ai}`；TypeScript shared lib 落点为 `frontend/src/lib/{conventions,ids}`。
 - UUIDv7、`tmp_` 前缀拒绝、24h `Idempotency-Key` 解析/生成和 `ApiError` inner object 在 Go/TS 双端保持一致。
 - 本地 lint gate 约束错误码 `UPPER_SNAKE_CASE`、枚举值 `lower_snake_case`、JSON field `camelCase`、generator drift 和跨语言 parity。
+- 根 `go.work` 只 use `./backend`；workspace、module 与根 tool version 使用同一 Go 版本，module metadata 保持 tidy 零漂移。
 
 ## 2 当前合同
 
@@ -27,6 +28,7 @@
 | UUID / server ID tools | UUIDv7 generation, `tmp_` rejection, shared ID regex | Go `idx`, TS `ids` | Go/TS id tests |
 | Idempotency-Key tools | shared 24h TTL and strict decimal timestamp parsing | Go `idx/idempotency.go`, TS `conventions/idempotency.ts` | Go/TS idempotency tests |
 | naming / drift lint | generated files match YAML and naming rules | `scripts/lint/conventions_yaml.py`, `make codegen-check` | lint and codegen gates |
+| Go workspace/module | root workspace uses only backend; tool/workspace/module versions and tidy metadata agree | `.tool-versions`, `go.work`, `backend/go.mod`, `backend/go.sum` | `make lint-go-mod-tidy` |
 
 ## 3 质量门禁
 
@@ -35,6 +37,7 @@
 - **BDD 策略**: 不适用。本 plan 是内部共享契约和工具链；用户可见 API/UI flows由消费方 owner 的 BDD gate 覆盖。
 - **替代验证 gate**:
   - `make lint-conventions`
+  - `make lint-go-mod-tidy`
   - `make codegen-conventions`
   - `make codegen-check`
   - `go test ./backend/internal/shared/...`
@@ -79,6 +82,23 @@
 - Sync owner index and product-scope evidence.
 - Leave remote CI integration to CI owner gates; B1 retains local executable gates.
 
+### Phase 6: validator dead-code cleanup
+
+- Delete the unreferenced `_require` helper and its dedicated `ValidationError` type from the conventions validator.
+- Keep validator behavior covered by focused/full lint and codegen gates.
+
+### Phase 7: Go workspace/module metadata convergence
+
+- Keep root `go.work` limited to `./backend` and align its Go version with `.tool-versions` and `backend/go.mod` at `1.24.5`.
+- Let standard `go mod tidy` own direct/indirect classification and checksums without changing dependency versions.
+- Enforce workspace/module version agreement and tidy zero drift through `make lint-go-mod-tidy`.
+
+### Phase 8: generator decision documentation convergence
+
+- Replace the two implemented choices still listed as pending in the active spec with locked decisions that match the current `yaml.v3` loader, hand-written renderer and generated TypeScript file boundaries.
+- Delete the empty pending-decision section without a historical marker or replacement compatibility note.
+- Verify the current generator source, focused tests, drift gate, owner contexts and docs/index/diff/pruning gates; do not change generated artifacts.
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -94,5 +114,8 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.8 | Reconcile implemented generator and TypeScript output choices as current locked decisions. |
+| 2026-07-10 | 1.7 | Lock the root Go workspace to backend, align all Go version declarations, and enforce tidy zero drift. |
+| 2026-07-10 | 1.6 | 删除 conventions validator 中无调用方的异常式校验 helper 与专用异常类型。 |
 | 2026-07-07 | 1.5 | Compress owner docs to current shared truth source, generator, Go/TS helper and local lint contract. |
 | 2026-05-04 | 1.4 | Complete quality gate classification for shared conventions foundation. |

@@ -9,10 +9,11 @@ import (
 	"testing"
 
 	"github.com/monshunter/easyinterview/backend/internal/shared/featurekeys"
+	"github.com/monshunter/easyinterview/backend/internal/testsupport"
 )
 
 func TestF3ReportGenerateAndAssessmentPreflight(t *testing.T) {
-	prompts, rubrics := repoConfigRoots(t)
+	prompts, rubrics := testsupport.ConfigRoots(t)
 	repoRoot := filepath.Dir(filepath.Dir(prompts))
 	assertFileContains(
 		t,

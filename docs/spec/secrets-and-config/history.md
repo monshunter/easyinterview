@@ -1,6 +1,6 @@
 # Secrets and Config History
 
-> **版本**: 2.13
+> **版本**: 2.14
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 2.14 | 删除无正式入口消费者的平行 frontend runtime-config client；当前唯一前端链路为 B2 generated client/types + D1 `AppRuntimeProvider`。 | 001-bootstrap Phase 11 |
 | 2026-07-10 | 2.13 | 收敛 `.env.example` / secret 默认值口径：当前合同使用空值、public key 示例和 env ref 注入说明，删除旧模板字段描述。 | tech-debt pruning |
 | 2026-05-27 | 2.11 | 对齐 email-code 登录/注册：`EMAIL_VERIFY_BASE_URL` 不再作为邮件链接 base，而是 local dev frontend origin / dev CORS 推导来源；Mailpit 邮件改为 code-only。 | backend-auth/001 Phase 7 + frontend-shell/001 Phase 8 |
 | 2026-05-27 | 2.10 | 将 `EMAIL_VERIFY_BASE_URL` local dev 默认值从 backend API verify URL 改为 frontend `/auth/verify` callback；邮件链接回到前端后由 generated client 调用 backend `verifyAuthEmailChallenge` 并清理 URL token。 | frontend-shell/001 Phase 7 |

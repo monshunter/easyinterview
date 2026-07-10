@@ -106,15 +106,6 @@ REQUIRED_AI_MODEL_PROFILE_FIELDS = {
 }
 
 
-class ValidationError(Exception):
-    pass
-
-
-def _require(cond: bool, msg: str) -> None:
-    if not cond:
-        raise ValidationError(msg)
-
-
 def validate(data: dict[str, Any]) -> list[str]:
     errors: list[str] = []
 

@@ -1,6 +1,6 @@
 # AI Tools, Streaming, and STT Extension Checklist
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -33,7 +33,7 @@
 ## Phase 3: Stream consumer 完整化
 
 - [x] 3.1 openai_compatible SSE / chunked 解析映射到 plan 001 锁定的 delta / error / done 事件；验证: provider-side stream parser tests 覆盖多 chunk、malformed chunk、provider error event 与 done event，channel close 语义通过
-  <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run 'TestStream_ParsesSSEDeltaAndDone|TestStream_MalformedChunkEmitsAIOutputInvalid|TestStream_ProviderErrorEventEmitsSharedError' -count=1 (stream returned single done event)" green="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run 'TestStream_ParsesSSEDeltaAndDone|TestStream_MalformedChunkEmitsAIOutputInvalid|TestStream_ProviderErrorEventEmitsSharedError' -count=1" regression="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -count=1" -->
+  <!-- verified: 2026-07-10 method=current-stream-contract-gate evidence="TestStream_ParsesSSEDeltaAndDone plus TestStream_ErrorChunksEmitSharedError named malformed/provider cases cover delta/done, malformed AI_OUTPUT_INVALID, provider AI_PROVIDER_TIMEOUT and channel close; full openai_compatible package passes." -->
 - [x] 3.2 context cancellation 路径补齐 partial token meta 与 B1 错误码；验证: focused cancellation test 断言 context cancel 后 channel 收到 error/done 终态、partial token meta 尽力填充且错误码来自 B1 `AI_*`
   <!-- verified: 2026-05-06 red="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run TestStream_ContextCancelEmitsPartialDoneMeta -count=1 (missing partial done meta)" green="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -run TestStream_ContextCancelEmitsPartialDoneMeta -count=1" regression="cd backend && go test ./internal/ai/aiclient/providers/openai_compatible -count=1" -->
 - [x] 3.3 provider-side SSE consumer 选型落地，并把业务 HTTP wire handoff 写回 spec §3.1；验证: spec/history 更新通过 `make docs-check`，adapter contract tests 证明 provider SSE 形态一致，且后续 frontend-workspace-and-practice / backend API 用户可见入口仍需自身 BDD gate
@@ -73,3 +73,12 @@
   <!-- pending: 2026-07-10 scenario-readme="test/scenarios/README.md test/scenarios/e2e/README.md test/scenarios/e2e/p0-007-cascaded-voice-turn/README.md test/scenarios/e2e/p0-009-voice-provider-failure-fallback/README.md" reason="E2E.P0.007/009 now cover deterministic voice orchestration and failure isolation, but both use in-process Go/Vitest runners and no real provider secret. practice.voice.stt.default remains disabled pending secret provisioning and real-provider smoke, so this gate remains unchecked." -->
 - [x] 6.4 active-scope out-of-scope 输入负向搜索通过；验证: 搜索确认 A3-owned 代码、配置、deploy、generated artifacts、active docs 与本 plan 修订过的 owner docs 只使用 current capability keys、provider keys、单一 profile catalog、provider-ref routing 与当前模块命名；精确 out-of-scope literal 仅在 denylist / rejection validator / negative fixture 中作为防回归证据保留（历史 work journal / reports / bugs 只读例外）
   <!-- verified: 2026-05-06 commands="active-scope out-of-scope-literal rg sweeps over config/deploy/A3/F1/F3 current docs" result="no matches" allowed-exception="loader rejection tests and lint fixtures retain exact out-of-scope keys." -->
+
+## Phase 7: Stream error contract test table consolidation
+
+- [x] 7.1 Record scoped OpenAI-compatible `dupl` RED and confirm the two exact old test names have no consumers outside this owner checklist.
+  <!-- verified: 2026-07-10 method=openai-stream-error-test-dupl evidence="Scoped dupl -t 100 reports malformed-chunk and provider-error tests as the provider package's only clone group; repo search finds only their declarations and this owner gate." -->
+- [x] 7.2 Replace both old tests and owner references with one table-driven test retaining both named chunks and exact shared error codes.
+  <!-- verified: 2026-07-10 method=openai-stream-error-test-table evidence="TestStream_ErrorChunksEmitSharedError runs named malformed_chunk and provider_error_event cases with exact chunks and expected AI_OUTPUT_INVALID/AI_PROVIDER_TIMEOUT codes. Focused/full provider tests pass, old names are absent, scoped dupl is zero and staticcheck passes." -->
+- [x] 7.3 Run focused/full provider and AIClient tests, full backend, vet/staticcheck and 002/product/docs/pruning gates; keep 002 active for existing 6.3 blocker.
+  <!-- verified: 2026-07-10 method=openai-stream-error-test-table-closeout evidence="Focused/full OpenAI-compatible and AIClient tree tests PASS; old names are absent and scoped dupl is zero. Full backend, go vet/staticcheck, 002/product contexts and docs/index/diff/pruning gates PASS with real_residuals=0. Plan remains active only for its pre-existing real-provider smoke item 6.3." -->

@@ -83,12 +83,6 @@
   border-bottom: none;
 }
 
-.ei-screen-card-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--ei-space-3);
-}
-
 .ei-skeleton-stripe {
   height: 120px;
   border-radius: var(--ei-radius-sm);
@@ -184,18 +178,6 @@
   font-family: var(--ei-font-sans);
   font-size: 13px;
   font-weight: 500;
-}
-
-.ei-resume-detail-back,
-.ei-resume-detail-preview-actions button,
-.ei-resume-detail-modal button {
-  padding: 5px 12px;
-  color: var(--ei-color-fg-secondary);
-  background: transparent;
-  border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 2px;
-  font-family: var(--ei-font-sans);
-  font-size: 12px;
 }
 
 .ei-resume-workshop-table {
@@ -342,15 +324,9 @@
   color: var(--ei-color-fg-tertiary);
   background: transparent;
   border: 0;
+  border-radius: 2px;
+  font-family: var(--ei-font-sans);
   font-size: 13px;
-}
-
-.ei-resume-detail-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  color: var(--ei-color-fg-tertiary);
 }
 
 .ei-resume-detail-header {
@@ -531,105 +507,9 @@
   }
 }
 
-.ei-resume-detail-preview-section {
-  margin-top: 18px;
-}
-
-.ei-resume-detail-preview-section .ei-text-label {
-  margin: 0 0 10px;
-  color: #888888;
-  font-family: var(--ei-font-mono);
-  letter-spacing: 0.14em;
-}
-
-.ei-resume-detail-preview-section ul {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.ei-resume-detail-preview-skills {
-  margin-top: 22px;
-}
-
-.ei-resume-detail-modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: rgba(28, 25, 23, 0.34);
-}
-
-.ei-resume-detail-modal {
-  width: min(760px, 100%);
-  max-height: min(760px, calc(100vh - 48px));
-  overflow: auto;
-  padding: 22px;
-  background: var(--ei-color-bg-card);
-  border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 3px;
-  box-shadow: var(--ei-shadow-elev2);
-}
-
-.ei-resume-detail-modal-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 14px;
-}
-
-.ei-resume-detail-modal-header .ei-text-title {
-  margin: 0;
-  color: var(--ei-color-fg-primary);
-  font-size: 22px;
-}
-
-.ei-resume-detail-modal-header button {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  color: var(--ei-color-fg-secondary);
-  font-size: 18px;
-  line-height: 1;
-}
-
-.ei-resume-detail-modal-desc {
-  margin-bottom: 14px;
-  padding-bottom: 14px;
-  border-bottom: 1px dotted var(--ei-color-rule-strong);
-}
-
-.ei-resume-detail-modal-desc .ei-text-body {
-  margin: 0 0 6px;
-  color: var(--ei-color-fg-secondary);
-}
-
-.ei-resume-detail-modal-content {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 18px;
-  background: var(--ei-color-bg-soft);
-  border: 1px solid var(--ei-color-rule-strong);
-  border-radius: 2px;
-}
-
-.ei-resume-detail-modal-content .ei-text-body {
-  margin: 0;
-  color: var(--ei-color-fg-secondary);
-  line-height: 1.65;
-}
-
 @media (max-width: 900px) {
   .ei-screen-shell[data-testid="resume-workshop-screen"] {
     padding: 32px 24px 80px;
-  }
-
-  .ei-resume-detail-preview {
-    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -656,11 +536,6 @@
   .ei-resume-detail-markdown-page {
     min-height: 480px;
     padding: 32px 28px;
-  }
-
-  .ei-resume-detail-modal-overlay {
-    align-items: stretch;
-    padding: 16px;
   }
 }
 
@@ -865,8 +740,7 @@
   color: var(--ei-color-fg-tertiary);
 }
 
-.ei-resume-create-cta-accent,
-.ei-resume-create-cta-ghost {
+.ei-resume-create-cta-accent {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -879,22 +753,12 @@
   font-family: var(--ei-font-sans);
   cursor: pointer;
   transition: opacity 0.15s;
-}
-
-.ei-resume-create-cta-accent {
   background: var(--ei-color-accent);
   border: 1px solid var(--ei-color-accent);
   color: #ffffff;
 }
 
-.ei-resume-create-cta-ghost {
-  background: transparent;
-  border: 1px solid var(--ei-color-rule-strong);
-  color: var(--ei-color-fg-secondary);
-}
-
-.ei-resume-create-cta-accent:disabled,
-.ei-resume-create-cta-ghost:disabled {
+.ei-resume-create-cta-accent:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

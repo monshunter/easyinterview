@@ -17,19 +17,24 @@ func repoRootForTest(t *testing.T) string {
 	return filepath.Clean(filepath.Join(wd, "..", "..", "..", ".."))
 }
 
+func runGenerator(t *testing.T, repoRoot, outputRoot string) {
+	t.Helper()
+	if err := RunWithConventions(
+		filepath.Join(repoRoot, "shared", "events.yaml"),
+		filepath.Join(repoRoot, "shared", "jobs.yaml"),
+		filepath.Join(repoRoot, "shared", "conventions.yaml"),
+		outputRoot,
+		false,
+	); err != nil {
+		t.Fatalf("RunWithConventions: %v", err)
+	}
+}
+
 func TestGeneratorEntrypointAndB1Boundary(t *testing.T) {
 	repoRoot := repoRootForTest(t)
 	tmp := t.TempDir()
 
-	err := Run(
-		filepath.Join(repoRoot, "shared", "events.yaml"),
-		filepath.Join(repoRoot, "shared", "jobs.yaml"),
-		tmp,
-		false,
-	)
-	if err != nil {
-		t.Fatalf("Run: %v", err)
-	}
+	runGenerator(t, repoRoot, tmp)
 
 	src := readFile(t, filepath.Join(tmp, "backend/internal/shared/events/events.go"))
 	if !strings.Contains(src, `sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"`) {
@@ -45,14 +50,7 @@ func TestGeneratorEntrypointAndB1Boundary(t *testing.T) {
 func TestGenerateGoOutputs(t *testing.T) {
 	repoRoot := repoRootForTest(t)
 	tmp := t.TempDir()
-	if err := Run(
-		filepath.Join(repoRoot, "shared", "events.yaml"),
-		filepath.Join(repoRoot, "shared", "jobs.yaml"),
-		tmp,
-		false,
-	); err != nil {
-		t.Fatalf("Run: %v", err)
-	}
+	runGenerator(t, repoRoot, tmp)
 
 	envelope := readFile(t, filepath.Join(tmp, "backend/internal/shared/events/envelope.go"))
 	for _, want := range []string{
@@ -114,14 +112,7 @@ func TestGenerateGoOutputs(t *testing.T) {
 func TestGenerateTSOutputs(t *testing.T) {
 	repoRoot := repoRootForTest(t)
 	tmp := t.TempDir()
-	if err := Run(
-		filepath.Join(repoRoot, "shared", "events.yaml"),
-		filepath.Join(repoRoot, "shared", "jobs.yaml"),
-		tmp,
-		false,
-	); err != nil {
-		t.Fatalf("Run: %v", err)
-	}
+	runGenerator(t, repoRoot, tmp)
 
 	envelope := readFile(t, filepath.Join(tmp, "frontend/src/lib/events/envelope.ts"))
 	for _, want := range []string{
@@ -170,14 +161,7 @@ func TestGenerateTSOutputs(t *testing.T) {
 func TestGenerateJSONSchemas(t *testing.T) {
 	repoRoot := repoRootForTest(t)
 	tmp := t.TempDir()
-	if err := Run(
-		filepath.Join(repoRoot, "shared", "events.yaml"),
-		filepath.Join(repoRoot, "shared", "jobs.yaml"),
-		tmp,
-		false,
-	); err != nil {
-		t.Fatalf("Run: %v", err)
-	}
+	runGenerator(t, repoRoot, tmp)
 
 	schemaDir := filepath.Join(tmp, "shared/events/schemas")
 	entries, err := os.ReadDir(schemaDir)
@@ -222,10 +206,9 @@ func TestGeneratorReadsB1EnumRefsFromConventionsYaml(t *testing.T) {
 		1,
 	)
 	tmp := t.TempDir()
-	mustWriteFile(t, filepath.Join(tmp, "shared/conventions.yaml"), conventions)
 
-	if err := RunFromBytes([]byte(events), []byte(jobs), tmp, false); err != nil {
-		t.Fatalf("RunFromBytes: %v", err)
+	if err := RunFromBytesWithConventions([]byte(events), []byte(jobs), []byte(conventions), tmp, false); err != nil {
+		t.Fatalf("RunFromBytesWithConventions: %v", err)
 	}
 
 	readinessRef := readFile(t, filepath.Join(tmp, "shared/events/refs/ReadinessTier.json"))
@@ -257,11 +240,10 @@ func TestGeneratorFailsWhenB1EnumRefMissingFromConventions(t *testing.T) {
 		1,
 	)
 	tmp := t.TempDir()
-	mustWriteFile(t, filepath.Join(tmp, "shared/conventions.yaml"), conventions)
 
-	err := RunFromBytes([]byte(events), []byte(jobs), tmp, false)
+	err := RunFromBytesWithConventions([]byte(events), []byte(jobs), []byte(conventions), tmp, false)
 	if err == nil {
-		t.Fatalf("RunFromBytes succeeded, want missing B1 enum ref failure")
+		t.Fatalf("RunFromBytesWithConventions succeeded, want missing B1 enum ref failure")
 	}
 	if !strings.Contains(err.Error(), "ReadinessTier") {
 		t.Fatalf("missing enum error must name ReadinessTier, got: %v", err)
@@ -285,14 +267,7 @@ func TestMakefileWiresCodegenEvents(t *testing.T) {
 func TestBaselineManifests(t *testing.T) {
 	repoRoot := repoRootForTest(t)
 	tmp := t.TempDir()
-	if err := Run(
-		filepath.Join(repoRoot, "shared", "events.yaml"),
-		filepath.Join(repoRoot, "shared", "jobs.yaml"),
-		tmp,
-		false,
-	); err != nil {
-		t.Fatalf("Run: %v", err)
-	}
+	runGenerator(t, repoRoot, tmp)
 
 	eventsBaseline := readFile(t, filepath.Join(tmp, "shared/events/baseline/events.v1.json"))
 	for _, want := range []string{
@@ -370,9 +345,10 @@ func TestAdditiveOptionalFieldFixture(t *testing.T) {
 	)
 	jobs := readFile(t, filepath.Join(repoRoot, "shared/jobs.yaml"))
 	tmp := t.TempDir()
-	mustWriteFile(t, filepath.Join(tmp, "shared/conventions.yaml"), readFile(t, filepath.Join(repoRoot, "shared/conventions.yaml")))
-	if err := RunFromBytes([]byte(events), []byte(jobs), tmp, false); err != nil {
-		t.Fatalf("RunFromBytes: %v", err)
+	conventions := readFile(t, filepath.Join(repoRoot, "shared/conventions.yaml"))
+	mustWriteFile(t, filepath.Join(tmp, "shared/conventions.yaml"), conventions)
+	if err := RunFromBytesWithConventions([]byte(events), []byte(jobs), []byte(conventions), tmp, false); err != nil {
+		t.Fatalf("RunFromBytesWithConventions: %v", err)
 	}
 
 	goEvents := readFile(t, filepath.Join(tmp, "backend/internal/shared/events/events.go"))

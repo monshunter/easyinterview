@@ -18,6 +18,15 @@ def test_skill_mentions_matcher_script_and_post_pass_reconcile():
     assert "invoke `/retrospective --this` before final close-out" in text
 
 
+def test_skill_prioritizes_exact_owner_evidence_and_bounds_status_tiebreaks():
+    text = SKILL_PATH.read_text(encoding="utf-8")
+    assert (
+        "Exact scenario README Owner evidence outranks generic API / route keyword overlap."
+        in text
+    )
+    assert "Active / draft status is only a bounded tie-breaker" in text
+
+
 def test_skill_requires_branch_guard_before_mutation():
     text = SKILL_PATH.read_text(encoding="utf-8")
     assert "## Branch Guard Before Mutation" in text

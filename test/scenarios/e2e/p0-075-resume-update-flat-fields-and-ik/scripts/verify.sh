@@ -36,14 +36,7 @@ mkdir -p "$OUT"
   cd "$ROOT/backend"
   go test ./internal/resume/handler -run TestUpdateResumeFixtureParity -count=1
   cd "$ROOT"
-  if rg -n 'inline|mirror' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: out-of-scope inline/mirror vocabulary found"
-    exit 1
-  fi
-  if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: out-of-scope mistakes/growth/drill vocabulary found"
-    exit 1
-  fi
+  "$ROOT/test/scenarios/_shared/scripts/resume-runtime-negative-gate.sh"
   if rg -n 'Private resume body|secret-response|suggested bullet text|raw resume text' "$OUT"; then
     echo "ERROR: private resume or suggestion content leaked into scenario evidence"
     exit 1

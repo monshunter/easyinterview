@@ -63,7 +63,7 @@ spec:
         packages:
           - frontend/src
           - frontend/src/api
-          - frontend/src/lib/runtime-config
+          - frontend/src/app/runtime
         uiRoutes:
           - home
           - parse

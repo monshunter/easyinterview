@@ -10,7 +10,6 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
-	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
 
 func writeRegistry(t *testing.T, body string) string {
@@ -241,18 +240,6 @@ func TestResolveSelectedProvidersRejectsProfileRegistryDrift(t *testing.T) {
 				t.Fatalf("expected ErrProviderConfigInvalid, got %v", err)
 			}
 		})
-	}
-}
-
-func TestSharedErrorCodeMapsProviderRegistrySentinels(t *testing.T) {
-	if got := providerregistry.SharedErrorCode(providerregistry.ErrProviderConfigInvalid); got != sharederrors.CodeAiProviderConfigInvalid {
-		t.Fatalf("ErrProviderConfigInvalid code = %q, want %q", got, sharederrors.CodeAiProviderConfigInvalid)
-	}
-	if got := providerregistry.SharedErrorCode(providerregistry.ErrProviderSecretMissing); got != sharederrors.CodeAiProviderSecretMissing {
-		t.Fatalf("ErrProviderSecretMissing code = %q, want %q", got, sharederrors.CodeAiProviderSecretMissing)
-	}
-	if got := providerregistry.SharedErrorCode(errors.New("other")); got != "" {
-		t.Fatalf("unrecognized error code = %q, want empty", got)
 	}
 }
 

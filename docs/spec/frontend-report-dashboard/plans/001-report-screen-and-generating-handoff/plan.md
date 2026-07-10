@@ -1,6 +1,6 @@
 # 001 — Report Screen and Generating Handoff
 
-> **版本**: 1.16
+> **版本**: 1.18
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -88,6 +88,18 @@ The active spec and all six plan artifacts must describe the browser contract ac
 ### Phase 13: remove the isolated AI-error predicate branch
 
 Delete `isAiErrorCode` and its private `FAILURE_AI_ERROR_KEYS` array. Repository inventory proves neither has a consumer; `ReportFailureState` continues to use `failureErrorCodeKey` and its existing `FAILURE_LABEL_BY_CODE` mapping. BDD is not applicable because the removed branch has no executable caller. Alternative gates are a scoped source-surface red/green test, focused failure-state tests, typecheck and owner/global checks.
+
+## 0.8 Typed i18n key mappings (v1.17)
+
+Phase 14 replaces Report detail-tab and missing-state template-string keys plus `as never` casts with explicit `MessageKey` mappings. All 13 active keys become statically visible production consumers; user-visible copy, DOM and navigation behavior remain unchanged.
+
+## 0.9 Report detail prototype call-surface pruning (v1.18)
+
+### Phase 15: remove the unread detail-surface navigation prop
+
+`ReportDetailSurface` consumes report data, active tab state, context and question selection only. Remove its unread `nav` parameter and the matching `ReportDashboard` child argument. `ReportDashboard.nav` remains intact for back navigation and replay/next-round flows; no visible tab, question marker, CTA or route behavior changes.
+
+**Phase 15 gate**: UI contract first fails on the redundant detail-surface signature/caller and then passes after deletion; Babel binding inventory reports zero unread `ReportDetailSurface` props. Focused Report tests, P0.056/P0.059, static-browser tab/question smoke, full frontend, typecheck/build, owner contexts and docs/diff/pruning gates must pass. BDD is not applicable because this removes an unconsumed child prop without changing report behavior.
 
 ## 1 目标
 

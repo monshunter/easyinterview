@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 2.13
+    to: 2.14
 spec:
   defaultTarget: platform-config
   discovery:
@@ -39,7 +39,8 @@ spec:
           - backend/internal/platform/config
           - backend/internal/platform/secrets
           - backend/internal/platform/featureflag
-          - frontend/src/lib/runtime-config
+          - frontend/src/app/runtime
+          - frontend/src/api/generated
           - config
           - scripts/git-hooks
           - Makefile

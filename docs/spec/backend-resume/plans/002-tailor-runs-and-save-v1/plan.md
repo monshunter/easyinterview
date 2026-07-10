@@ -1,6 +1,6 @@
 # Backend Resume Tailor Runs and Save v1
 
-> **版本**: 1.9
+> **版本**: 1.13
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -69,7 +69,7 @@
 ### Phase 0: current contract preflight
 
 - Read `docs/development.md` §2, backend/openapi/scenario READMEs, [backend-resume spec](../../spec.md), B2 OpenAPI inventory, fixtures, generated artifacts and current handler/store/job code.
-- Confirm B2 exposes 10 current Resume / ResumeTailor operationIds and 36 total OpenAPI operations.
+- Confirm B2 exposes 10 current Resume / ResumeTailor operationIds and 37 total OpenAPI operations.
 - Confirm backend-resume context points at current handler/store/job packages, fixtures and scenario directories.
 
 ### Phase 1: flat API and removed-route boundary
@@ -111,8 +111,31 @@
 
 ### Phase 8: tailor scenario negative-gate precision
 
-- P0.077 / P0.078 / P0.080 的 tailor mode 负向搜索必须要求 `tailor|mode` 与 `inline|rewrite|mirror` 同行出现，并排除 `*_test.go`；合法 HTTP `Content-Disposition: inline` 不得触发。
-- `scenario_script_contract_test.py` 固化三份 verify script 的同构正则和 test-file exclusion，随后串行重跑 P0.077-P0.080。
+- P0.075-P0.080 的 Resume mode 负向搜索必须要求 `tailor|mode` 与 `inline|rewrite|mirror` 同行出现，并排除 `*_test.go`；合法 HTTP `Content-Disposition: inline` 不得触发。
+- `scenario_script_contract_test.py` 固化六份 verify script 的同构正则和 test-file exclusion；行为相关场景按变更批次串行重跑。
+
+### Phase 9: current OpenAPI inventory wording
+
+- checklist preflight 使用当前 37-operation B2 inventory；Resume / ResumeTailor operation 子集仍为 10 个。
+- 运行当前 OpenAPI inventory、fixture、owner context 与 docs gates；不修改 Resume handler、store、runner、fixture 或 schema。
+
+### Phase 10: flat Resume mutation handler pipeline consolidation
+
+- 保留 `UpdateResumeService` / `DuplicateResumeService` capability、各自 request parser 和 200 / 201 success status。
+- 将两个 handler 重复的 user resolution、Idempotency-Key、body read、validation/error mapping、resource header 和 JSON response pipeline 收敛为一个私有 generic helper。
+- 串行重跑 P0.075 / P0.076，证明 update / duplicate 的 IK、validation、cross-user、fixture 和 persistence 行为不变。
+
+### Phase 11: shared Resume mode negative gate
+
+- 将 P0.075-P0.080 verify 与 P0.080 trigger 重复的 contextual Resume mode 搜索收敛为一个 `_shared` executable gate。
+- 六份 verify 与 P0.080 trigger 只调用共享 gate，不再复制正则、glob exclusion 或错误消息。
+- `scenario_script_contract_test.py` 直接校验共享实现语义、consumer inventory 和调用方 zero-inline-regex，随后串行重跑六场景。
+
+### Phase 12: unified Resume runtime negative gate
+
+- 将同一批 consumer 仍复制的 `mistakes|growth|drill|inline-debrief-record` production search 合并进共享 gate。
+- 把 `resume-mode-negative-gate.sh` 原地更名为涵盖两类边界的 `resume-runtime-negative-gate.sh`；不保留旧名称 wrapper，也不新增第二个 helper。
+- 共享 helper 使用一个 scan function 统一 match、clean 和 `rg` error 语义；P0.075/P0.076 同步排除 `*_test.go`。
 
 ## 5 验收标准
 
@@ -124,12 +147,19 @@
 | A-4 | `resume.tailor.completed` is ready-only and privacy-safe | outbox tests + P0.080 |
 | A-5 | Docs, INDEX and plan context resolve without drift | context validation + `sync-doc-index --check` + `make docs-check` |
 | A-6 | Tailor provenance JSON round-trips all current fields without duplicated mapping code | store tests + scoped `staticcheck` |
-| A-7 | Tailor mode negative gates reject only contextual mode vocabulary and ignore legal HTTP inline disposition | scenario script contract + P0.077-P0.080 verify |
+| A-7 | Resume mode negative gates reject only contextual mode vocabulary and ignore legal HTTP inline disposition | scenario script contract + P0.075-P0.080 verify |
+| A-8 | Flat update / duplicate handlers share one mutation pipeline while preserving operation-specific validation, service capability and success status | scoped `dupl` + handler tests + P0.075-P0.076 |
+| A-9 | P0.075-P0.080 use one shared contextual Resume mode negative gate with no caller-owned regex copies | scenario script contract + `bash -n` + P0.075-P0.080 |
+| A-10 | One shared Resume runtime gate owns both mode and module boundary scans; callers and the old helper name contain zero copies | scenario script contract + source negative search + P0.075-P0.080 |
 
 ## 6 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.13 | Unify Resume mode and module vocabulary scans in one shared runtime gate. |
+| 2026-07-10 | 1.12 | Centralize the contextual Resume mode negative gate across six scenarios. |
+| 2026-07-10 | 1.11 | Consolidate the duplicate flat Resume update/duplicate HTTP mutation pipeline. |
+| 2026-07-10 | 1.10 | Align the preflight inventory wording with the current 37-operation OpenAPI contract. |
 | 2026-07-10 | 1.9 | Narrow tailor mode scenario negative gates to contextual production matches and exclude legal HTTP inline disposition. |
 | 2026-07-10 | 1.8 | Run resume tailor scenarios through runner.Runtime and update canonical handler/runtime ownership wording. |
 | 2026-07-10 | 1.7 | Replace duplicated tailor provenance write/readback mappings with equivalent type conversions. |

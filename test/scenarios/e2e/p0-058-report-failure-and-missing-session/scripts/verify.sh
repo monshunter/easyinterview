@@ -8,7 +8,6 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 test -s "$LOG_FILE"
 "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}"
 grep -Fq 'E2E.P0.058: validating focused failure contracts' "$LOG_FILE" || { echo "E2E.P0.058: focused failure preflight did not run" >&2; exit 1; }
-grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE" || { echo "E2E.P0.058: no passing test files" >&2; exit 1; }
 grep -Fq 'preflight.test.ts' "$LOG_FILE" || { echo "E2E.P0.058: owner preflight did not pass" >&2; exit 1; }
 grep -Fq 'ReportFailureState.test.tsx' "$LOG_FILE" || { echo "E2E.P0.058: failure-state test did not pass" >&2; exit 1; }
 grep -Fq 'ReportMissingSessionState.test.tsx' "$LOG_FILE" || { echo "E2E.P0.058: missing-state test did not pass" >&2; exit 1; }

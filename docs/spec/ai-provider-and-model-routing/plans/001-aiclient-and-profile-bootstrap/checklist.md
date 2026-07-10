@@ -1,6 +1,6 @@
 # AIClient and Profile Bootstrap Checklist
 
-> **版本**: 1.7
+> **版本**: 2.5
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -51,3 +51,67 @@
 
 - [x] 6.1 `normalizeBaseURL` 删除冗余 suffix guard，同时保持 root 与 `/v1` 输入合同（验证：OpenAI-compatible adapter package tests、scoped `staticcheck`、owner context/docs gates）
   <!-- verified: 2026-07-10 method=openai-base-url-normalization-simplification evidence="S1017 red identified the guarded TrimSuffix path. Focused root and /v1 contract tests, full openai_compatible package tests, full AIClient package tests and scoped staticcheck PASS; owner/product contexts, sync-doc-index, docs-check, diff-check and pruning surface PASS real_residuals=0." -->
+
+## Phase 7: AIClient duplicate writer state removal
+
+- [x] 7.1 删除 core `aiclient.Client` 中零消费者的 task-run/audit writer fields、options 与 getters，使 `observability` decorator 成为唯一 writer 注入路径；验证：`deadcode -test` RED/GREEN、symbol inventory、`go test ./internal/ai/aiclient/... -count=1`、scoped `staticcheck` 与 owner docs gates
+  <!-- verified: 2026-07-10 method=aiclient-duplicate-writer-state-removal evidence="deadcode -test RED reported both core writer options. Removed the duplicate fields, options and zero-consumer getters while retaining the observability decorator writer interfaces and options. AIClient/full backend tests, staticcheck, go vet, reachability rescan and symbol inventory PASS." -->
+
+## Phase 8: Stub provider name wrapper removal
+
+- [x] 8.1 删除零消费者 `stub.ProviderName` wrapper，以 `stub.Name` 作为唯一 exported provider identity；验证：`deadcode -test` RED/GREEN、symbol inventory、stub/AIClient tests、scoped `staticcheck` 与 owner docs gates
+  <!-- verified: 2026-07-10 method=stub-provider-name-wrapper-removal evidence="deadcode -test RED reported ProviderName as unreachable. Deleted the wrapper without changing stub.Name or any consumer. Stub/full AIClient tests, staticcheck, reachability rescan and exact declaration inventory PASS." -->
+
+## Phase 9: completion dispatch duplication removal
+
+- [x] 9.1 Record scoped `dupl` RED evidence for the identical `Complete` and `CompleteJudge` execution bodies.
+  <!-- verified: 2026-07-10 method=aiclient-completion-dupl-red evidence="Scoped golangci-lint dupl reported only client.go lines 68-90 and 99-121 as reciprocal duplicates for Complete and CompleteJudge." -->
+- [x] 9.2 Extract one private capability-parameterized helper while preserving both public methods and their chat/judge fail-close behavior.
+  <!-- verified: 2026-07-10 method=aiclient-completion-dispatch-green evidence="Complete and CompleteJudge now pass CapabilityChat/CapabilityJudge to one private complete helper. Focused AIClient tests and subtree staticcheck pass, while the scoped client.go dupl gate reports zero findings." -->
+- [x] 9.3 Run focused/full AIClient, judge/bootstrap, `staticcheck`, scoped `dupl`, owner/product contexts and docs/index/diff/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=aiclient-completion-dispatch-consolidation evidence="Scoped client.go dupl is clean; focused AIClient and complete aiclient subtree plus registry judge/bootstrap tests pass. Full backend go test ./... -count=1, go vet and staticcheck pass. Both contexts, links and final docs/index/diff/pruning gates pass with real_residuals=0. Public methods, chat/judge capability fail-close, fallback and metadata contracts are unchanged. No Bug/retrospective report, environment restart or data cleanup was needed." -->
+
+## Phase 10: observability latency fallback consolidation
+
+- [x] 10.1 Record scoped `dupl` RED evidence for the identical Transcribe and Synthesize timing/metadata wrappers.
+  <!-- red: 2026-07-10 method=observability-speech-latency-dupl evidence="Scoped dupl -t 100 reported decorator.go lines 155-166 and 195-206 as the file's only clone group." -->
+- [x] 10.2 Extract one private latency fallback helper and reuse it from Complete, Transcribe and Synthesize without changing capability-specific record paths.
+  <!-- verified: 2026-07-10 method=observability-latency-fallback-helper evidence="Complete, Transcribe and Synthesize call one withLatencyFallback helper after the same completion timestamp sample. The helper contains the only LatencyMs==0/measured-duration fallback; scoped dupl reports zero groups and observability tests plus staticcheck pass." -->
+- [x] 10.3 Run scoped `dupl`, observability/privacy, full AIClient/backend, vet/staticcheck, owner/product contexts and docs/index/diff/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=observability-latency-fallback-consolidation evidence="Scoped decorator.go dupl is clean; observability/privacy, full AIClient/registry and full backend tests pass, as do go vet/staticcheck. A3/product contexts and final docs/index/link/diff/pruning gates pass with real_residuals=0. Provider latency precedence, measured fallback, capability-specific record paths and privacy behavior are unchanged. No Bug/retrospective report, environment restart or data cleanup was needed." -->
+
+## Phase 11: observability invalid-schema test harness consolidation
+
+- [x] 11.1 Record scoped `dupl` RED and exact-name consumer inventory for the invalid-schema tests.
+  <!-- red: 2026-07-10 method=observability-invalid-schema-test-dupl evidence="Scoped dupl -t 100 reported trailing-token and enum-mismatch tests as one clone group; BUG-0095 and prompt-rubric owner docs reference the exact top-level test names." -->
+- [x] 11.2 Extract one test-only invalid-schema harness, preserve all three top-level test names and keep each content/schema case explicit.
+  <!-- verified: 2026-07-10 method=observability-invalid-schema-test-harness evidence="The required-field, trailing-token and enum-mismatch top-level tests retain their exact names and explicit content/schema inputs while sharing one helper for decorator setup and invalid/error/metric assertions. Exact-name -run/-list and staticcheck pass; decorator_test.go clone groups drop from two to one unrelated group." -->
+- [x] 11.3 Run exact-name focused tests, scoped dupl reduction, observability/AIClient/full backend, vet/staticcheck and owner/product/docs/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=observability-invalid-schema-test-harness-consolidation evidence="All three exact top-level tests remain listed and pass. decorator_test.go clone groups drop from two to one unrelated fallback group; observability, full AIClient/registry and full backend tests plus go vet/staticcheck pass. A3/product contexts and final docs/index/link/diff/pruning gates pass with real_residuals=0. No test input or assertion was removed, and no Bug/retrospective report or environment operation was needed." -->
+
+## Phase 12: observability fallback-label test table consolidation
+
+- [x] 12.1 Record scoped `dupl` RED and verify the two top-level test names have no external consumers.
+  <!-- red: 2026-07-10 method=observability-fallback-label-test-dupl evidence="After Phase 11, scoped dupl -t 100 reports only the date-suffix and central-chain fallback counter tests as one clone group; repo search finds no external exact-name references." -->
+- [x] 12.2 Replace both tests with one table-driven test while retaining both meta inputs and exact label tuples.
+  <!-- verified: 2026-07-10 method=observability-fallback-label-table evidence="One TestDecorator_FallbackCounterLabelDerivation now runs named date-suffix and central-chain cases with complete meta and exact 11-label tuples. Both subtests pass, old top-level names are absent, scoped dupl reports zero clone groups and staticcheck passes." -->
+- [x] 12.3 Run focused fallback tests, scoped dupl, observability/AIClient/full backend, vet/staticcheck and owner/product/docs/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=observability-fallback-label-table-consolidation evidence="Both named fallback label cases pass with their exact 11-label tuples; decorator_test.go scoped dupl reports zero groups. Full observability/AIClient/registry/backend tests and go vet/staticcheck pass, as do A3/product contexts and final docs/index/link/diff/pruning gates with real_residuals=0. No coverage was removed and no Bug/retrospective report or environment operation was needed." -->
+
+## Phase 13: AIClient invalid-input assertion consolidation
+
+- [x] 13.1 Record scoped `dupl` RED for the Transcribe and Synthesize invalid-input tests and inventory the matching Complete assertion.
+  <!-- red: 2026-07-10 method=aiclient-invalid-input-test-dupl evidence="Scoped dupl -t 100 reports the Transcribe and Synthesize invalid-input tests as a clone; Complete empty-messages repeats the same shared error/meta contract." -->
+- [x] 13.2 Extract one test-only `AI_OUTPUT_INVALID` assertion helper while preserving all three top-level tests and provider call-count guards.
+  <!-- verified: 2026-07-10 method=aiclient-invalid-input-assertion-helper evidence="Complete, Transcribe and Synthesize invalid-input tests keep their exact names and capability-specific provider guards while sharing one error/meta helper. All focused tests pass, scoped aiclient_test.go dupl is zero, and staticcheck passes." -->
+- [x] 13.3 Run exact focused tests, scoped dupl, full AIClient/backend, vet/staticcheck and owner/product/docs/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=aiclient-invalid-input-assertion-consolidation evidence="All three exact Complete/STT/TTS invalid-input tests pass and retain provider call-count guards; aiclient_test.go scoped dupl is zero. Full AIClient/registry/backend tests and go vet/staticcheck pass, as do A3/product contexts and final docs/index/link/diff/pruning gates with real_residuals=0. No Bug/retrospective report or environment operation was needed." -->
+
+## Phase 14: observability privacy leak assertion consolidation
+
+- [x] 14.1 Record scoped `dupl` RED and exact-name consumer inventory for Complete/TTS privacy tests.
+  <!-- red: 2026-07-10 method=observability-privacy-scan-dupl evidence="Scoped dupl -t 100 reports the Complete and TTS metric/log/task-run/audit token scans as privacy_test.go's only clone group; external gates reference TestPrivacy_NoPlaintextLeaksAnywhere by exact name." -->
+- [x] 14.2 Extract one token-parameterized plaintext scan helper while preserving both top-level tests and their scenario-specific sanity assertions.
+  <!-- verified: 2026-07-10 method=observability-privacy-scan-helper evidence="Complete and TTS tests retain their exact names and capability/metric/audit sanity assertions while one helper scans all planted tokens across six counter families, logs, task runs and audit metadata. Focused tests pass, privacy_test.go dupl is zero and staticcheck passes." -->
+- [x] 14.3 Run exact privacy tests, scoped dupl, observability/AIClient/full backend, vet/staticcheck and owner/product/docs/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=observability-privacy-scan-consolidation evidence="Exact Complete/TTS privacy tests pass with their capability/metric/audit sanity checks intact; privacy_test.go scoped dupl is zero. Full observability/AIClient/registry/backend tests and go vet/staticcheck pass, as do A3/product contexts and final docs/index/link/diff/pruning gates with real_residuals=0. No privacy surface was removed and no Bug/retrospective report or environment operation was needed." -->

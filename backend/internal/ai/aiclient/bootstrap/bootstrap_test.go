@@ -12,7 +12,6 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/bootstrap"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
-	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
 
 type mapSecret map[string]string
@@ -108,9 +107,6 @@ func TestNewClientRejectsActiveStubProfileOutsideTest(t *testing.T) {
 	})
 	if !errors.Is(err, providerregistry.ErrProviderConfigInvalid) {
 		t.Fatalf("expected ErrProviderConfigInvalid for active stub profile outside test, got %v", err)
-	}
-	if code := providerregistry.SharedErrorCode(err); code != sharederrors.CodeAiProviderConfigInvalid {
-		t.Fatalf("expected shared config-invalid code, got %q", code)
 	}
 }
 

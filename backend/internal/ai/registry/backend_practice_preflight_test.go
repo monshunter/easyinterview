@@ -6,10 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/monshunter/easyinterview/backend/internal/testsupport"
 )
 
 func TestBackendPracticeF3Preflight(t *testing.T) {
-	prompts, rubrics := repoConfigRoots(t)
+	prompts, rubrics := testsupport.ConfigRoots(t)
 	repoRoot := filepath.Dir(filepath.Dir(prompts))
 	assertCompletedDocHeader(t, filepath.Join(repoRoot, "docs", "spec", "prompt-rubric-registry", "plans", "001-baseline", "plan.md"))
 	assertCompletedDocHeader(t, filepath.Join(repoRoot, "docs", "spec", "prompt-rubric-registry", "plans", "001-baseline", "checklist.md"))

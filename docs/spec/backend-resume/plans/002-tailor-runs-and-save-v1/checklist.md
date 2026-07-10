@@ -1,6 +1,6 @@
 # Backend Resume Tailor Runs and Save v1 Checklist
 
-> **版本**: 1.9
+> **版本**: 1.13
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -8,7 +8,7 @@
 
 ## Phase 0: current contract preflight
 
-- [x] 0.1 读取 backend-resume spec、B2 OpenAPI/fixtures/generated artifacts、backend handler/store/job/runtime 和 P0.074-P0.080 场景，确认当前合同为 flat `resumes` + 10 个 Resume / ResumeTailor operation（验证：`make lint-openapi` PASS，inventory 为 10 tags / 36 operations；`openapi/openapi.yaml` 仅包含 current Resume operationIds）
+- [x] 0.1 读取 backend-resume spec、B2 OpenAPI/fixtures/generated artifacts、backend handler/store/job/runtime 和 P0.074-P0.080 场景，确认当前合同为 flat `resumes` + 10 个 Resume / ResumeTailor operation（验证：`make lint-openapi` PASS，当前 inventory 为 10 tags / 37 operations；`openapi/openapi.yaml` 仅包含 current Resume operationIds）
 - [x] 0.2 context manifest 指向当前 backend owner surface，不再以 removed package path 作为主入口（验证：`python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/backend-resume/plans/002-tailor-runs-and-save-v1/context.yaml --target backend` PASS）
 - [x] 0.3 front/back contract pre-read 已覆盖 `docs/development.md` §2、`backend/README.md`、`openapi/README.md`、`test/scenarios/README.md` 与相关 scenario README（验证：本 plan 后续 gates 只使用 current OpenAPI/generated/fixture/runtime/scenario truth sources）
 
@@ -57,5 +57,38 @@
 
 ## Phase 8: tailor scenario negative-gate precision
 
-- [x] 8.1 `scenario_script_contract_test.py` 拒绝 P0.077/P0.078/P0.080 使用裸 `inline|mirror` 搜索；三份 verify 统一使用 contextual tailor/mode 正则并排除 `*_test.go`，串行场景通过。
+- [x] 8.1 `scenario_script_contract_test.py` 拒绝 P0.075-P0.080 使用裸 `inline|mirror` 搜索；六份 verify 统一使用 contextual tailor/mode 正则并排除 `*_test.go`，行为相关场景按变更批次串行通过。
   <!-- verified: 2026-07-10 method=tailor-scenario-negative-gate-precision evidence="RED: P0.077 verify rejected legal Content-Disposition inline; new contract test failed against P0.077/P0.078 broad grep. GREEN: all three verify scripts use contextual production regex and exclude *_test.go; contract tests 4 passed; P0.077/P0.078/P0.080 full scenario lifecycles PASS." -->
+  <!-- verified: 2026-07-10 method=resume-mode-negative-gate-coverage evidence="Phase 10 exposed the same false positive in P0.075/P0.076. The contract now covers all six P0.075-P0.080 verify scripts; P0.075/P0.076 full lifecycles and the four-test script contract pass." -->
+
+## Phase 9: current OpenAPI inventory wording
+
+- [x] 9.1 Align the preflight inventory with the current 37-operation B2 contract while preserving the 10-operation Resume/ResumeTailor subset; verify OpenAPI inventory, fixtures, owner contexts and docs/diff/pruning gates.
+  <!-- verified: 2026-07-10 method=current-openapi-inventory-wording evidence="OpenAPI inventory and fixture validation report 10 tags, 37 operations and 37 fixtures; Resume/ResumeTailor remains 10 operations. Current owner plan/checklist search has no 35/36 inventory and backend context passes." -->
+
+## Phase 10: flat Resume mutation handler pipeline consolidation
+
+- [x] 10.1 RED: scoped `dupl` identifies `UpdateResume` / `DuplicateResume` as the only clone group in `internal/resume/handler`; the duplicated block covers user resolution through success response.
+  <!-- red: 2026-07-10 method=resume-mutation-handler-dupl evidence="go run github.com/golangci/dupl@v0.0.0-20250308024227-f665c8d69b32 -t 100 backend/internal/resume/handler reports one production clone group between update.go and duplicate.go." -->
+- [x] 10.2 Introduce one private typed mutation helper while retaining operation-specific service assertions, validators and success statuses; require scoped `dupl` zero clone groups and focused/full Resume tests.
+  <!-- verified: 2026-07-10 method=resume-mutation-handler-helper-green evidence="handleResumeMutation centralizes the shared HTTP pipeline; both public handlers retain service assertions, typed validators and 200/201 statuses. Scoped handler dupl reports 0 groups and focused UpdateResume/DuplicateResume handler tests pass." -->
+- [x] 10.3 BDD-Gate: run complete `E2E.P0.075` and `E2E.P0.076` lifecycles plus backend-wide Go, vet/staticcheck, owner/product context and docs/pruning gates.
+  <!-- verified: 2026-07-10 method=resume-mutation-handler-closeout evidence="P0.075/P0.076 full serial lifecycles pass after repairing their overbroad mode negative gates; full Resume/cmd-api and backend Go tests, vet, staticcheck, both context validators, scenario contract, docs/index/diff and pruning gates pass. Scenario cleanup reports no owned long-lived resources." -->
+
+## Phase 11: shared Resume mode negative gate
+
+- [x] 11.1 RED: P0.075-P0.080 verify and P0.080 trigger contain seven copies of the same contextual regex, glob exclusion and failure branch; this duplication already allowed P0.075/P0.076 to drift.
+  <!-- red: 2026-07-10 method=resume-mode-gate-copy-inventory evidence="rg over P0.075-P0.080 scripts reports six verify copies plus one P0.080 trigger copy of the same tailor/mode contextual regex." -->
+- [x] 11.2 Add one `_shared` executable gate, replace all seven inline blocks, and make the scenario contract reject caller-owned regex copies.
+  <!-- verified: 2026-07-10 method=shared-resume-mode-gate-green evidence="One executable helper owns the contextual regex, test-file exclusion, failure message and rg-error propagation. Seven callers contain zero inline regex copies; the four-test scenario contract, direct gate execution and bash -n across all touched scripts pass." -->
+- [x] 11.3 BDD-Gate: run `bash -n`, scenario contract tests and serial P0.075-P0.080 setup/trigger/verify/cleanup lifecycles, then owner/product context and docs/pruning gates.
+  <!-- verified: 2026-07-10 method=shared-resume-mode-gate-closeout evidence="All six P0.075-P0.080 setup/trigger/verify/cleanup lifecycles pass serially; cleanup succeeds for each. Scenario script/environment contracts pass 24 tests, touched shell parses, both contexts resolve and docs/index/diff/pruning gates pass with real_residuals=0." -->
+
+## Phase 12: unified Resume runtime negative gate
+
+- [x] 12.1 RED: six verify scripts and P0.080 trigger still copy the module vocabulary search; P0.075/P0.076 omit the production-only test exclusion used by the other callers.
+  <!-- red: 2026-07-10 method=resume-module-gate-copy-and-drift evidence="rg reports seven inline mistakes|growth|drill|inline-debrief-record branches; only five of seven exclude *_test.go." -->
+- [x] 12.2 Rename and broaden the shared helper to own both scans through one error-aware function; delete the old helper name and all caller-owned module regex blocks.
+  <!-- verified: 2026-07-10 method=unified-resume-runtime-gate-green evidence="resume-runtime-negative-gate.sh owns both patterns through run_negative_scan; seven consumers have no inline module regex and no old-helper invocation, and the old file is absent. Contract tests, direct execution and bash -n pass." -->
+- [x] 12.3 BDD-Gate: run source contract/negative checks, `bash -n`, serial P0.075-P0.080 lifecycles, contexts and docs/pruning gates.
+  <!-- verified: 2026-07-10 method=unified-resume-runtime-gate-closeout evidence="Both shared scans pass directly; source negatives and bash -n pass; scenario contracts pass 24 tests. All six P0.075-P0.080 lifecycles pass serially with both P0.080 evidence markers, every cleanup succeeds, both contexts resolve and docs/index/diff/pruning gates pass with real_residuals=0." -->

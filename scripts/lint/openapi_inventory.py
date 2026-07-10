@@ -178,7 +178,6 @@ EXPECTED_PRODUCT_ENUMS: dict[str, list[str]] = {
 DEFAULT_OPENAPI_PATH = Path("openapi/openapi.yaml")
 APIERROR_REF = "#/components/responses/ApiErrorResponse"
 IDEMPOTENCY_REF = "#/components/parameters/IdempotencyKey"
-PROVENANCE_REF = "#/components/schemas/GenerationProvenance"
 HTTP_METHODS = ("get", "post", "put", "patch", "delete")
 
 

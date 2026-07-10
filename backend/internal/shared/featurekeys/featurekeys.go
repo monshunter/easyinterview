@@ -12,11 +12,8 @@
 // being invoked, but the contracts are distinct: AsynqTask names belong to
 // shared/jobs (queue routing), while feature_keys belong here (AI routing).
 //
-// Hand-written today; the truth source remains config/prompts/<feature_key>/.
-// A future codegen pass may replace this file with generated output sourced
-// from config/prompts/. Until then, every feature_key string literal in
-// non-allowlisted Go source must be sourced through this package so the
-// scripts/lint/lint_events.py "naked event/job literal" gate stays green.
+// These constants mirror the current config/prompts/<feature_key>/ coordinates
+// and give Go callers one typed source for routing keys.
 package featurekeys
 
 // FeatureKey is the typed identifier for AI prompt-rubric routing keys.
@@ -33,26 +30,3 @@ const (
 	ResumeTailorGapReview          FeatureKey = "resume.tailor.gap_review"
 	ResumeTailorBulletSuggestions  FeatureKey = "resume.tailor.bullet_suggestions"
 )
-
-// All returns every known feature_key constant in declaration order. Useful
-// for codegen drift checks that compare this list against the contents of
-// config/prompts/.
-func All() []FeatureKey {
-	return []FeatureKey{
-		TargetImportParse,
-		PracticeSessionFirstQuestion,
-		PracticeSessionFollowUp,
-		PracticeTurnLightweightObserve,
-		ReportGenerate,
-		ReportQuestionAssessment,
-		ResumeParse,
-		ResumeTailorGapReview,
-		ResumeTailorBulletSuggestions,
-	}
-}
-
-// String returns the wire string value of a FeatureKey for use in switch
-// cases or comparisons against untyped string parameters.
-func (f FeatureKey) String() string {
-	return string(f)
-}

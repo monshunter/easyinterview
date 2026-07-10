@@ -4,44 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
+	"github.com/monshunter/easyinterview/backend/internal/testsupport"
 )
-
-// repoConfigRoots walks upward from the test wd to locate the backend
-// go.mod, then returns the absolute paths to the in-repo config/prompts
-// and config/rubrics roots.
-func repoConfigRoots(t *testing.T) (string, string) {
-	t.Helper()
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("getwd: %v", err)
-	}
-	dir := wd
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			break
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			t.Skipf("could not locate backend go.mod from %s", wd)
-			return "", ""
-		}
-		dir = parent
-	}
-	repoRoot := filepath.Dir(dir)
-	return filepath.Join(repoRoot, "config", "prompts"),
-		filepath.Join(repoRoot, "config", "rubrics")
-}
 
 func TestRegistryAdapterMapsAllSevenFields(t *testing.T) {
 	t.Parallel()
 
-	prompts, rubrics := repoConfigRoots(t)
+	prompts, rubrics := testsupport.ConfigRoots(t)
 	client, err := registry.NewRegistryClient(registry.RegistryOptions{
 		PromptsDir: prompts,
 		RubricsDir: rubrics,
@@ -110,7 +83,7 @@ func TestRegistryAdapterRejectsNilClient(t *testing.T) {
 
 func TestRegistryAdapterRejectsUnknownFeatureKey(t *testing.T) {
 	t.Parallel()
-	prompts, rubrics := repoConfigRoots(t)
+	prompts, rubrics := testsupport.ConfigRoots(t)
 	client, err := registry.NewRegistryClient(registry.RegistryOptions{
 		PromptsDir: prompts,
 		RubricsDir: rubrics,

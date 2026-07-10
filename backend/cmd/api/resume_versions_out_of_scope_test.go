@@ -33,7 +33,7 @@ runtime:
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
-	handler := buildAPIHandlerWithUploadAndHandlers(
+	handler := buildAPIHandler(
 		loader,
 		apiRuntimeFlags{},
 		service,
@@ -44,6 +44,8 @@ runtime:
 			Service: newResumeScenarioService(),
 			Session: currentUserFromContext,
 		})},
+		reportRoutes{},
+		jobsRoutes{},
 	)
 
 	tests := []struct {

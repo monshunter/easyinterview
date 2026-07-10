@@ -579,9 +579,12 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
         title={t("practice.toolbar.titleSkeleton")}
         questionIndex={currentTurn?.turnIndex ?? 1}
         questionTotal={Math.max(turnTotal, 5)}
+        questionLabel={t("practice.toolbar.questionTag")}
         elapsed={fmtElapsed(elapsed)}
         budget="25:00"
         paused={paused}
+        pauseLabel={t("practice.toolbar.pause")}
+        resumeLabel={t("practice.toolbar.resume")}
         onTogglePause={onTogglePause}
         activeMode={activeMode}
         onSwitchMode={handleSwitchMode}

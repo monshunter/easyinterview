@@ -1,6 +1,6 @@
 # Email-Code Session Bootstrap Checklist
 
-> **版本**: 2.1
+> **版本**: 2.2
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -74,3 +74,12 @@
   <!-- verified: 2026-05-28 commands="make lint-config; rg -n 'purpose=signup|purpose=login|duplicate-register|duplicate register|AuthRegisterScreen|email URL callback|/auth/verify\\?token=|displayName-before-verify|OAuth|password auth|Bearer token' backend/internal/auth backend/cmd/api openapi/openapi.yaml frontend/src/app frontend/src/api -g '!**/*_test.go' -g '!**/*.test.ts' -g '!**/*.test.tsx'" evidence="lint-config PASS; scoped negative search only found backend/internal/auth/doc.go redline comment" -->
 - [x] 8.6 BDD-Gate: 验证 E2E.P0.101 通过；验证: real frontend/backend/Mailpit 覆盖单入口新邮箱首次登录 -> `/me.profileCompletionRequired=true` -> 重新登录仍未补全 -> `PATCH /me` -> `/me.profileCompletionRequired=false` -> 后续同邮箱登录正常；证明邮箱唯一、displayName 不唯一且不参与账号唯一性判断
   <!-- verified: 2026-05-28 command="bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/cleanup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/setup.sh && bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/trigger.sh && bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/verify.sh && bash test/scenarios/e2e/p0-101-auth-email-code-profile-setup/scripts/cleanup.sh" evidence="P0.101 PASS: first-login-profile-setup profileCompletionRequired=true; cross-browser and logout relogin still profile setup; complete profile returns false; existing email login bypasses profile setup" -->
+
+## Phase 9: unauthorized account handler test consolidation
+
+- [x] 9.1 Record scoped `internal/auth` `dupl` RED and confirm the two exact old test names have no external owner/gate consumers.
+  <!-- verified: 2026-07-10 method=auth-unauthorized-envelope-test-dupl evidence="Scoped dupl -t 100 reports the GetMe/DeleteMe unauthenticated tests as internal/auth's only clone group; repo-wide exact-name search finds only their declarations." -->
+- [x] 9.2 Replace both tests with one table-driven test while preserving named GET/DELETE cases, handler calls, 401 status, JSON envelope and exact error code assertions.
+  <!-- verified: 2026-07-10 method=auth-unauthorized-envelope-test-table evidence="One TestAccountHandlersWithoutSessionReturnAuthEnvelope runs named get_me/delete_me cases with the original methods, handlers, 401 and AUTH_UNAUTHORIZED JSON assertions. Focused/full Auth pass, old names are absent, scoped dupl is zero and staticcheck passes." -->
+- [x] 9.3 Run focused/full Auth, cmd/api, full backend, vet/staticcheck and owner/product/docs/pruning closeout gates.
+  <!-- verified: 2026-07-10 method=auth-unauthorized-envelope-test-closeout evidence="Named get_me/delete_me cases and full Auth PASS; old names are absent and scoped dupl is zero. Cmd/api/full backend, go vet/staticcheck, auth/product contexts and docs/index/diff/pruning gates PASS with real_residuals=0." -->

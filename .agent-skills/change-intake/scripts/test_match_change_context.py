@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 
 import yaml
@@ -44,6 +45,19 @@ def _write_plan(root: Path, name: str, status: str, context: dict):
     (spec_dir / "spec.md").write_text("# Spec\n", encoding="utf-8")
     with open(plan_dir / "context.yaml", "w", encoding="utf-8") as f:
         yaml.safe_dump(context, f, sort_keys=False, allow_unicode=True)
+    return plan_dir
+
+
+def _write_scenario_owner(root: Path, scenario_id: str, owner_plan: Path):
+    slug = scenario_id.lower().replace(".", "-")
+    scenario_dir = root / "test" / "scenarios" / "e2e" / f"{slug}-owner-regression"
+    scenario_dir.mkdir(parents=True)
+    owner_href = os.path.relpath(owner_plan, scenario_dir).replace(os.sep, "/")
+    (scenario_dir / "README.md").write_text(
+        f"# E2E.{scenario_id} owner regression\n\n"
+        f"> Owner: [`owner`]({owner_href})\n",
+        encoding="utf-8",
+    )
 
 
 def _base_context(name: str) -> dict:
@@ -161,3 +175,111 @@ def test_obsolete_lifecycle_status_is_unknown(tmp_path):
     assert module.normalize_status(OBSOLETE_EN_STATUS) == "unknown"
     assert module.normalize_status(OBSOLETE_ZH_STATUS) == "unknown"
     assert module.normalize_status("super" + "seded") == "unknown"
+
+
+def test_tokenize_filters_stop_words_and_adds_action_inflections():
+    module = _load_module()
+
+    tokens = module.tokenize("created opening returns and of")
+
+    assert {"create", "open", "return"}.issubset(tokens)
+    assert tokens.isdisjoint({"and", "of"})
+
+
+def test_partial_field_score_counts_each_query_token_once():
+    module = _load_module()
+    query = "resume detail"
+
+    score, reasons = module.score_discovery_values(
+        query,
+        module.tokenize(query),
+        "keywords",
+        ["resume detail", "resume detail route", "resume"],
+    )
+
+    assert score == 6
+    assert reasons
+
+
+def test_stop_word_only_exact_value_does_not_score():
+    module = _load_module()
+    query = "and of"
+
+    score, reasons = module.score_discovery_values(
+        query,
+        module.tokenize(query),
+        "keywords",
+        ["and", "of"],
+    )
+
+    assert score == 0
+    assert reasons == []
+
+
+def test_precise_action_vocabulary_beats_repeated_generic_values(tmp_path):
+    module = _load_module()
+    plan_root = tmp_path / "docs" / "spec"
+
+    generic = _base_context("generic-resume-owner")
+    generic["spec"]["discovery"] = {
+        "aliases": ["resume workshop", "resume list", "resume detail"],
+        "keywords": [
+            "resume workshop route shell",
+            "flat resume list table",
+            "resume detail readonly",
+            "resume detail waiting state",
+            "resume workshop detail",
+        ],
+    }
+    _write_plan(plan_root, "generic-resume-owner", "completed", generic)
+
+    create_flow = _base_context("resume-create-flow-owner")
+    create_flow["spec"]["discovery"] = {
+        "aliases": ["resume-create-flow"],
+        "keywords": [
+            "static prototype Save and open",
+            "create-to-detail waiting ready state",
+        ],
+    }
+    _write_plan(plan_root, "resume-create-flow-owner", "active", create_flow)
+
+    result = module.match_change_contexts(
+        plan_root=str(plan_root),
+        query=(
+            "Resume Workshop static prototype Save and open returns to resume list "
+            "instead of opening newly created resume detail waiting state"
+        ),
+    )
+
+    assert result["recommended"]["displayPlan"] == "resume-create-flow-owner/001-backend"
+
+
+def test_exact_scenario_readme_owner_outranks_generic_api_terms(tmp_path):
+    module = _load_module()
+    plan_root = tmp_path / "docs" / "spec"
+
+    owner = _base_context("resume-detail-owner")
+    owner["spec"]["discovery"] = {"aliases": ["resume detail"]}
+    owner["spec"]["targets"]["backend"]["discovery"] = {
+        "apiNames": ["getResume"],
+    }
+    owner_dir = _write_plan(plan_root, "resume-detail-owner", "completed", owner)
+
+    generic = _base_context("report-dashboard")
+    generic["spec"]["discovery"] = {
+        "aliases": ["report dashboard"],
+        "keywords": ["feedback report getResume polling"],
+    }
+    generic["spec"]["targets"]["backend"]["discovery"] = {
+        "apiNames": ["getResume"],
+    }
+    _write_plan(plan_root, "report-dashboard", "active", generic)
+    _write_scenario_owner(tmp_path, "P0.037", owner_dir / "plan.md")
+
+    result = module.match_change_contexts(
+        plan_root=str(plan_root),
+        query="P0.037 getResume report polling remains loading",
+    )
+
+    assert result["recommended"]["displayPlan"] == "resume-detail-owner/001-backend"
+    assert "scenarioOwner=E2E.P0.037" in result["recommended"]["reasons"]

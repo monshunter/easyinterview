@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 2.12
+> **版本**: 2.14
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -42,7 +42,7 @@
 - Real PDF generation.
 - Product areas not included in the active product-scope core loop.
 
-## 3 用户决策 / 待确认事项
+## 3 用户决策
 
 ### 3.1 已锁定决策
 
@@ -60,10 +60,6 @@
 | D-10 | List actions | 列表只有 Header “新建简历”作为创建入口；每行支持删除（调用 `archiveResume` 软删除并从列表隐藏），删除失败给出可恢复错误；数量上限由 backend `resume.maxActive` 强制，前端只展示服务端错误提示 | 避免重复 CTA，保留用户清理资产和解除数量上限的路径 |
 | D-11 | Markdown body | `parsedTextSnapshot` 成功态是 backend LLM 生成的 Markdown 快照，详情页必须按 Markdown 结构渲染标题、段落和列表；body card 不得额外注入 `displayName`、header 名称、summary 或来源元数据；不得把 Markdown 当普通 txt 段落显示 | 统一后续 UI 渲染输入，同时保留简历行文结构，避免详情 header 信息污染简历正文 |
 | D-12 | Source-format renderer | 详情正文区域根据来源格式自动选择 renderer：upload PDF 使用 `/api/v1/resumes/{resumeId}/source` 通过 PDF 页面栈从上到下平铺所有页面；paste、Markdown 文件和 TXT 文件使用 Markdown engine；PDF 与 Markdown 使用统一阅读背景板和 page surface；DOCX 不属于当前 Resume 上传支持范围 | 兼顾用户查看原始 PDF 版式与 LLM 后续交互所需的可读文本，不增加新按钮、二级入口或浏览器 PDF viewer 工具栏 |
-
-### 3.2 待确认事项
-
-- 当前没有阻塞本 subject 的产品或架构待确认项。
 
 ## 4 设计约束
 
@@ -89,6 +85,7 @@
 - Component and hook behavior use Vitest.
 - Route, auth, privacy and integration flows use focused scenario tests.
 - Visual parity follows frontend-shell pixel parity owner patterns.
+- Formal Resume Workshop CSS must not retain breadcrumb, structured-preview, modal or action selectors without a current DOM or prototype consumer.
 - Header / INDEX drift uses `/sync-doc-index`.
 
 ## 5 模块边界

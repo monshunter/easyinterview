@@ -1,6 +1,6 @@
 # 001 - OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.8
+> **版本**: 1.11
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -86,6 +86,21 @@ BDD is not applicable. This plan owns internal API contract and generated artifa
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2026-07-10 | 1.11 | Remove the unconsumed frontend raw OpenAPI snapshot output and its dedicated generator surface. |
+| 2026-07-10 | 1.10 | Remove the unreferenced provenance ref constant from the inventory linter. |
+| 2026-07-10 | 1.9 | Move the test-only snapshot hash calculation out of the production codegen package. |
 | 2026-07-10 | 1.8 | Align owner inventory with the current 37-operation contract including `getResumeSource` and `archiveTargetJob`. |
 | 2026-07-07 | 1.7 | Compress owner plan to the 2026-07-07 36-operation / 10-tag OpenAPI contract and executable evidence index. |
 | 2026-05-04 | 1.6 | Complete OpenAPI v1 bootstrap delivery. |
+
+## 8 Test-only snapshot hash cleanup
+
+删除只被 `run_test.go` 使用的 production `sha256.go`。幂等测试在 snapshot traversal 内直接计算 SHA-256，保持 byte-identical generated artifact 断言不变。
+
+## 9 Inventory linter dead constant cleanup
+
+删除 `scripts/lint/openapi_inventory.py` 中无读取方的 `PROVENANCE_REF`；现有 `GenerationProvenance` schema shape 与可达性检查继续由真实 schema-name traversal 承担。
+
+## 10 Frontend raw-spec snapshot removal
+
+TypeScript codegen 只输出正式消费的 `client.ts` 与 `types.ts`。删除没有 import、未进入 Vite bundle、也不被 docs/mock tooling 读取的 raw OpenAPI 字符串快照，同时删除专用 TS template 与只服务该快照的字符串转义 helper；保留 `openapi/openapi.yaml`、backend generated spec 镜像、Redocly 文档和所有 wire/API contract 不变。

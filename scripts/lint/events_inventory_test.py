@@ -331,7 +331,7 @@ class EventsInventoryEnvelopeTest(unittest.TestCase):
 
         self.assertTrue(any("producer" in err and "api" in err and "cron" in err for err in errs), errs)
 
-    def test_requires_full_16_event_inventory(self) -> None:
+    def test_requires_full_14_event_inventory(self) -> None:
         data = valid_events_data()
         data["events"] = [event for event in data["events"] if event["name"] != "report.generated"]
 
@@ -422,7 +422,7 @@ class EventsInventoryJobsTest(unittest.TestCase):
     def test_valid_jobs_contract_passes(self) -> None:
         self.assertEqual([], self.linter.validate_jobs_yaml(valid_jobs_data(), valid_events_data()))
 
-    def test_requires_all_10_canonical_jobs(self) -> None:
+    def test_requires_all_8_canonical_jobs(self) -> None:
         data = valid_jobs_data()
         data["jobs"] = [job for job in data["jobs"] if job["canonical"] != "email_dispatch"]
 

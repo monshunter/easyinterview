@@ -349,7 +349,7 @@ runtime:
 		"source_refresh": &targetjob.SourceRefreshHandler{Store: store, Now: fixedScenarioNow},
 	})
 	return &targetJobHTTPScenarioHarness{
-		handler: buildAPIHandlerWithTargetJobHandler(loader, apiRuntimeFlags{}, authService, targetJobHandler),
+		handler: buildAPIHandler(loader, apiRuntimeFlags{}, authService, targetJobHandler, practiceRoutes{}, uploadRoutes{}, resumeRoutes{}, reportRoutes{}, jobsRoutes{}),
 		runtime: runtime,
 		store:   store,
 		cookie:  &http.Cookie{Name: auth.SessionCookieName, Value: "raw-session-token"},
@@ -357,31 +357,7 @@ runtime:
 }
 
 func (h *targetJobHTTPScenarioHarness) doJSON(t *testing.T, method, path string, idempotencyKey string, body any, wantStatus int) []byte {
-	t.Helper()
-	var reader *bytes.Reader
-	if body == nil {
-		reader = bytes.NewReader(nil)
-	} else {
-		raw, err := json.Marshal(body)
-		if err != nil {
-			t.Fatalf("marshal request body: %v", err)
-		}
-		reader = bytes.NewReader(raw)
-	}
-	req := httptest.NewRequest(method, path, reader)
-	req.AddCookie(h.cookie)
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	if idempotencyKey != "" {
-		req.Header.Set(targetjob.IdempotencyKeyHeader, idempotencyKey)
-	}
-	rec := httptest.NewRecorder()
-	h.handler.ServeHTTP(rec, req)
-	if rec.Code != wantStatus {
-		t.Fatalf("%s %s status=%d want=%d body=%s", method, path, rec.Code, wantStatus, rec.Body.String())
-	}
-	return rec.Body.Bytes()
+	return doScenarioJSONWithCookie(t, h.handler, h.cookie, targetjob.IdempotencyKeyHeader, method, path, idempotencyKey, body, wantStatus)
 }
 
 func (h *targetJobHTTPScenarioHarness) runRunnerOnce(t *testing.T, wantProcessed bool) {

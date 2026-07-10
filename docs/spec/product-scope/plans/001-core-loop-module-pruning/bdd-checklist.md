@@ -1,8 +1,8 @@
 # Core Loop Module Pruning BDD Checklist
 
-> **版本**: 1.3
-> **状态**: active
-> **更新日期**: 2026-07-07
+> **版本**: 1.4
+> **状态**: completed
+> **更新日期**: 2026-07-10
 
 > Product-scope/001 Phase 6 tracks owner-document current boundary verification; completed D-22 scenario updates remain evidence, and active verification is tracked in the main checklist Phase 6.
 

@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap Checklist
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -107,3 +107,8 @@
   <!-- verified: 2026-07-09 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k \"reset_redeploy or scenario_docs_describe\"" evidence="focused contract verifies Makefile target plus dev-stack/scenario/e2e README reset-redeploy wording" -->
 - [x] 10.4 Phase 10 self-check：focused contract pytest、`make scenario-env-reset-redeploy ARGS=--dry-run`、`make docs-check`、`sync-doc-index --check`、`git diff --check` 全部通过。
   <!-- verified: 2026-07-09 command="make scenario-env-reset-redeploy ARGS=--dry-run; python3 -m pytest scripts/lint/scenario_env_contract_test.py -q; python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check; make docs-check; git diff --check" evidence="dry-run previewed reset/setup-migrations/redeploy/verify without changing environment; 13 scenario env contract tests passed; docs/index/link gates and whitespace gate passed" -->
+
+## Phase 11: shared scenario script inventory cleanup
+
+- [x] 11.1 新增 README shared-script inventory contract，先证明 `common.sh` / `image-cache.sh` 引用指向不存在文件，再删除两处路径、无效首次使用命令和 fallback 说明；验证 focused/full scenario contract pytest、shell inventory、owner contexts 与 docs/diff/pruning gates。
+  <!-- verified: 2026-07-10 method=scenario-shared-script-inventory-cleanup evidence="Focused RED named only missing common.sh and image-cache.sh. Removed both README entries, the nonexistent pull command and fallback prose; documented the three real shared helpers. Scenario env/script contracts pass 18 tests, eight shell entrypoints parse, reset/redeploy dry-run and owner contexts PASS." -->

@@ -22,17 +22,11 @@
   const ART_W = 1280, ART_H = 860, FRAME_W = 420;
   const UI_VERSION = "20260612-ocean-default";
   const FRAME_H = Math.round(ART_H * FRAME_W / ART_W);
-  const Screen = ({ route, jobId = "tj-1", mode, sessionId, dark, lang = "zh", theme, customAccent, fontPreset }) => {
+  const Screen = ({ route, mode, dark, theme, customAccent, fontPreset }) => {
     const params = new URLSearchParams();
-    params.set("route", route); params.set("nochrome", "0"); params.set("lang", lang);
-    if (jobId) params.set("jobId", jobId);
-    if (jobId) params.set("targetJobId", jobId);
-    if (jobId) params.set("planId", `plan-${jobId}`);
-    if (jobId) params.set("jdId", `jd-${jobId}`);
-    params.set("resumeId", "frontend-v3");
-    params.set("roundId", "round-manager");
-    params.set("roundName", lang === "en" ? "Manager round" : "经理面");
-    if (sessionId || ["practice", "generating", "report"].includes(route)) params.set("sessionId", sessionId || "session-24");
+    params.set("route", route);
+    params.set("lang", "zh");
+    if (["practice", "generating", "report"].includes(route)) params.set("sessionId", "session-24");
     if (mode) params.set("mode", mode);
     if (dark) params.set("dark", "1");
     if (theme) params.set("theme", theme);
@@ -45,13 +39,12 @@
       </div>
     );
   };
-  const PracticeScreen = (props) => <Screen route="practice" {...props} />;
   const App = () => (
     <DesignCanvas>
       <DCSection id="flow" title="EasyInterview · 核心用户闭环" subtitle="从一份 JD 到下一轮更强的准备">
         <DCArtboard id="home" label="01 · 首页（JD 导入）" width={FRAME_W} height={FRAME_H}><Screen route="home" /></DCArtboard>
         <DCArtboard id="ws" label="02 · 模拟面试规划" width={FRAME_W} height={FRAME_H}><Screen route="workspace" /></DCArtboard>
-        <DCArtboard id="practice" label="03 · 模拟面试进行中" width={FRAME_W} height={FRAME_H}><PracticeScreen mode="text" /></DCArtboard>
+        <DCArtboard id="practice" label="03 · 模拟面试进行中" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="text" /></DCArtboard>
         <DCArtboard id="report" label="04 · 证据化报告仪表盘" width={FRAME_W} height={FRAME_H}><Screen route="report" /></DCArtboard>
       </DCSection>
       <DCSection id="auth" title="账户体系 · 登录 / 验证 / 首次资料补全" subtitle="M0 入口">
@@ -95,7 +88,7 @@
         <DCArtboard id="font-magazine" label="杂志 · Cormorant + IBM Plex Sans" width={FRAME_W} height={FRAME_H}><Screen route="report" fontPreset="magazine" /></DCArtboard>
       </DCSection>
       <DCPostIt top={-28} left={60} rotate={-3} width={220}>提示：点击任一画板右上角 ⤢ 展开 → 可按 ← → 翻页、Esc 退出。</DCPostIt>
-      <DCPostIt top={330} right={60} rotate={2.5} width={210}>所有画板都是真实 iframe（loading=lazy）。Tweaks 改完主题、字体、accent，这里会同步更新。</DCPostIt>
+      <DCPostIt top={330} right={60} rotate={2.5} width={210}>所有画板都是真实 iframe（loading=lazy），主题、字体和 accent 变体由各画板参数直接驱动。</DCPostIt>
     </DesignCanvas>
   );
   ReactDOM.createRoot(document.getElementById("root")).render(<App />);

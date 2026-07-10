@@ -1,7 +1,7 @@
 # Core Loop Module Pruning Plan
 
-> **版本**: 1.197
-> **状态**: active
+> **版本**: 1.274
+> **状态**: completed
 > **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -190,7 +190,7 @@
 
 #### 6.25 OpenAPI / Shared / Mock contract active spec 当前契约口径收敛
 
-反查 `openapi-v1-contract`、`shared-conventions-codified` 与 `mock-contract-suite` active spec 正文和 context discovery，使 B2/B1/E1 当前 contract 只描述 10 tag / 35 operation、16 个共享枚举、flat Resume vocabulary、current-scope negative search 和 fixture coverage。范围外模块、范围外 operation、范围外 schema 和 out-of-scope tooling 说明不得作为 active scope、决策、schema inventory、模块边界、验收标准或正向 `apiNames` / keyword discovery 口径；必要历史明细只保留在独立 history 文件。
+反查 `openapi-v1-contract`、`shared-conventions-codified` 与 `mock-contract-suite` active spec 正文和 context discovery，使 B2/B1/E1 当前 contract 只描述 10 tag / 37 operation、16 个共享枚举、flat Resume vocabulary、current-scope negative search 和 fixture coverage。范围外模块、范围外 operation、范围外 schema 和 out-of-scope tooling 说明不得作为 active scope、决策、schema inventory、模块边界、验收标准或正向 `apiNames` / keyword discovery 口径；必要历史明细只保留在独立 history 文件。
 
 #### 6.26 Frontend Report Dashboard flat Resume contract 收敛
 
@@ -202,7 +202,7 @@
 
 #### 6.28 OpenAPI README / baseline 当前 inventory 口径收敛
 
-反查 `openapi/README.md`、`openapi/baseline/README.md` 与 `openapi/diff-config.yaml`，使当前 API freeze 只用 10 tag / 35 operation 正向 inventory、flat Resume operations、Practice session / voice、Auth profile-completion 与 privacy export whitelist 表述，不再通过范围外模块或范围外 tooling 说明解释当前 contract。
+反查 `openapi/README.md`、`openapi/baseline/README.md` 与 `openapi/diff-config.yaml`，使当前 API freeze 只用 10 tag / 37 operation 正向 inventory、flat Resume operations、Practice session / voice、Auth profile-completion 与 privacy export whitelist 表述，不再通过范围外模块或范围外 tooling 说明解释当前 contract。
 
 #### 6.29 Event / outbox active spec 当前 inventory 口径收敛
 
@@ -222,11 +222,11 @@
 
 #### 6.33 Frontend Workspace / Practice active spec 当前 owner 合同收敛
 
-反查 `frontend-workspace-and-practice` active spec、history 与 001/002 context discovery，使当前 D2/D3 合同只用三条 owner route、workspace 嵌入式公司轻情报摘要、flat Resume binding 和 `baseline / retry_current_round / next_round` practice goals 表述。独立公司情报页面/API、pre-D20 简历版本字段、范围外 practice goal 或历史模块解释不得作为 active workspace/practice 当前行为、context keyword 或验收标准正向说明。
+反查 `frontend-workspace-and-practice` active spec、history 与 001/002 context discovery，使当前 D2/D3 合同只用三条 owner route、workspace 纯规划列表、flat Resume binding 和 `baseline / retry_current_round / next_round` practice goals 表述。公司情报页面/卡片/API、pre-D20 简历版本字段、范围外 practice goal 或历史模块解释不得作为 active workspace/practice 当前行为、context keyword 或验收标准正向说明。
 
-#### 6.34 Workspace insight route/API alias 实现与文档收敛
+#### 6.34 Workspace pure-list implementation and documentation convergence
 
-反查 `ui-design/`、正式 `frontend/`、`docs/ui-design/`、`frontend-shell` / `frontend-workspace-and-practice` owner plans 和 P0.005 / P0.006 / P0.021 场景资产，使公司信号只保留为 workspace 内嵌 `WorkspaceInsightCard` 摘要。正式前端不保留独立洞察 route/url fallback、SPA fallback、独立 API consumer、范围外组件导出名或范围外场景正向说明；范围外独立详情路径按通用 fallback 处理。
+反查 `ui-design/`、正式 `frontend/`、`docs/ui-design/`、`frontend-shell` / `frontend-workspace-and-practice` owner plans 和 P0 场景资产，使 workspace 只保留规划列表，不包含公司情报组件、route/url fallback、独立 API consumer、组件导出或正向场景路径。
 
 #### 6.35 UI architecture / module-map 当前边界口径收敛
 
@@ -242,7 +242,7 @@
 
 #### 6.38 Engineering Roadmap 当前执行地图口径二次收敛
 
-反查 `engineering-roadmap/spec.md` 的背景、范围、决策、P0 workstream、执行顺序和验收标准，使 roadmap 只以当前 truth source、当前 owner spec、当前 10 tag / 35 operation、当前 UI 三入口、out-of-scope route/module 边界和 no-pending INDEX model 描述执行地图。历史 root spec / route / 技术草稿只能作为范围外输入或边界条件，不得作为当前 owner、future workstream 或纳入依据。
+反查 `engineering-roadmap/spec.md` 的背景、范围、决策、P0 workstream、执行顺序和验收标准，使 roadmap 只以当前 truth source、当前 owner spec、当前 10 tag / 37 operation、当前 UI 三入口、out-of-scope route/module 边界和 no-pending INDEX model 描述执行地图。历史 root spec / route / 技术草稿只能作为范围外输入或边界条件，不得作为当前 owner、future workstream 或纳入依据。
 
 #### 6.39 Engineering Roadmap plan / checklist / context 当前治理口径收敛
 
@@ -660,6 +660,298 @@
 
 删除不存在的 themes.css generator 说明，并将 frontend handoff 文档从错误的 7 个字体预设修正为 3 个 serif/sans preset + 固定 mono family；明确 traceability test 与 TopBar metadata 真实消费者。
 
+#### 6.196 Canonical backend runner contract cleanup
+
+删除 targetjob test-only drainer、重复 async job contract/SQL 与 adapter；让 retained business handlers 和 cmd/api scenario tests 直接使用 canonical `runner.Runtime`，并以 runner structural lint、backend tests 与 P0.035/P0.077/P0.078/P0.080 场景固化单一路径。
+
+#### 6.197 AIClient duplicate writer state removal
+
+删除 core `aiclient.Client` 中全程序与测试入口均不可达的 task-run/audit writer fields、options 与 getters；真实 writer 注入继续只由 `observability` decorator 承担，不保留第二套空状态链。
+
+#### 6.198 Stub provider name wrapper removal
+
+删除全程序与测试入口均不可达的 `stub.ProviderName` wrapper；保留所有现有消费者已经直接使用的 `stub.Name` 常量作为唯一 provider identity。
+
+#### 6.199 Fixed judge profile state removal
+
+删除全程序与测试入口均不可达的 `WithJudgeProfile` option，以及只能恒等于 `judge.default` 的 `LLMJudge.profileName` 字段；F3 锁定 profile 直接传给 judge model client，保留现有合同测试。
+
+#### 6.200 Feature key helper removal
+
+删除 `backend/internal/shared/featurekeys` 中零消费者的 `All()` inventory、`FeatureKey.String()` 与不存在的 future-codegen 说明；当前 package 只保留 runtime 和业务 owner 真正消费的 typed constants，coverage 继续由 F3 spec/config lint 与 resolver tests 承担。
+
+#### 6.201 Canonical API handler builder cleanup
+
+将完整 route composition 函数收敛为唯一 `buildAPIHandler`，删除五层仅测试调用的 production wrapper。测试按实际 route dependency 调用 canonical builder；纯 auth 测试使用 `_test.go` helper，不再让 production helper 隐式构造无关 upload/targetjob runtime。
+
+#### 6.202 Domain runtime handler getter removal
+
+删除 `reportRuntime`、`targetJobRuntime`、`resumeRuntime` 上仅测试调用的 `Handles()` 转发方法；测试直接断言真实 `Handlers` map membership。保留 shared `runner.Runtime.Handles` 作为 kernel registration contract。
+
+#### 6.203 Test-only readiness validator removal
+
+删除 backend-review production 中只被 property test 调用的 `validReadinessTier`；测试直接以 shared 四个 `ReadinessTier` 常量构造合法集合，继续验证随机 readiness 计算输出。
+
+#### 6.204 OpenAPI test-only snapshot hash cleanup
+
+删除只被 OpenAPI codegen 幂等测试调用的 production `sha256.go`；测试在 snapshot traversal 内直接计算 hash，不保留测试 helper 于 production package surface。
+
+#### 6.205 TargetJob app-config pseudo-tripwire cleanup
+
+删除零调用的 TargetJob app-config panic API/self-test，以及被全局 A4 AST gate 完全覆盖的本地 getenv 文本扫描；保留 domain proxy-key 负向测试，真实配置边界继续由 `lint-getenv-boundary` 与 `lint-env-dict` 承担。
+
+#### 6.206 Unused config duration getter removal
+
+删除零生产消费者的 `config.Loader.GetDuration`、自测分支与 package doc 引用；时长配置继续通过当前 typed config 或明确单位的 `GetInt` 转换读取，不保留内部兼容 accessor。
+
+#### 6.207 Shared provider error mapper removal
+
+删除没有运行时消费者、仅由 provider registry/bootstrap 自测维持的 `SharedErrorCode` 映射层；保留启动期哨兵错误的 `errors.Is` 合同，运行时 B1 `AI_*` 错误映射继续由真实业务边界承担。
+
+#### 6.208 Practice turn-status helper removal
+
+保留状态机实际使用的四个 `TurnStatus` 常量，删除仅由自测调用的 parse / wire / valid helper；直接常量集合与 OpenAPI/generated drift gate 继续锁定四值合同，并同步修正 owner 中的五值文字漂移。
+
+#### 6.209 Migration CLI test-double relocation
+
+删除生产 `migrations` 包导出的 `StaticEnv` test helper，将 map-backed `Env` double 下沉到 `cli_test.go`；生产继续只暴露 `Env` 接口并由 `cmd/migrate.osEnv` 适配真实环境。
+
+#### 6.210 Event codegen wrapper removal
+
+删除仅由 generator tests 调用的 `Run` / `RunFromBytes` 隐式 conventions-path wrappers；CLI 与测试统一走显式 `RunWithConventions` / `RunFromBytesWithConventions` 入口。
+
+#### 6.211 Scenario shared-script inventory cleanup
+
+删除场景框架 README 中不存在的 `common.sh` / `image-cache.sh` 入口、无效首次使用命令和 fallback 说明，并增加 README shared-script 引用必须指向真实文件的 contract test。
+
+#### 6.212 Current OpenAPI inventory wording reconciliation
+
+product plan 的当前正向 inventory、Home BDD fixture gate 与 backend Resume preflight 统一使用已由 OpenAPI/fixture gates 验证的 37 operations；不修改 schema、fixture、generated client 或 runtime。
+
+#### 6.213 Prompt/rubric pytest alias cleanup
+
+将 prompt/rubric lint tests 的三个未收集 `Test*` 主体与小写转发 wrapper 合并为直接收集的 `test_*` 函数，保持测试数量和断言不变。
+
+#### 6.214 Event inventory test naming reconciliation
+
+将 event/job inventory contract tests 中遗留的 `16-event` / `10-job` 测试名对齐为当前 14-event / 8-job truth source；不修改测试数据、断言、schema 或 generated artifacts。
+
+#### 6.215 Conventions validator dead-code removal
+
+删除 `scripts/lint/conventions_yaml.py` 中零调用的 `_require` 异常式校验 helper 及其专用 `ValidationError`；保留当前 `validate()` 错误累积模型、YAML contract 与生成物不变。
+
+#### 6.216 OpenAPI inventory linter dead constant removal
+
+删除 `scripts/lint/openapi_inventory.py` 中零读取的 `PROVENANCE_REF`；保留当前 `GenerationProvenance` schema shape、可达性检查、OpenAPI contract 与生成物不变。
+
+#### 6.217 Fixture example renderer unused-binding cleanup
+
+将 fixture example renderer 的 operation 遍历改为 value-only traversal，删除四个未读取的 path/method loop bindings；保持 operation coverage、fixture projection 与生成字节不变。
+
+#### 6.218 Prompt linter unused-import removal
+
+删除 `scripts/lint/prompt_lint.py` 中零读取的 `Iterable` import；保持 prompt parser、schema contract、canonical hash 与 lint 输出不变。
+
+#### 6.219 Frontend locale reachability and UI copy parity
+
+新增 production locale-key reachability gate；将 Report 动态 key 改为类型化字面量映射，把当前 Practice 原型已有的题号与暂停/继续文案接回正式 TopBar，并删除 30 个无生产 consumer 的 zh/en key 与 Home 原型孤儿属性。
+
+#### 6.220 Unreachable static Workspace detail removal
+
+删除 `ui-design/src/screen-workspace.jsx` 中由常量 `hasPlanContext = false` 永久屏蔽的旧详情分支及其专用 context/history/modal/helper 代码，同时删除失去唯一 consumer 的 `screen-workspace-insight.jsx` 与 script entry，并把 active workspace/practice spec 收敛为纯列表合同；保留当前 `WorkspacePlanList` 和 Home/Parse 仍消费的 resume options provider，不保留兼容或退役标记。
+
+#### 6.221 Zero-consumer prototype primitive removal
+
+删除 `ui-design/src/primitives.jsx` 中只有声明与 `window` export、全仓无 JSX/helper consumer 的 `Sparkline` 与 `KV`；同步修复 visual-system owner 的 plan/checklist/INDEX 版本状态漂移，不添加兼容别名或占位实现。
+
+#### 6.222 Design canvas consumer-surface pruning
+
+按 `ui-design/canvas.html` 这一唯一仓库消费者收敛 `design-canvas.jsx` 的组件参数面，删除从未传入的缩放、样式、间距和定位扩展参数；同时删除画板内一用别名以及与 `src/app.jsx` 默认面试上下文逐值重复的 iframe 参数拼装，不保留兼容分支或退役标记，保持画板数量、路由、尺寸、主题、字体和交互不变。
+
+#### 6.223 Unavailable design canvas sidecar removal
+
+删除 `design-canvas.jsx` 中仓库无实体、无生成入口、无 host 实现且在 `run.sh` 下稳定返回 404 的 `.design-canvas.state.json` 读取/回写链；保留当前页面会话内的 React state 与重排、重命名、聚焦交互，不添加替代持久层、兼容分支或退役标记。
+
+#### 6.224 Unavailable prototype edit-mode bridge removal
+
+删除静态原型中仓库无 host/listener、只能靠外部 message 打开的 edit-mode bridge、`TweaksPanel` 及专用 helper，并删除该面板独占且正式页面从不读取的 `role` tweak 通道；保留 TopBar 和 Settings 当前可达的主题、暗色、语言、custom accent 与字体预设，不添加兼容入口或退役标记。
+
+#### 6.225 P0.037 ready DOM synchronization
+
+修复 pending PDF upload 场景及其 owner mirror 中“第二次 `getResume` 已调用即视为 ready DOM 已提交”的测试竞态，改为等待 ready `displayName` 标题实际可见后再断言轮询次数、page stack 和只读内容；不修改生产轮询或用户行为。诊断记录见 [BUG-0153](../../../../bugs/BUG-0153.md)。
+
+#### 6.231 Change-intake owner matching precision
+
+收敛 `change-intake` matcher 的词法重复计分和 owner 证据优先级：同一字段内相同 query token 只计一次，忽略低信息量英文停用词并识别常见 action 词形；查询含精确 `E2E.P*.NNN` / `P*.NNN` 时，场景 README 的 Owner plan 必须高于通用 API/route 关键词。同步补全 Resume Create Flow 的 prototype Save-and-open / waiting-detail discovery vocabulary，并用 hermetic matcher tests 与两条真实 repo query 固化，不引入全文索引、模糊模型或额外运行时依赖。诊断记录见 [BUG-0155](../../../../bugs/BUG-0155.md)。
+
+#### 6.232 Repo-owned Python unused-import pruning
+
+对 `.agent-skills/`、`scripts/` 与 `test/scenarios/` 的仓库自有 Python 文件建立 module-level import reachability gate，排除 `.venv`、缓存、`__future__` 与 star import 后删除当前 5 个零读取 import。保留 package re-export 边界，不引入 Ruff/Pyflakes 依赖，也不改脚本行为或测试语义。
+
+#### 6.233 Prototype canvas-mode binding pruning
+
+删除 `ui-design/src/app.jsx` 中 edit-mode bridge 清理后残留的零读取 `isCanvasIframe` binding，保留 `hideTopBar` 的 no-chrome 行为；跨文件 TypeScript reference inventory 将不可省略的 callback 首参作为 positional placeholder 分类，不为消除 lint 结果改写当前迭代结构。
+
+#### 6.234 Shared frontend Vitest log verification
+
+把 14 个 frontend real-backend 场景重复实现的 Vitest runner、no-test、failure summary、passing files/tests 检查收敛到既有 `frontend-real-backend-verify.sh`；caller 只保留各自 spec 文件、业务 marker 和 source contract 断言。通过共享 helper 行为测试与 caller zero-duplication contract 固化，不改变 trigger 测试集合、场景业务覆盖或环境生命周期。
+
+#### 6.235 Home/Parse real-backend verifier convergence
+
+将 P0.014/P0.015/P0.016 三个仍内联 real-mode 与 Vitest 通用日志解析的 Home/Parse 场景接入既有共享 helper。helper 的 owner test marker 改为可选参数，默认行为不变，三个 caller 显式传入 `targetJob.realApiMode.test.ts`；删除 caller 中重复及被更强 summary 覆盖的 PASS grep，保留固定测试文件、业务、隐私与 out-of-scope 断言。
+
+#### 6.236 Scenario lifecycle zero-read metadata pruning
+
+删除 P0.018/P0.044 setup 中从未读取的 `SCENARIO_DIR`，以及 P0.084 no-op cleanup 中只相互供给、最终无消费的 `SCRIPT_DIR` / `REPO_ROOT` / `SCENARIO_ID` 元数据链；保留 setup evidence 写入、trigger/verify 行为和 cleanup 成功退出语义。通过 source contract、shell syntax 与三个完整 wrapper 生命周期验证，不增加占位变量或退役说明。
+
+#### 6.237 Parallel frontend runtime-config client removal
+
+删除正式 `src/main.tsx` 依赖图不可达、仅由自身单测消费的 `frontend/src/lib/runtime-config/` fetch/cache/type/test 包；前端 runtime/auth bootstrap 统一由 D1 `AppRuntimeProvider` 通过 B2 generated client/types 读取 A4 `/runtime-config` endpoint。同步 A4 spec/plan/checklist/context、D1 discovery context 与 frontend README，不保留 wrapper、兼容 export 或退役标记。
+
+#### 6.238 Frontend raw OpenAPI snapshot removal
+
+删除 frontend codegen 中没有 import、未进入 bundle、也不被 docs/mock tooling 消费的 raw OpenAPI 字符串快照；同步删除专用 TS template、生成分支和字符串转义 helper。B2 TS codegen 只保留正式消费的 client/types，原始 OpenAPI、backend generated spec、Redocly 文档和 wire contract 不变。
+
+#### 6.239 Shared scenario evidence lifecycle helpers
+
+把五个完全相同的 scenario `setup.env` 创建脚本和四个完全相同的清理脚本收敛到 `_shared/scripts` 两个通用 helper；P0.021/P0.081/P0.082/P0.083/P0.084 caller 只负责传入自身场景目录，P0.084 继续保留 evidence 的 no-op cleanup。通过 caller source contract、shell syntax 与五个完整 wrapper lifecycle 验证，不改变 trigger/verify 或测试集合。
+
+#### 6.240 Go toolchain and module metadata convergence
+
+将根 `.tool-versions`、`go.work` 与 `backend/go.mod` 的 Go 版本统一为当前实际工具链 `1.24.5`，运行标准 tidy 修正已使用 module 的直接依赖分类与 checksum；根 `lint` 聚合新增版本一致性与 `go mod tidy -diff` gate，防止 metadata 再次漂移。不删除或升级业务依赖，不增加独立 `toolchain` directive，不改变 backend API 或运行行为。
+
+#### 6.241 Python tooling and skill contract aggregation
+
+修正全量 Python suite 暴露的一条 work-journal 陈旧合同断言，保持当前英文 commit subject 派生规则；新增根 `requirements-dev.txt` 显式声明现有 `pytest` / `PyYAML` 依赖，并把 `scripts/` 与 `.agent-skills/` 全部 Python contracts 接入既有 `make test`。保留 Go/Vitest gate，不新增平行 test target 或兼容路径。
+
+#### 6.242 UI prototype Node contract aggregation
+
+把仓库唯一根级 Node test `ui-design/ui-design-contract.test.mjs` 接入既有 `make test` 首段，使 UI 真理源的静态范围、路由、组件 surface 与无重复文件合同不再只由单个场景显式触发。保留后续 Python/Go/Vitest 全量 gate；场景专用 tests 继续由场景 owner 运行。
+
+#### 6.243 Resume detail zero-consumer CSS pruning
+
+删除正式 Resume Workshop `screens.css` 中仅残留定义、没有 DOM/场景/原型消费者的 breadcrumb、structured preview section/skills 与 original-content modal 规则，并从共享按钮和 mobile media query 中删除对应分支。保留当前 back/header、Markdown/PDF reading surface、parse state 与 responsive selectors，通过 owner source-level negative gate 防止无消费者样式回流。
+
+#### 6.244 Frontend shell zero-consumer CSS pruning
+
+删除正式 frontend shell 中没有 TSX、原型或场景消费者的通用 screen grid、visually-hidden utility 与 TopBar custom-active modifier，并删除 README 对 screen grid 的虚假接入说明。保留当前 DOM 消费的 shell/card/swatch 规则，以及原型 Practice 正在使用的 `ei-scroll`；通过三个 owner source gate 固化零残留。
+
+#### 6.245 Auth zero-consumer CSS pruning
+
+删除正式 Auth stylesheet 中没有 DOM、原型或场景消费者的 `ei-auth-link-row` wrapper 规则，保留当前 email-code 页面实际使用的 secondary link 与 help copy 样式；通过 AuthVisual source gate 固化零残留。
+
+#### 6.246 Resume Create ghost CTA CSS pruning
+
+删除正式 Resume Create stylesheet 中没有 DOM、原型或场景消费者的 ghost CTA base/variant/disabled branches，保留 upload/paste 当前使用的 accent CTA 与 disabled state；通过 create-flow owner source gate 固化零残留。
+
+#### 6.247 Resume detail CSS cascade consolidation
+
+把两段同 specificity 的 detail-back 规则收敛为一段最终计算值等价的声明，删除前段被后段覆盖的属性；同时删除 flex preview 在 mobile media 中不生效的 grid-template declaration。保留当前 DOM、可见样式和响应式布局，通过 source gate 固化唯一规则与有效 display/property 组合。
+
+#### 6.248 Resume Create accent CTA rule consolidation
+
+ghost CTA 删除后，将正式 CreateFlow 中两段同 selector 的 accent CTA layout/typography/interaction/color/border 声明合并为一个最终计算值等价的规则；保留 disabled state 与 upload/paste DOM，通过 owner source gate 固化单规则。
+
+#### 6.249 TopBar login rule consolidation
+
+将正式 TopBar 中相邻的两段同 selector 登录按钮声明合并为一个最终计算值等价的规则；保留所有 base declarations、独立 hover state 与现有 DOM，通过 owner source gate 固化单规则。
+
+#### 6.250 Shared conventions generator decision documentation convergence
+
+把 B1 active spec 中已经由当前代码落实的 generator 实现和 TypeScript 输出拆分从待确认项迁入锁定决策，并删除空的待确认段落；不修改 generator、生成物或运行合同，通过 source inventory、focused codegen/drift 与文档门禁验证。
+
+#### 6.251 Frontend Resume Workshop empty pending-decision section removal
+
+删除 active Resume Workshop spec 中没有任何决策内容的待确认段落，将第 3 节只保留当前锁定决策；同步 spec history、owner contexts 与 indexes，不保留空状态或历史说明。
+
+#### 6.252 AIClient completion dispatch duplication removal
+
+保留 `Complete` 与 `CompleteJudge` 两个公开 capability 边界，将其重复的输入校验、dispatch、fallback 与 metadata merge 收敛到一个私有 capability-parameterized helper；不改变 chat/judge fail-close、接口或返回合同。
+
+#### 6.253 Full-funnel harness request helper consolidation
+
+将 P0.098 Go scenario 文件中两个 harness 完全相同的 JSON 请求构造体收敛到一个 file-private helper，保留 receiver wrappers 和所有场景调用点；不改变 header、status、body 或场景环境合同。
+
+#### 6.254 Full-funnel TargetJob fixture and assertion convergence
+
+删除 P0.098 自定义 AI client 中被 `buildTargetJobRuntime` test-mode deterministic parse client 完全遮蔽的 `target.import.parse` 分支及 JSON helper；将持久化 gate 从陈旧的单行总数断言改为 deterministic fixture 的 `must_have` / `hidden_signal` kind 级断言，并重跑完整场景生命周期。诊断记录见 [BUG-0157](../../../../bugs/BUG-0157.md)。
+
+#### 6.255 Full-funnel harness state and seed helper consolidation
+
+将 P0.098 文件中字段完全相同的 journey/resume-seed harness 合并为一个共享 harness，保留两种 runtime constructor，统一较完整的 seed/ready 验证，并删除重复 receiver 与中转 request helper；不改变场景 HTTP、runner、cleanup 或 handoff 行为。
+
+#### 6.256 Observability latency fallback consolidation
+
+将 AI observability decorator 在 Complete/STT/TTS 路径重复的 latency metadata fallback 收敛为一个私有 helper，保留 provider 非零 latency 优先和本地 measured duration 兜底语义；不合并 capability-specific record、privacy 或 error paths。
+
+#### 6.257 Observability invalid-schema test harness consolidation
+
+保留 BUG-0095 与 prompt-rubric gate 引用的三个顶层测试名，将 required-field、trailing-token、enum-mismatch 用例重复的 decorator setup 与 invalid/error/metric 断言收敛到一个 test-only helper；不削减输入案例或断言。
+
+#### 6.258 Observability fallback-label test table consolidation
+
+将没有外部精确名称消费者的两条 fallback metric label 测试收敛为一个 table-driven test，保留 date-suffix 与 central provider/model-family chain 两个具名 case、完整 meta 和 exact 11-label tuple。
+
+#### 6.259 AIClient invalid-input assertion consolidation
+
+保留 Complete/STT/TTS 三条顶层测试及 capability-specific provider call-count guard，将重复的 `AI_OUTPUT_INVALID`、meta error code 与 invalid validation status 断言收敛到一个 test-only helper。
+
+#### 6.260 Observability privacy leak assertion consolidation
+
+保留 Complete/TTS 两条隐私测试及其 capability、metric、audit sanity checks，将重复的六类 counter labels、logs、task runs 与 audit metadata 明文 token 扫描收敛到一个 test-only helper。
+
+#### 6.261 Practice first-question invalid-output test table consolidation
+
+将没有外部精确名称消费者的 missing-text / non-JSON 首题失败测试收敛为一个 table-driven test，保留两个具名 case、`reserve → ai → fail` 顺序及 terminal `AI_OUTPUT_INVALID` 非重试断言。
+
+#### 6.262 Practice duplicate strict-mode hint test removal
+
+删除与 canonical strict-mode hint service test 重复的测试函数，将 backend-practice/002 与 003 的精确门禁引用收敛到 `TestServiceAppliesHintAIForStrictMode`；保留 assisted/strict 对称覆盖和 P0.049 replay 场景，不保留旧名称别名。
+
+#### 6.263 Practice create-plan SQL test expectation consolidation
+
+将 baseline、空 focus 与 report-derived create-plan store tests 重复的成功 insert 参数和返回行构造收敛到一个 test-only helper；保留三个测试及其 query pattern、focus 参数、source report row、audit 与结果断言，不改生产 SQL 或运行合同。
+
+#### 6.264 Cmd/api cookie JSON harness consolidation
+
+将 full-funnel 与 TargetJob HTTP scenario harness 重复的 cookie-auth JSON request body 收敛到一个 package-level test helper；保留两个 receiver、各自 idempotency header constant、全部 call sites、状态与 response assertions，不改变 P0.010-P0.013/P0.098 行为。
+
+#### 6.265 Auth unauthorized account-envelope test consolidation
+
+删除 `getMe` / `deleteMe` 两个重复的无 session 顶层测试，以一个 table-driven test 的具名 GET/DELETE subtests 保留 handler 调用、401、JSON envelope 与 `AUTH_UNAUTHORIZED` 精确断言；不改认证生产代码或 BDD 行为。
+
+#### 6.266 Review GenerateHandler retryable-failure test harness consolidation
+
+保留 BUG-0088 与 backend-async-runner 精确引用的两个顶层测试名，将重复的 store/service/job setup 与 retryable timeout/finalization 断言收敛到一个 test-only helper，仅用输入 `AsyncJobFinalized` 区分两个 case。
+
+#### 6.267 OpenAI-compatible stream error contract test table consolidation
+
+删除 malformed chunk 与 provider error event 两个重复顶层测试及旧 owner 引用，以一个 table-driven test 的具名 case 保留 exact SSE chunk、单一 terminal error event、`AI_OUTPUT_INVALID` 与 `AI_PROVIDER_TIMEOUT` 断言；不改变 provider stream 实现。
+
+#### 6.268 Resume update/duplicate mutation handler pipeline consolidation
+
+保留两个 operation 的 service capability、typed request validator 与 200 / 201 status，将重复的 user resolution、Idempotency-Key、body read、validation/error mapping、resource header 和 JSON response 收敛为一个私有 generic helper；同时把 P0.075/P0.076 的裸 Resume mode 负向搜索收紧到六场景统一的 contextual contract，不改变 flat Resume API、fixture、store 或用户行为。
+
+#### 6.269 Shared Resume mode scenario negative gate
+
+将 P0.075-P0.080 verify 与 P0.080 trigger 的七份 contextual Resume mode 搜索收敛到一个 `_shared` executable gate；调用方删除正则、glob 和错误分支副本，由 scenario contract 固化共享实现与 consumer inventory。
+
+#### 6.270 Unified Resume runtime scenario negative gate
+
+将同一七个 consumer 剩余的 module vocabulary 搜索合并进共享 gate，并将 helper 更名为 `resume-runtime-negative-gate.sh`；删除旧 helper 名与所有调用方正则副本，通过一个 error-aware scan function 统一两类边界。
+
+#### 6.271 Practice plan/session GET fixture test harness consolidation
+
+将 `getPracticePlan` / `getPracticeSession` tests 重复的 typed fixture schema、file loader、success loop 与 scoped-404 assertion 收敛为 test-only generic helpers；保留两类 operation 的顶层测试、typed body 和精确行为断言，不改生产 API。
+
+#### 6.272 Shared prompt/rubric config-root test support
+
+新增一个 `internal/testsupport.ConfigRoots(testing.TB)`，删除 registry、benchmark、TargetJob 与 cmd/api 中四个同构的 `backend/go.mod` walker；所有 F3 config consumer 直接调用共享 helper，不保留本地 alias 或复制路径投影。
+
+#### 6.273 Technical-debt stop audit
+
+按新增的最多 20 批与每批结束后停止评估规则结束本轮。当前 owner 累计批次已经超过上限；根级 lint/test、docs/index/diff 与 pruning gate 全绿。剩余 backend clone 属于 provider 协议隔离、跨 package 测试断言或资源专属 handler；deadcode 只剩 interface contract stubs 与需要独立架构决策的 B4 backfill extension seam。继续抽取会增加耦合或造成过早优化，因此不再开启下一批。
+
 ## 5 Operation Matrix
 
 | operationId / contract | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
@@ -770,7 +1062,7 @@
 | Frontend resume workshop 003 owner compression | Docs / frontend resume owner | Phase 6.96 | owner package grep, context validation, focused Resume Workshop Vitest, plans INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check` | resume-workshop 003 owner docs must describe only current flat Resume/Rewrites/Edit contract and completed BDD gates, without keeping out-of-scope phase prose |
 | Backend review spec and 001 owner compression | Docs / backend review owner | Phase 6.97 | active spec grep, owner package grep, context validation, plans/spec INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check`, pruning-surface lint | backend-review active spec and 001 owner docs must describe current async-runner-backed report generation/read contract without stale baseline or staged implementation prose |
 | Prompt rubric language coordinate owner compression | Docs / prompt-rubric owner | Phase 6.98 | owner package grep, context validation, prompt/rubric/profile lint, plans INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check`, pruning-surface lint | prompt-rubric 003 owner docs must describe current 9-key canonical `multi` contract and executable evidence without stale coordinate inventory |
-| OpenAPI bootstrap owner compression | Docs / OpenAPI contract owner | Phase 6.99 | owner package grep, context validation, OpenAPI lint/codegen gates, plans INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check`, pruning-surface lint | openapi-v1-contract 001 owner docs must describe current 35-operation / 10-tag contract, codegen, docs renderer, and child handoff without stale endpoint/tag inventories |
+| OpenAPI bootstrap owner compression | Docs / OpenAPI contract owner | Phase 6.99 | owner package grep, context validation, OpenAPI lint/codegen gates, plans INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check`, pruning-surface lint | openapi-v1-contract 001 owner docs must describe current 37-operation / 10-tag contract, codegen, docs renderer, and child handoff without stale endpoint/tag inventories |
 | Frontend Shell 001 owner compression | Docs / frontend shell owner | Phase 6.123 | owner package grep, context validation, focused frontend shell Vitest, plans INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check`, pruning-surface lint | frontend-shell 001 owner docs must describe only current App shell, email-code auth, settings, display, route guard and BDD gates, without keeping stale execution prose |
 | Frontend Shell active spec/history compression | Docs / frontend shell owner | Phase 6.124 | active spec/history grep, frontend-shell context validation, spec INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check`, pruning-surface lint | frontend-shell active spec and history must describe only the current App shell, email-code auth, settings, display, canonical URL and protected route guard contract |
 | Frontend Shell 004 URL routing owner compression | Docs / frontend shell owner | Phase 6.125 | owner package grep, context validation, focused URL/auth privacy Vitest, plans INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check`, pruning-surface lint | frontend-shell 004 owner docs must describe only current canonical URL, safe-param, hash adapter, privacy and host fallback contracts |
@@ -826,6 +1118,83 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.274 | Complete the technical-debt run after the bounded stop audit. |
+| 2026-07-10 | 1.273 | Centralize prompt/rubric config-root discovery across backend tests. |
+| 2026-07-10 | 1.272 | Consolidate duplicate Practice plan/session GET fixture test harnesses. |
+| 2026-07-10 | 1.271 | Unify Resume mode and module scenario scans in one shared runtime gate. |
+| 2026-07-10 | 1.270 | Centralize the Resume mode scenario negative gate across seven callers. |
+| 2026-07-10 | 1.269 | Consolidate the duplicate flat Resume update/duplicate handler pipeline. |
+| 2026-07-10 | 1.268 | Consolidate duplicate OpenAI-compatible stream error contract tests. |
+| 2026-07-10 | 1.267 | Consolidate duplicate Review GenerateHandler retryable-failure test setup. |
+| 2026-07-10 | 1.266 | Consolidate duplicate unauthenticated account handler envelope tests. |
+| 2026-07-10 | 1.265 | Share cookie-auth JSON request construction across two cmd/api scenario harnesses. |
+| 2026-07-10 | 1.264 | Consolidate repeated create-plan store test insert expectations. |
+| 2026-07-10 | 1.263 | Delete the duplicate strict-mode hint service test and converge exact gate references. |
+| 2026-07-10 | 1.262 | Consolidate first-question invalid-output Practice tests into one table. |
+| 2026-07-10 | 1.261 | Consolidate repeated observability privacy leak assertions. |
+| 2026-07-10 | 1.260 | Consolidate repeated AIClient invalid-input assertions. |
+| 2026-07-10 | 1.259 | Consolidate fallback-label observability tests into one table. |
+| 2026-07-10 | 1.258 | Consolidate repeated invalid-schema observability test setup and assertions. |
+| 2026-07-10 | 1.257 | Consolidate observability latency fallback across Complete, STT and TTS. |
+| 2026-07-10 | 1.256 | Consolidate duplicate full-funnel harness state and seed helpers. |
+| 2026-07-10 | 1.255 | Delete the unreachable full-funnel TargetJob fixture and align its persistence assertion. |
+| 2026-07-10 | 1.254 | Consolidate duplicate full-funnel harness JSON request construction. |
+| 2026-07-10 | 1.253 | Consolidate duplicate AIClient chat and judge completion execution. |
+| 2026-07-10 | 1.252 | Remove the empty pending-decision section from the active Resume Workshop spec. |
+| 2026-07-10 | 1.251 | Reconcile implemented B1 generator choices as current locked decisions. |
+| 2026-07-10 | 1.250 | Consolidate the TopBar login declarations into one rule. |
+| 2026-07-10 | 1.249 | Consolidate the Resume Create accent CTA declarations into one rule. |
+| 2026-07-10 | 1.248 | Consolidate the Resume detail-back cascade and remove an ineffective flex-grid declaration. |
+| 2026-07-10 | 1.247 | Delete the zero-consumer Resume Create ghost CTA CSS branches. |
+| 2026-07-10 | 1.246 | Delete the zero-consumer Auth link-row CSS wrapper. |
+| 2026-07-10 | 1.245 | Delete three zero-consumer frontend-shell CSS selectors and one stale handoff entry. |
+| 2026-07-10 | 1.244 | Delete zero-consumer Resume detail breadcrumb, structured-preview and original-modal CSS. |
+| 2026-07-10 | 1.243 | Aggregate the UI prototype Node contract into the root test gate. |
+| 2026-07-10 | 1.242 | Aggregate Python tooling/skill contracts into the root test gate and repair one stale assertion. |
+| 2026-07-10 | 1.241 | Converge the Go toolchain and tidy module metadata behind a root lint gate. |
+| 2026-07-10 | 1.240 | Centralize nine duplicate scenario evidence lifecycle scripts. |
+| 2026-07-10 | 1.239 | Delete the unconsumed frontend raw OpenAPI snapshot generator surface. |
+| 2026-07-10 | 1.238 | Delete the unconsumed parallel frontend runtime-config client package. |
+| 2026-07-10 | 1.237 | Remove zero-read metadata from three scenario lifecycle scripts. |
+| 2026-07-10 | 1.236 | Reuse the shared real-backend verifier across the remaining Home/Parse callers. |
+| 2026-07-10 | 1.235 | Centralize duplicated frontend Vitest log verification across 14 scenario callers. |
+| 2026-07-10 | 1.234 | Remove the zero-read prototype canvas-mode binding while preserving no-chrome behavior. |
+| 2026-07-10 | 1.233 | Add repo-owned Python import reachability coverage and remove five unread imports. |
+| 2026-07-10 | 1.232 | Tighten change-intake matching with deduplicated lexical evidence, exact scenario owners and create-flow action vocabulary; record BUG-0155. |
+| 2026-07-10 | 1.231 | Remove the unread ResumeCreateFlow navigation prop and caller argument; preserve its local create-to-detail handoff. |
+| 2026-07-10 | 1.230 | Remove the unread ReportDetailSurface navigation prop and caller argument. |
+| 2026-07-10 | 1.229 | Remove the unread Home MiniRoundRail language prop and caller argument. |
+| 2026-07-10 | 1.228 | Remove the unread Settings prototype navigation prop and caller argument. |
+| 2026-07-10 | 1.227 | Prune two unread auth prototype props and their caller arguments. |
+| 2026-07-10 | 1.226 | Synchronize P0.037 pending-PDF assertions on the ready visible DOM state. |
+| 2026-07-10 | 1.225 | Remove the unavailable prototype edit-mode bridge, exclusive panel and dead role tweak channel. |
+| 2026-07-10 | 1.224 | Remove the unavailable design-canvas sidecar bridge and its deterministic static-server 404. |
+| 2026-07-10 | 1.223 | Prune unused design-canvas parameters and duplicate iframe context defaults against the only tracked consumer. |
+| 2026-07-10 | 1.222 | Remove two zero-consumer prototype primitive globals and reconcile visual-system owner metadata. |
+| 2026-07-10 | 1.221 | Remove unreachable static Workspace detail and insight sources, localize the Parse binding pill, and reconcile the active pure-list spec. |
+| 2026-07-10 | 1.220 | Enforce locale-key reachability, restore Practice copy parity, and remove orphan catalog entries. |
+| 2026-07-10 | 1.219 | Remove the unused Iterable import from the prompt linter. |
+| 2026-07-10 | 1.218 | Remove unused path and method bindings from the fixture example renderer. |
+| 2026-07-10 | 1.217 | Remove the unreferenced provenance ref constant from the OpenAPI inventory linter. |
+| 2026-07-10 | 1.216 | Remove the uncalled exception-style helper and its private exception type from the conventions validator. |
+| 2026-07-10 | 1.215 | Align event inventory test names with the current 14-event and 8-job contract. |
+| 2026-07-10 | 1.214 | Collapse three prompt/rubric pytest alias wrappers into directly collected tests. |
+| 2026-07-10 | 1.213 | Align current product, Home BDD and Resume preflight wording with the 37-operation OpenAPI contract. |
+| 2026-07-10 | 1.212 | Remove nonexistent shared scenario-script entries and enforce README file inventory. |
+| 2026-07-10 | 1.211 | Remove two test-only event-codegen wrappers and use the canonical explicit-conventions entrypoints. |
+| 2026-07-10 | 1.210 | Move the migration CLI map-backed Env test double out of the production package. |
+| 2026-07-10 | 1.209 | Remove test-only Practice turn-status helpers and align evidence to the four-value contract. |
+| 2026-07-10 | 1.208 | Remove the test-only shared provider error mapper while preserving startup sentinels. |
+| 2026-07-10 | 1.207 | Remove the unused config duration getter and stale contract references. |
+| 2026-07-10 | 1.206 | Remove the TargetJob app-config pseudo-tripwire and duplicate getenv scan. |
+| 2026-07-10 | 1.205 | Remove the OpenAPI codegen production file used only by snapshot tests. |
+| 2026-07-10 | 1.204 | Remove the production-only readiness-tier test helper. |
+| 2026-07-10 | 1.203 | Remove three test-only domain runtime handler getter wrappers. |
+| 2026-07-10 | 1.202 | Collapse the test-only API handler builder chain into one canonical route composer. |
+| 2026-07-10 | 1.201 | Remove unused feature-key helpers and the unsupported future-codegen claim. |
+| 2026-07-10 | 1.200 | Remove the unreachable judge profile override and constant-valued state field. |
+| 2026-07-10 | 1.199 | Remove the zero-consumer stub provider name wrapper. |
+| 2026-07-10 | 1.198 | Remove the unreachable duplicate task-run and audit writer state from the core AIClient. |
 | 2026-07-10 | 1.197 | Remove the targetjob test-only runtime, duplicate async job contract and adapter after production runner convergence. |
 | 2026-07-10 | 1.196 | Correct theme data consumer and font preset documentation. |
 | 2026-07-10 | 1.195 | Enable the frontend strict unused-surface compiler gate and remove current findings. |

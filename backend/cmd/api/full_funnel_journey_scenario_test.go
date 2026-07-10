@@ -1,16 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"io"
 	"io/fs"
 	"log/slog"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -167,7 +164,6 @@ func TestE2EP0FullFunnelReadyResumeSeedUsesRegisterResumeAndRunner(t *testing.T)
 	if seed.ResumeID == "" || seed.ParseJobID == "" {
 		t.Fatalf("seed did not return resumeId and parse job id: %+v", seed)
 	}
-	h.assertReadyResume(t, seed)
 	h.cleanupSeed(t, seed)
 	h.assertSeedCleaned(t, seed)
 }
@@ -178,7 +174,7 @@ type fullFunnelResumeSeed struct {
 	ParseJobID string
 }
 
-type fullFunnelJourneyHarness struct {
+type fullFunnelHarness struct {
 	ctx     context.Context
 	db      *sql.DB
 	handler http.Handler
@@ -187,16 +183,7 @@ type fullFunnelJourneyHarness struct {
 	userID  string
 }
 
-type fullFunnelResumeSeedHarness struct {
-	ctx     context.Context
-	db      *sql.DB
-	handler http.Handler
-	kernel  *runner.Runtime
-	cookie  *http.Cookie
-	userID  string
-}
-
-func newFullFunnelResumeSeedHarness(t *testing.T) *fullFunnelResumeSeedHarness {
+func newFullFunnelResumeSeedHarness(t *testing.T) *fullFunnelHarness {
 	t.Helper()
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -232,7 +219,7 @@ func newFullFunnelResumeSeedHarness(t *testing.T) *fullFunnelResumeSeedHarness {
 	if err != nil {
 		t.Fatalf("buildResumeRuntime: %v", err)
 	}
-	handler := buildAPIHandlerWithUploadAndHandlers(
+	handler := buildAPIHandler(
 		loader,
 		apiRuntimeFlags{},
 		authService,
@@ -240,10 +227,12 @@ func newFullFunnelResumeSeedHarness(t *testing.T) *fullFunnelResumeSeedHarness {
 		practiceRoutes{},
 		uploadRoutes{},
 		resumeRuntime.Routes(),
+		reportRoutes{},
+		jobsRoutes{},
 	)
 	kernel := newTestKernel(runner.NewSQLStore(db), resumeRuntime.Handlers)
 
-	return &fullFunnelResumeSeedHarness{
+	return &fullFunnelHarness{
 		ctx:     ctx,
 		db:      db,
 		handler: handler,
@@ -253,12 +242,12 @@ func newFullFunnelResumeSeedHarness(t *testing.T) *fullFunnelResumeSeedHarness {
 	}
 }
 
-func newFullFunnelJourneyHarness(t *testing.T) *fullFunnelJourneyHarness {
+func newFullFunnelJourneyHarness(t *testing.T) *fullFunnelHarness {
 	t.Helper()
 	return newFullFunnelJourneyHarnessWithTimeout(t, 30*time.Second)
 }
 
-func newFullFunnelJourneyHarnessWithTimeout(t *testing.T, timeout time.Duration) *fullFunnelJourneyHarness {
+func newFullFunnelJourneyHarnessWithTimeout(t *testing.T, timeout time.Duration) *fullFunnelHarness {
 	t.Helper()
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -306,7 +295,7 @@ func newFullFunnelJourneyHarnessWithTimeout(t *testing.T, timeout time.Duration)
 		t.Fatalf("buildReportRuntime: %v", err)
 	}
 	jobs := buildJobsRoutes(db)
-	handler := buildAPIHandlerWithUploadReportJobsAndHandlers(
+	handler := buildAPIHandler(
 		loader,
 		apiRuntimeFlags{},
 		authService,
@@ -319,7 +308,7 @@ func newFullFunnelJourneyHarnessWithTimeout(t *testing.T, timeout time.Duration)
 	)
 	kernel := newTestKernel(runner.NewSQLStore(db), targetRuntime.Handlers, resumeRuntime.Handlers, reports.Handlers)
 
-	return &fullFunnelJourneyHarness{
+	return &fullFunnelHarness{
 		ctx:     ctx,
 		db:      db,
 		handler: handler,
@@ -329,7 +318,7 @@ func newFullFunnelJourneyHarnessWithTimeout(t *testing.T, timeout time.Duration)
 	}
 }
 
-func (h *fullFunnelJourneyHarness) importTargetJob(t *testing.T, resumeID string) api.TargetJobWithJob {
+func (h *fullFunnelHarness) importTargetJob(t *testing.T, resumeID string) api.TargetJobWithJob {
 	t.Helper()
 	title := "Backend Platform Engineer"
 	company := "Full Funnel Systems"
@@ -354,10 +343,10 @@ func (h *fullFunnelJourneyHarness) importTargetJob(t *testing.T, resumeID string
 	return imported
 }
 
-func (h *fullFunnelJourneyHarness) seedReadyResume(t *testing.T) fullFunnelResumeSeed {
+func (h *fullFunnelHarness) seedReadyResume(t *testing.T) fullFunnelResumeSeed {
 	t.Helper()
 	raw := h.doJSON(t, http.MethodPost, "/api/v1/resumes", "e2e-p0-098-register-resume", api.RegisterResumeRequest{
-		Title:      "Full Funnel Journey Resume",
+		Title:      "Full Funnel Resume",
 		Language:   "en",
 		SourceType: fullFunnelStringPtr("paste"),
 		RawText:    fullFunnelStringPtr(fullFunnelSeedResumeText),
@@ -376,7 +365,7 @@ func (h *fullFunnelJourneyHarness) seedReadyResume(t *testing.T) fullFunnelResum
 	return seed
 }
 
-func (h *fullFunnelJourneyHarness) createBaselinePracticePlan(t *testing.T, targetJobID, resumeID string) api.PracticePlan {
+func (h *fullFunnelHarness) createBaselinePracticePlan(t *testing.T, targetJobID, resumeID string) api.PracticePlan {
 	t.Helper()
 	raw := h.doJSON(t, http.MethodPost, "/api/v1/practice/plans", "e2e-p0-098-create-baseline-plan", api.CreatePracticePlanRequest{
 		TargetJobId:          targetJobID,
@@ -398,12 +387,12 @@ func (h *fullFunnelJourneyHarness) createBaselinePracticePlan(t *testing.T, targ
 	return plan
 }
 
-func (h *fullFunnelJourneyHarness) createNextRoundPracticePlan(t *testing.T, targetJobID, resumeID, sourceReportID string) api.PracticePlan {
+func (h *fullFunnelHarness) createNextRoundPracticePlan(t *testing.T, targetJobID, resumeID, sourceReportID string) api.PracticePlan {
 	t.Helper()
 	return h.createNextRoundPracticePlanWithKey(t, targetJobID, resumeID, sourceReportID, "e2e-p0-098-create-next-round-plan")
 }
 
-func (h *fullFunnelJourneyHarness) createNextRoundPracticePlanWithKey(t *testing.T, targetJobID, resumeID, sourceReportID, idempotencyKey string) api.PracticePlan {
+func (h *fullFunnelHarness) createNextRoundPracticePlanWithKey(t *testing.T, targetJobID, resumeID, sourceReportID, idempotencyKey string) api.PracticePlan {
 	t.Helper()
 	raw := h.doJSON(t, http.MethodPost, "/api/v1/practice/plans", idempotencyKey, api.CreatePracticePlanRequest{
 		TargetJobId:          targetJobID,
@@ -426,12 +415,12 @@ func (h *fullFunnelJourneyHarness) createNextRoundPracticePlanWithKey(t *testing
 	return plan
 }
 
-func (h *fullFunnelJourneyHarness) startPracticeSession(t *testing.T, planID string) api.PracticeSession {
+func (h *fullFunnelHarness) startPracticeSession(t *testing.T, planID string) api.PracticeSession {
 	t.Helper()
 	return h.startPracticeSessionWithKey(t, planID, "e2e-p0-098-start-session")
 }
 
-func (h *fullFunnelJourneyHarness) startPracticeSessionWithKey(t *testing.T, planID, idempotencyKey string) api.PracticeSession {
+func (h *fullFunnelHarness) startPracticeSessionWithKey(t *testing.T, planID, idempotencyKey string) api.PracticeSession {
 	t.Helper()
 	raw := h.doJSON(t, http.MethodPost, "/api/v1/practice/sessions", idempotencyKey, api.StartPracticeSessionRequest{
 		PlanId:       planID,
@@ -448,7 +437,7 @@ func (h *fullFunnelJourneyHarness) startPracticeSessionWithKey(t *testing.T, pla
 	return session
 }
 
-func (h *fullFunnelJourneyHarness) appendAnswerEvent(t *testing.T, session api.PracticeSession) api.SessionEventResult {
+func (h *fullFunnelHarness) appendAnswerEvent(t *testing.T, session api.PracticeSession) api.SessionEventResult {
 	t.Helper()
 	if session.CurrentTurn == nil {
 		t.Fatalf("appendAnswerEvent requires current turn: %+v", session)
@@ -473,12 +462,12 @@ func (h *fullFunnelJourneyHarness) appendAnswerEvent(t *testing.T, session api.P
 	return result
 }
 
-func (h *fullFunnelJourneyHarness) completePracticeSession(t *testing.T, sessionID string) api.ReportWithJob {
+func (h *fullFunnelHarness) completePracticeSession(t *testing.T, sessionID string) api.ReportWithJob {
 	t.Helper()
 	return h.completePracticeSessionWithKey(t, sessionID, "e2e-p0-098-complete-session")
 }
 
-func (h *fullFunnelJourneyHarness) completePracticeSessionWithKey(t *testing.T, sessionID, idempotencyKey string) api.ReportWithJob {
+func (h *fullFunnelHarness) completePracticeSessionWithKey(t *testing.T, sessionID, idempotencyKey string) api.ReportWithJob {
 	t.Helper()
 	raw := h.doJSON(t, http.MethodPost, "/api/v1/practice/sessions/"+sessionID+"/complete", idempotencyKey, api.CompletePracticeSessionRequest{
 		ClientCompletedAt: "2026-05-24T13:05:00Z",
@@ -491,7 +480,7 @@ func (h *fullFunnelJourneyHarness) completePracticeSessionWithKey(t *testing.T, 
 	return result
 }
 
-func (h *fullFunnelJourneyHarness) getTargetJob(t *testing.T, targetJobID string) api.TargetJob {
+func (h *fullFunnelHarness) getTargetJob(t *testing.T, targetJobID string) api.TargetJob {
 	t.Helper()
 	raw := h.doJSON(t, http.MethodGet, "/api/v1/targets/"+targetJobID, "", nil, http.StatusOK)
 	var target api.TargetJob
@@ -499,7 +488,7 @@ func (h *fullFunnelJourneyHarness) getTargetJob(t *testing.T, targetJobID string
 	return target
 }
 
-func (h *fullFunnelJourneyHarness) getFeedbackReport(t *testing.T, reportID string) api.FeedbackReport {
+func (h *fullFunnelHarness) getFeedbackReport(t *testing.T, reportID string) api.FeedbackReport {
 	t.Helper()
 	raw := h.doJSON(t, http.MethodGet, "/api/v1/reports/"+reportID, "", nil, http.StatusOK)
 	var report api.FeedbackReport
@@ -507,7 +496,7 @@ func (h *fullFunnelJourneyHarness) getFeedbackReport(t *testing.T, reportID stri
 	return report
 }
 
-func (h *fullFunnelJourneyHarness) runKernelOnce(t *testing.T, jobType string) {
+func (h *fullFunnelHarness) runKernelOnce(t *testing.T, jobType string) {
 	t.Helper()
 	processed, err := h.kernel.RunOnce(h.ctx)
 	if err != nil {
@@ -518,7 +507,7 @@ func (h *fullFunnelJourneyHarness) runKernelOnce(t *testing.T, jobType string) {
 	}
 }
 
-func (h *fullFunnelJourneyHarness) assertTargetImportPersisted(t *testing.T, targetJobID, jobID string) {
+func (h *fullFunnelHarness) assertTargetImportPersisted(t *testing.T, targetJobID, jobID string) {
 	t.Helper()
 	var (
 		status    string
@@ -537,23 +526,21 @@ where id = $1 and job_type = 'target_import' and resource_id = $2`, jobID, targe
 	assertFullFunnelCount(t, h.db, `
 select count(*)
 from target_job_requirements
-where target_job_id = $1`, targetJobID, 1)
+where target_job_id = $1
+  and kind = 'must_have'`, targetJobID, 1)
+	assertFullFunnelCount(t, h.db, `
+select count(*)
+from target_job_requirements
+where target_job_id = $1
+  and kind = 'hidden_signal'`, targetJobID, 1)
+	assertFullFunnelCount(t, h.db, `
+select count(*)
+from target_job_requirements
+where target_job_id = $1
+  and kind not in ('must_have', 'hidden_signal')`, targetJobID, 0)
 }
 
-func (h *fullFunnelJourneyHarness) assertReadyResume(t *testing.T, seed fullFunnelResumeSeed) {
-	t.Helper()
-	raw := h.doJSON(t, http.MethodGet, "/api/v1/resumes/"+seed.ResumeID, "", nil, http.StatusOK)
-	var detail api.Resume
-	decodeJSON(t, raw, &detail)
-	if detail.Id != seed.ResumeID || detail.ParseStatus != sharedtypes.TargetJobParseStatusReady {
-		t.Fatalf("journey seed resume is not ready: %+v", detail)
-	}
-	if detail.ParsedSummary == nil || len(*detail.ParsedSummary) == 0 {
-		t.Fatalf("journey seed resume missing parsed summary: %+v", detail)
-	}
-}
-
-func (h *fullFunnelJourneyHarness) assertBaselinePracticePlanPersisted(t *testing.T, planID, targetJobID, resumeID string) {
+func (h *fullFunnelHarness) assertBaselinePracticePlanPersisted(t *testing.T, planID, targetJobID, resumeID string) {
 	t.Helper()
 	var (
 		gotTarget string
@@ -572,7 +559,7 @@ where id = $1 and user_id = $2`, planID, h.userID).Scan(&gotTarget, &gotResume, 
 	}
 }
 
-func (h *fullFunnelJourneyHarness) assertPracticeSessionEventLoopPersisted(t *testing.T, sessionID, planID, targetJobID string, event api.SessionEventResult) {
+func (h *fullFunnelHarness) assertPracticeSessionEventLoopPersisted(t *testing.T, sessionID, planID, targetJobID string, event api.SessionEventResult) {
 	t.Helper()
 	if event.Session.Id != sessionID {
 		t.Fatalf("event result session=%q, want %q", event.Session.Id, sessionID)
@@ -599,7 +586,7 @@ from outbox_events
 where aggregate_id = $1`, sessionID, 1)
 }
 
-func (h *fullFunnelJourneyHarness) assertStartSessionReplayNoDuplicate(t *testing.T, first, replay api.PracticeSession, planID string) {
+func (h *fullFunnelHarness) assertStartSessionReplayNoDuplicate(t *testing.T, first, replay api.PracticeSession, planID string) {
 	t.Helper()
 	if replay.Id != first.Id || replay.PlanId != first.PlanId || replay.CurrentTurn == nil || first.CurrentTurn == nil || replay.CurrentTurn.Id != first.CurrentTurn.Id {
 		t.Fatalf("startPracticeSession replay mismatch: first=%+v replay=%+v", first, replay)
@@ -618,7 +605,7 @@ from outbox_events
 where aggregate_id = $1 and event_name = 'practice.session.started'`, first.Id, 1)
 }
 
-func (h *fullFunnelJourneyHarness) assertCompleteSessionReplayNoDuplicate(t *testing.T, first, replay api.ReportWithJob, sessionID string) {
+func (h *fullFunnelHarness) assertCompleteSessionReplayNoDuplicate(t *testing.T, first, replay api.ReportWithJob, sessionID string) {
 	t.Helper()
 	if replay.ReportId != first.ReportId || replay.Job.Id != first.Job.Id {
 		t.Fatalf("completePracticeSession replay mismatch: first=%+v replay=%+v", first, replay)
@@ -637,7 +624,7 @@ from outbox_events
 where aggregate_id = $1 and event_name = 'practice.session.completed'`, sessionID, 1)
 }
 
-func (h *fullFunnelJourneyHarness) assertFeedbackReportPersisted(t *testing.T, report api.FeedbackReport, jobID, sessionID, targetJobID string) {
+func (h *fullFunnelHarness) assertFeedbackReportPersisted(t *testing.T, report api.FeedbackReport, jobID, sessionID, targetJobID string) {
 	t.Helper()
 	if report.Id == "" || report.SessionId != sessionID || report.TargetJobId != targetJobID || report.Status != sharedtypes.ReportStatusReady {
 		t.Fatalf("feedback report mismatch: %+v", report)
@@ -678,7 +665,7 @@ from outbox_events
 where aggregate_id = $1 and event_name = 'report.generated'`, report.Id, 1)
 }
 
-func (h *fullFunnelJourneyHarness) assertNextRoundPracticePlanPersisted(t *testing.T, nextPlanID, firstPlanID, targetJobID, resumeID, reportID string) {
+func (h *fullFunnelHarness) assertNextRoundPracticePlanPersisted(t *testing.T, nextPlanID, firstPlanID, targetJobID, resumeID, reportID string) {
 	t.Helper()
 	if nextPlanID == firstPlanID {
 		t.Fatalf("next_round plan reused first plan id %q", firstPlanID)
@@ -705,7 +692,7 @@ from practice_plans
 where user_id = $1 and source_report_id = $2 and goal = 'next_round'`, h.userID, reportID, 1)
 }
 
-func (h *fullFunnelJourneyHarness) assertPrivacyRedlines(t *testing.T) {
+func (h *fullFunnelHarness) assertPrivacyRedlines(t *testing.T) {
 	t.Helper()
 	payloads := h.collectObservablePayloads(t)
 	assertNoEvidenceLeak(t, payloads,
@@ -720,7 +707,7 @@ func (h *fullFunnelJourneyHarness) assertPrivacyRedlines(t *testing.T) {
 	)
 }
 
-func (h *fullFunnelJourneyHarness) collectObservablePayloads(t *testing.T) [][]byte {
+func (h *fullFunnelHarness) collectObservablePayloads(t *testing.T) [][]byte {
 	t.Helper()
 	query := `
 with owned_resources as (
@@ -827,18 +814,6 @@ type fullFunnelScenarioAIClient struct{}
 
 func (c *fullFunnelScenarioAIClient) Complete(ctx context.Context, profileName string, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
 	switch payload.Metadata.FeatureKey {
-	case targetjob.FeatureKeyTargetImportParse:
-		content := fullFunnelTargetImportJSON()
-		return aiclient.CompleteResponse{Content: content, FinishReason: "stop"}, aiclient.AICallMeta{
-			Provider:         "full-funnel-fixture",
-			ModelFamily:      "fixture",
-			ModelID:          "fixture-model:target-import-parse",
-			ModelProfileName: profileName,
-			Language:         payload.Metadata.Language,
-			InputTokens:      len(payload.Messages),
-			OutputTokens:     len(content),
-			LatencyMs:        1,
-		}, nil
 	case "practice.session.first_question", "practice.session.follow_up", hintFeatureKeyForScenario:
 		return (&scenarioPracticeAIClient{}).Complete(ctx, profileName, payload)
 	case "report.generate":
@@ -848,10 +823,6 @@ func (c *fullFunnelScenarioAIClient) Complete(ctx context.Context, profileName s
 	default:
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, errors.New("unexpected full-funnel AI feature key: " + payload.Metadata.FeatureKey)
 	}
-}
-
-func fullFunnelTargetImportJSON() string {
-	return `{"title":"Backend Platform Engineer","companyName":"Acme","coreThemes":["backend platform","async ownership"],"interviewHypotheses":["Probe API design, persistence, and migration tradeoffs."],"strengths":["Backend service ownership"],"gaps":["Clarify production scale evidence"],"riskSignals":[],"requirements":[{"kind":"must_have","label":"Backend service ownership","description":"Own APIs, persistence, and asynchronous job processing.","evidenceLevel":"explicit"}]}`
 }
 
 func (c *fullFunnelScenarioAIClient) Transcribe(context.Context, string, aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
@@ -866,34 +837,7 @@ func (c *fullFunnelScenarioAIClient) Synthesize(context.Context, string, aiclien
 	return aiclient.SynthesisResponse{}, aiclient.AICallMeta{}, errors.New("unexpected full-funnel Synthesize call")
 }
 
-func (h *fullFunnelResumeSeedHarness) seedReadyResume(t *testing.T) fullFunnelResumeSeed {
-	t.Helper()
-	raw := h.doJSON(t, http.MethodPost, "/api/v1/resumes", "e2e-p0-098-register-resume", api.RegisterResumeRequest{
-		Title:      "Full Funnel Seed Resume",
-		Language:   "en",
-		SourceType: fullFunnelStringPtr("paste"),
-		RawText:    fullFunnelStringPtr(fullFunnelSeedResumeText),
-	}, http.StatusAccepted)
-	var registered api.ResumeWithJob
-	decodeJSON(t, raw, &registered)
-	if registered.ResumeId == "" || registered.Job.Id == "" {
-		t.Fatalf("registerResume did not return asset/job ids: %+v", registered)
-	}
-	if registered.Job.JobType != api.JobTypeResumeParse || registered.Job.Status != sharedtypes.JobStatusQueued {
-		t.Fatalf("registerResume did not queue resume_parse: %+v", registered.Job)
-	}
-
-	processed, err := h.kernel.RunOnce(h.ctx)
-	if err != nil {
-		t.Fatalf("resume seed RunOnce: %v", err)
-	}
-	if !processed {
-		t.Fatal("resume seed RunOnce processed=false, want true")
-	}
-	return fullFunnelResumeSeed{UserID: h.userID, ResumeID: registered.ResumeId, ParseJobID: registered.Job.Id}
-}
-
-func (h *fullFunnelResumeSeedHarness) assertReadyResume(t *testing.T, seed fullFunnelResumeSeed) {
+func (h *fullFunnelHarness) assertReadyResume(t *testing.T, seed fullFunnelResumeSeed) {
 	t.Helper()
 	raw := h.doJSON(t, http.MethodGet, "/api/v1/resumes/"+seed.ResumeID, "", nil, http.StatusOK)
 	var detail api.Resume
@@ -927,12 +871,12 @@ from outbox_events
 where aggregate_type = 'resume' and aggregate_id = $1 and event_name = 'resume.parse.completed'`, seed.ResumeID, 1)
 }
 
-func (h *fullFunnelResumeSeedHarness) cleanupSeed(t *testing.T, seed fullFunnelResumeSeed) {
+func (h *fullFunnelHarness) cleanupSeed(t *testing.T, seed fullFunnelResumeSeed) {
 	t.Helper()
 	cleanupFullFunnelScenarioUser(t, h.db, seed.UserID)
 }
 
-func (h *fullFunnelResumeSeedHarness) assertSeedCleaned(t *testing.T, seed fullFunnelResumeSeed) {
+func (h *fullFunnelHarness) assertSeedCleaned(t *testing.T, seed fullFunnelResumeSeed) {
 	t.Helper()
 	assertFullFunnelCount(t, h.db, `select count(*) from users where id = $1`, seed.UserID, 0)
 	assertFullFunnelCount(t, h.db, `select count(*) from resumes where id = $1`, seed.ResumeID, 0)
@@ -941,60 +885,8 @@ func (h *fullFunnelResumeSeedHarness) assertSeedCleaned(t *testing.T, seed fullF
 	assertFullFunnelCount(t, h.db, `select count(*) from idempotency_records where user_id = $1`, seed.UserID, 0)
 }
 
-func (h *fullFunnelJourneyHarness) doJSON(t *testing.T, method, path, idempotencyKey string, body any, wantStatus int) []byte {
-	t.Helper()
-	var reader *bytes.Reader
-	if body == nil {
-		reader = bytes.NewReader(nil)
-	} else {
-		raw, err := json.Marshal(body)
-		if err != nil {
-			t.Fatalf("marshal request body: %v", err)
-		}
-		reader = bytes.NewReader(raw)
-	}
-	req := httptest.NewRequest(method, path, reader)
-	req.AddCookie(h.cookie)
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	if idempotencyKey != "" {
-		req.Header.Set(idempotency.HeaderName, idempotencyKey)
-	}
-	rec := httptest.NewRecorder()
-	h.handler.ServeHTTP(rec, req)
-	if rec.Code != wantStatus {
-		t.Fatalf("%s %s status=%d want=%d body=%s", method, path, rec.Code, wantStatus, rec.Body.String())
-	}
-	return rec.Body.Bytes()
-}
-
-func (h *fullFunnelResumeSeedHarness) doJSON(t *testing.T, method, path, idempotencyKey string, body any, wantStatus int) []byte {
-	t.Helper()
-	var reader *bytes.Reader
-	if body == nil {
-		reader = bytes.NewReader(nil)
-	} else {
-		raw, err := json.Marshal(body)
-		if err != nil {
-			t.Fatalf("marshal request body: %v", err)
-		}
-		reader = bytes.NewReader(raw)
-	}
-	req := httptest.NewRequest(method, path, reader)
-	req.AddCookie(h.cookie)
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	if idempotencyKey != "" {
-		req.Header.Set(idempotency.HeaderName, idempotencyKey)
-	}
-	rec := httptest.NewRecorder()
-	h.handler.ServeHTTP(rec, req)
-	if rec.Code != wantStatus {
-		t.Fatalf("%s %s status=%d want=%d body=%s", method, path, rec.Code, wantStatus, rec.Body.String())
-	}
-	return rec.Body.Bytes()
+func (h *fullFunnelHarness) doJSON(t *testing.T, method, path, idempotencyKey string, body any, wantStatus int) []byte {
+	return doScenarioJSONWithCookie(t, h.handler, h.cookie, idempotency.HeaderName, method, path, idempotencyKey, body, wantStatus)
 }
 
 func loginFullFunnelScenarioUser(t *testing.T, ctx context.Context, db *sql.DB, email string) (*http.Cookie, string) {

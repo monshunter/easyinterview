@@ -1,3 +1,4 @@
+import ast
 from pathlib import Path
 import subprocess
 import sys
@@ -8,6 +9,12 @@ import runtime_topology as runtime_topology_lint
 
 SCRIPT = Path(__file__).resolve().with_name("core_loop_pruning_surface.py")
 RUNTIME_TOPOLOGY_SCRIPT = SCRIPT.with_name("runtime_topology.py")
+REPO_ROOT = SCRIPT.parents[2]
+PYTHON_IMPORT_ROOTS = (
+    REPO_ROOT / ".agent-skills",
+    REPO_ROOT / "scripts",
+    REPO_ROOT / "test" / "scenarios",
+)
 
 
 def strict_lifecycle_tokens() -> tuple[str, ...]:
@@ -40,6 +47,117 @@ def write(path: Path, body: str) -> None:
 
 def bucket_paths(report: audit.AuditReport, bucket: str) -> list[str]:
     return [finding.path for finding in report.buckets[bucket]]
+
+
+def unread_module_imports(path: Path) -> list[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    loaded_names = {
+        node.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+    }
+    findings = []
+    for node in tree.body:
+        if isinstance(node, ast.Import):
+            aliases = (
+                (alias.asname or alias.name.split(".", 1)[0], alias.name)
+                for alias in node.names
+            )
+        elif isinstance(node, ast.ImportFrom) and node.module != "__future__":
+            aliases = (
+                (alias.asname or alias.name, alias.name)
+                for alias in node.names
+                if alias.name != "*"
+            )
+        else:
+            continue
+
+        for bound_name, imported_name in aliases:
+            if bound_name not in loaded_names:
+                findings.append(f"{path.relative_to(REPO_ROOT)}:{node.lineno}:{imported_name}")
+    return findings
+
+
+def test_repo_owned_python_module_imports_are_consumed() -> None:
+    missing_roots = [root for root in PYTHON_IMPORT_ROOTS if not root.is_dir()]
+    assert missing_roots == []
+
+    findings = []
+    for root in PYTHON_IMPORT_ROOTS:
+        for path in sorted(root.rglob("*.py")):
+            if path.name == "__init__.py" or {".venv", "__pycache__"} & set(path.parts):
+                continue
+            findings.extend(unread_module_imports(path))
+
+    assert findings == []
+
+
+def test_frontend_runtime_config_has_single_generated_client_consumer() -> None:
+    old_package = REPO_ROOT / "frontend" / "src" / "lib" / "runtime-config"
+    assert not old_package.exists(), f"parallel runtime-config package remains: {old_package}"
+
+    provider = (
+        REPO_ROOT
+        / "frontend"
+        / "src"
+        / "app"
+        / "runtime"
+        / "AppRuntimeProvider.tsx"
+    ).read_text(encoding="utf-8")
+    assert 'from "../../api/generated/client"' in provider
+    assert 'from "../../api/generated/types"' in provider
+    assert ".getRuntimeConfig(" in provider
+
+    current_docs = (
+        REPO_ROOT / "frontend" / "README.md",
+        REPO_ROOT / "docs" / "spec" / "secrets-and-config" / "spec.md",
+        REPO_ROOT
+        / "docs"
+        / "spec"
+        / "secrets-and-config"
+        / "plans"
+        / "001-bootstrap"
+        / "plan.md",
+        REPO_ROOT
+        / "docs"
+        / "spec"
+        / "secrets-and-config"
+        / "plans"
+        / "001-bootstrap"
+        / "context.yaml",
+        REPO_ROOT
+        / "docs"
+        / "spec"
+        / "frontend-shell"
+        / "plans"
+        / "001-app-shell-auth-settings"
+        / "context.yaml",
+    )
+    stale = [
+        path.relative_to(REPO_ROOT).as_posix()
+        for path in current_docs
+        if "src/lib/runtime-config" in path.read_text(encoding="utf-8")
+    ]
+    assert stale == []
+
+
+def test_frontend_openapi_codegen_omits_raw_spec_snapshot() -> None:
+    generated = REPO_ROOT / "frontend" / "src" / "api" / "generated"
+    assert (generated / "client.ts").is_file()
+    assert (generated / "types.ts").is_file()
+    assert not (generated / "spec.ts").exists()
+    assert not (REPO_ROOT / "openapi" / "templates" / "ts" / "spec.tmpl").exists()
+
+    renderer = (
+        REPO_ROOT / "backend" / "cmd" / "codegen" / "openapi" / "render_ts.go"
+    ).read_text(encoding="utf-8")
+    forbidden = (
+        "SpecYAMLLiteral",
+        "tsTemplateStringLiteral",
+        '"spec.tmpl"',
+        '"spec.ts"',
+    )
+    assert [token for token in forbidden if token in renderer] == []
 
 
 def test_lint_rule_sources_assemble_strict_lifecycle_terms_without_direct_literals() -> None:

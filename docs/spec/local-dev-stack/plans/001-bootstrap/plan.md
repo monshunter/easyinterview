@@ -1,6 +1,6 @@
 # Local Dev Stack Bootstrap
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -372,6 +372,16 @@ Red gate 必须先证明当前 Makefile 缺少该组合入口。
 - Dry-run gate：`make scenario-env-reset-redeploy ARGS=--dry-run` 输出四段 dry-run，顺序为 cleanup with volumes、setup with migrations、redeploy all、verify。
 - Syntax/docs gate：`make docs-check`、`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`、`git diff --check` 通过。
 
+### Phase 11: shared scenario script inventory cleanup
+
+#### 11.1 Executable inventory gate
+
+`scripts/lint/scenario_env_contract_test.py` 解析 `test/scenarios/README.md` 与 `test/scenarios/_shared/README.md` 中列出的 shared shell scripts，并要求每个引用都指向仓库内真实文件。README 不得用“约定路径”“若存在”或手工 fallback 文字保留不存在的 helper 入口。
+
+#### 11.2 Current README inventory
+
+删除不存在的 `common.sh` / `image-cache.sh` 路径及首次使用命令，只保留当前三个真实 shared helpers 与五个顶层 env lifecycle scripts。首次使用直接进入当前 e2e 文档和 `scenario-env-*` lifecycle，不创建空实现或兼容说明。
+
 ## 5 验收标准
 
 - spec [§6 验收标准](../../spec.md#6-验收标准) C-1 到 C-17 全部成立，证据贴入工作日志或当前 `.test-output/`。
@@ -393,6 +403,7 @@ Red gate 必须先证明当前 Makefile 缺少该组合入口。
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.20 | 删除场景 README 中两个不存在的 shared script 入口，并增加真实文件 inventory gate。 | tech-debt pruning |
 | 2026-07-10 | 1.19 | Wording cleanup：将 `.env.example` 的 secret / provider 描述从旧 scaffold wording 收敛为空值示例 / 示例默认值。 | tech-debt pruning |
 | 2026-07-10 | 1.18 | Wording cleanup：A2 承接 repo-scaffold 锁定的 `dev-up` / `dev-down` 根入口，不再使用早期切换口径。 | tech-debt pruning |
 | 2026-07-09 | 1.17 | One-click reset/redeploy revision：新增 `make scenario-env-reset-redeploy` 合同，用现有 env scripts 串联清数据、迁移、重编译、重启和 verify。 | user feedback |

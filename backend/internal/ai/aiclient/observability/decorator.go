@@ -130,10 +130,7 @@ func (w *Wrap) Complete(ctx context.Context, profileName string, payload aiclien
 	start := w.now()
 	resp, meta, err := w.inner.Complete(ctx, profileName, payload)
 	completed := w.now()
-	latencyMs := completed.Sub(start).Milliseconds()
-	if meta.LatencyMs == 0 {
-		meta.LatencyMs = latencyMs
-	}
+	meta = withLatencyFallback(meta, start, completed)
 
 	// Apply validateOutput when the caller supplied a JSON schema. Plan 001
 	// validates the baseline type / required / properties subset and leaves
@@ -156,10 +153,7 @@ func (w *Wrap) Transcribe(ctx context.Context, profileName string, input aiclien
 	start := w.now()
 	resp, meta, err := w.inner.Transcribe(ctx, profileName, input)
 	completed := w.now()
-	latencyMs := completed.Sub(start).Milliseconds()
-	if meta.LatencyMs == 0 {
-		meta.LatencyMs = latencyMs
-	}
+	meta = withLatencyFallback(meta, start, completed)
 	meta = enrichErrorMeta(meta, err)
 	recordErr := w.recordTranscribeCall(ctx, profileName, input, resp, meta, start, completed, err)
 	return resp, meta, joinRecordError(err, recordErr)
@@ -196,13 +190,17 @@ func (w *Wrap) Synthesize(ctx context.Context, profileName string, input aiclien
 	start := w.now()
 	resp, meta, err := w.inner.Synthesize(ctx, profileName, input)
 	completed := w.now()
-	latencyMs := completed.Sub(start).Milliseconds()
-	if meta.LatencyMs == 0 {
-		meta.LatencyMs = latencyMs
-	}
+	meta = withLatencyFallback(meta, start, completed)
 	meta = enrichErrorMeta(meta, err)
 	recordErr := w.recordSynthesizeCall(ctx, profileName, input, resp, meta, start, completed, err)
 	return resp, meta, joinRecordError(err, recordErr)
+}
+
+func withLatencyFallback(meta aiclient.AICallMeta, start, completed time.Time) aiclient.AICallMeta {
+	if meta.LatencyMs == 0 {
+		meta.LatencyMs = completed.Sub(start).Milliseconds()
+	}
+	return meta
 }
 
 func enrichErrorMeta(meta aiclient.AICallMeta, err error) aiclient.AICallMeta {

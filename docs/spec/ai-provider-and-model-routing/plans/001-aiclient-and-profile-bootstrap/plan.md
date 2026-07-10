@@ -1,6 +1,6 @@
 # AIClient and Profile Bootstrap
 
-> **版本**: 1.7
+> **版本**: 2.5
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -105,6 +105,53 @@
 - Remove the redundant suffix guard from `normalizeBaseURL` and require scoped `staticcheck` to stay clean.
 - Run the OpenAI-compatible adapter package tests and owner documentation gates before restoring completed state.
 
+### Phase 7: AIClient duplicate writer state removal
+
+- Use whole-program reachability analysis with test executables enabled to identify the unused core-client writer options.
+- Delete `Client` / `clientOptions` task-run and audit writer fields, their core `With*Writer` options and zero-consumer getters; the `observability` decorator remains the only persistence injection owner.
+- Run the full AIClient package tests, `staticcheck`, reachability rescan and owner documentation gates before restoring completed state.
+
+### Phase 8: Stub provider name wrapper removal
+
+- Delete the zero-consumer `stub.ProviderName` wrapper and keep `stub.Name` as the single typed provider identifier.
+- Run the stub and full AIClient package tests, `staticcheck`, reachability rescan and owner documentation gates before restoring completed state.
+
+### Phase 9: Completion dispatch duplication removal
+
+- Keep `Complete` and `CompleteJudge` as the public chat/judge capability boundaries.
+- Move their identical validation, dispatch, fallback execution and metadata merge path into one private capability-parameterized helper.
+- Use scoped `dupl` RED/GREEN plus existing chat/judge/fallback/validation tests, `staticcheck`, owner contexts and docs/diff/pruning gates; do not add a generic public API.
+
+### Phase 10: Observability latency fallback consolidation
+
+- Keep `Complete`, `Transcribe` and `Synthesize` capability-specific call and record paths unchanged.
+- Move their repeated "preserve provider latency, otherwise use measured duration" metadata fallback into one private helper.
+- Use scoped `dupl` RED/GREEN plus existing Complete/STT/TTS observability and privacy tests, full AIClient/backend tests, `staticcheck`, owner contexts and docs/diff/pruning gates.
+
+### Phase 11: Observability invalid-schema test harness consolidation
+
+- Preserve the exact top-level test names used by BUG-0095 and prompt-rubric focused gates.
+- Move repeated decorator construction and `AI_OUTPUT_INVALID` / validation-status / metric assertions into one test-only helper; keep required-field, trailing-token and enum-mismatch inputs explicit at their named tests.
+- Use scoped `dupl` reduction, exact-name focused tests, full observability/AIClient/backend tests, `staticcheck`, owner contexts and docs/diff/pruning gates.
+
+### Phase 12: Observability fallback-label test table consolidation
+
+- Replace the two unreferenced top-level fallback label tests with one table-driven test and two named cases.
+- Keep each complete `AICallMeta` input and exact 11-label metric tuple; do not weaken provider/model-family/date-suffix coverage.
+- Use scoped `dupl` RED/GREEN, focused fallback tests, full observability/AIClient/backend tests, `staticcheck`, owner contexts and docs/diff/pruning gates.
+
+### Phase 13: AIClient invalid-input assertion consolidation
+
+- Preserve Complete, Transcribe and Synthesize top-level test names and their capability-specific provider-not-called assertions.
+- Move the repeated `AI_OUTPUT_INVALID`, `ErrorCode` and invalid validation-status assertions into one test-only helper.
+- Use scoped `dupl` RED/GREEN, exact focused tests, full AIClient/backend tests, `staticcheck`, owner contexts and docs/diff/pruning gates.
+
+### Phase 14: Observability privacy leak assertion consolidation
+
+- Preserve the Complete and TTS privacy test names plus their capability/metric/audit sanity checks.
+- Move the repeated six-counter, log, task-run and audit metadata plaintext scans into one test-only helper parameterized by planted tokens.
+- Use scoped `dupl` RED/GREEN, exact privacy tests, full observability/AIClient/backend tests, `staticcheck`, owner contexts and docs/diff/pruning gates.
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -117,11 +164,27 @@
 | A-6 | Non-test runtime fails closed when selected provider secrets are unavailable | config/bootstrap tests, `make lint-config` |
 | A-7 | Active terminology remains provider-neutral and current | `make lint-ai-provider-terminology` |
 | A-8 | Base URL normalization has no redundant conditional path and preserves root plus `/v1` inputs | adapter contract tests, scoped `staticcheck` |
+| A-9 | Task-run and audit writers have one injection path through the observability decorator | `deadcode -test`, symbol inventory, AIClient tests and `staticcheck` |
+| A-10 | Stub provider identity has one exported source through `stub.Name` | `deadcode -test`, symbol inventory, stub/AIClient tests and `staticcheck` |
+| A-11 | Chat and judge completion share one internal execution path while preserving distinct capability dispatch | scoped `dupl`, AIClient and judge dispatch tests, `staticcheck` |
+| A-12 | Complete, STT and TTS use one latency fallback rule while retaining capability-specific recording | scoped `dupl`, observability and privacy tests, `staticcheck` |
+| A-13 | Invalid output-schema tests share one harness while retaining exact focused gate names and distinct inputs | scoped `dupl`, exact-name observability tests |
+| A-14 | Fallback label derivation cases share one table harness while retaining exact metric tuples | scoped `dupl`, focused fallback observability tests |
+| A-15 | Complete, STT and TTS invalid-input tests share one error/meta assertion without weakening provider call guards | scoped `dupl`, exact focused AIClient tests |
+| A-16 | Complete and TTS privacy tests share one plaintext scan across metrics/log/task-run/audit surfaces | scoped `dupl`, exact privacy tests |
 
 ## 6 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 2.5 | Consolidate repeated observability privacy leak assertions. |
+| 2026-07-10 | 2.4 | Consolidate repeated AIClient invalid-input error and metadata assertions. |
+| 2026-07-10 | 2.3 | Consolidate fallback-label observability tests into one table. |
+| 2026-07-10 | 2.2 | Consolidate repeated invalid-schema observability test setup and assertions. |
+| 2026-07-10 | 2.1 | Consolidate observability latency fallback across Complete, STT and TTS. |
+| 2026-07-10 | 2.0 | Consolidate duplicate chat and judge completion execution into one private helper. |
+| 2026-07-10 | 1.9 | Remove the zero-consumer stub provider name wrapper. |
+| 2026-07-10 | 1.8 | Remove the unreachable duplicate task-run and audit writer state from the core AIClient. |
 | 2026-07-10 | 1.7 | Simplify OpenAI-compatible base URL normalization under existing root and `/v1` contract coverage. |
 | 2026-07-07 | 1.6 | Compress owner docs to current AIClient, provider registry, model profile, adapter, observability and fail-fast contract. |
 | 2026-05-05 | 1.5 | Complete provider terminology remediation and provider-neutral config/profile naming. |

@@ -29,15 +29,7 @@ func renderTS(doc *OpenAPI, conv *Conventions, templatesDir, outDir string) erro
 	if err := renderTSTemplate(filepath.Join(templatesDir, "ts", "client.tmpl"), filepath.Join(outDir, "client.ts"), clientData); err != nil {
 		return err
 	}
-
-	specYAML := string(doc.Raw)
-	literal := tsTemplateStringLiteral(specYAML)
-	specData := map[string]any{
-		"Header":          tsGeneratedHeader,
-		"SpecVersion":     doc.Version,
-		"SpecYAMLLiteral": literal,
-	}
-	return renderTSTemplate(filepath.Join(templatesDir, "ts", "spec.tmpl"), filepath.Join(outDir, "spec.ts"), specData)
+	return nil
 }
 
 func renderTSTemplate(templatePath, outPath string, data any) error {
@@ -321,31 +313,6 @@ func tsTypeFor(spec map[string]any) string {
 		return "unknown | null"
 	}
 	return "unknown"
-}
-
-// tsTemplateStringLiteral produces a JS double-quoted string literal for the
-// raw spec YAML, with backslash + quote + newline + carriage return escaped.
-func tsTemplateStringLiteral(s string) string {
-	var sb strings.Builder
-	sb.WriteByte('"')
-	for _, r := range s {
-		switch r {
-		case '\\':
-			sb.WriteString(`\\`)
-		case '"':
-			sb.WriteString(`\"`)
-		case '\n':
-			sb.WriteString(`\n`)
-		case '\r':
-			sb.WriteString(`\r`)
-		case '\t':
-			sb.WriteString(`\t`)
-		default:
-			sb.WriteRune(r)
-		}
-	}
-	sb.WriteByte('"')
-	return sb.String()
 }
 
 // --- TS client ----------------------------------------------------------------

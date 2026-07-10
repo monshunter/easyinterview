@@ -26,6 +26,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/runner"
+	"github.com/monshunter/easyinterview/backend/internal/testsupport"
 	"github.com/monshunter/easyinterview/backend/internal/upload/objectstore"
 	uploadservice "github.com/monshunter/easyinterview/backend/internal/upload/service"
 	uploadstore "github.com/monshunter/easyinterview/backend/internal/upload/store"
@@ -88,7 +89,7 @@ func TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip(t *testing.T) {
 			t.Fatalf("runtime shutdown: %v", err)
 		}
 	}()
-	handler := buildAPIHandlerWithUploadAndHandlers(loader, apiRuntimeFlags{}, authService, runtime.Handler, practiceRoutes{}, uploadRoutes, resumeRoutes{})
+	handler := buildAPIHandler(loader, apiRuntimeFlags{}, authService, runtime.Handler, practiceRoutes{}, uploadRoutes, resumeRoutes{}, reportRoutes{}, jobsRoutes{})
 
 	start := httptest.NewRecorder()
 	handler.ServeHTTP(start, httptest.NewRequest(http.MethodPost, "/api/v1/auth/email/start", strings.NewReader(`{"email":"`+email+`","purpose":"signup","displayName":"Upload Roundtrip"}`)))
@@ -250,7 +251,7 @@ profiles:
     route: target.import
     version: 1.0.0
 `)
-	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
+	promptsDir, rubricsDir := testsupport.ConfigRoots(t)
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
 runtime:
   appVersion: "1.2.3"

@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"testing"
+
+	"github.com/monshunter/easyinterview/backend/internal/testsupport"
 )
 
 func newTestClient(t *testing.T) *Client {
 	t.Helper()
-	prompts, rubrics := repoConfigRoots(t)
+	prompts, rubrics := testsupport.ConfigRoots(t)
 	client, err := NewRegistryClient(RegistryOptions{
 		PromptsDir: prompts,
 		RubricsDir: rubrics,

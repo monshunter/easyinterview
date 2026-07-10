@@ -1,6 +1,6 @@
 # F3 Baseline Registry, Resolve and Lint Gates Checklist
 
-> **版本**: 1.6
+> **版本**: 1.10
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -48,3 +48,27 @@
 
 - [x] 7.1 将同构 `scoreLevelYAML` 显式转换为 `ScoreLevel`，删除逐字段复制并保持 rubric loader 合同（验证：registry package tests、`make lint-rubrics`、scoped `staticcheck`、owner context/docs gates）
   <!-- verified: 2026-07-10 method=registry-score-level-conversion-simplification evidence="S1016 red identified the repeated field copy. All TestLoad cases, rubric lint and scoped registry staticcheck PASS while active; owner/product contexts, sync-doc-index, docs-check, diff-check and pruning surface PASS real_residuals=0. Full registry package reruns after the owner completed header restores its preflight contract." -->
+
+## Phase 8: Feature key helper removal
+
+- [x] 8.1 删除零消费者 `featurekeys.All` / `FeatureKey.String` 与不存在的 future-codegen 说明，只保留 typed constants；验证：`deadcode -test`、exact symbol inventory、registry/shared package tests、events/profile/prompt lints、scoped `staticcheck` 与 owner docs gates
+  <!-- verified: 2026-07-10 method=feature-key-helper-removal evidence="deadcode -test RED reported featurekeys.All; exact inventory found no explicit String consumer and whylive only reached it through generic fmt.Stringer dispatch. Removed both helpers and the unsupported future-codegen claim while retaining all nine typed constants. Events/prompt/profile lints, staticcheck, reachability and symbol inventory PASS; owner-completed focused tests verify runtime/preflight behavior." -->
+
+## Phase 9: Pytest alias cleanup
+
+- [x] 9.1 Rename the three `Test*` lint-test bodies to their pytest-collected `test_*` names and delete forwarding aliases; verify collection remains 22 tests, prompt/rubric suites and Make lints pass, alias inventory is zero, and owner contexts plus docs/diff/pruning gates pass.
+  <!-- verified: 2026-07-10 method=prompt-rubric-pytest-alias-cleanup evidence="Collect-only RED showed only the three lowercase wrappers were collected while each uppercase body had one caller. After merging, collection remains 22 and all 22 pass; four prompt/rubric/profile lints, py_compile, alias inventory and owner contexts PASS." -->
+
+## Phase 10: Prompt linter import cleanup
+
+- [x] 10.1 删除 `scripts/lint/prompt_lint.py` 中零读取的 `Iterable` import；验证 AST import inventory、prompt tests/lints、registry consumers、owner contexts 与 docs/diff/pruning gates。
+  <!-- verified: 2026-07-10 method=prompt-linter-unused-import-removal evidence="AST RED identified Iterable as the sole unused production Python import. Deleted it without replacement. Prompt/hardcode 22 tests, four F3 lints, migration/fixture gates and all registry/TargetJob/A3/shared Go consumers PASS. Two owner-status preflights failed while the plan was intentionally active and passed after completed restoration; both owner contexts and docs/diff/pruning gates PASS." -->
+
+## Phase 11: Shared config-root test support
+
+- [x] 11.1 RED: registry, benchmark, TargetJob and cmd/api contain four local walkers with the same `backend/go.mod` search and config path projection.
+  <!-- red: 2026-07-10 method=config-root-walker-dupl evidence="dupl -t 100 reports cmd/api, registry benchmark and TargetJob walkers as one clone group; registry loader carries the same implementation and all four serve identical config roots." -->
+- [x] 11.2 Add a tested `internal/testsupport.ConfigRoots(testing.TB)` and migrate all consumers; delete `repoConfigRoots`, `benchConfigRoots` and `repoConfigPromptsRubrics` definitions with exact-name zero-reference.
+  <!-- verified: 2026-07-10 method=shared-config-roots-green evidence="ConfigRoots resolves both current directories in its unit test and serves 26 test/benchmark calls. Four local walkers and exact symbols are gone; integration-tag cmd/api compiles, focused registry/TargetJob/cmd-api tests pass and full backend dupl drops from nine to eight groups." -->
+- [x] 11.3 BDD-Gate: 不适用；运行 testsupport/registry/TargetJob/cmd-api focused tests、full backend/vet/staticcheck、F3 lints、contexts 和 docs/pruning gates。
+  <!-- verified: 2026-07-10 method=shared-config-roots-closeout evidence="Completed-state testsupport/registry/TargetJob/cmd-api and full backend suites pass; integration-tag cmd/api compiles, vet/staticcheck and four F3 lints pass. Owner/product contexts, index/docs/diff and pruning gates pass with real_residuals=0." -->

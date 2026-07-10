@@ -47,7 +47,7 @@ runtime:
 		SessionCookieSecret: "session-secret",
 	})
 	resumeSvc := newResumeScenarioService()
-	handler := buildAPIHandlerWithUploadAndHandlers(
+	handler := buildAPIHandler(
 		loader,
 		apiRuntimeFlags{},
 		authService,
@@ -58,6 +58,8 @@ runtime:
 			Service: resumeSvc,
 			Session: currentUserFromContext,
 		})},
+		reportRoutes{},
+		jobsRoutes{},
 	)
 
 	unauth := httptest.NewRecorder()
@@ -137,7 +139,7 @@ runtime:
 		Store:               authStore,
 		SessionCookieSecret: "session-secret",
 	})
-	handler := buildAPIHandlerWithUploadAndHandlers(
+	handler := buildAPIHandler(
 		loader,
 		apiRuntimeFlags{},
 		authService,
@@ -148,6 +150,8 @@ runtime:
 			Service: &resumeValidationScenarioService{},
 			Session: currentUserFromContext,
 		})},
+		reportRoutes{},
+		jobsRoutes{},
 	)
 
 	registerRaw := doResumeJSON(t, handler, true, http.MethodPost, "/api/v1/resumes", "resume-validation", api.RegisterResumeRequest{

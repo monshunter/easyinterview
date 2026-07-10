@@ -1,6 +1,6 @@
 # App Shell Visual System Checklist
 
-> **版本**: 2.3
+> **版本**: 3.0
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -62,3 +62,66 @@
 ## Phase 11: Theme data ownership wording
 
 - [x] 11.1 删除不存在的 themes.css generator 说明，将 handoff 文档对齐 3 个 font preset、固定 mono family、traceability test 与 TopBar metadata 真实消费者；tokens tests、owner context 和 docs gates 通过。<!-- verified: 2026-07-10 method=theme-data-ownership-reconciliation evidence="Runtime source and handoff README now name traceability tests and TopBar metadata, with 3 preset pairs plus fixed mono. Tokens pass 13/13 and typecheck passes." -->
+
+## Phase 12: zero-consumer primitive export removal
+
+- [x] 12.1 Add a focused UI contract RED assertion requiring `Sparkline` and `KV` declarations/exports to stay absent.
+  <!-- verified: 2026-07-10 method=prototype-primitive-export-red evidence="Focused UI contract ran the new primitive-global test only and failed on const Sparkline before reaching the exact six-export assertion; cross-file AST and repository text inventory found no consumer for Sparkline or KV." -->
+- [x] 12.2 Delete both zero-consumer primitive implementations and their `window` export entries without adding aliases or replacements.
+  <!-- verified: 2026-07-10 method=zero-consumer-prototype-primitive-removal evidence="Deleted both component blocks and removed both window export entries. Focused primitive gate passes, full UI contract passes 36/36, exact source inventory is zero, the export surface contains only Icon/Tag/Btn/Card/SectionHeader/ReadinessDial, and strict TypeScript unused checks remain clean." -->
+- [x] 12.3 Run UI contract, AST/export inventory, P0.005, visual-system/full frontend tests, owner contexts and docs/diff/pruning gates.
+  <!-- verified: 2026-07-10 method=prototype-primitive-export-regression evidence="UI contract passes 36/36; symbol inventory is zero and the exact six-global export is present. Visual-system owner passes 9 files/95 tests, P0.005 passes 8/8 with setup/trigger/verify/cleanup, build and full frontend 137 files/841 tests pass. Static-browser Home loads with all six kept globals, both removed globals absent, no page errors or horizontal overflow. Both owner contexts and docs/diff/pruning gates pass; no environment restart or data cleanup occurred." -->
+
+## Phase 13: design canvas consumer-surface pruning
+
+- [x] 13.1 Add a focused UI contract RED assertion that compares the design-canvas component/helper surface with the only tracked `canvas.html` consumer.
+  <!-- verified: 2026-07-10 method=design-canvas-consumer-surface-red evidence="Focused node:test ran only the new design canvas contract and failed on the existing DesignCanvas children/minScale/maxScale/style signature. Babel AST inventory confirms canvas.html is the only tracked consumer and never supplies those props or the other targeted extension params." -->
+- [x] 13.2 Delete unpassed wrapper props, the one-use Practice alias and iframe params duplicated by the App context defaults; do not add aliases, placeholders or compatibility branches.
+  <!-- verified: 2026-07-10 method=design-canvas-consumer-surface-green evidence="Focused contract passes after removing unpassed DesignCanvas/viewport/section/artboard/post-it extension props, inlining the one-use PracticeScreen alias, and delegating duplicate interview defaults to createInterviewContext. Existing scale bounds, gap, card style, post-it positions, fixed zh locale and session-24 behavior remain as local constants." -->
+- [x] 13.3 Run UI contract, AST consumer inventory, static-browser canvas smoke, P0.005, visual-system/full frontend tests, owner contexts and docs/diff/pruning gates.
+  <!-- verified: 2026-07-10 method=design-canvas-consumer-surface-regression evidence="UI contract passes 37/37 and AST inventory reports only consumer-backed signatures with 10 sections and 26 artboards. Static browser loads all 26 iframes with the expected minimal Home/Workspace/Practice/Report URLs, no horizontal overflow, and working focus, arrow navigation, Esc and 0.1..8 zoom behavior. Visual owner passes 9 files/95 tests, P0.005 passes 8/8 with setup/trigger/verify/cleanup, build and full frontend 137 files/841 tests pass, and both owner contexts validate. No environment restart or data cleanup occurred." -->
+
+## Phase 14: unavailable design canvas sidecar removal
+
+- [x] 14.1 Add a focused UI contract RED assertion that rejects the unprovisioned sidecar/host bridge while requiring current in-memory editing state.
+  <!-- verified: 2026-07-10 method=design-canvas-sidecar-red evidence="Focused node:test failed on the existing sidecar constant/bridge. Repository inventory found no sidecar file, generator, host implementation or docs contract, and the tracked run.sh browser path logged GET /.design-canvas.state.json 404 on every load." -->
+- [x] 14.2 Delete the sidecar constant, delayed hydration/write effects and stale persistence comments; render children immediately and retain current session state behavior.
+  <!-- verified: 2026-07-10 method=design-canvas-sidecar-green evidence="Focused contract passes after deleting the sidecar constant, read/write effects, 150ms ready gate and host-specific comments. DesignCanvas still owns state.sections/focus, exposes patchSection/setFocus, and renders children immediately without a replacement persistence layer." -->
+- [x] 14.3 Verify zero sidecar/host references, zero static-server 404s, browser reorder/rename/focus behavior, UI/P0.005/full frontend, owner contexts and docs/diff/pruning gates.
+  <!-- verified: 2026-07-10 method=design-canvas-sidecar-regression evidence="Production sidecar/host symbols are zero and UI contract passes 38/38. The tracked run.sh browser path loads 10 sections and all 26 iframes with empty browser errors and only 200/304 server responses; renaming home, dragging it behind workspace and focusing it shows the changed label/order in-session, while refresh restores source order. Visual owner passes 9 files/95 tests, P0.005 passes 8/8 with setup/trigger/verify/cleanup, build and full frontend 137 files/841 tests pass, and both contexts validate. No environment restart or data cleanup occurred." -->
+
+## Phase 15: unavailable prototype edit-mode bridge removal
+
+- [x] 15.1 Add a focused UI contract RED assertion that rejects the host-only edit-mode bridge/panel while retaining current reachable display controls.
+  <!-- verified: 2026-07-10 method=prototype-edit-mode-red evidence="Focused node:test failed on the existing host message protocol. Repository inventory found no host/listener/docs entry; TweaksPanel is only rendered from that protocol, tweaksAvailable is write-only, and role is exclusive to the panel plus ignored Home/Practice call props." -->
+- [x] 15.2 Delete edit-mode state/messages, parent writebacks, panel/helpers and its exclusive role tweak channel; update the canvas note to current hash-driven behavior.
+  <!-- verified: 2026-07-10 method=prototype-edit-mode-green evidence="Focused contract passes after deleting both edit-mode states, message effect, parent writebacks, TweaksPanel/TweakRow/selectStyle, EDITMODE markers and role defaults/hash/call props. TopBar display controls, AccentPicker, Settings font preset state and direct canvas hash variants remain." -->
+- [x] 15.3 Verify zero edit-mode/role residuals, browser theme/dark/language/accent/font behavior, UI/P0.005/full frontend, owner contexts and docs/diff/pruning gates.
+  <!-- verified: 2026-07-10 method=prototype-edit-mode-regression evidence="UI contract passes 39/39; edit-mode/message/panel/role production residuals are zero and AST finds no zero-read React state. Static browser verifies Ocean-to-Plum, light-to-dark, zh-to-en, Custom sliders and Settings Source Serif Pro/Geist selection with empty browser errors and only 200/304 server responses. Visual owner passes 9 files/95 tests, P0.005 passes 8/8 with setup/trigger/verify/cleanup, build and serial full frontend 137 files/841 tests pass, and both contexts validate. One unrelated P0.037 timing race appeared only during a parallel build/test run; its focused 6/6 and serial full rerun pass, and it is queued for the next independent test-debt batch. No environment restart or data cleanup occurred." -->
+
+## Phase 16: zero-read canvas mode binding removal
+
+- [x] 16.1 Add a focused UI contract RED assertion rejecting `isCanvasIframe` while retaining the no-chrome TopBar condition; classify positional callback placeholders separately in the cross-file reference inventory.
+  <!-- verified: 2026-07-10 method=ui-contract-red+typescript-references evidence="Cross-file TypeScript language-service inventory scanned 10 JSX files / 884 bindings and found isCanvasIframe plus two positional callback placeholders. UI contract ran 45 tests with the prior 44 passing and only the new isCanvasIframe absence assertion failing." -->
+- [x] 16.2 Delete the zero-read binding without adding an alias, wrapper or replacement state.
+  <!-- verified: 2026-07-10 method=ui-contract-green+typescript-references evidence="Deleted only isCanvasIframe. UI contract passes 45/45 and retains hideTopBar data-nochrome matching. TypeScript language-service inventory now reports 10 files / 883 bindings / trueUnread=0, with only the Practice `_` and Resume `line` first callback parameters classified as positional placeholders." -->
+- [x] 16.3 Run UI contract, AST inventory, P0.005, visual-system/full frontend, typecheck/build, owner contexts and docs/diff/pruning gates.
+  <!-- verified: 2026-07-10 method=prototype-canvas-mode-binding-regression evidence="UI contract passes 45/45; TypeScript language-service inventory reports 10 files / 883 bindings / trueUnread=0 and two positional placeholders. Visual-system owner passes 9 files/95 tests; P0.005 passes 8/8 with setup/trigger/verify/cleanup; full frontend passes 137 files/841 tests, typecheck and build. Owner/product contexts, git diff check and pruning surface pass with real_residuals=0. No Bug or retrospective report was needed because the removed binding had no read path. No environment restart or data cleanup occurred." -->
+
+## Phase 17: zero-consumer formal CSS pruning
+
+- [x] 17.1 Add owner source RED gates for the zero-consumer screen grid, visually-hidden utility and TopBar custom-active modifier, including the stale README handoff entry.
+  <!-- verified: 2026-07-10 method=frontend-shell-css-source-red evidence="Focused globalCss/ScreensVisual/TopBarVisual ran 30 tests: all 27 existing contracts passed and exactly the 3 new zero-consumer gates failed on their respective current CSS rules." -->
+- [x] 17.2 Delete the three CSS rules and stale README token without aliases, placeholders or removal markers; retain all current DOM selectors and prototype-backed `ei-scroll`.
+  <!-- verified: 2026-07-10 method=frontend-shell-css-source-green evidence="Focused owner gates pass 30/30. Target selectors are absent from runtime CSS/README and remain only as negative literals; base TopBar swatch and screen-card selectors retain TSX consumers, while ei-scroll retains prototype Practice consumers and its parity gate." -->
+- [x] 17.3 Run focused owner tests, P0.005, full visual-system/frontend regression, typecheck/build, owner/product contexts and docs/index/diff/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=frontend-shell-zero-consumer-css-pruning evidence="Focused gates pass 30/30; visual-system owner passes 10 files/107 tests; P0.005 setup/trigger/verify/cleanup passes 8/8; full frontend passes 136 files/840 tests; typecheck/build and both contexts pass. Runtime CSS/README target inventory is zero, prototype-backed ei-scroll remains, and final docs/index/diff/pruning gates run during closeout. No Bug/retrospective report, environment restart or data cleanup was needed." -->
+
+## Phase 18: TopBar login rule consolidation
+
+- [x] 18.1 Add a source RED gate requiring exactly one complete `ei-topbar-auth-login` rule while preserving the independent hover rule and DOM consumer.
+  <!-- verified: 2026-07-10 method=topbar-login-css-cascade-red evidence="Focused TopBarVisual ran 15 tests: all 14 existing contracts passed and only the new unique complete login rule gate failed because two base blocks remained." -->
+- [x] 18.2 Merge the adjacent base declaration blocks without changing declarations, hover behavior or component DOM.
+  <!-- verified: 2026-07-10 method=topbar-login-css-cascade-green evidence="TopBarVisual passes 15/15; exactly one base rule contains all 10 prior declarations, the independent hover rule remains, and TopBar keeps its existing login button consumer." -->
+- [x] 18.3 Run focused TopBar, visual-system/full frontend, typecheck/build, owner/product contexts and docs/index/diff/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=topbar-login-css-cascade-consolidation evidence="Focused TopBarVisual passes 15/15; visual-system owner passes 10 files/109 tests including the 8 P0.005 smoke assertions; full frontend passes 136 files/845 tests; typecheck/build and both contexts pass. Inventory reports one base rule, one hover rule and one DOM consumer; final docs/index/diff/pruning gates pass during closeout. No Bug/retrospective report, environment restart or data cleanup was needed." -->

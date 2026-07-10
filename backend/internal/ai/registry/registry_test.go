@@ -6,11 +6,13 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/monshunter/easyinterview/backend/internal/testsupport"
 )
 
 func TestNewRegistryClientLoadsAllBaselines(t *testing.T) {
 	t.Parallel()
-	prompts, rubrics := repoConfigRoots(t)
+	prompts, rubrics := testsupport.ConfigRoots(t)
 	client, err := NewRegistryClient(RegistryOptions{
 		PromptsDir: prompts,
 		RubricsDir: rubrics,

@@ -565,41 +565,35 @@ func TestStream_ParsesSSEDeltaAndDone(t *testing.T) {
 	}
 }
 
-func TestStream_MalformedChunkEmitsAIOutputInvalid(t *testing.T) {
-	srv := mockserver.New()
-	srv.SetChatStreamChunks([]string{`{"choices":[`})
-	defer srv.Close()
-	a := newAdapter(t, srv)
+func TestStream_ErrorChunksEmitSharedError(t *testing.T) {
+	tests := []struct {
+		name      string
+		chunk     string
+		errorCode string
+	}{
+		{name: "malformed chunk", chunk: `{"choices":[`, errorCode: sharederrors.CodeAiOutputInvalid},
+		{name: "provider error event", chunk: `{"error":{"code":"AI_PROVIDER_TIMEOUT","message":"upstream timeout"}}`, errorCode: sharederrors.CodeAiProviderTimeout},
+	}
 
-	ch, err := a.Stream(context.Background(), chatProfile(5000), samplePayload())
-	if err != nil {
-		t.Fatalf("Stream: %v", err)
-	}
-	events := collectStreamEvents(t, ch)
-	if len(events) != 1 || events[0].Type != aiclient.StreamEventError {
-		t.Fatalf("expected one error event, got %+v", events)
-	}
-	if events[0].ErrorCode != sharederrors.CodeAiOutputInvalid {
-		t.Fatalf("expected %s, got %q", sharederrors.CodeAiOutputInvalid, events[0].ErrorCode)
-	}
-}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := mockserver.New()
+			srv.SetChatStreamChunks([]string{tc.chunk})
+			defer srv.Close()
+			a := newAdapter(t, srv)
 
-func TestStream_ProviderErrorEventEmitsSharedError(t *testing.T) {
-	srv := mockserver.New()
-	srv.SetChatStreamChunks([]string{`{"error":{"code":"AI_PROVIDER_TIMEOUT","message":"upstream timeout"}}`})
-	defer srv.Close()
-	a := newAdapter(t, srv)
-
-	ch, err := a.Stream(context.Background(), chatProfile(5000), samplePayload())
-	if err != nil {
-		t.Fatalf("Stream: %v", err)
-	}
-	events := collectStreamEvents(t, ch)
-	if len(events) != 1 || events[0].Type != aiclient.StreamEventError {
-		t.Fatalf("expected one error event, got %+v", events)
-	}
-	if events[0].ErrorCode != sharederrors.CodeAiProviderTimeout {
-		t.Fatalf("expected %s, got %q", sharederrors.CodeAiProviderTimeout, events[0].ErrorCode)
+			ch, err := a.Stream(context.Background(), chatProfile(5000), samplePayload())
+			if err != nil {
+				t.Fatalf("Stream: %v", err)
+			}
+			events := collectStreamEvents(t, ch)
+			if len(events) != 1 || events[0].Type != aiclient.StreamEventError {
+				t.Fatalf("expected one error event, got %+v", events)
+			}
+			if events[0].ErrorCode != tc.errorCode {
+				t.Fatalf("expected %s, got %q", tc.errorCode, events[0].ErrorCode)
+			}
+		})
 	}
 }
 

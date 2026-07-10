@@ -1,6 +1,6 @@
 # Frontend Workspace and Practice History
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 1.20 | Spec v1.32 removes the stale embedded company-insight contract and records the current pure Workspace plan-list boundary. | 001-workspace-and-interview-context Phase 23 |
 | 2026-07-10 | 1.19 | Spec v1.31 将 workspace / practice 的负向 UI 边界统一为范围外 / out-of-scope 术语；行为不变。 | tech-debt pruning |
 | 2026-07-10 | 1.18 | Spec v1.29 将 workspace route purity 与场景负向锚点口径统一为 out-of-scope/stale wording；行为不变。 | 001-workspace-and-interview-context |
 | 2026-07-10 | 1.17 | Spec v1.28 将 `voice` route/query 负向输入统一为 out-of-scope 口径；行为不变。 | tech-debt pruning |

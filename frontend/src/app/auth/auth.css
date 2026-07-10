@@ -161,13 +161,6 @@
   padding: 0;
 }
 
-.ei-auth-link-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--ei-space-2);
-}
-
 /* Static email-code help copy under the login CTA.
    Source: ui-design/src/screen-auth.jsx login footer (marginTop 16,
    fontSize 12.5, color T.ink3, lineHeight 1.6; second line marginTop 4). */

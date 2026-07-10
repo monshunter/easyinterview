@@ -1,6 +1,6 @@
 # 001 — Report Screen and Generating Handoff Checklist
 
-> **版本**: 1.16
+> **版本**: 1.18
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -185,3 +185,17 @@
   <!-- verified: 2026-07-10 method=unconsumed-report-error-helper-removal evidence="Deleted both isolated symbols with no replacement. Source/failure/missing-session tests pass 3 files/8 tests and scoped non-test symbol inventory is empty; failureErrorCodeKey and FAILURE_LABEL_BY_CODE are unchanged." -->
 - [x] 13.3 Run focused report failure tests, typecheck, symbol inventory, owner/product contexts, docs, diff and pruning gates; then restore the owner to `completed`.
   <!-- verified: 2026-07-10 method=unconsumed-report-error-helper-removal evidence="Focused source/failure tests pass 3 files/8 tests; report/generating owner passes 13 files/70 tests; typecheck and scoped symbol inventory pass. Report/product contexts and docs/index/link/diff/pruning gates pass with real_residuals=0." -->
+
+## Phase 14: typed i18n key mappings
+
+- [x] 14.1 Replace Report detail-tab and missing-state dynamic message-key construction plus `as never` casts with explicit typed `MessageKey` mappings; verify focused report/i18n tests, locale reachability, typecheck/build, owner contexts and docs/diff/pruning gates.
+  <!-- verified: 2026-07-10 method=report-typed-message-key-maps evidence="All 13 active Report tab/missing-state keys are explicit MessageKey map values; scoped dynamic message-key cast search is zero. Focused Report/i18n tests, owner directory and full frontend suites, typecheck/build, P0.059, Report/product contexts and docs/diff/pruning gates pass with unchanged visible copy and navigation." -->
+
+## Phase 15: report detail prototype call-surface pruning
+
+- [x] 15.1 Add a Report detail prop-consumption contract and prove RED while `ReportDetailSurface` and its caller still carry unread `nav`.
+  <!-- verified: 2026-07-10 method=report-detail-call-surface-red evidence="UI contract ran 43 tests: the new report-detail dependency contract failed on the existing ReportDetailSurface.nav parameter while the prior 42 tests passed; retained assertions pin parent ReportDashboard navigation, tab state and question selection." -->
+- [x] 15.2 Delete the unread child prop and caller argument; verify Babel inventory reports zero unread `ReportDetailSurface` props while parent navigation and detail state remain intact.
+  <!-- verified: 2026-07-10 method=report-detail-call-surface-green evidence="Removed only ReportDetailSurface.nav and its matching child argument. UI contract passes 43/43; Babel binding inventory reports detailUnread=[] while source assertions retain ReportDashboard.nav, setDetail and setActiveQuestion." -->
+- [x] 15.3 Run UI contract, focused Report, P0.056/P0.059, static-browser detail-tab/question smoke, full frontend, typecheck/build, owner contexts and docs/diff/pruning gates.
+  <!-- verified: 2026-07-10 method=report-detail-regression-closeout evidence="UI contract passes 43/43 and focused Report passes 3 files/28 tests. P0.056 setup/trigger/verify/cleanup passes real-mode 1 plus owner 45 and scoped lint. P0.059 passes real-mode 1, Vitest 18, pytest 3, lint, build and Playwright 14. Static browser switches all five detail tabs, selects Q1 and retains replay marker behavior with no errors and 200 requests. Full frontend passes 137 files/841 tests and typecheck passes. Both owner contexts and diff/pruning gates pass with real_residuals=0. No scenario environment restart or data cleanup occurred." -->

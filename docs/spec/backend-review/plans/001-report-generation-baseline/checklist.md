@@ -1,6 +1,6 @@
 # 001 - Report Generation Baseline Checklist
 
-> **版本**: 1.4
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -26,6 +26,17 @@
   <!-- verified: 2026-07-07 method=backend-review-001-owner-compression evidence="Updated backend-review spec.md to v1.3 and backend-review/001 owner docs to v1.2 completed. PASS: targeted stale-wording grep returned no matches; validate_context.py backend-review/001 backend PASS; sync-doc-index --fix-index updated docs/spec INDEX and backend-review plans INDEX; sync-doc-index --check PASS; make docs-check PASS; git diff --check PASS; make lint-core-loop-pruning-surface PASS real_residuals=0." -->
 - [x] 2026-07-10 report status wording cleanup: queued/generating report reads are described as current status metadata rather than empty-report wording.
   <!-- verified: 2026-07-10 method=tech-debt-pruning evidence="OpenAPI descriptions, backend-review spec/plan/BDD, frontend-report-dashboard spec/plan, backend/frontend comments, generated artifacts and focused report tests were updated together." -->
+- [x] 2026-07-10 test-only readiness validator removal: 删除 production `validReadinessTier`，property test 直接断言 shared 四值集合；验证：production `deadcode` RED/GREEN、review tests/staticcheck、owner docs gates。
+  <!-- verified: 2026-07-10 method=test-only-readiness-validator-removal evidence="Production deadcode RED identified validReadinessTier as test-only. Deleted it and moved the four-value membership set into the randomized property test. Review package tests, staticcheck, reachability and symbol inventory PASS." -->
+
+## Phase 9: GenerateHandler retryable-failure test harness consolidation
+
+- [x] 9.1 Record scoped `internal/review` `dupl` RED and identify exact-name consumers.
+  <!-- verified: 2026-07-10 method=review-generate-handler-retryable-test-dupl evidence="Scoped dupl -t 100 reports the two retryable GenerateHandler tests as internal/review's only clone group. BUG-0088 and backend-async-runner gates require TestGenerateHandler_NormalizesFinalizedRetryableFailureThroughKernel to remain callable." -->
+- [x] 9.2 Keep both top-level tests and delegate their shared setup/assertions to one helper parameterized by incoming service finalization state.
+  <!-- verified: 2026-07-10 method=review-generate-handler-retryable-test-helper evidence="Both exact tests pass and share one helper parameterized only by serviceFinalized. Each still asserts retryable AI_PROVIDER_TIMEOUT and handler output AsyncJobFinalized=false; scoped Review dupl is zero and staticcheck passes." -->
+- [x] 9.3 Run exact BUG-0088 gate, Review owner/full backend, vet/staticcheck and owner/product/docs/pruning closeout gates.
+  <!-- verified: 2026-07-10 method=review-generate-handler-retryable-test-closeout evidence="Both exact tests and the BUG-0088/async-runner five-test gate PASS; Review owner packages/full backend, go vet/staticcheck, Review/runner/product contexts and docs/index/diff/pruning gates PASS with real_residuals=0." -->
 
 ## Evidence Commands
 

@@ -1,6 +1,6 @@
 # F3 Baseline Registry, Resolve and Lint Gates
 
-> **版本**: 1.6
+> **版本**: 1.10
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -73,6 +73,8 @@ Makefile 暴露并聚合：
 - B1/B4/A3 provenance 字段与 `GenerationProvenance`、`ai_task_runs` 和 TargetJob fake writer tests 对齐。
 - Prompt / rubric lint、hardcode lint、AI profile coverage、migration static lint、Go focused tests 和 fixture validation 通过。
 - BDD 不适用说明和替代验证 gate 保留在 checklist 中。
+- `deadcode -test` 与精确 symbol inventory 不再报告未使用的 feature-key helper API。
+- Registry、TargetJob 与 cmd/api tests/benchmarks 通过一个 `internal/testsupport.ConfigRoots` 定位 F3 config truth source，不复制 repo walker。
 
 ## 6 验证入口
 
@@ -91,6 +93,10 @@ make validate-fixtures
 
 | 日期 | 版本 | 说明 |
 |------|------|------|
+| 2026-07-10 | 1.10 | Centralize prompt/rubric config-root discovery for tests and benchmarks. |
+| 2026-07-10 | 1.9 | Remove the unused `Iterable` import from the prompt linter. |
+| 2026-07-10 | 1.8 | Collapse three pytest alias wrappers into directly collected tests. |
+| 2026-07-10 | 1.7 | Remove unused feature-key inventory/string helpers and the unsupported future-codegen claim. |
 | 2026-07-10 | 1.6 | Simplify rubric score-level loading through the equivalent domain type conversion. |
 | 2026-07-10 | 1.5 | Remove the stale fixed F3 spec version from the rubric README and lock a versionless-reference gate. |
 | 2026-07-07 | 1.4 | Compress owner docs to the current 9-key multi-coordinate registry, lint, TargetJob adapter and provenance contract. |
@@ -104,3 +110,15 @@ make validate-fixtures
 ## 9 Registry score-level conversion simplification
 
 `scoreLevelYAML` 与 `ScoreLevel` 保持字段名、顺序和类型同构。loader 直接执行显式类型转换，删除逐字段复制的重复映射，同时用全量 registry loader tests、rubric lint 和 scoped `staticcheck` 保持 9 份 rubric 的加载合同不变。
+
+## 10 Feature key helper removal
+
+`backend/internal/shared/featurekeys` 只拥有 registry 与业务 package 实际消费的 typed constants。删除零消费者 `All` inventory、`String` method 与不存在的 future-codegen 说明；当前 coverage 继续由 F3 spec/config lints 和 resolver tests 承担。
+
+## 11 Pytest alias cleanup
+
+`prompt_lint_test.py` 与 `rubric_lint_test.py` 的三个 lint contract 直接使用 pytest 可发现的 `test_*` 名称。删除未被 pytest 收集的 Go-style `Test*` 主体与小写转发 wrapper 双层结构；测试断言、fixture、收集数量和 lint 行为保持不变。
+
+## 12 Shared config-root test support
+
+`backend/internal/testsupport.ConfigRoots` 使用 `testing.TB` 同时服务 registry tests、registry benchmark、TargetJob cross-layer tests 和 cmd/api composition tests。删除各 package 向上查找 `backend/go.mod` 的本地 walker，不保留转发 alias；共享 helper 仍在无法定位 checkout 时 skip，并返回 repo `config/prompts` / `config/rubrics` 绝对路径。

@@ -135,6 +135,20 @@ func testErrorCode(err error) string {
 	return ""
 }
 
+func assertAIOutputInvalid(t *testing.T, meta aiclient.AICallMeta, err error) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("expected AI_OUTPUT_INVALID error")
+	}
+	var apiErr *sharederrors.APIError
+	if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("expected AI_OUTPUT_INVALID, got %v", err)
+	}
+	if meta.ErrorCode != sharederrors.CodeAiOutputInvalid || meta.ValidationStatus != aiclient.ValidationStatusInvalid {
+		t.Fatalf("expected invalid meta, got %+v", meta)
+	}
+}
+
 func newTestClient(t *testing.T) *aiclient.Client {
 	t.Helper()
 	c, _ := newTestClientWithResolver(t, defaultResolver())
@@ -322,22 +336,7 @@ func TestComplete_ToolsPayloadRemainsProviderNeutral(t *testing.T) {
 func TestComplete_EmptyMessagesReturnsAIOutputInvalid(t *testing.T) {
 	c := newTestClient(t)
 	_, meta, err := c.Complete(context.Background(), "practice.followup.default", aiclient.CompletePayload{})
-	if err == nil {
-		t.Fatalf("expected error for empty messages")
-	}
-	var apiErr *sharederrors.APIError
-	if !errors.As(err, &apiErr) {
-		t.Fatalf("expected APIError, got %T: %v", err, err)
-	}
-	if apiErr.Code != sharederrors.CodeAiOutputInvalid {
-		t.Fatalf("expected error code %q, got %q", sharederrors.CodeAiOutputInvalid, apiErr.Code)
-	}
-	if meta.ErrorCode != sharederrors.CodeAiOutputInvalid {
-		t.Fatalf("expected meta.ErrorCode=%q, got %q", sharederrors.CodeAiOutputInvalid, meta.ErrorCode)
-	}
-	if meta.ValidationStatus != aiclient.ValidationStatusInvalid {
-		t.Fatalf("expected ValidationStatusInvalid, got %q", meta.ValidationStatus)
-	}
+	assertAIOutputInvalid(t, meta, err)
 }
 
 func TestTranscribe_RoutesSTTProfileThroughProvider(t *testing.T) {
@@ -377,16 +376,7 @@ func TestTranscribe_RequiresAudioBytesFilenameAndContentType(t *testing.T) {
 	c, provider := newTestClientWithResolver(t, defaultResolver())
 
 	_, meta, err := c.Transcribe(context.Background(), "practice.voice.stt.default", aiclient.TranscriptionInput{})
-	if err == nil {
-		t.Fatalf("expected invalid input error")
-	}
-	var apiErr *sharederrors.APIError
-	if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {
-		t.Fatalf("expected AI_OUTPUT_INVALID, got %v", err)
-	}
-	if meta.ErrorCode != sharederrors.CodeAiOutputInvalid || meta.ValidationStatus != aiclient.ValidationStatusInvalid {
-		t.Fatalf("expected invalid meta, got %+v", meta)
-	}
+	assertAIOutputInvalid(t, meta, err)
 	if provider.transcribeCalls != 0 {
 		t.Fatalf("invalid transcription input must not reach provider, got %d calls", provider.transcribeCalls)
 	}
@@ -737,16 +727,7 @@ func TestSynthesize_RequiresNonEmptyText(t *testing.T) {
 	c, provider := newTestClientWithResolver(t, defaultResolver())
 
 	_, meta, err := c.Synthesize(context.Background(), "practice.voice.tts.default", aiclient.SynthesisInput{})
-	if err == nil {
-		t.Fatal("expected invalid input error for empty text")
-	}
-	var apiErr *sharederrors.APIError
-	if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {
-		t.Fatalf("expected AI_OUTPUT_INVALID, got %v", err)
-	}
-	if meta.ErrorCode != sharederrors.CodeAiOutputInvalid || meta.ValidationStatus != aiclient.ValidationStatusInvalid {
-		t.Fatalf("expected invalid meta, got %+v", meta)
-	}
+	assertAIOutputInvalid(t, meta, err)
 	if provider.synthesizeCalls != 0 {
 		t.Fatalf("invalid synthesize input must not reach provider, got %d calls", provider.synthesizeCalls)
 	}

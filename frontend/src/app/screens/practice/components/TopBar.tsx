@@ -5,9 +5,12 @@ export interface TopBarProps {
   title: string;
   questionIndex: number;
   questionTotal: number;
+  questionLabel: string;
   elapsed: string;
   budget: string;
   paused: boolean;
+  pauseLabel: string;
+  resumeLabel: string;
   onTogglePause: () => void;
   activeMode: "text" | "phone";
   onSwitchMode: (mode: "text" | "phone") => void;
@@ -27,9 +30,12 @@ export const TopBar: FC<TopBarProps> = ({
   title,
   questionIndex,
   questionTotal,
+  questionLabel,
   elapsed,
   budget,
   paused,
+  pauseLabel,
+  resumeLabel,
   onTogglePause,
   activeMode,
   onSwitchMode,
@@ -115,7 +121,7 @@ export const TopBar: FC<TopBarProps> = ({
             color: "var(--ei-color-accent)",
           }}
         >
-          {questionIndex}/{questionTotal}
+          {questionLabel} {questionIndex}/{questionTotal}
         </span>
         <span
           data-testid="practice-topbar-timer"
@@ -150,7 +156,7 @@ export const TopBar: FC<TopBarProps> = ({
             cursor: "pointer",
           }}
         >
-          {paused ? "▶" : "❚❚"}
+          {paused ? "▶" : "❚❚"} {paused ? resumeLabel : pauseLabel}
         </button>
         <div
           style={{

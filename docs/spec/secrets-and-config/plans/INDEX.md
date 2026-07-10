@@ -13,4 +13,4 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-bootstrap](./001-bootstrap/plan.md) | [plan](./001-bootstrap/plan.md) / [checklist](./001-bootstrap/checklist.md) / [context](./001-bootstrap/context.yaml) | 1.13 | completed | 2026-07-10 |
+| [001-bootstrap](./001-bootstrap/plan.md) | [plan](./001-bootstrap/plan.md) / [checklist](./001-bootstrap/checklist.md) / [context](./001-bootstrap/context.yaml) | 1.15 | completed | 2026-07-10 |

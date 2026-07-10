@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.35
+> **版本**: 1.36
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -33,7 +33,7 @@
 - `workspace` 不渲染统一详情母版，不拥有 `autoStartPractice` route side effect；列表页 `立即面试` 使用 shared generated practice handoff (`getPracticePlan` / `createPracticePlan` / `startPracticeSession`) 显式启动 session，并携带 saved TargetJob 的 `targetJobId/resumeId/currentPracticePlanId` 与结构化 `roundId/roundName`。
 - 列表页删除图标使用 generated `archiveTargetJob` 和 `Idempotency-Key` 持久软归档 TargetJob；成功后从当前列表移除，失败时不导航、不隐藏卡片，并展示错误；不得继续使用本地-only hidden set 作为删除合同。
 - `InterviewContext` 不在 `workspace` route carry；`practice / generating / report` owner route 按各自最小上下文携带 `targetJobId / jdId / resumeId / roundId / planId / practiceMode / practiceGoal / hintUsed / hintCount`。
-- Plan Switcher、Resume Picker、WorkspaceInsightCard 和 workspace start-practice hooks 已退出本 owner 当前 runtime。
+- Workspace 当前 runtime 只保留规划列表；不包含详情专用的 Plan Switcher、Resume Picker、公司情报卡片或启动副作用组件。
 - 当前规划记录区只展示 typed records static affordance，不从 `TargetJob` fixture extension、`any` 或 report API 拼接记录行。
 - JD 原文、简历正文、题目文本、答案、提示、prompt/response 不进入 URL、localStorage、console 或 fixture transport 日志。
 
@@ -106,10 +106,10 @@
 - v1.19 moves the two-step launch to parse/report handoff owners through shared `startPracticeFromParams`.
 - `workspace(autoStartPractice=1)` is no longer a valid side-effect contract; URL codec strips all workspace context params.
 
-### Phase 5: Embedded insight, records static affordance and privacy (outside workspace runtime)
+### Phase 5: Workspace boundary and privacy
 
-- Workspace runtime does not own local insight or records static affordance implementation.
-- v1.19 removes those runtime files from current workspace owner; report/records owners must provide typed consumers before reintroducing user-visible rows.
+- Workspace runtime does not own company insight or records implementations.
+- Report and record data remain with their typed owner contracts.
 - Negative coverage remains for sensitive fields and out-of-scope runtime routes/testids.
 
 ### Phase 6: Verification closeout
@@ -229,6 +229,14 @@
 - Update formal `WorkspacePlanList` to remove source/language display, keep footer as a minimal action row, and strengthen separation from page background via existing card/rule/elevation tokens.
 - Add jsdom, Playwright and E2E.P0.018 assertions that fail when `workspace.planList.cardMeta`, source labels, target language text, or secondary button styling return to the card.
 
+### Phase 23: Remove unreachable static Workspace detail branch
+
+- Replace the static prototype `WorkspaceScreen` constant-false context split with the current pure `WorkspacePlanList` entrypoint.
+- Delete the unreachable detail DOM, its exclusive context/history/modal/requirement helpers, and the now-unconsumed `screen-workspace-insight.jsx` source/script entry; move the one live Parse binding-pill consumer into its owner as a smaller local component, and retain `getWorkspaceResumeOptions` because Home and Parse still consume it.
+- Replace UI contract assertions that kept the old detail branch alive with explicit zero-residual assertions for `hasPlanContext`, `PlanSwitcherModal`, `ResumePickerModal` and the old detail helpers.
+- Reconcile the active workspace/practice spec from the stale embedded-insight contract to the current pure list boundary.
+- BDD is not applicable because the branch has no executable path and current user behavior remains the plan list plus Parse-owned detail. Alternative gates: UI contract red/green, source dependency inventory, P0.018, formal workspace tests, owner/product contexts and docs/diff/pruning gates.
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -254,6 +262,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.36 | Remove the unreachable static Workspace detail/insight sources, localize the Parse binding pill, and reconcile the active spec to a pure list. |
 | 2026-07-10 | 1.35 | Remove the unconsumed useStartPracticeContext export. |
 | 2026-07-10 | 1.34 | Remove five test-only InterviewContext reducer actions and keep the runtime action surface explicit. |
 | 2026-07-10 | 1.33 | Remove obsolete auto-start context state and replace implicit practice route-param carry with an explicit allowlist. |

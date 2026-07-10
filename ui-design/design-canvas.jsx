@@ -3,8 +3,7 @@
 // Warm gray grid bg + Sections + Artboards + PostIt notes.
 // Artboards are reorderable (grip-drag), labels/titles are inline-editable,
 // and any artboard can be opened in a fullscreen focus overlay (←/→/Esc).
-// State persists to a .design-canvas.state.json sidecar via the host
-// bridge. No assets, no deps.
+// Editing state lasts for the current page session. No assets, no deps.
 //
 // Usage:
 //   <DesignCanvas>
@@ -58,50 +57,11 @@ const DCCtx = React.createContext(null);
 
 // ─────────────────────────────────────────────────────────────
 // DesignCanvas — stateful wrapper around the pan/zoom viewport.
-// Owns runtime state (per-section order, renamed titles/labels, focused
-// artboard). Order/titles/labels persist to a .design-canvas.state.json
-// sidecar next to the HTML. Reads go via plain fetch() so the saved
-// arrangement is visible anywhere the HTML + sidecar are served together
-// (omelette preview, direct link, downloaded zip). Writes go through the
-// host's window.omelette bridge — editing requires the omelette runtime.
-// Focus is ephemeral.
+// Owns current-session state for per-section order, renamed titles/labels,
+// and the focused artboard.
 // ─────────────────────────────────────────────────────────────
-const DC_STATE_FILE = '.design-canvas.state.json';
-
-function DesignCanvas({ children, minScale, maxScale, style }) {
+function DesignCanvas({ children }) {
   const [state, setState] = React.useState({ sections: {}, focus: null });
-  // Hold rendering until the sidecar read settles so the saved order/titles
-  // appear on first paint (no source-order flash). didRead gates writes until
-  // the read settles so the empty initial state can't clobber a slow read;
-  // skipNextWrite suppresses the one echo-write that would otherwise follow
-  // hydration.
-  const [ready, setReady] = React.useState(false);
-  const didRead = React.useRef(false);
-  const skipNextWrite = React.useRef(false);
-
-  React.useEffect(() => {
-    let off = false;
-    fetch('./' + DC_STATE_FILE)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((saved) => {
-        if (off || !saved || !saved.sections) return;
-        skipNextWrite.current = true;
-        setState((s) => ({ ...s, sections: saved.sections }));
-      })
-      .catch(() => {})
-      .finally(() => { didRead.current = true; if (!off) setReady(true); });
-    const t = setTimeout(() => { if (!off) setReady(true); }, 150);
-    return () => { off = true; clearTimeout(t); };
-  }, []);
-
-  React.useEffect(() => {
-    if (!didRead.current) return;
-    if (skipNextWrite.current) { skipNextWrite.current = false; return; }
-    const t = setTimeout(() => {
-      window.omelette?.writeFile(DC_STATE_FILE, JSON.stringify({ sections: state.sections })).catch(() => {});
-    }, 250);
-    return () => clearTimeout(t);
-  }, [state.sections]);
 
   // Build registries synchronously from children so FocusOverlay can read
   // them in the same render. Only direct DCSection > DCArtboard children are
@@ -114,7 +74,7 @@ function DesignCanvas({ children, minScale, maxScale, style }) {
     const sid = sec.props.id ?? sec.props.title;
     if (!sid) return;
     sectionOrder.push(sid);
-    const persisted = state.sections[sid] || {};
+    const sectionState = state.sections[sid] || {};
     const srcIds = [];
     React.Children.forEach(sec.props.children, (ab) => {
       if (!ab || ab.type !== DCArtboard) return;
@@ -123,9 +83,9 @@ function DesignCanvas({ children, minScale, maxScale, style }) {
       registry[`${sid}/${aid}`] = { sectionId: sid, artboard: ab };
       srcIds.push(aid);
     });
-    const kept = (persisted.order || []).filter((k) => srcIds.includes(k));
+    const kept = (sectionState.order || []).filter((k) => srcIds.includes(k));
     sectionMeta[sid] = {
-      title: persisted.title ?? sec.props.title,
+      title: sectionState.title ?? sec.props.title,
       subtitle: sec.props.subtitle,
       slotIds: [...kept, ...srcIds.filter((k) => !kept.includes(k))],
     };
@@ -158,7 +118,7 @@ function DesignCanvas({ children, minScale, maxScale, style }) {
 
   return (
     <DCCtx.Provider value={api}>
-      <DCViewport minScale={minScale} maxScale={maxScale} style={style}>{ready && children}</DCViewport>
+      <DCViewport>{children}</DCViewport>
       {state.focus && registry[state.focus] && (
         <DCFocusOverlay entry={registry[state.focus]} sectionMeta={sectionMeta} sectionOrder={sectionOrder} />
       )}
@@ -179,7 +139,7 @@ function DesignCanvas({ children, minScale, maxScale, style }) {
 // (translate3d + will-change) so wheel ticks don't go through React —
 // keeps pans at 60fps on dense canvases.
 // ─────────────────────────────────────────────────────────────
-function DCViewport({ children, minScale = 0.1, maxScale = 8, style = {} }) {
+function DCViewport({ children }) {
   const vpRef = React.useRef(null);
   const worldRef = React.useRef(null);
   const tf = React.useRef({ x: 0, y: 0, scale: 1 });
@@ -198,7 +158,7 @@ function DCViewport({ children, minScale = 0.1, maxScale = 8, style = {} }) {
       const r = vp.getBoundingClientRect();
       const px = cx - r.left, py = cy - r.top;
       const t = tf.current;
-      const next = Math.min(maxScale, Math.max(minScale, t.scale * factor));
+      const next = Math.min(8, Math.max(0.1, t.scale * factor));
       const k = next / t.scale;
       // keep the world point under the cursor fixed
       t.x = px - (px - t.x) * k;
@@ -290,7 +250,7 @@ function DCViewport({ children, minScale = 0.1, maxScale = 8, style = {} }) {
       vp.removeEventListener('pointerup', onPointerUp);
       vp.removeEventListener('pointercancel', onPointerUp);
     };
-  }, [apply, minScale, maxScale]);
+  }, [apply]);
 
   const gridSvg = `url("data:image/svg+xml,%3Csvg width='120' height='120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M120 0H0v120' fill='none' stroke='${encodeURIComponent(DC.grid)}' stroke-width='1'/%3E%3C/svg%3E")`;
   return (
@@ -306,7 +266,6 @@ function DCViewport({ children, minScale = 0.1, maxScale = 8, style = {} }) {
         position: 'relative',
         fontFamily: DC.font,
         boxSizing: 'border-box',
-        ...style,
       }}
     >
       <div
@@ -330,7 +289,7 @@ function DCViewport({ children, minScale = 0.1, maxScale = 8, style = {} }) {
 // ─────────────────────────────────────────────────────────────
 // DCSection — editable title + h-row of artboards in persisted order
 // ─────────────────────────────────────────────────────────────
-function DCSection({ id, title, subtitle, children, gap = 48 }) {
+function DCSection({ id, title, subtitle, children }) {
   const ctx = React.useContext(DCCtx);
   const sid = id ?? title;
   const all = React.Children.toArray(children);
@@ -354,7 +313,7 @@ function DCSection({ id, title, subtitle, children, gap = 48 }) {
           style={{ fontSize: 28, fontWeight: 600, color: DC.title, letterSpacing: -0.4, marginBottom: 6, display: 'inline-block' }} />
         {subtitle && <div style={{ fontSize: 16, color: DC.subtitle }}>{subtitle}</div>}
       </div>
-      <div style={{ display: 'flex', gap, padding: '0 60px', alignItems: 'flex-start', width: 'max-content' }}>
+      <div style={{ display: 'flex', gap: 48, padding: '0 60px', alignItems: 'flex-start', width: 'max-content' }}>
         {order.map((k) => (
           <DCArtboardFrame key={k} sectionId={sid} artboard={byId[k]} order={order}
             label={(sec.labels || {})[k] ?? byId[k].props.label}
@@ -372,7 +331,7 @@ function DCSection({ id, title, subtitle, children, gap = 48 }) {
 function DCArtboard() { return null; }
 
 function DCArtboardFrame({ sectionId, artboard, label, order, onRename, onReorder, onFocus }) {
-  const { id: rawId, label: rawLabel, width = 260, height = 480, children, style = {} } = artboard.props;
+  const { id: rawId, label: rawLabel, width = 260, height = 480, children } = artboard.props;
   const id = rawId ?? rawLabel;
   const ref = React.useRef(null);
 
@@ -453,7 +412,7 @@ function DCArtboardFrame({ sectionId, artboard, label, order, onRename, onReorde
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M7 1h4v4M5 11H1V7M11 1L7.5 4.5M1 11l3.5-3.5"/></svg>
       </button>
       <div className="dc-card"
-        style={{ borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06)', overflow: 'hidden', width, height, background: '#fff', ...style }}>
+        style={{ borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06)', overflow: 'hidden', width, height, background: '#fff' }}>
         {children || <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: 13, fontFamily: DC.font }}>{id}</div>}
       </div>
     </div>
@@ -604,10 +563,10 @@ function DCFocusOverlay({ entry, sectionMeta, sectionOrder }) {
 // ─────────────────────────────────────────────────────────────
 // Post-it — absolute-positioned sticky note
 // ─────────────────────────────────────────────────────────────
-function DCPostIt({ children, top, left, right, bottom, rotate = -2, width = 180 }) {
+function DCPostIt({ children, top, left, right, rotate = -2, width = 180 }) {
   return (
     <div style={{
-      position: 'absolute', top, left, right, bottom, width,
+      position: 'absolute', top, left, right, width,
       background: DC.postitBg, padding: '14px 16px',
       fontFamily: '"Comic Sans MS", "Marker Felt", "Segoe Print", cursive',
       fontSize: 14, lineHeight: 1.4, color: DC.postitText,

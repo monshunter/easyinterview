@@ -1,6 +1,6 @@
 # Backend Practice Mode Policies and Provenance
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -102,6 +102,12 @@
 - Keep alias-only `hint` content exclusively in the invalid-output negative scenario so parser fail-close coverage remains executable.
 - Re-run P0.039 and P0.048-P0.051 plus the backend-practice package gate.
 
+### Phase 6: Duplicate strict-mode hint test removal
+
+- Keep `TestServiceAppliesHintAIForStrictMode` as the single strict-mode service proof paired with the assisted-mode test.
+- Delete the duplicate strict-mode setup and assertions instead of preserving an alias test.
+- Point plan 002 and this owner plan's exact test references at the surviving test, then re-run focused, package and backend-wide gates.
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -111,11 +117,13 @@
 | A-3 | AssistantAction provenance wire JSON has exactly six keys | `TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns`, provenance unit tests |
 | A-4 | Hint AI failures degrade without failing the session | `TestE2EP0051PracticeHintDegradeAndPrivacy`, `TestApplyHintAIGracefulDegradeMatrix` |
 | A-5 | Privacy/runtime boundary has no real residuals | backend-practice out-of-scope lint, redaction tests, pruning-surface lint |
+| A-6 | Strict-mode AI hint execution has one canonical service test with no duplicate test body or stale exact-name references | `TestServiceAppliesHintAIForStrictMode`, scoped `dupl`, zero-reference search |
 
 ## 6 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.8 | Delete the duplicate strict-mode hint service test and converge owner evidence on the canonical test. |
 | 2026-07-10 | 1.7 | Align the cmd/api deterministic hint success fixture with the canonical F3 cue response contract. |
 | 2026-07-07 | 1.4 | Compress owner docs to current hint mode policy, provenance, task-run and privacy contract. |
 | 2026-07-06 | 1.3 | Reconcile current goal matrix and out-of-scope gate wording after product-scope pruning. |

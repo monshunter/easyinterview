@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration BDD Plan
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 **关联 BDD Checklist**: [bdd-checklist](./bdd-checklist.md)
@@ -24,3 +24,7 @@ Each scenario owns its user IDs, plan IDs, session IDs and idempotency keys. Cle
 ## 3 单元测试边界
 
 BDD verifies observable HTTP / DB / outbox behavior. Go tests own internal state machine, SQL scan, prompt rendering, error mapping, redaction and idempotency edge cases.
+
+## 4 Phase 9 regression focus
+
+`E2E.P0.022` and `E2E.P0.023` retain the complete plan/session GET behavior gate after the test-only fixture harness consolidation. Both scenarios must run setup / trigger / verify / cleanup serially; no scenario asset or product behavior changes.

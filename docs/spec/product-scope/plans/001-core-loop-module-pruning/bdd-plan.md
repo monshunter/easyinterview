@@ -1,8 +1,8 @@
 # Core Loop Module Pruning BDD Plan
 
-> **版本**: 1.3
-> **状态**: active
-> **更新日期**: 2026-07-07
+> **版本**: 1.4
+> **状态**: completed
+> **更新日期**: 2026-07-10
 
 > Product-scope/001 Phase 6 tracks owner-document current boundary verification; existing D-22 BDD matrix remains the behavior gate while active docs are reconciled against current truth sources.
 

@@ -15,7 +15,6 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
-	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
 
 var (
@@ -27,19 +26,6 @@ var (
 	// whose declared secret env refs are not provisioned.
 	ErrProviderSecretMissing = errors.New("providerregistry: provider secret missing")
 )
-
-// SharedErrorCode maps provider-registry sentinels to B1-owned AI_* codes for
-// callers that need to cross an API or job boundary.
-func SharedErrorCode(err error) string {
-	switch {
-	case errors.Is(err, ErrProviderSecretMissing):
-		return sharederrors.CodeAiProviderSecretMissing
-	case errors.Is(err, ErrProviderConfigInvalid):
-		return sharederrors.CodeAiProviderConfigInvalid
-	default:
-		return ""
-	}
-}
 
 // ResolvedProvider materializes one provider selected by a profile. BaseURL
 // and APIKey are empty for stub providers and may be empty for network

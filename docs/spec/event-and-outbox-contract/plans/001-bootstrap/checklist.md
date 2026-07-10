@@ -1,8 +1,8 @@
 # Event and Outbox Contract Bootstrap Checklist
 
-> **版本**: 1.9
+> **版本**: 1.12
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -44,3 +44,13 @@
 
 - [x] 6.1 `event-and-outbox-contract/spec.md`, `plan.md`, `checklist.md`, `context.yaml` and plans INDEX align to the current 14-event / 8-job / 6 API-facing event-job contract.
   <!-- verified: 2026-07-07 method=current-owner-compression evidence="Updated event-and-outbox-contract spec.md to v2.12, plan.md to v1.10, checklist.md to v1.9, context specVersion to v2.12, and synced docs/spec plus event-and-outbox plans INDEX. PASS: targeted stale-wording grep returned no matches; validate_context.py event-and-outbox-contract/001 backend PASS; python3 scripts/lint/events_inventory.py shared/events.yaml shared/jobs.yaml shared/conventions.yaml PASS; make codegen-events PASS; make lint-events PASS; go test ./backend/cmd/codegen/events ./backend/internal/shared/events ./backend/internal/shared/jobs -count=1 PASS; pnpm --dir frontend test src/lib/events src/lib/jobs PASS (11 tests); make codegen-check PASS." -->
+
+## 7 Canonical generator entrypoint
+
+- [x] 7.1 删除 production-dead 的 `Run` / `RunFromBytes` wrappers，generator tests 改用 `RunWithConventions` / `RunFromBytesWithConventions` 真实入口；验证 production deadcode、symbol inventory、generator/shared Go tests、event lint/codegen drift、owner contexts 与 docs/diff/pruning gates。
+  <!-- verified: 2026-07-10 method=event-codegen-wrapper-removal evidence="Production deadcode RED listed Run and RunFromBytes. Deleted both implicit-path wrappers; CLI/tests now share explicit-conventions entrypoints. Generator/shared Go tests, frontend event/job 11 tests, staticcheck, inventory/lint/codegen drift, symbol inventory and owner contexts PASS." -->
+
+## 8 Inventory test naming
+
+- [x] 8.1 将 event/job inventory tests 的旧 `16-event` / `10-job` 名称对齐为当前 14-event / 8-job contract；验证 pytest collection/focused suite、event lint/codegen drift、generator/shared consumers、owner contexts 与 docs/diff/pruning gates。
+  <!-- verified: 2026-07-10 method=event-inventory-test-name-reconciliation evidence="Renamed only the two stale count-bearing test methods to 14-event and 8-job. Focused collection and 50 tests, event lint/codegen drift, three Go packages, frontend event/job 11 tests, zero generated consumer diff, both owner contexts and docs/diff/pruning gates PASS." -->

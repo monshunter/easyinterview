@@ -1,6 +1,6 @@
 # 002 — Practice Text Event Loop Checklist
 
-> **版本**: 1.15
+> **版本**: 1.16
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -64,3 +64,8 @@
   <!-- verified: 2026-07-10 method=test-only-handoff-inspector-removal evidence="Deleted both production symbols and the injected-helper self-test. The real output test now checks all 11 forbidden keys directly and no longer uses jsdom; boundary/handoff/privacy pass 3 files/9 tests and scoped runtime symbol inventory is empty." -->
 - [x] 8.3 Run focused handoff/privacy tests, P0.047, practice/full frontend tests, typecheck, owner/product contexts, docs, diff and pruning gates.
   <!-- verified: 2026-07-10 method=test-only-handoff-inspector-removal evidence="Focused boundary/handoff/privacy passes 3 files/9 tests; P0.047 passes real-mode 1/1 plus 5 files/14 tests; full frontend passes 137 files/836 tests with zero React update warning and typecheck. Owner/product contexts and docs/index/link/diff/pruning gates pass with real_residuals=0." -->
+
+## Phase 9: current TopBar copy parity
+
+- [x] 9.1 Formal Practice TopBar consumes typed `practice.toolbar.questionTag`, `pause` and `resume` messages and renders the same visible copy as `ui-design/src/screen-practice.jsx`; verify focused TopBar/Practice/pause tests, locale reachability, UI parity and owner/global gates.
+  <!-- verified: 2026-07-10 method=practice-topbar-copy-parity evidence="Behavior red showed the formal TopBar rendered only 1/5 and glyph-only pause controls. Green renders typed Question/Pause/Resume copy; focused Practice tests, 46-file/239-test owner directories, full frontend 137 files/841 tests, typecheck/build, 35 UI contracts, Practice Playwright 11 pass plus 1 expected desktop skip, P0.045 and both owner/product contexts pass." -->

@@ -1,6 +1,6 @@
 # 001 Full Funnel Happy Journey
 
-> **版本**: 1.8
+> **版本**: 2.2
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -154,9 +154,25 @@
 
 `validate_context.py` / `sync-doc-index --check` / `make docs-check` / `git diff --check` 通过；operation matrix 终态与实现一致。
 
+### Phase 4: Full-funnel harness request helper consolidation
+
+将 `fullFunnelJourneyHarness` 与 `fullFunnelResumeSeedHarness` 两段完全相同的 `doJSON` 请求构造体收敛到一个 file-private helper；两个 receiver method 只传入各自的 `handler` / `cookie`，现有场景调用点、HTTP headers、status/assertion 和 response body 合同不变。BDD 不适用，因为场景行为与步骤不变；替代 gate 为 scoped `dupl` RED/GREEN、P0.098 focused tests、`cmd/api`/full backend tests、owner contexts 与 docs/diff/pruning gates。
+
+### Phase 5: P0.098 TargetJob fixture and persistence assertion convergence
+
+`buildTargetJobRuntime` 在 `APP_ENV=test` 下已通过 `targetjob.NewDeterministicParseAIClient` 独占 `target.import.parse`，其 schema-valid fixture 会持久化一条 `must_have` 和一条 `hidden_signal` requirement。因此删除 `fullFunnelScenarioAIClient` 中不可达的同 feature 分支及其无消费者 JSON helper，并把 `assertTargetImportPersisted` 的脆弱总数断言改为分别断言两个 requirement kind 各一条。场景用户行为不变；BDD gate 继续使用 `E2E.P0.098` 完整 setup/trigger/verify/cleanup，且保留其他 handoff、幂等、隐私和负向断言。诊断记录见 [BUG-0157](../../../../bugs/BUG-0157.md)。
+
+### Phase 6: Full-funnel harness state and seed helper consolidation
+
+将字段完全相同的 `fullFunnelJourneyHarness` / `fullFunnelResumeSeedHarness` 收敛为一个 `fullFunnelHarness`，保留 journey 与 resume-seed 两种 constructor 及各自 runtime 装配。统一使用较完整的 resume seed/ready 验证，并删除重复 receiver methods 与 Phase 4 后不再需要的 file-private request forwarding helper；dedicated seed test 继续验证 cleanup，journey 继续覆盖完整 handoff。BDD 行为不变；替代 gate 为 harness source-count RED/GREEN、seed contract test、完整 `E2E.P0.098` lifecycle、backend/static/context/docs/pruning gates。
+
+### Phase 7: Cross-harness cookie JSON helper consolidation
+
+将 `fullFunnelHarness` 与 `targetJobHTTPScenarioHarness` 完全相同的 cookie-auth JSON request construction 收敛到一个 `cmd/api` package-level test helper。两个 receiver method、各自 idempotency header constant 与全部 scenario call sites 保持不变；P0.010-P0.013 与 P0.098 继续作为行为回归门禁。
+
 ## 5 验收标准
 
-- 本 plan §4 列出的实现 / 测试项全部通过（Phase 0-3）。
+- 本 plan §4 列出的实现 / 测试项全部通过（Phase 0-7）。
 - spec [C-1~C-8](../../spec.md#6-验收标准) 全部满足。
 - BDD-Gate `E2E.P0.098` / `E2E.P0.099` 场景验证通过。
 
@@ -174,6 +190,10 @@
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 2.2 | Share cookie-auth JSON request construction across full-funnel and TargetJob harnesses. | tech-debt pruning |
+| 2026-07-10 | 2.1 | Consolidate duplicate full-funnel harness state and resume seed helpers. | tech-debt pruning |
+| 2026-07-10 | 2.0 | Delete the unreachable full-funnel TargetJob fixture and assert the two deterministic requirement kinds. | tech-debt pruning / P0.098 reconcile |
+| 2026-07-10 | 1.9 | Consolidate duplicate full-funnel harness JSON request construction. | tech-debt pruning |
 | 2026-07-10 | 1.8 | Align backend async scenario wording and test references with runner.Runtime. | backend-async-runner/001 |
 | 2026-07-10 | 1.7 | 统一 out-of-scope-negative 正文与 BDD 口径，并同步 plan 文档集版本。 | tech-debt pruning |
 | 2026-07-10 | 1.6 | 修正 Phase 0.2 旧 Red 证据口径：`TestE2EP0098` 当前已实现并由 scenario wrapper 执行。 | tech-debt pruning |

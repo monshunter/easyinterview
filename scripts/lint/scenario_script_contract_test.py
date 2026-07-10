@@ -58,14 +58,41 @@ def test_cmd_api_exact_go_verify_scripts_require_passing_test_and_package() -> N
         assert "no tests to run" in text
 
 
-def test_resume_tailor_negative_gates_are_contextual_and_ignore_tests() -> None:
-    contextual = "(tailor|mode).*(inline|rewrite|mirror)|(inline|rewrite|mirror).*(tailor|mode)"
+def test_resume_runtime_negative_gate_is_shared_and_ignores_tests() -> None:
+    mode_pattern = "(tailor|mode).*(inline|rewrite|mirror)|(inline|rewrite|mirror).*(tailor|mode)"
+    module_pattern = "mistakes|growth|drill|inline-debrief-record"
     scenarios = REPO_ROOT / "test/scenarios/e2e"
+    invocation = '"$ROOT/test/scenarios/_shared/scripts/resume-runtime-negative-gate.sh"'
+    consumers = []
     for scenario in (
+        "p0-075-resume-update-flat-fields-and-ik",
+        "p0-076-resume-duplicate-save-as-new",
         "p0-077-resume-tailor-async-dispatch-and-ready",
         "p0-078-resume-tailor-failure-and-retry",
+        "p0-079-resume-rewrites-accept-only-save",
         "p0-080-resume-tailor-privacy-negative",
     ):
-        verify = (scenarios / scenario / "scripts/verify.sh").read_text(encoding="utf-8")
-        assert contextual in verify
-        assert "--glob '!**/*_test.go'" in verify
+        consumers.append(scenarios / scenario / "scripts/verify.sh")
+    consumers.append(
+        scenarios
+        / "p0-080-resume-tailor-privacy-negative"
+        / "scripts/trigger.sh"
+    )
+
+    for consumer in consumers:
+        text = consumer.read_text(encoding="utf-8")
+        assert invocation in text
+        assert mode_pattern not in text
+        assert module_pattern not in text
+
+    gate = (
+        REPO_ROOT
+        / "test/scenarios/_shared/scripts/resume-runtime-negative-gate.sh"
+    ).read_text(encoding="utf-8")
+    assert mode_pattern in gate
+    assert module_pattern in gate
+    assert "--glob '!**/*_test.go'" in gate
+    assert not (
+        REPO_ROOT
+        / "test/scenarios/_shared/scripts/resume-mode-negative-gate.sh"
+    ).exists()

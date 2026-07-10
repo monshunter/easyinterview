@@ -6,7 +6,7 @@ metadata:
   sequence: 2
   specVersion:
     from: 1.0
-    to: 2.12
+    to: 2.14
 spec:
   defaultTarget: frontend
   discovery:
@@ -24,6 +24,8 @@ spec:
       - browser PUT signed url
       - registerResume hook upload paste
       - direct detail navigation after registerResume
+      - static prototype Save and open
+      - create-to-detail waiting ready state
       - parser animation absent
       - preview confirm absent
       - generic pasted resume title absent

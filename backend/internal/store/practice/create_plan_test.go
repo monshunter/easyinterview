@@ -27,41 +27,7 @@ func TestSQLRepositoryCreatePlanWritesPlanAndAuditInOneTransaction(t *testing.T)
 	in := validCreatePlanStoreInput(now)
 
 	mock.ExpectBegin()
-	mock.ExpectQuery(`insert into practice_plans`).
-		WithArgs(
-			in.PlanID,
-			in.UserID,
-			in.TargetJobID,
-			in.SourceReportID,
-			string(in.Goal),
-			string(in.Mode),
-			string(in.InterviewerPersona),
-			in.Difficulty,
-			in.Language,
-			in.TimeBudgetMinutes,
-			in.QuestionBudget,
-			in.ResumeID,
-			sqlmock.AnyArg(),
-			in.Now,
-		).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "target_job_id", "source_report_id", "goal", "mode", "interviewer_persona", "difficulty",
-			"language", "time_budget_minutes", "question_budget", "resume_id", "status", "created_at",
-		}).AddRow(
-			in.PlanID,
-			in.TargetJobID,
-			nil,
-			string(in.Goal),
-			string(in.Mode),
-			string(in.InterviewerPersona),
-			in.Difficulty,
-			in.Language,
-			in.TimeBudgetMinutes,
-			in.QuestionBudget,
-			in.ResumeID,
-			"ready",
-			in.Now,
-		))
+	expectCreatePlanSuccessQuery(mock, `insert into practice_plans`, in, sqlmock.AnyArg(), nil)
 	mock.ExpectExec(`insert into audit_events`).
 		WithArgs(
 			in.AuditEventID,
@@ -111,41 +77,7 @@ func TestSQLRepositoryCreatePlanNormalizesEmptyFocusCompetencyCodes(t *testing.T
 	in.FocusCompetencyCodes = nil
 
 	mock.ExpectBegin()
-	mock.ExpectQuery(`insert into practice_plans`).
-		WithArgs(
-			in.PlanID,
-			in.UserID,
-			in.TargetJobID,
-			in.SourceReportID,
-			string(in.Goal),
-			string(in.Mode),
-			string(in.InterviewerPersona),
-			in.Difficulty,
-			in.Language,
-			in.TimeBudgetMinutes,
-			in.QuestionBudget,
-			in.ResumeID,
-			textArrayArg{want: "{}"},
-			in.Now,
-		).
-		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "target_job_id", "source_report_id", "goal", "mode", "interviewer_persona", "difficulty",
-			"language", "time_budget_minutes", "question_budget", "resume_id", "status", "created_at",
-		}).AddRow(
-			in.PlanID,
-			in.TargetJobID,
-			nil,
-			string(in.Goal),
-			string(in.Mode),
-			string(in.InterviewerPersona),
-			in.Difficulty,
-			in.Language,
-			in.TimeBudgetMinutes,
-			in.QuestionBudget,
-			in.ResumeID,
-			"ready",
-			in.Now,
-		))
+	expectCreatePlanSuccessQuery(mock, `insert into practice_plans`, in, textArrayArg{want: "{}"}, nil)
 	mock.ExpectExec(`insert into audit_events`).
 		WithArgs(
 			in.AuditEventID,
@@ -193,47 +125,19 @@ func TestSQLRepositoryCreatePlanWritesDerivedSourceAndAudit(t *testing.T) {
 			in.Goal = tc.goal
 			in.SourceReportID = tc.sourceReportID
 
-			sourceReportRow := any(nil)
+			var sourceReportRow driver.Value
 			if tc.sourceReportID != "" {
 				sourceReportRow = tc.sourceReportID
 			}
 
 			mock.ExpectBegin()
-			mock.ExpectQuery(`(?s)insert into practice_plans.*left join feedback_reports fr.*fr.status = 'ready'`).
-				WithArgs(
-					in.PlanID,
-					in.UserID,
-					in.TargetJobID,
-					in.SourceReportID,
-					string(in.Goal),
-					string(in.Mode),
-					string(in.InterviewerPersona),
-					in.Difficulty,
-					in.Language,
-					in.TimeBudgetMinutes,
-					in.QuestionBudget,
-					in.ResumeID,
-					sqlmock.AnyArg(),
-					in.Now,
-				).
-				WillReturnRows(sqlmock.NewRows([]string{
-					"id", "target_job_id", "source_report_id", "goal", "mode", "interviewer_persona", "difficulty",
-					"language", "time_budget_minutes", "question_budget", "resume_id", "status", "created_at",
-				}).AddRow(
-					in.PlanID,
-					in.TargetJobID,
-					sourceReportRow,
-					string(in.Goal),
-					string(in.Mode),
-					string(in.InterviewerPersona),
-					in.Difficulty,
-					in.Language,
-					in.TimeBudgetMinutes,
-					in.QuestionBudget,
-					in.ResumeID,
-					"ready",
-					in.Now,
-				))
+			expectCreatePlanSuccessQuery(
+				mock,
+				`(?s)insert into practice_plans.*left join feedback_reports fr.*fr.status = 'ready'`,
+				in,
+				sqlmock.AnyArg(),
+				sourceReportRow,
+			)
 			wantMetadata := map[string]string{
 				"plan_id":       in.PlanID,
 				"goal":          string(in.Goal),
@@ -959,6 +863,50 @@ func validCreatePlanStoreInput(now time.Time) domain.CreatePlanStoreInput {
 		FocusCompetencyCodes: []string{"communication", "design-systems"},
 		Now:                  now,
 	}
+}
+
+func expectCreatePlanSuccessQuery(
+	mock sqlmock.Sqlmock,
+	queryPattern string,
+	in domain.CreatePlanStoreInput,
+	focusCodesArg driver.Value,
+	sourceReportRow driver.Value,
+) {
+	mock.ExpectQuery(queryPattern).
+		WithArgs(
+			in.PlanID,
+			in.UserID,
+			in.TargetJobID,
+			in.SourceReportID,
+			string(in.Goal),
+			string(in.Mode),
+			string(in.InterviewerPersona),
+			in.Difficulty,
+			in.Language,
+			in.TimeBudgetMinutes,
+			in.QuestionBudget,
+			in.ResumeID,
+			focusCodesArg,
+			in.Now,
+		).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "target_job_id", "source_report_id", "goal", "mode", "interviewer_persona", "difficulty",
+			"language", "time_budget_minutes", "question_budget", "resume_id", "status", "created_at",
+		}).AddRow(
+			in.PlanID,
+			in.TargetJobID,
+			sourceReportRow,
+			string(in.Goal),
+			string(in.Mode),
+			string(in.InterviewerPersona),
+			in.Difficulty,
+			in.Language,
+			in.TimeBudgetMinutes,
+			in.QuestionBudget,
+			in.ResumeID,
+			"ready",
+			in.Now,
+		))
 }
 
 func validCommitSessionStartInput(now time.Time) domain.CommitSessionStartInput {

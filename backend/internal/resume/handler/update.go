@@ -30,6 +30,18 @@ func (h *Handler) UpdateResume(w http.ResponseWriter, r *http.Request, resumeID 
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "resume service is not configured", nil)
 		return
 	}
+	handleResumeMutation(h, w, r, resumeID, http.StatusOK, validateUpdateResumeInput, service.UpdateResume)
+}
+
+func handleResumeMutation[T any](
+	h *Handler,
+	w http.ResponseWriter,
+	r *http.Request,
+	resumeID string,
+	successStatus int,
+	validate func(string, string, []byte) (T, error),
+	execute func(context.Context, T) (api.Resume, error),
+) {
 	userID, ok := h.resolveUser(r)
 	if !ok {
 		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required", nil)
@@ -44,18 +56,18 @@ func (h *Handler) UpdateResume(w http.ResponseWriter, r *http.Request, resumeID 
 		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "request body is malformed", nil)
 		return
 	}
-	in, err := validateUpdateResumeInput(userID, resumeID, raw)
+	in, err := validate(userID, resumeID, raw)
 	if err != nil {
 		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, err.Error(), updateResumeValidationDetails(err))
 		return
 	}
-	out, err := service.UpdateResume(r.Context(), in)
+	out, err := execute(r.Context(), in)
 	if err != nil {
 		writeUpdateResumeError(w, err)
 		return
 	}
 	idempotency.SetResponseResource(w, "resume", out.Id)
-	writeJSON(w, http.StatusOK, out)
+	writeJSON(w, successStatus, out)
 }
 
 func validateUpdateResumeInput(userID string, resumeID string, raw []byte) (resume.UpdateResumeRequest, error) {

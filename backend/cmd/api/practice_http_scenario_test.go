@@ -464,10 +464,10 @@ auth:
 	})
 
 	return &practiceHTTPScenarioHarness{
-		handler: buildAPIHandlerWithHandlers(loader, apiRuntimeFlags{}, authService, targetjob.NewHandler(targetjob.HandlerOptions{}), practiceRoutes{
+		handler: buildAPIHandler(loader, apiRuntimeFlags{}, authService, targetjob.NewHandler(targetjob.HandlerOptions{}), practiceRoutes{
 			Handler:     practiceHandler,
 			Idempotency: routeIdempotency,
-		}),
+		}, uploadRoutes{}, resumeRoutes{}, reportRoutes{}, jobsRoutes{}),
 		store:      store,
 		cookies:    cookies,
 		metrics:    metrics,

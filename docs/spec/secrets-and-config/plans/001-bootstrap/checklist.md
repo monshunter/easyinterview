@@ -1,6 +1,6 @@
 # Secrets and Config Bootstrap Checklist
 
-> **版本**: 1.13
+> **版本**: 1.15
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -10,7 +10,7 @@
 
 - [x] 1.1 落地 `backend/internal/platform/config/` 包骨架（`loader.go` / `validator.go` / `redactor.go` / `getters.go` / `doc.go`），module path 沿用 B1 锁定的 `github.com/monshunter/easyinterview/backend`，`doc.go` godoc 概述 D-1 三层优先级与 `Get*` API 命名约定
 - [x] 1.2 引入 `github.com/knadh/koanf/v2` + `koanf/parsers/yaml` + `koanf/providers/env` + `koanf/providers/file`；`loader.go` 按 D-1 顺序串行合并 `config/config.yaml` → `config/{APP_ENV}.yaml` → env var → runtime secret，禁止并发 `Load` 引发 merge 顺序歧义
-- [x] 1.3 落地 `Get*` API（`GetString` / `GetInt` / `GetBool` / `GetDuration` / `GetSecret`），点路径键名（如 `app.listenAddr`）与 spec §3.1.2 `Config path` 列对齐；错误处理由 validator 集中，不在 getter 内 panic
+- [x] 1.3 落地 `Get*` API（`GetString` / `GetInt` / `GetBool` / `GetSecret`），点路径键名（如 `app.listenAddr`）与 spec §3.1.2 `Config path` 列对齐；错误处理由 validator 集中，不在 getter 内 panic
 - [x] 1.4 实现 `RedactedString` 类型与 redactor：`String()` / `GoString()` / `MarshalJSON()` / `MarshalText()` / `Format(...)` 五方法返回 `***`；底层字段不导出；`Reveal()` 是唯一明文路径；redactor 必须覆盖结构化 JSON 日志、`fmt.Errorf %w` 错误包装链、嵌套 config dump 三种路径
 - [x] 1.5 启动期 fail-fast validator：`APP_ENV=test` 允许缺 AI / Email / Session secret；`APP_ENV=staging|prod` 必填 secret 缺失返回 error；错误信息列出缺失 key 名（关闭 spec C-2 报错预期）
 - [x] 1.6 Phase 1 自检：`go test ./backend/internal/platform/config/...` 通过 `loader_test.go`（四层合并）/ `redactor_test.go`（三路径 `***` 断言）/ `validator_test.go`（test/staging/prod 三档 fail-fast 路径）
@@ -40,19 +40,19 @@
 - [x] 4.4 落地 `scripts/lint/gitleaks.sh` 第二层：调用本地 `gitleaks detect --no-git --redact`；未安装时打印安装提示并 exit 0 不阻塞；`make lint` 调用此脚本；远端 CI secret scan 仅在 A5 触发条件成立后再接入
 - [x] 4.5 Phase 4 自检：构造越界 `os.Getenv` 改动 + 删除 `.env.example` 中 `AI_PROVIDER_BASE_URL` + 临时生成命中 secret 正则的假数据三类故意失败场景，确认 `make lint` / `make lint-config` / pre-commit hook 全部拦截；自检后立即 revert，不污染主分支；文档与 fixture 不保留真实形态 secret 样本
 
-## Phase 5: `runtime-config` endpoint 接入与前端 fetcher
+## Phase 5: `runtime-config` endpoint 接入与 generated-client handoff
 
 - [x] 5.1 落地 `backend/internal/platform/config/runtime_config.go`：`BuildRuntimeConfig(ctx, session) RuntimeConfig` 严格 allowlist `appVersion` / `defaultUiLanguage` / `analyticsEnabled` / `featureFlags` / `postHogPublicKey`；过滤 `public: false` flag；session + `analytics_opt_in=false` 时 `analyticsEnabled=false` 且不返回 `postHogPublicKey`；secret 字段绝对不进 response
 - [x] 5.2 落地 `backend/internal/platform/config/runtime_config_handler.go` handler：`GET /api/v1/runtime-config` 调用 builder 序列化 JSON，支持 C1 session-aware resolver 注入，resolver 缺省时使用 anonymous opt-out 默认；OpenAPI schema 真理源由 B2 持有，本 plan 不修改 B2 文件
-- [x] 5.3 落地 `frontend/src/lib/runtime-config/`：`index.ts` 暴露 `fetchRuntimeConfig()` + module-scoped 缓存；`types.ts` 与后端字段同名；A4 不保留 React hook 文件，D1 `AppRuntimeProvider` 持有正式 React runtime 入口
-- [x] 5.4 在 builder / fetcher 顶部 godoc / TSDoc cross-link 到 [B2 openapi-v1-contract spec](../../../openapi-v1-contract/spec.md)：明确「OpenAPI schema 真理源在 B2；A4 仅持有 builder 与字段 allowlist」；本 plan 不修改 B2 任何文件
-- [x] 5.5 Phase 5 自检：`runtime_config_test.go` 覆盖 spec C-6 场景（`practice_hint_enabled.public=true` / `ai_fallback_model_enabled.public=false` / `analytics_opt_in=false` 时 response 字段精确匹配 allowlist）；vitest `runtime-config.test.ts` 覆盖 fetch + 缓存命中；本地 `curl /api/v1/runtime-config` 手工 smoke 通过
+- [x] 5.3 D1 `AppRuntimeProvider` 通过 B2 generated `EasyInterviewClient.getRuntimeConfig()` 与 `RuntimeConfig` 类型读取 endpoint；A4 不维护平行前端 fetch/cache/type 包
+- [x] 5.4 在 builder 顶部 cross-link 到 [B2 openapi-v1-contract spec](../../../openapi-v1-contract/spec.md)，明确 A4 持有 builder/allowlist，B2 持有 schema/generated TS，D1 持有正式 React consumer
+- [x] 5.5 Phase 5 自检：`runtime_config_test.go` 覆盖 spec C-6 allowlist；D1 `AppRuntimeProvider` focused tests覆盖 generated-client runtime/auth bootstrap、失败态与 refresh；本地 `curl /api/v1/runtime-config` smoke 通过
 
 ## Phase 6: Verification + handoff
 
 - [x] 6.1 AC C-1..C-5 复跑：C-1（三层合并 `app.listenAddr=:9090`、`log.level=debug`）/ C-2（prod 缺 `SESSION_COOKIE_SECRET` 退出码非 0 + stderr 含 `missing required secret`）/ C-3（修改 `feature-flags.yaml` 30s 内热加载）/ C-4（mock `/decide` + `POSTHOG_SELF_HOSTED=false` 双场景）/ C-5（`RedactedString` 三路径 `***`）；命令日志贴入工作日志
 - [x] 6.2 AC C-7..C-12 复跑：C-7（越界 `os.Getenv`）/ C-8（`AKIA*` / `sk-*` / `xox*` 三正则临时生成）/ C-9（`.env.example` 删 key）/ C-10（缺 `AI_PROVIDER_*` fail-fast；`APP_ENV=test` 仍走 stub）/ C-11（schema 分类错位 lint 失败）/ C-12（`async.queueWeights` 缺失或非正数 fail-fast）；故意失败 case 验证后立即 revert，不污染主分支；命令日志贴入工作日志
-- [x] 6.3 AC C-6 partial 验证 + handoff：A4 已交付 builder + handler + fetcher + 单测断言；在工作日志记录 B2 / D1 跨 plan handoff token；明确「OpenAPI schema 完整 verification 待 B2 后续 plan、React provider 完整接入待 D1 后续 plan」；不开 sibling plan
+- [x] 6.3 AC C-6 验证 + handoff：A4 builder/handler、B2 schema/generated client/types 与 D1 `AppRuntimeProvider` 构成当前完整链路；前端无第二套 runtime-config client
 - [x] 6.4 文档与 INDEX 收口：`config/README.md` Header 完整 + 内容覆盖三层优先级 / 5 文件用途 / 新增 key 4 步流程 / RedactedString 示范 / runtime-config allowlist；`docs/spec/secrets-and-config/plans/INDEX.md` 把本 plan 切到 Completed；`docs/spec/INDEX.md` 中 `secrets-and-config` 行 Header 与 spec 一致；`/sync-doc-index --check` 通过
 - [x] 6.5 风险扫尾：按 plan §5 风险表逐条复核 redaction 三路径覆盖、koanf 合并顺序锁定、hot reload race、`.env.example` 与代码侧 env key 对齐、prod fail-fast 与 supervisor restart loop 提示；任一项缺证据本 plan 不切 Completed
 
@@ -73,7 +73,13 @@
 - [x] 8.3 Verify: `make lint-config`、focused runtime-config tests 通过；repo 搜索确认实现侧无三项 out-of-scope feature flag key
   - 2026-05-03: `make lint-config` pass（gitleaks 本地未安装，按脚本第二层扫描策略提示并 exit 0）；`cd backend && go test ./internal/platform/config -run TestBuildRuntimeConfigAllowlistAndOptOut -count=1` pass；`cd backend && go test ./internal/platform/config ./internal/platform/featureflag -count=1` pass；`rg -n "mistake_book_export_enabled|growth_dashboard_v1_enabled|mock_session_dual_track_enabled" config backend/internal/platform backend/cmd/api frontend/src/lib/runtime-config scripts/lint/env_dict.py -g '!**/*_test.go'` 无实现侧命中。
 
-## Phase 9: Runtime-config test reset removal
+## Phase 10: Unused duration getter removal
 
-- [x] 9.1 RED/GREEN: runtime-config source gate detects and then rejects the production `_resetRuntimeConfigCache` export.<!-- verified: 2026-07-10 method=vitest-red-green evidence="RED failed only on the reset export while four behavior tests passed; GREEN passed all 5 tests after deletion." -->
-- [x] 9.2 Replace the test `beforeEach` reset with per-case production `forceRefresh` boundaries; focused tests and frontend typecheck pass without a replacement reset API.<!-- verified: 2026-07-10 method=vitest+typecheck+lint-config evidence="Runtime-config passed 5 tests; AppRuntimeProvider/AppAuthDispatch passed 20; frontend typecheck and make lint-config passed; production inventory returned zero reset matches." -->
+- [x] 10.1 删除零消费者 `Loader.GetDuration`、自测分支与 package doc 引用；验证：production `deadcode` RED/GREEN、config tests/staticcheck、config lints、owner docs gates。
+  <!-- verified: 2026-07-10 method=unused-config-duration-getter-removal evidence="Production deadcode RED identified Loader.GetDuration as test-only. Removed the method, getter fixture/assertion and package/current-contract references. Config tests, staticcheck, code inventory and make lint-config PASS." -->
+
+## Phase 11: Parallel frontend runtime-config client removal
+
+- [x] 11.1 删除 main-entry 不可达且仅自身测试消费的平行 frontend runtime-config client 包，收敛到 generated client + `AppRuntimeProvider`；验证 source contract RED/GREEN、focused/full frontend、config/codegen、owner contexts 与 docs/diff/pruning gates。
+  <!-- red: 2026-07-10 method=main-entry-reachability+pruning-contract evidence="The TypeScript main-entry graph reported six unreachable non-test files, of which the two hand-written runtime-config modules were consumed only by their own five-test file. The focused pruning suite failed only the new package-absence contract while the prior nine tests passed." -->
+  <!-- verified: 2026-07-10 method=parallel-frontend-runtime-config-client-removal evidence="Deleted the fetch/cache implementation, duplicate hand-written types and five self-only tests without a wrapper or replacement. AppRuntimeProvider continues to use generated EasyInterviewClient/RuntimeConfig and getRuntimeConfig. Focused frontend passes 14 tests; full frontend passes 136 files/836 tests plus typecheck/build; backend config/secrets/featureflag packages, make lint-config and make codegen-check pass. The post-delete graph reports 264 source files, 121 runtime-reachable files and only four unreachable non-test generated B2/B3 contract assets. A4, D1 and product contexts, git diff check and pruning surface pass with real_residuals=0. No Bug/retrospective report, environment restart or data cleanup was needed." -->

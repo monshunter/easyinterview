@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: 1.24
-    to: 1.25
+    to: 1.27
 spec:
   defaultTarget: backend
   discovery:
@@ -41,6 +41,7 @@ spec:
       discovery:
         packages:
           - shared/conventions.yaml
+          - go.work
           - backend/go.mod
           - backend/cmd/codegen/conventions
           - backend/internal/shared/types

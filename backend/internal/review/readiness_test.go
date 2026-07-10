@@ -61,6 +61,12 @@ func TestComputeReadinessTierScoreLevelsAndDimensionStatusMapping(t *testing.T) 
 
 func TestComputeReadinessTierPropertyRandomDimensions(t *testing.T) {
 	rng := rand.New(rand.NewSource(15))
+	validTiers := map[sharedtypes.ReadinessTier]struct{}{
+		sharedtypes.ReadinessTierNotReady:       {},
+		sharedtypes.ReadinessTierNeedsPractice:  {},
+		sharedtypes.ReadinessTierBasicallyReady: {},
+		sharedtypes.ReadinessTierWellPrepared:   {},
+	}
 	for i := 0; i < 100; i++ {
 		dims := make([]registry.RubricDimension, 0, 5)
 		results := map[string]DimensionResultDraft{}
@@ -70,7 +76,7 @@ func TestComputeReadinessTierPropertyRandomDimensions(t *testing.T) {
 			results[name] = DimensionResultDraft{Score: rng.Float64()}
 		}
 		tier := computeReadinessTier([]QuestionAssessmentDraft{{DimensionResults: results}}, registry.RubricSchema{Dimensions: dims})
-		if !validReadinessTier(tier) {
+		if _, ok := validTiers[tier]; !ok {
 			t.Fatalf("invalid tier %q", tier)
 		}
 	}

@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 1.8
+    to: 1.10
 spec:
   defaultTarget: repo
   discovery:
@@ -18,6 +18,8 @@ spec:
     keywords:
       - make lint
       - make test
+      - python contract tests
+      - ui design contract test
       - make build
       - make docs-check
       - make codegen-check
@@ -33,7 +35,10 @@ spec:
       discovery:
         packages:
           - Makefile
+          - requirements-dev.txt
           - scripts
+          - .agent-skills
+          - ui-design/ui-design-contract.test.mjs
           - scripts/lint/check_md_links.py
           - scripts/lint/check_md_links_test.py
           - .agent-skills/sync-doc-index/scripts/sync-doc-index.py

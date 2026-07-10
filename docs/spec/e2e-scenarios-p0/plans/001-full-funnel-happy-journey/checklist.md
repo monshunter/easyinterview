@@ -1,6 +1,6 @@
 # 001 Full Funnel Happy Journey Checklist
 
-> **版本**: 1.7
+> **版本**: 2.2
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -65,3 +65,39 @@
   <!-- verified: 2026-05-24 command="python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/e2e-scenarios-p0/plans/001-full-funnel-happy-journey/context.yaml --docs-root docs --target scenario && python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check && make docs-check && git diff --check" evidence="validate_context resolved scenario target files and discovery metadata; sync-doc-index reported zero drift; make docs-check reported zero drift and markdown links OK; git diff --check produced no output" -->
 - [x] 3.5 operation matrix 终态与实现一致核对（验证来源：§3.1 matrix 逐行复核）
   <!-- verified: 2026-05-24 command="cd backend && go test -v ./cmd/api -run '^TestE2EP0OperationMatrixPreflight$' -count=1" evidence="PASS with subtests for registerResume, importTargetJob, getTargetJob, createPracticePlan, startPracticeSession, appendSessionEvent, completePracticeSession, getFeedbackReport, and getJob" -->
+
+## Phase 4: full-funnel harness request helper consolidation
+
+- [x] 4.1 Record scoped `dupl` RED evidence for the two identical harness `doJSON` bodies.
+  <!-- verified: 2026-07-10 method=full-funnel-harness-dupl-red evidence="Scoped dupl reported the reciprocal 27-line doJSON bodies at lines 946-972 and 974-1000 in the P0.098 Go scenario file." -->
+- [x] 4.2 Move the shared request construction into one file-private helper while keeping both receiver methods and all scenario call sites.
+  <!-- verified: 2026-07-10 method=full-funnel-harness-helper-consolidation evidence="Both receiver methods delegate to one file-private doFullFunnelJSON helper; all call sites are unchanged and scoped dupl plus staticcheck ./cmd/api are green." -->
+- [x] 4.3 Run scoped `dupl`, P0.098 focused tests, `cmd/api`/full backend tests, owner/product contexts and docs/index/diff/pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=full-funnel-harness-regression-closeout evidence="Scoped dupl -t 100 reports zero clone groups; the complete E2E.P0.098 lifecycle, cmd/api and full backend tests, go vet, staticcheck, both owner contexts, active-state docs/index/link/diff gates and pruning surface pass." -->
+
+## Phase 5: P0.098 TargetJob fixture and persistence assertion convergence
+
+- [x] 5.1 Reproduce and diagnose the live P0.098 failure before changing the assertion.
+  <!-- red: 2026-07-10 method=p0-098-live-scenario-red evidence="The full setup/trigger/verify/cleanup lifecycle reached the real target_import runner, then assertTargetImportPersisted failed with requirement count got 2, want 1; cleanup removed all scenario-owned data. buildTargetJobRuntime uses targetjob.NewDeterministicParseAIClient in test mode, whose fixture owns one must_have and one hidden_signal requirement, while the separate fullFunnelScenarioAIClient target.import.parse branch is unreachable." -->
+- [x] 5.2 Delete the unreachable full-funnel TargetJob fixture branch/helper and assert one persisted `must_have` plus one `hidden_signal` requirement.
+  <!-- verified: 2026-07-10 method=p0-098-targetjob-fixture-convergence evidence="Removed the unreachable target.import.parse switch branch and fullFunnelTargetImportJSON helper. assertTargetImportPersisted now requires must_have=1, hidden_signal=1 and all other kinds=0; zero-reference, scoped dupl, gofmt and staticcheck gates pass." -->
+- [x] 5.3 Re-run the complete `E2E.P0.098` lifecycle and the Phase 4 regression gates.
+  <!-- verified: 2026-07-10 method=p0-098-live-scenario-green evidence="setup, trigger, verify and cleanup all passed; TestE2EP0098FullFunnelImportToNextRound, TestE2EP0098CreatePracticePlanAcceptsEmptyFocusCodes and the out-of-scope negative test ran and passed, with resume_parse, target_import and report_generate runner success markers. No environment restart, redeploy or global data cleanup occurred." -->
+
+## Phase 6: full-funnel harness state and seed helper consolidation
+
+- [x] 6.1 Record source-structure RED for duplicate harness types and seed/ready/doJSON methods.
+  <!-- red: 2026-07-10 method=full-funnel-harness-structure-contract evidence="The scoped source gate reported harness_types=2, seed_methods=2, ready_methods=2 and dojson_methods=2." -->
+- [x] 6.2 Replace the two identical-state harness types with one `fullFunnelHarness`, retain both constructors, and keep one complete seed/ready/request implementation.
+  <!-- verified: 2026-07-10 method=full-funnel-single-harness-convergence evidence="Both constructors now return one fullFunnelHarness. One seedReadyResume uses the stronger ready/job/outbox assertions, one doJSON owns request construction directly, and old harness names plus doFullFunnelJSON are absent. The live seed contract and complete P0.098 lifecycle pass." -->
+- [x] 6.3 Run the source-count GREEN gate, seed contract test, complete P0.098 lifecycle, backend/static/context/docs/pruning gates, then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=full-funnel-single-harness-closeout evidence="The source gate reports harness_types=1, seed_methods=1, ready_methods=1 and dojson_methods=1 with old names/helper absent. The live seed contract, P0.098 setup/trigger/verify/cleanup, full backend tests, go vet/staticcheck, both contexts, active docs/index/link/diff and pruning gates pass; real_residuals=0." -->
+
+## Phase 7: cross-harness cookie JSON helper consolidation
+
+- [x] 7.1 Record scoped `cmd/api` `dupl` RED for the full-funnel and TargetJob harness request bodies.
+  <!-- verified: 2026-07-10 method=cmd-api-cookie-json-harness-dupl evidence="Scoped dupl -t 100 reports the reciprocal 27-line doJSON methods as cmd/api's only clone group." -->
+- [x] 7.2 Extract one package-level test helper while retaining both receiver methods, header constants, cookies, call sites, status checks and response bytes.
+  <!-- verified: 2026-07-10 method=cmd-api-cookie-json-helper evidence="One doScenarioJSONWithCookie helper owns marshal/cookie/header/dispatch/status/response handling. Both receiver methods and all call sites remain; P0.010-P0.013 pass, the live P0.098 setup/trigger/verify/cleanup lifecycle passes without skip, and scoped cmd/api dupl is zero." -->
+- [x] 7.3 Run P0.010-P0.013, P0.098, cmd/api/full backend, vet/staticcheck, both owner contexts and docs/diff/pruning closeout gates.
+  <!-- verified: 2026-07-10 method=cmd-api-cookie-json-harness-closeout evidence="P0.010-P0.013 PASS; live P0.098 setup/trigger/verify/cleanup PASS with resume_parse/target_import/report_generate succeeded markers and no skip; cmd/api/full backend, go vet/staticcheck, both owner/product contexts and docs/index/diff/pruning gates PASS with real_residuals=0." -->

@@ -18,12 +18,6 @@ type Client struct {
 	providers        map[string]Provider
 	providerResolver ProviderResolver
 	builder          metaBuilder
-
-	// taskRunWriter and auditWriter are populated by Phase 3's decorator
-	// wiring; plan 001 leaves the call-time observability hookup to
-	// observability.Wrap so that this Client struct stays small.
-	taskRunWriter AITaskRunWriter
-	auditWriter   AuditEventWriter
 }
 
 // New builds a Client. Spec D-4 / plan 4.1 fail-fast rules:
@@ -59,8 +53,6 @@ func New(cfg Config, opts ...Option) (*Client, error) {
 		resolver:         o.resolver,
 		providers:        o.providers,
 		providerResolver: o.providerResolver,
-		taskRunWriter:    o.taskRunWriter,
-		auditWriter:      o.auditWriter,
 	}
 	return c, nil
 }
@@ -72,35 +64,9 @@ func (c *Client) Resolver() ProfileResolver { return c.resolver }
 // Providers exposes the registered providers keyed by Provider.Name().
 func (c *Client) Providers() map[string]Provider { return c.providers }
 
-// AITaskRunWriter returns the configured ai_task_runs writer (may be nil).
-func (c *Client) AITaskRunWriter() AITaskRunWriter { return c.taskRunWriter }
-
-// AuditEventWriter returns the configured audit_events writer (may be nil).
-func (c *Client) AuditEventWriter() AuditEventWriter { return c.auditWriter }
-
 // Complete implements AIClient.
 func (c *Client) Complete(ctx context.Context, profileName string, payload CompletePayload) (CompleteResponse, AICallMeta, error) {
-	if len(payload.Messages) == 0 {
-		return CompleteResponse{}, AICallMeta{
-			ModelProfileName: profileName,
-			ValidationStatus: ValidationStatusInvalid,
-			ErrorCode:        sharederrors.CodeAiOutputInvalid,
-		}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "messages must be non-empty", false)
-	}
-
-	profile, provider, err := c.dispatch(profileName, CapabilityChat)
-	if err != nil {
-		return CompleteResponse{}, failureMeta(profileName, profile, err), err
-	}
-
-	resp, partial, err := executeWithFallback(profile, provider, c.providers, c.providerResolver, func(p Provider, attempt *ModelProfile) (CompleteResponse, AICallMeta, error) {
-		return p.Complete(ctx, attempt, payload)
-	})
-	meta, mergeErr := c.builder.merge(profile, payload.Metadata, partial)
-	if mergeErr != nil && err == nil {
-		err = mergeErr
-	}
-	return resp, meta, err
+	return c.complete(ctx, profileName, CapabilityChat, payload)
 }
 
 // CompleteJudge runs an LLM-judge completion against a CapabilityJudge
@@ -111,6 +77,10 @@ func (c *Client) Complete(ctx context.Context, profileName string, payload Compl
 // can be bypassed. The narrow registry.JudgeModelClient interface is satisfied
 // structurally by this method.
 func (c *Client) CompleteJudge(ctx context.Context, profileName string, payload CompletePayload) (CompleteResponse, AICallMeta, error) {
+	return c.complete(ctx, profileName, CapabilityJudge, payload)
+}
+
+func (c *Client) complete(ctx context.Context, profileName string, capability Capability, payload CompletePayload) (CompleteResponse, AICallMeta, error) {
 	if len(payload.Messages) == 0 {
 		return CompleteResponse{}, AICallMeta{
 			ModelProfileName: profileName,
@@ -119,7 +89,7 @@ func (c *Client) CompleteJudge(ctx context.Context, profileName string, payload 
 		}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "messages must be non-empty", false)
 	}
 
-	profile, provider, err := c.dispatch(profileName, CapabilityJudge)
+	profile, provider, err := c.dispatch(profileName, capability)
 	if err != nil {
 		return CompleteResponse{}, failureMeta(profileName, profile, err), err
 	}

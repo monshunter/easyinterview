@@ -1,6 +1,6 @@
 # Local Quality Gates Bootstrap
 
-> **版本**: 1.9
+> **版本**: 1.11
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -16,6 +16,10 @@
 2026-07-10 追加修订范围：删除根 `Makefile` 的 F1 observability exit-zero 假 target。A5 聚合层只调用当前已落地的本地 gate；F1 metrics / log lint helper 由 F1 owner 暴露真实命令后再接入，不在 A5 中保留未来 owner 的 exit-zero 假入口。
 
 2026-07-10 二次追加修订范围：删除 `make build` 文档中的旧 frontend build exit-zero 口径。当前 build gate 真实执行 `cd backend && go build ./cmd/...` 与 `pnpm --filter @easyinterview/frontend build`；A5 不再记录 frontend build 的 exit-zero 输出。
+
+2026-07-10 三次追加修订范围：根 `make test` 补入当前已存在但未聚合的 `scripts/` 与 `.agent-skills/` Python contracts，并新增根 `requirements-dev.txt` 显式声明 `pytest` / `PyYAML`。本修订同时修正全量 Python suite 暴露的一条 work-journal 陈旧断言，不改变 skill 当前 commit message 规则。
+
+2026-07-10 四次追加修订范围：把唯一根级 Node test `ui-design/ui-design-contract.test.mjs` 纳入 `make test` 首段，使 UI 真理源的 45 项静态契约不再只由单个场景显式触发。场景专用 tests 继续由各场景 owner 运行。
 
 本 plan 是 `ci-pipeline-baseline` 当前唯一的 active plan，只负责本地质量门禁聚合。当 D-5 触发条件出现（第二位长期贡献者、公开 release、付费用户上线、自动发版、回归频率过高）时，在本 spec 原地修订并新增 `002-remote-ci` 或等价 plan；远端 CI workflow、branch protection、artifact、runner secret 不得塞回本 plan。
 
@@ -34,7 +38,7 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `tooling + contract + code-internal`。本 plan 在仓库根 `Makefile` 上聚合 5 个本地质量入口 target（`make lint` / `make test` / `make build` / `make docs-check` / `make codegen-check`），调用 B1 / B2 / A4 / A3 / F3 / E1 等 owner 已暴露的 lint / generator / config check 与轻量脚本（`scripts/lint/check_md_links.py`）。2026-05-04 修订把 docs/spec heading fragment anchor drift 纳入 `docs-check`；2026-07-10 修订把 frontend package lint 从 exit-zero script 改为 typecheck-backed gate，删除 F1 未落地 helper 的 exit-zero Make target，并把 build gate 文档更新为真实 backend/frontend build。属于本地工具链与契约聚合层，不引入用户可感知 UI、HTTP API 行为、业务工作流或端到端功能。
-- **TDD 策略**: 必须通过 `/tdd --file docs/spec/ci-pipeline-baseline/plans/001-local-quality-gates/checklist.md --references docs/spec/ci-pipeline-baseline/plans/001-local-quality-gates/plan.md,docs/spec/ci-pipeline-baseline/spec.md --phase-commit ci-pipeline-baseline/001-local-quality-gates` 顺序执行。每个 checklist item 以本 checklist 内的 `验证:` 子句作为 Red-Green-Refactor 断言来源；涉及 sub-target 接入或删除的 item 必须先复现当前命令输出或失败状态，再最小实现并复跑 focused command。Phase 5 的 Red 来源是 `scripts/lint/check_md_links_test.py` 对缺失 fragment、GitHub-style slug、重复标题后缀、纯页内 anchor 和非 fragment 相对链接兼容性的断言。Phase 7 的 Red 来源是根 lint 聚合中仍存在的 F1 exit-zero 假 target。
+- **TDD 策略**: 必须通过 `/tdd --file docs/spec/ci-pipeline-baseline/plans/001-local-quality-gates/checklist.md --references docs/spec/ci-pipeline-baseline/plans/001-local-quality-gates/plan.md,docs/spec/ci-pipeline-baseline/spec.md --phase-commit ci-pipeline-baseline/001-local-quality-gates` 顺序执行。每个 checklist item 以本 checklist 内的 `验证:` 子句作为 Red-Green-Refactor 断言来源；涉及 sub-target 接入或删除的 item 必须先复现当前命令输出或失败状态，再最小实现并复跑 focused command。Phase 5 的 Red 来源是 `scripts/lint/check_md_links_test.py` 对缺失 fragment、GitHub-style slug、重复标题后缀、纯页内 anchor 和非 fragment 相对链接兼容性的断言。Phase 7 的 Red 来源是根 lint 聚合中仍存在的 F1 exit-zero 假 target。Phase 9 的 Red 来源是全量 Python suite 暴露的 work-journal contract failure，以及 Makefile contract 对 Python suite / dependency declaration 缺失的断言。Phase 10 的 Red 来源是 Makefile contract 对唯一根级 Node test 缺失的断言。
 - **BDD 策略**: BDD 不适用。本 plan 只在 Makefile / 文档 / 自检脚本层操作，不产生浏览器 UI、外部 API、业务工作流或端到端场景测试可观察行为，因此不创建 `bdd-plan.md` / `bdd-checklist.md`，主 checklist 也不设置 `BDD-Gate:`。
 - **替代验证 gate**: 使用本地 lint + drift + smoke 组合代替 BDD：5 个聚合入口端到端跑通（Phase 4.1）；已落地失败穿透双向 fail-injection 自检（Phase 4.3 / 4.4）；`grep -r '\.github/workflows' .` 远端 CI 文件零存在性自检（Phase 4.2）；`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` Header / INDEX drift gate（Phase 4.5）；`python3 scripts/lint/check_md_links.py docs/spec --ignore '**/TEMPLATES.md' --check-fragments` docs/spec fragment anchor drift gate（Phase 5）；frontend package lint 由 `pnpm --filter @easyinterview/frontend lint` / `typecheck` 证明（Phase 6）；F1 假 target 删除由 `make -n lint` 和 focused grep 证明（Phase 7）；真实 build gate 由 `make -n build` 与 `make build` 证明（Phase 8）。
 
@@ -57,8 +61,10 @@
 
 `test` target 调用：
 
-1. Go 单元测试：`cd backend && go test ./...`。
-2. TS 单元测试：`pnpm --filter @easyinterview/frontend test`。
+1. UI prototype contract：`node --test ui-design/ui-design-contract.test.mjs`。
+2. Python tooling / skill contracts：`python3 -m pytest scripts .agent-skills -q`。
+3. Go 单元测试：`cd backend && go test ./...`。
+4. TS 单元测试：`pnpm --filter @easyinterview/frontend test`。
 
 AI 单元测试必须走 stub / fixtures provider（[B1 spec §2.1](../../../shared-conventions-codified/spec.md#21-in-scope) + [A3 ai-provider-and-model-routing spec](../../../ai-provider-and-model-routing/spec.md) 共同约定）；`AI_PROVIDER_*` 真实 secret 不读取，`APP_ENV=test` 路径才允许 stub（spec [§4.2](../../spec.md#42-安全与权限约束)）。
 
@@ -222,9 +228,33 @@ F1 metrics / log lint helper 当前未暴露本地命令，因此不进入根 `M
 
 执行 `make -n build` 证明 build 聚合只调用 backend/frontend 真实命令；执行 `make build` 证明当前 gate 通过；执行 focused grep 确认旧 build exit-zero 文本不再出现在 A5 owner 文档；执行 context validation、`sync-doc-index --check`、`make docs-check` 与 `git diff --check` 收口。
 
+### Phase 9: Python tooling and skill contract aggregation
+
+#### 9.1 Repair the stale work-journal contract assertion
+
+保持 `/work-journal` 当前“移除 Phase 前缀后翻译/概括为简洁英文，并在自然情况下小写”的规则，修正测试中只接受旧 lowercase remainder 文本的陈旧断言。Focused test 与全量 Python suite 都必须通过。
+
+#### 9.2 Declare Python dev dependencies and wire the suite
+
+新增根 `requirements-dev.txt`，只声明当前 Python tooling/tests 实际需要的 `pytest` 与 `PyYAML`。在 `make test` 中执行 `python3 -m pytest scripts .agent-skills -q`，失败必须阻止后续 gate；保留既有 Go 与 frontend test 命令，不增加平行 test target。
+
+#### 9.3 Verification and docs sync
+
+执行 focused work-journal/Makefile contract tests、全量 Python suite、`make test`、`make lint`、A5/product contexts、docs/index/diff/pruning gates。更新 README 与 `docs/development.md` 的 test gate 和依赖安装说明；全部通过后恢复本 plan completed。
+
+### Phase 10: UI prototype Node contract aggregation
+
+#### 10.1 Wire the existing prototype contract
+
+扩展 Makefile contract，先证明 `make test` 未执行 `ui-design/ui-design-contract.test.mjs`，再把 `node --test` 命令加到现有 test target 首段。保留 Python → Go → frontend 后续顺序，不创建新 target。
+
+#### 10.2 Verification and docs sync
+
+执行 focused Makefile contract、UI contract 45 tests、完整 `make test`、A5/product contexts、README/development 与 docs/index/diff/pruning gates；确认场景专用 Python contract 不被扩大到根单元测试聚合。
+
 ## 5 验收标准
 
-- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 至 C-7 全部成立；drift / 失败 / 守门边界由 Phase 4 命令日志佐证；docs/spec fragment anchor drift 由 Phase 5 命令日志佐证；exit-zero future-owner target 清零由 Phase 7 命令日志佐证；真实 build gate 由 Phase 8 命令日志佐证。
+- spec [§6 验收标准](../../spec.md#6-验收标准) C-1 至 C-7 全部成立；drift / 失败 / 守门边界由 Phase 4 命令日志佐证；docs/spec fragment anchor drift 由 Phase 5 命令日志佐证；exit-zero future-owner target 清零由 Phase 7 命令日志佐证；真实 build gate 由 Phase 8 命令日志佐证；Python contracts 与依赖声明由 Phase 9 佐证；UI prototype contract 聚合由 Phase 10 佐证。
 - 本 plan checklist 全部勾选；Phase 4.1 与 Phase 4.3 关键命令日志贴入工作日志。
 - 不出现 `.github/workflows/*.yml` 由本 plan 创建；文档不声称项目已有远端 CI。
 
@@ -243,6 +273,8 @@ F1 metrics / log lint helper 当前未暴露本地命令，因此不进入根 `M
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.11 | Add the repository's only root Node test, the UI prototype contract, to the existing test aggregator. | tech-debt pruning |
+| 2026-07-10 | 1.10 | Add Python tooling/skill contracts and explicit dev dependencies to the root test gate; repair one stale work-journal assertion. | tech-debt pruning |
 | 2026-07-10 | 1.9 | 将 A5 001 当前 plan / checklist 中的旧 scaffold wording 收敛为 exit-zero 假 target / 真实 gate 术语。 | tech-debt pruning |
 | 2026-07-10 | 1.8 | 删除 `make build` 文档中的旧 frontend build exit-zero 口径；当前 build gate 执行真实 backend cmd build 与 frontend Vite build。 | tech-debt pruning |
 | 2026-07-10 | 1.7 | 删除 F1 observability exit-zero lint target；A5 聚合层只调用已落地 gate，F1 helper 暴露真实命令后再接入。 | tech-debt pruning |

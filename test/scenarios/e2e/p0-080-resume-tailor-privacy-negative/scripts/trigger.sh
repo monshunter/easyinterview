@@ -19,16 +19,9 @@ mkdir -p "$OUT"
   go test ./cmd/api -run 'TestResumeTailorRunnerHTTPScenario|TestResumeTailorRunnerFailureScenario' -count=1 -v
   cd "$ROOT"
   echo "RUNNER rg out-of-scope inline rewrite mirror"
-  if rg -n -i '(tailor|mode).*(inline|rewrite|mirror)|(inline|rewrite|mirror).*(tailor|mode)' backend/internal/resume --glob '!**/*_test.go' --glob '!**/verify.sh'; then
-    echo "ERROR: out-of-scope inline/rewrite/mirror vocabulary found"
-    exit 1
-  fi
-  echo "evidence out_of_scope_inline_rewrite_mirror=0"
   echo "RUNNER rg out-of-scope mistakes growth drill"
-  if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/*_test.go' --glob '!**/verify.sh'; then
-    echo "ERROR: out-of-scope mistakes/growth/drill vocabulary found"
-    exit 1
-  fi
+  "$ROOT/test/scenarios/_shared/scripts/resume-runtime-negative-gate.sh"
+  echo "evidence out_of_scope_inline_rewrite_mirror=0"
   echo "evidence out_of_scope_mistakes_growth_drill=0"
   echo "evidence outbox_payload=ids_mode_status_only"
   echo "evidence ai_task_runs=no_prompt_or_raw_response"

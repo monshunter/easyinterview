@@ -47,7 +47,6 @@ type LLMJudge struct {
 	reg         RubricProvider
 	model       JudgeModelClient
 	instruction string
-	profileName string
 	language    string
 }
 
@@ -59,16 +58,6 @@ var _ Judge = (*LLMJudge)(nil)
 
 // LLMJudgeOption tunes LLMJudge construction.
 type LLMJudgeOption func(*LLMJudge)
-
-// WithJudgeProfile overrides the judge model profile name (default
-// "judge.default").
-func WithJudgeProfile(name string) LLMJudgeOption {
-	return func(j *LLMJudge) {
-		if name != "" {
-			j.profileName = name
-		}
-	}
-}
 
 // WithJudgeRubricLanguage overrides the rubric/schema language coordinate
 // (default canonical "multi").
@@ -91,7 +80,6 @@ func NewLLMJudge(reg RubricProvider, model JudgeModelClient, instruction string,
 		reg:         reg,
 		model:       model,
 		instruction: instruction,
-		profileName: "judge.default",
 		language:    "multi",
 	}
 	for _, opt := range opts {
@@ -161,7 +149,7 @@ func (j *LLMJudge) Judge(ctx context.Context, featureKey, promptVersion string, 
 	}
 
 	// 4. Call the judge model through the narrow A3 surface.
-	resp, _, err := j.model.CompleteJudge(ctx, j.profileName, payload)
+	resp, _, err := j.model.CompleteJudge(ctx, "judge.default", payload)
 	if err != nil {
 		return nil, Reasoning{}, err
 	}

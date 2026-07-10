@@ -127,22 +127,35 @@ func TestCompleteMyProfileRequiresSessionAndTermsThenClearsFlag(t *testing.T) {
 	}
 }
 
-func TestGetMeWithoutSessionReturnsAuthEnvelope(t *testing.T) {
+func TestAccountHandlersWithoutSessionReturnAuthEnvelope(t *testing.T) {
 	handler := auth.NewHandler(auth.HandlerOptions{})
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/me", nil)
-	rec := httptest.NewRecorder()
-
-	handler.GetMe(rec, req)
-
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+	tests := []struct {
+		name   string
+		method string
+		handle func(http.ResponseWriter, *http.Request)
+	}{
+		{name: "get me", method: http.MethodGet, handle: handler.GetMe},
+		{name: "delete me", method: http.MethodDelete, handle: handler.DeleteMe},
 	}
-	var body map[string]map[string]any
-	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
-		t.Fatalf("bad error JSON: %v", err)
-	}
-	if body["error"]["code"] != "AUTH_UNAUTHORIZED" {
-		t.Fatalf("error = %+v", body)
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, "/api/v1/me", nil)
+			rec := httptest.NewRecorder()
+
+			tc.handle(rec, req)
+
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
+			}
+			var body map[string]map[string]any
+			if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+				t.Fatalf("bad error JSON: %v", err)
+			}
+			if body["error"]["code"] != "AUTH_UNAUTHORIZED" {
+				t.Fatalf("error = %+v", body)
+			}
+		})
 	}
 }
 

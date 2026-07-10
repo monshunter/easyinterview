@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
@@ -45,6 +47,40 @@ func TestRun_Idempotent(t *testing.T) {
 		if h2 := hashes2[path]; h1 != h2 {
 			t.Errorf("non-idempotent output for %s: %s vs %s", path, h1, h2)
 		}
+	}
+}
+
+func TestRun_DoesNotEmitUnusedFrontendSpecSnapshot(t *testing.T) {
+	repoRoot := mustFindRepoRoot(t)
+	tmp := t.TempDir()
+	openapiDst := filepath.Join(tmp, "openapi", "openapi.yaml")
+	if err := os.MkdirAll(filepath.Dir(openapiDst), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	mustCopy(t, filepath.Join(repoRoot, "openapi", "openapi.yaml"), openapiDst)
+
+	templates := filepath.Join(tmp, "openapi", "templates")
+	if err := mirrorDir(filepath.Join(repoRoot, "openapi", "templates"), templates); err != nil {
+		t.Fatalf("mirror templates: %v", err)
+	}
+	if err := Run(
+		openapiDst,
+		filepath.Join(repoRoot, "shared", "conventions.yaml"),
+		templates,
+		tmp,
+		false,
+	); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	generated := filepath.Join(tmp, "frontend", "src", "api", "generated")
+	for _, name := range []string{"client.ts", "types.ts"} {
+		if _, err := os.Stat(filepath.Join(generated, name)); err != nil {
+			t.Fatalf("expected %s: %v", name, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(generated, "spec.ts")); !os.IsNotExist(err) {
+		t.Fatalf("unexpected frontend raw spec snapshot: %v", err)
 	}
 }
 
@@ -237,7 +273,8 @@ func snapshotHashes(t *testing.T, root string) map[string]string {
 		if err != nil {
 			return err
 		}
-		out[path] = sha256hex(data)
+		sum := sha256.Sum256(data)
+		out[path] = hex.EncodeToString(sum[:])
 		return nil
 	})
 	if err != nil {

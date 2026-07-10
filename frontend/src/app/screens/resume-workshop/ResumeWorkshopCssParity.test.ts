@@ -63,4 +63,36 @@ describe("Resume Workshop source-level CSS parity", () => {
       expect(source, `${selector} should remain absent`).not.toContain(selector);
     }
   });
+
+  it("does not keep detail styles without a current DOM or prototype consumer", () => {
+    const source = css();
+    for (const selector of [
+      ".ei-resume-detail-breadcrumb",
+      ".ei-resume-detail-preview-actions",
+      ".ei-resume-detail-preview-section",
+      ".ei-resume-detail-preview-skills",
+      ".ei-resume-detail-modal-overlay",
+      ".ei-resume-detail-modal-header",
+      ".ei-resume-detail-modal-desc",
+      ".ei-resume-detail-modal-content",
+      ".ei-resume-detail-modal",
+    ]) {
+      expect(source, `${selector} should remain absent`).not.toContain(selector);
+    }
+  });
+
+  it("keeps one effective detail-back rule and no grid declaration on the flex preview", () => {
+    const source = css();
+    const backRules = source.match(/\.ei-resume-detail-back\s*\{[^}]*\}/g) ?? [];
+    expect(backRules).toHaveLength(1);
+    expect(backRules[0]).toMatch(/display:\s*inline-flex/);
+    expect(backRules[0]).toMatch(/padding:\s*0/);
+    expect(backRules[0]).toMatch(/border:\s*0/);
+    expect(backRules[0]).toMatch(/border-radius:\s*2px/);
+    expect(backRules[0]).toMatch(/font-family:\s*var\(--ei-font-sans\)/);
+    expect(backRules[0]).toMatch(/font-size:\s*13px/);
+    expect(source).not.toMatch(
+      /\.ei-resume-detail-preview\s*\{[^}]*grid-template-columns/,
+    );
+  });
 });

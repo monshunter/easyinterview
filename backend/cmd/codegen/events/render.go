@@ -87,10 +87,6 @@ type JobSpec struct {
 	RedactedFields       []string                `yaml:"redactedFields"`
 }
 
-func Run(eventsPath, jobsPath, repoRoot string, verbose bool) error {
-	return RunWithConventions(eventsPath, jobsPath, filepath.Join(filepath.Dir(eventsPath), "conventions.yaml"), repoRoot, verbose)
-}
-
 func RunWithConventions(eventsPath, jobsPath, conventionsPath, repoRoot string, verbose bool) error {
 	eventsData, err := os.ReadFile(eventsPath)
 	if err != nil {
@@ -101,14 +97,6 @@ func RunWithConventions(eventsPath, jobsPath, conventionsPath, repoRoot string, 
 		return fmt.Errorf("read jobs yaml: %w", err)
 	}
 	conventionsData, err := os.ReadFile(conventionsPath)
-	if err != nil {
-		return fmt.Errorf("read conventions yaml: %w", err)
-	}
-	return RunFromBytesWithConventions(eventsData, jobsData, conventionsData, repoRoot, verbose)
-}
-
-func RunFromBytes(eventsData, jobsData []byte, repoRoot string, verbose bool) error {
-	conventionsData, err := os.ReadFile(filepath.Join(repoRoot, "shared/conventions.yaml"))
 	if err != nil {
 		return fmt.Errorf("read conventions yaml: %w", err)
 	}

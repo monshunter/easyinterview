@@ -3,7 +3,6 @@ package config_test
 import (
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 )
@@ -20,8 +19,6 @@ async:
     critical: 6
     default: 3
     low: 1
-runtime:
-  shutdownGrace: "5s"
 featureFlag:
   posthogSelfHosted: true
 `)
@@ -38,9 +35,6 @@ featureFlag:
 	}
 	if got := loader.GetBool("featureFlag.posthogSelfHosted"); got != true {
 		t.Errorf("GetBool: %v", got)
-	}
-	if got := loader.GetDuration("runtime.shutdownGrace"); got != 5*time.Second {
-		t.Errorf("GetDuration: %v", got)
 	}
 }
 

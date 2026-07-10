@@ -34,6 +34,9 @@ describe("practice pause / resume (item 3.3)", () => {
       expect(eventCalls(calls).length).toBeGreaterThanOrEqual(1);
     });
     expect(readBody(eventCalls(calls).at(-1)!).kind).toBe("session_paused");
+    expect(screen.getByTestId("practice-topbar-pause")).toHaveTextContent(
+      "Resume",
+    );
 
     // Pause → resume button click again
     await user.click(screen.getByTestId("practice-topbar-pause"));
@@ -41,6 +44,9 @@ describe("practice pause / resume (item 3.3)", () => {
       expect(eventCalls(calls).length).toBeGreaterThanOrEqual(2);
     });
     expect(readBody(eventCalls(calls).at(-1)!).kind).toBe("session_resumed");
+    expect(screen.getByTestId("practice-topbar-pause")).toHaveTextContent(
+      "Pause",
+    );
   });
 
   it("while paused, submit / hint do not post", async () => {

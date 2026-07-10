@@ -1,6 +1,6 @@
 # Shared Conventions Codified History
 
-> **版本**: 1.25
+> **版本**: 1.27
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -8,6 +8,8 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 1.27 | 将当前 `yaml.v3` typed loader、手写 renderer 与 TypeScript 生成文件边界写入锁定决策，删除 active spec 中已经落实的待确认项。 | tech-debt pruning |
+| 2026-07-10 | 1.26 | 固化根 `go.work` 单 use `./backend` 的当前拓扑，将 workspace/module/tool version 统一为 `1.24.5`，并接入 tidy drift gate。 | tech-debt pruning |
 | 2026-07-10 | 1.25 | 将 TargetJob 错误码验收条件收敛为 canonical codes 正向合同，并同步 001 context。 | tech-debt pruning |
 | 2026-07-07 | 1.24 | docs-only：将修订说明统一为记录表述，不改变 B1 shared conventions truth source。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-06 | 1.23 | docs-only：将 B1 active spec 正文收敛为当前 16 个生成枚举、flat Resume vocabulary 与 `RESUME_EXPORT_NOT_AVAILABLE` 错误码边界。 | product-scope/001-core-loop-module-pruning |

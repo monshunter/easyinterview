@@ -1,8 +1,8 @@
 # Event and Outbox Contract Bootstrap
 
-> **版本**: 1.10
+> **版本**: 1.12
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -57,6 +57,10 @@ Downstream owners consume this contract:
 - F2 owns product analytics namespace and must not reuse B3 internal event names.
 - C1 owns email-code dispatch producer behavior and must use generated redaction helpers.
 
+### 4.6 Canonical generator entrypoint
+
+`backend/cmd/codegen/events/main.go` 与 generator tests 统一调用显式接收 conventions 输入的 `RunWithConventions` / `RunFromBytesWithConventions`。删除仅由测试调用、隐式推导 conventions 路径的 `Run` / `RunFromBytes` wrappers；测试 helper 只负责组织真实入口参数，不在生产包保留平行入口。
+
 ## 5 验收标准
 
 - Current event inventory is exactly 14 events across 6 domains.
@@ -80,6 +84,8 @@ Downstream owners consume this contract:
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.12 | 对齐事件 inventory contract tests 与当前 14-event / 8-job 数量口径。 | tech-debt pruning |
+| 2026-07-10 | 1.11 | 删除两个测试专用 generator wrapper，测试与 CLI 统一使用显式 conventions 入口。 | tech-debt pruning |
 | 2026-07-07 | 1.10 | 压缩 owner 文档为当前 14-event / 8-job / 6 API-facing subset event-job contract。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-06 | 1.9 | 对齐当前 14 events / 8 canonical jobs / 6 API-facing JobType subset。 | product-scope/001-core-loop-module-pruning |
 | 2026-04-30 | 1.3 | 完成 B3 event/job contract bootstrap implementation。 | implementation close-out |

@@ -6,11 +6,13 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/monshunter/easyinterview/backend/internal/testsupport"
 )
 
 func TestCacheReloadIdempotent(t *testing.T) {
 	t.Parallel()
-	prompts, rubrics := repoConfigRoots(t)
+	prompts, rubrics := testsupport.ConfigRoots(t)
 	client, err := NewRegistryClient(RegistryOptions{
 		PromptsDir: prompts,
 		RubricsDir: rubrics,
@@ -32,7 +34,7 @@ func TestCacheReloadIdempotent(t *testing.T) {
 
 func TestCacheTTLDrivesReload(t *testing.T) {
 	t.Parallel()
-	prompts, rubrics := repoConfigRoots(t)
+	prompts, rubrics := testsupport.ConfigRoots(t)
 	var nowNs atomic.Int64
 	nowFn := func() time.Time { return time.Unix(0, nowNs.Load()).UTC() }
 	nowNs.Store(time.Now().UnixNano())
@@ -67,7 +69,7 @@ func TestCacheTTLDrivesReload(t *testing.T) {
 
 func TestCacheConcurrentReadsAndReload(t *testing.T) {
 	t.Parallel()
-	prompts, rubrics := repoConfigRoots(t)
+	prompts, rubrics := testsupport.ConfigRoots(t)
 	client, err := NewRegistryClient(RegistryOptions{
 		PromptsDir: prompts,
 		RubricsDir: rubrics,

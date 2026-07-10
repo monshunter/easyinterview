@@ -25,3 +25,7 @@
 
 - [x] Current owner evidence set passed before completion.
   <!-- verified: 2026-05-16 method=aggregate-gates evidence="backend Go packages, codegen, fixtures, migrations, event lint/codegen, conventions drift, backend-review current-scope lint, prompt/rubric lint, docs-check, and diff-check passed." -->
+
+## Phase 9: GenerateHandler retry normalization
+
+- [x] Both exact retryable-failure test names pass through one shared harness and scoped Review `dupl` reports zero clone groups.

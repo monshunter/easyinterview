@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -90,6 +90,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.9 | 删除 fixture example renderer 中未读取的 path/method 遍历绑定。 | tech-debt pruning |
 | 2026-07-10 | 1.8 | 删除无当前入口的一次性 fixture bootstrap 记录，并将生产脚本可达性纳入通用 inventory gate。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-10 | 1.7 | 对齐当前 37-operation fixture truth source，包含 `archiveTargetJob`。 | tech-debt pruning |
 | 2026-07-07 | 1.6 | 新增 `getResumeSource` fixture，fixture truth source 与 example projection 覆盖当时 36-operation contract。 | backend-resume/001 Phase 12 |

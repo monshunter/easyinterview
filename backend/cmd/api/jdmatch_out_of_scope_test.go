@@ -34,7 +34,7 @@ runtime:
 		Store:               &apiAuthStore{},
 		SessionCookieSecret: "session-secret",
 	})
-	handler := buildAPIHandlerWithUploadReportJobsAndHandlers(
+	handler := buildAPIHandler(
 		loader,
 		apiRuntimeFlags{},
 		service,

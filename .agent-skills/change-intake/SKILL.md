@@ -108,6 +108,12 @@ Interpret matcher output as:
 - `low` confidence: present 2-3 candidates to the user before mutating anything
 - `none`: fall back to manual repo search and explain the gap
 
+Exact scenario README Owner evidence outranks generic API / route keyword overlap.
+Active / draft status is only a bounded tie-breaker for otherwise close semantic
+matches; a completed plan with an exact BUG or scenario owner remains eligible.
+If the recommendation conflicts with the current active plan or an explicit Owner
+link, inspect both artifacts before mutation even when confidence is `high`.
+
 Rules:
 
 - Prefer the `recommended` candidate unless confidence is `low`

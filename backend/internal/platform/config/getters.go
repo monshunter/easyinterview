@@ -1,9 +1,5 @@
 package config
 
-import (
-	"time"
-)
-
 // GetString returns the value at dot-path key as a string. Empty string is
 // returned for missing keys; required-key enforcement is the responsibility
 // of Loader.Validate (item 1.5).
@@ -30,15 +26,6 @@ func (l *Loader) GetBool(key string) bool {
 		return false
 	}
 	return l.k.Bool(key)
-}
-
-// GetDuration returns the value at dot-path key as a time.Duration. The
-// value may be a Go duration string (e.g. "5s") or a number of seconds.
-func (l *Loader) GetDuration(key string) time.Duration {
-	if l == nil || l.k == nil {
-		return 0
-	}
-	return l.k.Duration(key)
 }
 
 // GetSecret returns the value at dot-path key wrapped in RedactedString.

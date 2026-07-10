@@ -3,6 +3,19 @@
 // ═══════════════════════════════════════════════════════════════════
 // #1 JD PARSE FLOW — loading state + structured preview / confirm
 // ═══════════════════════════════════════════════════════════════════
+const PlanBindingPill = ({ T, icon, label, title, meta }) => (
+  <div style={{ padding: "14px 16px", background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 2, display: "grid", gridTemplateColumns: "32px 1fr", gap: 12, alignItems: "center" }}>
+    <div style={{ width: 32, height: 32, borderRadius: 16, background: T.bgCard, border: `1px solid ${T.rule}`, color: T.accent, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Icon name={icon} size={15} />
+    </div>
+    <div style={{ minWidth: 0 }}>
+      <div className="ei-label" style={{ color: T.ink3, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 14, color: T.ink, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
+      <div style={{ fontSize: 12, color: T.ink3, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{meta}</div>
+    </div>
+  </div>
+);
+
 const ParseScreen = ({ T, lang, nav, requestAuth }) => {
   const [stage, setStage] = React.useState("loading"); // loading -> preview
   const [step, setStep] = React.useState(0);
@@ -258,11 +271,11 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
       <Card T={T} style={{ marginBottom: 28 }}>
         <div className="ei-label" style={{ color: T.ink3, marginBottom: 12 }}>{lang === "en" ? "INTERVIEW LAUNCH" : "面试启动"}</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <window.BindingPill T={T} icon="briefcase" label={lang === "en" ? "Target job / JD" : "目标岗位 / JD"} title={parsed.title} meta={`${parsed.company} · ${parsed.level}`} />
+          <PlanBindingPill T={T} icon="briefcase" label={lang === "en" ? "Target job / JD" : "目标岗位 / JD"} title={parsed.title} meta={`${parsed.company} · ${parsed.level}`} />
           {selectedResume ? (
-            <window.BindingPill T={T} icon="resume" label={lang === "en" ? "Bound resume" : "绑定简历"} title={selectedResume.name} meta={selectedResume.meta} />
+            <PlanBindingPill T={T} icon="resume" label={lang === "en" ? "Bound resume" : "绑定简历"} title={selectedResume.name} meta={selectedResume.meta} />
           ) : (
-            <window.BindingPill T={T} icon="resume" label={lang === "en" ? "Bound resume" : "绑定简历"} title={lang === "en" ? "Missing bound resume" : "缺少绑定简历"} meta={lang === "en" ? "Create a new plan from Home" : "请从首页重新创建规划"} />
+            <PlanBindingPill T={T} icon="resume" label={lang === "en" ? "Bound resume" : "绑定简历"} title={lang === "en" ? "Missing bound resume" : "缺少绑定简历"} meta={lang === "en" ? "Create a new plan from Home" : "请从首页重新创建规划"} />
           )}
         </div>
         <div style={{ fontSize: 12, color: T.ink3, marginTop: 12, display: "flex", gap: 6, alignItems: "center" }}>
@@ -443,7 +456,7 @@ const ReportGeneratingScreen = ({ T, lang, nav, params = {} }) => {
 // ═══════════════════════════════════════════════════════════════════
 // #8 SETTINGS / PRIVACY / DATA EXPORT & DELETE
 // ═══════════════════════════════════════════════════════════════════
-const SettingsScreen = ({ T, lang, nav, fontPreset, setFontPreset }) => {
+const SettingsScreen = ({ T, lang, fontPreset, setFontPreset }) => {
   const [tab, setTab] = React.useState("profile");
 
   const tabs = lang === "en"

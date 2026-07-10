@@ -1,8 +1,8 @@
 # 001 — Plan and Session Orchestration Checklist
 
-> **版本**: 1.6
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-07-08
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -47,3 +47,30 @@
 
 - [x] 6.1 `PracticePlan` OpenAPI/generated/fixtures include persisted `resumeId` on create/read responses（验证：`make codegen-openapi`; `make validate-fixtures` PASS）
 - [x] 6.2 Practice handler/service/store return `practice_plans.resume_id` for create/read and preserve user isolation（验证：`cd backend && go test ./internal/practice ./internal/api/practice ./internal/store/practice -count=1` PASS）
+
+## Phase 7: first-question invalid-output test table consolidation
+
+- [x] 7.1 Record scoped `dupl` RED and verify both top-level test names have no external consumers.
+  <!-- red: 2026-07-10 method=practice-first-question-invalid-test-dupl evidence="Scoped dupl -t 100 reports missing-text and non-JSON first-question tests as session_starter_test.go's only clone group; repo search finds no external exact-name consumers." -->
+- [x] 7.2 Replace both tests with one table-driven test while retaining both AI outputs, named cases, step-order and terminal failure assertions.
+  <!-- verified: 2026-07-10 method=practice-first-question-invalid-table evidence="One TestStartPracticeSessionRejectsInvalidFirstQuestionOutput runs named missing-text and non-JSON cases with isolated stores/services, exact reserve-ai-fail ordering and terminal non-retryable AI_OUTPUT_INVALID assertions. Both pass; scoped dupl is zero and staticcheck passes." -->
+- [x] 7.3 Run focused Practice tests, scoped dupl, full backend/vet/staticcheck and owner/product/docs/pruning gates; then restore the owner group to `completed`.
+  <!-- verified: 2026-07-10 method=practice-first-question-invalid-table-consolidation evidence="Both named missing-text/non-JSON cases pass with reserve-ai-fail ordering and terminal non-retryable AI_OUTPUT_INVALID assertions; session_starter_test.go scoped dupl is zero. Practice owner packages, full backend, go vet/staticcheck, both contexts and final docs/index/link/diff/pruning gates pass with real_residuals=0. No behavior/BDD change, Bug/retrospective report or environment operation was needed." -->
+
+## Phase 8: create-plan SQL expectation consolidation
+
+- [x] 8.1 Record scoped `dupl` RED for the repeated successful create-plan insert row setup and confirm all owning top-level tests remain required.
+  <!-- verified: 2026-07-10 method=practice-create-plan-sql-test-dupl evidence="Scoped dupl -t 100 reports the baseline and report-derived success insert expectations as internal/store/practice's only clone group. Existing exact test names remain owner/regression evidence and will not be removed." -->
+- [x] 8.2 Extract one test-only successful insert expectation helper and reuse it from baseline, empty-focus and report-derived tests without changing query or row contracts.
+  <!-- verified: 2026-07-10 method=practice-create-plan-success-expectation-helper evidence="The three existing top-level tests pass through one helper with their original query patterns, focus matcher and source-report row. Failure expectations remain explicit; scoped internal/store/practice dupl reports zero clone groups and staticcheck passes." -->
+- [x] 8.3 Run focused 001/004 tests, scoped dupl, full backend/vet/staticcheck and owner/product/docs/pruning closeout gates.
+  <!-- verified: 2026-07-10 method=practice-create-plan-sql-test-consolidation-closeout evidence="001 create-plan, 004 Derived/Source/P0.070/P0.072, store and Practice package gates PASS; full backend, go vet and staticcheck PASS; 001/004/product contexts, docs/index/diff and pruning gates PASS with real_residuals=0." -->
+
+## Phase 9: plan/session GET fixture harness consolidation
+
+- [x] 9.1 RED: scoped `dupl` reports the plan/session GET test pair; exact top-level fixture parity names have no external consumers but both operation behaviors remain required.
+  <!-- red: 2026-07-10 method=practice-get-resource-test-dupl evidence="dupl -t 100 reports get_practice_plan_test.go and get_practice_session_test.go as one 49-line clone group covering scoped 404 and fixture parity setup; repo search finds no exact-name consumer." -->
+- [x] 9.2 Introduce a test-only generic fixture runner with typed body decoding and a scoped-not-found assertion; delete per-operation fixture structs/loaders and require scoped `dupl` zero.
+  <!-- verified: 2026-07-10 method=practice-get-resource-fixture-harness-green evidence="One TestGetPracticeResourcesFixtureParity preserves plan/session and all six named fixture cases through a generic runner with api.PracticePlan/api.PracticeSession decoding. Old top-level names and loaders have zero references; the three-file scoped dupl reports zero groups and focused GET tests pass." -->
+- [x] 9.3 BDD-Gate: run plan/session focused tests, P0.022/P0.023 serial lifecycles, Practice/full backend/vet/staticcheck, contexts and docs/pruning gates.
+  <!-- verified: 2026-07-10 method=practice-get-resource-fixture-harness-closeout evidence="Focused GET and full Practice/cmd-api packages pass; full backend, vet and staticcheck pass. P0.022/P0.023 complete serial lifecycles and cleanup; owner/product contexts and docs/index/diff/pruning gates pass with real_residuals=0." -->

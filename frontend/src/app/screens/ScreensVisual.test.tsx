@@ -11,6 +11,7 @@ import { SettingsScreen } from "./SettingsScreen";
 
 const HERE = resolve(__dirname);
 const SCREENS_CSS = resolve(HERE, "screens.css");
+const FRONTEND_README = resolve(HERE, "..", "..", "..", "README.md");
 
 function withProvider(node: React.ReactElement) {
   return <DisplayPreferencesProvider>{node}</DisplayPreferencesProvider>;
@@ -193,5 +194,12 @@ describe("screens.css visual rhythm (Phase 5.1 + 5.2)", () => {
       "utf8",
     );
     expect(globalCss).toMatch(/@import\s+["']\.\.\/screens\/screens\.css["'];/);
+  });
+
+  it("does not keep or document a screen-card grid without a DOM consumer", () => {
+    expect(css).not.toMatch(/\.ei-screen-card-grid\s*\{/);
+    expect(readFileSync(FRONTEND_README, "utf8")).not.toContain(
+      "ei-screen-card-grid",
+    );
   });
 });

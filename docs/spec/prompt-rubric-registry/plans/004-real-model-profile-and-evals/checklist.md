@@ -1,6 +1,6 @@
 # F3 Real Model Profile and Evals Checklist
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -45,3 +45,8 @@
 - [x] 6.3 `resume.parse` 四档录制输出补齐 current schema 必填的 `displayName` / `markdownText`，不放宽 output schema（验证：`TestRealSuiteOfflineGreen`、`make eval-offline`）
 - [x] 6.4 `target.import.parse` 四档录制输出改为 current `title` / `companyName` / `interviewRounds` shape，删除范围外 `interviewHypotheses`，并从 registry 重新生成 `resolved-prompts.json`（验证：36-case schema audit、`make eval-offline-resolve`、`make eval-offline`）
   <!-- verified: 2026-07-10 method=eval-wire-and-current-fixture-reconcile evidence="S1016 red identified repeated DimensionScore field mapping. Initial real-suite red exposed missing Resume displayName and TargetJob title; a 36-case schema audit isolated the 8 alias-backed failures. Current Resume/TargetJob outputs and resolved prompt projection were repaired without weakening schemas. Eval and evalkit tests, scoped staticcheck, profile/hardcode lints, F3/product contexts, docs/diff/pruning gates PASS. make eval-offline PASS: 36 graded offline with no network and Promptfoo 36 passed, 0 failed, 0 errors; real_residuals=0." -->
+
+## 7 Fixed judge profile state removal
+
+- [x] 7.1 删除零消费者 `WithJudgeProfile` 与恒定 `LLMJudge.profileName` 字段，直接使用 F3 锁定的 `judge.default`；验证：`deadcode -test` RED/GREEN、symbol inventory、registry judge tests、scoped `staticcheck`、profile coverage 与 owner docs gates
+  <!-- verified: 2026-07-10 method=fixed-judge-profile-state-removal evidence="deadcode -test RED reported WithJudgeProfile as unreachable. Removed the option and constant-valued field; the existing registry test still asserts judge.default reaches the model client. Registry/judge tests, staticcheck, profile/hardcode lints and reachability inventory PASS; make eval-offline PASS 36/36 with no network." -->

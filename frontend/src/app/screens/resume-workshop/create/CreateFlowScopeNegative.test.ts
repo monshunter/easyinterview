@@ -19,6 +19,7 @@ const CREATE_DIR = resolve(
   "../",
   "create",
 );
+const SCREENS_CSS = resolve(__dirname, "..", "..", "screens.css");
 
 function* walk(dir: string): Generator<string> {
   for (const entry of readdirSync(dir)) {
@@ -117,5 +118,29 @@ describe("frontend-resume-workshop/002 — create stage ownership", () => {
     expect(
       readFileSync(join(CREATE_DIR, "ResumeCreateFlow.tsx"), "utf8"),
     ).toContain('data-stage="input"');
+  });
+});
+
+describe("frontend-resume-workshop/002 — create-flow CSS ownership", () => {
+  it("does not keep a ghost CTA selector without a DOM or prototype consumer", () => {
+    expect(readFileSync(SCREENS_CSS, "utf8")).not.toContain(
+      ".ei-resume-create-cta-ghost",
+    );
+  });
+
+  it("keeps one complete accent CTA rule", () => {
+    const css = readFileSync(SCREENS_CSS, "utf8");
+    const rules = css.match(/\.ei-resume-create-cta-accent\s*\{[^}]*\}/g) ?? [];
+    expect(rules).toHaveLength(1);
+    for (const declaration of [
+      /display:\s*inline-flex/,
+      /height:\s*38px/,
+      /font-family:\s*var\(--ei-font-sans\)/,
+      /background:\s*var\(--ei-color-accent\)/,
+      /border:\s*1px solid var\(--ei-color-accent\)/,
+      /color:\s*#ffffff/,
+    ]) {
+      expect(rules[0]).toMatch(declaration);
+    }
   });
 });

@@ -1,6 +1,6 @@
 # F3 Real Model Profile and Evals
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -53,6 +53,10 @@ Offline eval is deterministic and safe for local gates. Live eval is opt-in thro
 
 `DimensionScore` and the private JSON `wireScore` remain field-identical apart from serialization tags. The eval harness uses an explicit type conversion instead of repeating the field mapping, while `RunOffline` and `JudgeTranscript` continue to exercise the strict `LLMJudge` JSON contract. Recorded outputs follow the current `resume.parse` and `target.import.parse` schemas instead of weakening validation, and `resolved-prompts.json` is regenerated from the registry single source. Owner discovery includes both `backend/internal/eval` and `backend/cmd/evalkit`.
 
+### 4.6 Fixed judge profile state removal
+
+`judge.default` is the locked F3 profile and has no runtime override consumer. Remove the unreachable `WithJudgeProfile` option and the constant-valued `LLMJudge.profileName` field; `LLMJudge` calls the model client with the locked profile directly while the existing judge contract test continues to assert that value.
+
 ## 5 验收标准
 
 - Judge interface, LLMJudge, judge adapter and profile catalog focused Go tests pass.
@@ -61,6 +65,7 @@ Offline eval is deterministic and safe for local gates. Live eval is opt-in thro
 - Promptfoo version is pinned in repo dependency metadata.
 - `make lint-prompts-hardcode` and registry single-source drift gate pass.
 - Docs/context/index gates pass and active docs describe the current judge/eval contract.
+- `deadcode -test` and symbol inventory report no judge profile override surface.
 
 ## 6 风险与应对
 
@@ -76,6 +81,7 @@ Offline eval is deterministic and safe for local gates. Live eval is opt-in thro
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.7 | 删除零消费者 judge profile override 与恒定 profile 字段，直接使用已锁定的 `judge.default`。 | tech-debt pruning |
 | 2026-07-10 | 1.6 | 简化 eval score wire conversion，修复 current-schema fixtures / resolved prompt projection，并补齐 eval package / command 的 owner discovery。 | tech-debt pruning |
 | 2026-07-10 | 1.5 | 同步当前 `FailClosedJudge` / `LLMJudge` 代码事实，并将 profile coverage 表述收敛为 runnable / non-runnable marker。 | tech-debt pruning |
 | 2026-07-07 | 1.4 | 压缩 owner 文档为当前 judge.default active、LLMJudge、36-case eval-offline and Promptfoo single-source contract。 | product-scope/001-core-loop-module-pruning |

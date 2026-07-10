@@ -1,6 +1,6 @@
 # Provider Registry and Capability Profiles Checklist
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -54,3 +54,8 @@
 - [x] 6.2 将 repo-tracked AI provider 开发主力收敛为 `deepseek`，chat profile 只使用 `deepseek-v4-flash` / `deepseek-v4-pro`，且 STT / realtime / judge 继续 fail-closed。验证: profile catalog tests、`make lint-ai-profile-coverage`、out-of-scope 模型别名负向搜索
 - [x] 6.3 同步 A3 / B1 / B3 / B4 / F3 active spec、README、lint、fixtures 与 generated artifacts，使文档、配置、代码和基础设施契约一致。验证: `make docs-check`、context validation、`make lint-config`
 - [x] 6.4 完成全局验证并确认 Header 状态：focused tests、codegen idempotency、`make lint-ai-profile-coverage`、`make lint-config`、`make docs-check`、active-scope negative search 通过，plan/checklist 均保持 `completed`
+
+## Phase 7: Provider startup error contract cleanup
+
+- [x] 7.1 删除仅由测试自证的 `providerregistry.SharedErrorCode` 映射层；保留 `ErrProviderConfigInvalid` / `ErrProviderSecretMissing` 的 `errors.Is` 合同，并通过 focused tests、staticcheck、production deadcode、symbol inventory、AI/config lints、owner contexts 与 docs/diff/pruning gates 验证
+  <!-- verified: 2026-07-10 method=shared-provider-error-mapper-removal evidence="Production deadcode RED listed SharedErrorCode. Removed the mapper and two self-only assertions while preserving both errors.Is startup sentinels. Focused/full AI tests, staticcheck, deadcode/symbol inventory, AI/config lints and owner contexts PASS." -->

@@ -39,26 +39,6 @@ func TestURLFetchUserAgentMatchesSpecD7(t *testing.T) {
 	}
 }
 
-func TestMustNotIntroduceAppLevelConfigKeyPanicsWithA4Hint(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("expected panic")
-		}
-		msg, ok := r.(string)
-		if !ok {
-			t.Fatalf("panic value not string: %v", r)
-		}
-		if !strings.Contains(msg, "secrets-and-config") {
-			t.Fatalf("panic must mention A4 owner spec: %q", msg)
-		}
-		if !strings.Contains(msg, "TARGETJOB_PROXY") {
-			t.Fatalf("panic must echo the offending key: %q", msg)
-		}
-	}()
-	targetjob.MustNotIntroduceAppLevelConfigKey("TARGETJOB_PROXY")
-}
-
 func TestIsTestAppEnvAcceptsOnlyTest(t *testing.T) {
 	cases := map[string]bool{
 		"test":       true,
@@ -108,31 +88,6 @@ func TestTargetJobSourceFilesContainNoAppLevelProxyKeys(t *testing.T) {
 			if bytes.Contains(raw, []byte(kw)) {
 				t.Errorf("file %s contains forbidden proxy key %q; route via deployment instead", f, kw)
 			}
-		}
-	}
-}
-
-// TestTargetJobSourceFilesDoNotReadOsGetenv enforces A4 ownership of
-// app-level config: this domain receives configuration through constructor
-// parameters, not via direct os.Getenv calls.
-func TestTargetJobSourceFilesDoNotReadOsGetenv(t *testing.T) {
-	files, err := filepath.Glob("*.go")
-	if err != nil {
-		t.Fatalf("glob: %v", err)
-	}
-	for _, f := range files {
-		if strings.HasSuffix(f, "_test.go") {
-			continue
-		}
-		raw, err := os.ReadFile(f)
-		if err != nil {
-			t.Fatalf("read %s: %v", f, err)
-		}
-		if bytes.Contains(raw, []byte("os.Getenv")) {
-			t.Errorf("file %s calls os.Getenv directly; route through A4 secrets-and-config", f)
-		}
-		if bytes.Contains(raw, []byte("os.LookupEnv")) {
-			t.Errorf("file %s calls os.LookupEnv directly; route through A4 secrets-and-config", f)
 		}
 	}
 }

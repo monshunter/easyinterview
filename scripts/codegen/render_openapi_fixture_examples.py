@@ -42,10 +42,10 @@ def _walk_fixtures(fixtures_root: Path) -> dict[str, dict]:
 
 def _operation_ids(spec: dict) -> list[str]:
     out: list[str] = []
-    for _path, methods in (spec.get("paths") or {}).items():
+    for methods in (spec.get("paths") or {}).values():
         if not isinstance(methods, dict):
             continue
-        for _method, op in methods.items():
+        for op in methods.values():
             if isinstance(op, dict) and isinstance(op.get("operationId"), str):
                 out.append(op["operationId"])
     return sorted(out)
@@ -57,10 +57,10 @@ def _attach_example(spec: dict, opid: str, status: int, body) -> bool:
 
     Returns True if attached.
     """
-    for path, methods in (spec.get("paths") or {}).items():
+    for methods in (spec.get("paths") or {}).values():
         if not isinstance(methods, dict):
             continue
-        for method, op in methods.items():
+        for op in methods.values():
             if not isinstance(op, dict) or op.get("operationId") != opid:
                 continue
             responses = op.setdefault("responses", {})

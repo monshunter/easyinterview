@@ -1,6 +1,6 @@
 # Backend Practice Event Loop and Completion Test Plan
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -12,7 +12,7 @@
 
 核心断言：
 
-- event kind 路由、AssistantAction 决策、turn-status wire/domain 映射和 malformed payload fail-fast。
+- event kind 路由、AssistantAction 决策、四值 turn-status 常量/OpenAPI parity 和 malformed payload fail-fast。
 - append replay/mismatch、row lock sequencing、cross-user 404、header policy 和 no-audit boundary。
 - completion idempotency middleware、D-35 replay、queued report/job handoff、status guard、outbox/audit creation and duplicate-prevention.
 - source-event-only `report_generate` job semantics, generated events/jobs drift, OpenAPI generated drift and fixture validity.
@@ -43,7 +43,7 @@
 | append sequencing | accepted events have duplicate or gapped `seq_no` | accepted events are contiguous per session and stale-turn requests conflict |
 | completion replay | same session creates a second report/job/outbox with another idempotency key | service returns the existing report/job and records the new idempotency snapshot |
 | report handoff | source event replay can create a second `report_generate` job | handler/store path is the single report job creator and active dedupe/replay blocks duplicates |
-| wire boundary | turn status is compressed or runtime-only provenance fields leak | five statuses and six provenance fields are preserved exactly |
+| wire boundary | turn status is compressed or runtime-only provenance fields leak | four turn statuses and six provenance fields are preserved exactly |
 | privacy | text or provider secret appears in event/audit/log/metric/task payload | only IDs, lengths, counts, statuses, profile/model/error summaries and typed task columns are present |
 
 ## 4 Closeout Gate
