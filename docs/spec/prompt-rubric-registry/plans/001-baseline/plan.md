@@ -1,8 +1,8 @@
 # F3 Baseline Registry, Resolve and Lint Gates
 
-> **版本**: 1.4
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -91,4 +91,16 @@ make validate-fixtures
 
 | 日期 | 版本 | 说明 |
 |------|------|------|
+| 2026-07-10 | 1.6 | Simplify rubric score-level loading through the equivalent domain type conversion. |
+| 2026-07-10 | 1.5 | Remove the stale fixed F3 spec version from the rubric README and lock a versionless-reference gate. |
 | 2026-07-07 | 1.4 | Compress owner docs to the current 9-key multi-coordinate registry, lint, TargetJob adapter and provenance contract. |
+
+## 8 Rubric README stable spec reference
+
+`config/rubrics/README.md` 引用 active F3 spec 时只使用路径，不固定瞬时版本号。以负向搜索锁定 active config/lint 文档中不存在 ``spec.md` vN.N``，并运行 rubric lint、context/index/docs/diff/pruning gates 后确认 `completed`。
+
+验证结果：`make lint-rubrics` 输出 9 files clean，6 个 rubric lint tests 通过；F3 001 context、index/docs/diff/pruning gates 通过，固定版本搜索为零。
+
+## 9 Registry score-level conversion simplification
+
+`scoreLevelYAML` 与 `ScoreLevel` 保持字段名、顺序和类型同构。loader 直接执行显式类型转换，删除逐字段复制的重复映射，同时用全量 registry loader tests、rubric lint 和 scoped `staticcheck` 保持 9 份 rubric 的加载合同不变。

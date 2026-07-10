@@ -1,8 +1,8 @@
 # AIClient and Profile Bootstrap Checklist
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -46,3 +46,8 @@
 - [x] 5.2 terminology/profile/config/codegen gates pass（验证：`make lint-ai-provider-terminology`、`make lint-ai-profile-coverage`、`make lint-config`、`make codegen-check`）
 - [x] 5.3 owner context and docs indexes are current（验证：`validate_context.py ai-provider-and-model-routing/001 backend`、`sync-doc-index --check`、`make docs-check`）
 - [x] 5.4 DI handoff surfaces remain available for A4/B4/F1/F3/business owners（验证：AIClient README and package tests）
+
+## Phase 6: OpenAI-compatible base URL normalization simplification
+
+- [x] 6.1 `normalizeBaseURL` 删除冗余 suffix guard，同时保持 root 与 `/v1` 输入合同（验证：OpenAI-compatible adapter package tests、scoped `staticcheck`、owner context/docs gates）
+  <!-- verified: 2026-07-10 method=openai-base-url-normalization-simplification evidence="S1017 red identified the guarded TrimSuffix path. Focused root and /v1 contract tests, full openai_compatible package tests, full AIClient package tests and scoped staticcheck PASS; owner/product contexts, sync-doc-index, docs-check, diff-check and pruning surface PASS real_residuals=0." -->

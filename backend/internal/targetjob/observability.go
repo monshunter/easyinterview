@@ -1,5 +1,5 @@
 // Package targetjob implements the backend TargetJob domain (handler / service /
-// store / drainer / parse executor / outbox emit) per
+// store / runner kernel / parse executor / outbox emit) per
 // docs/spec/backend-targetjob/spec.md and the
 // 001-targetjob-import-and-parse-bootstrap plan.
 //

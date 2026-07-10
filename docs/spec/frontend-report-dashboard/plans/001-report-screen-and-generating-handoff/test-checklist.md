@@ -1,10 +1,22 @@
 # 001 — Report Screen and Generating Handoff Test Checklist
 
-> **版本**: 1.1
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-07-10
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
+
+## Phase 10 P0.056 focused-runner evidence
+
+- [x] owner preflight 拒绝 integrated-journey、旧 Resume、固定跨文件轮询/主题/route-transcript 隐私扩大声明。
+- [x] trigger 与 verify 均覆盖 preflight、poll hook、GeneratingScreen、ReportScreen、DetailSurface 五个文件 marker。
+- [x] P0.056 四段脚本、owner context 与 docs/diff/pruning gates 通过。
+
+## Phase 11 P0.058 focused failure evidence
+
+- [x] owner preflight 拒绝 GeneratingScreen UI、重复 timeout、live-backend sequence 与宽泛 URL/storage/telemetry 隐私扩大声明。
+- [x] trigger 与 verify 均覆盖 preflight、ReportFailureState、ReportMissingSessionState、useFeedbackReport、ReportScreen、poll hook 六个 marker。
+- [x] P0.058 四段脚本、owner context 与 docs/diff/pruning gates 通过。
 
 ## Phase 0: 跨 owner 前置 preflight
 
@@ -83,14 +95,14 @@
 ## Phase 4: 复练 CTA 行为 + ReportFailureState 完整 + GeneratingScreen handoff 完整
 
 - [x] Phase 4 本计划定义的测试项全部通过：
-  - `TestPendingActionEncodeDecodeReplayPractice`（`replay_practice` PendingAction encode → decode round-trip 字段对等；route 为 workspace；params 含 sourceSessionId / replayItems / evidenceGaps / planId / targetJobId / jdId / resumeVersionId / roundId / mode / modality / practiceMode / practiceGoal / autoStartPractice）
+  - `TestPendingActionEncodeDecodeReplayPractice`（`replay_practice` PendingAction encode → decode 后回原 report route；params 保留 sessionId / reportId / targetJobId / resumeId / roundId / display knobs）
   - `TestPendingActionReplayPracticeTypeAllowed`（type allowlist / discriminated union 包含 `replay_practice`；负向断言 URL params / localStorage 不含 raw text）
-  - `TestReplayCtaPathA_AuthenticatedAutoStartPractice`（已登录 → nav workspace auto-start；workspace owner 调用 startPracticeSession 创建 fresh session）
-  - `TestReplayCtaPathA_UnauthenticatedUseRequestAuth`（未登录 → useRequestAuth({type:'replay_practice', route:'workspace', params:{..., autoStartPractice:'1'}})）
+  - `TestReplayCtaPathA_AuthenticatedDirectStartPractice`（已登录 → generated createPracticePlan + startPracticeSession 创建 fresh session并直接 nav practice）
+  - `TestReplayCtaPathA_UnauthenticatedUseRequestAuth`（未登录 → useRequestAuth({type:'replay_practice', route:'report', params:route.params})，不创建 session）
   - `TestReplayCtaPathA_PayloadIntegrity`（payload 字段完整：sourceSessionId / replayItems / evidenceGaps / planId / targetJobId / jdId / resumeVersionId / roundId / mode / modality / practiceMode / practiceGoal:'retry_current_round'）
   - `TestReplayCtaPathA_NoRawText`（负向断言 payload 不含 `answerText` / `questionText` / `hint` / `promptHash` / `modelId raw`）
-  - `TestReplayCtaPathA_NoReportReadCalls`（CTA 触发不重复调用 `getFeedbackReport` / `appendSessionEvent`，且不调用 `listTargetJobReports`）
-  - `TestNextRoundCta_AutoStartPractice`（路径 B → nav workspace auto-start with next_round payload；workspace owner 创建 fresh session）
+  - `TestReplayCtaPathA_NoReportReadCalls`（CTA 触发不重复调用 `getFeedbackReport`，且不调用 `listTargetJobReports`）
+  - `TestNextRoundCta_DirectStartPractice`（路径 B → generated createPracticePlan + startPracticeSession with next_round payload；直接 nav practice）
   - `TestNextRoundCta_NextRoundIdInference`（nextRoundId 推断逻辑测试）
   - `TestNextRoundCta_PayloadIntegrity`（payload 字段完整）
   - `TestRetryCtaNavGenerating`（ReportFailureState「重新生成」→ nav generating）
@@ -107,10 +119,11 @@
   - `pnpm --filter @easyinterview/frontend typecheck` 全绿
   - 扩展 `App.test.tsx` 添加 `generating-screen` / `report-dashboard` testid 命中
   - 扩展 `AppNormalize.test.tsx`（如有 `generating` / `report` route alias）
-  - 扩展 `pendingActionReplayPractice.test.ts` 添加 `replay_practice` pendingAction 恢复到 workspace auto-start 的 round-trip
+  - 扩展 `pendingActionReplayPractice.test.ts` 添加 `replay_practice` pendingAction 回 report 的 round-trip
   - 扩展 `scenarios/p0-002-auth-pending-action-resume.test.tsx` 添加 `replay_practice` resume path 验证
-  - Playwright `tests/pixel-parity/generating.spec.ts` 全绿（desktop 1440×900 + mobile 390×844 + 8 主题 × dark；DOM anchor / computed style / bounding box / responsive geometry / non-empty screenshot smoke）
-  - Playwright `tests/pixel-parity/report.spec.ts` 全绿（同上 + 5 detail tab 切换 + 三态；`report` 默认 App chrome / TopBar 可见、不进入一级导航）
+  - Playwright `tests/pixel-parity/generating.spec.ts` 全绿（desktop 主屏、缺 reportId 错误态、mobile 390×844 overflow；关键 DOM/bounding box + 逐状态非空内存截图）
+  - Playwright `tests/pixel-parity/report.spec.ts` 全绿（desktop dashboard、缺 sessionId、failed state、mobile 390×844 overflow；关键 DOM/TopBar + 逐状态非空内存截图）
+  - owner/browser preflight 反查 active spec、六份 plan artifact、两份 Playwright 源码与 P0.059 scenario claims；只允许七个已执行浏览器状态的显式证据
   - `TestReportNamespaceZhEnSync`（report.* zh/en 同步无缺漏）
   - `TestGeneratingNamespaceZhEnSync`（generating.* zh/en 同步无缺漏）
   - `TestErrorCodeI18nCoversAllAIErrors`（report.failureState.errorCode.* 覆盖 B1 `AI_*` enum 全集）
@@ -146,5 +159,5 @@
 - `useReportGenerationPoll.test.tsx`: 覆盖 visibility/focus 恢复后沿用已调度 retry，不立即重复请求。
 - `bootstrapRoute.test.ts`: 覆盖 `#route=generating/report` hash bootstrap，保证 pixel parity 从真实 route 启动。
 - `ReportScreen.test.tsx`: 覆盖报告 header 标题包含 target job label，而非只显示 round label。
-- `tests/pixel-parity/generating.spec.ts` + `tests/pixel-parity/report.spec.ts`: 覆盖 desktop / mobile DOM anchor、computed style、bounding box、no-overflow、主题切换与三态渲染。
+- `tests/pixel-parity/generating.spec.ts` + `tests/pixel-parity/report.spec.ts`: 覆盖 desktop / mobile DOM anchor、主屏 bounding box、no-overflow、缺参/失败状态与逐状态非空内存截图。
 - `frontend_report_dashboard_out_of_scope.py` + pytest: 覆盖 prototype short CSS tokens 和范围外 literal 的 scoped negative gate。

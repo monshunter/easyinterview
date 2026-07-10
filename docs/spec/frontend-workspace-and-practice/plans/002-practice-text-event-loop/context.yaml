@@ -30,7 +30,6 @@ spec:
       - usePracticeVoiceTurn
       - usePracticeSessionLoader
       - usePracticeEvents
-      - usePracticeAssistance
       - usePracticeSession
       - useCompletePracticeSession
       - AssistantActionRenderer
@@ -69,7 +68,7 @@ spec:
       - INCREMENT_HINT_COUNT
       - MERGE_SESSION
       - hintsEnabled
-      - practiceMode compatibility
+      - practiceMode display policy
       - hintUsed hintCount
       - practiceGoal baseline retry_current_round next_round
       - SessionStatus

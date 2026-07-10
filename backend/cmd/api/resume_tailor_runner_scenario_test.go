@@ -10,17 +10,17 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
-	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
-func TestResumeTailorDrainerHTTPScenario(t *testing.T) {
+func TestResumeTailorRunnerHTTPScenario(t *testing.T) {
 	now := time.Date(2026, 6, 13, 14, 0, 0, 0, time.UTC)
 	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0001"
 	resumeID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0002"
 	store := newAPITailorStore(apiTailorContext(tailorRunID, resumeID))
-	asyncStore := &apiResumeAsyncStore{job: targetjob.ClaimedJob{
+	asyncStore := &apiResumeAsyncStore{job: runner.ClaimedJob{
 		JobID:        "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0003",
 		JobType:      string(jobs.JobTypeResumeTailor),
 		ResourceType: "resume_tailor_run",
@@ -38,20 +38,16 @@ func TestResumeTailorDrainerHTTPScenario(t *testing.T) {
 		NewID:      apiFixedIDs("0195f2d0-4a44-7fc2-8f77-1f9c4cfa0101", "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0102", "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0103", "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0104", "0195f2d0-4a44-7fc2-8f77-1f9c4cfa0105"),
 		Now:        func() time.Time { return now },
 	})
-	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
-		Store: asyncStore,
-		Handlers: map[string]targetjob.JobHandler{
-			string(jobs.JobTypeResumeTailor): handler,
-		},
-		Now: func() time.Time { return now },
+	kernel := newScenarioJobRuntime(asyncStore, func() time.Time { return now }, map[string]runner.Handler{
+		string(jobs.JobTypeResumeTailor): handler,
 	})
 
-	processed, err := drainer.RunOnce(context.Background())
+	processed, err := kernel.RunOnce(context.Background())
 	if err != nil {
 		t.Fatalf("RunOnce: %v", err)
 	}
 	if !processed || !asyncStore.outcome.Succeeded {
-		t.Fatalf("drainer did not process resume_tailor successfully: processed=%v outcome=%+v", processed, asyncStore.outcome)
+		t.Fatalf("runner did not process resume_tailor successfully: processed=%v outcome=%+v", processed, asyncStore.outcome)
 	}
 	success := store.successes[tailorRunID]
 	if success == nil || success.ResumeID != resumeID || len(success.Suggestions) != 3 {
@@ -69,7 +65,7 @@ func TestResumeTailorDrainerHTTPScenario(t *testing.T) {
 	}
 }
 
-func TestResumeTailorDrainerFailureScenario(t *testing.T) {
+func TestResumeTailorRunnerFailureScenario(t *testing.T) {
 	now := time.Date(2026, 6, 13, 14, 30, 0, 0, time.UTC)
 	timeoutRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfb0001"
 	invalidRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cfb0002"
@@ -80,7 +76,7 @@ func TestResumeTailorDrainerFailureScenario(t *testing.T) {
 		apiTailorContext(invalidRunID, resumeID),
 		apiTailorContext(retryRunID, resumeID),
 	)
-	asyncStore := &apiResumeRetryAsyncStore{jobs: []targetjob.ClaimedJob{
+	asyncStore := &apiResumeRetryAsyncStore{jobs: []runner.ClaimedJob{
 		apiTailorClaimedJob(timeoutRunID, resumeID, 1),
 		apiTailorClaimedJob(invalidRunID, resumeID, 1),
 		apiTailorClaimedJob(retryRunID, resumeID, 1),
@@ -110,16 +106,12 @@ func TestResumeTailorDrainerFailureScenario(t *testing.T) {
 		),
 		Now: func() time.Time { return now },
 	})
-	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
-		Store: asyncStore,
-		Handlers: map[string]targetjob.JobHandler{
-			string(jobs.JobTypeResumeTailor): handler,
-		},
-		Now: func() time.Time { return now },
+	kernel := newScenarioJobRuntime(asyncStore, func() time.Time { return now }, map[string]runner.Handler{
+		string(jobs.JobTypeResumeTailor): handler,
 	})
 
 	for i := 0; i < 4; i++ {
-		processed, err := drainer.RunOnce(context.Background())
+		processed, err := kernel.RunOnce(context.Background())
 		if err != nil {
 			t.Fatalf("RunOnce %d: %v", i+1, err)
 		}
@@ -156,8 +148,8 @@ func TestResumeTailorDrainerFailureScenario(t *testing.T) {
 	}
 }
 
-func apiTailorClaimedJob(tailorRunID string, resumeID string, attempts int32) targetjob.ClaimedJob {
-	return targetjob.ClaimedJob{
+func apiTailorClaimedJob(tailorRunID string, resumeID string, attempts int32) runner.ClaimedJob {
+	return runner.ClaimedJob{
 		JobID:        tailorRunID,
 		JobType:      string(jobs.JobTypeResumeTailor),
 		ResourceType: "resume_tailor_run",

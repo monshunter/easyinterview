@@ -1,6 +1,6 @@
 # Backend TargetJob History
 
-> **版本**: 2.7
+> **版本**: 2.8
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 2.8 | TargetJob parse/source refresh handlers 直接实现 canonical runner contract；删除本域重复 runtime、async job 类型与 claim/finalize SQL。 | backend-async-runner/001 |
 | 2026-07-10 | 2.7 | 将 TargetJob out-of-scope alias、route、feature_key 与错误 envelope 负向 gate 口径统一；行为不变。 | tech-debt pruning |
 | 2026-07-10 | 1.9 | 收敛 `source_refresh` 当前事实：解析成功事务写入 internal-only follow-up job，`SourceRefreshHandler` 消费后将 source 标记为 `stale`；文档不再描述为空触发入口。 | 001-targetjob-import-and-parse-bootstrap |
 | 2026-07-07 | 1.8 | 同步当前 backend internal runner 事实：`target_import` / `source_refresh` 已由 `backend-async-runner` kernel 接管，backend-targetjob 仅保留 handler / service / store / executor 业务实现与 B3 payload red-line。 | product-scope/001-core-loop-module-pruning Phase 6 |

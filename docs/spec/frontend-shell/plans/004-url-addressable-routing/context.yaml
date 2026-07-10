@@ -28,15 +28,14 @@ spec:
       - pendingAction
       - unsupported route params rejected
       - safe route params
-      - autoStartPractice
+      - workspace query stripping
       - reportId
       - reportStatus
       - pendingImportId
-      - tailorRunId
       - resumeId
       - sourceReportId
       - URL privacy
-      - voice mode safe params
+      - phone mode safe params
       - E2E.P0.088
       - E2E.P0.089
       - E2E.P0.090

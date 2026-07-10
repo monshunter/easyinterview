@@ -19,7 +19,7 @@ access, and the B2 `updateResume` fixture.
 
 When user A patches editable fields, replays the same idempotency key, reuses the key with a changed fingerprint, sends a server-owned field, clears nullable fields, and user B or a deleted row is patched.
 
-Then the API returns fixture-compatible payloads, overwrites editable flat
+Then the API returns payloads matching the checked-in fixtures, overwrites editable flat
 resume fields while stripping client provenance, returns IK replay / mismatch
 semantics, rejects server-owned fields with `422 VALIDATION_FAILED`, hides
 cross-user records as 404, and keeps raw resume / profile text out of logs and

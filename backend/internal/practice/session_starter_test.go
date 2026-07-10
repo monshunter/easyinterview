@@ -46,7 +46,7 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 		OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
 		UserMessageTemplate: "Respond in {{language}}. Role: {{role_title}} ({{seniority}}). Top required skills: {{top_skills}}. Resume profile: {{resume_profile}}. Rubric dimensions: {{rubric_dimensions}}. Practice goal: {{practice_goal}}.",
 	}}
-	ai := &fakeAIClient{content: `{"question":"请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。","intent":"behavioral.leadership.design_system","focus_dimension":"leadership","expected_signals":["scope","tradeoffs"],"time_budget_seconds":180}`, store: store}
+	ai := &fakeAIClient{content: `{"questionText":"请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。","questionIntent":"behavioral.leadership.design_system","focusDimension":"leadership","expectedSignals":["scope","tradeoffs"],"timeBudgetSeconds":180}`, store: store}
 	service := NewService(ServiceOptions{
 		Store:    store,
 		Registry: registryClient,
@@ -194,6 +194,29 @@ func TestStartPracticeSessionRejectsMissingFirstQuestionText(t *testing.T) {
 	if store.fail.ErrorCode != sharederrors.CodeAiOutputInvalid || store.fail.Retryable {
 		t.Fatalf("invalid first question failure not recorded correctly: %+v", store.fail)
 	}
+}
+
+func TestParseFirstQuestionUsesCanonicalOutputKeys(t *testing.T) {
+	t.Run("rejects alias-only output", func(t *testing.T) {
+		_, err := parseFirstQuestion(`{"question":"Alias question?","intent":"alias.intent"}`)
+		if err == nil {
+			t.Fatal("expected alias-only first question output to fail")
+		}
+		var apiErr *sharederrors.APIError
+		if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {
+			t.Fatalf("expected AI_OUTPUT_INVALID, got %T %v", err, err)
+		}
+	})
+
+	t.Run("canonical keys win over unknown aliases", func(t *testing.T) {
+		got, err := parseFirstQuestion(`{"questionText":"Canonical question?","questionIntent":"canonical.intent","question":"Alias question?","intent":"alias.intent"}`)
+		if err != nil {
+			t.Fatalf("parseFirstQuestion returned error: %v", err)
+		}
+		if got.Text != "Canonical question?" || got.Intent != "canonical.intent" {
+			t.Fatalf("unexpected first question: %+v", got)
+		}
+	})
 }
 
 func TestStartPracticeSessionRejectsNonJSONFirstQuestionResponse(t *testing.T) {

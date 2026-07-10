@@ -71,7 +71,7 @@ Resume
 └─ userConfirmedFields
 ```
 
-原始内容只读保存。详情页根据来源格式自动选择渲染方式：PDF 上传使用原始文件的同源 source endpoint 渲染纵向页面栈；粘贴、Markdown 文件和 TXT 文件优先展示 `parsedTextSnapshot` 形成的 Markdown 正文，`originalText` 只作为失败或历史数据兼容 fallback。PDF 与 Markdown 共用同一浅色阅读背景板，并在背景板内放置白色页面；Markdown 页面内不得额外 prepend `displayName`、详情 header 名称、summary 或来源元数据。它不提供结构化草稿确认、二次编辑、改写采纳、复制、导出、浏览器 PDF 工具栏或原件弹层。结构化内容只作为无原文时的降级兜底。
+原始内容只读保存。详情页根据来源格式自动选择渲染方式：PDF 上传使用原始文件的同源 source endpoint 渲染纵向页面栈；粘贴、Markdown 文件和 TXT 文件优先展示 `parsedTextSnapshot` 形成的 Markdown 正文，`parsedTextSnapshot` 为空时才回退到 `originalText`。PDF 与 Markdown 共用同一浅色阅读背景板，并在背景板内放置白色页面；Markdown 页面内不得额外 prepend `displayName`、详情 header 名称、summary 或来源元数据。它不提供结构化草稿确认、二次编辑、改写采纳、复制、导出、浏览器 PDF 工具栏或原件弹层。结构化内容只作为无原文时的降级兜底。
 
 ## 5 与 JD / 模拟面试规划的关系
 

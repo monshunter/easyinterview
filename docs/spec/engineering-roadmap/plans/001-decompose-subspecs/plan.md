@@ -1,6 +1,6 @@
 # Roadmap Rebaseline and Subspec Governance
 
-> **版本**: 3.6
+> **版本**: 3.7
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -120,6 +120,7 @@ Readiness、retrieval、privacy export、production voice、company/source intel
 - 当前文档和编码 truth source 不把范围外技术草稿目录名、文件名、Markdown 链接或外部 truth source 作为当前依据。
 - 本 plan checklist 与 Header / INDEX 投影一致。
 - 本 plan §3 的替代验证 gate 全部通过。
+- `context.yaml` discovery lists contain no duplicate scalar entries.
 
 ## 6 风险与应对
 
@@ -135,6 +136,7 @@ Readiness、retrieval、privacy export、production voice、company/source intel
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 3.7 | Remove the duplicate AI provider discovery keyword and verify context list uniqueness. | tech-debt pruning |
 | 2026-07-10 | 3.6 | Reword out-of-scope route and technical-draft boundaries without changing child-creation rules. | tech-debt pruning |
 | 2026-07-10 | 3.5 | Reword backlog wording to empty-shell governance without changing child-creation rules. | tech-debt pruning |
 | 2026-07-06 | 3.4 | Reword plan to current execution-map governance, no-pending INDEX model, child-creation rules, and technical-draft zero-reference gates. | product-scope v1.38 / engineering-roadmap v3.29 |

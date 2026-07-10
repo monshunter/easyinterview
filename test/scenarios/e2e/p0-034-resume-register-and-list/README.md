@@ -18,7 +18,7 @@ regressions.
 
 When user A registers resumes, replays the same idempotency key, fetches one resume, lists the collection with cursor pagination, and user B attempts to fetch user A's resume.
 
-Then the API returns fixture-compatible payloads, creates `resumes` and `async_jobs` atomically, rejects invalid source/input combinations, hides cross-user resumes as 404, and keeps raw resume body values out of logs and scenario evidence.
+Then the API returns payloads matching the checked-in fixtures, creates `resumes` and `async_jobs` atomically, rejects invalid source/input combinations, hides cross-user resumes as 404, and keeps raw resume body values out of logs and scenario evidence.
 
 ## 4. Scripts
 

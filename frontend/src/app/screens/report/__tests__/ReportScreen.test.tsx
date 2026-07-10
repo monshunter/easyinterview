@@ -12,7 +12,6 @@
  */
 
 import {
-  act,
   render,
   screen,
   waitFor,
@@ -21,7 +20,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { FC, ReactNode } from "react";
 
 import type {
-  ApiErrorCode,
   FeedbackReport,
   Resume,
   TargetJob,
@@ -122,7 +120,7 @@ function makeClient(options: ClientOptions = {}): EasyInterviewClient {
       } as unknown as Resume)
     );
   });
-  const feedbackReportFn = vi.fn(async (id: string, opts?: { headers?: Record<string, string> }) => {
+  const feedbackReportFn = vi.fn(async (_id: string, opts?: { headers?: Record<string, string> }) => {
     // The hook MUST NOT send Idempotency-Key — capture and assert in tests.
     if (opts?.headers && ("Idempotency-Key" in opts.headers || "idempotency-key" in opts.headers)) {
       throw new Error("read path leaked Idempotency-Key");

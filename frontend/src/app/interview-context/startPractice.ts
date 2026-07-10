@@ -61,11 +61,11 @@ export async function startPracticeFromParams(
     sessionId: session.id,
     planId,
     params: omitEmpty({
-      ...withoutAutoStart(params),
       targetJobId: ctx.targetJobId,
       jobId: ctx.jobId || ctx.targetJobId,
       jdId: ctx.jdId ?? "",
       resumeId: ctx.resumeId ?? "",
+      sourceReportId: ctx.sourceReportId ?? "",
       roundId: ctx.roundId ?? "",
       roundName: ctx.roundName ?? "",
       mode: ctx.mode,
@@ -74,6 +74,7 @@ export async function startPracticeFromParams(
       practiceGoal: ctx.practiceGoal,
       hintUsed: ctx.hintUsed,
       hintCount: ctx.hintCount,
+      language: params.language || lang,
       planId,
       sessionId: session.id,
     }),
@@ -103,15 +104,7 @@ export function interviewContextStateFromParams(
     hintUsed: params.hintUsed || DEFAULT_INTERVIEW_CONTEXT.hintUsed,
     hintCount: params.hintCount || DEFAULT_INTERVIEW_CONTEXT.hintCount,
     sessionId: params.sessionId || undefined,
-    autoStartPractice: undefined,
   };
-}
-
-function withoutAutoStart(
-  params: Record<string, string>,
-): Record<string, string> {
-  const { autoStartPractice: _autoStartPractice, ...rest } = params;
-  return rest;
 }
 
 function omitEmpty(input: Record<string, string>): Record<string, string> {

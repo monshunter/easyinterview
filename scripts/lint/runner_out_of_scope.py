@@ -2,9 +2,9 @@
 """Out-of-scope gate for backend-async-runner (spec D-12).
 
 After plan 001 consolidates every in-process drainer / runner into the single
-runner.Runtime kernel, the out-of-scope entry points below must not reappear in
-production Go sources. Tests, history docs, and lint self keep those out-of-scope
-terms as evidence, so they are excluded from the scan.
+runner.Runtime kernel, the out-of-scope entry points below must not reappear.
+Production entry-point checks exclude tests; the canonical targetjob contract
+check also scans tests so a second runner model cannot survive as test support.
 """
 
 from __future__ import annotations
@@ -38,6 +38,24 @@ SCAN_ROOTS = (
 )
 
 EXCLUDED_PARTS = {".git", "node_modules", "dist", "coverage", ".test-output", "__pycache__"}
+
+REMOVED_TARGETJOB_PATHS = (
+    ("backend", "internal", "targetjob", "drainer.go"),
+    ("backend", "internal", "runner", "adapter_targetjob.go"),
+    ("backend", "internal", "runner", "adapter_targetjob_test.go"),
+)
+
+TARGETJOB_LOCAL_PATTERNS = (
+    (re.compile(r"\btype\s+(?:ClaimedJob|JobOutcome|JobHandler|JobHandlerFunc|AsyncJobStore|DrainerOptions|Drainer)\b"), "duplicate targetjob async job type"),
+    (re.compile(r"\bfunc\s+NewDrainer\b"), "targetjob.NewDrainer"),
+    (re.compile(r"\bClaimNextAsyncJob\b"), "duplicate targetjob ClaimNextAsyncJob API"),
+    (re.compile(r"\bFinalizeAsyncJob\b"), "duplicate targetjob FinalizeAsyncJob API"),
+)
+
+QUALIFIED_TARGETJOB_PATTERN = re.compile(
+    r"\btargetjob\.(?:ClaimedJob|JobOutcome|JobHandler|JobHandlerFunc|AsyncJobStore|DrainerOptions|Drainer|NewDrainer)\b"
+)
+ADAPTER_PATTERN = re.compile(r"\b(?:runner\.)?FromTargetjobHandler\b")
 
 
 def is_production_go(path: Path) -> bool:
@@ -78,6 +96,41 @@ def scan_paths(paths: list[Path]) -> list[str]:
     return problems
 
 
+def scan_removed_targetjob_contract(repo_root: Path) -> list[str]:
+    problems: list[str] = []
+    for parts in REMOVED_TARGETJOB_PATHS:
+        path = repo_root.joinpath(*parts)
+        if path.is_file():
+            problems.append(f"{path}: removed runner contract file still exists")
+
+    api_root = repo_root / "backend" / "cmd" / "api"
+    if api_root.exists():
+        for path in sorted(api_root.glob("*_drainer_scenario_test.go")):
+            problems.append(f"{path}: drainer_scenario_test.go name must use runner kernel terminology")
+
+    backend_root = repo_root / "backend"
+    if not backend_root.exists():
+        return problems
+    targetjob_root = backend_root / "internal" / "targetjob"
+    for path in sorted(backend_root.rglob("*.go")):
+        if path.is_symlink() or not path.is_file() or any(part in EXCLUDED_PARTS for part in path.parts):
+            continue
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except UnicodeDecodeError:
+            continue
+        for lineno, line in enumerate(lines, start=1):
+            if QUALIFIED_TARGETJOB_PATTERN.search(line):
+                problems.append(f"{path}:{lineno}: targetjob async job contract must use runner.ClaimedJob / runner.JobOutcome")
+            if ADAPTER_PATTERN.search(line):
+                problems.append(f"{path}:{lineno}: FromTargetjobHandler adapter must not exist")
+            if path == targetjob_root or targetjob_root in path.parents:
+                for pattern, message in TARGETJOB_LOCAL_PATTERNS:
+                    if pattern.search(line):
+                        problems.append(f"{path}:{lineno}: {message}")
+    return problems
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-root", default=str(ROOT), help="repository root")
@@ -86,11 +139,12 @@ def main() -> int:
 
     repo_root = Path(args.repo_root).resolve()
     problems = scan_paths(iter_scan_files(repo_root))
+    problems.extend(scan_removed_targetjob_contract(repo_root))
     if problems:
         for problem in problems:
             print(f"FAIL: {problem}", file=sys.stderr)
         return 1
-    print("OK: backend-async-runner out-of-scope runner/drainer/dispatcher entry points absent from production sources")
+    print("OK: backend-async-runner has one canonical runtime, handler contract, and async job SQL owner")
     return 0
 
 

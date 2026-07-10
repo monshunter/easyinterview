@@ -198,7 +198,11 @@ test.describe("TopBar DOM + computed style parity", () => {
 
     const menu = page.locator("[data-testid='topbar-theme-menu']");
     await expect(menu).toBeVisible();
-    await expect(page.locator("[data-testid^='topbar-theme-option-']")).toHaveCount(4);
+    await expect(page.locator("[data-testid^='topbar-theme-option-']")).toHaveCount(2);
+    await expect(page.locator("[data-testid='topbar-theme-option-ocean']")).toBeVisible();
+    await expect(page.locator("[data-testid='topbar-theme-option-plum']")).toBeVisible();
+    await expect(page.locator("[data-testid='topbar-theme-option-warm']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='topbar-theme-option-forest']")).toHaveCount(0);
     await expect(page.locator("[data-testid='topbar-theme-custom-option']")).toHaveText(/Custom/);
 
     await page.click("[data-testid='topbar-theme-custom-option']");

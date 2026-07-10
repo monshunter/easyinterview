@@ -27,7 +27,7 @@
 //
 //   - url / manual_text / file: sync stage writes target_jobs (analysis_status =
 //     queued) + target_job_sources + outbox_events(target.import.requested) +
-//     async_jobs(target_import) inside one transaction. The drainer picks the
+//     async_jobs(target_import) inside one transaction. The runner kernel leases the
 //     async_jobs row up, fetches the source body for url paths, asks F3 for
 //     prompt / rubric / model_profile, calls A3, persists requirements +
 //     summary, emits target.parsed, then enqueues an internal-only
@@ -35,7 +35,7 @@
 //   - manual_form: sync stage writes target_jobs (analysis_status = ready) +
 //     target_job_requirements(must_have draft) + async_jobs(succeeded). It
 //     does not emit target.import.requested or target.parsed and is not
-//     consumed by the drainer (D-13 / D-11).
+//     consumed by the runner kernel (D-13 / D-11).
 //
 // # Privacy and observability red lines
 //
@@ -92,7 +92,7 @@
 // p0-012-targetjob-parse-failure-retryable/,
 // p0-013-targetjob-manual-form-ready/. These scripts execute cmd/api HTTP
 // scenario tests through auth middleware, generated API routes, this package's
-// Handler/Service, and the in-process drainer runtime. Successful verify
+// Handler/Service, and the in-process runner kernel. Successful verify
 // output records method=cmd-api-http and validBddEvidence=true under
 // .test-output/runs/<run-id>/e2e/E2E.P0.010..013/.
 package targetjob

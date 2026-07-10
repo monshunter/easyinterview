@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/monshunter/easyinterview/backend/internal/targetjob"
+	async "github.com/monshunter/easyinterview/backend/internal/runner"
 	uploadservice "github.com/monshunter/easyinterview/backend/internal/upload/service"
 )
 
@@ -47,7 +47,7 @@ func NewPrivacyDeleteHandler(opts PrivacyDeleteHandlerOptions) *PrivacyDeleteHan
 	}
 }
 
-func (h *PrivacyDeleteHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) targetjob.JobOutcome {
+func (h *PrivacyDeleteHandler) Handle(ctx context.Context, job async.ClaimedJob) async.JobOutcome {
 	if h == nil || h.requests == nil || h.uploadFiles == nil {
 		return failedOutcome(ErrorCodePrivacyDeleteFailed, "privacy delete handler is not configured", false)
 	}
@@ -58,7 +58,7 @@ func (h *PrivacyDeleteHandler) Handle(ctx context.Context, job targetjob.Claimed
 	userID, err := h.requests.LookupDeleteRequestUser(ctx, job.ResourceID)
 	if err != nil {
 		if errors.Is(err, ErrPrivacyDeleteAlreadyCompleted) {
-			return targetjob.JobOutcome{Succeeded: true}
+			return async.JobOutcome{Succeeded: true}
 		}
 		return failedOutcome(ErrorCodePrivacyDeleteRetryable, fmt.Sprintf("lookup privacy request: %v", err), true)
 	}
@@ -79,9 +79,9 @@ func (h *PrivacyDeleteHandler) Handle(ctx context.Context, job targetjob.Claimed
 	if err := h.requests.MarkDeleteRequestCompleted(ctx, job.ResourceID, userID, len(deleted), now); err != nil {
 		return failedOutcome(ErrorCodePrivacyDeleteRetryable, fmt.Sprintf("mark privacy request completed: %v", err), true)
 	}
-	return targetjob.JobOutcome{Succeeded: true}
+	return async.JobOutcome{Succeeded: true}
 }
 
-func failedOutcome(code string, message string, retryable bool) targetjob.JobOutcome {
-	return targetjob.JobOutcome{ErrorCode: code, ErrorMessage: message, Retryable: retryable}
+func failedOutcome(code string, message string, retryable bool) async.JobOutcome {
+	return async.JobOutcome{ErrorCode: code, ErrorMessage: message, Retryable: retryable}
 }

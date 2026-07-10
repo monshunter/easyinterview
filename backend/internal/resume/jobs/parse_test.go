@@ -14,10 +14,10 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/observability"
 	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/events"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
-	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
 func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
@@ -154,7 +154,7 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 				Now:      func() time.Time { return now },
 			})
 
-			outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+			outcome := handler.Handle(context.Background(), runner.ClaimedJob{
 				JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: tc.asset.ID, Attempts: 1, MaxAttempts: 5,
 			})
 
@@ -272,7 +272,7 @@ func TestParseHandlerExtractsReadableUploadText(t *testing.T) {
 				Now:      func() time.Time { return now },
 			})
 
-			outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+			outcome := handler.Handle(context.Background(), runner.ClaimedJob{
 				JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: store.asset.ID, Attempts: 1, MaxAttempts: 5,
 			})
 
@@ -325,7 +325,7 @@ func TestParseHandlerRejectsDOCXUploadText(t *testing.T) {
 		Now:      func() time.Time { return now },
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: store.asset.ID, Attempts: 1, MaxAttempts: 5,
 	})
 
@@ -367,7 +367,7 @@ func TestParseHandlerRejectsUnreadablePDFText(t *testing.T) {
 		Now:      func() time.Time { return now },
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: store.asset.ID, Attempts: 1, MaxAttempts: 5,
 	})
 
@@ -419,7 +419,7 @@ func TestParseHandlerMarkdownFallbackSurvivesPDFAIOutputFailure(t *testing.T) {
 		Now:      func() time.Time { return now },
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: store.asset.ID, Attempts: 1, MaxAttempts: 5,
 	})
 
@@ -461,7 +461,7 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 	cases := []struct {
 		name                string
 		ai                  *captureAI
-		job                 targetjob.ClaimedJob
+		job                 runner.ClaimedJob
 		wantCode            string
 		wantRetry           bool
 		wantFailed          bool
@@ -471,7 +471,7 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 		{
 			name:                "invalid json output",
 			ai:                  &captureAI{resp: aiclient.CompleteResponse{Content: "not-json"}},
-			job:                 targetjob.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 1, MaxAttempts: 5},
+			job:                 runner.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 1, MaxAttempts: 5},
 			wantCode:            sharederrors.CodeAiOutputInvalid,
 			wantFailed:          true,
 			wantFailureSnapshot: "# 谭章毓 - AI / Infra / DevOps 平台工程师\n\n## 核心能力\n- AI Workflow、Kubernetes、GitOps",
@@ -480,7 +480,7 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 		{
 			name:                "retryable timeout before exhaustion",
 			ai:                  &captureAI{err: errors.New(sharederrors.CodeAiProviderTimeout + " provider slow")},
-			job:                 targetjob.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 1, MaxAttempts: 5},
+			job:                 runner.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 1, MaxAttempts: 5},
 			wantCode:            sharederrors.CodeAiProviderTimeout,
 			wantRetry:           true,
 			wantFailed:          true,
@@ -490,7 +490,7 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 		{
 			name:                "retryable timeout exhausted",
 			ai:                  &captureAI{err: errors.New(sharederrors.CodeAiProviderTimeout + " provider slow")},
-			job:                 targetjob.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 5, MaxAttempts: 5},
+			job:                 runner.ClaimedJob{JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 5, MaxAttempts: 5},
 			wantCode:            sharederrors.CodeAiProviderTimeout,
 			wantRetry:           true,
 			wantFailed:          true,
@@ -571,7 +571,7 @@ func TestParseHandlerRequiresMarkdownTextInAIResponse(t *testing.T) {
 		Now:   func() time.Time { return now },
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: store.asset.ID, Attempts: 1, MaxAttempts: 5,
 	})
 
@@ -604,7 +604,7 @@ func TestParseHandlerRetriesFailedAssetBackToProcessing(t *testing.T) {
 		Now:      func() time.Time { return now },
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: "asset-1", Attempts: 2, MaxAttempts: 5,
 	})
 
@@ -671,7 +671,7 @@ func TestParseHandlerObservedAIWritesResumeTaskRunColumns(t *testing.T) {
 		Now:      func() time.Time { return now },
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: assetID, Attempts: 1, MaxAttempts: 5,
 	})
 
@@ -749,7 +749,7 @@ func TestParseHandlerPIIRedlineForLogsAuditTaskRunsAndOutbox(t *testing.T) {
 		Now:      func() time.Time { return now },
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: assetID, Attempts: 1, MaxAttempts: 5,
 	})
 

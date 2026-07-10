@@ -77,4 +77,29 @@ describe("practice out-of-scope negative gates (Phase 5)", () => {
     expect(p46).toContain("practiceConflict.test.tsx");
     expect(p47).toContain("practicePrivacy.test.tsx");
   });
+
+  it("does not retain a constant-only assistance hook or scenario trigger", () => {
+    const hookName = ["usePractice", "Assistance"].join("");
+    const p45 = readFileSync(
+      join(
+        REPO_ROOT,
+        "test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/trigger.sh",
+      ),
+      "utf8",
+    );
+    const offenders: string[] = [];
+    if (runtimeText().includes(hookName)) offenders.push("practice-runtime");
+    if (p45.includes(`${hookName}.test.ts`)) {
+      offenders.push("p0-045-trigger");
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("does not expose handoff inspectors used only by tests", () => {
+    const inspectorName = ["findForbidden", "HandoffKeys"].join("");
+    const offenders = runtimeFiles(PRACTICE_DIR).filter((file) =>
+      readFileSync(file, "utf8").includes(inspectorName),
+    );
+    expect(offenders).toEqual([]);
+  });
 });

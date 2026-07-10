@@ -413,7 +413,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   }, [events, paused, runPracticeAction]);
 
   const handleAskQuestion = useCallback(
-    (turnId: string, questionText: string) => {
+    (_turnId: string, questionText: string) => {
       if (questionText) {
         setTranscript((prev) => [
           ...prev,

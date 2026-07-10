@@ -1,8 +1,8 @@
 # Backend Upload File Objects and Presign Baseline
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: completed
-> **更新日期**: 2026-05-13
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -184,7 +184,7 @@ Config dependency: existing A4 `objectStorage.endpoint` / `bucket` / `accessKey`
 
 #### 6.3 Runtime privacy delete wiring
 
-- `cmd/api` 必须把 upload deleter 接入 backend runtime `privacy_delete` job drainer；`DELETE /api/v1/me` 创建的 privacy handoff job 在运行时必须调用 `DeleteFileObjectsForUser(userId)`。
+- `cmd/api` 必须把 upload deleter 接入 backend runtime `privacy_delete` job runner kernel；`DELETE /api/v1/me` 创建的 privacy handoff job 在运行时必须调用 `DeleteFileObjectsForUser(userId)`。
 
 #### 6.4 Atomic DB delete and audit tombstone
 
@@ -193,7 +193,7 @@ Config dependency: existing A4 `objectStorage.endpoint` / `bucket` / `accessKey`
 #### 6.5 Live scenario gate hardening
 
 - E2E.P0.033 必须要求 `DATABASE_URL` 与 `OBJECT_STORAGE_*` live env；integration-tag tests 出现 skip 或 focused gate no-op 时 scenario 必须 fail，不得作为 Ready/PASS BDD 证据。
-- `trigger.sh` 必须执行 `go test ./cmd/api -tags=integration -run TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip -count=1 -v`，该测试必须覆盖真实 `POST /api/v1/uploads/presign` → MinIO signed `PUT` → internal `RegisterFileObject` → `DELETE /api/v1/me` → runtime drainer 处理 `privacy_delete` → DB hard delete + audit tombstone 的 live roundtrip。
+- `trigger.sh` 必须执行 `go test ./cmd/api -tags=integration -run TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip -count=1 -v`，该测试必须覆盖真实 `POST /api/v1/uploads/presign` → MinIO signed `PUT` → internal `RegisterFileObject` → `DELETE /api/v1/me` → runtime runner kernel 处理 `privacy_delete` → DB hard delete + audit tombstone 的 live roundtrip。
 
 ## 5 验收标准
 

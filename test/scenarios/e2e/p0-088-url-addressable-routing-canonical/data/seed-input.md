@@ -2,7 +2,7 @@
 
 | Route | Canonical URL (fixture) |
 |-------|--------------------------|
-| workspace | `/workspace?targetJobId=tj-canonical&resumeId=01918fa0-0000-7000-8000-000000001000&planId=01918fa0-0000-7000-8000-000000004000&autoStartPractice=1` |
+| workspace hostile params | `/workspace?targetJobId=tj-canonical&resumeId=01918fa0-0000-7000-8000-000000001000&planId=01918fa0-0000-7000-8000-000000004000&autoStartPractice=1`（期望过滤为 `/workspace`） |
 | practice (phone) | `/practice?sessionId=01918fa0-0000-7000-8000-000000005000&mode=phone&modality=phone&planId=01918fa0-0000-7000-8000-000000004000` |
 | generating | `/generating?sessionId=01918fa0-0000-7000-8000-000000005000&reportId=01918fa0-0000-7000-8000-00000000a000` |
 | report (failed) | `/report?sessionId=01918fa0-0000-7000-8000-000000005000&reportId=01918fa0-0000-7000-8000-00000000a000&reportStatus=failed&errorCode=AI_PROVIDER_TIMEOUT` |

@@ -1,6 +1,6 @@
 # UI-Design Pixel Parity Gate BDD Plan
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-07-07
 
@@ -20,7 +20,7 @@
 
 | Given | When | Then |
 |-------|------|------|
-| `frontend/dist` has been built; `ui-design/index.html` can load; Chromium is installed; current App Shell and migrated screens are available | Scenario trigger runs `pnpm --filter @easyinterview/frontend test:pixel-parity`, which starts `serve-pixel-parity.mjs` and executes the desktop/mobile Playwright projects | Current 13 parity specs pass in both projects; DOM anchors, computed styles, bounding boxes, responsive geometry, dark/customAccent and screenshot smoke are covered; current TopBar/user menu and current business screens render; out-of-scope route/module entries stay negative-only; the gate does not require ignored local screenshot baselines |
+| `frontend/dist` has been built; `ui-design/index.html` can load; Chromium is installed; current App Shell and migrated screens are available | Scenario trigger runs `pnpm --filter @easyinterview/frontend test:pixel-parity`, which starts `serve-pixel-parity.mjs` and executes the desktop/mobile Playwright projects | Current 12 parity specs pass in both projects; DOM anchors, computed styles, bounding boxes, responsive geometry, dark/customAccent and screenshot smoke are covered; current TopBar/user menu and current business screens render; out-of-scope route/module entries stay negative-only; screenshot evidence uses non-empty browser buffers without a snapshot lifecycle |
 
 ## 3 执行入口
 

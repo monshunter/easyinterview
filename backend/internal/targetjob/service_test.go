@@ -127,12 +127,6 @@ func (f *fakeStore) UpdateSourceSnapshot(context.Context, string, string, string
 	panic("not used")
 }
 
-func (f *fakeStore) ClaimNextAsyncJob(context.Context, []string, time.Time) (targetjob.ClaimedJob, bool, error) {
-	return targetjob.ClaimedJob{}, false, nil
-}
-func (f *fakeStore) FinalizeAsyncJob(context.Context, string, targetjob.JobOutcome, time.Time) error {
-	return nil
-}
 func (f *fakeStore) EnqueueSourceRefresh(context.Context, string, string, time.Time) error {
 	return nil
 }

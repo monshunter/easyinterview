@@ -1,8 +1,8 @@
 # App Shell Visual System BDD Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -14,6 +14,8 @@
 - [x] `verify.sh` 校验 trigger log、Vitest 文件和通过结果。
 - [x] `cleanup.sh` 清理 `.test-output/e2e/p0-005-app-shell-visual-system-smoke/`。
   <!-- verified: 2026-07-07 method=scenario evidence="E2E.P0.005 setup/trigger/verify/cleanup PASS; trigger ran src/app/scenarios/p0-005-app-shell-visual-system-smoke.test.tsx PASS (7 tests); existing C.UTF-8 locale warning only" -->
+- [x] 场景说明与 expected outcome 使用当前 ocean/plum token，Warm / Forest 仅为负向菜单断言，并把 browser parity 直接交给当前 E2E.P0.006。
+  <!-- verified: 2026-07-10 method=scenario-assets-and-runner evidence="P0.005 asset contract and executable smoke pass 8 tests; setup/trigger/verify/cleanup pass with current log markers; frontend-shell/002 owner suite passes 95 tests." -->
 
 ## Regression 场景
 

@@ -2,7 +2,7 @@
 
 > **场景 ID**: E2E.P0.025
 > **执行方式**: automated
-> **隔离级别**: shared-cluster
+> **隔离级别**: in-process (Go HTTP tests)
 > **parallel-safe**: No
 > **状态**: Ready
 

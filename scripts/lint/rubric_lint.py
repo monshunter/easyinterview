@@ -3,7 +3,7 @@
 
 Validates `config/rubrics/<feature_key>/<version>[.<language>].yaml`
 against the schema and dimension allowlist fixed by
-`config/rubrics/README.md` and `docs/spec/prompt-rubric-registry/spec.md` v2.9.
+`config/rubrics/README.md` and `docs/spec/prompt-rubric-registry/spec.md`.
 
 Run: `python3 scripts/lint/rubric_lint.py [--rubrics-dir DIR]`
 Exit: 0 on success, 1 on any violation.

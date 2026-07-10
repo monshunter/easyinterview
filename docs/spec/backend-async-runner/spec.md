@@ -1,6 +1,6 @@
 # Backend Async Runner Spec
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -8,31 +8,22 @@
 
 [engineering-roadmap §6.3 S2](../engineering-roadmap/spec.md#63-s2--backend-domain-implementation) 把 `backend-async-runner` 列为「backend 内部 job、outbox、retry 和删除链路执行；P0 不拆独立后台执行进程」的 owner subject；[backend-runtime-topology](../backend-runtime-topology/spec.md) D-1~D-4 已锁定 P0 拓扑为 `frontend` + `backend` 两个应用进程，后台任务由 backend internal runner 承接。
 
-本 subject 创建时的实施前基线是：仓库已经在不同业务域生长出多套局部 runner / drainer：
+`backend/internal/runner/` 是唯一 backend in-process runtime kernel；`cmd/api` 通过 `buildRunnerKernel` 创建 `runner.Runtime`，并用 `Runtime.SetOutboxDispatcher` 挂接 `runner.OutboxDispatcher`。当前可执行 handler 集合为 `target_import` / `source_refresh` / `privacy_delete` / `resume_parse` / `resume_tailor` / `report_generate` / `email_dispatch`；五个 targetjob/resume/privacy handler 直接实现 `runner.Handler`，所有 async job lease/finalize/reaper SQL 由 kernel 单点持有。`privacy_export` 保留为 DB / OpenAPI contract 但不注册 handler。
 
-- `backend/internal/targetjob/drainer.go`：通用 `Drainer` 抽象 + `JobHandler` 接口，当前被 targetjob / resume 等 runtime 复用；本 subject 以单一 kernel 承接可执行 job_type 的 lifecycle。
-- `backend/internal/review/{runner,reaper,lease}.go`：实施前曾是 report-only polling worker；`001-internal-job-outbox-runner` 已将执行生命周期迁入 `backend/internal/runner/`，review 域当前只保留 `GenerateHandler` 与报告业务状态维护。
-- `backend/internal/auth/mail.go` `BackgroundMailDispatcher`：进程内 channel 直推 `DeliveryWriter` sink，绕过 `async_jobs`，与 [ADR-Q2](../engineering-roadmap/decisions/ADR-Q2-async-orchestration.md) 锁定的 `email_dispatch` canonical jobType 不一致。
-- `backend/cmd/api/main.go` 在本 subject 实施前维护多处独立 `defer ... Shutdown(ctx)` lifecycle（auth dispatcher / targetJobRuntime / resumeRuntime / reportRuntime），无统一 graceful drain 顺序。
-- `outbox_events` 表由各域业务事务写入（resume / targetjob / review / practice store），但仓库**没有任何 publisher / dispatcher 代码**消费这张表；[B3 D-7 / D-8 / D-9](../event-and-outbox-contract/spec.md) 锁定的 dispatcher 协议未实现。
-- 当前 [B3 job inventory](../event-and-outbox-contract/spec.md#311-dbbackend-runner-canonical-job_type--asynq-dotted-task-name-映射) / `shared/jobs.yaml` 保留 8 个 canonical job_type；其中 `privacy_export` 保留为 API/DB contract 但不注册 handler，本 runtime 注册其余 7 个可执行 handler。
-- retry/backoff 不一致：`review.ComputeReportFailureBackoff` 用 `2^attempts * 30s`，resume `async.go` 用固定 15s，与 [ADR-Q2 §3.4](../engineering-roadmap/decisions/ADR-Q2-async-orchestration.md) 锁定的 `30s/2m/10m/1h/6h, max 5` 不符。
-- lease 回收 reaper 仅覆盖 `report_generate`；其它当前可执行 job_type 若 backend 中途崩溃将 stuck 在 `running`/`locked_at` 状态。
-
-`001-internal-job-outbox-runner` 完成后，当前事实是：`backend/internal/runner/` 已承接单一 backend in-process runtime kernel；`cmd/api` 通过 `buildRunnerKernel` 创建 `runner.Runtime` 并用 `Runtime.SetOutboxDispatcher` 挂接 `runner.OutboxDispatcher`；当前可执行 handler 集合为 `target_import` / `source_refresh` / `privacy_delete` / `resume_parse` / `resume_tailor` / `report_generate` / `email_dispatch`；`privacy_export` 保留为 DB / OpenAPI contract 但不注册 handler。本 subject 的目标状态是持续保持上述收敛形态、统一 lease / retry / dead-letter / reaper / shutdown 协议、执行 B3 dispatcher 契约，并保留「不建独立后台执行进程」语义；未来如需拆运行单元、切 Asynq server 或引入新调度器，新 ADR 即可在不动业务 producer / handler 的前提下替换底层实现。
+本 subject 持续约束统一 lease / retry / dead-letter / reaper / shutdown 与 B3 dispatcher 契约，并保留「不建独立后台执行进程」语义。未来如需拆运行单元、切 Asynq server 或引入新调度器，必须通过新 ADR 在不改变业务 producer / handler 合同的前提下替换底层实现。
 
 ## 2 范围
 
 ### 2.1 In Scope
 
-- 新增 `backend/internal/runner/` package：单一 `runner.Runtime`，负责 handler registry、lease（`SELECT ... FOR UPDATE SKIP LOCKED`）、finalize、retry（ADR-Q2 退避）、reaper（lease timeout 回收）、graceful shutdown drain。
-- 统一 `runner.Handler` 接口；提供 `targetjob.JobHandler` adapter shim 以支持 P2 渐进迁移。
+- `backend/internal/runner/` package 提供单一 `runner.Runtime`，负责 handler registry、lease（`SELECT ... FOR UPDATE SKIP LOCKED`）、finalize、retry（ADR-Q2 退避）、reaper（lease timeout 回收）和 graceful shutdown drain。
+- 所有业务 handler 直接实现 `runner.Handler{Handle(ctx, runner.ClaimedJob) runner.JobOutcome}`；不保留第二套 async job 类型或 handler adapter。
 - 接管当前可执行 canonical job_type 的运行：`target_import` / `source_refresh` / `privacy_delete` / `resume_parse` / `resume_tailor` / `report_generate` / `email_dispatch`；handler 业务实现仍由各 owner 域持有，本 subject 只承接注册与生命周期。`privacy_export` 只保留为 DB / OpenAPI contract，本计划不注册 handler。
 - 落地 `runner.OutboxDispatcher`：按 [B3 D-7](../event-and-outbox-contract/spec.md#31-已锁定决策含-jobtype-映射表) 5s scan + `FOR UPDATE SKIP LOCKED` + batch≤100 + sort by `next_attempt_at asc, created_at asc`；按 D-7 退避 30s/2m/10m/1h/6h；按 D-8 dead-letter at attempt 5；按 D-9 暴露 `outbox_events_pending` / `outbox_publish_duration_seconds` / `outbox_publish_failures_total` 指标；按 D-10 透传 `traceId`；按 D-15 通过 `IsSourceEventOnly()` 谓词跳过 `source_event_only` job 创建；未注册 consumer 的 runtime 事件不得被 dry-run 误标为 `published`。
-- 删除 `review.Runner` / `review.Reaper` / `review.ComputeReportFailureBackoff` / `auth.BackgroundMailDispatcher` 等局部形态；删除 targetjob / resume 等业务域内的独立 `targetjob.NewDrainer` 实例化点；`cmd/api` 单点持有 `runner.Runtime` 并编排 shutdown。
+- `cmd/api` 单点持有 `runner.Runtime` 并编排 shutdown；业务域不得持有独立 runtime、claim/finalize SQL 或重复 async job 类型。
 - 接入 [A4 D-9](../secrets-and-config/spec.md) `async.queueWeights` typed config 为 kernel 优先级权重源；同步按 A4 additive 流程新增 `async.shutdownGraceSeconds` / `async.leaseTimeoutSeconds` / `async.reaperIntervalSeconds` / `async.scanIntervalSeconds` config-only typed 节点（不新增 env key）。
 - C1 `email_dispatch` producer 由进程内 channel 切换到 `INSERT INTO async_jobs(job_type='email_dispatch')`；kernel 注册 `EmailDispatchHandler` 通过 [C1 `DeliveryWriter`](../backend-auth/spec.md) sink 发邮件。
-- 负向 lint gate `make lint-runner-out-of-scope`（或等价 scripts）：`review.NewRunner` / `review.NewReaper` / `ComputeReportFailureBackoff` / `auth.BackgroundMailDispatcher` / 散落 `targetjob.NewDrainer` 实例化（除 kernel adapter、history/tests/lint 自身外）必须 0 命中；禁止新增绕过 `runner.Runtime` 的业务域 runtime 注册路径。
+- 负向 lint gate `make lint-runner-out-of-scope` 必须拒绝局部 runtime、重复 targetjob async job contract/SQL、handler adapter 和绕过 `runner.Runtime` 的业务域注册路径。
 
 ### 2.2 Out of Scope
 
@@ -51,8 +42,8 @@
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | 单一 kernel | 新建 `backend/internal/runner/`，所有 in-process async job 执行收敛到一个 `runner.Runtime` | 删除 `review.Runner` / `review.Reaper` / 多 `targetjob.NewDrainer` 实例化；`cmd/api` 持有 1 个 runtime |
-| D-2 | 统一 Handler 接口 | 引入 `runner.Handler{Handle(ctx, runner.ClaimedJob) runner.JobOutcome}`；同包提供 `runner.JobHandlerFunc` adapter 与 `runner.FromTargetjobHandler(targetjob.JobHandler) runner.Handler` shim | P2 迁移期允许同名调用；P4 完成后 `targetjob.JobHandler` 可降级为 alias 或被删除 |
+| D-1 | 单一 kernel | `backend/internal/runner/` 持有唯一 `runner.Runtime`，所有 in-process async job 通过它执行 | `cmd/api` 持有 1 个 runtime，各域只提供原生 `runner.Handler` |
+| D-2 | 统一 Handler 接口 | 所有业务 handler 直接实现 `runner.Handler{Handle(ctx, runner.ClaimedJob) runner.JobOutcome}`；inline handler 只使用 `runner.JobHandlerFunc` | 禁止第二套 `ClaimedJob` / `JobOutcome` / `JobHandler` 类型和跨包 adapter |
 | D-3 | Lease SQL contract | kernel `LeaseAsyncJob`/`FinalizeAsyncJob` 直接拥有 SQL；列名 `locked_at` / `attempts` / `available_at` 与 [B4 baseline](../db-migrations-baseline/spec.md) 一致；P2 各域 store 不再独立持有 ClaimNext / Finalize SQL 副本，统一调用 kernel-side store | 收口 review / resume / targetjob 三处重复 SQL |
 | D-4 | Retry backoff | 唯一退避表 `[30s, 2m, 10m, 1h, 6h]`，max 5 attempts；retryable 失败在 attempts < max 时回到 `queued`，attempts >= max 时进入 `dead`；non-retryable 失败进入 `failed`；与 [ADR-Q2 §3.4](../engineering-roadmap/decisions/ADR-Q2-async-orchestration.md) / B3 D-7 一致 | 删除 `review.ComputeReportFailureBackoff` (2^n) 与 resume `async.go` 固定 15s；统一 targetjob/review/resume 的终态语义 |
 | D-5 | Reaper 覆盖 | 单一 reaper，覆盖全部已注册 job_type；lease timeout 默认 `async.leaseTimeoutSeconds`（typed config 提供，默认 300s）；reaper interval 默认 `async.reaperIntervalSeconds`（默认 60s） | review.Reaper 删除；`target_import` / `source_refresh` / `privacy_delete` / `resume_parse` / `resume_tailor` / `report_generate` / `email_dispatch` 死锁 row 可恢复 |
@@ -62,8 +53,8 @@
 | D-9 | Queue weights | 注入 [A4 D-9](../secrets-and-config/spec.md) `async.queueWeights{critical:6, default:3, low:1}` typed config；priority 划分按当前 `shared/jobs.yaml` 可执行集合：`critical=report_generate, privacy_delete`；`default=target_import, resume_parse, resume_tailor`；`low=source_refresh, email_dispatch`；`privacy_export` 不注册 handler | P0 `Runtime.Start` 通过每个已注册 job_type 的独立 lease loop 实现 fair scheduling，禁止生产路径按 fixed-priority bucket 串行 drain；`RunOnce` 仍保留 priority bucket 顺序作为同步测试入口；DB 列默认按 `available_at asc, created_at asc` |
 | D-10 | Email dispatch 收口 | P3 把 `email_dispatch` 从 C1 进程内 channel 迁移到 `async_jobs` 行：C1 `MailDispatcher.Enqueue` 改为 `INSERT INTO async_jobs(job_type='email_dispatch', payload, ...)`；kernel 注册 `EmailDispatchHandler` 通过既有 `DeliveryWriter` sink 发邮件；payload 仍受 [B3 D-12 redaction redline](../event-and-outbox-contract/spec.md#31-已锁定决策含-jobtype-映射表) 与 `shared/jobs/jobs.go` `EmailDispatchPayload` validator 约束 | 删除 `auth.BackgroundMailDispatcher`；C1 `DevMailSink` 写入路径不变 |
 | D-11 | TraceId 透传 | kernel 在 handler 调用前重建 W3C `traceparent` span（如 outbox payload 中存在 `traceId`）；logger 在 handler / dispatcher 日志中注入 `trace_id` 字段；缺失 `traceId` 时 dispatcher 写 warn log 后继续发布（[B3 D-10](../event-and-outbox-contract/spec.md#31-已锁定决策含-jobtype-映射表)） | 与 F1 trace propagation 对齐 |
-| D-12 | Out-of-scope zero-reference gate | 新增 lint script `scripts/lint/runner_out_of_scope.py`（与既有 `backend_review_out_of_scope.py` / `backend_practice_out_of_scope.py` 同风格的 Python lint，配套 `runner_out_of_scope_test.py`），Makefile target 名 `lint-runner-out-of-scope`；扫描 `review.NewRunner` / `review.NewReaper` / `review.ComputeReportFailureBackoff` / `review.DefaultReportFailureBackoff` / `auth.BackgroundMailDispatcher` / `auth.NewBackgroundMailDispatcher` / 多处 `targetjob.NewDrainer(targetjob.DrainerOptions{...})` 实例化（除 kernel adapter shim、history/tests/lint 自身与本文件审计断言外）必须 0 命中；lint 同时拒绝新增绕过 `runner.Runtime` 的业务域 runtime 注册路径 | 防止局部 runner 形态回流；history/tests/lint 自身允许保留审计证据；脚本扩展名与 `scripts/lint/` 既有 Python 工具集对齐，便于复用 grep 排除规则 |
-| D-13 | `Runtime.RunOnce` 必须暴露 | kernel `Runtime` 对外暴露 `RunOnce(ctx) (processed bool, err error)`（与 §4.1 接口约束一致），供 unit test / integration test 同步驱动 lease + finalize 单条流程；与既有 `targetjob.Drainer.RunOnce` / `review.Runner.RunOnce` 习惯保持一致 | 锁定测试驱动 API，避免实施期重新讨论；与 §4.1 「`Runtime` 必须暴露」清单冗余但显式 |
+| D-12 | Out-of-scope zero-reference gate | `scripts/lint/runner_out_of_scope.py` + `runner_out_of_scope_test.py` 扫描 production 和测试合同；拒绝局部 runtime、重复 targetjob async job 类型/claim/finalize API、adapter、旧场景文件名和绕过 `runner.Runtime` 的注册路径 | 防止第二套 runtime/contract/SQL owner 回流；history 与 lint fixture 可保留审计输入 |
+| D-13 | `Runtime.RunOnce` 必须暴露 | kernel `Runtime` 对外暴露 `RunOnce(ctx) (processed bool, err error)`，供 unit test / integration test / cmd-api 场景同步驱动 lease + handler + finalize 单条流程 | 场景与生产使用同一个 runtime kernel，不建立测试专用执行器 |
 | D-14 | Runtime lease loop scan 间隔 | kernel `Runtime` 默认 lease loop scan 间隔由新增 typed config `async.scanIntervalSeconds` 提供（默认 5s，与 outbox dispatcher 5s scan 对齐）；缺失或非正数 fail-fast；生产路径每个 registered job_type 独立扫描，避免长耗时 critical/default handler 阻塞 low-priority loop | 锁定 `email_dispatch` 等 low-priority job 的可见延迟上限「≤1 个 scan 周期」；配合 plan §6 风险表对 email-code 投递延迟的承诺 |
 | D-15 | Privacy account identity cleanup | `DELETE /api/v1/me` 受理期必须同步软删 `users.deleted_at` / `users.status='deleted'` 并撤销该用户所有 session；`privacy_delete` runner 在当前 domain cleanup 成功后必须执行用户行最终 hard delete，确保 completed request/job 后不能再用原邮箱查询到 UAT 用户身份 | 修复 BUG-0106；避免把 request/job terminal status 误当成账户身份 PII 已清除 |
 
@@ -107,17 +98,17 @@
   - `outbox_publish_failures_total` Counter
 - 必产结构化日志字段：`job_type` / `job_id` / `attempts` / `outcome` / `trace_id`（如存在）。
 
-### 4.5 兼容与迁移约束
+### 4.5 Runtime ownership 约束
 
-- P2 迁移期允许 `runner.FromTargetjobHandler(targetjob.JobHandler)` 适配 shim 继续将既有 handler 注册到 kernel；P4 完成后可移除该 shim。
-- P3 之前各域产生 outbox 行的写法不变（业务事务直插 `outbox_events`）；P3 dispatcher 上线后自动消费。
-- P4 完成后必须保证：`backend/cmd/api/main.go` 中 `mailDispatcher` 变量、`reportRuntime.Runner` / `reportRuntime.Reaper` 字段、`resumeRuntime.Drainer` 字段、`targetJobRuntime.Drainer` 字段全部由 `runner.Runtime` 单实例替换；独立 `defer Shutdown(ctx)` 收敛为 1 个。
+- 各域业务事务继续直接写 `outbox_events`；`runner.OutboxDispatcher` 统一消费。
+- `backend/cmd/api/main.go` 只创建一个 `runner.Runtime`；各域 build 函数只返回 `map[string]runner.Handler`，不拥有 runtime lifecycle。
+- cmd/api 场景通过 `runner.Runtime.RunOnce` 驱动真实 lease/dispatch/finalize；测试 helper 只提供 `runner.LeaseStore` fake，不实现另一套执行循环。
 
 ## 5 模块边界
 
 | 边界 | Owner | 说明 |
 |------|-------|------|
-| Kernel 实现 | `backend-async-runner`（本 spec） | `backend/internal/runner/`：Runtime / Registry / Lease / Reaper / OutboxDispatcher / BackoffPolicy / Adapter shim |
+| Kernel 实现 | `backend-async-runner`（本 spec） | `backend/internal/runner/`：Runtime / Registry / Lease / Reaper / OutboxDispatcher / BackoffPolicy |
 | Handler 业务实现 | 各 backend-* domain spec | `target_import`/`source_refresh` 归 [backend-targetjob](../backend-targetjob/spec.md)；`privacy_delete` 归 [backend-targetjob](../backend-targetjob/spec.md) §「删除链路」+ `backend/internal/privacy/runner/`；`resume_parse`/`resume_tailor` 归 [backend-resume](../backend-resume/spec.md)；`report_generate` 归 [backend-review](../backend-review/spec.md)；`email_dispatch` handler 归 [backend-auth](../backend-auth/spec.md) + 本 spec D-10 |
 | Async jobs DDL | [B4 db-migrations-baseline](../db-migrations-baseline/spec.md) | `async_jobs` / `outbox_events` schema + retry columns |
 | Event / job 契约 | [B3 event-and-outbox-contract](../event-and-outbox-contract/spec.md) + `shared/jobs.yaml` / generated jobs | 8 个 canonical `job_type` ↔ dotted name 映射、payload schema、`IsSourceEventOnly` 谓词；本 spec 只注册当前可执行 7 项 |
@@ -135,10 +126,10 @@
 | C-2 | 统一退避表 | kernel `BackoffPolicy` 配置默认值 | `BackoffPolicy.Next(attempts)` for attempts 1..5 | 返回 `[30s,2m,10m,1h,6h]`；retryable attempts≥5 finalize 为 `dead`，non-retryable finalize 为 `failed` | 001 Phase 1 |
 | C-3 | Reaper 覆盖全部 job_type | `async_jobs` 中存在 `target_import` / `privacy_delete` / `report_generate` 等 stuck `running` 行 | `Runtime.ReapOnce` | 全部超过 lease timeout 的行被回收为 `queued` + `locked_at=NULL`；attempts 不变 | 001 Phase 1 |
 | C-4 | Graceful shutdown | handler 在 in-flight 中收到 ctx cancel | `Runtime.Shutdown(ctx)` with grace timeout | in-flight handler 在 timeout 内完成；新 lease 在 Shutdown 后被拒；超时后 ctx.Err 返回上层 | 001 Phase 1 |
-| C-5 | target_import / source_refresh 迁移 | kernel 已上线 | 移除 `targetJobRuntime.Drainer` 独立实例，注册到 kernel | `targetjob/pipeline_test.go` / `targetjob/e2e_scenario_test.go` rerun PASS | 001 Phase 2 |
+| C-5 | target_import / source_refresh runtime | handlers 已直接实现 `runner.Handler` | `Runtime.RunOnce` lease 并调用 handler | `targetjob/pipeline_test.go` / `targetjob/e2e_scenario_test.go` / cmd-api HTTP scenario PASS | 001 Phase 2 / Phase 4 |
 | C-6 | privacy_delete 迁移 | privacy handler 已注册到 kernel | `DELETE /api/v1/me` 触发 privacy 链路 | `privacy/runner/delete_handler_test.go` PASS；用户端可观察 privacy.request → completed | 001 Phase 2 |
 | C-7 | Contract-only job negative | `privacy_export` 是 B3/B2/B4 contract-only job_type | 构建 runtime kernel | `runtime.Handles("privacy_export") == false`；7 个可执行 handler 均已注册 | product-scope / backend runtime gates |
-| C-8 | resume_parse / resume_tailor 迁移 | resume handlers 注册到 kernel | 触发 resume 注册 + tailor run | `resume/jobs/*_test.go` + `cmd/api/resume_parse_drainer_scenario_test.go` / `resume_tailor_drainer_scenario_test.go` PASS | 001 Phase 2 |
+| C-8 | resume_parse / resume_tailor runtime | resume handlers 直接实现 `runner.Handler` 并注册到 kernel | 触发 resume 注册 + tailor run | `resume/jobs/*_test.go` + `cmd/api/resume_parse_runner_scenario_test.go` / `resume_tailor_runner_scenario_test.go` PASS | 001 Phase 2 / Phase 4 |
 | C-9 | report_generate 迁移；review.Runner/Reaper 删除 | report job row queued | kernel lease 接管 | `review/runner_test.go` / `review/reaper_test.go` 重写到 kernel 后 PASS；`review.NewRunner` / `review.NewReaper` 在 lint 中 0 命中；retryable report failure 只持久化 report-domain failure，async job 由 kernel shared `BackoffPolicy` finalize | 001 Phase 2 / Phase 4 |
 | C-10 | Outbox dispatcher 协议 | `outbox_events` 中存在 pending 行 | `OutboxDispatcher.RunOnce` against 真 PG | 5s scan + SKIP LOCKED + batch≤100 + sort by `next_attempt_at asc, created_at asc` 行为可断言；publish 成功后 `publish_status='published'` | 001 Phase 3 |
 | C-11 | Outbox 退避 + dead-letter | dispatcher publish 临时失败 5 次 | 5 次 retry 后 | `publish_attempts=5` → `publish_status='failed'` + redacted `last_error_message`；emit `outbox_publish_failures_total` | 001 Phase 3 |
@@ -150,7 +141,7 @@
 | C-16 | Cmd/api 单点 shutdown | SIGTERM 到达 cmd/api | signal context | 单一 `runner.Runtime.Shutdown(ctx)` 调用替代多个独立 defer；`cmd/api/main_test.go` lifecycle 断言通过 | 001 Phase 4 |
 | C-17 | Queue weights 注入 | `async.queueWeights{critical:6,default:3,low:1}` 已 typed config 化 | kernel boot | `Runtime` 初始化读取 weights；priority bucket 按 D-9 划分；缺失或非正数 fail-fast（沿用 A4 C-12） | 001 Phase 1 |
 | C-18 | 既有 BDD 场景回归 | 各 owner spec BDD 场景已存在 | P2 / P3 / P4 完成后 rerun owner BDD suite | auth email / privacy_delete / target_import / report_generate / resume_parse / resume_tailor 用户路径全部 PASS；owner negative paths 保持负向 | 001 Phase 4 |
-| C-19 | Out-of-scope zero-reference gate | spec D-12 列出的局部 runner 形态 | `make lint-runner-out-of-scope` | `review.NewRunner` / `review.NewReaper` / `ComputeReportFailureBackoff` / `auth.BackgroundMailDispatcher` / 多 `targetjob.NewDrainer` 实例化（除 kernel adapter 与 history/tests/lint 证据外）0 命中；lint 失败时输出文件 / 行号 | 001 Phase 4 |
+| C-19 | Out-of-scope zero-reference gate | spec D-12 列出的局部 runtime / 重复 contract / SQL 形态 | `make lint-runner-out-of-scope` | production 与测试只保留 kernel runtime、`runner.ClaimedJob` / `runner.JobOutcome` 和 kernel lease/finalize SQL；lint 失败时输出文件 / 行号 | 001 Phase 4 |
 | C-20 | Runtime lease scan + grace + lease timeout + reaper interval typed config | 新增 `async.scanIntervalSeconds` / `leaseTimeoutSeconds` / `shutdownGraceSeconds` / `reaperIntervalSeconds` typed config 节点（A4 additive config-only） | kernel boot + reaper loop | scanIntervalSeconds 默认 5s 与 outbox dispatcher 一致；缺失或非正数 fail-fast（沿用 A4 C-12）；`email_dispatch` 等 low-priority job 可见延迟 ≤1 个 scan 周期，且不被 long-running critical/default handler 串行阻塞 | 001 Phase 1 |
 | C-21 | L2 scheduler/backoff review invariants | critical/default handler 长耗时、report_generate retryable AI failure、handler 执行时间超过 backoff 首档 | `Runtime.Start` 与 `GenerateHandler` / `Service.GenerateReport` 处理失败 | `email_dispatch` 不被正在运行的 critical job starvation；retry `available_at` 与 terminal `completed_at` 使用 handler 返回后的 fresh timestamp；report failure 走 kernel shared backoff 而不是 review store local schedule | 001 Phase 4 |
 | C-22 | BUG-0106 privacy identity cleanup | 用户通过 `DELETE /api/v1/me` 创建 `privacy_delete` job | 请求受理并由 kernel runner 处理完成 | 请求受理后 `users.deleted_at` 非空且该用户所有 session revoked；runner completed 后 `users` 不再存在原邮箱用户行，避免 UAT cleanup 残留 raw email | 001 Phase 4 BUG-0106 remediation |

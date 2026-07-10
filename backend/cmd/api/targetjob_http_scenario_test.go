@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -22,6 +21,7 @@ import (
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
@@ -60,7 +60,7 @@ func TestE2EP0010HTTPTextImportParseReady(t *testing.T) {
 		t.Fatalf("idempotent import did not return existing target: duplicate=%+v targets=%d", duplicate, h.store.targetCount())
 	}
 
-	h.runDrainerOnce(t, true)
+	h.runRunnerOnce(t, true)
 
 	listRaw := h.doJSON(t, http.MethodGet, "/api/v1/targets?pageSize=20", "", nil, http.StatusOK)
 	var list api.PaginatedTargetJob
@@ -129,7 +129,7 @@ func TestE2EP0011HTTPURLImportFetchAndParse(t *testing.T) {
 	}, http.StatusAccepted)
 	var imported api.TargetJobWithJob
 	decodeJSON(t, raw, &imported)
-	h.runDrainerOnce(t, true)
+	h.runRunnerOnce(t, true)
 
 	detailRaw := h.doJSON(t, http.MethodGet, "/api/v1/targets/"+imported.TargetJobId, "", nil, http.StatusOK)
 	var detail api.TargetJob
@@ -202,7 +202,7 @@ func TestE2EP0012HTTPParseFailureRetryableAndNonRetryable(t *testing.T) {
 			var imported api.TargetJobWithJob
 			decodeJSON(t, raw, &imported)
 
-			h.runDrainerOnce(t, true)
+			h.runRunnerOnce(t, true)
 			outcome := h.store.finalizedOutcome(imported.Job.Id)
 			if outcome.Succeeded || outcome.ErrorCode != tc.wantCode || outcome.Retryable != tc.retryable {
 				t.Fatalf("unexpected finalize outcome: %+v", outcome)
@@ -247,7 +247,7 @@ func TestE2EP0013HTTPManualFormReady(t *testing.T) {
 	if imported.Job.Status != sharedtypes.JobStatusSucceeded || imported.Job.JobType != api.JobTypeTargetImport {
 		t.Fatalf("manual_form must return terminal target_import job: %+v", imported.Job)
 	}
-	if processed, err := h.drainer.RunOnce(context.Background()); err != nil || processed {
+	if processed, err := h.runtime.RunOnce(context.Background()); err != nil || processed {
 		t.Fatalf("manual_form must not queue target_import runner, processed=%v err=%v", processed, err)
 	}
 
@@ -274,7 +274,7 @@ type targetJobHTTPScenarioOptions struct {
 
 type targetJobHTTPScenarioHarness struct {
 	handler http.Handler
-	drainer *targetjob.Drainer
+	runtime *runner.Runtime
 	store   *scenarioTargetJobStore
 	cookie  *http.Cookie
 }
@@ -344,17 +344,13 @@ runtime:
 		NewID:    store.nextID,
 		Now:      fixedScenarioNow,
 	})
-	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
-		Store: store,
-		Handlers: map[string]targetjob.JobHandler{
-			"target_import":  executor,
-			"source_refresh": &targetjob.SourceRefreshHandler{Store: store, Now: fixedScenarioNow},
-		},
-		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+	runtime := newScenarioJobRuntime(store, fixedScenarioNow, map[string]runner.Handler{
+		"target_import":  executor,
+		"source_refresh": &targetjob.SourceRefreshHandler{Store: store, Now: fixedScenarioNow},
 	})
 	return &targetJobHTTPScenarioHarness{
 		handler: buildAPIHandlerWithTargetJobHandler(loader, apiRuntimeFlags{}, authService, targetJobHandler),
-		drainer: drainer,
+		runtime: runtime,
 		store:   store,
 		cookie:  &http.Cookie{Name: auth.SessionCookieName, Value: "raw-session-token"},
 	}
@@ -388,9 +384,9 @@ func (h *targetJobHTTPScenarioHarness) doJSON(t *testing.T, method, path string,
 	return rec.Body.Bytes()
 }
 
-func (h *targetJobHTTPScenarioHarness) runDrainerOnce(t *testing.T, wantProcessed bool) {
+func (h *targetJobHTTPScenarioHarness) runRunnerOnce(t *testing.T, wantProcessed bool) {
 	t.Helper()
-	processed, err := h.drainer.RunOnce(context.Background())
+	processed, err := h.runtime.RunOnce(context.Background())
 	if err != nil {
 		t.Fatalf("RunOnce: %v", err)
 	}
@@ -432,8 +428,8 @@ type scenarioTargetJobStore struct {
 	archiveDedupe map[string]string
 	jobByTarget   map[string]string
 	jobStatus     map[string]sharedtypes.JobStatus
-	jobs          []targetjob.ClaimedJob
-	finalized     map[string]targetjob.JobOutcome
+	jobs          []runner.ClaimedJob
+	finalized     map[string]runner.JobOutcome
 	outbox        [][]byte
 	failed        [][]byte
 }
@@ -448,7 +444,7 @@ func newScenarioTargetJobStore() *scenarioTargetJobStore {
 		archiveDedupe: map[string]string{},
 		jobByTarget:   map[string]string{},
 		jobStatus:     map[string]sharedtypes.JobStatus{},
-		finalized:     map[string]targetjob.JobOutcome{},
+		finalized:     map[string]runner.JobOutcome{},
 	}
 }
 
@@ -508,7 +504,7 @@ func (s *scenarioTargetJobStore) ImportTargetJob(_ context.Context, in targetjob
 	status := sharedtypes.JobStatusSucceeded
 	if in.JobID != "" && len(in.JobPayload) > 0 {
 		status = sharedtypes.JobStatusQueued
-		s.jobs = append(s.jobs, targetjob.ClaimedJob{
+		s.jobs = append(s.jobs, runner.ClaimedJob{
 			JobID:        in.JobID,
 			JobType:      "target_import",
 			ResourceType: "target_job",
@@ -659,7 +655,7 @@ func (s *scenarioTargetJobStore) CompleteParseSuccess(_ context.Context, in targ
 	}
 	s.outbox = append(s.outbox, append([]byte{}, in.ParsedEventPayload...))
 	if in.SourceRefreshJobID != "" {
-		s.jobs = append(s.jobs, targetjob.ClaimedJob{
+		s.jobs = append(s.jobs, runner.ClaimedJob{
 			JobID:        in.SourceRefreshJobID,
 			JobType:      "source_refresh",
 			ResourceType: "target_job",
@@ -714,7 +710,7 @@ func (s *scenarioTargetJobStore) LookupFileAttachmentForUser(context.Context, st
 	return targetjob.FileAttachmentRecord{}, targetjob.ErrTargetJobNotFound
 }
 
-func (s *scenarioTargetJobStore) ClaimNextAsyncJob(_ context.Context, jobTypes []string, _ time.Time) (targetjob.ClaimedJob, bool, error) {
+func (s *scenarioTargetJobStore) LeaseAsyncJob(_ context.Context, jobTypes []string, _ time.Time) (runner.ClaimedJob, bool, error) {
 	allowed := map[string]struct{}{}
 	for _, jobType := range jobTypes {
 		allowed[jobType] = struct{}{}
@@ -726,10 +722,10 @@ func (s *scenarioTargetJobStore) ClaimNextAsyncJob(_ context.Context, jobTypes [
 		s.jobs = append(s.jobs[:i], s.jobs[i+1:]...)
 		return job, true, nil
 	}
-	return targetjob.ClaimedJob{}, false, nil
+	return runner.ClaimedJob{}, false, nil
 }
 
-func (s *scenarioTargetJobStore) FinalizeAsyncJob(_ context.Context, jobID string, outcome targetjob.JobOutcome, _ time.Time) error {
+func (s *scenarioTargetJobStore) FinalizeAsyncJob(_ context.Context, jobID string, outcome runner.JobOutcome, _ time.Time, _ time.Time) error {
 	s.finalized[jobID] = outcome
 	if outcome.Succeeded {
 		s.jobStatus[jobID] = sharedtypes.JobStatusSucceeded
@@ -739,8 +735,12 @@ func (s *scenarioTargetJobStore) FinalizeAsyncJob(_ context.Context, jobID strin
 	return nil
 }
 
+func (s *scenarioTargetJobStore) ReclaimExpiredLeases(context.Context, []string, time.Time, time.Time) (int64, error) {
+	return 0, nil
+}
+
 func (s *scenarioTargetJobStore) EnqueueSourceRefresh(_ context.Context, jobID string, targetJobID string, now time.Time) error {
-	s.jobs = append(s.jobs, targetjob.ClaimedJob{JobID: jobID, JobType: "source_refresh", ResourceType: "target_job", ResourceID: targetJobID, AvailableAt: now})
+	s.jobs = append(s.jobs, runner.ClaimedJob{JobID: jobID, JobType: "source_refresh", ResourceType: "target_job", ResourceID: targetJobID, AvailableAt: now})
 	return nil
 }
 
@@ -780,7 +780,7 @@ func (s *scenarioTargetJobStore) outboxPayloads() [][]byte {
 	return out
 }
 
-func (s *scenarioTargetJobStore) finalizedOutcome(jobID string) targetjob.JobOutcome {
+func (s *scenarioTargetJobStore) finalizedOutcome(jobID string) runner.JobOutcome {
 	return s.finalized[jobID]
 }
 

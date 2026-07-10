@@ -1,6 +1,6 @@
 # Backend Practice Mode Policies and Provenance
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -96,6 +96,12 @@
 - Run backend-practice out-of-scope lint over runtime/scenario/generated surfaces.
 - Run BDD gates and update plan/index evidence.
 
+### Phase 5: Canonical hint scenario fixture repair
+
+- Make the `cmd/api` deterministic success fixture emit F3's canonical `cue` + optional `answerSummary` response shape.
+- Keep alias-only `hint` content exclusively in the invalid-output negative scenario so parser fail-close coverage remains executable.
+- Re-run P0.039 and P0.048-P0.051 plus the backend-practice package gate.
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -110,6 +116,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.7 | Align the cmd/api deterministic hint success fixture with the canonical F3 cue response contract. |
 | 2026-07-07 | 1.4 | Compress owner docs to current hint mode policy, provenance, task-run and privacy contract. |
 | 2026-07-06 | 1.3 | Reconcile current goal matrix and out-of-scope gate wording after product-scope pruning. |
 | 2026-07-10 | 1.6 | Rename strict-mode wording and test references to optional hint policy while preserving behavior. |

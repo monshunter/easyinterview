@@ -1,8 +1,8 @@
 # Internal Job and Outbox Runner Test Plan
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 **关联 Checklist**: [checklist](./checklist.md)
@@ -28,7 +28,7 @@
 | P2-1 | spec C-5 target_import / source_refresh | 2 | `backend/internal/targetjob/pipeline_test.go` + `e2e_scenario_test.go` rerun | regression |
 | P2-2 | spec C-6 privacy_delete | 2 | `backend/internal/privacy/runner/delete_handler_test.go` rerun + cmd/api smoke | regression + smoke |
 | P2-3 | D-22 out-of-scope module guard | 2 | Out-of-scope module negative search / current package absence check | regression-negative |
-| P2-4 | spec C-8 resume_parse / resume_tailor | 2 | `backend/internal/resume/jobs/*_test.go` + `backend/cmd/api/resume_parse_drainer_scenario_test.go` + `resume_tailor_drainer_scenario_test.go` rerun | regression + scenario |
+| P2-4 | spec C-8 resume_parse / resume_tailor | 2 | `backend/internal/resume/jobs/*_test.go` + `backend/cmd/api/resume_parse_runner_scenario_test.go` + `resume_tailor_runner_scenario_test.go` rerun | regression + scenario |
 | P2-5 | spec C-9 report_generate；review.Runner/Reaper 删除 | 2 | `backend/internal/review/runner_test.go` / `reaper_test.go` 有价值断言迁移到 kernel / `GenerateHandler` tests + `backend/cmd/api/reports_http_scenario_test.go` rerun | unit + regression |
 | P2-6 | D-22 out-of-scope jobs-recommendations guard | 2 | `make lint-runner-out-of-scope` + out-of-scope module negative search | regression-negative |
 | P3-1 | spec C-10 outbox 5s/skip-locked/batch/sort | 3 | `backend/internal/runner/outbox_integration_test.go::TestOutboxDispatcher_ClaimsPendingBatch` | integration (PG) |
@@ -36,12 +36,12 @@
 | P3-3 | spec C-14 email_dispatch 收口 | 3 | `backend/internal/auth/email_dispatch_handler_test.go::TestStartAuthEmailChallenge_EnqueuesEmailDispatchJob` + `email_dispatch_handler_test.go` | unit + integration |
 | P4-1 | spec C-16 cmd/api 单点 shutdown | 4 | `backend/cmd/api/main_test.go::TestMain_SingleRuntimeShutdown` | unit + integration |
 | P4-2 | spec C-22 / BUG-0106 privacy identity cleanup | 4 | `backend/internal/auth` DeleteMe store/service tests + `backend/internal/privacy/runner/delete_handler_test.go` + `backend/cmd/api` privacy integration regression | unit + integration |
+| P4-3 | canonical runner contract cleanup | 4 | `scripts/lint/runner_out_of_scope_test.py` + native handler compile assertions + targetjob/resume cmd/api runner scenarios | contract + regression + scenario |
 
 ### 2.2 Alternate path
 
 | 行 | 决策 | Phase | 入口 | 类型 |
 |----|------|-------|------|------|
-| A-1 | spec D-2 adapter shim 兼容老 `targetjob.JobHandler` | 1 / 2 | `backend/internal/runner/adapter_targetjob_test.go::TestFromTargetjobHandler_PreservesOutcome` | unit |
 | A-2 | spec D-9 queue priority bucket（critical / default / low）与 production per-job lease loop 防饥饿 | 1 / 4 | `backend/internal/runner/lease_test.go::TestLeaseAsyncJob_RespectsPriorityBuckets` + `backend/internal/runner/runtime_test.go::TestRuntime_StartDoesNotLetCriticalJobStarveEmailDispatch` | unit |
 | A-3 | spec D-11 outbox payload 缺失 traceId 时降级 warn log | 3 | `backend/internal/runner/outbox_trace_test.go::TestOutboxDispatcher_WarnsOnMissingTrace` | unit |
 

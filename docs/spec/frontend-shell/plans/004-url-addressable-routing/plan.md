@@ -1,8 +1,8 @@
 # URL-Addressable Routing
 
-> **版本**: 1.4
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -27,8 +27,8 @@
 | Route | Canonical URL | Safe Params | Chrome |
 |-------|---------------|-------------|--------|
 | `home` | `/` | `pendingImportId`, `source`, `resumeId` | visible |
-| `workspace` | `/workspace` | `targetJobId`, `jobId`, `resumeId`, `sourceReportId`, `planId`, `roundId`, `roundName`, `jdId`, `sessionId`, `sourceSessionId`, `replayItems`, `evidenceGaps`, `nextRoundId`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `hintUsed`, `hintCount`, `autoStartPractice`, `language` | visible |
-| `resume_versions` | `/resume-versions` | `resumeId`, `flow`, `tab`, `createMode`, `targetJobId`, `tailorRunId` | visible |
+| `workspace` | `/workspace` | none | visible |
+| `resume_versions` | `/resume-versions` | `resumeId`, `flow`, `createMode`, `targetJobId` | visible |
 | `parse` | `/parse` | `jdId`, `targetJobId`, `resumeId`, `importId`, `source` | visible |
 | `practice` | `/practice` | `sessionId`, `planId`, `targetJobId`, `jobId`, `jdId`, `resumeId`, `sourceReportId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `language` | hidden |
 | `generating` | `/generating` | `sessionId`, `reportId`, `planId`, `targetJobId`, `jobId`, `jdId`, `resumeId`, `roundId`, `roundName`, `mode`, `modality`, `practiceMode`, `practiceGoal`, `hintUsed`, `hintCount` | hidden |
@@ -77,6 +77,25 @@ Blocked payload categories:
 - Auth pendingAction serialization shares the safe-param allowlist with URL serialization.
 - `spaFallback.mjs`, Vite SPA config and pixel parity server tests separate known frontend paths from API/static/script paths.
 
+### 6.1 Phase 8 route-table evidence reconciliation
+
+- Reconcile the canonical route table with `routeUrl.ts`: workspace accepts no query params, while resume workshop accepts only `resumeId`, `flow`, `createMode` and `targetJobId`.
+- Keep old workspace detail/start keys only as hostile P0.088 inputs that must be stripped; practice, generating and report continue to preserve their own current safe params.
+- Remove stale discovery keywords and align P0.088 README/data/BDD wording with the executable jsdom assertions.
+- Gate with focused routeUrl/P0.088 tests, the P0.088 wrapper, owner/product contexts and docs/diff/pruning checks. No routing runtime behavior changes.
+
+### 6.2 Phase 9 P0.089 workspace-zero-query evidence reconciliation
+
+- Treat the direct-open and popstate workspace payloads in P0.089 as hostile inputs; both must canonicalize to query-free `/workspace` while the positive auth continuation still restores safe practice params.
+- Align the executable test title, BDD wording, scenario README and data assets with the current route table; remove claims that workspace retains `planId`, `targetJobId` or other query params.
+- Gate with the focused P0.089 test, its four-stage scenario wrapper, owner/product contexts and docs/diff/pruning checks. No routing runtime behavior changes.
+
+### 6.3 Phase 10 unconsumed route helper removal
+
+- Delete `routeUrlsEqual`; repository inventory proves no production or test consumer, while `routeStore.ts` already compares cached `formatRouteUrl` strings directly.
+- Remove the false route-store consumer comment and do not add a replacement wrapper.
+- BDD is not applicable because the export has no executable caller. Alternative gates are a focused source-surface red/green test, route codec/store regressions, typecheck and owner/global checks.
+
 ## 7 验收标准
 
 - Every current route serializes to and parses from its canonical URL with sorted safe query params.
@@ -94,7 +113,7 @@ Blocked payload categories:
 |------|----------|
 | Frontend URL mirrors backend implementation too closely | Keep the URL route-centric and user-centric; action verbs remain API/client concerns |
 | Sensitive payload leaks through query, history or pendingAction | Shared safe-param allowlist + runtime privacy redline tests |
-| Hash compatibility breaks preview or parity harness | Keep hash adapter and cover it with E2E.P0.090 |
+| Hash adapter breaks preview or parity harness | Keep the current adapter covered by E2E.P0.090 |
 | Host fallback swallows API paths | Explicit fallback tests distinguish known frontend paths from API/static/script paths |
 | Components bypass router | Route adapter remains the only write path; focused tests cover navigation behavior |
 
@@ -102,4 +121,9 @@ Blocked payload categories:
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.9 | Remove the unconsumed routeUrlsEqual wrapper and false consumer comment. |
+| 2026-07-10 | 1.8 | Reconcile P0.089 workspace hostile-input evidence with the query-free canonical route contract. |
+| 2026-07-10 | 1.7 | Align the route owner and P0.088 with workspace zero-query and current resume-workshop safe params. |
+| 2026-07-10 | 1.6 | Isolate the synchronous P0.089 hostile-query test lifecycle with explicit cleanup; keep routing and privacy behavior unchanged. |
+| 2026-07-10 | 1.5 | Normalize hash adapter wording across owner, BDD, tests and E2E.P0.090 without changing routing behavior. |
 | 2026-07-07 | 1.4 | Compress URL routing owner docs to the current canonical URL, safe-param, hash adapter, privacy and host fallback contract. |

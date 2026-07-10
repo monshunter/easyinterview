@@ -1,8 +1,8 @@
 # 002 BDD Checklist
 
-> **版本**: 1.3
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -33,7 +33,7 @@
 ## E2E.P0.077 flat resume tailor async dispatch and ready
 
 - [x] 场景目录 `test/scenarios/e2e/p0-077-resume-tailor-async-dispatch-and-ready/` 存在，含标准七件套
-- [x] `scripts/trigger.sh` 覆盖 `make validate-fixtures`、`TestResumeTailorEndpointsHTTPScenario`、`TestResumeTailorFixtureParity`、service/store tailor tests、`TestResumeTailorDrainerHTTPScenario`、ready job handler test
+- [x] `scripts/trigger.sh` 覆盖 `make validate-fixtures`、`TestResumeTailorEndpointsHTTPScenario`、`TestResumeTailorFixtureParity`、service/store tailor tests、`TestResumeTailorRunnerHTTPScenario`、ready job handler test
 - [x] `scripts/verify.sh` 拒绝 skip/no-op，检查 request/get tailor fixture parity、queued async job dispatch、ready suggestions in task output、typed `ai_task_runs` 和 ready-only outbox
 - [x] 场景语义为 current `async_jobs` + `ai_task_runs` task output，不声明专属 suggestions persistence
 - [x] 在 `test/scenarios/e2e/INDEX.md` 保留 P0.077 Ready 行
@@ -41,7 +41,7 @@
 ## E2E.P0.078 resume tailor failure and retry
 
 - [x] 场景目录 `test/scenarios/e2e/p0-078-resume-tailor-failure-and-retry/` 存在，含标准七件套
-- [x] `scripts/trigger.sh` 覆盖 `TestResumeTailorDrainerFailureScenario`、`TestTailorHandlerModeRoutingAndFailurePaths`、`TestCompleteTailorRunSuccessWritesResultAndOutbox`
+- [x] `scripts/trigger.sh` 覆盖 `TestResumeTailorRunnerFailureScenario`、`TestTailorHandlerModeRoutingAndFailurePaths`、`TestCompleteTailorRunSuccessWritesResultAndOutbox`
 - [x] `scripts/verify.sh` 拒绝 skip/no-op，检查 timeout retryable、output_invalid terminal、retry-to-ready、ready-only outbox 和 privacy negative
 - [x] 场景脚本使用当前测试名 `TestCompleteTailorRunSuccessWritesResultAndOutbox`
 - [x] 在 `test/scenarios/e2e/INDEX.md` 保留 P0.078 Ready 行
@@ -57,7 +57,8 @@
 ## E2E.P0.080 tailor privacy and runtime vocabulary negative
 
 - [x] 场景目录 `test/scenarios/e2e/p0-080-resume-tailor-privacy-negative/` 存在，含标准七件套
-- [x] `scripts/trigger.sh` 覆盖 job privacy tests、`TestCompleteTailorRunSuccessWritesResultAndOutbox`、cmd/api drainer ready/failure gates、runtime vocabulary negative grep
+- [x] `scripts/trigger.sh` 覆盖 job privacy tests、`TestCompleteTailorRunSuccessWritesResultAndOutbox`、cmd/api runner kernel ready/failure gates、runtime vocabulary negative grep
 - [x] `scripts/verify.sh` 拒绝 skip/no-op，检查 outbox payload allowlist、`ai_task_runs`/audit privacy、runtime negative 和 private marker absence
 - [x] 场景脚本使用当前测试名 `TestCompleteTailorRunSuccessWritesResultAndOutbox`
 - [x] 在 `test/scenarios/e2e/INDEX.md` 保留 P0.080 Ready 行
+- [x] P0.077/P0.078/P0.080 verify 的 tailor mode negative gate 使用 contextual production regex 并排除 `*_test.go`；合法 `Content-Disposition: inline` 不误报，三场景串行 PASS

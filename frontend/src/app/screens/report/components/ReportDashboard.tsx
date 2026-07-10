@@ -9,7 +9,6 @@ import { useReportContextData } from "../hooks/useReportContextData";
 import { ReportContextStrip } from "./ReportContextStrip";
 import { ReportFailureState } from "./ReportFailureState";
 import { ReportHeader } from "./ReportHeader";
-import { ReportMissingSessionState } from "./ReportMissingSessionState";
 import {
   SummaryCards,
   type SummaryDetailKey,
@@ -48,7 +47,6 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ route }) => {
 
   const onSelectSummary = (next: SummaryDetailKey | "evidence") => setDetail(next);
 
-  const failureBlocking = report.state === "notFound";
   const dataNotReady =
     report.state !== "data" ||
     (report.data?.status && report.data.status !== "ready");

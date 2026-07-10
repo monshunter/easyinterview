@@ -74,7 +74,7 @@ config-only 字段同样需要先递增 spec 版本再同步 `config.yaml`。
 - `status=disabled|unsupported` 的 profile 必须写 `unsupported_reason`，运行时
   必须 fail-closed，不得静默降级到 chat 或 stub。
 - 当前开发主力 provider ref 是 `deepseek`，profile 只使用
-  `deepseek-v4-flash` / `deepseek-v4-pro` 两个模型 ID；不得使用 out-of-scope model alias 或 compatibility-layer name。
+  `deepseek-v4-flash` / `deepseek-v4-pro` 两个模型 ID。
 - `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 只是 `deepseek` provider ref
   引用的 env 名，不是全局唯一 provider contract。
 - `AI_DEBUG_PRINT_RAW_OUTPUT` 在 local dev/test 和 `deploy/dev-stack/.env.example`

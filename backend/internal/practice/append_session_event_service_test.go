@@ -280,7 +280,7 @@ func TestAppendSessionEventHintStrictModeRunsAIAndAppends(t *testing.T) {
 			LatestTurn: sessionEventTestTurn(1),
 		},
 	}
-	ai := &fakeAIClient{content: `{"hint":"Use one measurable tradeoff."}`, store: store}
+	ai := &fakeAIClient{content: `{"cue":"Use one measurable tradeoff."}`, store: store}
 	service := NewService(ServiceOptions{
 		Store:    store,
 		Registry: &fakePromptResolver{resolution: hintTestResolution()},
@@ -323,7 +323,7 @@ func TestServiceAppliesHintAIForAssisted(t *testing.T) {
 			LatestTurn: sessionEventTestTurn(1),
 		},
 	}
-	ai := &fakeAIClient{content: `{"hint":"Use one measurable tradeoff."}`, store: store}
+	ai := &fakeAIClient{content: `{"cue":"Use one measurable tradeoff."}`, store: store}
 	service := NewService(ServiceOptions{
 		Store: store,
 		Registry: &fakePromptResolver{resolution: registry.PromptResolution{
@@ -387,7 +387,7 @@ func TestServiceAppliesHintAIForStrictMode(t *testing.T) {
 			LatestTurn: sessionEventTestTurn(1),
 		},
 	}
-	ai := &fakeAIClient{content: `{"hint":"Use a measurable tradeoff."}`, store: store}
+	ai := &fakeAIClient{content: `{"cue":"Use a measurable tradeoff."}`, store: store}
 	service := NewService(ServiceOptions{
 		Store:    store,
 		Registry: &fakePromptResolver{resolution: hintTestResolution()},
@@ -418,7 +418,7 @@ func TestServiceAppliesHintAIForStrictMode(t *testing.T) {
 func TestApplyHintAISuccess(t *testing.T) {
 	reservation := hintTestReservation()
 	ai := &fakeAIClient{
-		content: `{"cue":"Tie the answer to a concrete metric.","severity":"nudge","dimension_hint":"evidence"}`,
+		content: `{"cue":"Tie the answer to a concrete metric.","severity":"nudge","dimensionHint":"evidence"}`,
 		meta: aiclient.AICallMeta{
 			ModelID:          "stub-chat-1",
 			ValidationStatus: aiclient.ValidationStatusOK,
@@ -455,13 +455,31 @@ func TestApplyHintAISuccess(t *testing.T) {
 }
 
 func TestParseHintAcceptsLightweightObserveCueSchema(t *testing.T) {
-	hint, err := parseHint(`{"cue":"Anchor the answer in one measurable decision.","severity":"nudge","dimension_hint":"evidence"}`)
+	hint, err := parseHint(`{"cue":"Anchor the answer in one measurable decision.","severity":"nudge","dimensionHint":"evidence"}`)
 	if err != nil {
 		t.Fatalf("parseHint returned error: %v", err)
 	}
 	if hint != "Anchor the answer in one measurable decision." {
 		t.Fatalf("hint = %q", hint)
 	}
+}
+
+func TestParseHintUsesCanonicalCue(t *testing.T) {
+	t.Run("rejects alias-only output", func(t *testing.T) {
+		if _, err := parseHint(`{"hint":"Alias hint."}`); err == nil {
+			t.Fatal("expected alias-only hint output to fail")
+		}
+	})
+
+	t.Run("canonical key wins over unknown alias", func(t *testing.T) {
+		hint, err := parseHint(`{"cue":"Canonical cue.","hint":"Alias hint."}`)
+		if err != nil {
+			t.Fatalf("parseHint returned error: %v", err)
+		}
+		if hint != "Canonical cue." {
+			t.Fatalf("hint = %q", hint)
+		}
+	})
 }
 
 func TestParseTurnObservationExtractsAnswerSummary(t *testing.T) {
@@ -472,6 +490,28 @@ func TestParseTurnObservationExtractsAnswerSummary(t *testing.T) {
 	if obs.Hint != "Anchor the answer." || obs.AnswerSummary != "Candidate covered queue sizing, rollback, and adoption metrics." {
 		t.Fatalf("unexpected observation: %+v", obs)
 	}
+}
+
+func TestParseTurnObservationUsesCanonicalAnswerSummary(t *testing.T) {
+	t.Run("ignores alias-only summary", func(t *testing.T) {
+		obs, err := parseTurnObservation(`{"cue":"Canonical cue.","answer_summary":"Alias summary."}`)
+		if err != nil {
+			t.Fatalf("parseTurnObservation returned error: %v", err)
+		}
+		if obs.Hint != "Canonical cue." || obs.AnswerSummary != "" {
+			t.Fatalf("unexpected observation: %+v", obs)
+		}
+	})
+
+	t.Run("canonical summary wins over unknown alias", func(t *testing.T) {
+		obs, err := parseTurnObservation(`{"cue":"Canonical cue.","answerSummary":"Canonical summary.","answer_summary":"Alias summary."}`)
+		if err != nil {
+			t.Fatalf("parseTurnObservation returned error: %v", err)
+		}
+		if obs.Hint != "Canonical cue." || obs.AnswerSummary != "Canonical summary." {
+			t.Fatalf("unexpected observation: %+v", obs)
+		}
+	})
 }
 
 func TestAppendSessionEventCompletedTurnPersistsObservationSummary(t *testing.T) {
@@ -529,7 +569,7 @@ func TestAppendSessionEventCompletedTurnPersistsObservationSummary(t *testing.T)
 func TestApplyHintAIBuildsPromptFromF3Template(t *testing.T) {
 	reservation := hintTestReservation()
 	reservation.LatestTurn.QuestionText = "Tell me about a cross-team migration."
-	ai := &fakeAIClient{content: `{"cue":"Use a metric.","severity":"nudge","dimension_hint":"evidence"}`}
+	ai := &fakeAIClient{content: `{"cue":"Use a metric.","severity":"nudge","dimensionHint":"evidence"}`}
 	service := NewService(ServiceOptions{
 		Registry: &fakePromptResolver{resolution: registry.PromptResolution{
 			PromptVersion:       "hint.prompt.v1",
@@ -577,14 +617,14 @@ func TestApplyHintAIGracefulDegradeMatrix(t *testing.T) {
 		{
 			name:     "f3 prompt unsupported",
 			resolver: &fakePromptResolver{err: registry.ErrPromptUnsupported},
-			ai:       &fakeAIClient{content: `{"hint":"ignored"}`},
+			ai:       &fakeAIClient{content: `{"cue":"ignored"}`},
 			wantCode: sharederrors.CodeAiProviderConfigInvalid,
 			wantRows: 1,
 		},
 		{
 			name:     "f3 language unsupported",
 			resolver: &fakePromptResolver{err: registry.ErrLanguageUnsupported},
-			ai:       &fakeAIClient{content: `{"hint":"ignored"}`},
+			ai:       &fakeAIClient{content: `{"cue":"ignored"}`},
 			wantCode: sharederrors.CodeAiProviderConfigInvalid,
 			wantRows: 1,
 		},
@@ -615,7 +655,7 @@ func TestApplyHintAIGracefulDegradeMatrix(t *testing.T) {
 		{
 			name:     "parsed hint empty",
 			resolver: &fakePromptResolver{resolution: hintTestResolution()},
-			ai:       &fakeAIClient{content: `{"hint":"   "}`},
+			ai:       &fakeAIClient{content: `{"cue":"   "}`},
 			wantCode: sharederrors.CodeAiOutputInvalid,
 			wantRows: 1,
 		},
@@ -662,7 +702,7 @@ func TestApplyHintAIPrivacyRedaction(t *testing.T) {
 	rows := &recordingAITaskRunWriter{}
 	service := NewService(ServiceOptions{
 		Registry:   &fakePromptResolver{err: registry.ErrPromptUnsupported},
-		AI:         &fakeAIClient{content: `{"hint":"ignored response body secret"}`},
+		AI:         &fakeAIClient{content: `{"cue":"ignored response body secret"}`},
 		AITaskRuns: rows,
 	})
 	outcome := hintPendingOutcome(reservation)
@@ -701,7 +741,7 @@ func TestApplyHintAIGracefulDegradeOnRegistryFailure(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Store:      store,
 		Registry:   &fakePromptResolver{err: registry.ErrPromptUnsupported},
-		AI:         &fakeAIClient{content: `{"hint":"ignored"}`, store: store},
+		AI:         &fakeAIClient{content: `{"cue":"ignored"}`, store: store},
 		AITaskRuns: runs,
 		Now:        func() time.Time { return now },
 		NewID:      sequenceIDs("event-1", "outbox-1"),

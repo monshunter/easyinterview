@@ -1,6 +1,6 @@
 # Backend Upload History
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 1.5 | Privacy delete upload cleanup gate 对齐 canonical runner runtime/test naming。 | backend-async-runner/001 |
 | 2026-07-10 | 1.4 | 将 presign TTL 过期行为改为正向重新签发合同，并统一 upload 范围外输入 gate 术语。 | tech-debt pruning |
 | 2026-07-07 | 1.3 | Auth owner 与当前 upload 边界口径收敛；signed URL 过期后禁止 replay，upload 范围输入继续由负向 gate 约束。 | product-scope/001-core-loop-module-pruning |
 | 2026-05-12 | 1.2 | L2 review remediation 修订：upload presign idempotency TTL 与 signed URL TTL 对齐；RegisterFileObject 以对象存储实际 size 校验 declared byteSize；privacy_delete runtime 必须挂入 upload deleter；DB hard delete 与 audit tombstone 必须同事务提交；E2E.P0.033 不再允许 live DB / MinIO gate skip 后作为 PASS 证据。 | 001-file-objects-and-presign-baseline |

@@ -3,7 +3,6 @@
 Trigger output evidence:
 
 - `Test Files  N passed`
-- `usePracticeAssistance.test.ts` runs and passes
 - `practiceGoalParity.test.tsx` runs and passes
 - `practiceHints.test.tsx` runs and passes
 - `practiceVoiceTurn.test.tsx` runs and passes

@@ -1,5 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { fetchRuntimeConfig, _resetRuntimeConfigCache } from './index';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+import { describe, it, expect } from 'vitest';
+import { fetchRuntimeConfig } from './index';
 import type { RuntimeConfig } from './types';
 
 const fixture: RuntimeConfig = {
@@ -12,8 +15,9 @@ const fixture: RuntimeConfig = {
 };
 
 describe('fetchRuntimeConfig', () => {
-  beforeEach(() => {
-    _resetRuntimeConfigCache();
+  it('does not expose a test-only cache reset API', () => {
+    const resetApi = ['_resetRuntimeConfig', 'Cache'].join('');
+    expect(readFileSync(resolve(__dirname, 'index.ts'), 'utf8')).not.toContain(resetApi);
   });
 
   it('parses the server response into the typed shape', async () => {
@@ -23,7 +27,11 @@ describe('fetchRuntimeConfig', () => {
         status: 200,
         json: async () => fixture,
       }) as unknown as Response) as typeof fetch;
-    const got = await fetchRuntimeConfig({ fetchImpl: stub, endpoint: '/api/v1/runtime-config' });
+    const got = await fetchRuntimeConfig({
+      fetchImpl: stub,
+      endpoint: '/api/v1/runtime-config',
+      forceRefresh: true,
+    });
     expect(got).toEqual(fixture);
   });
 
@@ -37,7 +45,7 @@ describe('fetchRuntimeConfig', () => {
         json: async () => fixture,
       } as unknown as Response;
     }) as typeof fetch;
-    const first = await fetchRuntimeConfig({ fetchImpl: stub });
+    const first = await fetchRuntimeConfig({ fetchImpl: stub, forceRefresh: true });
     const second = await fetchRuntimeConfig({ fetchImpl: stub });
     expect(first).toEqual(fixture);
     expect(second).toEqual(fixture);
@@ -61,7 +69,7 @@ describe('fetchRuntimeConfig', () => {
         json: async () => fixture,
       } as unknown as Response;
     }) as typeof fetch;
-    await expect(fetchRuntimeConfig({ fetchImpl: stub })).rejects.toThrow(/HTTP 500/);
+    await expect(fetchRuntimeConfig({ fetchImpl: stub, forceRefresh: true })).rejects.toThrow(/HTTP 500/);
     const recovered = await fetchRuntimeConfig({ fetchImpl: stub });
     expect(recovered).toEqual(fixture);
   });
@@ -76,7 +84,7 @@ describe('fetchRuntimeConfig', () => {
         json: async () => fixture,
       } as unknown as Response;
     }) as typeof fetch;
-    await fetchRuntimeConfig({ fetchImpl: stub });
+    await fetchRuntimeConfig({ fetchImpl: stub, forceRefresh: true });
     await fetchRuntimeConfig({ fetchImpl: stub, forceRefresh: true });
     expect(calls).toBe(2);
   });

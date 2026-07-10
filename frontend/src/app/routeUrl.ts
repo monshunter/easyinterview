@@ -299,12 +299,3 @@ function normalizeRouteParamValue(
   }
   return value;
 }
-
-/**
- * Returns true when two loose routes serialize to the same canonical URL.
- * Used by the route store to suppress redundant `pushState` calls when
- * navigation lands on the same canonical address.
- */
-export function routeUrlsEqual(a: LooseRoute, b: LooseRoute): boolean {
-  return formatRouteUrl(a) === formatRouteUrl(b);
-}

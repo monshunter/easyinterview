@@ -1,6 +1,6 @@
 # Internal Job and Outbox Runner Checklist
 
-> **版本**: 1.8
+> **版本**: 1.11
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -8,7 +8,7 @@
 
 ## Phase 1: Kernel 基础设施
 
-- [x] 1.1 新建 `backend/internal/runner/` package 骨架（`runtime.go` / `lease.go` / `reaper.go` / `backoff.go` / `handler.go` / `adapter_targetjob.go` / `doc.go`），go build PASS；test 来源 `backend/internal/runner/runtime_test.go::TestRuntime_RegisterAndRunOnce`
+- [x] 1.1 `backend/internal/runner/` package 由 `runtime.go` / `lease.go` / `reaper.go` / `backoff.go` / `handler.go` / `doc.go` 构成，go build PASS；test 来源 `backend/internal/runner/runtime_test.go::TestRuntime_RegisterAndRunOnce`
 - [x] 1.2 实现 `LeaseAsyncJob` / `FinalizeAsyncJob` / `ReclaimExpiredLeases` SQL contract（列名 `locked_at`/`attempts`/`available_at`/`status`，`FOR UPDATE SKIP LOCKED`，排序 `available_at asc, created_at asc`；retryable exhausted → `dead`，non-retryable → `failed`）；test 来源 `backend/internal/runner/lease_test.go` + `lease_integration_test.go`
 - [x] 1.3 实现 `BackoffPolicy.Next(attempts)` 返回 `[30s,2m,10m,1h,6h]`、`MaxAttempts=5` 常量；test 来源 `backend/internal/runner/backoff_test.go` table-driven
 - [x] 1.4 实现 `Reaper.RunOnce(ctx)` 调用 `ReclaimExpiredLeases`；attempts 不递增；test 来源 `backend/internal/runner/reaper_test.go` + 多 jobType fixture
@@ -17,12 +17,12 @@
 - [x] 1.7 单元测试基础设施：fake `LeaseStore` + deterministic clock；test 来源 `backend/internal/runner/fakestore_test.go`
 - [x] 1.8 Runtime handler trace 透传：从 `async_jobs.payload` / envelope 读取 W3C `traceparent` 重建 span context；slog 输出注入 `trace_id` 字段（缺失时跳过）；test 来源 `backend/internal/runner/runtime_trace_test.go::TestRuntime_HandlerInheritsTraceparent` + `TestRuntime_HandlerLogsTraceIdField`
 
-- [x] 2.1 `target_import` + `source_refresh` 注册到 kernel；rerun `backend/internal/targetjob/pipeline_test.go::TestDrainer_RunOnceProcessesQueuedJobAndFinalizes` + `e2e_scenario_test.go`；删除 `targetJobRuntime.Drainer` 独立实例
+- [x] 2.1 `target_import` + `source_refresh` handler 直接注册到 kernel；rerun `backend/internal/targetjob/pipeline_test.go::TestSourceRefreshHandler_MarksStale` + `e2e_scenario_test.go`
 - [x] 2.2 `privacy_delete` 注册到 kernel；rerun `backend/internal/privacy/runner/delete_handler_test.go::TestPrivacyDeleteHandler_DeletesUploadFilesForUser`；smoke `DELETE /api/v1/me` 触发链路 → `privacy_requests.status='completed'`
 - [x] 2.3 D-22 后复盘 runner surface 收敛：当前不再有 debrief handler/package/job 作为正向 target；out-of-scope token 仅允许保留在 audit、lint 或负向断言中。
-- [x] 2.4 `resume_parse` + `resume_tailor` 注册到 kernel；删除 `resumeRuntime.Drainer` 独立实例；删除 `backend/internal/resume/store/async.go` 中固定 15s retry；rerun `backend/internal/resume/jobs/parse_test.go` + `tailor_test.go` + `backend/cmd/api/resume_parse_drainer_scenario_test.go` + `resume_tailor_drainer_scenario_test.go`
+- [x] 2.4 `resume_parse` + `resume_tailor` handler 直接注册到 kernel；rerun `backend/internal/resume/jobs/parse_test.go` + `tailor_test.go` + `backend/cmd/api/resume_parse_runner_scenario_test.go` + `resume_tailor_runner_scenario_test.go`
 - [x] 2.5 `report_generate` 注册到 kernel；新建 `backend/internal/review/generate_handler.go` 实现 `runner.Handler`；删除 `backend/internal/review/runner.go` / `reaper.go` / `lease.go` 中 `ComputeReportFailureBackoff`+`DefaultReportFailureBackoff`；rerun `backend/internal/review/runner_test.go`（重写到 kernel）+ `reaper_test.go`（重写到 kernel reaper）+ `backend/cmd/api/reports_http_scenario_test.go`
-- [x] 2.6 D-22 后 Jobs Recommendations / JD Match runner surface 收敛：当前不再有 scan/search handler/package/job 作为正向 target；`make lint-runner-out-of-scope` 保留 out-of-scope drainer 命名负向断言。
+- [x] 2.6 D-22 后 Jobs Recommendations / JD Match runner surface 收敛：当前不再有 scan/search handler/package/job 作为正向 target；`make lint-runner-out-of-scope` 拦截局部 runtime 与重复 contract 回流。
 - [x] 2.7 退避收口：focused test `backend/internal/runner/backoff_integration_test.go::TestAllHandlersUseSharedBackoff` 验证全部 handler 走 `BackoffPolicy.Next`；负向 grep out-of-scope hard-coded 退避（除 audit / tests / lint 自身）0 命中
 
 - [x] 3.1 实现 `runner.OutboxDispatcher.RunOnce(ctx)`：5s scan + `FOR UPDATE SKIP LOCKED` + batch≤100 + sort by `next_attempt_at asc, created_at asc`；consumer ack 成功才置 `published`，临时失败或缺少 consumer 按 `BackoffPolicy` 后移 `next_attempt_at`；test 来源 `backend/internal/runner/outbox_test.go` + `outbox_integration_test.go`（真 PG）
@@ -36,14 +36,14 @@
 
 ## Phase 4: 收口 / 文档同步 / lint negative gate
 
-- [x] 4.1 `backend/cmd/api/main.go` 单点 `runtime *runner.Runtime`；删除 `mailDispatcher` / `targetJobRuntime.Drainer` / `resumeRuntime.Drainer` / `reportRuntime.Runner` / `reportRuntime.Reaper` 字段；signal context 触发统一 `runtime.Shutdown(ctx)`；test 来源 `backend/cmd/api/main_test.go::TestMain_SingleRuntimeShutdown`
+- [x] 4.1 `backend/cmd/api/main.go` 单点持有 `runtime *runner.Runtime`，各域 runtime struct 仅返回 handlers；signal context 触发统一 `runtime.Shutdown(ctx)`；test 来源 `backend/cmd/api/main_test.go::TestMain_SingleRuntimeShutdown`
 - [x] 4.2 删除 `backend/internal/review/runner.go` / `reaper.go` / `lease.go` out-of-scope 实现；把 `runner_test.go` / `reaper_test.go` 中仍有价值的断言迁移到 kernel / `GenerateHandler` / structure negative tests；test 来源 `git ls-files backend/internal/review` 断言 out-of-scope 实现文件不存在
 - [x] 4.3 删除 `backend/internal/auth/mail.go` 中 `BackgroundMailDispatcher` / `NewBackgroundMailDispatcher` 及 `BackgroundMailDispatcherOptions`；保留 `DevMailSink` / `ImmediateMailDispatcher` / `DeliveryWriter` 接口；test 来源 `backend/internal/auth/mail_test.go::TestNoBackgroundDispatcher`
 - [x] 4.4 新增 `scripts/lint/runner_out_of_scope.py`（+ `runner_out_of_scope_test.py`，与 `backend_review_out_of_scope.py` / `backend_practice_out_of_scope.py` 同风格 Python lint）；扫描 [spec D-12](../../spec.md#31-已锁定决策) 列出 out-of-scope entry point；接入 `make lint-runner-out-of-scope`；test 来源 `scripts/lint/runner_out_of_scope_test.py`
 - [x] 4.5 同步 `backend-runtime-topology` § 模块边界 / § 验收：把「backend internal runner 实现」owner 改为 `backend-async-runner`；test 来源 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` + 精确 grep（如 `grep -n "backend-async-runner.*未创建\|未创建.*backend-async-runner\|未来 .backend-async-runner" docs/spec/backend-runtime-topology/spec.md` 期望 0 命中）
 - [x] 4.6 同步 `backend-review` D-13 / D-16：标注 review.Runner / Reaper 已由本 plan 接管；保留 history 证据；test 来源 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` + `grep -n "未来 .backend-async-runner" docs/spec/backend-review/spec.md` 期望 0 命中（D-13 / D-16 / Q-4 已改为 active 引用）
 - [x] 4.7 D-22 后本 plan 当前正向 doc reconcile target 只覆盖 backend runner owner；product-scope/001 承接 core-loop module boundary。
-- [x] 4.8 同步 `backend-targetjob` D-5 / § 模块边界：Drainer 抽象迁到 kernel；test 来源 `grep -n "未来 .backend-async-runner" docs/spec/backend-targetjob/spec.md` 期望 0 命中
+- [x] 4.8 同步 `backend-targetjob` D-5 / § 模块边界：kernel 持有 runtime，targetjob handler 直接实现 `runner.Handler`；test 来源 owner context + docs gate
 - [x] 4.9 同步 `backend-resume` § 模块边界：handler 注册改为 kernel；test 来源 `grep -n "未来 .backend-async-runner" docs/spec/backend-resume/spec.md` 期望 0 命中
 - [x] 4.10 同步 `backend-auth` D-* / `email_dispatch`：`BackgroundMailDispatcher` 范围外；producer 通过 `async_jobs(email_dispatch)` enqueue；test 来源 `grep -n "BackgroundMailDispatcher\|进程内 channel" docs/spec/backend-auth/spec.md` 期望 0 命中
 - [x] 4.11 同步 `event-and-outbox-contract` § 模块边界：「backend internal runner 实现」owner 改为 `backend-async-runner`；test 来源 `grep -n "backend-async-runner.*未创建\|未创建.*backend-async-runner\|未来 .backend-async-runner" docs/spec/event-and-outbox-contract/spec.md` 期望 0 命中
@@ -59,3 +59,7 @@
 - [x] 4.19 BUG-0106 remediation：`DELETE /api/v1/me` 受理期同步软删 `users.deleted_at` / `users.status='deleted'` 并撤销该用户所有 session；`privacy_delete` runner 在 domain cleanup 成功后最终 hard delete 用户行，失败路径不得删除用户行；验证：`go test ./backend/internal/auth ./backend/internal/privacy/runner ./backend/cmd/api -run '^(TestDeleteMeSoftDeletesUserRevokesAllSessionsAndCreatesPrivacyHandoff|TestSQLStorePrivacyDeleteHandoffSoftDeletesUserAndRevokesSessions|TestSQLStoreMarkDeleteRequestCompletedDeletesAccountIdentityAndPreservesRequestTombstone|TestPrivacyDeleteHandlerHardDeletesAccountIdentityAfterDomainCleanup|TestPrivacyDeleteHandlerDomainFailureKeepsAccountIdentityForRetry|TestPrivacyDeleteRemovesAccountIdentityAfterJobCompletion)$' -count=1`；`go test ./backend/internal/auth ./backend/internal/privacy/runner -count=1`；`DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' make migrate-check`；`make lint-runner-out-of-scope`；`make docs-check`；`python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/backend-async-runner/plans/001-internal-job-outbox-runner/context.yaml --docs-root docs --target backend`；`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`；`git diff --check`
   <!-- verified: 2026-05-26 evidence="focused auth/privacy/cmd-api BUG-0106 tests PASS; auth/privacy package regressions PASS; migration lint/check PASS against local dev Postgres version=11 dirty=false; docs/index/context/diff gates PASS; unrelated existing cmd/api TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns still fails outside privacy scope" -->
 - [x] 4.20 技术债口径清理：active spec / completed plan 不再把 review runner 表述为旧交接口径；当前 owner 事实固定为 `runner.Runtime` + `review.GenerateHandler`；验证：focused stale-runner wording grep 0 命中；`validate_context.py` / `sync-doc-index --check` / `make docs-check` / `git diff --check` PASS。
+- [x] 4.21 删除 `buildReportRuntime` / `buildResumeRuntime` 未使用的 logger 参数、nil default 赋值和全部调用点实参；验证: cmd/api builder/full-funnel tests、`staticcheck ./cmd/api/...`、cmd/api package gate 与 owner docs gates 通过。
+  <!-- verified: 2026-07-10 method=cmd-api-runtime-builder-dead-logger-removal evidence="RED: backend staticcheck reported SA4006 for both nil logger defaults, and inspection showed neither builder consumed or forwarded the parameter. GREEN: removed both parameters/defaults and all seven call-site arguments; focused resume/report builder tests, staticcheck ./cmd/api/... and go test ./cmd/api -count=1 PASS; buildTargetJobRuntime retains its logger-backed reload warning." -->
+- [x] 4.22 删除 test-only `targetjob.Drainer`、重复 async job 类型/SQL 与 `runner.FromTargetjobHandler` adapter；五个业务 handler 直接实现 `runner.Handler`，相关场景改由 `runner.Runtime.RunOnce` 驱动并去除 drainer 文件/测试命名；验证：结构 lint RED/GREEN、affected handler/runtime/scenario tests、全 backend test/staticcheck、owner contexts/docs/diff/pruning gates 通过。
+  <!-- verified: 2026-07-10 method=canonical-runner-contract-cleanup evidence="RED: new runner contract lint failed on the targetjob runtime, duplicate types/SQL, adapter, qualified test contracts and scenario filenames. GREEN: deleted targetjob/drainer.go and runner adapter files; five domain handlers directly implement runner.Handler; cmd/api TargetJob/Resume scenarios run through runner.Runtime; focused and full backend tests, staticcheck, build/vet, runner lint and P0.035/P0.077/P0.078/P0.080 all PASS." -->

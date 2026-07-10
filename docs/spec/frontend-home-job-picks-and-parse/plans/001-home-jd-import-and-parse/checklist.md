@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.17
+> **版本**: 2.19
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -11,7 +11,7 @@
 - [x] 1.1 Home 源级复刻当前 `ui-design/src/screen-home.jsx::HomeScreen`：Hero label/title、JD 输入卡、输入卡底部 upload/URL source actions、ready 简历下拉框、创建简历入口、提交区、最近 3 张模拟面试卡片和 More handoff。
 - [x] 1.2 Home 使用 generated client 调 `listResumes`、`listTargetJobs`、`createUploadPresign`、`importTargetJob`；paste/file/URL source discriminator、side-effect idempotency key、错误态和 pending import continuation 均有 focused Vitest 覆盖。
 - [x] 1.3 Home import 前必须显式选择 ready 简历；成功进入 `parse` 时 params 携带真实 `resumeId`。
-- [x] 1.4 BDD-Gate: `E2E.P0.014` 覆盖默认渲染、empty/one/twelve-plus fixtures、3-card cap、More handoff、theme/i18n 和 source/resume/submit layout。
+- [x] 1.4 BDD-Gate: `E2E.P0.014` 覆盖默认渲染、empty/one/twelve-plus fixtures、ready filter/sort/3-card cap、More/quick-start handoff、英文 i18n 和 source/resume/submit layout。
 - [x] 1.5 BDD-Gate: `E2E.P0.015` 覆盖 paste/upload/URL import、4xx/failed path、privacy gate、generated client request contract 和 real-mode generated-client preflight。
 
 ## Phase 2: Historical pre-readonly Parse confirmation and handoff
@@ -81,3 +81,13 @@
 - [x] 10.3 Home recent quick-start calls shared generated practice handoff with structured `roundId/roundName`, and card-body click remains planning-detail navigation（验证：`HomeRecentMocks.test.tsx` PASS）
 - [x] 10.4 Browser screenshot acceptance captures Home recent card with `立即面试` and no delete icon（验证：`.test-output/screenshots/home-recent-action-card.png`）
 - [x] 10.5 Home recent requests `listTargetJobs(analysisStatus=ready)` and filters failed / processing / queued / blank-title dirty records before rendering cards（验证：`HomeRecentMocks.test.tsx` PASS）
+
+## Phase 11: P0.014 executable-evidence reconciliation
+
+- [x] 11.1 BDD-Gate: P0.014 README/seed/expected 与 trigger 保持同一 Vitest-only 证据面，不宣称 TopBar、theme、mobile、build、Playwright 或 live-backend 覆盖；场景资产合同先红后绿并执行四段脚本。
+  <!-- verified: 2026-07-10 method=p0014-executable-evidence-reconciliation evidence="Red asset contract exposed Playwright/chromium/dist/TopBar/theme/mobile/real-backend claims absent from the runner. Scenario assets now describe the stub-fetch generated-client test and five Home Vitest files only. HomeScreen passes 9 tests; P0.014 setup/trigger/verify/cleanup passes with 1 generated-client test and 34 Home tests." -->
+
+## Phase 12: Pending-import test API removal
+
+- [x] 12.1 RED/GREEN: Home source gate detects and then rejects the production `clearPendingImportSourcesForTests` export.<!-- verified: 2026-07-10 method=vitest-red-green evidence="RED failed only on the reset export after path validation; GREEN passed all 6 HomeAuthGate tests after deletion." -->
+- [x] 12.2 Delete the redundant Home auth teardown and pass focused Home auth tests plus frontend typecheck without a replacement reset API.<!-- verified: 2026-07-10 method=vitest+scenario+typecheck evidence="Home passed 8 files/64 tests; P0.015 passed generated-client 1/1, Home/Parse 9 files/56 tests, build and Playwright 2/2; typecheck and source inventory passed." -->

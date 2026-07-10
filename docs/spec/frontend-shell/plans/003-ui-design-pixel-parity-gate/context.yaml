@@ -22,8 +22,7 @@ spec:
       - mobile viewport
       - bounding box
       - computed style
-      - screenshot diff
-      - toHaveScreenshot
+      - non-empty screenshot buffer
       - clean checkout
       - screenshot smoke
       - workspace initial route bootstrap

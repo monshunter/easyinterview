@@ -26,10 +26,12 @@ session。
 - 在 `/auth/login` 输入邮箱 → `/auth/verify` 输入验证码 → 完成
   email-code mock 登录。
 - App 自动接续目标 route (`/practice?...`)。
-- 用 hostile URL 直接打开 `/auth/login?...rawText=...&token=...`，验证
-  parseUrlToRoute / decodePendingActionRoute 的 allowlist 拦截。
-- 从浏览器 back stack 回到 hostile `/workspace?...rawText=...#prompt` entry，验证
-  popstate restore 会立即改写为 canonical URL 并清空 raw `history.state`。
+- 用指向 workspace 且携带 route-incompatible params / raw markers 的 hostile
+  `/auth/login?...` 直接打开输入，验证 parseUrlToRoute /
+  decodePendingActionRoute 的 allowlist 拦截。
+- 将 hostile `/workspace?...rawText=...#prompt` entry 写入浏览器 history 并触发
+  `popstate`，验证 restore 会立即改写为 canonical URL 并清空 raw
+  `history.state`。
 
 ## 3 Then
 
@@ -37,10 +39,12 @@ session。
   `pendingLabel` + practice safe params（含 `planId` / `targetJobId` /
   `jdId` / `resumeId` / `roundId` / `sessionId`）。
 - verify 完成后 URL 重写为 `/practice?...`，保留全部 6 个 safe handoff key。
+- hostile `/auth/login` direct-open 只保留 pendingAction reserved metadata；
+  workspace 不接受 `planId` / `targetJobId` 或其他 query params。
 - 任意 hostile 输入下，URL、`window.history.state`、`localStorage`、
   `sessionStorage`、console capture 都 ZERO 命中 raw 标记。
-- hostile popstate 后地址栏只保留 `/workspace?targetJobId=...`，hash 与
-  raw `history.state` 均被 scrub。
+- hostile popstate 后地址栏规范化为 query-free `/workspace`，hash 与 raw
+  `history.state` 均被 scrub。
 - `token` / `password` / `prompt` / `response` 等敏感字段在所有 surface
   都缺失。
 
@@ -55,6 +59,6 @@ session。
 
 ## 5 污染控制
 
-场景在 vitest + jsdom 中运行，不写共享数据库，不启动 Kind cluster；trigger.sh
+场景在 vitest + jsdom 中运行，不写共享数据库；trigger.sh
 仅产生 `.test-output/e2e/p0-089-url-routing-auth-privacy/trigger.log` 作为
 验证证据，cleanup.sh 删除 setup marker，保留日志。

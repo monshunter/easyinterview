@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Create Flow BDD Checklist
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -28,3 +28,7 @@
 - [x] Focused Home regression test covers readable non-archived `listResumes` records remaining selectable even when `parseStatus` is not `ready`.<!-- verified: 2026-07-08 method=vitest test=HomeResumeSelection.test.tsx -->
 - [x] Focused Parse regression test covers the same selectable-resume rule after JD parse handoff.<!-- verified: 2026-07-08 method=vitest test=ParseResumeBinding.test.tsx -->
 - [x] Browser screenshot evidence shows the Home resume select populated and not empty.<!-- verified: 2026-07-08 method=playwright-screenshot artifact=.test-output/screenshots/home-resume-picker-fixed-2026-07-08.png -->
+
+## Internal Cleanup Substitute Gate
+
+- [x] Phase 9 source negative, focused create-flow and typecheck gates pass without changing E2E.P0.081-P0.084 behavior.<!-- verified: 2026-07-10 method=substitute-gate evidence="Source gate passed 3/3, create-flow passed 6 files/32 tests, and frontend typecheck passed." -->

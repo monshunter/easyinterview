@@ -163,7 +163,7 @@ type wireReasoning struct {
 func toWireScores(scores []DimensionScore) []wireScore {
 	out := make([]wireScore, len(scores))
 	for i, s := range scores {
-		out[i] = wireScore{Dimension: s.Dimension, Value: s.Value}
+		out[i] = wireScore(s)
 	}
 	return out
 }

@@ -6,7 +6,7 @@ metadata:
   sequence: 2
   specVersion:
     from: 2.3
-    to: 2.4
+    to: 2.13
 spec:
   defaultTarget: contract
   discovery:
@@ -28,7 +28,7 @@ spec:
       - baseline manifest
       - lint-events
       - codegen-events
-      - inline rewrite mirror non-current
+      - inline rewrite mirror out-of-scope
       - cross-spec enum alignment
       - b2 d-18 sync
       - b4 002 sync

@@ -15,8 +15,8 @@ mkdir -p "$OUT"
   go test ./internal/resume/jobs -run TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox -count=1 -v
   echo "RUNNER go test resume store live ready-only outbox privacy"
   DATABASE_URL="${DATABASE_URL:-postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable}" go test ./internal/resume/store -tags=integration -run TestCompleteTailorRunSuccessWritesResultAndOutbox -count=1 -v
-  echo "RUNNER go test cmd/api resume tailor drainer privacy"
-  go test ./cmd/api -run 'TestResumeTailorDrainerHTTPScenario|TestResumeTailorDrainerFailureScenario' -count=1 -v
+  echo "RUNNER go test cmd/api resume tailor runner kernel privacy"
+  go test ./cmd/api -run 'TestResumeTailorRunnerHTTPScenario|TestResumeTailorRunnerFailureScenario' -count=1 -v
   cd "$ROOT"
   echo "RUNNER rg out-of-scope inline rewrite mirror"
   if rg -n -i '(tailor|mode).*(inline|rewrite|mirror)|(inline|rewrite|mirror).*(tailor|mode)' backend/internal/resume --glob '!**/*_test.go' --glob '!**/verify.sh'; then

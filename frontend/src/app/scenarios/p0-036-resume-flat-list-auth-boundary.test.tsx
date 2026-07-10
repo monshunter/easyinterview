@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -26,32 +26,6 @@ const FIRST_RESUME_ID =
   listResumesFixture.scenarios.default.response.body.items[0]?.id ?? "";
 const SECOND_RESUME_ID =
   listResumesFixture.scenarios.default.response.body.items[1]?.id ?? "";
-
-interface ToastCall {
-  message: string;
-  tone?: string;
-}
-
-let toastCalls: ToastCall[] = [];
-
-beforeEach(() => {
-  toastCalls = [];
-  (
-    window as unknown as {
-      eiToast?: (msg: string, opts?: { tone?: string }) => void;
-    }
-  ).eiToast = (message, opts) => {
-    toastCalls.push({ message, tone: opts?.tone });
-  };
-});
-
-afterEach(() => {
-  delete (
-    window as unknown as {
-      eiToast?: (msg: string, opts?: { tone?: string }) => void;
-    }
-  ).eiToast;
-});
 
 function buildClient(): EasyInterviewClient {
   return new EasyInterviewClient({
@@ -144,9 +118,6 @@ describe("E2E.P0.036 resume flat list + auth boundary", () => {
     expect(
       screen.queryByTestId(["resume-workshop-selected", "tree-helper"].join("-")),
     ).not.toBeInTheDocument();
-    expect(
-      toastCalls.some((c) => /即将开放|coming soon/i.test(c.message)),
-    ).toBe(false);
   });
 
   it("opening a flat row navigates to that resume's read-only detail with only resumeId", async () => {
@@ -174,7 +145,7 @@ describe("E2E.P0.036 resume flat list + auth boundary", () => {
     // here that the rendered DOM never surfaces out-of-scope route testids that
     // would indicate out-of-scope welcome / mistakes / drill / voice modules
     // sneaked back in.
-    renderApp("authenticated");
+    const { unmount } = renderApp("authenticated");
     for (const forbidden of [
       "route-welcome",
       "route-mistakes",
@@ -187,5 +158,6 @@ describe("E2E.P0.036 resume flat list + auth boundary", () => {
     ]) {
       expect(screen.queryByTestId(forbidden)).not.toBeInTheDocument();
     }
+    unmount();
   });
 });

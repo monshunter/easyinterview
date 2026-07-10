@@ -12,8 +12,6 @@ import { PasteTab } from "./PasteTab";
 import { UploadTab } from "./UploadTab";
 import type { CreateMode } from "./util/title";
 
-export type CreateStage = "input";
-
 const TAB_DESCRIPTORS: Array<{
   mode: CreateMode;
   label: MessageKey;

@@ -1,6 +1,6 @@
 # Backend Resume Tailor Runs and Save v1 Checklist
 
-> **版本**: 1.6
+> **版本**: 1.9
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -40,7 +40,7 @@
 ## Phase 5: resume.tailor async job and outbox
 
 - [x] 5.1 tailor job 通过 A3 AIClient + F3 feature_key 路由，覆盖 success、timeout、output_invalid、retry-to-ready（验证：`go test ./backend/internal/resume/jobs -run 'TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox|TestTailorHandlerModeRoutingAndFailurePaths' -count=1` PASS）
-- [x] 5.2 success 写 typed `ai_task_runs` 和 ready-only `resume.tailor.completed` outbox；payload allowlist 不含 prompt/raw resume/match summary/suggested bullet 文本（验证：`go test ./backend/internal/resume/store ./backend/cmd/api -run 'TestCompleteTailorRunSuccessWritesResultAndOutbox|TestResumeTailorDrainerHTTPScenario|TestResumeTailorDrainerFailureScenario' -count=1` PASS）
+- [x] 5.2 success 写 typed `ai_task_runs` 和 ready-only `resume.tailor.completed` outbox；payload allowlist 不含 prompt/raw resume/match summary/suggested bullet 文本（验证：`go test ./backend/internal/resume/store ./backend/cmd/api -run 'TestCompleteTailorRunSuccessWritesResultAndOutbox|TestResumeTailorRunnerHTTPScenario|TestResumeTailorRunnerFailureScenario' -count=1` PASS）
 - [x] 5.3 BDD-Gate: `E2E.P0.080` tailor privacy and out-of-scope negative 场景保持 Ready（验证：`test/scenarios/e2e/p0-080-resume-tailor-privacy-negative/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS）
 
 ## Phase 6: flat save fixture parity and read-only detail boundary
@@ -49,3 +49,13 @@
 - [x] 6.2 BDD-Gate: `E2E.P0.079` flat save fixture parity + read-only detail boundary 场景保持 Ready（验证：`test/scenarios/e2e/p0-079-resume-rewrites-accept-only-save/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS）
 - [x] 6.3 docs/index/context 收口（验证：`python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` PASS；`make docs-check` PASS；`git diff --check` PASS）
 - [x] 6.4 product-scope pruning owner 记录本 phase 6.100 evidence，聚合 residual scan 不再把本 owner plan/checklist 识别为旧叙事热点（验证：`make lint-core-loop-pruning-surface` PASS，`real_residuals=0`）
+
+## Phase 7: tailor provenance conversion simplification
+
+- [x] 7.1 `VersionProvenance` 与私有 persisted wire type 的写入/读回使用显式同构转换，删除双向逐字段复制（验证：store/package tests、scoped/full backend `staticcheck`、owner context/docs gates）
+  <!-- verified: 2026-07-10 method=resume-tailor-provenance-conversion-simplification evidence="The final backend S1016 red identified the write-side field copy. Both persisted write and readback mappings now use explicit conversions while retaining the private wire type; the readback test asserts all seven fields. Focused/store/full Resume and backend-wide Go tests PASS; scoped/backend-wide staticcheck and top-level make lint PASS; owner/product contexts, completed-state sync-doc-index/docs-check, diff and pruning gates PASS real_residuals=0." -->
+
+## Phase 8: tailor scenario negative-gate precision
+
+- [x] 8.1 `scenario_script_contract_test.py` 拒绝 P0.077/P0.078/P0.080 使用裸 `inline|mirror` 搜索；三份 verify 统一使用 contextual tailor/mode 正则并排除 `*_test.go`，串行场景通过。
+  <!-- verified: 2026-07-10 method=tailor-scenario-negative-gate-precision evidence="RED: P0.077 verify rejected legal Content-Disposition inline; new contract test failed against P0.077/P0.078 broad grep. GREEN: all three verify scripts use contextual production regex and exclude *_test.go; contract tests 4 passed; P0.077/P0.078/P0.080 full scenario lifecycles PASS." -->

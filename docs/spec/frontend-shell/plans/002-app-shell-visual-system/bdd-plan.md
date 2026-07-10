@@ -1,14 +1,16 @@
 # App Shell Visual System BDD Plan
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## Visual Smoke
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
 | E2E.P0.005 | App Shell visual smoke | App shell 使用默认 `ocean/light` 显示偏好，未登录用户打开正式前端 mock runtime | 用户打开默认页、切换 dark、激活 custom accent，并进入 auth / settings / screen shell 路由 | TopBar、三入口、显示控制、登录入口、auth shell、settings shell 和通用 screen shell 非空渲染；根级 CSS variable 随 theme/mode/accent 切换；current route anchors 和 className 存在；unsupported route aliases 不产生 standalone screen；D1 route / i18n / testid 行为保持稳定 | `test/scenarios/e2e/p0-005-app-shell-visual-system-smoke/` |
+
+真实浏览器 viewport、geometry 与 screenshot buffer 由 `E2E.P0.006` 当前场景承接；P0.005 不维护浏览器安装或截图文件流程。
 
 ## Regression References
 

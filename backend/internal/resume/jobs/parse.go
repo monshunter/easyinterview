@@ -19,11 +19,11 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/events"
 	"github.com/monshunter/easyinterview/backend/internal/shared/featurekeys"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
-	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
 const FeatureKeyResumeParse = string(featurekeys.ResumeParse)
@@ -100,24 +100,24 @@ func NewParseHandler(opts ParseHandlerOptions) *ParseHandler {
 	}
 }
 
-func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) targetjob.JobOutcome {
+func (h *ParseHandler) Handle(ctx context.Context, job runner.ClaimedJob) runner.JobOutcome {
 	if h == nil || h.store == nil || h.registry == nil || h.ai == nil {
-		return targetjob.JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: "resume parse handler not initialised"}
+		return runner.JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: "resume parse handler not initialised"}
 	}
 	asset, err := h.store.GetForParse(ctx, job.ResourceID)
 	if err != nil {
-		return targetjob.JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error())}
+		return runner.JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error())}
 	}
 	switch asset.ParseStatus {
 	case sharedtypes.TargetJobParseStatusQueued, sharedtypes.TargetJobParseStatusFailed:
 		if err := h.store.MarkParsing(ctx, resumestore.StatusUpdateInput{UserID: asset.UserID, AssetID: asset.ID, Now: h.now()}); err != nil {
-			return targetjob.JobOutcome{ErrorCode: sharederrors.CodeTargetInvalidStateTransition, ErrorMessage: safeFailureMessage(sharederrors.CodeTargetInvalidStateTransition, err.Error())}
+			return runner.JobOutcome{ErrorCode: sharederrors.CodeTargetInvalidStateTransition, ErrorMessage: safeFailureMessage(sharederrors.CodeTargetInvalidStateTransition, err.Error())}
 		}
 	case sharedtypes.TargetJobParseStatusProcessing:
 	case sharedtypes.TargetJobParseStatusReady:
-		return targetjob.JobOutcome{Succeeded: true}
+		return runner.JobOutcome{Succeeded: true}
 	default:
-		return targetjob.JobOutcome{ErrorCode: sharederrors.CodeTargetInvalidStateTransition, ErrorMessage: sharederrors.CodeTargetInvalidStateTransition}
+		return runner.JobOutcome{ErrorCode: sharederrors.CodeTargetInvalidStateTransition, ErrorMessage: sharederrors.CodeTargetInvalidStateTransition}
 	}
 
 	input, err := h.resumeInput(ctx, asset)
@@ -182,13 +182,13 @@ func (h *ParseHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) tar
 		OutboxEventPayload: payload,
 		Now:                h.now(),
 	}); err != nil {
-		return targetjob.JobOutcome{
+		return runner.JobOutcome{
 			ErrorCode:    sharederrors.CodeTargetImportFailed,
 			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
 			Retryable:    true,
 		}
 	}
-	return targetjob.JobOutcome{Succeeded: true}
+	return runner.JobOutcome{Succeeded: true}
 }
 
 func (h *ParseHandler) resumeInput(ctx context.Context, asset resumestore.ParseAssetRecord) (string, error) {
@@ -354,7 +354,7 @@ func isReadableExtractedResumeText(value string) bool {
 	return readable >= 8 && nonPrintable == 0
 }
 
-func (h *ParseHandler) fail(ctx context.Context, asset resumestore.ParseAssetRecord, job targetjob.ClaimedJob, code, message string, retryable bool, parsedTextSnapshot string) targetjob.JobOutcome {
+func (h *ParseHandler) fail(ctx context.Context, asset resumestore.ParseAssetRecord, job runner.ClaimedJob, code, message string, retryable bool, parsedTextSnapshot string) runner.JobOutcome {
 	markdownSnapshot := buildResumeMarkdownFallback(parsedTextSnapshot)
 	if err := h.store.CompleteParseFailure(ctx, resumestore.CompleteParseFailureInput{
 		UserID:             asset.UserID,
@@ -364,13 +364,13 @@ func (h *ParseHandler) fail(ctx context.Context, asset resumestore.ParseAssetRec
 		DisplayName:        deriveDisplayNameFromResumeText(markdownSnapshot),
 		Now:                h.now(),
 	}); err != nil {
-		return targetjob.JobOutcome{
+		return runner.JobOutcome{
 			ErrorCode:    sharederrors.CodeTargetImportFailed,
 			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
 			Retryable:    true,
 		}
 	}
-	return targetjob.JobOutcome{
+	return runner.JobOutcome{
 		ErrorCode:    code,
 		ErrorMessage: safeFailureMessage(code, message),
 		Retryable:    retryable,

@@ -96,3 +96,26 @@ describe("frontend-resume-workshop/002 — prototype runtime import negative gre
     expect(offenders).toEqual([]);
   });
 });
+
+describe("frontend-resume-workshop/002 — create stage ownership", () => {
+  const standaloneStageType = ["Create", "Stage"].join("");
+
+  it("keeps the input DOM marker without a standalone stage type", () => {
+    const stageTypePattern = new RegExp(
+      `\\b${escapeRegExp(standaloneStageType)}\\b`,
+    );
+    const offenders: Array<{ file: string }> = [];
+
+    for (const file of walk(CREATE_DIR)) {
+      if (isTestFile(file)) continue;
+      if (stageTypePattern.test(readFileSync(file, "utf8"))) {
+        offenders.push({ file });
+      }
+    }
+
+    expect(offenders).toEqual([]);
+    expect(
+      readFileSync(join(CREATE_DIR, "ResumeCreateFlow.tsx"), "utf8"),
+    ).toContain('data-stage="input"');
+  });
+});

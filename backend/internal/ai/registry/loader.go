@@ -90,8 +90,8 @@ func loadPrompts(root string, snap *snapshot) error {
 }
 
 var outputSchemaExemptFeatureKeys = map[string]struct{}{
-	"practice.voice.stt":     {},
-	"practice.voice.tts":     {},
+	"practice.voice.stt": {},
+	"practice.voice.tts": {},
 }
 
 func readOutputSchema(yamlPath string, meta PromptMeta, cache map[string]*json.RawMessage) (*json.RawMessage, error) {
@@ -294,11 +294,7 @@ func readRubric(yamlPath string) (*rubricEntry, error) {
 	for _, d := range raw.Dimensions {
 		levels := make([]ScoreLevel, 0, len(d.ScoreLevels))
 		for _, sl := range d.ScoreLevels {
-			levels = append(levels, ScoreLevel{
-				Label:       sl.Label,
-				Threshold:   sl.Threshold,
-				Description: sl.Description,
-			})
+			levels = append(levels, ScoreLevel(sl))
 		}
 		dims = append(dims, RubricDimension{
 			Name:        d.Name,

@@ -1,8 +1,8 @@
 # F3 Baseline Registry, Resolve and Lint Gates Checklist
 
-> **版本**: 1.4
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -36,3 +36,15 @@
   <!-- verified: 2026-07-07 method=focused-registry-gates evidence="validate_context.py prompt-rubric-registry/001 backend PASS; targeted owner wording grep returned no matches; make lint-prompts PASS (9 files); make lint-rubrics PASS (9 files); make lint-prompts-hardcode PASS; make lint-ai-profile-coverage PASS; python3 scripts/lint/migrations_lint.py --repo-root . PASS; cd backend && go test ./internal/ai/registry/... ./internal/targetjob/... ./internal/ai/aiclient/... ./internal/shared/ai/... ./internal/shared/types/... -count=1 PASS; make validate-fixtures PASS (35 fixtures)" -->
 - [x] 5.2 BDD-Gate: 不适用；验证: plan 明确该 owner 只提供内部 registry/config/lint/migration/adapter contract，用户可见 AI 行为由业务 owner 各自维护 BDD。
 - [x] 5.3 Owner handoff 保留当前验证入口和与 F3 002/003/004 的分工；验证: context validator 和 sync-doc-index 通过。
+
+## Phase 6: Rubric README stable spec reference
+
+- [x] 6.1 Structural red: `config/rubrics/README.md` 是 active config/lint 文档中唯一仍固定引用 F3 `spec.md v2.9` 的位置
+- [x] 6.2 删除固定版本号，保留可点击 spec 路径，不新增专用脚本
+- [x] 6.3 运行 rubric lint、F3 001 context、index/docs/diff/pruning 与固定版本负向搜索，并确认状态为 `completed`
+  <!-- verified: 2026-07-10 commands="make lint-rubrics; pytest rubric_lint_test.py; validate F3 001 context; index/docs/diff/pruning gates" result="pass; 9 rubric files clean; 6 tests pass; fixed-version search zero; real_residuals=0" -->
+
+## Phase 7: Registry score-level conversion simplification
+
+- [x] 7.1 将同构 `scoreLevelYAML` 显式转换为 `ScoreLevel`，删除逐字段复制并保持 rubric loader 合同（验证：registry package tests、`make lint-rubrics`、scoped `staticcheck`、owner context/docs gates）
+  <!-- verified: 2026-07-10 method=registry-score-level-conversion-simplification evidence="S1016 red identified the repeated field copy. All TestLoad cases, rubric lint and scoped registry staticcheck PASS while active; owner/product contexts, sync-doc-index, docs-check, diff-check and pruning surface PASS real_residuals=0. Full registry package reruns after the owner completed header restores its preflight contract." -->

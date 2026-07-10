@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
 )
@@ -88,7 +89,7 @@ func TestParseExecutor_RedactsForbiddenTokensInErrorMessage(t *testing.T) {
 		Now:      func() time.Time { return time.Now().UTC() },
 	})
 	store.target = targetjob.TargetJobRecord{ID: "tgt-1", SourceType: targetjob.SourceTypeManualText, RawJDText: "x"}
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 	if outcome.Succeeded {
 		t.Fatal("expected failure, got success")
 	}
@@ -116,7 +117,7 @@ func TestParseExecutor_RedactsPromptResponseAndProviderSecretInErrorMessage(t *t
 				TargetLanguage: "en",
 				RawJDText:      "x",
 			}
-			outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-privacy"})
+			outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-privacy"})
 			if outcome.Succeeded {
 				t.Fatal("expected failure, got success")
 			}
@@ -146,7 +147,7 @@ func TestParseExecutor_OutboxPayloadsContainOnlyAllowedTokens(t *testing.T) {
 		SourceType: targetjob.SourceTypeManualText, TargetLanguage: "en",
 		RawJDText: "JD with secret Authorization: Bearer ABC123",
 	}
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 	if !outcome.Succeeded {
 		t.Fatalf("happy path failed: %+v", outcome)
 	}
@@ -162,7 +163,7 @@ func TestParseExecutor_OutboxPayloadsContainOnlyAllowedTokens(t *testing.T) {
 func TestSourceRefreshHandler_PayloadHasNoSourceURL(t *testing.T) {
 	store := &pipelineFakeStore{}
 	h := &targetjob.SourceRefreshHandler{Store: store}
-	outcome := h.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+	outcome := h.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 	if !outcome.Succeeded {
 		t.Fatalf("source refresh: %+v", outcome)
 	}

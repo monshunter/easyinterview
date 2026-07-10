@@ -1,8 +1,8 @@
 # AIClient and Profile Bootstrap
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -99,6 +99,12 @@
 - Sync owner plan index.
 - Handoff DI surfaces to A4/B4/F1 and profile names to F3/business owners.
 
+### Phase 6: OpenAI-compatible base URL normalization simplification
+
+- Preserve root and `/v1` provider base URL behavior through existing adapter contract tests.
+- Remove the redundant suffix guard from `normalizeBaseURL` and require scoped `staticcheck` to stay clean.
+- Run the OpenAI-compatible adapter package tests and owner documentation gates before restoring completed state.
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -110,10 +116,12 @@
 | A-5 | Observability writes metrics/log/task-run/audit with hash/length-only sensitive metadata | observability/privacy tests |
 | A-6 | Non-test runtime fails closed when selected provider secrets are unavailable | config/bootstrap tests, `make lint-config` |
 | A-7 | Active terminology remains provider-neutral and current | `make lint-ai-provider-terminology` |
+| A-8 | Base URL normalization has no redundant conditional path and preserves root plus `/v1` inputs | adapter contract tests, scoped `staticcheck` |
 
 ## 6 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.7 | Simplify OpenAI-compatible base URL normalization under existing root and `/v1` contract coverage. |
 | 2026-07-07 | 1.6 | Compress owner docs to current AIClient, provider registry, model profile, adapter, observability and fail-fast contract. |
 | 2026-05-05 | 1.5 | Complete provider terminology remediation and provider-neutral config/profile naming. |

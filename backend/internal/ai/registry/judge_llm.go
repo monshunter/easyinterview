@@ -37,7 +37,7 @@ type RubricProvider interface {
 	GetPrompt(featureKey, version, language string) (PromptMeta, string, error)
 }
 
-// LLMJudge is the F3 real LLM Judge (spec D-9 v2.8). It loads the rubric and
+// LLMJudge is the F3 real LLM Judge (spec D-9). It loads the rubric and
 // output schema from the registry single source, asks the judge model to score
 // each rubric dimension, and parses a per-dimension []Score + Reasoning. The
 // business prompt under evaluation is always resolved through the registry;
@@ -128,7 +128,7 @@ type judgeResponseEnvelope struct {
 	} `json:"reasoning"`
 }
 
-// Judge implements the Judge interface (spec D-9 v2.8).
+// Judge implements the Judge interface (spec D-9).
 func (j *LLMJudge) Judge(ctx context.Context, featureKey, promptVersion string, output []byte, rubricVersion string) ([]Score, Reasoning, error) {
 	// 1. Fail-close if the evaluated output does not satisfy the
 	//    (featureKey, promptVersion) output schema. Reuses the single A3

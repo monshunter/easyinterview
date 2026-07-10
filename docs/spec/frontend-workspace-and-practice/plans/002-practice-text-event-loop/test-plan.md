@@ -1,6 +1,6 @@
 # 002 — Practice Text Event Loop Test Plan
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -18,7 +18,7 @@ This owner uses focused frontend unit/integration tests, fixture contract gates,
 | Session load | `hooks/usePracticeSessionLoader.test.tsx`, `__tests__/practiceSessionLost.test.tsx` | generated `getPracticeSession`, refresh triggers, 404 lost state, workspace CTA params |
 | Events | `hooks/usePracticeEvents.test.tsx`, `__tests__/appendSessionEventBody.test.tsx`, `__tests__/idempotencyContract.test.tsx` | answer/hint/pause/resume event kinds, UUIDv7 `clientEventId`, retry reuse, append has no `Idempotency-Key`, no positive `turn_skipped` path |
 | Assistant actions | `components/AssistantActionRenderer.test.tsx`, `__tests__/practiceCompletion.test.tsx` | 5 action types, transcript update, finish CTA state |
-| Policy | `hooks/usePracticeAssistance.test.ts`, `__tests__/practiceGoalParity.test.tsx`, `__tests__/practiceHints.test.tsx` | optional hint usage, current three practice goals, no user-visible strict switch |
+| Policy | `__tests__/practiceGoalParity.test.tsx`, `__tests__/practiceHints.test.tsx`, `__tests__/practiceModeSwitch.test.tsx`, `__tests__/outOfScopeNegative.test.ts` | rendered optional hint usage, current three practice goals, no user-visible strict switch |
 | Controls | `__tests__/practicePauseResume.test.tsx`, `__tests__/SessionMap.test.tsx`, phone-mode focused tests | pause/resume disabling, session map states, phone captions, hang-up, restart, no skip, no role switch |
 | Current UI boundary | `PracticeScreen.test.tsx`, `__tests__/outOfScopeNegative.test.ts`, scenario verify scripts | no independent side-panel controls, dictation, skip, in-session persona switch, strict switch, voice expression metrics or manual transcript fallback UI |
 | Completion | `hooks/useCompletePracticeSession.test.tsx`, `__tests__/completePracticeSessionBody.test.tsx`, `utils/practiceHandoffParams.test.ts` | `completePracticeSession` body, idempotency replay, `resumeId` handoff, forbidden-key guard |

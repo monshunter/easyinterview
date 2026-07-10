@@ -7,6 +7,7 @@ trigger.log 含：
 - 测试文件路径 `src/app/scenarios/p0-037-resume-detail-preview-readonly.test.tsx`
 - pending PDF upload detail 会轮询 `getResume` 直到展示 source page stack 和 LLM-derived `displayName`
 - failed-with-snapshot PDF upload detail 只请求一次 `getResume`，直接展示 source page stack 与 backend generated `displayName`
+- stdout/stderr 中不出现 `not wrapped in act`
 
 verify.sh 在 trigger.log 中校验：
 

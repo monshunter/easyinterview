@@ -8,7 +8,7 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 
 test -s "$LOG_FILE"
 grep -Fq "src/app/scenarios/p0-005-app-shell-visual-system-smoke.test.tsx" "$LOG_FILE"
-grep -Eq 'Tests +7 passed \(7\)' "$LOG_FILE"
+grep -Eq 'Tests +8 passed \(8\)' "$LOG_FILE"
 grep -Eq 'Test Files +1 passed \(1\)' "$LOG_FILE"
 
 # Negative: scenario evidence must not surface out-of-scope-module testid leakage.

@@ -1,6 +1,6 @@
 # 002 — Practice Text Event Loop BDD Plan
 
-> **版本**: 1.12
+> **版本**: 1.14
 > **状态**: active
 > **更新日期**: 2026-07-10
 

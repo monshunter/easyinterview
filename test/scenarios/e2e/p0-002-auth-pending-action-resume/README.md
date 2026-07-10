@@ -40,6 +40,6 @@ interview-context 参数；用户在 `auth_login` 输入邮箱、提交挑战、
 
 ## 5 污染控制
 
-场景在 vitest + jsdom 中运行，不写共享数据库，不启动 Kind cluster；trigger.sh
+场景在 vitest + jsdom 中运行，不写共享数据库；trigger.sh
 仅产生 `.test-output/e2e/p0-002-auth-pending-action-resume/trigger.log` 作为
 验证证据，cleanup.sh 删除 setup marker，保留日志。

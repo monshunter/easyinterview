@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 2.7
+    to: 2.8
 spec:
   defaultTarget: backend
   discovery:
@@ -39,7 +39,7 @@ spec:
       - TARGET_INVALID_STATE_TRANSITION
       - URL fetch SSRF guard
       - manual_form synchronous path
-      - backend-internal goroutine drainer
+      - backend-internal goroutine runner kernel
       - idempotency user-scoped dedupe
       - privacy redline raw_jd_text
   targets:

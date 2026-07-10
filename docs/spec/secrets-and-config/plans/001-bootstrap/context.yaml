@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 2.12
+    to: 2.13
 spec:
   defaultTarget: platform-config
   discovery:

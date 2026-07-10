@@ -1,6 +1,6 @@
 # Core Loop Module Pruning Plan
 
-> **版本**: 1.141
+> **版本**: 1.197
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -270,7 +270,7 @@
 
 #### 6.45 Active code / prototype out-of-scope wording 收敛
 
-反查 active Go code comments、ui-design static prototype data、ui-design contract tests、markdown link tooling docs 和 backend-practice lint samples，使正式代码与原型文案不再用历史英文标签描述当前适配器、drainer、mail dispatch、workspace insight 或 resume negative gate。lint 正则可继续包含范围外词作为 forbidden-context matcher，但不能出现在用户可见 mock data、active comments、test names 或 error output 中。
+反查 active Go code comments、ui-design static prototype data、ui-design contract tests、markdown link tooling docs 和 backend-practice lint samples，使正式代码与原型文案不再用历史英文标签描述当前 adapter、局部 runtime、mail dispatch、workspace insight 或 resume negative gate。lint 正则可继续包含范围外词作为 forbidden-context matcher，但不能出现在用户可见 mock data、active comments、test names 或 error output 中。
 
 #### 6.46 Active docs/spec out-of-scope wording 收敛
 
@@ -440,6 +440,226 @@
 
 统一 product-scope spec、history 与 001 plan/checklist 的中文范围边界和英文 gate 命名；移除机械重复 token 与生命周期式说明，保持删除证据、隐私动作、迁移记录和负向 matcher 的原有语义，并同步 context specVersion 与 INDEX 投影。
 
+#### 6.141 UI prototype current-action wording cleanup
+
+清理 `ui-design/src/data.jsx` 经历样例中把当前实施动作描述为中间接入层的用户可见文案，改为直接的渐进接入表述；在 `ui-design-contract.test.mjs` 增加负向断言。正式前端不消费该 prototype data，不创建平行同步改动。
+
+#### 6.142 Hash routing current-contract wording cleanup
+
+统一 frontend URL tests、frontend-shell/004 plan/BDD 与 E2E.P0.090 场景资产的 hash routing 表述：`#route=...` 是当前 static preview / pixel parity / scenario harness adapter；不改变 route normalization、safe-param filtering、canonical rewrite 或 host fallback 行为。
+
+#### 6.143 Scenario answer current engineering wording cleanup
+
+清理 E2E.P0.100 中英文合成作答样例将逐域迁移描述为“兼容性测试”的模糊用语，改为当前的契约回归测试表述；不改变场景脚本、数据结构或真实 provider 执行路径。
+
+#### 6.144 Scenario current-contract terminology cleanup
+
+将 E2E.P0.013 / P0.034 / P0.035 / P0.074 / P0.075 说明文本中泛化的 compatibility 用语改为可验证的 terminal-state、checked-in fixture 和 A3/F3 合同表述；保留实际 fixture parity、Go runner、隔离与隐私断言，不改变脚本执行。
+
+#### 6.145 UI/config current-contract wording cleanup
+
+将 Resume 详情的 `originalText` 回退、Practice 的 `practiceMode` 报告上下文和 AI profile 模型集合直接描述为当前数据与配置合同；同步 practice owner discovery 关键词，不删除当前 OpenAPI 字段或改变 UI/runtime 行为。
+
+#### 6.146 Scenario isolation environment terminology cleanup
+
+将 10 个进程内 Go 场景与 P0.101 真实本地 Playwright 场景的 isolation metadata 对齐实际 runner，删除 8 个 Vitest 场景中重复的旧集群旁注；框架级本地 runner 与不默认引入 K8s 的治理合同保留。
+
+#### 6.147 TargetJob URL source-row silent-path removal
+
+在 backend-targetjob/001 原 owner 中删除 URL parse 缺少必备 source row 时的静默继续路径：executor 必须先验证持久化不变量，再出网；缺行时 fail-closed 并清理不完整 TargetJob 资产。
+
+#### 6.148 TargetJob test dead initialization cleanup
+
+删除 `TestParseExecutorAITaskRuns` 中从未读取的初始 executor 返回值，保留 observability wrapper 与所有 task-run/audit 断言，以 scoped `staticcheck` 固化死赋值归零。
+
+#### 6.149 Practice API dead helper removal
+
+在 backend-practice/002 原 owner 中删除 Practice API handler 里无调用、且与现有 `stringValue` 重复的 `derefString` helper，不改变 handler surface 或请求/响应行为。
+
+#### 6.150 Practice canonical hint scenario fixture repair
+
+修复 `cmd/api` Practice HTTP 场景的确定性 AI 成功 fixture，使其输出 F3 canonical `cue` / `answerSummary`；保留 alias-only `hint` 失败负测，不放宽生产 parser。
+
+#### 6.151 F3 canonical parser downstream gate hardening
+
+在 prompt-rubric-registry/002 原 owner 中固化 canonical parser 变更的 downstream 消费者验证：除 parser focused tests 外，必须执行命中 `cmd/api` 确定性 fixture 的场景，避免 schema 收紧后消费者继续产出 alias。
+
+#### 6.152 Cmd/api runtime builder dead logger dependency removal
+
+在 backend-async-runner/001 原 owner 中删除 report/resume runtime builder 从未消费的 logger 参数、nil default 赋值和调用点实参；保留真实记录 AI reload warning 的 targetjob builder logger 依赖。
+
+#### 6.153 Backend mockruntime dead test helper removal
+
+在 mock-contract-suite/001 原 owner 中删除 backend mockruntime 测试中无调用的 `assertJSONField` / `lookupJSONPath` helper 对，保留完整 fixture response parity 与 unknown-scenario 断言。
+
+#### 6.154 OpenAI-compatible base URL normalization simplification
+
+在 ai-provider-and-model-routing/001 原 owner 中删除 `normalizeBaseURL` 的冗余 suffix guard，保持 root 与 `/v1` provider base URL 合同，并以 adapter tests 和 scoped `staticcheck` 验证行为不变。
+
+#### 6.155 Registry score-level conversion simplification
+
+在 prompt-rubric-registry/001 原 owner 中以同构类型转换替代 rubric loader 对 `ScoreLevel` 的逐字段复制，保持 9 份 canonical rubric 的加载、校验和 resolver 合同不变。
+
+#### 6.156 Eval wire score conversion simplification
+
+在 prompt-rubric-registry/004 原 owner 中以同构类型转换替代 eval fixture score 到 judge JSON wire score 的重复字段映射，将 Resume / TargetJob 录制输出与 resolved prompt 投影同步到 current schema，并补齐 eval package / command 的 context discovery。
+
+#### 6.157 Resume tailor provenance conversion simplification
+
+在 backend-resume/002 原 owner 中保留 persisted provenance wire boundary，以同构类型转换替代 tailor result 写入和读回两侧的逐字段复制。
+
+#### 6.158 Generating hook test runtime isolation
+
+在 frontend-report-dashboard/001 原 owner 中让 `useReportGenerationPoll` 单元测试直接注入 runtime context，删除无关 provider 异步 effect 与 fake runtime/auth 方法，清除聚焦测试的 React act warning。
+
+#### 6.159 Auth alias test lifecycle isolation
+
+在 frontend-shell/001 原 owner 中让 `auth_reset` / `auth_register` 同步 normalization tests 在断言后显式 unmount，清除测试尾部无关 runtime provider state update warning。
+
+#### 6.160 P0.005 visual-smoke test lifecycle isolation
+
+在 frontend-shell/002 原 owner 中让三个同步 visual-smoke 结构/负向用例在断言后显式 unmount，清除无关 runtime provider 与 HomeScreen state update warning。
+
+#### 6.161 P0.089 URL privacy test lifecycle isolation
+
+在 frontend-shell/004 原 owner 中让 hostile-query 同步负向用例在断言后显式 unmount，清除无关 runtime provider state update warning。
+
+#### 6.162 P0.036 Resume Workshop test lifecycle isolation
+
+在 frontend-resume-workshop/001 原 owner 中让 out-of-scope 同步负向用例在断言后显式 unmount，清除无关 runtime 与 interview provider state update warning。
+
+#### 6.163 Noto Serif SC bundle deduplication
+
+在 frontend-shell/002 原 owner 中删除与默认 unicode-range 分片重复的 Noto Serif SC 400/500 full-font imports，保留字体视觉合同并减少构建产物。
+
+#### 6.164 PDF.js on-demand loading
+
+在 frontend-resume-workshop/001 原 owner 中把 PDF.js runtime 与 worker URL 从首屏同步 bundle 移到 PDF page-stack effect 内动态加载，保持现有 loading/error/rendering 合同。
+
+#### 6.165 Western font subset pruning
+
+在 frontend-shell/002 原 owner 中把五个 Western/mono family 的默认多语言 CSS 收敛为当前权重的 Latin subset，保留中英 UI 与全部字体 preset 合同。
+
+#### 6.166 Pixel parity inventory hardening
+
+在 frontend-shell/003 原 owner 中删除未引用的 axe dependency、snapshot config/ignore/baseline assets，并将 owner/BDD/P0.006 场景统一到当前 12-spec、ocean/two-theme token 与 negative-only contract。
+
+#### 6.167 Orphan lint runner removal
+
+删除没有 Make、场景、active owner 或生产脚本入口的 lint runner 及其孤立单元测试；以通用 inventory gate 约束 `scripts/lint` 生产脚本必须可从当前执行面或 owner 文档到达，保留仍由全量 Go tests 执行的 F3/Practice preflight contract。
+
+#### 6.168 One-shot fixture bootstrap removal
+
+在 openapi-v1-contract/002 原 owner 中删除没有当前 entry point、caller 或 owner 引用的一次性 fixture bootstrap 记录；将脚本 inventory gate 扩展到整个 `scripts/` 生产工具面，保留当前 validator、prototype sync、example renderer 与 Prism smoke 合同。
+
+#### 6.169 Duplicate UI canvas source removal
+
+删除 `ui-design/` 中未被画板入口加载的逐字节重复 JSX 实体；以通用 prototype JSX content-uniqueness gate 防止完整文件副本回流，并在 UI 文档中明确 `canvas.html` 的唯一源码关系，不改变画板 DOM、样式或交互。
+
+#### 6.170 UI prototype runner simplification
+
+保留并文档化 `ui-design/run.sh` 作为静态原型本地启动入口；依据仓库 Python 3 工具链约束删除在 URL 编码之后不可达的 Python 2 / `npx serve` fallback，以脚本 source contract、`bash -n` 和真实 HTTP smoke 保持 index/canvas 服务行为。
+
+#### 6.171 P0.005 visual-smoke scenario reconciliation
+
+在 frontend-shell/002 原 owner 中把 P0.005 场景说明、expected outcome 与 executable smoke 统一到当前 ocean/plum 四组合合同，将浏览器安装和截图文件流程直接交给当前 P0.006，并以场景资产合同测试防止文档再次漂移。
+
+#### 6.172 P0.014 executable-evidence reconciliation
+
+在 frontend-home-job-picks-and-parse/001 原 owner 中把 P0.014 README/seed/expected 与 trigger/verify 的实际 generated-client + Home Vitest 证据对齐，删除未执行的 TopBar/theme/mobile/build/Playwright/live-backend 覆盖声明，并以场景资产合同测试防止弱证据回流。
+
+#### 6.173 P0.059 browser-evidence reconciliation
+
+在 frontend-report-dashboard/001 原 owner 中删除 P0.059 未执行的主题矩阵、computed-style、tab-switch 与持久截图文件声明；为七个既有 Playwright 状态补齐真实的非空内存截图断言，将 report mobile overflow 门禁收紧到 390px，并以 owner/browser preflight 绑定六份 owner 文档、两份 Playwright 源码与场景 trigger。
+
+#### 6.174 P0.057 direct-start contract reconciliation
+
+以当前 UI 真理源与 frontend-workspace-and-practice D-9 为准，修正 frontend-report-dashboard spec/plan/test/BDD 与 P0.057：Header CTA 经 generated client 创建派生 plan、启动 fresh session 并直接进入 practice；未登录回 report 重试。删除 workspace mount 副作用检查，以 owner preflight 固化 direct-start 源码、pendingAction 与场景 runner 合同。
+
+#### 6.175 P0.056 focused-runner evidence reconciliation
+
+将 P0.056 从扩大描述的单一旅程收敛为五个真实 focused owner test 文件的组合门禁，删除固定跨文件轮询、主题、route/transcript 隐私与旧 Resume API 声明；补齐 poll-hook verify marker，并明确 real-mode bootstrap 只证明 production client 配置。
+
+#### 6.176 P0.058 focused-failure evidence reconciliation
+
+将 P0.058 收敛为 owner preflight、failure/missing components、report hook/route 与 poll hook 六个真实 focused 文件，删除未执行的 GeneratingScreen timeout UI、重复 timeout fallback、live-backend sequence 和宽泛 URL/storage/telemetry 隐私声明；补齐所有 trigger/verify marker。
+
+#### 6.177 Frontend report active visual-contract reconciliation
+
+将 frontend-report-dashboard active spec、owner plan/test/BDD 与 P0.059 的七个真实浏览器状态对齐；preflight 扩展为反查 active spec 在内的七份 owner artifact，删除未执行的视觉与移动端组件转换承诺，同时保留当前 source-parity 单测与 frontend-shell 主题 owner 边界。
+
+#### 6.178 Workspace dead-scenario removal and route-table reconciliation
+
+删除引用五个已移除 workspace 测试文件的 P0.019/P0.020 场景实体与当前 owner/index/context 引用，新增通用 frontend trigger-path 存在性门禁；同步 frontend-shell/004 与 P0.088，使 workspace 旧详情/启动参数仅作为必须过滤的负向输入，canonical route table 与 `routeUrl.ts` 当前集合一致。
+
+#### 6.179 Auto-start context and implicit practice-param removal
+
+删除 InterviewContext 中已无消费者的 auto-start 字段、default/hydrate/clear action 与 start-practice 专用剥离 helper；`startPracticeFromParams` 不再展开任意输入，而是只返回当前 practice route 明确允许的规范化上下文和新 plan/session ID。
+
+#### 6.180 Test-only InterviewContext reducer action removal
+
+删除仅由 reducer 自身单测构造、生产代码从不 dispatch 的三类 merge 与两类 clear action，保留 hydrate、session merge、hint increment 与全量 clear 四个真实 action，并增加源码负向门禁。
+
+#### 6.181 P0.089 workspace-zero-query evidence reconciliation
+
+修正 P0.089 中仍把 workspace hostile query 描述为可保留参数的场景文档和陈旧测试名称；保持正向 practice 登录接续的 safe params，同时让 direct-open 与 popstate 证据统一指向 query-free `/workspace`。
+
+#### 6.182 P0.037 async test lifecycle isolation
+
+让 P0.037 场景证据捕获 stderr 并拒绝 React unwrapped-update warning；场景测试及其 ResumeDetailView owner mirror 的 failed-PDF 单次请求观察窗口都改由 `act` 接管，保留业务断言且不修改生产组件。
+
+#### 6.183 Orphan Resume toast bridge removal
+
+删除正式 Resume Workshop 中无消费者的 prototype toast helper，以及 P0.036 仅供自测的全局 capture/assertion scaffolding；以 scoped source gate 保持 formal frontend zero reference，不修改 `ui-design/` 原型。
+
+#### 6.184 Unconsumed InterviewContext hook removal
+
+删除全仓零消费者的 `useStartPracticeContext` export；保留唯一 runtime hook `useInterviewContext`，不增加替代层或修改共享状态行为。
+
+#### 6.185 Unconsumed canonical-route helper removal
+
+删除全仓零消费者的 `routeUrlsEqual` wrapper 及错误的 routeStore 消费注释；保留 routeStore 现有 canonical URL string 比较逻辑，不增加替代抽象。
+
+#### 6.186 Unconsumed report AI-error predicate removal
+
+删除全仓零消费者的 `isAiErrorCode` 及其唯一私有依赖 `FAILURE_AI_ERROR_KEYS`；保留当前 `failureErrorCodeKey` 映射与失败页行为。
+
+#### 6.187 Constant-only practice assistance hook removal
+
+删除生产零消费者、只返回固定显隐值的 `usePracticeAssistance` 及其自测；P0.045 与 owner policy 改由真实 PracticeScreen goal/hint/mode 测试承接。
+
+#### 6.188 Production test-only practice handoff inspector removal
+
+删除仅被自测调用的 production `findForbiddenHandoffKeys` 与私有 key set；隐私测试改为直接检查真实 `buildPracticeHandoffParams` 输出的完整 forbidden-key 集合。
+
+#### 6.189 Zero-reference Resume Create stage type removal
+
+删除全仓零消费者的 `CreateStage` export，不引入替代状态抽象；保留 `ResumeCreateFlow` 的 `data-stage="input"` DOM 合同，并由 create-flow source negative、focused tests 与 typecheck 固化。
+
+#### 6.190 Home pending-import test API removal
+
+删除只供测试 teardown 调用的 `clearPendingImportSourcesForTests` 生产 export；Home auth continuation 继续通过真实 one-shot store/consume 路径验证，测试不增加替代 reset API。
+
+#### 6.191 Runtime-config test reset API removal
+
+删除只供 frontend 单测调用的 `_resetRuntimeConfigCache` production export；测试通过既有 `forceRefresh` 生产选项建立独立缓存边界，继续覆盖缓存、失败恢复与刷新行为。
+
+#### 6.192 Dev mock fixture test observer removal
+
+删除只供单测调用的 `getDevMockFixtureOperationIds` production export；generated operation parity 改为直接比较真实 dev fixture registry keys，不保留私有 fixture 数组的平行观察器。
+
+#### 6.193 Roadmap context discovery deduplication
+
+删除 engineering-roadmap plan context 中重复的 `AI provider` discovery keyword；以结构化 YAML 扫描确认全仓 context 同一列表内不存在重复标量值。
+
+#### 6.194 Frontend strict unused-surface gate
+
+清理 frontend 严格编译发现的 16 个未使用 import、局部声明、wrapper 与参数；必须保留回调位置的参数使用 `_` 前缀显式表达。将 `noUnusedLocals` / `noUnusedParameters` 写入 `tsconfig.json`，使日常 typecheck、lint 与 build 持续拒绝未使用 surface。
+
+#### 6.195 Theme data ownership documentation reconciliation
+
+删除不存在的 themes.css generator 说明，并将 frontend handoff 文档从错误的 7 个字体预设修正为 3 个 serif/sans preset + 固定 mono family；明确 traceability test 与 TopBar metadata 真实消费者。
+
 ## 5 Operation Matrix
 
 | operationId / contract | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
@@ -545,7 +765,7 @@
 | Frontend shell owner history-block cleanup | Docs / frontend shell owner | Phase 6.91 | targeted owner grep, context validation, focused frontend tests, plans INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check` | completed frontend-shell owner docs must retain current topbar/auth/settings contract without mail-link or registration-split phase records |
 | Prompt rubric schema owner wording cleanup | Docs / prompt-rubric owner | Phase 6.92 | targeted owner grep, context validation, prompt/rubric lint, plans INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check` | completed output-schema owner docs must express migration audit rows, seed net-state, and parser aliases without old lifecycle wording |
 | Event outbox mode owner wording cleanup | Docs / event contract owner | Phase 6.93 | targeted owner grep, context validation, codegen/lint events, plans INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check` | completed ResumeTailorMode drift owner docs must express out-of-scope literal scanning and diff scope without old lifecycle wording |
-| Backend async runner owner wording cleanup | Docs / backend runner owner | Phase 6.94 | targeted owner grep, context validation, runner lint, plans INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check` | completed runner owner docs must express out-of-scope runner/drainer and email-code smoke wording without old lifecycle wording |
+| Backend async runner owner wording cleanup | Docs / backend runner owner | Phase 6.94 | targeted owner grep, context validation, runner lint, plans INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check` | runner owner docs must express current single-kernel and email-code smoke contracts without old lifecycle wording |
 | AI provider registry owner wording cleanup | Docs / AI provider owner | Phase 6.95 | targeted owner grep, context validation, AI profile coverage lint, config lint, plans INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check` | completed A3 provider-registry owner docs must express current 9-key profile coverage, DeepSeek chat baseline, and speech / judge profile boundaries without old lifecycle wording |
 | Frontend resume workshop 003 owner compression | Docs / frontend resume owner | Phase 6.96 | owner package grep, context validation, focused Resume Workshop Vitest, plans INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check` | resume-workshop 003 owner docs must describe only current flat Resume/Rewrites/Edit contract and completed BDD gates, without keeping out-of-scope phase prose |
 | Backend review spec and 001 owner compression | Docs / backend review owner | Phase 6.97 | active spec grep, owner package grep, context validation, plans/spec INDEX sync, `sync-doc-index --check`, `make docs-check`, `git diff --check`, pruning-surface lint | backend-review active spec and 001 owner docs must describe current async-runner-backed report generation/read contract without stale baseline or staged implementation prose |
@@ -569,6 +789,19 @@
 | Current-owner handoff wording cleanup | Backend comments / OpenAPI docs / TargetJob spec / migrations docs | Phase 6.138 | focused Go tests, targeted handoff-wording grep, spec INDEX sync, `make docs-check`, `git diff --check`, pruning-surface lint | active comments and docs must describe current owners and final inventory truth without old plan handoff prose |
 | Skill execution terminology cleanup | `.agent-skills` workflow docs, templates and contract tests | Phase 6.139 | focused skill contract tests, `.agent-skills` scope-token grep, `sync-doc-index --check`, `make docs-check`, `git diff --check`, pruning-surface lint | active skills and templates must use current/out-of-scope/status-alias wording instead of old execution labels |
 | Product-scope scope-boundary terminology cleanup | Docs / product owner | Phase 6.140 | targeted owner token grep, product context validation, `sync-doc-index --check`, `make docs-check`, `git diff --check`, pruning-surface lint | product owner docs use one scope-boundary vocabulary without duplicate tokens or lifecycle-style module notes |
+| UI prototype current-action wording cleanup | UI truth source / contract test | Phase 6.141 | `ui-design-contract.test.mjs`, visible-copy negative grep, product context, docs/diff/pruning gates | active prototype mock data describes direct current actions without indirect adapter wording; formal frontend remains independent from prototype data |
+| Hash routing current-contract wording cleanup | Frontend tests / routing owner / E2E scenario docs | Phase 6.142 | focused routing Vitest, frontend-shell/product contexts, targeted wording grep, docs/diff/pruning gates | current `#route` adapter is described as supported hash routing without old transition labels; runtime behavior remains unchanged |
+| Scenario answer current engineering wording cleanup | E2E scenario synthetic inputs | Phase 6.143 | answer-file presence, scenario shell syntax, targeted wording grep, product context, docs/diff/pruning gates | synthetic answers describe contract regression tests without ambiguous compatibility-layer engineering prose; scenario execution remains unchanged |
+| Scenario current-contract terminology cleanup | E2E scenario docs | Phase 6.144 | targeted wording grep, shell syntax for affected scenarios, product context, docs/diff/pruning gates | scenario prose names terminal-state, checked-in fixture and A3/F3 contracts directly; executable assertions remain unchanged |
+| UI/config current-contract wording cleanup | UI truth-source docs / config docs / practice context | Phase 6.145 | focused Resume adapter and practice mode tests, AI profile lint, UI contract test, owner context validation, targeted wording grep, docs/diff/pruning gates | current fallback, display context and model inventory are described without historical compatibility-layer semantics; API/runtime behavior remains unchanged |
+| Scenario isolation environment terminology cleanup | E2E scenario README metadata | Phase 6.146 | runner-command inspection, affected shell syntax, targeted old-environment grep, product context, docs/diff/pruning gates | scenario isolation labels match in-process Go, Vitest, or shared local Playwright execution without obsolete cluster annotations |
+| TargetJob URL source-row silent-path removal | Backend TargetJob parse pipeline | Phase 6.147 | focused red/green ParseExecutor test, targetjob package test, backend-targetjob/product contexts, docs/diff/pruning gates | URL jobs cannot fetch, invoke AI, or succeed without their required persisted source row |
+| TargetJob test dead initialization cleanup | Backend TargetJob tests | Phase 6.148 | focused task-run test, scoped staticcheck, targetjob package test, owner contexts, docs/diff/pruning gates | observability test has one effective executor construction and no dead assignment |
+| Practice API dead helper removal | Backend Practice handler | Phase 6.149 | scoped staticcheck, Practice handler/package tests, backend-practice/product contexts, docs/diff/pruning gates | production Practice handler has no unreferenced duplicate string-pointer helper |
+| Practice canonical hint scenario fixture repair | Backend Practice cmd/api scenarios | Phase 6.150 | P0.039 and P0.048-P0.051 HTTP tests, backend-practice package tests, owner contexts, docs/diff/pruning gates | deterministic success fixture emits canonical cue while alias-only negative coverage stays fail-closed |
+| F3 canonical parser downstream gate hardening | Prompt/rubric output-schema owner | Phase 6.151 | F3/002 gate review, focused consumer HTTP tests, F3/product contexts, docs/diff/pruning gates | canonical parser changes cannot close without checking deterministic downstream scenario fixtures |
+| Cmd/api runtime builder dead logger dependency removal | Backend runtime composition | Phase 6.152 | cmd/api builder/full-funnel tests, scoped staticcheck, backend-async-runner/product contexts, docs/diff/pruning gates | report/resume runtime builders expose no unused logger dependency; targetjob warning logger remains |
+| Backend mockruntime dead test helper removal | Backend mockruntime tests | Phase 6.153 | scoped staticcheck, mockruntime tests, mock-contract lint, owner contexts, docs/diff/pruning gates | mockruntime tests contain no unused JSON path helper pair |
 
 ## 7 验收标准
 
@@ -593,6 +826,62 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.197 | Remove the targetjob test-only runtime, duplicate async job contract and adapter after production runner convergence. |
+| 2026-07-10 | 1.196 | Correct theme data consumer and font preset documentation. |
+| 2026-07-10 | 1.195 | Enable the frontend strict unused-surface compiler gate and remove current findings. |
+| 2026-07-10 | 1.194 | Remove duplicate roadmap context discovery metadata. |
+| 2026-07-10 | 1.193 | Remove the dev mock fixture test-only operation observer. |
+| 2026-07-10 | 1.192 | Remove the runtime-config test-only reset API. |
+| 2026-07-10 | 1.191 | Remove the Home pending-import test-only reset API. |
+| 2026-07-10 | 1.190 | Remove the zero-reference Resume Create stage type. |
+| 2026-07-10 | 1.189 | Remove the production test-only practice handoff inspector. |
+| 2026-07-10 | 1.188 | Delete the constant-only practice assistance hook and self-only test. |
+| 2026-07-10 | 1.187 | Remove the unconsumed report AI-error predicate and private key array. |
+| 2026-07-10 | 1.186 | Remove the unconsumed routeUrlsEqual wrapper and false consumer comment. |
+| 2026-07-10 | 1.185 | Remove the unconsumed useStartPracticeContext export. |
+| 2026-07-10 | 1.184 | Delete the orphan formal Resume Workshop toast bridge and self-only scenario capture. |
+| 2026-07-10 | 1.183 | Make P0.037 fail on unwrapped React updates and isolate its async observation wait. |
+| 2026-07-10 | 1.182 | Reconcile P0.089 workspace hostile-input evidence with query-free canonical routing. |
+| 2026-07-10 | 1.181 | Remove five test-only InterviewContext reducer actions. |
+| 2026-07-10 | 1.180 | Remove obsolete auto-start context state and implicit practice route-param carry. |
+| 2026-07-10 | 1.179 | Remove dead workspace scenarios and reconcile the canonical route table with current safe params. |
+| 2026-07-10 | 1.178 | Bind the active frontend report visual contract to the seven executable P0.059 browser states. |
+| 2026-07-10 | 1.177 | Align P0.058 scenario and BDD claims with six focused failure-contract test files. |
+| 2026-07-10 | 1.176 | Align P0.056 scenario and BDD claims with its five focused owner test files. |
+| 2026-07-10 | 1.175 | Reconcile P0.057 and frontend-report owners with the generated-client direct-start practice contract. |
+| 2026-07-10 | 1.174 | Align P0.059 owner and scenario claims with executable browser evidence and add non-empty screenshot assertions. |
+| 2026-07-10 | 1.173 | Align P0.014 scenario claims with its generated-client and Home Vitest runner evidence. |
+| 2026-07-10 | 1.172 | Reconcile P0.005 scenario assets with the current ocean/plum smoke and P0.006 browser contract. |
+| 2026-07-10 | 1.171 | Simplify the UI prototype runner to the repository Python 3 toolchain and document the current launch entry. |
+| 2026-07-10 | 1.170 | Remove the unreferenced duplicate UI canvas source and enforce unique prototype JSX content. |
+| 2026-07-10 | 1.169 | Remove the one-shot fixture bootstrap record and extend active-reference inventory to all production scripts. |
+| 2026-07-10 | 1.168 | Remove the orphan backend Practice preflight wrapper and add a generic active-reference inventory gate for production lint scripts. |
+| 2026-07-10 | 1.167 | Remove unused pixel-parity dependency and snapshot lifecycle, then align the browser inventory with the current 12-spec contract. |
+| 2026-07-10 | 1.166 | Restrict five Western and monospace font families to their current Latin subsets and weights. |
+| 2026-07-10 | 1.165 | Load PDF.js and its worker only when the PDF page-stack preview mounts. |
+| 2026-07-10 | 1.164 | Remove duplicate full Noto Serif SC imports while retaining unicode-range font coverage. |
+| 2026-07-10 | 1.163 | Isolate the synchronous P0.036 out-of-scope test from unrelated provider updates. |
+| 2026-07-10 | 1.162 | Isolate the synchronous P0.089 hostile-query test from unrelated provider updates. |
+| 2026-07-10 | 1.161 | Isolate synchronous P0.005 visual-smoke assertions from unrelated runtime and Home updates. |
+| 2026-07-10 | 1.160 | Isolate synchronous auth alias tests from unrelated runtime-provider updates. |
+| 2026-07-10 | 1.159 | Isolate the generating poll hook tests from unrelated runtime-provider effects and warnings. |
+| 2026-07-10 | 1.158 | Replace duplicated Resume tailor provenance write/readback mappings with equivalent conversions. |
+| 2026-07-10 | 1.157 | Simplify eval score wire conversion, repair current parse fixtures and resolved prompts, and complete eval owner discovery. |
+| 2026-07-10 | 1.156 | Replace the rubric loader's repeated score-level field copy with the equivalent type conversion. |
+| 2026-07-10 | 1.155 | Simplify OpenAI-compatible base URL normalization under existing adapter contract tests. |
+| 2026-07-10 | 1.154 | Remove two unreferenced JSON assertion helpers from backend mockruntime tests. |
+| 2026-07-10 | 1.153 | Remove unused logger parameters from cmd/api report and resume runtime builders. |
+| 2026-07-10 | 1.152 | Require downstream cmd/api scenario fixtures in the F3 canonical parser verification gate. |
+| 2026-07-10 | 1.151 | Align Practice cmd/api hint success fixtures with the canonical F3 cue response shape. |
+| 2026-07-10 | 1.150 | Remove the unreferenced duplicate string-pointer helper from the Practice API handler. |
+| 2026-07-10 | 1.149 | Remove the unused initial executor value from the TargetJob AI task-run test. |
+| 2026-07-10 | 1.148 | Remove the TargetJob URL parse silent path when the required persisted source row is missing. |
+| 2026-07-10 | 1.147 | Align E2E scenario isolation metadata with in-process and shared-local runners, removing redundant cluster annotations. |
+| 2026-07-10 | 1.146 | Reword current Resume fallback, Practice display context and AI profile inventory without compatibility-layer semantics. |
+| 2026-07-10 | 1.145 | Replace generic compatibility wording in five E2E scenario assets with explicit terminal-state, fixture and A3/F3 contracts. |
+| 2026-07-10 | 1.144 | Replace ambiguous compatibility-test wording in E2E.P0.100 synthetic answer samples with current contract-regression terminology. |
+| 2026-07-10 | 1.143 | Normalize hash routing labels across frontend tests, routing owner BDD and E2E.P0.090 scenario assets. |
+| 2026-07-10 | 1.142 | Replace indirect adapter wording in visible prototype experience data and add a UI contract negative gate. |
 | 2026-07-10 | 1.141 | Normalize product owner scope-boundary terminology, remove duplicate tokens, and sync context/index metadata. |
 | 2026-07-10 | 1.140 | Rename workspace records-area wording to records static affordance across owner and pruning gates. |
 | 2026-07-07 | 1.139 | Clean current skill execution terminology across workflow docs, templates, sync tooling labels and contract tests. |
@@ -640,7 +929,7 @@
 | 2026-07-07 | 1.97 | Compress backend-review active spec and 001 owner docs to the current async-runner-backed report generation/read contract. |
 | 2026-07-07 | 1.96 | Compress frontend-resume-workshop 003 owner docs to the current flat Resume Workshop Rewrites/Edit contract. |
 | 2026-07-07 | 1.95 | Reconcile ai-provider-and-model-routing 003 owner docs to current 9-key profile coverage and DeepSeek chat baseline wording. |
-| 2026-07-07 | 1.94 | Reconcile backend-async-runner owner docs to current out-of-scope runner/drainer and email-code smoke wording. |
+| 2026-07-07 | 1.94 | Reconcile backend-async-runner owner docs to current single-kernel and email-code smoke wording. |
 | 2026-07-07 | 1.93 | Reconcile event-and-outbox ResumeTailorMode owner docs to current out-of-scope literal scanning and diff-scope wording. |
 | 2026-07-07 | 1.92 | Reconcile prompt-rubric output-schema owner docs to current migration audit, seed net-state, and parser alias wording. |
 | 2026-07-07 | 1.91 | Delete frontend-shell auth history blocks and reconcile owner docs to current topbar/auth/settings contract. |

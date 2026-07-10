@@ -1,8 +1,8 @@
 # Roadmap Rebaseline and Subspec Governance Checklist
 
-> **版本**: 3.4
+> **版本**: 3.5
 > **状态**: completed
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -47,3 +47,7 @@
   <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 4.3 assigns shared conventions, OpenAPI, DB, event, and observability gates to current owners." -->
 - [x] 4.4 Technical-draft zero-reference gate 固化到本 plan。
   <!-- verified: 2026-07-06 method=roadmap-plan-current-governance-reconcile evidence="plan v3.4 Phase 4.4 requires zero-reference checks for directory names, filenames, shorthand, Markdown links, implementation prerequisites, and external truth-source wording." -->
+
+## Phase 5: Context discovery deduplication
+
+- [x] 5.1 删除 context discovery 中重复的 `AI provider` keyword；结构化 YAML 扫描确认全仓 context 同列表标量值零重复，owner context 与 docs gates 通过。<!-- verified: 2026-07-10 method=yaml-duplicate-scan evidence="Baseline scan found only engineering-roadmap spec.discovery.keywords AI provider x2; GREEN scan reports zero duplicate scalar entries across all plan contexts." -->

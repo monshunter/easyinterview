@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 2.4
+    to: 2.5
 spec:
   defaultTarget: backend
   discovery:
@@ -34,7 +34,7 @@ spec:
       - resume parse async job
       - resume parse completed event
       - cmd/api resume route wiring
-      - in-process resume parse drainer
+      - in-process resume parse runner kernel
       - RegisterFileObject object stat size mismatch
       - sourceType upload paste
       - aiclient resume parse feature key

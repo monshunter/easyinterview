@@ -12,7 +12,7 @@
   - `layout.spec.ts`：TopBar fits viewport、三入口不重叠、display
     controls + user area 不重叠、auth_login 两栏在 desktop 双列 / mobile
     单列堆叠。
-  - `screenshot.spec.ts`：home warm/light screenshot smoke、dark
+  - `screenshot.spec.ts`：home ocean/light screenshot smoke、dark
     toggle 翻转 token + body bg、customAccent 内联仅覆盖 accent / accent-
     soft、out-of-scope entries 0 命中。
   - `home.spec.ts`：Home hero / textarea / aux cards DOM 锚点、

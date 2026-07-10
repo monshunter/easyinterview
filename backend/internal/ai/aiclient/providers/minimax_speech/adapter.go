@@ -65,7 +65,7 @@ func (a *Adapter) Name() string { return a.providerRef }
 
 // Complete implements aiclient.Provider. MiniMax speech does not support chat.
 func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
-	return aiclient.CompleteResponse{}, a.errMeta(profile, sharederrors.CodeAiUnsupportedCapability, "minimax_speech does not support chat"), sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, "minimax_speech does not support chat", false)
+	return aiclient.CompleteResponse{}, a.errMeta(profile, sharederrors.CodeAiUnsupportedCapability), sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, "minimax_speech does not support chat", false)
 }
 
 // Stream implements aiclient.Provider.
@@ -75,7 +75,7 @@ func (a *Adapter) Stream(ctx context.Context, profile *aiclient.ModelProfile, pa
 
 // Transcribe implements aiclient.Provider. MiniMax STT is not confirmed.
 func (a *Adapter) Transcribe(ctx context.Context, profile *aiclient.ModelProfile, input aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {
-	return aiclient.TranscriptionResponse{}, a.errMeta(profile, sharederrors.CodeAiUnsupportedCapability, "minimax_speech does not support STT transcription"), sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, "minimax_speech STT is not confirmed per plan 004", false)
+	return aiclient.TranscriptionResponse{}, a.errMeta(profile, sharederrors.CodeAiUnsupportedCapability), sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, "minimax_speech STT is not confirmed per plan 004", false)
 }
 
 // Synthesize implements aiclient.Provider using the MiniMax TTS endpoint.
@@ -93,32 +93,31 @@ func (a *Adapter) Synthesize(ctx context.Context, profile *aiclient.ModelProfile
 		Model:        profile.Default.Model,
 	}
 
-	respBody, status, headers, err := a.postJSON(ctx, profile.TimeoutMs, PathTTSSynthesize, req)
+	respBody, status, err := a.postJSON(ctx, profile.TimeoutMs, PathTTSSynthesize, req)
 	if err != nil {
-		return aiclient.SynthesisResponse{}, a.errMeta(profile, errorCodeOf(err), err.Error()), err
+		return aiclient.SynthesisResponse{}, a.errMeta(profile, errorCodeOf(err)), err
 	}
 	if status >= 400 {
 		err := mapHTTPError(status, respBody)
-		return aiclient.SynthesisResponse{}, a.errMeta(profile, errorCodeOf(err), err.Error()), err
+		return aiclient.SynthesisResponse{}, a.errMeta(profile, errorCodeOf(err)), err
 	}
 
 	var wire ttsSynthesizeResponse
 	if err := json.Unmarshal(respBody, &wire); err != nil {
 		err := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "minimax_speech: parse tts response: "+err.Error(), false)
-		return aiclient.SynthesisResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid, err.Error()), err
+		return aiclient.SynthesisResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid), err
 	}
 	if wire.Audio == "" {
 		err := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "minimax_speech: tts response missing audio", false)
-		return aiclient.SynthesisResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid, err.Error()), err
+		return aiclient.SynthesisResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid), err
 	}
 
-	audio, err := decodeBase64Audio(wire.Audio)
+	audio, err := base64.StdEncoding.DecodeString(wire.Audio)
 	if err != nil {
 		err := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "minimax_speech: decode tts audio: "+err.Error(), false)
-		return aiclient.SynthesisResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid, err.Error()), err
+		return aiclient.SynthesisResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid), err
 	}
 
-	_ = headers
 	meta := aiclient.AICallMeta{
 		Provider:     a.providerRef,
 		ModelFamily:  "minimax_speech",
@@ -134,7 +133,7 @@ func (a *Adapter) Synthesize(ctx context.Context, profile *aiclient.ModelProfile
 	}, meta, nil
 }
 
-func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body any) ([]byte, int, http.Header, error) {
+func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body any) ([]byte, int, error) {
 	if timeoutMs > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, time.Duration(timeoutMs)*time.Millisecond)
@@ -142,12 +141,12 @@ func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body
 	}
 	buf, err := json.Marshal(body)
 	if err != nil {
-		return nil, 0, nil, fmt.Errorf("minimax_speech: marshal request: %w", err)
+		return nil, 0, fmt.Errorf("minimax_speech: marshal request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.baseURL+path, strings.NewReader(string(buf)))
 	if err != nil {
-		return nil, 0, nil, fmt.Errorf("minimax_speech: build request: %w", err)
+		return nil, 0, fmt.Errorf("minimax_speech: build request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -159,20 +158,20 @@ func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body
 	resp, err := a.client.Do(req)
 	if err != nil {
 		if ctxErr := ctx.Err(); errors.Is(ctxErr, context.DeadlineExceeded) {
-			return nil, 0, nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "minimax_speech: timeout", true)
+			return nil, 0, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "minimax_speech: timeout", true)
 		}
-		return nil, 0, nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "minimax_speech: transport error: "+err.Error(), true)
+		return nil, 0, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "minimax_speech: transport error: "+err.Error(), true)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, 0, nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "minimax_speech: read response: "+err.Error(), true)
+		return nil, 0, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "minimax_speech: read response: "+err.Error(), true)
 	}
-	return respBody, resp.StatusCode, resp.Header, nil
+	return respBody, resp.StatusCode, nil
 }
 
-func (a *Adapter) errMeta(profile *aiclient.ModelProfile, code string, msg string) aiclient.AICallMeta {
+func (a *Adapter) errMeta(profile *aiclient.ModelProfile, code string) aiclient.AICallMeta {
 	return aiclient.AICallMeta{
 		Provider:            a.providerRef,
 		ModelID:             profile.Default.Model,
@@ -204,12 +203,4 @@ func errorCodeOf(err error) string {
 		return apiErr.Code
 	}
 	return sharederrors.CodeAiOutputInvalid
-}
-
-func encodeBase64Audio(audio []byte) string {
-	return base64.StdEncoding.EncodeToString(audio)
-}
-
-func decodeBase64Audio(encoded string) ([]byte, error) {
-	return base64.StdEncoding.DecodeString(encoded)
 }

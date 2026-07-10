@@ -1,6 +1,6 @@
 # 001 — Report Screen and Generating Handoff Checklist
 
-> **版本**: 1.9
+> **版本**: 1.16
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -59,25 +59,25 @@
 
 ## Phase 4: 复练 CTA 行为 + ReportFailureState 完整 + GeneratingScreen handoff 完整
 
-- [x] 4.0 在 `frontend/src/app/auth/pendingAction.ts` 注册新 `replay_practice` PendingAction type：加入 allowlist（如有 string union / validator）+ `encodePendingAction` / `decodePendingActionRoute` 支持 round-trip + 路由恢复到 `workspace` 并保留 `autoStartPractice=1`；新增 `frontend/src/app/auth/__tests__/pendingActionReplayPractice.test.ts` 覆盖 `TestPendingActionEncodeDecodeReplayPractice` + `TestPendingActionReplayPracticeTypeAllowed` + 负向断言 URL params / localStorage 不含 raw text
-- [x] 4.1 实现复练 CTA `goReplay()` 路径 A：在 `ReportHeader.tsx` 与 `tabs/NextTab.tsx` 的 `report-next-cta-a` 按钮上绑定 `goReplay()`；组装 payload `{ sourceSessionId, replayItems:retryFocusTurnIds, evidenceGaps, planId, targetJobId, jdId, resumeId, roundId, mode:'text', modality:'text', practiceMode:InterviewContext.practiceMode, practiceGoal:'retry_current_round', autoStartPractice:'1' }`；未登录 → `useRequestAuth({type:'replay_practice', route:'workspace', params:{...sameParams}})`；已登录 → `nav("workspace", payload)`，由 workspace owner 创建 fresh practice session 后进入 practice
-- [x] 4.2 实现复练 CTA `goNextRound()` 路径 B：同上但 payload 为 `{ nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeId, mode:'text', modality:'text', practiceMode:InterviewContext.practiceMode, practiceGoal:'next_round', autoStartPractice:'1' }`；nextRoundId 默认从 InterviewContext.roundId 推断；workspace owner 创建 fresh session 后进入 practice
+- [x] 4.0 在 `frontend/src/app/auth/pendingAction.ts` 注册 `replay_practice` PendingAction type；`encodePendingAction` / `decodePendingActionRoute` 支持原 report route params round-trip；新增 `pendingActionReplayPractice.test.ts` 覆盖 type、回 report 与 URL/localStorage 无 raw text
+- [x] 4.1 实现复练 CTA `goReplay()` 路径 A：唯一 Header CTA 组装 retry_current_round + source report/session + replayItems/evidenceGaps payload；已登录经共享 `startPracticeFromParams` 调 generated `createPracticePlan` / `startPracticeSession` 并直接进入 practice；未登录 pendingAction 回 report 重试
+- [x] 4.2 实现复练 CTA `goNextRound()` 路径 B：唯一 Header CTA 组装 next_round + source report/session + nextRoundId payload；已登录创建 fresh plan/session 并直接进入 practice；未登录 pendingAction 回 report 重试
 - [x] 4.3 完整 ReportFailureState handoff：`ReportFailureState.tsx` CTA「重新生成」点击 → `nav("generating", { sessionId, reportId, ...passThroughContext })`；CTA「返回 workspace」点击 → `nav("workspace", { targetJobId, jdId, planId, resumeId })`
 - [x] 4.4 完整 GeneratingScreen handoff：`useReportGenerationPoll` 的 `onReady(report)` callback → `nav("report", { sessionId, reportId, ...passThrough })`；`onFailed(errorCode)` callback → `nav("report", { sessionId, reportId, reportStatus:'failed', errorCode, ...passThrough })`；timeout state → 不自动 nav，用户点 retry 重启轮询；nav 调用必须防抖（handoffNavigatedRef）
 - [x] 4.5 复练 CTA 数据未 ready 时禁用：report status='generating' 兜底（虽然不应进入但仍兜底）→ CTA disabled；不发 nav
-- [x] 4.6 实现 `report/__tests__/ReplayCta.test.tsx`：路径 A 已登录经 workspace auto-start 创建 fresh session + 未登录 useRequestAuth 恢复到 workspace；payload 字段完整；负向断言 raw text（`answerText` / `questionText` / `hint` / `promptHash` / `modelId raw`）不在 payload；负向断言 `getFeedbackReport` / `appendSessionEvent` 在 ReplayCta 上下文中不被调用
+- [x] 4.6 实现 `report/__tests__/ReplayCta.test.tsx`：路径 A 已登录创建/启动 fresh session 后直接进入 practice + 未登录 useRequestAuth 回 report；payload 字段完整；负向断言 raw text 不在 payload；CTA 点击后不重复调用 `getFeedbackReport`
 - [x] 4.7 在 `report/__tests__/ReplayCta.test.tsx` 覆盖路径 B 同上；nextRoundId 推断逻辑测试
 - [x] 4.8 实现 `report/__tests__/ReportFailureHandoff.test.tsx`：「重新生成」nav generating + 「返回 workspace」nav workspace；errorCode 不在 generating route params 中暴露 raw provider error
 - [x] 4.9 扩展 `generating/__tests__/GeneratingScreen.test.tsx`：ready / failed / timeout 三态分别 nav + 防抖（多次 ready callback 只 nav 一次；fake timer 验证 1 次 nav）
-- [x] 4.10 BDD-Gate: 验证 `E2E.P0.057` 通过（复练 CTA 路径 A + 路径 B 经 workspace auto-start 进入 fresh practice session）
+- [x] 4.10 BDD-Gate: 验证 `E2E.P0.057` 通过（复练 CTA 路径 A + B 通过 generated client 创建/启动 fresh session 并直接进入 practice；未登录回 report）
 - [x] 4.11 BDD-Gate: 验证 `E2E.P0.058` 通过（GeneratingScreen 轮询命中 `status='failed'` → nav failed report + ReportFailureState + ReportMissingSessionState + 跨用户 + 隐私 route params）
 - [x] 4.12 BDD-Gate: 验证 `E2E.P0.056` 整链完整通过（含 GeneratingScreen mount → 进度动画 → 轮询 ready → nav report → ReportDashboard 渲染 → 5 detail tab 切换 → CTA wire 完整；Phase 1 + Phase 3 仅作局部断言，Phase 4 复练 CTA wire 完成后整链通过）
 
 ## Phase 5: 完整状态机集成 + Playwright pixel parity + scenario 加挂 + stale-contract negative
 
-- [x] 5.1 `pnpm vitest run`（全 frontend 测试）+ `pnpm typecheck` 全绿；扩展 `App.test.tsx` 添加 `generating-screen` 与 `report-dashboard` testid 命中断言；扩展 `AppNormalize.test.tsx` 添加 `generating` / `report` route alias 处理；扩展 `pendingActionReplayPractice.test.ts` 添加 `replay_practice` pendingAction 恢复到 workspace auto-start 的 round-trip；扩展 `scenarios/p0-002-auth-pending-action-resume.test.tsx` 添加 `replay_practice` resume path 验证
-- [x] 5.2 新增 `frontend/tests/pixel-parity/generating.spec.ts`：desktop 1440×900 + mobile 390×844；测 generating 主屏 + ErrorState + 5 阶段 + 8 主题 × dark 切换；clean-checkout 硬 gate 为 DOM anchor / computed style / bounding box / responsive geometry / non-empty screenshot smoke，只有稳定 baseline 已提交或本 phase 明确更新 baseline 时才追加 `toHaveScreenshot`
-- [x] 5.3 新增 `frontend/tests/pixel-parity/report.spec.ts`：desktop + mobile；测 report 主屏 + 5 detail tab + 三态（dashboard/failure/missing-session）+ 8 主题 × dark 切换；clean-checkout 硬 gate 同 5.2，且验证 `report` 默认 App chrome / TopBar 可见、不进入一级导航
+- [x] 5.1 `pnpm vitest run`（全 frontend 测试）+ `pnpm typecheck` 全绿；扩展 `App.test.tsx` 添加 `generating-screen` 与 `report-dashboard` testid 命中断言；扩展 `AppNormalize.test.tsx` 添加 `generating` / `report` route alias 处理；扩展 `pendingActionReplayPractice.test.ts` 添加 `replay_practice` pendingAction 回 report 的 round-trip；扩展 auth pending-action 场景覆盖 resume path
+- [x] 5.2 新增 `frontend/tests/pixel-parity/generating.spec.ts`：desktop 1440×900 主屏、缺 reportId 错误态与 mobile 390×844 overflow；断言关键 DOM、主屏 bounding box 与每个状态的非空内存截图
+- [x] 5.3 新增 `frontend/tests/pixel-parity/report.spec.ts`：desktop ReportDashboard、ReportMissingSessionState、ReportFailureState 与 mobile 390×844 overflow；断言关键 DOM、`report` 默认 App chrome / TopBar 可见与每个状态的非空内存截图
 - [x] 5.4 派生 4 个 scenario 目录 `test/scenarios/e2e/p0-056-generating-to-report-happy-path/` / `p0-057-replay-cta-paths-a-and-b/` / `p0-058-report-failure-and-missing-session/` / `p0-059-report-pixel-parity-i18n-and-out-of-scope-negative/`，每个含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md` + `scripts/{setup,trigger,verify,cleanup}.sh`（chmod +x 可执行）；trigger 跑对应 Vitest 套件 / Playwright spec；verify 反查 testid / nav payload / 负向 grep / i18n 完整性
 - [x] 5.5 更新 `test/scenarios/e2e/INDEX.md` 在 P0 表追加 4 行（E2E.P0.056 / 057 / 058 / 059）；状态 Ready，automated
 - [x] 5.6 新增 `scripts/lint/frontend_report_dashboard_out_of_scope.py`：scoped grep 在 `frontend/src/app/screens/{report,generating}/`：`reportLayout` / `report_layout` / 5 档 readiness（`fully_prepared` 等字面量） / `readinessScore` / `readiness_score` numeric / `mistakes_queue` / `mistakesQueue` / `drill_builder` / `drillBuilder` / `growth_center` / `growthCenter` / `report_timeline` / `reportTimeline` / `report_form` / `reportForm` / 独立 `mistakes` route entry / `createPracticeVoiceTurn` / `getCompanyIntel` / `listTargetJobReports` 在实现代码中零出现；本 plan / BDD / test docs / spec §D-12 prohibition / preflight.test.ts 不属于实现范围；新增 `scripts/lint/frontend_report_dashboard_out_of_scope_test.py` 覆盖 `test_frontend_report_dashboard_out_of_scope_includes_terms` / `test_frontend_report_dashboard_out_of_scope_allows_negative_docs`
@@ -118,3 +118,70 @@
   <!-- verified: 2026-06-13 command="pnpm --filter @easyinterview/frontend test src/app/screens/report/__tests__/DetailSurface.test.tsx src/app/i18n" evidence="QuestionsTab 改 per-question markedForReplay 本地 state + toggleActiveMarked（对照原型 replayQueued/toggleQueued），data-marked toggle、不 nav；断言 data-marked false->true->false、route 不变、report-dashboard 仍在；i18n addedToReplay zh/en 新增；62 测试通过" -->
 - [x] 6.3 Phase 6 回归与负向 gate；验证: `report-next-cta-a`/`report-next-cta-b` 源码与渲染 0 命中（负向断言除外）；`pnpm --filter @easyinterview/frontend typecheck/test/build` 通过；report + topbar pixel parity 通过；`frontend_report_dashboard_out_of_scope` lint 通过；`make docs-check` + `sync-doc-index --check` 零漂移
   <!-- verified: 2026-06-13 command="pnpm --filter @easyinterview/frontend typecheck; pnpm --filter @easyinterview/frontend test; pnpm exec playwright test tests/pixel-parity/report.spec.ts; python3 scripts/lint/frontend_report_dashboard_out_of_scope.py --repo-root . --phase all; make docs-check" evidence="report-next-cta-a/b 仅存于负向断言；typecheck OK；vitest 1077/1077；report pixel parity 8 passed；out-of-scope lint OK；docs-check OK；sync-doc-index 零漂移" -->
+
+## Phase 7: Generating hook test runtime isolation
+
+- [x] 7.1 `useReportGenerationPoll` 单元测试直接注入 `AppRuntimeContext`，删除 fake client 中无关的 runtime-config/auth 方法（验证：focused 11 tests 无 React act warning、full frontend test/typecheck/build、owner context/docs gates）
+  <!-- verified: 2026-07-10 method=generating-hook-test-runtime-isolation evidence="Focused red reproduced two AppRuntimeProvider act warnings after the synchronous missing-report assertion. Direct AppRuntimeContext injection removed unrelated runtime/auth effects and four fake methods. Focused 11/11 and generating/report 65/65 pass without warnings; frontend build and owner lint/context pass. Full frontend 137 files/829 tests pass and the generating hook file is absent from the remaining warning list." -->
+
+## Phase 8: P0.059 browser evidence reconciliation
+
+- [x] 8.1 Add an owner preflight that rejects theme-matrix and persistent-baseline claims and requires executable non-empty screenshot assertions in both pixel-parity specs.
+  <!-- verified: 2026-07-10 method=p0059-browser-evidence-reconciliation evidence="Red failed on the first stale 8-theme owner claim. Green preflight passes 7/7 after scanning six owner documents, both Playwright sources and the P0.059 trigger." -->
+- [x] 8.2 Add in-memory screenshot assertions to every covered generating/report browser state without creating baseline files or changing product UI.
+  <!-- verified: 2026-07-10 method=p0059-browser-evidence-reconciliation evidence="Generating has three screenshot calls and Report has four; each uses page.screenshot() and asserts byteLength > 0. The report mobile overflow threshold was tightened from 420 to the 390px viewport and passes." -->
+- [x] 8.3 Reconcile plan, test, BDD and P0.059 assets with the actual desktop/mobile DOM, state, geometry, overflow and screenshot-buffer evidence.
+  <!-- verified: 2026-07-10 method=p0059-browser-evidence-reconciliation evidence="Removed unsupported theme-loop, computed-style, tab-switch and image-baseline claims. P0.059 README/seed/expected and trigger/verify now describe and enforce the current preflight, build, lint and browser evidence." -->
+- [x] 8.4 Run focused Vitest, both Playwright specs, P0.059 setup/trigger/verify/cleanup, owner context, docs, diff and pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=p0059-browser-evidence-reconciliation evidence="Focused preflight passes 7 tests; focused Playwright and scenario Playwright each pass 14 executions; P0.059 setup/trigger/verify/cleanup pass with 14 Vitest assertions, lint, pytest and build. Scenario output was cleaned; no environment restart or data cleanup occurred." -->
+
+## Phase 9: P0.057 direct-start contract reconciliation
+
+- [x] 9.1 Add an owner preflight that rejects workspace mount side-effect replay contracts and requires the current generated-client direct-start flow plus P0.057 wiring.
+  <!-- verified: 2026-07-10 method=p0057-direct-start-contract-reconciliation evidence="Red preflight failed on the obsolete route-side-effect term set. Green passes 8 tests after checking the active spec, six plan artifacts, P0.057 assets, useReplayCtaHandlers, startPracticeFromParams and trigger wiring." -->
+- [x] 9.2 Reconcile the active spec and plan/test/BDD documents with direct report-owner session creation/start and signed-out return to report.
+  <!-- verified: 2026-07-10 method=p0057-direct-start-contract-reconciliation evidence="Spec v1.9 and plan v1.12 now match UI truth and frontend-workspace D-9: generated createPracticePlan/startPracticeSession, fresh session, direct practice navigation, and signed-out report return. Operation matrices include both write operations." -->
+- [x] 9.3 Replace P0.057 expected/verify claims with executable `startPracticeFromParams -> practice` and pending-action `route=report` assertions; remove obsolete workspace checks.
+  <!-- verified: 2026-07-10 method=p0057-direct-start-contract-reconciliation evidence="Initial scenario trigger passed 10 tests but verify failed on the obsolete route-side-effect marker. Green verify now checks direct-start test markers, shared helper use, practice navigation, report pending action, generated create/start calls and privacy negatives." -->
+- [x] 9.4 Run focused tests, P0.057 setup/trigger/verify/cleanup, owner context, docs, diff and pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=p0057-direct-start-contract-reconciliation evidence="Focused preflight passes 8 tests; replay/pending focused suite passes 10; P0.057 setup/trigger/verify/cleanup passes with 18 trigger tests; frontend typecheck passes. Scenario output was cleaned with no environment restart or data cleanup." -->
+
+## Phase 10: P0.056 focused-runner evidence reconciliation
+
+- [x] 10.1 Add a scenario/BDD preflight that rejects unsupported integrated-journey claims and requires all five trigger and verify markers.
+  <!-- verified: 2026-07-10 method=p0056-focused-runner-evidence-reconciliation evidence="Red preflight failed on the expanded end-to-end claim. Green passes 9 tests and rejects integrated journey, transcript, pre-flatten Resume, fixed cross-file polling and theme claims while checking all five trigger/verify paths." -->
+- [x] 10.2 Reconcile P0.056 README/seed/expected and owner BDD artifacts with the focused preflight/poller/screen/detail test evidence and flat Resume contract.
+  <!-- verified: 2026-07-10 method=p0056-focused-runner-evidence-reconciliation evidence="README/seed/expected and BDD now describe preflight, poll hook, GeneratingScreen, ReportScreen and DetailSurface as independent deterministic gates. getResume replaces getResumeVersion, and fixed request counts/theme/transcript claims are removed." -->
+- [x] 10.3 Add the missing `useReportGenerationPoll.test.tsx` verify marker and keep real-mode configuration proof distinct from fixture-backed owner tests.
+  <!-- verified: 2026-07-10 method=p0056-focused-runner-evidence-reconciliation evidence="verify.sh now requires every focused file marker before static testid, lint and listTargetJobReports checks. README explicitly separates the real-mode bootstrap contract from deterministic test clients." -->
+- [x] 10.4 Run focused preflight, P0.056 setup/trigger/verify/cleanup, owner contexts, docs, diff and pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=p0056-focused-runner-evidence-reconciliation evidence="Baseline P0.056 passed 43 tests despite expanded prose. Green setup/trigger/verify/cleanup passes with 5 files and 44 tests, scoped lint OK, and scenario output removed; no environment restart or data cleanup occurred." -->
+
+## Phase 11: P0.058 failure-contract evidence reconciliation
+
+- [x] 11.1 Add a scenario/BDD preflight that rejects unsupported GeneratingScreen UI, repeated-timeout and broad privacy claims and requires all six runner markers.
+  <!-- verified: 2026-07-10 method=p0058-focused-failure-evidence-reconciliation evidence="Red preflight failed on the unsupported GeneratingScreen timeout UI claim. Green passes 10 tests and rejects repeated-timeout, live-backend and broad URL/storage/telemetry claims while checking all six trigger/verify markers." -->
+- [x] 11.2 Reconcile P0.058 README/seed/expected and owner BDD artifacts with hook/component/route-state focused evidence.
+  <!-- verified: 2026-07-10 method=p0058-focused-failure-evidence-reconciliation evidence="Scenario and BDD now separate failure/missing components, report hook/route and poll-hook evidence. Timeout stops at hook state; typed copy and route-state rendering remain explicit." -->
+- [x] 11.3 Add preflight, ReportScreen and poll-hook verify markers while preserving typed error-copy checks.
+  <!-- verified: 2026-07-10 method=p0058-focused-failure-evidence-reconciliation evidence="trigger now runs six focused files; verify requires each marker plus AI_PROVIDER_TIMEOUT and failureState.notFound.title keys. The prior verify observed only three of five files." -->
+- [x] 11.4 Run focused preflight, P0.058 setup/trigger/verify/cleanup, owner contexts, docs, diff and pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=p0058-focused-failure-evidence-reconciliation evidence="Baseline P0.058 passed 5 files/29 tests despite expanded claims. Green setup/trigger/verify/cleanup passes with 6 files/39 tests and removes scenario output; no environment restart or data cleanup occurred." -->
+
+## Phase 12: active visual contract reconciliation
+
+- [x] 12.1 Extend the browser-evidence preflight to scan the active spec plus all six plan artifacts and reject visual or responsive claims not executed by P0.059.
+  <!-- verified: 2026-07-10 method=frontend-report-active-visual-contract-reconciliation evidence="Focused red ran 10 preflight tests and failed only the Phase 8 browser-evidence case on the active spec theme-switching claim, proving the new seven-artifact guard observes the current drift before documentation changes." -->
+- [x] 12.2 Reconcile active spec C-12, owner coverage/risk rows, test/BDD artifacts and P0.059 assets with the seven current browser states and their exact evidence.
+  <!-- verified: 2026-07-10 method=frontend-report-active-visual-contract-reconciliation evidence="Spec v1.10, plan/test/BDD artifacts and P0.059 claims now enumerate the current seven states, explicit DOM/root/TopBar/390px evidence and per-state in-memory screenshots. Unsupported visual/responsive pattern scan is empty and the focused preflight passes 10/10." -->
+- [x] 12.3 Run focused preflight, both generating/report Playwright specs, P0.059 setup/trigger/verify/cleanup, owner/product contexts, docs, diff and pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=frontend-report-active-visual-contract-reconciliation evidence="Focused preflight passes 10/10 and focused Playwright passes 14/14. P0.059 setup/trigger/verify/cleanup passes real-mode 1/1, owner/i18n/negative 17/17, lint, pytest 3/3, build and Playwright 14/14. Both contexts, sync-doc-index, docs-check, diff-check and pruning surface pass with real_residuals=0; scenario output was removed with no environment restart or data cleanup." -->
+
+## Phase 13: unconsumed report error helper removal
+
+- [x] 13.1 Add a scoped source-surface RED assertion for the report error predicate with zero repository consumers.
+  <!-- verified: 2026-07-10 method=unconsumed-report-error-helper-source-red evidence="Focused report source survey failed with exactly two readiness.ts offenders: isAiErrorCode and FAILURE_AI_ERROR_KEYS; the existing out-of-scope survey remained green." -->
+- [x] 13.2 Delete `isAiErrorCode` and `FAILURE_AI_ERROR_KEYS` without changing `failureErrorCodeKey` or failure UI behavior.
+  <!-- verified: 2026-07-10 method=unconsumed-report-error-helper-removal evidence="Deleted both isolated symbols with no replacement. Source/failure/missing-session tests pass 3 files/8 tests and scoped non-test symbol inventory is empty; failureErrorCodeKey and FAILURE_LABEL_BY_CODE are unchanged." -->
+- [x] 13.3 Run focused report failure tests, typecheck, symbol inventory, owner/product contexts, docs, diff and pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=unconsumed-report-error-helper-removal evidence="Focused source/failure tests pass 3 files/8 tests; report/generating owner passes 13 files/70 tests; typecheck and scoped symbol inventory pass. Report/product contexts and docs/index/link/diff/pruning gates pass with real_residuals=0." -->

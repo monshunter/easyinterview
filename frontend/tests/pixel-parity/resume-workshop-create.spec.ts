@@ -12,9 +12,8 @@ import { resolve } from "node:path";
  *
  * The spec covers Upload tab, Paste tab, extra-tab negative, direct detail
  * handoff, and detail-owned waiting state in both desktop (1440x900) and
- * mobile (390x844). The check baseline is DOM anchor + computed style +
- * bounding box parity, plus a non-empty screenshot smoke. Clean checkout
- * PASS does not depend on local snapshots.
+ * mobile (390x844). The current contract is DOM anchor + computed style +
+ * bounding box parity, plus a non-empty screenshot smoke.
  */
 
 interface Rect {

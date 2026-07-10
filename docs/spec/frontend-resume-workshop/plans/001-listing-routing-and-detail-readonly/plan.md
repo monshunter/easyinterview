@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly
 
-> **版本**: 2.8
+> **版本**: 3.2
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -153,6 +153,22 @@ paste、Markdown upload 和 TXT upload 继续使用 Markdown engine，并保留 
 
 PDF 与 Markdown renderer 共用同一外层阅读背景板；PDF 页面和 Markdown 页面都作为背景板内的白色 page surface 呈现。CSS parity、component tests 和 pixel smoke 必须覆盖共同背景板、Markdown page anchor 和 PDF page-stack anchor。
 
+### Phase 11: P0.036 Test Lifecycle Isolation
+
+P0.036 的同步 out-of-scope negative test 在断言后显式 unmount，避免 fixture-backed runtime 与 InterviewContext effects 在用例结束后回写；业务断言和生产行为不变。
+
+### Phase 12: PDF.js On-demand Loading
+
+`PdfPageStackPreview` 首次 render 只渲染现有 loading shell；PDF.js module 与 worker URL 在 component effect 内动态导入，再创建同一 `getDocument` task。取消、失败、page-stack 和 credential 行为保持不变，非 PDF 首屏不得同步打包 PDF.js runtime。
+
+### Phase 13: P0.037 Async Test Lifecycle
+
+P0.037 trigger 同时记录 stdout/stderr，verify 将未被 `act(...)` 接管的 React update warning 视为失败；场景测试及其 `ResumeDetailView` owner mirror 都通过 Testing Library `act` 等待 failed-with-snapshot PDF 单次请求观察窗口，保留 350ms 轮询负向断言和全部业务行为，不修改生产 PDF renderer。
+
+### Phase 14: Orphan Resume Toast Bridge Removal
+
+删除正式 Resume Workshop 中无消费者的 `components/toast.ts`，并删除 P0.036 仅用于证明旧占位 toast 不出现的 `window.eiToast` capture；保留一个 scoped source gate，要求正式 Resume Workshop 与 P0.036 不再出现该 prototype bridge。`ui-design/` 原型 toast 实现不属于本批修改范围。
+
 ## 5 验收标准
 
 - 001 owner docs 只描述当前 flat Resume list / original-content read-only detail 合同。
@@ -175,6 +191,10 @@ PDF 与 Markdown renderer 共用同一外层阅读背景板；PDF 页面和 Mark
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 3.2 | Delete the orphan Resume Workshop toast bridge and its P0.036 self-only capture. |
+| 2026-07-10 | 3.1 | Make P0.037 fail on unwrapped React updates and isolate its failed-PDF observation wait. |
+| 2026-07-10 | 3.0 | Load PDF.js on demand behind the existing page-stack loading shell and document the completed P0.036 test lifecycle isolation. |
+| 2026-07-10 | 2.9 | Isolate the synchronous P0.036 out-of-scope test lifecycle with explicit cleanup; keep Resume Workshop behavior unchanged. |
 | 2026-07-10 | 2.8 | 将 detail route、fallback 和场景负向 gate 表述统一为 out-of-scope 口径；行为不变。 |
 | 2026-07-10 | 2.7 | 将 fallback page 负向历史表述统一为 out-of-scope wording；行为不变。 |
 | 2026-07-10 | 2.6 | 将 detail route 负向输入统一为 out-of-scope tab/query 口径；行为不变。 |

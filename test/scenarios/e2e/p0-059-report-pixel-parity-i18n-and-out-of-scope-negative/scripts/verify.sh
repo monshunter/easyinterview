@@ -7,6 +7,7 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 
 test -s "$LOG_FILE"
 "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}"
+grep -Fq 'E2E.P0.059: validating owner and browser evidence contract' "$LOG_FILE" || { echo "E2E.P0.059: owner/browser evidence preflight did not run" >&2; exit 1; }
 grep -Eq 'Test Files +[0-9]+ passed' "$LOG_FILE" || { echo "E2E.P0.059: i18n + out-of-scope negative tests did not pass" >&2; exit 1; }
 grep -Fq 'frontend-report-dashboard out-of-scope lint OK' "$LOG_FILE" || { echo "E2E.P0.059: out-of-scope lint script did not succeed" >&2; exit 1; }
 grep -Fq 'E2E.P0.059: running Playwright pixel parity' "$LOG_FILE" || { echo "E2E.P0.059: Playwright pixel parity did not run" >&2; exit 1; }

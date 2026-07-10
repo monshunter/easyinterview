@@ -147,7 +147,7 @@ func (s *Service) ImportTargetJob(ctx context.Context, in ImportRequest) (Import
 		storeIn.InitialAnalysisStatus = sharedtypes.TargetJobParseStatusQueued
 		storeIn.SourceURL = sanitized
 		storeIn.SourceID = s.newID()
-		// Phase 4 drainer fills SourceSnapshotText after fetch.
+		// The runner handler fills SourceSnapshotText after fetch.
 		if err := s.attachRunnerEnvelope(&storeIn); err != nil {
 			return ImportResponse{}, err
 		}

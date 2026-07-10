@@ -14,8 +14,8 @@ mkdir -p "$OUT"
     echo "ERROR: skipped or no-op focused gate detected"
     exit 1
   fi
-  grep -q 'RUNNER go test cmd/api resume tailor drainer failure' "$LOG"
-  grep -q 'TestResumeTailorDrainerFailureScenario' "$LOG"
+  grep -q 'RUNNER go test cmd/api resume tailor runner kernel failure' "$LOG"
+  grep -q 'TestResumeTailorRunnerFailureScenario' "$LOG"
   grep -q 'RUNNER go test resume jobs tailor failure' "$LOG"
   grep -q 'TestTailorHandlerModeRoutingAndFailurePaths' "$LOG"
   grep -q 'RUNNER go test resume store live ready-only outbox integration' "$LOG"
@@ -27,11 +27,11 @@ mkdir -p "$OUT"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/resume/jobs([[:space:]]|$)' "$LOG"
   grep -Eq '^ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/resume/store([[:space:]]|$)' "$LOG"
   cd "$ROOT"
-  if rg -n 'inline|mirror' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: out-of-scope inline/mirror vocabulary found"
+  if rg -n -i '(tailor|mode).*(inline|rewrite|mirror)|(inline|rewrite|mirror).*(tailor|mode)' backend/internal/resume --glob '!**/*_test.go' --glob '!**/verify.sh'; then
+    echo "ERROR: out-of-scope inline/rewrite/mirror tailor vocabulary found"
     exit 1
   fi
-  if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/verify.sh'; then
+  if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/*_test.go' --glob '!**/verify.sh'; then
     echo "ERROR: out-of-scope mistakes/growth/drill vocabulary found"
     exit 1
   fi

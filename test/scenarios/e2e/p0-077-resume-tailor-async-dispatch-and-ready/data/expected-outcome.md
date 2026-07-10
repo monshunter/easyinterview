@@ -8,9 +8,9 @@
 - Store transitions support queued or retryable failed async jobs to generating, generating to ready, and generating to failed; concurrent claim from queued allows exactly one successful transition.
 - Fixture parity covers `requestResumeTailor` `default` / `idempotency-replay` and `getResumeTailorRun` `default` / `queued` / `generating` / `failed`.
 
-## Ready Drainer Outcomes
+## Ready Runner Outcomes
 
-- `cmd/api` registers an in-process `resume_tailor` drainer handler.
+- `cmd/api` registers an in-process `resume_tailor` runner kernel handler.
 - `RunOnce(resume_tailor)` calls the A3 AIClient through the F3 `resume.tailor.gap_review` feature key.
 - A successful AI response writes match summary, provenance, and three
   ephemeral suggestions into `async_jobs.result` for the tailor run.

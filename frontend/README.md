@@ -8,7 +8,7 @@ Frontend / backend split workflow is governed by [docs/development.md](../docs/d
 
 ## 1 工具链
 
-D1 frontend-shell 引入 React 18 + Vite 5 + Vitest 2 + jsdom + @testing-library/react；TypeScript `strict` + `noUncheckedIndexedAccess`。脚本入口：
+D1 frontend-shell 引入 React 18 + Vite 5 + Vitest 2 + jsdom + @testing-library/react；TypeScript 启用 `strict`、`noUncheckedIndexedAccess`、`noUnusedLocals` 与 `noUnusedParameters`。脚本入口：
 
 | 命令 | 用途 |
 |------|------|
@@ -96,7 +96,7 @@ requestAuth({
 #### Design tokens 入口
 
 - 语义 token：[`src/app/theme/tokens.ts`](./src/app/theme/tokens.ts) — 仅导出 CSS variable 名（`--ei-color-*` / `--ei-radius-*` / `--ei-shadow-*` / `--ei-space-*` / `--ei-text-*` / `--ei-font-*`），不导出 hex 字面量。
-- 主题数据：[`src/app/theme/themes.data.ts`](./src/app/theme/themes.data.ts)（私有）— `ocean` / `plum` 2 主题 × 2 模式 21 色板与 7 字体预设，逐项转写自 `ui-design/src/primitives.jsx::EI_THEMES` / `EI_FONT_PRESETS` / `EI_THEME_LIST`；TopBar 另保留 custom accent。
+- 主题数据：[`src/app/theme/themes.data.ts`](./src/app/theme/themes.data.ts)（内部）— `ocean` / `plum` 2 主题 × 2 模式 × 21 个颜色角色、3 个 serif/sans 字体预设和固定 mono family，逐项转写自 `ui-design/src/primitives.jsx::EI_THEMES` / `EI_FONT_PRESETS` / `EI_THEME_LIST`；色板/字体由 traceability test 校验，`THEME_METADATA` 供 TopBar 使用，TopBar 另保留 custom accent。
 - 主题 CSS：[`src/app/theme/themes.css`](./src/app/theme/themes.css) — `:root[data-theme=X][data-mode=Y]` 8 组合声明所有色板。
 - Custom accent helper：[`src/app/theme/customAccent.ts`](./src/app/theme/customAccent.ts) — 镜像 `app.jsx` oklch 公式（light=58 / dark=68 / soft 92/28，chroma clamp [0,0.28]，hue normalize [0,360)），仅覆盖 `--ei-color-accent` / `--ei-color-accent-soft`。
 
@@ -159,15 +159,7 @@ D2 视觉系统由 **两层 gate** 共同守住，分工互不替代：
    - 静态 server fixture：[`frontend/scripts/serve-pixel-parity.mjs`](./scripts/serve-pixel-parity.mjs) 同时挂载 `frontend/dist`（`/`）与 `ui-design/`（`/ui-design/`），并暴露 `/health` 探活。
    - 12 个 spec：[`tests/pixel-parity/topbar.spec.ts`](./tests/pixel-parity/topbar.spec.ts)（含 authenticated 头像菜单 dropdown + logout flow）、[`screens.spec.ts`](./tests/pixel-parity/screens.spec.ts)、[`layout.spec.ts`](./tests/pixel-parity/layout.spec.ts)、[`screenshot.spec.ts`](./tests/pixel-parity/screenshot.spec.ts)、[`home.spec.ts`](./tests/pixel-parity/home.spec.ts)、[`parse.spec.ts`](./tests/pixel-parity/parse.spec.ts)、[`workspace.spec.ts`](./tests/pixel-parity/workspace.spec.ts)、[`practice.spec.ts`](./tests/pixel-parity/practice.spec.ts)、[`generating.spec.ts`](./tests/pixel-parity/generating.spec.ts)、[`report.spec.ts`](./tests/pixel-parity/report.spec.ts)、[`resume-workshop.spec.ts`](./tests/pixel-parity/resume-workshop.spec.ts)、[`resume-workshop-create.spec.ts`](./tests/pixel-parity/resume-workshop-create.spec.ts)。
 
-   截图基线维护：
-
-   ```bash
-   pnpm exec playwright test tests/pixel-parity/screenshot.spec.ts --update-snapshots
-   ```
-
-   baseline 文件位于 `frontend/tests/pixel-parity/*-snapshots/`，默认通过 `frontend/.gitignore` 排除入 git；CI / 本地各自维护。
-
-   Clean checkout gate 不能依赖被 `.gitignore` 排除的本地 snapshot baseline：常规 PASS 证据必须来自 DOM anchor、computed style、bounding box、responsive geometry 或 screenshot smoke（例如非空截图 buffer）。只有在 baseline 可由 CI / checkout 稳定取得或本次显式 `--update-snapshots` 维护时，才能把 `toHaveScreenshot` diff 作为完成 gate。
+   当前截图 gate 只使用非空 screenshot buffer，并与 DOM anchor、computed style、bounding box 和 responsive geometry 断言组合；仓库不维护 snapshot baseline 或对应更新流程。
 
    `workspace.spec.ts` 的 full-state pixel path 通过测试注入的 initial route 使用 server-bound `targetJobId` / `resumeId` / `planId` 进入完整规划态；不要把它改回 Home recent card 路径，后者按产品语义会携带 `resume-unbound` 并触发 missing-resume 状态。
 

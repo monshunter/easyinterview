@@ -42,20 +42,6 @@ export interface PracticeHandoffParams {
   hintCount: string;
 }
 
-const FORBIDDEN_KEYS = new Set([
-  "answerText",
-  "questionText",
-  "hint",
-  "prompt",
-  "promptVersion",
-  "rubricVersion",
-  "modelId",
-  "language",
-  "featureFlag",
-  "dataSourceVersion",
-  "provenance",
-]);
-
 export function buildPracticeHandoffParams(
   source: PracticeHandoffSource,
 ): PracticeHandoffParams {
@@ -75,18 +61,4 @@ export function buildPracticeHandoffParams(
     hintCount: String(source.hintCount),
   };
   return params;
-}
-
-/**
- * Sanity gate: returns `null` if all keys are allowed; otherwise returns
- * an array of disallowed keys that must be stripped before navigating.
- */
-export function findForbiddenHandoffKeys(
-  params: Record<string, unknown>,
-): string[] | null {
-  const offenders: string[] = [];
-  for (const key of Object.keys(params)) {
-    if (FORBIDDEN_KEYS.has(key)) offenders.push(key);
-  }
-  return offenders.length > 0 ? offenders : null;
 }

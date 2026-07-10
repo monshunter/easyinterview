@@ -1478,7 +1478,7 @@ func (c *scenarioPracticeAIClient) Complete(ctx context.Context, profileName str
 			hint = "Anchor the answer in one measurable coordination decision."
 		}
 		content, err := json.Marshal(map[string]string{
-			"hint":          hint,
+			"cue":           hint,
 			"answerSummary": "Candidate anchored the answer in measurable evidence.",
 		})
 		if err != nil {

@@ -9,4 +9,4 @@ mkdir -p "$OUTPUT_DIR"
 (
   cd "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test src/app/scenarios/p0-037-resume-detail-preview-readonly.test.tsx
-) | tee "$OUTPUT_DIR/trigger.log"
+) 2>&1 | tee "$OUTPUT_DIR/trigger.log"

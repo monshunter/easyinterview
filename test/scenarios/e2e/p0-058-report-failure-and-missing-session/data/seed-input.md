@@ -1,7 +1,6 @@
 # Seed input
 
-- Route variants:
-  - `report?reportStatus=failed&errorCode=AI_PROVIDER_TIMEOUT&sessionId=…&reportId=…`
-  - `report?reportId=…` (missing sessionId)
-  - `report?sessionId=…&reportId=…` with backend 404 for the cross-user case
-  - `generating?reportId=…&sessionId=…` with persistent `report-generating` fixture for timeout
+- Report component routes: failed status, missing sessionId, missing reportId and normal report params.
+- Deterministic report clients: ready response, HTTP 404, HTTP 5xx and refresh success.
+- Deterministic poll clients: failed response, HTTP 404 and persistent generating responses through max attempts.
+- No live backend response sequence or browser surface is used by the focused files.

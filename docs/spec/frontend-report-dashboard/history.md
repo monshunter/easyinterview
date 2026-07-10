@@ -1,6 +1,6 @@
 # Frontend Report Dashboard History
 
-> **版本**: 1.8
+> **版本**: 1.10
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -8,6 +8,8 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 1.10 | 将 active visual acceptance 收敛到 P0.059 实际执行的七个浏览器状态、390px overflow 与逐状态非空内存截图；主题归 frontend-shell，detail tab 结构继续由 source-parity 单测拥有。 | 001-report-screen-and-generating-handoff |
+| 2026-07-10 | 1.9 | 对齐当前 UI 真理源、frontend-workspace-and-practice D-9 与生产调用链：报告 Header CTA 通过 generated client 创建 plan、启动 fresh session 并直接进入 practice；未登录 pendingAction 回 report 重试；同步 P0.057 与 operation matrix。 | 001-report-screen-and-generating-handoff |
 | 2026-07-10 | 1.8 | 对齐当前 route fallback 命名：frontend 入口改为 `RouteShellScreen`，report/generating owner route 验收不再引用旧组件名。 | tech-debt pruning |
 | 2026-07-10 | 1.6 | 对齐 backend-review / B2 当前表述：`report-generating` fixture 表达 generating 状态元数据，不再描述为空报告占位。 | tech-debt pruning |
 | 2026-07-06 | 1.5 | docs-only：对齐 flat Resume contract 与当前范围表述；ReportContextStrip 使用 generated `getResume(resumeId)` 只读 displayName，范围外模块只作为边界和 stale-contract negative gate。 | product-scope/001-core-loop-module-pruning |

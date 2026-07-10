@@ -1,6 +1,6 @@
 # 001 — Report Screen and Generating Handoff BDD Checklist
 
-> **版本**: 1.9
+> **版本**: 1.14
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -9,32 +9,18 @@
 ## E2E.P0.056 GeneratingScreen → ReportScreen happy path
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-056-generating-to-report-happy-path/`，含 `README.md` + `data/seed-input.md` + `data/expected-outcome.md` + `scripts/{setup,trigger,verify,cleanup}.sh`（chmod +x）
-- [x] 准备 fixture：`getFeedbackReport` 配置前 2 次 `report-generating` + 第 3 次 `default`（ready 含 5 dimensions + 5 questions + 3 highlights + 2 issues + 3 next_actions + retryFocusTurnIds=['turn-1','turn-3','turn-5'] + preparednessLevel='basically_ready' + provenance 6 字段）；fixture-backed transport 通过 `EI_FIXTURE_SCENARIO_*` 环境变量切换
-- [x] 准备 ContextStrip fixture：`getTargetJob=default` + `getResumeVersion=default`，返回 target title/companyName + resume displayName；同时准备单 operation 失败 fallback case
-- [x] 实现 setup.sh：构造 frontend 启动命令 + fake timer 控制 + InterviewContext 13 字段 hydrate
-- [x] 实现 trigger.sh：执行 vitest 套件 `pnpm --filter @easyinterview/frontend test src/app/scenarios/p0-056-generating-to-report-happy-path.test.tsx`（或对应 spec name）
+- [x] 准备 deterministic test clients：五个 focused 文件各自控制 `getFeedbackReport` / `getTargetJob` / `getResume` 响应，不声明跨文件固定请求序列
+- [x] ContextStrip focused fixture 使用 flat `getResume(resumeId)` 与 `getTargetJob(targetJobId)`，覆盖成功 label、单 operation fallback 与 raw body avoidance
+- [x] 实现 setup.sh：创建场景输出目录并写入 setup metadata
+- [x] 实现 trigger.sh：先跑 real-mode bootstrap contract，再执行 preflight、poll hook、GeneratingScreen、ReportScreen、DetailSurface 五个 focused Vitest 文件
 - [x] 实现 verify.sh：
-  - generating-screen testid 命中 ≥ 10
-  - report-dashboard testid 命中 ≥ 20
-  - generated client `getFeedbackReport` 调用次数 = 3（轮询）+ 1（ReportScreen mount） = 4 次
-  - generated client `listTargetJobReports` 调用次数 = 0（dashboard-only D-7 反向断言）
-  - request init 不含 `Idempotency-Key` header（grep 反查）
-  - nav generating → report 调用次数 = 1（防抖）
-  - route params 含 sessionId + reportId + 13 字段 InterviewContext（与 `buildPracticeHandoffParams` 输出一致）
-  - route params 不含 raw text（grep `answerText` / `questionText` / `hint:` / `promptHash` / `modelId.*raw` 0 命中）
-  - 5 detail tab 切换顺序：questions（默认）→ readiness → dimensions → evidence → next；ARIA tablist / tab / tabpanel role 正确
-  - ContextStrip 7 字段显示；target/resume label 来自 `getTargetJob` / `getResumeVersion`，失败时回退 ID；不读取 raw resume/JD/body
-  - 4 Summary Cards 渲染
-  - 维度卡片行 DimRow × N（与 fixture dimensions.length 一致）
-  - 题目回顾 perq cards × 5
-  - issues × 2 + highlights × 3
-  - 复练 CTA × 2 渲染
-  - 准备度 tier 文案：「基本可面」/ "basically ready"（zh / en 各一）
-  - 维度状态文案：strong / meets_bar / needs_work 三态映射正确
-  - 切 zh ↔ en 关键文案重绘
-  - 切 dark / customAccent 关键元素 computed background / color 可见变化
-  - 负向：`window.EI_DATA` / `data.jsx` literal grep 0 命中；voice 组件 import 0 命中；`getPracticeSession` / `appendSessionEvent` / `completePracticeSession` / `createPracticePlan` / `startPracticeSession` / `createPracticeVoiceTurn` / `getCompanyIntel` / `getDebrief` 调用 0 命中；范围外 prototype testid 0 命中
-- [x] 实现 cleanup.sh：按 [bdd-plan §6](./bdd-plan.md#6-数据隔离与污染恢复) 顺序清理 mockTransport spy buffer + InterviewContext + Playwright browser context（如有）
+  - trigger.log 包含五个 focused test-file pass marker，不能只依赖汇总行
+  - poll hook 覆盖状态/backoff/ready/failed/cancel/read-only header；不锁跨文件请求次数
+  - GeneratingScreen 与 ReportScreen 分别覆盖 route handoff 和 dashboard/error/missing states；不宣称单一 browser/live-backend journey
+  - DetailSurface 覆盖五个 tab 与本地 replay marker
+  - implementation `generating-*` / `report-*` testid inventory ≥ 30；out-of-scope lint 通过
+  - `listTargetJobReports` 在 report/generating runtime 源码 0 命中
+- [x] 实现 cleanup.sh：删除本场景 `.test-output` 目录
 - [x] 执行 `bash test/scenarios/e2e/p0-056-generating-to-report-happy-path/scripts/setup.sh && bash .../trigger.sh && bash .../verify.sh && bash .../cleanup.sh` 全绿
 - [x] 在 `test/scenarios/e2e/INDEX.md` 追加 row：`E2E.P0.056 | frontend-report-dashboard C-1 C-2 C-5 C-8 C-11 | p0-056-generating-to-report-happy-path/ | ... | automated | Ready`
 - [x] 记录验证证据到 plan §3.6 L2 修订说明（如经过 L2 review）或本 checklist 收口段
@@ -42,35 +28,34 @@
 ## E2E.P0.057 复练 CTA 路径 A + 路径 B
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/`，含完整资产
-- [x] 准备 fixture：4 子场景各自的 `getFeedbackReport` variant + auth 状态切换 mock
-- [x] 实现 setup.sh / trigger.sh：分别 mount 4 子场景；点击 CTA；模拟未登录 useRequestAuth 流程
+- [x] 准备 fixture：ready report（retryFocusTurnIds/issues）+ authenticated/unauthenticated runtime + generated create-plan/start-session responses + report-route pendingAction
+- [x] 实现 setup.sh / trigger.sh：运行 owner preflight、`pendingActionReplayPractice.test.ts` 与 `ReplayCta.test.tsx`
 - [x] 实现 verify.sh：
-  - （A）已登录 + 路径 A → nav workspace auto-start 调用 1 次；payload = { sourceSessionId, replayItems:['turn-1','turn-3','turn-5'], evidenceGaps, planId, targetJobId, jdId, resumeVersionId, roundId, mode:'text', modality:'text', practiceMode:'assisted', practiceGoal:'retry_current_round', autoStartPractice:'1' }；workspace owner 调用 startPracticeSession 并进入 fresh practice session；payload 字段 grep；负向 grep `answerText` / `questionText` / `hint:` 不在 payload
-  - （B）已登录 + 路径 B → nav workspace auto-start 调用 1 次；payload = { nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeVersionId, mode:'text', modality:'text', practiceMode:'assisted', practiceGoal:'next_round', autoStartPractice:'1' }；workspace owner 调用 startPracticeSession 并进入 fresh practice session
-  - （C）未登录 + 路径 A → useRequestAuth 调用 1 次 + 参数验证；模拟 auth 成功后 pendingAction.resume() 恢复 workspace auto-start with same payload
-  - （D）数据未 ready 兜底 → CTA aria-disabled='true' + 点击不发 nav
-  - 所有 nav payload + URL params + console.log + localStorage / sessionStorage / telemetry 不含 raw text
-  - `getFeedbackReport` 在 CTA 触发后不重复调用
+  - （A）已登录 + 路径 A → generated createPracticePlan + startPracticeSession 各 1 次，goal=retry_current_round，fresh session 后直接 nav practice；payload 保留 sourceReportId/sourceSessionId/replayItems/evidenceGaps
+  - （B）已登录 + 路径 B → generated createPracticePlan + startPracticeSession 各 1 次，goal=next_round，roundId 按 canonical ladder 轮转，fresh session 后直接 nav practice
+  - （C）未登录 report route → CTA 挂载前进入 auth_login；不读 report、不创建 plan、不启动 session
+  - （D）`replay_practice` pendingAction encode/decode 保留 `route=report` 与安全 params，不泄漏 reserved keys
+  - payload / URL params / localStorage 不含 raw answer / question / hint / prompt / model 内容
+  - CTA 触发后 `getFeedbackReport` 不重复调用，`listTargetJobReports` 调用 0 次
   - 负向：`createPracticeVoiceTurn` / `getCompanyIntel` 调用 0 命中
 - [x] 实现 cleanup.sh
 - [x] 执行场景验证全绿
 - [x] 在 INDEX 追加 row
 - [x] 记录验证证据
 
-## E2E.P0.058 GeneratingScreen failed handoff + ReportFailureState + ReportMissingSessionState + cross-user + privacy
+## E2E.P0.058 Focused failure contracts
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-058-report-failure-and-missing-session/`，含完整资产
-- [x] 准备 fixture：6 子场景 fixture / auth 状态切换 mock；`getFeedbackReport=report-failed`（`response.body.status='failed'` + errorCode='AI_PROVIDER_TIMEOUT'）；cross-user 404 mock；timeout 模拟 fixture（永久 generating）
-- [x] 实现 setup.sh / trigger.sh
+- [x] 准备 deterministic component/hook clients：failed status、missing ids、HTTP 404、HTTP 5xx/refresh 与 persistent generating；不声明 live backend sequence
+- [x] 实现 setup.sh / trigger.sh：real-mode bootstrap 后执行 owner preflight、两个 report state component、两个 report hook/route 与 poll hook 六个 focused 文件
 - [x] 实现 verify.sh：
-  - （A0）`generating?sessionId=S&reportId=R&...` + fixture `report-failed` → 第一次轮询返回 `status='failed'` 后自动 nav `report?reportStatus=failed&errorCode=AI_PROVIDER_TIMEOUT&...passThrough`；不渲染 ReportDashboard；nav 防抖 1 次
-  - （A）`report?reportStatus=failed&errorCode=AI_PROVIDER_TIMEOUT&...` → ReportFailureState testid 命中；errorCode 文案映射（zh: 「AI 服务超时，请重试」/ en: "AI service timeout, please retry"）；CTA「重新生成」→ nav generating；CTA「返回 workspace」→ nav workspace；`getFeedbackReport` 调用次数 = 0
-  - （B）`report?reportId=R`（缺 sessionId）→ ReportMissingSessionState testid 命中；CTA → nav workspace；`getFeedbackReport` 调用次数 = 0
-  - （C）用户 B 调 `getFeedbackReport(R_A)` 返回 404 `REPORT_NOT_FOUND` → ReportFailureState 使用独立的 `report.failureState.notFound.{title,desc}` / `report.failureState.errorCode.REPORT_NOT_FOUND` i18n key（与 AI_* enum 文案显式区分），文案为 zh "未找到该报告" / en "Report not found"；testid `report-failure-state-not-found-{title,desc}` 命中；不暴露 R_A 存在性；不与 AI errorCode 文案混淆；负向断言：errorCode 不映射到 `failureState.errorCode.UNKNOWN`
-  - （D）`generating?sessionId=S`（缺 reportId）→ GeneratingErrorState testid 命中；不调 `getFeedbackReport`；CTA「返回 workspace」可用
-  - （E）`generating?reportId=R` + fixture 永久 generating + max attempts 达到 → state='timeout' → 渲染 timeout ErrorState + retry CTA；retry → 重启轮询；3 次 timeout 后显示「返回 workspace」fallback
-  - 所有失败路径 console.log / URL search params / localStorage / sessionStorage / telemetry 不含 raw text；errorCode 仅暴露 B1 enum 字符串
-- [x] 实现 cleanup.sh
+  - trigger.log 包含六个 focused file marker，不能只依赖汇总行
+  - ReportFailureState 覆盖 AI_* matrix、REPORT_NOT_FOUND 独立 copy、retry/back handlers 与 UNKNOWN fallback
+  - ReportMissingSessionState / ReportScreen 覆盖 missing session/report、failed route、404 rendered state 与 no-fetch 分支
+  - useFeedbackReport 覆盖 ready/404/missing/5xx-refresh；useReportGenerationPoll 覆盖 failed/404/timeout/backoff/cancel
+  - typed i18n key `AI_PROVIDER_TIMEOUT` 与 `failureState.notFound.title` 存在
+  - runner 不挂载 GeneratingScreen，不声明 timeout UI、重复 timeout fallback 或宽泛 URL/storage/telemetry 隐私证据
+- [x] 实现 cleanup.sh：删除本场景 `.test-output` 目录
 - [x] 执行场景验证全绿
 - [x] 在 INDEX 追加 row
 - [x] 记录验证证据
@@ -78,19 +63,16 @@
 ## E2E.P0.059 Playwright pixel parity + i18n + 范围外输入负向
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-out-of-scope-negative/`，含完整资产
-- [x] 准备 fixture：`getFeedbackReport=default`（ready 完整 + 准备度 basically_ready + 完整字段）；8 主题 × dark / customAccent 切换 helper；zh / en locale 切换 helper
+- [x] 准备 fixture：`getFeedbackReport=default` / `report-generating` 与既有 target job、resume、runtime/auth fixtures，分别驱动 dashboard、generating 与失败/缺参浏览器状态
 - [x] 实现 setup.sh：准备场景输出目录；Playwright webServer 由 frontend config 托管
-- [x] 实现 trigger.sh：执行 i18n 测试 + scoped out-of-scope grep + frontend build + Playwright 套件 `pnpm --filter @easyinterview/frontend test:pixel-parity -- tests/pixel-parity/generating.spec.ts tests/pixel-parity/report.spec.ts`
+- [x] 实现 trigger.sh：执行 owner/browser preflight + i18n 测试 + scoped out-of-scope grep + frontend build + Playwright 套件 `pnpm --filter @easyinterview/frontend test:pixel-parity -- tests/pixel-parity/generating.spec.ts tests/pixel-parity/report.spec.ts`
 - [x] 实现 verify.sh：
   - `trigger.log` 必须包含 frontend build 与 Playwright run marker
   - `trigger.log` 必须包含 `tests/pixel-parity/generating.spec.ts` / `tests/pixel-parity/report.spec.ts` 两个实际执行路径
   - `trigger.log` 必须在 Playwright run marker 之后包含 passed marker，不能只检查 spec 文件存在
-  - Playwright generating.spec.ts（desktop 1440×900 + mobile 390×844 + 5 阶段进度 + ErrorState + 8 主题 × dark）全绿
-  - Playwright report.spec.ts（desktop + mobile + ReportDashboard + 5 detail tab + ReportFailureState + ReportMissingSessionState + 8 主题 × dark）全绿
-  - DOM anchor / computed style / bounding box / responsive geometry / non-empty screenshot smoke 全部通过；仅当稳定 baseline 已提交或本 phase 明确更新 baseline 时才追加 `toHaveScreenshot`
-  - bounding box stays in viewport, no overlap
-  - `generating` TopBar 隐藏且不保留布局空间；`report` 默认 App chrome / TopBar 可见且不进入一级导航
-  - mobile 三列折叠为单列 + Detail Surface Accordion + CTA sticky bottom
+  - owner/browser preflight 通过：active spec 与六份 plan artifact 只声明七个已执行浏览器状态的显式证据；两份 Playwright 源码各有真实截图调用与逐状态字节非空断言；P0.059 trigger 包含该 preflight
+  - Playwright generating.spec.ts 全绿：desktop 主屏关键 DOM + bounding box、缺 reportId 错误态、mobile 390×844 overflow，三个状态均取得非空内存截图
+  - Playwright report.spec.ts 全绿：desktop ReportDashboard + TopBar、ReportMissingSessionState、ReportFailureState、mobile 390×844 overflow，四个状态均取得非空内存截图
   - `TestReportNamespaceZhEnSync` 通过：`report.*` zh / en key 集合相等
   - `TestGeneratingNamespaceZhEnSync` 通过
   - `TestErrorCodeI18nCoversAllAIErrors` 通过：`report.failureState.errorCode.*` 覆盖 B1 `AI_*` enum 全集（用 generated B1 常量做 source of truth）

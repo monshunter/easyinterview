@@ -1,6 +1,6 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.21
+> **版本**: 2.22
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -69,7 +69,7 @@
 | D-7 | 观测埋点强制 | A3 注册 7 个 metric family；每次调用必须产出 run / latency / token / cost 指标 + DB 行 + log；fallback / validation failure 指标只在对应事件发生时递增 | F1 dashboard 可信且 counter 语义正确 |
 | D-8 | 隐私字段红线 | log / metric / DB metadata 字段中绝不出现明文 prompt / response；只允许 hash / 长度 / profile | 与 ADR-Q5 / logging 标准对齐 |
 | D-9 | OpenAI-compatible API 协议子集 | 当前可执行协议是 Chat Completions + chat streaming SSE + Audio Transcriptions + Chat tool-call wire 子集；provider-specific speech protocol 由 `doubao_speech` / `minimax_speech` 独立实现；realtime / judge 进入后续 owner plan 前必须 fail-closed | 主流 chat provider 可即插即用，同时避免假承诺 speech / realtime / judge 都兼容同一 wire shape |
-| D-9a | 当前开发 provider / model | 当前开发主力 provider ref 为 `deepseek`；chat profile 只允许 `deepseek-v4-flash` / `deepseek-v4-pro`，不得使用 non-current alias | 本地开发与未来部署前的 AI 调用口径稳定且可审计 |
+| D-9a | 当前开发 provider / model | 当前开发主力 provider ref 为 `deepseek`；chat profile 的 model ID 集合固定为 `deepseek-v4-flash` / `deepseek-v4-pro`，其他 alias 由配置 lint 拒绝 | 本地开发与未来部署前的 AI 调用口径稳定且可审计 |
 | D-10 | F3 profile 覆盖 | F3 baseline feature_key 必须全部能解析到 A3 profile catalog；P1/P2 capability 可先以 `status=disabled` / `status=unsupported` fail-closed profile 登记，并写明 `unsupported_reason`，但不得缺命名空间 | 业务域开工前具备完整 AI 调用坐标 |
 | D-11 | Product/UI capability inventory | A3 spec 必须维护产品 / UI AI 场景到 capability family 的映射；新增 AI 场景必须先修订本表与 F3 feature_key / profile 字典 | 防止新业务回到单模型假设 |
 | D-12 | B1 AI vocabulary 边界 | `chat/stt/tts/realtime/judge` capability、provider registry/profile 字段名、AI meta 字段名与 provider/profile routing `AI_*` 错误码由 B1 生成；A3 只 alias / consume，不私造跨边界常量 | 防止 Go/TS/OpenAPI 与 runtime 常量漂移 |
@@ -149,7 +149,7 @@
 | 业务调用现场 | `backend-targetjob` / `backend-practice` / `backend-review` / `backend-resume` / future retrieval / production voice owners | 各业务 spec / plan 引用 profile name，不引用 provider/model；`backend-debrief` 按 product-scope D-22 不在当前范围 |
 | 共享约定 | B1 | `AI_*` 错误码、AI capability、provider registry/profile 字段名、AI meta 字段名共享常量、`ApiError` / `ApiErrorResponse` 消费约定 |
 | DB 表 | B4 | `ai_task_runs` schema |
-| Metric / Dashboard | F1 | 7 个 ai_* metric + AI Cost & Quality Dashboard；任何 label 迁移（例如从非当前任务分类 label 迁到 `capability`）必须先由 F1 spec / plan 承接 |
+| Metric / Dashboard | F1 | 7 个 ai_* metric + AI Cost & Quality Dashboard；AI metric label 使用 `capability`，任何 label 变更必须先由 F1 spec / plan 承接 |
 | 测试 stub provider | A3 | 应用内 deterministic stub，仅供单元测试 / 离线契约测试 / 显式 mock 场景 |
 
 ## 6 验收标准
@@ -163,7 +163,7 @@
 | C-5 | 观测埋点齐全 | 任一无 fallback、无 validation failure 的调用完成 | F1 metric / log / DB 三方查询 | 7 个 metric family 均已注册；run / latency / token / cost 指标增长；fallback / validation failure counter 不增长；`ai_task_runs` + `audit_events` 各写一行，无明文 | 001 + 003 |
 | C-6 | 隐私红线 | grep 全部生产代码与 log | 任意调用 | 不出现 `payload.messages[*].content` / `response.content` 明文落 log 或 DB metadata；hash / 长度 / profile 三类摘要必须出现 | 001 + 003 |
 | C-7 | 错误码合规 | provider 返回结构化输出非法 | client `validate_output` 失败 | 返回错误码 `AI_OUTPUT_INVALID`；`ai_output_validation_failures_total` +1 | 001 |
-| C-8 | active spec relation gate | 本 spec 通过 `/plan-review` | 与当前 active spec 和 future workstream 关系审查 | A3 与 F3 / B1 / A4 / F1 / release gate 引用关系自洽；A3 不重新引入 non-current provider-proxy 业务语义 | plan-review |
+| C-8 | active spec relation gate | 本 spec 通过 `/plan-review` | 与当前 active spec 和 future workstream 关系审查 | A3 与 F3 / B1 / A4 / F1 / release gate 引用关系自洽；provider 只通过 registry ref 表达，A3 不拥有独立 provider-proxy 业务语义 | plan-review |
 | C-9 | Registry secret fail-fast | 非测试本地 app run、未来 staging / prod 缺失 registry 选中 provider 的 base URL 或 API key | 启动 backend runtime | 进程启动失败并报配置错误；不得自动回退到 stub provider | 003 + A4 |
 | C-10 | F3 baseline profile coverage | F3 9 个 baseline feature_key 已定义默认 profile name | 运行 profile coverage lint | 每个默认 profile 在 `config/ai-profiles.yaml` catalog 中存在，且 capability / provider_ref / status 合法；允许 P1/P2 profile `disabled` / `unsupported`，但必须携带 `unsupported_reason` 且不得缺 catalog entry | 003 + F3 |
 | C-11 | Product/UI capability inventory drift | 新增 AI 场景或 UI 交互依赖 AI | `/plan-review` 或 lint 检查 | 本 spec §4.5、F3 feature_key 字典与 A3 profile catalog 同步更新；不得只在业务代码 hardcode 新 profile | 003 + F3 |

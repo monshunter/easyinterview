@@ -1,6 +1,6 @@
 # Backend Practice Mode Policies and Provenance Checklist
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -39,3 +39,8 @@
 - [x] 4.2 backend-practice runtime boundary lint rejects removed mode/goal/route vocabulary outside negative gates（验证：`python3 scripts/lint/backend_practice_out_of_scope.py --repo-root . --phase all` PASS）
 - [x] 4.3 BDD-Gate: P0.048-P0.051 HTTP scenario suite is covered（验证：`cd backend && go test ./cmd/api -run 'TestE2EP0048|TestE2EP0049|TestE2EP0050|TestE2EP0051' -count=1` PASS）
 - [x] 4.4 Owner docs/index/context are current and completed（验证：`validate_context.py backend-practice/003 backend` PASS；`sync-doc-index --check` PASS；`make docs-check` PASS）
+
+## Phase 5: Canonical hint scenario fixture repair
+
+- [x] 5.1 `scenarioPracticeAIClient` 默认成功输出使用 canonical `cue` / `answerSummary`，alias-only `hint` 仅保留在 invalid-output 负测；验证: P0.039、P0.048-P0.051 HTTP 测试与 backend-practice package/owner gates 通过。
+  <!-- verified: 2026-07-10 method=canonical-hint-scenario-fixture-repair evidence="RED: broad cmd/api gate showed P0.039/P0.048/P0.049/P0.050 success paths degrading to session_wait and writing an extra AI_OUTPUT_INVALID task run because the deterministic fixture emitted alias field hint. GREEN: default success fixture now emits cue/answerSummary; focused P0.039 and P0.048-P0.051 tests PASS; full Practice/internal AI/cmd-api package gate PASS; alias-only invalid-output fixture remains; scoped Practice staticcheck and owner docs/diff/pruning gates PASS." -->

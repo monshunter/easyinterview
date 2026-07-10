@@ -20,12 +20,11 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { useEffect, type FC, type ReactNode } from "react";
+import type { FC, ReactNode } from "react";
 
 import type { FeedbackReport } from "../../../../api/generated/types";
 import { EasyInterviewClient } from "../../../../api/generated/client";
 import { App } from "../../../App";
-import { useNavigation } from "../../../navigation/NavigationProvider";
 import type { LooseRoute } from "../../../normalizeRoute";
 
 const REPORT_ID = "01918fa0-0000-7000-8000-000000007000";
@@ -153,31 +152,6 @@ function makeClient(opts: ClientOpts): EasyInterviewClient {
   } as unknown as EasyInterviewClient;
 }
 
-function NavSpy({
-  onRouteChange,
-}: {
-  onRouteChange: (name: string, params: Record<string, string>) => void;
-}) {
-  // Use a probe that overrides the navigate callback to record calls.
-  return <NavRecorder onRouteChange={onRouteChange} />;
-}
-
-function NavRecorder({
-  onRouteChange,
-}: {
-  onRouteChange: (name: string, params: Record<string, string>) => void;
-}) {
-  const { navigate } = useNavigation();
-  useEffect(() => {
-    const original = navigate;
-    // Intercept by wrapping the navigation provider isn't possible here; instead
-    // assert via DOM in the harness for `auth_login` route presence.
-    void original;
-    onRouteChange("__mount__", {});
-  }, [navigate, onRouteChange]);
-  return null;
-}
-
 const ROUTE_BASE: Record<string, string> = {
   sessionId: SESSION_ID,
   reportId: REPORT_ID,
@@ -204,7 +178,7 @@ const Harness: FC<{
 );
 
 describe("Replay CTAs", () => {
-  it("authenticated user clicking replay CTA creates a fresh practice session directly (TestReplayCtaPathA_AuthenticatedAutoStartPractice)", async () => {
+  it("authenticated user clicking replay CTA creates a fresh practice session directly (TestReplayCtaPathA_AuthenticatedDirectStartPractice)", async () => {
     const client = makeClient({ authenticated: true });
     const startSpy = client.startPracticeSession as ReturnType<typeof vi.fn>;
     render(
@@ -249,7 +223,7 @@ describe("Replay CTAs", () => {
     expect(client.startPracticeSession).not.toHaveBeenCalled();
   });
 
-  it("path B (next round) CTA rotates roundId and auto-starts a fresh practice session (TestNextRoundCta_AutoStartPractice / TestNextRoundCta_NextRoundIdInference)", async () => {
+  it("path B (next round) CTA rotates roundId and directly starts a fresh practice session (TestNextRoundCta_DirectStartPractice / TestNextRoundCta_NextRoundIdInference)", async () => {
     const client = makeClient({ authenticated: true });
     const createSpy = client.createPracticePlan as ReturnType<typeof vi.fn>;
     const startSpy = client.startPracticeSession as ReturnType<typeof vi.fn>;

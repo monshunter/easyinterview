@@ -281,15 +281,7 @@ func marshalTailorResult(matchSummary json.RawMessage, suggestions []TailorSugge
 	out := tailorJobResult{
 		MatchSummary: matchSummary,
 		Suggestions:  make([]tailorResultSuggestion, 0, len(suggestions)),
-		Provenance: tailorResultProvenance{
-			PromptVersion:     provenance.PromptVersion,
-			RubricVersion:     provenance.RubricVersion,
-			ModelID:           provenance.ModelID,
-			Provider:          provenance.Provider,
-			Language:          provenance.Language,
-			FeatureFlag:       provenance.FeatureFlag,
-			DataSourceVersion: provenance.DataSourceVersion,
-		},
+		Provenance:   tailorResultProvenance(provenance),
 	}
 	for _, suggestion := range suggestions {
 		out.Suggestions = append(out.Suggestions, tailorResultSuggestion{
@@ -387,15 +379,7 @@ func scanTailorRun(row rowScanner) (TailorRunRecord, error) {
 	if hasResult {
 		rec.MatchSummary = append(json.RawMessage(nil), parsed.MatchSummary...)
 		rec.Suggestions = suggestionsToJSON(parsed.Suggestions)
-		rec.Provenance = VersionProvenance{
-			PromptVersion:     parsed.Provenance.PromptVersion,
-			RubricVersion:     parsed.Provenance.RubricVersion,
-			ModelID:           parsed.Provenance.ModelID,
-			Provider:          parsed.Provenance.Provider,
-			Language:          parsed.Provenance.Language,
-			FeatureFlag:       parsed.Provenance.FeatureFlag,
-			DataSourceVersion: parsed.Provenance.DataSourceVersion,
-		}
+		rec.Provenance = VersionProvenance(parsed.Provenance)
 	}
 	if errorCode.Valid {
 		rec.ErrorCode = &errorCode.String

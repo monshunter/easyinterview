@@ -7,7 +7,9 @@ mkdir -p "$OUTPUT_DIR"
 (
   cd "$REPO_ROOT"
   "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
+  echo "E2E.P0.059: validating owner and browser evidence contract"
   pnpm --filter @easyinterview/frontend test \
+    src/app/screens/report/__tests__/preflight.test.ts \
     src/app/i18n/__tests__/reportDashboardI18nCoverage.test.ts \
     src/app/screens/report/__tests__/outOfScopeNegative.test.ts \
     src/app/screens/generating/__tests__/outOfScopeNegative.test.ts

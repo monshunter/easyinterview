@@ -27,7 +27,6 @@ spec:
       - local dev stack
       - minimal dependencies
       - AI provider
-      - AI provider
       - unit-test stub
       - local quality gate
       - deferred CI

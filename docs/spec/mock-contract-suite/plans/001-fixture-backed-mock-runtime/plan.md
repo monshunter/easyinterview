@@ -1,6 +1,6 @@
 # Fixture-backed Mock Runtime
 
-> **版本**: 1.9
+> **版本**: 1.11
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -39,6 +39,8 @@ The registry reads fixture metadata from `openapi/fixtures/<tag>/<operationId>.j
 
 The generated client receives fixture-backed fetch in mock mode. Tests cover typed responses, named scenario selection, unknown scenario failure, delay/abort handling, export fallback responses, auth session state, generated operation coverage and client factory mode resolution.
 
+Generated operation coverage is asserted against the keys of the real `createDevMockFixtureRegistry()` result. The production module does not expose a second `getDevMockFixtureOperationIds` view over the private fixture array.
+
 Dev preview defaults to fixture-backed mode so pages render without a real backend. Real backend mode is explicit only:
 
 ```sh
@@ -57,6 +59,10 @@ The backend mockruntime handler maps HTTP method/path to operationId and returns
 - fixture response bodies must not include prototype-only display fields;
 - fixture tag directories must match OpenAPI tags;
 - current mock/API token scan rejects out-of-scope routes, tags, schema keys and config paths while allowing the current practice-voice contract.
+
+### 4.5 Backend mockruntime test helper cleanup
+
+Delete the unreferenced `assertJSONField` / `lookupJSONPath` helper pair from `mockruntime_test.go`. Existing tests compare complete fixture response status/body and retain the active unknown-scenario assertion; no production or test behavior changes. Use backend staticcheck U1000 as the red gate and mockruntime tests plus `make lint-mock-contract` as green gates.
 
 ## 5 验收标准
 
@@ -80,6 +86,8 @@ The backend mockruntime handler maps HTTP method/path to operationId and returns
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.11 | 删除 dev mock fixture operationId 测试观察器，parity 改查真实 registry keys。 | tech-debt pruning |
+| 2026-07-10 | 1.10 | 删除 backend mockruntime 测试中无调用的 JSON field/path helper。 | tech-debt pruning |
 | 2026-07-10 | 1.9 | 统一 mock runtime 边界 gate 的 out-of-scope 命名并同步文档版本。 | tech-debt pruning |
 | 2026-07-10 | 1.8 | 对齐当前 37-operation fixture-backed runtime，包含 `archiveTargetJob`。 | tech-debt pruning |
 | 2026-07-07 | 1.7 | 压缩 owner 文档为当时 36-operation fixture-backed runtime、dev client、backend mockruntime and boundary lint contract。 | product-scope/001-core-loop-module-pruning |

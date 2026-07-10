@@ -5,10 +5,10 @@
   `ei-topbar-nav` / `ei-topbar-controls` / `ei-topbar-user`，三入口与显示控制
   按 ui-design 源同步。
 - 切换主题 / 暗色后 `<html>` 的 `data-theme` / `data-mode` 即时翻转；
-  `getComputedStyle(documentElement)` 在 warm/light 下读到
-  `--ei-color-bg-canvas: #fdfcf8`，warm/dark 下读到
-  `--ei-color-fg-primary: #f5f0e4`，ocean/light 下读到
-  `--ei-color-bg-canvas: #0c0f17`（按 EI_THEMES 转写）。
+  `getComputedStyle(documentElement)` 在 ocean/light 下读到
+  `--ei-color-bg-canvas: #f8fafd`，ocean/dark 下读到
+  `--ei-color-fg-primary: #e8edf6`，切换 plum 后在 plum/dark 下读到
+  `--ei-color-bg-canvas: #15101a`（按 EI_THEMES 转写）；Warm / Forest 主题选项不存在。
 - 激活 `customAccent` 后 `<html>` 的 inline style 仅包含
   `--ei-color-accent` 与 `--ei-color-accent-soft` 两个 oklch 值，base palette
   token 没有被覆盖；`topbar-custom-accent-hue` / `-chroma` slider 渲染。
@@ -24,5 +24,5 @@
 
 trigger 输出 `trigger.log` 必须出现：
 - `src/app/scenarios/p0-005-app-shell-visual-system-smoke.test.tsx`
-- `Tests  7 passed (7)`
+- `Tests  8 passed (8)`
 - `Test Files  1 passed (1)`

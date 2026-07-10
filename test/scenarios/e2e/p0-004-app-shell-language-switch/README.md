@@ -41,6 +41,6 @@ English，并进入 auth / settings / route shell。
 
 ## 5 污染控制
 
-场景在 vitest + jsdom 中运行，不写共享数据库，不启动 Kind cluster；trigger.sh
+场景在 vitest + jsdom 中运行，不写共享数据库；trigger.sh
 仅产生 `.test-output/e2e/p0-004-app-shell-language-switch/trigger.log` 作为验证证据，
 cleanup.sh 删除 setup marker，保留日志。

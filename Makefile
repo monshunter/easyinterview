@@ -47,7 +47,7 @@ lint-ai-profile-coverage: ## Validate A3/F3/Product-UI AI profile coverage
 lint-backend-practice-out-of-scope: ## Reject backend-practice plan 001 out-of-scope mode/module terms
 	@python3 "$(ROOT_DIR)/scripts/lint/backend_practice_out_of_scope.py" --repo-root "$(ROOT_DIR)" --phase all
 
-lint-runner-out-of-scope: ## Reject backend-async-runner out-of-scope runner/drainer/dispatcher entry points
+lint-runner-out-of-scope: ## Reject backend-async-runner out-of-scope runner/dispatcher entry points
 	@python3 "$(ROOT_DIR)/scripts/lint/runner_out_of_scope.py" --repo-root "$(ROOT_DIR)" --phase all
 
 lint-prompts: ## lint-prompts (F3): validate config/prompts/ schema, hash, and seed-migration drift

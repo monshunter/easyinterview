@@ -5,7 +5,7 @@
 Validate the D-20 flat resume tailor async path: `requestResumeTailor`,
 `getResumeTailorRun`, request idempotency, mode validation, queued run/job
 creation, run status reads, state transitions, concurrent claim, fixture parity,
-cross-user isolation, drainer `RunOnce(resume_tailor)`, ready suggestions,
+cross-user isolation, runner kernel `RunOnce(resume_tailor)`, ready suggestions,
 typed `ai_task_runs`, and ready-only `resume.tailor.completed` outbox payload
 privacy.
 
@@ -24,7 +24,7 @@ When user A requests a tailor run and polls the run by ID.
 Then the API returns 202 with `ResumeTailorRunWithJob`; queued state is held by
 `async_jobs(job_type='resume_tailor')` with a `resumeId` payload; getTailorRun
 returns queued / generating / ready / failed variants from async job state and
-task output; state transitions reject double-claim; the drainer marks the job
+task output; state transitions reject double-claim; the runner kernel marks the job
 ready, persists the run result and ephemeral suggestions in `async_jobs.result`,
 writes a typed `ai_task_runs` row, and emits one ready-only completed outbox
 event whose payload contains only IDs, mode, and status.
@@ -34,7 +34,7 @@ event whose payload contains only IDs, mode, and status.
 - `scripts/setup.sh`: prepares output directories and copies seed / expected outcome notes into `.test-output`.
 - `scripts/trigger.sh`: runs fixture validation, focused `cmd/api` tailor HTTP
   scenarios, handler fixture parity, service tests, store unit tests, and
-  drainer ready-path gates.
+  runner kernel ready-path gates.
 - `scripts/verify.sh`: rejects skipped or no-op gates, checks required runner markers and PASS evidence, reruns fixture parity, and performs privacy / out-of-scope-vocabulary negative searches.
 - `scripts/cleanup.sh`: records cleanup completion while preserving logs under `.test-output/`.
 
@@ -57,4 +57,4 @@ Scenario evidence is written to `.test-output/e2e/p0-077-resume-tailor-async-dis
 
 ## 7. Offline Limits
 
-This scenario is still local and deterministic: it verifies the in-process drainer through focused `cmd/api`, job handler, and live store gates rather than a long-running external worker.
+This scenario is still local and deterministic: it verifies the in-process runner kernel through focused `cmd/api`, job handler, and live store gates rather than a long-running external worker.

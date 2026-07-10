@@ -1,13 +1,13 @@
 # Internal Job and Outbox Runner Test Checklist
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 **关联计划**: [plan](./plan.md)
 
-- [x] Phase 1 本计划定义的单元测试项全部通过：`cd backend && go test ./internal/runner/...`（含 `runtime_test.go` / `lease_test.go` / `backoff_test.go` / `reaper_test.go` / `adapter_targetjob_test.go` / `config_test.go`）
+- [x] Phase 1 本计划定义的单元测试项全部通过：`cd backend && go test ./internal/runner/...`（含 `runtime_test.go` / `lease_test.go` / `backoff_test.go` / `reaper_test.go` / `config_test.go`）
 - [x] Phase 1 integration 测试通过：`backend/internal/runner/lease_integration_test.go` 真 PG 覆盖 lease / finalize / reclaim 列名与排序
 - [x] Phase 1 failure path 断言通过：`TestFinalizeAsyncJob_PermanentFailureAtMax` / `TestReaper_DoesNotIncrementAttempts` / `TestRuntime_ShutdownTimeoutPropagates`
 - [x] Phase 1 boundary 断言通过：`TestBackoffPolicy_BoundaryAttempts` / `TestLeaseAsyncJob_RespectsPriorityBuckets`
@@ -17,9 +17,9 @@
 - [x] Phase 2 `target_import` / `source_refresh` regression 通过：`cd backend && go test ./internal/targetjob/...`
 - [x] Phase 2 `privacy_delete` regression 通过：`cd backend && go test ./internal/privacy/runner/...` + cmd/api smoke `DELETE /api/v1/me`
 - [x] Phase 2 out-of-scope debrief runner surface negative guard 通过：当前正向 package/test list 不再包含 deleted debrief handler。
-- [x] Phase 2 `resume_parse` / `resume_tailor` regression 通过：`cd backend && go test ./internal/resume/jobs/... ./cmd/api -run 'TestResume(Parse|Tailor)Drainer' -count=1`
+- [x] Phase 2 `resume_parse` / `resume_tailor` regression 通过：`cd backend && go test ./internal/resume/jobs/... ./cmd/api -run 'TestResume(Parse|Tailor)Runner' -count=1`
 - [x] Phase 2 `report_generate` regression 通过：`cd backend && go test ./internal/review/... ./cmd/api -run 'TestE2EP0052|TestE2EP0053|TestE2EP0054|TestE2EP0055' -count=1`（含 kernel 重写后的 generate_handler_test）
-- [x] Phase 2 out-of-scope Jobs Recommendations / JD Match runner surface negative guard 通过：当前正向 package/test list 不再包含 deleted scan/search handler；out-of-scope drainer 名称仅由 lint 负向断言覆盖。
+- [x] Phase 2 out-of-scope Jobs Recommendations / JD Match runner surface negative guard 通过：当前正向 package/test list 不包含 scan/search handler；局部 runtime 形态由 lint 负向断言覆盖。
 - [x] Phase 2 退避收口：`backend/internal/runner/backoff_integration_test.go::TestAllHandlersUseSharedBackoff` 通过；out-of-scope `ComputeReportFailureBackoff` / 固定 15s 在非 lint/audit 路径 0 命中
 
 - [x] Phase 3 outbox primary 通过：`TestOutboxDispatcher_ClaimsPendingBatch` + `TestOutboxDispatcher_BatchSizeLimit`（真 PG）
@@ -36,7 +36,7 @@
 - [x] Phase 4 cmd/api 单点 shutdown + outbox startup wiring 通过：`cd backend && go test ./cmd/api -run '^(TestMainRunnerKernelDrivesOutboxDispatcher|TestMain_SingleRuntimeShutdown)$' -count=1 -v`
 - [x] Phase 4 out-of-scope 形态文件删除断言：`backend/internal/review/structure_test.go::TestNoOutOfScopeRunnerFiles`（或等价 grep）
 - [x] Phase 4 `BackgroundMailDispatcher` 引用 0 命中：`backend/internal/auth/mail_test.go::TestNoBackgroundDispatcher`
-- [x] Phase 4 `make lint-runner-out-of-scope` PASS（spec D-12 zero-reference；脚本路径 `scripts/lint/runner_out_of_scope.py` + `runner_out_of_scope_test.py`；覆盖 out-of-scope per-domain drainer 注册路径）
+- [x] Phase 4 `make lint-runner-out-of-scope` PASS（spec D-12 zero-reference；脚本路径 `scripts/lint/runner_out_of_scope.py` + `runner_out_of_scope_test.py`；覆盖局部 runtime 注册路径）
 - [x] Phase 4 全局 `cd backend && go build ./...` / `cd backend && go vet ./...` / `cd backend && go test ./...` PASS
 - [x] Phase 4 `validate_context.py` PASS（target=backend）
 - [x] Phase 4 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` PASS
@@ -48,3 +48,5 @@
 - [x] Phase 4 backend all-packages regression 通过：`cd backend && go test ./... -count=1` PASS；`make lint-runner-out-of-scope` PASS。
 - [x] Phase 4 `git diff --check` PASS
 - [x] Phase 4 BUG-0106 privacy identity cleanup regression 通过：`go test ./backend/internal/auth ./backend/internal/privacy/runner ./backend/cmd/api -run '^(TestDeleteMeSoftDeletesUserRevokesAllSessionsAndCreatesPrivacyHandoff|TestSQLStorePrivacyDeleteHandoffSoftDeletesUserAndRevokesSessions|TestSQLStoreMarkDeleteRequestCompletedDeletesAccountIdentityAndPreservesRequestTombstone|TestPrivacyDeleteHandlerHardDeletesAccountIdentityAfterDomainCleanup|TestPrivacyDeleteHandlerDomainFailureKeepsAccountIdentityForRetry|TestPrivacyDeleteRemovesAccountIdentityAfterJobCompletion)$' -count=1` PASS；`go test ./backend/internal/auth ./backend/internal/privacy/runner -count=1` PASS；`DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' make migrate-check` PASS；`make docs-check` / `make lint-runner-out-of-scope` / `git diff --check` PASS。
+- [x] Phase 4 canonical runner cleanup：结构 lint 拒绝 `targetjob.Drainer`、targetjob async job 类型/SQL 和 `FromTargetjobHandler`；五个业务 handler 直接满足 `runner.Handler`；targetjob/resume cmd/api 场景经 `runner.Runtime.RunOnce` 通过；全 backend test/staticcheck 通过。
+  <!-- verified: 2026-07-10 evidence="runner_out_of_scope_test.py 8 passed; make lint-runner-out-of-scope PASS; affected five packages and go test ./... PASS; staticcheck ./..., go build ./..., go vet ./... PASS; scenario_script_contract_test.py 4 passed; P0.035/P0.077/P0.078/P0.080 setup-trigger-verify-cleanup PASS." -->

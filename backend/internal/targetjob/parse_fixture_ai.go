@@ -9,7 +9,7 @@ import (
 )
 
 // DeterministicParseAIClient wraps the A3 runtime only for APP_ENV=test.
-// It returns a schema-valid target.import.parse fixture so cmd/api drainer
+// It returns a schema-valid target.import.parse fixture so cmd/api runner
 // paths can exercise the real TargetJob pipeline without relying on a live
 // provider or the generic stub provider's non-JSON chat response.
 type DeterministicParseAIClient struct {

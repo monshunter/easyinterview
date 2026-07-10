@@ -9,6 +9,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
@@ -222,7 +223,7 @@ func TestParseExecutorMetadataCarriesF3Triple(t *testing.T) {
 
 	// We don't care whether the parse completes successfully — the AI
 	// metadata is captured before any response parsing happens.
-	_ = exec.Handle(context.Background(), targetjob.ClaimedJob{
+	_ = exec.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "job-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-1",
 	})
 

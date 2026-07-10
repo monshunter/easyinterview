@@ -50,7 +50,7 @@ describe("frontend D1 scope guards", () => {
 
   it("never references out-of-scope route names from active code", () => {
     // The route alias map in normalizeRoute.ts intentionally references the
-    // out-of-scope names for compatibility normalization. All other active code
+    // out-of-scope names for centralized normalization. All other active code
     // must avoid referencing these aliases as live route names.
     const ALIAS_OWNER = "/app/normalizeRoute.ts";
     const FORBIDDEN_LITERALS = [

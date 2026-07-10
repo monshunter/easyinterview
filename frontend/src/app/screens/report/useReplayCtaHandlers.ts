@@ -24,8 +24,7 @@ export interface ReplayCtaHandlers {
 }
 
 /**
- * Centralizes the replay / next-round CTA flow so both `ReportHeader` (top
- * CTAs) and `NextTab` (path A/B cards) share one source of truth.
+ * Centralizes the replay / next-round flow for the report Header CTAs.
  *
  * - Signed-in users create/start a fresh practice session from report scope,
  *   then land directly on `practice`.

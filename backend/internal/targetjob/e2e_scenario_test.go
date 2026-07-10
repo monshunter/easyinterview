@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
@@ -65,7 +66,7 @@ func TestE2EP0010TextImportParseReady(t *testing.T) {
 		TargetLanguage: "zh-CN",
 		RawJDText:      "Lead React platform and design system programs.",
 	}
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "018f2a40-0000-7000-9000-0000000000f1", JobType: "target_import", ResourceType: "target_job", ResourceID: imported.TargetJobID,
 	})
 	if !outcome.Succeeded {
@@ -178,7 +179,7 @@ func TestE2EP0011URLImportFetchAndParse(t *testing.T) {
 		TargetLanguage: "en",
 	}
 	parseStore.sources = []targetjob.SourceRecord{{ID: "src-url-1", SourceType: targetjob.SourceTypeURL}}
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{JobID: imported.Job.Id, JobType: "target_import", ResourceID: imported.TargetJobID})
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{JobID: imported.Job.Id, JobType: "target_import", ResourceID: imported.TargetJobID})
 	if !outcome.Succeeded {
 		t.Fatalf("url parse outcome = %+v", outcome)
 	}
@@ -252,7 +253,7 @@ func TestE2EP0012ParseFailureRetryableAndNonRetryable(t *testing.T) {
 				RawJDText:      "Private JD body that must not leak into failure evidence.",
 			}
 			tc.configure(store, registry, ai)
-			outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{JobID: "job-" + tc.name, JobType: "target_import", ResourceID: store.target.ID})
+			outcome := exec.Handle(context.Background(), runner.ClaimedJob{JobID: "job-" + tc.name, JobType: "target_import", ResourceID: store.target.ID})
 			if outcome.Succeeded || outcome.ErrorCode != tc.code || outcome.Retryable != tc.retryable {
 				t.Fatalf("unexpected failure outcome: %+v", outcome)
 			}

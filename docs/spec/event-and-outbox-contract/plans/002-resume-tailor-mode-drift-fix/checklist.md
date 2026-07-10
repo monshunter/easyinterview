@@ -1,8 +1,8 @@
 # Event and Outbox Contract Resume Tailor Mode Drift Fix Checklist
 
-> **版本**: 1.1
+> **版本**: 1.2
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -10,10 +10,10 @@
 
 - [x] 1.1 修订前跑 `make codegen-events && make codegen-check` 确认 baseline PASS（验证：exit 0, 无 diff）
 - [x] 1.2 修订 `shared/events.yaml` `eventLocalEnums.ResumeTailorMode` 字面量为 `[gap_review, bullet_suggestions]`（验证：yaml lint + 手工检查）
-- [x] 1.3 运行 `make codegen-events` 重新生成 Go/TS 类型（验证：`backend/internal/shared/events/` 与 `frontend/src/lib/events/` 出现新字面量、non-current literals 已清除）
+- [x] 1.3 运行 `make codegen-events` 重新生成 Go/TS 类型（验证：`backend/internal/shared/events/` 与 `frontend/src/lib/events/` 出现新字面量、out-of-scope literals 已清除）
 - [x] 1.4 运行 `make codegen-check` PASS（验证：`git diff --exit-code` 0）
-- [x] 1.5 新增或更新 `backend/internal/shared/events/resume_tailor_mode_test.go`，断言 `ResumeTailorModeGapReview` / `ResumeTailorModeBulletSuggestions` 存在且 non-current `Inline` / `Rewrite` / `Mirror` 不在允许集合（验证：Red → Green）
-- [x] 1.6 更新 `frontend/src/lib/events/events.test.ts`，断言 `ResumeTailorMode` typed payload 接受 `gap_review` / `bullet_suggestions` 并拒绝 non-current `inline` / `rewrite` / `mirror`（验证：Red → Green）
+- [x] 1.5 新增或更新 `backend/internal/shared/events/resume_tailor_mode_test.go`，断言 `ResumeTailorModeGapReview` / `ResumeTailorModeBulletSuggestions` 存在且 out-of-scope `Inline` / `Rewrite` / `Mirror` 不在允许集合（验证：Red → Green）
+- [x] 1.6 更新 `frontend/src/lib/events/events.test.ts`，断言 `ResumeTailorMode` typed payload 接受 `gap_review` / `bullet_suggestions` 并拒绝 out-of-scope `inline` / `rewrite` / `mirror`（验证：Red → Green）
 - [x] 1.7 运行 `cd backend && go test ./internal/shared/events/...` 与 `pnpm --filter @easyinterview/frontend test src/lib/events/events.test.ts` PASS（验证：相关 type-narrowing 测试通过）
 
 ## Phase 2: Baseline manifest 同步

@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Listing Routing and Detail Readonly Checklist
 
-> **版本**: 2.7
+> **版本**: 3.2
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -66,3 +66,31 @@
 
 - [x] 10.1 `ResumePreviewTab` Markdown renderer 只渲染 `buildResumeBodyMarkdown(resume)` body，不在 body card 内额外注入 `displayName` / `uiResume.name` / summary / source metadata；验证: `ResumePreviewTab.test.tsx` focused red/green。<!-- verified: 2026-07-08 method=red-green-vitest tests=ResumePreviewTab.test.tsx -->
 - [x] 10.2 PDF 与 Markdown renderer 使用统一阅读背景板；Markdown 也渲染白色 page surface，CSS parity 与 pixel smoke 覆盖 Markdown page anchor / PDF page-stack anchor / shared background；验证: `ResumePreviewTab.test.tsx`、`ResumeWorkshopCssParity.test.ts`、`frontend/tests/pixel-parity/resume-workshop.spec.ts` focused smoke。<!-- verified: 2026-07-08 method=vitest+playwright tests=ResumePreviewTab.test.tsx,ResumeWorkshopCssParity.test.ts,pixel-parity/resume-workshop.spec.ts desktop/mobile -->
+
+## Phase 11: P0.036 test lifecycle isolation
+
+- [x] 11.1 P0.036 out-of-scope 同步负向用例在断言后显式 unmount，清除无关 runtime/interview provider updates（验证：P0.036 focused 无 act warning、Resume Workshop owner/full frontend tests、build、owner context/docs gates）
+  <!-- verified: 2026-07-10 method=resume-workshop-test-lifecycle-isolation evidence="Focused red preserved two AppRuntimeProvider and one InterviewContextProvider act warnings while all 4 assertions passed. Added explicit unmount to the synchronous out-of-scope test without changing assertions or production code. P0.036 4 tests and Resume Workshop owner 21 files/115 tests pass warning-free; frontend build and owner/product contexts pass. Full frontend 137 files/829 tests pass with zero React update warnings; completed-state docs/diff/pruning gates rerun during closeout." -->
+
+## Phase 12: PDF.js on-demand loading
+
+- [x] 12.1 `PdfPageStackPreview` 在现有 loading shell 后动态导入 PDF.js/runtime worker，保持 credential、cancel/error/page-stack 合同（验证：focused red/green、Resume Workshop/full frontend tests、build+sourcemap 主 chunk/PDF chunk byte delta、owner context/docs gates）
+  <!-- verified: 2026-07-10 method=pdfjs-on-demand-loading evidence="Focused red proved getDocument ran during synchronous render. Moved PDF.js and worker URL runtime imports into the existing effect while retaining type-only contracts and cancellation paths. Focused component 2, Resume Workshop owner 115 and full frontend 830 tests pass warning-free; typecheck/build and owner/product contexts pass. Sourcemap build moved pdfjs-dist source count in main 1->0, main JS 1,161,279->667,768 bytes and emitted a 495,319-byte PDF runtime chunk; completed-state docs/diff/pruning gates rerun during closeout." -->
+
+## Phase 13: P0.037 async test lifecycle
+
+- [x] 13.1 Capture P0.037 stderr in scenario evidence and add a verify gate that fails on an unwrapped React update warning; confirm the current failed-PDF wait is RED.
+  <!-- verified: 2026-07-10 method=p0-037-react-update-warning-red evidence="A direct focused run emitted PdfPageStackPreview 'not wrapped in act' while all 6 tests passed. trigger.sh now captures stderr and verify.sh rejects that marker; a subsequent process was race-clean, confirming the warning is timing-sensitive rather than assertion-deterministic." -->
+- [x] 13.2 Wrap the failed-PDF 350ms no-poll observation windows in P0.037 and its `ResumeDetailView` owner mirror with Testing Library `act`, without changing production code or business assertions.
+  <!-- verified: 2026-07-10 method=resume-pdf-observation-wait-green evidence="Both duplicate raw 350ms waits now run inside Testing Library act. Focused P0.037 plus ResumeDetailView pass 2 files/14 tests warning-free; production PdfPageStackPreview and all request-count/content assertions are unchanged." -->
+- [x] 13.3 Run focused P0.037, its four-stage wrapper, Resume Workshop regressions, owner/product contexts, docs, diff and pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=p0-037-async-test-lifecycle evidence="Focused duplicate tests pass 2 files/14 tests; Resume Workshop plus P0.037 passes 20/111; full frontend passes 138/839 and complete stderr has zero React update warning. Typecheck, final four-stage P0.037 wrapper, owner/product contexts and docs/diff/pruning gates pass with real_residuals=0." -->
+
+## Phase 14: orphan Resume toast bridge removal
+
+- [x] 14.1 Add a scoped source-surface RED gate proving the formal Resume Workshop helper and P0.036 still contain the unconsumed prototype toast bridge.
+  <!-- verified: 2026-07-10 method=orphan-resume-toast-source-red evidence="Focused ResumeWorkshopPrivacy failed exactly on components/toast.ts and p0-036-resume-flat-list-auth-boundary.test.tsx, with no third offender." -->
+- [x] 14.2 Delete `components/toast.ts` and P0.036 toast capture/assertion scaffolding; keep the `ui-design/` prototype unchanged.
+  <!-- verified: 2026-07-10 method=orphan-resume-toast-removal evidence="Deleted the entire unimported helper and removed P0.036's self-only global capture plus constant-false assertion. Scoped literal search is empty; privacy/P0.036 focused tests pass 2 files/9 tests. ui-design source is unchanged." -->
+- [x] 14.3 Run focused Resume Workshop/P0.036 tests, the P0.036 wrapper, owner/product contexts, docs, diff and pruning gates; then restore the owner to `completed`.
+  <!-- verified: 2026-07-10 method=orphan-resume-toast-removal evidence="Scoped zero-reference gate plus P0.036 pass 9/9; P0.036 setup/trigger/verify/cleanup passes 4/4; Resume Workshop plus P0.036 passes 20 files/110 tests and typecheck. Owner/product contexts and docs/index/link/diff/pruning gates pass with real_residuals=0." -->

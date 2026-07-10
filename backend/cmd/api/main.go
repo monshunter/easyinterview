@@ -137,7 +137,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "api: target job runtime init: %v\n", err)
 		os.Exit(1)
 	}
-	resumeRuntime, err := buildResumeRuntime(loader, db, logger, uploadRoutes, targetJobRuntime.AI.Client)
+	resumeRuntime, err := buildResumeRuntime(loader, db, uploadRoutes, targetJobRuntime.AI.Client)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "api: resume runtime init: %v\n", err)
 		os.Exit(1)
@@ -148,7 +148,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "api: practice runtime init: %v\n", err)
 		os.Exit(1)
 	}
-	reportRuntime, err := buildReportRuntime(loader, db, logger, targetJobRuntime.AI.Client)
+	reportRuntime, err := buildReportRuntime(loader, db, targetJobRuntime.AI.Client)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "api: report runtime init: %v\n", err)
 		os.Exit(1)
@@ -544,10 +544,7 @@ func (r *reportRuntime) Handles(jobType string) bool {
 	return ok
 }
 
-func buildReportRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, ai aiclient.AIClient) (*reportRuntime, error) {
-	if logger == nil {
-		logger = slog.Default()
-	}
+func buildReportRuntime(loader *config.Loader, db *sql.DB, ai aiclient.AIClient) (*reportRuntime, error) {
 	if ai == nil {
 		return nil, fmt.Errorf("report AI client is required")
 	}
@@ -738,10 +735,7 @@ func (r *resumeRuntime) Handles(jobType string) bool {
 	return ok
 }
 
-func buildResumeRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, upload uploadRoutes, ai aiclient.AIClient) (*resumeRuntime, error) {
-	if logger == nil {
-		logger = slog.Default()
-	}
+func buildResumeRuntime(loader *config.Loader, db *sql.DB, upload uploadRoutes, ai aiclient.AIClient) (*resumeRuntime, error) {
 	if ai == nil {
 		return nil, fmt.Errorf("resume AI client is required")
 	}
@@ -772,8 +766,8 @@ func buildResumeRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logger, 
 		NewID:      idx.NewID,
 	})
 	handlers := map[string]runner.Handler{
-		string(jobs.JobTypeResumeParse):  runner.FromTargetjobHandler(parseHandler),
-		string(jobs.JobTypeResumeTailor): runner.FromTargetjobHandler(tailorHandler),
+		string(jobs.JobTypeResumeParse):  parseHandler,
+		string(jobs.JobTypeResumeTailor): tailorHandler,
 	}
 	service := domainresume.NewService(domainresume.ServiceOptions{
 		Store:            store,
@@ -859,9 +853,9 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 		UploadFiles: uploadFiles,
 	})
 	handlers := map[string]runner.Handler{
-		string(jobs.JobTypeTargetImport):  runner.FromTargetjobHandler(executor),
-		string(jobs.JobTypeSourceRefresh): runner.FromTargetjobHandler(&targetjob.SourceRefreshHandler{Store: store}),
-		string(jobs.JobTypePrivacyDelete): runner.FromTargetjobHandler(privacyDeleteHandler),
+		string(jobs.JobTypeTargetImport):  executor,
+		string(jobs.JobTypeSourceRefresh): &targetjob.SourceRefreshHandler{Store: store},
+		string(jobs.JobTypePrivacyDelete): privacyDeleteHandler,
 	}
 	return &targetJobRuntime{
 		Handler:  buildTargetJobHandler(loader, store),

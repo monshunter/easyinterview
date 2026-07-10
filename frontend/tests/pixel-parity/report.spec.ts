@@ -5,9 +5,8 @@ import { resolve } from "node:path";
 /**
  * Phase 5.3 — Report dashboard pixel-parity gate (clean-checkout hard gate).
  *
- * DOM anchor + bounding box + responsive geometry + chrome visibility.
- * `toHaveScreenshot` is intentionally NOT enabled until a stable baseline
- * for both viewports has been committed by an explicit baseline-update PR.
+ * DOM anchor + bounding box + responsive geometry + chrome visibility +
+ * non-empty screenshot smoke.
  */
 
 interface OperationFixture {
@@ -73,6 +72,11 @@ async function mockReportApis(page: import("@playwright/test").Page) {
   });
 }
 
+async function expectNonEmptyScreenshot(page: import("@playwright/test").Page) {
+  const screenshot = await page.screenshot();
+  expect(screenshot.byteLength).toBeGreaterThan(0);
+}
+
 test.describe("report dashboard parity", () => {
   test("desktop renders header + context strip + 4 summary cards + detail surface inside viewport", async ({
     page,
@@ -88,6 +92,7 @@ test.describe("report dashboard parity", () => {
 
     // App chrome / TopBar must remain visible on the report route.
     await expect(page.locator("[data-testid='app-shell-topbar']")).toBeVisible();
+    await expectNonEmptyScreenshot(page);
   });
 
   test("missing sessionId surfaces ReportMissingSessionState", async ({ page }) => {
@@ -97,6 +102,7 @@ test.describe("report dashboard parity", () => {
     await expect(
       page.locator("[data-testid='report-missing-session-cta']"),
     ).toBeVisible();
+    await expectNonEmptyScreenshot(page);
   });
 
   test("reportStatus=failed renders ReportFailureState with retry CTA", async ({
@@ -111,6 +117,7 @@ test.describe("report dashboard parity", () => {
     await expect(
       page.locator("[data-testid='report-failure-back-to-workspace']"),
     ).toBeVisible();
+    await expectNonEmptyScreenshot(page);
   });
 
   test("mobile viewport keeps the dashboard inside 390px width", async ({ page }) => {
@@ -119,6 +126,7 @@ test.describe("report dashboard parity", () => {
     await page.goto(`/#route=report&reportId=${REPORT_ID}&sessionId=${SESSION_ID}&targetJobId=01918fa0-0000-7000-8000-000000002000&resumeId=${RESUME_ID}`);
     await page.waitForSelector("[data-testid='report-dashboard']");
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth);
-    expect(overflow).toBeLessThanOrEqual(420);
+    expect(overflow).toBeLessThanOrEqual(390);
+    await expectNonEmptyScreenshot(page);
   });
 });

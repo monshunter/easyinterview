@@ -11,6 +11,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/outputschema"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
@@ -119,15 +120,15 @@ type parseAIResponseReq struct {
 // Handle satisfies JobHandler. It returns success or the appropriate
 // retryable / non-retryable failure outcome and writes the matching
 // parsed / analysis-failed outbox event before returning.
-func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
+func (p *ParseExecutor) Handle(ctx context.Context, job runner.ClaimedJob) runner.JobOutcome {
 	if p == nil || p.store == nil {
-		return JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: "parse executor not initialised"}
+		return runner.JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: "parse executor not initialised"}
 	}
 	targetJobID := job.ResourceID
 	target, sources, err := p.store.GetTargetJobForParse(ctx, targetJobID)
 	if err != nil {
 		if errors.Is(err, ErrTargetJobNotFound) {
-			return JobOutcome{
+			return runner.JobOutcome{
 				ErrorCode:    sharederrors.CodeTargetJobNotFound,
 				ErrorMessage: safeFailureMessage(sharederrors.CodeTargetJobNotFound, err.Error()),
 				Retryable:    false,
@@ -266,14 +267,14 @@ func (p *ParseExecutor) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
 		SourceRefreshJobID: p.newID(),
 		Now:                now,
 	}); err != nil {
-		return JobOutcome{
+		return runner.JobOutcome{
 			ErrorCode:    sharederrors.CodeTargetImportFailed,
 			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
 			Retryable:    true,
 		}
 	}
 
-	return JobOutcome{Succeeded: true}
+	return runner.JobOutcome{Succeeded: true}
 }
 
 func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRecord, sources []SourceRecord) (urlfetch.FetchResult, error) {
@@ -283,11 +284,6 @@ func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRe
 	if target.SourceURL == "" {
 		return urlfetch.FetchResult{}, fmt.Errorf("%w: no source url recorded", urlfetch.ErrInvalidSource)
 	}
-	res, err := p.fetcher.Fetch(ctx, target.SourceURL)
-	if err != nil {
-		return urlfetch.FetchResult{}, err
-	}
-	// Find the most recent url source row to update.
 	var sourceID string
 	for _, s := range sources {
 		if s.SourceType == SourceTypeURL {
@@ -296,10 +292,11 @@ func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRe
 		}
 	}
 	if sourceID == "" {
-		// Nothing to update — proceed; the fetch result is in memory but
-		// will not be persisted in target_job_sources. Phase 1 ImportTargetJob
-		// always inserts a source row for url, so this is a defensive no-op.
-		return res, nil
+		return urlfetch.FetchResult{}, fmt.Errorf("%w: url source row not found", urlfetch.ErrInvalidSource)
+	}
+	res, err := p.fetcher.Fetch(ctx, target.SourceURL)
+	if err != nil {
+		return urlfetch.FetchResult{}, err
 	}
 	if err := p.store.UpdateSourceSnapshot(ctx, sourceID, res.SanitizedURL, res.Body, res.FetchedAt, p.now()); err != nil {
 		return urlfetch.FetchResult{}, err
@@ -307,7 +304,7 @@ func (p *ParseExecutor) fetchURLSnapshot(ctx context.Context, target TargetJobRe
 	return res, nil
 }
 
-func (p *ParseExecutor) fail(ctx context.Context, targetJobID, code, message string, retryable bool) JobOutcome {
+func (p *ParseExecutor) fail(ctx context.Context, targetJobID, code, message string, retryable bool) runner.JobOutcome {
 	now := p.now()
 	payload, err := BuildTargetAnalysisFailedPayload(TargetAnalysisFailedInput{
 		TargetJobID: targetJobID,
@@ -315,7 +312,7 @@ func (p *ParseExecutor) fail(ctx context.Context, targetJobID, code, message str
 		Retryable:   retryable,
 	})
 	if err != nil {
-		return JobOutcome{
+		return runner.JobOutcome{
 			ErrorCode:    sharederrors.CodeTargetImportFailed,
 			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
 			Retryable:    true,
@@ -328,20 +325,20 @@ func (p *ParseExecutor) fail(ctx context.Context, targetJobID, code, message str
 		FailedEventPayload: raw,
 		Now:                now,
 	}); err != nil {
-		return JobOutcome{
+		return runner.JobOutcome{
 			ErrorCode:    sharederrors.CodeTargetImportFailed,
 			ErrorMessage: safeFailureMessage(sharederrors.CodeTargetImportFailed, err.Error()),
 			Retryable:    true,
 		}
 	}
-	return JobOutcome{
+	return runner.JobOutcome{
 		ErrorCode:    code,
 		ErrorMessage: safeFailureMessage(code, message),
 		Retryable:    retryable,
 	}
 }
 
-func (p *ParseExecutor) translateAndFail(ctx context.Context, targetJobID string, err error) JobOutcome {
+func (p *ParseExecutor) translateAndFail(ctx context.Context, targetJobID string, err error) runner.JobOutcome {
 	switch {
 	case errors.Is(err, urlfetch.ErrInvalidSource):
 		return p.fail(ctx, targetJobID, sharederrors.CodeTargetImportSourceInvalid, err.Error(), false)
@@ -612,13 +609,13 @@ type SourceRefreshHandler struct {
 }
 
 // Handle satisfies JobHandler.
-func (h *SourceRefreshHandler) Handle(ctx context.Context, job ClaimedJob) JobOutcome {
+func (h *SourceRefreshHandler) Handle(ctx context.Context, job runner.ClaimedJob) runner.JobOutcome {
 	now := time.Now().UTC()
 	if h.Now != nil {
 		now = h.Now()
 	}
 	if err := h.Store.UpdateSourceFreshness(ctx, job.ResourceID, FreshnessStale, now); err != nil {
-		return JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: err.Error(), Retryable: true}
+		return runner.JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: err.Error(), Retryable: true}
 	}
-	return JobOutcome{Succeeded: true}
+	return runner.JobOutcome{Succeeded: true}
 }

@@ -1,6 +1,6 @@
 # Backend Resume History
 
-> **版本**: 2.4
+> **版本**: 2.5
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-10 | 2.5 | Resume parse/tailor handlers 与 cmd/api 场景直接使用 canonical runner contract/runtime，移除测试专用执行模型。 | backend-async-runner/001 |
 | 2026-07-10 | 2.4 | 将 Resume parse/tailor negative gate、sourceType validation 和 tailor mode 边界统一为 out-of-scope / 范围外口径；行为不变。 | tech-debt pruning |
 | 2026-07-07 | 1.8 | 将 `resume.parse` 完成态命名收敛为 LLM-derived `display_name`：parse 成功后从结构化输出派生可识别名称，避免 ready 简历继续显示通用上传 / 粘贴标题。 | 001-asset-register-parse-and-listing |
 | 2026-07-06 | 1.6 | 将 active spec 决策、存储边界、验收标准和关联计划收敛为 D-20 flat Resume 合同：9 个 operation、`resumes` 单表、`ai_task_runs` 承载 tailor 输出、`updateResume` / `duplicateResume` 落盘。 | product-scope/001-core-loop-module-pruning |

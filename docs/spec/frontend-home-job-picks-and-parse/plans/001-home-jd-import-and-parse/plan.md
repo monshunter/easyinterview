@@ -1,6 +1,6 @@
 # 001 Home + JD Import + Parse
 
-> **版本**: 2.17
+> **版本**: 2.19
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -234,6 +234,14 @@ Extend `MockInterviewCard` with reusable action props so Home can pass a quick-s
 
 Focused tests must prove Home recent cards show the quick-start action, do not show delete controls, request/filter ready TargetJob records only, and quick-start uses the generated practice handoff with structured `roundId/roundName` instead of navigating to the planning detail.
 
+### Phase 11: P0.014 executable-evidence reconciliation
+
+`E2E.P0.014` 只声明 trigger 实际执行的 real-mode generated-client routing test 与五个 Home Vitest 文件：Home shell/control/i18n、source/resume/submit layout、resume selection、recent fixture variants/filter/sort/cap/More/quick-start 和 shared card。TopBar、theme、mobile layout、frontend build、Playwright 与 live backend 不属于该场景证据；browser-level Home parity 继续由 frontend-shell/003 的当前 browser gate 承接。
+
+### Phase 12: Pending-import test API removal
+
+The in-memory pending import store exposes only the production `storePendingImportSource` and one-shot `consumePendingImportSource` operations. Remove `clearPendingImportSourcesForTests` and its redundant teardown call: the sole test-created entry is consumed by the authenticated continuation path, and later tests cannot address an unknown generated id. A source negative gate prevents test-only reset APIs from returning to the production module.
+
 ## 6 验收标准
 
 - Home/Parse owner 文档只描述当前 Home + Parse 合同、operation matrix、BDD gate 和验证入口。
@@ -243,12 +251,15 @@ Focused tests must prove Home recent cards show the quick-start action, do not s
 - Parse and workspace detail routes share the same "面试规划详情 / 面试上下文确认" page structure, copy, resume binding and action semantics; workspace no longer renders an independent full-page current-plan confirmation.
 - Parse round assumptions, Home recent mock rails and shared TargetJob navigation context display/use backend/LLM `TargetJob.summary.interviewRounds[]`; round count is 2~5, and type/name, duration and focus are not front-end fixed values.
 - Home recent mock cards and workspace plan-list cards share the same `MockInterviewCard` body, mini round rail, fixed max-width grid and quick-start action; quick-start preserves structured `roundId/roundName`; Home omits delete controls while workspace includes them.
+- The pending import module exposes no test-only reset API; Home auth continuation tests cover one-shot store/consume behavior and privacy unchanged.
 - `sync-doc-index --check`、`make docs-check`、`git diff --check` 和 `make lint-core-loop-pruning-surface` 通过。
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 2.19 | Remove the redundant pending-import test reset API and teardown. |
+| 2026-07-10 | 2.18 | Align P0.014 scenario and BDD claims with its generated-client and Home Vitest runner evidence. |
 | 2026-07-10 | 2.17 | Normalize workspace detail out-of-scope and hardcoded-round negative wording without behavior changes. |
 | 2026-07-10 | 2.16 | Align workspace detail and fixed-round negative wording without behavior changes. |
 | 2026-07-10 | 2.15 | Parse success detail ignores route-only `resumeId` for binding; Start requires saved TargetJob binding. |

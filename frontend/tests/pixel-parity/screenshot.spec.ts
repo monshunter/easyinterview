@@ -13,9 +13,7 @@ import { expect, test } from "@playwright/test";
  * complementary gates:
  *
  *   - 4.1 — frontend home screenshot smoke: a non-empty browser screenshot
- *     buffer plus the surrounding DOM/computed-style gates. Ignored local
- *     screenshot baselines are reserved for explicit `--update-snapshots`
- *     maintenance and are not a clean-checkout PASS prerequisite.
+ *     buffer plus the surrounding DOM/computed-style gates.
  *   - 4.2 — dark / customAccent visual diff: assert the browser actually
  *     resolves the documented CSS variables to different values when the
  *     user toggles dark mode and activates customAccent, so the live theme
@@ -41,7 +39,7 @@ async function freezeAnimations(page: import("@playwright/test").Page): Promise<
 }
 
 test.describe("frontend home screenshot smoke (Phase 4.1)", () => {
-  test("default ocean/light home renders a stable non-empty screenshot without a baseline prerequisite", async ({
+  test("default ocean/light home renders a stable non-empty screenshot", async ({
     page,
   }) => {
     await page.goto("/");

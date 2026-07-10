@@ -177,3 +177,211 @@ describe("frontend-report-dashboard/001 Phase 0 preflight", () => {
     expect(ERROR_CODES.AI_PROVIDER_TIMEOUT).toBe("AI_PROVIDER_TIMEOUT");
   });
 });
+
+describe("frontend-report-dashboard/001 Phase 8 browser evidence", () => {
+  it("keeps owner claims and P0.059 bound to executable screenshot smoke", () => {
+    const planRoot =
+      "docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff";
+    const ownerPaths = [
+      "docs/spec/frontend-report-dashboard/spec.md",
+      `${planRoot}/plan.md`,
+      `${planRoot}/checklist.md`,
+      `${planRoot}/test-plan.md`,
+      `${planRoot}/test-checklist.md`,
+      `${planRoot}/bdd-plan.md`,
+      `${planRoot}/bdd-checklist.md`,
+    ];
+    const claimPaths = [
+      ...ownerPaths,
+      "frontend/tests/pixel-parity/generating.spec.ts",
+      "frontend/tests/pixel-parity/report.spec.ts",
+      "test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-out-of-scope-negative/README.md",
+      "test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-out-of-scope-negative/data/seed-input.md",
+      "test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-out-of-scope-negative/data/expected-outcome.md",
+    ];
+    const claimText = claimPaths.map(readRepoFile).join("\n");
+    expect(ownerPaths).toHaveLength(7);
+
+    for (const staleClaim of [
+      /8\s*主题/,
+      /toHaveScreenshot/,
+      /screenshot baseline/i,
+      /稳定 baseline/,
+      /pixel parity baseline/i,
+      /theme 切换/i,
+      /主题切换/,
+      /主题循环/,
+      /theme\/dark\/customAccent/i,
+      /computed style/i,
+      /截图差异/,
+      /collapsible Accordion/i,
+      /ARIA tablist\s*(?:→|->)\s*ARIA accordion/i,
+      /sticky CTA|CTA sticky|sticky bottom/i,
+      /report.{0,30}三列折叠为单列/,
+      /no overlap/i,
+    ]) {
+      expect(claimText).not.toMatch(staleClaim);
+    }
+
+    for (const [path, expectedCalls] of [
+      ["frontend/tests/pixel-parity/generating.spec.ts", 3],
+      ["frontend/tests/pixel-parity/report.spec.ts", 4],
+    ] as const) {
+      const source = readRepoFile(path);
+      expect(source).toMatch(/page\.screenshot\(\)/);
+      expect(source).toMatch(/screenshot\.byteLength\)\.toBeGreaterThan\(0\)/);
+      expect(source.match(/await expectNonEmptyScreenshot\(page\);/g)).toHaveLength(
+        expectedCalls,
+      );
+    }
+
+    const trigger = readRepoFile(
+      "test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-out-of-scope-negative/scripts/trigger.sh",
+    );
+    expect(trigger).toContain("src/app/screens/report/__tests__/preflight.test.ts");
+  });
+});
+
+describe("frontend-report-dashboard/001 Phase 9 direct-start evidence", () => {
+  it("keeps replay owners and P0.057 on the generated-client direct-start flow", () => {
+    const currentOwnerFiles = [
+      "docs/spec/frontend-report-dashboard/spec.md",
+      "docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/plan.md",
+      "docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/checklist.md",
+      "docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/test-plan.md",
+      "docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/test-checklist.md",
+      "docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/bdd-plan.md",
+      "docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/bdd-checklist.md",
+      "test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/README.md",
+      "test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/data/expected-outcome.md",
+      "test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/data/seed-input.md",
+      "test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/scripts/verify.sh",
+    ];
+    const ownerText = currentOwnerFiles.map(readRepoFile).join("\n");
+    expect(ownerText).not.toMatch(/autoStartPractice/);
+    expect(ownerText).not.toMatch(/workspace auto-start/i);
+    expect(ownerText).not.toMatch(/route:\s*["'`]workspace["'`]/);
+
+    const handlers = readRepoFile(
+      "frontend/src/app/screens/report/useReplayCtaHandlers.ts",
+    );
+    expect(handlers).toContain(
+      "startPracticeFromParams(runtime.client, params, lang)",
+    );
+    expect(handlers).toContain(
+      'navigate({ name: "practice", params: started.params })',
+    );
+    expect(handlers.match(/route: "report"/g)).toHaveLength(2);
+
+    const startPractice = readRepoFile(
+      "frontend/src/app/interview-context/startPractice.ts",
+    );
+    expect(startPractice).toContain("client.createPracticePlan(");
+    expect(startPractice).toContain("client.startPracticeSession(");
+
+    const trigger = readRepoFile(
+      "test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/scripts/trigger.sh",
+    );
+    expect(trigger).toContain("src/app/screens/report/__tests__/preflight.test.ts");
+  });
+});
+
+describe("frontend-report-dashboard/001 Phase 10 P0.056 evidence", () => {
+  it("keeps P0.056 claims within its five focused owner test files", () => {
+    const scenarioRoot =
+      "test/scenarios/e2e/p0-056-generating-to-report-happy-path";
+    const readScenario = (relativePath: string) =>
+      readRepoFile(`${scenarioRoot}/${relativePath}`);
+    const trigger = readScenario("scripts/trigger.sh");
+    const verify = readScenario("scripts/verify.sh");
+    const readme = readScenario("README.md");
+    const currentClaims = [
+      readme,
+      readScenario("data/seed-input.md"),
+      readScenario("data/expected-outcome.md"),
+      verify,
+      readRepoFile(
+        "docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/bdd-plan.md",
+      ),
+      readRepoFile(
+        "docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/bdd-checklist.md",
+      ),
+    ].join("\n");
+
+    for (const unsupportedClaim of [
+      /end-to-end mount/i,
+      /transcripts/i,
+      /resumeVersionId/,
+      /getResumeVersion/,
+      /fake timer 推进/,
+      /切 dark \+ customAccent/,
+      /3 次（轮询）\+ 1/,
+    ]) {
+      expect(currentClaims).not.toMatch(unsupportedClaim);
+    }
+    expect(readme).toContain("five focused owner test files");
+    expect(readme).toContain("not a single browser or live-backend journey");
+
+    const focusedFiles = [
+      "src/app/screens/report/__tests__/preflight.test.ts",
+      "src/app/screens/generating/__tests__/useReportGenerationPoll.test.tsx",
+      "src/app/screens/generating/__tests__/GeneratingScreen.test.tsx",
+      "src/app/screens/report/__tests__/ReportScreen.test.tsx",
+      "src/app/screens/report/__tests__/DetailSurface.test.tsx",
+    ];
+    for (const path of focusedFiles) {
+      expect(trigger).toContain(path);
+      expect(verify).toContain(path.split("/").at(-1));
+    }
+  });
+});
+
+describe("frontend-report-dashboard/001 Phase 11 P0.058 evidence", () => {
+  it("keeps P0.058 claims within its focused failure contracts", () => {
+    const scenarioRoot =
+      "test/scenarios/e2e/p0-058-report-failure-and-missing-session";
+    const readScenario = (relativePath: string) =>
+      readRepoFile(`${scenarioRoot}/${relativePath}`);
+    const trigger = readScenario("scripts/trigger.sh");
+    const verify = readScenario("scripts/verify.sh");
+    const readme = readScenario("README.md");
+    const currentClaims = [
+      readme,
+      readScenario("data/seed-input.md"),
+      readScenario("data/expected-outcome.md"),
+      verify,
+      readRepoFile(
+        "docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/bdd-plan.md",
+      ),
+      readRepoFile(
+        "docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/bdd-checklist.md",
+      ),
+    ].join("\n");
+
+    for (const unsupportedClaim of [
+      /GeneratingScreen `timeout` state surfaces GeneratingErrorState/,
+      /3 次 timeout/,
+      /分六子场景/,
+      /console\.log \/ URL search params \/ localStorage \/ sessionStorage \/ telemetry/,
+      /with backend 404/i,
+      /errorCode.*URL params.*raw provider/i,
+    ]) {
+      expect(currentClaims).not.toMatch(unsupportedClaim);
+    }
+    expect(readme).toContain("six focused owner test files");
+    expect(readme).toContain("does not mount `GeneratingScreen`");
+
+    const focusedFiles = [
+      "src/app/screens/report/__tests__/preflight.test.ts",
+      "src/app/screens/report/__tests__/ReportFailureState.test.tsx",
+      "src/app/screens/report/__tests__/ReportMissingSessionState.test.tsx",
+      "src/app/screens/report/__tests__/useFeedbackReport.test.tsx",
+      "src/app/screens/report/__tests__/ReportScreen.test.tsx",
+      "src/app/screens/generating/__tests__/useReportGenerationPoll.test.tsx",
+    ];
+    for (const path of focusedFiles) {
+      expect(trigger).toContain(path);
+      expect(verify).toContain(path.split("/").at(-1));
+    }
+  });
+});

@@ -1,6 +1,6 @@
 # 001 — Report Screen and Generating Handoff
 
-> **版本**: 1.9
+> **版本**: 1.16
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -35,6 +35,60 @@
 
 `report-next-cta-a` / `report-next-cta-b` testid 在 report 模块源码与渲染 DOM 0 命中（负向断言测试除外）；`report-questions-add-to-replay` 点击不触发 `navigate` / `useRequestAuth`；`pnpm --filter @easyinterview/frontend typecheck/test/build` 通过；report + topbar pixel parity 通过；`frontend_report_dashboard_out_of_scope` lint 通过。
 
+## 0.1 Generating hook test runtime isolation (v1.10)
+
+### Phase 7: remove unrelated provider effects from hook unit tests
+
+`useReportGenerationPoll.test.tsx` only exercises the poller against an injected generated client. Mount `AppRuntimeContext` directly, following the established frontend test pattern, and delete the fake client's unused runtime-config/auth methods. This removes asynchronous `AppRuntimeProvider` state updates and their React `act(...)` warnings without changing production hook behavior, OpenAPI, UI, BDD or scenario contracts.
+
+**Phase 7 gate**: the focused Vitest command must pass 11 tests with no `not wrapped in act` output; full frontend Vitest, typecheck/build, owner context and docs/pruning gates must remain green. BDD is not applicable because this is test-harness isolation only.
+
+## 0.2 P0.059 browser evidence reconciliation (v1.11)
+
+### Phase 8: align pixel-parity claims with executable evidence
+
+P0.059 owns deterministic report and generating browser smoke at desktop and mobile viewports. The executable contract is DOM/state visibility, viewport geometry, overflow bounds and an in-memory non-empty screenshot for every covered state. It does not own theme matrices or persistent image-comparison files; those claims are removed instead of being kept as conditional or future behavior.
+
+**Phase 8 gate**: a focused preflight must reject expanded browser claims in the active spec and six plan artifacts, and require both Playwright sources to call `page.screenshot()` with a non-empty buffer assertion. `E2E.P0.059` must execute that preflight, build the frontend, run both Playwright specs and pass setup/trigger/verify/cleanup. No OpenAPI, backend, persistence, AI dependency or product UI behavior changes.
+
+## 0.3 P0.057 direct-start contract reconciliation (v1.12)
+
+### Phase 9: remove the obsolete workspace side-effect handoff
+
+The current UI source, frontend-workspace-and-practice D-9 and production code all start replay/next-round practice from the report owner through generated `createPracticePlan` / `startPracticeSession`, then navigate directly to `practice`. Signed-out users authenticate and return to `report` to retry the CTA. Phase 9 removes the contradictory workspace mount side-effect contract from the spec, plan/test/BDD documents and P0.057 assets.
+
+**Phase 9 gate**: owner preflight rejects the obsolete workspace side-effect terms and requires the direct-start generated-client calls, `practice` navigation, signed-out `report` return and P0.057 preflight wiring. P0.057 setup/trigger/verify/cleanup, owner context and global docs/pruning gates must pass. No API schema or product UI changes.
+
+## 0.4 P0.056 focused-runner evidence reconciliation (v1.13)
+
+### Phase 10: bind scenario claims to the five focused owner test files
+
+P0.056 composes preflight, polling-hook, GeneratingScreen, ReportScreen and DetailSurface Vitest files plus static verification. It is not a single browser or live-backend journey, and it does not prove fixed poll counts, exact fixture sequencing, theme switching or transcript persistence. Phase 10 compresses the scenario and BDD claims to the assertions those five files actually execute and requires verify to observe every test-file marker.
+
+**Phase 10 gate**: owner preflight rejects the expanded claims and pre-flatten Resume vocabulary, requires all five trigger paths and verify markers, and keeps the real-mode configuration gate distinct from fixture-backed UI evidence. P0.056 setup/trigger/verify/cleanup and owner/global gates must pass. No runtime behavior changes.
+
+## 0.5 P0.058 failure-contract evidence reconciliation (v1.14)
+
+### Phase 11: separate hook, component and route-state failure evidence
+
+P0.058 composes owner preflight plus five focused files for ReportFailureState, ReportMissingSessionState, useFeedbackReport, ReportScreen and useReportGenerationPoll. The poll hook covers failed/404/timeout state, but the scenario does not mount GeneratingScreen or prove a multi-timeout UI fallback. Report components separately cover error-copy, CTA handlers, missing inputs and not-found rendering.
+
+**Phase 11 gate**: preflight rejects GeneratingScreen UI and broad URL/storage/telemetry claims not executed by this runner, requires all six trigger/verify markers, and distinguishes real-mode configuration from deterministic failure clients. P0.058 setup/trigger/verify/cleanup and owner/global gates must pass. No runtime behavior changes.
+
+## 0.6 Active visual contract reconciliation (v1.15)
+
+### Phase 12: bind the active spec to P0.059 browser evidence
+
+The active spec and all six plan artifacts must describe the browser contract actually executed by P0.059: seven deterministic generating/report states across desktop and mobile, state-specific DOM or viewport assertions, report TopBar visibility, mobile overflow bounds and one non-empty in-memory screenshot per state. Theme ownership remains with frontend-shell, while component structure and detail-tab behavior remain covered by the existing source-parity Vitest gates.
+
+**Phase 12 gate**: extend the owner preflight to read the active spec, reject unsupported visual and responsive claims across all seven owner artifacts, and preserve the current Playwright source/runner checks. Reconcile the spec, owner plan, test/BDD artifacts and P0.059 scenario wording; then pass focused Vitest, both Playwright specs, P0.059 setup/trigger/verify/cleanup, owner/product contexts and global docs/pruning gates. No runtime behavior, API, persistence or AI dependency changes.
+
+## 0.7 Unconsumed report error helper removal (v1.16)
+
+### Phase 13: remove the isolated AI-error predicate branch
+
+Delete `isAiErrorCode` and its private `FAILURE_AI_ERROR_KEYS` array. Repository inventory proves neither has a consumer; `ReportFailureState` continues to use `failureErrorCodeKey` and its existing `FAILURE_LABEL_BY_CODE` mapping. BDD is not applicable because the removed branch has no executable caller. Alternative gates are a scoped source-surface red/green test, focused failure-state tests, typecheck and owner/global checks.
+
 ## 1 目标
 
 把 [frontend-report-dashboard spec](../../spec.md) v1.0 §2.1 / §6 C-1~C-15 / §7 锁定的第一个 plan 范围落地，承接 [frontend-workspace-and-practice/002-practice-text-event-loop](../../../frontend-workspace-and-practice/plans/002-practice-text-event-loop/plan.md)（completed, 2026-05-14）已交付的 `completePracticeSession` 真实调用 + 13 字段 generating route params（`buildPracticeHandoffParams` 输出：`{planId, targetJobId, jdId, resumeId, roundId, sessionId, reportId, mode, modality, practiceMode, practiceGoal, hintUsed, hintCount}`）+ `ReportWithJob` 缓存 + `nav("generating", ...)` handoff，闭合 P0 用户路径中"报告生成过渡态 → 证据化报告 dashboard → 复练 / 下一轮 handoff"段：
@@ -43,17 +97,17 @@
 - 通过 generated client + fixture-backed transport 消费 `getFeedbackReport(reportId)`；指数退避轮询（初始 1.5s × 1.5 上限 8s，max attempts 30）+ visibility 暂停 / 恢复；status='ready' → nav `report?sessionId=&reportId=&...passThrough`；status='failed' → nav `report?reportStatus=failed&errorCode=&...`；max attempts 达到 → ErrorState 「报告生成超时」+ retry / 返回 workspace。
 - `report` 路由从 route fallback shell 切换为正式 `ReportScreen`，源级复刻 `ui-design/src/screen-report.jsx::ReportScreen` (lines 1-516) 三态：`ReportDashboard`（正常报告）/ `ReportFailureState`（reportStatus='failed'）/ `ReportMissingSessionState`（缺 sessionId）。
 - ReportDashboard 完整源级复刻：返回按钮 + Header + `ReportContextStrip`（sessionId / targetJob / round / resume / modality / practiceMode / hints）+ 4 个 Summary Cards（准备度 / 维度 / 题目 / 下一步）+ `ReportDetailSurface` 5 个 tab（readiness / dimensions / questions / evidence / next）+ 维度卡片行 + 优先级 + 复练重点 + 题目回顾概览（5 题）+ 风险 & 亮点 + 复练 CTA（路径 A 复练当前轮 / 路径 B 进入下一轮）。
-- 复练 CTA 行为：路径 A `goReplay()` → `nav("workspace", { sourceSessionId, replayItems:retryFocusTurnIds, evidenceGaps, planId, targetJobId, jdId, resumeId, roundId, mode:'text', modality:'text', practiceMode:lastPracticeMode, practiceGoal:'retry_current_round', autoStartPractice:'1' })`；路径 B `goNextRound()` → `nav("workspace", { nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeId, mode:'text', modality:'text', practiceMode:lastPracticeMode, practiceGoal:'next_round', autoStartPractice:'1' })`；未登录走 `useRequestAuth({type:'replay_practice', route:'workspace', params:{...sameParams, autoStartPractice:'1'}})`；workspace owner 创建 fresh session 后再进入 `practice`，不能复用报告来源 session。
+- 复练 CTA 行为：路径 A `goReplay()` 构造 retry_current_round + source report/session + replayItems/evidenceGaps payload；路径 B `goNextRound()` 构造 next_round + source report/session + nextRoundId payload。已登录时共享 `startPracticeFromParams` 通过 generated client 创建派生 plan、启动 fresh session 并直接 `nav("practice", ...)`；未登录走 `useRequestAuth({type:'replay_practice', route:'report', params:route.params})`，鉴权后回报告重试；不能复用报告来源 session。
 - i18n 双语：新增 `report.*` + `generating.*` 命名空间（≥ 60 keys）；不复用 `workspace.*` 或 `practice.*`。
 - stale-contract negative grep + Playwright pixel parity (desktop 1440×900 + mobile 390×844) + i18n 完整性断言。
 
-完成后用户在 frontend-workspace-and-practice plan 002 已经送出 `nav("generating", ...)` 后能进入真实 GeneratingScreen 轮询 → 真实 ReportScreen 渲染 → 复练 CTA 交给 workspace auto-start → fresh practice session，完整闭环 P0 报告路径。Backend 真实数据由 [backend-review plan 001](../../../backend-review/plans/001-report-generation-baseline/plan.md) 提供；2026-05-23 L2 remediation 后，P0.056-P0.059 trigger 前置 `frontendOwners.realApiMode.test.ts`，verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker。fixture-backed UI variants 继续用于 DOM / 状态分支确定性测试，但不能单独代表真实 backend 闭环。
+完成后用户在 frontend-workspace-and-practice plan 002 已经送出 `nav("generating", ...)` 后能进入真实 GeneratingScreen 轮询 → 真实 ReportScreen 渲染 → Header CTA 创建 fresh plan/session 并直接进入 practice，完整闭环 P0 报告路径。Backend 真实数据由 [backend-review plan 001](../../../backend-review/plans/001-report-generation-baseline/plan.md) 提供；2026-05-23 L2 remediation 后，P0.056-P0.059 trigger 前置 `frontendOwners.realApiMode.test.ts`，verify 检查 `VITE_EI_API_MODE=real`、默认 backend base URL 与测试文件 marker。fixture-backed UI variants 继续用于 DOM / 状态分支确定性测试，但不能单独代表真实 backend 闭环。
 
 ## 2 背景
 
 frontend-workspace-and-practice spec v1.3 + plan [002-practice-text-event-loop](../../../frontend-workspace-and-practice/plans/002-practice-text-event-loop/plan.md)（completed, 2026-05-14）已交付 `completePracticeSession` 真实调用 + `useCompletePracticeSession` hook + `buildPracticeHandoffParams` 13 字段构造器（`{planId, targetJobId, jdId, resumeId, roundId, sessionId, reportId, mode, modality, practiceMode, practiceGoal, hintUsed, hintCount}`）+ `nav("generating", ...)` 跳转 + `ReportWithJob` 缓存防双触发。本 plan 接管 `frontend/src/app/App.tsx::renderRouteScreen` 中 `generating` 与 `report` 的 route fallback shell。
 
-> **关于 `useRequestAuth` payload type 与 UI 真理源的 deliberate divergence**：UI 真理源 `ui-design/src/screen-report.jsx:114` 在复练 / 下一轮 CTA 触发 auth 时使用通用 `requestAuth({type:'create_session', ...})`。生产前端按 [spec D-5](../../spec.md#31-已锁定决策) + product-scope §4.1 "复练优先" + backend-practice D-4 plan goal 四值的要求需要区分 `replay_practice`（路径 A retry_current_round）与 `start_practice`（workspace 立即面试）/ `next_round_practice`（未来路径 B 单独区分）三类 PendingAction，使 pendingAction 恢复后能正确派发到 `goReplay` vs `goNextRound` vs workspace 立即面试不同的 nav payload。此分叉只影响 auth/routing 契约，不影响视觉源级复刻 gate；plan 001 引入 `replay_practice` 一种新 type（路径 A + 路径 B 共用），未来如需要进一步细分由后续 plan 演化。
+> **关于 `useRequestAuth` payload type 与 UI 真理源的必要适配**：UI 真理源 `ui-design/src/screen-report.jsx` 用通用 `create_session` action 直接进入 practice。生产前端保留专用 `replay_practice` type 以表达鉴权意图，但 pendingAction 回到 `report`，用户重试 Header CTA 后再由 generated client 创建 plan/session；该差异只影响鉴权恢复，不改变“从报告直接开始对应 session”的交互。
 
 backend-review spec v1.0 + plan [001-report-generation-baseline](../../../backend-review/plans/001-report-generation-baseline/plan.md) 是本 plan 的 backend handoff source；backend-review Phase 0 会扩 `openapi/fixtures/Reports/getFeedbackReport.json` 的 `report-failed` variant + `openapi/fixtures/Reports/listTargetJobReports.json` 的 `empty` variant + B1 `REPORT_NOT_FOUND` 错误码 + B2 `getFeedbackReport` 404 response schema。本 plan 仅消费这些 fixtures + generated client，不直接修改 OpenAPI / B1 / B2 truth source。
 
@@ -77,8 +131,8 @@ InterviewContext reducer 已经在 frontend-workspace-and-practice plan 001 + 00
 | Primary path · GeneratingScreen happy path | 进入 generating 携带 reportId + 13 字段；渲染 5 阶段进度动画 + 实时观察流；轮询 `getFeedbackReport(reportId)` 多次（指数退避节奏）；status='ready' 自动 nav report | `screens-p0-complete.jsx::ReportGeneratingScreen` lines 269-399 | 1 | E2E.P0.056 + Vitest `generating/GeneratingScreen.test.tsx` + `hooks/useReportGenerationPoll.test.ts` |
 | Primary path · ReportDashboard 渲染（ready） | 携带 sessionId + reportId 进入 report；`getFeedbackReport` 返回完整 FeedbackReport；渲染 Header + ContextStrip + 4 Summary Cards + 5 Detail Tabs（默认 `questions`）+ 维度卡片 + 优先级 + 复练重点 + 题目回顾 + 风险亮点；readiness tab 通过显式切换覆盖 | `screen-report.jsx::ReportDashboard` lines 80-257 | 2+3 | E2E.P0.056 + Vitest `report/ReportScreen.test.tsx` + `report/ReportDashboard.test.tsx` |
 | Primary path · 5 detail tab 内容 | 切换 5 个 tab；每个 tab 内容源级复刻：readiness（拨号盘 + JD 对齐 + 证据密度 + 下一档门槛）/ dimensions（二级网格）/ questions（侧栏 + 当前题分析）/ evidence（风险 + 亮点）/ next（路径 A vs 路径 B 对比） | `screen-report.jsx::ReportDetailSurface` lines 311-516 | 3 | E2E.P0.056 子断言 + Vitest `report/DetailTabs.test.tsx` |
-| Primary path · 复练 CTA 路径 A | 用户点击「复练当前轮」CTA → nav workspace auto-start with retry_current_round payload + retry_focus_turn_ids；workspace owner 创建 fresh session 后进入 practice；未登录走 useRequestAuth 到 workspace | `screen-report.jsx::goReplay` line 116 | 4 | E2E.P0.057 + Vitest `report/ReplayCta.test.tsx` |
-| Primary path · 复练 CTA 路径 B | 用户点击「进入下一轮」CTA → nav workspace auto-start with next_round payload；workspace owner 创建 fresh session 后进入 practice；未登录走 useRequestAuth 到 workspace | `screen-report.jsx::goNextRound` line 117 | 4 | E2E.P0.057 + Vitest `report/ReplayCta.test.tsx` |
+| Primary path · 复练 CTA 路径 A | 已登录用户点击「复练当前轮」→ generated client 创建 retry_current_round 派生 plan、启动 fresh session并直接进入 practice；未登录鉴权后回 report 重试 | `screen-report.jsx::goReplay` | 4+9 | E2E.P0.057 + Vitest `report/ReplayCta.test.tsx` |
+| Primary path · 复练 CTA 路径 B | 已登录用户点击「进入下一轮」→ generated client 创建 next_round 派生 plan、启动 fresh session并直接进入 practice；未登录鉴权后回 report 重试 | `screen-report.jsx::goNextRound` | 4+9 | E2E.P0.057 + Vitest `report/ReplayCta.test.tsx` |
 | Alternate path · GeneratingScreen 失败处理 | fixture report-failed（status='failed' + errorCode）→ 自动 nav report?reportStatus=failed&errorCode=... | spec §2.1 generating 失败分支 | 1 | Vitest `useReportGenerationPoll.test.ts` 子用例 + E2E.P0.058 |
 | Alternate path · GeneratingScreen 超时 | fixture 永久 generating → max attempts 达到 ErrorState「报告生成超时」+ retry 重启轮询 | spec D-3 | 1 | Vitest `GeneratingScreen.test.tsx` 子用例 |
 | Alternate path · GeneratingScreen visibility 暂停 | tab 隐藏 → 暂停轮询；恢复显示 → 恢复轮询 | spec D-3 | 1 | Vitest fake visibility event + `useReportGenerationPoll.test.ts` |
@@ -102,8 +156,7 @@ InterviewContext reducer 已经在 frontend-workspace-and-practice plan 001 + 00
 | UX · empty state | report 中 highlights / issues / nextActions / questionAssessments 任一为空数组 → 该区块显示 EmptyHint empty state（非 dashboard fail） | spec D-4 ready status 字段填充 | 3 | Vitest `report/EmptyHint.test.tsx` |
 | UX · error state | `getFeedbackReport` 5xx / network → inline error + retry；3 次失败显示返回 workspace fallback | spec §3.2 | 5 | Vitest `ReportErrors.test.tsx` |
 | UX · i18n zh/en | 全文案通过 typed locale helper；新增 `report.*` + `generating.*` namespace ≥ 60 keys；切换立即重绘 | spec D-7 + 001 D1 typed locale helper | 1-5 | Vitest `reportI18n.test.tsx` + namespace 同步断言 |
-| UX · dark + customAccent + 主题切换 | generating + report 在 8 主题 × dark 组合下 computed background / color 出现可见变化 | D2 `data-theme / data-mode / data-custom-accent` + `ui-design/src/primitives.jsx` | 5 | Playwright `tests/pixel-parity/{generating,report}.spec.ts` 主题循环 |
-| UX · responsive layout (mobile 390×844) | generating 居中进度态不溢出视口；report 三列折叠为单列 + Detail Surface 切 collapsible Accordion + 复练 CTA sticky bottom；BindingPill 不溢出 | spec §4 mobile | 1+5 | Playwright mobile project + Vitest jsdom 视口模拟 |
+| UX · responsive layout (mobile 390×844) | generating 与 report 主屏的 `documentElement.scrollWidth <= 390`；每个 mobile 状态取得非空内存截图 | spec §4 mobile | 5+8+12 | Playwright mobile project |
 | UI source structure parity · GeneratingScreen | 页头 + 进度条 + 5 阶段列表 + 实时观察流 + 底部提示 + 「通知我」按钮；testid `generating-{header,progress,phase-${idx},live-stream,evidence-${idx},sla-hint,notify-cta}` | `screens-p0-complete.jsx::ReportGeneratingScreen` lines 269-399 | 1 | Vitest + testid 命中 + 控件类型断言 |
 | UI source structure parity · ReportScreen 顶层三态 | ReportScreen 主组件按 params 分发：`ReportFailureState` / `ReportMissingSessionState` / `ReportDashboard`；testid 顶层 `report-screen` + 子树根 `report-failure-state` / `report-missing-session` / `report-dashboard` | `screen-report.jsx::ReportScreen` lines 1-44 | 2 | Vitest + 三态测试用例 |
 | UI source structure parity · ReportDashboard | 返回按钮 + Header（titles + 双 CTA）+ ContextStrip + 4 Summary Cards + Detail Surface + 维度卡片行 + 优先级 + 复练重点 + 题目回顾 + 风险亮点；testid `report-{return,header-title,header-subtitle,replay-cta,next-cta,context-strip,summary-{readiness,dimensions,questions,next},detail-tab-${tab},detail-panel-${tab},dim-row-${idx},top-priority,next-practice-${idx},perq-${idx},issue-${idx},highlight-${idx}}` | `screen-report.jsx::ReportDashboard` lines 80-257 | 2+3 | Vitest + testid 命中 |
@@ -114,15 +167,14 @@ InterviewContext reducer 已经在 frontend-workspace-and-practice plan 001 + 00
 | UI source structure parity · DimRow (维度行) | `DimRow` name + score bar + state tag + confidence；testid `report-dim-row-{name,score,state,confidence}` | `screen-report.jsx::DimRow` lines 565-577 | 3 | Vitest |
 | UI source structure parity · 准备度 tier 4 档文案与色调 | not_ready / needs_practice / basically_ready / well_prepared 4 档 zh/en 文案 + 色调；不引入 5 档 readiness numeric score 字面量 | spec D-10 + `ui-design/src/data.jsx` readinessLabel | 2+3 | Vitest + 4 档矩阵测试 |
 | UI source structure parity · 维度卡片状态映射 | strong / meets_bar / needs_work 三态文案与色调；不引入 weak / developing / proficient / acceptable rubric 内部 score_levels label（rubric label 不暴露到 UI） | spec D-11 + B1 DimensionStatus | 3 | Vitest + 三态矩阵 |
-| UI visual geometry parity · desktop | 1440×900 generating + report 主屏 + 5 detail tab + dashboard skeleton + failure state + missing session state bounding box stays in viewport, no overlap；`generating` TopBar 隐藏且不保留布局空间；`report` 默认 App chrome / TopBar 可见且不进入一级导航；底部 CTA sticky 不被遮挡 | n/a | 5 | Playwright `tests/pixel-parity/{generating,report}.spec.ts` desktop project |
-| UI visual geometry parity · mobile | 390×844 generating 居中 + report 三列折叠 + Detail Surface Accordion + CTA sticky | n/a | 5 | Playwright mobile project |
-| UI visual geometry parity · dark / customAccent / theme | 8 主题 × dark + customAccent oklch 切换可见变化 | n/a | 5 | Playwright |
-| UI visual geometry parity · clean-checkout gate | DOM anchor + computed style + bounding box + responsive geometry + non-empty screenshot smoke；仅当稳定 baseline 已提交或本 phase 明确更新 baseline 时才追加 `toHaveScreenshot` | n/a | 5 | Playwright + frontend clean-checkout smoke |
+| UI visual geometry parity · desktop/state | generating 主屏断言 5-phase 关键 DOM 与 root 起始坐标，缺 reportId 断言 error/back CTA；report dashboard 断言 header/context/summary/detail + TopBar，缺 sessionId 与 failed 断言各自 CTA；七个状态均取得非空内存截图 | n/a | 5+8+12 | Playwright `tests/pixel-parity/{generating,report}.spec.ts` |
+| UI visual geometry parity · mobile | 390×844 generating/report 主屏断言 document width 不超过 390px，并取得非空内存截图 | n/a | 5+8+12 | Playwright mobile project |
+| UI visual geometry parity · clean-checkout gate | generating/report 既有 desktop/mobile 状态的 DOM 锚点、可见性、bounding box、viewport overflow 与逐状态非空内存截图 | n/a | 5+8 | Playwright + Phase 8 owner preflight |
 | UI stale-contract negative · reportLayout | `reportLayout='timeline'` / `reportLayout='document'` 等字面量在 report / generating 新代码中 0 命中（不计 negative tests / docs） | spec D-12 + product-scope D-7 | 全 phase | Vitest + scenario verify negative grep |
 | UI stale-contract negative · readiness 5 档 | readiness numeric (`readinessScore`) / 5 档（not_ready / needs_practice / basically_ready / well_prepared / fully_prepared 之类的 5 档值）/ `readiness_score` 字段在 report / generating 新代码中 0 命中 | spec D-10 + D-12 | 全 phase | grep negative |
 | UI stale-contract negative · 独立错题 / Drill / Growth | `mistakes` route / `mistake_queue` testid / `drill_builder` / `growth_center` / 报告时间线 / 多形态 report / 独立 `report` 一级导航 entry / `practiceModeCard` 在 report / generating 模块 0 命中 | spec D-12 + product-scope D-6 | 全 phase | grep negative |
 | UI stale-contract negative · 不直接 import prototype | `frontend/src/app/screens/{report,generating}/` 不 import `ui-design/src/data.jsx` / `window.EI_DATA` / `getReportSampleDimensions` 等 prototype helper | spec §4 | 全 phase | Vitest + tsc grep |
-| UI stale-contract negative · 不调 Practice operation | report / generating 模块不调 `getPracticeSession` / `appendSessionEvent` / `completePracticeSession` / `startPracticeSession` / `createPracticePlan` / `getPracticePlan`（归 frontend-workspace-and-practice 与 backend-practice） | spec §2.2 + frontend-workspace-and-practice owner | 全 phase | Vitest spy + tsc |
+| UI stale-contract negative · 不调面试中 operation | report / generating 模块不调 `getPracticeSession` / `appendSessionEvent` / `completePracticeSession` / voice operation；Header CTA 仅允许经共享 `startPracticeFromParams` 调用 generated `createPracticePlan` / `startPracticeSession` | spec §2.2 + frontend-workspace-and-practice D-9 | 全 phase | Vitest spy + owner preflight |
 | UI stale-contract negative · 不调范围外 operation | report / generating 模块不调 voice / company intel operation；不渲染 voice surface / company intel screen 任何 DOM | spec §2.2 | 全 phase | Vitest spy + tsc + grep |
 | Regression / out-of-scope-negative · 工作区 + 后端契约 | `E2E.P0.044-047`（frontend-workspace-and-practice 002 practice 文本闭环）+ `E2E.P0.052-055`（backend-review 001 report 生成）全部作为真实 regression gate 重跑；fixture-backed PASS 只能证明前端 mock 合同，不替代真实闭环 | n/a | 5 | scenario rerun + `cd backend && go test ./cmd/api -run 'TestE2EP0052\|TestE2EP0053\|TestE2EP0054\|TestE2EP0055' -count=1` |
 | Regression / out-of-scope-negative · 不直接调用 LLM | report / generating 模块不出现 AI provider key / provider registry / prompt registry / AIClient / LLM endpoint / bypass generated client 的 ad hoc fetch | n/a | 全 phase | Vitest + grep negative |
@@ -144,8 +196,10 @@ InterviewContext reducer 已经在 frontend-workspace-and-practice plan 001 + 00
 | `getTargetJob` | 当前已有 `openapi/fixtures/TargetJobs/getTargetJob.json` `default` | `useReportContextData` / `ReportContextStrip` 只读 target job title/companyName；失败时显示 targetJobId fallback，不阻塞报告正文 | backend-targetjob 既有 handler；read-only；user-scoped | `target_jobs` read | none | `E2E.P0.056` ContextStrip 子断言 + Vitest `ReportContextStrip.test.tsx` |
 | `getResume` | 当前已有 `openapi/fixtures/Resumes/getResume.json` `default` | `useReportContextData` / `ReportContextStrip` 只读 resume displayName；失败时显示 resumeId fallback；不得读取 raw resume text | backend-resume 既有 handler；read-only；user-scoped | `resumes` read | none | `E2E.P0.056` ContextStrip 子断言 + privacy negative |
 | `listTargetJobReports` | `openapi/fixtures/Reports/listTargetJobReports.json` (`default`, `empty`) | 不消费 UI（dashboard-only D-7）；real-mode gate 覆盖 generated client routing | backend-review real handler；read-only；user-scoped；cursor 分页 | `feedback_reports` cursor read | none | real-mode gate + 负向断言（在 generating / report 模块零调用） |
+| `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` | `useReplayCtaHandlers` → `startPracticeFromParams` 创建 retry_current_round / next_round 派生 plan；携带 `Idempotency-Key` | backend-practice real handler | `practice_plans` write | backend-only first question prep | E2E.P0.057 + `ReplayCta.test.tsx` |
+| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` | `useReplayCtaHandlers` → `startPracticeFromParams` 启动 fresh session；携带 `Idempotency-Key`，成功后直接 nav practice | backend-practice real handler | `practice_sessions` + first turn write | backend-only first question prep | E2E.P0.057 + `ReplayCta.test.tsx` |
 | `completePracticeSession` | N/A（本 plan 不消费） | 由 frontend-workspace-and-practice plan 002 消费；本 plan 不调用 | backend-practice/002 已落地 | — | — | 负向断言 |
-| `appendSessionEvent` / `getPracticeSession` / 其他 Practice operation | N/A | 由 frontend-workspace-and-practice plan 002 消费；本 plan 不调用 | — | — | — | 负向断言 |
+| `appendSessionEvent` / `getPracticeSession` / voice operations | N/A | 由 frontend-workspace-and-practice plan 002 消费；本 plan 不调用 | — | — | — | 负向断言 |
 | `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` | 本 plan **不消费**；voice surface deferred to practice-voice owner | practice-voice/backend-practice real handler | voice session events | STT/LLM/TTS backend-only | report/generating 负向断言 + real-mode gate coverage |
 | `getCompanyIntel` | N/A | 本 plan **不消费**；company-intel owner 承接 | external owner | — | — | 负向断言 |
 
@@ -321,8 +375,8 @@ InterviewContext reducer 已经在 frontend-workspace-and-practice plan 001 + 00
 在 `frontend/src/app/auth/pendingAction.ts` 中（当前 `PendingAction.type: string` 仅在测试中使用 `start_practice` 一个值）扩展：
 
 - 把 `replay_practice` 加入允许的 type allowlist（如果当前实现使用 string union 或运行时 validator）。
-- `encodePendingAction` / `decodePendingActionRoute` 必须支持 `replay_practice` round-trip（params 含 sourceSessionId / replayItems / evidenceGaps / planId / targetJobId / jdId / resumeId / roundId / mode / modality / practiceMode / practiceGoal / autoStartPractice 等键）。
-- 路由恢复（`AppPendingAction` 或同款）必须支持 `replay_practice` 恢复到 `workspace` 并触发 `autoStartPractice=1`（与 `start_practice` 在 `workspace` 路由 mount 时自动触发同款机制）。
+- `encodePendingAction` / `decodePendingActionRoute` 必须支持 `replay_practice` round-trip（params 保留原 report route 的 sessionId / reportId / targetJobId / resumeId / roundId / display knobs）。
+- 路由恢复（`AppPendingAction` 或同款）把 `replay_practice` 返回 `report`；不在恢复 route mount 时执行 session 创建副作用，用户鉴权后重试 Header CTA。
 
 新增 `frontend/src/app/auth/__tests__/pendingActionReplayPractice.test.ts`（或扩展现有 `pendingAction.test.ts`）：
 
@@ -332,11 +386,11 @@ InterviewContext reducer 已经在 frontend-workspace-and-practice plan 001 + 00
 
 #### 4.1 实现复练 CTA `goReplay()` 路径 A
 
-在 `ReportHeader.tsx` 与 `tabs/NextTab.tsx` 的 `report-next-cta-a` 按钮上绑定 `goReplay()`：组装 payload `{ sourceSessionId:sessionId, replayItems:retryFocusTurnIds, evidenceGaps:focusGaps, planId, targetJobId, jdId, resumeId, roundId, mode:'text', modality:'text', practiceMode:InterviewContext.practiceMode, practiceGoal:'retry_current_round', autoStartPractice:'1' }`；未登录 → `useRequestAuth({type:'replay_practice', route:'workspace', params:{...sameParams}})`；登录后 pendingAction 回到 workspace auto-start；已登录 → 直接 `nav("workspace", payload)`，由 workspace owner 创建 fresh session 后进入 practice。
+在唯一 Header `report-replay-cta` 上绑定 `goReplay()`：组装 `{ sourceSessionId, sourceReportId, replayItems, evidenceGaps, planId, targetJobId, jdId, resumeId, roundId, mode:'text', modality:'text', practiceMode, practiceGoal:'retry_current_round' }`。已登录时调用共享 `startPracticeFromParams`，通过 generated `createPracticePlan` / `startPracticeSession` 创建 fresh session 后直接 nav practice；未登录通过 `replay_practice` pendingAction 返回 report 重试。
 
 #### 4.2 实现复练 CTA `goNextRound()` 路径 B
 
-同上，但 payload 为 `{ nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeId, mode:'text', modality:'text', practiceMode:InterviewContext.practiceMode, practiceGoal:'next_round', autoStartPractice:'1' }`；nextRoundId 来源：默认从 InterviewContext.roundId 推断（roundId + 1）或 fixed mapping；如未来需要从 backend 拿真实下一轮 metadata，先回 backend-targetjob owner 修订（本 plan 不引入新 backend 调用）。
+唯一 Header `report-next-cta` 组装 `{ sourceSessionId, sourceReportId, nextRoundId, roundName, roundId:nextRoundId, planId, targetJobId, jdId, resumeId, mode:'text', modality:'text', practiceMode, practiceGoal:'next_round' }`，并走同一 direct-start helper；nextRoundId 由 canonical interview ladder 推断。若未来由 backend 提供真实 round metadata，先回 backend-targetjob owner 修订。
 
 #### 4.3 完整 ReportFailureState handoff
 
@@ -348,7 +402,7 @@ InterviewContext reducer 已经在 frontend-workspace-and-practice plan 001 + 00
 
 #### 4.5 Vitest 红灯 → 绿灯
 
-新增 `report/__tests__/ReplayCta.test.tsx`：测路径 A 已登录经 workspace auto-start 创建 fresh session + 未登录 useRequestAuth 恢复到 workspace auto-start；payload 字段完整；负向断言 raw text 不在 payload。
+新增 `report/__tests__/ReplayCta.test.tsx`：测路径 A 已登录创建/启动 fresh session 并直接进入 practice，未登录进入 auth_login 且 pendingAction 回 report；payload 字段完整；负向断言 raw text 不在 payload。
 
 在 `report/__tests__/ReplayCta.test.tsx` 覆盖路径 B 同上；断言 nextRoundId 推断逻辑与 fresh session start。
 
@@ -358,7 +412,7 @@ InterviewContext reducer 已经在 frontend-workspace-and-practice plan 001 + 00
 
 #### 4.6 BDD-Gate Phase 4
 
-- BDD-Gate: 验证 `E2E.P0.057` 通过（复练 CTA 路径 A + 路径 B 经 workspace auto-start 进入 fresh practice session）
+- BDD-Gate: 验证 `E2E.P0.057` 通过（复练 CTA 路径 A + 路径 B 通过 generated client 创建/启动 fresh session 并直接进入 practice；未登录鉴权后回 report）
 - BDD-Gate: 验证 `E2E.P0.058` 通过（GeneratingScreen 轮询命中 `status='failed'` → nav failed report + ReportFailureState + ReportMissingSessionState + 跨用户 + 隐私 route params）
 - BDD-Gate: 验证 `E2E.P0.056` 整链完整通过（含 GeneratingScreen mount → 进度动画 → 轮询 ready → nav report → ReportDashboard 渲染 → 5 detail tab 切换 → CTA wire 完整）；Phase 1 + Phase 3 仅做局部断言，Phase 4 复练 CTA wire 完成后才算完整通过
 
@@ -366,11 +420,11 @@ InterviewContext reducer 已经在 frontend-workspace-and-practice plan 001 + 00
 
 #### 5.1 完整状态机集成回归
 
-`pnpm vitest run`（全 frontend 测试）+ `pnpm typecheck` 全绿；扩展现有 `App.test.tsx` 添加 `generating-screen` 与 `report-dashboard` testid 命中断言；扩展 `AppNormalize.test.tsx` 添加 `generating` / `report` route alias 处理；扩展 `pendingActionReplayPractice.test.ts` 添加 `replay_practice` pendingAction 恢复到 workspace auto-start 的 round-trip；扩展 `scenarios/p0-002-auth-pending-action-resume.test.tsx` 添加 `replay_practice` resume path 验证。
+`pnpm vitest run`（全 frontend 测试）+ `pnpm typecheck` 全绿；扩展现有 `App.test.tsx` 添加 `generating-screen` 与 `report-dashboard` testid 命中断言；扩展 `AppNormalize.test.tsx` 添加 `generating` / `report` route alias 处理；扩展 `pendingActionReplayPractice.test.ts` 添加 `replay_practice` pendingAction 回 report 的 round-trip；扩展 auth pending-action 场景覆盖 resume path。
 
 #### 5.2 Playwright pixel parity 加挂
 
-新增 `frontend/tests/pixel-parity/generating.spec.ts` + `frontend/tests/pixel-parity/report.spec.ts`：desktop 1440×900 + mobile 390×844 两 viewport；测 generating + report 主屏 + 5 detail tab + 三态（dashboard/failure/missing-session）+ 8 主题 × dark 切换；clean-checkout 必须断言 DOM anchor / computed style / bounding box / responsive geometry / non-empty screenshot smoke，只有在稳定 baseline 已提交或本 phase 明确更新 baseline 时才追加 `toHaveScreenshot`。
+新增 `frontend/tests/pixel-parity/generating.spec.ts` + `frontend/tests/pixel-parity/report.spec.ts`：desktop 1440×900 + mobile 390×844 两 viewport；generating 覆盖 desktop 主屏、缺 reportId 错误态和 mobile overflow，report 覆盖 desktop dashboard、缺 sessionId、failed state 和 mobile overflow；每个状态断言关键 DOM/可见性或 viewport geometry，并执行非空内存截图。
 
 #### 5.3 scenario 加挂
 
@@ -433,11 +487,11 @@ scoped grep 在 `frontend/src/app/screens/{report,generating}/` 范围：
 | backend-review/001 真实 handler 与 fixture-backed frontend BDD 表现不一致，导致 real-backend gate 或跨 owner regression 失败 | 以真实 handler 结果为准反修 fixture / viewmodel mapping / scenario expectation；保留 fixture-backed BDD 作为 UI variant 覆盖，但不能把 mock green 宣称为真实 backend 闭环 |
 | GeneratingScreen 5 阶段动画时长（700-1200ms）与真实 backend 生成时间（P95 < 12s）节奏不匹配，导致用户感知卡顿 | Phase 1 动画仅作为视觉反馈，不阻塞 nav；status='ready' 在任何阶段都立刻 nav；最坏情况下 5 阶段 ~5s + 轮询命中 ~3s = 8s 内完成；超过 12s 进入 timeout state |
 | `useReportGenerationPoll` 在 visibility 切换时 race condition 导致重复 nav | Phase 1 nav 防抖 ref + 单次 fire-and-forget；onReady / onFailed callback 只触发一次；test fake clock 验证 |
-| ReportScreen 5 detail tab 在 mobile (390×844) viewport 折叠为 Accordion 时与 desktop 切换 keyboard a11y 不一致 | Phase 5 Playwright mobile project 单独 verify ARIA tablist → ARIA accordion 转换；Vitest 模拟 viewport 切换测试 |
+| Mobile width smoke 被误读为 detail-tab 组件级响应式证明 | P0.059 只声明 document width 与显式 DOM；detail tab 结构、切换和 keyboard a11y 由 Phase 3 Vitest 持续覆盖；扩展浏览器 AC 前先增加对应断言 |
 | 复练 CTA 路径 A 的 `replayItems:retryFocusTurnIds` 在 `getFeedbackReport` 响应中是 turn UUID 列表，但 backend-practice 创建 `goal='retry_current_round'` plan 需要 `source_report_id` 而非 turn id 列表 | 复练 CTA payload 仅作为 frontend nav route params；frontend-workspace-and-practice plan 002 或 future plan 在执行 `createPracticePlan` 时把 `sourceReportId` 设为当前 reportId；`replayItems` 作为本地 hint 用于 UI 显示，不传给 backend；本 plan handoff doc 标记此约束 |
 | 路径 B `nextRoundId` 推断逻辑（默认 roundId + 1）在 backend 没有真实 round metadata 时不准确 | plan 001 默认走本地推断；如产品确认需要真实下一轮 metadata，先回 backend-targetjob owner 修订；不在本 plan 引入新 backend 调用 |
 | i18n `errors.errorCode.*` 文案需要覆盖 backend-review D-8 所有 B1 `AI_*` enum；新增 B1 enum 时本 plan 文案漏更新 | Phase 2 i18n 测试断言 `errors.errorCode` 覆盖 B1 `AI_*` 当前全部 enum（用 generated B1 常量做 source of truth）；新增 enum 时 lint fail |
-| Playwright pixel parity baseline 与 ui-design 原型微调时容易 drift | clean-checkout PASS 以 DOM anchor / computed style / bounding box / responsive geometry / non-empty screenshot smoke 为硬 gate；`toHaveScreenshot` 仅在稳定 baseline 已提交或本 phase 明确更新 baseline 时启用；ui-design 微调时同步记录 baseline 更新原因 |
-| 复练 CTA 在未登录场景的 useRequestAuth handoff 未正确恢复到可创建新 session 的 owner | Phase 4 测试覆盖 `replay_practice` pendingAction 恢复到 workspace auto-start + fresh session；扩展 `scenarios/p0-002-auth-pending-action-resume.test.tsx` 覆盖该路径 |
+| Playwright 注释、owner 文档与真实浏览器断言容易 drift | Phase 8/12 preflight 同时读取 active spec、六份 plan artifact、两份 Playwright 源码与 P0.059 scenario claims；只允许七个已执行状态的显式证据，并要求每个状态执行非空内存截图 |
+| 复练 CTA 在未登录场景的 useRequestAuth handoff 丢失原报告上下文 | Phase 4 测试覆盖 `replay_practice` encode/decode 后回到同一 report params；鉴权恢复不自动创建 session，用户重试 CTA 后再走 direct-start helper |
 | **Polling timeout vs backend lease/retry 节奏不一致**（Open Question） | `useReportGenerationPoll` max attempts 30 ≈ 3.67 min；backend-review/001 D-13 lease_timeout 5 min + retry `min(2^attempt_count * 30s, 30min)` 可达 30 min × 5 attempts。当 backend 处于 retry 等待时 frontend 会先 timeout。当前默认：用户 retry 重启轮询（attempts 归零），不自动续轮；如 backend 在 generating → generating 持续 > 3.67 min 用户会反复看到 timeout 卡片。**待 design 决策**：是否把 max attempts 提到 ≥ 5 min（对齐 backend lease_timeout）？是否在 timeout 自动 retry 一次再显示卡片？是否新增 backend `?wait=true` long-poll API？plan 001 默认保留 3.67 min + manual retry；如需调整在 design 确认后修订本 risk row |
 | **`nextRoundId` 推断算法字符串格式 与 backend round metadata 缺位**（Open Question） | spec D-5 + plan §4.2 推断 `nextRoundId = roundId + 1` 仅对 numeric / `round-${N}` 字符串成立；如果 backend `practice_plans.round_id` 是 uuid 推断无意义。**待 design 决策**：（A）约定 `roundId` 必须是可递增字符串（如 `round-${N}`）+ 推断 `round-${parseInt(N)+1}`；（B）path B CTA 在 backend-targetjob 提供真实 metadata 前 disabled / 不渲染；（C）path B 走临时 fallback：复用当前 roundId（"continue current round" 隐含语义）。plan 001 默认采用选项 A + 在 ContextStrip 显示 zh "第 2 轮" / en "Round 2" 文案；如 backend 实际格式不符合，design 需先回 backend-targetjob owner 修订 |

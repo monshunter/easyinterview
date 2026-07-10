@@ -2,7 +2,7 @@
 
 > **场景 ID**: E2E.P0.013
 > **执行方式**: automated
-> **隔离级别**: shared-cluster
+> **隔离级别**: in-process (Go HTTP tests)
 > **parallel-safe**: No
 > **状态**: Ready
 
@@ -16,7 +16,7 @@
 
 ## 3 Then
 
-响应保持 B2 `TargetJobWithJob` wire shape，`job.jobType=target_import` 且 `job.status=succeeded`；TargetJob 立即 `analysisStatus=ready` 并拥有至少 1 条 `must_have` draft requirement；不创建待 drainer 消费的 `target_import` async job，不发 `target.import.requested` / `target.parsed`；证据不含 raw JD text、prompt 或 response。
+响应保持 B2 `TargetJobWithJob` wire shape，`job.jobType=target_import` 且 `job.status=succeeded`；TargetJob 立即 `analysisStatus=ready` 并拥有至少 1 条 `must_have` draft requirement；不创建待 runner kernel 消费的 `target_import` async job，不发 `target.import.requested` / `target.parsed`；证据不含 raw JD text、prompt 或 response。
 
 ## 4 执行
 

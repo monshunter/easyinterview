@@ -32,7 +32,6 @@ import {
 } from "../../api/mockTransport";
 import { App } from "../App";
 import { useRequestAuth, type PendingAction } from "../auth";
-import { useNavigation } from "../navigation/NavigationProvider";
 
 /** Representative raw markers — must never appear in URL / history / storage. */
 const RAW_MARKERS = {
@@ -168,7 +167,7 @@ const PracticePendingTrigger: FC = () => {
 };
 
 describe("E2E.P0.089 auth pendingAction + URL privacy redline", () => {
-  it("workspace auto-start pending action: login round-trip restores canonical practice URL with zero raw-marker leak", async () => {
+  it("practice pending action: login round-trip restores canonical practice URL with zero raw-marker leak", async () => {
     render(
       <App
         client={buildClient()}
@@ -240,7 +239,7 @@ describe("E2E.P0.089 auth pendingAction + URL privacy redline", () => {
       hostile.set(k, v);
     }
     window.history.replaceState(null, "", `/auth/login?${hostile.toString()}`);
-    render(<App client={buildClient()} />);
+    const { unmount } = render(<App client={buildClient()} />);
     expect(window.location.pathname).toBe("/auth/login");
     const safe = new URLSearchParams(window.location.search);
     expect(safe.get("pendingRoute")).toBe("workspace");
@@ -248,6 +247,7 @@ describe("E2E.P0.089 auth pendingAction + URL privacy redline", () => {
     expect(safe.has("planId")).toBe(false);
     expect(safe.has("targetJobId")).toBe(false);
     expectNoRawMarkerLeak("after hostile direct-open of /auth/login");
+    unmount();
   });
 
   it("browser history popstate from hostile URL scrubs URL and history.state before route restore", async () => {

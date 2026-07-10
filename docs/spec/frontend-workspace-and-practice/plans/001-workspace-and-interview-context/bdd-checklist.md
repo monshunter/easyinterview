@@ -1,6 +1,6 @@
 # 001 BDD Checklist
 
-> **版本**: 1.18
+> **版本**: 1.19
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -23,24 +23,6 @@
 - [x] Revision 2026-07-09 verify covers absence of dirty failed JD cards, absence of `parse-error` / “缺少目标岗位 ID” on workspace, updated scenario evidence, and out-of-scope workspace context negative grep.
 - [x] Revision 2026-07-09 trigger covers generated `archiveTargetJob` delete from the workspace card top-right icon and verifies delete does not bubble to card navigation.
 - [x] Revision 2026-07-09 verify covers archived TargetJob absent after workspace refresh, delete failure preserving the card, and screenshot evidence for the post-delete list.
-
-## E2E.P0.019 Workspace context loading
-
-- [x] Scenario assets exist under `test/scenarios/e2e/p0-019-workspace-context-loading/`
-- [x] Given fixtures cover TargetJob ready/not-found/5xx, Resume ready/not-found and PracticePlan ready/not-found variants
-- [x] Trigger runs route hydration, TargetJob, Resume and PracticePlan hook coverage
-- [x] Verify covers empty state, missing-resume state, plan refresh recovery, retry UI and privacy negative grep
-- [x] Scenario `setup -> trigger -> verify -> cleanup` passes
-
-## E2E.P0.020 立即面试 + idempotency + auth recovery
-
-- [x] Scenario assets exist under `test/scenarios/e2e/p0-020-workspace-start-practice/`
-- [x] Given fixtures cover create/start success, validation failure and AI timeout failure variants
-- [x] Trigger runs start-practice and auth-gate tests
-- [x] Verify covers create-then-start, ready-plan direct start, idempotency retry, pendingAction auto-start and sensitive-param negative assertions
-- [x] Scenario `setup -> trigger -> verify -> cleanup` passes
-- [x] Revision 2026-07-09 trigger covers unified detail Start and verifies parse/report owners call `createPracticePlan` / `startPracticeSession` directly.
-- [x] Revision 2026-07-09 verify covers no `workspace(autoStartPractice=1)` session-start dependency and no sensitive param leakage.
 
 ## E2E.P0.021 Workspace boundary + privacy/out-of-scope negative
 

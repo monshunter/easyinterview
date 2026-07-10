@@ -2,6 +2,9 @@
  * @vitest-environment jsdom
  */
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { describe, expect, it } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -26,6 +29,30 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 describe("InterviewContext reducer", () => {
+  it("does not expose reducer actions without production dispatch sites", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "src/app/interview-context/InterviewContext.tsx"),
+      "utf8",
+    );
+    for (const action of [
+      "MERGE_TARGET_JOB",
+      "MERGE_RESUME",
+      "MERGE_PRACTICE_PLAN",
+      "CLEAR_RESUME",
+      "CLEAR_PRACTICE_PLAN",
+    ]) {
+      expect(source).not.toContain(`"${action}"`);
+    }
+  });
+
+  it("does not expose context hooks without repository consumers", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "src/app/interview-context/InterviewContext.tsx"),
+      "utf8",
+    );
+    expect(source).not.toContain("useStartPracticeContext");
+  });
+
   it("DEFAULT_INTERVIEW_CONTEXT has correct defaults per plan §3.7", () => {
     expect(DEFAULT_INTERVIEW_CONTEXT.targetJobId).toBe("");
     expect(DEFAULT_INTERVIEW_CONTEXT.jobId).toBe("");
@@ -42,7 +69,7 @@ describe("InterviewContext reducer", () => {
     expect(DEFAULT_INTERVIEW_CONTEXT.hintUsed).toBe("false");
     expect(DEFAULT_INTERVIEW_CONTEXT.hintCount).toBe("0");
     expect(DEFAULT_INTERVIEW_CONTEXT.sessionId).toBeUndefined();
-    expect(DEFAULT_INTERVIEW_CONTEXT.autoStartPractice).toBeUndefined();
+    expect(DEFAULT_INTERVIEW_CONTEXT).not.toHaveProperty("autoStartPractice");
   });
 
   it("HYDRATE_FROM_ROUTE populates all fields from route params", () => {
@@ -95,56 +122,6 @@ describe("InterviewContext reducer", () => {
     };
     const next = interviewContextReducer(state, action);
     expect(next.planId).toBeUndefined();
-  });
-
-  it("MERGE_TARGET_JOB updates jobId and persisted target-job bindings", () => {
-    const state: InterviewContextState = {
-      ...DEFAULT_INTERVIEW_CONTEXT,
-      targetJobId: "tj-1",
-    };
-    const action: InterviewContextAction = {
-      type: "MERGE_TARGET_JOB",
-      targetJob: {
-        id: "tj-1",
-        title: "Senior Frontend Engineer",
-        companyName: "Acme Corp",
-        locationText: "Shanghai",
-        sourceType: "linkedin",
-        resumeId: "rv-1",
-        currentPracticePlanId: "plan-1",
-      } as any,
-    };
-    const next = interviewContextReducer(state, action);
-    expect(next.jobId).toBe("tj-1");
-    expect(next.targetJobId).toBe("tj-1");
-    expect(next.resumeId).toBe("rv-1");
-    expect(next.planId).toBe("plan-1");
-  });
-
-  it("MERGE_RESUME sets resumeId from resume data", () => {
-    const state: InterviewContextState = {
-      ...DEFAULT_INTERVIEW_CONTEXT,
-      targetJobId: "tj-1",
-    };
-    const action: InterviewContextAction = {
-      type: "MERGE_RESUME",
-      resume: { id: "rv-1", title: "FE Resume v3" } as any,
-    };
-    const next = interviewContextReducer(state, action);
-    expect(next.resumeId).toBe("rv-1");
-  });
-
-  it("MERGE_PRACTICE_PLAN sets planId from plan data", () => {
-    const state: InterviewContextState = {
-      ...DEFAULT_INTERVIEW_CONTEXT,
-      targetJobId: "tj-1",
-    };
-    const action: InterviewContextAction = {
-      type: "MERGE_PRACTICE_PLAN",
-      plan: { id: "plan-1" } as any,
-    };
-    const next = interviewContextReducer(state, action);
-    expect(next.planId).toBe("plan-1");
   });
 
   it("MERGE_SESSION sets sessionId from session data", () => {

@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -62,6 +62,10 @@ Mock consumer 的 scenario 选择规则固定为：
 
 前端 MSW、后端 mock server、Prism 和文档站都必须消费 `openapi/fixtures/` 或由它生成的 OpenAPI examples。需要新增 mock variant 时，应在这里新增 scenario，并通过 validator 与 consumer gate。
 
+### 4.5 Script inventory
+
+当前 fixture 工具面只保留可执行、可重复验证的 validator、prototype sync、example renderer 与 Prism smoke。没有当前入口或 owner 引用的一次性 bootstrap 记录不属于 fixture truth source，也不作为历史说明文件保留。
+
 ## 5 验收标准
 
 - `openapi/fixtures/` 覆盖当前 37 个 operationId，没有多余 operation fixture。
@@ -70,6 +74,7 @@ Mock consumer 的 scenario 选择规则固定为：
 - `make render-openapi-fixture-examples` 通过，生成 examples 与 fixture body 字节级一致。
 - Prism smoke 固定 matrix 通过，其中 `requestPrivacyExport` 返回 `501 + PRIVACY_EXPORT_NOT_AVAILABLE`。
 - `openapi/fixtures/README.md`、`openapi/README.md` 和本 owner docs 均只描述当前 fixture truth source 与 consumer contract。
+- `scripts/` 下的生产工具必须具有当前 entry point、caller 或 owner 引用；一次性 fixture bootstrap 记录不得留在生产脚本目录。
 
 ## 6 风险与应对
 
@@ -85,6 +90,7 @@ Mock consumer 的 scenario 选择规则固定为：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.8 | 删除无当前入口的一次性 fixture bootstrap 记录，并将生产脚本可达性纳入通用 inventory gate。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-10 | 1.7 | 对齐当前 37-operation fixture truth source，包含 `archiveTargetJob`。 | tech-debt pruning |
 | 2026-07-07 | 1.6 | 新增 `getResumeSource` fixture，fixture truth source 与 example projection 覆盖当时 36-operation contract。 | backend-resume/001 Phase 12 |
 | 2026-07-07 | 1.5 | 压缩 owner 文档为当时 fixture truth source、prototype sync、example projection and Prism smoke contract。 | product-scope/001-core-loop-module-pruning |

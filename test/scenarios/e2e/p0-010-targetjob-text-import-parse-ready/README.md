@@ -2,13 +2,13 @@
 
 > **场景 ID**: E2E.P0.010
 > **执行方式**: automated
-> **隔离级别**: shared-cluster
+> **隔离级别**: in-process (Go HTTP tests)
 > **parallel-safe**: No
 > **状态**: Ready
 
 ## 1 Given
 
-已登录用户准备 `manual_text` JD、`targetLanguage`、cookie/session 上下文与 `Idempotency-Key`。`APP_ENV=test` 使用 deterministic stub / fake AI 与 in-process drainer，不依赖真实 provider。
+已登录用户准备 `manual_text` JD、`targetLanguage`、cookie/session 上下文与 `Idempotency-Key`。`APP_ENV=test` 使用 deterministic stub / fake AI 与 in-process runner kernel，不依赖真实 provider。
 
 ## 2 When
 
@@ -29,4 +29,4 @@
 
 ## 5 污染控制
 
-当前脚本使用 `cmd/api` HTTP 场景测试，覆盖 auth middleware、generated route、TargetJob handler/service 与 in-process drainer runtime；`cleanup.sh` 只清理 setup marker，保留 `.test-output/e2e/p0-010-targetjob-text-import-parse-ready/trigger.log` 与 `result.json` 作为真实 BDD evidence。`result.json.validBddEvidence=true`。
+当前脚本使用 `cmd/api` HTTP 场景测试，覆盖 auth middleware、generated route、TargetJob handler/service 与 in-process runner kernel runtime；`cleanup.sh` 只清理 setup marker，保留 `.test-output/e2e/p0-010-targetjob-text-import-parse-ready/trigger.log` 与 `result.json` 作为真实 BDD evidence。`result.json.validBddEvidence=true`。

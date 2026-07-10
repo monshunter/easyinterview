@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Create Flow Checklist
 
-> **版本**: 1.10
+> **版本**: 1.11
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -53,3 +53,8 @@
 - [x] 8.1 BDD-Gate: E2E.P0.084 用 focused Home/Parse regression tests 覆盖 `listResumes` 返回非归档且已有可读正文的简历时，首页下拉不得为空或禁用。<!-- verified: 2026-07-08 method=vitest tests=HomeResumeSelection.test.tsx,ParseResumeBinding.test.tsx -->
 - [x] 8.2 Home 和 Parse 复用同一可选简历判断：`ready` 或已有 `parsedTextSnapshot` / `originalText` / structured profile 的非归档简历可选；无可读证据的 queued/processing 简历仍不可选。<!-- verified: 2026-07-08 method=vitest tests=selectableResume.test.ts -->
 - [x] 8.3 截图闭环：浏览器打开 Home，展开或聚焦已有简历选择控件，截图证明选项可见且不再显示 `还没有可用简历`。<!-- verified: 2026-07-08 method=playwright-screenshot artifact=.test-output/screenshots/home-resume-picker-fixed-2026-07-08.png -->
+
+## Phase 9: Zero-reference stage type removal
+
+- [x] 9.1 RED/GREEN: create-flow source gate detects and then rejects the unconsumed `CreateStage` declaration while retaining `data-stage="input"`.<!-- verified: 2026-07-10 method=vitest-red-green evidence="RED failed only on ResumeCreateFlow.tsx; GREEN passed 3/3 after deleting the declaration." -->
+- [x] 9.2 Focused create-flow tests and frontend typecheck pass without a replacement stage abstraction.<!-- verified: 2026-07-10 method=vitest+typecheck evidence="Create-flow passed 6 files/32 tests; frontend typecheck passed; production source inventory returned zero CreateStage matches." -->

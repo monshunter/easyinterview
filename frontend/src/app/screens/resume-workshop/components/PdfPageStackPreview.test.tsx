@@ -71,9 +71,13 @@ describe("PdfPageStackPreview", () => {
     const stack = screen.getByTestId("resume-detail-pdf-preview-stack");
     expect(stack).toHaveAttribute("data-source-url", SOURCE_URL);
     expect(stack).toHaveAttribute("aria-label", "Alice PDF");
-    expect(pdfMocks.getDocument).toHaveBeenCalledWith({
-      url: SOURCE_URL,
-      withCredentials: true,
+    expect(screen.getByTestId("resume-detail-pdf-loading")).toBeVisible();
+    expect(pdfMocks.getDocument).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(pdfMocks.getDocument).toHaveBeenCalledWith({
+        url: SOURCE_URL,
+        withCredentials: true,
+      });
     });
 
     await screen.findByTestId("resume-detail-pdf-page-1");

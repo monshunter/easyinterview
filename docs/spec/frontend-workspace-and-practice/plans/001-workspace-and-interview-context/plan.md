@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.31
+> **版本**: 1.35
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -194,6 +194,34 @@
 - Add focused regression coverage that fails when delete is implemented via local-only hidden state, when `archiveTargetJob` is missing from generated client usage, when delete success does not remove the card, when delete failure hides the card, or when Home recent renders a delete control.
 - Add real-backend browser smoke and screenshot proof that an archived TargetJob disappears from workspace after refresh.
 
+### Phase 19: Remove non-executable workspace detail/start scenarios
+
+- Current workspace runtime is a pure plan-list owner; detail loading moved to parse, while parse/report focused gates own direct practice start and auth recovery.
+- Delete E2E.P0.019 and E2E.P0.020 scenario packages because their triggers reference five workspace tests removed in Phase 14 and cannot execute current behavior.
+- Remove their BDD matrix, context discovery and scenario index entries without keeping placeholder directories or lifecycle banners; retain E2E.P0.018 for list/parse/archive behavior and E2E.P0.021 for workspace boundary/privacy.
+- Add a repository-wide scenario contract test requiring every explicit frontend Vitest/Playwright path in trigger scripts to resolve to a tracked file.
+- Gate with the generic contract red/green cycle, current parse/report start-practice tests, E2E.P0.018/E2E.P0.021, owner/product contexts, docs/index/diff checks and pruning surface.
+
+### Phase 20: Remove obsolete auto-start context state and implicit route-param carry
+
+- Delete `autoStartPractice` from `InterviewContextState`, defaults and route hydration, and delete the unreferenced `CLEAR_AUTO_START` action.
+- Replace `startPracticeFromParams` arbitrary input spreading plus one-key stripping with an explicit current practice-route output assembled from normalized context, new plan/session IDs and optional language.
+- Preserve URL hostile-input rejection in routeUrl/P0.088 negative tests; direct-start callers continue to receive target/job/resume/round/mode/practice/hint/source-report context only.
+- BDD is not applicable because this is internal state and route-param sanitization with no user-visible flow change. Alternative gates: focused red/green unit tests, parse/report/home/workspace direct-start regressions, P0.018/P0.021/P0.057/P0.088 wrappers, typecheck/full frontend tests and owner/global gates.
+
+### Phase 21: Remove test-only InterviewContext reducer actions
+
+- Delete `MERGE_TARGET_JOB`, `MERGE_RESUME`, `MERGE_PRACTICE_PLAN`, `CLEAR_RESUME` and `CLEAR_PRACTICE_PLAN`; repository search proves they have no production dispatch sites.
+- Keep only runtime-used `HYDRATE_FROM_ROUTE`, `MERGE_SESSION`, `INCREMENT_HINT_COUNT` and `CLEAR` behavior.
+- Replace unit tests that manufacture unused actions with a source-surface negative assertion plus the existing runtime-action behavior tests.
+- BDD is not applicable because no executable user path uses the removed actions. Alternative gates: focused reducer red/green, production dispatch inventory, full frontend tests/typecheck/build and owner/global gates.
+
+### Phase 22: Remove unconsumed InterviewContext hook
+
+- Delete `useStartPracticeContext`; repository-wide AST and text inventory prove the export has no production or test consumer.
+- Keep `useInterviewContext` as the single runtime access API and leave `InterviewContextState` behavior unchanged.
+- BDD is not applicable because the removed hook has no executable caller. Alternative gates: focused source-surface red/green, repository symbol inventory, full frontend tests/typecheck and owner/global gates.
+
 ### Phase 9: Plan-list card simplification and theme consistency
 
 - Reopen the completed owner after screenshot review because Phase 8 still rendered low-value source/language metadata and a secondary CTA that visually competed with the theme.
@@ -226,6 +254,10 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.35 | Remove the unconsumed useStartPracticeContext export. |
+| 2026-07-10 | 1.34 | Remove five test-only InterviewContext reducer actions and keep the runtime action surface explicit. |
+| 2026-07-10 | 1.33 | Remove obsolete auto-start context state and replace implicit practice route-param carry with an explicit allowlist. |
+| 2026-07-10 | 1.32 | Remove non-executable P0.019/P0.020 workspace scenarios and add a global trigger-path existence gate. |
 | 2026-07-10 | 1.31 | Repair P0.021 wrapper drift to current workspace boundary and report replay handoff tests; rename negative labels to out-of-scope. |
 | 2026-07-10 | 1.30 | Align workspace route/list negative wording to out-of-scope/stale terminology without behavior changes. |
 | 2026-07-09 | 1.25 | Review remediation: preserve structured round params in workspace list quick-start practice handoff. |

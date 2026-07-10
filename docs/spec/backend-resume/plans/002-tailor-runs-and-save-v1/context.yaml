@@ -6,7 +6,7 @@ metadata:
   sequence: 2
   specVersion:
     from: 1.7
-    to: 2.4
+    to: 2.5
 spec:
   defaultTarget: backend
   discovery:
@@ -28,7 +28,7 @@ spec:
     keywords:
       - request resume tailor async job
       - get resume tailor run status machine
-      - resume tailor in-process drainer
+      - resume tailor in-process runner kernel
       - resume tailor completed outbox event
       - update resume flat structured profile
       - duplicate resume save as new flat asset

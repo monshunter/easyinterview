@@ -136,9 +136,10 @@ Rules:
    consumer's json tags or explicitly documented parser-required keys. For
    `json.RawMessage` consumers, alignment is against the keys the parser checks
    before persisting the raw payload.
-6. **Alias policy**: parser aliases are compatibility behavior, not new prompt
-   contract fields. For example, a parser may accept out-of-scope aliases while
-   the schema-rendered prompt block uses only the canonical key.
+6. **Canonical parser policy**: runtime parsers consume only schema canonical
+   keys. Out-of-scope aliases may appear only in negative tests that prove the
+   existing fail-close or degrade path; they are not prompt or runtime contract
+   fields.
 7. **Template hash boundary**: output schema bytes do not participate in
    `template_hash`. Prompt body edits still require YAML hash refresh; schema
    edits are validated by schema/prompt/struct lint gates instead.
@@ -235,7 +236,7 @@ The lint gate rejects:
 
 ## 10 References
 
-- Spec: `docs/spec/prompt-rubric-registry/spec.md` v2.9
+- Spec: `docs/spec/prompt-rubric-registry/spec.md`
 - Plans: `docs/spec/prompt-rubric-registry/plans/001-baseline/plan.md`,
   `docs/spec/prompt-rubric-registry/plans/002-output-schema-contract/plan.md`,
   `docs/spec/prompt-rubric-registry/plans/003-language-coordinate-simplification/plan.md`,

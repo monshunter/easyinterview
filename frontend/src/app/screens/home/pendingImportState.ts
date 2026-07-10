@@ -18,7 +18,3 @@ export function consumePendingImportSource(
   pendingSources.delete(id);
   return source;
 }
-
-export function clearPendingImportSourcesForTests(): void {
-  pendingSources.clear();
-}

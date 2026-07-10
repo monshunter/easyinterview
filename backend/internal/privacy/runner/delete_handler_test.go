@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/privacy/runner"
-	"github.com/monshunter/easyinterview/backend/internal/targetjob"
+	async "github.com/monshunter/easyinterview/backend/internal/runner"
 	"github.com/monshunter/easyinterview/backend/internal/upload/service"
 	"github.com/monshunter/easyinterview/backend/internal/upload/store"
 )
@@ -31,7 +31,7 @@ func TestPrivacyDeleteHandlerDeletesUploadFilesForRequestUser(t *testing.T) {
 		Now:         fixedPrivacyNow,
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), async.ClaimedJob{
 		JobID:        "job-1",
 		JobType:      "privacy_delete",
 		ResourceType: "privacy_request",
@@ -58,7 +58,7 @@ func TestPrivacyDeleteHandlerHardDeletesAccountIdentityAfterDomainCleanup(t *tes
 		Now:         fixedPrivacyNow,
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), async.ClaimedJob{
 		JobID:        "job-1",
 		JobType:      "privacy_delete",
 		ResourceType: "privacy_request",
@@ -82,7 +82,7 @@ func TestPrivacyDeleteHandlerCompletedTombstoneRetrySucceedsIdempotently(t *test
 		Now:         fixedPrivacyNow,
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), async.ClaimedJob{
 		JobID:        "job-1",
 		JobType:      "privacy_delete",
 		ResourceType: "privacy_request",
@@ -112,7 +112,7 @@ func TestPrivacyDeleteHandlerRetryableUploadFailureKeepsJobRetryable(t *testing.
 		Now:         fixedPrivacyNow,
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), async.ClaimedJob{
 		JobID:        "job-1",
 		JobType:      "privacy_delete",
 		ResourceType: "privacy_request",
@@ -136,7 +136,7 @@ func TestPrivacyDeleteHandlerNonRetryableFailureMarksRequestFailed(t *testing.T)
 		Now:         fixedPrivacyNow,
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), async.ClaimedJob{
 		JobID:        "job-1",
 		JobType:      "privacy_delete",
 		ResourceType: "privacy_request",

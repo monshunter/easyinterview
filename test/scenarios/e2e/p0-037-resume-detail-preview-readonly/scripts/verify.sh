@@ -11,6 +11,11 @@ grep -Fq "src/app/scenarios/p0-037-resume-detail-preview-readonly.test.tsx" "$LO
 grep -Eq 'Tests +6 passed \(6\)' "$LOG_FILE"
 grep -Eq 'Test Files +1 passed \(1\)' "$LOG_FILE"
 
+if grep -Fq 'not wrapped in act' "$LOG_FILE"; then
+  echo "unwrapped React update leaked into scenario evidence" >&2
+  exit 1
+fi
+
 # Negative: scenario evidence must not surface out-of-scope route testid leakage.
 fallback_marker="D2""-D6"
 for forbidden in \

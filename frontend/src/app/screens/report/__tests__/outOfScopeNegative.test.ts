@@ -89,8 +89,27 @@ function survey(): Array<{ file: string; needle: string }> {
   return offenders;
 }
 
+function surveyUnconsumedHelpers(): Array<{ file: string; name: string }> {
+  const names = [
+    ["isAi", "ErrorCode"].join(""),
+    ["FAILURE_AI", "_ERROR_KEYS"].join(""),
+  ];
+  const offenders: Array<{ file: string; name: string }> = [];
+  for (const file of walk(SCREEN_DIR)) {
+    const text = readFileSync(file, "utf8");
+    for (const name of names) {
+      if (text.includes(name)) offenders.push({ file, name });
+    }
+  }
+  return offenders;
+}
+
 describe("frontend-report-dashboard/001 report module negative grep", () => {
   it("contains no out-of-scope report-layout / readiness / mistakes / voice / insight API / data prototype imports", () => {
     expect(survey()).toEqual([]);
+  });
+
+  it("contains no report error helpers without repository consumers", () => {
+    expect(surveyUnconsumedHelpers()).toEqual([]);
   });
 });

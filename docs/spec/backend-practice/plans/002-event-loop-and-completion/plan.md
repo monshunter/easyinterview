@@ -1,6 +1,6 @@
 # Backend Practice Event Loop and Completion
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -103,6 +103,12 @@
 - Run BDD scenario tests and backend-practice runtime boundary lint.
 - Update plan/index evidence.
 
+### Phase 5: Handler dead helper cleanup
+
+- Delete the unreferenced `derefString` helper from `backend/internal/api/practice/handler.go`; retain the used `stringValue` normalizer.
+- Keep all handler surfaces and request/response behavior unchanged.
+- Use backend-wide `staticcheck` U1000 as the red signal; verify with scoped staticcheck and the backend-practice package gate.
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -118,5 +124,6 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.6 | Remove the unreferenced duplicate string-pointer helper from the Practice API handler. |
 | 2026-07-07 | 1.3 | Compress owner docs to current event-loop, completion, idempotency, event/job and privacy contract. |
 | 2026-05-14 | 1.2 | Complete implementation and verification for event loop and completion. |

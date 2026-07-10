@@ -1,8 +1,8 @@
 # 002 BDD Plan
 
-> **版本**: 1.3
+> **版本**: 1.5
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Plan**: [plan](./plan.md)
 
@@ -42,13 +42,13 @@
 
 | Given | When | Then | 验证入口 |
 |-------|------|------|----------|
-| 用户 A 拥有 flat resume + target job；A3 AIClient stub 返回 success JSON；F3 `resume.tailor.*` feature_key ready；B2 request/get tailor fixtures 使用 `resumeId` | 运行 `requestResumeTailor` / `getResumeTailorRun` handler fixture parity、service/store tailor focused tests、`cmd/api` drainer ready path、job handler ready path | `requestResumeTailor` 创建 `async_jobs(job_type='resume_tailor')` with `payload.resumeId`；`getResumeTailorRun` 从 async job status/result 返回 queued/generating/ready/failed；success 写 typed `ai_task_runs`；`resume.tailor.completed` ready-only，payload 仅含 `tailorRunId` / `resumeId` / `targetJobId` / `mode` / `status` | `test/scenarios/e2e/p0-077-resume-tailor-async-dispatch-and-ready/` |
+| 用户 A 拥有 flat resume + target job；A3 AIClient stub 返回 success JSON；F3 `resume.tailor.*` feature_key ready；B2 request/get tailor fixtures 使用 `resumeId` | 运行 `requestResumeTailor` / `getResumeTailorRun` handler fixture parity、service/store tailor focused tests、`cmd/api` runner kernel ready path、job handler ready path | `requestResumeTailor` 创建 `async_jobs(job_type='resume_tailor')` with `payload.resumeId`；`getResumeTailorRun` 从 async job status/result 返回 queued/generating/ready/failed；success 写 typed `ai_task_runs`；`resume.tailor.completed` ready-only，payload 仅含 `tailorRunId` / `resumeId` / `targetJobId` / `mode` / `status` | `test/scenarios/e2e/p0-077-resume-tailor-async-dispatch-and-ready/` |
 
 ### E2E.P0.078 resume.tailor failure and retry
 
 | Given | When | Then | 验证入口 |
 |-------|------|------|----------|
-| 三个 deterministic tailor async jobs 覆盖 timeout、output_invalid、timeout-then-success；`cmd/api` in-process drainer 可 `RunOnce` | 运行 `TestResumeTailorDrainerFailureScenario`、`TestTailorHandlerModeRoutingAndFailurePaths`、live store ready-only outbox integration | timeout 为 retryable `AI_PROVIDER_TIMEOUT`；invalid output 为 terminal `AI_OUTPUT_INVALID`；retry 可回到 generating 并最终 ready；每次 AI attempt 写 `ai_task_runs`；只有 final ready 发 `resume.tailor.completed` | `test/scenarios/e2e/p0-078-resume-tailor-failure-and-retry/` |
+| 三个 deterministic tailor async jobs 覆盖 timeout、output_invalid、timeout-then-success；`cmd/api` in-process runner kernel 可 `RunOnce` | 运行 `TestResumeTailorRunnerFailureScenario`、`TestTailorHandlerModeRoutingAndFailurePaths`、live store ready-only outbox integration | timeout 为 retryable `AI_PROVIDER_TIMEOUT`；invalid output 为 terminal `AI_OUTPUT_INVALID`；retry 可回到 generating 并最终 ready；每次 AI attempt 写 `ai_task_runs`；只有 final ready 发 `resume.tailor.completed` | `test/scenarios/e2e/p0-078-resume-tailor-failure-and-retry/` |
 
 ### E2E.P0.079 flat save fixture parity and read-only detail boundary
 
@@ -60,4 +60,4 @@
 
 | Given | When | Then | 验证入口 |
 |-------|------|------|----------|
-| P0.074-P0.079 已覆盖 flat API / persistence / drainer paths；privacy fixtures inject private markers | 运行 job privacy tests、live store ready-only outbox privacy gate、cmd/api drainer privacy gates、runtime vocabulary negative greps | outbox payload 只含 IDs/mode/status；`ai_task_runs` 和 audit metadata 不持久化 prompt/model/raw resume/match summary/suggested bullet；backend resume runtime 0 命中 `inline|mirror|mistakes|growth|drill|inline-debrief-record` | `test/scenarios/e2e/p0-080-resume-tailor-privacy-negative/` |
+| P0.074-P0.079 已覆盖 flat API / persistence / runner kernel paths；privacy fixtures inject private markers | 运行 job privacy tests、live store ready-only outbox privacy gate、cmd/api runner kernel privacy gates、runtime vocabulary negative greps | outbox payload 只含 IDs/mode/status；`ai_task_runs` 和 audit metadata 不持久化 prompt/model/raw resume/match summary/suggested bullet；backend resume runtime 0 命中 `inline|mirror|mistakes|growth|drill|inline-debrief-record` | `test/scenarios/e2e/p0-080-resume-tailor-privacy-negative/` |

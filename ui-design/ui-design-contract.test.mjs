@@ -1,12 +1,42 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-import { readdirSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const readUiFile = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const readUiSources = () => readdirSync(new URL("./src/", import.meta.url))
   .filter((name) => name.endsWith(".jsx"))
   .map((name) => [name, readUiFile(`./src/${name}`)]);
+const readUiJsxTree = (directory = new URL("./", import.meta.url), prefix = "") =>
+  readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const relative = `${prefix}${entry.name}`;
+    const entryUrl = new URL(`./${relative}${entry.isDirectory() ? "/" : ""}`, import.meta.url);
+    if (entry.isDirectory()) {
+      return readUiJsxTree(entryUrl, `${relative}/`);
+    }
+    return entry.name.endsWith(".jsx") ? [[relative, readFileSync(entryUrl, "utf8")]] : [];
+  });
+
+test("prototype JSX sources do not duplicate whole files", () => {
+  const sourceByHash = new Map();
+  for (const [name, source] of readUiJsxTree()) {
+    const hash = createHash("sha256").update(source).digest("hex");
+    assert.equal(sourceByHash.get(hash), undefined, `${name} duplicates ${sourceByHash.get(hash)}`);
+    sourceByHash.set(hash, name);
+  }
+});
+
+test("prototype runner uses the repository Python 3 toolchain only", () => {
+  const runner = readUiFile("./run.sh");
+  const toolchainCheck = runner.indexOf("if ! command -v python3");
+  const urlEncoding = runner.indexOf("url_encode() {");
+
+  assert.ok(toolchainCheck >= 0 && toolchainCheck < urlEncoding);
+  assert.match(runner, /SCRIPT_PATH="\$SCRIPT_DIR\/\$\(basename "\$0"\)"/);
+  assert.match(runner, /sed -n '2,7p' "\$SCRIPT_PATH"/);
+  assert.match(runner, /exec python3 -m http\.server/);
+  assert.doesNotMatch(runner, /SimpleHTTPServer|npx --yes serve|elif command -v python/);
+});
 
 test("workspace mock records are scoped to the active mock plan", () => {
   const workspace = readUiFile("./src/screen-workspace.jsx");
@@ -180,6 +210,12 @@ test("current UI source does not expose out-of-scope mistakes/growth/drill produ
   assert.doesNotMatch(report, /错题|openDrill|addToMistakes|addedToMistakes/);
   assert.doesNotMatch(settings, /Mistakes derived|派生的错题/);
   assert.doesNotMatch(data, /\bmistakes\s*:|mistakesTotal|mistakesResolved|\bgrowth\s*:/);
+});
+
+test("prototype experience copy describes direct current actions", () => {
+  const data = readUiFile("./src/data.jsx");
+
+  assert.doesNotMatch(data, /兼容层/);
 });
 
 test("P0 auth success resumes the pending action instead of always returning home", () => {

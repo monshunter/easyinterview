@@ -2,9 +2,11 @@ package doubaospeech
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -68,7 +70,7 @@ func (a *Adapter) Name() string { return a.providerRef }
 
 // Complete implements aiclient.Provider. Doubao speech does not support chat.
 func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
-	return aiclient.CompleteResponse{}, a.errMeta(profile, sharederrors.CodeAiUnsupportedCapability, "doubao_speech does not support chat"), sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, "doubao_speech does not support chat", false)
+	return aiclient.CompleteResponse{}, a.errMeta(profile, sharederrors.CodeAiUnsupportedCapability), sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, "doubao_speech does not support chat", false)
 }
 
 // Stream implements aiclient.Provider. Doubao speech does not support streaming chat.
@@ -91,32 +93,32 @@ func (a *Adapter) Synthesize(ctx context.Context, profile *aiclient.ModelProfile
 		Model:        profile.Default.Model,
 	}
 
-	respBody, status, headers, err := a.postJSON(ctx, profile.TimeoutMs, PathTTSSynthesize, req)
+	respBody, status, err := a.postJSON(ctx, profile.TimeoutMs, PathTTSSynthesize, req)
 	if err != nil {
-		return aiclient.SynthesisResponse{}, a.errMeta(profile, errorCodeOf(err), err.Error()), err
+		return aiclient.SynthesisResponse{}, a.errMeta(profile, errorCodeOf(err)), err
 	}
 	if status >= 400 {
 		err := mapHTTPError(status, respBody)
-		return aiclient.SynthesisResponse{}, a.errMeta(profile, errorCodeOf(err), err.Error()), err
+		return aiclient.SynthesisResponse{}, a.errMeta(profile, errorCodeOf(err)), err
 	}
 
 	var wire ttsSynthesizeResponse
 	if err := json.Unmarshal(respBody, &wire); err != nil {
 		err := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "doubao_speech: parse tts response: "+err.Error(), false)
-		return aiclient.SynthesisResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid, err.Error()), err
+		return aiclient.SynthesisResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid), err
 	}
 	if wire.Audio == "" {
 		err := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "doubao_speech: tts response missing audio", false)
-		return aiclient.SynthesisResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid, err.Error()), err
+		return aiclient.SynthesisResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid), err
 	}
 
-	audio, err := decodeBase64Audio(wire.Audio)
+	audio, err := base64.StdEncoding.DecodeString(wire.Audio)
 	if err != nil {
 		err := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "doubao_speech: decode tts audio: "+err.Error(), false)
-		return aiclient.SynthesisResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid, err.Error()), err
+		return aiclient.SynthesisResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid), err
 	}
 
-	meta := a.buildMeta(profile, headers, wire.ContentType, wire.DurationMs, wire.CharCount)
+	meta := a.buildMeta(profile, wire.DurationMs, wire.CharCount)
 	return aiclient.SynthesisResponse{
 		Audio:       audio,
 		ContentType: wire.ContentType,
@@ -132,29 +134,29 @@ func (a *Adapter) Transcribe(ctx context.Context, profile *aiclient.ModelProfile
 	}
 
 	req := map[string]any{
-		"audio":        encodeBase64Audio(input.Audio),
+		"audio":        base64.StdEncoding.EncodeToString(input.Audio),
 		"content_type": input.ContentType,
 		"language":     input.Language,
 		"model":        profile.Default.Model,
 	}
 
-	respBody, status, _, err := a.postJSON(ctx, profile.TimeoutMs, PathSTTRecognize, req)
+	respBody, status, err := a.postJSON(ctx, profile.TimeoutMs, PathSTTRecognize, req)
 	if err != nil {
-		return aiclient.TranscriptionResponse{}, a.errMeta(profile, errorCodeOf(err), err.Error()), err
+		return aiclient.TranscriptionResponse{}, a.errMeta(profile, errorCodeOf(err)), err
 	}
 	if status >= 400 {
 		err := mapHTTPError(status, respBody)
-		return aiclient.TranscriptionResponse{}, a.errMeta(profile, errorCodeOf(err), err.Error()), err
+		return aiclient.TranscriptionResponse{}, a.errMeta(profile, errorCodeOf(err)), err
 	}
 
 	var wire sttTranscribeResponse
 	if err := json.Unmarshal(respBody, &wire); err != nil {
 		err := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "doubao_speech: parse stt response: "+err.Error(), false)
-		return aiclient.TranscriptionResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid, err.Error()), err
+		return aiclient.TranscriptionResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid), err
 	}
 	if wire.Text == "" {
 		err := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "doubao_speech: stt response missing text", false)
-		return aiclient.TranscriptionResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid, err.Error()), err
+		return aiclient.TranscriptionResponse{}, a.errMeta(profile, sharederrors.CodeAiOutputInvalid), err
 	}
 
 	meta := aiclient.AICallMeta{
@@ -167,7 +169,7 @@ func (a *Adapter) Transcribe(ctx context.Context, profile *aiclient.ModelProfile
 }
 
 // postJSON sends a JSON POST request.
-func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body any) ([]byte, int, http.Header, error) {
+func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body any) ([]byte, int, error) {
 	if timeoutMs > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, time.Duration(timeoutMs)*time.Millisecond)
@@ -175,12 +177,12 @@ func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body
 	}
 	buf, err := json.Marshal(body)
 	if err != nil {
-		return nil, 0, nil, fmt.Errorf("doubao_speech: marshal request: %w", err)
+		return nil, 0, fmt.Errorf("doubao_speech: marshal request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.baseURL+path, strings.NewReader(string(buf)))
 	if err != nil {
-		return nil, 0, nil, fmt.Errorf("doubao_speech: build request: %w", err)
+		return nil, 0, fmt.Errorf("doubao_speech: build request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -192,20 +194,20 @@ func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body
 	resp, err := a.client.Do(req)
 	if err != nil {
 		if ctxErr := ctx.Err(); errors.Is(ctxErr, context.DeadlineExceeded) {
-			return nil, 0, nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "doubao_speech: timeout", true)
+			return nil, 0, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "doubao_speech: timeout", true)
 		}
-		return nil, 0, nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "doubao_speech: transport error: "+err.Error(), true)
+		return nil, 0, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "doubao_speech: transport error: "+err.Error(), true)
 	}
 	defer resp.Body.Close()
 
-	respBody, err := readAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, 0, nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "doubao_speech: read response: "+err.Error(), true)
+		return nil, 0, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "doubao_speech: read response: "+err.Error(), true)
 	}
-	return respBody, resp.StatusCode, resp.Header, nil
+	return respBody, resp.StatusCode, nil
 }
 
-func (a *Adapter) errMeta(profile *aiclient.ModelProfile, code string, msg string) aiclient.AICallMeta {
+func (a *Adapter) errMeta(profile *aiclient.ModelProfile, code string) aiclient.AICallMeta {
 	meta := aiclient.AICallMeta{
 		Provider:            a.providerRef,
 		ModelID:             profile.Default.Model,
@@ -222,7 +224,7 @@ func (a *Adapter) errMeta(profile *aiclient.ModelProfile, code string, msg strin
 	return meta
 }
 
-func (a *Adapter) buildMeta(profile *aiclient.ModelProfile, headers http.Header, contentType string, durationMs, charCount int) aiclient.AICallMeta {
+func (a *Adapter) buildMeta(profile *aiclient.ModelProfile, durationMs, charCount int) aiclient.AICallMeta {
 	return aiclient.AICallMeta{
 		Provider:     a.providerRef,
 		ModelFamily:  "doubao_speech",

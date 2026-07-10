@@ -9,8 +9,8 @@ mkdir -p "$OUT"
   echo "E2E.P0.078 trigger"
   date -u '+timestamp=%Y-%m-%dT%H:%M:%SZ'
   cd "$ROOT/backend"
-  echo "RUNNER go test cmd/api resume tailor drainer failure"
-  go test ./cmd/api -run TestResumeTailorDrainerFailureScenario -count=1 -v
+  echo "RUNNER go test cmd/api resume tailor runner kernel failure"
+  go test ./cmd/api -run TestResumeTailorRunnerFailureScenario -count=1 -v
   echo "evidence error_code=AI_PROVIDER_TIMEOUT"
   echo "evidence error_code=AI_OUTPUT_INVALID"
   echo "RUNNER go test resume jobs tailor failure"

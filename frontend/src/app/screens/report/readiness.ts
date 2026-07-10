@@ -27,15 +27,6 @@ export function dimensionStatusLabel(status: DimensionStatus): MessageKey {
   return DIMENSION_STATUS_LABEL[status];
 }
 
-const FAILURE_AI_ERROR_KEYS: ReadonlyArray<ApiErrorCode> = [
-  "AI_PROVIDER_TIMEOUT",
-  "AI_PROVIDER_SECRET_MISSING",
-  "AI_PROVIDER_CONFIG_INVALID",
-  "AI_OUTPUT_INVALID",
-  "AI_FALLBACK_EXHAUSTED",
-  "AI_UNSUPPORTED_CAPABILITY",
-];
-
 const FAILURE_LABEL_BY_CODE: Partial<Record<ApiErrorCode, MessageKey>> = {
   AI_PROVIDER_TIMEOUT: "report.failureState.errorCode.AI_PROVIDER_TIMEOUT",
   AI_PROVIDER_SECRET_MISSING:
@@ -61,9 +52,4 @@ export function failureErrorCodeKey(
     return FAILURE_LABEL_BY_CODE[code as ApiErrorCode]!;
   }
   return "report.failureState.errorCode.UNKNOWN";
-}
-
-export function isAiErrorCode(code: string | null | undefined): boolean {
-  if (!code) return false;
-  return FAILURE_AI_ERROR_KEYS.includes(code as ApiErrorCode);
 }

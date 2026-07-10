@@ -10,12 +10,12 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/observability"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/events"
 	"github.com/monshunter/easyinterview/backend/internal/shared/featurekeys"
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
-	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
 const (
@@ -65,13 +65,13 @@ func NewTailorHandler(opts TailorHandlerOptions) *TailorHandler {
 	}
 }
 
-func (h *TailorHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) targetjob.JobOutcome {
+func (h *TailorHandler) Handle(ctx context.Context, job runner.ClaimedJob) runner.JobOutcome {
 	if h == nil || h.store == nil || h.registry == nil || h.ai == nil || h.newID == nil {
-		return targetjob.JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: "resume tailor handler not initialised"}
+		return runner.JobOutcome{ErrorCode: sharederrors.CodeTargetImportFailed, ErrorMessage: "resume tailor handler not initialised"}
 	}
 	payload, err := decodeTailorJobPayload(job)
 	if err != nil {
-		return targetjob.JobOutcome{ErrorCode: sharederrors.CodeValidationFailed, ErrorMessage: sharederrors.CodeValidationFailed}
+		return runner.JobOutcome{ErrorCode: sharederrors.CodeValidationFailed, ErrorMessage: sharederrors.CodeValidationFailed}
 	}
 	// D-20: the async_jobs row (already marked running by the runner kernel) is
 	// the only durable run record. Failures surface through JobOutcome and the
@@ -122,7 +122,7 @@ func (h *TailorHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) ta
 		h.writeTaskRun(ctx, meta, taskCtx, startedAt, completedAt, err)
 		return h.fail(code, err.Error(), retryable)
 	}
-	parsed, err := decodeTailorAIResponse(complete.Content, tailorCtx)
+	parsed, err := decodeTailorAIResponse(complete.Content)
 	if err != nil {
 		meta = enrichTailorMeta(meta, resolution, featureKey, tailorCtx.Language, sharederrors.CodeAiOutputInvalid)
 		meta.ValidationStatus = aiclient.ValidationStatusInvalid
@@ -164,11 +164,11 @@ func (h *TailorHandler) Handle(ctx context.Context, job targetjob.ClaimedJob) ta
 	}); err != nil {
 		return h.fail(sharederrors.CodeTargetImportFailed, err.Error(), true)
 	}
-	return targetjob.JobOutcome{Succeeded: true}
+	return runner.JobOutcome{Succeeded: true}
 }
 
-func (h *TailorHandler) fail(code, message string, retryable bool) targetjob.JobOutcome {
-	return targetjob.JobOutcome{
+func (h *TailorHandler) fail(code, message string, retryable bool) runner.JobOutcome {
+	return runner.JobOutcome{
 		ErrorCode:    code,
 		ErrorMessage: safeFailureMessage(code, message),
 		Retryable:    retryable,
@@ -194,7 +194,7 @@ type tailorJobPayload struct {
 // D-20 keys the run by async_jobs.resource_id (= tailorRunId); the JSON payload
 // carries resumeId / targetJobId / mode, which the store re-reads in
 // GetForTailor.
-func decodeTailorJobPayload(job targetjob.ClaimedJob) (tailorJobPayload, error) {
+func decodeTailorJobPayload(job runner.ClaimedJob) (tailorJobPayload, error) {
 	payload := tailorJobPayload{TailorRunID: strings.TrimSpace(job.ResourceID)}
 	if payload.TailorRunID == "" {
 		return tailorJobPayload{}, fmt.Errorf("tailorRunId is required")
@@ -281,7 +281,7 @@ type decodedTailorSuggestion struct {
 	Reason          string
 }
 
-func decodeTailorAIResponse(content string, ctx resumestore.TailorJobContext) (decodedTailorOutput, error) {
+func decodeTailorAIResponse(content string) (decodedTailorOutput, error) {
 	content = strings.TrimSpace(content)
 	if content == "" {
 		return decodedTailorOutput{}, fmt.Errorf("AI response content was empty")
@@ -294,7 +294,7 @@ func decodeTailorAIResponse(content string, ctx resumestore.TailorJobContext) (d
 	if err != nil {
 		return decodedTailorOutput{}, err
 	}
-	suggestions := normalizeSuggestions(root["suggestions"], ctx.OriginalBullet)
+	suggestions := normalizeSuggestions(root["suggestions"])
 	if len(matchSummary) == 0 && len(suggestions) == 0 {
 		return decodedTailorOutput{}, fmt.Errorf("AI response missing match summary and suggestions")
 	}
@@ -305,33 +305,25 @@ func decodeTailorAIResponse(content string, ctx resumestore.TailorJobContext) (d
 }
 
 func normalizeMatchSummary(root map[string]any) (json.RawMessage, error) {
-	if raw, ok := root["matchSummary"]; ok {
-		encoded, err := json.Marshal(raw)
-		if err != nil {
-			return nil, fmt.Errorf("marshal matchSummary: %w", err)
-		}
-		var typed struct {
-			Strengths []string `json:"strengths"`
-			Gaps      []string `json:"gaps"`
-		}
-		if err := json.Unmarshal(encoded, &typed); err != nil {
-			return nil, fmt.Errorf("matchSummary schema invalid: %w", err)
-		}
-		return encoded, nil
-	}
-	strengths := stringListFromObjects(root["strengths_to_amplify"], "topic", "evidence")
-	gaps := stringListFromObjects(root["gaps"], "topic", "why")
-	if len(strengths) == 0 && len(gaps) == 0 {
+	raw, ok := root["matchSummary"]
+	if !ok {
 		return nil, nil
 	}
-	encoded, err := json.Marshal(map[string][]string{"strengths": strengths, "gaps": gaps})
+	encoded, err := json.Marshal(raw)
 	if err != nil {
-		return nil, fmt.Errorf("marshal normalized match summary: %w", err)
+		return nil, fmt.Errorf("marshal matchSummary: %w", err)
+	}
+	var typed struct {
+		Strengths []string `json:"strengths"`
+		Gaps      []string `json:"gaps"`
+	}
+	if err := json.Unmarshal(encoded, &typed); err != nil {
+		return nil, fmt.Errorf("matchSummary schema invalid: %w", err)
 	}
 	return encoded, nil
 }
 
-func normalizeSuggestions(raw any, fallbackOriginal string) []decodedTailorSuggestion {
+func normalizeSuggestions(raw any) []decodedTailorSuggestion {
 	items, ok := raw.([]any)
 	if !ok {
 		return nil
@@ -342,9 +334,9 @@ func normalizeSuggestions(raw any, fallbackOriginal string) []decodedTailorSugge
 		if !ok {
 			continue
 		}
-		original := firstNonEmptyString(obj["originalBullet"], obj["original_bullet"], fallbackOriginal)
-		suggested := firstNonEmptyString(obj["suggestedBullet"], obj["suggested_bullet"], obj["re"+"write"])
-		reason := firstNonEmptyString(obj["reason"], obj["why_better"], obj["whyBetter"])
+		original := firstNonEmptyString(obj["originalBullet"])
+		suggested := firstNonEmptyString(obj["suggestedBullet"])
+		reason := firstNonEmptyString(obj["reason"])
 		if strings.TrimSpace(original) == "" || strings.TrimSpace(suggested) == "" {
 			continue
 		}
@@ -353,33 +345,6 @@ func normalizeSuggestions(raw any, fallbackOriginal string) []decodedTailorSugge
 			SuggestedBullet: strings.TrimSpace(suggested),
 			Reason:          strings.TrimSpace(reason),
 		})
-	}
-	return out
-}
-
-func stringListFromObjects(raw any, fields ...string) []string {
-	items, ok := raw.([]any)
-	if !ok {
-		return nil
-	}
-	out := make([]string, 0, len(items))
-	for _, item := range items {
-		switch typed := item.(type) {
-		case string:
-			if strings.TrimSpace(typed) != "" {
-				out = append(out, strings.TrimSpace(typed))
-			}
-		case map[string]any:
-			parts := make([]string, 0, len(fields))
-			for _, field := range fields {
-				if value := firstNonEmptyString(typed[field]); value != "" {
-					parts = append(parts, value)
-				}
-			}
-			if len(parts) > 0 {
-				out = append(out, strings.Join(parts, ": "))
-			}
-		}
 	}
 	return out
 }

@@ -1,10 +1,3 @@
 # Frontend-specific gitignore (in addition to repo root .gitignore).
-#
-# Pixel-parity baselines are intentionally untracked: they're regenerated
-# locally / in CI via `pnpm --filter @easyinterview/frontend test:pixel-parity
-# -- --update-snapshots` and would otherwise bloat the repo. Per
-# docs/spec/frontend-shell/plans/003-ui-design-pixel-parity-gate/plan.md §6.
-tests/pixel-parity/__screenshots__/
-tests/pixel-parity/*-snapshots/
 .playwright-output/
 playwright-report/

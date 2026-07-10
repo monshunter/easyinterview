@@ -12,6 +12,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/observability"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob/urlfetch"
 )
@@ -19,10 +20,6 @@ import (
 // ----- pipeline test fakes -----
 
 type pipelineFakeStore struct {
-	queuedJobs []targetjob.ClaimedJob
-	finalize   []targetjob.JobOutcome
-	finalizeID []string
-
 	// parse executor side
 	target              targetjob.TargetJobRecord
 	sources             []targetjob.SourceRecord
@@ -40,7 +37,6 @@ type pipelineFakeStore struct {
 	sourceSnapshotURL   string
 	sourceSnapshotText  string
 	sourceSnapshotAt    *time.Time
-	pollMu              chan struct{}
 }
 
 func (s *pipelineFakeStore) ImportTargetJob(context.Context, targetjob.ImportTargetJobInput) (targetjob.ImportTargetJobResult, error) {
@@ -104,22 +100,6 @@ func (s *pipelineFakeStore) UpdateSourceSnapshot(_ context.Context, _ string, sa
 }
 func (s *pipelineFakeStore) LookupFileAttachmentForUser(context.Context, string, string) (targetjob.FileAttachmentRecord, error) {
 	return targetjob.FileAttachmentRecord{}, nil
-}
-func (s *pipelineFakeStore) ClaimNextAsyncJob(_ context.Context, _ []string, _ time.Time) (targetjob.ClaimedJob, bool, error) {
-	if s.pollMu != nil {
-		<-s.pollMu
-	}
-	if len(s.queuedJobs) == 0 {
-		return targetjob.ClaimedJob{}, false, nil
-	}
-	job := s.queuedJobs[0]
-	s.queuedJobs = s.queuedJobs[1:]
-	return job, true, nil
-}
-func (s *pipelineFakeStore) FinalizeAsyncJob(_ context.Context, jobID string, outcome targetjob.JobOutcome, _ time.Time) error {
-	s.finalizeID = append(s.finalizeID, jobID)
-	s.finalize = append(s.finalize, outcome)
-	return nil
 }
 func (s *pipelineFakeStore) EnqueueSourceRefresh(context.Context, string, string, time.Time) error {
 	s.sourceRefreshCalled = true
@@ -190,11 +170,13 @@ func (f *fakeAIClient) Synthesize(context.Context, string, aiclient.SynthesisInp
 }
 
 type fakeFetcher struct {
-	res urlfetch.FetchResult
-	err error
+	calls int
+	res   urlfetch.FetchResult
+	err   error
 }
 
 func (f *fakeFetcher) Fetch(context.Context, string) (urlfetch.FetchResult, error) {
+	f.calls++
 	if f.err != nil {
 		return urlfetch.FetchResult{}, f.err
 	}
@@ -286,7 +268,7 @@ func TestParseExecutor_HappyPath(t *testing.T) {
 		TargetLanguage: "en",
 		RawJDText:      "JD text",
 	}
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-1",
 	})
 	if !outcome.Succeeded {
@@ -364,7 +346,7 @@ func TestParseExecutor_HappyPathAcceptsFencedJSON(t *testing.T) {
 		RawJDText:      "JD text",
 	}
 
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-1",
 	})
 
@@ -402,7 +384,7 @@ func TestParseExecutor_BackfillsHiddenSignalRequirementsFromRiskSignals(t *testi
 		RawJDText:      "JD text",
 	}
 
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-1",
 	})
 
@@ -449,7 +431,7 @@ func TestParseExecutor_AIOutputInvalid_WhenHiddenSignalsAreMissing(t *testing.T)
 		RawJDText:      "JD text",
 	}
 
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 
 	if outcome.Succeeded || outcome.ErrorCode != "AI_OUTPUT_INVALID" || outcome.Retryable {
 		t.Fatalf("missing hidden signal must fail non-retryable AI_OUTPUT_INVALID, got %+v", outcome)
@@ -470,7 +452,7 @@ func TestParseExecutor_HappyPathCoalescesMissingCompanyName(t *testing.T) {
 		RawJDText:      "JD text",
 	}
 
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-1",
 	})
 
@@ -495,7 +477,7 @@ func TestParseExecutor_UsesPromptMessagesFromRegistryResolution(t *testing.T) {
 		RawJDText:      "JD text from caller",
 	}
 
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 
 	if !outcome.Succeeded {
 		t.Fatalf("parse should succeed, got %+v", outcome)
@@ -567,7 +549,7 @@ func TestParseExecutor_AIOutputInvalid_WhenRequirementsAreSemanticallyInvalid(t 
 				RawJDText:      "JD text",
 			}
 
-			outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+			outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 
 			if outcome.Succeeded || outcome.ErrorCode != "AI_OUTPUT_INVALID" || outcome.Retryable {
 				t.Fatalf("invalid semantic requirements must fail non-retryable AI_OUTPUT_INVALID, got %+v", outcome)
@@ -633,7 +615,7 @@ func TestParseExecutor_AIOutputInvalid_WhenInterviewRoundsAreSemanticallyInvalid
 				RawJDText:      "JD text",
 			}
 
-			outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+			outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 
 			if outcome.Succeeded || outcome.ErrorCode != "AI_OUTPUT_INVALID" || outcome.Retryable {
 				t.Fatalf("invalid interview rounds must fail non-retryable AI_OUTPUT_INVALID, got %+v", outcome)
@@ -646,7 +628,7 @@ func TestParseExecutor_AIOutputInvalid_WhenInterviewRoundsAreSemanticallyInvalid
 }
 
 func TestParseExecutorAITaskRuns(t *testing.T) {
-	exec, store, registry, ai, _ := newParseExecutorWithFakes(t)
+	_, store, registry, ai, _ := newParseExecutorWithFakes(t)
 	store.target = targetjob.TargetJobRecord{
 		ID:             "01918fa0-0000-7000-8000-000000002000",
 		UserID:         "01918fa0-0000-7000-8000-000000001000",
@@ -688,7 +670,7 @@ func TestParseExecutorAITaskRuns(t *testing.T) {
 	if err != nil {
 		t.Fatalf("observability.New: %v", err)
 	}
-	exec = targetjob.NewParseExecutor(targetjob.ParseExecutorOptions{
+	exec := targetjob.NewParseExecutor(targetjob.ParseExecutorOptions{
 		Store:    store,
 		Registry: registry,
 		AI:       wrappedAI,
@@ -697,7 +679,7 @@ func TestParseExecutorAITaskRuns(t *testing.T) {
 		Now:      func() time.Time { return time.Date(2026, 5, 9, 22, 0, 0, 0, time.UTC) },
 	})
 
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: store.target.ID,
 	})
 
@@ -843,7 +825,7 @@ func TestDeterministicParseAIClient_OnlyInterceptsTargetImportParse(t *testing.T
 		NewID:   idSeq("fixture-req"),
 		Now:     func() time.Time { return time.Date(2026, 5, 9, 22, 0, 0, 0, time.UTC) },
 	})
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-1",
 	})
 	if !outcome.Succeeded {
@@ -888,7 +870,7 @@ func TestParseExecutor_SuccessCommitFailureDoesNotWriteFailureAfterPartialSucces
 		RawJDText:      "JD text",
 	}
 
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-1",
 	})
 
@@ -910,7 +892,7 @@ func TestParseExecutor_MissingTargetIsTerminalWithoutFailureCleanup(t *testing.T
 	exec, store, _, _, _ := newParseExecutorWithFakes(t)
 	store.getErr = targetjob.ErrTargetJobNotFound
 
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-archived",
 	})
 
@@ -926,7 +908,7 @@ func TestParseExecutor_F3FailClosed(t *testing.T) {
 	exec, store, registry, _, _ := newParseExecutorWithFakes(t)
 	registry.err = targetjob.ErrPromptUnsupported
 	store.target = targetjob.TargetJobRecord{ID: "tgt-1", SourceType: targetjob.SourceTypeManualText, RawJDText: "x"}
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 	if outcome.Succeeded || outcome.Retryable || outcome.ErrorCode != "AI_PROVIDER_CONFIG_INVALID" {
 		t.Fatalf("F3 failure must map to AI_PROVIDER_CONFIG_INVALID non-retryable, got %+v", outcome)
 	}
@@ -939,7 +921,7 @@ func TestParseExecutor_AIProviderTimeout_Retryable(t *testing.T) {
 	exec, store, _, ai, _ := newParseExecutorWithFakes(t)
 	ai.err = errors.New("provider error: AI_PROVIDER_TIMEOUT context deadline")
 	store.target = targetjob.TargetJobRecord{ID: "tgt-1", SourceType: targetjob.SourceTypeManualText, RawJDText: "x"}
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 	if outcome.ErrorCode != "AI_PROVIDER_TIMEOUT" || !outcome.Retryable {
 		t.Fatalf("AI timeout must be retryable, got %+v", outcome)
 	}
@@ -949,7 +931,7 @@ func TestParseExecutor_AIOutputInvalid_NonRetryable(t *testing.T) {
 	exec, store, _, ai, _ := newParseExecutorWithFakes(t)
 	ai.resp = aiclient.CompleteResponse{Content: "not-json"}
 	store.target = targetjob.TargetJobRecord{ID: "tgt-1", SourceType: targetjob.SourceTypeManualText, RawJDText: "x"}
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 	if outcome.ErrorCode != "AI_OUTPUT_INVALID" || outcome.Retryable {
 		t.Fatalf("non-JSON response must map to AI_OUTPUT_INVALID non-retryable, got %+v", outcome)
 	}
@@ -958,7 +940,7 @@ func TestParseExecutor_AIOutputInvalid_NonRetryable(t *testing.T) {
 func TestParseExecutor_BlankJDText_SourceInvalid(t *testing.T) {
 	exec, store, _, _, _ := newParseExecutorWithFakes(t)
 	store.target = targetjob.TargetJobRecord{ID: "tgt-1", SourceType: targetjob.SourceTypeManualText, RawJDText: "   "}
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 	if outcome.ErrorCode != "TARGET_IMPORT_SOURCE_INVALID" || outcome.Retryable {
 		t.Fatalf("blank JD must map to TARGET_IMPORT_SOURCE_INVALID non-retryable, got %+v", outcome)
 	}
@@ -971,7 +953,8 @@ func TestParseExecutor_URLFetchUnavailable_Retryable(t *testing.T) {
 		ID: "tgt-1", SourceType: targetjob.SourceTypeURL, SourceURL: "https://jobs.example.com/1",
 		RawJDText: "x",
 	}
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+	store.sources = []targetjob.SourceRecord{{ID: "src-1", SourceType: targetjob.SourceTypeURL}}
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 	if outcome.ErrorCode != "TARGET_IMPORT_SOURCE_UNAVAILABLE" || !outcome.Retryable {
 		t.Fatalf("upstream unavailable must be retryable, got %+v", outcome)
 	}
@@ -984,9 +967,41 @@ func TestParseExecutor_URLFetchInvalid_NonRetryable(t *testing.T) {
 		ID: "tgt-1", SourceType: targetjob.SourceTypeURL, SourceURL: "https://jobs.example.com/1",
 		RawJDText: "x",
 	}
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+	store.sources = []targetjob.SourceRecord{{ID: "src-1", SourceType: targetjob.SourceTypeURL}}
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 	if outcome.ErrorCode != "TARGET_IMPORT_SOURCE_INVALID" || outcome.Retryable {
 		t.Fatalf("invalid source must map to TARGET_IMPORT_SOURCE_INVALID non-retryable, got %+v", outcome)
+	}
+}
+
+func TestParseExecutor_URLFetchWithoutSourceRowFailsBeforeFetch(t *testing.T) {
+	exec, store, _, ai, fetcher := newParseExecutorWithFakes(t)
+	ai.resp = aiclient.CompleteResponse{Content: happyResponseJSON}
+	fetcher.res = urlfetch.FetchResult{
+		SanitizedURL: "https://jobs.example.com/role/1",
+		Body:         "Fetched JD body for a Backend Engineer.",
+		FetchedAt:    time.Date(2026, 5, 9, 22, 30, 0, 0, time.UTC),
+	}
+	store.target = targetjob.TargetJobRecord{
+		ID:             "tgt-1",
+		UserID:         "user-1",
+		SourceType:     targetjob.SourceTypeURL,
+		SourceURL:      "https://jobs.example.com/role/1",
+		TargetLanguage: "en",
+	}
+
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{JobID: "j-1", ResourceID: "tgt-1"})
+	if outcome.ErrorCode != "TARGET_IMPORT_SOURCE_INVALID" || outcome.Retryable {
+		t.Fatalf("missing URL source row must fail closed, got %+v", outcome)
+	}
+	if fetcher.calls != 0 {
+		t.Fatalf("missing URL source row must fail before fetch, calls=%d", fetcher.calls)
+	}
+	if store.completeFailureIn == nil {
+		t.Fatal("missing URL source row must execute failure cleanup")
+	}
+	if store.sourceSnapshotAt != nil || store.completeSuccessIn != nil {
+		t.Fatalf("missing URL source row must not write snapshot or success: snapshot=%v success=%+v", store.sourceSnapshotAt, store.completeSuccessIn)
 	}
 }
 
@@ -1009,7 +1024,7 @@ func TestParseExecutor_URLFetchBodyIsPersistedAndParsed(t *testing.T) {
 	}
 	store.sources = []targetjob.SourceRecord{{ID: "src-1", SourceType: targetjob.SourceTypeURL}}
 
-	outcome := exec.Handle(context.Background(), targetjob.ClaimedJob{JobID: "j-1", ResourceID: "tgt-1"})
+	outcome := exec.Handle(context.Background(), runner.ClaimedJob{JobID: "j-1", ResourceID: "tgt-1"})
 	if !outcome.Succeeded {
 		t.Fatalf("URL fetch body should drive parse success, got %+v", outcome)
 	}
@@ -1037,96 +1052,11 @@ func TestParseExecutor_URLFetchBodyIsPersistedAndParsed(t *testing.T) {
 func TestSourceRefreshHandler_MarksStale(t *testing.T) {
 	store := &pipelineFakeStore{}
 	h := &targetjob.SourceRefreshHandler{Store: store, Now: func() time.Time { return time.Now().UTC() }}
-	outcome := h.Handle(context.Background(), targetjob.ClaimedJob{ResourceID: "tgt-1"})
+	outcome := h.Handle(context.Background(), runner.ClaimedJob{ResourceID: "tgt-1"})
 	if !outcome.Succeeded {
 		t.Fatalf("source refresh must succeed by default, got %+v", outcome)
 	}
 	if store.sourceFreshnessUpd != "stale" {
 		t.Fatalf("source freshness should be stale, got %q", store.sourceFreshnessUpd)
-	}
-}
-
-func TestDrainer_RunOnceProcessesQueuedJobAndFinalizes(t *testing.T) {
-	store := &pipelineFakeStore{
-		queuedJobs: []targetjob.ClaimedJob{
-			{JobID: "j-1", JobType: "target_import", ResourceType: "target_job", ResourceID: "tgt-1"},
-		},
-	}
-	called := false
-	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
-		Store: store,
-		Handlers: map[string]targetjob.JobHandler{
-			"target_import": targetjob.JobHandlerFunc(func(_ context.Context, j targetjob.ClaimedJob) targetjob.JobOutcome {
-				called = true
-				if j.JobID != "j-1" {
-					t.Errorf("unexpected jobID: %q", j.JobID)
-				}
-				return targetjob.JobOutcome{Succeeded: true}
-			}),
-		},
-	})
-	processed, err := drainer.RunOnce(context.Background())
-	if err != nil {
-		t.Fatalf("RunOnce: %v", err)
-	}
-	if !processed || !called || len(store.finalize) != 1 || !store.finalize[0].Succeeded {
-		t.Fatalf("expected one processed job + finalize succeeded; got processed=%v called=%v finalize=%+v", processed, called, store.finalize)
-	}
-}
-
-func TestDrainer_RunOnceWithUnknownJobTypeFinalizesNonRetryableFailure(t *testing.T) {
-	store := &pipelineFakeStore{
-		queuedJobs: []targetjob.ClaimedJob{
-			{JobID: "j-9", JobType: "ghost_runner", ResourceType: "target_job", ResourceID: "tgt-9"},
-		},
-	}
-	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
-		Store: store,
-		Handlers: map[string]targetjob.JobHandler{
-			"target_import": targetjob.JobHandlerFunc(func(_ context.Context, _ targetjob.ClaimedJob) targetjob.JobOutcome {
-				return targetjob.JobOutcome{Succeeded: true}
-			}),
-		},
-	})
-	if _, err := drainer.RunOnce(context.Background()); err != nil {
-		t.Fatal(err)
-	}
-	// note: jobTypes derived from handlers map = ["target_import"]; the
-	// fake store returns the queued job regardless of jobTypes filter to
-	// exercise the unknown-handler safety path.
-	if len(store.finalize) != 1 || store.finalize[0].Succeeded || store.finalize[0].ErrorCode != "TARGET_IMPORT_FAILED" {
-		t.Fatalf("expected unknown-handler failure finalize, got %+v", store.finalize)
-	}
-}
-
-func TestDrainer_StartShutdownDrainsCleanly(t *testing.T) {
-	store := &pipelineFakeStore{
-		queuedJobs: []targetjob.ClaimedJob{
-			{JobID: "j-1", JobType: "target_import", ResourceID: "tgt-1"},
-		},
-	}
-	processed := make(chan struct{}, 1)
-	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
-		Store: store,
-		Handlers: map[string]targetjob.JobHandler{
-			"target_import": targetjob.JobHandlerFunc(func(_ context.Context, _ targetjob.ClaimedJob) targetjob.JobOutcome {
-				processed <- struct{}{}
-				return targetjob.JobOutcome{Succeeded: true}
-			}),
-		},
-		Workers:      1,
-		PollInterval: 10 * time.Millisecond,
-	})
-	drainer.Start(context.Background())
-
-	select {
-	case <-processed:
-	case <-time.After(2 * time.Second):
-		t.Fatal("worker never picked up queued job")
-	}
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	if err := drainer.Shutdown(shutdownCtx); err != nil {
-		t.Fatalf("Shutdown: %v", err)
 	}
 }

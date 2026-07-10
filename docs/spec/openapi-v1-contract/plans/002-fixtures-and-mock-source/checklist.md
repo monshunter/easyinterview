@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Fixtures & Mock Source Checklist
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -37,3 +37,5 @@
 ## 5 Current owner compression gate
 
 - [x] 5.1 `plan.md`、`checklist.md`、`context.yaml` 与 plans INDEX 对齐当前 37-operation fixture/mock-source contract。<!-- verified: 2026-07-10 method=context-validation+sync-doc-index target=openapi-v1-contract/002 -->
+- [x] 5.2 通用 production-script inventory 先红后绿；删除无 entry point、caller 或 owner 引用的一次性 fixture bootstrap 记录，并通过 fixture/codegen/owner gates。
+  <!-- verified: 2026-07-10 method=production-script-inventory-and-openapi-gates evidence="Expanded inventory red reported exactly one one-shot fixture bootstrap record. Deleted the unreferenced 27,754-byte production script without a placeholder. Green inventory passes; prototype sync is hash-idempotent; 37 fixtures validate; sync/render tests pass 9 tests and 16 subtests; example rendering, 10-tag/37-operation OpenAPI lint, and full scripts/lint 293 tests plus 4248 subtests pass." -->

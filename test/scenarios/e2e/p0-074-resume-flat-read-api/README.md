@@ -20,7 +20,7 @@ inputs.
 When user A reads one resume and lists resumes with cursor pagination, user B
 attempts cross-user access, and out-of-scope endpoints are probed.
 
-Then the API returns fixture-compatible flat resume payloads, hides cross-user
+Then the API returns flat resume payloads matching the checked-in fixtures, hides cross-user
 records as 404, proves stable `updated_at DESC, id DESC` pagination, confirms
 out-of-scope route inputs are absent from generated routes, and keeps raw resume /
 suggestion text out of scenario evidence.

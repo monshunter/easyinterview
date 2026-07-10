@@ -226,7 +226,6 @@ func newFullFunnelResumeSeedHarness(t *testing.T) *fullFunnelResumeSeedHarness {
 	resumeRuntime, err := buildResumeRuntime(
 		loader,
 		db,
-		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		uploadRoutes{},
 		&apiNoopAIClient{},
 	)
@@ -294,7 +293,7 @@ func newFullFunnelJourneyHarnessWithTimeout(t *testing.T, timeout time.Duration)
 	t.Cleanup(targetRuntime.Close)
 
 	ai := &fullFunnelScenarioAIClient{}
-	resumeRuntime, err := buildResumeRuntime(loader, db, logger, uploadRoutes{}, ai)
+	resumeRuntime, err := buildResumeRuntime(loader, db, uploadRoutes{}, ai)
 	if err != nil {
 		t.Fatalf("buildResumeRuntime: %v", err)
 	}
@@ -302,7 +301,7 @@ func newFullFunnelJourneyHarnessWithTimeout(t *testing.T, timeout time.Duration)
 	if err != nil {
 		t.Fatalf("buildPracticeRoutes: %v", err)
 	}
-	reports, err := buildReportRuntime(loader, db, logger, ai)
+	reports, err := buildReportRuntime(loader, db, ai)
 	if err != nil {
 		t.Fatalf("buildReportRuntime: %v", err)
 	}

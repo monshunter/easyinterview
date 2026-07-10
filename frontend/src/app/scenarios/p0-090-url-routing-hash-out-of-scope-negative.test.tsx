@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * E2E.P0.090 — Hash compatibility + out-of-scope route negative regression.
+ * E2E.P0.090 — Hash routing + out-of-scope route negative regression.
  *
  * Truth source: docs/spec/frontend-shell/plans/004-url-addressable-routing/
  * bdd-plan.md §2 (E2E.P0.090) + bdd-checklist.md.
@@ -37,7 +37,7 @@ function resetWindow(): void {
 beforeEach(resetWindow);
 afterEach(resetWindow);
 
-describe("E2E.P0.090 hash compatibility + out-of-scope route negative regression", () => {
+describe("E2E.P0.090 hash routing + out-of-scope route negative regression", () => {
   it("`#route=home` bootstrap renders home and rewrites URL to `/`", () => {
     window.history.replaceState(null, "", "/#route=home");
     render(<App />);

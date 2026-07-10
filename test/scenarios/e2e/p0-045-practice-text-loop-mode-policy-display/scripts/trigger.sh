@@ -8,7 +8,6 @@ mkdir -p "$OUTPUT_DIR"
   cd "$REPO_ROOT"
   "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test \
-    src/app/screens/practice/hooks/usePracticeAssistance.test.ts \
     src/app/screens/practice/__tests__/practiceGoalParity.test.tsx \
     src/app/screens/practice/__tests__/practiceHints.test.tsx \
     src/app/screens/practice/__tests__/practicePauseResume.test.tsx \

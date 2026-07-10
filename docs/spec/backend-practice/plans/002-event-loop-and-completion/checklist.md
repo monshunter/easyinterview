@@ -1,6 +1,6 @@
 # Backend Practice Event Loop and Completion Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -45,6 +45,11 @@
 - [x] 4.2 runtime boundary lint keeps removed practice terms, duplicate `report_generate` handoff paths and turn-status compression helpers out of runtime/scenario/generated surfaces（验证：`python3 scripts/lint/backend_practice_out_of_scope.py --repo-root . --phase all`）
 - [x] 4.3 BDD-Gate: `E2E.P0.043` privacy/runtime boundary is covered（验证：`cd backend && go test ./cmd/api -run TestE2EP0043PracticeEventLoopPrivacyAndOutOfScopeSurface -count=1`）
 - [x] 4.4 owner closeout gates are current（验证：`validate_context.py backend-practice/002 backend`、`sync-doc-index --check`、`make docs-check`、`git diff --check`）
+
+## Phase 5: Handler dead helper cleanup
+
+- [x] 5.1 删除 `backend/internal/api/practice/handler.go` 中无调用且与 `stringValue` 重复的 `derefString`；验证: scoped `staticcheck ./internal/api/practice/...`、Practice handler/package gate 与 owner docs gates 通过。
+  <!-- verified: 2026-07-10 method=practice-handler-dead-helper-removal evidence="RED: backend staticcheck reported U1000 for the unreferenced derefString duplicate. GREEN: removed the helper; staticcheck ./internal/api/practice/... ./internal/practice/... PASS; go test ./internal/api/practice ./internal/practice ./internal/store/practice ./internal/middleware/idempotency ./internal/ai/aiclient ./internal/ai/registry ./cmd/api -count=1 PASS after the separately owned canonical scenario fixture repair; owner contexts, docs/diff/pruning gates PASS." -->
 
 ## 收口命令
 

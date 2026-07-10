@@ -1,6 +1,6 @@
 # App Shell Visual System Checklist
 
-> **版本**: 1.8
+> **版本**: 2.3
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -38,3 +38,27 @@
 - [x] 6.1 UI truth source and formal frontend expose only `ocean` / `plum` plus custom accent in the TopBar theme menu（验证：`ui-design/src/primitives.jsx`, `ui-design/src/app.jsx`, `frontend/src/app/topbar/TopBar.tsx`, `TopBar.test.tsx`）
 - [x] 6.2 Active palette types and CSS remove `warm` / `forest` from the supported theme matrix（验证：`tokens.test.ts`, `DisplayPreferencesProvider.test.tsx`, `DisplayPreferencesRootWiring.test.tsx`）
 - [x] 6.3 BDD-Gate: `E2E.P0.005` rejects `topbar-theme-option-warm` and `topbar-theme-option-forest` while preserving custom accent（验证：`p0-005-app-shell-visual-system-smoke.test.tsx`）
+
+## Phase 7: visual-smoke test lifecycle isolation
+
+- [x] 7.1 P0.005 三个同步结构/负向用例在断言后显式 unmount，清除无关 runtime/Home state updates（验证：P0.005 7 tests 无 act warning、visual-system focused/full frontend tests、build、owner context/docs gates）
+  <!-- verified: 2026-07-10 method=visual-smoke-test-lifecycle-isolation evidence="Focused red exposed 18 AppRuntimeProvider/HomeScreen act warnings. Added explicit unmount to the three synchronous structure/negative tests without changing assertions or production code. P0.005 7 tests and visual-system 9 files/92 tests pass warning-free; frontend build and owner/product contexts pass. Full frontend 137 files/829 tests pass and P0.005 is absent from the remaining warning list; completed-state docs/diff/pruning gates rerun during closeout." -->
+
+## Phase 8: Noto Serif SC bundle deduplication
+
+- [x] 8.1 删除 `fonts.css` 中重复的 Noto Serif SC full-font imports，保留含中文 unicode-range 的 400/500 分片（验证：focused font source red/green、visual-system/full frontend tests、build 产物无 `noto-serif-sc-chinese-simplified-*`、dist/asset byte delta、owner context/docs gates）
+  <!-- verified: 2026-07-10 method=noto-serif-sc-bundle-deduplication evidence="Focused red rejected the duplicate chinese-simplified-400 import after proving the retained 400 bundle covers U+4e00. Removed only the two full-font imports and corrected the stale subset comment. Focused font 6, visual-system 93 and full frontend 830 tests pass warning-free; build and owner/product contexts pass. Built full-font assets fell 4->0, Noto Serif SC bytes 21,727,604->14,442,688 and dist 27,752->20,632 KB; completed-state docs/diff/pruning gates rerun during closeout." -->
+
+## Phase 9: Western font subset pruning
+
+- [x] 9.1 将五个 Western/mono family 的 default imports 收敛为当前权重的 Latin imports，保留 EI_FONT_PRESETS 与中英 fallback 合同（验证：focused font red/green、visual-system/full frontend tests、build family asset count/byte delta、owner context/docs gates）
+  <!-- verified: 2026-07-10 method=western-font-subset-pruning evidence="Focused red rejected the generic Inter 400 import. Replaced 11 imports across five Western/mono families with current-weight Latin subsets; Noto Serif SC and already-Latin Geist remained unchanged. Font 7, visual-system 94 and full frontend 831 tests pass warning-free; build and owner/product contexts pass. Western assets fell 134->28 and 2,072,824->783,036 bytes, non-Latin Western assets fell to zero and dist 20,632->19,140 KB; completed-state docs/diff/pruning gates rerun during closeout." -->
+
+## Phase 10: P0.005 scenario contract reconciliation
+
+- [x] 10.1 BDD-Gate: 场景 README/seed/expected 与 executable smoke 统一为 ocean/light -> ocean/dark -> plum/dark，Warm / Forest 只作不存在负向断言；P0.005 直接引用当前 E2E.P0.006 browser gate，不维护浏览器安装或截图文件流程。
+  <!-- verified: 2026-07-10 method=p0005-scenario-contract-reconciliation evidence="Red asset contract read stale warm tokens, old ocean value, future browser instructions and 7-test marker. Updated README/seed/expected/verify to current tokens and P0.006 boundary; focused P0.005 passes 8 tests, scenario setup/trigger/verify/cleanup passes, and the 9-file visual-system owner suite passes 95 tests." -->
+
+## Phase 11: Theme data ownership wording
+
+- [x] 11.1 删除不存在的 themes.css generator 说明，将 handoff 文档对齐 3 个 font preset、固定 mono family、traceability test 与 TopBar metadata 真实消费者；tokens tests、owner context 和 docs gates 通过。<!-- verified: 2026-07-10 method=theme-data-ownership-reconciliation evidence="Runtime source and handoff README now name traceability tests and TopBar metadata, with 3 preset pairs plus fixed mono. Tokens pass 13/13 and typecheck passes." -->

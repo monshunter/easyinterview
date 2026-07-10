@@ -1,6 +1,6 @@
 # 001 Full Funnel Happy Journey
 
-> **版本**: 1.7
+> **版本**: 1.8
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -53,7 +53,7 @@
 | # | operationId | method + path | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |---|-------------|---------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | 0 | `registerResume` | POST `/resumes` | `Resumes/registerResume.json` | ResumeCreateFlow（P0.099 前置 / P0.098 seed） | real（resume handler/store + `resume_parse` runner） | `resume_assets` + `async_jobs(resume_parse)` | `resume.parse.default` via stub | P0.098 / P0.099 前置 |
-| 1 | `importTargetJob` | POST `/targets/import` | `TargetJobs/importTargetJob.json` | HomeScreen 导入 | real（targetjob handler + drainer） | `target_jobs` + `jobs` | `target.import.default` via stub | P0.098 / P0.099 |
+| 1 | `importTargetJob` | POST `/targets/import` | `TargetJobs/importTargetJob.json` | HomeScreen 导入 | real（targetjob handler + runner kernel） | `target_jobs` + `jobs` | `target.import.default` via stub | P0.098 / P0.099 |
 | 2 | `getTargetJob` | GET `/targets/{targetJobId}` | `TargetJobs/getTargetJob.json` | ParseScreen 轮询 | real | `target_jobs` | none（读 `analysisStatus`） | P0.098 / P0.099 |
 | 3 | `createPracticePlan` | POST `/practice/plans` | `PracticePlans/createPracticePlan.json` | WorkspaceScreen / Report CTA | real | `practice_plans` | none | P0.098 / P0.099（baseline + next_round） |
 | 4 | `startPracticeSession` | POST `/practice/sessions` | `PracticeSessions/startPracticeSession.json` | WorkspaceScreen 立即面试 | real + internal runner | `practice_sessions` + `session_events` + outbox | `practice.first_question.default` via stub | P0.098 / P0.099 |
@@ -174,5 +174,6 @@
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.8 | Align backend async scenario wording and test references with runner.Runtime. | backend-async-runner/001 |
 | 2026-07-10 | 1.7 | 统一 out-of-scope-negative 正文与 BDD 口径，并同步 plan 文档集版本。 | tech-debt pruning |
 | 2026-07-10 | 1.6 | 修正 Phase 0.2 旧 Red 证据口径：`TestE2EP0098` 当前已实现并由 scenario wrapper 执行。 | tech-debt pruning |

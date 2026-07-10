@@ -1,6 +1,6 @@
 # 002 — Practice Text Event Loop Checklist
 
-> **版本**: 1.13
+> **版本**: 1.15
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -12,7 +12,7 @@
 - [x] `usePracticeSessionLoader` 只通过 generated `getPracticeSession` 读取 session，覆盖 loading、data、refresh、404 和 error 状态。
 - [x] `usePracticeEvents` 只通过 generated `appendSessionEvent` 提交 answer / hint / pause / resume，body 含 `clientEventId`，request 不带 `Idempotency-Key`；当前 UI 不提供 skip 正向路径。
 - [x] AssistantAction renderer 覆盖 `ask_question / ask_follow_up / show_hint / session_wait / session_completed`，provenance 只进 AI transparency UI。
-- [x] `usePracticeAssistance` 只由 `practiceMode` 决定辅助显隐；`baseline / retry_current_round / next_round` 对显隐无副作用。
+- [x] `PracticeScreen` 始终提供会话内可选 hint；`baseline / retry_current_round / next_round` 和 out-of-scope strict input 对显隐无副作用。
 - [x] `useCompletePracticeSession` 只通过 generated `completePracticeSession` 完成会话，body 只含 `clientCompletedAt`，side-effect request 带 `Idempotency-Key` 并处理 replay / mismatch / 5xx / StrictMode 防抖。
 - [x] `buildPracticeHandoffParams` 使用 `resumeId` 与稳定 owner IDs handoff 到 `generating`，不携带 answer / question / hint / prompt / model provenance。
 - [x] voice turn 只允许出现在 `hooks/usePracticeVoiceTurn.ts`；text event loop 不调用 `getFeedbackReport`、不直接轮询 report、不绕过 generated client。
@@ -46,3 +46,21 @@
   <!-- verified: 2026-07-09 commands="./test/scenarios/env-redeploy.sh all; ./test/scenarios/env-verify.sh; Playwright real browser closed-loop" result="PASS" artifacts=".test-output/real-practice-session/practice-text-real-closed-loop.png .test-output/real-practice-session/practice-phone-real-default.png .test-output/real-practice-session/practice-phone-real-captions.png .test-output/real-practice-session/practice-generating-real-stable.png .test-output/real-practice-session/real-browser-closed-loop-result.json" -->
 - [x] 6.7 Closeout gates: `validate_context.py`、`sync-doc-index --check`、`make docs-check`、`git diff --check`、current-boundary zero-reference search 通过。
   <!-- verified: 2026-07-09 commands="python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/frontend-workspace-and-practice/plans/002-practice-text-event-loop/context.yaml --target frontend; python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check; make docs-check; git diff --check; python3 scripts/lint/backend_practice_out_of_scope.py --repo-root . --phase all; make validate-fixtures; make lint-openapi; corepack pnpm --filter @easyinterview/frontend exec tsc --noEmit; runtime current-boundary rg" result="PASS" -->
+
+## Phase 7: constant-only assistance hook removal
+
+- [x] 7.1 Add a scoped RED gate proving the unconsumed hook and its P0.045 trigger path still exist.
+  <!-- verified: 2026-07-10 method=constant-assistance-hook-source-trigger-red evidence="Focused practice boundary test failed with exactly two offender labels: practice-runtime and p0-045-trigger; the other three negative gates passed." -->
+- [x] 7.2 Delete the hook/test pair and reconcile owner/test/context plus P0.045 assets with rendered policy tests.
+  <!-- verified: 2026-07-10 method=constant-assistance-hook-removal evidence="Deleted both files and removed the P0.045 trigger/verify/expected markers. Current owner/test/context now point to rendered goal/hint/mode tests; scoped frontend/scenario symbol search is empty and focused policy tests pass 4 files/13 tests." -->
+- [x] 7.3 Run focused practice tests, P0.045 setup/trigger/verify/cleanup, full frontend/typecheck, owner/product contexts, docs, diff and pruning gates.
+  <!-- verified: 2026-07-10 method=constant-assistance-hook-removal evidence="P0.045 passes real-mode 1/1 plus rendered policy 6 files/18 tests; practice passes 24 files/107 tests; full frontend passes 137 files/836 tests with zero React update warning; typecheck and scenario trigger-path pytest pass. Owner/product contexts and docs/index/link/diff/pruning gates pass with real_residuals=0." -->
+
+## Phase 8: production test-only handoff inspector removal
+
+- [x] 8.1 Add a scoped source RED assertion for the runtime handoff inspector with no production consumer.
+  <!-- verified: 2026-07-10 method=test-only-handoff-inspector-source-red evidence="Focused practice boundary test failed only on utils/practiceHandoffParams.ts; the other four boundary gates passed and repository inventory showed only the unit test imported the inspector." -->
+- [x] 8.2 Delete `FORBIDDEN_KEYS` / `findForbiddenHandoffKeys` and replace helper-self-tests with direct complete forbidden-key assertions on `buildPracticeHandoffParams` output.
+  <!-- verified: 2026-07-10 method=test-only-handoff-inspector-removal evidence="Deleted both production symbols and the injected-helper self-test. The real output test now checks all 11 forbidden keys directly and no longer uses jsdom; boundary/handoff/privacy pass 3 files/9 tests and scoped runtime symbol inventory is empty." -->
+- [x] 8.3 Run focused handoff/privacy tests, P0.047, practice/full frontend tests, typecheck, owner/product contexts, docs, diff and pruning gates.
+  <!-- verified: 2026-07-10 method=test-only-handoff-inspector-removal evidence="Focused boundary/handoff/privacy passes 3 files/9 tests; P0.047 passes real-mode 1/1 plus 5 files/14 tests; full frontend passes 137 files/836 tests with zero React update warning and typecheck. Owner/product contexts and docs/index/link/diff/pruning gates pass with real_residuals=0." -->

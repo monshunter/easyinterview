@@ -10,13 +10,13 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
-	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
-func TestResumeParseDrainerHTTPScenario(t *testing.T) {
+func TestResumeParseRunnerHTTPScenario(t *testing.T) {
 	now := time.Date(2026, 5, 13, 10, 0, 0, 0, time.UTC)
 	assetID := "01918fa0-0000-7000-8000-00000000a001"
 	userID := "01918fa0-0000-7000-8000-00000000a002"
@@ -28,7 +28,7 @@ func TestResumeParseDrainerHTTPScenario(t *testing.T) {
 		SourceType:   "paste",
 		OriginalText: "Private resume body",
 	}}
-	asyncStore := &apiResumeAsyncStore{job: targetjob.ClaimedJob{
+	asyncStore := &apiResumeAsyncStore{job: runner.ClaimedJob{
 		JobID:        "01918fa0-0000-7000-8000-00000000a003",
 		JobType:      string(jobs.JobTypeResumeParse),
 		ResourceType: "resume_asset",
@@ -43,20 +43,16 @@ func TestResumeParseDrainerHTTPScenario(t *testing.T) {
 		NewID:    apiFixedIDs("01918fa0-0000-7000-8000-00000000a004"),
 		Now:      func() time.Time { return now },
 	})
-	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
-		Store: asyncStore,
-		Handlers: map[string]targetjob.JobHandler{
-			string(jobs.JobTypeResumeParse): handler,
-		},
-		Now: func() time.Time { return now },
+	kernel := newScenarioJobRuntime(asyncStore, func() time.Time { return now }, map[string]runner.Handler{
+		string(jobs.JobTypeResumeParse): handler,
 	})
 
-	processed, err := drainer.RunOnce(context.Background())
+	processed, err := kernel.RunOnce(context.Background())
 	if err != nil {
 		t.Fatalf("RunOnce: %v", err)
 	}
 	if !processed || !asyncStore.outcome.Succeeded {
-		t.Fatalf("drainer did not process resume_parse successfully: processed=%v outcome=%+v", processed, asyncStore.outcome)
+		t.Fatalf("runner did not process resume_parse successfully: processed=%v outcome=%+v", processed, asyncStore.outcome)
 	}
 	if parseStore.success == nil || parseStore.success.AssetID != assetID || parseStore.success.ParsedTextSnapshot != "# Fixture Candidate\n\n## Experience\n- Engineer at Fixture Co\n- Built interview preparation systems." {
 		t.Fatalf("parse success not persisted: %+v", parseStore.success)
@@ -73,7 +69,7 @@ func TestResumeParseDrainerHTTPScenario(t *testing.T) {
 	}
 }
 
-func TestResumeParseDrainerRetryableFailureScenario(t *testing.T) {
+func TestResumeParseRunnerRetryableFailureScenario(t *testing.T) {
 	now := time.Date(2026, 5, 13, 10, 30, 0, 0, time.UTC)
 	assetID := "01918fa0-0000-7000-8000-00000000b001"
 	userID := "01918fa0-0000-7000-8000-00000000b002"
@@ -85,7 +81,7 @@ func TestResumeParseDrainerRetryableFailureScenario(t *testing.T) {
 		SourceType:   "paste",
 		OriginalText: "Private resume body",
 	}}
-	asyncStore := &apiResumeRetryAsyncStore{jobs: []targetjob.ClaimedJob{
+	asyncStore := &apiResumeRetryAsyncStore{jobs: []runner.ClaimedJob{
 		{
 			JobID:        "01918fa0-0000-7000-8000-00000000b003",
 			JobType:      string(jobs.JobTypeResumeParse),
@@ -115,15 +111,11 @@ func TestResumeParseDrainerRetryableFailureScenario(t *testing.T) {
 		NewID: apiFixedIDs("01918fa0-0000-7000-8000-00000000b004"),
 		Now:   func() time.Time { return now },
 	})
-	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
-		Store: asyncStore,
-		Handlers: map[string]targetjob.JobHandler{
-			string(jobs.JobTypeResumeParse): handler,
-		},
-		Now: func() time.Time { return now },
+	kernel := newScenarioJobRuntime(asyncStore, func() time.Time { return now }, map[string]runner.Handler{
+		string(jobs.JobTypeResumeParse): handler,
 	})
 
-	processed, err := drainer.RunOnce(context.Background())
+	processed, err := kernel.RunOnce(context.Background())
 	if err != nil {
 		t.Fatalf("first RunOnce: %v", err)
 	}
@@ -134,7 +126,7 @@ func TestResumeParseDrainerRetryableFailureScenario(t *testing.T) {
 		t.Fatalf("retryable failure not persisted: failure=%+v status=%s", parseStore.failure, parseStore.asset.ParseStatus)
 	}
 
-	processed, err = drainer.RunOnce(context.Background())
+	processed, err = kernel.RunOnce(context.Background())
 	if err != nil {
 		t.Fatalf("second RunOnce: %v", err)
 	}
@@ -160,42 +152,50 @@ func TestResumeParseDrainerRetryableFailureScenario(t *testing.T) {
 }
 
 type apiResumeAsyncStore struct {
-	job     targetjob.ClaimedJob
+	job     runner.ClaimedJob
 	claimed bool
-	outcome targetjob.JobOutcome
+	outcome runner.JobOutcome
 }
 
-func (s *apiResumeAsyncStore) ClaimNextAsyncJob(_ context.Context, _ []string, _ time.Time) (targetjob.ClaimedJob, bool, error) {
+func (s *apiResumeAsyncStore) LeaseAsyncJob(_ context.Context, _ []string, _ time.Time) (runner.ClaimedJob, bool, error) {
 	if s.claimed {
-		return targetjob.ClaimedJob{}, false, nil
+		return runner.ClaimedJob{}, false, nil
 	}
 	s.claimed = true
 	return s.job, true, nil
 }
 
-func (s *apiResumeAsyncStore) FinalizeAsyncJob(_ context.Context, jobID string, outcome targetjob.JobOutcome, _ time.Time) error {
+func (s *apiResumeAsyncStore) FinalizeAsyncJob(_ context.Context, jobID string, outcome runner.JobOutcome, _ time.Time, _ time.Time) error {
 	s.outcome = outcome
 	return nil
 }
 
-type apiResumeRetryAsyncStore struct {
-	jobs     []targetjob.ClaimedJob
-	next     int
-	outcomes []targetjob.JobOutcome
+func (s *apiResumeAsyncStore) ReclaimExpiredLeases(context.Context, []string, time.Time, time.Time) (int64, error) {
+	return 0, nil
 }
 
-func (s *apiResumeRetryAsyncStore) ClaimNextAsyncJob(_ context.Context, _ []string, _ time.Time) (targetjob.ClaimedJob, bool, error) {
+type apiResumeRetryAsyncStore struct {
+	jobs     []runner.ClaimedJob
+	next     int
+	outcomes []runner.JobOutcome
+}
+
+func (s *apiResumeRetryAsyncStore) LeaseAsyncJob(_ context.Context, _ []string, _ time.Time) (runner.ClaimedJob, bool, error) {
 	if s.next >= len(s.jobs) {
-		return targetjob.ClaimedJob{}, false, nil
+		return runner.ClaimedJob{}, false, nil
 	}
 	job := s.jobs[s.next]
 	s.next++
 	return job, true, nil
 }
 
-func (s *apiResumeRetryAsyncStore) FinalizeAsyncJob(_ context.Context, _ string, outcome targetjob.JobOutcome, _ time.Time) error {
+func (s *apiResumeRetryAsyncStore) FinalizeAsyncJob(_ context.Context, _ string, outcome runner.JobOutcome, _ time.Time, _ time.Time) error {
 	s.outcomes = append(s.outcomes, outcome)
 	return nil
+}
+
+func (s *apiResumeRetryAsyncStore) ReclaimExpiredLeases(context.Context, []string, time.Time, time.Time) (int64, error) {
+	return 0, nil
 }
 
 type apiResumeParseStore struct {

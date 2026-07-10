@@ -259,29 +259,6 @@ type ImportTargetJobResult struct {
 	Existing     bool
 }
 
-// ClaimedJob is the structured handoff between the store-level claim
-// query and the drainer's per-job handler. The drainer treats async_jobs
-// rows as the source of truth for retry / completion bookkeeping.
-type ClaimedJob struct {
-	JobID        string
-	JobType      string
-	ResourceType string
-	ResourceID   string
-	Payload      []byte
-	Attempts     int32
-	MaxAttempts  int32
-	AvailableAt  time.Time
-}
-
-// JobOutcome captures the parse-pipeline result so the drainer can update
-// async_jobs.status / error_code / completed_at consistently.
-type JobOutcome struct {
-	Succeeded    bool
-	ErrorCode    string
-	ErrorMessage string
-	Retryable    bool
-}
-
 // FileAttachmentRecord is the minimal projection of file_objects needed by
 // the import flow to confirm a referenced upload belongs to the caller and
 // has the expected purpose.
@@ -310,8 +287,6 @@ type Store interface {
 	UpdateSourceFreshness(ctx context.Context, targetJobID string, freshness FreshnessStatus, now time.Time) error
 	UpdateSourceSnapshot(ctx context.Context, sourceID string, sanitizedURL string, snapshotText string, fetchedAt time.Time, now time.Time) error
 	LookupFileAttachmentForUser(ctx context.Context, userID string, fileObjectID string) (FileAttachmentRecord, error)
-	ClaimNextAsyncJob(ctx context.Context, jobTypes []string, now time.Time) (ClaimedJob, bool, error)
-	FinalizeAsyncJob(ctx context.Context, jobID string, outcome JobOutcome, now time.Time) error
 	EnqueueSourceRefresh(ctx context.Context, jobID string, targetJobID string, now time.Time) error
 	WriteParseFailedOutbox(ctx context.Context, eventID string, targetJobID string, payload []byte, now time.Time) error
 	WriteTargetParsedOutbox(ctx context.Context, eventID string, targetJobID string, payload []byte, now time.Time) error
@@ -1376,134 +1351,6 @@ limit 1`,
 	}, true, nil
 }
 
-// ClaimNextAsyncJob atomically picks the oldest queued row whose job_type
-// matches one of the provided values and whose available_at <= now. The
-// claim flips status to running, increments attempts, and stamps locked_at,
-// then returns the claimed row to the drainer. The (false, nil) tuple
-// means there is currently nothing to do.
-func (s *SQLStore) ClaimNextAsyncJob(ctx context.Context, jobTypes []string, now time.Time) (ClaimedJob, bool, error) {
-	if err := s.checkDB(); err != nil {
-		return ClaimedJob{}, false, err
-	}
-	if len(jobTypes) == 0 {
-		return ClaimedJob{}, false, fmt.Errorf("ClaimNextAsyncJob requires at least one job type")
-	}
-	// Render the IN (...) list with positional placeholders.
-	placeholders := make([]string, 0, len(jobTypes))
-	args := make([]any, 0, len(jobTypes)+1)
-	for i, jt := range jobTypes {
-		placeholders = append(placeholders, fmt.Sprintf("$%d", i+1))
-		args = append(args, jt)
-	}
-	args = append(args, now)
-	query := fmt.Sprintf(`
-update async_jobs
-set status = 'running',
-    attempts = attempts + 1,
-    locked_at = $%[1]d,
-    updated_at = $%[1]d
-where id = (
-  select id from async_jobs
-  where status = 'queued' and available_at <= $%[1]d and job_type in (%s)
-  order by available_at asc, created_at asc
-  for update skip locked
-  limit 1
-)
-returning id, job_type, resource_type, resource_id, payload, attempts, max_attempts, available_at`,
-		len(args),
-		strings.Join(placeholders, ","),
-	)
-	var (
-		claimed ClaimedJob
-		payload []byte
-	)
-	err := s.db.QueryRowContext(ctx, query, args...).Scan(
-		&claimed.JobID,
-		&claimed.JobType,
-		&claimed.ResourceType,
-		&claimed.ResourceID,
-		&payload,
-		&claimed.Attempts,
-		&claimed.MaxAttempts,
-		&claimed.AvailableAt,
-	)
-	if errors.Is(err, sql.ErrNoRows) {
-		return ClaimedJob{}, false, nil
-	}
-	if err != nil {
-		return ClaimedJob{}, false, fmt.Errorf("claim async_jobs: %w", err)
-	}
-	if len(payload) > 0 {
-		claimed.Payload = append([]byte{}, payload...)
-	}
-	return claimed, true, nil
-}
-
-// FinalizeAsyncJob applies the outcome to async_jobs. Failed + retryable
-// requeues the row by clearing locked_at and bumping available_at by a
-// modest backoff; failed + non-retryable terminates with status='failed'.
-func (s *SQLStore) FinalizeAsyncJob(ctx context.Context, jobID string, outcome JobOutcome, now time.Time) error {
-	if err := s.checkDB(); err != nil {
-		return err
-	}
-	if jobID == "" {
-		return fmt.Errorf("FinalizeAsyncJob requires jobID")
-	}
-	if outcome.Succeeded {
-		_, err := s.db.ExecContext(ctx, `
-update async_jobs
-set status = 'succeeded',
-    completed_at = $1,
-    updated_at = $1,
-    locked_at = null,
-    error_code = null,
-    error_message = null
-where id = $2`, now, jobID)
-		if err != nil {
-			return fmt.Errorf("finalize async_jobs succeeded: %w", err)
-		}
-		return nil
-	}
-	if outcome.Retryable {
-		_, err := s.db.ExecContext(ctx, `
-update async_jobs
-set status = case when attempts >= max_attempts then 'dead' else 'queued' end,
-    available_at = $1,
-    updated_at = $1,
-    locked_at = null,
-    error_code = $2,
-    error_message = $3
-where id = $4`,
-			now.Add(15*time.Second),
-			outcome.ErrorCode,
-			nullableString(outcome.ErrorMessage),
-			jobID,
-		)
-		if err != nil {
-			return fmt.Errorf("finalize async_jobs retryable: %w", err)
-		}
-		return nil
-	}
-	_, err := s.db.ExecContext(ctx, `
-update async_jobs
-set status = 'failed',
-    completed_at = $1,
-    updated_at = $1,
-    locked_at = null,
-    error_code = $2,
-    error_message = $3
-where id = $4`,
-		now,
-		outcome.ErrorCode,
-		nullableString(outcome.ErrorMessage),
-		jobID,
-	)
-	if err != nil {
-		return fmt.Errorf("finalize async_jobs failed: %w", err)
-	}
-	return nil
-}
-
 // EnqueueSourceRefresh writes the internal-only source_refresh async_jobs row
 // (D-3 / plan 4.5). Payload is intentionally empty; the handler consumes the
 // job to mark the source stale without exposing the source URL.
@@ -1566,7 +1413,7 @@ insert into outbox_events (
 }
 
 // GetTargetJobForParse returns the bare row needed by the parse executor
-// without joining cross-tenant filters (the drainer is internal). Sources
+// without joining cross-tenant filters (the runner kernel is internal). Sources
 // are returned alongside so the executor can fetch URL bodies.
 func (s *SQLStore) GetTargetJobForParse(ctx context.Context, targetJobID string) (TargetJobRecord, []SourceRecord, error) {
 	if err := s.checkDB(); err != nil {

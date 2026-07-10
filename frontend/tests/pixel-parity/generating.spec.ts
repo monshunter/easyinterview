@@ -5,10 +5,8 @@ import { resolve } from "node:path";
 /**
  * Phase 5.2 — Generating screen pixel-parity gate.
  *
- * Clean-checkout hard gate: DOM anchor + computed style + bounding box +
- * responsive geometry + non-empty screenshot smoke. `toHaveScreenshot` is
- * intentionally NOT used here until a stable baseline is committed and this
- * phase explicitly opts into updating it.
+ * Current gate: DOM anchors + root bounding box + mobile overflow bound +
+ * non-empty screenshot smoke.
  */
 
 interface OperationFixture {
@@ -72,6 +70,11 @@ async function mockGeneratingApis(
 
 const ROUTE_FRAGMENT = `#route=generating&reportId=${REPORT_ID}&sessionId=${SESSION_ID}`;
 
+async function expectNonEmptyScreenshot(page: import("@playwright/test").Page) {
+  const screenshot = await page.screenshot();
+  expect(screenshot.byteLength).toBeGreaterThan(0);
+}
+
 test.describe("generating dashboard parity", () => {
   test("desktop renders the 5-phase composition and SLA hint within viewport", async ({
     page,
@@ -90,6 +93,7 @@ test.describe("generating dashboard parity", () => {
     expect(box).not.toBeNull();
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.y).toBeGreaterThanOrEqual(0);
+    await expectNonEmptyScreenshot(page);
   });
 
   test("missing reportId surfaces GeneratingErrorState with retry CTA hidden", async ({
@@ -104,6 +108,7 @@ test.describe("generating dashboard parity", () => {
     await expect(
       page.locator("[data-testid='generating-error-retry']"),
     ).toHaveCount(0);
+    await expectNonEmptyScreenshot(page);
   });
 
   test("mobile viewport keeps the surface inside 390px width with no overflow", async ({
@@ -115,5 +120,6 @@ test.describe("generating dashboard parity", () => {
     await page.waitForSelector("[data-testid='generating-screen']");
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(overflow).toBeLessThanOrEqual(390);
+    await expectNonEmptyScreenshot(page);
   });
 });

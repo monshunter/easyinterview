@@ -12,11 +12,9 @@
  *     assertions, i18n switch, and getComputedStyle for declared CSS
  *     variables (jsdom resolves `:root[data-theme=...][data-mode=...]`
  *     selectors and var() lookups against injected stylesheets).
- *   - **Deferred to a Playwright follow-up**: bounding-box diff, viewport
- *     overlap detection, and screenshot diff against `ui-design/index.html`.
- *     The scenario README documents the gap and recommended scaffold; the
- *     scope of this scenario is bounded to what jsdom can verify so a
- *     phase-commit is possible without browser binaries.
+ *   - **Delegated to E2E.P0.006**: browser viewport, bounding-box, overlap,
+ *     computed-style geometry, and screenshot-buffer checks against the
+ *     `ui-design/index.html` golden preview.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -39,6 +37,10 @@ const THEME_DIR = resolve(HERE, "..", "theme");
 const TOPBAR_CSS_PATH = resolve(HERE, "..", "topbar", "topbar.css");
 const AUTH_CSS_PATH = resolve(HERE, "..", "auth", "auth.css");
 const SCREENS_CSS_PATH = resolve(HERE, "..", "screens", "screens.css");
+const SCENARIO_DIR = resolve(
+  HERE,
+  "../../../../test/scenarios/e2e/p0-005-app-shell-visual-system-smoke",
+);
 
 const STYLES: string[] = [
   readFileSync(resolve(THEME_DIR, "themes.css"), "utf8"),
@@ -80,9 +82,30 @@ afterEach(() => {
 });
 
 describe("E2E.P0.005 app shell visual system smoke", () => {
+  it("keeps scenario assets aligned with the current theme and browser-gate boundary", () => {
+    const readme = readFileSync(resolve(SCENARIO_DIR, "README.md"), "utf8");
+    const seed = readFileSync(resolve(SCENARIO_DIR, "data/seed-input.md"), "utf8");
+    const expected = readFileSync(
+      resolve(SCENARIO_DIR, "data/expected-outcome.md"),
+      "utf8",
+    );
+    const assets = `${readme}\n${seed}\n${expected}`;
+
+    expect(assets).toContain("ocean/light");
+    expect(expected).toContain("#f8fafd");
+    expect(expected).toContain("#e8edf6");
+    expect(expected).toContain("#15101a");
+    expect(expected).toContain("Warm / Forest 主题选项不存在");
+    expect(readme).toContain("E2E.P0.006");
+    expect(assets).not.toMatch(/默认 warm\/light|在 warm\/light|warm\/dark 下/);
+    expect(readme).not.toMatch(
+      /后续 Playwright follow-up|建议派生 D2\.1|screenshot baseline|baseline 截图/,
+    );
+  });
+
   it("renders the D2 ei-shell-topbar / ei-screen-shell scaffold with ui-design native classNames", async () => {
     const client = buildClient();
-    render(
+    const { unmount } = render(
       <App
         client={client}
         requestOptions={{
@@ -113,6 +136,7 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
       expect(navBtn.className).toMatch(/\bei-topbar-nav-button\b/);
       expect(navBtn.className).toMatch(/\bei-text-body\b/);
     }
+    unmount();
   });
 
   it("flips :root[data-theme][data-mode] and resolves CSS variables on theme + dark switch", async () => {
@@ -185,7 +209,7 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
 
   it("auth_login renders the ei-auth-shell card scaffold + D1 form testids when navigated", async () => {
     const client = buildClient();
-    render(
+    const { unmount } = render(
       <App
         client={client}
         initialRoute={{ name: "auth_login", params: {} }}
@@ -204,6 +228,7 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
     expect(screen.getByTestId("auth-login-submit-email").className).toMatch(
       /\bei-auth-cta\b/,
     );
+    unmount();
   });
 
   it("settings / route shell render the ei-screen-shell + ei-screen-card scaffold", async () => {
@@ -240,7 +265,7 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
 
   it("out-of-scope entries (welcome / standalone voice / growth / mistakes / drill) do not flow back", async () => {
     const client = buildClient();
-    render(
+    const { unmount } = render(
       <App
         client={client}
         requestOptions={{
@@ -258,6 +283,7 @@ describe("E2E.P0.005 app shell visual system smoke", () => {
     // Settings must not surface out-of-scope module copy.
     const html = document.documentElement.outerHTML;
     expect(html).not.toMatch(/错题本|成长中心|经历库|目标角色|技能标签/);
+    unmount();
   });
 
   it("ui-design source files (app.jsx + screen-auth.jsx) carry the literal values transcribed into D2 CSS", () => {

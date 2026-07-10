@@ -62,9 +62,4 @@ export function fetchRuntimeConfig(options: FetchOptions = {}): Promise<RuntimeC
   return promise;
 }
 
-/** Clears the module-scoped cache. Tests use this between scenarios. */
-export function _resetRuntimeConfigCache(): void {
-  cached = undefined;
-}
-
 export type { RuntimeConfig, RuntimeFlag } from './types';

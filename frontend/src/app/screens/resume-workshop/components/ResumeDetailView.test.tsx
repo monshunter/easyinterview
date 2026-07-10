@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { EasyInterviewClient } from "../../../../api/generated/client";
@@ -249,7 +249,9 @@ describe("ResumeDetailView read-only contract", () => {
     await waitFor(() => {
       expect(screen.getByTestId("resume-detail-pdf-preview-stack")).toBeInTheDocument();
     });
-    await new Promise((resolve) => setTimeout(resolve, 350));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    });
 
     expect(getResumeSpy).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("resume-detail-preview-content")).not.toHaveTextContent(

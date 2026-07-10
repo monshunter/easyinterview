@@ -9,6 +9,12 @@ const PACKAGE_JSON = resolve(FRONTEND_ROOT, "package.json");
 const FONTS_CSS = resolve(HERE, "fonts.css");
 const GLOBAL_CSS = resolve(HERE, "global.css");
 const THEMES_CSS = resolve(HERE, "themes.css");
+const NOTO_SERIF_SC_ROOT = resolve(
+  FRONTEND_ROOT,
+  "node_modules",
+  "@fontsource",
+  "noto-serif-sc",
+);
 
 const REQUIRED_FONTSOURCE_PACKAGES = [
   "@fontsource/noto-serif-sc",
@@ -19,6 +25,14 @@ const REQUIRED_FONTSOURCE_PACKAGES = [
   "@fontsource/jetbrains-mono",
   "@fontsource/geist-sans",
 ];
+
+const LATIN_ONLY_IMPORTS = {
+  "@fontsource/inter": [400, 500, 600],
+  "@fontsource/source-serif-pro": [400, 600],
+  "@fontsource/cormorant-garamond": [400, 600],
+  "@fontsource/ibm-plex-sans": [400, 500],
+  "@fontsource/jetbrains-mono": [400, 500],
+} as const;
 
 describe("open-source font sourcing (Phase 2.1)", () => {
   const pkg = JSON.parse(readFileSync(PACKAGE_JSON, "utf8"));
@@ -52,6 +66,38 @@ describe("open-source font sourcing (Phase 2.1)", () => {
         re.test(fonts),
         `fonts.css must @import ${name}`,
       ).toBe(true);
+    }
+  });
+
+  it("uses Noto Serif SC unicode-range bundles without duplicate full-font imports", () => {
+    const fonts = readFileSync(FONTS_CSS, "utf8");
+
+    for (const weight of ["400", "500"]) {
+      expect(fonts).toContain(`@fontsource/noto-serif-sc/${weight}.css`);
+      expect(
+        readFileSync(resolve(NOTO_SERIF_SC_ROOT, `${weight}.css`), "utf8"),
+      ).toMatch(/unicode-range:[^;]*U\+4e00/i);
+      expect(fonts).not.toContain(
+        `@fontsource/noto-serif-sc/chinese-simplified-${weight}.css`,
+      );
+    }
+  });
+
+  it("limits Western preset fonts to the product's Latin locale subset", () => {
+    const fonts = readFileSync(FONTS_CSS, "utf8");
+
+    for (const [packageName, weights] of Object.entries(LATIN_ONLY_IMPORTS)) {
+      for (const weight of weights) {
+        const latinImport = `${packageName}/latin-${weight}.css`;
+        expect(fonts).toContain(latinImport);
+        expect(fonts).not.toContain(`${packageName}/${weight}.css`);
+
+        const subsetCss = readFileSync(
+          resolve(FRONTEND_ROOT, "node_modules", packageName, `latin-${weight}.css`),
+          "utf8",
+        );
+        expect(subsetCss).toContain(`font-weight: ${weight}`);
+      }
     }
   });
 

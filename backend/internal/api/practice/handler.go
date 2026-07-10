@@ -329,13 +329,6 @@ func writeAPIError(w http.ResponseWriter, status int, code string, message strin
 	_, _ = w.Write(raw)
 }
 
-func derefString(value *string) string {
-	if value == nil {
-		return ""
-	}
-	return strings.TrimSpace(*value)
-}
-
 const timeFormatRFC3339 = "2006-01-02T15:04:05Z07:00"
 
 type createPracticePlanSurface interface {

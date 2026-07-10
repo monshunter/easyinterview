@@ -1,6 +1,6 @@
 # Backend Resume Register Parse and Listing Checklist
 
-> **版本**: 2.6
+> **版本**: 2.7
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -25,7 +25,7 @@
 
 ## Phase 3: resume.parse async job + AIClient 集成
 
-- [x] 3.1 实现 `backend/internal/resume/jobs/parse.go` 与 resume_parse in-process drainer，注册 `job_type=resume_parse` / dotted `resume.parse`；不得新增独立 worker binary 或 `WORKER_*` config（验证：runner registry / topology negative 测试）
+- [x] 3.1 实现 `backend/internal/resume/jobs/parse.go` 与 resume_parse in-process runner kernel，注册 `job_type=resume_parse` / dotted `resume.parse`；不得新增独立 worker binary 或 `WORKER_*` config（验证：runner registry / topology negative 测试）
 - [x] 3.2 从 `resumes` 读 file_object（upload）/ original_text（paste）作为 prompt input（验证：unit test verify 双路 input 路径）
 - [x] 3.3 通过 [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 调 [F3 `resume.parse` feature_key](../../../prompt-rubric-registry/spec.md)；不 hardcode prompt 正文（验证：unit test stub AIClient verify profile / feature_key 路由）
 - [x] 3.4 解析 LLM JSON 输出 → 写 `parsed_summary` + `parsed_text_snapshot` + `parse_status='ready'`（验证：unit test `TestResumeParseHappyPath`）
@@ -40,15 +40,15 @@
 - [x] 4.1 实现 `backend/internal/resume/handler/list.go`，generated server interface `ListResumes`（验证：编译 PASS）
 - [x] 4.2 cursor pagination 实现 + 返回 `PaginatedResume{items, pageInfo}`（验证：integration test 25+ 行 + 第二页 PASS）
 - [x] 4.3 cross-user 过滤：仅返回 `user_id = current_user_id` 行（验证：integration test cross-user PASS）
-- [x] 4.4 `cmd/api` route wiring：挂载 `POST /api/v1/resumes`（session + IK middleware）、`GET /api/v1/resumes`、`GET /api/v1/resumes/{resumeId}`，并把 resume_parse drainer 纳入 `Start(ctx)` / `Shutdown(ctx)` lifecycle（验证：`cd backend && go test ./cmd/api -run TestBuildResumeRuntime -count=1`）
+- [x] 4.4 `cmd/api` route wiring：挂载 `POST /api/v1/resumes`（session + IK middleware）、`GET /api/v1/resumes`、`GET /api/v1/resumes/{resumeId}`，并把 resume_parse runner kernel 纳入 `Start(ctx)` / `Shutdown(ctx)` lifecycle（验证：`cd backend && go test ./cmd/api -run TestBuildResumeRuntime -count=1`）
 - [x] 4.5 `cmd/api` HTTP scenario：通过真实 route 验证 register/get/list、auth 404/401、IK replay、不重复创建 resume/job/outbox（验证：`cd backend && go test ./cmd/api -run TestResumeRegisterListHTTPScenario -count=1`）
 - [x] 4.6 字节比对 [B2 fixture `listResumes.json`](../../../mock-contract-suite/spec.md) `default` / `empty` / `paginated` 三 variant（验证：fixture parity test）
 
 ## Phase 5: 收口 + BDD + 解锁 workspace 001
 
-- [x] 5.1 跑 `cd backend && go test ./...` + `cd backend && go test ./internal/resume/...` + `cd backend && go test ./cmd/api -run 'TestBuildResumeRuntime|TestResumeRegisterListHTTPScenario|TestResumeParseDrainerHTTPScenario' -count=1` 全 PASS（验证：exit 0）<!-- verified: 2026-05-13 method=go-test -->
+- [x] 5.1 跑 `cd backend && go test ./...` + `cd backend && go test ./internal/resume/...` + `cd backend && go test ./cmd/api -run 'TestBuildResumeRuntime|TestResumeRegisterListHTTPScenario|TestResumeParseRunnerHTTPScenario' -count=1` 全 PASS（验证：exit 0）<!-- verified: 2026-05-13 method=go-test -->
 - [x] 5.2 mock-first 对齐：`registerResume` (`default` / `paste-text`)、`getResume` (`default` / `not-found`)、`listResumes` (`default` / `empty` / `paginated`) 通过 `cmd/api` 真实 route 的响应与对应 fixture 字节比对 PASS <!-- verified: 2026-05-13 method=scenario+handler-fixture-parity -->
-- [x] 5.3 grep `inline|rewrite|mirror` in `backend/internal/resume/` + resume drainer/outbox payload：0 命中（C-13 negative）（验证：`git grep` 输出 + payload assertion）<!-- verified: 2026-05-13 method=rg+unit-test -->
+- [x] 5.3 grep `inline|rewrite|mirror` in `backend/internal/resume/` + resume runner kernel/outbox payload：0 命中（C-13 negative）（验证：`git grep` 输出 + payload assertion）<!-- verified: 2026-05-13 method=rg+unit-test -->
 - [x] 5.4 BDD-Gate: E2E.P0.034 resume-register-and-list PASS（详见 [bdd-checklist.md](./bdd-checklist.md)）<!-- verified: 2026-05-13 method=scenario -->
 - [x] 5.5 BDD-Gate: E2E.P0.035 resume-parse-async-job-lifecycle PASS（含 stub AIClient + outbox event 验证）<!-- verified: 2026-05-13 method=scenario -->
 - [x] 5.6 在 `test/scenarios/e2e/INDEX.md` 追加 P0.034 + P0.035 行（关联需求 `backend-resume C-1..C-8, C-13`）
@@ -58,7 +58,7 @@
 ## Phase 6: L2 remediation - handler errors, parse retry state, and gate hardening
 
 - [x] 6.1 `RegisterResume` / `ListResumes` 将 service/store validation 错误映射为 `422 + VALIDATION_FAILED`，覆盖 upload missing object / size mismatch 与 invalid cursor（验证：handler unit test + cmd/api scenario PASS）<!-- verified: 2026-05-13 method=go-test tests=TestRegisterResumeValidationErrorsReturnUnprocessableEntity,TestListResumesInvalidCursorReturnsUnprocessableEntity,TestResumeRegisterListHTTPValidationScenario -->
-- [x] 6.2 `resume.parse` retryable failure 每次写 `parse_status='failed' + error_code`，retry metadata 仍由 `async_jobs` 表达，并允许 failed asset 重试回 processing 后 ready（验证：job/store/cmd-api retry tests PASS）<!-- verified: 2026-05-13 method=go-test tests=TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox,TestParseHandlerRetriesFailedAssetBackToProcessing,TestParseStatusTransition,TestResumeParseDrainerRetryableFailureScenario -->
+- [x] 6.2 `resume.parse` retryable failure 每次写 `parse_status='failed' + error_code`，retry metadata 仍由 `async_jobs` 表达，并允许 failed asset 重试回 processing 后 ready（验证：job/store/cmd-api retry tests PASS）<!-- verified: 2026-05-13 method=go-test tests=TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox,TestParseHandlerRetriesFailedAssetBackToProcessing,TestParseStatusTransition,TestResumeParseRunnerRetryableFailureScenario -->
 - [x] 6.3 加固 E2E.P0.034 / E2E.P0.035 trigger/verify，检查新增 validation/retry 测试名且拒绝 no-op/skip（验证：两个 scenario `setup -> trigger -> verify -> cleanup` PASS）<!-- verified: 2026-05-13 method=scenario logs=.test-output/e2e/p0-034-resume-register-and-list/trigger.log,.test-output/e2e/p0-035-resume-parse-async-job-lifecycle/trigger.log -->
 - [x] 6.4 收口验证：focused Go tests、`go test ./internal/resume/... ./cmd/api`、`make docs-check`、`sync-doc-index --check`、`git diff --check` 全 PASS <!-- verified: 2026-05-13 method=go-test+scenario+docs-check+sync-doc-index+diff-check -->
 
@@ -75,7 +75,7 @@
 
 - [x] 8.1 `backend/internal/resume/jobs/parse.go` 从 LLM structured output 派生可识别 `display_name`，过滤通用上传 / 粘贴标题（验证：`cd backend && go test ./internal/resume/jobs -run TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox -count=1` PASS）<!-- verified: 2026-07-07 method=go-test -->
 - [x] 8.2 `CompleteParseSuccess` 在 ready 事务中写入派生 `display_name`，无法派生时保留空值，不回退到注册 title 或 raw resume 第一行（验证：`cd backend && go test ./internal/resume/store -run 'TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1` PASS）<!-- verified: 2026-07-07 method=go-test+scenario -->
-- [x] 8.3 cmd/api resume_parse drainer ready / retry-to-ready 场景断言 stored resume 使用 LLM-derived `displayName`（验证：`cd backend && go test ./cmd/api -run 'TestResumeParseDrainerHTTPScenario|TestResumeParseDrainerRetryableFailureScenario' -count=1` PASS；P0.035 trigger/verify 检查当前测试名）<!-- verified: 2026-07-07 method=go-test+scenario -->
+- [x] 8.3 cmd/api resume_parse runner kernel ready / retry-to-ready 场景断言 stored resume 使用 LLM-derived `displayName`（验证：`cd backend && go test ./cmd/api -run 'TestResumeParseRunnerHTTPScenario|TestResumeParseRunnerRetryableFailureScenario' -count=1` PASS；P0.035 trigger/verify 检查当前测试名）<!-- verified: 2026-07-07 method=go-test+scenario -->
 
 ## Phase 9: Upload file readable text snapshot
 

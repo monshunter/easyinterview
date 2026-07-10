@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 
 import { EasyInterviewClient } from "../../api/generated/client";
 import type { Resume } from "../../api/generated/types";
@@ -211,7 +211,9 @@ describe("E2E.P0.037 resume detail read-only view + 404 fallback", () => {
     await waitFor(() => {
       expect(screen.getByTestId("resume-detail-pdf-preview-stack")).toBeInTheDocument();
     });
-    await new Promise((resolve) => setTimeout(resolve, 350));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    });
 
     expect(getResumeSpy).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("resume-detail-preview-content")).not.toHaveTextContent(

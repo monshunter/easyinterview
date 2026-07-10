@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.30
+> **版本**: 1.35
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -139,3 +139,39 @@
 - [x] 18.3 `WorkspacePlanList` calls `archiveTargetJob` with `Idempotency-Key`, removes the card only on success, keeps the card on failure, and prevents top-right delete/quick-start events from bubbling to card navigation; 验证: `pnpm --filter @easyinterview/frontend test src/app/screens/home/MockInterviewCard.test.tsx src/app/screens/home/HomeRecentMocks.test.tsx src/app/screens/workspace/WorkspaceScreen.test.tsx src/app/screens/workspace/WorkspaceEmptyState.test.tsx` PASS, `pnpm --filter @easyinterview/frontend typecheck` PASS
 - [x] 18.4 Home recent cards reuse the same card body and quick-start action but still omit delete controls; 验证: `HomeRecentMocks.test.tsx` PASS
 - [x] 18.5 BDD-Gate: real-backend browser smoke proves archived TargetJob disappears after refresh; 验证: `test/scenarios/e2e/p0-018-workspace-default-render/scripts/setup.sh && .../trigger.sh && .../verify.sh && .../cleanup.sh` PASS；local real-backend browser smoke captured `.test-output/e2e/workspace-archive-real-browser/workspace-card-before-delete.png` and `.test-output/e2e/workspace-archive-real-browser/workspace-after-delete.png`; DB readback `archive-db-state.txt=archived|t`, refresh text excludes the target title/id, cleanup `cleanup-db-state.txt=0`
+
+## Phase 19: non-executable workspace scenario removal
+
+- [x] 19.1 Add a generic scenario trigger-path contract test; red evidence must identify the five missing frontend test paths referenced by P0.019/P0.020.
+  <!-- verified: 2026-07-10 method=workspace-dead-scenario-removal evidence="After correcting longest-suffix matching for .tsx, the generic pytest red reported exactly the three removed workspace hook tests in P0.019 and two removed start/auth tests in P0.020; all other explicit frontend trigger paths resolved." -->
+- [x] 19.2 Delete P0.019/P0.020 scenario packages and remove their current BDD/context/index references; keep current behavior owned by P0.018, P0.021 and parse/report focused gates.
+  <!-- verified: 2026-07-10 method=workspace-dead-scenario-removal evidence="Deleted all 14 scenario files and empty directories with no placeholders; removed BDD matrix/details/commands, context discovery and scenario INDEX rows. Current-reference search retains only the Phase 19 removal record, while generic trigger-path pytest passes 3/3." -->
+- [x] 19.3 Run the generic contract suite, current start-practice tests, P0.018/P0.021 wrappers, owner/product contexts, docs, diff and pruning gates.
+  <!-- verified: 2026-07-10 method=workspace-dead-scenario-removal evidence="Generic contract passes 3/3 and full scripts/lint passes 294 tests plus 4248 subtests. Parse/report direct-start passes 10/10; P0.018 passes real-mode 1/1 plus 57/57, P0.021 passes real-mode 1/1 plus 10/10. Workspace/shell/product contexts, docs/index/link/diff and pruning gates pass with real_residuals=0." -->
+
+## Phase 20: auto-start context and implicit route-param removal
+
+- [x] 20.1 Add focused red assertions that default InterviewContext has no auto-start field and start-practice output drops arbitrary/obsolete input keys.
+  <!-- verified: 2026-07-10 method=auto-start-context-and-implicit-param-removal evidence="Focused red ran 19 tests with exactly two failures: default context still owned autoStartPractice, and startPractice output leaked sourceSessionId/replayItems/evidenceGaps/rawText from arbitrary input spreading." -->
+- [x] 20.2 Delete the field/action/helper and build practice route params from an explicit current allowlist.
+  <!-- verified: 2026-07-10 method=auto-start-context-and-implicit-param-removal evidence="Removed InterviewContext field/default/hydration/CLEAR action and withoutAutoStart helper. startPractice output now lists normalized target/job/JD/resume/source-report/round/mode/practice/hint/language plus new plan/session IDs explicitly; focused tests pass 19/19." -->
+- [x] 20.3 Run focused/full frontend tests, typecheck, current direct-start/scenario regressions, owner/product contexts, docs, diff and pruning gates.
+  <!-- verified: 2026-07-10 method=auto-start-context-and-implicit-param-removal evidence="Focused context/output tests pass 19/19; four direct-start callers pass 29/29; full frontend passes 138 files/841 tests with typecheck/build green and main bundle 656.63 kB. P0.018/P0.021/P0.057/P0.088 pass 57/10/20/16 tests plus real-mode gates and cleanup. Owner/product contexts, docs/index/link/diff and pruning gates pass with real_residuals=0." -->
+
+## Phase 21: test-only reducer action removal
+
+- [x] 21.1 Add a focused source-surface red assertion for the five reducer actions with no production dispatch sites.
+  <!-- verified: 2026-07-10 method=test-only-reducer-action-source-red evidence="Focused InterviewContext test reached the source-surface assertion and failed on MERGE_TARGET_JOB, proving the five production-dispatch-free action names remain in InterviewContext.tsx before removal." -->
+- [x] 21.2 Delete the unused action variants, reducer branches and self-only behavior tests; preserve all four runtime-used actions.
+  <!-- verified: 2026-07-10 method=test-only-reducer-action-removal evidence="Deleted five action variants, five reducer branches and three self-only behavior tests. Non-test frontend source has zero references to the removed names; HYDRATE_FROM_ROUTE, MERGE_SESSION, INCREMENT_HINT_COUNT and CLEAR retain runtime dispatch sites." -->
+- [x] 21.3 Run focused/full frontend tests, typecheck/build, dispatch inventory, owner/product contexts, docs, diff and pruning gates.
+  <!-- verified: 2026-07-10 method=test-only-reducer-action-removal evidence="Frontend passes 138 files/839 tests, typecheck and build; main bundle is 656.01 kB. Removed-action production inventory is empty and all four retained actions have runtime dispatch sites. Owner/product contexts, docs/index/link/diff and pruning gates pass with real_residuals=0." -->
+
+## Phase 22: unconsumed InterviewContext hook removal
+
+- [x] 22.1 Add a focused source-surface RED assertion for the exported hook with zero repository consumers.
+  <!-- verified: 2026-07-10 method=unconsumed-context-hook-source-red evidence="Focused InterviewContext failed 1/17 solely because InterviewContext.tsx still exported useStartPracticeContext; repository AST/text inventory found no production or test consumer." -->
+- [x] 22.2 Delete `useStartPracticeContext` without adding a replacement or changing InterviewContext state behavior.
+  <!-- verified: 2026-07-10 method=unconsumed-context-hook-removal evidence="Deleted the function and its false consumer comment with no replacement. Focused InterviewContext passes 17/17 and non-test frontend symbol search is empty; state/reducer/provider code is unchanged." -->
+- [x] 22.3 Run focused/full frontend tests, typecheck, symbol inventory, owner/product contexts, docs, diff and pruning gates.
+  <!-- verified: 2026-07-10 method=unconsumed-context-hook-removal evidence="Focused InterviewContext passes 17/17; full frontend passes 138 files/841 tests with zero React update warning; typecheck and non-test symbol inventory pass. Owner/product contexts and docs/index/link/diff/pruning gates pass with real_residuals=0." -->

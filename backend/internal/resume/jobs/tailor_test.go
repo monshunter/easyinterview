@@ -11,9 +11,9 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	resumejobs "github.com/monshunter/easyinterview/backend/internal/resume/jobs"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
-	"github.com/monshunter/easyinterview/backend/internal/targetjob"
 )
 
 func TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox(t *testing.T) {
@@ -61,7 +61,7 @@ func TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox(t *
 		Now: func() time.Time { return now },
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
 		JobID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf7c001", JobType: string(jobs.JobTypeResumeTailor), ResourceType: "resume_tailor_run", ResourceID: tailorRunID, Payload: []byte(`{"resumeId":"` + resumeID + `","targetJobId":"` + targetID + `","mode":"gap_review"}`), Attempts: 1, MaxAttempts: 5,
 	})
 
@@ -147,7 +147,7 @@ func TestOutboxPrivacyForTailorCompletedEvent(t *testing.T) {
 	}
 }
 
-func TestAiTaskRunsPrivacyForTailorDrainer(t *testing.T) {
+func TestAiTaskRunsPrivacyForTailorHandler(t *testing.T) {
 	fixture := runTailorPrivacyFixture(t)
 	rows := fixture.taskRuns.Rows()
 	if len(rows) != 1 {
@@ -163,7 +163,7 @@ func TestAiTaskRunsPrivacyForTailorDrainer(t *testing.T) {
 	}
 }
 
-func TestAuditPrivacyForTailorDrainer(t *testing.T) {
+func TestAuditPrivacyForTailorHandler(t *testing.T) {
 	fixture := runTailorPrivacyFixture(t)
 	rows := fixture.taskRuns.Rows()
 	if len(rows) != 1 {
@@ -179,7 +179,7 @@ func TestAuditPrivacyForTailorDrainer(t *testing.T) {
 		rows[0].Metadata.PromptCharLength != 0 ||
 		rows[0].Metadata.ResponseCharLength != 0 ||
 		rows[0].Metadata.ProfileName != "" {
-		t.Fatalf("tailor drainer should not persist prompt/response audit metadata directly: %+v", rows[0].Metadata)
+		t.Fatalf("tailor handler should not persist prompt/response audit metadata directly: %+v", rows[0].Metadata)
 	}
 }
 
@@ -211,9 +211,26 @@ func TestTailorHandlerModeRoutingAndFailurePaths(t *testing.T) {
 			name: "bullet suggestions route",
 			ai: &captureTailorAI{resp: aiclient.CompleteResponse{Content: `{
 			  "matchSummary": {"strengths":["Has backend depth"],"gaps":[]},
-			  "suggestions": [{"suggestedBullet":"Built low-latency services.","why_better":"Adds latency outcome.","kept_facts":["Built services"]}]
+			  "suggestions": [{"originalBullet":"Built services.","suggestedBullet":"Built low-latency services.","reason":"Adds latency outcome."}]
 			}`}},
 			wantRunStatus: aiclient.AITaskRunStatusSuccess,
+		},
+		{
+			name: "root match summary aliases are rejected",
+			ai: &captureTailorAI{resp: aiclient.CompleteResponse{Content: `{
+			  "strengths_to_amplify": [{"topic":"Backend depth","evidence":"Built services"}],
+			  "gaps": [{"topic":"Scale","why":"Missing metrics"}]
+			}`}},
+			wantCode:      sharederrors.CodeAiOutputInvalid,
+			wantRunStatus: aiclient.AITaskRunStatusFailed,
+		},
+		{
+			name: "suggestion aliases are rejected",
+			ai: &captureTailorAI{resp: aiclient.CompleteResponse{Content: `{
+			  "suggestions": [{"original_bullet":"Built services.","rewrite":"Built low-latency services.","why_better":"Adds latency outcome."}]
+			}`}},
+			wantCode:      sharederrors.CodeAiOutputInvalid,
+			wantRunStatus: aiclient.AITaskRunStatusFailed,
 		},
 		{
 			name:          "timeout marks failed retryable without completed outbox",
@@ -246,7 +263,7 @@ func TestTailorHandlerModeRoutingAndFailurePaths(t *testing.T) {
 				),
 				Now: func() time.Time { return now },
 			})
-			outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+			outcome := handler.Handle(context.Background(), runner.ClaimedJob{
 				JobID: "0195f2d0-4a44-7fc2-8f77-1f9c4cf8c001", JobType: string(jobs.JobTypeResumeTailor), ResourceType: "resume_tailor_run", ResourceID: tailorRunID, Payload: []byte(`{"resumeId":"` + resumeID + `","mode":"bullet_suggestions"}`), Attempts: 1, MaxAttempts: 5,
 			})
 
@@ -302,7 +319,16 @@ func TestTailorHandlerBulletSuggestionsCanonicalKeysRoundTrip(t *testing.T) {
 		Registry: tailorRegistry{},
 		AI: &captureTailorAI{resp: aiclient.CompleteResponse{Content: `{
 		  "suggestions": [
-		    {"originalBullet":"Built APIs.","suggestedBullet":"Built reliable APIs for onboarding.","reason":"Adds reliability and product scope."}
+		    {
+		      "originalBullet":"Built APIs.",
+		      "original_bullet":"ALIAS ORIGINAL",
+		      "suggestedBullet":"Built reliable APIs for onboarding.",
+		      "suggested_bullet":"ALIAS SUGGESTION",
+		      "rewrite":"ALIAS REWRITE",
+		      "reason":"Adds reliability and product scope.",
+		      "why_better":"ALIAS REASON",
+		      "whyBetter":"ALIAS CAMEL REASON"
+		    }
 		  ]
 		}`}},
 		AITaskRuns: &memTaskRunWriter{},
@@ -310,7 +336,7 @@ func TestTailorHandlerBulletSuggestionsCanonicalKeysRoundTrip(t *testing.T) {
 		Now:        func() time.Time { return now },
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
 		JobID:        "0195f2d0-4a44-7fc2-8f77-1f9c4cf8ca08",
 		JobType:      string(jobs.JobTypeResumeTailor),
 		ResourceType: "resume_tailor_run",
@@ -365,7 +391,7 @@ func TestTailorHandlerSuccessPersistenceFailureMarksRetryable(t *testing.T) {
 		Now:        func() time.Time { return now },
 	})
 
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
 		JobID:        "0195f2d0-4a44-7fc2-8f77-1f9c4cf8f001",
 		JobType:      string(jobs.JobTypeResumeTailor),
 		ResourceType: "resume_tailor_run",
@@ -383,86 +409,11 @@ func TestTailorHandlerSuccessPersistenceFailureMarksRetryable(t *testing.T) {
 	}
 }
 
-func TestTailorDrainerHandlesOnlyResumeTailor(t *testing.T) {
-	now := time.Date(2026, 6, 13, 13, 0, 0, 0, time.UTC)
-	tailorRunID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf9a001"
-	resumeID := "0195f2d0-4a44-7fc2-8f77-1f9c4cf9a005"
-	asyncStore := &tailorAsyncStore{job: targetjob.ClaimedJob{
-		JobID:        "0195f2d0-4a44-7fc2-8f77-1f9c4cf9a002",
-		JobType:      string(jobs.JobTypeResumeTailor),
-		ResourceType: "resume_tailor_run",
-		ResourceID:   tailorRunID,
-		Payload:      []byte(`{"resumeId":"` + resumeID + `","mode":"gap_review"}`),
-		Attempts:     1,
-		MaxAttempts:  5,
-	}}
-	store := &fakeTailorStore{ctx: resumestore.TailorJobContext{
-		TailorRunID:       tailorRunID,
-		UserID:            "0195f2d0-4a44-7fc2-8f77-1f9c4cf9a004",
-		ResumeID:          resumeID,
-		TargetJobID:       "0195f2d0-4a44-7fc2-8f77-1f9c4cf9a006",
-		Mode:              "gap_review",
-		Language:          "en",
-		ResumeSummary:     json.RawMessage(`{}`),
-		StructuredProfile: json.RawMessage(`{"sections":[{"bullets":["Led migration."]}]}`),
-		TargetSummary:     json.RawMessage(`{}`),
-		OriginalBullet:    "Led migration.",
-	}}
-	handler := resumejobs.NewTailorHandler(resumejobs.TailorHandlerOptions{
-		Store:    store,
-		Registry: tailorRegistry{},
-		AI: &captureTailorAI{resp: aiclient.CompleteResponse{Content: `{
-		  "matchSummary": {"strengths":["Strong"],"gaps":[]},
-		  "suggestions": [{"originalBullet":"Led migration.","suggestedBullet":"Led migration across teams.","reason":"Adds scope."}]
-		}`}},
-		AITaskRuns: &memTaskRunWriter{},
-		NewID:      idSeq("0195f2d0-4a44-7fc2-8f77-1f9c4cf9b001", "0195f2d0-4a44-7fc2-8f77-1f9c4cf9b002", "0195f2d0-4a44-7fc2-8f77-1f9c4cf9b003"),
-		Now:        func() time.Time { return now },
-	})
-	drainer := targetjob.NewDrainer(targetjob.DrainerOptions{
-		Store: asyncStore,
-		Handlers: map[string]targetjob.JobHandler{
-			string(jobs.JobTypeResumeTailor): handler,
-		},
-		Now: func() time.Time { return now },
-	})
-	if !drainer.Handles(string(jobs.JobTypeResumeTailor)) || drainer.Handles(string(jobs.JobTypeResumeParse)) {
-		t.Fatalf("drainer handler set drift")
-	}
-
-	processed, err := drainer.RunOnce(context.Background())
-	if err != nil {
-		t.Fatalf("RunOnce: %v", err)
-	}
-	if !processed || !asyncStore.outcome.Succeeded || store.success == nil {
-		t.Fatalf("drainer did not complete resume_tailor: processed=%v outcome=%+v success=%+v", processed, asyncStore.outcome, store.success)
-	}
-}
-
 type fakeTailorStore struct {
 	ctx                resumestore.TailorJobContext
 	loadedTailorRunID  string
 	success            *resumestore.CompleteTailorRunSuccessInput
 	completeSuccessErr error
-}
-
-type tailorAsyncStore struct {
-	job     targetjob.ClaimedJob
-	claimed bool
-	outcome targetjob.JobOutcome
-}
-
-func (s *tailorAsyncStore) ClaimNextAsyncJob(_ context.Context, _ []string, _ time.Time) (targetjob.ClaimedJob, bool, error) {
-	if s.claimed {
-		return targetjob.ClaimedJob{}, false, nil
-	}
-	s.claimed = true
-	return s.job, true, nil
-}
-
-func (s *tailorAsyncStore) FinalizeAsyncJob(_ context.Context, _ string, outcome targetjob.JobOutcome, _ time.Time) error {
-	s.outcome = outcome
-	return nil
 }
 
 func (s *fakeTailorStore) GetForTailor(_ context.Context, tailorRunID string) (resumestore.TailorJobContext, error) {
@@ -590,7 +541,7 @@ func runTailorPrivacyFixture(t *testing.T) tailorPrivacyFixture {
 		),
 		Now: func() time.Time { return now },
 	})
-	outcome := handler.Handle(context.Background(), targetjob.ClaimedJob{
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
 		JobID:        "0195f2d0-4a44-7fc2-8f77-1f9c4cfaa006",
 		JobType:      string(jobs.JobTypeResumeTailor),
 		ResourceType: "resume_tailor_run",

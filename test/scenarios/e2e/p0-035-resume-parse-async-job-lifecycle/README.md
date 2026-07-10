@@ -12,16 +12,16 @@ Validate the backend-resume async parse lifecycle from queued `resume_parse` job
 ## 3. Given / When / Then
 
 Given registered resumes for `upload` and `paste` sources, an in-process
-`resume_parse` drainer, and a deterministic A3/F3-compatible AI client.
+`resume_parse` runner kernel, and a deterministic AI client implementing the A3/F3 contracts.
 
-When the drainer claims queued jobs and invokes the resume parse handler for success, invalid output, timeout, and retry-exhausted variants.
+When the runner kernel claims queued jobs and invokes the resume parse handler for success, invalid output, timeout, and retry-exhausted variants.
 
 Then upload PDF / Markdown / text sources are converted to readable prompt input and `parsed_text_snapshot`; DOCX is rejected before AI; unreadable PDF literal / binary fallback is rejected before AI; queued rows keep `display_name` empty until parse success; success writes `parsed_summary`, `parsed_text_snapshot`, `parse_status=ready`, LLM-derived `displayName`, typed `ai_task_runs` metadata, and one `resume.parse.completed` outbox event; failures write `parse_status=failed` with `error_code`, keep any already extracted readable snapshot, write a non-generic fallback `display_name` when readable text exists, and no completed event.
 
 ## 4. Scripts
 
 - `scripts/setup.sh`: prepares output directories and copies expected evidence notes.
-- `scripts/trigger.sh`: runs the `cmd/api` drainer scenario, runtime wiring test, parse handler tests, and live DB integration gate.
+- `scripts/trigger.sh`: runs the `cmd/api` runner kernel scenario, runtime wiring test, parse handler tests, and live DB integration gate.
 - `scripts/verify.sh`: rejects skips/no-op focused gates, checks required parse lifecycle evidence, and performs privacy / current-scope negative searches.
 - `scripts/cleanup.sh`: records cleanup completion while preserving logs under `.test-output/`.
 
@@ -37,7 +37,7 @@ Scenario evidence is written to `.test-output/e2e/p0-035-resume-parse-async-job-
 
 ## 6. Baseline
 
-This scenario is backend-owned and intentionally uses the `cmd/api` in-process drainer path. It proves there is no separate worker binary or `WORKER_*` config dependency for the P0 resume parse baseline.
+This scenario is backend-owned and intentionally uses the `cmd/api` in-process runner kernel path. It proves there is no separate worker binary or `WORKER_*` config dependency for the P0 resume parse baseline.
 
 ## 7. Offline Limits
 

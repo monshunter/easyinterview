@@ -1,6 +1,6 @@
 # 002 — Practice Text Event Loop BDD Checklist
 
-> **版本**: 1.12
+> **版本**: 1.14
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -19,6 +19,8 @@
 - [x] Trigger runs goal parity, optional hint, pause/resume, phone captions, hang-up/restart and mode switch tests.
 - [x] Verify checks current goal visibility parity, append idempotency boundary, phone-mode user-visible labels, out-of-scope control absence and forbidden input markers.
   <!-- verified: 2026-07-09 command="./test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/setup.sh && ./test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/trigger.sh && ./test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/verify.sh" result="PASS" -->
+- [x] Trigger/verify use rendered goal/hint/mode tests only and do not depend on a constant-only assistance hook test.
+  <!-- verified: 2026-07-10 method=constant-assistance-hook-removal evidence="P0.045 setup/trigger/verify/cleanup passes the real-mode gate plus 6 rendered test files/18 tests; trigger log and verify no longer reference the deleted hook test." -->
 
 ## E2E.P0.046
 

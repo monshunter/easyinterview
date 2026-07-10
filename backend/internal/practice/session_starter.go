@@ -327,22 +327,14 @@ func parseFirstQuestion(content string) (firstQuestion, error) {
 	var decoded struct {
 		QuestionText   string `json:"questionText"`
 		QuestionIntent string `json:"questionIntent"`
-		Question       string `json:"question"`
-		Intent         string `json:"intent"`
 	}
 	if err := json.Unmarshal([]byte(content), &decoded); err != nil {
 		return firstQuestion{}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "first question response must be strict JSON", false)
 	}
 	text := strings.TrimSpace(decoded.QuestionText)
 	if text == "" {
-		text = strings.TrimSpace(decoded.Question)
-	}
-	if text == "" {
-		return firstQuestion{}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "first question response missing question", false)
+		return firstQuestion{}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "first question response missing questionText", false)
 	}
 	intent := strings.TrimSpace(decoded.QuestionIntent)
-	if intent == "" {
-		intent = strings.TrimSpace(decoded.Intent)
-	}
 	return firstQuestion{Text: text, Intent: intent}, nil
 }

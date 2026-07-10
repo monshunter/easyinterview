@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Create Flow BDD Plan
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -40,3 +40,7 @@ Then direct detail navigation is used and auth pending action keeps only safe ro
 Given an authenticated user already has non-archived resumes returned by `listResumes`.
 When those resumes are ready or already carry readable resume evidence.
 Then the Home `选择已有简历` native select is enabled, shows those options, hides the empty state, and the selected `resumeId` is preserved into the JD import / parse handoff.
+
+## 3 Internal cleanup substitute gate
+
+Phase 9 changes no user-visible behavior and adds no BDD scenario. Its completion gate is a source-level zero-reference assertion plus the existing create-flow regressions and frontend typecheck; E2E.P0.081-P0.084 remain unchanged.

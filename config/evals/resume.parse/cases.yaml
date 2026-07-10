@@ -4,6 +4,22 @@ cases:
   language: multi
   input: resume.parse evaluation case at strong quality band.
   output: &id001
+    displayName: Candidate A - Backend engineer
+    markdownText: |-
+      # Candidate A - Backend engineer
+
+      ## Experience
+      - Senior Backend Engineer at Example Cloud (2021 - Present)
+      - Reduced p95 latency by 32% by redesigning cache invalidation.
+
+      ## Projects
+      - Interview Prep Platform: Built evidence-backed interview practice workflows.
+
+      ## Education
+      - B.S. Computer Science, Example University
+
+      ## Skills
+      - Go
     basics:
       name: Candidate A
       headline: Backend engineer focused on distributed systems

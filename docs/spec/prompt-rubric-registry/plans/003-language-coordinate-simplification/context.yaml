@@ -6,7 +6,7 @@ metadata:
   sequence: 3
   specVersion:
     from: 2.6
-    to: 2.16
+    to: 2.20
 spec:
   defaultTarget: backend
   discovery:

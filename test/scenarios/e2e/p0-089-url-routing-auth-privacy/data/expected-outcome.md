@@ -4,8 +4,8 @@
 |------|------|
 | `/auth/login` URL (重定向后) | pathname `/auth/login`；search 含 `pendingRoute=practice` / `pendingType=start_practice` / `planId=plan-1` / `targetJobId=tj-1` / `sessionId=01918fa0-...`；不含任何 raw marker |
 | 登录 → verify 成功后 URL | pathname `/practice`；search 含 6 个 safe handoff key (`planId` / `targetJobId` / `jdId` / `resumeId` / `roundId` / `sessionId`)；不含 raw marker |
-| Hostile `/auth/login` direct-open | search 保留 `pendingRoute=workspace` / `pendingType=start_practice` / `planId` / `targetJobId`；其余 raw marker 被 allowlist 拦截 |
-| Hostile browser history popstate | 地址栏立即改写为 `/workspace?targetJobId=...`，hash 被清空，raw `history.state` 被 replace 为 `null` |
+| Hostile `/auth/login` direct-open | search 只保留 `pendingRoute=workspace` / `pendingType=start_practice` / `pendingLabel`；workspace 不接受的 `planId` / `targetJobId` 与所有 raw marker 被 allowlist 拦截 |
+| Hostile browser history popstate | 地址栏立即改写为 query-free `/workspace`，hash 被清空，raw `history.state` 被 replace 为 `null` |
 | `window.history.state` | 常规导航保持 `null`；hostile raw state 在 popstate restore 后被 scrub 为 `null` |
 | `localStorage` / `sessionStorage` | 完全空；测试在每个用例前 clear |
 | console.log / warn / error capture | 不含任何 raw marker |

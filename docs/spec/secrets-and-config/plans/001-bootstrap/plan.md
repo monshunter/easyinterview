@@ -1,6 +1,6 @@
 # Secrets and Config Bootstrap
 
-> **版本**: 1.11
+> **版本**: 1.13
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -18,6 +18,10 @@
 本次 v1.10 技术债清理同步当前实现事实：`runtime_config_handler.go` 支持由 C1 backend-auth 注入 session-aware resolver；resolver 缺省时才使用 anonymous opt-out 默认，不再将 handler 描述为 stub。
 
 本次 v1.11 技术债清理将 `config/config.yaml` 与 `.env.example` 的 secret 默认值描述收敛为空字符串 / 说明注释，不改变配置文件合同或 lint 行为。
+
+本次 v1.12 技术债清理统一 feature flag 范围术语为 `out-of-scope`，并将 plan context 对齐当前 spec 2.13；六项 current baseline 与负向回归输入保持不变。
+
+本次 v1.13 技术债清理删除仅供单测清理 module cache 的 `_resetRuntimeConfigCache` export。各用例改用生产 `forceRefresh` 选项建立独立缓存边界，缓存、失败恢复和刷新行为不变。
 
 ## 2 背景
 
@@ -119,7 +123,7 @@ type FeatureFlagClient interface {
 
 #### 3.4 落地 `config/feature-flags.yaml` baseline
 
-按 product-scope v1.2 / UI scope 写入 6 项 baseline flag（`practice_hint_enabled` / `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled` / `practice_assistance_mode_enabled`）。每个 flag 必须显式标注 `public: true|false`：除 `ai_fallback_model_enabled` 外均为 `public: true`（前端可见）；`ai_fallback_model_enabled` 设 `public: false`（operator-only），由 Phase 5 runtime-config builder 在 allowlist 中过滤。Non-current `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 不得恢复。
+按 product-scope v1.2 / UI scope 写入 6 项 baseline flag（`practice_hint_enabled` / `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled` / `practice_assistance_mode_enabled`）。每个 flag 必须显式标注 `public: true|false`：除 `ai_fallback_model_enabled` 外均为 `public: true`（前端可见）；`ai_fallback_model_enabled` 设 `public: false`（operator-only），由 Phase 5 runtime-config builder 在 allowlist 中过滤。`mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 仅作为 out-of-scope 负向测试输入，不得进入配置或 public runtime config。
 
 #### 3.5 落地 `config/README.md`
 
@@ -261,15 +265,19 @@ type FeatureFlagClient interface {
 
 #### 8.1 Red
 
-先调整 feature flag / runtime-config tests，要求 non-current `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 不得出现在 public runtime config。当前配置仍包含 non-current flag 时测试必须失败。
+先调整 feature flag / runtime-config tests，要求 out-of-scope `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 不得出现在 public runtime config。当前配置包含 out-of-scope flag 时测试必须失败。
 
 #### 8.2 Green
 
-修订 `config/feature-flags.yaml`、runtime-config tests 与相关文档：新增 `report_retry_plan_enabled` / `readiness_signals_enabled` / `practice_assistance_mode_enabled`，删除非当前独立错题本、成长中心和 dual-track flag。
+修订 `config/feature-flags.yaml`、runtime-config tests 与相关文档：current baseline 使用 `report_retry_plan_enabled` / `readiness_signals_enabled` / `practice_assistance_mode_enabled`，范围外独立错题本、成长中心和 dual-track flag 只保留在负向测试输入中。
 
 #### 8.3 Verify
 
-运行 `make lint-config`、focused runtime-config tests；repo 搜索确认实现侧不再出现三项 non-current feature flag key。
+运行 `make lint-config`、focused runtime-config tests；repo 搜索确认实现侧不出现三项 out-of-scope feature flag key。
+
+### Phase 9: Runtime-config test reset removal
+
+删除 `_resetRuntimeConfigCache` production export 与测试 `beforeEach`。四个 frontend fetcher 用例分别以 `forceRefresh` 发起首个请求，继续验证响应解析、单页缓存命中、失败后重试和显式刷新；source negative 拒绝测试 reset API 回到 production module。
 
 ## 5 验收标准
 
@@ -292,12 +300,14 @@ type FeatureFlagClient interface {
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-10 | 1.13 | 删除 runtime-config 测试 reset export，单测改用生产 forceRefresh 边界。 | tech-debt pruning |
+| 2026-07-10 | 1.12 | 统一 feature flag 范围术语并将 context 对齐 spec 2.13；不改变 current baseline 或负向回归输入。 | tech-debt pruning |
 | 2026-07-10 | 1.11 | 将 `config/config.yaml` 与 `.env.example` 的 secret 默认值描述收敛为空字符串 / 说明注释。 | tech-debt pruning |
 | 2026-07-10 | 1.10 | 将 runtime-config handler 口径从 stub 收敛为当前 session-aware handler + anonymous opt-out default。 | tech-debt pruning |
-| 2026-07-07 | 1.8 | Wording cleanup：收敛 feature flag 与 TDD gate 说明为当前 non-current flag / 既有实现口径，不改变可执行契约。 | product-scope/001 Phase 6.89 |
-| 2026-05-05 | 1.6 | L2 深审修正文档 allowlist 非当前口径：`cmd/migrate` 是 B4 迁移 CLI 的合法 env 读取入口；plan 与当前 spec §4.1 / `getenv_boundary.go` 对齐。 | deep reconcile |
+| 2026-07-07 | 1.8 | Wording cleanup：收敛 feature flag 与 TDD gate 说明为 out-of-scope flag / 既有实现口径，不改变可执行契约。 | product-scope/001 Phase 6.89 |
+| 2026-05-05 | 1.6 | L2 深审修正文档 allowlist 范围外口径：`cmd/migrate` 是 B4 迁移 CLI 的合法 env 读取入口；plan 与当前 spec §4.1 / `getenv_boundary.go` 对齐。 | deep reconcile |
 | 2026-05-04 | 1.5 | L1 plan-review remediation：补齐当前强制的质量门禁分类，不改变已完成 config/secret/feature flag 范围。 | docs-only L1 remediation |
-| 2026-05-03 | 1.4 | 原地 reopen，新增 Phase 8 remediation：按 product-scope v1.2 替换非当前错题本 / 成长中心 / dual-track feature flag baseline。 | secrets-and-config v1.9 |
+| 2026-05-03 | 1.4 | 原地 reopen，新增 Phase 8 remediation：按 product-scope v1.2 替换范围外错题本 / 成长中心 / dual-track feature flag baseline。 | secrets-and-config v1.9 |
 | 2026-04-30 | 1.3 | L2 code-review remediation：补 prod/staging required config 覆盖与 dev-default runtime override 防线。 | plan-code-review --fix |
-| 2026-04-30 | 1.2 | L2 code-review remediation：non-current worker config bindings、AI base URL fail-fast、env_dict code-side binding discovery、runtime-config cold PostHog projection。 | plan-code-review --fix |
+| 2026-04-30 | 1.2 | L2 code-review remediation：out-of-scope worker config bindings、AI base URL fail-fast、env_dict code-side binding discovery、runtime-config cold PostHog projection。 | plan-code-review --fix |
 | 2026-04-29 | 1.1 | 对齐 spec v1.7：24 项 env key、`async.queueWeights` config-only 字段、PostHog last-known-good 缓存降级、secret 样本只允许临时生成不入文档。 | plan-review remediation |

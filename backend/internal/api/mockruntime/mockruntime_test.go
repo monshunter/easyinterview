@@ -202,37 +202,6 @@ func assertJSONEqual(t *testing.T, got []byte, want []byte) {
 	}
 }
 
-func assertJSONField(t *testing.T, body []byte, path string, want string) {
-	t.Helper()
-	var decoded any
-	if err := json.Unmarshal(body, &decoded); err != nil {
-		t.Fatalf("parse response body: %v\n%s", err, body)
-	}
-	got, ok := lookupJSONPath(decoded, path)
-	if !ok {
-		t.Fatalf("path %s not found in %s", path, body)
-	}
-	if got != want {
-		t.Fatalf("path %s = %q, want %q", path, got, want)
-	}
-}
-
-func lookupJSONPath(value any, path string) (string, bool) {
-	cursor := value
-	for _, part := range strings.Split(path, ".") {
-		obj, ok := cursor.(map[string]any)
-		if !ok {
-			return "", false
-		}
-		cursor, ok = obj[part]
-		if !ok {
-			return "", false
-		}
-	}
-	got, ok := cursor.(string)
-	return got, ok
-}
-
 func findRepoRoot(t *testing.T) string {
 	t.Helper()
 	wd, err := os.Getwd()

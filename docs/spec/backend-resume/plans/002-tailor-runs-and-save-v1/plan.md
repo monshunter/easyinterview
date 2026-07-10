@@ -1,6 +1,6 @@
 # Backend Resume Tailor Runs and Save v1
 
-> **版本**: 1.6
+> **版本**: 1.9
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -45,13 +45,13 @@
 
 - All handlers implement generated OpenAPI server interfaces.
 - Session and IK middleware match the B2 contract.
-- `cmd/api` owns in-process resume.parse and resume.tailor drainer wiring; this plan does not introduce another worker binary.
+- `cmd/api` owns in-process resume.parse and resume.tailor runner kernel wiring; this plan does not introduce another worker binary.
 - Generated route catalog must expose only the current 10 Resume / ResumeTailor operations.
 
 ## 3 质量门禁
 
 - **Plan 类型**: `contract + code-internal + feature-behavior`。
-- **TDD 策略**: 适用。Focused gates cover generated route catalog, handler unit tests, store tests, `cmd/api` route/drainer tests, OpenAPI fixture parity and privacy assertions.
+- **TDD 策略**: 适用。Focused gates cover generated route catalog, handler unit tests, store tests, `cmd/api` route/runner kernel tests, OpenAPI fixture parity and privacy assertions.
 - **BDD 策略**: 适用。`E2E.P0.074` - `E2E.P0.080` cover flat reads, update, duplicate, tailor happy/failure paths, flat save fixture parity, read-only detail boundary and privacy/boundary negatives.
 - **替代验证 gate**:
   - `make lint-openapi`
@@ -95,7 +95,7 @@
 ### Phase 5: resume.tailor async job and outbox
 
 - Implement and verify A3/F3 routing, timeout/output-invalid failure handling, retry-to-ready, typed `ai_task_runs`, ready-only outbox write and payload privacy allowlist.
-- Ensure `cmd/api` drainer lifecycle owns `resume_tailor` alongside the existing runtime composition.
+- Ensure `cmd/api` runner kernel lifecycle owns `resume_tailor` alongside the existing runtime composition.
 
 ### Phase 6: BDD and closeout
 
@@ -103,20 +103,36 @@
 - Run context validation, OpenAPI/fixture/codegen checks, docs/index checks and diff whitespace checks.
 - Keep product-scope owner evidence tied to current route/API/runtime truth sources.
 
+### Phase 7: tailor provenance conversion simplification
+
+- Keep the private persisted `tailorResultProvenance` wire boundary and the exported `VersionProvenance` domain type field-identical.
+- Replace both write and readback field-by-field copies with explicit type conversions.
+- Run store/package tests plus scoped and backend-wide `staticcheck` before restoring completed state.
+
+### Phase 8: tailor scenario negative-gate precision
+
+- P0.077 / P0.078 / P0.080 的 tailor mode 负向搜索必须要求 `tailor|mode` 与 `inline|rewrite|mirror` 同行出现，并排除 `*_test.go`；合法 HTTP `Content-Disposition: inline` 不得触发。
+- `scenario_script_contract_test.py` 固化三份 verify script 的同构正则和 test-file exclusion，随后串行重跑 P0.077-P0.080。
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
 |----|--------|------|
 | A-1 | Current Resume route catalog has 10 operationIds and no removed route family | `make lint-openapi`; `TestGeneratedRouteCatalogHasNoResumeVersionOperations` |
 | A-2 | Flat read/update/duplicate APIs match fixtures and enforce IK/cross-user rules | handler/service/store tests + `cmd/api` scenarios + P0.074-P0.076 |
-| A-3 | Tailor request/read/job flow uses `resumeId`, `async_jobs`, typed `ai_task_runs` and task output suggestions | tailor handler/store/job/drainer tests + P0.077-P0.078 |
+| A-3 | Tailor request/read/job flow uses `resumeId`, `async_jobs`, typed `ai_task_runs` and task output suggestions | tailor handler/store/job/runner kernel tests + P0.077-P0.078 |
 | A-4 | `resume.tailor.completed` is ready-only and privacy-safe | outbox tests + P0.080 |
 | A-5 | Docs, INDEX and plan context resolve without drift | context validation + `sync-doc-index --check` + `make docs-check` |
+| A-6 | Tailor provenance JSON round-trips all current fields without duplicated mapping code | store tests + scoped `staticcheck` |
+| A-7 | Tailor mode negative gates reject only contextual mode vocabulary and ignore legal HTTP inline disposition | scenario script contract + P0.077-P0.080 verify |
 
 ## 6 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.9 | Narrow tailor mode scenario negative gates to contextual production matches and exclude legal HTTP inline disposition. |
+| 2026-07-10 | 1.8 | Run resume tailor scenarios through runner.Runtime and update canonical handler/runtime ownership wording. |
+| 2026-07-10 | 1.7 | Replace duplicated tailor provenance write/readback mappings with equivalent type conversions. |
 | 2026-07-10 | 1.6 | Align tailor privacy negative gate wording to out-of-scope terminology without behavior changes. |
 | 2026-07-07 | 1.5 | Compress owner plan to the current flat Resume save and resume.tailor contract; rename package to current owner wording. |
 | 2026-06-14 | 1.4 | Complete flat Resume save / tailor acceptance after D-20 simplification. |

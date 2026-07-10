@@ -20,8 +20,8 @@ mkdir -p "$OUT"
   go test ./internal/resume -run 'TestRequestResumeTailor|TestGetResumeTailorRun' -count=1 -v
   echo "RUNNER go test resume store unit tailor run"
   go test ./internal/resume/store -run 'Test(CreateTailorRunInsertsAsyncJobWithResumePayload|CreateTailorRunWithoutTargetJobSkipsTargetCheck|CreateTailorRunResumeNotFound|GetTailorRunMapsStatusFromAsyncJob|GetTailorRunCrossUserNotFound|CompleteTailorRunSuccessWritesResultAndOutbox)' -count=1 -v
-  echo "RUNNER go test cmd/api resume tailor drainer ready"
-  go test ./cmd/api -run TestResumeTailorDrainerHTTPScenario -count=1 -v
+  echo "RUNNER go test cmd/api resume tailor runner kernel ready"
+  go test ./cmd/api -run TestResumeTailorRunnerHTTPScenario -count=1 -v
   echo "RUNNER go test resume jobs tailor ready"
   go test ./internal/resume/jobs -run TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox -count=1 -v
 } | tee "$OUT/trigger.log"

@@ -10,10 +10,8 @@ import { resolve } from "node:path";
  * docs/spec/frontend-resume-workshop/plans/001-listing-routing-and-detail-
  * readonly/plan.md, D-20 flat resume model.
  *
- * Covers desktop (1440x900) and mobile (390x844) projects. Clean checkout
- * gate does not depend on local screenshot snapshots; the spec asserts DOM
- * anchors and computed styles directly and only ships a non-empty
- * screenshot smoke (no toMatchSnapshot here).
+ * Covers desktop (1440x900) and mobile (390x844) projects through DOM anchors,
+ * computed styles and non-empty screenshot smoke.
  */
 
 interface Rect {

@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints Checklist
 
-> **版本**: 1.20
+> **版本**: 1.21
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md)
 
@@ -53,3 +53,8 @@
 - [x] 7.1 登录页静态帮助说明、settings 双 tab 和 `ocean` 默认主题对齐 `ui-design/`；验证: focused Vitest、visual tests、typecheck and build gates 通过。
 - [x] 7.2 Operation matrix 与 context manifest 对齐当前 generated-client and route catalog；验证: `validate_context.py frontend-shell/001 frontend` 通过。
 - [x] 7.3 当前清理回归 gate 通过；验证: owner residual grep、frontend focused tests、product-scope context validation、`sync-doc-index --check`、`make docs-check`、`git diff --check`、`make lint-core-loop-pruning-surface`。
+
+## Phase 8: auth alias test lifecycle isolation
+
+- [x] 8.1 `auth_reset` / `auth_register` 同步 normalization tests 在断言后显式 unmount，清除无关 runtime-provider state update（验证：AppAuthDispatch 14 tests 无 act warning、frontend-shell/full frontend test/typecheck/build、owner context/docs gates）
+  <!-- verified: 2026-07-10 method=auth-alias-test-lifecycle-isolation evidence="Focused red reproduced one AppRuntimeProvider act warning in each synchronous alias test. Explicit unmount after assertions reuses the file's existing lifecycle pattern. AppAuthDispatch 14/14 and frontend-shell auth/runtime scenarios 72/72 pass warning-free; frontend build and owner/product contexts pass. Full frontend 137 files/829 tests pass and AppAuthDispatch is absent from the remaining warning list; diff/pruning gates pass real_residuals=0." -->

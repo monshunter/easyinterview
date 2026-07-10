@@ -17,8 +17,8 @@
 ## 2 触发流
 
 - `setup.sh` 准备 `.test-output/e2e/p0-037-...`
-- `trigger.sh` 在仓库根执行 `pnpm --filter @easyinterview/frontend test src/app/scenarios/p0-037-resume-detail-preview-readonly.test.tsx`
-- `verify.sh` 校验 6 tests passed + pending PDF upload 轮询到 source page stack + failed-with-snapshot PDF upload 单次请求 + out-of-scope testid 字面量 negative + 不出现 `TARGET_JOB_NOT_FOUND` 字符串。
+- `trigger.sh` 在仓库根执行 `pnpm --filter @easyinterview/frontend test src/app/scenarios/p0-037-resume-detail-preview-readonly.test.tsx`，并把 stdout/stderr 一并写入 trigger log。
+- `verify.sh` 校验 6 tests passed + pending PDF upload 轮询到 source page stack + failed-with-snapshot PDF upload 单次请求 + out-of-scope testid 字面量 negative + 不出现 `TARGET_JOB_NOT_FOUND` 或未被 `act(...)` 接管的 React update warning。
 - `cleanup.sh` 清理 setup 标记。
 
 ## 3 离线限制

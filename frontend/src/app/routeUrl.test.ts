@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -9,6 +12,11 @@ import {
 } from "./routeUrl";
 
 describe("ROUTE_TO_PATH catalog", () => {
+  it("does not expose canonical-route helpers without repository consumers", () => {
+    const source = readFileSync(resolve(process.cwd(), "src/app/routeUrl.ts"), "utf8");
+    expect(source).not.toContain("routeUrlsEqual");
+  });
+
   it("covers every retained route with a canonical path", () => {
     expect(ROUTE_TO_PATH).toEqual({
       home: "/",
@@ -124,7 +132,7 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/practice?modality=phone&mode=phone&sessionId=s-1");
   });
 
-  it("drops out-of-scope voice mode values instead of preserving compatibility params", () => {
+  it("drops out-of-scope voice mode values from canonical params", () => {
     expect(
       formatRouteUrl({
         name: "practice",

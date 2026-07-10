@@ -1,6 +1,6 @@
 # TargetJob Import and Parse Bootstrap
 
-> **版本**: 1.17
+> **版本**: 1.20
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-落地 P0 后端 TargetJob 域：把 [B2 OpenAPI](../../../openapi-v1-contract/spec.md) 已定义的 `importTargetJob` / `listTargetJobs` / `getTargetJob` / `updateTargetJob` / `archiveTargetJob` 接到真实 handler / service / store，把 4 类导入源（`url` / `manual_text` / `file` / `manual_form`）写入 [B4 baseline](../../../db-migrations-baseline/spec.md) 的 `target_jobs` / `target_job_requirements` / `target_job_sources` 三张表，把 [B3](../../../event-and-outbox-contract/spec.md) 的 `target_import` 异步 job 通过 backend-internal goroutine drainer drain，并在事务内调用 [F3 RegistryClient](../../../prompt-rubric-registry/spec.md) `Resolve("target.import.parse", language)` + [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 完成 JD 解析。解析成功发出 `target.parsed` 并保留 ready TargetJob；解析失败只发出 `target.analysis.failed` 诊断事件并删除失败 TargetJob 资产，不允许失败 JD 作为可继续规划持久化；用户删除面试列表卡片时通过 `archiveTargetJob` 持久软归档，避免刷新后回灌。
+落地 P0 后端 TargetJob 域：把 [B2 OpenAPI](../../../openapi-v1-contract/spec.md) 已定义的 `importTargetJob` / `listTargetJobs` / `getTargetJob` / `updateTargetJob` / `archiveTargetJob` 接到真实 handler / service / store，把 4 类导入源（`url` / `manual_text` / `file` / `manual_form`）写入 [B4 baseline](../../../db-migrations-baseline/spec.md) 的 `target_jobs` / `target_job_requirements` / `target_job_sources` 三张表，把 [B3](../../../event-and-outbox-contract/spec.md) 的 `target_import` 异步 job 通过 backend-internal goroutine runner kernel drain，并在事务内调用 [F3 RegistryClient](../../../prompt-rubric-registry/spec.md) `Resolve("target.import.parse", language)` + [A3 AIClient](../../../ai-provider-and-model-routing/spec.md) 完成 JD 解析。解析成功发出 `target.parsed` 并保留 ready TargetJob；解析失败只发出 `target.analysis.failed` 诊断事件并删除失败 TargetJob 资产，不允许失败 JD 作为可继续规划持久化；用户删除面试列表卡片时通过 `archiveTargetJob` 持久软归档，避免刷新后回灌。
 
 本次 v1.10 原地修订修复解析失败准入缺口：`target_import` 失败事务必须删除 `target_jobs`，级联清理 source / requirements，保留 async job/outbox 失败证据；`listTargetJobs` / `getTargetJob` 不得再返回 `analysisStatus=failed` 的脏规划。
 本次 v1.11 原地修订新增 TargetJob 持久归档合同：`POST /targets/{targetJobId}/archive` 与 generated `archiveTargetJob` 必须设置 `status='archived'` 和 `deleted_at`，并让 `listTargetJobs` / `getTargetJob` 继续通过 `deleted_at is null` 隐藏已归档卡片。
@@ -19,6 +19,8 @@
 本次 v1.13 清理 `profile_id` schema-drift gate 的范围外生命周期标签口径，保留 active SQL 零引用和真实 Postgres gate。
 本次 v1.14 收敛 `source_refresh` 当前事实：解析成功事务写入 internal-only follow-up job，`SourceRefreshHandler` 消费后将 source 标记为 `stale`，文档不再描述为空触发入口。
 本次 v1.15 收敛 `latestReportId` 当前事实：它是 TargetJob 上的可空最新报告指针，`null` 表示该 JD 尚无关联报告，不再作为 scaffold 字段表述。
+本次 v1.18 删除 URL parse 在缺少必备 `target_job_sources` 行时的静默继续路径：executor 必须在出网前验证 source row，不变量破坏时以 non-retryable `TARGET_IMPORT_SOURCE_INVALID` 失败并执行已有失败清理事务。
+本次 v1.20 将 TargetJob handler/runtime 边界收敛为 canonical `runner.Handler` + `runner.Runtime`，并同步 cmd/api 测试名；v1.19 删除 `TestParseExecutorAITaskRuns` 中在组装 observability wrapper 前的无效 executor 初始化，保留共享 fake store / registry / AI 实例与原有断言。
 
 本计划闭环后，[`frontend-home-job-picks-and-parse`](../../../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 的 parse 屏可从 mock fixture 切到真实 backend，剩余 Job Picks 推荐与 practice plan 创建归后续 plan / 后续 subspec。
 
@@ -28,7 +30,7 @@
 
 [backend-auth/001-email-code-session-bootstrap](../../../backend-auth/plans/001-email-code-session-bootstrap/plan.md) 已经为本计划建立了重要先例：
 
-- 在 `cmd/api` 进程内用 backend-internal goroutine drainer 完成异步派发，不引入独立 worker。
+- 在 `cmd/api` 进程内用 backend-internal goroutine runner kernel 完成异步派发，不引入独立 worker。
 - 通过 generated `BuildEmailDispatchPayload` 强制 redact PII；本计划同样要使用 generated outbox payload helper 守 `target.*` 事件红线。
 - 隐私 / observability 通过 grep / privacy test 验证；本计划沿用同款 gate。
 
@@ -37,9 +39,9 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior` + `backend` + `contract` + `async-pipeline`。
-- **TDD 策略**: 通过 `/implement backend-targetjob/001-targetjob-import-and-parse-bootstrap backend` → `/tdd` 执行；Phase 0 先以 contract tests / codegen drift tests 修订 B1/B2/B3/F1 owner truth source，后续每个 backend checklist item 先写 focused Go test（handler contract test、service test、store test、URL fetcher SSRF test、drainer test、outbox emit test、privacy grep test）再实现最小代码；checklist 的 `验证:` 后必须列出测试断言。
-- **BDD 策略**: 需要 BDD。本计划引入用户可见 API 行为（5 个 operation + 异步解析观测 + manual_form 同步兜底 + workspace 归档删除），必须维护 `bdd-plan.md` / `bdd-checklist.md`，并在主 checklist 用 `BDD-Gate:` 引用 `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` / `E2E.P0.018`。2026-05-08 L2 code review 重新打开该 gate 后，p0-010..013 已迁移为 `auth -> HTTP API -> cmd/api runtime drainer -> F3 prompt registry + A3 AI client + urlfetch -> store/outbox` 的 HTTP scenario harness，verify 输出 `method=cmd-api-http` / `validBddEvidence=true`。
-- **替代验证 gate**: 不适用；BDD gate 是行为入口。补充 gate 包括 focused Go tests、OpenAPI generated contract tests、B1/B2 codegen drift check（`make codegen-conventions && make codegen-openapi && make codegen-check`）、fixtures validation（`make validate-fixtures`）、events.yaml / jobs.yaml drift check（`make codegen-events && make lint-events`）、`migrations_lint`、F1 metric registry tests、privacy grep（`raw_jd_text` / `Authorization` / `prompt body`）、URL fetch SSRF unit test 矩阵、drainer drain / shutdown test、F3 Resolve fail-closed test、`make docs-check`、`make lint-config`。
+- **TDD 策略**: 通过 `/implement backend-targetjob/001-targetjob-import-and-parse-bootstrap backend` → `/tdd` 执行；Phase 0 先以 contract tests / codegen drift tests 修订 B1/B2/B3/F1 owner truth source，后续每个 backend checklist item 先写 focused Go test（handler contract test、service test、store test、URL fetcher SSRF test、runner kernel test、outbox emit test、privacy grep test）再实现最小代码；checklist 的 `验证:` 后必须列出测试断言。
+- **BDD 策略**: 需要 BDD。本计划引入用户可见 API 行为（5 个 operation + 异步解析观测 + manual_form 同步兜底 + workspace 归档删除），必须维护 `bdd-plan.md` / `bdd-checklist.md`，并在主 checklist 用 `BDD-Gate:` 引用 `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` / `E2E.P0.018`。2026-05-08 L2 code review 重新打开该 gate 后，p0-010..013 已迁移为 `auth -> HTTP API -> cmd/api runtime runner kernel -> F3 prompt registry + A3 AI client + urlfetch -> store/outbox` 的 HTTP scenario harness，verify 输出 `method=cmd-api-http` / `validBddEvidence=true`。
+- **替代验证 gate**: 不适用；BDD gate 是行为入口。补充 gate 包括 focused Go tests、OpenAPI generated contract tests、B1/B2 codegen drift check（`make codegen-conventions && make codegen-openapi && make codegen-check`）、fixtures validation（`make validate-fixtures`）、events.yaml / jobs.yaml drift check（`make codegen-events && make lint-events`）、`migrations_lint`、F1 metric registry tests、privacy grep（`raw_jd_text` / `Authorization` / `prompt body`）、URL fetch SSRF unit test 矩阵、runner kernel drain / shutdown test、F3 Resolve fail-closed test、`make docs-check`、`make lint-config`。
 
 ### 3.1 Operation Matrix
 
@@ -117,9 +119,9 @@ F1 metrics dictionary 必须登记 `target_job_imports_total`、`target_job_pars
 
 ### Phase 4: Async parse pipeline
 
-#### 4.1 实现 `target_import` drainer
+#### 4.1 实现 `target_import` runner kernel
 
-复用 [backend-auth](../../../backend-auth/spec.md) 同款 backend-internal goroutine drainer 模式：handler 入队后立即返回 202；后台 worker pool 按 `target_import` job 调度，支持 graceful shutdown / drain timeout / pending job retry on restart；并发上限作为代码常量，与 backend-auth 同款记录在包级 doc。drainer 必须有 drain / shutdown / pending-on-restart focused tests。
+复用 [backend-auth](../../../backend-auth/spec.md) 同款 backend-internal goroutine runner kernel 模式：handler 入队后立即返回 202；后台 worker pool 按 `target_import` job 调度，支持 graceful shutdown / drain timeout / pending job retry on restart；并发上限作为代码常量，与 backend-auth 同款记录在包级 doc。runner kernel 必须有 drain / shutdown / pending-on-restart focused tests。
 
 #### 4.2 调用 F3 Resolve + A3 Complete
 
@@ -199,9 +201,9 @@ privacy grep 必须覆盖：log / metric label / audit / outbox payload / async 
 
 `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 的 evidence 必须来自真实 HTTP scenario harness。脚本不得回退为包级 focused tests；verify output 必须保留 `method=cmd-api-http` 与 `validBddEvidence=true`，防止未来 L2 review 把辅助 TDD 证据误读为 BDD 通过。
 
-#### 7.4 `cmd/api` runtime drainer wiring remediation
+#### 7.4 `cmd/api` runtime runner kernel wiring remediation
 
-`cmd/api` 必须在同一进程中组装 `target_import` / `source_refresh` drainer、`ParseExecutor`、A3 AI runtime client、`urlfetch` 与 F3 `target.import.parse` contract bridge。当前 backend truth source 仍未提供可消费的 F3 prompt/rubric runtime package，因此 runtime wiring 可用静态 contract bridge 先闭合启动路径；真实 HTTP BDD 仍必须等 F3 runtime package 或场景注入能力到位后再完成。
+`cmd/api` 必须在同一进程中组装 `target_import` / `source_refresh` runner kernel、`ParseExecutor`、A3 AI runtime client、`urlfetch` 与 F3 `target.import.parse` contract bridge。当前 backend truth source 仍未提供可消费的 F3 prompt/rubric runtime package，因此 runtime wiring 可用静态 contract bridge 先闭合启动路径；真实 HTTP BDD 仍必须等 F3 runtime package 或场景注入能力到位后再完成。
 
 #### 7.5 Generated error envelope remediation
 
@@ -213,7 +215,7 @@ TargetJob handler 必须返回 B1/B2 generated `ApiErrorResponse` envelope：所
 
 #### 7.7 F3 prompt ownership and test-runtime parse fixture remediation
 
-`ParseExecutor` 不得直接硬编码 prompt body；必须从 `RegistryClient.Resolve("target.import.parse", language)` 返回的 contract bridge / prompt metadata 组装 A3 `CompletePayload`，并在 `APP_ENV=test` 的 `cmd/api` runtime 中提供只作用于 `target.import.parse` 的 deterministic JSON parse fixture client，以便 HTTP drainer 成功路径可以不依赖真实 provider。该 fixture 只能在 test env 选中，不得影响 dev / staging / prod 的 fail-closed 语义。
+`ParseExecutor` 不得直接硬编码 prompt body；必须从 `RegistryClient.Resolve("target.import.parse", language)` 返回的 contract bridge / prompt metadata 组装 A3 `CompletePayload`，并在 `APP_ENV=test` 的 `cmd/api` runtime 中提供只作用于 `target.import.parse` 的 deterministic JSON parse fixture client，以便 HTTP runner kernel 成功路径可以不依赖真实 provider。该 fixture 只能在 test env 选中，不得影响 dev / staging / prod 的 fail-closed 语义。
 
 #### 7.8 AI output validation remediation
 
@@ -225,11 +227,11 @@ AI parse 输出必须在写 DB 前严格校验：无有效 requirement、非法 
 
 #### 7.10 HTTP scenario migration remediation
 
-`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 必须通过 `cmd/api` HTTP scenario harness 执行，覆盖 auth middleware、HTTP API、TargetJob handler/service、in-process drainer 与 parse executor。验证输出必须保留 `status=passed` / `method=cmd-api-http` / `validBddEvidence=true`，不得退化成包级 focused test 代理证据。
+`E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013` 必须通过 `cmd/api` HTTP scenario harness 执行，覆盖 auth middleware、HTTP API、TargetJob handler/service、in-process runner kernel 与 parse executor。验证输出必须保留 `status=passed` / `method=cmd-api-http` / `validBddEvidence=true`，不得退化成包级 focused test 代理证据。
 
 #### 7.11 Removed `profile_id` schema-drift remediation
 
-TargetJob store / service / handler / drainer 所有 active SQL 必须与当前 B4 `target_jobs` 表结构一致，不得继续 select / insert / scan 已移除 profile 模块的 `profile_id` 列。验证必须覆盖 sqlmock 列集合与真实 Postgres integration gate；解析失败资产由 Phase 11 删除，`GET /targets/{id}` 应返回 404 + `TARGET_JOB_NOT_FOUND`，而不是暴露 failed TargetJob 或已移除列引用漂移 500。
+TargetJob store / service / handler / runner kernel 所有 active SQL 必须与当前 B4 `target_jobs` 表结构一致，不得继续 select / insert / scan 已移除 profile 模块的 `profile_id` 列。验证必须覆盖 sqlmock 列集合与真实 Postgres integration gate；解析失败资产由 Phase 11 删除，`GET /targets/{id}` 应返回 404 + `TARGET_JOB_NOT_FOUND`，而不是暴露 failed TargetJob 或已移除列引用漂移 500。
 
 #### 7.12 Required integration gate skip-proof remediation
 
@@ -263,10 +265,18 @@ Additive 修订 `openapi/openapi.yaml`、TargetJobs fixture 与 operation invent
 
 `E2E.P0.018` / local browser smoke 必须在 real backend 模式下证明：workspace 卡片点击主体仍进入 `parse`，`立即面试` 仍启动 practice，删除图标调用后卡片从 UI 消失，刷新后仍不回灌。验收产物必须包含浏览器截图和后端 API/DB 证据。
 
+### Phase 13: URL source-row invariant fail-closed cleanup
+
+`url` import 事务已保证创建 `target_job_sources` 行，因此 `ParseExecutor` 在处理 URL job 时必须先找到对应 source row，再调用 fetcher。缺行表示当前持久化不变量已破坏：必须映射为 non-retryable `TARGET_IMPORT_SOURCE_INVALID`，写入 `target.analysis.failed` 并通过 `CompleteParseFailure` 删除不完整 TargetJob 资产；不得发起网络请求、AI 调用或 parse success commit。有效 URL import 的 API/BDD 行为不变，本阶段以 focused `ParseExecutor` 红绿测试和现有 P0.011 回归资产作为验证 gate。
+
+### Phase 14: TargetJob test dead initialization cleanup
+
+`TestParseExecutorAITaskRuns` 只使用包装 observability 的 executor；首次 `newParseExecutorWithFakes` 返回的 executor 在重新组装前从未读取。忽略该返回值，不改变 fake 依赖、task-run/audit 断言或生产代码；以 focused test 和 scoped `staticcheck` 作为验证 gate。
+
 ## 5 验收标准
 
 - Phase 0 owner contract gates 通过：B1/B2 codegen drift clean，TargetJobs fixture scenarios schema-valid，B3 sourceType mapping lint clean，F1 TargetJob metrics registry tests 通过。
-- 5 个 TargetJob operation 的 handler / service / store focused Go tests 全部通过；URL fetcher SSRF / length / timeout / redirect / metadata-IP 矩阵全部覆盖；drainer drain / shutdown / pending-on-restart tests 通过。
+- 5 个 TargetJob operation 的 handler / service / store focused Go tests 全部通过；URL fetcher SSRF / length / timeout / redirect / metadata-IP 矩阵全部覆盖；runner kernel drain / shutdown / pending-on-restart tests 通过。
 - 异步解析成功 / 失败（retryable / non-retryable）路径事务一致；outbox 在事务内写入 `target.import.requested` / `target.parsed` / `target.analysis.failed`，成功路径写入下游 internal-only `source_refresh` follow-up job；失败路径删除失败 TargetJob 资产，`listTargetJobs` / `getTargetJob` 均不可返回失败解析产物。
 - F3 Resolve fail-closed 与 A3 缺 secret fail-closed 路径覆盖；除 `APP_ENV=test` 外不静默回退 stub。
 - TargetJob handler 错误响应符合 generated `ApiErrorResponse`，`listTargetJobs.pageInfo.pageSize` 符合 B1/B2 envelope，AI parse 输出无有效 requirement 或非法字段时走 `AI_OUTPUT_INVALID`。
@@ -284,7 +294,7 @@ Additive 修订 `openapi/openapi.yaml`、TargetJobs fixture 与 operation invent
 | 风险 | 应对措施 |
 |------|----------|
 | F3 `target.import.parse` baseline prompt / rubric 尚未由 F3 001 plan 落地 | 业务侧只调用 `RegistryClient.Resolve` 抽象，不在 `ParseExecutor` hardcode prompt；`APP_ENV=test` 仅通过 deterministic JSON parse fixture 闭合场景成功路径；dev / staging / prod 中 F3 未 ready 时 `Resolve` 返回 disabled / unsupported，按 D-10 走失败路径而不是绕过 F3 |
-| 独立 worker / Asynq 还未落地 | 沿用 backend-auth 同款 in-process drainer + B3 payload 红线；`backend-async-runner` 未来替换时 0 改动 outbox / payload helper |
+| 独立 worker / Asynq 还未落地 | 沿用 backend-auth 同款 in-process runner kernel + B3 payload 红线；`backend-async-runner` 未来替换时 0 改动 outbox / payload helper |
 | URL fetch 引发 SSRF / 内网泄露 | Phase 3.3 SSRF 测试矩阵覆盖私网 / 链路本地 / 元数据 / redirect / oversize；UA 与 timeout 显式可测试 |
 | AI prompt / response 明文进入日志 / 事件 | Phase 5.1 privacy grep + generated outbox payload helper + observability decorator hash-only 摘要 |
 | Idempotency 被跨用户复用 | Phase 5.3 store-level user-scoped dedupe + handler 层 user_id 过滤 + 越权返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND` |

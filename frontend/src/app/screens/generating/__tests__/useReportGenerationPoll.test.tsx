@@ -16,7 +16,7 @@ import type {
   FeedbackReport,
 } from "../../../../api/generated/types";
 import { EasyInterviewClient } from "../../../../api/generated/client";
-import { AppRuntimeProvider } from "../../../runtime/AppRuntimeProvider";
+import { AppRuntimeContext } from "../../../runtime/AppRuntimeProvider";
 import {
   useReportGenerationPoll,
   type PollScheduler,
@@ -41,12 +41,6 @@ function buildClientWithSequence(
 ): EasyInterviewClient {
   let i = 0;
   return {
-    async getRuntimeConfig() {
-      return { aiProviderProfile: "stub" } as never;
-    },
-    async getMe() {
-      throw new Error("HTTP 401 Unauthorized");
-    },
     async getFeedbackReport(): Promise<FeedbackReport> {
       const next = responses[Math.min(i, responses.length - 1)];
       i += 1;
@@ -60,12 +54,6 @@ function buildClientWithSequence(
 
 function buildClientStuck(): EasyInterviewClient {
   return {
-    async getRuntimeConfig() {
-      return { aiProviderProfile: "stub" } as never;
-    },
-    async getMe() {
-      throw new Error("HTTP 401 Unauthorized");
-    },
     async getFeedbackReport(): Promise<FeedbackReport> {
       return makeReport({ status: "generating" });
     },
@@ -115,7 +103,18 @@ function Wrapper({
   client: EasyInterviewClient;
   children: ReactNode;
 }) {
-  return <AppRuntimeProvider client={client}>{children}</AppRuntimeProvider>;
+  return (
+    <AppRuntimeContext.Provider
+      value={{
+        client,
+        runtime: { status: "ready", config: {} as never },
+        auth: { status: "unauthenticated" },
+        refreshAuth: () => {},
+      }}
+    >
+      {children}
+    </AppRuntimeContext.Provider>
+  );
 }
 
 describe("useReportGenerationPoll", () => {

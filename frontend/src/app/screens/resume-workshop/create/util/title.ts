@@ -15,9 +15,6 @@ const FALLBACK_TITLES: Record<Lang, Record<CreateMode, string>> = {
   },
 };
 
-const truncateTitle = (value: string): string =>
-  value.length > MAX_TITLE_LENGTH ? value.slice(0, MAX_TITLE_LENGTH) : value;
-
 export function deriveDefaultTitle(
   mode: CreateMode,
   lang: Lang,

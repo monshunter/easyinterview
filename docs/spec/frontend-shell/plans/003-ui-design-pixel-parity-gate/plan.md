@@ -1,8 +1,8 @@
 # UI-Design Pixel Parity Gate
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -19,7 +19,7 @@
 - Auth / settings / user menu / logout browser geometry。
 - Home / parse / workspace / resume workshop / practice / generating / report parity specs。
 - Workspace full-state 通过 server-bound route bootstrap 进入，不依赖 synthetic route params。
-- Screenshot 常规 gate 使用非空 screenshot smoke；baseline diff 只作为显式 `--update-snapshots` 维护流程。
+- Screenshot gate 使用非空 screenshot buffer，不维护 snapshot baseline 或更新流程。
 - Out-of-scope route/module entries 只作为负向断言，不作为正向屏幕或可见入口。
 
 ## 2 当前合同
@@ -30,9 +30,9 @@
 |---------|------------|----------|
 | Playwright config | `frontend/playwright.config.ts` | desktop + mobile projects, `tests/pixel-parity`, static web server, `.playwright-output` |
 | Static server | `frontend/scripts/serve-pixel-parity.mjs` | serves `frontend/dist`, `ui-design/`, and `/health`; fails loudly when required dirs are missing |
-| Pixel specs | `frontend/tests/pixel-parity/*.spec.ts` | current 13-spec parity suite for shell and migrated screens |
+| Pixel specs | `frontend/tests/pixel-parity/*.spec.ts` | current 12-spec parity suite for shell and migrated screens |
 | Scenario | `test/scenarios/e2e/p0-006-ui-design-pixel-parity-gate/` | setup/trigger/verify/cleanup wrapper for `test:pixel-parity` |
-| Handoff docs | `frontend/README.md` §2.7 | install, build, run, screenshot baseline maintenance and offline limits |
+| Handoff docs | `frontend/README.md` §2.7 | install, build, run, screenshot smoke and offline limits |
 
 ### 2.2 Current Gate Expectations
 
@@ -73,7 +73,7 @@
 
 - Added screenshot smoke for clean checkout behavior.
 - Added dark and customAccent token/paint assertions.
-- Kept snapshot baseline regeneration as explicit maintenance, not normal PASS criteria.
+- Kept screenshot evidence as non-empty browser buffers alongside DOM/style/geometry assertions.
 
 ### Phase 4: Business-screen parity expansion
 
@@ -84,8 +84,15 @@
 ### Phase 5: Scenario and docs handoff
 
 - Added `E2E.P0.006` scenario assets and verification wrapper.
-- Updated frontend README with install/build/run/baseline maintenance instructions.
+- Updated frontend README with install/build/run/screenshot-smoke instructions.
 - Preserved jsdom smoke (`E2E.P0.005`) as fast feedback while Playwright owns real browser parity.
+
+### Phase 6: Current inventory hardening
+
+- Keep the P0.006 verify marker list derived from the same 12 tracked Playwright specs.
+- Keep screenshot smoke buffer-only; do not retain snapshot config, ignore rules or PNGs.
+- Keep browser dependencies limited to packages imported by the current parity suite.
+- Keep scenario wording aligned with ocean/light and current ocean dark tokens.
 
 ## 5 验收标准
 
@@ -94,7 +101,7 @@
 | A-1 | Playwright config and static server are executable | scaffold/server tests, P0.006 setup |
 | A-2 | TopBar, auth/settings shell and user menu match current UI source in real browsers | `topbar.spec.ts`, `screens.spec.ts`, `layout.spec.ts` |
 | A-3 | Current business screens have viewport-safe parity coverage | home/parse/workspace/resume/practice/generating/report specs |
-| A-4 | Screenshot smoke, dark mode and customAccent work without ignored baseline dependency | `screenshot.spec.ts` and per-screen smoke |
+| A-4 | Screenshot smoke, dark mode and customAccent work through current browser evidence | `screenshot.spec.ts` and per-screen smoke |
 | A-5 | Out-of-scope routes/modules do not become live parity surfaces | pixel specs and P0.006 verify negative checks |
 | A-6 | Scenario/documentation handoff is complete | `E2E.P0.006`, `frontend/README.md`, docs-check |
 
@@ -102,5 +109,6 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
-| 2026-07-07 | 1.5 | Compress owner docs to the current 13-spec Playwright pixel parity contract and remove staged implementation narrative. |
+| 2026-07-10 | 1.6 | Reconcile the 12-spec inventory, ocean token evidence, buffer-only screenshot contract and current browser dependencies. |
+| 2026-07-07 | 1.5 | Compress owner docs to the then-current Playwright pixel parity contract and remove staged implementation narrative. |
 | 2026-07-06 | 1.4 | Reconcile current positive screen markers and browser-menu parity scope. |

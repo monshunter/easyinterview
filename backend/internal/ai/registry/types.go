@@ -78,7 +78,7 @@ type ScoreLevel struct {
 }
 
 // Score is the F3 LLM Judge numeric verdict for one rubric dimension. A Judge
-// call returns one Score per dimension in the resolved rubric (spec D-9 v2.8):
+// call returns one Score per dimension in the resolved rubric (spec D-9):
 // Dimension matches the rubric `dimensions[].name`, and Value ∈ [0,1] can be
 // mapped back to a label via the rubric `score_levels[].threshold` bands.
 type Score struct {
@@ -92,11 +92,11 @@ type Reasoning struct {
 	EvidenceQuotes []string
 }
 
-// Judge is the F3 LLM Judge contract. The signature mirrors spec D-9 v2.8
+// Judge is the F3 LLM Judge contract. The signature mirrors spec D-9
 // `Judge(featureKey, prompt_version, output, rubric_version) → ([]score,
 // reasoning)` with the Go-idiomatic context.Context prepended and an error
 // trailing return. The first return evolved from a single Score to a
-// per-dimension []Score at spec v2.8 so multi-dimension rubrics are scored
+// per-dimension []Score so multi-dimension rubrics are scored
 // dimension-by-dimension.
 type Judge interface {
 	Judge(

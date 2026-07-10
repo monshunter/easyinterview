@@ -1,14 +1,24 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { ALL_OPERATION_IDS } from "./generated/client";
 import {
 	createDevMockClient,
-	getDevMockFixtureOperationIds,
+	createDevMockFixtureRegistry,
 } from "./devMockClient";
 
 describe("frontend dev fixture-backed mock client", () => {
+	it("does not expose a test-only fixture operation observer", () => {
+		const observer = ["getDevMockFixture", "OperationIds"].join("");
+		expect(readFileSync(resolve(__dirname, "devMockClient.ts"), "utf8")).not.toContain(
+			observer,
+		);
+	});
+
 	it("covers every generated operationId with a fixture", () => {
-		expect(getDevMockFixtureOperationIds().sort()).toEqual(
+		expect(Object.keys(createDevMockFixtureRegistry()).sort()).toEqual(
 			[...ALL_OPERATION_IDS].sort(),
 		);
 	});

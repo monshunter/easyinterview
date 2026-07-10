@@ -269,7 +269,7 @@ test.describe("practice screen DOM and geometry parity", () => {
     expect(customAccent).toContain("oklch");
   });
 
-  test("screenshot smoke is non-empty without a checked-in baseline", async ({ page }) => {
+  test("screenshot smoke is non-empty", async ({ page }) => {
     await goToPractice(page);
     const image = await page.screenshot({ fullPage: false });
     expect(image.length).toBeGreaterThan(10_000);

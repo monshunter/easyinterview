@@ -1,6 +1,4 @@
 /**
- * @vitest-environment jsdom
- *
  * Item 4.2 — buildPracticeHandoffParams must propagate all stable IDs +
  * the PracticeDisplayContext to the generating route, and never include
  * raw answer / question / hint / prompt / provenance fields.
@@ -9,12 +7,22 @@
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_INTERVIEW_CONTEXT } from "../../../interview-context/InterviewContext";
-import {
-  buildPracticeHandoffParams,
-  findForbiddenHandoffKeys,
-} from "./practiceHandoffParams";
+import { buildPracticeHandoffParams } from "./practiceHandoffParams";
 
 const REPORT_ID = "01918fa0-0000-7000-8000-00000000a000";
+const FORBIDDEN_HANDOFF_KEYS = [
+  "answerText",
+  "questionText",
+  "hint",
+  "prompt",
+  "promptVersion",
+  "rubricVersion",
+  "modelId",
+  "language",
+  "featureFlag",
+  "dataSourceVersion",
+  "provenance",
+] as const;
 
 describe("buildPracticeHandoffParams", () => {
   it("emits all stable owner IDs + PracticeDisplayContext fields", () => {
@@ -82,28 +90,8 @@ describe("buildPracticeHandoffParams", () => {
       practiceGoal: "baseline",
       hintCount: 1,
     });
-    expect(findForbiddenHandoffKeys(params as unknown as Record<string, unknown>)).toBeNull();
-    expect(params).not.toHaveProperty("answerText");
-    expect(params).not.toHaveProperty("questionText");
-    expect(params).not.toHaveProperty("hint");
-    expect(params).not.toHaveProperty("prompt");
-    expect(params).not.toHaveProperty("provenance");
-    expect(params).not.toHaveProperty("modelId");
-  });
-
-  it("findForbiddenHandoffKeys catches injected raw fields", () => {
-    expect(
-      findForbiddenHandoffKeys({
-        sessionId: "sess-1",
-        answerText: "leak",
-      }),
-    ).toEqual(["answerText"]);
-    expect(
-      findForbiddenHandoffKeys({
-        sessionId: "sess-1",
-        modelId: "leak",
-        provenance: "leak",
-      }),
-    ).toEqual(["modelId", "provenance"]);
+    for (const key of FORBIDDEN_HANDOFF_KEYS) {
+      expect(params).not.toHaveProperty(key);
+    }
   });
 });

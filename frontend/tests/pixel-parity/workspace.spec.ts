@@ -427,7 +427,7 @@ test.describe("workspace dark mode + customAccent visual diff", () => {
 });
 
 test.describe("workspace screenshot regression", () => {
-  test("workspace plan-list landing renders a non-empty screenshot without a baseline prerequisite", async ({ page }) => {
+  test("workspace plan-list landing renders a non-empty screenshot", async ({ page }) => {
     await goToWorkspace(page);
     await freezeAnimations(page);
     await expect(page.locator("[data-testid='workspace-plan-list']")).toBeVisible();
@@ -435,7 +435,7 @@ test.describe("workspace screenshot regression", () => {
     expect(screenshot.length).toBeGreaterThan(10_000);
   });
 
-  test("parse detail renders a non-empty screenshot without a baseline prerequisite", async ({ page }) => {
+  test("parse detail renders a non-empty screenshot", async ({ page }) => {
     await goToParseDetail(page);
     await freezeAnimations(page);
     await expect(page.locator("[data-testid='unified-plan-detail']")).toBeVisible();

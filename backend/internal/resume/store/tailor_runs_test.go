@@ -126,7 +126,7 @@ func TestGetTailorRunMapsStatusFromAsyncJob(t *testing.T) {
 		{
 			name:       "ready with result",
 			jobStatus:  "succeeded",
-			result:     []byte(`{"matchSummary":{"strengths":["Go"],"gaps":["k8s"]},"suggestions":[{"originalBullet":"a","suggestedBullet":"b","reason":"impact"}],"provenance":{"promptVersion":"p","modelId":"m"}}`),
+			result:     []byte(`{"matchSummary":{"strengths":["Go"],"gaps":["k8s"]},"suggestions":[{"originalBullet":"a","suggestedBullet":"b","reason":"impact"}],"provenance":{"promptVersion":"p","rubricVersion":"r","modelId":"m","provider":"provider","language":"en","featureFlag":"flag","dataSourceVersion":"source"}}`),
 			wantStatus: "ready",
 			wantReady:  true,
 		},
@@ -164,8 +164,17 @@ func TestGetTailorRunMapsStatusFromAsyncJob(t *testing.T) {
 				if err := json.Unmarshal(got.Suggestions, &suggestions); err != nil || len(suggestions) != 1 {
 					t.Fatalf("suggestions = %s (err=%v)", got.Suggestions, err)
 				}
-				if got.Provenance.PromptVersion != "p" || got.Provenance.ModelID != "m" {
-					t.Fatalf("provenance = %+v", got.Provenance)
+				wantProvenance := resumestore.VersionProvenance{
+					PromptVersion:     "p",
+					RubricVersion:     "r",
+					ModelID:           "m",
+					Provider:          "provider",
+					Language:          "en",
+					FeatureFlag:       "flag",
+					DataSourceVersion: "source",
+				}
+				if got.Provenance != wantProvenance {
+					t.Fatalf("provenance = %+v, want %+v", got.Provenance, wantProvenance)
 				}
 			}
 			if err := mock.ExpectationsWereMet(); err != nil {

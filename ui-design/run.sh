@@ -7,7 +7,9 @@
 #   ./run.sh --no-open      # 不自动打开浏览器
 set -euo pipefail
 
-cd "$(dirname "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_PATH="$SCRIPT_DIR/$(basename "$0")"
+cd "$SCRIPT_DIR"
 
 PORT=5173
 FILE="index.html"
@@ -18,7 +20,7 @@ while [[ $# -gt 0 ]]; do
     -p|--port) PORT="$2"; shift 2 ;;
     -f|--file) FILE="$2"; shift 2 ;;
     --no-open) OPEN_BROWSER=0; shift ;;
-    -h|--help) sed -n '2,9p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,7p' "$SCRIPT_PATH"; exit 0 ;;
     *) echo "未知参数: $1" >&2; exit 1 ;;
   esac
 done
@@ -27,6 +29,11 @@ if [[ ! -f "$FILE" ]]; then
   echo "找不到入口文件: $FILE" >&2
   echo "本目录可用 .html:" >&2
   ls -1 *.html 2>/dev/null | sed 's/^/  /' >&2 || true
+  exit 1
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "未检测到 python3，请按仓库 .tool-versions 安装 Python 3" >&2
   exit 1
 fi
 
@@ -54,16 +61,5 @@ if [[ "$OPEN_BROWSER" == "1" ]]; then
   ) &
 fi
 
-if command -v python3 >/dev/null 2>&1; then
-  echo "[run.sh] 使用 python3 启动静态服务器"
-  exec python3 -m http.server "$PORT" --bind 127.0.0.1
-elif command -v python >/dev/null 2>&1; then
-  echo "[run.sh] 使用 python 启动静态服务器"
-  exec python -m SimpleHTTPServer "$PORT"
-elif command -v npx >/dev/null 2>&1; then
-  echo "[run.sh] 使用 npx serve 启动静态服务器"
-  exec npx --yes serve -l "$PORT" .
-else
-  echo "未检测到 python3 / python / npx, 请先安装其一" >&2
-  exit 1
-fi
+echo "[run.sh] 使用 python3 启动静态服务器"
+exec python3 -m http.server "$PORT" --bind 127.0.0.1

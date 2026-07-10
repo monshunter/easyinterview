@@ -1,6 +1,6 @@
 # Backend Resume Register Parse and Listing
 
-> **版本**: 2.8
+> **版本**: 2.9
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -62,9 +62,9 @@
   - `cd backend && go test ./internal/resume/handler/... -run TestRegisterSourceType -count=1`
   - `cd backend && go test ./internal/resume/store/... -tags=integration -count=1`
   - `cd backend && go test ./internal/resume/jobs/... -run TestResumeParseJob -count=1`（stub AIClient）
-  - `cd backend && go test ./cmd/api -run 'TestBuildResumeRuntime|TestResumeRegisterListHTTPScenario|TestResumeParseDrainerHTTPScenario' -count=1`
+  - `cd backend && go test ./cmd/api -run 'TestBuildResumeRuntime|TestResumeRegisterListHTTPScenario|TestResumeParseRunnerHTTPScenario' -count=1`
   - smoke：`curl -X POST /api/v1/resumes` 与 mock-server fixture 字节比对
-  - grep `inline|rewrite|mirror` in `backend/internal/resume/` + resume drainer/outbox payload tests（C-13 negative）
+  - grep `inline|rewrite|mirror` in `backend/internal/resume/` + resume runner kernel/outbox payload tests（C-13 negative）
   - `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`
   - `make docs-check`
 
@@ -131,7 +131,7 @@
 
 #### 3.4 unit test
 - `parse_test.go`（stub AIClient）：成功 / parse JSON 失败 / AI timeout retryable / output_invalid
-- `drainer_test.go`：`Handles(resume_parse)`、`RunOnce` 成功处理、shutdown 不泄漏 goroutine、未知 job type 不被本 drainer claim
+- `cmd/api/resume_parse_runner_scenario_test.go`：`Runtime.RunOnce` 成功/重试处理；kernel shutdown、未知 job type 与 lease/finalize 由 `backend/internal/runner` tests 覆盖
 
 ### Phase 4: listResumes handler
 
@@ -145,7 +145,7 @@
 - `list_integration_test.go`: empty / 25 行 + cursor 第二页 / cross-user 不可见 / cursor invalid 拒绝
 
 #### 4.3 `cmd/api` route/runtime wiring
-- 新增 `buildResumeRuntime`（或等价 composition helper），组合 resume store / upload service / prompt registry / AIClient / idempotency middleware / resume_parse drainer
+- 新增 `buildResumeRuntime`（或等价 composition helper），组合 resume store / upload service / prompt registry / AIClient / idempotency middleware / resume_parse runner kernel
 - 挂载：
   - `POST /api/v1/resumes` → session middleware + IK middleware + `RegisterResume`
   - `GET /api/v1/resumes` → session middleware + `ListResumes`
@@ -160,9 +160,9 @@
 按 §3 替代验证 gate 依序运行：
 - `cd backend && go test ./...` PASS
 - `cd backend && go test ./internal/resume/...` PASS
-- `cd backend && go test ./cmd/api -run 'TestBuildResumeRuntime|TestResumeRegisterListHTTPScenario|TestResumeParseDrainerHTTPScenario' -count=1` PASS
+- `cd backend && go test ./cmd/api -run 'TestBuildResumeRuntime|TestResumeRegisterListHTTPScenario|TestResumeParseRunnerHTTPScenario' -count=1` PASS
 - mock-first 对齐：handler 真实响应与 [B2 fixtures](../../../mock-contract-suite/spec.md) `registerResume.json` (`default` / `paste-text`)、`getResume.json` (`default` / `not-found`)、`listResumes.json` (`default` / `empty` / `paginated`) 字节比对 PASS
-- grep `inline|rewrite|mirror` in `backend/internal/resume/` + resume drainer/outbox payload tests：0 命中（C-13 negative）
+- grep `inline|rewrite|mirror` in `backend/internal/resume/` + resume runner kernel/outbox payload tests：0 命中（C-13 negative）
 - `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` PASS
 - `make docs-check` PASS
 
@@ -248,11 +248,11 @@
 
 （验证：`cd backend && go test ./internal/resume/store -run 'TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' -count=1` PASS）
 
-#### 8.3 cmd/api drainer scenario
+#### 8.3 cmd/api runner kernel scenario
 
-`cmd/api` resume_parse drainer 场景必须断言 ready body / stored resume 使用 LLM-derived `displayName`，retry-to-ready 后同样生效。
+`cmd/api` resume_parse runner kernel 场景必须断言 ready body / stored resume 使用 LLM-derived `displayName`，retry-to-ready 后同样生效。
 
-（验证：`cd backend && go test ./cmd/api -run 'TestResumeParseDrainerHTTPScenario|TestResumeParseDrainerRetryableFailureScenario' -count=1` PASS；E2E.P0.035 trigger/verify 检查当前测试名）
+（验证：`cd backend && go test ./cmd/api -run 'TestResumeParseRunnerHTTPScenario|TestResumeParseRunnerRetryableFailureScenario' -count=1` PASS；E2E.P0.035 trigger/verify 检查当前测试名）
 
 ### Phase 9: Upload file readable text snapshot
 
@@ -363,9 +363,9 @@
 - 本计划列出的 §4 所有 Phase task 全部完成
 - §3 替代验证 gate 全部通过
 - spec §6 C-1..C-8 + C-13 全部 PASS（C-3 与 C-4 涉及 resume.parse async 完成 / 失败，必须 stub AIClient 验证）
-- `cmd/api` route/runtime gate PASS：session middleware、IK middleware、register/get/list route、resume_parse drainer start/shutdown 与 deterministic `RunOnce` 均有测试证据
+- `cmd/api` route/runtime gate PASS：session middleware、IK middleware、register/get/list route、resume_parse runner kernel start/shutdown 与 deterministic `RunOnce` 均有测试证据
 - BDD E2E.P0.034 + E2E.P0.035 PASS
-- D-14 display_name gates PASS：prompt schema、parse job、store create / complete success / failure、cmd/api drainer ready/retry scenario 均断言 ready 或 failed-with-snapshot resume 不保留通用上传 / 粘贴名称、上传文件名，也不把 raw resume 第一行作为名称
+- D-14 display_name gates PASS：prompt schema、parse job、store create / complete success / failure、cmd/api runner kernel ready/retry scenario 均断言 ready 或 failed-with-snapshot resume 不保留通用上传 / 粘贴名称、上传文件名，也不把 raw resume 第一行作为名称
 - D-15 upload text snapshot gates PASS：upload PDF / Markdown / text 的 `parsed_text_snapshot` 与 AI prompt input 来自可读正文，不是文件名、截断文件片段、PDF literal 乱码或二进制 bytes；DOCX 被 presign/register 和 parse fallback 双层拒绝；已抽取正文在 LLM 失败时仍持久化
 - D-18 PDF source preview gates PASS：`getResumeSource` 只对当前用户 upload-backed PDF 返回 inline PDF，paste / Markdown / TXT / missing / archived / cross-user 返回 404
 - D-16/D-17 limits and Markdown gates PASS：`resume.maxActive` 默认 10 且新建上限可测，`upload.maxBytes.resume` 默认 2MiB，成功态 `parsed_text_snapshot` 为 LLM `markdownText`，AI 失败但已有可读正文时失败态快照为 Markdown fallback
@@ -382,7 +382,7 @@
 | R4: backend-upload 未完成时本 plan 启动 | Plan 2 背景写明前置依赖；本 plan 不在 backend-upload/001 完成前启动 |
 | R5: workspace 001 修订时序 | 本 plan Phase 5.3 仅发信号，不直接修订；workspace owner 在收到信号后启动 plan 1.2 → 1.3 原地修订，不创建 sibling |
 | R6: B2/B3/B4 阶段 0 plan 未完成时启动本 plan | 本 plan §2 背景写明 4 个前置依赖（B2 D-18 / B3 D-14 / B4 D-17 / backend-upload 001）；任一未完成时 `/implement` 拒绝启动 |
-| R7: handler 包测试通过但真实 API / drainer 未挂载 | Phase 4.3 / checklist 4.4-4.5 强制 `cmd/api` route/runtime wiring；BDD 场景必须输出 `method=cmd-api-http` 或等价 live runtime evidence，并拒绝 no-op / skip 作为 PASS |
+| R7: handler 包测试通过但真实 API / runner kernel 未挂载 | Phase 4.3 / checklist 4.4-4.5 强制 `cmd/api` route/runtime wiring；BDD 场景必须输出 `method=cmd-api-http` 或等价 live runtime evidence，并拒绝 no-op / skip 作为 PASS |
 | R8: AI 输出失败导致名称永久停留在生成中状态 | Phase 10 同时硬化 prompt `displayName` 合同和失败态 fallback `display_name` 写入；前端只在 truly pending 状态展示“名称生成中” |
 | R9: Markdown 快照改变简历事实或结构 | Phase 11 将 `markdownText` 写入 prompt schema 和 decode 校验，focused tests 断言 `parsed_text_snapshot` 使用 AI Markdown 输出，prompt 文案要求保持原结构和事实 |
 | R10: 数量限制破坏 IK replay | Phase 11 在 `CreateWithParseJob` dedupe hit 后再执行 active count gate；focused tests 覆盖达到上限时新 IK 拒绝、相同 IK replay 不误拒 |
@@ -394,6 +394,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 2.9 | Run resume parse scenarios through runner.Runtime and update canonical handler/runtime ownership wording. |
 | 2026-07-10 | 2.8 | 将 parse/list sourceType 与 tailor-mode 负向 gate 统一为 out-of-scope / 范围外口径；行为不变。 |
 | 2026-07-10 | 2.7 | 收敛 backend-resume 001 / P0.034 文档到当前 `resumes`、`ResumeWithJob`、`resumeId` 与 upload/paste sourceType 口径。 |
 | 2026-07-10 | 2.6 | 将 backend resume store 文件名和 owner 文档引用从 assets 收敛到当前 resumes 表口径。 |

@@ -2,7 +2,7 @@
 
 > **场景 ID**: E2E.P0.101
 > **执行方式**: automated
-> **隔离级别**: shared-cluster + host-run frontend/backend + Mailpit
+> **隔离级别**: shared local environment (Playwright + host-run frontend/backend + Mailpit)
 > **parallel-safe**: No
 > **状态**: Ready
 

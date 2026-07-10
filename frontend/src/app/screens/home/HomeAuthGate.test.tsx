@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -9,10 +12,7 @@ import { AppRuntimeProvider } from "../../runtime/AppRuntimeProvider";
 import { DisplayPreferencesProvider } from "../../display/DisplayPreferencesProvider";
 import { NavigationProvider } from "../../navigation/NavigationProvider";
 import { HomeScreen } from "./HomeScreen";
-import {
-  clearPendingImportSourcesForTests,
-  storePendingImportSource,
-} from "./pendingImportState";
+import { storePendingImportSource } from "./pendingImportState";
 
 import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRuntimeConfig.json";
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
@@ -72,11 +72,19 @@ function renderHome(
   };
 }
 
-describe("HomeAuthGate — paste import", () => {
-  afterEach(() => {
-    clearPendingImportSourcesForTests();
-  });
+describe("pending import production boundary", () => {
+  it("does not expose a test-only reset API", () => {
+    const resetApi = ["clearPendingImportSources", "ForTests"].join("");
+    const source = readFileSync(
+      resolve(__dirname, "pendingImportState.ts"),
+      "utf8",
+    );
 
+    expect(source).not.toContain(resetApi);
+  });
+});
+
+describe("HomeAuthGate — paste import", () => {
   it("does not create import pending action before a resume is selected", async () => {
     const client = createClient();
     const { navigate } = renderHome(client);

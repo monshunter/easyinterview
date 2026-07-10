@@ -1,6 +1,6 @@
 # 002 — Practice Text Event Loop Plan
 
-> **版本**: 1.13
+> **版本**: 1.15
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -26,7 +26,7 @@
 | Screen | `frontend/src/app/screens/practice/PracticeScreen.tsx` | `practice` route 渲染正式 screen；缺 session 进入 `PracticeSessionLostState`；`resumeId` 从 route / InterviewContext 传递 |
 | Session load | `hooks/usePracticeSessionLoader.ts` | `getPracticeSession(sessionId)`，覆盖 loading / data / missing / error / refresh |
 | Event loop | `hooks/usePracticeEvents.ts` | `answer_submitted / hint_requested / session_paused / session_resumed` 单 endpoint；retry 复用 `clientEventId`；正式 UI 不再发送 `turn_skipped` |
-| Display policy | `hooks/usePracticeAssistance.ts` | `practiceGoal` 不参与显隐计算；strict/assisted 不再作为用户可见开关 |
+| Display policy | `PracticeScreen.tsx` + route/display context | hint 始终是会话内可选动作；`practiceGoal` 不参与显隐计算，strict/assisted 不作为用户可见开关 |
 | Completion | `hooks/useCompletePracticeSession.ts` | `completePracticeSession(sessionId,{clientCompletedAt},Idempotency-Key)`；replay、防抖、409/5xx error mapping |
 | Handoff | `utils/practiceHandoffParams.ts` | 输出 `planId / targetJobId / jdId / resumeId / roundId / sessionId / reportId` + display context；禁止 raw text / prompt / model provenance |
 | Voice boundary | `hooks/usePracticeVoiceTurn.ts` | 唯一允许调用 `createPracticeVoiceTurn` 的 practice runtime hook |
@@ -47,7 +47,7 @@
 | `getPracticeSession` refresh / missing-session | `hooks/usePracticeSessionLoader.test.tsx`、`practiceSessionLost.test.tsx` | 404 渲染 lost state；workspace CTA 保留 `resumeId` |
 | `appendSessionEvent` body / retry / idempotency boundary | `hooks/usePracticeEvents.test.tsx`、`appendSessionEventBody.test.tsx`、`idempotencyContract.test.tsx` | 5 event kind body parity；append 不带 `Idempotency-Key` |
 | AssistantAction rendering | `components/AssistantActionRenderer.test.tsx`、`PracticeScreenIntegration.test.tsx` | `ask_question / ask_follow_up / show_hint / session_wait / session_completed` 映射当前 UI |
-| hint / goal policy | `hooks/usePracticeAssistance.test.ts`、`practiceGoalParity.test.tsx`、`practiceHints.test.tsx`、deleted strict-switch negative test | 提示由用户在会话中可选触发；`baseline / retry_current_round / next_round` 对显隐无副作用；不存在严格模式拦截 |
+| hint / goal policy | `practiceGoalParity.test.tsx`、`practiceHints.test.tsx`、`practiceModeSwitch.test.tsx`、`outOfScopeNegative.test.ts` | 提示由用户在会话中可选触发；`baseline / retry_current_round / next_round` 对显隐无副作用；不存在严格模式拦截 |
 | Pause / session map | `practicePauseResume.test.tsx`、`SessionMap.test.tsx` | pause/resume disables controls；turn map 展示 done/active/pending/follow-up states；无 skip UI / event 正向路径 |
 | Real-interview UI boundary | `PracticeScreen.test.tsx`、`practiceModeSwitch.test.tsx`、`outOfScopeNegative.test.ts`、`frontend/tests/pixel-parity/practice.spec.ts` | 无独立辅助信息栏 / 会话内本地 persona switch / strict switch / dictate / skip / voice metrics；phone mode 有字幕、切断、重新开始 |
 | Completion handoff | `hooks/useCompletePracticeSession.test.tsx`、`completePracticeSessionBody.test.tsx`、`practiceCompletion.test.tsx`、`utils/practiceHandoffParams.test.ts` | body 只含 `clientCompletedAt`；handoff 参数使用 `resumeId` |
@@ -93,6 +93,19 @@ Keep the backend voice orchestration owner intact while making the user-visible 
 
 Run focused practice frontend tests, relevant backend/OpenAPI contract tests, pixel parity, BDD wrappers, context validation, doc/index checks, current-boundary negative searches, and a real local environment browser smoke with screenshot evidence.
 
+### Phase 7: Remove constant-only assistance hook
+
+- Delete `hooks/usePracticeAssistance.ts` and its self-only unit test; production source has no consumer and the hook only returns constant visibility flags.
+- Keep display policy owned by `PracticeScreen` and executable `practiceGoalParity` / `practiceHints` / `practiceModeSwitch` tests.
+- Remove the hook test from P0.045 trigger/verify/expected evidence and context discovery; do not add a replacement abstraction.
+- Gate with a scoped source/trigger red-green test, P0.045 setup/trigger/verify/cleanup, focused/full practice tests, typecheck and owner/global checks.
+
+### Phase 8: Remove production test-only handoff inspector
+
+- Delete runtime `FORBIDDEN_KEYS` and exported `findForbiddenHandoffKeys`; repository inventory proves only its own unit test calls it.
+- Keep privacy coverage by asserting the complete forbidden-key set directly against real `buildPracticeHandoffParams` output, and delete the helper-self-test case.
+- Gate with scoped source red/green, focused handoff/privacy tests, P0.047, practice/full frontend tests, typecheck and owner/global checks.
+
 ## 8 收口证据索引
 
 当前 owner 完成以最新 gate 为准，不引用旧 PASS 状态：
@@ -114,6 +127,8 @@ Run focused practice frontend tests, relevant backend/OpenAPI contract tests, pi
 
 | 日期 | 版本 | 说明 |
 |------|------|------|
+| 2026-07-10 | 1.15 | Remove the production test-only handoff inspector and assert privacy directly on real output. |
+| 2026-07-10 | 1.14 | Delete the constant-only usePracticeAssistance hook and bind P0.045 to rendered policy tests. |
 | 2026-07-10 | 1.12 | Align current-boundary wording with the real-interview shell: no independent side-panel controls, dictation, skip, role switch, visible strict switch or voice analysis; user-visible voice remains phone mode with hang-up/restart controls. |
 | 2026-07-09 | 1.11 | Reopen plan for real-interview session simplification: current practice UI excludes side-panel controls, voice analysis, dictation, skip, role switch and visible strict switch; user-visible voice becomes phone mode with hang-up/restart controls. |
 | 2026-07-07 | 1.10 | Compress owner docs to current text event loop, `resumeId` handoff, generated-client operations, voice owner boundary, BDD gates and executable evidence index. |

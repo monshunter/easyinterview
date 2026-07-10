@@ -2,7 +2,7 @@
 
 > **场景 ID**: E2E.P0.011
 > **执行方式**: automated
-> **隔离级别**: shared-cluster
+> **隔离级别**: in-process (Go HTTP tests)
 > **parallel-safe**: No
 > **状态**: Ready
 
@@ -12,7 +12,7 @@
 
 ## 2 When
 
-场景执行 `url import -> drainer fetch -> parse -> source snapshot persist`，并对非法 URL 执行拒绝路径。
+场景执行 `url import -> runner kernel fetch -> parse -> source snapshot persist`，并对非法 URL 执行拒绝路径。
 
 ## 3 Then
 
@@ -29,4 +29,4 @@
 
 ## 5 污染控制
 
-当前脚本使用 `cmd/api` HTTP 场景测试，覆盖 auth middleware、generated route、TargetJob handler/service、in-process drainer runtime 与 URL fetch boundary；`cleanup.sh` 只清理 setup marker，保留 trigger log 与 result evidence。`result.json.validBddEvidence=true`。
+当前脚本使用 `cmd/api` HTTP 场景测试，覆盖 auth middleware、generated route、TargetJob handler/service、in-process runner kernel runtime 与 URL fetch boundary；`cleanup.sh` 只清理 setup marker，保留 trigger log 与 result evidence。`result.json.validBddEvidence=true`。

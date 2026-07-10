@@ -4,8 +4,9 @@
  * presets). The matching focused tests in `tokens.test.ts` assert that every
  * hex appears in primitives.jsx so AI cannot invent values.
  *
- * Do NOT export hex literals from `tokens.ts`; this module is consumed only
- * by the colocated `themes.css` generator and the focused traceability test.
+ * Do NOT export hex literals from `tokens.ts`; palette and font data are
+ * checked by the focused traceability test, while THEME_METADATA drives the
+ * TopBar swatches. `themes.css` is checked-in runtime source, not generated.
  */
 
 import type { Mode, Theme } from "./tokens";

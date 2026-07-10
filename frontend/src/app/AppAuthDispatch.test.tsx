@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -90,7 +90,7 @@ describe("App auth route dispatch", () => {
   });
 
   it("renders the login screen when the out-of-scope auth_reset route is requested (D-16)", () => {
-    render(
+    const { unmount } = render(
       <App
         client={buildClient()}
         initialRoute={{ name: "auth_reset", params: {} }}
@@ -98,6 +98,7 @@ describe("App auth route dispatch", () => {
     );
     expect(screen.getByTestId("route-auth_login")).toBeInTheDocument();
     expect(screen.queryByTestId("route-auth_reset")).not.toBeInTheDocument();
+    unmount();
   });
 
   it("wires auth_login submit through startAuthEmailChallenge and treats empty 202 as success", async () => {
@@ -205,7 +206,7 @@ describe("App auth route dispatch", () => {
   });
 
   it("normalizes out-of-scope auth_register route names to the single login screen", () => {
-    render(
+    const { unmount } = render(
       <App
         client={buildClient()}
         initialRoute={{ name: "auth_register", params: {} }}
@@ -214,6 +215,7 @@ describe("App auth route dispatch", () => {
     expect(screen.getByTestId("route-auth_login")).toBeInTheDocument();
     expect(screen.getByTestId("auth-login-email")).toBeInTheDocument();
     expect(screen.queryByTestId("route-auth_register")).not.toBeInTheDocument();
+    unmount();
   });
 
   it("redirects unauthenticated auth_profile_setup visits back to the login entry", async () => {

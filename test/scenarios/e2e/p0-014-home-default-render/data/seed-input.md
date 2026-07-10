@@ -6,5 +6,5 @@
   - `empty`: zero TargetJobs for the empty home state.
   - `one-job`: one TargetJob for recent card rendering.
   - `twelve-plus`: 15 TargetJobs for sort-by-`updatedAt desc`, 3-card cap, and More CTA.
-- Real backend overlay: `VITE_EI_API_MODE=real` with `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1` for generated-client TargetJob operation routing.
-- UI states: zh/en i18n, warm/dark/customAccent theme variants, and mobile layout.
+- Real-mode generated-client input: `VITE_EI_API_MODE=real` with `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`; the test uses stub fetch and makes no network request.
+- UI states: default/empty/one-job/twelve-plus TargetJob variants, current resume variants and English i18n.

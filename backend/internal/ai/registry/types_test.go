@@ -122,7 +122,7 @@ func TestJudgeSignature(t *testing.T) {
 		t.Fatalf("Judge.Judge input 3 (output) must be []byte, got []%v", elem.Kind())
 	}
 
-	// Outputs (spec D-9 v2.8): []Score, Reasoning, error. The first return is
+	// Outputs (spec D-9): []Score, Reasoning, error. The first return is
 	// a slice with one Score per rubric dimension; reorder/remove requires a
 	// spec revision.
 	if in.NumOut() != 3 {

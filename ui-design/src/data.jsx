@@ -192,7 +192,7 @@ window.EI_DATA = {
       company: "Acme",
       situation: "多个业务线组件风格不一致，发布节奏互相阻塞。",
       task: "建立可复用组件和迁移节奏，避免一次性大规模重构。",
-      action: "先沉淀 token 与表单组件，再用兼容层接入三个高频页面。",
+      action: "先沉淀 token 与表单组件，再分批接入三个高频页面。",
       result: "新页面交付周期缩短 25%，设计走查返工次数明显减少。",
       skills: ["Design System", "TypeScript", "Collaboration"],
       language: "zh-CN",

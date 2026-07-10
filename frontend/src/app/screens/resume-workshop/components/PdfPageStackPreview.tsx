@@ -1,13 +1,10 @@
 import type { FC } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  GlobalWorkerOptions,
-  getDocument,
-  type PDFDocumentProxy,
-} from "pdfjs-dist/legacy/build/pdf.mjs";
-import pdfWorkerUrl from "pdfjs-dist/legacy/build/pdf.worker.mjs?url";
+import type { PDFDocumentProxy } from "pdfjs-dist/legacy/build/pdf.mjs";
 
-GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+type PDFLoadingTask = ReturnType<
+  (typeof import("pdfjs-dist/legacy/build/pdf.mjs"))["getDocument"]
+>;
 
 interface PdfPageStackPreviewProps {
   sourceUrl: string;
@@ -106,17 +103,26 @@ export const PdfPageStackPreview: FC<PdfPageStackPreviewProps> = ({
   useEffect(() => {
     let cancelled = false;
     let loadedDocument: PDFDocumentProxy | null = null;
-    const loadingTask = getDocument({
-      url: sourceUrl,
-      withCredentials: true,
-    });
+    let loadingTask: PDFLoadingTask | null = null;
 
     setDocument(null);
     setPageCount(0);
     setLoadState("loading");
 
-    void loadingTask.promise
-      .then((pdfDocument) => {
+    const loadDocument = async () => {
+      try {
+        const [pdfjs, worker] = await Promise.all([
+          import("pdfjs-dist/legacy/build/pdf.mjs"),
+          import("pdfjs-dist/legacy/build/pdf.worker.mjs?url"),
+        ]);
+        if (cancelled) return;
+
+        pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+        loadingTask = pdfjs.getDocument({
+          url: sourceUrl,
+          withCredentials: true,
+        });
+        const pdfDocument = await loadingTask.promise;
         if (cancelled) {
           void pdfDocument.destroy();
           return;
@@ -125,10 +131,12 @@ export const PdfPageStackPreview: FC<PdfPageStackPreviewProps> = ({
         setDocument(pdfDocument);
         setPageCount(pdfDocument.numPages);
         setLoadState("ready");
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setLoadState("error");
-      });
+      }
+    };
+
+    void loadDocument();
 
     return () => {
       cancelled = true;
@@ -136,7 +144,7 @@ export const PdfPageStackPreview: FC<PdfPageStackPreviewProps> = ({
         void loadedDocument.destroy();
         return;
       }
-      void loadingTask.destroy();
+      void loadingTask?.destroy();
     };
   }, [sourceUrl]);
 

@@ -7,6 +7,55 @@ import unittest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+ACTIVE_REFERENCE_SUFFIXES = {
+    ".go",
+    ".json",
+    ".md",
+    ".mjs",
+    ".py",
+    ".sh",
+    ".toml",
+    ".ts",
+    ".tsx",
+    ".yaml",
+    ".yml",
+}
+ACTIVE_REFERENCE_EXCLUDED_PARTS = {
+    ".git",
+    ".test-output",
+    ".venv",
+    "__pycache__",
+    "coverage",
+    "dist",
+    "node_modules",
+}
+ACTIVE_REFERENCE_EXCLUDED_PREFIXES = (
+    ("docs", "bugs"),
+    ("docs", "reports"),
+    ("docs", "work-journal"),
+)
+
+
+def active_reference_sources() -> dict[Path, str]:
+    sources: dict[Path, str] = {}
+    scripts_dir = REPO_ROOT / "scripts"
+    for path in REPO_ROOT.rglob("*"):
+        if path.is_symlink() or not path.is_file():
+            continue
+        relative = path.relative_to(REPO_ROOT)
+        if any(part in ACTIVE_REFERENCE_EXCLUDED_PARTS for part in relative.parts):
+            continue
+        if any(relative.parts[: len(prefix)] == prefix for prefix in ACTIVE_REFERENCE_EXCLUDED_PREFIXES):
+            continue
+        if scripts_dir in path.parents and path.name.endswith("_test.py"):
+            continue
+        if path.suffix not in ACTIVE_REFERENCE_SUFFIXES and path.name != "Makefile":
+            continue
+        try:
+            sources[path] = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+    return sources
 
 
 class MakefileDryRunTest(unittest.TestCase):
@@ -128,6 +177,28 @@ class MakefileDryRunTest(unittest.TestCase):
             makefile,
             r"lint: .*lint-core-loop-pruning-surface",
             msg="top-level lint must run the core-loop runtime/generated pruning surface gate",
+        )
+
+    def test_production_scripts_have_active_references(self):
+        scripts_dir = REPO_ROOT / "scripts"
+        production_scripts = sorted(
+            path
+            for path in scripts_dir.rglob("*")
+            if path.is_file()
+            and (path.suffix in {".go", ".py", ".sh"} or path.parent.name == "git-hooks")
+            and not path.name.endswith("_test.py")
+        )
+        sources = active_reference_sources()
+
+        orphaned = []
+        for script in production_scripts:
+            if not any(path != script and script.name in source for path, source in sources.items()):
+                orphaned.append(str(script.relative_to(REPO_ROOT)))
+
+        self.assertEqual(
+            orphaned,
+            [],
+            msg="production scripts need a current entry point, caller, or owner reference",
         )
 
 

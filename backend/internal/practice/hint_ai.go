@@ -17,10 +17,8 @@ import (
 const hintFeatureKey = "practice.turn.lightweight_observe"
 
 type hintAIResponse struct {
-	Hint               string `json:"hint"`
-	Cue                string `json:"cue"`
-	AnswerSummary      string `json:"answerSummary"`
-	AnswerSummarySnake string `json:"answer_summary"`
+	Cue           string `json:"cue"`
+	AnswerSummary string `json:"answerSummary"`
 }
 
 type turnObservation struct {
@@ -198,14 +196,8 @@ func parseTurnObservation(content string) (turnObservation, error) {
 	if err := json.Unmarshal([]byte(content), &decoded); err != nil {
 		return turnObservation{}, fmt.Errorf("parse turn observation response: %w", err)
 	}
-	hint := strings.TrimSpace(decoded.Hint)
-	if hint == "" {
-		hint = strings.TrimSpace(decoded.Cue)
-	}
+	hint := strings.TrimSpace(decoded.Cue)
 	summary := strings.TrimSpace(decoded.AnswerSummary)
-	if summary == "" {
-		summary = strings.TrimSpace(decoded.AnswerSummarySnake)
-	}
 	return turnObservation{Hint: hint, AnswerSummary: summary}, nil
 }
 

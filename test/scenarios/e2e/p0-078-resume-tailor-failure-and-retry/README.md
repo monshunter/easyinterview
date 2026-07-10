@@ -11,9 +11,9 @@ Validate the `resume_tailor` async failure and retry semantics for backend-resum
 
 ## 3. Given / When / Then
 
-Given three queued resume tailor runs owned by user A and a deterministic `cmd/api` in-process drainer.
+Given three queued resume tailor runs owned by user A and a deterministic `cmd/api` in-process runner kernel.
 
-When the drainer processes timeout, invalid-output, and timeout-then-success variants.
+When the runner kernel processes timeout, invalid-output, and timeout-then-success variants.
 
 Then failed runs persist failure state in `async_jobs` outcome/result metadata with `AI_PROVIDER_TIMEOUT` or `AI_OUTPUT_INVALID`; retryable state remains in `async_jobs` outcome metadata; retry can re-enter generating and finish ready; `ai_task_runs` records every AI attempt; and `resume.tailor.completed` is emitted only for the final ready run.
 
@@ -43,4 +43,4 @@ Scenario evidence is written to `.test-output/e2e/p0-078-resume-tailor-failure-a
 
 ## 7. Offline Limits
 
-This scenario verifies the backend drainer through deterministic focused tests. It does not require a separate worker binary because this plan explicitly owns the `cmd/api` in-process drainer topology.
+This scenario verifies the backend runner kernel through deterministic focused tests. It does not require a separate worker binary because this plan explicitly owns the `cmd/api` in-process runner kernel topology.

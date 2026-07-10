@@ -1,6 +1,6 @@
 # Fixture-backed Mock Runtime Checklist
 
-> **版本**: 1.9
+> **版本**: 1.11
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -36,3 +36,13 @@
 
 - [x] 5.1 `spec.md`, `plan.md`, `checklist.md`, `context.yaml` and plans INDEX align to the current 37-operation fixture-backed mock runtime contract.<!-- verified: 2026-07-10 method=targeted-doc-update+context-validation -->
   <!-- verified: 2026-07-10 method=current-inventory-reconcile evidence="Updated mock-contract-suite spec.md to v1.14, plan.md/checklist.md to v1.8, context specVersion to v1.14, added archiveTargetJob to apiNames, and synced docs/spec plus mock-contract-suite plans INDEX. PASS: validate_context.py mock-contract-suite/001 tooling; make lint-mock-contract; python3 -m pytest scripts/lint/openapi_diff_test.py scripts/lint/openapi_inventory_test.py scripts/mock_contract/fixture_registry_test.py -q; codegen-openapi generated diff hash unchanged before/after rerun." -->
+
+## 6 Backend mockruntime test helper cleanup
+
+- [x] 6.1 删除 `mockruntime_test.go` 中无调用的 `assertJSONField` / `lookupJSONPath` helper，保留完整 response parity 与 unknown-scenario 断言；验证: scoped staticcheck、`go test ./internal/api/mockruntime -count=1`、`make lint-mock-contract` 与 owner docs gates 通过。
+  <!-- verified: 2026-07-10 method=mockruntime-dead-test-helper-removal evidence="RED: backend staticcheck reported U1000 for assertJSONField and its only callee lookupJSONPath. GREEN: removed both helpers; staticcheck ./internal/api/mockruntime/... and go test ./internal/api/mockruntime -count=1 PASS; make lint-mock-contract validates 37 fixtures, 10 tags, 37 operations and mock runtime boundary; owner contexts and pruning gate PASS." -->
+
+## 7 Frontend dev registry observation cleanup
+
+- [x] 7.1 RED/GREEN: dev mock source gate detects and then rejects the production `getDevMockFixtureOperationIds` test observer.<!-- verified: 2026-07-10 method=vitest-red-green evidence="RED failed only on the observer while five behavior tests passed; GREEN passed all 6 devMockClient tests after deletion." -->
+- [x] 7.2 Operation parity compares real registry keys with generated `ALL_OPERATION_IDS`; focused frontend mock tests, typecheck and `make lint-mock-contract` pass.<!-- verified: 2026-07-10 method=vitest+typecheck+lint-mock-contract evidence="Frontend mock passed 3 files/14 tests; typecheck passed; lint validated 37 fixtures, 10 tags, 37 operations and boundary tests." -->

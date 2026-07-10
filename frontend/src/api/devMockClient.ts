@@ -38,7 +38,6 @@ import createUploadPresignFixture from "../../../openapi/fixtures/Uploads/create
 import {
 	ALL_OPERATION_IDS,
 	EasyInterviewClient,
-	type OperationId,
 } from "./generated/client";
 import type { UserContext } from "./generated/types";
 import {
@@ -88,10 +87,6 @@ const DEV_MOCK_FIXTURES = [
 	listTargetJobReportsFixture,
 	createUploadPresignFixture,
 ] as readonly OperationFixture[];
-
-export function getDevMockFixtureOperationIds(): OperationId[] {
-	return DEV_MOCK_FIXTURES.map((fixture) => fixture.operationId as OperationId);
-}
 
 export function createDevMockFixtureRegistry(): FixtureRegistry {
 	const registry = createFixtureRegistry(DEV_MOCK_FIXTURES);

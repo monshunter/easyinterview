@@ -7,11 +7,12 @@
 
 ## Scope
 
-Verifies the home screen renders correctly in three states:
+Verifies the current Home Vitest contract:
 - JD input quick start with existing-resume selector and `立即面试` CTA
-- Empty state (no TargetJobs) → textarea focused, empty state CTA
-- Non-empty state (1-3 TargetJobs) → MockInterviewCards rendered
-- 12+ items capped at 3, sorted by `updatedAt desc`, with More jumping to Mock Interview
+- Empty TargetJob variant renders no recent cards
+- One/default variants render shared `MockInterviewCard` content
+- Twelve-plus variant is sorted by `updatedAt desc`, capped at 3, and exposes More navigation
+- Recent cards open plan detail or use the structured-round quick-start action
 
 ## Fixture Variants
 
@@ -29,33 +30,25 @@ Verifies the home screen renders correctly in three states:
 - Main CTA sits below resume selection rather than inside the JD input card
 - Main CTA copy is `立即面试` / `Start interview now`
 - Out-of-scope aux cards (JOB PICKS, POST-INTERVIEW) remain absent
-- Real backend mode generated-client gate for TargetJobs home/import/parse operations
-- TopBar highlights home
-- i18n zh/en switching
-- Theme switching (warm/dark/customAccent)
-- Mobile responsive layout
+- Real-mode generated-client gate for TargetJobs home/import/parse operations using stub fetch
+- English i18n copy
+- Ready TargetJob filtering, card-detail navigation, quick-start and out-of-scope negatives
 
 ## Scripts
 
-- `scripts/setup.sh` — ensure frontend dist exists, select fixture variant
-- `scripts/trigger.sh` — run home screen verification via Vitest/Playwright
-- `scripts/verify.sh` — assert testid anchors, sorting, 3-card cap, More jump, empty state
-- `scripts/cleanup.sh` — reset test state
+- `scripts/setup.sh` — initialize the scenario output marker
+- `scripts/trigger.sh` — run the generated-client routing test and five Home Vitest files
+- `scripts/verify.sh` — verify runner markers and out-of-scope log/source negatives
+- `scripts/cleanup.sh` — remove the setup marker while retaining the trigger log
 
-## Offline Limitations
+## Real-Mode Generated-Client Gate
 
-- Requires `pnpm build` output at `frontend/dist/`
-- Playwright chromium must be installed
-- UI-design golden preview may fail offline (CDN fonts)
-
-## Real Backend Overlay
-
-- The trigger first runs `src/api/targetJob.realApiMode.test.ts` with
+- The trigger runs `src/api/targetJob.realApiMode.test.ts` with
   `VITE_EI_API_MODE=real` and
-  `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`, proving the production
+  `VITE_EI_API_BASE_URL=http://localhost:8080/api/v1`. Its stub fetch proves the
   generated client routes `listTargetJobs`, `createUploadPresign`,
-  `importTargetJob`, `getTargetJob`, and `updateTargetJob` to the real backend
-  base URL with cookie credentials, Idempotency-Key side effects, and
-  provenance roundtrip.
+  `importTargetJob`, `getTargetJob`, and `updateTargetJob` to the configured
+  base URL with cookie credentials, Idempotency-Key side effects, and provenance
+  roundtrip without making a network request.
 - UI variants remain fixture-backed so this scenario can keep deterministic
-  DOM, sorting, theme, i18n, and responsive assertions.
+  DOM, filtering, sorting, layout, i18n and navigation assertions.

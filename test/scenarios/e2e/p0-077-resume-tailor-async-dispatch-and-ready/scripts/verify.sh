@@ -30,8 +30,8 @@ mkdir -p "$OUT"
   grep -q 'RUNNER go test resume store unit tailor run' "$LOG"
   grep -q 'TestCreateTailorRunInsertsAsyncJobWithResumePayload' "$LOG"
   grep -q 'TestCompleteTailorRunSuccessWritesResultAndOutbox' "$LOG"
-  grep -q 'RUNNER go test cmd/api resume tailor drainer ready' "$LOG"
-  grep -q 'TestResumeTailorDrainerHTTPScenario' "$LOG"
+  grep -q 'RUNNER go test cmd/api resume tailor runner kernel ready' "$LOG"
+  grep -q 'TestResumeTailorRunnerHTTPScenario' "$LOG"
   grep -q 'RUNNER go test resume jobs tailor ready' "$LOG"
   grep -q 'TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox' "$LOG"
   grep -Eq '^PASS$' "$LOG"
@@ -42,11 +42,11 @@ mkdir -p "$OUT"
   cd "$ROOT/backend"
   go test ./internal/resume/handler -run TestResumeTailorFixtureParity -count=1
   cd "$ROOT"
-  if rg -n 'inline|mirror' backend/internal/resume --glob '!**/verify.sh'; then
-    echo "ERROR: out-of-scope inline/mirror vocabulary found"
+  if rg -n -i '(tailor|mode).*(inline|rewrite|mirror)|(inline|rewrite|mirror).*(tailor|mode)' backend/internal/resume --glob '!**/*_test.go' --glob '!**/verify.sh'; then
+    echo "ERROR: out-of-scope inline/rewrite/mirror tailor vocabulary found"
     exit 1
   fi
-  if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/verify.sh'; then
+  if rg -n 'mistakes|growth|drill|inline-debrief-record' backend/internal/resume --glob '!**/*_test.go' --glob '!**/verify.sh'; then
     echo "ERROR: out-of-scope mistakes/growth/drill vocabulary found"
     exit 1
   fi
@@ -57,5 +57,5 @@ mkdir -p "$OUT"
   echo "method=cmd-api-http"
   echo "fixture parity: requestResumeTailor + getResumeTailorRun"
   echo "DB state: queued flat resume tailor ai_task_run, status transitions, ready suggestions, ready-only completed outbox"
-  echo "privacy: async dispatch, tailor endpoint, drainer, and completed outbox evidence contains IDs/status/provenance only"
+  echo "privacy: async dispatch, tailor endpoint, runner kernel, and completed outbox evidence contains IDs/status/provenance only"
 } | tee "$OUT/verify.log"

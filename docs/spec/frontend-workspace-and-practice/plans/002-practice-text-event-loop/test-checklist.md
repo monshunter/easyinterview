@@ -1,12 +1,12 @@
 # 002 — Practice Text Event Loop Test Checklist
 
-> **版本**: 1.12
+> **版本**: 1.14
 > **状态**: active
 > **更新日期**: 2026-07-10
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
-- [x] Screen / component / hook tests cover `PracticeScreen`, `usePracticeSessionLoader`, `usePracticeEvents`, `usePracticeAssistance`, `usePracticeSession`, `useCompletePracticeSession`, AssistantAction rendering, text controls, phone controls, completion and privacy under the new real-interview UI.
+- [x] Screen / component / hook tests cover `PracticeScreen`, `usePracticeSessionLoader`, `usePracticeEvents`, `usePracticeSession`, `useCompletePracticeSession`, AssistantAction rendering, rendered goal/hint policy, text controls, phone controls, completion and privacy under the current real-interview UI.
 - [x] Contract tests prove `appendSessionEvent` and `completePracticeSession` request bodies match generated OpenAPI types and fixture variants, with no positive `turn_skipped` path.
 - [x] Handoff tests prove `generating` params use `resumeId` and stable IDs only, and phone mode displays as `Phone / 电话模式`.
 - [x] Negative tests prove practice runtime does not call `getFeedbackReport`, does not scatter `createPracticeVoiceTurn`, and does not materialize out-of-scope controls: independent side panel, dictation, skip, role switch, visible strict switch, voice analysis, manual transcript fallback UI.

@@ -1,8 +1,8 @@
 # App Shell, Auth Gate, and Settings Entrypoints
 
-> **版本**: 1.20
+> **版本**: 1.21
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -73,6 +73,12 @@
 - BDD gates: `E2E.P0.001`、`E2E.P0.002`、`E2E.P0.004`、`E2E.P0.032`、`E2E.P0.101`、`E2E.P0.102`。
 - Contract/doc gates: frontend-shell context validation、product-scope context validation、`sync-doc-index --check`、`make docs-check`、`git diff --check`、`make lint-core-loop-pruning-surface`。
 
+### Phase 8: auth alias test lifecycle isolation
+
+`AppAuthDispatch.test.tsx` 中的 `auth_reset` / `auth_register` 用例只验证同步 route normalization。两项在断言后显式 unmount，使不属于测试目标的 runtime-config/auth Promise 不再于测试尾部回写 provider state；生产 App、runtime provider、route behavior 与 BDD 合同不变。
+
+门禁：focused AppAuthDispatch 14 tests 通过且无 React act warning，frontend-shell focused/full frontend tests、typecheck/build 与 owner docs gates 保持绿色。BDD 不适用，因为本批只修正测试生命周期。
+
 ## 7 风险与应对
 
 | 风险 | 应对措施 |
@@ -87,4 +93,5 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.21 | Isolate synchronous auth alias tests from unrelated runtime-provider updates. |
 | 2026-07-07 | 1.20 | Compress owner plan to the current App shell / auth / settings contract, operation matrix, and current gate surface. |

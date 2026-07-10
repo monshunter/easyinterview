@@ -55,6 +55,8 @@ spec:
       - getFeedbackReport
       - getTargetJob
       - getResume
+      - createPracticePlan
+      - startPracticeSession
       - FeedbackReport
       - TargetJob
       - Resume
@@ -145,3 +147,5 @@ spec:
           - getFeedbackReport
           - getTargetJob
           - getResume
+          - createPracticePlan
+          - startPracticeSession

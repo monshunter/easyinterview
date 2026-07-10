@@ -1,17 +1,17 @@
 # URL-Addressable Routing BDD Checklist
 
-> **版本**: 1.4
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
 ## E2E.P0.088 canonical path deep-link / reload / browser history
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-088-url-addressable-routing-canonical/`
-- [x] 准备测试数据：workspace / practice / generating / report / resume workshop 的 stable safe ID combinations、auth states and direct-open frontend paths
-- [x] 实现 setup / trigger / verify / cleanup；trigger 覆盖 direct open、reload、App navigation、back、forward、unknown/malformed query fallback and current handoff keys
-- [x] 验证 TopBar active route、chrome hidden state、InterviewContext hydration、URL canonical output、safe params survival and no double-push behavior
+- [x] 准备测试数据：workspace hostile detail/start params，以及 practice / generating / report / resume workshop 的 current route-specific params
+- [x] 实现 setup / trigger / verify / cleanup；trigger 覆盖 query-free workspace canonicalization、direct open、reload、App navigation、back、forward and unknown query filtering
+- [x] 验证 TopBar active route、chrome hidden state、URL canonical output、route-specific safe-param survival, workspace param stripping and no double-push behavior
 - [x] 执行并通过场景验证，记录 trigger.log and route-state evidence
 
 ## E2E.P0.089 auth pendingAction + URL privacy redline
@@ -21,8 +21,10 @@
 - [x] 实现 auth-gated workflow：未登录打开 canonical workflow URL、触发 protected action、完成 email-code mock auth、恢复原 route，并处理 hostile direct-open / popstate input
 - [x] 捕获 URL、history.state、pendingAction、localStorage、sessionStorage、console and mock transport logs，并断言 raw/secret markers zero-hit，同时证明 legal handoff keys 未被 allowlist 误删
 - [x] 执行并通过场景验证，记录 restored route、safe params and zero-hit evidence
+- [x] 校准场景证据：practice auth continuation 保留 safe handoff params；hostile workspace direct-open / popstate 均规范化为 query-free `/workspace`
+  <!-- verified: 2026-07-10 method=p0-089-workspace-zero-query-reconciliation evidence="BDD details, scenario README/seed/expected outcome and the positive Vitest title now distinguish practice safe-param restore from hostile workspace query stripping." -->
 
-## E2E.P0.090 hash compatibility + unsupported route regression
+## E2E.P0.090 hash routing + unsupported route regression
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-090-url-routing-hash-out-of-scope-negative/`
 - [x] 准备 hash inputs：current route hashes、unknown hash and unsupported route inputs

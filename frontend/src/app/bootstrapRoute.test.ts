@@ -83,7 +83,7 @@ describe("parseInitialRouteHash", () => {
     );
   });
 
-  it("hash route drops out-of-scope voice mode values instead of keeping a compatibility path", () => {
+  it("hash route drops out-of-scope voice mode values before canonical rewrite", () => {
     const loose = parseInitialRouteHash(
       "#route=practice&mode=voice&modality=voice&sessionId=s-1",
     );

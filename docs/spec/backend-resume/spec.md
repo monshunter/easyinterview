@@ -1,8 +1,8 @@
 # Backend Resume Spec
 
-> **版本**: 2.4
+> **版本**: 2.5
 > **状态**: active
-> **更新日期**: 2026-07-07
+> **更新日期**: 2026-07-10
 
 ## 1 背景与目标
 
@@ -91,7 +91,7 @@
 ### 4.4 BDD / TDD 约束
 
 - 每个 endpoint 必须有 handler unit test（参数校验 + IK + 错误路径）+ `cmd/api` route wiring test（session middleware / idempotency middleware / path params）+ store integration test（state transition + cross-user isolation）+ AI 调用 unit test（stub provider，验证 prompt/profile 路由正确）。
-- 用户可见行为（register / list / update / duplicate / archive / tailor / parse 完成）必须有 BDD scenario 覆盖；涉及 async job 的场景必须通过 `cmd/api` in-process drainer 或等价真实 runtime harness 证明可执行，不得只验证包级 handler。
+- 用户可见行为（register / list / update / duplicate / archive / tailor / parse 完成）必须有 BDD scenario 覆盖；涉及 async job 的场景必须通过 `cmd/api` in-process runner kernel 或等价真实 runtime harness 证明可执行，不得只验证包级 handler。
 
 ## 5 模块边界
 
@@ -100,8 +100,8 @@
 | 10 个 Resume / ResumeTailor HTTP handler | backend-resume | 真实业务逻辑 |
 | `resumes` 表 schema | [B4 db-migrations-baseline](../db-migrations-baseline/spec.md) + [B4 002 plan](../db-migrations-baseline/plans/002-flat-resume-migration/plan.md) | 字段 / 索引 / FK / check constraint |
 | file_object 引用 | [backend-upload](../backend-upload/spec.md) `Register` internal API | `resumes.file_object_id` 通过 backend-upload 引用 file_object |
-| `resume.parse` / `resume.tailor` async job | backend-resume + backend-runtime-topology | job handler 注册到 `cmd/api` in-process drainer / runtime composition |
-| `cmd/api` runtime wiring | backend-resume + backend-runtime-topology | 挂载 Resume route、idempotency middleware 与 in-process drainer；不得引入独立 worker 进程 |
+| `resume.parse` / `resume.tailor` async job | backend-resume + backend-runtime-topology | job handler 注册到 `cmd/api` in-process runner kernel / runtime composition |
+| `cmd/api` runtime wiring | backend-resume + backend-runtime-topology | 挂载 Resume route、idempotency middleware 与 in-process runner kernel；不得引入独立 worker 进程 |
 | AI 调用 | [A3 AIClient](../ai-provider-and-model-routing/spec.md) + [F3 feature_key](../prompt-rubric-registry/spec.md) | backend-resume 只引用 profile，不绑定 provider |
 | 隐私删除调用 | backend internal privacy runner（[backend-runtime-topology](../backend-runtime-topology/spec.md)） | 调用 `DeleteResumesForUser` |
 | frontend Resume Workshop UI | [frontend-resume-workshop](../frontend-resume-workshop/spec.md) | 消费 generated TS client |

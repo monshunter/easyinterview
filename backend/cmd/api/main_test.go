@@ -786,7 +786,7 @@ upload:
 	}
 }
 
-func TestBuildResumeRuntimeWiresRoutesDrainerAndDeterministicAI(t *testing.T) {
+func TestBuildResumeRuntimeWiresRoutesRunnerAndDeterministicAI(t *testing.T) {
 	dir := t.TempDir()
 	promptsDir, rubricsDir := repoConfigPromptsRubrics(t)
 	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
@@ -806,7 +806,6 @@ auth:
 	runtime, err := buildResumeRuntime(
 		loader,
 		nil,
-		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		uploadRoutes{Objects: objectstore.NewFilesystemStore(t.TempDir())},
 		&apiNoopAIClient{},
 	)
@@ -856,7 +855,7 @@ auth:
 		t.Fatalf("Load: %v", err)
 	}
 
-	runtime, err := buildReportRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), &apiNoopAIClient{})
+	runtime, err := buildReportRuntime(loader, nil, &apiNoopAIClient{})
 	if err != nil {
 		t.Fatalf("buildReportRuntime: %v", err)
 	}
@@ -882,12 +881,12 @@ runtime:
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if _, err := buildReportRuntime(loader, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil); err == nil {
+	if _, err := buildReportRuntime(loader, nil, nil); err == nil {
 		t.Fatal("buildReportRuntime returned nil error for missing AI client")
 	}
 }
 
-func TestBuildTargetJobRuntimeWiresDrainerAndAIClient(t *testing.T) {
+func TestBuildTargetJobRuntimeWiresRunnerAndAIClient(t *testing.T) {
 	dir := t.TempDir()
 	providersPath := filepath.Join(dir, "ai-providers.yaml")
 	profilesPath := filepath.Join(dir, "ai-profiles.yaml")
@@ -1217,7 +1216,7 @@ ai:
 	}
 }
 
-func TestDrainer_DebriefGenerateNotRegistered(t *testing.T) {
+func TestRunner_DebriefGenerateNotRegistered(t *testing.T) {
 	dir := t.TempDir()
 	providersPath := filepath.Join(dir, "ai-providers.yaml")
 	profilesPath := filepath.Join(dir, "ai-profiles.yaml")

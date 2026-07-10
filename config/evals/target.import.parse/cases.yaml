@@ -4,10 +4,26 @@ cases:
   language: multi
   input: target.import.parse evaluation case at strong quality band.
   output: &id001
+    title: Senior Backend Engineer
+    companyName: Example Cloud
     coreThemes:
     - Distributed systems reliability
-    interviewHypotheses:
-    - Interviewer may probe cache invalidation and rollback decisions.
+    interviewRounds:
+    - sequence: 1
+      type: hr
+      name: Recruiter screen
+      durationMinutes: 30
+      focus: Role motivation, communication, and on-call expectations.
+    - sequence: 2
+      type: technical
+      name: Distributed systems design
+      durationMinutes: 60
+      focus: Cache invalidation, reliability tradeoffs, and rollback design.
+    - sequence: 3
+      type: manager
+      name: Engineering leadership
+      durationMinutes: 45
+      focus: Ownership, incident response, and cross-team delivery.
     strengths:
     - Quantified backend reliability impact.
     gaps:
@@ -19,6 +35,10 @@ cases:
       label: Design reliable distributed services
       description: The JD explicitly calls for owning high-availability backend systems.
       evidenceLevel: explicit
+    - kind: hidden_signal
+      label: Operate effectively in an on-call environment
+      description: The JD implies production ownership without naming the support model.
+      evidenceLevel: inferred
   judge:
     scores:
     - dimension: target_extraction_completeness

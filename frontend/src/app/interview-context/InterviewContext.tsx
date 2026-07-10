@@ -31,7 +31,6 @@ export interface InterviewContextState {
   hintUsed: string;
   hintCount: string;
   sessionId?: string;
-  autoStartPractice?: string;
 }
 
 export const DEFAULT_INTERVIEW_CONTEXT: InterviewContextState = {
@@ -50,7 +49,6 @@ export const DEFAULT_INTERVIEW_CONTEXT: InterviewContextState = {
   hintUsed: "false",
   hintCount: "0",
   sessionId: undefined,
-  autoStartPractice: undefined,
 };
 
 export type InterviewContextAction =
@@ -59,25 +57,10 @@ export type InterviewContextAction =
       params: Record<string, string>;
     }
   | {
-      type: "MERGE_TARGET_JOB";
-      targetJob: { id: string; [key: string]: unknown };
-    }
-  | {
-      type: "MERGE_RESUME";
-      resume: { id: string; [key: string]: unknown };
-    }
-  | {
-      type: "MERGE_PRACTICE_PLAN";
-      plan: { id: string; [key: string]: unknown };
-    }
-  | {
       type: "MERGE_SESSION";
       session: { id: string; [key: string]: unknown };
     }
   | { type: "INCREMENT_HINT_COUNT" }
-  | { type: "CLEAR_RESUME" }
-  | { type: "CLEAR_PRACTICE_PLAN" }
-  | { type: "CLEAR_AUTO_START" }
   | { type: "CLEAR" };
 
 export function interviewContextReducer(
@@ -107,36 +90,8 @@ export function interviewContextReducer(
         hintUsed: p.hintUsed || state.hintUsed,
         hintCount: p.hintCount || state.hintCount,
         sessionId: p.sessionId || state.sessionId,
-        autoStartPractice: p.autoStartPractice ?? state.autoStartPractice,
       };
     }
-    case "MERGE_TARGET_JOB": {
-      const resumeId =
-        typeof action.targetJob.resumeId === "string" && action.targetJob.resumeId.trim()
-          ? action.targetJob.resumeId.trim()
-          : state.resumeId;
-      const planId =
-        typeof action.targetJob.currentPracticePlanId === "string" && action.targetJob.currentPracticePlanId.trim()
-          ? action.targetJob.currentPracticePlanId.trim()
-          : state.planId;
-      return {
-        ...state,
-        jobId: action.targetJob.id,
-        targetJobId: action.targetJob.id,
-        planId,
-        resumeId,
-      };
-    }
-    case "MERGE_RESUME":
-      return {
-        ...state,
-        resumeId: action.resume.id || state.resumeId,
-      };
-    case "MERGE_PRACTICE_PLAN":
-      return {
-        ...state,
-        planId: action.plan.id || state.planId,
-      };
     case "MERGE_SESSION":
       return {
         ...state,
@@ -151,22 +106,6 @@ export function interviewContextReducer(
         hintCount: String(next),
       };
     }
-    case "CLEAR_RESUME":
-      return {
-        ...state,
-        resumeId: undefined,
-        sourceReportId: undefined,
-      };
-    case "CLEAR_PRACTICE_PLAN":
-      return {
-        ...state,
-        planId: undefined,
-      };
-    case "CLEAR_AUTO_START":
-      return {
-        ...state,
-        autoStartPractice: undefined,
-      };
     case "CLEAR":
       return { ...DEFAULT_INTERVIEW_CONTEXT };
   }
@@ -201,13 +140,4 @@ export function useInterviewContext(): InterviewContextValue {
     );
   }
   return value;
-}
-
-/**
- * Derives the context needed for starting a practice session — used by
- * practice/report handoff code.
- */
-export function useStartPracticeContext(): InterviewContextState {
-  const { ctx } = useInterviewContext();
-  return ctx;
 }

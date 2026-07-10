@@ -1,7 +1,7 @@
 # Expected Outcome
 
-- `cmd/api` starts a resume runtime with routes, idempotency middleware, deterministic test AI, and an in-process drainer handling `resume_parse`.
-- The drainer claims queued jobs and finalizes async job attempts through the shared `targetjob` drainer contract.
+- `cmd/api` starts a resume runtime with routes, idempotency middleware, deterministic test AI, and an in-process runner kernel handling `resume_parse`.
+- The runner kernel claims queued jobs and finalizes async job attempts through the shared runner kernel contract.
 - Upload and paste sources are read from their own persisted source columns;
   unsupported source types fail validation instead of entering parse.
 - Upload PDF / Markdown / text sources write readable prompt input and `parsed_text_snapshot`, not file names, binary bytes, or PDF literal乱码.

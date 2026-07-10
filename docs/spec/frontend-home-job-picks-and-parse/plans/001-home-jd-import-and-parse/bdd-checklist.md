@@ -1,6 +1,6 @@
 # 001 BDD Checklist
 
-> **版本**: 2.14
+> **版本**: 2.16
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -9,8 +9,10 @@
 ## E2E.P0.014 Home 默认渲染与最近模拟面试
 
 - [x] 场景目录 `test/scenarios/e2e/p0-014-home-default-render/` 保留 README、seed、expected outcome 与 `scripts/{setup,trigger,verify,cleanup}.sh`。
-- [x] Trigger 覆盖 Home source controls、resume select、submit row、empty/one/twelve-plus fixtures、3-card cap、More handoff、TopBar、i18n、theme 与 responsive layout。
-- [x] Verify 要求 real-mode generated-client marker、Home focused tests marker、layout marker、3-card marker 与 privacy marker。
+- [x] Trigger 覆盖 generated-client routing、Home shell/control、source controls、resume select、submit row、英文 i18n、ready filter、empty/one/twelve-plus fixtures、sort/3-card cap、More、card detail 与 quick-start handoff。
+- [x] Verify 要求 real-mode generated-client 配置 marker、目标测试文件 marker、Vitest pass marker 和 out-of-scope source/log negatives。
+- [x] 场景资产合同拒绝 TopBar/theme/mobile/build/Playwright/live-backend 等 runner 未执行的覆盖声明。
+  <!-- verified: 2026-07-10 method=scenario-asset-contract evidence="HomeScreen asset gate passes inside the P0.014 trigger; generated-client 1 test plus Home 34 tests and all four scenario scripts pass." -->
 
 ## E2E.P0.015 Home import 到 Parse preview
 
@@ -46,3 +48,7 @@
 - [x] Owner 文档、context、INDEX 与 product-scope / workspace 证据同步。
 - [x] Round assumptions shared data-binding regression and focused equivalent evidence are linked back to owner checklist Phase 7.
 - [x] Structured interview rounds contract and scenario evidence are linked back to owner checklist Phase 8.
+
+## Internal Cleanup Substitute Gate
+
+- [x] Phase 12 source negative, focused Home auth and frontend typecheck gates pass without changing E2E.P0.014-P0.018 behavior.<!-- verified: 2026-07-10 method=substitute+scenario-gate evidence="Source and Home focused tests passed; P0.015 setup/trigger/verify/cleanup passed including desktop/mobile browser checks." -->

@@ -5,7 +5,6 @@ import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { render, screen, type RenderResult } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactElement } from "react";
 
 import {
   DisplayPreferencesProvider,

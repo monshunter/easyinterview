@@ -1,11 +1,25 @@
 # 001 — Report Screen and Generating Handoff Test Plan
 
-> **版本**: 1.1
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-05-16
+> **更新日期**: 2026-07-10
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 **关联 Test Checklist**: [test-checklist](./test-checklist.md)
+
+## Phase 10 P0.056 focused-runner evidence
+
+- **目标**：保证 P0.056 README/seed/expected、BDD 与 shell verify 只声明五个 focused owner test 文件实际执行的证据。
+- **Red**：owner preflight 命中 integrated-journey、旧 Resume、固定跨文件轮询/主题/隐私扩大声明，且 verify 缺 poll-hook marker。
+- **Green**：preflight 要求五个 trigger/verify marker，P0.056 setup/trigger/verify/cleanup 通过；real-mode bootstrap 配置证据与 deterministic focused tests 分层表述。
+- **BDD**：沿用 `E2E.P0.056`，不新增场景或 runtime 行为。
+
+## Phase 11 P0.058 focused failure evidence
+
+- **目标**：把 P0.058 限定为 owner preflight、failure/missing components、report hook/route 与 poll hook 六个 focused 文件。
+- **Red**：preflight 命中 GeneratingScreen UI、重复 timeout、live backend 与宽泛 URL/storage/telemetry 隐私声明，且 trigger/verify 缺 owner/poll/route marker。
+- **Green**：六个 marker、typed error-copy keys 与 real-mode bootstrap 通过；timeout 只声明 poll-hook state。
+- **BDD**：沿用 `E2E.P0.058`，不新增场景或 runtime 行为。
 
 ## 0 范围与覆盖矩阵映射
 
@@ -104,23 +118,24 @@
 
 ## Phase 4: 复练 CTA 行为 + ReportFailureState 完整 + GeneratingScreen handoff 完整
 
-- **测试目标**：复练 CTA 路径 A + B 已登录 / 未登录经 workspace auto-start 创建 fresh practice session；payload 字段完整 + 隐私（无 raw text）；ReportFailureState retry → nav generating；GeneratingScreen ready/failed/timeout nav 防抖；data 未 ready 时 CTA disabled。
+- **测试目标**：复练 CTA 路径 A + B 已登录时通过 generated client 创建/启动 fresh session 并直接进入 practice，未登录时 pendingAction 回 report；payload 字段完整 + 隐私（无 raw text）；ReportFailureState retry → nav generating；GeneratingScreen ready/failed/timeout nav 防抖；data 未 ready 时 CTA disabled。
 - **测试文件**：
   - `frontend/src/app/auth/__tests__/pendingActionReplayPractice.test.ts`（新增）：`TestPendingActionEncodeDecodeReplayPractice` / `TestPendingActionReplayPracticeTypeAllowed` / 负向断言 URL params / localStorage 不含 raw text
-  - `frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx`（新增）：路径 A + 路径 B auto-start 子用例
+  - `frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx`（新增）：路径 A + 路径 B direct-start、未登录 auth return 与 payload 子用例
   - `frontend/src/app/screens/report/__tests__/ReportFailureHandoff.test.tsx`（新增）：retry / backToWorkspace 2 子用例
   - `frontend/src/app/screens/generating/__tests__/GeneratingScreen.test.tsx`（扩展）：ready / failed / timeout 三态 nav + 防抖
 - **测试命令**：
   - `pnpm --filter @easyinterview/frontend test src/app/screens/{report,generating} src/app/auth`
 - **预期 Red / Green 证据**：
-  - Red：CTA / handoff / PendingAction registration 未实现前测试 fail
+  - Red：CTA direct-start / handoff / PendingAction registration 未实现前测试 fail
   - Green：Phase 4 完成后命令通过；BDD `E2E.P0.056` 整链 + `E2E.P0.057` + `E2E.P0.058` 通过
 
 ## Phase 5: 完整状态机集成 + Playwright pixel parity + scenario 加挂 + 范围外输入负向
 
 - **测试目标**：全 frontend 测试 + typecheck + pixel parity + 范围外输入负向 + i18n 完整性 + 跨 owner regression；scenario 4 个目录加挂。
 - **测试文件**：
-  - `frontend/tests/pixel-parity/generating.spec.ts`（新增）+ `report.spec.ts`（新增）：Playwright desktop + mobile + theme 切换 + DOM anchor / computed style / bounding box / responsive geometry / non-empty screenshot smoke；`toHaveScreenshot` 仅在稳定 baseline 已提交或本 phase 明确更新 baseline 时启用
+  - `frontend/tests/pixel-parity/generating.spec.ts`（新增）+ `report.spec.ts`（新增）：Playwright desktop + mobile，覆盖 generating 主屏/缺参/mobile overflow 与 report dashboard/缺参/失败/mobile overflow；每个状态执行关键 DOM 或 geometry 断言及非空内存截图
+  - `frontend/src/app/screens/report/__tests__/preflight.test.ts`：反查 active spec、六份 plan artifact、两份 Playwright 源码与 P0.059 scenario claims，拒绝未执行的视觉或响应式口径
   - `frontend/src/app/i18n/__tests__/reportDashboardI18nCoverage.test.ts`（新增）：zh/en 同步 + errorCode i18n 覆盖
   - `frontend/src/app/screens/report/__tests__/outOfScopeNegative.test.ts`（新增）+ `frontend/src/app/screens/generating/__tests__/outOfScopeNegative.test.ts`（新增）：scoped grep negative + `TestListTargetJobReportsNotInvokedInReportOrGenerating`（mockTransport spy 反向断言）
   - `scripts/lint/frontend_report_dashboard_out_of_scope.py`（新增）+ `scripts/lint/frontend_report_dashboard_out_of_scope_test.py`（pytest 新增）：scoped out-of-scope grep + allowlist
@@ -143,8 +158,8 @@
   - scenario 4 个目录 setup → trigger → verify → cleanup
   - 跨 owner regression：scenario `p0-044-047` 重跑 + `cd backend && go test ./cmd/api -run 'TestE2EP0052|TestE2EP0053|TestE2EP0054|TestE2EP0055' -count=1`（如 backend-review/001 已 implement）
 - **预期 Red / Green 证据**：
-  - Red：Phase 4 完成后 Playwright DOM/style/smoke parity 与 scenario 目录尚不存在；稳定 screenshot baseline 如未提交不得作为 clean-checkout 阻塞项
-  - Green：Phase 5 完成后所有命令通过；BDD `E2E.P0.059` 通过
+  - Red：Phase 12 preflight 识别 active spec / owner 中高于七个浏览器状态的视觉与响应式口径
+  - Green：active spec、owner、scenario 与浏览器源码口径一致；七个 Playwright 状态均执行非空内存截图；BDD `E2E.P0.059` 通过
 
 ## 全局收口测试命令
 

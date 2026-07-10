@@ -1,13 +1,28 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 const FRONTEND_ROOT = resolve(__dirname, "..", "..");
 const PACKAGE_JSON = resolve(FRONTEND_ROOT, "package.json");
+const FRONTEND_GITIGNORE = resolve(FRONTEND_ROOT, ".gitignore");
 const PLAYWRIGHT_CONFIG = resolve(FRONTEND_ROOT, "playwright.config.ts");
 const PIXEL_PARITY_DIR = resolve(FRONTEND_ROOT, "tests", "pixel-parity");
 const SERVE_SCRIPT = resolve(FRONTEND_ROOT, "scripts", "serve-pixel-parity.mjs");
+const SCENARIO_VERIFY = resolve(
+  FRONTEND_ROOT,
+  "..",
+  "test",
+  "scenarios",
+  "e2e",
+  "p0-006-ui-design-pixel-parity-gate",
+  "scripts",
+  "verify.sh",
+);
+const SCREENSHOT_BASELINES = resolve(
+  PIXEL_PARITY_DIR,
+  "screenshot.spec.ts-snapshots",
+);
 
 describe("pixel parity scaffold (Phase 1.1 + 1.2 + 1.3)", () => {
   const pkg = JSON.parse(readFileSync(PACKAGE_JSON, "utf8"));
@@ -36,6 +51,10 @@ describe("pixel parity scaffold (Phase 1.1 + 1.2 + 1.3)", () => {
     expect(merged["@cypress/test"]).toBeUndefined();
   });
 
+  it("does not retain an unused axe adapter", () => {
+    expect(merged["@axe-core/playwright"]).toBeUndefined();
+  });
+
   it("has a playwright.config.ts at the frontend root", () => {
     expect(existsSync(PLAYWRIGHT_CONFIG)).toBe(true);
     const cfg = readFileSync(PLAYWRIGHT_CONFIG, "utf8");
@@ -45,6 +64,7 @@ describe("pixel parity scaffold (Phase 1.1 + 1.2 + 1.3)", () => {
     expect(cfg).toMatch(/name:\s*["']mobile["']/);
     expect(cfg).toMatch(/width:\s*1440[\s\S]*height:\s*900/);
     expect(cfg).toMatch(/width:\s*390[\s\S]*height:\s*844/);
+    expect(cfg).not.toContain("toHaveScreenshot");
     // webServer must point at the colocated serve script.
     expect(cfg).toMatch(
       /webServer\s*:\s*\{[\s\S]*serve-pixel-parity\.mjs[\s\S]*\}/,
@@ -54,6 +74,29 @@ describe("pixel parity scaffold (Phase 1.1 + 1.2 + 1.3)", () => {
 
   it("has the pixel-parity test directory shape", () => {
     expect(existsSync(PIXEL_PARITY_DIR)).toBe(true);
+  });
+
+  it("keeps the P0.006 verify markers equal to the 12 tracked specs", () => {
+    const specs = readdirSync(PIXEL_PARITY_DIR)
+      .filter((name) => name.endsWith(".spec.ts"))
+      .sort();
+    const markers = [
+      ...readFileSync(SCENARIO_VERIFY, "utf8").matchAll(
+        /\b[\w-]+\.spec\.ts\b/g,
+      ),
+    ]
+      .map(([name]) => name)
+      .sort();
+
+    expect(specs).toHaveLength(12);
+    expect(markers).toEqual(specs);
+  });
+
+  it("keeps buffer-only screenshot smoke free of local baselines", () => {
+    expect(existsSync(SCREENSHOT_BASELINES)).toBe(false);
+    expect(readFileSync(FRONTEND_GITIGNORE, "utf8")).not.toMatch(
+      /tests\/pixel-parity\/.*snapshots/,
+    );
   });
 
   it("ships the serve-pixel-parity.mjs static server fixture", () => {

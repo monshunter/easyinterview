@@ -1,6 +1,6 @@
 # F3 Output Schema Contract Checklist
 
-> **版本**: 1.9
+> **版本**: 2.2
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -9,7 +9,7 @@
 ## Phase 0: 基线复核与缺口确认（只读 + handoff snapshot）
 
 - [x] 0.1 复核 plan §3.1 operation matrix 当前 9 行的 prompt body 输出 key 与后端 struct json tag。验证: 9 行对照表写入 plan §8.2 Phase 0 handoff
-- [x] 0.2 读取 `backend/internal/resume/jobs/tailor.go` 的 `decodeTailorAIResponse` / `normalizeSuggestions`，判定 `resume.tailor.bullet_suggestions` 当前 prompt key（`rewrite`/`why_better`/`kept_facts`）与 canonical parser key（`originalBullet`/`suggestedBullet`/`reason`）是需要修复的新契约 drift，还是仅作为 parser alias 兼容保留。验证: 判定结论（canonical key / alias 兼容 / drift 修复范围）写入 handoff，决定 2.3 是否执行
+- [x] 0.2 读取 `backend/internal/resume/jobs/tailor.go` 的 `decodeTailorAIResponse` / `normalizeSuggestions`，判定 `resume.tailor.bullet_suggestions` 当时的 prompt key（`rewrite`/`why_better`/`kept_facts`）与 canonical parser key（`originalBullet`/`suggestedBullet`/`reason`）属于新契约 drift。验证: 判定结论写入 handoff；Phase 2.3 统一 prompt/schema，Phase 11 删除 runtime alias
 - [x] 0.3 读取 `backend/internal/ai/aiclient/observability/decorator.go:531-594`，记录 `outputSchema` 类型与 `validateAgainstSchema` 的 `enum` 缺口与扩展点。验证: 扩展点写入 handoff
 - [x] 0.4 读取 `loader.go`（`WalkDir`/`computeTemplateHash`）、`resolver.go:62`、`types.go:15`，确认 schema 不混入 per-language `template_hash` 的加载设计可行。验证: 加载/接线现状写入 handoff
 - [x] 0.5 列出直接型 caller（`review`×2 / `practice`-chat×3）与本地-resolution 型 caller（`targetjob` / `resume/jobs`×2），区分 `OutputSchemaVersion`（标签）vs `OutputSchema`（实际 schema），标注 `practice/voice_turn_service.go` STT/TTS 跳过点。验证: caller 清单写入 handoff
@@ -18,13 +18,13 @@
 
 - [x] 1.1 `config/prompts/README.md` 新增 output schema 约定（文件落点、语言无关、JSON Schema 校验子集、`description` 非校验注解、不混入 `template_hash`、与 prompt body / struct 一致性）。验证: README 含 output schema 章节；`make lint-prompts` 仍绿
 - [x] 1.2 在 README 固化 prompt body 输出契约块规范：字段顺序来自 schema，字段说明来自 `description`，complete example JSON output 由 schema 生成并可解析，覆盖 schema 声明的 required + optional 字段，使用业务形态值，并明确不是 JSON Schema / OpenAPI schema；人不在当前 18 个 `.md` 手工维护第二份字段表。验证: README 明确 schema 是唯一字段真理源，并说明 renderer/lint 的 drift 行为
-- [x] 1.3 在 README / handoff 规则中明确 alias / optional 字段策略：parser non-current alias 不自动进入新 prompt contract；prompt-only 可选字段必须有 `description` 说明评估价值。验证: README 或 plan §8 handoff 模板包含 alias/optional 判定项
+- [x] 1.3 在 README / handoff 规则中明确 alias / optional 字段策略：受 output schema 约束的 parser 只接受 canonical keys，out-of-scope alias 只作为 negative-test 输入或历史 drift 证据；prompt-only 可选字段必须有 `description` 说明评估价值。验证: README 或 plan §8 handoff 模板包含 alias/optional 判定项
 
-## Phase 2: 13 份语言无关 output schema 文件
+## Phase 2: 9 份语言无关 output schema 文件
 
 - [x] 2.1 为当前 9 个 chat feature_key 各落地 `config/prompts/<feature_key>/v0.1.0.schema.json`（语言无关，顶层 `object`，`required`=后端依赖字段，含 `enum`，允许 `description` 注解，只用允许关键字）。验证: `find config/prompts -mindepth 2 -name 'v0.1.0.schema.json' | wc -l` = 9；`jq empty` 解析全部通过；required/关键可选字段含 `description`
 - [x] 2.2 人工核对每份 schema 的 `required`/字段名与后端 struct json tag / parser required key 一致。验证: 核对表写入 plan §8 handoff（Phase 3 lint 强制）
-- [x] 2.3 （条件项，依 0.2 结论）修复 `resume.tailor.bullet_suggestions` schema/prompt canonical key，默认使用 `originalBullet` / `suggestedBullet` / `reason`，保留 parser alias 兼容但不写入新 prompt contract，补 round-trip 断言。验证: `go test ./backend/internal/resume/jobs/... -race` 全绿
+- [x] 2.3 修复 `resume.tailor.bullet_suggestions` schema/prompt canonical key，使用 `originalBullet` / `suggestedBullet` / `reason` 并补 round-trip 断言；Phase 11 删除 parser alias fallback。验证: `go test ./backend/internal/resume/jobs/... -race` 全绿
 
 ## Phase 3: schema lint + prompt 契约 renderer（先红后绿）
 
@@ -32,10 +32,10 @@
 - [x] 3.2 新增 prompt output contract renderer（可内嵌于 `prompt_lint.py` 或独立 helper）：从 schema 生成稳定的输出契约块和 complete representative example JSON output，覆盖 object、array、enum、nested object/array、`description` 缺失报错、example JSON schema-valid、optional 字段完整示例与业务形态值。验证: renderer 单测全绿
 - [x] 3.3 `make lint-prompts` 覆盖 schema gate + rendered prompt contract gate；顶层 `make lint` 联动。验证: `make lint-prompts && make lint` 全绿
 
-## Phase 4: 13 × 2 prompt body 输出段统一（由 schema 渲染/校验）
+## Phase 4: 9 × 2 prompt body 输出段统一（由 schema 渲染/校验）
 
 - [x] 4.1 把当前 9 × 2 个 `.md` 的 “Return strict JSON …” prose 段替换为 schema 渲染/校验的「输出契约 + complete example JSON output」块，重算 `template_hash` 写回 `.yaml`。验证: `make lint-prompts`（hash 一致 + rendered block 一致）全绿
-- [x] 4.2 prompt body drift gate 负向验证：故意改一个 prompt contract 字段名或 example key，`make lint-prompts` 失败；恢复后通过。验证: negative fixture 或测试覆盖
+- [x] 4.2 prompt body drift gate 负向验证：故意改一个 prompt contract 字段名或 example key，`make lint-prompts` 失败；还原故意改动后通过。验证: negative fixture 或测试覆盖
 
 ## Phase 5: registry 加载 + resolver 接线 OutputSchema（先红后绿）
 
@@ -53,7 +53,7 @@
 - [x] 7.1 `targetjob.PromptResolution` 加 `OutputSchema` 字段 + `RegistryAdapter` 映射 + `parse_executor.go` 填 `CallMetadata.OutputSchema`。验证: `go test ./backend/internal/targetjob/... -race` 全绿，cross-layer test 断言透传 + fail-close
 - [x] 7.2 `resume/jobs.PromptResolution` 加 `OutputSchema` + adapter 映射 + `parse.go`/`tailor.go` 填 metadata。验证: `go test ./backend/internal/resume/jobs/... -race` 全绿
 - [x] 7.3 `review`/`practice`(chat) 直接读 `resolution.OutputSchema` 填 metadata；`practice/voice_turn_service.go` STT/TTS 跳过，仅 chat 接线。验证: `go test ./backend/internal/{review,practice}/... -race` 全绿
-- [x] 7.4 Non-current feature_key negative gate：Debrief / JD Match 不再出现在当前 `config/prompts` / `config/rubrics` truth source，且 lint 对 non-current key fail-fast。验证: prompt/rubric non-current-key negative tests 全绿
+- [x] 7.4 Out-of-scope feature_key negative gate：Debrief / JD Match 不出现在当前 `config/prompts` / `config/rubrics` truth source，且 lint 对 out-of-scope key fail-fast。验证: prompt/rubric out-of-scope-key negative tests 全绿
 - [x] 7.5 grep red-line：语音 feature_key 不落 schema、不接 `OutputSchema`；业务包无 `response_format`/`json_schema` 请求字段。验证: `find config/prompts -name '*.schema.json' | grep -E 'voice|stt|tts|dictation'` 返回 0 行（语音 feature_key 无 schema）；`! grep -rnE '"response_format"|json_schema' backend/internal` provider 请求字段命中为 0
 - [x] 7.6 收口：`make lint-prompts` + `go test ./backend/internal/ai/registry/... ./backend/internal/ai/aiclient/... ./backend/internal/{targetjob,resume/jobs,review,practice}/... -race` + `validate_context.py` + `sync-doc-index --check`；§8 handoff 列 C-12 证据；Header 切 `completed` 同步 INDEX 与工作日志。验证: 全部命令绿；INDEX 显示 completed
 
@@ -61,19 +61,47 @@
 
 - [x] 8.1 为 renderer 增加回归测试：example JSON 必须包含 schema-declared optional properties，且不能使用 `string` / `1` 这类 generic filler values。验证: red `python3 -m pytest scripts/lint/prompt_lint_test.py -q -k 'rendered_example_includes_optional_properties'` 失败于 optional 字段缺失；green `python3 -m pytest scripts/lint/prompt_lint_test.py -q -k 'rendered_example'` → `2 passed`
 - [x] 8.2 重渲染当前 9 × 2 prompt body，刷新 18 个 YAML `template_hash`，同步 `migrations/000002_seed_baseline_prompt_rubric_versions.up.sql` 中已有 prompt seed row 的 body/hash，并补充 `resume.parse` project/education optional schema 字段。验证: `make lint-prompts` → `prompt_lint: 9 files clean`；`rg -n '"string"|: 1,|Example JSON:' config/prompts -g '*.md'` → 0 matches
-- [x] 8.3 同步 spec/plan/checklist/context/index 与收口验证。验证: `validate_context.py` + `sync-doc-index --check` + `git diff --check` 通过；Header 恢复 `completed`
+- [x] 8.3 同步 spec/plan/checklist/context/index 与收口验证。验证: `validate_context.py` + `sync-doc-index --check` + `git diff --check` 通过；Header 确认为 `completed`
 
 ## Phase 9: L2 seed migration coverage remediation（active truth source 全量覆盖）
 
 - [x] 9.1 重写 seed migration 静态覆盖测试，从 `config/prompts` active YAML 与 `config/rubrics` YAML 反推出期望坐标，扫描 seed / delete migrations 的净效果，拒绝 missing / extra / duplicate row 与 prompt `template_hash` drift。验证: focused seed coverage red→green
-- [x] 9.2 Non-current feature_key seed net-zero gate：non-current seed rows 可作为 migration audit rows 保留，但当前迁移链最终不得留下 non-current active prompt/rubric coordinate。验证: prompt/rubric/migration lint 与 migrate-check 全绿
+- [x] 9.2 Out-of-scope feature_key seed net-zero gate：out-of-scope seed rows 只作为 migration audit rows，当前迁移链最终不得留下 out-of-scope active prompt/rubric coordinate。验证: prompt/rubric/migration lint 与 migrate-check 全绿
 - [x] 9.3 执行 migration/runtime 收口 gate。验证: `go test ./backend/internal/ai/registry -count=1` → pass；`python3 scripts/lint/prompt_lint.py` → `prompt_lint: 9 files clean`；`python3 scripts/lint/rubric_lint.py` → `rubric_lint: 9 files clean`；`python3 scripts/lint/migrations_lint.py` → `migration lint: ok`；`DATABASE_URL=postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable make migrate-check` → pass
 
-## Phase 10: L2 review follow-up（non-current key rejection + lint diagnostic hardening）
+## Phase 10: L2 review follow-up（out-of-scope key rejection + lint diagnostic hardening）
 
-- [x] 10.1 Non-current feature_key rejection：当前 config truth source 中无 Debrief / JD Match prompt/rubric 目录；人为写入 non-current key 时 lint 返回 clear diagnostic。验证: `python3 -m pytest scripts/lint/prompt_lint_test.py -q -k 'jd_match or missing_schema_description'` → pass
+- [x] 10.1 Out-of-scope feature_key rejection：当前 config truth source 中无 Debrief / JD Match prompt/rubric 目录；人为写入 out-of-scope key 时 lint 返回 clear diagnostic。验证: `python3 -m pytest scripts/lint/prompt_lint_test.py -q -k 'jd_match or missing_schema_description'` → pass
 - [x] 10.2 修复 `prompt_lint.py` 在 invalid schema 已产生 subset/contract error 时仍调用 renderer 导致 traceback 的缺口。验证: `test_missing_schema_description_reports_lint_error_without_traceback` 先红后绿，断言 stderr 包含 `missing non-empty description` 且不含 `Traceback`
-- [x] 10.3 执行收口验证并同步 Bug / retrospective 文档。验证: `python3 -m pytest scripts/lint/prompt_lint_test.py -q` → pass；`python3 scripts/lint/prompt_lint.py` → `prompt_lint: 9 files clean`；`python3 scripts/lint/rubric_lint.py` → `rubric_lint: 9 files clean`；`python3 scripts/lint/migrations_lint.py` → `migration lint: ok`；`DATABASE_URL=postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable make migrate-check` → `migration lint: ok`；`go test ./backend/internal/ai/registry -count=1` → pass；non-current feature key negative tests → pass；`go test ./backend/internal/ai/aiclient/observability -run TestDecorator_OutputSchema -count=1` → pass；`validate_context.py --context docs/spec/prompt-rubric-registry/plans/002-output-schema-contract/context.yaml --docs-root docs --target backend` → pass；`sync-doc-index.py --check` → zero drift；`git diff --check` → pass
+- [x] 10.3 执行收口验证并同步 Bug / retrospective 文档。验证: `python3 -m pytest scripts/lint/prompt_lint_test.py -q` → pass；`python3 scripts/lint/prompt_lint.py` → `prompt_lint: 9 files clean`；`python3 scripts/lint/rubric_lint.py` → `rubric_lint: 9 files clean`；`python3 scripts/lint/migrations_lint.py` → `migration lint: ok`；`DATABASE_URL=postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable make migrate-check` → `migration lint: ok`；`go test ./backend/internal/ai/registry -count=1` → pass；out-of-scope feature key negative tests → pass；`go test ./backend/internal/ai/aiclient/observability -run TestDecorator_OutputSchema -count=1` → pass；`validate_context.py --context docs/spec/prompt-rubric-registry/plans/002-output-schema-contract/context.yaml --docs-root docs --target backend` → pass；`sync-doc-index.py --check` → zero drift；`git diff --check` → pass
+
+## Phase 11: Resume tailor output alias removal
+
+- [x] 11.1 Red: handler tests 证明 alias-only gap-review / bullet-suggestion 输出返回 `AI_OUTPUT_INVALID`，canonical 输出保持成功且冲突 alias 不覆盖 canonical 值。验证: focused test 在现有 fallback parser 上先失败
+  <!-- verified: 2026-07-10 red="cd backend && go test ./internal/resume/jobs -run 'TestTailorHandlerModeRoutingAndFailurePaths|TestTailorHandlerBulletSuggestionsCanonicalKeysRoundTrip' -count=1" result="alias-only root match summary and suggestion cases were incorrectly persisted as success" -->
+- [x] 11.2 Green: `decodeTailorAIResponse` / `normalizeMatchSummary` / `normalizeSuggestions` 只消费 schema canonical keys，删除 root-level 与 snake_case/rewrite/why-better fallback、请求输入回填和无调用 helper。验证: 11.1 focused tests 全绿
+  <!-- verified: 2026-07-10 green="cd backend && go test ./internal/resume/jobs -run 'TestTailorHandlerModeRoutingAndFailurePaths|TestTailorHandlerBulletSuggestionsCanonicalKeysRoundTrip' -count=1" result="pass; production parser alias search returned zero matches" -->
+- [x] 11.3 Verify: `go test ./internal/resume/jobs -count=1`、`make lint-prompts`、prompt/rubric lint 与生产 parser alias 负向搜索通过；`{{original_bullet}}` 输入模板变量作为明确例外
+  <!-- verified: 2026-07-10 commands="cd backend && go test ./internal/resume/jobs -count=1; make lint-prompts; python3 scripts/lint/{prompt_lint,rubric_lint}.py; production parser alias rg" result="pass; 9 prompt and 9 rubric files clean; only input template variable remains" -->
+- [x] 11.4 Docs/closure: 统一本 owner 的 out-of-scope/current-contract 术语，四个 plan context 对齐 spec 2.19；registry preflight 从精确 spec 版本号改为 D-13 + 当前 9-key 稳定语义断言；运行 context/index/docs/diff/pruning gates 并确认状态为 `completed`
+  <!-- verified: 2026-07-10 red="registry preflight expected spec 2.17 while current spec was 2.19" green="focused preflight and full registry package pass" gates="four F3 contexts; resume jobs; output-schema observability; prompt/rubric/migration lint; docs-check; diff-check; pruning surface" result="pass; real_residuals=0" -->
+
+## Phase 12: Practice output alias removal and stable F3 references
+
+- [x] 12.1 Current contract: F3 spec 2.20 和 `config/prompts/README.md` 明确 runtime parser canonical-only；四个 plan context 投影到 2.20，plan/checklist/INDEX 以 2.1 active 原地承接
+  <!-- verified: 2026-07-10 commands="validate_context.py --target backend for F3 plans 001-004; sync-doc-index --check; git diff --check" result="pass; zero drift" -->
+- [x] 12.2 Red: practice focused tests 锁定 `question` / `intent` / `hint` / `answer_summary` alias-only 输出失败或被忽略，canonical 输出成功且冲突 alias 不覆盖 canonical 值
+  <!-- verified: 2026-07-10 command="cd backend && go test ./internal/practice -run 'TestParseFirstQuestionUsesCanonicalOutputKeys|TestParseHintUsesCanonicalCue|TestParseTurnObservationUsesCanonicalAnswerSummary' -count=1" result="failed on all four existing alias paths" -->
+- [x] 12.3 Green: 删除 `parseFirstQuestion` 与 `hintAIResponse` 的四类 output alias/fallback；成功 fixture 统一 canonical keys，范围外 alias 只留在 12.2 negative tests
+  <!-- verified: 2026-07-10 command="cd backend && go test ./internal/practice -run 'TestParseFirstQuestionUsesCanonicalOutputKeys|TestParseHintUsesCanonicalCue|TestParseTurnObservationUsesCanonicalAnswerSummary' -count=1" result="pass; production parser alias search returned zero" -->
+- [x] 12.4 Stable references/closure: 删除 F3 lint/registry 注释中的固定 spec 版本引用；运行 practice/registry tests、prompt/rubric lint、alias/version negative search、四个 context、index/docs/diff/pruning gates 并确认状态为 `completed`
+  <!-- verified: 2026-07-10 commands="make lint; practice and registry package tests; 22 lint tests; F3 contexts 001-004; docs-check; diff-check; pruning surface" result="pass; prompt_lint=9 clean; rubric_lint=9 clean; real_residuals=0" -->
+
+## Phase 13: Canonical parser downstream scenario fixture gate
+
+- [x] 13.1 `cmd/api` Practice 确定性成功 fixture 输出 canonical `cue` / `answerSummary`，alias-only `hint` 仅保留在 invalid-output 负测；验证: P0.039 和 P0.048-P0.051 从 `session_wait` / 额外 `AI_OUTPUT_INVALID` task run 红态恢复为成功，完整 Practice/internal AI/cmd-api package gate 通过。
+  <!-- verified: 2026-07-10 red="P0.039/P0.048/P0.049/P0.050 canonical success paths degraded because scenarioPracticeAIClient emitted hint" green="fixture emits cue/answerSummary; focused P0.039/P0.048-P0.051 and full Practice/internal AI/cmd-api tests pass; alias-only invalid-output remains" -->
+- [x] 13.2 将 downstream consumer 场景执行加入 F3 canonical parser 变更的 TDD/替代验证 gate；验证: F3/002 context、INDEX、docs/diff/pruning gates 通过。
 
 ## BDD-Gate
 
@@ -85,6 +113,7 @@
 > 2. `go test ./backend/internal/ai/registry/... -race`（loader 加载 schema + `ResolveActive` OutputSchema 非空 + 语言无关单份 + fallback 一致 + seed migration 覆盖全部 active prompt/rubric 坐标）
 > 3. `go test ./backend/internal/ai/aiclient/... -race`（`validateOutputSchema` enum / required fail-close）
 > 4. `go test ./backend/internal/{targetjob,resume/jobs,review,practice}/... -race`（caller `OutputSchema` 透传 + 端到端 fail-close）
-> 5. grep red-line：语音 feature_key（STT/TTS）零 schema、零 `OutputSchema`、业务包零 `response_format`
-> 6. `DATABASE_URL=... make migrate-check`（migration lint + Postgres dev-stack `up -> down -> up`）
-> 7. `python3 .agent-skills/implement/shared/scripts/validate_context.py` + `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`
+> 5. canonical parser 变更执行相关 `backend/cmd/api` consumer 场景，保证成功 fixture 与 alias-only 负测同时有效
+> 6. grep red-line：语音 feature_key（STT/TTS）零 schema、零 `OutputSchema`、业务包零 `response_format`
+> 7. `DATABASE_URL=... make migrate-check`（migration lint + Postgres dev-stack `up -> down -> up`）
+> 8. `python3 .agent-skills/implement/shared/scripts/validate_context.py` + `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check`

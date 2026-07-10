@@ -1,8 +1,8 @@
 # App Shell Visual System
 
-> **版本**: 1.7
+> **版本**: 2.2
 > **状态**: completed
-> **更新日期**: 2026-07-09
+> **更新日期**: 2026-07-10
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -59,6 +59,26 @@ TopBar 保持三入口 nav、主题菜单、custom accent row、暗色 icon togg
 
 `src/app/scenarios/p0-005-app-shell-visual-system-smoke.test.tsx` 与 `test/scenarios/e2e/p0-005-app-shell-visual-system-smoke/` 共同作为 fast smoke gate。`frontend/README.md` 记录 token、display wiring、font、shell className 和 parity gate 重跑方式，业务 owner 必须在这些接入点内扩展页面。
 
+### 4.7 Visual-smoke test lifecycle isolation
+
+P0.005 中只做同步 DOM/source negative 断言的 default shell、auth login 和 out-of-scope 用例在断言后显式 unmount。这样可在 fixture-backed runtime Promise 回写前完成 effect cleanup，删除无关 `AppRuntimeProvider` / `HomeScreen` act warnings；交互用例、生产 App、样式和视觉合同不变。
+
+### 4.8 Noto Serif SC bundle deduplication
+
+`fonts.css` 只导入 Noto Serif SC 400/500 默认 unicode-range 分片；这些分片已覆盖简体中文和 Latin glyph。不得同时导入无 unicode-range 的 `chinese-simplified-400.css` / `chinese-simplified-500.css` 完整字体，避免 Vite 将同权重中文 glyph 重复打包；字体 family、字重、fallback 和可见排版不变。
+
+### 4.9 Western font subset pruning
+
+产品 locale 只支持 `zh` / `en`。Inter、Source Serif Pro、Cormorant Garamond、IBM Plex Sans 与 JetBrains Mono 只导入各自 Latin 400/500/600 current weights，不打包默认 CSS 中额外的 Greek、Cyrillic、Vietnamese 等子集；Geist 默认 CSS 已等同 Latin bundle，保持原 import。所有 `EI_FONT_PRESETS` family、weight 和 fallback 合同不变。
+
+### 4.10 P0.005 scenario contract reconciliation
+
+`E2E.P0.005` 场景资产必须与 executable smoke 保持同一当前合同：默认 `ocean/light`，切换到 ocean/dark 与 plum/dark 时校验当前 token，Warm / Forest 仅作为菜单不存在的负向断言。jsdom fast smoke 只拥有 DOM/className/computed-variable/custom-accent/route-negative 覆盖；真实浏览器 viewport、geometry 与 screenshot buffer 由当前 `E2E.P0.006` 承接，P0.005 不维护浏览器安装或截图文件生命周期。
+
+### 4.11 Theme data ownership wording
+
+`themes.data.ts` contains four palette combinations, three serif/sans font preset pairs and two TopBar theme metadata entries. Palette/font data are consumed by source-traceability tests; `THEME_METADATA` is consumed by TopBar. There is no CSS generator in this owner: `themes.css` is the checked-in runtime source verified against the data and `ui-design` truth source.
+
 ## 5 验收标准
 
 - Token/theme tests 证明 CSS variable 与 `ui-design` 源值可追溯，且源码不引入 Tailwind、CSS-in-JS 或私有字体。
@@ -84,5 +104,10 @@ pnpm --filter @easyinterview/frontend build
 
 | 日期 | 版本 | 说明 |
 |------|------|------|
+| 2026-07-10 | 2.2 | Correct theme data consumer and font preset documentation. |
+| 2026-07-10 | 2.1 | Align P0.005 scenario assets with the current ocean/plum fast-smoke contract and the existing P0.006 browser boundary. |
+| 2026-07-10 | 2.0 | Restrict Western font presets to the product's Latin locale subset while retaining every current family and weight. |
+| 2026-07-10 | 1.9 | Remove duplicate full Noto Serif SC imports while retaining the unicode-range 400/500 bundles and visible typography contract. |
+| 2026-07-10 | 1.8 | Isolate synchronous P0.005 visual-smoke assertions from unrelated runtime effects. |
 | 2026-07-09 | 1.7 | 收敛可选主题为 deep ocean / plum / custom accent，移除 warm / forest active palette、TopBar option、locale key 和 theme matrix 口径。 |
 | 2026-07-07 | 1.6 | Compress owner docs to the current ui-design-native visual system contract and executable gates. |

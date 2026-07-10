@@ -12,9 +12,14 @@ ui-design/index.html
    ├─ TopBar 一级导航
    ├─ ROUTE_ALIASES 范围外原型路由归一
    └─ screens 当前可渲染页面
+
+ui-design/canvas.html
+└─ ui-design/design-canvas.jsx
 ```
 
 当前 Git 跟踪的运行入口是 `ui-design/index.html`。
+
+本地查看原型使用 `./ui-design/run.sh --no-open`；查看设计画板使用 `./ui-design/run.sh -f canvas.html --no-open`。脚本按仓库 `.tool-versions` 使用 Python 3 静态服务器，并在端口被占用时顺延选择可用端口。
 
 也就是说，本目录是当前运行时 UI 目标，不是“未来可能目标”的独立草案；它必须和当前静态页面展示的运行时交互保持一致。静态页面调整后，`docs/ui-design/` 需要同步校对，避免文档与设计稿漂移。
 

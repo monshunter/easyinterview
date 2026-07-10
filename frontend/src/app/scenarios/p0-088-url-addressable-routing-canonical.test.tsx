@@ -15,7 +15,8 @@
  *     catalog.
  *   - Reload preserves resource context (verified by re-mount).
  *   - Back / forward updates state without double-push or lost params.
- *   - Current cross-owner handoff keys survive allowlist filtering.
+ *   - Route-specific handoff keys survive while workspace detail/start params
+ *     are stripped from the list route.
  *   - Unknown / malformed query falls back without crashing.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -50,7 +51,7 @@ const NavBatch: FC = () => {
     <>
       <button
         type="button"
-        data-testid="go-workspace-replay"
+        data-testid="go-workspace-hostile"
         onClick={() =>
           navigate({
             name: "workspace",
@@ -190,7 +191,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
       </App>,
     );
     const user = userEvent.setup();
-    await user.click(screen.getByTestId("go-workspace-replay"));
+    await user.click(screen.getByTestId("go-workspace-hostile"));
     await waitFor(() => screen.getByTestId("workspace-plan-list"));
     await user.click(screen.getByTestId("go-practice-phone"));
     await waitFor(() => screen.getByTestId("practice-phone-waveform"));

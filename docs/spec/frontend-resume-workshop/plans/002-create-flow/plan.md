@@ -1,6 +1,6 @@
 # Frontend Resume Workshop Create Flow
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -84,6 +84,10 @@ Resume upload keeps the existing name generation and route handoff behavior. It 
 
 Home `选择已有简历` consumes the current `listResumes` result and keeps non-archived resumes selectable when they already carry readable resume evidence (`ready` parse status, `parsedTextSnapshot`, `originalText`, or structured profile). It must not show `还没有可用简历` while `listResumes` returns selectable records, and it must preserve the explicit-selection rule before importing a JD.
 
+### Phase 9: Zero-reference stage type removal
+
+`ResumeCreateFlow` keeps the real `data-stage="input"` DOM contract but removes the exported `CreateStage` alias because no production or test consumer uses it. A source negative gate prevents the standalone declaration from returning; focused create-flow tests and typecheck preserve current behavior.
+
 ## 5 验收标准
 
 | ID | 场景 | Given | When | Then | 证据 |
@@ -96,6 +100,7 @@ Home `选择已有简历` consumes the current `listResumes` result and keeps no
 | C-6 | CTA handoff | Home create CTA | Click | Route lands on current CreateFlow without raw data in pending action | integration tests |
 | C-7 | BDD gates | P0.081 / P0.083 assets plus P0.082 parser/preview absence | Scenario verify | Direct-to-detail main path, out-of-scope parser/confirm absence and CTA handoff are covered | BDD docs + scenario scripts |
 | C-8 | Home existing resume picker | `listResumes` returns non-archived resumes with readable evidence | Home renders JD quick-start | Native select is enabled, options are selectable, empty state is absent, and selected `resumeId` is carried to import / parse handoff | HomeResumeSelection Vitest + browser screenshot |
+| C-9 | Zero-reference type cleanup | `CreateStage` has no consumer | Source gate and create-flow regressions run | The alias is absent while `data-stage="input"` and create behavior remain unchanged | source negative + focused Vitest + typecheck |
 
 ## 6 风险与应对
 
@@ -109,6 +114,7 @@ Home `选择已有简历` consumes the current `listResumes` result and keeps no
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-10 | 1.14 | Remove the zero-reference CreateStage type while preserving the input-stage DOM contract. |
 | 2026-07-10 | 1.13 | 将 create-flow parser / preview-confirm 负向 gate 表述统一为 out-of-scope 口径；行为不变。 |
 | 2026-07-10 | 1.12 | 收敛 P0.083 handoff gate 到当前 Home CTA、auth pendingAction 与 direct-detail 验证。 |
 | 2026-07-10 | 1.11 | 将 parser / preview-confirm 负向面表述统一为 out-of-scope wording；行为不变。 |

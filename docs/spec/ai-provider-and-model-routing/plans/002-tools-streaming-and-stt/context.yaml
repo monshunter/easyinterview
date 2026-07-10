@@ -6,7 +6,7 @@ metadata:
   sequence: 2
   specVersion:
     from: 2.4
-    to: 2.5
+    to: 2.22
 spec:
   defaultTarget: backend
   discovery:
@@ -24,7 +24,6 @@ spec:
       - audio transcription
       - whisper
       - tool use
-      - cost cap
   targets:
     backend:
       plan: ./plan.md

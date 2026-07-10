@@ -134,7 +134,7 @@ Practice Assistance
 ```text
 ReportGenerationParams
 ├─ mode / modality: text | phone
-├─ practiceMode: compatibility display field, no user-visible strict switch
+├─ practiceMode: read-only report context field, no user-visible strict switch
 ├─ hintUsed: true | false
 └─ hintCount: number as string
 ```

@@ -1,6 +1,6 @@
 # Cascaded Speech Provider Foundation
 
-> **版本**: 1.3
+> **版本**: 1.7
 > **状态**: completed
 > **更新日期**: 2026-07-10
 
@@ -36,7 +36,7 @@
 | A3-004-C4 | Alternate path | 用户确认 STT/TTS 独立配置 | Phase 4 | profile coverage lint + loader tests | STT/TTS 共享同一 provider 必填 |
 | A3-004-C5 | Failure/recovery | A3 spec C-17 | Phase 5 | timeout/secret missing/provider error tests + practice voice handoff reference | A3 provider error 被吞掉；业务 orchestration 在 A3 内实现 |
 | A3-004-C6 | Privacy/security/observability | ADR-Q5 + A3 §4.3 | Phase 5 | observability privacy tests + grep gate | audio bytes、transcript、TTS text/audio 明文进 log/DB/metric |
-| A3-004-C7 | Regression/non-current-negative | A3 spec D-15 | Phase 6 | active-scope negative search | cascade 被标为 `realtime`；恢复独立 `voice` route；恢复一 profile 一文件 truth source |
+| A3-004-C7 | Regression/out-of-scope-negative | A3 spec D-15 | Phase 6 | active-scope negative search | cascade 仅使用 `stt` / `chat` / `tts`；顶层 `voice` route 缺席；单一 profile catalog 是唯一 truth source |
 
 ### 4.1 Operation Matrix
 
@@ -126,11 +126,59 @@ A3 owns provider/client failure semantics：provider timeout / secret missing / 
 
 #### 6.2 Drift gates
 
-运行 `make codegen-check`、`make lint-ai-profile-coverage`、`make lint-config`、`make docs-check`，并记录 negative search：不得把 cascade 标成 `realtime`，不得恢复独立 `voice` route，不得恢复非当前 provider key 或一 profile 一目录 truth source。
+运行 `make codegen-check`、`make lint-ai-profile-coverage`、`make lint-config`、`make docs-check`，并记录 negative search：cascade 只能使用 `stt` / `chat` / `tts` capability，顶层 `voice` route 与 out-of-scope provider key 必须缺席，profile truth source 必须保持单一 catalog。
 
 #### 6.3 Handoff to practice voice MVP
 
 把可消费的 profile name、error semantics、privacy summary 与 cost metadata 写入 `practice-voice-mvp/001` operation matrix。用户可见 API / BDD 不在本计划收口。
+
+### Phase 7: Doubao speech trivial wrapper removal
+
+#### 7.1 Structural red gate
+
+确认 `doubao_speech/util.go` 的 `encodeBase64Audio`、`decodeBase64Audio` 与 `readAll` 都只是单调用标准库转发，调用方各只有一处，且 adapter contract tests 已覆盖对应 wire 行为。
+
+#### 7.2 Delete wrapper file
+
+在 `adapter.go` 直接调用 `base64.StdEncoding.EncodeToString`、`base64.StdEncoding.DecodeString` 与 `io.ReadAll`，删除无独立语义的 `util.go`，不引入替代 helper。
+
+#### 7.3 Verification and closure
+
+运行 Doubao adapter focused/package tests、A3 aiclient tests、`make lint`、context/index/docs/diff/pruning gates，并用负向搜索锁定三个 wrapper 和 `util.go` 均不存在；完成后确认 plan/checklist 为 `completed`。
+
+验证结果：Doubao package 与完整 `aiclient/...` tests 通过；顶层 `make lint`、A3 004 context、docs/index/diff/pruning gates 通过；wrapper 搜索为零且 `util.go` 不存在。
+
+### Phase 8: MiniMax speech dead wrapper and return removal
+
+#### 8.1 Structural red gate
+
+确认 `encodeBase64Audio` 已无调用方，`decodeBase64Audio` 只做一次标准库转发，且 `postJSON` 返回的 headers 只被 `_ = headers` 丢弃；MiniMax adapter contract tests 已覆盖 TTS decode、provider error 与 timeout。
+
+#### 8.2 Delete dead surface
+
+删除未调用的 encoder 和单调用 decoder，直接使用 `base64.StdEncoding.DecodeString`；从 `postJSON` 返回值中删除 `http.Header`，同步所有 return/caller，不创建替代 helper。
+
+#### 8.3 Verification and closure
+
+运行 MiniMax focused/package、完整 A3 aiclient、顶层 lint、context/index/docs/diff/pruning gates；负向搜索锁定两个 wrapper、`_ = headers` 和四返回值 `postJSON` 均不存在，完成后确认 `completed`。
+
+验证结果：MiniMax package 与完整 `aiclient/...` tests 通过；顶层 `make lint`、A3 004 context、docs/index/diff/pruning gates 通过；wrapper、unused-header 和旧签名搜索均为零。
+
+### Phase 9: Speech adapter dead parameter removal
+
+#### 9.1 Structural red gate
+
+确认 Doubao/MiniMax `errMeta` 的 `msg` 参数在函数体中均未使用；Doubao `buildMeta` 的 headers/content type 参数未使用，`postJSON` headers 返回值在 STT 直接丢弃、TTS 只转交给不消费它的 `buildMeta`。
+
+#### 9.2 Narrow internal signatures
+
+从两家 `errMeta` 删除 `msg` 及所有无效实参；Doubao `postJSON` 收窄为 body/status/error，`buildMeta` 只接收 profile/duration/charCount。保持 response `ContentType`、error mapping 和 meta 字段行为不变。
+
+#### 9.3 Verification and closure
+
+运行两家 speech provider tests、完整 A3 aiclient、顶层 lint、context/index/docs/diff/pruning gates；负向搜索锁定 `msg`、headers/content type 死参数和四返回值签名均不存在，完成后确认 `completed`。
+
+验证结果：两家 speech provider 与完整 `aiclient/...` tests 通过；顶层 `make lint`、A3 004 context、docs/index/diff/pruning gates 通过；死参数和旧签名搜索为零。
 
 ## 6 验收标准
 
@@ -139,6 +187,9 @@ A3 owns provider/client failure semantics：provider timeout / secret missing / 
 - `practice.voice.stt.default` 与 `practice.voice.tts.default` 独立存在，profile coverage lint 证明 STT/TTS 不绑定同一 provider。
 - 观测与 audit 只写 hash / 长度 / duration / profile / provider / cost 摘要，不写音频、转写或 TTS 文本明文。
 - realtime S2S 继续 fail-closed，任何用户可见电话模式 workflow 由 `practice-voice-mvp` plan 的 BDD gate 覆盖。
+- Doubao speech adapter 直接使用标准库处理 base64 与 response body，不保留单行 compatibility wrapper。
+- MiniMax speech adapter 直接使用标准库解码音频，且 HTTP helper 只返回调用方实际消费的 body/status/error。
+- 两家 speech adapter 的内部 helper 签名只保留函数体实际消费的参数与返回值。
 
 ## 7 风险与应对
 
