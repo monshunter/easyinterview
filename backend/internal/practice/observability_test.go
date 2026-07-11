@@ -172,7 +172,7 @@ func TestPracticeObservedAIRedactsPromptResponseFromLogsMetricsAndAudit(t *testi
 	auditWriter := &recordingAuditEventWriter{}
 	ai, err := observability.New(
 		&fakeAIClient{
-			content: firstQuestionJSON(t, "response body provider secret sk-test answer_text hint_text", "prompt body response body"),
+			content: firstQuestionJSON(t, "请说明候选人在项目中如何识别风险、验证边界、记录取舍、衡量结果并制定回滚方案，并进一步说明团队背景、目标约束、关键决策、验证方法、失败信号、复盘结论和后续改进，同时包含 response body provider secret sk-test answer_text hint_text 作为隐私测试标记。", "prompt body response body"),
 			meta: aiclient.AICallMeta{
 				Provider:         "stub",
 				ModelFamily:      "stub",

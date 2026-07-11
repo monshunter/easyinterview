@@ -3,6 +3,7 @@ package practice
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -69,8 +70,12 @@ func TestStartPracticeSessionMapsAIErrorsToPracticeServiceErrors(t *testing.T) {
 			if strings.Contains(svcErr.Message, tc.wantPrompt) || strings.Contains(svcErr.Error(), tc.wantPrompt) {
 				t.Fatalf("service error leaked forbidden AI evidence %q: %+v", tc.wantPrompt, svcErr)
 			}
-			if len(store.steps) != 3 || store.steps[0] != "reserve" || store.steps[1] != "ai" || store.steps[2] != "fail" {
-				t.Fatalf("AI error should reserve, call AI, then persist failed reservation; steps=%v", store.steps)
+			wantSteps := []string{"reserve", "ai", "fail"}
+			if tc.wantCode == sharederrors.CodeAiOutputInvalid {
+				wantSteps = []string{"reserve", "ai", "ai", "fail"}
+			}
+			if !reflect.DeepEqual(store.steps, wantSteps) {
+				t.Fatalf("AI error repair/order drift: got=%v want=%v", store.steps, wantSteps)
 			}
 			if store.fail.ErrorCode != tc.wantCode || store.fail.SessionID != "session-1" || store.fail.UserID != "user-1" {
 				t.Fatalf("reservation failure was not persisted correctly: %+v", store.fail)

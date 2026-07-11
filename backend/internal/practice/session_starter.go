@@ -190,15 +190,27 @@ func (s *Service) firstQuestionForReservation(ctx context.Context, userID string
 	if err != nil {
 		return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromRegistry(err))
 	}
-	resp, _, err := s.ai.Complete(ctx, resolution.ModelProfileName, firstQuestionPayload(resolution, reservation))
-	if err != nil {
+	payload := firstQuestionPayload(resolution, reservation)
+	for attempt := 0; attempt < 2; attempt++ {
+		resp, _, err := s.ai.Complete(ctx, resolution.ModelProfileName, payload)
+		if err == nil {
+			question, parseErr := parseFirstQuestion(resp.Content)
+			err = parseErr
+			if err == nil {
+				err = validateGeneratedQuestionLanguage(question.Text, reservation.Language)
+			}
+			if err == nil {
+				return question, nil
+			}
+		}
+		if attempt == 0 && isRepairableQuestionError(err) {
+			continue
+		}
 		return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromAI(err))
 	}
-	question, err := parseFirstQuestion(resp.Content)
-	if err != nil {
-		return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromAI(err))
-	}
-	return question, nil
+	return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromAI(
+		sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "first question generation failed", false),
+	))
 }
 
 func (s *Service) failReservedSessionStart(ctx context.Context, userID string, reservation SessionReservation, err error) error {
@@ -336,5 +348,8 @@ func parseFirstQuestion(content string) (firstQuestion, error) {
 		return firstQuestion{}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "first question response missing questionText", false)
 	}
 	intent := strings.TrimSpace(decoded.QuestionIntent)
+	if intent == "" {
+		return firstQuestion{}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "first question response missing questionIntent", false)
+	}
 	return firstQuestion{Text: text, Intent: intent}, nil
 }

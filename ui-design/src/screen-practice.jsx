@@ -11,7 +11,6 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId, mode }) => {
   const [elapsed, setElapsed] = React.useState(502);
   const [transcript, setTranscript] = React.useState(D.sessionTranscript);
   const [captionsShown, setCaptionsShown] = React.useState(false);
-  const [callState, setCallState] = React.useState("connected");
 
   React.useEffect(() => {
     if (paused) return;
@@ -22,22 +21,17 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId, mode }) => {
   const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
   const currentQ = D.questions[qIdx];
   const requestedMode = params.modality || params.mode || mode;
-  const activeMode = requestedMode === "phone" || requestedMode === "voice" ? "phone" : "text";
+  const activeMode = requestedMode === "phone" ? "phone" : "text";
   const isPhone = activeMode === "phone";
   const interviewerRole = context.roundName || (lang === "en" ? "Manager round" : "经理面");
   const interviewerLabel = lang === "en" ? `${interviewerRole} interviewer` : `${interviewerRole}面试官`;
-  const modes = lang === "en"
-    ? [
-      { k: "text", label: "Text", icon: "chat" },
-      { k: "phone", label: "Phone", icon: "mic" },
-    ]
-    : [
-      { k: "text", label: "文本", icon: "chat" },
-      { k: "phone", label: "电话模式", icon: "mic" },
-    ];
-  const onSwitchMode = (k) => {
-    setCallState(k === "phone" ? "connected" : callState);
-    nav("practice", { ...context, mode: k, modality: k });
+  const enterPhoneMode = () => {
+    setCaptionsShown(false);
+    nav("practice", { ...context, mode: "phone", modality: "phone" });
+  };
+  const exitPhoneMode = () => {
+    setCaptionsShown(false);
+    nav("practice", { ...context, mode: "text", modality: "text" });
   };
   const finishAndGenerate = () => nav("generating", {
     ...context,
@@ -71,36 +65,27 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId, mode }) => {
             <Icon name={paused ? "play" : "pause"} size={12} /> {paused ? (lang === "en" ? "Resume" : "继续") : (lang === "en" ? "Pause" : "暂停")}
           </button>
           <div style={{ height: 18, width: 1, background: T.rule }} />
-          <div style={{ display: "flex", background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 2, gap: 2 }}>
-            {modes.map((m) => {
-              const on = activeMode === m.k;
-              return (
-                <button key={m.k} onClick={() => onSwitchMode(m.k)} style={{
-                  background: on ? T.bgCard : "transparent",
-                  border: `1px solid ${on ? T.rule : "transparent"}`,
-                  boxShadow: on ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
-                  color: on ? T.ink : T.ink3,
-                  padding: "4px 9px",
-                  borderRadius: 2,
-                  cursor: "pointer",
-                  display: "flex", gap: 5, alignItems: "center",
-                  fontSize: 12, fontWeight: on ? 500 : 400,
-                  fontFamily: "var(--ei-sans)",
-                }}>
-                  <Icon name={m.icon} size={12} />
-                  {m.label}
-                </button>
-              );
-            })}
-          </div>
-          {isPhone && (
-            <div style={{ display: "flex", gap: 5, alignItems: "center", padding: "4px 8px", background: paused || callState === "ended" ? T.bgSoft : T.accentSoft, border: `1px solid ${paused || callState === "ended" ? T.rule : T.accent}`, borderRadius: 2 }}>
-              <span className={!paused && callState === "connected" ? "ei-pulse" : ""} style={{ width: 6, height: 6, borderRadius: 3, background: paused || callState === "ended" ? T.ink4 : T.accent, display: "inline-block" }} />
-              <span style={{ fontSize: 11, color: paused || callState === "ended" ? T.ink3 : T.accent, fontFamily: "var(--ei-mono)" }}>
-                {callState === "ended" ? (lang === "en" ? "ended" : "已切断") : paused ? (lang === "en" ? "paused" : "已暂停") : (lang === "en" ? "live" : "通话中")}
-              </span>
-            </div>
-          )}
+          <button
+            type="button"
+            data-testid="practice-topbar-phone-toggle"
+            aria-pressed={isPhone}
+            aria-label={isPhone
+              ? (lang === "en" ? "Hang up and return to text mode" : "挂断并返回文本模式")
+              : (lang === "en" ? "Enter phone mode" : "进入电话模式")}
+            title={isPhone
+              ? (lang === "en" ? "Return to text" : "返回文本模式")
+              : (lang === "en" ? "Phone mode" : "电话模式")}
+            onClick={isPhone ? exitPhoneMode : enterPhoneMode}
+            style={{
+              width: 34, height: 34, padding: 0, borderRadius: 17,
+              border: `1px solid ${isPhone ? T.accent : T.rule}`,
+              background: isPhone ? T.accentSoft : "transparent",
+              color: isPhone ? T.accent : T.ink2,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <Icon name="phone" size={15} />
+          </button>
           <button onClick={finishAndGenerate} style={{
             padding: "7px 12px",
             background: T.accent, color: "#fff",
@@ -161,12 +146,10 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId, mode }) => {
             <PhoneSessionSurface
               T={T}
               lang={lang}
-              active={!paused && callState === "connected"}
-              callState={callState}
+              active={!paused}
               captionsShown={captionsShown}
               onToggleCaptions={() => setCaptionsShown((v) => !v)}
-              onHangUp={() => setCallState("ended")}
-              onRestart={() => { setCallState("connected"); setCaptionsShown(false); }}
+              onHangUp={exitPhoneMode}
               transcript={transcript}
             />
           ) : (
@@ -257,51 +240,52 @@ const PracticeWaveformBars = ({ T, bars = 70, active = true, height = 58 }) => {
   );
 };
 
-const PhoneSessionSurface = ({ T, lang, active, callState, captionsShown, onToggleCaptions, onHangUp, onRestart, transcript }) => {
-  const ended = callState === "ended";
+const PhoneSessionSurface = ({ T, lang, active, captionsShown, onToggleCaptions, onHangUp, transcript }) => {
   return (
     <>
-      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", background: T.bg }}>
+      <div data-testid="practice-phone-surface" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", background: T.bg }}>
         <div style={{ flex: captionsShown ? "0 0 auto" : 1, padding: "46px 56px 28px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 22 }}>
           <div style={{
             width: 96, height: 96, borderRadius: 48,
-            background: ended ? T.bgSoft : T.accentSoft,
-            border: `1px solid ${ended ? T.rule : T.accent}`,
+            background: T.accentSoft,
+            border: `1px solid ${T.accent}`,
             display: "flex", alignItems: "center", justifyContent: "center",
-            color: ended ? T.ink3 : T.accent,
+            color: T.accent,
           }}>
-            <Icon name={ended ? "pause" : "mic"} size={34} stroke={1.7} />
+            <Icon name="mic" size={34} stroke={1.7} />
           </div>
-          <div style={{ textAlign: "center" }}>
+          <div data-testid="practice-phone-call-state" style={{ textAlign: "center" }}>
             <div className="ei-serif" style={{ fontSize: 28, color: T.ink, letterSpacing: 0 }}>
-              {ended ? (lang === "en" ? "Call ended" : "通话已切断") : (lang === "en" ? "Phone interview in progress" : "电话模式进行中")}
+              {lang === "en" ? "Phone interview in progress" : "电话模式进行中"}
             </div>
             <div style={{ marginTop: 8, fontSize: 13, color: T.ink3, lineHeight: 1.5 }}>
-              {ended
-                ? (lang === "en" ? "Restart when you are ready to continue this round." : "准备好后可重新开始本轮通话。")
-                : (lang === "en" ? "Listen and answer naturally. Captions are optional." : "像真实电话一样听题并回答；字幕可按需显示。")}
+              {lang === "en" ? "Listen and answer naturally. Captions are optional." : "像真实电话一样听题并回答；字幕可按需显示。"}
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16, width: "min(720px, 100%)", padding: "18px 22px", background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 4 }}>
-            <div className={!ended && active ? "ei-pulse" : ""} style={{ width: 34, height: 34, borderRadius: 17, background: ended ? T.ink4 : T.accent, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Icon name={ended ? "pause" : "mic"} size={15} />
+          <div data-testid="practice-phone-waveform" style={{ display: "flex", alignItems: "center", gap: 16, width: "min(720px, 100%)", padding: "18px 22px", background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 4 }}>
+            <div className={active ? "ei-pulse" : ""} style={{ width: 34, height: 34, borderRadius: 17, background: active ? T.accent : T.ink4, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Icon name={active ? "mic" : "pause"} size={15} />
             </div>
-            <PracticeWaveformBars T={T} bars={66} active={!ended && active} height={58} />
+            <PracticeWaveformBars T={T} bars={66} active={active} height={58} />
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-            <button onClick={onToggleCaptions} style={{ background: captionsShown ? T.accentSoft : "transparent", border: `1px solid ${captionsShown ? T.accent : T.rule}`, color: captionsShown ? T.accent : T.ink2, padding: "8px 12px", borderRadius: 2, fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
+            <button type="button" data-testid="practice-phone-captions-toggle" onClick={onToggleCaptions} style={{ background: captionsShown ? T.accentSoft : "transparent", border: `1px solid ${captionsShown ? T.accent : T.rule}`, color: captionsShown ? T.accent : T.ink2, padding: "8px 12px", borderRadius: 2, fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
               <Icon name="chat" size={13} /> {captionsShown ? (lang === "en" ? "Hide captions" : "隐藏字幕") : (lang === "en" ? "Show captions" : "显示字幕")}
             </button>
-            <button onClick={onHangUp} disabled={ended} style={{ background: "transparent", border: `1px solid ${ended ? T.rule : T.danger}`, color: ended ? T.ink4 : T.danger, padding: "8px 12px", borderRadius: 2, fontSize: 12.5, display: "flex", alignItems: "center", gap: 6, cursor: ended ? "default" : "pointer" }}>
-              <Icon name="x" size={13} /> {lang === "en" ? "Hang up" : "切断"}
-            </button>
-            <button onClick={onRestart} style={{ background: "transparent", border: `1px solid ${T.rule}`, color: T.ink2, padding: "8px 12px", borderRadius: 2, fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
-              <Icon name="replay" size={13} /> {lang === "en" ? "Restart" : "重新开始"}
+            <button
+              type="button"
+              data-testid="practice-phone-hangup"
+              aria-label={lang === "en" ? "Hang up and return to text mode" : "挂断并返回文本模式"}
+              title={lang === "en" ? "Hang up" : "挂断"}
+              onClick={onHangUp}
+              style={{ width: 56, height: 56, padding: 0, background: T.danger, border: "none", color: "#fff", borderRadius: 28, display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 18px rgba(179,64,43,0.24)" }}
+            >
+              <Icon name="phone" size={22} stroke={1.8} style={{ transform: "rotate(135deg)" }} />
             </button>
           </div>
         </div>
         {captionsShown && (
-          <div style={{ borderTop: `1px solid ${T.rule}`, background: T.bgCard, minHeight: 220, maxHeight: "42vh", display: "flex", flexDirection: "column" }}>
+          <div data-testid="practice-phone-captions" style={{ borderTop: `1px solid ${T.rule}`, background: T.bgCard, minHeight: 220, maxHeight: "42vh", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "12px 22px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div className="ei-label" style={{ color: T.ink3 }}>{lang === "en" ? "CAPTIONS" : "字幕"}</div>
               <Tag tone="muted" T={T}>{lang === "en" ? "same session transcript" : "同一会话记录"}</Tag>

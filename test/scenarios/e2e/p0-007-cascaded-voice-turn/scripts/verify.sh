@@ -7,12 +7,18 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 test -s "$LOG_FILE"
 
 grep -Fq "RUNNER frontend-vitest E2E.P0.007" "$LOG_FILE" || { echo "E2E.P0.007: frontend runner marker missing" >&2; exit 1; }
+grep -Fq "phoneVad.test.ts" "$LOG_FILE" || { echo "E2E.P0.007: VAD kernel test did not run" >&2; exit 1; }
+grep -Fq "phoneVadMonitor.test.ts" "$LOG_FILE" || { echo "E2E.P0.007: VAD monitor test did not run" >&2; exit 1; }
+grep -Fq "usePracticePhoneController.test.tsx" "$LOG_FILE" || { echo "E2E.P0.007: phone controller test did not run" >&2; exit 1; }
+grep -Fq "usePracticeVoiceTurn.lifecycle.test.tsx" "$LOG_FILE" || { echo "E2E.P0.007: voice lifecycle test did not run" >&2; exit 1; }
 grep -Fq "practiceVoiceTurn.test.tsx" "$LOG_FILE" || { echo "E2E.P0.007: practiceVoiceTurn.test.tsx did not run" >&2; exit 1; }
 grep -Fq "PracticeScreen.test.tsx" "$LOG_FILE" || { echo "E2E.P0.007: PracticeScreen.test.tsx did not run" >&2; exit 1; }
 grep -Eq 'Test Files +[0-9]+ passed \([0-9]+\)' "$LOG_FILE" || { echo "E2E.P0.007: no passing frontend test files found" >&2; exit 1; }
 
 grep -Fq "RUNNER backend-go-test E2E.P0.007" "$LOG_FILE" || { echo "E2E.P0.007: backend runner marker missing" >&2; exit 1; }
 grep -Fq "=== RUN   TestCreatePracticeVoiceTurnRunsIndependentSTTChatTTSProfiles" "$LOG_FILE" || { echo "E2E.P0.007: domain voice test did not run" >&2; exit 1; }
+grep -Fq "=== RUN   TestCreatePracticeVoiceTurnUsesPersistedLanguageAndRepairsWrongLanguageBeforeTTS" "$LOG_FILE" || { echo "E2E.P0.007: session-language voice test did not run" >&2; exit 1; }
+grep -Fq "=== RUN   TestCreatePracticeVoiceTurnUsesServerPlanStatusAndStoredCommittedContext" "$LOG_FILE" || { echo "E2E.P0.007: server-owned plan/status/context test did not run" >&2; exit 1; }
 grep -Fq "=== RUN   TestSQLRepositoryRecordPracticeVoiceTurnWritesBusinessEventWithoutAudioBytes" "$LOG_FILE" || { echo "E2E.P0.007: store voice test did not run" >&2; exit 1; }
 grep -Fq "=== RUN   TestCreatePracticeVoiceTurnReturns200AndMapsRequest" "$LOG_FILE" || { echo "E2E.P0.007: handler voice test did not run" >&2; exit 1; }
 grep -Fq "=== RUN   TestE2EP0007PracticeVoiceTurnHTTPRoute" "$LOG_FILE" || { echo "E2E.P0.007: HTTP route test did not run" >&2; exit 1; }

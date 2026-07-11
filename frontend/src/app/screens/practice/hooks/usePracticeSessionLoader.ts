@@ -16,6 +16,14 @@ export interface UsePracticeSessionLoaderResult {
   data: PracticeSession | null;
   error: Error | null;
   refresh: () => void;
+  adopt: (session: PracticeSession) => boolean;
+}
+
+interface PracticeSessionLoaderSnapshot {
+  sessionId: string;
+  state: PracticeSessionLoaderState;
+  data: PracticeSession | null;
+  error: Error | null;
 }
 
 /**
@@ -47,9 +55,12 @@ export function usePracticeSessionLoader(
       ? "loading"
       : "idle";
 
-  const [state, setState] = useState<PracticeSessionLoaderState>(initialState);
-  const [data, setData] = useState<PracticeSession | null>(null);
-  const [error, setError] = useState<Error | null>(null);
+  const [snapshot, setSnapshot] = useState<PracticeSessionLoaderSnapshot>(() => ({
+    sessionId,
+    state: initialState,
+    data: null,
+    error: null,
+  }));
   const [reloadSeq, setReloadSeq] = useState(0);
   const requestSeqRef = useRef(0);
 
@@ -57,48 +68,76 @@ export function usePracticeSessionLoader(
     setReloadSeq((value) => value + 1);
   }, []);
 
+  const adopt = useCallback(
+    (session: PracticeSession): boolean => {
+      if (!sessionId || session.id !== sessionId) return false;
+      setSnapshot({
+        sessionId,
+        state: "data",
+        data: session,
+        error: null,
+      });
+      dispatch({
+        type: "MERGE_SESSION",
+        session: session as unknown as { id: string; [key: string]: unknown },
+      });
+      return true;
+    },
+    [dispatch, sessionId],
+  );
+
   useEffect(() => {
     if (!sessionId) {
-      setState("sessionLost");
-      setData(null);
-      setError(null);
+      setSnapshot({
+        sessionId: "",
+        state: "sessionLost",
+        data: null,
+        error: null,
+      });
       return;
     }
     if (!client) {
-      setState("idle");
+      setSnapshot({ sessionId, state: "idle", data: null, error: null });
       return;
     }
 
     let active = true;
     const seq = requestSeqRef.current + 1;
     requestSeqRef.current = seq;
-    setState("loading");
-    setError(null);
+    setSnapshot((previous) => ({
+      sessionId,
+      state: "loading",
+      data: previous.sessionId === sessionId ? previous.data : null,
+      error: null,
+    }));
 
     client
       .getPracticeSession(sessionId)
       .then((session) => {
         if (!active || requestSeqRef.current !== seq) return;
-        setData(session);
-        setError(null);
-        setState("data");
-        dispatch({
-          type: "MERGE_SESSION",
-          session: session as unknown as { id: string; [key: string]: unknown },
+        if (adopt(session)) return;
+        setSnapshot({
+          sessionId,
+          state: "error",
+          data: null,
+          error: new Error("practice session response id mismatch"),
         });
       })
       .catch((err: unknown) => {
         if (!active || requestSeqRef.current !== seq) return;
         const wrapped = err instanceof Error ? err : new Error(String(err));
-        setError(wrapped);
-        setData(null);
-        setState(isHttpStatus(wrapped, 404) ? "sessionLost" : "error");
+        setSnapshot({
+          sessionId,
+          state: isHttpStatus(wrapped, 404) ? "sessionLost" : "error",
+          data: null,
+          error: wrapped,
+        });
       });
 
     return () => {
       active = false;
     };
-  }, [client, sessionId, dispatch, reloadSeq]);
+  }, [adopt, client, sessionId, reloadSeq]);
 
   useEffect(() => {
     if (!sessionId || !client) return;
@@ -121,7 +160,23 @@ export function usePracticeSessionLoader(
     };
   }, [sessionId, client, refresh]);
 
-  return { state, data, error, refresh };
+  const currentSnapshot: PracticeSessionLoaderSnapshot =
+    snapshot.sessionId === sessionId
+      ? snapshot
+      : {
+          sessionId,
+          state: initialState,
+          data: null,
+          error: null,
+        };
+
+  return {
+    state: currentSnapshot.state,
+    data: currentSnapshot.data,
+    error: currentSnapshot.error,
+    refresh,
+    adopt,
+  };
 }
 
 function isHttpStatus(error: Error, status: number): boolean {

@@ -1,5 +1,7 @@
 import { type FC, type ReactNode } from "react";
 
+import { PhoneIcon } from "./PhoneIcon";
+
 export interface TopBarProps {
   company: string;
   title: string;
@@ -13,11 +15,10 @@ export interface TopBarProps {
   resumeLabel: string;
   onTogglePause: () => void;
   activeMode: "text" | "phone";
-  onSwitchMode: (mode: "text" | "phone") => void;
+  onTogglePhone: () => void;
   interviewerLabel: string;
-  textModeLabel: string;
-  phoneModeLabel: string;
-  phoneLiveLabel: string;
+  phoneToggleLabel: string;
+  phoneToggleTitle: string;
   finishCta: ReactNode;
 }
 
@@ -38,11 +39,10 @@ export const TopBar: FC<TopBarProps> = ({
   resumeLabel,
   onTogglePause,
   activeMode,
-  onSwitchMode,
+  onTogglePhone,
   interviewerLabel,
-  textModeLabel,
-  phoneModeLabel,
-  phoneLiveLabel,
+  phoneToggleLabel,
+  phoneToggleTitle,
   finishCta,
 }) => {
   return (
@@ -165,82 +165,39 @@ export const TopBar: FC<TopBarProps> = ({
             background: "var(--ei-color-rule-strong)",
           }}
         />
-        <div
-          data-testid="practice-topbar-mode-segment"
+        <button
+          data-testid="practice-topbar-phone-toggle"
+          type="button"
+          aria-pressed={activeMode === "phone"}
+          aria-label={phoneToggleLabel}
+          title={phoneToggleTitle}
+          onClick={onTogglePhone}
           style={{
-            display: "flex",
-            background: "var(--ei-color-bg-soft)",
-            border: "1px solid var(--ei-color-rule-strong)",
-            borderRadius: 3,
-            padding: 2,
-            gap: 2,
-          }}
-        >
-          {([
-            ["text", textModeLabel],
-            ["phone", phoneModeLabel],
-          ] as const).map(([mode, label]) => {
-            const on = activeMode === mode;
-            return (
-              <button
-                key={mode}
-                data-testid={`practice-topbar-mode-${mode}`}
-                type="button"
-                aria-pressed={on}
-                onClick={() => onSwitchMode(mode)}
-                style={{
-                  background: on ? "var(--ei-color-bg-card)" : "transparent",
-                  border: `1px solid ${
-                    on ? "var(--ei-color-rule-strong)" : "transparent"
-                  }`,
-                  color: on
-                    ? "var(--ei-color-fg-primary)"
-                    : "var(--ei-color-fg-tertiary)",
-                  padding: "4px 9px",
-                  borderRadius: 2,
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: on ? 500 : 400,
-                  fontFamily: "var(--ei-font-sans)",
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-        <div
-          data-testid="practice-topbar-live"
-          style={{
-            display: "flex",
-            gap: 5,
+            width: 34,
+            height: 34,
+            padding: 0,
+            borderRadius: 17,
+            border: `1px solid ${
+              activeMode === "phone"
+                ? "var(--ei-color-accent)"
+                : "var(--ei-color-rule-strong)"
+            }`,
+            background:
+              activeMode === "phone"
+                ? "var(--ei-color-accent-soft)"
+                : "transparent",
+            color:
+              activeMode === "phone"
+                ? "var(--ei-color-accent)"
+                : "var(--ei-color-fg-secondary)",
+            display: "inline-flex",
             alignItems: "center",
-            padding: "4px 8px",
-            background: "var(--ei-color-accent-soft)",
-            border: "1px solid var(--ei-color-accent)",
-            borderRadius: 2,
-            visibility: activeMode === "phone" ? "visible" : "hidden",
+            justifyContent: "center",
+            cursor: "pointer",
           }}
         >
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: 3,
-              background: "var(--ei-color-accent)",
-              display: "inline-block",
-            }}
-          />
-          <span
-            style={{
-              fontSize: 11,
-              color: "var(--ei-color-accent)",
-              fontFamily: "var(--ei-font-mono)",
-            }}
-          >
-            {phoneLiveLabel}
-          </span>
-        </div>
+          <PhoneIcon size={15} />
+        </button>
         <div
           style={{
             height: 18,

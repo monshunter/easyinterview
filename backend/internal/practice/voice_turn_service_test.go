@@ -33,7 +33,13 @@ func TestCreatePracticeVoiceTurnRunsIndependentSTTChatTTSProfiles(t *testing.T) 
 		ttsMeta:       aiclient.AICallMeta{Provider: "minimax-tts", ModelID: "tts-model", ModelProfileName: "practice.voice.tts.default", LatencyMs: 180},
 	}
 	service := NewService(ServiceOptions{
-		Store: &recordingPlanStore{getSessionRecord: session},
+		Store: &recordingPlanStore{
+			getSessionRecord: session,
+			getRecord: PlanRecord{
+				ID: session.PlanID, TargetJobID: session.TargetJobID,
+				Goal: sharedtypes.PracticeGoalBaseline, Mode: sharedtypes.PracticeModeAssisted, QuestionBudget: 3,
+			},
+		},
 		Registry: &voiceTurnPromptResolver{resolutions: map[string]registry.PromptResolution{
 			"practice.voice.stt": {
 				FeatureKey:          "practice.voice.stt",
@@ -53,7 +59,7 @@ func TestCreatePracticeVoiceTurnRunsIndependentSTTChatTTSProfiles(t *testing.T) 
 				DataSourceVersion:   "registry.v1",
 				SystemMessage:       "Generate strict JSON follow-up questions.",
 				OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
-				UserMessageTemplate: "Generate a concise follow-up.",
+				UserMessageTemplate: questionTestResolution().UserMessageTemplate,
 			},
 			"practice.voice.tts": {
 				FeatureKey:          "practice.voice.tts",
@@ -156,6 +162,271 @@ func TestCreatePracticeVoiceTurnStopsWhenChatFailsBeforeTTS(t *testing.T) {
 	}
 }
 
+func TestCreatePracticeVoiceTurnUsesPersistedLanguageAndRepairsWrongLanguageBeforeTTS(t *testing.T) {
+	ai := defaultVoiceTurnAIClient(t)
+	ai.chatContents = []string{
+		firstQuestionJSON(t, "How did you validate the split?", "voice.follow_up"),
+		firstQuestionJSON(t, "你如何验证这次拆分的结果？", "voice.follow_up"),
+	}
+	store := &recordingPlanStore{getSessionRecord: voiceTurnSession()}
+	service := newVoiceTurnTestServiceWithStore(t, store, ai)
+	request := validVoiceTurnRequest()
+	request.Language = "en-US"
+
+	result, err := service.CreatePracticeVoiceTurn(context.Background(), request)
+	if err != nil {
+		t.Fatalf("CreatePracticeVoiceTurn: %v", err)
+	}
+	if result.AssistantTextDraft != "你如何验证这次拆分的结果？" {
+		t.Fatalf("voice result did not use repaired session-language output: %+v", result)
+	}
+	if got, want := ai.calls, []string{
+		"transcribe:practice.voice.stt.default",
+		"complete:practice.followup.default",
+		"complete:practice.followup.default",
+		"synthesize:practice.voice.tts.default",
+	}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("voice repair call order drift:\n got: %#v\nwant: %#v", got, want)
+	}
+	if len(ai.completePayloads) != 2 || ai.transcribeInput.Language != "zh-CN" || ai.synthesisInput.Language != "zh-CN" {
+		t.Fatalf("persisted session language did not win: stt=%q chat=%+v tts=%q", ai.transcribeInput.Language, ai.completePayloads, ai.synthesisInput.Language)
+	}
+	initial := ai.completePayloads[0].Messages[len(ai.completePayloads[0].Messages)-1].Content
+	repair := ai.completePayloads[1].Messages[len(ai.completePayloads[1].Messages)-1].Content
+	if !strings.Contains(initial, "attempt=initial") || !strings.Contains(repair, "attempt=repair") ||
+		!strings.Contains(initial, "language=zh-CN") || !strings.Contains(repair, "language=zh-CN") {
+		t.Fatalf("voice repair markers drift: initial=%q repair=%q", initial, repair)
+	}
+}
+
+func TestCreatePracticeVoiceTurnUsesServerPlanStatusAndStoredCommittedContext(t *testing.T) {
+	ai := defaultVoiceTurnAIClient(t)
+	session := voiceTurnSession()
+	session.CurrentTurn.Status = string(TurnStatusFollowUpRequested)
+	store := &recordingPlanStore{
+		getSessionRecord: session,
+		getRecord: PlanRecord{
+			ID:             session.PlanID,
+			TargetJobID:    session.TargetJobID,
+			Goal:           sharedtypes.PracticeGoalRetryCurrentRound,
+			Mode:           sharedtypes.PracticeModeStrict,
+			QuestionBudget: 3,
+		},
+		committedContext: CommittedVoiceContext{
+			HasCommittedContext:    true,
+			CommittedAssistantText: "stored committed assistant context",
+		},
+	}
+	service := newVoiceTurnTestServiceWithStore(t, store, ai)
+	request := validVoiceTurnRequest()
+	request.PracticeMode = sharedtypes.PracticeModeAssisted
+	request.CommittedContext = CommittedVoiceContext{
+		HasCommittedContext:    true,
+		CommittedAssistantText: "forged request context",
+	}
+
+	if _, err := service.CreatePracticeVoiceTurn(context.Background(), request); err != nil {
+		t.Fatalf("CreatePracticeVoiceTurn: %v", err)
+	}
+	userMessage := ai.completePayload.Messages[len(ai.completePayload.Messages)-1].Content
+	for _, want := range []string{
+		"goal=retry_current_round",
+		"mode=strict",
+		"status=follow_up_requested",
+		"stored committed assistant context",
+	} {
+		if !strings.Contains(userMessage, want) {
+			t.Fatalf("server-owned voice context missing %q: %s", want, userMessage)
+		}
+	}
+	if strings.Contains(userMessage, "forged request context") {
+		t.Fatalf("request committed context overrode store: %s", userMessage)
+	}
+	if !store.loadCommittedContextCalled || store.getPlanID != session.PlanID || store.getUserID != "user-1" {
+		t.Fatalf("server context loads drifted: plan=%q user=%q committed=%v", store.getPlanID, store.getUserID, store.loadCommittedContextCalled)
+	}
+}
+
+func TestCreatePracticeVoiceTurnPersistsGeneratedFollowUpOnSameTurn(t *testing.T) {
+	ai := defaultVoiceTurnAIClient(t)
+	store := &recordingPlanStore{getSessionRecord: voiceTurnSession()}
+	service := newVoiceTurnTestServiceWithStore(t, store, ai)
+
+	result, err := service.CreatePracticeVoiceTurn(context.Background(), validVoiceTurnRequest())
+	if err != nil {
+		t.Fatalf("CreatePracticeVoiceTurn: %v", err)
+	}
+	if got := store.voiceTurn.Outcome.AssistantAction.Type; got != assistantActionAskFollowUp {
+		t.Fatalf("voice first answer action = %q, want %q", got, assistantActionAskFollowUp)
+	}
+	if next := store.voiceTurn.Outcome.NextTurn; next == nil ||
+		next.ID != "turn-1" ||
+		next.Status != string(TurnStatusFollowUpRequested) ||
+		next.FollowUpCount != 1 {
+		t.Fatalf("voice first answer did not reuse same-turn transition: %+v", next)
+	}
+	if action := store.voiceTurn.Outcome.AssistantAction; action.QuestionText != result.AssistantTextDraft || action.QuestionIntent != "voice.follow_up" {
+		t.Fatalf("generated follow-up missing from server-owned outcome: %+v", action)
+	}
+	if store.voiceTurn.NextQuestion != nil || store.voiceTurn.Outcome.OutboxRecord != nil {
+		t.Fatalf("first answer must not create a new turn/outbox: next=%+v outbox=%+v", store.voiceTurn.NextQuestion, store.voiceTurn.Outcome.OutboxRecord)
+	}
+	if result.Session.CurrentTurn == nil ||
+		result.Session.CurrentTurn.ID != "turn-1" ||
+		result.Session.CurrentTurn.QuestionText != result.AssistantTextDraft ||
+		result.Session.CurrentTurn.QuestionIntent != "voice.follow_up" ||
+		result.Session.CurrentTurn.FollowUpCount != 1 {
+		t.Fatalf("result session did not expose persisted same-turn follow-up: %+v", result.Session.CurrentTurn)
+	}
+}
+
+func TestCreatePracticeVoiceTurnPersistsAnswerObservationSummary(t *testing.T) {
+	ai := defaultVoiceTurnAIClient(t)
+	ai.observationContent = `{"cue":"","answerSummary":"候选人说明了拆分目标、验证方法和回滚边界。"}`
+	session := voiceTurnSession()
+	store := &recordingPlanStore{
+		getSessionRecord: session,
+		getRecord: PlanRecord{
+			ID: session.PlanID, TargetJobID: session.TargetJobID,
+			Goal: sharedtypes.PracticeGoalBaseline, Mode: sharedtypes.PracticeModeAssisted, QuestionBudget: 3,
+		},
+	}
+	resolutions := voiceTurnTestResolutions()
+	resolutions[hintFeatureKey] = registry.PromptResolution{
+		FeatureKey:          hintFeatureKey,
+		PromptVersion:       "observe-prompt-v1",
+		RubricVersion:       "not_applicable",
+		ModelProfileName:    "practice.turn.observe.default",
+		FeatureFlag:         "none",
+		DataSourceVersion:   "registry.v1",
+		UserMessageTemplate: "question={{question}} answer={{partial_answer}} language={{language}}",
+	}
+	service := NewService(ServiceOptions{
+		Store:    store,
+		Registry: &voiceTurnPromptResolver{resolutions: resolutions},
+		AI:       ai,
+		NewID:    sequenceIDs("voice-turn-1", "tts-chunk-1", "voice-event-1"),
+	})
+
+	_, err := service.CreatePracticeVoiceTurn(context.Background(), validVoiceTurnRequest())
+	if err != nil {
+		t.Fatalf("CreatePracticeVoiceTurn: %v", err)
+	}
+	if got := store.voiceTurn.Outcome.AnswerSummary; got != "候选人说明了拆分目标、验证方法和回滚边界。" {
+		t.Fatalf("voice answer observation summary was not persisted in the state-machine outcome: %q", got)
+	}
+	if got, want := ai.calls, []string{
+		"transcribe:practice.voice.stt.default",
+		"complete:practice.turn.observe.default",
+		"complete:practice.followup.default",
+		"synthesize:practice.voice.tts.default",
+	}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("voice answer observation call order drift:\n got: %#v\nwant: %#v", got, want)
+	}
+}
+
+func TestCreatePracticeVoiceTurnAfterFollowUpCreatesNextQuestionAndCompletesOldTurn(t *testing.T) {
+	session := voiceTurnSession()
+	session.CurrentTurn.Status = string(TurnStatusFollowUpRequested)
+	session.CurrentTurn.FollowUpCount = 1
+	session.CurrentTurn.QuestionText = "请说明你如何验证这次拆分的结果。"
+	session.CurrentTurn.QuestionIntent = "evidence.follow_up"
+	ai := defaultVoiceTurnAIClient(t)
+	ai.chatContent = firstQuestionJSON(t, "请再介绍一个你主导的跨团队系统取舍案例。", "system_design.tradeoff")
+	store := &recordingPlanStore{
+		getSessionRecord: session,
+		getRecord: PlanRecord{
+			ID: session.PlanID, TargetJobID: session.TargetJobID,
+			Goal: sharedtypes.PracticeGoalBaseline, Mode: sharedtypes.PracticeModeAssisted, QuestionBudget: 3,
+		},
+	}
+	service := newVoiceTurnTestServiceWithStore(t, store, ai)
+
+	result, err := service.CreatePracticeVoiceTurn(context.Background(), validVoiceTurnRequest())
+	if err != nil {
+		t.Fatalf("CreatePracticeVoiceTurn: %v", err)
+	}
+	if got := store.voiceTurn.Outcome.AssistantAction.Type; got != assistantActionAskQuestion {
+		t.Fatalf("voice second answer action = %q, want %q", got, assistantActionAskQuestion)
+	}
+	if old := store.voiceTurn.Outcome.NextTurn; old == nil || old.ID != "turn-1" || old.Status != string(TurnStatusAssessed) || old.FollowUpCount != 1 {
+		t.Fatalf("voice second answer did not assess old turn: %+v", old)
+	}
+	next := store.voiceTurn.NextQuestion
+	if next == nil || next.ID == "turn-1" || next.TurnIndex != 2 ||
+		next.QuestionText != result.AssistantTextDraft || next.QuestionIntent != "system_design.tradeoff" ||
+		next.Status != string(TurnStatusAsked) {
+		t.Fatalf("voice second answer did not create generated next turn: %+v", next)
+	}
+	if store.voiceTurn.Outcome.OutboxRecord == nil || store.voiceTurn.OutboxEventID == "" {
+		t.Fatalf("voice second answer lost practice-turn-completed outbox: %+v", store.voiceTurn)
+	}
+	if result.Session.TurnCount != 2 || result.Session.CurrentTurn == nil || result.Session.CurrentTurn.ID != next.ID {
+		t.Fatalf("voice second answer did not advance session current turn: %+v", result.Session)
+	}
+	prompt := ai.completePayload.Messages[len(ai.completePayload.Messages)-1].Content
+	if !strings.Contains(prompt, "kind=next_question") || !strings.Contains(prompt, "question=请说明你如何验证这次拆分的结果。") {
+		t.Fatalf("voice next-question prompt did not use persisted follow-up: %s", prompt)
+	}
+}
+
+func TestCreatePracticeVoiceTurnAtQuestionBudgetCompletesWithoutQuestionOrTTS(t *testing.T) {
+	session := voiceTurnSession()
+	session.CurrentTurn.Status = string(TurnStatusFollowUpRequested)
+	session.CurrentTurn.FollowUpCount = 1
+	store := &recordingPlanStore{
+		getSessionRecord: session,
+		getRecord: PlanRecord{
+			ID: session.PlanID, TargetJobID: session.TargetJobID,
+			Goal: sharedtypes.PracticeGoalBaseline, Mode: sharedtypes.PracticeModeAssisted, QuestionBudget: 1,
+		},
+	}
+	ai := defaultVoiceTurnAIClient(t)
+	service := newVoiceTurnTestServiceWithStore(t, store, ai)
+
+	result, err := service.CreatePracticeVoiceTurn(context.Background(), validVoiceTurnRequest())
+	if err != nil {
+		t.Fatalf("CreatePracticeVoiceTurn: %v", err)
+	}
+	if got, want := ai.calls, []string{"transcribe:practice.voice.stt.default"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("budget completion must not generate a canned question or TTS:\n got: %#v\nwant: %#v", got, want)
+	}
+	if result.AssistantTextDraft != "" || len(result.TTSChunks) != 0 || result.TTSError != nil {
+		t.Fatalf("budget completion must return no assistant question/audio: %+v", result)
+	}
+	if result.Session.Status != sharedtypes.SessionStatusCompleted ||
+		store.voiceTurn.Outcome.AssistantAction.Type != assistantActionSessionCompleted ||
+		store.voiceTurn.NextQuestion != nil ||
+		store.voiceTurn.Outcome.OutboxRecord == nil {
+		t.Fatalf("budget completion did not reuse text transition: result=%+v store=%+v", result, store.voiceTurn)
+	}
+}
+
+func TestCreatePracticeVoiceTurnSecondLanguageMismatchSkipsTTSAndPersistence(t *testing.T) {
+	ai := defaultVoiceTurnAIClient(t)
+	ai.chatContents = []string{
+		firstQuestionJSON(t, "How did you validate the split?", "voice.follow_up"),
+		firstQuestionJSON(t, "What tradeoff did you make?", "voice.tradeoff"),
+	}
+	store := &recordingPlanStore{getSessionRecord: voiceTurnSession()}
+	service := newVoiceTurnTestServiceWithStore(t, store, ai)
+
+	_, err := service.CreatePracticeVoiceTurn(context.Background(), validVoiceTurnRequest())
+	if code := serviceErrorCode(t, err); code != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("expected AI_OUTPUT_INVALID, got code=%s err=%v", code, err)
+	}
+	if got, want := ai.calls, []string{
+		"transcribe:practice.voice.stt.default",
+		"complete:practice.followup.default",
+		"complete:practice.followup.default",
+	}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("double-invalid voice turn must stop before TTS:\n got: %#v\nwant: %#v", got, want)
+	}
+	if store.voiceTurn.VoiceTurnID != "" {
+		t.Fatalf("double-invalid voice turn must not persist a result: %+v", store.voiceTurn)
+	}
+}
+
 func TestCreatePracticeVoiceTurnReturnsTranscriptAndAssistantTextWhenTTSFails(t *testing.T) {
 	ai := defaultVoiceTurnAIClient(t)
 	ai.ttsErr = sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "tts timeout", true)
@@ -185,10 +456,42 @@ func TestCreatePracticeVoiceTurnReturnsTranscriptAndAssistantTextWhenTTSFails(t 
 	}
 }
 
+func TestCreatePracticeVoiceTurnP0ProducerEmitsZeroOrOneTTSChunk(t *testing.T) {
+	tests := []struct {
+		name       string
+		configure  func(*voiceTurnAIClient)
+		wantChunks int
+	}{
+		{name: "successful synthesis emits exactly one chunk", wantChunks: 1},
+		{
+			name: "tts failure emits no chunks",
+			configure: func(ai *voiceTurnAIClient) {
+				ai.ttsErr = sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "tts timeout", true)
+			},
+			wantChunks: 0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ai := defaultVoiceTurnAIClient(t)
+			if tt.configure != nil {
+				tt.configure(ai)
+			}
+			result, err := newVoiceTurnTestService(t, ai).CreatePracticeVoiceTurn(context.Background(), validVoiceTurnRequest())
+			if err != nil {
+				t.Fatalf("CreatePracticeVoiceTurn: %v", err)
+			}
+			if got := len(result.TTSChunks); got != tt.wantChunks || got > 1 {
+				t.Fatalf("P0 voice producer chunk count = %d, want %d and never more than one", got, tt.wantChunks)
+			}
+		})
+	}
+}
+
 func TestCreatePracticeVoiceTurnPersistsBusinessTextOutsideAIMetadata(t *testing.T) {
 	ai := defaultVoiceTurnAIClient(t)
 	ai.transcription = "candidate transcript privacy-token"
-	ai.chatContent = firstQuestionJSON(t, "assistant committed privacy-token", "voice.follow_up")
+	ai.chatContent = firstQuestionJSON(t, "请结合候选人的项目背景继续追问设计目标、执行过程、验证方式、风险取舍、结果指标和回滚方案，并把 assistant committed privacy-token 作为隐私测试标记保留在问题中。", "voice.follow_up")
 	ai.synthesis = []byte("tts-audio-privacy-token")
 	store := &recordingPlanStore{getSessionRecord: voiceTurnSession()}
 	service := newVoiceTurnTestServiceWithStore(t, store, ai)
@@ -297,43 +600,35 @@ func TestCreatePracticeVoiceTurnLoadsCommittedContextFromStoredPlaybackEvents(t 
 	}
 }
 
-func TestVoiceFollowUpPayloadInjectsCommittedContextWithoutUnplayedDraft(t *testing.T) {
-	resolution := registry.PromptResolution{
-		FeatureKey:          followUpFeatureKey,
-		PromptVersion:       "chat-prompt-v1",
-		RubricVersion:       "rubric-v1",
-		ModelProfileName:    "practice.followup.default",
-		FeatureFlag:         "none",
-		DataSourceVersion:   "registry.v1",
-		OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
-		UserMessageTemplate: "Generate a concise follow-up for {{transcript}}.",
+func TestVoiceQuestionTemplateInjectsCommittedContextWithoutUnplayedDraft(t *testing.T) {
+	committed := CommittedVoiceContext{
+		VoiceTurnID:            "voice-turn-previous",
+		HasCommittedContext:    true,
+		CommittedAssistantText: "played assistant content",
+		CommittedTextLength:    24,
+		Interrupted:            true,
+		InterruptionNote:       "Assistant playback was interrupted at 1480ms.",
 	}
-	payload := voiceFollowUpPayload(
-		resolution,
-		"user-1",
-		voiceTurnSession(),
-		"zh-CN",
-		sharedtypes.PracticeModeAssisted,
-		"new user answer",
-		CommittedVoiceContext{
-			VoiceTurnID:            "voice-turn-previous",
-			HasCommittedContext:    true,
-			CommittedAssistantText: "played assistant content",
-			CommittedTextLength:    24,
-			Interrupted:            true,
-			InterruptionNote:       "Assistant playback was interrupted at 1480ms.",
-		},
-	)
-	userMessage := payload.Messages[len(payload.Messages)-1].Content
+	userMessage, err := renderQuestionTemplate(questionTestResolution().UserMessageTemplate, questionTemplateData{
+		Language:         "zh-CN",
+		PracticeMode:     string(sharedtypes.PracticeModeAssisted),
+		TargetJobID:      "target-1",
+		GenerationKind:   questionGenerationFollowUp,
+		AttemptMode:      questionAttemptInitial,
+		LastQuestion:     "请介绍一次系统设计经历。",
+		QuestionIntent:   "system_design",
+		LastAnswer:       "new user answer",
+		CommittedContext: renderCommittedVoiceContext(committed),
+	})
+	if err != nil {
+		t.Fatalf("renderQuestionTemplate: %v", err)
+	}
 	if !strings.Contains(userMessage, "played assistant content") ||
 		!strings.Contains(userMessage, "Assistant playback was interrupted at 1480ms.") {
 		t.Fatalf("committed context/interruption note missing from prompt: %s", userMessage)
 	}
 	if strings.Contains(userMessage, "unplayed assistant draft") {
 		t.Fatalf("unplayed assistant draft leaked into prompt: %s", userMessage)
-	}
-	if len(payload.Metadata.OutputSchema) == 0 {
-		t.Fatalf("voice follow-up payload OutputSchema must be populated")
 	}
 }
 
@@ -373,42 +668,56 @@ func newVoiceTurnTestService(t *testing.T, ai *voiceTurnAIClient) *Service {
 
 func newVoiceTurnTestServiceWithStore(t *testing.T, store *recordingPlanStore, ai *voiceTurnAIClient) *Service {
 	t.Helper()
+	if store.getRecord.ID == "" {
+		session := store.getSessionRecord
+		store.getRecord = PlanRecord{
+			ID:             session.PlanID,
+			TargetJobID:    session.TargetJobID,
+			Goal:           sharedtypes.PracticeGoalBaseline,
+			Mode:           sharedtypes.PracticeModeAssisted,
+			QuestionBudget: 3,
+		}
+	}
 	return NewService(ServiceOptions{
-		Store: store,
-		Registry: &voiceTurnPromptResolver{resolutions: map[string]registry.PromptResolution{
-			"practice.voice.stt": {
-				FeatureKey:          "practice.voice.stt",
-				PromptVersion:       "stt-prompt-v1",
-				RubricVersion:       "not_applicable",
-				ModelProfileName:    "practice.voice.stt.default",
-				FeatureFlag:         "none",
-				DataSourceVersion:   "registry.v1",
-				UserMessageTemplate: "Transcribe the candidate answer.",
-			},
-			"practice.session.follow_up": {
-				FeatureKey:          "practice.session.follow_up",
-				PromptVersion:       "chat-prompt-v1",
-				RubricVersion:       "rubric-v1",
-				ModelProfileName:    "practice.followup.default",
-				FeatureFlag:         "none",
-				DataSourceVersion:   "registry.v1",
-				SystemMessage:       "Generate strict JSON follow-up questions.",
-				OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
-				UserMessageTemplate: "Generate a concise follow-up.",
-			},
-			"practice.voice.tts": {
-				FeatureKey:          "practice.voice.tts",
-				PromptVersion:       "tts-prompt-v1",
-				RubricVersion:       "not_applicable",
-				ModelProfileName:    "practice.voice.tts.default",
-				FeatureFlag:         "none",
-				DataSourceVersion:   "registry.v1",
-				UserMessageTemplate: "Speak the assistant reply.",
-			},
-		}},
-		AI:    ai,
-		NewID: sequenceIDs("voice-turn-1", "tts-chunk-1", "voice-event-1"),
+		Store:    store,
+		Registry: &voiceTurnPromptResolver{resolutions: voiceTurnTestResolutions()},
+		AI:       ai,
+		NewID:    sequenceIDs("voice-turn-1", "tts-chunk-1", "voice-event-1"),
 	})
+}
+
+func voiceTurnTestResolutions() map[string]registry.PromptResolution {
+	return map[string]registry.PromptResolution{
+		"practice.voice.stt": {
+			FeatureKey:          "practice.voice.stt",
+			PromptVersion:       "stt-prompt-v1",
+			RubricVersion:       "not_applicable",
+			ModelProfileName:    "practice.voice.stt.default",
+			FeatureFlag:         "none",
+			DataSourceVersion:   "registry.v1",
+			UserMessageTemplate: "Transcribe the candidate answer.",
+		},
+		"practice.session.follow_up": {
+			FeatureKey:          "practice.session.follow_up",
+			PromptVersion:       "chat-prompt-v1",
+			RubricVersion:       "rubric-v1",
+			ModelProfileName:    "practice.followup.default",
+			FeatureFlag:         "none",
+			DataSourceVersion:   "registry.v1",
+			SystemMessage:       "Generate strict JSON follow-up questions.",
+			OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
+			UserMessageTemplate: questionTestResolution().UserMessageTemplate,
+		},
+		"practice.voice.tts": {
+			FeatureKey:          "practice.voice.tts",
+			PromptVersion:       "tts-prompt-v1",
+			RubricVersion:       "not_applicable",
+			ModelProfileName:    "practice.voice.tts.default",
+			FeatureFlag:         "none",
+			DataSourceVersion:   "registry.v1",
+			UserMessageTemplate: "Speak the assistant reply.",
+		},
+	}
 }
 
 func voiceTurnSession() SessionRecord {
@@ -419,7 +728,7 @@ func voiceTurnSession() SessionRecord {
 		Status:      sharedtypes.SessionStatusRunning,
 		Language:    "zh-CN",
 		TurnCount:   1,
-		CurrentTurn: &TurnRecord{ID: "turn-1", TurnIndex: 1, QuestionText: "请介绍一次系统设计经历。", Status: string(TurnStatusAsked)},
+		CurrentTurn: &TurnRecord{ID: "turn-1", TurnIndex: 1, QuestionText: "请介绍一次系统设计经历。", QuestionIntent: "system_design", Status: string(TurnStatusAsked)},
 	}
 }
 
@@ -458,29 +767,49 @@ func (r *voiceTurnPromptResolver) ResolveActive(ctx context.Context, featureKey,
 type voiceTurnAIClient struct {
 	calls []string
 
-	transcription string
-	chatContent   string
-	synthesis     []byte
+	transcription      string
+	chatContent        string
+	chatContents       []string
+	observationContent string
+	synthesis          []byte
 
 	sttMeta  aiclient.AICallMeta
 	chatMeta aiclient.AICallMeta
 	ttsMeta  aiclient.AICallMeta
 	sttErr   error
 	chatErr  error
+	chatErrs []error
 	ttsErr   error
 
-	transcribeInput aiclient.TranscriptionInput
-	completePayload aiclient.CompletePayload
-	synthesisInput  aiclient.SynthesisInput
+	transcribeInput  aiclient.TranscriptionInput
+	completePayload  aiclient.CompletePayload
+	completePayloads []aiclient.CompletePayload
+	synthesisInput   aiclient.SynthesisInput
 }
 
 func (c *voiceTurnAIClient) Complete(ctx context.Context, profileName string, payload aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
 	c.calls = append(c.calls, "complete:"+profileName)
 	c.completePayload = payload
+	c.completePayloads = append(c.completePayloads, payload)
+	if profileName == "practice.turn.observe.default" {
+		return aiclient.CompleteResponse{Content: c.observationContent}, c.chatMeta, nil
+	}
+	if len(c.chatErrs) > 0 {
+		err := c.chatErrs[0]
+		c.chatErrs = c.chatErrs[1:]
+		if err != nil {
+			return aiclient.CompleteResponse{}, c.chatMeta, err
+		}
+	}
 	if c.chatErr != nil {
 		return aiclient.CompleteResponse{}, c.chatMeta, c.chatErr
 	}
-	return aiclient.CompleteResponse{Content: c.chatContent}, c.chatMeta, nil
+	content := c.chatContent
+	if len(c.chatContents) > 0 {
+		content = c.chatContents[0]
+		c.chatContents = c.chatContents[1:]
+	}
+	return aiclient.CompleteResponse{Content: content}, c.chatMeta, nil
 }
 
 func (c *voiceTurnAIClient) Transcribe(ctx context.Context, profileName string, payload aiclient.TranscriptionInput) (aiclient.TranscriptionResponse, aiclient.AICallMeta, error) {

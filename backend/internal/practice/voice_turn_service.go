@@ -22,14 +22,14 @@ const (
 )
 
 type CreatePracticeVoiceTurnRequest struct {
-	UserID                   string
-	SessionID                string
-	ClientVoiceTurnID        string
-	TurnID                   string
-	Language                 string
-	PracticeMode             sharedtypes.PracticeMode
-	Audio                    PracticeVoiceAudioInput
-	CommittedContext         CommittedVoiceContext
+	UserID            string
+	SessionID         string
+	ClientVoiceTurnID string
+	TurnID            string
+	Language          string
+	PracticeMode      sharedtypes.PracticeMode
+	Audio             PracticeVoiceAudioInput
+	CommittedContext  CommittedVoiceContext
 }
 
 type PracticeVoiceAudioInput struct {
@@ -79,6 +79,7 @@ type PracticeVoiceTTSError struct {
 
 type PracticeVoiceTurnStoreInput struct {
 	EventID             string
+	OutboxEventID       string
 	UserID              string
 	SessionID           string
 	ClientVoiceTurnID   string
@@ -92,6 +93,8 @@ type PracticeVoiceTurnStoreInput struct {
 	TTSError            *PracticeVoiceTTSError
 	ProviderMetaSummary PracticeVoiceProviderMetaSummary
 	Session             SessionRecord
+	Outcome             SessionEventOutcome
+	NextQuestion        *TurnRecord
 	OccurredAt          time.Time
 }
 
@@ -144,9 +147,16 @@ func (s *Service) CreatePracticeVoiceTurn(ctx context.Context, in CreatePractice
 	if session.CurrentTurn == nil || strings.TrimSpace(session.CurrentTurn.ID) != turnID {
 		return PracticeVoiceTurnResult{}, sessionConflictError()
 	}
-	language := strings.TrimSpace(in.Language)
+	plan, err := s.store.GetPlan(ctx, userID, session.PlanID)
+	if stderrs.Is(err, ErrPlanNotFound) {
+		return PracticeVoiceTurnResult{}, planNotFoundError()
+	}
+	if err != nil {
+		return PracticeVoiceTurnResult{}, err
+	}
+	language := strings.TrimSpace(session.Language)
 	if language == "" {
-		language = strings.TrimSpace(session.Language)
+		language = strings.TrimSpace(in.Language)
 	}
 	if language == "" {
 		language = "en"
@@ -165,30 +175,84 @@ func (s *Service) CreatePracticeVoiceTurn(ctx context.Context, in CreatePractice
 		return PracticeVoiceTurnResult{}, serviceErrorFromAI(sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "voice transcript is empty", false))
 	}
 
-	chatRes, err := s.registry.ResolveActive(ctx, followUpFeatureKey, language)
-	if err != nil {
-		return PracticeVoiceTurnResult{}, serviceErrorFromRegistry(err)
+	occurredAt := s.now().UTC()
+	latestTurn := *session.CurrentTurn
+	answerPayload := map[string]any{
+		"turnId":     turnID,
+		"answerText": transcript,
 	}
-	committedContext := in.CommittedContext
-	if !committedContext.HasCommittedContext && strings.TrimSpace(committedContext.InterruptionNote) == "" {
-		loaded, err := s.store.LoadCommittedVoiceContext(ctx, userID, sessionID)
+	outcome, err := (SessionEventService{}).Route(ctx, SessionEventInput{
+		SessionID:     sessionID,
+		ClientEventID: clientVoiceTurnID,
+		Kind:          sessionEventKindAnswerSubmitted,
+		OccurredAt:    occurredAt,
+		Payload:       answerPayload,
+	}, session, latestTurn, plan)
+	if err != nil {
+		return PracticeVoiceTurnResult{}, err
+	}
+	if outcome.Error != nil {
+		return PracticeVoiceTurnResult{}, outcome.Error
+	}
+	s.applyAnswerObservationAI(ctx, SessionEventReservation{
+		UserID:     userID,
+		Session:    session,
+		Plan:       plan,
+		LatestTurn: latestTurn,
+	}, answerPayload, &outcome)
+
+	var chatRes registry.PromptResolution
+	var chatMeta aiclient.AICallMeta
+	if outcome.AssistantAction.RequiresAI {
+		chatRes, err = s.registry.ResolveActive(ctx, followUpFeatureKey, language)
+		if err != nil {
+			return PracticeVoiceTurnResult{}, serviceErrorFromRegistry(err)
+		}
+		committedContext, err := s.store.LoadCommittedVoiceContext(ctx, userID, sessionID)
 		if err != nil {
 			return PracticeVoiceTurnResult{}, err
 		}
-		committedContext = loaded
+		generationKind := questionGenerationFollowUp
+		if outcome.AssistantAction.Type == assistantActionAskQuestion {
+			generationKind = questionGenerationNextQuestion
+		}
+		coveredDimensions := []string{}
+		if intent := strings.TrimSpace(latestTurn.QuestionIntent); intent != "" {
+			coveredDimensions = append(coveredDimensions, intent)
+		}
+		question, generatedMeta, err := s.generateQuestion(ctx, questionGenerationRequest{
+			Resolution: chatRes,
+			TemplateData: questionTemplateData{
+				Language:          language,
+				PracticeGoal:      string(plan.Goal),
+				PracticeMode:      string(plan.Mode),
+				TurnStatus:        latestTurn.Status,
+				TargetJobID:       plan.TargetJobID,
+				GenerationKind:    generationKind,
+				LastQuestion:      latestTurn.QuestionText,
+				QuestionIntent:    latestTurn.QuestionIntent,
+				LastAnswer:        transcript,
+				FollowUpCount:     latestTurn.FollowUpCount,
+				CoveredDimensions: coveredDimensions,
+				CommittedContext:  renderCommittedVoiceContext(committedContext),
+			},
+			TaskRun: aiclient.AITaskRunContext{
+				UserID:       userID,
+				Capability:   aiclient.AITaskRunTaskFollowupGenerate,
+				ResourceType: aiclient.AITaskRunResourceTargetJob,
+				ResourceID:   session.TargetJobID,
+			},
+		})
+		if err != nil {
+			return PracticeVoiceTurnResult{}, serviceErrorFromAI(err)
+		}
+		chatMeta = generatedMeta
+		outcome.AssistantAction.QuestionText = strings.TrimSpace(question.Text)
+		outcome.AssistantAction.QuestionIntent = strings.TrimSpace(question.Intent)
+		outcome.AssistantAction.Provenance = generatedQuestionProvenance(chatRes, chatMeta, language)
+		outcome.AssistantAction.RequiresAI = false
 	}
-	chatResp, chatMeta, err := s.ai.Complete(ctx, chatRes.ModelProfileName, voiceFollowUpPayload(chatRes, userID, session, language, in.PracticeMode, transcript, committedContext))
-	if err != nil {
-		return PracticeVoiceTurnResult{}, serviceErrorFromAI(err)
-	}
-	question, err := parseFirstQuestion(chatResp.Content)
-	if err != nil {
-		return PracticeVoiceTurnResult{}, serviceErrorFromAI(err)
-	}
-	assistantText := strings.TrimSpace(question.Text)
-	if assistantText == "" {
-		return PracticeVoiceTurnResult{}, serviceErrorFromAI(sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "voice assistant text is empty", false))
-	}
+	assistantText := strings.TrimSpace(outcome.AssistantAction.QuestionText)
 
 	voiceTurnID := s.newID()
 	result := PracticeVoiceTurnResult{
@@ -196,6 +260,13 @@ func (s *Service) CreatePracticeVoiceTurn(ctx context.Context, in CreatePractice
 		UserTranscriptFinal: transcript,
 		AssistantTextDraft:  assistantText,
 		Session:             session,
+	}
+	if assistantText == "" {
+		result.ProviderMetaSummary = voiceProviderMetaSummary(sttMeta, chatMeta, aiclient.AICallMeta{}, sttRes, chatRes, registry.PromptResolution{})
+		if err := s.recordPracticeVoiceTurn(ctx, in, &result, outcome, latestTurn, occurredAt); err != nil {
+			return PracticeVoiceTurnResult{}, err
+		}
+		return result, nil
 	}
 
 	ttsRes, err := s.registry.ResolveActive(ctx, voiceTTSFeatureKey, language)
@@ -206,7 +277,7 @@ func (s *Service) CreatePracticeVoiceTurn(ctx context.Context, in CreatePractice
 		}
 		result.TTSError = ttsErr
 		result.ProviderMetaSummary = voiceProviderMetaSummary(sttMeta, chatMeta, aiclient.AICallMeta{}, sttRes, chatRes, registry.PromptResolution{})
-		if err := s.recordPracticeVoiceTurn(ctx, in, &result); err != nil {
+		if err := s.recordPracticeVoiceTurn(ctx, in, &result, outcome, latestTurn, occurredAt); err != nil {
 			return PracticeVoiceTurnResult{}, err
 		}
 		return result, nil
@@ -219,7 +290,7 @@ func (s *Service) CreatePracticeVoiceTurn(ctx context.Context, in CreatePractice
 		}
 		result.TTSError = ttsErr
 		result.ProviderMetaSummary = voiceProviderMetaSummary(sttMeta, chatMeta, ttsMeta, sttRes, chatRes, ttsRes)
-		if err := s.recordPracticeVoiceTurn(ctx, in, &result); err != nil {
+		if err := s.recordPracticeVoiceTurn(ctx, in, &result, outcome, latestTurn, occurredAt); err != nil {
 			return PracticeVoiceTurnResult{}, err
 		}
 		return result, nil
@@ -227,18 +298,31 @@ func (s *Service) CreatePracticeVoiceTurn(ctx context.Context, in CreatePractice
 
 	result.TTSChunks = []PracticeVoiceTTSChunk{voiceTTSChunk(voiceTurnID, s.newID(), assistantText, ttsResp)}
 	result.ProviderMetaSummary = voiceProviderMetaSummary(sttMeta, chatMeta, ttsMeta, sttRes, chatRes, ttsRes)
-	if err := s.recordPracticeVoiceTurn(ctx, in, &result); err != nil {
+	if err := s.recordPracticeVoiceTurn(ctx, in, &result, outcome, latestTurn, occurredAt); err != nil {
 		return PracticeVoiceTurnResult{}, err
 	}
 	return result, nil
 }
 
-func (s *Service) recordPracticeVoiceTurn(ctx context.Context, in CreatePracticeVoiceTurnRequest, result *PracticeVoiceTurnResult) error {
+func (s *Service) recordPracticeVoiceTurn(
+	ctx context.Context,
+	in CreatePracticeVoiceTurnRequest,
+	result *PracticeVoiceTurnResult,
+	outcome SessionEventOutcome,
+	latestTurn TurnRecord,
+	occurredAt time.Time,
+) error {
 	if result == nil {
 		return fmt.Errorf("practice voice turn result is required")
 	}
+	nextQuestion := s.prepareNextQuestion(SessionEventReservation{LatestTurn: latestTurn}, &outcome)
+	outboxEventID := ""
+	if outcome.OutboxRecord != nil {
+		outboxEventID = s.newID()
+	}
 	session, err := s.store.RecordPracticeVoiceTurn(ctx, PracticeVoiceTurnStoreInput{
 		EventID:             s.newID(),
+		OutboxEventID:       outboxEventID,
 		UserID:              strings.TrimSpace(in.UserID),
 		SessionID:           strings.TrimSpace(in.SessionID),
 		ClientVoiceTurnID:   strings.TrimSpace(in.ClientVoiceTurnID),
@@ -252,7 +336,9 @@ func (s *Service) recordPracticeVoiceTurn(ctx context.Context, in CreatePractice
 		TTSError:            clonePracticeVoiceTTSError(result.TTSError),
 		ProviderMetaSummary: result.ProviderMetaSummary,
 		Session:             result.Session,
-		OccurredAt:          s.now().UTC(),
+		Outcome:             outcome,
+		NextQuestion:        nextQuestion,
+		OccurredAt:          occurredAt,
 	})
 	if stderrs.Is(err, ErrSessionNotFound) {
 		return sessionNotFoundError()
@@ -267,6 +353,21 @@ func (s *Service) recordPracticeVoiceTurn(ctx context.Context, in CreatePractice
 	return nil
 }
 
+func generatedQuestionProvenance(resolution registry.PromptResolution, meta aiclient.AICallMeta, language string) AssistantActionProvenance {
+	modelID := strings.TrimSpace(meta.ModelID)
+	if modelID == "" {
+		modelID = "model-profile:" + strings.TrimSpace(resolution.ModelProfileName)
+	}
+	return AssistantActionProvenance{
+		PromptVersion:     fallbackString(resolution.PromptVersion, "not_applicable"),
+		RubricVersion:     fallbackString(resolution.RubricVersion, "not_applicable"),
+		ModelID:           fallbackString(modelID, "model-profile:unknown"),
+		Language:          fallbackString(language, "en"),
+		FeatureFlag:       fallbackString(resolution.FeatureFlag, "none"),
+		DataSourceVersion: fallbackString(resolution.DataSourceVersion, "not_applicable"),
+	}
+}
+
 func voiceTranscriptionInput(resolution registry.PromptResolution, userID string, session SessionRecord, language string, audio PracticeVoiceAudioInput) aiclient.TranscriptionInput {
 	return aiclient.TranscriptionInput{
 		Audio:       append([]byte(nil), audio.Content...),
@@ -278,42 +379,13 @@ func voiceTranscriptionInput(resolution registry.PromptResolution, userID string
 	}
 }
 
-func voiceFollowUpPayload(resolution registry.PromptResolution, userID string, session SessionRecord, language string, mode sharedtypes.PracticeMode, transcript string, committedContext CommittedVoiceContext) aiclient.CompletePayload {
-	userContent := strings.TrimSpace(resolution.UserMessageTemplate)
-	if userContent == "" {
-		userContent = "Generate a concise follow-up question for the candidate's latest spoken answer."
-	}
-	replacer := strings.NewReplacer(
-		"{{language}}", fallbackString(language, "en"),
-		"{{practice_mode}}", fallbackString(string(mode), string(sharedtypes.PracticeModeAssisted)),
-		"{{current_question}}", fallbackString(currentQuestionText(session), "current question unavailable"),
-		"{{transcript}}", transcript,
-	)
-	userContent = strings.TrimSpace(replacer.Replace(userContent))
-	if !strings.Contains(userContent, transcript) {
-		userContent += "\nCandidate transcript:\n" + transcript
-	}
-	if committed := renderCommittedVoiceContext(committedContext); committed != "" {
-		userContent += "\nCommitted assistant context:\n" + committed
-	}
-	messages := make([]aiclient.Message, 0, 2)
-	if strings.TrimSpace(resolution.SystemMessage) != "" {
-		messages = append(messages, aiclient.Message{Role: "system", Content: resolution.SystemMessage})
-	}
-	messages = append(messages, aiclient.Message{Role: "user", Content: userContent})
-	return aiclient.CompletePayload{
-		Messages: messages,
-		Metadata: voiceCallMetadata(resolution, userID, session, language, followUpFeatureKey),
-	}
-}
-
 func renderCommittedVoiceContext(ctx CommittedVoiceContext) string {
 	parts := make([]string, 0, 2)
 	if ctx.HasCommittedContext && strings.TrimSpace(ctx.CommittedAssistantText) != "" {
-		parts = append(parts, "Previously heard assistant content: "+strings.TrimSpace(ctx.CommittedAssistantText))
+		parts = append(parts, strings.TrimSpace(ctx.CommittedAssistantText))
 	}
 	if strings.TrimSpace(ctx.InterruptionNote) != "" {
-		parts = append(parts, "Interruption note: "+strings.TrimSpace(ctx.InterruptionNote))
+		parts = append(parts, strings.TrimSpace(ctx.InterruptionNote))
 	}
 	return strings.Join(parts, "\n")
 }
@@ -463,13 +535,6 @@ func int32PtrFromInt64(value int64) *int32 {
 	}
 	converted := int32(value)
 	return &converted
-}
-
-func currentQuestionText(session SessionRecord) string {
-	if session.CurrentTurn == nil {
-		return ""
-	}
-	return strings.TrimSpace(session.CurrentTurn.QuestionText)
 }
 
 func textSHA256(value string) string {

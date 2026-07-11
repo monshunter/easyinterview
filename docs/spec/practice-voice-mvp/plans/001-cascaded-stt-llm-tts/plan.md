@@ -1,15 +1,15 @@
 # Cascaded STT LLM TTS Voice MVP
 
-> **版本**: 1.13
+> **版本**: 1.14
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-在现有 `PracticeScreen` 会话骨架内落地 P0 电话模式：前端以真实电话交互呈现通话状态、字幕、切断和重新开始；底层后端继续执行 `STT -> LLM -> TTS` 级联编排，前端播放 TTS 并上报播放 / 打断事件，后端只把已播放完成的 assistant chunk 提交到上下文。
+在现有 `PracticeScreen` 会话骨架内落地 P0 电话模式：前端用单一电话图标进入/退出，电话 Surface 以红色圆形挂断按钮回到同一 session 文本模式，不再提供重新开始；底层后端继续执行 `STT -> LLM -> TTS` 级联编排，按 session language 和统一上下文生成真实追问，前端自动推进 VAD/TTS turn 并只在真实 speech-start 时上报打断事件。
 
 ## 2 背景
 
@@ -28,14 +28,14 @@ S2S / realtime voice 成本高且 provider 形态差异大；面试训练的 P0 
 - **Review-fix runtime gate**: BUG-0070 后续要求 voice playback 证据覆盖 response `audioRef` 浏览器可播放、persisted session event 不保存 audio data、barge-in 前 partial `tts_chunk_played`、store replay committed context into next prompt；证据命令：`go test ./internal/practice ./internal/store/practice -count=1` + `pnpm --dir frontend test src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx --run`。
 - **Review-fix fixture gate**: BUG-0072 后续要求 `createPracticeVoiceTurn` HTTP fixture 与真实 service audioRef 语义一致；fixture/default response 的 `ttsChunks[].audioRef` 必须为浏览器可播放 `data:audio/...;base64,...` 或同计划 resolver URL，禁止 `fixture-audio://...` 这类 mock-only scheme 进入 generated fixture client。
 - **Review-fix lint precision gate**: 2026-05-22 后续要求 backend-practice out-of-scope lint 继续禁止独立 `/voice` route / alias，但必须允许本计划拥有的 `POST /practice/sessions/{sessionId}/voice-turns`、`createPracticeVoiceTurn`、`practice.voice.stt.default` / `practice.voice.tts.default` profile 与 `practice.voice.stt` / `practice.voice.tts` feature key；证据命令：`python3 -m pytest scripts/lint/backend_practice_out_of_scope_test.py -q` + `make lint-backend-practice-out-of-scope` + `make lint`。
-- **Real-interview phone gate**: 用户可见 UI / docs / scenarios 使用 `电话模式 / Phone`，当前电话 surface 只提供通话状态、切断、重新开始和字幕动作；不提供语音分析、手动转写替代入口、开始录音主按钮或提交本轮主按钮。底层 `createPracticeVoiceTurn`、`practice.voice.*` profile 和 persisted `voice-turn://` ref 仍允许作为工程能力名。
+- **Real-interview phone gate**: 用户可见 UI / docs / scenarios 使用 `电话模式 / Phone`；Top Bar 只保留单一电话图标，电话 surface 只提供通话状态、字幕和红色圆形挂断图标，不提供分段切换、live chip、切断文字、重新开始、`callEnded`、语音分析、手动转写、开始录音或提交本轮。底层 `createPracticeVoiceTurn`、`practice.voice.*` profile 和 persisted `voice-turn://` ref 仍允许作为工程能力名。
 
 ## 4 Operation Matrix
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` scenarios `default` / `stt-config-missing` / `chat-failed` / `tts-failed` | `PracticeScreen` phone controller / audio capture hook | `backend/internal/practice` voice turn handler/service mounted by `backend/internal/api/practice` | session events store only metadata and opaque `voice-turn://...` refs；HTTP response `ttsChunks[].audioRef` must be browser-playable data URL or documented resolver；no long-term audio retention by default | `practice.voice.stt.default` + `practice.followup.default` + `practice.voice.tts.default` | `E2E.P0.007` / `E2E.P0.009` + BUG-0070 audioRef gate |
-| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json` scenarios `voice-tts-started` / `voice-tts-played` / `voice-barge-in` / `voice-context-committed` | phone player progress reporter | existing `appendSessionEvent` handler/service extended with voice event kinds | session events；store replay loads latest voice turn + subsequent playback events into next prompt | none; records playback, barge-in, and committed context events | `E2E.P0.008` + BUG-0070 store replay gate |
+| `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` scenarios `default` / `stt-config-missing` / `chat-failed` / `chat-output-invalid` / `tts-failed` | `PracticeScreen` phone controller / audio capture hook；VAD silence submit + TTS-ended rearm | `backend/internal/practice` voice turn handler/service mounted by `backend/internal/api/practice` | success stores session-event metadata and opaque `voice-turn://...` refs；HTTP response `ttsChunks[].audioRef` must be browser-playable data URL or documented resolver；double-invalid chat returns top-level `AI_OUTPUT_INVALID` before result/TTS persistence | `practice.voice.stt.default` + `practice.followup.default` + `practice.voice.tts.default`；canonical current-turn/transcript/committed context + persisted session language + exactly one structured/language repair | `E2E.P0.007` / `E2E.P0.009` + BUG-0070 audioRef gate |
+| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json` scenarios `voice-tts-started` / `voice-tts-played` / `voice-barge-in` / `voice-context-committed` | phone player progress reporter；hang-up commits heard prefix without barge-in；speech-start reports partial playback then barge-in | existing `appendSessionEvent` handler/service extended with voice event kinds | session events；store replay loads latest voice turn + subsequent playback events into next prompt | none; records playback, real speech-start barge-in, and committed context events | `E2E.P0.008` + BUG-0070 store replay gate |
 
 ## 5 Coverage Matrix
 
@@ -47,9 +47,11 @@ S2S / realtime voice 成本高且 provider 形态差异大；面试训练的 P0 
 | PV-MVP-C4 | Failure/recovery | spec C-4/C-5 | Phase 2-4 | service tests + `E2E.P0.009` | TTS failure drops text |
 | PV-MVP-C5 | Boundary condition | spec C-3 | Phase 3 | committed context unit tests + store replay tests + frontend partial playback event test + `E2E.P0.008` | unplayed draft in prompt |
 | PV-MVP-C6 | Privacy/security/observability | spec C-7 | Phase 2/5 | privacy grep + backend tests + persisted audioRef summary gate | raw audio/transcript/TTS text in log/DB/metric/session event summary |
-| PV-MVP-C7 | UX quality | docs/ui-design/module-practice-review | Phase 4 + Phase 6 | frontend tests + visual parity gates | independent voice route/page, user-visible Voice copy, voice analysis panel |
+| PV-MVP-C7 | UX quality | docs/ui-design/module-practice-review | Phase 7 | frontend tests + visual parity gates | independent voice route/page, user-visible Voice copy, segmented/live/restart/callEnded controls, voice analysis panel |
 | PV-MVP-C8 | Regression/out-of-scope-negative | product-scope D-6 | Phase 5 | scope tests + negative search | `voice` route alias, S2S marked active |
 | PV-MVP-C9 | Current drift preflight | current code truth source | Phase 0 | source grep + focused smoke tests | phone surface still relies on a coming-soon card; backend README points to an out-of-scope voice-surface owner |
+| PV-MVP-C10 | Phone lifecycle | spec C-8/C-9 | Phase 7 | frontend controller tests + `E2E.P0.007` / `E2E.P0.008` + parity/browser gate | restart/callEnded survives; hang-up emits barge-in; TTS resumes after exit |
+| PV-MVP-C11 | Conversational integrity | spec C-10 | Phase 7 | backend service tests + `E2E.P0.009` | mixed-language or canned follow-up after repair failure |
 
 ## 6 实施步骤
 
@@ -68,6 +70,8 @@ Record the current implementation gaps that must change during this plan: `front
 #### 1.1 OpenAPI voice turn contract
 
 新增 `POST /practice/sessions/{sessionId}/voice-turns` / `createPracticeVoiceTurn` operation。该 endpoint 是 side-effect endpoint，必须携带 `Idempotency-Key`；请求体必须包含 `clientVoiceTurnId`、`turnId`、`audio.contentBase64`、`audio.contentType`、`audio.durationMs`、`language` 和 `practiceMode`，不接受手动转写替代字段。输出必须包含 `voiceTurnId`、`userTranscriptFinal`、`assistantTextDraft`、`ttsChunks[]`、`providerMetaSummary`、`session` 与可空 `ttsError`。HTTP response 的 `ttsChunks[].audioRef` 必须是浏览器可播放 data URL 或已落地 resolver URL；持久化 session event summary 只保存 chunk id、content type、duration、byte length/hash 和 opaque `voice-turn://...` ref，不保存音频数据。
+
+P0 producer 必须保持每次 response `ttsChunks` 长度为 0 或 1；multi-chunk 需要先新增 per-chunk assistant text span / committed-context contract、OpenAPI 与 BDD，不能由当前前端自行推断文本分段。
 
 #### 1.2 Fixtures and generated clients
 
@@ -103,6 +107,8 @@ session event 只保存必要 transcript / committed text / event摘要；AI/aud
 
 ### Phase 4: Frontend voice controller
 
+> Historical implementation phase. Phase 7 supersedes its former restart/call-ended UI anchors; this section is retained only to explain the implemented voice foundation.
+
 #### 4.1 Phone UI source parity
 
 在 `PracticeScreen` 内复刻 `ui-design/src/screen-practice.jsx` 电话 Surface：通话状态、字幕、切断、重新开始和结束并生成报告入口。不得新增独立 `voice` route，也不得把 out-of-scope `voice` query 作为电话模式入口。
@@ -131,6 +137,8 @@ session event 只保存必要 transcript / committed text / event摘要；AI/aud
 
 ### Phase 6: Real-interview phone-mode simplification
 
+> Historical implementation phase. Phase 7 supersedes the former restart/call-ended control contract and is the only current UI acceptance source.
+
 #### 6.1 Phone-mode UI language and controls
 
 将用户可见面试形式固定为 `电话模式 / Phone`，删除 `开始录音` / `提交本轮` 主按钮，改为真实电话控制：接通状态、切断、重新开始、显示字幕。历史 `voice` API/profile 命名仅作为底层能力保留。
@@ -143,14 +151,33 @@ session event 只保存必要 transcript / committed text / event摘要；AI/aud
 
 更新 OpenAPI 描述、fixtures、generated client/server tests、scenario README/expected outcome，证明 phone mode 只暴露当前电话控件，同时底层 voice turn privacy、audioRef 和 committed-context gates 继续通过。
 
+### Phase 7: Phone lifecycle and conversational integrity
+
+#### 7.1 Single handset entry and shared exit
+
+Revise the UI truth source and formal frontend so the Top Bar uses one accessible handset icon. Text mode click enters phone mode; phone mode click and the center red circular hang-up button call the same `exitPhoneMode` coordinator. Exit immediately stops microphone/TTS, permits non-empty capture settlement, suppresses all later phone TTS, and navigates to text mode for the same session. Remove restart, `callEnded`, segmented mode controls, live chip and the visible “切断” label; delete any frontend/backend restart action, state, event or handler residue, and prove zero positive restart surface without adding an HTTP schema.
+
+#### 7.2 Automatic turn progression and interruption truth
+
+VAD silence submits a non-empty capture automatically; TTS ended re-arms listening. Only real speech-start during TTS emits partial `tts_chunk_played` followed by `barge_in_detected`. Hang-up may commit the heard prefix through existing playback/commit events but must not emit barge-in.
+
+#### 7.3 Contextual, language-consistent follow-up
+
+The voice chat step must use the shared canonical question renderer and persisted session language. Only invalid structured output, business parsing failure or question-language mismatch receives one repair attempt; provider/config/timeout errors do not trigger business repair. A second invalid result returns the existing top-level `AI_OUTPUT_INVALID` error envelope before `PracticeVoiceTurnResult`/TTS persistence, leaves the session row unchanged, and keeps text-mode exit available.
+
+#### 7.4 Current evidence
+
+Update existing `E2E.P0.007`-`E2E.P0.009` assertions, focused frontend/backend tests, source/parity gates and a real-mode browser proof. Do not add sibling scenarios or expand the HTTP schema.
+
 ## 7 验收标准
 
 - `createPracticeVoiceTurn` contract、fixtures、generated client/server artifacts 完成并无 drift。
 - 后端 voice turn service 覆盖 STT/chat/TTS happy path 与独立失败路径。
-- 前端 phone controller 可按需展示字幕、播放 TTS、处理 barge-in、切断和重新开始；用户可见层不提供手动转写替代入口。
+- 前端 phone controller 可按需展示字幕、自动推进 VAD/TTS turn、处理真实 speech-start barge-in，并通过单一电话图标或圆形挂断回到同一 session 文本模式；用户可见层不提供重新开始或手动转写替代入口。
 - HTTP response 的 TTS `audioRef` 可被浏览器播放，持久化 session event summary 不保存 audio bytes。
 - Committed context builder + store replay 证明已播放文本进入下一轮 prompt，未播放 assistant draft 不进入下一轮 prompt。
 - `E2E.P0.007` / `E2E.P0.008` / `E2E.P0.009` BDD-Gate 通过。
+- Voice follow-up 使用 canonical current-turn/transcript/committed context + persisted session language；parser/language invalid 只 repair 一次，provider/config/timeout 不 repair；第二次 invalid 返回顶层 `AI_OUTPUT_INVALID`，session 行不变且无 result/canned question/TTS。
 
 ## 8 风险与应对
 
@@ -165,6 +192,7 @@ session event 只保存必要 transcript / committed text / event摘要；AI/aud
 
 | 日期 | 版本 | 说明 |
 |------|------|------|
+| 2026-07-11 | 1.14 | Reopen Phase 7 for single-handset phone exit, no restart/callEnded, VAD/TTS auto progression, speech-start-only barge-in, and language-consistent follow-up with one repair. |
 | 2026-07-10 | 1.13 | Align regression gate route negative search wording to out-of-scope terminology without behavior changes. |
 | 2026-07-10 | 1.12 | Align `voice` route/query negative input wording to out-of-scope terminology without behavior changes. |
 | 2026-07-10 | 1.11 | Replace remaining VoiceSurfaceComingSoon wording with coming-soon/unavailable-surface terminology. |

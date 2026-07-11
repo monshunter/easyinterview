@@ -1,13 +1,14 @@
 # Frontend Workspace and Practice History
 
-> **版本**: 1.20
+> **版本**: 1.21
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-11 | 1.21 | 重新打开 Practice UI：单一电话图标替代分段/live，挂断回同 session 文本且删除重开/callEnded；Top Bar 消费真实 getTargetJob，公司/岗位和会话内容不得由 mock/内部 questionIntent 填充。 | [002-practice-text-event-loop](./plans/002-practice-text-event-loop/plan.md) |
 | 2026-07-10 | 1.20 | Spec v1.32 removes the stale embedded company-insight contract and records the current pure Workspace plan-list boundary. | 001-workspace-and-interview-context Phase 23 |
 | 2026-07-10 | 1.19 | Spec v1.31 将 workspace / practice 的负向 UI 边界统一为范围外 / out-of-scope 术语；行为不变。 | tech-debt pruning |
 | 2026-07-10 | 1.18 | Spec v1.29 将 workspace route purity 与场景负向锚点口径统一为 out-of-scope/stale wording；行为不变。 | 001-workspace-and-interview-context |

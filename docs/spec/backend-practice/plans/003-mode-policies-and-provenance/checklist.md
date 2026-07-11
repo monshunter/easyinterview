@@ -1,8 +1,8 @@
 # Backend Practice Mode Policies and Provenance Checklist
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 **关联计划**: [plan](./plan.md)
 
@@ -53,3 +53,12 @@
   <!-- verified: 2026-07-10 method=practice-strict-hint-test-removal evidence="Assisted and strict canonical tests PASS; scoped dupl reports zero clone groups; the removed exact test name has zero current-tree references." -->
 - [x] 6.3 运行 Practice owner/full backend、vet/staticcheck、owner contexts 与 docs/diff/pruning 收口门禁。
   <!-- verified: 2026-07-10 method=practice-strict-hint-test-removal-closeout evidence="P0.049 passes all three current goals; Practice owner packages and full backend tests PASS; go vet and scoped/full staticcheck PASS; 002/003/product contexts, docs/index/diff and pruning gates PASS with real_residuals=0." -->
+
+## Phase 7: Session-language hint integrity
+
+- [x] 7.1 RED-GREEN: validate user-visible hint `cue` against persisted session language; wrong-language cue follows existing `AI_OUTPUT_INVALID` graceful degrade to `session_wait`, keeps session/turn state and writes no `hint_text`.
+  <!-- verified: 2026-07-11 evidence="Focused SessionEventService and store tests prove zh-CN English cue and en Han cue return session_wait, preserve session/turn control state and do not persist hint_text." -->
+- [x] 7.2 Privacy/negative gate: zh-CN English cue and en Han cue never reach AssistantAction, event/replay payload, logs, metrics, audit or typed task-run payloads; no new HTTP/event/schema or canned hint fallback.
+  <!-- verified: 2026-07-11 evidence="P0.051 wrong-language variants and focused privacy tests prove raw cue absence across response/replay/task-run/log/metric/audit evidence; fixture exact-key gates and schema inventory confirm no new contract or canned fallback." -->
+- [x] 7.3 BDD/regression: update and run `E2E.P0.051`, focused/full backend, P0.048-P0.050 regression, prompt/fixture/codegen, context/docs/index and diff gates.
+  <!-- verified: 2026-07-11 evidence="P0.051 wrapper and P0.048/P0.050 wrappers plus direct P0.049 PASS; full backend, prompt/eval, fixtures/codegen, privacy/runtime-boundary, owner contexts and docs/index/diff gates PASS." -->

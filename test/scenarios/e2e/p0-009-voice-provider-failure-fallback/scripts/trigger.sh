@@ -22,7 +22,7 @@ echo "RUNNER backend-practice-go-test E2E.P0.009"
 (
   cd "$REPO_ROOT/backend"
   go test -v ./internal/practice \
-    -run 'TestCreatePracticeVoiceTurnStopsWhenSTTFails|TestCreatePracticeVoiceTurnStopsWhenChatFailsBeforeTTS|TestCreatePracticeVoiceTurnReturnsTranscriptAndAssistantTextWhenTTSFails|TestCreatePracticeVoiceTurnPersistsBusinessTextOutsideAIMetadata' \
+    -run 'TestCreatePracticeVoiceTurnStopsWhenSTTFails|TestCreatePracticeVoiceTurnStopsWhenChatFailsBeforeTTS|TestCreatePracticeVoiceTurnSecondLanguageMismatchSkipsTTSAndPersistence|TestCreatePracticeVoiceTurnReturnsTranscriptAndAssistantTextWhenTTSFails|TestCreatePracticeVoiceTurnPersistsBusinessTextOutsideAIMetadata' \
     -count=1
 ) || backend_status=$?
 

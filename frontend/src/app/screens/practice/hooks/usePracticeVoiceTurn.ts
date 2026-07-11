@@ -25,11 +25,24 @@ export interface UsePracticeVoiceTurnInput {
   practiceMode: PracticeMode;
 }
 
+export interface StopPracticeVoiceTurnOptions {
+  /** Stop the call-scoped stream after the recorder emitted its final blob. */
+  releaseMicrophoneAfterSnapshot?: boolean;
+  /** Event-ordering barrier that must settle before createVoiceTurn is sent. */
+  beforeSubmit?: Promise<void>;
+}
+
 export interface UsePracticeVoiceTurnResult {
   ready: boolean;
   state: PracticeVoiceTurnState;
+  connectMicrophone: () => Promise<void>;
+  getMediaStream: () => MediaStream | null;
   startRecording: () => Promise<void>;
-  stopAndSubmit: () => Promise<PracticeVoiceTurnResult>;
+  stopAndSubmit: (
+    options?: StopPracticeVoiceTurnOptions,
+  ) => Promise<PracticeVoiceTurnResult>;
+  discardUtterance: () => void;
+  releaseMicrophone: () => void;
   reset: () => void;
 }
 
@@ -49,13 +62,21 @@ export function usePracticeVoiceTurn({
   const client = runtime?.client;
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const connectPromiseRef = useRef<Promise<void> | null>(null);
+  const connectionGenerationRef = useRef(0);
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef(0);
+  const snapshotPendingRef = useRef(false);
+  const releaseRequestedRef = useRef(false);
+  const releaseStateRequestedRef = useRef(false);
 
   const [state, setState] = useState<PracticeVoiceTurnState>({ kind: "idle" });
 
   const discardRecorder = useCallback(() => {
     const recorder = recorderRef.current;
+    recorderRef.current = null;
+    chunksRef.current = [];
+    startedAtRef.current = 0;
     if (!recorder || recorder.state === "inactive") return;
     recorder.ondataavailable = null;
     recorder.onstop = null;
@@ -63,27 +84,79 @@ export function usePracticeVoiceTurn({
     recorder.stop();
   }, []);
 
-  const cleanupStream = useCallback(() => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    recorderRef.current = null;
-  }, []);
+  const releaseResources = useCallback(
+    (updateState: boolean) => {
+      if (snapshotPendingRef.current) {
+        releaseRequestedRef.current = true;
+        releaseStateRequestedRef.current =
+          releaseStateRequestedRef.current || updateState;
+        return;
+      }
+      connectionGenerationRef.current += 1;
+      connectPromiseRef.current = null;
+      discardRecorder();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      if (updateState) setState({ kind: "idle" });
+    },
+    [discardRecorder],
+  );
 
   useEffect(
     () => () => {
-      discardRecorder();
-      cleanupStream();
+      releaseResources(false);
     },
-    [cleanupStream, discardRecorder],
+    [releaseResources],
   );
 
-  const reset = useCallback(() => {
+  const connectMicrophone = useCallback(async () => {
+    if (streamRef.current) return;
+    if (connectPromiseRef.current) {
+      await connectPromiseRef.current;
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setState({ kind: "error", message: "microphone capture is unavailable" });
+      return;
+    }
+
+    const connectionGeneration = connectionGenerationRef.current;
+    const request = navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        if (connectionGenerationRef.current !== connectionGeneration) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        streamRef.current = stream;
+        setState({ kind: "idle" });
+      })
+      .catch((err: unknown) => {
+        if (connectionGenerationRef.current === connectionGeneration) {
+          setState({ kind: "error", message: errorMessage(err) });
+        }
+      })
+      .finally(() => {
+        if (connectPromiseRef.current === request) {
+          connectPromiseRef.current = null;
+        }
+      });
+    connectPromiseRef.current = request;
+    await request;
+  }, []);
+
+  const getMediaStream = useCallback(() => streamRef.current, []);
+
+  const discardUtterance = useCallback(() => {
     discardRecorder();
-    chunksRef.current = [];
-    startedAtRef.current = 0;
-    cleanupStream();
     setState({ kind: "idle" });
-  }, [cleanupStream, discardRecorder]);
+  }, [discardRecorder]);
+
+  const releaseMicrophone = useCallback(() => {
+    releaseResources(true);
+  }, [releaseResources]);
+
+  const reset = releaseMicrophone;
 
   const startRecording = useCallback(async () => {
     if (!client) {
@@ -94,19 +167,22 @@ export function usePracticeVoiceTurn({
       setState({ kind: "error", message: "practice phone session is not ready" });
       return;
     }
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setState({ kind: "error", message: "microphone capture is unavailable" });
-      return;
-    }
     if (typeof MediaRecorder === "undefined") {
       setState({ kind: "error", message: "browser audio recorder is unavailable" });
       return;
     }
+    const stream = streamRef.current;
+    if (!stream) {
+      setState({ kind: "error", message: "microphone is not connected" });
+      return;
+    }
+    if (recorderRef.current?.state === "recording") {
+      setState({ kind: "error", message: "recording is already active" });
+      return;
+    }
 
     try {
-      cleanupStream();
       chunksRef.current = [];
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const contentType = chooseAudioContentType();
       const recorder = new MediaRecorder(stream, { mimeType: contentType });
       recorder.ondataavailable = (event) => {
@@ -118,12 +194,14 @@ export function usePracticeVoiceTurn({
       recorder.start();
       setState({ kind: "recording" });
     } catch (err) {
-      cleanupStream();
+      discardRecorder();
       setState({ kind: "error", message: errorMessage(err) });
     }
-  }, [cleanupStream, client, sessionId, turnId]);
+  }, [client, discardRecorder, sessionId, turnId]);
 
-  const stopAndSubmit = useCallback(async (): Promise<PracticeVoiceTurnResult> => {
+  const stopAndSubmit = useCallback(async (
+    options: StopPracticeVoiceTurnOptions = {},
+  ): Promise<PracticeVoiceTurnResult> => {
     if (!client) throw new Error("usePracticeVoiceTurn: client missing");
     if (!sessionId) throw new Error("usePracticeVoiceTurn: sessionId missing");
     if (!turnId) throw new Error("usePracticeVoiceTurn: turnId missing");
@@ -134,16 +212,37 @@ export function usePracticeVoiceTurn({
       throw err;
     }
 
+    const connectionGeneration = connectionGenerationRef.current;
+    let releasedAfterSnapshot = false;
     try {
+      snapshotPendingRef.current = true;
       setState({ kind: "submitting" });
       await stopRecorder(recorder);
+      if (recorderRef.current === recorder) recorderRef.current = null;
+      recorder.ondataavailable = null;
+      recorder.onstop = null;
+      recorder.onerror = null;
       const durationMs = Math.max(1, Date.now() - startedAtRef.current);
-      const audioBlob = new Blob(chunksRef.current, {
+      const chunks = chunksRef.current;
+      chunksRef.current = [];
+      startedAtRef.current = 0;
+      const audioBlob = new Blob(chunks, {
         type: normalizeAudioContentType(
-          chunksRef.current[0]?.type || recorder.mimeType,
+          chunks[0]?.type || recorder.mimeType,
         ),
       });
-      cleanupStream();
+      snapshotPendingRef.current = false;
+      const releaseAfterSnapshot =
+        options.releaseMicrophoneAfterSnapshot || releaseRequestedRef.current;
+      const updateStateAfterRelease =
+        options.releaseMicrophoneAfterSnapshot ||
+        releaseStateRequestedRef.current;
+      releaseRequestedRef.current = false;
+      releaseStateRequestedRef.current = false;
+      if (releaseAfterSnapshot) {
+        releaseResources(updateStateAfterRelease);
+        releasedAfterSnapshot = true;
+      }
       if (audioBlob.size <= 0) {
         throw new Error("recorded audio is empty");
       }
@@ -159,22 +258,39 @@ export function usePracticeVoiceTurn({
         language: lang === "zh" ? "zh-CN" : "en",
         practiceMode,
       };
+      await options.beforeSubmit;
       const result = await client.createPracticeVoiceTurn(sessionId, body, {
         idempotencyKey: generateIdempotencyKey(),
       });
-      setState({ kind: "success", result });
+      if (connectionGenerationRef.current === connectionGeneration) {
+        setState({ kind: "success", result });
+      }
       return result;
     } catch (err) {
-      cleanupStream();
+      const releaseAfterFailure =
+        options.releaseMicrophoneAfterSnapshot || releaseRequestedRef.current;
+      const updateStateAfterFailure =
+        options.releaseMicrophoneAfterSnapshot ||
+        releaseStateRequestedRef.current;
+      snapshotPendingRef.current = false;
+      releaseRequestedRef.current = false;
+      releaseStateRequestedRef.current = false;
+      if (recorderRef.current === recorder) discardRecorder();
+      if (releaseAfterFailure && !releasedAfterSnapshot) {
+        releaseResources(updateStateAfterFailure);
+      }
       const message = errorMessage(err);
-      setState({ kind: "error", message });
+      if (connectionGenerationRef.current === connectionGeneration) {
+        setState({ kind: "error", message });
+      }
       throw err instanceof Error ? err : new Error(message);
     }
   }, [
-    cleanupStream,
     client,
+    discardRecorder,
     lang,
     practiceMode,
+    releaseResources,
     sessionId,
     turnId,
   ]);
@@ -183,12 +299,20 @@ export function usePracticeVoiceTurn({
     () => ({
       ready: !!client && !!sessionId && !!turnId,
       state,
+      connectMicrophone,
+      getMediaStream,
       startRecording,
       stopAndSubmit,
+      discardUtterance,
+      releaseMicrophone,
       reset,
     }),
     [
       client,
+      connectMicrophone,
+      discardUtterance,
+      getMediaStream,
+      releaseMicrophone,
       reset,
       sessionId,
       startRecording,

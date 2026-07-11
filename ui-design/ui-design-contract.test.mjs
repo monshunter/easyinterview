@@ -411,6 +411,7 @@ test("Home and workspace share action card behavior", () => {
 
 test("P0 phone interview keeps the shared practice shell without deleted assistant surfaces", () => {
   const practice = readUiFile("./src/screen-practice.jsx");
+  const primitives = readUiFile("./src/primitives.jsx");
   const phoneSurface = practice.slice(
     practice.indexOf("const PhoneSessionSurface = "),
     practice.indexOf("const TranscriptMsg = "),
@@ -418,17 +419,34 @@ test("P0 phone interview keeps the shared practice shell without deleted assista
 
   assert.match(practice, /const PhoneSessionSurface = /);
   assert.match(practice, /const isPhone = activeMode === "phone";/);
+  assert.match(practice, /const activeMode = requestedMode === "phone" \? "phone" : "text";/);
+  assert.doesNotMatch(practice, /requestedMode === "voice"/);
   assert.match(practice, /<PhoneSessionSurface/);
   assert.match(practice, /电话模式|Phone/);
   assert.match(practice, /显示字幕|Show captions/);
-  assert.match(practice, /切断|Hang up/);
-  assert.match(practice, /重新开始|Restart/);
+  assert.match(practice, /data-testid="practice-topbar-phone-toggle"/);
+  assert.equal((practice.match(/data-testid="practice-topbar-phone-toggle"/g) || []).length, 1);
+  assert.match(practice, /const exitPhoneMode = \(\) =>/);
+  assert.match(practice, /onClick=\{isPhone \? exitPhoneMode : enterPhoneMode\}/);
+  assert.match(practice, /onHangUp=\{exitPhoneMode\}/);
+  assert.match(practice, /aria-pressed=\{isPhone\}/);
+  assert.match(phoneSurface, /data-testid="practice-phone-surface"/);
+  assert.match(phoneSurface, /data-testid="practice-phone-call-state"/);
+  assert.match(phoneSurface, /data-testid="practice-phone-waveform"/);
+  assert.match(phoneSurface, /data-testid="practice-phone-captions-toggle"/);
+  assert.match(phoneSurface, /data-testid="practice-phone-captions"/);
+  assert.match(phoneSurface, /data-testid="practice-phone-hangup"/);
+  assert.match(phoneSurface, /<Icon name="phone"[^>]*rotate\(135deg\)/);
+  assert.match(primitives, /phone:\s*<>/);
+  assert.doesNotMatch(primitives, /phone_off:\s*<>|replay:\s*<path/);
   assert.match(practice, /WaveformBars/);
   assert.match(practice, /gridTemplateColumns:\s*"260px minmax\(0, 1fr\)"/);
   assert.match(practice, /<QuestionHeader/);
   assert.match(practice, /<TranscriptPane/);
   assert.match(practice, /<PhoneSessionSurface/);
   assert.doesNotMatch(phoneSurface, /QuestionHeader|currentQ|qIdx/);
+  assert.doesNotMatch(practice, /const modes =|callState|onRestart|practice-phone-restart/);
+  assert.doesNotMatch(practice, /切断|重新开始|"Restart"|"live"|Call ended|通话已切断/);
   assert.doesNotMatch(practice, /严格模拟|Strict|Speech-to-text|语音转文字|插入转写|Skip|跳过|表达层指标|口头禅|长停顿|语速|音量/);
   assert.doesNotMatch(practice, /if\s*\(\s*k\s*===\s*"voice"\s*\)\s*nav\("voice"/);
 });

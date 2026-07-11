@@ -61,6 +61,9 @@ func (s *Service) applyHintAI(ctx context.Context, reservation SessionEventReser
 		return
 	}
 	hint, err := parseHint(resp.Content)
+	if err == nil {
+		err = validateGeneratedQuestionLanguage(hint, reservation.Session.Language)
+	}
 	if err != nil || strings.TrimSpace(hint) == "" {
 		s.writeHintTaskRun(ctx, reservation, resolution, sharederrors.CodeAiOutputInvalid)
 		s.degradeHint(ctx, reservation, outcome, sharederrors.CodeAiOutputInvalid, resolution)

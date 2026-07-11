@@ -13,4 +13,9 @@
 - AI fixture:
   - STT transcript: `我主导了设计系统迁移，先把 12 个团队按风险分组。`
   - Chat answer: `你如何处理最高风险团队的迁移窗口？`
-  - TTS bytes: in-memory fixture only, never persisted or returned
+  - Chat request uses the persisted session language plus server-owned plan, turn status and committed playback context
+  - TTS bytes: response uses a browser-playable data URL; persistence rewrites it to an opaque `voice-turn://` reference
+- Frontend call lifecycle:
+  - one call-scoped microphone stream is reused across utterance recorders
+  - VAD speech + silence submits automatically
+  - TTS completion rearms listening without a manual submit/restart control

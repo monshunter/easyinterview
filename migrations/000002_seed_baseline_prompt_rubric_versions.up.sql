@@ -44,15 +44,34 @@ Example complete JSON output:
 ```
 <!-- output-schema-contract:end -->
 $body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('ba817c2b-7771-5ab3-b44b-89881f703ed5', 'practice.session.follow_up', 'v0.1.0', 'multi', 'a486b559a2094bef15e430b906887cf3e74582f67a3ec252e0d9a71f9069b7a0', $body$You are continuing a mock interview. Based on the candidate's most recent
-answer, propose exactly one follow-up question that probes deeper, addresses a
-gap, or pivots to an uncovered rubric dimension. Respond in the language
-indicated by `{{language}}` (default English).
+  ('ba817c2b-7771-5ab3-b44b-89881f703ed5', 'practice.session.follow_up', 'v0.1.0', 'multi', '930af8b9880e30d322d2d607c9e507471b9c3266a06db80c4907b46607167cf2', $body$You are continuing a mock interview. Generate exactly one subsequent
+interview question from the server-owned context below.
 
+Generation kind: {{generation_kind}}
+- `follow_up`: probe the current answer more deeply or close a concrete gap.
+- `next_question`: move to a distinct question after the current turn has
+  already received its follow-up.
+
+Attempt mode: {{attempt_mode}}
+- `initial`: produce the best valid question directly.
+- `repair`: regenerate from the same context and correct any JSON, required
+  field, or language mismatch from the prior attempt.
+
+The candidate-facing `questionText` must be written in `{{language}}`.
+`questionIntent` is an internal concise label and must not be copied into the
+candidate-facing question.
+
+Practice goal: {{practice_goal}}
+Practice mode: {{practice_mode}}
+Current turn status: {{turn_status}}
+Target job reference: {{target_job_id}}
 Last question: {{last_question}}
-Last answer: {{last_answer}}
+Current question intent: {{question_intent}}
+Latest answer: {{last_answer}}
+Stored follow-up count: {{follow_up_count}}
 Coverage so far: {{covered_dimensions}}
 Remaining rubric dimensions: {{remaining_dimensions}}
+Assistant context already heard by the candidate: {{committed_context}}
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
@@ -76,7 +95,7 @@ Example complete JSON output:
 ```
 <!-- output-schema-contract:end -->
 
-Do not return more than one question.
+Do not return more than one question. Do not add commentary outside the JSON.
 $body$, TRUE, '2026-05-09T11:30:00Z'),
   ('84078349-c25c-5fd6-84a4-09825145e468', 'practice.turn.lightweight_observe', 'v0.1.0', 'multi', '58e27c96325cfaecfa9a112864e4c8a34a799a2166e1b1df2e8979770c032059', $body$You are a real-time interview observer. The candidate is partway through an
 answer; produce one short, neutral cue that the UI can surface without

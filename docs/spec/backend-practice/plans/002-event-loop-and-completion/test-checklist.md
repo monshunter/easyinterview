@@ -1,8 +1,8 @@
 # Backend Practice Event Loop and Completion Test Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -32,3 +32,12 @@
 ## Closeout
 
 - [x] Owner context, docs index and repo whitespace gates are covered（验证：`validate_context.py backend-practice/002 backend`、`sync-doc-index --check`、`make docs-check`、`git diff --check`）
+
+## Phase 7 Revision
+
+- [x] Focused tests prove text append and voice chat share canonical server-owned context/session language, use `generation_kind` for follow-up vs next question, and reject client question/intent/follow-up/next-question overrides.
+- [x] Parser/language tests prove JSON/schema/business-parser/wrong-language output receives at most one repair with identical context/language, while provider/config/secret/timeout/unsupported/fallback-exhausted errors receive none; a second invalid output cannot emit hard-coded English or canned question.
+- [x] Prompt tests prove canonical markers, repair semantics, template hash, baseline seed migration, resolved prompt snapshot and eval cases stay synchronized; prompt hardcode lint finds no Go-built natural-language prompt.
+- [x] Text tests prove second invalid output returns `session_wait`, restores pre-event turn control state and suppresses completion outbox; voice tests prove top-level `AI_OUTPUT_INVALID` occurs before result/TTS persistence and leaves the session unchanged.
+- [x] Updated P0.038/P0.009, focused/full backend, prompt/eval, OpenAPI/fixture/codegen, privacy/runtime-boundary, context/docs/index/diff gates pass.
+  <!-- verified: 2026-07-11 evidence="P0.038-P0.043 direct Go E2E and P0.009 wrapper PASS; full backend, prompt/eval, OpenAPI fixture/codegen, migration, privacy/runtime-boundary, four context and docs/index/diff gates PASS." -->

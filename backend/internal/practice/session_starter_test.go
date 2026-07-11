@@ -121,6 +121,58 @@ func TestStartPracticeSessionRunsThreeStepFlowWithAIOutsideTransactions(t *testi
 	}
 }
 
+func TestStartPracticeSessionRepairsWrongLanguageExactlyOnce(t *testing.T) {
+	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
+	store := &recordingPlanStore{reservation: SessionReservation{
+		IdempotencyRecordID: "idem-1",
+		SessionID:           "session-1",
+		PlanID:              "plan-1",
+		TargetJobID:         "target-1",
+		Goal:                sharedtypes.PracticeGoalBaseline,
+		Mode:                sharedtypes.PracticeModeAssisted,
+		InterviewerPersona:  sharedtypes.InterviewerRoleHiringManager,
+		Language:            "zh-CN",
+		RoleTitle:           "后端工程师",
+		CreatedAt:           now,
+	}}
+	ai := &fakeAIClient{contents: []string{
+		firstQuestionJSON(t, "Tell me about a production incident.", "incident"),
+		firstQuestionJSON(t, "请介绍一次你处理线上故障的经历。", "incident"),
+	}, store: store}
+	service := NewService(ServiceOptions{
+		Store: store,
+		Registry: &fakePromptResolver{resolution: registry.PromptResolution{
+			FeatureKey:          firstQuestionFeatureKey,
+			PromptVersion:       "prompt.v1",
+			RubricVersion:       "rubric.v1",
+			ModelProfileName:    "practice.first_question.default",
+			FeatureFlag:         "none",
+			DataSourceVersion:   "registry.v1",
+			OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
+			UserMessageTemplate: "Respond in {{language}} for {{role_title}}.",
+		}},
+		AI:    ai,
+		Now:   func() time.Time { return now },
+		NewID: sequenceIDs("idem-1", "session-1", "turn-1", "event-1", "outbox-1", "audit-1"),
+	})
+
+	session, err := service.StartPracticeSession(context.Background(), StartSessionRequest{
+		UserID:             "user-1",
+		PlanID:             "plan-1",
+		IdempotencyKeyHash: "key-hash",
+		RequestFingerprint: "fingerprint",
+	})
+	if err != nil {
+		t.Fatalf("StartPracticeSession: %v", err)
+	}
+	if session.CurrentTurn == nil || session.CurrentTurn.QuestionText != "请介绍一次你处理线上故障的经历。" {
+		t.Fatalf("first question did not use repaired output: %+v", session.CurrentTurn)
+	}
+	if len(ai.payloads) != 2 || !reflect.DeepEqual(store.steps, []string{"reserve", "ai", "ai", "commit"}) {
+		t.Fatalf("first-question repair count/order drift: calls=%d steps=%v", len(ai.payloads), store.steps)
+	}
+}
+
 func TestStartPracticeSessionFailsReservationWhenPromptResolutionFails(t *testing.T) {
 	store := &recordingPlanStore{
 		reservation: SessionReservation{
@@ -187,6 +239,16 @@ func TestParseFirstQuestionUsesCanonicalOutputKeys(t *testing.T) {
 			t.Fatalf("unexpected first question: %+v", got)
 		}
 	})
+
+	t.Run("rejects missing canonical intent", func(t *testing.T) {
+		_, err := parseFirstQuestion(`{"questionText":"Canonical question?"}`)
+		if err == nil {
+			t.Fatal("expected missing questionIntent to fail")
+		}
+		if code, ok := aiErrorCode(err); !ok || code != sharederrors.CodeAiOutputInvalid {
+			t.Fatalf("expected AI_OUTPUT_INVALID, got %T %v", err, err)
+		}
+	})
 }
 
 func TestStartPracticeSessionRejectsInvalidFirstQuestionOutput(t *testing.T) {
@@ -221,7 +283,7 @@ func TestStartPracticeSessionRejectsInvalidFirstQuestionOutput(t *testing.T) {
 			if _, err := service.StartPracticeSession(context.Background(), StartSessionRequest{UserID: "user-1", PlanID: "plan-1", IdempotencyKeyHash: "key-hash", RequestFingerprint: "fingerprint"}); err == nil {
 				t.Fatal("expected invalid first question output to be rejected")
 			}
-			if !reflect.DeepEqual(store.steps, []string{"reserve", "ai", "fail"}) {
+			if !reflect.DeepEqual(store.steps, []string{"reserve", "ai", "ai", "fail"}) {
 				t.Fatalf("invalid first question should fail the reservation without commit, steps=%v", store.steps)
 			}
 			if store.fail.ErrorCode != sharederrors.CodeAiOutputInvalid || store.fail.Retryable {
@@ -262,6 +324,7 @@ type fakeAIClient struct {
 	content                  string
 	contents                 []string
 	err                      error
+	errs                     []error
 	meta                     aiclient.AICallMeta
 	profileName              string
 	profileNames             []string
@@ -279,6 +342,13 @@ func (c *fakeAIClient) Complete(ctx context.Context, profileName string, payload
 	c.calledOutsideTransaction = c.store == nil || !c.store.inTx
 	if c.store != nil {
 		c.store.steps = append(c.store.steps, "ai")
+	}
+	if len(c.errs) > 0 {
+		err := c.errs[0]
+		c.errs = c.errs[1:]
+		if err != nil {
+			return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, err
+		}
 	}
 	if c.err != nil {
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, c.err

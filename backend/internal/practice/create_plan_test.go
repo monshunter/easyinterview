@@ -402,13 +402,19 @@ func (s *recordingPlanStore) RecordPracticeVoiceTurn(ctx context.Context, in Pra
 	if in.Session.ID != "" {
 		session = in.Session
 	}
-	session.Status = sharedtypes.SessionStatusRunning
+	session.Status = in.Outcome.NextSessionStatus
 	session.UpdatedAt = in.OccurredAt
-	if session.CurrentTurn != nil {
-		turn := *session.CurrentTurn
-		turn.Status = string(TurnStatusFollowUpRequested)
-		turn.FollowUpCount = 1
-		session.CurrentTurn = &turn
+	if in.NextQuestion != nil {
+		next := *in.NextQuestion
+		session.CurrentTurn = &next
+		session.TurnCount = next.TurnIndex
+	} else if in.Outcome.NextTurn != nil {
+		next := *in.Outcome.NextTurn
+		if in.Outcome.AssistantAction.Type == assistantActionAskFollowUp {
+			next.QuestionText = in.Outcome.AssistantAction.QuestionText
+			next.QuestionIntent = in.Outcome.AssistantAction.QuestionIntent
+		}
+		session.CurrentTurn = &next
 	}
 	return session, nil
 }

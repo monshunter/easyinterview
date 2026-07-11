@@ -1,8 +1,8 @@
 # 002 — Practice Text Event Loop Checklist
 
-> **版本**: 1.16
+> **版本**: 1.17
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 **关联计划**: [plan](./plan.md)
 
@@ -31,6 +31,8 @@
 - [x] `git diff --check`
 
 ## Phase 6: Real-interview session simplification
+
+> Historical completed evidence. Phase 10 supersedes the former restart/call-ended control contract and is the only current acceptance source.
 
 - [x] 6.1 UI truth source: 更新 `docs/ui-design/module-practice-review.md` 和 `ui-design/src/screen-practice.jsx`，当前真实面试 UI 不包含独立辅助信息栏、语音分析、语音转文字、跳过、会话内本地 persona switch、用户可见 strict switch，并新增电话模式字幕、切断、重新开始；验证: `node --test ui-design/ui-design-contract.test.mjs` + focused source grep。
   <!-- verified: 2026-07-09 method=tdd-red-green command="node --test ui-design/ui-design-contract.test.mjs" grep="rg -n forbidden terms ui-design/src/screen-practice.jsx ui-design/canvas.html" -->
@@ -69,3 +71,18 @@
 
 - [x] 9.1 Formal Practice TopBar consumes typed `practice.toolbar.questionTag`, `pause` and `resume` messages and renders the same visible copy as `ui-design/src/screen-practice.jsx`; verify focused TopBar/Practice/pause tests, locale reachability, UI parity and owner/global gates.
   <!-- verified: 2026-07-10 method=practice-topbar-copy-parity evidence="Behavior red showed the formal TopBar rendered only 1/5 and glyph-only pause controls. Green renders typed Question/Pause/Resume copy; focused Practice tests, 46-file/239-test owner directories, full frontend 137 files/841 tests, typecheck/build, 35 UI contracts, Practice Playwright 11 pass plus 1 expected desktop skip, P0.045 and both owner/product contexts pass." -->
+
+## Phase 10: single-handset phone transition and real session identity
+
+- [x] 10.1 UI truth source RED-GREEN: update the prototype/docs before runtime so Top Bar has one handset icon and no segmented/live controls; PhoneSurface has captions + red circular hang-up and no visible cut-off copy, restart or `callEnded`.
+  <!-- verified: 2026-07-11 method=ui-truth-source-red-green evidence="RED: focused UI contract failed on missing practice-topbar-phone-toggle while the prototype still had modes/callState/restart. GREEN: screen-practice.jsx now uses one aria-pressed handset toggle and a red circular practice-phone-hangup; primitives define phone/phone_off; the full node --test ui-design/ui-design-contract.test.mjs suite passes 45/45." -->
+- [x] 10.2 Frontend transition RED-GREEN: text handset enters phone; phone handset and center hang-up share `exitPhoneMode`, immediately stop microphone/TTS, settle non-empty capture safely, suppress later phone TTS and return to text for the same session.
+  <!-- verified: 2026-07-11 method=single-handset-exit evidence="RED rejected missing icon/shared exit and old restart/callEnded DOM. GREEN: PracticeScreen/PracticeModeSwitch 20 tests and phone integration 8 tests prove same-session text return, immediate microphone/TTS stop, heard-prefix commit without barge-in and late-playback suppression." -->
+- [x] 10.3 Real identity/content RED-GREEN: generated `getTargetJob(targetJobId)` drives company/title; real mode renders only server-returned session/transcript/AssistantAction; raw `questionIntent` and fixture/mock dialogue never render.
+  <!-- verified: 2026-07-11 method=server-session-real-content evidence="usePracticeTargetDisplay 4 tests plus Practice target integration 2 tests prove server session targetJobId wins route/context, generated getTargetJob supplies company/title, stale requests abort, and raw questionIntent/fixture dialogue do not render." -->
+- [x] 10.4 Voice timing/error RED-GREEN: VAD silence auto-submits, TTS-ended re-arms, only speech-start barge-ins; text repair failure renders `session_wait`, retains the original answer, avoids duplicate transcript and retries with a new `clientEventId`; voice repair failure uses the existing top-level typed error; both remain in the same session.
+  <!-- verified: 2026-07-11 method=automatic-phone-turns evidence="VAD kernel/monitor 6 tests, recording lifecycle 5, playback interrupt 6, phone controller 2, phone integration 8 and practice error recovery 3 pass; session_wait retains input with a new event ID, and AI_OUTPUT_INVALID remains localized in the same session without TTS." -->
+- [x] 10.5 BDD-Gate: update and execute `E2E.P0.045` / `E2E.P0.046` without new scenario IDs or HTTP schema expansion.
+  <!-- verified: 2026-07-11 evidence="P0.045 and P0.046 setup-trigger-verify-cleanup wrappers PASS using the existing scenario IDs and generated API; their focused suites cover single-handset transitions, real TargetJob identity, same-session continuity and typed repair recovery." -->
+- [x] 10.6 Parity / real-mode closeout: DOM, computed style, bounding box, viewport and screenshot gates plus focused/full frontend, typecheck/build, owner contexts, generated-client real-mode, docs/index and diff gates pass.
+  <!-- verified: 2026-07-11 evidence="UI contract 45/45, Practice pixel parity 11 pass/1 conditional skip, frontend 144 files/889 tests, typecheck/build and real-client gates PASS. Real API 1440x900 screenshots show server company/title and Chinese turn, one handset, red hang-up and same-session text return; owner contexts/docs/index/diff PASS." -->

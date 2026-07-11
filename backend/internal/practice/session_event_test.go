@@ -11,6 +11,11 @@ import (
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
+const (
+	testSHA256Prefixed = "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	testSHA256Bare     = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+)
+
 func TestSessionEventServiceRouteCoversAllKinds(t *testing.T) {
 	service := SessionEventService{}
 	session := sessionEventTestSession(1)
@@ -89,7 +94,7 @@ func TestSessionEventServiceRoutesVoicePlaybackEvents(t *testing.T) {
 			payload: map[string]any{
 				"voiceTurnId":      "voice-turn-1",
 				"chunkId":          "chunk-1",
-				"playedTextHash":   "sha256:chunk-1",
+				"playedTextHash":   testSHA256Prefixed,
 				"playedTextLength": 36,
 				"playbackOffsetMs": 2840,
 			},
@@ -108,7 +113,7 @@ func TestSessionEventServiceRoutesVoicePlaybackEvents(t *testing.T) {
 			payload: map[string]any{
 				"voiceTurnId":         "voice-turn-1",
 				"chunkId":             "chunk-1",
-				"committedTextHash":   "sha256:chunk-1",
+				"committedTextHash":   testSHA256Bare,
 				"committedTextLength": 36,
 				"playbackOffsetMs":    2840,
 			},
@@ -159,7 +164,7 @@ func TestSessionEventServiceRejectsMalformedVoicePlaybackEvent(t *testing.T) {
 		OccurredAt:    time.Date(2026, 5, 17, 8, 51, 0, 0, time.UTC),
 		Payload: map[string]any{
 			"chunkId":          "chunk-1",
-			"playedTextHash":   "sha256:chunk-1",
+			"playedTextHash":   testSHA256Prefixed,
 			"playedTextLength": 36,
 			"playbackOffsetMs": 2840,
 		},
@@ -169,6 +174,120 @@ func TestSessionEventServiceRejectsMalformedVoicePlaybackEvent(t *testing.T) {
 	}
 	if out.Error == nil || out.Error.Code != sharederrors.CodeValidationFailed || out.Error.Details["field"] != "payload.voiceTurnId" {
 		t.Fatalf("expected payload.voiceTurnId validation error, got %+v", out.Error)
+	}
+}
+
+func TestSessionEventServiceRejectsUnsafeVoicePlaybackMetadata(t *testing.T) {
+	service := SessionEventService{}
+	session := sessionEventTestSession(1)
+	turn := sessionEventTestTurn(1)
+	turn.Status = string(TurnStatusFollowUpRequested)
+	now := time.Date(2026, 5, 17, 8, 51, 0, 0, time.UTC)
+
+	cases := []struct {
+		name      string
+		kind      string
+		payload   map[string]any
+		wantField string
+	}{
+		{
+			name: "played hash cannot carry raw transcript",
+			kind: sessionEventKindTTSChunkPlayed,
+			payload: map[string]any{
+				"voiceTurnId":      "voice-turn-1",
+				"chunkId":          "chunk-1",
+				"playedTextHash":   "I led the migration across twelve teams.",
+				"playedTextLength": 41,
+				"playbackOffsetMs": 2840,
+			},
+			wantField: "payload.playedTextHash",
+		},
+		{
+			name: "committed hash requires exactly 64 hex characters",
+			kind: sessionEventKindContextCommitted,
+			payload: map[string]any{
+				"voiceTurnId":         "voice-turn-1",
+				"chunkId":             "chunk-1",
+				"committedTextHash":   "sha256:" + testSHA256Bare[:63],
+				"committedTextLength": 36,
+				"playbackOffsetMs":    2840,
+			},
+			wantField: "payload.committedTextHash",
+		},
+		{
+			name: "played hash rejects non-hex characters",
+			kind: sessionEventKindTTSChunkPlayed,
+			payload: map[string]any{
+				"voiceTurnId":      "voice-turn-1",
+				"chunkId":          "chunk-1",
+				"playedTextHash":   "sha256:gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+				"playedTextLength": 36,
+				"playbackOffsetMs": 2840,
+			},
+			wantField: "payload.playedTextHash",
+		},
+		{
+			name: "playback offset cannot be negative",
+			kind: sessionEventKindTTSChunkStarted,
+			payload: map[string]any{
+				"voiceTurnId":      "voice-turn-1",
+				"chunkId":          "chunk-1",
+				"playbackOffsetMs": -1,
+			},
+			wantField: "payload.playbackOffsetMs",
+		},
+		{
+			name: "speech start must be RFC3339",
+			kind: sessionEventKindBargeInDetected,
+			payload: map[string]any{
+				"voiceTurnId":         "voice-turn-1",
+				"chunkId":             "chunk-1",
+				"playbackOffsetMs":    1480,
+				"userSpeechStartedAt": "2026-05-17 08:51:05",
+			},
+			wantField: "payload.userSpeechStartedAt",
+		},
+		{
+			name: "voice turn id must be a safe token",
+			kind: sessionEventKindTTSChunkStarted,
+			payload: map[string]any{
+				"voiceTurnId":      "voice-turn-1/raw transcript",
+				"chunkId":          "chunk-1",
+				"playbackOffsetMs": 0,
+			},
+			wantField: "payload.voiceTurnId",
+		},
+		{
+			name: "chunk id must be a safe token",
+			kind: sessionEventKindTTSChunkStarted,
+			payload: map[string]any{
+				"voiceTurnId":      "voice-turn-1",
+				"chunkId":          "chunk 1",
+				"playbackOffsetMs": 0,
+			},
+			wantField: "payload.chunkId",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			out, err := service.Route(context.Background(), SessionEventInput{
+				SessionID:     session.ID,
+				ClientEventID: "client-event-voice",
+				Kind:          tc.kind,
+				OccurredAt:    now,
+				Payload:       tc.payload,
+			}, session, turn, sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline))
+			if err != nil {
+				t.Fatalf("Route returned error: %v", err)
+			}
+			if out.Error == nil || out.Error.Code != sharederrors.CodeValidationFailed || out.Error.Details["field"] != tc.wantField {
+				t.Fatalf("expected %s validation error, got %+v", tc.wantField, out.Error)
+			}
+			if out.Acknowledged || out.AuditMetadata != nil {
+				t.Fatalf("invalid voice metadata must not be acknowledged or audited: %+v", out)
+			}
+		})
 	}
 }
 

@@ -1,8 +1,8 @@
 # 003 Test Plan
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 **关联 Plan**: [plan](./plan.md)
 **关联 Test Checklist**: [test-checklist](./test-checklist.md)
@@ -16,6 +16,7 @@
 | AI/task-run contract | `hint_generate` is accepted by migration/A3 writer; F3/A3 success and failure write typed task-run evidence | `cd backend && go test ./internal/ai/aiclient ./internal/ai/registry ./internal/migrations -count=1` |
 | Provenance wire shape | AssistantAction provenance JSON has exactly six B2 fields and no runtime fields | `cd backend && go test ./internal/practice -run 'TestAssistantActionProvenance' -count=1` |
 | Graceful degrade | F3/A3/parser failures return session_wait, keep session running, and do not leak details | `cd backend && go test ./internal/practice ./cmd/api -run 'TestApplyHintAIGracefulDegradeMatrix|TestE2EP0051' -count=1` |
+| Hint language integrity | cue matches persisted session language; zh English / en Han output degrades to session_wait with no hint persistence or raw-output leakage | focused `applyHintAI` tests + `TestE2EP0051PracticeHintDegradeAndPrivacy` |
 | Privacy / redaction | no question/answer/hint/prompt/response/secret in logs, metrics, audit, events, typed task-run payloads | `cd backend && go test ./internal/practice ./cmd/api -run 'Privacy|Redact|TestE2EP0051' -count=1` |
 | Runtime boundary lint | removed mode/goal/route vocabulary absent from runtime/generated/scenario surfaces except explicit negative gates | `python3 scripts/lint/backend_practice_out_of_scope.py --repo-root . --phase all` |
 | BDD HTTP scenarios | P0.048-P0.051 all pass through `cmd/api` route/middleware/service/store harness | `cd backend && go test ./cmd/api -run 'TestE2EP0048|TestE2EP0049|TestE2EP0050|TestE2EP0051' -count=1` |

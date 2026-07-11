@@ -4,9 +4,11 @@ metadata:
   subspec: frontend-workspace-and-practice
   name: 002-practice-text-event-loop
   sequence: 2
+  baseBranch: main
+  branch: practice-phone-session-flow
   specVersion:
     from: 1.2
-    to: 1.31
+    to: 1.33
 spec:
   defaultTarget: frontend
   discovery:
@@ -42,8 +44,18 @@ spec:
       - ErrorState
       - PhoneSurface
       - phone captions
-      - hang up call
-      - restart call
+      - single handset
+      - exitPhoneMode
+      - hang up to text
+      - no restart call
+      - no callEnded
+      - VAD silence submit
+      - speech-start barge-in
+      - getTargetJob
+      - real company title
+      - no questionIntent display
+      - no fixture transcript
+      - session_wait retained answer new clientEventId
       - no independent side-panel controls
       - no in-session persona switch
       - no speech-to-text
@@ -100,6 +112,9 @@ spec:
         - ../../../../ui-design/ui-architecture.md
         - ../../../backend-practice/spec.md
         - ../../../backend-practice/plans/002-event-loop-and-completion/plan.md
+        - ../../../practice-voice-mvp/spec.md
+        - ../../../practice-voice-mvp/plans/001-cascaded-stt-llm-tts/plan.md
+        - ../../../backend-targetjob/spec.md
         - ../../../openapi-v1-contract/spec.md
         - ../../../mock-contract-suite/spec.md
         - ../../../shared-conventions-codified/spec.md
@@ -122,6 +137,7 @@ spec:
           - frontend/src/lib/ids.ts
           - frontend/tests/pixel-parity
           - ui-design/src
+          - openapi/fixtures/TargetJobs
           - openapi/fixtures/PracticeSessions
           - test/scenarios/e2e/p0-044-practice-text-loop-assisted-happy-path
           - test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display
@@ -131,6 +147,8 @@ spec:
           - practice
           - generating
         apiNames:
+          - getTargetJob
           - getPracticeSession
           - appendSessionEvent
+          - createPracticeVoiceTurn
           - completePracticeSession

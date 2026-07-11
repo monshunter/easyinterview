@@ -1,8 +1,8 @@
 # Backend Practice Event Loop and Completion Checklist
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 **关联计划**: [plan](./plan.md)
 
@@ -55,6 +55,23 @@
 
 - [x] 6.1 删除仅由自测调用的 `ParseTurnStatus` / `ParseWireTurnStatus` / `WireValue` / `valid`，保留四个生产常量并以直接集合测试锁定 wire 值；验证 production deadcode、symbol inventory、Practice focused/full tests、OpenAPI/generated drift、owner contexts 与 docs/diff/pruning gates。
   <!-- verified: 2026-07-10 method=practice-turn-status-helper-removal evidence="Production deadcode RED listed all four helpers. Removed them and replaced the round-trip self-test with direct assertions for the four production constants. Practice focused tests, P0.038-P0.043, full backend, staticcheck, codegen/conventions/runtime-boundary gates and owner contexts PASS." -->
+
+## Phase 7: Contextual and language-consistent question generation
+
+- [x] 7.1 RED: prove text and voice follow-up paths do not share a complete canonical context/language renderer, client payload can influence question inputs, or current fallback emits hard-coded/canned text.
+  <!-- verified: 2026-07-11 method=question-generation-red evidence="Focused Go tests failed on missing renderer/language gate, double-invalid canned fallback, client nextQuestion override, request-language voice override, and missing voice repair." -->
+- [x] 7.2 GREEN: route text append and voice chat through one server-owned renderer covering persisted session language, plan goal/mode/targetJobId, current turn question/intent/status/follow-up count, submitted answer/transcript, `generation_kind=follow_up|next_question` and applicable voice committed context; do not invent target title/round/resume/full-history context, and reject client question/intent/follow-up/next-question overrides.
+  <!-- verified: 2026-07-11 method=canonical-question-renderer evidence="renderQuestionTemplate binds all canonical markers fail-closed; text and voice use generateQuestion; next-question tests prove client fields do not enter prompt/turn; go test ./internal/practice -count=1 PASS." -->
+- [x] 7.3 GREEN: normalized session-language validation and structured parsing perform exactly one repair only for JSON/schema/business-parser/language invalidity; provider/config/secret/timeout/unsupported/fallback-exhausted errors do not repair; remove hard-coded English/canned question fallback and keep returned `questionIntent` internal.
+  <!-- verified: 2026-07-11 method=language-repair evidence="zh/en Unicode-script tests, text/voice wrong-language repair, provider no-repair, double-invalid and first-question language repair tests PASS; questionIntent remains internal-only." -->
+- [x] 7.4 Prompt truth source: update canonical markers/repair semantics in `config/prompts/practice.session.follow_up`, then synchronize template hash, baseline seed migration, resolved prompt snapshot and eval cases; prompt hardcode lint stays green.
+  <!-- verified: 2026-07-11 method=prompt-truth-source evidence="make lint-prompts and make lint-prompts-hardcode PASS; template hash/seed/resolved snapshot synchronized; make eval-offline PASS with 36 cases including zh RAG, next-question, en and wrong-language cases." -->
+- [x] 7.5 Failure path: second text invalid output returns `session_wait`, restores pre-event turn control state and suppresses completion outbox so frontend can retry the retained answer with a new `clientEventId`; second voice invalid output returns top-level `AI_OUTPUT_INVALID` before result/TTS persistence and leaves the session row unchanged; no HTTP/event/schema expansion.
+  <!-- verified: 2026-07-11 method=typed-failure-recovery evidence="Focused text test proves pre-event turn restoration/no outbox/no next turn; voice test proves two chat calls then AI_OUTPUT_INVALID with no TTS/persistence; store test removes answerText duplication from event metadata." -->
+- [x] 7.6 BDD-Gate: update and run `E2E.P0.038` for canonical context, language, exact repair count, client-override negative and state-preserving failure; coordinate `E2E.P0.009` voice failure assertions with practice-voice owner.
+  <!-- verified: 2026-07-11 evidence="Direct P0.038-P0.043 Go E2E suite and P0.009 wrapper PASS; P0.038 covers server-owned context/session language, override negatives, exact repair count and state restore, while P0.009 covers the coordinated voice error/TTS/persistence boundary." -->
+- [x] 7.7 Regression: focused/full backend tests plus `make lint-prompts lint-prompts-hardcode eval-offline-resolve eval-offline migrate-check`, OpenAPI/fixture/codegen, privacy/runtime boundary, context, docs/index and diff gates pass.
+  <!-- verified: 2026-07-11 evidence="Full backend go test ./... -count=1 and scoped staticcheck PASS; prompt lint/hardcode/eval 36 cases, OpenAPI lint/codegen/fixtures 37, events/codegen, migration, privacy/runtime-boundary, owner contexts, docs/index and diff gates PASS." -->
 
 ## 收口命令
 

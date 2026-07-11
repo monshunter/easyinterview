@@ -3,6 +3,7 @@ package practice
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -27,7 +28,7 @@ func TestAppendSessionEventFollowUpRunsAIOutsideReservationAndCommits(t *testing
 	ai := &fakeAIClient{
 		contents: []string{
 			`{"cue":"Good evidence cue.","answerSummary":"Candidate explained aligning 12 teams and measuring adoption."}`,
-			firstQuestionJSON(t, "What was the strongest objection?", "behavioral.depth"),
+			firstQuestionJSON(t, "当时最强烈的反对意见是什么？", "behavioral.depth"),
 		},
 		store: store,
 	}
@@ -50,7 +51,7 @@ func TestAppendSessionEventFollowUpRunsAIOutsideReservationAndCommits(t *testing
 				FeatureFlag:         "follow_up_v1",
 				DataSourceVersion:   "registry.v1",
 				OutputSchema:        practiceOutputSchema(`{"type":"object","required":["questionText","questionIntent"],"properties":{"questionText":{"type":"string"},"questionIntent":{"type":"string"}}}`),
-				UserMessageTemplate: "ask a follow up",
+				UserMessageTemplate: "language={{language}} kind={{generation_kind}} attempt={{attempt_mode}} question={{last_question}} answer={{last_answer}} intent={{question_intent}} goal={{practice_goal}} mode={{practice_mode}} target={{target_job_id}} count={{follow_up_count}} covered={{covered_dimensions}} remaining={{remaining_dimensions}} committed={{committed_context}}",
 			},
 		}},
 		AI:    ai,
@@ -79,7 +80,7 @@ func TestAppendSessionEventFollowUpRunsAIOutsideReservationAndCommits(t *testing
 		t.Fatalf("turn observation and follow-up AI must run outside repository transaction")
 	}
 	if result.AssistantAction.Type != assistantActionAskFollowUp ||
-		result.AssistantAction.QuestionText != "What was the strongest objection?" ||
+		result.AssistantAction.QuestionText != "当时最强烈的反对意见是什么？" ||
 		result.AssistantAction.Provenance.PromptVersion != "followup.prompt.v1" {
 		t.Fatalf("unexpected follow-up action: %+v", result.AssistantAction)
 	}
@@ -95,6 +96,22 @@ func TestAppendSessionEventFollowUpRunsAIOutsideReservationAndCommits(t *testing
 	}
 	if len(ai.payload.Metadata.OutputSchema) == 0 {
 		t.Fatalf("follow-up metadata OutputSchema must be populated")
+	}
+	followUpPrompt := ai.payloads[1].Messages[len(ai.payloads[1].Messages)-1].Content
+	for _, want := range []string{
+		"language=zh-CN",
+		"kind=follow_up",
+		"attempt=initial",
+		"question=Tell me about a cross-team migration.",
+		"answer=I aligned 12 teams.",
+		"intent=behavioral.leadership",
+	} {
+		if !strings.Contains(followUpPrompt, want) {
+			t.Fatalf("follow-up prompt missing %q: %s", want, followUpPrompt)
+		}
+	}
+	if strings.Contains(followUpPrompt, "{{") {
+		t.Fatalf("follow-up prompt contains unresolved marker: %s", followUpPrompt)
 	}
 	if store.eventReservationInput.EventID != "event-1" {
 		t.Fatalf("reservation event id = %q, want event-1", store.eventReservationInput.EventID)
@@ -139,7 +156,7 @@ func TestAppendSessionEventVoicePlaybackCommitsWithoutAI(t *testing.T) {
 		Payload: map[string]any{
 			"voiceTurnId":      "voice-turn-1",
 			"chunkId":          "chunk-1",
-			"playedTextHash":   "sha256:chunk-1",
+			"playedTextHash":   testSHA256Prefixed,
 			"playedTextLength": 36,
 			"playbackOffsetMs": 2840,
 		},
@@ -158,8 +175,52 @@ func TestAppendSessionEventVoicePlaybackCommitsWithoutAI(t *testing.T) {
 		store.appendEvent.RequestPayload["voiceTurnId"] != "voice-turn-1" {
 		t.Fatalf("voice event append input drift: %+v", store.appendEvent)
 	}
-	if store.appendEvent.Outcome.AuditMetadata["played_text_hash"] != "sha256:chunk-1" {
+	if store.appendEvent.Outcome.AuditMetadata["played_text_hash"] != testSHA256Prefixed {
 		t.Fatalf("voice playback audit summary missing: %+v", store.appendEvent.Outcome.AuditMetadata)
+	}
+}
+
+func TestAppendSessionEventRejectsTranscriptDisguisedAsPlayedHash(t *testing.T) {
+	now := time.Date(2026, 5, 17, 8, 51, 4, 0, time.UTC)
+	rawTranscript := "I led the migration across twelve teams."
+	store := &recordingPlanStore{eventReservation: SessionEventReservation{
+		UserID:     "user-1",
+		Session:    sessionEventTestSession(1),
+		Plan:       sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline),
+		LatestTurn: sessionEventTestTurn(1),
+	}}
+	service := NewService(ServiceOptions{
+		Store: store,
+		Now:   func() time.Time { return now },
+		NewID: sequenceIDs("event-voice-invalid"),
+	})
+
+	_, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
+		UserID:        "user-1",
+		SessionID:     "session-1",
+		ClientEventID: "client-event-voice-invalid",
+		Kind:          sessionEventKindTTSChunkPlayed,
+		OccurredAt:    now,
+		Payload: map[string]any{
+			"voiceTurnId":      "voice-turn-1",
+			"chunkId":          "chunk-1",
+			"playedTextHash":   rawTranscript,
+			"playedTextLength": len([]rune(rawTranscript)),
+			"playbackOffsetMs": 2840,
+		},
+	})
+	var svcErr *ServiceError
+	if !errors.As(err, &svcErr) || svcErr.Code != sharederrors.CodeValidationFailed || svcErr.Details["field"] != "payload.playedTextHash" {
+		t.Fatalf("expected playedTextHash validation error, got %v", err)
+	}
+	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "finalize-event-error"}) {
+		t.Fatalf("invalid voice metadata must finalize the reservation without appending: %v", store.steps)
+	}
+	if store.finalizeEventError.Error == nil || store.finalizeEventError.Error.Details["field"] != "payload.playedTextHash" {
+		t.Fatalf("finalized validation error drifted: %+v", store.finalizeEventError.Error)
+	}
+	if store.appendEvent.EventID != "" {
+		t.Fatalf("invalid voice metadata reached append: %+v", store.appendEvent)
 	}
 }
 
@@ -229,22 +290,29 @@ func TestAppendSessionEventReplayReturnsStoredErrorBeforeResult(t *testing.T) {
 	}
 }
 
-func TestAppendSessionEventFollowUpAIFailureFallsBackToAskQuestion(t *testing.T) {
+func TestAppendSessionEventSecondInvalidQuestionReturnsSessionWaitWithoutAdvancingTurn(t *testing.T) {
 	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
-	store := &recordingPlanStore{
-		eventReservation: SessionEventReservation{
-			UserID:     "user-1",
-			Session:    sessionEventTestSession(1),
-			Plan:       sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline),
-			LatestTurn: sessionEventTestTurn(1),
-		},
+	reservation := SessionEventReservation{
+		UserID:     "user-1",
+		Session:    sessionEventTestSession(1),
+		Plan:       sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline),
+		LatestTurn: sessionEventTestTurn(1),
 	}
+	store := &recordingPlanStore{
+		eventReservation: reservation,
+	}
+	ai := &fakeAIClient{contents: []string{
+		firstQuestionJSON(t, "How did you measure the impact?", "evidence"),
+		firstQuestionJSON(t, "What tradeoff did you make?", "tradeoff"),
+	}, store: store}
 	service := NewService(ServiceOptions{
-		Store:    store,
-		Registry: &fakePromptResolver{resolution: registry.PromptResolution{ModelProfileName: "practice.follow_up.default", PromptVersion: "p", RubricVersion: "r", FeatureFlag: "none", DataSourceVersion: "registry.v1"}},
-		AI:       &fakeAIClient{err: errors.New("AI_PROVIDER_TIMEOUT"), store: store},
-		Now:      func() time.Time { return now },
-		NewID:    sequenceIDs("event-1", "outbox-1"),
+		Store: store,
+		Registry: &fakePromptResolver{resolutions: map[string]registry.PromptResolution{
+			followUpFeatureKey: questionTestResolution(),
+		}},
+		AI:    ai,
+		Now:   func() time.Time { return now },
+		NewID: sequenceIDs("event-1", "outbox-1"),
 	})
 
 	result, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
@@ -261,8 +329,74 @@ func TestAppendSessionEventFollowUpAIFailureFallsBackToAskQuestion(t *testing.T)
 	if err != nil {
 		t.Fatalf("AppendSessionEvent returned error: %v", err)
 	}
-	if result.AssistantAction.Type != assistantActionAskQuestion || result.AssistantAction.RequiresAI {
-		t.Fatalf("AI failure should degrade to non-blocking ask_question: %+v", result.AssistantAction)
+	if result.AssistantAction.Type != assistantActionSessionWait || result.AssistantAction.QuestionText != "" || result.AssistantAction.RequiresAI {
+		t.Fatalf("double-invalid output must wait without canned question: %+v", result.AssistantAction)
+	}
+	if store.appendEvent.Outcome.NextTurn == nil || *store.appendEvent.Outcome.NextTurn != reservation.LatestTurn {
+		t.Fatalf("turn control state advanced on generation failure: got %+v want %+v", store.appendEvent.Outcome.NextTurn, reservation.LatestTurn)
+	}
+	if store.appendEvent.Outcome.OutboxRecord != nil || store.appendEvent.NextQuestion != nil {
+		t.Fatalf("generation failure must suppress completion side effects: outcome=%+v next=%+v", store.appendEvent.Outcome, store.appendEvent.NextQuestion)
+	}
+	if len(ai.payloads) != 2 {
+		t.Fatalf("invalid output must repair exactly once, calls=%d", len(ai.payloads))
+	}
+}
+
+func TestAppendSessionEventNextQuestionIgnoresClientQuestionFields(t *testing.T) {
+	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
+	turn := sessionEventTestTurn(1)
+	turn.QuestionText = "服务器已持久化的追问是什么？"
+	turn.QuestionIntent = "evidence.follow_up"
+	turn.Status = string(TurnStatusFollowUpRequested)
+	turn.FollowUpCount = 1
+	store := &recordingPlanStore{eventReservation: SessionEventReservation{
+		UserID:     "user-1",
+		Session:    sessionEventTestSession(1),
+		Plan:       sessionEventTestPlan(3, sharedtypes.PracticeGoalBaseline),
+		LatestTurn: turn,
+	}}
+	ai := &fakeAIClient{content: firstQuestionJSON(t, "请再介绍一个与目标岗位相关的取舍案例。", "system_design.tradeoff"), store: store}
+	service := NewService(ServiceOptions{
+		Store: store,
+		Registry: &fakePromptResolver{resolutions: map[string]registry.PromptResolution{
+			followUpFeatureKey: questionTestResolution(),
+		}},
+		AI:    ai,
+		Now:   func() time.Time { return now },
+		NewID: sequenceIDs("event-1", "turn-2", "outbox-1"),
+	})
+
+	result, err := service.AppendSessionEvent(context.Background(), AppendSessionEventRequest{
+		UserID:        "user-1",
+		SessionID:     "session-1",
+		ClientEventID: "client-event-2",
+		Kind:          sessionEventKindAnswerSubmitted,
+		OccurredAt:    now,
+		Payload: map[string]any{
+			"turnId":             "turn-1",
+			"answerText":         "我补充说明了验证方法。",
+			"nextQuestionText":   "CLIENT OVERRIDE QUESTION",
+			"nextQuestionIntent": "client.override",
+		},
+	})
+	if err != nil {
+		t.Fatalf("AppendSessionEvent returned error: %v", err)
+	}
+	if result.AssistantAction.Type != assistantActionAskQuestion || result.AssistantAction.QuestionText != "请再介绍一个与目标岗位相关的取舍案例。" {
+		t.Fatalf("unexpected server question action: %+v", result.AssistantAction)
+	}
+	if store.appendEvent.NextQuestion == nil ||
+		store.appendEvent.NextQuestion.QuestionText != "请再介绍一个与目标岗位相关的取舍案例。" ||
+		store.appendEvent.NextQuestion.QuestionIntent != "system_design.tradeoff" {
+		t.Fatalf("next question did not come from server generation: %+v", store.appendEvent.NextQuestion)
+	}
+	prompt := ai.payloads[0].Messages[len(ai.payloads[0].Messages)-1].Content
+	if !strings.Contains(prompt, "question=服务器已持久化的追问是什么？") || strings.Contains(prompt, "question=Tell me about a cross-team migration.") {
+		t.Fatalf("next-question prompt did not use the persisted server follow-up: %s", prompt)
+	}
+	if strings.Contains(prompt, "CLIENT OVERRIDE") {
+		t.Fatalf("client next-question override entered the AI prompt: %+v", ai.payloads[0])
 	}
 }
 
@@ -281,7 +415,7 @@ func TestServiceAppliesHintAIForAssisted(t *testing.T) {
 			LatestTurn: sessionEventTestTurn(1),
 		},
 	}
-	ai := &fakeAIClient{content: `{"cue":"Use one measurable tradeoff."}`, store: store}
+	ai := &fakeAIClient{content: `{"cue":"请补充一个可量化的取舍。"}`, store: store}
 	service := NewService(ServiceOptions{
 		Store: store,
 		Registry: &fakePromptResolver{resolution: registry.PromptResolution{
@@ -312,7 +446,7 @@ func TestServiceAppliesHintAIForAssisted(t *testing.T) {
 	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "ai", "append-event"}) {
 		t.Fatalf("steps = %v", store.steps)
 	}
-	if result.AssistantAction.Type != assistantActionShowHint || result.AssistantAction.Hint != "Use one measurable tradeoff." {
+	if result.AssistantAction.Type != assistantActionShowHint || result.AssistantAction.Hint != "请补充一个可量化的取舍。" {
 		t.Fatalf("unexpected hint action: %+v", result.AssistantAction)
 	}
 	if result.AssistantAction.Provenance.RubricVersion != "not_applicable" ||
@@ -345,7 +479,7 @@ func TestServiceAppliesHintAIForStrictMode(t *testing.T) {
 			LatestTurn: sessionEventTestTurn(1),
 		},
 	}
-	ai := &fakeAIClient{content: `{"cue":"Use a measurable tradeoff."}`, store: store}
+	ai := &fakeAIClient{content: `{"cue":"请说明一个可量化的取舍。"}`, store: store}
 	service := NewService(ServiceOptions{
 		Store:    store,
 		Registry: &fakePromptResolver{resolution: hintTestResolution()},
@@ -365,7 +499,7 @@ func TestServiceAppliesHintAIForStrictMode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AppendSessionEvent returned error: %v", err)
 	}
-	if result.AssistantAction.Type != assistantActionShowHint || result.AssistantAction.Hint != "Use a measurable tradeoff." {
+	if result.AssistantAction.Type != assistantActionShowHint || result.AssistantAction.Hint != "请说明一个可量化的取舍。" {
 		t.Fatalf("unexpected strict hint action: %+v", result.AssistantAction)
 	}
 	if !reflect.DeepEqual(store.steps, []string{"reserve-event", "ai", "append-event"}) {
@@ -376,7 +510,7 @@ func TestServiceAppliesHintAIForStrictMode(t *testing.T) {
 func TestApplyHintAISuccess(t *testing.T) {
 	reservation := hintTestReservation()
 	ai := &fakeAIClient{
-		content: `{"cue":"Tie the answer to a concrete metric.","severity":"nudge","dimensionHint":"evidence"}`,
+		content: `{"cue":"请把回答关联到一个具体指标。","severity":"nudge","dimensionHint":"evidence"}`,
 		meta: aiclient.AICallMeta{
 			ModelID:          "stub-chat-1",
 			ValidationStatus: aiclient.ValidationStatusOK,
@@ -391,7 +525,7 @@ func TestApplyHintAISuccess(t *testing.T) {
 	service.applyHintAI(context.Background(), reservation, map[string]any{"answerText": "short answer"}, outcome)
 
 	if outcome.AssistantAction.Type != assistantActionShowHint ||
-		outcome.AssistantAction.Hint != "Tie the answer to a concrete metric." ||
+		outcome.AssistantAction.Hint != "请把回答关联到一个具体指标。" ||
 		outcome.AssistantAction.RequiresAI {
 		t.Fatalf("unexpected hint outcome: %+v", outcome.AssistantAction)
 	}
@@ -409,6 +543,38 @@ func TestApplyHintAISuccess(t *testing.T) {
 	}
 	if len(ai.payload.Metadata.OutputSchema) == 0 {
 		t.Fatalf("hint metadata OutputSchema must be populated")
+	}
+}
+
+func TestApplyHintAIWrongLanguageDegradesWithoutVisibleCue(t *testing.T) {
+	cases := []struct {
+		name     string
+		language string
+		cue      string
+	}{
+		{name: "zh session rejects English cue", language: "zh-CN", cue: "Use one measurable tradeoff."},
+		{name: "en session rejects Han cue", language: "en", cue: "请补充一个可量化的取舍。"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			reservation := hintTestReservation()
+			reservation.Session.Language = tc.language
+			reservation.Plan.Language = tc.language
+			ai := &fakeAIClient{content: fmt.Sprintf(`{"cue":%q}`, tc.cue)}
+			service := NewService(ServiceOptions{
+				Registry: &fakePromptResolver{resolution: hintTestResolution()},
+				AI:       ai,
+			})
+			outcome := hintPendingOutcome(reservation)
+
+			service.applyHintAI(context.Background(), reservation, map[string]any{}, outcome)
+
+			if outcome.AssistantAction.Type != assistantActionSessionWait ||
+				outcome.AssistantAction.Hint != "" ||
+				outcome.NextSessionStatus != sharedtypes.SessionStatusRunning {
+				t.Fatalf("wrong-language hint must degrade without visible cue: %+v", outcome)
+			}
+		})
 	}
 }
 
@@ -527,7 +693,7 @@ func TestAppendSessionEventCompletedTurnPersistsObservationSummary(t *testing.T)
 func TestApplyHintAIBuildsPromptFromF3Template(t *testing.T) {
 	reservation := hintTestReservation()
 	reservation.LatestTurn.QuestionText = "Tell me about a cross-team migration."
-	ai := &fakeAIClient{content: `{"cue":"Use a metric.","severity":"nudge","dimensionHint":"evidence"}`}
+	ai := &fakeAIClient{content: `{"cue":"请补充一个指标。","severity":"nudge","dimensionHint":"evidence"}`}
 	service := NewService(ServiceOptions{
 		Registry: &fakePromptResolver{resolution: registry.PromptResolution{
 			PromptVersion:       "hint.prompt.v1",

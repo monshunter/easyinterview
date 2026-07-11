@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  *
- * Current segmented control exposes text / phone. Out-of-scope voice route params are
- * not accepted as a phone-mode alias.
+ * One phone icon enters phone mode. The same top-bar icon and the central hang-up
+ * icon leave phone mode while preserving the current session.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -64,13 +64,13 @@ describe("PracticeScreen mode switch", () => {
     expect(screen.queryByTestId("practice-voice-expression-panel")).toBeNull();
   });
 
-  it("clicking the phone segmented control from out-of-scope voice params navigates with mode='phone'", async () => {
+  it("clicking the phone icon from out-of-scope voice params navigates with mode='phone'", async () => {
     const voiceRoute: Route = {
       ...ROUTE_BASE,
       params: { ...ROUTE_BASE.params, mode: "voice", modality: "voice" },
     };
     const { nav } = withProviders(<PracticeScreen route={voiceRoute} />);
-    const phoneButton = screen.getByTestId("practice-topbar-mode-phone");
+    const phoneButton = screen.getByTestId("practice-topbar-phone-toggle");
     await userEvent.click(phoneButton);
     expect(nav).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -80,9 +80,9 @@ describe("PracticeScreen mode switch", () => {
     );
   });
 
-  it("clicking the phone segmented control navigates with mode='phone'", async () => {
+  it("clicking the phone icon navigates with mode='phone'", async () => {
     const { nav } = withProviders(<PracticeScreen route={ROUTE_BASE} />);
-    const phoneBtn = screen.getByTestId("practice-topbar-mode-phone");
+    const phoneBtn = screen.getByTestId("practice-topbar-phone-toggle");
     await userEvent.click(phoneBtn);
     expect(nav).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -90,6 +90,28 @@ describe("PracticeScreen mode switch", () => {
         params: expect.objectContaining({ mode: "phone", modality: "phone" }),
       }),
     );
+  });
+
+  it.each([
+    ["top bar", "practice-topbar-phone-toggle"],
+    ["center hang-up", "practice-phone-hangup"],
+  ])("%s exit keeps the session and returns to text mode", async (_label, testId) => {
+    const phoneRoute: Route = {
+      ...ROUTE_BASE,
+      params: { ...ROUTE_BASE.params, mode: "phone", modality: "phone" },
+    };
+    const { nav } = withProviders(<PracticeScreen route={phoneRoute} />);
+
+    await userEvent.click(screen.getByTestId(testId));
+
+    expect(nav).toHaveBeenCalledWith({
+      name: "practice",
+      params: expect.objectContaining({
+        sessionId: ROUTE_BASE.params.sessionId,
+        mode: "text",
+        modality: "text",
+      }),
+    });
   });
 
   it("text mode keeps phone / deleted voice DOM out of the text surface", () => {

@@ -4,9 +4,11 @@ metadata:
   subspec: practice-voice-mvp
   name: 001-cascaded-stt-llm-tts
   sequence: 1
+  baseBranch: main
+  branch: practice-phone-session-flow
   specVersion:
     from: null
-    to: 1.13
+    to: 1.14
 spec:
   defaultTarget: backend
   discovery:
@@ -32,8 +34,15 @@ spec:
       - assistant_text_draft
       - tts_chunk_played
       - barge_in_detected
-      - hang up call
-      - restart call
+      - single handset
+      - exitPhoneMode
+      - hang up to text
+      - VAD silence submit
+      - TTS ended rearm
+      - speech-start barge-in
+      - session language
+      - prompt repair
+      - no canned question
       - captions
       - current phone surface controls
       - no manual transcription entry
@@ -52,6 +61,8 @@ spec:
         - ../../../ai-provider-and-model-routing/spec.md
         - ../../../ai-provider-and-model-routing/plans/004-cascaded-speech-provider-foundation/plan.md
         - ../../../product-scope/spec.md
+        - ../../../backend-practice/spec.md
+        - ../../../backend-practice/plans/002-event-loop-and-completion/plan.md
         - ../../../../development.md
         - ../../../../ui-design/module-practice-review.md
         - ../../../../ui-design/module-map.md
@@ -77,6 +88,8 @@ spec:
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
       references:
+        - ../../../frontend-workspace-and-practice/spec.md
+        - ../../../frontend-workspace-and-practice/plans/002-practice-text-event-loop/plan.md
         - ../../../../development.md
         - ../../../../ui-design/module-practice-review.md
         - ../../../../ui-design/module-map.md
@@ -84,7 +97,9 @@ spec:
         - ../../../../ui-design/ui-architecture.md
       discovery:
         packages:
-          - frontend/src/app/screens/PracticeScreen.tsx
+          - frontend/src/app/screens/practice
+          - frontend/src/app/i18n/locales
+          - frontend/tests/pixel-parity/practice.spec.ts
           - frontend/src/api/generated
           - frontend/src/api/mockTransport.ts
           - ui-design/src/screen-practice.jsx

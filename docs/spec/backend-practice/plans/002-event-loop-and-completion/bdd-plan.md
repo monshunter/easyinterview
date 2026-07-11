@@ -1,8 +1,8 @@
 # Backend Practice Event Loop and Completion BDD Plan
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 **关联 BDD Checklist**: [bdd-checklist](./bdd-checklist.md)
@@ -21,7 +21,7 @@
 
 | 场景 ID | 名称 | 类别 | 覆盖 |
 |---------|------|------|------|
-| `E2E.P0.038` | append answer flow | primary | answer_submitted 三分支、server-owned follow-up state、turn status 4 值、turn-completed outbox |
+| `E2E.P0.038` | append answer flow | primary + failure/recovery | answer_submitted 三分支、follow-up/next-question generation kind、canonical server-owned context、session language、client-override negative、exactly-one repair、second invalid `session_wait`、turn/outbox contract |
 | `E2E.P0.039` | append replay / mismatch / kind router / header policy | boundary + failure | `clientEventId` replay/mismatch、4 kind routing、strict-mode hint returns `show_hint`、append header refusal、cross-user 404 |
 | `E2E.P0.040` | append sequencing boundary | boundary | stale-turn conflict, accepted event `seq_no` continuity, outbox count alignment |
 | `E2E.P0.041` | completion handoff | primary | HTTP 202, queued report/job, session completion event, outbox, idempotency snapshot |
@@ -32,7 +32,7 @@
 
 | 场景 ID | Given | When | Then | 验证入口 |
 |---------|-------|------|------|----------|
-| `E2E.P0.038` | 已登录用户拥有 ready practice plan、running session、asked current turn 和 fake follow-up AI | 连续提交 `answer_submitted` 事件覆盖 follow-up、next-question 和 session-completed 分支 | HTTP 200；assistant action 类型正确；client payload 不驱动 `follow_up_count`；accepted events `seq_no` 连续；turn status 暴露当前 4 值；`practice.turn.completed` outbox 一次/turn；provenance 仅含 wire 字段 | `TestE2EP0038PracticeEventLoopAnswerFlow` |
+| `E2E.P0.038` | 已登录用户拥有 ready plan、running session、asked current turn、session language 和可编排 fake question AI；client payload 含冲突 question/intent/count/next-question；AI 可返回 malformed 或结构合法但 wrong-language result | 连续提交 `answer_submitted` 覆盖 follow-up、next-question、session-completed、single-repair success、provider-no-repair 和 double-invalid | HTTP 200；server-owned canonical context/language 与 generation kind 决定用户可见问题；client override 不生效；parser/language invalid 只 repair 一次，provider error 不 repair；第二次 invalid 返回 `session_wait`、恢复事件前 turn 控制状态且不写 completion outbox，无 canned question；事件/provenance 合同保持 | `TestE2EP0038PracticeEventLoopAnswerFlow` |
 | `E2E.P0.039` | 用户 A 拥有 running session；用户 B 独立；矩阵覆盖 replay、mismatch、kind、header 和 cross-user | 同 payload 重放、变更 payload 重放、提交 4 种当前 text kind、携带 `Idempotency-Key`、用户 B 访问用户 A session | replay 返回原结果且无重复 side effect；mismatch 返回 409；4 kind 均路由；strict-mode hint 返回 `show_hint`；header 返回 400；cross-user 返回 404 | `TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy` |
 | `E2E.P0.040` | current turn 先进入 `follow_up_requested`；两个客户端持有同一 turn 上下文 | 一个请求推进 turn，另一个请求继续提交同一 turn | 一个请求成功，另一个 stale-turn conflict；错误 envelope 不泄露另一请求 payload；accepted events `seq_no` 连续；turn-completed outbox 行数与 completed turn 对齐 | `TestE2EP0040PracticeEventConcurrentSeqNoStaleTurnConflict` |
 | `E2E.P0.041` | 用户 A 的 running session 已满足完成条件 | 调用 `POST /practice/sessions/{sessionId}/complete` 并携带 `Idempotency-Key` | HTTP 202 + `ReportWithJob`；session=`completing`；queued `feedback_reports` 和 `async_jobs(report_generate)` 各一行；`practice.session.completed` outbox 一行；idempotency snapshot 与响应一致 | `TestE2EP0041PracticeSessionCompleteCreatesQueuedReportJob` |

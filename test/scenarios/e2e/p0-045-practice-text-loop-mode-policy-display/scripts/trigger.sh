@@ -8,10 +8,20 @@ mkdir -p "$OUTPUT_DIR"
   cd "$REPO_ROOT"
   "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test \
+    src/app/screens/practice/PracticeScreen.test.tsx \
     src/app/screens/practice/__tests__/practiceGoalParity.test.tsx \
     src/app/screens/practice/__tests__/practiceHints.test.tsx \
     src/app/screens/practice/__tests__/practicePauseResume.test.tsx \
+    src/app/screens/practice/__tests__/practiceTargetDisplay.test.tsx \
     src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx \
+    src/app/screens/practice/__tests__/practiceSessionContinuity.test.tsx \
     src/app/screens/practice/__tests__/practiceModeSwitch.test.tsx \
-    src/app/screens/practice/__tests__/SessionMap.test.tsx
+    src/app/screens/practice/__tests__/SessionMap.test.tsx \
+    src/app/screens/practice/usePracticeTargetDisplay.test.tsx \
+    src/app/screens/practice/usePracticePhoneController.test.tsx \
+    src/app/screens/practice/phoneVad.test.ts \
+    src/app/screens/practice/phoneVadMonitor.test.ts \
+    src/app/screens/practice/hooks/usePracticeVoicePlayback.test.tsx \
+    src/app/screens/practice/hooks/usePracticeVoiceTurn.lifecycle.test.tsx \
+    src/app/screens/practice/hooks/usePracticeSessionLoader.test.tsx
 ) | tee "$OUTPUT_DIR/trigger.log"

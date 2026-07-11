@@ -68,7 +68,7 @@ func TestSQLRepositoryAppendSessionEventWritesEventTurnSessionOutboxWithoutAudit
 		WithArgs(in.SessionID, in.ClientEventID).
 		WillReturnRows(sqlmock.NewRows([]string{"payload", "replay_payload"}).AddRow([]byte(`{"requestFingerprint":"fingerprint-1","pending":true}`), nil))
 	mock.ExpectExec(`update practice_turns`).
-		WithArgs(string(domain.TurnStatusAssessed), "answer", "Candidate explained the service boundary and rollback path.", 1, now, now, now, in.SessionID, "turn-1").
+		WithArgs(string(domain.TurnStatusAssessed), nil, nil, "answer", "Candidate explained the service boundary and rollback path.", 1, now, now, now, in.SessionID, "turn-1").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`update practice_sessions`).
 		WithArgs(string(sharedtypes.SessionStatusCompleted), int32(1), now, in.SessionID, in.UserID).
@@ -87,6 +87,90 @@ func TestSQLRepositoryAppendSessionEventWritesEventTurnSessionOutboxWithoutAudit
 	}
 	if !result.Acknowledged || result.Session.Status != sharedtypes.SessionStatusCompleted {
 		t.Fatalf("unexpected result: %+v", result)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
+func TestSQLRepositoryAppendSessionEventPersistsGeneratedFollowUpOnCurrentTurn(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewSQLRepository(db)
+	now := time.Date(2026, 4, 28, 13, 45, 12, 0, time.UTC)
+	in := domain.AppendSessionEventStoreInput{
+		EventID:            "event-1",
+		OutboxEventID:      "outbox-1",
+		UserID:             "user-1",
+		SessionID:          "session-1",
+		ClientEventID:      "client-event-1",
+		Kind:               "answer_submitted",
+		OccurredAt:         now,
+		RequestFingerprint: "fingerprint-1",
+		RequestPayload: map[string]any{
+			"turnId":     "turn-1",
+			"answerText": "answer",
+		},
+		Outcome: domain.SessionEventOutcome{
+			Acknowledged:      true,
+			NextSessionStatus: sharedtypes.SessionStatusRunning,
+			AnswerSummary:     "Candidate explained the migration impact.",
+			NextTurn: &domain.TurnRecord{
+				ID:             "turn-1",
+				TurnIndex:      1,
+				QuestionText:   "Question?",
+				QuestionIntent: "behavioral",
+				Status:         string(domain.TurnStatusFollowUpRequested),
+				FollowUpCount:  1,
+				AskedAt:        now.Add(-time.Minute),
+			},
+			AssistantAction: domain.AssistantActionRecord{
+				Type:           "ask_follow_up",
+				TurnID:         "turn-1",
+				QuestionText:   "服务器生成的追问是什么？",
+				QuestionIntent: "evidence.follow_up",
+				SessionStatus:  sharedtypes.SessionStatusRunning,
+				Provenance:     domain.AssistantActionProvenance{PromptVersion: "p", RubricVersion: "r", ModelID: "model-profile:followup", Language: "zh-CN", FeatureFlag: "none", DataSourceVersion: "registry.v1"},
+			},
+		},
+	}
+
+	mock.ExpectBegin()
+	expectAppendContext(mock, now)
+	mock.ExpectQuery(`select payload`).
+		WithArgs(in.SessionID, in.ClientEventID).
+		WillReturnRows(sqlmock.NewRows([]string{"payload", "replay_payload"}).AddRow([]byte(`{"requestFingerprint":"fingerprint-1","pending":true}`), nil))
+	mock.ExpectExec(`update practice_turns\s+set status = \$1,\s+question_text = coalesce\(\$2, question_text\),\s+question_intent = coalesce\(\$3, question_intent\)`).
+		WithArgs(
+			string(domain.TurnStatusFollowUpRequested),
+			"服务器生成的追问是什么？",
+			"evidence.follow_up",
+			"answer",
+			"Candidate explained the migration impact.",
+			1,
+			now,
+			nil,
+			now,
+			in.SessionID,
+			"turn-1",
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`update practice_sessions`).
+		WithArgs(string(sharedtypes.SessionStatusRunning), int32(1), now, in.SessionID, in.UserID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`update practice_session_events`).
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), in.SessionID, in.ClientEventID, in.EventID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	result, err := repo.AppendSessionEvent(context.Background(), in)
+	if err != nil {
+		t.Fatalf("AppendSessionEvent returned error: %v", err)
+	}
+	if result.Session.CurrentTurn == nil ||
+		result.Session.CurrentTurn.QuestionText != "服务器生成的追问是什么？" ||
+		result.Session.CurrentTurn.QuestionIntent != "evidence.follow_up" {
+		t.Fatalf("generated follow-up was not reflected in the current turn: %+v", result.Session.CurrentTurn)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
@@ -182,6 +266,26 @@ func TestSQLRepositoryRecordPracticeVoiceTurnWritesBusinessEventWithoutAudioByte
 			TTSProfile:   "practice.voice.tts.default",
 			TTSProvider:  "fixture-tts",
 		},
+		Outcome: domain.SessionEventOutcome{
+			Acknowledged:      true,
+			NextSessionStatus: sharedtypes.SessionStatusRunning,
+			AnswerSummary:     "Candidate explained the migration goal, validation, and rollback boundary.",
+			NextTurn: &domain.TurnRecord{
+				ID:             "turn-1",
+				TurnIndex:      1,
+				QuestionText:   "Question?",
+				QuestionIntent: "behavioral",
+				Status:         string(domain.TurnStatusFollowUpRequested),
+				FollowUpCount:  1,
+			},
+			AssistantAction: domain.AssistantActionRecord{
+				Type:           "ask_follow_up",
+				TurnID:         "turn-1",
+				QuestionText:   "assistant text persisted as business text",
+				QuestionIntent: "evidence.follow_up",
+				SessionStatus:  sharedtypes.SessionStatusRunning,
+			},
+		},
 		Session:    domain.SessionRecord{ID: "session-1", Status: sharedtypes.SessionStatusRunning},
 		OccurredAt: now,
 	}
@@ -191,8 +295,20 @@ func TestSQLRepositoryRecordPracticeVoiceTurnWritesBusinessEventWithoutAudioByte
 	mock.ExpectQuery(`select coalesce\(max\(seq_no\), 0\) \+ 1`).
 		WithArgs(in.SessionID).
 		WillReturnRows(sqlmock.NewRows([]string{"next_seq"}).AddRow(4))
-	mock.ExpectExec(`update practice_turns`).
-		WithArgs(string(domain.TurnStatusFollowUpRequested), in.UserTranscriptFinal, 1, now, now, in.SessionID, in.TurnID).
+	mock.ExpectExec(`update practice_turns\s+set status = \$1,\s+question_text = coalesce\(\$2, question_text\),\s+question_intent = coalesce\(\$3, question_intent\)`).
+		WithArgs(
+			string(domain.TurnStatusFollowUpRequested),
+			in.AssistantTextDraft,
+			"evidence.follow_up",
+			in.UserTranscriptFinal,
+			in.Outcome.AnswerSummary,
+			1,
+			now,
+			nil,
+			now,
+			in.SessionID,
+			in.TurnID,
+		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(`update practice_sessions`).
 		WithArgs(string(sharedtypes.SessionStatusRunning), int32(1), now, in.SessionID, in.UserID).
@@ -206,8 +322,11 @@ func TestSQLRepositoryRecordPracticeVoiceTurnWritesBusinessEventWithoutAudioByte
 	if err != nil {
 		t.Fatalf("RecordPracticeVoiceTurn returned error: %v", err)
 	}
-	if session.CurrentTurn == nil || session.CurrentTurn.Status != string(domain.TurnStatusFollowUpRequested) {
-		t.Fatalf("voice turn should mark latest turn as follow-up requested: %+v", session)
+	if session.CurrentTurn == nil ||
+		session.CurrentTurn.Status != string(domain.TurnStatusFollowUpRequested) ||
+		session.CurrentTurn.QuestionText != in.AssistantTextDraft ||
+		session.CurrentTurn.QuestionIntent != "evidence.follow_up" {
+		t.Fatalf("voice turn should persist generated same-turn follow-up: %+v", session)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)
@@ -230,18 +349,122 @@ func TestSQLRepositoryRecordPracticeVoiceTurnWritesBusinessEventWithoutAudioByte
 	}
 }
 
+func TestSQLRepositoryRecordPracticeVoiceTurnAdvancesNextQuestionAndWritesCompletionOutboxAtomically(t *testing.T) {
+	db, mock, cleanup := newMockDB(t)
+	defer cleanup()
+	repo := NewSQLRepository(db)
+	now := time.Date(2026, 5, 17, 9, 15, 0, 0, time.UTC)
+	in := domain.PracticeVoiceTurnStoreInput{
+		EventID:             "event-voice-2",
+		OutboxEventID:       "outbox-voice-2",
+		UserID:              "user-1",
+		SessionID:           "session-1",
+		ClientVoiceTurnID:   "client-voice-turn-2",
+		TurnID:              "turn-1",
+		VoiceTurnID:         "voice-turn-2",
+		UserTranscriptFinal: "我用双写校验和回放验证了拆分结果。",
+		AssistantTextDraft:  "请再介绍一个你主导的系统取舍案例。",
+		AudioByteLength:     24,
+		AudioDurationMs:     920,
+		Outcome: domain.SessionEventOutcome{
+			Acknowledged:      true,
+			NextSessionStatus: sharedtypes.SessionStatusRunning,
+			NextTurn: &domain.TurnRecord{
+				ID:             "turn-1",
+				TurnIndex:      1,
+				QuestionText:   "Question?",
+				QuestionIntent: "behavioral",
+				Status:         string(domain.TurnStatusAssessed),
+				FollowUpCount:  1,
+			},
+			AssistantAction: domain.AssistantActionRecord{
+				Type:           "ask_question",
+				TurnID:         "turn-2",
+				QuestionText:   "请再介绍一个你主导的系统取舍案例。",
+				QuestionIntent: "system_design.tradeoff",
+				SessionStatus:  sharedtypes.SessionStatusRunning,
+			},
+			OutboxRecord: &domain.PracticeTurnCompletedRecord{
+				SessionID:        "session-1",
+				TurnID:           "turn-1",
+				FollowUpCount:    1,
+				AnswerCharLength: 18,
+				CompletedAt:      now,
+			},
+		},
+		NextQuestion: &domain.TurnRecord{
+			ID:             "turn-2",
+			TurnIndex:      2,
+			QuestionText:   "请再介绍一个你主导的系统取舍案例。",
+			QuestionIntent: "system_design.tradeoff",
+			Status:         string(domain.TurnStatusAsked),
+			AskedAt:        now,
+		},
+		Session:    domain.SessionRecord{ID: "session-1", Status: sharedtypes.SessionStatusRunning},
+		OccurredAt: now,
+	}
+
+	mock.ExpectBegin()
+	expectAppendContext(mock, now)
+	mock.ExpectQuery(`select coalesce\(max\(seq_no\), 0\) \+ 1`).
+		WithArgs(in.SessionID).
+		WillReturnRows(sqlmock.NewRows([]string{"next_seq"}).AddRow(5))
+	mock.ExpectExec(`update practice_turns`).
+		WithArgs(
+			string(domain.TurnStatusAssessed),
+			nil,
+			nil,
+			in.UserTranscriptFinal,
+			nil,
+			1,
+			now,
+			now,
+			now,
+			in.SessionID,
+			in.TurnID,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into practice_turns`).
+		WithArgs("turn-2", in.SessionID, int32(2), in.AssistantTextDraft, "system_design.tradeoff", string(sharedtypes.InterviewerRoleHiringManager), string(domain.TurnStatusAsked), now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`update practice_sessions`).
+		WithArgs(string(sharedtypes.SessionStatusRunning), int32(2), now, in.SessionID, in.UserID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into outbox_events`).
+		WithArgs(in.OutboxEventID, string(sharedevents.EventNamePracticeTurnCompleted), in.TurnID, sqlmock.AnyArg(), now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into practice_session_events`).
+		WithArgs(in.EventID, in.SessionID, 5, "follow_up_generated", in.ClientVoiceTurnID, sqlmock.AnyArg(), now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	session, err := repo.RecordPracticeVoiceTurn(context.Background(), in)
+	if err != nil {
+		t.Fatalf("RecordPracticeVoiceTurn returned error: %v", err)
+	}
+	if session.TurnCount != 2 || session.CurrentTurn == nil || session.CurrentTurn.ID != "turn-2" || session.CurrentTurn.QuestionText != in.AssistantTextDraft {
+		t.Fatalf("voice turn did not atomically advance current turn: %+v", session)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("sql expectations: %v", err)
+	}
+}
+
 func TestMarshalAppendEventErrorPayloadSanitizesRequestPayload(t *testing.T) {
 	raw, err := marshalAppendEventErrorPayload(domain.FinalizeSessionEventErrorInput{
 		RequestFingerprint: "fingerprint-1",
 		RequestPayload: map[string]any{
-			"turnId":     "turn-secret",
-			"answerText": "confidential answer",
+			"turnId":           "turn-secret",
+			"answerText":       "confidential answer",
+			"playedTextHash":   "I led the migration across twelve teams.",
+			"voiceTurnId":      "voice-turn-secret",
+			"playbackOffsetMs": 2840,
 		},
 		Error: &domain.ServiceError{
-			Code:    sharederrors.CodePracticeSessionConflict,
-			Message: "client event payload mismatch",
+			Code:    sharederrors.CodeValidationFailed,
+			Message: "voice playback event payload field is invalid",
 			Details: map[string]any{
-				"policy": "client_event_payload_mismatch",
+				"field": "payload.playedTextHash",
 			},
 		},
 	})
@@ -249,7 +472,7 @@ func TestMarshalAppendEventErrorPayloadSanitizesRequestPayload(t *testing.T) {
 		t.Fatalf("marshalAppendEventErrorPayload returned error: %v", err)
 	}
 	payload := string(raw)
-	for _, forbidden := range []string{"requestPayload", "turn-secret", "confidential answer", `"result"`} {
+	for _, forbidden := range []string{"requestPayload", "turn-secret", "confidential answer", "I led the migration across twelve teams.", "voice-turn-secret", `"result"`} {
 		if strings.Contains(payload, forbidden) {
 			t.Fatalf("payload leaked %q: %s", forbidden, payload)
 		}
@@ -262,10 +485,10 @@ func TestMarshalAppendEventErrorPayloadSanitizesRequestPayload(t *testing.T) {
 	if decoded.RequestFingerprint != "fingerprint-1" {
 		t.Fatalf("requestFingerprint = %q", decoded.RequestFingerprint)
 	}
-	if decoded.Error == nil || decoded.Error.Code != sharederrors.CodePracticeSessionConflict {
+	if decoded.Error == nil || decoded.Error.Code != sharederrors.CodeValidationFailed {
 		t.Fatalf("unexpected error envelope: %+v", decoded.Error)
 	}
-	if decoded.Error.Details["policy"] != "client_event_payload_mismatch" {
+	if decoded.Error.Details["field"] != "payload.playedTextHash" {
 		t.Fatalf("unexpected error details: %+v", decoded.Error.Details)
 	}
 }
@@ -303,7 +526,10 @@ func TestMarshalAppendEventPayloadRedactsHintButReplayPayloadKeepsSnapshot(t *te
 	}
 	in := domain.AppendSessionEventStoreInput{
 		RequestFingerprint: "fingerprint-1",
-		RequestPayload:     map[string]any{"turnId": "turn-1"},
+		RequestPayload: map[string]any{
+			"turnId":     "turn-1",
+			"answerText": "confidential answer body",
+		},
 	}
 
 	eventPayload, err := marshalAppendEventPayload(in, result)
@@ -317,8 +543,69 @@ func TestMarshalAppendEventPayloadRedactsHintButReplayPayloadKeepsSnapshot(t *te
 	if strings.Contains(string(eventPayload), "Original per-event hint.") {
 		t.Fatalf("event payload leaked hint snapshot: %s", eventPayload)
 	}
+	if strings.Contains(string(eventPayload), "confidential answer body") || !strings.Contains(string(eventPayload), `"turnId":"turn-1"`) {
+		t.Fatalf("event payload must keep routing IDs without duplicating answer text: %s", eventPayload)
+	}
 	if !strings.Contains(string(replayPayload), "Original per-event hint.") {
 		t.Fatalf("replay payload lost hint snapshot: %s", replayPayload)
+	}
+}
+
+func TestMarshalAppendEventPayloadScopesVoiceMetadataToEventKind(t *testing.T) {
+	result := domain.AppendSessionEventResult{
+		Acknowledged: true,
+		Session: domain.SessionRecord{
+			ID: "session-1", Status: sharedtypes.SessionStatusRunning,
+		},
+		AssistantAction: domain.AssistantActionRecord{
+			Type: "session_wait", SessionStatus: sharedtypes.SessionStatusRunning,
+		},
+	}
+	allMetadata := map[string]any{
+		"turnId":              "turn-1",
+		"voiceTurnId":         "voice-turn-1",
+		"chunkId":             "chunk-1",
+		"playedTextHash":      "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		"playedTextLength":    12,
+		"playbackOffsetMs":    1200,
+		"userSpeechStartedAt": "2026-05-17T08:51:05Z",
+		"committedTextHash":   "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+		"committedTextLength": 8,
+	}
+
+	answerRaw, err := marshalAppendEventPayload(domain.AppendSessionEventStoreInput{
+		Kind: "answer_submitted", RequestFingerprint: "answer-fingerprint", RequestPayload: allMetadata,
+	}, result)
+	if err != nil {
+		t.Fatalf("marshal answer event payload: %v", err)
+	}
+	var answer appendEventPayload
+	if err := json.Unmarshal(answerRaw, &answer); err != nil {
+		t.Fatalf("decode answer event payload: %v", err)
+	}
+	if len(answer.RequestPayload) != 1 || answer.RequestPayload["turnId"] != "turn-1" {
+		t.Fatalf("answer event persisted cross-kind voice metadata: %+v", answer.RequestPayload)
+	}
+
+	playedRaw, err := marshalAppendEventPayload(domain.AppendSessionEventStoreInput{
+		Kind: "tts_chunk_played", RequestFingerprint: "played-fingerprint", RequestPayload: allMetadata,
+	}, result)
+	if err != nil {
+		t.Fatalf("marshal played event payload: %v", err)
+	}
+	var played appendEventPayload
+	if err := json.Unmarshal(playedRaw, &played); err != nil {
+		t.Fatalf("decode played event payload: %v", err)
+	}
+	for _, key := range []string{"voiceTurnId", "chunkId", "playedTextHash", "playedTextLength", "playbackOffsetMs"} {
+		if _, ok := played.RequestPayload[key]; !ok {
+			t.Fatalf("played event lost allowed metadata %q: %+v", key, played.RequestPayload)
+		}
+	}
+	for _, key := range []string{"turnId", "userSpeechStartedAt", "committedTextHash", "committedTextLength"} {
+		if _, ok := played.RequestPayload[key]; ok {
+			t.Fatalf("played event persisted cross-kind metadata %q: %+v", key, played.RequestPayload)
+		}
 	}
 }
 

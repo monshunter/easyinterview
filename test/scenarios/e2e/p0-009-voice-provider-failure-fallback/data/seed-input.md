@@ -3,10 +3,12 @@
 - `createPracticeVoiceTurn` fixture scenarios:
   - `stt-config-missing`
   - `chat-failed`
+  - `chat-output-invalid`
   - `tts-failed`
 - Backend service failure fixtures:
   - STT returns `AI_PROVIDER_SECRET_MISSING`
   - Chat returns `AI_FALLBACK_EXHAUSTED`
+  - Chat returns a wrong-language question twice after exactly one repair
   - TTS returns retryable `AI_PROVIDER_TIMEOUT`
 - A3 profile fixtures:
   - `practice.voice.stt.default`
@@ -15,3 +17,5 @@
 - Frontend fixture:
   - `createPracticeVoiceTurn=tts-failed`
   - assistant text remains visible and no TTS playback starts after TTS failure
+  - `createPracticeVoiceTurn=chat-output-invalid`
+  - localized error remains in the same session and center hang-up returns to text mode

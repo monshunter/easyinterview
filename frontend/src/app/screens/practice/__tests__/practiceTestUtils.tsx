@@ -21,11 +21,16 @@ import {
 import { NavigationProvider } from "../../../navigation/NavigationProvider";
 import { AppRuntimeProvider } from "../../../runtime/AppRuntimeProvider";
 import type { Route } from "../../../routes";
+import type {
+  PracticeSession,
+  SessionEventResult,
+} from "../../../../api/generated/types";
 
 import getPracticeSessionFixture from "../../../../../../openapi/fixtures/PracticeSessions/getPracticeSession.json";
 import appendSessionEventFixture from "../../../../../../openapi/fixtures/PracticeSessions/appendSessionEvent.json";
 import completePracticeSessionFixture from "../../../../../../openapi/fixtures/PracticeSessions/completePracticeSession.json";
 import createPracticeVoiceTurnFixture from "../../../../../../openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json";
+import getTargetJobFixture from "../../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
 import { PracticeScreen } from "../PracticeScreen";
 
 export const SESSION_A = "01918fa0-0000-7000-8000-000000005000";
@@ -49,12 +54,15 @@ export interface BuildFixtureClientOptions {
       | "getPracticeSession"
       | "appendSessionEvent"
       | "completePracticeSession"
-      | "createPracticeVoiceTurn",
+      | "createPracticeVoiceTurn"
+      | "getTargetJob",
       string
     >
   >;
   forceAppendFailFirstN?: number;
   forceCompleteFailFirstN?: number;
+  appendResults?: SessionEventResult[];
+  sessionResults?: Record<string, PracticeSession>;
 }
 
 export function buildPracticeClient(
@@ -67,6 +75,7 @@ export function buildPracticeClient(
       appendSessionEventFixture,
       completePracticeSessionFixture,
       createPracticeVoiceTurnFixture,
+      getTargetJobFixture,
     ]),
     { scenario: opts.scenario ?? "default" },
   );
@@ -88,6 +97,14 @@ export function buildPracticeClient(
     const path = new URL(url, "http://x").pathname;
     let scenarioOverride: string | undefined;
     if (/\/practice\/sessions\/[^/]+$/.test(path) && method === "GET") {
+      const requestedSessionId = path.split("/").at(-1) ?? "";
+      const sessionResult = opts.sessionResults?.[requestedSessionId];
+      if (sessionResult) {
+        return new Response(JSON.stringify(sessionResult), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
       scenarioOverride = opts.scenarioByOp?.getPracticeSession;
     } else if (
       /\/practice\/sessions\/[^/]+\/events$/.test(path) &&
@@ -99,6 +116,13 @@ export function buildPracticeClient(
         appendAttempts <= opts.forceAppendFailFirstN
       ) {
         throw new Error("simulated network failure");
+      }
+      const appendResult = opts.appendResults?.[appendAttempts - 1];
+      if (appendResult) {
+        return new Response(JSON.stringify(appendResult), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
       scenarioOverride = opts.scenarioByOp?.appendSessionEvent;
     } else if (
@@ -184,6 +208,7 @@ export interface MountPracticeOptions {
 
 export interface MountPracticeResult extends RenderResult {
   nav: ReturnType<typeof vi.fn>;
+  rerenderPractice: (routeParams: Partial<Route["params"]>) => void;
 }
 
 export function defaultRoute(overrides: Partial<Route["params"]> = {}): Route {
@@ -214,8 +239,7 @@ const HydrateContext: FC<{ params: Route["params"]; children: ReactNode }> = ({
   const { dispatch } = useInterviewContext();
   useEffect(() => {
     dispatch({ type: "HYDRATE_FROM_ROUTE", params });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [dispatch, params]);
   return <>{children}</>;
 };
 
@@ -225,18 +249,25 @@ export function mountPracticeScreen(
   const nav = vi.fn();
   const route = defaultRoute(options.routeParams);
   const client = options.client ?? buildPracticeClient().client;
-  const result = render(
+  const renderTree = (nextRoute: Route) => (
     <DisplayPreferencesProvider>
       <InterviewContextProvider>
         <AppRuntimeProvider client={client}>
           <NavigationProvider value={{ navigate: nav }}>
-            <HydrateContext params={route.params}>
-              <PracticeScreen route={route} />
+            <HydrateContext params={nextRoute.params}>
+              <PracticeScreen route={nextRoute} />
             </HydrateContext>
           </NavigationProvider>
         </AppRuntimeProvider>
       </InterviewContextProvider>
-    </DisplayPreferencesProvider>,
+    </DisplayPreferencesProvider>
   );
-  return { ...result, nav };
+  const result = render(renderTree(route));
+  return {
+    ...result,
+    nav,
+    rerenderPractice: (routeParams) => {
+      result.rerender(renderTree(defaultRoute(routeParams)));
+    },
+  };
 }

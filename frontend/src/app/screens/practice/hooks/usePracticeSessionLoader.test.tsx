@@ -11,6 +11,10 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { useEffect, type ReactNode } from "react";
 
 import { EasyInterviewClient } from "../../../../api/generated/client";
+import type {
+  PracticeSession,
+  TargetJob,
+} from "../../../../api/generated/types";
 import {
   createFixtureBackedFetch,
   createFixtureRegistry,
@@ -19,12 +23,20 @@ import {
   InterviewContextProvider,
   useInterviewContext,
 } from "../../../interview-context/InterviewContext";
-import { AppRuntimeProvider } from "../../../runtime/AppRuntimeProvider";
+import {
+  AppRuntimeContext,
+  AppRuntimeProvider,
+  type AppRuntimeValue,
+} from "../../../runtime/AppRuntimeProvider";
 import { usePracticeSessionLoader } from "./usePracticeSessionLoader";
+import { usePracticeTargetDisplay } from "../usePracticeTargetDisplay";
 
 import getPracticeSessionFixture from "../../../../../../openapi/fixtures/PracticeSessions/getPracticeSession.json";
 
 const SESSION_A = "01918fa0-0000-7000-8000-000000005000";
+const SESSION_B = "01918fa0-0000-7000-8000-000000005001";
+const TARGET_A = "01918fa0-0000-7000-8000-000000002000";
+const TARGET_B = "01918fa0-0000-7000-8000-000000002001";
 
 function buildClient(scenario: string = "default") {
   return new EasyInterviewClient({
@@ -280,4 +292,169 @@ describe("usePracticeSessionLoader", () => {
     });
     expect(probedSessionId).toBe(SESSION_A);
   });
+
+  it("adopts a matching mutation snapshot immediately and rejects a foreign session", async () => {
+    const initial = practiceSession(SESSION_A, TARGET_A, "turn-a", 1);
+    const client = clientWithSessionAndTarget({
+      getPracticeSession: async () => initial,
+    });
+
+    const { result } = renderHook(() => usePracticeSessionLoader(SESSION_A), {
+      wrapper: directRuntimeWrapper(client),
+    });
+
+    await waitFor(() => expect(result.current.data?.id).toBe(SESSION_A));
+    const advanced = practiceSession(SESSION_A, TARGET_A, "turn-b", 2);
+
+    act(() => {
+      expect(result.current.adopt(advanced)).toBe(true);
+    });
+    expect(result.current.state).toBe("data");
+    expect(result.current.data?.currentTurn?.id).toBe("turn-b");
+
+    act(() => {
+      expect(
+        result.current.adopt(
+          practiceSession(SESSION_B, TARGET_B, "foreign-turn", 1),
+        ),
+      ).toBe(false);
+    });
+    expect(result.current.data?.id).toBe(SESSION_A);
+    expect(result.current.data?.currentTurn?.id).toBe("turn-b");
+  });
+
+  it("clears the A snapshot synchronously on session A to B and never exposes A target identity", async () => {
+    const sessionBRequest = deferred<PracticeSession>();
+    const getPracticeSession = vi.fn((sessionId: string) =>
+      sessionId === SESSION_A
+        ? Promise.resolve(practiceSession(SESSION_A, TARGET_A, "turn-a", 1))
+        : sessionBRequest.promise,
+    );
+    const getTargetJob = vi.fn(async (targetJobId: string) =>
+      targetJob(
+        targetJobId,
+        targetJobId === TARGET_A ? "Company A" : "Company B",
+      ),
+    );
+    const client = clientWithSessionAndTarget({
+      getPracticeSession,
+      getTargetJob,
+    });
+
+    const { result, rerender } = renderHook(
+      ({ sessionId, routeTargetJobId }) => {
+        const loader = usePracticeSessionLoader(sessionId);
+        const target = usePracticeTargetDisplay({
+          session: loader.data
+            ? { targetJobId: loader.data.targetJobId }
+            : null,
+          routeTargetJobId,
+        });
+        return { loader, target };
+      },
+      {
+        initialProps: {
+          sessionId: SESSION_A,
+          routeTargetJobId: TARGET_A,
+        },
+        wrapper: directRuntimeWrapper(client),
+      },
+    );
+
+    await waitFor(() =>
+      expect(result.current.target.companyName).toBe("Company A"),
+    );
+
+    rerender({ sessionId: SESSION_B, routeTargetJobId: TARGET_B });
+
+    expect(result.current.loader.data).toBeNull();
+    expect(result.current.loader.state).toBe("loading");
+    expect(result.current.target.targetJobId).toBe(TARGET_B);
+    expect(result.current.target.companyName).toBeNull();
+
+    await act(async () => {
+      sessionBRequest.resolve(
+        practiceSession(SESSION_B, TARGET_B, "turn-b", 1),
+      );
+      await sessionBRequest.promise;
+    });
+    await waitFor(() =>
+      expect(result.current.target.companyName).toBe("Company B"),
+    );
+    expect(result.current.loader.data?.id).toBe(SESSION_B);
+  });
 });
+
+function practiceSession(
+  id: string,
+  targetJobId: string,
+  turnId: string,
+  turnIndex: number,
+): PracticeSession {
+  return {
+    id,
+    planId: "plan-1",
+    targetJobId,
+    status: "running",
+    language: "zh-CN",
+    hintsEnabled: true,
+    turnCount: turnIndex,
+    currentTurn: {
+      id: turnId,
+      turnIndex,
+      questionText: `Question ${turnIndex}`,
+      status: "asked",
+    },
+    createdAt: "2026-07-11T00:00:00Z",
+    updatedAt: "2026-07-11T00:00:00Z",
+  };
+}
+
+function targetJob(id: string, companyName: string): TargetJob {
+  return {
+    id,
+    companyName,
+    title: `${companyName} Role`,
+  } as TargetJob;
+}
+
+function clientWithSessionAndTarget(overrides: {
+  getPracticeSession?: (sessionId: string) => Promise<PracticeSession>;
+  getTargetJob?: (targetJobId: string) => Promise<TargetJob>;
+}): EasyInterviewClient {
+  return {
+    getPracticeSession: overrides.getPracticeSession ?? vi.fn(),
+    getTargetJob: overrides.getTargetJob ?? vi.fn(),
+  } as unknown as EasyInterviewClient;
+}
+
+function directRuntimeWrapper(client: EasyInterviewClient) {
+  const value: AppRuntimeValue = {
+    client,
+    runtime: { status: "loading" },
+    auth: { status: "unauthenticated" },
+    refreshAuth: vi.fn(),
+  };
+  return function DirectRuntimeWrapper({ children }: { children: ReactNode }) {
+    return (
+      <InterviewContextProvider>
+        <AppRuntimeContext.Provider value={value}>
+          {children}
+        </AppRuntimeContext.Provider>
+      </InterviewContextProvider>
+    );
+  };
+}
+
+interface Deferred<T> {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+}
+
+function deferred<T>(): Deferred<T> {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((onResolve) => {
+    resolve = onResolve;
+  });
+  return { promise, resolve };
+}

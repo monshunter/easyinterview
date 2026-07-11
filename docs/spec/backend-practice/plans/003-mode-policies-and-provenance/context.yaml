@@ -5,8 +5,8 @@ metadata:
   name: 003-mode-policies-and-provenance
   sequence: 3
   specVersion:
-    from: 1.17
-    to: 1.18
+    from: 1.20
+    to: 1.21
 spec:
   defaultTarget: backend
   discovery:
@@ -28,6 +28,8 @@ spec:
       - practice.turn_observe.default
       - ai_task_runs hint_generate
       - graceful degrade session_wait
+      - persisted session language hint cue
+      - wrong-language hint degrade
       - practice_turns hint_text
       - backend practice out-of-scope lint
   targets:

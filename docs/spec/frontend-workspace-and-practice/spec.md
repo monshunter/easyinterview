@@ -1,8 +1,8 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.32
+> **版本**: 1.33
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 ## 1 背景与目标
 
@@ -27,9 +27,10 @@
   - 路由纯度：`workspace` 不拥有 TargetJob 详情、Resume Picker、Plan Switcher 或 `autoStartPractice`；即使 URL / stale context 带有 `targetJobId` / `planId` / `resumeId`，也必须清理/忽略并继续渲染列表。
   - 规划详情与启动：统一只读详情由 `frontend-home-job-picks-and-parse` 承接；列表页的 `立即面试` 使用同一 generated practice handoff helper 创建/读取 PracticePlan 并启动 PracticeSession；删除图标通过 generated `archiveTargetJob` 持久软归档 TargetJob，成功后从当前列表移除卡片，刷新后不得回灌。
 - `practice` 屏（`route=practice`，用户可见 `mode/modality∈{text,phone}`；out-of-scope `voice` route/query 只作为负向输入；`practiceGoal∈{baseline,retry_current_round,next_round}`）：
-  - 顶部工具区（chrome 隐藏）：公司/岗位 + 当前轮次规划给出的面试官角色 + 题号/总数 + 计时 + 暂停 + 文本/电话形式切换 + 全局结束并生成报告；不提供会话内面试官切换或严格模拟开关。
+  - 顶部工具区（chrome 隐藏）：通过 generated `getTargetJob(targetJobId)` 展示真实公司/岗位 + 当前轮次规划给出的面试官角色 + 题号/总数 + 计时 + 暂停 + 单一电话图标 + 全局结束并生成报告；不提供文本/电话分段控件、额外 `live` chip、会话内面试官切换或严格模拟开关。
   - 文本面试 `TextSurface`：对话记录 + 输入区 + 提示（如用户主动请求）+ 提交；不得渲染 `语音转文字`、麦克风转写、`跳过` 或等价替代入口。
-  - 电话模式 `PhoneSurface`：通话状态 + 听说动画 + 字幕开关 + 切断 + 重新开始；默认不展示会话文字，显示字幕时复用同一会话的文本转写层；具体 STT/LLM/TTS orchestration 归 `practice-voice-mvp`。
+  - 电话模式 `PhoneSurface`：通话状态 + 听说动画 + 字幕开关 + 红色圆形挂断图标；默认不展示会话文字，显示字幕时复用同一会话的文本转写层；不得显示“切断”文字、重新开始或 `callEnded`。文本态点击 Top Bar 电话图标进入电话；电话态点击同一图标或中间挂断按钮均立即停止麦克风/TTS，并回到同一 session 的文本模式。具体 STT/LLM/TTS orchestration 归 `practice-voice-mvp`。
+  - 会话内容：正式 real API 模式只渲染 `getPracticeSession` / `appendSessionEvent` / `createPracticeVoiceTurn` 返回的当前 session/turn/AssistantAction/transcript，不复制 fixture 文案或本地 mock 对话。内部 `questionIntent` 不得直接展示；题目主题使用用户可读问题上下文，缺失时展示本地化中性标签。
   - Left Panel：可保留题目地图和实时观察；Right Panel 在 text / phone 任一模式下都不存在。不得渲染 JD 关联、可调用经历、AI 透明度、表达层指标、现场提示、音频留存说明或右侧固定 CTA。
   - PracticeSession 消费状态：`queued / running / waiting_user_input / completing / completed / failed / cancelled`（以 `shared/conventions.yaml` / `openapi/openapi.yaml` 当前 `SessionStatus` 七值为准）；前端不重复实现 backend 状态机，只消费 `PracticeSession` / `SessionEventResult` / `AssistantAction`。
 - `generating` 屏（`route=generating`，chrome 隐藏）：
@@ -45,6 +46,7 @@
   - `getPracticePlan`：parse / report handoff owner 校验已有 plan 是否仍匹配当前 target/resume context。
   - `startPracticeSession`：parse / report handoff owner 点击「立即面试 / 复练 / 下一轮」时调用，写 `Idempotency-Key`；返回 `PracticeSession{currentTurn}` 直接驱动 practice 首屏。
   - `getPracticeSession`：practice 刷新 / 断网恢复。
+  - `getTargetJob`：practice Top Bar 优先按 server session 的真实 `targetJobId` 读取公司与岗位，session 尚未加载时才使用 route/context ID；loading/error 不得回退到 fixture 常量。
   - `appendSessionEvent`：practice 屏用户操作通过单 endpoint + `kind` 路由；body 必须带 `clientEventId`，不得携带 `Idempotency-Key` header；当前正向 UI 不再发送 `turn_skipped`。
   - `completePracticeSession`：practice 屏点击「结束并生成报告」时调用，写 `Idempotency-Key`；返回 `ReportWithJob` 后进入 `generating`。
   - `getFeedbackReport`：generating 按 `reportId` 轮询，不按 `sessionId` 直接读取报告。
@@ -76,7 +78,7 @@
 | D-8 | Workspace 信息密度 | workspace 只展示状态、岗位、公司/地点、mini round rail 与规划/启动/删除动作，不展示公司情报摘要或刷新/查看提示 | 保持列表可扫描，并确保详情能力由当前 Parse / Practice / Report owner 承接 |
 | D-9 | 立即面试契约 | `parse` / `workspace` list action / report handoff owner 无匹配 ready plan 时先 `createPracticePlan`，再 `startPracticeSession`；两步均携带 `Idempotency-Key`；不得通过 `workspace(autoStartPractice=1)` 执行 route 副作用 | 与 `module-job-workspace.md` §4.4、frontend-shell pendingAction、backend-practice D-13 对齐；不依赖 route 副作用页 |
 | D-10 | backend 契约消费 | 只通过 B2 generated client 消费 OpenAPI operation；字段变化先回 B2/backend owner 修订 | 防止 screen 内自造 endpoint 或复制 fixture JSON |
-| D-11 | phone 协作面 | 本 spec 拥有 phone surface React 组件、DOM/a11y/parity 和字幕层；`practice-voice-mvp` 拥有底层语音 provider、STT/LLM/TTS、committed context、barge-in、切断/重开语义 | 用户可见 phone UI 与底层 voice orchestration 不双 owner |
+| D-11 | phone 协作面 | 本 spec 拥有 phone surface React 组件、DOM/a11y/parity、字幕层和共享 `exitPhoneMode` 协调；`practice-voice-mvp` 拥有底层语音 provider、STT/LLM/TTS、committed context、VAD/TTS 节奏和真实 speech-start barge-in | 用户可见 phone UI 与底层 voice orchestration 不双 owner |
 | D-12 | appendSessionEvent 单 endpoint | 提交回答 / 请求提示 / 暂停 / 恢复通过 `appendSessionEvent` + `kind`；`turn_skipped` 不再由正式 UI 或正向场景发送；`practiceGoal` 仅表达 `baseline / retry_current_round / next_round` 数据来源，不改变辅助显隐 | 与真实面试场景一致，删除“跳过题目”主路径 |
 | D-13 | 完成是异步流 | `completePracticeSession` 返回 202 + `ReportWithJob{reportId,job}`；generating 用 `reportId` 轮询 `getFeedbackReport`，完成后 handoff 到 report owner | 前端不阻塞等待报告，不伪造 LLM 进度 |
 | D-15 | 简历扁平化绑定（product-scope D-20） | `parse` / practice / report handoff context 使用 `resumeId`；workspace 列表只展示 target job 已绑定摘要，不选择或更换简历 | 与 [B2 D-26](../openapi-v1-contract/spec.md) / [frontend-resume-workshop D-8](../frontend-resume-workshop/spec.md) 同步 |
@@ -94,7 +96,10 @@
 | D-26 | 删除语音分析 | phone 模式不得展示或生成语速、停顿、口头禅、音量等表达层指标 | 这些指标对核心模拟面试价值低且会干扰真实电话面试心智 |
 | D-27 | 删除转写与跳过入口 | 文本模式不提供 `语音转文字`；text / phone 任一模式都不提供 `跳过` 主路径或替代入口 | 用户按真实面试回答或主动结束，系统不鼓励绕过题目 |
 | D-28 | 面试官来自轮次规划 | 面试官角色由 TargetJob 结构化轮次 / PracticePlan 决定；PracticeScreen 不提供会话内本地 persona switch | 保证本场面试身份稳定，避免中途切换破坏报告上下文 |
-| D-29 | 电话可切断和重开 | phone 模式必须提供切断和重新开始通话动作；不得把 `开始录音` / `提交本轮` 暴露为主流程 | 交互贴近真实电话，底层 voice turn 编排对用户隐藏 |
+| D-29 | 单一电话切换 | Top Bar 用一个电话图标替代文本/电话分段控件和 `live` chip；文本态点击进入电话，电话态点击与中间挂断复用 `exitPhoneMode`，返回同一 session 文本模式 | 形式切换直接、可逆且不制造第二个会话 |
+| D-30 | 无重开电话状态 | PhoneSurface 只保留字幕、听说状态和红色圆形挂断图标；删除“切断”文字、重新开始与 `callEnded` | 电话退出只有一个真实动作，避免伪造重拨生命周期 |
+| D-31 | 真实 Practice 上下文 | Top Bar 必须通过 generated `getTargetJob` 读取真实公司/岗位；real API 模式不得渲染 fixture 常量或复制 mock transcript；内部 `questionIntent` 不直接展示 | 避免假数据和中英文内部标签泄漏到用户界面 |
+| D-32 | 退出时序 | `exitPhoneMode` 立即停止麦克风/TTS；非空采集可结算，但退出后不再播放电话 TTS；挂断本身不产生 barge-in | 防止切换后声音继续或错误记录插话 |
 
 ### 3.2 当前执行约束
 
@@ -147,7 +152,7 @@
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` (`default`, `prototype-baseline`) | `WorkspaceScreen` pure plan list only | `backend/internal/targetjob` implemented | `target_jobs` | none in frontend | `001-workspace-and-interview-context` |
 | `archiveTargetJob` | `openapi/fixtures/TargetJobs/archiveTargetJob.json` | `WorkspaceScreen` delete icon | `backend/internal/targetjob` implemented | `target_jobs.status='archived'`, `target_jobs.deleted_at` | none | `001-workspace-and-interview-context` + `backend-targetjob/001` Phase 12 |
-| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` (`default`, `prototype-baseline`) | Parse unified detail JD / requirements / source context | `backend/internal/targetjob` implemented | `target_jobs`, requirements/sources | none in frontend | `frontend-home-job-picks-and-parse/001` + parse tests |
+| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` (`default`, `prototype-baseline`) | Parse unified detail；Practice Top Bar 读取真实 company/title | `backend/internal/targetjob` implemented | `target_jobs`, requirements/sources | none in frontend | `frontend-home-job-picks-and-parse/001` + `002` + real-mode gate |
 | `getResume` | `openapi/fixtures/Resumes/getResume.json` (`default`) | Parse / resume owners only | backend-resume real handler | resume assets | none | external owner gates |
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` (`default`) | Home select + Parse bound resume display / resume workshop | backend-resume real handler | resume assets | none | external owner gates |
 | `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` (`default`, `missing-resume`) | Parse detail start; report-derived retry / next round paths | backend-practice real handler | `practice_plans` | backend-only first-question prep | parse/report focused gates + `frontendOwners.realApiMode.test.ts` |
@@ -155,10 +160,10 @@
 | `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` (`default`) | Parse detail start + report-derived replay/next-round | backend-practice real handler | `practice_sessions`, first turn | backend-only `practice.session.first_question` | parse/report focused gates + real-mode gate |
 | `listPracticeSessions` | `openapi/fixtures/PracticeSessions/listPracticeSessions.json` (`default`) | Workspace session records handoff owner | backend-practice real handler | `practice_sessions` | none | workspace records + real-mode gate |
 | `getPracticeSession` | `openapi/fixtures/PracticeSessions/getPracticeSession.json` (`default`, `prototype-baseline`, `missing-session`) | Practice refresh / recovery | backend-practice real handler | `practice_sessions`, turns/events | none in frontend | `002` + real-mode gate |
-| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json` (`default`) | Practice answer/hint/pause/resume；不再发送 skip | backend-practice real handler | `practice_session_events`, `practice_turns` | backend-only follow-up/hint | `002` + real-mode gate；仍不带 Idempotency-Key；`turn_skipped` 必须从正向 UI/fixture/scenario/backend tests 中移除 |
+| `appendSessionEvent` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json` (`default`) | Practice answer/hint/pause/resume；不再发送 skip；repair failure 渲染 `session_wait` 并保留当前输入/session | backend-practice real handler | `practice_session_events`, `practice_turns` | backend-only canonical follow-up/hint；不接受 client question override | `002` + real-mode gate；仍不带 Idempotency-Key；`turn_skipped` 必须从正向 UI/fixture/scenario/backend tests 中移除 |
 | `completePracticeSession` | `openapi/fixtures/PracticeSessions/completePracticeSession.json` (`default`) | Practice finish CTA | backend-practice real handler | session status + outbox | none in frontend | `002` + real-mode gate |
 | `getFeedbackReport` | `openapi/fixtures/Reports/getFeedbackReport.json` (`default`, `report-generating`, `prototype-baseline`) | Generating poll by `reportId` only；report owner consumes dashboard | backend-review real handler | `feedback_reports` + job result | backend-review only | report dashboard + real-mode gate |
-| `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` | Phone surface internal turn submission；用户可见不得写作 Voice | practice-voice/backend-practice real handler | voice session events | STT/LLM/TTS backend-only | practice-voice owner + real-mode gate；UI label/route/search gate 统一为电话模式 |
+| `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` | Phone surface internal turn submission；VAD 自动提交；voice repair error 保留同一 session | practice-voice/backend-practice real handler | voice session events | STT/LLM/TTS backend-only；canonical context + session language + one repair | practice-voice owner + `002` real-mode gate；UI label/route/search gate 统一为电话模式 |
 
 ## 6 验收标准
 
@@ -169,7 +174,8 @@
 | C-2a | 面试规划列表卡片化与简化 | `listTargetJobs` 返回至少一条 ready 规划，并可能混入历史失败/空标题脏数据 | 进入无上下文 `workspace` | 列表请求带 `analysisStatus=ready`；列表项以响应式卡片呈现，卡片复用 Home 最近模拟面试卡片主体和 mini round rail，额外在底部 footer 追加 `立即面试` 主按钮，删除图标固定在卡片右上角；desktop 多列，mobile 单列，不出现无样式文本列；卡片不展示来源类型、目标语言或 `手动输入` 等低价值导入元信息；failed / blank-title TargetJob 不渲染；不出现可见的 `进入规划` footer button | 001 |
 | C-3 | Workspace 交互闭环 | 已渲染 workspace 列表 | 用户点击卡片主体、点击 `立即面试`、点击右上角删除图标 | 点击卡片进入 `parse` 统一只读详情母版，携带真实 `targetJobId` 和可选真实 `currentPracticePlanId/resumeId`；不伪造 `jobId` / `jdId` / plan / resume / report id；点击 `立即面试` 通过 generated practice handoff 创建/读取 plan 并启动 session 后进入 `practice`；点击右上角删除图标调用 generated `archiveTargetJob`，成功后移除卡片且刷新后不回灌，失败时不导航也不删除卡片 | 001 |
 | C-4 | Practice 文本 happy path | 用户进入 `practice?mode=text&modality=text`，session=`running` | 用户输入回答、可选请求提示、暂停/恢复、提交事件、结束 | TextSurface 源级复刻；没有独立辅助信息栏、语音转文字、跳过、会话内本地 persona switch 或严格开关；操作通过 `appendSessionEvent({clientEventId,kind,payload})`；AssistantAction 驱动下一题/追问/完成；结束调用 `completePracticeSession` 后进入 `generating?sessionId&reportId` | 002 |
-| C-5 | Practice 电话模式 + core-goal 显隐 | 用户进入 `practice?mode=phone&modality=phone`，且 `practiceGoal=baseline/retry_current_round/next_round`；out-of-scope `voice` 参数被过滤为非 phone 输入 | 用户接通、说话、显示/隐藏字幕、切断或重新开始 | PhoneSurface 源级复刻；默认不展示文字，字幕层按需显示；不展示语速/停顿/口头禅/音量等语音分析；不直连 STT/TTS provider；底层 voice turn flow 由 practice-voice owner gate 验证 | 002 + practice-voice-mvp/001 |
+| C-5 | Practice 电话模式 + core-goal 显隐 | 用户进入 `practice?mode=phone&modality=phone`，且 `practiceGoal=baseline/retry_current_round/next_round`；out-of-scope `voice` 参数被过滤为非 phone 输入 | 用户接通、说话、显示/隐藏字幕或挂断 | PhoneSurface 源级复刻；Top Bar 只有电话图标，无分段/live；中间只有圆形挂断，无切断文字/重开/callEnded；挂断立即停麦克风/TTS并回同 session 文本模式；不直连 STT/TTS provider | 002 + practice-voice-mvp/001 |
+| C-5a | Practice 真实内容与岗位上下文 | route/context 有真实 `targetJobId`，session 返回当前 question/AssistantAction，后端可能返回 repair failure | 加载 Top Bar、渲染会话或接收失败动作 | Top Bar 通过 generated `getTargetJob` 展示真实公司/岗位，server session ID 优先；real 模式无 fixture/mock 对话；不直接展示 `questionIntent`；文本 repair failure 渲染 `session_wait`、保留原回答并用新 `clientEventId` 重试，voice 顶层 typed error 留在同一 session | 002 + backend-practice/002 + practice-voice-mvp/001 |
 | C-6 | Generating 轮询 + report handoff | Practice 已 `completePracticeSession` 收到 `ReportWithJob{reportId,job}` | 用户在 generating 屏等待 | 4 步进度态与 `ReportGeneratingScreen` 一致；`queued/running` 保持等待，`succeeded` 导航 `report?sessionId&reportId`，`failed` 显示错误/重试/返回 workspace；不渲染 Report Dashboard | frontend-report-dashboard / backend-review |
 | C-7 | Downstream handoff 参数 | workspace 列表已加载；generating 成功 | 用户点击规划卡片、快速启动或等待报告生成完成 | 规划卡片只把真实 `targetJobId` 与可选绑定 IDs 交给 `parse`；快速启动使用 typed round/resume context；generating 对 `report` handoff 只携带 `sessionId/reportId` | 001 / frontend-report-dashboard |
 | C-8 | UI source structure parity | C-1~C-7 通过 | Vitest+jsdom 加载 owner Screen | DOM 锚点、控件类型、icon、aria、keyboard、menu/modal 层级可追溯到 `screen-workspace.jsx` / `screen-practice.jsx` / `ReportGeneratingScreen` / `primitives.jsx` | 001 / 002 / external owner gates |
@@ -184,7 +190,7 @@
 当前 owner plan：
 
 - `001-workspace-and-interview-context` — workspace 纯列表接管 + `listTargetJobs(analysisStatus=ready)` 消费 + 失败/空标题准入防线 + stale context 清理 + workspace BDD。
-- `002-practice-text-event-loop` — PracticeScreen 真实面试式 text / phone session + `getPracticeSession/appendSessionEvent/completePracticeSession` 消费 + 无右栏 / 无语音分析 / 无语音转文字 / 无跳过 / 面试官来自轮次规划 + generating 入口。
+- `002-practice-text-event-loop` — PracticeScreen 真实面试式 text / phone session + `getTargetJob/getPracticeSession/appendSessionEvent/createPracticeVoiceTurn/completePracticeSession` 消费 + 单一电话切换 / 同 session 挂断 / 真实岗位与会话内容 / generating 入口。
 
 电话模式底层 STT/LLM/TTS turn、generating/report dashboard 与 report-derived practice actions 由 `practice-voice-mvp`、`frontend-report-dashboard`、`backend-review` 和 `backend-practice` owner gate 承接；本 subspec 不保存 sibling plan 空壳。
 
@@ -201,6 +207,7 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 1.33 | 2026-07-11 | Reopen practice UI for a single handset mode switch, hang-up-to-text without restart/callEnded, real getTargetJob TopBar context, server-returned transcript only, and no direct questionIntent display. |
 | 1.31 | 2026-07-10 | Workspace / practice 的负向 UI 边界统一使用范围外 / out-of-scope 术语；行为不变。 |
 | 1.30 | 2026-07-10 | Workspace and practice negative boundaries use out-of-scope wording; route behavior is unchanged. |
 | 1.27 | 2026-07-10 | Workspace route purity wording uses out-of-scope params; canonical `/workspace` behavior is unchanged. |

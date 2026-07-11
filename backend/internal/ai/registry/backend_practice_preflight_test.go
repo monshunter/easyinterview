@@ -55,6 +55,28 @@ func TestBackendPracticeF3Preflight(t *testing.T) {
 			if res.UserMessageTemplate == "" {
 				t.Fatal("ResolveActive returned empty prompt body")
 			}
+			if tc.featureKey == "practice.session.follow_up" {
+				for _, marker := range []string{
+					"{{language}}",
+					"{{generation_kind}}",
+					"{{attempt_mode}}",
+					"{{practice_goal}}",
+					"{{practice_mode}}",
+					"{{turn_status}}",
+					"{{target_job_id}}",
+					"{{last_question}}",
+					"{{question_intent}}",
+					"{{last_answer}}",
+					"{{follow_up_count}}",
+					"{{covered_dimensions}}",
+					"{{remaining_dimensions}}",
+					"{{committed_context}}",
+				} {
+					if !strings.Contains(res.UserMessageTemplate, marker) {
+						t.Fatalf("follow-up prompt missing canonical runtime marker %s", marker)
+					}
+				}
+			}
 		})
 	}
 }

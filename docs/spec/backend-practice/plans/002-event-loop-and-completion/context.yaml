@@ -4,9 +4,11 @@ metadata:
   subspec: backend-practice
   name: 002-event-loop-and-completion
   sequence: 2
+  baseBranch: main
+  branch: practice-phone-session-flow
   specVersion:
     from: 1.17
-    to: 1.18
+    to: 1.20
 spec:
   defaultTarget: backend
   discovery:
@@ -37,6 +39,16 @@ spec:
       - turn_status
       - queued report job handoff
       - runtime boundary lint
+      - canonical practice context
+      - session language
+      - prompt variable binding
+      - exactly one repair
+      - session_wait state recovery
+      - typed voice error
+      - no canned question
+      - client question override negative
+      - questionIntent internal
+      - generation kind follow_up next_question
   targets:
     backend:
       plan: ./plan.md
@@ -46,6 +58,10 @@ spec:
       testChecklist: ./test-checklist.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../practice-voice-mvp/spec.md
+        - ../../../practice-voice-mvp/plans/001-cascaded-stt-llm-tts/plan.md
+        - ../../../prompt-rubric-registry/spec.md
       discovery:
         packages:
           - backend/internal/api/practice
@@ -56,7 +72,11 @@ spec:
           - backend/internal/shared/jobs
           - shared/events
           - shared/jobs.yaml
+          - config/prompts/practice.session.follow_up
+          - config/evals
+          - migrations/000002_seed_baseline_prompt_rubric_versions.up.sql
           - scripts/lint
         apiNames:
           - appendSessionEvent
           - completePracticeSession
+          - createPracticeVoiceTurn

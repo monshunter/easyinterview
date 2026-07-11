@@ -137,6 +137,16 @@ func (r *SQLRepository) AppendSessionEvent(ctx context.Context, in domain.Append
 	if in.Outcome.NextTurn != nil && strings.TrimSpace(in.Outcome.NextTurn.ID) != "" && in.Outcome.NextTurn.ID != state.latestTurn.ID {
 		return domain.AppendSessionEventResult{}, domain.ErrSessionConflict
 	}
+	if in.Outcome.NextTurn != nil && in.Outcome.AssistantAction.Type == "ask_follow_up" {
+		next := *in.Outcome.NextTurn
+		if questionText := strings.TrimSpace(in.Outcome.AssistantAction.QuestionText); questionText != "" {
+			next.QuestionText = questionText
+		}
+		if questionIntent := strings.TrimSpace(in.Outcome.AssistantAction.QuestionIntent); questionIntent != "" {
+			next.QuestionIntent = questionIntent
+		}
+		in.Outcome.NextTurn = &next
+	}
 
 	if in.Outcome.NextTurn != nil {
 		if err := updateLatestTurn(ctx, tx, in, state.latestTurn); err != nil {
@@ -372,6 +382,12 @@ func isClosedTurnStatus(status string) bool {
 func updateLatestTurn(ctx context.Context, tx *sql.Tx, in domain.AppendSessionEventStoreInput, latest domain.TurnRecord) error {
 	answerText := payloadString(in.RequestPayload, "answerText")
 	followUpCount := in.Outcome.NextTurn.FollowUpCount
+	questionText := any(nil)
+	questionIntent := any(nil)
+	if in.Outcome.AssistantAction.Type == "ask_follow_up" {
+		questionText = nullableString(in.Outcome.NextTurn.QuestionText)
+		questionIntent = nullableString(in.Outcome.NextTurn.QuestionIntent)
+	}
 	completedAt := any(nil)
 	if in.Outcome.NextTurn.Status == string(domain.TurnStatusAssessed) {
 		completedAt = in.OccurredAt.UTC()
@@ -383,15 +399,19 @@ func updateLatestTurn(ctx context.Context, tx *sql.Tx, in domain.AppendSessionEv
 	_, err := tx.ExecContext(ctx, `
 update practice_turns
 set status = $1,
-    answer_text = coalesce($2, answer_text),
-    answer_summary = coalesce($3, answer_summary),
-    follow_up_count = $4,
-    answered_at = coalesce($5, answered_at),
-    completed_at = coalesce($6, completed_at),
-    updated_at = $7
-where session_id = $8
-  and id = $9`,
+    question_text = coalesce($2, question_text),
+    question_intent = coalesce($3, question_intent),
+    answer_text = coalesce($4, answer_text),
+    answer_summary = coalesce($5, answer_summary),
+    follow_up_count = $6,
+    answered_at = coalesce($7, answered_at),
+    completed_at = coalesce($8, completed_at),
+    updated_at = $9
+where session_id = $10
+  and id = $11`,
 		in.Outcome.NextTurn.Status,
+		questionText,
+		questionIntent,
 		nullableString(answerText),
 		nullableString(in.Outcome.AnswerSummary),
 		followUpCount,
@@ -638,13 +658,47 @@ type appendEventAssistantAction struct {
 func marshalAppendEventPayload(in domain.AppendSessionEventStoreInput, result domain.AppendSessionEventResult) ([]byte, error) {
 	raw, err := json.Marshal(appendEventPayload{
 		RequestFingerprint: in.RequestFingerprint,
-		RequestPayload:     in.RequestPayload,
+		RequestPayload:     appendEventMetadataPayload(in.Kind, in.RequestPayload),
 		Result:             appendEventResultFromDomain(result),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("marshal append session event payload: %w", err)
 	}
 	return raw, nil
+}
+
+func appendEventMetadataPayload(kind string, payload map[string]any) map[string]any {
+	allowed := map[string]struct{}{}
+	switch strings.TrimSpace(kind) {
+	case "answer_submitted", "hint_requested":
+		allowed["turnId"] = struct{}{}
+	case "tts_chunk_started":
+		for _, key := range []string{"voiceTurnId", "chunkId", "playbackOffsetMs"} {
+			allowed[key] = struct{}{}
+		}
+	case "tts_chunk_played":
+		for _, key := range []string{"voiceTurnId", "chunkId", "playedTextHash", "playedTextLength", "playbackOffsetMs"} {
+			allowed[key] = struct{}{}
+		}
+	case "barge_in_detected":
+		for _, key := range []string{"voiceTurnId", "chunkId", "playbackOffsetMs", "userSpeechStartedAt"} {
+			allowed[key] = struct{}{}
+		}
+	case "assistant_context_committed":
+		for _, key := range []string{"voiceTurnId", "chunkId", "committedTextHash", "committedTextLength", "playbackOffsetMs"} {
+			allowed[key] = struct{}{}
+		}
+	}
+	result := make(map[string]any, len(allowed))
+	for key, value := range payload {
+		if _, ok := allowed[key]; ok {
+			result[key] = value
+		}
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
 }
 
 func marshalAppendEventReplayPayload(requestFingerprint string, result domain.AppendSessionEventResult) ([]byte, error) {

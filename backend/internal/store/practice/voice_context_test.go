@@ -19,12 +19,12 @@ func TestSQLRepositoryLoadCommittedVoiceContextBuildsFromLatestVoiceTurnEvents(t
 		WillReturnRows(sqlmock.NewRows([]string{"seq_no", "payload"}).AddRow(7, []byte(`{
 			"voiceTurnId":"voice-turn-1",
 			"assistantTextDraft":"Please expand on your migration validation.",
-			"ttsChunks":[{"chunkId":"chunk-1","textHash":"sha256:full","audioRef":"voice-turn://voice-turn-1/chunks/chunk-1"}]
-		}`)))
+				"ttsChunks":[{"chunkId":"chunk-1","textHash":"72872d4a414ea78752a0794a760c3afb6042a545fd0bef6328ad98ef0b52ea49","audioRef":"voice-turn://voice-turn-1/chunks/chunk-1"}]
+			}`)))
 	mock.ExpectQuery(`(?s)from practice_session_events.*seq_no > \$2.*event_type in`).
 		WithArgs("session-1", 7).
 		WillReturnRows(sqlmock.NewRows([]string{"event_type", "payload", "created_at"}).
-			AddRow("tts_chunk_played", []byte(`{"requestPayload":{"voiceTurnId":"voice-turn-1","chunkId":"chunk-1","playedTextLength":13,"playedTextHash":"sha256:partial","playbackOffsetMs":1480}}`), now).
+			AddRow("tts_chunk_played", []byte(`{"requestPayload":{"voiceTurnId":"voice-turn-1","chunkId":"chunk-1","playedTextLength":13,"playedTextHash":"72872d4a414ea78752a0794a760c3afb6042a545fd0bef6328ad98ef0b52ea49","playbackOffsetMs":1480}}`), now).
 			AddRow("barge_in_detected", []byte(`{"requestPayload":{"voiceTurnId":"voice-turn-1","chunkId":"chunk-1","playbackOffsetMs":1480,"userSpeechStartedAt":"2026-05-17T09:30:01Z"}}`), now.Add(time.Second)))
 
 	got, err := repo.LoadCommittedVoiceContext(context.Background(), "user-1", "session-1")

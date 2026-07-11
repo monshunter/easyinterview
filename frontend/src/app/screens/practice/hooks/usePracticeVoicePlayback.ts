@@ -18,10 +18,16 @@ export type PracticeVoicePlaybackState =
 export interface UsePracticeVoicePlaybackInput {
   sessionId: string;
   result: PracticeVoiceTurnResult | null;
+  /** False outside phone mode. Disabled playback also suppresses late results. */
+  enabled: boolean;
 }
+
+export type PracticeVoiceInterruptionReason = "user_speech" | "mode_switch";
 
 export interface UsePracticeVoicePlaybackResult {
   state: PracticeVoicePlaybackState;
+  interrupt: (reason: PracticeVoiceInterruptionReason) => Promise<boolean>;
+  /** Compatibility alias while existing callers migrate to interrupt(reason). */
   bargeIn: () => Promise<boolean>;
 }
 
@@ -37,6 +43,7 @@ interface ActivePlayback {
 export function usePracticeVoicePlayback({
   sessionId,
   result,
+  enabled = true,
 }: UsePracticeVoicePlaybackInput): UsePracticeVoicePlaybackResult {
   const runtime = useAppRuntimeOptional();
   const client = runtime?.client;
@@ -44,8 +51,10 @@ export function usePracticeVoicePlayback({
     kind: "idle",
   });
   const activeRef = useRef<ActivePlayback | null>(null);
+  const enabledRef = useRef(enabled);
+  const handledVoiceTurnKeysRef = useRef<Set<string>>(new Set());
   const tokenRef = useRef(0);
-  const startedVoiceTurnRef = useRef<string | null>(null);
+  enabledRef.current = enabled;
 
   const sendEvent = useCallback(
     async (
@@ -76,7 +85,14 @@ export function usePracticeVoicePlayback({
   const completePlayback = useCallback(
     async (token: number) => {
       const active = activeRef.current;
-      if (!active || tokenRef.current !== token || active.token !== token) return;
+      if (
+        !enabledRef.current ||
+        !active ||
+        tokenRef.current !== token ||
+        active.token !== token
+      ) {
+        return;
+      }
       activeRef.current = null;
       const payloadBase = {
         voiceTurnId: active.voiceTurnId,
@@ -89,12 +105,13 @@ export function usePracticeVoicePlayback({
           playedTextHash: active.chunk.textHash,
           playedTextLength: active.assistantText.length,
         });
+        if (!enabledRef.current || tokenRef.current !== token) return;
         await sendEvent("assistant_context_committed", {
           ...payloadBase,
           committedTextHash: active.chunk.textHash,
           committedTextLength: active.assistantText.length,
         });
-        if (tokenRef.current !== token) return;
+        if (!enabledRef.current || tokenRef.current !== token) return;
         setState({ kind: "completed", chunkId: active.chunk.chunkId });
       } catch (err) {
         if (tokenRef.current !== token) return;
@@ -137,9 +154,13 @@ export function usePracticeVoicePlayback({
           chunkId: chunk.chunkId,
           playbackOffsetMs: 0,
         });
-        if (tokenRef.current !== token) return;
+        if (!enabledRef.current || tokenRef.current !== token) return;
         await audio.play();
-        if (tokenRef.current !== token) return;
+        if (!enabledRef.current || tokenRef.current !== token) {
+          audio.pause();
+          if (activeRef.current?.token === token) activeRef.current = null;
+          return;
+        }
         setState({ kind: "playing", chunkId: chunk.chunkId });
       } catch (err) {
         if (tokenRef.current !== token) return;
@@ -150,79 +171,113 @@ export function usePracticeVoicePlayback({
     [completePlayback, sendEvent],
   );
 
-  const bargeIn = useCallback(async (): Promise<boolean> => {
-    const active = activeRef.current;
-    if (!active) return false;
-    tokenRef.current += 1;
-    active.audio.pause();
-    activeRef.current = null;
-    const playbackOffsetMs = Math.max(
-      0,
-      Math.min(
-        active.chunk.durationMs,
-        Math.round(active.audio.currentTime * 1000) ||
-          Date.now() - active.startedAtMs,
-      ),
-    );
-    setState({ kind: "interrupted", chunkId: active.chunk.chunkId });
-    try {
-      const playedTextLength = estimatePlayedTextLength(
-        active.assistantText,
-        active.chunk.durationMs,
-        playbackOffsetMs,
-      );
-      if (playedTextLength > 0) {
-        await sendEvent("tts_chunk_played", {
-          voiceTurnId: active.voiceTurnId,
-          chunkId: active.chunk.chunkId,
+  const interrupt = useCallback(
+    async (reason: PracticeVoiceInterruptionReason): Promise<boolean> => {
+      const active = activeRef.current;
+      if (!active) return false;
+      tokenRef.current += 1;
+      active.audio.pause();
+      activeRef.current = null;
+      const playbackOffsetMs = currentPlaybackOffsetMs(active);
+      setState({ kind: "interrupted", chunkId: active.chunk.chunkId });
+      try {
+        const playedTextLength = estimatePlayedTextLength(
+          active.assistantText,
+          active.chunk.durationMs,
           playbackOffsetMs,
-          playedTextHash: active.chunk.textHash,
-          playedTextLength,
-        });
+        );
+        if (playedTextLength > 0) {
+          await sendEvent("tts_chunk_played", {
+            voiceTurnId: active.voiceTurnId,
+            chunkId: active.chunk.chunkId,
+            playbackOffsetMs,
+            playedTextHash: active.chunk.textHash,
+            playedTextLength,
+          });
+        }
+        if (reason === "user_speech") {
+          await sendEvent("barge_in_detected", {
+            voiceTurnId: active.voiceTurnId,
+            chunkId: active.chunk.chunkId,
+            playbackOffsetMs,
+            userSpeechStartedAt: new Date().toISOString(),
+          });
+        } else if (playedTextLength > 0) {
+          await sendEvent("assistant_context_committed", {
+            voiceTurnId: active.voiceTurnId,
+            chunkId: active.chunk.chunkId,
+            playbackOffsetMs,
+            committedTextHash: active.chunk.textHash,
+            committedTextLength: playedTextLength,
+          });
+        }
+      } catch (err) {
+        setState({ kind: "error", message: errorMessage(err) });
+        throw err instanceof Error ? err : new Error(errorMessage(err));
       }
-      await sendEvent("barge_in_detected", {
-        voiceTurnId: active.voiceTurnId,
-        chunkId: active.chunk.chunkId,
-        playbackOffsetMs,
-        userSpeechStartedAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      setState({ kind: "error", message: errorMessage(err) });
-    }
-    return true;
-  }, [sendEvent]);
+      return true;
+    },
+    [sendEvent],
+  );
+
+  const bargeIn = useCallback(
+    () => interrupt("user_speech"),
+    [interrupt],
+  );
 
   useEffect(() => {
     const firstChunk = result?.ttsChunks[0] ?? null;
+    if (!enabled) {
+      if (result) {
+        handledVoiceTurnKeysRef.current.add(
+          voiceTurnKey(sessionId, result.voiceTurnId),
+        );
+      }
+      stopActivePlayback();
+      setState({ kind: "idle" });
+      return;
+    }
     if (!client || !sessionId || !result || !firstChunk) {
       if (result && !firstChunk) {
         setState({ kind: "idle" });
       }
       if (!result) {
-        startedVoiceTurnRef.current = null;
         setState({ kind: "idle" });
       }
       return;
     }
-    if (startedVoiceTurnRef.current === result.voiceTurnId) return;
-    startedVoiceTurnRef.current = result.voiceTurnId;
+    const key = voiceTurnKey(sessionId, result.voiceTurnId);
+    if (handledVoiceTurnKeysRef.current.has(key)) return;
+    handledVoiceTurnKeysRef.current.add(key);
     void playChunk(result.voiceTurnId, firstChunk, result.assistantTextDraft);
     return () => {
       stopActivePlayback();
     };
-  }, [client, playChunk, result, sessionId, stopActivePlayback]);
+  }, [client, enabled, playChunk, result, sessionId, stopActivePlayback]);
 
   return useMemo<UsePracticeVoicePlaybackResult>(
     () => ({
       state,
+      interrupt,
       bargeIn,
     }),
-    [bargeIn, state],
+    [bargeIn, interrupt, state],
   );
 }
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+function voiceTurnKey(sessionId: string, voiceTurnId: string): string {
+  return `${sessionId}\u0000${voiceTurnId}`;
+}
+
+function currentPlaybackOffsetMs(active: ActivePlayback): number {
+  const mediaOffsetMs = Number.isFinite(active.audio.currentTime)
+    ? Math.round(active.audio.currentTime * 1000)
+    : Date.now() - active.startedAtMs;
+  return Math.max(0, Math.min(active.chunk.durationMs, mediaOffsetMs));
 }
 
 function estimatePlayedTextLength(

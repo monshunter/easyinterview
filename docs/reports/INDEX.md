@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-11](./2026-07-11-practice-phone-session-language-assessment.md) | Practice Phone Session Language 交付复盘 | #assessment #BUG-0158 |
 | [2026-07-10](./2026-07-10-p0-098-targetjob-fixture-convergence-assessment.md) | P0.098 TargetJob Fixture Convergence 交付复盘 | #assessment #BUG-0157 |
 | [2026-07-10](./2026-07-10-python-contract-test-aggregation-assessment.md) | Python Contract Test Aggregation 交付复盘 | #assessment #BUG-0156 |
 | [2026-07-10](./2026-07-10-change-intake-owner-matching-assessment.md) | Change Intake Owner Matching 交付复盘 | #assessment #BUG-0155 |

@@ -35,10 +35,16 @@ import { usePracticeSession } from "./hooks/usePracticeSession";
 import { useCompletePracticeSession } from "./hooks/useCompletePracticeSession";
 import { usePracticeVoicePlayback } from "./hooks/usePracticeVoicePlayback";
 import { usePracticeVoiceTurn } from "./hooks/usePracticeVoiceTurn";
+import { usePracticePhoneController } from "./usePracticePhoneController";
+import { usePracticeTargetDisplay } from "./usePracticeTargetDisplay";
 import { buildPracticeHandoffParams } from "./utils/practiceHandoffParams";
 
 interface PracticeScreenProps {
   route: Route;
+}
+
+interface PracticeSessionScreenProps extends PracticeScreenProps {
+  sessionId: string;
 }
 
 interface ClassifiedPracticeError {
@@ -64,11 +70,25 @@ type RetryAction = () => Promise<void>;
  * interview surface, with mode/pause/finish controls in the top bar.
  */
 export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
+  const { ctx } = useInterviewContext();
+  const sessionId = route.params.sessionId || ctx.sessionId || "";
+  return (
+    <PracticeSessionScreen
+      key={sessionId}
+      route={route}
+      sessionId={sessionId}
+    />
+  );
+};
+
+const PracticeSessionScreen: FC<PracticeSessionScreenProps> = ({
+  route,
+  sessionId,
+}) => {
   const { t, lang } = useI18n();
   const { navigate } = useNavigation();
   const { ctx, dispatch } = useInterviewContext();
 
-  const sessionId = route.params.sessionId || ctx.sessionId || "";
   const mode = route.params.mode || ctx.mode || "text";
   const modality = route.params.modality || ctx.modality || mode;
   const practiceMode =
@@ -81,6 +101,13 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     roundName || t("practice.toolbar.role.manager");
 
   const loader = usePracticeSessionLoader(sessionId);
+  const targetDisplay = usePracticeTargetDisplay({
+    session: loader.data
+      ? { targetJobId: loader.data.targetJobId }
+      : null,
+    routeTargetJobId: route.params.targetJobId,
+    contextTargetJobId: ctx.targetJobId,
+  });
   const events = usePracticeEvents(sessionId);
   const completion = useCompletePracticeSession(sessionId);
   const sessionFlags = usePracticeSession(loader.data?.status ?? null);
@@ -92,9 +119,15 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     lang,
     practiceMode: voicePracticeMode,
   });
+  const acceptedVoiceResult =
+    voiceTurn.state.kind === "success" &&
+    voiceTurn.state.result.session.id === sessionId
+      ? voiceTurn.state.result
+      : null;
   const voicePlayback = usePracticeVoicePlayback({
     sessionId,
-    result: voiceTurn.state.kind === "success" ? voiceTurn.state.result : null,
+    result: acceptedVoiceResult,
+    enabled: activeMode === "phone",
   });
   const isNarrow = useNarrowPracticeLayout();
 
@@ -103,6 +136,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
   const [showHintBanner, setShowHintBanner] = useState(false);
   const [hintBannerText, setHintBannerText] = useState("");
+  const [phoneTtsUnavailable, setPhoneTtsUnavailable] = useState(false);
   const [activeAssistantAction, setActiveAssistantAction] =
     useState<AssistantAction | null>(null);
   const [errorState, setErrorState] = useState<PracticeErrorState | null>(null);
@@ -119,6 +153,8 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     paused ||
     loader.state === "loading" ||
     refreshingAfterConflict;
+  const phoneActive =
+    activeMode === "phone" && !paused && !sessionFlags.inputDisabled;
 
   // Local elapsed timer (UI display only; backend owns server elapsed).
   const [elapsed, setElapsed] = useState(0);
@@ -144,29 +180,26 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     navigate({
       name: "workspace",
       params: {
-        targetJobId: route.params.targetJobId || ctx.targetJobId,
+        targetJobId: targetDisplay.targetJobId || "",
         jdId: route.params.jdId || ctx.jdId || "",
         planId: route.params.planId || ctx.planId || "",
         resumeId:
           route.params.resumeId || ctx.resumeId || "",
       },
     });
-  }, [navigate, route.params, ctx]);
+  }, [navigate, route.params, ctx, targetDisplay.targetJobId]);
 
-  const handleSwitchMode = useCallback(
-    (k: "text" | "phone") => {
-      navigate({
-        name: "practice",
-        params: {
-          ...route.params,
-          sessionId,
-          mode: k,
-          modality: k,
-        },
-      });
-    },
-    [navigate, route.params, sessionId],
-  );
+  const enterPhoneMode = useCallback(() => {
+    navigate({
+      name: "practice",
+      params: {
+        ...route.params,
+        sessionId,
+        mode: "phone",
+        modality: "phone",
+      },
+    });
+  }, [navigate, route.params, sessionId]);
 
   const applyAssistantAction = useCallback((action: AssistantAction) => {
     setActiveAssistantAction(action);
@@ -241,9 +274,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
       }
       items.push({
         id: turn && i === turn.turnIndex ? turn.id : `q-skeleton-${i}`,
-        topic: turn && i === turn.turnIndex
-          ? (turn.questionIntent ?? t("practice.sessionMap.itemTopicSkeleton"))
-          : t("practice.sessionMap.itemTopicSkeleton"),
+        topic: t("practice.question.tagPrefix").replace("{n}", String(i)),
         duration: "—",
         status,
       });
@@ -260,21 +291,28 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   // ── handlers ──────────────────────────────────────────────────────────
   const appendPhoneVoiceTurnResult = useCallback(
     (result: PracticeVoiceTurnResult) => {
-      setTranscript((prev) => [
-        ...prev,
-        {
-          role: "user",
-          text: result.userTranscriptFinal,
-          t: fmtElapsed(elapsed),
-        },
-        {
-          role: "ai",
-          text: result.assistantTextDraft,
-          t: fmtElapsed(elapsed + 1),
-          followUp: true,
-        },
-      ]);
-      const turnIndex = loader.data?.currentTurn?.turnIndex;
+      if (!loader.adopt(result.session)) return;
+      setPhoneTtsUnavailable(result.ttsError !== null);
+      setTranscript((prev) => {
+        const next: TranscriptMessage[] = [
+          ...prev,
+          {
+            role: "user",
+            text: result.userTranscriptFinal,
+            t: fmtElapsed(elapsed),
+          },
+        ];
+        if (result.assistantTextDraft.trim()) {
+          next.push({
+            role: "ai",
+            text: result.assistantTextDraft,
+            t: fmtElapsed(elapsed + 1),
+            followUp: true,
+          });
+        }
+        return next;
+      });
+      const turnIndex = result.session.currentTurn?.turnIndex;
       if (turnIndex) {
         setTurnAnnotations((prev) => {
           const next = new Map(prev);
@@ -283,8 +321,33 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
         });
       }
     },
-    [elapsed, loader.data?.currentTurn?.turnIndex],
+    [elapsed, loader.adopt],
   );
+
+  const { exitPhoneMode: stopPhoneMode } = usePracticePhoneController({
+    enabled: activeMode === "phone",
+    active: phoneActive,
+    voiceTurn,
+    voicePlayback,
+    onTurnResult: appendPhoneVoiceTurnResult,
+    onError: (error) => handleMutationError(error, null),
+  });
+
+  const exitPhoneMode = useCallback(() => {
+    stopPhoneMode();
+    navigate({
+      name: "practice",
+      params: {
+        ...route.params,
+        sessionId,
+        mode: "text",
+        modality: "text",
+      },
+    });
+  }, [navigate, route.params, sessionId, stopPhoneMode]);
+
+  const togglePhoneMode =
+    activeMode === "phone" ? exitPhoneMode : enterPhoneMode;
 
   const onSend = useCallback(async () => {
     if (inputDisabled || !input.trim()) return;
@@ -294,12 +357,14 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     const sentAt = fmtElapsed(elapsed);
     const action = async () => {
       const result = await events.submitAnswer({ turnId, answerText });
+      if (!loader.adopt(result.session)) return;
+      applyAssistantAction(result.assistantAction);
+      if (result.assistantAction.type === "session_wait") return;
       setTranscript((prev) => [
         ...prev,
         { role: "user", text: answerText, t: sentAt },
       ]);
       setInput("");
-      applyAssistantAction(result.assistantAction);
     };
     await runPracticeAction(action, action);
   }, [
@@ -309,6 +374,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     input,
     inputDisabled,
     loader.data,
+    loader.adopt,
     runPracticeAction,
   ]);
 
@@ -322,6 +388,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     if (!turnId) return;
     const action = async () => {
       const result = await events.requestHint({ turnId });
+      if (!loader.adopt(result.session)) return;
       applyAssistantAction(result.assistantAction);
     };
     await runPracticeAction(action, action);
@@ -329,88 +396,29 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     applyAssistantAction,
     events,
     inputDisabled,
+    loader.adopt,
     loader.data,
     runPracticeAction,
     showHintBanner,
   ]);
 
-  const handlePhoneStart = useCallback(async () => {
-    if (
-      inputDisabled ||
-      activeMode !== "phone" ||
-      !voiceTurn.ready ||
-      voiceTurn.state.kind === "recording" ||
-      voiceTurn.state.kind === "submitting"
-    ) {
-      return;
-    }
-    const action = async () => {
-      await voicePlayback.bargeIn();
-      await voiceTurn.startRecording();
-    };
-    await runPracticeAction(action, action);
-  }, [
-    activeMode,
-    inputDisabled,
-    runPracticeAction,
-    voicePlayback,
-    voiceTurn,
-  ]);
-
-  const handlePhoneHangUp = useCallback(async () => {
-    const action = async () => {
-      if (voiceTurn.state.kind === "recording") {
-        const result = await voiceTurn.stopAndSubmit();
-        appendPhoneVoiceTurnResult(result);
-        return;
-      }
-      await voicePlayback.bargeIn();
-    };
-    await runPracticeAction(action, action);
-  }, [
-    appendPhoneVoiceTurnResult,
-    runPracticeAction,
-    voicePlayback,
-    voiceTurn,
-  ]);
-
-  const handlePhonePauseCapture = useCallback(() => {
-    if (voiceTurn.state.kind === "recording") {
-      voiceTurn.reset();
-    }
-  }, [voiceTurn]);
-
-  const handlePhoneRestart = useCallback(async () => {
-    if (inputDisabled || activeMode !== "phone" || !voiceTurn.ready) return;
-    const action = async () => {
-      await voicePlayback.bargeIn();
-      voiceTurn.reset();
-      await voiceTurn.startRecording();
-    };
-    await runPracticeAction(action, action);
-  }, [
-    activeMode,
-    inputDisabled,
-    runPracticeAction,
-    voicePlayback,
-    voiceTurn,
-  ]);
-
   const onTogglePause = useCallback(async () => {
     if (paused) {
       const action = async () => {
-        await events.resumeSession();
+        const result = await events.resumeSession();
+        if (!loader.adopt(result.session)) return;
         setPaused(false);
       };
       await runPracticeAction(action, action);
     } else {
       const action = async () => {
-        await events.pauseSession();
+        const result = await events.pauseSession();
+        if (!loader.adopt(result.session)) return;
         setPaused(true);
       };
       await runPracticeAction(action, action);
     }
-  }, [events, paused, runPracticeAction]);
+  }, [events, loader.adopt, paused, runPracticeAction]);
 
   const handleAskQuestion = useCallback(
     (_turnId: string, questionText: string) => {
@@ -555,7 +563,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
       data-testid="practice-screen"
       data-session-id={sessionId}
       data-plan-id={route.params.planId || ctx.planId || ""}
-      data-target-job-id={route.params.targetJobId || ctx.targetJobId || ""}
+      data-target-job-id={targetDisplay.targetJobId || ""}
       data-jd-id={route.params.jdId || ctx.jdId || ""}
       data-resume-version-id={
         route.params.resumeId || ctx.resumeId || ""
@@ -575,8 +583,10 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
       }}
     >
       <TopBar
-        company={t("practice.toolbar.companySkeleton")}
-        title={t("practice.toolbar.titleSkeleton")}
+        company={
+          targetDisplay.companyName ?? t("practice.toolbar.companySkeleton")
+        }
+        title={targetDisplay.title ?? t("practice.toolbar.titleSkeleton")}
         questionIndex={currentTurn?.turnIndex ?? 1}
         questionTotal={Math.max(turnTotal, 5)}
         questionLabel={t("practice.toolbar.questionTag")}
@@ -587,11 +597,18 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
         resumeLabel={t("practice.toolbar.resume")}
         onTogglePause={onTogglePause}
         activeMode={activeMode}
-        onSwitchMode={handleSwitchMode}
+        onTogglePhone={togglePhoneMode}
         interviewerLabel={interviewerLabel}
-        textModeLabel={t("practice.toolbar.modeText")}
-        phoneModeLabel={t("practice.toolbar.modePhone")}
-        phoneLiveLabel={t("practice.toolbar.phoneLive")}
+        phoneToggleLabel={
+          activeMode === "phone"
+            ? t("practice.toolbar.phoneExitLabel")
+            : t("practice.toolbar.phoneEnterLabel")
+        }
+        phoneToggleTitle={
+          activeMode === "phone"
+            ? t("practice.toolbar.phoneExitTitle")
+            : t("practice.toolbar.phoneEnterTitle")
+        }
         finishCta={finishCta}
       />
 
@@ -631,27 +648,30 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
           {activeMode === "phone" ? (
             <PracticePhoneSurface
               lang={lang}
-              active={!inputDisabled}
+              active={phoneActive}
               captureState={voiceTurn.state.kind}
               playbackState={voicePlayback.state.kind}
               voiceError={
-                voiceTurn.state.kind === "error"
-                  ? voiceTurn.state.message
-                  : null
+                errorState?.message ??
+                (voiceTurn.state.kind === "error"
+                  ? t(classifyPracticeError(voiceTurn.state.message).messageKey)
+                  : null)
               }
               playbackError={
-                voicePlayback.state.kind === "error"
-                  ? voicePlayback.state.message
+                phoneTtsUnavailable || acceptedVoiceResult?.ttsError
+                  ? t("practice.errors.ttsUnavailable")
+                  : voicePlayback.state.kind === "error"
+                  ? t(
+                      classifyPracticeError(voicePlayback.state.message)
+                        .messageKey,
+                    )
                   : null
               }
               messages={transcript}
               aiLabel={t("practice.transcript.aiLabel")}
               userLabel={t("practice.transcript.userLabel")}
               followUpLabel={t("practice.transcript.followUp")}
-              onStartCall={handlePhoneStart}
-              onPauseCapture={handlePhonePauseCapture}
-              onHangUp={handlePhoneHangUp}
-              onRestartCall={handlePhoneRestart}
+              onHangUp={exitPhoneMode}
             />
           ) : (
             <>
@@ -660,10 +680,10 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
                   "{n}",
                   String(currentTurn?.turnIndex ?? 1),
                 )}
-                topic={
-                  currentTurn?.questionIntent ??
-                  t("practice.sessionMap.itemTopicSkeleton")
-                }
+                topic={t("practice.question.tagPrefix").replace(
+                  "{n}",
+                  String(currentTurn?.turnIndex ?? 1),
+                )}
                 tags={[]}
                 prompt={
                   currentTurn?.questionText ??
@@ -753,6 +773,14 @@ function classifyPracticeError(err: unknown): ClassifiedPracticeError {
     return {
       messageKey: "practice.errors.aiTimeout",
       retryable: true,
+      refreshSession: false,
+      sessionLost: false,
+    };
+  }
+  if (message.includes("AI_OUTPUT_INVALID")) {
+    return {
+      messageKey: "practice.errors.aiOutputInvalid",
+      retryable: false,
       refreshSession: false,
       sessionLost: false,
     };

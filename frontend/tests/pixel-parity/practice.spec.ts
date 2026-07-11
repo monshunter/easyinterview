@@ -76,6 +76,13 @@ async function mockPracticeApis(
       );
       return;
     }
+    if (/^\/targets\/[^/]+$/.test(path)) {
+      await fulfillFixture(
+        route,
+        "openapi/fixtures/TargetJobs/getTargetJob.json",
+      );
+      return;
+    }
     if (/^\/practice\/sessions\/[^/]+\/events$/.test(path)) {
       await fulfillFixture(
         route,
@@ -159,7 +166,7 @@ test.describe("practice screen DOM and geometry parity", () => {
     await goToPractice(page);
     for (const id of [
       "practice-topbar",
-      "practice-topbar-mode-segment",
+      "practice-topbar-phone-toggle",
       "practice-sessionmap",
       "practice-question",
       "practice-question-prompt",
@@ -171,6 +178,13 @@ test.describe("practice screen DOM and geometry parity", () => {
     ]) {
       await expect(page.locator(`[data-testid='${id}']`), id).toHaveCount(1);
     }
+    await expect(page.locator("[data-testid='practice-topbar-mode-segment']"))
+      .toHaveCount(0);
+    await expect(page.locator("[data-testid='practice-topbar-live']")).toHaveCount(0);
+    await expect(page.locator("[data-testid='practice-topbar-company']"))
+      .toHaveText("Acme");
+    await expect(page.locator("[data-testid='practice-topbar-title']"))
+      .toHaveText("Senior Frontend Engineer");
   });
 
   test("primary practice anchors stay inside the viewport", async ({ page }) => {
@@ -213,10 +227,28 @@ test.describe("practice screen DOM and geometry parity", () => {
       "practice-phone-call-state",
       "practice-phone-captions-toggle",
       "practice-phone-hangup",
-      "practice-phone-restart",
     ]) {
       await expect(page.locator(`[data-testid='${id}']`), id).toHaveCount(1);
     }
+    await expect(page.locator("[data-testid='practice-phone-restart']"))
+      .toHaveCount(0);
+    await expect(page.getByText("重新开始", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("切断", { exact: true })).toHaveCount(0);
+
+    const topPhoneStyle = await page
+      .locator("[data-testid='practice-topbar-phone-toggle']")
+      .evaluate((node) => {
+        const style = getComputedStyle(node);
+        return { width: style.width, height: style.height, borderRadius: style.borderRadius };
+      });
+    expect(topPhoneStyle).toEqual({ width: "34px", height: "34px", borderRadius: "17px" });
+    const hangUpStyle = await page
+      .locator("[data-testid='practice-phone-hangup']")
+      .evaluate((node) => {
+        const style = getComputedStyle(node);
+        return { width: style.width, height: style.height, borderRadius: style.borderRadius };
+      });
+    expect(hangUpStyle).toEqual({ width: "56px", height: "56px", borderRadius: "28px" });
 
     const viewport = page.viewportSize();
     expect(viewport).toBeTruthy();

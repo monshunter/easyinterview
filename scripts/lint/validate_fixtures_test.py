@@ -221,6 +221,7 @@ REQUIRED_PRACTICE_SESSION_SCENARIOS = {
         "default",
         "stt-config-missing",
         "chat-failed",
+        "chat-output-invalid",
         "tts-failed",
     },
 }

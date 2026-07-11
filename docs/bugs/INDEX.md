@@ -23,6 +23,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0158](./BUG-0158.md) | practice phone flow and session language drifted from the real interview contract | medium | resolved | 2026-07-11 | `fix(practice): align phone flow and session language (BUG-0158)` |
 | [BUG-0103](./BUG-0103.md) | empty focus competency arrays broke practice plan creation | high | resolved | 2026-05-24 | `feat(e2e-scenarios): close full funnel journey (BUG-0103)` |
 | [BUG-0067](./BUG-0067.md) | practice voice turn contract was not mounted as HTTP route | high | resolved | 2026-05-17 | `fix(practice-voice): wire voice turn route and E2E gate (BUG-0067)` |
 | [BUG-0060](./BUG-0060.md) | backend-practice hint AI drifted from lightweight observe prompt contract | high | resolved | 2026-05-15 | `fix(backend-practice): align hint prompt contract` |

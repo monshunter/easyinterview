@@ -32,8 +32,8 @@
             "currentTurn": {
               "id": "01918fa0-0000-7000-8000-000000006000",
               "turnIndex": 1,
-              "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
-              "questionIntent": "behavioral.leadership.design_system",
+              "questionText": "在 12 个团队里推动迁移时，最大的反对意见是什么？你怎么处理的？",
+              "questionIntent": "behavioral.leadership.design_system.resistance",
               "status": "follow_up_requested",
               "askedAt": "2026-04-28T13:40:00Z"
             },
@@ -89,8 +89,8 @@
             "currentTurn": {
               "id": "01918fa0-0000-7000-8000-000000006000",
               "turnIndex": 1,
-              "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
-              "questionIntent": "behavioral.leadership.design_system",
+              "questionText": "你怎么判断哪些团队需要先迁移，哪些团队可以等待下一批？",
+              "questionIntent": "behavioral.leadership.design_system.prioritization",
               "status": "follow_up_requested",
               "askedAt": "2026-04-28T13:40:00Z"
             },
@@ -296,18 +296,18 @@
             "updatedAt": "2026-04-28T13:49:12Z"
           },
           "assistantAction": {
-            "type": "ask_question",
-            "turnId": "01918fa0-0000-7000-8000-000000006000",
-            "questionText": "我们继续刚才的问题：你如何协调 12 个团队的迁移节奏？",
+            "type": "session_wait",
+            "turnId": null,
+            "questionText": null,
             "hint": null,
             "sessionStatus": "running",
             "provenance": {
-              "promptVersion": "practice.session.resume.v1",
+              "promptVersion": "not_applicable",
               "rubricVersion": "not_applicable",
-              "modelId": "model-profile:contract.default",
+              "modelId": "model-profile:static",
               "language": "zh-CN",
-              "featureFlag": "pause_resume_v1",
-              "dataSourceVersion": "practice_session.v9"
+              "featureFlag": "none",
+              "dataSourceVersion": "static"
             }
           }
         }
@@ -344,26 +344,26 @@
             "currentTurn": {
               "id": "01918fa0-0000-7000-8000-000000006000",
               "turnIndex": 1,
-              "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
-              "questionIntent": "behavioral.leadership.design_system",
-              "status": "answered",
+              "questionText": "在 12 个团队里推动迁移时，最大的反对意见是什么？你怎么处理的？",
+              "questionIntent": "behavioral.leadership.design_system.resistance",
+              "status": "follow_up_requested",
               "askedAt": "2026-04-28T13:40:00Z"
             },
             "createdAt": "2026-04-28T12:00:00Z",
             "updatedAt": "2026-04-28T13:45:12Z"
           },
           "assistantAction": {
-            "type": "session_wait",
+            "type": "ask_follow_up",
             "turnId": "01918fa0-0000-7000-8000-000000006000",
-            "questionText": null,
+            "questionText": "在 12 个团队里推动迁移时，最大的反对意见是什么？你怎么处理的？",
             "hint": null,
             "sessionStatus": "running",
             "provenance": {
-              "promptVersion": "practice.session.replay.v1",
+              "promptVersion": "practice.session.follow_up.v1",
               "rubricVersion": "not_applicable",
               "modelId": "model-profile:contract.default",
               "language": "zh-CN",
-              "featureFlag": "none",
+              "featureFlag": "follow_up_v3",
               "dataSourceVersion": "practice_session.v9"
             }
           }
@@ -527,19 +527,44 @@
         }
       },
       "response": {
-        "status": 502,
+        "status": 200,
         "headers": {
           "X-Request-ID": "req_2026-04-28T13-49-30-ai-timeout"
         },
         "body": {
-          "error": {
-            "code": "AI_PROVIDER_TIMEOUT",
-            "message": "AI provider call timed out while generating the next assistant action.",
-            "requestId": "req_2026-04-28T13-49-30-ai-timeout",
-            "retryable": true,
-            "details": {
-              "provider": "model-profile:contract.default",
-              "stage": "follow_up_generation"
+          "acknowledged": true,
+          "session": {
+            "id": "01918fa0-0000-7000-8000-000000005000",
+            "planId": "01918fa0-0000-7000-8000-000000004000",
+            "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+            "status": "running",
+            "language": "zh-CN",
+            "hintsEnabled": true,
+            "turnCount": 1,
+            "currentTurn": {
+              "id": "01918fa0-0000-7000-8000-000000006000",
+              "turnIndex": 1,
+              "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
+              "questionIntent": "behavioral.leadership.design_system",
+              "status": "asked",
+              "askedAt": "2026-04-28T13:40:00Z"
+            },
+            "createdAt": "2026-04-28T12:00:00Z",
+            "updatedAt": "2026-04-28T13:49:30Z"
+          },
+          "assistantAction": {
+            "type": "session_wait",
+            "turnId": "01918fa0-0000-7000-8000-000000006000",
+            "questionText": null,
+            "hint": null,
+            "sessionStatus": "running",
+            "provenance": {
+              "promptVersion": "not_applicable",
+              "rubricVersion": "not_applicable",
+              "modelId": "model-profile:static",
+              "language": "zh-CN",
+              "featureFlag": "none",
+              "dataSourceVersion": "static"
             }
           }
         }
@@ -613,7 +638,7 @@
           "payload": {
             "voiceTurnId": "01918fa0-0000-7000-8000-00000000f201",
             "chunkId": "voice-chunk-001",
-            "playedTextHash": "sha256:voice-default-chunk-001",
+            "playedTextHash": "sha256:5607054a237c1bfd67f743bc6ff53c756d9d90b4e15b1826dc999b60e601e76e",
             "playedTextLength": 36,
             "playbackOffsetMs": 2840
           }
@@ -732,7 +757,7 @@
           "payload": {
             "voiceTurnId": "01918fa0-0000-7000-8000-00000000f201",
             "chunkId": "voice-chunk-001",
-            "committedTextHash": "sha256:voice-default-chunk-001",
+            "committedTextHash": "sha256:5607054a237c1bfd67f743bc6ff53c756d9d90b4e15b1826dc999b60e601e76e",
             "committedTextLength": 36,
             "playbackOffsetMs": 2840
           }

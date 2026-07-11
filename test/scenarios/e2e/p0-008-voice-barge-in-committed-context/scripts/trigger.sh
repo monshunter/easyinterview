@@ -13,14 +13,15 @@ echo "RUNNER frontend-vitest E2E.P0.008"
 (
   cd "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test \
-    src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx
+    src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx \
+    src/app/screens/practice/__tests__/practiceModeSwitch.test.tsx
 ) || frontend_status=$?
 
 echo "RUNNER backend-go-test E2E.P0.008"
 (
   cd "$REPO_ROOT/backend"
-  go test -v ./internal/practice ./internal/api/practice \
-    -run 'TestBuildCommittedVoiceContext|TestVoiceFollowUpPayloadInjectsCommittedContextWithoutUnplayedDraft|TestSessionEventServiceRoutesVoicePlaybackEvents|TestSessionEventServiceRejectsMalformedVoicePlaybackEvent|TestAppendSessionEventReturns200ForSupportedKinds|TestAppendSessionEventRejectsIdempotencyKeyHeader' \
+  go test -v ./internal/practice ./internal/store/practice ./internal/api/practice \
+    -run 'TestBuildCommittedVoiceContext|TestSQLRepositoryLoadCommittedVoiceContextBuildsFromLatestVoiceTurnEvents|TestCreatePracticeVoiceTurnLoadsCommittedContextFromStoredPlaybackEvents|TestVoiceQuestionTemplateInjectsCommittedContextWithoutUnplayedDraft|TestSessionEventServiceRoutesVoicePlaybackEvents|TestSessionEventServiceRejectsMalformedVoicePlaybackEvent|TestAppendSessionEventReturns200ForSupportedKinds|TestAppendSessionEventRejectsIdempotencyKeyHeader' \
     -count=1
 ) || backend_status=$?
 

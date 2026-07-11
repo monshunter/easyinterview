@@ -22,6 +22,7 @@ Phase 1.3 scope (per `002-fixtures-and-mock-source` plan §3 / spec C-6 / C-11):
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -72,6 +73,7 @@ PRACTICE_VOICE_PLAYABLE_AUDIO_REF_RE = re.compile(
 PRACTICE_VOICE_RESOLVER_AUDIO_REF_RE = re.compile(
     r"^/api/v1/practice/voice-turns/[^/]+/chunks/[^/]+/audio$"
 )
+SHA256_DIGEST_RE = re.compile(r"^(?:sha256:)?[0-9a-f]{64}$")
 
 # AI-generated schemas listed in spec §4.6. Provenance must resolve from each
 # value path, where `[*]` expands a list and yields its members.
@@ -130,6 +132,7 @@ REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
             "default",
             "stt-config-missing",
             "chat-failed",
+            "chat-output-invalid",
             "tts-failed",
         }
     ),
@@ -573,6 +576,125 @@ def check_practice_voice_playable_refs(opid: str, scenarios: dict, errors: List[
             )
 
 
+def check_practice_conversation_semantics(
+    opid: str, scenarios: dict, errors: List[str]
+) -> None:
+    if opid == "appendSessionEvent":
+        for scenario_name, scenario in scenarios.items():
+            request_payload = (((scenario.get("request") or {}).get("body") or {}).get("payload") or {})
+            for field in ("playedTextHash", "committedTextHash"):
+                digest = request_payload.get(field)
+                if digest is not None and (
+                    not isinstance(digest, str) or not SHA256_DIGEST_RE.fullmatch(digest)
+                ):
+                    errors.append(
+                        f"{opid}.{scenario_name}.request.body.payload.{field}: "
+                        f"must be a bare or sha256:-prefixed 64-hex SHA-256 digest"
+                    )
+
+            body = ((scenario.get("response") or {}).get("body") or {})
+            action = body.get("assistantAction") or {}
+            if action.get("type") != "ask_follow_up":
+                continue
+            current_turn = ((body.get("session") or {}).get("currentTurn") or {})
+            if current_turn.get("id") != action.get("turnId"):
+                errors.append(
+                    f"{opid}.{scenario_name}.response.body.session.currentTurn.id: "
+                    "must match assistantAction.turnId for ask_follow_up"
+                )
+            if current_turn.get("questionText") != action.get("questionText"):
+                errors.append(
+                    f"{opid}.{scenario_name}.response.body.session.currentTurn.questionText: "
+                    "must match assistantAction.questionText for ask_follow_up"
+                )
+            if current_turn.get("status") != "follow_up_requested":
+                errors.append(
+                    f"{opid}.{scenario_name}.response.body.session.currentTurn.status: "
+                    "must be follow_up_requested for ask_follow_up"
+                )
+
+        default = scenarios.get("default") or {}
+        replay = scenarios.get("replay") or {}
+        default_body = ((default.get("response") or {}).get("body") or {})
+        replay_body = ((replay.get("response") or {}).get("body") or {})
+        if replay_body != default_body:
+            errors.append(
+                f"{opid}.replay.response.body: must equal the default original snapshot"
+            )
+
+        for scenario_name, scenario in scenarios.items():
+            request = ((scenario.get("request") or {}).get("body") or {})
+            response = scenario.get("response") or {}
+            body = response.get("body") or {}
+            action = body.get("assistantAction") or {}
+            if request.get("kind") == "session_resumed" and (
+                response.get("status") != 200
+                or action.get("type") != "session_wait"
+                or action.get("questionText") not in (None, "")
+            ):
+                errors.append(
+                    f"{opid}.{scenario_name}.response: session_resumed must return "
+                    "200 session_wait without a new question"
+                )
+
+        timeout = scenarios.get("ai-timeout") or {}
+        timeout_request = ((timeout.get("request") or {}).get("body") or {})
+        timeout_response = timeout.get("response") or {}
+        timeout_body = timeout_response.get("body") or {}
+        timeout_action = timeout_body.get("assistantAction") or {}
+        timeout_turn = ((timeout_body.get("session") or {}).get("currentTurn") or {})
+        timeout_turn_id = ((timeout_request.get("payload") or {}).get("turnId"))
+        if (
+            timeout_response.get("status") != 200
+            or timeout_action.get("type") != "session_wait"
+            or timeout_action.get("questionText") not in (None, "")
+            or timeout_turn.get("id") != timeout_turn_id
+            or timeout_turn.get("status") != "asked"
+        ):
+            errors.append(
+                f"{opid}.ai-timeout.response: provider timeout must return 200 "
+                "session_wait and preserve the original asked turn"
+            )
+        return
+
+    if opid != "createPracticeVoiceTurn":
+        return
+    for scenario_name, scenario in scenarios.items():
+        body = ((scenario.get("response") or {}).get("body") or {})
+        chunks = body.get("ttsChunks") or []
+        if len(chunks) > 1:
+            errors.append(
+                f"{opid}.{scenario_name}.response.body.ttsChunks: current P0 permits 0..1 TTS chunks"
+            )
+        assistant_text = body.get("assistantTextDraft")
+        for index, chunk in enumerate(chunks):
+            digest = chunk.get("textHash")
+            path = f"{opid}.{scenario_name}.response.body.ttsChunks[{index}].textHash"
+            if not isinstance(digest, str) or not SHA256_DIGEST_RE.fullmatch(digest):
+                errors.append(
+                    f"{path}: must be a bare or sha256:-prefixed 64-hex SHA-256 digest"
+                )
+                continue
+            if isinstance(assistant_text, str) and assistant_text.strip():
+                expected = hashlib.sha256(assistant_text.strip().encode("utf-8")).hexdigest()
+                if digest.removeprefix("sha256:") != expected:
+                    errors.append(f"{path}: must hash assistantTextDraft exactly")
+
+        if not isinstance(assistant_text, str) or not assistant_text.strip():
+            continue
+        current_turn = ((body.get("session") or {}).get("currentTurn") or {})
+        if current_turn.get("questionText") != assistant_text:
+            errors.append(
+                f"{opid}.{scenario_name}.response.body.session.currentTurn.questionText: "
+                "must match assistantTextDraft after a successful generated follow-up"
+            )
+        if current_turn.get("status") != "follow_up_requested":
+            errors.append(
+                f"{opid}.{scenario_name}.response.body.session.currentTurn.status: "
+                "must be follow_up_requested after a generated follow-up"
+            )
+
+
 def check_privacy_and_ids(opid: str, data: dict, errors: List[str]) -> None:
     for path, value in _walk_strings(data):
         if TEMP_ID_RE.search(value):
@@ -633,6 +755,7 @@ def validate(repo_root: Path) -> List[str]:
             check_schema(opid, op, scenario_name, scenario, spec, errors)
         check_required_named_scenarios(opid, scenarios, errors)
         check_practice_voice_playable_refs(opid, scenarios, errors)
+        check_practice_conversation_semantics(opid, scenarios, errors)
         check_provenance(opid, scenarios.get("default") or {}, errors)
         check_p0_export_error_code(opid, scenarios, errors)
         check_d20_out_of_scope_fixture_keys(opid, data, errors)

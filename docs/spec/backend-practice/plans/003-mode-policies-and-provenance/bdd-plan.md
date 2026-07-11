@@ -1,8 +1,8 @@
 # 003 BDD Plan
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 **关联 BDD Checklist**: [bdd-checklist](./bdd-checklist.md)
@@ -40,7 +40,7 @@
 
 | Given | When | Then |
 |-------|------|------|
-| 用户 A 拥有多个 assisted running session，分别注入 F3 unsupported、A3 secret missing、A3 timeout、invalid output；另有 strict session 作为 boundary | 用户分别发起 `hint_requested` 并运行 runtime boundary lint | assisted failure 返回 200 + `session_wait`，session 保持 running，failure_code 为 NULL，hint_text 为 NULL；failed `ai_task_runs(hint_generate)` 写入 B1 error code；log / metric / audit / event / task-run payload 不含 question/answer/hint/prompt/response/secret；runtime boundary lint 通过 |
+| 用户 A 拥有多个 assisted running session，分别注入 F3 unsupported、A3 secret missing、A3 timeout、parser invalid、zh-CN English cue 和 en Han cue；另有 strict session 作为 boundary | 用户分别发起 `hint_requested` 并运行 runtime boundary lint | failure 返回 200 + `session_wait`，session 保持 running，failure_code 为 NULL，hint_text 为 NULL；wrong-language cue 不出现在 response/replay；failed `ai_task_runs(hint_generate)` 写入 B1 error code；log / metric / audit / event / task-run payload 不含 question/answer/hint/prompt/response/secret；runtime boundary lint 通过 |
 
 ## 3 执行入口
 

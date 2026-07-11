@@ -1,8 +1,8 @@
 # Backend Practice Event Loop and Completion Test Plan
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 **关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
 
@@ -17,6 +17,7 @@
 - completion idempotency middleware、D-35 replay、queued report/job handoff、status guard、outbox/audit creation and duplicate-prevention.
 - source-event-only `report_generate` job semantics, generated events/jobs drift, OpenAPI generated drift and fixture validity.
 - redaction for events, audit, logs, metrics and typed AI task surfaces.
+- canonical server-owned follow-up context, session-language output, client-override resistance, exactly-one repair, no canned fallback, text `session_wait` state recovery and existing typed voice error.
 
 ## 2 Coverage Matrix
 
@@ -26,6 +27,9 @@
 | OpenAPI turn status and generated artifacts | 4-value `PracticeTurn.status`, generated Go/TS sync | `make codegen-check`, `python3 scripts/lint/conventions_drift.py --repo-root .` |
 | fixtures | append/complete named variants match current schema | `make validate-fixtures` |
 | state machine | four current text event kinds, answer branches, optional strict-mode hint, provenance defaults, malformed answer fail-fast | `cd backend && go test ./internal/practice -count=1` |
+| question context/language | shared canonical renderer; persisted session language; plan goal/mode/targetJobId; current turn question/intent/status/count; submitted answer/transcript; follow-up vs next-question generation kind; applicable voice committed context; client override negative | focused `backend/internal/practice` service/prompt tests |
+| prompt truth source | canonical markers and repair semantics match template hash, baseline seed migration, resolved prompt snapshot and eval cases; Go contains no natural-language prompt append | prompt registry/hash/seed/eval tests and hardcode lint |
+| repair and recovery | JSON/schema/business-parser/language invalidity triggers at most one repair; provider/config/secret/timeout/unsupported/fallback-exhausted errors trigger none; second text invalid returns `session_wait` with state/outbox recovery; second voice invalid returns top-level `AI_OUTPUT_INVALID` before result/TTS persistence; no canned question | focused practice/voice service tests + P0.038/P0.009 |
 | append repository | transaction writes, replay/mismatch, row lock, cross-user, outbox boundary | `cd backend && go test ./internal/store/practice -run TestAppendSessionEvent -count=1` |
 | append handler | generated request/response, header policy, required `occurredAt`, error mapping | `cd backend && go test ./internal/api/practice -run TestAppendSessionEvent -count=1` |
 | completion repository | queued report/job/outbox/audit, D-35 replay, status guard, cross-user | `cd backend && go test ./internal/store/practice -run TestCompleteSession -count=1` |
@@ -45,6 +49,7 @@
 | report handoff | source event replay can create a second `report_generate` job | handler/store path is the single report job creator and active dedupe/replay blocks duplicates |
 | wire boundary | turn status is compressed or runtime-only provenance fields leak | four turn statuses and six provenance fields are preserved exactly |
 | privacy | text or provider secret appears in event/audit/log/metric/task payload | only IDs, lengths, counts, statuses, profile/model/error summaries and typed task columns are present |
+| follow-up truth | client input drives question/intent/count, language drifts, or second parse failure emits hard-coded question | server state/context/language win; one repair only; existing typed failure/action with no canned output |
 
 ## 4 Closeout Gate
 

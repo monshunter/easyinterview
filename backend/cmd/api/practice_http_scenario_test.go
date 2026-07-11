@@ -75,7 +75,11 @@ func TestE2EP0007PracticeVoiceTurnHTTPRoute(t *testing.T) {
 		out.ProviderMetaSummary.TtsProfile != "practice.voice.tts.default" ||
 		out.Session.Id != started.Id ||
 		out.Session.CurrentTurn == nil ||
-		out.Session.CurrentTurn.Status != string(domainpractice.TurnStatusFollowUpRequested) {
+		out.Session.CurrentTurn.Id != started.CurrentTurn.Id ||
+		out.Session.CurrentTurn.Status != string(domainpractice.TurnStatusFollowUpRequested) ||
+		out.Session.CurrentTurn.QuestionText != ai.responseText ||
+		out.Session.CurrentTurn.QuestionIntent == nil ||
+		*out.Session.CurrentTurn.QuestionIntent != ai.responseIntent {
 		t.Fatalf("voice turn HTTP response drift: %+v", out)
 	}
 	replayRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/voice-turns", "e2e-p0-007-voice-turn", body, http.StatusOK)
@@ -88,6 +92,21 @@ func TestE2EP0007PracticeVoiceTurnHTTPRoute(t *testing.T) {
 	rec := h.store.idempotencyRecords[h.store.idempotencyRecordKey(practiceHTTPScenarioUserAID, "practice", "createPracticeVoiceTurn", keyHash)]
 	if rec.Status != idempotency.StatusSucceeded || rec.ResourceType != "practice_voice_turn" || rec.ResourceID != out.VoiceTurnId {
 		t.Fatalf("voice turn idempotency resource drift: %+v", rec)
+	}
+	secondBody := body
+	secondBody.ClientVoiceTurnId = "client-voice-turn-p0-007-2"
+	secondBody.TurnId = out.Session.CurrentTurn.Id
+	secondRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/voice-turns", "e2e-p0-007-voice-turn-2", secondBody, http.StatusOK)
+	var second api.PracticeVoiceTurnResult
+	decodeJSON(t, secondRaw, &second)
+	if second.Session.TurnCount != 2 ||
+		second.Session.CurrentTurn == nil ||
+		second.Session.CurrentTurn.Id == started.CurrentTurn.Id ||
+		second.Session.CurrentTurn.Status != string(domainpractice.TurnStatusAsked) ||
+		second.Session.CurrentTurn.QuestionText != ai.responseText ||
+		h.store.outboxCount() != 2 ||
+		h.store.sessionEventCount(started.Id) != 3 {
+		t.Fatalf("second voice answer must advance to a generated next question atomically: result=%+v outbox=%d events=%d", second, h.store.outboxCount(), h.store.sessionEventCount(started.Id))
 	}
 	payloads := append(h.store.sessionEventPayloads(started.Id), raw)
 	assertNoEvidenceLeak(t, payloads, "T2dnUw==", string(ai.synthesisAudio), "audio/webm;")
@@ -303,7 +322,7 @@ func TestE2EP0025PracticeIdempotencyAndIsolationMatrix(t *testing.T) {
 
 func TestE2EP0026PracticeObservabilityAndPrivacyRedlines(t *testing.T) {
 	ai := &scenarioPracticeAIClient{
-		responseText:   "response body provider secret sk-test answer_text hint_text",
+		responseText:   "请说明候选人在项目中如何识别风险、验证边界、记录取舍、衡量结果并制定回滚方案，并进一步说明团队背景、目标约束、关键决策、验证方法、失败信号、复盘结论和后续改进，同时包含 response body provider secret sk-test answer_text hint_text 作为隐私测试标记。",
 		responseIntent: "prompt body response body",
 	}
 	h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai, observedAI: true})
@@ -513,14 +532,14 @@ func TestE2EP0038PracticeEventLoopAnswerFlow(t *testing.T) {
 		Kind:          "answer_submitted",
 		OccurredAt:    "2026-04-28T13:46:12Z",
 		Payload: map[string]any{
-			"turnId":           started.CurrentTurn.Id,
-			"answerText":       "追问里我会说明和安全团队确认风险接受标准。",
-			"nextQuestionText": "请描述一次你在范围变化后重新排优先级的经历。",
+			"turnId":     started.CurrentTurn.Id,
+			"answerText": "追问里我会说明和安全团队确认风险接受标准。",
 		},
 	}, http.StatusOK)
 	var nextQuestion api.SessionEventResult
 	decodeJSON(t, nextQuestionRaw, &nextQuestion)
 	if nextQuestion.AssistantAction.Type != "ask_question" ||
+		nextQuestion.AssistantAction.QuestionText == nil || strings.TrimSpace(*nextQuestion.AssistantAction.QuestionText) == "" ||
 		nextQuestion.Session.CurrentTurn == nil ||
 		nextQuestion.Session.CurrentTurn.Id == started.CurrentTurn.Id ||
 		nextQuestion.Session.CurrentTurn.Status != "asked" {
@@ -550,6 +569,111 @@ func TestE2EP0038PracticeEventLoopAnswerFlow(t *testing.T) {
 	if h.store.outboxCount() != 3 {
 		t.Fatalf("outbox count = %d, want 3 (session_started + two turn.completed)", h.store.outboxCount())
 	}
+}
+
+func TestE2EP0038PracticeEventLoopQuestionRepairRecovery(t *testing.T) {
+	t.Run("wrong language repairs exactly once", func(t *testing.T) {
+		ai := &scenarioPracticeAIClient{followUpContents: []string{
+			`{"questionText":"How did you measure the migration impact?","questionIntent":"evidence"}`,
+			`{"questionText":"你如何衡量这次迁移的实际影响？","questionIntent":"evidence"}`,
+		}}
+		h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai})
+		plan := h.seedReadyScenarioPlan("practice-plan-p0-038-repair", "target-job-p0-038-repair", "resume-p0-038-repair", practiceHTTPScenarioUserAID)
+		started := h.startScenarioSession(t, plan.ID, "e2e-p0-038-repair-start")
+
+		raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+			ClientEventId: "e2e-p0-038-repair-answer",
+			Kind:          "answer_submitted",
+			OccurredAt:    "2026-04-28T13:45:12Z",
+			Payload: map[string]any{
+				"turnId":     started.CurrentTurn.Id,
+				"answerText": "我会用错误率、延迟和回滚次数衡量。",
+			},
+		}, http.StatusOK)
+		var result api.SessionEventResult
+		decodeJSON(t, raw, &result)
+		if result.AssistantAction.Type != "ask_follow_up" || result.AssistantAction.QuestionText == nil || *result.AssistantAction.QuestionText != "你如何衡量这次迁移的实际影响？" {
+			t.Fatalf("wrong-language repair did not produce the canonical question: %+v", result.AssistantAction)
+		}
+		if ai.followUpCalls != 2 {
+			t.Fatalf("wrong-language output must repair exactly once, calls=%d", ai.followUpCalls)
+		}
+	})
+
+	t.Run("double invalid waits, replays, then new id retries", func(t *testing.T) {
+		ai := &scenarioPracticeAIClient{followUpContents: []string{
+			`{"questionText":"How did you measure the migration impact?","questionIntent":"evidence"}`,
+			`{"questionText":"What tradeoff did you make?","questionIntent":"tradeoff"}`,
+		}}
+		h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai})
+		plan := h.seedReadyScenarioPlan("practice-plan-p0-038-wait", "target-job-p0-038-wait", "resume-p0-038-wait", practiceHTTPScenarioUserAID)
+		started := h.startScenarioSession(t, plan.ID, "e2e-p0-038-wait-start")
+		path := "/api/v1/practice/sessions/" + started.Id + "/events"
+		request := api.PracticeSessionEventRequest{
+			ClientEventId: "e2e-p0-038-wait-answer",
+			Kind:          "answer_submitted",
+			OccurredAt:    "2026-04-28T13:45:12Z",
+			Payload: map[string]any{
+				"turnId":     started.CurrentTurn.Id,
+				"answerText": "我会用错误率和延迟衡量。",
+			},
+		}
+		first := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", request, http.StatusOK)
+		var waiting api.SessionEventResult
+		decodeJSON(t, first, &waiting)
+		if waiting.AssistantAction.Type != "session_wait" || (waiting.AssistantAction.QuestionText != nil && *waiting.AssistantAction.QuestionText != "") ||
+			waiting.Session.CurrentTurn == nil || waiting.Session.CurrentTurn.Status != "asked" {
+			t.Fatalf("double-invalid output advanced the turn or emitted canned text: %+v", waiting)
+		}
+		if ai.followUpCalls != 2 || h.store.outboxCount() != 1 {
+			t.Fatalf("double-invalid output repair/outbox drift: calls=%d outbox=%d", ai.followUpCalls, h.store.outboxCount())
+		}
+		replay := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", request, http.StatusOK)
+		assertJSONEqualBytes(t, first, replay)
+		if ai.followUpCalls != 2 {
+			t.Fatalf("same clientEventId replayed AI, calls=%d", ai.followUpCalls)
+		}
+
+		ai.followUpContents = []string{`{"questionText":"你如何衡量这次迁移的实际影响？","questionIntent":"evidence"}`}
+		request.ClientEventId = "e2e-p0-038-wait-answer-retry"
+		retryRaw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, path, "", request, http.StatusOK)
+		var retried api.SessionEventResult
+		decodeJSON(t, retryRaw, &retried)
+		if retried.AssistantAction.Type != "ask_follow_up" || retried.AssistantAction.QuestionText == nil || *retried.AssistantAction.QuestionText != "你如何衡量这次迁移的实际影响？" ||
+			retried.Session.CurrentTurn == nil || retried.Session.CurrentTurn.Status != "follow_up_requested" {
+			t.Fatalf("new clientEventId did not retry the retained answer: %+v", retried)
+		}
+		if ai.followUpCalls != 3 || h.store.outboxCount() != 1 {
+			t.Fatalf("new-id retry count/outbox drift: calls=%d outbox=%d", ai.followUpCalls, h.store.outboxCount())
+		}
+	})
+
+	t.Run("provider timeout waits without business repair", func(t *testing.T) {
+		ai := &scenarioPracticeAIClient{followUpFailures: []error{
+			sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "scenario timeout", true),
+		}}
+		h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai})
+		plan := h.seedReadyScenarioPlan("practice-plan-p0-038-timeout", "target-job-p0-038-timeout", "resume-p0-038-timeout", practiceHTTPScenarioUserAID)
+		started := h.startScenarioSession(t, plan.ID, "e2e-p0-038-timeout-start")
+
+		raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
+			ClientEventId: "e2e-p0-038-timeout-answer",
+			Kind:          "answer_submitted",
+			OccurredAt:    "2026-04-28T13:45:12Z",
+			Payload: map[string]any{
+				"turnId":     started.CurrentTurn.Id,
+				"answerText": "我会用错误率和延迟衡量。",
+			},
+		}, http.StatusOK)
+		var waiting api.SessionEventResult
+		decodeJSON(t, raw, &waiting)
+		if waiting.AssistantAction.Type != "session_wait" || waiting.Session.CurrentTurn == nil || waiting.Session.CurrentTurn.Status != "asked" {
+			t.Fatalf("provider timeout must preserve the turn: %+v", waiting)
+		}
+		if ai.followUpCalls != 1 || h.store.outboxCount() != 1 {
+			t.Fatalf("provider timeout must not business-repair or emit completion: calls=%d outbox=%d", ai.followUpCalls, h.store.outboxCount())
+		}
+	})
 }
 
 func TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy(t *testing.T) {
@@ -676,9 +800,8 @@ func TestE2EP0040PracticeEventConcurrentSeqNoStaleTurnConflict(t *testing.T) {
 		Kind:          "answer_submitted",
 		OccurredAt:    "2026-04-28T13:45:12Z",
 		Payload: map[string]any{
-			"turnId":           started.CurrentTurn.Id,
-			"answerText":       "first accepted follow-up answer",
-			"nextQuestionText": "Next question after the accepted answer.",
+			"turnId":     started.CurrentTurn.Id,
+			"answerText": "first accepted follow-up answer",
 		},
 	}, http.StatusOK)
 	var accepted api.SessionEventResult
@@ -861,7 +984,7 @@ func TestE2EP0048PracticeHintAssistedAcrossGoals(t *testing.T) {
 				t.Fatalf("hint ai_task_runs row missing: %+v", h.aiTaskRuns.rows)
 			}
 
-			ai.responseText = "Second hint for " + string(goal)
+			ai.responseText = "请再补充一个与本轮目标相关的量化证据。"
 			secondBody := api.PracticeSessionEventRequest{
 				ClientEventId: "e2e-p0-048-hint-second-" + string(goal),
 				Kind:          "hint_requested",
@@ -931,7 +1054,7 @@ func TestE2EP0049PracticeHintOptionalAcrossStrictModeGoals(t *testing.T) {
 }
 
 func TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns(t *testing.T) {
-	ai := &scenarioPracticeAIClient{responseText: "Use a concrete metric."}
+	ai := &scenarioPracticeAIClient{responseText: "请用一个具体指标说明结果。"}
 	h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: ai, observedAI: true})
 	plan := h.seedReadyScenarioPlan("practice-plan-p0-050", "01918fa0-0000-7000-8000-000000002050", "resume-asset-p0-050", practiceHTTPScenarioUserAID)
 	plan.QuestionBudget = 2
@@ -1001,6 +1124,10 @@ func TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns(t *testing.T) {
 		Capability:       aiclient.AITaskRunTaskHintGenerate,
 		FeatureKey:       hintFeatureKeyForScenario,
 		ModelProfileName: "practice.turn_observe.default",
+	}, {
+		Capability:       aiclient.AITaskRunTaskFollowupGenerate,
+		FeatureKey:       "practice.session.follow_up",
+		ModelProfileName: "practice.followup.default",
 	}})
 	var completed api.SessionEventResult
 	decodeJSON(t, completeRaw, &completed)
@@ -1045,21 +1172,31 @@ func assertScenarioTaskRunDelta(t *testing.T, rows []aiclient.AITaskRunRow, expe
 
 func TestE2EP0051PracticeHintDegradeAndPrivacy(t *testing.T) {
 	cases := []struct {
-		name       string
-		registry   *scenarioPracticeRegistry
-		ai         *scenarioPracticeAIClient
-		wantCode   string
-		observedAI bool
+		name            string
+		registry        *scenarioPracticeRegistry
+		ai              *scenarioPracticeAIClient
+		language        string
+		wantCode        string
+		observedAI      bool
+		forbiddenOutput string
 	}{
 		{name: "f3-unsupported", registry: &scenarioPracticeRegistry{errByFeature: map[string]error{hintFeatureKeyForScenario: registry.ErrPromptUnsupported}}, ai: &scenarioPracticeAIClient{}, wantCode: sharederrors.CodeAiProviderConfigInvalid},
 		{name: "secret-missing", ai: &scenarioPracticeAIClient{hintFailures: []error{sharederrors.Wrap(sharederrors.CodeAiProviderSecretMissing, "provider secret sk-test", false)}}, wantCode: sharederrors.CodeAiProviderSecretMissing, observedAI: true},
 		{name: "timeout", ai: &scenarioPracticeAIClient{hintFailures: []error{sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "timeout prompt body response body", true)}}, wantCode: sharederrors.CodeAiProviderTimeout, observedAI: true},
 		{name: "invalid-output", ai: &scenarioPracticeAIClient{rawContent: `{"hint":""}`}, wantCode: sharederrors.CodeAiOutputInvalid, observedAI: true},
+		{name: "wrong-language-zh", ai: &scenarioPracticeAIClient{rawContent: `{"cue":"Use one measurable tradeoff."}`}, wantCode: sharederrors.CodeAiOutputInvalid, observedAI: true, forbiddenOutput: "Use one measurable tradeoff."},
+		{name: "wrong-language-en", ai: &scenarioPracticeAIClient{rawContent: `{"cue":"请补充一个可量化的取舍。"}`, responseText: "Tell me about a cross-team migration you led."}, language: "en", wantCode: sharederrors.CodeAiOutputInvalid, observedAI: true, forbiddenOutput: "请补充一个可量化的取舍。"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			h := newPracticeHTTPScenarioHarness(t, practiceHTTPScenarioOptions{ai: tc.ai, registry: tc.registry, observedAI: tc.observedAI})
 			plan := h.seedReadyScenarioPlan("practice-plan-p0-051-"+tc.name, "01918fa0-0000-7000-8000-000000002051", "resume-asset-p0-051-"+tc.name, practiceHTTPScenarioUserAID)
+			if tc.language != "" {
+				plan.Language = tc.language
+				storedPlan := h.store.plans[plan.ID]
+				storedPlan.PlanRecord = plan
+				h.store.plans[plan.ID] = storedPlan
+			}
 			started := h.startScenarioSession(t, plan.ID, "e2e-p0-051-start-"+tc.name)
 			raw := h.doJSON(t, practiceHTTPScenarioUserAID, http.MethodPost, "/api/v1/practice/sessions/"+started.Id+"/events", "", api.PracticeSessionEventRequest{
 				ClientEventId: "e2e-p0-051-hint-" + tc.name,
@@ -1074,6 +1211,9 @@ func TestE2EP0051PracticeHintDegradeAndPrivacy(t *testing.T) {
 			}
 			if got := h.store.hintTextForTurn(started.Id, started.CurrentTurn.Id); got != "" {
 				t.Fatalf("degrade should not persist hint_text, got %q", got)
+			}
+			if tc.forbiddenOutput != "" && strings.Contains(string(raw), tc.forbiddenOutput) {
+				t.Fatalf("wrong-language cue leaked in response: %s", string(raw))
 			}
 			rows := h.aiTaskRuns.Rows()
 			if len(rows) == 0 || rows[len(rows)-1].Capability != aiclient.AITaskRunTaskHintGenerate ||
@@ -1093,6 +1233,9 @@ func TestE2EP0051PracticeHintDegradeAndPrivacy(t *testing.T) {
 				if strings.Contains(evidence, forbidden) {
 					t.Fatalf("degrade privacy surface leaked %q: %s", forbidden, evidence)
 				}
+			}
+			if tc.forbiddenOutput != "" && strings.Contains(evidence, tc.forbiddenOutput) {
+				t.Fatalf("wrong-language cue leaked in persisted/observability evidence: %s", evidence)
 			}
 		})
 	}
@@ -1402,18 +1545,22 @@ func (r scenarioPracticeProfileResolver) Resolve(name string) (*aiclient.ModelPr
 }
 
 type scenarioPracticeAIClient struct {
-	store           *scenarioPracticeStore
-	failures        []error
-	hintFailures    []error
-	rawContent      string
-	responseText    string
-	responseIntent  string
-	transcription   string
-	synthesisAudio  []byte
-	synthesisMillis int
-	sttFailures     []error
-	ttsFailures     []error
-	calls           int
+	store            *scenarioPracticeStore
+	failures         []error
+	hintFailures     []error
+	rawContent       string
+	responseText     string
+	responseIntent   string
+	followUpContents []string
+	followUpFailures []error
+	followUpPayloads []aiclient.CompletePayload
+	followUpCalls    int
+	transcription    string
+	synthesisAudio   []byte
+	synthesisMillis  int
+	sttFailures      []error
+	ttsFailures      []error
+	calls            int
 }
 
 const hintFeatureKeyForScenario = "practice.turn.lightweight_observe"
@@ -1435,6 +1582,17 @@ func (c *scenarioPracticeAIClient) Complete(ctx context.Context, profileName str
 		err := c.hintFailures[0]
 		c.hintFailures = c.hintFailures[1:]
 		return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, err
+	}
+	if payload.Metadata.FeatureKey == "practice.session.follow_up" {
+		c.followUpCalls++
+		c.followUpPayloads = append(c.followUpPayloads, payload)
+		if len(c.followUpFailures) > 0 {
+			err := c.followUpFailures[0]
+			c.followUpFailures = c.followUpFailures[1:]
+			if err != nil {
+				return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, err
+			}
+		}
 	}
 	if len(c.failures) > 0 {
 		err := c.failures[0]
@@ -1475,16 +1633,27 @@ func (c *scenarioPracticeAIClient) Complete(ctx context.Context, profileName str
 		}
 		hint := c.responseText
 		if hint == "" {
-			hint = "Anchor the answer in one measurable coordination decision."
+			hint = "请把回答聚焦在一个可量化的协作决策上。"
 		}
 		content, err := json.Marshal(map[string]string{
 			"cue":           hint,
-			"answerSummary": "Candidate anchored the answer in measurable evidence.",
+			"answerSummary": "候选人用可量化证据说明了回答。",
 		})
 		if err != nil {
 			return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, err
 		}
 		return aiclient.CompleteResponse{Content: string(content)}, aiclient.AICallMeta{
+			Provider:         "stub",
+			ModelFamily:      "stub",
+			ModelID:          "stub-chat-1",
+			FallbackChain:    []string{"stub/stub-chat-1"},
+			ValidationStatus: aiclient.ValidationStatusOK,
+		}, nil
+	}
+	if payload.Metadata.FeatureKey == "practice.session.follow_up" && len(c.followUpContents) > 0 {
+		content := c.followUpContents[0]
+		c.followUpContents = c.followUpContents[1:]
+		return aiclient.CompleteResponse{Content: content}, aiclient.AICallMeta{
 			Provider:         "stub",
 			ModelFamily:      "stub",
 			ModelID:          "stub-chat-1",
@@ -2014,14 +2183,45 @@ func (s *scenarioPracticeStore) RecordPracticeVoiceTurn(_ context.Context, in do
 		return domainpractice.SessionRecord{}, domainpractice.ErrSessionConflict
 	}
 	latest := turns[len(turns)-1]
-	latest.Status = string(domainpractice.TurnStatusFollowUpRequested)
-	latest.FollowUpCount = 1
-	turns[len(turns)-1] = latest
-	session.Status = sharedtypes.SessionStatusRunning
+	if in.Outcome.NextTurn == nil || strings.TrimSpace(in.Outcome.NextTurn.ID) != latest.ID {
+		return domainpractice.SessionRecord{}, domainpractice.ErrSessionConflict
+	}
+	updated := *in.Outcome.NextTurn
+	if in.Outcome.AssistantAction.Type == "ask_follow_up" {
+		updated.QuestionText = strings.TrimSpace(in.Outcome.AssistantAction.QuestionText)
+		updated.QuestionIntent = strings.TrimSpace(in.Outcome.AssistantAction.QuestionIntent)
+	}
+	turns[len(turns)-1] = updated
+	session.Status = in.Outcome.NextSessionStatus
 	session.UpdatedAt = in.OccurredAt
-	session.CurrentTurn = &latest
+	if in.NextQuestion != nil {
+		next := *in.NextQuestion
+		turns = append(turns, next)
+		session.TurnCount = next.TurnIndex
+		session.CurrentTurn = &next
+	} else {
+		session.CurrentTurn = &updated
+	}
 	s.turns[in.SessionID] = turns
 	s.sessions[in.SessionID] = session
+	if in.Outcome.OutboxRecord != nil {
+		outboxPayload, err := storepractice.BuildPracticeTurnCompletedPayload(storepractice.PracticeTurnCompletedInput{
+			SessionID:        in.SessionID,
+			TurnID:           latest.ID,
+			TurnIndex:        int(latest.TurnIndex),
+			QuestionIntent:   latest.QuestionIntent,
+			FollowUpCount:    in.Outcome.OutboxRecord.FollowUpCount,
+			AnswerCharLength: in.Outcome.OutboxRecord.AnswerCharLength,
+		})
+		if err != nil {
+			return domainpractice.SessionRecord{}, err
+		}
+		raw, err := json.Marshal(outboxPayload)
+		if err != nil {
+			return domainpractice.SessionRecord{}, err
+		}
+		s.outbox = append(s.outbox, scenarioOutboxEvent{EventName: sharedevents.EventNamePracticeTurnCompleted, Payload: raw})
+	}
 	payload, err := json.Marshal(map[string]any{
 		"voiceTurnId":         in.VoiceTurnID,
 		"turnId":              in.TurnID,

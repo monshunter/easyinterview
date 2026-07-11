@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	domain "github.com/monshunter/easyinterview/backend/internal/practice"
-	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
 func (r *SQLRepository) RecordPracticeVoiceTurn(ctx context.Context, in domain.PracticeVoiceTurnStoreInput) (domain.SessionRecord, error) {
@@ -28,24 +27,44 @@ func (r *SQLRepository) RecordPracticeVoiceTurn(ctx context.Context, in domain.P
 	if err := validatePracticeVoiceTurnRecord(in, state); err != nil {
 		return domain.SessionRecord{}, err
 	}
+	appendInput := practiceVoiceTurnAppendInput(in)
+	if appendInput.Outcome.NextTurn == nil || strings.TrimSpace(appendInput.Outcome.NextTurn.ID) != state.latestTurn.ID {
+		return domain.SessionRecord{}, domain.ErrSessionConflict
+	}
+	if appendInput.Outcome.AssistantAction.Type == "ask_follow_up" {
+		next := *appendInput.Outcome.NextTurn
+		next.QuestionText = strings.TrimSpace(appendInput.Outcome.AssistantAction.QuestionText)
+		next.QuestionIntent = strings.TrimSpace(appendInput.Outcome.AssistantAction.QuestionIntent)
+		appendInput.Outcome.NextTurn = &next
+	}
 	seqNo, err := nextSessionEventSeq(ctx, tx, in.SessionID)
 	if err != nil {
 		return domain.SessionRecord{}, err
 	}
-	if err := updatePracticeVoiceTurn(ctx, tx, in); err != nil {
+	if err := updateLatestTurn(ctx, tx, appendInput, state.latestTurn); err != nil {
 		return domain.SessionRecord{}, err
 	}
 	session := state.session
-	session.Status = sharedtypes.SessionStatusRunning
+	session.Status = appendInput.Outcome.NextSessionStatus
 	session.UpdatedAt = in.OccurredAt.UTC()
-	if session.CurrentTurn != nil {
-		turn := *session.CurrentTurn
-		turn.Status = string(domain.TurnStatusFollowUpRequested)
-		turn.FollowUpCount = 1
-		session.CurrentTurn = &turn
+	if appendInput.NextQuestion != nil {
+		if err := insertNextTurn(ctx, tx, appendInput.NextQuestion, in.SessionID, state.plan.InterviewerPersona); err != nil {
+			return domain.SessionRecord{}, err
+		}
+		session.TurnCount = appendInput.NextQuestion.TurnIndex
+		next := *appendInput.NextQuestion
+		session.CurrentTurn = &next
+	} else {
+		next := *appendInput.Outcome.NextTurn
+		session.CurrentTurn = &next
 	}
 	if err := updateSessionAfterAppend(ctx, tx, in.SessionID, in.UserID, session.Status, session.TurnCount, in.OccurredAt.UTC()); err != nil {
 		return domain.SessionRecord{}, err
+	}
+	if appendInput.Outcome.OutboxRecord != nil {
+		if err := insertTurnCompletedOutbox(ctx, tx, appendInput, state.latestTurn); err != nil {
+			return domain.SessionRecord{}, err
+		}
 	}
 	payload, err := marshalPracticeVoiceTurnEventPayload(in)
 	if err != nil {
@@ -58,6 +77,20 @@ func (r *SQLRepository) RecordPracticeVoiceTurn(ctx context.Context, in domain.P
 		return domain.SessionRecord{}, fmt.Errorf("commit record practice voice turn: %w", err)
 	}
 	return session, nil
+}
+
+func practiceVoiceTurnAppendInput(in domain.PracticeVoiceTurnStoreInput) domain.AppendSessionEventStoreInput {
+	return domain.AppendSessionEventStoreInput{
+		OutboxEventID:  in.OutboxEventID,
+		UserID:         in.UserID,
+		SessionID:      in.SessionID,
+		ClientEventID:  in.ClientVoiceTurnID,
+		Kind:           "answer_submitted",
+		OccurredAt:     in.OccurredAt,
+		RequestPayload: map[string]any{"turnId": in.TurnID, "answerText": in.UserTranscriptFinal},
+		Outcome:        in.Outcome,
+		NextQuestion:   in.NextQuestion,
+	}
 }
 
 func (r *SQLRepository) LoadCommittedVoiceContext(ctx context.Context, userID, sessionID string) (domain.CommittedVoiceContext, error) {
@@ -143,37 +176,6 @@ func validatePracticeVoiceTurnRecord(in domain.PracticeVoiceTurnStoreInput, stat
 		return domain.ErrSessionConflict
 	}
 	if isClosedTurnStatus(state.latestTurn.Status) {
-		return domain.ErrSessionConflict
-	}
-	return nil
-}
-
-func updatePracticeVoiceTurn(ctx context.Context, tx *sql.Tx, in domain.PracticeVoiceTurnStoreInput) error {
-	res, err := tx.ExecContext(ctx, `
-update practice_turns
-set status = $1,
-    answer_text = $2,
-    follow_up_count = $3,
-    answered_at = coalesce(answered_at, $4),
-    updated_at = $5
-where session_id = $6
-  and id = $7`,
-		string(domain.TurnStatusFollowUpRequested),
-		strings.TrimSpace(in.UserTranscriptFinal),
-		1,
-		in.OccurredAt.UTC(),
-		in.OccurredAt.UTC(),
-		in.SessionID,
-		in.TurnID,
-	)
-	if err != nil {
-		return fmt.Errorf("update practice turn after voice turn: %w", err)
-	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("update practice turn after voice turn rows affected: %w", err)
-	}
-	if rows == 0 {
 		return domain.ErrSessionConflict
 	}
 	return nil

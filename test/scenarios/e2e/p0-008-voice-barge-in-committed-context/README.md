@@ -12,7 +12,7 @@
 
 ## 2 When
 
-用户在 AI 播放期间开始下一轮说话。前端停止当前 TTS playback，先上报 partial `tts_chunk_played`，再上报 `barge_in_detected` 并进入新一轮录音；后端只把已播放或已明确 committed 的 assistant text 片段注入下一轮 prompt。
+用户在 AI 播放期间开始下一轮说话，或点击中心挂断 / TopBar 电话图标返回文本模式。真实 speech-start 会停止当前 TTS playback，先上报 partial `tts_chunk_played`，再上报 `barge_in_detected` 并进入新一轮录音；模式切换只结算已听到的 `tts_chunk_played` 与 `assistant_context_committed`，不得伪造插话事件。后端只把已播放或已明确 committed 的 assistant text 片段注入下一轮 prompt。
 
 ## 3 Then
 
@@ -20,7 +20,10 @@
 - playback events 使用 body-level `clientEventId` replay，禁止 `Idempotency-Key`
 - complete chunk 可提交为 committed assistant context
 - partial barge-in 只提交已播放长度，并生成 interruption note
+- committed context 必须引用同一 voice turn / chunk 的先前 `tts_chunk_played`，hash 必须匹配完整 chunk text hash，且 committed length 不得超过 played length；committed-only、乱序或不匹配事件不得注入 prompt
+- 挂断时只提交已播放前缀与 committed context，不写 `barge_in_detected`，并抑制晚到的 playback completion
 - no playback 不提交未播放 draft；未播放 assistant draft 不进入下一轮 prompt
+- SQL repository 从最新 voice turn 与后续 playback events 回放相同边界，而不是只由 domain fake 证明
 
 ## 4 执行
 

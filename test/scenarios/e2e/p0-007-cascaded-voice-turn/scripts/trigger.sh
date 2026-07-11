@@ -13,6 +13,10 @@ echo "RUNNER frontend-vitest E2E.P0.007"
 (
   cd "$REPO_ROOT"
   pnpm --filter @easyinterview/frontend test \
+    src/app/screens/practice/phoneVad.test.ts \
+    src/app/screens/practice/phoneVadMonitor.test.ts \
+    src/app/screens/practice/usePracticePhoneController.test.tsx \
+    src/app/screens/practice/hooks/usePracticeVoiceTurn.lifecycle.test.tsx \
     src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx \
     src/app/screens/practice/PracticeScreen.test.tsx \
     src/app/screens/practice/__tests__/practiceModeSwitch.test.tsx

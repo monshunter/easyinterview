@@ -1,8 +1,8 @@
 # 003 BDD Checklist
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -34,9 +34,13 @@
 - [x] Verify proves privacy redlines over log, metric, audit, event and task-run payloads
 - [x] Verify runs backend-practice runtime boundary lint
 - [x] Go HTTP scenario `TestE2EP0051PracticeHintDegradeAndPrivacy` passes
+- [x] Phase 7 revision injects zh-CN English cue and en Han cue, then proves `session_wait`, no `hint_text`, unchanged session/turn and no raw cue in response/replay/task-run evidence.
+  <!-- verified: 2026-07-11 evidence="P0.051 wrong-language-zh/wrong-language-en variants PASS and assert session_wait, unchanged session/turn, no hint_text and no raw cue in response/replay/task-run evidence." -->
 
 ## Closeout
 
 - [x] `cd backend && go test ./cmd/api -run 'TestE2EP0048|TestE2EP0049|TestE2EP0050|TestE2EP0051' -count=1` passes
 - [x] `python3 scripts/lint/backend_practice_out_of_scope.py --repo-root . --phase all` passes
 - [x] `python3 -m pytest scripts/lint/backend_practice_out_of_scope_test.py -q` passes
+- [x] Current P0.051 and owner closeout gates pass after the language-integrity revision.
+  <!-- verified: 2026-07-11 evidence="P0.051 setup-trigger-verify-cleanup PASS; P0.048/P0.050 wrappers and direct P0.049 PASS; full backend, privacy/runtime-boundary, fixture/codegen, context/docs/index/diff gates PASS." -->

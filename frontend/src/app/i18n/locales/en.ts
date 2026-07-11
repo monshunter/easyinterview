@@ -226,12 +226,12 @@ export const en: LocaleMessages = {
   "practice.toolbar.questionTag": "Question",
   "practice.toolbar.pause": "Pause",
   "practice.toolbar.resume": "Resume",
-  "practice.toolbar.modeText": "Text",
-  "practice.toolbar.modePhone": "Phone",
-  "practice.toolbar.phoneLive": "live",
+  "practice.toolbar.phoneEnterLabel": "Enter phone mode",
+  "practice.toolbar.phoneExitLabel": "Hang up and return to text mode",
+  "practice.toolbar.phoneEnterTitle": "Enter phone mode",
+  "practice.toolbar.phoneExitTitle": "Return to text mode",
   "practice.toolbar.role.manager": "Hiring manager",
   "practice.sessionMap.label": "SESSION MAP",
-  "practice.sessionMap.itemTopicSkeleton": "Question pending",
   "practice.question.tagPrefix": "Q{n}",
   "practice.question.skeletonPrompt": "Loading first question…",
   "practice.transcript.helper": "— you can pause, ask for a hint, or finish the interview —",
@@ -249,6 +249,10 @@ export const en: LocaleMessages = {
     "This mock interview has ended, was cancelled, or never started. Return to the workspace to start over.",
   "practice.sessionLost.cta": "Back to workspace",
   "practice.errors.aiTimeout": "AI request timed out. Please retry shortly.",
+  "practice.errors.aiOutputInvalid":
+    "A language-consistent question could not be generated. Return to text mode or retry shortly.",
+  "practice.errors.ttsUnavailable":
+    "Audio playback is temporarily unavailable. Your answer was kept; continue the call or return to text mode.",
   "practice.errors.network": "Network error. Check your connection and retry.",
   "practice.errors.sessionConflict":
     "Sync conflict. Please refresh this practice session.",

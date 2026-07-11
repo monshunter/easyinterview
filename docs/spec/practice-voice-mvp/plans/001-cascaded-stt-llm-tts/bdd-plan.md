@@ -1,24 +1,24 @@
 # Cascaded STT LLM TTS Voice MVP BDD Plan
 
-> **版本**: 1.4
+> **版本**: 1.5
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 ## Scenario Matrix
 
 | 场景 ID | 类型 | 阶段 | 场景 | 验证入口 |
 |---------|------|------|------|----------|
-| E2E.P0.007 | primary | Phase 5 | 完整语音 turn：用户说话、看到 transcript、听到 AI TTS、继续下一题 | `test/scenarios/e2e/p0-007-cascaded-voice-turn/` |
-| E2E.P0.008 | failure/recovery | Phase 5 | 用户在 AI 播放中插话，系统只提交已播放 chunk，未播放 draft 不进上下文 | `test/scenarios/e2e/p0-008-voice-barge-in-committed-context/` |
-| E2E.P0.009 | alternate/failure | Phase 5 | STT/TTS provider 缺配置或失败时 fail-fast / 文本 fallback，不静默走 stub 或 realtime | `test/scenarios/e2e/p0-009-voice-provider-failure-fallback/` |
-| REAL.ENV.PHONE.SCREENSHOT | final acceptance | Phase 6 | 真实本地环境打开电话模式，截图证明 phone UI、字幕、切断/重开存在，且页面只呈现当前电话 surface 控件 | `.test-output/` browser screenshot artifacts |
+| E2E.P0.007 | primary | Phase 7 | 完整电话 turn：VAD 静音自动提交，用户看到 transcript、听到同语言 AI TTS，TTS 结束自动重新监听 | `test/scenarios/e2e/p0-007-cascaded-voice-turn/` |
+| E2E.P0.008 | alternate/recovery | Phase 7 | 挂断与真实插话分离：挂断回文本且不发 barge-in；speech-start 才提交 partial playback + barge-in | `test/scenarios/e2e/p0-008-voice-barge-in-committed-context/` |
+| E2E.P0.009 | failure/recovery | Phase 7 | provider failure 不做 business repair；连续 invalid follow-up 返回既有顶层 `AI_OUTPUT_INVALID`，session 行不变且无 result/TTS/canned question | `test/scenarios/e2e/p0-009-voice-provider-failure-fallback/` |
+| REAL.ENV.PHONE.SCREENSHOT | final acceptance | Phase 7 | 真实本地环境证明单一电话图标与圆形挂断存在，分段/live/切断文字/重开/callEnded 不存在，挂断回到同 session 文本模式 | `.test-output/` browser screenshot artifacts |
 
-## Phase 5: Voice MVP scenarios
+## Phase 7: Phone lifecycle and conversational-integrity scenarios
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.007 | 完整级联电话模式 turn | 用户已登录并进入电话模式；fixture 提供 active STT/chat/TTS profiles；session 有当前题目 | 用户进行一段电话回答并提交底层 voice turn | 页面展示电话状态，可按需显示字幕和 TTS 播放状态；response `ttsChunks[].audioRef` 浏览器可播放；后端记录 voice turn event 且 persisted summary 不保存 audio bytes；AI meta 摘要含 stt/chat/tts profile；用户可继续下一题 | `test/scenarios/e2e/p0-007-cascaded-voice-turn/` |
-| E2E.P0.008 | 插话只提交已播放上下文 | AI 回复被拆成多个 TTS chunks；前端已上报第一个 chunk 完整播放，第二个 chunk 正在播放 | 用户开始说话触发 barge-in | 播放立即停止；前端先上报 partial `tts_chunk_played` 再上报 `barge_in_detected`；后端只提交已播放文本范围；store replay 把 committed context 注入下一轮 prompt；未播放 draft 不进入下一轮 prompt；下一轮 prompt 带 interruption note | `test/scenarios/e2e/p0-008-voice-barge-in-committed-context/` |
-| E2E.P0.009 | Provider failure fallback | 用户在电话模式中；fixture 分别模拟 STT secret missing、TTS provider error、unsupported realtime profile | 用户提交 voice turn 或请求播放 | STT 缺配置返回可理解错误且不调用 chat/TTS；TTS 失败保留 assistant 文本并允许继续文本面试；系统不调用 stub 或 realtime；隐私 grep 无明文泄漏 | `test/scenarios/e2e/p0-009-voice-provider-failure-fallback/` |
+| E2E.P0.007 | 完整级联电话模式 turn | 用户已登录并进入电话模式；profiles active；session language 与当前问题已确定 | 用户说出非空回答并静音，随后 AI TTS 播放结束 | VAD 自动提交；chat 使用 canonical context + session language；response audioRef 可播放；persisted summary 无 audio bytes；TTS-ended 自动重新监听；用户无需点击录音/提交 | `test/scenarios/e2e/p0-007-cascaded-voice-turn/` |
+| E2E.P0.008 | 挂断与真实插话分离 | AI 正播放第二个 TTS chunk，第一 chunk 已完整上报 | A 用户点击挂断；B 用户真实开始说话 | A 立即停麦克风/TTS，按需提交 heard prefix 但不发 barge-in，并回同 session 文本模式；B 先上报 partial `tts_chunk_played` 再上报 `barge_in_detected`；两者都不把未播放 draft 注入下一轮 prompt | `test/scenarios/e2e/p0-008-voice-barge-in-committed-context/` |
+| E2E.P0.009 | Provider / follow-up repair failure | 用户在电话模式；fixtures 覆盖 provider failure、结构合法但语言错误，以及连续 malformed structured result | 用户提交 voice turn | STT/config/provider/timeout failure 不做 business repair；TTS 失败保留 assistant text；chat 首次 parser/language invalid 只 repair 一次，第二次返回顶层 `AI_OUTPUT_INVALID`、session 行不变且无 `PracticeVoiceTurnResult`/canned question/TTS；前端可回同一 session 文本模式；系统不调用 stub/realtime | `test/scenarios/e2e/p0-009-voice-provider-failure-fallback/` |
 
 每个场景目录必须遵守 `test/scenarios/README.md` 与 `test/scenarios/e2e/README.md`：`trigger.sh` 写入真实 runner 日志，`verify.sh` 检查 runner marker、目标测试路径和 pass marker；场景创建时同步 `test/scenarios/e2e/INDEX.md`，不得用文件存在检查代替执行证据。

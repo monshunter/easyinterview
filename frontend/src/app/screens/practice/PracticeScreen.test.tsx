@@ -66,9 +66,15 @@ describe("PracticeScreen static shell (item 1.1)", () => {
     expect(screen.getByTestId("practice-topbar-pause")).toHaveTextContent(
       "Pause",
     );
-    expect(screen.getByTestId("practice-topbar-mode-text")).toBeDefined();
-    expect(screen.getByTestId("practice-topbar-mode-phone")).toBeDefined();
+    const phoneToggle = screen.getByTestId("practice-topbar-phone-toggle");
+    expect(phoneToggle.tagName).toBe("BUTTON");
+    expect(phoneToggle).toHaveAttribute("aria-pressed", "false");
+    expect(phoneToggle.querySelector("svg")).not.toBeNull();
     expect(screen.getByTestId("practice-finish-cta").tagName).toBe("BUTTON");
+    expect(screen.queryByTestId("practice-topbar-mode-segment")).toBeNull();
+    expect(screen.queryByTestId("practice-topbar-mode-text")).toBeNull();
+    expect(screen.queryByTestId("practice-topbar-mode-phone")).toBeNull();
+    expect(screen.queryByTestId("practice-topbar-live")).toBeNull();
     expect(screen.queryByTestId("practice-topbar-mode-voice")).toBeNull();
     expect(screen.queryByTestId("practice-topbar-strict")).toBeNull();
     expect(screen.queryByTestId("practice-topbar-role")).toBeNull();
@@ -81,12 +87,12 @@ describe("PracticeScreen static shell (item 1.1)", () => {
     expect(screen.queryByTestId("practice-strict-locked-toast")).toBeNull();
   });
 
-  it("segmented mode controls are buttons (not <select>)", () => {
+  it("uses one icon-only phone control instead of a segmented mode switch", () => {
     withProviders(<PracticeScreen route={PRACTICE_ROUTE} />);
-    const text = screen.getByTestId("practice-topbar-mode-text");
-    const phone = screen.getByTestId("practice-topbar-mode-phone");
-    expect(text.tagName).toBe("BUTTON");
-    expect(phone.tagName).toBe("BUTTON");
+    expect(screen.getAllByTestId("practice-topbar-phone-toggle")).toHaveLength(1);
+    expect(screen.queryByTestId("practice-topbar-mode-segment")).toBeNull();
+    expect(screen.queryByText("Text")).toBeNull();
+    expect(screen.queryByText("Phone")).toBeNull();
   });
 
   it("renders SessionMap on the left rail with label + at least one item", () => {
@@ -180,7 +186,12 @@ describe("PracticeScreen static shell (item 1.1)", () => {
     expect(screen.getByTestId("practice-phone-waveform")).toBeDefined();
     expect(screen.getByTestId("practice-phone-captions-toggle")).toBeDefined();
     expect(screen.getByTestId("practice-phone-hangup")).toBeDefined();
-    expect(screen.getByTestId("practice-phone-restart")).toBeDefined();
+    expect(screen.getByTestId("practice-phone-hangup").querySelector("svg"))
+      .not.toBeNull();
+    expect(screen.queryByTestId("practice-phone-restart")).toBeNull();
+    expect(screen.queryByText("重新开始")).toBeNull();
+    expect(screen.queryByText("切断")).toBeNull();
+    expect(screen.queryByText("通话已切断")).toBeNull();
     expect(screen.queryByTestId("practice-voice-annotated-waveform")).toBeNull();
     expect(screen.queryByTestId("practice-voice-expression-panel")).toBeNull();
   });

@@ -1,8 +1,8 @@
 # Backend Practice Event Loop and Completion BDD Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -18,6 +18,8 @@
 ## 场景断言
 
 - [x] P0.038 verifies `answer_submitted` follow-up, next-question and session-completed branches, server-owned follow-up state, current 4-value turn status and turn-completed outbox behavior.
+- [x] Phase 7 P0.038 revision verifies follow-up/next-question generation kind, canonical server-owned context/session language, client question/intent/count/next-question override negative, parser/language invalid exactly-one repair, provider no-repair, and `session_wait` on second invalid output with pre-event turn control state restored, no completion outbox and no canned question.
+  <!-- verified: 2026-07-11 command="cd backend && go test ./cmd/api -run 'TestE2EP0038|TestE2EP0040' -count=1" result="PASS" -->
 - [x] P0.039 verifies append replay/mismatch semantics, all four current text event kinds, strict-mode hint `show_hint`, `Idempotency-Key` header refusal and cross-user 404.
 - [x] P0.040 verifies accepted event `seq_no` continuity, stale-turn conflict and sanitized conflict envelope.
 - [x] P0.041 verifies HTTP 202 `ReportWithJob`, queued report/job rows, session completion event, outbox row and idempotency snapshot.
@@ -33,3 +35,5 @@
 - [x] `make codegen-events-check`
 - [x] `make codegen-check`
 - [x] `make validate-fixtures`
+- [x] Re-run updated P0.038 plus focused follow-up/voice repair tests and existing P0.039-P0.043 privacy/contract gates.
+  <!-- verified: 2026-07-11 evidence="P0.038-P0.043 PASS; focused append second-invalid session_wait, wrong-language hint and voice double-invalid no-TTS/no-persistence tests PASS." -->

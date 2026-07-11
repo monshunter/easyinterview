@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
-	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
@@ -191,7 +190,7 @@ func (s *Service) AppendSessionEvent(ctx context.Context, in AppendSessionEventR
 	} else if outcome.AssistantAction.RequiresAI {
 		s.applyFollowUpAI(ctx, reservation, payload, &outcome)
 	}
-	nextQuestion := s.prepareNextQuestion(reservation, payload, &outcome)
+	nextQuestion := s.prepareNextQuestion(reservation, &outcome)
 	result, err := s.store.AppendSessionEvent(ctx, AppendSessionEventStoreInput{
 		EventID:            eventID,
 		OutboxEventID:      s.newID(),
@@ -229,29 +228,20 @@ func requiresCurrentTurn(kind string) bool {
 	}
 }
 
-func (s *Service) prepareNextQuestion(reservation SessionEventReservation, payload map[string]any, outcome *SessionEventOutcome) *TurnRecord {
+func (s *Service) prepareNextQuestion(reservation SessionEventReservation, outcome *SessionEventOutcome) *TurnRecord {
 	if outcome == nil || outcome.AssistantAction.Type != assistantActionAskQuestion || outcome.NextSessionStatus != sharedtypes.SessionStatusRunning {
 		return nil
 	}
 	turnID := s.newID()
-	questionText := payloadString(payload, "nextQuestionText")
-	if strings.TrimSpace(questionText) == "" {
-		questionText = "Please describe another example that is relevant to the target role."
-	}
-	questionIntent := payloadString(payload, "nextQuestionIntent")
-	if strings.TrimSpace(questionIntent) == "" {
-		questionIntent = "behavioral.depth"
-	}
 	next := &TurnRecord{
 		ID:             turnID,
 		TurnIndex:      reservation.LatestTurn.TurnIndex + 1,
-		QuestionText:   questionText,
-		QuestionIntent: questionIntent,
+		QuestionText:   strings.TrimSpace(outcome.AssistantAction.QuestionText),
+		QuestionIntent: strings.TrimSpace(outcome.AssistantAction.QuestionIntent),
 		Status:         string(TurnStatusAsked),
 		AskedAt:        s.now().UTC(),
 	}
 	outcome.AssistantAction.TurnID = turnID
-	outcome.AssistantAction.QuestionText = questionText
 	return next
 }
 
@@ -260,22 +250,46 @@ func (s *Service) applyFollowUpAI(ctx context.Context, reservation SessionEventR
 		return
 	}
 	if s.registry == nil || s.ai == nil {
-		outcome.AssistantAction = fallbackFollowUpAction(reservation, outcome.AssistantAction)
+		degradeQuestionGenerationToWait(reservation, outcome)
 		return
 	}
 	resolution, err := s.registry.ResolveActive(ctx, followUpFeatureKey, reservation.Session.Language)
 	if err != nil {
-		outcome.AssistantAction = fallbackFollowUpAction(reservation, outcome.AssistantAction)
+		degradeQuestionGenerationToWait(reservation, outcome)
 		return
 	}
-	resp, meta, err := s.ai.Complete(ctx, resolution.ModelProfileName, followUpPayload(resolution, reservation, payload))
-	if err != nil {
-		outcome.AssistantAction = fallbackFollowUpAction(reservation, outcome.AssistantAction)
-		return
+	generationKind := questionGenerationFollowUp
+	if outcome.AssistantAction.Type == assistantActionAskQuestion {
+		generationKind = questionGenerationNextQuestion
 	}
-	question, err := parseFirstQuestion(resp.Content)
+	coveredDimensions := []string{}
+	if intent := strings.TrimSpace(reservation.LatestTurn.QuestionIntent); intent != "" {
+		coveredDimensions = append(coveredDimensions, intent)
+	}
+	question, meta, err := s.generateQuestion(ctx, questionGenerationRequest{
+		Resolution: resolution,
+		TemplateData: questionTemplateData{
+			Language:          reservation.Session.Language,
+			PracticeGoal:      string(reservation.Plan.Goal),
+			PracticeMode:      string(reservation.Plan.Mode),
+			TurnStatus:        reservation.LatestTurn.Status,
+			TargetJobID:       reservation.Plan.TargetJobID,
+			GenerationKind:    generationKind,
+			LastQuestion:      reservation.LatestTurn.QuestionText,
+			QuestionIntent:    reservation.LatestTurn.QuestionIntent,
+			LastAnswer:        payloadString(payload, "answerText"),
+			FollowUpCount:     reservation.LatestTurn.FollowUpCount,
+			CoveredDimensions: coveredDimensions,
+		},
+		TaskRun: aiclient.AITaskRunContext{
+			UserID:       reservation.UserID,
+			Capability:   aiclient.AITaskRunTaskFollowupGenerate,
+			ResourceType: aiclient.AITaskRunResourceTargetJob,
+			ResourceID:   reservation.Plan.TargetJobID,
+		},
+	})
 	if err != nil {
-		outcome.AssistantAction = fallbackFollowUpAction(reservation, outcome.AssistantAction)
+		degradeQuestionGenerationToWait(reservation, outcome)
 		return
 	}
 	modelID := strings.TrimSpace(meta.ModelID)
@@ -283,6 +297,7 @@ func (s *Service) applyFollowUpAI(ctx context.Context, reservation SessionEventR
 		modelID = "model-profile:" + strings.TrimSpace(resolution.ModelProfileName)
 	}
 	outcome.AssistantAction.QuestionText = question.Text
+	outcome.AssistantAction.QuestionIntent = question.Intent
 	outcome.AssistantAction.Provenance = AssistantActionProvenance{
 		PromptVersion:     fallbackString(resolution.PromptVersion, "not_applicable"),
 		RubricVersion:     fallbackString(resolution.RubricVersion, "not_applicable"),
@@ -294,62 +309,23 @@ func (s *Service) applyFollowUpAI(ctx context.Context, reservation SessionEventR
 	outcome.AssistantAction.RequiresAI = false
 }
 
-func fallbackFollowUpAction(reservation SessionEventReservation, action AssistantActionRecord) AssistantActionRecord {
-	action.Type = assistantActionAskQuestion
-	action.QuestionText = "Please continue with the next practice question."
-	action.SessionStatus = sharedtypes.SessionStatusRunning
-	action.RequiresAI = false
-	action.Provenance = (SessionEventService{}).assistantAction(
-		assistantActionAskQuestion,
-		action.TurnID,
-		action.QuestionText,
+func degradeQuestionGenerationToWait(reservation SessionEventReservation, outcome *SessionEventOutcome) {
+	if outcome == nil {
+		return
+	}
+	restoredTurn := reservation.LatestTurn
+	outcome.NextSessionStatus = reservation.Session.Status
+	outcome.NextTurn = &restoredTurn
+	outcome.OutboxRecord = nil
+	outcome.AssistantAction = (SessionEventService{}).assistantAction(
+		assistantActionSessionWait,
+		reservation.LatestTurn.ID,
 		"",
-		sharedtypes.SessionStatusRunning,
+		"",
+		reservation.Session.Status,
 		reservation.Session.Language,
 		false,
-	).Provenance
-	return action
-}
-
-func followUpPayload(resolution registry.PromptResolution, reservation SessionEventReservation, eventPayload map[string]any) aiclient.CompletePayload {
-	userContent := renderFirstQuestionTemplate(resolution.UserMessageTemplate, SessionReservation{
-		UserID:             reservation.Session.ID,
-		SessionID:          reservation.Session.ID,
-		PlanID:             reservation.Plan.ID,
-		TargetJobID:        reservation.Plan.TargetJobID,
-		Goal:               reservation.Plan.Goal,
-		Mode:               reservation.Plan.Mode,
-		InterviewerPersona: reservation.Plan.InterviewerPersona,
-		Language:           reservation.Session.Language,
-	})
-	if userContent == "" {
-		userContent = "Generate a concise follow-up question for the candidate's latest answer."
-	}
-	if answer := payloadString(eventPayload, "answerText"); strings.TrimSpace(answer) != "" {
-		userContent += "\nAnswer summary source length: " + fmt.Sprintf("%d", len([]rune(answer)))
-	}
-	messages := make([]aiclient.Message, 0, 2)
-	if strings.TrimSpace(resolution.SystemMessage) != "" {
-		messages = append(messages, aiclient.Message{Role: "system", Content: resolution.SystemMessage})
-	}
-	messages = append(messages, aiclient.Message{Role: "user", Content: userContent})
-	return aiclient.CompletePayload{
-		Messages: messages,
-		Metadata: attachOutputSchema(aiclient.CallMetadata{
-			FeatureKey:        followUpFeatureKey,
-			PromptVersion:     resolution.PromptVersion,
-			RubricVersion:     resolution.RubricVersion,
-			Language:          reservation.Session.Language,
-			FeatureFlag:       resolution.FeatureFlag,
-			DataSourceVersion: resolution.DataSourceVersion,
-			TaskRun: aiclient.AITaskRunContext{
-				UserID:       reservation.UserID,
-				Capability:   aiclient.AITaskRunTaskFollowupGenerate,
-				ResourceType: aiclient.AITaskRunResourceTargetJob,
-				ResourceID:   reservation.Plan.TargetJobID,
-			},
-		}, resolution),
-	}
+	)
 }
 
 func sessionEventFingerprint(kind string, occurredAt time.Time, payload map[string]any) (string, error) {

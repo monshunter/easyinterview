@@ -1,8 +1,8 @@
 # Backend Practice Mode Policies and Provenance
 
-> **版本**: 1.8
+> **版本**: 1.9
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -16,6 +16,7 @@
 - `mode='assisted'` 或 `mode='strict'` 时，`hint_requested` 通过 F3 `practice.turn.lightweight_observe` + A3 observed AIClient 返回 `AssistantAction{type:'show_hint'}`，并写入 `practice_turns.hint_text`。
 - goal 仅决定练习来源，不改变 hint 可用性；`baseline` / `retry_current_round` / `next_round` 均遵守同一 optional hint policy。
 - hint AI 失败走 graceful degrade：HTTP 200 + `AssistantAction{type:'session_wait'}`，session 保持 running，不写 `failure_code`，失败摘要进入 `ai_task_runs(task_type='hint_generate')`。
+- 用户可见 hint cue 必须匹配 persisted session language；wrong-language output 与 parser invalid 一样 graceful degrade，禁止错误语言 hint 落库或回显。
 - `AssistantAction.provenance` wire JSON 只暴露 B2 `GenerationProvenance` 六字段；runtime 字段只进入 typed task run / service-local evidence。
 - hint 路径不递增 turn count、不发 `practice.turn.completed` outbox、不写 domain audit event，且 payload / logs / metrics / ai_task_runs 不包含 question、answer、hint、prompt 或 provider secret 明文。
 
@@ -25,7 +26,7 @@
 
 | surface | fixture / scenario | backend behavior | persistence | AI dependency | coverage |
 |---------|--------------------|------------------|-------------|---------------|----------|
-| `appendSessionEvent` assisted hint | `appendSessionEvent.json` `hint-assisted-show` | `hint_requested` returns `200 + show_hint`; replay returns original hint snapshot | `practice_session_events`, `practice_turns.hint_text`, `ai_task_runs(hint_generate)` | F3 `practice.turn.lightweight_observe`, A3 Chat profile `practice.turn_observe.default` | `E2E.P0.048`, unit/store tests |
+| `appendSessionEvent` assisted hint | `appendSessionEvent.json` `hint-assisted-show` | `hint_requested` returns `200 + show_hint` only when cue matches persisted session language; parser/language invalid degrades to `session_wait`; replay returns original snapshot | `practice_session_events`, success-only `practice_turns.hint_text`, `ai_task_runs(hint_generate)` | F3 `practice.turn.lightweight_observe`, A3 Chat profile `practice.turn_observe.default` | `E2E.P0.048`, `E2E.P0.051`, unit/store tests |
 | `appendSessionEvent` strict-mode hint | `appendSessionEvent.json` `show-hint` | `hint_requested` returns `200 + show_hint`; replay returns original hint snapshot and leaves no pending event row | `practice_session_events`, `practice_turns.hint_text`, `ai_task_runs(hint_generate)` | F3 `practice.turn.lightweight_observe`, A3 Chat profile `practice.turn_observe.default` | `E2E.P0.049`, unit/store tests |
 | AssistantAction provenance | current generated `GenerationProvenance` | response provenance key set is exactly six wire fields for show_hint / ask_question / ask_follow_up / session_wait / session_completed | runtime metadata excluded from wire | only AI-backed actions call A3 | `E2E.P0.050`, provenance tests |
 | hint graceful degrade | `appendSessionEvent.json` `hint-assisted-ai-failed-degrade` | F3/A3/parser failures return `200 + session_wait` and keep session running | failed `ai_task_runs(hint_generate)` row where applicable | F3/A3 failure branches | `E2E.P0.051`, service tests |
@@ -108,6 +109,12 @@
 - Delete the duplicate strict-mode setup and assertions instead of preserving an alias test.
 - Point plan 002 and this owner plan's exact test references at the surviving test, then re-run focused, package and backend-wide gates.
 
+### Phase 7: Session-language hint integrity
+
+- Validate the parsed user-visible `cue` against persisted `PracticeSession.language` with the same Unicode-script policy used by current question generation.
+- Treat wrong-language cue as existing `AI_OUTPUT_INVALID` hint failure: return `session_wait`, keep session/turn state, do not persist `hint_text`, and write bounded task-run evidence without raw cue content.
+- Extend focused tests and `E2E.P0.051` to prove a zh-CN session never returns an English hint and an en session never returns a Han-script hint; no HTTP/event/schema expansion.
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -118,11 +125,13 @@
 | A-4 | Hint AI failures degrade without failing the session | `TestE2EP0051PracticeHintDegradeAndPrivacy`, `TestApplyHintAIGracefulDegradeMatrix` |
 | A-5 | Privacy/runtime boundary has no real residuals | backend-practice out-of-scope lint, redaction tests, pruning-surface lint |
 | A-6 | Strict-mode AI hint execution has one canonical service test with no duplicate test body or stale exact-name references | `TestServiceAppliesHintAIForStrictMode`, scoped `dupl`, zero-reference search |
+| A-7 | Wrong-language hint cue is never returned or persisted and degrades through the existing `session_wait` path | focused service test + `TestE2EP0051PracticeHintDegradeAndPrivacy` |
 
 ## 6 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-11 | 1.9 | Reopen Phase 7 so user-visible hint cues follow persisted session language and wrong-language output degrades without mixed-language persistence or display. |
 | 2026-07-10 | 1.8 | Delete the duplicate strict-mode hint service test and converge owner evidence on the canonical test. |
 | 2026-07-10 | 1.7 | Align the cmd/api deterministic hint success fixture with the canonical F3 cue response contract. |
 | 2026-07-07 | 1.4 | Compress owner docs to current hint mode policy, provenance, task-run and privacy contract. |

@@ -2,6 +2,8 @@ package practice
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -46,13 +48,14 @@ type AssistantActionProvenance struct {
 }
 
 type AssistantActionRecord struct {
-	Type          string
-	TurnID        string
-	QuestionText  string
-	Hint          string
-	SessionStatus sharedtypes.SessionStatus
-	Provenance    AssistantActionProvenance
-	RequiresAI    bool
+	Type           string
+	TurnID         string
+	QuestionText   string
+	QuestionIntent string
+	Hint           string
+	SessionStatus  sharedtypes.SessionStatus
+	Provenance     AssistantActionProvenance
+	RequiresAI     bool
 }
 
 type PracticeTurnCompletedRecord struct {
@@ -176,17 +179,17 @@ func (s SessionEventService) handleAnswerSubmitted(
 	nextTurn.FollowUpCount = followUpCount
 	actionType := assistantActionAskQuestion
 	nextStatus := sharedtypes.SessionStatusRunning
-	requiresAI := false
+	requiresAI := true
 
 	if session.TurnCount >= plan.QuestionBudget {
 		actionType = assistantActionSessionCompleted
 		nextStatus = sharedtypes.SessionStatusCompleted
 		nextTurn.Status = string(TurnStatusAssessed)
+		requiresAI = false
 	} else if followUpCount == 0 {
 		actionType = assistantActionAskFollowUp
 		nextTurn.Status = string(TurnStatusFollowUpRequested)
 		nextTurn.FollowUpCount = 1
-		requiresAI = true
 	}
 
 	var outbox *PracticeTurnCompletedRecord
@@ -310,34 +313,66 @@ func (s SessionEventService) handleVoicePlaybackEvent(input SessionEventInput, s
 
 func validateVoicePlaybackPayload(kind string, payload map[string]any) *ServiceError {
 	for _, field := range []string{"voiceTurnId", "chunkId"} {
-		if strings.TrimSpace(payloadString(payload, field)) == "" {
+		value := strings.TrimSpace(payloadString(payload, field))
+		if value == "" {
 			return validationError("voice playback event payload is missing required field", map[string]any{"field": "payload." + field})
 		}
+		if !validVoicePlaybackToken(value) {
+			return validationError("voice playback event payload field is invalid", map[string]any{"field": "payload." + field})
+		}
 	}
-	if _, ok := payloadIntOK(payload, "playbackOffsetMs"); !ok {
-		return validationError("voice playback event payload is missing required field", map[string]any{"field": "payload.playbackOffsetMs"})
+	if value, ok := payloadIntOK(payload, "playbackOffsetMs"); !ok || value < 0 {
+		return validationError("voice playback event payload field is invalid", map[string]any{"field": "payload.playbackOffsetMs"})
 	}
 	switch kind {
 	case sessionEventKindTTSChunkPlayed:
-		if strings.TrimSpace(payloadString(payload, "playedTextHash")) == "" {
-			return validationError("voice playback event payload is missing required field", map[string]any{"field": "payload.playedTextHash"})
+		if !validSHA256Digest(payloadString(payload, "playedTextHash")) {
+			return validationError("voice playback event payload field is invalid", map[string]any{"field": "payload.playedTextHash"})
 		}
 		if value, ok := payloadIntOK(payload, "playedTextLength"); !ok || value < 1 {
 			return validationError("voice playback event payload is missing required field", map[string]any{"field": "payload.playedTextLength"})
 		}
 	case sessionEventKindBargeInDetected:
-		if strings.TrimSpace(payloadString(payload, "userSpeechStartedAt")) == "" {
-			return validationError("voice playback event payload is missing required field", map[string]any{"field": "payload.userSpeechStartedAt"})
+		startedAt := strings.TrimSpace(payloadString(payload, "userSpeechStartedAt"))
+		if _, err := time.Parse(time.RFC3339, startedAt); err != nil {
+			return validationError("voice playback event payload field is invalid", map[string]any{"field": "payload.userSpeechStartedAt"})
 		}
 	case sessionEventKindContextCommitted:
-		if strings.TrimSpace(payloadString(payload, "committedTextHash")) == "" {
-			return validationError("voice playback event payload is missing required field", map[string]any{"field": "payload.committedTextHash"})
+		if !validSHA256Digest(payloadString(payload, "committedTextHash")) {
+			return validationError("voice playback event payload field is invalid", map[string]any{"field": "payload.committedTextHash"})
 		}
 		if value, ok := payloadIntOK(payload, "committedTextLength"); !ok || value < 1 {
 			return validationError("voice playback event payload is missing required field", map[string]any{"field": "payload.committedTextLength"})
 		}
 	}
 	return nil
+}
+
+func validVoicePlaybackToken(value string) bool {
+	value = strings.TrimSpace(value)
+	if len(value) == 0 || len(value) > 128 || !isASCIILetterOrDigit(value[0]) {
+		return false
+	}
+	for i := 1; i < len(value); i++ {
+		if !isASCIILetterOrDigit(value[i]) && value[i] != '-' && value[i] != '_' && value[i] != '.' {
+			return false
+		}
+	}
+	return true
+}
+
+func isASCIILetterOrDigit(value byte) bool {
+	return value >= 'a' && value <= 'z' || value >= 'A' && value <= 'Z' || value >= '0' && value <= '9'
+}
+
+func validSHA256Digest(value string) bool {
+	digest := strings.TrimSpace(value)
+	digest = strings.TrimPrefix(digest, "sha256:")
+	if len(digest) != sha256.Size*2 {
+		return false
+	}
+	_, err := hex.DecodeString(digest)
+	return err == nil
 }
 
 func (s SessionEventService) assistantAction(

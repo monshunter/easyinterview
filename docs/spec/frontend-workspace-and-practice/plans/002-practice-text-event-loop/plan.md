@@ -1,8 +1,8 @@
 # 002 — Practice Text Event Loop Plan
 
-> **版本**: 1.16
+> **版本**: 1.17
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-11
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -14,10 +14,10 @@
 本 plan 固化 `practice` 文本 / 电话模式 event loop 的当前合同：
 
 - `PracticeScreen` 源级复刻 `ui-design/src/screen-practice.jsx` 当前真实面试分支，保留 TopBar、SessionMap、QuestionCard、Transcript、InputBar、PhoneSurface、HintBanner 和全局 Finish CTA 的 DOM anchor / a11y / responsive 行为；当前 UI 不包含独立辅助信息栏、固定辅助栏 CTA、会话内本地 persona switch、严格模式开关、语音转文字、跳过和语音分析。
-- 只通过 generated client 消费 `getPracticeSession`、`appendSessionEvent`、`completePracticeSession`；`appendSessionEvent` 使用 `clientEventId` 且不带 `Idempotency-Key`，`completePracticeSession` 使用 `Idempotency-Key` 且 body 只包含 `clientCompletedAt`。
+- 只通过 generated client 消费 `getTargetJob`、`getPracticeSession`、`appendSessionEvent`、`createPracticeVoiceTurn`、`completePracticeSession`；`getTargetJob` 为 Top Bar 提供真实公司/岗位，`appendSessionEvent` 使用 `clientEventId` 且不带 `Idempotency-Key`，`completePracticeSession` 使用 `Idempotency-Key` 且 body 只包含 `clientCompletedAt`。
 - `practiceMode` 不再作为用户可见 strict/assisted 开关；提示由用户主动请求并只记录 `hintUsed/hintCount`；`practiceGoal` 只表达 `baseline / retry_current_round / next_round` 数据来源，不能改变辅助度显隐。
 - `completePracticeSession` 返回 `ReportWithJob` 后只 handoff 到 `generating`，路由参数携带稳定 `InterviewContext` ID 与 `PracticeDisplayContext`；当前简历绑定字段为 `resumeId`。
-- 电话模式底层 turn 由 `practice-voice-mvp` owner 接管；本 plan 的 UI gate 证明用户可见 copy 统一为 `电话模式 / Phone`，并且 `createPracticeVoiceTurn` 不散落到 text event hook、completion handoff 或 report polling。
+- 电话模式底层 turn 由 `practice-voice-mvp` owner 接管；本 plan 的 UI gate 证明 Top Bar 只有单一电话图标，中心挂断回到同一 session 文本模式，无分段/live/切断文字/重开/callEnded；real API 模式只渲染服务端返回的 session/transcript/AssistantAction，不直接展示内部 `questionIntent`。
 
 ## 2 当前实现面
 
@@ -30,6 +30,7 @@
 | Completion | `hooks/useCompletePracticeSession.ts` | `completePracticeSession(sessionId,{clientCompletedAt},Idempotency-Key)`；replay、防抖、409/5xx error mapping |
 | Handoff | `utils/practiceHandoffParams.ts` | 输出 `planId / targetJobId / jdId / resumeId / roundId / sessionId / reportId` + display context；禁止 raw text / prompt / model provenance |
 | Voice boundary | `hooks/usePracticeVoiceTurn.ts` | 唯一允许调用 `createPracticeVoiceTurn` 的 practice runtime hook |
+| Target context | `usePracticeTargetDisplay.ts` + `PracticeScreen.tsx` | server session `targetJobId` 优先，session 未加载时才使用 route/context ID；generated `getTargetJob` 驱动 Top Bar company/title；abort/stale/error 不使用 fixture 常量 |
 
 ## 3 质量门禁分类
 
@@ -49,7 +50,8 @@
 | AssistantAction rendering | `components/AssistantActionRenderer.test.tsx`、`PracticeScreenIntegration.test.tsx` | `ask_question / ask_follow_up / show_hint / session_wait / session_completed` 映射当前 UI |
 | hint / goal policy | `practiceGoalParity.test.tsx`、`practiceHints.test.tsx`、`practiceModeSwitch.test.tsx`、`outOfScopeNegative.test.ts` | 提示由用户在会话中可选触发；`baseline / retry_current_round / next_round` 对显隐无副作用；不存在严格模式拦截 |
 | Pause / session map | `practicePauseResume.test.tsx`、`SessionMap.test.tsx` | pause/resume disables controls；turn map 展示 done/active/pending/follow-up states；无 skip UI / event 正向路径 |
-| Real-interview UI boundary | `PracticeScreen.test.tsx`、`practiceModeSwitch.test.tsx`、`outOfScopeNegative.test.ts`、`frontend/tests/pixel-parity/practice.spec.ts` | 无独立辅助信息栏 / 会话内本地 persona switch / strict switch / dictate / skip / voice metrics；phone mode 有字幕、切断、重新开始 |
+| Real-interview UI boundary | `PracticeScreen.test.tsx`、`practiceModeSwitch.test.tsx`、`outOfScopeNegative.test.ts`、`frontend/tests/pixel-parity/practice.spec.ts` | 单一电话图标 + 圆形挂断；无分段/live/切断文字/重开/callEnded、独立辅助栏、dictate、skip 或 voice metrics |
+| Real context / content | `usePracticeTargetDisplay` tests、Practice integration/real-mode tests、AssistantAction renderer tests | Top Bar uses real company/title；real mode has no fixture transcript；raw `questionIntent` is not rendered；`session_wait` preserves the original answer/session and retries with a new event ID |
 | Completion handoff | `hooks/useCompletePracticeSession.test.tsx`、`completePracticeSessionBody.test.tsx`、`practiceCompletion.test.tsx`、`utils/practiceHandoffParams.test.ts` | body 只含 `clientCompletedAt`；handoff 参数使用 `resumeId` |
 | Privacy / current boundary | `practicePrivacy.test.tsx`、`outOfScopeNegative.test.ts`、P0.044/P0.047 verify scripts | `getFeedbackReport` 不在 practice runtime；voice turn 只在 voice owner hook；raw answer/question/hint 不泄漏 |
 | Scenario behavior | `test/scenarios/e2e/p0-044` 至 `p0-047` | assisted happy path、mode policy、failure recovery、complete + generating handoff |
@@ -58,20 +60,24 @@
 
 | operationId | Frontend consumer | Fixture | Boundary |
 |-------------|-------------------|---------|----------|
+| `getTargetJob` | planned `usePracticeTargetDisplay` / Top Bar | `openapi/fixtures/TargetJobs/getTargetJob.json` | server session `targetJobId` wins；session 未加载时才使用 route/context ID；company/title 不回退到 fixture 常量 |
 | `getPracticeSession` | `usePracticeSessionLoader` | `openapi/fixtures/PracticeSessions/getPracticeSession.json` | route `sessionId` 必填；404 进入 lost state |
-| `appendSessionEvent` | `usePracticeEvents` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json` | `clientEventId` in body；无 `Idempotency-Key` header；正向 UI 不再发送 `turn_skipped` |
+| `appendSessionEvent` | `usePracticeEvents` | `openapi/fixtures/PracticeSessions/appendSessionEvent.json` | `clientEventId` in body；无 `Idempotency-Key` header；repair failure 的 `session_wait` 保留回答，不追加重复 transcript，并以新 `clientEventId` 重试；正向 UI 不再发送 `turn_skipped` |
+| `createPracticeVoiceTurn` | `usePracticeVoiceTurn` / PhoneSurface | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json` | VAD silence submit；顶层 typed error stays in same session and allows text-mode exit；no ad hoc fetch or HTTP schema expansion |
 | `completePracticeSession` | `useCompletePracticeSession` | `openapi/fixtures/PracticeSessions/completePracticeSession.json` | `Idempotency-Key` required；body 仅 `clientCompletedAt` |
 
 ## 6 BDD-Gate
 
 - `E2E.P0.044`：文本面试 assisted happy path，覆盖 mount、answer、follow-up、Question advance、DOM anchor 和 runtime negative grep。
-- `E2E.P0.045`：真实面试显示策略，覆盖 text/phone、hint optional、pause/resume、无独立辅助信息栏、无 skip、无 dictation、无 strict switch、无会话内本地 persona switch 和 forbidden input negative gate。
-- `E2E.P0.046`：AI timeout、404 lost state、409 mismatch、hint retry/recovery 和 retry 复用；不得恢复严格模式冲突路径。
+- `E2E.P0.045`：真实面试显示策略，覆盖单一电话图标、同 session 挂断、无分段/live/重开/callEnded、真实 getTargetJob company/title、无 raw questionIntent 和 forbidden input negative gate。
+- `E2E.P0.046`：AI timeout、404 lost state、409 mismatch、hint retry/recovery、文本 repair failure `session_wait`（保留回答、新 event ID 重试、无重复 transcript）和 voice 顶层 typed error 同 session 恢复；不得恢复严格模式冲突路径或 canned question。
 - `E2E.P0.047`：complete 202、idempotency replay、`generating` handoff、privacy redline。
 
 ## 7 实施步骤
 
 ### Phase 6: Real-interview session simplification
+
+> Historical implementation evidence only. Phase 10 supersedes the former restart/call-ended control contract; nothing in this phase is a current positive acceptance rule.
 
 #### 6.1 UI truth source revision
 
@@ -112,6 +118,14 @@ Run focused practice frontend tests, relevant backend/OpenAPI contract tests, pi
 - Consume the existing typed locale keys directly from `PracticeScreen`; do not add a second local copy table or change pause behavior.
 - Gate with focused TopBar/Practice/pause tests, locale reachability, UI contract/pixel parity, typecheck/build and owner/global checks.
 
+### Phase 10: Single-handset phone transition and real session identity
+
+- Revise `docs/ui-design/module-practice-review.md` and `ui-design/src/screen-practice.jsx` first: one handset icon replaces segmented text/phone and live chip; the center red circular hang-up icon replaces visible “切断”; restart and `callEnded` are absent.
+- Implement one `exitPhoneMode` coordinator shared by the Top Bar phone-state click and center hang-up. It immediately stops microphone/TTS, allows non-empty capture settlement, suppresses later phone TTS and navigates to text mode for the same session.
+- Consume generated `getTargetJob(targetJobId)` for real company/title. Render only server-returned session/transcript/AssistantAction content in real mode; never copy fixture dialogue or display raw `questionIntent`.
+- Coordinate with practice-voice for VAD silence submit, TTS-ended rearm and speech-start-only barge-in. For text `session_wait`, retain the answer, avoid duplicate transcript, and retry with a new `clientEventId`; render the existing top-level typed voice error without leaving the current session. Do not add an HTTP schema.
+- Reuse `E2E.P0.045` / `E2E.P0.046`; run DOM/computed-style/bounding-box/viewport/screenshot parity, real-mode browser and generated-client gates.
+
 ## 8 收口证据索引
 
 当前 owner 完成以最新 gate 为准，不引用旧 PASS 状态：
@@ -133,6 +147,7 @@ Run focused practice frontend tests, relevant backend/OpenAPI contract tests, pi
 
 | 日期 | 版本 | 说明 |
 |------|------|------|
+| 2026-07-11 | 1.17 | Reopen Phase 10 for single-handset phone transition, shared hang-up-to-text, real getTargetJob identity, server-returned conversation content, and recoverable same-session failures. |
 | 2026-07-10 | 1.16 | Restore typed question and pause/resume copy required by the current Practice prototype. |
 | 2026-07-10 | 1.15 | Remove the production test-only handoff inspector and assert privacy directly on real output. |
 | 2026-07-10 | 1.14 | Delete the constant-only usePracticeAssistance hook and bind P0.045 to rendered policy tests. |
