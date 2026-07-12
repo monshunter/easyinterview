@@ -14,6 +14,8 @@ grep -Fq 'ReportMissingSessionState.test.tsx' "$LOG_FILE" || { echo "E2E.P0.058:
 grep -Fq 'useFeedbackReport.test.tsx' "$LOG_FILE" || { echo "E2E.P0.058: report hook test did not pass" >&2; exit 1; }
 grep -Fq 'ConversationReport.test.tsx' "$LOG_FILE" || { echo "E2E.P0.058: conversation report test did not pass" >&2; exit 1; }
 grep -Fq 'useReportGenerationPoll.test.tsx' "$LOG_FILE" || { echo "E2E.P0.058: poll failure test did not pass" >&2; exit 1; }
+grep -Fq -- '--- PASS: TestGenerateReportRejectsInvalidDimensionScoresBeforePersistence' "$LOG_FILE" || { echo "E2E.P0.058: invalid-score test did not pass" >&2; exit 1; }
+! grep -Eq -- '--- FAIL:|^FAIL($|[[:space:]])|no tests to run' "$LOG_FILE"
 
 # AI_* enum is covered + REPORT_NOT_FOUND has separate copy.
 grep -Fq 'AI_PROVIDER_TIMEOUT' "$REPO_ROOT/frontend/src/app/i18n/locales/zh.ts" || { echo "E2E.P0.058: zh missing AI_PROVIDER_TIMEOUT" >&2; exit 1; }

@@ -1,6 +1,6 @@
 # 002 Conversation Message Loop Test Plan
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -18,3 +18,7 @@
 
 ## Phase 5: Privacy
 - Cross-user 404, raw content redaction and full gates.
+
+## Phase 6: Review remediation
+- Repository/service tests simulate completion winning before assistant commit and require rollback plus typed conflict.
+- Scenario contract tests require P0.046/P0.047 to execute every named failure/replay/lifecycle assertion and reject no-test output.

@@ -14,4 +14,4 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [002-practice-text-event-loop](./002-practice-text-event-loop/plan.md) | [plan](./002-practice-text-event-loop/plan.md) / [checklist](./002-practice-text-event-loop/checklist.md) / [context](./002-practice-text-event-loop/context.yaml) / [test-plan](./002-practice-text-event-loop/test-plan.md) / [test-checklist](./002-practice-text-event-loop/test-checklist.md) / [bdd-plan](./002-practice-text-event-loop/bdd-plan.md) / [bdd-checklist](./002-practice-text-event-loop/bdd-checklist.md) | 2.0 | completed | 2026-07-12 |
+| [002-practice-text-event-loop](./002-practice-text-event-loop/plan.md) | [plan](./002-practice-text-event-loop/plan.md) / [checklist](./002-practice-text-event-loop/checklist.md) / [context](./002-practice-text-event-loop/context.yaml) / [test-plan](./002-practice-text-event-loop/test-plan.md) / [test-checklist](./002-practice-text-event-loop/test-checklist.md) / [bdd-plan](./002-practice-text-event-loop/bdd-plan.md) / [bdd-checklist](./002-practice-text-event-loop/bdd-checklist.md) | 2.1 | completed | 2026-07-12 |

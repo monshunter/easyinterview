@@ -86,7 +86,32 @@ func (s *Service) generateReportContent(ctx context.Context, session SessionSnap
 	if draft.empty() {
 		return ReportContentDraft{}, fmt.Errorf("%w: report.generate response is empty", ErrReviewAIOutputInvalid)
 	}
+	if err := validateReportContent(draft); err != nil {
+		return ReportContentDraft{}, fmt.Errorf("%w: %v", ErrReviewAIOutputInvalid, err)
+	}
 	return draft, nil
+}
+
+func validateReportContent(content ReportContentDraft) error {
+	if len(content.DimensionScores) == 0 {
+		return fmt.Errorf("candidate dimension scores are required")
+	}
+
+	seen := make(map[string]struct{}, len(content.DimensionScores))
+	for _, score := range content.DimensionScores {
+		name := strings.TrimSpace(score.Name)
+		if name == "" {
+			return fmt.Errorf("dimension score name is required")
+		}
+		if _, duplicate := seen[name]; duplicate {
+			return fmt.Errorf("dimension score %q is duplicated", name)
+		}
+		if score.Score < 1 || score.Score > 5 {
+			return fmt.Errorf("dimension score %q must be between 1.0 and 5.0", name)
+		}
+		seen[name] = struct{}{}
+	}
+	return nil
 }
 
 func reportCompletePayload(resolution registry.PromptResolution, session SessionSnapshot, plan PracticePlanSnapshot, messages []MessageSnapshot, rubric registry.RubricSchema) aiclient.CompletePayload {

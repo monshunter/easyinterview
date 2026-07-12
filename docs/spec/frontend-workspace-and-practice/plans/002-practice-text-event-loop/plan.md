@@ -1,6 +1,6 @@
 # 002 — Practice Continuous Text Conversation
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -41,6 +41,8 @@
 | disabled phone | alternate/negative | 2 | DOM/a11y + P0.045/P0.007 | disabled topbar icon | PhoneSurface/click handler |
 | completion | primary | 4 | P0.047 | Finish CTA | hint/mode handoff |
 | real screenshot | integration | 5 | P0.099 + browser artifacts | desktop 1440x900/mobile | fixture-only evidence |
+| retry routing | failure/recovery | 6 | PracticeScreen Vitest + P0.046/P0.047 | ErrorState retry | completion retry calls send; loader retry absent |
+| finish race guard | lifecycle/UX | 6 | PracticeScreen Vitest | Finish CTA | finish enabled while send/loading/completing |
 
 ## 5 实施步骤
 
@@ -67,6 +69,11 @@
 - Run Vitest/typecheck/build/UI contract/pixel parity.
 - Reset/redeploy real local environment, run P0.099 path and capture redacted 1440x900 screenshots of conversation and report handoff.
 
+### Phase 6: Review remediation
+- Track the error source and bind retry to `loader.refresh`, same-ID message send, or completion retry as appropriate.
+- Disable Finish CTA while message send/session load/completion is active or the session is no longer mutable.
+- Extend P0.046/P0.047 evidence so the screen-level recovery actions execute, not only the underlying hooks.
+
 ## 6 验收标准
 
 - No left rail, question count or QuestionCard at any viewport.
@@ -79,4 +86,5 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-12 | 2.1 | Reopen for source-aware retry wiring and send/complete UI race guards. |
 | 2026-07-12 | 2.0 | Reopen for full-width continuous chat and disabled phone entry. |

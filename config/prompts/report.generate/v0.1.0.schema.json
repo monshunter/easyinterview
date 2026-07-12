@@ -16,7 +16,7 @@
     },
     "dimension_scores": {
       "type": "array",
-      "description": "Per-rubric dimension scores.",
+      "description": "Candidate interview competency scores inferred from the conversation.",
       "items": {
         "type": "object",
         "description": "One dimension score.",
@@ -29,11 +29,13 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Rubric dimension name."
+            "description": "Candidate interview competency name."
           },
           "score": {
             "type": "number",
-            "description": "Numeric score for the dimension."
+            "description": "Candidate score for the dimension on the 1.0-5.0 scale.",
+            "minimum": 1.0,
+            "maximum": 5.0
           },
           "reasoning": {
             "type": "string",

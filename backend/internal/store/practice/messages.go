@@ -192,9 +192,18 @@ values ($1,$2,$3,'assistant',$4,$5,$6)`, assistant.ID, in.SessionID, assistant.S
 		}
 		return domain.SendPracticeMessageResult{}, fmt.Errorf("insert practice assistant message: %w", err)
 	}
-	if _, err := tx.ExecContext(ctx, `update practice_sessions set status=$1, updated_at=$2 where id=$3 and user_id=$4`,
-		string(sharedtypes.SessionStatusRunning), in.Now, in.SessionID, in.UserID); err != nil {
+	result, err := tx.ExecContext(ctx, `update practice_sessions set status=$1, updated_at=$2 where id=$3 and user_id=$4 and status in ($5,$6)`,
+		string(sharedtypes.SessionStatusRunning), in.Now, in.SessionID, in.UserID,
+		string(sharedtypes.SessionStatusRunning), string(sharedtypes.SessionStatusWaitingUserInput))
+	if err != nil {
 		return domain.SendPracticeMessageResult{}, fmt.Errorf("update practice session after message: %w", err)
+	}
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return domain.SendPracticeMessageResult{}, fmt.Errorf("count updated practice sessions after message: %w", err)
+	}
+	if updated != 1 {
+		return domain.SendPracticeMessageResult{}, domain.ErrSessionConflict
 	}
 	session, err := selectSessionForUser(ctx, tx, in.UserID, in.SessionID)
 	if err != nil {

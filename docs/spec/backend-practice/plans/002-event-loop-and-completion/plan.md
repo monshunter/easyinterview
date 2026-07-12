@@ -1,6 +1,6 @@
 # 002 — Conversation Message Loop and Completion
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -38,6 +38,8 @@
 | language/schema | contract | 3 | one-repair tests | wrong-language persisted reply |
 | complete | primary/idempotency | 4 | completion tests + P0.047 | turn count/question assessment handoff |
 | privacy | security | 5 | redaction/outbox/task tests | raw message outside content store |
+| send/complete race | lifecycle/boundary | 6 | service/store race regression + P0.047 | late reply reopens completing session |
+| failure scenario evidence | BDD/gate | 6 | P0.046 named failure/replay/mismatch markers | happy-path-only false PASS |
 
 ## 5 实施步骤
 
@@ -61,6 +63,10 @@
 ### Phase 5: Privacy and closeout
 - Redaction/ownership/race/full gates and BDD scenarios.
 
+### Phase 6: Review remediation
+- Reject assistant commits when completion has already moved the session out of a mutable state, and map the store conflict through the service/API boundary.
+- Make P0.046 execute provider failure, exact replay, mismatch, pending retry and concurrent-new-message assertions; make P0.047 prove a late reply cannot reopen the session.
+
 ## 6 验收标准
 
 - Multiple message pairs append in stable order with no question classification.
@@ -80,4 +86,5 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-12 | 2.1 | Reopen for send/complete race protection and executable failure/recovery scenario evidence. |
 | 2026-07-12 | 2.0 | Replace answer/turn event loop with message conversation loop. |

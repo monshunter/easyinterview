@@ -11,6 +11,8 @@ grep -Fq 'preflight.test.ts' "$LOG_FILE" || { echo "E2E.P0.056: preflight test d
 grep -Fq 'useReportGenerationPoll.test.tsx' "$LOG_FILE" || { echo "E2E.P0.056: poll hook test did not run" >&2; exit 1; }
 grep -Fq 'GeneratingScreen.test.tsx' "$LOG_FILE" || { echo "E2E.P0.056: GeneratingScreen test did not run" >&2; exit 1; }
 grep -Fq 'ConversationReport.test.tsx' "$LOG_FILE" || { echo "E2E.P0.056: conversation report test did not run" >&2; exit 1; }
+grep -Fq -- '--- PASS: TestReadinessFromContentUsesCandidateScoreBoundaries' "$LOG_FILE" || { echo "E2E.P0.056: readiness boundary test did not run" >&2; exit 1; }
+! grep -Eq -- '--- FAIL:|^FAIL($|[[:space:]])|no tests to run' "$LOG_FILE"
 
 # Testid coverage in implementation (excluding __tests__).
 testid_count=$(grep -RoE 'data-testid="(generating-|report-)' \

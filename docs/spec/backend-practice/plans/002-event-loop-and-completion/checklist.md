@@ -1,6 +1,6 @@
 # 002 — Conversation Message Loop and Completion Checklist
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -27,3 +27,8 @@
 ## Phase 5: Privacy and closeout
 - [x] 5.1 RED-GREEN: ownership/privacy/race/redaction tests pass.
 - [x] 5.2 Run focused/full backend, codegen/fixture/migration/prompt/docs/diff gates.
+
+## Phase 6: Review remediation
+- [x] 6.1 RED-GREEN: assistant commit locks/checks mutable session state, rolls back after completion wins, and maps the conflict without reopening the session. (`go test ./backend/internal/practice -count=1`; `go test ./backend/internal/store/practice -count=1`)
+- [x] 6.2 RED-GREEN: P0.046/P0.047 trigger and verifier require provider-failure, replay, mismatch, pending-retry and late-reply lifecycle PASS markers. (`python3 -m pytest scripts/lint/scenario_script_contract_test.py -q -k practice_failure_and_completion`; focused Go tests; `bash -n`)
+- [x] 6.3 BDD-Gate: P0.046 and P0.047 failure/recovery and completion scenarios pass. (serial `setup.sh` → `trigger.sh` → `verify.sh` → `cleanup.sh`, both PASS)

@@ -1,6 +1,6 @@
 # Backend Review History
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
 > **更新日期**: 2026-07-12
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 1.6 | 重新打开 001：candidate dimension score 固定为 1.0-5.0；prompt/schema/runtime 在 readiness 计算前共同拒绝越界或不完整输出。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
 | 2026-07-12 | 1.5 | 报告改为整场 conversation 级 readiness、dimensions、evidence 与 next，删除逐题 assessment 和 turn-ID retry 合同。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
 | 2026-07-10 | 1.2 | 收敛 queued / generating 报告读取语义：`getFeedbackReport` 返回当前状态元数据，不再描述为空报告占位。 | tech-debt pruning |
 | 2026-06-29 | 1.1 | product-scope D-22 后同步 downstream 边界：backend-review 只声明当前 practice/report downstream owner；runner job_type 描述保持 `report_generate`。 | product-scope/001-core-loop-module-pruning |

@@ -12,4 +12,5 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/generating/__tests__/useReportGenerationPoll.test.tsx \
     src/app/screens/generating/__tests__/GeneratingScreen.test.tsx \
     src/app/screens/report/__tests__/ConversationReport.test.tsx
+  go test -v ./backend/internal/review -run 'TestReadinessFromContentUsesCandidateScoreBoundaries' -count=1
 ) | tee "$OUTPUT_DIR/trigger.log"

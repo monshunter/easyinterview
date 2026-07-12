@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-12](2026-07-12.md) | `fix(practice): close conversation review regressions (BUG-0160)` | #fix #api #ui #test #docs #bdd |
 | [2026-07-12](2026-07-12.md) | `fix(practice): harden real conversation funnel (BUG-0159)` | #fix #api #ui #test #docs #bdd |
 | [2026-07-12](2026-07-12.md) | `feat(practice): implement continuous conversation flow` | #feat #api #ui #test #docs #bdd |
 | [2026-07-12](2026-07-12.md) | `feat(practice): rebase conversation contract and baseline` | #feat #api #test #docs |

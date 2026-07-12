@@ -10,6 +10,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
+	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
@@ -30,7 +31,7 @@ func TestGenerateReportUsesOneConversationLevelAICall(t *testing.T) {
 			{Role: "assistant", Content: "Tell me about the migration.", SeqNo: 1},
 			{Role: "user", Content: "I led it across three teams.", SeqNo: 2},
 		},
-		Rubric: registry.RubricSchema{Dimensions: []registry.RubricDimension{{Name: "communication", Weight: .5}, {Name: "technical_depth", Weight: .5}}},
+		Rubric: registry.RubricSchema{Dimensions: []registry.RubricDimension{{Name: "report_evidence", Weight: .5}, {Name: "report_calibration", Weight: .5}}},
 	}}
 	schema := json.RawMessage(`{"type":"object"}`)
 	svc := NewService(ServiceOptions{
@@ -78,6 +79,63 @@ func TestGenerateReportUsesOneConversationLevelAICall(t *testing.T) {
 	}
 }
 
+func TestGenerateReportRejectsInvalidDimensionScoresBeforePersistence(t *testing.T) {
+	tests := []struct {
+		name   string
+		scores []DimensionScoreDraft
+	}{
+		{name: "missing candidate dimensions", scores: nil},
+		{name: "duplicate candidate dimension", scores: []DimensionScoreDraft{{Name: "communication", Score: 4, Reasoning: "clear"}, {Name: "communication", Score: 3, Reasoning: "duplicate"}, {Name: "technical_depth", Score: 3, Reasoning: "adequate"}}},
+		{name: "score below range", scores: []DimensionScoreDraft{{Name: "communication", Score: 0.9, Reasoning: "invalid"}, {Name: "technical_depth", Score: 3, Reasoning: "adequate"}}},
+		{name: "score above range", scores: []DimensionScoreDraft{{Name: "communication", Score: 5.1, Reasoning: "invalid"}, {Name: "technical_depth", Score: 3, Reasoning: "adequate"}}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			content, err := json.Marshal(ReportContentDraft{Summary: "summary", DimensionScores: tc.scores})
+			if err != nil {
+				t.Fatal(err)
+			}
+			repo := &conversationReportRepository{ctx: ReportContext{
+				Session: SessionSnapshot{UserID: testUUID(1), ReportID: testUUID(2), SessionID: testUUID(3), PlanID: testUUID(4), TargetJobID: testUUID(5), Language: "en"},
+				Plan:    PracticePlanSnapshot{ID: testUUID(4), Goal: "baseline", InterviewerPersona: "hiring_manager"},
+				Rubric: registry.RubricSchema{Dimensions: []registry.RubricDimension{{Name: "communication", Weight: .5}, {Name: "technical_depth", Weight: .5}}},
+			}}
+			svc := NewService(ServiceOptions{
+				Registry: conversationPromptResolver{resolution: registry.PromptResolution{FeatureKey: reportGenerateFeatureKey, ModelProfileName: "report.generate.default", UserMessageTemplate: "{{rubric_dimensions}}"}},
+				AI: &conversationReportAI{response: string(content)}, Repository: repo,
+				NewID: fixedConversationIDs(testUUID(6), testUUID(7)),
+			})
+
+			outcome := svc.GenerateReport(context.Background(), AsyncJob{JobID: testUUID(8), ResourceID: testUUID(2)})
+			if outcome.Succeeded || outcome.ErrorCode != sharederrors.CodeAiOutputInvalid {
+				t.Fatalf("outcome=%+v", outcome)
+			}
+			if repo.persisted.ReportID != "" || repo.failed.ErrorCode != sharederrors.CodeAiOutputInvalid {
+				t.Fatalf("persisted=%+v failed=%+v", repo.persisted, repo.failed)
+			}
+		})
+	}
+}
+
+func TestReadinessFromContentUsesCandidateScoreBoundaries(t *testing.T) {
+	tests := []struct {
+		score float64
+		want  sharedtypes.ReadinessTier
+	}{
+		{score: 1, want: sharedtypes.ReadinessTierNotReady},
+		{score: 2, want: sharedtypes.ReadinessTierNeedsPractice},
+		{score: 3, want: sharedtypes.ReadinessTierBasicallyReady},
+		{score: 4, want: sharedtypes.ReadinessTierWellPrepared},
+		{score: 5, want: sharedtypes.ReadinessTierWellPrepared},
+	}
+	for _, tc := range tests {
+		if got := readinessFromContent(ReportContentDraft{DimensionScores: []DimensionScoreDraft{{Name: "communication", Score: tc.score}}}); got != tc.want {
+			t.Fatalf("score=%v readiness=%q want=%q", tc.score, got, tc.want)
+		}
+	}
+}
+
 type conversationPromptResolver struct{ resolution registry.PromptResolution }
 
 func (f conversationPromptResolver) ResolveActive(context.Context, string, string) (registry.PromptResolution, error) {
@@ -97,6 +155,7 @@ func (f *conversationReportAI) Complete(_ context.Context, _ string, payload aic
 type conversationReportRepository struct {
 	ctx       ReportContext
 	persisted ReportResultPersistence
+	failed    ReportFailurePersistence
 }
 
 func (f *conversationReportRepository) LoadReportContext(context.Context, string) (ReportContext, error) {
@@ -106,7 +165,8 @@ func (f *conversationReportRepository) PersistReportResult(_ context.Context, in
 	f.persisted = in
 	return nil
 }
-func (f *conversationReportRepository) PersistReportFailure(context.Context, ReportFailurePersistence) error {
+func (f *conversationReportRepository) PersistReportFailure(_ context.Context, in ReportFailurePersistence) error {
+	f.failed = in
 	return nil
 }
 

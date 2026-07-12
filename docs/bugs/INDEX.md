@@ -23,6 +23,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0160](./BUG-0160.md) | conversation simplification review exposed lifecycle, retry, score, and scenario drift | high | resolved | 2026-07-12 | `fix(practice): close conversation review regressions (BUG-0160)` |
 | [BUG-0159](./BUG-0159.md) | real conversation funnel retained PostgreSQL and observability drift | high | resolved | 2026-07-12 | `fix(practice): harden real conversation funnel (BUG-0159)` |
 | [BUG-0158](./BUG-0158.md) | practice phone flow and session language drifted from the real interview contract | medium | resolved | 2026-07-11 | `fix(practice): align phone flow and session language (BUG-0158)` |
 | [BUG-0103](./BUG-0103.md) | empty focus competency arrays broke practice plan creation | high | resolved | 2026-05-24 | `feat(e2e-scenarios): close full funnel journey (BUG-0103)` |

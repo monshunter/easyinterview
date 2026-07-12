@@ -1,6 +1,6 @@
 # 002 — Practice Continuous Text Conversation Checklist
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -31,3 +31,8 @@
   <!-- verified: 2026-07-12 method=full-frontend-and-parity evidence="111 files/708 Vitest tests, typecheck, build, 45 UI contracts and 8 desktop/mobile practice Playwright cases pass" -->
 - [x] 5.2 Run real backend/frontend P0.099 path and capture redacted conversation/report screenshots.
 - [x] 5.3 BDD-Gate: P0.099 real fullstack screenshot evidence passes.
+
+## Phase 6: Review remediation
+- [x] 6.1 RED-GREEN: PracticeScreen retries loader, message and completion failures through the correct operation and preserves message/completion idempotency. (`pnpm --filter @easyinterview/frontend test src/app/screens/practice/PracticeScreen.test.tsx`)
+- [x] 6.2 RED-GREEN: Finish CTA is disabled during send, load, completion and non-mutable session states. (`pnpm --filter @easyinterview/frontend test src/app/screens/practice/PracticeScreen.test.tsx src/app/screens/practice/hooks/useCompletePracticeSession.test.tsx`; frontend typecheck)
+- [x] 6.3 BDD-Gate: P0.046 and P0.047 screen-level failure/recovery and completion scenarios pass. (serial `setup.sh` → `trigger.sh` → `verify.sh` → `cleanup.sh`, both PASS)

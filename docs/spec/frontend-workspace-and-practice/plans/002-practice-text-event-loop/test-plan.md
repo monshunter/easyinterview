@@ -1,6 +1,6 @@
 # 002 Practice Continuous Conversation Test Plan
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -14,3 +14,7 @@
 - Stable-ID handoff and generating conversation copy.
 ## Phase 5: Integration/parity
 - Vitest/typecheck/build, source/pixel parity, real P0.099 screenshots.
+
+## Phase 6: Review remediation
+- PracticeScreen component tests simulate loader 5xx, send failure and completion failure, then assert the retry button invokes only the matching operation.
+- CTA-state tests hold send/load/complete promises open and assert Finish remains disabled until the mutable state returns.

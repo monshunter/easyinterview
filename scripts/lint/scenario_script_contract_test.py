@@ -3,13 +3,9 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-API_PACKAGE = "github.com/monshunter/easyinterview/backend/cmd/api"
-CMD_API_EXACT_GO_SCENARIOS = {
-    "p0-048-practice-hint-assisted-across-goals": "TestE2EP0048PracticeHintAssistedAcrossGoals",
-    "p0-050-practice-hint-provenance-task-runs": "TestE2EP0050PracticeAssistantActionProvenanceAndTaskRuns",
-    "p0-051-practice-hint-degrade-privacy": "TestE2EP0051PracticeHintDegradeAndPrivacy",
-    "p0-070-practice-derived-plan-create-read-replay": "TestE2EP0070PracticeDerivedPlanCreateReadReplay",
-    "p0-072-practice-derived-source-isolation-privacy": "TestE2EP0072PracticeDerivedSourceValidationIsolationPrivacy",
+PRACTICE_SERVICE_SCENARIOS = {
+    "p0-070-practice-derived-plan-create-read-replay": "TestCreateDerivedPracticePlanPassesReportSourceAndCompetencyFocus",
+    "p0-072-practice-derived-source-isolation-privacy": "TestDerivedPracticePlanRequiresSourceReport",
 }
 FRONTEND_TEST_PATH_RE = re.compile(
     r"(?<![A-Za-z0-9_./-])((?:frontend/)?(?:src|tests)/[A-Za-z0-9_./-]+\.(?:test|spec)\.(?:tsx|ts))"
@@ -36,26 +32,63 @@ def test_explicit_frontend_test_paths_in_scenario_triggers_exist() -> None:
     )
 
 
-def test_cmd_api_exact_go_trigger_scripts_preserve_go_test_exit_status() -> None:
-    for scenario in CMD_API_EXACT_GO_SCENARIOS:
+def test_practice_service_triggers_run_current_named_tests() -> None:
+    for scenario, test_name in PRACTICE_SERVICE_SCENARIOS.items():
         trigger = REPO_ROOT / "test/scenarios/e2e" / scenario / "scripts/trigger.sh"
         text = trigger.read_text(encoding="utf-8")
-
-        assert "| tee" not in text
-        assert "go_test_status=$?" in text
-        assert 'exit "$go_test_status"' in text
+        assert test_name in text
+        assert "set -euo pipefail" in text
 
 
-def test_cmd_api_exact_go_verify_scripts_require_passing_test_and_package() -> None:
-    for scenario, test_name in CMD_API_EXACT_GO_SCENARIOS.items():
+def test_practice_service_verifiers_require_passing_named_tests() -> None:
+    for scenario, test_name in PRACTICE_SERVICE_SCENARIOS.items():
         verify = REPO_ROOT / "test/scenarios/e2e" / scenario / "scripts/verify.sh"
         text = verify.read_text(encoding="utf-8")
 
-        assert f"=== RUN   {test_name}" in text
         assert f"--- PASS: {test_name}" in text
-        assert f"^ok[[:space:]]+{API_PACKAGE}" in text
         assert "--- FAIL:" in text
         assert "no tests to run" in text
+
+
+def test_practice_failure_and_completion_scenarios_require_regression_markers() -> None:
+    scenarios = REPO_ROOT / "test/scenarios/e2e"
+    required = {
+        "p0-046-practice-text-loop-failure-and-recovery": (
+            "TestSendPracticeMessageProviderFailureKeepsReservationUncommitted",
+            "TestSendPracticeMessageExactReplayReturnsOriginalResultWithoutAICall",
+            "TestSendPracticeMessageMapsClientMismatchAndCrossUserAccess",
+            "TestSQLRepositoryReservePracticeMessageRetriesPendingUserMessage",
+            "TestSQLRepositoryReservePracticeMessageRejectsNewMessageWhileReplyPending",
+        ),
+        "p0-047-practice-text-loop-complete-and-generating-handoff": (
+            "TestSQLRepositoryCommitPracticeMessageRejectsClosedSession",
+        ),
+    }
+
+    for scenario, markers in required.items():
+        trigger = (scenarios / scenario / "scripts/trigger.sh").read_text(encoding="utf-8")
+        verify = (scenarios / scenario / "scripts/verify.sh").read_text(encoding="utf-8")
+        for marker in markers:
+            assert marker in trigger
+            assert f"--- PASS: {marker}" in verify
+        assert "--- FAIL:" in verify
+        assert "no tests to run" in verify
+
+
+def test_report_scenarios_require_candidate_score_regression_markers() -> None:
+    scenarios = REPO_ROOT / "test/scenarios/e2e"
+    required = {
+        "p0-056-generating-to-report-happy-path": "TestReadinessFromContentUsesCandidateScoreBoundaries",
+        "p0-058-report-failure-and-missing-session": "TestGenerateReportRejectsInvalidDimensionScoresBeforePersistence",
+    }
+
+    for scenario, marker in required.items():
+        trigger = (scenarios / scenario / "scripts/trigger.sh").read_text(encoding="utf-8")
+        verify = (scenarios / scenario / "scripts/verify.sh").read_text(encoding="utf-8")
+        assert marker in trigger
+        assert f"--- PASS: {marker}" in verify
+        assert "--- FAIL:" in verify
+        assert "no tests to run" in verify
 
 
 def test_resume_runtime_negative_gate_is_shared_and_ignores_tests() -> None:

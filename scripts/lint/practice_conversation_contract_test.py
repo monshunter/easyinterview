@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import unittest
 from pathlib import Path
@@ -105,6 +106,18 @@ class PracticeConversationContractTest(unittest.TestCase):
             ],
             feature_keys,
         )
+
+    def test_report_candidate_score_contract_is_explicitly_one_to_five(self) -> None:
+        prompt_dir = ROOT / "config/prompts/report.generate"
+        schema = json.loads((prompt_dir / "v0.1.0.schema.json").read_text(encoding="utf-8"))
+        score = schema["properties"]["dimension_scores"]["items"]["properties"]["score"]
+        self.assertEqual(1.0, score["minimum"])
+        self.assertEqual(5.0, score["maximum"])
+
+        prompt = (prompt_dir / "v0.1.0.md").read_text(encoding="utf-8")
+        self.assertIn("candidate score scale is 1.0-5.0", prompt)
+        self.assertIn("evaluator rubric thresholds use 0.0-1.0", prompt)
+        self.assertIn("not the candidate dimension list", prompt)
 
 
 if __name__ == "__main__":

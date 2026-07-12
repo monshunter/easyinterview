@@ -44,7 +44,7 @@ FORBIDDEN_BODY_TOKEN_RE = re.compile(r"\bTBD\b|\bplaceholder\b", re.IGNORECASE)
 OUT_OF_SCOPE_MODULE_RE = re.compile(r"\bmistakes\b|\bgrowth\b|\bdrill\b|mistake\.extract")
 OUT_OF_SCOPE_FEATURE_KEY_PREFIXES = ("jd_match.",)
 
-SCHEMA_ALLOWED_KEYS = {"type", "required", "properties", "items", "enum", "description"}
+SCHEMA_ALLOWED_KEYS = {"type", "required", "properties", "items", "enum", "description", "minimum", "maximum"}
 SCHEMA_ALLOWED_TYPES = {"object", "array", "string", "number", "integer", "boolean", "null"}
 OUTPUT_CONTRACT_START = "<!-- output-schema-contract:start -->"
 OUTPUT_CONTRACT_END = "<!-- output-schema-contract:end -->"
@@ -477,6 +477,15 @@ def validate_schema_subset(schema_path: pathlib.Path, schema: dict) -> list[str]
         enum = node.get("enum")
         if enum is not None and (not isinstance(enum, list) or not enum):
             errors.append(f"{schema_path}: {path}.enum must be a non-empty list")
+        minimum = node.get("minimum")
+        maximum = node.get("maximum")
+        for key, bound in (("minimum", minimum), ("maximum", maximum)):
+            if bound is not None and (not isinstance(bound, (int, float)) or isinstance(bound, bool)):
+                errors.append(f"{schema_path}: {path}.{key} must be numeric")
+            if bound is not None and schema_type not in {"number", "integer"}:
+                errors.append(f"{schema_path}: {path}.{key} requires a numeric schema type")
+        if isinstance(minimum, (int, float)) and isinstance(maximum, (int, float)) and minimum > maximum:
+            errors.append(f"{schema_path}: {path}.minimum must be <= maximum")
         props = node.get("properties")
         if props is not None:
             if not isinstance(props, dict):
@@ -881,6 +890,13 @@ def validate_value_against_schema(value: object, schema: dict, path: str, errors
     enum = schema.get("enum")
     if isinstance(enum, list) and enum and value not in enum:
         errors.append(f"{path}: value {value!r} not in enum {enum!r}")
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        minimum = schema.get("minimum")
+        maximum = schema.get("maximum")
+        if isinstance(minimum, (int, float)) and value < minimum:
+            errors.append(f"{path}: value {value!r} must be >= {minimum!r}")
+        if isinstance(maximum, (int, float)) and value > maximum:
+            errors.append(f"{path}: value {value!r} must be <= {maximum!r}")
 
 
 def main(argv: list[str] | None = None) -> int:

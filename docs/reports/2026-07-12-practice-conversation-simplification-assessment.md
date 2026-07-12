@@ -4,7 +4,7 @@
 > **审查人**: Codex
 
 **关联计划**: [E2E Current Conversation Funnel Journey](../spec/e2e-scenarios-p0/plans/001-full-funnel-happy-journey/plan.md)
-**关联 Bug**: [BUG-0159](../bugs/BUG-0159.md)
+**关联 Bug**: [BUG-0159](../bugs/BUG-0159.md)、[BUG-0160](../bugs/BUG-0160.md)
 
 ## 1 复盘范围与成功证据
 
@@ -14,6 +14,7 @@
 - P0.007、P0.022-P0.026、P0.044-P0.047、P0.051、P0.056-P0.059、P0.070、P0.072、P0.098、P0.099 通过；其中 P0.022 直接覆盖真实 Handler/Repository，P0.099 使用共享真实环境和真实 provider 完成浏览器验收。
 - 真实链路从 Mailpit 登录、简历解析、JD 导入、plan/session 创建、连续消息、完成会话到 ready report 闭环；桌面/移动端共四张脱敏截图已验收，数据库与 AI observability 证明使用真实持久化和当前 profile。
 - migration up/down/up、OpenAPI/codegen、Prompt/Rubric/hardcode lint、offline eval 24/24、active negative-reference 和场景环境 4/4 均通过。
+- 代码审查 remediation 额外关闭 completion/late-reply 竞态、前端 source-aware retry、候选分数 1.0-5.0 fail-closed 契约与场景 marker 漂移；后端 3 个相关包、前端 47 个聚焦测试、typecheck、Python contract tests 29/29 通过，P0.046/P0.047/P0.056/P0.058 再次按四阶段串行通过。
 
 ## 2 会话中的主要阻点/痛点
 
@@ -29,6 +30,12 @@
 - 旧结构残留不只存在于类型和 route，还藏在 OpenAPI 参数描述、privacy matrix 与 UI 原型文案/网格中。
   - **证据**：最终 active negative search 找到 `/events` 描述、`practice_turns`/`question_assessments` privacy 行及“逐轮读”文案；修订并增加负向断言后归零。
   - **影响**：后续生成物、隐私删除和正式前端 parity 可能重新引入旧模型。
+- 首轮全漏斗通过仍没有覆盖“完成事务先赢、迟到 assistant commit 后到”的跨事务顺序，也没有验证 Retry banner 对 loader/message/completion 的 operation identity。
+  - **证据**：review Red tests 证明 session 会被重新打开，completion retry 只调用一次 complete 却误触发 send，loader error 不渲染 retry。
+  - **影响**：真实用户可能得到已排队报告但会话又恢复 running 的冲突状态，或在失败 UI 上执行错误 mutation。
+- 报告生成同时存在候选 1.0-5.0 分数和 evaluator 0.0-1.0 rubric 阈值，但原 prompt/schema 没有写出量纲边界。
+  - **证据**：注入缺失、重复、0.9 与 5.1 候选分数时，旧实现全部持久化成功；新增 fail-closed 测试后统一返回 `AI_OUTPUT_INVALID`。
+  - **影响**：readiness 看似有确定阈值，输入域却不确定，报告质量会随 provider 自行猜测量纲而漂移。
 
 ## 3 根因归类
 
@@ -47,6 +54,15 @@
 - 两次命令使用错误场景目录/glob，以及第一次迁移命令未注入 `DATABASE_URL`
   - **类别**：无须仓库改动
   - 都被实际目录/标准场景环境快速纠正，未造成实现误判，不足以认定为流程缺陷。
+- Completion/message 最终仲裁与错误来源丢失
+  - **类别**：spec/plan
+  - 原 gate 分别验证 completion 和 send happy path，却没有声明 commit 阶段必须重检 mutable session，也没有把共享 ErrorState 的 retry operation identity 列为 screen contract。
+- 候选分数与 evaluator 阈值混用
+  - **类别**：spec/plan
+  - 原 plan 删除 question-level rubric payload 时，没有同步定义 conversation report 候选分数的单位、范围、完整维度集合和持久化前验证。
+- 被删除场景与 prompt feature 的测试消费者未迁移
+  - **类别**：spec/plan
+  - 场景目录/runner 与 prompt registry 已收敛，但 Python contract registry 和 negative fixtures 仍引用旧 owner 名称；完整 Python gate 才暴露漂移。
 
 ## 4 对流程资产的改进建议
 
@@ -62,10 +78,16 @@
 - 保持语音模式 disabled/fail-closed，直到 continuous text conversation 的真实用户流程和报告质量稳定；重新启用时使用独立 owner plan，不在当前主链路内提前恢复正向契约。
   - **落点**：practice-voice-mvp spec-plan
   - **优先级**：medium
+- 对所有“事务外 AI 调用 + 事务内 commit”路径增加 reserve/commit 双端状态验证和终态竞争测试，要求失败事务不留下局部写入。
+  - **落点**：backend-practice / backend-review 后续 spec-plan checklist
+  - **优先级**：high
+- 对共享错误组件和数字派生契约分别增加 operation-source 与 unit/range/completeness gate；场景 verifier 必须检查对应 named-test PASS marker。
+  - **落点**：frontend-workspace-and-practice、backend-review spec-plan 与 test/scenarios README
+  - **优先级**：high
 
 ## 5 建议优先级与后续动作
 
-1. 下一轮最高价值动作是对 `backend-practice` / `backend-review` 的未来 schema 变更强制执行 live PostgreSQL 四联 gate，优先防止“单测绿、真实漏斗断”的高成本回归。
-2. 保留 P0.099 作为共享真实环境的会话级浏览器验收 owner，每次调整 practice/report contract 后至少复跑桌面与 390px 移动端截图。
+1. 下一轮最高价值动作是把“reserve/commit 双端状态验证 + live PostgreSQL 四联 gate”纳入 `backend-practice` / `backend-review` 的未来状态与 schema 变更，防止单测 happy path 掩盖跨事务终态竞争。
+2. 保留 P0.046/P0.047/P0.056/P0.058 的 named-test marker 与 P0.099 共享真实环境验收；每次调整 practice/report contract 都同时复跑失败恢复、分数 fail-closed 与桌面/390px 截图。
 3. 在连续文字流程经过一轮真实用户验证前，不启动语音接入；届时另开 `practice-voice-mvp` owner revision，先定义 audio provider、设备权限和同会话恢复边界。
-4. 删除类 zero-reference 扩展可在下一次 change-intake/plan-review 流程改进中集中处理，本次实现已通过新增负向测试覆盖当前残留点。
+4. 删除类 zero-reference 扩展可在下一次 change-intake/plan-review 流程改进中集中处理；当前 Python contract tests 已迁移到 current service/prompt owner，避免旧测试名称继续假绿或直接崩溃。

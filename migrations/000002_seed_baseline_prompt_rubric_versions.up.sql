@@ -35,13 +35,20 @@ Example complete JSON output:
 ```
 <!-- output-schema-contract:end -->
 $body$, TRUE, '2026-07-12T08:00:00Z'),
-  ('aedcb7d9-a56c-5f34-9039-8cdc65828f53', 'report.generate', 'v0.1.0', 'multi', '914781fd689a9c229069bdc5ce3a236740cae6fe22e6f6b97816c5245c8f5055', $body$You are an interview report writer. Produce one conversation-level structured
+  ('aedcb7d9-a56c-5f34-9039-8cdc65828f53', 'report.generate', 'v0.1.0', 'multi', 'c0e064840e356dfcdbf5da54633b0f552e324c388cbce34ea95dfe4e1bf407e3', $body$You are an interview report writer. Produce one conversation-level structured
 assessment from session metadata and ordered conversation messages, anchored in the rubric. Respond
 in the language indicated by `{{language}}` (default English).
 
 Session metadata: {{session_metadata}}
 Conversation messages: {{conversation_messages}}
-Rubric dimensions and score levels: {{rubric_dimensions}}
+Report-quality evaluator guidance: {{rubric_dimensions}}
+
+The candidate score scale is 1.0-5.0 for every dimension. Readiness uses the
+candidate-score average: at least 4.0 is well prepared, at least 3.0 is basically
+ready, at least 2.0 needs practice, and lower scores are not ready. The evaluator rubric thresholds use 0.0-1.0
+and are a separate quality-control scale, not the candidate dimension list. Candidate dimension names
+must describe interview competencies evidenced in the conversation; never reuse evaluator thresholds
+as candidate dimension scores.
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
@@ -50,10 +57,10 @@ Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 Output shape:
 - `$` (required, object): Structured interview feedback report content.
 - `$.summary` (required, string): Concise overall report summary.
-- `$.dimension_scores` (required, array): Per-rubric dimension scores.
+- `$.dimension_scores` (required, array): Candidate interview competency scores inferred from the conversation.
 - `$.dimension_scores[]` (required, object): One dimension score.
-- `$.dimension_scores[].name` (required, string): Rubric dimension name.
-- `$.dimension_scores[].score` (required, number): Numeric score for the dimension.
+- `$.dimension_scores[].name` (required, string): Candidate interview competency name.
+- `$.dimension_scores[].score` (required, number): Candidate score for the dimension on the 1.0-5.0 scale.
 - `$.dimension_scores[].reasoning` (required, string): Short reasoning for the score.
 - `$.dimension_scores[].supporting_observations` (required, array): Summarized observations supporting the score.
 - `$.dimension_scores[].supporting_observations[]` (required, string): One supporting observation.

@@ -20,6 +20,7 @@ type conversationTestStore struct {
 	startInput         CommitSessionStartInput
 	messageReservation PracticeMessageReservation
 	messageInput       CommitPracticeMessageInput
+	messageCommitErr   error
 	failedStart        FailSessionStartInput
 }
 
@@ -46,6 +47,9 @@ func (s *conversationTestStore) ReservePracticeMessage(_ context.Context, _ Rese
 }
 func (s *conversationTestStore) CommitPracticeMessage(_ context.Context, in CommitPracticeMessageInput) (SendPracticeMessageResult, error) {
 	s.messageInput = in
+	if s.messageCommitErr != nil {
+		return SendPracticeMessageResult{}, s.messageCommitErr
+	}
 	return SendPracticeMessageResult{Acknowledged: true, UserMessage: s.messageReservation.UserMessage,
 		AssistantMessage: MessageRecord{ID: in.AssistantMessageID, Role: "assistant", Content: in.AssistantText, SeqNo: 3, CreatedAt: in.Now}}, nil
 }
@@ -173,6 +177,22 @@ func TestSendPracticeMessageUsesOrdinaryConversationHistory(t *testing.T) {
 	}
 }
 
+func TestSendPracticeMessageProviderFailureKeepsReservationUncommitted(t *testing.T) {
+	store := &conversationTestStore{messageReservation: PracticeMessageReservation{
+		Session:     SessionReservation{SessionID: "session-1", UserID: "user-1", TargetJobID: "target-1", Language: "zh-CN", Goal: sharedtypes.PracticeGoalBaseline},
+		UserMessage: MessageRecord{ID: "m2", Role: "user", Content: "继续", SeqNo: 2},
+	}}
+	ai := &conversationTestAI{errs: []error{errors.New("provider timeout"), errors.New("provider timeout")}}
+	service := NewService(ServiceOptions{Store: store, Registry: conversationTestRegistry{}, AI: ai, NewID: func() string { return "m3" }})
+
+	_, err := service.SendPracticeMessage(context.Background(), SendPracticeMessageRequest{
+		UserID: "user-1", SessionID: "session-1", ClientMessageID: "client-1", Text: "继续",
+	})
+	if err == nil || store.messageInput.AssistantMessageID != "" {
+		t.Fatalf("err=%v committed=%+v", err, store.messageInput)
+	}
+}
+
 func TestSendPracticeMessageExactReplayReturnsOriginalResultWithoutAICall(t *testing.T) {
 	replay := SendPracticeMessageResult{Acknowledged: true, UserMessage: MessageRecord{ID: "m2", Role: "user", Content: "same", SeqNo: 2}, AssistantMessage: MessageRecord{ID: "m3", Role: "assistant", Content: "original", SeqNo: 3}}
 	store := &conversationTestStore{messageReservation: PracticeMessageReservation{Replay: &replay}}
@@ -202,6 +222,26 @@ func TestSendPracticeMessageMapsClientMismatchAndCrossUserAccess(t *testing.T) {
 				t.Fatalf("error=%v want code=%s", err, tc.code)
 			}
 		})
+	}
+}
+
+func TestSendPracticeMessageMapsCommitConflictAfterCompletionWins(t *testing.T) {
+	store := &conversationTestStore{
+		messageReservation: PracticeMessageReservation{
+			Session:     SessionReservation{SessionID: "session-1", UserID: "user-1", TargetJobID: "target-1", Language: "zh-CN", Goal: sharedtypes.PracticeGoalBaseline},
+			UserMessage: MessageRecord{ID: "m2", Role: "user", Content: "继续", SeqNo: 2},
+		},
+		messageCommitErr: ErrSessionConflict,
+	}
+	ai := &conversationTestAI{responses: []string{`{"messageText":"我们继续。"}`}}
+	service := NewService(ServiceOptions{Store: store, Registry: conversationTestRegistry{}, AI: ai, NewID: func() string { return "m3" }})
+
+	_, err := service.SendPracticeMessage(context.Background(), SendPracticeMessageRequest{
+		UserID: "user-1", SessionID: "session-1", ClientMessageID: "client-1", Text: "继续",
+	})
+	var serviceErr *ServiceError
+	if !errors.As(err, &serviceErr) || serviceErr.Code != "PRACTICE_SESSION_CONFLICT" {
+		t.Fatalf("error=%v want PRACTICE_SESSION_CONFLICT", err)
 	}
 }
 

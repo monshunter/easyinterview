@@ -1,6 +1,6 @@
 # 001 — Conversation-level Report Generation
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -37,6 +37,7 @@
 | AI failure/retry | recovery | 2 | matrix + P0.058 | partial ready report |
 | competency replay | cross-layer | 3 | mapper/replay tests + P0.057 | turn IDs |
 | privacy | security | 4 | focused isolation/redaction gates | raw transcript in non-content surfaces |
+| score scale | contract/boundary | 5 | prompt/schema/runtime validation + P0.056/P0.058 | 0-1 evaluator threshold treated as candidate readiness score |
 
 ## 5 实施步骤
 
@@ -56,6 +57,11 @@
 ### Phase 4: Privacy and closeout
 - Redaction/isolation/current-scope negative/full gates and P0.056/P0.057/P0.058/P0.099.
 
+### Phase 5: Review remediation
+- Declare one candidate dimension score scale (`1.0-5.0`) in prompt and JSON schema, separate from the `0.0-1.0` report-quality evaluator rubric.
+- Validate a non-empty candidate dimension set, unique/non-empty names and score bounds before readiness calculation or persistence; do not require candidate names to equal report-quality evaluator dimensions.
+- Extend P0.056/P0.058 to prove valid boundary mapping and invalid-score fail-closed behavior.
+
 ## 6 验收标准
 
 - Ready report contains session-level dimensions/evidence/actions and no question data.
@@ -66,4 +72,5 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-12 | 2.1 | Reopen to make the report score scale explicit and fail closed before readiness calculation. |
 | 2026-07-12 | 2.0 | Reopen for conversation-level report and competency-focused retry. |

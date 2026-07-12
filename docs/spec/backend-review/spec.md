@@ -1,6 +1,6 @@
 # Backend Review Spec
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -55,7 +55,8 @@
 
 ### 2.4 Readiness 与复练
 
-- readiness 由会话级维度与证据计算，不按题目数量或逐题状态聚合。
+- candidate dimension score 使用唯一 `1.0-5.0` 尺度；`>=4.0 / >=3.0 / >=2.0 / <2.0` 分别映射 `well_prepared / basically_ready / needs_practice / not_ready`。Prompt、output schema 与 runtime validation 必须共享该范围；报告生成质量 rubric 的 `0.0-1.0` evaluator threshold 不得混作 candidate score。
+- readiness 由经过范围校验的会话级维度与证据计算，不按题目数量或逐题状态聚合。
 - `retry_current_round` 使用 `retryFocusCompetencyCodes` / issues dimensions 创建新 plan。
 - `next_round` 保持 round transition，不携带 turn/question IDs。
 
@@ -63,7 +64,7 @@
 
 - report generation timeout / provider / invalid output 保持现有 async retry 与 failed report 语义。
 - queued / generating / failed read shape 不伪造维度或证据。
-- ready output 缺少必需 session-level dimensions 时按 `AI_OUTPUT_INVALID` 处理。
+- ready output 的 candidate dimension scores 为空、分数超出 `1.0-5.0` 或出现重复/空维度名时按 `AI_OUTPUT_INVALID` 处理，不得计算 readiness 或持久化 partial ready 数据。report-quality evaluator rubric 只评估生成质量，不作为 candidate dimension 名称集合。
 
 ### 2.6 隐私
 
@@ -90,6 +91,7 @@
 | C-3 | 读取报告 | queued/generating/ready/failed | 前端读取 | 各状态 shape 稳定，跨用户 404 | 001 |
 | C-4 | AI 失败 | provider/invalid output | runner 重试或终止 | job/report 状态正确，无部分 ready 数据 | 001 |
 | C-5 | 隐私 | report 完成 | 检查非正文存储面 | 无 raw transcript/prompt/response 泄漏 | 001 |
+| C-6 | 分数尺度 | 模型返回边界内或边界外 dimension score | 计算 readiness | 仅 `1.0-5.0` 进入分档；边界外输出 typed invalid 且不落 ready | 001 |
 
 ## 5 关联计划
 
@@ -99,4 +101,5 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-12 | 1.6 | 重新打开 001：统一 candidate score 为 1.0-5.0，并在 prompt/schema/runtime 三层校验后计算 readiness。 |
 | 2026-07-12 | 1.5 | 删除逐题评估与 turn focus，报告改为 conversation-level dimensions/evidence/actions。 |

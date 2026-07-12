@@ -1,6 +1,6 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.34
+> **版本**: 1.35
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -28,6 +28,8 @@
 - 用户输入通过 generated `sendPracticeMessage`，不提交 `turnId`，不标记 answer/hint/question。
 - `getPracticeSession` 刷新恢复完整 ordered messages。
 - 暂停/恢复只控制当前页面的 composer 与计时显示，不产生 backend 事件；结束通过 `completePracticeSession`。
+- Error/Retry 必须按失败来源恢复：session loader 调用 `refresh`，message failure 使用同一 `clientMessageId` 重试 send，completion failure 使用同一 completion idempotency key 重试 finish；不得把完成重试误接到 send。
+- message 发送、session loading、completion 进行中或 session 已进入 `completing / completed` 时结束 CTA 必须 disabled，避免 UI 主动制造 send/complete 竞态。
 - phone icon 使用原生 disabled 控件；phone/voice route params 不得 materialize PhoneSurface。
 
 ### 2.3 Generating
@@ -107,7 +109,7 @@
 | C-2 | Practice 首屏 | session 有 opening message | 进入 practice | 只见 Top Bar + 全宽 Conversation | 002 |
 | C-3 | 连续聊天 | session running | 连续发送消息 | server messages 按序追加，无题目分类 | 002 |
 | C-4 | 消息失败恢复 | AI 首次失败 | retry | user message 不重复，最终唯一 reply | 002 |
-| C-5 | 暂停/完成 | session running | pause/resume/finish | 暂停为页面本地状态；完成进入 generating | 002 |
+| C-5 | 暂停/完成 | session running，可能存在加载/发送/完成失败 | pause/resume/finish/retry | 暂停为页面本地状态；retry 调用原失败操作；完成期间 CTA guarded 并进入 generating | 002 |
 | C-6 | phone disabled | 任意 route params | 查看/操作 phone icon | disabled，仍为文本 conversation | 002 + voice/001 |
 | C-7 | DOM parity | prototype 已更新 | Vitest | 结构/控件/a11y 与 source 一致 | 002 |
 | C-8 | Visual parity | desktop/mobile | Playwright | geometry/screenshot 与 source 一致 | 002 |
@@ -132,4 +134,5 @@
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.35 | 2026-07-12 | 重新打开 Practice owner：按 loader/message/completion 错误来源路由 retry，并在发送/加载/完成边界禁用结束 CTA。 |
 | 1.34 | 2026-07-12 | Practice 改为全宽连续文本会话；删除题目/hint/mode UI，电话入口置灰，generating 改用会话级文案。 |

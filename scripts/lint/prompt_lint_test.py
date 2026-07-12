@@ -84,10 +84,10 @@ def test_canonical_hash_against_readme():
 def _hint_schema() -> dict:
     return {
         "type": "object",
-        "description": "Lightweight real-time interview observation cue.",
-        "required": ["cue"],
+        "description": "Practice conversation assistant response.",
+        "required": ["messageText"],
         "properties": {
-            "cue": {"type": "string", "description": "Short cue."},
+            "messageText": {"type": "string", "description": "Assistant reply text."},
             "answerSummary": {"type": "string", "description": "Short answer summary."},
             "severity": {
                 "type": "string",
@@ -151,7 +151,7 @@ def _write_baseline_pair(
 
 def test_hash_drift_negative(tmp_path):
     """Editing the body without refreshing template_hash must fail lint."""
-    feature_dir = _write_baseline_pair(tmp_path, "practice.turn.lightweight_observe")
+    feature_dir = _write_baseline_pair(tmp_path, "practice.session.chat")
     # Mutate the body but leave the yaml hash unchanged.
     with (feature_dir / "v0.1.0.md").open("a", encoding="utf-8") as f:
         f.write("mutated body\n")
@@ -163,7 +163,7 @@ def test_hash_drift_negative(tmp_path):
 
 def test_field_order_negative(tmp_path):
     """Reordering top-level fields must fail lint."""
-    feature_key = "practice.turn.lightweight_observe"
+    feature_key = "practice.session.chat"
     schema = _hint_schema()
     body = _body_with_contract(schema)
     _write_baseline_pair(tmp_path, feature_key, body, schema=schema)
@@ -202,7 +202,7 @@ def test_field_order_negative(tmp_path):
 
 def test_language_override_without_allowlist_negative(tmp_path):
     """Baseline storage is canonical multi; duplicate language variants need rationale."""
-    feature_key = "practice.turn.lightweight_observe"
+    feature_key = "practice.session.chat"
     schema = _hint_schema()
     body = _body_with_contract(schema)
     feature_dir = _write_baseline_pair(tmp_path, feature_key, body, schema=schema)
@@ -238,7 +238,7 @@ def test_language_override_without_allowlist_negative(tmp_path):
 
 
 def test_multi_prompt_without_runtime_language_instruction_negative(tmp_path):
-    feature_key = "practice.turn.lightweight_observe"
+    feature_key = "practice.session.chat"
     schema = _hint_schema()
     body = _body_with_contract(schema).replace("Respond in {{language}}.\n\n", "")
     _write_baseline_pair(tmp_path, feature_key, body, schema=schema)
@@ -253,7 +253,7 @@ def test_output_schema_illegal_keyword_negative(tmp_path):
     schema["additionalProperties"] = False
     _write_baseline_pair(
         tmp_path,
-        "practice.turn.lightweight_observe",
+        "practice.session.chat",
         _body_with_contract(schema),
         schema=schema,
     )
@@ -265,8 +265,8 @@ def test_output_schema_illegal_keyword_negative(tmp_path):
 
 def test_output_schema_required_not_in_prompt_negative(tmp_path):
     schema = _hint_schema()
-    body = _body_with_contract(schema).replace("`$.cue`", "`$.hintText`")
-    _write_baseline_pair(tmp_path, "practice.turn.lightweight_observe", body, schema=schema)
+    body = _body_with_contract(schema).replace("`$.messageText`", "`$.hintText`")
+    _write_baseline_pair(tmp_path, "practice.session.chat", body, schema=schema)
 
     result = _run(tmp_path / "config/prompts", tmp_path / "migrations")
     assert result.returncode == 1
@@ -279,7 +279,7 @@ def test_output_schema_struct_mismatch_negative(tmp_path):
     schema["properties"]["hint"] = {"type": "string", "description": "Wrong parser key."}
     _write_baseline_pair(
         tmp_path,
-        "practice.turn.lightweight_observe",
+        "practice.session.chat",
         _body_with_contract(schema),
         schema=schema,
     )
@@ -292,8 +292,8 @@ def test_output_schema_struct_mismatch_negative(tmp_path):
 
 def test_prompt_contract_block_drift_negative(tmp_path):
     schema = _hint_schema()
-    body = _body_with_contract(schema).replace("Short cue.", "Mutated cue text.")
-    _write_baseline_pair(tmp_path, "practice.turn.lightweight_observe", body, schema=schema)
+    body = _body_with_contract(schema).replace("Assistant reply text.", "Mutated reply text.")
+    _write_baseline_pair(tmp_path, "practice.session.chat", body, schema=schema)
 
     result = _run(tmp_path / "config/prompts", tmp_path / "migrations")
     assert result.returncode == 1
@@ -390,13 +390,28 @@ def test_schema_description_required_negative():
     assert "missing non-empty description" in "\n".join(errors)
 
 
+def test_numeric_schema_bounds_are_supported_and_enforced():
+    module = _load_module()
+    schema = {
+        "type": "number",
+        "description": "Candidate score from 1.0 to 5.0.",
+        "minimum": 1.0,
+        "maximum": 5.0,
+    }
+    assert module.validate_schema_subset(pathlib.Path("fixture.schema.json"), schema) == []
+
+    errors: list[str] = []
+    module.validate_value_against_schema(0.9, schema, "$", errors)
+    assert "must be >= 1.0" in "\n".join(errors)
+
+
 def test_missing_schema_description_reports_lint_error_without_traceback(tmp_path):
     schema = _hint_schema()
     body = _body_with_contract(schema)
     del schema["description"]
     _write_baseline_pair(
         tmp_path,
-        "practice.turn.lightweight_observe",
+        "practice.session.chat",
         body=body,
         schema=schema,
     )

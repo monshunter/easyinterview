@@ -15,4 +15,5 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/report/__tests__/useFeedbackReport.test.tsx \
     src/app/screens/report/__tests__/ConversationReport.test.tsx \
     src/app/screens/generating/__tests__/useReportGenerationPoll.test.tsx
+  go test -v ./backend/internal/review -run 'TestGenerateReportRejectsInvalidDimensionScoresBeforePersistence' -count=1
 ) | tee "$OUTPUT_DIR/trigger.log"

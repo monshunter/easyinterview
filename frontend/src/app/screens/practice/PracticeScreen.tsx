@@ -16,6 +16,7 @@ import { usePracticeSessionLoader } from "./hooks/usePracticeSessionLoader";
 import { usePracticeTargetDisplay } from "./usePracticeTargetDisplay";
 
 interface PracticeScreenProps { route: Route; }
+type PracticeErrorSource = "message" | "completion";
 
 export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const { t } = useI18n();
@@ -35,6 +36,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const [elapsed, setElapsed] = useState(0);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorSource, setErrorSource] = useState<PracticeErrorSource | null>(null);
 
   useEffect(() => {
     if (paused) return;
@@ -56,12 +58,14 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
     if (!text || sending || paused) return;
     setSending(true);
     setError(null);
+    setErrorSource(null);
     try {
       const result = await messages.sendMessage(text);
       loader.adopt(result.session);
       setInput("");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
+      setErrorSource("message");
     } finally {
       setSending(false);
     }
@@ -69,6 +73,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
 
   const finish = useCallback(async () => {
     setError(null);
+    setErrorSource(null);
     try {
       const report = await completion.complete();
       navigate({ name: "generating", params: {
@@ -82,12 +87,14 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
       } });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
+      setErrorSource("completion");
     }
   }, [completion, ctx.planId, ctx.resumeId, ctx.roundId, ctx.roundName, navigate, route.params, sessionId, targetDisplay.targetJobId]);
 
   if (!sessionId || loader.state === "sessionLost") return <PracticeSessionLostState onBack={backToWorkspace} />;
 
   const inputDisabled = paused || sending || loader.state === "loading" || !messages.ready || loader.data?.status === "completed" || loader.data?.status === "completing";
+  const finishDisabled = paused || sending || loader.state === "loading" || !loader.data || !messages.ready || completion.state.kind === "loading" || (loader.data.status !== "running" && loader.data.status !== "waiting_user_input");
   const interviewerLabel = route.params.roundName || ctx.roundName || t("practice.toolbar.role.manager");
 
   return (
@@ -103,11 +110,15 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
         onTogglePause={() => setPaused((value) => !value)}
         interviewerLabel={interviewerLabel}
         phoneDisabledLabel={t("practice.toolbar.phoneDisabled")}
-        finishCta={<FinishCta label={t("practice.finishCta")} disabled={completion.state.kind === "loading" || loader.data?.status === "completed"} onFinish={finish} />}
+        finishCta={<FinishCta label={t("practice.finishCta")} disabled={finishDisabled} onFinish={finish} />}
       />
       <main data-testid="practice-conversation" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", width: "100%" }}>
         <Transcript messages={transcript} helperText={t("practice.transcript.helper")} aiLabel={t("practice.transcript.aiLabel")} userLabel={t("practice.transcript.userLabel")} />
-        <ErrorState message={error || loader.error?.message || null} retryLabel={t("practice.errors.retry")} onRetry={error ? send : undefined} />
+        <ErrorState
+          message={error || loader.error?.message || null}
+          retryLabel={t("practice.errors.retry")}
+          onRetry={errorSource === "message" ? send : errorSource === "completion" ? finish : loader.error ? loader.refresh : undefined}
+        />
         <InputBar value={input} onChange={setInput} placeholder={t("practice.input.placeholder")} sendLabel={t("practice.input.send")} disabled={inputDisabled} onSend={send} />
       </main>
     </div>

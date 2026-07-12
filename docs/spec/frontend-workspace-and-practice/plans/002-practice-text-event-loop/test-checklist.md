@@ -1,6 +1,6 @@
 # 002 Practice Continuous Conversation Test Checklist
 
-> **版本**: 2.0
+> **版本**: 2.1
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -16,3 +16,5 @@
 - [x] Completion/generating tests pass.
 ## Phase 5
 - [x] Full frontend/parity/real screenshot gates pass.
+## Phase 6
+- [x] Source-aware retry and Finish CTA lifecycle tests pass. (`pnpm --filter @easyinterview/frontend test src/app/screens/practice/PracticeScreen.test.tsx src/app/screens/practice/hooks/useCompletePracticeSession.test.tsx`; frontend typecheck)

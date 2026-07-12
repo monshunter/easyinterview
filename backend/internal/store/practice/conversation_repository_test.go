@@ -195,6 +195,41 @@ func TestSQLRepositoryReservePracticeMessageRejectsNewMessageWhileReplyPending(t
 	}
 }
 
+func TestSQLRepositoryCommitPracticeMessageRejectsClosedSession(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	now := time.Unix(4, 0).UTC()
+	in := domain.CommitPracticeMessageInput{
+		UserID: "user-1", SessionID: "session-1", UserMessageID: "m2",
+		AssistantMessageID: "m3", AssistantText: "我们继续。", Now: now,
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`select m.id, m.role, m.content, m.seq_no, m.created_at`).
+		WithArgs(in.UserMessageID, in.SessionID, in.UserID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "role", "content", "seq_no", "created_at"}).
+			AddRow("m2", "user", "继续", 2, now))
+	mock.ExpectExec(`insert into practice_messages`).
+		WithArgs(in.AssistantMessageID, in.SessionID, 3, in.AssistantText, in.UserMessageID, in.Now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`update practice_sessions set status=\$1, updated_at=\$2 where id=\$3 and user_id=\$4 and status in \(\$5,\$6\)`).
+		WithArgs(string(sharedtypes.SessionStatusRunning), in.Now, in.SessionID, in.UserID,
+			string(sharedtypes.SessionStatusRunning), string(sharedtypes.SessionStatusWaitingUserInput)).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectRollback()
+
+	_, err = NewSQLRepository(db).CommitPracticeMessage(context.Background(), in)
+	if err != domain.ErrSessionConflict {
+		t.Fatalf("error=%v want ErrSessionConflict", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestPracticeOutboxPayloadContainsOnlyLifecycleData(t *testing.T) {
 	payload, err := BuildPracticeSessionCompletedPayload(PracticeSessionCompletedInput{Language: "zh-CN", PlanID: "plan-1", SessionID: "session-1", TargetJobID: "target-1"})
 	if err != nil {

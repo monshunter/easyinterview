@@ -96,7 +96,7 @@ func (s *Service) SendPracticeMessage(ctx context.Context, in SendPracticeMessag
 	if err != nil {
 		return SendPracticeMessageResult{}, err
 	}
-	return s.store.CommitPracticeMessage(ctx, CommitPracticeMessageInput{
+	result, err := s.store.CommitPracticeMessage(ctx, CommitPracticeMessageInput{
 		UserID:             in.UserID,
 		SessionID:          in.SessionID,
 		UserMessageID:      reservation.UserMessage.ID,
@@ -104,4 +104,11 @@ func (s *Service) SendPracticeMessage(ctx context.Context, in SendPracticeMessag
 		AssistantText:      assistantText,
 		Now:                s.now().UTC(),
 	})
+	if stderrs.Is(err, ErrSessionNotFound) {
+		return SendPracticeMessageResult{}, sessionNotFoundError()
+	}
+	if stderrs.Is(err, ErrSessionConflict) {
+		return SendPracticeMessageResult{}, sessionConflictError()
+	}
+	return result, err
 }
