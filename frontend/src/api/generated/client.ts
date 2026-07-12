@@ -219,19 +219,19 @@ export class EasyInterviewClient {
 		);
 	}
 
-	/** appendSessionEvent — post /practice/sessions/{sessionId}/events: Append a session event and get the next assistant action */
-	async appendSessionEvent(sessionId: string, body: Types.PracticeSessionEventRequest, opts?: RequestOptions): Promise<Types.SessionEventResult> {
-		return this.request<Types.SessionEventResult>(
+	/** sendPracticeMessage — post /practice/sessions/{sessionId}/messages: Send a conversation message and receive the assistant reply */
+	async sendPracticeMessage(sessionId: string, body: Types.SendPracticeMessageRequest, opts?: RequestOptions): Promise<Types.SendPracticeMessageResponse> {
+		return this.request<Types.SendPracticeMessageResponse>(
 			"POST",
-			buildPath("/practice/sessions/{sessionId}/events", { sessionId: sessionId }),
+			buildPath("/practice/sessions/{sessionId}/messages", { sessionId: sessionId }),
 			body,
 			opts,
 		);
 	}
 
-	/** createPracticeVoiceTurn — post /practice/sessions/{sessionId}/voice-turns: Create a cascaded practice voice turn */
-	async createPracticeVoiceTurn(sessionId: string, body: Types.CreatePracticeVoiceTurnRequest, opts?: RequestOptions): Promise<Types.PracticeVoiceTurnResult> {
-		return this.request<Types.PracticeVoiceTurnResult>(
+	/** createPracticeVoiceTurn — post /practice/sessions/{sessionId}/voice-turns: Phone mode temporarily unavailable */
+	async createPracticeVoiceTurn(sessionId: string, body: Types.CreatePracticeVoiceTurnRequest, opts?: RequestOptions): Promise<unknown> {
+		return this.request<unknown>(
 			"POST",
 			buildPath("/practice/sessions/{sessionId}/voice-turns", { sessionId: sessionId }),
 			body,
@@ -477,7 +477,7 @@ export const ALL_OPERATION_IDS = [
 	"startPracticeSession",
 	"getPracticeSession",
 	"completePracticeSession",
-	"appendSessionEvent",
+	"sendPracticeMessage",
 	"createPracticeVoiceTurn",
 	"requestPrivacyDelete",
 	"requestPrivacyExport",
@@ -525,7 +525,7 @@ export const ALL_ROUTES = [
 	{ operationId: "startPracticeSession", method: "POST", path: "/practice/sessions" },
 	{ operationId: "getPracticeSession", method: "GET", path: "/practice/sessions/{sessionId}" },
 	{ operationId: "completePracticeSession", method: "POST", path: "/practice/sessions/{sessionId}/complete" },
-	{ operationId: "appendSessionEvent", method: "POST", path: "/practice/sessions/{sessionId}/events" },
+	{ operationId: "sendPracticeMessage", method: "POST", path: "/practice/sessions/{sessionId}/messages" },
 	{ operationId: "createPracticeVoiceTurn", method: "POST", path: "/practice/sessions/{sessionId}/voice-turns" },
 	{ operationId: "requestPrivacyDelete", method: "POST", path: "/privacy/deletions" },
 	{ operationId: "requestPrivacyExport", method: "POST", path: "/privacy/exports" },

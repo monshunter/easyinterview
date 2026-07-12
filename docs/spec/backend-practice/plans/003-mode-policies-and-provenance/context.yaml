@@ -5,33 +5,15 @@ metadata:
   name: 003-mode-policies-and-provenance
   sequence: 3
   specVersion:
-    from: 1.20
-    to: 1.21
+    from: 1.21
+    to: 1.22
 spec:
+  baseBranch: main
+  branch: practice-conversation-simplification
   defaultTarget: backend
   discovery:
-    aliases:
-      - backend-practice
-      - backend-practice/003
-      - 003-mode-policies-and-provenance
-      - mode-policies-and-provenance
-      - appendSessionEvent
-      - hint_requested
-      - show_hint
-      - hint_generate
-    keywords:
-      - practice hint mode policy
-      - assisted hint show_hint
-      - strict-mode optional hint
-      - AssistantAction provenance wire boundary
-      - practice.turn.lightweight_observe
-      - practice.turn_observe.default
-      - ai_task_runs hint_generate
-      - graceful degrade session_wait
-      - persisted session language hint cue
-      - wrong-language hint degrade
-      - practice_turns hint_text
-      - backend practice out-of-scope lint
+    aliases: [remove practice hint, remove assistance mode]
+    keywords: [no PracticeMode, no hint_requested, no show_hint, ordinary help message]
   targets:
     backend:
       plan: ./plan.md
@@ -43,15 +25,11 @@ spec:
       bddChecklist: ./bdd-checklist.md
       discovery:
         packages:
-          - backend/internal/api/practice
           - backend/internal/practice
           - backend/internal/store/practice
-          - backend/internal/ai/aiclient
-          - backend/internal/ai/registry
-          - backend/cmd/api
-          - backend/internal/migrations
-          - migrations
-          - openapi/fixtures/PracticeSessions
-          - scripts/lint
-        apiNames:
-          - appendSessionEvent
+          - frontend/src/app/screens/practice
+          - frontend/src/app/interview-context
+          - shared
+          - config
+          - test/scenarios/e2e
+        apiNames: [sendPracticeMessage]

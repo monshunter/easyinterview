@@ -35,16 +35,6 @@ export const ALL_TARGET_JOB_PARSE_STATUSES: readonly TargetJobParseStatus[] = [
   'failed',
 ] as const;
 
-// PracticeMode mirrors shared/conventions.yaml sourceSection 5.3 (jsonField: "mode").
-export type PracticeMode =
-  | 'assisted'
-  | 'strict';
-
-export const ALL_PRACTICE_MODES: readonly PracticeMode[] = [
-  'assisted',
-  'strict',
-] as const;
-
 // PracticeGoal mirrors shared/conventions.yaml sourceSection 5.4 (jsonField: "goal").
 export type PracticeGoal =
   | 'baseline'
@@ -143,18 +133,6 @@ export const ALL_CONFIDENCES: readonly Confidence[] = [
   'high',
   'medium',
   'low',
-] as const;
-
-// QuestionReviewStatus mirrors shared/conventions.yaml sourceSection 5.11 (jsonField: "questionReviewStatus").
-export type QuestionReviewStatus =
-  | 'open'
-  | 'queued_for_retry'
-  | 'resolved';
-
-export const ALL_QUESTION_REVIEW_STATUSES: readonly QuestionReviewStatus[] = [
-  'open',
-  'queued_for_retry',
-  'resolved',
 ] as const;
 
 // PrivacyRequestType mirrors shared/conventions.yaml sourceSection 5.13 (jsonField: "privacyRequestType").

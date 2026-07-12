@@ -49,18 +49,17 @@ func writeTempSuite(t *testing.T) string {
 	if err := os.WriteFile(filepath.Join(dir, "judge-instruction.md"), []byte("Offline judge. Score each dimension 0..1 as strict JSON."), 0o600); err != nil {
 		t.Fatalf("write instruction: %v", err)
 	}
-	fkDir := filepath.Join(dir, "practice.session.follow_up")
+	fkDir := filepath.Join(dir, "practice.session.chat")
 	if err := os.MkdirAll(fkDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
-	body := `feature_key: practice.session.follow_up
+	body := `feature_key: practice.session.chat
 cases:
-  - id: practice.session.follow_up-multi-strong
+  - id: practice.session.chat-multi-strong
     language: multi
     input: "candidate gave a shallow answer about a rollback"
     output:
-      questionText: "Walk me through exactly how you verified the rollback succeeded."
-      questionIntent: "probe-verification-depth"
+      messageText: "Walk me through exactly how you verified the rollback succeeded."
     judge:
       scores:
         - dimension: followup_relevance
@@ -72,12 +71,11 @@ cases:
       reasoning:
         summary: "Targets the verification gap and stays on-language."
         evidence_quotes: []
-  - id: practice.session.follow_up-en-fallback
+  - id: practice.session.chat-en-fallback
     language: en
     input: "english request that should fall back to multi baseline"
     output:
-      questionText: "What signal told you the incident was contained?"
-      questionIntent: "probe-evidence"
+      messageText: "What signal told you the incident was contained?"
     judge:
       scores:
         - dimension: followup_relevance
@@ -144,16 +142,16 @@ func TestResolveAllSingleSource(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveAll: %v", err)
 	}
-	if _, ok := resolved["practice.session.follow_up|multi"]; !ok {
+	if _, ok := resolved["practice.session.chat|multi"]; !ok {
 		t.Fatalf("expected resolved prompt for follow_up|multi, got keys %v", keys(resolved))
 	}
 	// en request must fall back to the multi baseline resolution.
-	if _, ok := resolved["practice.session.follow_up|en"]; !ok {
+	if _, ok := resolved["practice.session.chat|en"]; !ok {
 		t.Fatalf("expected resolved prompt for follow_up|en fallback, got keys %v", keys(resolved))
 	}
 }
 
-// TestRealSuiteOfflineGreen is the count>=36 + offline-grades-clean gate over
+// TestRealSuiteOfflineGreen is the count>=24 + offline-grades-clean gate over
 // the committed config/evals suite (plan 004 §4.1/§4.5). It runs with no
 // AI_PROVIDER env and must not touch the network.
 func TestRealSuiteOfflineGreen(t *testing.T) {
@@ -162,10 +160,10 @@ func TestRealSuiteOfflineGreen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSuite(real): %v", err)
 	}
-	// Baseline is 36 since product-scope D-22: 9 active feature keys each keep
+	// Baseline is 24: 6 active feature keys each keep
 	// the four quality-band cases after jd_match and debrief/profile removal.
-	if suite.Count() < 36 {
-		t.Fatalf("offline eval suite must have >= 36 cases, got %d", suite.Count())
+	if suite.Count() < 24 {
+		t.Fatalf("offline eval suite must have >= 24 cases, got %d", suite.Count())
 	}
 	reg := repoRegistry(t, root)
 	results, err := suite.RunOffline(context.Background(), reg)
@@ -306,7 +304,7 @@ func (r *activeVersionRegistry) GetRubric(featureKey, version, language string) 
 func versionedCase() eval.Case {
 	c := eval.Case{
 		ID:         "versioned-active-case",
-		FeatureKey: "practice.session.follow_up",
+		FeatureKey: "practice.session.chat",
 		Language:   "multi",
 		Input:      "candidate gave a shallow answer",
 		Output: map[string]any{

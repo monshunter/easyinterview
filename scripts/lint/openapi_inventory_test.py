@@ -44,16 +44,15 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertIn({"$ref": inventory.IDEMPOTENCY_REF}, operation["parameters"])
 
         request_ref = operation["requestBody"]["content"]["application/json"]["schema"]["$ref"]
-        response_ref = operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+        response_ref = operation["responses"]["422"]["content"]["application/json"]["schema"]["$ref"]
         self.assertEqual("#/components/schemas/CreatePracticeVoiceTurnRequest", request_ref)
-        self.assertEqual("#/components/schemas/PracticeVoiceTurnResult", response_ref)
+        self.assertEqual("#/components/schemas/ApiErrorResponse", response_ref)
 
         schemas = data["components"]["schemas"]
         request = schemas["CreatePracticeVoiceTurnRequest"]
-        self.assertEqual(
-            ["clientVoiceTurnId", "turnId", "audio", "language", "practiceMode"],
-            request["required"],
-        )
+        self.assertEqual(["clientVoiceTurnId", "audio", "language"], request["required"])
+        self.assertNotIn("turnId", request["properties"])
+        self.assertNotIn("practiceMode", request["properties"])
         self.assertNotIn("manualTranscriptFallback", request["properties"])
         self.assertEqual(
             ["contentBase64", "contentType", "durationMs"],
@@ -162,68 +161,51 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
 
         self.assertEqual([], errors)
 
-    def test_practice_mode_contract_is_binary_and_not_found_errors_registered(self) -> None:
+    def test_practice_message_contract_and_not_found_errors_registered(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
         schemas = data["components"]["schemas"]
 
-        self.assertEqual(["assisted", "strict"], schemas["PracticeMode"]["enum"])
+        self.assertNotIn("PracticeMode", schemas)
+        self.assertNotIn("QuestionReviewStatus", schemas)
+        self.assertEqual(["user", "assistant"], schemas["PracticeMessage"]["properties"]["role"]["enum"])
         self.assertIn("PRACTICE_PLAN_NOT_FOUND", schemas["ApiErrorCode"]["enum"])
         self.assertIn("PRACTICE_SESSION_NOT_FOUND", schemas["ApiErrorCode"]["enum"])
 
-    def test_practice_turn_status_contract_exposes_runtime_states(self) -> None:
+    def test_practice_session_exposes_ordered_messages_without_turn_state(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
         schemas = data["components"]["schemas"]
 
+        self.assertNotIn("PracticeTurn", schemas)
+        self.assertNotIn("PracticeSessionEventRequest", schemas)
         self.assertEqual(
-            ["asked", "answered", "follow_up_requested", "assessed"],
-            schemas["PracticeTurn"]["properties"]["status"]["enum"],
+            "#/components/schemas/PracticeMessage",
+            schemas["PracticeSession"]["properties"]["messages"]["items"]["$ref"],
         )
 
-    def test_practice_turn_status_owner_spec_and_baseline_are_in_sync(self) -> None:
-        expected_statuses = ["asked", "answered", "follow_up_requested", "assessed"]
+    def test_practice_message_owner_spec_and_baseline_are_in_sync(self) -> None:
         baseline = yaml.safe_load(Path("openapi/baseline/openapi-v1.0.0.yaml").read_text(encoding="utf-8"))
         baseline_schemas = baseline["components"]["schemas"]
         owner_spec = Path("docs/spec/openapi-v1-contract/spec.md").read_text(encoding="utf-8")
 
-        self.assertEqual(
-            expected_statuses,
-            baseline_schemas["PracticeTurn"]["properties"]["status"]["enum"],
-        )
-        self.assertNotIn(
-            "turn_skipped",
-            baseline_schemas["PracticeSessionEventRequest"]["properties"]["kind"]["enum"],
-        )
-        self.assertIn(
-            "`PracticeTurn.status` wire enum 原地 rebase 为 4 值："
-            "`asked` / `answered` / `follow_up_requested` / `assessed`",
-            owner_spec,
-        )
-        self.assertNotIn("`skipped`", owner_spec)
-        self.assertNotIn("turn_skipped", owner_spec)
+        self.assertIn("PracticeMessage", baseline_schemas)
+        self.assertNotIn("PracticeTurn", baseline_schemas)
+        self.assertNotIn("PracticeSessionEventRequest", baseline_schemas)
+        self.assertIn("D-19 | Practice conversation pre-launch rebase", owner_spec)
 
-    def test_practice_voice_event_kinds_extend_append_session_event_schema(self) -> None:
+    def test_practice_voice_request_has_no_turn_or_mode_contract(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
-        kinds = data["components"]["schemas"]["PracticeSessionEventRequest"]["properties"]["kind"]["enum"]
+        request = data["components"]["schemas"]["CreatePracticeVoiceTurnRequest"]
+        self.assertNotIn("turnId", request["properties"])
+        self.assertNotIn("practiceMode", request["properties"])
 
-        for kind in (
-            "tts_chunk_started",
-            "tts_chunk_played",
-            "barge_in_detected",
-            "assistant_context_committed",
-        ):
-            self.assertIn(kind, kinds)
-        self.assertNotIn("turn_skipped", kinds)
-
-    def test_practice_turn_status_generated_artifacts_are_in_sync(self) -> None:
+    def test_practice_message_generated_artifacts_are_in_sync(self) -> None:
         generated = yaml.safe_load(Path("backend/internal/api/generated/openapi.yaml").read_text(encoding="utf-8"))
-        generated_status = generated["components"]["schemas"]["PracticeTurn"]["properties"]["status"]["enum"]
         ts_types = Path("frontend/src/api/generated/types.ts").read_text(encoding="utf-8")
 
-        self.assertEqual(["asked", "answered", "follow_up_requested", "assessed"], generated_status)
-        self.assertIn(
-            'status: "asked" | "answered" | "follow_up_requested" | "assessed";',
-            ts_types,
-        )
+        self.assertIn("PracticeMessage", generated["components"]["schemas"])
+        self.assertNotIn("PracticeTurn", generated["components"]["schemas"])
+        self.assertIn("export interface PracticeMessage", ts_types)
+        self.assertNotIn("export interface PracticeTurn", ts_types)
 
     def test_resume_workshop_contract_uses_b1_vocabulary(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
@@ -299,13 +281,16 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
     def test_product_scope_semantic_invariants_reject_out_of_scope_practice_values(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
         mutated = copy.deepcopy(data)
-        mutated["components"]["schemas"]["PracticeMode"]["enum"] = ["warmup", "core_interview", "single_drill"]
+        mutated["components"]["schemas"]["PracticeMode"] = {
+            "type": "string",
+            "enum": ["assisted", "strict"],
+        }
         mutated["components"]["schemas"]["ReportNextAction"]["properties"]["type"]["enum"] = ["drill", "review"]
         errors: list[str] = []
 
         inventory.validate_product_scope_contract(mutated, errors)
 
-        self.assertTrue(any("PracticeMode" in err for err in errors), errors)
+        self.assertTrue(any("PracticeMode" in err and "stale" in err for err in errors), errors)
         self.assertTrue(any("ReportNextAction.type" in err for err in errors), errors)
 
 

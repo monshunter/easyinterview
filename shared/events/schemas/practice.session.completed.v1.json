@@ -38,17 +38,13 @@
         },
         "targetJobId": {
           "type": "string"
-        },
-        "turnCount": {
-          "type": "integer"
         }
       },
       "required": [
         "language",
         "planId",
         "sessionId",
-        "targetJobId",
-        "turnCount"
+        "targetJobId"
       ],
       "type": "object"
     },

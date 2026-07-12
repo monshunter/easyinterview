@@ -110,7 +110,7 @@
       "aggregateType": "practice_session",
       "name": "practice.session.started",
       "optionalPayload": {},
-      "piiBoundary": "IDs only; no question or answer text.",
+      "piiBoundary": "IDs and controlled values only; no conversation text.",
       "producer": "api",
       "requiredPayload": {
         "goal": {
@@ -121,10 +121,6 @@
           "source": "spec:3.1.4",
           "type": "string"
         },
-        "mode": {
-          "source": "spec:3.1.4",
-          "type": "$ref:b1.PracticeMode"
-        },
         "planId": {
           "source": "spec:3.1.4",
           "type": "uuidv7"
@@ -141,44 +137,10 @@
       "version": 1
     },
     {
-      "aggregateType": "practice_turn",
-      "name": "practice.turn.completed",
-      "optionalPayload": {},
-      "piiBoundary": "Lengths and counts only; no question or answer text.",
-      "producer": "api",
-      "requiredPayload": {
-        "answerCharLength": {
-          "source": "spec:3.1.4",
-          "type": "int"
-        },
-        "followUpCount": {
-          "source": "spec:3.1.4",
-          "type": "int"
-        },
-        "questionIntent": {
-          "source": "spec:3.1.4",
-          "type": "string"
-        },
-        "sessionId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        },
-        "turnId": {
-          "source": "spec:3.1.4",
-          "type": "uuidv7"
-        },
-        "turnIndex": {
-          "source": "spec:3.1.4",
-          "type": "int"
-        }
-      },
-      "version": 1
-    },
-    {
       "aggregateType": "practice_session",
       "name": "practice.session.completed",
       "optionalPayload": {},
-      "piiBoundary": "IDs and counts only.",
+      "piiBoundary": "IDs and controlled values only; no conversation text.",
       "producer": "api",
       "requiredPayload": {
         "language": {
@@ -196,10 +158,6 @@
         "targetJobId": {
           "source": "spec:3.1.4",
           "type": "uuidv7"
-        },
-        "turnCount": {
-          "source": "spec:3.1.4",
-          "type": "int"
         }
       },
       "version": 1
@@ -247,10 +205,6 @@
         "promptVersion": {
           "source": "spec:3.1.4",
           "type": "string"
-        },
-        "questionIssueCount": {
-          "source": "spec:3.1.4",
-          "type": "int"
         },
         "reportId": {
           "source": "spec:3.1.4",

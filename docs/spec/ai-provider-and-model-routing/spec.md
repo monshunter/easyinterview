@@ -1,8 +1,8 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.22
+> **版本**: 2.23
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 ## 1 背景与目标
 
@@ -63,7 +63,7 @@
 | D-2 | Provider Registry | A3 owns provider registry schema；tracked registry 只保存 provider ref、protocol、capabilities 与 secret env ref，不保存 secret 明文 | 单一 provider 可作为启动配置，但多 provider / 多能力不需要改业务代码 |
 | D-3 | Model Profile 字段集 | profile 使用 `capability` + `provider_ref`；不再把 profile 绑定为全局 provider endpoint 的 route | provider profile 配置漂移可控 |
 | D-3a | Model Profile 物理落点 | repo-tracked profile catalog 使用单一 `config/ai-profiles.yaml`，`AI_MODEL_PROFILE_PATH` 表示 catalog 文件路径；不再使用一 profile 一文件目录作为 active truth source | 降低小规模 profile catalog 的文件碎片和审查成本 |
-| D-4 | 业务引用形态 | 业务只引用 `model_profile_name`（如 `practice.followup.default` / `report.generate.default`），不引用 provider / model 字符串 | 切换 provider / model = 改 registry/profile，不改业务代码 |
+| D-4 | 业务引用形态 | 业务只引用 `model_profile_name`（如 `practice.chat.default` / `report.generate.default`），不引用 provider / model 字符串 | 切换 provider / model = 改 registry/profile，不改业务代码 |
 | D-5 | Stub 触发条件 | 仅 `APP_ENV=test`、离线契约测试或显式 mock 场景允许走 stub；非测试本地 app run、未来 staging / prod 必须能通过 registry 解析真实 provider secret，缺失即 fail-fast | 单测稳定、可重放，同时防止本地运行或部署静默假数据 |
 | D-6 | Fallback 边界 | Fallback 由 AIClient 在 profile fallback chain 内集中执行，最多 2 跳；业务代码不得自行 retry-with-different-model；provider 自身返回的 fallback meta 也必须纳入同一 chain | 防止业务绕开 cost / rate limit / observability |
 | D-7 | 观测埋点强制 | A3 注册 7 个 metric family；每次调用必须产出 run / latency / token / cost 指标 + DB 行 + log；fallback / validation failure 指标只在对应事件发生时递增 | F1 dashboard 可信且 counter 语义正确 |
@@ -117,7 +117,7 @@
 - 任何单元测试默认走 stub；不允许某测试在本地测试或未来远端 CI 中悄悄打到真 provider。
 - 任何非测试本地 app run、未来 staging / prod 部署都不得在被选中的真实 provider secret 缺失时静默回退到 stub；启动期 config validation 必须直接失败。
 - Registry / profile loader 必须有负向 fixture：未知 provider ref、capability 不匹配、secret env 缺失、unsupported capability 被调用、profile fallback 超 2 跳。
-- P0 full-funnel 真实 provider manual UAT 依赖的 active chat profiles 必须保留真实调用预算：`resume.parse.default` / `target.import.default` / `practice.first_question.default` / `practice.followup.default` 不低于 30s，`practice.turn_observe.default` 不低于 20s，`report.assessment.default` 不低于 30s，`report.generate.default` 不低于 60s；缩短这些 timeout 必须先提供真实 provider gate 证据。
+- P0 full-funnel 真实 provider manual UAT 依赖的 active chat profiles 必须保留真实调用预算：`resume.parse.default` / `target.import.default` / `practice.chat.default` 不低于 30s，`report.generate.default` 不低于 60s；缩短这些 timeout 必须先提供真实 provider gate 证据。
 
 ### 4.5 Product/UI AI Capability Catalog
 
@@ -127,13 +127,11 @@
 | 公司轻情报摘要 | source-grounded public info | `chat` source-grounded summarization | `target.intel.default`（P1/P2 fail-closed） |
 | 简历解析 | 简历文本 / 上传解析结果 | `chat` 结构化抽取 | `resume.parse.default` |
 | 简历定制 / bullet 改写 | JD + 简历证据 | `chat` 写作 / 改写 | `resume.tailor.default` |
-| 模拟面试首题 | JD / round / resume / role | `chat` 对话生成 | `practice.first_question.default` |
-| 模拟面试追问 | transcript / current answer | `chat` 低延迟生成 | `practice.followup.default` |
-| assisted hint / turn observe | 当前回答 + rubric | `chat` 低延迟观察 | `practice.turn_observe.default` |
-| 电话模式 | audio chunk + session state + committed context | `stt` + `chat` + `tts`（P0 MVP）或后续 `realtime` | `practice.voice.stt.default` / `practice.followup.default` / `practice.voice.tts.default`；`practice.voice.realtime.default` 继续 fail-closed |
+| 模拟面试连续聊天 | JD / round / resume / ordered messages | `chat` 对话生成 | `practice.chat.default` |
+| 电话模式 | 当前暂时禁用 | `stt` / `tts` / `realtime` 均 fail-closed | `practice.voice.stt.default` / `practice.voice.tts.default` disabled；`practice.voice.realtime.default` unsupported |
 | 报告生成 | full session + JD + resume | `chat` 长上下文结构化推理 | `report.generate.default` |
-| 单题评估 | 单题回答 + rubric | `chat` rubric assessment | `report.assessment.default` |
-| 复练当前轮 / 下一轮 | report gaps + replay items | `chat` 生成 | `report.generate.default` / `report.assessment.default` / `practice.first_question.default` / `practice.followup.default` |
+| 会话级报告 | ordered messages + rubric | `chat` report generation | `report.generate.default` |
+| 复练当前轮 / 下一轮 | report competency gaps + round context | `chat` 生成 | `report.generate.default` / `practice.chat.default` |
 | 离线 LLM Judge / eval | prompt output + rubric | `judge` | `judge.default`（F3 eval） |
 
 ## 5 模块边界
@@ -169,7 +167,7 @@
 | C-11 | Product/UI capability inventory drift | 新增 AI 场景或 UI 交互依赖 AI | `/plan-review` 或 lint 检查 | 本 spec §4.5、F3 feature_key 字典与 A3 profile catalog 同步更新；不得只在业务代码 hardcode 新 profile | 003 + F3 |
 | C-12 | Unsupported capability fail-closed | profile 使用 `realtime` / `judge`，但对应 adapter 未激活 | 运行时调用该 profile | 返回明确 unsupported capability 错误并记录 meta/log；不得降级到 chat 或 stub；对应 UI 能力必须 feature-gated | 003 + 002 |
 | C-13 | Tool call provider-neutral | profile 使用 `chat` capability 且 payload 携带 `tools[]` / `tool_choice` | 调用 `Complete` | openai_compatible adapter 映射 tool wire；响应返回 `tool_calls[]` 与 `finish_reason=tool_calls`；`AICallMeta.tool_invocations[]` 只含 tool name / argument hash / argument length，不含 args 明文 | 002 |
-| C-14 | 真实 provider full-funnel timeout budget | `config/ai-profiles.yaml` 中 P0 full-funnel 真实 provider profiles 已启用 | 运行 profile catalog gate | `resume.parse.default`、`target.import.default`、`practice.first_question.default`、`practice.followup.default`、`report.assessment.default` timeout ≥ 30s；`practice.turn_observe.default` timeout ≥ 20s；`report.generate.default` timeout ≥ 60s，避免 manual UAT 默认材料在真实 provider 下被过短预算误判失败 | e2e-scenarios-p0/002 |
+| C-14 | 真实 provider full-funnel timeout budget | `config/ai-profiles.yaml` 中 P0 full-funnel 真实 provider profiles 已启用 | 运行 profile catalog gate | `resume.parse.default`、`target.import.default`、`practice.chat.default` timeout ≥ 30s；`report.generate.default` timeout ≥ 60s，避免 manual UAT 默认材料在真实 provider 下被过短预算误判失败 | e2e-scenarios-p0/002 |
 | C-14 | Provider-side streaming | profile 使用 `chat` capability | 调用 `Stream` 且 provider 返回 SSE delta / done | channel 按顺序发 `delta`，最终发 `done` 并关闭；malformed chunk / provider error / context cancel 发 `error` 或带 partial meta 的 terminal event，错误码来自 B1 `AI_*` | 002 |
 | C-15 | STT transcription | profile 使用 `stt` capability 且 provider ref 支持 OpenAI-compatible Audio Transcriptions | 调用 `Transcribe` | adapter 调 `/v1/audio/transcriptions`；返回 transcript + meta；缺 secret / provider error / unsupported profile fail-fast；log / DB / audit / metric label 不含音频或转写全文明文 | 002 |
 | C-16 | TTS synthesis | profile 使用 `tts` capability 且 provider ref 支持 provider-specific synthesis wire | 调用 `Synthesize` | adapter 返回音频 bytes 或 chunk metadata + meta；缺 secret / provider error / unsupported profile fail-fast；log / DB / audit / metric label 不含待合成文本或音频明文 | 004 |

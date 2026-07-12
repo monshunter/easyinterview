@@ -1,13 +1,14 @@
 # Practice Voice MVP History
 
-> **版本**: 1.14
+> **版本**: 1.15
 > **状态**: active
-> **更新日期**: 2026-07-11
+> **更新日期**: 2026-07-12
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 1.15 | 暂停用户可见电话模式：前端入口 disabled，backend voice endpoint fail-closed，保留通用 speech 基础设施供后续重新评审。 | [001-cascaded-stt-llm-tts](./plans/001-cascaded-stt-llm-tts/plan.md) |
 | 2026-07-11 | 1.14 | 重新打开 001 的电话会话交互：删除重开与文字“切断”，用单一电话图标和圆形挂断返回同一 session 文本模式；补充 VAD/TTS 自动推进、真实 speech-start 打断及同语言追问单次 repair 合同。 | [001-cascaded-stt-llm-tts](./plans/001-cascaded-stt-llm-tts/plan.md) |
 | 2026-07-10 | 1.13 | 将 001 regression gate 中的 route 负向搜索统一为 out-of-scope 口径；行为不变。 | tech-debt pruning |
 | 2026-07-10 | 1.12 | 将 `voice` route/query 负向输入统一为 out-of-scope 口径；行为不变。 | tech-debt pruning |

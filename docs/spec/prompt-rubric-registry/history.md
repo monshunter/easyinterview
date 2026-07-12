@@ -1,13 +1,14 @@
 # Prompt Rubric Registry History
 
-> **版本**: 2.20
+> **版本**: 2.21
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 2.21 | 三个 Practice 题目型 feature key 合并为 `practice.session.chat`，报告删除逐题 assessment prompt。 | backend-practice 001-003 / backend-review 001 |
 | 2026-07-10 | 2.20 | 将 output-schema runtime parser 合同收敛为 canonical-only；`practice` 首题/追问与轻量观察的范围外输出 alias 只作为 negative-test 输入，不再由生产 parser 消费。 | prompt-rubric-registry/002-output-schema-contract Phase 12 |
 | 2026-07-10 | 2.19 | 将 prompt contract 与 example JSON 表述收敛为空文案 / filler values / 命名空间口径。 | tech-debt pruning |
 | 2026-07-10 | 2.18 | 同步 F3 004 当前代码事实：`FailClosedJudge` 是未配置 caller 的安全默认，`LLMJudge` 是真实评估实现；profile coverage gate 改为 runnable / non-runnable marker 口径。 | tech-debt pruning |

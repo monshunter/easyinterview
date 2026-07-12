@@ -36,7 +36,7 @@ def _load_openapi() -> dict:
 
 
 def _preferred_default_status(operation: dict) -> int:
-    for code in ("200", "201", "202", "204", "501"):
+    for code in ("200", "201", "202", "204", "422", "501"):
         if code in (operation.get("responses") or {}):
             return int(code)
     raise AssertionError(f"operation has no preferred default status: {operation}")
@@ -169,7 +169,6 @@ PROVENANCE_OPERATIONS = {
         "summary.provenance",
         "fitSummary.provenance",
     ],
-    "appendSessionEvent": ["assistantAction.provenance"],
     "getFeedbackReport": ["provenance"],
     "listTargetJobReports": ["items[*].provenance"],
     "getResumeTailorRun": ["provenance"],
@@ -197,19 +196,6 @@ WITH_JOB_OPERATIONS = {
 }
 
 REQUIRED_PRACTICE_SESSION_SCENARIOS = {
-    "appendSessionEvent": {
-        "default",
-        "follow-up",
-        "hint-conflict",
-        "pause-resume",
-        "replay",
-        "mismatch",
-        "completed",
-        "voice-tts-started",
-        "voice-tts-played",
-        "voice-barge-in",
-        "voice-context-committed",
-    },
     "completePracticeSession": {
         "default",
         "replay",
@@ -217,13 +203,7 @@ REQUIRED_PRACTICE_SESSION_SCENARIOS = {
         "session-already-completed",
         "cross-user-not-found",
     },
-    "createPracticeVoiceTurn": {
-        "default",
-        "stt-config-missing",
-        "chat-failed",
-        "chat-output-invalid",
-        "tts-failed",
-    },
+    "createPracticeVoiceTurn": {"default"},
 }
 
 PROVENANCE_REQUIRED_FIELDS = [

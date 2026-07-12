@@ -1,86 +1,29 @@
-# Backend Practice Event Loop and Completion Checklist
+# 002 — Conversation Message Loop and Completion Checklist
 
-> **版本**: 1.9
-> **状态**: completed
-> **更新日期**: 2026-07-11
+> **版本**: 2.0
+> **状态**: active
+> **更新日期**: 2026-07-12
 
 **关联计划**: [plan](./plan.md)
 
-## Phase 0: contract preflight
+## Phase 1: Message reservation
+- [ ] 1.1 RED-GREEN: add message domain/store reservation/replay tests and implementation.
+- [ ] 1.2 RED-GREEN: enforce client/reply uniqueness and concurrent-new-message conflict.
 
-- [x] 0.1 `shared/jobs.yaml` marks `report_generate` as `triggerEventSemantic: source_event_only` and generated jobs constants expose the source-event-only predicate（验证：`make lint-events`、`make codegen-events-check`、`go test ./backend/internal/shared/jobs -count=1`）
-- [x] 0.2 OpenAPI `PracticeTurn.status` contains `asked` / `answered` / `follow_up_requested` / `assessed` and generated Go/TS artifacts are current（验证：`make codegen-check`、`python3 scripts/lint/conventions_drift.py --repo-root .`）
-- [x] 0.3 PracticeSessions fixtures cover append main/replay/mismatch/completed variants and completion main/replay/mismatch/cross-user variants（验证：`make validate-fixtures`）
-- [x] 0.4 F3 `practice.session.follow_up` is resolvable for follow-up generation（验证：backend-practice preflight tests）
+## Phase 2: Assistant reply
+- [ ] 2.1 RED: service/API tests require ordinary message pair and no AssistantAction/turn fields.
+- [ ] 2.2 GREEN: implement chat context, AI call, assistant persistence and replay.
+- [ ] 2.3 BDD-Gate: P0.044 happy conversation passes.
 
-## Phase 1: append event state machine
+## Phase 3: Failure and repair
+- [ ] 3.1 RED-GREEN: timeout/config/provider/schema/language matrix keeps user message retryable and writes no invalid reply.
+- [ ] 3.2 RED-GREEN: same ID retry and request mismatch behavior is deterministic.
+- [ ] 3.3 BDD-Gate: P0.046 failure/recovery passes.
 
-- [x] 1.1 `SessionEventService` routes `answer_submitted` / `hint_requested` / `session_paused` / `session_resumed`（验证：`TestSessionEventServiceRouteCoversAllKinds`）
-- [x] 1.2 `answer_submitted` chooses `ask_follow_up`, `ask_question` or `session_completed` from DB-owned turn/session state（验证：`TestHandleAnswerSubmittedDecisionBranches`）
-- [x] 1.3 `hint_requested` remains available for strict and assisted sessions; plan 003 owns AI-backed hint behavior（验证：`TestServiceAppliesHintAIForStrictMode`）
-- [x] 1.4 turn status contract preserves all four current values（验证：`TestTurnStatusCurrentValues`、OpenAPI/generated drift gates）
-- [x] 1.5 malformed answer payloads and missing client timestamps fail before AI or repository side effects（验证：`TestAppendSessionEventRejectsMissingAnswerText`、`TestAppendSessionEventRequiresOccurredAt`）
+## Phase 4: Completion
+- [ ] 4.1 RED-GREEN: completion creates one conversation-level report/job/outbox with no turn focus.
+- [ ] 4.2 BDD-Gate: P0.047 completion/generating handoff passes.
 
-## Phase 2: append event vertical slice
-
-- [x] 2.1 Repository persists event, turn/session updates and outbox in one transaction with per-session `seq_no` ordering（验证：`go test ./backend/internal/store/practice -run TestAppendSessionEvent -count=1`）
-- [x] 2.2 `clientEventId` replay returns the original result; changed fingerprint returns 409 without duplicate event/outbox/audit rows（验证：repository replay/mismatch tests）
-- [x] 2.3 handler rejects `Idempotency-Key` on append and maps generated request/response shapes to B2 contracts（验证：`go test ./backend/internal/api/practice -run TestAppendSessionEvent -count=1`）
-- [x] 2.4 BDD-Gate: `E2E.P0.038` answer event main flow is covered（验证：`cd backend && go test ./cmd/api -run TestE2EP0038PracticeEventLoopAnswerFlow -count=1`）
-- [x] 2.5 BDD-Gate: `E2E.P0.039` replay/mismatch/kind/header/cross-user matrix is covered（验证：`cd backend && go test ./cmd/api -run TestE2EP0039PracticeEventIdempotencyKindRouterAndHeaderPolicy -count=1`）
-- [x] 2.6 BDD-Gate: `E2E.P0.040` stale-turn and sequencing boundary is covered（验证：`cd backend && go test ./cmd/api -run TestE2EP0040PracticeEventConcurrentSeqNoStaleTurnConflict -count=1`）
-
-## Phase 3: completion vertical slice
-
-- [x] 3.1 Repository completes sessions by creating queued `feedback_reports`, queued `async_jobs(report_generate)`, session event, outbox and audit rows in one transaction（验证：`go test ./backend/internal/store/practice -run TestCompleteSession -count=1`）
-- [x] 3.2 D-35 replay returns an existing report/job before creating any new handoff rows and binds lookup to `job_type='report_generate'` + `resource_type='feedback_report'` + `dedupe_key=sessionId`（验证：store replay/status-guard tests）
-- [x] 3.3 handler uses shared idempotency middleware with `domain=practice` and `operation=completePracticeSession`（验证：`go test ./backend/internal/api/practice -run TestCompletePracticeSession -count=1`）
-- [x] 3.4 illegal completion status without an existing report/job returns conflict and creates no report/job/outbox rows（验证：`TestSQLRepositoryCompleteSessionRejectsIllegalStatusWithoutReport`）
-- [x] 3.5 BDD-Gate: `E2E.P0.041` completion handoff is covered（验证：`cd backend && go test ./cmd/api -run TestE2EP0041PracticeSessionCompleteCreatesQueuedReportJob -count=1`）
-- [x] 3.6 BDD-Gate: `E2E.P0.042` completion idempotency and cross-user matrix is covered（验证：`cd backend && go test ./cmd/api -run TestE2EP0042PracticeSessionCompleteIdempotencyMatrix -count=1`）
-
-## Phase 4: privacy, contract drift and closeout
-
-- [x] 4.1 outbox, audit, log, metric and task-run payloads do not contain question, answer, hint, prompt, response or provider secret text（验证：outbox/redaction tests and P0.043）
-- [x] 4.2 runtime boundary lint keeps removed practice terms, duplicate `report_generate` handoff paths and turn-status compression helpers out of runtime/scenario/generated surfaces（验证：`python3 scripts/lint/backend_practice_out_of_scope.py --repo-root . --phase all`）
-- [x] 4.3 BDD-Gate: `E2E.P0.043` privacy/runtime boundary is covered（验证：`cd backend && go test ./cmd/api -run TestE2EP0043PracticeEventLoopPrivacyAndOutOfScopeSurface -count=1`）
-- [x] 4.4 owner closeout gates are current（验证：`validate_context.py backend-practice/002 backend`、`sync-doc-index --check`、`make docs-check`、`git diff --check`）
-
-## Phase 5: Handler dead helper cleanup
-
-- [x] 5.1 删除 `backend/internal/api/practice/handler.go` 中无调用且与 `stringValue` 重复的 `derefString`；验证: scoped `staticcheck ./internal/api/practice/...`、Practice handler/package gate 与 owner docs gates 通过。
-  <!-- verified: 2026-07-10 method=practice-handler-dead-helper-removal evidence="RED: backend staticcheck reported U1000 for the unreferenced derefString duplicate. GREEN: removed the helper; staticcheck ./internal/api/practice/... ./internal/practice/... PASS; go test ./internal/api/practice ./internal/practice ./internal/store/practice ./internal/middleware/idempotency ./internal/ai/aiclient ./internal/ai/registry ./cmd/api -count=1 PASS after the separately owned canonical scenario fixture repair; owner contexts, docs/diff/pruning gates PASS." -->
-
-## Phase 6: Turn status helper cleanup
-
-- [x] 6.1 删除仅由自测调用的 `ParseTurnStatus` / `ParseWireTurnStatus` / `WireValue` / `valid`，保留四个生产常量并以直接集合测试锁定 wire 值；验证 production deadcode、symbol inventory、Practice focused/full tests、OpenAPI/generated drift、owner contexts 与 docs/diff/pruning gates。
-  <!-- verified: 2026-07-10 method=practice-turn-status-helper-removal evidence="Production deadcode RED listed all four helpers. Removed them and replaced the round-trip self-test with direct assertions for the four production constants. Practice focused tests, P0.038-P0.043, full backend, staticcheck, codegen/conventions/runtime-boundary gates and owner contexts PASS." -->
-
-## Phase 7: Contextual and language-consistent question generation
-
-- [x] 7.1 RED: prove text and voice follow-up paths do not share a complete canonical context/language renderer, client payload can influence question inputs, or current fallback emits hard-coded/canned text.
-  <!-- verified: 2026-07-11 method=question-generation-red evidence="Focused Go tests failed on missing renderer/language gate, double-invalid canned fallback, client nextQuestion override, request-language voice override, and missing voice repair." -->
-- [x] 7.2 GREEN: route text append and voice chat through one server-owned renderer covering persisted session language, plan goal/mode/targetJobId, current turn question/intent/status/follow-up count, submitted answer/transcript, `generation_kind=follow_up|next_question` and applicable voice committed context; do not invent target title/round/resume/full-history context, and reject client question/intent/follow-up/next-question overrides.
-  <!-- verified: 2026-07-11 method=canonical-question-renderer evidence="renderQuestionTemplate binds all canonical markers fail-closed; text and voice use generateQuestion; next-question tests prove client fields do not enter prompt/turn; go test ./internal/practice -count=1 PASS." -->
-- [x] 7.3 GREEN: normalized session-language validation and structured parsing perform exactly one repair only for JSON/schema/business-parser/language invalidity; provider/config/secret/timeout/unsupported/fallback-exhausted errors do not repair; remove hard-coded English/canned question fallback and keep returned `questionIntent` internal.
-  <!-- verified: 2026-07-11 method=language-repair evidence="zh/en Unicode-script tests, text/voice wrong-language repair, provider no-repair, double-invalid and first-question language repair tests PASS; questionIntent remains internal-only." -->
-- [x] 7.4 Prompt truth source: update canonical markers/repair semantics in `config/prompts/practice.session.follow_up`, then synchronize template hash, baseline seed migration, resolved prompt snapshot and eval cases; prompt hardcode lint stays green.
-  <!-- verified: 2026-07-11 method=prompt-truth-source evidence="make lint-prompts and make lint-prompts-hardcode PASS; template hash/seed/resolved snapshot synchronized; make eval-offline PASS with 36 cases including zh RAG, next-question, en and wrong-language cases." -->
-- [x] 7.5 Failure path: second text invalid output returns `session_wait`, restores pre-event turn control state and suppresses completion outbox so frontend can retry the retained answer with a new `clientEventId`; second voice invalid output returns top-level `AI_OUTPUT_INVALID` before result/TTS persistence and leaves the session row unchanged; no HTTP/event/schema expansion.
-  <!-- verified: 2026-07-11 method=typed-failure-recovery evidence="Focused text test proves pre-event turn restoration/no outbox/no next turn; voice test proves two chat calls then AI_OUTPUT_INVALID with no TTS/persistence; store test removes answerText duplication from event metadata." -->
-- [x] 7.6 BDD-Gate: update and run `E2E.P0.038` for canonical context, language, exact repair count, client-override negative and state-preserving failure; coordinate `E2E.P0.009` voice failure assertions with practice-voice owner.
-  <!-- verified: 2026-07-11 evidence="Direct P0.038-P0.043 Go E2E suite and P0.009 wrapper PASS; P0.038 covers server-owned context/session language, override negatives, exact repair count and state restore, while P0.009 covers the coordinated voice error/TTS/persistence boundary." -->
-- [x] 7.7 Regression: focused/full backend tests plus `make lint-prompts lint-prompts-hardcode eval-offline-resolve eval-offline migrate-check`, OpenAPI/fixture/codegen, privacy/runtime boundary, context, docs/index and diff gates pass.
-  <!-- verified: 2026-07-11 evidence="Full backend go test ./... -count=1 and scoped staticcheck PASS; prompt lint/hardcode/eval 36 cases, OpenAPI lint/codegen/fixtures 37, events/codegen, migration, privacy/runtime-boundary, owner contexts, docs/index and diff gates PASS." -->
-
-## 收口命令
-
-- [x] `cd backend && go test ./internal/api/practice ./internal/practice ./internal/store/practice ./internal/middleware/idempotency ./cmd/api -count=1`
-- [x] `cd backend && go test ./...`
-- [x] `make lint-events`
-- [x] `make codegen-events-check`
-- [x] `make codegen-check`
-- [x] `make validate-fixtures`
-- [x] `python3 scripts/lint/conventions_drift.py --repo-root .`
-- [x] `python3 scripts/lint/backend_practice_out_of_scope.py --repo-root . --phase all`
-- [x] `python3 -m pytest scripts/lint/backend_practice_out_of_scope_test.py -q`
+## Phase 5: Privacy and closeout
+- [ ] 5.1 RED-GREEN: ownership/privacy/race/redaction tests pass.
+- [ ] 5.2 Run focused/full backend, codegen/fixture/migration/prompt/docs/diff gates.

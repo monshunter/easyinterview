@@ -1,13 +1,14 @@
 # Backend Practice History
 
-> **版本**: 1.19
+> **版本**: 1.22
 > **状态**: active
-> **更新日期**: 2026-07-11
+> **更新日期**: 2026-07-12
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 1.22 | Practice 收敛为连续 message conversation：删除题目/turn/hint/mode 合同，暂停改为前端本地状态，电话模式 fail-closed。 | [001](./plans/001-plan-and-session-orchestration/plan.md) / [002](./plans/002-event-loop-and-completion/plan.md) / [003](./plans/003-mode-policies-and-provenance/plan.md) |
 | 2026-07-11 | 1.19 | 重新打开 003：用户可见 hint cue 必须匹配 persisted session language，错误语言输出按既有 invalid-output graceful degrade 返回 `session_wait`，禁止混合语言提示落库或回显。 | [003-mode-policies-and-provenance](./plans/003-mode-policies-and-provenance/plan.md) |
 | 2026-07-11 | 1.18 | 重新打开 002：文本/电话追问统一使用 server-owned canonical context 与 session language，structured output 恰好 repair 一次；二次失败分别返回 retryable session_wait 或既有 voice 错误，禁止 canned English question。 | [002-event-loop-and-completion](./plans/002-event-loop-and-completion/plan.md) |
 | 2026-07-07 | 1.17 | 压缩 active spec 为当前 PracticePlans / PracticeSessions / VoiceTurn 合同；001 计划完成 flat Resume `resumeId` 绑定与首题 `resumes.structured_profile` prompt context。 | [001-plan-and-session-orchestration](./plans/001-plan-and-session-orchestration/plan.md) |

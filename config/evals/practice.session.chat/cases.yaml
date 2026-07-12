@@ -1,0 +1,42 @@
+feature_key: practice.session.chat
+cases:
+  - id: practice.session.chat-strong
+    language: en
+    input: Continue from a concrete candidate answer using the strongest unresolved signal.
+    output: &chat_output {messageText: "你提到灰度发布降低了风险。当时用什么指标决定扩大流量？"}
+    judge:
+      scores:
+        - {dimension: followup_relevance, value: 0.92}
+        - {dimension: practice_depth, value: 0.92}
+        - {dimension: language_consistency, value: 0.92}
+      reasoning: {summary: "Uses the strongest signal naturally.", evidence_quotes: []}
+  - id: practice.session.chat-proficient
+    language: multi
+    input: Continue a normal mock interview conversation.
+    output: *chat_output
+    judge:
+      scores:
+        - {dimension: followup_relevance, value: 0.78}
+        - {dimension: practice_depth, value: 0.78}
+        - {dimension: language_consistency, value: 0.78}
+      reasoning: {summary: "Meets the production baseline.", evidence_quotes: []}
+  - id: practice.session.chat-developing
+    language: multi
+    input: Continue after a vague answer.
+    output: *chat_output
+    judge:
+      scores:
+        - {dimension: followup_relevance, value: 0.5}
+        - {dimension: practice_depth, value: 0.5}
+        - {dimension: language_consistency, value: 0.5}
+      reasoning: {summary: "Partly follows context with visible gaps.", evidence_quotes: []}
+  - id: practice.session.chat-weak
+    language: multi
+    input: Continue without using the available context.
+    output: *chat_output
+    judge:
+      scores:
+        - {dimension: followup_relevance, value: 0.2}
+        - {dimension: practice_depth, value: 0.2}
+        - {dimension: language_consistency, value: 0.2}
+      reasoning: {summary: "Falls short of the rubric.", evidence_quotes: []}

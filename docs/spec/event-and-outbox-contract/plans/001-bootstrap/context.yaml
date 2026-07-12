@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 2.12
+    to: 2.14
 spec:
   defaultTarget: backend
   discovery:
@@ -18,11 +18,11 @@ spec:
       - outbox-contract
     keywords:
       - event envelope
-      - 14 events
+      - 13 events
       - 8 canonical jobs
       - 6 api-facing jobs
       - dot case event name
-      - question issue count
+      - practice conversation lifecycle
       - canonical jobtype
       - asynq dotted task
       - api facing jobtype subset

@@ -1,21 +1,21 @@
 # Event and Outbox Contract Bootstrap
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-维护 B3 当前 event/job/outbox contract：`shared/events.yaml` 定义 14 个 internal events，`shared/jobs.yaml` 定义 8 个 canonical job_type 与 6 个 B2 API-facing job_type subset，`backend/cmd/codegen/events` 生成 Go / TS / JSON Schema / baseline artifacts，`make lint-events` 和 focused tests 负责 drift 与 boundary gate。
+维护 B3 当前 event/job/outbox contract：`shared/events.yaml` 定义 13 个 internal events，`shared/jobs.yaml` 定义 8 个 canonical job_type 与 6 个 B2 API-facing job_type subset，`backend/cmd/codegen/events` 生成 Go / TS / JSON Schema / baseline artifacts，`make lint-events` 和 focused tests 负责 drift 与 boundary gate。
 
 本 plan 不实现 backend internal runner、dispatcher loop、业务 producer/consumer、DB migration、PostHog analytics 或 OTel SDK。它只拥有 event/job truth source、generated contract、baseline、lint/codegen gate 和下游 handoff contract。
 
 ## 2 当前合同
 
-- `shared/events.yaml` 是 14 个 eventName、envelope、payload schema、producer、aggregateType、PII boundary 和 event-local enum 的真理源。
+- `shared/events.yaml` 是 13 个 eventName、envelope、payload schema、producer、aggregateType、PII boundary 和 event-local enum 的真理源。
 - 当前 event domains 固定为 `target` / `practice` / `report` / `resume` / `source` / `privacy`。
 - `shared/jobs.yaml` 是 8 个 canonical job_type、Asynq dotted task name、`triggerEventSemantic`、priority、owner domain、API-facing subset 和 `email_dispatch` redaction policy 的真理源。
 - API-facing job_type subset 固定为 `target_import` / `resume_parse` / `report_generate` / `resume_tailor` / `privacy_export` / `privacy_delete`。`source_refresh` 与 `email_dispatch` 保持 internal-only。
@@ -63,7 +63,7 @@ Downstream owners consume this contract:
 
 ## 5 验收标准
 
-- Current event inventory is exactly 14 events across 6 domains.
+- Current event inventory is exactly 13 events across 6 domains.
 - Current job inventory is exactly 8 canonical job_type values with 6 API-facing values.
 - `make codegen-events` is deterministic and generated artifacts match yaml truth sources.
 - `make lint-events` rejects bare event/job literals, missing generated files, breaking payload changes and email_dispatch redaction violations.
@@ -84,6 +84,7 @@ Downstream owners consume this contract:
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-12 | 1.13 | 对齐 Practice 连续会话合同，删除 turn-level event 与题目/模式计数字段，事件全集收敛为 13。 | backend-practice/001 Phase 1 |
 | 2026-07-10 | 1.12 | 对齐事件 inventory contract tests 与当前 14-event / 8-job 数量口径。 | tech-debt pruning |
 | 2026-07-10 | 1.11 | 删除两个测试专用 generator wrapper，测试与 CLI 统一使用显式 conventions 入口。 | tech-debt pruning |
 | 2026-07-07 | 1.10 | 压缩 owner 文档为当前 14-event / 8-job / 6 API-facing subset event-job contract。 | product-scope/001-core-loop-module-pruning |

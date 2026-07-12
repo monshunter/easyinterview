@@ -42,9 +42,6 @@ type TargetJobStatus = sharedtypes.TargetJobStatus
 // TargetJobParseStatus aliases the B1-owned type.
 type TargetJobParseStatus = sharedtypes.TargetJobParseStatus
 
-// PracticeMode aliases the B1-owned type.
-type PracticeMode = sharedtypes.PracticeMode
-
 // PracticeGoal aliases the B1-owned type.
 type PracticeGoal = sharedtypes.PracticeGoal
 
@@ -65,9 +62,6 @@ type DimensionStatus = sharedtypes.DimensionStatus
 
 // Confidence aliases the B1-owned type.
 type Confidence = sharedtypes.Confidence
-
-// QuestionReviewStatus aliases the B1-owned type.
-type QuestionReviewStatus = sharedtypes.QuestionReviewStatus
 
 // PrivacyRequestType aliases the B1-owned type.
 type PrivacyRequestType = sharedtypes.PrivacyRequestType
@@ -397,8 +391,6 @@ type CreatePracticePlanRequest struct {
 	Goal                 PracticeGoal    `json:"goal"`
 	InterviewerPersona   InterviewerRole `json:"interviewerPersona"`
 	Language             string          `json:"language"`
-	Mode                 PracticeMode    `json:"mode"`
-	QuestionBudget       int32           `json:"questionBudget"`
 	ResumeId             string          `json:"resumeId"`
 	SourceReportId       *string         `json:"sourceReportId,omitempty"`
 	TargetJobId          string          `json:"targetJobId"`
@@ -412,8 +404,6 @@ type PracticePlan struct {
 	Id                 string          `json:"id"`
 	InterviewerPersona InterviewerRole `json:"interviewerPersona"`
 	Language           string          `json:"language"`
-	Mode               PracticeMode    `json:"mode"`
-	QuestionBudget     int32           `json:"questionBudget"`
 	ResumeId           string          `json:"resumeId"`
 	SourceReportId     *string         `json:"sourceReportId,omitempty"`
 	Status             string          `json:"status"`
@@ -422,30 +412,26 @@ type PracticePlan struct {
 }
 
 type StartPracticeSessionRequest struct {
-	HintsEnabled *bool  `json:"hintsEnabled,omitempty"`
-	PlanId       string `json:"planId"`
+	PlanId string `json:"planId"`
 }
 
-type PracticeTurn struct {
-	AskedAt        *string `json:"askedAt,omitempty"`
-	Id             string  `json:"id"`
-	QuestionIntent *string `json:"questionIntent,omitempty"`
-	QuestionText   string  `json:"questionText"`
-	Status         string  `json:"status"`
-	TurnIndex      int32   `json:"turnIndex"`
+type PracticeMessage struct {
+	Content   string `json:"content"`
+	CreatedAt string `json:"createdAt"`
+	Id        string `json:"id"`
+	Role      string `json:"role"`
+	SeqNo     int32  `json:"seqNo"`
 }
 
 type PracticeSession struct {
-	CreatedAt    string        `json:"createdAt"`
-	CurrentTurn  *PracticeTurn `json:"currentTurn,omitempty"`
-	HintsEnabled bool          `json:"hintsEnabled"`
-	Id           string        `json:"id"`
-	Language     string        `json:"language"`
-	PlanId       string        `json:"planId"`
-	Status       SessionStatus `json:"status"`
-	TargetJobId  string        `json:"targetJobId"`
-	TurnCount    int32         `json:"turnCount"`
-	UpdatedAt    string        `json:"updatedAt"`
+	CreatedAt   string            `json:"createdAt"`
+	Id          string            `json:"id"`
+	Language    string            `json:"language"`
+	Messages    []PracticeMessage `json:"messages"`
+	PlanId      string            `json:"planId"`
+	Status      SessionStatus     `json:"status"`
+	TargetJobId string            `json:"targetJobId"`
+	UpdatedAt   string            `json:"updatedAt"`
 }
 
 type PaginatedPracticeSession struct {
@@ -457,8 +443,6 @@ type CreatePracticeVoiceTurnRequest struct {
 	Audio             PracticeVoiceAudioInput `json:"audio"`
 	ClientVoiceTurnId string                  `json:"clientVoiceTurnId"`
 	Language          string                  `json:"language"`
-	PracticeMode      PracticeMode            `json:"practiceMode"`
-	TurnId            string                  `json:"turnId"`
 }
 
 type PracticeVoiceAudioInput struct {
@@ -506,26 +490,16 @@ type PracticeVoiceTTSError struct {
 	Retryable bool   `json:"retryable"`
 }
 
-type PracticeSessionEventRequest struct {
-	ClientEventId string         `json:"clientEventId"`
-	Kind          string         `json:"kind"`
-	OccurredAt    string         `json:"occurredAt"`
-	Payload       map[string]any `json:"payload,omitempty"`
+type SendPracticeMessageRequest struct {
+	ClientMessageId string `json:"clientMessageId"`
+	Text            string `json:"text"`
 }
 
-type AssistantAction struct {
-	Hint          *string              `json:"hint,omitempty"`
-	Provenance    GenerationProvenance `json:"provenance"`
-	QuestionText  *string              `json:"questionText,omitempty"`
-	SessionStatus SessionStatus        `json:"sessionStatus"`
-	TurnId        *string              `json:"turnId,omitempty"`
-	Type          string               `json:"type"`
-}
-
-type SessionEventResult struct {
-	Acknowledged    bool            `json:"acknowledged"`
-	AssistantAction AssistantAction `json:"assistantAction"`
-	Session         PracticeSession `json:"session"`
+type SendPracticeMessageResponse struct {
+	Acknowledged     bool            `json:"acknowledged"`
+	AssistantMessage PracticeMessage `json:"assistantMessage"`
+	Session          PracticeSession `json:"session"`
+	UserMessage      PracticeMessage `json:"userMessage"`
 }
 
 type CompletePracticeSessionRequest struct {
@@ -559,29 +533,27 @@ type ReportNextAction struct {
 	Type  string `json:"type"`
 }
 
-type QuestionAssessment struct {
-	DimensionResults    map[string]any       `json:"dimensionResults"`
-	IncludedInRetryPlan bool                 `json:"includedInRetryPlan"`
-	QuestionIntent      string               `json:"questionIntent"`
-	ReviewStatus        QuestionReviewStatus `json:"reviewStatus"`
-	TurnId              string               `json:"turnId"`
+type DimensionAssessment struct {
+	Confidence Confidence      `json:"confidence"`
+	Dimension  string          `json:"dimension"`
+	Status     DimensionStatus `json:"status"`
 }
 
 type FeedbackReport struct {
-	CreatedAt           string                `json:"createdAt"`
-	ErrorCode           *ApiErrorCode         `json:"errorCode,omitempty"`
-	Highlights          []ReportHighlight     `json:"highlights,omitempty"`
-	Id                  string                `json:"id"`
-	Issues              []ReportIssue         `json:"issues,omitempty"`
-	NextActions         []ReportNextAction    `json:"nextActions,omitempty"`
-	PreparednessLevel   *ReadinessTier        `json:"preparednessLevel,omitempty"`
-	Provenance          *GenerationProvenance `json:"provenance,omitempty"`
-	QuestionAssessments []QuestionAssessment  `json:"questionAssessments,omitempty"`
-	RetryFocusTurnIds   []string              `json:"retryFocusTurnIds,omitempty"`
-	SessionId           string                `json:"sessionId"`
-	Status              ReportStatus          `json:"status"`
-	TargetJobId         string                `json:"targetJobId"`
-	UpdatedAt           string                `json:"updatedAt"`
+	CreatedAt                 string                `json:"createdAt"`
+	DimensionAssessments      []DimensionAssessment `json:"dimensionAssessments,omitempty"`
+	ErrorCode                 *ApiErrorCode         `json:"errorCode,omitempty"`
+	Highlights                []ReportHighlight     `json:"highlights,omitempty"`
+	Id                        string                `json:"id"`
+	Issues                    []ReportIssue         `json:"issues,omitempty"`
+	NextActions               []ReportNextAction    `json:"nextActions,omitempty"`
+	PreparednessLevel         *ReadinessTier        `json:"preparednessLevel,omitempty"`
+	Provenance                *GenerationProvenance `json:"provenance,omitempty"`
+	RetryFocusCompetencyCodes []string              `json:"retryFocusCompetencyCodes,omitempty"`
+	SessionId                 string                `json:"sessionId"`
+	Status                    ReportStatus          `json:"status"`
+	TargetJobId               string                `json:"targetJobId"`
+	UpdatedAt                 string                `json:"updatedAt"`
 }
 
 type PaginatedFeedbackReport struct {

@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.41
+> **版本**: 1.42
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 ## 1 修订规则
 
@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 1.42 | pre-launch breaking correction：Practice API 从 turn/event 问题状态机改为 `sendPracticeMessage` 连续消息合同；报告改为会话级，voice endpoint 仅保留 fail-closed。 | backend-practice 001-003 / backend-review 001 / practice-voice-mvp 001 |
 | 2026-07-10 | 1.41 | tooling-only：删除无消费方的 frontend raw OpenAPI 字符串快照、专用模板与转义 helper；TS codegen 只保留 client/types，wire contract 不变。 | 001-bootstrap Phase 10 |
 | 2026-07-10 | 1.40 | docs-only：将当前 P0 501 export exception 描述统一为 unavailable response 口径，并把唯一真理源约束收敛为 codegen surface 口径；保留 HTTP status、error code、endpoint 与 schema contract 不变。 | tech-debt pruning |
 | 2026-07-10 | 1.39 | pre-launch correction：`getFeedbackReport` / `FeedbackReport` 描述将 queued/generating 响应收敛为当前 status metadata shape；privacy export 501 描述从 implementation stub 口径改为当前 unavailable exception；同时将 v1.0.0 baseline、diff-config 与 owner docs 重新冻结到当前 37-operation contract（含 `archiveTargetJob`），不改 endpoint / schema / status code。 | tech-debt pruning |

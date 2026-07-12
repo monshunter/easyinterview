@@ -59,7 +59,7 @@ EXPECTED_OPERATIONS: list[tuple[str, str, str, str]] = [
     ("PracticeSessions", "post", "/practice/sessions", "startPracticeSession"),
     ("PracticeSessions", "get", "/practice/sessions/{sessionId}", "getPracticeSession"),
     ("PracticeSessions", "post", "/practice/sessions/{sessionId}/voice-turns", "createPracticeVoiceTurn"),
-    ("PracticeSessions", "post", "/practice/sessions/{sessionId}/events", "appendSessionEvent"),
+    ("PracticeSessions", "post", "/practice/sessions/{sessionId}/messages", "sendPracticeMessage"),
     ("PracticeSessions", "post", "/practice/sessions/{sessionId}/complete", "completePracticeSession"),
     ("Reports", "get", "/reports/{reportId}", "getFeedbackReport"),
     ("Reports", "get", "/targets/{targetJobId}/reports", "listTargetJobReports"),
@@ -96,7 +96,7 @@ IK_REQUIRED: set[tuple[str, str]] = {
 # Endpoints that must NOT carry `Idempotency-Key` per plan §1.3 (ADR-Q1 + clientEventId).
 IK_FORBIDDEN: set[tuple[str, str]] = {
     ("post", "/auth/email/start"),
-    ("post", "/practice/sessions/{sessionId}/events"),
+    ("post", "/practice/sessions/{sessionId}/messages"),
 }
 
 # Public endpoints per spec §4.1 — must declare `security: []` to override doc-level cookie auth.
@@ -110,7 +110,6 @@ PUBLIC_ENDPOINTS: set[tuple[str, str]] = {
 AI_PROVENANCE_SCHEMAS: list[str] = [
     "TargetJobSummary",
     "TargetJobFitSummary",
-    "AssistantAction",
     "FeedbackReport",
     "ResumeTailorRun",
     "Resume",
@@ -154,9 +153,7 @@ FORBIDDEN_PRODUCT_SCOPE_TOKENS: tuple[str, ...] = (
 )
 
 EXPECTED_PRODUCT_ENUMS: dict[str, list[str]] = {
-    "PracticeMode": ["assisted", "strict"],
     "PracticeGoal": ["baseline", "retry_current_round", "next_round"],
-    "QuestionReviewStatus": ["open", "queued_for_retry", "resolved"],
     "ReportNextAction.type": ["retry_current_round", "next_round", "review_evidence"],
     "JobType": [
         "target_import",
@@ -245,6 +242,9 @@ def validate_product_scope_contract(data: dict[str, Any], errors: list[str]) -> 
             errors.append(f"forbidden product-scope tag {tag!r}")
 
     schemas = ((data.get("components") or {}).get("schemas") or {})
+    for stale_schema in ("PracticeMode", "PracticeTurn", "QuestionReviewStatus", "QuestionAssessment"):
+        if stale_schema in schemas:
+            errors.append(f"stale practice/report schema must be removed: {stale_schema}")
     for name, expected in EXPECTED_PRODUCT_ENUMS.items():
         if name == "ReportNextAction.type":
             report_next_action_type = ((_schema_properties(schemas, "ReportNextAction").get("type") or {}).get("enum") or [])
@@ -261,21 +261,21 @@ def validate_product_scope_contract(data: dict[str, Any], errors: list[str]) -> 
     for required in ("sessionId", "targetJobId"):
         if required not in feedback_required:
             errors.append(f"FeedbackReport must be session-scoped and require {required!r}")
-    for prop in ("questionAssessments", "retryFocusTurnIds", "provenance"):
+    for prop in ("dimensionAssessments", "retryFocusCompetencyCodes", "provenance"):
         if prop not in feedback_props:
             errors.append(f"FeedbackReport missing current product property {prop!r}")
-    for prop in ("mistakes", "mistakeEntries", "mistakeIds", "openMistakeCount"):
+    for prop in (
+        "questionAssessments",
+        "retryFocusTurnIds",
+        "mistakes",
+        "mistakeEntries",
+        "mistakeIds",
+        "openMistakeCount",
+    ):
         if prop in feedback_props:
-            errors.append(f"FeedbackReport must not expose old mistake property {prop!r}")
-
-    question_assessment = schemas.get("QuestionAssessment") or {}
-    question_props = _schema_properties(schemas, "QuestionAssessment")
-    question_required = set(question_assessment.get("required") or [])
-    for required in ("reviewStatus", "includedInRetryPlan"):
-        if required not in question_required or required not in question_props:
-            errors.append(f"QuestionAssessment must carry report-internal retry review field {required!r}")
-    if "writtenToMistakeBook" in question_props:
-        errors.append("QuestionAssessment must not restore writtenToMistakeBook")
+            errors.append(f"FeedbackReport must not expose stale property {prop!r}")
+    if "QuestionAssessment" in schemas:
+        errors.append("QuestionAssessment schema must be removed from conversation-level reports")
 
     target_props = _schema_properties(schemas, "TargetJob")
     if "openQuestionIssueCount" not in target_props:

@@ -4,59 +4,15 @@
     "default": {
       "response": {
         "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-05-17T09-00-00-list-sessions"
-        },
+        "headers": {"X-Request-ID": "req_2026-07-12-session-list"},
         "body": {
-          "items": [
-            {
-              "id": "01918fa0-0000-7000-8000-000000005000",
-              "planId": "01918fa0-0000-7000-8000-000000004000",
-              "targetJobId": "01918fa0-0000-7000-8000-000000002000",
-              "status": "completed",
-              "language": "zh-CN",
-              "hintsEnabled": true,
-              "turnCount": 8,
-              "currentTurn": null,
-              "createdAt": "2026-05-15T13:00:00Z",
-              "updatedAt": "2026-05-15T14:12:00Z"
-            },
-            {
-              "id": "01918fa0-0000-7000-8000-000000005100",
-              "planId": "01918fa0-0000-7000-8000-000000004100",
-              "targetJobId": "01918fa0-0000-7000-8000-000000002000",
-              "status": "completed",
-              "language": "zh-CN",
-              "hintsEnabled": false,
-              "turnCount": 6,
-              "currentTurn": null,
-              "createdAt": "2026-05-10T10:00:00Z",
-              "updatedAt": "2026-05-10T10:55:00Z"
-            }
-          ],
-          "pageInfo": {
-            "nextCursor": null,
-            "pageSize": 20,
-            "hasMore": false
-          }
+          "items": [{"id": "01918fa0-0000-7000-8000-000000005000", "planId": "01918fa0-0000-7000-8000-000000004000", "targetJobId": "01918fa0-0000-7000-8000-000000002000", "status": "completed", "language": "zh-CN", "messages": [], "createdAt": "2026-07-12T08:02:00Z", "updatedAt": "2026-07-12T08:30:00Z"}],
+          "pageInfo": {"nextCursor": null, "pageSize": 20, "hasMore": false}
         }
       }
     },
     "empty": {
-      "response": {
-        "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-05-17T09-00-00-list-sessions-empty"
-        },
-        "body": {
-          "items": [],
-          "pageInfo": {
-            "nextCursor": null,
-            "pageSize": 20,
-            "hasMore": false
-          }
-        }
-      }
+      "response": {"status": 200, "headers": {"X-Request-ID": "req_2026-07-12-session-list-empty"}, "body": {"items": [], "pageInfo": {"nextCursor": null, "pageSize": 20, "hasMore": false}}}
     }
   }
 }

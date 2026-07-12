@@ -33,7 +33,6 @@ const (
 	EventNameTargetParsed              EventName = "target.parsed"
 	EventNameTargetAnalysisFailed      EventName = "target.analysis.failed"
 	EventNamePracticeSessionStarted    EventName = "practice.session.started"
-	EventNamePracticeTurnCompleted     EventName = "practice.turn.completed"
 	EventNamePracticeSessionCompleted  EventName = "practice.session.completed"
 	EventNameReportGenerationRequested EventName = "report.generation.requested"
 	EventNameReportGenerated           EventName = "report.generated"
@@ -69,19 +68,9 @@ type TargetAnalysisFailedPayload struct {
 type PracticeSessionStartedPayload struct {
 	Goal        sharedtypes.PracticeGoal `json:"goal"`
 	Language    string                   `json:"language"`
-	Mode        sharedtypes.PracticeMode `json:"mode"`
 	PlanID      string                   `json:"planId"`
 	SessionID   string                   `json:"sessionId"`
 	TargetJobID string                   `json:"targetJobId"`
-}
-
-type PracticeTurnCompletedPayload struct {
-	AnswerCharLength int    `json:"answerCharLength"`
-	FollowUpCount    int    `json:"followUpCount"`
-	QuestionIntent   string `json:"questionIntent"`
-	SessionID        string `json:"sessionId"`
-	TurnID           string `json:"turnId"`
-	TurnIndex        int    `json:"turnIndex"`
 }
 
 type PracticeSessionCompletedPayload struct {
@@ -89,7 +78,6 @@ type PracticeSessionCompletedPayload struct {
 	PlanID      string `json:"planId"`
 	SessionID   string `json:"sessionId"`
 	TargetJobID string `json:"targetJobId"`
-	TurnCount   int    `json:"turnCount"`
 }
 
 type ReportGenerationRequestedPayload struct {
@@ -99,14 +87,13 @@ type ReportGenerationRequestedPayload struct {
 }
 
 type ReportGeneratedPayload struct {
-	ModelID            string                    `json:"modelId"`
-	PreparednessLevel  sharedtypes.ReadinessTier `json:"preparednessLevel"`
-	PromptVersion      string                    `json:"promptVersion"`
-	QuestionIssueCount int                       `json:"questionIssueCount"`
-	ReportID           string                    `json:"reportId"`
-	RubricVersion      string                    `json:"rubricVersion"`
-	SessionID          string                    `json:"sessionId"`
-	TargetJobID        string                    `json:"targetJobId"`
+	ModelID           string                    `json:"modelId"`
+	PreparednessLevel sharedtypes.ReadinessTier `json:"preparednessLevel"`
+	PromptVersion     string                    `json:"promptVersion"`
+	ReportID          string                    `json:"reportId"`
+	RubricVersion     string                    `json:"rubricVersion"`
+	SessionID         string                    `json:"sessionId"`
+	TargetJobID       string                    `json:"targetJobId"`
 }
 
 type ReportGenerationFailedPayload struct {

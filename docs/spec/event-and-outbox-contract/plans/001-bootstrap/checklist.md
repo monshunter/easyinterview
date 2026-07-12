@@ -8,7 +8,7 @@
 
 ## 1 Event truth source
 
-- [x] 1.1 `shared/events.yaml` defines the current 14 event inventory.
+- [x] 1.1 `shared/events.yaml` defines the current 13 event inventory.
 - [x] 1.2 Event domains are limited to `target`, `practice`, `report`, `resume`, `source`, and `privacy`.
 - [x] 1.3 Event payload fields use B1 enum refs where available and event-local enums where B1 ownership does not apply.
 - [x] 1.4 `scripts/lint/events_inventory.py` validates event count, names, producers, payload inventory, domain set and enum boundaries.

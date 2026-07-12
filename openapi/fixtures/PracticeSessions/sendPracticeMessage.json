@@ -1,0 +1,22 @@
+{
+  "operationId": "sendPracticeMessage",
+  "scenarios": {
+    "default": {
+      "request": {"headers": {}, "body": {"clientMessageId": "01918fa0-0000-7000-8000-000000006001", "text": "我主导过一次跨团队设计系统迁移。"}},
+      "response": {
+        "status": 200,
+        "headers": {"X-Request-ID": "req_2026-07-12-message-send"},
+        "body": {
+          "acknowledged": true,
+          "session": {"id": "01918fa0-0000-7000-8000-000000005000", "planId": "01918fa0-0000-7000-8000-000000004000", "targetJobId": "01918fa0-0000-7000-8000-000000002000", "status": "running", "language": "zh-CN", "messages": [{"id": "01918fa0-0000-7000-8000-000000006000", "seqNo": 1, "role": "assistant", "content": "你好，我们直接开始。", "createdAt": "2026-07-12T08:02:00Z"}, {"id": "01918fa0-0000-7000-8000-000000006001", "seqNo": 2, "role": "user", "content": "我主导过一次跨团队设计系统迁移。", "createdAt": "2026-07-12T08:03:00Z"}, {"id": "01918fa0-0000-7000-8000-000000006002", "seqNo": 3, "role": "assistant", "content": "当时最难协调的分歧是什么？", "createdAt": "2026-07-12T08:03:01Z"}], "createdAt": "2026-07-12T08:02:00Z", "updatedAt": "2026-07-12T08:03:01Z"},
+          "userMessage": {"id": "01918fa0-0000-7000-8000-000000006001", "seqNo": 2, "role": "user", "content": "我主导过一次跨团队设计系统迁移。", "createdAt": "2026-07-12T08:03:00Z"},
+          "assistantMessage": {"id": "01918fa0-0000-7000-8000-000000006002", "seqNo": 3, "role": "assistant", "content": "当时最难协调的分歧是什么？", "createdAt": "2026-07-12T08:03:01Z"}
+        }
+      }
+    },
+    "ai-timeout": {
+      "request": {"headers": {}, "body": {"clientMessageId": "01918fa0-0000-7000-8000-000000006003", "text": "我先把风险拆成三类。"}},
+      "response": {"status": 502, "headers": {"X-Request-ID": "req_2026-07-12-message-timeout"}, "body": {"error": {"code": "AI_PROVIDER_TIMEOUT", "message": "AI provider timed out while continuing the conversation", "requestId": "req_2026-07-12-message-timeout", "retryable": true}}}
+    }
+  }
+}

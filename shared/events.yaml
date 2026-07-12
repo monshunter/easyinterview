@@ -104,23 +104,9 @@ events:
       planId: { type: uuidv7, source: spec:3.1.4 }
       targetJobId: { type: uuidv7, source: spec:3.1.4 }
       goal: { type: $ref:b1.PracticeGoal, source: spec:3.1.4 }
-      mode: { type: $ref:b1.PracticeMode, source: spec:3.1.4 }
       language: { type: string, source: spec:3.1.4 }
     optionalPayload: {}
-    piiBoundary: IDs only; no question or answer text.
-  - name: practice.turn.completed
-    version: 1
-    producer: api
-    aggregateType: practice_turn
-    requiredPayload:
-      sessionId: { type: uuidv7, source: spec:3.1.4 }
-      turnId: { type: uuidv7, source: spec:3.1.4 }
-      turnIndex: { type: int, source: spec:3.1.4 }
-      questionIntent: { type: string, source: spec:3.1.4 }
-      followUpCount: { type: int, source: spec:3.1.4 }
-      answerCharLength: { type: int, source: spec:3.1.4 }
-    optionalPayload: {}
-    piiBoundary: Lengths and counts only; no question or answer text.
+    piiBoundary: IDs and controlled values only; no conversation text.
   - name: practice.session.completed
     version: 1
     producer: api
@@ -129,10 +115,9 @@ events:
       sessionId: { type: uuidv7, source: spec:3.1.4 }
       planId: { type: uuidv7, source: spec:3.1.4 }
       targetJobId: { type: uuidv7, source: spec:3.1.4 }
-      turnCount: { type: int, source: spec:3.1.4 }
       language: { type: string, source: spec:3.1.4 }
     optionalPayload: {}
-    piiBoundary: IDs and counts only.
+    piiBoundary: IDs and controlled values only; no conversation text.
   - name: report.generation.requested
     version: 1
     producer: [api, dispatcher]
@@ -152,7 +137,6 @@ events:
       sessionId: { type: uuidv7, source: spec:3.1.4 }
       targetJobId: { type: uuidv7, source: spec:3.1.4 }
       preparednessLevel: { type: $ref:b1.ReadinessTier, source: spec:3.1.4 }
-      questionIssueCount: { type: int, source: spec:3.1.4 }
       promptVersion: { type: string, source: spec:3.1.4 }
       rubricVersion: { type: string, source: spec:3.1.4 }
       modelId: { type: string, source: spec:3.1.4 }

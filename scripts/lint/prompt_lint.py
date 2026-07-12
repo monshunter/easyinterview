@@ -78,17 +78,9 @@ FEATURE_CONTRACTS = {
             "$.requirements[].label",
         },
     },
-    "practice.session.first_question": {
+    "practice.session.chat": {
         "type": "object",
-        "required_paths": {"$.questionText", "$.questionIntent"},
-    },
-    "practice.session.follow_up": {
-        "type": "object",
-        "required_paths": {"$.questionText", "$.questionIntent"},
-    },
-    "practice.turn.lightweight_observe": {
-        "type": "object",
-        "required_paths": {"$.cue"},
+        "required_paths": {"$.messageText"},
     },
     "report.generate": {
         "type": "object",
@@ -111,18 +103,6 @@ FEATURE_CONTRACTS = {
             "$.next_actions[].type",
             "$.next_actions[].label",
             "$.retry_focus_turn_ids",
-        },
-    },
-    "report.question_assessment": {
-        "type": "object",
-        "required_paths": {
-            "$.dimension_results",
-            "$.overall_status",
-            "$.confidence",
-            "$.strengths",
-            "$.gaps",
-            "$.recommended_framework",
-            "$.review_status",
         },
     },
     "resume.parse": {

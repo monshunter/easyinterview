@@ -1,13 +1,14 @@
 # Product Scope History
 
-> **版本**: 2.13
+> **版本**: 2.14
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 2.14 | 模拟面试收敛为不限制问题范畴的连续文本会话；删除题目结构与专用 hint/mode，电话模式暂时禁用，报告改为会话级。 | backend-practice 001-003 / frontend-workspace 002 / voice 001 / review 001 |
 | 2026-07-10 | 2.13 | 统一 product-scope 中文范围边界与执行 plan 的 scope-boundary gate 口径。 | tech-debt pruning |
 | 2026-07-10 | 2.12 | 将 privacy export、pending child 与设置通知/订阅边界收敛为不可用例外 / 索引模型 / 范围外能力口径。 | tech-debt pruning |
 | 2026-07-10 | 2.11 | 用户可见面试形式统一为文本面试 / 电话模式；`voice` 只保留为底层工程能力名或负向 route 输入。 | tech-debt pruning |

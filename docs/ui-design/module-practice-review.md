@@ -1,249 +1,103 @@
-# Interview Session 与 Report Dashboard 目标模块
+# 模拟面试与报告模块
 
-> **版本**: 1.21
+> **版本**: 1.22
 > **状态**: active
-> **更新日期**: 2026-07-11
+> **更新日期**: 2026-07-12
 
-## 1 文档目的
+## 1 目标
 
-本文档定义当前静态 UI 中完整模拟面试与仪表盘报告的闭环。目标是保证用户从一场明确的面试规划进入完整面试，结束后看到一份隶属于该会话的报告，并能明确选择复练当前轮或进入下一轮。
+模拟面试采用连续文本聊天。系统不展示或维护题号、题目总数、当前题、追问/下一题分类、题目地图或专用提示；AI 根据 JD、简历、轮次和对话历史自然推进。用户主动结束后生成会话级报告。
 
-## 2 模块职责
-
-Interview Session 负责：
-
-- 运行一场完整模拟面试。
-- 允许用户选择 `文本面试` 或 `电话模式` 作为整场面试形式。
-- 文本面试只提供文字输入、提交、暂停和结束动作；不提供 `语音转文字`、`跳过` 或额外替代输入。
-- 电话模式模拟真实电话面试：用户默认不看文字，只看到通话状态、听说动画和通话控制；需要时可显示字幕层。
-- 记录问题、回答、追问、提示使用和会话状态；不记录“跳过题目”作为正向面试动作。
-- 面试官身份来自当前轮次规划，不允许在面试会话中临时切换。
-- 提供全局结束动作并进入报告生成；结束入口不依赖右侧边栏。
-
-Report Dashboard 负责：
-
-- 以仪表盘形式展示本场面试结果。
-- 明确展示报告 `sessionId`、目标岗位、绑定简历、面试轮次、沟通形式、练习方式和提示使用记录。
-- 展示准备度、能力维度、题目回顾、证据详情和复练计划。
-- 区分 `复练当前轮` 与 `进入下一轮`。
-
-本模块不负责：
-
-- 选择热身、反问、单题深钻等练习模式。
-- 在面试前展示练习模式卡片。
-- 独立追问树。
-- 独立错题本或单题复练队列。
-- 报告时间线。
-- 独立刊物式报告页。
-- 复盘。
-
-## 3 面试 session 生命周期
+## 2 Practice 页面结构
 
 ```text
-MockInterviewPlan
-  -> CreateInterviewSession
-  -> ChooseInterviewForm
-     ├─ TextInterview
-     │  ├─ TypeAnswer
-     │  └─ SubmitTextAnswer
-     └─ PhoneInterview
-        ├─ LiveSpokenConversation
-        ├─ HangUpToText
-        └─ OptionalCaptions
-  -> InProgress
-     ├─ Question
-     ├─ Answer
-     ├─ FollowUp
-     ├─ OptionalHint
-     └─ NextQuestion
-  -> Finished
-  -> GeneratingReport
-  -> ReportDashboard(sessionId)
-```
-
-文本面试和电话模式共享同一个面试生命周期、同一套上下文、同一个 `PracticeScreen` 外层骨架和同一种报告形态。电话模式只能通过 `practice` 的显式沟通形式参数进入；范围外 `voice` hash / route 不作为 route alias，也不渲染独立的语音页面框架。底层 provider 能力或历史 API 名称可继续使用 `voice` 作为工程能力名，但用户可见 UI 文案统一为 `电话模式 / Phone`。
-
-当前 `screen-report.jsx` 固定返回 `ReportDashboard`。设计画板里的报告变体标签和 `reportLayout` hash 参数不属于当前目标。
-
-## 4 面试页面框架
-
-```text
-[Interview Session(sessionId)]
-├─ Top Bar
+PracticeScreen(sessionId)
+├─ TopBar
 │  ├─ 公司 / 岗位
 │  ├─ 面试官角色
-│  ├─ 题号 / 总题数
 │  ├─ 计时
-│  ├─ 暂停
-│  ├─ 单一电话图标（文本态进入电话；电话态退出到文本）
+│  ├─ 暂停 / 恢复
+│  ├─ disabled 电话图标（暂未开放）
 │  └─ 结束并生成报告
-├─ Interview Form
-│  ├─ 文本面试 · 打字回答
-│  └─ 电话模式 · 实时语音对话
-├─ Left Panel
-│  ├─ 本轮题目
-│  └─ 实时观察
-├─ Main
-│  ├─ 当前问题
-│  ├─ 文本面试 Surface
-│  │  ├─ 对话记录
-│  │  └─ 输入区
-│  │     ├─ 文本框
-│  │     ├─ 提示
-│  │     └─ 提交
-│  └─ 电话模式 Surface
-│     ├─ 通话状态
-│     ├─ 听说动画
-│     ├─ 红色圆形挂断图标按钮
-│     └─ 字幕层（按需显示文本会话转写）
-└─ Right Panel: 不存在。任何模式都不得渲染右侧边栏。
+└─ Conversation
+   ├─ Transcript
+   │  ├─ assistant message
+   │  └─ user message
+   ├─ Error / retry state
+   └─ Composer
+      ├─ text input
+      └─ send
 ```
 
-## 5 语音相关边界
+必须删除：
 
-```text
-面试形式:
-├─ 文本面试
-│  └─ 用户主要通过文字提交回答
-└─ 电话模式
-   ├─ 用户与 AI 进行实时语音对话
-   ├─ 默认不展示会话文字
-   ├─ 点击显示字幕后展示同一会话的文本转写层
-   ├─ Top Bar 单一电话图标进入或退出电话模式
-   ├─ 中间红色圆形挂断按钮立即停止麦克风与 TTS，并回到同一 session 的文本模式
-   ├─ 挂断时非空采集可完成结算，但退出后不得继续播放电话 TTS
-   ├─ VAD 静音自动提交当前语音回答，TTS 播放结束后自动重新监听
-   ├─ 只有真实 speech-start 才触发 barge-in；挂断不伪装为 barge-in
-   └─ 复用文本面试的 session / turn / report 上下文
-```
+- 左侧“本轮题目”与所有 SessionMap DOM。
+- TopBar 题号/总题数。
+- 主体 QuestionCard、题目 badge/topic/prompt。
+- 专用 hint button/banner/count。
+- PhoneSurface、字幕、麦克风、VAD、TTS、barge-in、hangup。
+- 右侧辅助栏和任何会话内 persona/mode switch。
 
-因此，顶部不得使用文本/电话分段控件或额外 `live` 状态 chip，中间也不得显示“切断”文字或“重新开始”动作。形式切换由一个可访问名称为 `电话模式 / Phone` 的电话图标承接；电话态的核心退出动作由红色圆形挂断图标承接。文本输入区不得出现 `语音转文字`、`插入转写` 或麦克风转写按钮。
+## 3 连续聊天规则
 
-Practice Top Bar 的公司与岗位必须优先使用当前 server session 的 `targetJobId` 调用 generated `getTargetJob` 读取真实数据，只有 session 尚未加载时才使用 route/context ID；不得用 fixture 常量或本地占位值填充。`questionIntent` 是内部编排信号，不得直接作为用户可见题目主题；界面只使用本地化中性题号标签（例如“第 N 题”），不在前端猜测题目分类。
+- opening assistant message 与后续 assistant reply 都是普通 message，不标记为问题。
+- 用户输入是普通 message，不标记为回答。
+- UI 不显示“第 N 题”“追问”“回答”“下一题”等类别标签。
+- transcript 来自 server `PracticeSession.messages`；刷新必须恢复完整有序会话，不使用本地 fixture transcript。
+- 用户请求提示时直接输入普通聊天内容，不存在专用 hint 行为。
+- 发送期间禁用 composer；失败保留用户消息和 retry，不重复追加。
 
-## 6 练习方式与结束动作
+## 4 Top Bar
 
-```text
-Practice Assistance
-├─ 面试过程默认按真实面试呈现
-├─ 提示是用户主动请求的辅助手段
-├─ 使用提示只记录为报告上下文，不改变会话类型
-└─ 不使用入口前的严格/辅助二选一模式卡片
-```
+- 公司/岗位优先来自 session.targetJobId 对应 generated `getTargetJob`。
+- 面试官角色来自当前 round/plan，只读展示。
+- 保留计时、暂停、结束。
+- 电话图标使用原生 disabled control：`disabled` + `aria-disabled=true`，灰色，无 click handler，title/aria-label 为“电话模式暂未开放 / Phone mode unavailable”。
+- 不展示题号、总题数、text/phone segment、live chip 或 mode 文案。
 
-`严格模拟` 不再作为用户可见开关或面试类型。是否使用提示由用户在会话过程中决定；系统只记录 `hintUsed` 和 `hintCount`，供报告说明本场是否借助提示。右侧边栏删除后，提示不得以右栏经历卡、现场提示或 AI 透明度面板形式常驻。
+## 5 Layout
 
-结束动作固定在全局会话控制区，避免用户在滚动题目、对话或字幕层时丢失结束入口。点击 `结束并生成报告` 后进入 `generating`，并传递：
+- Desktop：Conversation 占满 TopBar 下方可用宽度；内容列使用可读 max-width 居中，transcript 自适应增长，composer 固定在会话区底部。
+- Mobile：单列；TopBar 控件可换行但结束 CTA 可达；transcript 与 composer 不横向溢出。
+- 不保留空白 sidebar grid column。
 
-```text
-ReportGenerationParams
-├─ mode / modality: text | phone
-├─ practiceMode: read-only report context field, no user-visible strict switch
-├─ hintUsed: true | false
-└─ hintCount: number as string
-```
+## 6 报告边界
 
-报告只使用这些字段展示沟通形式和提示记录，不得把提示使用推导成精确通过率。若底层仍使用 `voice` 作为工程能力名，报告用户可见展示仍必须写作 `电话模式 / Phone`。
+报告只展示：
 
-## 7 报告仪表盘框架
+- 准备度。
+- 能力维度。
+- 会话证据。
+- 下一步行动。
 
-```text
-[Report Dashboard(sessionId)]
-├─ Back
-│  └─ 返回面试前确认
-├─ Header
-│  ├─ 面包屑: 模拟面试 / 会话 # / 面试报告
-│  ├─ 标题: 岗位 · 当前轮次模拟报告
-│  ├─ 说明: 报告隶属于一次已完成模拟面试
-│  ├─ 复练当前轮: 当前轮次
-│  └─ 进入下一轮: 下一轮次
-├─ Context Strip
-│  ├─ 所属会话
-│  ├─ 目标岗位
-│  ├─ 面试轮次
-│  ├─ 绑定简历
-│  ├─ 完成时间
-│  └─ 沟通形式
-├─ Summary Cards
-│  ├─ 准备度
-│  ├─ 维度详情
-│  ├─ 题目回顾
-│  └─ 下一动作
-└─ Detail Surface
-   ├─ 准备度详情
-   ├─ 维度详情
-   ├─ 题目回顾页
-   ├─ 证据详情
-   └─ 复练计划
-```
+报告不得展示题目回顾、逐题评分、题数或 turn-based retry；复练当前轮携带能力重点而不是题目 ID。
 
-## 8 复练与下一轮
+## 7 UI 真理源
 
-```text
-Report Next Actions
-├─ Path A: 复练当前轮
-│  ├─ 直接进入同一轮次的面试 session
-│  ├─ 不推进到下一轮
-│  ├─ 重复同一面试轮次
-│  ├─ 带入题目回顾里的错题
-│  ├─ 带入证据缺口
-│  └─ 带入追问风险
-└─ Path B: 进入下一轮
-   ├─ 直接进入下一轮面试 session
-   ├─ 沿用同一目标岗位 / JD
-   ├─ 沿用同一绑定简历
-   ├─ 切换到下一轮面试官视角
-   └─ 改变题目结构和考察重点
-```
+- Practice：`ui-design/src/screen-practice.jsx::PracticeScreen`
+- Report：`ui-design/src/screen-report.jsx::ReportScreen`
+- Generating：`ui-design/src/screens-p0-complete.jsx::ReportGeneratingScreen`
+- Shared primitives：`ui-design/src/primitives.jsx`
 
-这两条路径不能混用，也都不是返回面试前规划页的动作。`返回面试前确认` 可以回到准备页，但报告页上的 `复练当前轮` 与 `进入下一轮` 都应立即发起对应面试 session。`确认下一场模拟面试` 这类模糊文案应避免，因为用户无法判断是重复当前轮还是进入下一轮。
+正式 frontend 必须源级复刻上述当前原型。验证分为：
 
-## 9 题目回顾边界
+1. DOM/control/a11y source structure parity。
+2. computed style/bounding box/responsive/screenshot geometry parity。
+3. stale question/phone/hint positive-contract negative search。
 
-```text
-Question Review
-├─ 题目列表
-├─ 回答分析
-├─ 回答有效点
-├─ 缺口
-├─ 建议框架
-├─ 证据片段
-├─ 下次面试追问
-└─ 加入本轮复练
-```
+## 8 验收标准
 
-题目回顾承载“错题本”的用户价值，但仍属于报告内部二级详情。它不产生独立错题本模块，也不写入任何复盘流程。
+| ID | Given | When | Then |
+|----|-------|------|------|
+| U-1 | session 有 opening message | 进入 practice | 只看到 TopBar + 全宽聊天 + composer |
+| U-2 | 多轮 messages | 用户连续发送 | 消息按序追加，无题目分类 |
+| U-3 | phone disabled | 查看/键盘操作电话图标 | 图标置灰且不能改变模式 |
+| U-4 | send failure | 重试同一 clientMessageId | user message 不重复，成功后只有一个 reply |
+| U-5 | 用户结束 | 点击结束并生成报告 | 进入 generating，随后会话级报告 |
+| U-6 | desktop/mobile | parity gate | 无 sidebar 空白、无溢出、截图与原型一致 |
 
-## 10 复盘边界
+## 9 修订记录
 
-复盘不属于当前一级模块、报告后续动作或模拟面试报告的下游流程。
-
-```text
-Report Dashboard
-├─ 复练当前轮
-└─ 进入下一轮
-```
-
-模拟报告里的题目回顾只作为用户理解本场表现和规划本轮复练的依据，不进入复盘记录、复盘分析或复盘面试。
-
-## 11 后续实现输入
-
-1. `practice` 是 `InterviewSession` 的目标运行 route；用户可见 `mode/modality=text` 表示文本面试，`mode/modality=phone` 表示电话模式。底层 API / profile 可继续使用 `voice` 作为工程能力名，但 UI route/query 不消费 out-of-scope `voice` 参数。
-2. 不得保留或新增 `voice` route / alias / query 入口；电话模式必须通过 `practice` 显式 `phone` 参数进入，不得重新进入独立语音页面骨架。
-3. 文本面试输入框不得出现 `语音转文字`、`插入转写`、麦克风转写或 `跳过` 控件。
-4. 面试官角色来自当前轮次规划，不在会话内提供切换控件。
-5. `严格模拟` 不再作为用户可见模式开关；提示如保留，只能作为用户主动请求的可选辅助，并记录 `hintUsed` / `hintCount`。
-6. 右侧边栏在 text / phone 任一模式下都不存在；不得渲染 JD 关联、可调用经历、AI 透明度、表达指标、现场提示或音频留存说明的右侧面板。
-7. 电话模式不得展示停顿、口头禅、语速、音量等语音分析；报告也不得把这些指标作为本模块的目标输出。
-8. Top Bar 必须用单一电话图标替代文本/电话分段控件与 `live` chip：文本态点击进入电话，电话态点击与中间挂断按钮复用同一 `exitPhoneMode` 语义并返回同一 session 的文本模式。
-9. 电话模式中间只保留字幕、听说状态和红色圆形挂断图标；不得显示“切断”文字、“重新开始”、`callEnded`、`开始录音` 或 `提交本轮` 主流程。
-10. 挂断必须立即停止麦克风和 TTS；非空采集允许结算，但退出后不得继续电话 TTS。VAD 静音自动提交，TTS 结束自动恢复监听，只有真实 speech-start 才触发 barge-in。
-11. Practice Top Bar 必须以 generated `getTargetJob` 展示真实公司/岗位；用户界面不得直接展示内部 `questionIntent`。
-12. `结束并生成报告` 必须保持为全局会话动作，并传递 `practiceMode`、`hintUsed` 和 `hintCount`。
-13. 报告生成后只进入 `ReportDashboard(sessionId)`。
-14. 报告不得作为顶部一级导航。
-15. 报告必须显示完整会话上下文；无 `sessionId` 时必须回到当前面试规划或记录列表，不展示假报告。
-16. 任何刊物式长内容都必须挂到仪表盘模块详情，不新增报告形态。
-17. 报告不得提供时间线视图。
-18. 工作台和报告页的“再练”必须说明是复练当前轮还是进入下一轮；报告页 CTA 直接进入对应面试 session，不先回工作台二次确认。
-19. 报告生成页不得出现“错题条目 / 入本”等范围外文案；当前文案应指向报告内部题目回顾和本轮复练线索，不代表启用独立错题本。
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-07-12 | 1.22 | Practice 改为全宽连续文本聊天；删除题目、hint、phone surface；报告改为会话级。 |

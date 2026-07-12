@@ -1,8 +1,8 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.27
+> **版本**: 1.29
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 ## 1 背景与目标
 
@@ -14,7 +14,7 @@
 
 目标是：
 
-1. **真理源即代码**：把 product-scope / UI scope 确认的 16 个生成枚举类型、6 个 baseline 错误码、A3 授权追加的 6 个 `AI_*` 错误码、C4 授权追加的 4 个 `TARGET_*` TargetJob 场景错误码、Resume contract 授权追加的 `RESUME_EXPORT_NOT_AVAILABLE` 错误码、ADR-Q6 授权的 AI capability / provider registry / Model Profile / AI meta 字段名共享 vocabulary、ID 规则、时间规则、金额规则同时落到 Go（`backend/internal/shared/types/`）与 TypeScript（`frontend/src/lib/conventions/`）。
+1. **真理源即代码**：把 product-scope / UI scope 确认的 11 个生成枚举类型、当前错误码、AI shared vocabulary、ID 规则、时间规则和金额规则同时落到 Go 与 TypeScript。
 2. **跨语言对齐**：Go 与 TS 类型必须共用同一份枚举 / 错误码源（YAML 或 JSON），由本 spec 唯一的 generator 在两侧吐出代码。
 3. **lint 强约束**：`UPPER_SNAKE_CASE` 错误码、`lower_snake_case` 枚举值、`camelCase` JSON tag 通过本地 lint 门禁拦截，而不是依赖代码 review。
 4. **monorepo 名称锁定**：在落地任何业务代码前，先把 `go.mod` 名称、`package.json` 名称、pnpm workspace（如启用）拓扑、共享 lib 目录定下来，避免后续多个 subject 各自重命名雪球。
@@ -56,14 +56,14 @@
 | D-3 | TS 包管理 | pnpm workspace（启用 `pnpm-workspace.yaml`），前端 package 名 `@easyinterview/frontend` | A2 `local-dev-stack` 与 B2 `openapi-v1-contract` 默认沿用 |
 | D-4 | UUID 算法 | UUIDv7（含时序）；前端临时 id 使用 `tmp_<uuidv4>` | 所有业务主键由 idx 工具生成；不允许 NewV4 直接用作 DB id |
 | D-5 | 错误码命名 | `UPPER_SNAKE_CASE`，前缀按 domain：`AUTH_*` / `TARGET_*` / `PRACTICE_*` / `REPORT_*` / `RESUME_*` / `PRIVACY_*` / `AI_*` / `RATE_LIMITED` / `VALIDATION_FAILED` / `RESOURCE_NOT_FOUND` | 任何非前缀错误码必须由本 spec 修订决定；business code 直接 import 常量；A3 已授权 `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_CONFIG_INVALID` / `AI_PROVIDER_SECRET_MISSING`；C4 已授权 `TARGET_JOB_NOT_FOUND` / `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` / `TARGET_INVALID_STATE_TRANSITION`；backend-practice/001 Phase 0 已授权 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND`；`RESOURCE_NOT_FOUND` 是当前 cross-resource generic 404 |
-| D-6 | 枚举值书写 | `lower_snake_case`；TS 用 union string literal，Go 用 named string + 常量集 | 覆盖 `shared/conventions.yaml` 当前 16 个生成枚举类型；新增任何枚举都必须先修订当前 owner spec |
+| D-6 | 枚举值书写 | `lower_snake_case`；TS 用 union string literal，Go 用 named string + 常量集 | 覆盖 `shared/conventions.yaml` 当前 11 个生成枚举类型；增删枚举必须先修订 owner spec |
 | D-7 | `ApiError` inner object 归属 | `shared/conventions.yaml#structures.ApiError` 表示错误响应 envelope 内部的 `error` 对象（`code` / `message` / `requestId` / `retryable` / `details`），不表示外层 `{error: ...}` envelope；Go 侧 canonical 类型是手写 `backend/internal/shared/errors.APIError` + generated `errors.AllCodes`，TS 侧 canonical 类型是 generated `frontend/src/lib/conventions.ApiError` | B2 OpenAPI 必须把 wire response body 建模为 `ApiErrorResponse` envelope，并在 envelope 内 `$ref` B1 `ApiError` inner object；不得把 Go 侧误写为 `sharedtypes.ApiError` |
 | D-8 | AI shared vocabulary 归属 | B1 提供 `AI_*` 错误码、AI capability、Provider Registry 字段名、Model Profile 字段名、AI meta 字段名常量或生成类型；A3 提供 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 填充与 OpenAI-compatible provider adapter；A4 校验 `AI_PROVIDER_*` 连接参数 | 避免 B1/A3/B4/F1 对同一 AI 字段私造名称；同时避免把运行时或连接配置误下沉到 shared conventions |
-| D-9 | 当前 UI 产品范围下的练习 / 报告枚举 | `PracticeMode = assisted / strict`；`PracticeGoal = baseline / retry_current_round / next_round`；`QuestionReviewStatus = open / queued_for_retry / resolved` | 对齐 product-scope 当前范围与 `docs/ui-design`：mode 只表达辅助度；PracticeGoal 只表达创建基线、复练当前轮或进入下一轮；报告内部题目回顾与本轮复练仍保留 |
+| D-9 | 当前 Practice / Report enum | 只保留 `PracticeGoal = baseline / retry_current_round / next_round`；删除 `PracticeMode` 与 `QuestionReviewStatus` | 连续 conversation 不存在 strict/assisted 或 question review 生命周期 |
 | D-10 | Resume contract shared vocabulary | 当前 B1 仅保留 Resume shared error code `RESUME_EXPORT_NOT_AVAILABLE`，用于 B2 `exportResume` P0 `501` 响应；其它 Resume request/response schema、provenance 与 fixture contract 由 B2 OpenAPI 承接 | 业务代码 (`backend-resume` / `frontend-resume-workshop`) 不得绕过 B1 私造错误码；B2 schema 必须通过 `$ref` 引用本 spec 锁定的错误码字面量 |
 | D-11 | Generator 实现 | `backend/cmd/codegen/conventions` 使用 `yaml.v3` 将 `shared/conventions.yaml` 解码为 typed `Spec`，再由手写 Go renderer 与 `go/format` 生成当前 Go/TS 资产 | generator 保持单入口；输出完整性和幂等性由 focused tests 与 `make codegen-check` 固化 |
 | D-12 | TypeScript 生成边界 | conventions 输出固定为 `enums.ts`、`errors.ts`、`ai.ts`、`pagination.ts`，ID 输出固定为 `frontend/src/lib/ids/generated.ts` | 消费方从 conventions barrel 或 IDs 模块引用；不得把已拆分资产重新合并为单文件或复制出第二套生成入口 |
-| D-20 | 扁平 Resume vocabulary boundary | `shared/conventions.yaml` 当前生成枚举类型为 16；Resume 是单一实体，API path / request / response 使用 `resumeId` 与 `Resume`；UI resume ≡ OpenAPI `Resume` | 由 [openapi-v1-contract/004](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) 与 [backend-resume](../backend-resume/spec.md) 同步 `shared/conventions.yaml`、Go/TS generated errors、B2 `ApiErrorCode` 与 parity fixtures；新增 Resume shared vocabulary 必须先修订 owner spec |
+| D-20 | 扁平 Resume vocabulary boundary | Resume 是单一实体，API path / request / response 使用 `resumeId` 与 `Resume`；UI resume ≡ OpenAPI `Resume` | 由 [openapi-v1-contract/004](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) 与 [backend-resume](../backend-resume/spec.md) 同步 `shared/conventions.yaml`、Go/TS generated errors、B2 `ApiErrorCode` 与 parity fixtures；新增 Resume shared vocabulary 必须先修订 owner spec |
 
 ## 4 设计约束
 
@@ -75,7 +75,7 @@
 ### 4.2 命名约束
 
 - 错误码常量在 Go / TS 两侧都必须 `UPPER_SNAKE_CASE`，并以包级常量暴露；TS 侧使用 `as const` 字面量映射，避免 string union 散落。
-- 枚举值在 JSON / API / 日志中统一 `lower_snake_case`；Go 类型名 `PascalCase`，常量名 `<TypeName><Value>`（例：`PracticeModeCoreInterview`）。
+- 枚举值在 JSON / API / 日志中统一 `lower_snake_case`；Go 类型名 `PascalCase`，常量名 `<TypeName><Value>`（例：`PracticeGoalBaseline`）。
 - `tmp_` 前缀只用于前端浏览器内临时 id；Go 端不得接受任何带 `tmp_` 前缀的字段写入正式业务表，必须在 idx 工具的 `RequireServerID(...)` 校验中拒绝。
 
 ### 4.3 边界约束
@@ -101,8 +101,8 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 真理源生成 Go 类型 | `shared/conventions.yaml` 已落地 | 执行 `make codegen-conventions`（B1 持有） | `backend/internal/shared/types/*.go` 中 16 个枚举类型常量、`PageInfo` 结构与共享常量按 D-5 / D-6 命名生成；Go `APIError` 结构在 `backend/internal/shared/errors/` 手写，generator 补齐全部错误码常量（含 A3 `AI_*` baseline 与 `RESUME_EXPORT_NOT_AVAILABLE`）；`go vet ./backend/...` 通过 | 001-bootstrap + A3 spec remediation + openapi-v1-contract/004 + backend-resume contract phase |
-| C-2 | 真理源生成 TS 类型 | 同 C-1 | 同 C-1 | `frontend/src/lib/conventions/*.ts` 中 16 个 union string literal 类型、`ApiError` / `PageInfo` interface 与全部错误码常量（含 A3 `AI_*` baseline 与 `RESUME_EXPORT_NOT_AVAILABLE`）按 D-5 / D-6 生成；`pnpm tsc --noEmit` 通过 | 001-bootstrap + A3 spec remediation + openapi-v1-contract/004 + backend-resume contract phase |
+| C-1 | 真理源生成 Go 类型 | YAML 已更新 | 执行 codegen | Go 中 11 个枚举、PageInfo 和错误码生成；PracticeMode/QuestionReviewStatus 零残留 | 001-bootstrap |
+| C-2 | 真理源生成 TS 类型 | 同 C-1 | 同 C-1 | TS 中 11 个 union、ApiError/PageInfo/error constants 生成；typecheck 通过 | 001-bootstrap |
 | C-3 | UUIDv7 工具可用 | A1 已落地仓库根 | 在 Go test 与 TS test 中调用 idx 工具 | Go `idx.NewID()` / TS `newId()` 返回 UUIDv7 字符串；输入 `tmp_xxx` 时 `idx.RequireServerID()` / `requireServerId()` 抛错 | 001-bootstrap |
 | C-4 | Idempotency-Key 工具 | A1 已落地仓库根 | 生成 + 校验 idempotency key（24h TTL） | Go 与 TS 双端工具产出格式一致的 key；TTL 过期后校验返回 false | 001-bootstrap |
 | C-5 | Lint 拦截违规命名 | 本地提交前引入一个 `auth_unauthorized`（小写）错误码常量 | 跑 `make lint` | B1 本地 lint/config 能报错：错误码必须 `UPPER_SNAKE_CASE`；A5 只约束本地质量门禁与远端 CI 延后边界，不改变规则语义 | 001-bootstrap |

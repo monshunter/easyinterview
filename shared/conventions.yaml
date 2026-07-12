@@ -142,13 +142,6 @@ enums:
       - ready
       - failed
 
-  - name: PracticeMode
-    sourceSection: "5.3"
-    jsonField: mode
-    values:
-      - assisted
-      - strict
-
   - name: PracticeGoal
     sourceSection: "5.4"
     jsonField: goal
@@ -212,14 +205,6 @@ enums:
       - high
       - medium
       - low
-
-  - name: QuestionReviewStatus
-    sourceSection: "5.11"
-    jsonField: questionReviewStatus
-    values:
-      - open
-      - queued_for_retry
-      - resolved
 
   # §5.13 covers two parallel enum domains for privacy requests; both share the
   # same source section but are distinct generated types in Go and TS.

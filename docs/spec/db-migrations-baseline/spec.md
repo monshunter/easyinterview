@@ -1,8 +1,8 @@
 # DB Migrations Baseline Spec
 
-> **版本**: 1.28
+> **版本**: 1.29
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 ## 1 背景与目标
 
@@ -28,7 +28,7 @@
 ### 2.1 In Scope
 
 - **迁移目录与命名**：所有 SQL migration 位于 `migrations/`，文件名为 `NNNNNN_<verb>_<noun>.up.sql` / `NNNNNN_<verb>_<noun>.down.sql`，序号 6 位递增。
-- **22 张当前应用表**：
+- **21 张当前应用表**：
   1. `users`
   2. `user_settings`
   3. `file_objects`
@@ -40,17 +40,16 @@
   9. `idempotency_records`
   10. `practice_sessions`
   11. `practice_session_events`
-  12. `practice_turns`
-  13. `question_assessments`
-  14. `feedback_reports`
-  15. `source_records`
-  16. `prompt_versions`
-  17. `rubric_versions`
-  18. `ai_task_runs`
-  19. `async_jobs`
-  20. `outbox_events`
-  21. `privacy_requests`
-  22. `audit_events`
+  12. `practice_messages`
+  13. `feedback_reports`
+  14. `source_records`
+  15. `prompt_versions`
+  16. `rubric_versions`
+  17. `ai_task_runs`
+  18. `async_jobs`
+  19. `outbox_events`
+  20. `privacy_requests`
+  21. `audit_events`
 - **Flat Resume schema**：`resumes` 承载 `original_text`、`parsed_text_snapshot`、`raw_text`、`file_object_id`、`structured_profile`、`display_name` 与 `source_type IN ('upload', 'paste')`；`practice_plans.resume_id` 是 practice 绑定简历的当前 FK。
 - **3 张 auth / session 支撑表**：`auth_challenges`、`sessions`、`external_identities`，遵守 [ADR-Q1](../engineering-roadmap/decisions/ADR-Q1-auth.md) 与 [backend-auth](../backend-auth/spec.md) 的 token / session / identity 约束。
 - **迁移元数据表**：`schema_migrations` 由迁移工具管理；`schema_backfills` 由 B4 Go registry 管理。
@@ -93,10 +92,11 @@
 | D-15 | AI call meta columns | `ai_task_runs` 包含 model / route / validation / schema / provenance typed columns | 支撑 AI routing、report 与观测查询 |
 | D-16 | Privacy deletion matrix | §3.1.2 是 table disposition 真理源；新增用户关联列必须先更新矩阵 | 防止漏删或误删 |
 | D-17 | Flat Resume net-state | `resumes` 是当前简历表；`source_type` 为 `upload` / `paste`；`practice_plans.resume_id` 绑定简历 | 支撑 Resume Workshop、Practice 与 privacy delete |
-| D-18 | Practice event replay | `practice_session_events.replay_payload` 保存 client-event replay snapshot；`payload` 保持 redacted | 支撑 idempotent append replay |
-| D-19 | Report generation columns | `feedback_reports` 与 `ai_task_runs` 承载 report assessment 所需 language / retry / provenance 字段 | 支撑 async report generation |
+| D-18 | Practice message replay | `practice_messages.client_message_id` 在 session 内唯一；assistant `reply_to_message_id` 唯一 | 同一用户消息重试不重复落库或生成 reply |
+| D-19 | Report generation columns | `feedback_reports.retry_focus_competency_codes` 与 `ai_task_runs` 承载 conversation-level report language / retry / provenance | 支撑 async report generation，不保留 question assessment 表 |
 | D-20 | Privacy request tombstone | `privacy_requests.user_id` 可置空，FK 为 `ON DELETE SET NULL` | 用户行 hard delete 后保留最小删除证据 |
-| D-21 | Current public schema count | 当前 public schema gate 为 22 app + 3 auth + 2 metadata，count >= 27 | 作为 migration inventory drift gate |
+| D-21 | Current public schema count | 当前 public schema gate 为 21 app + 3 auth + 2 metadata，count >= 26 | 作为 migration inventory drift gate |
+| D-22 | Practice conversation schema | 删除 `practice_turns`、`question_assessments`、`practice_plans.question_budget/mode`、`practice_sessions.turn_count/hints_enabled`；新增 `practice_messages` | pre-launch baseline 原地修订，不保留旧表/列兼容层 |
 
 #### 3.1.1 Field-Level Enum / Check 来源矩阵
 
@@ -117,9 +117,9 @@
 | `user_settings` | hard delete | 删除账号设置 |
 | `file_objects` / `resumes` | hard delete + object storage delete | 先删对象存储，再删 DB 行；简历原文、解析快照、结构化内容一并删除 |
 | `target_jobs` / `target_job_requirements` / `target_job_sources` | cascade / hard delete | 先删 requirements / sources，再删 target job；不得保留 raw JD 或 source URL |
-| `practice_plans` / `practice_sessions` / `practice_session_events` / `practice_turns` | cascade / hard delete | 先删事件流与 turns，再删 session / plan；raw answer text 必须覆盖 |
+| `practice_plans` / `practice_sessions` / `practice_session_events` / `practice_messages` | cascade / hard delete | messages/events 随 session 级联删除；raw conversation content 必须覆盖 |
 | `idempotency_records` | hard delete | 按 `user_id` 删除幂等记录；不得保留可反查用户请求的 fingerprint、response 或错误 payload |
-| `question_assessments` / `feedback_reports` | hard delete | 证据片段、报告正文、题目回顾和复练建议均视为用户内容 |
+| `feedback_reports` | hard delete | 证据摘要、报告正文、能力重点和复练建议均视为用户内容 |
 | `source_records` | hard delete | 外部 source 摘要与 owner 关联一并删除 |
 | `ai_task_runs` | hard delete after audit summary | 删除前只允许聚合 token / cost / SLA 计数进入非用户维度指标 |
 | `async_jobs` / `outbox_events` | hard delete or redacted terminal tombstone | 与用户资源关联的 payload / result 必须删除；隐私删除执行 job 只保留 redacted terminal 状态 |

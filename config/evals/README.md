@@ -50,7 +50,7 @@ cases:
         evidence_quotes: []
 ```
 
-The committed suite has at least 36 cases covering the 9 active §3.1.1 chat
+The committed suite has at least 24 cases covering the 6 active §3.1.1 chat
 `feature_key`s, including at least one `en -> multi` fallback case.
 
 ## 3 Runner and gates
@@ -59,7 +59,7 @@ The Go `backend/cmd/evalkit` binary owns registry single-source resolution and
 grading via the single `registry.LLMJudge`; Promptfoo is the runner that
 orchestrates and reports.
 
-- `make eval-offline` — single-source drift gate + `>= 36` count gate + the
+- `make eval-offline` — single-source drift gate + `>= 24` count gate + the
   Promptfoo runner over recorded fixtures. Deterministic, zero-cost, no network.
   **Not** part of `make test`. Runtime artifacts are confined to
   `$(EVAL_OUTPUT_DIR)` (default `.test-output/evals/`).

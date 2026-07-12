@@ -126,12 +126,10 @@ CREATE TABLE practice_plans (
   target_job_id uuid NOT NULL REFERENCES target_jobs(id) ON DELETE CASCADE,
   source_report_id uuid,
   goal text NOT NULL CHECK (goal IN ('baseline', 'retry_current_round', 'next_round')),
-  mode text NOT NULL CHECK (mode IN ('assisted', 'strict')),
   interviewer_persona text NOT NULL CHECK (interviewer_persona IN ('generalist', 'hr', 'hiring_manager', 'technical_manager', 'peer')),
   difficulty text NOT NULL DEFAULT 'standard' CHECK (difficulty IN ('easy', 'standard', 'stretch')),
   language text NOT NULL DEFAULT 'en',
   time_budget_minutes smallint NOT NULL,
-  question_budget smallint NOT NULL,
   resume_asset_id uuid REFERENCES resume_assets(id) ON DELETE SET NULL,
   focus_competency_codes text[] NOT NULL DEFAULT '{}'::text[],
   status text NOT NULL DEFAULT 'ready' CHECK (status IN ('draft', 'ready', 'archived')),
@@ -170,8 +168,6 @@ CREATE TABLE practice_sessions (
   target_job_id uuid NOT NULL REFERENCES target_jobs(id) ON DELETE CASCADE,
   status text NOT NULL CHECK (status IN ('queued', 'running', 'waiting_user_input', 'completing', 'completed', 'failed', 'cancelled')),
   language text NOT NULL DEFAULT 'en',
-  hints_enabled boolean NOT NULL DEFAULT false,
-  turn_count integer NOT NULL DEFAULT 0,
   started_at timestamptz,
   completed_at timestamptz,
   cancelled_at timestamptz,
@@ -186,36 +182,31 @@ CREATE TABLE practice_session_events (
   id uuid PRIMARY KEY,
   session_id uuid NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
   seq_no integer NOT NULL,
-  event_type text NOT NULL CHECK (event_type IN ('session_started', 'question_started', 'answer_submitted', 'hint_requested', 'follow_up_generated', 'turn_completed', 'session_paused', 'session_resumed', 'session_completed', 'tts_chunk_started', 'tts_chunk_played', 'barge_in_detected', 'assistant_context_committed')),
-  client_event_id text,
+  event_type text NOT NULL CHECK (event_type IN ('session_started', 'session_completed')),
   payload jsonb NOT NULL DEFAULT '{}'::jsonb,
-  replay_payload jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (session_id, seq_no),
-  UNIQUE (session_id, client_event_id)
+  UNIQUE (session_id, seq_no)
 );
 CREATE INDEX idx_practice_session_events_session_seq ON practice_session_events (session_id, seq_no);
 
-CREATE TABLE practice_turns (
+CREATE TABLE practice_messages (
   id uuid PRIMARY KEY,
   session_id uuid NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
-  turn_index integer NOT NULL,
-  question_text text NOT NULL,
-  question_intent text,
-  interviewer_persona text NOT NULL,
-  status text NOT NULL CHECK (status IN ('asked', 'answered', 'follow_up_requested', 'assessed')),
-  answer_text text,
-  answer_summary text,
-  hint_text text,
-  follow_up_count smallint NOT NULL DEFAULT 0,
-  asked_at timestamptz NOT NULL,
-  answered_at timestamptz,
-  completed_at timestamptz,
+  seq_no integer NOT NULL,
+  role text NOT NULL CHECK (role IN ('user', 'assistant')),
+  content text NOT NULL,
+  client_message_id uuid,
+  reply_to_message_id uuid REFERENCES practice_messages(id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (session_id, turn_index)
+  UNIQUE (session_id, seq_no),
+  UNIQUE (session_id, client_message_id),
+  UNIQUE (reply_to_message_id),
+  CONSTRAINT practice_messages_client_id_check CHECK (
+    (role = 'user' AND client_message_id IS NOT NULL AND reply_to_message_id IS NULL)
+    OR (role = 'assistant' AND client_message_id IS NULL)
+  )
 );
-CREATE INDEX idx_practice_turns_session_turn_index ON practice_turns (session_id, turn_index);
+CREATE INDEX idx_practice_messages_session_seq ON practice_messages (session_id, seq_no);
 
 CREATE TABLE feedback_reports (
   id uuid PRIMARY KEY,
@@ -234,7 +225,8 @@ CREATE TABLE feedback_reports (
   language text NOT NULL DEFAULT 'en',
   feature_flag text NOT NULL DEFAULT 'none',
   data_source_version text NOT NULL DEFAULT 'not_applicable',
-  retry_focus_turn_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+  dimension_assessments jsonb NOT NULL DEFAULT '[]'::jsonb,
+  retry_focus_competency_codes text[] NOT NULL DEFAULT '{}'::text[],
   error_code text,
   generated_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -245,26 +237,6 @@ CREATE INDEX idx_feedback_reports_target_job_created ON feedback_reports (target
 
 ALTER TABLE practice_plans
   ADD CONSTRAINT fk_practice_plans_source_report FOREIGN KEY (source_report_id) REFERENCES feedback_reports(id) ON DELETE SET NULL;
-
-CREATE TABLE question_assessments (
-  id uuid PRIMARY KEY,
-  report_id uuid NOT NULL REFERENCES feedback_reports(id) ON DELETE CASCADE,
-  session_id uuid NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
-  turn_id uuid NOT NULL REFERENCES practice_turns(id) ON DELETE CASCADE,
-  question_intent text,
-  overall_status text NOT NULL CHECK (overall_status IN ('strong', 'meets_bar', 'needs_work')),
-  confidence text NOT NULL CHECK (confidence IN ('high', 'medium', 'low')),
-  strengths jsonb NOT NULL DEFAULT '[]'::jsonb,
-  gaps jsonb NOT NULL DEFAULT '[]'::jsonb,
-  recommended_framework text,
-  dimension_results jsonb NOT NULL DEFAULT '{}'::jsonb,
-  review_status text NOT NULL CHECK (review_status IN ('open', 'queued_for_retry', 'resolved')),
-  included_in_retry_plan boolean NOT NULL DEFAULT false,
-  related_experience_card_ids uuid[] NOT NULL DEFAULT '{}'::uuid[],
-  created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (report_id, turn_id)
-);
-CREATE INDEX idx_question_assessments_session_turn ON question_assessments (session_id, turn_id);
 
 CREATE TABLE resume_tailor_runs (
   id uuid PRIMARY KEY,
@@ -329,7 +301,7 @@ CREATE TABLE rubric_versions (
 CREATE TABLE ai_task_runs (
   id uuid PRIMARY KEY,
   user_id uuid REFERENCES users(id) ON DELETE SET NULL,
-  task_type text NOT NULL CHECK (task_type IN ('jd_parse', 'resume_parse', 'question_generate', 'followup_generate', 'report_generate', 'report_assessment', 'resume_tailor', 'hint_generate')),
+  task_type text NOT NULL CHECK (task_type IN ('jd_parse', 'resume_parse', 'practice_chat', 'report_generate', 'resume_tailor')),
   resource_type text NOT NULL,
   resource_id uuid NOT NULL,
   provider text NOT NULL,

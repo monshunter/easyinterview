@@ -42,20 +42,20 @@ class LintEventsBaselineTest(unittest.TestCase):
     def test_detects_required_payload_type_change(self) -> None:
         current = copy.deepcopy(self.events)
         report_generated = next(event for event in current["events"] if event["name"] == "report.generated")
-        report_generated["requiredPayload"]["questionIssueCount"]["type"] = "string"
+        report_generated["requiredPayload"]["modelId"]["type"] = "bool"
 
         errs = self.linter.compare_events_baseline(current, self.events)
 
-        self.assertTrue(any("questionIssueCount" in err and "breaking change requires eventVersion + 1" in err for err in errs), errs)
+        self.assertTrue(any("modelId" in err and "breaking change requires eventVersion + 1" in err for err in errs), errs)
 
     def test_detects_required_payload_deleted(self) -> None:
         current = copy.deepcopy(self.events)
         report_generated = next(event for event in current["events"] if event["name"] == "report.generated")
-        report_generated["requiredPayload"].pop("questionIssueCount")
+        report_generated["requiredPayload"].pop("modelId")
 
         errs = self.linter.compare_events_baseline(current, self.events)
 
-        self.assertTrue(any("questionIssueCount" in err and "breaking change requires eventVersion + 1" in err for err in errs), errs)
+        self.assertTrue(any("modelId" in err and "breaking change requires eventVersion + 1" in err for err in errs), errs)
 
     def test_detects_dot_case_event_renamed_to_snake(self) -> None:
         current = copy.deepcopy(self.events)

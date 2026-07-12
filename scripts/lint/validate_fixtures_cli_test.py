@@ -128,21 +128,11 @@ class ValidatorCliTest(unittest.TestCase):
         self.assertIn("resumeVersionId", out.stderr + out.stdout)
         self.assertIn("D-20 flat resume", out.stderr + out.stdout)
 
-    def test_missing_required_practice_session_scenario_fails(self) -> None:
-        rel = "openapi/fixtures/PracticeSessions/appendSessionEvent.json"
-        data = self._read(rel)
-        del data["scenarios"]["mismatch"]
-        self._write(rel, data)
-        out = _run_validator(self.repo)
-        self.assertNotEqual(out.returncode, 0)
-        self.assertIn("appendSessionEvent", out.stderr + out.stdout)
-        self.assertIn("missing required scenarios", out.stderr + out.stdout)
-
-    def test_practice_voice_text_hash_must_be_real_sha256(self) -> None:
+    def test_voice_fixture_must_remain_disabled(self) -> None:
         rel = "openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json"
         data = self._read(rel)
-        data["scenarios"]["default"]["response"]["body"]["ttsChunks"][0]["textHash"] = (
-            "sha256:not-a-real-digest"
+        data["scenarios"]["default"]["response"]["body"]["error"]["code"] = (
+            "AI_PROVIDER_TIMEOUT"
         )
         self._write(rel, data)
 
@@ -150,115 +140,7 @@ class ValidatorCliTest(unittest.TestCase):
 
         self.assertNotEqual(out.returncode, 0)
         self.assertIn("createPracticeVoiceTurn", out.stderr + out.stdout)
-        self.assertIn("64-hex SHA-256", out.stderr + out.stdout)
-
-    def test_practice_voice_text_hash_must_hash_assistant_draft_exactly(self) -> None:
-        rel = "openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json"
-        data = self._read(rel)
-        data["scenarios"]["default"]["response"]["body"]["ttsChunks"][0][
-            "textHash"
-        ] = "sha256:" + ("0" * 64)
-        self._write(rel, data)
-
-        out = _run_validator(self.repo)
-
-        self.assertNotEqual(out.returncode, 0)
-        self.assertIn("createPracticeVoiceTurn.default", out.stderr + out.stdout)
-        self.assertIn("assistantTextDraft exactly", out.stderr + out.stdout)
-
-    def test_append_follow_up_session_snapshot_must_match_action(self) -> None:
-        rel = "openapi/fixtures/PracticeSessions/appendSessionEvent.json"
-        data = self._read(rel)
-        data["scenarios"]["default"]["response"]["body"]["session"]["currentTurn"][
-            "questionText"
-        ] = "stale question"
-        self._write(rel, data)
-
-        out = _run_validator(self.repo)
-
-        self.assertNotEqual(out.returncode, 0)
-        self.assertIn("appendSessionEvent.default", out.stderr + out.stdout)
-        self.assertIn("currentTurn.questionText", out.stderr + out.stdout)
-
-    def test_append_replay_must_equal_original_snapshot(self) -> None:
-        rel = "openapi/fixtures/PracticeSessions/appendSessionEvent.json"
-        data = self._read(rel)
-        data["scenarios"]["replay"]["response"]["body"]["session"]["currentTurn"][
-            "questionText"
-        ] = "a replay must not invent this question"
-        self._write(rel, data)
-
-        out = _run_validator(self.repo)
-
-        self.assertNotEqual(out.returncode, 0)
-        self.assertIn("appendSessionEvent.replay", out.stderr + out.stdout)
-        self.assertIn("original snapshot", out.stderr + out.stdout)
-
-    def test_append_resume_must_return_session_wait(self) -> None:
-        rel = "openapi/fixtures/PracticeSessions/appendSessionEvent.json"
-        data = self._read(rel)
-        action = data["scenarios"]["pause-resume"]["response"]["body"][
-            "assistantAction"
-        ]
-        action["type"] = "ask_question"
-        action["questionText"] = "resume must not generate a new question"
-        self._write(rel, data)
-
-        out = _run_validator(self.repo)
-
-        self.assertNotEqual(out.returncode, 0)
-        self.assertIn("appendSessionEvent.pause-resume", out.stderr + out.stdout)
-        self.assertIn("session_resumed", out.stderr + out.stdout)
-
-    def test_append_ai_timeout_must_degrade_to_session_wait(self) -> None:
-        rel = "openapi/fixtures/PracticeSessions/appendSessionEvent.json"
-        data = self._read(rel)
-        data["scenarios"]["ai-timeout"]["response"] = {
-            "status": 502,
-            "headers": {"X-Request-ID": "req_timeout_injected"},
-            "body": {
-                "error": {
-                    "code": "AI_PROVIDER_TIMEOUT",
-                    "message": "injected stale timeout contract",
-                    "requestId": "req_timeout_injected",
-                    "retryable": True,
-                }
-            },
-        }
-        self._write(rel, data)
-
-        out = _run_validator(self.repo)
-
-        self.assertNotEqual(out.returncode, 0)
-        self.assertIn("appendSessionEvent.ai-timeout", out.stderr + out.stdout)
-        self.assertIn("session_wait", out.stderr + out.stdout)
-
-    def test_voice_session_snapshot_must_match_assistant_draft(self) -> None:
-        rel = "openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json"
-        data = self._read(rel)
-        data["scenarios"]["default"]["response"]["body"]["session"]["currentTurn"][
-            "questionText"
-        ] = "stale question"
-        self._write(rel, data)
-
-        out = _run_validator(self.repo)
-
-        self.assertNotEqual(out.returncode, 0)
-        self.assertIn("createPracticeVoiceTurn.default", out.stderr + out.stdout)
-        self.assertIn("assistantTextDraft", out.stderr + out.stdout)
-
-    def test_practice_voice_p0_rejects_multiple_tts_chunks(self) -> None:
-        rel = "openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json"
-        data = self._read(rel)
-        chunks = data["scenarios"]["default"]["response"]["body"]["ttsChunks"]
-        chunks.append({**chunks[0], "chunkId": "voice-chunk-002", "sequence": 1})
-        self._write(rel, data)
-
-        out = _run_validator(self.repo)
-
-        self.assertNotEqual(out.returncode, 0)
-        self.assertIn("createPracticeVoiceTurn.default", out.stderr + out.stdout)
-        self.assertIn("0..1 TTS chunks", out.stderr + out.stdout)
+        self.assertIn("AI_UNSUPPORTED_CAPABILITY", out.stderr + out.stdout)
 
     def test_validate_fixtures_uses_openapi_as_operation_inventory(self) -> None:
         openapi_path = self.repo / "openapi/openapi.yaml"

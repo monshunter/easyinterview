@@ -37,9 +37,8 @@ func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
 		"idempotency_records",
 		"practice_sessions",
 		"practice_session_events",
-		"practice_turns",
+		"practice_messages",
 		"feedback_reports",
-		"question_assessments",
 		"resume_tailor_runs",
 		"source_records",
 		"prompt_versions",
@@ -63,8 +62,8 @@ func TestBaselineMigrationDefinesAllOwnedTables(t *testing.T) {
 	}
 	for _, required := range []string{
 		"open_question_issue_count integer not null default 0",
-		"review_status text not null check (review_status in ('open', 'queued_for_retry', 'resolved'))",
-		"included_in_retry_plan boolean not null default false",
+		"dimension_assessments jsonb not null default '[]'::jsonb",
+		"retry_focus_competency_codes text[] not null default '{}'::text[]",
 	} {
 		if !strings.Contains(up, required) {
 			t.Fatalf("baseline migration missing product-scope v1.2 column/check %q", required)
@@ -94,7 +93,7 @@ func TestPracticeIdempotencyMigrationContract(t *testing.T) {
 		"user_id uuid not null references users(id) on delete cascade",
 		"unique (user_id, domain, operation, idempotency_key_hash)",
 		"create index idx_idempotency_records_expires_at on idempotency_records (expires_at)",
-		"mode text not null check (mode in ('assisted', 'strict'))",
+		"create table practice_messages",
 	} {
 		if !strings.Contains(up, required) {
 			t.Fatalf("practice idempotency migration contract missing %q", required)
@@ -143,28 +142,25 @@ func TestPracticeIdempotencyMigrationDownDoesNotDropBaselineOwnedTable(t *testin
 	}
 }
 
-func TestBaselineMigrationAcceptsReportQuestionTaskTypes(t *testing.T) {
+func TestBaselineMigrationAcceptsConversationTaskTypes(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))
 
-	if !strings.Contains(up, "task_type in ('jd_parse', 'resume_parse', 'question_generate', 'followup_generate', 'report_generate', 'report_assessment', 'resume_tailor', 'hint_generate')") {
-		t.Fatalf("ai_task_runs.task_type CHECK must include report_assessment")
+	if !strings.Contains(up, "task_type in ('jd_parse', 'resume_parse', 'practice_chat', 'report_generate', 'resume_tailor')") {
+		t.Fatalf("ai_task_runs.task_type CHECK must match the conversation-level task set")
 	}
-	if strings.Contains(up, "'report_assess'") {
-		t.Fatalf("ai_task_runs.task_type CHECK must not contain out-of-scope report_assess alias")
+	for _, stale := range []string{"question_generate", "followup_generate", "report_assessment", "hint_generate"} {
+		if strings.Contains(up, stale) {
+			t.Fatalf("ai_task_runs.task_type CHECK must not contain stale task %s", stale)
+		}
 	}
 }
 
-func TestBaselinePracticeSessionEventsAcceptVoicePlaybackKinds(t *testing.T) {
+func TestBaselinePracticeSessionEventsOnlyStoreLifecycleFacts(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000001_create_baseline.up.sql")))
 
-	for _, required := range []string{
-		"'tts_chunk_started'",
-		"'tts_chunk_played'",
-		"'barge_in_detected'",
-		"'assistant_context_committed'",
-	} {
+	for _, required := range []string{"'session_started'", "'session_completed'"} {
 		if !strings.Contains(up, required) {
 			t.Fatalf("practice_session_events.event_type check must include %s", required)
 		}
@@ -180,7 +176,8 @@ func TestFeedbackReportsContainsProvenancePersistenceColumns(t *testing.T) {
 		"language text not null default 'en'",
 		"feature_flag text not null default 'none'",
 		"data_source_version text not null default 'not_applicable'",
-		"retry_focus_turn_ids jsonb not null default '[]'::jsonb",
+		"dimension_assessments jsonb not null default '[]'::jsonb",
+		"retry_focus_competency_codes text[] not null default '{}'::text[]",
 	} {
 		if !strings.Contains(block, required) {
 			t.Fatalf("feedback_reports missing provenance persistence column %q", required)

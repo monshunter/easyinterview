@@ -4,99 +4,16 @@ metadata:
   subspec: frontend-workspace-and-practice
   name: 002-practice-text-event-loop
   sequence: 2
-  baseBranch: main
-  branch: practice-phone-session-flow
   specVersion:
-    from: 1.2
-    to: 1.33
+    from: 1.33
+    to: 1.34
 spec:
+  baseBranch: main
+  branch: practice-conversation-simplification
   defaultTarget: frontend
   discovery:
-    aliases:
-      - frontend-workspace-and-practice
-      - practice-text-event-loop
-      - practice text event loop
-      - practice screen text mode
-      - practice text surface
-      - practice phone mode
-      - real interview session
-      - practice event loop
-      - appendSessionEvent
-      - completePracticeSession
-      - assistant action renderer
-      - practice display context
-    keywords:
-      - PracticeScreen
-      - PracticeSessionLostState
-      - PracticePhoneSurface
-      - usePracticeVoiceTurn
-      - usePracticeSessionLoader
-      - usePracticeEvents
-      - usePracticeSession
-      - useCompletePracticeSession
-      - AssistantActionRenderer
-      - HintBanner
-      - SessionMap
-      - QuestionCard
-      - Transcript
-      - InputBar
-      - FinishCta
-      - ErrorState
-      - PhoneSurface
-      - phone captions
-      - single handset
-      - exitPhoneMode
-      - hang up to text
-      - no restart call
-      - no callEnded
-      - VAD silence submit
-      - speech-start barge-in
-      - getTargetJob
-      - real company title
-      - no questionIntent display
-      - no fixture transcript
-      - session_wait retained answer new clientEventId
-      - no independent side-panel controls
-      - no in-session persona switch
-      - no speech-to-text
-      - no skip
-      - no strict switch
-      - no voice analysis
-      - real environment screenshot
-      - resumeId
-      - getPracticeSession
-      - appendSessionEvent
-      - completePracticeSession
-      - PracticeSessionEventRequest
-      - SessionEventResult
-      - AssistantAction
-      - PracticeSession
-      - PracticeTurn
-      - PracticeDisplayContext
-      - CompletePracticeSessionRequest
-      - ReportWithJob
-      - clientEventId
-      - newIdempotencyBatch
-      - INCREMENT_HINT_COUNT
-      - MERGE_SESSION
-      - hintsEnabled
-      - practiceMode display policy
-      - hintUsed hintCount
-      - practiceGoal baseline retry_current_round next_round
-      - SessionStatus
-      - assistantAction.type ask_question
-      - assistantAction.type ask_follow_up
-      - assistantAction.type show_hint
-      - assistantAction.type session_wait
-      - assistantAction.type session_completed
-      - generating handoff
-      - PRACTICE_SESSION_CONFLICT
-      - PRACTICE_SESSION_NOT_FOUND
-      - AI_PROVIDER_TIMEOUT
-      - E2E.P0.044
-      - E2E.P0.045
-      - E2E.P0.046
-      - E2E.P0.047
+    aliases: [practice continuous chat, full width conversation]
+    keywords: [PracticeScreen, PracticeMessage, sendPracticeMessage, disabled phone, no SessionMap, no QuestionCard]
   targets:
     frontend:
       plan: ./plan.md
@@ -106,49 +23,13 @@ spec:
       testChecklist: ./test-checklist.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      references:
-        - ../../../../ui-design/module-practice-review.md
-        - ../../../../ui-design/module-map.md
-        - ../../../../ui-design/ui-architecture.md
-        - ../../../backend-practice/spec.md
-        - ../../../backend-practice/plans/002-event-loop-and-completion/plan.md
-        - ../../../practice-voice-mvp/spec.md
-        - ../../../practice-voice-mvp/plans/001-cascaded-stt-llm-tts/plan.md
-        - ../../../backend-targetjob/spec.md
-        - ../../../openapi-v1-contract/spec.md
-        - ../../../mock-contract-suite/spec.md
-        - ../../../shared-conventions-codified/spec.md
-        - ../../../frontend-shell/spec.md
-        - ../001-workspace-and-interview-context/plan.md
       discovery:
         packages:
+          - ui-design/src/screen-practice.jsx
           - frontend/src/app/screens/practice
-          - frontend/src/app/screens/practice/hooks
-          - frontend/src/app/screens/practice/components
-          - frontend/src/app/screens/practice/utils
-          - frontend/src/app/screens/practice/__tests__
           - frontend/src/app/interview-context
           - frontend/src/app/i18n/locales
-          - frontend/src/api
-          - frontend/src/api/generated
-          - frontend/src/lib
-          - frontend/src/lib/conventions
-          - frontend/src/lib/events
-          - frontend/src/lib/ids.ts
           - frontend/tests/pixel-parity
-          - ui-design/src
-          - openapi/fixtures/TargetJobs
-          - openapi/fixtures/PracticeSessions
-          - test/scenarios/e2e/p0-044-practice-text-loop-assisted-happy-path
-          - test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display
-          - test/scenarios/e2e/p0-046-practice-text-loop-failure-and-recovery
-          - test/scenarios/e2e/p0-047-practice-text-loop-complete-and-generating-handoff
-        uiRoutes:
-          - practice
-          - generating
-        apiNames:
-          - getTargetJob
-          - getPracticeSession
-          - appendSessionEvent
-          - createPracticeVoiceTurn
-          - completePracticeSession
+          - test/scenarios/e2e
+        uiRoutes: [practice, generating]
+        apiNames: [getPracticeSession, sendPracticeMessage, completePracticeSession, getTargetJob]

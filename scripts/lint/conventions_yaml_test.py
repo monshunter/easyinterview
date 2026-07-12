@@ -135,12 +135,6 @@ def valid_data() -> dict:
                 "values": ["ready"],
             },
             {
-                "name": "PracticeMode",
-                "sourceSection": "5.3",
-                "jsonField": "mode",
-                "values": ["assisted", "strict"],
-            },
-            {
                 "name": "PracticeGoal",
                 "sourceSection": "5.4",
                 "jsonField": "goal",
@@ -181,12 +175,6 @@ def valid_data() -> dict:
                 "sourceSection": "5.10",
                 "jsonField": "confidence",
                 "values": ["medium"],
-            },
-            {
-                "name": "QuestionReviewStatus",
-                "sourceSection": "5.11",
-                "jsonField": "questionReviewStatus",
-                "values": ["open", "queued_for_retry", "resolved"],
             },
             {
                 "name": "PrivacyRequestType",
@@ -318,21 +306,25 @@ class ConventionsYAMLTest(unittest.TestCase):
         errs = self.linter.validate(data)
 
         self.assertTrue(
-            any("MistakeStatus" in err and "removed by product-scope v1.2" in err for err in errs),
+            any("MistakeStatus" in err and "not part of the current product contract" in err for err in errs),
             errs,
         )
 
-    def test_rejects_out_of_scope_practice_mode_values(self) -> None:
+    def test_rejects_removed_practice_mode(self) -> None:
         data = copy.deepcopy(valid_data())
-        for enum in data["enums"]:
-            if enum["name"] == "PracticeMode":
-                enum["values"] = ["warmup", "core_interview", "single_drill"]
-                break
+        data["enums"].append(
+            {
+                "name": "PracticeMode",
+                "sourceSection": "5.3",
+                "jsonField": "mode",
+                "values": ["assisted", "strict"],
+            }
+        )
 
         errs = self.linter.validate(data)
 
         self.assertTrue(
-            any("PracticeMode" in err and "product-scope v1.2 values" in err for err in errs),
+            any("PracticeMode" in err and "not part of the current product contract" in err for err in errs),
             errs,
         )
 

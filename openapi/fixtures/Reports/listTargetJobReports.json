@@ -4,101 +4,10 @@
     "default": {
       "response": {
         "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
-        },
-        "body": {
-          "items": [
-            {
-              "id": "01918fa0-0000-7000-8000-000000007000",
-              "sessionId": "01918fa0-0000-7000-8000-000000005000",
-              "targetJobId": "01918fa0-0000-7000-8000-000000002000",
-              "status": "ready",
-              "preparednessLevel": "basically_ready",
-              "highlights": [
-                {
-                  "dimension": "ownership",
-                  "evidence": "明确指出推动 12 个团队使用统一组件库；说明了反对意见的处理路径。",
-                  "confidence": "high"
-                }
-              ],
-              "issues": [
-                {
-                  "dimension": "technical_depth",
-                  "evidence": "回答中没有量化迁移过程中的回归率或灰度策略。",
-                  "confidence": "medium"
-                }
-              ],
-              "nextActions": [
-                {
-                  "type": "retry_current_round",
-                  "label": "围绕灰度策略复练当前轮追问。"
-                },
-                {
-                  "type": "review_evidence",
-                  "label": "回顾迁移期间的回归数据并准备一段量化叙事。"
-                }
-              ],
-              "questionAssessments": [
-                {
-                  "turnId": "01918fa0-0000-7000-8000-000000006000",
-                  "questionIntent": "behavioral.leadership.design_system",
-                  "dimensionResults": {
-                    "communication": {
-                      "status": "meets_bar",
-                      "confidence": "high"
-                    },
-                    "technical_depth": {
-                      "status": "needs_work",
-                      "confidence": "medium"
-                    },
-                    "ownership": {
-                      "status": "strong",
-                      "confidence": "high"
-                    }
-                  },
-                  "reviewStatus": "queued_for_retry",
-                  "includedInRetryPlan": true
-                }
-              ],
-              "retryFocusTurnIds": [
-                "01918fa0-0000-7000-8000-000000006000"
-              ],
-              "provenance": {
-                "promptVersion": "feedback_report.v3",
-                "rubricVersion": "feedback_report.rubric.v2",
-                "modelId": "model-profile:contract.default",
-                "language": "zh-CN",
-                "featureFlag": "none",
-                "dataSourceVersion": "practice_session.v9"
-              },
-              "createdAt": "2026-04-28T12:00:00Z",
-              "updatedAt": "2026-04-28T13:45:12Z"
-            }
-          ],
-          "pageInfo": {
-            "nextCursor": null,
-            "pageSize": 20,
-            "hasMore": false
-          }
-        }
+        "headers": {"X-Request-ID": "req_2026-07-12-report-list"},
+        "body": {"items": [{"id": "01918fa0-0000-7000-8000-000000007000", "sessionId": "01918fa0-0000-7000-8000-000000005000", "targetJobId": "01918fa0-0000-7000-8000-000000002000", "status": "ready", "preparednessLevel": "basically_ready", "dimensionAssessments": [{"dimension": "communication", "status": "meets_bar", "confidence": "high"}], "highlights": [{"dimension": "ownership", "evidence": "明确说明了跨团队推进路径。", "confidence": "high"}], "issues": [], "nextActions": [{"type": "next_round", "label": "进入下一轮"}], "retryFocusCompetencyCodes": [], "provenance": {"promptVersion": "v0.1.0", "rubricVersion": "v0.1.0", "modelId": "model-profile:report.generate.default", "language": "zh-CN", "featureFlag": "none", "dataSourceVersion": "registry.v1"}, "createdAt": "2026-07-12T08:30:00Z", "updatedAt": "2026-07-12T08:31:00Z"}], "pageInfo": {"nextCursor": null, "pageSize": 20, "hasMore": false}}
       }
     },
-    "empty": {
-      "response": {
-        "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-05-15T10-20-00-empty-reports"
-        },
-        "body": {
-          "items": [],
-          "pageInfo": {
-            "nextCursor": null,
-            "pageSize": 20,
-            "hasMore": false
-          }
-        }
-      }
-    }
+    "empty": {"response": {"status": 200, "headers": {"X-Request-ID": "req_2026-07-12-report-list-empty"}, "body": {"items": [], "pageInfo": {"nextCursor": null, "pageSize": 20, "hasMore": false}}}}
   }
 }

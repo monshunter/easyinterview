@@ -33,9 +33,6 @@
         "language": {
           "type": "string"
         },
-        "mode": {
-          "$ref": "../refs/PracticeMode.json"
-        },
         "planId": {
           "type": "string"
         },
@@ -49,7 +46,6 @@
       "required": [
         "goal",
         "language",
-        "mode",
         "planId",
         "sessionId",
         "targetJobId"

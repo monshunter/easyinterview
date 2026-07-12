@@ -8,10 +8,8 @@ import type {
 	InterviewerRole as InterviewerRoleAlias,
 	PageInfo as PageInfoAlias,
 	PracticeGoal as PracticeGoalAlias,
-	PracticeMode as PracticeModeAlias,
 	PrivacyRequestStatus as PrivacyRequestStatusAlias,
 	PrivacyRequestType as PrivacyRequestTypeAlias,
-	QuestionReviewStatus as QuestionReviewStatusAlias,
 	ReadinessTier as ReadinessTierAlias,
 	ReportStatus as ReportStatusAlias,
 	SessionStatus as SessionStatusAlias,
@@ -36,8 +34,6 @@ export type TargetJobStatus = TargetJobStatusAlias;
 
 export type TargetJobParseStatus = TargetJobParseStatusAlias;
 
-export type PracticeMode = PracticeModeAlias;
-
 export type PracticeGoal = PracticeGoalAlias;
 
 export type InterviewerRole = InterviewerRoleAlias;
@@ -51,8 +47,6 @@ export type ReadinessTier = ReadinessTierAlias;
 export type DimensionStatus = DimensionStatusAlias;
 
 export type Confidence = ConfidenceAlias;
-
-export type QuestionReviewStatus = QuestionReviewStatusAlias;
 
 export type PrivacyRequestType = PrivacyRequestTypeAlias;
 
@@ -289,8 +283,6 @@ export interface CreatePracticePlanRequest {
 	goal: PracticeGoal;
 	interviewerPersona: InterviewerRole;
 	language: string;
-	mode: PracticeMode;
-	questionBudget: number;
 	resumeId: string;
 	sourceReportId?: string | null;
 	targetJobId: string;
@@ -304,8 +296,6 @@ export interface PracticePlan {
 	id: string;
 	interviewerPersona: InterviewerRole;
 	language: string;
-	mode: PracticeMode;
-	questionBudget: number;
 	resumeId: string;
 	sourceReportId?: string | null;
 	status: "draft" | "ready" | "archived";
@@ -314,29 +304,25 @@ export interface PracticePlan {
 }
 
 export interface StartPracticeSessionRequest {
-	hintsEnabled?: boolean;
 	planId: string;
 }
 
-export interface PracticeTurn {
-	askedAt?: string;
+export interface PracticeMessage {
+	content: string;
+	createdAt: string;
 	id: string;
-	questionIntent?: string;
-	questionText: string;
-	status: "asked" | "answered" | "follow_up_requested" | "assessed";
-	turnIndex: number;
+	role: "user" | "assistant";
+	seqNo: number;
 }
 
 export interface PracticeSession {
 	createdAt: string;
-	currentTurn?: PracticeTurn | null;
-	hintsEnabled: boolean;
 	id: string;
 	language: string;
+	messages: PracticeMessage[];
 	planId: string;
 	status: SessionStatus;
 	targetJobId: string;
-	turnCount: number;
 	updatedAt: string;
 }
 
@@ -349,8 +335,6 @@ export interface CreatePracticeVoiceTurnRequest {
 	audio: PracticeVoiceAudioInput;
 	clientVoiceTurnId: string;
 	language: string;
-	practiceMode: PracticeMode;
-	turnId: string;
 }
 
 export interface PracticeVoiceAudioInput {
@@ -398,26 +382,16 @@ export interface PracticeVoiceTTSError {
 	retryable: boolean;
 }
 
-export interface PracticeSessionEventRequest {
-	clientEventId: string;
-	kind: "answer_submitted" | "hint_requested" | "session_paused" | "session_resumed" | "tts_chunk_started" | "tts_chunk_played" | "barge_in_detected" | "assistant_context_committed";
-	occurredAt: string;
-	payload?: Record<string, unknown>;
+export interface SendPracticeMessageRequest {
+	clientMessageId: string;
+	text: string;
 }
 
-export interface AssistantAction {
-	hint?: string | null;
-	provenance: GenerationProvenance;
-	questionText?: string | null;
-	sessionStatus: SessionStatus;
-	turnId?: string | null;
-	type: "ask_question" | "ask_follow_up" | "show_hint" | "session_wait" | "session_completed";
-}
-
-export interface SessionEventResult {
+export interface SendPracticeMessageResponse {
 	acknowledged: boolean;
-	assistantAction: AssistantAction;
+	assistantMessage: PracticeMessage;
 	session: PracticeSession;
+	userMessage: PracticeMessage;
 }
 
 export interface CompletePracticeSessionRequest {
@@ -451,16 +425,15 @@ export interface ReportNextAction {
 	type: "retry_current_round" | "next_round" | "review_evidence";
 }
 
-export interface QuestionAssessment {
-	dimensionResults: Record<string, unknown>;
-	includedInRetryPlan: boolean;
-	questionIntent: string;
-	reviewStatus: QuestionReviewStatus;
-	turnId: string;
+export interface DimensionAssessment {
+	confidence: Confidence;
+	dimension: string;
+	status: DimensionStatus;
 }
 
 export interface FeedbackReport {
 	createdAt: string;
+	dimensionAssessments?: DimensionAssessment[];
 	errorCode?: ApiErrorCode | null;
 	highlights?: ReportHighlight[];
 	id: string;
@@ -468,8 +441,7 @@ export interface FeedbackReport {
 	nextActions?: ReportNextAction[];
 	preparednessLevel?: ReadinessTier | null;
 	provenance?: GenerationProvenance | null;
-	questionAssessments?: QuestionAssessment[];
-	retryFocusTurnIds?: string[];
+	retryFocusCompetencyCodes?: string[];
 	sessionId: string;
 	status: ReportStatus;
 	targetJobId: string;

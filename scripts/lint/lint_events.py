@@ -29,9 +29,12 @@ FIXTURE_PARTS = {"__fixtures__", "fixtures", "testdata", "generated"}
 TEST_FILE_SUFFIXES = ("_test.go", ".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx")
 GO_EVENT_CONST_RE = re.compile(r"\b(EventName[A-Za-z0-9_]*)\s+(?:EventName\s*)?=")
 TS_EVENT_CONST_RE = re.compile(r"\b(EVENT_NAME_[A-Z0-9_]*)\s*=")
-REMOVED_EVENT_NAMES = {"mistake.created", "mistake.status.changed"}
+REMOVED_EVENT_NAMES = {"mistake.created", "mistake.status.changed", "practice.turn.completed"}
 REMOVED_PAYLOAD_FIELDS = {
     ("report.generated", "mistakeCount"),
+    ("report.generated", "questionIssueCount"),
+    ("practice.session.started", "mode"),
+    ("practice.session.completed", "turnCount"),
 }
 ALLOWED_TRIGGER_EVENT_SEMANTICS = {
     "trigger_creates_job",
@@ -215,10 +218,7 @@ def validate_product_scope_removals(events: dict[str, Any]) -> list[str]:
         payload = event.get("requiredPayload") or {}
         for removed_event, removed_field in REMOVED_PAYLOAD_FIELDS:
             if name == removed_event and removed_field in payload:
-                errors.append(
-                    f"{name}.{removed_field}: removed by product-scope v1.2; use "
-                    f"{'questionIssueCount' if name == 'report.generated' else 'practiceFocusCount'}"
-                )
+                errors.append(f"{name}.{removed_field}: removed from the current product contract")
     return errors
 
 

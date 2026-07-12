@@ -3,52 +3,29 @@
   "scenarios": {
     "default": {
       "request": {
-        "headers": {},
-        "body": {
-          "planId": "01918fa0-0000-7000-8000-000000004000",
-          "hintsEnabled": true
-        }
+        "headers": {"Idempotency-Key": "practice-session-start-001"},
+        "body": {"planId": "01918fa0-0000-7000-8000-000000004000"}
       },
       "response": {
         "status": 201,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
-        },
+        "headers": {"X-Request-ID": "req_2026-07-12-session-start"},
         "body": {
           "id": "01918fa0-0000-7000-8000-000000005000",
           "planId": "01918fa0-0000-7000-8000-000000004000",
           "targetJobId": "01918fa0-0000-7000-8000-000000002000",
           "status": "running",
           "language": "zh-CN",
-          "hintsEnabled": true,
-          "turnCount": 1,
-          "currentTurn": {
-            "id": "01918fa0-0000-7000-8000-000000006000",
-            "turnIndex": 1,
-            "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
-            "questionIntent": "behavioral.leadership.design_system",
-            "status": "asked",
-            "askedAt": "2026-04-28T13:45:12Z"
-          },
-          "createdAt": "2026-04-28T12:00:00Z",
-          "updatedAt": "2026-04-28T13:45:12Z"
+          "messages": [{"id": "01918fa0-0000-7000-8000-000000006000", "seqNo": 1, "role": "assistant", "content": "你好，我们直接开始。先聊聊你最近最有代表性的项目。", "createdAt": "2026-07-12T08:02:00Z"}],
+          "createdAt": "2026-07-12T08:02:00Z",
+          "updatedAt": "2026-07-12T08:02:00Z"
         }
       }
     },
     "ai-timeout-502": {
       "response": {
         "status": 502,
-        "headers": {
-          "X-Request-ID": "req_2026-05-09T10-00-00-ai-timeout"
-        },
-        "body": {
-          "error": {
-            "code": "AI_PROVIDER_TIMEOUT",
-            "message": "AI provider timed out while generating the first question",
-            "requestId": "req_2026-05-09T10-00-00-ai-timeout",
-            "retryable": true
-          }
-        }
+        "headers": {"X-Request-ID": "req_2026-07-12-session-timeout"},
+        "body": {"error": {"code": "AI_PROVIDER_TIMEOUT", "message": "AI provider timed out while opening the conversation", "requestId": "req_2026-07-12-session-timeout", "retryable": true}}
       }
     }
   }

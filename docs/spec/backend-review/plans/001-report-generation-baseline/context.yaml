@@ -5,59 +5,15 @@ metadata:
   name: 001-report-generation-baseline
   sequence: 1
   specVersion:
-    from: null
-    to: 1.3
+    from: 1.4
+    to: 1.5
 spec:
+  baseBranch: main
+  branch: practice-conversation-simplification
   defaultTarget: backend
   discovery:
-    aliases:
-      - backend-review
-      - backend-review/001
-      - 001-report-generation-baseline
-      - report-generation-baseline
-      - report-generation
-      - feedback-report-generation
-    keywords:
-      - report
-      - feedback_report
-      - feedback report
-      - report_generate
-      - report.generate
-      - report.question_assessment
-      - report_assessment
-      - getFeedbackReport
-      - listTargetJobReports
-      - report.generated
-      - report.generation.failed
-      - async_jobs report_generate
-      - runner.Runtime report_generate
-      - review.GenerateHandler
-      - ReadinessTier
-      - preparedness_level
-      - retry_focus_turns
-      - retry_focus_turn_ids
-      - next_action
-      - QuestionAssessment
-      - DimensionResult
-      - GenerationProvenance
-      - ai_task_runs report_generate
-      - ai_task_runs report_assessment
-      - locked_at
-      - attempts
-      - REPORT_NOT_FOUND
-      - FeedbackReport.errorCode
-      - feedback_reports.language
-      - feedback_reports.feature_flag
-      - feedback_reports.data_source_version
-      - feedback_reports.retry_focus_turn_ids
-      - graceful_degrade
-      - retry_policy
-      - exponential_backoff
-      - permanent_fail
-      - E2E.P0.052
-      - E2E.P0.053
-      - E2E.P0.054
-      - E2E.P0.055
+    aliases: [conversation report, session-level evidence]
+    keywords: [dimensionAssessments, retryFocusCompetencyCodes, no QuestionAssessment, practice_messages]
   targets:
     backend:
       plan: ./plan.md
@@ -67,40 +23,13 @@ spec:
       testChecklist: ./test-checklist.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      references:
-        - ../../../backend-practice/spec.md
-        - ../../../backend-practice/plans/002-event-loop-and-completion/plan.md
-        - ../../../prompt-rubric-registry/spec.md
-        - ../../../prompt-rubric-registry/plans/001-baseline/plan.md
-        - ../../../ai-provider-and-model-routing/spec.md
-        - ../../../openapi-v1-contract/spec.md
-        - ../../../event-and-outbox-contract/spec.md
-        - ../../../db-migrations-baseline/spec.md
-        - ../../../shared-conventions-codified/spec.md
-        - ../../../observability-stack/spec.md
-        - ../../../backend-auth/spec.md
-        - ../../../frontend-report-dashboard/spec.md
-        - ../../../backend-async-runner/spec.md
-        - ../../../../ui-design/report-dashboard.md
-        - ../../../../development.md
       discovery:
         packages:
-          - backend/internal/review
           - backend/internal/api/reports
+          - backend/internal/review
           - backend/internal/store/review
-          - backend/internal/ai/aiclient
-          - backend/internal/ai/registry
-          - backend/internal/migrations
-          - backend/internal/runner
-          - migrations
-          - openapi/fixtures/Reports
-          - openapi
-          - shared
           - config/prompts/report.generate
-          - config/prompts/report.question_assessment
           - config/rubrics/report.generate
-          - config/rubrics/report.question_assessment
-          - scripts/lint
-        apiNames:
-          - getFeedbackReport
-          - listTargetJobReports
+          - openapi/fixtures/Reports
+          - migrations
+        apiNames: [getFeedbackReport, listTargetJobReports]

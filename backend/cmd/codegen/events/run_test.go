@@ -85,6 +85,11 @@ func TestGenerateGoOutputs(t *testing.T) {
 			t.Errorf("events.go missing %q", want)
 		}
 	}
+	for _, stale := range []string{"PracticeTurnCompleted", "PracticeMode", "TurnCount", "QuestionIssueCount"} {
+		if strings.Contains(events, stale) {
+			t.Errorf("events.go contains stale practice question contract %q", stale)
+		}
+	}
 
 	jobs := readFile(t, filepath.Join(tmp, "backend/internal/shared/jobs/jobs.go"))
 	for _, want := range []string{
@@ -139,6 +144,11 @@ func TestGenerateTSOutputs(t *testing.T) {
 			t.Errorf("events.ts missing %q", want)
 		}
 	}
+	for _, stale := range []string{"PracticeTurnCompleted", "PracticeMode", "turnCount", "questionIssueCount"} {
+		if strings.Contains(events, stale) {
+			t.Errorf("events.ts contains stale practice question contract %q", stale)
+		}
+	}
 
 	jobs := readFile(t, filepath.Join(tmp, "frontend/src/lib/jobs/jobs.ts"))
 	for _, want := range []string{
@@ -168,7 +178,7 @@ func TestGenerateJSONSchemas(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadDir schemas: %v", err)
 	}
-	if got, want := len(entries), 14; got != want {
+	if got, want := len(entries), 13; got != want {
 		t.Fatalf("schema file count = %d, want %d", got, want)
 	}
 
@@ -176,7 +186,6 @@ func TestGenerateJSONSchemas(t *testing.T) {
 	for _, want := range []string{
 		`"$schema": "https://json-schema.org/draft/2020-12/schema"`,
 		`"const": "report.generated"`,
-		`"questionIssueCount"`,
 		`"preparednessLevel"`,
 		`"$ref": "../refs/ReadinessTier.json"`,
 	} {
@@ -272,7 +281,6 @@ func TestBaselineManifests(t *testing.T) {
 	eventsBaseline := readFile(t, filepath.Join(tmp, "shared/events/baseline/events.v1.json"))
 	for _, want := range []string{
 		`"name": "report.generated"`,
-		`"questionIssueCount"`,
 		`"$ref:b1.ReadinessTier"`,
 	} {
 		if !strings.Contains(eventsBaseline, want) {
@@ -303,11 +311,11 @@ func TestBreakingChangeFixtures(t *testing.T) {
 	}{
 		{
 			name:   "type change",
-			events: strings.Replace(baseEvents, "questionIssueCount: { type: int, source: spec:3.1.4 }", "questionIssueCount: { type: string, source: spec:3.1.4 }", 1),
+			events: strings.Replace(baseEvents, "modelId: { type: string, source: spec:3.1.4 }", "modelId: { type: bool, source: spec:3.1.4 }", 1),
 		},
 		{
 			name:   "required field deletion",
-			events: strings.Replace(baseEvents, "      questionIssueCount: { type: int, source: spec:3.1.4 }\n", "", 1),
+			events: strings.Replace(baseEvents, "      modelId: { type: string, source: spec:3.1.4 }\n", "", 1),
 		},
 		{
 			name:   "dot case to snake",

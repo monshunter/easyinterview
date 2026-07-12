@@ -1,13 +1,14 @@
 # AI Provider and Model Routing History
 
-> **版本**: 2.22
+> **版本**: 2.23
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 2.23 | 三个 Practice 题目型 chat profile 合并为 `practice.chat.default`，删除逐题 report assessment profile；speech profiles 保持 disabled/unsupported。 | backend-practice 001/003 / backend-review 001 / practice-voice-mvp 001 |
 | 2026-07-10 | 2.22 | 将 model alias、metric label 与 provider-proxy 边界改为正向 current-contract 表述，并同步全部 plan context 投影。 | tech-debt pruning |
 | 2026-07-10 | 2.21 | 将 fail-closed AI profile / provider ref 口径从 placeholder 命名收敛为 disabled / unsupported profile；`practice.voice.realtime.default` 使用 `realtime_audio_disabled` provider ref，保持 unsupported fail-closed。 | tech-debt pruning |
 | 2026-07-10 | 2.20 | 收敛用户可见语音能力口径为电话模式，并删除非当前文本输入 STT profile / Product UI catalog 行；STT 底座测试与 coverage 由 `practice.voice.stt.default` 承接。 | tech-debt pruning |

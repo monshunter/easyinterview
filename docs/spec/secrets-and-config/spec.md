@@ -1,8 +1,8 @@
 # Secrets and Config Spec
 
-> **版本**: 2.14
+> **版本**: 2.15
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 ## 1 背景与目标
 
@@ -176,7 +176,7 @@
 | `internal/platform/featureflag/` | A4 | `FeatureFlagClient` + file / posthog provider |
 | `frontend/src/app/runtime/AppRuntimeProvider.tsx` | D1（消费） + B2（generated client/types） + A4（endpoint allowlist） | 正式 runtime/auth provider 是前端唯一运行时配置消费入口；A4 不维护平行 fetch/cache 包 |
 | `config/*.yaml` 内容 | 各业务 owner 增量 | A4 锁文件位置与 schema，业务字段由各 child 在 spec 修订时新增 |
-| `config/feature-flags.yaml` 字段集 | F2 + 各业务 owner | A4 锁文件位置；当前 6 项 baseline flag 为 `practice_hint_enabled` / `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled` / `practice_assistance_mode_enabled`；`mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 不属于当前 flag inventory |
+| `config/feature-flags.yaml` 字段集 | F2 + 各业务 owner | A4 锁文件位置；当前 4 项 baseline flag 为 `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled`；Practice hint/assistance flag 已随 conversation 简化删除 |
 | AI provider registry / env keys 默认值 | A3（决策） + A4（落 env 字典） | A3 决定 provider registry 与 profile schema；A4 写进 env/config 字典并负责被选中 provider secret 缺失 fail-fast |
 | Auth / Email env keys | C1 + A4 | C1 决定字段名（ADR-Q1），A4 写进字典 |
 | 部署侧 secret 注入 | E4 + 运维 | A4 提供接口；E4 后续按实际部署目标选择 Vault / SOPS / platform secret / K8s Secret |
@@ -187,10 +187,10 @@
 |----|------|-------|------|------|-----------|
 | C-1 | 三层合并 | `config/config.yaml` 设默认值；`config/dev.yaml` 覆盖 `LOG_LEVEL`；env 设 `APP_LISTEN_ADDR=:9090` | 启动 API 进程 | `config.Get("app.listenAddr") == ":9090"`；`config.Get("log.level") == "debug"`（dev override）；其它字段保持默认 | A4 后续 001 |
 | C-2 | 缺失关键字段 fail-fast | `prod` 模式启动但 `SESSION_COOKIE_SECRET` 未设置 | `make build && APP_ENV=prod ./bin/api` | 启动进程退出码非 0，stderr 输出 `missing required secret: SESSION_COOKIE_SECRET`；不得回退到 dev init secret | A4 后续 001 |
-| C-3 | feature flag file 模式 | `FEATURE_FLAG_SOURCE=file`；`config/feature-flags.yaml` 设 `practice_hint_enabled: true` | 业务调用 `featureflag.IsEnabled("practice_hint_enabled", ctx)` | 返回 `true`；修改 YAML 后 ≤ 30s 内自动热加载 | A4 后续 001 |
+| C-3 | feature flag file 模式 | `FEATURE_FLAG_SOURCE=file`；`config/feature-flags.yaml` 设 `report_evidence_v2_enabled: true` | 业务调用 `featureflag.IsEnabled("report_evidence_v2_enabled", ctx)` | 返回 `true`；修改 YAML 后 ≤ 30s 内自动热加载 | A4 001 |
 | C-4 | feature flag posthog 模式 | `FEATURE_FLAG_SOURCE=posthog`，`POSTHOG_HOST` 指向 mock，`POSTHOG_SELF_HOSTED=true` | 调用 `IsEnabled` | client 出站 HTTP 命中 PostHog `/decide` 端点；client 不直接 import PostHog SDK；staging/prod 若 `POSTHOG_SELF_HOSTED=false` 则启动失败；PostHog 临时不可用时返回 last-known-good 缓存并写 warn，不静默切 file provider | A4 后续 001 |
 | C-5 | secret redact | log / error wrapping / JSON dump 中输出 `config.Get("objectStorage.secretKey")` | 进程产生日志 | 日志中显示 `***`；不出现明文 secret | A4 后续 001 |
-| C-6 | runtime-config 端点 | 前端首屏加载，`practice_hint_enabled.public=true`、`ai_fallback_model_enabled.public=false`，且当前用户 `analytics_opt_in=false` | `GET /api/v1/runtime-config` | 返回 `{appVersion, defaultUiLanguage, analyticsEnabled:false, featureFlags{practice_hint_enabled: ...}}`；不返回任何 secret，不返回 operator-only flag，不返回 `postHogPublicKey` | A4 + B2 + D1 |
+| C-6 | runtime-config 端点 | `report_evidence_v2_enabled.public=true`、`ai_fallback_model_enabled.public=false`，且当前用户 opt-out | `GET /api/v1/runtime-config` | 只返回 allowlisted public flags，不包含 Practice hint/assistance flag、secret、operator-only flag 或 PostHog public key | A4 + B2 + D1 |
 | C-7 | lint 红线 | 本地改动在 `internal/auth/` 下出现 `os.Getenv("SESSION_COOKIE_SECRET")` | `make lint` | 报错并阻止本地质量门禁通过 | A4 后续 001 |
 | C-8 | secrets 红线 | 本地改动包含一行形似真实凭证的测试样本（例如 `OPENAI_API_KEY=<redacted-test-token>`；测试文件通过临时生成内容触发正则，不在文档中写真实形态） | pre-commit / 本地 gitleaks | hook 拦截，gitleaks 拦截；远端 CI secret scan 仅在 A5 触发条件成立后再接入 | A4 后续 001 |
 | C-12 | 后台队列权重配置 | `config/config.yaml` 声明 `async.queueWeights`，dev/staging/prod override 可调整权重 | backend internal runner 初始化读取 typed config | 读取到 `critical/default/low` 三档权重，缺失或非正数 fail-fast；不需要新增 env key | A4 后续 001 + backend-runtime-topology |

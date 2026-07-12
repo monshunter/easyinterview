@@ -4,61 +4,26 @@
     "default": {
       "response": {
         "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
-        },
+        "headers": {"X-Request-ID": "req_2026-07-12-plan-get"},
         "body": {
           "id": "01918fa0-0000-7000-8000-000000004000",
           "targetJobId": "01918fa0-0000-7000-8000-000000002000",
           "goal": "baseline",
-          "mode": "assisted",
           "interviewerPersona": "hiring_manager",
           "difficulty": "standard",
           "language": "zh-CN",
           "timeBudgetMinutes": 30,
-          "questionBudget": 6,
           "resumeId": "01918fa0-0000-7000-8000-000000001000",
           "status": "ready",
-          "createdAt": "2026-04-28T12:00:00Z"
-        }
-      }
-    },
-    "archived": {
-      "response": {
-        "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-05-09T10-00-00-archived"
-        },
-        "body": {
-          "id": "01918fa0-0000-7000-8000-000000004001",
-          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
-          "goal": "baseline",
-          "mode": "assisted",
-          "interviewerPersona": "hiring_manager",
-          "difficulty": "standard",
-          "language": "zh-CN",
-          "timeBudgetMinutes": 30,
-          "questionBudget": 6,
-          "resumeId": "01918fa0-0000-7000-8000-000000001000",
-          "status": "archived",
-          "createdAt": "2026-04-28T12:00:00Z"
+          "createdAt": "2026-07-12T08:00:00Z"
         }
       }
     },
     "not-found": {
       "response": {
         "status": 404,
-        "headers": {
-          "X-Request-ID": "req_2026-05-09T10-00-00-not-found"
-        },
-        "body": {
-          "error": {
-            "code": "PRACTICE_PLAN_NOT_FOUND",
-            "message": "practice plan not found",
-            "requestId": "req_2026-05-09T10-00-00-not-found",
-            "retryable": false
-          }
-        }
+        "headers": {"X-Request-ID": "req_2026-07-12-plan-missing"},
+        "body": {"error": {"code": "PRACTICE_PLAN_NOT_FOUND", "message": "practice plan not found", "requestId": "req_2026-07-12-plan-missing", "retryable": false}}
       }
     }
   }

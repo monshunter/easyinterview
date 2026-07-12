@@ -45,20 +45,6 @@ var AllTargetJobParseStatuses = []TargetJobParseStatus{
 	TargetJobParseStatusFailed,
 }
 
-// PracticeMode mirrors shared/conventions.yaml sourceSection 5.3 (jsonField: "mode").
-type PracticeMode string
-
-const (
-	PracticeModeAssisted PracticeMode = "assisted"
-	PracticeModeStrict   PracticeMode = "strict"
-)
-
-// AllPracticeModes lists every defined value in declaration order.
-var AllPracticeModes = []PracticeMode{
-	PracticeModeAssisted,
-	PracticeModeStrict,
-}
-
 // PracticeGoal mirrors shared/conventions.yaml sourceSection 5.4 (jsonField: "goal").
 type PracticeGoal string
 
@@ -185,22 +171,6 @@ var AllConfidences = []Confidence{
 	ConfidenceHigh,
 	ConfidenceMedium,
 	ConfidenceLow,
-}
-
-// QuestionReviewStatus mirrors shared/conventions.yaml sourceSection 5.11 (jsonField: "questionReviewStatus").
-type QuestionReviewStatus string
-
-const (
-	QuestionReviewStatusOpen           QuestionReviewStatus = "open"
-	QuestionReviewStatusQueuedForRetry QuestionReviewStatus = "queued_for_retry"
-	QuestionReviewStatusResolved       QuestionReviewStatus = "resolved"
-)
-
-// AllQuestionReviewStatuses lists every defined value in declaration order.
-var AllQuestionReviewStatuses = []QuestionReviewStatus{
-	QuestionReviewStatusOpen,
-	QuestionReviewStatusQueuedForRetry,
-	QuestionReviewStatusResolved,
 }
 
 // PrivacyRequestType mirrors shared/conventions.yaml sourceSection 5.13 (jsonField: "privacyRequestType").

@@ -3,121 +3,65 @@
   "scenarios": {
     "default": {
       "request": {
-        "headers": {},
+        "headers": {"Idempotency-Key": "practice-plan-baseline-001"},
         "body": {
           "targetJobId": "01918fa0-0000-7000-8000-000000002000",
           "goal": "baseline",
-          "mode": "assisted",
           "interviewerPersona": "hiring_manager",
           "difficulty": "standard",
           "language": "zh-CN",
-          "questionBudget": 6,
           "timeBudgetMinutes": 30,
           "resumeId": "01918fa0-0000-7000-8000-000000001000",
-          "focusCompetencyCodes": [
-            "communication",
-            "design-systems"
-          ]
+          "focusCompetencyCodes": ["communication", "design-systems"]
         }
       },
       "response": {
         "status": 201,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
-        },
+        "headers": {"X-Request-ID": "req_2026-07-12-plan-create"},
         "body": {
           "id": "01918fa0-0000-7000-8000-000000004000",
           "targetJobId": "01918fa0-0000-7000-8000-000000002000",
           "goal": "baseline",
-          "mode": "assisted",
           "interviewerPersona": "hiring_manager",
           "difficulty": "standard",
           "language": "zh-CN",
           "timeBudgetMinutes": 30,
-          "questionBudget": 6,
           "resumeId": "01918fa0-0000-7000-8000-000000001000",
           "status": "ready",
-          "createdAt": "2026-04-28T12:00:00Z"
+          "createdAt": "2026-07-12T08:00:00Z"
         }
       }
     },
     "report-derived": {
       "request": {
-        "headers": {},
+        "headers": {"Idempotency-Key": "practice-plan-retry-001"},
         "body": {
           "targetJobId": "01918fa0-0000-7000-8000-000000002000",
           "goal": "retry_current_round",
-          "mode": "strict",
           "interviewerPersona": "technical_manager",
           "difficulty": "stretch",
           "language": "en",
-          "questionBudget": 4,
           "timeBudgetMinutes": 20,
           "resumeId": "01918fa0-0000-7000-8000-000000001000",
-          "sourceReportId": "01918fa0-0000-7000-8000-00000000f001",
-          "focusCompetencyCodes": [
-            "system-design"
-          ]
+          "sourceReportId": "01918fa0-0000-7000-8000-000000007000",
+          "focusCompetencyCodes": ["system-design"]
         }
       },
       "response": {
         "status": 201,
-        "headers": {
-          "X-Request-ID": "req_2026-05-16T09-00-00-report-derived"
-        },
+        "headers": {"X-Request-ID": "req_2026-07-12-plan-retry"},
         "body": {
           "id": "01918fa0-0000-7000-8000-000000004701",
           "targetJobId": "01918fa0-0000-7000-8000-000000002000",
           "goal": "retry_current_round",
-          "mode": "strict",
           "interviewerPersona": "technical_manager",
           "difficulty": "stretch",
           "language": "en",
           "timeBudgetMinutes": 20,
-          "questionBudget": 4,
           "resumeId": "01918fa0-0000-7000-8000-000000001000",
-          "sourceReportId": "01918fa0-0000-7000-8000-00000000f001",
+          "sourceReportId": "01918fa0-0000-7000-8000-000000007000",
           "status": "ready",
-          "createdAt": "2026-05-16T09:00:00Z"
-        }
-      }
-    },
-    "missing-resume": {
-      "request": {
-        "headers": {},
-        "body": {
-          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
-          "goal": "baseline",
-          "mode": "assisted",
-          "interviewerPersona": "hiring_manager",
-          "difficulty": "standard",
-          "language": "zh-CN",
-          "questionBudget": 6,
-          "timeBudgetMinutes": 30,
-          "resumeId": "01918fa0-0000-7000-8000-000000009999",
-          "focusCompetencyCodes": [
-            "communication",
-            "design-systems"
-          ]
-        }
-      },
-      "response": {
-        "status": 422,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-missing-resume"
-        },
-        "body": {
-          "error": {
-            "code": "VALIDATION_FAILED",
-            "message": "target job or resume asset is not available",
-            "requestId": "req_2026-04-28T13-45-12-missing-resume",
-            "retryable": false,
-            "details": {
-              "targetJobId": "01918fa0-0000-7000-8000-000000002000",
-              "resumeId": "01918fa0-0000-7000-8000-000000009999",
-              "seedProfile": "missing-resume"
-            }
-          }
+          "createdAt": "2026-07-12T08:01:00Z"
         }
       }
     }

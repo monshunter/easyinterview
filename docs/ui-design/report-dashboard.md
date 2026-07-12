@@ -1,208 +1,114 @@
-# Report Dashboard 目标结构
+# 报告仪表盘目标结构
 
-> **版本**: 1.14
+> **版本**: 1.15
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
-## 1 文档目的
+## 1 目标
 
-本文档单独定义当前静态 UI 中面试报告的目标结构。报告的唯一形态是隶属于某次模拟面试会话的仪表盘。
+报告以整场 conversation 为分析单位，帮助用户判断准备度、理解能力表现、查看证据并选择复练当前轮或进入下一轮。报告不再按题目组织。
 
-## 2 已确认决策
-
-1. 报告只通过仪表盘展示。
-2. 报告不是一级模块，必须隶属于一次已完成的模拟面试。
-3. 报告顶部必须显示 `sessionId`、目标岗位、面试轮次、绑定简历、沟通形式、练习方式和提示使用记录。
-4. 报告时间线不是当前报告形态。
-5. 独立刊物式报告页不是当前报告形态。
-6. 报告详情内容归入仪表盘模块的二级详情。
-7. 下一步动作必须拆成 `复练当前轮` 和 `进入下一轮`，且两者都是直接开始对应面试 session 的动作。
-8. 错题本语义留在报告内部，表现为题目回顾、回答分析、证据片段、建议和本轮复练。
-9. 当前运行时 `ReportScreen` 固定渲染 `ReportDashboard`；`reportLayout`、Editorial 和 Timeline 组件 / 画板标签不属于目标交互。
-10. 四张 Summary Cards 和报告内的文本链接会切换同一个 Detail Surface；这属于仪表盘内部二级详情，不是多报告形态。
-11. 无 `sessionId` 时显示缺失会话状态并返回当前面试规划 / 记录列表；报告生成失败时显示失败重试状态，不展示估算评分。
-12. CTA 单点收敛（D-19）：`复练当前轮` 与 `进入下一轮` 只在 Header 出现一次；复练计划详情只承载路径说明与复练清单，不重复 CTA 按钮；题目回顾的`加入本轮复练`是复练计划标记动作，不直接开启 session。
-
-## 3 顶层框架
+## 2 页面结构
 
 ```text
-[Report Dashboard(sessionId)]
+ReportDashboard(sessionId, reportId)
 ├─ Back
-│  └─ 返回面试前确认
 ├─ Header
-│  ├─ Breadcrumb: 模拟面试 / 会话 #24 / 面试报告
-│  ├─ Title: 资深前端工程师 · 技术一面模拟报告
-│  ├─ Subtitle: 这份报告隶属于一次已完成的模拟面试
-│  ├─ CTA A: 复练当前轮：技术一面
-│  └─ CTA B: 进入下一轮：技术二面
-├─ Context Strip
-│  ├─ sessionId
-│  ├─ 目标岗位
-│  ├─ 面试轮次
-│  ├─ 绑定简历
-│  ├─ 模式: 文本 / 电话模式 + 严格模拟 / 带提示练习
-│  └─ 提示记录
-├─ Summary Cards
+│  ├─ breadcrumb
+│  ├─ title / subtitle
+│  ├─ 复练当前轮
+│  └─ 进入下一轮
+├─ ContextStrip
+│  ├─ session
+│  ├─ target / round
+│  └─ resume
+├─ SummaryCards
 │  ├─ 准备度
-│  ├─ 维度详情
-│  ├─ 题目回顾
-│  └─ 下一动作: 复练当前轮
-├─ Detail Tabs
-│  ├─ 准备度详情
-│  ├─ 维度详情
-│  ├─ 题目回顾页
-│  ├─ 证据详情
-│  └─ 复练计划
-├─ Dimension Cards
-├─ Top Priority
-├─ Question Review Summary
-└─ Risk / Highlight Evidence
+│  ├─ 能力维度
+│  ├─ 会话证据
+│  └─ 下一步
+└─ DetailSurface
+   ├─ 准备度
+   ├─ 能力维度
+   ├─ 会话证据
+   └─ 下一步
 ```
 
-## 4 模块职责
+## 3 生成态
 
-### 4.1 Context Strip
+生成态五阶段：
 
-回答“这份报告到底属于哪一次面试”。
+1. 整理会话上下文。
+2. 提取能力证据。
+3. 评估能力维度。
+4. 归纳改进重点。
+5. 生成行动建议。
 
-```text
-Context Strip
-├─ sessionId: session-24
-├─ 目标岗位: 星环科技 · 资深前端工程师
-├─ 面试轮次: 技术一面
-├─ 绑定简历: 刘哲 · 简历 v3
-├─ 模式: 文本 · 严格模拟
-└─ 提示记录: 未使用提示
-```
+不得出现逐题抽取、题目回顾、每题评分等旧文案。
 
-### 4.2 Summary Cards
+## 4 Summary Cards
 
-回答“这场面试整体怎么样，下一步是什么”。
+| Card | 内容 | 进入详情 |
+|------|------|----------|
+| 准备度 | readiness tier | Readiness tab |
+| 能力维度 | dimension count / summary | Dimensions tab |
+| 会话证据 | highlights + issues 数量 | Evidence tab |
+| 下一步 | 推荐动作 | Next tab |
 
-```text
-Summary Cards
-├─ 准备度
-├─ 维度详情
-├─ 题目回顾
-└─ 下一动作: 复练当前轮
-```
+## 5 Detail Surface
 
-`下一动作` 只是当前建议，不等于只能复练。页面仍要保留显式 `进入下一轮` 路径。
+### 5.1 Readiness
 
-### 4.3 Detail Tabs
+展示当前 tier、核心判断和最优先改进项，不展示精确通过率。
 
-回答“每个关键卡片的二级详情在哪里”。
+### 5.2 Dimensions
 
-```text
-Detail Tabs
-├─ 准备度详情
-│  ├─ 综合评价
-│  ├─ JD 对齐
-│  ├─ 证据密度
-│  └─ 下一档门槛
-├─ 维度详情
-│  ├─ 每个维度一个卡片
-│  ├─ 状态
-│  ├─ 置信度
-│  └─ 维度说明
-├─ 题目回顾页
-│  ├─ 题目列表
-│  ├─ 回答分析
-│  ├─ 回答有效点
-│  ├─ 缺口
-│  ├─ 建议框架
-│  ├─ 证据片段
-│  ├─ 下次面试追问
-│  └─ 加入本轮复练
-├─ 证据详情
-│  ├─ 风险证据
-│  ├─ 可复用亮点证据
-│  └─ 数据来源
-└─ 复练计划
-   ├─ 路径 A: 复练当前轮
-   └─ 路径 B: 进入下一轮
-```
+按能力维度展示 `status / confidence`，证据入口跳到 Evidence tab，不跳题目。
 
-### 4.4 Question Review
+### 5.3 Evidence
 
-题目回顾承载“错题本”的用户价值，但不形成独立模块。
+展示 highlights / issues 的 dimension、evidence summary 和 confidence。不得复制完整 transcript，不按题号或 turn 分组。
 
-```text
-Question Review
-├─ 每题状态: 强项 / 达标 / 待加强
-├─ 回答有效点
-├─ 缺口
-├─ 建议框架
-├─ 证据片段
-├─ 下次面试追问
-└─ 加入本轮复练
-```
+### 5.4 Next
 
-按钮文案应指向 `加入本轮复练`，不能写成“带入下场面试”这类含混表达。
+展示复练当前轮与进入下一轮的路径说明、能力重点和行动清单；CTA 仍只存在于 Header。
 
-### 4.5 Next Plan
+## 6 Replay
 
-```text
-复练计划（信息面，无 CTA）
-├─ 路径 A · 复练当前轮（当前轮次）
-│  ├─ 默认路径，当准备度建议再练
-│  ├─ 重复当前轮次
-│  ├─ 带入错题、证据缺口和追问风险
-│  └─ 复练清单：必练 / 计划条目
-└─ 路径 B · 进入下一轮（下一轮次）
-   ├─ 非默认复练路径
-   ├─ 沿用同一 JD 和简历
-   └─ 切换下一轮面试官视角和题目结构
-```
+- `复练当前轮`：使用 report 的 `retryFocusCompetencyCodes` 创建新 plan/session。
+- `进入下一轮`：使用 next round context 创建新 plan/session。
+- 不传 `retryFocusTurnIds`、question IDs 或 per-question selection。
 
-开练动作固定在报告 Header 的一对 CTA；复练计划详情不重复按钮（D-19）。
+## 7 状态
 
-## 5 范围边界
+- Missing session/report：专用空态。
+- Queued/generating：留在 generating。
+- Failed/not found/timeout：typed error + retry/back。
+- Empty evidence：Evidence tab 显示空态，其他 tab 仍可用。
 
-```text
-范围外:
-├─ 顶部一级面试报告导航
-├─ 无 session 上下文的报告详情
-├─ 时间线视图
-├─ 刊物式报告独立页面
-├─ `reportLayout` 驱动的多报告形态切换
-├─ 复练计划详情内的重复 CTA 按钮（D-19）
-├─ 题目回顾内直接开启 session 的开练按钮（D-19）
-├─ 单题复练入口
-├─ 追问树入口
-├─ Drill builder
-├─ 独立错题本任务队列
-└─ 复盘记录
-```
+## 8 负向边界
 
-## 6 页面行为
+当前 UI、fixtures、tests、scenarios 和文档中不得保留正向：
 
-| 用户动作 | 目标行为 |
-|----------|----------|
-| 打开报告 | 只从会话记录或面试结束后进入，默认看到仪表盘 |
-| 点击准备度卡片 | 打开准备度二级详情 |
-| 点击维度卡片 | 打开维度二级详情 |
-| 点击题目回顾 | 打开题目回顾页 |
-| 点击证据片段 | 打开证据详情 |
-| 点击下一动作卡片 | 打开复练计划 |
-| 点击题目列表中的某题 | 更新题目回顾页当前题目 |
-| 点击题目回顾的加入本轮复练 | 把该题标记进本轮复练清单并给出已加入反馈，不开启 session |
-| 点击 Header 复练当前轮 | 直接进入同一轮次的面试 session，payload 带 `sourceSessionId`、`replayItems`、`evidenceGaps` |
-| 点击 Header 进入下一轮 | 直接进入下一轮面试 session，payload 保留 `targetJobId`、`resumeId`，切换 `roundId` |
-| 点击返回 | 回到面试前确认 / 当前面试规划 |
-| 无 sessionId 打开报告 | 显示缺失会话状态，返回当前面试规划或记录列表 |
-| 报告生成失败 | 显示失败重试状态，不展示假分数或假证据 |
+- Questions tab / 题目回顾页。
+- questionAssessments / retryFocusTurnIds。
+- 题数 summary card。
+- per-question replay toggle。
+- hint/practiceMode/phone modality context。
+- 独立错题本、精确通过率或 timeline。
 
-## 7 与模拟面试规划的关系
+## 9 验收标准
 
-```text
-Mock Interview Plan
-└─ 当前规划的模拟面试记录
-   └─ Report Dashboard(sessionId)
+| ID | Given | When | Then |
+|----|-------|------|------|
+| R-1 | ready report | 打开 report | 四卡四 tab，默认 readiness |
+| R-2 | 有 dimensions/evidence | 切换 tabs | 展示会话级分析，无题目结构 |
+| R-3 | needs practice | 点击复练当前轮 | competency focus 创建 fresh session |
+| R-4 | next round available | 点击进入下一轮 | next-round fresh session |
+| R-5 | desktop/mobile | parity gate | DOM、geometry、screenshot 与原型一致 |
 
-Report Dashboard
-├─ 复练当前轮 -> Interview Session(same round)
-└─ 进入下一轮 -> Interview Session(next round)
-```
+## 10 修订记录
 
-报告不承担岗位理解、公司情报或简历资产管理职责；这些属于模拟面试规划页和简历模块。报告页的 `返回` 动作可以回到面试前确认，`复练当前轮` 和 `进入下一轮` 直接从报告 Header 发起。
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-07-12 | 1.15 | 删除题目回顾和逐题 replay，报告收敛为 readiness/dimensions/evidence/next。 |

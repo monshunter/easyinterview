@@ -22,7 +22,6 @@ Phase 1.3 scope (per `002-fixtures-and-mock-source` plan §3 / spec C-6 / C-11):
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import sys
@@ -81,7 +80,6 @@ AI_PROVENANCE_PATHS: dict[str, Tuple[str, ...]] = {
     "getTargetJob": ("summary.provenance", "fitSummary.provenance"),
     "listTargetJobs": ("items[*].summary.provenance", "items[*].fitSummary.provenance"),
     "updateTargetJob": ("summary.provenance", "fitSummary.provenance"),
-    "appendSessionEvent": ("assistantAction.provenance",),
     "getFeedbackReport": ("provenance",),
     "listTargetJobReports": ("items[*].provenance",),
     "getResumeTailorRun": ("provenance",),
@@ -103,21 +101,6 @@ P0_EXPORT_ERROR_CODES: dict[str, str] = {
     "exportResume": "RESUME_EXPORT_NOT_AVAILABLE",
 }
 REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
-    "appendSessionEvent": frozenset(
-        {
-            "default",
-            "follow-up",
-            "hint-conflict",
-            "pause-resume",
-            "replay",
-            "mismatch",
-            "completed",
-            "voice-tts-started",
-            "voice-tts-played",
-            "voice-barge-in",
-            "voice-context-committed",
-        }
-    ),
     "completePracticeSession": frozenset(
         {
             "default",
@@ -127,15 +110,7 @@ REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
             "cross-user-not-found",
         }
     ),
-    "createPracticeVoiceTurn": frozenset(
-        {
-            "default",
-            "stt-config-missing",
-            "chat-failed",
-            "chat-output-invalid",
-            "tts-failed",
-        }
-    ),
+    "createPracticeVoiceTurn": frozenset({"default"}),
 }
 OUT_OF_SCOPE_D20_FIXTURE_KEYS = frozenset({"resumeAssetId", "resumeVersionId"})
 
@@ -659,40 +634,16 @@ def check_practice_conversation_semantics(
 
     if opid != "createPracticeVoiceTurn":
         return
-    for scenario_name, scenario in scenarios.items():
-        body = ((scenario.get("response") or {}).get("body") or {})
-        chunks = body.get("ttsChunks") or []
-        if len(chunks) > 1:
-            errors.append(
-                f"{opid}.{scenario_name}.response.body.ttsChunks: current P0 permits 0..1 TTS chunks"
-            )
-        assistant_text = body.get("assistantTextDraft")
-        for index, chunk in enumerate(chunks):
-            digest = chunk.get("textHash")
-            path = f"{opid}.{scenario_name}.response.body.ttsChunks[{index}].textHash"
-            if not isinstance(digest, str) or not SHA256_DIGEST_RE.fullmatch(digest):
-                errors.append(
-                    f"{path}: must be a bare or sha256:-prefixed 64-hex SHA-256 digest"
-                )
-                continue
-            if isinstance(assistant_text, str) and assistant_text.strip():
-                expected = hashlib.sha256(assistant_text.strip().encode("utf-8")).hexdigest()
-                if digest.removeprefix("sha256:") != expected:
-                    errors.append(f"{path}: must hash assistantTextDraft exactly")
-
-        if not isinstance(assistant_text, str) or not assistant_text.strip():
-            continue
-        current_turn = ((body.get("session") or {}).get("currentTurn") or {})
-        if current_turn.get("questionText") != assistant_text:
-            errors.append(
-                f"{opid}.{scenario_name}.response.body.session.currentTurn.questionText: "
-                "must match assistantTextDraft after a successful generated follow-up"
-            )
-        if current_turn.get("status") != "follow_up_requested":
-            errors.append(
-                f"{opid}.{scenario_name}.response.body.session.currentTurn.status: "
-                "must be follow_up_requested after a generated follow-up"
-            )
+    default_response = ((scenarios.get("default") or {}).get("response") or {})
+    default_code = (((default_response.get("body") or {}).get("error") or {}).get("code"))
+    if default_response.get("status") != 422 or default_code != "AI_UNSUPPORTED_CAPABILITY":
+        errors.append(
+            "createPracticeVoiceTurn.default.response: disabled phone contract must return "
+            "422 AI_UNSUPPORTED_CAPABILITY"
+        )
+    if set(scenarios) != {"default"}:
+        errors.append("createPracticeVoiceTurn: disabled contract permits only the default scenario")
+    return
 
 
 def check_privacy_and_ids(opid: str, data: dict, errors: List[str]) -> None:

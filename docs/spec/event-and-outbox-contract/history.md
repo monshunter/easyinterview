@@ -1,13 +1,14 @@
 # Event and Outbox Contract History
 
-> **版本**: 2.13
+> **版本**: 2.14
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 2.14 | 对齐 Practice 连续会话合同：事件全集 14→13，删除 `practice.turn.completed`，移除 session started 的 `mode`、session completed 的 `turnCount` 与 report generated 的 `questionIssueCount`。 | backend-practice/001-plan-and-session-orchestration Phase 1 |
 | 2026-07-10 | 2.13 | 技术债口径清理：将 D-15 `source_event_only` 从 future runner handoff 改为当前 backend-async-runner `OutboxDispatcher` contract，并把 report 预创建行表述为 queued row。 | backend-async-runner/001-internal-job-outbox-runner |
 | 2026-07-06 | 2.10 | 将 B3 active spec 改为纯当前合同表述：14 events、8 canonical jobs、6 API-facing job types、6 个 event domain、flat Resume event identity 和 `ResumeTailorMode` 当前字面量。 | product-scope/001-core-loop-module-pruning Phase 6.29 |
 | 2026-07-06 | 2.9 | 对齐当前编码 truth：B3 active spec 以 `shared/events.yaml` 的 14 events 与 `shared/jobs.yaml` 的 8 jobs 为准。 | product-scope/001-core-loop-module-pruning Phase 6 |

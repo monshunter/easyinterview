@@ -39,14 +39,12 @@ EXPECTED_TOP_LEVEL = {
 }
 
 EXPECTED_STRUCTURES = {"PageInfo", "ApiError"}
-EXPECTED_ENUM_SECTIONS = {f"5.{i}" for i in range(1, 12)} | {"5.13"}  # D-22 skips §5.12 debrief and D-20 skips §5.14-5.16 resume version enums
+EXPECTED_ENUM_SECTIONS = ({f"5.{i}" for i in range(1, 12)} - {"5.3", "5.11"}) | {"5.13"}
 EXPECTED_JOB_STATUSES = {"queued", "running", "succeeded", "failed", "cancelled", "dead"}
 EXPECTED_PRODUCT_ENUM_VALUES = {
-    "PracticeMode": ["assisted", "strict"],
     "PracticeGoal": ["baseline", "retry_current_round", "next_round"],
-    "QuestionReviewStatus": ["open", "queued_for_retry", "resolved"],
 }
-REMOVED_ENUM_NAMES = {"MistakeStatus"}
+REMOVED_ENUM_NAMES = {"MistakeStatus", "PracticeMode", "QuestionReviewStatus"}
 REQUIRED_ERROR_CODES = {
     "AUTH_UNAUTHORIZED",
     "TARGET_IMPORT_FAILED",
@@ -171,7 +169,7 @@ def validate(data: dict[str, Any]) -> list[str]:
         seen_names.add(name)
         if name in REMOVED_ENUM_NAMES:
             errors.append(
-                f"enum {name!r} was removed by product-scope v1.2; use QuestionReviewStatus for report-internal question review"
+                f"enum {name!r} is not part of the current product contract"
             )
 
         section = enum.get("sourceSection", "")

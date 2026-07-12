@@ -1,138 +1,41 @@
--- F3 prompt-rubric-registry/001-baseline phase 4.4 seed migration.
--- Writes the 9 baseline feature_keys canonical multi coordinate into
--- prompt_versions and rubric_versions with template_hash matching the
--- on-disk config/prompts/<feature_key>/v0.1.0.{yaml,md} files.
--- Idempotent via ON CONFLICT DO NOTHING.
-
+-- F3 canonical six-feature prompt/rubric seed.
+-- Generated mechanically from config/prompts and config/rubrics.
 BEGIN;
 
 INSERT INTO prompt_versions (id, feature_key, version, language, template_hash, template_body, is_active, created_at) VALUES
-  ('9bda6ff0-9fa2-5b18-8e98-243592fa1bf9', 'practice.session.first_question', 'v0.1.0', 'multi', '5275bb911bbf51ae57e04509cd64282aaed6ca75a8e4ed3e7fa660373f6565b8', $body$You are an experienced interviewer running a mock interview based on the
-candidate's target job. Generate the first question for the session, anchored
-in the role and the rubric the session will be scored against. Respond in the
-language indicated by `{{language}}` (default English).
+  ('40dd127e-afd8-5dcc-9697-3b0025b99702', 'practice.session.chat', 'v0.1.0', 'multi', 'e57c8e7b91772166af32f6cbc50332e9c7ae842ccc9fff8832895d44157b8d09', $body$You are conducting a realistic mock interview as a natural text conversation.
+Use the confirmed target job, resume, interview round, practice goal, competency
+focus, and ordered conversation history below. Respond in `{{language}}`.
 
-Role: {{role_title}} ({{seniority}})
-Top required skills: {{top_skills}}
-Rubric dimensions: {{rubric_dimensions}}
+Target job context: {{target_job_context}}
+Resume context: {{resume_context}}
+Interview round: {{interview_round}}
 Practice goal: {{practice_goal}}
+Competency focus: {{focus_competencies}}
+Conversation history: {{conversation_history}}
+
+Continue naturally with one useful interviewer message. Do not expose a question
+number, total question count, question category, turn state, hint mode, scoring,
+or internal reasoning. If the user asks for help, respond within the same normal
+conversation instead of emitting a special hint action.
 
 <!-- output-schema-contract:start -->
 Return strict JSON matching this schema-derived output contract.
 Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
 
 Output shape:
-- `$` (required, object): First mock-interview question generated from target job context.
-- `$.questionText` (required, string): Question text shown to the candidate.
-- `$.questionIntent` (required, string): Short intent label for why this question is asked.
-- `$.focusDimension` (optional, string): Optional rubric dimension the question is designed to probe.
-- `$.expectedSignals` (optional, array): Optional expected answer signals for later evaluator context.
-- `$.expectedSignals[]` (required, string): One expected signal.
-- `$.timeBudgetSeconds` (optional, integer): Optional suggested answer time budget in seconds.
+- `$` (required, object): One ordinary assistant message in a continuous practice conversation.
+- `$.messageText` (required, string): Assistant message shown to the user.
 
 Example complete JSON output:
 ```json
 {
-  "questionText": "Tell me about a time you improved reliability in a distributed system.",
-  "questionIntent": "Probe ownership, tradeoffs, and evidence quality.",
-  "focusDimension": "System design",
-  "expectedSignals": [
-    "Names constraints, tradeoffs, measured impact, and rollback plan."
-  ],
-  "timeBudgetSeconds": 180
+  "messageText": "example messageText"
 }
 ```
 <!-- output-schema-contract:end -->
-$body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('ba817c2b-7771-5ab3-b44b-89881f703ed5', 'practice.session.follow_up', 'v0.1.0', 'multi', '930af8b9880e30d322d2d607c9e507471b9c3266a06db80c4907b46607167cf2', $body$You are continuing a mock interview. Generate exactly one subsequent
-interview question from the server-owned context below.
-
-Generation kind: {{generation_kind}}
-- `follow_up`: probe the current answer more deeply or close a concrete gap.
-- `next_question`: move to a distinct question after the current turn has
-  already received its follow-up.
-
-Attempt mode: {{attempt_mode}}
-- `initial`: produce the best valid question directly.
-- `repair`: regenerate from the same context and correct any JSON, required
-  field, or language mismatch from the prior attempt.
-
-The candidate-facing `questionText` must be written in `{{language}}`.
-`questionIntent` is an internal concise label and must not be copied into the
-candidate-facing question.
-
-Practice goal: {{practice_goal}}
-Practice mode: {{practice_mode}}
-Current turn status: {{turn_status}}
-Target job reference: {{target_job_id}}
-Last question: {{last_question}}
-Current question intent: {{question_intent}}
-Latest answer: {{last_answer}}
-Stored follow-up count: {{follow_up_count}}
-Coverage so far: {{covered_dimensions}}
-Remaining rubric dimensions: {{remaining_dimensions}}
-Assistant context already heard by the candidate: {{committed_context}}
-
-<!-- output-schema-contract:start -->
-Return strict JSON matching this schema-derived output contract.
-Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
-
-Output shape:
-- `$` (required, object): Follow-up mock-interview question generated from the latest answer.
-- `$.questionText` (required, string): Follow-up question text shown to the candidate.
-- `$.questionIntent` (required, string): Short intent label for the follow-up question.
-- `$.branchDimension` (optional, string): Optional rubric dimension or branch reason for the follow-up.
-- `$.confidence` (optional, number): Optional confidence score for the follow-up choice.
-
-Example complete JSON output:
-```json
-{
-  "questionText": "Tell me about a time you improved reliability in a distributed system.",
-  "questionIntent": "Probe ownership, tradeoffs, and evidence quality.",
-  "branchDimension": "System design tradeoffs",
-  "confidence": 0.82
-}
-```
-<!-- output-schema-contract:end -->
-
-Do not return more than one question. Do not add commentary outside the JSON.
-$body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('84078349-c25c-5fd6-84a4-09825145e468', 'practice.turn.lightweight_observe', 'v0.1.0', 'multi', '58e27c96325cfaecfa9a112864e4c8a34a799a2166e1b1df2e8979770c032059', $body$You are a real-time interview observer. The candidate is partway through an
-answer; produce one short, neutral cue that the UI can surface without
-interrupting the flow. Be concise (under 24 words) and never lead the
-candidate to a specific answer. Respond in `{{language}}` (default English).
-
-Question: {{question}}
-Partial answer: {{partial_answer}}
-Elapsed seconds: {{elapsed_seconds}}
-
-Also produce `answerSummary`: one concise third-person summary of the
-candidate's answer for downstream report assessment. Summarize concepts and
-evidence; do not quote the answer verbatim.
-
-<!-- output-schema-contract:start -->
-Return strict JSON matching this schema-derived output contract.
-Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
-
-Output shape:
-- `$` (required, object): Lightweight real-time interview observation cue.
-- `$.cue` (required, string): Short neutral cue that may be surfaced to the candidate.
-- `$.answerSummary` (optional, string): Optional concise third-person answer summary for report assessment.
-- `$.severity` (optional, string enum(info, nudge, alert)): Optional cue urgency for downstream evaluation or UI treatment.
-- `$.dimensionHint` (optional, string): Optional rubric dimension hinted by the cue.
-
-Example complete JSON output:
-```json
-{
-  "cue": "Clarify the tradeoff before moving to implementation details.",
-  "answerSummary": "Candidate described implementation details but had not yet clarified the main tradeoff.",
-  "severity": "nudge",
-  "dimensionHint": "System design"
-}
-```
-<!-- output-schema-contract:end -->
-$body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('efa7e693-993b-5e72-8da7-fde07f80bc60', 'report.generate', 'v0.1.0', 'multi', '2e5fa63ccd84ff440d1aac65416977ca625e38615367a175beab13e90b0510eb', $body$You are an interview report writer. Produce a structured assessment from
+$body$, TRUE, '2026-07-12T08:00:00Z'),
+  ('aedcb7d9-a56c-5f34-9039-8cdc65828f53', 'report.generate', 'v0.1.0', 'multi', '2e5fa63ccd84ff440d1aac65416977ca625e38615367a175beab13e90b0510eb', $body$You are an interview report writer. Produce a structured assessment from
 sanitized session metadata and turn summaries, anchored in the rubric. Respond
 in the language indicated by `{{language}}` (default English).
 
@@ -213,66 +116,8 @@ Example complete JSON output:
 <!-- output-schema-contract:end -->
 
 Use summarized observations only; do not request raw interview text or direct quotes.
-$body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('4ad44434-3f9c-55d7-bea1-eacb554e10f6', 'report.question_assessment', 'v0.1.0', 'multi', 'd912a229470c84e7b8fcd46edec5b18c156913914e00632ffe8079c9ad5fb3e4', $body$You are an interview rubric judge. Score one answered turn from sanitized
-session metadata and turn summaries; do not invent dimensions outside the
-rubric. Respond in the language indicated by `{{language}}` (default English).
-
-Session metadata: {{session_metadata}}
-Turn summaries: {{turn_summaries}}
-Question context: {{question_context}}
-Answer summary: {{answer_summary}}
-Rubric dimensions and score levels: {{rubric}}
-
-<!-- output-schema-contract:start -->
-Return strict JSON matching this schema-derived output contract.
-Produce a complete JSON value, not JSON Schema or an OpenAPI schema.
-
-Output shape:
-- `$` (required, object): Per-question rubric assessment.
-- `$.dimension_results` (required, object): Map keyed by rubric dimension name. Each value contains score_level, status, confidence, and optional score.
-- `$.overall_status` (required, string enum(needs_work, meets_bar, strong)): Overall dimension status.
-- `$.confidence` (required, number): Overall confidence score.
-- `$.strengths` (required, array): Strength observations for this answer.
-- `$.strengths[]` (required, string): One strength.
-- `$.gaps` (required, array): Gap observations for this answer.
-- `$.gaps[]` (required, string): One gap.
-- `$.recommended_framework` (required, string): Suggested answer framework for retry.
-- `$.review_status` (required, string enum(open, queued_for_retry, resolved)): Question review status.
-
-Example complete JSON output:
-```json
-{
-  "dimension_results": {
-    "system_design": {
-      "score_level": "meets_bar",
-      "status": "meets_bar",
-      "confidence": 0.82,
-      "score": 4.2
-    }
-  },
-  "overall_status": "meets_bar",
-  "confidence": 0.82,
-  "strengths": [
-    "Quantified backend reliability impact."
-  ],
-  "gaps": [
-    "Needs deeper rollback and failure-mode analysis."
-  ],
-  "recommended_framework": "Use STAR with explicit constraints, tradeoffs, and measured outcome.",
-  "review_status": "open"
-}
-```
-<!-- output-schema-contract:end -->
-
-Map `score_level` weak or developing to `status` `needs_work`, proficient to
-`meets_bar`, and strong to `strong`. Set `review_status` to `open` unless the
-turn clearly needs another retry, in which case use `queued_for_retry`; use
-`resolved` only when the answer already closes a prior retry gap. Use
-summarized observations only; do not request raw interview text or direct
-quotes.
-$body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('410f16c3-3ea9-5327-a87a-027f039368b3', 'resume.parse', 'v0.1.0', 'multi', '71f57bc206d0e983ff918d776d6ebb7c2ece1de1959a4238de91fdd5c612ed5d', $body$You are a resume parser. Extract structured experience from the supplied
+$body$, TRUE, '2026-07-12T08:00:00Z'),
+  ('a6924021-93db-552f-a853-08987d205429', 'resume.parse', 'v0.1.0', 'multi', '71f57bc206d0e983ff918d776d6ebb7c2ece1de1959a4238de91fdd5c612ed5d', $body$You are a resume parser. Extract structured experience from the supplied
 resume text. Respond in the language indicated by `{{language}}` (default
 English) regardless of the resume's source language.
 
@@ -385,8 +230,8 @@ Example complete JSON output:
 <!-- output-schema-contract:end -->
 
 Use ISO-style date strings; leave a field empty when the resume does not state it.
-$body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('2b8a3995-f76c-555d-bb47-1b85e7146613', 'resume.tailor.bullet_suggestions', 'v0.1.0', 'multi', '3214ba7fcaf6907fb74c4d0473dcc32ecee67a35805e751681b5b08f393a21e5', $body$You are a resume editor producing impact-driven bullet suggestions tailored to
+$body$, TRUE, '2026-07-12T08:00:00Z'),
+  ('662c1078-d571-5464-a1f3-c008500013cb', 'resume.tailor.bullet_suggestions', 'v0.1.0', 'multi', '3214ba7fcaf6907fb74c4d0473dcc32ecee67a35805e751681b5b08f393a21e5', $body$You are a resume editor producing impact-driven bullet suggestions tailored to
 a target JD. Each suggestion must keep facts truthful and cite the original
 bullet for traceability. Respond in the language indicated by `{{language}}`
 (default English).
@@ -422,8 +267,8 @@ Example complete JSON output:
 <!-- output-schema-contract:end -->
 
 Provide at least three suggestions.
-$body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('9f94eeb0-f95a-5a00-b5a0-932330b5cf63', 'resume.tailor.gap_review', 'v0.1.0', 'multi', '9bd9e789fdb8447ca282b9e05834294bda4bff045d99d8b81896490ea6dea99b', $body$You are a resume coach reviewing alignment between a candidate's resume and a
+$body$, TRUE, '2026-07-12T08:00:00Z'),
+  ('1026574f-5798-5eff-97ed-376de46f0398', 'resume.tailor.gap_review', 'v0.1.0', 'multi', '9bd9e789fdb8447ca282b9e05834294bda4bff045d99d8b81896490ea6dea99b', $body$You are a resume coach reviewing alignment between a candidate's resume and a
 target JD. Respond in the language indicated by `{{language}}` (default
 English).
 
@@ -457,8 +302,8 @@ Example complete JSON output:
 }
 ```
 <!-- output-schema-contract:end -->
-$body$, TRUE, '2026-05-09T11:30:00Z'),
-  ('3e4dae23-7bc3-56cb-868e-72e7c8a6c331', 'target.import.parse', 'v0.1.0', 'multi', '979db6afdd08218d7593379f9b477952e4eddf743fedbafe1b46bf53144f2a2a', $body$You are an expert technical interviewer assistant. Extract the interview-ready
+$body$, TRUE, '2026-07-12T08:00:00Z'),
+  ('45833fb3-09e6-541e-bb57-abb93a056493', 'target.import.parse', 'v0.1.0', 'multi', '979db6afdd08218d7593379f9b477952e4eddf743fedbafe1b46bf53144f2a2a', $body$You are an expert technical interviewer assistant. Extract the interview-ready
 target job model from the following job description. Respond strictly in the
 language identified by the `{{language}}` variable; if `{{language}}` is empty
 or unknown, respond in English.
@@ -557,19 +402,17 @@ Example complete JSON output:
 ```
 <!-- output-schema-contract:end -->
 
-Do not include markdown fences in the JSON output.$body$, TRUE, '2026-05-09T11:30:00Z')
+Do not include markdown fences in the JSON output.
+$body$, TRUE, '2026-07-12T08:00:00Z')
 ON CONFLICT (feature_key, version, language) DO NOTHING;
 
 INSERT INTO rubric_versions (id, feature_key, version, language, schema_json, is_active, created_at) VALUES
-  ('0c570c46-b7b6-5ff8-9c4e-01591e59d3a0', 'practice.session.first_question', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Question or follow-up probes deeply into the candidate's reasoning rather than staying on the surface.", "name": "practice_depth", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Across the session, rubric dimensions are exercised without leaving large blind spots.", "name": "practice_dimension_coverage", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}, {"description": "Output language matches the requested locale and uses consistent terminology.", "name": "language_consistency", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}], "feature_key": "practice.session.first_question", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-05-09T11:30:00Z'),
-  ('673b43cf-3cda-5eed-8fa6-2872157da379', 'practice.session.follow_up', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Follow-up question targets the candidate's actual gap or signal rather than recycling the prior turn.", "name": "followup_relevance", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Question or follow-up probes deeply into the candidate's reasoning rather than staying on the surface.", "name": "practice_depth", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}, {"description": "Output language matches the requested locale and uses consistent terminology.", "name": "language_consistency", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}], "feature_key": "practice.session.follow_up", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-05-09T11:30:00Z'),
-  ('b827bc4a-b976-53f1-a79d-f0fe9087905f', 'practice.turn.lightweight_observe', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "The cue or generated artifact surfaces a high-signal moment rather than commentary.", "name": "practice_signal_strength", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Output is unambiguous and parseable without re-reading.", "name": "practice_clarity", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Output language matches the requested locale and uses consistent terminology.", "name": "language_consistency", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.2}], "feature_key": "practice.turn.lightweight_observe", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-05-09T11:30:00Z'),
-  ('b3fedd43-277e-59f3-be48-382c7e046891', 'report.generate', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Conclusions are anchored in sanitized turn summaries or recorded artifacts.", "name": "report_evidence", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.35}, {"description": "Report cites concrete evidence and avoids hedging or generic language.", "name": "report_specificity", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.25}, {"description": "Recommended next actions are specific, owned, and time-bounded.", "name": "report_action_quality", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.25}, {"description": "Final scores align with rubric levels and with the qualitative reasoning.", "name": "report_calibration", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.15}], "feature_key": "report.generate", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-05-09T11:30:00Z'),
-  ('12ab4687-4190-5792-b103-01ef7601b803', 'report.question_assessment', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Conclusions are anchored in sanitized turn summaries or recorded artifacts.", "name": "report_evidence", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Final scores align with rubric levels and with the qualitative reasoning.", "name": "report_calibration", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}, {"description": "Per-dimension scores stay calibrated against the rubric levels and the cited evidence.", "name": "score_outlier", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}], "feature_key": "report.question_assessment", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-05-09T11:30:00Z'),
-  ('fdcb8879-51c7-538b-b51f-ad6c4c892ea7', 'resume.parse', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Resume content aligns with the target JD's required and preferred signals.", "name": "resume_match", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}, {"description": "Bullets and section structure read cleanly without filler or jargon.", "name": "resume_clarity", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Edits preserve the candidate's stated facts and avoid embellishment.", "name": "resume_truthfulness", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}], "feature_key": "resume.parse", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-05-09T11:30:00Z'),
-  ('b774fe9d-7d92-5f2f-8399-810d19ed8446', 'resume.tailor.bullet_suggestions', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Bullets read as outcomes rather than activities and quantify the impact when possible.", "name": "resume_impact", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Edits preserve the candidate's stated facts and avoid embellishment.", "name": "resume_truthfulness", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}, {"description": "Bullets and section structure read cleanly without filler or jargon.", "name": "resume_clarity", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}], "feature_key": "resume.tailor.bullet_suggestions", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-05-09T11:30:00Z'),
-  ('39db2d84-c578-5757-a790-b91a9b43c88d', 'resume.tailor.gap_review', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Resume content aligns with the target JD's required and preferred signals.", "name": "resume_match", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Edits preserve the candidate's stated facts and avoid embellishment.", "name": "resume_truthfulness", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}, {"description": "Bullets and section structure read cleanly without filler or jargon.", "name": "resume_clarity", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}], "feature_key": "resume.tailor.gap_review", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-05-09T11:30:00Z'),
-  ('dc1358dd-ad2a-58e4-a7bb-16b8fb730780', 'target.import.parse', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "All major JD fields (role, seniority, skills, responsibilities) are captured.", "name": "target_extraction_completeness", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Captured fields reflect the JD without invention or paraphrase drift.", "name": "target_field_accuracy", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Output language matches the requested locale and uses consistent terminology.", "name": "language_consistency", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.2}], "feature_key": "target.import.parse", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-05-09T11:30:00Z')
+  ('2e8f5e6f-7efd-5565-89c6-fa81dac2f6fe', 'practice.session.chat', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "The reply follows the actual conversation and the confirmed job context.", "name": "followup_relevance", "score_levels": [{"description": "Ignores the conversation or asks an unrelated canned prompt.", "label": "weak", "threshold": 0.0}, {"description": "Partly follows context but misses a material signal.", "label": "developing", "threshold": 0.4}, {"description": "Continues the conversation with relevant depth.", "label": "proficient", "threshold": 0.7}, {"description": "Uses the strongest available signal to move the interview forward.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "The reply reads as a natural interviewer message without structural question metadata.", "name": "practice_depth", "score_levels": [{"description": "Exposes internal structure or sounds mechanical.", "label": "weak", "threshold": 0.0}, {"description": "Understandable but noticeably templated.", "label": "developing", "threshold": 0.4}, {"description": "Natural, concise, and easy to answer.", "label": "proficient", "threshold": 0.7}, {"description": "Natural and precisely calibrated to the conversation moment.", "label": "strong", "threshold": 0.9}], "weight": 0.3}, {"description": "The reply matches the requested language consistently.", "name": "language_consistency", "score_levels": [{"description": "Uses the wrong language.", "label": "weak", "threshold": 0.0}, {"description": "Contains avoidable mixed-language output.", "label": "developing", "threshold": 0.4}, {"description": "Uses the requested language consistently.", "label": "proficient", "threshold": 0.7}, {"description": "Uses fluent, role-appropriate language throughout.", "label": "strong", "threshold": 0.9}], "weight": 0.3}], "feature_key": "practice.session.chat", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-07-12T08:00:00Z'),
+  ('25a17797-8e5e-5dbe-936a-681398f76c4d', 'report.generate', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Conclusions are anchored in sanitized turn summaries or recorded artifacts.", "name": "report_evidence", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.35}, {"description": "Report cites concrete evidence and avoids hedging or generic language.", "name": "report_specificity", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.25}, {"description": "Recommended next actions are specific, owned, and time-bounded.", "name": "report_action_quality", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.25}, {"description": "Final scores align with rubric levels and with the qualitative reasoning.", "name": "report_calibration", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.15}], "feature_key": "report.generate", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-07-12T08:00:00Z'),
+  ('d69be0bd-dfac-593b-80c0-71950ee61cba', 'resume.parse', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Resume content aligns with the target JD's required and preferred signals.", "name": "resume_match", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}, {"description": "Bullets and section structure read cleanly without filler or jargon.", "name": "resume_clarity", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Edits preserve the candidate's stated facts and avoid embellishment.", "name": "resume_truthfulness", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}], "feature_key": "resume.parse", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-07-12T08:00:00Z'),
+  ('fb3adfc3-7034-5ee4-bef6-3c488b2baab6', 'resume.tailor.bullet_suggestions', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Bullets read as outcomes rather than activities and quantify the impact when possible.", "name": "resume_impact", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Edits preserve the candidate's stated facts and avoid embellishment.", "name": "resume_truthfulness", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}, {"description": "Bullets and section structure read cleanly without filler or jargon.", "name": "resume_clarity", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}], "feature_key": "resume.tailor.bullet_suggestions", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-07-12T08:00:00Z'),
+  ('d27465e1-667a-50c1-a8cf-0178bee3ed65', 'resume.tailor.gap_review', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "Resume content aligns with the target JD's required and preferred signals.", "name": "resume_match", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Edits preserve the candidate's stated facts and avoid embellishment.", "name": "resume_truthfulness", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}, {"description": "Bullets and section structure read cleanly without filler or jargon.", "name": "resume_clarity", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.3}], "feature_key": "resume.tailor.gap_review", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-07-12T08:00:00Z'),
+  ('755053bd-b633-5909-b5cf-ee57d7dcf28d', 'target.import.parse', 'v0.1.0', 'multi', $schema${"dimensions": [{"description": "All major JD fields (role, seniority, skills, responsibilities) are captured.", "name": "target_extraction_completeness", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Captured fields reflect the JD without invention or paraphrase drift.", "name": "target_field_accuracy", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.4}, {"description": "Output language matches the requested locale and uses consistent terminology.", "name": "language_consistency", "score_levels": [{"description": "Falls clearly short of the dimension; the artifact would not satisfy the user goal.", "label": "weak", "threshold": 0.0}, {"description": "Partially satisfies the dimension; still has obvious gaps a reviewer would call out.", "label": "developing", "threshold": 0.4}, {"description": "Meets the dimension at production-baseline quality with only minor refinements.", "label": "proficient", "threshold": 0.7}, {"description": "Exceeds the dimension's expectation; an experienced reviewer would highlight the work.", "label": "strong", "threshold": 0.9}], "weight": 0.2}], "feature_key": "target.import.parse", "language": "multi", "version": "v0.1.0"}$schema$, TRUE, '2026-07-12T08:00:00Z')
 ON CONFLICT (feature_key, version, language) DO NOTHING;
 
 COMMIT;

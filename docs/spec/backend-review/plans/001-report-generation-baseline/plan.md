@@ -1,8 +1,8 @@
-# 001 - Report Generation Baseline
+# 001 — Conversation-level Report Generation
 
-> **版本**: 1.6
-> **状态**: completed
-> **更新日期**: 2026-07-10
+> **版本**: 2.0
+> **状态**: active
+> **更新日期**: 2026-07-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,90 +11,59 @@
 
 ## 1 目标
 
-落地当前 backend-review 报告生成与读取合同：
+将 report generation/read contract 从 question assessments 改为 conversation-level dimensions/evidence/actions；删除 question assessment prompt/table/task/UI fields，复练使用 competency codes。
 
-- 消费 backend-practice 已创建的 `async_jobs(job_type='report_generate')` 与 `feedback_reports(status='queued')`。
-- 由 backend-async-runner kernel 调度 `review.GenerateHandler`，完成 report generation、question assessment、readiness、retry focus、next action、outbox、audit 与 `ai_task_runs` 记录。
-- 提供 `getFeedbackReport` 与 `listTargetJobReports` 两个 generated OpenAPI handler。
-- 在 AI / prompt / parse failure 时写入 failed report shape 与 retry/permanent job 状态，不向 read handler 泄露 5xx。
-- 保持 user-scoped read/write、wire provenance 6 字段边界、raw QA/prompt/response/secret privacy boundary。
+## 2 Operation Matrix
 
-本 plan 是 completed owner 文档，当前用途是作为 implementation / review 的 executable evidence index，不再承载阶段演进说明。v1.4 将 queued / generating 报告读取语义收敛为当前状态元数据，不再描述为空报告壳。
+| operationId / job | fixture | consumer | backend | persistence | AI | scenario |
+|-------------------|---------|----------|---------|-------------|----|----------|
+| `report_generate` job | N/A | generating poll | runner/review service/store | feedback_reports/jobs/outbox/audit/task | report.generate | P0.056/P0.058/P0.099 |
+| `getFeedbackReport` | report fixtures | dashboard | reports handler/review read | feedback_reports | none | P0.056/P0.058/P0.099 |
+| `listTargetJobReports` | list fixture | report records | same | feedback_reports | none | focused handler/store gate |
 
-## 2 当前合同
+## 3 质量门禁分类
 
-| Surface | 当前合同 | Gate |
-|---------|----------|------|
-| API | `getFeedbackReport`, `listTargetJobReports`, `REPORT_NOT_FOUND`, `FeedbackReport.errorCode` | `make codegen-check`, report handler tests, BDD P0.053/P0.055 |
-| DB | `feedback_reports` with provenance/retry columns, `question_assessments`, `async_jobs`, `ai_task_runs(report_generate/report_assessment)` | migration contract tests, store tests |
-| Runtime | `runner.Runtime` owns lease/retry/reaper; backend-review owns `review.GenerateHandler` business logic | `TestBuildReportRuntimeWiresRoutesRunnerReaperAndAI` |
-| AI | F3 `report.generate` and `report.question_assessment`; A3 observed `AIClient.Complete` | F3 preflight, AI profile/config lint |
-| Events | `report.generated`, `report.generation.failed` | event codegen/lint and outbox emitter tests |
-| Privacy | no raw QA, prompt body, AI response body, or provider secret in report JSON, outbox, audit, logs, or metric labels | redaction tests, BDD P0.055, out-of-scope report surface lint |
-
-## 3 Operation Matrix
-
-| Operation / async path | Fixture | Frontend consumer | Backend owner | Persistence | AI dependency | Scenario coverage |
-|------------------------|---------|-------------------|---------------|-------------|---------------|-------------------|
-| `getFeedbackReport` | `openapi/fixtures/Reports/getFeedbackReport.json` | `frontend-report-dashboard` generating and report views | `backend/internal/api/reports`, `backend/internal/review`, `backend/internal/store/review` | `feedback_reports`, `question_assessments` | none on read path | `E2E.P0.053`, `E2E.P0.055` |
-| `listTargetJobReports` | `openapi/fixtures/Reports/listTargetJobReports.json` | report records within dashboard owner | same | target ownership check, `feedback_reports` cursor read | none on read path | `E2E.P0.053`, `E2E.P0.055` |
-| `report_generate` job | N/A | observed through `getFeedbackReport` | `runner.Runtime`, `review.GenerateHandler`, review store | `feedback_reports`, `question_assessments`, `async_jobs`, `outbox_events`, `audit_events`, `ai_task_runs` | F3 report prompts/rubrics, A3 Complete | `E2E.P0.052`, `E2E.P0.054`, `E2E.P0.055` |
+- **Plan 类型**: feature-behavior + contract + async backend + migration。
+- **TDD 策略**: Red tests require dimensionAssessments/retryFocusCompetencyCodes and absence of question rows before service/store/schema changes.
+- **BDD 策略**: 已存在的 P0.056/P0.057/P0.058/P0.099 cover generate/read/retry/failure/real integration；隐私与隔离由 focused backend contract gate 承接。
+- **替代验证 gate**: prompt/schema/eval, migration, codegen/fixtures, runner/store integration, privacy lint.
 
 ## 4 Coverage Matrix
 
-| Area | Required evidence |
-|------|-------------------|
-| Report happy path | runner/service/store tests plus `TestE2EP0052ReportGenerationHappyPath` |
-| Read handlers | API/service/store tests plus `TestE2EP0053ReportReadAndListing` |
-| Failure and retry | service failure matrix, runner retry policy, persist failure tests, `TestE2EP0054ReportAIFailureAndRetry` |
-| Privacy and cross-user isolation | redaction tests, ownership tests, `TestE2EP0055ReportPrivacyAndOutOfScope` |
-| Contract and generated artifacts | OpenAPI codegen, fixture validation, conventions drift, migration lint/tests, event codegen/lint |
-| Runtime wiring | `TestBuildReportRuntimeWiresRoutesRunnerReaperAndAI`, `TestBuildReportRuntimeRejectsMissingAIClient` |
-| Current-scope negative surface | `python3 scripts/lint/backend_review_out_of_scope.py --repo-root . --phase all` and its pytest suite |
+| Behavior | Category | Phase | Verification | Negative |
+|----------|----------|-------|--------------|----------|
+| generate report | primary | 1-2 | service/store + P0.056/P0.099 | per-question task/rows |
+| read states | contract | 3 | handler/store + P0.056/P0.058 | question fields |
+| AI failure/retry | recovery | 2 | matrix + P0.058 | partial ready report |
+| competency replay | cross-layer | 3 | mapper/replay tests + P0.057 | turn IDs |
+| privacy | security | 4 | focused isolation/redaction gates | raw transcript in non-content surfaces |
 
-## 5 Completed Implementation Slices
+## 5 实施步骤
 
-- Contract and fixture alignment: `REPORT_NOT_FOUND`, `FeedbackReport.errorCode`, report fixtures, migration enum/column contract, and F3 preflight are covered by generated-code, fixture, migration, conventions, prompt, and rubric gates.
-- Runner and job handling: current runtime uses backend-async-runner kernel, with backend-review business logic in `review.GenerateHandler`; lease/retry/reaper behavior is covered by runtime and runner tests.
-- AI content generation: report and question assessment prompts are resolved through F3 and executed through A3; output schema, score-level mapping, token accounting, and failure rows are covered by review/registry/aiclient tests.
-- Persistence: report success/failure writes are transactional across report rows, assessments, async job state, outbox, and audit.
-- Read APIs: handlers preserve user isolation, queued/generating/ready/failed shapes, pagination, cursor validation, and target ownership.
-- Privacy and observability: redaction, metric-label allowlist, bounded error codes, outbox payload schema, and current-scope negative lint are covered.
+### Phase 1: Report contract/prompt
+- Rewrite report.generate schema/rubric/evals to output readiness, dimensionAssessments, highlights/issues, nextActions and retryFocusCompetencyCodes.
+- Delete report.question_assessment assets and generated/API/DB shapes.
 
-## 6 Verification Commands
+### Phase 2: Generate/store
+- Load ordered practice_messages and context.
+- Generate one report AI result, calculate/validate readiness, persist one report transactionally.
+- Preserve retry/failure/job/outbox/audit/task-run semantics.
 
-These commands define the current owner evidence set:
+### Phase 3: Read/replay
+- Map queued/generating/ready/failed reports without question fields.
+- Use competency focus for retry plan creation.
 
-```bash
-cd backend && go test ./internal/api/reports ./internal/review ./internal/store/review ./internal/ai/aiclient ./internal/ai/registry ./cmd/api -count=1
-cd backend && go test ./cmd/api -run 'TestE2EP0052|TestE2EP0053|TestE2EP0054|TestE2EP0055|TestBuildReportRuntime' -count=1
-make codegen-check
-make validate-fixtures
-migrations/lint.sh
-make lint-events
-make codegen-events-check
-python3 scripts/lint/conventions_drift.py --repo-root .
-python3 scripts/lint/backend_review_out_of_scope.py --repo-root . --phase all
-python3 -m pytest scripts/lint/backend_review_out_of_scope_test.py -q
-python3 scripts/lint/prompt_lint.py
-python3 scripts/lint/rubric_lint.py
-make docs-check
-git diff --check
-```
+### Phase 4: Privacy and closeout
+- Redaction/isolation/current-scope negative/full gates and P0.056/P0.057/P0.058/P0.099.
+
+## 6 验收标准
+
+- Ready report contains session-level dimensions/evidence/actions and no question data.
+- Retry path carries competency codes, not turn IDs.
+- Failure/read/privacy behavior stays deterministic.
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
-| 2026-07-10 | 1.6 | Consolidate retryable GenerateHandler test setup while preserving exact regression names. |
-| 2026-07-10 | 1.5 | Remove the production-only readiness-tier test helper and keep the enum property assertion in test data. |
-| 2026-07-07 | 1.2 | Compress owner plan to the current report generation/read contract and executable evidence index. |
-| 2026-05-16 | 1.1 | Complete report generation baseline delivery. |
-
-## 8 Test-only readiness validator removal
-
-删除 production `validReadinessTier`，随机 readiness property test 直接使用四个 shared `ReadinessTier` 常量组成的测试集合验证输出。真实 readiness 计算与阈值映射保持不变。
-
-## 9 GenerateHandler retryable-failure test harness consolidation
-
-Keep both top-level retryable failure test names, including the BUG-0088/backend-async-runner exact gate. Move their shared store/service/job setup and output assertions into one test-only helper parameterized only by the service's incoming `AsyncJobFinalized` value; both paths must still return retryable timeout with handler output `AsyncJobFinalized=false`.
+| 2026-07-12 | 2.0 | Reopen for conversation-level report and competency-focused retry. |

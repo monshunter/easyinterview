@@ -54,10 +54,10 @@ type ServerInterface interface {
 	// completePracticeSession — post /practice/sessions/{sessionId}/complete: Complete a practice session and trigger report generation
 	CompletePracticeSession(w http.ResponseWriter, r *http.Request, sessionId string)
 
-	// appendSessionEvent — post /practice/sessions/{sessionId}/events: Append a session event and get the next assistant action
-	AppendSessionEvent(w http.ResponseWriter, r *http.Request, sessionId string)
+	// sendPracticeMessage — post /practice/sessions/{sessionId}/messages: Send a conversation message and receive the assistant reply
+	SendPracticeMessage(w http.ResponseWriter, r *http.Request, sessionId string)
 
-	// createPracticeVoiceTurn — post /practice/sessions/{sessionId}/voice-turns: Create a cascaded practice voice turn
+	// createPracticeVoiceTurn — post /practice/sessions/{sessionId}/voice-turns: Phone mode temporarily unavailable
 	CreatePracticeVoiceTurn(w http.ResponseWriter, r *http.Request, sessionId string)
 
 	// requestPrivacyDelete — post /privacy/deletions: Request a privacy data deletion
@@ -153,7 +153,7 @@ var AllRoutes = []Route{
 	{OperationID: "startPracticeSession", Method: "post", Path: "/practice/sessions", PathParams: nil},
 	{OperationID: "getPracticeSession", Method: "get", Path: "/practice/sessions/{sessionId}", PathParams: []string{"sessionId"}},
 	{OperationID: "completePracticeSession", Method: "post", Path: "/practice/sessions/{sessionId}/complete", PathParams: []string{"sessionId"}},
-	{OperationID: "appendSessionEvent", Method: "post", Path: "/practice/sessions/{sessionId}/events", PathParams: []string{"sessionId"}},
+	{OperationID: "sendPracticeMessage", Method: "post", Path: "/practice/sessions/{sessionId}/messages", PathParams: []string{"sessionId"}},
 	{OperationID: "createPracticeVoiceTurn", Method: "post", Path: "/practice/sessions/{sessionId}/voice-turns", PathParams: []string{"sessionId"}},
 	{OperationID: "requestPrivacyDelete", Method: "post", Path: "/privacy/deletions", PathParams: nil},
 	{OperationID: "requestPrivacyExport", Method: "post", Path: "/privacy/exports", PathParams: nil},

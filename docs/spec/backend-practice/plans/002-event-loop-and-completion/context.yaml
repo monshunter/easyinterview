@@ -4,51 +4,16 @@ metadata:
   subspec: backend-practice
   name: 002-event-loop-and-completion
   sequence: 2
-  baseBranch: main
-  branch: practice-phone-session-flow
   specVersion:
-    from: 1.17
-    to: 1.20
+    from: 1.21
+    to: 1.22
 spec:
+  baseBranch: main
+  branch: practice-conversation-simplification
   defaultTarget: backend
   discovery:
-    aliases:
-      - backend-practice
-      - backend-practice/002
-      - 002-event-loop-and-completion
-      - event-loop-and-completion
-    keywords:
-      - practice
-      - practicesession
-      - appendsessionevent
-      - completepracticesession
-      - sessionevent
-      - assistantaction
-      - clienteventid
-      - reportwithjob
-      - feedback_reports
-      - async_jobs
-      - report_generate
-      - triggereventsemantic
-      - source_event_only
-      - 4-value turn status
-      - practice.turn.completed
-      - practice.session.completed
-      - idempotency
-      - state_machine
-      - turn_status
-      - queued report job handoff
-      - runtime boundary lint
-      - canonical practice context
-      - session language
-      - prompt variable binding
-      - exactly one repair
-      - session_wait state recovery
-      - typed voice error
-      - no canned question
-      - client question override negative
-      - questionIntent internal
-      - generation kind follow_up next_question
+    aliases: [practice conversation loop, send practice message]
+    keywords: [sendPracticeMessage, clientMessageId, replyToMessageId, practice_messages, completePracticeSession]
   targets:
     backend:
       plan: ./plan.md
@@ -58,25 +23,12 @@ spec:
       testChecklist: ./test-checklist.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
-      references:
-        - ../../../practice-voice-mvp/spec.md
-        - ../../../practice-voice-mvp/plans/001-cascaded-stt-llm-tts/plan.md
-        - ../../../prompt-rubric-registry/spec.md
       discovery:
         packages:
           - backend/internal/api/practice
           - backend/internal/practice
           - backend/internal/store/practice
-          - backend/internal/middleware/idempotency
-          - backend/cmd/codegen/events
-          - backend/internal/shared/jobs
-          - shared/events
-          - shared/jobs.yaml
-          - config/prompts/practice.session.follow_up
-          - config/evals
-          - migrations/000002_seed_baseline_prompt_rubric_versions.up.sql
-          - scripts/lint
-        apiNames:
-          - appendSessionEvent
-          - completePracticeSession
-          - createPracticeVoiceTurn
+          - frontend/src/app/screens/practice
+          - openapi/fixtures/PracticeSessions
+          - test/scenarios/e2e
+        apiNames: [sendPracticeMessage, completePracticeSession]

@@ -171,11 +171,10 @@ EXPECTED_EVENT_PAYLOADS = {
     "target.import.requested": ["targetJobId", "userId", "sourceType", "targetLanguage"],
     "target.parsed": ["targetJobId", "userId", "analysisStatus", "requirementCount", "coreThemes"],
     "target.analysis.failed": ["targetJobId", "errorCode", "retryable"],
-    "practice.session.started": ["sessionId", "planId", "targetJobId", "goal", "mode", "language"],
-    "practice.turn.completed": ["sessionId", "turnId", "turnIndex", "questionIntent", "followUpCount", "answerCharLength"],
-    "practice.session.completed": ["sessionId", "planId", "targetJobId", "turnCount", "language"],
+    "practice.session.started": ["sessionId", "planId", "targetJobId", "goal", "language"],
+    "practice.session.completed": ["sessionId", "planId", "targetJobId", "language"],
     "report.generation.requested": ["reportId", "sessionId", "targetJobId"],
-    "report.generated": ["reportId", "sessionId", "targetJobId", "preparednessLevel", "questionIssueCount", "promptVersion", "rubricVersion", "modelId"],
+    "report.generated": ["reportId", "sessionId", "targetJobId", "preparednessLevel", "promptVersion", "rubricVersion", "modelId"],
     "report.generation.failed": ["reportId", "sessionId", "errorCode", "retryable"],
     "resume.parse.completed": ["resumeId", "userId", "parseStatus"],
     "resume.tailor.completed": ["tailorRunId", "resumeId", "targetJobId", "mode", "status"],
@@ -197,7 +196,6 @@ def valid_event_entries() -> list[dict]:
         "target.parsed": "target_job",
         "target.analysis.failed": "target_job",
         "practice.session.started": "practice_session",
-        "practice.turn.completed": "practice_turn",
         "practice.session.completed": "practice_session",
         "report.generation.requested": "feedback_report",
         "report.generated": "feedback_report",
@@ -213,7 +211,6 @@ def valid_event_entries() -> list[dict]:
         "target.parsed": "backend_async",
         "target.analysis.failed": "backend_async",
         "practice.session.started": "api",
-        "practice.turn.completed": "api",
         "practice.session.completed": "api",
         "report.generation.requested": ["api", "dispatcher"],
         "report.generated": "backend_async",
@@ -242,7 +239,6 @@ def event_payload_fields(event_name: str, names: list[str]) -> dict[str, dict[st
     out = {name: {"type": payload_type(name), "source": "spec:3.1.4"} for name in names}
     overrides = {
         ("target.import.requested", "sourceType"): "$ref:event.TargetImportSourceType",
-        ("practice.session.started", "mode"): "$ref:b1.PracticeMode",
         ("resume.tailor.completed", "mode"): "$ref:event.ResumeTailorMode",
         ("resume.tailor.completed", "status"): "$ref:b1.ReportStatus",
         ("source.refreshed", "freshnessStatus"): "$ref:event.SourceFreshnessStatus",
@@ -260,7 +256,6 @@ def payload_type(name: str) -> str:
         "userId",
         "sessionId",
         "planId",
-        "turnId",
         "reportId",
         "resumeId",
         "tailorRunId",
@@ -270,11 +265,6 @@ def payload_type(name: str) -> str:
     }
     int_fields = {
         "requirementCount",
-        "turnIndex",
-        "followUpCount",
-        "answerCharLength",
-        "turnCount",
-        "questionIssueCount",
     }
     bool_fields = {"retryable"}
     enum_refs = {
@@ -331,7 +321,7 @@ class EventsInventoryEnvelopeTest(unittest.TestCase):
 
         self.assertTrue(any("producer" in err and "api" in err and "cron" in err for err in errs), errs)
 
-    def test_requires_full_14_event_inventory(self) -> None:
+    def test_requires_full_13_event_inventory(self) -> None:
         data = valid_events_data()
         data["events"] = [event for event in data["events"] if event["name"] != "report.generated"]
 
@@ -342,11 +332,11 @@ class EventsInventoryEnvelopeTest(unittest.TestCase):
     def test_requires_exact_payload_field_set(self) -> None:
         data = valid_events_data()
         report_generated = next(event for event in data["events"] if event["name"] == "report.generated")
-        report_generated["requiredPayload"].pop("questionIssueCount")
+        report_generated["requiredPayload"].pop("modelId")
 
         errs = self.linter.validate_events_yaml(data)
 
-        self.assertTrue(any("report.generated" in err and "questionIssueCount" in err for err in errs), errs)
+        self.assertTrue(any("report.generated" in err and "modelId" in err for err in errs), errs)
 
     def test_rejects_invalid_event_domain(self) -> None:
         data = valid_events_data()

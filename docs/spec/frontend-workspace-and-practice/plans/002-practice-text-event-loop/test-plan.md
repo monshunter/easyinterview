@@ -1,54 +1,16 @@
-# 002 — Practice Text Event Loop Test Plan
+# 002 Practice Continuous Conversation Test Plan
 
-> **版本**: 1.15
+> **版本**: 2.0
 > **状态**: active
-> **更新日期**: 2026-07-11
+> **更新日期**: 2026-07-12
 
-**关联计划**: [plan](./plan.md) / [checklist](./checklist.md)
-
-## 1 Test Strategy
-
-This owner uses focused frontend unit/integration tests, fixture contract gates, route/handoff privacy checks, scenario scripts, real-environment browser smoke and screenshot evidence. It verifies the current text / phone session UI; bottom-layer STT/LLM/TTS orchestration and report polling are owner boundaries.
-
-## 2 Test Matrix
-
-| Area | Files / Commands | Assertions |
-|------|------------------|------------|
-| Screen parity | `src/app/screens/practice/PracticeScreen.test.tsx`, `src/app/screens/practice/__tests__/PracticeScreenIntegration.test.tsx`, `frontend/tests/pixel-parity/practice.spec.ts` | one handset icon, center red circular hang-up, no segmented/live/cut-off/restart/callEnded controls, global finish CTA, responsive shell, computed-style/bounding-box/viewport parity |
-| Target identity | `usePracticeTargetDisplay.test.tsx` + integration tests + `frontendOwners.realApiMode.test.ts` | server session `targetJobId` wins over route/context; stale requests abort/lose; loading/error never uses fixture constants |
-| Session load | `hooks/usePracticeSessionLoader.test.tsx`, `__tests__/practiceSessionLost.test.tsx` | generated `getPracticeSession`, refresh triggers, 404 lost state, workspace CTA params |
-| Events | `hooks/usePracticeEvents.test.tsx`, `__tests__/appendSessionEventBody.test.tsx`, `__tests__/idempotencyContract.test.tsx` | answer/hint/pause/resume event kinds, UUIDv7 `clientEventId`, retry reuse, append has no `Idempotency-Key`, no positive `turn_skipped` path |
-| Assistant actions | `components/AssistantActionRenderer.test.tsx`, `__tests__/practiceCompletion.test.tsx` | 5 action types, transcript update, finish CTA state |
-| Policy | `__tests__/practiceGoalParity.test.tsx`, `__tests__/practiceHints.test.tsx`, `__tests__/practiceModeSwitch.test.tsx`, `__tests__/outOfScopeNegative.test.ts` | rendered optional hint usage, current three practice goals, no user-visible strict switch |
-| Controls | `__tests__/practicePauseResume.test.tsx`, `__tests__/SessionMap.test.tsx`, phone-mode focused tests | pause/resume disabling, phone captions, shared `exitPhoneMode`, no restart/callEnded, hang-up stops audio and returns same-session text |
-| Conversation truth | Practice integration/AssistantAction tests, real-mode generated-client gate | no fixture dialogue in real mode, no raw `questionIntent`, text repair failure renders `session_wait` while retaining input and avoiding duplicate transcript before a new-ID retry, voice top-level typed error keeps same session |
-| Current UI boundary | `PracticeScreen.test.tsx`, `__tests__/outOfScopeNegative.test.ts`, scenario verify scripts | no independent side-panel controls, dictation, skip, in-session persona switch, strict switch, voice expression metrics or manual transcript fallback UI |
-| Completion | `hooks/useCompletePracticeSession.test.tsx`, `__tests__/completePracticeSessionBody.test.tsx`, `utils/practiceHandoffParams.test.ts` | `completePracticeSession` body, idempotency replay, `resumeId` handoff, forbidden-key guard |
-| Privacy / boundary | `__tests__/practicePrivacy.test.tsx`, `__tests__/outOfScopeNegative.test.ts`, P0.044/P0.047 verify scripts | no raw text in URL/storage/log, no `getFeedbackReport` in practice runtime, voice turn confined to owner hook |
-| Fixtures | `make validate-fixtures` | PracticeSessions fixtures match OpenAPI envelope and variants |
-| Type safety | `pnpm --filter @easyinterview/frontend exec tsc --noEmit` | generated types and current route params compile |
-
-## 3 Scenario Gates
-
-| Scenario | Scripts | Scope |
-|----------|---------|-------|
-| `E2E.P0.044` | `test/scenarios/e2e/p0-044-practice-text-loop-assisted-happy-path/scripts/` | assisted text happy path, runtime negative grep |
-| `E2E.P0.045` | `test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/` | single handset/hang-up policy, real target identity, no raw questionIntent, current-boundary negative gates |
-| `E2E.P0.046` | `test/scenarios/e2e/p0-046-practice-text-loop-failure-and-recovery/scripts/` | AI timeout, 404, 409, text session_wait retained-input/new-ID retry and voice typed-error same-session recovery, no canned fallback |
-| `E2E.P0.047` | `test/scenarios/e2e/p0-047-practice-text-loop-complete-and-generating-handoff/scripts/` | complete 202, replay, privacy handoff |
-
-## 4 Closeout Gates
-
-Run:
-
-```bash
-python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/frontend-workspace-and-practice/plans/002-practice-text-event-loop/context.yaml --target frontend
-corepack pnpm --filter @easyinterview/frontend test src/app/screens/practice src/app/interview-context/InterviewContext.test.tsx src/api/frontendOwners.realApiMode.test.ts
-corepack pnpm --filter @easyinterview/frontend exec tsc --noEmit
-node --test ui-design/ui-design-contract.test.mjs
-make validate-fixtures
-```
-
-Then run P0.044-P0.047 scenario scripts and global doc gates.
-
-Final acceptance additionally requires local real-environment browser screenshots for text and phone practice flows under `.test-output/`.
+## Phase 1: Prototype/source
+- DOM shape, disabled phone control, no stale question/hint/phone-positive source, desktop/mobile geometry.
+## Phase 2: Formal DOM
+- TopBar props, component deletion, a11y, responsive layout, context/i18n negative checks.
+## Phase 3: Hooks/state
+- Ordered messages, refresh, send/replay/failure/retry/no duplicates and UI states.
+## Phase 4: Completion
+- Stable-ID handoff and generating conversation copy.
+## Phase 5: Integration/parity
+- Vitest/typecheck/build, source/pixel parity, real P0.099 screenshots.

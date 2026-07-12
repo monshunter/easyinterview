@@ -16,8 +16,3 @@ CREATE TABLE IF NOT EXISTS idempotency_records (
   UNIQUE (user_id, domain, operation, idempotency_key_hash)
 );
 CREATE INDEX IF NOT EXISTS idx_idempotency_records_expires_at ON idempotency_records (expires_at);
-
-ALTER TABLE practice_plans
-  DROP CONSTRAINT IF EXISTS practice_plans_mode_check;
-ALTER TABLE practice_plans
-  ADD CONSTRAINT practice_plans_mode_check CHECK (mode IN ('assisted', 'strict'));

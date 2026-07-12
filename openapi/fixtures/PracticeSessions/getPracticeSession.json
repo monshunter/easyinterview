@@ -4,145 +4,28 @@
     "default": {
       "response": {
         "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-abcdef"
-        },
+        "headers": {"X-Request-ID": "req_2026-07-12-session-get"},
         "body": {
           "id": "01918fa0-0000-7000-8000-000000005000",
           "planId": "01918fa0-0000-7000-8000-000000004000",
           "targetJobId": "01918fa0-0000-7000-8000-000000002000",
           "status": "running",
           "language": "zh-CN",
-          "hintsEnabled": true,
-          "turnCount": 1,
-          "currentTurn": {
-            "id": "01918fa0-0000-7000-8000-000000006000",
-            "turnIndex": 1,
-            "questionText": "请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。",
-            "questionIntent": "behavioral.leadership.design_system",
-            "status": "asked",
-            "askedAt": "2026-04-28T13:45:12Z"
-          },
-          "createdAt": "2026-04-28T12:00:00Z",
-          "updatedAt": "2026-04-28T13:45:12Z"
-        }
-      }
-    },
-    "prototype-baseline": {
-      "response": {
-        "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-prototype"
-        },
-        "body": {
-          "id": "01918fa0-4e08-7aa5-82fb-429d4ca5536d",
-          "planId": "01918fa0-cdeb-7e43-8df1-83fbdd9f7104",
-          "targetJobId": "01918fa0-ee66-739f-855a-0a9c27ab13df",
-          "status": "running",
-          "language": "zh-CN",
-          "hintsEnabled": true,
-          "turnCount": 1,
-          "currentTurn": {
-            "id": "01918fa0-0540-76d0-8814-06cedc749fd7",
-            "turnIndex": 1,
-            "questionText": "用 90 秒介绍一下你自己，并说明你为什么对这个岗位感兴趣。",
-            "questionIntent": "behavioral.self_intro",
-            "status": "asked",
-            "askedAt": "2026-04-28T13:45:12Z"
-          },
-          "createdAt": "2026-04-28T12:00:00Z",
-          "updatedAt": "2026-04-28T13:45:12Z"
+          "messages": [
+            {"id": "01918fa0-0000-7000-8000-000000006000", "seqNo": 1, "role": "assistant", "content": "你好，我们直接开始。先聊聊你最近最有代表性的项目。", "createdAt": "2026-07-12T08:02:00Z"},
+            {"id": "01918fa0-0000-7000-8000-000000006001", "seqNo": 2, "role": "user", "content": "我主导过一次跨团队设计系统迁移。", "createdAt": "2026-07-12T08:03:00Z"},
+            {"id": "01918fa0-0000-7000-8000-000000006002", "seqNo": 3, "role": "assistant", "content": "当时最难协调的分歧是什么？", "createdAt": "2026-07-12T08:03:01Z"}
+          ],
+          "createdAt": "2026-07-12T08:02:00Z",
+          "updatedAt": "2026-07-12T08:03:01Z"
         }
       }
     },
     "missing-session": {
       "response": {
         "status": 404,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-missing-session"
-        },
-        "body": {
-          "error": {
-            "code": "PRACTICE_SESSION_NOT_FOUND",
-            "message": "practice session not found",
-            "requestId": "req_2026-04-28T13-45-12-missing-session",
-            "retryable": false
-          }
-        }
-      }
-    },
-    "queued": {
-      "response": {
-        "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-queued"
-        },
-        "body": {
-          "id": "01918fa0-0000-7000-8000-000000005000",
-          "planId": "01918fa0-0000-7000-8000-000000004000",
-          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
-          "status": "queued",
-          "language": "zh-CN",
-          "hintsEnabled": true,
-          "turnCount": 0,
-          "currentTurn": null,
-          "createdAt": "2026-04-28T11:55:00Z",
-          "updatedAt": "2026-04-28T11:55:00Z"
-        }
-      }
-    },
-    "running-with-history": {
-      "response": {
-        "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-history"
-        },
-        "body": {
-          "id": "01918fa0-0000-7000-8000-000000005000",
-          "planId": "01918fa0-0000-7000-8000-000000004000",
-          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
-          "status": "running",
-          "language": "zh-CN",
-          "hintsEnabled": true,
-          "turnCount": 3,
-          "currentTurn": {
-            "id": "01918fa0-0000-7000-8000-000000006003",
-            "turnIndex": 3,
-            "questionText": "在跨组协作时，你最常碰到的反对意见是什么？说一个具体例子。",
-            "questionIntent": "behavioral.collaboration",
-            "status": "asked",
-            "askedAt": "2026-04-28T13:48:00Z"
-          },
-          "createdAt": "2026-04-28T12:00:00Z",
-          "updatedAt": "2026-04-28T13:48:00Z"
-        }
-      }
-    },
-    "completing": {
-      "response": {
-        "status": 200,
-        "headers": {
-          "X-Request-ID": "req_2026-04-28T13-45-12-completing"
-        },
-        "body": {
-          "id": "01918fa0-0000-7000-8000-000000005000",
-          "planId": "01918fa0-0000-7000-8000-000000004000",
-          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
-          "status": "completing",
-          "language": "zh-CN",
-          "hintsEnabled": true,
-          "turnCount": 5,
-          "currentTurn": {
-            "id": "01918fa0-0000-7000-8000-000000006005",
-            "turnIndex": 5,
-            "questionText": "最后一题：你怎么看这个岗位与你的下一个三年规划？",
-            "questionIntent": "motivation.fit",
-            "status": "answered",
-            "askedAt": "2026-04-28T14:05:00Z"
-          },
-          "createdAt": "2026-04-28T12:00:00Z",
-          "updatedAt": "2026-04-28T14:10:00Z"
-        }
+        "headers": {"X-Request-ID": "req_2026-07-12-session-missing"},
+        "body": {"error": {"code": "PRACTICE_SESSION_NOT_FOUND", "message": "practice session not found", "requestId": "req_2026-07-12-session-missing", "retryable": false}}
       }
     }
   }

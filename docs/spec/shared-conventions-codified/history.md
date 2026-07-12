@@ -1,13 +1,15 @@
 # Shared Conventions Codified History
 
-> **版本**: 1.27
+> **版本**: 1.29
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 1.29 | 校正可执行基线计数：现有 13 个枚举删除 PracticeMode 与 QuestionReviewStatus 后为 11 个。 | backend-practice 001 / 003 / backend-review 001 |
+| 2026-07-12 | 1.28 | 删除 `PracticeMode` 与 `QuestionReviewStatus`，共享枚举总数调整为 14。 | backend-practice 003 / backend-review 001 |
 | 2026-07-10 | 1.27 | 将当前 `yaml.v3` typed loader、手写 renderer 与 TypeScript 生成文件边界写入锁定决策，删除 active spec 中已经落实的待确认项。 | tech-debt pruning |
 | 2026-07-10 | 1.26 | 固化根 `go.work` 单 use `./backend` 的当前拓扑，将 workspace/module/tool version 统一为 `1.24.5`，并接入 tidy drift gate。 | tech-debt pruning |
 | 2026-07-10 | 1.25 | 将 TargetJob 错误码验收条件收敛为 canonical codes 正向合同，并同步 001 context。 | tech-debt pruning |
