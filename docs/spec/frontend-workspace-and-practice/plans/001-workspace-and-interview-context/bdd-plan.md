@@ -1,8 +1,8 @@
 # 001 BDD Plan
 
 > **版本**: 1.20
-> **状态**: active
-> **更新日期**: 2026-07-10
+> **状态**: completed
+> **更新日期**: 2026-07-12
 
 **关联 Plan**: [plan](./plan.md)
 **关联 Checklist**: [checklist](./checklist.md)
