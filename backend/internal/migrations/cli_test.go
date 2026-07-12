@@ -124,9 +124,8 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 		"idempotency_records",
 		"practice_sessions",
 		"practice_session_events",
-		"practice_turns",
+		"practice_messages",
 		"feedback_reports",
-		"question_assessments",
 		"source_records",
 		"prompt_versions",
 		"rubric_versions",
@@ -148,6 +147,11 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 	if _, ok := got["mistake_entries"]; ok {
 		t.Fatalf("privacy matrix must not restore removed mistake_entries")
 	}
+	for _, removed := range []string{"practice_turns", "question_assessments"} {
+		if _, ok := got[removed]; ok {
+			t.Fatalf("privacy matrix must not restore removed table %q", removed)
+		}
+	}
 	// product-scope v2.1 D-17 dropped the 5 jd_match module tables
 	// (jd_match_recommendations, watchlist_items, saved_searches,
 	// agent_scans, jd_match_search_runs), trimming 35 -> 30. product-scope
@@ -156,9 +160,10 @@ func TestPrivacyMatrixCoversEveryBaselineTableExactly(t *testing.T) {
 	// already covered by the resumes cascade, not separate matrix rows),
 	// trimming 30 -> 29. product-scope D-22 removed candidate profile,
 	// experience card, and debrief tables, trimming 29 -> 26. The
-	// idempotency_records table remains current and user-owned, so the matrix
-	// must still cover 27 entries.
-	if len(got) != 27 {
-		t.Fatalf("privacy matrix should cover exactly 27 public baseline tables, got %d: %#v", len(got), got)
+	// idempotency_records table remains current and user-owned. Conversation
+	// simplification replaces practice_turns with practice_messages and removes
+	// question_assessments, so the matrix covers 26 entries.
+	if len(got) != 26 {
+		t.Fatalf("privacy matrix should cover exactly 26 public baseline tables, got %d: %#v", len(got), got)
 	}
 }

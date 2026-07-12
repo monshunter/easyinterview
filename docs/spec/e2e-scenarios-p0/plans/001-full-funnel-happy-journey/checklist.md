@@ -1,103 +1,36 @@
-# 001 Full Funnel Happy Journey Checklist
+# 001 Current Conversation Funnel Journey Checklist
 
-> **版本**: 2.2
+> **版本**: 3.0
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联计划**: [plan](./plan.md)
 
-## Phase 0: 真后端环境与前置依赖验证
+## Phase 1: Real-path Red/Green
 
-- [x] 0.1 确认 `make dev-up` postgres 可达 + `make migrate-up` 至最新；记录 `DATABASE_URL` 约定（验证来源：`make dev-doctor` / `make migrate-status` 输出）
-  <!-- verified: 2026-05-24 command="make dev-doctor && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' make migrate-up && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' make migrate-status" evidence="dev-stack postgres/redis/minio OK; migrate status version=10 dirty=false" -->
-- [x] 0.2 确认 `config.LoadCanonical(AppEnv:"test")` 加载成功且漏斗 AI 步骤（`resume.parse.default` / `target.import.default` / practice / `report.generate.default`）所需 profile/registry 在未配置 `AI_PROVIDER_*` 时可解析；实际 journey AI 由 scenario harness 注入确定性 stub / fixture client（验证来源：`cd backend && go test -v ./cmd/api -run 'TestE2EP0ConfigPreflight' -count=1`）
-  <!-- verified: 2026-07-10 command="go test -list 'TestE2EP0098|TestE2EP0ConfigPreflight' ./backend/cmd/api" evidence="test list includes TestE2EP0ConfigPreflightLoadsFunnelProfilesWithoutProviderSecrets plus TestE2EP0098FullFunnelImportToNextRound, TestE2EP0098CreatePracticePlanAcceptsEmptyFocusCodes, and TestE2EP0098FullFunnelOutOfScopeNegativeRoutePattern; P0.098 wrapper executes these tests." -->
-- [x] 0.3 按 §3.1 operation matrix grep 确认 9 行 operation matrix 真实挂载或具备显式备选状态（8 个主链必经 operation + `getJob` 备选轮询 / handler gate），非 mock-only（验证来源：`grep -rn "<operationId>" backend/internal/api/generated/` 命中 + handler 路径存在 / matrix 状态复核）
-  <!-- verified: 2026-05-24 command="cd backend && go test -v ./cmd/api -run 'TestE2EP0(OperationMatrix|ConfigPreflight)' -count=1" evidence="TestE2EP0OperationMatrixPreflight asserts 9 matrix rows against generated AllRoutes, fixture files, cmd/api route wiring, and concrete handler declarations" -->
-- [x] 0.4 设计 journey 前置 seed：通过 `registerResume` + `resume_parse` stub 产出 ready resume asset，不直接插入 ready 行；定义 cleanup 边界（验证来源：harness helper 设计评审）
-  <!-- verified: 2026-05-24 command="cd backend && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test -v ./cmd/api -run 'TestE2EP0FullFunnelReadyResumeSeedUsesRegisterResumeAndRunner' -count=1" evidence="TestE2EP0FullFunnelReadyResumeSeedUsesRegisterResumeAndRunner calls registerResume through the HTTP handler, processes resume_parse through the SQL runner with deterministic test AI, verifies ready asset/job/outbox, then deletes user/session/idempotency/resume/job/outbox seed data" -->
+- [x] 1.1 RED-GREEN: Resume parse AI uses shared observability and writes `ai_task_runs`.
+- [x] 1.2 RED-GREEN: Empty focus codes persist as non-null PostgreSQL `{}`.
+- [x] 1.3 RED-GREEN: Completion uses lifecycle-only session-event columns.
+- [x] 1.4 RED-GREEN: Report retry focus uses PostgreSQL `text[]`; generating retries are idempotent.
 
-## Phase 1: API-level full-funnel journey（E2E.P0.098）
+## Phase 2: Scenario reconciliation
 
-- [x] 1.1 编写 `backend/cmd/api/full_funnel_journey_scenario_test.go` harness（httptest + DATABASE_URL + LoadCanonical + scenario stub/fixture AI + 真实 stack，postgres 不可达 `t.Skip`）（验证来源：`TestE2EP0098` 初始 Red 可运行）
-  <!-- verified: 2026-05-24 command="cd backend && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test -v ./cmd/api -run '^TestE2EP0098' -count=1" evidence="TestE2EP0098FullFunnelImportToNextRound builds authenticated real-stack handler plus target/resume/practice/report/jobs routes and single runner kernel; prior run was no-op with no tests to run" -->
-- [x] 1.2 import → poll `getTargetJob` ready，断言 `target_import` 经真实 runner 完成、解析结果落库（验证来源：`TestE2EP0098` import 段断言）
-  <!-- verified: 2026-05-24 command="cd backend && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test -v ./cmd/api -run '^TestE2EP0098' -count=1" evidence="TestE2EP0098 imports manual_text JD through /targets/import, runs target_import via the shared SQL runner kernel, reads /targets/{targetJobId} ready, and asserts async_jobs succeeded plus target_job_requirements persisted" -->
-- [x] 1.3 `createPracticePlan(baseline)` → planId，断言 plan 落库并绑定 targetJob/resume（验证来源：`TestE2EP0098` plan 段断言）
-  <!-- verified: 2026-05-24 command="cd backend && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test -v ./cmd/api -run '^TestE2EP0098' -count=1" evidence="TestE2EP0098 now seeds ready resume through registerResume+resume_parse runner, creates baseline plan through /practice/plans, and asserts practice_plans binds planId to targetJobId and resumeAssetId with status=ready" -->
-- [x] 1.4 `startPracticeSession` + `appendSessionEvent` 事件循环，断言 session/events 落库、outbox 仅一次（验证来源：`TestE2EP0098` session 段断言）
-  <!-- verified: 2026-05-24 command="cd backend && go test -v ./internal/store/practice -run 'TestStartSessionAdvisoryLockKeyIsPostgresTextSafe|TestSQLRepositoryReserveSessionStart' -count=1 && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test -v ./cmd/api -run '^TestE2EP0098FullFunnelImportToNextRound$' -count=1" evidence="Fixed real PostgreSQL start-session advisory lock key to avoid NUL text input, added store regression, and TestE2EP0098 starts a running session, appends answer_submitted through /practice/sessions/{id}/events, then asserts session/turn/event/outbox persistence without duplicate started outbox" -->
-- [x] 1.5 `completePracticeSession` → poll `getFeedbackReport` ready，必要时用 `getJob` 作为 job 状态备选轮询 / handler gate，断言 `report_generate` 经真实 runner 完成、nextActions 含 next_round（验证来源：`TestE2EP0098` report 段断言）
-  <!-- verified: 2026-05-24 command="cd backend && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test -v ./cmd/api -run '^TestE2EP0098FullFunnelImportToNextRound$' -count=1" evidence="TestE2EP0098 completes the session through /practice/sessions/{id}/complete with Idempotency-Key, runs report_generate via SQL runner, reads /reports/{reportId} ready, and asserts async_jobs succeeded, report.generated outbox exists, provenance/assessments exist, and nextActions contains next_round" -->
-- [x] 1.6 `createPracticePlan(next_round, sourceReportId)` → 派生 planId，断言关联 source report 且不同于首个 plan（验证来源：`TestE2EP0098` next_round 段断言）
-  <!-- verified: 2026-05-24 command="cd backend && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test -v ./cmd/api -run '^TestE2EP0098FullFunnelImportToNextRound$' -count=1" evidence="TestE2EP0098 creates createPracticePlan(next_round) through /practice/plans after ready report, asserts sourceReportId is the generated report, target/resume bindings persist, and next_round plan id differs from the baseline plan" -->
-- [x] 1.7 start/complete/createPlan Idempotency-Key replay 无重复副作用（验证来源：`TestE2EP0098` 幂等段断言）
-  <!-- verified: 2026-05-24 command="cd backend && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test -v ./cmd/api -run '^TestE2EP0098FullFunnelImportToNextRound$' -count=1" evidence="TestE2EP0098 replays startPracticeSession, completePracticeSession, and createPracticePlan(next_round) with the same Idempotency-Key and asserts identical returned ids plus single session_started outbox, single report/job/completed outbox, and single next_round plan for the source report" -->
-- [x] 1.8 隐私红线 + route-aware out-of-scope-negative 断言（验证来源：`TestE2EP0098` 隐私段断言 + `verify.sh` 负向 grep；out-of-scope route 覆盖 welcome/growth/plan/mistakes/drill/followup/experiences/star/onboarding/独立 voice，且不误伤合法 `startPracticeSession` / `createPracticePlan` / `resumeAssetId`）
-  <!-- verified: 2026-05-24 command="cd backend && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test -v ./cmd/api -run '^TestE2EP0098' -count=1" evidence="TestE2EP0098FullFunnelImportToNextRound scans outbox/audit/async/idempotency observable payloads for raw JD, answer text, report prose, prompt/response/provider-secret tokens; TestE2EP0098FullFunnelOutOfScopeNegativeRoutePattern applies the route-aware out-of-scope pattern over active API/runtime and operation-matrix fixture surfaces while proving canonical startPracticeSession/createPracticePlan/practice_plans/resumeAssetId/resume_assets/voice-turns are not false positives" -->
-- [x] 1.9 `TestE2EP0098` 全程转 Green：`cd backend && go test -v ./cmd/api -run 'TestE2EP0098' -count=1`（验证来源：Go test pass marker）
-  <!-- verified: 2026-05-24 command="cd backend && DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable' go test -v ./cmd/api -run '^TestE2EP0098' -count=1" evidence="PASS for TestE2EP0098FullFunnelImportToNextRound, TestE2EP0098CreatePracticePlanAcceptsEmptyFocusCodes, and TestE2EP0098FullFunnelOutOfScopeNegativeRoutePattern; runner logs show resume_parse, target_import, and report_generate completed with outcome=succeeded and empty focusCompetencyCodes persisted as cardinality 0" -->
+- [x] 2.1 Rebase P0.098 onto current contract composition.
+- [x] 2.2 Rebase P0.099 onto shared real-environment hybrid browser evidence.
+- [x] 2.3 Delete orphaned dedicated Playwright full-funnel server/config/spec.
+- [x] 2.4 Align P0.100 operation/profile terminology with continuous chat.
 
-## Phase 2: Playwright full-stack journey（E2E.P0.099）
+## Phase 3: Real browser acceptance
 
-- [x] 2.1 脚本拉起真后端进程（dev-stack postgres + scenario stub/fixture AI）+ 前端 build/preview 通过 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL=http://127.0.0.1:<backend-port>/api/v1` 指向真后端；seed user + resume asset（验证来源：setup.sh 启动 marker + health probe + frontend real-mode env marker）
-  <!-- verified: 2026-05-24 command="EI_PLAYWRIGHT_OUTPUT_DIR=\"$PWD/.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright\" pnpm --filter @easyinterview/frontend exec playwright test --config=playwright.e2e.config.ts tests/e2e/full-funnel-journey.spec.ts" evidence="frontend/playwright.e2e.config.ts webServer starts EI_E2E_P0_099_SERVER=1 go test backend server on 127.0.0.1:18099 with state.json and health probe, then runs pnpm build plus VITE_EI_API_MODE=real/VITE_EI_API_BASE_URL=http://127.0.0.1:18099/api/v1 vite preview on 127.0.0.1:4174; backend logs show resume_parse seed succeeded" -->
-- [x] 2.2 编写 `frontend/tests/e2e/full-funnel-journey.spec.ts` + `frontend/playwright.e2e.config.ts`（`testDir: "./tests/e2e"`；`outputDir` 由 `EI_PLAYWRIGHT_OUTPUT_DIR` 指向 `.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright`）驱动 UI 走完漏斗（导入→解析→workspace→practice→generating→report→next_round CTA）（验证来源：Playwright spec，初始 Red）
-  <!-- verified: 2026-05-24 command="pnpm --filter @easyinterview/frontend exec tsc --noEmit --pretty false && EI_PLAYWRIGHT_OUTPUT_DIR=\"$PWD/.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright\" pnpm --filter @easyinterview/frontend exec playwright test --config=playwright.e2e.config.ts tests/e2e/full-funnel-journey.spec.ts" evidence="playwright.e2e.config.ts uses testDir ./tests/e2e and outputDir under .test-output; full-funnel-journey.spec.ts drives home JD import, parse confirm, workspace start, practice answer, generating, report dashboard, next_round CTA, and second practice session" -->
-- [x] 2.3 断言解析 loading 与 report generating 真实轮询 UI 在异步 job 推进下过渡到 ready（验证来源：Playwright 轮询断言）
-  <!-- verified: 2026-05-24 command="EI_PLAYWRIGHT_OUTPUT_DIR=\"$PWD/.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright\" pnpm --filter @easyinterview/frontend exec playwright test --config=playwright.e2e.config.ts tests/e2e/full-funnel-journey.spec.ts" evidence="spec asserts route-parse loading steps, parse-action-confirm after target_import polling, generating-screen after completePracticeSession, and report-dashboard after report_generate; backend logs show target_import and report_generate runner outcomes succeeded" -->
-- [x] 2.4 断言 next_round CTA 触发 `createPracticePlan(next_round)` + `startPracticeSession` 且 nav query 含派生 planId / fresh sessionId（验证来源：Playwright handoff 断言 + network spy）
-  <!-- verified: 2026-05-24 command="EI_PLAYWRIGHT_OUTPUT_DIR=\"$PWD/.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright\" pnpm --filter @easyinterview/frontend exec playwright test --config=playwright.e2e.config.ts tests/e2e/full-funnel-journey.spec.ts" evidence="spec captures POST /practice/plans goal=next_round with sourceReportId=reportId, waits for POST /practice/sessions, asserts second sessionId/planId differ from first, and verifies /practice URL includes practiceGoal=next_round sourceReportId sessionId and planId" -->
-- [x] 2.5 隐私（URL/storage/console）+ out-of-scope 负向断言（验证来源：Playwright 隐私断言 + route-aware `grep` 负向 + frontend scope gate 或等价 scoped grep）
-  <!-- verified: 2026-05-24 command="EI_PLAYWRIGHT_OUTPUT_DIR=\"$PWD/.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright\" pnpm --filter @easyinterview/frontend exec playwright test --config=playwright.e2e.config.ts tests/e2e/full-funnel-journey.spec.ts" evidence="spec scans window.location, localStorage, sessionStorage, and console messages for private JD, private answer, and add tradeoff; Phase 1 route-aware out-of-scope negative grep remains green over active API/runtime/fixture matrix" -->
-- [x] 2.6 `full-funnel-journey.spec.ts` 转 Green：`EI_PLAYWRIGHT_OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright" pnpm --filter @easyinterview/frontend exec playwright test --config=playwright.e2e.config.ts tests/e2e/full-funnel-journey.spec.ts`（验证来源：Playwright pass marker，且不会被默认 `tests/pixel-parity` testDir 排除；trace/screenshot/video 等产物不写入 `frontend/.playwright-output` / `frontend/test-results`）
-  <!-- verified: 2026-05-24 command="rm -rf .test-output/e2e/p0-099-full-funnel-fullstack-ui-journey && EI_PLAYWRIGHT_OUTPUT_DIR=\"$PWD/.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright\" pnpm --filter @easyinterview/frontend exec playwright test --config=playwright.e2e.config.ts tests/e2e/full-funnel-journey.spec.ts" evidence="1 passed (20.2s) for tests/e2e/full-funnel-journey.spec.ts; only .test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/playwright/.last-run.json and state.json remained on pass because trace/screenshot/video are retain-on-failure/only-on-failure" -->
+- [x] 3.1 Shared environment reset/redeploy and readiness verification pass.
+- [x] 3.2 Real Mailpit login, resume/JD import and continuous message exchange pass.
+- [x] 3.3 Voice is natively disabled and no structured question UI is visible.
+- [x] 3.4 Completion/report generation reaches ready after recovery fixes.
+- [x] 3.5 Desktop/mobile practice and report screenshots are recorded.
+- [x] 3.6 BDD-Gate: P0.098 and P0.099 four-stage scripts pass with current evidence.
 
-## Phase 3: 场景登记与收口
+## Phase 4: Closeout
 
-- [x] 3.1 创建 `p0-098-*` / `p0-099-*` 场景目录（README + data + 四段脚本）；`verify.sh` 检查 runner 日志真实执行证据并拒绝 no-op，且确认 P0.099 Playwright 产物全部位于 `.test-output/e2e/p0-099-full-funnel-fullstack-ui-journey/`；执行 wrapper cleanup 后保留前置失败退出码；登记 `test/scenarios/e2e/INDEX.md`（验证来源：脚本独立执行 + INDEX 行）
-  <!-- verified: 2026-05-24 evidence="test/scenarios/e2e/p0-098-full-funnel-import-to-next-round-journey and p0-099-full-funnel-fullstack-ui-journey contain README, data, setup/trigger/verify/cleanup scripts; INDEX marks both Ready; verify scripts reject no-op and enforce privacy/out-of-scope/artifact-location markers" -->
-- [x] 3.2 BDD-Gate: 验证 `E2E.P0.098` setup→trigger→verify→cleanup 通过并记录证据
-  <!-- verified: 2026-05-24 command="overall=0; for s in p0-098-full-funnel-import-to-next-round-journey p0-099-full-funnel-fullstack-ui-journey; do rc=0; cleanup_rc=0; (cd \"test/scenarios/e2e/$s\" && bash scripts/setup.sh && bash scripts/trigger.sh && bash scripts/verify.sh) || rc=$?; (cd \"test/scenarios/e2e/$s\" && bash scripts/cleanup.sh) || cleanup_rc=$?; if [ \"$rc\" -ne 0 ]; then overall=$rc; break; fi; if [ \"$cleanup_rc\" -ne 0 ]; then overall=$cleanup_rc; break; fi; done; exit \"$overall\"" evidence="P0.098 setup/trigger/verify/cleanup ok; trigger.log includes PASS for TestE2EP0098FullFunnelImportToNextRound, TestE2EP0098CreatePracticePlanAcceptsEmptyFocusCodes, TestE2EP0098FullFunnelOutOfScopeNegativeRoutePattern, and resume_parse/target_import/report_generate succeeded markers" -->
-- [x] 3.3 BDD-Gate: 验证 `E2E.P0.099` setup→trigger→verify→cleanup 通过并记录证据
-  <!-- verified: 2026-05-24 command="overall=0; for s in p0-098-full-funnel-import-to-next-round-journey p0-099-full-funnel-fullstack-ui-journey; do rc=0; cleanup_rc=0; (cd \"test/scenarios/e2e/$s\" && bash scripts/setup.sh && bash scripts/trigger.sh && bash scripts/verify.sh) || rc=$?; (cd \"test/scenarios/e2e/$s\" && bash scripts/cleanup.sh) || cleanup_rc=$?; if [ \"$rc\" -ne 0 ]; then overall=$rc; break; fi; if [ \"$cleanup_rc\" -ne 0 ]; then overall=$cleanup_rc; break; fi; done; exit \"$overall\"" evidence="P0.099 setup/trigger/verify/cleanup ok; Playwright full-funnel spec 1 passed with backend server listening, Vite preview, state.json, and resume_parse/target_import/report_generate succeeded markers" -->
-- [x] 3.4 文档一致性：`validate_context.py` / `sync-doc-index --check` / `make docs-check` / `git diff --check` 通过（验证来源：各命令退出码）
-  <!-- verified: 2026-05-24 command="python3 .agent-skills/implement/shared/scripts/validate_context.py --context docs/spec/e2e-scenarios-p0/plans/001-full-funnel-happy-journey/context.yaml --docs-root docs --target scenario && python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check && make docs-check && git diff --check" evidence="validate_context resolved scenario target files and discovery metadata; sync-doc-index reported zero drift; make docs-check reported zero drift and markdown links OK; git diff --check produced no output" -->
-- [x] 3.5 operation matrix 终态与实现一致核对（验证来源：§3.1 matrix 逐行复核）
-  <!-- verified: 2026-05-24 command="cd backend && go test -v ./cmd/api -run '^TestE2EP0OperationMatrixPreflight$' -count=1" evidence="PASS with subtests for registerResume, importTargetJob, getTargetJob, createPracticePlan, startPracticeSession, appendSessionEvent, completePracticeSession, getFeedbackReport, and getJob" -->
-
-## Phase 4: full-funnel harness request helper consolidation
-
-- [x] 4.1 Record scoped `dupl` RED evidence for the two identical harness `doJSON` bodies.
-  <!-- verified: 2026-07-10 method=full-funnel-harness-dupl-red evidence="Scoped dupl reported the reciprocal 27-line doJSON bodies at lines 946-972 and 974-1000 in the P0.098 Go scenario file." -->
-- [x] 4.2 Move the shared request construction into one file-private helper while keeping both receiver methods and all scenario call sites.
-  <!-- verified: 2026-07-10 method=full-funnel-harness-helper-consolidation evidence="Both receiver methods delegate to one file-private doFullFunnelJSON helper; all call sites are unchanged and scoped dupl plus staticcheck ./cmd/api are green." -->
-- [x] 4.3 Run scoped `dupl`, P0.098 focused tests, `cmd/api`/full backend tests, owner/product contexts and docs/index/diff/pruning gates; then restore the owner to `completed`.
-  <!-- verified: 2026-07-10 method=full-funnel-harness-regression-closeout evidence="Scoped dupl -t 100 reports zero clone groups; the complete E2E.P0.098 lifecycle, cmd/api and full backend tests, go vet, staticcheck, both owner contexts, active-state docs/index/link/diff gates and pruning surface pass." -->
-
-## Phase 5: P0.098 TargetJob fixture and persistence assertion convergence
-
-- [x] 5.1 Reproduce and diagnose the live P0.098 failure before changing the assertion.
-  <!-- red: 2026-07-10 method=p0-098-live-scenario-red evidence="The full setup/trigger/verify/cleanup lifecycle reached the real target_import runner, then assertTargetImportPersisted failed with requirement count got 2, want 1; cleanup removed all scenario-owned data. buildTargetJobRuntime uses targetjob.NewDeterministicParseAIClient in test mode, whose fixture owns one must_have and one hidden_signal requirement, while the separate fullFunnelScenarioAIClient target.import.parse branch is unreachable." -->
-- [x] 5.2 Delete the unreachable full-funnel TargetJob fixture branch/helper and assert one persisted `must_have` plus one `hidden_signal` requirement.
-  <!-- verified: 2026-07-10 method=p0-098-targetjob-fixture-convergence evidence="Removed the unreachable target.import.parse switch branch and fullFunnelTargetImportJSON helper. assertTargetImportPersisted now requires must_have=1, hidden_signal=1 and all other kinds=0; zero-reference, scoped dupl, gofmt and staticcheck gates pass." -->
-- [x] 5.3 Re-run the complete `E2E.P0.098` lifecycle and the Phase 4 regression gates.
-  <!-- verified: 2026-07-10 method=p0-098-live-scenario-green evidence="setup, trigger, verify and cleanup all passed; TestE2EP0098FullFunnelImportToNextRound, TestE2EP0098CreatePracticePlanAcceptsEmptyFocusCodes and the out-of-scope negative test ran and passed, with resume_parse, target_import and report_generate runner success markers. No environment restart, redeploy or global data cleanup occurred." -->
-
-## Phase 6: full-funnel harness state and seed helper consolidation
-
-- [x] 6.1 Record source-structure RED for duplicate harness types and seed/ready/doJSON methods.
-  <!-- red: 2026-07-10 method=full-funnel-harness-structure-contract evidence="The scoped source gate reported harness_types=2, seed_methods=2, ready_methods=2 and dojson_methods=2." -->
-- [x] 6.2 Replace the two identical-state harness types with one `fullFunnelHarness`, retain both constructors, and keep one complete seed/ready/request implementation.
-  <!-- verified: 2026-07-10 method=full-funnel-single-harness-convergence evidence="Both constructors now return one fullFunnelHarness. One seedReadyResume uses the stronger ready/job/outbox assertions, one doJSON owns request construction directly, and old harness names plus doFullFunnelJSON are absent. The live seed contract and complete P0.098 lifecycle pass." -->
-- [x] 6.3 Run the source-count GREEN gate, seed contract test, complete P0.098 lifecycle, backend/static/context/docs/pruning gates, then restore the owner to `completed`.
-  <!-- verified: 2026-07-10 method=full-funnel-single-harness-closeout evidence="The source gate reports harness_types=1, seed_methods=1, ready_methods=1 and dojson_methods=1 with old names/helper absent. The live seed contract, P0.098 setup/trigger/verify/cleanup, full backend tests, go vet/staticcheck, both contexts, active docs/index/link/diff and pruning gates pass; real_residuals=0." -->
-
-## Phase 7: cross-harness cookie JSON helper consolidation
-
-- [x] 7.1 Record scoped `cmd/api` `dupl` RED for the full-funnel and TargetJob harness request bodies.
-  <!-- verified: 2026-07-10 method=cmd-api-cookie-json-harness-dupl evidence="Scoped dupl -t 100 reports the reciprocal 27-line doJSON methods as cmd/api's only clone group." -->
-- [x] 7.2 Extract one package-level test helper while retaining both receiver methods, header constants, cookies, call sites, status checks and response bytes.
-  <!-- verified: 2026-07-10 method=cmd-api-cookie-json-helper evidence="One doScenarioJSONWithCookie helper owns marshal/cookie/header/dispatch/status/response handling. Both receiver methods and all call sites remain; P0.010-P0.013 pass, the live P0.098 setup/trigger/verify/cleanup lifecycle passes without skip, and scoped cmd/api dupl is zero." -->
-- [x] 7.3 Run P0.010-P0.013, P0.098, cmd/api/full backend, vet/staticcheck, both owner contexts and docs/diff/pruning closeout gates.
-  <!-- verified: 2026-07-10 method=cmd-api-cookie-json-harness-closeout evidence="P0.010-P0.013 PASS; live P0.098 setup/trigger/verify/cleanup PASS with resume_parse/target_import/report_generate succeeded markers and no skip; cmd/api/full backend, go vet/staticcheck, both owner/product contexts and docs/index/diff/pruning gates PASS with real_residuals=0." -->
+- [x] 4.1 Run focused/full backend/frontend, codegen, migration, prompt/eval and scenario gates.
+- [x] 4.2 Run docs/index/diff and active negative-reference gates.
+- [x] 4.3 Complete bug record, retrospective and work journal; restore owner documents to completed.

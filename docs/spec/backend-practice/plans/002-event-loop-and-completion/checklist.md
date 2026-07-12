@@ -1,7 +1,7 @@
 # 002 — Conversation Message Loop and Completion Checklist
 
 > **版本**: 2.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-12
 
 **关联计划**: [plan](./plan.md)
@@ -26,4 +26,4 @@
 
 ## Phase 5: Privacy and closeout
 - [x] 5.1 RED-GREEN: ownership/privacy/race/redaction tests pass.
-- [ ] 5.2 Run focused/full backend, codegen/fixture/migration/prompt/docs/diff gates.
+- [x] 5.2 Run focused/full backend, codegen/fixture/migration/prompt/docs/diff gates.

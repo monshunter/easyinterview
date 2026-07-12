@@ -19,8 +19,8 @@ Use these observations as manual review prompts. They are not fixture outputs an
 
 ## Practice
 
-- The first question should reference backend architecture, reliability, scale, tradeoffs, or incident handling.
-- Follow-up should react to the submitted answer sample instead of repeating the same first question.
+- The opening message should reference backend architecture, reliability, scale, tradeoffs, or incident handling.
+- The next assistant message should react to the submitted message instead of restarting the conversation.
 - The UI should not expose raw prompt text, provider response payloads, or session cookie values.
 
 ## Report

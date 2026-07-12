@@ -703,6 +703,19 @@ func buildResumeRuntime(loader *config.Loader, db *sql.DB, upload uploadRoutes, 
 	if targetjob.IsTestAppEnv(loader.AppEnv()) {
 		parseAI = resumejobs.NewDeterministicParseAIClient(parseAI)
 	}
+	if db != nil {
+		if resolverProvider, ok := ai.(interface {
+			Resolver() aiclient.ProfileResolver
+		}); ok {
+			wrapped, err := observability.New(parseAI,
+				aiObservabilityOptions(loader, storeai.NewTaskRunWriter(db), resolverProvider.Resolver())...,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("build resume parse AI observability: %w", err)
+			}
+			parseAI = wrapped
+		}
+	}
 	parseHandler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
 		Store:    store,
 		Registry: resumejobs.NewRegistryAdapter(registryClient),

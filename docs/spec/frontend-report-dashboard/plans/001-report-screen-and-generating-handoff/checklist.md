@@ -1,7 +1,7 @@
 # 001 — Conversation Report Screen Checklist
 
 > **版本**: 2.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-12
 
 **关联计划**: [plan](./plan.md)
@@ -27,4 +27,4 @@
 - [x] 5.1 Run full frontend/i18n/typecheck/build/source/pixel parity/negative gates.
 - [x] 5.2 BDD-Gate: P0.059 passes.
   <!-- verified: 2026-07-12 method=full-frontend-and-report-parity evidence="111 files/708 tests, typecheck/build, P0.056-059 and 14 report/generating desktop-mobile Playwright cases pass" -->
-- [ ] 5.3 Run P0.099 real browser path and capture report screenshots.
+- [x] 5.3 Run P0.099 real browser path and capture report screenshots.

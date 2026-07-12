@@ -34,6 +34,10 @@ func (r *SQLRepository) CreatePlan(ctx context.Context, in domain.CreatePlanStor
 		return domain.PlanRecord{}, fmt.Errorf("begin create practice plan: %w", err)
 	}
 	defer tx.Rollback()
+	focusCompetencyCodes := in.FocusCompetencyCodes
+	if focusCompetencyCodes == nil {
+		focusCompetencyCodes = []string{}
+	}
 
 	var plan domain.PlanRecord
 	var sourceReportID sql.NullString
@@ -60,7 +64,7 @@ returning id, target_job_id, source_report_id::text, goal,
           resume_id::text, status, created_at`,
 		in.PlanID, in.UserID, in.TargetJobID, in.SourceReportID, string(in.Goal),
 		string(in.InterviewerPersona), in.Difficulty, in.Language, in.TimeBudgetMinutes,
-		in.ResumeID, pq.Array(in.FocusCompetencyCodes), in.Now,
+		in.ResumeID, pq.Array(focusCompetencyCodes), in.Now,
 	).Scan(
 		&plan.ID, &plan.TargetJobID, &sourceReportID, &plan.Goal,
 		&plan.InterviewerPersona, &plan.Difficulty, &plan.Language,

@@ -80,7 +80,7 @@ spec:
           - getTargetJob
           - createPracticePlan
           - startPracticeSession
-          - appendSessionEvent
+          - sendPracticeMessage
           - completePracticeSession
           - getFeedbackReport
           - getJob

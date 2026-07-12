@@ -855,6 +855,68 @@ auth:
 	}
 }
 
+func TestBuildResumeRuntimeWrapsParseAIWithObservability(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock.New: %v", err)
+	}
+	defer db.Close()
+
+	dir := t.TempDir()
+	promptsDir, rubricsDir := testsupport.ConfigRoots(t)
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+ai:
+  promptsDir: "`+promptsDir+`"
+  rubricsDir: "`+rubricsDir+`"
+  debugPrintRawOutput: false
+auth:
+  challengeTokenPepper: "pepper"
+`)
+	loader, err := config.Load(config.Options{AppEnv: "dev", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	mock.ExpectExec("insert into ai_task_runs").
+		WithArgs(anySQLArgs(30)...).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	runtime, err := buildResumeRuntime(
+		loader,
+		db,
+		uploadRoutes{Objects: objectstore.NewFilesystemStore(t.TempDir())},
+		&apiResolvableAIClient{},
+	)
+	if err != nil {
+		t.Fatalf("buildResumeRuntime: %v", err)
+	}
+
+	_, _, err = runtime.ParseAI.Complete(context.Background(), "resume.parse.default", aiclient.CompletePayload{
+		Messages: []aiclient.Message{{Role: "user", Content: "Resume text"}},
+		Metadata: aiclient.CallMetadata{
+			FeatureKey:        resumejobs.FeatureKeyResumeParse,
+			PromptVersion:     "v0.1.0",
+			RubricVersion:     "v0.1.0",
+			Language:          "en",
+			FeatureFlag:       "none",
+			DataSourceVersion: "test",
+			TaskRun: aiclient.AITaskRunContext{
+				Capability:   aiclient.AITaskRunTaskResumeParse,
+				ResourceType: aiclient.AITaskRunResourceResumeAsset,
+				ResourceID:   "019f54e0-b21a-7399-b73b-4926cc0763f7",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("observed resume parse fixture: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestBuildReportRuntimeWiresRoutesHandlerAndAI(t *testing.T) {
 	dir := t.TempDir()
 	promptsDir, rubricsDir := testsupport.ConfigRoots(t)
@@ -1559,6 +1621,31 @@ func (d *apiUploadFileDeleter) DeleteFileObjectsForUser(context.Context, string)
 }
 
 type apiNoopAIClient struct{}
+
+type apiResolvableAIClient struct{ apiNoopAIClient }
+
+func (*apiResolvableAIClient) Resolver() aiclient.ProfileResolver {
+	return apiProfileResolver{}
+}
+
+func (*apiResolvableAIClient) Complete(context.Context, string, aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
+	return aiclient.CompleteResponse{Content: `{"basics":{}}`}, aiclient.AICallMeta{}, nil
+}
+
+type apiProfileResolver struct{}
+
+func (apiProfileResolver) Resolve(name string) (*aiclient.ModelProfile, error) {
+	return &aiclient.ModelProfile{
+		Name:       name,
+		Capability: aiclient.CapabilityChat,
+		Default: aiclient.ProviderConfig{
+			ProviderRef: "unit-test-stub",
+			Model:       "stub-chat",
+		},
+		Route:   "resume.parse",
+		Version: "1.0.0",
+	}, nil
+}
 
 func (c *apiNoopAIClient) Complete(context.Context, string, aiclient.CompletePayload) (aiclient.CompleteResponse, aiclient.AICallMeta, error) {
 	return aiclient.CompleteResponse{}, aiclient.AICallMeta{}, errors.New("unexpected Complete call")

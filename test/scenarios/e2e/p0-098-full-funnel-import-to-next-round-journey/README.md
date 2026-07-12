@@ -1,61 +1,27 @@
-# E2E.P0.098 full-funnel-import-to-next-round-journey
+# E2E.P0.098 Conversation Funnel Contract Composition
 
 > **Status**: Ready
-> **Owner plan**: [e2e-scenarios-p0/001](../../../docs/spec/e2e-scenarios-p0/plans/001-full-funnel-happy-journey/plan.md)
-> **Spec acceptance**: C-1, C-2, C-3, C-4, C-5, C-6, C-7
-> **Isolation**: shared-postgres, scenario-owned user email
+> **Owner plan**: [e2e-scenarios-p0/001](../../../../docs/spec/e2e-scenarios-p0/plans/001-full-funnel-happy-journey/plan.md)
+> **Execution**: automated
 > **Parallel-safe**: No
 
 ## Scope
 
-API-level full funnel journey from resume seed and JD import to a generated
-report and a next-round practice plan. The scenario runs the real `cmd/api`
-handler stack, SQL stores, idempotency middleware, async runner, outbox, and
-Postgres persistence with deterministic scenario AI.
+This scenario composes the current backend contract gates for the path from a
+ready resume and target job through practice-plan creation, continuous chat,
+session completion, and conversation-level report persistence. It deliberately
+does not maintain a second scenario-only API server or duplicate product
+orchestration.
 
-## Given
+## Contract
 
-- Dev-stack Postgres is reachable through `DATABASE_URL`.
-- Migrations are current.
-- Scenario-owned test users use `full-funnel-journey@example.com` and
-  `full-funnel-seed@example.com`.
+- `createPracticePlan` accepts omitted/empty focus codes and stores `{}`, never
+  `NULL`.
+- `startPracticeSession` and `sendPracticeMessage` use
+  `practice_messages`; no question/turn/event endpoint is part of the loop.
+- completion writes only lifecycle event columns and queues one report job.
+- report persistence writes PostgreSQL `text[]` values correctly and report
+  retries may re-enter the `generating` state idempotently.
+- resume parsing uses the standard AI observability wrapper.
 
-## When
-
-Run:
-
-```bash
-bash scripts/setup.sh
-bash scripts/trigger.sh
-bash scripts/verify.sh
-bash scripts/cleanup.sh
-```
-
-`trigger.sh` executes:
-
-```bash
-cd backend && DATABASE_URL=... go test -v ./cmd/api -run '^TestE2EP0098' -count=1
-```
-
-## Then
-
-- `registerResume`, `target_import`, `createPracticePlan`, `startPracticeSession`,
-  `appendSessionEvent`, `completePracticeSession`, `report_generate`, and
-  `createPracticePlan(next_round)` all run through real handlers/stores.
-- Runner logs show `resume_parse`, `target_import`, and `report_generate`
-  completed.
-- Idempotency replay returns the same resource IDs without duplicate side
-  effects.
-- Empty `focusCompetencyCodes` persists as an empty Postgres array, not NULL.
-- Observable logs do not contain private JD text, answer text, report prose, or
-  provider/prompt payloads.
-- Out-of-scope route vocabulary is rejected with a route-aware pattern while canonical
-  operation names remain allowed.
-- D-22 out-of-scope debrief/profile API, table, event, job, feature-key, fixture, and
-  generated-contract tokens are absent from the API-level core loop.
-
-## Cleanup
-
-`cleanup.sh` deletes scenario-owned users and dependent observable rows. Output
-evidence under `.test-output/e2e/p0-098-full-funnel-import-to-next-round-journey/`
-is retained for inspection.
+Run `scripts/setup.sh`, `trigger.sh`, `verify.sh`, and `cleanup.sh` in order.

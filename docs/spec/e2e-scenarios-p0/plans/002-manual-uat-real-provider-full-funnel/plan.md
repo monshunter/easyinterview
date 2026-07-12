@@ -61,8 +61,8 @@
 | 2 | `importTargetJob` | 不使用 fixture；人工粘贴 JD | HomeScreen | real targetjob handler + `target_import` runner | `target_jobs` + `jobs` | `target.import.default` via real provider | `E2E.P0.100` |
 | 3 | `getTargetJob` | N/A | ParseScreen polling | real handler | `target_jobs` | none | `E2E.P0.100` |
 | 4 | `createPracticePlan` | N/A | Workspace / Report CTA | real practice handler | `practice_plans` | none | `E2E.P0.100` |
-| 5 | `startPracticeSession` | N/A | Workspace CTA | real practice handler | `practice_sessions` + `session_events` | `practice.first_question.default` via real provider | `E2E.P0.100` |
-| 6 | `appendSessionEvent` | N/A | PracticeScreen | real practice handler | `session_events` | `practice.followup.default` / `practice.turn_observe.default` via real provider | `E2E.P0.100` |
+| 5 | `startPracticeSession` | `PracticeSessions/startPracticeSession.json` | Workspace CTA | real practice handler | `practice_sessions` + `practice_messages` | `practice.chat.default` via real provider | `E2E.P0.100` |
+| 6 | `sendPracticeMessage` | `PracticeSessions/sendPracticeMessage.json` | PracticeScreen | real practice handler | `practice_messages` | `practice.chat.default` via real provider | `E2E.P0.100` |
 | 7 | `completePracticeSession` | N/A | PracticeScreen | real practice handler + report runner | `feedback_reports` + `jobs` + outbox | `report.generate.default` via real provider | `E2E.P0.100` |
 | 8 | `getFeedbackReport` / `getJob` | N/A | Generating / ReportDashboard | real reports/jobs handlers | `feedback_reports` / `jobs` | none | `E2E.P0.100` |
 

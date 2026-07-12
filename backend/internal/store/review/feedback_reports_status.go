@@ -21,7 +21,7 @@ func (r *Repository) UpdateFeedbackReportStatus(ctx context.Context, update revi
 update feedback_reports
 set status = $1,
     updated_at = $2
-where id = $3 and status = $4`,
+where id = $3 and status in ($4, $1)`,
 		string(update.To),
 		update.Now,
 		update.ReportID,

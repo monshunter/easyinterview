@@ -1,7 +1,7 @@
 # 001 — Practice Voice Disabled Boundary Checklist
 
 > **版本**: 2.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-12
 
 **关联计划**: [plan](./plan.md)
@@ -18,4 +18,4 @@
 - [x] 3.1 Rewrite P0.007; delete P0.008/P0.009 positive assets/index rows.
 - [x] 3.2 BDD-Gate: P0.007 disabled boundary passes.
   <!-- verified: 2026-07-12 method=voice-disabled-scenario evidence="PracticeScreen native disabled control and real voice handler 422 AI_UNSUPPORTED_CAPABILITY pass" -->
-- [ ] 3.3 Run frontend/backend/profile/codegen/privacy/parity/negative/docs gates.
+- [x] 3.3 Run frontend/backend/profile/codegen/privacy/parity/negative/docs gates.

@@ -1294,8 +1294,8 @@ components:
       description: |
         Idempotency key per `B1 shared-conventions-codified §3.4` (24h TTL). Required by
         side-effect endpoints listed in spec D-6, except `POST /auth/email/start`
-        (rate-limited per ADR-Q1) and `POST /practice/sessions/{sessionId}/events`
-        (uses `clientEventId` instead).
+        (rate-limited per ADR-Q1) and `POST /practice/sessions/{sessionId}/messages`
+        (uses `clientMessageId` instead).
       schema:
         type: string
         format: uuid

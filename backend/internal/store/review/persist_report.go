@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	reviewdomain "github.com/monshunter/easyinterview/backend/internal/review"
 	sharedevents "github.com/monshunter/easyinterview/backend/internal/shared/events"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
@@ -37,7 +38,11 @@ func (r *Repository) PersistReport(ctx context.Context, in PersistReportInput) e
 	if err != nil {
 		return fmt.Errorf("marshal next_actions: %w", err)
 	}
-	retryFocus, err := json.Marshal(in.RetryFocusCompetencyCodes)
+	retryFocusCodes := in.RetryFocusCompetencyCodes
+	if retryFocusCodes == nil {
+		retryFocusCodes = []string{}
+	}
+	retryFocus, err := json.Marshal(retryFocusCodes)
 	if err != nil {
 		return fmt.Errorf("marshal retry_focus_competency_codes: %w", err)
 	}
@@ -85,7 +90,7 @@ where id = $15 and status = 'generating'`,
 		fallbackString(in.Language, "en"),
 		fallbackString(in.FeatureFlag, "none"),
 		fallbackString(in.DataSourceVersion, "not_applicable"),
-		retryFocus,
+		pq.Array(retryFocusCodes),
 		dimensionAssessments,
 		in.Now,
 		in.ReportID,

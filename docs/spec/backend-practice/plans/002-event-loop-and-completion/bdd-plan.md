@@ -1,7 +1,7 @@
 # 002 Conversation Message Loop BDD Plan
 
 > **版本**: 2.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-12
 
 ## 1 Scenario Matrix

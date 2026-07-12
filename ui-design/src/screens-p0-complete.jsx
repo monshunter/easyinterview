@@ -375,7 +375,7 @@ const ReportGeneratingScreen = ({ T, lang, nav, params = {} }) => {
           {lang === "en" ? "GENERATING REPORT · ASYNC" : "报告生成中 · 异步"}
         </div>
         <h1 className="ei-serif" style={{ fontSize: 34, margin: 0, color: T.ink, letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: 10 }}>
-          {lang === "en" ? "Reading every turn. Evidence first." : "在逐轮读——先找证据，再打分。"}
+          {lang === "en" ? "Reading the full conversation. Evidence first." : "正在通读完整对话——先找证据，再判断。"}
         </h1>
         <div style={{ fontSize: 14, color: T.ink3, marginBottom: 32, lineHeight: 1.5, maxWidth: 540 }}>
           {lang === "en" ? "Typical: 8-15s. You can close this tab; the report opens from this session records when it's done." : "通常 8-15 秒。可以关掉这个页面；报告生成后可从本场会话记录打开。"}
@@ -531,7 +531,7 @@ const SettingsPrivacy = ({ T, lang }) => {
       {/* Data overview */}
       <section style={{ marginBottom: 40 }}>
         <div className="ei-label" style={{ color: T.ink3, marginBottom: 14 }}>{lang === "en" ? "WHAT WE HAVE ON YOU" : "我们这边存了你什么"}</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }}>
           {[
             { k: "4", l: lang === "en" ? "target jobs" : "目标岗位" },
             { k: "18", l: lang === "en" ? "practice sessions" : "练习会话" },

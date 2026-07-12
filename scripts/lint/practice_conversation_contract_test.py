@@ -15,13 +15,15 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class PracticeConversationContractTest(unittest.TestCase):
     def test_openapi_exposes_messages_without_question_state(self) -> None:
-        document = yaml.safe_load((ROOT / "openapi/openapi.yaml").read_text(encoding="utf-8"))
+        openapi_text = (ROOT / "openapi/openapi.yaml").read_text(encoding="utf-8")
+        document = yaml.safe_load(openapi_text)
         paths = document["paths"]
         schemas = document["components"]["schemas"]
 
         message_path = "/practice/sessions/{sessionId}/messages"
         self.assertEqual("sendPracticeMessage", paths[message_path]["post"]["operationId"])
         self.assertNotIn("/practice/sessions/{sessionId}/events", paths)
+        self.assertNotIn("/practice/sessions/{sessionId}/events", openapi_text)
 
         for schema_name in ("PracticeMessage", "SendPracticeMessageRequest", "SendPracticeMessageResponse"):
             self.assertIn(schema_name, schemas)

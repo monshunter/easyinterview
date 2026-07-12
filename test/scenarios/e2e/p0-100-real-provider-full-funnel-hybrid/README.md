@@ -169,7 +169,7 @@ pnpm --filter @easyinterview/frontend dev
 1. Home：粘贴 `jd-backend-engineer.<lang>.md`。
 2. Parse：等待真实 `target_import` runner 与真实 AI parse 完成，确认结构化结果。
 3. Workspace：确认绑定 ready resume / target job，点击立即面试。
-4. Practice：使用 `answer-sample-backend-engineer.<lang>.md` 作答，推进至少一轮 follow-up。
+4. Practice：使用 `answer-sample-backend-engineer.<lang>.md` 发送聊天消息，观察至少一次自然上下文承接。
 5. Complete：完成 session，进入 Generating。
 6. Report：等待真实 `report_generate` runner 和真实 AI report 完成。
 7. Next round：点击进入下一轮，确认派生 practice plan / session。
@@ -180,7 +180,7 @@ pnpm --filter @easyinterview/frontend dev
 
 - run_id（来自同一输出目录下 `setup.env` 的 `RUN_ID`）
 - provider ref（例如 `deepseek`）
-- model profile（例如 `target.import.default`、`practice.first_question.default`、`report.generate.default`）
+- model profile（例如 `target.import.default`、`practice.chat.default`、`report.generate.default`）
 - model id
 - latency / token count（如可见）
 - `ai_task_runs` 行数或 backend log 中的脱敏 task-run marker

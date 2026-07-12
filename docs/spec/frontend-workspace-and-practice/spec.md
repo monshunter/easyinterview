@@ -1,7 +1,7 @@
 # Frontend Workspace and Practice Spec
 
 > **版本**: 1.34
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-12
 
 ## 1 背景与目标

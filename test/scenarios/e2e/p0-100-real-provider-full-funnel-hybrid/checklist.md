@@ -32,8 +32,8 @@
 |---|--------|----------|------|
 | 2.1 | Confirm 进入 Workspace | route/query 携带 target / resume / plan 上下文 | ☐ Pass ☐ Fail |
 | 2.2 | 点击立即面试 | 真实 `createPracticePlan` + `startPracticeSession` 成功 | ☐ Pass ☐ Fail |
-| 2.3 | 首题呈现 | 首题由真实 AI provider 生成，问题与 JD/简历相关 | ☐ Pass ☐ Fail |
-| 2.4 | 提交作答样例 | 使用 `answer-sample-backend-engineer.<lang>.md` 后，follow-up 正常出现 | ☐ Pass ☐ Fail |
+| 2.3 | 开场消息呈现 | 开场消息由真实 AI provider 生成，并结合 JD/简历自然发起对话 | ☐ Pass ☐ Fail |
+| 2.4 | 提交聊天消息 | 使用 `answer-sample-backend-engineer.<lang>.md` 后，后续回复自然承接上下文 | ☐ Pass ☐ Fail |
 
 ## 3 Generating -> Report -> Next Round
 

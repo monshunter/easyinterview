@@ -1,7 +1,7 @@
 # 002 — Practice Continuous Text Conversation Checklist
 
 > **版本**: 2.0
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-12
 
 **关联计划**: [plan](./plan.md)
@@ -29,5 +29,5 @@
 ## Phase 5: Parity and real scenario
 - [x] 5.1 Run focused/full frontend, typecheck/build, UI contract and pixel parity desktop/mobile.
   <!-- verified: 2026-07-12 method=full-frontend-and-parity evidence="111 files/708 Vitest tests, typecheck, build, 45 UI contracts and 8 desktop/mobile practice Playwright cases pass" -->
-- [ ] 5.2 Run real backend/frontend P0.099 path and capture redacted conversation/report screenshots.
-- [ ] 5.3 BDD-Gate: P0.099 real fullstack screenshot evidence passes.
+- [x] 5.2 Run real backend/frontend P0.099 path and capture redacted conversation/report screenshots.
+- [x] 5.3 BDD-Gate: P0.099 real fullstack screenshot evidence passes.

@@ -69,8 +69,8 @@ where id = $3
 	}
 	if _, err := tx.ExecContext(ctx, `
 insert into practice_session_events (
-  id, session_id, seq_no, event_type, client_event_id, payload, created_at
-) values ($1,$2,$3,'session_completed',null,$4,$5)`,
+  id, session_id, seq_no, event_type, payload, created_at
+) values ($1,$2,$3,'session_completed',$4,$5)`,
 		in.SessionEventID,
 		in.SessionID,
 		seqNo,

@@ -1,7 +1,7 @@
 # 001 — Plan and Session Orchestration Checklist
 
 > **版本**: 2.1
-> **状态**: active
+> **状态**: completed
 > **更新日期**: 2026-07-12
 
 **关联计划**: [plan](./plan.md)
@@ -39,7 +39,7 @@
 - [x] 5.1 RED-GREEN: raw message redaction tests cover event/outbox/audit/log/metric/task-run surfaces.
 - [x] 5.2 BDD-Gate: P0.026 privacy/observability passes.
   <!-- verified: 2026-07-12 method=privacy-observability-scenario evidence="lifecycle-only outbox, plaintext redaction, metric allowlist and one conversation-level report call pass" -->
-- [ ] 5.3 Run focused/full backend, codegen, fixture, migration, prompt/eval, context/docs/index and diff gates.
+- [x] 5.3 Run focused/full backend, codegen, fixture, migration, prompt/eval, context/docs/index and diff gates.
 
 ## 修订记录
 

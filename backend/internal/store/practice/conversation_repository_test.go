@@ -25,6 +25,19 @@ func (metadataWithoutQuestionFields) Match(value driver.Value) bool {
 	return !strings.Contains(lower, "mode") && !strings.Contains(lower, "question") && !strings.Contains(lower, "hint")
 }
 
+type nonNullEmptyTextArray struct{}
+
+func (nonNullEmptyTextArray) Match(value driver.Value) bool {
+	switch typed := value.(type) {
+	case string:
+		return typed == "{}"
+	case []byte:
+		return string(typed) == "{}"
+	default:
+		return false
+	}
+}
+
 func TestSQLRepositoryCreatePlanUsesConversationColumns(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -38,13 +51,62 @@ func TestSQLRepositoryCreatePlanUsesConversationColumns(t *testing.T) {
 	mock.ExpectBegin()
 	query := regexp.QuoteMeta("insert into practice_plans") + `(?s).*interviewer_persona, difficulty, language, time_budget_minutes.*resume_id, focus_competency_codes`
 	mock.ExpectQuery(query).WithArgs(in.PlanID, in.UserID, in.TargetJobID, "", string(in.Goal), string(in.InterviewerPersona),
-		in.Difficulty, in.Language, in.TimeBudgetMinutes, in.ResumeID, sqlmock.AnyArg(), in.Now).
+		in.Difficulty, in.Language, in.TimeBudgetMinutes, in.ResumeID, nonNullEmptyTextArray{}, in.Now).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "target_job_id", "source_report_id", "goal", "interviewer_persona", "difficulty", "language", "time_budget_minutes", "resume_id", "status", "created_at"}).
 			AddRow(in.PlanID, in.TargetJobID, nil, string(in.Goal), string(in.InterviewerPersona), in.Difficulty, in.Language, in.TimeBudgetMinutes, in.ResumeID, "ready", now))
 	mock.ExpectExec(regexp.QuoteMeta("insert into audit_events")).WithArgs(in.AuditEventID, in.UserID, in.UserID, in.PlanID, metadataWithoutQuestionFields{}, in.Now).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 	if _, err := NewSQLRepository(db).CreatePlan(context.Background(), in); err != nil {
 		t.Fatalf("CreatePlan: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLRepositoryCompleteSessionUsesLifecycleOnlyEventColumns(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	now := time.Unix(3, 0).UTC()
+	in := domain.CompleteSessionStoreInput{
+		UserID: "user-1", SessionID: "session-1", ReportID: "report-1", JobID: "job-1",
+		SessionEventID: "event-1", OutboxEventID: "outbox-1", AuditEventID: "audit-1",
+		ClientCompletedAt: now.Add(-time.Second), Now: now,
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`select id, plan_id, target_job_id, status, language, created_at, updated_at`).
+		WithArgs(in.UserID, in.SessionID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "status", "language", "created_at", "updated_at"}).
+			AddRow(in.SessionID, "plan-1", "target-1", string(sharedtypes.SessionStatusRunning), "en", now.Add(-time.Minute), now.Add(-time.Minute)))
+	mock.ExpectQuery(`select fr.id`).
+		WithArgs(in.UserID, in.SessionID, "report_generate", in.SessionID).
+		WillReturnRows(sqlmock.NewRows([]string{"report_id", "job_id", "job_type", "resource_type", "resource_id", "status", "error_code", "created_at", "updated_at"}))
+	mock.ExpectExec(`update practice_sessions`).
+		WithArgs(string(sharedtypes.SessionStatusCompleting), in.Now, in.SessionID, in.UserID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectQuery(`select coalesce\(max\(seq_no\),0\)\+1 from practice_session_events`).
+		WithArgs(in.SessionID).
+		WillReturnRows(sqlmock.NewRows([]string{"seq_no"}).AddRow(2))
+	eventInsert := regexp.QuoteMeta("insert into practice_session_events (\n  id, session_id, seq_no, event_type, payload, created_at\n)")
+	mock.ExpectExec(eventInsert).
+		WithArgs(in.SessionEventID, in.SessionID, 2, sqlmock.AnyArg(), in.Now).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into feedback_reports`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into async_jobs`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into outbox_events`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(`insert into audit_events`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+
+	result, err := NewSQLRepository(db).CompleteSession(context.Background(), in)
+	if err != nil {
+		t.Fatalf("CompleteSession: %v", err)
+	}
+	if result.ReportID != in.ReportID || result.Job.ID != in.JobID {
+		t.Fatalf("unexpected completion result: %+v", result)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
