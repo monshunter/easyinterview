@@ -90,6 +90,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0161](./BUG-0161.md) | practice timing and report progression ignored structured round context | high | resolved | 2026-07-12 | `fix(frontend): align round timing and progression (BUG-0161)` |
 | [BUG-0154](./BUG-0154.md) | resume create prototype discarded the created detail handoff | medium | resolved | 2026-07-10 | `fix(ui-design): preserve created resume detail handoff (BUG-0154)` |
 | [BUG-0152](./BUG-0152.md) | home and workspace quick-start dropped target context | medium | resolved | 2026-07-09 | `fix(frontend): preserve quick-start target context (BUG-0152)` |
 | [BUG-0148](./BUG-0148.md) | round assumptions ignored structured LLM-derived interview rounds | medium | resolved | 2026-07-09 | `-` |

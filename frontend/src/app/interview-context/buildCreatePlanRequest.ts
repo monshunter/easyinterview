@@ -15,6 +15,7 @@ function isDerivedReportGoal(goal: string): goal is PracticeGoal {
 export function buildCreatePlanRequest(
   ctx: InterviewContextState,
   lang: string,
+  timeBudgetMinutes: number,
 ): CreatePracticePlanRequest {
   const targetJobId = normalizeServerBoundId(ctx.targetJobId);
   if (!targetJobId) {
@@ -24,6 +25,9 @@ export function buildCreatePlanRequest(
   const resumeId = normalizeServerBoundId(ctx.resumeId);
   if (!resumeId) {
     throw new Error("invalid resumeId");
+  }
+  if (!Number.isInteger(timeBudgetMinutes) || timeBudgetMinutes <= 0) {
+    throw new Error("invalid timeBudgetMinutes");
   }
 
   const goal: PracticeGoal = isDerivedReportGoal(ctx.practiceGoal)
@@ -35,7 +39,7 @@ export function buildCreatePlanRequest(
     interviewerPersona: "hiring_manager",
     difficulty: "standard",
     language: lang,
-    timeBudgetMinutes: 30,
+    timeBudgetMinutes,
     resumeId,
     focusCompetencyCodes: [],
   };

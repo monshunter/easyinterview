@@ -10,6 +10,7 @@ export interface ReportContextLabels {
   resumeLabel: string | null;
   /** True while any of the two underlying operations is still resolving. */
   loading: boolean;
+  targetJob: TargetJob | null;
 }
 
 interface UseReportContextDataOptions {
@@ -37,6 +38,7 @@ export function useReportContextData(
   const [targetLabel, setTargetLabel] = useState<string | null>(
     targetJobId ?? null,
   );
+  const [targetJob, setTargetJob] = useState<TargetJob | null>(null);
   const [resumeLabel, setResumeLabel] = useState<string | null>(
     resumeId ?? null,
   );
@@ -53,6 +55,7 @@ export function useReportContextData(
   useEffect(() => {
     if (!client || !targetJobId) {
       setTargetLabel(targetJobId ?? null);
+      setTargetJob(null);
       setTargetLoading(false);
       return;
     }
@@ -60,6 +63,7 @@ export function useReportContextData(
     targetSeqRef.current = seq;
     setTargetLoading(true);
     setTargetLabel(targetJobId);
+    setTargetJob(null);
     const controller = new AbortController();
     client
       .getTargetJob(targetJobId, { signal: controller.signal })
@@ -67,12 +71,14 @@ export function useReportContextData(
         if (targetSeqRef.current !== seq) return;
         const label = buildTargetLabel(job, targetJobId);
         setTargetLabel(label);
+        setTargetJob(job);
         setTargetLoading(false);
       })
       .catch((err: unknown) => {
         if (targetSeqRef.current !== seq) return;
         if (isAbortError(err)) return;
         setTargetLabel(targetJobId);
+        setTargetJob(null);
         setTargetLoading(false);
         // Always fall back to the ID. ContextStrip is decorative — a broken
         // upstream must not bubble past the hook boundary.
@@ -116,6 +122,7 @@ export function useReportContextData(
     targetLabel,
     resumeLabel,
     loading: targetLoading || resumeLoading,
+    targetJob,
   };
 }
 

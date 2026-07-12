@@ -11,7 +11,7 @@ UI truth: `ui-design/src/screen-report.jsx` + `docs/ui-design/report-dashboard.m
   - otherwise → `components/ReportDashboard.tsx`
 - `components/ReportDashboard.tsx` — top-level dashboard container that drives:
   - `hooks/useFeedbackReport.ts` — single-shot `getFeedbackReport(reportId)` read; 4-state machine (`idle / loading / data / error / notFound`) with HTTP 404 mapped to `notFound + REPORT_NOT_FOUND`.
-  - `hooks/useReportContextData.ts` — label-only fetch from `getTargetJob` + `getResume`; failures fall back to the raw ID (decorative strip, never blocks the dashboard).
+  - `hooks/useReportContextData.ts` — fetch from `getTargetJob` + `getResume`; labels fall back to raw IDs, while the structured TargetJob rounds also gate next-round availability.
   - Header / ContextStrip / three summary metrics / conversation-level dimensions, evidence, issues and next-actions sections.
 - The report has no per-question tabs, turn selectors, retry turn IDs, hint state or modality branch.
 
@@ -20,7 +20,8 @@ UI truth: `ui-design/src/screen-report.jsx` + `docs/ui-design/report-dashboard.m
 `useReplayCtaHandlers` builds the path A / path B payloads via `handoff.ts`:
 
 - Path A `goReplay()` carries `practiceGoal=retry_current_round` and the report-derived competency focus codes.
-- Path B `goNextRound()` rotates `roundId` via `inferNextRoundId` and carries `practiceGoal=next_round`.
+- Path B `goNextRound()` resolves only the immediate ordered successor from `TargetJob.summary.interviewRounds[]` and carries `practiceGoal=next_round` with that round context.
+- Missing/unknown/final/duplicate round state fails closed. While either CTA is starting, both CTAs are disabled and repeated clicks create at most one plan/session.
 - Authenticated users land on `practice` directly; unauthenticated users route through `useRequestAuth({type:'replay_practice'})` so the post-login resume re-issues the same payload.
 
 `pendingAction` round-trip lives in `src/app/auth/pendingAction.ts`; the gate is exercised by `src/app/auth/__tests__/pendingActionReplayPractice.test.ts`.

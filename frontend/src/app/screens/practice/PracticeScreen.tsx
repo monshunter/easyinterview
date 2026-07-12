@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState, type FC } from "react";
 import { useI18n } from "../../i18n/messages";
 import { useInterviewContext } from "../../interview-context/InterviewContext";
 import { useNavigation } from "../../navigation/NavigationProvider";
+import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import type { Route } from "../../routes";
 import { ErrorState } from "./components/ErrorState";
 import { FinishCta } from "./components/FinishCta";
@@ -22,6 +23,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const { t } = useI18n();
   const { navigate } = useNavigation();
   const { ctx } = useInterviewContext();
+  const runtime = useAppRuntimeOptional();
   const sessionId = route.params.sessionId || ctx.sessionId || "";
   const loader = usePracticeSessionLoader(sessionId);
   const messages = usePracticeMessages(sessionId);
@@ -37,6 +39,31 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorSource, setErrorSource] = useState<PracticeErrorSource | null>(null);
+  const [budgetMinutes, setBudgetMinutes] = useState<number | null>(null);
+  const planId = loader.data?.planId || route.params.planId || ctx.planId || "";
+
+  useEffect(() => {
+    const client = runtime?.client;
+    if (!client || !planId) {
+      setBudgetMinutes(null);
+      return;
+    }
+    let active = true;
+    setBudgetMinutes(null);
+    client.getPracticePlan(planId).then((plan) => {
+      if (!active) return;
+      setBudgetMinutes(
+        Number.isInteger(plan.timeBudgetMinutes) && plan.timeBudgetMinutes > 0
+          ? plan.timeBudgetMinutes
+          : null,
+      );
+    }).catch(() => {
+      if (active) setBudgetMinutes(null);
+    });
+    return () => {
+      active = false;
+    };
+  }, [planId, runtime?.client]);
 
   useEffect(() => {
     if (paused) return;
@@ -103,7 +130,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
         company={targetDisplay.companyName ?? t("practice.toolbar.companySkeleton")}
         title={targetDisplay.title ?? t("practice.toolbar.titleSkeleton")}
         elapsed={formatElapsed(elapsed)}
-        budget="25:00"
+        budget={formatBudget(budgetMinutes)}
         paused={paused}
         pauseLabel={t("practice.toolbar.pause")}
         resumeLabel={t("practice.toolbar.resume")}
@@ -127,6 +154,11 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
 
 function formatElapsed(seconds: number): string {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function formatBudget(minutes: number | null): string {
+  if (minutes === null) return "--:--";
+  return `${String(minutes).padStart(2, "0")}:00`;
 }
 
 function formatMessageTime(raw: string): string {

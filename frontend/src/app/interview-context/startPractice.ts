@@ -6,6 +6,7 @@ import {
   type InterviewContextState,
 } from "./InterviewContext";
 import { normalizeServerBoundId } from "./apiIds";
+import { resolveTargetJobRoundContext } from "./roundAssumptions";
 
 export interface StartPracticeResult {
   sessionId: string;
@@ -20,6 +21,11 @@ export async function startPracticeFromParams(
 ): Promise<StartPracticeResult> {
   const ctx = interviewContextStateFromParams(params);
   const batch = newIdempotencyBatch();
+  const targetJobId = normalizeServerBoundId(ctx.targetJobId);
+  if (!targetJobId) throw new Error("invalid targetJobId");
+  const targetJob = await client.getTargetJob(targetJobId);
+  const { currentRound } = resolveTargetJobRoundContext(targetJob, ctx.roundId);
+  if (!currentRound) throw new Error("invalid roundId");
   const shouldCreateDerivedPlan =
     ctx.practiceGoal === "retry_current_round" ||
     ctx.practiceGoal === "next_round";
@@ -33,7 +39,8 @@ export async function startPracticeFromParams(
       const existingPlan = await client.getPracticePlan(planId);
       const matchesContext =
         existingPlan.targetJobId === ctx.targetJobId &&
-        existingPlan.resumeId === ctx.resumeId;
+        existingPlan.resumeId === ctx.resumeId &&
+        existingPlan.timeBudgetMinutes === currentRound.durationMinutes;
       planId =
         existingPlan.status === "ready" && matchesContext
           ? existingPlan.id
@@ -46,7 +53,7 @@ export async function startPracticeFromParams(
 
   if (!planId) {
     const plan = await client.createPracticePlan(
-      buildCreatePlanRequest(ctx, lang),
+      buildCreatePlanRequest(ctx, lang, currentRound.durationMinutes),
       { idempotencyKey: batch.create },
     );
     planId = plan.id;

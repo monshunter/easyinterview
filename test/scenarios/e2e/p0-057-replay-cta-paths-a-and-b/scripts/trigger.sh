@@ -11,5 +11,7 @@ mkdir -p "$OUTPUT_DIR"
   pnpm --filter @easyinterview/frontend test \
     src/app/screens/report/__tests__/preflight.test.ts \
     src/app/auth/__tests__/pendingActionReplayPractice.test.ts \
+    src/app/interview-context/roundAssumptions.test.ts \
+    src/app/screens/report/__tests__/useReportContextData.test.tsx \
     src/app/screens/report/__tests__/ReplayCta.test.tsx
 ) | tee "$OUTPUT_DIR/trigger.log"

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { FeedbackReport } from "../../../api/generated/types";
 import { useNavigation } from "../../navigation/NavigationProvider";
@@ -7,6 +7,7 @@ import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import type { Route } from "../../routes";
 import { useI18n } from "../../i18n/messages";
 import { startPracticeFromParams } from "../../interview-context/startPractice";
+import type { TargetJobRoundAssumption } from "../../interview-context/roundAssumptions";
 import {
   buildNextRoundPayload,
   buildReplayPayload,
@@ -16,11 +17,14 @@ export interface ReplayCtaHandlersInput {
   route: Route;
   report: FeedbackReport | null;
   sessionId: string;
+  nextRound: TargetJobRoundAssumption | null;
 }
 
 export interface ReplayCtaHandlers {
   goReplay: () => void;
   goNextRound: () => void;
+  canNextRound: boolean;
+  starting: boolean;
 }
 
 /**
@@ -34,26 +38,35 @@ export interface ReplayCtaHandlers {
 export function useReplayCtaHandlers(
   input: ReplayCtaHandlersInput,
 ): ReplayCtaHandlers {
-  const { route, report, sessionId } = input;
+  const { route, report, sessionId, nextRound } = input;
   const { navigate } = useNavigation();
   const requestAuth = useRequestAuth();
   const runtime = useAppRuntimeOptional();
   const { lang } = useI18n();
   const authenticated = runtime?.auth.status === "authenticated";
+  const startingRef = useRef(false);
+  const [starting, setStarting] = useState(false);
 
   const replayParams = useMemo(
     () => buildReplayPayload({ route, report, sessionId }),
     [report, route, sessionId],
   );
   const nextRoundParams = useMemo(
-    () => buildNextRoundPayload({ route, report, sessionId }),
-    [report, route, sessionId],
+    () => nextRound ? buildNextRoundPayload({ route, report, sessionId }, nextRound) : null,
+    [nextRound, report, route, sessionId],
   );
   const startPractice = useCallback(
     async (params: Record<string, string>) => {
-      if (!runtime) return;
-      const started = await startPracticeFromParams(runtime.client, params, lang);
-      navigate({ name: "practice", params: started.params });
+      if (!runtime || startingRef.current) return;
+      startingRef.current = true;
+      setStarting(true);
+      try {
+        const started = await startPracticeFromParams(runtime.client, params, lang);
+        navigate({ name: "practice", params: started.params });
+      } finally {
+        startingRef.current = false;
+        setStarting(false);
+      }
     },
     [lang, navigate, runtime],
   );
@@ -72,6 +85,7 @@ export function useReplayCtaHandlers(
   }, [authenticated, replayParams, requestAuth, route.params, startPractice]);
 
   const goNextRound = useCallback(() => {
+    if (!nextRoundParams) return;
     if (authenticated) {
       void startPractice(nextRoundParams);
       return;
@@ -84,5 +98,10 @@ export function useReplayCtaHandlers(
     });
   }, [authenticated, nextRoundParams, requestAuth, route.params, startPractice]);
 
-  return { goReplay, goNextRound };
+  return {
+    goReplay,
+    goNextRound,
+    canNextRound: nextRoundParams !== null,
+    starting,
+  };
 }

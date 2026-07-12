@@ -5,6 +5,50 @@ import { createDevMockClient } from "../../../api/devMockClient";
 import { App } from "../../App";
 
 describe("PracticeScreen continuous conversation", () => {
+  it("renders the persisted practice plan time budget", async () => {
+    const client = createDevMockClient();
+    const getPlan = vi.spyOn(client, "getPracticePlan").mockResolvedValue({
+      id: "01918fa0-0000-7000-8000-000000004000",
+      targetJobId: "01918fa0-0000-7000-8000-000000002000",
+      goal: "baseline",
+      interviewerPersona: "hiring_manager",
+      difficulty: "standard",
+      language: "zh-CN",
+      timeBudgetMinutes: 60,
+      resumeId: "01918fa0-0000-7000-8000-000000001000",
+      status: "ready",
+      createdAt: "2026-07-12T08:00:00Z",
+    });
+
+    render(<App client={client} requestOptions={{ getMe: { headers: { Prefer: "example=authenticated" } } }} initialRoute={{ name: "practice", params: {
+      sessionId: "01918fa0-0000-7000-8000-000000005000",
+      planId: "01918fa0-0000-7000-8000-000000004000",
+      targetJobId: "01918fa0-0000-7000-8000-000000002000",
+    } }} />);
+
+    await waitFor(() => expect(getPlan).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(screen.getByTestId("practice-topbar-timer")).toHaveTextContent("/ 60:00");
+    });
+  });
+
+  it("does not fabricate a budget when the practice plan cannot be read", async () => {
+    const client = createDevMockClient();
+    vi.spyOn(client, "getPracticePlan").mockRejectedValue(new Error("HTTP 503 plan unavailable"));
+
+    render(<App client={client} requestOptions={{ getMe: { headers: { Prefer: "example=authenticated" } } }} initialRoute={{ name: "practice", params: {
+      sessionId: "01918fa0-0000-7000-8000-000000005000",
+      planId: "01918fa0-0000-7000-8000-000000004000",
+      targetJobId: "01918fa0-0000-7000-8000-000000002000",
+    } }} />);
+
+    await screen.findByText("你好，我们直接开始。先聊聊你最近最有代表性的项目。");
+    await waitFor(() => {
+      expect(screen.getByTestId("practice-topbar-timer")).toHaveTextContent("/ --:--");
+    });
+    expect(screen.getByTestId("practice-topbar-timer")).not.toHaveTextContent("25:00");
+  });
+
   it("renders ordered messages in one chat window with voice disabled", async () => {
     render(<App client={createDevMockClient()} requestOptions={{ getMe: { headers: { Prefer: "example=authenticated" } } }} initialRoute={{ name: "practice", params: {
       sessionId: "01918fa0-0000-7000-8000-000000005000",

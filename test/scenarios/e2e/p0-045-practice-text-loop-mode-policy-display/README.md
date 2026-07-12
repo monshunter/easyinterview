@@ -1,3 +1,3 @@
-# E2E.P0.045 simplified practice UI
+# E2E.P0.045 Practice structured-round budget display
 
-The practice route always renders the continuous text chat. The top bar has no question count, the body has no question sidebar/card, and the phone icon is a grey native disabled button. Legacy mode parameters are discarded by the canonical URL codec.
+Given the selected TargetJob round has a positive duration and the current ready PracticePlan persists that duration as `timeBudgetMinutes`, entering or refreshing Practice reads the plan and formats its budget in the Top Bar. A missing or failed plan read remains unknown instead of fabricating `25:00`. The continuous-chat and disabled-voice boundaries remain unchanged.

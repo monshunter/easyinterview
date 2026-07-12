@@ -1,5 +1,6 @@
 import type { CSSProperties, FC, ReactNode } from "react";
 import { useI18n } from "../../../i18n/messages";
+import { resolveTargetJobRoundContext } from "../../../interview-context/roundAssumptions";
 import { useNavigation } from "../../../navigation/NavigationProvider";
 import type { Route } from "../../../routes";
 import { useFeedbackReport } from "../hooks/useFeedbackReport";
@@ -16,7 +17,8 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ route }) => {
   const { navigate } = useNavigation();
   const report = useFeedbackReport(route.params.reportId ?? "");
   const context = useReportContextData({ targetJobId: route.params.targetJobId, resumeId: route.params.resumeId });
-  const replay = useReplayCtaHandlers({ route, report: report.data, sessionId: route.params.sessionId ?? "" });
+  const { nextRound } = resolveTargetJobRoundContext(context.targetJob, route.params.roundId);
+  const replay = useReplayCtaHandlers({ route, report: report.data, sessionId: route.params.sessionId ?? "", nextRound });
   const goWorkspace = () => navigate({ name: "workspace", params: route.params.targetJobId ? { targetJobId: route.params.targetJobId } : {} });
 
   if (report.state === "notFound") return <ReportFailureState errorCode="REPORT_NOT_FOUND" notFound onRetry={report.refresh} onBackToWorkspace={goWorkspace} />;
@@ -31,7 +33,7 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ route }) => {
   return (
     <main data-testid="report-dashboard" className="ei-fadein" style={{ maxWidth: 1120, width: "100%", boxSizing: "border-box", margin: "0 auto", padding: "32px clamp(16px, 5vw, 48px) 96px" }}>
       <button type="button" data-testid="report-back-button" onClick={goWorkspace} style={{ border: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", cursor: "pointer", marginBottom: 20 }}>← {t("report.back")}</button>
-      <ReportHeader breadcrumb={lang === "en" ? "Mock interview / Conversation report" : "模拟面试 / 会话报告"} title={t("report.header.title")} subtitle={t("report.header.subtitle")} onReplay={replay.goReplay} onNextRound={replay.goNextRound} disableReplay={!ready} disableNextRound={!ready} />
+      <ReportHeader breadcrumb={lang === "en" ? "Mock interview / Conversation report" : "模拟面试 / 会话报告"} title={t("report.header.title")} subtitle={t("report.header.subtitle")} onReplay={replay.goReplay} onNextRound={replay.goNextRound} disableReplay={!ready || replay.starting} disableNextRound={!ready || !replay.canNextRound || replay.starting} />
       <ReportContextStrip sessionId={route.params.sessionId ?? ""} targetLabel={context.targetLabel} roundLabel={route.params.roundName ?? route.params.roundId ?? null} resumeLabel={context.resumeLabel} />
       <section data-testid="report-summary-cards" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 20 }}>
         <Metric label={t("report.summary.readiness")} value={data.preparednessLevel ? t(readinessKey(data.preparednessLevel)) : "—"} />

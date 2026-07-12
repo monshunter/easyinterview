@@ -72,8 +72,8 @@ const DEFAULT_INTERVIEW_CONTEXT = {
   jobId: "tj-1",
   jdId: "jd-tj-1",
   resumeId: "frontend-v3",
-  roundId: "round-manager",
-  roundName: "经理面",
+  roundId: "round-2-technical",
+  roundName: "技术一面 · 45m",
 };
 
 const INTERVIEW_CONTEXT_ROUTES = new Set(["practice", "generating", "report"]);
@@ -104,9 +104,31 @@ const createInterviewContext = (params = {}, fallback = DEFAULT_INTERVIEW_CONTEX
   return stripUndefined(ctx);
 };
 
+const eiResolveInterviewRoundContext = (rawRounds = [], roundId) => {
+  const rounds = rawRounds
+    .filter((round) => round.sequence > 0 && round.durationMinutes > 0)
+    .slice()
+    .sort((a, b) => a.sequence - b.sequence)
+    .map((round) => ({
+      ...round,
+      id: `round-${round.sequence}-${round.type}`,
+      name: `${round.name || `R${round.sequence}`} · ${round.durationMinutes}m`,
+    }));
+  if (!roundId || new Set(rounds.map((round) => round.id)).size !== rounds.length) {
+    return { currentRound: null, nextRound: null };
+  }
+  const currentIndex = rounds.findIndex((round) => round.id === roundId);
+  if (currentIndex < 0) return { currentRound: null, nextRound: null };
+  return {
+    currentRound: rounds[currentIndex] || null,
+    nextRound: rounds[currentIndex + 1] || null,
+  };
+};
+
 Object.assign(window, {
   EI_DEFAULT_INTERVIEW_CONTEXT: DEFAULT_INTERVIEW_CONTEXT,
   eiCreateInterviewContext: createInterviewContext,
+  eiResolveInterviewRoundContext,
 });
 
 const App = () => {

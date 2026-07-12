@@ -1,6 +1,6 @@
 # 模拟面试与报告模块
 
-> **版本**: 1.22
+> **版本**: 1.23
 > **状态**: active
 > **更新日期**: 2026-07-12
 
@@ -51,7 +51,8 @@ PracticeScreen(sessionId)
 
 - 公司/岗位优先来自 session.targetJobId 对应 generated `getTargetJob`。
 - 面试官角色来自当前 round/plan，只读展示。
-- 保留计时、暂停、结束。
+- 保留计时、暂停、结束。计时预算必须显示当前 `PracticePlan.timeBudgetMinutes`；该值在启动时来自所选 `TargetJob.summary.interviewRounds[]` 的 `durationMinutes`，不得写死 `25:00` 或其他默认分钟数。
+- elapsed 是本地正计时；达到或超过预算不会自动结束，会话仍由用户点击“结束并生成报告”完成。plan budget loading/failure 时不得伪造一个默认预算。
 - 电话图标使用原生 disabled control：`disabled` + `aria-disabled=true`，灰色，无 click handler，title/aria-label 为“电话模式暂未开放 / Phone mode unavailable”。
 - 不展示题号、总题数、text/phone segment、live chip 或 mode 文案。
 
@@ -95,9 +96,11 @@ PracticeScreen(sessionId)
 | U-4 | send failure | 重试同一 clientMessageId | user message 不重复，成功后只有一个 reply |
 | U-5 | 用户结束 | 点击结束并生成报告 | 进入 generating，随后会话级报告 |
 | U-6 | desktop/mobile | parity gate | 无 sidebar 空白、无溢出、截图与原型一致 |
+| U-7 | 当前结构化轮次为 60 分钟 | 启动/刷新 Practice | plan 保存 60 分钟预算且 Top Bar 显示 `elapsed / 60:00`；不存在固定 `25:00` |
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-12 | 1.23 | Practice 计时预算改为读取所选结构化轮次写入的 PracticePlan 时间快照；禁止固定 25 分钟和预算到点自动结束。 |
 | 2026-07-12 | 1.22 | Practice 改为全宽连续文本聊天；删除题目、hint、phone surface；报告改为会话级。 |

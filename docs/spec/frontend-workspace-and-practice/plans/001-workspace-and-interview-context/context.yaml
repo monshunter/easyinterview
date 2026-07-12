@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 1.37
+    to: 1.36
 spec:
   defaultTarget: frontend
   discovery:
@@ -26,6 +26,11 @@ spec:
       - listTargetJobs
       - archiveTargetJob
       - startPracticeFromParams
+      - timeBudgetMinutes
+      - structured round duration
+      - practice timer budget
+      - next round progression
+      - final round boundary
       - PracticeDisplayContext
       - stable practice route IDs
       - continuous conversation handoff
@@ -47,6 +52,8 @@ spec:
       - 一级面试入口
       - E2E.P0.018
       - E2E.P0.021
+      - E2E.P0.045
+      - E2E.P0.057
   targets:
     frontend:
       plan: ./plan.md
@@ -77,6 +84,8 @@ spec:
           - frontend/src/app/screens/workspace
           - frontend/src/app/screens/workspace/hooks
           - frontend/src/app/interview-context
+          - frontend/src/app/screens/practice
+          - frontend/src/app/screens/report
           - frontend/src/app/i18n/locales
           - frontend/src/app/auth
           - frontend/src/app/navigation
@@ -93,6 +102,8 @@ spec:
           - openapi/fixtures/PracticeSessions
           - test/scenarios/e2e/p0-018-workspace-default-render
           - test/scenarios/e2e/p0-021-workspace-handoff
+          - test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display
+          - test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b
         uiRoutes:
           - workspace
           - practice

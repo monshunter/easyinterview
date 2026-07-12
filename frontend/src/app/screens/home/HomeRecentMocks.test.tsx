@@ -14,6 +14,8 @@ import getRuntimeConfigFixture from "../../../../../openapi/fixtures/Auth/getRun
 import getMeFixture from "../../../../../openapi/fixtures/Auth/getMe.json";
 import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
 import listTargetJobsFixture from "../../../../../openapi/fixtures/TargetJobs/listTargetJobs.json";
+import getTargetJobFixture from "../../../../../openapi/fixtures/TargetJobs/getTargetJob.json";
+import createPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/createPracticePlan.json";
 import getPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
 import startPracticeSessionFixture from "../../../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
 
@@ -34,6 +36,8 @@ function createClient(scenario?: string) {
       getMeFixture,
       listResumesFixture,
       listTargetJobsFixture,
+      getTargetJobFixture,
+      createPracticePlanFixture,
     ]),
     scenario ? { scenario } : undefined,
   );
@@ -274,7 +278,10 @@ describe("HomeRecentMocks", () => {
     });
 
     expect(getPlanSpy).toHaveBeenCalledWith("01918fa0-0000-7000-8000-000000004000");
-    expect(createPlanSpy).not.toHaveBeenCalled();
+    expect(createPlanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ timeBudgetMinutes: 50 }),
+      expect.anything(),
+    );
     expect(navigate).toHaveBeenCalledWith({
       name: "practice",
       params: expect.objectContaining({

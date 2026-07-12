@@ -185,7 +185,10 @@ describe("ParseResumeBinding", () => {
     expect(getPlanSpy).toHaveBeenCalledWith(
       "01918fa0-0000-7000-8000-000000004000",
     );
-    expect(createSpy).not.toHaveBeenCalled();
+    expect(createSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ timeBudgetMinutes: 50 }),
+      expect.anything(),
+    );
     expect(startSpy).toHaveBeenCalledWith(
       {
         planId: "01918fa0-0000-7000-8000-000000004000",

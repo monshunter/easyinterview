@@ -1,31 +1,6 @@
 import type { FeedbackReport } from "../../../api/generated/types";
+import type { TargetJobRoundAssumption } from "../../interview-context/roundAssumptions";
 import type { Route } from "../../routes";
-
-const ROUND_ORDER = [
-  "round-hr",
-  "round-tech-1",
-  "round-tech-2",
-  "round-manager",
-] as const;
-
-const DEFAULT_NEXT_ROUND = "round-tech-2";
-
-/**
- * Infers the next round identifier from an InterviewContext `roundId` using
- * the canonical interview ladder. Unknown / missing roundIds fall back to the
- * tech-2 default so the prototype source's behavior is preserved.
- *
- * Plan §3.7 Open Question: the round identifier scheme is provisional — when
- * backend-targetjob owner finalizes round metadata, swap this helper for the
- * real lookup. The contract stays the same: input `roundId | undefined`,
- * output a non-empty next round string.
- */
-export function inferNextRoundId(currentRoundId: string | undefined): string {
-  if (!currentRoundId) return DEFAULT_NEXT_ROUND;
-  const idx = ROUND_ORDER.indexOf(currentRoundId as (typeof ROUND_ORDER)[number]);
-  if (idx < 0) return DEFAULT_NEXT_ROUND;
-  return ROUND_ORDER[Math.min(idx + 1, ROUND_ORDER.length - 1)]!;
-}
 
 export interface ReplayPayloadInput {
   route: Route;
@@ -72,18 +47,17 @@ export function buildReplayPayload(
  */
 export function buildNextRoundPayload(
   input: ReplayPayloadInput,
+  nextRound: TargetJobRoundAssumption,
 ): Record<string, string> {
   const { route, report, sessionId } = input;
   const params = route.params;
-  const nextRoundId = inferNextRoundId(params.roundId);
-  const roundName = params.roundName ?? "";
   const sourceReportId = report?.id ?? params.reportId ?? "";
   return omitEmpty({
     sourceSessionId: sessionId,
     sourceReportId,
-    nextRoundId,
-    roundName,
-    roundId: nextRoundId,
+    nextRoundId: nextRound.id,
+    roundName: nextRound.name,
+    roundId: nextRound.id,
     planId: params.planId ?? "",
     targetJobId: params.targetJobId ?? "",
     jdId: params.jdId ?? "",

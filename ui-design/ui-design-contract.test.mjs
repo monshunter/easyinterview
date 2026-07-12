@@ -197,7 +197,9 @@ test("P0 report replay and next-round CTAs start interview sessions directly", (
   const report = readUiFile("./src/screen-report.jsx");
 
   assert.match(report, /nav\("practice", \{ \.\.\.params, practiceGoal: "retry_current_round" \}\)/);
-  assert.match(report, /nav\("practice", \{ \.\.\.params, practiceGoal: "next_round" \}\)/);
+  assert.match(report, /const \{ nextRound \} = window\.eiResolveInterviewRoundContext/);
+  assert.match(report, /practiceGoal: "next_round", roundId: nextRound\.id, roundName: nextRound\.name/);
+  assert.match(report, /disabled=\{!nextRound\}/);
   assert.equal((report.match(/nav\("practice"/g) || []).length, 2);
 });
 
@@ -405,6 +407,9 @@ test("practice is one continuous text conversation with phone disabled", () => {
   assert.doesNotMatch(practice, /SESSION MAP|本轮题目|QuestionHeader|QuestionCard|qIdx|currentQ|questions\.map/);
   assert.doesNotMatch(practice, /Question[^a-z]|题\s*\{/);
   assert.doesNotMatch(practice, /PhoneSessionSurface|WaveformBars|practice-phone-surface|practice-phone-captions/);
+  assert.match(practice, /const \{ currentRound \} = window\.eiResolveInterviewRoundContext/);
+  assert.match(practice, /currentRound \? formatElapsed\(currentRound\.durationMinutes \* 60\) : "--:--"/);
+  assert.doesNotMatch(practice, /25:00/);
 });
 
 test("P0 report has no voice or modality-specific report branch", () => {

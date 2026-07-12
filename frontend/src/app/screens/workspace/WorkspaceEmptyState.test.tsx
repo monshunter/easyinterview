@@ -28,6 +28,7 @@ import listTargetJobsFixture from "../../../../../openapi/fixtures/TargetJobs/li
 import getResumeFixture from "../../../../../openapi/fixtures/Resumes/getResume.json";
 import listResumesFixture from "../../../../../openapi/fixtures/Resumes/listResumes.json";
 import getPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
+import createPracticePlanFixture from "../../../../../openapi/fixtures/PracticePlans/createPracticePlan.json";
 import startPracticeSessionFixture from "../../../../../openapi/fixtures/PracticeSessions/startPracticeSession.json";
 
 function clientWithScenarios(opts: {
@@ -61,6 +62,7 @@ function clientWithScenarios(opts: {
             },
           },
           archiveTargetJobFixture,
+          createPracticePlanFixture,
           listResumesFixture,
         ],
       ),
@@ -359,7 +361,10 @@ describe("WorkspaceEmptyState", () => {
     });
 
     expect(getPlanSpy).toHaveBeenCalledWith("01918fa0-0000-7000-8000-000000004000");
-    expect(createPlanSpy).not.toHaveBeenCalled();
+    expect(createPlanSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ timeBudgetMinutes: 50 }),
+      expect.anything(),
+    );
     expect(nav).toHaveBeenCalledWith({
       name: "practice",
       params: expect.objectContaining({

@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.37
+> **版本**: 1.38
 > **状态**: active
 > **更新日期**: 2026-07-12
 
@@ -186,3 +186,14 @@
   <!-- verified: 2026-07-10 method=workspace-pure-list-active-spec-reconcile evidence="Spec v1.32 now defines D-8 as list information density, removes the insight ownership row, and limits C-7 to parse/quick-start/report handoff; history v1.20 and spec INDEX are synchronized. Targeted old-positive wording search is zero, both owner contexts, docs/index/link and diff checks pass." -->
 - [x] 23.4 Run UI contract, source inventory, formal workspace tests, P0.018, owner/product contexts and docs/diff/pruning gates.
   <!-- verified: 2026-07-10 method=workspace-static-pruning-regression evidence="UI contract passes 35/35; old UI-source symbols and active-spec positive insight wording are zero. Formal Workspace/Parse passes 24/24, typecheck/build, full frontend 137 files/841 tests, desktop/mobile Playwright 44/44, and direct static-browser Workspace/Parse checks pass with no page errors or horizontal overflow. P0.018 passes real-mode 1/1 plus 57/57 and cleanup. Both owner contexts, docs/index/link/diff and pruning gates pass with real_residuals=0; no environment restart or data cleanup occurred." -->
+
+## Phase 24: structured round runtime consistency
+
+- [x] 24.1 RED-GREEN: UI truth source and focused contracts require the selected structured round duration instead of fixed `25:00`, and reject the fixed report `ROUND_ORDER` / default fallback（验证：`node --test ui-design/ui-design-contract.test.mjs`; `roundAssumptions.test.ts`; `ReplayCta.test.tsx`）
+  <!-- verified: 2026-07-12 method=red-green evidence="RED: UI contract failed on fixed practice/report sources; round resolver 6/6 and payload integrity failed. GREEN: UI contract 45/45 and focused round/report context/replay 15/15 pass; handoff.ts has no fixed ladder/default fallback." -->
+- [x] 24.2 RED-GREEN: shared start resolves `TargetJob.summary.interviewRounds[]`, sends the selected `durationMinutes` as `timeBudgetMinutes`, and reuses a baseline plan only when target/resume/time budget all match（验证：`buildCreatePlanRequest.test.ts`; `startPractice.test.ts`; Home/Workspace/Parse caller tests）
+  <!-- verified: 2026-07-12 method=red-green evidence="RED: request stayed 30, stale plan reused, unknown round reached empty-plan crash. GREEN: shared request/start plus Home/Workspace/Parse/report callers pass 42/42; typecheck passes; stale 30-minute plans are recreated with the selected 50/60-minute round budget." -->
+- [x] 24.3 RED-GREEN: Practice Top Bar reads the current `PracticePlan.timeBudgetMinutes`, formats arbitrary positive minute budgets, and never hard-codes `25:00`; missing/failed plan load does not fabricate a budget（验证：`pnpm --filter @easyinterview/frontend exec vitest run src/app/screens/practice/PracticeScreen.test.tsx`，6/6 PASS；`pnpm --filter @easyinterview/frontend typecheck` PASS）
+- [x] 24.4 RED-GREEN: report next-round uses the immediate ordered successor and disables start for duplicate derived IDs, final/single/empty/unknown/loading round state and while either CTA start is in flight; repeated clicks create at most one plan/session（验证：`ReplayCta.test.tsx`、`useReportContextData.test.tsx`、`roundAssumptions.test.ts`，20/20 PASS；`pnpm --filter @easyinterview/frontend typecheck` PASS）
+- [x] 24.5 BDD-Gate: `E2E.P0.021`, `E2E.P0.045` and `E2E.P0.057` execute the current shared-start budget, Practice budget display, next-round and fail-closed assertions（验证：三场景 serial setup/trigger/verify/cleanup PASS；24/24、45/45 + 65/65 + Go gate、34/34）
+- [x] 24.6 Run focused/full frontend, typecheck/build, UI contract/parity, owner context, docs/index/diff and negative searches for fixed `25:00`, `ROUND_ORDER` and default next-round fallback（验证：frontend 112 files / 727 tests PASS；build PASS；Practice/Report parity 16/16 PASS；UI contract 45/45 PASS；context/docs/index/diff/negative gates PASS）

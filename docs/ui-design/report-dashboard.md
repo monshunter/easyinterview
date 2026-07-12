@@ -1,6 +1,6 @@
 # 报告仪表盘目标结构
 
-> **版本**: 1.15
+> **版本**: 1.16
 > **状态**: active
 > **更新日期**: 2026-07-12
 
@@ -76,7 +76,9 @@ ReportDashboard(sessionId, reportId)
 ## 6 Replay
 
 - `复练当前轮`：使用 report 的 `retryFocusCompetencyCodes` 创建新 plan/session。
-- `进入下一轮`：使用 next round context 创建新 plan/session。
+- `进入下一轮`：从当前 `TargetJob.summary.interviewRounds[]` 按 `sequence` 排序后的列表中选择紧邻下一轮，使用该轮 id/name/duration 创建新 plan/session。
+- 轮次列表产生重复派生 ID、当前轮是末轮/单轮、轮次为空、当前 `roundId` 未命中、TargetJob 仍在加载或加载失败时，`进入下一轮` disabled，不得回退第一轮、当前轮或固定默认轮次。
+- 任一 replay/next start 进行中时两枚 CTA 都 disabled；重复点击最多创建一次 plan/session。
 - 不传 `retryFocusTurnIds`、question IDs 或 per-question selection。
 
 ## 7 状态
@@ -106,9 +108,11 @@ ReportDashboard(sessionId, reportId)
 | R-3 | needs practice | 点击复练当前轮 | competency focus 创建 fresh session |
 | R-4 | next round available | 点击进入下一轮 | next-round fresh session |
 | R-5 | desktop/mobile | parity gate | DOM、geometry、screenshot 与原型一致 |
+| R-6 | final/single/empty/unknown/loading round state | 查看或点击进入下一轮 | CTA disabled 且不创建 plan/session；无 fallback |
 
 ## 10 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-12 | 1.16 | 下一轮只使用 TargetJob 有序结构化轮次的紧邻后一项；末轮、未知/缺失/加载失败和重复点击 fail closed。 |
 | 2026-07-12 | 1.15 | 删除题目回顾和逐题 replay，报告收敛为 readiness/dimensions/evidence/next。 |

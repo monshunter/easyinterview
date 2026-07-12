@@ -21,12 +21,14 @@ describe("buildCreatePlanRequest", () => {
     const body = buildCreatePlanRequest(
       context({ resumeId: VALID_RESUME_ID }),
       "en",
+      60,
     );
 
     expect(body.targetJobId).toBe(VALID_TARGET_JOB_ID);
     expect(body.resumeId).toBe(VALID_RESUME_ID);
     expect(body.goal).toBe("baseline");
     expect(body.sourceReportId).toBeUndefined();
+    expect(body.timeBudgetMinutes).toBe(60);
   });
 
   it("creates next_round plans from the source report id", () => {
@@ -37,6 +39,7 @@ describe("buildCreatePlanRequest", () => {
         sourceReportId: VALID_REPORT_ID,
       }),
       "en",
+      60,
     );
 
     expect(body.goal).toBe("next_round");
@@ -51,6 +54,7 @@ describe("buildCreatePlanRequest", () => {
           practiceGoal: "next_round",
         }),
         "en",
+        60,
       ),
     ).toThrow("invalid sourceReportId");
   });
@@ -60,6 +64,7 @@ describe("buildCreatePlanRequest", () => {
       buildCreatePlanRequest(
         context({ resumeId: "resume-unbound" }),
         "en",
+        60,
       ),
     ).toThrow("invalid resumeId");
   });
@@ -69,7 +74,18 @@ describe("buildCreatePlanRequest", () => {
       buildCreatePlanRequest(
         context({ targetJobId: "target-job-draft", jobId: "target-job-draft" }),
         "en",
+        60,
       ),
     ).toThrow("invalid targetJobId");
+  });
+
+  it("rejects a non-positive selected round budget", () => {
+    expect(() =>
+      buildCreatePlanRequest(
+        context({ resumeId: VALID_RESUME_ID }),
+        "en",
+        0,
+      ),
+    ).toThrow("invalid timeBudgetMinutes");
   });
 });

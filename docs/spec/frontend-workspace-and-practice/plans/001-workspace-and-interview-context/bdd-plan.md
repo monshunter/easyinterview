@@ -1,6 +1,6 @@
 # 001 BDD Plan
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -14,6 +14,8 @@
 |---------|------|------|----------|
 | `E2E.P0.018` | 面试入口规划列表 + parse 统一面试规划详情 handoff | primary + alternate + UX regression | `test/scenarios/e2e/p0-018-workspace-default-render/` |
 | `E2E.P0.021` | Workspace boundary + privacy/out-of-scope negative | regression + privacy | `test/scenarios/e2e/p0-021-workspace-handoff/` |
+| `E2E.P0.045` | Practice structured-round budget display | primary + UX regression | `test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/` |
+| `E2E.P0.057` | Report retry / next-round handoff boundaries | primary + boundary + recovery | `test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/` |
 
 ## 2 场景明细
 
@@ -29,11 +31,25 @@
 |-------|------|------|
 | 用户已登录；workspace plan-list 是当前 runtime；records typed consumer is outside this completed plan | 运行 workspace source negative、report replay handoff regression、privacy grep 和 out-of-scope grep | Workspace runtime does not call standalone insight API, report API, untyped fixture extension or prototype helper；report replay handoff stays covered by report owner tests；privacy and out-of-scope negative grep pass |
 
+### E2E.P0.045 Practice structured-round budget display
+
+| Given | When | Then |
+|-------|------|------|
+| 当前 session 对应 ready PracticePlan，plan 的 `timeBudgetMinutes` 来自当前 TargetJob 结构化轮次；另有 plan read loading/failure 变体 | 进入或刷新 Practice | Top Bar 显示 plan budget（例如 60 分钟显示 `60:00`）且不存在固定 `25:00`；loading/failure 不伪造预算；elapsed 超过预算也不自动完成会话 |
+
+### E2E.P0.057 Report retry / next-round handoff boundaries
+
+| Given | When | Then |
+|-------|------|------|
+| ready report 与 TargetJob 有按 sequence 排序的 1..N 轮；当前 round 可能是中间、末轮、未知或缺失，round list 可能产生重复 ID，round data 可能 loading/failure | 点击复练当前轮或进入下一轮，并覆盖重复点击 | 复练保持当前轮；下一轮只选择紧邻后一轮并用其时长创建 plan/session；重复 ID、末轮、单轮、空/未知轮次、loading/failure 不触发 next start；in-flight CTA disabled，重复点击最多创建一次；不回退第一轮或固定默认轮次 |
+
 ## 3 执行入口
 
 ```bash
 test/scenarios/e2e/p0-018-workspace-default-render/scripts/setup.sh && test/scenarios/e2e/p0-018-workspace-default-render/scripts/trigger.sh && test/scenarios/e2e/p0-018-workspace-default-render/scripts/verify.sh && test/scenarios/e2e/p0-018-workspace-default-render/scripts/cleanup.sh
 test/scenarios/e2e/p0-021-workspace-handoff/scripts/setup.sh && test/scenarios/e2e/p0-021-workspace-handoff/scripts/trigger.sh && test/scenarios/e2e/p0-021-workspace-handoff/scripts/verify.sh && test/scenarios/e2e/p0-021-workspace-handoff/scripts/cleanup.sh
+test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/setup.sh && test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/trigger.sh && test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/verify.sh && test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/cleanup.sh
+test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/scripts/setup.sh && test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/scripts/trigger.sh && test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/scripts/verify.sh && test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/scripts/cleanup.sh
 ```
 
 ## 4 AC 映射
@@ -50,3 +66,4 @@ test/scenarios/e2e/p0-021-workspace-handoff/scripts/setup.sh && test/scenarios/e
 | C-10 out-of-scope negative search | `E2E.P0.021` |
 | C-12 privacy redline | `E2E.P0.021` + parse/report focused handoff gates |
 | C-13 parse detail regression and workspace out-of-scope-param purity | `E2E.P0.018`, parse/report focused gates |
+| C-11 structured round time budget and next-round progression | `E2E.P0.021`, `E2E.P0.045`, `E2E.P0.057` |

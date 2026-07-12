@@ -3,6 +3,7 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId }) => {
   const D = window.EI_DATA;
   const context = window.eiCreateInterviewContext ? window.eiCreateInterviewContext(params) : params;
   const job = D.targetJobs.find((item) => item.id === (context.targetJobId || jobId)) || D.targetJobs[0];
+  const { currentRound } = window.eiResolveInterviewRoundContext(D.jdSample.interviewRounds, context.roundId);
   const [input, setInput] = React.useState("");
   const [paused, setPaused] = React.useState(false);
   const [elapsed, setElapsed] = React.useState(502);
@@ -15,6 +16,7 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId }) => {
   }, [paused]);
 
   const formatElapsed = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+  const budget = currentRound ? formatElapsed(currentRound.durationMinutes * 60) : "--:--";
   const interviewerRole = context.roundName || (lang === "en" ? "Manager round" : "经理面");
   const interviewerLabel = lang === "en" ? `${interviewerRole} interviewer` : `${interviewerRole}面试官`;
   const send = () => {
@@ -39,7 +41,7 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId }) => {
         <div style={{ flex: 1 }} />
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
           <Tag tone="muted" T={T}><Icon name="briefcase" size={11} style={{ marginRight: 4 }} />{interviewerLabel}</Tag>
-          <Tag tone="muted" T={T}><Icon name="clock" size={11} style={{ marginRight: 4 }} />{formatElapsed(elapsed)} / 25:00</Tag>
+          <Tag tone="muted" T={T}><Icon name="clock" size={11} style={{ marginRight: 4 }} />{formatElapsed(elapsed)} / {budget}</Tag>
           <button onClick={() => setPaused((value) => !value)} style={{ background: "transparent", border: `1px solid ${T.rule}`, padding: "6px 10px", borderRadius: 2, display: "flex", gap: 6, alignItems: "center", color: T.ink2, fontSize: 12 }}>
             <Icon name={paused ? "play" : "pause"} size={12} /> {paused ? (lang === "en" ? "Resume" : "继续") : (lang === "en" ? "Pause" : "暂停")}
           </button>

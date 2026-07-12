@@ -30,6 +30,7 @@ const ReportFailureState = ({ T, lang, nav, context }) => (
 );
 
 const ReportDashboard = ({ T, lang, nav, report, job, params }) => {
+  const { nextRound } = window.eiResolveInterviewRoundContext(window.EI_DATA.jdSample.interviewRounds, params.roundId);
   const dimensions = report.dimensions || [];
   const highlights = report.highlights || [];
   const issues = report.issues || [];
@@ -39,7 +40,7 @@ const ReportDashboard = ({ T, lang, nav, report, job, params }) => {
       <button onClick={() => nav("workspace", params)} style={{ border: 0, background: "transparent", color: T.ink3, cursor: "pointer", marginBottom: 20 }}>← {lang === "en" ? "Records" : "面试记录"}</button>
       <header style={{ display: "flex", justifyContent: "space-between", gap: 24, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 24 }}>
         <div><div className="ei-label" style={{ color: T.ink3, marginBottom: 8 }}>{lang === "en" ? "CONVERSATION REPORT" : "会话报告"}</div><h1 className="ei-serif" style={{ margin: 0, fontSize: 38, color: T.ink }}>{job.company} · {job.title}</h1><p style={{ color: T.ink2, lineHeight: 1.7 }}>{lang === "en" ? "Evidence and capability signals from the complete interview conversation." : "基于整场模拟面试对话提取证据与能力信号。"}</p></div>
-        <div style={{ display: "flex", gap: 10 }}><Btn T={T} variant="accent" onClick={() => nav("practice", { ...params, practiceGoal: "retry_current_round" })}>{lang === "en" ? "Practice again" : "复练当前轮"}</Btn><Btn T={T} variant="secondary" onClick={() => nav("practice", { ...params, practiceGoal: "next_round" })}>{lang === "en" ? "Next round" : "进入下一轮"}</Btn></div>
+        <div style={{ display: "flex", gap: 10 }}><Btn T={T} variant="accent" onClick={() => nav("practice", { ...params, practiceGoal: "retry_current_round" })}>{lang === "en" ? "Practice again" : "复练当前轮"}</Btn><Btn T={T} variant="secondary" disabled={!nextRound} onClick={() => nextRound && nav("practice", { ...params, practiceGoal: "next_round", roundId: nextRound.id, roundName: nextRound.name })}>{lang === "en" ? "Next round" : "进入下一轮"}</Btn></div>
       </header>
       <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 22 }}>
         <ReportMetric T={T} label={lang === "en" ? "READINESS" : "准备度"} value={report.readiness || (lang === "en" ? "Needs practice" : "建议再练")} />

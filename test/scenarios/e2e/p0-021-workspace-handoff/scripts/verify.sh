@@ -8,6 +8,8 @@ LOG_FILE="$OUTPUT_DIR/trigger.log"
 test -s "$LOG_FILE"
 "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}"
 grep -Fq 'WorkspaceScreen.test.tsx' "$LOG_FILE" || { echo "$SCENARIO_ID: workspace boundary test did not run" >&2; exit 1; }
+grep -Fq 'buildCreatePlanRequest.test.ts' "$LOG_FILE" || { echo "$SCENARIO_ID: plan budget request test did not run" >&2; exit 1; }
+grep -Fq 'startPractice.test.ts' "$LOG_FILE" || { echo "$SCENARIO_ID: structured-round start test did not run" >&2; exit 1; }
 grep -Fq 'ReplayCta.test.tsx' "$LOG_FILE" || { echo "$SCENARIO_ID: report replay handoff test did not run" >&2; exit 1; }
 if rg -n '\.getCompany[A-Za-z]*Insight\(|\.getFeedbackReport\(|recentSessions|console\.log\(' \
   "$REPO_ROOT/frontend/src/app/screens/workspace" \

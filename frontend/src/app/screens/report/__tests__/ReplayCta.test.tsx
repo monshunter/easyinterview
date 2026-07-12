@@ -63,6 +63,55 @@ function makeReport(): FeedbackReport {
 
 interface ClientOpts {
   authenticated: boolean;
+  targetJob?: ReturnType<typeof makeTargetJob>;
+}
+
+function makeTargetJob(
+  interviewRounds = [
+    {
+      sequence: 1,
+      type: "technical",
+      name: "Technical one",
+      durationMinutes: 45,
+      focus: "Coding",
+    },
+    {
+      sequence: 2,
+      type: "technical",
+      name: "Technical two",
+      durationMinutes: 60,
+      focus: "Architecture",
+    },
+  ],
+) {
+  return {
+    id: TARGET_JOB_ID,
+    analysisStatus: "ready",
+    title: "Senior Frontend Engineer",
+    companyName: "Acme",
+    locationText: "Remote",
+    targetLanguage: "zh-CN",
+    sourceType: "manual_text",
+    sourceUrl: null,
+    summary: {
+      coreThemes: [],
+      interviewRounds,
+      provenance: {
+        promptVersion: "target_job.v1",
+        rubricVersion: "target_job.v1",
+        modelId: "fixture",
+        language: "en",
+        featureFlag: "none",
+        dataSourceVersion: "fixture",
+      },
+    },
+    requirements: [],
+    latestReportId: REPORT_ID,
+    openQuestionIssueCount: 0,
+    status: "ready",
+    createdAt: "2026-05-16T00:00:00Z",
+    updatedAt: "2026-05-16T00:00:00Z",
+  } as const;
 }
 
 function makeClient(opts: ClientOpts): EasyInterviewClient {
@@ -84,22 +133,7 @@ function makeClient(opts: ClientOpts): EasyInterviewClient {
       throw new Error("HTTP 401 Unauthorized");
     },
     getFeedbackReport: feedback,
-    getTargetJob: vi.fn(async () => ({
-      id: TARGET_JOB_ID,
-      analysisStatus: "ready",
-      title: "Senior Frontend Engineer",
-      companyName: "Acme",
-      locationText: "Remote",
-      targetLanguage: "zh-CN",
-      sourceType: "manual_text",
-      sourceUrl: null,
-      requirements: [],
-      latestReportId: REPORT_ID,
-      openQuestionIssueCount: 0,
-      status: "ready",
-      createdAt: "2026-05-16T00:00:00Z",
-      updatedAt: "2026-05-16T00:00:00Z",
-    })),
+    getTargetJob: vi.fn(async () => opts.targetJob ?? makeTargetJob()),
     listTargetJobs: vi.fn(async () => ({
       items: [
         {
@@ -151,7 +185,7 @@ const ROUTE_BASE: Record<string, string> = {
   reportId: REPORT_ID,
   targetJobId: TARGET_JOB_ID,
   resumeId: RESUME_VERSION_ID,
-  roundId: "round-tech-1",
+  roundId: "round-1-technical",
   planId: "plan-1",
   jdId: "jd-1",
 };
@@ -226,6 +260,9 @@ describe("Replay CTAs", () => {
       />,
     );
     await screen.findByTestId("report-dashboard");
+    await waitFor(() => {
+      expect(screen.getByTestId("report-next-cta")).not.toBeDisabled();
+    });
     await act(async () => {
       screen.getByTestId("report-next-cta").click();
     });
@@ -242,6 +279,91 @@ describe("Replay CTAs", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("report-dashboard")).toBeNull();
     });
+  });
+
+  it("keeps next round disabled while structured rounds are loading or failed", async () => {
+    const client = makeClient({ authenticated: true });
+    let rejectTarget!: (reason: unknown) => void;
+    client.getTargetJob = vi.fn(() => new Promise<never>((_, reject) => {
+      rejectTarget = reject;
+    }));
+    render(
+      <Harness
+        client={client}
+        initialRoute={{ name: "report", params: ROUTE_BASE }}
+      />,
+    );
+    await screen.findByTestId("report-dashboard");
+    expect(screen.getByTestId("report-next-cta")).toBeDisabled();
+    await act(async () => {
+      rejectTarget(new Error("HTTP 500 Internal"));
+    });
+    await waitFor(() => {
+      expect(client.getTargetJob).toHaveBeenCalled();
+      expect(screen.getByTestId("report-next-cta")).toBeDisabled();
+    });
+    expect(client.createPracticePlan).not.toHaveBeenCalled();
+    expect(client.startPracticeSession).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["final round", { ...ROUTE_BASE, roundId: "round-2-technical" }, makeTargetJob()],
+    ["unknown round", { ...ROUTE_BASE, roundId: "round-99-technical" }, makeTargetJob()],
+    [
+      "duplicate derived round ids",
+      ROUTE_BASE,
+      makeTargetJob([
+        { sequence: 1, type: "technical", name: "A", durationMinutes: 45, focus: "A" },
+        { sequence: 1, type: "technical", name: "B", durationMinutes: 60, focus: "B" },
+      ]),
+    ],
+  ])("fails closed for %s", async (_name, params, targetJob) => {
+    const client = makeClient({ authenticated: true, targetJob });
+    render(
+      <Harness
+        client={client}
+        initialRoute={{ name: "report", params }}
+      />,
+    );
+    await screen.findByTestId("report-dashboard");
+    await waitFor(() => expect(client.getTargetJob).toHaveBeenCalled());
+    const next = screen.getByTestId("report-next-cta");
+    expect(next).toBeDisabled();
+    next.click();
+    expect(client.createPracticePlan).not.toHaveBeenCalled();
+    expect(client.startPracticeSession).not.toHaveBeenCalled();
+  });
+
+  it("locks both CTAs synchronously and creates at most one plan/session for repeated clicks", async () => {
+    const client = makeClient({ authenticated: true });
+    let resolvePlan!: (value: { id: string; status: string }) => void;
+    client.createPracticePlan = vi.fn(() => new Promise((resolve) => {
+      resolvePlan = resolve;
+    })) as never;
+    const createSpy = client.createPracticePlan as ReturnType<typeof vi.fn>;
+    render(
+      <Harness
+        client={client}
+        initialRoute={{ name: "report", params: ROUTE_BASE }}
+      />,
+    );
+    await screen.findByTestId("report-dashboard");
+    await waitFor(() => {
+      expect(screen.getByTestId("report-next-cta")).not.toBeDisabled();
+    });
+    const replay = screen.getByTestId("report-replay-cta");
+    const next = screen.getByTestId("report-next-cta");
+    await act(async () => {
+      replay.click();
+      replay.click();
+    });
+    await waitFor(() => expect(createSpy).toHaveBeenCalledTimes(1));
+    expect(replay).toBeDisabled();
+    expect(next).toBeDisabled();
+    await act(async () => {
+      resolvePlan({ id: "01918fa0-0000-7000-8000-000000008000", status: "ready" });
+    });
+    await waitFor(() => expect(client.startPracticeSession).toHaveBeenCalledTimes(1));
   });
 });
 
@@ -265,7 +387,7 @@ describe("Replay payload integrity", () => {
       jdId: "jd-1",
       resumeId: RESUME_VERSION_ID,
       sourceReportId: REPORT_ID,
-      roundId: "round-tech-1",
+      roundId: "round-1-technical",
       practiceGoal: "retry_current_round",
     });
     for (const value of Object.values(payload)) {
@@ -277,20 +399,22 @@ describe("Replay payload integrity", () => {
     }
   });
 
-  it("buildNextRoundPayload rotates the roundId via inferNextRoundId (TestNextRoundCta_PayloadIntegrity)", async () => {
-    const { buildNextRoundPayload, inferNextRoundId } = await import("../handoff");
-    expect(inferNextRoundId("round-tech-1")).toBe("round-tech-2");
-    expect(inferNextRoundId("round-tech-2")).toBe("round-manager");
-    expect(inferNextRoundId("round-manager")).toBe("round-manager");
-    expect(inferNextRoundId(undefined)).toBe("round-tech-2");
-
+  it("buildNextRoundPayload uses the resolved structured next round (TestNextRoundCta_PayloadIntegrity)", async () => {
+    const { buildNextRoundPayload } = await import("../handoff");
     const payload = buildNextRoundPayload({
       route: { name: "report", params: ROUTE_BASE },
       report: makeReport(),
       sessionId: SESSION_ID,
+    }, {
+      id: "round-2-technical",
+      name: "Technical two · 60m",
+      focus: "Architecture",
+      type: "technical",
+      durationMinutes: 60,
     });
-    expect(payload.nextRoundId).toBe("round-tech-2");
-    expect(payload.roundId).toBe("round-tech-2");
+    expect(payload.nextRoundId).toBe("round-2-technical");
+    expect(payload.roundId).toBe("round-2-technical");
+    expect(payload.roundName).toBe("Technical two · 60m");
     expect(payload.practiceGoal).toBe("next_round");
     expect(payload.sourceReportId).toBe(REPORT_ID);
   });

@@ -15,6 +15,11 @@ export interface TargetJobRoundAssumption {
   durationMinutes: number;
 }
 
+export interface TargetJobRoundContext {
+  currentRound: TargetJobRoundAssumption | null;
+  nextRound: TargetJobRoundAssumption | null;
+}
+
 function nonBlank(value: string | undefined): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
@@ -41,6 +46,25 @@ export function buildTargetJobRoundAssumptions(
       type: round.type,
       durationMinutes: round.durationMinutes,
     }));
+}
+
+export function resolveTargetJobRoundContext(
+  job: Pick<TargetJob, "summary"> | null | undefined,
+  roundId: string | undefined,
+): TargetJobRoundContext {
+  const rounds = buildTargetJobRoundAssumptions(job);
+  if (!roundId || new Set(rounds.map((round) => round.id)).size !== rounds.length) {
+    return { currentRound: null, nextRound: null };
+  }
+
+  const currentIndex = rounds.findIndex((round) => round.id === roundId);
+  if (currentIndex < 0) {
+    return { currentRound: null, nextRound: null };
+  }
+  return {
+    currentRound: rounds[currentIndex] ?? null,
+    nextRound: rounds[currentIndex + 1] ?? null,
+  };
 }
 
 export function roundIndexFromTargetJobStatus(

@@ -1,6 +1,6 @@
 # 001 BDD Checklist
 
-> **版本**: 1.19
+> **版本**: 1.20
 > **状态**: active
 > **更新日期**: 2026-07-10
 
@@ -31,10 +31,26 @@
 - [x] Trigger runs workspace source negative and report replay handoff regression tests
 - [x] Verify covers no standalone insight API, no workspace report API call, no prototype helper import, privacy field negative grep and out-of-scope testid negative grep
 - [x] Scenario `setup -> trigger -> verify -> cleanup` passes
+- [x] Revision 2026-07-12 trigger covers shared start-practice structured-round duration, stale-budget plan replacement and unknown-round fail-closed behavior
+- [x] Revision 2026-07-12 scenario `setup -> trigger -> verify -> cleanup` passes（24/24 Vitest PASS）
+
+## E2E.P0.045 Practice structured-round budget display
+
+- [x] Update scenario README/data so selected round duration -> PracticePlan budget -> Top Bar display is the asserted user outcome
+- [x] Trigger runs current UI contract, shared start budget tests and PracticeScreen budget tests
+- [x] Verify rejects fixed `25:00`, requires plan-derived budget markers, and rejects no-test/failed output
+- [x] Scenario `setup -> trigger -> verify -> cleanup` passes（UI contract 45/45、Vitest 65/65、Go voice gate PASS）
+
+## E2E.P0.057 Report retry / next-round handoff boundaries
+
+- [x] Replace the fixed canonical ladder expectation with TargetJob structured-round ordering
+- [x] Cover middle -> immediate next, final/single/empty/unknown/loading/failure fail-closed and in-flight duplicate-click guard
+- [x] Verify rejects fixed `ROUND_ORDER`, `DEFAULT_NEXT_ROUND` and fallback-to-current/fallback-to-first behavior
+- [x] Scenario `setup -> trigger -> verify -> cleanup` passes（34/34 Vitest PASS）
 
 ## Closeout
 
-- [ ] `validate_context.py --context docs/spec/frontend-workspace-and-practice/plans/001-workspace-and-interview-context/context.yaml --target frontend` passes
-- [ ] `sync-doc-index --check` passes
-- [ ] `make docs-check` passes
-- [ ] `git diff --check` passes
+- [x] `validate_context.py --context docs/spec/frontend-workspace-and-practice/plans/001-workspace-and-interview-context/context.yaml --target frontend` passes
+- [x] `sync-doc-index --check` passes
+- [x] `make docs-check` passes
+- [x] `git diff --check` passes

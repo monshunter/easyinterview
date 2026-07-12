@@ -4,7 +4,13 @@ ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"; OUT
 {
   cd "$ROOT"
   "$ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$ROOT"
+  echo "E2E.P0.045: node --test ui-design/ui-design-contract.test.mjs"
   node --test ui-design/ui-design-contract.test.mjs
-  pnpm --filter @easyinterview/frontend test src/app/screens/practice/PracticeScreen.test.tsx src/app/App.test.tsx src/app/routeUrl.test.ts
+  pnpm --filter @easyinterview/frontend test \
+    src/app/interview-context/buildCreatePlanRequest.test.ts \
+    src/app/interview-context/startPractice.test.ts \
+    src/app/screens/practice/PracticeScreen.test.tsx \
+    src/app/App.test.tsx \
+    src/app/routeUrl.test.ts
   go test -v ./backend/internal/api/practice -run '^TestCreatePracticeVoiceTurnFailsClosed$' -count=1
 } | tee "$OUT/trigger.log"

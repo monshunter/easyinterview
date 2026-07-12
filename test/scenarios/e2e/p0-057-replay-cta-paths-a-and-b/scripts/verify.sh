@@ -10,11 +10,17 @@ test -s "$LOG_FILE"
 grep -Fq 'E2E.P0.057: validating direct-start owner contract' "$LOG_FILE" || { echo "E2E.P0.057: direct-start owner preflight did not run" >&2; exit 1; }
 grep -Fq 'preflight.test.ts' "$LOG_FILE" || { echo "E2E.P0.057: report owner preflight did not pass" >&2; exit 1; }
 grep -Fq 'pendingActionReplayPractice.test.ts' "$LOG_FILE" || { echo "E2E.P0.057: pendingAction replay test did not run" >&2; exit 1; }
+grep -Fq 'roundAssumptions.test.ts' "$LOG_FILE" || { echo "E2E.P0.057: structured round resolver test did not run" >&2; exit 1; }
+grep -Fq 'useReportContextData.test.tsx' "$LOG_FILE" || { echo "E2E.P0.057: target round load/failure test did not run" >&2; exit 1; }
 grep -Fq 'ReplayCta.test.tsx' "$LOG_FILE" || { echo "E2E.P0.057: ReplayCta test did not run" >&2; exit 1; }
 grep -Fq 'TestReplayCtaPathA_AuthenticatedDirectStartPractice' \
   "$REPO_ROOT/frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx" || { echo "E2E.P0.057: replay direct-start assertion is missing" >&2; exit 1; }
 grep -Fq 'TestNextRoundCta_DirectStartPractice' \
   "$REPO_ROOT/frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx" || { echo "E2E.P0.057: next-round direct-start assertion is missing" >&2; exit 1; }
+grep -Fq 'fails closed for %s' \
+  "$REPO_ROOT/frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx" || { echo "E2E.P0.057: next-round fail-closed matrix is missing" >&2; exit 1; }
+grep -Fq 'locks both CTAs synchronously and creates at most one plan/session' \
+  "$REPO_ROOT/frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx" || { echo "E2E.P0.057: duplicate-click guard assertion is missing" >&2; exit 1; }
 grep -Fq 'startPracticeFromParams(runtime.client, params, lang)' \
   "$REPO_ROOT/frontend/src/app/screens/report/useReplayCtaHandlers.ts" || { echo "E2E.P0.057: replay CTA does not use the shared direct-start helper" >&2; exit 1; }
 grep -Fq 'navigate({ name: "practice", params: started.params })' \
@@ -38,3 +44,11 @@ fi
 # practiceGoal values surface in both paths.
 grep -Fq 'retry_current_round' "$REPO_ROOT/frontend/src/app/screens/report/handoff.ts"
 grep -Fq 'next_round' "$REPO_ROOT/frontend/src/app/screens/report/handoff.ts"
+
+if rg -n 'ROUND_ORDER|DEFAULT_NEXT_ROUND|inferNextRoundId' \
+    "$REPO_ROOT/frontend/src/app/screens/report" \
+    "$REPO_ROOT/frontend/src/app/interview-context" \
+    -g '!*.test.*'; then
+  echo "E2E.P0.057: fixed or fallback next-round logic leaked into runtime" >&2
+  exit 1
+fi
