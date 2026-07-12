@@ -5,5 +5,5 @@ ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"; OUT
   cd "$ROOT"
   "$ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$ROOT"
   pnpm --filter @easyinterview/frontend test src/app/screens/practice/PracticeScreen.test.tsx src/app/screens/practice/hooks/useCompletePracticeSession.test.tsx
-  go test -v ./backend/internal/practice ./backend/internal/store/practice -run 'TestSendPracticeMessageProviderFailureKeepsReservationUncommitted|TestSendPracticeMessageExactReplayReturnsOriginalResultWithoutAICall|TestSendPracticeMessageMapsClientMismatchAndCrossUserAccess|TestSQLRepositoryReservePracticeMessageRetriesPendingUserMessage|TestSQLRepositoryReservePracticeMessageRejectsNewMessageWhileReplyPending' -count=1
+  go test -v ./backend/internal/practice ./backend/internal/store/practice -run 'TestSendPracticeMessageProviderFailureKeepsReservationUncommitted|TestSendPracticeMessageFailsClosedWithoutResumeContextAndSkipsAI|TestSendPracticeMessageExactReplayReturnsOriginalResultWithoutAICall|TestSendPracticeMessageMapsClientMismatchAndCrossUserAccess|TestSQLRepositoryReservePracticeMessageRetriesPendingUserMessage|TestSQLRepositoryReservePracticeMessageRejectsNewMessageWhileReplyPending' -count=1
 } | tee "$OUT/trigger.log"

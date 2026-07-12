@@ -142,7 +142,7 @@ const HomeScreen = ({ T, lang, nav, signedIn = false }) => {
                   rounds={D.jdSample.rounds}
                   T={T}
                   onClick={() => nav("parse", { targetJobId: j.id })}
-                  onStart={() => nav("practice", { targetJobId: j.id, sessionId: `session-${j.id}-new` })}
+                  onStart={(round) => nav("practice", { targetJobId: j.id, roundId: round.id, roundName: round.name, sessionId: `session-${j.id}-${round.id}-new` })}
                   lang={lang}
                 />
               ))}
@@ -178,7 +178,8 @@ const MockInterviewCard = ({ job, rounds, T, onClick, onStart, onDelete, showDel
     muted: { bg: "transparent", fg: T.ink3 },
   };
   const s = statusMap[job.statusTone];
-  const currentRoundIndex = getHomeRoundIndex(job, rounds);
+  const progress = window.eiResolvePracticeProgress(rounds, job.practiceProgress);
+  const currentRoundIndex = progress.currentIndex;
   return (
     <div onClick={onClick} style={{
       background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 3, padding: 20,
@@ -202,8 +203,9 @@ const MockInterviewCard = ({ job, rounds, T, onClick, onStart, onDelete, showDel
         <div style={{ borderTop: `1px solid ${T.rule}`, paddingTop: 14, background: T.bgCard, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
           {onStart && (
             <button
-              onClick={(event) => { event.stopPropagation(); onStart(); }}
-              style={{ flex: "0 0 auto", height: 32, padding: "0 12px", fontSize: 13, fontWeight: 500, background: T.accent, color: "#fff", border: `1px solid ${T.accent}`, borderRadius: 2, cursor: "pointer", fontFamily: "var(--ei-sans)" }}
+              disabled={!progress.currentRound}
+              onClick={(event) => { event.stopPropagation(); if (progress.currentRound) onStart(progress.currentRound); }}
+              style={{ flex: "0 0 auto", height: 32, padding: "0 12px", fontSize: 13, fontWeight: 500, background: T.accent, color: "#fff", border: `1px solid ${T.accent}`, borderRadius: 2, cursor: progress.currentRound ? "pointer" : "not-allowed", opacity: progress.currentRound ? 1 : 0.58, fontFamily: "var(--ei-sans)" }}
             >
               {lang === "en" ? "Start interview now" : "立即面试"}
             </button>
@@ -224,25 +226,16 @@ const MockInterviewCard = ({ job, rounds, T, onClick, onStart, onDelete, showDel
   );
 };
 
-const getHomeRoundIndex = (job, rounds) => {
-  if (!rounds?.length) return 0;
-  const next = job?.nextRound || "";
-  const found = rounds.findIndex((round) => next.includes(round.name));
-  if (found >= 0) return found;
-  if (job?.status === "草稿" || next.includes("未安排")) return 0;
-  return Math.min(1, rounds.length - 1);
-};
-
 const MiniRoundRail = ({ T, rounds, currentIndex }) => (
   <div style={{ marginTop: 18 }}>
     <div style={{ position: "relative", height: 34 }}>
       <div style={{ position: "absolute", top: 9, left: 8, right: 8, height: 1, background: T.rule }} />
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${rounds.length}, 1fr)` }}>
         {rounds.map((round, i) => {
-          const done = i < currentIndex;
+          const done = currentIndex !== null && i < currentIndex;
           const current = i === currentIndex;
           return (
-            <div key={round.name} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: i === 0 ? "flex-start" : i === rounds.length - 1 ? "flex-end" : "center" }}>
+            <div key={`round-${round.sequence}-${round.type}`} data-round-state={done ? "done" : current ? "current" : "pending"} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: i === 0 ? "flex-start" : i === rounds.length - 1 ? "flex-end" : "center" }}>
               <div style={{
                 width: 18, height: 18, borderRadius: 9,
                 border: `1px solid ${done ? T.ok : current ? T.accent : T.rule}`,

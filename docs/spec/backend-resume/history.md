@@ -1,13 +1,15 @@
 # Backend Resume History
 
-> **版本**: 2.5
+> **版本**: 2.7
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 2.7 | 删除模型回显整份简历的输出合同；完整提取正文由后端确定性写入快照，并以长输入尾部 marker 与 `finish_reason=length` fail-closed 门禁保证 1M 输入上下文不被业务代码截断。 | 001-asset-register-parse-and-listing Phase 14 |
+| 2026-07-12 | 2.6 | 将 `resume.parse.default` 结构化输出预算提升到至少 8192 tokens，防止真实长简历在 2048-token cap 处产生截断 JSON。 | 001-asset-register-parse-and-listing Phase 13 |
 | 2026-07-10 | 2.5 | Resume parse/tailor handlers 与 cmd/api 场景直接使用 canonical runner contract/runtime，移除测试专用执行模型。 | backend-async-runner/001 |
 | 2026-07-10 | 2.4 | 将 Resume parse/tailor negative gate、sourceType validation 和 tailor mode 边界统一为 out-of-scope / 范围外口径；行为不变。 | tech-debt pruning |
 | 2026-07-07 | 1.8 | 将 `resume.parse` 完成态命名收敛为 LLM-derived `display_name`：parse 成功后从结构化输出派生可识别名称，避免 ready 简历继续显示通用上传 / 粘贴标题。 | 001-asset-register-parse-and-listing |

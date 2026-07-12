@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 2.5
+    to: 2.7
 spec:
   defaultTarget: backend
   discovery:
@@ -47,6 +47,12 @@ spec:
       - idempotency key replay
       - mock first byte parity
       - PII boundary no raw text
+      - real resume output token budget
+      - long resume strict JSON truncation
+      - deterministic full resume snapshot
+      - one million context input integrity
+      - long input tail marker
+      - finish reason length fail closed
   targets:
     backend:
       plan: ./plan.md

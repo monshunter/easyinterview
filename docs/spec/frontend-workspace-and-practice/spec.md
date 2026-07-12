@@ -1,6 +1,6 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.36
+> **版本**: 1.38
 > **状态**: active
 > **更新日期**: 2026-07-12
 
@@ -18,12 +18,13 @@
 - 卡片展示状态、更新时间、岗位、公司和地点；主体进入 `parse` 统一详情，右上角归档，底部只有 `立即面试`。
 - `workspace` 不读取或继承详情 route context，不拥有 Resume Picker、Plan Switcher 或 route-side auto start。
 - 快速启动通过 generated `createPracticePlan` / `startPracticeSession` 创建或复用 plan，然后进入 `practice`。
+- 卡片 round rail、`立即面试` 和 parse 当前轮只消费 backend `TargetJob.practiceProgress`；TargetJob lifecycle `status` 只用于岗位状态展示，不参与轮次推断。
 
 ### 2.2 Practice
 
 - Route 只需要稳定 `sessionId` 与 target/plan/resume/round IDs；不使用 `mode/modality/practiceMode/hintUsed/hintCount`。
 - Top Bar：真实公司/岗位、面试官角色、计时、暂停、disabled phone icon、结束并生成报告。
-- 当前轮次只由 `TargetJob.summary.interviewRounds[]` 的 `sequence` 顺序决定；启动时把该轮 `durationMinutes` 写入 `PracticePlan.timeBudgetMinutes`，Practice Top Bar 再从当前 plan 读取并显示预算，不使用固定分钟数。
+- `TargetJob.summary.interviewRounds[]` 只定义 canonical 轮次目录、顺序和时长；当前轮由 backend `TargetJob.practiceProgress.currentRound` 选中。启动时把该轮 `durationMinutes` 写入 `PracticePlan.timeBudgetMinutes`，Practice Top Bar 再从当前 plan 读取并显示预算，不使用固定分钟数。
 - Conversation：全宽有序 Transcript + Error/Retry + Composer。
 - opening message 和后续 assistant reply 统一来自 server messages，不是 QuestionCard。
 - 用户输入通过 generated `sendPracticeMessage`，不提交 `turnId`，不标记 answer/hint/question。
@@ -58,7 +59,8 @@
 | D-3 | 专用提示 | 删除；用户需要提示时发送普通消息 |
 | D-4 | 电话模式 | 前端入口置灰，phone/voice params 归一为文本 |
 | D-5 | 报告 handoff | 只传稳定 IDs；不传 modality/practiceMode/hint fields |
-| D-6 | 轮次运行时单一来源 | `TargetJob.summary.interviewRounds[]` 决定当前/下一轮；`PracticePlan.timeBudgetMinutes` 保存所选轮次时长快照；重复派生 ID、未知轮次、空轮次和末轮不得回退到第一轮或固定默认轮次 |
+| D-6 | 轮次目录与预算来源 | `TargetJob.summary.interviewRounds[]` 定义 canonical 轮次目录、顺序与时长；sequence 必须正 int32、唯一、严格递增但允许 `1,2,4`，下一轮是数组中下一条已存在 canonical round，不是 `current.sequence + 1`。`TargetJob.practiceProgress` 决定当前/已完成轮次；`PracticePlan.timeBudgetMinutes` 保存所选轮次时长快照；重复派生 ID、未知轮次、空轮次和末轮不得回退到第一轮或固定默认轮次 |
+| D-7 | 业务状态后端持久化 | 除主题/外观偏好外，轮次进度、当前轮、plan/session/report 和完成事实只来自 backend API；前端内存、URL、`localStorage`、`sessionStorage`、IndexedDB、自由文本 `nextRound` 或 fixture 不得作为事实源。`TargetJob.practiceProgress` 是卡片/详情/quick-start 的 read model；缺失或不一致时 fail closed。 |
 
 ## 4 UI 真理源与 parity
 
@@ -78,8 +80,9 @@
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createPracticePlan` | `PracticePlans/createPracticePlan.json` | parse/workspace/report start helpers；`timeBudgetMinutes` 取当前结构化轮次时长 | backend-practice | `practice_plans` | none | `E2E.P0.021`, `E2E.P0.057` |
-| `getPracticePlan` | `PracticePlans/getPracticePlan.json` | start helper 校验复用条件；Practice Top Bar 读取预算 | backend-practice | `practice_plans` | none | `E2E.P0.021`, `E2E.P0.045` |
+| `createPracticePlan` | `PracticePlans/createPracticePlan.json` | parse/workspace/report start helpers；发送 `roundId` 和该轮 `timeBudgetMinutes`，不发送 sequence | backend-practice | `practice_plans.round_id/round_sequence` | none | `E2E.P0.021`, `E2E.P0.057`, `E2E.P0.098` |
+| `getPracticePlan` | `PracticePlans/getPracticePlan.json` | start helper 只按 exact non-null round pair + target/resume/status 复用；Practice Top Bar 读取预算 | backend-practice | `practice_plans` | none | `E2E.P0.021`, `E2E.P0.045`, `E2E.P0.098` |
+| `listTargetJobs` / `getTargetJob` | TargetJobs fixtures | Home/Workspace rail、parse、quick-start、report next gate 消费 `practiceProgress` | backend-targetjob | completion ledger projection；无 mutable progress column | none | `E2E.P0.018`, `E2E.P0.098` |
 | `startPracticeSession` | `PracticeSessions/startPracticeSession.json` | start helper | backend-practice | session + opening message | `practice.session.chat` | `E2E.P0.023`, `E2E.P0.057` |
 | `getPracticeSession` | `PracticeSessions/getPracticeSession.json` | `usePracticeSessionLoader` | backend-practice | session + messages | none | `E2E.P0.044`, `E2E.P0.046` |
 | `sendPracticeMessage` | `PracticeSessions/sendPracticeMessage.json` | conversation send hook | backend-practice | `practice_messages` | `practice.session.chat` | `E2E.P0.044`, `E2E.P0.046` |
@@ -118,7 +121,8 @@
 | C-8 | Visual parity | desktop/mobile | Playwright | geometry/screenshot 与 source 一致 | 002 |
 | C-9 | Stale negative | current tree | lint/search | 无 SessionMap/QuestionCard/hint/PhoneSurface 正向残留 | 002 |
 | C-10 | Privacy | conversation 完成 | 检查 URL/storage/log | raw messages 不泄漏 | 002 |
-| C-11 | 轮次预算与推进 | TargetJob 有有序结构化轮次 | 启动当前轮或在报告点击进入下一轮 | plan/计时预算与所选轮次时长一致；只推进到紧邻下一轮；重复派生 ID、末轮、单轮、空轮次、未知轮次、加载失败和重复点击不创建错误 plan/session | 001 + 002 + frontend-report-dashboard/001 |
+| C-11 | 轮次预算与推进 | TargetJob 有严格递增但可能非连续的结构化轮次，如 `1,2,4` | 启动当前轮或在报告点击进入下一轮 | plan/计时预算与所选轮次时长一致；从 sequence 2 推进到 canonical 列表中的 4，不构造不存在的 3；重复派生 ID、末轮、单轮、空轮次、未知轮次、加载失败和重复点击不创建错误 plan/session | 001 + 002 + frontend-report-dashboard/001 |
+| C-12 | 持久化进度与卡片刷新 | 完成一轮后重新进入/刷新 Home、Workspace 或 Parse，可能有非连续/相邻等时长轮次、legacy plan、全部完成或旧报告 | API 重新加载 TargetJob 并点击 `立即面试` / `进入下一轮` | rail 显示 backend 已完成前缀与当前 canonical successor；只复用 exact current round plan；legacy null/错轮不复用；全部完成禁用启动；生命周期 status 变化不改变轮次；业务进度未写入任何前端持久化介质；真实浏览器刷新与 quick-start 只有在 live frontend/backend 实际执行后才可作为完成证据 | 001 + frontend-report-dashboard/001 |
 
 ## 9 关联计划
 
@@ -138,6 +142,8 @@
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.38 | 2026-07-12 | 明确 sequence 可严格递增但不连续，下一轮取现有 canonical successor；区分真实 PostgreSQL/单测组合证据与尚需实际执行的 live browser 刷新门禁。 |
+| 1.37 | 2026-07-12 | 采用方案 A：卡片/详情/quick-start 消费 backend-persisted `practiceProgress`，plan 以 exact round pair 复用，移除 status/时长/前端存储轮次推断。 |
 | 1.36 | 2026-07-12 | 重新打开轮次 handoff owner：结构化轮次成为时间预算与下一轮推进的单一来源，禁止固定 25 分钟、固定轮次表和末轮/未知轮次 fallback。 |
 | 1.35 | 2026-07-12 | 重新打开 Practice owner：按 loader/message/completion 错误来源路由 retry，并在发送/加载/完成边界禁用结束 CTA。 |
 | 1.34 | 2026-07-12 | Practice 改为全宽连续文本会话；删除题目/hint/mode UI，电话入口置灰，generating 改用会话级文案。 |

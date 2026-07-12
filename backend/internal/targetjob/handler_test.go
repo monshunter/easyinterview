@@ -287,6 +287,101 @@ func TestHandler_ArchiveTargetJob_Returns202AndRequiresIdempotencyKey(t *testing
 	assertGeneratedErrorEnvelope(t, rec, sharederrors.CodeValidationFailed, false)
 }
 
+func TestHandler_GetAndListTargetJobs_ReturnPracticeProgressWithWireParity(t *testing.T) {
+	h, store := newWiredHandler(t)
+	now := time.Date(2026, 7, 12, 13, 0, 0, 0, time.UTC)
+	rec := targetjob.TargetJobRecord{
+		ID:                  "018f2a40-0000-7000-9000-0000000000a1",
+		UserID:              "user-1",
+		Status:              sharedtypes.TargetJobStatusInterviewing,
+		AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
+		Title:               "Backend Engineer",
+		CompanyName:         "Acme",
+		SourceType:          targetjob.SourceTypeManualText,
+		TargetLanguage:      "en",
+		Summary:             threeRoundSummaryJSON(),
+		PracticeFactsLoaded: true,
+		CompletedRoundFacts: []targetjob.PracticeRoundFact{
+			{RoundID: "round-1-hr", RoundSequence: 1},
+		},
+		ReadyPlanFacts: []targetjob.ReadyPracticePlanFact{
+			{PlanID: "018f2a40-0000-7000-9000-0000000000p2", RoundID: "round-2-technical", RoundSequence: 2, CreatedAt: now},
+		},
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	store.getRecord = rec
+	store.listResult = targetjob.ListResult{Items: []targetjob.TargetJobRecord{rec}}
+
+	withUser := func(req *http.Request) *http.Request {
+		return req.WithContext(context.WithValue(req.Context(), testUserKey{}, "user-1"))
+	}
+	getRecorder := httptest.NewRecorder()
+	h.GetTargetJob(getRecorder, withUser(httptest.NewRequest(http.MethodGet, "/targets/"+rec.ID, nil)), rec.ID)
+	if getRecorder.Code != http.StatusOK {
+		t.Fatalf("get status = %d, body=%s", getRecorder.Code, getRecorder.Body.String())
+	}
+	listRecorder := httptest.NewRecorder()
+	h.ListTargetJobs(listRecorder, withUser(httptest.NewRequest(http.MethodGet, "/targets", nil)))
+	if listRecorder.Code != http.StatusOK {
+		t.Fatalf("list status = %d, body=%s", listRecorder.Code, listRecorder.Body.String())
+	}
+
+	var detail api.TargetJob
+	if err := json.Unmarshal(getRecorder.Body.Bytes(), &detail); err != nil {
+		t.Fatalf("decode get response: %v", err)
+	}
+	var list api.PaginatedTargetJob
+	if err := json.Unmarshal(listRecorder.Body.Bytes(), &list); err != nil {
+		t.Fatalf("decode list response: %v", err)
+	}
+	if len(list.Items) != 1 {
+		t.Fatalf("list items = %d, want 1", len(list.Items))
+	}
+	for name, got := range map[string]api.TargetJob{"get": detail, "list": list.Items[0]} {
+		if got.PracticeProgress == nil || got.PracticeProgress.Status != "in_progress" || got.PracticeProgress.CurrentRound == nil || got.PracticeProgress.CurrentRound.RoundId != "round-2-technical" {
+			t.Fatalf("%s progress = %+v", name, got.PracticeProgress)
+		}
+		if got.CurrentPracticePlanId == nil || *got.CurrentPracticePlanId != "018f2a40-0000-7000-9000-0000000000p2" {
+			t.Fatalf("%s current plan = %v", name, got.CurrentPracticePlanId)
+		}
+	}
+}
+
+func TestHandler_GetTargetJob_OmitsPracticeProgressWhenSummaryIsInvalid(t *testing.T) {
+	h, store := newWiredHandler(t)
+	now := time.Date(2026, 7, 12, 13, 30, 0, 0, time.UTC)
+	store.getRecord = targetjob.TargetJobRecord{
+		ID:             "target-invalid-summary",
+		UserID:         "user-1",
+		Status:         sharedtypes.TargetJobStatusInterviewing,
+		AnalysisStatus: sharedtypes.TargetJobParseStatusReady,
+		Title:          "Backend Engineer",
+		SourceType:     targetjob.SourceTypeManualText,
+		TargetLanguage: "en",
+		Summary:        json.RawMessage(`{"interviewRounds":[]}`),
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+	req := httptest.NewRequest(http.MethodGet, "/targets/target-invalid-summary", nil)
+	req = req.WithContext(context.WithValue(req.Context(), testUserKey{}, "user-1"))
+	recorder := httptest.NewRecorder()
+	h.GetTargetJob(recorder, req, "target-invalid-summary")
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body=%s", recorder.Code, recorder.Body.String())
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(recorder.Body.Bytes(), &raw); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if _, exists := raw["practiceProgress"]; exists {
+		t.Fatalf("invalid summary must omit practiceProgress: %s", recorder.Body.String())
+	}
+	if _, exists := raw["currentPracticePlanId"]; exists {
+		t.Fatalf("invalid summary must omit currentPracticePlanId: %s", recorder.Body.String())
+	}
+}
+
 func assertGeneratedErrorEnvelope(t *testing.T, rec *httptest.ResponseRecorder, wantCode string, wantRetryable bool) {
 	t.Helper()
 	var raw map[string]json.RawMessage

@@ -103,6 +103,32 @@ class SyncFixturesFromPrototypeTest(unittest.TestCase):
             msg=f"validate-fixtures must pass after sync\nstderr={val.stderr}",
         )
 
+    def test_list_target_jobs_progress_keeps_the_round_summary_needed_by_consumers(self) -> None:
+        out = _run(SYNC, self.repo)
+        self.assertEqual(out.returncode, 0)
+        fixture = _read_json(
+            self.repo / "openapi/fixtures/TargetJobs/listTargetJobs.json"
+        )
+        items = fixture["scenarios"]["prototype-baseline"]["response"]["body"]["items"]
+        for item in items:
+            with self.subTest(targetJobId=item["id"]):
+                progress = item.get("practiceProgress")
+                if progress is None:
+                    continue
+                rounds = item.get("summary", {}).get("interviewRounds", [])
+                refs = {
+                    (f"round-{round_['sequence']}-{round_['type']}", round_["sequence"])
+                    for round_ in rounds
+                }
+                self.assertGreaterEqual(len(rounds), 2)
+                for completed in progress["completedRounds"]:
+                    self.assertIn(
+                        (completed["roundId"], completed["roundSequence"]), refs
+                    )
+                current = progress["currentRound"]
+                if current is not None:
+                    self.assertIn((current["roundId"], current["roundSequence"]), refs)
+
     def test_sync_fails_fast_on_mapping_gap(self) -> None:
         # Drop the targetJobs section that listTargetJobs depends on.
         data_file = self.repo / "ui-design" / "src" / "data.jsx"

@@ -1,6 +1,6 @@
 # DB Migrations Baseline Spec
 
-> **版本**: 1.29
+> **版本**: 1.30
 > **状态**: active
 > **更新日期**: 2026-07-12
 
@@ -58,7 +58,7 @@
 - **索引 inventory**：当前 B-Tree index 与 `target_jobs` 可选 GIN 全文索引由 migration contract tests 和 lint gate 验证。
 - **Make targets**：`make migrate-up`、`make migrate-down`、`make migrate-status`、`make migrate-create NAME=...`、`make migrate-check`。
 - **本地迁移 gate**：`make migrate-check` 执行 up -> down -> up；`migrate-down` 在 prod 环境拒绝执行，除非显式 force。
-- **Backfill registry**：真实行级 backfill 通过可选 `migrations/backfill/manifest.yaml` 与 `backend/internal/migrations/backfills/` 共同登记；当前没有已登记的行级 backfill，runner 在 manifest 缺失时直接跳过，仍支持 dry-run / apply / ledger。
+- **Backfill registry**：真实行级 backfill 通过 `migrations/backfill/manifest.yaml` 与 `backend/internal/migrations/backfills/` 共同登记；当前登记 `v000017/practice_plan_round_identity`，只对同 user、同 TargetJob 当前绑定 resume、未删除 TargetJob 下的唯一时长匹配 legacy plan 补齐规范化正 int32 round pair；歧义、错绑、删除或溢出数据保持 null；runner 支持 dry-run / apply / ledger 幂等。
 - **Enum/check source lint**：所有 `text + check (col in (...))` 必须能由 §3.1.1 的 owner source 或 `migrations/enum-sources.yaml` 解释。
 - **Privacy deletion matrix**：§3.1.2 是 `privacy_delete` backend internal runner 的表级真理源。
 
@@ -97,6 +97,7 @@
 | D-20 | Privacy request tombstone | `privacy_requests.user_id` 可置空，FK 为 `ON DELETE SET NULL` | 用户行 hard delete 后保留最小删除证据 |
 | D-21 | Current public schema count | 当前 public schema gate 为 21 app + 3 auth + 2 metadata，count >= 26 | 作为 migration inventory drift gate |
 | D-22 | Practice conversation schema | 删除 `practice_turns`、`question_assessments`、`practice_plans.question_budget/mode`、`practice_sessions.turn_count/hints_enabled`；新增 `practice_messages` | pre-launch baseline 原地修订，不保留旧表/列兼容层 |
+| D-23 | Practice plan 规范化轮次身份 | `practice_plans` additive 新增 nullable `round_id` / `round_sequence`，并以 CHECK 保证二者同时为 null 或同时非 null 且 sequence > 0；所有新写入必须成对有值。legacy plan 仅在 user/target/current-resume 绑定一致、TargetJob 未删除、sequence 为正 int32，且结构化轮次可按唯一时长无歧义匹配时由 backfill registry 填充；零/多匹配、错绑、删除或溢出保持 null。 | 完成进度从 session ledger + plan round identity 投影；不在 `target_jobs` 新增可变进度列；legacy null 记录不得被当前轮复用；实现语义变化必须更新 manifest checksum，避免旧 ledger 误跳过 |
 
 #### 3.1.1 Field-Level Enum / Check 来源矩阵
 
@@ -199,6 +200,7 @@
 | C-9 | AI call meta 查询 | 干净 DB baseline | 查询 `ai_task_runs` columns | model / route / validation / schema / provenance typed columns 存在 | [001](./plans/001-bootstrap/plan.md) |
 | C-10 | Privacy matrix | 测试用户产生覆盖样本 | `privacy_delete` dry-run / apply | §3.1.2 每表 disposition 输出并执行；用户可识别内容删除或脱敏 | [001](./plans/001-bootstrap/plan.md) |
 | C-11 | Live test rerun-safe | `DATABASE_URL` 指向可用 DB | 固定 UUID migration tests 连续运行 | 重复运行不因样本残留失败；无 DB 时明确 skip | [002](./plans/002-flat-resume-migration/plan.md) |
+| C-12 | Practice plan round identity migration | DB 含新 plan、唯一时长 legacy plan、同一时长多轮 legacy plan | 执行 `000017` up/backfill/down/up | 新 plan 可保存成对 round identity；唯一匹配 legacy plan 可审计回填；歧义 legacy plan 保持 null；pair CHECK、正数 CHECK 与 partial lookup index 存在；`target_jobs` 不出现 progress 列 | [001](./plans/001-bootstrap/plan.md) |
 
 ## 7 关联计划
 

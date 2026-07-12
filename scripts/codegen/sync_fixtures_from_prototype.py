@@ -106,6 +106,13 @@ def _translate_company(value: str | None) -> str:
     return "Acme"
 
 
+def _sanitize_prototype_text(value: str | None) -> str:
+    sanitized = value or ""
+    for source, replacement in COMPANY_TRANSLATION.items():
+        sanitized = sanitized.replace(source, replacement)
+    return sanitized
+
+
 def _mask_email(email: str) -> str:
     local, _, domain = email.partition("@")
     if not local or not domain:
@@ -150,7 +157,7 @@ REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = {
     "getMe": ("user",),
     "listTargetJobs": ("targetJobs",),
     "getTargetJob": ("targetJobs", "jdSample"),
-    "getPracticeSession": ("targetJobs", "questions", "sessionTranscript"),
+    "getPracticeSession": ("targetJobs", "sessionTranscript"),
     "getFeedbackReport": ("report",),
 }
 
@@ -243,13 +250,34 @@ def _build_target_job(raw: dict, jd: dict | None = None) -> OrderedDict:
         base["fitSummary"] = None
         base["latestReportId"] = None
     base["openQuestionIssueCount"] = int(raw.get("mistakes") or 0)
+    progress = raw.get("practiceProgress")
+    if isinstance(progress, dict):
+        completed = []
+        for item in progress.get("completedRounds", []):
+            completed.append(OrderedDict([
+                ("roundId", item.get("roundId")),
+                ("roundSequence", int(item.get("roundSequence") or 0)),
+            ]))
+        current_raw = progress.get("currentRound")
+        current = None
+        if isinstance(current_raw, dict):
+            current = OrderedDict([
+                ("roundId", current_raw.get("roundId")),
+                ("roundSequence", int(current_raw.get("roundSequence") or 0)),
+            ])
+        base["practiceProgress"] = OrderedDict([
+            ("status", progress.get("status")),
+            ("completedRounds", completed),
+            ("currentRound", current),
+        ])
     base["createdAt"] = EARLIEST
     base["updatedAt"] = EARLIER
     return base
 
 
 def map_list_target_jobs(data: dict) -> OrderedDict:
-    items = [_build_target_job(raw) for raw in data["targetJobs"]]
+    jd = data.get("jdSample")
+    items = [_build_target_job(raw, jd=jd) for raw in data["targetJobs"]]
     body = OrderedDict([
         ("items", items),
         ("pageInfo", OrderedDict([
@@ -269,32 +297,26 @@ def map_get_target_job(data: dict) -> OrderedDict:
 
 def map_get_practice_session(data: dict) -> OrderedDict:
     target = data["targetJobs"][0]
-    questions = data.get("questions", [])
     transcript = data.get("sessionTranscript", [])
-    asked_count = sum(1 for t in transcript if t.get("role") == "ai" and t.get("qId"))
-    current_q = next((q for q in questions if q.get("id") == "q1"), questions[0] if questions else None)
     plan_id = uuidv7_for("plan:prototype:tj-1")
     target_id = uuidv7_for(f"targetJob:{target['id']}")
     session_id = uuidv7_for("session:prototype:tj-1")
-    current_turn = None
-    if current_q is not None:
-        current_turn = OrderedDict([
-            ("id", uuidv7_for(f"turn:prototype:{current_q['id']}")),
-            ("turnIndex", max(asked_count, 1)),
-            ("questionText", current_q.get("prompt", "")),
-            ("questionIntent", "behavioral.self_intro"),
-            ("status", "asked"),
-            ("askedAt", NOW),
-        ])
+    messages = []
+    for index, item in enumerate(transcript):
+        messages.append(OrderedDict([
+            ("id", uuidv7_for(f"message:prototype:tj-1:{index + 1}")),
+            ("seqNo", index + 1),
+            ("role", "assistant" if item.get("role") == "ai" else "user"),
+            ("content", _sanitize_prototype_text(item.get("text"))),
+            ("createdAt", EARLIER if index == 0 else NOW),
+        ]))
     body = OrderedDict([
         ("id", session_id),
         ("planId", plan_id),
         ("targetJobId", target_id),
         ("status", "running"),
         ("language", LANGUAGE_TRANSLATION.get(target.get("language", "zh-CN"), "zh-CN")),
-        ("hintsEnabled", True),
-        ("turnCount", max(asked_count, 1)),
-        ("currentTurn", current_turn),
+        ("messages", messages),
         ("createdAt", EARLIER),
         ("updatedAt", NOW),
     ])

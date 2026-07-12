@@ -278,10 +278,7 @@ describe("HomeRecentMocks", () => {
     });
 
     expect(getPlanSpy).toHaveBeenCalledWith("01918fa0-0000-7000-8000-000000004000");
-    expect(createPlanSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ timeBudgetMinutes: 50 }),
-      expect.anything(),
-    );
+    expect(createPlanSpy).not.toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith({
       name: "practice",
       params: expect.objectContaining({
@@ -296,5 +293,37 @@ describe("HomeRecentMocks", () => {
     expect(navigate).not.toHaveBeenCalledWith(
       expect.objectContaining({ name: "parse" }),
     );
+  });
+
+  it("disables quick-start after final backend progress with zero plan/session calls", async () => {
+    const client = createClient("default");
+    const finished = {
+      ...defaultListTargetJobsResponse.items[0]!,
+      currentPracticePlanId: null,
+      practiceProgress: {
+        status: "completed" as const,
+        completedRounds: [
+          { roundId: "round-1-technical", roundSequence: 1 },
+          { roundId: "round-2-manager", roundSequence: 2 },
+          { roundId: "round-3-culture", roundSequence: 3 },
+        ],
+        currentRound: null,
+      },
+    };
+    vi.spyOn(client, "listTargetJobs").mockResolvedValue({
+      ...defaultListTargetJobsResponse,
+      items: [finished],
+    });
+    const getTargetSpy = vi.spyOn(client, "getTargetJob");
+    const createSpy = vi.spyOn(client, "createPracticePlan");
+    const startSpy = vi.spyOn(client, "startPracticeSession");
+
+    renderHome(client);
+
+    const button = await screen.findByTestId(`home-recent-mock-start-${finished.id}`);
+    expect(button).toBeDisabled();
+    expect(getTargetSpy).not.toHaveBeenCalled();
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(startSpy).not.toHaveBeenCalled();
   });
 });

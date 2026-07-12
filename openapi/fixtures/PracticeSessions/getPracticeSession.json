@@ -4,7 +4,9 @@
     "default": {
       "response": {
         "status": 200,
-        "headers": {"X-Request-ID": "req_2026-07-12-session-get"},
+        "headers": {
+          "X-Request-ID": "req_2026-07-12-session-get"
+        },
         "body": {
           "id": "01918fa0-0000-7000-8000-000000005000",
           "planId": "01918fa0-0000-7000-8000-000000004000",
@@ -12,20 +14,108 @@
           "status": "running",
           "language": "zh-CN",
           "messages": [
-            {"id": "01918fa0-0000-7000-8000-000000006000", "seqNo": 1, "role": "assistant", "content": "你好，我们直接开始。先聊聊你最近最有代表性的项目。", "createdAt": "2026-07-12T08:02:00Z"},
-            {"id": "01918fa0-0000-7000-8000-000000006001", "seqNo": 2, "role": "user", "content": "我主导过一次跨团队设计系统迁移。", "createdAt": "2026-07-12T08:03:00Z"},
-            {"id": "01918fa0-0000-7000-8000-000000006002", "seqNo": 3, "role": "assistant", "content": "当时最难协调的分歧是什么？", "createdAt": "2026-07-12T08:03:01Z"}
+            {
+              "id": "01918fa0-0000-7000-8000-000000006000",
+              "seqNo": 1,
+              "role": "assistant",
+              "content": "你好，我们直接开始。先聊聊你最近最有代表性的项目。",
+              "createdAt": "2026-07-12T08:02:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-000000006001",
+              "seqNo": 2,
+              "role": "user",
+              "content": "我主导过一次跨团队设计系统迁移。",
+              "createdAt": "2026-07-12T08:03:00Z"
+            },
+            {
+              "id": "01918fa0-0000-7000-8000-000000006002",
+              "seqNo": 3,
+              "role": "assistant",
+              "content": "当时最难协调的分歧是什么？",
+              "createdAt": "2026-07-12T08:03:01Z"
+            }
           ],
           "createdAt": "2026-07-12T08:02:00Z",
           "updatedAt": "2026-07-12T08:03:01Z"
         }
       }
     },
+    "prototype-baseline": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-04-28T13-45-12-prototype"
+        },
+        "body": {
+          "id": "01918fa0-4e08-7aa5-82fb-429d4ca5536d",
+          "planId": "01918fa0-cdeb-7e43-8df1-83fbdd9f7104",
+          "targetJobId": "01918fa0-ee66-739f-855a-0a9c27ab13df",
+          "status": "running",
+          "language": "zh-CN",
+          "messages": [
+            {
+              "id": "01918fa0-b762-75b6-83cd-9123f0b01ae0",
+              "seqNo": 1,
+              "role": "assistant",
+              "content": "你好林舟，我会扮演Acme的技术面试官。准备好后我们就开始。",
+              "createdAt": "2026-04-28T12:00:00Z"
+            },
+            {
+              "id": "01918fa0-9cdf-728c-8439-2f90e59955ef",
+              "seqNo": 2,
+              "role": "user",
+              "content": "好的，我准备好了。",
+              "createdAt": "2026-04-28T13:45:12Z"
+            },
+            {
+              "id": "01918fa0-c836-798e-8a2c-6b63f79672e6",
+              "seqNo": 3,
+              "role": "assistant",
+              "content": "先介绍一下你自己，也聊聊为什么对这个岗位感兴趣。",
+              "createdAt": "2026-04-28T13:45:12Z"
+            },
+            {
+              "id": "01918fa0-b3c3-7b59-8d01-48672db697bf",
+              "seqNo": 4,
+              "role": "user",
+              "content": "我叫林舟，在电商行业做了 5 年前端，主要做后台系统和复杂表单。我对这个岗位感兴趣是因为…",
+              "createdAt": "2026-04-28T13:45:12Z"
+            },
+            {
+              "id": "01918fa0-c14a-74a4-89ba-961e25f083d5",
+              "seqNo": 5,
+              "role": "assistant",
+              "content": "你提到「复杂表单」，能举一个具体场景吗？比如最棘手的那次。",
+              "createdAt": "2026-04-28T13:45:12Z"
+            },
+            {
+              "id": "01918fa0-8159-74df-85b3-ea74b7a6f5d9",
+              "seqNo": 6,
+              "role": "user",
+              "content": "有一个就是我们的订单改价系统，涉及 40+ 字段…",
+              "createdAt": "2026-04-28T13:45:12Z"
+            }
+          ],
+          "createdAt": "2026-04-28T12:00:00Z",
+          "updatedAt": "2026-04-28T13:45:12Z"
+        }
+      }
+    },
     "missing-session": {
       "response": {
         "status": 404,
-        "headers": {"X-Request-ID": "req_2026-07-12-session-missing"},
-        "body": {"error": {"code": "PRACTICE_SESSION_NOT_FOUND", "message": "practice session not found", "requestId": "req_2026-07-12-session-missing", "retryable": false}}
+        "headers": {
+          "X-Request-ID": "req_2026-07-12-session-missing"
+        },
+        "body": {
+          "error": {
+            "code": "PRACTICE_SESSION_NOT_FOUND",
+            "message": "practice session not found",
+            "requestId": "req_2026-07-12-session-missing",
+            "retryable": false
+          }
+        }
       }
     }
   }

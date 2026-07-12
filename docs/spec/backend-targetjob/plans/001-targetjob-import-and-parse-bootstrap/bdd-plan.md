@@ -1,8 +1,8 @@
 # Backend TargetJob BDD Plan
 
-> **版本**: 1.9
-> **状态**: active
-> **更新日期**: 2026-07-10
+> **版本**: 1.11
+> **状态**: completed
+> **更新日期**: 2026-07-12
 
 ## 0 场景矩阵
 
@@ -12,6 +12,7 @@
 | E2E.P0.011 | alternate (URL source) | Phase 3.3 + Phase 4 + Phase 5 | 6.2 | C-2 / C-3 / C-9 |
 | E2E.P0.012 | failure / recovery | Phase 4.4 + Phase 5 + Phase 11 | 6.3 / 11.4 | C-4 / C-5 / C-9 / C-10 |
 | E2E.P0.013 | primary / manual fallback | Phase 2.1 + Phase 3.1 | 6.4 | C-3 / C-6 / C-9 / C-11 / C-13 |
+| E2E.P0.098 | backend progress / persistence / recovery | Phase 17 | 17.5 | C-17 |
 | E2E.P0.018 | primary / workspace delete archive | Phase 12 | 12.4 | C-7a / C-8 |
 
 > 备注：编号承接 `practice-voice-mvp/spec.md §4.3` 已预留的 `E2E.P0.007` / `E2E.P0.008` / `E2E.P0.009`；本计划接续使用 `E2E.P0.010` / `E2E.P0.011` / `E2E.P0.012` / `E2E.P0.013`。
@@ -19,6 +20,8 @@
 > L2 remediation 备注（2026-05-08）：`test/scenarios/e2e/p0-010..013-*` 使用 `cmd/api` HTTP 场景 harness，覆盖 auth middleware / HTTP API / TargetJob handler-service / cmd/api in-process runner kernel / ParseExecutor。`verify.sh` 输出 `method=cmd-api-http` 与 `validBddEvidence=true`；focused tests 作为 TDD 辅助证据。
 >
 > BUG-0146 备注（2026-07-09）：`E2E.P0.010` 的 primary path 追加 C-16 回归补证。除 deterministic HTTP harness 外，本次 closeout 需要一条真实 provider + host-run frontend/browser smoke，证明有效 JD 缺少公司名时仍进入 `analysisStatus='ready'`，Company 展示语言相关兜底值，且 `ai_task_runs` 存在 `jd_parse` 证据。
+>
+> Phase 17 证据边界（2026-07-12）：`E2E.P0.098` 在本 owner 只认真实 PostgreSQL plan/session/event 与 TargetJob Get/List read model 证据，并可组合 frontend unit/static negative gate；它不自动等价于真实浏览器刷新证明。live frontend/backend browser refresh + quick-start 由 `frontend-workspace-and-practice/001` 保持未完成，直到存在实际执行记录。
 
 ## Phase 6: TargetJob backend behavior
 

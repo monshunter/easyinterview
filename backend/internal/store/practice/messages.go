@@ -135,17 +135,47 @@ select s.id, s.plan_id, s.target_job_id, p.goal, p.interviewer_persona, s.langua
          select req.label from target_job_requirements req where req.target_job_id=s.target_job_id
          order by req.display_order asc, req.created_at asc limit 6
        ), ', '), ''), 'target job requirements'),
-       coalesce(nullif(r.structured_profile::text, '{}'::text), ''), p.focus_competency_codes,
+       coalesce(
+         nullif(btrim(r.parsed_text_snapshot), ''),
+         nullif(btrim(r.original_text), ''),
+         case
+           when r.structured_profile is not null
+             and r.structured_profile <> '{}'::jsonb
+             and r.structured_profile <> 'null'::jsonb
+           then r.structured_profile::text
+         end,
+         ''
+       ), p.focus_competency_codes, p.round_id, p.round_sequence,
+       round_context.round_type, round_context.round_name, round_context.round_focus,
        s.created_at, s.updated_at
 from practice_sessions s
 join practice_plans p on p.id=s.plan_id and p.user_id=s.user_id
-join target_jobs tj on tj.id=s.target_job_id and tj.user_id=s.user_id and tj.deleted_at is null
+join target_jobs tj on tj.id=s.target_job_id and tj.user_id=s.user_id and tj.resume_id=p.resume_id and tj.deleted_at is null
 join resumes r on r.id=p.resume_id and r.user_id=s.user_id and r.deleted_at is null
+cross join lateral (
+  select btrim(entry.value->>'type') round_type,
+         btrim(entry.value->>'name') round_name,
+         btrim(entry.value->>'focus') round_focus,
+         case when entry.value->>'sequence' ~ '^[1-9][0-9]{0,9}$'
+               and (length(entry.value->>'sequence') < 10 or entry.value->>'sequence' <= '2147483647')
+              then (entry.value->>'sequence')::int end round_sequence
+  from jsonb_array_elements(
+    case when jsonb_typeof(tj.summary->'interviewRounds') = 'array'
+         then tj.summary->'interviewRounds' else '[]'::jsonb end
+  ) entry(value)
+) round_context
 where s.id=$1 and s.user_id=$2 and s.status in ('running','waiting_user_input')
+  and p.round_id is not null and p.round_sequence is not null
+  and round_context.round_sequence = p.round_sequence
+  and p.round_id = 'round-' || round_context.round_sequence::text || '-' || round_context.round_type
+  and nullif(round_context.round_name, '') is not null
+  and nullif(round_context.round_focus, '') is not null
 for update of s`, sessionID, userID).Scan(
 		&out.Session.SessionID, &out.Session.PlanID, &out.Session.TargetJobID, &out.Session.Goal,
 		&out.Session.InterviewerPersona, &out.Session.Language, &out.Session.RoleTitle,
-		&out.Session.Seniority, &topSkills, &out.Session.ResumeProfile, &focus,
+		&out.Session.Seniority, &topSkills, &out.Session.ResumeContext, &focus,
+		&out.Session.RoundID, &out.Session.RoundSequence,
+		&out.Session.RoundType, &out.Session.RoundName, &out.Session.RoundFocus,
 		&out.Session.CreatedAt, &out.Session.UpdatedAt,
 	)
 	if stderrs.Is(err, sql.ErrNoRows) {

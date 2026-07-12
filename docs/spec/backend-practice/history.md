@@ -1,6 +1,6 @@
 # Backend Practice History
 
-> **版本**: 1.23
+> **版本**: 1.27
 > **状态**: active
 > **更新日期**: 2026-07-12
 
@@ -8,6 +8,10 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 1.27 | Practice 事实来源收紧为 persisted resume 与 candidate-authored user message；assistant history 仅保持连续性，不能把上一轮模型臆造转化为后续履历事实。 | [001](./plans/001-plan-and-session-orchestration/plan.md) |
+| 2026-07-12 | 1.26 | CreatePlan、source report 与 completion 台账统一约束为 TargetJob 绑定 resume；canonical round 增加非空 provenance、小写 type allowlist、正 int32 严格递增但可不连续的约束；Practice prompt 分离 system policy 与 JSON 编码的不可信 JD/简历/历史，persona 只控制风格。 | [001](./plans/001-plan-and-session-orchestration/plan.md) / [002](./plans/002-event-loop-and-completion/plan.md) |
+| 2026-07-12 | 1.25 | PracticePlan 持久化规范化 `roundId + roundSequence`；baseline / retry / next 由完成 session 台账和 TargetJob canonical rounds 校验，真实 round name/type/focus 注入 AI 上下文。 | [001](./plans/001-plan-and-session-orchestration/plan.md) / [002](./plans/002-event-loop-and-completion/plan.md) |
+| 2026-07-12 | 1.24 | 会话 AI grounding 改为完整简历正文优先，正文为空时 fail closed；提示词要求问题必须能引用简历或 JD 证据，禁止臆造项目。 | [001-plan-and-session-orchestration](./plans/001-plan-and-session-orchestration/plan.md) |
 | 2026-07-12 | 1.23 | 重新打开 002：assistant reply commit 仅允许 mutable session；completion 赢得竞态后迟到 reply 必须回滚，P0.046/P0.047 必须执行对应失败恢复断言。 | [002-event-loop-and-completion](./plans/002-event-loop-and-completion/plan.md) |
 | 2026-07-12 | 1.22 | Practice 收敛为连续 message conversation：删除题目/turn/hint/mode 合同，暂停改为前端本地状态，电话模式 fail-closed。 | [001](./plans/001-plan-and-session-orchestration/plan.md) / [002](./plans/002-event-loop-and-completion/plan.md) / [003](./plans/003-mode-policies-and-provenance/plan.md) |
 | 2026-07-11 | 1.19 | 重新打开 003：用户可见 hint cue 必须匹配 persisted session language，错误语言输出按既有 invalid-output graceful degrade 返回 `session_wait`，禁止混合语言提示落库或回显。 | [003-mode-policies-and-provenance](./plans/003-mode-policies-and-provenance/plan.md) |

@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.9
+> **版本**: 1.10
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -86,10 +86,24 @@ Mock consumer 的 scenario 选择规则固定为：
 | AI provenance 被写成空值 | validator 强制 provenance 字段存在且非空 |
 | consumer 私自复制 mock body | consumer owner 必须引用本目录或生成 examples；新增 variant 只能通过 fixture scenario 增加 |
 
-## 7 修订记录
+## 7 Practice round fixture projection
+
+- `createPracticePlan` / `getPracticePlan` fixtures must include paired `roundId + roundSequence` for current records and a legacy-null negative scenario that is never reusable.
+- `listTargetJobs` / `getTargetJob` fixtures must include `practiceProgress` for not-started, partially completed, and all-completed rounds; `completedRounds` is ordered/deduplicated and final `currentRound` is null.
+- `prototype-baseline` must project the same current/completed round semantics from `ui-design/src/data.jsx`; it must not derive a round from TargetJob lifecycle `status`.
+
+| operationId | fixture scenarios | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|-------------------|-------------------|-----------------|-------------|---------------|-------------------|
+| `createPracticePlan` | baseline round, derived round, mismatch request | shared start helper | backend-practice | normalized plan pair + IK/audit | none | P0.022/P0.070/P0.072 |
+| `getPracticePlan` | current pair, legacy null pair | exact plan reuse / Practice budget | backend-practice | nullable read compatibility | none | P0.022/P0.098 |
+| `listTargetJobs` | not-started, partial, completed | Home/Workspace rail + quick-start | backend-targetjob | completion-ledger projection | none | P0.018/P0.098 |
+| `getTargetJob` | not-started, partial, completed | Parse/Report current-round gate | backend-targetjob | completion-ledger projection | none after JD parse | P0.057/P0.098 |
+
+## 8 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-12 | 1.10 | Reopen fixture owner for practice round identity and TargetJob practice progress scenarios. | openapi-v1-contract 1.43 |
 | 2026-07-10 | 1.9 | 删除 fixture example renderer 中未读取的 path/method 遍历绑定。 | tech-debt pruning |
 | 2026-07-10 | 1.8 | 删除无当前入口的一次性 fixture bootstrap 记录，并将生产脚本可达性纳入通用 inventory gate。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-10 | 1.7 | 对齐当前 37-operation fixture truth source，包含 `archiveTargetJob`。 | tech-debt pruning |

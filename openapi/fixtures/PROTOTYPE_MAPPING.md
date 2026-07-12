@@ -1,6 +1,6 @@
 # PROTOTYPE_MAPPING
 
-> **版本**: 1.3
+> **版本**: 1.4
 > **状态**: active
 > **更新日期**: 2026-07-09
 
@@ -31,7 +31,7 @@
 | `getMe` | `user` | ✅ |
 | `listTargetJobs` | `targetJobs[]` | ✅ |
 | `getTargetJob` | `targetJobs[0]` + `jdSample` | ✅ |
-| `getPracticeSession` | `questions` + `targetJobs[0]` + `sessionTranscript` | ✅ |
+| `getPracticeSession` | `targetJobs[0]` + `sessionTranscript` | ✅ |
 | `getFeedbackReport` | `report` | ✅ |
 
 ## 4 归一化规则（同步工具内部约定）

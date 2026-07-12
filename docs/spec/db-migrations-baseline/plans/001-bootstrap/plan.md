@@ -1,8 +1,8 @@
 # DB Migrations Baseline Bootstrap
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -38,7 +38,7 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 #### 1.3 schema_backfills
 
-`000001` baseline 不启用未使用 DB extension；down migration 不管理 extension 生命周期。落地 `schema_backfills` ledger 表与可选 backfill manifest contract；当前 repo 没有已登记的行级 backfill，只有真实行级回填需要登记 manifest 和 registry。
+`000001` baseline 不启用未使用 DB extension；down migration 不管理 extension 生命周期。落地 `schema_backfills` ledger 表与 backfill manifest contract；当前 `v000017/practice_plan_round_identity` 是已登记的真实行级回填，按 dry-run/apply 写 ledger 并保持幂等。
 
 ### Phase 2: baseline DDL 与索引
 
@@ -110,6 +110,24 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 删除 `backend/internal/migrations` 生产包中只供 `cli_test.go` 使用的导出 `StaticEnv` 类型及方法，将等价 map-backed test double 放回测试文件。`Run` 继续只依赖 `Env` 接口，`cmd/migrate` 继续提供唯一生产 `osEnv` adapter；nil-env 错误只描述接口要求，不引用测试专用具体类型。
 
+### Phase 7: normalized PracticePlan round identity
+
+#### 7.1 RED migration contracts
+
+先让 migration contract / live Postgres test 失败于缺失 `practice_plans.round_id` / `round_sequence`、pair CHECK、positive-sequence CHECK 与 partial lookup index；负向覆盖只写一列、sequence <= 0、相邻轮次相同时长和重复执行。
+
+#### 7.2 DDL and legacy backfill
+
+必须通过 `make migrate-create NAME=practice_plan_round_identity` 创建 `000017` up/down。两列保持 nullable 只为 legacy compatibility；新写入由 backend-practice 强制成对。legacy 行级回填通过现有 backfill registry 执行：先要求 plan 与 TargetJob 的 user/current-resume 绑定一致、TargetJob 未删除、sequence 为正 int32，再仅当 `target_jobs.summary.interviewRounds[]` 中恰好一个轮次的 `durationMinutes` 等于 plan `time_budget_minutes` 时写入 canonical `round-{sequence}-{type}` 与 sequence；零/多匹配、错绑、删除或溢出保持 null，并写可审计 ledger。不得按数组第一项、TargetJob lifecycle status 或固定轮次表猜测；实现语义变更必须重算 manifest checksum。
+
+#### 7.3 Index and rollback
+
+建立只覆盖非 null identity 的 TargetJob/round lookup index，服务当前 plan 与完成事实投影。down 移除 index/check/columns；backfill rollback 按 registry contract 处理，不能让歧义 legacy 数据变成伪造轮次。
+
+#### 7.4 Verification
+
+运行 migration lint/contract tests、backfill registry tests、真实 Postgres `make migrate-check`，验证 up/down/up、pair invariant、唯一匹配、wrong-resume/deleted/int32-overflow/歧义保持 null、checksum ledger 幂等，并确认 schema 中没有 TargetJob progress 列。
+
 ## 5 验收标准
 
 - spec §6 C-1..C-13 全部具备本 plan 或下游 handoff 证据；C8/F1/C11 等运行时验证由各自 owner 后续关闭。
@@ -130,6 +148,7 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-12 | 1.13 | Reopen Phase 7 for normalized practice-plan round identity and auditable legacy backfill. | backend-practice round progression |
 | 2026-07-10 | 1.12 | 将 migration CLI 的 map-backed Env test double 从生产包下沉到测试文件。 | tech-debt pruning |
 | 2026-07-10 | 1.11 | 将 baseline inventory 改为当前 25 张应用/auth 支撑表正向合同，并统一 migration 负向 gate 术语。 | tech-debt pruning |
 | 2026-07-10 | 1.10 | 技术债口径清理：将 `make migrate` handoff 描述收敛为当前根 Make target 委托，不改变迁移工具合同。 | tech-debt pruning |

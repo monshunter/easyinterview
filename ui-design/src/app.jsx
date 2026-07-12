@@ -104,16 +104,36 @@ const createInterviewContext = (params = {}, fallback = DEFAULT_INTERVIEW_CONTEX
   return stripUndefined(ctx);
 };
 
-const eiResolveInterviewRoundContext = (rawRounds = [], roundId) => {
+const eiNormalizeInterviewRounds = (rawRounds = []) => {
+  const allowedTypes = new Set(["hr", "technical", "manager", "cross_functional", "culture", "final", "other"]);
   const rounds = rawRounds
-    .filter((round) => round.sequence > 0 && round.durationMinutes > 0)
     .slice()
-    .sort((a, b) => a.sequence - b.sequence)
-    .map((round) => ({
-      ...round,
-      id: `round-${round.sequence}-${round.type}`,
-      name: `${round.name || `R${round.sequence}`} · ${round.durationMinutes}m`,
-    }));
+    .sort((a, b) => a.sequence - b.sequence);
+  if (
+    rounds.length < 2 ||
+    rounds.length > 5 ||
+    rounds.some((round, index) =>
+      !Number.isInteger(round.sequence) ||
+      round.sequence <= 0 ||
+      (index > 0 && round.sequence <= rounds[index - 1].sequence) ||
+      !allowedTypes.has(round.type) ||
+      !String(round.name || "").trim() ||
+      !String(round.focus || "").trim() ||
+      !Number.isInteger(round.durationMinutes) ||
+      round.durationMinutes < 10 ||
+      round.durationMinutes > 180
+    )
+  ) return [];
+  const normalized = rounds.map((round) => ({
+    ...round,
+    id: `round-${round.sequence}-${round.type}`,
+    name: `${round.name || `R${round.sequence}`} · ${round.durationMinutes}m`,
+  }));
+  return new Set(normalized.map((round) => round.id)).size === normalized.length ? normalized : [];
+};
+
+const eiResolveInterviewRoundContext = (rawRounds = [], roundId) => {
+  const rounds = eiNormalizeInterviewRounds(rawRounds);
   if (!roundId || new Set(rounds.map((round) => round.id)).size !== rounds.length) {
     return { currentRound: null, nextRound: null };
   }
@@ -125,21 +145,39 @@ const eiResolveInterviewRoundContext = (rawRounds = [], roundId) => {
   };
 };
 
+const eiResolvePracticeProgress = (rawRounds = [], progress) => {
+  const rounds = eiNormalizeInterviewRounds(rawRounds);
+  const ids = rounds.map((round) => round.id);
+  const sequences = rounds.map((round) => round.sequence);
+  const invalid = { valid: false, rounds, completedCount: 0, currentIndex: null, currentRound: null, completed: false };
+  if (!rounds.length || new Set(ids).size !== rounds.length || new Set(sequences).size !== rounds.length || !progress) return invalid;
+  const completedRounds = Array.isArray(progress.completedRounds) ? progress.completedRounds : [];
+  if (completedRounds.length > rounds.length) return invalid;
+  const exact = (ref, round) => !!ref && !!round && ref.roundId === round.id && ref.roundSequence === round.sequence;
+  if (completedRounds.some((ref, index) => !exact(ref, rounds[index]))) return invalid;
+  if (completedRounds.length === rounds.length) {
+    if (progress.status !== "completed" || progress.currentRound !== null) return invalid;
+    return { valid: true, rounds, completedCount: rounds.length, currentIndex: rounds.length, currentRound: null, completed: true };
+  }
+  const expectedStatus = completedRounds.length === 0 ? "not_started" : "in_progress";
+  const currentRound = rounds[completedRounds.length];
+  if (progress.status !== expectedStatus || !exact(progress.currentRound, currentRound)) return invalid;
+  return { valid: true, rounds, completedCount: completedRounds.length, currentIndex: completedRounds.length, currentRound, completed: false };
+};
+
 Object.assign(window, {
   EI_DEFAULT_INTERVIEW_CONTEXT: DEFAULT_INTERVIEW_CONTEXT,
   eiCreateInterviewContext: createInterviewContext,
   eiResolveInterviewRoundContext,
+  eiResolvePracticeProgress,
 });
 
 const App = () => {
   const [route, setRoute] = useState({ name: "home", params: {} });
   const [lang, setLang] = useState(getInitialLanguage);
   const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
-  const [signedIn, setSignedIn] = useState(() => {
-    const v = localStorage.getItem("ei-signed-in");
-    return v === "1";
-  });
-  const [profileComplete, setProfileComplete] = useState(() => localStorage.getItem("ei-profile-complete") === "1");
+  const [signedIn, setSignedIn] = useState(false);
+  const [profileComplete, setProfileComplete] = useState(false);
   const normalizeRoute = normalizeRouteName;
 
   // persistence
@@ -161,17 +199,6 @@ const App = () => {
       const name = normalizeRoute(rawRoute);
       const parsedParams = {};
       setRoute({ name, params: shouldCarryInterviewContext(name) ? createInterviewContext(parsedParams) : parsedParams });
-    } else {
-      const saved = localStorage.getItem("ei-route");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          const rawRoute = parsed.name;
-          const name = normalizeRoute(rawRoute);
-          const savedParams = parsed.params || {};
-          setRoute({ ...parsed, name, params: shouldCarryInterviewContext(name) ? createInterviewContext(savedParams) : savedParams });
-        } catch {}
-      }
     }
     const savedLang = normalizeLanguage(localStorage.getItem("ei-lang"));
     if (savedLang) setLang(savedLang);
@@ -195,7 +222,6 @@ const App = () => {
     if (hashLang) setLang(hashLang);
     if (params.get("nochrome") === "1") document.body.setAttribute("data-nochrome", "1");
   }, []);
-  useEffect(() => { if (!window.location.hash) localStorage.setItem("ei-route", JSON.stringify(route)); }, [route]);
   useEffect(() => { localStorage.setItem("ei-lang", lang); }, [lang]);
 
   const updateTweak = (k, v) => setTweaks((prev) => ({ ...prev, [k]: v }));
@@ -268,7 +294,6 @@ const App = () => {
   };
   const completeSignIn = () => {
     setSignedIn(true);
-    localStorage.setItem("ei-signed-in", "1");
     const pendingAction = route.params?.pendingAction;
     if (!profileComplete) {
       setRoute({ name: "auth_profile_setup", params: { pendingAction } });
@@ -278,7 +303,6 @@ const App = () => {
   };
   const completeProfile = (name) => {
     setProfileComplete(true);
-    localStorage.setItem("ei-profile-complete", "1");
     window.eiToast && window.eiToast(
       lang === "en" ? `Profile ready: ${name || "Candidate"}` : `资料已完成：${name || "候选人"}`,
       { tone: "ok", duration: 2400 }
@@ -287,7 +311,6 @@ const App = () => {
   };
   const completeSignOut = () => {
     setSignedIn(false);
-    localStorage.removeItem("ei-signed-in");
   };
 
   const screens = {

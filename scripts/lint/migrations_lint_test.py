@@ -200,11 +200,16 @@ def test_product_scope_contract_accepts_current_schema() -> None:
     assert problems == []
 
 
-def test_product_scope_contract_requires_binary_practice_mode() -> None:
+def test_product_scope_contract_rejects_removed_practice_mode() -> None:
     normalized_contract = migrations_lint.normalize_sql(current_migration_up_sql() + "\n" + current_enum_sources())
     removed_mode = "debrief" + "_replay"
 
-    assert "mode text not null check (mode in ('assisted', 'strict'))" in normalized_contract
+    practice_start = normalized_contract.index("create table practice_plans")
+    practice_end = normalized_contract.index("create table practice_sessions")
+    practice_plan_contract = normalized_contract[practice_start:practice_end]
+
+    assert "mode text" not in practice_plan_contract
+    assert "question_budget" not in practice_plan_contract
     assert removed_mode not in normalized_contract
 
 
@@ -267,12 +272,14 @@ def test_product_scope_contract_rejects_vendor_model_tokens() -> None:
     assert any("vendor/model" in problem and "openrouter" in problem for problem in problems)
 
 
-def test_ai_task_runs_task_type_tracks_report_question_assessment() -> None:
+def test_ai_task_runs_task_type_tracks_conversation_report_generation() -> None:
     sql = current_baseline_sql().lower()
     enum_sources = current_enum_sources()
 
-    assert "'report_assessment'" in sql
-    assert "report_assessment" in enum_sources
+    assert "'report_generate'" in sql
+    assert "report_generate" in enum_sources
+    assert "report_assessment" not in sql
+    assert "report_assessment" not in enum_sources
 
 
 def write_repo(tmp_path: Path, *, sql: str, enum_sources: str) -> Path:

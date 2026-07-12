@@ -198,8 +198,10 @@ test("P0 report replay and next-round CTAs start interview sessions directly", (
 
   assert.match(report, /nav\("practice", \{ \.\.\.params, practiceGoal: "retry_current_round" \}\)/);
   assert.match(report, /const \{ nextRound \} = window\.eiResolveInterviewRoundContext/);
+  assert.match(report, /const progress = window\.eiResolvePracticeProgress/);
+  assert.match(report, /const canStartNextRound = progress\.currentRound\?\.id === nextRound\?\.id/);
   assert.match(report, /practiceGoal: "next_round", roundId: nextRound\.id, roundName: nextRound\.name/);
-  assert.match(report, /disabled=\{!nextRound\}/);
+  assert.match(report, /disabled=\{!canStartNextRound\}/);
   assert.equal((report.match(/nav\("practice"/g) || []).length, 2);
 });
 
@@ -290,6 +292,46 @@ test("TargetJob round assumptions use structured interview rounds across parse a
   assert.doesNotMatch(parse, /interviewHypotheses/);
   assert.doesNotMatch(data, /focus: "动机、求职节奏、薪资期望"/);
   assert.doesNotMatch(parse, /focus: lang === "en" \? "Motivation, timing, comp"/);
+});
+
+test("prototype round progress is backend-projected and never inferred from lifecycle text", () => {
+  const app = readUiFile("./src/app.jsx");
+  const data = readUiFile("./src/data.jsx");
+  const home = readUiFile("./src/screen-home.jsx");
+  const workspace = readUiFile("./src/screen-workspace.jsx");
+  const parse = readUiFile("./src/screens-p0-complete.jsx");
+  const report = readUiFile("./src/screen-report.jsx");
+
+  assert.match(app, /const eiResolvePracticeProgress = /);
+  assert.match(app, /completedRounds/);
+  assert.match(app, /currentRound/);
+  assert.doesNotMatch(app, /round\.sequence !== index \+ 1/);
+  assert.match(app, /round\.sequence <= 0/);
+  assert.match(app, /round\.sequence <= rounds\[index - 1\]\.sequence/);
+  assert.match(data, /practiceProgress:/);
+  assert.doesNotMatch(data, /nextRound:/);
+  assert.match(home, /eiResolvePracticeProgress\(rounds, job\.practiceProgress\)/);
+  assert.match(workspace, /eiResolvePracticeProgress\(rounds, job\.practiceProgress\)/);
+  assert.match(parse, /eiResolvePracticeProgress\(parsed\.rounds, targetJob\.practiceProgress\)/);
+  assert.match(report, /progress\.currentRound\?\.id === nextRound\?\.id/);
+
+  for (const [name, source] of [["home", home], ["workspace", workspace]]) {
+    assert.doesNotMatch(source, /job\?\.nextRound|job\.nextRound/, `${name} still reads free-text nextRound`);
+    assert.doesNotMatch(source, /job\?\.status ===|job\.status ===/, `${name} still derives a round from lifecycle status`);
+  }
+});
+
+test("prototype does not persist interview business progress in browser state", () => {
+  const app = readUiFile("./src/app.jsx");
+  assert.doesNotMatch(app, /ei-route|ei-signed-in|ei-profile-complete/);
+  for (const [name, source] of readUiSources()) {
+    assert.doesNotMatch(
+      source,
+      /(?:localStorage|sessionStorage)\.(?:setItem|getItem)\(["'`](?:practiceProgress|completedRounds|currentRound|roundProgress|practicePlan)/,
+      `${name} persists interview business progress in browser storage`,
+    );
+    assert.doesNotMatch(source, /indexedDB\.(?:open|deleteDatabase)\(/, `${name} uses IndexedDB as a business-state source`);
+  }
 });
 
 test("workspace insight source stays absent from the pure plan-list prototype", () => {
@@ -384,7 +426,7 @@ test("Home and workspace share action card behavior", () => {
   const workspace = readUiFile("./src/screen-workspace.jsx");
 
   assert.match(home, /onClick=\{\(\) => nav\("parse", \{ targetJobId: j\.id \}\)\}/);
-  assert.match(home, /onStart=\{\(\) => nav\("practice"/);
+  assert.match(home, /onStart=\{\(round\) => nav\("practice", \{ targetJobId: j\.id, roundId: round\.id/);
   assert.match(home, /Start interview now/);
   assert.doesNotMatch(home, /showDelete=\{true\}/);
   assert.match(workspace, /onClick=\{\(\) => openPlan\(job\)\}/);
@@ -575,6 +617,14 @@ test("home mini round rail exposes only rendered structured-round dependencies",
   assert.match(home, /gridTemplateColumns: `repeat\(\$\{rounds\.length\}, 1fr\)`/);
   assert.match(home, /\{round\.name\}\{round\.durationMinutes \? ` · \$\{round\.durationMinutes\}m` : ""\}/);
   assert.match(home, /const current = i === currentIndex/);
+});
+
+test("same-name round rails key nodes by canonical round identity", () => {
+  for (const screen of ["./src/screen-home.jsx", "./src/screen-workspace.jsx"]) {
+    const source = readUiFile(screen);
+    assert.match(source, /key=\{`round-\$\{round\.sequence\}-\$\{round\.type\}`\}/);
+    assert.doesNotMatch(source, /key=\{round\.name\}/);
+  }
 });
 
 test("report detail surface exposes dimensions, evidence, and actions only", () => {

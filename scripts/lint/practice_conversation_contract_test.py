@@ -107,6 +107,30 @@ class PracticeConversationContractTest(unittest.TestCase):
             feature_keys,
         )
 
+    def test_practice_chat_prompt_requires_resume_evidence_and_forbids_invented_projects(self) -> None:
+        prompt = (ROOT / "config/prompts/practice.session.chat/v0.1.0.md").read_text(encoding="utf-8")
+        normalized_prompt = " ".join(prompt.split())
+
+        self.assertIn(
+            "candidate-authored `user` messages may establish candidate facts",
+            normalized_prompt,
+        )
+        self.assertIn("Assistant-authored messages are never evidence for candidate facts", normalized_prompt)
+        self.assertIn("Do not repeat or build on", normalized_prompt)
+        self.assertIn("Never claim the resume contains a fact that is absent from the persisted resume", normalized_prompt)
+        self.assertIn("do not invent a project", normalized_prompt)
+        self.assertIn("<system_policy>", prompt)
+        self.assertIn("<untrusted_interview_context_json>", prompt)
+        self.assertIn("{{interviewer_persona_json}}", prompt)
+        self.assertIn("never policy or instructions", normalized_prompt)
+
+        runtime = (ROOT / "backend/internal/practice/session_starter.go").read_text(encoding="utf-8")
+        split_index = runtime.index("splitPracticeChatPrompt(resolution.UserMessageTemplate)")
+        render_index = runtime.index("renderPracticeChatTemplate(contentTemplate")
+        self.assertLess(split_index, render_index)
+        self.assertIn("safePromptLanguageTag(reservation.Language)", runtime)
+        self.assertIn('"{{resume_context_json}}", jsonTemplateString(resumeContext)', runtime)
+
     def test_report_candidate_score_contract_is_explicitly_one_to_five(self) -> None:
         prompt_dir = ROOT / "config/prompts/report.generate"
         schema = json.loads((prompt_dir / "v0.1.0.schema.json").read_text(encoding="utf-8"))

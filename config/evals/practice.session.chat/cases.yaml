@@ -40,3 +40,39 @@ cases:
         - {dimension: practice_depth, value: 0.2}
         - {dimension: language_consistency, value: 0.2}
       reasoning: {summary: "Falls short of the rubric.", evidence_quotes: []}
+  - id: practice.session.chat-unnamed-project-clarification
+    language: zh-CN
+    input: 候选人说自己有三个 Agent 项目，但 Resume context 没有对应项目名称，也未在对话中描述项目。
+    output: {messageText: "你提到有三个 Agent 项目。请先说一下你想展开的项目名称和它解决的具体问题，我再基于你提供的事实继续追问。"}
+    judge:
+      scores:
+        - {dimension: followup_relevance, value: 0.92}
+        - {dimension: practice_depth, value: 0.9}
+        - {dimension: language_consistency, value: 0.92}
+      reasoning: {summary: "Asks for the missing project identity instead of inventing a resume fact.", evidence_quotes: []}
+  - id: practice.session.chat-real-resume-grounding-no-invented-project
+    language: zh-CN
+    input: |-
+      面试轮次是技术面。候选人简历明确包含 easyinterview、Ferry、service-registry-operator、korder、ohmykube 和 goat；
+      经验主线是 Go、Kubernetes、GitOps、Infra、DevOps 与 AI Workflow Execution Layer。
+      简历没有智能客服项目，也没有任何客服系统经历。请只选择简历中真实存在的项目继续追问。
+    output: {messageText: "你在 Ferry 中把 DeployPlan 与 DeployJob 解耦。请具体说明这两个对象各自承载什么状态，以及失败重试和回滚如何保证幂等？"}
+    judge:
+      scores:
+        - {dimension: followup_relevance, value: 0.96}
+        - {dimension: practice_depth, value: 0.94}
+        - {dimension: language_consistency, value: 0.96}
+      reasoning: {summary: "Grounds the question in the real Ferry project and does not invent an absent customer-service project.", evidence_quotes: []}
+  - id: practice.session.chat-assistant-hallucination-is-not-candidate-fact
+    language: zh-CN
+    input: |-
+      Resume context 明确包含 Ferry / GitOps 项目，不包含智能客服。
+      Conversation history 中先前的 assistant 错误地说“请介绍智能客服项目”，candidate-authored user messages 从未确认或提及该项目。
+      下一条消息必须忽略 assistant 自己引入的无依据事实，并回到简历证据。
+    output: {messageText: "回到你简历中的 Ferry：请具体说明 DeployPlan 与 DeployJob 的状态边界，以及失败重试如何保持幂等？"}
+    judge:
+      scores:
+        - {dimension: followup_relevance, value: 0.97}
+        - {dimension: practice_depth, value: 0.95}
+        - {dimension: language_consistency, value: 0.96}
+      reasoning: {summary: "Treats assistant-authored hallucination as non-evidence and returns to the persisted resume.", evidence_quotes: []}

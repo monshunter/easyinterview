@@ -20,6 +20,11 @@ import (
 
 const practiceChatFeatureKey = "practice.session.chat"
 
+const (
+	practiceSystemPolicyStart = "<system_policy>"
+	practiceSystemPolicyEnd   = "</system_policy>"
+)
+
 type StartSessionRequest struct {
 	UserID             string
 	PlanID             string
@@ -46,11 +51,16 @@ type SessionReservation struct {
 	TargetJobID         string
 	Goal                sharedtypes.PracticeGoal
 	InterviewerPersona  sharedtypes.InterviewerRole
+	RoundID             string
+	RoundSequence       int32
+	RoundType           string
+	RoundName           string
+	RoundFocus          string
 	Language            string
 	RoleTitle           string
 	Seniority           string
 	TopSkills           []string
-	ResumeProfile       string
+	ResumeContext       string
 	FocusCompetencies   []string
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
@@ -166,6 +176,9 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 }
 
 func (s *Service) generateChatMessage(ctx context.Context, reservation SessionReservation, history []MessageRecord) (string, error) {
+	if strings.TrimSpace(reservation.ResumeContext) == "" {
+		return "", validationError("resume context is unavailable", map[string]any{"field": "resumeId"})
+	}
 	if s.registry == nil || s.ai == nil {
 		return "", aiConfigError()
 	}
@@ -177,8 +190,13 @@ func (s *Service) generateChatMessage(ctx context.Context, reservation SessionRe
 		payload := practiceChatPayload(resolution, reservation, history, attempt > 0)
 		response, _, callErr := s.ai.Complete(ctx, resolution.ModelProfileName, payload)
 		if callErr == nil {
-			message, parseErr := parseChatMessage(response.Content)
-			callErr = parseErr
+			if strings.EqualFold(strings.TrimSpace(response.FinishReason), "length") {
+				callErr = sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "practice chat response reached its output limit", false)
+			}
+		}
+		var message string
+		if callErr == nil {
+			message, callErr = parseChatMessage(response.Content)
 			if callErr == nil {
 				callErr = validateGeneratedMessageLanguage(message, reservation.Language)
 			}
@@ -196,10 +214,19 @@ func (s *Service) generateChatMessage(ctx context.Context, reservation SessionRe
 
 func practiceChatPayload(resolution registry.PromptResolution, reservation SessionReservation, history []MessageRecord, repair bool) aiclient.CompletePayload {
 	messages := make([]aiclient.Message, 0, 3)
+	templateSystem, contentTemplate := splitPracticeChatPrompt(resolution.UserMessageTemplate)
+	templateSystem = strings.ReplaceAll(templateSystem, "{{language}}", safePromptLanguageTag(reservation.Language))
+	content := renderPracticeChatTemplate(contentTemplate, reservation, history)
+	systemParts := make([]string, 0, 2)
 	if system := strings.TrimSpace(resolution.SystemMessage); system != "" {
-		messages = append(messages, aiclient.Message{Role: "system", Content: system})
+		systemParts = append(systemParts, system)
 	}
-	content := renderPracticeChatTemplate(resolution.UserMessageTemplate, reservation, history)
+	if templateSystem != "" {
+		systemParts = append(systemParts, templateSystem)
+	}
+	if len(systemParts) > 0 {
+		messages = append(messages, aiclient.Message{Role: "system", Content: strings.Join(systemParts, "\n\n")})
+	}
 	if repair {
 		content += "\nReturn only strict JSON with one non-empty messageText in the requested language."
 	}
@@ -228,15 +255,76 @@ func renderPracticeChatTemplate(template string, reservation SessionReservation,
 	for _, message := range history {
 		historyValues = append(historyValues, fmt.Sprintf("%s: %s", message.Role, message.Content))
 	}
+	language := fallbackText(reservation.Language, "en")
+	systemLanguage := safePromptLanguageTag(language)
+	persona := fallbackText(string(reservation.InterviewerPersona), string(sharedtypes.InterviewerRoleGeneralist))
+	targetJobContext := strings.TrimSpace(strings.Join([]string{reservation.RoleTitle, reservation.Seniority, fallbackList(reservation.TopSkills, "target job requirements")}, "; "))
+	resumeContext := strings.TrimSpace(reservation.ResumeContext)
+	interviewRound := formatPracticeRoundContext(reservation)
+	practiceGoal := fallbackText(string(reservation.Goal), string(sharedtypes.PracticeGoalBaseline))
+	focusCompetencies := fallbackList(reservation.FocusCompetencies, "follow the strongest unresolved signal")
+	conversationHistory := fallbackList(historyValues, "empty; open the conversation naturally")
 	return strings.TrimSpace(strings.NewReplacer(
-		"{{language}}", fallbackText(reservation.Language, "en"),
-		"{{target_job_context}}", strings.TrimSpace(strings.Join([]string{reservation.RoleTitle, reservation.Seniority, fallbackList(reservation.TopSkills, "target job requirements")}, "; ")),
-		"{{resume_context}}", fallbackText(reservation.ResumeProfile, "resume context unavailable"),
-		"{{interview_round}}", fallbackText(string(reservation.InterviewerPersona), "generalist"),
-		"{{practice_goal}}", fallbackText(string(reservation.Goal), string(sharedtypes.PracticeGoalBaseline)),
-		"{{focus_competencies}}", fallbackList(reservation.FocusCompetencies, "follow the strongest unresolved signal"),
-		"{{conversation_history}}", fallbackList(historyValues, "empty; open the conversation naturally"),
+		"{{language}}", systemLanguage,
+		"{{interviewer_persona}}", persona,
+		"{{target_job_context}}", targetJobContext,
+		"{{resume_context}}", resumeContext,
+		"{{interview_round}}", interviewRound,
+		"{{practice_goal}}", practiceGoal,
+		"{{focus_competencies}}", focusCompetencies,
+		"{{conversation_history}}", conversationHistory,
+		"{{language_json}}", jsonTemplateString(language),
+		"{{interviewer_persona_json}}", jsonTemplateString(persona),
+		"{{target_job_context_json}}", jsonTemplateString(targetJobContext),
+		"{{resume_context_json}}", jsonTemplateString(resumeContext),
+		"{{interview_round_json}}", jsonTemplateString(interviewRound),
+		"{{practice_goal_json}}", jsonTemplateString(practiceGoal),
+		"{{focus_competencies_json}}", jsonTemplateString(focusCompetencies),
+		"{{conversation_history_json}}", jsonTemplateString(conversationHistory),
 	).Replace(template))
+}
+
+func safePromptLanguageTag(value string) string {
+	value = strings.ReplaceAll(strings.TrimSpace(value), "_", "-")
+	if value == "" || len(value) > 35 || strings.HasPrefix(value, "-") || strings.HasSuffix(value, "-") || strings.Contains(value, "--") {
+		return "en"
+	}
+	for _, r := range value {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' {
+			continue
+		}
+		return "en"
+	}
+	return value
+}
+
+func splitPracticeChatPrompt(rendered string) (string, string) {
+	start := strings.Index(rendered, practiceSystemPolicyStart)
+	end := strings.Index(rendered, practiceSystemPolicyEnd)
+	if start < 0 || end < start {
+		return "", strings.TrimSpace(rendered)
+	}
+	policyStart := start + len(practiceSystemPolicyStart)
+	userContent := strings.TrimSpace(rendered[:start] + "\n" + rendered[end+len(practiceSystemPolicyEnd):])
+	return strings.TrimSpace(rendered[policyStart:end]), userContent
+}
+
+func jsonTemplateString(value string) string {
+	encoded, _ := json.Marshal(value)
+	return string(encoded)
+}
+
+func formatPracticeRoundContext(reservation SessionReservation) string {
+	if strings.TrimSpace(reservation.RoundID) == "" || reservation.RoundSequence < 1 {
+		return "round context unavailable"
+	}
+	return strings.Join([]string{
+		"id=" + strings.TrimSpace(reservation.RoundID),
+		fmt.Sprintf("sequence=%d", reservation.RoundSequence),
+		"type=" + fallbackText(reservation.RoundType, "other"),
+		"name=" + fallbackText(reservation.RoundName, "unnamed round"),
+		"focus=" + fallbackText(reservation.RoundFocus, "not specified"),
+	}, "; ")
 }
 
 func parseChatMessage(content string) (string, error) {

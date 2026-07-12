@@ -10,7 +10,10 @@ import {
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useI18n } from "../../i18n/messages";
-import { buildTargetJobRoundAssumptions } from "../../interview-context/roundAssumptions";
+import {
+  buildTargetJobRoundAssumptions,
+  resolveTargetJobPracticeProgress,
+} from "../../interview-context/roundAssumptions";
 import { isSelectableInterviewResume } from "../../interview-context/selectableResume";
 import { startPracticeFromParams } from "../../interview-context/startPractice";
 import { useNavigation } from "../../navigation/NavigationProvider";
@@ -727,7 +730,9 @@ export const ParseScreen: FC<ParseScreenProps> = ({
     .filter((r) => r.kind === "hidden_signal")
     .map((r) => r.label);
   const rounds = buildTargetJobRoundAssumptions(targetJob, t);
-  const launchDisabled = resumesLoading || !selectedResume || confirming;
+  const progress = resolveTargetJobPracticeProgress(targetJob);
+  const launchDisabled =
+    resumesLoading || !selectedResume || confirming || !progress.currentRound;
 
   return (
     <section

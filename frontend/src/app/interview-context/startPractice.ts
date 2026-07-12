@@ -6,7 +6,12 @@ import {
   type InterviewContextState,
 } from "./InterviewContext";
 import { normalizeServerBoundId } from "./apiIds";
-import { resolveTargetJobRoundContext } from "./roundAssumptions";
+import {
+  resolveTargetJobPracticeProgress,
+  resolveTargetJobRoundContext,
+  type TargetJobRoundAssumption,
+} from "./roundAssumptions";
+import type { PracticePlan } from "../../api/generated/types";
 
 export interface StartPracticeResult {
   sessionId: string;
@@ -26,6 +31,15 @@ export async function startPracticeFromParams(
   const targetJob = await client.getTargetJob(targetJobId);
   const { currentRound } = resolveTargetJobRoundContext(targetJob, ctx.roundId);
   if (!currentRound) throw new Error("invalid roundId");
+  const progress = resolveTargetJobPracticeProgress(targetJob);
+  if (ctx.practiceGoal !== "retry_current_round") {
+    if (!progress.valid || progress.completed) {
+      throw new Error("invalid practice progress");
+    }
+    if (progress.currentRound?.id !== currentRound.id) {
+      throw new Error("round is not backend current");
+    }
+  }
   const shouldCreateDerivedPlan =
     ctx.practiceGoal === "retry_current_round" ||
     ctx.practiceGoal === "next_round";
@@ -37,12 +51,8 @@ export async function startPracticeFromParams(
   if (planId) {
     try {
       const existingPlan = await client.getPracticePlan(planId);
-      const matchesContext =
-        existingPlan.targetJobId === ctx.targetJobId &&
-        existingPlan.resumeId === ctx.resumeId &&
-        existingPlan.timeBudgetMinutes === currentRound.durationMinutes;
       planId =
-        existingPlan.status === "ready" && matchesContext
+        isExactReadyPlan(existingPlan, targetJobId, ctx.resumeId, currentRound)
           ? existingPlan.id
           : undefined;
     } catch (err: unknown) {
@@ -56,6 +66,15 @@ export async function startPracticeFromParams(
       buildCreatePlanRequest(ctx, lang, currentRound.durationMinutes),
       { idempotencyKey: batch.create },
     );
+    if (
+      plan.roundId !== currentRound.id ||
+      plan.roundSequence !== currentRound.sequence
+    ) {
+      throw new Error("practice plan round mismatch");
+    }
+    if (!isExactReadyPlan(plan, targetJobId, ctx.resumeId, currentRound)) {
+      throw new Error("practice plan context mismatch");
+    }
     planId = plan.id;
   }
 
@@ -81,6 +100,22 @@ export async function startPracticeFromParams(
       sessionId: session.id,
     }),
   };
+}
+
+function isExactReadyPlan(
+  plan: PracticePlan,
+  targetJobId: string,
+  resumeId: string | undefined,
+  round: TargetJobRoundAssumption,
+): boolean {
+  return (
+    plan.status === "ready" &&
+    plan.targetJobId === targetJobId &&
+    plan.resumeId === resumeId &&
+    plan.roundId === round.id &&
+    plan.roundSequence === round.sequence &&
+    plan.timeBudgetMinutes === round.durationMinutes
+  );
 }
 
 export function interviewContextStateFromParams(

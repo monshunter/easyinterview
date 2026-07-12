@@ -1,7 +1,6 @@
 import type { TargetJob } from "../../api/generated/types";
 import {
-  buildTargetJobRoundAssumptions,
-  roundIndexFromTargetJobStatus,
+  resolveTargetJobPracticeProgress,
 } from "../interview-context/roundAssumptions";
 
 /**
@@ -35,9 +34,7 @@ export function interviewContextFromTargetJob(
   const id = job.id;
   const planId = job.currentPracticePlanId?.trim() || "";
   const resumeId = options.resumeId?.trim() || job.resumeId?.trim() || "";
-  const rounds = buildTargetJobRoundAssumptions(job);
-  const roundIndex = roundIndexFromTargetJobStatus(job.status, rounds.length);
-  const round = rounds[roundIndex] ?? rounds[0];
+  const round = resolveTargetJobPracticeProgress(job).currentRound;
   return {
     targetJobId: id,
     jobId: id,

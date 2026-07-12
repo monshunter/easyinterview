@@ -1,6 +1,6 @@
 import type { CSSProperties, FC, ReactNode } from "react";
 import { useI18n } from "../../../i18n/messages";
-import { resolveTargetJobRoundContext } from "../../../interview-context/roundAssumptions";
+import { resolvePersistedNextRound } from "../../../interview-context/roundAssumptions";
 import { useNavigation } from "../../../navigation/NavigationProvider";
 import type { Route } from "../../../routes";
 import { useFeedbackReport } from "../hooks/useFeedbackReport";
@@ -17,7 +17,7 @@ export const ReportDashboard: FC<ReportDashboardProps> = ({ route }) => {
   const { navigate } = useNavigation();
   const report = useFeedbackReport(route.params.reportId ?? "");
   const context = useReportContextData({ targetJobId: route.params.targetJobId, resumeId: route.params.resumeId });
-  const { nextRound } = resolveTargetJobRoundContext(context.targetJob, route.params.roundId);
+  const nextRound = resolvePersistedNextRound(context.targetJob, route.params.roundId);
   const replay = useReplayCtaHandlers({ route, report: report.data, sessionId: route.params.sessionId ?? "", nextRound });
   const goWorkspace = () => navigate({ name: "workspace", params: route.params.targetJobId ? { targetJobId: route.params.targetJobId } : {} });
 

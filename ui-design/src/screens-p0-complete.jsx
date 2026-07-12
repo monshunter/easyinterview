@@ -82,11 +82,12 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
   const resumeOptions = window.getWorkspaceResumeOptions ? window.getWorkspaceResumeOptions(lang) : [];
   const selectedResumeId = resumeOptions[0]?.id || "";
   const selectedResume = resumeOptions.find((resume) => resume.id === selectedResumeId);
+  const targetJob = window.EI_DATA.targetJobs[0];
+  const progress = window.eiResolvePracticeProgress(parsed.rounds, targetJob.practiceProgress);
 
   const roundLabel = (round) => `${round?.name || ""}${round?.durationMinutes ? ` · ${round.durationMinutes}m` : ""}`;
   const buildParseInterviewContext = () => {
-    const currentRoundIdx = 1;
-    const currentRound = parsed.rounds[currentRoundIdx];
+    const currentRound = progress.currentRound;
     const base = {
       resumeId: selectedResumeId,
       roundId: currentRound ? `round-${currentRound.sequence}-${currentRound.type}` : "",
@@ -95,7 +96,7 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
     return window.eiCreateInterviewContext ? window.eiCreateInterviewContext(base, base) : base;
   };
   const startInterview = () => {
-    if (!selectedResume) return;
+    if (!selectedResume || !progress.currentRound) return;
     const context = buildParseInterviewContext();
     const startContext = {
       ...context,
@@ -285,7 +286,7 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
           {lang === "en" ? "This saved plan uses the JD and bound resume shown above." : "面试规划会使用这份 JD 和已绑定简历。"}
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Btn T={T} variant="accent" icon="play" disabled={!selectedResume} onClick={startInterview}>{lang === "en" ? "Start interview now" : "立即面试"}</Btn>
+          <Btn T={T} variant="accent" icon="play" disabled={!selectedResume || !progress.currentRound} onClick={startInterview}>{lang === "en" ? "Start interview now" : "立即面试"}</Btn>
         </div>
       </div>
     </div>

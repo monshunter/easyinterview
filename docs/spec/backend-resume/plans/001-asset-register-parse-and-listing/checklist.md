@@ -1,8 +1,8 @@
 # Backend Resume Register Parse and Listing Checklist
 
-> **版本**: 2.7
+> **版本**: 2.9
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联计划**: [plan](./plan.md)
 
@@ -104,3 +104,20 @@
 - [x] 12.1 `createUploadPresign` / upload register 对 `purpose=resume` 仅允许 PDF / Markdown / TXT，DOCX 在 presign/register 前返回 validation error；验证: upload handler/service focused tests。<!-- verified: 2026-07-07 method=go-test packages=./internal/upload/service,./internal/upload/handler tests=TestCreateUploadPresignRejectsResumeDOCX,TestCreateUploadPresignRejectsResumeDOCXBeforePresign -->
 - [x] 12.2 `resume.parse` 删除 DOCX 解包路径，历史 DOCX object 误入 parse 时返回 unsupported source text error，不进入 AI prompt；验证: parse focused tests。<!-- verified: 2026-07-07 method=go-test package=./internal/resume/jobs tests=TestParseHandlerRejectsDOCXUploadText,TestParseHandlerExtractsReadableUploadText -->
 - [x] 12.3 `getResumeSource` 按 `user_id + resumeId` scoped lookup upload-backed PDF 原件并返回 inline `application/pdf`；paste / Markdown / TXT / missing / archived / cross-user 返回 404；验证: store/service/handler/cmd-api focused tests。<!-- verified: 2026-07-07 method=go-test packages=./internal/resume,./internal/resume/handler,./internal/resume/store,./cmd/api tests=TestGetResumeSource,TestGetSourceFile,TestGeneratedRouteCatalogHasNoResumeVersionOperations -->
+
+## Phase 13: Real-resume output budget regression
+
+- [x] 13.1 RED: `TestCatalogKeepsResumeParseOutputBudget` 从当前 profile catalog 断言 `resume.parse.default.max_tokens >= 8192`，并先在 2048 配置下失败（验证：focused Go test RED）<!-- verified: 2026-07-12 method=go-test-red test=TestCatalogKeepsResumeParseOutputBudget observed_max_tokens=2048 -->
+- [x] 13.2 GREEN: 只提升 `resume.parse.default.max_tokens` 到 8192 并递增 profile version，profile focused tests 与 config lint PASS<!-- verified: 2026-07-12 method=go-test+lint tests=TestCatalogKeepsResumeParseOutputBudget,profile-package command=make-lint-config -->
+- [x] 13.3 E2E.P0.035 trigger/verify 执行并检查 budget regression 测试名、runner marker、PASS，继续拒绝 no-op / skip<!-- verified: 2026-07-12 method=scenario trigger=PASS verify=PASS cleanup=PASS test=TestCatalogKeepsResumeParseOutputBudget -->
+- [x] 13.4 BDD-Gate: E2E.P0.035 resume-parse-async-job-lifecycle PASS（含真实长简历输出预算与失败态 snapshot gate）
+<!-- verified: 2026-07-12 method=scenario bddChecklist=complete -->
+
+## Phase 14: Deterministic full-resume snapshot and truncation fail-closed
+
+- [x] 14.1 RED：长简历输入末尾唯一 marker 必须进入 AI prompt；stub AI 返回不含 `markdownText` 的 structured-only JSON，当前 decoder 因旧 required 字段失败（验证：focused Go test RED）<!-- verified: 2026-07-12 method=go-test-red test=TestParseHandlerPreservesLongInputTailWithStructuredOnlyResponse observed=AI_OUTPUT_INVALID -->
+- [x] 14.2 GREEN：成功/失败 `parsed_text_snapshot` 均由完整提取正文确定性构建；decoder、prompt、schema 删除 `markdownText` 回显合同，长输入尾 marker 在 prompt 与 snapshot 中均保留（验证：focused Go tests PASS）<!-- verified: 2026-07-12 method=go-test+prompt-lint tests=TestParseHandlerPreservesLongInputTailWithStructuredOnlyResponse,internal-resume-jobs -->
+- [x] 14.3 RED/GREEN：`FinishReason="length"` 在 JSON decode 前映射 `AI_OUTPUT_INVALID`，保留含尾 marker 的完整 snapshot，不发 `resume.parse.completed`（验证：focused Go test RED → GREEN）<!-- verified: 2026-07-12 method=mutation-red-green test=TestParseHandlerRejectsLengthFinishReasonAndPreservesSourceSnapshot -->
+- [x] 14.4 同步 prompt body/schema/hash、baseline seed migration、eval cases 与 `resolved-prompts.json`；`make lint-prompts` / `make eval-offline-resolve` PASS，当前合同负向 grep 不再要求 `markdownText`<!-- verified: 2026-07-12 method=prompt-lint+eval-offline result=24/24-pass seed-body=matched -->
+- [x] 14.5 E2E.P0.035 trigger/verify 执行并检查 tail-marker、structured-only、finish-reason tests 的 runner marker 与 PASS，继续拒绝 no-op / skip<!-- verified: 2026-07-12 method=scenario trigger=PASS verify=PASS cleanup=PASS -->
+- [x] 14.6 BDD-Gate: E2E.P0.035 PASS（完整正文进入 prompt + deterministic snapshot + output truncation fail-closed）<!-- verified: 2026-07-12 method=scenario bddChecklist=complete -->

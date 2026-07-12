@@ -26,7 +26,8 @@ func (s *conversationHandlerService) CreatePracticePlan(_ context.Context, in do
 	s.createInput = in
 	return domain.PlanRecord{ID: "plan-1", TargetJobID: in.TargetJobID, ResumeID: in.ResumeID, Goal: in.Goal,
 		InterviewerPersona: in.InterviewerPersona, Difficulty: in.Difficulty, Language: in.Language,
-		TimeBudgetMinutes: in.TimeBudgetMinutes, Status: "ready", CreatedAt: time.Unix(1, 0).UTC()}, nil
+		TimeBudgetMinutes: in.TimeBudgetMinutes, RoundID: in.RoundID, RoundSequence: 2,
+		Status: "ready", CreatedAt: time.Unix(1, 0).UTC()}, nil
 }
 func (s *conversationHandlerService) SendPracticeMessage(_ context.Context, in domain.SendPracticeMessageRequest) (domain.SendPracticeMessageResult, error) {
 	s.messageInput = in
@@ -69,8 +70,9 @@ func newConversationHandler(service planService) *Handler {
 
 func TestCreatePracticePlanMapsOnlyCurrentFields(t *testing.T) {
 	service := &conversationHandlerService{}
+	roundID := "round-2-technical"
 	body := api.CreatePracticePlanRequest{TargetJobId: "target-1", ResumeId: "resume-1", Goal: sharedtypes.PracticeGoalBaseline,
-		InterviewerPersona: sharedtypes.InterviewerRoleHiringManager, Difficulty: "standard", Language: "zh-CN", TimeBudgetMinutes: 30}
+		RoundId: &roundID, InterviewerPersona: sharedtypes.InterviewerRoleHiringManager, Difficulty: "standard", Language: "zh-CN", TimeBudgetMinutes: 30}
 	raw, _ := json.Marshal(body)
 	req := httptest.NewRequest(http.MethodPost, "/practice/plans", bytes.NewReader(raw))
 	rec := httptest.NewRecorder()
@@ -78,13 +80,31 @@ func TestCreatePracticePlanMapsOnlyCurrentFields(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	if service.createInput.TimeBudgetMinutes != 30 || service.createInput.ResumeID != "resume-1" {
+	if service.createInput.TimeBudgetMinutes != 30 || service.createInput.ResumeID != "resume-1" || service.createInput.RoundID != roundID {
 		t.Fatalf("unexpected input: %+v", service.createInput)
+	}
+	var plan api.PracticePlan
+	if err := json.Unmarshal(rec.Body.Bytes(), &plan); err != nil {
+		t.Fatal(err)
+	}
+	if plan.RoundId == nil || *plan.RoundId != roundID || plan.RoundSequence == nil || *plan.RoundSequence != 2 {
+		t.Fatalf("round identity missing from response: %+v", plan)
 	}
 	for _, stale := range []string{"mode", "questionBudget", "hintsEnabled"} {
 		if strings.Contains(rec.Body.String(), stale) {
 			t.Fatalf("response contains stale field %s: %s", stale, rec.Body.String())
 		}
+	}
+}
+
+func TestToAPIPracticePlanOmitsPartialLegacyRoundIdentity(t *testing.T) {
+	plan := toAPIPracticePlan(domain.PlanRecord{RoundID: "round-1-hr", RoundSequence: 0})
+	if plan.RoundId != nil || plan.RoundSequence != nil {
+		t.Fatalf("partial legacy identity must be omitted as a pair: %+v", plan)
+	}
+	plan = toAPIPracticePlan(domain.PlanRecord{RoundSequence: 1})
+	if plan.RoundId != nil || plan.RoundSequence != nil {
+		t.Fatalf("partial legacy identity must be omitted as a pair: %+v", plan)
 	}
 }
 

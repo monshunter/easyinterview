@@ -1,8 +1,8 @@
 # 001 - OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -40,7 +40,7 @@ This completed owner plan is now an executable evidence index. It does not prese
 | Resumes | `listResumes`, `registerResume`, `getResume`, `getResumeSource`, `updateResume`, `duplicateResume`, `archiveResume`, `exportResume` |
 | TargetJobs | `importTargetJob`, `listTargetJobs`, `getTargetJob`, `updateTargetJob`, `archiveTargetJob` |
 | PracticePlans | `createPracticePlan`, `getPracticePlan` |
-| PracticeSessions | `listPracticeSessions`, `startPracticeSession`, `getPracticeSession`, `appendSessionEvent`, `completePracticeSession`, `createPracticeVoiceTurn` |
+| PracticeSessions | `listPracticeSessions`, `startPracticeSession`, `getPracticeSession`, `sendPracticeMessage`, `completePracticeSession`, `createPracticeVoiceTurn` |
 | Reports | `getFeedbackReport`, `listTargetJobReports` |
 | ResumeTailor | `requestResumeTailor`, `getResumeTailorRun` |
 | Jobs | `getJob` |
@@ -86,6 +86,7 @@ BDD is not applicable. This plan owns internal API contract and generated artifa
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2026-07-12 | 1.12 | Reopen Phase 11 for additive practice round identity and TargetJob progress projection contract. |
 | 2026-07-10 | 1.11 | Remove the unconsumed frontend raw OpenAPI snapshot output and its dedicated generator surface. |
 | 2026-07-10 | 1.10 | Remove the unreferenced provenance ref constant from the inventory linter. |
 | 2026-07-10 | 1.9 | Move the test-only snapshot hash calculation out of the production codegen package. |
@@ -104,3 +105,28 @@ BDD is not applicable. This plan owns internal API contract and generated artifa
 ## 10 Frontend raw-spec snapshot removal
 
 TypeScript codegen 只输出正式消费的 `client.ts` 与 `types.ts`。删除没有 import、未进入 Vite bundle、也不被 docs/mock tooling 读取的 raw OpenAPI 字符串快照，同时删除专用 TS template 与只服务该快照的字符串转义 helper；保留 `openapi/openapi.yaml`、backend generated spec 镜像、Redocly 文档和所有 wire/API contract 不变。
+
+## 11 Practice round identity and progress projection
+
+### 11.1 Additive wire contract
+
+- `CreatePracticePlanRequest` 新增可选 `roundId`，只表达客户端选择的结构化轮次；`roundSequence` 必须由服务端从 TargetJob summary 推导，客户端不得提交。
+- `PracticePlan` 新增可选 `roundId` / `roundSequence`。新创建记录必须成对返回；字段可选只用于读取 legacy null identity，不授权新路径省略。
+- `TargetJob` 新增可选 `practiceProgress: PracticeProgress`；`PracticeProgress` 包含 `status=not_started|in_progress|completed`、有序去重的 `completedRounds: PracticeRoundRef[]` 与 nullable `currentRound`。
+
+### 11.2 Compatibility and generated artifacts
+
+变更只新增 schema / optional property，不新增 endpoint、不修改现有 required 字段或状态码。同步 `openapi/baseline/openapi-v1.0.0.yaml`、Go/TS generated artifacts，并运行 `make lint-openapi`、`make codegen-openapi`、`make codegen-check`、`make openapi-diff`；diff 必须分类为 additive。
+
+### 11.3 Consumer invariant
+
+TargetJob lifecycle `status` 只表示岗位生命周期，不能解释为面试轮次。backend-targetjob 只从完成 session 事实投影 `practiceProgress`；frontend 只消费 `practiceProgress.currentRound` 选择卡片当前轮和 quick-start，legacy null plan 不得按时长碰撞复用。
+
+### 11.4 Operation matrix
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| `createPracticePlan` | `PracticePlans/createPracticePlan.json` round variants | shared parse/workspace/report start helper | backend-practice generated adapter/service/store | insert `practice_plans.round_id/round_sequence` + idempotency/audit | none | P0.022/P0.070/P0.072/P0.098 |
+| `getPracticePlan` | `PracticePlans/getPracticePlan.json` current + legacy-null | shared start exact-pair reuse; Practice budget | backend-practice generated adapter/store | read nullable legacy/current plan identity | none | P0.022/P0.070/P0.098 |
+| `listTargetJobs` | `TargetJobs/listTargetJobs.json` zero/partial/final progress | Home/Workspace cards and quick-start | backend-targetjob list handler/store/service projection | TargetJob summary + plans/sessions/completion events; no mutable progress column | none | P0.018/P0.098 |
+| `getTargetJob` | `TargetJobs/getTargetJob.json` zero/partial/final progress | Parse/Report/current-round handoff | backend-targetjob get handler/store/service projection | same ledger projection as list | none after persisted JD parse | P0.057/P0.098 |

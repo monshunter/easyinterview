@@ -77,3 +77,23 @@ func TestTrackedCatalogKeepsManualUATFullFunnelProfilesWithRealProviderBudget(t 
 		})
 	}
 }
+
+func TestCatalogKeepsResumeParseOutputBudget(t *testing.T) {
+	path := filepath.Join("..", "..", "..", "..", "..", "config", "ai-profiles.yaml")
+	loader, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
+	if err != nil {
+		t.Fatalf("NewLoader tracked catalog: %v", err)
+	}
+	defer loader.Close()
+
+	got, err := loader.Resolve("resume.parse.default")
+	if err != nil {
+		t.Fatalf("Resolve resume.parse.default: %v", err)
+	}
+	if got.MaxTokens < 8192 {
+		t.Fatalf("resume.parse.default max_tokens=%d, want at least 8192 for complete long-resume JSON", got.MaxTokens)
+	}
+	if got.Version == "1.1.0" {
+		t.Fatalf("resume.parse.default version=%q, want a new version for the output budget change", got.Version)
+	}
+}

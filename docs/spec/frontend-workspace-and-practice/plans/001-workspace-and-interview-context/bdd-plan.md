@@ -1,6 +1,6 @@
 # 001 BDD Plan
 
-> **版本**: 1.20
+> **版本**: 1.22
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -16,6 +16,7 @@
 | `E2E.P0.021` | Workspace boundary + privacy/out-of-scope negative | regression + privacy | `test/scenarios/e2e/p0-021-workspace-handoff/` |
 | `E2E.P0.045` | Practice structured-round budget display | primary + UX regression | `test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/` |
 | `E2E.P0.057` | Report retry / next-round handoff boundaries | primary + boundary + recovery | `test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/` |
+| `E2E.P0.098` | Persisted multi-round progress and quick-start | primary + persistence + recovery | `test/scenarios/e2e/p0-098-full-funnel-import-to-next-round-journey/` |
 
 ## 2 场景明细
 
@@ -41,7 +42,15 @@
 
 | Given | When | Then |
 |-------|------|------|
-| ready report 与 TargetJob 有按 sequence 排序的 1..N 轮；当前 round 可能是中间、末轮、未知或缺失，round list 可能产生重复 ID，round data 可能 loading/failure | 点击复练当前轮或进入下一轮，并覆盖重复点击 | 复练保持当前轮；下一轮只选择紧邻后一轮并用其时长创建 plan/session；重复 ID、末轮、单轮、空/未知轮次、loading/failure 不触发 next start；in-flight CTA disabled，重复点击最多创建一次；不回退第一轮或固定默认轮次 |
+| ready report 与 TargetJob 有正 int32、唯一、严格递增但可能非连续的 canonical 轮次（如 `1,2,4`）；当前 round 可能是中间、末轮、未知或缺失，round list 可能产生重复 ID，round data 可能 loading/failure | 点击复练当前轮或进入下一轮，并覆盖重复点击 | 复练保持当前轮；下一轮只选择数组中的下一条现有 canonical round（`2→4`）并用其时长创建 plan/session，不计算 `sequence + 1`；重复 ID、末轮、单轮、空/未知轮次、loading/failure 不触发 next start；in-flight CTA disabled，重复点击最多创建一次；不回退第一轮或固定默认轮次 |
+
+### E2E.P0.098 Persisted multi-round progress and quick-start
+
+| Given | When | Then |
+|-------|------|------|
+| Real backend TargetJob has canonical `1,2,4` rounds; plans persist exact pairs; first round completes, including wrong-resume/duplicate completion/retry/report-state variants; frontend runs in real API mode | In a live browser reload Home/Workspace/Parse, inspect rail, click quick-start, capture the real create/start exchange, then complete remaining rounds | API-projected completed prefix/current next-existing round survives browser refresh and route changes; quick-start uses only exact current plan or creates a plan with current `roundId`; equal-duration/legacy/wrong-resume plan is not reused; all completed shows all nodes done and disables start; no browser-stored business progress is read |
+
+> 证据边界：真实 PostgreSQL Get/List projection、Vitest consumer tests、scope/static negative 与 pixel parity 都是必要支持证据，但不能单独勾选本场景的 live browser reload/quick-start 项。只有实际 host-run frontend/backend browser execution 及请求/响应证据存在后才可完成。
 
 ## 3 执行入口
 
@@ -50,6 +59,7 @@ test/scenarios/e2e/p0-018-workspace-default-render/scripts/setup.sh && test/scen
 test/scenarios/e2e/p0-021-workspace-handoff/scripts/setup.sh && test/scenarios/e2e/p0-021-workspace-handoff/scripts/trigger.sh && test/scenarios/e2e/p0-021-workspace-handoff/scripts/verify.sh && test/scenarios/e2e/p0-021-workspace-handoff/scripts/cleanup.sh
 test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/setup.sh && test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/trigger.sh && test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/verify.sh && test/scenarios/e2e/p0-045-practice-text-loop-mode-policy-display/scripts/cleanup.sh
 test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/scripts/setup.sh && test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/scripts/trigger.sh && test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/scripts/verify.sh && test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/scripts/cleanup.sh
+test/scenarios/e2e/p0-098-full-funnel-import-to-next-round-journey/scripts/setup.sh && test/scenarios/e2e/p0-098-full-funnel-import-to-next-round-journey/scripts/trigger.sh && test/scenarios/e2e/p0-098-full-funnel-import-to-next-round-journey/scripts/verify.sh && test/scenarios/e2e/p0-098-full-funnel-import-to-next-round-journey/scripts/cleanup.sh
 ```
 
 ## 4 AC 映射
@@ -67,3 +77,4 @@ test/scenarios/e2e/p0-057-replay-cta-paths-a-and-b/scripts/setup.sh && test/scen
 | C-12 privacy redline | `E2E.P0.021` + parse/report focused handoff gates |
 | C-13 parse detail regression and workspace out-of-scope-param purity | `E2E.P0.018`, parse/report focused gates |
 | C-11 structured round time budget and next-round progression | `E2E.P0.021`, `E2E.P0.045`, `E2E.P0.057` |
+| C-12 backend-persisted progress, refreshed rail and exact quick-start | `E2E.P0.018`, `E2E.P0.021`, `E2E.P0.057`, `E2E.P0.098` |

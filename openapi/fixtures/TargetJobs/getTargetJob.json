@@ -106,6 +106,19 @@
           "createdAt": "2026-04-22T09:30:00Z",
           "updatedAt": "2026-04-28T12:00:00Z",
           "currentPracticePlanId": "01918fa0-0000-7000-8000-000000004000",
+          "practiceProgress": {
+            "status": "in_progress",
+            "completedRounds": [
+              {
+                "roundId": "round-1-technical",
+                "roundSequence": 1
+              }
+            ],
+            "currentRound": {
+              "roundId": "round-2-manager",
+              "roundSequence": 2
+            }
+          },
           "resumeId": "01918fa0-0000-7000-8000-000000001000"
         }
       }
@@ -251,8 +264,143 @@
           },
           "latestReportId": "01918fa0-c3cb-7268-8404-d3b2603536d8",
           "openQuestionIssueCount": 0,
+          "practiceProgress": {
+            "status": "in_progress",
+            "completedRounds": [
+              {
+                "roundId": "round-1-hr",
+                "roundSequence": 1
+              },
+              {
+                "roundId": "round-2-technical",
+                "roundSequence": 2
+              }
+            ],
+            "currentRound": {
+              "roundId": "round-3-technical",
+              "roundSequence": 3
+            }
+          },
           "createdAt": "2026-04-22T09:30:00Z",
           "updatedAt": "2026-04-28T12:00:00Z"
+        }
+      }
+    },
+    "not-started-progress": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-07-12-target-progress-zero"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000002010",
+          "status": "offer",
+          "analysisStatus": "ready",
+          "title": "Platform Engineer",
+          "companyName": "Acme",
+          "targetLanguage": "en",
+          "sourceType": "manual_text",
+          "summary": {
+            "interviewRounds": [
+              {
+                "sequence": 1,
+                "type": "technical",
+                "name": "Technical screen",
+                "durationMinutes": 45,
+                "focus": "Systems fundamentals"
+              },
+              {
+                "sequence": 2,
+                "type": "manager",
+                "name": "Manager interview",
+                "durationMinutes": 45,
+                "focus": "Delivery leadership"
+              }
+            ],
+            "provenance": {
+              "promptVersion": "v0.1.0",
+              "rubricVersion": "v0.1.0",
+              "modelId": "fixture-model:target-import-parse",
+              "language": "en",
+              "featureFlag": "none",
+              "dataSourceVersion": "target_job.v18"
+            }
+          },
+          "requirements": [],
+          "currentPracticePlanId": "01918fa0-0000-7000-8000-000000004010",
+          "practiceProgress": {
+            "status": "not_started",
+            "completedRounds": [],
+            "currentRound": {
+              "roundId": "round-1-technical",
+              "roundSequence": 1
+            }
+          },
+          "openQuestionIssueCount": 0,
+          "createdAt": "2026-07-12T08:10:00Z",
+          "updatedAt": "2026-07-12T08:10:00Z"
+        }
+      }
+    },
+    "all-completed-progress": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req_2026-07-12-target-progress-complete"
+        },
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000002020",
+          "status": "preparing",
+          "analysisStatus": "ready",
+          "title": "Platform Engineer",
+          "companyName": "Acme",
+          "targetLanguage": "en",
+          "sourceType": "manual_text",
+          "summary": {
+            "interviewRounds": [
+              {
+                "sequence": 1,
+                "type": "technical",
+                "name": "Technical screen",
+                "durationMinutes": 45,
+                "focus": "Systems fundamentals"
+              },
+              {
+                "sequence": 2,
+                "type": "manager",
+                "name": "Manager interview",
+                "durationMinutes": 45,
+                "focus": "Delivery leadership"
+              }
+            ],
+            "provenance": {
+              "promptVersion": "v0.1.0",
+              "rubricVersion": "v0.1.0",
+              "modelId": "fixture-model:target-import-parse",
+              "language": "en",
+              "featureFlag": "none",
+              "dataSourceVersion": "target_job.v18"
+            }
+          },
+          "requirements": [],
+          "currentPracticePlanId": null,
+          "practiceProgress": {
+            "status": "completed",
+            "completedRounds": [
+              {
+                "roundId": "round-1-technical",
+                "roundSequence": 1
+              },
+              {
+                "roundId": "round-2-manager",
+                "roundSequence": 2
+              }
+            ],
+            "currentRound": null
+          },
+          "openQuestionIssueCount": 0,
+          "createdAt": "2026-07-12T08:20:00Z",
+          "updatedAt": "2026-07-12T08:20:00Z"
         }
       }
     }

@@ -19,7 +19,7 @@ function context(overrides: Partial<InterviewContextState>): InterviewContextSta
 describe("buildCreatePlanRequest", () => {
   it("keeps valid server-bound ids in the generated client request body", () => {
     const body = buildCreatePlanRequest(
-      context({ resumeId: VALID_RESUME_ID }),
+      context({ resumeId: VALID_RESUME_ID, roundId: "round-2-technical" }),
       "en",
       60,
     );
@@ -29,12 +29,15 @@ describe("buildCreatePlanRequest", () => {
     expect(body.goal).toBe("baseline");
     expect(body.sourceReportId).toBeUndefined();
     expect(body.timeBudgetMinutes).toBe(60);
+    expect(body.roundId).toBe("round-2-technical");
+    expect(body).not.toHaveProperty("roundSequence");
   });
 
   it("creates next_round plans from the source report id", () => {
     const body = buildCreatePlanRequest(
       context({
         resumeId: VALID_RESUME_ID,
+        roundId: "round-2-technical",
         practiceGoal: "next_round",
         sourceReportId: VALID_REPORT_ID,
       }),
@@ -51,6 +54,7 @@ describe("buildCreatePlanRequest", () => {
       buildCreatePlanRequest(
         context({
           resumeId: VALID_RESUME_ID,
+          roundId: "round-2-technical",
           practiceGoal: "next_round",
         }),
         "en",
@@ -82,10 +86,20 @@ describe("buildCreatePlanRequest", () => {
   it("rejects a non-positive selected round budget", () => {
     expect(() =>
       buildCreatePlanRequest(
-        context({ resumeId: VALID_RESUME_ID }),
+        context({ resumeId: VALID_RESUME_ID, roundId: "round-2-technical" }),
         "en",
         0,
       ),
     ).toThrow("invalid timeBudgetMinutes");
+  });
+
+  it("rejects a missing round intention instead of asking the server to infer from UI state", () => {
+    expect(() =>
+      buildCreatePlanRequest(
+        context({ resumeId: VALID_RESUME_ID }),
+        "en",
+        60,
+      ),
+    ).toThrow("invalid roundId");
   });
 });

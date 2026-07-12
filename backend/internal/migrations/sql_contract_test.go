@@ -128,6 +128,80 @@ func TestBaselinePracticePlansDerivedSourceContract(t *testing.T) {
 	}
 }
 
+func TestPracticePlanRoundIdentityMigrationContract(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000017_practice_plan_round_identity.up.sql")))
+	down := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000017_practice_plan_round_identity.down.sql")))
+
+	for _, required := range []string{
+		"add column round_id text",
+		"add column round_sequence integer",
+		"constraint practice_plans_round_identity_pair_check",
+		"round_id is null and round_sequence is null",
+		"round_id is not null and round_sequence is not null",
+		"btrim(round_id) <> ''",
+		"constraint practice_plans_round_sequence_positive_check",
+		"round_sequence is null or round_sequence > 0",
+		"create index idx_practice_plans_target_job_round_created",
+		"on practice_plans (user_id, target_job_id, status, round_sequence, round_id, created_at desc, id desc)",
+		"where round_id is not null and round_sequence is not null",
+		"create index idx_practice_sessions_plan_user_target",
+		"on practice_sessions (plan_id, user_id, target_job_id)",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("practice plan round identity up migration missing %q", required)
+		}
+	}
+
+	for _, required := range []string{
+		"drop index if exists idx_practice_plans_target_job_round_created",
+		"drop index if exists idx_practice_sessions_plan_user_target",
+		"drop constraint if exists practice_plans_round_sequence_positive_check",
+		"drop constraint if exists practice_plans_round_identity_pair_check",
+		"drop column if exists round_sequence",
+		"drop column if exists round_id",
+	} {
+		if !strings.Contains(down, required) {
+			t.Fatalf("practice plan round identity down migration missing %q", required)
+		}
+	}
+
+	for _, forbidden := range []string{
+		"add column practice_progress",
+		"add column current_round",
+		"add column completed_round",
+	} {
+		if strings.Contains(up, forbidden) {
+			t.Fatalf("round progress must be projected from backend facts, migration contains %q", forbidden)
+		}
+	}
+}
+
+func TestPracticePlanRoundIdentityBackfillIsManifestRegistered(t *testing.T) {
+	root := repoRoot(t)
+	manifest := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "backfill", "manifest.yaml")))
+	main := readFile(t, filepath.Join(root, "backend", "cmd", "migrate", "main.go"))
+
+	for _, required := range []string{
+		"version: 17",
+		"name: practice_plan_round_identity",
+		"checksum: sha256:",
+		"dryrun: true",
+	} {
+		if !strings.Contains(manifest, required) {
+			t.Fatalf("practice plan round identity backfill manifest missing %q", required)
+		}
+	}
+	if !strings.Contains(main, `_ "github.com/monshunter/easyinterview/backend/internal/migrations/backfills/v000017"`) {
+		t.Fatal("cmd/migrate must blank-import the v000017 backfill registration")
+	}
+
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000017_practice_plan_round_identity.up.sql")))
+	if strings.Contains(up, "update practice_plans") {
+		t.Fatal("row-level legacy backfill must run through the Go registry, not migration SQL")
+	}
+}
+
 func TestPracticeIdempotencyMigrationDownDoesNotDropBaselineOwnedTable(t *testing.T) {
 	root := repoRoot(t)
 	down := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000003_practice_idempotency_baseline.down.sql")))

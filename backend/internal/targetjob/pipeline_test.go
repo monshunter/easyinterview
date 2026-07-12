@@ -587,6 +587,11 @@ func TestParseExecutor_AIOutputInvalid_WhenInterviewRoundsAreSemanticallyInvalid
 			round: `{"sequence":0,"type":"technical","name":"Technical","durationMinutes":45,"focus":"Probe APIs"}`,
 		},
 		{
+			name: "sequence must fit the int32 API contract",
+			round: `{"sequence":2147483648,"type":"technical","name":"Technical","durationMinutes":45,"focus":"Probe APIs"},
+				{"sequence":2147483649,"type":"manager","name":"Manager","durationMinutes":45,"focus":"Ownership"}`,
+		},
+		{
 			name:  "type must be known enum",
 			round: `{"sequence":1,"type":"screen","name":"Screen","durationMinutes":30,"focus":"Probe APIs"}`,
 		},

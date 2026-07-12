@@ -30,12 +30,12 @@ def run_script(script: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def valid_frontend_vitest_log() -> str:
+def valid_frontend_vitest_log(owner_test: str = "clientFactory.test.ts") -> str:
     return "\n".join(
         (
             "VITE_EI_API_MODE=real",
             "VITE_EI_API_BASE_URL=http://localhost:8080/api/v1",
-            "frontendOwners.realApiMode.test.ts",
+            owner_test,
             " RUN  v2.1.9 /repo/frontend",
             " Test Files  2 passed (2)",
             "      Tests  8 passed (8)",
@@ -85,12 +85,7 @@ def test_frontend_real_backend_verify_accepts_configurable_owner_test(
 ) -> None:
     owner_test = "targetJob.realApiMode.test.ts"
     log = tmp_path / "target-job.log"
-    log.write_text(
-        valid_frontend_vitest_log().replace(
-            "frontendOwners.realApiMode.test.ts", owner_test
-        ),
-        encoding="utf-8",
-    )
+    log.write_text(valid_frontend_vitest_log(owner_test), encoding="utf-8")
 
     result = run_script(
         FRONTEND_REAL_BACKEND_VERIFY, str(log), "case-target-job", owner_test
@@ -98,9 +93,7 @@ def test_frontend_real_backend_verify_accepts_configurable_owner_test(
     assert result.returncode == 0, result.stderr
 
     log.write_text(
-        valid_frontend_vitest_log().replace(
-            "frontendOwners.realApiMode.test.ts", "other.realApiMode.test.ts"
-        ),
+        valid_frontend_vitest_log("other.realApiMode.test.ts"),
         encoding="utf-8",
     )
     result = run_script(

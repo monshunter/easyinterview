@@ -351,6 +351,17 @@ type TargetJobFitSummary struct {
 	Strengths   []string             `json:"strengths,omitempty"`
 }
 
+type PracticeRoundRef struct {
+	RoundId       string `json:"roundId"`
+	RoundSequence int32  `json:"roundSequence"`
+}
+
+type PracticeProgress struct {
+	CompletedRounds []PracticeRoundRef `json:"completedRounds"`
+	CurrentRound    *PracticeRoundRef  `json:"currentRound"`
+	Status          string             `json:"status"`
+}
+
 type TargetJob struct {
 	AnalysisStatus         TargetJobParseStatus   `json:"analysisStatus"`
 	CompanyName            string                 `json:"companyName"`
@@ -361,6 +372,7 @@ type TargetJob struct {
 	LatestReportId         *string                `json:"latestReportId,omitempty"`
 	LocationText           *string                `json:"locationText,omitempty"`
 	OpenQuestionIssueCount int32                  `json:"openQuestionIssueCount"`
+	PracticeProgress       *PracticeProgress      `json:"practiceProgress,omitempty"`
 	Requirements           []TargetJobRequirement `json:"requirements"`
 	ResumeId               *string                `json:"resumeId,omitempty"`
 	SourceType             string                 `json:"sourceType"`
@@ -392,6 +404,7 @@ type CreatePracticePlanRequest struct {
 	InterviewerPersona   InterviewerRole `json:"interviewerPersona"`
 	Language             string          `json:"language"`
 	ResumeId             string          `json:"resumeId"`
+	RoundId              *string         `json:"roundId,omitempty"`
 	SourceReportId       *string         `json:"sourceReportId,omitempty"`
 	TargetJobId          string          `json:"targetJobId"`
 	TimeBudgetMinutes    int32           `json:"timeBudgetMinutes"`
@@ -405,6 +418,8 @@ type PracticePlan struct {
 	InterviewerPersona InterviewerRole `json:"interviewerPersona"`
 	Language           string          `json:"language"`
 	ResumeId           string          `json:"resumeId"`
+	RoundId            *string         `json:"roundId,omitempty"`
+	RoundSequence      *int32          `json:"roundSequence,omitempty"`
 	SourceReportId     *string         `json:"sourceReportId,omitempty"`
 	Status             string          `json:"status"`
 	TargetJobId        string          `json:"targetJobId"`

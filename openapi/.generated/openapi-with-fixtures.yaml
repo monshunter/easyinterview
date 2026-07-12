@@ -1021,6 +1021,14 @@ paths:
                       createdAt: '2026-04-22T09:30:00Z'
                       updatedAt: '2026-04-28T12:00:00Z'
                       currentPracticePlanId: 01918fa0-0000-7000-8000-000000004000
+                      practiceProgress:
+                        status: in_progress
+                        completedRounds:
+                        - roundId: round-1-technical
+                          roundSequence: 1
+                        currentRound:
+                          roundId: round-2-manager
+                          roundSequence: 2
                       resumeId: 01918fa0-0000-7000-8000-000000001000
                     - id: 01918fa0-0000-7000-8000-000000002100
                       status: preparing
@@ -1151,6 +1159,14 @@ paths:
                     createdAt: '2026-04-22T09:30:00Z'
                     updatedAt: '2026-04-28T12:00:00Z'
                     currentPracticePlanId: 01918fa0-0000-7000-8000-000000004000
+                    practiceProgress:
+                      status: in_progress
+                      completedRounds:
+                      - roundId: round-1-technical
+                        roundSequence: 1
+                      currentRound:
+                        roundId: round-2-manager
+                        roundSequence: 2
                     resumeId: 01918fa0-0000-7000-8000-000000001000
         default:
           $ref: '#/components/responses/ApiErrorResponse'
@@ -1408,15 +1424,15 @@ paths:
                     id: 01918fa0-0000-7000-8000-000000004000
                     targetJobId: 01918fa0-0000-7000-8000-000000002000
                     goal: baseline
-                    mode: assisted
                     interviewerPersona: hiring_manager
                     difficulty: standard
                     language: zh-CN
-                    timeBudgetMinutes: 30
-                    questionBudget: 6
+                    timeBudgetMinutes: 50
                     resumeId: 01918fa0-0000-7000-8000-000000001000
+                    roundId: round-2-manager
+                    roundSequence: 2
                     status: ready
-                    createdAt: '2026-04-28T12:00:00Z'
+                    createdAt: '2026-07-12T08:00:00Z'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /practice/plans/{planId}:
@@ -1453,15 +1469,15 @@ paths:
                     id: 01918fa0-0000-7000-8000-000000004000
                     targetJobId: 01918fa0-0000-7000-8000-000000002000
                     goal: baseline
-                    mode: assisted
                     interviewerPersona: hiring_manager
                     difficulty: standard
                     language: zh-CN
-                    timeBudgetMinutes: 30
-                    questionBudget: 6
+                    timeBudgetMinutes: 50
                     resumeId: 01918fa0-0000-7000-8000-000000001000
+                    roundId: round-2-manager
+                    roundSequence: 2
                     status: ready
-                    createdAt: '2026-04-28T12:00:00Z'
+                    createdAt: '2026-07-12T08:00:00Z'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /practice/sessions:
@@ -1526,21 +1542,9 @@ paths:
                       targetJobId: 01918fa0-0000-7000-8000-000000002000
                       status: completed
                       language: zh-CN
-                      hintsEnabled: true
-                      turnCount: 8
-                      currentTurn: null
-                      createdAt: '2026-05-15T13:00:00Z'
-                      updatedAt: '2026-05-15T14:12:00Z'
-                    - id: 01918fa0-0000-7000-8000-000000005100
-                      planId: 01918fa0-0000-7000-8000-000000004100
-                      targetJobId: 01918fa0-0000-7000-8000-000000002000
-                      status: completed
-                      language: zh-CN
-                      hintsEnabled: false
-                      turnCount: 6
-                      currentTurn: null
-                      createdAt: '2026-05-10T10:00:00Z'
-                      updatedAt: '2026-05-10T10:55:00Z'
+                      messages: []
+                      createdAt: '2026-07-12T08:02:00Z'
+                      updatedAt: '2026-07-12T08:30:00Z'
                     pageInfo:
                       nextCursor: null
                       pageSize: 20
@@ -1552,8 +1556,8 @@ paths:
       - PracticeSessions
       operationId: startPracticeSession
       summary: Start a practice session
-      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Returns 201 with the session and the first
-        turn.
+      description: Side-effect endpoint per spec D-6 — requires `Idempotency-Key`. Returns 201 with the session and its opening
+        assistant message.
       parameters:
       - $ref: '#/components/parameters/IdempotencyKey'
       - $ref: '#/components/parameters/XRequestID'
@@ -1568,7 +1572,7 @@ paths:
               $ref: '#/components/schemas/StartPracticeSessionRequest'
       responses:
         '201':
-          description: Practice session created with first turn.
+          description: Practice session created with opening assistant message.
           headers:
             X-Request-ID:
               $ref: '#/components/headers/XRequestID'
@@ -1585,17 +1589,14 @@ paths:
                     targetJobId: 01918fa0-0000-7000-8000-000000002000
                     status: running
                     language: zh-CN
-                    hintsEnabled: true
-                    turnCount: 1
-                    currentTurn:
-                      id: 01918fa0-0000-7000-8000-000000006000
-                      turnIndex: 1
-                      questionText: 请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。
-                      questionIntent: behavioral.leadership.design_system
-                      status: asked
-                      askedAt: '2026-04-28T13:45:12Z'
-                    createdAt: '2026-04-28T12:00:00Z'
-                    updatedAt: '2026-04-28T13:45:12Z'
+                    messages:
+                    - id: 01918fa0-0000-7000-8000-000000006000
+                      seqNo: 1
+                      role: assistant
+                      content: 你好，我们直接开始。先聊聊你最近最有代表性的项目。
+                      createdAt: '2026-07-12T08:02:00Z'
+                    createdAt: '2026-07-12T08:02:00Z'
+                    updatedAt: '2026-07-12T08:02:00Z'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /practice/sessions/{sessionId}:
@@ -1634,17 +1635,24 @@ paths:
                     targetJobId: 01918fa0-0000-7000-8000-000000002000
                     status: running
                     language: zh-CN
-                    hintsEnabled: true
-                    turnCount: 1
-                    currentTurn:
-                      id: 01918fa0-0000-7000-8000-000000006000
-                      turnIndex: 1
-                      questionText: 请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。
-                      questionIntent: behavioral.leadership.design_system
-                      status: asked
-                      askedAt: '2026-04-28T13:45:12Z'
-                    createdAt: '2026-04-28T12:00:00Z'
-                    updatedAt: '2026-04-28T13:45:12Z'
+                    messages:
+                    - id: 01918fa0-0000-7000-8000-000000006000
+                      seqNo: 1
+                      role: assistant
+                      content: 你好，我们直接开始。先聊聊你最近最有代表性的项目。
+                      createdAt: '2026-07-12T08:02:00Z'
+                    - id: 01918fa0-0000-7000-8000-000000006001
+                      seqNo: 2
+                      role: user
+                      content: 我主导过一次跨团队设计系统迁移。
+                      createdAt: '2026-07-12T08:03:00Z'
+                    - id: 01918fa0-0000-7000-8000-000000006002
+                      seqNo: 3
+                      role: assistant
+                      content: 当时最难协调的分歧是什么？
+                      createdAt: '2026-07-12T08:03:01Z'
+                    createdAt: '2026-07-12T08:02:00Z'
+                    updatedAt: '2026-07-12T08:03:01Z'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /practice/sessions/{sessionId}/voice-turns:
@@ -1652,18 +1660,12 @@ paths:
       tags:
       - PracticeSessions
       operationId: createPracticeVoiceTurn
-      summary: Create a cascaded practice voice turn
-      description: 'Side-effect endpoint per spec D-6 — requires `Idempotency-Key`.
+      summary: Phone mode temporarily unavailable
+      description: 'Reserved side-effect endpoint per spec D-22. The current product keeps
 
-        Accepts a small client audio payload, runs the configured STT, chat,
+        phone mode disabled and returns AI_UNSUPPORTED_CAPABILITY without
 
-        and TTS profiles independently, and returns transcript, assistant
-
-        draft text, TTS playback metadata, and provider-neutral summary
-
-        metadata. Raw audio and generated TTS bytes are not persisted by this
-
-        contract.
+        invoking STT, chat, TTS, or persistence.
 
         '
       parameters:
@@ -1685,67 +1687,33 @@ paths:
             schema:
               $ref: '#/components/schemas/CreatePracticeVoiceTurnRequest'
       responses:
-        '200':
-          description: Voice turn accepted and cascaded STT / chat / TTS result returned.
+        '422':
+          description: Phone mode is temporarily unavailable.
           headers:
             X-Request-ID:
               $ref: '#/components/headers/XRequestID'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PracticeVoiceTurnResult'
+                $ref: '#/components/schemas/ApiErrorResponse'
               examples:
                 default:
                   summary: Default fixture for createPracticeVoiceTurn
                   value:
-                    voiceTurnId: 01918fa0-0000-7000-8000-00000000f201
-                    userTranscriptFinal: 我主导了设计系统迁移，先把 12 个团队按风险分组。
-                    assistantTextDraft: 你提到按风险分组。请具体说明你如何处理最高风险团队的迁移窗口。
-                    ttsChunks:
-                    - chunkId: voice-chunk-001
-                      sequence: 0
-                      contentType: audio/wav
-                      durationMs: 2840
-                      byteLength: 44
-                      textHash: sha256:voice-default-chunk-001
-                      audioRef: data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=
-                    providerMetaSummary:
-                      sttProfile: practice.voice.stt.default
-                      chatProfile: practice.followup.default
-                      ttsProfile: practice.voice.tts.default
-                      sttProvider: fixture-stt
-                      chatProvider: fixture-chat
-                      ttsProvider: fixture-tts
-                      sttLatencyMs: 120
-                      chatLatencyMs: 240
-                      ttsLatencyMs: 180
-                    session:
-                      id: 01918fa0-0000-7000-8000-000000005000
-                      planId: 01918fa0-0000-7000-8000-000000004000
-                      targetJobId: 01918fa0-0000-7000-8000-000000002000
-                      status: running
-                      language: zh-CN
-                      hintsEnabled: true
-                      turnCount: 1
-                      currentTurn:
-                        id: 01918fa0-0000-7000-8000-000000006000
-                        turnIndex: 1
-                        questionText: 请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。
-                        questionIntent: behavioral.leadership.design_system
-                        status: follow_up_requested
-                        askedAt: '2026-04-28T13:40:00Z'
-                      createdAt: '2026-04-28T12:00:00Z'
-                      updatedAt: '2026-05-17T08:50:00Z'
-                    ttsError: null
+                    error:
+                      code: AI_UNSUPPORTED_CAPABILITY
+                      message: phone mode is temporarily unavailable
+                      requestId: req_2026-07-12-voice-disabled
+                      retryable: false
         default:
           $ref: '#/components/responses/ApiErrorResponse'
-  /practice/sessions/{sessionId}/events:
+  /practice/sessions/{sessionId}/messages:
     post:
       tags:
       - PracticeSessions
-      operationId: appendSessionEvent
-      summary: Append a session event and get the next assistant action
-      description: 'Idempotency for this endpoint is enforced by `clientEventId` in the
+      operationId: sendPracticeMessage
+      summary: Send a conversation message and receive the assistant reply
+      description: 'Idempotency for this endpoint is enforced by `clientMessageId` in the
 
         request body (spec D-6); the request must NOT carry an
 
@@ -1768,20 +1736,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PracticeSessionEventRequest'
+              $ref: '#/components/schemas/SendPracticeMessageRequest'
       responses:
         '200':
-          description: Event accepted; next assistant action returned.
+          description: User message accepted and assistant message returned.
           headers:
             X-Request-ID:
               $ref: '#/components/headers/XRequestID'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SessionEventResult'
+                $ref: '#/components/schemas/SendPracticeMessageResponse'
               examples:
                 default:
-                  summary: Default fixture for appendSessionEvent
+                  summary: Default fixture for sendPracticeMessage
                   value:
                     acknowledged: true
                     session:
@@ -1790,30 +1758,36 @@ paths:
                       targetJobId: 01918fa0-0000-7000-8000-000000002000
                       status: running
                       language: zh-CN
-                      hintsEnabled: true
-                      turnCount: 1
-                      currentTurn:
-                        id: 01918fa0-0000-7000-8000-000000006000
-                        turnIndex: 1
-                        questionText: 请用 STAR 描述你主导设计系统迁移的项目，重点说明跨 12 个团队的协调过程。
-                        questionIntent: behavioral.leadership.design_system
-                        status: follow_up_requested
-                        askedAt: '2026-04-28T13:40:00Z'
-                      createdAt: '2026-04-28T12:00:00Z'
-                      updatedAt: '2026-04-28T13:45:12Z'
-                    assistantAction:
-                      type: ask_follow_up
-                      turnId: 01918fa0-0000-7000-8000-000000006000
-                      questionText: 在 12 个团队里推动迁移时，最大的反对意见是什么？你怎么处理的？
-                      hint: null
-                      sessionStatus: running
-                      provenance:
-                        promptVersion: practice.session.follow_up.v1
-                        rubricVersion: not_applicable
-                        modelId: model-profile:contract.default
-                        language: zh-CN
-                        featureFlag: follow_up_v3
-                        dataSourceVersion: practice_session.v9
+                      messages:
+                      - id: 01918fa0-0000-7000-8000-000000006000
+                        seqNo: 1
+                        role: assistant
+                        content: 你好，我们直接开始。
+                        createdAt: '2026-07-12T08:02:00Z'
+                      - id: 01918fa0-0000-7000-8000-000000006001
+                        seqNo: 2
+                        role: user
+                        content: 我主导过一次跨团队设计系统迁移。
+                        createdAt: '2026-07-12T08:03:00Z'
+                      - id: 01918fa0-0000-7000-8000-000000006002
+                        seqNo: 3
+                        role: assistant
+                        content: 当时最难协调的分歧是什么？
+                        createdAt: '2026-07-12T08:03:01Z'
+                      createdAt: '2026-07-12T08:02:00Z'
+                      updatedAt: '2026-07-12T08:03:01Z'
+                    userMessage:
+                      id: 01918fa0-0000-7000-8000-000000006001
+                      seqNo: 2
+                      role: user
+                      content: 我主导过一次跨团队设计系统迁移。
+                      createdAt: '2026-07-12T08:03:00Z'
+                    assistantMessage:
+                      id: 01918fa0-0000-7000-8000-000000006002
+                      seqNo: 3
+                      role: assistant
+                      content: 当时最难协调的分歧是什么？
+                      createdAt: '2026-07-12T08:03:01Z'
         default:
           $ref: '#/components/responses/ApiErrorResponse'
   /practice/sessions/{sessionId}/complete:
@@ -1903,45 +1877,35 @@ paths:
                     targetJobId: 01918fa0-0000-7000-8000-000000002000
                     status: ready
                     preparednessLevel: basically_ready
+                    dimensionAssessments:
+                    - dimension: communication
+                      status: meets_bar
+                      confidence: high
+                    - dimension: technical_depth
+                      status: needs_work
+                      confidence: medium
                     highlights:
                     - dimension: ownership
-                      evidence: 明确指出推动 12 个团队使用统一组件库；说明了反对意见的处理路径。
+                      evidence: 明确说明了跨团队推进路径。
                       confidence: high
                     issues:
                     - dimension: technical_depth
-                      evidence: 回答中没有量化迁移过程中的回归率或灰度策略。
+                      evidence: 缺少迁移回归率和灰度策略的量化证据。
                       confidence: medium
                     nextActions:
                     - type: retry_current_round
-                      label: 围绕灰度策略复练当前轮追问。
-                    - type: review_evidence
-                      label: 回顾迁移期间的回归数据并准备一段量化叙事。
-                    questionAssessments:
-                    - turnId: 01918fa0-0000-7000-8000-000000006000
-                      questionIntent: behavioral.leadership.design_system
-                      dimensionResults:
-                        communication:
-                          status: meets_bar
-                          confidence: high
-                        technical_depth:
-                          status: needs_work
-                          confidence: medium
-                        ownership:
-                          status: strong
-                          confidence: high
-                      reviewStatus: queued_for_retry
-                      includedInRetryPlan: true
-                    retryFocusTurnIds:
-                    - 01918fa0-0000-7000-8000-000000006000
+                      label: 围绕灰度策略复练当前轮。
+                    retryFocusCompetencyCodes:
+                    - technical_depth
                     provenance:
-                      promptVersion: feedback_report.v3
-                      rubricVersion: feedback_report.rubric.v2
-                      modelId: model-profile:contract.default
+                      promptVersion: v0.1.0
+                      rubricVersion: v0.1.0
+                      modelId: model-profile:report.generate.default
                       language: zh-CN
                       featureFlag: none
-                      dataSourceVersion: practice_session.v9
-                    createdAt: '2026-04-28T12:00:00Z'
-                    updatedAt: '2026-04-28T13:45:12Z'
+                      dataSourceVersion: registry.v1
+                    createdAt: '2026-07-12T08:30:00Z'
+                    updatedAt: '2026-07-12T08:31:00Z'
         '404':
           description: Feedback report not found or not accessible (`REPORT_NOT_FOUND`).
           headers:
@@ -2011,45 +1975,28 @@ paths:
                       targetJobId: 01918fa0-0000-7000-8000-000000002000
                       status: ready
                       preparednessLevel: basically_ready
+                      dimensionAssessments:
+                      - dimension: communication
+                        status: meets_bar
+                        confidence: high
                       highlights:
                       - dimension: ownership
-                        evidence: 明确指出推动 12 个团队使用统一组件库；说明了反对意见的处理路径。
+                        evidence: 明确说明了跨团队推进路径。
                         confidence: high
-                      issues:
-                      - dimension: technical_depth
-                        evidence: 回答中没有量化迁移过程中的回归率或灰度策略。
-                        confidence: medium
+                      issues: []
                       nextActions:
-                      - type: retry_current_round
-                        label: 围绕灰度策略复练当前轮追问。
-                      - type: review_evidence
-                        label: 回顾迁移期间的回归数据并准备一段量化叙事。
-                      questionAssessments:
-                      - turnId: 01918fa0-0000-7000-8000-000000006000
-                        questionIntent: behavioral.leadership.design_system
-                        dimensionResults:
-                          communication:
-                            status: meets_bar
-                            confidence: high
-                          technical_depth:
-                            status: needs_work
-                            confidence: medium
-                          ownership:
-                            status: strong
-                            confidence: high
-                        reviewStatus: queued_for_retry
-                        includedInRetryPlan: true
-                      retryFocusTurnIds:
-                      - 01918fa0-0000-7000-8000-000000006000
+                      - type: next_round
+                        label: 进入下一轮
+                      retryFocusCompetencyCodes: []
                       provenance:
-                        promptVersion: feedback_report.v3
-                        rubricVersion: feedback_report.rubric.v2
-                        modelId: model-profile:contract.default
+                        promptVersion: v0.1.0
+                        rubricVersion: v0.1.0
+                        modelId: model-profile:report.generate.default
                         language: zh-CN
                         featureFlag: none
-                        dataSourceVersion: practice_session.v9
-                      createdAt: '2026-04-28T12:00:00Z'
-                      updatedAt: '2026-04-28T13:45:12Z'
+                        dataSourceVersion: registry.v1
+                      createdAt: '2026-07-12T08:30:00Z'
+                      updatedAt: '2026-07-12T08:31:00Z'
                     pageInfo:
                       nextCursor: null
                       pageSize: 20
@@ -2390,9 +2337,9 @@ components:
 
         side-effect endpoints listed in spec D-6, except `POST /auth/email/start`
 
-        (rate-limited per ADR-Q1) and `POST /practice/sessions/{sessionId}/events`
+        (rate-limited per ADR-Q1) and `POST /practice/sessions/{sessionId}/messages`
 
-        (uses `clientEventId` instead).
+        (uses `clientMessageId` instead).
 
         '
       schema:
@@ -2567,12 +2514,6 @@ components:
       - processing
       - ready
       - failed
-    PracticeMode:
-      type: string
-      description: Synced from `shared/conventions.yaml#enums[PracticeMode]` sourceSection 5.3.
-      enum:
-      - assisted
-      - strict
     PracticeGoal:
       type: string
       description: Synced from `shared/conventions.yaml#enums[PracticeGoal]` sourceSection 5.4.
@@ -2630,13 +2571,6 @@ components:
       - high
       - medium
       - low
-    QuestionReviewStatus:
-      type: string
-      description: Synced from `shared/conventions.yaml#enums[QuestionReviewStatus]` sourceSection 5.11.
-      enum:
-      - open
-      - queued_for_retry
-      - resolved
     PrivacyRequestType:
       type: string
       description: Synced from `shared/conventions.yaml#enums[PrivacyRequestType]` sourceSection 5.13.
@@ -3229,6 +3163,7 @@ components:
           type: integer
           format: int32
           minimum: 1
+          maximum: 2147483647
           description: One-based round order inferred from the likely interview process.
         type:
           type: string
@@ -3298,6 +3233,50 @@ components:
             type: string
         provenance:
           $ref: '#/components/schemas/GenerationProvenance'
+    PracticeRoundRef:
+      type: object
+      required:
+      - roundId
+      - roundSequence
+      description: Stable logical identity for one structured TargetJob interview round. The identifier is deterministic and
+        is not a UUID.
+      properties:
+        roundId:
+          type: string
+          pattern: ^round-[1-9][0-9]{0,9}-(hr|technical|manager|cross_functional|culture|final|other)$
+          description: Deterministic logical key derived from the one-based sequence and TargetJob round type.
+        roundSequence:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 2147483647
+          description: One-based sequence of the structured TargetJob interview round.
+    PracticeProgress:
+      type: object
+      required:
+      - status
+      - completedRounds
+      - currentRound
+      description: Backend read-side projection derived from completed practice-session ledger facts. It is not a mutable
+        TargetJob lifecycle field.
+      properties:
+        status:
+          type: string
+          enum:
+          - not_started
+          - in_progress
+          - completed
+        completedRounds:
+          type: array
+          uniqueItems: true
+          description: Ordered, deduplicated completed rounds in TargetJob interview-round sequence.
+          items:
+            $ref: '#/components/schemas/PracticeRoundRef'
+        currentRound:
+          description: First incomplete structured round, or null after every round is complete.
+          oneOf:
+          - $ref: '#/components/schemas/PracticeRoundRef'
+          - type: 'null'
     TargetJob:
       type: object
       required:
@@ -3364,7 +3343,13 @@ components:
           - type: string
             format: uuid
           - type: 'null'
-          description: Latest ready practice plan for this target job, when one exists.
+          description: Latest ready practice plan whose persisted resume and exact round pair match this TargetJob's bound
+            resume and backend-projected currentRound; null when progress is completed, invalid, or has no matching ready
+            plan.
+        practiceProgress:
+          $ref: '#/components/schemas/PracticeProgress'
+          description: Completed/current practice rounds projected by the backend from persisted session facts. TargetJob
+            lifecycle status is not a round cursor.
         resumeId:
           oneOf:
           - type: string
@@ -3412,11 +3397,9 @@ components:
       required:
       - targetJobId
       - goal
-      - mode
       - interviewerPersona
       - difficulty
       - language
-      - questionBudget
       - timeBudgetMinutes
       - resumeId
       properties:
@@ -3425,8 +3408,6 @@ components:
           format: uuid
         goal:
           $ref: '#/components/schemas/PracticeGoal'
-        mode:
-          $ref: '#/components/schemas/PracticeMode'
         interviewerPersona:
           $ref: '#/components/schemas/InterviewerRole'
         difficulty:
@@ -3437,10 +3418,6 @@ components:
           - stretch
         language:
           type: string
-        questionBudget:
-          type: integer
-          format: int32
-          minimum: 1
         timeBudgetMinutes:
           type: integer
           format: int32
@@ -3448,6 +3425,11 @@ components:
         resumeId:
           type: string
           format: uuid
+        roundId:
+          type: string
+          pattern: ^round-[1-9][0-9]{0,9}-(hr|technical|manager|cross_functional|culture|final|other)$
+          description: Optional client round intention. The server validates it against the TargetJob progress projection
+            and derives roundSequence.
         sourceReportId:
           type: string
           format: uuid
@@ -3463,15 +3445,18 @@ components:
       - id
       - targetJobId
       - goal
-      - mode
       - interviewerPersona
       - difficulty
       - language
       - timeBudgetMinutes
-      - questionBudget
       - resumeId
       - status
       - createdAt
+      dependentRequired:
+        roundId:
+        - roundSequence
+        roundSequence:
+        - roundId
       properties:
         id:
           type: string
@@ -3481,8 +3466,6 @@ components:
           format: uuid
         goal:
           $ref: '#/components/schemas/PracticeGoal'
-        mode:
-          $ref: '#/components/schemas/PracticeMode'
         interviewerPersona:
           $ref: '#/components/schemas/InterviewerRole'
         difficulty:
@@ -3497,13 +3480,25 @@ components:
           type: integer
           format: int32
           minimum: 1
-        questionBudget:
-          type: integer
-          format: int32
-          minimum: 1
         resumeId:
           type: string
           format: uuid
+        roundId:
+          description: Stable logical round key. New plans return roundId and roundSequence together; legacy plans may omit
+            both or return null.
+          oneOf:
+          - type: string
+            pattern: ^round-[1-9][0-9]{0,9}-(hr|technical|manager|cross_functional|culture|final|other)$
+          - type: 'null'
+        roundSequence:
+          description: One-based structured round sequence. New plans return roundId and roundSequence together; legacy plans
+            may omit both or return null.
+          oneOf:
+          - type: integer
+            format: int32
+            minimum: 1
+            maximum: 2147483647
+          - type: 'null'
         sourceReportId:
           type: string
           format: uuid
@@ -3525,35 +3520,30 @@ components:
         planId:
           type: string
           format: uuid
-        hintsEnabled:
-          type: boolean
-    PracticeTurn:
+    PracticeMessage:
       type: object
       required:
       - id
-      - turnIndex
-      - questionText
-      - status
+      - seqNo
+      - role
+      - content
+      - createdAt
       properties:
         id:
           type: string
           format: uuid
-        turnIndex:
+        seqNo:
           type: integer
           format: int32
           minimum: 1
-        questionText:
-          type: string
-        questionIntent:
-          type: string
-        status:
+        role:
           type: string
           enum:
-          - asked
-          - answered
-          - follow_up_requested
-          - assessed
-        askedAt:
+          - user
+          - assistant
+        content:
+          type: string
+        createdAt:
           type: string
           format: date-time
     PracticeSession:
@@ -3564,8 +3554,7 @@ components:
       - targetJobId
       - status
       - language
-      - hintsEnabled
-      - turnCount
+      - messages
       - createdAt
       - updatedAt
       properties:
@@ -3582,16 +3571,10 @@ components:
           $ref: '#/components/schemas/SessionStatus'
         language:
           type: string
-        hintsEnabled:
-          type: boolean
-        turnCount:
-          type: integer
-          format: int32
-          minimum: 0
-        currentTurn:
-          oneOf:
-          - $ref: '#/components/schemas/PracticeTurn'
-          - type: 'null'
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/PracticeMessage'
         createdAt:
           type: string
           format: date-time
@@ -3611,10 +3594,8 @@ components:
       type: object
       required:
       - clientVoiceTurnId
-      - turnId
       - audio
       - language
-      - practiceMode
       description: 'Client-submitted audio turn for the cascaded STT -> chat -> TTS practice
 
         voice MVP. Audio is a small request payload for immediate processing,
@@ -3627,17 +3608,11 @@ components:
           type: string
           format: uuid
           description: Client-generated voice turn id used with Idempotency-Key replay.
-        turnId:
-          type: string
-          format: uuid
-          description: Current practice turn receiving the voice answer.
         audio:
           $ref: '#/components/schemas/PracticeVoiceAudioInput'
         language:
           type: string
           description: BCP 47 language hint for STT and TTS profiles.
-        practiceMode:
-          $ref: '#/components/schemas/PracticeMode'
     PracticeVoiceAudioInput:
       type: object
       required:
@@ -3794,91 +3769,40 @@ components:
           type: string
         retryable:
           type: boolean
-    PracticeSessionEventRequest:
+    SendPracticeMessageRequest:
       type: object
       required:
-      - clientEventId
-      - kind
-      - occurredAt
-      description: 'Practice-session event. Idempotency for this endpoint is enforced via
+      - clientMessageId
+      - text
+      description: 'Ordinary user message. Idempotency is enforced by `clientMessageId`,
 
-        `clientEventId` (spec D-6); the request must NOT carry an
+        which is unique per session. Message text is never classified as a
 
-        `Idempotency-Key` header. `clientEventId` is unique per session.
+        question, answer, follow-up, or hint.
 
         '
       properties:
-        clientEventId:
+        clientMessageId:
           type: string
-          description: Client-generated event id; unique per session.
-        kind:
+          format: uuid
+        text:
           type: string
-          enum:
-          - answer_submitted
-          - hint_requested
-          - session_paused
-          - session_resumed
-          - tts_chunk_started
-          - tts_chunk_played
-          - barge_in_detected
-          - assistant_context_committed
-        occurredAt:
-          type: string
-          format: date-time
-        payload:
-          type: object
-          additionalProperties: true
-          description: Event-kind-specific payload (e.g., `{ turnId, answerText }` for `answer_submitted`).
-    AssistantAction:
-      type: object
-      required:
-      - type
-      - sessionStatus
-      - provenance
-      description: 'AI-generated next assistant action. Spec §4.6 requires `provenance`.
-
-        Non-scoring actions emit `provenance.rubricVersion = "not_applicable"`.
-
-        '
-      properties:
-        type:
-          type: string
-          enum:
-          - ask_question
-          - ask_follow_up
-          - show_hint
-          - session_wait
-          - session_completed
-        turnId:
-          oneOf:
-          - type: string
-            format: uuid
-          - type: 'null'
-        questionText:
-          oneOf:
-          - type: string
-          - type: 'null'
-        hint:
-          oneOf:
-          - type: string
-          - type: 'null'
-        sessionStatus:
-          $ref: '#/components/schemas/SessionStatus'
-        provenance:
-          $ref: '#/components/schemas/GenerationProvenance'
-    SessionEventResult:
+    SendPracticeMessageResponse:
       type: object
       required:
       - acknowledged
       - session
-      - assistantAction
+      - userMessage
+      - assistantMessage
       properties:
         acknowledged:
           type: boolean
         session:
           $ref: '#/components/schemas/PracticeSession'
-        assistantAction:
-          $ref: '#/components/schemas/AssistantAction'
+        userMessage:
+          $ref: '#/components/schemas/PracticeMessage'
+        assistantMessage:
+          $ref: '#/components/schemas/PracticeMessage'
     CompletePracticeSessionRequest:
       type: object
       required:
@@ -3948,28 +3872,19 @@ components:
           - review_evidence
         label:
           type: string
-    QuestionAssessment:
+    DimensionAssessment:
       type: object
       required:
-      - turnId
-      - questionIntent
-      - dimensionResults
-      - reviewStatus
-      - includedInRetryPlan
+      - dimension
+      - status
+      - confidence
       properties:
-        turnId:
+        dimension:
           type: string
-          format: uuid
-        questionIntent:
-          type: string
-        dimensionResults:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/DimensionResult'
-        reviewStatus:
-          $ref: '#/components/schemas/QuestionReviewStatus'
-        includedInRetryPlan:
-          type: boolean
+        status:
+          $ref: '#/components/schemas/DimensionStatus'
+        confidence:
+          $ref: '#/components/schemas/Confidence'
     FeedbackReport:
       type: object
       required:
@@ -4023,15 +3938,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ReportNextAction'
-        questionAssessments:
+        dimensionAssessments:
           type: array
           items:
-            $ref: '#/components/schemas/QuestionAssessment'
-        retryFocusTurnIds:
+            $ref: '#/components/schemas/DimensionAssessment'
+        retryFocusCompetencyCodes:
           type: array
           items:
             type: string
-            format: uuid
         provenance:
           oneOf:
           - $ref: '#/components/schemas/GenerationProvenance'

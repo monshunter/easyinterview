@@ -91,11 +91,46 @@ describe("interviewContextFromTargetJob", () => {
           ],
           provenance,
         },
+        practiceProgress: {
+          status: "in_progress",
+          completedRounds: [
+            { roundId: "round-1-hr", roundSequence: 1 },
+          ],
+          currentRound: {
+            roundId: "round-2-technical",
+            roundSequence: 2,
+          },
+        },
       }),
     );
 
     expect(ctx.roundId).toBe("round-2-technical");
     expect(ctx.roundName).toBe("Frontend architecture interview · 55m");
     expect(JSON.stringify(ctx)).not.toContain("Technical Round 1");
+  });
+
+  it("fails closed for final or invalid backend progress instead of using lifecycle status", () => {
+    const base = targetJob({
+      status: "interviewing",
+      resumeId: "01918fa0-0000-7000-8000-000000001000",
+      summary: {
+        interviewRounds: [
+          { sequence: 1, type: "hr", name: "Recruiter", durationMinutes: 30, focus: "Fit" },
+        ],
+        provenance,
+      },
+    });
+    const completed = interviewContextFromTargetJob({
+      ...base,
+      practiceProgress: {
+        status: "completed",
+        completedRounds: [{ roundId: "round-1-hr", roundSequence: 1 }],
+        currentRound: null,
+      },
+    });
+    const missing = interviewContextFromTargetJob({ ...base, status: "offer" });
+
+    expect(completed.roundId).toBe("");
+    expect(missing.roundId).toBe("");
   });
 });

@@ -124,6 +124,10 @@ func (h *ParseHandler) Handle(ctx context.Context, job runner.ClaimedJob) runner
 	if err != nil {
 		return h.fail(ctx, asset, job, sharederrors.CodeValidationFailed, err.Error(), false, "")
 	}
+	parsedTextSnapshot := buildResumeMarkdownFallback(input)
+	if parsedTextSnapshot == "" {
+		return h.fail(ctx, asset, job, sharederrors.CodeValidationFailed, "resume snapshot is empty", false, input)
+	}
 	resolution, err := h.registry.Resolve(ctx, FeatureKeyResumeParse, asset.Language)
 	if err != nil {
 		return h.fail(ctx, asset, job, sharederrors.CodeAiProviderConfigInvalid, err.Error(), false, input)
@@ -154,7 +158,10 @@ func (h *ParseHandler) Handle(ctx context.Context, job runner.ClaimedJob) runner
 		code, retryable := translateAIClientError(err)
 		return h.fail(ctx, asset, job, code, err.Error(), retryable, input)
 	}
-	parsed, displayName, markdownText, err := decodeResumeParseResponse(complete.Content, input)
+	if strings.EqualFold(strings.TrimSpace(complete.FinishReason), "length") {
+		return h.fail(ctx, asset, job, sharederrors.CodeAiOutputInvalid, "AI response reached its output limit", false, input)
+	}
+	parsed, displayName, err := decodeResumeParseResponse(complete.Content, input)
 	if err != nil {
 		return h.fail(ctx, asset, job, sharederrors.CodeAiOutputInvalid, err.Error(), false, input)
 	}
@@ -176,7 +183,7 @@ func (h *ParseHandler) Handle(ctx context.Context, job runner.ClaimedJob) runner
 		AssetID:            asset.ID,
 		ParsedSummary:      parsed,
 		StructuredProfile:  parsed,
-		ParsedTextSnapshot: markdownText,
+		ParsedTextSnapshot: parsedTextSnapshot,
 		DisplayName:        displayName,
 		OutboxEventID:      h.newID(),
 		OutboxEventPayload: payload,
@@ -598,29 +605,26 @@ func buildPromptMessages(resolution PromptResolution, resumeText string) []aicli
 	return messages
 }
 
-func decodeResumeParseResponse(content string, resumeText string) (json.RawMessage, *string, string, error) {
+func decodeResumeParseResponse(content string, resumeText string) (json.RawMessage, *string, error) {
 	content = strings.TrimSpace(content)
 	if content == "" {
-		return nil, nil, "", fmt.Errorf("AI response content was empty")
+		return nil, nil, fmt.Errorf("AI response content was empty")
 	}
 	var parsed map[string]any
 	if err := json.Unmarshal([]byte(content), &parsed); err != nil {
-		return nil, nil, "", fmt.Errorf("AI response is not valid JSON: %v", err)
+		return nil, nil, fmt.Errorf("AI response is not valid JSON: %v", err)
 	}
-	for _, key := range []string{"markdownText", "basics", "experiences", "projects", "education", "skills", "languages"} {
+	for _, key := range []string{"basics", "experiences", "projects", "education", "skills", "languages"} {
 		if _, ok := parsed[key]; !ok {
-			return nil, nil, "", fmt.Errorf("AI response missing %s", key)
+			return nil, nil, fmt.Errorf("AI response missing %s", key)
 		}
 	}
-	markdownText := strings.TrimSpace(fieldString(parsed, "markdownText"))
-	if markdownText == "" {
-		return nil, nil, "", fmt.Errorf("AI response markdownText was empty")
-	}
+	delete(parsed, "markdownText")
 	raw, err := json.Marshal(parsed)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("marshal parsed resume summary: %w", err)
+		return nil, nil, fmt.Errorf("marshal parsed resume summary: %w", err)
 	}
-	return raw, deriveResumeDisplayName(parsed, resumeText), markdownText, nil
+	return raw, deriveResumeDisplayName(parsed, resumeText), nil
 }
 
 func deriveResumeDisplayName(parsed map[string]any, resumeText string) *string {

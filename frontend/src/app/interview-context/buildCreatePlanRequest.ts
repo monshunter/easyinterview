@@ -29,6 +29,10 @@ export function buildCreatePlanRequest(
   if (!Number.isInteger(timeBudgetMinutes) || timeBudgetMinutes <= 0) {
     throw new Error("invalid timeBudgetMinutes");
   }
+  const roundId = ctx.roundId?.trim();
+  if (!roundId || !/^round-[1-9][0-9]*-(hr|technical|manager|cross_functional|culture|final|other)$/.test(roundId)) {
+    throw new Error("invalid roundId");
+  }
 
   const goal: PracticeGoal = isDerivedReportGoal(ctx.practiceGoal)
     ? ctx.practiceGoal
@@ -41,6 +45,7 @@ export function buildCreatePlanRequest(
     language: lang,
     timeBudgetMinutes,
     resumeId,
+    roundId,
     focusCompetencyCodes: [],
   };
 

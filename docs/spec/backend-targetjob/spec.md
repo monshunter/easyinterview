@@ -1,8 +1,8 @@
 # Backend TargetJob Spec
 
-> **版本**: 2.8
+> **版本**: 2.10
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 ## 1 背景与目标
 
@@ -22,6 +22,7 @@
   - `GET /targets/{targetJobId}` `getTargetJob`：返回完整 `TargetJob` 工作台对象。
   - `PATCH /targets/{targetJobId}` `updateTargetJob`：更新 lifecycle status / location / notes / hint，要求 `Idempotency-Key`。
   - `POST /targets/{targetJobId}/archive` `archiveTargetJob`：持久软归档当前用户的 TargetJob，要求 `Idempotency-Key`；写入 `status='archived'` 与 `deleted_at`，随后列表 / 详情不可见。
+- `listTargetJobs` / `getTargetJob` 必须在同一 read path 中返回 backend-persisted practice completion ledger 的 `practiceProgress` 投影，并只把精确匹配当前轮次的 ready plan 暴露为 `currentPracticePlanId`；不得用 TargetJob lifecycle `status` 或全局最新 plan 推断轮次。
 - 4 类导入源（`url` / `manual_text` / `file` / `manual_form`）的写入路径与归一化：source snapshot 写入 `target_job_sources`，`raw_jd_text` 只在 `target_jobs` 表内部保留，事件 / 日志 / metric / audit 不携带原文。
 - URL 导入的 fetch 边界：scheme / DNS-IP SSRF 防护、length cap、timeout、`fetched_at` 与 `freshness_status` 写入；不抓登录后内容、不绕过 robots / ToS、不抓非 HTML 资源。
 - File 导入的 `file_objects` 引用：仅接受 `purpose='target_job_attachment'` 的 file object；缺失或越权返回 B1 error envelope，不泄露文件内容。
@@ -57,6 +58,7 @@
 | D-5 | Async runner 边界 | `target_import` 与下游 `source_refresh` 由 [`backend-async-runner/001`](../backend-async-runner/spec.md) kernel 执行：`targetjob.ParseExecutor` / `SourceRefreshHandler` 直接实现 `runner.Handler` 并注册到单一 `runner.Runtime` | kernel 复用同一 B3 payload red-line；本 spec 只保留 handler 业务实现，不持有 runtime、async job 类型或 claim/finalize SQL |
 | D-6 | Idempotency | `importTargetJob` / `updateTargetJob` / `archiveTargetJob` 按 `(user_id, idempotency_key)` 去重；重复请求返回同一 `targetJobId`、同一 active `target_import` job 或同一 archived TargetJob；解析失败重试由用户显式 `PATCH` 或后续 retry plan 决策 | 防止重复创建 / 重复派发 / 重复写入事件 / 重复归档 |
 | D-14 | TargetJob archive semantics | `archiveTargetJob` 复用简历 archive 先例：软归档而非隐私删除；成功写 `status='archived'` 与 `deleted_at`，read-side 继续通过 `deleted_at is null` 过滤；同用户重复归档返回 `TARGET_INVALID_STATE_TRANSITION` conflict，越权/不存在返回 `TARGET_JOB_NOT_FOUND` | workspace 删除图标刷新后不再回灌已归档卡片，同时保留 privacy delete 独立 owner |
+| D-15 | Practice progress read projection | `TargetJob.practiceProgress` 不落可变列；Get/List 由 canonical `summary.interviewRounds[]` + `practice_plans.round_id/round_sequence` + `practice_session_events.session_completed` 投影。summary provenance 必须完整非空；round sequence 是正 int32、唯一、严格递增但允许 `1,2,4`，type 必须为 OpenAPI 小写 allowlist。完成 pair 去重并按 canonical 顺序输出；`currentRound` 是第一个未完成轮次；`currentPracticePlanId` 只取当前 pair、`practice_plans.resume_id = target_jobs.resume_id` 的最新 ready plan；completion fact 也必须来自同一绑定 resume。 | 不产生 N+1；wrong-resume/duplicate completion、旧轮复练、report failure、TargetJob status 变化不改变已完成事实；legacy null/mismatch/overflow/case-drift pair 被忽略；下一轮是 canonical 列表下一项而不是 `sequence + 1` |
 | D-7 | URL fetch 安全 | 仅允许 `https` scheme；阻止私网 / 链路本地 / 元数据服务 IP；总 body cap 1 MiB；fetch 超时 10s；不跟随 cross-origin redirect 进入私网；user agent 显式标注 EasyInterview crawler 版本；保存 snapshot 时去除 query secret | 防止 SSRF、爬虫滥用与日志泄露 |
 | D-8 | 隐私红线 | 事件 / metric label / log / audit / async payload 不得包含 `raw_jd_text`、`source_url` 完整路径、文件 object URL、AI prompt / response body、provider secret；只允许 hash、长度、language、status、profile、provider、model_id、cost micros、error code | 与 product-scope §9.3 / F1 一致 |
 | D-9 | Cross-user 隔离 | 所有 read / write SQL 必须按 `user_id` 过滤；越权访问 `getTargetJob` / `updateTargetJob` 返回 HTTP 404 + B1 `TARGET_JOB_NOT_FOUND` 而不是 `FORBIDDEN`，避免泄露存在性 | 与 [backend-auth `DELETE /me` 同 key 用户隔离](../backend-auth/spec.md) 一致 |
@@ -157,6 +159,7 @@
 | C-14 | 文档与修订记录治理 | 本 spec 状态变更或字段调整 | 更新 spec / history / `plans/INDEX.md` / `docs/spec/INDEX.md` | 文档保持单一 owner，无 sibling spec；out-of-scope `feature_key` / `voice` route / `mistake.*` 等口径不出现在 active 文档 | docs-only |
 | C-15 | 当前 B4 schema 对齐 | D-20/D-17 后 profile 模块已移除，`target_jobs.profile_id` 不存在 | `GET /targets/{id}` / `GET /targets` / `PATCH /targets/{id}` / `target_import` runner kernel 读取 TargetJob | active SQL 不引用 `profile_id`；解析成功/ready TargetJob 详情不因已移除列引用漂移返回 500；解析失败 TargetJob 已被删除，详情返回 404 而非脏失败态资产 | 001 |
 | C-16 | 有效 JD 未披露公司名 | 用户提交有效 JD，AI 输出包含 title / requirements 但 `companyName` 为空 | `target_import` runner kernel 调用真实 provider 并完成 parse | TargetJob 进入 `analysisStatus='ready'`，`companyName` 写入语言相关兜底值，requirements 可见，`ai_task_runs` 记录 jd_parse provider/model/status/validation 摘要；markdown fenced JSON 可解析，带 prose 的输出仍失败 | 001 |
+| C-17 | Practice progress projection | 结构化 TargetJob 有零/部分/全部完成轮次，canonical sequence 可能是 `1,2,4`；可能有同用户 wrong-resume completion、重复完成 session、更新的旧轮复练 plan、legacy null plan、缺 provenance/溢出/大小写错误 round 与不同 lifecycle status | `GET /targets` / `GET /targets/{id}` | Get/List 仅接纳 TargetJob 绑定 resume 的合法 exact pair；返回一致的有序去重 completed prefix、第一个未完成 canonical `currentRound` 与 status，`2` 的下一轮是现有 `4`；只匹配当前 pair+绑定 resume 的 ready plan 成为 `currentPracticePlanId`；最终完成时 current/plan 均 null；无效 summary fail closed；一页列表只做一条聚合查询，无逐卡 N+1 | 001 |
 
 ## 7 关联计划
 

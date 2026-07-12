@@ -22,7 +22,7 @@ import {
 import { describe, expect, it, vi } from "vitest";
 import type { FC, ReactNode } from "react";
 
-import type { FeedbackReport } from "../../../../api/generated/types";
+import type { FeedbackReport, TargetJob } from "../../../../api/generated/types";
 import { EasyInterviewClient } from "../../../../api/generated/client";
 import { App } from "../../../App";
 import type { LooseRoute } from "../../../normalizeRoute";
@@ -63,11 +63,11 @@ function makeReport(): FeedbackReport {
 
 interface ClientOpts {
   authenticated: boolean;
-  targetJob?: ReturnType<typeof makeTargetJob>;
+  targetJob?: TargetJob;
 }
 
 function makeTargetJob(
-  interviewRounds = [
+  interviewRounds: NonNullable<TargetJob["summary"]>["interviewRounds"] = [
     {
       sequence: 1,
       type: "technical",
@@ -83,7 +83,7 @@ function makeTargetJob(
       focus: "Architecture",
     },
   ],
-) {
+): TargetJob {
   return {
     id: TARGET_JOB_ID,
     analysisStatus: "ready",
@@ -105,13 +105,20 @@ function makeTargetJob(
         dataSourceVersion: "fixture",
       },
     },
+    practiceProgress: {
+      status: "in_progress",
+      completedRounds: [
+        { roundId: "round-1-technical", roundSequence: 1 },
+      ],
+      currentRound: { roundId: "round-2-technical", roundSequence: 2 },
+    },
     requirements: [],
     latestReportId: REPORT_ID,
     openQuestionIssueCount: 0,
-    status: "ready",
+    status: "interviewing",
     createdAt: "2026-05-16T00:00:00Z",
     updatedAt: "2026-05-16T00:00:00Z",
-  } as const;
+  };
 }
 
 function makeClient(opts: ClientOpts): EasyInterviewClient {
@@ -160,9 +167,14 @@ function makeClient(opts: ClientOpts): EasyInterviewClient {
       title: "Resume v3",
       parsedSummary: { headline: "Frontend lead" },
     })),
-    createPracticePlan: vi.fn(async () => ({
+    createPracticePlan: vi.fn(async (body) => ({
       id: "01918fa0-0000-7000-8000-000000008000",
+      targetJobId: body.targetJobId,
+      resumeId: body.resumeId,
+      timeBudgetMinutes: body.timeBudgetMinutes,
       status: "ready",
+      roundId: body.roundId,
+      roundSequence: Number(/^round-([1-9][0-9]*)-/.exec(body.roundId ?? "")?.[1] ?? 0),
     })),
     startPracticeSession: vi.fn(async () => ({
       id: "01918fa0-0000-7000-8000-000000009000",
@@ -334,9 +346,49 @@ describe("Replay CTAs", () => {
     expect(client.startPracticeSession).not.toHaveBeenCalled();
   });
 
+  it("disables next round when an old report successor no longer equals backend current progress", async () => {
+    const targetJob: TargetJob = {
+      ...makeTargetJob([
+        { sequence: 1, type: "technical", name: "One", durationMinutes: 45, focus: "One" },
+        { sequence: 2, type: "technical", name: "Two", durationMinutes: 60, focus: "Two" },
+        { sequence: 3, type: "manager", name: "Three", durationMinutes: 60, focus: "Three" },
+      ]),
+      practiceProgress: {
+        status: "in_progress",
+        completedRounds: [
+          { roundId: "round-1-technical", roundSequence: 1 },
+          { roundId: "round-2-technical", roundSequence: 2 },
+        ],
+        currentRound: { roundId: "round-3-manager", roundSequence: 3 },
+      },
+    };
+    const client = makeClient({ authenticated: true, targetJob });
+
+    render(
+      <Harness
+        client={client}
+        initialRoute={{ name: "report", params: ROUTE_BASE }}
+      />,
+    );
+    await screen.findByTestId("report-dashboard");
+    await waitFor(() => expect(client.getTargetJob).toHaveBeenCalled());
+
+    expect(screen.getByTestId("report-next-cta")).toBeDisabled();
+    expect(client.createPracticePlan).not.toHaveBeenCalled();
+    expect(client.startPracticeSession).not.toHaveBeenCalled();
+  });
+
   it("locks both CTAs synchronously and creates at most one plan/session for repeated clicks", async () => {
     const client = makeClient({ authenticated: true });
-    let resolvePlan!: (value: { id: string; status: string }) => void;
+    let resolvePlan!: (value: {
+      id: string;
+      targetJobId: string;
+      resumeId: string;
+      timeBudgetMinutes: number;
+      status: "ready";
+      roundId: string;
+      roundSequence: number;
+    }) => void;
     client.createPracticePlan = vi.fn(() => new Promise((resolve) => {
       resolvePlan = resolve;
     })) as never;
@@ -361,7 +413,15 @@ describe("Replay CTAs", () => {
     expect(replay).toBeDisabled();
     expect(next).toBeDisabled();
     await act(async () => {
-      resolvePlan({ id: "01918fa0-0000-7000-8000-000000008000", status: "ready" });
+      resolvePlan({
+        id: "01918fa0-0000-7000-8000-000000008000",
+        targetJobId: TARGET_JOB_ID,
+        resumeId: RESUME_VERSION_ID,
+        timeBudgetMinutes: 45,
+        status: "ready",
+        roundId: "round-1-technical",
+        roundSequence: 1,
+      });
     });
     await waitFor(() => expect(client.startPracticeSession).toHaveBeenCalledTimes(1));
   });
@@ -407,6 +467,7 @@ describe("Replay payload integrity", () => {
       sessionId: SESSION_ID,
     }, {
       id: "round-2-technical",
+      sequence: 2,
       name: "Technical two · 60m",
       focus: "Architecture",
       type: "technical",

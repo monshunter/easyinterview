@@ -243,6 +243,17 @@ export interface TargetJobFitSummary {
 	strengths?: string[];
 }
 
+export interface PracticeRoundRef {
+	roundId: string;
+	roundSequence: number;
+}
+
+export interface PracticeProgress {
+	completedRounds: PracticeRoundRef[];
+	currentRound: PracticeRoundRef | null;
+	status: "not_started" | "in_progress" | "completed";
+}
+
 export interface TargetJob {
 	analysisStatus: TargetJobParseStatus;
 	companyName: string;
@@ -253,6 +264,7 @@ export interface TargetJob {
 	latestReportId?: string | null;
 	locationText?: string | null;
 	openQuestionIssueCount: number;
+	practiceProgress?: PracticeProgress;
 	requirements: TargetJobRequirement[];
 	resumeId?: string | null;
 	sourceType: "manual_text" | "url" | "file" | "manual_form";
@@ -284,6 +296,7 @@ export interface CreatePracticePlanRequest {
 	interviewerPersona: InterviewerRole;
 	language: string;
 	resumeId: string;
+	roundId?: string;
 	sourceReportId?: string | null;
 	targetJobId: string;
 	timeBudgetMinutes: number;
@@ -297,6 +310,8 @@ export interface PracticePlan {
 	interviewerPersona: InterviewerRole;
 	language: string;
 	resumeId: string;
+	roundId?: string | null;
+	roundSequence?: number | null;
 	sourceReportId?: string | null;
 	status: "draft" | "ready" | "archived";
 	targetJobId: string;

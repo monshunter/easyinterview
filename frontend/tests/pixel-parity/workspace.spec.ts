@@ -209,6 +209,28 @@ test.describe("workspace DOM anchor parity", () => {
     await expect(page.locator("[data-testid='workspace-plan-list-create']")).toHaveCount(1);
   });
 
+  test("workspace rail renders backend progress with unchanged node geometry", async ({ page }) => {
+    await goToWorkspace(page);
+    const rail = page.locator(
+      `[data-testid='workspace-plan-list-rail-${WORKSPACE_TARGET_ID}']`,
+    );
+    await expect(rail.locator('[data-round-state="done"]')).toHaveCount(1);
+    await expect(rail.locator('[data-round-state="current"]')).toHaveCount(1);
+    await expect(rail.locator('[data-round-state="pending"]')).toHaveCount(1);
+
+    const nodeBoxes = await rail.locator("[data-round-state] > div:first-child").evaluateAll(
+      (nodes) => nodes.map((node) => {
+        const rect = node.getBoundingClientRect();
+        return { width: rect.width, height: rect.height };
+      }),
+    );
+    expect(nodeBoxes).toHaveLength(3);
+    for (const box of nodeBoxes) {
+      expect(box.width).toBe(18);
+      expect(box.height).toBe(18);
+    }
+  });
+
   test("TopBar workspace nav button has aria-current=page after navigation", async ({ page }) => {
     await goToWorkspace(page);
     const ariaCurrent = await page.getAttribute("[data-testid='topbar-nav-workspace']", "aria-current");
@@ -294,6 +316,18 @@ test.describe("workspace bounding box parity", () => {
 
   test("workspace plan-list cards keep visible card affordance", async ({ page }) => {
     await goToWorkspace(page);
+
+    const requiredSections = [
+      `workspace-plan-list-card-${WORKSPACE_TARGET_ID}`,
+      `workspace-plan-list-card-body-${WORKSPACE_TARGET_ID}`,
+      `workspace-plan-list-rail-${WORKSPACE_TARGET_ID}`,
+      `workspace-plan-list-card-footer-${WORKSPACE_TARGET_ID}`,
+      `workspace-plan-list-start-${WORKSPACE_TARGET_ID}`,
+      `workspace-plan-list-delete-${WORKSPACE_TARGET_ID}`,
+    ];
+    for (const testId of requiredSections) {
+      await expect(page.locator(`[data-testid='${testId}']`)).toHaveCount(1);
+    }
 
     const styles = await page.evaluate((targetId) => {
       const card = document.querySelector(`[data-testid='workspace-plan-list-card-${targetId}']`) as HTMLElement | null;

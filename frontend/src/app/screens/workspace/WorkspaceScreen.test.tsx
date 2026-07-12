@@ -106,6 +106,11 @@ const READY_TARGET_JOB: TargetJob = {
   updatedAt: "2026-07-09T09:00:00Z",
   currentPracticePlanId: null,
   resumeId: "01918fa0-0000-7000-8000-000000001000",
+  practiceProgress: {
+    status: "not_started",
+    completedRounds: [],
+    currentRound: { roundId: "round-1-technical", roundSequence: 1 },
+  },
 };
 
 beforeEach(() => {

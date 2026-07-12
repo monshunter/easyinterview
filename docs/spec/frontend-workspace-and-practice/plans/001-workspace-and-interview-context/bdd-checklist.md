@@ -1,6 +1,6 @@
 # 001 BDD Checklist
 
-> **版本**: 1.20
+> **版本**: 1.22
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -48,9 +48,18 @@
 - [x] Verify rejects fixed `ROUND_ORDER`, `DEFAULT_NEXT_ROUND` and fallback-to-current/fallback-to-first behavior
 - [x] Scenario `setup -> trigger -> verify -> cleanup` passes（34/34 Vitest PASS）
 
+## E2E.P0.098 Persisted multi-round progress and quick-start
+
+- [x] Real backend completion advances `practiceProgress` first→next and final→completed/null for both TargetJob Get/List.<!-- verified: 2026-07-12 method=P0.098 real-postgres -->
+- [x] Live real-API browser reloads Home/Workspace/Parse after completion, renders the persisted rail/current next-existing round, and quick-start's real request/response uses that exact round identity.<!-- verified: 2026-07-12 run=e2e-p0-098-20260712111826-75013 states=done,current,pending round=round-2-technical sequence=2 -->
+- [x] Equal-duration wrong-round and legacy null plans are never reused; final/invalid progress performs zero create/start calls.<!-- verified: 2026-07-12 method=startPractice-tests+P0.098 -->
+- [x] Report old-next mismatch is disabled while retry-current remains available and server validated.<!-- verified: 2026-07-12 method=ReplayCta-tests -->
+- [x] Verify source/runtime has no business progress persistence in browser storage/URL/fixture fallback; UI rail parity remains unchanged.<!-- verified: 2026-07-12 method=scope-test+ui-contract+pixel-parity -->
+- [x] Scenario `setup -> trigger -> verify -> cleanup` passes with the live browser reload/quick-start gate enabled.<!-- verified: 2026-07-12 run=e2e-p0-098-20260712111826-75013 result=PASS cleanup_live_seed_remaining=0 -->
+
 ## Closeout
 
-- [x] `validate_context.py --context docs/spec/frontend-workspace-and-practice/plans/001-workspace-and-interview-context/context.yaml --target frontend` passes
-- [x] `sync-doc-index --check` passes
-- [x] `make docs-check` passes
-- [x] `git diff --check` passes
+- [x] `validate_context.py --context docs/spec/frontend-workspace-and-practice/plans/001-workspace-and-interview-context/context.yaml --target frontend` passes<!-- verified: 2026-07-12 -->
+- [x] `sync-doc-index --check` passes<!-- verified: 2026-07-12 after final lifecycle sync -->
+- [x] `make docs-check` passes<!-- verified: 2026-07-12 after final lifecycle sync -->
+- [x] `git diff --check` passes<!-- verified: 2026-07-12 -->

@@ -4,7 +4,7 @@ import type { TargetJob, TargetJobStatus } from "../../../api/generated/types";
 import { useI18n } from "../../i18n/messages";
 import {
   buildTargetJobRoundAssumptions,
-  roundIndexFromTargetJobStatus,
+  resolveTargetJobPracticeProgress,
 } from "../../interview-context/roundAssumptions";
 import { ResumeWorkshopIcon } from "../resume-workshop/components/ResumeWorkshopIcon";
 
@@ -65,8 +65,8 @@ const statusColorMap: Record<
 // ─── MiniRoundRail ────────────────────────────────────────────────
 
 interface MiniRoundRailProps {
-  rounds: string[];
-  currentIndex: number;
+  rounds: Array<{ id: string; name: string }>;
+  currentIndex: number | null;
 }
 
 const MiniRoundRail: FC<MiniRoundRailProps> = ({ rounds, currentIndex }) => (
@@ -89,7 +89,7 @@ const MiniRoundRail: FC<MiniRoundRailProps> = ({ rounds, currentIndex }) => (
         }}
       >
         {rounds.map((round, i) => {
-          const done = i < currentIndex;
+          const done = currentIndex !== null && i < currentIndex;
           const current = i === currentIndex;
           const align =
             i === 0
@@ -105,7 +105,8 @@ const MiniRoundRail: FC<MiniRoundRailProps> = ({ rounds, currentIndex }) => (
                 : "center";
           return (
             <div
-              key={round}
+              key={round.id}
+              data-round-state={done ? "done" : current ? "current" : "pending"}
               style={{
                 position: "relative",
                 display: "flex",
@@ -178,7 +179,7 @@ const MiniRoundRail: FC<MiniRoundRailProps> = ({ rounds, currentIndex }) => (
                   textOverflow: "ellipsis",
                 }}
               >
-                {round}
+                {round.name}
               </div>
             </div>
           );
@@ -224,7 +225,7 @@ export const MockInterviewCard: FC<MockInterviewCardProps> = ({
   const tone = statusTone(job.status);
   const colors = statusColorMap[tone] ?? { bg: "transparent", fg: "var(--ei-color-fg-tertiary)" };
   const rounds = buildTargetJobRoundAssumptions(job, t);
-  const ci = roundIndexFromTargetJobStatus(job.status, rounds.length);
+  const ci = resolveTargetJobPracticeProgress(job).currentIndex;
   const hasFooter = Boolean(footer || primaryAction);
 
   const runAction = (
@@ -331,7 +332,7 @@ export const MockInterviewCard: FC<MockInterviewCardProps> = ({
       </div>
       <div data-testid={railTestId ?? `home-recent-mock-rail-${job.id}`}>
         <MiniRoundRail
-          rounds={rounds.map((round) => round.name)}
+          rounds={rounds}
           currentIndex={ci}
         />
       </div>

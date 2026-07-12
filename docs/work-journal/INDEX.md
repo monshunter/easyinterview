@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-12](2026-07-12.md) | `fix(interview): ground resumes and persist round progress (BUG-0162, BUG-0163)` | #fix #api #ui #test #docs #bdd |
 | [2026-07-12](2026-07-12.md) | `docs(frontend): close round consistency plan lifecycle` | #docs |
 | [2026-07-12](2026-07-12.md) | `fix(frontend): align round timing and progression (BUG-0161)` | #fix #ui #test #docs #bdd |
 | [2026-07-12](2026-07-12.md) | `fix(practice): close conversation review regressions (BUG-0160)` | #fix #api #ui #test #docs #bdd |

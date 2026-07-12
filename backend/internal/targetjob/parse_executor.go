@@ -110,6 +110,8 @@ type parseAIResponseRound struct {
 	Focus           string `json:"focus"`
 }
 
+const maxInterviewRoundSequence = 1<<31 - 1
+
 type parseAIResponseReq struct {
 	Kind          string `json:"kind"`
 	Label         string `json:"label"`
@@ -481,7 +483,7 @@ func validateInterviewRounds(input []parseAIResponseRound) ([]parseAIResponseRou
 		round.Type = strings.TrimSpace(round.Type)
 		round.Name = strings.TrimSpace(round.Name)
 		round.Focus = strings.TrimSpace(round.Focus)
-		if round.Sequence < 1 {
+		if round.Sequence < 1 || round.Sequence > maxInterviewRoundSequence {
 			return nil, fmt.Errorf("AI response interview round %d has invalid sequence", i)
 		}
 		if _, ok := seenSequence[round.Sequence]; ok {

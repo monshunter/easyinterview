@@ -446,6 +446,80 @@ class FixtureContentTest(unittest.TestCase):
                     f"{opid}: missing required scenarios {sorted(expected - set(scenarios))}",
                 )
 
+    def test_schema_validator_enforces_round_pair_pattern_and_unique_progress(self) -> None:
+        validator = _load_validator()
+        spec = _load_openapi()
+        schemas = spec["components"]["schemas"]
+
+        missing_pair_errors: list[str] = []
+        validator.schema_validate(
+            {"roundId": "round-1-technical"},
+            schemas["PracticePlan"],
+            root=spec,
+            path="plan",
+            errors=missing_pair_errors,
+        )
+        self.assertTrue(any("dependent" in error and "roundSequence" in error for error in missing_pair_errors))
+
+        pattern_errors: list[str] = []
+        validator.schema_validate(
+            "01918fa0-0000-7000-8000-000000004000",
+            schemas["CreatePracticePlanRequest"]["properties"]["roundId"],
+            root=spec,
+            path="request.roundId",
+            errors=pattern_errors,
+        )
+        self.assertTrue(any("pattern" in error for error in pattern_errors))
+
+        duplicate_errors: list[str] = []
+        duplicate = {"roundId": "round-1-technical", "roundSequence": 1}
+        validator.schema_validate(
+            [duplicate, duplicate],
+            schemas["PracticeProgress"]["properties"]["completedRounds"],
+            root=spec,
+            path="progress.completedRounds",
+            errors=duplicate_errors,
+        )
+        self.assertTrue(any("uniqueItems" in error for error in duplicate_errors))
+
+    def test_practice_round_fixtures_cover_current_legacy_and_progress_states(self) -> None:
+        validator = _load_validator()
+        expected_scenarios = {
+            ("PracticePlans", "createPracticePlan"): {"default", "report-derived", "round-mismatch"},
+            ("PracticePlans", "getPracticePlan"): {"default", "legacy-null-round-identity"},
+            ("TargetJobs", "getTargetJob"): {"default", "not-started-progress", "all-completed-progress"},
+            ("TargetJobs", "listTargetJobs"): {"default", "not-started-progress", "all-completed-progress"},
+        }
+
+        for (tag, opid), expected in expected_scenarios.items():
+            scenarios = _load_fixture(opid, tag)["scenarios"]
+            with self.subTest(operationId=opid):
+                self.assertTrue(expected.issubset(scenarios), sorted(expected - set(scenarios)))
+                errors: list[str] = []
+                validator.check_practice_round_semantics(opid, scenarios, errors)
+                self.assertEqual([], errors)
+
+    def test_practice_progress_validator_rejects_non_prefix_completion(self) -> None:
+        validator = _load_validator()
+        target = {
+            "summary": {
+                "interviewRounds": [
+                    {"sequence": 1, "type": "technical"},
+                    {"sequence": 2, "type": "manager"},
+                ]
+            },
+            "practiceProgress": {
+                "status": "in_progress",
+                "completedRounds": [{"roundId": "round-2-manager", "roundSequence": 2}],
+                "currentRound": {"roundId": "round-1-technical", "roundSequence": 1},
+            },
+        }
+        errors: list[str] = []
+
+        validator.check_target_job_practice_progress("fixture.target", target, errors)
+
+        self.assertTrue(any("completedRounds" in error and "prefix" in error for error in errors), errors)
+
     def test_register_resume_fileless_source_variants_omit_file_object_id(self) -> None:
         scenarios = _load_fixture("registerResume", "Resumes")["scenarios"]
 

@@ -88,6 +88,7 @@ type CreatePlanRequest struct {
 	TargetJobID          string
 	ResumeID             string
 	SourceReportID       string
+	RoundID              string
 	Goal                 sharedtypes.PracticeGoal
 	InterviewerPersona   sharedtypes.InterviewerRole
 	Difficulty           string
@@ -103,6 +104,7 @@ type CreatePlanStoreInput struct {
 	TargetJobID          string
 	ResumeID             string
 	SourceReportID       string
+	RoundID              string
 	Goal                 sharedtypes.PracticeGoal
 	InterviewerPersona   sharedtypes.InterviewerRole
 	Difficulty           string
@@ -117,6 +119,8 @@ type PlanRecord struct {
 	TargetJobID        string
 	SourceReportID     string
 	ResumeID           string
+	RoundID            string
+	RoundSequence      int32
 	Goal               sharedtypes.PracticeGoal
 	InterviewerPersona sharedtypes.InterviewerRole
 	Difficulty         string
@@ -190,6 +194,7 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 		TargetJobID:          strings.TrimSpace(in.TargetJobID),
 		ResumeID:             strings.TrimSpace(in.ResumeID),
 		SourceReportID:       sourceReportID,
+		RoundID:              strings.TrimSpace(in.RoundID),
 		Goal:                 in.Goal,
 		InterviewerPersona:   in.InterviewerPersona,
 		Difficulty:           strings.TrimSpace(in.Difficulty),

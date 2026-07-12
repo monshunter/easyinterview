@@ -54,7 +54,14 @@ window.EI_DATA = {
       updatedAt: "2 小时前",
       readiness: 3, // 0-3: 未就绪 / 基本可面 / 建议再练 / 较为充分
       readinessLabel: "建议再练",
-      nextRound: "经理面 · 4月24日 14:00",
+      practiceProgress: {
+        status: "in_progress",
+        completedRounds: [
+          { roundId: "round-1-hr", roundSequence: 1 },
+          { roundId: "round-2-technical", roundSequence: 2 },
+        ],
+        currentRound: { roundId: "round-3-technical", roundSequence: 3 },
+      },
       hits: ["React 深度", "性能优化", "可访问性"],
       gaps: ["大型协作案例", "Design System 落地故事"],
       practices: 4,
@@ -73,7 +80,11 @@ window.EI_DATA = {
       updatedAt: "昨天",
       readiness: 2,
       readinessLabel: "基本可面",
-      nextRound: "HR 初筛 · 待预约",
+      practiceProgress: {
+        status: "not_started",
+        completedRounds: [],
+        currentRound: { roundId: "round-1-hr", roundSequence: 1 },
+      },
       hits: ["TypeScript", "Monorepo"],
       gaps: ["英文表达节奏", "Platform 案例"],
       practices: 2,
@@ -92,7 +103,16 @@ window.EI_DATA = {
       updatedAt: "3 天前",
       readiness: 1,
       readinessLabel: "未就绪",
-      nextRound: "未安排",
+      practiceProgress: {
+        status: "completed",
+        completedRounds: [
+          { roundId: "round-1-hr", roundSequence: 1 },
+          { roundId: "round-2-technical", roundSequence: 2 },
+          { roundId: "round-3-technical", roundSequence: 3 },
+          { roundId: "round-4-manager", roundSequence: 4 },
+        ],
+        currentRound: null,
+      },
       hits: ["系统设计"],
       gaps: ["跨团队影响", "技术决策案例"],
       practices: 0,

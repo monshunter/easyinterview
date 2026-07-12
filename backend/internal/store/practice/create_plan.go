@@ -42,31 +42,133 @@ func (r *SQLRepository) CreatePlan(ctx context.Context, in domain.CreatePlanStor
 	var plan domain.PlanRecord
 	var sourceReportID sql.NullString
 	err = tx.QueryRowContext(ctx, `
+with selected_target as (
+  select tj.id,
+         case when jsonb_typeof(tj.summary->'interviewRounds') = 'array'
+              then tj.summary->'interviewRounds' else '[]'::jsonb end rounds
+  from target_jobs tj
+  where tj.id = $3
+    and tj.user_id = $2
+    and tj.resume_id = $10
+    and tj.deleted_at is null
+    and jsonb_typeof(tj.summary->'provenance') = 'object'
+    and nullif(btrim(tj.summary#>>'{provenance,promptVersion}'), '') is not null
+    and nullif(btrim(tj.summary#>>'{provenance,rubricVersion}'), '') is not null
+    and nullif(btrim(tj.summary#>>'{provenance,modelId}'), '') is not null
+    and nullif(btrim(tj.summary#>>'{provenance,language}'), '') is not null
+    and nullif(btrim(tj.summary#>>'{provenance,dataSourceVersion}'), '') is not null
+), raw_rounds as (
+  select st.id target_job_id,
+         case
+           when value->>'sequence' ~ '^[1-9][0-9]{0,9}$'
+            and (length(value->>'sequence') < 10 or value->>'sequence' <= '2147483647')
+           then (value->>'sequence')::int
+         end round_sequence,
+         btrim(value->>'type') round_type,
+         btrim(value->>'name') round_name,
+         case when value->>'durationMinutes' ~ '^[0-9]{1,3}$' then (value->>'durationMinutes')::int end duration_minutes,
+         btrim(value->>'focus') round_focus
+  from selected_target st
+  cross join lateral jsonb_array_elements(st.rounds) value
+), canonical_rounds as (
+  select target_job_id, round_sequence, round_type, round_name, duration_minutes, round_focus,
+         'round-' || round_sequence::text || '-' || round_type round_id
+  from raw_rounds
+  where round_sequence > 0
+    and round_type in ('hr','technical','manager','cross_functional','culture','final','other')
+    and nullif(round_name, '') is not null
+    and duration_minutes between 10 and 180
+    and nullif(round_focus, '') is not null
+), valid_rounds as (
+  select cr.*
+  from canonical_rounds cr
+  join selected_target st on st.id = cr.target_job_id
+  where jsonb_array_length(st.rounds) between 2 and 5
+    and (select count(*) from canonical_rounds) = jsonb_array_length(st.rounds)
+    and (select count(distinct round_sequence) from canonical_rounds) = jsonb_array_length(st.rounds)
+    and (select count(distinct round_id) from canonical_rounds) = jsonb_array_length(st.rounds)
+), completed_rounds as (
+  select distinct pp.round_id, pp.round_sequence
+  from practice_plans pp
+  join practice_sessions ps
+    on ps.plan_id = pp.id
+   and ps.user_id = pp.user_id
+   and ps.target_job_id = pp.target_job_id
+  where pp.user_id = $2 and pp.target_job_id = $3
+    and pp.resume_id = $10
+    and pp.round_id is not null and pp.round_sequence is not null
+    and exists (
+      select 1 from practice_session_events pse
+      where pse.session_id = ps.id and pse.event_type = 'session_completed'
+    )
+), current_round as (
+  select vr.*
+  from valid_rounds vr
+  where not exists (
+    select 1 from completed_rounds done
+    where done.round_id = vr.round_id and done.round_sequence = vr.round_sequence
+  )
+  order by vr.round_sequence, vr.round_id
+  limit 1
+), source_round as (
+  select pp.round_id, pp.round_sequence
+  from feedback_reports fr
+  join practice_sessions ps
+    on ps.id = fr.session_id and ps.user_id = fr.user_id and ps.target_job_id = fr.target_job_id
+  join practice_plans pp
+    on pp.id = ps.plan_id and pp.user_id = ps.user_id and pp.target_job_id = ps.target_job_id
+  where fr.id = nullif($4, '')::uuid
+    and fr.user_id = $2 and fr.target_job_id = $3 and fr.status = 'ready'
+    and pp.resume_id = $10
+    and pp.round_id is not null and pp.round_sequence is not null
+    and exists (
+      select 1 from practice_session_events pse
+      where pse.session_id = ps.id and pse.event_type = 'session_completed'
+    )
+), candidate_round as (
+  select current.* from current_round current
+  where $5 = 'baseline' and nullif($4, '') is null
+  union all
+  select vr.*
+  from source_round source
+  join valid_rounds vr
+    on vr.round_id = source.round_id and vr.round_sequence = source.round_sequence
+  where $5 = 'retry_current_round'
+  union all
+  select successor.*
+  from source_round source
+  cross join lateral (
+    select vr.* from valid_rounds vr
+    where vr.round_sequence > source.round_sequence
+    order by vr.round_sequence, vr.round_id
+    limit 1
+  ) successor
+  join current_round current
+    on current.round_id = successor.round_id and current.round_sequence = successor.round_sequence
+  where $5 = 'next_round'
+), validated_round as (
+  select * from candidate_round
+  where duration_minutes = $9
+    and (nullif(btrim($13), '') is null or round_id = btrim($13))
+)
 insert into practice_plans (
-  id, user_id, target_job_id, source_report_id, goal,
+  id, user_id, target_job_id, source_report_id, goal, round_id, round_sequence,
   interviewer_persona, difficulty, language, time_budget_minutes,
   resume_id, focus_competency_codes, status, created_at, updated_at
 )
-select $1, $2, tj.id, nullif($4, '')::uuid, $5, $6, $7, $8, $9,
-       r.id, $11, 'ready', $12, $12
-from target_jobs tj
+select $1, $2, selected.target_job_id, nullif($4, '')::uuid, $5, selected.round_id, selected.round_sequence,
+       $6, $7, $8, $9, r.id, $11, 'ready', $12, $12
+from validated_round selected
 join resumes r on r.id = $10 and r.user_id = $2 and r.deleted_at is null
-left join feedback_reports fr
-  on fr.id = nullif($4, '')::uuid
- and fr.user_id = $2
- and fr.target_job_id = tj.id
- and fr.status = 'ready'
-where tj.id = $3 and tj.user_id = $2 and tj.deleted_at is null
-  and (($5 = 'baseline' and nullif($4, '') is null)
-    or ($5 in ('retry_current_round', 'next_round') and fr.id is not null))
-returning id, target_job_id, source_report_id::text, goal,
+returning id, target_job_id, source_report_id::text, goal, round_id, round_sequence,
           interviewer_persona, difficulty, language, time_budget_minutes,
           resume_id::text, status, created_at`,
 		in.PlanID, in.UserID, in.TargetJobID, in.SourceReportID, string(in.Goal),
 		string(in.InterviewerPersona), in.Difficulty, in.Language, in.TimeBudgetMinutes,
-		in.ResumeID, pq.Array(focusCompetencyCodes), in.Now,
+		in.ResumeID, pq.Array(focusCompetencyCodes), in.Now, in.RoundID,
 	).Scan(
 		&plan.ID, &plan.TargetJobID, &sourceReportID, &plan.Goal,
+		&plan.RoundID, &plan.RoundSequence,
 		&plan.InterviewerPersona, &plan.Difficulty, &plan.Language,
 		&plan.TimeBudgetMinutes, &plan.ResumeID, &plan.Status, &plan.CreatedAt,
 	)
@@ -81,6 +183,7 @@ returning id, target_job_id, source_report_id::text, goal,
 	metadata, err := json.Marshal(map[string]any{
 		"plan_id": in.PlanID, "goal": string(in.Goal), "language": in.Language,
 		"target_job_id": in.TargetJobID, "source_report_id": in.SourceReportID,
+		"round_id": plan.RoundID, "round_sequence": plan.RoundSequence,
 	})
 	if err != nil {
 		return domain.PlanRecord{}, fmt.Errorf("marshal practice plan audit metadata: %w", err)
@@ -106,12 +209,15 @@ func (r *SQLRepository) GetPlan(ctx context.Context, userID, planID string) (dom
 	}
 	var plan domain.PlanRecord
 	var sourceReportID sql.NullString
+	var roundID sql.NullString
+	var roundSequence sql.NullInt32
 	err := r.db.QueryRowContext(ctx, `
-select id, target_job_id, source_report_id::text, goal,
+select id, target_job_id, source_report_id::text, goal, round_id, round_sequence,
        interviewer_persona, difficulty, language, time_budget_minutes,
        resume_id::text, status, created_at
 from practice_plans where user_id = $1 and id = $2`, userID, planID).Scan(
 		&plan.ID, &plan.TargetJobID, &sourceReportID, &plan.Goal,
+		&roundID, &roundSequence,
 		&plan.InterviewerPersona, &plan.Difficulty, &plan.Language,
 		&plan.TimeBudgetMinutes, &plan.ResumeID, &plan.Status, &plan.CreatedAt,
 	)
@@ -122,6 +228,10 @@ from practice_plans where user_id = $1 and id = $2`, userID, planID).Scan(
 		return domain.PlanRecord{}, fmt.Errorf("select practice plan: %w", err)
 	}
 	plan.SourceReportID = sourceReportID.String
+	plan.RoundID = roundID.String
+	if roundSequence.Valid {
+		plan.RoundSequence = roundSequence.Int32
+	}
 	return plan, nil
 }
 
@@ -252,7 +362,8 @@ insert into idempotency_records (
 	err = tx.QueryRowContext(ctx, `
 with selected_plan as (
   select p.id, p.target_job_id, p.goal, p.interviewer_persona, p.language,
-         p.focus_competency_codes,
+         p.focus_competency_codes, p.round_id, p.round_sequence,
+         round_context.round_type, round_context.round_name, round_context.round_focus,
          coalesce(nullif(tj.title, ''), 'target role') role_title,
          coalesce(nullif(tj.seniority_level, ''), 'not specified') seniority,
          coalesce(nullif(array_to_string(array(
@@ -260,11 +371,38 @@ with selected_plan as (
            where req.target_job_id = p.target_job_id
            order by req.display_order asc, req.created_at asc limit 6
          ), ', '), ''), 'target job requirements') top_skills,
-         r.structured_profile
+         coalesce(
+           nullif(btrim(r.parsed_text_snapshot), ''),
+           nullif(btrim(r.original_text), ''),
+           case
+             when r.structured_profile is not null
+               and r.structured_profile <> '{}'::jsonb
+               and r.structured_profile <> 'null'::jsonb
+             then r.structured_profile::text
+           end,
+           ''
+         ) resume_context
   from practice_plans p
-  join target_jobs tj on tj.id = p.target_job_id and tj.user_id = p.user_id and tj.deleted_at is null
+  join target_jobs tj on tj.id = p.target_job_id and tj.user_id = p.user_id and tj.resume_id = p.resume_id and tj.deleted_at is null
   join resumes r on r.id = p.resume_id and r.user_id = p.user_id and r.deleted_at is null
+  cross join lateral (
+    select btrim(entry.value->>'type') round_type,
+           btrim(entry.value->>'name') round_name,
+           btrim(entry.value->>'focus') round_focus,
+           case when entry.value->>'sequence' ~ '^[1-9][0-9]{0,9}$'
+                 and (length(entry.value->>'sequence') < 10 or entry.value->>'sequence' <= '2147483647')
+                then (entry.value->>'sequence')::int end round_sequence
+    from jsonb_array_elements(
+      case when jsonb_typeof(tj.summary->'interviewRounds') = 'array'
+           then tj.summary->'interviewRounds' else '[]'::jsonb end
+    ) entry(value)
+  ) round_context
   where p.id = $3 and p.user_id = $2 and p.status = 'ready'
+    and p.round_id is not null and p.round_sequence is not null
+    and round_context.round_sequence = p.round_sequence
+    and p.round_id = 'round-' || round_context.round_sequence::text || '-' || round_context.round_type
+    and nullif(round_context.round_name, '') is not null
+    and nullif(round_context.round_focus, '') is not null
 ), inserted as (
   insert into practice_sessions (id, user_id, plan_id, target_job_id, status, language, created_at, updated_at)
   select $1, $2, id, target_job_id, 'queued', language, $4, $4 from selected_plan
@@ -273,14 +411,19 @@ with selected_plan as (
 select inserted.id, inserted.plan_id, inserted.target_job_id, selected_plan.goal,
        selected_plan.interviewer_persona, inserted.language, selected_plan.role_title,
        selected_plan.seniority, selected_plan.top_skills,
-       coalesce(nullif(selected_plan.structured_profile::text, '{}'::text), ''),
-       selected_plan.focus_competency_codes, inserted.created_at, inserted.updated_at
+       selected_plan.resume_context,
+       selected_plan.focus_competency_codes,
+       selected_plan.round_id, selected_plan.round_sequence, selected_plan.round_type,
+       selected_plan.round_name, selected_plan.round_focus,
+       inserted.created_at, inserted.updated_at
 from inserted join selected_plan on selected_plan.id = inserted.plan_id`,
 		in.SessionID, in.UserID, in.PlanID, in.Now,
 	).Scan(
 		&reservation.SessionID, &reservation.PlanID, &reservation.TargetJobID, &reservation.Goal,
 		&reservation.InterviewerPersona, &reservation.Language, &reservation.RoleTitle,
-		&reservation.Seniority, &topSkills, &reservation.ResumeProfile, &focusCompetencies,
+		&reservation.Seniority, &topSkills, &reservation.ResumeContext, &focusCompetencies,
+		&reservation.RoundID, &reservation.RoundSequence, &reservation.RoundType,
+		&reservation.RoundName, &reservation.RoundFocus,
 		&reservation.CreatedAt, &reservation.UpdatedAt,
 	)
 	if stderrs.Is(err, sql.ErrNoRows) {

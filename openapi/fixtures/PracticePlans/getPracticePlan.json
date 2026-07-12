@@ -12,8 +12,10 @@
           "interviewerPersona": "hiring_manager",
           "difficulty": "standard",
           "language": "zh-CN",
-          "timeBudgetMinutes": 30,
+          "timeBudgetMinutes": 50,
           "resumeId": "01918fa0-0000-7000-8000-000000001000",
+          "roundId": "round-2-manager",
+          "roundSequence": 2,
           "status": "ready",
           "createdAt": "2026-07-12T08:00:00Z"
         }
@@ -24,6 +26,26 @@
         "status": 404,
         "headers": {"X-Request-ID": "req_2026-07-12-plan-missing"},
         "body": {"error": {"code": "PRACTICE_PLAN_NOT_FOUND", "message": "practice plan not found", "requestId": "req_2026-07-12-plan-missing", "retryable": false}}
+      }
+    },
+    "legacy-null-round-identity": {
+      "response": {
+        "status": 200,
+        "headers": {"X-Request-ID": "req_2026-07-12-plan-legacy-null"},
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000004099",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "goal": "baseline",
+          "interviewerPersona": "hiring_manager",
+          "difficulty": "standard",
+          "language": "zh-CN",
+          "timeBudgetMinutes": 30,
+          "resumeId": "01918fa0-0000-7000-8000-000000001000",
+          "roundId": null,
+          "roundSequence": null,
+          "status": "ready",
+          "createdAt": "2026-07-01T08:00:00Z"
+        }
       }
     }
   }

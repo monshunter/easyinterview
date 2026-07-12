@@ -361,10 +361,7 @@ describe("WorkspaceEmptyState", () => {
     });
 
     expect(getPlanSpy).toHaveBeenCalledWith("01918fa0-0000-7000-8000-000000004000");
-    expect(createPlanSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ timeBudgetMinutes: 50 }),
-      expect.anything(),
-    );
+    expect(createPlanSpy).not.toHaveBeenCalled();
     expect(nav).toHaveBeenCalledWith({
       name: "practice",
       params: expect.objectContaining({
@@ -377,6 +374,41 @@ describe("WorkspaceEmptyState", () => {
       }),
     });
     expect(nav).not.toHaveBeenCalledWith(expect.objectContaining({ name: "parse" }));
+  });
+
+  it("renders final rail as done and disables quick-start with zero plan/session calls", async () => {
+    const client = clientWithScenarios();
+    const finished = {
+      ...listTargetJobsFixture.scenarios.default.response.body.items[0]!,
+      currentPracticePlanId: null,
+      practiceProgress: {
+        status: "completed" as const,
+        completedRounds: [
+          { roundId: "round-1-technical", roundSequence: 1 },
+          { roundId: "round-2-manager", roundSequence: 2 },
+          { roundId: "round-3-culture", roundSequence: 3 },
+        ],
+        currentRound: null,
+      },
+    };
+    vi.spyOn(client, "listTargetJobs").mockResolvedValue({
+      items: [finished],
+      pageInfo: { hasMore: false, nextCursor: null, pageSize: 12 },
+    } as Awaited<ReturnType<EasyInterviewClient["listTargetJobs"]>>);
+    const getTargetSpy = vi.spyOn(client, "getTargetJob");
+    const createSpy = vi.spyOn(client, "createPracticePlan");
+    const startSpy = vi.spyOn(client, "startPracticeSession");
+
+    renderScreen({ name: "workspace", params: {} }, client);
+
+    const start = await screen.findByTestId(`workspace-plan-list-start-${finished.id}`);
+    const rail = screen.getByTestId(`workspace-plan-list-rail-${finished.id}`);
+    expect(start).toBeDisabled();
+    expect(rail.querySelectorAll('[data-round-state="done"]')).toHaveLength(3);
+    expect(rail.querySelectorAll('[data-round-state="current"]')).toHaveLength(0);
+    expect(getTargetSpy).not.toHaveBeenCalled();
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(startSpy).not.toHaveBeenCalled();
   });
 
   it("archives the plan card through the generated client before removing it", async () => {

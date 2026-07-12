@@ -1,6 +1,6 @@
 # 002 — Conversation Message Loop and Completion
 
-> **版本**: 2.1
+> **版本**: 2.4
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -67,11 +67,27 @@
 - Reject assistant commits when completion has already moved the session out of a mutable state, and map the store conflict through the service/API boundary.
 - Make P0.046 execute provider failure, exact replay, mismatch, pending retry and concurrent-new-message assertions; make P0.047 prove a late reply cannot reopen the session.
 
+### Phase 7: Complete resume grounding for follow-up messages
+
+- RED store/service tests prove `sendPracticeMessage` loads the same complete resume source precedence as session start and preserves a long-input tail marker in every AI payload.
+- GREEN message reservation exposes the shared `ResumeContext` without character/token slicing; the common generator returns typed `VALIDATION_FAILED` before prompt resolve/AI when context is empty and never writes an assistant reply.
+- Keep immutable interviewer policy in the system role and JSON-encode JD, complete resume, persisted round, persona and ordered conversation history as untrusted user data. Embedded instruction-like text cannot escape into policy; persona only controls tone/perspective and cannot invent facts or replace the persisted round.
+- P0.044/P0.046 trigger/verify require named full-snapshot and no-context tests while preserving same-client-message recovery semantics.
+
+### Phase 8: Completion ledger as round-progress fact
+
+- RED completion store/service tests require one durable `session_completed` fact in the same transaction as `completed_at`, report/job/outbox creation, and exact idempotent replay. Only sessions whose plan resume equals `target_jobs.resume_id` may contribute to that TargetJob's completed-round ledger.
+- GREEN preserves the existing event as the sole completed-round ledger input; duplicate completion requests, duplicate sessions for one round and report retries do not create duplicate progress entries.
+- Progress becomes visible immediately after completion commit, independent of report queued/generating/ready/failed state; no frontend/local storage write is part of completion.
+- P0.047 and the cross-layer P0.098 gate prove first-round completion advances TargetJob projection to the next canonical round and final completion yields no current round.
+
 ## 6 验收标准
 
 - Multiple message pairs append in stable order with no question classification.
 - Retries/concurrency cannot duplicate messages or provider calls after replay.
 - Completion creates one report job and conversation-level handoff.
+- Completion commits one auditable round fact that TargetJob read models can project without a mutable progress column.
+- Wrong-resume plan/session facts cannot complete or advance the TargetJob's canonical prefix, even when both resumes belong to the same user.
 - No raw message leaks outside authorized content/prompt/report paths.
 
 ## 7 风险与应对
@@ -81,10 +97,18 @@
 | failure after user persist | same clientMessageId resumable generation |
 | concurrent submits | unique constraints + session-level reservation conflict |
 | stale frontend expects AssistantAction | codegen/typecheck/negative search |
+| start and send use different resume projections | Phase 7 SQL/service tests require identical precedence and the same tail marker on follow-up calls |
+| report generation fails after completion | progress consumes the committed completion event, not report status |
+| completion request/session is replayed | store idempotency plus read-side distinct round pairs prevents duplicate progress |
+| same-user wrong-resume plan contributes progress | completion/read projection requires the plan resume to equal the TargetJob binding before admitting the fact |
+| history or resume carries prompt-like instructions | system policy stays separate; all business context is JSON-encoded untrusted user data |
 
 ## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-12 | 2.4 | Bind completion facts to the TargetJob resume and separate immutable system policy from JSON-encoded untrusted follow-up context. |
+| 2026-07-12 | 2.3 | Reopen Phase 8 so the committed session-completion event is the durable round-progress fact. |
+| 2026-07-12 | 2.2 | Reopen follow-up messaging so every AI call uses the complete resume source snapshot and fails closed without evidence. |
 | 2026-07-12 | 2.1 | Reopen for send/complete race protection and executable failure/recovery scenario evidence. |
 | 2026-07-12 | 2.0 | Replace answer/turn event loop with message conversation loop. |

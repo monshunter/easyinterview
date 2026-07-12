@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.42
+> **版本**: 1.43
 > **状态**: active
 > **更新日期**: 2026-07-12
 
@@ -29,6 +29,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 1.43 | additive practice round contract：`CreatePracticePlanRequest.roundId`、`PracticePlan.roundId/roundSequence` 与 `TargetJob.practiceProgress`；进度由完成 session 台账投影，legacy null round identity 不复用。 | openapi-v1-contract/001 Phase 11 + 002 Phase 6 / backend-practice 001-002 / backend-targetjob 001 / frontend-workspace-and-practice 001 |
 | 2026-07-12 | 1.42 | pre-launch breaking correction：Practice API 从 turn/event 问题状态机改为 `sendPracticeMessage` 连续消息合同；报告改为会话级，voice endpoint 仅保留 fail-closed。 | backend-practice 001-003 / backend-review 001 / practice-voice-mvp 001 |
 | 2026-07-10 | 1.41 | tooling-only：删除无消费方的 frontend raw OpenAPI 字符串快照、专用模板与转义 helper；TS codegen 只保留 client/types，wire contract 不变。 | 001-bootstrap Phase 10 |
 | 2026-07-10 | 1.40 | docs-only：将当前 P0 501 export exception 描述统一为 unavailable response 口径，并把唯一真理源约束收敛为 codegen surface 口径；保留 HTTP status、error code、endpoint 与 schema contract 不变。 | tech-debt pruning |

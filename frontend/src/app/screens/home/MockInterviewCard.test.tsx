@@ -113,6 +113,101 @@ describe("MockInterviewCard", () => {
     expect(rail).not.toHaveTextContent("HR screen · 20m");
   });
 
+  it("keys same-name rounds by canonical id without collapsing the rail", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      render(
+        <MockInterviewCard
+          job={{
+            ...mockJob,
+            summary: {
+              coreThemes: [],
+              interviewRounds: [
+                {
+                  sequence: 1,
+                  type: "technical",
+                  name: "Shared interview",
+                  durationMinutes: 45,
+                  focus: "System design",
+                },
+                {
+                  sequence: 2,
+                  type: "manager",
+                  name: "Shared interview",
+                  durationMinutes: 45,
+                  focus: "Leadership",
+                },
+              ],
+              provenance,
+            },
+          }}
+        />,
+      );
+
+      expect(screen.getAllByText("Shared interview · 45m")).toHaveLength(2);
+      expect(
+        consoleError.mock.calls.flat().join(" "),
+      ).not.toContain("same key");
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("renders backend completed/current facts independently of lifecycle status", () => {
+    const job = {
+      ...mockJob,
+      status: "offer" as const,
+      summary: {
+        coreThemes: [],
+        interviewRounds: [
+          { sequence: 1, type: "hr" as const, name: "Recruiter", durationMinutes: 30, focus: "Fit" },
+          { sequence: 2, type: "technical" as const, name: "Technical", durationMinutes: 45, focus: "Code" },
+        ],
+        provenance,
+      },
+      practiceProgress: {
+        status: "in_progress" as const,
+        completedRounds: [{ roundId: "round-1-hr", roundSequence: 1 }],
+        currentRound: { roundId: "round-2-technical", roundSequence: 2 },
+      },
+    };
+
+    render(<MockInterviewCard job={job} />);
+
+    const rail = screen.getByTestId("home-recent-mock-rail-job-001");
+    expect(rail.querySelectorAll('[data-round-state="done"]')).toHaveLength(1);
+    expect(rail.querySelectorAll('[data-round-state="current"]')).toHaveLength(1);
+  });
+
+  it("renders every node done for final progress and no false current for invalid progress", () => {
+    const rounds = [
+      { sequence: 1, type: "hr" as const, name: "Recruiter", durationMinutes: 30, focus: "Fit" },
+      { sequence: 2, type: "technical" as const, name: "Technical", durationMinutes: 45, focus: "Code" },
+    ];
+    const summary = { coreThemes: [], interviewRounds: rounds, provenance };
+    const { rerender } = render(<MockInterviewCard job={{
+      ...mockJob,
+      summary,
+      practiceProgress: {
+        status: "completed",
+        completedRounds: [
+          { roundId: "round-1-hr", roundSequence: 1 },
+          { roundId: "round-2-technical", roundSequence: 2 },
+        ],
+        currentRound: null,
+      },
+    }} />);
+
+    let rail = screen.getByTestId("home-recent-mock-rail-job-001");
+    expect(rail.querySelectorAll('[data-round-state="done"]')).toHaveLength(2);
+    expect(rail.querySelectorAll('[data-round-state="current"]')).toHaveLength(0);
+
+    rerender(<MockInterviewCard job={{ ...mockJob, summary }} />);
+    rail = screen.getByTestId("home-recent-mock-rail-job-001");
+    expect(rail.querySelectorAll('[data-round-state="done"]')).toHaveLength(0);
+    expect(rail.querySelectorAll('[data-round-state="current"]')).toHaveLength(0);
+  });
+
   it("calls onClick when clicked", () => {
     let clicked = false;
     render(

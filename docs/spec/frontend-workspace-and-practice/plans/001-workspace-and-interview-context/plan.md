@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.38
+> **版本**: 1.40
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -22,7 +22,8 @@
 本次 v1.20 原地修订修复面试列表卡片规格回归：desktop plan-list grid 必须使用固定最大列宽，1/2/3 张卡片的规格保持稳定，不得因单卡数量被拉伸为整行宽卡。
 本次 v1.21 原地修订融合 Home 最近模拟面试与 workspace 面试列表卡片：workspace 卡片必须复用 Home recent card 的主体结构、公司/状态 eyebrow、岗位/地点层级和 mini round rail。本次 v1.22 原地修订把列表卡片的 `进入规划` 可见 footer CTA 改为点击卡片主体承接，并增加 `立即面试` 主按钮和使用简历列表 trash 图标样式的删除能力；Home recent 复用同一卡片动作模型但不展示删除按钮。
 本次 v1.23 原地修订把删除按钮从本地列表隐藏升级为 generated `archiveTargetJob` 持久软归档；删除成功后卡片移除，刷新后不得回灌，删除失败时保留卡片并展示可恢复错误。本次 v1.24 原地修订把删除图标移到卡片右上角，footer 只保留 `立即面试` 主按钮。v1.25 review remediation 要求 workspace list quick-start 必须把结构化 `roundId/roundName` 带入 practice route。v1.26 清理 out-of-scope workspace detail/start/modal 标签口径，保留负向 gate 事实但不再使用生命周期标签。v1.28 将记录区术语收敛为 records static affordance，保持记录区空状态行为不变。v1.31 修复 P0.021 wrapper 漂移，改为当前存在的 workspace source boundary 与 report replay handoff regression gate。
-本次 v1.38 原地修订收口轮次运行时一致性：`TargetJob.summary.interviewRounds[]` 是当前/下一轮和规划时长的唯一来源；`PracticePlan.timeBudgetMinutes` 保存所选轮次时长快照，Practice Top Bar 从 plan 读取预算；报告下一轮只取有序列表的紧邻后一项，末轮、空/未知轮次、加载失败和重复点击 fail closed，不再使用固定 `25:00`、固定轮次表或默认回退。
+本次 v1.38 原地修订收口结构化轮次目录与时长一致性：`TargetJob.summary.interviewRounds[]` 是轮次顺序和规划时长的唯一来源；`PracticePlan.timeBudgetMinutes` 保存所选轮次时长快照，Practice Top Bar 从 plan 读取预算；报告下一轮只取有序列表的紧邻后一项，末轮、空/未知轮次、加载失败和重复点击 fail closed，不再使用固定 `25:00`、固定轮次表或默认回退。当前轮的持久化事实由 v1.39 `practiceProgress` 接管。
+本次 v1.39 按方案 A 把轮次进度事实收回后端：Home/Workspace/Parse/Report 只消费 `TargetJob.practiceProgress`，不再用 TargetJob lifecycle `status`、自由文本、时长或浏览器状态猜测当前轮；计划只按 exact round pair 复用，全部完成后启动 fail closed。
 
 - TopBar `workspace` 文案改为 `面试` / `Interview`，route/testid 仍保持 `workspace`。
 - `workspace` 始终渲染面试规划列表，使用 generated `listTargetJobs(analysisStatus=ready)`，点击卡片主体导航 `parse` 统一面试规划详情。
@@ -44,9 +45,9 @@
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|----------|
-| `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` | `WorkspacePlanList` 一级面试规划列表 landing | `backend-targetjob/001` | `target_jobs.resume_id` + optional latest ready `practice_plans` | none | `E2E.P0.018` |
+| `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` | `WorkspacePlanList` 一级面试规划列表 landing / quick-start | `backend-targetjob/001` | `target_jobs.resume_id` + completion-ledger `practiceProgress` + exact current-pair ready plan | none | `E2E.P0.018`, `E2E.P0.098` |
 | `archiveTargetJob` | `openapi/fixtures/TargetJobs/archiveTargetJob.json` | `WorkspacePlanList` 删除图标 | `backend-targetjob/001` Phase 12 | `target_jobs.status='archived'` + `deleted_at` | none | `E2E.P0.018` persistent delete gate |
-| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse / shared start / report handoff resolve ordered structured rounds | `backend-targetjob/001` | `target_jobs.resume_id` + structured profile + optional latest ready `practice_plans` | none | parse owner + P0.018/P0.021/P0.057 focused gates |
+| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse / shared start / report handoff resolve canonical structured rounds and persisted progress | `backend-targetjob/001` | `target_jobs.resume_id` + structured profile + completion-ledger `practiceProgress` + exact current-pair ready plan | none | parse owner + P0.018/P0.021/P0.057/P0.098 gates |
 | `getResume` | `openapi/fixtures/Resumes/getResume.json` | Parse / resume owners only | `backend-resume/001` | `resume_assets` | none | external owner gates |
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home select + Parse bound resume display / resume workshop | `backend-resume/001` | `resume_assets` | none | parse owner gate |
 | `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` | Shared start validates target/resume/time budget before reuse；Practice reads runtime budget | `backend-practice/001` | `practice_plans.time_budget_minutes` | none | P0.021/P0.045 focused gates |
@@ -242,11 +243,20 @@
 
 - Update the Practice/report UI truth source so the visible budget comes from the selected structured round and next-round behavior uses the same ordered list.
 - Add RED tests proving the current hard-coded `25:00`, fixed `ROUND_ORDER`, unknown-round fallback and repeated-click behavior are incorrect.
-- Resolve the selected round once through the shared round assumptions; write its `durationMinutes` into `CreatePracticePlanRequest.timeBudgetMinutes`, reuse an existing baseline plan only when target/resume/time budget all match, and display the persisted plan budget in Practice.
-- Resolve next round as the immediate successor in the fetched TargetJob round list. Disable next-round while round data is loading, when derived round IDs are duplicated, when the current round is missing/unknown, at the final/single round, or while a start is in flight; never fall back to the first or a fabricated default round.
+- Resolve the selected round once through the shared round assumptions; write its `durationMinutes` into `CreatePracticePlanRequest.timeBudgetMinutes`, and display the persisted plan budget in Practice. Phase 25 supersedes the old duration-only reuse predicate with exact persisted round-pair reuse.
+- Resolve next round as the immediate existing successor in the fetched TargetJob round list. Sequence must be positive int32, unique and strictly increasing, but gaps such as `1,2,4` are valid: round `2` advances to round `4`, never a fabricated `3`. Disable next-round while round data is loading, when derived round IDs are duplicated, when the current round is missing/unknown, at the final/single round, or while a start is in flight; never fall back to the first or a fabricated default round.
 - Keep elapsed time as informational budget progress: no automatic completion, no TargetJob status mutation, no new OpenAPI/schema field.
 - BDD-Gate: update and run `E2E.P0.021`, `E2E.P0.045` and `E2E.P0.057`.
 - Closeout evidence: [BUG-0161](../../../../bugs/BUG-0161.md) and [structured-round runtime consistency assessment](../../../../reports/2026-07-12-structured-round-runtime-consistency-assessment.md).
+
+### Phase 25: Backend-persisted round progress and exact plan reuse
+
+- Update `ui-design/src/data.jsx` and shared round helpers so Home/Workspace use `practiceProgress.completedRounds/currentRound`; delete `nextRound` and lifecycle-status/text fallbacks. Keep `MiniRoundRail` DOM, style tokens, bounding boxes and responsive geometry unchanged. All completed renders every node done and disables quick-start; invalid/missing projection renders no false current state and fails closed.
+- Replace `roundIndexFromTargetJobStatus` with a strict progress mapper. It validates exact round pair, positive int32 strictly increasing/unique canonical sequences without requiring contiguity, completed prefix, current first-incomplete and final completed/null state. Navigation derives `roundId/roundName` only from valid current progress; changing `TargetJob.status` cannot change the result.
+- `buildCreatePlanRequest` sends `roundId` only; the backend derives sequence. Shared start reuses a plan only when ready target/resume/roundId/roundSequence exactly match, with duration as an integrity check. Equal-duration adjacent rounds and legacy null identity must create/validate a new plan. A new response with a mismatched pair cannot start a session.
+- Home/Workspace/Parse quick-start must target `practiceProgress.currentRound`; final/invalid progress disables start with zero plan/session calls. Report next-round is enabled only when the next existing canonical array item exactly equals the backend current round; it must not compare with `sequence + 1`. Retry-current-round remains allowed and server-validated.
+- No round/progress/plan-completion business state may be written to local/session storage, IndexedDB or URL as a fact. Run UI contract, focused/full frontend, typecheck/build, Home/Workspace/Parse/Report parity, P0.018/P0.021/P0.057/P0.098 and negative searches for status/text/duration/contiguous-sequence fallback and business-storage persistence.
+- Real PostgreSQL projection tests plus Vitest/static scope checks are supporting evidence, not a live-browser substitute. Phase 25 BDD closes only after a real API-mode browser reloads Home/Workspace/Parse after completion, observes the persisted rail/current round, clicks quick-start and proves the generated request/response use the exact next existing canonical round.
 
 ## 5 验收标准
 
@@ -269,12 +279,15 @@
 | A-14 | Workspace card click opens planning detail while footer provides quick start carrying structured `roundId/roundName`, and top-right delete performs persistent `archiveTargetJob`; Home recent reuses quick start and omits delete | `MockInterviewCard.test.tsx`, `HomeRecentMocks.test.tsx`, `WorkspaceScreen.test.tsx`, `WorkspaceEmptyState.test.tsx`, browser screenshots |
 | A-15 | Workspace delete is durable across refresh and never implemented as local-only hiding | generated-client tests, real-backend smoke, `E2E.P0.018`, screenshot acceptance |
 | A-16 | Selected structured round duration is persisted as `PracticePlan.timeBudgetMinutes` and rendered as the Practice budget; stale plan budgets are not silently reused | shared start tests, PracticeScreen tests, `E2E.P0.021`, `E2E.P0.045` |
-| A-17 | Report next-round advances exactly one ordered TargetJob round and never starts from duplicated IDs, final/single/empty/unknown/loading state or duplicate clicks | round resolver/ReplayCta tests, `E2E.P0.057` |
+| A-17 | Report next-round advances to the next existing ordered TargetJob round (including `2→4`), never assumes `sequence + 1`, and never starts from duplicated IDs, final/single/empty/unknown/loading state or duplicate clicks | round resolver/ReplayCta tests, `E2E.P0.057` |
+| A-18 | Home/Workspace/Parse/Report consume backend-persisted progress, reuse only exact current round plans, survive real browser refresh, and fail closed after final/invalid progress without browser business-state persistence | strict round mapper/start/card/report tests, live real-API `E2E.P0.098`, storage negative gate, UI parity |
 
 ## 6 变更记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-12 | 1.40 | Accept non-contiguous canonical sequences and require actual live-browser reload/quick-start evidence before closing the persisted-progress BDD gate. |
+| 2026-07-12 | 1.39 | Reopen Phase 25 for backend-persisted round progress, exact plan reuse and browser business-state negative gates. |
 | 2026-07-12 | 1.38 | Reopen the active owner for structured-round time budgets and fail-closed next-round progression. |
 | 2026-07-10 | 1.36 | Remove the unreachable static Workspace detail/insight sources, localize the Parse binding pill, and reconcile the active spec to a pure list. |
 | 2026-07-10 | 1.35 | Remove the unconsumed useStartPracticeContext export. |

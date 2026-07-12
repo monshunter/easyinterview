@@ -1,6 +1,6 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.38
+> **版本**: 1.40
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -197,3 +197,12 @@
 - [x] 24.4 RED-GREEN: report next-round uses the immediate ordered successor and disables start for duplicate derived IDs, final/single/empty/unknown/loading round state and while either CTA start is in flight; repeated clicks create at most one plan/session（验证：`ReplayCta.test.tsx`、`useReportContextData.test.tsx`、`roundAssumptions.test.ts`，20/20 PASS；`pnpm --filter @easyinterview/frontend typecheck` PASS）
 - [x] 24.5 BDD-Gate: `E2E.P0.021`, `E2E.P0.045` and `E2E.P0.057` execute the current shared-start budget, Practice budget display, next-round and fail-closed assertions（验证：三场景 serial setup/trigger/verify/cleanup PASS；24/24、45/45 + 65/65 + Go gate、34/34）
 - [x] 24.6 Run focused/full frontend, typecheck/build, UI contract/parity, owner context, docs/index/diff and negative searches for fixed `25:00`, `ROUND_ORDER` and default next-round fallback（验证：frontend 112 files / 727 tests PASS；build PASS；Practice/Report parity 16/16 PASS；UI contract 45/45 PASS；context/docs/index/diff/negative gates PASS）
+
+## Phase 25: backend-persisted round progress and exact plan reuse
+
+- [x] 25.1 RED-GREEN: UI contract/data/helpers require `practiceProgress`, reject `nextRound` and lifecycle-status/text fallback, preserve mini rail DOM/computed style/bounds/screenshots, and render final/invalid states correctly.<!-- verified: 2026-07-12 method=ui-contract+pixel-parity result="47/47 contract,4/4 focused pixel,140/140 full pixel" -->
+- [x] 25.2 RED-GREEN: strict mapper/navigation tests cover positive int32 strictly increasing but non-contiguous sequences (`1,2,4`), first→next-existing, final, missing/mismatched/duplicate/non-prefix facts and lifecycle-status independence; no `sequence + 1` assumption.<!-- verified: 2026-07-12 method=vitest -->
+- [x] 25.3 RED-GREEN: create/start sends `roundId` without sequence; exact non-null pair is required for reuse; equal-duration wrong round, legacy null, stale baseline, final state and mismatched create response cannot start a session.<!-- verified: 2026-07-12 method=vitest files="buildCreatePlanRequest,startPractice" -->
+- [x] 25.4 RED-GREEN: Home/Workspace/Parse quick-start and Report next-round consume backend current progress and the next existing canonical successor; final/invalid buttons disabled with zero plan/session calls; retry-current remains server-validated.<!-- verified: 2026-07-12 method=vitest+P0.098-supporting -->
+- [x] 25.5 BDD-Gate: after real backend completion, a live real-API browser reloads Home/Workspace/Parse, renders persisted completed/current rail state, clicks quick-start and proves exact next-existing round plan/session selection; equal-duration/legacy wrong plans and final completion remain fail closed.<!-- verified: 2026-07-12 method=P0.098-live-playwright run=e2e-p0-098-20260712111826-75013 evidence="completion 202; Home/Workspace done,current,pending; Parse current round-2-technical/2; real plan POST/GET sequence=2; session start only intercepted to avoid AI" -->
+- [x] 25.6 Run focused/full frontend, typecheck/build, UI parity, generated contract, contexts/docs/index/diff and negative search proving no business progress in browser storage/URL/fixture fallback.<!-- verified: 2026-07-12 evidence="112 files/764 Vitest; typecheck/build; desktop+mobile workspace parity 17+17; UI contract 48; P0.098 live; only ei-lang display preference persists" -->

@@ -90,6 +90,12 @@ easyinterview 是一款围绕真实 JD、目标岗位、简历资产和真实面
 
 若计划或 checklist 缺少 operation matrix，或未标明 `operationId`、fixture、frontend consumer、backend handler、persistence、AI dependency、scenario coverage 的当前状态，必须先回到 `/plan-review --fix` 或请求用户批准修订，不得直接实施或宣称验证闭环。
 
+### 2.1.4 业务数据后端持久化门禁（强制）
+
+- 除主题、配色、外观等纯前端偏好外，用户可感知的业务数据和流程状态必须由后端持久化，并通过当前 OpenAPI / generated client 读写；前端内存、URL、`localStorage`、`sessionStorage`、IndexedDB 或 mock fixture 不得充当业务事实源。
+- 前端可以维护请求中、弹窗开关、未提交表单草稿等瞬时 UI 状态，但刷新后仍应存在、影响跨页面流程、决定下一业务动作或需要审计的状态，必须有后端持久化 owner。
+- 涉及业务状态的 plan/checklist 必须明确 persistence 表/事实、read-side 投影、幂等/重放语义和前端负向 gate；只在前端保存或推断状态不得作为交付完成。
+
 ### 2.2 任务开始前必须检查工作日志
 
 **每次开启新任务前，必须：**

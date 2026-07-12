@@ -520,6 +520,324 @@ func TestService_ListTargetJobs_PageInfoReportsEffectivePageSize(t *testing.T) {
 	}
 }
 
+func TestService_ListTargetJobs_ProjectsCanonicalPracticeProgressIndependentOfLifecycleStatus(t *testing.T) {
+	statuses := []sharedtypes.TargetJobStatus{
+		sharedtypes.TargetJobStatusDraft,
+		sharedtypes.TargetJobStatusInterviewing,
+		sharedtypes.TargetJobStatusOffer,
+	}
+	for _, lifecycleStatus := range statuses {
+		t.Run(string(lifecycleStatus), func(t *testing.T) {
+			svc, store := newServiceWithFake()
+			created := time.Date(2026, 7, 12, 10, 0, 0, 0, time.UTC)
+			store.listResult = targetjob.ListResult{Items: []targetjob.TargetJobRecord{{
+				ID:                  "018f2a40-0000-7000-9000-0000000000a1",
+				UserID:              "u1",
+				Status:              lifecycleStatus,
+				AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
+				Title:               "Backend",
+				SourceType:          targetjob.SourceTypeManualText,
+				TargetLanguage:      "en",
+				Summary:             threeRoundSummaryJSON(),
+				PracticeFactsLoaded: true,
+				CompletedRoundFacts: []targetjob.PracticeRoundFact{
+					{RoundID: "round-3-manager", RoundSequence: 3},
+					{RoundID: "round-1-hr", RoundSequence: 1},
+					{RoundID: "round-3-manager", RoundSequence: 3},
+					{RoundID: "round-99-other", RoundSequence: 99},
+					{},
+				},
+				ReadyPlanFacts: []targetjob.ReadyPracticePlanFact{
+					{PlanID: "old-round-newer", RoundID: "round-1-hr", RoundSequence: 1, CreatedAt: created.Add(3 * time.Hour)},
+					{PlanID: "current-round-older", RoundID: "round-2-technical", RoundSequence: 2, CreatedAt: created.Add(time.Hour)},
+					{PlanID: "current-round-newest", RoundID: "round-2-technical", RoundSequence: 2, CreatedAt: created.Add(2 * time.Hour)},
+					{PlanID: "unknown", RoundID: "round-9-other", RoundSequence: 9, CreatedAt: created.Add(4 * time.Hour)},
+				},
+				CreatedAt: created,
+				UpdatedAt: created,
+			}}}
+
+			res, err := svc.ListTargetJobs(context.Background(), targetjob.ListRequest{UserID: "u1"})
+			if err != nil {
+				t.Fatalf("ListTargetJobs: %v", err)
+			}
+			got := res.Items[0]
+			if got.PracticeProgress == nil {
+				t.Fatal("practiceProgress must be projected for a valid structured summary")
+			}
+			if got.PracticeProgress.Status != "in_progress" {
+				t.Fatalf("status = %q, want in_progress", got.PracticeProgress.Status)
+			}
+			if len(got.PracticeProgress.CompletedRounds) != 1 ||
+				got.PracticeProgress.CompletedRounds[0].RoundId != "round-1-hr" {
+				t.Fatalf("completed rounds = %+v", got.PracticeProgress.CompletedRounds)
+			}
+			if got.PracticeProgress.CurrentRound == nil || got.PracticeProgress.CurrentRound.RoundId != "round-2-technical" {
+				t.Fatalf("current round = %+v", got.PracticeProgress.CurrentRound)
+			}
+			if got.CurrentPracticePlanId == nil || *got.CurrentPracticePlanId != "current-round-newest" {
+				t.Fatalf("current practice plan = %v, want current-round-newest", got.CurrentPracticePlanId)
+			}
+		})
+	}
+}
+
+func TestService_GetTargetJob_HidesCompletedFactsAfterFirstCanonicalGap(t *testing.T) {
+	svc, store := newServiceWithFake()
+	now := time.Date(2026, 7, 12, 10, 30, 0, 0, time.UTC)
+	store.getRecord = targetjob.TargetJobRecord{
+		ID:                  "target-gap",
+		UserID:              "u1",
+		Status:              sharedtypes.TargetJobStatusInterviewing,
+		AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
+		Title:               "Backend",
+		SourceType:          targetjob.SourceTypeManualText,
+		TargetLanguage:      "en",
+		Summary:             threeRoundSummaryJSON(),
+		PracticeFactsLoaded: true,
+		CompletedRoundFacts: []targetjob.PracticeRoundFact{{RoundID: "round-3-manager", RoundSequence: 3}, {RoundID: "round-2-technical", RoundSequence: 2}},
+		ReadyPlanFacts:      []targetjob.ReadyPracticePlanFact{{PlanID: "round-1-plan", RoundID: "round-1-hr", RoundSequence: 1, CreatedAt: now}},
+		CreatedAt:           now,
+		UpdatedAt:           now,
+	}
+	got, err := svc.GetTargetJob(context.Background(), "u1", "target-gap")
+	if err != nil {
+		t.Fatalf("GetTargetJob: %v", err)
+	}
+	if got.PracticeProgress == nil {
+		t.Fatal("practiceProgress must be projected")
+	}
+	if got.PracticeProgress.Status != "not_started" || len(got.PracticeProgress.CompletedRounds) != 0 {
+		t.Fatalf("gap facts must remain hidden: %+v", got.PracticeProgress)
+	}
+	if got.PracticeProgress.CurrentRound == nil || got.PracticeProgress.CurrentRound.RoundId != "round-1-hr" {
+		t.Fatalf("current round = %+v, want round-1-hr", got.PracticeProgress.CurrentRound)
+	}
+	if got.CurrentPracticePlanId == nil || *got.CurrentPracticePlanId != "round-1-plan" {
+		t.Fatalf("current plan = %v, want round-1-plan", got.CurrentPracticePlanId)
+	}
+}
+
+func TestService_GetTargetJob_ProjectsFirstRoundAndAllCompleted(t *testing.T) {
+	created := time.Date(2026, 7, 12, 11, 0, 0, 0, time.UTC)
+	t.Run("not started selects first exact ready plan", func(t *testing.T) {
+		svc, store := newServiceWithFake()
+		store.getRecord = targetjob.TargetJobRecord{
+			ID:                  "target-1",
+			UserID:              "u1",
+			Status:              sharedtypes.TargetJobStatusDraft,
+			AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
+			Title:               "Backend",
+			SourceType:          targetjob.SourceTypeManualText,
+			TargetLanguage:      "en",
+			Summary:             threeRoundSummaryJSON(),
+			PracticeFactsLoaded: true,
+			ReadyPlanFacts: []targetjob.ReadyPracticePlanFact{
+				{PlanID: "round-2-plan", RoundID: "round-2-technical", RoundSequence: 2, CreatedAt: created.Add(time.Hour)},
+				{PlanID: "round-1-plan", RoundID: "round-1-hr", RoundSequence: 1, CreatedAt: created},
+			},
+			CreatedAt: created,
+			UpdatedAt: created,
+		}
+		got, err := svc.GetTargetJob(context.Background(), "u1", "target-1")
+		if err != nil {
+			t.Fatalf("GetTargetJob: %v", err)
+		}
+		if got.PracticeProgress == nil || got.PracticeProgress.Status != "not_started" || got.PracticeProgress.CurrentRound == nil || got.PracticeProgress.CurrentRound.RoundId != "round-1-hr" {
+			t.Fatalf("unexpected initial progress: %+v", got.PracticeProgress)
+		}
+		if got.CurrentPracticePlanId == nil || *got.CurrentPracticePlanId != "round-1-plan" {
+			t.Fatalf("initial plan = %v", got.CurrentPracticePlanId)
+		}
+	})
+
+	t.Run("all complete clears current round and plan", func(t *testing.T) {
+		svc, store := newServiceWithFake()
+		store.getRecord = targetjob.TargetJobRecord{
+			ID:                  "target-1",
+			UserID:              "u1",
+			Status:              sharedtypes.TargetJobStatusPreparing,
+			AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
+			Title:               "Backend",
+			SourceType:          targetjob.SourceTypeManualText,
+			TargetLanguage:      "en",
+			Summary:             threeRoundSummaryJSON(),
+			PracticeFactsLoaded: true,
+			CompletedRoundFacts: []targetjob.PracticeRoundFact{
+				{RoundID: "round-3-manager", RoundSequence: 3},
+				{RoundID: "round-1-hr", RoundSequence: 1},
+				{RoundID: "round-2-technical", RoundSequence: 2},
+				{RoundID: "round-1-hr", RoundSequence: 1},
+			},
+			ReadyPlanFacts: []targetjob.ReadyPracticePlanFact{
+				{PlanID: "late-retry", RoundID: "round-1-hr", RoundSequence: 1, CreatedAt: created.Add(time.Hour)},
+			},
+			CreatedAt: created,
+			UpdatedAt: created,
+		}
+		got, err := svc.GetTargetJob(context.Background(), "u1", "target-1")
+		if err != nil {
+			t.Fatalf("GetTargetJob: %v", err)
+		}
+		if got.PracticeProgress == nil || got.PracticeProgress.Status != "completed" || got.PracticeProgress.CurrentRound != nil || len(got.PracticeProgress.CompletedRounds) != 3 {
+			t.Fatalf("unexpected completed progress: %+v", got.PracticeProgress)
+		}
+		if got.CurrentPracticePlanId != nil {
+			t.Fatalf("completed target must not expose a plan: %v", got.CurrentPracticePlanId)
+		}
+	})
+}
+
+func TestService_GetTargetJob_ProjectsNonContiguousCanonicalSequences(t *testing.T) {
+	svc, store := newServiceWithFake()
+	now := time.Date(2026, 7, 12, 11, 30, 0, 0, time.UTC)
+	store.getRecord = targetjob.TargetJobRecord{
+		ID:                  "target-non-contiguous",
+		UserID:              "u1",
+		Status:              sharedtypes.TargetJobStatusInterviewing,
+		AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
+		Title:               "Backend",
+		SourceType:          targetjob.SourceTypeManualText,
+		TargetLanguage:      "en",
+		Summary:             nonContiguousRoundSummaryJSON(),
+		PracticeFactsLoaded: true,
+		CompletedRoundFacts: []targetjob.PracticeRoundFact{
+			{RoundID: "round-1-hr", RoundSequence: 1},
+			{RoundID: "round-2-technical", RoundSequence: 2},
+		},
+		ReadyPlanFacts: []targetjob.ReadyPracticePlanFact{
+			{PlanID: "round-4-plan", RoundID: "round-4-manager", RoundSequence: 4, CreatedAt: now},
+		},
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+
+	got, err := svc.GetTargetJob(context.Background(), "u1", "target-non-contiguous")
+	if err != nil {
+		t.Fatalf("GetTargetJob: %v", err)
+	}
+	if got.PracticeProgress == nil || got.PracticeProgress.Status != "in_progress" || len(got.PracticeProgress.CompletedRounds) != 2 {
+		t.Fatalf("unexpected non-contiguous progress: %+v", got.PracticeProgress)
+	}
+	if got.PracticeProgress.CurrentRound == nil || got.PracticeProgress.CurrentRound.RoundId != "round-4-manager" || got.PracticeProgress.CurrentRound.RoundSequence != 4 {
+		t.Fatalf("current round = %+v, want round-4-manager", got.PracticeProgress.CurrentRound)
+	}
+	if got.CurrentPracticePlanId == nil || *got.CurrentPracticePlanId != "round-4-plan" {
+		t.Fatalf("current plan = %v, want round-4-plan", got.CurrentPracticePlanId)
+	}
+
+	store.getRecord.CompletedRoundFacts = append(store.getRecord.CompletedRoundFacts, targetjob.PracticeRoundFact{RoundID: "round-4-manager", RoundSequence: 4})
+	got, err = svc.GetTargetJob(context.Background(), "u1", "target-non-contiguous")
+	if err != nil {
+		t.Fatalf("GetTargetJob final: %v", err)
+	}
+	if got.PracticeProgress == nil || got.PracticeProgress.Status != "completed" || got.PracticeProgress.CurrentRound != nil || len(got.PracticeProgress.CompletedRounds) != 3 || got.CurrentPracticePlanId != nil {
+		t.Fatalf("unexpected final non-contiguous progress: progress=%+v plan=%v", got.PracticeProgress, got.CurrentPracticePlanId)
+	}
+}
+
+func TestService_GetAndListTargetJob_PracticeProgressFailsClosedForInvalidSummary(t *testing.T) {
+	cases := []struct {
+		name    string
+		summary json.RawMessage
+	}{
+		{name: "unloaded", summary: nil},
+		{name: "malformed", summary: json.RawMessage(`{"interviewRounds":`)},
+		{name: "missing provenance", summary: json.RawMessage(`{"interviewRounds":[{"sequence":1,"type":"hr","name":"HR","focus":"fit","durationMinutes":15}]}`)},
+		{name: "too few rounds", summary: summaryWithRoundsJSON(`[{"sequence":1,"type":"hr","name":"HR","focus":"fit","durationMinutes":15}]`)},
+		{name: "duplicate sequence", summary: summaryWithRoundsJSON(`[{"sequence":1,"type":"hr","name":"HR","focus":"fit","durationMinutes":15},{"sequence":1,"type":"technical","name":"Tech","focus":"code","durationMinutes":45}]`)},
+		{name: "zero sequence", summary: summaryWithRoundsJSON(`[{"sequence":0,"type":"hr","name":"HR","focus":"fit","durationMinutes":15},{"sequence":2,"type":"technical","name":"Tech","focus":"code","durationMinutes":45}]`)},
+		{name: "unknown type", summary: summaryWithRoundsJSON(`[{"sequence":1,"type":"sales","name":"Sales","focus":"pitch","durationMinutes":30},{"sequence":4,"type":"manager","name":"Manager","focus":"ownership","durationMinutes":30}]`)},
+		{name: "duration out of bounds", summary: summaryWithRoundsJSON(`[{"sequence":1,"type":"hr","name":"HR","focus":"fit","durationMinutes":5},{"sequence":2,"type":"technical","name":"Tech","focus":"code","durationMinutes":45}]`)},
+		{name: "blank name", summary: summaryWithRoundsJSON(`[{"sequence":1,"type":"hr","name":"  ","focus":"fit","durationMinutes":15},{"sequence":2,"type":"manager","name":"Manager","focus":"ownership","durationMinutes":30}]`)},
+		{name: "blank focus", summary: summaryWithRoundsJSON(`[{"sequence":1,"type":"hr","name":"HR","focus":"  ","durationMinutes":15},{"sequence":2,"type":"manager","name":"Manager","focus":"ownership","durationMinutes":30}]`)},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			svc, store := newServiceWithFake()
+			rec := targetjob.TargetJobRecord{
+				ID:                  "target-1",
+				UserID:              "u1",
+				Status:              sharedtypes.TargetJobStatusInterviewing,
+				AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
+				Title:               "Backend",
+				SourceType:          targetjob.SourceTypeManualText,
+				TargetLanguage:      "en",
+				Summary:             tc.summary,
+				PracticeFactsLoaded: true,
+				ReadyPlanFacts: []targetjob.ReadyPracticePlanFact{{
+					PlanID: "round-1-plan", RoundID: "round-1-hr", RoundSequence: 1,
+				}},
+				CreatedAt: time.Date(2026, 7, 12, 12, 0, 0, 0, time.UTC),
+				UpdatedAt: time.Date(2026, 7, 12, 12, 0, 0, 0, time.UTC),
+			}
+			store.getRecord = rec
+			store.listResult = targetjob.ListResult{Items: []targetjob.TargetJobRecord{rec}}
+
+			gotDetail, err := svc.GetTargetJob(context.Background(), "u1", "target-1")
+			if err != nil {
+				t.Fatalf("GetTargetJob: %v", err)
+			}
+			gotList, err := svc.ListTargetJobs(context.Background(), targetjob.ListRequest{UserID: "u1"})
+			if err != nil {
+				t.Fatalf("ListTargetJobs: %v", err)
+			}
+			for name, got := range map[string]api.TargetJob{"get": gotDetail, "list": gotList.Items[0]} {
+				if got.PracticeProgress != nil || got.CurrentPracticePlanId != nil {
+					t.Fatalf("%s must fail closed, progress=%+v plan=%v", name, got.PracticeProgress, got.CurrentPracticePlanId)
+				}
+			}
+		})
+	}
+}
+
+func TestService_GetTargetJob_PracticeProgressFailsClosedWhenFactsAreUnloaded(t *testing.T) {
+	svc, store := newServiceWithFake()
+	now := time.Date(2026, 7, 12, 12, 30, 0, 0, time.UTC)
+	store.getRecord = targetjob.TargetJobRecord{
+		ID:             "target-1",
+		UserID:         "u1",
+		Status:         sharedtypes.TargetJobStatusInterviewing,
+		AnalysisStatus: sharedtypes.TargetJobParseStatusReady,
+		Title:          "Backend",
+		SourceType:     targetjob.SourceTypeManualText,
+		TargetLanguage: "en",
+		Summary:        threeRoundSummaryJSON(),
+		ReadyPlanFacts: []targetjob.ReadyPracticePlanFact{{
+			PlanID: "round-1-plan", RoundID: "round-1-hr", RoundSequence: 1, CreatedAt: now,
+		}},
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	got, err := svc.GetTargetJob(context.Background(), "u1", "target-1")
+	if err != nil {
+		t.Fatalf("GetTargetJob: %v", err)
+	}
+	if got.PracticeProgress != nil || got.CurrentPracticePlanId != nil {
+		t.Fatalf("unloaded facts must fail closed, progress=%+v plan=%v", got.PracticeProgress, got.CurrentPracticePlanId)
+	}
+}
+
+func threeRoundSummaryJSON() json.RawMessage {
+	return summaryWithRoundsJSON(`[
+		{"sequence":1,"type":"hr","name":"HR","focus":"fit","durationMinutes":15},
+		{"sequence":2,"type":"technical","name":"Technical","focus":"code","durationMinutes":45},
+		{"sequence":3,"type":"manager","name":"Manager","focus":"ownership","durationMinutes":30}
+	]`)
+}
+
+func nonContiguousRoundSummaryJSON() json.RawMessage {
+	return summaryWithRoundsJSON(`[
+		{"sequence":1,"type":"hr","name":"HR","focus":"fit","durationMinutes":15},
+		{"sequence":2,"type":"technical","name":"Technical","focus":"code","durationMinutes":45},
+		{"sequence":4,"type":"manager","name":"Manager","focus":"ownership","durationMinutes":30}
+	]`)
+}
+
+func summaryWithRoundsJSON(rounds string) json.RawMessage {
+	return json.RawMessage(`{"interviewRounds":` + rounds + `,"provenance":{"promptVersion":"v1","rubricVersion":"not_applicable","modelId":"fixture-model","featureFlag":"none","language":"en","dataSourceVersion":"target-summary-v1"}}`)
+}
+
 func TestService_GetTargetJob_NotFoundMaps404Code(t *testing.T) {
 	svc, store := newServiceWithFake()
 	store.getErr = targetjob.ErrTargetJobNotFound
@@ -599,6 +917,69 @@ func TestService_UpdateTargetJob_PassesUserScopedDedupeToStore(t *testing.T) {
 	}
 	if store.capturedUpdateFields.DedupeMarkerID != "018f2a40-0000-7000-9000-0000000000d1" {
 		t.Fatalf("marker id = %q", store.capturedUpdateFields.DedupeMarkerID)
+	}
+}
+
+func TestService_UpdateTargetJob_FirstResponseMatchesIdempotentReplayPracticeProjection(t *testing.T) {
+	svc, store := newServiceWithFake("update-marker")
+	now := time.Date(2026, 7, 12, 14, 0, 0, 0, time.UTC)
+	reloaded := targetjob.TargetJobRecord{
+		ID:                  "target-update-progress",
+		UserID:              "u1",
+		Status:              sharedtypes.TargetJobStatusPreparing,
+		AnalysisStatus:      sharedtypes.TargetJobParseStatusReady,
+		Title:               "Backend",
+		CompanyName:         "Acme",
+		SourceType:          targetjob.SourceTypeManualText,
+		TargetLanguage:      "en",
+		Summary:             nonContiguousRoundSummaryJSON(),
+		PracticeFactsLoaded: true,
+		CompletedRoundFacts: []targetjob.PracticeRoundFact{{RoundID: "round-1-hr", RoundSequence: 1}},
+		ReadyPlanFacts: []targetjob.ReadyPracticePlanFact{{
+			PlanID: "round-2-plan", RoundID: "round-2-technical", RoundSequence: 2, CreatedAt: now,
+		}},
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	store.updateResult = reloaded
+	store.updateResult.PracticeFactsLoaded = false
+	store.updateResult.CompletedRoundFacts = nil
+	store.updateResult.ReadyPlanFacts = nil
+	store.getRecord = reloaded
+	status := sharedtypes.TargetJobStatusPreparing
+	request := targetjob.UpdateRequest{
+		UserID:         "u1",
+		TargetJobID:    reloaded.ID,
+		IdempotencyKey: "same-update-key",
+		Status:         &status,
+	}
+
+	first, err := svc.UpdateTargetJob(context.Background(), request)
+	if err != nil {
+		t.Fatalf("first UpdateTargetJob: %v", err)
+	}
+	store.updateDedupeHit = true
+	store.updateDedupeRecord = reloaded
+	replay, err := svc.UpdateTargetJob(context.Background(), request)
+	if err != nil {
+		t.Fatalf("replay UpdateTargetJob: %v", err)
+	}
+	firstJSON, err := json.Marshal(first)
+	if err != nil {
+		t.Fatalf("marshal first response: %v", err)
+	}
+	replayJSON, err := json.Marshal(replay)
+	if err != nil {
+		t.Fatalf("marshal replay response: %v", err)
+	}
+	if string(firstJSON) != string(replayJSON) {
+		t.Fatalf("first/replay wire mismatch:\nfirst=%s\nreplay=%s", firstJSON, replayJSON)
+	}
+	if first.PracticeProgress == nil || first.PracticeProgress.CurrentRound == nil || first.PracticeProgress.CurrentRound.RoundId != "round-2-technical" {
+		t.Fatalf("first response progress = %+v", first.PracticeProgress)
+	}
+	if first.CurrentPracticePlanId == nil || *first.CurrentPracticePlanId != "round-2-plan" {
+		t.Fatalf("first response plan = %v", first.CurrentPracticePlanId)
 	}
 }
 

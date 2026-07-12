@@ -5,8 +5,8 @@ metadata:
   name: 001-plan-and-session-orchestration
   sequence: 1
   specVersion:
-    from: 1.21
-    to: 1.22
+    from: 1.23
+    to: 1.27
 spec:
   baseBranch: main
   branch: practice-conversation-simplification
@@ -22,6 +22,20 @@ spec:
       - practice.session.chat
       - practice_messages
       - no PracticeTurn
+      - complete resume source snapshot
+      - parsed text snapshot precedence
+      - resume grounding tail marker
+      - no invented resume projects
+      - empty resume context fail closed
+      - practice round identity
+      - first incomplete round
+      - round sequence
+      - backend business persistence
+      - target job bound resume
+      - summary provenance
+      - int32 non-contiguous sequence
+      - system policy untrusted JSON context
+      - assistant history is not candidate evidence
   targets:
     backend:
       plan: ./plan.md

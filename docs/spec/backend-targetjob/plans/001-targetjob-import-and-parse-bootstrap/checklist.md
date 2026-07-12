@@ -1,8 +1,8 @@
 # TargetJob Import and Parse Bootstrap Checklist
 
-> **版本**: 1.22
-> **状态**: active
-> **更新日期**: 2026-07-10
+> **版本**: 1.24
+> **状态**: completed
+> **更新日期**: 2026-07-12
 
 **关联计划**: [plan](./plan.md)
 
@@ -81,7 +81,7 @@
 ## Phase 8: JD identity and current-plan binding remediation
 
 - [x] 8.1 `target.import.parse` prompt/schema/parse executor require and persist `title` / `companyName` on parse success（验证：`cd backend && go test ./internal/targetjob -run 'TestParseExecutor|TestTargetImportPrompt|TestSQLStore_' -count=1`; `make lint-prompts` PASS）
-- [x] 8.2 `TargetJob` list/detail responses expose optional current plan binding (`currentPracticePlanId`, `resumeId`) from latest ready `practice_plans` without changing target_jobs schema（验证：`cd backend && go test ./internal/targetjob -count=1`; `make validate-fixtures`; `make lint-openapi` PASS）
+- [x] 8.2 `TargetJob` list/detail responses expose persisted `resumeId`; Phase 17 supersedes latest-ready selection so `currentPracticePlanId` requires the exact current pair and bound resume without a mutable target_jobs progress column（验证：Phase 17 targetjob unit/real-Postgres projection gates）
 - [x] 8.3 BDD-Gate: `E2E.P0.010` target import parse ready and `E2E.P0.018` workspace plan-card selection remain aligned with the additive response contract（验证：`cd backend && go test ./cmd/api -run 'TestE2EP0010HTTPTextImportParseReady|TestE2EP0022PracticePlanBaselineCreateAndRead' -count=1`; focused frontend workspace suites PASS）
 
 ## Phase 9: TargetJob-level resume binding remediation
@@ -133,6 +133,15 @@
 - [x] 16.1 Record scoped `cmd/api` `dupl` RED for the TargetJob and full-funnel harness request bodies.
   <!-- verified: 2026-07-10 method=cmd-api-cookie-json-harness-dupl evidence="The two receiver methods are cmd/api's only clone group at threshold 100 and differ only in receiver-owned handler/cookie plus the canonical header constant." -->
 - [x] 16.2 Delegate the TargetJob receiver to one shared package test helper without changing P0.010-P0.013 requests or assertions.
-  <!-- verified: 2026-07-10 method=cmd-api-cookie-json-helper evidence="TargetJob keeps its receiver and IdempotencyKeyHeader while delegating only shared request mechanics. P0.010-P0.013 all PASS, live P0.098 passes and cmd/api dupl reports zero clone groups." -->
+  <!-- verified: 2026-07-10 method=cmd-api-cookie-json-helper evidence="TargetJob keeps its receiver and IdempotencyKeyHeader while delegating only shared request mechanics. P0.010-P0.013 all PASS, the cmd/api P0.098 handler harness passes, and cmd/api dupl reports zero clone groups; this is not live-browser evidence." -->
 - [x] 16.3 Run P0.010-P0.013, P0.098, cmd/api/full backend/static and owner documentation gates.
-  <!-- verified: 2026-07-10 method=cmd-api-cookie-json-harness-closeout evidence="P0.010-P0.013 and live P0.098 PASS; cmd/api/full backend, vet/staticcheck, scoped dupl, backend-targetjob/e2e/product contexts and docs/index/diff/pruning gates PASS. TargetJob owner retains its pre-existing active lifecycle." -->
+  <!-- verified: 2026-07-10 method=cmd-api-cookie-json-harness-closeout evidence="P0.010-P0.013 and the cmd/api P0.098 handler harness PASS; cmd/api/full backend, vet/staticcheck, scoped dupl, backend-targetjob/e2e/product contexts and docs/index/diff/pruning gates PASS. This record does not claim a live browser." -->
+
+## Phase 17: Backend-persisted practice progress projection
+
+- [x] 17.1 RED: Get/List store tests require typed completion/ready-plan facts, `session_completed` event filtering, pair non-null filtering and one list query for multiple cards.<!-- verified: 2026-07-12 method=unit+P0.098 test=TestSQLStore_ListTargetJobsForUser_LoadsPageScopedPracticeLedgerFactsInOneQuery -->
+- [x] 17.2 GREEN: add page-scoped no-N+1 SQL aggregation; remove global-latest-plan fallback; require completed/ready facts to match `target_jobs.resume_id`, while report/lifecycle status remains independent.<!-- verified: 2026-07-12 method=unit+real-postgres marker=wrong-resume-completion-ignored=PASS -->
+- [x] 17.3 RED-GREEN: service projection requires complete provenance, lowercase allowlisted type and positive int32 strictly increasing/unique sequence; accepts `1,2,4` and selects existing successor `4`; covers zero/duplicate/out-of-order/wrong-resume/unknown/legacy facts, lifecycle-status independence, newer old-round retry, current-plan exact match and all-complete null current/plan.<!-- verified: 2026-07-12 method=unit+real-postgres markers="wrong-resume-completion-ignored,persisted-first-to-next,target-report-status-independent,out-of-order-gap-hidden,non-contiguous-round-1-2-4,get-list-first-next-final-parity" -->
+- [x] 17.4 Handler/generated JSON tests prove Get/List wire parity and optional fail-closed behavior for invalid/unloaded summaries.<!-- verified: 2026-07-12 method=handler-tests -->
+- [x] 17.5 BDD-Gate: P0.098 executes persisted first→next→final, duplicate completion, report-state independence, Get/List parity and no frontend business-storage assertions.<!-- verified: 2026-07-12 method=scenario-run result=PASS -->
+- [x] 17.6 Run focused/full backend, OpenAPI/migration, query-count, context/docs/index/diff/privacy gates.<!-- verified: 2026-07-12 evidence="Get/List one-query projection; real DB first-next-final+wrong-resume+1-2-4; OpenAPI/migrate; make test; context/docs/index/diff" -->

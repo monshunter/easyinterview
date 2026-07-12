@@ -12,13 +12,20 @@ const REPORT_ID = "01918fa0-0000-7000-8000-000000007000";
 function targetJob() {
   return {
     id: TARGET_JOB_ID,
+    practiceProgress: {
+      status: "in_progress",
+      completedRounds: [
+        { roundId: "round-1-technical", roundSequence: 1 },
+      ],
+      currentRound: { roundId: "round-2-technical", roundSequence: 2 },
+    },
     summary: {
       interviewRounds: [
         {
           sequence: 1,
           type: "technical",
           name: "Technical one",
-          durationMinutes: 45,
+          durationMinutes: 60,
           focus: "Coding",
         },
         {
@@ -42,6 +49,8 @@ describe("startPracticeFromParams route output", () => {
         targetJobId: TARGET_JOB_ID,
         resumeId: RESUME_ID,
         timeBudgetMinutes: 60,
+        roundId: "round-2-technical",
+        roundSequence: 2,
         status: "ready",
       }),
       createPracticePlan: vi.fn(),
@@ -100,7 +109,15 @@ describe("startPracticeFromParams route output", () => {
         timeBudgetMinutes: 45,
         status: "ready",
       }),
-      createPracticePlan: vi.fn().mockResolvedValue({ id: replacementPlanId }),
+      createPracticePlan: vi.fn().mockResolvedValue({
+        id: replacementPlanId,
+        targetJobId: TARGET_JOB_ID,
+        resumeId: RESUME_ID,
+        timeBudgetMinutes: 60,
+        status: "ready",
+        roundId: "round-2-technical",
+        roundSequence: 2,
+      }),
       startPracticeSession: vi.fn().mockResolvedValue({ id: SESSION_ID }),
     } as unknown as EasyInterviewClient;
 
@@ -118,6 +135,209 @@ describe("startPracticeFromParams route output", () => {
       expect.anything(),
     );
     expect(result.planId).toBe(replacementPlanId);
+  });
+
+  it.each([
+    ["equal-duration adjacent round", { roundId: "round-1-technical", roundSequence: 1 }],
+    ["legacy null identity", { roundId: null, roundSequence: null }],
+  ])("does not reuse a ready %s plan", async (_label, identity) => {
+    const replacementPlanId = "01918fa0-0000-7000-8000-000000004002";
+    const client = {
+      getTargetJob: vi.fn().mockResolvedValue(targetJob()),
+      getPracticePlan: vi.fn().mockResolvedValue({
+        id: PLAN_ID,
+        targetJobId: TARGET_JOB_ID,
+        resumeId: RESUME_ID,
+        timeBudgetMinutes: 60,
+        status: "ready",
+        ...identity,
+      }),
+      createPracticePlan: vi.fn().mockResolvedValue({
+        id: replacementPlanId,
+        targetJobId: TARGET_JOB_ID,
+        resumeId: RESUME_ID,
+        timeBudgetMinutes: 60,
+        status: "ready",
+        roundId: "round-2-technical",
+        roundSequence: 2,
+      }),
+      startPracticeSession: vi.fn().mockResolvedValue({ id: SESSION_ID }),
+    } as unknown as EasyInterviewClient;
+
+    const result = await startPracticeFromParams(client, {
+      planId: PLAN_ID,
+      targetJobId: TARGET_JOB_ID,
+      resumeId: RESUME_ID,
+      roundId: "round-2-technical",
+      practiceGoal: "baseline",
+    }, "en");
+
+    expect(client.createPracticePlan).toHaveBeenCalledWith(
+      expect.objectContaining({ roundId: "round-2-technical", timeBudgetMinutes: 60 }),
+      expect.anything(),
+    );
+    expect(result.planId).toBe(replacementPlanId);
+  });
+
+  it("rejects a mismatched create response before starting a session", async () => {
+    const client = {
+      getTargetJob: vi.fn().mockResolvedValue(targetJob()),
+      getPracticePlan: vi.fn(),
+      createPracticePlan: vi.fn().mockResolvedValue({
+        id: PLAN_ID,
+        targetJobId: TARGET_JOB_ID,
+        resumeId: RESUME_ID,
+        timeBudgetMinutes: 60,
+        status: "ready",
+        roundId: "round-1-technical",
+        roundSequence: 1,
+      }),
+      startPracticeSession: vi.fn(),
+    } as unknown as EasyInterviewClient;
+
+    await expect(startPracticeFromParams(client, {
+      targetJobId: TARGET_JOB_ID,
+      resumeId: RESUME_ID,
+      roundId: "round-2-technical",
+      practiceGoal: "baseline",
+    }, "en")).rejects.toThrow("practice plan round mismatch");
+    expect(client.startPracticeSession).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["fully completed", {
+      status: "completed" as const,
+      completedRounds: [
+        { roundId: "round-1-technical", roundSequence: 1 },
+        { roundId: "round-2-technical", roundSequence: 2 },
+      ],
+      currentRound: null,
+    }],
+    ["missing projection", undefined],
+  ])("fails closed for %s baseline progress with zero plan/session calls", async (_label, practiceProgress) => {
+    const client = {
+      getTargetJob: vi.fn().mockResolvedValue({ ...targetJob(), practiceProgress }),
+      getPracticePlan: vi.fn(),
+      createPracticePlan: vi.fn(),
+      startPracticeSession: vi.fn(),
+    } as unknown as EasyInterviewClient;
+
+    await expect(startPracticeFromParams(client, {
+      targetJobId: TARGET_JOB_ID,
+      resumeId: RESUME_ID,
+      roundId: "round-2-technical",
+      practiceGoal: "baseline",
+    }, "en")).rejects.toThrow("invalid practice progress");
+    expect(client.getPracticePlan).not.toHaveBeenCalled();
+    expect(client.createPracticePlan).not.toHaveBeenCalled();
+    expect(client.startPracticeSession).not.toHaveBeenCalled();
+  });
+
+  it("allows retry-current-round after final completion and leaves validation to the server", async () => {
+    const completedJob = {
+      ...targetJob(),
+      practiceProgress: {
+        status: "completed",
+        completedRounds: [
+          { roundId: "round-1-technical", roundSequence: 1 },
+          { roundId: "round-2-technical", roundSequence: 2 },
+        ],
+        currentRound: null,
+      },
+    };
+    const client = {
+      getTargetJob: vi.fn().mockResolvedValue(completedJob),
+      getPracticePlan: vi.fn(),
+      createPracticePlan: vi.fn().mockResolvedValue({
+        id: PLAN_ID,
+        targetJobId: TARGET_JOB_ID,
+        resumeId: RESUME_ID,
+        timeBudgetMinutes: 60,
+        status: "ready",
+        roundId: "round-2-technical",
+        roundSequence: 2,
+      }),
+      startPracticeSession: vi.fn().mockResolvedValue({ id: SESSION_ID }),
+    } as unknown as EasyInterviewClient;
+
+    await expect(startPracticeFromParams(client, {
+      targetJobId: TARGET_JOB_ID,
+      resumeId: RESUME_ID,
+      sourceReportId: REPORT_ID,
+      roundId: "round-2-technical",
+      practiceGoal: "retry_current_round",
+    }, "en")).resolves.toMatchObject({ planId: PLAN_ID, sessionId: SESSION_ID });
+  });
+
+  it("rejects stale next-round intent that no longer matches backend current", async () => {
+    const client = {
+      getTargetJob: vi.fn().mockResolvedValue(targetJob()),
+      getPracticePlan: vi.fn(),
+      createPracticePlan: vi.fn(),
+      startPracticeSession: vi.fn(),
+    } as unknown as EasyInterviewClient;
+
+    await expect(startPracticeFromParams(client, {
+      targetJobId: TARGET_JOB_ID,
+      resumeId: RESUME_ID,
+      sourceReportId: REPORT_ID,
+      roundId: "round-1-technical",
+      practiceGoal: "next_round",
+    }, "en")).rejects.toThrow("round is not backend current");
+    expect(client.createPracticePlan).not.toHaveBeenCalled();
+    expect(client.startPracticeSession).not.toHaveBeenCalled();
+  });
+
+  it("starts the next existing round when canonical sequences are non-contiguous", async () => {
+    const nonContiguousJob = {
+      ...targetJob(),
+      practiceProgress: {
+        status: "in_progress",
+        completedRounds: [
+          { roundId: "round-1-technical", roundSequence: 1 },
+          { roundId: "round-2-technical", roundSequence: 2 },
+        ],
+        currentRound: { roundId: "round-4-manager", roundSequence: 4 },
+      },
+      summary: {
+        interviewRounds: [
+          ...targetJob().summary.interviewRounds,
+          {
+            sequence: 4,
+            type: "manager",
+            name: "Manager round",
+            durationMinutes: 45,
+            focus: "Ownership",
+          },
+        ],
+      },
+    };
+    const client = {
+      getTargetJob: vi.fn().mockResolvedValue(nonContiguousJob),
+      getPracticePlan: vi.fn(),
+      createPracticePlan: vi.fn().mockResolvedValue({
+        id: PLAN_ID,
+        targetJobId: TARGET_JOB_ID,
+        resumeId: RESUME_ID,
+        timeBudgetMinutes: 45,
+        status: "ready",
+        roundId: "round-4-manager",
+        roundSequence: 4,
+      }),
+      startPracticeSession: vi.fn().mockResolvedValue({ id: SESSION_ID }),
+    } as unknown as EasyInterviewClient;
+
+    await expect(startPracticeFromParams(client, {
+      targetJobId: TARGET_JOB_ID,
+      resumeId: RESUME_ID,
+      sourceReportId: REPORT_ID,
+      roundId: "round-4-manager",
+      practiceGoal: "next_round",
+    }, "en")).resolves.toMatchObject({ planId: PLAN_ID, sessionId: SESSION_ID });
+    expect(client.createPracticePlan).toHaveBeenCalledWith(
+      expect.objectContaining({ roundId: "round-4-manager", timeBudgetMinutes: 45 }),
+      expect.anything(),
+    );
   });
 
   it("fails closed before plan/session creation when roundId is unknown", async () => {

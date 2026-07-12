@@ -207,6 +207,66 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertIn("export interface PracticeMessage", ts_types)
         self.assertNotIn("export interface PracticeTurn", ts_types)
 
+    def test_practice_round_identity_and_progress_contract_is_additive(self) -> None:
+        for path in (
+            Path("openapi/openapi.yaml"),
+            Path("openapi/baseline/openapi-v1.0.0.yaml"),
+        ):
+            with self.subTest(path=path):
+                schemas = yaml.safe_load(path.read_text(encoding="utf-8"))["components"]["schemas"]
+
+                round_ref = schemas["PracticeRoundRef"]
+                self.assertEqual(["roundId", "roundSequence"], round_ref["required"])
+                self.assertNotIn("format", round_ref["properties"]["roundId"])
+                self.assertEqual(
+                    r"^round-[1-9][0-9]{0,9}-(hr|technical|manager|cross_functional|culture|final|other)$",
+                    round_ref["properties"]["roundId"]["pattern"],
+                )
+                self.assertEqual(1, round_ref["properties"]["roundSequence"]["minimum"])
+                self.assertEqual(2147483647, round_ref["properties"]["roundSequence"]["maximum"])
+
+                progress = schemas["PracticeProgress"]
+                self.assertEqual(["status", "completedRounds", "currentRound"], progress["required"])
+                self.assertEqual(
+                    ["not_started", "in_progress", "completed"],
+                    progress["properties"]["status"]["enum"],
+                )
+                self.assertTrue(progress["properties"]["completedRounds"]["uniqueItems"])
+                self.assertEqual(
+                    "#/components/schemas/PracticeRoundRef",
+                    progress["properties"]["completedRounds"]["items"]["$ref"],
+                )
+                self.assertEqual(
+                    [
+                        {"$ref": "#/components/schemas/PracticeRoundRef"},
+                        {"type": "null"},
+                    ],
+                    progress["properties"]["currentRound"]["oneOf"],
+                )
+
+                request = schemas["CreatePracticePlanRequest"]
+                self.assertNotIn("roundId", request["required"])
+                self.assertNotIn("roundSequence", request["properties"])
+                self.assertNotIn("format", request["properties"]["roundId"])
+                self.assertEqual(round_ref["properties"]["roundId"]["pattern"], request["properties"]["roundId"]["pattern"])
+
+                plan = schemas["PracticePlan"]
+                self.assertNotIn("roundId", plan["required"])
+                self.assertNotIn("roundSequence", plan["required"])
+                self.assertEqual(["roundSequence"], plan["dependentRequired"]["roundId"])
+                self.assertEqual(["roundId"], plan["dependentRequired"]["roundSequence"])
+                self.assertIn({"type": "null"}, plan["properties"]["roundId"]["oneOf"])
+                self.assertIn({"type": "null"}, plan["properties"]["roundSequence"]["oneOf"])
+                plan_sequence = next(item for item in plan["properties"]["roundSequence"]["oneOf"] if item.get("type") == "integer")
+                self.assertEqual(2147483647, plan_sequence["maximum"])
+
+                target_job = schemas["TargetJob"]
+                self.assertNotIn("practiceProgress", target_job["required"])
+                self.assertEqual(
+                    "#/components/schemas/PracticeProgress",
+                    target_job["properties"]["practiceProgress"]["$ref"],
+                )
+
     def test_resume_workshop_contract_uses_b1_vocabulary(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
         schemas = data["components"]["schemas"]

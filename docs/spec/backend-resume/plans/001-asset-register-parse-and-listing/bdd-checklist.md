@@ -1,8 +1,8 @@
 # 001 BDD Checklist
 
-> **版本**: 1.11
+> **版本**: 1.13
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -29,3 +29,10 @@
 - [x] D-14/D-15 remediation：trigger/verify 检查 `TestParseHandlerExtractsReadableUploadText`、`TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox`、`TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady`、`TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically`、`TestCompleteParseFailureCanPersistExtractedTextSnapshot`、`TestResumeParseRunnerHTTPScenario` 和 `TestResumeParseRunnerRetryableFailureScenario`，证明 queued 不预填 `displayName`，ready / retry-to-ready 后写入 LLM-derived `displayName` 而非通用上传 / 粘贴标题或 raw 第一行，failed-with-snapshot 失败态写入正文派生 fallback `display_name`，且 upload `parsed_text_snapshot` 来自 PDF/Markdown/text 可读正文。 <!-- verified: 2026-07-07 method=scenario scenario=E2E.P0.035 -->
 - [x] D-17 remediation：trigger/verify 或 focused substitute gate 检查 prompt schema required `markdownText`、decode 缺失拒绝、success `parsed_text_snapshot` 使用 AI Markdown 输出。<!-- verified: 2026-07-07 method=focused-substitute tests=TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox,TestParseHandlerRequiresMarkdownTextInAIResponse,prompt_lint -->
 - [x] D-15/D-18 remediation：trigger/verify 或 focused substitute gate 检查 Resume upload DOCX 前置拒绝、parse fallback 拒绝 DOCX、`getResumeSource` 仅对当前用户 upload-backed PDF 返回 inline PDF，非 PDF/跨用户/missing 返回 404。<!-- verified: 2026-07-07 method=focused-substitute tests=upload handler/service,resume jobs,resume service/handler/store/cmd-api -->
+- [x] D-19 long-resume budget：新增 `TestCatalogKeepsResumeParseOutputBudget`，从 repo-tracked profile catalog 断言 `resume.parse.default.max_tokens >= 8192`<!-- verified: 2026-07-12 method=go-test-red-green -->
+- [x] D-19 runner evidence：P0.035 trigger/verify 执行并检查 budget regression 测试名、runner marker、PASS，拒绝 no-op / skip<!-- verified: 2026-07-12 method=scenario trigger_log=.test-output/e2e/p0-035-resume-parse-async-job-lifecycle/trigger.log -->
+- [x] D-19 execution：执行 P0.035 `setup → trigger → verify → cleanup` 并记录 long-resume budget gate 证据<!-- verified: 2026-07-12 method=scenario result=PASS cleanup=PASS -->
+- [x] D-17/D-21 contract：stub success 改为 structured-only JSON；长输入尾部唯一 marker 同时进入 AI prompt 与 deterministic `parsed_text_snapshot`，当前 prompt/schema 不再要求 `markdownText`<!-- verified: 2026-07-12 method=go-test+prompt-lint -->
+- [x] D-21 truncation：stub `FinishReason="length"` 必须在 decode 前落 `AI_OUTPUT_INVALID`，完整 snapshot 保留且 completed outbox 为零<!-- verified: 2026-07-12 method=mutation-red-green -->
+- [x] D-17/D-21 runner evidence：P0.035 trigger/verify 检查 long-input tail-marker、structured-only response、finish-reason fail-closed 测试名与 PASS，拒绝 no-op / skip<!-- verified: 2026-07-12 method=scenario -->
+- [x] D-17/D-21 execution：执行 P0.035 `setup → trigger → verify → cleanup` 并记录完整输入、deterministic snapshot 与 output truncation terminality 证据<!-- verified: 2026-07-12 method=scenario result=PASS cleanup=PASS -->

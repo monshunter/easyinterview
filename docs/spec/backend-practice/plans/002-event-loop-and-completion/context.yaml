@@ -5,15 +5,15 @@ metadata:
   name: 002-event-loop-and-completion
   sequence: 2
   specVersion:
-    from: 1.21
-    to: 1.22
+    from: 1.23
+    to: 1.26
 spec:
   baseBranch: main
   branch: practice-conversation-simplification
   defaultTarget: backend
   discovery:
     aliases: [practice conversation loop, send practice message]
-    keywords: [sendPracticeMessage, clientMessageId, replyToMessageId, practice_messages, completePracticeSession]
+    keywords: [sendPracticeMessage, clientMessageId, replyToMessageId, practice_messages, completePracticeSession, complete resume source snapshot, parsed text snapshot precedence, resume grounding tail marker, empty resume context fail closed, session completed ledger, round progress projection, backend business persistence, target job bound resume, system policy untrusted JSON context, persona style only]
   targets:
     backend:
       plan: ./plan.md

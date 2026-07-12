@@ -1,8 +1,8 @@
 # Backend Resume Register Parse and Listing
 
-> **版本**: 2.9
+> **版本**: 3.1
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -19,7 +19,8 @@
 - D-20 flat Resume 完成态下，`resume.parse` 成功还必须从 LLM `displayName` / structured output 派生可识别 `display_name`，不得把“上传的简历 / 粘贴的简历”等通用标题、上传文件名或 raw resume 第一行作为 ready 简历最终名称；若 LLM 输出失败但已抽取可读正文，失败路径也要写入非通用 fallback `display_name`，避免详情长期停留在“名称生成中”；
 - upload source 的 prompt input 与 `parsed_text_snapshot` 必须来自当前支持文件的可读正文提取（PDF / Markdown / text），不得使用文件名、截断文件片段、PDF literal 乱码或二进制 bytes 直转 string；DOCX 不属于当前 Resume 上传支持范围，必须在 presign/register 前拒绝；PDF 读取预算必须覆盖真实浏览器生成简历文件所需的 xref / 字体映射；
 - `GET /api/v1/resumes/{resumeId}/source` 必须只服务当前用户 upload-backed PDF 原件，供前端详情 PDF preview object 使用；paste、Markdown、TXT、DOCX、缺失对象、归档和跨用户访问返回 404；
-- `resume.parse` 成功路径必须把抽取后的正文发送给 LLM，并要求 LLM 在不改变简历行文结构、顺序和事实的前提下输出 required `markdownText`；`parsed_text_snapshot` 存储该 Markdown 正文，供详情页统一渲染；
+- `resume.parse` 成功路径必须把完整抽取正文发送给 LLM，但模型只返回 `displayName` 与结构化字段，不再回显整份 `markdownText`；`parsed_text_snapshot` 由后端从同一份完整正文确定性构建，成功与失败路径都不依赖模型复述；
+- `resume.parse.default` 必须为结构化 strict JSON 提供至少 8192 tokens 输出预算；同时用长输入尾部唯一 marker 证明业务代码未截断 1M-context 模型可承载的简历正文，并在 `finish_reason=length` 时 fail closed 为 `AI_OUTPUT_INVALID`；
 - 若 LLM provider / output validation 失败但 upload / paste 已抽取出可读正文，失败路径必须保存 Markdown fallback 快照，而不是把 PDF 抽取文本原样折叠成一段；fallback 只用于失败态展示，不发送 `resume.parse.completed`，也不伪装为 LLM 成功结果；
 - `registerResume` 必须强制 active resume 数量上限，默认 `resume.maxActive=10`，并继续强制 upload 文件大小上限，默认 `upload.maxBytes.resume=2097152`；
 - 接 [B3 events `resume.parse.completed`](../../../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory)：只有最终 ready 成功路径通过 outbox 写入 envelope 字段集（`resumeId / userId / parseStatus`）+ PII 边界（不含 raw text / parsed_summary）；失败路径不发 completed event；
@@ -55,6 +56,9 @@
   4. outbox event unit test：envelope 字段集 + PII 红线（不含 raw text）；
   5. listResumes integration test：≥ 25 行 + cursor 第二页 + `hasMore=false` + cross-user 不可见；
   6. `cmd/api` route/runtime test：session middleware、IK middleware、route path params、resume_parse backend-internal runner wiring 与 shutdown。
+  7. profile catalog regression：从 `config/ai-profiles.yaml` 读取 `resume.parse.default`，Red 断言输出预算不低于 8192 且 profile version 随预算变更；
+  8. long-resume integrity regression：构造长输入及末尾唯一 marker，Red 断言完整 prompt 与 deterministic snapshot 都保留 marker，模型响应无需 `markdownText`；
+  9. truncation terminality regression：stub AI 返回 `finish_reason=length`，Red 断言 parse 在 JSON decode 前以 `AI_OUTPUT_INVALID` 失败、保留完整快照且不发 completed outbox。
   执行入口：`/implement backend-resume/001-asset-register-parse-and-listing` → `/tdd`。
 - **BDD 策略**: 适用（Feature plan requires BDD）。E2E.P0.034 register-and-list + E2E.P0.035 parse-async-job-lifecycle。详见 [bdd-plan.md](./bdd-plan.md) / [bdd-checklist.md](./bdd-checklist.md)。
 - **替代验证 gate**:
@@ -358,6 +362,64 @@
 
 （验证：`cd backend && go test ./internal/resume ./internal/resume/handler ./internal/resume/store ./cmd/api -run 'TestGetResumeSource|TestGetSourceFile' -count=1` PASS）
 
+### Phase 13: Real-resume output budget regression
+
+#### 13.1 RED: lock the long-resume output budget
+
+在 `backend/internal/ai/aiclient/profile/catalog_test.go` 增加 focused regression，从 repo-tracked `config/ai-profiles.yaml` 加载 `resume.parse.default`，断言 `max_tokens >= 8192`。当前 2048 配置必须先失败，作为真实 3170 字符简历 strict JSON 在 token cap 处截断的复现门禁。
+
+（验证：`cd backend && go test ./internal/ai/aiclient/profile -run TestCatalogKeepsResumeParseOutputBudget -count=1` RED）
+
+#### 13.2 GREEN: raise and version the profile budget
+
+将 `resume.parse.default.max_tokens` 提升到 8192，并递增 profile version。不得修改 provider、model、temperature、timeout 或其它 profile，避免把本次截断修复扩大成模型路由调整。
+
+（验证：13.1 focused test + `cd backend && go test ./internal/ai/aiclient/profile -count=1` PASS）
+
+#### 13.3 Harden E2E.P0.035 evidence
+
+扩展 E2E.P0.035 trigger/verify，执行并核验 `TestCatalogKeepsResumeParseOutputBudget` 的 runner marker、测试名与 PASS；继续保留 output-invalid 失败态 snapshot 与 privacy 红线断言。
+
+（验证：P0.035 `setup → trigger → verify → cleanup` PASS）
+
+#### 13.4 BDD gate
+
+`BDD-Gate: E2E.P0.035` 证明 repo-tracked resume.parse runtime profile 可承载真实长简历输出，并保持失败态 snapshot 与 ready-only outbox 语义。
+
+### Phase 14: Deterministic full-resume snapshot and truncation fail-closed
+
+> 本 Phase 原地替换 Phase 11 的旧 `markdownText` 回显合同；不保留双轨输出。8192-token profile 预算继续作为结构化 JSON 的安全余量，而不是完整正文保存机制。
+
+#### 14.1 RED: long input tail marker and structured-only response
+
+在 `backend/internal/resume/jobs` 增加长输入回归：输入正文超过常规简历长度且末尾包含唯一 marker；stub AI 返回不含 `markdownText` 的完整结构化 JSON。测试必须先证明当前 decoder 因 required `markdownText` 失败，并断言发送给 AI 的 prompt 包含末尾 marker。
+
+（验证：focused Go test RED，错误来自 `markdownText` 旧合同而非 fixture/build 失败）
+
+#### 14.2 GREEN: persist deterministic complete snapshot
+
+`backend/internal/resume/jobs/parse.go` 用完整提取正文确定性构建 `parsed_text_snapshot`，成功和失败路径复用同一快照；`decodeResumeParseResponse` 只解析 `displayName` 与结构化字段。`config/prompts/resume.parse` prompt/schema 删除 `markdownText`，不得在业务代码中新增字符或 token 切片。
+
+（验证：14.1 focused test PASS；现有 PDF / Markdown / text 提取、displayName、failure snapshot 与 ready-only outbox tests PASS）
+
+#### 14.3 RED/GREEN: finish_reason=length fails closed
+
+stub AI 返回看似可解码或被截断的 JSON 且 `FinishReason="length"`。parse handler 必须在 decode 前按 `AI_OUTPUT_INVALID` 完成失败事务，持久化含尾部 marker 的完整 snapshot，不写 `resume.parse.completed`；不得把 length completion 当作 ready。
+
+（验证：focused Go test 先 RED 后 GREEN）
+
+#### 14.4 Sync prompt-owned artifacts
+
+同步 `resume.parse` prompt body、schema、template hash、baseline seed migration 与 offline resolved prompt；更新 eval cases 为 structured-only output。`make lint-prompts`、`make eval-offline-resolve` 后 drift 为零，且负向 grep 证明当前 prompt/schema/eval/seed 不再要求 `markdownText`。
+
+#### 14.5 Harden and execute E2E.P0.035
+
+E2E.P0.035 trigger/verify 必须执行并核验 long-input tail marker、structured-only response、`finish_reason=length` fail-closed 测试名与 PASS；继续拒绝 no-op/skip，保留 profile budget、snapshot privacy、ready-only outbox 与 runner 证据。
+
+#### 14.6 BDD gate
+
+`BDD-Gate: E2E.P0.035` 证明完整简历正文进入 prompt 并由程序持久化、模型不回显正文、输出被截断时不产生 ready 假成功。
+
 ## 5 验收标准
 
 - 本计划列出的 §4 所有 Phase task 全部完成
@@ -368,7 +430,9 @@
 - D-14 display_name gates PASS：prompt schema、parse job、store create / complete success / failure、cmd/api runner kernel ready/retry scenario 均断言 ready 或 failed-with-snapshot resume 不保留通用上传 / 粘贴名称、上传文件名，也不把 raw resume 第一行作为名称
 - D-15 upload text snapshot gates PASS：upload PDF / Markdown / text 的 `parsed_text_snapshot` 与 AI prompt input 来自可读正文，不是文件名、截断文件片段、PDF literal 乱码或二进制 bytes；DOCX 被 presign/register 和 parse fallback 双层拒绝；已抽取正文在 LLM 失败时仍持久化
 - D-18 PDF source preview gates PASS：`getResumeSource` 只对当前用户 upload-backed PDF 返回 inline PDF，paste / Markdown / TXT / missing / archived / cross-user 返回 404
-- D-16/D-17 limits and Markdown gates PASS：`resume.maxActive` 默认 10 且新建上限可测，`upload.maxBytes.resume` 默认 2MiB，成功态 `parsed_text_snapshot` 为 LLM `markdownText`，AI 失败但已有可读正文时失败态快照为 Markdown fallback
+- D-16/D-17 limits and deterministic snapshot gates PASS：`resume.maxActive` 默认 10 且新建上限可测，`upload.maxBytes.resume` 默认 2MiB，成功/失败态 `parsed_text_snapshot` 均由完整提取正文确定性构建，模型输出不再包含 `markdownText`
+- D-19 output budget gate PASS：`resume.parse.default.max_tokens >= 8192`，profile version 已递增，E2E.P0.035 verify 检查 focused regression runner 证据
+- D-21 context/truncation gates PASS：长输入末尾 marker 同时存在于 AI prompt 与 snapshot；`finish_reason=length` 映射 `AI_OUTPUT_INVALID`、保留完整快照且不发 completed outbox
 - `frontend-workspace-and-practice/001` owner 已收到 `listResumes` 解锁信号
 - engineering-roadmap §5.2 `backend-resume` 状态已升级到 active
 
@@ -384,16 +448,19 @@
 | R6: B2/B3/B4 阶段 0 plan 未完成时启动本 plan | 本 plan §2 背景写明 4 个前置依赖（B2 D-18 / B3 D-14 / B4 D-17 / backend-upload 001）；任一未完成时 `/implement` 拒绝启动 |
 | R7: handler 包测试通过但真实 API / runner kernel 未挂载 | Phase 4.3 / checklist 4.4-4.5 强制 `cmd/api` route/runtime wiring；BDD 场景必须输出 `method=cmd-api-http` 或等价 live runtime evidence，并拒绝 no-op / skip 作为 PASS |
 | R8: AI 输出失败导致名称永久停留在生成中状态 | Phase 10 同时硬化 prompt `displayName` 合同和失败态 fallback `display_name` 写入；前端只在 truly pending 状态展示“名称生成中” |
-| R9: Markdown 快照改变简历事实或结构 | Phase 11 将 `markdownText` 写入 prompt schema 和 decode 校验，focused tests 断言 `parsed_text_snapshot` 使用 AI Markdown 输出，prompt 文案要求保持原结构和事实 |
+| R9: 模型回显改变简历事实、结构或被输出 cap 截断 | Phase 14 删除 `markdownText` 输出合同，快照由完整提取正文确定性构建；长输入尾部 marker 锁住 prompt/snapshot 完整性 |
 | R10: 数量限制破坏 IK replay | Phase 11 在 `CreateWithParseJob` dedupe hit 后再执行 active count gate；focused tests 覆盖达到上限时新 IK 拒绝、相同 IK replay 不误拒 |
 | R11: AI 失败态把 PDF 抽取正文折叠成普通段落 | Phase 11.5 将 failure snapshot 规范为 Markdown fallback，并以 PDF upload + AI invalid output focused test 锁定标题、章节和技能 bullet |
 | R12: DOCX 继续进入 prompt 或 UI 白名单 | Phase 12 在 upload handler/service 与 parse fallback 双层拒绝 DOCX，并用 focused tests 锁定前置拒绝和解析拒绝 |
 | R13: PDF 预览泄漏对象存储 key 或跨用户原件 | Phase 12 的 source endpoint 只返回 user-scoped inline PDF bytes，store/service/handler tests 覆盖 missing、paste 和 cross-user 404 |
+| R14: 结构化输出仍触达 token cap | Phase 13 固化 8192-token 下限，Phase 14 在 `finish_reason=length` 时 decode 前 fail closed；不通过放宽 JSON 校验伪装成功 |
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-12 | 3.1 | Replace full-resume model echo with deterministic source snapshots; add long-input tail-marker and finish-reason truncation gates. |
+| 2026-07-12 | 3.0 | Reopen the owner after a real 3170-character resume hit the 2048-token output cap; add the 8192-token profile regression and P0.035 gate. |
 | 2026-07-10 | 2.9 | Run resume parse scenarios through runner.Runtime and update canonical handler/runtime ownership wording. |
 | 2026-07-10 | 2.8 | 将 parse/list sourceType 与 tailor-mode 负向 gate 统一为 out-of-scope / 范围外口径；行为不变。 |
 | 2026-07-10 | 2.7 | 收敛 backend-resume 001 / P0.034 文档到当前 `resumes`、`ResumeWithJob`、`resumeId` 与 upload/paste sourceType 口径。 |

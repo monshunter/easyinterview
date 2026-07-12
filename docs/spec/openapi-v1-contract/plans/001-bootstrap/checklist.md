@@ -1,8 +1,8 @@
 # 001 - OpenAPI v1 Contract Bootstrap Checklist
 
-> **版本**: 1.11
+> **版本**: 1.12
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联计划**: [plan](./plan.md)
 
@@ -29,6 +29,13 @@
 ## BDD-Gate
 
 > **BDD 不适用**: 本 plan 交付内部 API contract、codegen pipeline 和 local contract gates，不新增用户可见 UI 或业务 workflow。用户可见 API behavior 由消费该 generated contract 的 backend/frontend/scenario owner 承接。
+
+## Phase 11: Practice round identity and progress projection
+
+- [x] 11.1 RED: contract tests require `PracticeRoundRef`, `PracticeProgress`, optional `CreatePracticePlanRequest.roundId`, optional paired `PracticePlan.roundId/roundSequence`, and optional `TargetJob.practiceProgress`.<!-- verified: 2026-07-12 method=python-contract-red -->
+- [x] 11.2 GREEN: update `openapi/openapi.yaml` and baseline, regenerate Go/TS artifacts, and keep the 37-operation / 10-tag inventory unchanged.<!-- verified: 2026-07-12 method=codegen+lint inventory="10 tags/37 operations" -->
+- [x] 11.3 Verify additive compatibility with `make lint-openapi`, `make codegen-check`, `make openapi-diff`; no required request field, endpoint, status code, or existing property is removed.<!-- verified: 2026-07-12 method=openapi-diff evidence="HEAD breaking=0 additive=6; rebased baseline drift=0" -->
+- [x] 11.4 Handoff generated types to backend-practice/backend-targetjob/frontend owners and run their focused contract tests.<!-- verified: 2026-07-12 method=go-compile+frontend-typecheck+practice-handler-tests -->
 
 ## Evidence Commands
 

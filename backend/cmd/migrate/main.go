@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/monshunter/easyinterview/backend/internal/migrations"
+	_ "github.com/monshunter/easyinterview/backend/internal/migrations/backfills/v000017"
 )
 
 // osEnv adapts os.Getenv to migrations.Env. The adapter lives in cmd/migrate

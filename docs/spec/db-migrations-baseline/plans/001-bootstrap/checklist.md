@@ -1,8 +1,8 @@
 # DB Migrations Baseline Bootstrap Checklist
 
-> **版本**: 1.12
+> **版本**: 1.13
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联计划**: [plan](./plan.md)
 
@@ -12,7 +12,7 @@
 - [x] 1.2 根 `Makefile` 提供 `make migrate-up` / `make migrate-down` / `make migrate-status` / `make migrate-create NAME=...` / `make migrate-check`，根 `make migrate` 指向真实入口或 help。验证: `make migrate` / `make migrate-status` / `make migrate-create NAME=test_migration` smoke 走 wrapper 或清晰 help，生成的临时 migration 文件可清理后 `git diff --check` 通过
 - [x] 1.3 `migrations/` 使用 `NNNNNN_<verb>_<noun>.up.sql` / `.down.sql`，编号从 `000001` 起 6 位连续，并由 `make migrate-create` 生成。验证: migration file naming test / lint 覆盖非 6 位、断号、缺 up/down pair、手写异常名失败路径；`make migrate-check` 调用该检查
 - [x] 1.4 baseline up 不启用未使用 DB extension；down 不管理 extension 生命周期。验证: 干净 Postgres 上 `make migrate-up && make migrate-down && make migrate-up` 成功，且 SQL contract test 断言 baseline 不创建未使用 extension
-- [x] 1.5 落地 `schema_backfills` ledger 与可选 backfill manifest contract；当前 repo 没有已登记的行级 backfill。验证: Go backfill registry tests 覆盖 manifest 解析、dry-run/apply 状态写入、同一 `version + mode + checksum` 重复成功记录不重复执行、`--force` 在 `APP_ENV=prod` 被拒绝<!-- verified: 2026-07-10 method=go-test package=./internal/migrations removed=empty-baseline-backfill -->
+- [x] 1.5 落地 `schema_backfills` ledger 与 backfill manifest contract；当前登记 `v000017/practice_plan_round_identity`。验证: Go backfill registry tests 覆盖 manifest 解析、dry-run/apply 状态写入、同一 `version + mode + checksum` 重复成功记录不重复执行、`--force` 在 `APP_ENV=prod` 被拒绝<!-- verified: 2026-07-12 method=go-test package=./internal/migrations/... manifest=v000017 -->
 - [x] 1.6 L2 remediation: prod down 防呆必须在连接 DB 前失败，避免误执行 destructive down。验证: focused CLI test 覆盖 prod guard；`go test ./internal/migrations -run 'TestCommandRunDownRequiresForceInProd' -count=1`
 
 ## Phase 2: baseline DDL 与索引
@@ -55,3 +55,10 @@
 
 - [x] 6.1 删除生产包导出的 `StaticEnv` test helper，将 map-backed `Env` double 下沉到 `cli_test.go`，并确认 `Run` 仍由 `cmd/migrate.osEnv` 驱动；验证 production deadcode、symbol inventory、migration focused tests/staticcheck/lint、owner contexts 与 docs/diff/pruning gates。
   <!-- verified: 2026-07-10 method=migration-cli-test-double-relocation evidence="Production deadcode RED listed StaticEnv.Getenv. Removed the exported production test helper, added test-local mapEnv and retained Env/osEnv. Migration focused/full backend tests, staticcheck, lint 18 tests, config lint, privacy dry-run, symbol inventory and owner contexts PASS." -->
+
+## Phase 7: normalized PracticePlan round identity
+
+- [x] 7.1 RED: migration SQL/live tests require nullable paired `round_id` / `round_sequence`, positive sequence, partial lookup index, reversible down, and no TargetJob progress column.<!-- verified: 2026-07-12 method=static-contract-red missing=000017 -->
+- [x] 7.2 Create `000017` only through `make migrate-create NAME=practice_plan_round_identity`; implement up/down and update schema inventory probes.<!-- verified: 2026-07-12 method=make-migrate-create+sql-contract evidence="paired nullable columns, nonblank/positive checks, plan/session indexes and reversible down" -->
+- [x] 7.3 RED-GREEN: backfill registry covers unique duration match, zero match, same-duration ambiguity, canonical `round-{sequence}-{type}`, rerun idempotency, and ledger evidence; ambiguous rows remain null.<!-- verified: 2026-07-12 method=go-test package=internal/migrations/backfills/v000017 evidence="dry-run/apply/rerun plus manifest and ledger" -->
+- [x] 7.4 Run migration lint/contract tests and real Postgres `make migrate-check` up/down/up; record pair/index/backfill probes.<!-- verified: 2026-07-12 method=isolated-postgres evidence="two migrate-check up/down/up runs; round-ddl-probe PASS; backfill probe ledger=2; temporary-db-residual=0" -->

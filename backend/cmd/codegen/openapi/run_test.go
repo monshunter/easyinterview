@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -187,6 +188,48 @@ func TestRun_ApiErrorInnerObjectAndResponseEnvelope(t *testing.T) {
 	mustNotContain(t, goServer, "// 59-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")
 }
 
+func TestRun_PracticeRoundIdentityAndProgressTypes(t *testing.T) {
+	repoRoot := mustFindRepoRoot(t)
+	tmp := t.TempDir()
+	openapiDst := filepath.Join(tmp, "openapi", "openapi.yaml")
+	if err := os.MkdirAll(filepath.Dir(openapiDst), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	mustCopy(t, filepath.Join(repoRoot, "openapi", "openapi.yaml"), openapiDst)
+
+	templates := filepath.Join(tmp, "openapi", "templates")
+	if err := mirrorDir(filepath.Join(repoRoot, "openapi", "templates"), templates); err != nil {
+		t.Fatalf("mirror templates: %v", err)
+	}
+	if err := Run(
+		openapiDst,
+		filepath.Join(repoRoot, "shared", "conventions.yaml"),
+		templates,
+		tmp,
+		false,
+	); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	goTypes := readFile(t, filepath.Join(tmp, "backend/internal/api/generated/types.gen.go"))
+	mustContain(t, goTypes, "type PracticeRoundRef struct {")
+	mustMatch(t, goTypes, `(?m)^\s*RoundId\s+string\s+`+"`json:\"roundId\"`"+`$`)
+	mustMatch(t, goTypes, `(?m)^\s*RoundSequence\s+int32\s+`+"`json:\"roundSequence\"`"+`$`)
+	mustContain(t, goTypes, "type PracticeProgress struct {")
+	mustMatch(t, goTypes, `(?m)^\s*CurrentRound\s+\*PracticeRoundRef\s+`+"`json:\"currentRound\"`"+`$`)
+	mustMatch(t, goTypes, `(?m)^\s*PracticeProgress\s+\*PracticeProgress\s+`+"`json:\"practiceProgress,omitempty\"`"+`$`)
+	mustMatch(t, goTypes, `(?m)^\s*RoundId\s+\*string\s+`+"`json:\"roundId,omitempty\"`"+`$`)
+	mustMatch(t, goTypes, `(?m)^\s*RoundSequence\s+\*int32\s+`+"`json:\"roundSequence,omitempty\"`"+`$`)
+
+	tsTypes := readFile(t, filepath.Join(tmp, "frontend/src/api/generated/types.ts"))
+	mustContain(t, tsTypes, "export interface PracticeRoundRef {")
+	mustContain(t, tsTypes, "export interface PracticeProgress {")
+	mustContain(t, tsTypes, "\tcurrentRound: PracticeRoundRef | null;")
+	mustContain(t, tsTypes, "\tpracticeProgress?: PracticeProgress;")
+	mustContain(t, tsTypes, "\troundId?: string | null;")
+	mustContain(t, tsTypes, "\troundSequence?: number | null;")
+}
+
 func mustFindRepoRoot(t *testing.T) string {
 	t.Helper()
 	wd, err := os.Getwd()
@@ -218,6 +261,13 @@ func mustNotContain(t *testing.T, haystack, needle string) {
 	t.Helper()
 	if strings.Contains(haystack, needle) {
 		t.Fatalf("expected output not to contain %q", needle)
+	}
+}
+
+func mustMatch(t *testing.T, haystack, pattern string) {
+	t.Helper()
+	if !regexp.MustCompile(pattern).MatchString(haystack) {
+		t.Fatalf("expected output to match %q", pattern)
 	}
 }
 

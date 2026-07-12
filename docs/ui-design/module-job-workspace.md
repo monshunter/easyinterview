@@ -1,6 +1,6 @@
 # Interview 面试规划目标模块
 
-> **版本**: 1.31
+> **版本**: 1.32
 > **状态**: active
 > **更新日期**: 2026-07-12
 
@@ -16,6 +16,7 @@
 - 列表候选只来自 ready 且标题非空的 TargetJob。
 - 点击卡片主体导航到 `parse` route 统一详情母版。
 - 通过 `立即面试` 主按钮快速启动该规划的模拟面试。
+- 卡片 mini round rail 与 `立即面试` 当前轮只使用 TargetJob API 的 `practiceProgress`；完成一轮后刷新/回访必须显示 backend 投影的下一轮。
 - 通过删除图标调用 `archiveTargetJob` 持久归档，并在成功后从当前列表中移除卡片。
 - 引导用户回首页导入新的 JD。
 
@@ -231,5 +232,6 @@ Resume
 3. 面试规划列表必须是列表卡片式：每个规划复用 Home 最近模拟面试卡片主体（公司/状态 eyebrow、岗位、地点、mini round rail），并在底部追加明确的主题 accent `立即面试` 按钮，删除图标按钮固定在卡片右上角；桌面卡片采用固定最大列宽，单卡不得铺满整行，数量从 1 到 3 变化时卡片规格保持稳定；卡片不展示来源类型、目标语言或 `手动输入` 等导入元信息；列表只展示 `analysisStatus=ready` 且标题非空的 TargetJob。
 4. 列表卡片不展示可见的 `进入规划` / `Open plan` 按钮；点击卡片主体进入 `parse` 详情，点击 `立即面试` 启动 practice，点击右上角删除图标调用 generated `archiveTargetJob`，成功后隐藏当前卡片且刷新后不回灌。
 5. 真实面试轮次、已绑定简历和启动面试只出现在 parse 只读详情或后续 owner；parse round assumptions 与 Home 最近模拟面试卡片的迷你轮次轨道保持 UI 真理源样式，但轮次数量、type/name、duration 和 focus 必须来自同一个 `TargetJob.summary.interviewRounds[]` mapper。该数组由后端 LLM 根据 JD、岗位级别、公司/行业性质、团队/业务上下文和招聘流程线索推断；前端不得用静态 4 轮、静态 HR/技术/经理面或静态分钟数 fallback。Workspace 规划列表保持紧凑卡片，但进入详情的 handoff 不得生成另一套静态 round name。
+   当前/已完成状态必须来自 `TargetJob.practiceProgress`：`completedRounds` 画为完成态，`currentRound` 画为当前态，全部完成时所有节点为完成态且 `立即面试` disabled。缺失、跳轮、重复或 pair 不匹配时不高亮/不启动；禁止读取 lifecycle `status`、自由文本 `nextRound`、URL 或浏览器存储做轮次 fallback。mini rail 的 DOM、间距、颜色、节点几何保持现有原型值不变。
 6. 已绑定简历展示、启动面试、公司信号、记录区等详情能力由 `parse` / practice / report 对应 owner 承接，不属于 workspace 列表页。
 7. 本页是回访入口：不得把首次 JD 导入用户从 `parse` 强制带回本页做第二次全页确认；解析成功即代表规划已保存，详情页不再提供“仅保存规划”。

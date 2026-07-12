@@ -1,6 +1,6 @@
 # 001 Plan and Session Orchestration Test Checklist
 
-> **版本**: 2.0
+> **版本**: 2.4
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -21,3 +21,17 @@
 
 ## Phase 5: Gate set
 - [x] Phase 5 focused/full/codegen/migrate/docs/diff gates pass.
+
+## Phase 6: Resume grounding
+- [x] Store precedence and complete snapshot tail-marker tests pass.<!-- verified: 2026-07-12 method=go-test -->
+- [x] Empty resume context returns typed validation and records zero AI/opening reply.<!-- verified: 2026-07-12 method=go-test -->
+- [x] Persisted-resume/candidate-user evidence, clarification, assistant-history non-evidence lint and offline eval pass.<!-- verified: 2026-07-12 method=unittest+prompt-lint+eval-offline result=27/27-pass -->
+- [x] System-role policy, JSON untrusted-context escaping and persona-style-only payload/lint/eval gates pass.<!-- verified: 2026-07-12 method=go+pytest+eval includes=TestBackendPracticeConversationPromptPreflight -->
+- [x] P0.023/P0.024 scenario gates pass.<!-- verified: 2026-07-12 method=scenario -->
+
+## Phase 7: Round identity and plan selection
+
+- [x] Contract/generated round fields and paired persistence tests pass.<!-- verified: 2026-07-12 method=unit+integration -->
+- [x] Baseline/retry/next transactional selection and idempotency tests pass.<!-- verified: 2026-07-12 method=real-postgres-integration -->
+- [x] TargetJob-bound resume/provenance plus same-duration/non-contiguous/int32/type/legacy/all-complete/invalid-source tests pass.<!-- verified: 2026-07-12 method=unit+real-postgres-integration markers="target-resume-binding-and-provenance,canonical-round-type-case-sensitive,non-contiguous-successor" -->
+- [x] P0.022/P0.070/P0.072 scenario gates pass with real round identity evidence.<!-- verified: 2026-07-12 method=scenario-run -->

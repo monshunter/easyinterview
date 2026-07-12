@@ -65,6 +65,7 @@ func (h *Handler) CreatePracticePlan(w http.ResponseWriter, r *http.Request) {
 		TargetJobID:          body.TargetJobId,
 		ResumeID:             body.ResumeId,
 		SourceReportID:       stringValue(body.SourceReportId),
+		RoundID:              stringValue(body.RoundId),
 		Goal:                 body.Goal,
 		InterviewerPersona:   body.InterviewerPersona,
 		Difficulty:           body.Difficulty,
@@ -232,6 +233,10 @@ func toAPIPracticePlan(plan domain.PlanRecord) api.PracticePlan {
 	}
 	if strings.TrimSpace(plan.SourceReportID) != "" {
 		out.SourceReportId = &plan.SourceReportID
+	}
+	if strings.TrimSpace(plan.RoundID) != "" && plan.RoundSequence > 0 {
+		out.RoundId = &plan.RoundID
+		out.RoundSequence = &plan.RoundSequence
 	}
 	return out
 }

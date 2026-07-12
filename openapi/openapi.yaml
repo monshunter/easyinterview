@@ -1995,6 +1995,7 @@ components:
           type: integer
           format: int32
           minimum: 1
+          maximum: 2147483647
           description: One-based round order inferred from the likely interview process.
         type:
           type: string
@@ -2054,6 +2055,42 @@ components:
         provenance:
           $ref: '#/components/schemas/GenerationProvenance'
 
+    PracticeRoundRef:
+      type: object
+      required: [roundId, roundSequence]
+      description: Stable logical identity for one structured TargetJob interview round. The identifier is deterministic and is not a UUID.
+      properties:
+        roundId:
+          type: string
+          pattern: '^round-[1-9][0-9]{0,9}-(hr|technical|manager|cross_functional|culture|final|other)$'
+          description: Deterministic logical key derived from the one-based sequence and TargetJob round type.
+        roundSequence:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 2147483647
+          description: One-based sequence of the structured TargetJob interview round.
+
+    PracticeProgress:
+      type: object
+      required: [status, completedRounds, currentRound]
+      description: Backend read-side projection derived from completed practice-session ledger facts. It is not a mutable TargetJob lifecycle field.
+      properties:
+        status:
+          type: string
+          enum: [not_started, in_progress, completed]
+        completedRounds:
+          type: array
+          uniqueItems: true
+          description: Ordered, deduplicated completed rounds in TargetJob interview-round sequence.
+          items:
+            $ref: '#/components/schemas/PracticeRoundRef'
+        currentRound:
+          description: First incomplete structured round, or null after every round is complete.
+          oneOf:
+            - $ref: '#/components/schemas/PracticeRoundRef'
+            - type: 'null'
+
     TargetJob:
       type: object
       required: [id, status, analysisStatus, title, companyName, targetLanguage, sourceType, requirements, openQuestionIssueCount, createdAt, updatedAt]
@@ -2105,7 +2142,10 @@ components:
             - type: string
               format: uuid
             - type: 'null'
-          description: Latest ready practice plan for this target job, when one exists.
+          description: Latest ready practice plan whose persisted resume and exact round pair match this TargetJob's bound resume and backend-projected currentRound; null when progress is completed, invalid, or has no matching ready plan.
+        practiceProgress:
+          $ref: '#/components/schemas/PracticeProgress'
+          description: Completed/current practice rounds projected by the backend from persisted session facts. TargetJob lifecycle status is not a round cursor.
         resumeId:
           oneOf:
             - type: string
@@ -2174,6 +2214,10 @@ components:
         resumeId:
           type: string
           format: uuid
+        roundId:
+          type: string
+          pattern: '^round-[1-9][0-9]{0,9}-(hr|technical|manager|cross_functional|culture|final|other)$'
+          description: Optional client round intention. The server validates it against the TargetJob progress projection and derives roundSequence.
         sourceReportId:
           type: string
           format: uuid
@@ -2187,6 +2231,9 @@ components:
     PracticePlan:
       type: object
       required: [id, targetJobId, goal, interviewerPersona, difficulty, language, timeBudgetMinutes, resumeId, status, createdAt]
+      dependentRequired:
+        roundId: [roundSequence]
+        roundSequence: [roundId]
       properties:
         id:
           type: string
@@ -2210,6 +2257,20 @@ components:
         resumeId:
           type: string
           format: uuid
+        roundId:
+          description: Stable logical round key. New plans return roundId and roundSequence together; legacy plans may omit both or return null.
+          oneOf:
+            - type: string
+              pattern: '^round-[1-9][0-9]{0,9}-(hr|technical|manager|cross_functional|culture|final|other)$'
+            - type: 'null'
+        roundSequence:
+          description: One-based structured round sequence. New plans return roundId and roundSequence together; legacy plans may omit both or return null.
+          oneOf:
+            - type: integer
+              format: int32
+              minimum: 1
+              maximum: 2147483647
+            - type: 'null'
         sourceReportId:
           type: string
           format: uuid

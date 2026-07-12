@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-Validate the backend-resume async parse lifecycle from queued `resume_parse` job to deterministic AI parse, upload readable text extraction, ready/failed state transitions, LLM-derived `displayName`, typed AI observability, ready-only outbox emission, and privacy redlines.
+Validate the backend-resume async parse lifecycle from queued `resume_parse` job to deterministic AI parse, complete input tail-marker preservation, deterministic source snapshots, structured-only model output, `finish_reason=length` fail-closed behavior, long-resume output budget, ready/failed state transitions, typed AI observability, ready-only outbox emission, and privacy redlines.
 
 ## 2. Requirements
 
@@ -14,14 +14,14 @@ Validate the backend-resume async parse lifecycle from queued `resume_parse` job
 Given registered resumes for `upload` and `paste` sources, an in-process
 `resume_parse` runner kernel, and a deterministic AI client implementing the A3/F3 contracts.
 
-When the runner kernel claims queued jobs and invokes the resume parse handler for success, invalid output, timeout, and retry-exhausted variants.
+When the runner kernel claims queued jobs and invokes the resume parse handler for structured-only success, invalid output, `finish_reason=length`, timeout, and retry-exhausted variants.
 
-Then upload PDF / Markdown / text sources are converted to readable prompt input and `parsed_text_snapshot`; DOCX is rejected before AI; unreadable PDF literal / binary fallback is rejected before AI; queued rows keep `display_name` empty until parse success; success writes `parsed_summary`, `parsed_text_snapshot`, `parse_status=ready`, LLM-derived `displayName`, typed `ai_task_runs` metadata, and one `resume.parse.completed` outbox event; failures write `parse_status=failed` with `error_code`, keep any already extracted readable snapshot, write a non-generic fallback `display_name` when readable text exists, and no completed event.
+Then `resume.parse.default.max_tokens` is at least 8192 for structured output safety; the complete source, including a long-input tail marker, reaches the AI prompt and a deterministic `parsed_text_snapshot`; the model does not echo full Markdown; `finish_reason=length` writes `AI_OUTPUT_INVALID`, keeps the complete snapshot, and emits no completed event. DOCX and unreadable PDF input fail before AI; success writes ready state, structured fields, LLM-derived `displayName`, typed task metadata, and one ready-only completed event.
 
 ## 4. Scripts
 
 - `scripts/setup.sh`: prepares output directories and copies expected evidence notes.
-- `scripts/trigger.sh`: runs the `cmd/api` runner kernel scenario, runtime wiring test, parse handler tests, and live DB integration gate.
+- `scripts/trigger.sh`: runs the profile output-budget gate, `cmd/api` runner kernel scenario, runtime wiring test, parse handler tests, and live DB integration gate.
 - `scripts/verify.sh`: rejects skips/no-op focused gates, checks required parse lifecycle evidence, and performs privacy / current-scope negative searches.
 - `scripts/cleanup.sh`: records cleanup completion while preserving logs under `.test-output/`.
 

@@ -34,7 +34,7 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 		wantReadObject  bool
 	}{
 		{
-			name: "persists markdownText snapshot",
+			name: "persists deterministic source snapshot",
 			asset: resumestore.ParseAssetRecord{
 				ID:           "asset-markdown",
 				UserID:       "user-1",
@@ -45,7 +45,6 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 			},
 			aiContent: `{
   "displayName": "Ada Lovelace - Engineer",
-  "markdownText": "# Ada Lovelace\n\n## Experience\n- Engineer",
   "basics": {"name": "Ada Lovelace", "headline": "Engineer"},
   "experiences": [],
   "projects": [],
@@ -54,7 +53,7 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
   "languages": ["en"]
 }`,
 			wantPrompt:      "Ada Lovelace\nEngineer",
-			wantSnapshot:    "# Ada Lovelace\n\n## Experience\n- Engineer",
+			wantSnapshot:    "# Ada Lovelace\nEngineer",
 			wantDisplayName: "Ada Lovelace - Engineer",
 		},
 		{
@@ -68,7 +67,7 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 				OriginalText: "paste resume text",
 			},
 			wantPrompt:   "paste resume text",
-			wantSnapshot: validResumeParseMarkdownText,
+			wantSnapshot: "# paste resume text",
 		},
 		{
 			name: "upload file object",
@@ -83,7 +82,7 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 			},
 			objectText:     "uploaded resume text",
 			wantPrompt:     "uploaded resume text",
-			wantSnapshot:   validResumeParseMarkdownText,
+			wantSnapshot:   "# uploaded resume text",
 			wantReadObject: true,
 		},
 		{
@@ -98,7 +97,6 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 			},
 			aiContent: `{
   "headline": "后端平台工程师",
-  "markdownText": "# 张三\n\n## 定位\n后端平台工程师",
   "basics": {"name": "粘贴的简历"},
   "experiences": [],
   "projects": [{"name": "Ferry"}],
@@ -107,7 +105,7 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
   "languages": ["zh-CN"]
 }`,
 			wantPrompt:      "张三\n后端平台工程师",
-			wantSnapshot:    "# 张三\n\n## 定位\n后端平台工程师",
+			wantSnapshot:    "# 张三\n后端平台工程师",
 			wantDisplayName: "后端平台工程师",
 		},
 		{
@@ -122,7 +120,6 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
 			},
 			aiContent: `{
   "displayName": "谭章毓 - AI Infra DevOps 平台工程师",
-  "markdownText": "# 谭章毓\n\n## 核心能力\n- AI Workflow\n- Kubernetes\n- GitOps",
   "basics": {"name": "谭章毓", "headline": "平台工程师"},
   "experiences": [],
   "projects": [{"name": "EasyInterview"}],
@@ -131,7 +128,7 @@ func TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox(t *testing.T) {
   "languages": ["zh-CN"]
 }`,
 			wantPrompt:      "谭章毓 | AI / Infra / DevOps 平台工程师",
-			wantSnapshot:    "# 谭章毓\n\n## 核心能力\n- AI Workflow\n- Kubernetes\n- GitOps",
+			wantSnapshot:    "# 谭章毓 - AI / Infra / DevOps 平台工程师\n\n## 核心能力\n- AI Workflow、Kubernetes、GitOps",
 			wantDisplayName: "谭章毓 - AI Infra DevOps 平台工程师",
 		},
 	}
@@ -285,8 +282,8 @@ func TestParseHandlerExtractsReadableUploadText(t *testing.T) {
 			if tc.wantMinReadBytes > 0 && len(objects.maxBytes) > 0 && objects.maxBytes[0] < tc.wantMinReadBytes {
 				t.Fatalf("object read maxBytes = %d, want at least %d", objects.maxBytes[0], tc.wantMinReadBytes)
 			}
-			if got := normalizeComparableText(store.success.ParsedTextSnapshot); got != normalizeComparableText(validResumeParseMarkdownText) {
-				t.Fatalf("parsed text snapshot = %q, want markdown %q", got, normalizeComparableText(validResumeParseMarkdownText))
+			if got := normalizeComparableText(store.success.ParsedTextSnapshot); !strings.Contains(got, tc.wantText) {
+				t.Fatalf("parsed text snapshot = %q, want complete source text %q", got, tc.wantText)
 			}
 			prompt := normalizeComparableText(ai.lastUserMessage())
 			if !strings.Contains(prompt, tc.wantText) {
@@ -545,7 +542,7 @@ func TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox(t *testing.T) 
 	}
 }
 
-func TestParseHandlerRequiresMarkdownTextInAIResponse(t *testing.T) {
+func TestParseHandlerAcceptsStructuredOnlyResponse(t *testing.T) {
 	now := time.Date(2026, 7, 7, 12, 0, 0, 0, time.UTC)
 	store := &fakeParseStore{asset: resumestore.ParseAssetRecord{
 		ID:           "asset-missing-markdown",
@@ -575,14 +572,104 @@ func TestParseHandlerRequiresMarkdownTextInAIResponse(t *testing.T) {
 		JobID: "job-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: store.asset.ID, Attempts: 1, MaxAttempts: 5,
 	})
 
+	if !outcome.Succeeded {
+		t.Fatalf("Handle outcome = %+v, want success", outcome)
+	}
+	if store.success == nil || store.success.ParsedTextSnapshot != "# Ada Lovelace\nEngineer" {
+		t.Fatalf("structured-only success = %+v", store.success)
+	}
+	if store.failure != nil {
+		t.Fatalf("structured-only response must not write failure: %+v", store.failure)
+	}
+}
+
+func TestParseHandlerPreservesLongInputTailWithStructuredOnlyResponse(t *testing.T) {
+	now := time.Date(2026, 7, 12, 15, 0, 0, 0, time.UTC)
+	const tailMarker = "RESUME_TAIL_MARKER_EASYINTERVIEW_0712"
+	longResume := "# Synthetic Candidate\n\n## Experience\n" +
+		strings.Repeat("- Built reliable infrastructure workflows with Go and Kubernetes.\n", 6000) +
+		"\n## Final Project\n- " + tailMarker
+	store := &fakeParseStore{asset: resumestore.ParseAssetRecord{
+		ID:           "asset-long-structured-only",
+		UserID:       "user-1",
+		Language:     "en",
+		ParseStatus:  sharedtypes.TargetJobParseStatusQueued,
+		SourceType:   "paste",
+		OriginalText: longResume,
+	}}
+	ai := &captureAI{resp: aiclient.CompleteResponse{Content: `{
+  "displayName": "Synthetic Candidate - Platform Engineer",
+  "basics": {"name": "Synthetic Candidate", "headline": "Platform Engineer"},
+  "experiences": [],
+  "projects": [],
+  "education": [],
+  "skills": ["Go", "Kubernetes"],
+  "languages": ["en"]
+}`}}
+	handler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
+		Store:    store,
+		Registry: fakeRegistry{resolution: parseResolution()},
+		AI:       ai,
+		NewID:    idSeq("event-long-1"),
+		Now:      func() time.Time { return now },
+	})
+
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
+		JobID: "job-long-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: store.asset.ID, Attempts: 1, MaxAttempts: 5,
+	})
+
+	if !strings.Contains(ai.lastUserMessage(), tailMarker) {
+		t.Fatalf("AI prompt lost long-resume tail marker %q", tailMarker)
+	}
+	if !outcome.Succeeded {
+		t.Fatalf("structured-only response should succeed: %+v", outcome)
+	}
+	if store.success == nil || !strings.Contains(store.success.ParsedTextSnapshot, tailMarker) {
+		t.Fatalf("deterministic snapshot lost long-resume tail marker: %+v", store.success)
+	}
+	if strings.Contains(string(store.success.StructuredProfile), "markdownText") {
+		t.Fatalf("structured profile retained removed markdownText echo: %s", store.success.StructuredProfile)
+	}
+}
+
+func TestParseHandlerRejectsLengthFinishReasonAndPreservesSourceSnapshot(t *testing.T) {
+	now := time.Date(2026, 7, 12, 15, 10, 0, 0, time.UTC)
+	const tailMarker = "RESUME_LENGTH_FAILURE_TAIL_MARKER_0712"
+	store := &fakeParseStore{asset: resumestore.ParseAssetRecord{
+		ID:           "asset-length-finish",
+		UserID:       "user-1",
+		Language:     "en",
+		ParseStatus:  sharedtypes.TargetJobParseStatusQueued,
+		SourceType:   "paste",
+		OriginalText: "# Synthetic Candidate\n\n## Projects\n" + strings.Repeat("- Platform project evidence.\n", 2000) + "- " + tailMarker,
+	}}
+	ai := &captureAI{resp: aiclient.CompleteResponse{
+		Content:      validResumeParseJSON,
+		FinishReason: " length ",
+	}}
+	handler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
+		Store:    store,
+		Registry: fakeRegistry{resolution: parseResolution()},
+		AI:       ai,
+		NewID:    idSeq("event-length-1"),
+		Now:      func() time.Time { return now },
+	})
+
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
+		JobID: "job-length-1", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: store.asset.ID, Attempts: 1, MaxAttempts: 5,
+	})
+
+	if !strings.Contains(ai.lastUserMessage(), tailMarker) {
+		t.Fatalf("AI prompt lost truncation-case tail marker %q", tailMarker)
+	}
 	if outcome.Succeeded || outcome.ErrorCode != sharederrors.CodeAiOutputInvalid {
-		t.Fatalf("Handle outcome = %+v, want AI_OUTPUT_INVALID", outcome)
+		t.Fatalf("length finish outcome = %+v, want AI_OUTPUT_INVALID", outcome)
 	}
 	if store.success != nil {
-		t.Fatalf("missing markdownText must not write success: %+v", store.success)
+		t.Fatalf("length finish must not write ready state or completed outbox: %+v", store.success)
 	}
-	if store.failure == nil || store.failure.ParsedTextSnapshot != "# Ada Lovelace\nEngineer" {
-		t.Fatalf("failure snapshot = %+v", store.failure)
+	if store.failure == nil || !strings.Contains(store.failure.ParsedTextSnapshot, tailMarker) {
+		t.Fatalf("length finish lost deterministic snapshot tail: %+v", store.failure)
 	}
 }
 
@@ -778,7 +865,6 @@ func TestParseHandlerPIIRedlineForLogsAuditTaskRunsAndOutbox(t *testing.T) {
 
 const validResumeParseJSON = `{
   "displayName": "Ada Lovelace - Engineer",
-  "markdownText": "# Ada Lovelace\n\n## Experience\n- Engineer at Analytical Engines\n- Built systems\n\n## Skills\n- Go\n- PostgreSQL",
   "basics": {"name": "Ada Lovelace"},
   "experiences": [{"company": "Analytical Engines", "title": "Engineer", "start": "2024-01", "end": "", "summary": "Built systems", "bullets": ["Led platform work"]}],
   "projects": [],
@@ -786,8 +872,6 @@ const validResumeParseJSON = `{
   "skills": ["Go", "PostgreSQL"],
   "languages": ["en"]
 }`
-
-const validResumeParseMarkdownText = "# Ada Lovelace\n\n## Experience\n- Engineer at Analytical Engines\n- Built systems\n\n## Skills\n- Go\n- PostgreSQL"
 
 func parseResolution() resumejobs.PromptResolution {
 	return resumejobs.PromptResolution{

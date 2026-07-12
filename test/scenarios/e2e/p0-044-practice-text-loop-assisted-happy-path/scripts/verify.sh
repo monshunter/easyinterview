@@ -5,4 +5,6 @@ ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"; LOG
 grep -Fq 'PracticeScreen.test.tsx' "$LOG"
 grep -Fq -- '--- PASS: TestSendPracticeMessageReturnsConversationMessages' "$LOG"
 grep -Fq -- '--- PASS: TestSendPracticeMessageUsesOrdinaryConversationHistory' "$LOG"
+grep -Fq -- '--- PASS: TestSQLRepositoryReservePracticeMessageRetriesPendingUserMessage' "$LOG"
+! grep -Eq -- '--- SKIP:|\[no tests to run\]|no tests to run|--- FAIL:|^FAIL($|[[:space:]])' "$LOG"
 echo 'E2E.P0.044 PASS'

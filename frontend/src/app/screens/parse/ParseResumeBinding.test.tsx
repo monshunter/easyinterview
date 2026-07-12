@@ -185,10 +185,7 @@ describe("ParseResumeBinding", () => {
     expect(getPlanSpy).toHaveBeenCalledWith(
       "01918fa0-0000-7000-8000-000000004000",
     );
-    expect(createSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ timeBudgetMinutes: 50 }),
-      expect.anything(),
-    );
+    expect(createSpy).not.toHaveBeenCalled();
     expect(startSpy).toHaveBeenCalledWith(
       {
         planId: "01918fa0-0000-7000-8000-000000004000",
@@ -211,5 +208,28 @@ describe("ParseResumeBinding", () => {
     const params = navigate.mock.calls[0]?.[0].params as Record<string, string>;
     expect(params.autoStartPractice).toBeUndefined();
     expect(JSON.stringify(params)).not.toContain("resume-unbound");
+  });
+
+  it("disables start for final backend progress with zero plan/session calls", async () => {
+    const client = createClient([listResumesFixture], {
+      currentPracticePlanId: null,
+      practiceProgress: {
+        status: "completed",
+        completedRounds: [
+          { roundId: "round-1-technical", roundSequence: 1 },
+          { roundId: "round-2-manager", roundSequence: 2 },
+          { roundId: "round-3-culture", roundSequence: 3 },
+        ],
+        currentRound: null,
+      },
+    });
+    const createSpy = vi.spyOn(client, "createPracticePlan");
+    const startSpy = vi.spyOn(client, "startPracticeSession");
+
+    await renderReadyParse(client);
+
+    expect(await screen.findByTestId("parse-action-start-interview")).toBeDisabled();
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(startSpy).not.toHaveBeenCalled();
   });
 });

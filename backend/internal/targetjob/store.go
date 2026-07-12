@@ -86,12 +86,34 @@ type TargetJobRecord struct {
 	FitSummary             json.RawMessage
 	Notes                  string
 	LatestReportID         string
-	CurrentPracticePlanID  string
 	ResumeID               string
+	PracticeFactsLoaded    bool
+	CompletedRoundFacts    []PracticeRoundFact
+	ReadyPlanFacts         []ReadyPracticePlanFact
 	OpenQuestionIssueCount int32
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
 	DeletedAt              *time.Time
+}
+
+// PracticeRoundFact is an immutable completion-ledger projection. The store
+// only emits facts backed by a session_completed event and a non-null plan
+// round identity; the service still validates each pair against the TargetJob
+// summary before exposing it on the API.
+type PracticeRoundFact struct {
+	RoundID       string `json:"roundId"`
+	RoundSequence int32  `json:"roundSequence"`
+}
+
+// ReadyPracticePlanFact is the minimal read-side candidate needed to select
+// the current round's plan. Candidates are already restricted to the
+// TargetJob's currently bound resume, but canonical round validation remains
+// a service responsibility.
+type ReadyPracticePlanFact struct {
+	PlanID        string    `json:"planId"`
+	RoundID       string    `json:"roundId"`
+	RoundSequence int32     `json:"roundSequence"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 // RequirementRecord represents a row in target_job_requirements.
@@ -301,6 +323,58 @@ type SQLStore struct {
 // NewSQLStore wires a SQLStore against the given *sql.DB.
 func NewSQLStore(db *sql.DB) *SQLStore { return &SQLStore{db: db} }
 
+const targetJobPracticeFactJoins = `
+left join lateral (
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'roundId', completed.round_id,
+        'roundSequence', completed.round_sequence
+      ) order by completed.round_sequence asc, completed.round_id asc
+    ),
+    '[]'::jsonb
+  ) as completed_round_facts
+  from (
+    select distinct pp.round_id, pp.round_sequence
+    from practice_plans pp
+    join practice_sessions ps
+      on ps.plan_id = pp.id
+     and ps.user_id = tj.user_id
+     and ps.target_job_id = tj.id
+    where pp.user_id = tj.user_id
+      and pp.target_job_id = tj.id
+      and pp.resume_id = tj.resume_id
+      and pp.round_id is not null
+      and pp.round_sequence is not null
+      and exists (
+        select 1
+        from practice_session_events pse
+        where pse.session_id = ps.id
+          and pse.event_type = 'session_completed'
+      )
+  ) completed
+) completion_facts on true
+left join lateral (
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'planId', pp.id::text,
+        'roundId', pp.round_id,
+        'roundSequence', pp.round_sequence,
+        'createdAt', pp.created_at
+      ) order by pp.created_at desc, pp.id desc
+    ),
+    '[]'::jsonb
+  ) as ready_plan_facts
+  from practice_plans pp
+  where pp.user_id = tj.user_id
+    and pp.target_job_id = tj.id
+    and pp.status = 'ready'
+    and pp.resume_id = tj.resume_id
+    and pp.round_id is not null
+    and pp.round_sequence is not null
+) ready_facts on true`
+
 func (s *SQLStore) checkDB() error {
 	if s == nil || s.db == nil {
 		return fmt.Errorf("targetjob store db is nil")
@@ -410,96 +484,23 @@ func (s *SQLStore) GetTargetJobByUser(ctx context.Context, userID string, target
 	if err := s.checkDB(); err != nil {
 		return TargetJobRecord{}, nil, nil, err
 	}
-	rec := TargetJobRecord{ID: targetJobID, UserID: userID}
-	var (
-		title              sql.NullString
-		companyName        sql.NullString
-		locationText       sql.NullString
-		employmentType     sql.NullString
-		seniorityLevel     sql.NullString
-		sourceURL          sql.NullString
-		sourceFileObjectID sql.NullString
-		rawJDText          sql.NullString
-		notes              sql.NullString
-		latestReportID     sql.NullString
-		currentPlanID      sql.NullString
-		resumeID           sql.NullString
-		summary            []byte
-		fitSummary         []byte
-		status             string
-		analysisStatus     string
-		sourceType         string
-	)
-	err := s.db.QueryRowContext(ctx, `
-select id, user_id, status, analysis_status, title, company_name, location_text,
-       employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
-       raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
-       target_jobs.resume_id::text as resume_id,
-       (
-         select pp.id::text
-         from practice_plans pp
-         where pp.user_id = target_jobs.user_id
-           and pp.target_job_id = target_jobs.id
-           and pp.status = 'ready'
-         order by pp.created_at desc, pp.id desc
-         limit 1
-       ) as current_practice_plan_id,
-       created_at, updated_at
-from target_jobs
-where id = $1 and user_id = $2 and deleted_at is null and analysis_status <> 'failed'`,
-		targetJobID,
-		userID,
-	).Scan(
-		&rec.ID,
-		&rec.UserID,
-		&status,
-		&analysisStatus,
-		&title,
-		&companyName,
-		&locationText,
-		&employmentType,
-		&seniorityLevel,
-		&rec.TargetLanguage,
-		&sourceType,
-		&sourceURL,
-		&sourceFileObjectID,
-		&rawJDText,
-		&summary,
-		&fitSummary,
-		&notes,
-		&latestReportID,
-		&rec.OpenQuestionIssueCount,
-		&resumeID,
-		&currentPlanID,
-		&rec.CreatedAt,
-		&rec.UpdatedAt,
-	)
+	query := `
+select tj.id, tj.user_id, tj.status, tj.analysis_status, tj.title, tj.company_name, tj.location_text,
+       tj.employment_type, tj.seniority_level, tj.target_language, tj.source_type, tj.source_url, tj.source_file_object_id,
+       tj.raw_jd_text, tj.summary, tj.fit_summary, tj.notes, tj.latest_report_id, tj.open_question_issue_count,
+       tj.resume_id::text as resume_id,
+       completion_facts.completed_round_facts,
+       ready_facts.ready_plan_facts,
+       tj.created_at, tj.updated_at
+from target_jobs tj
+` + targetJobPracticeFactJoins + `
+where tj.id = $1 and tj.user_id = $2 and tj.deleted_at is null and tj.analysis_status <> 'failed'`
+	rec, err := scanTargetJobRowWithPracticeFacts(s.db.QueryRowContext(ctx, query, targetJobID, userID))
 	if errors.Is(err, sql.ErrNoRows) {
 		return TargetJobRecord{}, nil, nil, ErrTargetJobNotFound
 	}
 	if err != nil {
 		return TargetJobRecord{}, nil, nil, fmt.Errorf("select target_jobs: %w", err)
-	}
-	rec.Status = sharedtypes.TargetJobStatus(status)
-	rec.AnalysisStatus = sharedtypes.TargetJobParseStatus(analysisStatus)
-	rec.Title = title.String
-	rec.CompanyName = companyName.String
-	rec.LocationText = locationText.String
-	rec.EmploymentType = employmentType.String
-	rec.SeniorityLevel = seniorityLevel.String
-	rec.SourceType = SourceType(sourceType)
-	rec.SourceURL = sourceURL.String
-	rec.SourceFileObjectID = sourceFileObjectID.String
-	rec.RawJDText = rawJDText.String
-	rec.Notes = notes.String
-	rec.LatestReportID = latestReportID.String
-	rec.CurrentPracticePlanID = currentPlanID.String
-	rec.ResumeID = resumeID.String
-	if len(summary) > 0 {
-		rec.Summary = append(json.RawMessage{}, summary...)
-	}
-	if len(fitSummary) > 0 {
-		rec.FitSummary = append(json.RawMessage{}, fitSummary...)
 	}
 
 	requirements, err := s.listRequirementsForJob(ctx, s.db, targetJobID)
@@ -533,16 +534,16 @@ func (s *SQLStore) ListTargetJobsForUser(ctx context.Context, userID string, fil
 		}
 	)
 	args = append(args, userID)
-	clauses = append(clauses, "user_id = $1", "deleted_at is null", "analysis_status <> 'failed'")
+	clauses = append(clauses, "tj.user_id = $1", "tj.deleted_at is null", "tj.analysis_status <> 'failed'")
 	if filter.Status != nil {
-		clauses = append(clauses, "status = "+nextArg(string(*filter.Status)))
+		clauses = append(clauses, "tj.status = "+nextArg(string(*filter.Status)))
 	}
 	if filter.AnalysisStatus != nil {
-		clauses = append(clauses, "analysis_status = "+nextArg(string(*filter.AnalysisStatus)))
+		clauses = append(clauses, "tj.analysis_status = "+nextArg(string(*filter.AnalysisStatus)))
 	}
 	if q := strings.TrimSpace(filter.SearchQuery); q != "" {
 		clauses = append(clauses,
-			"to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(company_name,'')) @@ plainto_tsquery('simple', "+nextArg(q)+")")
+			"to_tsvector('simple', coalesce(tj.title,'') || ' ' || coalesce(tj.company_name,'')) @@ plainto_tsquery('simple', "+nextArg(q)+")")
 	}
 	if filter.Cursor != "" {
 		updatedAt, id, err := decodeCursor(filter.Cursor)
@@ -551,29 +552,28 @@ func (s *SQLStore) ListTargetJobsForUser(ctx context.Context, userID string, fil
 		}
 		uPlaceholder := nextArg(updatedAt)
 		idPlaceholder := nextArg(id)
-		clauses = append(clauses, fmt.Sprintf("(updated_at, id) < (%s, %s)", uPlaceholder, idPlaceholder))
+		clauses = append(clauses, fmt.Sprintf("(tj.updated_at, tj.id) < (%s, %s)", uPlaceholder, idPlaceholder))
 	}
 
 	limitArg := nextArg(int(pageSize) + 1)
 	query := `
-select id, user_id, status, analysis_status, title, company_name, location_text,
-       employment_type, seniority_level, target_language, source_type, source_url, source_file_object_id,
-       raw_jd_text, summary, fit_summary, notes, latest_report_id, open_question_issue_count,
-       target_jobs.resume_id::text as resume_id,
-       (
-         select pp.id::text
-         from practice_plans pp
-         where pp.user_id = target_jobs.user_id
-           and pp.target_job_id = target_jobs.id
-           and pp.status = 'ready'
-         order by pp.created_at desc, pp.id desc
-         limit 1
-       ) as current_practice_plan_id,
-       created_at, updated_at
-from target_jobs
-where ` + strings.Join(clauses, " and ") + `
-order by updated_at desc, id desc
-limit ` + limitArg
+with page as (
+  select tj.*
+  from target_jobs tj
+  where ` + strings.Join(clauses, " and ") + `
+  order by tj.updated_at desc, tj.id desc
+  limit ` + limitArg + `
+)
+select tj.id, tj.user_id, tj.status, tj.analysis_status, tj.title, tj.company_name, tj.location_text,
+       tj.employment_type, tj.seniority_level, tj.target_language, tj.source_type, tj.source_url, tj.source_file_object_id,
+       tj.raw_jd_text, tj.summary, tj.fit_summary, tj.notes, tj.latest_report_id, tj.open_question_issue_count,
+       tj.resume_id::text as resume_id,
+       completion_facts.completed_round_facts,
+       ready_facts.ready_plan_facts,
+       tj.created_at, tj.updated_at
+from page tj
+` + targetJobPracticeFactJoins + `
+order by tj.updated_at desc, tj.id desc`
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -583,7 +583,7 @@ limit ` + limitArg
 
 	out := ListResult{}
 	for rows.Next() {
-		rec, err := scanTargetJobRowWithCurrentPlan(rows)
+		rec, err := scanTargetJobRowWithPracticeFacts(rows)
 		if err != nil {
 			return ListResult{}, err
 		}
@@ -1606,11 +1606,11 @@ func scanTargetJobRow(scanner rowScanner) (TargetJobRecord, error) {
 	return scanTargetJobRowSelected(scanner, false)
 }
 
-func scanTargetJobRowWithCurrentPlan(scanner rowScanner) (TargetJobRecord, error) {
+func scanTargetJobRowWithPracticeFacts(scanner rowScanner) (TargetJobRecord, error) {
 	return scanTargetJobRowSelected(scanner, true)
 }
 
-func scanTargetJobRowSelected(scanner rowScanner, includeCurrentPlan bool) (TargetJobRecord, error) {
+func scanTargetJobRowSelected(scanner rowScanner, includePracticeFacts bool) (TargetJobRecord, error) {
 	var (
 		rec                TargetJobRecord
 		title              sql.NullString
@@ -1623,8 +1623,9 @@ func scanTargetJobRowSelected(scanner rowScanner, includeCurrentPlan bool) (Targ
 		rawJDText          sql.NullString
 		notes              sql.NullString
 		latestReportID     sql.NullString
-		currentPlanID      sql.NullString
 		resumeID           sql.NullString
+		completedFactsJSON []byte
+		readyPlanFactsJSON []byte
 		summary            []byte
 		fitSummary         []byte
 		status             string
@@ -1652,10 +1653,9 @@ func scanTargetJobRowSelected(scanner rowScanner, includeCurrentPlan bool) (Targ
 		&latestReportID,
 		&rec.OpenQuestionIssueCount,
 	}
-	if includeCurrentPlan {
-		dest = append(dest, &resumeID, &currentPlanID)
-	} else {
-		dest = append(dest, &resumeID)
+	dest = append(dest, &resumeID)
+	if includePracticeFacts {
+		dest = append(dest, &completedFactsJSON, &readyPlanFactsJSON)
 	}
 	dest = append(dest, &rec.CreatedAt, &rec.UpdatedAt)
 
@@ -1676,7 +1676,6 @@ func scanTargetJobRowSelected(scanner rowScanner, includeCurrentPlan bool) (Targ
 	rec.RawJDText = rawJDText.String
 	rec.Notes = notes.String
 	rec.LatestReportID = latestReportID.String
-	rec.CurrentPracticePlanID = currentPlanID.String
 	rec.ResumeID = resumeID.String
 	if len(summary) > 0 {
 		rec.Summary = append(json.RawMessage{}, summary...)
@@ -1684,7 +1683,23 @@ func scanTargetJobRowSelected(scanner rowScanner, includeCurrentPlan bool) (Targ
 	if len(fitSummary) > 0 {
 		rec.FitSummary = append(json.RawMessage{}, fitSummary...)
 	}
+	if includePracticeFacts {
+		if err := unmarshalPracticeFacts(completedFactsJSON, &rec.CompletedRoundFacts); err != nil {
+			return TargetJobRecord{}, fmt.Errorf("decode completed round facts: %w", err)
+		}
+		if err := unmarshalPracticeFacts(readyPlanFactsJSON, &rec.ReadyPlanFacts); err != nil {
+			return TargetJobRecord{}, fmt.Errorf("decode ready plan facts: %w", err)
+		}
+		rec.PracticeFactsLoaded = true
+	}
 	return rec, nil
+}
+
+func unmarshalPracticeFacts(raw []byte, dest any) error {
+	if len(raw) == 0 || string(raw) == "null" {
+		raw = []byte(`[]`)
+	}
+	return json.Unmarshal(raw, dest)
 }
 
 type queryer interface {

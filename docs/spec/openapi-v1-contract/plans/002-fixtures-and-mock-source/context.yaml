@@ -6,7 +6,7 @@ metadata:
   sequence: 2
   specVersion:
     from: null
-    to: 1.39
+    to: 1.43
 spec:
   defaultTarget: contract
   discovery:
@@ -17,6 +17,8 @@ spec:
       - mock-source
       - prototype-baseline
       - fixtures-validator
+      - practice round identity
+      - target job practice progress
     keywords:
       - fixtures
       - deleteMe fixture

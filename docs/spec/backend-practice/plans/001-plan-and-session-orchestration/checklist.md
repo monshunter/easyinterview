@@ -1,6 +1,6 @@
 # 001 — Plan and Session Orchestration Checklist
 
-> **版本**: 2.1
+> **版本**: 2.5
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -41,8 +41,31 @@
   <!-- verified: 2026-07-12 method=privacy-observability-scenario evidence="lifecycle-only outbox, plaintext redaction, metric allowlist and one conversation-level report call pass" -->
 - [x] 5.3 Run focused/full backend, codegen, fixture, migration, prompt/eval, context/docs/index and diff gates.
 
+## Phase 6: Complete resume grounding for session start
+
+- [x] 6.1 RED: start store/service tests require `parsed_text_snapshot → original_text → structured_profile` precedence, full long-input tail marker in AI payload, and zero AI call when all resume content is empty.<!-- verified: 2026-07-12 method=go-test-red tests=TestSQLRepositoryReserveSessionStartPrefersCompleteResumeSourceSnapshot,TestStartPracticeSessionFailsClosedWithoutResumeContextAndSkipsAI -->
+- [x] 6.2 GREEN: start reservation exposes one complete `ResumeContext`, removes the `resume context unavailable` fallback, and returns typed `VALIDATION_FAILED` before prompt resolve/AI when empty.<!-- verified: 2026-07-12 method=go-test packages=internal/practice,internal/store/practice -->
+- [x] 6.3 RED-GREEN: prompt lint/eval requires persisted resume or candidate-authored `user` evidence, forbids invented project/company/technology claims, treats `assistant` history as continuity-only, and asks for clarification when project names are absent; sync hash/seed/resolved artifacts.<!-- verified: 2026-07-12 method=unittest+prompt-lint+eval-offline result=27/27-pass cases="real-resume-grounding-no-invented-project,assistant-hallucination-is-not-candidate-fact" -->
+- [x] 6.3a RED-GREEN: payload tests and prompt lint/eval prove immutable policy is a `system` message; JD/resume/round/persona/history are JSON-encoded untrusted user data; injection-like tags cannot escape into policy; persona controls style only.<!-- verified: 2026-07-12 method=go+pytest+eval tests="TestPracticeChatPayloadDoesNotLetLanguageBreakSystemPolicyBoundary,TestStartPracticeSessionCreatesOpeningAssistantMessage,TestBackendPracticeConversationPromptPreflight" gates="registry preflight,practice conversation contract,27-case offline eval" -->
+- [x] 6.4 E2E.P0.023/P0.024 trigger/verify require tail-marker and no-context fail-closed named tests, with no skip/no-op.<!-- verified: 2026-07-12 method=scenario both=PASS -->
+- [x] 6.5 BDD-Gate: P0.023/P0.024 pass with complete snapshot grounding and zero-AI empty-context evidence.<!-- verified: 2026-07-12 method=scenario bddChecklist=complete -->
+
+## Phase 7: Persisted canonical round identity and plan selection
+
+- [x] 7.1 RED: generated/domain/API tests require request `roundId`, paired plan response identity, and no request `roundSequence`.<!-- verified: 2026-07-12 method=generated+handler+domain-tests -->
+- [x] 7.2 RED-GREEN: create-plan SQL/domain atomically derives canonical round pair and validates baseline/retry/next against distinct completed session facts.<!-- verified: 2026-07-12 method=real-postgres-integration test=TestSQLRepositoryIntegration_CreatePlanProjectsCanonicalRoundLedger -->
+- [x] 7.2a RED-GREEN: start reservation resolves exact round name/type/focus from the persisted pair; prompt round context is not `interviewerPersona`, and legacy/mismatch identity cannot start a new session.<!-- verified: 2026-07-12 method=unit+real-postgres marker=canonical-round-prompt-context=PASS -->
+- [x] 7.2b RED-GREEN: request resume, source plan/report and completion facts must match `target_jobs.resume_id`; missing provenance and same-user wrong-resume inputs fail closed.<!-- verified: 2026-07-12 method=real-postgres markers="target-resume-binding-and-provenance" -->
+- [x] 7.3 RED-GREEN: canonical summary requires non-empty provenance, positive int32 strictly increasing/unique sequence and lowercase allowlisted type; `1,2,4` is valid and selects existing successor `4`; overflow/case drift, same-duration ambiguity, mismatched round/budget, all-complete, missing/legacy source identity and IK mismatch fail closed without inserting a plan.<!-- verified: 2026-07-12 method=unit+real-postgres markers="canonical-round-type-case-sensitive,non-contiguous-successor,equal-duration-next-round,stale-source-and-round-budget-mismatch,all-rounds-complete-fail-closed" -->
+- [x] 7.4 BDD-Gate: P0.022/P0.070/P0.072 execute round identity create/read/replay/source validation against real PostgreSQL, not sqlmock-only evidence.<!-- verified: 2026-07-12 method=scenario-run result=PASS -->
+- [x] 7.5 Run OpenAPI/generated, migration, focused/full backend, `DATABASE_URL` integration, context/docs/index/diff and business-persistence negative gates.<!-- verified: 2026-07-12 evidence="codegen idempotent; OpenAPI/fixtures/diff clean; isolated migrate up-down-up v17 clean; full Go/make test; P0.098 real DB+browser; contexts/docs/index/diff clean" -->
+
 ## 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-12 | 2.5 | 补齐 assistant history 不得成为候选人事实的 RED/GREEN prompt 与负向 eval gate。 |
+| 2026-07-12 | 2.4 | 补齐 TargetJob 绑定 resume/provenance/type/int32 目录约束，并增加 system policy 与 JSON 不可信上下文分层 gate。 |
+| 2026-07-12 | 2.3 | 原地重开 Phase 7，按方案 A 持久化规范化轮次身份并由完成台账校验当前/复练/下一轮。 |
+| 2026-07-12 | 2.2 | 原地重开 Phase 6，修复 start 只读空 structured_profile 导致真实简历丢失和无证据提问。 |
 | 2026-07-12 | 2.1 | 经用户批准，将依赖真实 backend handler 的 P0.022 从 contract rebase 后移到 Phase 2，禁止以 fixture-only 证据替代。 |

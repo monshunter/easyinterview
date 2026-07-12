@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -494,12 +495,18 @@ func (s *Service) UpdateTargetJob(ctx context.Context, in UpdateRequest) (api.Ta
 		}
 		return api.TargetJob{}, err
 	}
-	_, reqs, _, err := s.store.GetTargetJobByUser(ctx, in.UserID, in.TargetJobID)
+	reloaded, reqs, _, err := s.store.GetTargetJobByUser(ctx, in.UserID, in.TargetJobID)
 	if err != nil {
-		// updated successfully, but failed to reload requirements — return
-		// the updated row without requirements rather than fail the call.
+		// The mutation succeeded, but the read-side reload failed. Return the
+		// locked update row without derived facts rather than invent progress.
 		return recordToAPI(updated, nil), nil
 	}
+	// The transaction-returned row is authoritative for the committed
+	// mutation. Attach only read-side facts from the reload so a stale test
+	// double/read replica cannot overwrite the just-committed lifecycle fields.
+	updated.PracticeFactsLoaded = reloaded.PracticeFactsLoaded
+	updated.CompletedRoundFacts = append([]PracticeRoundFact(nil), reloaded.CompletedRoundFacts...)
+	updated.ReadyPlanFacts = append([]ReadyPracticePlanFact(nil), reloaded.ReadyPlanFacts...)
 	return recordToAPI(updated, reqs), nil
 }
 
@@ -579,20 +586,23 @@ func validateLifecycleTransition(current, next sharedtypes.TargetJobStatus) erro
 }
 
 func recordToAPI(rec TargetJobRecord, reqs []RequirementRecord) api.TargetJob {
+	summary := decodeTargetJobSummary(rec.Summary)
+	practiceProgress, currentPracticePlanID := projectPracticeProgress(rec, summary)
 	out := api.TargetJob{
 		AnalysisStatus:         rec.AnalysisStatus,
 		CompanyName:            rec.CompanyName,
 		CreatedAt:              rec.CreatedAt.UTC().Format(time.RFC3339),
-		CurrentPracticePlanId:  optionalString(rec.CurrentPracticePlanID),
+		CurrentPracticePlanId:  currentPracticePlanID,
 		Id:                     rec.ID,
 		LocationText:           optionalString(rec.LocationText),
 		OpenQuestionIssueCount: rec.OpenQuestionIssueCount,
+		PracticeProgress:       practiceProgress,
 		Requirements:           []api.TargetJobRequirement{},
 		ResumeId:               optionalString(rec.ResumeID),
 		SourceType:             string(rec.SourceType),
 		SourceUrl:              optionalString(rec.SourceURL),
 		Status:                 rec.Status,
-		Summary:                decodeTargetJobSummary(rec.Summary),
+		Summary:                summary,
 		FitSummary:             decodeTargetJobFitSummary(rec.FitSummary),
 		TargetLanguage:         rec.TargetLanguage,
 		Title:                  rec.Title,
@@ -611,6 +621,124 @@ func recordToAPI(rec TargetJobRecord, reqs []RequirementRecord) api.TargetJob {
 		})
 	}
 	return out
+}
+
+type practiceRoundKey struct {
+	id       string
+	sequence int32
+}
+
+var canonicalPracticeRoundTypes = map[string]struct{}{
+	"hr":               {},
+	"technical":        {},
+	"manager":          {},
+	"cross_functional": {},
+	"culture":          {},
+	"final":            {},
+	"other":            {},
+}
+
+func projectPracticeProgress(rec TargetJobRecord, summary *api.TargetJobSummary) (*api.PracticeProgress, *string) {
+	if !rec.PracticeFactsLoaded {
+		return nil, nil
+	}
+	canonicalRounds, ok := canonicalPracticeRounds(summary)
+	if !ok {
+		return nil, nil
+	}
+
+	canonicalByKey := make(map[practiceRoundKey]struct{}, len(canonicalRounds))
+	for _, round := range canonicalRounds {
+		canonicalByKey[practiceRoundKey{id: round.RoundId, sequence: round.RoundSequence}] = struct{}{}
+	}
+	completed := make(map[practiceRoundKey]struct{}, len(rec.CompletedRoundFacts))
+	for _, fact := range rec.CompletedRoundFacts {
+		key := practiceRoundKey{id: fact.RoundID, sequence: fact.RoundSequence}
+		if _, exists := canonicalByKey[key]; exists {
+			completed[key] = struct{}{}
+		}
+	}
+
+	progress := &api.PracticeProgress{
+		CompletedRounds: make([]api.PracticeRoundRef, 0, len(completed)),
+		Status:          "not_started",
+	}
+	for i := range canonicalRounds {
+		round := canonicalRounds[i]
+		key := practiceRoundKey{id: round.RoundId, sequence: round.RoundSequence}
+		if _, done := completed[key]; done {
+			progress.CompletedRounds = append(progress.CompletedRounds, round)
+			continue
+		}
+		current := round
+		progress.CurrentRound = &current
+		break
+	}
+
+	switch {
+	case len(progress.CompletedRounds) == len(canonicalRounds):
+		progress.Status = "completed"
+		progress.CurrentRound = nil
+	case len(progress.CompletedRounds) > 0:
+		progress.Status = "in_progress"
+	}
+
+	if progress.CurrentRound == nil {
+		return progress, nil
+	}
+	currentKey := practiceRoundKey{
+		id:       progress.CurrentRound.RoundId,
+		sequence: progress.CurrentRound.RoundSequence,
+	}
+	var selected *ReadyPracticePlanFact
+	for i := range rec.ReadyPlanFacts {
+		candidate := &rec.ReadyPlanFacts[i]
+		if candidate.PlanID == "" || (practiceRoundKey{id: candidate.RoundID, sequence: candidate.RoundSequence}) != currentKey {
+			continue
+		}
+		if selected == nil || candidate.CreatedAt.After(selected.CreatedAt) ||
+			(candidate.CreatedAt.Equal(selected.CreatedAt) && candidate.PlanID > selected.PlanID) {
+			selected = candidate
+		}
+	}
+	if selected == nil {
+		return progress, nil
+	}
+	planID := selected.PlanID
+	return progress, &planID
+}
+
+func canonicalPracticeRounds(summary *api.TargetJobSummary) ([]api.PracticeRoundRef, bool) {
+	if summary == nil || len(summary.InterviewRounds) < 2 || len(summary.InterviewRounds) > 5 {
+		return nil, false
+	}
+	rounds := append([]api.TargetJobInterviewRound(nil), summary.InterviewRounds...)
+	sort.Slice(rounds, func(i, j int) bool {
+		return rounds[i].Sequence < rounds[j].Sequence
+	})
+	canonical := make([]api.PracticeRoundRef, 0, len(rounds))
+	var previousSequence int32
+	for i, round := range rounds {
+		if round.Sequence <= 0 || (i > 0 && round.Sequence <= previousSequence) {
+			return nil, false
+		}
+		roundType := strings.TrimSpace(round.Type)
+		if _, allowed := canonicalPracticeRoundTypes[roundType]; !allowed {
+			return nil, false
+		}
+		if round.DurationMinutes < 10 || round.DurationMinutes > 180 {
+			return nil, false
+		}
+		if strings.TrimSpace(round.Name) == "" || strings.TrimSpace(round.Focus) == "" {
+			return nil, false
+		}
+		canonical = append(canonical, api.PracticeRoundRef{
+			RoundId:       fmt.Sprintf("round-%d-%s", round.Sequence, roundType),
+			RoundSequence: round.Sequence,
+		})
+		previousSequence = round.Sequence
+	}
+	return canonical, true
 }
 
 func decodeTargetJobSummary(raw json.RawMessage) *api.TargetJobSummary {

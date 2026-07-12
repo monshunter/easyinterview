@@ -6,12 +6,20 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 2.8
+    to: 2.10
 spec:
   defaultTarget: backend
   discovery:
     aliases:
       - backend-targetjob
+      - practice progress projection
+      - session completed ledger
+      - current practice round
+      - no n plus one
+      - backend business persistence
+      - bound resume completion facts
+      - non-contiguous canonical successor
+      - int32 sequence lowercase round type
       - targetjob-import-and-parse-bootstrap
       - target job import parse
       - jd parse backend

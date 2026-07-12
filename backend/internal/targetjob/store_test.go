@@ -146,7 +146,7 @@ func TestSQLStore_GetTargetJobByUser_ReturnsRecordWithRequirementsAndSources(t *
 		"id", "user_id", "status", "analysis_status", "title", "company_name", "location_text",
 		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
 		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
-		"resume_id", "current_practice_plan_id", "created_at", "updated_at",
+		"resume_id", "completed_round_facts", "ready_plan_facts", "created_at", "updated_at",
 	}).AddRow(
 		"018f2a40-0000-7000-9000-0000000000a1",
 		"018f2a40-0000-7000-9000-0000000000b1",
@@ -158,10 +158,11 @@ func TestSQLStore_GetTargetJobByUser_ReturnsRecordWithRequirementsAndSources(t *
 		[]byte(`{}`),
 		nil, nil, int32(0),
 		"018f2a40-0000-7000-9000-0000000000r1",
-		"018f2a40-0000-7000-9000-0000000000p1",
+		[]byte(`[{"roundId":"round-1-hr","roundSequence":1}]`),
+		[]byte(`[{"planId":"018f2a40-0000-7000-9000-0000000000p1","roundId":"round-2-technical","roundSequence":2,"createdAt":"2026-05-09T11:00:00Z"}]`),
 		now, now,
 	)
-	mock.ExpectQuery(`from target_jobs\s+where id = \$1 and user_id = \$2 and deleted_at is null`).
+	mock.ExpectQuery(`(?s)from target_jobs tj.*left join lateral.*practice_session_events pse.*left join lateral.*where tj\.id = \$1 and tj\.user_id = \$2 and tj\.deleted_at is null`).
 		WithArgs("018f2a40-0000-7000-9000-0000000000a1", "018f2a40-0000-7000-9000-0000000000b1").
 		WillReturnRows(rows)
 
@@ -195,8 +196,14 @@ func TestSQLStore_GetTargetJobByUser_ReturnsRecordWithRequirementsAndSources(t *
 	if got.Title != "Backend Engineer" || got.Status != sharedtypes.TargetJobStatusDraft || got.AnalysisStatus != sharedtypes.TargetJobParseStatusReady {
 		t.Fatalf("unexpected record: %+v", got)
 	}
-	if got.CurrentPracticePlanID != "018f2a40-0000-7000-9000-0000000000p1" {
-		t.Fatalf("current practice plan not projected: %+v", got)
+	if len(got.CompletedRoundFacts) != 1 || got.CompletedRoundFacts[0].RoundID != "round-1-hr" {
+		t.Fatalf("completed round facts not loaded: %+v", got)
+	}
+	if !got.PracticeFactsLoaded {
+		t.Fatal("practice facts must be marked loaded on the Get read path")
+	}
+	if len(got.ReadyPlanFacts) != 1 || got.ReadyPlanFacts[0].PlanID != "018f2a40-0000-7000-9000-0000000000p1" {
+		t.Fatalf("ready plan facts not loaded: %+v", got)
 	}
 	if got.ResumeID != "018f2a40-0000-7000-9000-0000000000r1" {
 		t.Fatalf("target job-level resume binding not projected: %+v", got)
@@ -219,7 +226,7 @@ func TestSQLStore_GetTargetJobByUser_HidesFailedAnalysisRows(t *testing.T) {
 	store, mock, cleanup := newMockStore(t)
 	defer cleanup()
 
-	mock.ExpectQuery(`from target_jobs\s+where id = \$1 and user_id = \$2 and deleted_at is null and analysis_status <> 'failed'`).
+	mock.ExpectQuery(`(?s)from target_jobs tj.*where tj\.id = \$1 and tj\.user_id = \$2 and tj\.deleted_at is null and tj\.analysis_status <> 'failed'`).
 		WithArgs("018f2a40-0000-7000-9000-0000000000a1", "018f2a40-0000-7000-9000-0000000000b1").
 		WillReturnError(sql.ErrNoRows)
 
@@ -239,7 +246,7 @@ func TestSQLStore_GetTargetJobByUser_NotFoundForCrossUserOrSoftDeleted(t *testin
 	store, mock, cleanup := newMockStore(t)
 	defer cleanup()
 
-	mock.ExpectQuery(`from target_jobs\s+where id = \$1 and user_id = \$2 and deleted_at is null`).
+	mock.ExpectQuery(`(?s)from target_jobs tj.*where tj\.id = \$1 and tj\.user_id = \$2 and tj\.deleted_at is null`).
 		WithArgs("018f2a40-0000-7000-9000-0000000000a1", "018f2a40-0000-7000-9000-0000000000b9").
 		WillReturnError(sql.ErrNoRows)
 
@@ -266,7 +273,7 @@ func TestSQLStore_ListTargetJobsForUser_AppliesFiltersAndClampsPageSize(t *testi
 		"id", "user_id", "status", "analysis_status", "title", "company_name", "location_text",
 		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
 		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
-		"resume_id", "current_practice_plan_id", "created_at", "updated_at",
+		"resume_id", "completed_round_facts", "ready_plan_facts", "created_at", "updated_at",
 	})
 
 	now := time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC)
@@ -279,12 +286,13 @@ func TestSQLStore_ListTargetJobsForUser_AppliesFiltersAndClampsPageSize(t *testi
 			"en", "manual_text", nil, nil,
 			"raw jd", []byte(`{}`), []byte(`{}`), nil, nil, int32(0),
 			"018f2a40-0000-7000-9000-0000000000r1",
-			"018f2a40-0000-7000-9000-0000000000p1",
+			[]byte(`[]`),
+			[]byte(`[{"planId":"018f2a40-0000-7000-9000-0000000000p1","roundId":"round-1-hr","roundSequence":1,"createdAt":"2026-05-09T12:00:00Z"}]`),
 			now, now,
 		)
 	}
 
-	mock.ExpectQuery(`from target_jobs\s+where user_id = \$1 and deleted_at is null and analysis_status <> 'failed' and status = \$2 and analysis_status = \$3 and to_tsvector\('simple'.*plainto_tsquery\('simple', \$4\)\s+order by updated_at desc, id desc\s+limit \$5`).
+	mock.ExpectQuery(`(?s)with page as \(.*from target_jobs tj\s+where tj\.user_id = \$1 and tj\.deleted_at is null and tj\.analysis_status <> 'failed' and tj\.status = \$2 and tj\.analysis_status = \$3 and to_tsvector\('simple'.*plainto_tsquery\('simple', \$4\).*order by tj\.updated_at desc, tj\.id desc\s+limit \$5.*\).*from page tj.*left join lateral`).
 		WithArgs(
 			"018f2a40-0000-7000-9000-0000000000b1",
 			"preparing",
@@ -311,11 +319,65 @@ func TestSQLStore_ListTargetJobsForUser_AppliesFiltersAndClampsPageSize(t *testi
 	if len(res.Items) != 1 {
 		t.Fatalf("expected 1 item, got %d", len(res.Items))
 	}
-	if res.Items[0].CurrentPracticePlanID != "018f2a40-0000-7000-9000-0000000000p1" {
-		t.Fatalf("list did not project current practice plan: %+v", res.Items[0])
+	if len(res.Items[0].ReadyPlanFacts) != 1 || res.Items[0].ReadyPlanFacts[0].PlanID != "018f2a40-0000-7000-9000-0000000000p1" {
+		t.Fatalf("list did not load ready plan facts: %+v", res.Items[0])
 	}
 	if res.Items[0].ResumeID != "018f2a40-0000-7000-9000-0000000000r1" {
 		t.Fatalf("list did not project target job-level resume binding: %+v", res.Items[0])
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLStore_ListTargetJobsForUser_LoadsPageScopedPracticeLedgerFactsInOneQuery(t *testing.T) {
+	store, mock, cleanup := newMockStore(t)
+	defer cleanup()
+
+	now := time.Date(2026, 7, 12, 10, 0, 0, 0, time.UTC)
+	completedFacts := []byte(`[{"roundId":"round-1-hr","roundSequence":1}]`)
+	readyPlanFacts := []byte(`[{"planId":"018f2a40-0000-7000-9000-0000000000p2","roundId":"round-2-technical","roundSequence":2,"createdAt":"2026-07-12T10:00:00Z"}]`)
+	rows := sqlmock.NewRows([]string{
+		"id", "user_id", "status", "analysis_status", "title", "company_name", "location_text",
+		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
+		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
+		"resume_id", "completed_round_facts", "ready_plan_facts", "created_at", "updated_at",
+	}).AddRow(
+		"018f2a40-0000-7000-9000-0000000000a1",
+		"018f2a40-0000-7000-9000-0000000000b1",
+		"draft", "ready", "Backend Engineer", "Acme", nil, nil, nil,
+		"en", "manual_text", nil, nil, "raw jd", []byte(`{}`), []byte(`{}`), nil, nil, int32(0),
+		"018f2a40-0000-7000-9000-0000000000r1", completedFacts, readyPlanFacts, now, now,
+	).AddRow(
+		"018f2a40-0000-7000-9000-0000000000a2",
+		"018f2a40-0000-7000-9000-0000000000b1",
+		"interviewing", "ready", "Platform Engineer", "Acme", nil, nil, nil,
+		"en", "manual_text", nil, nil, "raw jd", []byte(`{}`), []byte(`{}`), nil, nil, int32(0),
+		"018f2a40-0000-7000-9000-0000000000r2", []byte(`[]`), []byte(`[]`), now.Add(-time.Minute), now.Add(-time.Minute),
+	)
+
+	mock.ExpectQuery(`(?s)with page as \(.*from target_jobs tj.*limit \$2.*\).*left join lateral \(.*where pp\.user_id = tj\.user_id.*pp\.target_job_id = tj\.id.*pp\.resume_id = tj\.resume_id.*pp\.round_id is not null.*pp\.round_sequence is not null.*practice_session_events pse.*pse\.event_type = 'session_completed'.*\) completed\s*\) completion_facts.*left join lateral \(.*pp\.status = 'ready'.*pp\.resume_id = tj\.resume_id.*pp\.round_id is not null.*pp\.round_sequence is not null`).
+		WithArgs("018f2a40-0000-7000-9000-0000000000b1", int(21)).
+		WillReturnRows(rows)
+
+	res, err := store.ListTargetJobsForUser(context.Background(),
+		"018f2a40-0000-7000-9000-0000000000b1",
+		targetjob.ListFilter{PageSize: 20},
+	)
+	if err != nil {
+		t.Fatalf("ListTargetJobsForUser: %v", err)
+	}
+	if len(res.Items) != 2 {
+		t.Fatalf("items = %d, want 2", len(res.Items))
+	}
+	if got := res.Items[0].CompletedRoundFacts; len(got) != 1 || got[0] != (targetjob.PracticeRoundFact{RoundID: "round-1-hr", RoundSequence: 1}) {
+		t.Fatalf("completed facts = %+v", got)
+	}
+	if got := res.Items[0].ReadyPlanFacts; len(got) != 1 || got[0].PlanID != "018f2a40-0000-7000-9000-0000000000p2" || got[0].RoundID != "round-2-technical" || got[0].RoundSequence != 2 {
+		t.Fatalf("ready plan facts = %+v", got)
+	}
+	if !res.Items[0].PracticeFactsLoaded || !res.Items[1].PracticeFactsLoaded {
+		t.Fatal("every row in the page must mark practice facts as loaded")
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
@@ -331,7 +393,7 @@ func TestSQLStore_ListTargetJobsForUser_PaginationCursorOnOverflow(t *testing.T)
 		"id", "user_id", "status", "analysis_status", "title", "company_name", "location_text",
 		"employment_type", "seniority_level", "target_language", "source_type", "source_url", "source_file_object_id",
 		"raw_jd_text", "summary", "fit_summary", "notes", "latest_report_id", "open_question_issue_count",
-		"resume_id", "current_practice_plan_id", "created_at", "updated_at",
+		"resume_id", "completed_round_facts", "ready_plan_facts", "created_at", "updated_at",
 	})
 	for i := range 3 {
 		rows.AddRow(
@@ -341,13 +403,13 @@ func TestSQLStore_ListTargetJobsForUser_PaginationCursorOnOverflow(t *testing.T)
 			"Backend", "Acme", nil, nil, nil,
 			"en", "manual_text", nil, nil,
 			"raw jd", []byte(`{}`), []byte(`{}`), nil, nil, int32(0),
-			nil, nil,
+			nil, []byte(`[]`), []byte(`[]`),
 			now.Add(-time.Duration(i)*time.Minute),
 			now.Add(-time.Duration(i)*time.Minute),
 		)
 	}
 
-	mock.ExpectQuery(`from target_jobs\s+where user_id = \$1 and deleted_at is null and analysis_status <> 'failed'\s+order by updated_at desc, id desc\s+limit \$2`).
+	mock.ExpectQuery(`(?s)with page as \(.*from target_jobs tj\s+where tj\.user_id = \$1 and tj\.deleted_at is null and tj\.analysis_status <> 'failed'\s+order by tj\.updated_at desc, tj\.id desc\s+limit \$2.*\).*from page tj.*left join lateral`).
 		WithArgs("018f2a40-0000-7000-9000-0000000000b1", int(3)).
 		WillReturnRows(rows)
 

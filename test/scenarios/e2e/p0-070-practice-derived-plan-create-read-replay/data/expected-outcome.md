@@ -1,5 +1,6 @@
 # Expected Outcome — E2E.P0.070
 
-- report-derived plans return source ids.
-- same `Idempotency-Key` replays the same plan response.
-- `getPracticePlan` preserves source ids.
+- retry plans preserve the source report's exact persisted round pair.
+- next plans select the immediate existing canonical successor and current incomplete round.
+- equal-duration and non-contiguous sequences do not change identity semantics.
+- readback preserves source id plus `roundId/roundSequence`.

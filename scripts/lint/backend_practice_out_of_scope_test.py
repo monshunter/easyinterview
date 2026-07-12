@@ -3,161 +3,69 @@ from pathlib import Path
 import backend_practice_out_of_scope
 
 
-def test_flags_out_of_scope_practice_mode_context(tmp_path: Path) -> None:
-    out_of_scope = "debrief" + "_replay"
-    path = tmp_path / "active.md"
-    path.write_text(f"PracticeMode still lists `{out_of_scope}`\n", encoding="utf-8")
-
-    problems = backend_practice_out_of_scope.scan_paths([path], tmp_path)
-
-    assert problems == [f"{path}:1: out-of-scope practice mode literal in active context"]
+def seed_current_inventory(repo: Path) -> None:
+    for parts in backend_practice_out_of_scope.REQUIRED_FILES:
+        path = repo.joinpath(*parts)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("current conversation artifact\n", encoding="utf-8")
 
 
-def test_ignores_evidence_reports(tmp_path: Path) -> None:
-    out_of_scope = "debrief" + "_replay"
-    path = tmp_path / "docs/reports/report.md"
-    path.parent.mkdir(parents=True)
-    path.write_text(f"PracticeMode used to list `{out_of_scope}`\n", encoding="utf-8")
-
-    assert backend_practice_out_of_scope.scan_paths([path], tmp_path) == []
-
-
-def test_iter_repo_files_skips_symlinked_files_outside_repo(tmp_path: Path) -> None:
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    active = repo / "active.md"
-    active.write_text("active file\n", encoding="utf-8")
-    outside = tmp_path / "python3.13"
-    outside.write_text("external interpreter shim\n", encoding="utf-8")
-    symlink = repo / "node_modules" / ".bin" / "python3.13"
-    symlink.parent.mkdir(parents=True)
-    symlink.symlink_to(outside)
-
-    assert backend_practice_out_of_scope.iter_repo_files(repo) == [active]
-
-
-def test_phase3_flags_out_of_scope_terms_on_practice_surfaces(tmp_path: Path) -> None:
+def test_scan_active_surfaces_flags_current_structured_practice_tokens(tmp_path: Path) -> None:
+    seed_current_inventory(tmp_path)
     path = tmp_path / "backend/internal/practice/session.go"
-    path.parent.mkdir(parents=True)
-    path.write_text('const old = "single_drill"\n', encoding="utf-8")
-
-    problems = backend_practice_out_of_scope.scan_phase3_paths([path], tmp_path)
-
-    assert problems == [f"{path}:1: out-of-scope backend-practice term 'single_drill'"]
-
-
-def test_phase3_scans_backend_practice_003_scenario_assets(tmp_path: Path) -> None:
-    path = tmp_path / "test/scenarios/e2e/p0-048-practice-hint-assisted-across-goals/data/expected-outcome.md"
-    path.parent.mkdir(parents=True)
-    out_of_scope_term = "leg" "acy_hint_policy"
-    path.write_text(f"{out_of_scope_term}\n", encoding="utf-8")
-
-    problems = backend_practice_out_of_scope.scan_phase3_paths([path], tmp_path)
-
-    assert problems == [f"{path}:1: out-of-scope backend-practice term '{out_of_scope_term}'"]
-
-
-def test_phase3_ignores_owner_plan_gate_wording(tmp_path: Path) -> None:
-    path = tmp_path / "docs/spec/backend-practice/plans/001-plan-and-session-orchestration/checklist.md"
-    path.parent.mkdir(parents=True)
-    path.write_text("out-of-scope-negative grep checks warmup and practiceModeCard\n", encoding="utf-8")
-
-    assert backend_practice_out_of_scope.scan_phase3_paths([path], tmp_path) == []
-
-
-def test_phase3_flags_standalone_voice_route_but_allows_voice_mvp_contract(tmp_path: Path) -> None:
-    bad = tmp_path / "backend/cmd/api/routes.go"
-    bad.parent.mkdir(parents=True)
-    bad.write_text('router.Handle("/voice", h)\n', encoding="utf-8")
-    nested_bad = tmp_path / "backend/cmd/api/nested_routes.go"
-    nested_bad.write_text('router.Handle("/api/v1/voice/sessions", h)\n', encoding="utf-8")
-    allowed = tmp_path / "backend/internal/practice/comment.go"
-    allowed.parent.mkdir(parents=True)
-    allowed.write_text("// practice-voice-mvp owns the session-scoped voice operation\n", encoding="utf-8")
-    session_scoped = tmp_path / "backend/cmd/api/session_voice.go"
-    session_scoped.write_text(
-        'mux.Handle("POST /api/v1/practice/sessions/{sessionId}/voice-turns", h)\n',
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "type PracticeTurn struct{}\nconst first = \"practice.session.first_question\"\n",
         encoding="utf-8",
     )
-    feature_key = tmp_path / "backend/internal/practice/voice_feature.go"
-    feature_key.write_text('const key = "practice.voice.stt"\n', encoding="utf-8")
 
-    problems = backend_practice_out_of_scope.scan_phase3_paths(
-        [bad, nested_bad, allowed, session_scoped, feature_key],
-        tmp_path,
-    )
+    problems = backend_practice_out_of_scope.scan_active_surfaces(tmp_path)
 
     assert problems == [
-        f"{bad}:1: out-of-scope standalone voice route",
-        f"{nested_bad}:1: out-of-scope standalone voice route",
+        f"{path}:1: stale structured-practice contract PracticeTurn",
+        f"{path}:2: stale structured-practice contract first-question feature key",
     ]
 
 
-def test_phase3_allows_voice_mvp_operation_profiles_and_refs(tmp_path: Path) -> None:
-    service = tmp_path / "backend/internal/practice/voice_turn_service.go"
-    service.parent.mkdir(parents=True)
-    service.write_text(
-        "\n".join(
-            [
-                'const voiceSTTFeatureKey = "practice.voice.stt"',
-                'const voiceTTSFeatureKey = "practice.voice.tts"',
-                'const persistedRef = "voice-turn://voice-turn-1/chunks/chunk-1"',
-            ]
-        ),
-        encoding="utf-8",
+def test_scan_active_surfaces_ignores_tests_docs_and_excluded_directories(tmp_path: Path) -> None:
+    seed_current_inventory(tmp_path)
+    ignored = (
+        tmp_path / "backend/internal/practice/session_test.go",
+        tmp_path / "docs/reports/evidence.md",
+        tmp_path / "node_modules/generated.go",
     )
-    route = tmp_path / "backend/cmd/api/main.go"
-    route.parent.mkdir(parents=True)
-    route.write_text(
-        'mux.Handle("POST /api/v1/practice/sessions/{sessionId}/voice-turns", createPracticeVoiceTurn)\n',
-        encoding="utf-8",
-    )
-    fixture = tmp_path / "openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json"
-    fixture.parent.mkdir(parents=True)
-    fixture.write_text(
-        '{"sttProfile":"practice.voice.stt.default","ttsProfile":"practice.voice.tts.default"}\n',
-        encoding="utf-8",
-    )
+    for path in ignored:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("type PracticeTurn struct{}\n", encoding="utf-8")
 
-    assert backend_practice_out_of_scope.scan_phase3_paths([service, route, fixture], tmp_path) == []
+    assert backend_practice_out_of_scope.scan_active_surfaces(tmp_path) == []
 
 
-def write_backend_practice_002_bdd_inputs(repo: Path, assigned_ids: list[str], test_ids: list[str]) -> None:
-    bdd = repo / "docs/spec/backend-practice/plans/002-event-loop-and-completion/bdd-plan.md"
-    bdd.parent.mkdir(parents=True)
-    bdd.write_text("- 编号分配: " + " / ".join(f"`{scenario_id}`" for scenario_id in assigned_ids) + "\n", encoding="utf-8")
-    test_file = repo / "backend/cmd/api/practice_http_scenario_test.go"
-    test_file.parent.mkdir(parents=True)
-    test_file.write_text("\n".join(f"func TestE2EP0{scenario_id.rsplit('.', maxsplit=1)[1]}Practice(t *testing.T) {{}}" for scenario_id in test_ids), encoding="utf-8")
-    index = repo / "test/scenarios/e2e/INDEX.md"
-    index.parent.mkdir(parents=True)
-    index.write_text("| E2E.P0.034 | backend-resume register/list |\n| E2E.P0.035 | backend-resume parse lifecycle |\n", encoding="utf-8")
+def test_scan_file_inventory_requires_current_artifacts_and_rejects_retired_files(tmp_path: Path) -> None:
+    missing = backend_practice_out_of_scope.scan_file_inventory(tmp_path)
+    assert len(missing) == len(backend_practice_out_of_scope.REQUIRED_FILES)
 
+    seed_current_inventory(tmp_path)
+    assert backend_practice_out_of_scope.scan_file_inventory(tmp_path) == []
 
-def test_backend_practice_002_bdd_ids_do_not_collide_with_indexed_resume_ids(tmp_path: Path) -> None:
-    assigned = [f"E2E.P0.{number:03d}" for number in range(38, 44)]
-    write_backend_practice_002_bdd_inputs(tmp_path, assigned, assigned)
-
-    assert backend_practice_out_of_scope.scan_backend_practice_002_bdd_ids(tmp_path) == []
-
-
-def test_backend_practice_002_bdd_ids_flag_non_practice_index_collision(tmp_path: Path) -> None:
-    assigned = ["E2E.P0.034", "E2E.P0.039", "E2E.P0.040", "E2E.P0.041", "E2E.P0.042", "E2E.P0.043"]
-    write_backend_practice_002_bdd_inputs(tmp_path, assigned, assigned)
-
-    problems = backend_practice_out_of_scope.scan_backend_practice_002_bdd_ids(tmp_path)
-
-    assert problems == [
-        f"{tmp_path / 'test/scenarios/e2e/INDEX.md'}: backend-practice 002 id E2E.P0.034 collides with indexed scenario: | E2E.P0.034 | backend-resume register/list |"
+    forbidden = tmp_path.joinpath(*backend_practice_out_of_scope.FORBIDDEN_FILES[0])
+    forbidden.parent.mkdir(parents=True, exist_ok=True)
+    forbidden.write_text("retired\n", encoding="utf-8")
+    assert backend_practice_out_of_scope.scan_file_inventory(tmp_path) == [
+        f"{forbidden}: retired structured-practice artifact still exists"
     ]
 
 
-def test_backend_practice_002_bdd_ids_require_matching_http_scenario_tests(tmp_path: Path) -> None:
-    assigned = [f"E2E.P0.{number:03d}" for number in range(38, 44)]
-    write_backend_practice_002_bdd_inputs(tmp_path, assigned, assigned[:-1])
+def test_main_phase0_checks_inventory_and_phase3_adds_semantic_scan(tmp_path: Path) -> None:
+    seed_current_inventory(tmp_path)
+    stale = tmp_path / "backend/internal/store/practice/messages.go"
+    stale.write_text("const practiceMode = \"strict\"\n", encoding="utf-8")
 
-    problems = backend_practice_out_of_scope.scan_backend_practice_002_bdd_ids(tmp_path)
+    assert backend_practice_out_of_scope.main(["--repo-root", str(tmp_path), "--phase", "phase0"]) == 0
+    assert backend_practice_out_of_scope.main(["--repo-root", str(tmp_path), "--phase", "phase3"]) == 1
 
-    assert problems == [
-        f"{tmp_path / 'backend/cmd/api/practice_http_scenario_test.go'}: missing Go HTTP scenario test for E2E.P0.043 (TestE2EP0043*)"
-    ]
+
+def test_current_repository_passes_phase3_scan() -> None:
+    repo = Path(__file__).resolve().parents[2]
+    assert backend_practice_out_of_scope.scan_file_inventory(repo) == []
+    assert backend_practice_out_of_scope.scan_active_surfaces(repo) == []

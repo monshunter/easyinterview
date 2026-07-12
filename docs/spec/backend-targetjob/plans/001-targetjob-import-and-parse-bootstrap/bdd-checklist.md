@@ -1,8 +1,8 @@
 # Backend TargetJob BDD Checklist
 
-> **版本**: 1.9
-> **状态**: active
-> **更新日期**: 2026-07-10
+> **版本**: 1.11
+> **状态**: completed
+> **更新日期**: 2026-07-12
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -54,3 +54,10 @@
 - [x] 实现并验证 smoke：打开 workspace → 点击右上角删除图标 → DB readback `status='archived'` + `deleted_at is not null` → 刷新 workspace → 列表不含该 target
 - [x] 重复归档 `TARGET_INVALID_STATE_TRANSITION` conflict、跨用户归档 `TARGET_JOB_NOT_FOUND` 由 focused backend tests 覆盖；删除不触发卡片主体导航由 focused frontend tests 覆盖
 - [x] 执行并通过场景/浏览器验证，记录 `E2E.P0.018 PASS`、`.test-output/e2e/workspace-archive-real-browser/workspace-card-before-delete.png`、`.test-output/e2e/workspace-archive-real-browser/workspace-after-delete.png`、`archive-db-state.txt` 和 `workspace-after-refresh-text.txt`
+
+## E2E.P0.098 Practice round progress persistence
+
+- [x] Seed a multi-round TargetJob plus exact round-identified plans/sessions and execute real completion transactions.<!-- verified: 2026-07-12 method=P0.098 real-postgres -->
+- [x] Verify Get/List both return first→next-existing→final projections for a `1,2,4` ladder; wrong-resume/duplicate completion contributes zero/once respectively, and a newer old-round retry plan cannot replace the current-round plan.<!-- verified: 2026-07-12 method=P0.098 markers="wrong-resume-completion-ignored,non-contiguous-round-1-2-4,get-list-first-next-final-parity" -->
+- [x] Verify report queued/ready/failed and TargetJob lifecycle status variants leave identical progress.<!-- verified: 2026-07-12 method=P0.098 marker=target-report-status-independent=PASS -->
+- [x] Verify final `status=completed`, `currentRound=null`, `currentPracticePlanId=null`, and static frontend scope tests contain no business-progress storage/URL fact source.<!-- verified: 2026-07-12 method=P0.098-real-postgres+frontend-scope-test; not-live-browser -->

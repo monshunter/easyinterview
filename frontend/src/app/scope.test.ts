@@ -29,6 +29,25 @@ describe("frontend D1 scope guards", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("keeps browser persistence limited to frontend display preferences", () => {
+    const DISPLAY_PREFERENCES_OWNER = "/app/display/DisplayPreferencesProvider.tsx";
+    const browserPersistence = /(?:localStorage|sessionStorage)\?*\.(?:getItem|setItem|removeItem|clear)|indexedDB\?*\.(?:open|deleteDatabase)/;
+    const offenders: string[] = [];
+    for (const file of walk(FRONTEND_SRC)) {
+      if (/\.test\.(ts|tsx)$/.test(file)) continue;
+      if (file.endsWith(DISPLAY_PREFERENCES_OWNER)) continue;
+      if (browserPersistence.test(readFileSync(file, "utf8"))) offenders.push(file);
+    }
+    expect(offenders).toEqual([]);
+
+    const displayPreferences = readFileSync(
+      join(FRONTEND_SRC, "app", "display", "DisplayPreferencesProvider.tsx"),
+      "utf8",
+    );
+    expect(displayPreferences).toContain('const LANG_STORAGE_KEY = "ei-lang"');
+    expect(displayPreferences).not.toMatch(/practiceProgress|completedRounds|currentRound|practicePlan/);
+  });
+
   it("never ships standalone out-of-scope route screens (voice / growth / mistakes / drill)", () => {
     const FORBIDDEN_FILE_NAMES = [
       /\bVoiceScreen\.(tsx|ts)$/,

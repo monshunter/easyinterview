@@ -1,6 +1,6 @@
 # Frontend Workspace and Practice History
 
-> **版本**: 1.36
+> **版本**: 1.38
 > **状态**: active
 > **更新日期**: 2026-07-12
 
@@ -8,6 +8,8 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 1.38 | Frontend round normalizer 接受正 int32 严格递增但不连续的 canonical sequence（如 `1,2,4`），next 取下一条现有 round；P0.098 live browser reload/quick-start 在真实执行前保持未完成。 | [001-workspace-and-interview-context](./plans/001-workspace-and-interview-context/plan.md) Phase 25 |
+| 2026-07-12 | 1.37 | Home / Workspace / Parse / Report 与 quick-start 统一消费后端 `practiceProgress` 和精确 round pair；缺失或不一致时 fail closed，不再从 TargetJob lifecycle status、本地缓存或全局 latest plan 猜轮次。 | [001-workspace-and-interview-context](./plans/001-workspace-and-interview-context/plan.md) Phase 25 |
 | 2026-07-12 | 1.36 | 结构化面试轮次统一驱动 PracticePlan 时间预算、Top Bar 预算显示和报告下一轮推进；末轮、未知轮次、加载失败与重复点击 fail closed。关联 [BUG-0161](../../bugs/BUG-0161.md) 与 [交付复盘](../../reports/2026-07-12-structured-round-runtime-consistency-assessment.md)。 | [001-workspace-and-interview-context](./plans/001-workspace-and-interview-context/plan.md) |
 | 2026-07-12 | 1.35 | 重新打开 002：Error/Retry 按 loader/message/completion 来源绑定正确动作，并在发送/加载/完成期间禁用结束 CTA。 | [002-practice-text-event-loop](./plans/002-practice-text-event-loop/plan.md) |
 | 2026-07-12 | 1.34 | Practice 改为全宽连续文本会话，删除题目/hint/mode/phone surface，保留 disabled 电话入口并改用会话级 generating 文案。 | [002-practice-text-event-loop](./plans/002-practice-text-event-loop/plan.md) |

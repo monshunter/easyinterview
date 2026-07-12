@@ -1,8 +1,8 @@
 # TargetJob Import and Parse Bootstrap
 
-> **版本**: 1.22
-> **状态**: active
-> **更新日期**: 2026-07-10
+> **版本**: 1.24
+> **状态**: completed
+> **更新日期**: 2026-07-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -50,8 +50,8 @@
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` (`default`, Phase 0 add `manual-text-primary`, `manual-form-ready-terminal-job`, `url-invalid-source`, `url-source-unavailable`) | `frontend-home-job-picks-and-parse` home / parse flow via generated client, including selected `resumeId` | `backend/internal/api` generated `ServerInterface` adapter → `backend/internal/targetjob` handler / service / store | `url/manual_text/file`: `target_jobs.resume_id` + `target_jobs` + `target_job_sources` + `async_jobs(target_import)` + outbox `target.import.requested`（`manual_text` event `sourceType=text`）；`manual_form`: 同步写 `target_jobs.resume_id` + `target_jobs` + `target_job_requirements` 草稿，返回 terminal `Job(type=target_import,status=succeeded)`，不派发 runner job / import requested event | `target.import.default` only for async parse sources; `manual_form` is `none` | `E2E.P0.010` manual_text primary + idempotency；`E2E.P0.011` URL source；`E2E.P0.012` parse failure；`E2E.P0.013` manual_form ready |
-| `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` (`default`, `prototype-baseline`) | TargetJob list / workspace pickers via generated client | `backend/internal/targetjob` list handler / store cursor query | read `target_jobs.resume_id` + `target_jobs` + optional latest ready `practice_plans.currentPracticePlanId`; soft-deleted rows filtered | none | `E2E.P0.010` verifies imported job is visible in list; `E2E.P0.018` verifies workspace list re-entry carries resume binding |
-| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` (`default`, `prototype-baseline`) | parse confirmation / workspace detail via generated client | `backend/internal/targetjob` get handler / store detail query | read `target_jobs.resume_id` + `target_jobs` + `target_job_requirements` + summary / fit JSON + optional latest ready practice plan; user-scoped 404 on missing / cross-user / soft-delete | none after parse completion; provenance is persisted output | `E2E.P0.010`, `E2E.P0.012`, `E2E.P0.018`; focused handler tests cover cross-user 404, soft-delete and resume binding recovery |
+| `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` (`default`, `prototype-baseline`, progress variants) | Home/Workspace cards and quick-start via generated client | `backend/internal/targetjob` list handler / page-first no-N+1 store query / service projection | read `target_jobs.resume_id/summary` + exact round `practice_plans` + `practice_sessions` + `practice_session_events.session_completed`; completed/ready facts require `practice_plans.resume_id = target_jobs.resume_id`; soft-deleted rows filtered; returns `practiceProgress` and only current-round `currentPracticePlanId` | none | `E2E.P0.010`, `E2E.P0.018`, `E2E.P0.098`; focused tests cover multi-card single query, wrong-resume exclusion and projection edges |
+| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` (`default`, `prototype-baseline`, progress variants) | parse confirmation / report next-round / quick-start via generated client | `backend/internal/targetjob` get handler / store detail + ledger facts / service projection | read `target_jobs.resume_id` + requirements + summary/fit + exact same-bound-resume completed/ready round facts; user-scoped 404 on missing/cross-user/soft-delete; returns Get/List-identical progress | none after parse completion; provenance is persisted output | `E2E.P0.010`, `E2E.P0.012`, `E2E.P0.018`, `E2E.P0.098`; focused tests cover isolation, wrong-resume/legacy null, non-contiguous successor, duplicate completion, final state and current-plan match |
 | `updateTargetJob` | `openapi/fixtures/TargetJobs/updateTargetJob.json` (`default`, Phase 0 add `invalid-state-transition`, `cross-user-hidden-not-found`) | workspace lifecycle / notes edits via generated client | `backend/internal/targetjob` update handler / idempotency service / store update；实施前状态为 `not-yet-implemented` | update `target_jobs.status` / `location_text` / `notes` / hints scoped by `(user_id, id)` and `(user_id, idempotency_key)` | none | `E2E.P0.010` verifies minimal status / notes update after parse; focused handler tests cover `TARGET_INVALID_STATE_TRANSITION` and cross-user idempotency |
 | `archiveTargetJob` | `openapi/fixtures/TargetJobs/archiveTargetJob.json` | Workspace delete icon via generated client | `backend/internal/targetjob` archive handler / idempotency service / store archive; `ParseExecutor` treats post-archive target invisibility as terminal `TARGET_JOB_NOT_FOUND` | update `target_jobs.status='archived'`, `deleted_at=now`, `updated_at=now` scoped by `(user_id, id)` and `(user_id, idempotency_key)`; list/detail/parse reads keep filtering `deleted_at is null` | none | `E2E.P0.018` verifies workspace delete persists across refresh; focused handler/store tests cover already-archived conflict and cross-user 404; `TestParseExecutor_MissingTargetIsTerminalWithoutFailureCleanup` covers queued/retrying import after archive |
 
@@ -142,13 +142,13 @@ A3 / source 错误映射：`AI_PROVIDER_TIMEOUT` / `AI_FALLBACK_EXHAUSTED` / `TA
 ### Phase 8: JD identity and current-plan binding remediation
 
 - `target.import.parse` AI output must include canonical `title` and `companyName`; parse success persists non-empty values to `target_jobs` in the same success transaction as summary / fitSummary / requirements / outbox.
-- `listTargetJobs` / `getTargetJob` expose optional current practice-plan binding projection (`currentPracticePlanId`, `resumeId`) derived from the latest ready `practice_plans` row so frontend plan-list cards can open the bound-resume detail path without synthetic route ids.
+- `listTargetJobs` / `getTargetJob` expose persisted `TargetJob.resumeId`; Phase 17 supersedes the old latest-ready projection so `currentPracticePlanId` is emitted only for the exact current canonical pair and TargetJob-bound resume.
 - Verified focused backend suites, prompt lint, OpenAPI lint and fixture validation on 2026-07-08.
 
 ### Phase 9: TargetJob-level resume binding remediation
 
 - `ImportTargetJobRequest.resumeId` is required for all source variants and must reference a non-archived resume owned by the current user.
-- `target_jobs.resume_id` stores the JD-level resume binding selected at Home import time. `listTargetJobs` / `getTargetJob` expose `TargetJob.resumeId` from this column, while `currentPracticePlanId` remains derived from the latest ready `practice_plans` row.
+- `target_jobs.resume_id` stores the JD-level resume binding selected at Home import time. `listTargetJobs` / `getTargetJob` expose `TargetJob.resumeId` from this column, while Phase 17 derives `currentPracticePlanId` only from a ready plan whose exact pair is current and whose resume equals that binding.
 - If a ready practice plan exists, its `resume_id` must match the target job binding for the plan card path; practice plan creation uses the route/context `resumeId` and the backend response continues to echo `PracticePlan.resumeId`.
 - Runtime smoke must prove the local DB row created from `importTargetJob` has `target_jobs.resume_id`, and `GET /targets` returns that value before any practice plan row exists.
 
@@ -281,6 +281,24 @@ Additive 修订 `openapi/openapi.yaml`、TargetJobs fixture 与 operation invent
 
 保留 `targetJobHTTPScenarioHarness.doJSON` 的 receiver API 与 TargetJob canonical idempotency header，将其 JSON marshal、cookie/header 注入、handler dispatch、status 和 response body 逻辑委托给 `cmd/api` 共享 test helper；P0.010-P0.013 行为和证据格式不变。
 
+### Phase 17: Backend-persisted practice progress projection
+
+#### 17.1 RED store/service contracts
+
+先新增失败测试，要求 Get/List 读取完成 round pair 与每个 round 的 ready plan candidates，且 list 对一页 TargetJob 只执行一条聚合 query；禁止继续使用全局最新 ready plan、TargetJob lifecycle status 或 duration 作为当前轮依据。
+
+#### 17.2 No-N+1 ledger aggregation
+
+Get/List 在 user/target scoped SQL 中聚合：只有 plan pair 非 null、`practice_plans.resume_id = target_jobs.resume_id` 且 session 存在 `session_completed` event 才计入 completed facts；ready plan candidates 必须 pair 非 null、status=ready 且 resume 与 TargetJob 当前绑定一致。即使另一 resume 同属当前用户，也不得贡献完成事实或当前 plan。List 先分页再对页内 rows 做 lateral aggregation，不能聚合全库或逐卡查询。
+
+#### 17.3 Canonical projection
+
+Service 对 TargetJob summary 做一次 canonical round 解码：provenance 的 `promptVersion/rubricVersion/modelId/language/dataSourceVersion` 必须非空；sequence 必须为正 int32、唯一且严格递增，但允许 `1,2,4`；type 必须保持 OpenAPI 小写 allowlist，不能先 lowercase 后接纳。以 exact `(roundId, roundSequence)` 白名单过滤/去重事实。零完成返回 `not_started + first current`；部分完成返回 `in_progress + first incomplete`；全部完成返回 `completed + currentRound=null`。下一轮取 canonical 数组的下一项，因此 `2` 后可直接是 `4`，不得硬编码 `+1`。旧轮新 plan、wrong-resume、未知/溢出/case-drift pair、legacy null、乱序事实均不改变当前轮；`currentPracticePlanId` 只匹配当前 pair 和绑定 resume。
+
+#### 17.4 Business persistence and BDD
+
+前端刷新、跨 route 与新浏览器会话必须通过 API 读回同一投影；除主题外不得从 local/session storage、URL 或 fixture 恢复进度。P0.098 在本 backend owner 以真实 plan/session/event/TargetJob Get+List 证明 first→next-existing→final、wrong-resume/duplicate completion 与 report-status independence；它不替代 frontend owner 尚未执行的 live browser reload/quick-start gate。
+
 ## 5 验收标准
 
 - Phase 0 owner contract gates 通过：B1/B2 codegen drift clean，TargetJobs fixture scenarios schema-valid，B3 sourceType mapping lint clean，F1 TargetJob metrics registry tests 通过。
@@ -297,6 +315,8 @@ Additive 修订 `openapi/openapi.yaml`、TargetJobs fixture 与 operation invent
 - Valid JDs that omit company names parse successfully with a language-specific fallback company display value, strict fenced-JSON-only normalization, `ai_task_runs` evidence, and real browser proof that `/parse` no longer renders `JD 解析失败`.
 - Active-scope 负向搜索 0 命中范围外模块 / route / capability。
 - `cmd/api` package has no duplicate full-funnel/TargetJob cookie JSON request body at the scoped threshold.
+- TargetJob Get/List project practice progress from persisted completion facts without N+1 or mutable progress columns, and only expose a ready plan matching the current canonical round.
+- TargetJob Get/List ignore same-user wrong-resume completion/ready-plan facts, accept strictly increasing non-contiguous positive-int32 round ladders, and choose the next existing canonical successor rather than `sequence + 1`.
 
 ## 6 风险与应对
 
@@ -310,3 +330,5 @@ Additive 修订 `openapi/openapi.yaml`、TargetJobs fixture 与 operation invent
 | 已移除 `feature_key` / out-of-scope voice / out-of-scope mistake 模块在 review 中回流 | Phase 6.3 active-scope 负向搜索 + plan-code-review L2 检查 |
 | `manual_form` 草稿 requirements 质量低 | 仅作为 P0 兜底；后续若产品要求细化，由独立 plan 处理，不在本 plan 引入 AI 重解析 |
 | BDD 场景未来可能回退成只跑包级 focused tests，导致 evidence 再次被误读 | Phase 7.3 / 7.9 / 7.10 已把 p0-010..013 固定为 `cmd/api` HTTP scenario harness；verify output 必须保留 `method=cmd-api-http` / `validBddEvidence=true`，并由 6.1-6.4 BDD gate 注释记录 result.json 证据 |
+| 同用户另一份 resume 的完成或 ready plan 污染当前 TargetJob | store aggregation 同时校验 target、user 与 `practice_plans.resume_id = target_jobs.resume_id`，并以 wrong-resume integration marker 固化 |
+| canonical sequence 有空洞时错误构造不存在轮次 | service 只按严格递增数组索引取 successor；`1,2,4` 正向回归与 int32/type/provenance 负向矩阵共同守护 |

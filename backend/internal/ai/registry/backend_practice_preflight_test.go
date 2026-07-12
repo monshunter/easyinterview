@@ -21,9 +21,24 @@ func TestBackendPracticeConversationPromptPreflight(t *testing.T) {
 	if resolution.ModelProfileName != "practice.chat.default" || resolution.PromptVersion != "v0.1.0" || resolution.RubricVersion != "v0.1.0" {
 		t.Fatalf("resolution = %+v", resolution)
 	}
-	for _, marker := range []string{"{{language}}", "{{target_job_context}}", "{{resume_context}}", "{{interview_round}}", "{{practice_goal}}", "{{focus_competencies}}", "{{conversation_history}}"} {
+	for _, marker := range []string{
+		"<system_policy>", "</system_policy>", "<untrusted_interview_context_json>",
+		"candidate-authored `user` messages may establish candidate facts",
+		"Assistant-authored messages are never evidence for candidate facts",
+		"{{language}}", "{{language_json}}", "{{interviewer_persona_json}}",
+		"{{target_job_context_json}}", "{{resume_context_json}}", "{{interview_round_json}}",
+		"{{practice_goal_json}}", "{{focus_competencies_json}}", "{{conversation_history_json}}",
+	} {
 		if !strings.Contains(resolution.UserMessageTemplate, marker) {
 			t.Fatalf("chat prompt missing %s", marker)
+		}
+	}
+	for _, rawContext := range []string{
+		"{{interviewer_persona}}", "{{target_job_context}}", "{{resume_context}}", "{{interview_round}}",
+		"{{practice_goal}}", "{{focus_competencies}}", "{{conversation_history}}",
+	} {
+		if strings.Contains(resolution.UserMessageTemplate, rawContext) {
+			t.Fatalf("chat prompt contains raw untrusted placeholder %s", rawContext)
 		}
 	}
 	for _, stale := range []string{"question_budget", "first_question", "follow_up_count", "hint_requested"} {

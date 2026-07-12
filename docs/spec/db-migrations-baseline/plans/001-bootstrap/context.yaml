@@ -6,7 +6,7 @@ metadata:
   sequence: 1
   specVersion:
     from: null
-    to: 1.28
+    to: 1.30
 spec:
   defaultTarget: backend
   discovery:
@@ -26,6 +26,9 @@ spec:
       - no mistake entries
       - question issue count
       - enum source lint
+      - practice plan round identity
+      - round sequence
+      - legacy round backfill
   targets:
     backend:
       plan: ./plan.md

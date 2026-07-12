@@ -101,6 +101,10 @@ P0_EXPORT_ERROR_CODES: dict[str, str] = {
     "exportResume": "RESUME_EXPORT_NOT_AVAILABLE",
 }
 REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
+    "createPracticePlan": frozenset({"default", "report-derived", "round-mismatch"}),
+    "getPracticePlan": frozenset({"default", "legacy-null-round-identity"}),
+    "getTargetJob": frozenset({"default", "not-started-progress", "all-completed-progress"}),
+    "listTargetJobs": frozenset({"default", "not-started-progress", "all-completed-progress"}),
     "completePracticeSession": frozenset(
         {
             "default",
@@ -290,6 +294,14 @@ def schema_validate(value: Any, schema: dict | None, *, root: dict, path: str,
         for req in schema.get("required", []):
             if req not in value:
                 errors.append(f"{path}: missing required field {req!r}")
+        for trigger, dependencies in (schema.get("dependentRequired") or {}).items():
+            if trigger not in value:
+                continue
+            for dependency in dependencies:
+                if dependency not in value:
+                    errors.append(
+                        f"{path}: dependentRequired {trigger!r} requires {dependency!r}"
+                    )
         props = schema.get("properties", {}) or {}
         addl = schema.get("additionalProperties", True)
         for k, v in value.items():
@@ -312,6 +324,14 @@ def schema_validate(value: Any, schema: dict | None, *, root: dict, path: str,
         for i, item in enumerate(value):
             schema_validate(item, items_schema, root=root,
                             path=f"{path}[{i}]", errors=errors)
+        if schema.get("uniqueItems") is True:
+            seen: set[str] = set()
+            for item in value:
+                encoded = json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                if encoded in seen:
+                    errors.append(f"{path}: uniqueItems requires distinct array entries")
+                    break
+                seen.add(encoded)
         return
 
     if t == "string":
@@ -322,6 +342,9 @@ def schema_validate(value: Any, schema: dict | None, *, root: dict, path: str,
             errors.append(f"{path}: value {value!r} not in enum {schema['enum']}")
         if "const" in schema and value != schema["const"]:
             errors.append(f"{path}: value {value!r} != const {schema['const']!r}")
+        pattern = schema.get("pattern")
+        if isinstance(pattern, str) and re.search(pattern, value) is None:
+            errors.append(f"{path}: value {value!r} does not match pattern {pattern!r}")
         fmt = schema.get("format")
         if fmt == "uuid" and not UUID_SHAPE_RE.match(value):
             errors.append(f"{path}: invalid uuid format ({value!r})")
@@ -528,6 +551,158 @@ def check_required_named_scenarios(opid: str, scenarios: dict, errors: List[str]
         errors.append(f"{opid}: missing required scenarios {sorted(missing)}")
 
 
+def _practice_round_ref(sequence: int, round_type: str) -> dict[str, Any]:
+    return {
+        "roundId": f"round-{sequence}-{round_type}",
+        "roundSequence": sequence,
+    }
+
+
+def _check_practice_plan_round_pair(
+    path: str, body: dict, errors: List[str], *, allow_null: bool = False
+) -> None:
+    has_round_id = "roundId" in body
+    has_round_sequence = "roundSequence" in body
+    if has_round_id != has_round_sequence:
+        errors.append(f"{path}: roundId and roundSequence must be present as a pair")
+        return
+    if not has_round_id:
+        errors.append(f"{path}: current practice plan must include roundId and roundSequence")
+        return
+
+    round_id = body.get("roundId")
+    round_sequence = body.get("roundSequence")
+    if allow_null and round_id is None and round_sequence is None:
+        return
+    if not isinstance(round_id, str) or not isinstance(round_sequence, int):
+        errors.append(f"{path}: roundId and roundSequence must both be non-null current identity values")
+        return
+    match = re.fullmatch(
+        r"round-([1-9][0-9]*)-(hr|technical|manager|cross_functional|culture|final|other)",
+        round_id,
+    )
+    if match is None or int(match.group(1)) != round_sequence:
+        errors.append(f"{path}: roundId sequence must equal roundSequence")
+
+
+def check_target_job_practice_progress(path: str, target: dict, errors: List[str]) -> None:
+    summary = target.get("summary")
+    if not isinstance(summary, dict):
+        return
+    rounds = summary.get("interviewRounds")
+    if not isinstance(rounds, list) or not rounds:
+        return
+
+    canonical: list[dict[str, Any]] = []
+    for index, round_item in enumerate(rounds):
+        if not isinstance(round_item, dict):
+            errors.append(f"{path}.summary.interviewRounds[{index}]: must be object")
+            return
+        sequence = round_item.get("sequence")
+        round_type = round_item.get("type")
+        if not isinstance(sequence, int) or not isinstance(round_type, str):
+            errors.append(f"{path}.summary.interviewRounds[{index}]: sequence/type required")
+            return
+        canonical.append(_practice_round_ref(sequence, round_type))
+
+    progress = target.get("practiceProgress")
+    if not isinstance(progress, dict):
+        errors.append(f"{path}.practiceProgress: structured TargetJob requires backend progress projection")
+        return
+    completed = progress.get("completedRounds")
+    if not isinstance(completed, list):
+        errors.append(f"{path}.practiceProgress.completedRounds: must be array")
+        return
+    if completed != canonical[:len(completed)]:
+        errors.append(
+            f"{path}.practiceProgress.completedRounds: must be an ordered, deduplicated canonical prefix"
+        )
+        return
+
+    if len(completed) == 0:
+        expected_status = "not_started"
+        expected_current: dict[str, Any] | None = canonical[0]
+    elif len(completed) < len(canonical):
+        expected_status = "in_progress"
+        expected_current = canonical[len(completed)]
+    else:
+        expected_status = "completed"
+        expected_current = None
+
+    if progress.get("status") != expected_status:
+        errors.append(
+            f"{path}.practiceProgress.status: expected {expected_status!r} from completed session facts"
+        )
+    if progress.get("currentRound") != expected_current:
+        errors.append(
+            f"{path}.practiceProgress.currentRound: expected first incomplete canonical round {expected_current!r}"
+        )
+    if expected_status == "completed" and target.get("currentPracticePlanId") is not None:
+        errors.append(f"{path}.currentPracticePlanId: completed progress must not expose a current plan")
+
+
+def check_practice_round_semantics(opid: str, scenarios: dict, errors: List[str]) -> None:
+    if opid == "createPracticePlan":
+        for scenario_name in ("default", "report-derived"):
+            scenario = scenarios.get(scenario_name) or {}
+            response_body = ((scenario.get("response") or {}).get("body") or {})
+            _check_practice_plan_round_pair(
+                f"{opid}.{scenario_name}.response.body", response_body, errors
+            )
+            request_body = ((scenario.get("request") or {}).get("body") or {})
+            if request_body.get("roundId") != response_body.get("roundId"):
+                errors.append(
+                    f"{opid}.{scenario_name}: request roundId must equal persisted response roundId"
+                )
+        return
+
+    if opid == "getPracticePlan":
+        default_body = (((scenarios.get("default") or {}).get("response") or {}).get("body") or {})
+        _check_practice_plan_round_pair(f"{opid}.default.response.body", default_body, errors)
+        legacy_body = (
+            ((scenarios.get("legacy-null-round-identity") or {}).get("response") or {}).get("body") or {}
+        )
+        _check_practice_plan_round_pair(
+            f"{opid}.legacy-null-round-identity.response.body",
+            legacy_body,
+            errors,
+            allow_null=True,
+        )
+        return
+
+    if opid not in {"getTargetJob", "listTargetJobs"}:
+        return
+
+    expected_variant_status = {
+        "default": "in_progress",
+        "not-started-progress": "not_started",
+        "all-completed-progress": "completed",
+    }
+    for scenario_name, scenario in scenarios.items():
+        body = ((scenario.get("response") or {}).get("body") or {})
+        targets = body.get("items") if opid == "listTargetJobs" else [body]
+        if not isinstance(targets, list):
+            continue
+        projected_statuses: list[str] = []
+        for index, target in enumerate(targets):
+            if not isinstance(target, dict):
+                continue
+            target_path = f"{opid}.{scenario_name}.response.body"
+            if opid == "listTargetJobs":
+                target_path += f".items[{index}]"
+            check_target_job_practice_progress(target_path, target, errors)
+            summary = target.get("summary")
+            if isinstance(summary, dict) and summary.get("interviewRounds"):
+                progress = target.get("practiceProgress")
+                if isinstance(progress, dict) and isinstance(progress.get("status"), str):
+                    projected_statuses.append(progress["status"])
+        expected = expected_variant_status.get(scenario_name)
+        if expected is not None and expected not in projected_statuses:
+            errors.append(
+                f"{opid}.{scenario_name}: requires a structured TargetJob with practiceProgress.status={expected!r}"
+            )
+
+
 def check_practice_voice_playable_refs(opid: str, scenarios: dict, errors: List[str]) -> None:
     if opid != "createPracticeVoiceTurn":
         return
@@ -705,6 +880,7 @@ def validate(repo_root: Path) -> List[str]:
             check_status_declared(opid, op, scenario_name, scenario, errors)
             check_schema(opid, op, scenario_name, scenario, spec, errors)
         check_required_named_scenarios(opid, scenarios, errors)
+        check_practice_round_semantics(opid, scenarios, errors)
         check_practice_voice_playable_refs(opid, scenarios, errors)
         check_practice_conversation_semantics(opid, scenarios, errors)
         check_provenance(opid, scenarios.get("default") or {}, errors)

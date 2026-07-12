@@ -3,7 +3,6 @@
   "description": "Structured resume summary parsed from supplied resume text.",
   "required": [
     "displayName",
-    "markdownText",
     "basics",
     "experiences",
     "projects",
@@ -15,10 +14,6 @@
     "displayName": {
       "type": "string",
       "description": "Short meaningful resume name for UI display, derived from candidate name plus headline, role, or strongest technical positioning; never use uploaded/pasted resume, the file name, or a raw first-line copy."
-    },
-    "markdownText": {
-      "type": "string",
-      "description": "Complete resume text converted to Markdown while preserving the source resume's writing order, section structure, wording, bullets, and factual content. Do not summarize, rewrite, add, remove, or reorder resume content."
     },
     "basics": {
       "type": "object",

@@ -28,10 +28,16 @@ const WorkspacePlanList = ({ T, lang, nav, jobs = [] }) => {
   const openPlan = (job) => nav("parse", {
     targetJobId: job.id,
   });
-  const startInterview = (job) => nav("practice", {
-    targetJobId: job.id,
-    sessionId: `session-${job.id}-new`,
-  });
+  const startInterview = (job) => {
+    const currentRound = window.eiResolvePracticeProgress(window.EI_DATA?.jdSample?.rounds || [], job.practiceProgress).currentRound;
+    if (!currentRound) return;
+    nav("practice", {
+      targetJobId: job.id,
+      roundId: currentRound.id,
+      roundName: currentRound.name,
+      sessionId: `session-${job.id}-${currentRound.id}-new`,
+    });
+  };
   const deletePlan = (job) => setHiddenJobIds((prev) => [...new Set([...prev, job.id])]);
   const visibleJobs = jobs.filter((job) => !hiddenJobIds.includes(job.id));
   return (
@@ -53,7 +59,8 @@ const WorkspacePlanList = ({ T, lang, nav, jobs = [] }) => {
         <div data-testid="workspace-plan-list-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 360px))", justifyContent: "start", gap: 16, alignItems: "stretch" }}>
           {visibleJobs.map((job) => {
             const rounds = window.EI_DATA?.jdSample?.rounds || [];
-            const currentRoundIndex = getCurrentRoundIndex(job, rounds);
+            const progress = window.eiResolvePracticeProgress(rounds, job.practiceProgress);
+            const currentRoundIndex = progress.currentIndex;
             const statusMap = {
               amber: { bg: T.amberSoft, fg: T.warn },
               neutral: { bg: T.bgSoft, fg: T.ink2 },
@@ -86,8 +93,9 @@ const WorkspacePlanList = ({ T, lang, nav, jobs = [] }) => {
                 </div>
                 <div data-testid={`workspace-plan-list-card-footer-${job.id}`} style={{ borderTop: `1px solid ${T.rule}`, paddingTop: 14, background: T.bgCard, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
                   <button
-                    onClick={(event) => { event.stopPropagation(); startInterview(job); }}
-                    style={{ flex: "0 0 auto", height: 32, padding: "0 12px", fontSize: 13, fontWeight: 500, background: T.accent, color: "#fff", border: `1px solid ${T.accent}`, borderRadius: 2, cursor: "pointer", fontFamily: "var(--ei-sans)" }}
+                    disabled={!progress.currentRound}
+                    onClick={(event) => { event.stopPropagation(); if (progress.currentRound) startInterview(job); }}
+                    style={{ flex: "0 0 auto", height: 32, padding: "0 12px", fontSize: 13, fontWeight: 500, background: T.accent, color: "#fff", border: `1px solid ${T.accent}`, borderRadius: 2, cursor: progress.currentRound ? "pointer" : "not-allowed", opacity: progress.currentRound ? 1 : 0.58, fontFamily: "var(--ei-sans)" }}
                   >
                     {L.start}
                   </button>
@@ -107,10 +115,10 @@ const WorkspaceMiniRoundRail = ({ T, rounds, currentIndex }) => (
       <div style={{ position: "absolute", top: 9, left: 8, right: 8, height: 1, background: T.rule }} />
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${rounds.length}, 1fr)` }}>
         {rounds.map((round, i) => {
-          const done = i < currentIndex;
+          const done = currentIndex !== null && i < currentIndex;
           const current = i === currentIndex;
           return (
-            <div key={round.name} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: i === 0 ? "flex-start" : i === rounds.length - 1 ? "flex-end" : "center" }}>
+            <div key={`round-${round.sequence}-${round.type}`} data-round-state={done ? "done" : current ? "current" : "pending"} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: i === 0 ? "flex-start" : i === rounds.length - 1 ? "flex-end" : "center" }}>
               <div style={{
                 width: 18, height: 18, borderRadius: 9,
                 border: `1px solid ${done ? T.ok : current ? T.accent : T.rule}`,
@@ -170,15 +178,6 @@ const getWorkspaceResumeOptions = (lang) => lang === "en" ? [
     note: "用于英文 HR 初筛和海外平台类岗位。",
   },
 ];
-
-const getCurrentRoundIndex = (job, rounds) => {
-  if (!rounds?.length) return 0;
-  const next = job?.nextRound || "";
-  const found = rounds.findIndex((round) => next.includes(round.name));
-  if (found >= 0) return found;
-  if (job?.status === "草稿" || next.includes("未安排")) return 0;
-  return Math.min(1, rounds.length - 1);
-};
 
 window.WorkspaceScreen = WorkspaceScreen;
 Object.assign(window, { getWorkspaceResumeOptions });

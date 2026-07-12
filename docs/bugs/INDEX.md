@@ -23,6 +23,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0162](./BUG-0162.md) | practice interviewer lost the real resume after parse output truncation | high | resolved | 2026-07-12 | `fix(interview): ground resumes and persist round progress (BUG-0162, BUG-0163)` |
 | [BUG-0160](./BUG-0160.md) | conversation simplification review exposed lifecycle, retry, score, and scenario drift | high | resolved | 2026-07-12 | `fix(practice): close conversation review regressions (BUG-0160)` |
 | [BUG-0159](./BUG-0159.md) | real conversation funnel retained PostgreSQL and observability drift | high | resolved | 2026-07-12 | `fix(practice): harden real conversation funnel (BUG-0159)` |
 | [BUG-0158](./BUG-0158.md) | practice phone flow and session language drifted from the real interview contract | medium | resolved | 2026-07-11 | `fix(practice): align phone flow and session language (BUG-0158)` |
@@ -166,6 +167,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0163](./BUG-0163.md) | completed practice rounds were not persisted as TargetJob progress | high | resolved | 2026-07-12 | `fix(interview): ground resumes and persist round progress (BUG-0162, BUG-0163)` |
 | [BUG-0135](./BUG-0135.md) | migration privacy matrix omitted idempotency records | medium | resolved | 2026-07-06 | `fix(schema): cover idempotency in privacy matrix (BUG-0135)` |
 | [BUG-0126](./BUG-0126.md) | resume flatten follow-ups exposed display, duplicate, rollback, and lint drift | medium | resolved | 2026-06-15 | `fix(review): close resume flatten follow-up gaps (BUG-0126)` |
 | [BUG-0125](./BUG-0125.md) | resume archive persistence and P0.102 gate drift escaped review | medium | resolved | 2026-06-15 | `fix(review): persist resume archive and p0102 gate (BUG-0125)` |
