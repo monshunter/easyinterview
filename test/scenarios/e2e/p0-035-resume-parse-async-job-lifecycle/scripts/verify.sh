@@ -13,25 +13,38 @@ mkdir -p "$OUT"
     echo "ERROR: skipped or no-op focused gate detected"
     exit 1
   fi
-  grep -q 'TestResumeParseRunnerHTTPScenario' "$OUT/trigger.log"
-  grep -q 'TestResumeParseRunnerRetryableFailureScenario' "$OUT/trigger.log"
-  grep -q 'TestBuildResumeRuntimeWiresRoutesRunnerAndDeterministicAI' "$OUT/trigger.log"
-  grep -q 'TestCatalogKeepsResumeParseOutputBudget' "$OUT/trigger.log"
-  grep -q 'TestParseHandlerRejectsDOCXUploadText' "$OUT/trigger.log"
-  grep -q 'TestParseHandlerRejectsUnreadablePDFText' "$OUT/trigger.log"
-  grep -q 'TestParseHandlerExtractsReadableUploadText' "$OUT/trigger.log"
-  grep -q 'TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox' "$OUT/trigger.log"
-  grep -q 'TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox' "$OUT/trigger.log"
-  grep -q 'TestParseHandlerRetriesFailedAssetBackToProcessing' "$OUT/trigger.log"
-  grep -q 'TestParseHandlerObservedAIWritesResumeTaskRunColumns' "$OUT/trigger.log"
-  grep -q 'TestParseHandlerPIIRedlineForLogsAuditTaskRunsAndOutbox' "$OUT/trigger.log"
-  grep -q 'TestParseHandlerPreservesLongInputTailWithStructuredOnlyResponse' "$OUT/trigger.log"
-  grep -q 'TestParseHandlerRejectsLengthFinishReasonAndPreservesSourceSnapshot' "$OUT/trigger.log"
-  grep -q 'TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady' "$OUT/trigger.log"
-  grep -q 'TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically' "$OUT/trigger.log"
-  grep -q 'TestCompleteParseFailureCanPersistExtractedTextSnapshot' "$OUT/trigger.log"
-  grep -q 'TestCompleteParseFailureMarksFailedWithoutCompletedOutbox' "$OUT/trigger.log"
-  grep -q 'TestResumesIntegrationCRUDStateIsolationPaginationAndRollback' "$OUT/trigger.log"
+  if grep -E -- '--- FAIL:|^FAIL([[:space:]]|$)' "$OUT/trigger.log"; then
+    echo "ERROR: failed test evidence detected"
+    exit 1
+  fi
+  required_tests=(
+    TestResumeParseRunnerHTTPScenario
+    TestResumeParseRunnerRetryableFailureScenario
+    TestBuildResumeRuntimeWiresRoutesRunnerAndDeterministicAI
+    TestCatalogKeepsResumeParseOutputBudget
+    TestParseHandlerRejectsDOCXUploadText
+    TestParseHandlerRejectsUnreadablePDFText
+    TestParseHandlerExtractsReadableUploadText
+    TestParseHandlerUsesTwoSourceInputsAndWritesReadyOutbox
+    TestParseHandlerFailurePathsMarkFailedAndSkipCompletedOutbox
+    TestParseHandlerRetriesFailedAssetBackToProcessing
+    TestParseHandlerObservedAIWritesResumeTaskRunColumns
+    TestParseHandlerPIIRedlineForLogsAuditTaskRunsAndOutbox
+    TestParseHandlerPreservesInlineHeadingWordsInSourceSnapshot
+    TestParseHandlerPreservesLongInputTailWithStructuredOnlyResponse
+    TestParseHandlerRejectsLengthFinishReasonAndPreservesSourceSnapshot
+    TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady
+    TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically
+    TestCompleteParseFailureCanPersistExtractedTextSnapshot
+    TestCompleteParseFailureMarksFailedWithoutCompletedOutbox
+    TestResumesIntegrationCRUDStateIsolationPaginationAndRollback
+  )
+  for test_name in "${required_tests[@]}"; do
+    if ! grep -Fq -- "--- PASS: $test_name" "$OUT/trigger.log"; then
+      echo "ERROR: missing PASS evidence for $test_name"
+      exit 1
+    fi
+  done
   cd "$ROOT/backend"
   go test ./cmd/api -run TestResumeParseRunnerHTTPScenario -count=1
   go test ./internal/resume/jobs -run 'TestParseHandlerPIIRedlineForLogsAuditTaskRunsAndOutbox' -count=1

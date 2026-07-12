@@ -10,6 +10,7 @@
 
 - 本次交付修复两个相互独立但在同一用户流程中连续出现的问题：真实简历没有进入 Practice 的有效证据上下文，以及第一轮完成事实没有投影为 TargetJob 当前下一轮。
 - Resume parse 不再要求模型回显整份 Markdown；后端从完整原始输入生成持久化快照，结构化输出检查 `finish_reason=length`。Practice start/send 使用快照优先、严格当前简历绑定和 system/untrusted JSON 角色边界，空上下文 fail closed。
+- Review remediation 进一步证明确定性快照不会把正文中的 `Experience` / `Skills` 改写成章节，并把 P0.035 从“测试名出现”加固为逐项精确 PASS、全局拒绝 FAIL；focused Go、脚本契约与实际 P0.035 四段执行均通过。
 - 方案 A 已落地：`practice_plans.round_id/round_sequence` 持久化规范轮次身份，TargetJob Get/List 从当前绑定简历的 completed session/event 台账投影 `completedRounds + currentRound`；前端只消费后端 `practiceProgress`，不维护第二份业务状态。
 - migration 000017 在隔离 PostgreSQL 完成 up → down → up，终态 version 17 clean；backfill dry-run/apply/rerun、歧义与非法记录 fail-closed 均有测试。
 - P0.098 运行 `e2e-p0-098-20260712111826-75013` 通过：真实 completion 后 Workspace、Home、Parse 跨 reload 均进入 round 2，真实 CreatePlan POST/GET 返回 round 2 / sequence 2，cleanup 后无 seed 残留。
@@ -21,6 +22,9 @@
 - “智能客服”问题表面像单纯 prompt hallucination，实际是输入、输出、持久化读取和 prompt trust boundary 四段耦合故障。
   - **证据**：数据库中的真实简历快照完整且无“智能客服”，旧 provider 输出恰好达到 2048 tokens 后解析失败，Practice 又只读取空 `structured_profile`；单独修改面试官文案无法恢复缺失证据。
   - **影响**：如果只修 prompt，会留下同样的无简历上下文；如果只增大 token，又会保留冗余 Markdown 回显和指令注入边界。
+- 首轮 post-pass 仍漏掉两个证据层盲点：确定性 formatter 对行内章节词做无边界替换，P0.035 verifier 只检查测试名。
+  - **证据**：新增 RED test 实际得到被拆成 `## Experience` / `## Skills` 的 snapshot；伪造含 `--- FAIL:` 与 package `FAIL` 的完整 marker 日志时，旧 verifier 返回 0。
+  - **影响**：权威 grounding 文本可能被格式化器改变语义，历史场景 PASS 又无法证明关键 regression 真正通过。
 - 轮次进度最初看起来是前端刷新问题，但 Home/Workspace 已重新请求后端；真正缺口是 plan 无 round identity、read model 无台账投影。
   - **证据**：session completion/event 已落库，旧 TargetJob 只返回全局 latest ready plan；页面 reload 后仍回到第一轮。新增真实 DB/browser gate 证明方案 A 可跨请求恢复。
   - **影响**：仅在组件状态或 localStorage 推进会形成第二真理源，跨设备、重试与重复完成仍会漂移。
@@ -42,6 +46,9 @@
 - 长文本输出合同与 downstream context precedence 不完整
   - **类别**：spec/plan
   - 原计划没有区分 1M 输入窗口、provider 输出预算、确定性源快照和 Practice 实际读取字段，也没有要求 `finish_reason=length` gate。
+- 权威文本格式化与场景证据边界不够严格
+  - **类别**：spec-plan / Bug pattern
+  - 原 gate 没有覆盖行内章节词负例，verifier 也把测试名存在误当成测试通过；本次已在 owner checklist、P0.035 script contract 与 Bug Pattern 4 原地固化。
 - 业务进度缺少后端事实模型
   - **类别**：AGENTS.md / spec-plan
   - 旧合同允许前端从 lifecycle status 推断轮次，没有声明 plan identity、completion ledger projection、Get/List parity 和浏览器 storage 禁区；本次已在治理规则和 owner plans 中原地修复。

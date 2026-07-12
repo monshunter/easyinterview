@@ -53,7 +53,7 @@
 - **典型症状**：plan/checklist 标记 `completed`，但 test checklist / BDD checklist 仍有未勾选项；scenario `verify.sh` 只检查 spec 文件存在、历史说明或宽泛 `PASS` 字样；pixel parity / scenario wrapper 被写成 deferred 或外部运行，仍被计入完成证据。
 - **检查清单**：
   1. 对 completed plan 先 `rg "\\[ \\]|deferred|pending|no tests|Playwright.*待|pixel parity 待"`，把空勾选、延期口径和 no-op 风险当作 blocking drift。
-  2. 直接读取每个 scenario 的 `trigger.sh` / `verify.sh`，确认 `trigger.sh` 真正调用 runner，`verify.sh` 检查 runner marker、目标测试名或 spec path、pass marker，并显式拒绝 failed / no tests。
+  2. 直接读取每个 scenario 的 `trigger.sh` / `verify.sh`，确认 `trigger.sh` 真正调用 runner；仅 `grep` 测试名不能作为通过证据，`verify.sh` 必须对命名测试要求 runner 的精确 pass marker（Go 为 `--- PASS: TestName`），并显式拒绝 `--- FAIL:`、package `FAIL`、skip 与 no-tests。
   3. 对 `go test -run` 证据必须加 `go test -list` 或源码反查，确认 focused test 名真实存在；如果测试可以 skip，verify 必须显式拒绝 `--- SKIP` / `testing: warning: no tests to run` / `[no tests to run]`。
   4. Pixel parity gate 必须证明浏览器 runner 执行过；不能只检查 Playwright spec 文件存在或在 README 中写“可手动运行”。
   5. 对 `pnpm` / package script wrapper，必须从 trigger log 反查最终 runner command：如果 package script 本身已经包含 `vitest run`，不得再用 `-- --run ...` 这类可能扩大范围或让 filter 失效的透传形式。

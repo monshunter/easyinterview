@@ -1,6 +1,6 @@
 # Backend Resume Register Parse and Listing Checklist
 
-> **版本**: 2.9
+> **版本**: 3.0
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -116,8 +116,8 @@
 ## Phase 14: Deterministic full-resume snapshot and truncation fail-closed
 
 - [x] 14.1 RED：长简历输入末尾唯一 marker 必须进入 AI prompt；stub AI 返回不含 `markdownText` 的 structured-only JSON，当前 decoder 因旧 required 字段失败（验证：focused Go test RED）<!-- verified: 2026-07-12 method=go-test-red test=TestParseHandlerPreservesLongInputTailWithStructuredOnlyResponse observed=AI_OUTPUT_INVALID -->
-- [x] 14.2 GREEN：成功/失败 `parsed_text_snapshot` 均由完整提取正文确定性构建；decoder、prompt、schema 删除 `markdownText` 回显合同，长输入尾 marker 在 prompt 与 snapshot 中均保留（验证：focused Go tests PASS）<!-- verified: 2026-07-12 method=go-test+prompt-lint tests=TestParseHandlerPreservesLongInputTailWithStructuredOnlyResponse,internal-resume-jobs -->
+- [x] 14.2 GREEN：成功/失败 `parsed_text_snapshot` 均由完整提取正文确定性构建；decoder、prompt、schema 删除 `markdownText` 回显合同，长输入尾 marker 在 prompt 与 snapshot 中均保留（验证：focused Go tests PASS）<!-- verified: 2026-07-12 method=go-test-red-green tests=TestParseHandlerPreservesInlineHeadingWordsInSourceSnapshot,internal-resume-jobs review-remediation=inline-heading-words-preserved -->
 - [x] 14.3 RED/GREEN：`FinishReason="length"` 在 JSON decode 前映射 `AI_OUTPUT_INVALID`，保留含尾 marker 的完整 snapshot，不发 `resume.parse.completed`（验证：focused Go test RED → GREEN）<!-- verified: 2026-07-12 method=mutation-red-green test=TestParseHandlerRejectsLengthFinishReasonAndPreservesSourceSnapshot -->
 - [x] 14.4 同步 prompt body/schema/hash、baseline seed migration、eval cases 与 `resolved-prompts.json`；`make lint-prompts` / `make eval-offline-resolve` PASS，当前合同负向 grep 不再要求 `markdownText`<!-- verified: 2026-07-12 method=prompt-lint+eval-offline result=24/24-pass seed-body=matched -->
-- [x] 14.5 E2E.P0.035 trigger/verify 执行并检查 tail-marker、structured-only、finish-reason tests 的 runner marker 与 PASS，继续拒绝 no-op / skip<!-- verified: 2026-07-12 method=scenario trigger=PASS verify=PASS cleanup=PASS -->
+- [x] 14.5 E2E.P0.035 trigger/verify 执行并检查 tail-marker、structured-only、finish-reason tests 的 runner marker 与 PASS，继续拒绝 no-op / skip<!-- verified: 2026-07-12 method=script-contract-red-green+scenario trigger=PASS verify=PASS cleanup=PASS verifier=exact-pass+reject-fail test=TestParseHandlerPreservesInlineHeadingWordsInSourceSnapshot -->
 - [x] 14.6 BDD-Gate: E2E.P0.035 PASS（完整正文进入 prompt + deterministic snapshot + output truncation fail-closed）<!-- verified: 2026-07-12 method=scenario bddChecklist=complete -->

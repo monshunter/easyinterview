@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 	"unicode"
@@ -447,21 +446,6 @@ func buildResumeMarkdownFallback(value string) string {
 func splitFallbackResumeLines(value string) []string {
 	normalized := normalizeExtractedResumeText(value)
 	normalized = regexp.MustCompile(`(?i)(Phone:|Email:|GitHub:)`).ReplaceAllString(normalized, "\n$1")
-	headings := append([]string(nil), resumeFallbackSectionHeadings...)
-	sort.SliceStable(headings, func(i, j int) bool {
-		return len([]rune(headings[i])) > len([]rune(headings[j]))
-	})
-	headingTokens := make(map[string]string, len(headings))
-	for index, heading := range headings {
-		token := fmt.Sprintf("@@EI_RESUME_HEADING_%d@@", index)
-		if strings.Contains(normalized, heading) {
-			normalized = strings.ReplaceAll(normalized, heading, "\n"+token+"\n")
-			headingTokens[token] = heading
-		}
-	}
-	for token, heading := range headingTokens {
-		normalized = strings.ReplaceAll(normalized, token, heading)
-	}
 	rawLines := strings.Split(normalized, "\n")
 	lines := make([]string, 0, len(rawLines))
 	for _, line := range rawLines {

@@ -583,6 +583,38 @@ func TestParseHandlerAcceptsStructuredOnlyResponse(t *testing.T) {
 	}
 }
 
+func TestParseHandlerPreservesInlineHeadingWordsInSourceSnapshot(t *testing.T) {
+	now := time.Date(2026, 7, 12, 16, 0, 0, 0, time.UTC)
+	const originalText = "Riley Chen\nBuilt a Customer Experience Platform\nDesigned Skills-based routing"
+	store := &fakeParseStore{asset: resumestore.ParseAssetRecord{
+		ID:           "asset-inline-heading-words",
+		UserID:       "user-1",
+		Language:     "en",
+		ParseStatus:  sharedtypes.TargetJobParseStatusQueued,
+		SourceType:   "paste",
+		OriginalText: originalText,
+	}}
+	handler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
+		Store:    store,
+		Registry: fakeRegistry{resolution: parseResolution()},
+		AI:       &captureAI{resp: aiclient.CompleteResponse{Content: validResumeParseJSON}},
+		NewID:    idSeq("event-inline-heading-words"),
+		Now:      func() time.Time { return now },
+	})
+
+	outcome := handler.Handle(context.Background(), runner.ClaimedJob{
+		JobID: "job-inline-heading-words", JobType: "resume_parse", ResourceType: "resume_asset", ResourceID: store.asset.ID, Attempts: 1, MaxAttempts: 5,
+	})
+
+	if !outcome.Succeeded {
+		t.Fatalf("Handle outcome = %+v, want success", outcome)
+	}
+	wantSnapshot := "# Riley Chen\nBuilt a Customer Experience Platform\nDesigned Skills-based routing"
+	if store.success == nil || store.success.ParsedTextSnapshot != wantSnapshot {
+		t.Fatalf("ParsedTextSnapshot = %q, want source facts preserved as %q", store.success.ParsedTextSnapshot, wantSnapshot)
+	}
+}
+
 func TestParseHandlerPreservesLongInputTailWithStructuredOnlyResponse(t *testing.T) {
 	now := time.Date(2026, 7, 12, 15, 0, 0, 0, time.UTC)
 	const tailMarker = "RESUME_TAIL_MARKER_EASYINTERVIEW_0712"
