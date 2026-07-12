@@ -32,11 +32,9 @@ export function buildCreatePlanRequest(
   const body: CreatePracticePlanRequest = {
     targetJobId,
     goal,
-    mode: "assisted",
     interviewerPersona: "hiring_manager",
     difficulty: "standard",
     language: lang,
-    questionBudget: 6,
     timeBudgetMinutes: 30,
     resumeId,
     focusCompetencyCodes: [],

@@ -26,7 +26,7 @@ On success the screen navigates to `report` with the 13-key handoff plus the res
 
 - No imports from `ui-design/src/data*` or `window.EI_DATA`.
 - No imports from `ui-design/src/screen-practice`.
-- No practice operation calls (`getPracticeSession`, `appendSessionEvent`, etc.).
+- No practice operation calls (`getPracticeSession`, `sendPracticeMessage`, etc.).
 - No `listTargetJobReports` invocation (dashboard-only D-7).
 
 Enforced by `src/app/screens/generating/__tests__/outOfScopeNegative.test.ts` and `scripts/lint/frontend_report_dashboard_out_of_scope.py`.

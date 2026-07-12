@@ -1,12 +1,15 @@
 package practice
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	stderrs "errors"
 	"fmt"
+	"io"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
@@ -15,12 +18,11 @@ import (
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
-const firstQuestionFeatureKey = "practice.session.first_question"
+const practiceChatFeatureKey = "practice.session.chat"
 
 type StartSessionRequest struct {
 	UserID             string
 	PlanID             string
-	HintsEnabled       bool
 	IdempotencyKeyHash string
 	RequestFingerprint string
 }
@@ -30,7 +32,6 @@ type StartSessionReservationInput struct {
 	SessionID           string
 	UserID              string
 	PlanID              string
-	HintsEnabled        bool
 	IdempotencyKeyHash  string
 	RequestFingerprint  string
 	ExpiresAt           time.Time
@@ -44,15 +45,13 @@ type SessionReservation struct {
 	PlanID              string
 	TargetJobID         string
 	Goal                sharedtypes.PracticeGoal
-	Mode                sharedtypes.PracticeMode
 	InterviewerPersona  sharedtypes.InterviewerRole
 	Language            string
-	HintsEnabled        bool
 	RoleTitle           string
 	Seniority           string
 	TopSkills           []string
 	ResumeProfile       string
-	RubricDimensions    []string
+	FocusCompetencies   []string
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
 	ReplaySession       *SessionRecord
@@ -65,18 +64,14 @@ type CommitSessionStartInput struct {
 	PlanID              string
 	TargetJobID         string
 	Goal                sharedtypes.PracticeGoal
-	Mode                sharedtypes.PracticeMode
 	InterviewerPersona  sharedtypes.InterviewerRole
 	Language            string
-	HintsEnabled        bool
-	TurnID              string
+	MessageID           string
 	SessionEventID      string
 	OutboxEventID       string
 	AuditEventID        string
-	QuestionText        string
-	QuestionIntent      string
+	MessageText         string
 	StartedAt           time.Time
-	CreatedAt           time.Time
 }
 
 type FailSessionStartInput struct {
@@ -88,27 +83,23 @@ type FailSessionStartInput struct {
 	FailedAt            time.Time
 }
 
-type TurnRecord struct {
-	ID             string
-	TurnIndex      int32
-	QuestionText   string
-	QuestionIntent string
-	Status         string
-	FollowUpCount  int
-	AskedAt        time.Time
+type MessageRecord struct {
+	ID        string
+	Role      string
+	Content   string
+	SeqNo     int32
+	CreatedAt time.Time
 }
 
 type SessionRecord struct {
-	ID           string
-	PlanID       string
-	TargetJobID  string
-	Status       sharedtypes.SessionStatus
-	Language     string
-	HintsEnabled bool
-	TurnCount    int32
-	CurrentTurn  *TurnRecord
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID          string
+	PlanID      string
+	TargetJobID string
+	Status      sharedtypes.SessionStatus
+	Language    string
+	Messages    []MessageRecord
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionRequest) (SessionRecord, error) {
@@ -133,7 +124,6 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 		SessionID:           s.newID(),
 		UserID:              userID,
 		PlanID:              planID,
-		HintsEnabled:        in.HintsEnabled,
 		IdempotencyKeyHash:  strings.TrimSpace(in.IdempotencyKeyHash),
 		RequestFingerprint:  strings.TrimSpace(in.RequestFingerprint),
 		ExpiresAt:           now.Add(idempotency.DefaultTTL),
@@ -152,11 +142,11 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 		return *reservation.ReplaySession, nil
 	}
 
-	question, err := s.firstQuestionForReservation(ctx, userID, reservation)
+	message, err := s.generateChatMessage(ctx, reservation, nil)
 	if err != nil {
-		return SessionRecord{}, err
+		return SessionRecord{}, s.failReservedSessionStart(ctx, userID, reservation, err)
 	}
-
+	startedAt := s.now().UTC()
 	return s.store.CommitSessionStart(ctx, CommitSessionStartInput{
 		IdempotencyRecordID: reservation.IdempotencyRecordID,
 		SessionID:           reservation.SessionID,
@@ -164,53 +154,139 @@ func (s *Service) StartPracticeSession(ctx context.Context, in StartSessionReque
 		PlanID:              reservation.PlanID,
 		TargetJobID:         reservation.TargetJobID,
 		Goal:                reservation.Goal,
-		Mode:                reservation.Mode,
 		InterviewerPersona:  reservation.InterviewerPersona,
 		Language:            reservation.Language,
-		HintsEnabled:        reservation.HintsEnabled,
-		TurnID:              s.newID(),
+		MessageID:           s.newID(),
 		SessionEventID:      s.newID(),
 		OutboxEventID:       s.newID(),
 		AuditEventID:        s.newID(),
-		QuestionText:        question.Text,
-		QuestionIntent:      question.Intent,
-		StartedAt:           s.now().UTC(),
-		CreatedAt:           reservation.CreatedAt,
+		MessageText:         message,
+		StartedAt:           startedAt,
 	})
 }
 
-func (s *Service) firstQuestionForReservation(ctx context.Context, userID string, reservation SessionReservation) (firstQuestion, error) {
-	if s.registry == nil {
-		return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, aiConfigError())
+func (s *Service) generateChatMessage(ctx context.Context, reservation SessionReservation, history []MessageRecord) (string, error) {
+	if s.registry == nil || s.ai == nil {
+		return "", aiConfigError()
 	}
-	if s.ai == nil {
-		return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, aiConfigError())
-	}
-	resolution, err := s.registry.ResolveActive(ctx, firstQuestionFeatureKey, reservation.Language)
+	resolution, err := s.registry.ResolveActive(ctx, practiceChatFeatureKey, reservation.Language)
 	if err != nil {
-		return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromRegistry(err))
+		return "", serviceErrorFromRegistry(err)
 	}
-	payload := firstQuestionPayload(resolution, reservation)
 	for attempt := 0; attempt < 2; attempt++ {
-		resp, _, err := s.ai.Complete(ctx, resolution.ModelProfileName, payload)
-		if err == nil {
-			question, parseErr := parseFirstQuestion(resp.Content)
-			err = parseErr
-			if err == nil {
-				err = validateGeneratedQuestionLanguage(question.Text, reservation.Language)
+		payload := practiceChatPayload(resolution, reservation, history, attempt > 0)
+		response, _, callErr := s.ai.Complete(ctx, resolution.ModelProfileName, payload)
+		if callErr == nil {
+			message, parseErr := parseChatMessage(response.Content)
+			callErr = parseErr
+			if callErr == nil {
+				callErr = validateGeneratedMessageLanguage(message, reservation.Language)
 			}
-			if err == nil {
-				return question, nil
+			if callErr == nil {
+				return message, nil
 			}
 		}
-		if attempt == 0 && isRepairableQuestionError(err) {
+		if attempt == 0 && isRepairableAIOutput(callErr) {
 			continue
 		}
-		return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromAI(err))
+		return "", serviceErrorFromAI(callErr)
 	}
-	return firstQuestion{}, s.failReservedSessionStart(ctx, userID, reservation, serviceErrorFromAI(
-		sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "first question generation failed", false),
-	))
+	return "", serviceErrorFromAI(sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "practice chat generation failed", false))
+}
+
+func practiceChatPayload(resolution registry.PromptResolution, reservation SessionReservation, history []MessageRecord, repair bool) aiclient.CompletePayload {
+	messages := make([]aiclient.Message, 0, 3)
+	if system := strings.TrimSpace(resolution.SystemMessage); system != "" {
+		messages = append(messages, aiclient.Message{Role: "system", Content: system})
+	}
+	content := renderPracticeChatTemplate(resolution.UserMessageTemplate, reservation, history)
+	if repair {
+		content += "\nReturn only strict JSON with one non-empty messageText in the requested language."
+	}
+	messages = append(messages, aiclient.Message{Role: "user", Content: content})
+	return aiclient.CompletePayload{
+		Messages: messages,
+		Metadata: attachOutputSchema(aiclient.CallMetadata{
+			FeatureKey:        practiceChatFeatureKey,
+			PromptVersion:     resolution.PromptVersion,
+			RubricVersion:     resolution.RubricVersion,
+			Language:          reservation.Language,
+			FeatureFlag:       resolution.FeatureFlag,
+			DataSourceVersion: resolution.DataSourceVersion,
+			TaskRun: aiclient.AITaskRunContext{
+				UserID:       reservation.UserID,
+				Capability:   aiclient.AITaskRunTaskPracticeChat,
+				ResourceType: aiclient.AITaskRunResourceTargetJob,
+				ResourceID:   reservation.TargetJobID,
+			},
+		}, resolution),
+	}
+}
+
+func renderPracticeChatTemplate(template string, reservation SessionReservation, history []MessageRecord) string {
+	historyValues := make([]string, 0, len(history))
+	for _, message := range history {
+		historyValues = append(historyValues, fmt.Sprintf("%s: %s", message.Role, message.Content))
+	}
+	return strings.TrimSpace(strings.NewReplacer(
+		"{{language}}", fallbackText(reservation.Language, "en"),
+		"{{target_job_context}}", strings.TrimSpace(strings.Join([]string{reservation.RoleTitle, reservation.Seniority, fallbackList(reservation.TopSkills, "target job requirements")}, "; ")),
+		"{{resume_context}}", fallbackText(reservation.ResumeProfile, "resume context unavailable"),
+		"{{interview_round}}", fallbackText(string(reservation.InterviewerPersona), "generalist"),
+		"{{practice_goal}}", fallbackText(string(reservation.Goal), string(sharedtypes.PracticeGoalBaseline)),
+		"{{focus_competencies}}", fallbackList(reservation.FocusCompetencies, "follow the strongest unresolved signal"),
+		"{{conversation_history}}", fallbackList(historyValues, "empty; open the conversation naturally"),
+	).Replace(template))
+}
+
+func parseChatMessage(content string) (string, error) {
+	decoder := json.NewDecoder(bytes.NewBufferString(strings.TrimSpace(content)))
+	decoder.DisallowUnknownFields()
+	var decoded struct {
+		MessageText string `json:"messageText"`
+	}
+	if err := decoder.Decode(&decoded); err != nil {
+		return "", sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "practice chat response must be strict JSON", false)
+	}
+	if err := decoder.Decode(&struct{}{}); !stderrs.Is(err, io.EOF) {
+		return "", sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "practice chat response contains trailing data", false)
+	}
+	message := strings.TrimSpace(decoded.MessageText)
+	if message == "" {
+		return "", sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "practice chat response missing messageText", false)
+	}
+	return message, nil
+}
+
+func validateGeneratedMessageLanguage(text, language string) error {
+	normalized := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(language), "_", "-"))
+	hanCount, latinCount := 0, 0
+	for _, r := range strings.TrimSpace(text) {
+		if unicode.Is(unicode.Han, r) {
+			hanCount++
+		}
+		if unicode.Is(unicode.Latin, r) {
+			latinCount++
+		}
+	}
+	switch {
+	case normalized == "zh" || strings.HasPrefix(normalized, "zh-"):
+		if hanCount > 0 && hanCount*5 >= (hanCount+latinCount)*3 {
+			return nil
+		}
+	case normalized == "en" || strings.HasPrefix(normalized, "en-"):
+		if latinCount > 0 && hanCount == 0 {
+			return nil
+		}
+	default:
+		return sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "practice session language is unsupported", false)
+	}
+	return sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "generated message language does not match the session", false)
+}
+
+func isRepairableAIOutput(err error) bool {
+	code, ok := aiErrorCode(err)
+	return ok && code == sharederrors.CodeAiOutputInvalid
 }
 
 func (s *Service) failReservedSessionStart(ctx context.Context, userID string, reservation SessionReservation, err error) error {
@@ -240,35 +316,6 @@ func aiConfigError() *ServiceError {
 	return &ServiceError{Code: sharederrors.CodeAiProviderConfigInvalid, Message: meta.Message}
 }
 
-func firstQuestionPayload(resolution registry.PromptResolution, reservation SessionReservation) aiclient.CompletePayload {
-	messages := make([]aiclient.Message, 0, 2)
-	if strings.TrimSpace(resolution.SystemMessage) != "" {
-		messages = append(messages, aiclient.Message{Role: "system", Content: resolution.SystemMessage})
-	}
-	userContent := renderFirstQuestionTemplate(resolution.UserMessageTemplate, reservation)
-	if userContent == "" {
-		userContent = "Generate the first interview question."
-	}
-	messages = append(messages, aiclient.Message{Role: "user", Content: userContent})
-	return aiclient.CompletePayload{
-		Messages: messages,
-		Metadata: attachOutputSchema(aiclient.CallMetadata{
-			FeatureKey:        firstQuestionFeatureKey,
-			PromptVersion:     resolution.PromptVersion,
-			RubricVersion:     resolution.RubricVersion,
-			Language:          reservation.Language,
-			FeatureFlag:       resolution.FeatureFlag,
-			DataSourceVersion: resolution.DataSourceVersion,
-			TaskRun: aiclient.AITaskRunContext{
-				UserID:       reservation.UserID,
-				Capability:   aiclient.AITaskRunTaskQuestionGenerate,
-				ResourceType: aiclient.AITaskRunResourceTargetJob,
-				ResourceID:   reservation.TargetJobID,
-			},
-		}, resolution),
-	}
-}
-
 func attachOutputSchema(metadata aiclient.CallMetadata, resolution registry.PromptResolution) aiclient.CallMetadata {
 	if resolution.OutputSchema != nil {
 		metadata.OutputSchema = *resolution.OutputSchema
@@ -288,68 +335,22 @@ func serviceErrorFromRegistry(err error) error {
 	return &ServiceError{Code: sharederrors.CodeAiProviderConfigInvalid, Message: meta.Message}
 }
 
-func renderFirstQuestionTemplate(template string, reservation SessionReservation) string {
-	content := strings.TrimSpace(template)
-	if content == "" {
-		return ""
-	}
-	replacer := strings.NewReplacer(
-		"{{language}}", fallbackText(reservation.Language, "en"),
-		"{{role_title}}", fallbackText(reservation.RoleTitle, "target role"),
-		"{{seniority}}", fallbackText(reservation.Seniority, "not specified"),
-		"{{top_skills}}", fallbackList(reservation.TopSkills, "target job requirements"),
-		"{{resume_profile}}", fallbackText(reservation.ResumeProfile, "resume profile unavailable"),
-		"{{rubric_dimensions}}", fallbackList(reservation.RubricDimensions, "practice_depth, practice_dimension_coverage, language_consistency"),
-		"{{practice_goal}}", fallbackText(string(reservation.Goal), string(sharedtypes.PracticeGoalBaseline)),
-	)
-	return strings.TrimSpace(replacer.Replace(content))
-}
-
 func fallbackText(value, fallback string) string {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return fallback
+	if value = strings.TrimSpace(value); value != "" {
+		return value
 	}
-	return value
+	return fallback
 }
 
 func fallbackList(values []string, fallback string) string {
 	clean := make([]string, 0, len(values))
 	for _, value := range values {
-		if trimmed := strings.TrimSpace(value); trimmed != "" {
-			clean = append(clean, trimmed)
+		if value = strings.TrimSpace(value); value != "" {
+			clean = append(clean, value)
 		}
 	}
 	if len(clean) == 0 {
 		return fallback
 	}
 	return strings.Join(clean, ", ")
-}
-
-type firstQuestion struct {
-	Text   string
-	Intent string
-}
-
-func parseFirstQuestion(content string) (firstQuestion, error) {
-	content = strings.TrimSpace(content)
-	if content == "" {
-		return firstQuestion{}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "first question response is empty", false)
-	}
-	var decoded struct {
-		QuestionText   string `json:"questionText"`
-		QuestionIntent string `json:"questionIntent"`
-	}
-	if err := json.Unmarshal([]byte(content), &decoded); err != nil {
-		return firstQuestion{}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "first question response must be strict JSON", false)
-	}
-	text := strings.TrimSpace(decoded.QuestionText)
-	if text == "" {
-		return firstQuestion{}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "first question response missing questionText", false)
-	}
-	intent := strings.TrimSpace(decoded.QuestionIntent)
-	if intent == "" {
-		return firstQuestion{}, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "first question response missing questionIntent", false)
-	}
-	return firstQuestion{Text: text, Intent: intent}, nil
 }

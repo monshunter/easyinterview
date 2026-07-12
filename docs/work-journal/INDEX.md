@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-12](2026-07-12.md) | `feat(practice): implement continuous conversation flow` | #feat #api #ui #test #docs #bdd |
 | [2026-07-12](2026-07-12.md) | `feat(practice): rebase conversation contract and baseline` | #feat #api #test #docs |
 | [2026-07-11](2026-07-11.md) | `fix(practice): align phone flow and session language (BUG-0158)` | #fix #ui #api #test #docs #bdd #i18n |
 | [2026-07-11](2026-07-11.md) | `refactor(repo): close remaining scope and contract drift` | #refactor #test #docs #ui #api |

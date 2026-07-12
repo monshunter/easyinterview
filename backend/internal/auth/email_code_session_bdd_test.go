@@ -70,8 +70,8 @@ func TestE2EP0003EmailCodeSessionCookie(t *testing.T) {
 	runtimeHandler := config.NewRuntimeConfigHandler(config.RuntimeConfigHandlerOptions{
 		Loader: newRuntimeConfigAuthLoader(t),
 		Flags: runtimeFlags{snapshot: map[string]featureflag.FlagDecision{
-			"practice_hint_enabled":     {Enabled: true, Public: true},
-			"ai_fallback_model_enabled": {Enabled: true, Public: false},
+			"report_evidence_v2_enabled": {Enabled: true, Public: true},
+			"ai_fallback_model_enabled":  {Enabled: true, Public: false},
 		}},
 		FlagContextFunc: func(*http.Request) featureflag.FlagContext {
 			return featureflag.FlagContext{AppEnv: "dev"}

@@ -53,7 +53,7 @@ export async function startPracticeFromParams(
   }
 
   const session = await client.startPracticeSession(
-    { planId, hintsEnabled: ctx.practiceMode === "assisted" },
+    { planId },
     { idempotencyKey: batch.start },
   );
 
@@ -68,12 +68,7 @@ export async function startPracticeFromParams(
       sourceReportId: ctx.sourceReportId ?? "",
       roundId: ctx.roundId ?? "",
       roundName: ctx.roundName ?? "",
-      mode: ctx.mode,
-      modality: ctx.modality,
-      practiceMode: ctx.practiceMode,
       practiceGoal: ctx.practiceGoal,
-      hintUsed: ctx.hintUsed,
-      hintCount: ctx.hintCount,
       language: params.language || lang,
       planId,
       sessionId: session.id,
@@ -95,14 +90,8 @@ export function interviewContextStateFromParams(
     sourceReportId: params.sourceReportId || undefined,
     roundId: params.roundId || undefined,
     roundName: params.roundName || undefined,
-    mode: params.mode || DEFAULT_INTERVIEW_CONTEXT.mode,
-    modality: params.modality || DEFAULT_INTERVIEW_CONTEXT.modality,
-    practiceMode:
-      params.practiceMode || DEFAULT_INTERVIEW_CONTEXT.practiceMode,
     practiceGoal:
       params.practiceGoal || DEFAULT_INTERVIEW_CONTEXT.practiceGoal,
-    hintUsed: params.hintUsed || DEFAULT_INTERVIEW_CONTEXT.hintUsed,
-    hintCount: params.hintCount || DEFAULT_INTERVIEW_CONTEXT.hintCount,
     sessionId: params.sessionId || undefined,
   };
 }

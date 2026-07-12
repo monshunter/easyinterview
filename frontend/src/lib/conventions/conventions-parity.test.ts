@@ -3,7 +3,6 @@ import fixture from '../../../../shared/fixtures/conventions-parity.json';
 import {
   ALL_TARGET_JOB_STATUSES,
   ALL_TARGET_JOB_PARSE_STATUSES,
-  ALL_PRACTICE_MODES,
   ALL_PRACTICE_GOALS,
   ALL_INTERVIEWER_ROLES,
   ALL_SESSION_STATUSES,
@@ -11,7 +10,6 @@ import {
   ALL_READINESS_TIERS,
   ALL_DIMENSION_STATUSES,
   ALL_CONFIDENCES,
-  ALL_QUESTION_REVIEW_STATUSES,
   ALL_PRIVACY_REQUEST_TYPES,
   ALL_PRIVACY_REQUEST_STATUSES,
   ALL_ERROR_CODES,
@@ -41,11 +39,10 @@ interface ParityFixture {
 const parity = fixture as ParityFixture;
 
 describe('cross-language conventions parity fixture', () => {
-  it('matches all 13 generated enum literal sets', () => {
+  it('matches all 11 generated enum literal sets', () => {
     const actual: Record<string, readonly string[]> = {
       TargetJobStatus: ALL_TARGET_JOB_STATUSES,
       TargetJobParseStatus: ALL_TARGET_JOB_PARSE_STATUSES,
-      PracticeMode: ALL_PRACTICE_MODES,
       PracticeGoal: ALL_PRACTICE_GOALS,
       InterviewerRole: ALL_INTERVIEWER_ROLES,
       SessionStatus: ALL_SESSION_STATUSES,
@@ -53,12 +50,11 @@ describe('cross-language conventions parity fixture', () => {
       ReadinessTier: ALL_READINESS_TIERS,
       DimensionStatus: ALL_DIMENSION_STATUSES,
       Confidence: ALL_CONFIDENCES,
-      QuestionReviewStatus: ALL_QUESTION_REVIEW_STATUSES,
       PrivacyRequestType: ALL_PRIVACY_REQUEST_TYPES,
       PrivacyRequestStatus: ALL_PRIVACY_REQUEST_STATUSES,
     };
 
-    expect(Object.keys(actual)).toHaveLength(13);
+    expect(Object.keys(actual)).toHaveLength(11);
     expect(actual).toEqual(parity.enums);
   });
 

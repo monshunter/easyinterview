@@ -75,9 +75,6 @@ const PRACTICE_SAFE = new Set([
   "sourceReportId",
   "roundId",
   "roundName",
-  "mode",
-  "modality",
-  "practiceMode",
   "practiceGoal",
   "language",
 ]);
@@ -92,12 +89,7 @@ const GENERATING_SAFE = new Set([
   "resumeId",
   "roundId",
   "roundName",
-  "mode",
-  "modality",
-  "practiceMode",
   "practiceGoal",
-  "hintUsed",
-  "hintCount",
 ]);
 
 const REPORT_SAFE = new Set([
@@ -109,12 +101,7 @@ const REPORT_SAFE = new Set([
   "resumeId",
   "roundId",
   "roundName",
-  "mode",
-  "modality",
-  "practiceMode",
   "practiceGoal",
-  "hintUsed",
-  "hintCount",
   "reportStatus",
   "errorCode",
 ]);
@@ -174,8 +161,6 @@ const ROUTE_SAFE_PARAMS: Readonly<Record<RouteName, ReadonlySet<string>>> = {
   auth_profile_setup: AUTH_PROFILE_SETUP_BASE,
   auth_logout: AUTH_LOGOUT_BASE,
 };
-
-const CURRENT_MODE_PARAM_VALUES = new Set(["text", "phone"]);
 
 const AUTH_ROUTES_WITH_PENDING_ACTION = new Set<RouteName>([
   "auth_login",
@@ -284,18 +269,10 @@ export function parseUrlToRoute(rawUrl: string): Route {
 }
 
 function normalizeRouteParamValue(
-  routeName: RouteName,
-  key: string,
+  _routeName: RouteName,
+  _key: string,
   value: string | undefined,
 ): string | undefined {
   if (value === undefined || value === "") return undefined;
-  if (
-    (routeName === "practice" ||
-      routeName === "generating" ||
-      routeName === "report") &&
-    (key === "mode" || key === "modality")
-  ) {
-    return CURRENT_MODE_PARAM_VALUES.has(value) ? value : undefined;
-  }
   return value;
 }

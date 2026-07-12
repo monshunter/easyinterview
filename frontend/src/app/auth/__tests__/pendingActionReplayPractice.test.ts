@@ -25,12 +25,7 @@ const REPLAY_ACTION: PendingAction = {
     jdId: "jd-1",
     resumeId: "frontend-v3",
     roundId: "round-tech-1",
-    mode: "text",
-    modality: "text",
-    practiceMode: "strict",
     practiceGoal: "retry_current_round",
-    hintUsed: "1",
-    hintCount: "2",
   },
 };
 

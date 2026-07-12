@@ -73,13 +73,13 @@ describe("parseInitialRouteHash", () => {
     }
   });
 
-  it("hash phone mode practice entry maps to canonical /practice with mode/modality", () => {
+  it("drops legacy phone mode fields from the canonical practice URL", () => {
     const loose = parseInitialRouteHash(
       "#route=practice&mode=phone&modality=phone&sessionId=s-1",
     );
     const normalized = normalizeRoute(loose!);
     expect(formatRouteUrl(normalized)).toBe(
-      "/practice?modality=phone&mode=phone&sessionId=s-1",
+      "/practice?sessionId=s-1",
     );
   });
 

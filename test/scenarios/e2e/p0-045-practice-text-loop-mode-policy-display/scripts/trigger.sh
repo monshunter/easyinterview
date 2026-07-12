@@ -1,27 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
-OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-045-practice-text-loop-mode-policy-display"
-mkdir -p "$OUTPUT_DIR"
-(
-  cd "$REPO_ROOT"
-  "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
-  pnpm --filter @easyinterview/frontend test \
-    src/app/screens/practice/PracticeScreen.test.tsx \
-    src/app/screens/practice/__tests__/practiceGoalParity.test.tsx \
-    src/app/screens/practice/__tests__/practiceHints.test.tsx \
-    src/app/screens/practice/__tests__/practicePauseResume.test.tsx \
-    src/app/screens/practice/__tests__/practiceTargetDisplay.test.tsx \
-    src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx \
-    src/app/screens/practice/__tests__/practiceSessionContinuity.test.tsx \
-    src/app/screens/practice/__tests__/practiceModeSwitch.test.tsx \
-    src/app/screens/practice/__tests__/SessionMap.test.tsx \
-    src/app/screens/practice/usePracticeTargetDisplay.test.tsx \
-    src/app/screens/practice/usePracticePhoneController.test.tsx \
-    src/app/screens/practice/phoneVad.test.ts \
-    src/app/screens/practice/phoneVadMonitor.test.ts \
-    src/app/screens/practice/hooks/usePracticeVoicePlayback.test.tsx \
-    src/app/screens/practice/hooks/usePracticeVoiceTurn.lifecycle.test.tsx \
-    src/app/screens/practice/hooks/usePracticeSessionLoader.test.tsx
-) | tee "$OUTPUT_DIR/trigger.log"
+ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"; OUT="$ROOT/.test-output/e2e/p0-045-practice-text-loop-mode-policy-display"; mkdir -p "$OUT"
+{
+  cd "$ROOT"
+  "$ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$ROOT"
+  node --test ui-design/ui-design-contract.test.mjs
+  pnpm --filter @easyinterview/frontend test src/app/screens/practice/PracticeScreen.test.tsx src/app/App.test.tsx src/app/routeUrl.test.ts
+  go test -v ./backend/internal/api/practice -run '^TestCreatePracticeVoiceTurnFailsClosed$' -count=1
+} | tee "$OUT/trigger.log"

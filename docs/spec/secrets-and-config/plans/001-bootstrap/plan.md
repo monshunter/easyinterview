@@ -1,8 +1,8 @@
 # Secrets and Config Bootstrap
 
-> **版本**: 1.15
+> **版本**: 1.16
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -14,6 +14,8 @@
 本 plan 是 `secrets-and-config` 唯一的 plan；后续若需扩展（Vault / SOPS / platform secret / K8s Secret provider，自动 secret rotation，分桶 feature flag），按 §7 约束递增 spec 与本 plan 版本，原地修订，不再开 sibling plan。
 
 本次 v1.15 技术债清理删除只被自身单测消费的平行 runtime-config fetch/cache 包；A4 只拥有 backend allowlist 与 endpoint，正式前端由 D1 `AppRuntimeProvider` 通过 B2 generated client/types 读取配置。
+
+本次 v1.16 随连续对话简化删除 `practice_hint_enabled` / `practice_assistance_mode_enabled` 及 public runtime allowlist，baseline 收敛为 4 项仍有当前消费者的 report/readiness/operator flags。
 
 本次 v1.10 技术债清理同步当前实现事实：`runtime_config_handler.go` 支持由 C1 backend-auth 注入 session-aware resolver；resolver 缺省时才使用 anonymous opt-out 默认，不再将 handler 描述为 stub。
 
@@ -105,7 +107,7 @@ type FeatureFlagClient interface {
 
 #### 2.5 Phase 2 自检
 
-`secrets_test.go` 与 `featureflag_test.go` 覆盖：`EnvSecretSource.Get` 缺失返回 error；`FileFlagProvider` 解析 YAML、修改 mtime 后 ≤30s 热加载；`PostHogFlagProvider` 在 mock HTTP server（`httptest.NewServer`）返回 `decide` 模拟响应时 `IsEnabled("practice_hint_enabled", ctx)` 返回 true；mock 5xx / timeout 时命中 last-known-good 快照；无快照时返回 degraded/error；`POSTHOG_SELF_HOSTED=false` 在 staging/prod 启动时 validator 返回 fail-fast error。Phase 6 自检会再次串行复跑这些用例。
+`secrets_test.go` 与 `featureflag_test.go` 覆盖：`EnvSecretSource.Get` 缺失返回 error；`FileFlagProvider` 解析 YAML、修改 mtime 后 ≤30s 热加载；`PostHogFlagProvider` 在 mock HTTP server（`httptest.NewServer`）返回 `decide` 模拟响应时 `IsEnabled("sample_public_flag", ctx)` 返回 true；mock 5xx / timeout 时命中 last-known-good 快照；无快照时返回 degraded/error；`POSTHOG_SELF_HOSTED=false` 在 staging/prod 启动时 validator 返回 fail-fast error。Phase 6 自检会再次串行复跑这些用例。
 
 ### Phase 3: 配置文件骨架与 .env.example 字典对齐
 
@@ -123,7 +125,7 @@ type FeatureFlagClient interface {
 
 #### 3.4 落地 `config/feature-flags.yaml` baseline
 
-按 product-scope v1.2 / UI scope 写入 6 项 baseline flag（`practice_hint_enabled` / `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled` / `practice_assistance_mode_enabled`）。每个 flag 必须显式标注 `public: true|false`：除 `ai_fallback_model_enabled` 外均为 `public: true`（前端可见）；`ai_fallback_model_enabled` 设 `public: false`（operator-only），由 Phase 5 runtime-config builder 在 allowlist 中过滤。`mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 仅作为 out-of-scope 负向测试输入，不得进入配置或 public runtime config。
+按当前 product/UI scope 写入 4 项 baseline flag（`report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled`）。每个 flag 必须显式标注 `public: true|false`：前三项为 `public: true`；`ai_fallback_model_enabled` 设 `public: false`（operator-only），由 Phase 5 runtime-config builder 在 allowlist 中过滤。已删除的 practice hint/assistance flags 不得保留兼容投影。
 
 #### 3.5 落地 `config/README.md`
 
@@ -187,7 +189,7 @@ type FeatureFlagClient interface {
 
 构造下列单测覆盖 [secrets-and-config spec §6 C-6](../../spec.md#6-验收标准)：
 
-- `runtime_config_test.go`：当 `practice_hint_enabled.public=true`、`ai_fallback_model_enabled.public=false`、`analytics_opt_in=false` 时，response 包含 `practice_hint_enabled` 但不含 `ai_fallback_model_enabled`，`analyticsEnabled=false`，无 `postHogPublicKey`，无任何 secret 字段。
+- `runtime_config_test.go`：当 `report_evidence_v2_enabled.public=true`、`ai_fallback_model_enabled.public=false`、`analytics_opt_in=false` 时，response 包含公开 report flag 但不含 `ai_fallback_model_enabled`，`analyticsEnabled=false`，无 `postHogPublicKey`，无任何 secret 字段。
 - D1 `AppRuntimeProvider` focused tests：generated client 的 `getRuntimeConfig` 与 `getMe` bootstrap、失败态及 refresh 行为保持通过。
 - 手工 smoke：本地 `go run ./backend/cmd/api` 启动后 `curl http://localhost:8080/api/v1/runtime-config` 返回 allowlist response。
 
@@ -199,7 +201,7 @@ type FeatureFlagClient interface {
 
 - **C-1（三层合并）**：`config/config.yaml` 默认 `log.level: info`；`config/dev.yaml` 设 `log.level: debug`；env 设 `APP_LISTEN_ADDR=:9090`；`go run ./backend/cmd/api -dump-config` 必须显示 `app.listenAddr=:9090` 与 `log.level=debug`，其它字段保持默认。
 - **C-2（fail-fast）**：`APP_ENV=prod ./bin/api` 缺 `SESSION_COOKIE_SECRET` 时退出码非 0 且 stderr 含 `missing required secret: SESSION_COOKIE_SECRET`。
-- **C-3（file flag 热加载）**：`FEATURE_FLAG_SOURCE=file` 启动后修改 `config/feature-flags.yaml`，30s 内 `featureflag.IsEnabled("practice_hint_enabled", ctx)` 反映新值。
+- **C-3（file flag 热加载）**：`FEATURE_FLAG_SOURCE=file` 启动后修改 `config/feature-flags.yaml`，30s 内 `featureflag.IsEnabled("sample_public_flag", ctx)` 反映新值。
 - **C-4（posthog flag）**：mock `/decide` server 命中后 `IsEnabled` 正确返回；mock 5xx / timeout 命中 last-known-good 缓存；无缓存时返回 degraded/error；`POSTHOG_SELF_HOSTED=false` 在 staging/prod 启动失败。
 - **C-5（redact）**：`go test ./backend/internal/platform/config/...` 包含 `redactor_test.go`，断言 `RedactedString` 在 `fmt.Println` / JSON marshal / error wrapping 三种路径输出 `***`。
 
@@ -263,7 +265,7 @@ type FeatureFlagClient interface {
 
 #### 8.2 Green
 
-修订 `config/feature-flags.yaml`、runtime-config tests 与相关文档：current baseline 使用 `report_retry_plan_enabled` / `readiness_signals_enabled` / `practice_assistance_mode_enabled`，范围外独立错题本、成长中心和 dual-track flag 只保留在负向测试输入中。
+修订 `config/feature-flags.yaml`、runtime-config tests 与相关文档：current baseline 仅使用仍有消费者的 report/readiness flags；practice hint/assistance flags 与范围外独立错题本、成长中心和 dual-track flag 不进入 public runtime config。
 
 #### 8.3 Verify
 

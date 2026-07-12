@@ -35,7 +35,7 @@ func TestPostHogProviderCallsDecideEndpoint(t *testing.T) {
 			t.Errorf("expected distinct_id=anon-1, got %v", payload["distinct_id"])
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"featureFlags":{"practice_hint_enabled":true,"ai_fallback_model_enabled":false}}`))
+		_, _ = w.Write([]byte(`{"featureFlags":{"sample_public_flag":true,"ai_fallback_model_enabled":false}}`))
 	}))
 	defer server.Close()
 
@@ -44,7 +44,7 @@ func TestPostHogProviderCallsDecideEndpoint(t *testing.T) {
 		APIKey:      "ph-key",
 		SelfHosted:  true,
 		AppEnv:      "staging",
-		Public:      map[string]bool{"practice_hint_enabled": true, "ai_fallback_model_enabled": false},
+		Public:      map[string]bool{"sample_public_flag": true, "ai_fallback_model_enabled": false},
 		CacheTTL:    0,
 		HTTPClient:  server.Client(),
 		EvalTimeout: 500 * time.Millisecond,
@@ -54,14 +54,14 @@ func TestPostHogProviderCallsDecideEndpoint(t *testing.T) {
 	}
 
 	ctx := featureflag.FlagContext{AnonymousDistinctID: "anon-1", AppEnv: "staging"}
-	if !p.IsEnabled("practice_hint_enabled", ctx) {
-		t.Errorf("expected practice_hint_enabled=true")
+	if !p.IsEnabled("sample_public_flag", ctx) {
+		t.Errorf("expected sample_public_flag=true")
 	}
 	if p.IsEnabled("ai_fallback_model_enabled", ctx) {
 		t.Errorf("expected ai_fallback_model_enabled=false")
 	}
 	snap := p.Snapshot(ctx)
-	if !snap["practice_hint_enabled"].Public {
+	if !snap["sample_public_flag"].Public {
 		t.Errorf("practice flag should be marked public from allowlist")
 	}
 	if snap["ai_fallback_model_enabled"].Public {
@@ -75,7 +75,7 @@ func TestPostHogProviderUsesLastKnownGoodOn5xx(t *testing.T) {
 		n := calls.Add(1)
 		w.Header().Set("Content-Type", "application/json")
 		if n == 1 {
-			_, _ = w.Write([]byte(`{"featureFlags":{"practice_hint_enabled":true}}`))
+			_, _ = w.Write([]byte(`{"featureFlags":{"sample_public_flag":true}}`))
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
@@ -84,7 +84,7 @@ func TestPostHogProviderUsesLastKnownGoodOn5xx(t *testing.T) {
 
 	p, err := featureflag.NewPostHogProvider(featureflag.PostHogProviderOptions{
 		Host: server.URL, APIKey: "k", SelfHosted: true, AppEnv: "staging",
-		Public:   map[string]bool{"practice_hint_enabled": true},
+		Public:   map[string]bool{"sample_public_flag": true},
 		CacheTTL: 0, HTTPClient: server.Client(), EvalTimeout: 500 * time.Millisecond,
 	})
 	if err != nil {
@@ -92,11 +92,11 @@ func TestPostHogProviderUsesLastKnownGoodOn5xx(t *testing.T) {
 	}
 
 	ctx := featureflag.FlagContext{AnonymousDistinctID: "anon", AppEnv: "staging"}
-	if !p.IsEnabled("practice_hint_enabled", ctx) {
+	if !p.IsEnabled("sample_public_flag", ctx) {
 		t.Fatal("first call must populate cache")
 	}
 	// Second call hits 5xx; provider must fall back to last-known-good.
-	if !p.IsEnabled("practice_hint_enabled", ctx) {
+	if !p.IsEnabled("sample_public_flag", ctx) {
 		t.Fatal("expected last-known-good cache hit on 5xx")
 	}
 }
@@ -115,7 +115,7 @@ func TestPostHogProviderReturnsErrorWhenNoCacheAvailable(t *testing.T) {
 		t.Fatalf("NewPostHogProvider: %v", err)
 	}
 
-	if got := p.IsEnabled("practice_hint_enabled", featureflag.FlagContext{}); got {
+	if got := p.IsEnabled("sample_public_flag", featureflag.FlagContext{}); got {
 		t.Errorf("missing cache + 5xx must return false (degraded)")
 	}
 	// Snapshot should be empty so runtime-config exposes nothing it cannot vouch for.

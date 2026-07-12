@@ -21,11 +21,8 @@ func TestTrackedCatalogCoversF3AndProductUICapabilityProfiles(t *testing.T) {
 		status     aiclient.ProfileStatus
 	}{
 		"target.import.default":           {aiclient.CapabilityChat, aiclient.ProfileStatusActive},
-		"practice.first_question.default": {aiclient.CapabilityChat, aiclient.ProfileStatusActive},
-		"practice.followup.default":       {aiclient.CapabilityChat, aiclient.ProfileStatusActive},
-		"practice.turn_observe.default":   {aiclient.CapabilityChat, aiclient.ProfileStatusActive},
+		"practice.chat.default":           {aiclient.CapabilityChat, aiclient.ProfileStatusActive},
 		"report.generate.default":         {aiclient.CapabilityChat, aiclient.ProfileStatusActive},
-		"report.assessment.default":       {aiclient.CapabilityChat, aiclient.ProfileStatusActive},
 		"resume.parse.default":            {aiclient.CapabilityChat, aiclient.ProfileStatusActive},
 		"resume.tailor.default":           {aiclient.CapabilityChat, aiclient.ProfileStatusActive},
 		"target.intel.default":            {aiclient.CapabilityChat, aiclient.ProfileStatusDisabled},
@@ -63,13 +60,10 @@ func TestTrackedCatalogKeepsManualUATFullFunnelProfilesWithRealProviderBudget(t 
 	defer loader.Close()
 
 	requiredTimeoutMs := map[string]int{
-		"resume.parse.default":            30000,
-		"target.import.default":           30000,
-		"practice.first_question.default": 30000,
-		"practice.followup.default":       30000,
-		"practice.turn_observe.default":   20000,
-		"report.assessment.default":       30000,
-		"report.generate.default":         60000,
+		"resume.parse.default":    30000,
+		"target.import.default":   30000,
+		"practice.chat.default":   30000,
+		"report.generate.default": 60000,
 	}
 	for name, minTimeout := range requiredTimeoutMs {
 		t.Run(name, func(t *testing.T) {

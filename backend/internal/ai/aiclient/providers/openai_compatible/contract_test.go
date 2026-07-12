@@ -28,7 +28,7 @@ const (
 
 func chatProfile(timeoutMs int) *aiclient.ModelProfile {
 	return &aiclient.ModelProfile{
-		Name:       "practice.followup.default",
+		Name:       "practice.chat.default",
 		Capability: aiclient.CapabilityChat,
 		Status:     aiclient.ProfileStatusActive,
 		Default: aiclient.ProviderConfig{
@@ -36,7 +36,7 @@ func chatProfile(timeoutMs int) *aiclient.ModelProfile {
 			Model:       chatModelID,
 		},
 		TimeoutMs: timeoutMs,
-		Route:     "practice.followup",
+		Route:     "practice.session.chat",
 		Version:   "1.0.0",
 	}
 }
@@ -63,7 +63,7 @@ func samplePayload() aiclient.CompletePayload {
 			{Role: "user", Content: "Tell me about a project."},
 		},
 		Metadata: aiclient.CallMetadata{
-			FeatureKey:    "practice.followup",
+			FeatureKey:    "practice.session.chat",
 			PromptVersion: "p1",
 			RubricVersion: "r1",
 			Language:      "en",
@@ -480,7 +480,7 @@ func TestComplete_FallbackHeadersPopulateMeta(t *testing.T) {
 	srv.SetChatBehavior(mockserver.Behavior{
 		FallbackFrom: "primary/chat",
 		FallbackTo:   "fallback/chat",
-		Route:        "practice.followup",
+		Route:        "practice.session.chat",
 	})
 	defer srv.Close()
 	a := newAdapter(t, srv)
@@ -492,7 +492,7 @@ func TestComplete_FallbackHeadersPopulateMeta(t *testing.T) {
 	if len(meta.FallbackChain) != 2 || meta.FallbackChain[0] != "primary/chat" || meta.FallbackChain[1] != "fallback/chat" {
 		t.Fatalf("fallback chain not populated: %+v", meta.FallbackChain)
 	}
-	if meta.Route != "practice.followup" {
+	if meta.Route != "practice.session.chat" {
 		t.Fatalf("route not populated: %q", meta.Route)
 	}
 }
@@ -522,7 +522,7 @@ func TestComplete_NoFallbackHeadersUsesProfileRoute(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Complete: %v", err)
 	}
-	if meta.Route != "practice.followup" {
+	if meta.Route != "practice.session.chat" {
 		t.Fatalf("expected fallback route from profile, got %q", meta.Route)
 	}
 	if len(meta.FallbackChain) != 0 {

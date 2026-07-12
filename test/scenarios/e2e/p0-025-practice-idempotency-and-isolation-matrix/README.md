@@ -2,21 +2,21 @@
 
 > **场景 ID**: E2E.P0.025
 > **执行方式**: automated
-> **隔离级别**: in-process (Go HTTP tests)
+> **隔离级别**: in-process (focused handler/domain/store tests)
 > **parallel-safe**: No
 > **状态**: Ready
 
 ## 1 Given
 
-用户 A 拥有两个 ready baseline plan；用户 B 拥有一个独立 ready baseline plan。两名用户都已登录，并故意复用一组相同 `Idempotency-Key`。
+一个 running session 已保存 opening assistant message；用户 A 发送一条带稳定 `clientMessageId` 的消息，用户 B 尝试访问同一 session。
 
 ## 2 When
 
-场景依次触发：同 user + 同 key + 同 fingerprint replay；同 user + 同 key + 不同 fingerprint mismatch；用户 B 同 key 独立 start；同 user + 不同 key + 同 plan 第二次 start；用户 B GET 用户 A 的 plan / session。
+场景依次触发：完整 message pair 精确 replay；AI 首次失败后同 `clientMessageId` 重试 pending user message；同 ID 不同正文 mismatch；跨用户 session 访问。
 
 ## 3 Then
 
-replay 返回首次 session 且不重复 outbox；mismatch 返回 `409 PRACTICE_SESSION_CONFLICT` 且不泄露首次 session；用户 B 同 key 独立成功；同 plan 多 key 返回 `409 PRACTICE_SESSION_CONFLICT`；跨用户 GET plan/session 分别返回 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND`。
+完整 replay 不重复调用 AI；pending 重试复用原 user message；mismatch 返回 `409 PRACTICE_SESSION_CONFLICT`；跨用户访问返回 `404 PRACTICE_SESSION_NOT_FOUND`。
 
 ## 4 执行
 
@@ -29,4 +29,4 @@ replay 返回首次 session 且不重复 outbox；mismatch 返回 `409 PRACTICE_
 
 ## 5 污染控制
 
-当前脚本使用 `cmd/api` HTTP 场景测试与 in-process store snapshot，覆盖 idempotency replay / mismatch / cross-user namespace / same-plan active session conflict / cross-user GET 404。`cleanup.sh` 只清理 setup marker，保留 `.test-output/e2e/p0-025-practice-idempotency-and-isolation-matrix/trigger.log` 与 `result.json` 作为 BDD evidence。
+当前脚本组合实际 Handler、domain service 与 SQL repository focused tests，并显式拒绝 `no tests to run` 假阳性。`cleanup.sh` 只清理 setup marker，保留 `.test-output/e2e/p0-025-practice-idempotency-and-isolation-matrix/trigger.log` 与 `result.json` 作为 BDD evidence。

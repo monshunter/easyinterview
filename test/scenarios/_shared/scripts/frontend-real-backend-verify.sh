@@ -3,7 +3,7 @@ set -euo pipefail
 
 LOG_FILE="${1:?log file required}"
 SCENARIO_ID="${2:-frontend-real-backend}"
-OWNER_TEST="${3:-frontendOwners.realApiMode.test.ts}"
+OWNER_TEST="${3:-clientFactory.test.ts}"
 
 grep -Fq 'VITE_EI_API_MODE=real' "$LOG_FILE" || {
   echo "$SCENARIO_ID: frontend real-backend mode marker missing" >&2

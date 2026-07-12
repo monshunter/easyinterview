@@ -287,7 +287,7 @@ describe("frontend-report-dashboard/001 Phase 9 direct-start evidence", () => {
 });
 
 describe("frontend-report-dashboard/001 Phase 10 P0.056 evidence", () => {
-  it("keeps P0.056 claims within its five focused owner test files", () => {
+  it("keeps P0.056 claims within its four focused owner test files", () => {
     const scenarioRoot =
       "test/scenarios/e2e/p0-056-generating-to-report-happy-path";
     const readScenario = (relativePath: string) =>
@@ -319,15 +319,14 @@ describe("frontend-report-dashboard/001 Phase 10 P0.056 evidence", () => {
     ]) {
       expect(currentClaims).not.toMatch(unsupportedClaim);
     }
-    expect(readme).toContain("five focused owner test files");
+    expect(readme).toContain("four focused owner test files");
     expect(readme).toContain("not a single browser or live-backend journey");
 
     const focusedFiles = [
       "src/app/screens/report/__tests__/preflight.test.ts",
       "src/app/screens/generating/__tests__/useReportGenerationPoll.test.tsx",
       "src/app/screens/generating/__tests__/GeneratingScreen.test.tsx",
-      "src/app/screens/report/__tests__/ReportScreen.test.tsx",
-      "src/app/screens/report/__tests__/DetailSurface.test.tsx",
+      "src/app/screens/report/__tests__/ConversationReport.test.tsx",
     ];
     for (const path of focusedFiles) {
       expect(trigger).toContain(path);
@@ -376,7 +375,7 @@ describe("frontend-report-dashboard/001 Phase 11 P0.058 evidence", () => {
       "src/app/screens/report/__tests__/ReportFailureState.test.tsx",
       "src/app/screens/report/__tests__/ReportMissingSessionState.test.tsx",
       "src/app/screens/report/__tests__/useFeedbackReport.test.tsx",
-      "src/app/screens/report/__tests__/ReportScreen.test.tsx",
+      "src/app/screens/report/__tests__/ConversationReport.test.tsx",
       "src/app/screens/generating/__tests__/useReportGenerationPoll.test.tsx",
     ];
     for (const path of focusedFiles) {

@@ -15,10 +15,6 @@
       "ready",
       "failed"
     ],
-    "PracticeMode": [
-      "assisted",
-      "strict"
-    ],
     "PracticeGoal": [
       "baseline",
       "retry_current_round",
@@ -61,11 +57,6 @@
       "high",
       "medium",
       "low"
-    ],
-    "QuestionReviewStatus": [
-      "open",
-      "queued_for_retry",
-      "resolved"
     ],
     "PrivacyRequestType": [
       "export",

@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract Checklist
 
-> **版本**: 1.36
+> **版本**: 1.37
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联计划**: [plan](./plan.md)
 
@@ -14,7 +14,7 @@
 
 ## Phase 1: Workspace shell and InterviewContext
 
-- [x] 1.1 `InterviewContextProvider` carries `targetJobId / jdId / resumeId / roundId / planId / practiceMode / practiceGoal / hintUsed / hintCount` across owner routes（验证：`InterviewContext.test.tsx`, `App.test.tsx`）
+- [x] 1.1 `InterviewContextProvider` carries stable target/resume/round/plan/session IDs and `practiceGoal` across owner routes; mode/modality/hint fields are stripped（验证：`InterviewContext.test.tsx`, `App.test.tsx`）
 - [x] 1.2 `workspace` route renders `WorkspaceScreen` instead of the route fallback shell; non-owner routes keep their own owners（验证：`App.test.tsx`）
 - [x] 1.3 `workspace.*` zh/en messages and DOM anchors cover the pure plan-list eyebrow, title, cards, mini round rail, empty state and current actions（验证：`WorkspaceScreen.test.tsx`）
 - [x] 1.4 BDD-Gate: `E2E.P0.018` covers workspace default render shell（验证：scenario trigger/verify）

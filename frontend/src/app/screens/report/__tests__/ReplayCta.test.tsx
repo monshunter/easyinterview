@@ -44,16 +44,10 @@ function makeReport(): FeedbackReport {
       { dimension: "technical_depth", evidence: "missing metric", confidence: "medium" },
     ],
     nextActions: [{ type: "retry_current_round", label: "rerun" }],
-    questionAssessments: [
-      {
-        turnId: "turn-1",
-        questionIntent: "design.api.versioning",
-        dimensionResults: {},
-        reviewStatus: "queued_for_retry",
-        includedInRetryPlan: true,
-      },
+    dimensionAssessments: [
+      { dimension: "technical_depth", status: "needs_work", confidence: "medium" },
     ],
-    retryFocusTurnIds: ["turn-1", "turn-3"],
+    retryFocusCompetencyCodes: ["technical_depth"],
     provenance: {
       promptVersion: "feedback_report.v3",
       rubricVersion: "feedback_report.rubric.v2",
@@ -160,11 +154,6 @@ const ROUTE_BASE: Record<string, string> = {
   roundId: "round-tech-1",
   planId: "plan-1",
   jdId: "jd-1",
-  mode: "text",
-  modality: "text",
-  practiceMode: "strict",
-  hintUsed: "false",
-  hintCount: "0",
 };
 
 const Harness: FC<{
@@ -269,7 +258,7 @@ describe("Replay payload integrity", () => {
     });
     expect(payload).toMatchObject({
       sourceSessionId: SESSION_ID,
-      replayItems: "turn-1,turn-3",
+      focusCompetencyCodes: "technical_depth",
       evidenceGaps: "technical_depth",
       planId: "plan-1",
       targetJobId: TARGET_JOB_ID,
@@ -277,9 +266,6 @@ describe("Replay payload integrity", () => {
       resumeId: RESUME_VERSION_ID,
       sourceReportId: REPORT_ID,
       roundId: "round-tech-1",
-      mode: "text",
-      modality: "text",
-      practiceMode: "strict",
       practiceGoal: "retry_current_round",
     });
     for (const value of Object.values(payload)) {

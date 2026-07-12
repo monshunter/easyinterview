@@ -59,7 +59,7 @@ describe("E2E.P0.090 hash routing + out-of-scope route negative regression", () 
     expect(screen.getByTestId("workspace-plan-list")).toBeInTheDocument();
   });
 
-  it("`#route=practice&mode=phone&modality=phone&sessionId=...` rewrites to canonical /practice with phone surface and chrome hidden", () => {
+  it("legacy phone hash values are dropped and voice stays disabled", () => {
     window.history.replaceState(
       null,
       "",
@@ -67,10 +67,11 @@ describe("E2E.P0.090 hash routing + out-of-scope route negative regression", () 
     );
     render(<App />);
     expect(window.location.pathname).toBe("/practice");
-    expect(window.location.search).toContain("mode=phone");
-    expect(window.location.search).toContain("modality=phone");
+    expect(window.location.search).not.toContain("mode=phone");
+    expect(window.location.search).not.toContain("modality=phone");
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
-    expect(screen.getByTestId("practice-phone-waveform")).toBeInTheDocument();
+    expect(screen.getByTestId("practice-conversation")).toBeInTheDocument();
+    expect(screen.getByTestId("practice-topbar-phone-toggle")).toBeDisabled();
   });
 
   it("out-of-scope voice mode hash values are dropped without mounting phone surface", () => {

@@ -13,6 +13,6 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/report/__tests__/ReportFailureState.test.tsx \
     src/app/screens/report/__tests__/ReportMissingSessionState.test.tsx \
     src/app/screens/report/__tests__/useFeedbackReport.test.tsx \
-    src/app/screens/report/__tests__/ReportScreen.test.tsx \
+    src/app/screens/report/__tests__/ConversationReport.test.tsx \
     src/app/screens/generating/__tests__/useReportGenerationPoll.test.tsx
 ) | tee "$OUTPUT_DIR/trigger.log"

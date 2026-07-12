@@ -10,7 +10,7 @@
 #   error codes        → UPPER_SNAKE_CASE (TS const map key+value, Go const)
 #   JSON fields        → camelCase
 #   Go type names      → PascalCase
-#   Go const naming    → <TypeName><Value>, e.g. PracticeModeAssisted
+#   Go const naming    → <TypeName><Value>, e.g. PracticeGoalBaseline
 #
 # Counting note: the enum catalogue uses 15 source sections (5.1..5.11,
 # 5.13..5.16). PrivacyRequest has parallel field domains, so the catalogue

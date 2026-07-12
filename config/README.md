@@ -34,14 +34,13 @@ fail-fast 并打印缺失 key 名（spec C-2）。
 | `test.yaml` | test 环境 override；本地测试 AI raw output debug 默认开启，secret 字段仍为空 |
 | `staging.yaml` | staging 环境 override；`featureFlag.source=posthog` + `posthogSelfHosted=true` |
 | `prod.yaml` | prod 环境 override；同 staging，但生产差异在此处沉淀 |
-| `feature-flags.yaml` | `FileFlagProvider` 本地真理源；6 项 P0 baseline flag；显式标 `public: true|false` |
+| `feature-flags.yaml` | `FileFlagProvider` 本地真理源；4 项当前 baseline flag；显式标 `public: true|false` |
 | `ai-providers.yaml` | A3 Provider Registry；只保存 provider ref、protocol、capabilities 与 secret env ref，不保存 secret 明文 |
 | `ai-profiles.yaml` | A3 Model Profile catalog；顶层 `profiles[]` 使用 `capability` / `provider_ref` / `status`，不可执行能力必须写 `unsupported_reason` |
 
-当前 P0 baseline flag 固定为 `practice_hint_enabled`、
-`report_evidence_v2_enabled`、`report_retry_plan_enabled`、
-`readiness_signals_enabled`、`ai_fallback_model_enabled`、
-`practice_assistance_mode_enabled`。`runtime-config` 仅按此清单投影公开
+当前 P0 baseline flag 固定为 `report_evidence_v2_enabled`、
+`report_retry_plan_enabled`、`readiness_signals_enabled`、
+`ai_fallback_model_enabled`。`runtime-config` 仅按此清单投影公开
 flag；非当前错题本、成长看板与双轨 mock session flag 已随 product-scope v1.2
 移除，不再作为配置能力保留。
 

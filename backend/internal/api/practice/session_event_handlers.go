@@ -12,7 +12,7 @@ import (
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
 
-func (h *Handler) AppendSessionEvent(w http.ResponseWriter, r *http.Request, sessionID string) {
+func (h *Handler) SendPracticeMessage(w http.ResponseWriter, r *http.Request, sessionID string) {
 	if h == nil || h.service == nil {
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "practice service is not configured", nil)
 		return
@@ -22,39 +22,24 @@ func (h *Handler) AppendSessionEvent(w http.ResponseWriter, r *http.Request, ses
 		writeAPIError(w, http.StatusUnauthorized, sharederrors.CodeAuthUnauthorized, "authentication required", nil)
 		return
 	}
-	if strings.TrimSpace(r.Header.Get(idempotency.HeaderName)) != "" {
-		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "Idempotency-Key is not accepted for appendSessionEvent", map[string]any{
-			"policy": "use_client_event_id",
-		})
-		return
-	}
-	var body api.PracticeSessionEventRequest
+	var body api.SendPracticeMessageRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "request body is malformed", nil)
 		return
 	}
-	occurredAt, missing, err := parseRequiredRFC3339(body.OccurredAt)
-	if missing {
-		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "occurredAt is required", map[string]any{"field": "occurredAt"})
-		return
-	}
-	if err != nil {
-		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "occurredAt must be RFC3339", map[string]any{"field": "occurredAt"})
-		return
-	}
-	result, err := h.service.AppendSessionEvent(r.Context(), domain.AppendSessionEventRequest{
-		UserID:        userID,
-		SessionID:     sessionID,
-		ClientEventID: body.ClientEventId,
-		Kind:          body.Kind,
-		OccurredAt:    occurredAt,
-		Payload:       body.Payload,
+	result, err := h.service.SendPracticeMessage(r.Context(), domain.SendPracticeMessageRequest{
+		UserID: userID, SessionID: sessionID, ClientMessageID: body.ClientMessageId, Text: body.Text,
 	})
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, toAPISessionEventResult(result))
+	writeJSON(w, http.StatusOK, api.SendPracticeMessageResponse{
+		Acknowledged:     result.Acknowledged,
+		UserMessage:      toAPIPracticeMessage(result.UserMessage),
+		AssistantMessage: toAPIPracticeMessage(result.AssistantMessage),
+		Session:          toAPIPracticeSession(result.Session),
+	})
 }
 
 func (h *Handler) CompletePracticeSession(w http.ResponseWriter, r *http.Request, sessionID string) {
@@ -82,9 +67,7 @@ func (h *Handler) CompletePracticeSession(w http.ResponseWriter, r *http.Request
 		return
 	}
 	result, err := h.service.CompletePracticeSession(r.Context(), domain.CompletePracticeSessionRequest{
-		UserID:            userID,
-		SessionID:         sessionID,
-		ClientCompletedAt: completedAt,
+		UserID: userID, SessionID: sessionID, ClientCompletedAt: completedAt,
 	})
 	if err != nil {
 		writeServiceError(w, err)
@@ -94,61 +77,14 @@ func (h *Handler) CompletePracticeSession(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusAccepted, toAPIReportWithJob(result))
 }
 
-func toAPISessionEventResult(result domain.AppendSessionEventResult) api.SessionEventResult {
-	return api.SessionEventResult{
-		Acknowledged:    result.Acknowledged,
-		Session:         toAPIPracticeSession(result.Session),
-		AssistantAction: toAPIAssistantAction(result.AssistantAction),
-	}
-}
-
-func toAPIAssistantAction(action domain.AssistantActionRecord) api.AssistantAction {
-	var turnID *string
-	if strings.TrimSpace(action.TurnID) != "" {
-		value := strings.TrimSpace(action.TurnID)
-		turnID = &value
-	}
-	var questionText *string
-	if strings.TrimSpace(action.QuestionText) != "" {
-		value := strings.TrimSpace(action.QuestionText)
-		questionText = &value
-	}
-	var hint *string
-	if strings.TrimSpace(action.Hint) != "" {
-		value := strings.TrimSpace(action.Hint)
-		hint = &value
-	}
-	return api.AssistantAction{
-		Type:          action.Type,
-		TurnId:        turnID,
-		QuestionText:  questionText,
-		Hint:          hint,
-		SessionStatus: action.SessionStatus,
-		Provenance: api.GenerationProvenance{
-			PromptVersion:     action.Provenance.PromptVersion,
-			RubricVersion:     action.Provenance.RubricVersion,
-			ModelId:           action.Provenance.ModelID,
-			Language:          action.Provenance.Language,
-			FeatureFlag:       action.Provenance.FeatureFlag,
-			DataSourceVersion: action.Provenance.DataSourceVersion,
-		},
-	}
-}
-
 func toAPIReportWithJob(result domain.CompleteSessionResult) api.ReportWithJob {
-	return api.ReportWithJob{
-		ReportId: result.ReportID,
-		Job: api.Job{
-			Id:           result.Job.ID,
-			JobType:      result.Job.JobType,
-			ResourceType: result.Job.ResourceType,
-			ResourceId:   result.Job.ResourceID,
-			Status:       result.Job.Status,
-			ErrorCode:    nilAPIErrorCode(result.Job.ErrorCode),
-			CreatedAt:    result.Job.CreatedAt.UTC().Format(timeFormatRFC3339),
-			UpdatedAt:    result.Job.UpdatedAt.UTC().Format(timeFormatRFC3339),
-		},
-	}
+	return api.ReportWithJob{ReportId: result.ReportID, Job: api.Job{
+		Id: result.Job.ID, JobType: result.Job.JobType, ResourceType: result.Job.ResourceType,
+		ResourceId: result.Job.ResourceID, Status: result.Job.Status,
+		ErrorCode: nilAPIErrorCode(result.Job.ErrorCode),
+		CreatedAt: result.Job.CreatedAt.UTC().Format(timeFormatRFC3339),
+		UpdatedAt: result.Job.UpdatedAt.UTC().Format(timeFormatRFC3339),
+	}}
 }
 
 func nilAPIErrorCode(code string) *api.ApiErrorCode {
@@ -165,8 +101,5 @@ func parseRequiredRFC3339(raw string) (time.Time, bool, error) {
 		return time.Time{}, true, nil
 	}
 	parsed, err := time.Parse(time.RFC3339, raw)
-	if err != nil {
-		return time.Time{}, false, err
-	}
-	return parsed, false, nil
+	return parsed, false, err
 }

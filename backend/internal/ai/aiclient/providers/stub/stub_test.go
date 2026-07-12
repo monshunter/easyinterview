@@ -13,7 +13,7 @@ import (
 
 func chatProfile() *aiclient.ModelProfile {
 	return &aiclient.ModelProfile{
-		Name:       "practice.followup.default",
+		Name:       "practice.chat.default",
 		Capability: aiclient.CapabilityChat,
 		Default: aiclient.ProviderConfig{
 			ProviderRef: stub.Name,
@@ -30,7 +30,7 @@ func chatPayload() aiclient.CompletePayload {
 			{Role: "user", Content: "deterministic input"},
 		},
 		Metadata: aiclient.CallMetadata{
-			FeatureKey:    "practice.followup",
+			FeatureKey:    "practice.session.chat",
 			PromptVersion: "p1",
 			RubricVersion: "r1",
 			Language:      "en",

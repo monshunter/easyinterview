@@ -18,7 +18,7 @@ import (
 func TestLoaderConcurrentReadAndReload(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "ai-profiles.yaml")
-	const profileName = "practice.followup.default"
+	const profileName = "practice.chat.default"
 	writeYAML := func(version string) {
 		body := fmt.Sprintf(`profiles:
   - name: %s

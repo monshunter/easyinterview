@@ -8,7 +8,7 @@ export interface PracticeSessionLostStateProps {
 
 /**
  * Source-level mirror of the spec §4 缺 session/plan 兜底 path. Rendered when
- * `getPracticeSession` / `appendSessionEvent` / `completePracticeSession`
+ * `getPracticeSession` / `sendPracticeMessage` / `completePracticeSession`
  * return 404, or when the route lacks a sessionId.
  */
 export const PracticeSessionLostState: FC<PracticeSessionLostStateProps> = ({

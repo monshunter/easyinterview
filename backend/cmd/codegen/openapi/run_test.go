@@ -115,7 +115,7 @@ func TestRun_DriftPropagatesFromConventions(t *testing.T) {
 	// Mutate the conventions struct (one of the B1 enums) and verify the
 	// next sync rewrites openapi.yaml.
 	for i := range conv.Enums {
-		if conv.Enums[i].Name == "QuestionReviewStatus" {
+		if conv.Enums[i].Name == "PracticeGoal" {
 			conv.Enums[i].Values = append(conv.Enums[i].Values, "x_test_drift_value")
 			break
 		}
@@ -125,7 +125,7 @@ func TestRun_DriftPropagatesFromConventions(t *testing.T) {
 	}
 	drifted, _ := os.ReadFile(dst)
 	if string(stable) == string(drifted) {
-		t.Fatal("expected drift after mutating QuestionReviewStatus values")
+		t.Fatal("expected drift after mutating PracticeGoal values")
 	}
 }
 
@@ -178,7 +178,7 @@ func TestRun_ApiErrorInnerObjectAndResponseEnvelope(t *testing.T) {
 	mustContain(t, tsClient, "if (!response.ok && !okStatuses.includes(response.status))")
 	mustContain(t, tsClient, "const text = await response.text()")
 	mustContain(t, tsClient, "if (response.status === 204 || text.trim() === \"\")")
-	mustContain(t, tsClient, "async createPracticeVoiceTurn(sessionId: string, body: Types.CreatePracticeVoiceTurnRequest, opts?: RequestOptions): Promise<Types.PracticeVoiceTurnResult>")
+	mustContain(t, tsClient, "async createPracticeVoiceTurn(sessionId: string, body: Types.CreatePracticeVoiceTurnRequest, opts?: RequestOptions): Promise<unknown>")
 
 	goServer := readFile(t, filepath.Join(tmp, "backend/internal/api/generated/server.gen.go"))
 	mustContain(t, goServer, "// 37-row table in `docs/spec/openapi-v1-contract/spec.md` §3.1.1.")

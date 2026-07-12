@@ -16,7 +16,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [004-report-derived-practice-plans](./004-report-derived-practice-plans/plan.md) | [plan](./004-report-derived-practice-plans/plan.md) / [checklist](./004-report-derived-practice-plans/checklist.md) / [context](./004-report-derived-practice-plans/context.yaml) / [test-plan](./004-report-derived-practice-plans/test-plan.md) / [test-checklist](./004-report-derived-practice-plans/test-checklist.md) / [bdd-plan](./004-report-derived-practice-plans/bdd-plan.md) / [bdd-checklist](./004-report-derived-practice-plans/bdd-checklist.md) | 1.2 | completed | 2026-07-06 |
+| [004-report-derived-practice-plans](./004-report-derived-practice-plans/plan.md) | [plan](./004-report-derived-practice-plans/plan.md) / [checklist](./004-report-derived-practice-plans/checklist.md) / [context](./004-report-derived-practice-plans/context.yaml) / [test-plan](./004-report-derived-practice-plans/test-plan.md) / [test-checklist](./004-report-derived-practice-plans/test-checklist.md) / [bdd-plan](./004-report-derived-practice-plans/bdd-plan.md) / [bdd-checklist](./004-report-derived-practice-plans/bdd-checklist.md) | 1.3 | completed | 2026-07-12 |
 
 ## 3 草案 / 阻塞（Draft / Blocked）
 

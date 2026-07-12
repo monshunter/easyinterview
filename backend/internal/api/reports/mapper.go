@@ -7,18 +7,18 @@ import (
 
 func toAPIFeedbackReport(report reviewdomain.FeedbackReportRecord) api.FeedbackReport {
 	out := api.FeedbackReport{
-		Id:                  report.ID,
-		SessionId:           report.SessionID,
-		TargetJobId:         report.TargetJobID,
-		Status:              report.Status,
-		PreparednessLevel:   report.PreparednessLevel,
-		Highlights:          make([]api.ReportHighlight, 0, len(report.Highlights)),
-		Issues:              make([]api.ReportIssue, 0, len(report.Issues)),
-		NextActions:         make([]api.ReportNextAction, 0, len(report.NextActions)),
-		QuestionAssessments: make([]api.QuestionAssessment, 0, len(report.QuestionAssessments)),
-		RetryFocusTurnIds:   append([]string(nil), report.RetryFocusTurnIDs...),
-		CreatedAt:           report.CreatedAt.UTC().Format(timeFormatRFC3339),
-		UpdatedAt:           report.UpdatedAt.UTC().Format(timeFormatRFC3339),
+		Id:                        report.ID,
+		SessionId:                 report.SessionID,
+		TargetJobId:               report.TargetJobID,
+		Status:                    report.Status,
+		PreparednessLevel:         report.PreparednessLevel,
+		Highlights:                make([]api.ReportHighlight, 0, len(report.Highlights)),
+		Issues:                    make([]api.ReportIssue, 0, len(report.Issues)),
+		NextActions:               make([]api.ReportNextAction, 0, len(report.NextActions)),
+		DimensionAssessments:      make([]api.DimensionAssessment, 0, len(report.DimensionAssessments)),
+		RetryFocusCompetencyCodes: append([]string(nil), report.RetryFocusCompetencyCodes...),
+		CreatedAt:                 report.CreatedAt.UTC().Format(timeFormatRFC3339),
+		UpdatedAt:                 report.UpdatedAt.UTC().Format(timeFormatRFC3339),
 	}
 	if report.ErrorCode != nil && *report.ErrorCode != "" {
 		code := api.ApiErrorCode(*report.ErrorCode)
@@ -51,22 +51,10 @@ func toAPIFeedbackReport(report reviewdomain.FeedbackReportRecord) api.FeedbackR
 	for _, action := range report.NextActions {
 		out.NextActions = append(out.NextActions, api.ReportNextAction{Type: action.Type, Label: action.Label})
 	}
-	for _, assessment := range report.QuestionAssessments {
-		out.QuestionAssessments = append(out.QuestionAssessments, toAPIQuestionAssessment(assessment))
+	for _, assessment := range report.DimensionAssessments {
+		out.DimensionAssessments = append(out.DimensionAssessments, api.DimensionAssessment{
+			Dimension: assessment.Dimension, Status: assessment.Status, Confidence: assessment.Confidence,
+		})
 	}
 	return out
-}
-
-func toAPIQuestionAssessment(assessment reviewdomain.QuestionAssessmentRecord) api.QuestionAssessment {
-	dimensions := make(map[string]any, len(assessment.DimensionResults))
-	for name, result := range assessment.DimensionResults {
-		dimensions[name] = api.DimensionResult{Status: result.Status, Confidence: result.Confidence}
-	}
-	return api.QuestionAssessment{
-		TurnId:              assessment.TurnID,
-		QuestionIntent:      assessment.QuestionIntent,
-		DimensionResults:    dimensions,
-		ReviewStatus:        assessment.ReviewStatus,
-		IncludedInRetryPlan: assessment.IncludedInRetryPlan,
-	}
 }

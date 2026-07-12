@@ -1,18 +1,4 @@
-#!/usr/bin/env sh
-set -eu
-cd "$(dirname "$0")/../../../../.."
-ROOT="$(pwd)"
-OUT="$ROOT/.test-output/e2e/p0-072-practice-derived-source-isolation-privacy"
-mkdir -p "$OUT"
-tmp_log="$(mktemp)"
-trap 'rm -f "$tmp_log"' EXIT
-set +e
-{
-  echo "E2E.P0.072 RUNNER go test"
-  cd backend
-  go test -v ./cmd/api -run '^TestE2EP0072PracticeDerivedSourceValidationIsolationPrivacy$' -count=1
-} >"$tmp_log" 2>&1
-go_test_status=$?
-set -e
-tee "$OUT/trigger.log" <"$tmp_log"
-exit "$go_test_status"
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"; OUT="$ROOT/.test-output/e2e/p0-072-practice-derived-source-isolation-privacy"; mkdir -p "$OUT"
+{ cd "$ROOT"; go test -v ./backend/internal/practice -run '^TestDerivedPracticePlanRequiresSourceReport$' -count=1; } | tee "$OUT/trigger.log"

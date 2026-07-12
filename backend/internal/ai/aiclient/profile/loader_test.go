@@ -12,7 +12,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/profile"
 )
 
-const sampleProfile = `name: practice.followup.default
+const sampleProfile = `name: practice.chat.default
 capability: chat
 status: active
 default:
@@ -27,7 +27,7 @@ max_tokens: 1024
 rate_limit:
   rps: 5
   tpm: 60000
-route: practice.followup
+route: practice.session.chat
 version: 1.0.0
 `
 
@@ -66,7 +66,7 @@ func TestLoaderResolvesParsedProfile(t *testing.T) {
 	}
 	defer loader.Close()
 
-	p, err := loader.Resolve("practice.followup.default")
+	p, err := loader.Resolve("practice.chat.default")
 	if err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestLoaderResolvesParsedProfile(t *testing.T) {
 	if p.TimeoutMs != 5000 || p.MaxTokens != 1024 {
 		t.Fatalf("limits not parsed: timeout=%d max=%d", p.TimeoutMs, p.MaxTokens)
 	}
-	if p.Route != "practice.followup" || p.Version != "1.0.0" {
+	if p.Route != "practice.session.chat" || p.Version != "1.0.0" {
 		t.Fatalf("route/version not parsed: %+v", p)
 	}
 }
@@ -226,7 +226,7 @@ func TestLoaderReloadPicksUpEdits(t *testing.T) {
 	}
 	defer loader.Close()
 
-	original, err := loader.Resolve("practice.followup.default")
+	original, err := loader.Resolve("practice.chat.default")
 	if err != nil {
 		t.Fatalf("first Resolve: %v", err)
 	}
@@ -234,7 +234,7 @@ func TestLoaderReloadPicksUpEdits(t *testing.T) {
 		t.Fatalf("expected timeout=5000, got %d", original.TimeoutMs)
 	}
 
-	updated := `name: practice.followup.default
+	updated := `name: practice.chat.default
 capability: chat
 status: active
 default:
@@ -251,7 +251,7 @@ version: 1.1.0
 		t.Fatalf("Reload: %v", err)
 	}
 
-	got, err := loader.Resolve("practice.followup.default")
+	got, err := loader.Resolve("practice.chat.default")
 	if err != nil {
 		t.Fatalf("post-reload Resolve: %v", err)
 	}
@@ -274,7 +274,7 @@ func TestLoaderReloadConvergesUnderHotReloadSLA(t *testing.T) {
 	}
 	defer loader.Close()
 
-	updated := `name: practice.followup.default
+	updated := `name: practice.chat.default
 capability: chat
 status: active
 default:
@@ -289,7 +289,7 @@ version: 1.2.0
 
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
-		got, err := loader.Resolve("practice.followup.default")
+		got, err := loader.Resolve("practice.chat.default")
 		if err == nil && got.Version == "1.2.0" {
 			return
 		}
@@ -334,7 +334,7 @@ version: 1
 		t.Fatal("expected reload warning before deadline")
 	}
 
-	got, err := loader.Resolve("practice.followup.default")
+	got, err := loader.Resolve("practice.chat.default")
 	if err != nil {
 		t.Fatalf("previous snapshot should remain resolvable: %v", err)
 	}
@@ -344,7 +344,7 @@ version: 1
 }
 
 func TestLoaderRejectsDuplicateNames(t *testing.T) {
-	dup := `name: practice.followup.default
+	dup := `name: practice.chat.default
 capability: chat
 status: active
 default:
@@ -376,7 +376,7 @@ version: 1
 	defer loader.Close()
 
 	got := loader.Names()
-	want := []string{"practice.followup.default", "review.report.default"}
+	want := []string{"practice.chat.default", "review.report.default"}
 	if len(got) != len(want) {
 		t.Fatalf("expected %v, got %v", want, got)
 	}
@@ -389,7 +389,7 @@ version: 1
 
 func TestLoaderRejectsOutOfScopeDirectoryPath(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "practice.followup.default.yaml"), []byte(sampleProfile), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "practice.chat.default.yaml"), []byte(sampleProfile), 0o600); err != nil {
 		t.Fatalf("WriteFile out-of-scope profile: %v", err)
 	}
 	_, err := profile.NewLoader(profile.Options{Path: dir, PollInterval: -1})

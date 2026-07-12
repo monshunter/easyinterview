@@ -65,47 +65,40 @@ func (s *Service) GenerateReport(ctx context.Context, job AsyncJob) ReportOutcom
 	if err != nil {
 		return ReportOutcome{ErrorCode: sharederrors.CodeAiOutputInvalid, ErrorMessage: err.Error(), Retryable: true}
 	}
-	content, err := s.generateReportContent(ctx, reportCtx.Session, reportCtx.Plan, reportCtx.Turns, reportCtx.Rubric)
+	content, err := s.generateReportContent(ctx, reportCtx.Session, reportCtx.Plan, reportCtx.Messages, reportCtx.Rubric)
 	if err != nil {
 		failure := classifyReportGenerationError(err)
 		_ = s.writeExplicitFailureTaskRun(ctx, reportCtx, aiclient.AITaskRunTaskReportGenerate, reportGenerateFeatureKey, failure)
 		_ = s.persistFailure(ctx, reportCtx, job, failure.Code, failure.Retryable)
 		return ReportOutcome{ErrorCode: failure.Code, ErrorMessage: err.Error(), Retryable: failure.Retryable}
 	}
-	assessments, err := s.assessQuestionsForAllTurns(ctx, reportCtx.Session, reportCtx.Plan, reportCtx.Turns, reportCtx.Rubric)
-	if err != nil {
-		failure := classifyReportGenerationError(err)
-		_ = s.writeExplicitFailureTaskRun(ctx, reportCtx, aiclient.AITaskRunTaskReportAssessment, reportQuestionAssessmentFeatureKey, failure)
-		_ = s.persistFailure(ctx, reportCtx, job, failure.Code, failure.Retryable)
-		return ReportOutcome{ErrorCode: failure.Code, ErrorMessage: err.Error(), Retryable: failure.Retryable}
-	}
-	readiness := computeReadinessTier(assessments, reportCtx.Rubric)
-	retryFocus := selectRetryFocusTurnIDs(assessments)
+	assessments := dimensionAssessments(content)
+	readiness := readinessFromContent(content)
+	retryFocus := append([]string(nil), content.RetryFocusCompetencyCodes...)
 	nextAction := decideNextAction(readiness, len(retryFocus))
 	if len(content.NextActions) == 0 {
 		content.NextActions = []ReportNextActionDraft{{Type: string(nextAction), Label: string(nextAction)}}
 	}
 	persist := ReportResultPersistence{
-		UserID:             reportCtx.Session.UserID,
-		ReportID:           reportCtx.Session.ReportID,
-		SessionID:          reportCtx.Session.SessionID,
-		TargetJobID:        reportCtx.Session.TargetJobID,
-		AsyncJobID:         job.JobID,
-		OutboxEventID:      s.newID(),
-		AuditEventID:       s.newID(),
-		PreparednessLevel:  readiness,
-		PromptVersion:      firstNonEmpty(reportCtx.ReportPromptVersion, "v0.1.0"),
-		RubricVersion:      firstNonEmpty(reportCtx.ReportRubricVersion, "v0.1.0"),
-		ModelID:            firstNonEmpty(reportCtx.ModelID, "model-profile:report.generate.default"),
-		Provider:           reportCtx.Provider,
-		Language:           fallbackLanguage(reportCtx.Session.Language),
-		FeatureFlag:        firstNonEmpty(reportCtx.FeatureFlag, "none"),
-		DataSourceVersion:  firstNonEmpty(reportCtx.DataSourceVersion, "registry.v1"),
-		RetryFocusTurnIDs:  retryFocus,
-		QuestionIssueCount: countQuestionIssues(assessments),
-		Now:                s.now(),
-		Content:            content,
-		Assessments:        assessments,
+		UserID:                    reportCtx.Session.UserID,
+		ReportID:                  reportCtx.Session.ReportID,
+		SessionID:                 reportCtx.Session.SessionID,
+		TargetJobID:               reportCtx.Session.TargetJobID,
+		AsyncJobID:                job.JobID,
+		OutboxEventID:             s.newID(),
+		AuditEventID:              s.newID(),
+		PreparednessLevel:         readiness,
+		PromptVersion:             firstNonEmpty(reportCtx.ReportPromptVersion, "v0.1.0"),
+		RubricVersion:             firstNonEmpty(reportCtx.ReportRubricVersion, "v0.1.0"),
+		ModelID:                   firstNonEmpty(reportCtx.ModelID, "model-profile:report.generate.default"),
+		Provider:                  reportCtx.Provider,
+		Language:                  fallbackLanguage(reportCtx.Session.Language),
+		FeatureFlag:               firstNonEmpty(reportCtx.FeatureFlag, "none"),
+		DataSourceVersion:         firstNonEmpty(reportCtx.DataSourceVersion, "registry.v1"),
+		RetryFocusCompetencyCodes: retryFocus,
+		Now:                       s.now(),
+		Content:                   content,
+		DimensionAssessments:      assessments,
 	}
 	if err := s.repository.PersistReportResult(ctx, persist); err != nil {
 		return ReportOutcome{ErrorCode: sharederrors.CodeAiOutputInvalid, ErrorMessage: err.Error(), Retryable: true}
@@ -132,7 +125,7 @@ func (s *Service) persistFailure(ctx context.Context, reportCtx ReportContext, j
 type ReportContext struct {
 	Session             SessionSnapshot
 	Plan                PracticePlanSnapshot
-	Turns               []TurnSnapshot
+	Messages            []MessageSnapshot
 	Rubric              registry.RubricSchema
 	ReportPromptVersion string
 	ReportRubricVersion string
@@ -143,26 +136,25 @@ type ReportContext struct {
 }
 
 type ReportResultPersistence struct {
-	UserID             string
-	ReportID           string
-	SessionID          string
-	TargetJobID        string
-	AsyncJobID         string
-	OutboxEventID      string
-	AuditEventID       string
-	PreparednessLevel  sharedtypes.ReadinessTier
-	PromptVersion      string
-	RubricVersion      string
-	ModelID            string
-	Provider           string
-	Language           string
-	FeatureFlag        string
-	DataSourceVersion  string
-	RetryFocusTurnIDs  []string
-	QuestionIssueCount int
-	Now                time.Time
-	Content            ReportContentDraft
-	Assessments        []QuestionAssessmentDraft
+	UserID                    string
+	ReportID                  string
+	SessionID                 string
+	TargetJobID               string
+	AsyncJobID                string
+	OutboxEventID             string
+	AuditEventID              string
+	PreparednessLevel         sharedtypes.ReadinessTier
+	PromptVersion             string
+	RubricVersion             string
+	ModelID                   string
+	Provider                  string
+	Language                  string
+	FeatureFlag               string
+	DataSourceVersion         string
+	RetryFocusCompetencyCodes []string
+	Now                       time.Time
+	Content                   ReportContentDraft
+	DimensionAssessments      []DimensionAssessmentDraft
 }
 
 type ReportFailurePersistence struct {
@@ -177,17 +169,6 @@ type ReportFailurePersistence struct {
 	Attempts      int32
 	MaxAttempts   int32
 	Now           time.Time
-}
-
-func countQuestionIssues(assessments []QuestionAssessmentDraft) int {
-	count := 0
-	for _, assessment := range assessments {
-		if assessment.OverallStatus == sharedtypes.DimensionStatusNeedsWork ||
-			assessment.ReviewStatus == sharedtypes.QuestionReviewStatusQueuedForRetry {
-			count++
-		}
-	}
-	return count
 }
 
 func firstNonEmpty(value, fallback string) string {

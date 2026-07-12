@@ -41,11 +41,8 @@ type Store interface {
 	GetPlan(ctx context.Context, userID, planID string) (PlanRecord, error)
 	ListSessions(ctx context.Context, in ListSessionsInput) (ListSessionsResult, error)
 	GetSession(ctx context.Context, userID, sessionID string) (SessionRecord, error)
-	ReserveSessionEvent(ctx context.Context, in SessionEventReservationInput) (SessionEventReservation, error)
-	FinalizeSessionEventError(ctx context.Context, in FinalizeSessionEventErrorInput) error
-	AppendSessionEvent(ctx context.Context, in AppendSessionEventStoreInput) (AppendSessionEventResult, error)
-	RecordPracticeVoiceTurn(ctx context.Context, in PracticeVoiceTurnStoreInput) (SessionRecord, error)
-	LoadCommittedVoiceContext(ctx context.Context, userID, sessionID string) (CommittedVoiceContext, error)
+	ReservePracticeMessage(ctx context.Context, in ReservePracticeMessageInput) (PracticeMessageReservation, error)
+	CommitPracticeMessage(ctx context.Context, in CommitPracticeMessageInput) (SendPracticeMessageResult, error)
 	CompleteSession(ctx context.Context, in CompleteSessionStoreInput) (CompleteSessionResult, error)
 	ReserveSessionStart(ctx context.Context, in StartSessionReservationInput) (SessionReservation, error)
 	CommitSessionStart(ctx context.Context, in CommitSessionStartInput) (SessionRecord, error)
@@ -92,12 +89,10 @@ type CreatePlanRequest struct {
 	ResumeID             string
 	SourceReportID       string
 	Goal                 sharedtypes.PracticeGoal
-	Mode                 sharedtypes.PracticeMode
 	InterviewerPersona   sharedtypes.InterviewerRole
 	Difficulty           string
 	Language             string
 	TimeBudgetMinutes    int32
-	QuestionBudget       int32
 	FocusCompetencyCodes []string
 }
 
@@ -109,12 +104,10 @@ type CreatePlanStoreInput struct {
 	ResumeID             string
 	SourceReportID       string
 	Goal                 sharedtypes.PracticeGoal
-	Mode                 sharedtypes.PracticeMode
 	InterviewerPersona   sharedtypes.InterviewerRole
 	Difficulty           string
 	Language             string
 	TimeBudgetMinutes    int32
-	QuestionBudget       int32
 	FocusCompetencyCodes []string
 	Now                  time.Time
 }
@@ -125,12 +118,10 @@ type PlanRecord struct {
 	SourceReportID     string
 	ResumeID           string
 	Goal               sharedtypes.PracticeGoal
-	Mode               sharedtypes.PracticeMode
 	InterviewerPersona sharedtypes.InterviewerRole
 	Difficulty         string
 	Language           string
 	TimeBudgetMinutes  int32
-	QuestionBudget     int32
 	Status             string
 	CreatedAt          time.Time
 }
@@ -178,9 +169,6 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 	if err := validateCreatePlanSources(in.Goal, sourceReportID); err != nil {
 		return PlanRecord{}, err
 	}
-	if !validPracticeMode(in.Mode) {
-		return PlanRecord{}, validationError("mode is invalid", map[string]any{"field": "mode"})
-	}
 	if !validInterviewerRole(in.InterviewerPersona) {
 		return PlanRecord{}, validationError("interviewerPersona is invalid", map[string]any{"field": "interviewerPersona"})
 	}
@@ -189,9 +177,6 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 	}
 	if strings.TrimSpace(in.Language) == "" {
 		return PlanRecord{}, validationError("language is required", map[string]any{"field": "language"})
-	}
-	if in.QuestionBudget < 1 {
-		return PlanRecord{}, validationError("questionBudget must be positive", map[string]any{"field": "questionBudget"})
 	}
 	if in.TimeBudgetMinutes < 1 {
 		return PlanRecord{}, validationError("timeBudgetMinutes must be positive", map[string]any{"field": "timeBudgetMinutes"})
@@ -206,12 +191,10 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 		ResumeID:             strings.TrimSpace(in.ResumeID),
 		SourceReportID:       sourceReportID,
 		Goal:                 in.Goal,
-		Mode:                 in.Mode,
 		InterviewerPersona:   in.InterviewerPersona,
 		Difficulty:           strings.TrimSpace(in.Difficulty),
 		Language:             strings.TrimSpace(in.Language),
 		TimeBudgetMinutes:    in.TimeBudgetMinutes,
-		QuestionBudget:       in.QuestionBudget,
 		FocusCompetencyCodes: append([]string(nil), in.FocusCompetencyCodes...),
 		Now:                  now,
 	})
@@ -326,15 +309,6 @@ func sessionNotFoundError() *ServiceError {
 
 func sessionConflictError() *ServiceError {
 	return &ServiceError{Code: sharederrors.CodePracticeSessionConflict, Message: "practice session is in conflicting state"}
-}
-
-func validPracticeMode(mode sharedtypes.PracticeMode) bool {
-	for _, allowed := range sharedtypes.AllPracticeModes {
-		if mode == allowed {
-			return true
-		}
-	}
-	return false
 }
 
 func validPracticeGoal(goal sharedtypes.PracticeGoal) bool {

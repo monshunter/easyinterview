@@ -78,7 +78,7 @@ async function expectNonEmptyScreenshot(page: import("@playwright/test").Page) {
 }
 
 test.describe("report dashboard parity", () => {
-  test("desktop renders header + context strip + 4 summary cards + detail surface inside viewport", async ({
+  test("desktop renders the conversation report surfaces inside viewport", async ({
     page,
   }) => {
     await mockReportApis(page);
@@ -88,7 +88,10 @@ test.describe("report dashboard parity", () => {
     await expect(page.locator("[data-testid='report-header']")).toBeVisible();
     await expect(page.locator("[data-testid='report-context-strip']")).toBeVisible();
     await expect(page.locator("[data-testid='report-summary-cards']")).toBeVisible();
-    await expect(page.locator("[data-testid='report-detail-surface']")).toBeVisible();
+    await expect(page.locator("[data-testid='report-dimensions']")).toBeVisible();
+    await expect(page.locator("[data-testid='report-highlights']")).toBeVisible();
+    await expect(page.locator("[data-testid='report-issues']")).toBeVisible();
+    await expect(page.locator("[data-testid='report-next-actions']")).toBeVisible();
 
     // App chrome / TopBar must remain visible on the report route.
     await expect(page.locator("[data-testid='app-shell-topbar']")).toBeVisible();

@@ -24,12 +24,7 @@ export interface InterviewContextState {
   sourceReportId?: string;
   roundId?: string;
   roundName?: string;
-  mode: string;
-  modality: string;
-  practiceMode: string;
   practiceGoal: string;
-  hintUsed: string;
-  hintCount: string;
   sessionId?: string;
 }
 
@@ -42,12 +37,7 @@ export const DEFAULT_INTERVIEW_CONTEXT: InterviewContextState = {
   sourceReportId: undefined,
   roundId: undefined,
   roundName: undefined,
-  mode: "text",
-  modality: "text",
-  practiceMode: "strict",
   practiceGoal: "baseline",
-  hintUsed: "false",
-  hintCount: "0",
   sessionId: undefined,
 };
 
@@ -60,7 +50,6 @@ export type InterviewContextAction =
       type: "MERGE_SESSION";
       session: { id: string; [key: string]: unknown };
     }
-  | { type: "INCREMENT_HINT_COUNT" }
   | { type: "CLEAR" };
 
 export function interviewContextReducer(
@@ -83,12 +72,7 @@ export function interviewContextReducer(
         sourceReportId: p.sourceReportId || state.sourceReportId,
         roundId: p.roundId || state.roundId,
         roundName: p.roundName || state.roundName,
-        mode: p.mode || state.mode,
-        modality: p.modality || state.modality,
-        practiceMode: p.practiceMode || state.practiceMode,
         practiceGoal: p.practiceGoal || state.practiceGoal,
-        hintUsed: p.hintUsed || state.hintUsed,
-        hintCount: p.hintCount || state.hintCount,
         sessionId: p.sessionId || state.sessionId,
       };
     }
@@ -97,15 +81,6 @@ export function interviewContextReducer(
         ...state,
         sessionId: action.session.id || state.sessionId,
       };
-    case "INCREMENT_HINT_COUNT": {
-      const parsed = Number(state.hintCount);
-      const next = Number.isFinite(parsed) ? parsed + 1 : 1;
-      return {
-        ...state,
-        hintUsed: "true",
-        hintCount: String(next),
-      };
-    }
     case "CLEAR":
       return { ...DEFAULT_INTERVIEW_CONTEXT };
   }

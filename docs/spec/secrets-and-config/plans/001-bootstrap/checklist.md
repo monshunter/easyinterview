@@ -1,8 +1,8 @@
 # Secrets and Config Bootstrap Checklist
 
-> **版本**: 1.15
+> **版本**: 1.16
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联计划**: [plan](./plan.md)
 
@@ -28,7 +28,7 @@
 - [x] 3.1 落地仓库根 `config/config.yaml`：覆盖 spec §3.1.2 canonical config schema；secret 字段留空字符串，禁止真实凭证；`auth.sessionCookieName` 固定 `ei_session`（与 ADR-Q1 §3 / spec D-8 一致），不允许任何 env key 覆盖；`async.queueWeights` 默认 `critical:6/default:3/low:1`
 - [x] 3.2 落地 `config/dev.yaml` / `config/staging.yaml` / `config/prod.yaml`：env override 文件不含任何 secret；`dev.yaml` 设 `log.level: debug` + `featureFlag.source: file`；`staging.yaml` / `prod.yaml` 设 `featureFlag.source: posthog` + `featureFlag.posthogSelfHosted: true`
 - [x] 3.3 落地仓库根 `.env.example`：覆盖 spec §3.1.1 全部 24 项 env key，secret 字段只写说明注释；每行注释标注 Owner subspec 与 prod required（yes/no/conditional），与 spec §3.1.1 表格一一对应；`async.queueWeights` 不进入 env 字典
-- [x] 3.4 落地 `config/feature-flags.yaml` current baseline：6 项 P0 flag 为 `practice_hint_enabled` / `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled` / `practice_assistance_mode_enabled`；显式标注 `public: true|false`；`ai_fallback_model_enabled` 必须 `public: false`；三项 out-of-scope key 仅作为负向测试输入
+- [x] 3.4 落地 `config/feature-flags.yaml` current baseline：4 项 P0 flag 为 `report_evidence_v2_enabled` / `report_retry_plan_enabled` / `readiness_signals_enabled` / `ai_fallback_model_enabled`；显式标注 `public: true|false`；`ai_fallback_model_enabled` 必须 `public: false`；三项 out-of-scope key 仅作为负向测试输入
 - [x] 3.5 落地 `config/README.md`：覆盖三层优先级（D-1）、5 个文件用途、新增 env key 4 步流程、`RedactedString` 使用示范、`runtime-config` allowlist 边界，包含 spec §3.1 / §4 cross-link
 - [x] 3.6 在 A1 已有的根 `.gitignore` 中追加独立段（注释 `# A4 secrets-and-config red lines`）：`*.secret.yaml` / `*.secret.json` / `config/local.*.yaml` / `.env` / `.env.local` / `config/feature-flags.local.yaml`
 
@@ -68,7 +68,7 @@
 
 - [x] 8.1 Red: 调整 runtime-config / feature flag tests 后，out-of-scope `mistake_book_export_enabled` / `growth_dashboard_v1_enabled` / `mock_session_dual_track_enabled` 进入 public runtime config 时必须失败
   - 2026-05-03: 更新 `TestBuildRuntimeConfigAllowlistAndOptOut` 后，`cd backend && go test ./internal/platform/config -run TestBuildRuntimeConfigAllowlistAndOptOut -count=1` exit 1，失败于三项 product-scope out-of-scope flag 仍透传到 public runtime config。
-- [x] 8.2 Green: 更新 `config/feature-flags.yaml` 与 tests，改为 `report_retry_plan_enabled` / `readiness_signals_enabled` / `practice_assistance_mode_enabled`
+- [x] 8.2 Green: 更新 `config/feature-flags.yaml` 与 tests，使用当前 report/readiness flag；2026-07-12 删除已经失去消费者的 practice hint/assistance flags
   - 2026-05-03: `config/feature-flags.yaml` baseline 替换为当前六项 P0 flag；`BuildRuntimeConfig` 改为正向 current-flag allowlist，三项 out-of-scope flag 即使由上游 snapshot 返回也不会进入 runtime config。
 - [x] 8.3 Verify: `make lint-config`、focused runtime-config tests 通过；repo 搜索确认实现侧无三项 out-of-scope feature flag key
   - 2026-05-03: `make lint-config` pass（gitleaks 本地未安装，按脚本第二层扫描策略提示并 exit 0）；`cd backend && go test ./internal/platform/config -run TestBuildRuntimeConfigAllowlistAndOptOut -count=1` pass；`cd backend && go test ./internal/platform/config ./internal/platform/featureflag -count=1` pass；`rg -n "mistake_book_export_enabled|growth_dashboard_v1_enabled|mock_session_dual_track_enabled" config backend/internal/platform backend/cmd/api frontend/src/lib/runtime-config scripts/lint/env_dict.py -g '!**/*_test.go'` 无实现侧命中。

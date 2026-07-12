@@ -45,12 +45,7 @@ const HANDOFF_PASSTHROUGH_KEYS = [
   "resumeId",
   "roundId",
   "roundName",
-  "mode",
-  "modality",
-  "practiceMode",
   "practiceGoal",
-  "hintUsed",
-  "hintCount",
 ] as const;
 
 /**

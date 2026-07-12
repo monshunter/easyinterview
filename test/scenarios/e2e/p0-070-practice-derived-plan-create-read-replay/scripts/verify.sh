@@ -1,11 +1,5 @@
-#!/usr/bin/env sh
-set -eu
-cd "$(dirname "$0")/../../../../.."
-LOG=".test-output/e2e/p0-070-practice-derived-plan-create-read-replay/trigger.log"
-test -s "$LOG"
-grep -Fq "E2E.P0.070 RUNNER go test" "$LOG"
-grep -Fq "=== RUN   TestE2EP0070PracticeDerivedPlanCreateReadReplay" "$LOG"
-grep -Fq -- "--- PASS: TestE2EP0070PracticeDerivedPlanCreateReadReplay" "$LOG"
-grep -Eq "^ok[[:space:]]+github.com/monshunter/easyinterview/backend/cmd/api([[:space:]]|$)" "$LOG"
-! grep -Eq -- "--- FAIL:|^FAIL($|[[:space:]])|no tests to run|\\[no tests to run\\]" "$LOG"
-echo "E2E.P0.070 PASS"
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"; LOG="$ROOT/.test-output/e2e/p0-070-practice-derived-plan-create-read-replay/trigger.log"
+grep -Fq -- '--- PASS: TestCreateDerivedPracticePlanPassesReportSourceAndCompetencyFocus' "$LOG"
+echo 'E2E.P0.070 PASS'

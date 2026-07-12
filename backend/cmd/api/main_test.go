@@ -46,7 +46,7 @@ func buildAuthTestAPIHandler(loader *config.Loader, flags featureflag.FeatureFla
 func TestBuildFlagsClientLoadsPostHogPublicAllowlist(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"featureFlags":{"practice_hint_enabled":true,"ai_fallback_model_enabled":true}}`))
+		_, _ = w.Write([]byte(`{"featureFlags":{"report_evidence_v2_enabled":true,"ai_fallback_model_enabled":true}}`))
 	}))
 	defer server.Close()
 
@@ -54,7 +54,7 @@ func TestBuildFlagsClientLoadsPostHogPublicAllowlist(t *testing.T) {
 	flagsPath := filepath.Join(dir, "feature-flags.yaml")
 	writeAPIFile(t, flagsPath, `
 flags:
-  practice_hint_enabled:
+  report_evidence_v2_enabled:
     enabled: false
     public: true
   ai_fallback_model_enabled:
@@ -86,7 +86,7 @@ featureFlag:
 		Flags:       client,
 		FlagContext: featureflag.FlagContext{AnonymousDistinctID: "anon-1", AppEnv: "prod"},
 	})
-	if _, ok := rc.FeatureFlags["practice_hint_enabled"]; !ok {
+	if _, ok := rc.FeatureFlags["report_evidence_v2_enabled"]; !ok {
 		t.Fatalf("public flag missing from runtime-config: %+v", rc.FeatureFlags)
 	}
 	if _, ok := rc.FeatureFlags["ai_fallback_model_enabled"]; ok {
@@ -439,7 +439,7 @@ runtime:
 		{http.MethodGet, "/api/v1/practice/sessions", ""},
 		{http.MethodPost, "/api/v1/practice/sessions", `{}`},
 		{http.MethodGet, "/api/v1/practice/sessions/018f2a40-0000-7000-9000-0000000000b1", ""},
-		{http.MethodPost, "/api/v1/practice/sessions/018f2a40-0000-7000-9000-0000000000b1/events", `{}`},
+		{http.MethodPost, "/api/v1/practice/sessions/018f2a40-0000-7000-9000-0000000000b1/messages", `{}`},
 		{http.MethodPost, "/api/v1/practice/sessions/018f2a40-0000-7000-9000-0000000000b1/complete", `{}`},
 		{http.MethodPost, "/api/v1/practice/sessions/018f2a40-0000-7000-9000-0000000000b1/voice-turns", `{}`},
 	}

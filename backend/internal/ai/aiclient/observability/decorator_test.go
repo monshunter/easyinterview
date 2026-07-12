@@ -83,8 +83,8 @@ func newTestStack(t *testing.T, extraOpts ...observability.Option) (
 		t.Fatalf("stub.New: %v", err)
 	}
 	resolver := staticResolver{
-		"practice.followup.default": {
-			Name:       "practice.followup.default",
+		"practice.chat.default": {
+			Name:       "practice.chat.default",
 			Capability: aiclient.CapabilityChat,
 			Status:     aiclient.ProfileStatusActive,
 			Default: aiclient.ProviderConfig{
@@ -167,14 +167,14 @@ func samplePayload() aiclient.CompletePayload {
 			{Role: "user", Content: "tell me about yourself."},
 		},
 		Metadata: aiclient.CallMetadata{
-			FeatureKey:        "practice.followup",
+			FeatureKey:        "practice.session.chat",
 			PromptVersion:     "p1",
 			RubricVersion:     "r1",
 			Language:          "en",
 			FeatureFlag:       "none",
 			DataSourceVersion: "registry.v1",
 			TaskRun: aiclient.AITaskRunContext{
-				Capability:   aiclient.AITaskRunTaskFollowupGenerate,
+				Capability:   aiclient.AITaskRunTaskPracticeChat,
 				ResourceType: aiclient.AITaskRunResourceTargetJob,
 				ResourceID:   "018f0d59-0f7a-7b58-9f2f-65cc4d8e8b1d",
 			},
@@ -194,7 +194,7 @@ func sampleTranscriptionInput() aiclient.TranscriptionInput {
 			PromptVersion: "stt-p1",
 			Language:      "en",
 			TaskRun: aiclient.AITaskRunContext{
-				Capability:   aiclient.AITaskRunTaskFollowupGenerate,
+				Capability:   aiclient.AITaskRunTaskPracticeChat,
 				ResourceType: aiclient.AITaskRunResourceTargetJob,
 				ResourceID:   "018f0d59-0f7a-7b58-9f2f-65cc4d8e8b1d",
 			},
@@ -214,7 +214,7 @@ func sampleSynthesisInput() aiclient.SynthesisInput {
 			PromptVersion: "tts-p1",
 			Language:      "en",
 			TaskRun: aiclient.AITaskRunContext{
-				Capability:   aiclient.AITaskRunTaskFollowupGenerate,
+				Capability:   aiclient.AITaskRunTaskPracticeChat,
 				ResourceType: aiclient.AITaskRunResourceTargetJob,
 				ResourceID:   "018f0d59-0f7a-7b58-9f2f-65cc4d8e8b1d",
 			},
@@ -233,7 +233,7 @@ func mustJSON(t *testing.T, v any) string {
 
 func TestAITaskRunRowFromMeta_RequiresFeatureKeyAndDefaultsProvenanceSentinels(t *testing.T) {
 	taskCtx := aiclient.AITaskRunContext{
-		Capability:   aiclient.AITaskRunTaskFollowupGenerate,
+		Capability:   aiclient.AITaskRunTaskPracticeChat,
 		ResourceType: aiclient.AITaskRunResourceTargetJob,
 		ResourceID:   "018f0d59-0f7a-7b58-9f2f-65cc4d8e8b1d",
 	}
@@ -251,12 +251,12 @@ func TestAITaskRunRowFromMeta_RequiresFeatureKeyAndDefaultsProvenanceSentinels(t
 		t.Fatalf("expected missing feature_key error, got %v", err)
 	}
 
-	meta.FeatureKey = " practice.followup "
+	meta.FeatureKey = " practice.session.chat "
 	row, err := observability.AITaskRunRowFromMeta(meta, taskCtx, aiclient.AuditMetadata{}, now, now, nil)
 	if err != nil {
 		t.Fatalf("AITaskRunRowFromMeta: %v", err)
 	}
-	if row.FeatureKey != "practice.followup" {
+	if row.FeatureKey != "practice.session.chat" {
 		t.Fatalf("expected trimmed feature_key, got %q", row.FeatureKey)
 	}
 	if row.FeatureFlag != "none" {
@@ -290,7 +290,7 @@ func TestDecorator_AllSevenMetricFamiliesRegistered(t *testing.T) {
 func TestDecorator_SuccessIncrementsRunsAndLogsCompleted(t *testing.T) {
 	wrap, registry, logger, runs, audit := newTestStack(t)
 
-	_, meta, err := wrap.Complete(context.Background(), "practice.followup.default", samplePayload())
+	_, meta, err := wrap.Complete(context.Background(), "practice.chat.default", samplePayload())
 	if err != nil {
 		t.Fatalf("Complete: %v", err)
 	}
@@ -298,7 +298,7 @@ func TestDecorator_SuccessIncrementsRunsAndLogsCompleted(t *testing.T) {
 		t.Fatalf("expected provider=%q, got %q", stub.Name, meta.Provider)
 	}
 
-	successLabels := []string{stub.Name, "stub", "practice.followup.default", "unknown", string(aiclient.CapabilityChat), "en", "success"}
+	successLabels := []string{stub.Name, "stub", "practice.chat.default", "unknown", string(aiclient.CapabilityChat), "en", "success"}
 	if got := registry.CounterValue(observability.MetricRunsTotal, successLabels...); got != 1 {
 		t.Errorf("ai_task_runs_total: expected 1, got %v", got)
 	}
@@ -324,7 +324,7 @@ func TestDecorator_SuccessIncrementsRunsAndLogsCompleted(t *testing.T) {
 		t.Fatalf("expected single ai.task.completed entry, got %+v", entries)
 	}
 	fields := entries[0].Fields
-	if fields.Provider != stub.Name || fields.ModelProfileName != "practice.followup.default" {
+	if fields.Provider != stub.Name || fields.ModelProfileName != "practice.chat.default" {
 		t.Errorf("log fields incomplete: %+v", fields)
 	}
 
@@ -332,14 +332,14 @@ func TestDecorator_SuccessIncrementsRunsAndLogsCompleted(t *testing.T) {
 	if len(rows) != 1 {
 		t.Fatalf("expected 1 ai_task_runs row, got %d", len(rows))
 	}
-	if rows[0].Provider != stub.Name || rows[0].ModelProfileName != "practice.followup.default" {
+	if rows[0].Provider != stub.Name || rows[0].ModelProfileName != "practice.chat.default" {
 		t.Errorf("ai_task_runs row missing fields: %+v", rows[0])
 	}
 	if rows[0].ID == "" {
 		t.Fatalf("ai_task_runs row missing id: %+v", rows[0])
 	}
-	if rows[0].Capability != aiclient.AITaskRunTaskFollowupGenerate {
-		t.Fatalf("expected B4 capability=%q, got %q", aiclient.AITaskRunTaskFollowupGenerate, rows[0].Capability)
+	if rows[0].Capability != aiclient.AITaskRunTaskPracticeChat {
+		t.Fatalf("expected B4 capability=%q, got %q", aiclient.AITaskRunTaskPracticeChat, rows[0].Capability)
 	}
 	if rows[0].ResourceType != aiclient.AITaskRunResourceTargetJob || rows[0].ResourceID == "" {
 		t.Fatalf("ai_task_runs row missing resource identity: %+v", rows[0])
@@ -359,8 +359,8 @@ func TestDecorator_SuccessIncrementsRunsAndLogsCompleted(t *testing.T) {
 	// Plan prompt-rubric-registry/001-baseline phase 4.8 cross-layer
 	// assertion: ai_task_runs row must carry the F3 prompt-rubric
 	// provenance triple plus the data source version typed column.
-	if rows[0].FeatureKey != "practice.followup" {
-		t.Errorf("ai_task_runs.feature_key: want practice.followup, got %q", rows[0].FeatureKey)
+	if rows[0].FeatureKey != "practice.session.chat" {
+		t.Errorf("ai_task_runs.feature_key: want practice.session.chat, got %q", rows[0].FeatureKey)
 	}
 	if rows[0].FeatureFlag != "none" {
 		t.Errorf("ai_task_runs.feature_flag: want 'none' default, got %q", rows[0].FeatureFlag)
@@ -371,7 +371,7 @@ func TestDecorator_SuccessIncrementsRunsAndLogsCompleted(t *testing.T) {
 	if rows[0].PromptVersion != "p1" || rows[0].RubricVersion != "r1" {
 		t.Errorf("ai_task_runs prompt/rubric version drift: %+v", rows[0])
 	}
-	if rows[0].ModelProfileName != "practice.followup.default" {
+	if rows[0].ModelProfileName != "practice.chat.default" {
 		t.Errorf("ai_task_runs.model_profile_name drift: %q", rows[0].ModelProfileName)
 	}
 
@@ -379,7 +379,7 @@ func TestDecorator_SuccessIncrementsRunsAndLogsCompleted(t *testing.T) {
 	if len(auditRows) != 1 || auditRows[0].Action != "ai.call" {
 		t.Fatalf("expected 1 audit row with action=ai.call, got %+v", auditRows)
 	}
-	if auditRows[0].Metadata.ProfileName != "practice.followup.default" {
+	if auditRows[0].Metadata.ProfileName != "practice.chat.default" {
 		t.Errorf("audit profile name mismatch: %q", auditRows[0].Metadata.ProfileName)
 	}
 	if auditRows[0].Metadata.PromptHash == "" || auditRows[0].Metadata.ResponseHash == "" {
@@ -428,8 +428,8 @@ func TestDecorator_AITaskRunWriterFailureReturned(t *testing.T) {
 		t.Fatalf("stub.New: %v", err)
 	}
 	resolver := staticResolver{
-		"practice.followup.default": {
-			Name:       "practice.followup.default",
+		"practice.chat.default": {
+			Name:       "practice.chat.default",
 			Capability: aiclient.CapabilityChat,
 			Status:     aiclient.ProfileStatusActive,
 			Default: aiclient.ProviderConfig{
@@ -460,7 +460,7 @@ func TestDecorator_AITaskRunWriterFailureReturned(t *testing.T) {
 		t.Fatalf("observability.New: %v", err)
 	}
 
-	_, _, err = wrap.Complete(context.Background(), "practice.followup.default", samplePayload())
+	_, _, err = wrap.Complete(context.Background(), "practice.chat.default", samplePayload())
 	if err == nil {
 		t.Fatalf("expected writer failure to be returned")
 	}
@@ -513,11 +513,11 @@ func TestDecorator_TranscribeRecordsSTTWithoutPlaintext(t *testing.T) {
 func TestDecorator_FailureIncrementsFailureLogsFailed(t *testing.T) {
 	wrap, registry, logger, _, _ := newTestStack(t)
 
-	_, _, err := wrap.Complete(context.Background(), "practice.followup.default", aiclient.CompletePayload{})
+	_, _, err := wrap.Complete(context.Background(), "practice.chat.default", aiclient.CompletePayload{})
 	if err == nil {
 		t.Fatalf("expected error for empty messages")
 	}
-	failureLabels := []string{stub.Name, "stub-chat-1", "practice.followup.default", "unknown", string(aiclient.CapabilityChat), "unknown", "failure"}
+	failureLabels := []string{stub.Name, "stub-chat-1", "practice.chat.default", "unknown", string(aiclient.CapabilityChat), "unknown", "failure"}
 	if got := registry.CounterValue(observability.MetricRunsTotal, failureLabels...); got != 1 {
 		t.Errorf("expected runs_total=1 on failure, got %v", got)
 	}
@@ -546,8 +546,8 @@ func TestDecorator_PreDispatchFailureUsesResolvedProfileLabels(t *testing.T) {
 		t.Fatalf("stub.New: %v", err)
 	}
 	resolver := staticResolver{
-		"practice.followup.default": {
-			Name:       "practice.followup.default",
+		"practice.chat.default": {
+			Name:       "practice.chat.default",
 			Capability: aiclient.CapabilityChat,
 			Status:     aiclient.ProfileStatusActive,
 			Default: aiclient.ProviderConfig{
@@ -556,7 +556,7 @@ func TestDecorator_PreDispatchFailureUsesResolvedProfileLabels(t *testing.T) {
 			},
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
-			Route:     "practice.followup",
+			Route:     "practice.session.chat",
 		},
 	}
 	inner, err := aiclient.New(
@@ -584,11 +584,11 @@ func TestDecorator_PreDispatchFailureUsesResolvedProfileLabels(t *testing.T) {
 	payload := samplePayload()
 	payload.Messages = nil
 
-	_, _, err = wrap.Complete(context.Background(), "practice.followup.default", payload)
+	_, _, err = wrap.Complete(context.Background(), "practice.chat.default", payload)
 	if err == nil {
 		t.Fatalf("expected invalid Complete failure")
 	}
-	labels := []string{stub.Name, "stub-chat-1", "practice.followup.default", "practice.followup", string(aiclient.CapabilityChat), "en", "failure"}
+	labels := []string{stub.Name, "stub-chat-1", "practice.chat.default", "practice.session.chat", string(aiclient.CapabilityChat), "en", "failure"}
 	if got := registry.CounterValue(observability.MetricRunsTotal, labels...); got != 1 {
 		t.Fatalf("expected failure labels enriched from profile, got %v", got)
 	}
@@ -629,13 +629,13 @@ func TestDecorator_StreamDoneUsesResolvedProfileLabels(t *testing.T) {
 		t.Fatalf("observability.New: %v", err)
 	}
 
-	ch, err := wrap.Stream(context.Background(), "practice.followup.default", samplePayload())
+	ch, err := wrap.Stream(context.Background(), "practice.chat.default", samplePayload())
 	if err != nil {
 		t.Fatalf("Stream: %v", err)
 	}
 	for range ch {
 	}
-	labels := []string{"stream-provider", "stream-family", "practice.followup.default", "practice.followup", string(aiclient.CapabilityChat), "en", "success"}
+	labels := []string{"stream-provider", "stream-family", "practice.chat.default", "practice.session.chat", string(aiclient.CapabilityChat), "en", "success"}
 	if got := registry.CounterValue(observability.MetricRunsTotal, labels...); got != 1 {
 		t.Fatalf("expected stream done labels enriched from profile, got %v", got)
 	}
@@ -661,13 +661,13 @@ func TestDecorator_StreamErrorUsesResolvedProfileLabels(t *testing.T) {
 		t.Fatalf("observability.New: %v", err)
 	}
 
-	ch, err := wrap.Stream(context.Background(), "practice.followup.default", samplePayload())
+	ch, err := wrap.Stream(context.Background(), "practice.chat.default", samplePayload())
 	if err != nil {
 		t.Fatalf("Stream: %v", err)
 	}
 	for range ch {
 	}
-	labels := []string{stub.Name, "stub-chat-1", "practice.followup.default", "practice.followup", string(aiclient.CapabilityChat), "en", "failure"}
+	labels := []string{stub.Name, "stub-chat-1", "practice.chat.default", "practice.session.chat", string(aiclient.CapabilityChat), "en", "failure"}
 	if got := registry.CounterValue(observability.MetricRunsTotal, labels...); got != 1 {
 		t.Fatalf("expected stream error labels enriched from profile, got %v", got)
 	}
@@ -695,13 +695,13 @@ func TestDecorator_FallbackChainTriggersFallbackCounterAndLog(t *testing.T) {
 			ModelFamily:      "chat-primary",
 			ModelID:          "chat-primary-2026-05-05",
 			Capability:       aiclient.CapabilityChat,
-			ModelProfileName: "practice.followup.default",
+			ModelProfileName: "practice.chat.default",
 			Language:         "en",
 			InputTokens:      10,
 			OutputTokens:     20,
 			LatencyMs:        50,
 			FallbackChain:    []string{"primary/chat", "fallback/chat"},
-			Route:            "practice.followup",
+			Route:            "practice.session.chat",
 			ValidationStatus: aiclient.ValidationStatusOK,
 		},
 	}
@@ -716,7 +716,7 @@ func TestDecorator_FallbackChainTriggersFallbackCounterAndLog(t *testing.T) {
 		t.Fatalf("observability.New: %v", err)
 	}
 
-	_, _, err = wrap.Complete(context.Background(), "practice.followup.default", samplePayload())
+	_, _, err = wrap.Complete(context.Background(), "practice.chat.default", samplePayload())
 	if err != nil {
 		t.Fatalf("Complete: %v", err)
 	}
@@ -748,13 +748,13 @@ func TestDecorator_FallbackCounterLabelDerivation(t *testing.T) {
 			ModelFamily:      modelFamily,
 			ModelID:          modelID,
 			Capability:       aiclient.CapabilityChat,
-			ModelProfileName: "practice.followup.default",
+			ModelProfileName: "practice.chat.default",
 			Language:         "en",
 			InputTokens:      10,
 			OutputTokens:     20,
 			LatencyMs:        50,
 			FallbackChain:    fallbackChain,
-			Route:            "practice.followup",
+			Route:            "practice.session.chat",
 			ValidationStatus: aiclient.ValidationStatusOK,
 		}
 	}
@@ -772,7 +772,7 @@ func TestDecorator_FallbackCounterLabelDerivation(t *testing.T) {
 				[]string{"chat-primary-2026-05-05", "chat-secondary-2026-05-05"},
 			),
 			labels: []string{
-				"openai_compatible", "chat-primary", "practice.followup.default", "practice.followup",
+				"openai_compatible", "chat-primary", "practice.chat.default", "practice.session.chat",
 				string(aiclient.CapabilityChat), "en", "fallback", "unknown", "chat-primary", "unknown", "chat-secondary",
 			},
 		},
@@ -785,7 +785,7 @@ func TestDecorator_FallbackCounterLabelDerivation(t *testing.T) {
 				[]string{"primary/chat-primary-2026-05-05", "fallback/chat-secondary-2026-05-05"},
 			),
 			labels: []string{
-				"fallback", "chat-secondary", "practice.followup.default", "practice.followup",
+				"fallback", "chat-secondary", "practice.chat.default", "practice.session.chat",
 				string(aiclient.CapabilityChat), "en", "fallback", "primary", "chat-primary", "fallback", "chat-secondary",
 			},
 		},
@@ -804,7 +804,7 @@ func TestDecorator_FallbackCounterLabelDerivation(t *testing.T) {
 				t.Fatalf("observability.New: %v", err)
 			}
 
-			if _, _, err := wrap.Complete(context.Background(), "practice.followup.default", samplePayload()); err != nil {
+			if _, _, err := wrap.Complete(context.Background(), "practice.chat.default", samplePayload()); err != nil {
 				t.Fatalf("Complete: %v", err)
 			}
 			if got := registry.CounterValue(observability.MetricFallbackTotal, tc.labels...); got != 1 {
@@ -844,8 +844,8 @@ func (f *fallbackInner) Stream(_ context.Context, _ string, _ aiclient.CompleteP
 
 func routeAwareResolver() staticResolver {
 	return staticResolver{
-		"practice.followup.default": {
-			Name:       "practice.followup.default",
+		"practice.chat.default": {
+			Name:       "practice.chat.default",
 			Capability: aiclient.CapabilityChat,
 			Status:     aiclient.ProfileStatusActive,
 			Default: aiclient.ProviderConfig{
@@ -854,7 +854,7 @@ func routeAwareResolver() staticResolver {
 			},
 			TimeoutMs: 5000,
 			Version:   "1.0.0",
-			Route:     "practice.followup",
+			Route:     "practice.session.chat",
 		},
 	}
 }
@@ -865,7 +865,7 @@ func TestDecorator_OutputSchemaInvalidEmitsAIOutputInvalid(t *testing.T) {
 	payload := samplePayload()
 	payload.Metadata.OutputSchema = json.RawMessage(`{"type":"object"}`)
 
-	_, meta, err := wrap.Complete(context.Background(), "practice.followup.default", payload)
+	_, meta, err := wrap.Complete(context.Background(), "practice.chat.default", payload)
 	if err == nil {
 		t.Fatalf("expected error for invalid JSON content")
 	}
@@ -900,7 +900,7 @@ func TestDecorator_RawOutputDebugWriterPrintsInvalidCompleteResponse(t *testing.
 	payload := samplePayload()
 	payload.Metadata.OutputSchema = json.RawMessage(`{"type":"object"}`)
 
-	_, meta, err := wrap.Complete(context.Background(), "practice.followup.default", payload)
+	_, meta, err := wrap.Complete(context.Background(), "practice.chat.default", payload)
 	if err == nil {
 		t.Fatalf("expected output schema validation error")
 	}
@@ -912,11 +912,11 @@ func TestDecorator_RawOutputDebugWriterPrintsInvalidCompleteResponse(t *testing.
 	for _, want := range []string{
 		"AI_RAW_OUTPUT_DEBUG_BEGIN",
 		"AI_RAW_OUTPUT_DEBUG_END",
-		"model_profile=practice.followup.default",
-		"feature_key=practice.followup",
+		"model_profile=practice.chat.default",
+		"feature_key=practice.session.chat",
 		"validation_status=invalid",
 		"error_code=AI_OUTPUT_INVALID",
-		"stub:practice.followup.default:",
+		"stub:practice.chat.default:",
 	} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("debug output missing %q: %s", want, out)
@@ -927,12 +927,12 @@ func TestDecorator_RawOutputDebugWriterPrintsInvalidCompleteResponse(t *testing.
 	}
 
 	for _, row := range runs.Rows() {
-		if anyTaskRunContains(row, "stub:practice.followup.default:") {
+		if anyTaskRunContains(row, "stub:practice.chat.default:") {
 			t.Fatalf("ai_task_runs must keep raw output out of persisted rows: %+v", row)
 		}
 	}
 	for _, row := range audit.Rows() {
-		if strings.Contains(row.Metadata.ResponseHash, "stub:practice.followup.default:") {
+		if strings.Contains(row.Metadata.ResponseHash, "stub:practice.chat.default:") {
 			t.Fatalf("audit row must keep hashed response only: %+v", row.Metadata)
 		}
 	}
@@ -969,7 +969,7 @@ func assertDecoratorOutputSchemaInvalid(t *testing.T, content string, schema jso
 			ModelFamily:         "stub",
 			ModelID:             "stub-chat-1",
 			Capability:          aiclient.CapabilityChat,
-			ModelProfileName:    "practice.followup.default",
+			ModelProfileName:    "practice.chat.default",
 			ModelProfileVersion: "1.0.0",
 			Language:            "en",
 			InputTokens:         10,
@@ -991,7 +991,7 @@ func assertDecoratorOutputSchemaInvalid(t *testing.T, content string, schema jso
 	payload := samplePayload()
 	payload.Metadata.OutputSchema = schema
 
-	_, meta, err := wrap.Complete(context.Background(), "practice.followup.default", payload)
+	_, meta, err := wrap.Complete(context.Background(), "practice.chat.default", payload)
 	if err == nil {
 		t.Fatal("expected output schema validation to fail")
 	}

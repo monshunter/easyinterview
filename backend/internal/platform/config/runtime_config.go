@@ -16,11 +16,9 @@ import (
 )
 
 var runtimePublicFlagAllowlist = map[string]struct{}{
-	"practice_hint_enabled":            {},
-	"report_evidence_v2_enabled":       {},
-	"report_retry_plan_enabled":        {},
-	"readiness_signals_enabled":        {},
-	"practice_assistance_mode_enabled": {},
+	"report_evidence_v2_enabled": {},
+	"report_retry_plan_enabled":  {},
+	"readiness_signals_enabled":  {},
 }
 
 // RuntimeFlag is the public projection of a feature flag decision. It

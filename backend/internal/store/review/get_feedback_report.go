@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/lib/pq"
 	reviewdomain "github.com/monshunter/easyinterview/backend/internal/review"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
@@ -23,11 +24,6 @@ func (r *Repository) GetFeedbackReport(ctx context.Context, userID, reportID str
 	if err != nil {
 		return reviewdomain.FeedbackReportRecord{}, err
 	}
-	assessments, err := r.loadQuestionAssessments(ctx, report.ID)
-	if err != nil {
-		return reviewdomain.FeedbackReportRecord{}, err
-	}
-	report.QuestionAssessments = assessments
 	return report, nil
 }
 
@@ -48,7 +44,7 @@ func (r *Repository) ListTargetJobReports(ctx context.Context, in reviewdomain.L
 select fr.id, fr.session_id, fr.target_job_id, fr.status, fr.preparedness_level,
        fr.highlights, fr.issues, fr.next_actions, fr.prompt_version, fr.rubric_version,
        fr.model_id, fr.provider, fr.language, fr.feature_flag, fr.data_source_version,
-       fr.retry_focus_turn_ids, fr.error_code, fr.created_at, fr.updated_at
+       fr.dimension_assessments, fr.retry_focus_competency_codes, fr.error_code, fr.created_at, fr.updated_at
 from feedback_reports fr
 where fr.user_id = $1 and fr.target_job_id = $2`
 	if strings.TrimSpace(in.Cursor) != "" {
@@ -89,13 +85,6 @@ limit $%d`, len(args))
 	if hasMore {
 		items = items[:pageSize]
 	}
-	for i := range items {
-		assessments, err := r.loadQuestionAssessments(ctx, items[i].ID)
-		if err != nil {
-			return reviewdomain.ListTargetJobReportsResult{}, err
-		}
-		items[i].QuestionAssessments = assessments
-	}
 	nextCursor := ""
 	if hasMore && len(items) > 0 {
 		last := items[len(items)-1]
@@ -128,7 +117,7 @@ func (r *Repository) getFeedbackReport(ctx context.Context, userID, reportID str
 select fr.id, fr.session_id, fr.target_job_id, fr.status, fr.preparedness_level,
        fr.highlights, fr.issues, fr.next_actions, fr.prompt_version, fr.rubric_version,
        fr.model_id, fr.provider, fr.language, fr.feature_flag, fr.data_source_version,
-       fr.retry_focus_turn_ids, fr.error_code, fr.created_at, fr.updated_at
+       fr.dimension_assessments, fr.retry_focus_competency_codes, fr.error_code, fr.created_at, fr.updated_at
 from feedback_reports fr
 where fr.id = $1 and fr.user_id = $2`, reportID, userID)
 	return scanFeedbackReport(row)
@@ -140,21 +129,22 @@ type feedbackReportScanner interface {
 
 func scanFeedbackReport(row feedbackReportScanner) (reviewdomain.FeedbackReportRecord, error) {
 	var (
-		report               reviewdomain.FeedbackReportRecord
-		status               string
-		preparedness         sql.NullString
-		highlightsRaw        []byte
-		issuesRaw            []byte
-		nextActionsRaw       []byte
-		promptVersion        sql.NullString
-		rubricVersion        sql.NullString
-		modelID              sql.NullString
-		provider             sql.NullString
-		language             string
-		featureFlag          string
-		dataSourceVersion    string
-		retryFocusTurnIDsRaw []byte
-		errorCode            sql.NullString
+		report                    reviewdomain.FeedbackReportRecord
+		status                    string
+		preparedness              sql.NullString
+		highlightsRaw             []byte
+		issuesRaw                 []byte
+		nextActionsRaw            []byte
+		promptVersion             sql.NullString
+		rubricVersion             sql.NullString
+		modelID                   sql.NullString
+		provider                  sql.NullString
+		language                  string
+		featureFlag               string
+		dataSourceVersion         string
+		dimensionAssessmentsRaw   []byte
+		retryFocusCompetencyCodes pq.StringArray
+		errorCode                 sql.NullString
 	)
 	if err := row.Scan(
 		&report.ID,
@@ -172,7 +162,8 @@ func scanFeedbackReport(row feedbackReportScanner) (reviewdomain.FeedbackReportR
 		&language,
 		&featureFlag,
 		&dataSourceVersion,
-		&retryFocusTurnIDsRaw,
+		&dimensionAssessmentsRaw,
+		&retryFocusCompetencyCodes,
 		&errorCode,
 		&report.CreatedAt,
 		&report.UpdatedAt,
@@ -199,11 +190,12 @@ func scanFeedbackReport(row feedbackReportScanner) (reviewdomain.FeedbackReportR
 			return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("decode next_actions: %w", err)
 		}
 	}
-	if len(retryFocusTurnIDsRaw) > 0 {
-		if err := json.Unmarshal(retryFocusTurnIDsRaw, &report.RetryFocusTurnIDs); err != nil {
-			return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("decode retry_focus_turn_ids: %w", err)
+	if len(dimensionAssessmentsRaw) > 0 {
+		if err := json.Unmarshal(dimensionAssessmentsRaw, &report.DimensionAssessments); err != nil {
+			return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("decode dimension_assessments: %w", err)
 		}
 	}
+	report.RetryFocusCompetencyCodes = append([]string(nil), retryFocusCompetencyCodes...)
 	if errorCode.Valid && strings.TrimSpace(errorCode.String) != "" {
 		code := errorCode.String
 		report.ErrorCode = &code
@@ -220,40 +212,6 @@ func scanFeedbackReport(row feedbackReportScanner) (reviewdomain.FeedbackReportR
 		_ = provider
 	}
 	return report, nil
-}
-
-func (r *Repository) loadQuestionAssessments(ctx context.Context, reportID string) ([]reviewdomain.QuestionAssessmentRecord, error) {
-	rows, err := r.db.QueryContext(ctx, `
-select qa.turn_id, coalesce(qa.question_intent, ''), qa.dimension_results,
-       qa.review_status, qa.included_in_retry_plan
-from question_assessments qa
-join practice_turns pt on pt.id = qa.turn_id
-where qa.report_id = $1
-order by pt.turn_index asc, qa.created_at asc`, reportID)
-	if err != nil {
-		return nil, fmt.Errorf("load question_assessments: %w", err)
-	}
-	defer rows.Close()
-	out := []reviewdomain.QuestionAssessmentRecord{}
-	for rows.Next() {
-		var rec reviewdomain.QuestionAssessmentRecord
-		var dimensionsRaw []byte
-		var reviewStatus string
-		if err := rows.Scan(&rec.TurnID, &rec.QuestionIntent, &dimensionsRaw, &reviewStatus, &rec.IncludedInRetryPlan); err != nil {
-			return nil, fmt.Errorf("scan question_assessment: %w", err)
-		}
-		rec.ReviewStatus = sharedtypes.QuestionReviewStatus(reviewStatus)
-		dimensions, err := decodeDimensionResults(dimensionsRaw)
-		if err != nil {
-			return nil, fmt.Errorf("decode dimension_results: %w", err)
-		}
-		rec.DimensionResults = dimensions
-		out = append(out, rec)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("question_assessments rows: %w", err)
-	}
-	return out, nil
 }
 
 func decodeReportEvidence(raw []byte) ([]reviewdomain.ReportEvidenceRecord, error) {
@@ -275,27 +233,6 @@ func decodeReportEvidence(raw []byte) ([]reviewdomain.ReportEvidenceRecord, erro
 			Evidence:   item.Evidence,
 			Confidence: confidenceFromJSON(item.Confidence),
 		})
-	}
-	return out, nil
-}
-
-func decodeDimensionResults(raw []byte) (map[string]reviewdomain.DimensionResultRecord, error) {
-	if len(raw) == 0 {
-		return map[string]reviewdomain.DimensionResultRecord{}, nil
-	}
-	var payload map[string]struct {
-		Status     sharedtypes.DimensionStatus `json:"status"`
-		Confidence any                         `json:"confidence"`
-	}
-	if err := json.Unmarshal(raw, &payload); err != nil {
-		return nil, err
-	}
-	out := make(map[string]reviewdomain.DimensionResultRecord, len(payload))
-	for key, item := range payload {
-		out[key] = reviewdomain.DimensionResultRecord{
-			Status:     item.Status,
-			Confidence: confidenceFromJSON(item.Confidence),
-		}
 	}
 	return out, nil
 }

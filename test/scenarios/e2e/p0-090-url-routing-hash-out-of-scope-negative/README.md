@@ -34,7 +34,7 @@ swallow。
 
 - 每个 hash 启动后 URL 立即被 `replaceState` 重写为 canonical path，
   `location.hash` 为空。
-- Out-of-scope `mode=voice&modality=voice` 参数被过滤，不作为 phone mode 入口。
+- Legacy `mode/modality` 参数（包括 `phone` 与 `voice`）全部被过滤，不形成任何电话模式入口。
 - `#route=voice` / `/voice` 都规范化为 `home`（独立 voice route 永远不
   materialize）。
 - 范围外 alias (`welcome` / `growth` / `plan` / `mistakes` / `drill` /

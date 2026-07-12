@@ -119,11 +119,7 @@ func TestResolvePracticeSessionBaselineFeatures(t *testing.T) {
 	client := newTestClient(t)
 	ctx := context.Background()
 
-	cases := map[string]string{
-		"practice.session.first_question":   "practice.first_question.default",
-		"practice.session.follow_up":        "practice.followup.default",
-		"practice.turn.lightweight_observe": "practice.turn_observe.default",
-	}
+	cases := map[string]string{"practice.session.chat": "practice.chat.default"}
 	for featureKey, profileName := range cases {
 		t.Run(featureKey, func(t *testing.T) {
 			res, err := client.ResolveActive(ctx, featureKey, "en")

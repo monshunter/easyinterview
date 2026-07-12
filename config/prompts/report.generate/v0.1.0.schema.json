@@ -7,7 +7,7 @@
     "highlights",
     "issues",
     "next_actions",
-    "retry_focus_turn_ids"
+    "retry_focus_competency_codes"
   ],
   "properties": {
     "summary": {
@@ -126,12 +126,12 @@
         }
       }
     },
-    "retry_focus_turn_ids": {
+    "retry_focus_competency_codes": {
       "type": "array",
-      "description": "Turn IDs recommended for retry focus.",
+      "description": "Competency codes recommended for retry focus.",
       "items": {
         "type": "string",
-        "description": "Practice turn ID."
+        "description": "Competency code."
       }
     }
   }

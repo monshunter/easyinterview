@@ -9,5 +9,7 @@ mkdir -p "$OUTPUT_DIR"
 
 (
   cd "$REPO_ROOT/backend"
-  go test -v ./cmd/api -run 'TestE2EP0026PracticeObservabilityAndPrivacyRedlines' -count=1
+  go test -v ./internal/store/practice -run 'TestPracticeOutboxPayloadContainsOnlyLifecycleData' -count=1
+  go test -v ./internal/ai/aiclient/observability -run 'TestPrivacy_NoPlaintextLeaksAnywhere|TestDecorator_ReportMetricLabelsExcludeProvenanceAndRawModelID' -count=1
+  go test -v ./internal/review -run 'TestGenerateReportUsesOneConversationLevelAICall' -count=1
 ) | tee "$OUTPUT_DIR/trigger.log"

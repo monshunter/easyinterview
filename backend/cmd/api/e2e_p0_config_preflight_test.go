@@ -48,12 +48,10 @@ func TestE2EP0ConfigPreflightLoadsFunnelProfilesWithoutProviderSecrets(t *testin
 	defer profileLoader.Close()
 
 	required := map[string]aiclient.Capability{
-		"resume.parse.default":            aiclient.CapabilityChat,
-		"target.import.default":           aiclient.CapabilityChat,
-		"practice.first_question.default": aiclient.CapabilityChat,
-		"practice.followup.default":       aiclient.CapabilityChat,
-		"practice.turn_observe.default":   aiclient.CapabilityChat,
-		"report.generate.default":         aiclient.CapabilityChat,
+		"resume.parse.default":    aiclient.CapabilityChat,
+		"target.import.default":   aiclient.CapabilityChat,
+		"practice.chat.default":   aiclient.CapabilityChat,
+		"report.generate.default": aiclient.CapabilityChat,
 	}
 	for name, capability := range required {
 		t.Run(name, func(t *testing.T) {

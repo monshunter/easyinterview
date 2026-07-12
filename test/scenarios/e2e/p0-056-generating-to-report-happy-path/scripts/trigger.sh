@@ -11,6 +11,5 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/report/__tests__/preflight.test.ts \
     src/app/screens/generating/__tests__/useReportGenerationPoll.test.tsx \
     src/app/screens/generating/__tests__/GeneratingScreen.test.tsx \
-    src/app/screens/report/__tests__/ReportScreen.test.tsx \
-    src/app/screens/report/__tests__/DetailSurface.test.tsx
+    src/app/screens/report/__tests__/ConversationReport.test.tsx
 ) | tee "$OUTPUT_DIR/trigger.log"

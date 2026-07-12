@@ -18,7 +18,7 @@
 - `PracticeMode` shared enum 与 plan.mode。
 - `hintsEnabled`、`hintRequested`、`show_hint`、`session_wait` action、hint text/count/usage context。
 - `practice.turn.lightweight_observe` prompt/rubric/profile/eval/task type。
-- `practice_hint_enabled` / `practice_assistance_mode_enabled` flags 与 runtime allowlist。
+- 已删除的 practice hint/assistance flags 与 runtime allowlist 投影。
 - HintBanner/button/hook/tests/fixtures/scenarios。
 - P0.048-P0.050 positive hint scenario assets；P0.051 重写为 stale assistance negative gate。
 

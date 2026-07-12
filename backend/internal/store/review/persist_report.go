@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	reviewdomain "github.com/monshunter/easyinterview/backend/internal/review"
 	sharedevents "github.com/monshunter/easyinterview/backend/internal/shared/events"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
@@ -38,15 +37,20 @@ func (r *Repository) PersistReport(ctx context.Context, in PersistReportInput) e
 	if err != nil {
 		return fmt.Errorf("marshal next_actions: %w", err)
 	}
-	retryFocus, err := json.Marshal(in.RetryFocusTurnIDs)
+	retryFocus, err := json.Marshal(in.RetryFocusCompetencyCodes)
 	if err != nil {
-		return fmt.Errorf("marshal retry_focus_turn_ids: %w", err)
+		return fmt.Errorf("marshal retry_focus_competency_codes: %w", err)
+	}
+	dimensionAssessments, err := json.Marshal(wireDimensionAssessments(in.DimensionAssessments))
+	if err != nil {
+		return fmt.Errorf("marshal dimension_assessments: %w", err)
 	}
 	if err := assertNoReviewPersistencePII(map[string]any{
-		"highlights":   json.RawMessage(highlights),
-		"issues":       json.RawMessage(issues),
-		"next_actions": json.RawMessage(nextActions),
-		"retry_focus":  json.RawMessage(retryFocus),
+		"highlights":            json.RawMessage(highlights),
+		"issues":                json.RawMessage(issues),
+		"next_actions":          json.RawMessage(nextActions),
+		"retry_focus":           json.RawMessage(retryFocus),
+		"dimension_assessments": json.RawMessage(dimensionAssessments),
 	}); err != nil {
 		return err
 	}
@@ -64,11 +68,12 @@ set status = 'ready',
     language = $9,
     feature_flag = $10,
     data_source_version = $11,
-    retry_focus_turn_ids = $12,
+    retry_focus_competency_codes = $12,
+    dimension_assessments = $13,
     error_code = null,
-    generated_at = $13,
-    updated_at = $13
-where id = $14 and status = 'generating'`,
+    generated_at = $14,
+    updated_at = $14
+where id = $15 and status = 'generating'`,
 		string(in.PreparednessLevel),
 		highlights,
 		issues,
@@ -81,6 +86,7 @@ where id = $14 and status = 'generating'`,
 		fallbackString(in.FeatureFlag, "none"),
 		fallbackString(in.DataSourceVersion, "not_applicable"),
 		retryFocus,
+		dimensionAssessments,
 		in.Now,
 		in.ReportID,
 	)
@@ -90,20 +96,14 @@ where id = $14 and status = 'generating'`,
 	if err := requireOneRow(res, "update feedback_reports ready"); err != nil {
 		return err
 	}
-	for _, assessment := range in.Assessments {
-		if err := insertQuestionAssessment(ctx, tx, in, assessment); err != nil {
-			return err
-		}
-	}
 	payload, err := BuildReportGeneratedPayload(ReportGeneratedInput{
-		ReportID:           in.ReportID,
-		SessionID:          in.SessionID,
-		TargetJobID:        in.TargetJobID,
-		PreparednessLevel:  in.PreparednessLevel,
-		QuestionIssueCount: in.QuestionIssueCount,
-		PromptVersion:      in.PromptVersion,
-		RubricVersion:      in.RubricVersion,
-		ModelID:            in.ModelID,
+		ReportID:          in.ReportID,
+		SessionID:         in.SessionID,
+		TargetJobID:       in.TargetJobID,
+		PreparednessLevel: in.PreparednessLevel,
+		PromptVersion:     in.PromptVersion,
+		RubricVersion:     in.RubricVersion,
+		ModelID:           in.ModelID,
 	})
 	if err != nil {
 		return err
@@ -125,54 +125,6 @@ where id = $14 and status = 'generating'`,
 
 func (r *Repository) PersistReportResult(ctx context.Context, in reviewdomain.ReportResultPersistence) error {
 	return r.PersistReport(ctx, in)
-}
-
-func insertQuestionAssessment(ctx context.Context, tx *sql.Tx, in PersistReportInput, assessment reviewdomain.QuestionAssessmentDraft) error {
-	strengths, err := json.Marshal(assessment.Strengths)
-	if err != nil {
-		return fmt.Errorf("marshal assessment strengths: %w", err)
-	}
-	gaps, err := json.Marshal(assessment.Gaps)
-	if err != nil {
-		return fmt.Errorf("marshal assessment gaps: %w", err)
-	}
-	dimensions, err := json.Marshal(wireDimensionResults(assessment.DimensionResults))
-	if err != nil {
-		return fmt.Errorf("marshal assessment dimension_results: %w", err)
-	}
-	if err := assertNoReviewPersistencePII(map[string]any{
-		"strengths":             json.RawMessage(strengths),
-		"gaps":                  json.RawMessage(gaps),
-		"recommended_framework": assessment.RecommendedFramework,
-		"dimension_results":     json.RawMessage(dimensions),
-	}); err != nil {
-		return err
-	}
-	_, err = tx.ExecContext(ctx, `
-insert into question_assessments (
-  id, report_id, session_id, turn_id, question_intent, overall_status,
-  confidence, strengths, gaps, recommended_framework, dimension_results,
-  review_status, included_in_retry_plan, created_at
-) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-		uuid.NewString(),
-		in.ReportID,
-		in.SessionID,
-		assessment.TurnID,
-		nullableString(assessment.QuestionIntent),
-		string(assessment.OverallStatus),
-		string(confidenceFromScore(assessment.Confidence)),
-		strengths,
-		gaps,
-		nullableString(assessment.RecommendedFramework),
-		dimensions,
-		string(assessment.ReviewStatus),
-		assessment.IncludedInRetryPlan,
-		in.Now,
-	)
-	if err != nil {
-		return fmt.Errorf("insert question_assessments: %w", err)
-	}
-	return nil
 }
 
 func insertReviewOutbox(ctx context.Context, tx *sql.Tx, eventID, eventName, reportID string, payload any, now time.Time) error {
@@ -249,13 +201,14 @@ func requireOneRow(res sql.Result, label string) error {
 	return nil
 }
 
-func wireDimensionResults(in map[string]reviewdomain.DimensionResultDraft) map[string]map[string]any {
-	out := make(map[string]map[string]any, len(in))
-	for key, value := range in {
-		out[key] = map[string]any{
+func wireDimensionAssessments(in []reviewdomain.DimensionAssessmentDraft) []map[string]any {
+	out := make([]map[string]any, 0, len(in))
+	for _, value := range in {
+		out = append(out, map[string]any{
+			"dimension":  value.Dimension,
 			"status":     string(value.Status),
-			"confidence": string(confidenceFromScore(value.Confidence)),
-		}
+			"confidence": string(value.Confidence),
+		})
 	}
 	return out
 }

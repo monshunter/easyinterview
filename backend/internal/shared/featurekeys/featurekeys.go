@@ -20,13 +20,10 @@ package featurekeys
 type FeatureKey string
 
 const (
-	TargetImportParse              FeatureKey = "target.import.parse"
-	PracticeSessionFirstQuestion   FeatureKey = "practice.session.first_question"
-	PracticeSessionFollowUp        FeatureKey = "practice.session.follow_up"
-	PracticeTurnLightweightObserve FeatureKey = "practice.turn.lightweight_observe"
-	ReportGenerate                 FeatureKey = "report.generate"
-	ReportQuestionAssessment       FeatureKey = "report.question_assessment"
-	ResumeParse                    FeatureKey = "resume.parse"
-	ResumeTailorGapReview          FeatureKey = "resume.tailor.gap_review"
-	ResumeTailorBulletSuggestions  FeatureKey = "resume.tailor.bullet_suggestions"
+	TargetImportParse             FeatureKey = "target.import.parse"
+	PracticeSessionChat           FeatureKey = "practice.session.chat"
+	ReportGenerate                FeatureKey = "report.generate"
+	ResumeParse                   FeatureKey = "resume.parse"
+	ResumeTailorGapReview         FeatureKey = "resume.tailor.gap_review"
+	ResumeTailorBulletSuggestions FeatureKey = "resume.tailor.bullet_suggestions"
 )

@@ -180,50 +180,33 @@ test("P0 context routes use InterviewContext instead of fixed tj-1 nav payloads"
   }
 });
 
-test("P0 report requires sessionId and separates replay from next-round payloads", () => {
+test("P0 report requires sessionId and uses conversation-level evidence", () => {
   const report = readUiFile("./src/screen-report.jsx");
 
   assert.match(report, /const ReportMissingSessionState = /);
   assert.match(report, /const ReportFailureState = /);
-  assert.match(report, /if \(!params\?\.sessionId\)/);
+  assert.match(report, /if \(!params\.sessionId\)/);
   assert.match(report, /reportStatus === "failed"/);
-  assert.match(report, /const replayContext = /);
-  assert.match(report, /replayItems/);
-  assert.match(report, /const nextRoundContext = /);
-  assert.match(report, /nextRoundId/);
-  assert.match(report, /sourceSessionId: params\.sessionId/);
+  assert.match(report, /const dimensions = report\.dimensions \|\| \[\]/);
+  assert.match(report, /const highlights = report\.highlights \|\| \[\]/);
+  assert.doesNotMatch(report, /perQuestion|replayItems|activeQuestion|qId/);
   assert.doesNotMatch(report, /nav\("workspace",\s*\{\s*jobId:\s*"tj-1"\s*\}\)/);
 });
 
 test("P0 report replay and next-round CTAs start interview sessions directly", () => {
   const report = readUiFile("./src/screen-report.jsx");
 
-  assert.match(report, /const run = \(\) => nav\("practice", payload\);/);
-  assert.match(report, /route: "practice"/);
-  assert.match(report, /action: "replay-current-round"/);
-  assert.match(report, /action: "start-next-round"/);
-  assert.match(report, /`session-\$\{params\.planId\}-\$\{params\.roundId\}-replay`/);
-  assert.match(report, /`session-\$\{params\.planId\}-\$\{nextRoundId\}-start`/);
-  assert.doesNotMatch(report, /const run = \(\) => nav\("workspace", payload\);/);
-  assert.doesNotMatch(report, /route: "workspace"/);
-  assert.doesNotMatch(report, /action: "prepare-next-round"/);
-  assert.doesNotMatch(report, /`session-\$\{params\.planId\}-\$\{nextRoundId\}-prep`/);
+  assert.match(report, /nav\("practice", \{ \.\.\.params, practiceGoal: "retry_current_round" \}\)/);
+  assert.match(report, /nav\("practice", \{ \.\.\.params, practiceGoal: "next_round" \}\)/);
+  assert.equal((report.match(/nav\("practice"/g) || []).length, 2);
 });
 
 test("report CTA pair lives only in the header (D-19)", () => {
   const report = readUiFile("./src/screen-report.jsx");
 
-  assert.match(report, /const goReplay = /);
-  assert.match(report, /const goNextRound = /);
-  // Detail surface no longer receives session-start callbacks.
-  assert.doesNotMatch(report, /onReplay|onNextRound/);
-  // Question review marks items for the replay plan instead of starting a session.
-  assert.match(report, /const \[replayQueued, setReplayQueued\] = React\.useState\(\{\}\);/);
-  assert.match(report, /已加入本轮复练/);
-  // The next-plan tab points back to the header CTA instead of duplicating it.
-  assert.match(report, /开练入口在页面顶部/);
-  // Former dead components stay absent.
-  assert.doesNotMatch(report, /IssueRow|PerQBlock|KVInline/);
+  assert.equal((report.match(/practiceGoal: "retry_current_round"/g) || []).length, 1);
+  assert.equal((report.match(/practiceGoal: "next_round"/g) || []).length, 1);
+  assert.doesNotMatch(report, /ReportDetailSurface|QuestionsTab|题目回顾/);
 });
 
 test("current UI source does not expose out-of-scope mistakes/growth/drill product surfaces", () => {
@@ -409,57 +392,26 @@ test("Home and workspace share action card behavior", () => {
   assert.doesNotMatch(workspace, /open:\s*"Open plan"|open:\s*"进入规划"|L\.open/);
 });
 
-test("P0 phone interview keeps the shared practice shell without deleted assistant surfaces", () => {
+test("practice is one continuous text conversation with phone disabled", () => {
   const practice = readUiFile("./src/screen-practice.jsx");
   const primitives = readUiFile("./src/primitives.jsx");
-  const phoneSurface = practice.slice(
-    practice.indexOf("const PhoneSessionSurface = "),
-    practice.indexOf("const TranscriptMsg = "),
-  );
-
-  assert.match(practice, /const PhoneSessionSurface = /);
-  assert.match(practice, /const isPhone = activeMode === "phone";/);
-  assert.match(practice, /const activeMode = requestedMode === "phone" \? "phone" : "text";/);
-  assert.doesNotMatch(practice, /requestedMode === "voice"/);
-  assert.match(practice, /<PhoneSessionSurface/);
-  assert.match(practice, /电话模式|Phone/);
-  assert.match(practice, /显示字幕|Show captions/);
   assert.match(practice, /data-testid="practice-topbar-phone-toggle"/);
   assert.equal((practice.match(/data-testid="practice-topbar-phone-toggle"/g) || []).length, 1);
-  assert.match(practice, /const exitPhoneMode = \(\) =>/);
-  assert.match(practice, /onClick=\{isPhone \? exitPhoneMode : enterPhoneMode\}/);
-  assert.match(practice, /onHangUp=\{exitPhoneMode\}/);
-  assert.match(practice, /aria-pressed=\{isPhone\}/);
-  assert.match(phoneSurface, /data-testid="practice-phone-surface"/);
-  assert.match(phoneSurface, /data-testid="practice-phone-call-state"/);
-  assert.match(phoneSurface, /data-testid="practice-phone-waveform"/);
-  assert.match(phoneSurface, /data-testid="practice-phone-captions-toggle"/);
-  assert.match(phoneSurface, /data-testid="practice-phone-captions"/);
-  assert.match(phoneSurface, /data-testid="practice-phone-hangup"/);
-  assert.match(phoneSurface, /<Icon name="phone"[^>]*rotate\(135deg\)/);
+  assert.match(practice, /data-testid="practice-topbar-phone-toggle"[\s\S]*disabled[\s\S]*aria-disabled="true"/);
+  assert.match(practice, /电话模式暂未开放|Phone mode is temporarily unavailable/);
   assert.match(primitives, /phone:\s*<>/);
-  assert.doesNotMatch(primitives, /phone_off:\s*<>|replay:\s*<path/);
-  assert.match(practice, /WaveformBars/);
-  assert.match(practice, /gridTemplateColumns:\s*"260px minmax\(0, 1fr\)"/);
-  assert.match(practice, /<QuestionHeader/);
-  assert.match(practice, /<TranscriptPane/);
-  assert.match(practice, /<PhoneSessionSurface/);
-  assert.doesNotMatch(phoneSurface, /QuestionHeader|currentQ|qIdx/);
-  assert.doesNotMatch(practice, /const modes =|callState|onRestart|practice-phone-restart/);
-  assert.doesNotMatch(practice, /切断|重新开始|"Restart"|"live"|Call ended|通话已切断/);
-  assert.doesNotMatch(practice, /严格模拟|Strict|Speech-to-text|语音转文字|插入转写|Skip|跳过|表达层指标|口头禅|长停顿|语速|音量/);
-  assert.doesNotMatch(practice, /if\s*\(\s*k\s*===\s*"voice"\s*\)\s*nav\("voice"/);
+  assert.match(practice, /data-testid="practice-conversation"/);
+  assert.match(practice, /width: "100%"/);
+  assert.doesNotMatch(practice, /SESSION MAP|本轮题目|QuestionHeader|QuestionCard|qIdx|currentQ|questions\.map/);
+  assert.doesNotMatch(practice, /Question[^a-z]|题\s*\{/);
+  assert.doesNotMatch(practice, /PhoneSessionSurface|WaveformBars|practice-phone-surface|practice-phone-captions/);
 });
 
-test("P0 report renders phone modality copy only for current phone params", () => {
+test("P0 report has no voice or modality-specific report branch", () => {
   const report = readUiFile("./src/screen-report.jsx");
 
-  assert.match(report, /params\.modality === "phone"/);
-  assert.doesNotMatch(report, /params\.modality === "voice"/);
-  assert.match(report, /"Phone"/);
-  assert.match(report, /"电话模式"/);
-  assert.doesNotMatch(report, /modality:\s*params\.modality === "voice" \? "Voice" : "Text"/);
-  assert.doesNotMatch(report, /modality:\s*params\.modality === "voice" \? "语音" : "文本"/);
+  assert.doesNotMatch(report, /params\.modality|practiceMode|hintUsed|hintCount/);
+  assert.doesNotMatch(report, /Phone|电话模式|Voice|语音/);
 });
 
 test("parse confirm page is a readonly saved-plan receipt with direct launch", () => {
@@ -523,7 +475,7 @@ test("out-of-scope resume versions screen stays absent", () => {
   }
 });
 
-test("phone interview only enters through explicit practice modality params", () => {
+test("phone interview has no positive canvas or route entry while disabled", () => {
   const app = readUiFile("./src/app.jsx");
   const canvas = readUiFile("./canvas.html");
 
@@ -531,7 +483,8 @@ test("phone interview only enters through explicit practice modality params", ()
   assert.doesNotMatch(app, /rawRoute === "voice"/);
   assert.doesNotMatch(app, /voice:\s*<VoicePracticeScreen/);
   assert.doesNotMatch(app, /route\.name === "voice"/);
-  assert.match(canvas, /route="practice" mode="phone"/);
+  assert.doesNotMatch(canvas, /mode="phone"|practice-phone|phone-light|phone-dark/);
+  assert.match(canvas, /电话入口暂不可用/);
 });
 
 test("design canvas component surface matches its only tracked consumer", () => {
@@ -619,16 +572,12 @@ test("home mini round rail exposes only rendered structured-round dependencies",
   assert.match(home, /const current = i === currentIndex/);
 });
 
-test("report detail surface exposes only report data and local detail-state dependencies", () => {
+test("report detail surface exposes dimensions, evidence, and actions only", () => {
   const report = readUiFile("./src/screen-report.jsx");
-  const detailCall = report.match(/<ReportDetailSurface[\s\S]*?\/>/)?.[0];
-
-  assert.ok(detailCall, "ReportDetailSurface call must remain present");
-  assert.match(report, /const ReportDetailSurface = \(\{ T, lang, r, detail, setDetail, context, activeQuestion, setActiveQuestion \}\) =>/);
-  assert.doesNotMatch(detailCall, /\bnav=/);
-  assert.match(report, /return <ReportDashboard T=\{T\} lang=\{lang\} nav=\{nav\}/);
-  assert.match(report, /onClick=\{\(\) => setDetail\(tab\.k\)\}/);
-  assert.match(report, /onClick=\{\(\) => setActiveQuestion\(item\.qId\)\}/);
+  assert.match(report, /CAPABILITY ASSESSMENT/);
+  assert.match(report, /STRENGTH EVIDENCE/);
+  assert.match(report, /NEXT ACTIONS/);
+  assert.doesNotMatch(report, /question|Question|题目|qId|turnId/);
 });
 
 test("resume create prototype exposes only input-state owner callbacks", () => {

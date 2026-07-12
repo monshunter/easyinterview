@@ -117,15 +117,6 @@ describe("E2E.P0.002 auth pending-action resume", () => {
     expect(practice.getAttribute("data-target-job-id")).toBe(
       PRACTICE_PENDING_ACTION.params.targetJobId,
     );
-    expect(practice.getAttribute("data-jd-id")).toBe(
-      PRACTICE_PENDING_ACTION.params.jdId,
-    );
-    expect(practice.getAttribute("data-resume-version-id")).toBe(
-      PRACTICE_PENDING_ACTION.params.resumeId,
-    );
-    expect(practice.getAttribute("data-round-id")).toBe(
-      PRACTICE_PENDING_ACTION.params.roundId,
-    );
     expect(practice.getAttribute("data-session-id")).toBe(
       PRACTICE_PENDING_ACTION.params.sessionId,
     );

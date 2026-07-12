@@ -12,7 +12,7 @@ func TestFailClosedJudgeAlwaysFails(t *testing.T) {
 	var j Judge = FailClosedJudge{}
 	scores, reasoning, err := j.Judge(
 		context.Background(),
-		"practice.session.first_question",
+		"practice.session.chat",
 		"v0.1.0",
 		[]byte("{\"foo\":\"bar\"}"),
 		"v0.1.0",

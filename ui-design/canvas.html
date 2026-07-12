@@ -44,7 +44,7 @@
       <DCSection id="flow" title="EasyInterview · 核心用户闭环" subtitle="从一份 JD 到下一轮更强的准备">
         <DCArtboard id="home" label="01 · 首页（JD 导入）" width={FRAME_W} height={FRAME_H}><Screen route="home" /></DCArtboard>
         <DCArtboard id="ws" label="02 · 模拟面试规划" width={FRAME_W} height={FRAME_H}><Screen route="workspace" /></DCArtboard>
-        <DCArtboard id="practice" label="03 · 模拟面试进行中" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="text" /></DCArtboard>
+        <DCArtboard id="practice" label="03 · 模拟面试进行中" width={FRAME_W} height={FRAME_H}><Screen route="practice" /></DCArtboard>
         <DCArtboard id="report" label="04 · 证据化报告仪表盘" width={FRAME_W} height={FRAME_H}><Screen route="report" /></DCArtboard>
       </DCSection>
       <DCSection id="auth" title="账户体系 · 登录 / 验证 / 首次资料补全" subtitle="M0 入口">
@@ -58,13 +58,8 @@
         <DCArtboard id="generating" label="报告生成中 · 异步观察流" width={FRAME_W} height={FRAME_H}><Screen route="generating" /></DCArtboard>
         <DCArtboard id="settings" label="设置 · 隐私 / 导出 / 删除" width={FRAME_W} height={FRAME_H}><Screen route="settings" /></DCArtboard>
       </DCSection>
-      <DCSection id="phone" title="电话模式 · 统一 Session 骨架" subtitle="同一题目地图 / 顶部控制 / 可选字幕">
-        <DCArtboard id="phone-light" label="电话模式 · 统一骨架" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="phone" /></DCArtboard>
-        <DCArtboard id="phone-dark" label="电话模式 · 统一骨架 · 暗色" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="phone" dark /></DCArtboard>
-      </DCSection>
-      <DCSection id="practice-session" title="Session 练习方式" subtitle="文本 / 电话共享同一套面试会话">
-        <DCArtboard id="practice-text" label="文本面试 · 可选提示" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="text" /></DCArtboard>
-        <DCArtboard id="practice-phone" label="电话模式 · 可选字幕" width={FRAME_W} height={FRAME_H}><Screen route="practice" mode="phone" /></DCArtboard>
+      <DCSection id="practice-session" title="模拟面试会话" subtitle="连续文字对话；电话入口暂不可用">
+        <DCArtboard id="practice-text" label="连续文字面试" width={FRAME_W} height={FRAME_H}><Screen route="practice" /></DCArtboard>
       </DCSection>
       <DCSection id="resume-workshop" title="简历工坊 · 简历资产" subtitle="简历列表、预览、改写与导出">
         <DCArtboard id="resume-versions" label="简历工坊 · 平铺列表" width={FRAME_W} height={FRAME_H}><Screen route="resume_versions" /></DCArtboard>

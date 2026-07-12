@@ -61,11 +61,11 @@ func recordedJudgeTranscript(t *testing.T, rubric RubricSchema, value float64, s
 	return string(raw)
 }
 
-const validFollowupOutput = `{"questionText":"Tell me more about the rollback you mentioned.","questionIntent":"probe-depth"}`
+const validPracticeChatOutput = `{"messageText":"Tell me more about the rollback you mentioned."}`
 
 func TestLLMJudgeReturnsPerDimensionScores(t *testing.T) {
 	reg := newRepoRegistryClient(t)
-	rubric, err := reg.GetRubric("practice.session.follow_up", "v0.1.0", "multi")
+	rubric, err := reg.GetRubric("practice.session.chat", "v0.1.0", "multi")
 	if err != nil {
 		t.Fatalf("GetRubric: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestLLMJudgeReturnsPerDimensionScores(t *testing.T) {
 	}
 	var _ Judge = judge // compile-time interface assertion (item 2.6)
 
-	scores, reasoning, err := judge.Judge(context.Background(), "practice.session.follow_up", "v0.1.0", []byte(validFollowupOutput), "v0.1.0")
+	scores, reasoning, err := judge.Judge(context.Background(), "practice.session.chat", "v0.1.0", []byte(validPracticeChatOutput), "v0.1.0")
 	if err != nil {
 		t.Fatalf("Judge: %v", err)
 	}

@@ -1,8 +1,8 @@
 # 004 — Report-derived Practice Plans
 
-> **版本**: 1.2
+> **版本**: 1.3
 > **状态**: completed
-> **更新日期**: 2026-07-06
+> **更新日期**: 2026-07-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -15,8 +15,8 @@
 
 - `createPracticePlan` 支持 `goal IN ('retry_current_round','next_round') + sourceReportId`，写入 `practice_plans.source_report_id`。
 - `getPracticePlan` 返回当前 plan 的 `sourceReportId`，同用户重放保持一致。
-- `startPracticeSession` 对 report-derived plan 走 `practice.session.first_question` / A3 首题生成路径，不存在 source question bypass。
-- `goal='debrief'`、`sourceDebriefId`、`source_debrief_id`、`PracticeGoalDebrief` 和 debrief-derived first-turn seeding 是禁止输入 / 禁止契约字段，只能出现在负向断言中。
+- `startPracticeSession` 对 report-derived plan 走统一 `practice.session.chat` opening message 路径，不从报告注入预设消息。
+- `goal='debrief'`、`sourceDebriefId`、`source_debrief_id`、`PracticeGoalDebrief` 和 debrief-derived message seeding 是禁止输入 / 禁止契约字段，只能出现在负向断言中。
 
 ## 2 背景
 
@@ -37,7 +37,7 @@
 |---------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
 | `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` `report-derived` scenarios | Report next actions and workspace/practice owner create retry / next-round plans | `backend/internal/api/practice.Handler.CreatePracticePlan` + `backend/internal/practice.Service.CreatePracticePlan` + `backend/internal/store/practice.SQLRepository.CreatePlan` | `practice_plans.source_report_id` / `audit_events` / `idempotency_records` | none | `E2E.P0.070`, `E2E.P0.072` |
 | `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` sourceReportId shape | Workspace/practice state refresh | `Handler.GetPracticePlan` + `Service.GetPracticePlan` + `SQLRepository.GetPlan` | `practice_plans` read | none | `E2E.P0.070` |
-| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` current plan goals only | Interview session start | `Handler.StartPracticeSession` + `Service.StartPracticeSession` + `SQLRepository.ReserveSessionStart` / `CommitSessionStart` | `practice_sessions` / `practice_turns` / `practice_session_events` / `outbox_events` / `idempotency_records` | `practice.session.first_question` for baseline / retry_current_round / next_round | Covered by active backend-practice start-session gates; no source-question bypass scenario |
+| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` current plan goals only | Interview session start | `Handler.StartPracticeSession` + `Service.StartPracticeSession` + `SQLRepository.ReserveSessionStart` / `CommitSessionStart` | `practice_sessions` / `practice_messages` / `practice_session_events` / `outbox_events` / `idempotency_records` | `practice.session.chat` opening for baseline / retry_current_round / next_round | Covered by active backend-practice start-session gates; no report-seeded message bypass |
 
 ## 3.2 Coverage Matrix
 
@@ -46,7 +46,7 @@
 | R1 | Primary | retry_current_round / next_round report-derived plan creation | service/store/API derived-source tests + `E2E.P0.070` | no owner=004 rejection for valid report-derived sources |
 | R2 | Failure / recovery | missing / cross-user / wrong-target report source | service/store/API source isolation tests + `E2E.P0.072` | no source existence leak across users |
 | R3 | Cross-layer contract | B2 `sourceReportId`, B4 `source_report_id`, generated Go/TS | OpenAPI inventory + generated artifact search + fixture validation owner gates | no `sourceDebriefId` / `source_debrief_id` positive fields |
-| R4 | Regression / negative | prohibited source fields / goals | negative grep across runtime/generated/fixtures/scenario docs | no `PracticeGoalDebrief`, `goal='debrief'`, debrief start scenario, or debrief first-question bypass |
+| R4 | Regression / negative | prohibited source fields / goals | negative grep across runtime/generated/fixtures/scenario docs | no `PracticeGoalDebrief`, `goal='debrief'`, debrief start scenario, or seeded-message bypass |
 
 ## 4 实施步骤
 
@@ -62,7 +62,7 @@ Keep service/store validation for `retry_current_round` and `next_round`: `sourc
 
 #### 1.3 Start-session behavior
 
-Keep report-derived starts on the regular AI first-question path. Do not add a source-question bypass or raw-question seed.
+Keep report-derived starts on the regular AI conversation-opening path. Do not add a report-seeded message bypass or raw transcript seed.
 
 ### Phase 2: Source Boundary Reconciliation
 
@@ -93,6 +93,7 @@ Keep `E2E.P0.070` and `E2E.P0.072` as the active scenario proof.
 
 | 日期 | 版本 | 变更 | 原因 |
 |------|------|------|------|
+| 2026-07-12 | 1.3 | Align report-derived start with `practice.session.chat` and `practice_messages`. | Practice is now one continuous conversation without turn/question structures. |
 | 2026-07-06 | 1.2 | Rename owner path to `004-report-derived-practice-plans`; current contract remains report-derived retry / next-round only. | Product-scope pruning requires current owner docs to use current owner language. |
 | 2026-07-06 | 1.1 | Reconcile completed plan after product-scope D-22: current positive scope is report-derived retry / next-round only; out-of-scope source fields move to negative assertions. | Completed plan/context was still a discovery source and could reintroduce deleted work. |
 | 2026-05-16 | 1.0 | Initial implementation of derived practice plans. | Initial contract delivery. |

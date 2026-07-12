@@ -157,8 +157,8 @@ func newTestClient(t *testing.T) *aiclient.Client {
 
 func defaultResolver() staticResolver {
 	return staticResolver{
-		"practice.followup.default": {
-			Name:       "practice.followup.default",
+		"practice.chat.default": {
+			Name:       "practice.chat.default",
 			Capability: aiclient.CapabilityChat,
 			Status:     aiclient.ProfileStatusActive,
 			Default: aiclient.ProviderConfig{
@@ -247,7 +247,7 @@ func samplePayload() aiclient.CompletePayload {
 			{Role: "user", Content: "Tell me about a time you led a project."},
 		},
 		Metadata: aiclient.CallMetadata{
-			FeatureKey:    "practice.followup",
+			FeatureKey:    "practice.session.chat",
 			PromptVersion: "p1",
 			RubricVersion: "r1",
 			Language:      "en",
@@ -257,7 +257,7 @@ func samplePayload() aiclient.CompletePayload {
 
 func TestComplete_RoutesToStubAndReturnsMeta(t *testing.T) {
 	c := newTestClient(t)
-	resp, meta, err := c.Complete(context.Background(), "practice.followup.default", samplePayload())
+	resp, meta, err := c.Complete(context.Background(), "practice.chat.default", samplePayload())
 	if err != nil {
 		t.Fatalf("Complete: %v", err)
 	}
@@ -267,8 +267,8 @@ func TestComplete_RoutesToStubAndReturnsMeta(t *testing.T) {
 	if meta.Provider != stub.Name {
 		t.Fatalf("expected meta.Provider=%q, got %q", stub.Name, meta.Provider)
 	}
-	if meta.ModelProfileName != "practice.followup.default" {
-		t.Fatalf("expected meta.ModelProfileName=practice.followup.default, got %q", meta.ModelProfileName)
+	if meta.ModelProfileName != "practice.chat.default" {
+		t.Fatalf("expected meta.ModelProfileName=practice.chat.default, got %q", meta.ModelProfileName)
 	}
 	if meta.ModelProfileVersion != "1.0.0" {
 		t.Fatalf("expected meta.ModelProfileVersion=1.0.0, got %q", meta.ModelProfileVersion)
@@ -286,11 +286,11 @@ func TestComplete_RoutesToStubAndReturnsMeta(t *testing.T) {
 
 func TestComplete_DeterministicForSameInput(t *testing.T) {
 	c := newTestClient(t)
-	first, _, err := c.Complete(context.Background(), "practice.followup.default", samplePayload())
+	first, _, err := c.Complete(context.Background(), "practice.chat.default", samplePayload())
 	if err != nil {
 		t.Fatalf("first Complete: %v", err)
 	}
-	second, _, err := c.Complete(context.Background(), "practice.followup.default", samplePayload())
+	second, _, err := c.Complete(context.Background(), "practice.chat.default", samplePayload())
 	if err != nil {
 		t.Fatalf("second Complete: %v", err)
 	}
@@ -312,11 +312,11 @@ func TestComplete_ToolsPayloadRemainsProviderNeutral(t *testing.T) {
 		Name: "extract_signal",
 	}
 
-	_, meta, err := c.Complete(context.Background(), "practice.followup.default", payload)
+	_, meta, err := c.Complete(context.Background(), "practice.chat.default", payload)
 	if err != nil {
 		t.Fatalf("Complete: %v", err)
 	}
-	if provider.lastCompleteProfile != "practice.followup.default" {
+	if provider.lastCompleteProfile != "practice.chat.default" {
 		t.Fatalf("provider should receive resolved profile name only, got %q", provider.lastCompleteProfile)
 	}
 	if len(provider.lastCompletePayload.Tools) != 1 {
@@ -328,14 +328,14 @@ func TestComplete_ToolsPayloadRemainsProviderNeutral(t *testing.T) {
 	if provider.lastCompletePayload.ToolChoice == nil || provider.lastCompletePayload.ToolChoice.Name != "extract_signal" {
 		t.Fatalf("tool choice not propagated: %+v", provider.lastCompletePayload.ToolChoice)
 	}
-	if meta.ModelProfileName != "practice.followup.default" || meta.Provider != stub.Name {
+	if meta.ModelProfileName != "practice.chat.default" || meta.Provider != stub.Name {
 		t.Fatalf("meta must stay profile/provider neutral, got %+v", meta)
 	}
 }
 
 func TestComplete_EmptyMessagesReturnsAIOutputInvalid(t *testing.T) {
 	c := newTestClient(t)
-	_, meta, err := c.Complete(context.Background(), "practice.followup.default", aiclient.CompletePayload{})
+	_, meta, err := c.Complete(context.Background(), "practice.chat.default", aiclient.CompletePayload{})
 	assertAIOutputInvalid(t, meta, err)
 }
 
@@ -398,11 +398,11 @@ func TestTranscribe_RealtimeProfileFailsClosed(t *testing.T) {
 
 func TestComplete_DisabledProfileFailsClosedWithSharedError(t *testing.T) {
 	resolver := defaultResolver()
-	resolver["practice.followup.default"].Status = aiclient.ProfileStatusDisabled
-	resolver["practice.followup.default"].UnsupportedReason = "disabled until owner enables this capability"
+	resolver["practice.chat.default"].Status = aiclient.ProfileStatusDisabled
+	resolver["practice.chat.default"].UnsupportedReason = "disabled until owner enables this capability"
 	c, provider := newTestClientWithResolver(t, resolver)
 
-	_, meta, err := c.Complete(context.Background(), "practice.followup.default", samplePayload())
+	_, meta, err := c.Complete(context.Background(), "practice.chat.default", samplePayload())
 	assertUnsupportedCapabilityError(t, err, meta, aiclient.CapabilityChat)
 	if provider.completeCalls != 0 {
 		t.Fatalf("disabled profile must fail before provider invocation, got %d calls", provider.completeCalls)
@@ -421,10 +421,10 @@ func TestComplete_UnsupportedCapabilityFailsClosedWithSharedError(t *testing.T) 
 
 func TestComplete_ProfileCapabilityMismatchFailsClosedWithSharedError(t *testing.T) {
 	resolver := defaultResolver()
-	resolver["practice.followup.default"].Capability = aiclient.CapabilitySTT
+	resolver["practice.chat.default"].Capability = aiclient.CapabilitySTT
 	c, provider := newTestClientWithResolver(t, resolver)
 
-	_, meta, err := c.Complete(context.Background(), "practice.followup.default", samplePayload())
+	_, meta, err := c.Complete(context.Background(), "practice.chat.default", samplePayload())
 	assertUnsupportedCapabilityError(t, err, meta, aiclient.CapabilitySTT)
 	if provider.completeCalls != 0 {
 		t.Fatalf("capability mismatch must fail before provider invocation, got %d calls", provider.completeCalls)
@@ -594,7 +594,7 @@ func sameStrings(got, want []string) bool {
 
 func TestStream_DoneEventAndChannelClose(t *testing.T) {
 	c := newTestClient(t)
-	ch, err := c.Stream(context.Background(), "practice.followup.default", samplePayload())
+	ch, err := c.Stream(context.Background(), "practice.chat.default", samplePayload())
 	if err != nil {
 		t.Fatalf("Stream: %v", err)
 	}
@@ -616,7 +616,7 @@ func TestStream_DoneEventAndChannelClose(t *testing.T) {
 		t.Fatalf("expected done meta.Provider=%q, got %q", stub.Name, last.Meta.Provider)
 	}
 	if last.Meta.Capability != aiclient.CapabilityChat ||
-		last.Meta.ModelProfileName != "practice.followup.default" ||
+		last.Meta.ModelProfileName != "practice.chat.default" ||
 		last.Meta.ModelProfileVersion != "1.0.0" ||
 		last.Meta.PromptVersion != "p1" ||
 		last.Meta.RubricVersion != "r1" ||

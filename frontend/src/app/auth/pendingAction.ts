@@ -25,8 +25,6 @@ export const PENDING_ACTION_INTERVIEW_KEYS = [
   "resumeId",
   "roundId",
   "roundName",
-  "mode",
-  "modality",
   "practiceGoal",
   "sessionId",
 ] as const;

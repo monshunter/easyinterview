@@ -10,7 +10,7 @@ This scenario composes six focused owner test files:
 - `ReportFailureState.test.tsx` covers AI_* / REPORT_NOT_FOUND copy and retry/back handlers.
 - `ReportMissingSessionState.test.tsx` covers missing-session and missing-report variants.
 - `useFeedbackReport.test.tsx` covers ready, 404, missing-report and 5xx/refresh hook states.
-- `ReportScreen.test.tsx` covers route-state dispatch and rendered not-found copy.
+- `ConversationReport.test.tsx` covers the current conversation-level report rendering contract.
 - `useReportGenerationPoll.test.tsx` covers failed, 404 and timeout hook states.
 
 The runner does not mount `GeneratingScreen`; timeout evidence stops at the poll-hook state. The shared real-mode gate proves production client configuration separately from these deterministic tests.

@@ -62,8 +62,6 @@ func modelProfileForFeature(featureKey string) string {
 	switch featureKey {
 	case reportGenerateFeatureKey:
 		return "report.generate.default"
-	case reportQuestionAssessmentFeatureKey:
-		return "report.assessment.default"
 	default:
 		return ""
 	}

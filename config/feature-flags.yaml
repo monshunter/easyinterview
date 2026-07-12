@@ -1,4 +1,4 @@
-# Feature flag baseline (P0) — 6 flags listed in engineering-roadmap decisions
+# Feature flag baseline (P0) — current conversation/report flags
 # §15.1, owned jointly by A4 secrets-and-config and F2 analytics-funnel.
 #
 # Schema: flags.<key>.{enabled, variant?, public}
@@ -9,9 +9,6 @@
 #            internal switches.
 
 flags:
-  practice_hint_enabled:
-    enabled: true
-    public: true
   report_evidence_v2_enabled:
     enabled: true
     public: true
@@ -25,6 +22,3 @@ flags:
   ai_fallback_model_enabled:
     enabled: true
     public: false
-  practice_assistance_mode_enabled:
-    enabled: true
-    public: true

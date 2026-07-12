@@ -1,844 +1,125 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type Dispatch,
-  type FC,
-  type SetStateAction,
-} from "react";
+import { useCallback, useEffect, useMemo, useState, type FC } from "react";
 
-import type {
-  AssistantAction,
-  PracticeMode,
-  PracticeVoiceTurnResult,
-} from "../../../api/generated/types";
-import { useI18n, type MessageKey } from "../../i18n/messages";
+import { useI18n } from "../../i18n/messages";
 import { useInterviewContext } from "../../interview-context/InterviewContext";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import type { Route } from "../../routes";
-import { TopBar } from "./components/TopBar";
-import { SessionMap, type SessionMapItem } from "./components/SessionMap";
-import { QuestionCard } from "./components/QuestionCard";
-import { Transcript, type TranscriptMessage } from "./components/Transcript";
-import { InputBar } from "./components/InputBar";
-import { HintBanner } from "./components/HintBanner";
-import { FinishCta } from "./components/FinishCta";
-import { PracticePhoneSurface } from "./components/PracticePhoneSurface";
-import { PracticeSessionLostState } from "./components/PracticeSessionLostState";
 import { ErrorState } from "./components/ErrorState";
-import { AssistantActionRenderer } from "./components/AssistantActionRenderer";
-import { usePracticeSessionLoader } from "./hooks/usePracticeSessionLoader";
-import { usePracticeEvents } from "./hooks/usePracticeEvents";
-import { usePracticeSession } from "./hooks/usePracticeSession";
+import { FinishCta } from "./components/FinishCta";
+import { InputBar } from "./components/InputBar";
+import { PracticeSessionLostState } from "./components/PracticeSessionLostState";
+import { TopBar } from "./components/TopBar";
+import { Transcript, type TranscriptMessage } from "./components/Transcript";
 import { useCompletePracticeSession } from "./hooks/useCompletePracticeSession";
-import { usePracticeVoicePlayback } from "./hooks/usePracticeVoicePlayback";
-import { usePracticeVoiceTurn } from "./hooks/usePracticeVoiceTurn";
-import { usePracticePhoneController } from "./usePracticePhoneController";
+import { usePracticeMessages } from "./hooks/usePracticeMessages";
+import { usePracticeSessionLoader } from "./hooks/usePracticeSessionLoader";
 import { usePracticeTargetDisplay } from "./usePracticeTargetDisplay";
-import { buildPracticeHandoffParams } from "./utils/practiceHandoffParams";
 
-interface PracticeScreenProps {
-  route: Route;
-}
+interface PracticeScreenProps { route: Route; }
 
-interface PracticeSessionScreenProps extends PracticeScreenProps {
-  sessionId: string;
-}
-
-interface ClassifiedPracticeError {
-  messageKey: MessageKey;
-  retryable: boolean;
-  refreshSession: boolean;
-  sessionLost: boolean;
-}
-
-interface PracticeErrorState {
-  message: string;
-  retryable: boolean;
-  fallbackBackToWorkspace: boolean;
-}
-
-type RetryAction = () => Promise<void>;
-
-/**
- * PracticeScreen — shared text / phone interview surface.
- *
- * Source-level mirror of `ui-design/src/screen-practice.jsx::PracticeScreen`
- * current real-interview branch. It uses a left session map plus centered
- * interview surface, with mode/pause/finish controls in the top bar.
- */
 export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
+  const { t } = useI18n();
+  const { navigate } = useNavigation();
   const { ctx } = useInterviewContext();
   const sessionId = route.params.sessionId || ctx.sessionId || "";
-  return (
-    <PracticeSessionScreen
-      key={sessionId}
-      route={route}
-      sessionId={sessionId}
-    />
-  );
-};
-
-const PracticeSessionScreen: FC<PracticeSessionScreenProps> = ({
-  route,
-  sessionId,
-}) => {
-  const { t, lang } = useI18n();
-  const { navigate } = useNavigation();
-  const { ctx, dispatch } = useInterviewContext();
-
-  const mode = route.params.mode || ctx.mode || "text";
-  const modality = route.params.modality || ctx.modality || mode;
-  const practiceMode =
-    route.params.practiceMode || ctx.practiceMode || "assisted";
-  const practiceGoal =
-    route.params.practiceGoal || ctx.practiceGoal || "baseline";
-  const activeMode = modality === "phone" ? "phone" : "text";
-  const roundName = route.params.roundName || ctx.roundName || "";
-  const interviewerLabel =
-    roundName || t("practice.toolbar.role.manager");
-
   const loader = usePracticeSessionLoader(sessionId);
+  const messages = usePracticeMessages(sessionId);
+  const completion = useCompletePracticeSession(sessionId);
   const targetDisplay = usePracticeTargetDisplay({
-    session: loader.data
-      ? { targetJobId: loader.data.targetJobId }
-      : null,
+    session: loader.data ? { targetJobId: loader.data.targetJobId } : null,
     routeTargetJobId: route.params.targetJobId,
     contextTargetJobId: ctx.targetJobId,
   });
-  const events = usePracticeEvents(sessionId);
-  const completion = useCompletePracticeSession(sessionId);
-  const sessionFlags = usePracticeSession(loader.data?.status ?? null);
-  const voicePracticeMode: PracticeMode =
-    practiceMode === "strict" ? "strict" : "assisted";
-  const voiceTurn = usePracticeVoiceTurn({
-    sessionId,
-    turnId: loader.data?.currentTurn?.id ?? "",
-    lang,
-    practiceMode: voicePracticeMode,
-  });
-  const acceptedVoiceResult =
-    voiceTurn.state.kind === "success" &&
-    voiceTurn.state.result.session.id === sessionId
-      ? voiceTurn.state.result
-      : null;
-  const voicePlayback = usePracticeVoicePlayback({
-    sessionId,
-    result: acceptedVoiceResult,
-    enabled: activeMode === "phone",
-  });
-  const isNarrow = useNarrowPracticeLayout();
-
-  const [paused, setPaused] = useState(false);
   const [input, setInput] = useState("");
-  const [transcript, setTranscript] = useState<TranscriptMessage[]>([]);
-  const [showHintBanner, setShowHintBanner] = useState(false);
-  const [hintBannerText, setHintBannerText] = useState("");
-  const [phoneTtsUnavailable, setPhoneTtsUnavailable] = useState(false);
-  const [activeAssistantAction, setActiveAssistantAction] =
-    useState<AssistantAction | null>(null);
-  const [errorState, setErrorState] = useState<PracticeErrorState | null>(null);
-  const retryActionRef = useRef<RetryAction | null>(null);
-  const [refreshingAfterConflict, setRefreshingAfterConflict] = useState(false);
-  const conflictRefreshStartedRef = useRef(false);
-  const [sessionLostByMutation, setSessionLostByMutation] = useState(false);
-  type TurnAnnotation = "follow_up_requested" | "done";
-  const [turnAnnotations, setTurnAnnotations] = useState<
-    Map<number, TurnAnnotation>
-  >(() => new Map());
-  const inputDisabled =
-    sessionFlags.inputDisabled ||
-    paused ||
-    loader.state === "loading" ||
-    refreshingAfterConflict;
-  const phoneActive =
-    activeMode === "phone" && !paused && !sessionFlags.inputDisabled;
-
-  // Local elapsed timer (UI display only; backend owns server elapsed).
+  const [paused, setPaused] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  useEffect(() => {
-    if (inputDisabled) return;
-    const id = setInterval(() => setElapsed((v) => v + 1), 1000);
-    return () => clearInterval(id);
-  }, [inputDisabled]);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!refreshingAfterConflict) return;
-    if (loader.state === "loading") {
-      conflictRefreshStartedRef.current = true;
-      return;
-    }
-    if (conflictRefreshStartedRef.current) {
-      setRefreshingAfterConflict(false);
-      conflictRefreshStartedRef.current = false;
-    }
-  }, [loader.state, refreshingAfterConflict]);
+    if (paused) return;
+    const timer = window.setInterval(() => setElapsed((value) => value + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [paused]);
 
-  const handleBackToWorkspace = useCallback(() => {
-    navigate({
-      name: "workspace",
-      params: {
-        targetJobId: targetDisplay.targetJobId || "",
-        jdId: route.params.jdId || ctx.jdId || "",
-        planId: route.params.planId || ctx.planId || "",
-        resumeId:
-          route.params.resumeId || ctx.resumeId || "",
-      },
-    });
-  }, [navigate, route.params, ctx, targetDisplay.targetJobId]);
+  const transcript = useMemo<TranscriptMessage[]>(() => (loader.data?.messages ?? []).map((message) => ({
+    id: message.id,
+    role: message.role === "user" ? "user" : "assistant",
+    text: message.content,
+    t: formatMessageTime(message.createdAt),
+  })), [loader.data?.messages]);
 
-  const enterPhoneMode = useCallback(() => {
-    navigate({
-      name: "practice",
-      params: {
-        ...route.params,
-        sessionId,
-        mode: "phone",
-        modality: "phone",
-      },
-    });
-  }, [navigate, route.params, sessionId]);
+  const backToWorkspace = useCallback(() => navigate({ name: "workspace", params: { targetJobId: targetDisplay.targetJobId || "" } }), [navigate, targetDisplay.targetJobId]);
 
-  const applyAssistantAction = useCallback((action: AssistantAction) => {
-    setActiveAssistantAction(action);
-  }, []);
-
-  const handleMutationError = useCallback(
-    (err: unknown, retryAction: RetryAction | null) => {
-      const classified = classifyPracticeError(err);
-      if (classified.sessionLost) {
-        setSessionLostByMutation(true);
-      }
-      if (classified.refreshSession) {
-        conflictRefreshStartedRef.current = false;
-        setRefreshingAfterConflict(true);
-        loader.refresh();
-      }
-      retryActionRef.current =
-        classified.retryable && retryAction ? retryAction : null;
-      updatePracticeErrorState(setErrorState, {
-        message: t(classified.messageKey),
-        retryable: classified.retryable && Boolean(retryAction),
-        fallbackBackToWorkspace:
-          completion.state.kind === "error"
-            ? completion.state.fallbackBackToWorkspace
-            : false,
-      });
-    },
-    [completion.state, loader, t],
-  );
-
-  const runPracticeAction = useCallback(
-    async (action: RetryAction, retryAction: RetryAction | null = action) => {
-      setErrorState(null);
-      try {
-        await action();
-        retryActionRef.current = null;
-      } catch (err) {
-        handleMutationError(err, retryAction);
-      }
-    },
-    [handleMutationError],
-  );
-
-  const handleRetry = useCallback(() => {
-    const retryAction = retryActionRef.current;
-    if (!retryAction) {
-      setErrorState(null);
-      return;
-    }
-    void runPracticeAction(retryAction, retryAction);
-  }, [runPracticeAction]);
-
-  const buildSessionMapItems = useCallback((): SessionMapItem[] => {
-    const data = loader.data;
-    const turn = data?.currentTurn ?? null;
-    const total = Math.max(data?.turnCount ?? 0, turn ? turn.turnIndex : 0, 1);
-    const items: SessionMapItem[] = [];
-    for (let i = 1; i <= total; i++) {
-      let status: SessionMapItem["status"] = "pending";
-      if (turn) {
-        if (i < turn.turnIndex) {
-          status = "done";
-        } else if (i === turn.turnIndex) {
-          status = "active";
-        }
-      }
-      const annotation = turnAnnotations.get(i);
-      if (annotation === "follow_up_requested") {
-        status = "follow_up_requested";
-      } else if (annotation === "done") {
-        status = "done";
-      }
-      items.push({
-        id: turn && i === turn.turnIndex ? turn.id : `q-skeleton-${i}`,
-        topic: t("practice.question.tagPrefix").replace("{n}", String(i)),
-        duration: "—",
-        status,
-      });
-    }
-    return items;
-  }, [loader.data, turnAnnotations, t]);
-
-  const sessionMapItems = useMemo(buildSessionMapItems, [buildSessionMapItems]);
-  const activeIndex = (loader.data?.currentTurn?.turnIndex ?? 1) - 1;
-
-  const fmtElapsed = (sec: number) =>
-    `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
-
-  // ── handlers ──────────────────────────────────────────────────────────
-  const appendPhoneVoiceTurnResult = useCallback(
-    (result: PracticeVoiceTurnResult) => {
-      if (!loader.adopt(result.session)) return;
-      setPhoneTtsUnavailable(result.ttsError !== null);
-      setTranscript((prev) => {
-        const next: TranscriptMessage[] = [
-          ...prev,
-          {
-            role: "user",
-            text: result.userTranscriptFinal,
-            t: fmtElapsed(elapsed),
-          },
-        ];
-        if (result.assistantTextDraft.trim()) {
-          next.push({
-            role: "ai",
-            text: result.assistantTextDraft,
-            t: fmtElapsed(elapsed + 1),
-            followUp: true,
-          });
-        }
-        return next;
-      });
-      const turnIndex = result.session.currentTurn?.turnIndex;
-      if (turnIndex) {
-        setTurnAnnotations((prev) => {
-          const next = new Map(prev);
-          next.set(turnIndex, "follow_up_requested");
-          return next;
-        });
-      }
-    },
-    [elapsed, loader.adopt],
-  );
-
-  const { exitPhoneMode: stopPhoneMode } = usePracticePhoneController({
-    enabled: activeMode === "phone",
-    active: phoneActive,
-    voiceTurn,
-    voicePlayback,
-    onTurnResult: appendPhoneVoiceTurnResult,
-    onError: (error) => handleMutationError(error, null),
-  });
-
-  const exitPhoneMode = useCallback(() => {
-    stopPhoneMode();
-    navigate({
-      name: "practice",
-      params: {
-        ...route.params,
-        sessionId,
-        mode: "text",
-        modality: "text",
-      },
-    });
-  }, [navigate, route.params, sessionId, stopPhoneMode]);
-
-  const togglePhoneMode =
-    activeMode === "phone" ? exitPhoneMode : enterPhoneMode;
-
-  const onSend = useCallback(async () => {
-    if (inputDisabled || !input.trim()) return;
-    const turnId = loader.data?.currentTurn?.id ?? "";
-    if (!turnId) return;
-    const answerText = input.trim();
-    const sentAt = fmtElapsed(elapsed);
-    const action = async () => {
-      const result = await events.submitAnswer({ turnId, answerText });
-      if (!loader.adopt(result.session)) return;
-      applyAssistantAction(result.assistantAction);
-      if (result.assistantAction.type === "session_wait") return;
-      setTranscript((prev) => [
-        ...prev,
-        { role: "user", text: answerText, t: sentAt },
-      ]);
+  const send = useCallback(async () => {
+    const text = input.trim();
+    if (!text || sending || paused) return;
+    setSending(true);
+    setError(null);
+    try {
+      const result = await messages.sendMessage(text);
+      loader.adopt(result.session);
       setInput("");
-    };
-    await runPracticeAction(action, action);
-  }, [
-    applyAssistantAction,
-    elapsed,
-    events,
-    input,
-    inputDisabled,
-    loader.data,
-    loader.adopt,
-    runPracticeAction,
-  ]);
-
-  const onHint = useCallback(async () => {
-    if (inputDisabled) return;
-    if (showHintBanner) {
-      setShowHintBanner(false);
-      return;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setSending(false);
     }
-    const turnId = loader.data?.currentTurn?.id ?? "";
-    if (!turnId) return;
-    const action = async () => {
-      const result = await events.requestHint({ turnId });
-      if (!loader.adopt(result.session)) return;
-      applyAssistantAction(result.assistantAction);
-    };
-    await runPracticeAction(action, action);
-  }, [
-    applyAssistantAction,
-    events,
-    inputDisabled,
-    loader.adopt,
-    loader.data,
-    runPracticeAction,
-    showHintBanner,
-  ]);
+  }, [input, loader, messages, paused, sending]);
 
-  const onTogglePause = useCallback(async () => {
-    if (paused) {
-      const action = async () => {
-        const result = await events.resumeSession();
-        if (!loader.adopt(result.session)) return;
-        setPaused(false);
-      };
-      await runPracticeAction(action, action);
-    } else {
-      const action = async () => {
-        const result = await events.pauseSession();
-        if (!loader.adopt(result.session)) return;
-        setPaused(true);
-      };
-      await runPracticeAction(action, action);
-    }
-  }, [events, loader.adopt, paused, runPracticeAction]);
-
-  const handleAskQuestion = useCallback(
-    (_turnId: string, questionText: string) => {
-      if (questionText) {
-        setTranscript((prev) => [
-          ...prev,
-          { role: "ai", text: questionText, t: fmtElapsed(elapsed) },
-        ]);
-      }
-      // turn advance is reflected by the next getPracticeSession refresh.
-    },
-    [elapsed],
-  );
-
-  const handleAskFollowUp = useCallback(
-    (_turnId: string, questionText: string) => {
-      if (questionText) {
-        setTranscript((prev) => [
-          ...prev,
-          {
-            role: "ai",
-            text: questionText,
-            t: fmtElapsed(elapsed),
-            followUp: true,
-          },
-        ]);
-      }
-      const turnIndex = loader.data?.currentTurn?.turnIndex;
-      if (turnIndex) {
-        setTurnAnnotations((prev) => {
-          const next = new Map(prev);
-          next.set(turnIndex, "follow_up_requested");
-          return next;
-        });
-      }
-    },
-    [elapsed, loader.data?.currentTurn?.turnIndex],
-  );
-
-  const handleShowHint = useCallback(
-    (hint: string, _turnId: string) => {
-      setHintBannerText(hint);
-      setShowHintBanner(true);
-      dispatch({ type: "INCREMENT_HINT_COUNT" });
-    },
-    [dispatch],
-  );
-
-  const handleSessionWait = useCallback(() => {
-    setErrorState(null);
-  }, []);
-
-  const handleSessionCompleted = useCallback(() => {
-    setErrorState(null);
-  }, []);
-
-  const handoffNavigatedRef = useRef(false);
-  const onFinish = useCallback(async () => {
-    if (handoffNavigatedRef.current) return;
-    const action = async () => {
+  const finish = useCallback(async () => {
+    setError(null);
+    try {
       const report = await completion.complete();
-      if (handoffNavigatedRef.current) return;
-      handoffNavigatedRef.current = true;
-      const handoff = buildPracticeHandoffParams({
-        ctx: { ...ctx, sessionId },
+      navigate({ name: "generating", params: {
+        targetJobId: targetDisplay.targetJobId || "",
+        planId: route.params.planId || ctx.planId || "",
+        sessionId,
         reportId: report.reportId,
-        mode,
-        modality,
-        practiceMode,
-        practiceGoal,
-        hintCount: Number(ctx.hintCount) || 0,
-      });
-      navigate({
-        name: "generating",
-        params: handoff as unknown as Record<string, string>,
-      });
-    };
-    await runPracticeAction(action, action);
-  }, [
-    completion,
-    ctx,
-    mode,
-    modality,
-    navigate,
-    practiceGoal,
-    practiceMode,
-    runPracticeAction,
-    sessionId,
-  ]);
-
-  useEffect(() => {
-    if (completion.state.kind !== "error") return;
-    const classified = classifyPracticeError(completion.state.message);
-    updatePracticeErrorState(setErrorState, {
-      message: t(classified.messageKey),
-      retryable:
-        completion.state.retryable && Boolean(retryActionRef.current),
-      fallbackBackToWorkspace: completion.state.fallbackBackToWorkspace,
-    });
-  }, [completion.state, t]);
-
-  // Initial transcript seed: first AI question from loader.
-  useEffect(() => {
-    if (
-      loader.state === "data" &&
-      loader.data?.currentTurn &&
-      transcript.length === 0
-    ) {
-      setTranscript([
-        {
-          role: "ai",
-          text: loader.data.currentTurn.questionText,
-          t: "00:00",
-        },
-      ]);
+        resumeId: route.params.resumeId || ctx.resumeId || "",
+        roundId: route.params.roundId || ctx.roundId || "",
+        roundName: route.params.roundName || ctx.roundName || "",
+      } });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loader.state, loader.data?.currentTurn?.id]);
+  }, [completion, ctx.planId, ctx.resumeId, ctx.roundId, ctx.roundName, navigate, route.params, sessionId, targetDisplay.targetJobId]);
 
-  if (!sessionId || loader.state === "sessionLost" || sessionLostByMutation) {
-    return <PracticeSessionLostState onBack={handleBackToWorkspace} />;
-  }
+  if (!sessionId || loader.state === "sessionLost") return <PracticeSessionLostState onBack={backToWorkspace} />;
 
-  const turnTotal = loader.data?.turnCount ?? sessionMapItems.length;
-  const currentTurn = loader.data?.currentTurn;
-  const hintCount = Number(ctx.hintCount) || 0;
-  const finishCta = (
-    <FinishCta
-      label={t("practice.finishCta")}
-      hintCount={hintCount}
-      hintUsageNote={t("practice.hintUsageNote")}
-      disabled={
-        sessionFlags.completionCtaDisabled ||
-        completion.state.kind === "loading"
-      }
-      onFinish={onFinish}
-    />
-  );
+  const inputDisabled = paused || sending || loader.state === "loading" || !messages.ready || loader.data?.status === "completed" || loader.data?.status === "completing";
+  const interviewerLabel = route.params.roundName || ctx.roundName || t("practice.toolbar.role.manager");
 
   return (
-    <div
-      data-testid="practice-screen"
-      data-session-id={sessionId}
-      data-plan-id={route.params.planId || ctx.planId || ""}
-      data-target-job-id={targetDisplay.targetJobId || ""}
-      data-jd-id={route.params.jdId || ctx.jdId || ""}
-      data-resume-version-id={
-        route.params.resumeId || ctx.resumeId || ""
-      }
-      data-round-id={route.params.roundId || ctx.roundId || ""}
-      data-mode={mode}
-      data-modality={modality}
-      data-practice-mode={practiceMode}
-      data-practice-goal={practiceGoal}
-      className="ei-fadein"
-      style={{
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        background: "var(--ei-color-bg-canvas)",
-        overflow: "hidden",
-      }}
-    >
+    <div data-testid="practice-screen" data-session-id={sessionId} data-plan-id={route.params.planId || ctx.planId || ""} data-target-job-id={targetDisplay.targetJobId || ""} className="ei-fadein" style={{ height: "100vh", display: "flex", flexDirection: "column", background: "var(--ei-color-bg-canvas)", overflow: "hidden" }}>
       <TopBar
-        company={
-          targetDisplay.companyName ?? t("practice.toolbar.companySkeleton")
-        }
+        company={targetDisplay.companyName ?? t("practice.toolbar.companySkeleton")}
         title={targetDisplay.title ?? t("practice.toolbar.titleSkeleton")}
-        questionIndex={currentTurn?.turnIndex ?? 1}
-        questionTotal={Math.max(turnTotal, 5)}
-        questionLabel={t("practice.toolbar.questionTag")}
-        elapsed={fmtElapsed(elapsed)}
+        elapsed={formatElapsed(elapsed)}
         budget="25:00"
         paused={paused}
         pauseLabel={t("practice.toolbar.pause")}
         resumeLabel={t("practice.toolbar.resume")}
-        onTogglePause={onTogglePause}
-        activeMode={activeMode}
-        onTogglePhone={togglePhoneMode}
+        onTogglePause={() => setPaused((value) => !value)}
         interviewerLabel={interviewerLabel}
-        phoneToggleLabel={
-          activeMode === "phone"
-            ? t("practice.toolbar.phoneExitLabel")
-            : t("practice.toolbar.phoneEnterLabel")
-        }
-        phoneToggleTitle={
-          activeMode === "phone"
-            ? t("practice.toolbar.phoneExitTitle")
-            : t("practice.toolbar.phoneEnterTitle")
-        }
-        finishCta={finishCta}
+        phoneDisabledLabel={t("practice.toolbar.phoneDisabled")}
+        finishCta={<FinishCta label={t("practice.finishCta")} disabled={completion.state.kind === "loading" || loader.data?.status === "completed"} onFinish={finish} />}
       />
-
-      <div
-        data-testid="practice-main"
-        style={{
-          flex: 1,
-          display: "grid",
-          gridTemplateColumns: isNarrow
-            ? "minmax(0, 1fr)"
-            : "260px minmax(0, 1fr)",
-          gridAutoRows: isNarrow ? "max-content" : undefined,
-          minHeight: 0,
-          overflowY: isNarrow ? "auto" : "hidden",
-        }}
-      >
-        <div
-          data-testid="practice-sessionmap"
-          style={{
-            borderRight: "1px solid var(--ei-color-rule-strong)",
-            padding: "20px 18px",
-            overflowY: "auto",
-            background: "var(--ei-color-bg-soft)",
-          }}
-        >
-          <SessionMap
-            label={t("practice.sessionMap.label")}
-            items={sessionMapItems}
-            activeIndex={Math.max(activeIndex, 0)}
-          />
-        </div>
-
-        <div
-          data-testid="practice-center"
-          style={{ display: "flex", flexDirection: "column", minHeight: 0 }}
-        >
-          {activeMode === "phone" ? (
-            <PracticePhoneSurface
-              lang={lang}
-              active={phoneActive}
-              captureState={voiceTurn.state.kind}
-              playbackState={voicePlayback.state.kind}
-              voiceError={
-                errorState?.message ??
-                (voiceTurn.state.kind === "error"
-                  ? t(classifyPracticeError(voiceTurn.state.message).messageKey)
-                  : null)
-              }
-              playbackError={
-                phoneTtsUnavailable || acceptedVoiceResult?.ttsError
-                  ? t("practice.errors.ttsUnavailable")
-                  : voicePlayback.state.kind === "error"
-                  ? t(
-                      classifyPracticeError(voicePlayback.state.message)
-                        .messageKey,
-                    )
-                  : null
-              }
-              messages={transcript}
-              aiLabel={t("practice.transcript.aiLabel")}
-              userLabel={t("practice.transcript.userLabel")}
-              followUpLabel={t("practice.transcript.followUp")}
-              onHangUp={exitPhoneMode}
-            />
-          ) : (
-            <>
-              <QuestionCard
-                badgeText={t("practice.question.tagPrefix").replace(
-                  "{n}",
-                  String(currentTurn?.turnIndex ?? 1),
-                )}
-                topic={t("practice.question.tagPrefix").replace(
-                  "{n}",
-                  String(currentTurn?.turnIndex ?? 1),
-                )}
-                tags={[]}
-                prompt={
-                  currentTurn?.questionText ??
-                  t("practice.question.skeletonPrompt")
-                }
-              />
-              <Transcript
-                messages={transcript}
-                helperText={t("practice.transcript.helper")}
-                aiLabel={t("practice.transcript.aiLabel")}
-                userLabel={t("practice.transcript.userLabel")}
-                followUpLabel={t("practice.transcript.followUp")}
-              />
-              <ErrorState
-                message={errorState?.message ?? null}
-                retryLabel={t("practice.errors.retry")}
-                onRetry={errorState?.retryable ? handleRetry : undefined}
-              />
-              {errorState?.fallbackBackToWorkspace ? (
-                <button
-                  data-testid="practice-error-back-to-workspace"
-                  type="button"
-                  onClick={handleBackToWorkspace}
-                  style={{
-                    alignSelf: "flex-start",
-                    margin: "0 40px 10px",
-                    background: "var(--ei-color-bg-card)",
-                    border: "1px solid var(--ei-color-rule-strong)",
-                    color: "var(--ei-color-fg-secondary)",
-                    padding: "7px 12px",
-                    borderRadius: 2,
-                    cursor: "pointer",
-                    fontSize: 12,
-                    fontFamily: "var(--ei-font-sans)",
-                  }}
-                >
-                  {t("practice.errors.backToWorkspace")}
-                </button>
-              ) : null}
-              <InputBar
-                value={input}
-                onChange={setInput}
-                placeholder={t("practice.input.placeholder")}
-                hintLabel={t("practice.input.hint")}
-                sendLabel={t("practice.input.send")}
-                showHintButton
-                disabled={inputDisabled}
-                onHint={onHint}
-                onSend={onSend}
-                hintBanner={
-                  <HintBanner
-                    show={showHintBanner}
-                    prefix={t("practice.hint.prefix")}
-                    text={hintBannerText}
-                  />
-                }
-              />
-            </>
-          )}
-        </div>
-
-      </div>
-
-      <AssistantActionRenderer
-        action={activeAssistantAction}
-        onAskQuestion={handleAskQuestion}
-        onAskFollowUp={handleAskFollowUp}
-        onShowHint={handleShowHint}
-        onSessionWait={handleSessionWait}
-        onSessionCompleted={handleSessionCompleted}
-      />
+      <main data-testid="practice-conversation" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", width: "100%" }}>
+        <Transcript messages={transcript} helperText={t("practice.transcript.helper")} aiLabel={t("practice.transcript.aiLabel")} userLabel={t("practice.transcript.userLabel")} />
+        <ErrorState message={error || loader.error?.message || null} retryLabel={t("practice.errors.retry")} onRetry={error ? send : undefined} />
+        <InputBar value={input} onChange={setInput} placeholder={t("practice.input.placeholder")} sendLabel={t("practice.input.send")} disabled={inputDisabled} onSend={send} />
+      </main>
     </div>
   );
 };
 
-function classifyPracticeError(err: unknown): ClassifiedPracticeError {
-  const message = err instanceof Error ? err.message : String(err);
-  if (/^HTTP 404\b/.test(message)) {
-    return {
-      messageKey: "practice.errors.sessionConflict",
-      retryable: false,
-      refreshSession: false,
-      sessionLost: true,
-    };
-  }
-  if (message.includes("AI_PROVIDER_TIMEOUT")) {
-    return {
-      messageKey: "practice.errors.aiTimeout",
-      retryable: true,
-      refreshSession: false,
-      sessionLost: false,
-    };
-  }
-  if (message.includes("AI_OUTPUT_INVALID")) {
-    return {
-      messageKey: "practice.errors.aiOutputInvalid",
-      retryable: false,
-      refreshSession: false,
-      sessionLost: false,
-    };
-  }
-  if (
-    message.includes("client_event_id_mismatch") ||
-    (message.includes("PRACTICE_SESSION_CONFLICT") &&
-      /^HTTP 409\b/.test(message))
-  ) {
-    return {
-      messageKey: "practice.errors.sessionConflict",
-      retryable: false,
-      refreshSession: true,
-      sessionLost: false,
-    };
-  }
-  if (/^HTTP 5\d\d\b/.test(message) || !/^HTTP \d{3}\b/.test(message)) {
-    return {
-      messageKey: "practice.errors.network",
-      retryable: true,
-      refreshSession: false,
-      sessionLost: false,
-    };
-  }
-  return {
-    messageKey: "practice.errors.unknown",
-    retryable: false,
-    refreshSession: false,
-    sessionLost: false,
-  };
+function formatElapsed(seconds: number): string {
+  return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-function updatePracticeErrorState(
-  setErrorState: Dispatch<SetStateAction<PracticeErrorState | null>>,
-  next: PracticeErrorState,
-): void {
-  setErrorState((prev) =>
-    prev &&
-      prev.message === next.message &&
-      prev.retryable === next.retryable &&
-      prev.fallbackBackToWorkspace === next.fallbackBackToWorkspace
-      ? prev
-      : next,
-  );
-}
-
-function useNarrowPracticeLayout(): boolean {
-  const [isNarrow, setIsNarrow] = useState(() => getNarrowPracticeLayout());
-
-  useEffect(() => {
-    const onResize = () => setIsNarrow(getNarrowPracticeLayout());
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  return isNarrow;
-}
-
-function getNarrowPracticeLayout(): boolean {
-  return typeof window !== "undefined" && window.innerWidth <= 720;
+function formatMessageTime(raw: string): string {
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return "00:00";
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }

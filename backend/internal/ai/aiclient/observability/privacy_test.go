@@ -31,12 +31,12 @@ func sensitivePayload() aiclient.CompletePayload {
 			{Role: "user", Content: "Interviewer notes: " + sensitiveTokens[2] + " regarding " + sensitiveTokens[3]},
 		},
 		Metadata: aiclient.CallMetadata{
-			FeatureKey:    "practice.followup",
+			FeatureKey:    "practice.session.chat",
 			PromptVersion: "p1",
 			RubricVersion: "r1",
 			Language:      "en",
 			TaskRun: aiclient.AITaskRunContext{
-				Capability:   aiclient.AITaskRunTaskFollowupGenerate,
+				Capability:   aiclient.AITaskRunTaskPracticeChat,
 				ResourceType: aiclient.AITaskRunResourceTargetJob,
 				ResourceID:   "018f0d59-0f7a-7b58-9f2f-65cc4d8e8b1d",
 			},
@@ -47,7 +47,7 @@ func sensitivePayload() aiclient.CompletePayload {
 func TestPrivacy_NoPlaintextLeaksAnywhere(t *testing.T) {
 	wrap, registry, logger, runs, audit := newTestStack(t)
 
-	if _, _, err := wrap.Complete(context.Background(), "practice.followup.default", sensitivePayload()); err != nil {
+	if _, _, err := wrap.Complete(context.Background(), "practice.chat.default", sensitivePayload()); err != nil {
 		t.Fatalf("Complete: %v", err)
 	}
 

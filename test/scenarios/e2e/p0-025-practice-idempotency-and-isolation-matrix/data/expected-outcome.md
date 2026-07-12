@@ -1,7 +1,7 @@
 # Expected Outcome
 
-- Same user + same key + same fingerprint returns the same session and leaves outbox count unchanged.
-- Same user + same key + different fingerprint returns `409 PRACTICE_SESSION_CONFLICT` without leaking the first session ID.
-- User B using the same key creates an independent session.
-- User A using a different key for an already active plan returns `409 PRACTICE_SESSION_CONFLICT`.
-- User B cannot read User A's plan or session and receives not-found envelopes.
+- Replaying a completed message pair returns the original messages without another AI call.
+- Retrying a pending user message reuses the original row and its preceding history.
+- Reusing a client message ID with different text returns `409 PRACTICE_SESSION_CONFLICT`.
+- Cross-user session access returns `404 PRACTICE_SESSION_NOT_FOUND`.
+- Every focused gate must execute named tests; `no tests to run` is rejected.

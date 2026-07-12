@@ -262,7 +262,7 @@ func (r *activeVersionRegistry) ResolveActive(_ context.Context, featureKey, _ s
 		FeatureKey:       featureKey,
 		PromptVersion:    r.promptVersion,
 		RubricVersion:    r.rubricVersion,
-		ModelProfileName: "practice.followup.default",
+		ModelProfileName: "practice.chat.default",
 	}, nil
 }
 

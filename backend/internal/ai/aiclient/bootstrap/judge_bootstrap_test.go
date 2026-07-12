@@ -85,7 +85,7 @@ func TestNewClientResolvesJudgeCompatibleProvider(t *testing.T) {
 			{Role: "system", Content: "score the output against the rubric"},
 			{Role: "user", Content: "{\"output\":\"x\"}"},
 		},
-		Metadata: aiclient.CallMetadata{FeatureKey: "practice.session.follow_up", PromptVersion: "v0.1.0", RubricVersion: "v0.1.0", Language: "multi"},
+		Metadata: aiclient.CallMetadata{FeatureKey: "practice.session.chat", PromptVersion: "v0.1.0", RubricVersion: "v0.1.0", Language: "multi"},
 	}
 	resp, meta, err := runtime.Client.CompleteJudge(context.Background(), "judge.default", payload)
 	if err != nil {

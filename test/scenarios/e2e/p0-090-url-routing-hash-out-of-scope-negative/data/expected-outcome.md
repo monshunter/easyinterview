@@ -4,8 +4,8 @@
 |------|------|
 | `#route=home` 启动 | `home-hero-label` 渲染；URL 重写为 `/`；`location.hash` 为空 |
 | `#route=workspace&targetJobId=tj-1` | URL 重写为 `/workspace?targetJobId=tj-1`；`workspace-empty` 渲染 |
-| `#route=practice&mode=phone&modality=phone&sessionId=...` | URL 重写为 `/practice?modality=phone&mode=phone&sessionId=...`；chrome 隐藏；当前 phone waveform 渲染 |
-| `#route=practice&mode=voice&modality=voice&sessionId=...` | URL 重写为仅保留 `sessionId` 的 `/practice?...`；out-of-scope `voice` mode / modality 被过滤，phone waveform 不渲染 |
+| `#route=practice&mode=phone&modality=phone&sessionId=...` | URL 重写为仅保留 `sessionId` 的 `/practice?...`；显示连续聊天且电话按钮 disabled |
+| `#route=practice&mode=voice&modality=voice&sessionId=...` | URL 重写为仅保留 `sessionId` 的 `/practice?...`；voice 参数被过滤，不渲染电话 surface |
 | `#route=voice` | URL 重写为 `/`；`home-hero-label` 渲染（独立 voice route 不 materialize） |
 | 12 + 1 个范围外 alias | 全部 hash 启动后 URL 落到对应保留 canonical path（见 plan §4.2）；`debrief` / `debrief_full` / `profile` 均落到 `/` |
 | `/totally-unknown?foo=bar` | 渲染 `home-hero-label`，不崩溃 |

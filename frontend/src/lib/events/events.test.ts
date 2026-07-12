@@ -26,7 +26,6 @@ describe('generated event contract', () => {
       modelId: 'model-profile:contract.default',
       preparednessLevel: 'basically_ready',
       promptVersion: 'p1',
-      questionIssueCount: 2,
       reportId: '0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e',
       rubricVersion: 'r1',
       sessionId: '0195f2d0-4a44-7fc2-8f77-1f9c4ce1ae9e',

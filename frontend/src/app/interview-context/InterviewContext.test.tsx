@@ -1,268 +1,38 @@
-/**
- * @vitest-environment jsdom
- */
-
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-
-import { describe, expect, it } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+/** @vitest-environment jsdom */
+import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { describe, expect, it } from "vitest";
+import { DEFAULT_INTERVIEW_CONTEXT, InterviewContextProvider, interviewContextReducer, useInterviewContext } from "./InterviewContext";
 
-import {
-  INTERVIEW_CONTEXT_ROUTES,
-  shouldCarryInterviewContext,
-} from "../routes";
-import {
-  InterviewContextProvider,
-  useInterviewContext,
-  interviewContextReducer,
-  DEFAULT_INTERVIEW_CONTEXT,
-  type InterviewContextAction,
-  type InterviewContextState,
-} from "./InterviewContext";
+const wrapper = ({ children }: { children: ReactNode }) => <InterviewContextProvider>{children}</InterviewContextProvider>;
 
-function wrapper({ children }: { children: ReactNode }) {
-  return (
-    <InterviewContextProvider>{children}</InterviewContextProvider>
-  );
-}
-
-describe("InterviewContext reducer", () => {
-  it("does not expose reducer actions without production dispatch sites", () => {
-    const source = readFileSync(
-      resolve(process.cwd(), "src/app/interview-context/InterviewContext.tsx"),
-      "utf8",
-    );
-    for (const action of [
-      "MERGE_TARGET_JOB",
-      "MERGE_RESUME",
-      "MERGE_PRACTICE_PLAN",
-      "CLEAR_RESUME",
-      "CLEAR_PRACTICE_PLAN",
-    ]) {
-      expect(source).not.toContain(`"${action}"`);
-    }
+describe("InterviewContext", () => {
+  it("stores only conversation ownership and goal context", () => {
+    expect(DEFAULT_INTERVIEW_CONTEXT).toEqual({
+      planId: undefined, targetJobId: "", jobId: "", jdId: undefined,
+      resumeId: undefined, sourceReportId: undefined, roundId: undefined,
+      roundName: undefined, practiceGoal: "baseline", sessionId: undefined,
+    });
+    expect(DEFAULT_INTERVIEW_CONTEXT).not.toHaveProperty("practiceMode");
+    expect(DEFAULT_INTERVIEW_CONTEXT).not.toHaveProperty("hintCount");
   });
 
-  it("does not expose context hooks without repository consumers", () => {
-    const source = readFileSync(
-      resolve(process.cwd(), "src/app/interview-context/InterviewContext.tsx"),
-      "utf8",
-    );
-    expect(source).not.toContain("useStartPracticeContext");
+  it("hydrates IDs and goal without structured question controls", () => {
+    const next = interviewContextReducer(DEFAULT_INTERVIEW_CONTEXT, { type: "HYDRATE_FROM_ROUTE", params: { targetJobId: "tj-1", planId: "plan-1", sessionId: "session-1", practiceGoal: "retry_current_round", practiceMode: "assisted", hintCount: "2" } });
+    expect(next).toMatchObject({ targetJobId: "tj-1", jobId: "tj-1", jdId: "jd-tj-1", planId: "plan-1", sessionId: "session-1", practiceGoal: "retry_current_round" });
+    expect(next).not.toHaveProperty("practiceMode");
+    expect(next).not.toHaveProperty("hintCount");
   });
 
-  it("DEFAULT_INTERVIEW_CONTEXT has correct defaults per plan §3.7", () => {
-    expect(DEFAULT_INTERVIEW_CONTEXT.targetJobId).toBe("");
-    expect(DEFAULT_INTERVIEW_CONTEXT.jobId).toBe("");
-    expect(DEFAULT_INTERVIEW_CONTEXT.planId).toBeUndefined();
-    expect(DEFAULT_INTERVIEW_CONTEXT.jdId).toBeUndefined();
-    expect(DEFAULT_INTERVIEW_CONTEXT.resumeId).toBeUndefined();
-    expect(DEFAULT_INTERVIEW_CONTEXT.sourceReportId).toBeUndefined();
-    expect(DEFAULT_INTERVIEW_CONTEXT.roundId).toBeUndefined();
-    expect(DEFAULT_INTERVIEW_CONTEXT.roundName).toBeUndefined();
-    expect(DEFAULT_INTERVIEW_CONTEXT.mode).toBe("text");
-    expect(DEFAULT_INTERVIEW_CONTEXT.modality).toBe("text");
-    expect(DEFAULT_INTERVIEW_CONTEXT.practiceMode).toBe("strict");
-    expect(DEFAULT_INTERVIEW_CONTEXT.practiceGoal).toBe("baseline");
-    expect(DEFAULT_INTERVIEW_CONTEXT.hintUsed).toBe("false");
-    expect(DEFAULT_INTERVIEW_CONTEXT.hintCount).toBe("0");
-    expect(DEFAULT_INTERVIEW_CONTEXT.sessionId).toBeUndefined();
-    expect(DEFAULT_INTERVIEW_CONTEXT).not.toHaveProperty("autoStartPractice");
+  it("merges session and clears atomically", () => {
+    const merged = interviewContextReducer(DEFAULT_INTERVIEW_CONTEXT, { type: "MERGE_SESSION", session: { id: "session-1" } });
+    expect(merged.sessionId).toBe("session-1");
+    expect(interviewContextReducer(merged, { type: "CLEAR" })).toEqual(DEFAULT_INTERVIEW_CONTEXT);
   });
 
-  it("HYDRATE_FROM_ROUTE populates all fields from route params", () => {
-    const state: InterviewContextState = { ...DEFAULT_INTERVIEW_CONTEXT };
-    const action: InterviewContextAction = {
-      type: "HYDRATE_FROM_ROUTE",
-      params: {
-        targetJobId: "tj-1",
-        jdId: "jd-1",
-        planId: "plan-1",
-        resumeId: "rv-1",
-        sourceReportId: "report-1",
-        roundId: "round-hr",
-        roundName: "HR 初筛",
-        practiceMode: "assisted",
-        practiceGoal: "retry_current_round",
-      },
-    };
-    const next = interviewContextReducer(state, action);
-    expect(next.targetJobId).toBe("tj-1");
-    expect(next.jobId).toBe("tj-1");
-    expect(next.jdId).toBe("jd-1");
-    expect(next.planId).toBe("plan-1");
-    expect(next.resumeId).toBe("rv-1");
-    expect(next.sourceReportId).toBe("report-1");
-    expect(next.roundId).toBe("round-hr");
-    expect(next.roundName).toBe("HR 初筛");
-    expect(next.practiceMode).toBe("assisted");
-    expect(next.practiceGoal).toBe("retry_current_round");
-    // unchanged defaults
-    expect(next.mode).toBe("text");
-    expect(next.modality).toBe("text");
-  });
-
-  it("HYDRATE_FROM_ROUTE derives jdId fallback from targetJobId", () => {
-    const state: InterviewContextState = { ...DEFAULT_INTERVIEW_CONTEXT };
-    const action: InterviewContextAction = {
-      type: "HYDRATE_FROM_ROUTE",
-      params: { targetJobId: "tj-2" },
-    };
-    const next = interviewContextReducer(state, action);
-    expect(next.jdId).toBe("jd-tj-2");
-  });
-
-  it("HYDRATE_FROM_ROUTE does not fabricate planId from targetJobId", () => {
-    const state: InterviewContextState = { ...DEFAULT_INTERVIEW_CONTEXT };
-    const action: InterviewContextAction = {
-      type: "HYDRATE_FROM_ROUTE",
-      params: { targetJobId: "tj-3" },
-    };
-    const next = interviewContextReducer(state, action);
-    expect(next.planId).toBeUndefined();
-  });
-
-  it("MERGE_SESSION sets sessionId from session data", () => {
-    const state: InterviewContextState = {
-      ...DEFAULT_INTERVIEW_CONTEXT,
-      targetJobId: "tj-1",
-    };
-    const action: InterviewContextAction = {
-      type: "MERGE_SESSION",
-      session: { id: "sess-1" } as any,
-    };
-    const next = interviewContextReducer(state, action);
-    expect(next.sessionId).toBe("sess-1");
-  });
-
-  it("INCREMENT_HINT_COUNT bumps hintCount and sets hintUsed='true'", () => {
-    const state: InterviewContextState = {
-      ...DEFAULT_INTERVIEW_CONTEXT,
-      hintUsed: "false",
-      hintCount: "0",
-    };
-    const action: InterviewContextAction = { type: "INCREMENT_HINT_COUNT" };
-    const after1 = interviewContextReducer(state, action);
-    expect(after1.hintCount).toBe("1");
-    expect(after1.hintUsed).toBe("true");
-    const after2 = interviewContextReducer(after1, action);
-    expect(after2.hintCount).toBe("2");
-    expect(after2.hintUsed).toBe("true");
-  });
-
-  it("INCREMENT_HINT_COUNT recovers to '1' when hintCount is non-numeric", () => {
-    const state: InterviewContextState = {
-      ...DEFAULT_INTERVIEW_CONTEXT,
-      hintCount: "garbage",
-    };
-    const next = interviewContextReducer(state, { type: "INCREMENT_HINT_COUNT" });
-    expect(next.hintCount).toBe("1");
-    expect(next.hintUsed).toBe("true");
-  });
-
-  it("CLEAR resets to DEFAULT_INTERVIEW_CONTEXT", () => {
-    const state: InterviewContextState = {
-      targetJobId: "tj-1",
-      jobId: "tj-1",
-      planId: "plan-1",
-      resumeId: "rv-1",
-      sessionId: "sess-1",
-      jdId: "jd-1",
-      roundId: "round-hr",
-      roundName: "HR",
-      mode: "text",
-      modality: "text",
-      practiceMode: "assisted",
-      practiceGoal: "baseline",
-      hintUsed: "true",
-      hintCount: "2",
-    };
-    const action: InterviewContextAction = { type: "CLEAR" };
-    const next = interviewContextReducer(state, action);
-    expect(next).toEqual(DEFAULT_INTERVIEW_CONTEXT);
-  });
-});
-
-describe("InterviewContextProvider + useInterviewContext", () => {
-  it("provides default context", () => {
+  it("provides reducer updates to route consumers", () => {
     const { result } = renderHook(() => useInterviewContext(), { wrapper });
-    expect(result.current.ctx.targetJobId).toBe("");
-    expect(result.current.ctx.mode).toBe("text");
-  });
-
-  it("dispatch HYDRATE_FROM_ROUTE updates context", () => {
-    const { result } = renderHook(() => useInterviewContext(), { wrapper });
-    act(() => {
-      result.current.dispatch({
-        type: "HYDRATE_FROM_ROUTE",
-        params: { targetJobId: "tj-5", roundName: "经理面" },
-      });
-    });
-    expect(result.current.ctx.targetJobId).toBe("tj-5");
-    expect(result.current.ctx.roundName).toBe("经理面");
-    expect(result.current.ctx.jdId).toBe("jd-tj-5");
-    expect(result.current.ctx.planId).toBeUndefined();
-  });
-
-  it("dispatch CLEAR resets context", () => {
-    const { result } = renderHook(() => useInterviewContext(), { wrapper });
-    act(() => {
-      result.current.dispatch({
-        type: "HYDRATE_FROM_ROUTE",
-        params: { targetJobId: "tj-6" },
-      });
-    });
-    expect(result.current.ctx.targetJobId).toBe("tj-6");
-    act(() => {
-      result.current.dispatch({ type: "CLEAR" });
-    });
-    expect(result.current.ctx.targetJobId).toBe("");
-  });
-
-  it("ignores out-of-scope debrief params while retaining current session context", () => {
-    const next = interviewContextReducer(DEFAULT_INTERVIEW_CONTEXT, {
-      type: "HYDRATE_FROM_ROUTE",
-      params: {
-        targetJobId: "tj-1",
-        debriefId: "deb-rt",
-        debriefJobId: "job-deb-rt",
-        practiceGoal: "retry_current_round",
-        sessionId: "sess-1",
-      },
-    });
-    expect("debriefId" in next).toBe(false);
-    expect("debriefJobId" in next).toBe(false);
-    expect(next.practiceGoal).toBe("retry_current_round");
-    expect(next.sessionId).toBe("sess-1");
-  });
-
-});
-
-describe("INTERVIEW_CONTEXT_ROUTES parity with ui-design/src/app.jsx", () => {
-  it("contains exact set from ui-design/src/app.jsx route mapping", () => {
-    const expected = new Set([
-      "practice",
-      "generating",
-      "report",
-    ]);
-    expect(INTERVIEW_CONTEXT_ROUTES).toEqual(expected);
-  });
-
-  it("shouldCarryInterviewContext returns true for context routes", () => {
-    expect(shouldCarryInterviewContext("practice")).toBe(true);
-    expect(shouldCarryInterviewContext("generating")).toBe(true);
-    expect(shouldCarryInterviewContext("report")).toBe(true);
-    expect(shouldCarryInterviewContext("standalone_insight")).toBe(false);
-  });
-
-  it("shouldCarryInterviewContext returns false for non-context routes", () => {
-    expect(shouldCarryInterviewContext("home")).toBe(false);
-    expect(shouldCarryInterviewContext("workspace")).toBe(false);
-    expect(shouldCarryInterviewContext("settings")).toBe(false);
-    expect(shouldCarryInterviewContext("debrief")).toBe(false);
-    expect(shouldCarryInterviewContext("profile")).toBe(false);
-    expect(shouldCarryInterviewContext("auth_login")).toBe(false);
+    act(() => result.current.dispatch({ type: "HYDRATE_FROM_ROUTE", params: { targetJobId: "tj-2" } }));
+    expect(result.current.ctx).toMatchObject({ targetJobId: "tj-2", jdId: "jd-tj-2" });
   });
 });

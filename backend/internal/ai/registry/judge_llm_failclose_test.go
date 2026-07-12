@@ -12,7 +12,7 @@ import (
 // transcript is rejected (plan 004 §2.5).
 func TestLLMJudgeFailClose(t *testing.T) {
 	reg := newRepoRegistryClient(t)
-	rubric, err := reg.GetRubric("practice.session.follow_up", "v0.1.0", "multi")
+	rubric, err := reg.GetRubric("practice.session.chat", "v0.1.0", "multi")
 	if err != nil {
 		t.Fatalf("GetRubric: %v", err)
 	}
@@ -21,7 +21,7 @@ func TestLLMJudgeFailClose(t *testing.T) {
 	t.Run("judge profile unavailable propagates error", func(t *testing.T) {
 		model := &fakeJudgeModel{err: errors.New("AI_UNSUPPORTED_CAPABILITY: judge.default not active")}
 		judge := mustJudge(t, reg, model)
-		_, _, err := judge.Judge(context.Background(), "practice.session.follow_up", "v0.1.0", []byte(validFollowupOutput), "v0.1.0")
+		_, _, err := judge.Judge(context.Background(), "practice.session.chat", "v0.1.0", []byte(validPracticeChatOutput), "v0.1.0")
 		if err == nil {
 			t.Fatal("expected error when judge model fails")
 		}
@@ -30,7 +30,7 @@ func TestLLMJudgeFailClose(t *testing.T) {
 	t.Run("evaluated output failing schema fail-closes", func(t *testing.T) {
 		model := &fakeJudgeModel{content: goodTranscript}
 		judge := mustJudge(t, reg, model)
-		_, _, err := judge.Judge(context.Background(), "practice.session.follow_up", "v0.1.0", []byte(`{"foo":"bar"}`), "v0.1.0")
+		_, _, err := judge.Judge(context.Background(), "practice.session.chat", "v0.1.0", []byte(`{"foo":"bar"}`), "v0.1.0")
 		if !errors.Is(err, ErrJudgeOutputInvalid) {
 			t.Fatalf("want ErrJudgeOutputInvalid for invalid evaluated output, got %v", err)
 		}
@@ -42,7 +42,7 @@ func TestLLMJudgeFailClose(t *testing.T) {
 	t.Run("unparseable judge response fail-closes", func(t *testing.T) {
 		model := &fakeJudgeModel{content: "not json at all"}
 		judge := mustJudge(t, reg, model)
-		_, _, err := judge.Judge(context.Background(), "practice.session.follow_up", "v0.1.0", []byte(validFollowupOutput), "v0.1.0")
+		_, _, err := judge.Judge(context.Background(), "practice.session.chat", "v0.1.0", []byte(validPracticeChatOutput), "v0.1.0")
 		if !errors.Is(err, ErrJudgeOutputInvalid) {
 			t.Fatalf("want ErrJudgeOutputInvalid for unparseable response, got %v", err)
 		}
@@ -55,7 +55,7 @@ func TestLLMJudgeFailClose(t *testing.T) {
 		})
 		model := &fakeJudgeModel{content: string(partial)}
 		judge := mustJudge(t, reg, model)
-		_, _, err := judge.Judge(context.Background(), "practice.session.follow_up", "v0.1.0", []byte(validFollowupOutput), "v0.1.0")
+		_, _, err := judge.Judge(context.Background(), "practice.session.chat", "v0.1.0", []byte(validPracticeChatOutput), "v0.1.0")
 		if !errors.Is(err, ErrJudgeOutputInvalid) {
 			t.Fatalf("want ErrJudgeOutputInvalid for dimension count mismatch, got %v", err)
 		}
@@ -73,7 +73,7 @@ func TestLLMJudgeFailClose(t *testing.T) {
 		raw, _ := json.Marshal(map[string]any{"scores": scores, "reasoning": map[string]any{"summary": "x"}})
 		model := &fakeJudgeModel{content: string(raw)}
 		judge := mustJudge(t, reg, model)
-		_, _, err := judge.Judge(context.Background(), "practice.session.follow_up", "v0.1.0", []byte(validFollowupOutput), "v0.1.0")
+		_, _, err := judge.Judge(context.Background(), "practice.session.chat", "v0.1.0", []byte(validPracticeChatOutput), "v0.1.0")
 		if !errors.Is(err, ErrJudgeOutputInvalid) {
 			t.Fatalf("want ErrJudgeOutputInvalid for unknown dimension, got %v", err)
 		}
@@ -91,7 +91,7 @@ func TestLLMJudgeFailClose(t *testing.T) {
 		raw, _ := json.Marshal(map[string]any{"scores": scores, "reasoning": map[string]any{"summary": "x"}})
 		model := &fakeJudgeModel{content: string(raw)}
 		judge := mustJudge(t, reg, model)
-		_, _, err := judge.Judge(context.Background(), "practice.session.follow_up", "v0.1.0", []byte(validFollowupOutput), "v0.1.0")
+		_, _, err := judge.Judge(context.Background(), "practice.session.chat", "v0.1.0", []byte(validPracticeChatOutput), "v0.1.0")
 		if !errors.Is(err, ErrJudgeOutputInvalid) {
 			t.Fatalf("want ErrJudgeOutputInvalid for out-of-range value, got %v", err)
 		}
@@ -100,7 +100,7 @@ func TestLLMJudgeFailClose(t *testing.T) {
 	t.Run("empty reasoning summary fail-closes", func(t *testing.T) {
 		model := &fakeJudgeModel{content: recordedJudgeTranscript(t, rubric, 0.6, "")}
 		judge := mustJudge(t, reg, model)
-		_, _, err := judge.Judge(context.Background(), "practice.session.follow_up", "v0.1.0", []byte(validFollowupOutput), "v0.1.0")
+		_, _, err := judge.Judge(context.Background(), "practice.session.chat", "v0.1.0", []byte(validPracticeChatOutput), "v0.1.0")
 		if !errors.Is(err, ErrJudgeOutputInvalid) {
 			t.Fatalf("want ErrJudgeOutputInvalid for empty summary, got %v", err)
 		}

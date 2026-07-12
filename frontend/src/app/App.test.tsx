@@ -101,7 +101,7 @@ describe("App shell", () => {
     expect(screen.queryByText("route shell")).not.toBeInTheDocument();
   });
 
-  it("propagates phone mode route params into PracticeScreen phone surface", () => {
+  it("ignores legacy phone params and keeps voice disabled on chat", () => {
     render(
       <App
         initialRoute={{
@@ -115,11 +115,9 @@ describe("App shell", () => {
         }}
       />,
     );
-    const practice = screen.getByTestId("practice-screen");
-    expect(practice).toHaveAttribute("data-mode", "phone");
-    expect(practice).toHaveAttribute("data-modality", "phone");
-    expect(screen.getByTestId("practice-phone-surface")).toBeInTheDocument();
-    expect(screen.getByTestId("practice-phone-waveform")).toBeInTheDocument();
+    expect(screen.getByTestId("practice-conversation")).toBeInTheDocument();
+    expect(screen.getByTestId("practice-topbar-phone-toggle")).toBeDisabled();
+    expect(screen.queryByTestId("practice-phone-surface")).not.toBeInTheDocument();
   });
 
   it("renders ResumeWorkshopScreen on resume_versions route instead of the route shell", () => {

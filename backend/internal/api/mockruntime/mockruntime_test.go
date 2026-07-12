@@ -104,13 +104,6 @@ func TestHandlerSelectsNamedSeedScenariosAndFailsUnknown(t *testing.T) {
 			scenario:    "missing-session",
 		},
 		{
-			name:        "missing-resume",
-			method:      http.MethodPost,
-			path:        "/api/v1/practice/plans",
-			fixturePath: "openapi/fixtures/PracticePlans/createPracticePlan.json",
-			scenario:    "missing-resume",
-		},
-		{
 			name:        "report-generating",
 			method:      http.MethodGet,
 			path:        "/api/v1/reports/01918fa0-0000-7000-8000-000000007000",

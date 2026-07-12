@@ -52,15 +52,13 @@ auth:
 func TestBuildRuntimeConfigAllowlistAndOptOut(t *testing.T) {
 	loader := newRuntimeLoader(t)
 	flags := stubFlags{snapshot: map[string]featureflag.FlagDecision{
-		"practice_hint_enabled":            {Enabled: true, Public: true},
-		"report_evidence_v2_enabled":       {Enabled: true, Public: true},
-		"report_retry_plan_enabled":        {Enabled: false, Public: true, Variant: "v1"},
-		"readiness_signals_enabled":        {Enabled: true, Public: true},
-		"practice_assistance_mode_enabled": {Enabled: true, Public: true},
-		"ai_fallback_model_enabled":        {Enabled: true, Public: true},
-		"mistake_book_export_enabled":      {Enabled: true, Public: true},
-		"growth_dashboard_v1_enabled":      {Enabled: true, Public: true},
-		"mock_session_dual_track_enabled":  {Enabled: true, Public: true},
+		"report_evidence_v2_enabled":      {Enabled: true, Public: true},
+		"report_retry_plan_enabled":       {Enabled: false, Public: true, Variant: "v1"},
+		"readiness_signals_enabled":       {Enabled: true, Public: true},
+		"ai_fallback_model_enabled":       {Enabled: true, Public: true},
+		"mistake_book_export_enabled":     {Enabled: true, Public: true},
+		"growth_dashboard_v1_enabled":     {Enabled: true, Public: true},
+		"mock_session_dual_track_enabled": {Enabled: true, Public: true},
 	}}
 
 	rc := config.BuildRuntimeConfig(context.Background(), config.RuntimeConfigInput{
@@ -79,14 +77,10 @@ func TestBuildRuntimeConfigAllowlistAndOptOut(t *testing.T) {
 	if rc.PostHogPublicKey != "" {
 		t.Errorf("postHogPublicKey must be empty when opt-out")
 	}
-	if _, ok := rc.FeatureFlags["practice_hint_enabled"]; !ok {
-		t.Errorf("public flag missing")
-	}
 	for _, key := range []string{
 		"report_evidence_v2_enabled",
 		"report_retry_plan_enabled",
 		"readiness_signals_enabled",
-		"practice_assistance_mode_enabled",
 	} {
 		if _, ok := rc.FeatureFlags[key]; !ok {
 			t.Errorf("current public flag %s missing", key)
@@ -140,7 +134,7 @@ func TestBuildRuntimeConfigEvaluatesColdPostHogSnapshot(t *testing.T) {
 			t.Errorf("unexpected PostHog path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"featureFlags":{"practice_hint_enabled":true,"ai_fallback_model_enabled":true}}`))
+		_, _ = w.Write([]byte(`{"featureFlags":{"report_evidence_v2_enabled":true,"ai_fallback_model_enabled":true}}`))
 	}))
 	defer server.Close()
 
@@ -150,8 +144,8 @@ func TestBuildRuntimeConfigEvaluatesColdPostHogSnapshot(t *testing.T) {
 		SelfHosted: true,
 		AppEnv:     "prod",
 		Public: map[string]bool{
-			"practice_hint_enabled":     true,
-			"ai_fallback_model_enabled": false,
+			"report_evidence_v2_enabled": true,
+			"ai_fallback_model_enabled":  false,
 		},
 		HTTPClient: server.Client(),
 	})
@@ -164,7 +158,7 @@ func TestBuildRuntimeConfigEvaluatesColdPostHogSnapshot(t *testing.T) {
 		Flags:       flags,
 		FlagContext: featureflag.FlagContext{AnonymousDistinctID: "anon-1", AppEnv: "prod"},
 	})
-	if _, ok := rc.FeatureFlags["practice_hint_enabled"]; !ok {
+	if _, ok := rc.FeatureFlags["report_evidence_v2_enabled"]; !ok {
 		t.Fatalf("cold PostHog evaluation did not project public flag: %+v", rc.FeatureFlags)
 	}
 	if _, ok := rc.FeatureFlags["ai_fallback_model_enabled"]; ok {
@@ -175,7 +169,7 @@ func TestBuildRuntimeConfigEvaluatesColdPostHogSnapshot(t *testing.T) {
 func TestRuntimeConfigHandlerReturnsAllowlistJSON(t *testing.T) {
 	loader := newRuntimeLoader(t)
 	flags := stubFlags{snapshot: map[string]featureflag.FlagDecision{
-		"practice_hint_enabled": {Enabled: true, Public: true},
+		"report_evidence_v2_enabled": {Enabled: true, Public: true},
 	}}
 	handler := config.NewRuntimeConfigHandler(config.RuntimeConfigHandlerOptions{
 		Loader: loader,

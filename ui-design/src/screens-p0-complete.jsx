@@ -100,10 +100,6 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
     const startContext = {
       ...context,
       sessionId: `session-${context.planId}-${context.roundId}-new`,
-      mode: "text",
-      modality: "text",
-      practiceMode: "strict",
-      hintUsed: "false",
     };
     const run = () => nav("practice", startContext);
     if (!requestAuth) {
@@ -279,7 +275,7 @@ const ParseScreen = ({ T, lang, nav, requestAuth }) => {
           )}
         </div>
         <div style={{ fontSize: 12, color: T.ink3, marginTop: 12, display: "flex", gap: 6, alignItems: "center" }}>
-          <Icon name="info" size={12} /> {lang === "en" ? "Text and phone mode can be switched inside the interview." : "文本和电话模式可在面试过程中切换。"}
+          <Icon name="info" size={12} /> {lang === "en" ? "The interview currently runs as text conversation; phone mode is temporarily unavailable." : "当前面试仅使用文字对话，电话模式暂未开放。"}
         </div>
       </Card>
 
@@ -324,16 +320,16 @@ const RequirementBlock = ({ T, title, items, HitDot }) => (
 const ReportGeneratingScreen = ({ T, lang, nav, params = {} }) => {
   const [phase, setPhase] = React.useState(0);
   const phases = lang === "en" ? [
-    { t: "Transcribing & aligning turns", s: 900, hint: "8 questions · 23 turns" },
-    { t: "Extracting evidence per question", s: 1200, hint: "looking for S/A/R + quantification" },
+    { t: "Reading the conversation", s: 900, hint: "ordered messages · complete context" },
+    { t: "Extracting evidence", s: 1200, hint: "looking for S/A/R + quantification" },
     { t: "Scoring against rubric", s: 900, hint: "rubric · behavior-v2.1 · confidence tagged" },
-    { t: "Clustering question review signals", s: 700, hint: "3 items marked for current-round replay" },
+    { t: "Clustering competency signals", s: 700, hint: "3 priorities for continued practice" },
     { t: "Writing recommendations", s: 900, hint: "frameworks + mapped resume evidence" },
   ] : [
-    { t: "转写并对齐对话", s: 900, hint: "8 题 · 23 轮对话" },
-    { t: "逐题抽取证据", s: 1200, hint: "寻找 S/A/R + 量化结果" },
+    { t: "读取完整对话", s: 900, hint: "按序消息 · 完整上下文" },
+    { t: "抽取对话证据", s: 1200, hint: "寻找 S/A/R + 量化结果" },
     { t: "按 rubric 评分", s: 900, hint: "rubric · behavior-v2.1 · 带置信度" },
-    { t: "聚类题目回顾信号", s: 700, hint: "标记 3 条本轮复练线索" },
+    { t: "聚类能力信号", s: 700, hint: "标记 3 条后续练习重点" },
     { t: "生成建议", s: 900, hint: "推荐回答框架 + 映射简历证据" },
   ];
 
@@ -352,15 +348,15 @@ const ReportGeneratingScreen = ({ T, lang, nav, params = {} }) => {
 
   // Live "evidence" fragments appearing
   const liveSnippets = lang === "en" ? [
-    '"LCP from 3.2s to 1.4s" → Q2 · evidence · high confidence',
-    '"We — actually I — drove the migration" → Q5 · self-correction observed',
-    '"they just agreed" → Q6 · conflict resolution lacks depth · flag',
-    'reverse-Q round · 1 question asked, 3 recommended minimum',
+    '"LCP from 3.2s to 1.4s" → impact evidence · high confidence',
+    '"We — actually I — drove the migration" → ownership signal observed',
+    '"they just agreed" → conflict resolution lacks depth · flag',
+    'candidate questions → business context could be stronger',
   ] : [
-    '"LCP 从 3.2s 到 1.4s" → 第 2 题 · 证据 · 高置信度',
-    '"我们——其实主要是我——推动迁移" → 第 5 题 · 观察到自我修正',
-    '"他就同意了" → 第 6 题 · 冲突解决缺乏深度 · 标记',
-    '反问环节 · 实际问了 1 题，推荐至少 3 题',
+    '"LCP 从 3.2s 到 1.4s" → 影响证据 · 高置信度',
+    '"我们——其实主要是我——推动迁移" → 观察到责任边界修正',
+    '"他就同意了" → 冲突解决缺乏深度 · 标记',
+    '候选人反问 → 对业务上下文的关注仍可加强',
   ];
 
   const [shown, setShown] = React.useState([]);
@@ -497,7 +493,7 @@ const SettingsScreen = ({ T, lang, fontPreset, setFontPreset }) => {
 };
 
 const SettingsPrivacy = ({ T, lang }) => {
-  const [toggles, setToggles] = React.useState({ audio: true, transcript: true, resume: true, anon: false, emails: true });
+  const [toggles, setToggles] = React.useState({ transcript: true, resume: true, anon: false, emails: true });
   const Toggle = ({ k }) => (
     <button onClick={() => setToggles({ ...toggles, [k]: !toggles[k] })} style={{
       width: 34, height: 18, borderRadius: 9, border: "none", cursor: "pointer",
@@ -517,8 +513,7 @@ const SettingsPrivacy = ({ T, lang }) => {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 0, background: T.bgCard, border: `1px solid ${T.rule}`, borderRadius: 2 }}>
           {[
-            { k: "audio", t: lang === "en" ? "Keep voice recordings (session only)" : "保留语音录音（仅当次会话）", d: lang === "en" ? "Deleted within 24h of the report. Off → no recording, text only." : "报告生成后 24h 内自动删除。关闭 → 不录音，仅文字。" },
-            { k: "transcript", t: lang === "en" ? "Keep text transcripts long-term" : "长期保留文字转写", d: lang === "en" ? "Used to review past answers and compare readiness over time." : "用来回看过往回答，并比较准备度变化。" },
+            { k: "transcript", t: lang === "en" ? "Keep conversation transcripts long-term" : "长期保留对话记录", d: lang === "en" ? "Used to review past conversations and compare readiness over time." : "用来回看过往对话，并比较准备度变化。" },
             { k: "resume", t: lang === "en" ? "Keep uploaded resumes" : "保留上传的简历", d: lang === "en" ? "Used only to suggest stories during practice." : "只在练习时用来推荐故事。" },
             { k: "anon", t: lang === "en" ? "Contribute anonymized samples to improve rubrics" : "匿名贡献样本用于改进评分", d: lang === "en" ? "Off by default. Names, companies, numbers are stripped." : "默认关闭。姓名、公司、数字会被去除。" },
           ].map((r, i, arr) => (
@@ -541,7 +536,6 @@ const SettingsPrivacy = ({ T, lang }) => {
             { k: "4", l: lang === "en" ? "target jobs" : "目标岗位" },
             { k: "18", l: lang === "en" ? "practice sessions" : "练习会话" },
             { k: "2", l: lang === "en" ? "resumes" : "份简历" },
-            { k: "0 min", l: lang === "en" ? "audio retained" : "语音留存" },
           ].map((c) => (
             <div key={c.l} style={{ padding: "16px 18px", background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 2 }}>
               <div className="ei-serif" style={{ fontSize: 24, color: T.ink, letterSpacing: "-0.015em" }}>{c.k}</div>
@@ -561,7 +555,7 @@ const SettingsPrivacy = ({ T, lang }) => {
               {lang === "en" ? "Download everything — JSON + PDF reports" : "下载全部 —— JSON + PDF 报告"}
             </div>
             <div style={{ fontSize: 12, color: T.ink3, lineHeight: 1.5 }}>
-              {lang === "en" ? "Practice sessions, reports, question reviews, resumes, and saved JDs. Link is emailed when ready (<5min)." : "练习会话、报告、题目回顾、简历和已保存 JD。准备好发到你邮箱（<5 分钟）。"}
+              {lang === "en" ? "Practice conversations, reports, resumes, and saved JDs. Link is emailed when ready (<5min)." : "练习对话、报告、简历和已保存 JD。准备好发到你邮箱（<5 分钟）。"}
             </div>
           </div>
           <Btn T={T} variant="secondary" size="sm" onClick={() => window.eiToast && window.eiToast(lang === "en" ? "Export requested · link emailed to liuzhe@example.com when ready" : "已申请导出 · 准备好后会发到 liuzhe@example.com", { tone: "ok", duration: 3000 })}>{lang === "en" ? "Request export" : "申请导出"}</Btn>
@@ -573,8 +567,8 @@ const SettingsPrivacy = ({ T, lang }) => {
         <div className="ei-label" style={{ color: T.danger, marginBottom: 14 }}>{lang === "en" ? "DANGER ZONE" : "高危操作"}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {[
-            { t: lang === "en" ? "Delete a single session" : "删除某一次会话", d: lang === "en" ? "Pick a session — transcript, report, question reviews, and any audio are removed together." : "挑一次会话，转写、报告、题目回顾和音频会一起删除。", b: lang === "en" ? "Pick" : "选择" },
-            { t: lang === "en" ? "Delete all practice data" : "删除所有练习数据", d: lang === "en" ? "Sessions, reports, question reviews, and readiness signals are removed. Saved JDs and resumes stay." : "会话、报告、题目回顾和准备度信号全部删掉。已保存 JD 和简历保留。", b: lang === "en" ? "Delete…" : "删除…" },
+            { t: lang === "en" ? "Delete a single session" : "删除某一次会话", d: lang === "en" ? "Pick a session — its conversation and report are removed together." : "挑一次会话，对话和报告会一起删除。", b: lang === "en" ? "Pick" : "选择" },
+            { t: lang === "en" ? "Delete all practice data" : "删除所有练习数据", d: lang === "en" ? "Conversations, reports, and readiness signals are removed. Saved JDs and resumes stay." : "对话、报告和准备度信号全部删掉。已保存 JD 和简历保留。", b: lang === "en" ? "Delete…" : "删除…" },
             { t: lang === "en" ? "Delete my account" : "注销账号", d: lang === "en" ? "Permanent. All data is purged within 30 days per GDPR. Backups rotated within 90." : "永久。30 天内按 GDPR 清理所有数据。备份 90 天内轮换清除。", b: lang === "en" ? "Delete account…" : "注销账号…", danger: true },
           ].map((r) => (
             <div key={r.t} style={{ padding: "16px 20px", background: r.danger ? T.dangerSoft : T.bgCard, border: `1px solid ${r.danger ? T.danger : T.rule}`, borderRadius: 2, display: "flex", gap: 16, alignItems: "flex-start" }}>

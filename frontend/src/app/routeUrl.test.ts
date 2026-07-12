@@ -123,13 +123,13 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/resume-versions?resumeId=v-1");
   });
 
-  it("emits practice phone mode params under canonical path", () => {
+  it("drops legacy phone mode params under canonical path", () => {
     expect(
       formatRouteUrl({
         name: "practice",
         params: { mode: "phone", modality: "phone", sessionId: "s-1" },
       }),
-    ).toBe("/practice?modality=phone&mode=phone&sessionId=s-1");
+    ).toBe("/practice?sessionId=s-1");
   });
 
   it("drops out-of-scope voice mode values from canonical params", () => {
@@ -384,8 +384,6 @@ describe("parseUrlToRoute", () => {
       name: "practice",
       params: {
         sessionId: "s-1",
-        mode: "phone",
-        modality: "phone",
       },
     });
   });

@@ -4,7 +4,7 @@
 |------|------|
 | `/#route=home` | out-of-scope home hash entry |
 | `/#route=workspace&targetJobId=tj-1` | out-of-scope workspace hash entry |
-| `/#route=practice&mode=phone&modality=phone&sessionId=01918fa0-...` | current phone mode hash entry |
+| `/#route=practice&mode=phone&modality=phone&sessionId=01918fa0-...` | legacy phone params that must be filtered |
 | `/#route=practice&mode=voice&modality=voice&sessionId=01918fa0-...` | out-of-scope voice mode values that must be filtered |
 | `/#route=voice` | 范围外 voice 独立路由 |
 | `/#route=welcome` 等 12 个范围外 alias | welcome / growth / plan / mistakes / drill / followup / experiences / star / onboarding / debrief / debrief_full / profile |

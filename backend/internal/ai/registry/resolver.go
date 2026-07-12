@@ -87,16 +87,10 @@ func defaultModelProfile(featureKey string) string {
 	switch FeatureKey := featurekeys.FeatureKey(featureKey); FeatureKey {
 	case featurekeys.TargetImportParse:
 		return "target.import.default"
-	case featurekeys.PracticeSessionFirstQuestion:
-		return "practice.first_question.default"
-	case featurekeys.PracticeSessionFollowUp:
-		return "practice.followup.default"
-	case featurekeys.PracticeTurnLightweightObserve:
-		return "practice.turn_observe.default"
+	case featurekeys.PracticeSessionChat:
+		return "practice.chat.default"
 	case featurekeys.ReportGenerate:
 		return "report.generate.default"
-	case featurekeys.ReportQuestionAssessment:
-		return "report.assessment.default"
 	case featurekeys.ResumeParse:
 		return "resume.parse.default"
 	case featurekeys.ResumeTailorGapReview:

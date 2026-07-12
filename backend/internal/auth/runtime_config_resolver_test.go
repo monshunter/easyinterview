@@ -33,8 +33,8 @@ func TestRuntimeConfigSessionResolverOnlyAffectsA4Allowlist(t *testing.T) {
 	handler := config.NewRuntimeConfigHandler(config.RuntimeConfigHandlerOptions{
 		Loader: newRuntimeConfigAuthLoader(t),
 		Flags: runtimeFlags{snapshot: map[string]featureflag.FlagDecision{
-			"practice_hint_enabled":     {Enabled: true, Public: true},
-			"ai_fallback_model_enabled": {Enabled: true, Public: false},
+			"report_evidence_v2_enabled": {Enabled: true, Public: true},
+			"ai_fallback_model_enabled":  {Enabled: true, Public: false},
 		}},
 		FlagContextFunc: func(*http.Request) featureflag.FlagContext {
 			return featureflag.FlagContext{AppEnv: "dev"}
@@ -61,7 +61,7 @@ func TestRuntimeConfigSessionResolverOnlyAffectsA4Allowlist(t *testing.T) {
 		t.Fatalf("runtime-config leaked non-allowlisted data: %s", rec.Body.String())
 	}
 	flags := body["featureFlags"].(map[string]any)
-	if _, ok := flags["practice_hint_enabled"]; !ok {
+	if _, ok := flags["report_evidence_v2_enabled"]; !ok {
 		t.Fatalf("public flag missing: %+v", flags)
 	}
 	if _, ok := flags["ai_fallback_model_enabled"]; ok {

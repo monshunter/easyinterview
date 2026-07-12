@@ -9,5 +9,7 @@ mkdir -p "$OUTPUT_DIR"
 
 (
   cd "$REPO_ROOT/backend"
-  go test -v ./cmd/api -run 'TestE2EP0025PracticeIdempotencyAndIsolationMatrix' -count=1
+  go test -v ./internal/practice -run 'TestSendPracticeMessage(ExactReplayReturnsOriginalResultWithoutAICall|MapsClientMismatchAndCrossUserAccess)' -count=1
+  go test -v ./internal/store/practice -run 'TestSQLRepositoryReservePracticeMessage(RetriesPendingUserMessage|RejectsNewMessageWhileReplyPending)' -count=1
+  go test -v ./internal/api/practice -run 'TestSendPracticeMessageMapsConflictAndIsolationErrors' -count=1
 ) | tee "$OUTPUT_DIR/trigger.log"

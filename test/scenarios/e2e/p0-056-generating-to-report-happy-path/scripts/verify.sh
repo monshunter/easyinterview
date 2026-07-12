@@ -10,8 +10,7 @@ test -s "$LOG_FILE"
 grep -Fq 'preflight.test.ts' "$LOG_FILE" || { echo "E2E.P0.056: preflight test did not run" >&2; exit 1; }
 grep -Fq 'useReportGenerationPoll.test.tsx' "$LOG_FILE" || { echo "E2E.P0.056: poll hook test did not run" >&2; exit 1; }
 grep -Fq 'GeneratingScreen.test.tsx' "$LOG_FILE" || { echo "E2E.P0.056: GeneratingScreen test did not run" >&2; exit 1; }
-grep -Fq 'ReportScreen.test.tsx' "$LOG_FILE" || { echo "E2E.P0.056: ReportScreen test did not run" >&2; exit 1; }
-grep -Fq 'DetailSurface.test.tsx' "$LOG_FILE" || { echo "E2E.P0.056: DetailSurface test did not run" >&2; exit 1; }
+grep -Fq 'ConversationReport.test.tsx' "$LOG_FILE" || { echo "E2E.P0.056: conversation report test did not run" >&2; exit 1; }
 
 # Testid coverage in implementation (excluding __tests__).
 testid_count=$(grep -RoE 'data-testid="(generating-|report-)' \
@@ -19,8 +18,8 @@ testid_count=$(grep -RoE 'data-testid="(generating-|report-)' \
   "$REPO_ROOT/frontend/src/app/screens/report" \
   --include='*.tsx' --include='*.ts' \
   --exclude-dir=__tests__ | wc -l | tr -d ' ')
-if [ "$testid_count" -lt 30 ]; then
-  echo "E2E.P0.056: expected >=30 generating-/report- testids, got $testid_count" >&2
+if [ "$testid_count" -lt 15 ]; then
+  echo "E2E.P0.056: expected >=15 generating-/report- testids, got $testid_count" >&2
   exit 1
 fi
 

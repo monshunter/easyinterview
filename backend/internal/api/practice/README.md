@@ -1,29 +1,7 @@
-# Practice API Handlers
+# Practice API
 
-This package owns the HTTP adapter for the backend-practice operations. It maps generated OpenAPI request and response types to `backend/internal/practice` service contracts and keeps middleware ownership explicit at the route layer.
+Practice is a continuous text conversation. A session owns an ordered `messages` list; clients append ordinary user messages through `POST /practice/sessions/{sessionId}/messages`, and the server returns the persisted user message, assistant reply, and refreshed session snapshot.
 
-## 002 Event Loop Endpoints
+`clientMessageId` is the message replay key. The service reserves the user message before the AI call, performs `practice.session.chat` outside the repository transaction, then commits the assistant reply. Replaying the same key and text returns the original result; reusing the key with different text fails with a typed conflict.
 
-- `POST /practice/sessions/{sessionId}/events` (`appendSessionEvent`) is not wrapped by the shared idempotency middleware. The request-level replay key is `clientEventId`; requests carrying `Idempotency-Key` are rejected with `400 VALIDATION_FAILED` and `details.policy=use_client_event_id`.
-- `POST /practice/sessions/{sessionId}/complete` (`completePracticeSession`) is wrapped by `idempotency.Middleware` with `domain=practice` and `operation=completePracticeSession`. The handler returns `202 ReportWithJob` and marks the middleware resource as `feedback_report/{reportId}`.
-- `POST /practice/sessions/{sessionId}/voice-turns` (`createPracticeVoiceTurn`) is wrapped by `idempotency.Middleware` with `domain=practice` and `operation=createPracticeVoiceTurn`. The handler decodes the small base64 audio payload, delegates the cascaded STT / chat / TTS orchestration to `backend/internal/practice`, returns `200 PracticeVoiceTurnResult`, and marks the middleware resource as `practice_voice_turn/{voiceTurnId}`.
-
-## 003 Mode Policies and Provenance
-
-- `handleHintRequested` treats hints as optional in-session assistance: `practice_plans.mode` values do not block the request, and successful hint actions route through `applyHintAI` without advancing the turn lifecycle.
-- `applyHintAI` resolves `practice.turn.lightweight_observe`, calls the observed AI client, and uses `AITaskRunTaskHintGenerate` so `ai_task_runs.task_type='hint_generate'` records the hint path.
-- `cmd/api` wraps the Practice AI client with the A3 observability decorator when a profile resolver is available and passes the SQL `ai_task_runs` writer into the service. F3/parse failures that occur before or after `AIClient.Complete` use the same writer for explicit failed `hint_generate` rows.
-- Assisted hint success returns `AssistantAction{type=show_hint}` and writes `practice_turns.hint_text`; it does not advance `turn_count`, change turn status, emit `practice.turn.completed`, or write `audit_events`.
-- D-36 graceful degrade keeps the session running and returns `session_wait` with non-AI provenance when F3/A3/parse failures occur. Degrade reasons stay in service-local metadata and `ai_task_runs.error_code`, not in the HTTP response body.
-
-## Idempotency Resource Handoff
-
-Handlers wrapped by `idempotency.Middleware` must call `idempotency.SetResponseResource` after the domain service returns the committed resource. The middleware consumes those internal headers while buffering the 2xx response, stores `resource_type/resource_id` in `idempotency_records`, and strips the headers before the client response is flushed.
-
-## Handoff Boundaries
-
-- `003-mode-policies-and-provenance` delivered optional hint behavior across assisted and strict modes, `practice.turn.lightweight_observe` wiring, `hint_generate` task-run provenance, and hint replay semantics.
-- `004-report-derived-practice-plans` owns report-derived retry and next-round plan paths.
-- `practice-voice-mvp/001-cascaded-stt-llm-tts` owns voice/audio routes and the `createPracticeVoiceTurn` handoff. 002 does not mount independent voice endpoints.
-- `006-privacy-cascade-and-cleanup` owns account deletion cascade and timeout sweeps.
-- backend-review/report generation owns report content, scoring, and readiness computation. 002 only creates the queued `feedback_report`, `report_generate` job, and `practice.session.completed` source event.
+Completion remains idempotent through `Idempotency-Key` and starts asynchronous `report_generate` processing. The voice endpoint stays mounted only as an explicit fail-closed boundary and always returns `422 AI_UNSUPPORTED_CAPABILITY`; no voice provider call or persistence side effect is allowed.

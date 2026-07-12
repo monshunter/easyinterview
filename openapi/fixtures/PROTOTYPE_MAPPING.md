@@ -21,8 +21,8 @@
 | `user` | `getMe` | 1:1 | Auth | `email` → `emailMasked`（脱敏）；`name` → `displayName`；`locale` → `uiLanguage` / `preferredPracticeLanguage`。 |
 | `targetJobs[]` | `listTargetJobs` | 1:N | TargetJobs | 每个 `tj-N` 映射为 `TargetJob`：`title/company → companyName/locationText/language → targetLanguage/source → sourceType`；`status` 取 OpenAPI enum 中最贴近的值；`statusTone/level/source/updatedAt` 等展示字段不入 fixture。 |
 | `targetJobs[0]` + `jdSample` | `getTargetJob` | N:1 | TargetJobs | 取第一个 target job 的核心字段，再用 `jdSample.mustHave` / `jdSample.nice` 填 `requirements[]`，`jdSample.hidden` 折成 `summary.coreThemes`，`jdSample.rounds` 折成 2~5 条 `summary.interviewRounds[]`（含 `sequence/type/name/durationMinutes/focus`）。 |
-| `questions[]` + `targetJobs[0]` + `sessionTranscript` | `getPracticeSession` | N:1 | PracticeSessions | `questions[0]` 折成 `currentTurn`（`questionText/questionIntent`）；`sessionTranscript` 用于推导 `turnCount` 与 `status`。 |
-| `report` | `getFeedbackReport` | 1:1 | Reports | `report.readiness` → `preparednessLevel`（按 §4 翻译）；`highlights/issues/perQuestion` → `highlights/issues/questionAssessments`；`dimensions` 折成 `questionAssessments[i].dimensionResults`；`perQuestion.state=待加强` 映射为 `reviewStatus=queued_for_retry` 与 `includedInRetryPlan=true`，并把对应 `turnId` 写入 `retryFocusTurnIds`。`provenance` 由同步工具按 §4 默认填入。 |
+| `sessionTranscript` | `getPracticeSession` | 1:1 | PracticeSessions | 按时间顺序映射为 `messages[]`；不生成题号、当前题或 turn 状态。 |
+| `report` | `getFeedbackReport` | 1:1 | Reports | `report.readiness` → `preparednessLevel`；`dimensions` → `dimensionAssessments`；`highlights/issues` 保持会话级证据；待加强维度映射为 `retryFocusCompetencyCodes`。 |
 
 ## 3 P0 闭环关键 endpoint 覆盖（plan 2.4 自检）
 
@@ -43,7 +43,7 @@
     - `targetJobs[].language` → `targetLanguage`：`中文→zh-CN`、`英文→en`。
     - `targetJobs[].source` → `sourceType`：`粘贴 JD→manual_text`、`岗位链接→url`、`招聘方邮件→manual_text`。
     - `report.readiness`（0..3 数字）→ `ReadinessTier`：`0→not_ready / 1→needs_practice / 2→basically_ready / 3→well_prepared`。
-    - `report.perQuestion[].state` → `QuestionReviewStatus` / `includedInRetryPlan`：`待加强→queued_for_retry + true`，其它状态默认 `resolved + false`。
+    - `report.dimensions[].state` → `DimensionStatus`；待加强维度进入 `retryFocusCompetencyCodes`。
 - **provenance**: AI schema 的 `provenance` 不依赖 data.jsx，由同步工具直接填入与 default scenario 同款的 `GenerationProvenance`（6 字段非空，非评分场景填 `not_applicable`）。
 - **emailMasked**: `user.email` 走 `_masked_email("alice@example.com") → "ali***@example.com"`。
 - **lossy 字段**: 任何 OpenAPI 不接受的展示字段（`statusTone` / `readinessLabel` / `t` / `qIdx` / 中文「2 小时前」等）必须丢弃，不能写入 fixture body。

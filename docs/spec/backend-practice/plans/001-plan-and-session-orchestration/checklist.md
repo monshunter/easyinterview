@@ -16,26 +16,29 @@
   <!-- verified: 2026-07-12 method=contract migration lint; migrations/codegen/eval Go tests; 11-enum codegen; 6 prompt/rubric/profile lints; eval-offline 24/24; cross-layer contract 4/4 -->
 ## Phase 2: PracticePlan simplification
 
-- [ ] 2.1 RED-GREEN: remove question budget/mode/hints across request, domain, store and fixtures; preserve baseline and derived-plan validation.
-- [ ] 2.2 RED-GREEN: update frontend start helpers and real-mode contract tests to send only current plan fields.
-- [ ] 2.3 BDD-Gate: P0.022/P0.070/P0.072 pass for create/read/derived/isolation.
+- [x] 2.1 RED-GREEN: remove question budget/mode/hints across request, domain, store and fixtures; preserve baseline and derived-plan validation.
+- [x] 2.2 RED-GREEN: update frontend start helpers and real-mode contract tests to send only current plan fields.
+- [x] 2.3 BDD-Gate: P0.022/P0.070/P0.072 pass for create/read/derived/isolation.
+  <!-- verified: 2026-07-12 method=handler-domain-store-scenarios evidence="P0.022 executes real CreatePracticePlan handler plus domain/SQL gates; P0.070/P0.072 execute derived-source behavior and isolation" -->
 
 ## Phase 3: Session start with opening message
 
-- [ ] 3.1 RED: starter tests require `practice.session.chat` and one opening assistant message, with no currentTurn/first_question.
-- [ ] 3.2 GREEN: implement three-stage start reservation/generation/persistence and one-repair language/schema validation.
-- [ ] 3.3 RED-GREEN: timeout/config/invalid-output/idempotency replay produce no duplicate session/message/outbox or canned text.
-- [ ] 3.4 BDD-Gate: P0.023/P0.024/P0.025 start, failure and replay scenarios pass.
+- [x] 3.1 RED: starter tests require `practice.session.chat` and one opening assistant message, with no currentTurn/first_question.
+- [x] 3.2 GREEN: implement three-stage start reservation/generation/persistence and one-repair language/schema validation.
+- [x] 3.3 RED-GREEN: timeout/config/invalid-output/idempotency replay produce no duplicate session/message/outbox or canned text.
+- [x] 3.4 BDD-Gate: P0.023/P0.024/P0.025 start, failure and replay scenarios pass.
+  <!-- verified: 2026-07-12 method=focused-scenarios evidence="P0.023 opening message, P0.024 AI failure, P0.025 replay/pending retry/mismatch/isolation all execute named tests and reject no-test output" -->
 
 ## Phase 4: Session read model
 
-- [ ] 4.1 RED-GREEN: get/list session store/API return ordered messages and no turn fields.
-- [ ] 4.2 RED-GREEN: empty/cross-user/missing/deleted context tests pass.
+- [x] 4.1 RED-GREEN: get/list session store/API return ordered messages and no turn fields.
+- [x] 4.2 RED-GREEN: empty/cross-user/missing/deleted context tests pass.
 
 ## Phase 5: Privacy and closeout
 
-- [ ] 5.1 RED-GREEN: raw message redaction tests cover event/outbox/audit/log/metric/task-run surfaces.
-- [ ] 5.2 BDD-Gate: P0.026 privacy/observability passes.
+- [x] 5.1 RED-GREEN: raw message redaction tests cover event/outbox/audit/log/metric/task-run surfaces.
+- [x] 5.2 BDD-Gate: P0.026 privacy/observability passes.
+  <!-- verified: 2026-07-12 method=privacy-observability-scenario evidence="lifecycle-only outbox, plaintext redaction, metric allowlist and one conversation-level report call pass" -->
 - [ ] 5.3 Run focused/full backend, codegen, fixture, migration, prompt/eval, context/docs/index and diff gates.
 
 ## 修订记录

@@ -22,8 +22,8 @@ cases:
     next_actions:
     - type: retry_round
       label: Replay the system design follow-up
-    retry_focus_turn_ids:
-    - turn-3
+    retry_focus_competency_codes:
+    - risk_handling
   judge:
     scores:
     - dimension: report_evidence

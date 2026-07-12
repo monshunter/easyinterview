@@ -189,7 +189,6 @@ describe("ParseResumeBinding", () => {
     expect(startSpy).toHaveBeenCalledWith(
       {
         planId: "01918fa0-0000-7000-8000-000000004000",
-        hintsEnabled: false,
       },
       expect.objectContaining({
         idempotencyKey: expect.stringMatching(/^v1\./),
@@ -203,9 +202,6 @@ describe("ParseResumeBinding", () => {
           resumeId: "01918fa0-0000-7000-8000-000000001000",
           sessionId: "01918fa0-0000-7000-8000-000000005000",
           planId: "01918fa0-0000-7000-8000-000000004000",
-          practiceMode: "strict",
-          mode: "text",
-          modality: "text",
         }),
       });
     });

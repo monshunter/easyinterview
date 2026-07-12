@@ -494,8 +494,8 @@ func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagC
 			completePracticeSession = practice.Idempotency.Handler("practice", "completePracticeSession", requestUserFromContext, completePracticeSession).ServeHTTP
 		}
 		mux.Handle("POST /api/v1/practice/sessions/{sessionId}/complete", auth.SessionMiddleware(authService, "completePracticeSession", completePracticeSession))
-		mux.Handle("POST /api/v1/practice/sessions/{sessionId}/events", auth.SessionMiddleware(authService, "appendSessionEvent", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			practice.Handler.AppendSessionEvent(w, r, r.PathValue("sessionId"))
+		mux.Handle("POST /api/v1/practice/sessions/{sessionId}/messages", auth.SessionMiddleware(authService, "sendPracticeMessage", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			practice.Handler.SendPracticeMessage(w, r, r.PathValue("sessionId"))
 		})))
 	}
 	return mux

@@ -14,9 +14,7 @@
 | E2E.P0.004 | frontend-shell C-7 | `p0-004-app-shell-language-switch/` | App Shell 中英语言切换并携带 Accept-Language display hint | automated | Ready |
 | E2E.P0.005 | frontend-shell C-8 | `p0-005-app-shell-visual-system-smoke/` | D2 视觉系统 smoke：DOM/className/CSS-variable/customAccent overlay/out-of-scope 负向 + ui-design 源追溯 | automated | Ready |
 | E2E.P0.006 | frontend-shell C-9 | `p0-006-ui-design-pixel-parity-gate/` | D2 follow-up Playwright + chromium pixel parity：desktop+mobile viewport DOM/computed style/bounding box/screenshot regression + dark/customAccent 状态 | automated | Ready |
-| E2E.P0.007 | practice-voice-mvp C-1/C-2/C-3/C-4/C-5 | `p0-007-cascaded-voice-turn/` | 完整电话模式 voice turn：前端提交 voice audio，后端级联 STT/chat/TTS，返回 transcript、TTS chunk、provider meta 与幂等 replay | automated | Ready |
-| E2E.P0.008 | practice-voice-mvp C-3/C-5 | `p0-008-voice-barge-in-committed-context/` | 电话模式插话：前端停止 TTS 并上报 barge-in，后端只提交已播放上下文并阻止未播放 draft 进入 prompt | automated | Ready |
-| E2E.P0.009 | practice-voice-mvp C-6/C-7/C-8/C-9/C-10 | `p0-009-voice-provider-failure-fallback/` | Provider/output failure fallback：STT fail-fast、chat/TTS 隔离、双重语言失败 typed recovery、TTS 文本 fallback、realtime/stub 负向与 privacy gate | automated | Ready |
+| E2E.P0.007 | frontend-workspace-and-practice C-10 | `p0-007-practice-voice-disabled-fail-closed/` | 语音临时禁用：前端入口原生 disabled，后端 voice-turn 固定返回 422 且无 AI/持久化副作用 | automated | Ready |
 | E2E.P0.010 | backend-targetjob C-1/C-3/C-6/C-7/C-12 | `p0-010-targetjob-text-import-parse-ready/` | manual_text TargetJob 导入、异步解析、列表、详情、更新与 idempotency | automated | Ready |
 | E2E.P0.011 | backend-targetjob C-2/C-3/C-9 | `p0-011-targetjob-url-import-fetch-and-parse/` | URL TargetJob 导入、SSRF 守护、抓取 snapshot、解析与 source_refresh follow-up job | automated | Ready |
 | E2E.P0.012 | backend-targetjob C-4/C-5/C-10 | `p0-012-targetjob-parse-failure-retryable/` | TargetJob parse 失败 retryable / non-retryable 语义与隐私红线 | automated | Ready |
@@ -27,7 +25,7 @@
 | E2E.P0.018 | frontend-workspace-and-practice C-2, C-7, C-8, C-9 | `p0-018-workspace-default-render/` | 面试入口规划列表 + Workspace 统一面试规划详情：plan list、统一详情母版、简历选择器、out-of-scope 独立详情负向锚点 | automated | Ready |
 | E2E.P0.021 | frontend-workspace-and-practice C-7, C-9, C-10, C-12 | `p0-021-workspace-handoff/` | Workspace handoff boundary + 隐私红线 + out-of-scope negative grep | automated | Ready |
 | E2E.P0.022 | backend-practice C-1, C-13 | `p0-022-practice-plan-baseline-create-and-read/` | createPracticePlan baseline、idempotency replay、getPracticePlan 与 cross-user 404 隔离 | automated | Ready |
-| E2E.P0.023 | backend-practice C-4 | `p0-023-practice-session-start-and-first-question/` | startPracticeSession 同步首题、getPracticeSession、session_started event 与 practice.session.started outbox | automated | Ready |
+| E2E.P0.023 | backend-practice C-4 | `p0-023-practice-session-start-and-opening-message/` | startPracticeSession 生成开场消息、getPracticeSession ordered messages 与 practice.session.started outbox | automated | Ready |
 | E2E.P0.024 | backend-practice C-5, C-21, C-23 | `p0-024-practice-session-ai-failure-retry/` | AI timeout 后 failed_retryable reservation，同 key 重试成功且 outbox 仅一次 | automated | Ready |
 | E2E.P0.025 | backend-practice C-10, C-13, C-22, C-23, C-24, C-25 | `p0-025-practice-idempotency-and-isolation-matrix/` | startPracticeSession replay / mismatch / 跨用户隔离 / 同 plan 多 key conflict / cross-user 404 矩阵 | automated | Ready |
 | E2E.P0.026 | backend-practice C-16, D-11 | `p0-026-practice-observability-and-privacy-redlines/` | observed AI typed columns、metric allowlist、隐私红线与 backend-practice out-of-scope gate | automated | Ready |
@@ -37,14 +35,12 @@
 | E2E.P0.035 | backend-resume C-3, C-4, C-13 | `p0-035-resume-parse-async-job-lifecycle/` | resume.parse in-process runner kernel：AI parse、ready/failed 状态、typed task run、ready-only outbox 与 privacy redlines | automated | Ready |
 | E2E.P0.036 | frontend-resume-workshop C-1, C-2, C-10, C-11 | `p0-036-resume-flat-list-auth-boundary/` | Resume Workshop flat list：route shell、auth gate、fixture-derived flat rows、open-to-detail navigation 与 out-of-scope route negative grep | automated | Ready |
 | E2E.P0.037 | frontend-resume-workshop C-3, C-10, C-11 | `p0-037-resume-detail-preview-readonly/` | Resume Workshop detail：只读简历正文、out-of-scope tab/query 忽略、无 export/copy/original/edit/rewrite surface、404 fallback 不回显 fixture error.code | automated | Ready |
-| E2E.P0.044 | frontend-workspace-and-practice C-4, C-8, C-9 | `p0-044-practice-text-loop-assisted-happy-path/` | Practice text loop assisted happy path：PracticeScreen + appendSessionEvent default + ask_follow_up renderer + IK 双轨边界 | automated | Ready |
-| E2E.P0.045 | frontend-workspace-and-practice C-4, C-10, C-12 | `p0-045-practice-text-loop-mode-policy-display/` | Practice 显隐：目标岗位真实数据、单电话图标/中心挂断、同会话 text-phone 切换、hint/pause-resume 与旧控件负向 | automated | Ready |
-| E2E.P0.046 | frontend-workspace-and-practice C-4, C-12 | `p0-046-practice-text-loop-failure-and-recovery/` | Practice 失败处理：AI 502、session 404、409 conflict、双重问题生成失败的 session_wait/typed recovery 与 retry 事件边界 | automated | Ready |
+| E2E.P0.044 | frontend-workspace-and-practice C-4, C-8, C-9 | `p0-044-practice-text-loop-assisted-happy-path/` | 连续聊天 happy path：ordered messages + sendPracticeMessage + 单一聊天窗口 | automated | Ready |
+| E2E.P0.045 | frontend-workspace-and-practice C-4, C-10, C-12 | `p0-045-practice-text-loop-mode-policy-display/` | 简化 UI：无题目边栏/计数/卡片，电话按钮原生 disabled，旧模式参数被丢弃 | automated | Ready |
+| E2E.P0.046 | frontend-workspace-and-practice C-4, C-12 | `p0-046-practice-text-loop-failure-and-recovery/` | 消息失败恢复：AI 502、session 404、clientMessageId replay/conflict 与无重复消息 | automated | Ready |
 | E2E.P0.047 | frontend-workspace-and-practice C-4, C-6, C-12 | `p0-047-practice-text-loop-complete-and-generating-handoff/` | Practice text loop 完成 handoff：completePracticeSession 202 + IK + handoff generating + 隐私红线 | automated | Ready |
-| E2E.P0.048 | backend-practice C-7, C-8b, C-12 | `p0-048-practice-hint-assisted-across-goals/` | assisted hint 主路径：3 个 goal 下返回 show_hint、写 hint_generate task run 且不推进 turn lifecycle | automated | Ready |
-| E2E.P0.050 | backend-practice C-12, D-37 | `p0-050-practice-hint-provenance-task-runs/` | AssistantAction wire provenance 仅 6 字段，runtime feature_key 只进入 ai_task_runs typed columns | automated | Ready |
-| E2E.P0.051 | backend-practice C-16, C-17, D-36 | `p0-051-practice-hint-degrade-privacy/` | hint AI graceful degrade：200 session_wait、session running、failed task run 与隐私红线/out-of-scope negative | automated | Ready |
-| E2E.P0.056 | frontend-report-dashboard C-1, C-2, C-5, C-8, C-11 | `p0-056-generating-to-report-happy-path/` | Generating → Report happy path：5-phase poll → ReportDashboard mount + 5 detail tabs + ContextStrip + testid coverage + read-only contract | automated | Ready |
+| E2E.P0.051 | backend-practice C-6 | `p0-051-practice-assistance-stale-contract-negative/` | 用户通过普通消息请求帮助；无 hint/mode/action/event/flag 正向合同 | automated | Ready |
+| E2E.P0.056 | frontend-report-dashboard C-1, C-2, C-5, C-8, C-11 | `p0-056-generating-to-report-happy-path/` | Generating → 会话报告：准备度、能力维度、证据与行动，无逐题详情 | automated | Ready |
 | E2E.P0.057 | frontend-report-dashboard C-3, C-6 | `p0-057-replay-cta-paths-a-and-b/` | Replay CTA paths A/B：retry_current_round + next_round payload, replay_practice pendingAction round-trip, no raw text | automated | Ready |
 | E2E.P0.058 | frontend-report-dashboard C-4, C-12 | `p0-058-report-failure-and-missing-session/` | ReportFailureState AI_* enum + ReportMissingSessionState + cross-user 404 not-found copy + Generating timeout retry | automated | Ready |
 | E2E.P0.059 | frontend-report-dashboard C-13, C-14, D-12 | `p0-059-report-pixel-parity-i18n-and-out-of-scope-negative/` | i18n namespace sync + AI_* enum coverage + out-of-scope vocab negative grep + Playwright pixel-parity specs staged | automated | Ready |

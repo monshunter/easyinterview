@@ -24,9 +24,8 @@ type planService interface {
 	ListPracticeSessions(ctx context.Context, in domain.ListSessionsRequest) (domain.ListSessionsResult, error)
 	GetPracticeSession(ctx context.Context, userID, sessionID string) (domain.SessionRecord, error)
 	StartPracticeSession(ctx context.Context, in domain.StartSessionRequest) (domain.SessionRecord, error)
-	AppendSessionEvent(ctx context.Context, in domain.AppendSessionEventRequest) (domain.AppendSessionEventResult, error)
+	SendPracticeMessage(ctx context.Context, in domain.SendPracticeMessageRequest) (domain.SendPracticeMessageResult, error)
 	CompletePracticeSession(ctx context.Context, in domain.CompletePracticeSessionRequest) (domain.CompleteSessionResult, error)
-	CreatePracticeVoiceTurn(ctx context.Context, in domain.CreatePracticeVoiceTurnRequest) (domain.PracticeVoiceTurnResult, error)
 }
 
 type HandlerOptions struct {
@@ -67,12 +66,10 @@ func (h *Handler) CreatePracticePlan(w http.ResponseWriter, r *http.Request) {
 		ResumeID:             body.ResumeId,
 		SourceReportID:       stringValue(body.SourceReportId),
 		Goal:                 body.Goal,
-		Mode:                 body.Mode,
 		InterviewerPersona:   body.InterviewerPersona,
 		Difficulty:           body.Difficulty,
 		Language:             body.Language,
 		TimeBudgetMinutes:    body.TimeBudgetMinutes,
-		QuestionBudget:       body.QuestionBudget,
 		FocusCompetencyCodes: body.FocusCompetencyCodes,
 	})
 	if err != nil {
@@ -174,14 +171,9 @@ func (h *Handler) StartPracticeSession(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "request body is malformed", nil)
 		return
 	}
-	hintsEnabled := false
-	if body.HintsEnabled != nil {
-		hintsEnabled = *body.HintsEnabled
-	}
 	res, err := h.service.StartPracticeSession(r.Context(), domain.StartSessionRequest{
 		UserID:             userID,
 		PlanID:             body.PlanId,
-		HintsEnabled:       hintsEnabled,
 		IdempotencyKeyHash: idempotency.HashKey(idempotencyKey, h.idempotencyKeyPepper),
 		RequestFingerprint: idempotency.Fingerprint(r.Method, r.URL.EscapedPath(), r.URL.RawQuery, rawBody),
 	})
@@ -230,12 +222,10 @@ func toAPIPracticePlan(plan domain.PlanRecord) api.PracticePlan {
 		Id:                 plan.ID,
 		TargetJobId:        plan.TargetJobID,
 		Goal:               plan.Goal,
-		Mode:               plan.Mode,
 		InterviewerPersona: plan.InterviewerPersona,
 		Difficulty:         plan.Difficulty,
 		Language:           plan.Language,
 		TimeBudgetMinutes:  plan.TimeBudgetMinutes,
-		QuestionBudget:     plan.QuestionBudget,
 		ResumeId:           plan.ResumeID,
 		Status:             plan.Status,
 		CreatedAt:          plan.CreatedAt.UTC().Format(timeFormatRFC3339),
@@ -247,30 +237,22 @@ func toAPIPracticePlan(plan domain.PlanRecord) api.PracticePlan {
 }
 
 func toAPIPracticeSession(session domain.SessionRecord) api.PracticeSession {
-	var currentTurn *api.PracticeTurn
-	if session.CurrentTurn != nil {
-		askedAt := session.CurrentTurn.AskedAt.UTC().Format(timeFormatRFC3339)
-		intent := session.CurrentTurn.QuestionIntent
-		currentTurn = &api.PracticeTurn{
-			Id:             session.CurrentTurn.ID,
-			TurnIndex:      session.CurrentTurn.TurnIndex,
-			QuestionText:   session.CurrentTurn.QuestionText,
-			QuestionIntent: &intent,
-			Status:         session.CurrentTurn.Status,
-			AskedAt:        &askedAt,
-		}
+	messages := make([]api.PracticeMessage, 0, len(session.Messages))
+	for _, message := range session.Messages {
+		messages = append(messages, toAPIPracticeMessage(message))
 	}
 	return api.PracticeSession{
-		Id:           session.ID,
-		PlanId:       session.PlanID,
-		TargetJobId:  session.TargetJobID,
-		Status:       session.Status,
-		Language:     session.Language,
-		HintsEnabled: session.HintsEnabled,
-		TurnCount:    session.TurnCount,
-		CurrentTurn:  currentTurn,
-		CreatedAt:    session.CreatedAt.UTC().Format(timeFormatRFC3339),
-		UpdatedAt:    session.UpdatedAt.UTC().Format(timeFormatRFC3339),
+		Id: session.ID, PlanId: session.PlanID, TargetJobId: session.TargetJobID,
+		Status: session.Status, Language: session.Language, Messages: messages,
+		CreatedAt: session.CreatedAt.UTC().Format(timeFormatRFC3339),
+		UpdatedAt: session.UpdatedAt.UTC().Format(timeFormatRFC3339),
+	}
+}
+
+func toAPIPracticeMessage(message domain.MessageRecord) api.PracticeMessage {
+	return api.PracticeMessage{
+		Id: message.ID, Role: message.Role, Content: message.Content, SeqNo: message.SeqNo,
+		CreatedAt: message.CreatedAt.UTC().Format(timeFormatRFC3339),
 	}
 }
 
@@ -336,7 +318,7 @@ type createPracticePlanSurface interface {
 	GetPracticePlan(w http.ResponseWriter, r *http.Request, planID string)
 	StartPracticeSession(w http.ResponseWriter, r *http.Request)
 	GetPracticeSession(w http.ResponseWriter, r *http.Request, sessionID string)
-	AppendSessionEvent(w http.ResponseWriter, r *http.Request, sessionID string)
+	SendPracticeMessage(w http.ResponseWriter, r *http.Request, sessionID string)
 	CompletePracticeSession(w http.ResponseWriter, r *http.Request, sessionID string)
 }
 

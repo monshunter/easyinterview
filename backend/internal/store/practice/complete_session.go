@@ -133,7 +133,6 @@ insert into async_jobs (
 		PlanID:      session.PlanID,
 		SessionID:   session.ID,
 		TargetJobID: session.TargetJobID,
-		TurnCount:   int(session.TurnCount),
 	})
 	if err != nil {
 		return domain.CompleteSessionResult{}, err
@@ -159,7 +158,6 @@ insert into outbox_events (
 		"report_id":     in.ReportID,
 		"job_id":        in.JobID,
 		"target_job_id": session.TargetJobID,
-		"turn_count":    session.TurnCount,
 	})
 	if err != nil {
 		return domain.CompleteSessionResult{}, fmt.Errorf("marshal practice session complete audit metadata: %w", err)
@@ -198,8 +196,7 @@ insert into audit_events (
 func selectSessionForCompletion(ctx context.Context, tx *sql.Tx, userID, sessionID string) (domain.SessionRecord, error) {
 	var session domain.SessionRecord
 	err := tx.QueryRowContext(ctx, `
-select id, plan_id, target_job_id, status, language, hints_enabled,
-       turn_count, created_at, updated_at
+select id, plan_id, target_job_id, status, language, created_at, updated_at
 from practice_sessions
 where user_id = $1
   and id = $2
@@ -212,8 +209,6 @@ for update`,
 		&session.TargetJobID,
 		&session.Status,
 		&session.Language,
-		&session.HintsEnabled,
-		&session.TurnCount,
 		&session.CreatedAt,
 		&session.UpdatedAt,
 	)
@@ -224,6 +219,14 @@ for update`,
 		return domain.SessionRecord{}, fmt.Errorf("select practice session for completion: %w", err)
 	}
 	return session, nil
+}
+
+func nextSessionEventSeq(ctx context.Context, tx *sql.Tx, sessionID string) (int, error) {
+	var seq int
+	if err := tx.QueryRowContext(ctx, `select coalesce(max(seq_no),0)+1 from practice_session_events where session_id=$1`, sessionID).Scan(&seq); err != nil {
+		return 0, fmt.Errorf("select next practice session event sequence: %w", err)
+	}
+	return seq, nil
 }
 
 func canCompletePracticeSessionStatus(status sharedtypes.SessionStatus) bool {

@@ -60,10 +60,10 @@ func TestE2EP0OperationMatrixPreflight(t *testing.T) {
 			handlerFile: "backend/internal/api/practice/handler.go", handlerDecl: "func (h *Handler) StartPracticeSession",
 		},
 		{
-			operationID: "appendSessionEvent", method: "post", path: "/practice/sessions/{sessionId}/events",
-			fixture:   "openapi/fixtures/PracticeSessions/appendSessionEvent.json",
-			mainRoute: "POST /api/v1/practice/sessions/{sessionId}/events", mainHandler: "practice.Handler.AppendSessionEvent",
-			handlerFile: "backend/internal/api/practice/session_event_handlers.go", handlerDecl: "func (h *Handler) AppendSessionEvent",
+			operationID: "sendPracticeMessage", method: "post", path: "/practice/sessions/{sessionId}/messages",
+			fixture:   "openapi/fixtures/PracticeSessions/sendPracticeMessage.json",
+			mainRoute: "POST /api/v1/practice/sessions/{sessionId}/messages", mainHandler: "practice.Handler.SendPracticeMessage",
+			handlerFile: "backend/internal/api/practice/session_event_handlers.go", handlerDecl: "func (h *Handler) SendPracticeMessage",
 		},
 		{
 			operationID: "completePracticeSession", method: "post", path: "/practice/sessions/{sessionId}/complete",

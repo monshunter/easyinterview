@@ -8,7 +8,7 @@ import verifyAuthEmailChallengeFixture from "../../../openapi/fixtures/Auth/veri
 import getJobFixture from "../../../openapi/fixtures/Jobs/getJob.json";
 import createPracticePlanFixture from "../../../openapi/fixtures/PracticePlans/createPracticePlan.json";
 import getPracticePlanFixture from "../../../openapi/fixtures/PracticePlans/getPracticePlan.json";
-import appendSessionEventFixture from "../../../openapi/fixtures/PracticeSessions/appendSessionEvent.json";
+import sendPracticeMessageFixture from "../../../openapi/fixtures/PracticeSessions/sendPracticeMessage.json";
 import completePracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/completePracticeSession.json";
 import createPracticeVoiceTurnFixture from "../../../openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json";
 import getPracticeSessionFixture from "../../../openapi/fixtures/PracticeSessions/getPracticeSession.json";
@@ -62,7 +62,7 @@ const DEV_MOCK_FIXTURES = [
 	getPracticeSessionFixture,
 	listPracticeSessionsFixture,
 	completePracticeSessionFixture,
-	appendSessionEventFixture,
+	sendPracticeMessageFixture,
 	createPracticeVoiceTurnFixture,
 	requestPrivacyDeleteFixture,
 	requestPrivacyExportFixture,

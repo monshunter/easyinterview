@@ -36,7 +36,7 @@ export interface ReplayPayloadInput {
 /**
  * Path A — `复练当前轮 / Replay current round`. Constructs the route params
  * forwarded to `nav("practice", ...)` so the practice screen restarts on the
- * same round but injects the report-derived retry-focus turn IDs.
+ * same round and carries report-derived competency focus codes.
  *
  * The payload contains owner IDs + display knobs only — no raw text, no
  * promptHash, no AI model identifier. Tests guard the negative red lines.
@@ -47,14 +47,14 @@ export function buildReplayPayload(
   const { route, report, sessionId } = input;
   const params = route.params;
   const sourceReportId = report?.id ?? params.reportId ?? "";
-  const replayItems = (report?.retryFocusTurnIds ?? []).join(",");
+  const focusCompetencyCodes = (report?.retryFocusCompetencyCodes ?? []).join(",");
   const evidenceGaps = (report?.issues ?? [])
     .map((issue) => issue.dimension)
     .filter((value): value is string => Boolean(value))
     .join("|");
   return omitEmpty({
     sourceSessionId: sessionId,
-    replayItems,
+    focusCompetencyCodes,
     evidenceGaps,
     planId: params.planId ?? "",
     targetJobId: params.targetJobId ?? "",
@@ -62,16 +62,13 @@ export function buildReplayPayload(
     resumeId: params.resumeId ?? "",
     sourceReportId,
     roundId: params.roundId ?? "",
-    mode: "text",
-    modality: "text",
-    practiceMode: params.practiceMode ?? "strict",
     practiceGoal: "retry_current_round",
   });
 }
 
 /**
  * Path B — `进入下一轮 / Start next round`. Same shape as path A but rotates
- * to the next round and drops the per-turn retry list.
+ * to the next round.
  */
 export function buildNextRoundPayload(
   input: ReplayPayloadInput,
@@ -91,9 +88,6 @@ export function buildNextRoundPayload(
     targetJobId: params.targetJobId ?? "",
     jdId: params.jdId ?? "",
     resumeId: params.resumeId ?? "",
-    mode: "text",
-    modality: "text",
-    practiceMode: params.practiceMode ?? "strict",
     practiceGoal: "next_round",
   });
 }

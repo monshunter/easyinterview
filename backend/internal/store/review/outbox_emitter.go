@@ -10,14 +10,13 @@ import (
 )
 
 type ReportGeneratedInput struct {
-	ReportID           string
-	SessionID          string
-	TargetJobID        string
-	PreparednessLevel  sharedtypes.ReadinessTier
-	QuestionIssueCount int
-	PromptVersion      string
-	RubricVersion      string
-	ModelID            string
+	ReportID          string
+	SessionID         string
+	TargetJobID       string
+	PreparednessLevel sharedtypes.ReadinessTier
+	PromptVersion     string
+	RubricVersion     string
+	ModelID           string
 }
 
 type ReportGenerationFailedInput struct {
@@ -44,14 +43,10 @@ func BuildReportGeneratedPayload(in ReportGeneratedInput) (sharedevents.ReportGe
 		return sharedevents.ReportGeneratedPayload{}, fmt.Errorf("%s: provenance fields are required", sharedevents.EventNameReportGenerated)
 	}
 	payload := sharedevents.ReportGeneratedPayload{
-		ModelID:            strings.TrimSpace(in.ModelID),
-		PreparednessLevel:  in.PreparednessLevel,
-		PromptVersion:      strings.TrimSpace(in.PromptVersion),
-		QuestionIssueCount: in.QuestionIssueCount,
-		ReportID:           strings.TrimSpace(in.ReportID),
-		RubricVersion:      strings.TrimSpace(in.RubricVersion),
-		SessionID:          strings.TrimSpace(in.SessionID),
-		TargetJobID:        strings.TrimSpace(in.TargetJobID),
+		ModelID: strings.TrimSpace(in.ModelID), PreparednessLevel: in.PreparednessLevel,
+		PromptVersion: strings.TrimSpace(in.PromptVersion), ReportID: strings.TrimSpace(in.ReportID),
+		RubricVersion: strings.TrimSpace(in.RubricVersion), SessionID: strings.TrimSpace(in.SessionID),
+		TargetJobID: strings.TrimSpace(in.TargetJobID),
 	}
 	if err := assertNoReviewOutboxPII(payload); err != nil {
 		return sharedevents.ReportGeneratedPayload{}, err

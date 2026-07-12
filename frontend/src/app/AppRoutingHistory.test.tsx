@@ -143,7 +143,7 @@ describe("App browser-aware routing — Phase 2.2 navigate via History", () => {
 });
 
 describe("App browser-aware routing — Phase 2.3 popstate / chrome parity", () => {
-  it("popstate from canonical practice URL hides TopBar and renders phone surface", async () => {
+  it("popstate from a legacy phone URL renders chat with voice disabled", async () => {
     render(<App />);
     act(() => {
       window.history.pushState(
@@ -154,9 +154,10 @@ describe("App browser-aware routing — Phase 2.3 popstate / chrome parity", () 
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
     await waitFor(() =>
-      expect(screen.getByTestId("practice-phone-waveform")).toBeInTheDocument(),
+      expect(screen.getByTestId("practice-conversation")).toBeInTheDocument(),
     );
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("practice-topbar-phone-toggle")).toBeDisabled();
   });
 
   it("popstate back to /workspace restores chrome + workspace empty fallback", async () => {

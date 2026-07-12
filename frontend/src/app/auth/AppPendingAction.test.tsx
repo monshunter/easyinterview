@@ -125,13 +125,9 @@ describe("requestAuth pending-action flow", () => {
     expect(practice.getAttribute("data-target-job-id")).toBe(
       SAMPLE_ACTION.params.targetJobId,
     );
-    expect(practice.getAttribute("data-jd-id")).toBe(SAMPLE_ACTION.params.jdId);
-    expect(practice.getAttribute("data-resume-version-id")).toBe(
-      SAMPLE_ACTION.params.resumeId,
-    );
-    expect(practice.getAttribute("data-round-id")).toBe(
-      SAMPLE_ACTION.params.roundId,
-    );
+    expect(window.location.search).toContain(`jdId=${SAMPLE_ACTION.params.jdId}`);
+    expect(window.location.search).toContain(`resumeId=${SAMPLE_ACTION.params.resumeId}`);
+    expect(window.location.search).toContain(`roundId=${SAMPLE_ACTION.params.roundId}`);
     expect(practice.getAttribute("data-session-id")).toBe(
       SAMPLE_ACTION.params.sessionId,
     );

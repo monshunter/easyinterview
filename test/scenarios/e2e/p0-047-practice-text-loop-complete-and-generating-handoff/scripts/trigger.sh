@@ -1,16 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
-OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-047-practice-text-loop-complete-and-generating-handoff"
-mkdir -p "$OUTPUT_DIR"
-(
-  cd "$REPO_ROOT"
-  "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
-  pnpm --filter @easyinterview/frontend test \
-    src/app/screens/practice/hooks/useCompletePracticeSession.test.tsx \
-    src/app/screens/practice/utils/practiceHandoffParams.test.ts \
-    src/app/screens/practice/__tests__/completePracticeSessionBody.test.tsx \
-    src/app/screens/practice/__tests__/practicePrivacy.test.tsx \
-    src/app/screens/practice/__tests__/practiceCompletion.test.tsx
-) | tee "$OUTPUT_DIR/trigger.log"
+ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"; OUT="$ROOT/.test-output/e2e/p0-047-practice-text-loop-complete-and-generating-handoff"; mkdir -p "$OUT"
+{ cd "$ROOT"; "$ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$ROOT"; pnpm --filter @easyinterview/frontend test src/app/screens/practice/hooks/useCompletePracticeSession.test.tsx src/app/screens/generating/__tests__/GeneratingScreen.test.tsx; go test -v ./backend/internal/store/practice -count=1; } | tee "$OUT/trigger.log"

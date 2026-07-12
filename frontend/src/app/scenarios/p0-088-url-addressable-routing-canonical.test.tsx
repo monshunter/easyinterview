@@ -68,20 +68,18 @@ const NavBatch: FC = () => {
       </button>
       <button
         type="button"
-        data-testid="go-practice-phone"
+        data-testid="go-practice-chat"
         onClick={() =>
           navigate({
             name: "practice",
             params: {
               sessionId: SESSION_ID,
-              mode: "phone",
-              modality: "phone",
               planId: PLAN_ID,
             },
           })
         }
       >
-        practice phone
+        practice chat
       </button>
       <button
         type="button"
@@ -121,14 +119,15 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     );
   });
 
-  it("direct-open /practice?mode=phone&modality=phone hides chrome and mounts phone surface", () => {
+  it("direct-open legacy phone params mounts chat with voice disabled", () => {
     window.history.replaceState(
       null,
       "",
       `/practice?sessionId=${SESSION_ID}&mode=phone&modality=phone&planId=${PLAN_ID}`,
     );
     render(<App />);
-    expect(screen.getByTestId("practice-phone-waveform")).toBeInTheDocument();
+    expect(screen.getByTestId("practice-conversation")).toBeInTheDocument();
+    expect(screen.getByTestId("practice-topbar-phone-toggle")).toBeDisabled();
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
     expect(window.location.pathname).toBe("/practice");
   });
@@ -193,9 +192,10 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     const user = userEvent.setup();
     await user.click(screen.getByTestId("go-workspace-hostile"));
     await waitFor(() => screen.getByTestId("workspace-plan-list"));
-    await user.click(screen.getByTestId("go-practice-phone"));
-    await waitFor(() => screen.getByTestId("practice-phone-waveform"));
+    await user.click(screen.getByTestId("go-practice-chat"));
+    await waitFor(() => screen.getByTestId("practice-conversation"));
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
+    expect(screen.getByTestId("practice-topbar-phone-toggle")).toBeDisabled();
     await user.click(screen.getByTestId("go-report-failed"));
     await waitFor(() => screen.getByTestId("report-failure-state"));
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
@@ -205,7 +205,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
       window.history.back();
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
-    await waitFor(() => screen.getByTestId("practice-phone-waveform"));
+    await waitFor(() => screen.getByTestId("practice-conversation"));
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
 
     act(() => {
@@ -220,7 +220,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
       window.history.forward();
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
-    await waitFor(() => screen.getByTestId("practice-phone-waveform"));
+    await waitFor(() => screen.getByTestId("practice-conversation"));
     act(() => {
       window.history.forward();
       window.dispatchEvent(new PopStateEvent("popstate"));

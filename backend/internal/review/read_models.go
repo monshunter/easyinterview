@@ -25,17 +25,10 @@ type ReportNextActionRecord struct {
 	Label string
 }
 
-type DimensionResultRecord struct {
+type DimensionAssessmentRecord struct {
+	Dimension  string
 	Status     sharedtypes.DimensionStatus
 	Confidence sharedtypes.Confidence
-}
-
-type QuestionAssessmentRecord struct {
-	TurnID              string
-	QuestionIntent      string
-	DimensionResults    map[string]DimensionResultRecord
-	ReviewStatus        sharedtypes.QuestionReviewStatus
-	IncludedInRetryPlan bool
 }
 
 type GenerationProvenanceRecord struct {
@@ -48,20 +41,20 @@ type GenerationProvenanceRecord struct {
 }
 
 type FeedbackReportRecord struct {
-	ID                  string
-	SessionID           string
-	TargetJobID         string
-	Status              sharedtypes.ReportStatus
-	PreparednessLevel   *sharedtypes.ReadinessTier
-	Highlights          []ReportEvidenceRecord
-	Issues              []ReportEvidenceRecord
-	NextActions         []ReportNextActionRecord
-	QuestionAssessments []QuestionAssessmentRecord
-	RetryFocusTurnIDs   []string
-	Provenance          *GenerationProvenanceRecord
-	ErrorCode           *string
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
+	ID                        string
+	SessionID                 string
+	TargetJobID               string
+	Status                    sharedtypes.ReportStatus
+	PreparednessLevel         *sharedtypes.ReadinessTier
+	Highlights                []ReportEvidenceRecord
+	Issues                    []ReportEvidenceRecord
+	NextActions               []ReportNextActionRecord
+	DimensionAssessments      []DimensionAssessmentRecord
+	RetryFocusCompetencyCodes []string
+	Provenance                *GenerationProvenanceRecord
+	ErrorCode                 *string
+	CreatedAt                 time.Time
+	UpdatedAt                 time.Time
 }
 
 type ListTargetJobReportsRequest struct {

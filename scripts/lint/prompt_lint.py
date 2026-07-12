@@ -102,7 +102,7 @@ FEATURE_CONTRACTS = {
             "$.next_actions",
             "$.next_actions[].type",
             "$.next_actions[].label",
-            "$.retry_focus_turn_ids",
+            "$.retry_focus_competency_codes",
         },
     },
     "resume.parse": {
@@ -728,7 +728,7 @@ ARRAY_ITEM_EXAMPLE_BY_KEY = {
         "description": "The JD explicitly calls for owning high-availability backend systems.",
         "evidenceLevel": "explicit",
     },
-    "retry_focus_turn_ids": "turn-3",
+    "retry_focus_competency_codes": "risk_handling",
     "riskItems": {"label": "Thin rollback detail", "severity": "medium"},
     "riskSignals": "The JD asks for on-call ownership without naming team support.",
     "risks": "Less evidence for frontend-heavy collaboration requirements.",

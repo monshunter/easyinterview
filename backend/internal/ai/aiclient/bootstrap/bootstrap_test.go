@@ -71,10 +71,10 @@ func TestNewClientLoadsRegistryProfileAndRoutesThroughProviderRef(t *testing.T) 
 	}
 	defer runtime.Close()
 
-	resp, meta, err := runtime.Client.Complete(context.Background(), "practice.followup.default", aiclient.CompletePayload{
+	resp, meta, err := runtime.Client.Complete(context.Background(), "practice.chat.default", aiclient.CompletePayload{
 		Messages: []aiclient.Message{{Role: "user", Content: "hello"}},
 		Metadata: aiclient.CallMetadata{
-			FeatureKey:    "practice.session.follow_up",
+			FeatureKey:    "practice.session.chat",
 			PromptVersion: "p1",
 			RubricVersion: "r1",
 			Language:      "en",
@@ -89,7 +89,7 @@ func TestNewClientLoadsRegistryProfileAndRoutesThroughProviderRef(t *testing.T) 
 	if resp.Content != "runtime ok" {
 		t.Fatalf("unexpected response %q", resp.Content)
 	}
-	if meta.Provider != "deepseek" || meta.ModelProfileName != "practice.followup.default" {
+	if meta.Provider != "deepseek" || meta.ModelProfileName != "practice.chat.default" {
 		t.Fatalf("meta not routed through provider ref/profile: %+v", meta)
 	}
 }
@@ -130,14 +130,14 @@ func writeRuntimeConfig(t *testing.T, providerRef string) (string, string) {
 	}
 	profilePath := filepath.Join(dir, "ai-profiles.yaml")
 	profileBody := `profiles:
-  - name: practice.followup.default
+  - name: practice.chat.default
     capability: chat
     status: active
     default:
       provider_ref: ` + providerRef + `
       model: chat-runtime-2026-05-05
     timeout_ms: 5000
-    route: practice.followup
+    route: practice.session.chat
     version: 1.0.0
 `
 	if err := os.WriteFile(profilePath, []byte(profileBody), 0o600); err != nil {

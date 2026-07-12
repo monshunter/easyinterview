@@ -138,7 +138,7 @@ func TestResolveSelectedProvidersUsesA4SecretSource(t *testing.T) {
 	}
 
 	profile := &aiclient.ModelProfile{
-		Name:       "practice.followup.default",
+		Name:       "practice.chat.default",
 		Capability: aiclient.CapabilityChat,
 		Default:    aiclient.ProviderConfig{ProviderRef: "deepseek", Model: "chat-model"},
 	}
@@ -174,7 +174,7 @@ func TestResolveSelectedProvidersFailFastOnlyForSelectedNonTestNetworkProvider(t
 	}
 
 	stubProfile := &aiclient.ModelProfile{
-		Name:       "practice.followup.default",
+		Name:       "practice.chat.default",
 		Capability: aiclient.CapabilityChat,
 		Default:    aiclient.ProviderConfig{ProviderRef: "unit-test-stub", Model: "stub-chat"},
 	}
@@ -183,7 +183,7 @@ func TestResolveSelectedProvidersFailFastOnlyForSelectedNonTestNetworkProvider(t
 	}
 
 	networkProfile := &aiclient.ModelProfile{
-		Name:       "practice.followup.default",
+		Name:       "practice.chat.default",
 		Capability: aiclient.CapabilityChat,
 		Default:    aiclient.ProviderConfig{ProviderRef: "deepseek", Model: "chat-model"},
 	}
@@ -213,17 +213,17 @@ func TestResolveSelectedProvidersRejectsProfileRegistryDrift(t *testing.T) {
 
 	cases := map[string]*aiclient.ModelProfile{
 		"provider-ref-not-found": {
-			Name:       "practice.followup.default",
+			Name:       "practice.chat.default",
 			Capability: aiclient.CapabilityChat,
 			Default:    aiclient.ProviderConfig{ProviderRef: "missing-provider", Model: "chat-model"},
 		},
 		"capability-mismatch": {
-			Name:       "practice.followup.default",
+			Name:       "practice.chat.default",
 			Capability: aiclient.CapabilityChat,
 			Default:    aiclient.ProviderConfig{ProviderRef: "stt-only", Model: "chat-model"},
 		},
 		"fallback-over-two-hops": {
-			Name:       "practice.followup.default",
+			Name:       "practice.chat.default",
 			Capability: aiclient.CapabilityChat,
 			Default:    aiclient.ProviderConfig{ProviderRef: "unit-test-stub", Model: "chat-model"},
 			Fallback: []aiclient.FallbackEntry{

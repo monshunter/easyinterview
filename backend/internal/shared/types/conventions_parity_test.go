@@ -47,7 +47,6 @@ func TestConventionsParityFixture_EnumSets(t *testing.T) {
 	got := map[string][]string{
 		"TargetJobStatus":      stringsOf(AllTargetJobStatuses),
 		"TargetJobParseStatus": stringsOf(AllTargetJobParseStatuses),
-		"PracticeMode":         stringsOf(AllPracticeModes),
 		"PracticeGoal":         stringsOf(AllPracticeGoals),
 		"InterviewerRole":      stringsOf(AllInterviewerRoles),
 		"SessionStatus":        stringsOf(AllSessionStatuses),
@@ -55,22 +54,14 @@ func TestConventionsParityFixture_EnumSets(t *testing.T) {
 		"ReadinessTier":        stringsOf(AllReadinessTiers),
 		"DimensionStatus":      stringsOf(AllDimensionStatuses),
 		"Confidence":           stringsOf(AllConfidences),
-		"QuestionReviewStatus": stringsOf(AllQuestionReviewStatuses),
 		"PrivacyRequestType":   stringsOf(AllPrivacyRequestTypes),
 		"PrivacyRequestStatus": stringsOf(AllPrivacyRequestStatuses),
 	}
-	if len(got) != 13 {
-		t.Fatalf("generated enum type count = %d, want 13", len(got))
+	if len(got) != 11 {
+		t.Fatalf("generated enum type count = %d, want 11", len(got))
 	}
 	if !reflect.DeepEqual(got, fixture.Enums) {
 		t.Fatalf("Go enum sets differ from fixture\ngot:  %#v\nwant: %#v", got, fixture.Enums)
-	}
-}
-
-func TestPracticeModeIsBinary(t *testing.T) {
-	want := []string{"assisted", "strict"}
-	if got := stringsOf(AllPracticeModes); !reflect.DeepEqual(got, want) {
-		t.Fatalf("PracticeMode values = %#v, want %#v", got, want)
 	}
 }
 

@@ -22,14 +22,14 @@ func TestLoadHappyPath(t *testing.T) {
 		t.Fatalf("loadFromDisk failed: %v", err)
 	}
 
-	// 9 baseline feature_keys remain after product-scope D-17/D-22 removed
+	// 6 baseline feature_keys remain after conversation simplification removed
 	// the jd_match and debrief/profile prompt owners; both directories must
-	// resolve all 9 through the loader.
-	if got := len(snap.prompts); got != 9 {
-		t.Fatalf("prompts: want 9 feature_keys, got %d", got)
+	// the structured question prompt owners.
+	if got := len(snap.prompts); got != 6 {
+		t.Fatalf("prompts: want 6 feature_keys, got %d", got)
 	}
-	if got := len(snap.rubrics); got != 9 {
-		t.Fatalf("rubrics: want 9 feature_keys, got %d", got)
+	if got := len(snap.rubrics); got != 6 {
+		t.Fatalf("rubrics: want 6 feature_keys, got %d", got)
 	}
 
 	// Each baseline ships the canonical multi prompt.

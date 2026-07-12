@@ -846,14 +846,14 @@ func TestDeterministicParseAIClient_OnlyInterceptsTargetImportParse(t *testing.T
 		t.Fatalf("deterministic parse fixture must persist 2 to 5 structured rounds, got %s", string(store.completeSuccessIn.Summary))
 	}
 
-	delegated, _, err := client.Complete(context.Background(), "practice.followup.default", aiclient.CompletePayload{
+	delegated, _, err := client.Complete(context.Background(), "practice.chat.default", aiclient.CompletePayload{
 		Messages: []aiclient.Message{{Role: "user", Content: "other"}},
-		Metadata: aiclient.CallMetadata{FeatureKey: "practice.followup"},
+		Metadata: aiclient.CallMetadata{FeatureKey: "practice.session.chat"},
 	})
 	if err != nil {
 		t.Fatalf("delegated Complete: %v", err)
 	}
-	if delegated.Content != "delegated" || inner.lastProfileName != "practice.followup.default" {
+	if delegated.Content != "delegated" || inner.lastProfileName != "practice.chat.default" {
 		t.Fatalf("non target import calls must delegate, got resp=%+v profile=%q", delegated, inner.lastProfileName)
 	}
 }

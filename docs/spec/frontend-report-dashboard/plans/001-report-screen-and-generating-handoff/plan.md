@@ -11,7 +11,7 @@
 
 ## 1 目标
 
-将 generating/report UI 原地改为 conversation-level report：四张 summary cards、四个 detail tabs、competency-focused replay，删除 QuestionsTab、逐题 summary、hint/phone/mode context。
+将 generating/report UI 原地改为 conversation-level report：三项 summary metrics、四个无 tab 内容区（dimensions/highlights/issues/next actions）与 competency-focused replay，删除 QuestionsTab、逐题 summary、hint/phone/mode context。
 
 ## 2 Operation Matrix
 
@@ -32,7 +32,7 @@
 
 | Source | Category | Phase | Verification | UI anchor | Negative |
 |--------|----------|-------|--------------|-----------|----------|
-| four cards/tabs | source structure | 1-2 | prototype/formal tests | screen-report::ReportScreen | QuestionsTab |
+| three metrics/four sections | source structure | 1-2 | prototype/formal tests | screen-report::ReportScreen | QuestionsTab |
 | generating copy | UX | 1-2 | i18n/DOM tests | ReportGeneratingScreen | 逐题/题目回顾 |
 | ready report | primary | 3 | P0.056 | dashboard | questionAssessments |
 | replay competency | primary | 4 | P0.057 | Header CTA | retryFocusTurnIds |
@@ -47,7 +47,7 @@
 
 ### Phase 2: Formal structure
 - Delete QuestionsTab and question summary/card/body paths.
-- Use four cards/tabs, default readiness; simplify ContextStrip.
+- Use three summary metrics and four always-visible content sections; simplify ContextStrip.
 - Update i18n/a11y/responsive geometry.
 
 ### Phase 3: Data states

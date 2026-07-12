@@ -1,8 +1,8 @@
 # 001 Workspace + InterviewContext + Start Practice Contract
 
-> **版本**: 1.36
+> **版本**: 1.37
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -32,7 +32,7 @@
 - 面试规划列表卡片进入统一面试规划详情时必须使用 `listTargetJobs` 返回的当前 `currentPracticePlanId` / `resumeId`；`resumeId` 是 target job 创建时的持久绑定，若当前还没有 ready practice plan，也必须携带该 `resumeId` 进入详情页。
 - `workspace` 不渲染统一详情母版，不拥有 `autoStartPractice` route side effect；列表页 `立即面试` 使用 shared generated practice handoff (`getPracticePlan` / `createPracticePlan` / `startPracticeSession`) 显式启动 session，并携带 saved TargetJob 的 `targetJobId/resumeId/currentPracticePlanId` 与结构化 `roundId/roundName`。
 - 列表页删除图标使用 generated `archiveTargetJob` 和 `Idempotency-Key` 持久软归档 TargetJob；成功后从当前列表移除，失败时不导航、不隐藏卡片，并展示错误；不得继续使用本地-only hidden set 作为删除合同。
-- `InterviewContext` 不在 `workspace` route carry；`practice / generating / report` owner route 按各自最小上下文携带 `targetJobId / jdId / resumeId / roundId / planId / practiceMode / practiceGoal / hintUsed / hintCount`。
+- `InterviewContext` 不在 `workspace` route carry；`practice / generating / report` owner route 按各自最小上下文携带稳定 ID 与 `practiceGoal`，不携带 mode/modality/hint 状态。
 - Workspace 当前 runtime 只保留规划列表；不包含详情专用的 Plan Switcher、Resume Picker、公司情报卡片或启动副作用组件。
 - 当前规划记录区只展示 typed records static affordance，不从 `TargetJob` fixture extension、`any` 或 report API 拼接记录行。
 - JD 原文、简历正文、题目文本、答案、提示、prompt/response 不进入 URL、localStorage、console 或 fixture transport 日志。
@@ -49,8 +49,8 @@
 | `getResume` | `openapi/fixtures/Resumes/getResume.json` | Parse / resume owners only | `backend-resume/001` | `resume_assets` | none | external owner gates |
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home select + Parse bound resume display / resume workshop | `backend-resume/001` | `resume_assets` | none | parse owner gate |
 | `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json` | Workspace list quick start and parse/report start handoff validate existing plan context | `backend-practice/001` | `practice_plans` | none | workspace + parse/report focused gates |
-| `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` | Workspace list quick start and parse/report handoff create baseline / retry / next-round plan when needed | `backend-practice/001` | `practice_plans` | backend-only first question prep | workspace + parse/report focused gates |
-| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` | Workspace list quick start and parse/report handoff start practice and navigate `practice` | `backend-practice/001` | `practice_sessions` + first turn | backend-only `practice.session.first_question` | workspace + parse/report focused gates |
+| `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json` | Workspace list quick start and parse/report handoff create baseline / retry / next-round plan when needed | `backend-practice/001` | `practice_plans` | none | workspace + parse/report focused gates |
+| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json` | Workspace list quick start and parse/report handoff start practice and navigate `practice` | `backend-practice/001` | `practice_sessions` + opening `practice_messages` row | backend-only `practice.session.chat` | workspace + parse/report focused gates |
 | `getFeedbackReport` | N/A | 本 plan 不消费；report owner handles replay/next-round CTA | external owner | external | none | external owner gates |
 
 ### 2.2 UI / Route Boundary

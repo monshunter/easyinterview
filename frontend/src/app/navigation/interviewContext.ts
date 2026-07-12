@@ -25,12 +25,7 @@ export interface InterviewContextOptions {
 }
 
 export const defaultPracticeRouteParams = {
-  mode: "text",
-  modality: "text",
-  practiceMode: "strict",
   practiceGoal: "baseline",
-  hintUsed: "false",
-  hintCount: "0",
 } as const;
 
 export function interviewContextFromTargetJob(

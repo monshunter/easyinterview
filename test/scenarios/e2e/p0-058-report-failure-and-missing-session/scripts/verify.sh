@@ -12,7 +12,7 @@ grep -Fq 'preflight.test.ts' "$LOG_FILE" || { echo "E2E.P0.058: owner preflight 
 grep -Fq 'ReportFailureState.test.tsx' "$LOG_FILE" || { echo "E2E.P0.058: failure-state test did not pass" >&2; exit 1; }
 grep -Fq 'ReportMissingSessionState.test.tsx' "$LOG_FILE" || { echo "E2E.P0.058: missing-state test did not pass" >&2; exit 1; }
 grep -Fq 'useFeedbackReport.test.tsx' "$LOG_FILE" || { echo "E2E.P0.058: report hook test did not pass" >&2; exit 1; }
-grep -Fq 'ReportScreen.test.tsx' "$LOG_FILE" || { echo "E2E.P0.058: report route-state test did not pass" >&2; exit 1; }
+grep -Fq 'ConversationReport.test.tsx' "$LOG_FILE" || { echo "E2E.P0.058: conversation report test did not pass" >&2; exit 1; }
 grep -Fq 'useReportGenerationPoll.test.tsx' "$LOG_FILE" || { echo "E2E.P0.058: poll failure test did not pass" >&2; exit 1; }
 
 # AI_* enum is covered + REPORT_NOT_FOUND has separate copy.

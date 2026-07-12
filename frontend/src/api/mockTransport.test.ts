@@ -31,7 +31,11 @@ describe("fixture-backed generated client transport", () => {
 		expect(runtimeConfig.appVersion).toBe("1.0.0+dev.0428");
 		expect(me.emailMasked).toBe("ali***@example.com");
 		expect(targetJobs.items[0]?.title).toBe("Senior Frontend Engineer");
-		expect(session.currentTurn?.questionIntent).toBe("behavioral.leadership.design_system");
+		expect(session.messages.map((message) => message.role)).toEqual([
+			"assistant",
+			"user",
+			"assistant",
+		]);
 	});
 
 	it("selects named scenarios from Prefer and rejects unknown scenarios", async () => {

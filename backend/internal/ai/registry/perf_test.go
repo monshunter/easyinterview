@@ -47,7 +47,7 @@ func BenchmarkResolve(b *testing.B) {
 	ctx := context.Background()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := client.ResolveActive(ctx, "practice.session.follow_up", "en"); err != nil {
+		if _, err := client.ResolveActive(ctx, "practice.session.chat", "en"); err != nil {
 			b.Fatalf("ResolveActive: %v", err)
 		}
 	}
@@ -62,7 +62,7 @@ func TestResolveP95Budget(t *testing.T) {
 	measurements := make([]time.Duration, samples)
 	for i := 0; i < samples; i++ {
 		start := time.Now()
-		if _, err := client.ResolveActive(ctx, "practice.session.follow_up", "en"); err != nil {
+		if _, err := client.ResolveActive(ctx, "practice.session.chat", "en"); err != nil {
 			t.Fatalf("ResolveActive: %v", err)
 		}
 		measurements[i] = time.Since(start)

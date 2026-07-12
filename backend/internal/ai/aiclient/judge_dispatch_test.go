@@ -25,8 +25,8 @@ func judgeDispatchResolver() staticResolver {
 			Route:     "judge.default",
 			Version:   "0.1.0",
 		},
-		"practice.followup.default": {
-			Name:       "practice.followup.default",
+		"practice.chat.default": {
+			Name:       "practice.chat.default",
 			Capability: aiclient.CapabilityChat,
 			Status:     aiclient.ProfileStatusActive,
 			Default: aiclient.ProviderConfig{
@@ -71,7 +71,7 @@ func TestCompleteJudgeRoutesJudgeProfile(t *testing.T) {
 // when handed a chat-capability profile (capability boundary is symmetric).
 func TestCompleteJudgeRejectsChatProfile(t *testing.T) {
 	c := newClientWithProviders(t, judgeDispatchResolver(), stubProviderForJudge(t))
-	_, meta, err := c.CompleteJudge(context.Background(), "practice.followup.default", samplePayload())
+	_, meta, err := c.CompleteJudge(context.Background(), "practice.chat.default", samplePayload())
 	assertUnsupportedCapabilityError(t, err, meta, aiclient.CapabilityChat)
 }
 

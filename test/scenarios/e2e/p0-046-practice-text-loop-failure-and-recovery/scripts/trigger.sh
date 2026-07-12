@@ -1,24 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
-OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-046-practice-text-loop-failure-and-recovery"
-mkdir -p "$OUTPUT_DIR"
-(
-  cd "$REPO_ROOT"
-  "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$REPO_ROOT"
-  pnpm --filter @easyinterview/frontend test \
-    src/app/screens/practice/__tests__/practiceSessionLost.test.tsx \
-    src/app/screens/practice/__tests__/practiceErrors.test.tsx \
-    src/app/screens/practice/__tests__/practiceVoiceTurn.test.tsx \
-    src/app/screens/practice/__tests__/practiceClientEventConflict.test.tsx \
-    src/app/screens/practice/__tests__/practiceConflict.test.tsx \
-    src/app/screens/practice/hooks/usePracticeEvents.test.tsx \
-    src/app/screens/practice/hooks/useCompletePracticeSession.test.tsx \
-    src/app/screens/practice/__tests__/idempotencyContract.test.tsx
-  echo "RUNNER backend-go-test E2E.P0.046"
-  cd "$REPO_ROOT/backend"
-  go test -v ./internal/practice \
-    -run 'TestAppendSessionEventSecondInvalidQuestionReturnsSessionWaitWithoutAdvancingTurn' \
-    -count=1
-) | tee "$OUTPUT_DIR/trigger.log"
+ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"; OUT="$ROOT/.test-output/e2e/p0-046-practice-text-loop-failure-and-recovery"; mkdir -p "$OUT"
+{
+  cd "$ROOT"
+  "$ROOT/test/scenarios/_shared/scripts/frontend-real-backend-gate.sh" "$ROOT"
+  pnpm --filter @easyinterview/frontend test src/app/screens/practice/PracticeScreen.test.tsx src/app/screens/practice/hooks/useCompletePracticeSession.test.tsx
+  go test -v ./backend/internal/practice ./backend/internal/store/practice -run 'TestSendPracticeMessageUsesOrdinaryConversationHistory|TestSQLRepositoryGetSessionReturnsOrderedMessages' -count=1
+} | tee "$OUT/trigger.log"
