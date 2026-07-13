@@ -77,6 +77,9 @@ func TestTailorHandlerHappyPathWritesReadySuggestionsTaskRunAndPrivateOutbox(t *
 	if store.success.TailorRunID != tailorRunID || store.success.ResumeID != resumeID || store.success.Mode != "gap_review" || len(store.success.Suggestions) != 3 {
 		t.Fatalf("success input drift: %+v", store.success)
 	}
+	if store.success.JobID != "0195f2d0-4a44-7fc2-8f77-1f9c4cf7c001" || store.success.ClaimedAttempts != 1 {
+		t.Fatalf("claimed lease generation was not threaded to success transaction: %+v", store.success)
+	}
 	var outbox map[string]any
 	if err := json.Unmarshal(store.success.OutboxEventPayload, &outbox); err != nil {
 		t.Fatalf("decode outbox payload: %v", err)

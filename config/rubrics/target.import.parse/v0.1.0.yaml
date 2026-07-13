@@ -1,6 +1,7 @@
 feature_key: "target.import.parse"
 version: "v0.1.0"
 language: "multi"
+status: "active"
 dimensions:
   - name: "target_extraction_completeness"
     weight: 0.4

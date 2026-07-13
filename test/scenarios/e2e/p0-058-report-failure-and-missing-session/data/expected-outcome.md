@@ -1,7 +1,7 @@
 # Expected outcome
 
-- `report.failureState.errorCode.AI_PROVIDER_TIMEOUT` copy renders for the failed status path with retry + back CTAs.
-- ReportMissingSessionState renders without invoking `getFeedbackReport`.
-- Cross-user 404 routes the dashboard to ReportFailureState with `data-not-found="true"` and the dedicated REPORT_NOT_FOUND copy.
-- The poll hook reaches `timeout` after max attempts and maps HTTP 404 to `REPORT_NOT_FOUND`; this runner does not claim GeneratingScreen UI evidence.
-- All six focused file markers, the real-mode bootstrap contract and typed i18n keys pass.
+- All three backend packages execute and pass `TestE2EP0058ReportFailureBackendEvidence` with the six exact action-retry/fail-closed markers and no skipped/no-test/failure output.
+- Context mismatch and oversized input perform no ready write; 48,001 bytes causes zero provider calls; invalid→valid consumes two calls; a fourth invalid result ends the current action. One invocation waits exactly `10s/20s/40s`, destroys state on return, and a second independent invocation starts at attempt one; async job attempts do not affect the product attempt.
+- Seven focused frontend files pass: missing only `reportId` performs no fetch; report status/context come only from API; timeout/network can continue-check; terminal/not-found/invalid direct/`REPORT_CONTEXT_TOO_LARGE` expose back only and never raw enums or fake reports.
+- `verify.sh` alone writes exact-key `report-backend-evidence.v3` with redacted `database` fail-closed facts, separate `runtime` action/reset/separation facts and `result=PASS`.
+- Cleanup preserves only the approved evidence artifact.

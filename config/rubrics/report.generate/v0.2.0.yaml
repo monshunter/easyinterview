@@ -1,0 +1,69 @@
+feature_key: "report.generate"
+version: "v0.2.0"
+language: "multi"
+status: "active"
+dimensions:
+  - name: "report_evidence"
+    weight: 0.35
+    description: "Every fact and performance judgment is supported by frozen context and cited candidate user messages; unsupported or fabricated claims fail."
+    score_levels:
+      - label: "weak"
+        threshold: 0.0
+        description: "Contains an unsupported or fabricated fact, cites no candidate message, or treats assistant/JD/resume text as performance evidence."
+      - label: "developing"
+        threshold: 0.4
+        description: "Some claims are supported, but one or more items are only partially grounded or overstate evidence limits."
+      - label: "proficient"
+        threshold: 0.7
+        description: "All material claims are supported by the cited candidate messages and evidence limitations are stated explicitly."
+      - label: "strong"
+        threshold: 0.9
+        description: "Every claim has precise, independently checkable support and the summary introduces no uncited fact."
+  - name: "report_specificity"
+    weight: 0.25
+    description: "The report uses precise session-grounded observations, distinguishes not-covered topics from demonstrated gaps, and avoids generic language."
+    score_levels:
+      - label: "weak"
+        threshold: 0.0
+        description: "Uses generic assertions, invents specificity, or treats an unanswered question as avoidance, inability, or missing experience."
+      - label: "developing"
+        threshold: 0.4
+        description: "Names relevant topics but leaves important claims vague or fails to mark partial evidence clearly."
+      - label: "proficient"
+        threshold: 0.7
+        description: "Uses concrete supported observations and clearly labels evidence-limited or not-covered topics."
+      - label: "strong"
+        threshold: 0.9
+        description: "Is concise and highly specific while preserving the exact boundary between observed behavior and unavailable evidence."
+  - name: "report_action_quality"
+    weight: 0.25
+    description: "Advice is immediately executable under the user's control, relevant to the frozen round, ordered consistently with readiness, and causally linked to a supported issue or readiness decision; not_ready and needs_practice must not recommend next_round."
+    score_levels:
+      - label: "weak"
+        threshold: 0.0
+        description: "Contains irrelevant, unexecutable, externally contingent, unsafe, or unsupported advice, recommends a next round that does not exist, or recommends next_round while readiness still requires current-round practice."
+      - label: "developing"
+        threshold: 0.4
+        description: "Actions are plausible but unnecessarily generic, weakly owned, or only partially linked to the identified issue; this excludes the intentionally generic single-issue answer_depth or answer_relevance replay required when no narrower cited focus exists."
+      - label: "proficient"
+        threshold: 0.7
+        description: "Every action is executable and directly addresses a supported issue or valid next-round opportunity; the exact single-issue answer_depth or answer_relevance exception may use an intentionally generic replay with empty focus, while multi-issue lower-tier reports use non-empty focus and a concrete first retry label."
+      - label: "strong"
+        threshold: 0.9
+        description: "Actions are concise, ordered, immediately usable, and trace cleanly to the strongest available evidence."
+  - name: "report_calibration"
+    weight: 0.15
+    description: "Readiness follows the four semantic tiers, confidence follows evidence directness, and dimensions, issues, retry focus, and actions form one causal evidence-calibrated chain."
+    score_levels:
+      - label: "weak"
+        threshold: 0.0
+        description: "Readiness or confidence contradicts their semantic definitions or evidence, or a needs-work, issue, focus, and action causal link is broken."
+      - label: "developing"
+        threshold: 0.4
+        description: "Overall direction is plausible but one readiness, confidence, focus, or action judgment is over- or under-calibrated."
+      - label: "proficient"
+        threshold: 0.7
+        description: "Readiness and confidence match their registered semantic definitions and the supported evidence, with valid issue-to-focus/action causal links."
+      - label: "strong"
+        threshold: 0.9
+        description: "The complete report is conservatively calibrated, internally coherent, and robust to evidence-limited or adversarial input."

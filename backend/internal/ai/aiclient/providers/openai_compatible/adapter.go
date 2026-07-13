@@ -3,6 +3,7 @@ package openaicompatible
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -31,14 +32,16 @@ const (
 	PathTranscriptions  = "/v1/audio/transcriptions"
 )
 
-// Header names used for fallback/route metadata. The provider endpoint
-// populates these on responses; A3 client only reads them.
+// Header names retained for wire compatibility and mock fixtures. Response
+// values are untrusted and never override canonical profile metadata.
 const (
 	HeaderRequestID    = "X-Request-ID"
 	HeaderFallbackFrom = "X-Fallback-From"
 	HeaderFallbackTo   = "X-Fallback-To"
 	HeaderRoute        = "X-Route"
 )
+
+const maxResponseBodyBytes int64 = 4 << 20
 
 // Options configures the adapter.
 type Options struct {
@@ -101,7 +104,10 @@ func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, 
 	if profile.MaxTokens > 0 {
 		req.MaxTokens = profile.MaxTokens
 	}
-	applyParams(profile.Default.Params, &req)
+	if err := applyParams(profile.Default.Params, &req); err != nil {
+		errCode := stableError(sharederrors.CodeAiProviderConfigInvalid)
+		return aiclient.CompleteResponse{}, a.errMeta(profile, nil, 0, errCode), errCode
+	}
 
 	start := time.Now()
 	resp, status, headers, err := a.postJSON(ctx, profile.TimeoutMs, PathChatCompletions, req)
@@ -118,7 +124,7 @@ func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, 
 
 	var body chatCompletionsResponse
 	if err := json.Unmarshal(resp, &body); err != nil {
-		errCode := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "openai_compatible: parse response: "+err.Error(), false)
+		errCode := stableError(sharederrors.CodeAiOutputInvalid)
 		meta := a.errMeta(profile, headers, latencyMs, errCode)
 		return aiclient.CompleteResponse{}, meta, errCode
 	}
@@ -131,10 +137,10 @@ func (a *Adapter) Complete(ctx context.Context, profile *aiclient.ModelProfile, 
 	choice := body.Choices[0]
 	out := aiclient.CompleteResponse{
 		Content:      choice.Message.Content,
-		FinishReason: choice.FinishReason,
+		FinishReason: safeFinishReason(choice.FinishReason),
 		ToolCalls:    convertToolCalls(choice.Message.ToolCalls),
 	}
-	meta := a.buildMeta(profile, headers, latencyMs, body.Model, body.Usage.PromptTokens, body.Usage.CompletionTokens, out.ToolCalls)
+	meta := a.buildMeta(profile, headers, latencyMs, body.Usage.PromptTokens, body.Usage.CompletionTokens, out.ToolCalls)
 	return out, meta, nil
 }
 
@@ -169,7 +175,7 @@ func (a *Adapter) Transcribe(ctx context.Context, profile *aiclient.ModelProfile
 
 	var body transcriptionResponse
 	if err := json.Unmarshal(resp, &body); err != nil {
-		errCode := sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "openai_compatible: parse transcription response: "+err.Error(), false)
+		errCode := stableError(sharederrors.CodeAiOutputInvalid)
 		meta := a.errMeta(profile, headers, latencyMs, errCode)
 		return aiclient.TranscriptionResponse{}, meta, errCode
 	}
@@ -180,7 +186,7 @@ func (a *Adapter) Transcribe(ctx context.Context, profile *aiclient.ModelProfile
 	}
 
 	out := aiclient.TranscriptionResponse{Text: body.Text}
-	meta := a.buildMeta(profile, headers, latencyMs, profile.Default.Model, len(input.Audio), len(out.Text), nil)
+	meta := a.buildMeta(profile, headers, latencyMs, len(input.Audio), len(out.Text), nil)
 	return out, meta, nil
 }
 
@@ -202,7 +208,9 @@ func (a *Adapter) Stream(ctx context.Context, profile *aiclient.ModelProfile, pa
 	if profile.MaxTokens > 0 {
 		req.MaxTokens = profile.MaxTokens
 	}
-	applyParams(profile.Default.Params, &req)
+	if err := applyParams(profile.Default.Params, &req); err != nil {
+		return nil, stableError(sharederrors.CodeAiProviderConfigInvalid)
+	}
 
 	streamCtx := ctx
 	var cancel context.CancelFunc
@@ -250,9 +258,9 @@ func (a *Adapter) postStream(ctx context.Context, path string, body any) (*http.
 	resp, err := a.client.Do(req)
 	if err != nil {
 		if ctxErr := ctx.Err(); errors.Is(ctxErr, context.DeadlineExceeded) {
-			return nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "openai_compatible: timeout", true)
+			return nil, stableError(sharederrors.CodeAiProviderTimeout)
 		}
-		return nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "openai_compatible: transport error: "+err.Error(), true)
+		return nil, stableError(sharederrors.CodeAiProviderTimeout)
 	}
 	return resp, nil
 }
@@ -265,14 +273,17 @@ func (a *Adapter) consumeStream(ctx context.Context, cancel context.CancelFunc, 
 	}
 
 	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(resp.Body)
+		body, err := readResponseBody(resp)
+		if err != nil {
+			ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: errorCodeOf(err)}
+			return
+		}
 		ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: errorCodeOf(mapHTTPError(resp.StatusCode, body))}
 		return
 	}
 
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
-	modelID := profile.Default.Model
 	inputTokens := 0
 	outputTokens := 0
 	outputChars := 0
@@ -285,7 +296,7 @@ func (a *Adapter) consumeStream(ctx context.Context, cancel context.CancelFunc, 
 		if outputTokens == 0 {
 			outputTokens = outputChars
 		}
-		meta := a.buildMeta(profile, resp.Header, latencyMs, modelID, inputTokens, outputTokens, nil)
+		meta := a.buildMeta(profile, resp.Header, latencyMs, inputTokens, outputTokens, nil)
 		if errorCode != "" {
 			meta.ValidationStatus = aiclient.ValidationStatusInvalid
 			meta.ErrorCode = errorCode
@@ -316,9 +327,6 @@ func (a *Adapter) consumeStream(ctx context.Context, cancel context.CancelFunc, 
 		if chunk.Error.Code != "" {
 			ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: sharedOrOutputInvalid(chunk.Error.Code)}
 			return
-		}
-		if chunk.Model != "" {
-			modelID = chunk.Model
 		}
 		if chunk.Usage.PromptTokens > 0 {
 			inputTokens = chunk.Usage.PromptTokens
@@ -355,11 +363,11 @@ func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body
 	}
 	buf, err := json.Marshal(body)
 	if err != nil {
-		return nil, 0, nil, fmt.Errorf("openai_compatible: marshal request: %w", err)
+		return nil, 0, nil, stableError(sharederrors.CodeAiProviderConfigInvalid)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.baseURL+path, bytes.NewReader(buf))
 	if err != nil {
-		return nil, 0, nil, fmt.Errorf("openai_compatible: build request: %w", err)
+		return nil, 0, nil, stableError(sharederrors.CodeAiProviderConfigInvalid)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+a.apiKey)
@@ -370,14 +378,14 @@ func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body
 	resp, err := a.client.Do(req)
 	if err != nil {
 		if ctxErr := ctx.Err(); errors.Is(ctxErr, context.DeadlineExceeded) {
-			return nil, 0, nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "openai_compatible: timeout", true)
+			return nil, 0, nil, stableError(sharederrors.CodeAiProviderTimeout)
 		}
-		return nil, 0, nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "openai_compatible: transport error: "+err.Error(), true)
+		return nil, 0, nil, stableError(sharederrors.CodeAiProviderTimeout)
 	}
 	defer resp.Body.Close()
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := readResponseBody(resp)
 	if err != nil {
-		return nil, resp.StatusCode, resp.Header, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "openai_compatible: read response: "+err.Error(), true)
+		return nil, resp.StatusCode, resp.Header, err
 	}
 	return respBody, resp.StatusCode, resp.Header, nil
 }
@@ -390,7 +398,7 @@ func (a *Adapter) postMultipart(ctx context.Context, timeoutMs int, path, conten
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.baseURL+path, body)
 	if err != nil {
-		return nil, 0, nil, fmt.Errorf("openai_compatible: build request: %w", err)
+		return nil, 0, nil, stableError(sharederrors.CodeAiProviderConfigInvalid)
 	}
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("Authorization", "Bearer "+a.apiKey)
@@ -401,35 +409,31 @@ func (a *Adapter) postMultipart(ctx context.Context, timeoutMs int, path, conten
 	resp, err := a.client.Do(req)
 	if err != nil {
 		if ctxErr := ctx.Err(); errors.Is(ctxErr, context.DeadlineExceeded) {
-			return nil, 0, nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "openai_compatible: timeout", true)
+			return nil, 0, nil, stableError(sharederrors.CodeAiProviderTimeout)
 		}
-		return nil, 0, nil, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "openai_compatible: transport error: "+err.Error(), true)
+		return nil, 0, nil, stableError(sharederrors.CodeAiProviderTimeout)
 	}
 	defer resp.Body.Close()
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := readResponseBody(resp)
 	if err != nil {
-		return nil, resp.StatusCode, resp.Header, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "openai_compatible: read response: "+err.Error(), true)
+		return nil, resp.StatusCode, resp.Header, err
 	}
 	return respBody, resp.StatusCode, resp.Header, nil
 }
 
 func mapHTTPError(status int, body []byte) error {
 	if status >= 500 {
-		return sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, fmt.Sprintf("openai_compatible: upstream %d", status), true)
+		return stableError(sharederrors.CodeAiProviderTimeout)
 	}
-	// 4xx: try to parse body for an error_code field; otherwise fall back to
-	// AI_OUTPUT_INVALID for shape errors and a generic wire error otherwise.
+	// 4xx: accept only a registered stable error code; provider prose is never
+	// returned or persisted. Unknown envelopes fail closed as AI_OUTPUT_INVALID.
 	var env errorEnvelope
 	if json.Unmarshal(body, &env) == nil && env.Error.Code != "" {
 		if meta, ok := sharederrors.CodeRegistry[env.Error.Code]; ok {
-			msg := env.Error.Message
-			if msg == "" {
-				msg = meta.Message
-			}
-			return sharederrors.Wrap(env.Error.Code, msg, meta.Retryable)
+			return sharederrors.Wrap(env.Error.Code, meta.Message, meta.Retryable)
 		}
 	}
-	return sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, fmt.Sprintf("openai_compatible: upstream %d", status), false)
+	return stableError(sharederrors.CodeAiOutputInvalid)
 }
 
 func (a *Adapter) errMeta(profile *aiclient.ModelProfile, headers http.Header, latencyMs int64, err error) aiclient.AICallMeta {
@@ -444,10 +448,8 @@ func (a *Adapter) errMeta(profile *aiclient.ModelProfile, headers http.Header, l
 	return meta
 }
 
-func (a *Adapter) buildMeta(profile *aiclient.ModelProfile, headers http.Header, latencyMs int64, modelID string, inputTokens, outputTokens int, toolCalls []aiclient.ToolCall) aiclient.AICallMeta {
-	if modelID == "" {
-		modelID = profile.Default.Model
-	}
+func (a *Adapter) buildMeta(profile *aiclient.ModelProfile, headers http.Header, latencyMs int64, inputTokens, outputTokens int, toolCalls []aiclient.ToolCall) aiclient.AICallMeta {
+	modelID := profile.Default.Model
 	meta := aiclient.AICallMeta{
 		Provider:        a.providerRef,
 		ModelFamily:     modelFamily(modelID),
@@ -477,26 +479,54 @@ func summarizeToolCalls(calls []aiclient.ToolCall) []aiclient.ToolInvocationMeta
 	return out
 }
 
-func mergeFallbackHeaders(profile *aiclient.ModelProfile, headers http.Header, meta *aiclient.AICallMeta) {
-	if headers == nil {
-		return
-	}
-	if route := headers.Get(HeaderRoute); route != "" {
-		meta.Route = route
-	} else if profile != nil && profile.Route != "" {
+func mergeFallbackHeaders(profile *aiclient.ModelProfile, _ http.Header, meta *aiclient.AICallMeta) {
+	if profile != nil {
 		meta.Route = profile.Route
 	}
-	from := headers.Get(HeaderFallbackFrom)
-	to := headers.Get(HeaderFallbackTo)
-	if from != "" || to != "" {
-		chain := []string{}
-		if from != "" {
-			chain = append(chain, from)
+}
+
+func readResponseBody(resp *http.Response) ([]byte, error) {
+	reader := io.Reader(resp.Body)
+	compressed := false
+	if !resp.Uncompressed {
+		switch strings.ToLower(strings.TrimSpace(resp.Header.Get("Content-Encoding"))) {
+		case "", "identity":
+		case "gzip":
+			zr, err := gzip.NewReader(resp.Body)
+			if err != nil {
+				return nil, stableError(sharederrors.CodeAiOutputInvalid)
+			}
+			defer zr.Close()
+			reader = zr
+			compressed = true
+		default:
+			return nil, stableError(sharederrors.CodeAiOutputInvalid)
 		}
-		if to != "" {
-			chain = append(chain, to)
+	}
+	body, err := io.ReadAll(io.LimitReader(reader, maxResponseBodyBytes+1))
+	if err != nil {
+		if compressed {
+			return nil, stableError(sharederrors.CodeAiOutputInvalid)
 		}
-		meta.FallbackChain = chain
+		return nil, stableError(sharederrors.CodeAiProviderTimeout)
+	}
+	if int64(len(body)) > maxResponseBodyBytes {
+		return nil, stableError(sharederrors.CodeAiOutputInvalid)
+	}
+	return body, nil
+}
+
+func stableError(code string) *sharederrors.APIError {
+	meta := sharederrors.CodeRegistry[code]
+	return sharederrors.Wrap(code, meta.Message, meta.Retryable)
+}
+
+func safeFinishReason(value string) string {
+	switch value {
+	case "", "stop", "length", "tool_calls", "content_filter", "function_call":
+		return value
+	default:
+		return "unknown"
 	}
 }
 
@@ -656,9 +686,9 @@ func escapeMultipartValue(s string) string {
 	return strings.NewReplacer("\\", "\\\\", `"`, "\\\"").Replace(s)
 }
 
-func applyParams(params map[string]any, req *chatCompletionsRequest) {
+func applyParams(params map[string]any, req *chatCompletionsRequest) error {
 	if params == nil {
-		return
+		return nil
 	}
 	if v, ok := params["temperature"]; ok {
 		if f, ok := toFloat(v); ok {
@@ -670,6 +700,14 @@ func applyParams(params map[string]any, req *chatCompletionsRequest) {
 			req.TopP = &f
 		}
 	}
+	if raw, ok := params["thinking"]; ok {
+		mode, ok := raw.(string)
+		if !ok || (mode != "enabled" && mode != "disabled") {
+			return errors.New("thinking must be enabled or disabled")
+		}
+		req.Thinking = &thinkingMode{Type: mode}
+	}
+	return nil
 }
 
 func toFloat(v any) (float64, bool) {

@@ -1,13 +1,35 @@
 # Prompt Rubric Registry History
 
-> **版本**: 2.21
+> **版本**: 2.40
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 2.40 | 按用户确认保留 report 完整 JSON 示例；为 prioritization/tie-breaking 示例增加相邻 synthetic candidate input 与 anti-copy/current-context regeneration 规则，并同步 prompt hash、migration、resolved prompt、active DB 与 lint gate。 | F3 002/004 + BUG-0166 |
+| 2026-07-13 | 2.39 | 用户确认evalkit generation/judge各自max4 calls。Generation多轮动态repair/full validation；judge只重试provider/protocol invalid，valid negative typed terminal；manifest记录attempt/retry/reason/scope与聚合usage/latency。旧one-shot合同废止。 | F3 002/004 + backend-review/001 + P0.100 |
+| 2026-07-13 | 2.39 | `e2e-p0-100-20260713T022140Z-25849` 因合同替换在10/11主动中止，不是PASS或marker证据。 | F3 004 + P0.100 |
+| 2026-07-13 | 2.38 | Evalkit改为复用产品完整semantic validator：sole-label→action_labels，其它schema/semantic/mixed→one whole_report repair，所有阶段完整复验，second invalid zero judge。80338暴露旧缺口，code GREEN待主agent验收。 | F3 002/004 + backend-review/001 + P0.100 |
+| 2026-07-13 | 2.38 | 59906 injection修复summary clause evidence mapping、action质量属性升级与W exact readiness，direct judge3次PASS；75753 short empty-focus修复exact generic exception，同digest+5次PASS；最终矩阵与markers仍pending。 | F3 004 + P0.100 |
+| 2026-07-13 | 2.37 | run `e2e-p0-100-20260713T011140Z-36625` 的short-conservative attempt1暴露exact generic replay与report_action_quality rubric矛盾；TDD修复judge/rubric例外并同步migration/active DB，同case复测0.82/0.70零违规；完整P0.100矩阵仍pending。 | F3 004 + backend-review/001 + P0.100 |
+| 2026-07-13 | 2.37 | 方案 A 最终边界：wire fuse200 code points；quality/UX 24 whitespace words / 64 Unicode code points；targeted action-label repair内部目标18/52并按200+24/64复验；P0.100等待新合同重跑。 | F3 002/004 + P0.099/P0.100 |
+| 2026-07-13 | 2.36 | A-200批准：schema fuse改200；14/40不变；纯label schema200/14-40仍action_labels，P0.100按新合同pending rerun。 | F3 002/004 + P0.100 |
+| 2026-07-13 | 2.35 | 历史FAIL：旧120合同label越界误归whole_report；不能当新A-200 PASS。 | F3 004 + backend-review/001 + P0.100 |
+| 2026-07-13 | 2.34 | 建立 evalkit schema+14/40 scoped repair与 runner no-repair/zero-judge 分界；具体 label>120 scope由2.35校正。 | F3 002/004 + backend-review/001 + P0.100 |
+| 2026-07-13 | 2.33 | 明确 120 仅作 wire/schema fuse；F3/P0.100 内容可靠性与 P0.099 current-run UX audit 保持独立。 | F3 002/004 + backend-review/001 + P0.099/P0.100 |
+| 2026-07-13 | 2.32 | 锁定 evalkit live completion 同源 output-schema validation、一次 `$ / output_schema_invalid` product repair、second-invalid fail、generation 聚合 usage/latency + repair_used，以及 judge 零 repair/retry；action 收紧为 en<=14 words、zh-CN<=40 chars、multi-focus 逐 code 分号短片段。 | prompt-rubric-registry/004 Phase 8-9 + backend-review/001 + P0.100 |
+| 2026-07-13 | 2.31 | P0.100 真实 judge 暴露 action 合同矛盾与 umbrella-label 高分漏判后，按 retry/review/next 分类型修正 support；focused retry 首 label 必须逐 focus code 命名直接引用 missing behavior，umbrella-only 无效；review 禁止虚构 artifact/gap/new scenario/transfer task；focus 封闭为两个 exact empty exceptions 或完整升序 needs-work issue-code set。 | prompt-rubric-registry/002 Phase 14 + 004 Phase 8-9 + backend-review/001 |
+| 2026-07-13 | 2.30 | 收紧 report generic empty-focus/multi-issue focus、unique lower-tier action 与 unsafe blocking 语义；JSON exemplar 使用非阻断 incident communication；judge request 机械派生 ordered expected item/causal lists，空 highlights/issues 无集合 verdict且 retry focus 保持唯一数组整体 verdict；P0.100 在 judge 前机械拒绝 multi-issue empty focus/duplicate action并仅保留脱敏结构计数。 | prompt-rubric-registry/004 Phase 8-9 + backend-review/001 |
+| 2026-07-12 | 2.29 | Context-aware report judge 传递 weight/ordered score levels，强制 preparedness 与 retry-focus verdict；五案例覆盖四档准备度、control-only/pending 与伪 role/schema/XML 注入。 | prompt-rubric-registry/004 Phase 8-9 |
+| 2026-07-12 | 2.28 | 可靠性矩阵补齐中文 evidence-limited case 与 generic retry empty-focus case；因 generation/judge 同为 DeepSeek V4 Pro，P0.100 新增同一 raw packet 的独立 Agent item/causal audit，禁止 judge 自证。 | 004 Phase 9 + backend-review/001 + P0.100 |
+| 2026-07-12 | 2.27 | 锁定 active report v0.2 Resolve provenance 为 `report-context.v1`，practice v0.2 保持 `registry.v1`，使 backend-review CallMetadata/AICallMeta 与冻结上下文坐标一致。 | 002 Phase 14 + backend-review/001 Phase 6.3 |
+| 2026-07-12 | 2.26 | 方案 A 将 `practice.session.chat` 结构化 semantic-focus token 作为 immutable v0.2 prompt/schema + 内容权重不变 rubric pair，并与 report v0.2 在 dev 8-status snapshot 和 DB 000019 单事务中同步激活/回滚。 | 002 Phase 14 + backend-practice/004 |
+| 2026-07-12 | 2.25 | 将 report v0.2 closed schema 从口头合同固化为递归 `additionalProperties=false` 与字符串/数组/数字机械边界，并要求 lint、loader、共享 runtime validator 三层执行。 | 002 Phase 14 + 004 Phase 8 |
+| 2026-07-12 | 2.24 | 锁定 rubric `status` activation metadata，并将 dev file atomic snapshot 与 staging/prod DB transaction 分开定义激活/回滚，不再声称跨介质原子。 | 002 Phase 14 + 004 Phase 8 + B4 000019 |
+| 2026-07-12 | 2.23 | 划清 report v0.2 owner：002 只拥有 prompt/schema、多版本解析与双 GREEN 后最终激活；004 唯一拥有 rubric/context-aware judge/28-case eval，并保留 v0.1 精确回滚坐标。 | 002 Phase 14 + 004 Phase 8 |
+| 2026-07-12 | 2.22 | report.generate 改为 grounded direct closed schema；report eval/judge 升级为 context+transcript+output 和内容因果核对。 | 002 Phase 14 + 004 Phase 8 + backend-review/001 |
 | 2026-07-12 | 2.21 | 三个 Practice 题目型 feature key 合并为 `practice.session.chat`，报告删除逐题 assessment prompt。 | backend-practice 001-003 / backend-review 001 |
 | 2026-07-10 | 2.20 | 将 output-schema runtime parser 合同收敛为 canonical-only；`practice` 首题/追问与轻量观察的范围外输出 alias 只作为 negative-test 输入，不再由生产 parser 消费。 | prompt-rubric-registry/002-output-schema-contract Phase 12 |
 | 2026-07-10 | 2.19 | 将 prompt contract 与 example JSON 表述收敛为空文案 / filler values / 命名空间口径。 | tech-debt pruning |

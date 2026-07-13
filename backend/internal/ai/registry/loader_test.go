@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/monshunter/easyinterview/backend/internal/testsupport"
+	"gopkg.in/yaml.v3"
 )
 
 // TestLoad covers the loader's happy path against the real
@@ -42,6 +43,191 @@ func TestLoadHappyPath(t *testing.T) {
 		if _, ok := langs["multi"]; !ok {
 			t.Errorf("feature_key %s missing multi rubric", fk)
 		}
+	}
+}
+
+func TestLoadPreservesReportPromptAndRubricVersions(t *testing.T) {
+	t.Parallel()
+	promptsRoot, rubricsRoot := testsupport.ConfigRoots(t)
+
+	snap, err := loadFromDisk(promptsRoot, rubricsRoot)
+	if err != nil {
+		t.Fatalf("loadFromDisk failed: %v", err)
+	}
+
+	promptVersions := snap.prompts["report.generate"]["multi"]
+	if _, ok := promptVersions["v0.1.0"]; !ok {
+		t.Fatal("report.generate prompt rollback version v0.1.0 must remain loaded")
+	}
+	if _, ok := promptVersions["v0.2.0"]; !ok {
+		t.Fatal("report.generate prompt candidate version v0.2.0 must be loaded")
+	}
+	rubricVersions := snap.rubrics["report.generate"]["multi"]
+	if _, ok := rubricVersions["v0.1.0"]; !ok {
+		t.Fatal("report.generate rubric rollback version v0.1.0 must remain loaded")
+	}
+	if _, ok := rubricVersions["v0.2.0"]; !ok {
+		t.Fatal("report.generate rubric candidate version v0.2.0 must be loaded")
+	}
+}
+
+func TestLoadRejectsUnknownRubricStatus(t *testing.T) {
+	t.Parallel()
+	promptsRoot, rubricsRoot := tempBaselineCopy(t)
+	target := filepath.Join(rubricsRoot, "report.generate", "v0.2.0.yaml")
+	body, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatalf("read rubric: %v", err)
+	}
+	body = []byte(strings.Replace(string(body), `status: "active"`, `status: "retired"`, 1))
+	if err := os.WriteFile(target, body, 0o644); err != nil {
+		t.Fatalf("write rubric: %v", err)
+	}
+
+	if _, err := loadFromDisk(promptsRoot, rubricsRoot); err == nil {
+		t.Fatal("expected unknown rubric status to fail")
+	} else if !strings.Contains(err.Error(), "status") || !strings.Contains(err.Error(), "invalid") {
+		t.Fatalf("expected invalid-status diagnostic, got %v", err)
+	}
+}
+
+func TestLoadRejectsZeroActivePromptVersion(t *testing.T) {
+	t.Parallel()
+	promptsRoot, rubricsRoot := tempBaselineCopy(t)
+	target := filepath.Join(promptsRoot, "target.import.parse", "v0.1.0.yaml")
+	rewritePromptStatus(t, target, "draft")
+
+	if _, err := loadFromDisk(promptsRoot, rubricsRoot); err == nil {
+		t.Fatal("expected zero active prompt versions to fail")
+	} else if !strings.Contains(err.Error(), "exactly one active prompt") {
+		t.Fatalf("expected active prompt diagnostic, got %v", err)
+	}
+}
+
+func TestLoadRejectsPromptRubricVersionParityDrift(t *testing.T) {
+	t.Parallel()
+	promptsRoot, rubricsRoot := tempBaselineCopy(t)
+	if err := os.Remove(filepath.Join(rubricsRoot, "report.generate", "v0.2.0.yaml")); err != nil {
+		t.Fatalf("remove v0.2 rubric: %v", err)
+	}
+
+	if _, err := loadFromDisk(promptsRoot, rubricsRoot); err == nil {
+		t.Fatal("expected prompt/rubric version parity drift to fail")
+	} else if !strings.Contains(err.Error(), "version parity") {
+		t.Fatalf("expected version parity diagnostic, got %v", err)
+	}
+}
+
+func TestLoadRejectsOpenGroundedReportSchema(t *testing.T) {
+	t.Parallel()
+	promptsRoot, rubricsRoot := tempBaselineCopy(t)
+	target := filepath.Join(promptsRoot, "report.generate", "v0.2.0.schema.json")
+	body, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatalf("read schema: %v", err)
+	}
+	var schema map[string]any
+	if err := json.Unmarshal(body, &schema); err != nil {
+		t.Fatalf("parse schema: %v", err)
+	}
+	delete(schema, "additionalProperties")
+	body, err = json.Marshal(schema)
+	if err != nil {
+		t.Fatalf("marshal schema: %v", err)
+	}
+	if err := os.WriteFile(target, body, 0o644); err != nil {
+		t.Fatalf("write schema: %v", err)
+	}
+
+	if _, err := loadFromDisk(promptsRoot, rubricsRoot); err == nil {
+		t.Fatal("expected open grounded report schema to fail")
+	} else if !strings.Contains(err.Error(), "additionalProperties=false") {
+		t.Fatalf("expected closed-schema diagnostic, got %v", err)
+	}
+}
+
+func TestLoadRejectsMultipleActivePromptVersions(t *testing.T) {
+	t.Parallel()
+	promptsRoot, rubricsRoot := tempBaselineCopy(t)
+	rewritePromptStatus(t, filepath.Join(promptsRoot, "report.generate", "v0.1.0.yaml"), "active")
+
+	if _, err := loadFromDisk(promptsRoot, rubricsRoot); err == nil {
+		t.Fatal("expected multiple active prompt versions to fail")
+	} else if !strings.Contains(err.Error(), "exactly one active prompt") {
+		t.Fatalf("expected active prompt diagnostic, got %v", err)
+	}
+}
+
+func TestLoadRejectsZeroActiveRubricVersion(t *testing.T) {
+	t.Parallel()
+	promptsRoot, rubricsRoot := tempBaselineCopy(t)
+	target := filepath.Join(rubricsRoot, "report.generate", "v0.2.0.yaml")
+	body, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatalf("read rubric: %v", err)
+	}
+	body = []byte(strings.Replace(string(body), `status: "active"`, `status: "inactive"`, 1))
+	if err := os.WriteFile(target, body, 0o644); err != nil {
+		t.Fatalf("write rubric: %v", err)
+	}
+
+	if _, err := loadFromDisk(promptsRoot, rubricsRoot); err == nil {
+		t.Fatal("expected zero active rubric versions to fail")
+	} else if !strings.Contains(err.Error(), "exactly one active rubric") {
+		t.Fatalf("expected active rubric diagnostic, got %v", err)
+	}
+}
+
+func TestLoadRejectsDuplicatePromptVersion(t *testing.T) {
+	t.Parallel()
+	promptsRoot, rubricsRoot := tempBaselineCopy(t)
+	featureDir := filepath.Join(promptsRoot, "target.import.parse")
+	for _, ext := range []string{".yaml", ".md"} {
+		body, err := os.ReadFile(filepath.Join(featureDir, "v0.1.0"+ext))
+		if err != nil {
+			t.Fatalf("read duplicate source: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(featureDir, "v9.9.9"+ext), body, 0o644); err != nil {
+			t.Fatalf("write duplicate: %v", err)
+		}
+	}
+
+	if _, err := loadFromDisk(promptsRoot, rubricsRoot); err == nil {
+		t.Fatal("expected duplicate prompt version to fail")
+	} else if !strings.Contains(err.Error(), "duplicate prompt") {
+		t.Fatalf("expected duplicate prompt diagnostic, got %v", err)
+	}
+}
+
+func rewritePromptStatus(t *testing.T, target string, status string) {
+	t.Helper()
+	body, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatalf("read prompt: %v", err)
+	}
+	var raw promptYAML
+	if err := yaml.Unmarshal(body, &raw); err != nil {
+		t.Fatalf("parse prompt meta: %v", err)
+	}
+	meta := PromptMeta{
+		FeatureKey: raw.FeatureKey,
+		Version:    raw.Version,
+		Language:   raw.Language,
+		Status:     status,
+		CreatedAt:  raw.CreatedAt,
+	}
+	promptBody, err := os.ReadFile(strings.TrimSuffix(target, ".yaml") + ".md")
+	if err != nil {
+		t.Fatalf("read prompt body: %v", err)
+	}
+	hash, err := computeTemplateHash(promptBody, meta)
+	if err != nil {
+		t.Fatalf("compute prompt hash: %v", err)
+	}
+	body = []byte(strings.Replace(string(body), `status: "`+raw.Status+`"`, `status: "`+status+`"`, 1))
+	body = []byte(strings.Replace(string(body), raw.TemplateHash, hash, 1))
+	if err := os.WriteFile(target, body, 0o644); err != nil {
+		t.Fatalf("write prompt: %v", err)
 	}
 }
 
@@ -91,7 +277,7 @@ func TestLoadOutputSchemaLanguageIndependent(t *testing.T) {
 		t.Fatalf("loadFromDisk failed: %v", err)
 	}
 
-	schema := snap.prompts["target.import.parse"]["multi"].outputSchema
+	schema := snap.prompts["target.import.parse"]["multi"]["v0.1.0"].outputSchema
 	if schema == nil {
 		t.Fatal("output schema must be loaded for canonical multi prompt")
 	}

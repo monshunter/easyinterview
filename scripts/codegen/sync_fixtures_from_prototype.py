@@ -121,11 +121,6 @@ def _mask_email(email: str) -> str:
     return f"{visible}***@example.com"
 
 
-def _slug(value: str) -> str:
-    safe = "".join(c if c.isalnum() else "_" for c in value).strip("_").lower()
-    return safe or "item"
-
-
 # ---------- data loader ------------------------------------------------------
 
 def load_prototype_data(data_file: Path) -> dict:
@@ -158,7 +153,7 @@ REQUIRED_SECTIONS: dict[str, tuple[str, ...]] = {
     "listTargetJobs": ("targetJobs",),
     "getTargetJob": ("targetJobs", "jdSample"),
     "getPracticeSession": ("targetJobs", "sessionTranscript"),
-    "getFeedbackReport": ("report",),
+    "getFeedbackReport": ("report", "targetJobs"),
 }
 
 OP_TAGS = {
@@ -325,67 +320,72 @@ def map_get_practice_session(data: dict) -> OrderedDict:
 
 def map_get_feedback_report(data: dict) -> OrderedDict:
     report = data["report"]
-    target = data["targetJobs"][0] if data.get("targetJobs") else {"id": "tj-1"}
+    target = data["targetJobs"][0]
     target_id = uuidv7_for(f"targetJob:{target['id']}")
-    session_id = uuidv7_for("session:prototype:tj-1")
-    report_id = uuidv7_for(f"report:tj:{target['id']}")
+    session_id = uuidv7_for(f"session:prototype:{report.get('sessionId', target['id'])}")
+    report_id = uuidv7_for(f"report:prototype:{report.get('id', target['id'])}")
+    raw_context = report.get("context") or {}
 
     highlights = []
     for h in report.get("highlights", []):
         highlights.append(OrderedDict([
-            ("dimension", h.get("title", "ownership")),
-            ("evidence", h.get("body", "")),
-            ("confidence", "high"),
+            ("dimensionCode", h.get("dimensionCode")),
+            ("evidence", _sanitize_prototype_text(h.get("evidence"))),
+            ("confidence", h.get("confidence", "medium")),
         ]))
     issues = []
     for i in report.get("issues", []):
-        confidence = "high" if i.get("severity") == "high" else "medium" if i.get("severity") == "medium" else "low"
         issues.append(OrderedDict([
-            ("dimension", i.get("title", "communication")),
-            ("evidence", i.get("body", "")),
-            ("confidence", confidence),
+            ("dimensionCode", i.get("dimensionCode")),
+            ("evidence", _sanitize_prototype_text(i.get("evidence"))),
+            ("confidence", i.get("confidence", "medium")),
         ]))
     next_actions = []
-    for action in report.get("nextPractice", []):
+    for action in report.get("nextActions", []):
         next_actions.append(OrderedDict([
-            ("type", "retry_current_round"),
-            ("label", action),
+            ("type", action.get("type")),
+            ("label", _sanitize_prototype_text(action.get("label"))),
         ]))
-    question_assessments = []
-    dims = report.get("dimensions", [])
-    dim_results = OrderedDict()
-    for d in dims:
-        status_map = {"达标": "meets_bar", "强项": "strong", "待加强": "needs_work"}
-        dim_results[_slug(d.get("name", "dim"))] = OrderedDict([
-            ("status", status_map.get(d.get("state"), "meets_bar")),
-            ("confidence", "high" if d.get("confidence") == "高" else "medium"),
-        ])
-    for pq in report.get("perQuestion", []):
-        included = pq.get("state") == "待加强"
-        question_assessments.append(OrderedDict([
-            ("turnId", uuidv7_for(f"turn:prototype:{pq.get('qId','q?')}")),
-            ("questionIntent", _slug(pq.get("topic", "question"))),
-            ("dimensionResults", dim_results),
-            ("reviewStatus", "queued_for_retry" if included else "resolved"),
-            ("includedInRetryPlan", included),
+    dimension_assessments = []
+    for dimension in report.get("dimensionAssessments", []):
+        dimension_assessments.append(OrderedDict([
+            ("code", dimension.get("code")),
+            ("label", dimension.get("label")),
+            ("status", dimension.get("status")),
+            ("confidence", dimension.get("confidence")),
         ]))
-    retry_focus_turn_ids = [
-        qa["turnId"] for qa in question_assessments if qa.get("includedInRetryPlan")
-    ][:3]
-    preparedness = READINESS_TIER.get(report.get("readiness", 2), "basically_ready")
+    preparedness = report.get("preparednessLevel")
+    if preparedness not in {"not_ready", "needs_practice", "basically_ready", "well_prepared"}:
+        preparedness = READINESS_TIER.get(report.get("readiness", 2), "basically_ready")
+    context = OrderedDict([
+        ("sourcePlanId", uuidv7_for(f"plan:prototype:{raw_context.get('sourcePlanId', target['id'])}")),
+        ("targetJobTitle", raw_context.get("targetJobTitle") or target.get("title") or "Senior Engineer"),
+        ("targetJobCompany", _translate_company(raw_context.get("targetJobCompany") or target.get("company"))),
+        ("resumeId", uuidv7_for(f"resume:prototype:{raw_context.get('resumeId', 'resume-1')}")),
+        ("resumeDisplayName", raw_context.get("resumeDisplayName") or "Example Resume"),
+        ("roundId", raw_context.get("roundId")),
+        ("roundSequence", int(raw_context.get("roundSequence") or 1)),
+        ("roundName", raw_context.get("roundName") or "Interview Round"),
+        ("roundType", raw_context.get("roundType") or "other"),
+        ("language", raw_context.get("language") or report.get("language") or "zh-CN"),
+        ("hasNextRound", bool(raw_context.get("hasNextRound"))),
+    ])
 
     body = OrderedDict([
         ("id", report_id),
         ("sessionId", session_id),
         ("targetJobId", target_id),
         ("status", "ready"),
+        ("errorCode", None),
+        ("summary", _sanitize_prototype_text(report.get("summary"))),
+        ("context", context),
         ("preparednessLevel", preparedness),
+        ("dimensionAssessments", dimension_assessments),
         ("highlights", highlights),
         ("issues", issues),
         ("nextActions", next_actions),
-        ("questionAssessments", question_assessments),
-        ("retryFocusTurnIds", retry_focus_turn_ids),
-        ("provenance", _prov("feedback_report.v3", rubric="feedback_report.rubric.v2")),
+        ("retryFocusDimensionCodes", list(report.get("retryFocusDimensionCodes", []))),
+        ("provenance", _prov("v0.2.0", rubric="v0.2.0")),
         ("createdAt", EARLIER),
         ("updatedAt", NOW),
     ])

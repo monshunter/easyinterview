@@ -47,7 +47,7 @@ type Runtime struct {
 	inflight      sync.WaitGroup
 }
 
-// New constructs a Runtime. Backoff defaults to the spec D-4 policy.
+// New constructs a Runtime. Backoff defaults to the business async-job policy.
 func New(opts Options) *Runtime {
 	if opts.Now == nil {
 		opts.Now = func() time.Time { return time.Now().UTC() }
@@ -202,7 +202,7 @@ func (r *Runtime) dispatch(ctx context.Context, job ClaimedJob) {
 		// No handler registered: finalize non-retryable so the row stops
 		// cycling instead of being requeued forever.
 		now := r.now()
-		_ = r.store.FinalizeAsyncJob(ctx, job.JobID, JobOutcome{
+		_ = r.store.FinalizeAsyncJob(ctx, job.JobID, job.Attempts, JobOutcome{
 			ErrorCode:    "RUNNER_NO_HANDLER",
 			ErrorMessage: "no handler registered for job_type " + job.JobType,
 		}, now, now)
@@ -232,15 +232,23 @@ func (r *Runtime) dispatch(ctx context.Context, job ClaimedJob) {
 
 	if !outcome.AsyncJobFinalized {
 		availableAt := finished
-		if !outcome.Succeeded && outcome.Retryable {
+		if !outcome.Succeeded && outcome.Retryable && job.Attempts < job.MaxAttempts {
 			availableAt = finished.Add(r.backoff.Next(job.Attempts))
 		}
-		if err := r.store.FinalizeAsyncJob(ctx, job.JobID, outcome, availableAt, finished); err != nil {
-			r.logger.ErrorContext(ctx, "runner.finalize failed",
-				slog.String("error", err.Error()),
-				slog.String("job_id", job.JobID),
-				slog.String("job_type", job.JobType),
-			)
+		if err := r.store.FinalizeAsyncJob(ctx, job.JobID, job.Attempts, outcome, availableAt, finished); err != nil {
+			if errors.Is(err, ErrStaleLease) {
+				logger.DebugContext(handlerCtx, "runner.finalize fenced stale lease",
+					slog.String("job_id", job.JobID),
+					slog.String("job_type", job.JobType),
+					slog.Int64("claimed_attempts", int64(job.Attempts)),
+				)
+			} else {
+				logger.ErrorContext(handlerCtx, "runner.finalize failed",
+					slog.String("error", err.Error()),
+					slog.String("job_id", job.JobID),
+					slog.String("job_type", job.JobType),
+				)
+			}
 		}
 	}
 	r.metrics.ObserveJobProcessed(job.JobType, result, duration)

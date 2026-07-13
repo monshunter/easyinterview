@@ -15,8 +15,8 @@
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
 | [001-aiclient-and-profile-bootstrap](./001-aiclient-and-profile-bootstrap/plan.md) | [plan](./001-aiclient-and-profile-bootstrap/plan.md) / [checklist](./001-aiclient-and-profile-bootstrap/checklist.md) / [context](./001-aiclient-and-profile-bootstrap/context.yaml) | 2.5 | completed | 2026-07-10 |
-| [003-provider-registry-and-capability-profiles](./003-provider-registry-and-capability-profiles/plan.md) | [plan](./003-provider-registry-and-capability-profiles/plan.md) / [checklist](./003-provider-registry-and-capability-profiles/checklist.md) / [context](./003-provider-registry-and-capability-profiles/context.yaml) | 1.10 | completed | 2026-07-10 |
 | [004-cascaded-speech-provider-foundation](./004-cascaded-speech-provider-foundation/plan.md) | [plan](./004-cascaded-speech-provider-foundation/plan.md) / [checklist](./004-cascaded-speech-provider-foundation/checklist.md) / [context](./004-cascaded-speech-provider-foundation/context.yaml) | 1.7 | completed | 2026-07-10 |
+| [003-provider-registry-and-capability-profiles](./003-provider-registry-and-capability-profiles/plan.md) | [plan](./003-provider-registry-and-capability-profiles/plan.md) / [checklist](./003-provider-registry-and-capability-profiles/checklist.md) / [context](./003-provider-registry-and-capability-profiles/context.yaml) | 1.14 | completed | 2026-07-13 |
 
 ## 3 草案 / 阻塞（Draft / Blocked）
 

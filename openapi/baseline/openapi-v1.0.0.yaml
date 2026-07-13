@@ -1374,6 +1374,7 @@ components:
         - PRACTICE_SESSION_NOT_FOUND
         - REPORT_NOT_FOUND
         - REPORT_NOT_READY
+        - REPORT_CONTEXT_TOO_LARGE
         - RESUME_EXPORT_NOT_AVAILABLE
         - VALIDATION_FAILED
         - RESOURCE_NOT_FOUND
@@ -2193,7 +2194,8 @@ components:
     # ----- Practice Plans / Sessions -----
     CreatePracticePlanRequest:
       type: object
-      required: [targetJobId, goal, interviewerPersona, difficulty, language, timeBudgetMinutes, resumeId]
+      required: [goal]
+      additionalProperties: false
       properties:
         targetJobId:
           type: string
@@ -2221,12 +2223,46 @@ components:
         sourceReportId:
           type: string
           format: uuid
-          nullable: true
-          description: Required for retry_current_round and next_round practice goals.
-        focusCompetencyCodes:
-          type: array
-          items:
-            type: string
+          description: Required only for retry_current_round and next_round; forbidden for baseline.
+      oneOf:
+        - title: baseline
+          required: [targetJobId, goal, interviewerPersona, difficulty, language, timeBudgetMinutes, resumeId]
+          additionalProperties: false
+          properties:
+            targetJobId:
+              type: string
+              format: uuid
+            goal:
+              const: baseline
+            interviewerPersona:
+              $ref: '#/components/schemas/InterviewerRole'
+            difficulty:
+              type: string
+              enum: [easy, standard, stretch]
+            language:
+              type: string
+            timeBudgetMinutes:
+              type: integer
+              format: int32
+              minimum: 1
+            resumeId:
+              type: string
+              format: uuid
+            roundId:
+              type: string
+              pattern: '^round-[1-9][0-9]{0,9}-(hr|technical|manager|cross_functional|culture|final|other)$'
+          not:
+            required: [sourceReportId]
+        - title: report-derived
+          required: [goal, sourceReportId]
+          additionalProperties: false
+          properties:
+            goal:
+              type: string
+              enum: [retry_current_round, next_round]
+            sourceReportId:
+              type: string
+              format: uuid
 
     PracticePlan:
       type: object
@@ -2533,61 +2569,161 @@ components:
           $ref: '#/components/schemas/Job'
 
     # ----- Reports -----
-    DimensionResult:
-      type: object
-      required: [status, confidence]
-      properties:
-        status:
-          $ref: '#/components/schemas/DimensionStatus'
-        confidence:
-          $ref: '#/components/schemas/Confidence'
-
     ReportHighlight:
       type: object
-      required: [dimension, evidence, confidence]
+      required: [dimensionCode, evidence, confidence]
+      additionalProperties: false
       properties:
-        dimension:
+        dimensionCode:
           type: string
         evidence:
           type: string
+          minLength: 1
+          maxLength: 240
         confidence:
           $ref: '#/components/schemas/Confidence'
 
     ReportIssue:
       type: object
-      required: [dimension, evidence, confidence]
+      required: [dimensionCode, evidence, confidence]
+      additionalProperties: false
       properties:
-        dimension:
+        dimensionCode:
           type: string
         evidence:
           type: string
+          minLength: 1
+          maxLength: 240
         confidence:
           $ref: '#/components/schemas/Confidence'
 
     ReportNextAction:
       type: object
       required: [type, label]
+      additionalProperties: false
       properties:
         type:
           type: string
           enum: [retry_current_round, next_round, review_evidence]
         label:
           type: string
+          minLength: 1
+          maxLength: 200
 
     DimensionAssessment:
       type: object
-      required: [dimension, status, confidence]
+      required: [code, label, status, confidence]
+      additionalProperties: false
       properties:
-        dimension:
+        code:
           type: string
+          pattern: '^[a-z][a-z0-9_]{1,63}$'
+        label:
+          type: string
+          minLength: 1
+          maxLength: 48
         status:
           $ref: '#/components/schemas/DimensionStatus'
         confidence:
           $ref: '#/components/schemas/Confidence'
 
+    ReportContextSnapshot:
+      type: object
+      required: [sourcePlanId, targetJobTitle, targetJobCompany, resumeId, resumeDisplayName, roundId, roundSequence, roundName, roundType, language, hasNextRound]
+      additionalProperties: false
+      properties:
+        sourcePlanId:
+          type: string
+          format: uuid
+        targetJobTitle:
+          type: string
+        targetJobCompany:
+          type: string
+        resumeId:
+          type: string
+          format: uuid
+        resumeDisplayName:
+          type: string
+        roundId:
+          type: string
+          pattern: '^round-[1-9][0-9]{0,9}-(hr|technical|manager|cross_functional|culture|final|other)$'
+        roundSequence:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 2147483647
+        roundName:
+          type: string
+        roundType:
+          type: string
+          enum: [hr, technical, manager, cross_functional, culture, final, other]
+        language:
+          type: string
+        hasNextRound:
+          type: boolean
+
     FeedbackReport:
       type: object
-      required: [id, sessionId, targetJobId, status, createdAt, updatedAt]
+      required: [id, sessionId, targetJobId, status, errorCode, summary, context, preparednessLevel, highlights, issues, nextActions, dimensionAssessments, retryFocusDimensionCodes, provenance, createdAt, updatedAt]
+      additionalProperties: false
+      allOf:
+        - if:
+            required: [status]
+            properties:
+              status:
+                const: ready
+          then:
+            properties:
+              summary:
+                type: string
+                minLength: 1
+                maxLength: 360
+              preparednessLevel:
+                $ref: '#/components/schemas/ReadinessTier'
+              dimensionAssessments:
+                type: array
+                minItems: 1
+              nextActions:
+                type: array
+                minItems: 1
+              provenance:
+                $ref: '#/components/schemas/GenerationProvenance'
+          else:
+            properties:
+              summary:
+                type: 'null'
+              preparednessLevel:
+                type: 'null'
+              dimensionAssessments:
+                type: array
+                maxItems: 0
+              highlights:
+                type: array
+                maxItems: 0
+              issues:
+                type: array
+                maxItems: 0
+              nextActions:
+                type: array
+                maxItems: 0
+              retryFocusDimensionCodes:
+                type: array
+                maxItems: 0
+              provenance:
+                type: 'null'
+        - if:
+            required: [status]
+            properties:
+              status:
+                const: failed
+          then:
+            properties:
+              errorCode:
+                $ref: '#/components/schemas/ApiErrorCode'
+          else:
+            properties:
+              errorCode:
+                type: 'null'
       description: |
         Evidence-based feedback report. AI-generated; `provenance` is required
         once `status == ready` per spec §4.6. Queued or generating reports
@@ -2611,28 +2747,43 @@ components:
           description: |
             Populated only when `status == failed`. Carries the B1 error code
             (typically the `AI_*` family) so clients can render a failure state.
+        summary:
+          oneOf:
+            - type: string
+              minLength: 1
+              maxLength: 360
+            - type: 'null'
+          description: Final report summary; non-empty only when status is ready.
+        context:
+          $ref: '#/components/schemas/ReportContextSnapshot'
         preparednessLevel:
           oneOf:
             - $ref: '#/components/schemas/ReadinessTier'
             - type: 'null'
         highlights:
           type: array
+          maxItems: 4
           items:
             $ref: '#/components/schemas/ReportHighlight'
         issues:
           type: array
+          maxItems: 4
           items:
             $ref: '#/components/schemas/ReportIssue'
         nextActions:
           type: array
+          maxItems: 2
           items:
             $ref: '#/components/schemas/ReportNextAction'
         dimensionAssessments:
           type: array
+          maxItems: 6
           items:
             $ref: '#/components/schemas/DimensionAssessment'
-        retryFocusCompetencyCodes:
+        retryFocusDimensionCodes:
           type: array
+          maxItems: 6
+          uniqueItems: true
           items:
             type: string
         provenance:

@@ -1,13 +1,17 @@
 # AI Provider and Model Routing History
 
-> **版本**: 2.23
+> **版本**: 2.27
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 2.27 | 真实 report generation 暴露 DeepSeek V4 默认 thinking 消耗 final JSON budget；003 Phase 10 将 report profile 显式设为 `thinking=disabled`，openai-compatible adapter 映射官方 thinking object，loader/adapter/lint 对非法值 fail-closed，同时保持 `response_format` 由 output schema 驱动。 | 003 Phase 10 + backend-review/001 + P0.100 |
+| 2026-07-12 | 2.26 | P0.100 真实 judge 复现 DeepSeek V4 默认 thinking 用满 2,048 output tokens、`length` 且 final content 为空；003 Phase 9 将 judge profile 改为 non-thinking JSON / 6,144 / v1.2.0，adapter 增加不泄漏 reasoning 的 empty-final fail-closed，真实 smoke 恢复 `stop`。 | 003 Phase 9 + F3/004 + P0.100 |
+| 2026-07-12 | 2.25 | 将报告单请求 context capacity 与 TPM 吞吐彻底分离：profile 新增 1M context-window contract，offline framing reserve 与 real-provider usage/token-count smoke 共同验证 48k/6144 边界。 | 003 Phase 8 + backend-review/001 + P0.100 |
+| 2026-07-12 | 2.24 | 原地重开 003，将 `report.generate.default.max_tokens` 4096→6144、profile version 升至 1.2.0，并锁定 48,000-byte input / current zh-en worst-case output budget gate。 | 003 Phase 8 + backend-review/001 |
 | 2026-07-12 | 2.23 | 三个 Practice 题目型 chat profile 合并为 `practice.chat.default`，删除逐题 report assessment profile；speech profiles 保持 disabled/unsupported。 | backend-practice 001/003 / backend-review 001 / practice-voice-mvp 001 |
 | 2026-07-10 | 2.22 | 将 model alias、metric label 与 provider-proxy 边界改为正向 current-contract 表述，并同步全部 plan context 投影。 | tech-debt pruning |
 | 2026-07-10 | 2.21 | 将 fail-closed AI profile / provider ref 口径从 placeholder 命名收敛为 disabled / unsupported profile；`practice.voice.realtime.default` 使用 `realtime_audio_disabled` provider ref，保持 unsupported fail-closed。 | tech-debt pruning |

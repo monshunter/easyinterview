@@ -34,14 +34,14 @@ func (r *SQLRepository) CreatePlan(ctx context.Context, in domain.CreatePlanStor
 		return domain.PlanRecord{}, fmt.Errorf("begin create practice plan: %w", err)
 	}
 	defer tx.Rollback()
-	focusCompetencyCodes := in.FocusCompetencyCodes
-	if focusCompetencyCodes == nil {
-		focusCompetencyCodes = []string{}
-	}
+	focusDimensionCodes := []string{}
 
 	var plan domain.PlanRecord
 	var sourceReportID sql.NullString
-	err = tx.QueryRowContext(ctx, `
+	if in.Goal == sharedtypes.PracticeGoalRetryCurrentRound || in.Goal == sharedtypes.PracticeGoalNextRound {
+		plan, err = createDerivedPlan(ctx, tx, in)
+	} else {
+		err = tx.QueryRowContext(ctx, `
 with selected_target as (
   select tj.id,
          case when jsonb_typeof(tj.summary->'interviewRounds') = 'array'
@@ -154,7 +154,7 @@ with selected_target as (
 insert into practice_plans (
   id, user_id, target_job_id, source_report_id, goal, round_id, round_sequence,
   interviewer_persona, difficulty, language, time_budget_minutes,
-  resume_id, focus_competency_codes, status, created_at, updated_at
+	  resume_id, focus_dimension_codes, status, created_at, updated_at
 )
 select $1, $2, selected.target_job_id, nullif($4, '')::uuid, $5, selected.round_id, selected.round_sequence,
        $6, $7, $8, $9, r.id, $11, 'ready', $12, $12
@@ -162,27 +162,30 @@ from validated_round selected
 join resumes r on r.id = $10 and r.user_id = $2 and r.deleted_at is null
 returning id, target_job_id, source_report_id::text, goal, round_id, round_sequence,
           interviewer_persona, difficulty, language, time_budget_minutes,
-          resume_id::text, status, created_at`,
-		in.PlanID, in.UserID, in.TargetJobID, in.SourceReportID, string(in.Goal),
-		string(in.InterviewerPersona), in.Difficulty, in.Language, in.TimeBudgetMinutes,
-		in.ResumeID, pq.Array(focusCompetencyCodes), in.Now, in.RoundID,
-	).Scan(
-		&plan.ID, &plan.TargetJobID, &sourceReportID, &plan.Goal,
-		&plan.RoundID, &plan.RoundSequence,
-		&plan.InterviewerPersona, &plan.Difficulty, &plan.Language,
-		&plan.TimeBudgetMinutes, &plan.ResumeID, &plan.Status, &plan.CreatedAt,
-	)
+          resume_id::text, focus_dimension_codes, status, created_at`,
+			in.PlanID, in.UserID, in.TargetJobID, in.SourceReportID, string(in.Goal),
+			string(in.InterviewerPersona), in.Difficulty, in.Language, in.TimeBudgetMinutes,
+			in.ResumeID, pq.Array(focusDimensionCodes), in.Now, in.RoundID,
+		).Scan(
+			&plan.ID, &plan.TargetJobID, &sourceReportID, &plan.Goal,
+			&plan.RoundID, &plan.RoundSequence,
+			&plan.InterviewerPersona, &plan.Difficulty, &plan.Language,
+			&plan.TimeBudgetMinutes, &plan.ResumeID, pq.Array(&plan.FocusDimensionCodes), &plan.Status, &plan.CreatedAt,
+		)
+	}
 	if stderrs.Is(err, sql.ErrNoRows) {
 		return domain.PlanRecord{}, domain.ErrPlanPrerequisiteNotFound
 	}
 	if err != nil {
 		return domain.PlanRecord{}, fmt.Errorf("insert practice plan: %w", err)
 	}
-	plan.SourceReportID = sourceReportID.String
+	if sourceReportID.Valid {
+		plan.SourceReportID = sourceReportID.String
+	}
 
 	metadata, err := json.Marshal(map[string]any{
-		"plan_id": in.PlanID, "goal": string(in.Goal), "language": in.Language,
-		"target_job_id": in.TargetJobID, "source_report_id": in.SourceReportID,
+		"plan_id": in.PlanID, "goal": string(in.Goal), "language": plan.Language,
+		"target_job_id": plan.TargetJobID, "source_report_id": plan.SourceReportID,
 		"round_id": plan.RoundID, "round_sequence": plan.RoundSequence,
 	})
 	if err != nil {
@@ -214,12 +217,12 @@ func (r *SQLRepository) GetPlan(ctx context.Context, userID, planID string) (dom
 	err := r.db.QueryRowContext(ctx, `
 select id, target_job_id, source_report_id::text, goal, round_id, round_sequence,
        interviewer_persona, difficulty, language, time_budget_minutes,
-       resume_id::text, status, created_at
+       resume_id::text, focus_dimension_codes, status, created_at
 from practice_plans where user_id = $1 and id = $2`, userID, planID).Scan(
 		&plan.ID, &plan.TargetJobID, &sourceReportID, &plan.Goal,
 		&roundID, &roundSequence,
 		&plan.InterviewerPersona, &plan.Difficulty, &plan.Language,
-		&plan.TimeBudgetMinutes, &plan.ResumeID, &plan.Status, &plan.CreatedAt,
+		&plan.TimeBudgetMinutes, &plan.ResumeID, pq.Array(&plan.FocusDimensionCodes), &plan.Status, &plan.CreatedAt,
 	)
 	if stderrs.Is(err, sql.ErrNoRows) {
 		return domain.PlanRecord{}, domain.ErrPlanNotFound
@@ -358,11 +361,15 @@ insert into idempotency_records (
 
 	var reservation domain.SessionReservation
 	var topSkills string
-	var focusCompetencies pq.StringArray
+	var focusDimensionCodes pq.StringArray
+	var semanticDimensions, semanticIssues []byte
 	err = tx.QueryRowContext(ctx, `
 with selected_plan as (
   select p.id, p.target_job_id, p.goal, p.interviewer_persona, p.language,
-         p.focus_competency_codes, p.round_id, p.round_sequence,
+	         p.focus_dimension_codes,
+	         case when p.goal='retry_current_round' and cardinality(p.focus_dimension_codes)>0 then fr.dimension_assessments end semantic_dimensions,
+	         case when p.goal='retry_current_round' and cardinality(p.focus_dimension_codes)>0 then fr.issues end semantic_issues,
+	         p.round_id, p.round_sequence,
          round_context.round_type, round_context.round_name, round_context.round_focus,
          coalesce(nullif(tj.title, ''), 'target role') role_title,
          coalesce(nullif(tj.seniority_level, ''), 'not specified') seniority,
@@ -383,8 +390,10 @@ with selected_plan as (
            ''
          ) resume_context
   from practice_plans p
-  join target_jobs tj on tj.id = p.target_job_id and tj.user_id = p.user_id and tj.resume_id = p.resume_id and tj.deleted_at is null
-  join resumes r on r.id = p.resume_id and r.user_id = p.user_id and r.deleted_at is null
+	  join target_jobs tj on tj.id = p.target_job_id and tj.user_id = p.user_id and tj.resume_id = p.resume_id and tj.deleted_at is null
+	  join resumes r on r.id = p.resume_id and r.user_id = p.user_id and r.deleted_at is null
+	  left join feedback_reports fr
+	    on fr.id=p.source_report_id and fr.user_id=p.user_id and fr.target_job_id=p.target_job_id and fr.status='ready'
   cross join lateral (
     select btrim(entry.value->>'type') round_type,
            btrim(entry.value->>'name') round_name,
@@ -401,8 +410,10 @@ with selected_plan as (
     and p.round_id is not null and p.round_sequence is not null
     and round_context.round_sequence = p.round_sequence
     and p.round_id = 'round-' || round_context.round_sequence::text || '-' || round_context.round_type
-    and nullif(round_context.round_name, '') is not null
-    and nullif(round_context.round_focus, '') is not null
+	    and nullif(round_context.round_name, '') is not null
+	    and nullif(round_context.round_focus, '') is not null
+	    and (p.goal='retry_current_round' or cardinality(p.focus_dimension_codes)=0)
+	    and (cardinality(p.focus_dimension_codes)=0 or fr.id is not null)
 ), inserted as (
   insert into practice_sessions (id, user_id, plan_id, target_job_id, status, language, created_at, updated_at)
   select $1, $2, id, target_job_id, 'queued', language, $4, $4 from selected_plan
@@ -411,8 +422,8 @@ with selected_plan as (
 select inserted.id, inserted.plan_id, inserted.target_job_id, selected_plan.goal,
        selected_plan.interviewer_persona, inserted.language, selected_plan.role_title,
        selected_plan.seniority, selected_plan.top_skills,
-       selected_plan.resume_context,
-       selected_plan.focus_competency_codes,
+	       selected_plan.resume_context,
+	       selected_plan.focus_dimension_codes, selected_plan.semantic_dimensions, selected_plan.semantic_issues,
        selected_plan.round_id, selected_plan.round_sequence, selected_plan.round_type,
        selected_plan.round_name, selected_plan.round_focus,
        inserted.created_at, inserted.updated_at
@@ -421,7 +432,8 @@ from inserted join selected_plan on selected_plan.id = inserted.plan_id`,
 	).Scan(
 		&reservation.SessionID, &reservation.PlanID, &reservation.TargetJobID, &reservation.Goal,
 		&reservation.InterviewerPersona, &reservation.Language, &reservation.RoleTitle,
-		&reservation.Seniority, &topSkills, &reservation.ResumeContext, &focusCompetencies,
+		&reservation.Seniority, &topSkills, &reservation.ResumeContext, &focusDimensionCodes,
+		&semanticDimensions, &semanticIssues,
 		&reservation.RoundID, &reservation.RoundSequence, &reservation.RoundType,
 		&reservation.RoundName, &reservation.RoundFocus,
 		&reservation.CreatedAt, &reservation.UpdatedAt,
@@ -436,7 +448,10 @@ from inserted join selected_plan on selected_plan.id = inserted.plan_id`,
 		return domain.SessionReservation{}, fmt.Errorf("reserve practice session: %w", err)
 	}
 	reservation.TopSkills = splitCommaList(topSkills)
-	reservation.FocusCompetencies = append([]string(nil), focusCompetencies...)
+	reservation.SemanticFocus, err = resolveDerivedSemanticFocus(focusDimensionCodes, semanticDimensions, semanticIssues)
+	if err != nil {
+		return domain.SessionReservation{}, domain.ErrPlanNotFound
+	}
 	reservation.IdempotencyRecordID = recordID
 	reservation.UserID = in.UserID
 	if err := tx.Commit(); err != nil {

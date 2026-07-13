@@ -193,8 +193,11 @@ func classifyGoSchema(name string, raw map[string]any) (goSchemaView, error) {
 		}
 	}
 
-	// allOf with a $ref to PaginatedEnvelope plus an items override.
-	if al, ok := raw["allOf"].([]any); ok && len(al) > 0 {
+	// Only the canonical PaginatedEnvelope composition is rendered as a
+	// pagination struct. Conditional allOf branches (for example status-based
+	// report constraints) refine the object schema and must not replace its
+	// declared properties.
+	if al, ok := raw["allOf"].([]any); ok && isPaginatedEnvelopeAllOf(al) {
 		if v, err := classifyAllOf(name, al); err == nil {
 			return v, nil
 		}
@@ -220,6 +223,19 @@ func classifyGoSchema(name string, raw map[string]any) (goSchemaView, error) {
 
 	view.Kind = "any"
 	return view, nil
+}
+
+func isPaginatedEnvelopeAllOf(al []any) bool {
+	for _, item := range al {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		if ref, _ := m["$ref"].(string); extractRefName(ref) == "PaginatedEnvelope" {
+			return true
+		}
+	}
+	return false
 }
 
 // classifyAllOf handles `allOf: [{$ref: ...PaginatedEnvelope}, {properties: { items: ...}}]`.

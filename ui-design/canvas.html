@@ -26,7 +26,8 @@
     const params = new URLSearchParams();
     params.set("route", route);
     params.set("lang", "zh");
-    if (["practice", "generating", "report"].includes(route)) params.set("sessionId", "session-24");
+    if (route === "practice") params.set("sessionId", "session-24");
+    if (["generating", "report"].includes(route)) params.set("reportId", "report-24");
     if (mode) params.set("mode", mode);
     if (dark) params.set("dark", "1");
     if (theme) params.set("theme", theme);
@@ -55,7 +56,7 @@
       </DCSection>
       <DCSection id="p0-complete" title="P0 补齐 · 入口 / 异步 / 隐私">
         <DCArtboard id="parse" label="JD 解析 · loading → 预览" width={FRAME_W} height={FRAME_H}><Screen route="parse" /></DCArtboard>
-        <DCArtboard id="generating" label="报告生成中 · 异步观察流" width={FRAME_W} height={FRAME_H}><Screen route="generating" /></DCArtboard>
+        <DCArtboard id="generating" label="报告生成中 · 真实状态" width={FRAME_W} height={FRAME_H}><Screen route="generating" /></DCArtboard>
         <DCArtboard id="settings" label="设置 · 隐私 / 导出 / 删除" width={FRAME_W} height={FRAME_H}><Screen route="settings" /></DCArtboard>
       </DCSection>
       <DCSection id="practice-session" title="模拟面试会话" subtitle="连续文字对话；电话入口暂不可用">

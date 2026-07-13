@@ -80,6 +80,14 @@ func (s *fakeStore) setPayload(id string, payload []byte) {
 	}
 }
 
+func (s *fakeStore) setMaxAttempts(id string, maxAttempts int32) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if row, ok := s.rows[id]; ok {
+		row.maxAttempts = maxAttempts
+	}
+}
+
 func (s *fakeStore) get(id string) *fakeRow {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -137,12 +145,12 @@ func (s *fakeStore) LeaseAsyncJob(_ context.Context, jobTypes []string, now time
 	}, true, nil
 }
 
-func (s *fakeStore) FinalizeAsyncJob(_ context.Context, jobID string, outcome JobOutcome, availableAt time.Time, now time.Time) error {
+func (s *fakeStore) FinalizeAsyncJob(_ context.Context, jobID string, claimedAttempts int32, outcome JobOutcome, availableAt time.Time, now time.Time) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	row, ok := s.rows[jobID]
-	if !ok {
-		return nil
+	if !ok || row.status != "running" || row.attempts != claimedAttempts {
+		return ErrStaleLease
 	}
 	row.lockedAt = nil
 	row.errorCode = outcome.ErrorCode
@@ -155,12 +163,12 @@ func (s *fakeStore) FinalizeAsyncJob(_ context.Context, jobID string, outcome Jo
 		row.errorCode = ""
 		row.errorMsg = ""
 	case outcome.Retryable:
-		row.availableAt = availableAt
 		if row.attempts >= row.maxAttempts {
 			row.status = "dead"
 			completed := now
 			row.completedAt = &completed
 		} else {
+			row.availableAt = availableAt
 			row.status = "queued"
 			row.completedAt = nil
 		}

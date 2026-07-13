@@ -1,5 +1,7 @@
 # Expected Outcome — E2E.P0.072
 
-- unavailable source combinations return `422 VALIDATION_FAILED`.
-- response body does not echo source ids.
-- stale report successor, mismatched round/budget, legacy null identity, and all-complete ladders insert no plan.
+- missing, cross-user, non-ready and empty `report-context.v1` sources fail identically.
+- frozen target/resume/round/persona/language/budget mismatches fail before insert.
+- unsupported or duplicate non-empty focus fails before insert; empty focus remains valid in P0.070.
+- every invalid attempt leaves the candidate plan id absent and emits no source identity.
+- active runtime/generated/OpenAPI/JSON fixtures/scenario inputs contain no positive legacy competency/turn/action focus identifiers or raw semantic-focus placeholder.

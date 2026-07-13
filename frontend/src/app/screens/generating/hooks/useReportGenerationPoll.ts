@@ -48,7 +48,13 @@ export interface PollScheduler {
 const DEFAULT_INITIAL_DELAY_MS = 1500;
 const DEFAULT_BACKOFF_FACTOR = 1.5;
 const DEFAULT_MAX_DELAY_MS = 8000;
-const DEFAULT_MAX_ATTEMPTS = 30;
+/**
+ * Keeps status polling active for about 6 minutes. The backend may spend up to
+ * four 60-second provider calls with report-specific 10s / 20s / 40s retry
+ * backoffs, so the UI must not declare a timeout while that durable retry
+ * budget is still running.
+ */
+export const REPORT_GENERATION_POLL_MAX_ATTEMPTS = 49;
 
 const HTTP_NOT_FOUND_MARKER = "HTTP 404";
 
@@ -64,7 +70,7 @@ const defaultScheduler: PollScheduler = {
  * fails, or hits max attempts. Surface contract:
  *
  * - State machine: idle → polling ↔ paused / error → ready | failed | timeout.
- * - Exponential backoff: initial 1.5s × 1.5 capped at 8s; max attempts 30.
+ * - Exponential backoff: initial 1.5s × 1.5 capped at 8s; max attempts 49.
  * - Visibility / focus: poller suspends while the tab is hidden and resumes
  *   on visible / focus. Suspension does not consume an attempt.
  * - Read-only contract: requests are sent through the generated client and
@@ -84,7 +90,7 @@ export function useReportGenerationPoll(
     initialDelayMs = DEFAULT_INITIAL_DELAY_MS,
     backoffFactor = DEFAULT_BACKOFF_FACTOR,
     maxDelayMs = DEFAULT_MAX_DELAY_MS,
-    maxAttempts = DEFAULT_MAX_ATTEMPTS,
+    maxAttempts = REPORT_GENERATION_POLL_MAX_ATTEMPTS,
     scheduler = defaultScheduler,
   } = options;
 
@@ -173,6 +179,14 @@ export function useReportGenerationPoll(
 
     const runAttempt = (attempt: number) => {
       if (cancelled || runSeqRef.current !== seq) return;
+      const nextDelay = Math.min(
+        maxDelayMs,
+        initialDelayMs * Math.pow(backoffFactor, attempt - 1),
+      );
+      resumePlanRef.current = {
+        attempt: attempt + 1,
+        delay: attempt < maxAttempts ? nextDelay : 0,
+      };
       setAttemptCount(attempt);
       client
         .getFeedbackReport(reportId, { signal: controller.signal })
@@ -195,11 +209,7 @@ export function useReportGenerationPoll(
             finalize("timeout");
             return;
           }
-          const delay = Math.min(
-            maxDelayMs,
-            initialDelayMs * Math.pow(backoffFactor, attempt - 1),
-          );
-          scheduleAttempt(attempt + 1, delay);
+          scheduleAttempt(attempt + 1, nextDelay);
         })
         .catch((err: unknown) => {
           if (cancelled || runSeqRef.current !== seq) return;
@@ -212,21 +222,21 @@ export function useReportGenerationPoll(
             return;
           }
           if (attempt >= maxAttempts) {
-            finalize("timeout");
+            finalize("error");
             return;
           }
           // 5xx / network — retry with backoff but charge this attempt.
-          const delay = Math.min(
-            maxDelayMs,
-            initialDelayMs * Math.pow(backoffFactor, attempt - 1),
-          );
-          scheduleAttempt(attempt + 1, delay);
+          scheduleAttempt(attempt + 1, nextDelay);
         });
     };
 
     const resumePlan = resumePlanRef.current;
     if (resumePlan) {
-      scheduleAttempt(resumePlan.attempt, resumePlan.delay);
+      if (resumePlan.attempt > maxAttempts) {
+        finalize("timeout");
+      } else {
+        scheduleAttempt(resumePlan.attempt, resumePlan.delay);
+      }
     } else {
       runAttempt(1);
     }
@@ -247,18 +257,24 @@ export function useReportGenerationPoll(
     state,
   ]);
 
-  // Visibility / focus pause-resume. The poller flips to `paused` while the
-  // tab is hidden; resuming reschedules from where it was, without burning an
-  // extra attempt.
+  // Visibility / focus pause-resume. A scheduled wait keeps its planned
+  // attempt, while an aborted in-flight read remains a started attempt and
+  // resumes at n+1. Both paths preserve the monotonic max-attempt cap.
   useEffect(() => {
     if (!reportId || !client) return;
     if (typeof document === "undefined" || typeof window === "undefined") return;
 
     const pause = () => {
-      if (stateRef.current === "polling") setState("paused");
+      if (stateRef.current === "polling") {
+        stateRef.current = "paused";
+        setState("paused");
+      }
     };
     const resume = () => {
-      if (stateRef.current === "paused") setState("polling");
+      if (stateRef.current === "paused") {
+        stateRef.current = "polling";
+        setState("polling");
+      }
     };
     const onVisibility = () => {
       if (document.visibilityState === "hidden") pause();

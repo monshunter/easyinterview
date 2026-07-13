@@ -59,6 +59,7 @@ type RubricSchema struct {
 	FeatureKey string
 	Version    string
 	Language   string
+	Status     string
 	Dimensions []RubricDimension
 }
 
@@ -88,8 +89,40 @@ type Score struct {
 
 // Reasoning is the F3 LLM Judge structured reasoning trail.
 type Reasoning struct {
-	Summary        string
-	EvidenceQuotes []string
+	Summary                 string
+	EvidenceQuotes          []string
+	ItemVerdicts            []ItemVerdict
+	CausalChecks            []CausalCheck
+	ZeroToleranceViolations []string
+	CriticalSafetyPass      bool
+}
+
+// ItemVerdict is the context-aware report judge verdict for one report fact,
+// judgment, or advice item.
+type ItemVerdict struct {
+	Path                    string
+	Kind                    string
+	Support                 string
+	EvidenceLimitedExplicit bool
+	UsedForNegativeClaim    bool
+	Reason                  string
+}
+
+// CausalCheck records whether one needs-work dimension has a supported issue,
+// retry focus decision, and executable action chain.
+type CausalCheck struct {
+	DimensionCode   string
+	IssueSupported  bool
+	FocusSupported  bool
+	ActionSupported bool
+	Reason          string
+}
+
+// JudgeContext carries the frozen, redacted evaluation context for a grounded
+// report verdict. It is data in the judge request, never judge instruction.
+type JudgeContext struct {
+	FrozenContext json.RawMessage
+	Transcript    json.RawMessage
 }
 
 // Judge is the F3 LLM Judge contract. The signature mirrors spec D-9

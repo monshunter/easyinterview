@@ -2,7 +2,7 @@
 """Tests for scripts/codegen/sync_fixtures_from_prototype.py.
 
 Covers Phase 2.2 contract:
-- Running the sync writes a `scenarios.prototype-baseline` to the 6 P0
+- Running the sync writes a `scenarios.prototype-baseline` to the 5 P0
   closed-loop endpoints listed in plan 2.4.
 - Re-running is idempotent (`git diff --exit-code` clean).
 - After sync, `validate_fixtures.py` exits 0 (default + prototype-baseline
@@ -128,6 +128,30 @@ class SyncFixturesFromPrototypeTest(unittest.TestCase):
                 current = progress["currentRound"]
                 if current is not None:
                     self.assertIn((current["roundId"], current["roundSequence"]), refs)
+
+    def test_feedback_report_projection_uses_direct_contract(self) -> None:
+        out = _run(SYNC, self.repo)
+        self.assertEqual(out.returncode, 0, msg=f"stdout={out.stdout}\nstderr={out.stderr}")
+        fixture = _read_json(
+            self.repo / "openapi/fixtures/Reports/getFeedbackReport.json"
+        )
+        body = fixture["scenarios"]["prototype-baseline"]["response"]["body"]
+
+        self.assertEqual("ready", body["status"])
+        self.assertIsNone(body["errorCode"])
+        self.assertIsInstance(body["summary"], str)
+        self.assertTrue(body["summary"])
+        self.assertIn("context", body)
+        self.assertIn("code", body["dimensionAssessments"][0])
+        self.assertIn("label", body["dimensionAssessments"][0])
+        self.assertIn("dimensionCode", body["highlights"][0])
+        self.assertIn("retryFocusDimensionCodes", body)
+        for old_field in (
+            "questionAssessments",
+            "retryFocusTurnIds",
+            "retryFocusCompetencyCodes",
+        ):
+            self.assertNotIn(old_field, body)
 
     def test_sync_fails_fast_on_mapping_gap(self) -> None:
         # Drop the targetJobs section that listTargetJobs depends on.

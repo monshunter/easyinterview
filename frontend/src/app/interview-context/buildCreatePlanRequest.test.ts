@@ -33,20 +33,66 @@ describe("buildCreatePlanRequest", () => {
     expect(body).not.toHaveProperty("roundSequence");
   });
 
-  it("creates next_round plans from the source report id", () => {
+  it.each([
+    ["en", "en"],
+    ["zh", "zh-CN"],
+    ["zh_cn", "zh-CN"],
+    ["zh-cn", "zh-CN"],
+    ["zh-CN", "zh-CN"],
+  ])("canonicalizes baseline practice language %s to %s", (input, expected) => {
     const body = buildCreatePlanRequest(
-      context({
-        resumeId: VALID_RESUME_ID,
-        roundId: "round-2-technical",
-        practiceGoal: "next_round",
-        sourceReportId: VALID_REPORT_ID,
-      }),
-      "en",
+      context({ resumeId: VALID_RESUME_ID, roundId: "round-2-technical" }),
+      input,
       60,
     );
 
-    expect(body.goal).toBe("next_round");
-    expect(body.sourceReportId).toBe(VALID_REPORT_ID);
+    expect(body.language).toBe(expected);
+  });
+
+  it("rejects an unknown non-empty baseline practice language", () => {
+    expect(() =>
+      buildCreatePlanRequest(
+        context({ resumeId: VALID_RESUME_ID, roundId: "round-2-technical" }),
+        "fr",
+        60,
+      ),
+    ).toThrow("invalid language");
+  });
+
+  it("creates a closed next_round request from only goal + sourceReportId", () => {
+    const body = buildCreatePlanRequest(
+      context({
+        targetJobId: "",
+        jobId: "",
+        practiceGoal: "next_round",
+        sourceReportId: VALID_REPORT_ID,
+      }),
+      "fr",
+      60,
+    );
+
+    expect(body).toEqual({
+      goal: "next_round",
+      sourceReportId: VALID_REPORT_ID,
+    });
+  });
+
+  it("creates a closed retry_current_round request without client focus or identity", () => {
+    const body = buildCreatePlanRequest(
+      context({
+        targetJobId: "",
+        jobId: "",
+        practiceGoal: "retry_current_round",
+        sourceReportId: VALID_REPORT_ID,
+      }),
+      "en",
+      0,
+    );
+
+    expect(body).toEqual({
+      goal: "retry_current_round",
+      sourceReportId: VALID_REPORT_ID,
+    });
   });
 
   it("rejects derived report plans without a valid sourceReportId", () => {

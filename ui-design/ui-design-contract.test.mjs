@@ -49,6 +49,29 @@ test("prototype primitive globals expose only current consumers", () => {
   );
 });
 
+test("TopBar mobile truth source wraps without horizontal viewport overflow", () => {
+  const app = readUiFile("./src/app.jsx");
+  const primitives = readUiFile("./src/primitives.jsx");
+
+  for (const className of [
+    "ei-shell-topbar",
+    "ei-topbar-brand",
+    "ei-topbar-brand-copy",
+    "ei-topbar-nav",
+    "ei-topbar-spacer",
+    "ei-topbar-controls",
+    "ei-topbar-lang-current",
+    "ei-topbar-user",
+  ]) {
+    assert.match(app, new RegExp(`className=\\"${className}\\"`));
+  }
+  assert.match(primitives, /@media \(max-width: 720px\)[\s\S]*\.ei-shell-topbar\s*\{[\s\S]*flex-wrap:\s*wrap/);
+  assert.match(primitives, /\.ei-shell-topbar\s*\{[\s\S]*overflow-x:\s*clip/);
+  assert.match(primitives, /\.ei-topbar-nav\s*\{[\s\S]*order:\s*10[\s\S]*width:\s*100%[\s\S]*overflow-x:\s*auto/);
+  assert.match(primitives, /@media \(max-width: 460px\)[\s\S]*\.ei-topbar-brand-copy\s*\{[\s\S]*display:\s*none/);
+  assert.match(app, /params\.get\("signedIn"\) === "1"/);
+});
+
 test("workspace static prototype is a pure plan list with no unreachable detail branch", () => {
   const workspace = readUiFile("./src/screen-workspace.jsx");
 
@@ -180,37 +203,108 @@ test("P0 context routes use InterviewContext instead of fixed tj-1 nav payloads"
   }
 });
 
-test("P0 report requires sessionId and uses conversation-level evidence", () => {
+test("P0 report is reportId-only and renders the direct semantic contract", () => {
   const report = readUiFile("./src/screen-report.jsx");
 
-  assert.match(report, /const ReportMissingSessionState = /);
+  assert.match(report, /const ReportMissingState = /);
   assert.match(report, /const ReportFailureState = /);
-  assert.match(report, /if \(!params\.sessionId\)/);
-  assert.match(report, /reportStatus === "failed"/);
-  assert.match(report, /const dimensions = report\.dimensions \|\| \[\]/);
+  assert.match(report, /if \(!params\.reportId/);
+  assert.match(report, /const context = report\.context/);
+  assert.match(report, /const dimensions = report\.dimensionAssessments/);
   assert.match(report, /const highlights = report\.highlights \|\| \[\]/);
-  assert.doesNotMatch(report, /perQuestion|replayItems|activeQuestion|qId/);
+  assert.match(report, /const actions = report\.nextActions/);
+  assert.match(report, /report\.summary/);
+  assert.match(report, /item\.label/);
+  assert.match(report, /localizeDimensionStatus/);
+  assert.match(report, /localizeConfidence/);
+  assert.match(report, /localizeReadiness/);
+  assert.doesNotMatch(report, /params\.(?:reportStatus|sessionId|targetJobId|resumeId|roundId|roundName)/);
+  assert.doesNotMatch(report, /perQuestion|replayItems|activeQuestion|qId|\.score\b/);
   assert.doesNotMatch(report, /nav\("workspace",\s*\{\s*jobId:\s*"tj-1"\s*\}\)/);
 });
 
-test("P0 report replay and next-round CTAs start interview sessions directly", () => {
+test("P0 report keeps three metrics, four always-visible sections, and server-owned actions", () => {
   const report = readUiFile("./src/screen-report.jsx");
 
-  assert.match(report, /nav\("practice", \{ \.\.\.params, practiceGoal: "retry_current_round" \}\)/);
-  assert.match(report, /const \{ nextRound \} = window\.eiResolveInterviewRoundContext/);
-  assert.match(report, /const progress = window\.eiResolvePracticeProgress/);
-  assert.match(report, /const canStartNextRound = progress\.currentRound\?\.id === nextRound\?\.id/);
-  assert.match(report, /practiceGoal: "next_round", roundId: nextRound\.id, roundName: nextRound\.name/);
-  assert.match(report, /disabled=\{!canStartNextRound\}/);
-  assert.equal((report.match(/nav\("practice"/g) || []).length, 2);
+  assert.equal((report.match(/<ReportMetric\b/g) || []).length, 3);
+  for (const testId of ["report-dimensions", "report-highlights", "report-issues", "report-actions"]) {
+    assert.match(report, new RegExp(`data-testid="${testId}"`));
+  }
+  assert.match(report, /const firstAction = actions\[0\]/);
+  assert.match(report, /firstAction\?\.type === "retry_current_round"/);
+  assert.match(report, /firstAction\?\.type === "next_round"/);
+  assert.match(report, /report\.context\.hasNextRound/);
+  assert.match(report, /sourceReportId: report\.id/);
+  assert.doesNotMatch(report, /focusCompetencyCodes|evidenceGaps|retryFocusTurnIds/);
+  assert.doesNotMatch(report, /ReportDetailSurface|QuestionsTab|题目回顾|role="tab"/);
+});
+
+test("report prototype keeps the two-action and 24-word / 64-code-point quality boundary", () => {
+  const data = readUiFile("./src/data.jsx");
+  const report = readUiFile("./src/screen-report.jsx");
+  const start = data.indexOf("\n  report: {");
+  const end = data.indexOf("\n  }\n};", start);
+  const reportData = data.slice(start, end);
+  const actionBlock = reportData.match(/nextActions:\s*\[([\s\S]*?)\],\s*retryFocusDimensionCodes/);
+
+  assert.ok(start >= 0 && end > start && actionBlock, "report action fixture must be present");
+  const labels = [...actionBlock[1].matchAll(/label:\s*"([^"]+)"/g)].map((match) => match[1]);
+  assert.equal(labels.length, 2);
+  for (const label of labels) assert.ok([...label].length <= 64, `over-limit zh-CN action: ${label}`);
+  assert.match(report, /const ACTION_LABEL_WIRE_MAX_CODE_POINTS = 200/);
+  assert.match(report, /const codePoints = \[\.\.\.value\]\.length/);
+  assert.match(report, /codePoints > ACTION_LABEL_WIRE_MAX_CODE_POINTS/);
+  assert.match(report, /split\(\/\\s\+\/u\)\.length <= 24/);
+  assert.match(report, /codePoints <= 64/);
+  assert.match(report, /actions\.length <= 2/);
+});
+
+test("report action rows preserve full labels without clipping or horizontal overflow", () => {
+  const report = readUiFile("./src/screen-report.jsx");
+
+  assert.match(report, /className="ei-report-action-row"/);
+  assert.match(report, /className="ei-report-action-label"/);
+  assert.match(report, /minWidth:\s*0[\s\S]*overflowWrap:\s*"anywhere"[\s\S]*wordBreak:\s*"normal"/);
+  assert.doesNotMatch(report, /ei-report-action-label[^\n]*(?:textOverflow:\s*"ellipsis"|whiteSpace:\s*"nowrap"|overflow:\s*"hidden")/);
+});
+
+test("report capability rows keep long mobile labels readable", () => {
+  const report = readUiFile("./src/screen-report.jsx");
+
+  for (const className of [
+    "ei-report-dimension-row",
+    "ei-report-dimension-label",
+    "ei-report-dimension-status",
+  ]) {
+    assert.match(report, new RegExp(`className=\\"${className}\\"`));
+  }
+  assert.match(report, /flexWrap:\s*"wrap"/);
+  assert.match(report, /flex:\s*"1 1 160px"/);
+  assert.match(report, /overflowWrap:\s*"break-word",\s*wordBreak:\s*"normal"/);
+  assert.match(report, /flex:\s*"0 1 auto",\s*maxWidth:\s*"100%"/);
 });
 
 test("report CTA pair lives only in the header (D-19)", () => {
   const report = readUiFile("./src/screen-report.jsx");
 
-  assert.equal((report.match(/practiceGoal: "retry_current_round"/g) || []).length, 1);
-  assert.equal((report.match(/practiceGoal: "next_round"/g) || []).length, 1);
+  assert.equal((report.match(/goal: "retry_current_round"/g) || []).length, 1);
+  assert.equal((report.match(/goal: "next_round"/g) || []).length, 1);
   assert.doesNotMatch(report, /ReportDetailSurface|QuestionsTab|题目回顾/);
+});
+
+test("report generating prototype exposes only honest server-projected states and actions", () => {
+  const p0 = readUiFile("./src/screens-p0-complete.jsx");
+  const start = p0.indexOf("const ReportGeneratingScreen = ");
+  const end = p0.indexOf("// #8 SETTINGS", start);
+  const generating = p0.slice(start, end);
+
+  assert.ok(start >= 0 && end > start);
+  assert.match(generating, /const report = window\.EI_DATA\.reportGeneration/);
+  assert.match(generating, /const status = report\.status/);
+  assert.match(generating, /data-testid="generating-screen"/);
+  assert.match(generating, /REPORT_CONTEXT_TOO_LARGE/);
+  assert.match(generating, /continueCheck/);
+  assert.doesNotMatch(generating, /setTimeout|setInterval|\bpct\b|\bphase\b|liveSnippets|LIVE OBSERVATIONS|实时观察|Notify me|好了通知我|session records|会话记录/);
 });
 
 test("current UI source does not expose out-of-scope mistakes/growth/drill product surfaces", () => {
@@ -313,7 +407,8 @@ test("prototype round progress is backend-projected and never inferred from life
   assert.match(home, /eiResolvePracticeProgress\(rounds, job\.practiceProgress\)/);
   assert.match(workspace, /eiResolvePracticeProgress\(rounds, job\.practiceProgress\)/);
   assert.match(parse, /eiResolvePracticeProgress\(parsed\.rounds, targetJob\.practiceProgress\)/);
-  assert.match(report, /progress\.currentRound\?\.id === nextRound\?\.id/);
+  assert.match(report, /report\.context\.hasNextRound/);
+  assert.doesNotMatch(report, /eiResolvePracticeProgress|eiResolveInterviewRoundContext/);
 
   for (const [name, source] of [["home", home], ["workspace", workspace]]) {
     assert.doesNotMatch(source, /job\?\.nextRound|job\.nextRound/, `${name} still reads free-text nextRound`);
@@ -401,7 +496,7 @@ test("P0 empty and failure states avoid showing fake data", () => {
   assert.match(workspace, /visibleJobs\.length === 0/);
   assert.match(workspace, /data-testid="workspace-plan-list-empty"/);
   assert.doesNotMatch(workspace, /WorkspaceEmptyState|WorkspaceMissingResumeState/);
-  assert.match(report, /ReportMissingSessionState/);
+  assert.match(report, /ReportMissingState/);
   assert.match(report, /ReportFailureState/);
   assert.doesNotMatch(practice, /VoiceTranscriptionFailure|transcriptFailed/);
 });
@@ -451,7 +546,26 @@ test("practice is one continuous text conversation with phone disabled", () => {
   assert.doesNotMatch(practice, /PhoneSessionSurface|WaveformBars|practice-phone-surface|practice-phone-captions/);
   assert.match(practice, /const \{ currentRound \} = window\.eiResolveInterviewRoundContext/);
   assert.match(practice, /currentRound \? formatElapsed\(currentRound\.durationMinutes \* 60\) : "--:--"/);
+  assert.match(practice, /const hasCommittedCandidateMessage = messages\.some/);
+  assert.match(practice, /const finishReasonId = "practice-finish-disabled-reason"/);
+  assert.match(practice, /data-testid="practice-finish-cta"/);
+  assert.match(practice, /disabled=\{!hasCommittedCandidateMessage\}/);
+  assert.match(practice, /aria-describedby=\{!hasCommittedCandidateMessage \? finishReasonId : undefined\}/);
+  assert.match(practice, /data-testid="practice-finish-disabled-reason"/);
+  assert.match(practice, /请先完成至少一次回答|Complete at least one answer first/);
+  assert.match(practice, /nav\("generating", \{ reportId: D\.report\.id \}\)/);
+  assert.doesNotMatch(practice, /nav\("generating", \{ \.\.\.context \}\)/);
   assert.doesNotMatch(practice, /25:00/);
+});
+
+test("prototype generating and report routes retain only the stable report locator", () => {
+  const app = readUiFile("./src/app.jsx");
+  const canvas = readUiFile("./canvas.html");
+
+  assert.match(app, /const REPORT_LOCATOR_ROUTES = new Set\(\["generating", "report"\]\)/);
+  assert.match(app, /return stripUndefined\(\{ reportId: params\.reportId \}\)/);
+  assert.match(canvas, /\["generating", "report"\]\.includes\(route\).*params\.set\("reportId", "report-24"\)/);
+  assert.doesNotMatch(canvas, /\["practice", "generating", "report"\]\.includes\(route\).*sessionId/);
 });
 
 test("P0 report has no voice or modality-specific report branch", () => {
@@ -549,7 +663,8 @@ test("design canvas component surface matches its only tracked consumer", () => 
   assert.doesNotMatch(canvas, /const PracticeScreen\b/);
   assert.doesNotMatch(canvas, /params\.set\("(?:nochrome|jobId|targetJobId|planId|jdId|resumeId|roundId|roundName)"/);
   assert.match(canvas, /params\.set\("lang", "zh"\)/);
-  assert.match(canvas, /\["practice", "generating", "report"\]\.includes\(route\).*params\.set\("sessionId", "session-24"\)/);
+  assert.match(canvas, /route === "practice".*params\.set\("sessionId", "session-24"\)/);
+  assert.match(canvas, /\["generating", "report"\]\.includes\(route\).*params\.set\("reportId", "report-24"\)/);
 });
 
 test("design canvas keeps edits in memory without an unavailable sidecar bridge", () => {

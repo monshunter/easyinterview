@@ -1,28 +1,16 @@
-/**
- * @vitest-environment jsdom
- *
- * Phase 4 — Replay CTA path A + path B wire. Verified through ReportHeader
- * inside the live dashboard so the test exercises the actual handoff:
- *  - authenticated → report owner creates a fresh practice session and lands
- *    on practice
- *  - unauthenticated → useRequestAuth (nav auth_login carrying replay_practice
- *    pending action for report recovery) and no direct nav practice
- *  - payload integrity: 9+ owner / display knob fields, no raw text
- *  - getFeedbackReport not re-invoked on click
- *  - listTargetJobReports never invoked from report scope
- *  - path B carries nextRoundId derived from the current roundId
- */
+/** @vitest-environment jsdom */
 
-import {
-  act,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import type { FC, ReactNode } from "react";
+import { describe, expect, it, vi } from "vitest";
 
-import type { FeedbackReport, TargetJob } from "../../../../api/generated/types";
+import type {
+  CreatePracticePlanRequest,
+  FeedbackReport,
+  PracticeGoal,
+  PracticePlan,
+  PracticeSession,
+} from "../../../../api/generated/types";
 import { EasyInterviewClient } from "../../../../api/generated/client";
 import { App } from "../../../App";
 import type { LooseRoute } from "../../../normalizeRoute";
@@ -30,478 +18,234 @@ import type { LooseRoute } from "../../../normalizeRoute";
 const REPORT_ID = "01918fa0-0000-7000-8000-000000007000";
 const SESSION_ID = "01918fa0-0000-7000-8000-000000005000";
 const TARGET_JOB_ID = "01918fa0-0000-7000-8000-000000002000";
-const RESUME_VERSION_ID = "01918fa0-0000-7000-8000-000000004000";
+const RESUME_ID = "01918fa0-0000-7000-8000-000000004000";
+const PLAN_ID = "01918fa0-0000-7000-8000-000000008000";
+const STARTED_SESSION_ID = "01918fa0-0000-7000-8000-000000009000";
 
-function makeReport(): FeedbackReport {
+const BASE_CONTEXT: FeedbackReport["context"] = {
+  sourcePlanId: "01918fa0-0000-7000-8000-000000006000",
+  targetJobTitle: "Senior Frontend Engineer",
+  targetJobCompany: "Acme",
+  resumeId: RESUME_ID,
+  resumeDisplayName: "Frontend resume",
+  roundId: "round-1-technical",
+  roundSequence: 1,
+  roundName: "Technical one",
+  roundType: "technical",
+  language: "zh-CN",
+  hasNextRound: true,
+};
+
+function makeReport(overrides: Partial<FeedbackReport> = {}): FeedbackReport {
   return {
     id: REPORT_ID,
     sessionId: SESSION_ID,
     targetJobId: TARGET_JOB_ID,
     status: "ready",
-    preparednessLevel: "basically_ready",
+    errorCode: null,
+    summary: "回答结构清楚，但技术取舍仍需要可核验的对比证据。",
+    context: BASE_CONTEXT,
+    preparednessLevel: "needs_practice",
+    dimensionAssessments: [
+      { code: "technical_depth", label: "技术深度", status: "needs_work", confidence: "medium" },
+    ],
     highlights: [],
     issues: [
-      { dimension: "technical_depth", evidence: "missing metric", confidence: "medium" },
+      { dimensionCode: "technical_depth", evidence: "没有给出替代方案的成本和结果指标。", confidence: "medium" },
     ],
-    nextActions: [{ type: "retry_current_round", label: "rerun" }],
-    dimensionAssessments: [
-      { dimension: "technical_depth", status: "needs_work", confidence: "medium" },
+    nextActions: [
+      { type: "retry_current_round", label: "补齐技术取舍证据后复练当前轮。" },
+      { type: "next_round", label: "完成补强后进入下一轮。" },
     ],
-    retryFocusCompetencyCodes: ["technical_depth"],
+    retryFocusDimensionCodes: ["technical_depth"],
     provenance: {
-      promptVersion: "feedback_report.v3",
-      rubricVersion: "feedback_report.rubric.v2",
+      promptVersion: "v0.2.0",
+      rubricVersion: "v0.2.0",
       modelId: "model-profile:contract.default",
       language: "zh-CN",
       featureFlag: "none",
-      dataSourceVersion: "practice_session.v9",
+      dataSourceVersion: "report-context.v1",
     },
     createdAt: "2026-05-16T00:00:00Z",
     updatedAt: "2026-05-16T00:00:10Z",
+    ...overrides,
   };
 }
 
-interface ClientOpts {
-  authenticated: boolean;
-  targetJob?: TargetJob;
-}
-
-function makeTargetJob(
-  interviewRounds: NonNullable<TargetJob["summary"]>["interviewRounds"] = [
-    {
-      sequence: 1,
-      type: "technical",
-      name: "Technical one",
-      durationMinutes: 45,
-      focus: "Coding",
-    },
-    {
-      sequence: 2,
-      type: "technical",
-      name: "Technical two",
-      durationMinutes: 60,
-      focus: "Architecture",
-    },
-  ],
-): TargetJob {
+function planFor(goal: PracticeGoal): PracticePlan {
+  const next = goal === "next_round";
   return {
-    id: TARGET_JOB_ID,
-    analysisStatus: "ready",
-    title: "Senior Frontend Engineer",
-    companyName: "Acme",
-    locationText: "Remote",
-    targetLanguage: "zh-CN",
-    sourceType: "manual_text",
-    sourceUrl: null,
-    summary: {
-      coreThemes: [],
-      interviewRounds,
-      provenance: {
-        promptVersion: "target_job.v1",
-        rubricVersion: "target_job.v1",
-        modelId: "fixture",
-        language: "en",
-        featureFlag: "none",
-        dataSourceVersion: "fixture",
-      },
-    },
-    practiceProgress: {
-      status: "in_progress",
-      completedRounds: [
-        { roundId: "round-1-technical", roundSequence: 1 },
-      ],
-      currentRound: { roundId: "round-2-technical", roundSequence: 2 },
-    },
-    requirements: [],
-    latestReportId: REPORT_ID,
-    openQuestionIssueCount: 0,
-    status: "interviewing",
-    createdAt: "2026-05-16T00:00:00Z",
-    updatedAt: "2026-05-16T00:00:00Z",
+    id: PLAN_ID,
+    targetJobId: TARGET_JOB_ID,
+    resumeId: RESUME_ID,
+    goal,
+    sourceReportId: REPORT_ID,
+    interviewerPersona: "hiring_manager",
+    difficulty: "standard",
+    language: "zh-CN",
+    timeBudgetMinutes: next ? 60 : 45,
+    status: "ready",
+    roundId: next ? "round-2-technical" : "round-1-technical",
+    roundSequence: next ? 2 : 1,
+    createdAt: "2026-05-16T00:01:00Z",
   };
 }
 
-function makeClient(opts: ClientOpts): EasyInterviewClient {
-  const feedback = vi.fn(async (_: string, options?: { headers?: Record<string, string> }) => {
-    if (options?.headers) {
-      const k = Object.keys(options.headers).map((h) => h.toLowerCase());
-      if (k.includes("idempotency-key")) throw new Error("read leaked idempotency");
-    }
-    return makeReport();
-  });
+function startedSession(): PracticeSession {
+  return {
+    id: STARTED_SESSION_ID,
+    planId: PLAN_ID,
+    targetJobId: TARGET_JOB_ID,
+    language: "zh-CN",
+    status: "running",
+    messages: [],
+    createdAt: "2026-05-16T00:01:10Z",
+    updatedAt: "2026-05-16T00:01:10Z",
+  };
+}
+
+function makeClient(options: {
+  authenticated: boolean;
+  report?: FeedbackReport;
+}): EasyInterviewClient {
+  const value = options.report ?? makeReport();
   return {
     async getRuntimeConfig() {
       return { aiProviderProfile: "stub" } as never;
     },
     async getMe() {
-      if (opts.authenticated) {
-        return { id: "user-1", email: "u@example.com" } as never;
-      }
+      if (options.authenticated) return { id: "user-1", email: "u@example.com" } as never;
       throw new Error("HTTP 401 Unauthorized");
     },
-    getFeedbackReport: feedback,
-    getTargetJob: vi.fn(async () => opts.targetJob ?? makeTargetJob()),
-    listTargetJobs: vi.fn(async () => ({
-      items: [
-        {
-          id: TARGET_JOB_ID,
-          analysisStatus: "ready",
-          title: "Senior Frontend Engineer",
-          companyName: "Acme",
-          locationText: "Remote",
-          targetLanguage: "zh-CN",
-          sourceType: "manual_text",
-          sourceUrl: null,
-          requirements: [],
-          latestReportId: REPORT_ID,
-          openQuestionIssueCount: 0,
-          status: "ready",
-          createdAt: "2026-05-16T00:00:00Z",
-          updatedAt: "2026-05-16T00:00:00Z",
-        },
-      ],
-      pageInfo: { nextCursor: null, pageSize: 12, hasMore: false },
-    })),
-    getResume: vi.fn(async () => ({
-      id: RESUME_VERSION_ID,
-      title: "Resume v3",
-      parsedSummary: { headline: "Frontend lead" },
-    })),
-    createPracticePlan: vi.fn(async (body) => ({
-      id: "01918fa0-0000-7000-8000-000000008000",
-      targetJobId: body.targetJobId,
-      resumeId: body.resumeId,
-      timeBudgetMinutes: body.timeBudgetMinutes,
-      status: "ready",
-      roundId: body.roundId,
-      roundSequence: Number(/^round-([1-9][0-9]*)-/.exec(body.roundId ?? "")?.[1] ?? 0),
-    })),
-    startPracticeSession: vi.fn(async () => ({
-      id: "01918fa0-0000-7000-8000-000000009000",
-      status: "active",
-    })),
-    listTargetJobReports: vi.fn(async () => {
-      throw new Error("must not be called");
-    }),
-    getPracticeSession: vi.fn(async () => {
-      throw new Error("HTTP 404 Not Found");
-    }),
-    getPracticePlan: vi.fn(async () => {
-      throw new Error("HTTP 404 Not Found");
-    }),
+    getFeedbackReport: vi.fn(async () => value),
+    getTargetJob: vi.fn(async () => { throw new Error("mutable target read is forbidden"); }),
+    getResume: vi.fn(async () => { throw new Error("mutable resume read is forbidden"); }),
+    listTargetJobReports: vi.fn(async () => { throw new Error("report list read is forbidden"); }),
+    createPracticePlan: vi.fn(async (body: CreatePracticePlanRequest) => planFor(body.goal)),
+    startPracticeSession: vi.fn(async () => startedSession()),
+    getPracticePlan: vi.fn(async () => planFor("retry_current_round")),
+    getPracticeSession: vi.fn(async () => startedSession()),
   } as unknown as EasyInterviewClient;
 }
-
-const ROUTE_BASE: Record<string, string> = {
-  sessionId: SESSION_ID,
-  reportId: REPORT_ID,
-  targetJobId: TARGET_JOB_ID,
-  resumeId: RESUME_VERSION_ID,
-  roundId: "round-1-technical",
-  planId: "plan-1",
-  jdId: "jd-1",
-};
 
 const Harness: FC<{
   client: EasyInterviewClient;
   initialRoute: LooseRoute;
   children?: ReactNode;
 }> = ({ client, initialRoute, children }) => (
-  <App client={client} initialRoute={initialRoute}>
-    {children}
-  </App>
+  <App client={client} initialRoute={initialRoute}>{children}</App>
 );
 
-describe("Replay CTAs", () => {
-  it("authenticated user clicking replay CTA creates a fresh practice session directly (TestReplayCtaPathA_AuthenticatedDirectStartPractice)", async () => {
+describe("report-derived practice CTAs", () => {
+  it("replay sends only goal + sourceReportId and starts the backend-derived plan", async () => {
     const client = makeClient({ authenticated: true });
-    const startSpy = client.startPracticeSession as ReturnType<typeof vi.fn>;
-    render(
-      <Harness
-        client={client}
-        initialRoute={{
-          name: "report",
-          params: ROUTE_BASE,
-        }}
-      />,
-    );
-    await screen.findByTestId("report-dashboard");
-    await act(async () => {
-      screen.getByTestId("report-replay-cta").click();
-    });
-    await waitFor(() => {
-      expect(startSpy).toHaveBeenCalledTimes(1);
-    });
-    await waitFor(() => {
-      expect(screen.queryByTestId("report-dashboard")).toBeNull();
-    });
-    expect(screen.queryByTestId("auth-login-screen")).toBeNull();
-  });
+    render(<Harness client={client} initialRoute={{ name: "report", params: { reportId: REPORT_ID } }} />);
 
-  it("unauthenticated report route enters auth_login before mounting replay CTAs (TestReplayCtaPathA_UnauthenticatedUseRequestAuth)", async () => {
-    const client = makeClient({ authenticated: false });
-    render(
-      <Harness
-        client={client}
-        initialRoute={{
-          name: "report",
-          params: ROUTE_BASE,
-        }}
-      />,
-    );
-    await waitFor(() => {
-      expect(screen.getByTestId("auth-login-email-form")).toBeInTheDocument();
-    });
-    expect(screen.getByTestId("auth-side-pending-action")).toBeInTheDocument();
-    expect(screen.queryByTestId("report-dashboard")).toBeNull();
-    expect(client.getFeedbackReport).not.toHaveBeenCalled();
-    expect(client.startPracticeSession).not.toHaveBeenCalled();
-  });
-
-  it("path B (next round) CTA rotates roundId and directly starts a fresh practice session (TestNextRoundCta_DirectStartPractice / TestNextRoundCta_NextRoundIdInference)", async () => {
-    const client = makeClient({ authenticated: true });
-    const createSpy = client.createPracticePlan as ReturnType<typeof vi.fn>;
-    const startSpy = client.startPracticeSession as ReturnType<typeof vi.fn>;
-    render(
-      <Harness
-        client={client}
-        initialRoute={{
-          name: "report",
-          params: ROUTE_BASE,
-        }}
-      />,
-    );
     await screen.findByTestId("report-dashboard");
-    await waitFor(() => {
-      expect(screen.getByTestId("report-next-cta")).not.toBeDisabled();
-    });
-    await act(async () => {
-      screen.getByTestId("report-next-cta").click();
-    });
-    await waitFor(() => {
-      expect(startSpy).toHaveBeenCalledTimes(1);
-    });
-    expect(createSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        goal: "next_round",
-        sourceReportId: REPORT_ID,
-      }),
+    expect(client.getTargetJob).not.toHaveBeenCalled();
+    expect(client.getResume).not.toHaveBeenCalled();
+    await act(async () => screen.getByTestId("report-replay-cta").click());
+
+    await waitFor(() => expect(client.startPracticeSession).toHaveBeenCalledTimes(1));
+    expect(client.createPracticePlan).toHaveBeenCalledWith(
+      { goal: "retry_current_round", sourceReportId: REPORT_ID },
       expect.anything(),
     );
-    await waitFor(() => {
-      expect(screen.queryByTestId("report-dashboard")).toBeNull();
-    });
   });
 
-  it("keeps next round disabled while structured rounds are loading or failed", async () => {
+  it("next-round sends only goal + sourceReportId when frozen context allows it", async () => {
     const client = makeClient({ authenticated: true });
-    let rejectTarget!: (reason: unknown) => void;
-    client.getTargetJob = vi.fn(() => new Promise<never>((_, reject) => {
-      rejectTarget = reject;
-    }));
-    render(
-      <Harness
-        client={client}
-        initialRoute={{ name: "report", params: ROUTE_BASE }}
-      />,
-    );
+    render(<Harness client={client} initialRoute={{ name: "report", params: { reportId: REPORT_ID } }} />);
+
     await screen.findByTestId("report-dashboard");
-    expect(screen.getByTestId("report-next-cta")).toBeDisabled();
-    await act(async () => {
-      rejectTarget(new Error("HTTP 500 Internal"));
-    });
-    await waitFor(() => {
-      expect(client.getTargetJob).toHaveBeenCalled();
-      expect(screen.getByTestId("report-next-cta")).toBeDisabled();
-    });
-    expect(client.createPracticePlan).not.toHaveBeenCalled();
-    expect(client.startPracticeSession).not.toHaveBeenCalled();
+    expect(client.getTargetJob).not.toHaveBeenCalled();
+    expect(screen.getByTestId("report-next-cta")).toBeEnabled();
+    await act(async () => screen.getByTestId("report-next-cta").click());
+
+    await waitFor(() => expect(client.startPracticeSession).toHaveBeenCalledTimes(1));
+    expect(client.createPracticePlan).toHaveBeenCalledWith(
+      { goal: "next_round", sourceReportId: REPORT_ID },
+      expect.anything(),
+    );
   });
 
-  it.each([
-    ["final round", { ...ROUTE_BASE, roundId: "round-2-technical" }, makeTargetJob()],
-    ["unknown round", { ...ROUTE_BASE, roundId: "round-99-technical" }, makeTargetJob()],
-    [
-      "duplicate derived round ids",
-      ROUTE_BASE,
-      makeTargetJob([
-        { sequence: 1, type: "technical", name: "A", durationMinutes: 45, focus: "A" },
-        { sequence: 1, type: "technical", name: "B", durationMinutes: 60, focus: "B" },
-      ]),
-    ],
-  ])("fails closed for %s", async (_name, params, targetJob) => {
-    const client = makeClient({ authenticated: true, targetJob });
-    render(
-      <Harness
-        client={client}
-        initialRoute={{ name: "report", params }}
-      />,
-    );
+  it("uses frozen hasNextRound=false as the accessible terminal gate", async () => {
+    const report = makeReport({
+      context: { ...BASE_CONTEXT, hasNextRound: false },
+      nextActions: [{ type: "retry_current_round", label: "复练当前轮。" }],
+    });
+    const client = makeClient({ authenticated: true, report });
+    render(<Harness client={client} initialRoute={{ name: "report", params: { reportId: REPORT_ID } }} />);
+
     await screen.findByTestId("report-dashboard");
-    await waitFor(() => expect(client.getTargetJob).toHaveBeenCalled());
     const next = screen.getByTestId("report-next-cta");
     expect(next).toBeDisabled();
+    expect(next).toHaveAttribute("aria-describedby", "report-next-disabled-reason");
+    expect(screen.getByTestId("report-next-disabled-reason")).not.toHaveTextContent("");
     next.click();
     expect(client.createPracticePlan).not.toHaveBeenCalled();
-    expect(client.startPracticeSession).not.toHaveBeenCalled();
   });
 
-  it("disables next round when an old report successor no longer equals backend current progress", async () => {
-    const targetJob: TargetJob = {
-      ...makeTargetJob([
-        { sequence: 1, type: "technical", name: "One", durationMinutes: 45, focus: "One" },
-        { sequence: 2, type: "technical", name: "Two", durationMinutes: 60, focus: "Two" },
-        { sequence: 3, type: "manager", name: "Three", durationMinutes: 60, focus: "Three" },
-      ]),
-      practiceProgress: {
-        status: "in_progress",
-        completedRounds: [
-          { roundId: "round-1-technical", roundSequence: 1 },
-          { roundId: "round-2-technical", roundSequence: 2 },
-        ],
-        currentRound: { roundId: "round-3-manager", roundSequence: 3 },
-      },
-    };
-    const client = makeClient({ authenticated: true, targetJob });
-
-    render(
-      <Harness
-        client={client}
-        initialRoute={{ name: "report", params: ROUTE_BASE }}
-      />,
-    );
-    await screen.findByTestId("report-dashboard");
-    await waitFor(() => expect(client.getTargetJob).toHaveBeenCalled());
-
-    expect(screen.getByTestId("report-next-cta")).toBeDisabled();
-    expect(client.createPracticePlan).not.toHaveBeenCalled();
-    expect(client.startPracticeSession).not.toHaveBeenCalled();
-  });
-
-  it("locks both CTAs synchronously and creates at most one plan/session for repeated clicks", async () => {
+  it("locks both CTAs synchronously and creates at most one plan", async () => {
     const client = makeClient({ authenticated: true });
-    let resolvePlan!: (value: {
-      id: string;
-      targetJobId: string;
-      resumeId: string;
-      timeBudgetMinutes: number;
-      status: "ready";
-      roundId: string;
-      roundSequence: number;
-    }) => void;
-    client.createPracticePlan = vi.fn(() => new Promise((resolve) => {
+    let resolvePlan!: (value: PracticePlan) => void;
+    client.createPracticePlan = vi.fn(() => new Promise<PracticePlan>((resolve) => {
       resolvePlan = resolve;
     })) as never;
-    const createSpy = client.createPracticePlan as ReturnType<typeof vi.fn>;
-    render(
-      <Harness
-        client={client}
-        initialRoute={{ name: "report", params: ROUTE_BASE }}
-      />,
-    );
+    render(<Harness client={client} initialRoute={{ name: "report", params: { reportId: REPORT_ID } }} />);
+
     await screen.findByTestId("report-dashboard");
-    await waitFor(() => {
-      expect(screen.getByTestId("report-next-cta")).not.toBeDisabled();
-    });
     const replay = screen.getByTestId("report-replay-cta");
-    const next = screen.getByTestId("report-next-cta");
     await act(async () => {
       replay.click();
       replay.click();
     });
-    await waitFor(() => expect(createSpy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(client.createPracticePlan).toHaveBeenCalledTimes(1));
     expect(replay).toBeDisabled();
-    expect(next).toBeDisabled();
-    await act(async () => {
-      resolvePlan({
-        id: "01918fa0-0000-7000-8000-000000008000",
-        targetJobId: TARGET_JOB_ID,
-        resumeId: RESUME_VERSION_ID,
-        timeBudgetMinutes: 45,
-        status: "ready",
-        roundId: "round-1-technical",
-        roundSequence: 1,
-      });
-    });
+    expect(screen.getByTestId("report-next-cta")).toBeDisabled();
+
+    await act(async () => resolvePlan(planFor("retry_current_round")));
     await waitFor(() => expect(client.startPracticeSession).toHaveBeenCalledTimes(1));
+  });
+
+  it("unauthenticated entry stays behind auth and does not read or mutate report state", async () => {
+    const client = makeClient({ authenticated: false });
+    render(<Harness client={client} initialRoute={{ name: "report", params: { reportId: REPORT_ID } }} />);
+
+    expect(await screen.findByTestId("auth-login-email-form")).toBeInTheDocument();
+    expect(screen.getByTestId("auth-side-pending-action")).toBeInTheDocument();
+    expect(client.getFeedbackReport).not.toHaveBeenCalled();
+    expect(client.createPracticePlan).not.toHaveBeenCalled();
   });
 });
 
-describe("Replay payload integrity", () => {
-  it("buildReplayPayload includes the 9 owner / display knob fields and never raw text (TestReplayCtaPathA_PayloadIntegrity / NoRawText)", async () => {
-    const { buildReplayPayload } = await import("../handoff");
-    const payload = buildReplayPayload({
-      route: {
-        name: "report",
-        params: ROUTE_BASE,
-      },
-      report: makeReport(),
-      sessionId: SESSION_ID,
-    });
-    expect(payload).toMatchObject({
-      sourceSessionId: SESSION_ID,
-      focusCompetencyCodes: "technical_depth",
-      evidenceGaps: "technical_depth",
-      planId: "plan-1",
-      targetJobId: TARGET_JOB_ID,
-      jdId: "jd-1",
-      resumeId: RESUME_VERSION_ID,
+describe("report-derived payload integrity", () => {
+  it("builds exact report-owner requests with no route-selected context", async () => {
+    const { buildNextRoundPayload, buildReplayPayload } = await import("../handoff");
+    const report = makeReport();
+    expect(buildReplayPayload({ report })).toEqual({
+      goal: "retry_current_round",
       sourceReportId: REPORT_ID,
-      roundId: "round-1-technical",
-      practiceGoal: "retry_current_round",
     });
-    for (const value of Object.values(payload)) {
-      expect(value).not.toMatch(/answerText/i);
-      expect(value).not.toMatch(/questionText/i);
-      expect(value).not.toMatch(/hint:/i);
-      expect(value).not.toMatch(/promptHash/i);
-      expect(value).not.toMatch(/modelId.*raw/i);
-    }
+    expect(buildNextRoundPayload({ report })).toEqual({
+      goal: "next_round",
+      sourceReportId: REPORT_ID,
+    });
   });
 
-  it("buildNextRoundPayload uses the resolved structured next round (TestNextRoundCta_PayloadIntegrity)", async () => {
-    const { buildNextRoundPayload } = await import("../handoff");
-    const payload = buildNextRoundPayload({
-      route: { name: "report", params: ROUTE_BASE },
-      report: makeReport(),
-      sessionId: SESSION_ID,
-    }, {
-      id: "round-2-technical",
-      sequence: 2,
-      name: "Technical two · 60m",
-      focus: "Architecture",
-      type: "technical",
-      durationMinutes: 60,
-    });
-    expect(payload.nextRoundId).toBe("round-2-technical");
-    expect(payload.roundId).toBe("round-2-technical");
-    expect(payload.roundName).toBe("Technical two · 60m");
-    expect(payload.practiceGoal).toBe("next_round");
-    expect(payload.sourceReportId).toBe(REPORT_ID);
-  });
-
-  it("CTA click does not re-invoke getFeedbackReport or any listTargetJobReports call from report scope (TestReplayCtaPathA_NoReportReadCalls)", async () => {
+  it("does not re-read report or mutable context when starting replay", async () => {
     const client = makeClient({ authenticated: true });
-    render(
-      <Harness
-        client={client}
-        initialRoute={{
-          name: "report",
-          params: ROUTE_BASE,
-        }}
-      />,
-    );
+    render(<Harness client={client} initialRoute={{ name: "report", params: { reportId: REPORT_ID } }} />);
+
     await screen.findByTestId("report-dashboard");
-    const feedbackSpy = client.getFeedbackReport as ReturnType<typeof vi.fn>;
-    const listSpy = client.listTargetJobReports as ReturnType<typeof vi.fn>;
-    const callsBefore = feedbackSpy.mock.calls.length;
-    await act(async () => {
-      screen.getByTestId("report-replay-cta").click();
-    });
-    await waitFor(() => {
-      expect(client.startPracticeSession).toHaveBeenCalled();
-    });
-    expect(feedbackSpy.mock.calls.length).toBe(callsBefore);
-    expect(listSpy).not.toHaveBeenCalled();
+    const readsBefore = vi.mocked(client.getFeedbackReport).mock.calls.length;
+    expect(client.getTargetJob).not.toHaveBeenCalled();
+    expect(client.getResume).not.toHaveBeenCalled();
+    expect(client.listTargetJobReports).not.toHaveBeenCalled();
+    await act(async () => screen.getByTestId("report-replay-cta").click());
+    await waitFor(() => expect(client.startPracticeSession).toHaveBeenCalledTimes(1));
+
+    expect(vi.mocked(client.getFeedbackReport).mock.calls).toHaveLength(readsBefore);
+    expect(client.listTargetJobReports).not.toHaveBeenCalled();
   });
 });

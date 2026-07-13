@@ -4,7 +4,8 @@
  * Phase 2.7 — ReportFailureState focused gates.
  *  - All AI_* enum values map to dedicated copy (TestReportFailureStateRendersErrorCodeMatrix)
  *  - REPORT_NOT_FOUND routes through failureState.notFound.* keys, NOT AI_*
- *  - Retry CTA + back-to-workspace CTA wire the handlers we hand in.
+ *  - Terminal report failures do not offer a fake regeneration action.
+ *  - Only recoverable transport errors expose a reload action.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -64,7 +65,7 @@ describe("ReportFailureState", () => {
     expect(screen.getByTestId("report-failure-back-to-workspace")).toBeInTheDocument();
   });
 
-  it("retry + back CTAs trigger their handlers exactly once (TestReportFailureStateRetryNavigatesGenerating / BackToWorkspaceCta)", () => {
+  it("terminal report failures hide reload and keep the back action", () => {
     const onRetry = vi.fn();
     const onBack = vi.fn();
     render(
@@ -74,10 +75,23 @@ describe("ReportFailureState", () => {
         onBackToWorkspace={onBack}
       />,
     );
-    screen.getByTestId("report-failure-retry-cta").click();
-    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("report-failure-retry-cta")).not.toBeInTheDocument();
     screen.getByTestId("report-failure-back-to-workspace").click();
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it("recoverable transport failure reloads exactly once", () => {
+    const onRetry = vi.fn();
+    render(
+      <ReportFailureState
+        errorCode={null}
+        recoverable
+        onRetry={onRetry}
+        onBackToWorkspace={() => undefined}
+      />,
+    );
+    screen.getByTestId("report-failure-retry-cta").click();
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
   it("falls back to UNKNOWN copy when errorCode is null or unrecognized", () => {

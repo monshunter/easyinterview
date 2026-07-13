@@ -38,6 +38,7 @@ config/rubrics/
 feature_key: <string>
 version: <semver-literal>
 language: <multi | iso-639>
+status: <active | inactive>
 dimensions:
   - name: <allowlisted-dimension-name>
     weight: <0.0-1.0>
@@ -61,6 +62,10 @@ Rules:
      rubric must equal `1.0` with absolute tolerance `±0.001`.
    - `score_levels`: at least three entries, each with `label`, `threshold`,
      `description`.
+5. **`status`** is activation metadata and must be `active` or `inactive`.
+   Exactly one version is active for each `(feature_key, language)` coordinate.
+   Published dimensions, weights, score levels, version, and language are
+   immutable; a gated release may change only status metadata.
 
 ## 3 Dimension name allowlist
 
@@ -129,7 +134,17 @@ The lint gate rejects:
 - Provider names, model identifiers, or secret material in `description`
   fields.
 
-## 8 References
+## 8 Activation and rollback
+
+The loader validates the complete prompt/rubric version snapshot before one
+atomic pointer swap. The coordinated report/practice v0.2 release keeps both
+v0.2 rubrics `active` and their v0.1 rollback coordinates `inactive`; a
+rollback reverses all four rubric statuses together with the paired prompt
+statuses and reloads the whole snapshot. Database activation is a separate
+transactional truth substrate; this file contract makes no cross-media
+atomicity claim.
+
+## 9 References
 
 - Spec: `docs/spec/prompt-rubric-registry/spec.md`
 - Plans: `docs/spec/prompt-rubric-registry/plans/001-baseline/plan.md`,

@@ -1,6 +1,6 @@
 # 002 Conversation Message Loop Test Plan
 
-> **版本**: 2.4
+> **版本**: 2.6
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -35,3 +35,10 @@
 - Store tests assert completion event/report/job/outbox atomicity and exact replay with no duplicate event.
 - Integration tests create a same-user wrong-resume completion plus duplicate completed sessions/events for one round and prove only TargetJob-bound-resume facts reach the read-side distinct projection.
 - Report queued/ready/failed variants leave the same completion fact; final round and privacy deletion boundaries are covered.
+
+## Phase 9: Reportable completion and frozen context
+- `TestE2EP0047RejectsZeroAnswerCompletion` rejects zero-user and pending-reply completion before writes/provider; one committed user message succeeds.
+- `TestE2EP0047FreezesReportContext` and `TestE2EP0047CompletionReplayPreservesReportContext` assert one-view report-context.v1, concurrent mutation isolation, terminal coordinate and exact replay.
+- Exact backend command: `cd backend && go test ./internal/api/practice ./internal/practice ./internal/store/practice -run '^(TestE2EP0047RejectsZeroAnswerCompletion|TestE2EP0047FreezesReportContext|TestE2EP0047CompletionReplayPreservesReportContext)$' -count=1 -v`.
+- P0.047 writes `.test-output/e2e/p0-047-practice-text-loop-complete-and-generating-handoff/completion-backend-evidence.json` with exact keys `schemaVersion/scenarioId/command/tests/markers/database/result`; PASS requires the three test PASS markers, three owner markers, zero forbidden failure/no-test markers and redacted DB assertions.
+- Frontend test asserts Finish disabled/accessibly explained until a committed user message exists.

@@ -387,16 +387,19 @@ test.describe("TopBar DOM + computed style parity", () => {
       return header.getBoundingClientRect().height;
     });
 
-    expect(uiDesignHeight).toBeCloseTo(58, 0);
     if (testInfo.project.name === "desktop") {
       // Desktop targets 58px height per ui-design/src/app.jsx TopBar literal.
+      expect(uiDesignHeight).toBeCloseTo(58, 0);
       expect(frontendHeight).toBeCloseTo(58, 0);
       expect(Math.abs(frontendHeight - uiDesignHeight)).toBeLessThanOrEqual(1);
     } else {
-      // Mobile wraps nav into a second row instead of preserving an overflowing
-      // one-row desktop bar.
+      // Mobile truth source and formal frontend both use content-driven rows;
+      // neither preserves the overflowing fixed-height desktop bar.
+      expect(uiDesignHeight).toBeGreaterThanOrEqual(58);
+      expect(uiDesignHeight).toBeLessThanOrEqual(150);
       expect(frontendHeight).toBeGreaterThanOrEqual(58);
       expect(frontendHeight).toBeLessThanOrEqual(150);
+      expect(Math.abs(frontendHeight - uiDesignHeight)).toBeLessThanOrEqual(1);
     }
   });
 

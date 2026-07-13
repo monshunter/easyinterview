@@ -151,6 +151,8 @@ func (h *TailorHandler) Handle(ctx context.Context, job runner.ClaimedJob) runne
 		})
 	}
 	if err := h.store.CompleteTailorRunSuccess(ctx, resumestore.CompleteTailorRunSuccessInput{
+		JobID:              job.JobID,
+		ClaimedAttempts:    job.Attempts,
 		TailorRunID:        tailorCtx.TailorRunID,
 		ResumeID:           tailorCtx.ResumeID,
 		TargetJobID:        tailorCtx.TargetJobID,

@@ -1,6 +1,6 @@
 # 002 Conversation Message Loop Test Checklist
 
-> **版本**: 2.4
+> **版本**: 2.6
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -30,3 +30,8 @@
 - [x] Completion atomicity/replay tests prove exactly one lifecycle fact.<!-- verified: 2026-07-12 method=P0.047 result=PASS -->
 - [x] Wrong-resume exclusion, duplicate session/event and report-status-independence projection tests pass.<!-- verified: 2026-07-12 method=P0.098 real-postgres marker=wrong-resume-completion-ignored=PASS -->
 - [x] P0.047/P0.098 scenario gates pass with persisted backend evidence.<!-- verified: 2026-07-12 method=scenario-run -->
+## Phase 9: Reportable completion and frozen context
+
+- [x] `TestE2EP0047RejectsZeroAnswerCompletion` plus frontend disabled-reason and one-answer success tests pass.<!-- verified: 2026-07-12 method=exact-go+postgres-v18+focused-vitest evidence="backend exact zero-answer/pending-reply/one-answer gate PASS; frontend Practice/i18n completion regression 24/24 PASS with native disabled and localized aria-describedby reason" -->
+- [x] `TestE2EP0047FreezesReportContext` / `TestE2EP0047CompletionReplayPreservesReportContext` DB consistency, replay and privacy tests pass.<!-- verified: 2026-07-12 method=exact-go+postgres-v18 evidence="repeatable-read snapshot/replay unit markers plus advisory-gated concurrent mutation blocking, immutable replay, mismatch zero-side-effect and rerun isolation" -->
+- [x] P0.047 `completion-backend-evidence.json` matches `practice-completion-evidence.v1`, contains every required marker and has `result=PASS` with no raw content.<!-- verified: 2026-07-12 method=scenario-run evidence="exact top-level keys/tests/markers/redacted DB booleans+counts; result PASS; cleanup retains only JSON artifact" -->

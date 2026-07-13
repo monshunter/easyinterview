@@ -1,8 +1,8 @@
 # AI Provider and Model Routing Spec
 
-> **版本**: 2.23
+> **版本**: 2.27
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 背景与目标
 
@@ -32,13 +32,14 @@
 
 - **AIClient 接口**：Go 包 `backend/internal/ai/aiclient/`。当前调用面为 `Complete(ctx, profile, payload) → (response, meta)` / `Stream(ctx, profile, payload) → (<-chan AIStreamEvent, error)` / `Transcribe(ctx, profile, audio) → (transcript, meta)`；`Synthesize(ctx, profile, text) → (audio, meta)` 由 plan 004 打开。`CompletePayload` 可携带 provider-neutral `tools[]` / `tool_choice` / `output_schema`；业务仍只传 `model_profile_name`，不传 provider/model 字符串。向量化 / 重排能力已从当前开发阶段删除，未来如重新需要必须先递增本 spec、B1/B3/B4/F3 契约与实现计划。
 - **Provider Registry schema**：配置文件 + 启动加载；字段：`name` / `protocol`（`stub` | `openai_compatible` | `doubao_speech` | `minimax_speech` | `realtime_audio` | `judge_compatible`）/ `base_url_env` / `api_key_env` / `capabilities[]` / `version`。Registry 文件默认落点 `config/ai-providers.yaml`，A4 通过 `AI_PROVIDER_REGISTRY_PATH` 注入；tracked 文件不得包含 secret 明文，只保存 env secret ref。`base_url_env` / `api_key_env` 对 `stub` 可为空；对需要网络出站的 provider protocol 必须声明，且仅在该 provider 被 profile 选中或进入 fallback chain 时解析实际 secret。
-- **Model Profile schema**：单一 YAML catalog 文件 + 热加载；catalog 顶层字段为 `profiles[]`，每项字段为 `name` / `capability`（`chat` | `stt` | `tts` | `realtime` | `judge`）/ `status`（`active` | `disabled` | `unsupported`）/ `unsupported_reason`（`disabled` / `unsupported` 时必填）/ `default.{provider_ref, model, params}` / `fallback[]`（每项包含 `provider_ref` / `model` / `when[]`）/ `timeout_ms` / `max_tokens` / `rate_limit.{rps, tpm}` / `route` / `version` / 可选 `privacy_policy`。Profile catalog 默认落点 `config/ai-profiles.yaml`，A4 通过 `AI_MODEL_PROFILE_PATH` 注入文件路径。
+- **Model Profile schema**：单一 YAML catalog 文件 + 热加载；catalog 顶层字段为 `profiles[]`，每项字段为 `name` / `capability`（`chat` | `stt` | `tts` | `realtime` | `judge`）/ `status`（`active` | `disabled` | `unsupported`）/ `unsupported_reason`（`disabled` / `unsupported` 时必填）/ `default.{provider_ref, model, params}` / `fallback[]`（每项包含 `provider_ref` / `model` / `when[]`）/ `timeout_ms` / `max_tokens` / 可选 `context_window_tokens` / `rate_limit.{rps, tpm}` / `route` / `version` / 可选 `privacy_policy`。`context_window_tokens` 是单请求输入+输出容量；`rate_limit.tpm` 只表示吞吐，不得互相替代。Profile catalog 默认落点 `config/ai-profiles.yaml`，A4 通过 `AI_MODEL_PROFILE_PATH` 注入文件路径。
 - **Provider 实现集**：
   - `stub`：hash-based 确定性输出，从 OpenAPI fixtures 反向喂养（与 [E1 `mock-contract-suite`](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 同源）；仅允许在单元测试、离线契约测试或显式 mock 场景启用。
   - `openai_compatible`：P0 已实现 Chat Completions / chat streaming SSE / Audio Transcriptions 协议子集，并支持 Chat Completions tool-call wire 子集；通过 provider ref 读取 base URL / API key，不依赖全局唯一 endpoint 语义；不直接 import 任何厂商 SDK。当前开发主力 provider ref 为 `deepseek`，只使用 `deepseek-v4-flash` / `deepseek-v4-pro` 两个模型 ID。
   - `doubao_speech`：plan 004 打开的 provider-specific speech protocol，优先承载豆包 STT 与豆包 TTS。不得假设其 wire shape 与 OpenAI Audio Transcriptions 或其他 provider 一致。
   - `minimax_speech`：plan 004 打开的 provider-specific speech protocol，优先承载 MiniMax TTS（例如 `speech-02-turbo`）。MiniMax STT 只有在公开接口、权限和测试契约确认后才能加入 `stt` profile。
-  - `realtime_audio` / `judge_compatible`：本 spec 锁命名空间与 fail-closed 语义；可执行协议 adapter 必须由对应后续 plan 递增 spec 后实现。
+  - `judge_compatible`：只实现 `Complete` 的 judge 专用 OpenAI Chat Completions 子集，当前 `judge-deepseek` / `deepseek-v4-pro` 由 `judge.default` 使用；请求通过 profile 显式关闭 thinking、要求 JSON object，adapter 对空 final content、缺 choices 和非法响应 fail-closed，且不记录 `reasoning_content` / prompt / output 明文。`Transcribe` / `Stream` / `Synthesize` 始终返回 unsupported。
+  - `realtime_audio`：本 spec 只锁命名空间与 fail-closed 语义；可执行协议 adapter 必须由对应后续 plan 递增 spec 后实现。
 - **路由策略**：业务 `feature_key` 由 F3 Resolve 为 `model_profile_name`；A3 由 profile 解析 provider ref、capability、model、参数与 fallback。Fallback 可由 AIClient 在 profile fallback chain 内集中执行，业务代码不得自行 retry-with-different-model；每次 fallback 都必须写入 meta / metric / log。
 - **观测埋点契约**：A3 必须注册并暴露 `ai_task_runs_total` / `ai_task_latency_seconds` / `ai_task_input_tokens_total` / `ai_task_output_tokens_total` / `ai_task_cost_usd_total` / `ai_output_validation_failures_total` / `ai_fallback_total` 共 7 个 metric family；每次调用递增 run / latency / token / cost，validation failure 与 fallback counter 仅在对应事件发生时递增。同时落 DB 表 `ai_task_runs`，schema 由 [B4](../db-migrations-baseline/spec.md) 落地。
 - **Audit hook**：每次调用产出 `audit_events` 行（`action=ai.call`），`metadata` 字段含 `prompt_hash` / `response_hash` / `prompt_char_length` / `response_char_length` / `profile_name`；不含明文。
@@ -49,7 +50,7 @@
 - 业务调用现场（哪个 backend / frontend owner 调用哪种 profile）：归各自 spec / plan。
 - 外部 AI provider 服务部署、platform secret / Vault / cost cap 策略：归 A4 / E4 / 运维；本 spec 只锁应用侧 registry / profile / provider ref 契约，K8s Secret 是否使用由后续 release ADR 决定。
 - Realtime voice 的完整双向协议 adapter、媒体留存与 HTTP wire：归 production voice / practice voice owner；本 spec 当前只打开 STT / TTS 级联底座，realtime profile 继续 fail-closed。
-- LLM Judge / 离线评估集实现：归 F3 后续评估 plan。
+- LLM Judge 的 prompt、rubric、阈值与离线/真实评估集：归 F3；A3 只拥有 judge capability/profile/provider adapter 与调用 meta/fail-closed。
 - DB 表本身：归 B4；本 spec 只引用字段名。
 - 错误码与跨语言 AI vocabulary：依赖 B1 已落地的 `AI_*` 前缀错误码、AI capability、provider registry 字段名、model profile 字段名与 AI meta 字段名；新增跨边界字面量必须先改 B1。
 
@@ -59,7 +60,7 @@
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | AIClient 接口形态 | 业务调用面继续只接受 `profile name`；`Complete` / `Stream` / `Transcribe` 可执行，`Synthesize` 由 004 打开，Tools 通过 `CompletePayload` provider-neutral 字段表达，realtime / judge adapter 由后续 owner 打开 | 业务代码绝对零厂商 SDK 入侵 |
+| D-1 | AIClient 接口形态 | 业务调用面继续只接受 `profile name`；`Complete` / `Stream` / `Transcribe` / `Synthesize` 按 capability/profile 执行，Tools 通过 `CompletePayload` provider-neutral 字段表达；judge 使用独立 `CompleteJudge` dispatch 到 `judge_compatible`，realtime 继续 fail-closed | 业务代码绝对零厂商 SDK 入侵，judge 流量不伪装成业务 chat |
 | D-2 | Provider Registry | A3 owns provider registry schema；tracked registry 只保存 provider ref、protocol、capabilities 与 secret env ref，不保存 secret 明文 | 单一 provider 可作为启动配置，但多 provider / 多能力不需要改业务代码 |
 | D-3 | Model Profile 字段集 | profile 使用 `capability` + `provider_ref`；不再把 profile 绑定为全局 provider endpoint 的 route | provider profile 配置漂移可控 |
 | D-3a | Model Profile 物理落点 | repo-tracked profile catalog 使用单一 `config/ai-profiles.yaml`，`AI_MODEL_PROFILE_PATH` 表示 catalog 文件路径；不再使用一 profile 一文件目录作为 active truth source | 降低小规模 profile catalog 的文件碎片和审查成本 |
@@ -68,7 +69,7 @@
 | D-6 | Fallback 边界 | Fallback 由 AIClient 在 profile fallback chain 内集中执行，最多 2 跳；业务代码不得自行 retry-with-different-model；provider 自身返回的 fallback meta 也必须纳入同一 chain | 防止业务绕开 cost / rate limit / observability |
 | D-7 | 观测埋点强制 | A3 注册 7 个 metric family；每次调用必须产出 run / latency / token / cost 指标 + DB 行 + log；fallback / validation failure 指标只在对应事件发生时递增 | F1 dashboard 可信且 counter 语义正确 |
 | D-8 | 隐私字段红线 | log / metric / DB metadata 字段中绝不出现明文 prompt / response；只允许 hash / 长度 / profile | 与 ADR-Q5 / logging 标准对齐 |
-| D-9 | OpenAI-compatible API 协议子集 | 当前可执行协议是 Chat Completions + chat streaming SSE + Audio Transcriptions + Chat tool-call wire 子集；provider-specific speech protocol 由 `doubao_speech` / `minimax_speech` 独立实现；realtime / judge 进入后续 owner plan 前必须 fail-closed | 主流 chat provider 可即插即用，同时避免假承诺 speech / realtime / judge 都兼容同一 wire shape |
+| D-9 | OpenAI-compatible API 协议子集 | 当前业务 chat 可执行 Chat Completions + chat streaming SSE + Audio Transcriptions + Chat tool-call wire 子集；provider-specific speech 由 `doubao_speech` / `minimax_speech` 独立实现；judge 通过 capability 隔离的 `judge_compatible` Complete-only adapter 执行，realtime 继续 fail-closed | 主流 chat provider 可即插即用，同时不把 speech / realtime / judge 伪装成同一业务 wire |
 | D-9a | 当前开发 provider / model | 当前开发主力 provider ref 为 `deepseek`；chat profile 的 model ID 集合固定为 `deepseek-v4-flash` / `deepseek-v4-pro`，其他 alias 由配置 lint 拒绝 | 本地开发与未来部署前的 AI 调用口径稳定且可审计 |
 | D-10 | F3 profile 覆盖 | F3 baseline feature_key 必须全部能解析到 A3 profile catalog；P1/P2 capability 可先以 `status=disabled` / `status=unsupported` fail-closed profile 登记，并写明 `unsupported_reason`，但不得缺命名空间 | 业务域开工前具备完整 AI 调用坐标 |
 | D-11 | Product/UI capability inventory | A3 spec 必须维护产品 / UI AI 场景到 capability family 的映射；新增 AI 场景必须先修订本表与 F3 feature_key / profile 字典 | 防止新业务回到单模型假设 |
@@ -76,13 +77,15 @@
 | D-13 | Provider-side streaming consumer | A3 固定消费 OpenAI-compatible SSE `data:` frames 并映射为 `AIStreamEvent` 的 `delta` / `error` / `done`；context cancel 以 B1 `AI_*` 错误码和 `partial_meta_reason` 形成 terminal event；业务 HTTP SSE / chunked wire 由 backend / frontend owner 在自身 API plan 决定 | 后续业务域可复用 provider streaming 底座，同时不提前承诺用户可见 HTTP wire |
 | D-14 | 电话模式级联语音底座 | P0 电话模式优先采用 `stt -> chat -> tts` 级联方案替代 S2S / realtime voice；`stt`、`chat`、`tts` 必须是独立 profile，可选择不同 provider，不绑定同一家供应商 | 降低成本并保留 provider 切换能力 |
 | D-15 | TTS capability | `tts` 是独立 capability，不混入 `realtime`；TTS 失败只能影响语音播放，不得丢失已生成文本回复或用户 transcript | 防止把低成本级联语音误标为 realtime S2S |
+| D-16 | Report generation capacity and output budget | `report.generate.default` 保持 `capability=chat`、DeepSeek Pro、`timeout_ms=60000`、`rate_limit.tpm=60000`，新增当前官方模型合同 `context_window_tokens=1000000`，将 `max_tokens` 从 4096 提升为 6144，把 profile version 升为 `1.2.0`，并显式设置 `default.params.thinking=disabled`；`response_format` 仍只由调用 payload 的 object `output_schema` 驱动，不写入 report profile。 | DeepSeek V4 默认 thinking 会先消耗 output budget 并可能留下空 final content；报告需要直接生成最终结构化 JSON。backend-review 的最终 prompt 上限为 48,000 UTF-8 bytes；offline gate 以 `input_tokens <= UTF-8 bytes` + 2,048 framing-token reserve 证明单请求容量，real-provider smoke 再用 AICallMeta usage 验证实际 framed input 与 zh/en worst-case fixture token count；TPM 仅做独立吞吐配置检查，不再当 context capacity。模型容量来源为当前 [DeepSeek Models & Pricing](https://api-docs.deepseek.com/quick_start/pricing/) 与 [Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode) |
+| D-17 | Context-aware judge deterministic output budget | `judge.default` 精确使用 `judge-deepseek` / `deepseek-v4-pro`、`thinking=disabled`、`response_format=json_object`、`max_tokens=6144`、`timeout_ms=60000`、无 fallback、profile version `1.2.0`。 | DeepSeek V4 thinking 默认启用，旧 2,048 上限真实复现为 1,292 input + 2,048 reasoning、`finish_reason=length`、空 final content；结构化离线评分不消费或暴露 CoT。修复后同一真实 smoke 为 1,318 input + 791 output、`stop`、2,999-byte final JSON，并通过 item/causal/critical gate。来源：[Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode)、[JSON Output](https://api-docs.deepseek.com/guides/json_mode/) |
 
 ### 3.2 待确认事项
 
 - `model_profile_version` 是否独立 SemVer vs 与 prompt_version 联动：默认独立 SemVer（profile 升级不必随 prompt），由 F3 在自己的 plan 里决定如何引用。
 - Stream 暴露到 HTTP 时采用 SSE 还是 chunked：A3 provider 侧固定消费 OpenAI-compatible SSE；业务 HTTP wire 仍由后续 backend / frontend owner 在自身 API plan 决定。
 - MiniMax 是否承担 STT：当前只把 MiniMax 作为优先 TTS provider 候选；若后续 MiniMax STT 接口、权限、价格和契约测试确认，再通过 plan 004 或后续增量修订打开。
-- Judge 是否使用专用 provider protocol 还是 OpenAI-compatible JSON schema 调用：由 F3 eval plan 决定；A3 只要求 capability profile 能表达并观测。
+- Judge 已锁定为 capability 隔离的 `judge_compatible` Complete-only protocol；F3 owns judge prompt/rubric/阈值，A3 owns profile、wire、meta 与 fail-closed。后续若切换到其他 judge provider protocol，必须递增 A3/F3 合同。
 
 ## 4 设计约束
 
@@ -118,6 +121,8 @@
 - 任何非测试本地 app run、未来 staging / prod 部署都不得在被选中的真实 provider secret 缺失时静默回退到 stub；启动期 config validation 必须直接失败。
 - Registry / profile loader 必须有负向 fixture：未知 provider ref、capability 不匹配、secret env 缺失、unsupported capability 被调用、profile fallback 超 2 跳。
 - P0 full-funnel 真实 provider manual UAT 依赖的 active chat profiles 必须保留真实调用预算：`resume.parse.default` / `target.import.default` / `practice.chat.default` 不低于 30s，`report.generate.default` 不低于 60s；缩短这些 timeout 必须先提供真实 provider gate 证据。
+- `report.generate.default` 的 output budget 必须精确为 6144，并显式使用 `thinking=disabled`；profile loader/coverage lint 还必须锁定 `context_window_tokens=1000000`、`timeout_ms=60000`、`rate_limit.tpm=60000` 与 `version=1.2.0`，拒绝缺失或非法 thinking 值。`openai_compatible` adapter 必须把 `enabled|disabled` 映射为官方 `{"thinking":{"type":"..."}}` wire，其他值在网络请求前 fail-closed；object `output_schema` 继续独立驱动 `response_format=json_object`。backend-review 提供 48,000 / +1 byte 输入边界和 current schema zh/en worst-case JSON fixture；A3 offline gate 证明 48,000-byte conservative input bound + 2,048 framing reserve + 6,144 output < context window，opt-in real-provider smoke 读取 AICallMeta usage 验证实际 framed input 和把每个 worst-case output fixture 作为唯一 user content 的 token-count probe 均在预算内。TPM 只做独立配置回归，不参与容量证明。
+- `judge.default` 必须锁定 D-17 坐标；adapter request contract test 必须证明 non-thinking + JSON object wire，reasoning-only / empty-content 响应只返回脱敏 finish/token/presence 元数据并以 `AI_OUTPUT_INVALID` fail-closed。P0.100 必须验证 `finish_reason=stop`、正 usage、非空 final JSON、item/causal/critical verdict；只延长 timeout 或把 `reasoning_content` 当 final output 均不得通过。
 
 ### 4.5 Product/UI AI Capability Catalog
 
@@ -130,7 +135,7 @@
 | 模拟面试连续聊天 | JD / round / resume / ordered messages | `chat` 对话生成 | `practice.chat.default` |
 | 电话模式 | 当前暂时禁用 | `stt` / `tts` / `realtime` 均 fail-closed | `practice.voice.stt.default` / `practice.voice.tts.default` disabled；`practice.voice.realtime.default` unsupported |
 | 报告生成 | full session + JD + resume | `chat` 长上下文结构化推理 | `report.generate.default` |
-| 会话级报告 | ordered messages + rubric | `chat` report generation | `report.generate.default` |
+| 会话级报告 | frozen JD/resume/round context + ordered transcript | `chat` report generation | `report.generate.default` |
 | 复练当前轮 / 下一轮 | report competency gaps + round context | `chat` 生成 | `report.generate.default` / `practice.chat.default` |
 | 离线 LLM Judge / eval | prompt output + rubric | `judge` | `judge.default`（F3 eval） |
 
@@ -154,7 +159,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | Stub 单测 | 单测环境（`APP_ENV=test`，无真实 provider secret） | 业务代码调用 `aiclient.Complete(ctx, "practice.followup.default", payload)` | client 路由到 stub provider；返回结构化 response + meta；`meta.provider == "stub"`；同 input 多次调用结果一致 | 001 |
+| C-1 | Stub 单测 | 单测环境（`APP_ENV=test`，无真实 provider secret） | 业务代码调用 `aiclient.Complete(ctx, "practice.chat.default", payload)` | client 路由到 stub provider；返回结构化 response + meta；`meta.provider == "stub"`；同 input 多次调用结果一致 | 001 |
 | C-2 | Registry provider route | registry 中 `deepseek` 声明 `chat` capability，并引用 env secret | 调用 `Complete` / `Stream` | 出站 HTTP 请求命中该 provider ref 的 OpenAI-compatible endpoint；header 含 `Authorization`；`meta.provider` / `meta.capability` / `meta.model_profile_name` 正确；模型 ID 只使用 `deepseek-v4-flash` / `deepseek-v4-pro` | 003 + 002 |
 | C-3 | Central fallback | profile 声明 primary + fallback provider ref，primary 超时且 fallback 成功 | 调用 `Complete` | AIClient 执行受限 fallback，`fallback_chain` 记录 provider/model hop；`ai_fallback_total` +1；业务代码无 retry-with-different-model 循环 | 003 |
 | C-4 | Registry + profile 热加载 | A3 loader 已启动 | `config/ai-providers.yaml` 或 `config/ai-profiles.yaml` 修改后保存 | client 在 ≤ 30s 内热加载；正在进行的调用使用前一快照完成；新调用使用新快照 | 003 |
@@ -163,15 +168,17 @@
 | C-7 | 错误码合规 | provider 返回结构化输出非法 | client `validate_output` 失败 | 返回错误码 `AI_OUTPUT_INVALID`；`ai_output_validation_failures_total` +1 | 001 |
 | C-8 | active spec relation gate | 本 spec 通过 `/plan-review` | 与当前 active spec 和 future workstream 关系审查 | A3 与 F3 / B1 / A4 / F1 / release gate 引用关系自洽；provider 只通过 registry ref 表达，A3 不拥有独立 provider-proxy 业务语义 | plan-review |
 | C-9 | Registry secret fail-fast | 非测试本地 app run、未来 staging / prod 缺失 registry 选中 provider 的 base URL 或 API key | 启动 backend runtime | 进程启动失败并报配置错误；不得自动回退到 stub provider | 003 + A4 |
-| C-10 | F3 baseline profile coverage | F3 9 个 baseline feature_key 已定义默认 profile name | 运行 profile coverage lint | 每个默认 profile 在 `config/ai-profiles.yaml` catalog 中存在，且 capability / provider_ref / status 合法；允许 P1/P2 profile `disabled` / `unsupported`，但必须携带 `unsupported_reason` 且不得缺 catalog entry | 003 + F3 |
+| C-10 | F3 baseline profile coverage | F3 6 个 baseline feature_key 已定义默认 profile name | 运行 profile coverage lint | 每个默认 profile 在 `config/ai-profiles.yaml` catalog 中存在，且 capability / provider_ref / status 合法；允许 P1/P2 profile `disabled` / `unsupported`，但必须携带 `unsupported_reason` 且不得缺 catalog entry | 003 + F3 |
 | C-11 | Product/UI capability inventory drift | 新增 AI 场景或 UI 交互依赖 AI | `/plan-review` 或 lint 检查 | 本 spec §4.5、F3 feature_key 字典与 A3 profile catalog 同步更新；不得只在业务代码 hardcode 新 profile | 003 + F3 |
-| C-12 | Unsupported capability fail-closed | profile 使用 `realtime` / `judge`，但对应 adapter 未激活 | 运行时调用该 profile | 返回明确 unsupported capability 错误并记录 meta/log；不得降级到 chat 或 stub；对应 UI 能力必须 feature-gated | 003 + 002 |
+| C-12 | Unsupported capability fail-closed | profile 使用未激活的 `realtime` 或 disabled/unsupported speech capability | 运行时调用该 profile | 返回明确 unsupported capability 错误并记录 meta/log；不得降级到 chat 或 stub；对应 UI 能力必须 feature-gated | 003 + 002 |
 | C-13 | Tool call provider-neutral | profile 使用 `chat` capability 且 payload 携带 `tools[]` / `tool_choice` | 调用 `Complete` | openai_compatible adapter 映射 tool wire；响应返回 `tool_calls[]` 与 `finish_reason=tool_calls`；`AICallMeta.tool_invocations[]` 只含 tool name / argument hash / argument length，不含 args 明文 | 002 |
 | C-14 | 真实 provider full-funnel timeout budget | `config/ai-profiles.yaml` 中 P0 full-funnel 真实 provider profiles 已启用 | 运行 profile catalog gate | `resume.parse.default`、`target.import.default`、`practice.chat.default` timeout ≥ 30s；`report.generate.default` timeout ≥ 60s，避免 manual UAT 默认材料在真实 provider 下被过短预算误判失败 | e2e-scenarios-p0/002 |
 | C-14 | Provider-side streaming | profile 使用 `chat` capability | 调用 `Stream` 且 provider 返回 SSE delta / done | channel 按顺序发 `delta`，最终发 `done` 并关闭；malformed chunk / provider error / context cancel 发 `error` 或带 partial meta 的 terminal event，错误码来自 B1 `AI_*` | 002 |
 | C-15 | STT transcription | profile 使用 `stt` capability 且 provider ref 支持 OpenAI-compatible Audio Transcriptions | 调用 `Transcribe` | adapter 调 `/v1/audio/transcriptions`；返回 transcript + meta；缺 secret / provider error / unsupported profile fail-fast；log / DB / audit / metric label 不含音频或转写全文明文 | 002 |
 | C-16 | TTS synthesis | profile 使用 `tts` capability 且 provider ref 支持 provider-specific synthesis wire | 调用 `Synthesize` | adapter 返回音频 bytes 或 chunk metadata + meta；缺 secret / provider error / unsupported profile fail-fast；log / DB / audit / metric label 不含待合成文本或音频明文 | 004 |
 | C-17 | Independent cascaded voice profiles | 电话模式配置分别选择 `stt`、`chat`、`tts` profile | 业务编排一轮 `stt -> chat -> tts` | STT/TTS 可指向不同 provider；TTS 失败不丢失 transcript / chat text；STT 失败不调用 chat/TTS；任何一步不得静默回退到 `realtime` 或 stub | 004 + practice-voice-mvp |
+| C-19 | Report profile capacity/output budget | backend-review 锁定 48,000-byte final input、framed fixtures 和 current report bounds | 运行 profile loader/coverage、adapter wire contract、offline capacity gate 与 opt-in provider usage smoke | `report.generate.default` 精确为 context window 1,000,000 / max tokens 6,144 / timeout 60,000 / tpm 60,000 / version 1.2.0 / thinking disabled；adapter 下发官方 thinking object，object output schema 仍驱动 JSON response format，非法 thinking 在请求前失败；offline conservative capacity 与 real usage token probes 分别通过，+1 input 由 backend-review fail before provider；4096、缺 context capacity、缺失/非法 thinking、TPM 代替 capacity 或未 bump version 均失败 | 003 Phase 8 + Phase 10 + backend-review/001 + P0.100 |
+| C-20 | Judge final-content reliability | DeepSeek V4 thinking 默认开启且 context-aware judge 需要 strict JSON | 运行 profile/adapter RED-GREEN + opt-in judge smoke | `judge.default` 精确为 D-17 坐标；请求关闭 thinking 并要求 JSON object；reasoning-only/length/empty final fail-closed 且不泄漏 CoT；真实 smoke 以 stop + 非空 JSON + 正 usage 完成 | 003 Phase 9 + F3/004 + P0.100 |
 | C-18 | Barge-in committed context | AI TTS 正在播放且用户插话 | 前端发出 barge-in / played chunk 事件 | 后端只把已完整播放 chunk 的 assistant 文本写入 committed context；未播放 draft 不进入下一轮 prompt；event log 可追溯 interrupted 状态 | practice-voice-mvp |
 
 ## 7 关联计划
@@ -180,7 +187,7 @@ A3 当前计划拆分为 completed foundation plan、active capability adapter e
 
 - [001-aiclient-and-profile-bootstrap](./plans/001-aiclient-and-profile-bootstrap/plan.md)（completed）：已落地 P0 `Complete` / `Embed`、`Stream` 事件合同类型、unit-test stub provider、`openai_compatible` Chat / Embeddings provider、基础 Model Profile loader 与 observability / audit decorator。
 - [002-tools-streaming-and-stt](./plans/002-tools-streaming-and-stt/plan.md)（active）：提前落地 Tools payload 扩展、provider-side streaming consumer 与 STT Audio Transcriptions 底座；realtime multimodal 仍保持 fail-closed。
-- [003-provider-registry-and-capability-profiles](./plans/003-provider-registry-and-capability-profiles/plan.md)（active）：原地修订当前开发 provider / capability scope，删除向量化 / 重排代码与基础设施，将 chat profile 收敛到 DeepSeek V4 Flash/Pro，并同步 A4/B1/B3/B4/F3 契约。
+- [003-provider-registry-and-capability-profiles](./plans/003-provider-registry-and-capability-profiles/plan.md)（active）：原地修订当前开发 provider / capability scope，删除向量化 / 重排代码与基础设施，将 chat profile 收敛到 DeepSeek V4 Flash/Pro，并在 Phase 8 承接 report 6144 output-token profile/boundary gate、Phase 9 承接 judge non-thinking JSON/final-content gate。
 - [004-cascaded-speech-provider-foundation](./plans/004-cascaded-speech-provider-foundation/plan.md)（active）：为 `stt -> chat -> tts` 电话模式 MVP 打开 `tts` capability、provider-specific speech adapters、独立 STT/TTS profile 与隐私/观测/成本 gate；realtime S2S 继续 fail-closed。
 
 后续如需扩展，递增本 spec 版本并原地修订对应 plan；不创建 sibling spec。

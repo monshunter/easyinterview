@@ -4,9 +4,11 @@ metadata:
   subspec: ai-provider-and-model-routing
   name: 003-provider-registry-and-capability-profiles
   sequence: 3
+  baseBranch: main
+  branch: fix/report-semantic-grounding-0712
   specVersion:
     from: 1.8
-    to: 2.22
+    to: 2.27
 spec:
   defaultTarget: backend
   discovery:
@@ -29,6 +31,18 @@ spec:
       - profile catalog consolidation
       - fail-closed profile
       - realtime_audio_disabled
+      - report.generate.default max_tokens 6144
+      - context_window_tokens 1000000
+      - provider framing reserve 2048
+      - REPORT_BOUNDARY_FIXTURES_READY
+      - AICallMeta token usage
+      - report output token budget
+      - 48000 byte input boundary
+      - REPORT_PROFILE_6144_PASS
+      - report.generate.default thinking disabled
+      - openai compatible thinking wire
+      - judge.default thinking disabled json_object max_tokens 6144
+      - JUDGE_FINAL_CONTENT_V120_PASS
   targets:
     backend:
       plan: ./plan.md
@@ -41,6 +55,7 @@ spec:
         - ../../../prompt-rubric-registry/spec.md
         - ../../../engineering-roadmap/spec.md
         - ../../../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md
+        - ../../../backend-review/plans/001-report-generation-baseline/plan.md
         - ../../../../ui-design/INDEX.md
         - ../../../../ui-design/module-map.md
         - ../../../../ui-design/module-practice-review.md
@@ -53,5 +68,6 @@ spec:
           - config/ai-profiles.yaml
           - config/ai-providers.yaml
           - shared
+          - backend/internal/review
         uiRoutes: []
         apiNames: []

@@ -4,16 +4,16 @@ metadata:
   subspec: frontend-report-dashboard
   name: 001-report-screen-and-generating-handoff
   sequence: 1
-  specVersion:
-    from: 1.10
-    to: 1.11
-spec:
   baseBranch: main
-  branch: practice-conversation-simplification
+  branch: fix/report-semantic-grounding-0712
+  specVersion:
+    from: 1.18
+    to: 1.20
+spec:
   defaultTarget: frontend
   discovery:
-    aliases: [conversation report dashboard, session evidence report]
-    keywords: [dimensionAssessments, retryFocusCompetencyCodes, four tabs, no QuestionsTab]
+    aliases: [conversation report dashboard, session evidence report, honest grounded report]
+    keywords: [reportSummary, immutableReportContext, dimensionCode, dimensionLabel, emptyFocusReplay, issueBackedFocus, honestGenerating, actionScopedReportRetry10s20s40s, actionRetryDestroyedOnReturn, newActionRetryReset, asyncJobAttemptsInfrastructureOnly, infraDeliveryBackoffSeparate, noFailedReportRegenerateAPI, maxAttempts49, pollInitial1.5Multiplier1.5Cap8, pollWindow6m04s, preserveAttemptAcrossInflightHiddenBlur, resumeNextAttemptNotOne, noDuplicateConcurrentPoll, singleRunCallsAtMost49, reportWorstCase5m10s, noAttemptRetryProgressSurface, pollTimeoutDoesNotFabricateFailed, routeTamper, languageSplit, actionPriority, action200MalformedFuse, backendFrontendFailClose24WhitespaceWords64UnicodeCodePoints, targetedRepairInternalMargin18Words52CodePoints, typedInvalidNoRawLabel, desktopAnd390CompleteWrapping, noClientTruncateRewrite, p0099CurrentRunCanonicalAudit, canonicalReportContentDigest, actionLengthAudit, contentAudit, screenshotSha256, noP0100OutputDigestDependency, deterministicExact24Words64CodePointsParity, mobile390ActionRegion, noClipEllipsisOverflow, serverOwnedFocus, fullPageParity, no QuestionsTab]
   targets:
     frontend:
       plan: ./plan.md
@@ -23,8 +23,19 @@ spec:
       testChecklist: ./test-checklist.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../../ui-design/report-dashboard.md
+        - ../../../../ui-design/module-practice-review.md
+        - ../../../backend-review/spec.md
+        - ../../../backend-review/plans/001-report-generation-baseline/plan.md
+        - ../../../backend-practice/spec.md
+        - ../../../backend-practice/plans/004-report-derived-practice-plans/plan.md
+        - ../../../backend-practice/plans/004-report-derived-practice-plans/bdd-plan.md
+        - ../../../../development.md
       discovery:
         packages:
+          - frontend/README.md
+          - ui-design/src/data.jsx
           - ui-design/src/screen-report.jsx
           - ui-design/src/screens-p0-complete.jsx
           - frontend/src/app/screens/report

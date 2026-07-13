@@ -1,6 +1,7 @@
 package review
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -41,11 +42,11 @@ func (r *Repository) ListTargetJobReports(ctx context.Context, in reviewdomain.L
 	pageSize := reviewdomain.EffectiveReportPageSize(in.PageSize)
 	args := []any{in.UserID, in.TargetJobID}
 	query := `
-select fr.id, fr.session_id, fr.target_job_id, fr.status, fr.preparedness_level,
-       fr.highlights, fr.issues, fr.next_actions, fr.prompt_version, fr.rubric_version,
-       fr.model_id, fr.provider, fr.language, fr.feature_flag, fr.data_source_version,
-       fr.dimension_assessments, fr.retry_focus_competency_codes, fr.error_code, fr.created_at, fr.updated_at
-from feedback_reports fr
+	select fr.id::text, fr.session_id::text, fr.target_job_id::text, fr.status, fr.error_code, fr.summary, fr.generation_context,
+	       fr.preparedness_level, fr.dimension_assessments, fr.highlights, fr.issues, fr.next_actions,
+	       fr.retry_focus_dimension_codes, fr.prompt_version, fr.rubric_version, fr.model_id,
+	       fr.language, fr.feature_flag, fr.data_source_version, fr.created_at, fr.updated_at
+	from feedback_reports fr
 where fr.user_id = $1 and fr.target_job_id = $2`
 	if strings.TrimSpace(in.Cursor) != "" {
 		if in.CursorCreatedAt.IsZero() || strings.TrimSpace(in.CursorID) == "" {
@@ -114,11 +115,11 @@ func (r *Repository) targetJobOwnedByUser(ctx context.Context, targetJobID, user
 
 func (r *Repository) getFeedbackReport(ctx context.Context, userID, reportID string) (reviewdomain.FeedbackReportRecord, error) {
 	row := r.db.QueryRowContext(ctx, `
-select fr.id, fr.session_id, fr.target_job_id, fr.status, fr.preparedness_level,
-       fr.highlights, fr.issues, fr.next_actions, fr.prompt_version, fr.rubric_version,
-       fr.model_id, fr.provider, fr.language, fr.feature_flag, fr.data_source_version,
-       fr.dimension_assessments, fr.retry_focus_competency_codes, fr.error_code, fr.created_at, fr.updated_at
-from feedback_reports fr
+	select fr.id::text, fr.session_id::text, fr.target_job_id::text, fr.status, fr.error_code, fr.summary, fr.generation_context,
+	       fr.preparedness_level, fr.dimension_assessments, fr.highlights, fr.issues, fr.next_actions,
+	       fr.retry_focus_dimension_codes, fr.prompt_version, fr.rubric_version, fr.model_id,
+	       fr.language, fr.feature_flag, fr.data_source_version, fr.created_at, fr.updated_at
+	from feedback_reports fr
 where fr.id = $1 and fr.user_id = $2`, reportID, userID)
 	return scanFeedbackReport(row)
 }
@@ -129,121 +130,112 @@ type feedbackReportScanner interface {
 
 func scanFeedbackReport(row feedbackReportScanner) (reviewdomain.FeedbackReportRecord, error) {
 	var (
-		report                    reviewdomain.FeedbackReportRecord
-		status                    string
-		preparedness              sql.NullString
-		highlightsRaw             []byte
-		issuesRaw                 []byte
-		nextActionsRaw            []byte
-		promptVersion             sql.NullString
-		rubricVersion             sql.NullString
-		modelID                   sql.NullString
-		provider                  sql.NullString
-		language                  string
-		featureFlag               string
-		dataSourceVersion         string
-		dimensionAssessmentsRaw   []byte
-		retryFocusCompetencyCodes pq.StringArray
-		errorCode                 sql.NullString
+		report                   reviewdomain.FeedbackReportRecord
+		status                   string
+		errorCode                sql.NullString
+		summary                  sql.NullString
+		generationContextRaw     []byte
+		preparedness             sql.NullString
+		dimensionAssessmentsRaw  []byte
+		highlightsRaw            []byte
+		issuesRaw                []byte
+		nextActionsRaw           []byte
+		retryFocusDimensionCodes pq.StringArray
+		promptVersion            sql.NullString
+		rubricVersion            sql.NullString
+		modelID                  sql.NullString
+		language                 string
+		featureFlag              string
+		dataSourceVersion        string
 	)
 	if err := row.Scan(
 		&report.ID,
 		&report.SessionID,
 		&report.TargetJobID,
 		&status,
+		&errorCode,
+		&summary,
+		&generationContextRaw,
 		&preparedness,
+		&dimensionAssessmentsRaw,
 		&highlightsRaw,
 		&issuesRaw,
 		&nextActionsRaw,
+		&retryFocusDimensionCodes,
 		&promptVersion,
 		&rubricVersion,
 		&modelID,
-		&provider,
 		&language,
 		&featureFlag,
 		&dataSourceVersion,
-		&dimensionAssessmentsRaw,
-		&retryFocusCompetencyCodes,
-		&errorCode,
 		&report.CreatedAt,
 		&report.UpdatedAt,
 	); err != nil {
 		return reviewdomain.FeedbackReportRecord{}, err
 	}
 	report.Status = sharedtypes.ReportStatus(status)
-	if preparedness.Valid && strings.TrimSpace(preparedness.String) != "" {
-		tier := sharedtypes.ReadinessTier(preparedness.String)
-		report.PreparednessLevel = &tier
-	}
-	highlights, err := decodeReportEvidence(highlightsRaw)
+	frozen, err := decodeFrozenReportContext(generationContextRaw)
 	if err != nil {
-		return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("decode highlights: %w", err)
+		return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("decode generation_context: %w", err)
 	}
-	report.Highlights = highlights
-	issues, err := decodeReportEvidence(issuesRaw)
-	if err != nil {
-		return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("decode issues: %w", err)
+	if report.SessionID != frozen.Conversation.SessionID || report.TargetJobID != frozen.TargetJob.ID {
+		return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("frozen report projection row identity mismatch")
 	}
-	report.Issues = issues
-	if len(nextActionsRaw) > 0 {
-		if err := json.Unmarshal(nextActionsRaw, &report.NextActions); err != nil {
-			return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("decode next_actions: %w", err)
-		}
-	}
-	if len(dimensionAssessmentsRaw) > 0 {
-		if err := json.Unmarshal(dimensionAssessmentsRaw, &report.DimensionAssessments); err != nil {
-			return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("decode dimension_assessments: %w", err)
-		}
-	}
-	report.RetryFocusCompetencyCodes = append([]string(nil), retryFocusCompetencyCodes...)
+	report.Context = reviewdomain.ProjectFrozenReportContext(frozen)
+	report.Highlights = []reviewdomain.ReportEvidenceRecord{}
+	report.Issues = []reviewdomain.ReportEvidenceRecord{}
+	report.NextActions = []reviewdomain.ReportNextActionRecord{}
+	report.DimensionAssessments = []reviewdomain.DimensionAssessmentRecord{}
+	report.RetryFocusDimensionCodes = []string{}
 	if errorCode.Valid && strings.TrimSpace(errorCode.String) != "" {
 		code := errorCode.String
 		report.ErrorCode = &code
 	}
-	if promptVersion.Valid && rubricVersion.Valid && modelID.Valid {
-		report.Provenance = &reviewdomain.GenerationProvenanceRecord{
-			PromptVersion:     promptVersion.String,
-			RubricVersion:     rubricVersion.String,
-			ModelID:           modelID.String,
-			Language:          language,
-			FeatureFlag:       featureFlag,
-			DataSourceVersion: dataSourceVersion,
-		}
-		_ = provider
+	if report.Status != sharedtypes.ReportStatusReady {
+		return report, nil
+	}
+	if !summary.Valid || strings.TrimSpace(summary.String) == "" || !preparedness.Valid || strings.TrimSpace(preparedness.String) == "" {
+		return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("ready report summary/preparedness is incomplete")
+	}
+	summaryValue := summary.String
+	report.Summary = &summaryValue
+	tier := sharedtypes.ReadinessTier(preparedness.String)
+	report.PreparednessLevel = &tier
+	if err := decodeClosedJSON(dimensionAssessmentsRaw, &report.DimensionAssessments); err != nil {
+		return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("decode dimension_assessments: %w", err)
+	}
+	if err := decodeClosedJSON(highlightsRaw, &report.Highlights); err != nil {
+		return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("decode highlights: %w", err)
+	}
+	if err := decodeClosedJSON(issuesRaw, &report.Issues); err != nil {
+		return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("decode issues: %w", err)
+	}
+	if err := decodeClosedJSON(nextActionsRaw, &report.NextActions); err != nil {
+		return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("decode next_actions: %w", err)
+	}
+	report.RetryFocusDimensionCodes = append([]string(nil), retryFocusDimensionCodes...)
+	if !promptVersion.Valid || !rubricVersion.Valid || !modelID.Valid {
+		return reviewdomain.FeedbackReportRecord{}, fmt.Errorf("ready report provenance is incomplete")
+	}
+	report.Provenance = &reviewdomain.GenerationProvenanceRecord{
+		PromptVersion:     promptVersion.String,
+		RubricVersion:     rubricVersion.String,
+		ModelID:           modelID.String,
+		Language:          language,
+		FeatureFlag:       featureFlag,
+		DataSourceVersion: dataSourceVersion,
 	}
 	return report, nil
 }
 
-func decodeReportEvidence(raw []byte) ([]reviewdomain.ReportEvidenceRecord, error) {
-	if len(raw) == 0 {
-		return []reviewdomain.ReportEvidenceRecord{}, nil
+func decodeClosedJSON(raw []byte, destination any) error {
+	if len(bytes.TrimSpace(raw)) == 0 {
+		raw = []byte(`[]`)
 	}
-	var payload []struct {
-		Dimension  string `json:"dimension"`
-		Evidence   string `json:"evidence"`
-		Confidence any    `json:"confidence"`
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(destination); err != nil {
+		return err
 	}
-	if err := json.Unmarshal(raw, &payload); err != nil {
-		return nil, err
-	}
-	out := make([]reviewdomain.ReportEvidenceRecord, 0, len(payload))
-	for _, item := range payload {
-		out = append(out, reviewdomain.ReportEvidenceRecord{
-			Dimension:  item.Dimension,
-			Evidence:   item.Evidence,
-			Confidence: confidenceFromJSON(item.Confidence),
-		})
-	}
-	return out, nil
-}
-
-func confidenceFromJSON(value any) sharedtypes.Confidence {
-	switch v := value.(type) {
-	case string:
-		return sharedtypes.Confidence(v)
-	case float64:
-		return confidenceFromScore(v)
-	default:
-		return sharedtypes.ConfidenceLow
-	}
+	return nil
 }

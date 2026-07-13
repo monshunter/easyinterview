@@ -1,125 +1,187 @@
 import { expect, test } from "@playwright/test";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 
-/**
- * Phase 5.2 — Generating screen pixel-parity gate.
- *
- * Current gate: DOM anchors + root bounding box + mobile overflow bound +
- * non-empty screenshot smoke.
- */
+import {
+  configureDeterministicPage,
+  expectFullPagePixelParity,
+  expectPixelParity,
+  expectSurfaceParity,
+  injectPrototypeReportFixture,
+  mockFormalReportApis,
+  normalizedText,
+  reportFixture,
+  settleVisualSurface,
+  surfaceSnapshot,
+} from "./report-parity-helpers";
 
-interface OperationFixture {
-  scenarios: Record<
-    string,
-    {
-      response: {
-        status: number;
-        headers?: Record<string, string>;
-        body: unknown;
-      };
-    }
-  >;
-}
+const ROOT = "[data-testid='generating-screen']";
 
-const REPORT_ID = "01918fa0-0000-7000-8000-000000007000";
-const SESSION_ID = "01918fa0-0000-7000-8000-000000005000";
+test.use({ deviceScaleFactor: 1, locale: "zh-CN", timezoneId: "UTC" });
 
-function fixtureResponse(relativePath: string, scenario = "default") {
-  const absolutePath = resolve(process.cwd(), "..", relativePath);
-  const fixture = JSON.parse(readFileSync(absolutePath, "utf8")) as OperationFixture;
-  const response = fixture.scenarios[scenario]?.response;
-  if (!response) throw new Error(`missing fixture ${relativePath}#${scenario}`);
-  return response;
-}
-
-async function fulfillFixture(
-  route: import("@playwright/test").Route,
-  relativePath: string,
-  scenario = "default",
-) {
-  const response = fixtureResponse(relativePath, scenario);
-  await route.fulfill({
-    status: response.status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      ...(response.headers ?? {}),
-    },
-    body: JSON.stringify(response.body),
-  });
-}
-
-async function mockGeneratingApis(
-  page: import("@playwright/test").Page,
-  scenario: "default" | "report-generating" | "report-failed" = "default",
-) {
-  await page.route("**/api/v1/**", async (route) => {
-    const url = route.request().url();
-    if (url.includes("/reports/")) {
-      return fulfillFixture(route, "openapi/fixtures/Reports/getFeedbackReport.json", scenario);
-    }
-    if (url.endsWith("/runtime/config")) {
-      return fulfillFixture(route, "openapi/fixtures/Auth/getRuntimeConfig.json");
-    }
-    if (url.endsWith("/me")) {
-      return fulfillFixture(route, "openapi/fixtures/Auth/getMe.json");
-    }
-    await route.fulfill({ status: 204, body: "" });
-  });
-}
-
-const ROUTE_FRAGMENT = `#route=generating&reportId=${REPORT_ID}&sessionId=${SESSION_ID}`;
-
-async function expectNonEmptyScreenshot(page: import("@playwright/test").Page) {
-  const screenshot = await page.screenshot();
-  expect(screenshot.byteLength).toBeGreaterThan(0);
-}
-
-test.describe("generating dashboard parity", () => {
-  test("desktop renders the 5-phase composition and SLA hint within viewport", async ({
+test.describe("honest generating source, geometry, and screenshot parity", () => {
+  test("API generating state matches the UI truth at desktop and mobile", async ({
     page,
-  }) => {
-    await mockGeneratingApis(page, "report-generating");
-    await page.goto(`/${ROUTE_FRAGMENT}`);
-    await page.waitForSelector("[data-testid='generating-screen']");
-    const root = page.locator("[data-testid='generating-screen']");
-    await expect(root).toBeVisible();
-    await expect(page.locator("[data-testid='generating-progress']")).toBeVisible();
-    await expect(page.locator("[data-testid='generating-phase-list']")).toBeVisible();
-    await expect(page.locator("[data-testid='generating-live-stream']")).toBeVisible();
-    await expect(page.locator("[data-testid='generating-sla-hint']")).toBeVisible();
+    context,
+  }, testInfo) => {
+    const prototype = await context.newPage();
+    const fixture = reportFixture("generating").body;
+    const reportId = String(fixture.id);
 
-    const box = await root.boundingBox();
-    expect(box).not.toBeNull();
-    expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.y).toBeGreaterThanOrEqual(0);
-    await expectNonEmptyScreenshot(page);
+    await Promise.all([
+      configureDeterministicPage(page, "zh"),
+      configureDeterministicPage(prototype, "zh"),
+    ]);
+    await mockFormalReportApis(page, "generating");
+    await injectPrototypeReportFixture(prototype, "generating", "reportGeneration");
+
+    await Promise.all([
+      page.goto(`/generating?reportId=${reportId}&sessionId=route-session&reportStatus=ready`),
+      prototype.goto(`/ui-design/#route=generating&reportId=${reportId}&lang=zh&nochrome=1`),
+    ]);
+    await Promise.all([
+      page.locator(`${ROOT}[data-report-status='generating']`).waitFor(),
+      prototype.locator(`${ROOT}[data-report-status='generating']`).waitFor(),
+    ]);
+    await Promise.all([settleVisualSurface(page), settleVisualSurface(prototype)]);
+
+    expect(new URL(page.url()).search).toBe(`?reportId=${reportId}`);
+    expect(await normalizedText(page, ROOT)).toBe(await normalizedText(prototype, ROOT));
+    for (const selector of [
+      "[data-testid='generating-progress']",
+      "[data-testid='generating-phase-list']",
+      "[data-testid='generating-live-stream']",
+      "[data-testid='generating-notify-cta']",
+    ]) {
+      await expect(page.locator(selector)).toHaveCount(0);
+      await expect(prototype.locator(selector)).toHaveCount(0);
+    }
+    await expect(page.locator("body")).not.toContainText(/实时观察|好了通知我|会话记录|\d+%/);
+
+    const surfaces = [
+      {
+        label: "generating root",
+        selector: ROOT,
+        properties: ["min-height", "display", "align-items", "justify-content", "padding-top", "padding-right", "padding-bottom", "padding-left", "background-color"],
+      },
+      {
+        label: "generating eyebrow",
+        selector: "[data-testid='generating-header-eyebrow']",
+        properties: ["font-family", "font-size", "letter-spacing", "margin-bottom", "color"],
+      },
+      {
+        label: "generating title",
+        selector: "[data-testid='generating-header-title']",
+        properties: ["font-size", "font-weight", "letter-spacing", "line-height", "margin-bottom", "color"],
+      },
+      {
+        label: "generating subtitle",
+        selector: "[data-testid='generating-header-subtitle']",
+        properties: ["max-width", "font-size", "line-height", "color"],
+      },
+    ] as const;
+    for (const surface of surfaces) {
+      const [formal, golden] = await Promise.all([
+        surfaceSnapshot(page, surface.selector, surface.properties),
+        surfaceSnapshot(prototype, surface.selector, surface.properties),
+      ]);
+      expectSurfaceParity(formal, golden, surface.label);
+    }
+
+    if (testInfo.project.name === "mobile") {
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    }
+    await expectPixelParity(page, prototype, ROOT, testInfo, `generating-${testInfo.project.name}`);
+    await expectFullPagePixelParity(
+      page,
+      prototype,
+      testInfo,
+      `generating-full-page-${testInfo.project.name}`,
+    );
+    await prototype.close();
   });
 
-  test("missing reportId surfaces GeneratingErrorState with retry CTA hidden", async ({
-    page,
-  }) => {
-    await mockGeneratingApis(page);
-    await page.goto(`/#route=generating&sessionId=${SESSION_ID}`);
-    await page.waitForSelector("[data-testid='generating-error-state']");
-    await expect(
-      page.locator("[data-testid='generating-error-back-to-workspace']"),
-    ).toBeVisible();
-    await expect(
-      page.locator("[data-testid='generating-error-retry']"),
-    ).toHaveCount(0);
-    await expectNonEmptyScreenshot(page);
-  });
+  test("queued and context-too-large states are projected from the API action matrix", async ({
+    context,
+  }, testInfo) => {
+    const queuedPage = await context.newPage();
+    const failedPage = await context.newPage();
+    const failedPrototype = await context.newPage();
+    const queued = reportFixture("queued").body;
+    const failed = reportFixture("failed-context-too-large").body;
+    await Promise.all([
+      configureDeterministicPage(queuedPage, "zh"),
+      configureDeterministicPage(failedPage, "zh"),
+      configureDeterministicPage(failedPrototype, "zh"),
+      mockFormalReportApis(queuedPage, "queued"),
+      mockFormalReportApis(failedPage, "failed-context-too-large"),
+    ]);
+    await injectPrototypeReportFixture(
+      failedPrototype,
+      "failed-context-too-large",
+      "reportGeneration",
+    );
 
-  test("mobile viewport keeps the surface inside 390px width with no overflow", async ({
-    page,
-  }) => {
-    await mockGeneratingApis(page, "report-generating");
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`/${ROUTE_FRAGMENT}`);
-    await page.waitForSelector("[data-testid='generating-screen']");
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth);
-    expect(overflow).toBeLessThanOrEqual(390);
-    await expectNonEmptyScreenshot(page);
+    await Promise.all([
+      queuedPage.goto(`/generating?reportId=${String(queued.id)}`),
+      failedPage.goto(`/generating?reportId=${String(failed.id)}`),
+      failedPrototype.goto(`/ui-design/#route=generating&reportId=${String(failed.id)}&lang=zh&nochrome=1`),
+    ]);
+    await expect(queuedPage.locator(`${ROOT}[data-report-status='queued']`)).toBeVisible();
+    await expect(queuedPage.locator("body")).not.toContainText(/\d+%|实时观察|好了通知我|会话记录/);
+
+    const terminal = failedPage.locator("[data-testid='generating-error-state']");
+    await expect(terminal).toHaveAttribute("data-error-kind", "contextTooLarge");
+    await expect(failedPage.locator("[data-testid='generating-error-desc']")).toContainText("缩短输入");
+    await expect(failedPage.locator("[data-testid='generating-error-retry']")).toHaveCount(0);
+    await expect(failedPage.locator("[data-testid='generating-error-back-to-workspace']")).toBeVisible();
+    await expect(failedPage.locator("body")).not.toContainText(/好了通知我|会话记录/);
+    await failedPrototype.locator("[data-testid='generating-screen']").waitFor();
+    await Promise.all([
+      settleVisualSurface(failedPage),
+      settleVisualSurface(failedPrototype),
+    ]);
+    expect(await normalizedText(failedPage, ROOT)).toBe(
+      await normalizedText(failedPrototype, ROOT),
+    );
+    for (const surface of [
+      {
+        label: "context-too-large root",
+        selector: ROOT,
+        properties: ["min-height", "display", "align-items", "justify-content", "padding-top", "padding-right", "padding-bottom", "padding-left", "background-color"],
+      },
+      {
+        label: "context-too-large title",
+        selector: "[data-testid='generating-header-title']",
+        properties: ["font-size", "font-weight", "letter-spacing", "line-height", "margin-bottom", "color"],
+      },
+      {
+        label: "context-too-large action divider",
+        selector: "[data-testid='generating-error-state'] > div:last-child",
+        prototypeSelector: "[data-testid='generating-screen'] > div > div:last-child",
+        properties: ["display", "gap", "margin-top", "padding-top", "border-top-width", "border-top-color"],
+      },
+    ] as const) {
+      const [formal, golden] = await Promise.all([
+        surfaceSnapshot(failedPage, surface.selector, surface.properties),
+        surfaceSnapshot(
+          failedPrototype,
+          "prototypeSelector" in surface ? surface.prototypeSelector : surface.selector,
+          surface.properties,
+        ),
+      ]);
+      expectSurfaceParity(formal, golden, surface.label);
+    }
+    await expectPixelParity(
+      failedPage,
+      failedPrototype,
+      ROOT,
+      testInfo,
+      `generating-context-too-large-${testInfo.project.name}`,
+    );
+
+    await Promise.all([
+      queuedPage.close(),
+      failedPage.close(),
+      failedPrototype.close(),
+    ]);
   });
 });

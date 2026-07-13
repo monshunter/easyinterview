@@ -160,6 +160,9 @@ func TestRenderGoErrorCodes_AllSixCodes(t *testing.T) {
 		`= "VALIDATION_FAILED"`,
 		`CodeReportNotFound`,
 		`= "REPORT_NOT_FOUND"`,
+		`CodeReportContextTooLarge`,
+		`= "REPORT_CONTEXT_TOO_LARGE"`,
+		`{Message: "report context exceeds supported generation size", Retryable: false}`,
 		`CodeIdempotencyKeyMismatch`,
 		`= "IDEMPOTENCY_KEY_MISMATCH"`,
 		"var CodeRegistry = map[string]CodeMeta{",
@@ -169,6 +172,32 @@ func TestRenderGoErrorCodes_AllSixCodes(t *testing.T) {
 		if !strings.Contains(src, want) {
 			t.Errorf("codes.go missing %q", want)
 		}
+	}
+}
+
+func TestRunFromBytes_RequiresCanonicalReportContextTooLargeError(t *testing.T) {
+	yaml := loadYAML(t)
+	canonical := `  - code: REPORT_CONTEXT_TOO_LARGE
+    message: "report context exceeds supported generation size"
+    retryable: false
+`
+	if !bytes.Contains(yaml, []byte(canonical)) {
+		t.Fatalf("conventions.yaml missing canonical REPORT_CONTEXT_TOO_LARGE entry")
+	}
+
+	cases := map[string][]byte{
+		"missing":     bytes.Replace(yaml, []byte(canonical), nil, 1),
+		"misspelled":  bytes.Replace(yaml, []byte("REPORT_CONTEXT_TOO_LARGE"), []byte("REPORT_CONTEXT_TO_LARGE"), 1),
+		"message":     bytes.Replace(yaml, []byte("report context exceeds supported generation size"), []byte("report context too large"), 1),
+		"retryable":   bytes.Replace(yaml, []byte(canonical), []byte(strings.Replace(canonical, "retryable: false", "retryable: true", 1)), 1),
+		"duplicate":   bytes.Replace(yaml, []byte(canonical), []byte(canonical+canonical), 1),
+	}
+	for name, mutated := range cases {
+		t.Run(name, func(t *testing.T) {
+			if err := RunFromBytes(mutated, t.TempDir(), false); err == nil {
+				t.Fatal("RunFromBytes accepted non-canonical REPORT_CONTEXT_TOO_LARGE contract")
+			}
+		})
 	}
 }
 
@@ -253,6 +282,8 @@ func TestRenderTSErrors_RegistryShape(t *testing.T) {
 		"AUTH_UNAUTHORIZED: 'AUTH_UNAUTHORIZED',",
 		"RATE_LIMITED: 'RATE_LIMITED',",
 		"REPORT_NOT_FOUND: 'REPORT_NOT_FOUND',",
+		"REPORT_CONTEXT_TOO_LARGE: 'REPORT_CONTEXT_TOO_LARGE',",
+		"REPORT_CONTEXT_TOO_LARGE: { message: 'report context exceeds supported generation size', retryable: false },",
 		"IDEMPOTENCY_KEY_MISMATCH: 'IDEMPOTENCY_KEY_MISMATCH',",
 		"export type ErrorCode",
 		"export const ERROR_REGISTRY",

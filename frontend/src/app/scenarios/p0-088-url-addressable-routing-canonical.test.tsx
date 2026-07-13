@@ -83,7 +83,7 @@ const NavBatch: FC = () => {
       </button>
       <button
         type="button"
-        data-testid="go-report-failed"
+        data-testid="go-report"
         onClick={() =>
           navigate({
             name: "report",
@@ -143,15 +143,16 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
   });
 
-  it("direct-open /report?reportStatus=failed dispatches ReportFailureState", () => {
+  it("direct-open /report keeps only reportId and lets the API own state", () => {
     window.history.replaceState(
       null,
       "",
       `/report?sessionId=${SESSION_ID}&reportId=${REPORT_ID}&reportStatus=failed&errorCode=AI_PROVIDER_TIMEOUT`,
     );
     render(<App />);
-    expect(screen.getByTestId("report-failure-state")).toBeInTheDocument();
+    expect(screen.getByTestId("report-dashboard-loading")).toBeInTheDocument();
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
+    expect(window.location.search).toBe(`?reportId=${REPORT_ID}`);
   });
 
   it("direct-open /resume-versions?tab=rewrites&tailorRunId=... filters out-of-scope resume detail tab keys", () => {
@@ -196,8 +197,8 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
     await waitFor(() => screen.getByTestId("practice-conversation"));
     expect(screen.queryByTestId("app-shell-topbar")).not.toBeInTheDocument();
     expect(screen.getByTestId("practice-topbar-phone-toggle")).toBeDisabled();
-    await user.click(screen.getByTestId("go-report-failed"));
-    await waitFor(() => screen.getByTestId("report-failure-state"));
+    await user.click(screen.getByTestId("go-report"));
+    await waitFor(() => screen.getByTestId("report-dashboard-loading"));
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
 
     // BACK twice: report → practice → workspace
@@ -225,7 +226,7 @@ describe("E2E.P0.088 canonical path deep-link / reload / browser history", () =>
       window.history.forward();
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
-    await waitFor(() => screen.getByTestId("report-failure-state"));
+    await waitFor(() => screen.getByTestId("report-dashboard-loading"));
   });
 
   it("malformed query (unknown keys) falls back without crashing", () => {

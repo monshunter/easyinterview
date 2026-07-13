@@ -1,0 +1,276 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "OPENAPI-001",
+  "baseline": "openapi/baseline/openapi-v1.0.0.yaml@merge-base(main)",
+  "proposed": "openapi/openapi.yaml@working-tree",
+  "comparison": {
+    "mode": "exact-set",
+    "kindFormat": "lower_snake_case",
+    "keyFields": ["severity", "path", "kind", "before", "after"],
+    "orderSignificant": false,
+    "missingFinding": "fail",
+    "unexpectedFinding": "fail"
+  },
+  "invariants": {
+    "REPORT_CONTEXT_TOO_LARGE": {
+      "owner": "shared-conventions-codified/001-bootstrap",
+      "requiredSeverity": "additive",
+      "requiredKind": "enum_value_added",
+      "forbiddenSeverities": ["breaking", "informational"]
+    }
+  },
+  "findings": [
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/DimensionResult",
+      "kind": "schema_removed",
+      "before": "present",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/DimensionAssessment/properties/dimension",
+      "kind": "property_removed",
+      "before": "string",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/DimensionAssessment/properties/code",
+      "kind": "required_property_added",
+      "before": "absent",
+      "after": "string"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/DimensionAssessment/properties/label",
+      "kind": "required_property_added",
+      "before": "absent",
+      "after": "string"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ReportHighlight/properties/dimension",
+      "kind": "property_removed",
+      "before": "string",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ReportHighlight/properties/dimensionCode",
+      "kind": "required_property_added",
+      "before": "absent",
+      "after": "string"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ReportIssue/properties/dimension",
+      "kind": "property_removed",
+      "before": "string",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ReportIssue/properties/dimensionCode",
+      "kind": "required_property_added",
+      "before": "absent",
+      "after": "string"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/FeedbackReport/properties/retryFocusCompetencyCodes",
+      "kind": "property_removed",
+      "before": "array<string>",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/FeedbackReport/properties/retryFocusDimensionCodes",
+      "kind": "required_property_added",
+      "before": "absent",
+      "after": "array<string>"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/FeedbackReport/properties/summary",
+      "kind": "required_nullable_property_added",
+      "before": "absent",
+      "after": "string|null"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/FeedbackReport/properties/context",
+      "kind": "required_property_added",
+      "before": "absent",
+      "after": "ReportContextSnapshot"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/FeedbackReport/required",
+      "kind": "required_set_changed",
+      "before": "id,sessionId,targetJobId,status,createdAt,updatedAt",
+      "after": "id,sessionId,targetJobId,status,errorCode,summary,context,preparednessLevel,highlights,issues,nextActions,dimensionAssessments,retryFocusDimensionCodes,provenance,createdAt,updatedAt"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ReportContextSnapshot",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "sourcePlanId,targetJobTitle,targetJobCompany,resumeId,resumeDisplayName,roundId,roundSequence,roundName,roundType,language,hasNextRound"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/CreatePracticePlanRequest/properties/focusCompetencyCodes",
+      "kind": "property_removed",
+      "before": "array<string>",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/CreatePracticePlanRequest/required",
+      "kind": "required_set_changed",
+      "before": "targetJobId,goal,interviewerPersona,difficulty,language,timeBudgetMinutes,resumeId",
+      "after": "goal"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/CreatePracticePlanRequest/oneOf",
+      "kind": "conditional_contract_added",
+      "before": "absent",
+      "after": "baseline-required-fields-sourceReportId-forbidden|derived-retry-next-sourceReportId-required-nonnull-only"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/CreatePracticePlanRequest/additionalProperties",
+      "kind": "closed_object",
+      "before": "unspecified",
+      "after": false
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/FeedbackReport/additionalProperties",
+      "kind": "closed_object",
+      "before": "unspecified",
+      "after": false
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ReportContextSnapshot/additionalProperties",
+      "kind": "closed_object",
+      "before": "absent",
+      "after": false
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/DimensionAssessment/additionalProperties",
+      "kind": "closed_object",
+      "before": "unspecified",
+      "after": false
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ReportHighlight/additionalProperties",
+      "kind": "closed_object",
+      "before": "unspecified",
+      "after": false
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ReportIssue/additionalProperties",
+      "kind": "closed_object",
+      "before": "unspecified",
+      "after": false
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ReportNextAction/additionalProperties",
+      "kind": "closed_object",
+      "before": "unspecified",
+      "after": false
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/FeedbackReport/properties/summary",
+      "kind": "constraint_added",
+      "before": "none",
+      "after": "minLength=1,maxLength=360"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/FeedbackReport/properties/dimensionAssessments",
+      "kind": "constraint_added",
+      "before": "none",
+      "after": "minItems=1,maxItems=6"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/FeedbackReport/properties/highlights",
+      "kind": "constraint_added",
+      "before": "none",
+      "after": "maxItems=4"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/FeedbackReport/properties/issues",
+      "kind": "constraint_added",
+      "before": "none",
+      "after": "maxItems=4"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/FeedbackReport/properties/nextActions",
+      "kind": "constraint_added",
+      "before": "none",
+      "after": "minItems=1,maxItems=2"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/FeedbackReport/properties/retryFocusDimensionCodes",
+      "kind": "constraint_added",
+      "before": "absent",
+      "after": "maxItems=6,uniqueItems=true"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/DimensionAssessment/properties/code",
+      "kind": "constraint_added",
+      "before": "absent",
+      "after": "pattern=^[a-z][a-z0-9_]{1,63}$"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/DimensionAssessment/properties/label",
+      "kind": "constraint_added",
+      "before": "absent",
+      "after": "minLength=1,maxLength=48"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ReportHighlight/properties/evidence",
+      "kind": "constraint_added",
+      "before": "none",
+      "after": "minLength=1,maxLength=240"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ReportIssue/properties/evidence",
+      "kind": "constraint_added",
+      "before": "none",
+      "after": "minLength=1,maxLength=240"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ReportNextAction/properties/label",
+      "kind": "constraint_added",
+      "before": "none",
+      "after": "minLength=1,maxLength=200"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ApiErrorCode/enum",
+      "kind": "enum_value_added",
+      "before": "absent",
+      "after": "REPORT_CONTEXT_TOO_LARGE"
+    }
+  ]
+}

@@ -83,8 +83,8 @@ requestAuth({
 | owner | 写入范围 |
 |-------|----------|
 | `frontend-home-job-picks-and-parse` | `src/app/screens/home/HomeScreen.tsx` / `src/app/screens/parse/ParseScreen.tsx`（out-of-scope job-recommendation inputs 归一回 `home`） |
-| `frontend-workspace-and-practice` | `src/app/screens/workspace/WorkspaceScreen.tsx` / `src/app/screens/practice/PracticeScreen.tsx` / `src/app/screens/generating/GeneratingScreen.tsx` |
-| `frontend-report-dashboard` | `src/app/screens/report/ReportScreen.tsx` |
+| `frontend-workspace-and-practice` | `src/app/screens/workspace/WorkspaceScreen.tsx` / `src/app/screens/practice/PracticeScreen.tsx`；完成动作只负责 stable `reportId` handoff |
+| `frontend-report-dashboard` | `src/app/screens/generating/GeneratingScreen.tsx` / `src/app/screens/report/ReportScreen.tsx`；两页共同消费 `getFeedbackReport` 的服务端状态与冻结上下文投影 |
 | `frontend-resume-workshop` | `src/app/screens/resume-workshop/ResumeWorkshopScreen.tsx` 及子模块 |
 
 替换 `RouteShellScreen` 派发时只需在 [`src/app/App.tsx`](./src/app/App.tsx) `renderRouteScreen` switch 内增加分支；不要新增独立路由表或独立 navigation provider。

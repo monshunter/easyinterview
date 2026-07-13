@@ -1,63 +1,110 @@
-import type { CSSProperties, FC, ReactNode } from "react";
+import type { FC, ReactNode } from "react";
+
+import type { Confidence } from "../../../../api/generated/types";
 import { useI18n } from "../../../i18n/messages";
-import { resolvePersistedNextRound } from "../../../interview-context/roundAssumptions";
 import { useNavigation } from "../../../navigation/NavigationProvider";
-import type { Route } from "../../../routes";
 import { useFeedbackReport } from "../hooks/useFeedbackReport";
-import { useReportContextData } from "../hooks/useReportContextData";
+import { confidenceLabel, dimensionStatusLabel, readinessTierLabel } from "../readiness";
+import { isValidReadyReport } from "../reportContract";
 import { useReplayCtaHandlers } from "../useReplayCtaHandlers";
 import { ReportContextStrip } from "./ReportContextStrip";
 import { ReportFailureState } from "./ReportFailureState";
 import { ReportHeader } from "./ReportHeader";
 
-interface ReportDashboardProps { route: Route; }
+interface ReportDashboardProps {
+  reportId: string;
+}
 
-export const ReportDashboard: FC<ReportDashboardProps> = ({ route }) => {
+export const ReportDashboard: FC<ReportDashboardProps> = ({ reportId }) => {
   const { t, lang } = useI18n();
   const { navigate } = useNavigation();
-  const report = useFeedbackReport(route.params.reportId ?? "");
-  const context = useReportContextData({ targetJobId: route.params.targetJobId, resumeId: route.params.resumeId });
-  const nextRound = resolvePersistedNextRound(context.targetJob, route.params.roundId);
-  const replay = useReplayCtaHandlers({ route, report: report.data, sessionId: route.params.sessionId ?? "", nextRound });
-  const goWorkspace = () => navigate({ name: "workspace", params: route.params.targetJobId ? { targetJobId: route.params.targetJobId } : {} });
+  const report = useFeedbackReport(reportId);
+  const readyReport = report.data?.id === reportId && isValidReadyReport(report.data)
+    ? report.data
+    : null;
+  const replay = useReplayCtaHandlers({ report: readyReport });
+  const goWorkspace = () => navigate({ name: "workspace", params: {} });
 
-  if (report.state === "notFound") return <ReportFailureState errorCode="REPORT_NOT_FOUND" notFound onRetry={report.refresh} onBackToWorkspace={goWorkspace} />;
-  if (report.state === "error") return <ReportFailureState errorCode={report.errorCode ?? "AI_OUTPUT_INVALID"} onRetry={report.refresh} onBackToWorkspace={goWorkspace} />;
-  if (report.state === "loading" || report.state === "idle") return <div data-testid="report-dashboard-loading" style={{ padding: 48 }}>{t("report.loading")}</div>;
-  if (!report.data || report.data.status === "failed") return <ReportFailureState errorCode={report.data?.errorCode ?? "AI_OUTPUT_INVALID"} onRetry={report.refresh} onBackToWorkspace={goWorkspace} />;
+  if (report.state === "notFound") {
+    return <ReportFailureState errorCode="REPORT_NOT_FOUND" notFound onBackToWorkspace={goWorkspace} />;
+  }
+  if (report.state === "error") {
+    return <ReportFailureState errorCode={report.errorCode} onRetry={report.refresh} recoverable onBackToWorkspace={goWorkspace} />;
+  }
+  if (report.state === "loading" || report.state === "idle") {
+    return <div data-testid="report-dashboard-loading" style={{ padding: 48 }}>{t("report.loading")}</div>;
+  }
+  if (!report.data) {
+    return <ReportFailureState errorCode="AI_OUTPUT_INVALID" contractInvalid onBackToWorkspace={goWorkspace} />;
+  }
+  if (report.data.status === "queued" || report.data.status === "generating") {
+    return (
+      <div data-testid="report-pending-state" style={{ maxWidth: 820, margin: "0 auto", padding: "72px clamp(16px, 5vw, 48px)" }}>
+        <p>{t("report.pending")}</p>
+        <button type="button" onClick={() => navigate({ name: "generating", params: { reportId } })}>{t("report.pending.cta")}</button>
+      </div>
+    );
+  }
+  if (report.data.status === "failed") {
+    return <ReportFailureState errorCode={report.data.errorCode} onBackToWorkspace={goWorkspace} />;
+  }
+  if (!readyReport) {
+    return <ReportFailureState errorCode="AI_OUTPUT_INVALID" contractInvalid onBackToWorkspace={goWorkspace} />;
+  }
 
-  const data = report.data;
-  const ready = data.status === "ready";
-  const dimensions = data.dimensionAssessments ?? [];
-  const evidenceCount = (data.highlights?.length ?? 0) + (data.issues?.length ?? 0);
+  const data = readyReport;
+  const dimensions = data.dimensionAssessments;
+  const evidenceCount = data.highlights.length + data.issues.length;
+  const firstAction = data.nextActions[0];
+  const labelsByCode = new Map(dimensions.map((item) => [item.code, item.label]));
+  const nextDisabled = !data.context.hasNextRound || replay.starting;
+  const nextDisabledReason = replay.starting
+    ? t("report.header.cta.starting")
+    : !data.context.hasNextRound
+      ? t("report.header.cta.noNextRound")
+      : undefined;
+
   return (
     <main data-testid="report-dashboard" className="ei-fadein" style={{ maxWidth: 1120, width: "100%", boxSizing: "border-box", margin: "0 auto", padding: "32px clamp(16px, 5vw, 48px) 96px" }}>
       <button type="button" data-testid="report-back-button" onClick={goWorkspace} style={{ border: 0, background: "transparent", color: "var(--ei-color-fg-tertiary)", cursor: "pointer", marginBottom: 20 }}>← {t("report.back")}</button>
-      <ReportHeader breadcrumb={lang === "en" ? "Mock interview / Conversation report" : "模拟面试 / 会话报告"} title={t("report.header.title")} subtitle={t("report.header.subtitle")} onReplay={replay.goReplay} onNextRound={replay.goNextRound} disableReplay={!ready || replay.starting} disableNextRound={!ready || !replay.canNextRound || replay.starting} />
-      <ReportContextStrip sessionId={route.params.sessionId ?? ""} targetLabel={context.targetLabel} roundLabel={route.params.roundName ?? route.params.roundId ?? null} resumeLabel={context.resumeLabel} />
-      <section data-testid="report-summary-cards" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 20 }}>
-        <Metric label={t("report.summary.readiness")} value={data.preparednessLevel ? t(readinessKey(data.preparednessLevel)) : "—"} />
+      <ReportHeader
+        breadcrumb={lang === "en" ? "CONVERSATION REPORT" : "会话报告"}
+        title={`${data.context.targetJobCompany} · ${data.context.targetJobTitle}`}
+        subtitle={t("report.header.subtitle")}
+        onReplay={replay.goReplay}
+        onNextRound={replay.goNextRound}
+        disableReplay={replay.starting}
+        disableNextRound={nextDisabled}
+        replayVariant={firstAction?.type === "retry_current_round" ? "accent" : "secondary"}
+        nextVariant={firstAction?.type === "next_round" ? "accent" : "secondary"}
+        nextDisabledReason={nextDisabledReason}
+      />
+      <ReportContextStrip report={data} />
+      <section data-testid="report-summary-cards" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginBottom: 22 }}>
+        <Metric label={t("report.summary.readiness")} value={t(readinessTierLabel(data.preparednessLevel))} description={data.summary} />
         <Metric label={t("report.summary.dimensions")} value={String(dimensions.length)} />
         <Metric label={t("report.summary.evidence")} value={String(evidenceCount)} />
       </section>
-      <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.15fr) minmax(280px, .85fr)", gap: 18, alignItems: "start" }}>
-        <Panel title={t("report.detail.tab.dimensions")} testId="report-dimensions">
-          {dimensions.length ? dimensions.map((item) => <div key={item.dimension} style={{ display: "flex", justifyContent: "space-between", gap: 20, padding: "13px 0", borderBottom: "1px dotted var(--ei-color-rule-soft)" }}><span>{item.dimension}</span><span style={{ color: statusColor(item.status) }}>{item.status} · {item.confidence}</span></div>) : <Empty />}
+      <section data-testid="report-detail-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 420px), 1fr))", gap: 18 }}>
+        <Panel title={t("report.detail.dimensions")} titleMarginBottom={14} testId="report-dimensions">
+          {dimensions.map((item, index) => (
+            <div className="ei-report-dimension-row" key={item.code} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "8px 16px", padding: "13px 0", borderBottom: index < dimensions.length - 1 ? "1px dotted var(--ei-color-rule-strong)" : "none" }}>
+              <span className="ei-report-dimension-label" style={{ color: "var(--ei-color-fg-primary)", minWidth: 0, flex: "1 1 160px", overflowWrap: "break-word", wordBreak: "normal" }}>{item.label}</span>
+              <span className="ei-report-dimension-status" style={{ color: statusColor(item.status), textAlign: "right", flex: "0 1 auto", maxWidth: "100%", overflowWrap: "break-word", wordBreak: "normal" }}>{t(dimensionStatusLabel(item.status))} · {t(confidenceLabel(item.confidence))}</span>
+            </div>
+          ))}
         </Panel>
-        <div style={{ display: "grid", gap: 18 }}>
-          <EvidencePanel title={t("report.detail.tab.evidence")} testId="report-highlights" items={data.highlights ?? []} />
-          <EvidencePanel title={t("report.body.issues.eyebrow")} testId="report-issues" items={data.issues ?? []} />
-          <Panel title={t("report.detail.tab.next")} testId="report-next-actions">{(data.nextActions ?? []).length ? data.nextActions!.map((item) => <p key={`${item.type}-${item.label}`} style={itemStyle}>{item.label}</p>) : <Empty />}</Panel>
-        </div>
+        <EvidencePanel title={t("report.detail.highlights")} titleColor="var(--ei-color-ok)" testId="report-highlights" items={data.highlights} labelsByCode={labelsByCode} confidenceText={(value) => t(confidenceLabel(value))} />
+        <EvidencePanel title={t("report.detail.issues")} titleColor="var(--ei-color-warn)" testId="report-issues" items={data.issues} labelsByCode={labelsByCode} confidenceText={(value) => t(confidenceLabel(value))} />
+        <Panel title={t("report.detail.actions")} titleColor="var(--ei-color-accent)" testId="report-actions">
+          {data.nextActions.map((item, index) => <div className="ei-report-action-row" key={`${item.type}-${index}`} style={{ display: "flex", minWidth: 0, gap: 10, color: "var(--ei-color-fg-secondary)", fontSize: 13, lineHeight: 1.65, marginTop: index ? 12 : 0, overflowWrap: "anywhere", wordBreak: "normal" }}><span style={{ color: "var(--ei-color-accent)", fontFamily: "var(--ei-font-mono)", flexShrink: 0 }}>{String(index + 1).padStart(2, "0")}</span><span className="ei-report-action-label" style={{ minWidth: 0, overflowWrap: "anywhere", wordBreak: "normal" }}>{item.label}</span></div>)}
+        </Panel>
       </section>
     </main>
   );
 };
 
-const Metric: FC<{ label: string; value: string }> = ({ label, value }) => <div style={{ border: "1px solid var(--ei-color-rule-soft)", padding: 20, background: "var(--ei-color-bg-card)" }}><div className="ei-label" style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 10 }}>{label}</div><div className="ei-serif" style={{ fontSize: 25 }}>{value}</div></div>;
-const Panel: FC<{ title: string; testId: string; children: ReactNode }> = ({ title, testId, children }) => <section data-testid={testId} style={{ border: "1px solid var(--ei-color-rule-soft)", padding: 20, background: "var(--ei-color-bg-card)" }}><div className="ei-label" style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 12 }}>{title}</div>{children}</section>;
-const EvidencePanel: FC<{ title: string; testId: string; items: Array<{ dimension: string; evidence: string; confidence: string }> }> = ({ title, testId, items }) => <Panel title={title} testId={testId}>{items.length ? items.map((item) => <p key={`${item.dimension}-${item.evidence}`} style={itemStyle}><strong>{item.dimension}</strong> · {item.evidence} <small>({item.confidence})</small></p>) : <Empty />}</Panel>;
-const Empty = () => <div style={{ color: "var(--ei-color-fg-tertiary)" }}>—</div>;
-const itemStyle: CSSProperties = { margin: "10px 0 0", lineHeight: 1.65, color: "var(--ei-color-fg-secondary)" };
-const statusColor = (status: string) => status === "needs_work" ? "var(--ei-color-warning, #a86418)" : "var(--ei-color-success, #287850)";
-const readinessKey = (value: string): "report.readiness.tier.wellPrepared" | "report.readiness.tier.basicallyReady" | "report.readiness.tier.needsPractice" | "report.readiness.tier.notReady" => value === "well_prepared" ? "report.readiness.tier.wellPrepared" : value === "basically_ready" ? "report.readiness.tier.basicallyReady" : value === "not_ready" ? "report.readiness.tier.notReady" : "report.readiness.tier.needsPractice";
+const Metric: FC<{ label: string; value: string; description?: string }> = ({ label, value, description }) => <div style={{ border: "1px solid var(--ei-color-rule-strong)", padding: 20, background: "var(--ei-color-bg-card)", minWidth: 0 }}><div className="ei-label" style={{ color: "var(--ei-color-fg-tertiary)", marginBottom: 10 }}>{label}</div><div className="ei-serif" style={{ fontSize: 24, overflowWrap: "anywhere" }}>{value}</div>{description ? <div style={{ color: "var(--ei-color-fg-secondary)", fontSize: 13, lineHeight: 1.65, marginTop: 10, overflowWrap: "anywhere" }}>{description}</div> : null}</div>;
+const Panel: FC<{ title: string; titleColor?: string; titleMarginBottom?: number; testId: string; children: ReactNode }> = ({ title, titleColor = "var(--ei-color-fg-tertiary)", titleMarginBottom = 12, testId, children }) => <div data-testid={testId}><div style={{ border: "1px solid var(--ei-color-rule-strong)", borderRadius: 3, padding: 20, background: "var(--ei-color-bg-card)", minWidth: 0, cursor: "default", transition: "border-color .15s, transform .15s" }}><div className="ei-label" style={{ color: titleColor, marginBottom: titleMarginBottom }}>{title}</div>{children}</div></div>;
+const EvidencePanel: FC<{ title: string; titleColor: string; testId: string; items: Array<{ dimensionCode: string; evidence: string; confidence: Confidence }>; labelsByCode: Map<string, string>; confidenceText: (value: Confidence) => string }> = ({ title, titleColor, testId, items, labelsByCode, confidenceText }) => <Panel title={title} titleColor={titleColor} testId={testId}>{items.map((item, index) => <div key={`${item.dimensionCode}-${index}`} style={{ color: "var(--ei-color-fg-secondary)", fontSize: 13, lineHeight: 1.65, marginTop: index ? 14 : 0, overflowWrap: "anywhere" }}><div style={{ color: "var(--ei-color-fg-primary)", fontWeight: 500, marginBottom: 3 }}>{labelsByCode.get(item.dimensionCode)}</div><div>{item.evidence}</div><div style={{ color: "var(--ei-color-fg-tertiary)", fontSize: 11.5, marginTop: 4 }}>{confidenceText(item.confidence)}</div></div>)}</Panel>;
+const statusColor = (status: string) => status === "needs_work" ? "var(--ei-color-warn)" : "var(--ei-color-ok)";

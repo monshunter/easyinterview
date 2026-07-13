@@ -12,12 +12,14 @@ mkdir -p "$OUTPUT_DIR"
     src/app/screens/report/__tests__/preflight.test.ts \
     src/app/i18n/__tests__/reportDashboardI18nCoverage.test.ts \
     src/app/screens/report/__tests__/outOfScopeNegative.test.ts \
-    src/app/screens/generating/__tests__/outOfScopeNegative.test.ts
+    src/app/screens/generating/__tests__/outOfScopeNegative.test.ts \
+    --reporter=verbose
   python3 scripts/lint/frontend_report_dashboard_out_of_scope.py --repo-root . --phase E2E.P0.059
   python3 -m pytest scripts/lint/frontend_report_dashboard_out_of_scope_test.py -q
   echo "E2E.P0.059: building frontend before pixel parity"
   pnpm --filter @easyinterview/frontend build
   echo "E2E.P0.059: running Playwright pixel parity"
+  echo "E2E.P0.059: deterministic viewports=1440x900,390x844; DOM/style/bbox; pixelmatch threshold 0.1; changed-pixel ratio <=0.5%; failure artifacts=prototype/formal/diff"
   pnpm --filter @easyinterview/frontend test:pixel-parity -- \
     tests/pixel-parity/generating.spec.ts \
     tests/pixel-parity/report.spec.ts

@@ -76,7 +76,8 @@ const DEFAULT_INTERVIEW_CONTEXT = {
   roundName: "技术一面 · 45m",
 };
 
-const INTERVIEW_CONTEXT_ROUTES = new Set(["practice", "generating", "report"]);
+const INTERVIEW_CONTEXT_ROUTES = new Set(["practice"]);
+const REPORT_LOCATOR_ROUTES = new Set(["generating", "report"]);
 const normalizeRouteName = (name) => ROUTE_ALIASES[name] || name;
 const shouldCarryInterviewContext = (name) => INTERVIEW_CONTEXT_ROUTES.has(normalizeRouteName(name));
 const paramsFromSearch = (params) => {
@@ -102,6 +103,12 @@ const createInterviewContext = (params = {}, fallback = DEFAULT_INTERVIEW_CONTEX
     roundName: params.roundName || fallback.roundName || DEFAULT_INTERVIEW_CONTEXT.roundName,
   };
   return stripUndefined(ctx);
+};
+const paramsForRoute = (name, params = {}, fallback = DEFAULT_INTERVIEW_CONTEXT) => {
+  const normalizedName = normalizeRouteName(name);
+  if (REPORT_LOCATOR_ROUTES.has(normalizedName)) return stripUndefined({ reportId: params.reportId });
+  if (shouldCarryInterviewContext(normalizedName)) return createInterviewContext(params, fallback);
+  return stripUndefined(params);
 };
 
 const eiNormalizeInterviewRounds = (rawRounds = []) => {
@@ -192,13 +199,13 @@ const App = () => {
       delete parsedParams.route;
       delete parsedParams.lang;
       delete parsedParams.nochrome;
-      const nextParams = shouldCarryInterviewContext(name) ? createInterviewContext(parsedParams) : parsedParams;
+      const nextParams = paramsForRoute(name, parsedParams);
       setRoute({ name, params: nextParams });
     } else if (hash && !hash.includes("=")) {
       const rawRoute = hash;
       const name = normalizeRoute(rawRoute);
       const parsedParams = {};
-      setRoute({ name, params: shouldCarryInterviewContext(name) ? createInterviewContext(parsedParams) : parsedParams });
+      setRoute({ name, params: paramsForRoute(name, parsedParams) });
     }
     const savedLang = normalizeLanguage(localStorage.getItem("ei-lang"));
     if (savedLang) setLang(savedLang);
@@ -220,6 +227,7 @@ const App = () => {
     if (Object.keys(overrides).length) setTweaks((t) => ({ ...t, ...overrides }));
     const hashLang = normalizeLanguage(params.get("lang"));
     if (hashLang) setLang(hashLang);
+    if (params.get("signedIn") === "1") setSignedIn(true);
     if (params.get("nochrome") === "1") document.body.setAttribute("data-nochrome", "1");
   }, []);
   useEffect(() => { localStorage.setItem("ei-lang", lang); }, [lang]);
@@ -264,7 +272,7 @@ const App = () => {
   const currentContext = React.useMemo(() => createInterviewContext(route.params || {}), [route.params]);
   const nav = (name, params = {}) => {
     const nextName = normalizeRoute(name);
-    const nextParams = shouldCarryInterviewContext(nextName) ? createInterviewContext(params, currentContext) : stripUndefined(params);
+    const nextParams = paramsForRoute(nextName, params, currentContext);
     setRoute({ name: nextName, params: nextParams });
   };
   const requestAuth = (pendingAction, run) => {
@@ -280,9 +288,7 @@ const App = () => {
       const pendingRoute = normalizeRoute(pendingAction.route);
       setRoute({
         name: pendingRoute,
-        params: shouldCarryInterviewContext(pendingRoute)
-          ? createInterviewContext(pendingParams, currentContext)
-          : stripUndefined(pendingParams),
+        params: paramsForRoute(pendingRoute, pendingParams, currentContext),
       });
       window.eiToast && window.eiToast(
         lang === "en" ? `Continuing: ${pendingAction.label || "pending action"}` : `继续：${pendingAction.label || "刚才的操作"}`,
@@ -368,18 +374,18 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
     { k: "resume_versions", labelZh: "简历", labelEn: "Resume", icon: "file" },
   ];
   return (
-    <div style={{
+    <div className="ei-shell-topbar" style={{
       borderBottom: `1px solid ${T.rule}`, background: T.bg, position: "sticky", top: 0, zIndex: 30,
       padding: "0 32px", height: 58, display: "flex", alignItems: "center", gap: 28,
     }}>
-      <div onClick={() => nav("home")} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+      <div className="ei-topbar-brand" onClick={() => nav("home")} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
         <div style={{ width: 26, height: 26, borderRadius: 13, background: T.accent, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--ei-serif)", fontSize: 15, fontWeight: 600 }}>E</div>
-        <div>
+        <div className="ei-topbar-brand-copy">
           <div className="ei-serif" style={{ fontSize: 16, color: T.ink, letterSpacing: "-0.01em", lineHeight: 1 }}>EasyInterview</div>
         </div>
       </div>
 
-      <nav style={{ display: "flex", gap: 4, marginLeft: 20 }}>
+      <nav className="ei-topbar-nav" style={{ display: "flex", gap: 4, marginLeft: 20 }}>
         {nav_items.map((n) => (
           <button key={n.k} onClick={() => nav(n.k)} style={{
             background: route.name === n.k ? T.bgSoft : "transparent",
@@ -393,8 +399,9 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
         ))}
       </nav>
 
-      <div style={{ flex: 1 }} />
+      <div className="ei-topbar-spacer" style={{ flex: 1 }} />
 
+      <div className="ei-topbar-controls" style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <div style={{ position: "relative" }}>
         <button onClick={() => setThemeMenuOpen((o) => !o)} title={lang === "en" ? "Theme" : "主题色"} style={{
           background: "transparent", border: `1px solid ${T.rule}`, padding: "4px 8px", borderRadius: 2,
@@ -487,7 +494,7 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
         )}
       </div>
 
-      <button onClick={() => setDark && setDark(!dark)} title={dark ? (lang === "en" ? "Switch to light" : "切换到浅色") : (lang === "en" ? "Switch to dark" : "切换到深色")} style={{
+      <button className="ei-topbar-dark" onClick={() => setDark && setDark(!dark)} title={dark ? (lang === "en" ? "Switch to light" : "切换到浅色") : (lang === "en" ? "Switch to dark" : "切换到深色")} style={{
         background: "transparent", border: `1px solid ${T.rule}`, padding: "5px 8px", borderRadius: 2,
         color: T.ink2, fontSize: 12, display: "flex", gap: 6, alignItems: "center", cursor: "pointer",
       }}>
@@ -495,11 +502,11 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
       </button>
 
       <div style={{ position: "relative" }}>
-        <button onClick={() => setLangMenuOpen((o) => !o)} aria-expanded={langMenuOpen} style={{
+        <button className="ei-topbar-lang" onClick={() => setLangMenuOpen((o) => !o)} aria-expanded={langMenuOpen} style={{
           background: "transparent", border: `1px solid ${T.rule}`, padding: "5px 10px", borderRadius: 2,
           color: T.ink2, fontSize: 12, display: "flex", gap: 6, alignItems: "center", cursor: "pointer",
         }}>
-          <Icon name="globe" size={12} /> {currentLanguage.label}
+          <Icon name="globe" size={12} /> <span className="ei-topbar-lang-current">{currentLanguage.label}</span>
           <span style={{ fontSize: 9, color: T.ink3 }}>▾</span>
         </button>
         {langMenuOpen && (
@@ -534,15 +541,17 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
           </>
         )}
       </div>
+      </div>
 
+      <div className="ei-topbar-user" data-signed-in={signedIn} style={{ display: "flex", gap: 8, alignItems: "center" }}>
       {signedIn ? (
         <div style={{ position: "relative" }}>
           <button onClick={() => setUserMenuOpen((o) => !o)} style={{
             display: "flex", alignItems: "center", gap: 8, background: "transparent", border: `1px solid ${T.rule}`,
             padding: "3px 10px 3px 3px", borderRadius: 18, cursor: "pointer",
           }}>
-            <div style={{ width: 26, height: 26, borderRadius: 13, background: T.ink2, color: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 500, fontFamily: "var(--ei-mono)" }}>LZ</div>
-            <div style={{ fontSize: 12, color: T.ink2 }}>{lang === "en" ? "Liu Zhe" : "刘哲"}</div>
+            <div style={{ width: 26, height: 26, borderRadius: 13, background: T.ink2, color: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 500, fontFamily: "var(--ei-mono)" }}>AE</div>
+            <div style={{ fontSize: 12, color: T.ink2 }}>Alice Example</div>
             <span style={{ fontSize: 9, color: T.ink3, marginRight: 2 }}>▾</span>
           </button>
           {userMenuOpen && (
@@ -554,8 +563,8 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
                 boxShadow: "0 12px 36px rgba(20,15,10,0.16)", padding: 6, zIndex: 40,
               }}>
                 <div style={{ padding: "10px 12px 8px", borderBottom: `1px solid ${T.rule}`, marginBottom: 6 }}>
-                  <div style={{ fontSize: 13, color: T.ink, fontWeight: 500 }}>{lang === "en" ? "Liu Zhe" : "刘哲"}</div>
-                  <div style={{ fontSize: 11.5, color: T.ink3, marginTop: 2, fontFamily: "var(--ei-mono)" }}>liuzhe@example.com</div>
+                  <div style={{ fontSize: 13, color: T.ink, fontWeight: 500 }}>Alice Example</div>
+                  <div style={{ fontSize: 11.5, color: T.ink3, marginTop: 2, fontFamily: "var(--ei-mono)" }}>ali***@example.com</div>
                 </div>
                 {[
                   { k: "settings", icon: "settings", labelZh: "设置与隐私", labelEn: "Settings & privacy", action: () => nav("settings") },
@@ -587,10 +596,11 @@ const TopBar = ({ T, route, nav, lang, setLang, dark, setDark, theme, setTheme, 
           )}
         </div>
       ) : (
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div>
           <Btn T={T} variant="ghost" size="sm" onClick={() => nav("auth_login")}>{lang === "en" ? "Sign in" : "登录"}</Btn>
         </div>
       )}
+      </div>
     </div>
   );
 };

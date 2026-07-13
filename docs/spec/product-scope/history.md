@@ -1,6 +1,6 @@
 # Product Scope History
 
-> **版本**: 2.14
+> **版本**: 2.18
 > **状态**: active
 > **更新日期**: 2026-07-12
 
@@ -8,6 +8,10 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 2.18 | 删除首次 Parse 页已不存在的“仅保存规划”分叉；确认一次提交同时持久化规划并直接进入 Practice，回访仍从既有入口承接。 | frontend-workspace-and-practice/001 + UI module-job-workspace |
+| 2026-07-12 | 2.17 | 明确零回答不可完成、空 focus 通用同轮复练和 reportId-only 缺失态，修正报告 locator 漂移。 | backend-practice/002 + backend-practice/004 + frontend-workspace-and-practice/002 + frontend-report-dashboard/001 |
+| 2026-07-12 | 2.16 | 报告统一为 reportId-only 深链，状态/上下文/CTA identity 来自冻结后端投影；复练 focus 明确为单份报告内 dimension code。 | backend-review/001 + frontend-report-dashboard/001 |
+| 2026-07-12 | 2.15 | 报告采用完成时冻结上下文与 LLM direct semantic output；UI 锁定三指标四常驻区块，grounding evidence、服务端 replay focus 与诚实生成态成为 P0 质量红线。 | backend-review 001 / frontend-report-dashboard 001 |
 | 2026-07-12 | 2.14 | 模拟面试收敛为不限制问题范畴的连续文本会话；删除题目结构与专用 hint/mode，电话模式暂时禁用，报告改为会话级。 | backend-practice 001-003 / frontend-workspace 002 / voice 001 / review 001 |
 | 2026-07-10 | 2.13 | 统一 product-scope 中文范围边界与执行 plan 的 scope-boundary gate 口径。 | tech-debt pruning |
 | 2026-07-10 | 2.12 | 将 privacy export、pending child 与设置通知/订阅边界收敛为不可用例外 / 索引模型 / 范围外能力口径。 | tech-debt pruning |

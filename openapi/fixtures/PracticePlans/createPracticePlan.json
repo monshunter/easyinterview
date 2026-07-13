@@ -12,8 +12,7 @@
           "language": "zh-CN",
           "timeBudgetMinutes": 50,
           "resumeId": "01918fa0-0000-7000-8000-000000001000",
-          "roundId": "round-2-manager",
-          "focusCompetencyCodes": ["communication", "design-systems"]
+          "roundId": "round-2-manager"
         }
       },
       "response": {
@@ -35,20 +34,12 @@
         }
       }
     },
-    "report-derived": {
+    "retry-derived": {
       "request": {
         "headers": {"Idempotency-Key": "practice-plan-retry-001"},
         "body": {
-          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
           "goal": "retry_current_round",
-          "interviewerPersona": "technical_manager",
-          "difficulty": "stretch",
-          "language": "en",
-          "timeBudgetMinutes": 20,
-          "resumeId": "01918fa0-0000-7000-8000-000000001000",
-          "roundId": "round-1-technical",
-          "sourceReportId": "01918fa0-0000-7000-8000-000000007000",
-          "focusCompetencyCodes": ["system-design"]
+          "sourceReportId": "01918fa0-0000-7000-8000-000000007000"
         }
       },
       "response": {
@@ -60,8 +51,8 @@
           "goal": "retry_current_round",
           "interviewerPersona": "technical_manager",
           "difficulty": "stretch",
-          "language": "en",
-          "timeBudgetMinutes": 20,
+          "language": "zh-CN",
+          "timeBudgetMinutes": 30,
           "resumeId": "01918fa0-0000-7000-8000-000000001000",
           "roundId": "round-1-technical",
           "roundSequence": 1,
@@ -71,9 +62,37 @@
         }
       }
     },
+    "next-derived": {
+      "request": {
+        "headers": {"Idempotency-Key": "practice-plan-next-001"},
+        "body": {
+          "goal": "next_round",
+          "sourceReportId": "01918fa0-0000-7000-8000-000000007000"
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {"X-Request-ID": "req_2026-07-12-plan-next"},
+        "body": {
+          "id": "01918fa0-0000-7000-8000-000000004702",
+          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "goal": "next_round",
+          "interviewerPersona": "hiring_manager",
+          "difficulty": "standard",
+          "language": "zh-CN",
+          "timeBudgetMinutes": 40,
+          "resumeId": "01918fa0-0000-7000-8000-000000001000",
+          "roundId": "round-2-manager",
+          "roundSequence": 2,
+          "sourceReportId": "01918fa0-0000-7000-8000-000000007000",
+          "status": "ready",
+          "createdAt": "2026-07-12T08:02:00Z"
+        }
+      }
+    },
     "round-mismatch": {
       "request": {
-        "headers": {"Idempotency-Key": "practice-plan-round-mismatch-001"},
+        "headers": {"Idempotency-Key": "invalid-invalid-invalid"},
         "body": {
           "targetJobId": "01918fa0-0000-7000-8000-000000002000",
           "goal": "baseline",
@@ -82,8 +101,7 @@
           "language": "zh-CN",
           "timeBudgetMinutes": 40,
           "resumeId": "01918fa0-0000-7000-8000-000000001000",
-          "roundId": "round-3-culture",
-          "focusCompetencyCodes": ["collaboration"]
+          "roundId": "round-3-culture"
         }
       },
       "response": {

@@ -160,6 +160,8 @@ type TailorSuggestionInput struct {
 }
 
 type CompleteTailorRunSuccessInput struct {
+	JobID              string
+	ClaimedAttempts    int32
 	TailorRunID        string
 	ResumeID           string
 	TargetJobID        string

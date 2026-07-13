@@ -19,13 +19,7 @@ const REPLAY_ACTION: PendingAction = {
   label: "复练当前轮",
   route: "report",
   params: {
-    sessionId: "session-prior",
     reportId: "report-1",
-    targetJobId: "tj-1",
-    jdId: "jd-1",
-    resumeId: "frontend-v3",
-    roundId: "round-tech-1",
-    practiceGoal: "retry_current_round",
   },
 };
 
@@ -36,9 +30,7 @@ describe("PendingAction replay_practice", () => {
       pendingRoute: "report",
       pendingType: "replay_practice",
       pendingLabel: "复练当前轮",
-      sessionId: "session-prior",
       reportId: "report-1",
-      practiceGoal: "retry_current_round",
     });
   });
 

@@ -19,8 +19,17 @@ func (r *Repository) PersistReportFailure(ctx context.Context, in PersistReportF
 		return fmt.Errorf("begin persist report failure: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := lockCurrentAsyncJobLease(ctx, tx, in.AsyncJobID, in.ClaimedAttempts); err != nil {
+		return err
+	}
+	// A report handler can spend most of its lease window in provider calls.
+	// Renew the still-current generation before committing the failure-side
+	// effects so the kernel gets a complete lease window to finalize it.
+	if err := renewCurrentAsyncJobLease(ctx, tx, in.AsyncJobID, in.ClaimedAttempts, in.Now); err != nil {
+		return err
+	}
 
-	willRetry := in.Retryable && in.Attempts < in.MaxAttempts
+	willRetry := in.Retryable && in.ClaimedAttempts < in.MaxAttempts
 	reportStatus := "failed"
 	if willRetry {
 		reportStatus = "queued"

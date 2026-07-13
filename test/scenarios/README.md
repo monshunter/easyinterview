@@ -105,6 +105,8 @@ test/scenarios/
 
 Hybrid 场景若已经完成 AI Agent preflight 但缺少本地真实凭证、浏览器操作或人工观察证据，`verify.sh` 必须写出 `result=MANUAL_REQUIRED` 等价 JSON artifact 并退出 0；不得把它标记为 full PASS，也不得退化为框架 ERROR。补齐脱敏证据后，同一场景可再次运行并转为 PASS。
 
+涉及 cookie、浏览器状态、provider 输出或原始业务内容的 hybrid 场景必须把输出保留策略做成可执行合同：setup 在写入当前 `run_id` 前删除输出目录内全部旧顶层文件、目录和符号链接且不得跟随外部链接；运行中只允许场景明确定义的有限文件名；PASS/FAIL cleanup 分别使用 allowlist，未知文件或敏感键即删除并使当前证据失败。不得只按少量已知文件名清理，因为历史 `state.json`、Playwright 目录或改名后的 cookie 文件同样属于污染。
+
 ## 8 环境污染与处理
 
 当场景失败时，处理顺序必须是：

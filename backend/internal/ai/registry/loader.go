@@ -10,14 +10,16 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/outputschema"
+	"github.com/monshunter/easyinterview/backend/internal/shared/featurekeys"
 	"gopkg.in/yaml.v3"
 )
 
 // snapshot is the in-memory shape produced by the loader. The cache
 // (cache.go) wraps it in atomic.Value; the resolver (resolver.go) reads it.
 type snapshot struct {
-	prompts map[string]map[string]promptEntry // featureKey -> language -> entry
-	rubrics map[string]map[string]rubricEntry // featureKey -> language -> entry
+	prompts map[string]map[string]map[string]promptEntry // featureKey -> language -> version -> entry
+	rubrics map[string]map[string]map[string]rubricEntry // featureKey -> language -> version -> entry
 }
 
 type promptEntry struct {
@@ -38,8 +40,8 @@ type rubricEntry struct {
 // hash verification, and prompt/rubric language-set parity checks.
 func loadFromDisk(promptsRoot, rubricsRoot string) (*snapshot, error) {
 	snap := &snapshot{
-		prompts: map[string]map[string]promptEntry{},
-		rubrics: map[string]map[string]rubricEntry{},
+		prompts: map[string]map[string]map[string]promptEntry{},
+		rubrics: map[string]map[string]map[string]rubricEntry{},
 	}
 
 	if err := loadPrompts(promptsRoot, snap); err != nil {
@@ -76,15 +78,20 @@ func loadPrompts(root string, snap *snapshot) error {
 		}
 		entry.outputSchema = schema
 		entry.meta.OutputSchema = schema
-		bucket, ok := snap.prompts[entry.meta.FeatureKey]
+		languageBucket, ok := snap.prompts[entry.meta.FeatureKey]
 		if !ok {
-			bucket = map[string]promptEntry{}
-			snap.prompts[entry.meta.FeatureKey] = bucket
+			languageBucket = map[string]map[string]promptEntry{}
+			snap.prompts[entry.meta.FeatureKey] = languageBucket
 		}
-		if _, dup := bucket[entry.meta.Language]; dup {
-			return fmt.Errorf("registry: duplicate prompt for %s/%s", entry.meta.FeatureKey, entry.meta.Language)
+		versionBucket, ok := languageBucket[entry.meta.Language]
+		if !ok {
+			versionBucket = map[string]promptEntry{}
+			languageBucket[entry.meta.Language] = versionBucket
 		}
-		bucket[entry.meta.Language] = *entry
+		if _, dup := versionBucket[entry.meta.Version]; dup {
+			return fmt.Errorf("registry: duplicate prompt for %s/%s/%s", entry.meta.FeatureKey, entry.meta.Language, entry.meta.Version)
+		}
+		versionBucket[entry.meta.Version] = *entry
 		return nil
 	})
 }
@@ -115,6 +122,14 @@ func readOutputSchema(yamlPath string, meta PromptMeta, cache map[string]*json.R
 		return nil, fmt.Errorf("registry: parse output schema %s: %w", schemaPath, err)
 	}
 	raw := json.RawMessage(append([]byte(nil), body...))
+	if err := outputschema.ValidateSchema(raw); err != nil {
+		return nil, fmt.Errorf("registry: invalid output schema %s: %w", schemaPath, err)
+	}
+	if meta.FeatureKey == string(featurekeys.ReportGenerate) && meta.Version == "v0.2.0" {
+		if err := outputschema.RequireClosedObjects(raw); err != nil {
+			return nil, fmt.Errorf("registry: grounded report schema %s: %w", schemaPath, err)
+		}
+	}
 	cache[cacheKey] = &raw
 	return &raw, nil
 }
@@ -134,15 +149,20 @@ func loadRubrics(root string, snap *snapshot) error {
 		if err != nil {
 			return err
 		}
-		bucket, ok := snap.rubrics[entry.schema.FeatureKey]
+		languageBucket, ok := snap.rubrics[entry.schema.FeatureKey]
 		if !ok {
-			bucket = map[string]rubricEntry{}
-			snap.rubrics[entry.schema.FeatureKey] = bucket
+			languageBucket = map[string]map[string]rubricEntry{}
+			snap.rubrics[entry.schema.FeatureKey] = languageBucket
 		}
-		if _, dup := bucket[entry.schema.Language]; dup {
-			return fmt.Errorf("registry: duplicate rubric for %s/%s", entry.schema.FeatureKey, entry.schema.Language)
+		versionBucket, ok := languageBucket[entry.schema.Language]
+		if !ok {
+			versionBucket = map[string]rubricEntry{}
+			languageBucket[entry.schema.Language] = versionBucket
 		}
-		bucket[entry.schema.Language] = *entry
+		if _, dup := versionBucket[entry.schema.Version]; dup {
+			return fmt.Errorf("registry: duplicate rubric for %s/%s/%s", entry.schema.FeatureKey, entry.schema.Language, entry.schema.Version)
+		}
+		versionBucket[entry.schema.Version] = *entry
 		return nil
 	})
 }
@@ -258,6 +278,7 @@ type rubricYAML struct {
 	FeatureKey string                `yaml:"feature_key"`
 	Version    string                `yaml:"version"`
 	Language   string                `yaml:"language"`
+	Status     string                `yaml:"status"`
 	Dimensions []rubricDimensionYAML `yaml:"dimensions"`
 }
 
@@ -283,8 +304,13 @@ func readRubric(yamlPath string) (*rubricEntry, error) {
 	if err := yaml.Unmarshal(yamlBytes, &raw); err != nil {
 		return nil, fmt.Errorf("registry: parse %s: %w", yamlPath, err)
 	}
-	if raw.FeatureKey == "" || raw.Version == "" || raw.Language == "" {
+	if raw.FeatureKey == "" || raw.Version == "" || raw.Language == "" || raw.Status == "" {
 		return nil, fmt.Errorf("registry: rubric %s missing required meta field", yamlPath)
+	}
+	switch raw.Status {
+	case "active", "inactive":
+	default:
+		return nil, fmt.Errorf("registry: rubric %s status %q invalid", yamlPath, raw.Status)
 	}
 	if len(raw.Dimensions) == 0 {
 		return nil, fmt.Errorf("registry: rubric %s has no dimensions", yamlPath)
@@ -309,6 +335,7 @@ func readRubric(yamlPath string) (*rubricEntry, error) {
 			FeatureKey: raw.FeatureKey,
 			Version:    raw.Version,
 			Language:   raw.Language,
+			Status:     raw.Status,
 			Dimensions: dims,
 		},
 		yamlPath: yamlPath,
@@ -333,10 +360,15 @@ func validateLanguageParity(snap *snapshot) error {
 			return fmt.Errorf("registry: feature_key %q missing canonical multi rubric", fk)
 		}
 		for lang := range langs {
-			if _, ok := rubricLangs[lang]; !ok {
+			rubricVersions, ok := rubricLangs[lang]
+			if !ok {
 				return fmt.Errorf(
 					"registry: feature_key %q has prompt language %q but no matching rubric", fk, lang,
 				)
+			}
+			promptVersions := langs[lang]
+			if err := validateVersionParity(fk, lang, promptVersions, rubricVersions); err != nil {
+				return err
 			}
 		}
 	}
@@ -353,6 +385,62 @@ func validateLanguageParity(snap *snapshot) error {
 				)
 			}
 		}
+	}
+	return nil
+}
+
+func validateVersionParity(
+	featureKey string,
+	language string,
+	prompts map[string]promptEntry,
+	rubrics map[string]rubricEntry,
+) error {
+	for version := range prompts {
+		if _, ok := rubrics[version]; !ok {
+			return fmt.Errorf("registry: %s/%s version parity drift: prompt %s has no rubric", featureKey, language, version)
+		}
+	}
+	for version := range rubrics {
+		if _, ok := prompts[version]; !ok {
+			return fmt.Errorf("registry: %s/%s version parity drift: rubric %s has no prompt", featureKey, language, version)
+		}
+	}
+
+	activePromptVersion := ""
+	for version, entry := range prompts {
+		if entry.meta.Status != "active" {
+			continue
+		}
+		if activePromptVersion != "" {
+			return fmt.Errorf("registry: %s/%s must have exactly one active prompt version", featureKey, language)
+		}
+		activePromptVersion = version
+	}
+	if activePromptVersion == "" {
+		return fmt.Errorf("registry: %s/%s must have exactly one active prompt version", featureKey, language)
+	}
+
+	activeRubricVersion := ""
+	for version, entry := range rubrics {
+		if entry.schema.Status != "active" {
+			continue
+		}
+		if activeRubricVersion != "" {
+			return fmt.Errorf("registry: %s/%s must have exactly one active rubric version", featureKey, language)
+		}
+		activeRubricVersion = version
+	}
+	if activeRubricVersion == "" {
+		return fmt.Errorf("registry: %s/%s must have exactly one active rubric version", featureKey, language)
+	}
+	if activePromptVersion != activeRubricVersion {
+		return fmt.Errorf(
+			"registry: %s/%s active pair version mismatch: prompt=%s rubric=%s",
+			featureKey,
+			language,
+			activePromptVersion,
+			activeRubricVersion,
+		)
 	}
 	return nil
 }

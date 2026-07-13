@@ -94,7 +94,11 @@ PRODUCT_SCOPE_REQUIRED_FRAGMENTS = [
     ("idempotency_records.expires_at_index", "create index idx_idempotency_records_expires_at on idempotency_records (expires_at)"),
     ("feedback_reports.session_unique", "create unique index idx_feedback_reports_session_unique on feedback_reports (session_id)"),
     ("feedback_reports.dimension_assessments", "dimension_assessments jsonb not null default '[]'::jsonb"),
-    ("feedback_reports.retry_focus_competency_codes", "retry_focus_competency_codes text[] not null default '{}'::text[]"),
+    ("feedback_reports.legacy_retry_focus_origin", "retry_focus_competency_codes text[] not null default '{}'::text[]"),
+    ("feedback_reports.summary_v18", "add column summary text"),
+    ("feedback_reports.generation_context_v18", "add column generation_context jsonb not null default '{}'::jsonb"),
+    ("feedback_reports.retry_focus_dimension_codes_v18", "rename column retry_focus_competency_codes to retry_focus_dimension_codes"),
+    ("practice_plans.focus_dimension_codes_v18", "rename column focus_competency_codes to focus_dimension_codes"),
     ("outbox_events.publish_attempts", "publish_attempts integer not null default 0"),
     ("outbox_events.next_attempt_at", "next_attempt_at timestamptz not null default now()"),
     ("outbox_events.pending_due_index", "create index idx_outbox_events_pending_due on outbox_events (publish_status, next_attempt_at, created_at)"),
@@ -109,6 +113,13 @@ PRODUCT_SCOPE_REQUIRED_FRAGMENTS = [
     ("ai_task_runs.validation_status", "validation_status text"),
     ("ai_task_runs.output_schema_version", "output_schema_version text"),
     ("ai_task_runs.dashboard_index", "create index idx_ai_task_runs_dashboard on ai_task_runs (model_profile_name, validation_status, created_at desc)"),
+]
+PRODUCT_SCOPE_FORBIDDEN_COMPATIBILITY_FRAGMENTS = [
+    ("feedback_reports.retry_focus_dimension_codes", "add column retry_focus_dimension_codes"),
+    ("practice_plans.focus_dimension_codes", "add column focus_dimension_codes"),
+]
+PRODUCT_SCOPE_FORBIDDEN_FRAGMENTS = [
+    ("feedback_reports.llm_attempt_count", "llm_attempt_count"),
 ]
 PRODUCT_SCOPE_TABLE_REQUIRED_FRAGMENTS = [
     ("feedback_reports.session_id", "feedback_reports", "session_id uuid not null references practice_sessions(id) on delete cascade"),
@@ -384,6 +395,14 @@ def validate_product_scope_sql(sql: str, enum_sources: str) -> list[str]:
     for label, fragment in PRODUCT_SCOPE_REQUIRED_FRAGMENTS:
         if normalize_sql(fragment) not in normalized_sql:
             problems.append(f"product-scope required fragment missing: {label}")
+    for label, fragment in PRODUCT_SCOPE_FORBIDDEN_COMPATIBILITY_FRAGMENTS:
+        if normalize_sql(fragment) in normalized_sql:
+            problems.append(
+                f"product-scope compatibility mirror forbidden: {label} ({fragment})"
+            )
+    for label, fragment in PRODUCT_SCOPE_FORBIDDEN_FRAGMENTS:
+        if normalize_sql(fragment) in normalized_sql:
+            problems.append(f"product-scope forbidden fragment: {label} ({fragment})")
     for label, table, fragment in PRODUCT_SCOPE_TABLE_REQUIRED_FRAGMENTS:
         if normalize_sql(fragment) not in normalize_sql(table_bodies.get(table, "")):
             problems.append(f"product-scope required fragment missing: {label}")

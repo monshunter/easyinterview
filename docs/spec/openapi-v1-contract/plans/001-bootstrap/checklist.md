@@ -1,8 +1,8 @@
 # 001 - OpenAPI v1 Contract Bootstrap Checklist
 
-> **版本**: 1.12
+> **版本**: 1.21
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -50,3 +50,21 @@ python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check
 make docs-check
 git diff --check
 ```
+
+## Phase 12: OPENAPI-001 grounded direct report
+
+- [x] 12.1 OWNER/GOVERNANCE-GATE: consume B1 `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS` (canonical literal/retryability only); 003 records accepted OPENAPI-001 and snapshots merge-base old baseline; baseline remains untouched. OpenAPI parity is proved here, not required to emit the B1 marker.
+  <!-- verified: 2026-07-12 method=owner-handoff evidence="B1 source-ready marker consumed; accepted OPENAPI-001/product approval verified; old baseline loaded from merge-base commit c3c9902a37b1aaefe0c4fb154296d711c8a6332d and worktree baseline blob remains untouched" -->
+- [x] 12.2 RED-GREEN: edit proposed OpenAPI for summary + frozen context/hasNextRound + code/label/dimensionCode/retryFocusDimensionCodes and typed-object conditional oneOf CreatePracticePlanRequest. Matrix requires baseline-with-source fail; retry/next missing/null/blank/malformed source fail; retry/next with any extra fail; minimal retry/next `{goal,sourceReportId}` pass. Remove old fields/DimensionResult, close objects and enforce bounds. Sync only B1-sourced `REPORT_CONTEXT_TOO_LARGE` into `ApiErrorCode`. (inventory/schema/error-enum/conditional negative tests + `make lint-openapi`)
+  <!-- verified: 2026-07-12 method=tdd-red-green evidence="RED failed on DimensionResult/old fields, derived minimal requests, baseline+source, unknown fields and maxLength. GREEN passes exact direct-report inventory, 12-case baseline/derived matrix, closed/bounds validator, Swagger validation and 10-tag/37-operation inventory with B1 error parity." -->
+- [x] 12.3 AUDIT-GATE: with old baseline still untouched, 003 Phase 5.2 exact-matches old-baseline→proposed findings by severity/path/kind/before/after; the new error enum is additive-only and no codegen/fixture/baseline re-freeze occurs before PASS.
+  <!-- verified: 2026-07-12 method=openapi-001-exact-set artifact=openapi/baseline/audits/OPENAPI-001-report-direct-semantics.json findings=36 breaking=33 additive=3 evidence="errorCount=0; REPORT_CONTEXT_TOO_LARGE appears once as additive enum_value_added; baseline file remains untouched" -->
+- [x] 12.4 RED-GREEN: regenerate Go/TS artifacts; exact tests reject old names/compatibility aliases and assert CreatePracticePlanRequest is a typed struct/interface, never Go/TS `any`; derived-extra runtime fixtures fail. (`make codegen-openapi`; generator tests; `make codegen-check`)
+  <!-- verified: 2026-07-12 method=generator-structure-red-green+isolated-index-codegen-check evidence="Consumer compilation exposed FeedbackReport incorrectly generated as PaginatedEnvelope because any allOf was classified as pagination. A focused struct/interface RED now locks direct fields; generator only classifies an explicit PaginatedEnvelope ref, Go/TS direct report types regenerate deterministically, generator tests pass, and isolated-index make codegen-check passes without treating expected current generated changes as drift." -->
+- [x] 12.5 HANDOFF-GATE: 002 Phase 7 fixtures/prototype/Prism pass before backend-review/frontend consumers begin generated-shape implementation; baseline re-freeze remains deferred to 003 Phase 5.4.
+  <!-- verified: 2026-07-12 method=owner-handoff evidence="002 Phase 7 passes fixture sync/validation/example projection and live Prism byte parity for both report operations plus createPracticePlan. Generated direct-shape compile drift was handed to backend-review/backend-practice and frontend owners; 003 Phase 5.4 remains intentionally unchecked and the old baseline remains untouched." -->
+- [x] 12.6 CONTRACT-BOUNDARY-FOUNDATION: wire fuse 与 semantic/UX 职责已分离；旧具体边界由 12.7 当前方案 A 取代，本项不证明 200/24/64/18-52 已实现或 codegen 通过。
+- [x] 12.7 A-GATE: `ReportNextAction.label`必须为1..200 code points；expected finding after=`minLength=1,maxLength=200`；FeedbackReport ready/failed/non-terminal conditional state machine必须拒绝 nullable-ready payload和非failed errorCode；OpenAPI/schema/generated/fixture同步并实际通过audit、re-freeze、openapi-diff与codegen-check。下游产品完整validator的24/64、18/52、sole-label/whole-report repair不改变OpenAPI finding，也不得替代codegen证据。
+  <!-- verified: 2026-07-13 commands="make lint-openapi validate-fixtures openapi-diff; make codegen-check" result="37 operations/10 tags; 37 fixtures; ready requires non-null summary/preparedness/provenance and non-empty dimensions/actions; failed alone requires non-null errorCode; baseline diff breaking=0/additive=0; generated conventions/events/OpenAPI byte-stable; ReportNextAction.label minLength=1,maxLength=200" -->
+- [x] 12.8 RESPONSIBILITY-NEGATIVE: generated/OpenAPI/fixtures contain zero `attemptCount|retryCount|repairReason|repairScope|generationProgress|retryReportGeneration` positive surfaces；max4/internal audit/status polling create no new expected finding，and maxAttempts49 exhaustion is not encoded as server failed.
+  <!-- verified: 2026-07-13 evidence="OpenAPI inventory/diff/codegen and scoped negative search keep attempt/retry/repair/progress fields and retryReportGeneration endpoint absent; frontend maxAttempts49 remains local polling exhaustion only" -->

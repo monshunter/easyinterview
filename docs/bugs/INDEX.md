@@ -44,6 +44,8 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0166](./BUG-0166.md) | unpaired report prompt example leaked unsupported facts into live output | high | resolved | 2026-07-13 | `fix(report): ground report semantics and reliability (BUG-0164, BUG-0165, BUG-0166)` |
+| [BUG-0165](./BUG-0165.md) | empty report retry focus encoded as null and blocked ready dashboards | high | resolved | 2026-07-13 | `fix(report): ground report semantics and reliability (BUG-0164, BUG-0165, BUG-0166)` |
 | [BUG-0064](./BUG-0064.md) | report replay handoff reused source sessions and pixel gate was false-green | high | resolved | 2026-05-16 | `fix(frontend-report): harden replay handoff and pixel gate (BUG-0064)` |
 | [BUG-0063](./BUG-0063.md) | frontend report dashboard L2 review exposed route and parity drift | high | resolved | 2026-05-16 | `fix(frontend-report): remediate report dashboard L2 findings (BUG-0063)` |
 | [BUG-0062](./BUG-0062.md) | report L2 review exposed prompt schema, persistence, and privacy drift | high | resolved | 2026-05-16 | `fix(backend-review): remediate report L2 findings (BUG-0062)` |
@@ -189,6 +191,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0164](./BUG-0164.md) | P0.058 verifier counted Go subtests as root tests | medium | resolved | 2026-07-12 | `fix(report): ground report semantics and reliability (BUG-0164, BUG-0165, BUG-0166)` |
 | [BUG-0157](./BUG-0157.md) | P0.098 shadowed TargetJob fixture left a stale persistence assertion | medium | resolved | 2026-07-10 | `fix(test): align full-funnel target fixture (BUG-0157)` |
 | [BUG-0156](./BUG-0156.md) | root test gate omitted Python tooling and skill contracts | medium | resolved | 2026-07-10 | `fix(test): aggregate Python contract tests (BUG-0156)` |
 | [BUG-0153](./BUG-0153.md) | P0.037 request-count wait raced ready DOM commit | medium | resolved | 2026-07-10 | `fix(test): wait for P0.037 ready DOM (BUG-0153)` |

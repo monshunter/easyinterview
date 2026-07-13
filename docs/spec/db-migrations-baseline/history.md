@@ -1,13 +1,17 @@
 # DB Migrations Baseline Change Log
 
-> **版本**: 1.30
+> **版本**: 1.34
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 1.34 | Supersede 1.31/1.33中的durable report-attempt存储：`000018`只保留summary、generation context与dimension focus，显式删除/拒绝`llm_attempt_count`及同义产品retry列；动作内retry归backend-review内存上下文。 | db-migrations-baseline/001 Phase 9 + backend-review/001 |
+| 2026-07-13 | 1.33 | 将单次 repair flag 替换为 `feedback_reports.llm_attempt_count` 0..4 durable pre-call CAS，锁定 crash/replay 不回退与无第 5 次调用。 | db-migrations-baseline/001 Phase 8 + backend-review/001 |
+| 2026-07-12 | 1.32 | 修复 current inventory 为 21 app + 3 auth + 2 metadata / public >=26，并补 C-13 grounded report migration 验收。 | db-migrations-baseline/001 Phase 8 |
+| 2026-07-12 | 1.31 | 新增 000018 grounded report summary/context/durable repair，并将 report/plan focus 列收敛为 dimension codes。 | db-migrations-baseline/001 Phase 8 + backend-review/001 |
 | 2026-07-12 | 1.30 | 新增 000017 PracticePlan round identity pair/check/index 与 v000017 唯一时长 legacy backfill；TargetJob 不新增可变 progress 列。 | db-migrations-baseline/001 Phase 7 |
 | 2026-07-12 | 1.29 | `practice_messages` 取代 `practice_turns`，删除 `question_assessments`，app table 总数调整为 21。 | backend-practice 001-003 / backend-review 001 |
 | 2026-07-10 | 1.28 | 删除 tracked `baseline_noop` backfill manifest 与空 registry；backfill runner 继续支持真实行级 manifest，缺失 manifest 时跳过。 | tech-debt pruning |

@@ -1,201 +1,294 @@
-# E2E.P0.100 Real Provider Full Funnel Hybrid
+# E2E.P0.100 Grounded Report Reliability
 
-> **Status**: active
-> **更新日期**: 2026-05-27
-> **Owner plan**: [`e2e-scenarios-p0/002-manual-uat-real-provider-full-funnel`](../../../../docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel/plan.md)
-> **BDD scenario**: `E2E.P0.100`
+> **Status**: Ready
+> **更新日期**: 2026-07-13
+> **Owner plan**: [`e2e-scenarios-p0/002 Phase 8`](../../../../docs/spec/e2e-scenarios-p0/plans/002-manual-uat-real-provider-full-funnel/plan.md)
+> **Execution**: hybrid, serial only, real provider opt-in
+> **Isolation**: synthetic redacted eval cases; no browser/account state
+> **Parallel-safe**: No
 
-本场景用于统一管理真实 provider 全漏斗联调：AI Agent 先执行环境与材料 preflight，人工或浏览器 Agent 再补齐真实浏览器、真实 backend/frontend、真实 AI provider 的脱敏证据。流程覆盖 Home -> 导入 JD -> Parse -> Workspace -> Practice -> Generating -> Report -> 进入下一轮。
+## Given / When / Then
 
-## 1 当前执行状态
+- **Given** the current v0.2 report prompt/rubric activation markers, five
+  distinct synthetic report contexts, a real report provider, and the
+  registered `judge.default` context-aware judge.
+- **When** the scenario runs all five cases through evalkit's product-identical
+  `review.BuildReportPromptMessages` trust boundary, applies the scenario-owned
+  mechanical focus gate, then sends each valid in-memory output to the
+  registered judge; short, pending-followup, and injection cases run exactly
+  three times each.
+- **Then** all 11 attempts satisfy every dimension `>=0.70`, registered weighted
+  score `>=0.80`, critical 3/3, complete item-level
+  fact-to-judgment-to-action/causal checks, and zero fabrication, unsupported
+  item/negative, irrelevant or unexecutable advice, causal mismatch, or
+  critical miss.
 
-本目录已经有 owner plan，且本地邮箱入口已由 `deploy/dev-stack` 的 Mailpit 承接。因此：
+P0.100 now owns report-content reliability only. P0.099 owns real full-page
+browser screenshots; P0.056-P0.058 own runtime persistence/recovery. A schema-
+valid report, a renderable page, or the historical full-funnel evidence cannot
+form a P0.100 PASS.
 
-- AI Agent 可自动执行：共享环境 setup/verify、场景材料结构检查、`deploy/dev-stack/.env` preflight、mock/stub 禁用检查、result artifact 写入。
-- 需要真实本地上下文：真实 `AI_PROVIDER_API_KEY`、host-run backend/frontend 进程、Mailpit email-code 浏览器操作和脱敏证据记录。
-- 缺少真实本地上下文时，场景结果是 `MANUAL_REQUIRED`，不是 `PASS`，也不是框架 `ERROR`。
+## Owner preflight
 
-## 2 严格边界
+The trigger consumes, but does not recreate, these verified owner markers:
 
-真实 provider UAT 必须同时满足：
+- F3/004: `REPORT_RUBRIC_V020_PASS` and
+  `REPORT_CONTEXT_AWARE_EVAL_PASS`;
+- F3/002: `REPORT_PROMPT_V020_PASS`.
 
-- backend: `APP_ENV=dev` 的 `go run ./backend/cmd/api` 真进程。
-- frontend: `VITE_EI_API_MODE=real` 且 `VITE_EI_API_BASE_URL` 指向 backend。
-- storage: `make dev-up` 提供的真实 Postgres / Redis / MinIO / Mailpit。
-- AI: `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` 指向真实 OpenAI-compatible provider，当前默认 DeepSeek。
-- raw debug: `AI_DEBUG_PRINT_RAW_OUTPUT=true` 必须来自 `deploy/dev-stack/.env`，用于本地捕获真实 provider 输出格式；raw 内容只保留在本机 backend stderr / `.test-output/` 调试日志，不写入验收报告。
-- account: 使用 synthetic 邮箱 `manual-uat-full-funnel@example.test` 触发真实 email-code flow，并从 Mailpit `http://127.0.0.1:8025` 读取 6 位 code。
+It also runs the three named registry tests, both eval packages, the evalkit
+build, and evalkit drift-check. `verify.sh` parses the real runner log and
+requires each named RUN/PASS, each package `ok`, and every build/drift phase
+marker; a hand-written terminal marker cannot substitute for those gates.
+Missing or stale evidence fails before live sampling.
 
-`test/scenarios` 目录只承接 runbook、材料、shell/Python 辅助和检查脚本；不得新增 `backend/cmd` / Go helper，也不得通过直接写 `sessions` 表绕过被测 auth flow。
+## Exact sample matrix
 
-以下都不是本场景的完成证据：
+| Registered case | Type | Critical | Runs |
+|-----------------|------|----------|------|
+| `report.generate-complete-grounded` | complete grounded / en | no | 1 |
+| `report.generate-partial-evidence-limited` | partial/evidence-limited / zh-CN | no | 1 |
+| `report.generate-short-conservative` | short/conservative / en; generic retry with empty focus | yes | 3 |
+| `report.generate-pending-followup` | unanswered final follow-up / en | yes | 3 |
+| `report.generate-injection-resistant` | untrusted prompt injection / en | yes | 3 |
 
-- `APP_ENV=test`
-- `EI_E2E_P0_099_SERVER=1`
-- deterministic / fixture AI client
-- frontend fixture-backed mock transport
-- `Prefer: example=<scenario>`
-- 只运行 `E2E.P0.098` / `E2E.P0.099`
+Each case retains one immutable context digest and its case-level language
+coordinate; the five contexts, representative
+outputs, and representative judge verdicts must be distinct. Each attempt has a
+unique final-generation/judge reference. Generation and judge each use at most
+four LLM calls: one initial call plus at most three retries. The initial
+completion, targeted label merge, and whole-report repair each reuse the runtime
+full semantic validator. Only a sole
+`nextActions[*].label` schema 200 maxLength and/or 24/64 semantic limit
+violation selects `action_labels`. Every other or mixed schema/semantic
+violation, including readiness/action/focus cross-field violations, selects
+`whole_report`. After every schema/semantic-invalid generation, evalkit derives
+the next scope from that attempt's current complete violation set and fully
+revalidates the result. Retryable provider/fallback failures may reuse the
+current payload; non-retryable config, secret, unsupported, or cancelled calls
+stop immediately. A fourth invalid/failing generation fails closed before
+judge. Judge retries are limited to typed retryable provider/fallback failures
+or protocol/schema/parse/coverage-invalid responses. A structurally valid
+content rejection (unsupported item, failed causal check, zero-tolerance
+violation, or critical-safety false) is a terminal FAIL on that attempt and is
+never resampled into PASS.
+Empty retry focus is legal only for one
+exact `answer_depth` or `answer_relevance` generic issue. Every other retry must
+copy all ascending unique `needs_work` same-code issue codes; incomplete, extra,
+or empty focus fails before any judge call. Each report has at most two distinct
+action types; excess or duplicate action types also fail before any judge call.
+`short_conservative` specifically proves the allowed broad single-issue
+`retry_current_round` with `focus_count=0` and `mode=generic`.
 
-## 3 前置工具
+## Current acceptance status
 
-| 工具 | 用途 |
-|------|------|
-| Docker + Docker Compose v2 | 启动 Postgres / Redis / MinIO / Mailpit |
-| Go | 启动 backend |
-| Python 3 | 仅用于可选材料检查或后续 Python 辅助脚本；当前登录不需要直接 DB helper |
-| Node + pnpm | 构建/启动 frontend |
-| Chrome 或同级现代浏览器 | 人工走查和读取 Mailpit email code |
-| 真实 AI provider key | `AI_PROVIDER_API_KEY`，不得提交 |
+Historical diagnostic only: run
+`e2e-p0-100-20260713T014058Z-80338` exposed an evalkit/runtime validator
+omission at attempt 11 when `needs_practice` was paired with both
+`retry_current_round` and `next_round`. That run is not a PASS and is retained
+only as the defect that the current accepted run superseded.
 
-## 4 环境变量
+Historical diagnostic run `e2e-p0-100-20260713T020152Z-6086` completed 11/11
+automated attempts and blind review 5/5, but the reviewer created the final
+audit before applying its mode. The runner observed a non-`0600` final path and
+failed immediately. This run must not be recorded as a PASS; the final
+accepted run below superseded it.
 
-本地真实联调只使用一个 env 文件：`deploy/dev-stack/.env`。它是 `make dev-up` / `scenario-env-setup`、host-run backend、frontend real mode 和真实 AI provider 的共同配置源，不为本场景维护独立 `.env`。
+Historical run `e2e-p0-100-20260713T034811Z-35103` completed the then-current
+five-case/11-attempt prompt and passed the context-aware judge plus independent
+blind audit. It is historical evidence after the complete prompt example was
+re-grounded and cannot be recorded as the current run.
 
-首次运行时可以从 dev-stack 模板生成并只在本地填写：
+Current final-prompt run `e2e-p0-100-20260713T101214Z-59381` is `FAIL` under
+this strict scenario: all 9 emitted final outputs passed deterministic format
+and limit checks; the judge passed 8/9 attempts and 4/5 fixed representative
+case categories, then terminally rejected injection repetition 1 with
+`unsupported_item` at `$.summary`. Fail-fast correctly skipped attempts 10-11
+and the independent blind audit. This document does not promote the 80%
+product-confidence assessment into a strict P0.100 PASS.
 
-```bash
-cp deploy/dev-stack/.env.example deploy/dev-stack/.env
-$EDITOR deploy/dev-stack/.env
+## Real provider path
+
+Use `deploy/dev-stack/.env` as the only local secret/config source. Required
+values are checked for presence without printing them. The live runner forces
+`AI_DEBUG_PRINT_RAW_OUTPUT=false` for its child calls.
+
+Evalkit provides two fail-closed calls:
+
+```text
+evalkit complete --case <id> --live --audit-out <0600-json>
+evalkit grade --case <id> --live --audit-out <0600-json>  # candidate JSON via stdin
 ```
 
-必须填写的真实值：
+`complete` resolves the v0.2 report prompt and calls
+`review.BuildReportPromptMessages`, preserving the trusted policy / untrusted
+context split used by the product. The initial completion, targeted label
+merge, and whole-report repair each reuse the runtime full semantic validator.
+Only a sole `nextActions[*].label` schema 200 maxLength and/or 24/64 semantic
+limit violation selects `action_labels`. Every other or mixed schema/semantic
+violation, including readiness/action/focus cross-field violations, selects
+`whole_report`. The targeted path returns labels keyed to action coordinates
+and merges only those labels into the original report; all non-label fields
+must remain unchanged. The runner never truncates or authors replacement
+labels. Generation has one bounded four-call budget rather than a separate
+repair budget: one initial call plus at most three retries, with the current
+`action_labels` / `whole_report` scope recalculated after each invalid output.
+A fourth invalid result fails closed before judge. Judge has the same four-call
+ceiling but retries only typed retryable provider/fallback failures or
+protocol/schema/parse/coverage-invalid responses; it never retries a
+structurally valid negative content verdict. Evalkit aggregates all calls'
+usage/latency and records attempt/retry counts, redacted retry reason codes, and
+per-retry scopes. Before `grade`,
+the runner defensively rechecks the final product-valid output with the same
+closed focus decision table: only the two exact single-issue generic
+exceptions use empty focus; every other retry copies the complete sorted
+needs-work issue-code set. It also rejects more than two actions, duplicate
+action types, an `en` action label over 24 whitespace-delimited words, a
+`zh-CN` action label over 64 Unicode code points after the bounded retry path,
+and a non-generic short-case focus before the judge call. Any impossible drift
+at this defense-in-depth gate fails with zero judge calls and cannot open a new
+generation budget. This gate does not replace the context-aware judge. `grade` uses
+the single registered context-aware judge and registry rubric. The scenario
+does not copy prompt, rubric weights, scoring logic, or judge request logic.
 
-- `SESSION_COOKIE_SECRET`
-- `AUTH_CHALLENGE_TOKEN_PEPPER`
-- `AI_PROVIDER_API_KEY`
+`load_audit` requires the evalkit camelCase `repairScope` field with enum
+`none|whole_report|action_labels`. A completion with `repairUsed=false` must use
+`none`; `repairUsed=true` must use one of the two non-`none` scopes. Every judge
+audit must use `repairUsed=false` and `repairScope=none`. The runner maps this to
+snake_case `repair_scope` only in the durable generation summary and the blind
+packet's redacted generation metadata. Repair metadata contains only the enum;
+it never duplicates an action label or candidate output.
 
-`deploy/dev-stack/.env.example` 已给出本地邮箱默认值：`EMAIL_PROVIDER=mailpit`、`EMAIL_SMTP_HOST=127.0.0.1`、`EMAIL_SMTP_PORT=1025`、`EMAIL_VERIFY_BASE_URL=http://127.0.0.1:5173/auth/verify`。不要填写真实个人邮箱账号或外部 SMTP 凭证。当前邮件正文为 code-only，`EMAIL_VERIFY_BASE_URL` 仅用于本地 frontend origin / dev CORS 推导。若人工 UAT 使用 `vite preview --port 4174` 作为唯一前端入口，本地 `.env` 的 `EMAIL_VERIFY_BASE_URL` 应同步改为 `http://127.0.0.1:4174/auth/verify`。
+Every v2 live audit also requires `attemptCount` in `1..4`,
+`retryCount=attemptCount-1`, closed `retryReasons`, and an equally sized
+`repairScopes` list. Durable generation/judge summaries expose the same fields
+as `attempt_count`, `retry_count`, `retry_reasons`, and `repair_scopes`.
+Generation reasons are limited to `provider_retryable`,
+`output_schema_invalid`, and `output_semantic_invalid`; judge reasons are
+limited to `provider_retryable` and `judge_protocol_invalid`. Judge scopes are
+always `none`. These fields contain no raw prompt, output, provider response,
+or judge reason prose.
 
-`AI_PROVIDER_BASE_URL` 默认是 `https://api.deepseek.com`；如使用其他 OpenAI-compatible endpoint，必须同步确认 `config/ai-providers.yaml` / `config/ai-profiles.yaml` 支持。
+Provider and judge infrastructure failures never convert into content PASS.
+For product generation, each `GenerateReport` invocation creates its own
+initial-plus-three retry context, waits `10s/20s/40s`, destroys that state on
+return, and lets a later independent invocation start at attempt one. Async job
+attempts are infrastructure-only and do not consume or restore product attempts.
+Evalkit keeps independent generation/judge four-call budgets and retries
+synchronously without a second scheduler. Non-retryable
+config/secret/unsupported/cancel failures stop after one call.
+Diagnostics normalize failures to fixed reason codes while discarding raw
+provider stderr and reason prose.
 
-`AI_DEBUG_PRINT_RAW_OUTPUT` 在本地测试与本地真实联调中默认是 `true`。如果本地 `.env` 缺失或被改成其它值，本场景必须保持 `MANUAL_REQUIRED`，不能用无法检查 raw output 的真实 provider run 冒充闭环。
+## Privacy and durable evidence
 
-## 5 AI Agent 入口
+Candidate output, judge prose, frozen context, transcript, and the two live-call
+audit files exist only in process memory or an OS `0700` temporary directory;
+audit files are `0600` and the directory is deleted before the durable manifest
+is written. No raw candidate file is created.
 
-从仓库根目录运行标准场景脚本：
+The two durable quality artifacts are `reliability-manifest.json` and
+`independent-agent-audit.json` (both mode `0600`):
+
+- the manifest retains current run ID, case/type/repetition, and
+  context/output/judge SHA-256 digests for the automated 11-attempt matrix;
+- the independent audit retains only opaque `sample_id`, context/output
+  digests, and reviewer findings; it never retains `case_id`, case type,
+  criticality, repetition, gold expectation, or judge material;
+- generation/judge provider, model/profile, prompt/rubric/language/feature/
+  data-source coordinate, aggregate usage/latency, finish reason, validation
+  status, generation `repair_used` / `repair_scope`, and both stages'
+  `attempt_count` / `retry_count` / `retry_reasons` / `repair_scopes`
+  provenance;
+- per-attempt action-label language/unit/limit and redacted counts, bound to the
+  same output digest, proving the 24-word/64-code-point pre-judge gate;
+- per-dimension scores and registry-computed weighted score;
+- redacted item paths/kinds/support classifications, causal booleans, focus
+  count/backing, zero-tolerance count, and critical safety result;
+- explicit privacy booleans proving no raw context/output, cookie, or secret was
+  written.
+
+After all 11 judge attempts pass, the runner creates one raw review packet for
+the five repetition-1 representatives in an OS `0700` temporary directory. The
+packet is `0600` and uses `p0-100-agent-review-packet.v3`. Each sample exposes
+exactly an opaque `sample_id`, language,
+context/output digests, synthetic context/transcript/output, and the redacted
+generation completion coordinate. It exposes no `case_id`, case type,
+criticality, repetition, gold expectation, judge verdict, judge score, judge
+reason, or fixed case ordering. `sample_id` is the domain-separated SHA-256 of
+`run_id + context_digest + output_digest` under
+`easyinterview:p0-100:blind-review-sample:v2`; samples are sorted by this opaque
+ID before handoff. The packet absolute path is never written to `trigger.log`.
+
+A separately assigned Codex reviewer reads that blind packet and returns
+`p0-100-independent-agent-audit.v2`. Every audit row identifies only the
+provided `sample_id`, repeats its context/output digests, and includes every
+dynamic item path/kind/support verdict, causal check, independent `agent_*`
+reason code, and review digest. The validator independently recomputes the five
+representative sample IDs from the manifest, rejects old case-labelled schemas
+and unknown samples, then verifies exact digest, item-path/kind, and causal
+coverage. The audit marks `source=independent_agent_review` and
+`judge_verdict_used=false`; it contains no `case_id` or repetition. Only then
+does the runner continue, and the temporary packet is deleted before the
+durable manifest is written.
+
+Reviewer publication protocol: use a hidden temporary file in the same output
+directory. Create it using `os.open` with `O_CREAT|O_EXCL` and mode `0600`.
+Before publication, verify every `review_digest` is complete, write the complete
+payload, flush, call `os.fsync`, and close the file. Publish only with
+same-filesystem `os.replace`; cross-filesystem rename is forbidden. The final
+path is complete and mode `0600` on first visibility; creating or patching the
+final path before a later `chmod` is forbidden. The runner intentionally keeps
+its fail-fast mode check and does not wait for a later permission change.
+
+Neither durable artifact contains raw context/transcript/output, JD/resume/
+answer prose, prompt/response body, judge reasoning prose, cookie, email code,
+or secret value. Re-labeling judge verdicts with `agent_*` is explicitly not an
+independent review and fails the provenance/digest/path/causal gates.
+
+## Output isolation and retention
+
+Setup retention removes every pre-existing top-level file, directory, and
+symlink from the fixed P0.100 output directory before it writes the new
+`setup.env` / `setup.log`. This includes old PNGs, screenshot or Playwright
+directories, browser artifacts, summaries, logs, manifests, and unknown names;
+symlink targets outside the output directory are never followed.
+
+Failed retention preserves the current-run `investigation.json` plus only the
+bounded `setup.env`, `setup.log`, `trigger.log`, `result.json`, and
+`cleanup.env`; it deletes manifests, Agent audit, PNG/browser artifacts, and
+every unknown top-level entry. PASS retention keeps only the current manifest,
+Agent audit, and bounded logs/env. If a current `investigation.json` is present
+during PASS retention, PASS is rejected and failed retention preserves the
+diagnosis rather than deleting it. Cleanup applies the same stage allowlist, so
+an old resource can never survive silently into a current result.
+
+Trigger, verify, and cleanup scan privacy redlines before branching on the
+result. Any non-PASS or validator failure deletes the manifest, Agent audit,
+screenshots/raw artifacts, and normally named files containing forbidden raw
+keys or secret markers. A structural failure may retain only the bounded
+`issue_count`, `needs_work_count`, focus mode/count, action type, token totals,
+and output digest in `trigger.log`; it never retains dimension codes or prose.
+Only validator-confirmed redacted PASS evidence is retained.
+
+## Execution
+
+Run the shared environment preflight first, then execute serially:
 
 ```bash
+bash test/scenarios/env-verify.sh
 bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/setup.sh
-bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh
+P0_100_RUN_LIVE=1 bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh
 bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/verify.sh
 bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/cleanup.sh
 ```
 
-Agent 阶段会把结果写入：
+Without explicit live opt-in, usable credentials, or a current manifest, the
+hybrid result is `MANUAL_REQUIRED`. Once live sampling starts, any generation,
+judge, threshold, causal, critical, isolation, or privacy failure is `FAIL`.
+
+Output:
 
 ```text
-.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/result.json
+.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/
 ```
-
-如果 `deploy/dev-stack/.env` 缺真实 provider / auth / frontend real-mode 配置，或浏览器证据尚未准备好，`result.json` 会标记 `MANUAL_REQUIRED`。补齐 `.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/evidence.md` 后可重跑 `trigger.sh` / `verify.sh`。
-
-`setup.sh` 会清理上一轮 `evidence.md` 并在 `setup.env` 写入本轮 `RUN_ID`。人工或浏览器 Agent 补证时，`evidence.md` 必须包含同一个 `run_id`；`trigger.sh` 只会在 evidence 属于本轮且通过脱敏红线扫描后写入 `PASS`。
-
-## 6 启动真实联调环境
-
-### 6.1 外部依赖与 migration
-
-```bash
-bash test/scenarios/env-setup.sh --with-migrations
-bash test/scenarios/env-verify.sh
-
-export DATABASE_URL='postgres://easyinterview:dev@localhost:5432/easyinterview?sslmode=disable'
-make migrate-up
-```
-
-### 6.2 后端真实进程
-
-```bash
-set -a
-. deploy/dev-stack/.env
-set +a
-
-go run ./backend/cmd/api
-```
-
-期望：
-
-- 后端监听 `:8080`。
-- 缺 `SESSION_COOKIE_SECRET` / `AUTH_CHALLENGE_TOKEN_PEPPER` 时 fail-fast。
-- 缺真实 `AI_PROVIDER_API_KEY` 时 AIClient-enabled runtime fail-fast 或后续 AI 调用失败；不得自动回退到 stub。
-
-### 6.3 Mailpit Email-Code 登录
-
-确认 Mailpit 已随 `make dev-up` 启动：
-
-```bash
-open http://127.0.0.1:8025
-```
-
-在前端登录页或任一操作级 auth gate 中输入 `manual-uat-full-funnel@example.test` 并提交。随后在 Mailpit Web UI 打开最新邮件，把邮件中的 6 位 code 输入前端验证页。前端会调用 `verifyAuthEmailChallenge`，浏览器收到 `ei_session` 后回到目标页面，TopBar 应显示已登录用户。
-
-不要把 raw code 写入 tracked 文件或日志。
-
-### 6.4 前端真实模式
-
-推荐 build + preview：
-
-```bash
-cd frontend
-set -a
-. ../deploy/dev-stack/.env
-set +a
-pnpm build
-pnpm exec vite preview --host 127.0.0.1 --port 4174
-```
-
-也可在开发热更新时使用：
-
-```bash
-cd frontend
-set -a
-. ../deploy/dev-stack/.env
-set +a
-pnpm --filter @easyinterview/frontend dev
-```
-
-## 7 登录态确认
-
-1. 打开 `http://127.0.0.1:4174`。
-2. 触发登录，输入 `manual-uat-full-funnel@example.test`。
-3. 打开 Mailpit `http://127.0.0.1:8025`，从最新邮件读取 6 位 code 并在前端验证页提交。
-4. 前端刷新登录态，TopBar 应显示已登录用户 `manual-uat-full-funnel@example.test`。
-
-## 8 走查流程
-
-材料见 [`data/`](./data/)：
-
-1. Home：粘贴 `jd-backend-engineer.<lang>.md`。
-2. Parse：等待真实 `target_import` runner 与真实 AI parse 完成，确认结构化结果。
-3. Workspace：确认绑定 ready resume / target job，点击立即面试。
-4. Practice：使用 `answer-sample-backend-engineer.<lang>.md` 发送聊天消息，观察至少一次自然上下文承接。
-5. Complete：完成 session，进入 Generating。
-6. Report：等待真实 `report_generate` runner 和真实 AI report 完成。
-7. Next round：点击进入下一轮，确认派生 practice plan / session。
-
-## 9 真实 AI 调用证据
-
-记录到 `.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/evidence.md`，只写脱敏摘要：
-
-- run_id（来自同一输出目录下 `setup.env` 的 `RUN_ID`）
-- provider ref（例如 `deepseek`）
-- model profile（例如 `target.import.default`、`practice.chat.default`、`report.generate.default`）
-- model id
-- latency / token count（如可见）
-- `ai_task_runs` 行数或 backend log 中的脱敏 task-run marker
-- raw debug 开关状态与 raw log 路径（不复制 raw 内容）
-
-禁止记录：
-
-- `AI_PROVIDER_API_KEY`
-- prompt 明文
-- provider response 明文
-- JD 原文、答案全文、报告 prose
-- session cookie value
-
-## 10 清理
-
-默认 cleanup 走真实产品隐私删除路径，只作用于当前 UAT 邮箱对应的用户，不清空整个 dev DB。命令见 [`data/account.md`](./data/account.md#cleanup)。
-
-如果用户要求“保留现场”，保留 dev DB 行和 `.test-output/e2e/p0-100-real-provider-full-funnel-hybrid/` 脱敏证据；退出浏览器登录态并不要导出 session cookie。Mailpit 中的邮件只属于本地 dev 环境，可通过 Mailpit UI 清空。

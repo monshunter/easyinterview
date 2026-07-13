@@ -26,10 +26,12 @@ type AsyncJob struct {
 }
 
 type ReportStatusUpdate struct {
-	ReportID string
-	From     sharedtypes.ReportStatus
-	To       sharedtypes.ReportStatus
-	Now      time.Time
+	ReportID        string
+	AsyncJobID      string
+	ClaimedAttempts int32
+	From            sharedtypes.ReportStatus
+	To              sharedtypes.ReportStatus
+	Now             time.Time
 }
 
 type ReportOutcome struct {

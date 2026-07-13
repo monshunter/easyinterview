@@ -13,17 +13,30 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
-// Schema is the parsed output-schema subset. Only the keys A3 validates are
-// modeled; unknown keys are ignored on decode.
+// Schema is the parsed provider-neutral output-schema subset shared by A3 and
+// F3. Pointer fields distinguish an omitted constraint from an explicit zero
+// or false value.
 type Schema struct {
-	Type       string            `json:"type"`
-	Required   []string          `json:"required"`
-	Properties map[string]Schema `json:"properties"`
-	Items      *Schema           `json:"items"`
-	Enum       []any             `json:"enum"`
+	Type                 string            `json:"type"`
+	Description          string            `json:"description"`
+	Required             []string          `json:"required"`
+	Properties           map[string]Schema `json:"properties"`
+	AdditionalProperties *bool             `json:"additionalProperties"`
+	Items                *Schema           `json:"items"`
+	Enum                 []any             `json:"enum"`
+	Minimum              *float64          `json:"minimum"`
+	Maximum              *float64          `json:"maximum"`
+	MinLength            *int              `json:"minLength"`
+	MaxLength            *int              `json:"maxLength"`
+	Pattern              string            `json:"pattern"`
+	MinItems             *int              `json:"minItems"`
+	MaxItems             *int              `json:"maxItems"`
+	UniqueItems          *bool             `json:"uniqueItems"`
 }
 
 // Validate decodes schemaRaw and content and verifies content satisfies the
@@ -33,9 +46,9 @@ func Validate(schemaRaw json.RawMessage, content string) error {
 	if content == "" {
 		return errors.New("empty content")
 	}
-	var schema Schema
-	if err := json.Unmarshal(schemaRaw, &schema); err != nil {
-		return fmt.Errorf("parse output_schema: %w", err)
+	schema, err := parseSchema(schemaRaw)
+	if err != nil {
+		return err
 	}
 	var v any
 	dec := json.NewDecoder(strings.NewReader(NormalizeJSONContent(content)))
@@ -51,6 +64,113 @@ func Validate(schemaRaw json.RawMessage, content string) error {
 		return errors.New("multiple JSON values in output")
 	}
 	return validateAgainstSchema(schema, v, "$")
+}
+
+// ValidateSchema verifies that schemaRaw uses only the supported, internally
+// consistent provider-neutral subset.
+func ValidateSchema(schemaRaw json.RawMessage) error {
+	_, err := parseSchema(schemaRaw)
+	return err
+}
+
+// RequireClosedObjects additionally requires every declared object to set
+// additionalProperties=false. Grounded report v0.2 uses this before a loader
+// snapshot can publish.
+func RequireClosedObjects(schemaRaw json.RawMessage) error {
+	schema, err := parseSchema(schemaRaw)
+	if err != nil {
+		return err
+	}
+	return requireClosedObjects(schema, "$")
+}
+
+func parseSchema(schemaRaw json.RawMessage) (Schema, error) {
+	var schema Schema
+	dec := json.NewDecoder(strings.NewReader(string(schemaRaw)))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&schema); err != nil {
+		return Schema{}, fmt.Errorf("parse output_schema: %w", err)
+	}
+	if err := dec.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		return Schema{}, errors.New("parse output_schema: trailing content")
+	}
+	if err := validateSchemaNode(schema, "$"); err != nil {
+		return Schema{}, err
+	}
+	return schema, nil
+}
+
+func validateSchemaNode(schema Schema, path string) error {
+	if schema.Type != "" {
+		switch schema.Type {
+		case "object", "array", "string", "number", "integer", "boolean", "null":
+		default:
+			return fmt.Errorf("output_schema %s has unsupported type %q", path, schema.Type)
+		}
+	}
+	if schema.AdditionalProperties != nil && schema.Type != "object" {
+		return fmt.Errorf("output_schema %s additionalProperties requires object", path)
+	}
+	for _, bound := range []*int{schema.MinLength, schema.MaxLength, schema.MinItems, schema.MaxItems} {
+		if bound != nil && *bound < 0 {
+			return fmt.Errorf("output_schema %s bounds must be non-negative", path)
+		}
+	}
+	if schema.MinLength != nil || schema.MaxLength != nil || schema.Pattern != "" {
+		if schema.Type != "string" {
+			return fmt.Errorf("output_schema %s string bounds require string type", path)
+		}
+		if schema.Pattern != "" {
+			if _, err := regexp.Compile(schema.Pattern); err != nil {
+				return fmt.Errorf("output_schema %s invalid pattern: %w", path, err)
+			}
+		}
+	}
+	if schema.MinItems != nil || schema.MaxItems != nil || schema.UniqueItems != nil {
+		if schema.Type != "array" {
+			return fmt.Errorf("output_schema %s array bounds require array type", path)
+		}
+	}
+	if schema.Minimum != nil || schema.Maximum != nil {
+		if schema.Type != "number" && schema.Type != "integer" {
+			return fmt.Errorf("output_schema %s numeric bounds require number/integer type", path)
+		}
+	}
+	if schema.MinLength != nil && schema.MaxLength != nil && *schema.MinLength > *schema.MaxLength {
+		return fmt.Errorf("output_schema %s minLength exceeds maxLength", path)
+	}
+	if schema.MinItems != nil && schema.MaxItems != nil && *schema.MinItems > *schema.MaxItems {
+		return fmt.Errorf("output_schema %s minItems exceeds maxItems", path)
+	}
+	if schema.Minimum != nil && schema.Maximum != nil && *schema.Minimum > *schema.Maximum {
+		return fmt.Errorf("output_schema %s minimum exceeds maximum", path)
+	}
+	for key, child := range schema.Properties {
+		if err := validateSchemaNode(child, path+"."+key); err != nil {
+			return err
+		}
+	}
+	if schema.Items != nil {
+		if err := validateSchemaNode(*schema.Items, path+"[]"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func requireClosedObjects(schema Schema, path string) error {
+	if schema.Type == "object" && (schema.AdditionalProperties == nil || *schema.AdditionalProperties) {
+		return fmt.Errorf("output_schema %s must set additionalProperties=false", path)
+	}
+	for key, child := range schema.Properties {
+		if err := requireClosedObjects(child, path+"."+key); err != nil {
+			return err
+		}
+	}
+	if schema.Items != nil {
+		return requireClosedObjects(*schema.Items, path+"[]")
+	}
+	return nil
 }
 
 // NormalizeJSONContent accepts the one provider deviation this app can safely
@@ -85,7 +205,7 @@ func validateAgainstSchema(schema Schema, value any, path string) error {
 		return fmt.Errorf("%s value is not in enum", path)
 	}
 
-	if len(schema.Required) > 0 || len(schema.Properties) > 0 {
+	if schema.Type == "object" || len(schema.Required) > 0 || len(schema.Properties) > 0 || schema.AdditionalProperties != nil {
 		obj, ok := value.(map[string]any)
 		if !ok {
 			return fmt.Errorf("%s expected object", path)
@@ -93,6 +213,13 @@ func validateAgainstSchema(schema Schema, value any, path string) error {
 		for _, key := range schema.Required {
 			if _, ok := obj[key]; !ok {
 				return fmt.Errorf("%s missing required field %q", path, key)
+			}
+		}
+		if schema.AdditionalProperties != nil && !*schema.AdditionalProperties {
+			for key := range obj {
+				if _, ok := schema.Properties[key]; !ok {
+					return fmt.Errorf("%s unknown field %q", path, key)
+				}
 			}
 		}
 		for key, childSchema := range schema.Properties {
@@ -106,15 +233,60 @@ func validateAgainstSchema(schema Schema, value any, path string) error {
 		}
 	}
 
-	if schema.Items != nil {
+	if schema.Type == "array" || schema.Items != nil || schema.MinItems != nil || schema.MaxItems != nil || schema.UniqueItems != nil {
 		items, ok := value.([]any)
 		if !ok {
 			return fmt.Errorf("%s expected array", path)
 		}
-		for i, item := range items {
-			if err := validateAgainstSchema(*schema.Items, item, fmt.Sprintf("%s[%d]", path, i)); err != nil {
-				return err
+		if schema.MinItems != nil && len(items) < *schema.MinItems {
+			return fmt.Errorf("%s has %d items, minimum is %d", path, len(items), *schema.MinItems)
+		}
+		if schema.MaxItems != nil && len(items) > *schema.MaxItems {
+			return fmt.Errorf("%s has %d items, maximum is %d", path, len(items), *schema.MaxItems)
+		}
+		if schema.UniqueItems != nil && *schema.UniqueItems {
+			for i := range items {
+				for j := 0; j < i; j++ {
+					if jsonValuesEqual(items[i], items[j]) {
+						return fmt.Errorf("%s items %d and %d are duplicates", path, j, i)
+					}
+				}
 			}
+		}
+		if schema.Items != nil {
+			for i, item := range items {
+				if err := validateAgainstSchema(*schema.Items, item, fmt.Sprintf("%s[%d]", path, i)); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	if text, ok := value.(string); ok {
+		length := utf8.RuneCountInString(text)
+		if schema.MinLength != nil && length < *schema.MinLength {
+			return fmt.Errorf("%s length %d is below %d", path, length, *schema.MinLength)
+		}
+		if schema.MaxLength != nil && length > *schema.MaxLength {
+			return fmt.Errorf("%s length %d exceeds %d", path, length, *schema.MaxLength)
+		}
+		if schema.Pattern != "" {
+			matched, err := regexp.MatchString(schema.Pattern, text)
+			if err != nil || !matched {
+				return fmt.Errorf("%s does not match pattern %q", path, schema.Pattern)
+			}
+		}
+	}
+	if number, ok := value.(json.Number); ok {
+		numeric, err := number.Float64()
+		if err != nil {
+			return fmt.Errorf("%s invalid number", path)
+		}
+		if schema.Minimum != nil && numeric < *schema.Minimum {
+			return fmt.Errorf("%s value %v is below %v", path, numeric, *schema.Minimum)
+		}
+		if schema.Maximum != nil && numeric > *schema.Maximum {
+			return fmt.Errorf("%s value %v exceeds %v", path, numeric, *schema.Maximum)
 		}
 	}
 

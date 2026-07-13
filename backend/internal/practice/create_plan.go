@@ -19,6 +19,7 @@ var (
 	ErrPlanNotFound             = stderrs.New("practice plan not found")
 	ErrSessionNotFound          = stderrs.New("practice session not found")
 	ErrSessionConflict          = stderrs.New("practice session conflict")
+	ErrSessionNotReportable     = stderrs.New("practice session is not reportable")
 	ErrClientEventMismatch      = stderrs.New("practice session client event mismatch")
 	ErrInvalidCursor            = stderrs.New("practice session invalid cursor")
 )
@@ -84,50 +85,49 @@ func NewService(opts ServiceOptions) *Service {
 }
 
 type CreatePlanRequest struct {
-	UserID               string
-	TargetJobID          string
-	ResumeID             string
-	SourceReportID       string
-	RoundID              string
-	Goal                 sharedtypes.PracticeGoal
-	InterviewerPersona   sharedtypes.InterviewerRole
-	Difficulty           string
-	Language             string
-	TimeBudgetMinutes    int32
-	FocusCompetencyCodes []string
-}
-
-type CreatePlanStoreInput struct {
-	PlanID               string
-	AuditEventID         string
-	UserID               string
-	TargetJobID          string
-	ResumeID             string
-	SourceReportID       string
-	RoundID              string
-	Goal                 sharedtypes.PracticeGoal
-	InterviewerPersona   sharedtypes.InterviewerRole
-	Difficulty           string
-	Language             string
-	TimeBudgetMinutes    int32
-	FocusCompetencyCodes []string
-	Now                  time.Time
-}
-
-type PlanRecord struct {
-	ID                 string
+	UserID             string
 	TargetJobID        string
-	SourceReportID     string
 	ResumeID           string
+	SourceReportID     string
 	RoundID            string
-	RoundSequence      int32
 	Goal               sharedtypes.PracticeGoal
 	InterviewerPersona sharedtypes.InterviewerRole
 	Difficulty         string
 	Language           string
 	TimeBudgetMinutes  int32
-	Status             string
-	CreatedAt          time.Time
+}
+
+type CreatePlanStoreInput struct {
+	PlanID             string
+	AuditEventID       string
+	UserID             string
+	TargetJobID        string
+	ResumeID           string
+	SourceReportID     string
+	RoundID            string
+	Goal               sharedtypes.PracticeGoal
+	InterviewerPersona sharedtypes.InterviewerRole
+	Difficulty         string
+	Language           string
+	TimeBudgetMinutes  int32
+	Now                time.Time
+}
+
+type PlanRecord struct {
+	ID                  string
+	TargetJobID         string
+	SourceReportID      string
+	ResumeID            string
+	RoundID             string
+	RoundSequence       int32
+	Goal                sharedtypes.PracticeGoal
+	InterviewerPersona  sharedtypes.InterviewerRole
+	Difficulty          string
+	Language            string
+	TimeBudgetMinutes   int32
+	FocusDimensionCodes []string
+	Status              string
+	CreatedAt           time.Time
 }
 
 type ListSessionsRequest struct {
@@ -160,48 +160,59 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 	if strings.TrimSpace(in.UserID) == "" {
 		return PlanRecord{}, fmt.Errorf("userId is required")
 	}
-	if strings.TrimSpace(in.TargetJobID) == "" {
-		return PlanRecord{}, validationError("targetJobId is required", map[string]any{"field": "targetJobId"})
-	}
 	if !validPracticeGoal(in.Goal) {
 		return PlanRecord{}, validationError("goal is invalid", map[string]any{"field": "goal", "goal": string(in.Goal)})
-	}
-	if strings.TrimSpace(in.ResumeID) == "" {
-		return PlanRecord{}, validationError("A resume asset must be bound before creating this practice plan.", map[string]any{"field": "resumeId"})
 	}
 	sourceReportID := strings.TrimSpace(in.SourceReportID)
 	if err := validateCreatePlanSources(in.Goal, sourceReportID); err != nil {
 		return PlanRecord{}, err
 	}
-	if !validInterviewerRole(in.InterviewerPersona) {
-		return PlanRecord{}, validationError("interviewerPersona is invalid", map[string]any{"field": "interviewerPersona"})
-	}
-	if !validDifficulty(in.Difficulty) {
-		return PlanRecord{}, validationError("difficulty is invalid", map[string]any{"field": "difficulty"})
-	}
-	if strings.TrimSpace(in.Language) == "" {
-		return PlanRecord{}, validationError("language is required", map[string]any{"field": "language"})
-	}
-	if in.TimeBudgetMinutes < 1 {
-		return PlanRecord{}, validationError("timeBudgetMinutes must be positive", map[string]any{"field": "timeBudgetMinutes"})
+	language := ""
+	if isReportDerivedGoal(in.Goal) {
+		if field := copiedDerivedPlanField(in); field != "" {
+			return PlanRecord{}, validationError("report-derived plan fields are server-owned", map[string]any{"field": field})
+		}
+	} else {
+		if strings.TrimSpace(in.TargetJobID) == "" {
+			return PlanRecord{}, validationError("targetJobId is required", map[string]any{"field": "targetJobId"})
+		}
+		if strings.TrimSpace(in.ResumeID) == "" {
+			return PlanRecord{}, validationError("A resume asset must be bound before creating this practice plan.", map[string]any{"field": "resumeId"})
+		}
+		if !validInterviewerRole(in.InterviewerPersona) {
+			return PlanRecord{}, validationError("interviewerPersona is invalid", map[string]any{"field": "interviewerPersona"})
+		}
+		if !validDifficulty(in.Difficulty) {
+			return PlanRecord{}, validationError("difficulty is invalid", map[string]any{"field": "difficulty"})
+		}
+		if strings.TrimSpace(in.Language) == "" {
+			return PlanRecord{}, validationError("language is required", map[string]any{"field": "language"})
+		}
+		var ok bool
+		language, ok = canonicalPracticeLanguage(in.Language)
+		if !ok {
+			return PlanRecord{}, validationError("language is invalid", map[string]any{"field": "language"})
+		}
+		if in.TimeBudgetMinutes < 1 {
+			return PlanRecord{}, validationError("timeBudgetMinutes must be positive", map[string]any{"field": "timeBudgetMinutes"})
+		}
 	}
 
 	now := s.now().UTC()
 	plan, err := s.store.CreatePlan(ctx, CreatePlanStoreInput{
-		PlanID:               s.newID(),
-		AuditEventID:         s.newID(),
-		UserID:               strings.TrimSpace(in.UserID),
-		TargetJobID:          strings.TrimSpace(in.TargetJobID),
-		ResumeID:             strings.TrimSpace(in.ResumeID),
-		SourceReportID:       sourceReportID,
-		RoundID:              strings.TrimSpace(in.RoundID),
-		Goal:                 in.Goal,
-		InterviewerPersona:   in.InterviewerPersona,
-		Difficulty:           strings.TrimSpace(in.Difficulty),
-		Language:             strings.TrimSpace(in.Language),
-		TimeBudgetMinutes:    in.TimeBudgetMinutes,
-		FocusCompetencyCodes: append([]string(nil), in.FocusCompetencyCodes...),
-		Now:                  now,
+		PlanID:             s.newID(),
+		AuditEventID:       s.newID(),
+		UserID:             strings.TrimSpace(in.UserID),
+		TargetJobID:        strings.TrimSpace(in.TargetJobID),
+		ResumeID:           strings.TrimSpace(in.ResumeID),
+		SourceReportID:     sourceReportID,
+		RoundID:            strings.TrimSpace(in.RoundID),
+		Goal:               in.Goal,
+		InterviewerPersona: in.InterviewerPersona,
+		Difficulty:         strings.TrimSpace(in.Difficulty),
+		Language:           language,
+		TimeBudgetMinutes:  in.TimeBudgetMinutes,
+		Now:                now,
 	})
 	if stderrs.Is(err, ErrPlanPrerequisiteNotFound) {
 		return PlanRecord{}, validationError("target job or resume asset is not available", map[string]any{
@@ -213,6 +224,30 @@ func (s *Service) CreatePracticePlan(ctx context.Context, in CreatePlanRequest) 
 		return PlanRecord{}, err
 	}
 	return plan, nil
+}
+
+func isReportDerivedGoal(goal sharedtypes.PracticeGoal) bool {
+	return goal == sharedtypes.PracticeGoalRetryCurrentRound || goal == sharedtypes.PracticeGoalNextRound
+}
+
+func copiedDerivedPlanField(in CreatePlanRequest) string {
+	for _, field := range []struct {
+		name    string
+		present bool
+	}{
+		{name: "targetJobId", present: strings.TrimSpace(in.TargetJobID) != ""},
+		{name: "resumeId", present: strings.TrimSpace(in.ResumeID) != ""},
+		{name: "roundId", present: strings.TrimSpace(in.RoundID) != ""},
+		{name: "interviewerPersona", present: in.InterviewerPersona != ""},
+		{name: "difficulty", present: strings.TrimSpace(in.Difficulty) != ""},
+		{name: "language", present: strings.TrimSpace(in.Language) != ""},
+		{name: "timeBudgetMinutes", present: in.TimeBudgetMinutes != 0},
+	} {
+		if field.present {
+			return field.name
+		}
+	}
+	return ""
 }
 
 func validateCreatePlanSources(goal sharedtypes.PracticeGoal, sourceReportID string) error {
@@ -352,5 +387,16 @@ func validDifficulty(difficulty string) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+func canonicalPracticeLanguage(language string) (string, bool) {
+	switch strings.ToLower(strings.TrimSpace(language)) {
+	case "en":
+		return "en", true
+	case "zh", "zh_cn", "zh-cn":
+		return "zh-CN", true
+	default:
+		return "", false
 	}
 }

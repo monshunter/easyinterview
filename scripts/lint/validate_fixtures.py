@@ -101,7 +101,24 @@ P0_EXPORT_ERROR_CODES: dict[str, str] = {
     "exportResume": "RESUME_EXPORT_NOT_AVAILABLE",
 }
 REQUIRED_NAMED_SCENARIOS: dict[str, frozenset[str]] = {
-    "createPracticePlan": frozenset({"default", "report-derived", "round-mismatch"}),
+    "createPracticePlan": frozenset(
+        {"default", "retry-derived", "next-derived", "round-mismatch"}
+    ),
+    "getFeedbackReport": frozenset(
+        {
+            "default",
+            "prototype-baseline",
+            "ready-needs-practice",
+            "queued",
+            "generating",
+            "ready-well-prepared",
+            "ready-empty-focus",
+            "failed",
+            "failed-context-too-large",
+            "invalid-contract",
+            "long-content",
+        }
+    ),
     "getPracticePlan": frozenset({"default", "legacy-null-round-identity"}),
     "getTargetJob": frozenset({"default", "not-started-progress", "all-completed-progress"}),
     "listTargetJobs": frozenset({"default", "not-started-progress", "all-completed-progress"}),
@@ -233,6 +250,13 @@ def schema_validate(value: Any, schema: dict | None, *, root: dict, path: str,
                         root=root, path=path, errors=errors)
         return
 
+    # JSON Schema permits a bare `const` without an adjacent `type`. This is
+    # used by conditional predicates and discriminated request branches, so it
+    # must be evaluated before type-specific handling.
+    if "const" in schema and value != schema["const"]:
+        errors.append(f"{path}: value {value!r} != const {schema['const']!r}")
+        return
+
     # 3.1 supports type as list. Normalize.
     types_field = schema.get("type")
     if isinstance(types_field, list):
@@ -245,6 +269,31 @@ def schema_validate(value: Any, schema: dict | None, *, root: dict, path: str,
                 return
         errors.append(f"{path}: matched none of type {types_field}")
         return
+
+    if "if" in schema:
+        predicate_errors: List[str] = []
+        schema_validate(
+            value,
+            schema["if"],
+            root=root,
+            path=path,
+            errors=predicate_errors,
+        )
+        branch = schema.get("then") if not predicate_errors else schema.get("else")
+        if branch is not None:
+            schema_validate(value, branch, root=root, path=path, errors=errors)
+
+    if "not" in schema:
+        forbidden_errors: List[str] = []
+        schema_validate(
+            value,
+            schema["not"],
+            root=root,
+            path=path,
+            errors=forbidden_errors,
+        )
+        if not forbidden_errors:
+            errors.append(f"{path}: matched forbidden schema")
 
     if "oneOf" in schema:
         matched = 0
@@ -320,6 +369,10 @@ def schema_validate(value: Any, schema: dict | None, *, root: dict, path: str,
         if not isinstance(value, list):
             errors.append(f"{path}: expected array, got {type(value).__name__}")
             return
+        if "minItems" in schema and len(value) < schema["minItems"]:
+            errors.append(f"{path}: {len(value)} items < minItems {schema['minItems']}")
+        if "maxItems" in schema and len(value) > schema["maxItems"]:
+            errors.append(f"{path}: {len(value)} items > maxItems {schema['maxItems']}")
         items_schema = schema.get("items")
         for i, item in enumerate(value):
             schema_validate(item, items_schema, root=root,
@@ -338,10 +391,12 @@ def schema_validate(value: Any, schema: dict | None, *, root: dict, path: str,
         if not isinstance(value, str):
             errors.append(f"{path}: expected string, got {type(value).__name__}")
             return
+        if "minLength" in schema and len(value) < schema["minLength"]:
+            errors.append(f"{path}: length {len(value)} < minLength {schema['minLength']}")
+        if "maxLength" in schema and len(value) > schema["maxLength"]:
+            errors.append(f"{path}: length {len(value)} > maxLength {schema['maxLength']}")
         if "enum" in schema and value not in schema["enum"]:
             errors.append(f"{path}: value {value!r} not in enum {schema['enum']}")
-        if "const" in schema and value != schema["const"]:
-            errors.append(f"{path}: value {value!r} != const {schema['const']!r}")
         pattern = schema.get("pattern")
         if isinstance(pattern, str) and re.search(pattern, value) is None:
             errors.append(f"{path}: value {value!r} does not match pattern {pattern!r}")
@@ -491,6 +546,16 @@ def check_provenance(opid: str, scenario: dict, errors: List[str]) -> None:
     if body is None:
         errors.append(f"{opid}: missing response.body for provenance check")
         return
+    if (
+        opid == "getFeedbackReport"
+        and body.get("status") is not None
+        and body.get("status") != "ready"
+    ):
+        if body.get("provenance") is not None:
+            errors.append(
+                "getFeedbackReport.provenance: non-ready report provenance must be null"
+            )
+        return
     for path in paths:
         resolved = _resolve_path(body, path)
         if not resolved:
@@ -585,6 +650,87 @@ def _check_practice_plan_round_pair(
         errors.append(f"{path}: roundId sequence must equal roundSequence")
 
 
+def check_feedback_report_semantics(scenarios: dict, errors: List[str]) -> None:
+    expected_status = {
+        "default": "ready",
+        "prototype-baseline": "ready",
+        "ready-needs-practice": "ready",
+        "queued": "queued",
+        "generating": "generating",
+        "ready-well-prepared": "ready",
+        "ready-empty-focus": "ready",
+        "failed": "failed",
+        "failed-context-too-large": "failed",
+        "invalid-contract": "failed",
+        "long-content": "ready",
+    }
+    expected_error = {
+        "queued": None,
+        "generating": None,
+        "failed": "AI_PROVIDER_TIMEOUT",
+        "failed-context-too-large": "REPORT_CONTEXT_TOO_LARGE",
+        "invalid-contract": "AI_OUTPUT_INVALID",
+    }
+    null_when_not_ready = ("summary", "preparednessLevel", "provenance")
+    empty_when_not_ready = (
+        "dimensionAssessments",
+        "highlights",
+        "issues",
+        "nextActions",
+        "retryFocusDimensionCodes",
+    )
+    forbidden_keys = {
+        "dimension",
+        "retryFocusCompetencyCodes",
+        "questionAssessments",
+        "retryFocusTurnIds",
+    }
+
+    for scenario_name, status in expected_status.items():
+        scenario = scenarios.get(scenario_name)
+        if not isinstance(scenario, dict):
+            continue
+        body = ((scenario.get("response") or {}).get("body") or {})
+        path = f"getFeedbackReport.{scenario_name}.response.body"
+        if body.get("status") != status:
+            errors.append(f"{path}.status: expected {status!r}")
+        if not isinstance(body.get("context"), dict):
+            errors.append(f"{path}.context: frozen report context is required")
+        for key_path, key in _walk_keys(body):
+            if key in forbidden_keys:
+                errors.append(f"{path}.{key_path}: legacy report field {key!r} is forbidden")
+
+        if status == "ready":
+            if body.get("errorCode") is not None:
+                errors.append(f"{path}.errorCode: ready report must use null")
+            if not isinstance(body.get("summary"), str) or not body["summary"].strip():
+                errors.append(f"{path}.summary: ready report must be non-empty")
+            if not isinstance(body.get("preparednessLevel"), str) or not body["preparednessLevel"].strip():
+                errors.append(f"{path}.preparednessLevel: ready report must be non-null")
+            if not isinstance(body.get("provenance"), dict):
+                errors.append(f"{path}.provenance: ready report must be non-null object")
+            continue
+
+        if body.get("errorCode") != expected_error.get(scenario_name):
+            errors.append(
+                f"{path}.errorCode: expected {expected_error.get(scenario_name)!r}"
+            )
+        for field in null_when_not_ready:
+            if body.get(field) is not None:
+                errors.append(f"{path}.{field}: non-ready report must use null")
+        for field in empty_when_not_ready:
+            if body.get(field) != []:
+                errors.append(f"{path}.{field}: non-ready report must use []")
+
+    ready_empty_focus = scenarios.get("ready-empty-focus") or {}
+    ready_empty_body = ((ready_empty_focus.get("response") or {}).get("body") or {})
+    if ready_empty_body.get("retryFocusDimensionCodes") != []:
+        errors.append(
+            "getFeedbackReport.ready-empty-focus.response.body.retryFocusDimensionCodes: "
+            "must be [] to prove generic retry fallback"
+        )
+
+
 def check_target_job_practice_progress(path: str, target: dict, errors: List[str]) -> None:
     summary = target.get("summary")
     if not isinstance(summary, dict):
@@ -643,16 +789,44 @@ def check_target_job_practice_progress(path: str, target: dict, errors: List[str
 
 def check_practice_round_semantics(opid: str, scenarios: dict, errors: List[str]) -> None:
     if opid == "createPracticePlan":
-        for scenario_name in ("default", "report-derived"):
+        if "report-derived" in scenarios:
+            errors.append(
+                "createPracticePlan.report-derived: compatibility scenario is forbidden; "
+                "use retry-derived and next-derived"
+            )
+        for scenario_name in ("default", "retry-derived", "next-derived"):
             scenario = scenarios.get(scenario_name) or {}
             response_body = ((scenario.get("response") or {}).get("body") or {})
             _check_practice_plan_round_pair(
                 f"{opid}.{scenario_name}.response.body", response_body, errors
             )
             request_body = ((scenario.get("request") or {}).get("body") or {})
-            if request_body.get("roundId") != response_body.get("roundId"):
+            if scenario_name == "default" and request_body.get("roundId") != response_body.get("roundId"):
                 errors.append(
                     f"{opid}.{scenario_name}: request roundId must equal persisted response roundId"
+                )
+            if scenario_name == "default":
+                continue
+            expected_goal = {
+                "retry-derived": "retry_current_round",
+                "next-derived": "next_round",
+            }[scenario_name]
+            if set(request_body) != {"goal", "sourceReportId"}:
+                errors.append(
+                    f"{opid}.{scenario_name}.request.body: derived request must contain "
+                    "exactly goal and sourceReportId"
+                )
+            if request_body.get("goal") != expected_goal:
+                errors.append(
+                    f"{opid}.{scenario_name}.request.body.goal: expected {expected_goal!r}"
+                )
+            if response_body.get("goal") != expected_goal:
+                errors.append(
+                    f"{opid}.{scenario_name}.response.body.goal: expected {expected_goal!r}"
+                )
+            if request_body.get("sourceReportId") != response_body.get("sourceReportId"):
+                errors.append(
+                    f"{opid}.{scenario_name}: sourceReportId must match persisted response"
                 )
         return
 
@@ -880,6 +1054,8 @@ def validate(repo_root: Path) -> List[str]:
             check_status_declared(opid, op, scenario_name, scenario, errors)
             check_schema(opid, op, scenario_name, scenario, spec, errors)
         check_required_named_scenarios(opid, scenarios, errors)
+        if opid == "getFeedbackReport":
+            check_feedback_report_semantics(scenarios, errors)
         check_practice_round_semantics(opid, scenarios, errors)
         check_practice_voice_playable_refs(opid, scenarios, errors)
         check_practice_conversation_semantics(opid, scenarios, errors)

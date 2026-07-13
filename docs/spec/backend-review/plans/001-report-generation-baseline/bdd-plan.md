@@ -1,13 +1,20 @@
-# Conversation-level Report BDD Plan
+# Grounded Conversation Report BDD Plan
 
-> **版本**: 2.1
+> **版本**: 2.16
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## Scenario Matrix
-| ID | Type | Given | When | Then |
-|----|------|-------|------|------|
-| E2E.P0.056 | primary/contract | completed conversation with valid 1.0-5.0 scores | generating/report load | ready session-level report with deterministic readiness, no question rows |
-| E2E.P0.057 | alternate | ready report | retry/next CTA | fresh session receives competency/round context |
-| E2E.P0.058 | failure/recovery | provider/invalid score/empty or duplicate candidate dimension/missing session | load/retry | typed failure and no partial ready data |
-| E2E.P0.099 | real integration | real conversation completed | runner and browser flow | real conversation-level report is visible |
+
+| ID | Type | Phase | Given | When | Then |
+|----|------|-------|-------|------|------|
+| E2E.P0.056 | primary/contract | 7 | schema-valid P0.047 completion owner artifact + completed context-rich conversation | run exact `TestE2EP0056ReportBackendEvidence` then compose frontend runner | backend artifact + frontend markers both pass; frozen context, valid anchors/actions and no hidden score |
+| E2E.P0.058 | failure/recovery | 6-9 | schema-valid completion owner artifact plus missing/mismatched/oversized snapshot, action-local attempt2/3/4 recovery, attempt4 invalid/provider failure, second independent invocation and nonretryable failure | run exact `TestE2EP0058ReportFailureBackendEvidence` then compose typed frontend states | one action uses initial+3 with10s/20s/40s, destroys state on return and next action resets；async attempts are independent；nonretryable terminal；no partial ready；frontend remains honest queued/generating until backend terminal |
+| E2E.P0.070 | primary/replay | 8 | ready source report with empty or issue-backed needs-work focus | retry plan create/read/replay | server creates generic same-round retry for empty focus or atomically projects issue-backed focus |
+| E2E.P0.072 | security/failure | 8 | missing/cross-user/wrong-target/resume/round/non-ready/invalid source | derived plan create | fail closed without privacy or focus leakage |
+| E2E.P0.099 | real integration/UX + deterministic boundary parity | 8 | real shared env + current-run en/zh ready rows + exact 24/64 ui-design/OpenAPI fixtures | capture exact six full-page images；bind each ready row's canonical content/action/content-audit/screenshot/report/session/context digests；run prototype/formal pixel parity on boundary fixtures | 390x844 real report images prove actual labels satisfy `<=24 whitespace words` / `<=64 Unicode code points` and are fully visible；deterministic parity independently proves exact 24/64 wrapping with no clipping/ellipsis/hiding/overflow |
+| E2E.P0.100 | real-provider quality + bounded retry | 8-9 | distinct fixed-five contexts + deterministic action-retry and takeover fixtures | product action-local initial+3 + lease fencing + evalkit generation/judge independent max4；strict diagnostic additionally requires 11/11 + blind audit | product waits10s/20s/40s and new invocation resets；mechanical finals100%；fixed-five semantic至少4/5；strict run59381 remains FAIL；async attempts stay infra-only；stale worker zero report/outbox/audit/job |
+
+Scenario entity ownership remains registry truth: frontend-report-dashboard owns 056/058, backend-practice owns 070/072, and e2e-scenarios-p0 owns 099/100. This plan supplies named backend markers and artifacts; it does not duplicate the scenario directories.
+
+P0.056 backend artifact uses schema `report-backend-evidence.v1`; P0.058 uses `report-backend-evidence.v3` with separate database and runtime facts. Both use the exact keys/commands/markers defined in test-plan. Neither scenario may recreate `completePracticeSession`; both must consume `practice-completion-evidence.v1` from backend-practice/002. PASS requires exact Go test execution evidence, schema-valid redacted artifacts and absence of FAIL/no-test/raw-content markers before frontend composition.

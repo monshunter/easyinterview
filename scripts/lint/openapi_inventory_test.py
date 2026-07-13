@@ -171,6 +171,110 @@ class OpenAPIInventoryContractTest(unittest.TestCase):
         self.assertIn("PRACTICE_PLAN_NOT_FOUND", schemas["ApiErrorCode"]["enum"])
         self.assertIn("PRACTICE_SESSION_NOT_FOUND", schemas["ApiErrorCode"]["enum"])
 
+    def test_openapi_001_grounded_direct_report_contract(self) -> None:
+        data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
+        schemas = data["components"]["schemas"]
+
+        self.assertNotIn("DimensionResult", schemas)
+        self.assertIn("REPORT_CONTEXT_TOO_LARGE", schemas["ApiErrorCode"]["enum"])
+
+        report = schemas["FeedbackReport"]
+        self.assertFalse(report["additionalProperties"])
+        self.assertEqual(
+            [
+                "id",
+                "sessionId",
+                "targetJobId",
+                "status",
+                "errorCode",
+                "summary",
+                "context",
+                "preparednessLevel",
+                "highlights",
+                "issues",
+                "nextActions",
+                "dimensionAssessments",
+                "retryFocusDimensionCodes",
+                "provenance",
+                "createdAt",
+                "updatedAt",
+            ],
+            report["required"],
+        )
+        self.assertNotIn("retryFocusCompetencyCodes", report["properties"])
+        self.assertEqual(1, report["properties"]["summary"]["oneOf"][0]["minLength"])
+        self.assertEqual(360, report["properties"]["summary"]["oneOf"][0]["maxLength"])
+        self.assertEqual(
+            "#/components/schemas/ReportContextSnapshot",
+            report["properties"]["context"]["$ref"],
+        )
+        self.assertEqual(6, report["properties"]["dimensionAssessments"]["maxItems"])
+        ready_properties = report["allOf"][0]["then"]["properties"]
+        self.assertEqual(1, ready_properties["dimensionAssessments"]["minItems"])
+        self.assertEqual(1, ready_properties["nextActions"]["minItems"])
+        self.assertEqual(
+            "#/components/schemas/ReadinessTier",
+            ready_properties["preparednessLevel"]["$ref"],
+        )
+        self.assertEqual(
+            "#/components/schemas/GenerationProvenance",
+            ready_properties["provenance"]["$ref"],
+        )
+        error_state = report["allOf"][1]
+        self.assertEqual("failed", error_state["if"]["properties"]["status"]["const"])
+        self.assertEqual(
+            "#/components/schemas/ApiErrorCode",
+            error_state["then"]["properties"]["errorCode"]["$ref"],
+        )
+        self.assertEqual("null", error_state["else"]["properties"]["errorCode"]["type"])
+        non_ready_properties = report["allOf"][0]["else"]["properties"]
+        self.assertEqual(0, non_ready_properties["dimensionAssessments"]["maxItems"])
+        self.assertEqual("null", non_ready_properties["summary"]["type"])
+        self.assertTrue(report["properties"]["retryFocusDimensionCodes"]["uniqueItems"])
+
+        context = schemas["ReportContextSnapshot"]
+        self.assertFalse(context["additionalProperties"])
+        self.assertEqual(
+            [
+                "sourcePlanId",
+                "targetJobTitle",
+                "targetJobCompany",
+                "resumeId",
+                "resumeDisplayName",
+                "roundId",
+                "roundSequence",
+                "roundName",
+                "roundType",
+                "language",
+                "hasNextRound",
+            ],
+            context["required"],
+        )
+
+        dimension = schemas["DimensionAssessment"]
+        self.assertEqual(["code", "label", "status", "confidence"], dimension["required"])
+        self.assertNotIn("dimension", dimension["properties"])
+        self.assertEqual(r"^[a-z][a-z0-9_]{1,63}$", dimension["properties"]["code"]["pattern"])
+        self.assertFalse(dimension["additionalProperties"])
+
+        for schema_name in ("ReportHighlight", "ReportIssue"):
+            evidence = schemas[schema_name]
+            self.assertNotIn("dimension", evidence["properties"])
+            self.assertIn("dimensionCode", evidence["properties"])
+            self.assertEqual(240, evidence["properties"]["evidence"]["maxLength"])
+            self.assertFalse(evidence["additionalProperties"])
+
+        self.assertEqual(200, schemas["ReportNextAction"]["properties"]["label"]["maxLength"])
+        self.assertFalse(schemas["ReportNextAction"]["additionalProperties"])
+
+        request = schemas["CreatePracticePlanRequest"]
+        self.assertEqual("object", request["type"])
+        self.assertEqual(["goal"], request["required"])
+        self.assertFalse(request["additionalProperties"])
+        self.assertNotIn("focusCompetencyCodes", request["properties"])
+        self.assertFalse(request["properties"]["sourceReportId"].get("nullable", False))
+        self.assertEqual(2, len(request["oneOf"]))
+
     def test_practice_session_exposes_ordered_messages_without_turn_state(self) -> None:
         data = yaml.safe_load(Path("openapi/openapi.yaml").read_text(encoding="utf-8"))
         schemas = data["components"]["schemas"]

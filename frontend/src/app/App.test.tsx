@@ -44,7 +44,7 @@ describe("App shell", () => {
   it("keeps chrome rendered for context routes (parse / report)", () => {
     // `parse` exposes its route marker while keeping chrome visible.
     // `report` is now wired to ReportScreen; with no
-    // sessionId it falls back to ReportMissingSessionState which still keeps
+    // reportId it falls back to ReportMissingState which still keeps
     // App chrome visible (per frontend-report-dashboard/001 §4 routing).
     const routeShellContextRoutes = ["parse"] as const;
     for (const name of routeShellContextRoutes) {
@@ -57,7 +57,7 @@ describe("App shell", () => {
       <App initialRoute={{ name: "report", params: {} }} />,
     );
     expect(screen.getByTestId("app-shell-topbar")).toBeInTheDocument();
-    expect(screen.getByTestId("report-missing-session")).toBeInTheDocument();
+    expect(screen.getByTestId("report-missing-report")).toBeInTheDocument();
     expect(screen.queryByTestId("route-report")).not.toBeInTheDocument();
     unmountReport();
   });
@@ -224,27 +224,66 @@ describe("App shell", () => {
     expect(screen.getByTestId("route-home")).toBeInTheDocument();
   });
 
-  it("report route mounts ReportScreen — dispatches missingSession when sessionId absent (frontend-report-dashboard/001 Phase 2)", () => {
+  it("report route mounts ReportScreen and requires reportId as its only locator", () => {
     render(<App initialRoute={{ name: "report", params: {} }} />);
-    expect(screen.getByTestId("report-missing-session")).toBeInTheDocument();
+    expect(screen.getByTestId("report-missing-report")).toBeInTheDocument();
     expect(screen.queryByTestId("route-report")).not.toBeInTheDocument();
   });
 
-  it("report route dispatches ReportFailureState when reportStatus=failed (frontend-report-dashboard/001 Phase 2)", () => {
+  it("report route ignores caller-selected status and reads state by reportId", async () => {
+    const reportId = "01918fa0-0000-7000-8000-000000007000";
+    const getFeedbackReport = vi.fn().mockResolvedValue({
+      id: reportId,
+      sessionId: "01918fa0-0000-7000-8000-000000005000",
+      targetJobId: "01918fa0-0000-7000-8000-000000002000",
+      status: "generating",
+      errorCode: null,
+      summary: null,
+      context: {
+        sourcePlanId: "01918fa0-0000-7000-8000-000000004000",
+        targetJobTitle: "Platform Engineer",
+        targetJobCompany: "Acme",
+        resumeId: "01918fa0-0000-7000-8000-000000001000",
+        resumeDisplayName: "Platform resume",
+        roundId: "round-1-technical",
+        roundSequence: 1,
+        roundName: "Technical interview",
+        roundType: "technical",
+        language: "en",
+        hasNextRound: true,
+      },
+      preparednessLevel: null,
+      highlights: [],
+      issues: [],
+      nextActions: [],
+      dimensionAssessments: [],
+      retryFocusDimensionCodes: [],
+      provenance: null,
+      createdAt: "2026-07-12T08:00:00Z",
+      updatedAt: "2026-07-12T08:01:00Z",
+    });
+    const client = {
+      async getRuntimeConfig() { return { aiProviderProfile: "stub" } as never; },
+      async getMe() { return { id: "user-1" } as never; },
+      getFeedbackReport,
+    } as unknown as EasyInterviewClient;
     render(
       <App
+        client={client}
         initialRoute={{
           name: "report",
           params: {
-            sessionId: "sess-1",
-            reportId: "rpt-1",
+            sessionId: "route-session-must-drop",
+            reportId,
             reportStatus: "failed",
             errorCode: "AI_PROVIDER_TIMEOUT",
           },
         }}
       />,
     );
-    expect(screen.getByTestId("report-failure-state")).toBeInTheDocument();
+    expect(await screen.findByTestId("report-pending-state")).toBeInTheDocument();
+    expect(screen.queryByTestId("report-failure-state")).not.toBeInTheDocument();
+    expect(getFeedbackReport).toHaveBeenCalledWith(reportId, expect.anything());
     expect(screen.queryByTestId("route-report")).not.toBeInTheDocument();
   });
 });

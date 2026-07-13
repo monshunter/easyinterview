@@ -92,6 +92,7 @@ const (
 	ApiErrorCodePRACTICESESSIONNOTFOUND       ApiErrorCode = "PRACTICE_SESSION_NOT_FOUND"
 	ApiErrorCodeREPORTNOTFOUND                ApiErrorCode = "REPORT_NOT_FOUND"
 	ApiErrorCodeREPORTNOTREADY                ApiErrorCode = "REPORT_NOT_READY"
+	ApiErrorCodeREPORTCONTEXTTOOLARGE         ApiErrorCode = "REPORT_CONTEXT_TOO_LARGE"
 	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE      ApiErrorCode = "RESUME_EXPORT_NOT_AVAILABLE"
 	ApiErrorCodeVALIDATIONFAILED              ApiErrorCode = "VALIDATION_FAILED"
 	ApiErrorCodeRESOURCENOTFOUND              ApiErrorCode = "RESOURCE_NOT_FOUND"
@@ -119,6 +120,7 @@ var AllApiErrorCodes = []ApiErrorCode{
 	ApiErrorCodePRACTICESESSIONNOTFOUND,
 	ApiErrorCodeREPORTNOTFOUND,
 	ApiErrorCodeREPORTNOTREADY,
+	ApiErrorCodeREPORTCONTEXTTOOLARGE,
 	ApiErrorCodeRESUMEEXPORTNOTAVAILABLE,
 	ApiErrorCodeVALIDATIONFAILED,
 	ApiErrorCodeRESOURCENOTFOUND,
@@ -398,16 +400,15 @@ type PaginatedTargetJob struct {
 }
 
 type CreatePracticePlanRequest struct {
-	Difficulty           string          `json:"difficulty"`
-	FocusCompetencyCodes []string        `json:"focusCompetencyCodes,omitempty"`
-	Goal                 PracticeGoal    `json:"goal"`
-	InterviewerPersona   InterviewerRole `json:"interviewerPersona"`
-	Language             string          `json:"language"`
-	ResumeId             string          `json:"resumeId"`
-	RoundId              *string         `json:"roundId,omitempty"`
-	SourceReportId       *string         `json:"sourceReportId,omitempty"`
-	TargetJobId          string          `json:"targetJobId"`
-	TimeBudgetMinutes    int32           `json:"timeBudgetMinutes"`
+	Difficulty         *string          `json:"difficulty,omitempty"`
+	Goal               PracticeGoal     `json:"goal"`
+	InterviewerPersona *InterviewerRole `json:"interviewerPersona,omitempty"`
+	Language           *string          `json:"language,omitempty"`
+	ResumeId           *string          `json:"resumeId,omitempty"`
+	RoundId            *string          `json:"roundId,omitempty"`
+	SourceReportId     *string          `json:"sourceReportId,omitempty"`
+	TargetJobId        *string          `json:"targetJobId,omitempty"`
+	TimeBudgetMinutes  *int32           `json:"timeBudgetMinutes,omitempty"`
 }
 
 type PracticePlan struct {
@@ -526,21 +527,16 @@ type ReportWithJob struct {
 	ReportId string `json:"reportId"`
 }
 
-type DimensionResult struct {
-	Confidence Confidence      `json:"confidence"`
-	Status     DimensionStatus `json:"status"`
-}
-
 type ReportHighlight struct {
-	Confidence Confidence `json:"confidence"`
-	Dimension  string     `json:"dimension"`
-	Evidence   string     `json:"evidence"`
+	Confidence    Confidence `json:"confidence"`
+	DimensionCode string     `json:"dimensionCode"`
+	Evidence      string     `json:"evidence"`
 }
 
 type ReportIssue struct {
-	Confidence Confidence `json:"confidence"`
-	Dimension  string     `json:"dimension"`
-	Evidence   string     `json:"evidence"`
+	Confidence    Confidence `json:"confidence"`
+	DimensionCode string     `json:"dimensionCode"`
+	Evidence      string     `json:"evidence"`
 }
 
 type ReportNextAction struct {
@@ -549,26 +545,43 @@ type ReportNextAction struct {
 }
 
 type DimensionAssessment struct {
+	Code       string          `json:"code"`
 	Confidence Confidence      `json:"confidence"`
-	Dimension  string          `json:"dimension"`
+	Label      string          `json:"label"`
 	Status     DimensionStatus `json:"status"`
 }
 
+type ReportContextSnapshot struct {
+	HasNextRound      bool   `json:"hasNextRound"`
+	Language          string `json:"language"`
+	ResumeDisplayName string `json:"resumeDisplayName"`
+	ResumeId          string `json:"resumeId"`
+	RoundId           string `json:"roundId"`
+	RoundName         string `json:"roundName"`
+	RoundSequence     int32  `json:"roundSequence"`
+	RoundType         string `json:"roundType"`
+	SourcePlanId      string `json:"sourcePlanId"`
+	TargetJobCompany  string `json:"targetJobCompany"`
+	TargetJobTitle    string `json:"targetJobTitle"`
+}
+
 type FeedbackReport struct {
-	CreatedAt                 string                `json:"createdAt"`
-	DimensionAssessments      []DimensionAssessment `json:"dimensionAssessments,omitempty"`
-	ErrorCode                 *ApiErrorCode         `json:"errorCode,omitempty"`
-	Highlights                []ReportHighlight     `json:"highlights,omitempty"`
-	Id                        string                `json:"id"`
-	Issues                    []ReportIssue         `json:"issues,omitempty"`
-	NextActions               []ReportNextAction    `json:"nextActions,omitempty"`
-	PreparednessLevel         *ReadinessTier        `json:"preparednessLevel,omitempty"`
-	Provenance                *GenerationProvenance `json:"provenance,omitempty"`
-	RetryFocusCompetencyCodes []string              `json:"retryFocusCompetencyCodes,omitempty"`
-	SessionId                 string                `json:"sessionId"`
-	Status                    ReportStatus          `json:"status"`
-	TargetJobId               string                `json:"targetJobId"`
-	UpdatedAt                 string                `json:"updatedAt"`
+	Context                  ReportContextSnapshot `json:"context"`
+	CreatedAt                string                `json:"createdAt"`
+	DimensionAssessments     []DimensionAssessment `json:"dimensionAssessments"`
+	ErrorCode                *ApiErrorCode         `json:"errorCode"`
+	Highlights               []ReportHighlight     `json:"highlights"`
+	Id                       string                `json:"id"`
+	Issues                   []ReportIssue         `json:"issues"`
+	NextActions              []ReportNextAction    `json:"nextActions"`
+	PreparednessLevel        *ReadinessTier        `json:"preparednessLevel"`
+	Provenance               *GenerationProvenance `json:"provenance"`
+	RetryFocusDimensionCodes []string              `json:"retryFocusDimensionCodes"`
+	SessionId                string                `json:"sessionId"`
+	Status                   ReportStatus          `json:"status"`
+	Summary                  *string               `json:"summary"`
+	TargetJobId              string                `json:"targetJobId"`
+	UpdatedAt                string                `json:"updatedAt"`
 }
 
 type PaginatedFeedbackReport struct {

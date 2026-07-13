@@ -24,28 +24,35 @@ func (c *mutableClock) Set(t time.Time) {
 	c.mu.Unlock()
 }
 
-// TestAllHandlersUseSharedBackoff proves that every retryable failure, no matter
-// which domain handler produced it, is requeued by the kernel using the single
-// BackoffPolicy table and dead-lettered at MaxAttempts. Because the kernel owns
-// finalize, no domain handler can pick a different backoff.
-func TestAllHandlersUseSharedBackoff(t *testing.T) {
+// TestAllBusinessHandlersUseBusinessBackoff proves that every retryable
+// business job uses the same 10s/20s/40s/80s policy. Outbox delivery has its
+// own infrastructure policy and is tested separately.
+func TestAllBusinessHandlersUseBusinessBackoff(t *testing.T) {
 	base := time.Date(2026, 5, 22, 12, 0, 0, 0, time.UTC)
 	clock := &mutableClock{now: base}
 	policy := DefaultBackoffPolicy()
 
-	for _, jobType := range []string{"report_generate", "resume_tailor", "target_import", "email_dispatch"} {
-		t.Run(jobType, func(t *testing.T) {
+	for _, tc := range []struct {
+		jobType     string
+		maxAttempts int32
+	}{
+		{jobType: "report_generate", maxAttempts: 4},
+		{jobType: "resume_tailor", maxAttempts: MaxAttempts},
+		{jobType: "target_import", maxAttempts: MaxAttempts},
+		{jobType: "email_dispatch", maxAttempts: MaxAttempts},
+	} {
+		t.Run(tc.jobType, func(t *testing.T) {
 			clock.Set(base)
 			store := newFakeStore()
-			store.enqueue("job", jobType, 0, base.Add(-time.Minute), base.Add(-time.Minute))
+			store.enqueue("job", tc.jobType, 0, base.Add(-time.Minute), base.Add(-time.Minute))
+			store.setMaxAttempts("job", tc.maxAttempts)
 
 			rt := New(Options{Store: store, Config: testConfig(), Now: clock.Now})
-			rt.Register(jobType, JobHandlerFunc(func(_ context.Context, _ ClaimedJob) JobOutcome {
+			rt.Register(tc.jobType, JobHandlerFunc(func(_ context.Context, _ ClaimedJob) JobOutcome {
 				return JobOutcome{Retryable: true, ErrorCode: "TRANSIENT"}
 			}))
 
-			// attempts 1..4 requeue with the shared backoff; attempt 5 dead-letters.
-			for attempt := int32(1); attempt <= 5; attempt++ {
+			for attempt := int32(1); attempt <= tc.maxAttempts; attempt++ {
 				now := clock.Now()
 				processed, err := rt.RunOnce(context.Background())
 				if err != nil {
@@ -55,19 +62,22 @@ func TestAllHandlersUseSharedBackoff(t *testing.T) {
 					t.Fatalf("attempt %d: expected a job to be processed", attempt)
 				}
 				row := store.get("job")
-				if attempt < MaxAttempts {
+				if attempt < tc.maxAttempts {
 					if row.status != "queued" {
 						t.Fatalf("attempt %d status = %s, want queued", attempt, row.status)
 					}
 					want := now.Add(policy.Next(attempt))
 					if !row.availableAt.Equal(want) {
-						t.Fatalf("attempt %d availableAt = %s, want %s (shared backoff)", attempt, row.availableAt, want)
+						t.Fatalf("attempt %d availableAt = %s, want %s (business backoff)", attempt, row.availableAt, want)
 					}
 					// advance the clock past the backoff so the row is re-claimable.
 					clock.Set(row.availableAt)
 				} else {
 					if row.status != "dead" {
-						t.Fatalf("attempt %d status = %s, want dead at MaxAttempts", attempt, row.status)
+						t.Fatalf("attempt %d status = %s, want dead at max_attempts=%d", attempt, row.status, tc.maxAttempts)
+					}
+					if tc.jobType == "report_generate" && !row.availableAt.Equal(now) {
+						t.Fatalf("report attempt4 scheduled a forbidden 80s retry: availableAt=%s now=%s", row.availableAt, now)
 					}
 				}
 			}

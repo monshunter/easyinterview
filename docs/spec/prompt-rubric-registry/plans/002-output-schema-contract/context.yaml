@@ -4,9 +4,11 @@ metadata:
   subspec: prompt-rubric-registry
   name: 002-output-schema-contract
   sequence: 2
+  baseBranch: main
+  branch: fix/report-semantic-grounding-0712
   specVersion:
-    from: 2.4
-    to: 2.20
+    from: 2.21
+    to: 2.40
 spec:
   defaultTarget: backend
   discovery:
@@ -37,6 +39,45 @@ spec:
       - AI_OUTPUT_INVALID
       - response_format provider-neutral
       - prompt struct alignment
+      - prompt rubric multi version parsing
+      - report prompt v0.2 gated activation
+      - practice.session.chat v0.2 semanticFocus
+      - semantic_focus_json
+      - eight status atomic snapshot
+      - 000019 activate report and practice prompt rubric v020
+      - rubric status active inactive
+      - atomic snapshot swap
+      - file activation rollback
+      - database migration activation rollback
+      - REPORT_PROMPT_V020_READY
+      - REPORT_STORAGE_V18_PASS
+      - REPORT_PROMPT_V020_PASS
+      - PRACTICE_SEMANTIC_FOCUS_PROMPT_V020_PASS
+      - report-context.v1 resolve provenance
+      - retry current round cited missing behavior
+      - focused retry per code directly cited missing behavior
+      - umbrella retry label invalid
+      - review evidence separate support contract
+      - review evidence no new scenario or transfer task
+      - next round readiness has next round
+      - unsupported uncited action specificity
+      - no new mechanism threshold tool sequence framework example
+      - action maxLength 200 malformed output fuse
+      - final scheme A approved
+      - english action 24 whitespace words zh-CN 64 Unicode code points
+      - targeted action label repair internal margin 18 words 52 code points
+      - evalkit reuses product full semantic validator
+      - all other schema semantic mixed whole report repair
+      - initial merge replacement full revalidation
+      - independent evalkit generation judge attempt budget 4
+      - generation dynamic scope full validation each round
+      - judge protocol invalid retry content rejected terminal
+      - aggregate usage latency attempt retry reason scope manifest
+      - independent P0.099 current run canonical 390px audit
+      - exact focus decision table
+      - answer_depth answer_relevance empty exceptions
+      - complete ascending needs work issue code set
+      - reject focus subset superset
   targets:
     backend:
       plan: ./plan.md
@@ -46,8 +87,11 @@ spec:
         - ../../../ai-provider-and-model-routing/spec.md
         - ../../../observability-stack/spec.md
         - ../../../backend-practice/spec.md
+        - ../../../backend-practice/plans/004-report-derived-practice-plans/plan.md
         - ../../../backend-targetjob/spec.md
         - ../../../shared-conventions-codified/spec.md
+        - ../../../backend-review/plans/001-report-generation-baseline/plan.md
+        - ../004-real-model-profile-and-evals/plan.md
       discovery:
         packages:
           - config/prompts

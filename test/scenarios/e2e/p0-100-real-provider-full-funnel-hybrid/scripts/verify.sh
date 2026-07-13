@@ -5,95 +5,90 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-100-real-provider-full-funnel-hybrid"
 LOG="$OUTPUT_DIR/trigger.log"
-EVIDENCE_FILE="$OUTPUT_DIR/evidence.md"
 RESULT_FILE="$OUTPUT_DIR/result.json"
+MANIFEST="$OUTPUT_DIR/reliability-manifest.json"
+AGENT_AUDIT="$OUTPUT_DIR/independent-agent-audit.json"
+VALIDATOR="$SCRIPT_DIR/validate_reliability.py"
+EVIDENCE_VALIDATED=0
 
-scan_evidence_redline() {
-  local file="$1"
-  local forbidden
-  for forbidden in \
-    "AI_PROVIDER_API_KEY" \
-    "SESSION_COOKIE_SECRET" \
-    "AUTH_CHALLENGE_TOKEN_PEPPER" \
-	    "ei_session=" \
-	    "auth/email/verify\\?token=" \
-	    "auth/verify\\?token=" \
-    "(token|code|mailCode)=[0-9]{6}" \
-    "prompt body" \
-    "response body" \
-    "prompt:" \
-    "response:" \
-    "provider response" \
-    "sk-[A-Za-z0-9_-]{12,}"; do
-    if grep -Eiq -- "$forbidden" "$file"; then
-      echo "verify: sensitive marker leaked into evidence: $forbidden" >&2
-      return 1
-    fi
-  done
+cleanup_untrusted_evidence() {
+  local status="$?"
+  trap - EXIT
+  if [ "$EVIDENCE_VALIDATED" -eq 1 ]; then
+    python3 "$VALIDATOR" --sanitize-output "$OUTPUT_DIR" --sanitize-stage pass >/dev/null || {
+      python3 "$VALIDATOR" --sanitize-output "$OUTPUT_DIR" --sanitize-stage failed >/dev/null || exit 1
+      exit 1
+    }
+  else
+    python3 "$VALIDATOR" --sanitize-output "$OUTPUT_DIR" --sanitize-stage failed >/dev/null || exit 1
+  fi
+  exit "$status"
 }
+trap cleanup_untrusted_evidence EXIT
 
-if [ ! -s "$LOG" ]; then
-  echo "verify: missing trigger.log" >&2
+test -s "$LOG"
+test -s "$RESULT_FILE"
+RESULT="$(jq -r '.result' "$RESULT_FILE")"
+SANITIZE_STAGE="failed"
+if [ "$RESULT" = "PASS" ]; then
+  SANITIZE_STAGE="pass"
+fi
+if ! python3 "$VALIDATOR" --sanitize-output "$OUTPUT_DIR" --sanitize-stage "$SANITIZE_STAGE" >/dev/null; then
+  echo "verify: forbidden raw/browser artifact persisted" >&2
+  echo "verify: secret/cookie material leaked into P0.100 output" >&2
   exit 1
 fi
-
 for marker in \
   "SCENARIO_RUNNER=E2E.P0.100" \
-  "SCENARIO_MODE=hybrid" \
-  "EXECUTOR_ORDER=ai-agent-then-human"; do
-  if ! grep -q -- "$marker" "$LOG"; then
-    echo "verify: missing marker $marker" >&2
-    exit 1
-  fi
+  "SCENARIO_MODE=hybrid-real-provider-reliability" \
+  "TRUST_BOUNDARY=review.BuildReportPromptMessages" \
+  "P0_100_OWNER_MARKERS_PASS" \
+  "P0_100_REGISTERED_EVAL_PATH_PASS"; do
+  grep -Fq -- "$marker" "$LOG"
 done
+! grep -Eq -- '--- FAIL:|^FAIL($|[[:space:]])|no tests to run|0 tests' "$LOG"
+python3 "$VALIDATOR" --runner-log "$LOG" >/dev/null
 
-for forbidden in \
-  "AI_PROVIDER_API_KEY=" \
-  "SESSION_COOKIE_SECRET=" \
-  "AUTH_CHALLENGE_TOKEN_PEPPER=" \
-	  "ei_session=" \
-	  "auth/email/verify?token=" \
-	  "auth/verify?token=" \
-  "token=123456" \
-  "code=123456" \
-  "prompt body" \
-  "response body"; do
-  if grep -Fq -- "$forbidden" "$LOG"; then
-    echo "verify: sensitive marker leaked into trigger log: $forbidden" >&2
-    exit 1
-  fi
-done
-
-RESULT="$(python3 - "$RESULT_FILE" <<'PY'
-import json
+case "$RESULT" in
+  PASS)
+    python3 "$VALIDATOR" \
+      --manifest "$MANIFEST" \
+      --agent-audit "$AGENT_AUDIT" \
+      --run-id "$(jq -r '.run_id' "$RESULT_FILE")" >/dev/null
+    grep -Fq -- "P0_100_REPORT_RELIABILITY_PASS" "$LOG"
+    test -s "$MANIFEST"
+    test -s "$AGENT_AUDIT"
+    python3 - "$MANIFEST" "$AGENT_AUDIT" <<'PY'
 import sys
 from pathlib import Path
 
-result_file = Path(sys.argv[1])
-if not result_file.is_file():
-    raise SystemExit("verify: missing result.json")
-
-payload = json.loads(result_file.read_text(encoding="utf-8"))
-if payload.get("scenario_id") != "E2E.P0.100":
-    raise SystemExit("verify: wrong scenario_id")
-if payload.get("mode") != "hybrid":
-    raise SystemExit("verify: wrong mode")
-if payload.get("result") not in {"PASS", "MANUAL_REQUIRED"}:
-    raise SystemExit("verify: hybrid result must be PASS or MANUAL_REQUIRED")
-print(payload.get("result"))
+for raw in sys.argv[1:]:
+    path = Path(raw)
+    if path.stat().st_mode & 0o777 != 0o600:
+        raise SystemExit(f"verify: {path.name} must have mode 0600")
 PY
-)"
+    python3 - "$(jq -r '.run_id' "$RESULT_FILE")" <<'PY'
+import sys
+import tempfile
+from pathlib import Path
 
-if [ "$RESULT" = "PASS" ]; then
-  if [ ! -s "$EVIDENCE_FILE" ]; then
-    echo "verify: PASS requires evidence.md" >&2
+matches = list(Path(tempfile.gettempdir()).glob(f"easyinterview-p0-100-review-{sys.argv[1]}-*"))
+if matches:
+    raise SystemExit("verify: current raw Agent review packet directory was not deleted")
+PY
+    EVIDENCE_VALIDATED=1
+    ;;
+  MANUAL_REQUIRED)
+    grep -Fq -- "MANUAL_REQUIRED" "$LOG"
+    ;;
+  FAIL)
+    echo "verify: P0.100 real-provider reliability failed" >&2
     exit 1
-  fi
-  scan_evidence_redline "$EVIDENCE_FILE"
-  if ! grep -q -- "PASS redacted evidence present" "$LOG"; then
-    echo "verify: PASS requires trigger redacted evidence marker" >&2
+    ;;
+  *)
+    echo "verify: unsupported hybrid result $RESULT" >&2
     exit 1
-  fi
-fi
+    ;;
+esac
 
-echo "verify: ok"
+echo "verify: ok result=$RESULT"

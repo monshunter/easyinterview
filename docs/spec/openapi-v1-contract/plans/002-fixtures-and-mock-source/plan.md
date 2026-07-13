@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.10
+> **版本**: 1.13
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -99,10 +99,13 @@ Mock consumer 的 scenario 选择规则固定为：
 | `listTargetJobs` | not-started, partial, completed | Home/Workspace rail + quick-start | backend-targetjob | completion-ledger projection | none | P0.018/P0.098 |
 | `getTargetJob` | not-started, partial, completed | Parse/Report current-round gate | backend-targetjob | completion-ledger projection | none after JD parse | P0.057/P0.098 |
 
-## 8 修订记录
+## 9 修订记录
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-12 | 1.13 | Add exact baseline/derived CreatePracticePlanRequest positive and negative fixture matrix. | openapi-v1-contract 1.46 |
+| 2026-07-12 | 1.12 | Add the canonical REPORT_CONTEXT_TOO_LARGE failed-report scenario sourced from B1. | openapi-v1-contract 1.45 + shared-conventions 1.30 |
+| 2026-07-12 | 1.11 | Reopen Phase 7 for OPENAPI-001 closed Reports/PracticePlans fixtures, prototype projection and Prism proof. | openapi-v1-contract 1.44 |
 | 2026-07-12 | 1.10 | Reopen fixture owner for practice round identity and TargetJob practice progress scenarios. | openapi-v1-contract 1.43 |
 | 2026-07-10 | 1.9 | 删除 fixture example renderer 中未读取的 path/method 遍历绑定。 | tech-debt pruning |
 | 2026-07-10 | 1.8 | 删除无当前入口的一次性 fixture bootstrap 记录，并将生产脚本可达性纳入通用 inventory gate。 | product-scope/001-core-loop-module-pruning |
@@ -113,3 +116,9 @@ Mock consumer 的 scenario 选择规则固定为：
 | 2026-05-03 | 1.3 | 刷新 fixture / example coverage 与 prototype-baseline endpoint 范围。 | product-scope v1.2 / openapi-v1-contract v1.9 |
 | 2026-05-03 | 1.2 | 调整 fixture coverage、报告字段与 prototype mapping。 | openapi-v1-contract v1.9 |
 | 2026-04-29 | 1.1 | 补齐 `Auth/deleteMe` fixture 与 operation coverage gate。 | plan review |
+
+## 8 OPENAPI-001 report fixture migration
+
+Replace every `getFeedbackReport` scenario with queued/generating/ready-needs-practice/ready-well-prepared/failed/failed-context-too-large/invalid-contract/long-content current-shape variants. Every body includes frozen minimal context; ready variants include summary, code+label dimensions, dimensionCode evidence, actions and report-local focus. The oversized-context failed variant uses exactly B1 `REPORT_CONTEXT_TOO_LARGE`; no local alias is permitted. Replace `listTargetJobReports` and `createPracticePlan` focus-input scenarios, and update `ui-design/src/data.jsx` + `PROTOTYPE_MAPPING.md` before running sync twice.
+
+Fixture/schema negative tests must prove old `dimension`, `retryFocusCompetencyCodes`, question fields and arbitrary additional properties fail. Render examples and run Prism byte-equal smoke for both Reports operations plus createPracticePlan.

@@ -104,11 +104,11 @@ func TestHandlerSelectsNamedSeedScenariosAndFailsUnknown(t *testing.T) {
 			scenario:    "missing-session",
 		},
 		{
-			name:        "report-generating",
+			name:        "generating report",
 			method:      http.MethodGet,
 			path:        "/api/v1/reports/01918fa0-0000-7000-8000-000000007000",
 			fixturePath: "openapi/fixtures/Reports/getFeedbackReport.json",
-			scenario:    "report-generating",
+			scenario:    "generating",
 		},
 		{
 			name:        "privacy-delete-requested",

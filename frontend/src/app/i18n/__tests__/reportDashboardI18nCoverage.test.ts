@@ -39,6 +39,39 @@ describe("frontend-report-dashboard/001 i18n coverage", () => {
     expect(zhGen.length).toBeGreaterThanOrEqual(20);
   });
 
+  it("removes fake generating claims and keeps truthful terminal/recoverable copy", () => {
+    for (const key of [
+      "generating.progress.done",
+      "generating.phase.1",
+      "generating.evidence.streamLabel",
+      "generating.sla.notifyCta",
+    ]) {
+      expect(zhKeys).not.toContain(key);
+      expect(enKeys).not.toContain(key);
+    }
+    for (const key of [
+      "generating.status.queued",
+      "generating.status.generating",
+      "generating.errors.contextTooLarge.desc",
+      "generating.errors.continueCheck",
+    ]) {
+      expect(zhKeys).toContain(key);
+      expect(enKeys).toContain(key);
+    }
+  });
+
+  it("keeps enum chrome localized and the zero-answer reason synchronized", () => {
+    for (const key of [
+      "report.confidence.high",
+      "report.confidence.medium",
+      "report.confidence.low",
+      "practice.finishDisabled.zeroAnswer",
+    ]) {
+      expect(zhKeys).toContain(key);
+      expect(enKeys).toContain(key);
+    }
+  });
+
   it("combined report.* + generating.* >= 60 keys (TestI18nKeyCountAtLeast60)", () => {
     const zhCombined = pick("report.", zhKeys).length + pick("generating.", zhKeys).length;
     const enCombined = pick("report.", enKeys).length + pick("generating.", enKeys).length;

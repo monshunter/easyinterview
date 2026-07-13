@@ -1,13 +1,34 @@
 # Backend Review History
 
-> **版本**: 1.6
+> **版本**: 1.23
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 修订记录
 
+| 2026-07-13 | 1.22 | 按用户纠正将 generation max4 从 report 生命周期持久化额度改为单次用户动作的会话内 `1+3`：动作内 `10s/20s/40s`，动作结束销毁，用户重新操作清零；删除 `feedback_reports.llm_attempt_count` 与 durable reserve/crash-replay cap 口径，保留 async job lease 仅作基础设施 fencing。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
+
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 1.23 | 最终report prompt保留paired complete example；产品验收要求机械100%与固定五类至少4/5语义通过，严格P0.100继续11/11+blind review。run59381机械9/9、语义8/9、场景4/5，产品通过但strict FAIL。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) + F3/004 + P0.100 |
+| 2026-07-13 | 1.21 | report job显式max_attempts4，并以running+claimed attempts fence全部report/outbox/audit/job副作用；run35622于7/11中止非PASS。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
+| 2026-07-13 | 1.20 | 用户确认报告generation与judge分别使用max4-call budget。Generation每次pre-call durable reserve、invalid按当前violations多轮targeted/whole repair、retryable provider backoff/requeue、nonretryable立即终止、crash/replay cap4；judge仅重试provider/protocol invalid，valid negative不重采样。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) + F3/004 + P0.100 |
+| 2026-07-13 | 1.20 | `e2e-p0-100-20260713T022140Z-25849` 因用户替换attempt合同在10/11主动中止，仅作旧合同调查线索，不是PASS。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) + P0.100 |
+| 2026-07-13 | 1.19 | run `e2e-p0-100-20260713T014058Z-80338` attempt11把`needs_practice + retry,next_round`送入judge，证实evalkit只做schema+label且未复用产品完整validator；合同改为sole-label repair，其它schema/semantic/mixed one whole-report repair，全量复验。Code GREEN待主agent验收，最终矩阵pending。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) + F3/004 + P0.100 |
+| 2026-07-13 | 1.19 | 注入run `e2e-p0-100-20260713T012359Z-59906` 修复summary clause candidate-evidence mapping、禁止action升级未声明质量属性与W exact readiness；direct injection judge 3次PASS。short run `e2e-p0-100-20260713T013642Z-75753`修复exact generic empty-focus judge误判，同digest回归+5次PASS；均非最终矩阵PASS。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) + F3/004 + P0.100 |
+| 2026-07-13 | 1.18 | P0.100 run `e2e-p0-100-20260713T011140Z-36625` 暴露 generic replay 例外与 `report_action_quality` rubric 冲突；排除测试/环境/consumer drift 后，judge+rubric例外经TDD修复并同步migration/active DB，short-conservative单例复测weighted=0.82/min=0.70/零违规；完整矩阵仍pending。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) + F3/004 + P0.100 |
+| 2026-07-13 | 1.18 | 方案 A 最终边界：wire fuse200；runtime/evalkit semantic gate改24 whitespace words / 64 Unicode code points；targeted action-label repair内部目标18/52并按200+24/64复验；P0.100等待新合同重跑。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
+| 2026-07-13 | 1.17 | A-200批准：wire fuse改200；纯label schema200/14-40仍action_labels；14/40与UI gate不变，P0.100等待新合同重跑。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
+| 2026-07-13 | 1.16 | 历史FAIL：旧120合同下label越界误归whole_report；该根因由A-200新合同继续要求normalized label scope，不能当PASS。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
+| 2026-07-13 | 1.15 | Runtime/evalkit repair scope 与 runner no-repair/zero-judge 分界建立；具体 label>120 分类由1.16校正。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
+| 2026-07-13 | 1.14 | 明确 120 仅为 wire/schema fuse；backend/frontend 14/40 fail-close，P0.100/P0.099 证据独立。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
+| 2026-07-13 | 1.13 | 锁定 P0.100/evalkit completion 同源 output-schema 校验与一次 `$ / output_schema_invalid` product repair；第二次 invalid fail，聚合两次 usage/latency 并记录 generation repair_used；judge 禁止 repair/retry。action 同步 en<=14 words、zh-CN<=40 chars、multi-focus 逐 code 分号短片段。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
+| 2026-07-13 | 1.12 | P0.100 真实 judge 暴露 action 合同矛盾与 umbrella-label 高分漏判后，按 type 修正 support；focused retry 首 label 必须逐 code 命名直接引用 missing behavior，umbrella term 无效；review 不得虚构 artifact/gap/new scenario/transfer task；next 只在 readiness+hasNextRound 允许；同时封闭 retry focus exact-set。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
+| 2026-07-13 | 1.11 | 初步收紧 generic focus、multi-issue、lower-tier action 与 P0.100 pre-judge/redaction gate；最终 focus 集合合同由 1.12 的 exact decision table 取代，同时不改变 backend-practice/004 对既有 ready report 空 focus 派生的 owner 边界。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
+| 2026-07-12 | 1.10 | 锁定四档准备度、三档证据 confidence、control-only 非回答与可立即执行 action 语义；runtime validator 镜像可机械 cross-field invariant，judge 接收完整分档并逐项审计 preparedness/focus。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
+| 2026-07-12 | 1.9 | backend-review 只消费 002 frozen-context owner artifact 与 004 replay markers；空 focus 表示通用同轮复练，跨 owner 仅 references。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
+| 2026-07-12 | 1.8 | 补齐 immutable report context 投影、跨字段 grounding、durable one-repair、report-local dimension focus、深链事实源和 context-aware 可靠性判据。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
+| 2026-07-12 | 1.7 | 重新打开 001：冻结完整报告上下文，采用 LLM direct semantic output、报告内 code+label、user-message grounding anchor、一次 repair、真实 provenance 与服务端 replay focus。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
 | 2026-07-12 | 1.6 | 重新打开 001：candidate dimension score 固定为 1.0-5.0；prompt/schema/runtime 在 readiness 计算前共同拒绝越界或不完整输出。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
 | 2026-07-12 | 1.5 | 报告改为整场 conversation 级 readiness、dimensions、evidence 与 next，删除逐题 assessment 和 turn-ID retry 合同。 | [001-report-generation-baseline](./plans/001-report-generation-baseline/plan.md) |
 | 2026-07-10 | 1.2 | 收敛 queued / generating 报告读取语义：`getFeedbackReport` 返回当前状态元数据，不再描述为空报告占位。 | tech-debt pruning |

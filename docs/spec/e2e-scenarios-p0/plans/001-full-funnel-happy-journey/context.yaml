@@ -4,9 +4,11 @@ metadata:
   subspec: e2e-scenarios-p0
   name: 001-full-funnel-happy-journey
   sequence: 1
+  baseBranch: main
+  branch: fix/report-semantic-grounding-0712
   specVersion:
-    from: 1.9
-    to: 2.0
+    from: 2.8
+    to: 2.12
 spec:
   defaultTarget: scenario
   discovery:
@@ -23,6 +25,18 @@ spec:
       - E2E.P0.098
       - E2E.P0.099
       - real browser evidence
+      - P0.099 current run canonical ready row audit
+      - canonical report content digest
+      - action length audit
+      - content audit
+      - screenshot sha256
+      - report session context digest binding
+      - no P0.100 output digest dependency
+      - action 24 whitespace words 64 Unicode code points
+      - deterministic exact 24 words 64 code points parity
+      - desktop and 390x844 action region no clipping ellipsis overflow
+      - action 200 malformed fuse not UX
+      - targeted repair 18 words 52 code points not UX boundary
       - PostgreSQL array
   targets:
     scenario:
@@ -31,7 +45,12 @@ spec:
       spec: ../../spec.md
       bddPlan: ./bdd-plan.md
       bddChecklist: ./bdd-checklist.md
+      references:
+        - ../../../backend-review/plans/001-report-generation-baseline/bdd-plan.md
+        - ../../../frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/bdd-plan.md
       discovery:
+        packages:
+          - test/scenarios/e2e/p0-099-full-funnel-fullstack-ui-journey
         apiNames:
           - createPracticePlan
           - startPracticeSession

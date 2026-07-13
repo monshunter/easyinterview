@@ -1,15 +1,15 @@
 # DB Migrations Baseline Bootstrap
 
-> **版本**: 1.13
+> **版本**: 1.19
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-把 [db-migrations-baseline spec](../../spec.md) 当前锁定的迁移工具、25 张应用 / auth 支撑表、2 张迁移元数据表、B3 outbox retry operational columns、A3/F1 `ai_task_runs` typed columns、enum/check 来源矩阵、backfill ledger 与 P0 privacy deletion matrix 落到 `migrations/` 与 `backend/cmd/migrate`。
+把 [db-migrations-baseline spec](../../spec.md) 当前锁定的迁移工具、24 张应用 / auth 支撑表、2 张迁移元数据表、B3 outbox retry operational columns、A3/F1 `ai_task_runs` typed columns、enum/check 来源矩阵、backfill ledger 与 P0 privacy deletion matrix 落到 `migrations/` 与 `backend/cmd/migrate`。
 
 本 plan 不实现业务 repository、不实现 C8 dispatcher、不实现 privacy_delete runner；只提供 schema baseline、迁移可执行入口、lint/check gate 与下游 handoff。
 
@@ -42,9 +42,9 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 ### Phase 2: baseline DDL 与索引
 
-#### 2.1 25 张当前应用 / auth 支撑表
+#### 2.1 24 张当前应用 / auth 支撑表
 
-落地当前产品范围内的 22 张应用表，加 ADR-Q1 的 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表；baseline 只创建这 25 张当前应用 / auth 支撑表。`make migrate-up` 后 public schema 至少 27 张表（含 `schema_migrations` / `schema_backfills`）。
+落地当前产品范围内的 21 张应用表，加 ADR-Q1 的 `auth_challenges` / `sessions` / `external_identities` 3 张支撑表；final schema 只保留这 24 张当前应用 / auth 支撑表。`make migrate-up` 后 public schema 至少 26 张表（含 `schema_migrations` / `schema_backfills`）。
 
 #### 2.2 B3 outbox / async columns
 
@@ -80,7 +80,7 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 #### 4.2 table / column / index probes
 
-运行 SQL probes：public table count ≥27；`outbox_events` retry columns 存在；`ai_task_runs` typed columns 存在；pending due / B-Tree 索引存在且 explain 命中。
+运行 SQL probes：public table count ≥26；`outbox_events` retry columns 存在；`ai_task_runs` typed columns 存在；pending due / B-Tree 索引存在且 explain 命中。
 
 #### 4.3 enum / privacy probes
 
@@ -128,6 +128,38 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 运行 migration lint/contract tests、backfill registry tests、真实 Postgres `make migrate-check`，验证 up/down/up、pair invariant、唯一匹配、wrong-resume/deleted/int32-overflow/歧义保持 null、checksum ledger 幂等，并确认 schema 中没有 TargetJob progress 列。
 
+### Phase 8: HISTORICAL-SUPERSEDED grounded direct report storage
+
+#### 8.1 RED contract
+
+Migration tests must require nullable-until-ready `feedback_reports.summary`, content-bearing `generation_context`, durable `llm_attempt_count integer NOT NULL DEFAULT 0 CHECK (0..4)`, `retry_focus_dimension_codes` and `practice_plans.focus_dimension_codes`, while rejecting the superseded boolean repair flag and old competency column names. The current final inventory remains exactly 21 app + 3 auth + 2 metadata tables.
+
+#### 8.2 DDL
+
+Create reversible `000018_grounded_report_context` through `make migrate-create`. Existing development rows receive an empty object only to make migration executable; runtime treats non-`report-context.v1` as invalid and never fabricates/backfills sensitive context. New completion writes current context atomically. Before every product generation provider call, repository CAS increments `llm_attempt_count` only while `<4`; a consumed attempt is never rolled back after timeout, crash, replay or worker takeover. Attempt 4 may finish ready or terminal failed, but no path may issue attempt 5. Rename report/plan focus columns to dimension semantics; no compatibility columns or trigger mirrors.
+
+#### 8.3 Privacy and verification
+
+The new summary/context/attempt coordinate remain covered by hard deletion of `feedback_reports`; probes confirm user content never appears in audit/job/outbox/log tables. Run migration lint/contract, clean-DB and populated-DB up/down/up, current-row invalid-context, concurrent CAS 1..4, attempt4 exhaustion, crash/replay no-rollback, rename/down restoration and full privacy matrix probes.
+
+`db-migrations-baseline/001` is the sole producer of `REPORT_STORAGE_V18_PASS`. Emit it only after `000018` passes clean and populated PostgreSQL up/down/up, invalid-current-context, rename/down restoration, privacy/non-content leakage, `make migrate-check`, migration lint and backend migration tests. Downstream report owners only consume this marker.
+
+> Phase 8中的summary/context/focus、privacy与可逆迁移证据继续有效；其中`llm_attempt_count`、pre-call CAS及crash/replay global-cap内容已被Phase 9取代，不再代表current contract。
+
+### Phase 9: remove durable product retry storage
+
+#### 9.1 Current-shape RED contract
+
+Migration lint与SQL contract必须要求nullable-until-ready `feedback_reports.summary`、content-bearing `generation_context`、`retry_focus_dimension_codes`、`practice_plans.focus_dimension_codes`及当前21+3+2 inventory，同时断言`llm_attempt_count`和任何同义产品retry column为零命中。
+
+#### 9.2 Reconcile `000018` in place
+
+项目未上线，不创建兼容迁移：原地修订可逆`000018_grounded_report_context`，删除attempt列up/down DDL，只保留summary/context/focus current shape。Populated development rows仍只获得empty invalid context以完成迁移，runtime继续fail closed，不伪造敏感快照。
+
+#### 9.3 Verification and owner marker
+
+重新运行migration lint、clean/populated PostgreSQL up/down/up、invalid-context、rename/down restoration、privacy/non-content leakage与最终schema negative probes。`REPORT_STORAGE_V18_PASS`只有在最终schema确认无产品retry列后才能重新发出；provider调用次数、动作重置与10s/20s/40s不由DB gate证明。
+
 ## 5 验收标准
 
 - spec §6 C-1..C-13 全部具备本 plan 或下游 handoff 证据；C8/F1/C11 等运行时验证由各自 owner 后续关闭。
@@ -148,6 +180,12 @@ B4 是 Layer B contract 的 schema owner。A2 已提供 Postgres 18 本地实例
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-13 | 1.19 | Reopen Phase 9 to remove durable report retry columns/CAS from migration 000018, retain summary/context/focus, and revalidate reversible current shape plus privacy with explicit retry-column absence. | backend-review/001 action-local retry contract |
+| 2026-07-13 | 1.18 | Close Phase 8 after current-shape SQL lint, durable CAS/replay tests, disposable PostgreSQL migrate-check and populated up/down/up privacy probes re-emit `REPORT_STORAGE_V18_PASS`. | backend-review/001 max-four generation contract |
+| 2026-07-13 | 1.17 | Replace the single repair flag with durable `llm_attempt_count` 0..4 pre-call reservation and crash/replay-safe no-fifth-call probes. | backend-review/001 max-four generation contract |
+| 2026-07-12 | 1.16 | Make Phase 8 the sole producer of REPORT_STORAGE_V18_PASS after full PostgreSQL/privacy verification. | backend-review/001 |
+| 2026-07-12 | 1.15 | Reconcile current 21+3+2 inventory/public >=26 gate and add exact C-13 grounded report migration proof. | db-migrations-baseline 1.32 |
+| 2026-07-12 | 1.14 | Reopen Phase 8 for grounded report summary/context/durable repair and dimension-focus storage. | backend-review/001 |
 | 2026-07-12 | 1.13 | Reopen Phase 7 for normalized practice-plan round identity and auditable legacy backfill. | backend-practice round progression |
 | 2026-07-10 | 1.12 | 将 migration CLI 的 map-backed Env test double 从生产包下沉到测试文件。 | tech-debt pruning |
 | 2026-07-10 | 1.11 | 将 baseline inventory 改为当前 25 张应用/auth 支撑表正向合同，并统一 migration 负向 gate 术语。 | tech-debt pruning |

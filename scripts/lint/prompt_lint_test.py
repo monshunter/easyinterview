@@ -51,6 +51,181 @@ def test_baseline_passes():
     assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
 
 
+def test_report_v020_direct_semantics_and_old_keys_absent():
+    schema_path = REPO_ROOT / "config/prompts/report.generate/v0.2.0.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    module = _load_module()
+    required = module.collect_required_paths(schema)
+    assert required == module.REPORT_V020_REQUIRED_PATHS
+
+    property_names: set[str] = set()
+
+    def collect_names(node: dict) -> None:
+        for name, child in (node.get("properties") or {}).items():
+            property_names.add(name)
+            if isinstance(child, dict):
+                collect_names(child)
+        item = node.get("items")
+        if isinstance(item, dict):
+            collect_names(item)
+
+    collect_names(schema)
+    for forbidden in (
+        "dimension_scores",
+        "retry_focus_competency_codes",
+        "score",
+        "reasoning",
+        "supporting_observations",
+    ):
+        assert forbidden not in property_names
+
+    body = (REPO_ROOT / "config/prompts/report.generate/v0.2.0.md").read_text(encoding="utf-8")
+    assert "{{rubric_dimensions}}" not in body
+    assert "{{frozen_context}}" in body
+    assert "{{conversation_messages}}" in body
+    assert "{{language}}" in body
+    normalized_body = " ".join(body.lower().split())
+    assert "draft the summary only after the evidence items" in normalized_body
+    assert "split it into factual clauses" in normalized_body
+    assert "delete any clause that cannot be fully mapped" in normalized_body
+    assert "do not upgrade a concrete candidate action into an outcome or quality property" in normalized_body
+    assert "safe, reliable, resilient, reversible, isolated, effective, or successful" in normalized_body
+    assert "set `w = true` if and only if" in normalized_body
+    assert "when `w` is true, `preparednesslevel` must be `well_prepared`" in normalized_body
+    assert "`basically_ready` is invalid in that case" in normalized_body
+    assert "evidence being partial, rehearsed, or merely not covered is not itself a deficiency" in normalized_body
+    assert "a brief assertion that only names a mechanism without concrete supporting detail" in normalized_body
+    assert "not as evidence of a topic-specific capability gap" in normalized_body
+    assert "use the exact dimension code `answer_depth`" in normalized_body
+    assert "may state only that the answer provides no concrete supporting detail" in normalized_body
+    assert "must not enumerate unmentioned expected details" in normalized_body
+    assert "do not use the assistant question or its topic to create a more specific issue or retry focus" in normalized_body
+    assert "emit `retry_current_round` with an empty focus array and a generic label" in normalized_body
+    assert "the generic label must not repeat the assistant question or name its topic or mechanism" in normalized_body
+    assert "a corrective `retry_current_round` label may only turn the cited missing behavior" in normalized_body
+    assert "`review_evidence` must only ask the user to revisit cited positive or explicitly evidence-limited content" in normalized_body
+    assert "do not invent an artifact, corrective gap, new scenario, or transfer task" in normalized_body
+    assert "for every selected focus code, the first retry label must name at least one directly cited missing behavior" in normalized_body
+    assert "umbrella labels such as `add a backpressure mechanism`, `add a safety check`, `add detail`, or `improve the answer` are invalid" in normalized_body
+    assert "the schema's 200-character bound is only the outer malformed-output safety cap" in normalized_body
+    assert "one semicolon-separated cited missing behavior per selected focus code" in normalized_body
+    assert "in `en`, each label has 1-24 whitespace-delimited words" in normalized_body
+    assert "in `zh-cn`, each label has 1-64 unicode code points" in normalized_body
+    assert "do not add an introduction such as `retry the answer by adding`" in normalized_body
+    assert "an action label may only turn the cited missing behavior" not in normalized_body
+    assert "synthetic paired candidate input for the example below" in normalized_body
+    assert "candidate user message seq 2" in normalized_body
+    assert "ranked the options by user impact and delivery effort" in normalized_body
+    assert "did not explain the tie-breaking rule" in normalized_body
+    assert "demonstrate only json format and cross-field coherence" in normalized_body
+    assert "never reuse any example fact, dimension, preparedness level, wording, or action" in normalized_body
+    assert "regenerate every field from the current frozen context and cited candidate messages" in normalized_body
+    assert "example complete json output:" in normalized_body
+    assert "empty focus is allowed only for exactly one `answer_depth` issue" in normalized_body
+    assert "or exactly one `answer_relevance` issue" in normalized_body
+    assert "must equal the ascending unique dimension codes of all issues whose declared dimension status is `needs_work`" in normalized_body
+    assert "when retry is present it may be empty" not in normalized_body
+    assert "use non-empty focus only when" not in normalized_body
+    assert "before returning json, set `i = len(issues)`" in normalized_body
+    assert "if `i >= 2`, empty focus is invalid" in normalized_body
+
+    focus_description = schema["properties"]["retryFocusDimensionCodes"]["description"].lower()
+    assert "empty only for the exact single-issue answer_depth or answer_relevance generic exceptions" in focus_description
+    assert schema["properties"]["nextActions"]["maxItems"] == 2
+    action_description = schema["properties"]["nextActions"]["items"]["properties"]["label"]["description"].lower()
+    assert "english: at most 24 whitespace-delimited words" in action_description
+    assert "zh-cn: at most 64 unicode code points" in action_description
+    assert "outer malformed-output safety cap, not a writing target" in action_description
+    assert "semicolon-separated cited missing-behavior fragments" in action_description
+
+
+def test_report_v020_mixed_answer_keeps_substance_grounding_contract():
+    body = (REPO_ROOT / "config/prompts/report.generate/v0.2.0.md").read_text(encoding="utf-8")
+    normalized_body = " ".join(body.lower().split())
+
+    assert "classify candidate messages in this order" in normalized_body
+    assert "first ignore only control fragments" in normalized_body
+    assert "any remaining statement of experience, motivation, mechanism, decision, action, constraint, metric, example" in normalized_body
+    assert "or an explicit limitation or missing detail is substantive interview content" in normalized_body
+    assert "a direct statement such as `i do not know` or `i have no approach` is also substantive candidate content" in normalized_body
+    assert "a mixed message with any such content is not control-only" in normalized_body
+    assert "using the same message sequence number" in normalized_body
+    assert "never use `answer_relevance` or claim that no substantive answer was provided" in normalized_body
+    assert "if the remaining answer only names a mechanism without supporting detail" in normalized_body
+    assert "apply the `answer_depth` branch in rule 8" in normalized_body
+    assert "the issue, focus, and retry action may name only those candidate-stated missing details" in normalized_body
+    assert "state that the candidate explicitly said those details were not explained" in normalized_body
+    assert "do not characterize the rest of a mixed answer with totalizing qualifiers" in normalized_body
+    assert "`only`, `merely`, `nothing`, `no substantive content`, `仅`, `只`, `任何`, or `完全`" in normalized_body
+    assert "classification example: `我希望继续做分布式系统，但没有说明项目规模。 请结束本轮。`" in normalized_body
+    assert "a supported issue is `候选人明确表示未说明项目规模。`" in normalized_body
+    assert "`候选人仅要求结束本轮。`, and `候选人未提供实质性回答。` are invalid" in normalized_body
+    assert "only when removing the control fragments leaves no interview content" in normalized_body
+
+
+def test_report_v020_output_contract_keeps_paired_anti_copy_example():
+    module = _load_module()
+    body = (REPO_ROOT / "config/prompts/report.generate/v0.2.0.md").read_text(encoding="utf-8")
+    schema = json.loads(
+        (REPO_ROOT / "config/prompts/report.generate/v0.2.0.schema.json").read_text(encoding="utf-8")
+    )
+
+    paired_input = (
+        "Synthetic paired candidate input for the example below:\n"
+        "- Candidate user message seq 2: \"I ranked the options by user impact and delivery effort. "
+        "I did not explain the tie-breaking rule.\""
+    )
+    anti_copy = (
+        "The paired input and output demonstrate only JSON format and cross-field coherence. "
+        "Never reuse any example fact, dimension, preparedness level, wording, or action. "
+        "Regenerate every field from the current frozen context and cited candidate messages."
+    )
+    assert paired_input in body
+    assert anti_copy in body
+    assert "Example complete JSON output:" in body
+    assert body.index(paired_input) < body.index("Example complete JSON output:")
+    assert module.extract_output_contract_block(body) == module.render_output_contract(schema)
+
+    rendered = module.render_output_contract(schema)
+    assert '"summary": "The candidate gave a usable prioritization approach but explicitly said the tie-breaking rule was not explained."' in rendered
+    assert '"preparednessLevel": "needs_practice"' in rendered
+    assert '"code": "decision_clarity"' in rendered
+    assert '"sourceMessageSeqNos": [\n        2\n      ]' in rendered
+    assert '"label": "Retry the prioritization answer by explaining the tie-breaking rule"' in rendered
+
+
+def test_practice_chat_v020_uses_structured_semantic_focus_and_canonical_hash():
+    module = _load_module()
+    body_path = REPO_ROOT / "config/prompts/practice.session.chat/v0.2.0.md"
+    yaml_path = REPO_ROOT / "config/prompts/practice.session.chat/v0.2.0.yaml"
+    body = body_path.read_text(encoding="utf-8")
+    meta, _ = module._read_yaml_with_order(yaml_path)
+    schema_path = REPO_ROOT / "config/prompts/practice.session.chat/v0.2.0.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    assert module.validate_practice_chat_context(body_path, body) == []
+    assert module.validate_practice_chat_schema(schema_path, schema) == []
+    assert module.collect_property_paths(schema) == {"$.messageText"}
+    assert module.expected_hash(body.encode("utf-8"), meta) == meta["template_hash"]
+    assert meta["status"] == "active"
+
+
+def test_practice_chat_v020_rejects_legacy_focus_context():
+    module = _load_module()
+    path = pathlib.Path("practice.session.chat/v0.2.0.md")
+    body = textwrap.dedent(
+        """\
+        <untrusted_interview_context_json>
+        {"focusCompetencies": {{focus_competencies_json}}}
+        </untrusted_interview_context_json>
+        """
+    )
+
+    errors = "\n".join(module.validate_practice_chat_context(path, body))
+    assert "semanticFocus" in errors
+    assert "legacy focus token" in errors
+
+
 def test_canonical_hash_against_readme():
     """Plan §1.1 verification gate.
 
@@ -250,7 +425,7 @@ def test_multi_prompt_without_runtime_language_instruction_negative(tmp_path):
 
 def test_output_schema_illegal_keyword_negative(tmp_path):
     schema = _hint_schema()
-    schema["additionalProperties"] = False
+    schema["$ref"] = "#/forbidden"
     _write_baseline_pair(
         tmp_path,
         "practice.session.chat",
@@ -261,6 +436,23 @@ def test_output_schema_illegal_keyword_negative(tmp_path):
     result = _run(tmp_path / "config/prompts", tmp_path / "migrations")
     assert result.returncode == 1
     assert "unsupported schema keys" in result.stderr
+
+
+def test_grounded_report_schema_requires_recursive_closure_and_bounds():
+    module = _load_module()
+    path = REPO_ROOT / "config/prompts/report.generate/v0.2.0.schema.json"
+    schema = json.loads(path.read_text(encoding="utf-8"))
+    assert module.validate_grounded_report_schema(path, schema) == []
+
+    open_schema = json.loads(json.dumps(schema))
+    del open_schema["properties"]["dimensionAssessments"]["items"]["additionalProperties"]
+    assert "additionalProperties=false" in "\n".join(
+        module.validate_grounded_report_schema(path, open_schema)
+    )
+
+    unbounded_schema = json.loads(json.dumps(schema))
+    del unbounded_schema["properties"]["summary"]["maxLength"]
+    assert "summary" in "\n".join(module.validate_grounded_report_schema(path, unbounded_schema))
 
 
 def test_output_schema_required_not_in_prompt_negative(tmp_path):
@@ -332,6 +524,32 @@ def test_rendered_example_is_schema_valid_for_nested_array_enum():
     errors: list[str] = []
     module.validate_value_against_schema(module.example_for_schema(schema), schema, "$", errors)
     assert errors == []
+
+
+def test_rendered_report_example_uses_a_non_blocking_coherent_calibration():
+    module = _load_module()
+    schema = {
+        "type": "object",
+        "description": "Grounded report.",
+        "required": ["summary", "preparednessLevel"],
+        "properties": {
+            "summary": {"type": "string", "description": "Summary."},
+            "preparednessLevel": {
+                "type": "string",
+                "description": "Readiness.",
+                "enum": ["needs_practice"],
+            },
+        },
+    }
+
+    example = module.example_for_schema(schema)
+    assert example["summary"] == (
+        "The candidate gave a usable prioritization approach but explicitly said "
+        "the tie-breaking rule was not explained."
+    )
+    assert "queue backpressure" not in json.dumps(example)
+    assert "rollback verification" not in json.dumps(example)
+    assert "incident" not in json.dumps(example).lower()
 
 
 def test_rendered_example_includes_optional_properties_and_representative_values():

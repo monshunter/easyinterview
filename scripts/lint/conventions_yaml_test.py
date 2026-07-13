@@ -105,6 +105,11 @@ def valid_data() -> dict:
                 "retryable": True,
             },
             {
+                "code": "REPORT_CONTEXT_TOO_LARGE",
+                "message": "report context exceeds supported generation size",
+                "retryable": False,
+            },
+            {
                 "code": "RESUME_EXPORT_NOT_AVAILABLE",
                 "message": "resume version export is not available in P0",
                 "retryable": False,
@@ -325,6 +330,52 @@ class ConventionsYAMLTest(unittest.TestCase):
 
         self.assertTrue(
             any("PracticeMode" in err and "not part of the current product contract" in err for err in errs),
+            errs,
+        )
+
+    def test_requires_canonical_report_context_too_large_error(self) -> None:
+        canonical = {
+            "code": "REPORT_CONTEXT_TOO_LARGE",
+            "message": "report context exceeds supported generation size",
+            "retryable": False,
+        }
+        variants = {
+            "missing": None,
+            "misspelled": {**canonical, "code": "REPORT_CONTEXT_TO_LARGE"},
+            "message": {**canonical, "message": "report context too large"},
+            "retryable": {**canonical, "retryable": True},
+        }
+        for name, replacement in variants.items():
+            with self.subTest(name=name):
+                data = copy.deepcopy(valid_data())
+                data["errors"] = [
+                    entry
+                    for entry in data["errors"]
+                    if entry["code"] != "REPORT_CONTEXT_TOO_LARGE"
+                ]
+                if replacement is not None:
+                    data["errors"].append(replacement)
+
+                errs = self.linter.validate(data)
+
+                self.assertTrue(
+                    any("REPORT_CONTEXT_TOO_LARGE" in err for err in errs),
+                    errs,
+                )
+
+    def test_rejects_duplicate_report_context_too_large_error(self) -> None:
+        data = copy.deepcopy(valid_data())
+        canonical = next(
+            entry
+            for entry in data["errors"]
+            if entry["code"] == "REPORT_CONTEXT_TOO_LARGE"
+        )
+        data["errors"].append(copy.deepcopy(canonical))
+
+        errs = self.linter.validate(data)
+
+        self.assertTrue(
+            any("duplicate error code" in err and "REPORT_CONTEXT_TOO_LARGE" in err for err in errs),
             errs,
         )
 

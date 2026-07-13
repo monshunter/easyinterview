@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "report-boundary-fixtures.v1",
+  "reportSchemaVersion": "v0.2.0",
+  "serializerCommand": "cd backend && UPDATE_REPORT_BOUNDARY_FIXTURES=1 go test ./internal/review -run '^TestReportBoundaryFixtures$' -count=1",
+  "serializerVersion": "report-boundary-serializer.v1",
+  "semanticReachableFocusMax": 4,
+  "semanticReachableFocusMaxReason": "retry focus must be unique and issue-backed while issues are capped at four",
+  "files": [
+    {
+      "name": "input-48000.json",
+      "byteCount": 48000,
+      "sha256": "b5c5934bc2d2154420350ad29be5d80fd664b23ad85a7316a869a8dd68b57cd6",
+      "locale": "en",
+      "purpose": "final_framed_messages_exact_48000_byte_limit"
+    },
+    {
+      "name": "input-48001.json",
+      "byteCount": 48001,
+      "sha256": "491531ddf699d0e54be4656b6e5e88c4b78ed71093ddc4b2652c5fcc420d8a5c",
+      "locale": "en",
+      "purpose": "final_framed_messages_48001_byte_limit_plus_one"
+    },
+    {
+      "name": "output-worst-case-en.json",
+      "byteCount": 3651,
+      "sha256": "51c30a76e853df201a6a6d0ed3bffbbc3a715892a268625d421495dd1c4893c1",
+      "locale": "en",
+      "purpose": "current_direct_schema_semantic_worst_case"
+    },
+    {
+      "name": "output-worst-case-zh-CN.json",
+      "byteCount": 7811,
+      "sha256": "1587b4ec0035b8ead5c14a9b5f8bcf56543c8a23d2f2a755c98678a494ebe2e7",
+      "locale": "zh-CN",
+      "purpose": "current_direct_schema_semantic_worst_case"
+    }
+  ]
+}

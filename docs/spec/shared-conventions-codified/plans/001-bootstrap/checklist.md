@@ -1,8 +1,8 @@
 # Shared Conventions Bootstrap Checklist
 
-> **版本**: 1.8
+> **版本**: 1.10
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联计划**: [plan](./plan.md)
 
@@ -27,10 +27,8 @@
 
 ## Phase 4: product-scope enum contract
 
-- [x] 4.1 `PracticeMode` current values are `assisted` and `strict`（验证：generated Go/TS enum tests）
-- [x] 4.2 `PracticeGoal` current values are `baseline`, `retry_current_round` and `next_round`（验证：generated Go/TS enum tests）
-- [x] 4.3 `QuestionReviewStatus` current values are `open`, `queued_for_retry` and `resolved`（验证：generated Go/TS enum tests）
-- [x] 4.4 removed practice mode/goal/status values stay out of generated runtime surfaces（验证：conventions parity tests and pruning-surface lint）
+- [x] 4.1 `PracticeGoal` current values are `baseline`, `retry_current_round` and `next_round`（验证：generated Go/TS enum tests）
+- [x] 4.2 removed `PracticeMode` / `QuestionReviewStatus` types and removed practice goal values stay out of generated runtime surfaces（验证：conventions parity tests and pruning-surface lint）
 
 ## Phase 5: closeout
 
@@ -56,3 +54,14 @@
   <!-- verified: 2026-07-10 method=shared-conventions-current-decision-red evidence="The scoped absence gate failed first on the active spec's 3.2 pending-decision heading; source inventory separately confirmed yaml.v3 typed loading, hand-written render functions and the already-split TS targets." -->
 - [x] 8.2 Move both facts into locked decisions, delete the pending section, and run generator source/test/drift plus owner/product context and docs/index/diff/pruning gates; then restore the owner to `completed`.
   <!-- verified: 2026-07-10 method=shared-conventions-generator-decision-convergence evidence="Spec v1.27 contains D-11/D-12 and no pending section or alternative-tool wording. Focused generator tests, conventions lint and the B1 drift gate pass; all 10 generated outputs match and their scoped git diff is empty. Both contexts, links, docs/index/diff/pruning gates pass. Aggregate codegen-check passed its conventions checks before reporting the already-intentional dirty deletion of frontend generated spec.ts from an earlier batch, so this batch used the owner-specific drift gate. No Bug/retrospective report, environment restart or data cleanup was needed." -->
+
+## Phase 9: report oversized-context error contract
+
+- [x] 9.1 RED: conventions validator/generator/parity tests require exactly one `REPORT_CONTEXT_TOO_LARGE` with message `report context exceeds supported generation size` and `retryable: false`; missing, duplicate, misspelled or retryable variants fail.
+  <!-- verified: 2026-07-12 method=tdd-red evidence="Go generator test failed on missing canonical YAML entry; Python linter test failed for missing, misspelled, message-divergent and retryable variants before implementation." -->
+- [x] 9.2 GREEN: update `shared/conventions.yaml`, regenerate Go/TS error artifacts and parity fixtures, and prove `make codegen-conventions` is idempotent plus `make codegen-check`/focused Go/TS tests pass.
+  <!-- verified: 2026-07-12 method=conventions-green evidence="lint reports 11 enums/23 errors; two codegen passes have identical SHA-256 manifests; owner drift checks all 10 outputs; Go shared packages, 34 TS conventions/ids tests and TypeScript noEmit pass. Aggregate B2 codegen-check is deferred until the proposed OpenAPI consumes this marker." -->
+- [x] 9.3 NEGATIVE-GATE: generated Go/TS parity rejects any missing, duplicate, misspelled, message-divergent or retryable variant; no OpenAPI-owned file is required for this B1 gate.
+  <!-- verified: 2026-07-12 method=generator-linter-cross-language-parity evidence="Generator and linter mutation matrices reject all five variants; generated Go registry and TS registry assert exact code/message/retryability and match the shared parity fixture." -->
+- [x] 9.4 Emit `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS` after B1 context validation and hand off to B2/openapi-v1-contract/001; the marker does not claim OpenAPI parity, the 48,000-byte runtime boundary or provider-call suppression.
+  <!-- verified: 2026-07-12 marker=REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS method=validated-b1-owner-context scope="canonical YAML plus generated Go/TS code/message/retryability only; excludes OpenAPI parity, runtime byte boundary and provider suppression" -->

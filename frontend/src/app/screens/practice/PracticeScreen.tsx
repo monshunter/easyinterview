@@ -41,6 +41,9 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   const [errorSource, setErrorSource] = useState<PracticeErrorSource | null>(null);
   const [budgetMinutes, setBudgetMinutes] = useState<number | null>(null);
   const planId = loader.data?.planId || route.params.planId || ctx.planId || "";
+  const committedMessages = loader.data?.messages ?? [];
+  const hasCommittedCandidateMessage = committedMessages.some((message) => message.role === "user");
+  const hasPendingAssistantReply = committedMessages.at(-1)?.role === "user";
 
   useEffect(() => {
     const client = runtime?.client;
@@ -99,29 +102,22 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
   }, [input, loader, messages, paused, sending]);
 
   const finish = useCallback(async () => {
+    if (!hasCommittedCandidateMessage || hasPendingAssistantReply) return;
     setError(null);
     setErrorSource(null);
     try {
       const report = await completion.complete();
-      navigate({ name: "generating", params: {
-        targetJobId: targetDisplay.targetJobId || "",
-        planId: route.params.planId || ctx.planId || "",
-        sessionId,
-        reportId: report.reportId,
-        resumeId: route.params.resumeId || ctx.resumeId || "",
-        roundId: route.params.roundId || ctx.roundId || "",
-        roundName: route.params.roundName || ctx.roundName || "",
-      } });
+      navigate({ name: "generating", params: { reportId: report.reportId } });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
       setErrorSource("completion");
     }
-  }, [completion, ctx.planId, ctx.resumeId, ctx.roundId, ctx.roundName, navigate, route.params, sessionId, targetDisplay.targetJobId]);
+  }, [completion, hasCommittedCandidateMessage, hasPendingAssistantReply, navigate]);
 
   if (!sessionId || loader.state === "sessionLost") return <PracticeSessionLostState onBack={backToWorkspace} />;
 
   const inputDisabled = paused || sending || loader.state === "loading" || !messages.ready || loader.data?.status === "completed" || loader.data?.status === "completing";
-  const finishDisabled = paused || sending || loader.state === "loading" || !loader.data || !messages.ready || completion.state.kind === "loading" || (loader.data.status !== "running" && loader.data.status !== "waiting_user_input");
+  const finishDisabled = paused || sending || loader.state === "loading" || !loader.data || !messages.ready || completion.state.kind === "loading" || !hasCommittedCandidateMessage || hasPendingAssistantReply || (loader.data.status !== "running" && loader.data.status !== "waiting_user_input");
   const interviewerLabel = route.params.roundName || ctx.roundName || t("practice.toolbar.role.manager");
 
   return (
@@ -137,7 +133,7 @@ export const PracticeScreen: FC<PracticeScreenProps> = ({ route }) => {
         onTogglePause={() => setPaused((value) => !value)}
         interviewerLabel={interviewerLabel}
         phoneDisabledLabel={t("practice.toolbar.phoneDisabled")}
-        finishCta={<FinishCta label={t("practice.finishCta")} disabled={finishDisabled} onFinish={finish} />}
+        finishCta={<FinishCta label={t("practice.finishCta")} disabled={finishDisabled} disabledReason={!hasCommittedCandidateMessage && loader.data ? t("practice.finishDisabled.zeroAnswer") : undefined} onFinish={finish} />}
       />
       <main data-testid="practice-conversation" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", width: "100%" }}>
         <Transcript messages={transcript} helperText={t("practice.transcript.helper")} aiLabel={t("practice.transcript.aiLabel")} userLabel={t("practice.transcript.userLabel")} />

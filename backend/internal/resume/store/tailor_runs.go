@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	"github.com/monshunter/easyinterview/backend/internal/shared/events"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
@@ -237,15 +238,42 @@ func (r *Repository) CompleteTailorRunSuccess(ctx context.Context, in CompleteTa
 		return fmt.Errorf("begin resume tailor success: %w", err)
 	}
 	defer tx.Rollback()
+	var claimedAttempts int32
+	if err := tx.QueryRowContext(ctx, `
+select attempts
+from async_jobs
+where id = $1
+  and resource_type = $2
+  and resource_id = $3
+  and status = 'running'
+  and attempts = $4
+for update`,
+		in.JobID,
+		string(resourceTypeResumeTailorRun),
+		in.TailorRunID,
+		in.ClaimedAttempts,
+	).Scan(&claimedAttempts); errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("%w: job_id=%s claimed_attempts=%d", runner.ErrStaleLease, in.JobID, in.ClaimedAttempts)
+	} else if err != nil {
+		return fmt.Errorf("lock resume tailor lease: %w", err)
+	}
 
 	res, err := tx.ExecContext(ctx, `
 update async_jobs
-set result = $1, updated_at = $2
-where resource_type = $3 and resource_id = $4 and status = 'running'`,
+set result = $1,
+    locked_at = $2,
+    updated_at = $2
+where id = $3
+  and resource_type = $4
+  and resource_id = $5
+  and status = 'running'
+  and attempts = $6`,
 		resultRaw,
 		now,
+		in.JobID,
 		string(resourceTypeResumeTailorRun),
 		in.TailorRunID,
+		in.ClaimedAttempts,
 	)
 	if err != nil {
 		return fmt.Errorf("complete resume tailor success: %w", err)
@@ -255,7 +283,7 @@ where resource_type = $3 and resource_id = $4 and status = 'running'`,
 		return fmt.Errorf("complete resume tailor success rows affected: %w", err)
 	}
 	if rows == 0 {
-		return ErrInvalidStateTransition
+		return fmt.Errorf("%w: job_id=%s claimed_attempts=%d", runner.ErrStaleLease, in.JobID, in.ClaimedAttempts)
 	}
 	if _, err := tx.ExecContext(ctx, `
 insert into outbox_events (

@@ -11,7 +11,6 @@ import (
 	"github.com/lib/pq"
 	reviewdomain "github.com/monshunter/easyinterview/backend/internal/review"
 	sharedevents "github.com/monshunter/easyinterview/backend/internal/shared/events"
-	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
 type PersistReportInput = reviewdomain.ReportResultPersistence
@@ -20,17 +19,23 @@ func (r *Repository) PersistReport(ctx context.Context, in PersistReportInput) e
 	if err := r.checkDB(); err != nil {
 		return err
 	}
+	if err := validateReportPersistenceProvenance(in); err != nil {
+		return err
+	}
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin persist report: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := lockCurrentAsyncJobLease(ctx, tx, in.AsyncJobID, in.ClaimedAttempts); err != nil {
+		return err
+	}
 
-	highlights, err := json.Marshal(wireReportEvidence(in.Content.Highlights))
+	highlights, err := json.Marshal(in.Content.Highlights)
 	if err != nil {
 		return fmt.Errorf("marshal highlights: %w", err)
 	}
-	issues, err := json.Marshal(wireReportEvidence(in.Content.Issues))
+	issues, err := json.Marshal(in.Content.Issues)
 	if err != nil {
 		return fmt.Errorf("marshal issues: %w", err)
 	}
@@ -38,15 +43,15 @@ func (r *Repository) PersistReport(ctx context.Context, in PersistReportInput) e
 	if err != nil {
 		return fmt.Errorf("marshal next_actions: %w", err)
 	}
-	retryFocusCodes := in.RetryFocusCompetencyCodes
+	retryFocusCodes := in.Content.RetryFocusDimensionCodes
 	if retryFocusCodes == nil {
 		retryFocusCodes = []string{}
 	}
 	retryFocus, err := json.Marshal(retryFocusCodes)
 	if err != nil {
-		return fmt.Errorf("marshal retry_focus_competency_codes: %w", err)
+		return fmt.Errorf("marshal retry_focus_dimension_codes: %w", err)
 	}
-	dimensionAssessments, err := json.Marshal(wireDimensionAssessments(in.DimensionAssessments))
+	dimensionAssessments, err := json.Marshal(in.Content.DimensionAssessments)
 	if err != nil {
 		return fmt.Errorf("marshal dimension_assessments: %w", err)
 	}
@@ -62,34 +67,36 @@ func (r *Repository) PersistReport(ctx context.Context, in PersistReportInput) e
 	res, err := tx.ExecContext(ctx, `
 update feedback_reports
 set status = 'ready',
-    preparedness_level = $1,
-    highlights = $2,
-    issues = $3,
-    next_actions = $4,
-    prompt_version = $5,
-    rubric_version = $6,
-    model_id = $7,
-    provider = $8,
-    language = $9,
-    feature_flag = $10,
-    data_source_version = $11,
-    retry_focus_competency_codes = $12,
-    dimension_assessments = $13,
+    summary = $1,
+    preparedness_level = $2,
+    highlights = $3,
+    issues = $4,
+    next_actions = $5,
+    prompt_version = $6,
+    rubric_version = $7,
+    model_id = $8,
+    provider = $9,
+    language = $10,
+    feature_flag = $11,
+    data_source_version = $12,
+    retry_focus_dimension_codes = $13,
+    dimension_assessments = $14,
     error_code = null,
-    generated_at = $14,
-    updated_at = $14
-where id = $15 and status = 'generating'`,
-		string(in.PreparednessLevel),
+	generated_at = $15,
+	updated_at = $15
+where id = $16 and status = 'generating'`,
+		in.Content.Summary,
+		string(in.Content.PreparednessLevel),
 		highlights,
 		issues,
 		nextActions,
 		in.PromptVersion,
 		in.RubricVersion,
 		in.ModelID,
-		nullableString(in.Provider),
-		fallbackString(in.Language, "en"),
-		fallbackString(in.FeatureFlag, "none"),
-		fallbackString(in.DataSourceVersion, "not_applicable"),
+		in.Provider,
+		in.Language,
+		in.FeatureFlag,
+		in.DataSourceVersion,
 		pq.Array(retryFocusCodes),
 		dimensionAssessments,
 		in.Now,
@@ -105,7 +112,7 @@ where id = $15 and status = 'generating'`,
 		ReportID:          in.ReportID,
 		SessionID:         in.SessionID,
 		TargetJobID:       in.TargetJobID,
-		PreparednessLevel: in.PreparednessLevel,
+		PreparednessLevel: in.Content.PreparednessLevel,
 		PromptVersion:     in.PromptVersion,
 		RubricVersion:     in.RubricVersion,
 		ModelID:           in.ModelID,
@@ -119,11 +126,32 @@ where id = $15 and status = 'generating'`,
 	if err := insertReviewAudit(ctx, tx, in.AuditEventID, in.UserID, "feedback_report.generated", in.ReportID, "success", map[string]any{"status": "ready"}, in.Now); err != nil {
 		return err
 	}
-	if err := updateAsyncJobSucceededTx(ctx, tx, in.AsyncJobID, in.Now); err != nil {
+	if err := updateAsyncJobSucceededTx(ctx, tx, in.AsyncJobID, in.ClaimedAttempts, in.Now); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit persist report: %w", err)
+	}
+	return nil
+}
+
+func validateReportPersistenceProvenance(in PersistReportInput) error {
+	required := []struct {
+		name  string
+		value string
+	}{
+		{name: "prompt_version", value: in.PromptVersion},
+		{name: "rubric_version", value: in.RubricVersion},
+		{name: "model_id", value: in.ModelID},
+		{name: "provider", value: in.Provider},
+		{name: "language", value: in.Language},
+		{name: "feature_flag", value: in.FeatureFlag},
+		{name: "data_source_version", value: in.DataSourceVersion},
+	}
+	for _, field := range required {
+		if strings.TrimSpace(field.value) == "" {
+			return fmt.Errorf("review persistence provenance %s is required", field.name)
+		}
 	}
 	return nil
 }
@@ -176,7 +204,7 @@ insert into audit_events (
 	return nil
 }
 
-func updateAsyncJobSucceededTx(ctx context.Context, tx *sql.Tx, jobID string, now time.Time) error {
+func updateAsyncJobSucceededTx(ctx context.Context, tx *sql.Tx, jobID string, claimedAttempts int32, now time.Time) error {
 	res, err := tx.ExecContext(ctx, `
 update async_jobs
 set status = 'succeeded',
@@ -185,14 +213,13 @@ set status = 'succeeded',
     locked_at = null,
     error_code = null,
     error_message = null
-where id = $2`, now, jobID)
+where id = $2
+  and status = 'running'
+  and attempts = $3`, now, jobID, claimedAttempts)
 	if err != nil {
 		return fmt.Errorf("update async_jobs succeeded: %w", err)
 	}
-	if err := requireOneRow(res, "update async_jobs succeeded"); err != nil {
-		return err
-	}
-	return nil
+	return requireCurrentAsyncJobLeaseWrite(res, jobID, claimedAttempts)
 }
 
 func requireOneRow(res sql.Result, label string) error {
@@ -204,48 +231,6 @@ func requireOneRow(res sql.Result, label string) error {
 		return fmt.Errorf("%s: expected 1 row, got %d", label, rows)
 	}
 	return nil
-}
-
-func wireDimensionAssessments(in []reviewdomain.DimensionAssessmentDraft) []map[string]any {
-	out := make([]map[string]any, 0, len(in))
-	for _, value := range in {
-		out = append(out, map[string]any{
-			"dimension":  value.Dimension,
-			"status":     string(value.Status),
-			"confidence": string(value.Confidence),
-		})
-	}
-	return out
-}
-
-func wireReportEvidence(in []reviewdomain.ReportEvidenceDraft) []map[string]any {
-	out := make([]map[string]any, 0, len(in))
-	for _, item := range in {
-		out = append(out, map[string]any{
-			"dimension":  item.Dimension,
-			"evidence":   item.Evidence,
-			"confidence": string(confidenceFromScore(item.Confidence)),
-		})
-	}
-	return out
-}
-
-func confidenceFromScore(score float64) sharedtypes.Confidence {
-	switch {
-	case score >= 0.75:
-		return sharedtypes.ConfidenceHigh
-	case score >= 0.4:
-		return sharedtypes.ConfidenceMedium
-	default:
-		return sharedtypes.ConfidenceLow
-	}
-}
-
-func fallbackString(value, fallback string) string {
-	if value == "" {
-		return fallback
-	}
-	return value
 }
 
 func assertNoReviewPersistencePII(payload any) error {

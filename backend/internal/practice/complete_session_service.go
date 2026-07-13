@@ -30,9 +30,10 @@ type CompleteSessionStoreInput struct {
 }
 
 type CompleteSessionResult struct {
-	ReportID string
-	Job      JobRecord
-	Replay   bool
+	ReportID          string
+	Job               JobRecord
+	Replay            bool
+	GenerationContext ReportContextSnapshot
 }
 
 type JobRecord struct {
@@ -79,6 +80,12 @@ func (s *Service) CompletePracticeSession(ctx context.Context, in CompletePracti
 	}
 	if stderrs.Is(err, ErrSessionConflict) {
 		return CompleteSessionResult{}, sessionConflictError()
+	}
+	if stderrs.Is(err, ErrSessionNotReportable) {
+		return CompleteSessionResult{}, validationError(
+			"practice session requires at least one answered candidate message",
+			map[string]any{"field": "messages"},
+		)
 	}
 	if err != nil {
 		return CompleteSessionResult{}, err

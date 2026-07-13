@@ -5,14 +5,14 @@ UI truth: `ui-design/src/screens-p0-complete.jsx::ReportGeneratingScreen` (lines
 
 ## Composition
 
-- `GeneratingScreen.tsx` — drives the visual phase indicator + live evidence stream; routes to `report` when the poll observes `status=ready` / `status=failed`.
+- `GeneratingScreen.tsx` — displays only the observed `queued` / `generating` state and routes to `report` when the poll observes `status=ready`.
 - `hooks/useReportGenerationPoll.ts` — 7-state poller for `getFeedbackReport(reportId)`:
   - States: `idle / polling / ready / failed / timeout / error / paused`.
-  - Exponential backoff: initial 1.5s, factor 1.5, cap 8s, max attempts 30.
-  - Visibility / focus pause-resume.
+  - Exponential backoff: initial 1.5s, factor 1.5, cap 8s, max attempts 49 (about 6 minutes), so status checks remain active across four 60-second provider calls plus the report-specific 10s / 20s / 40s retry delays.
+  - Visibility / focus pause-resume preserves the current run's monotonic attempt and next delay, including when pause aborts an in-flight read. Resume waits before starting `n+1`; repeated pause/resume never restarts attempt 1 or creates concurrent reads.
   - Read-only contract: no `Idempotency-Key`. HTTP 404 surfaces `failed + REPORT_NOT_FOUND`.
   - `onReady(report)` / `onFailed(errorCode)` are debounced via `handoffNavigatedRef` so the same observation cannot nav twice.
-- `components/HeaderHero / ProgressBar / PhaseList / LiveEvidenceStream / SlaHint / GeneratingErrorState` — DOM mirrors of the prototype composition.
+- `components/HeaderHero / GeneratingErrorState` — source-level mirrors of the truthful prototype composition. There is no synthetic progress, phase, evidence stream, SLA, notification or records promise.
 
 ## Route boundary
 
@@ -20,7 +20,7 @@ UI truth: `ui-design/src/screens-p0-complete.jsx::ReportGeneratingScreen` (lines
 
 ## Handoff contract
 
-On success the screen navigates to `report` with the 13-key handoff plus the resolved `reportId` and `sessionId`. On failure it navigates to `report?reportStatus=failed&errorCode=…`. On `timeout` it stays put and surfaces the retry CTA; the user can either retry (resetting the attempt counter) or back out to workspace.
+On success the screen navigates to `report` with only the resolved `reportId`; the report API supplies all state and display context. Terminal report failures stay on the generating screen with a back action. On `timeout` or a recoverable read error it stays put and offers checking the same report again.
 
 ## Negative red lines
 

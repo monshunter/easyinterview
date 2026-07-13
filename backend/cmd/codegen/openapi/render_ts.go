@@ -181,7 +181,7 @@ func classifyTSSchema(name string, raw map[string]any) tsSchemaView {
 		}
 	}
 
-	if al, ok := raw["allOf"].([]any); ok && len(al) > 0 {
+	if al, ok := raw["allOf"].([]any); ok && isPaginatedEnvelopeAllOf(al) {
 		view.Kind = "object"
 		view.Fields = []tsFieldView{
 			{JSONName: "items", TSType: tsAllOfItemsType(al)},

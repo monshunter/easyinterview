@@ -319,132 +319,87 @@ const RequirementBlock = ({ T, title, items, HitDot }) => (
 // #3 REPORT GENERATING — async intermediate screen
 // ═══════════════════════════════════════════════════════════════════
 const ReportGeneratingScreen = ({ T, lang, nav, params = {} }) => {
-  const [phase, setPhase] = React.useState(0);
-  const phases = lang === "en" ? [
-    { t: "Reading the conversation", s: 900, hint: "ordered messages · complete context" },
-    { t: "Extracting evidence", s: 1200, hint: "looking for S/A/R + quantification" },
-    { t: "Scoring against rubric", s: 900, hint: "rubric · behavior-v2.1 · confidence tagged" },
-    { t: "Clustering competency signals", s: 700, hint: "3 priorities for continued practice" },
-    { t: "Writing recommendations", s: 900, hint: "frameworks + mapped resume evidence" },
-  ] : [
-    { t: "读取完整对话", s: 900, hint: "按序消息 · 完整上下文" },
-    { t: "抽取对话证据", s: 1200, hint: "寻找 S/A/R + 量化结果" },
-    { t: "按 rubric 评分", s: 900, hint: "rubric · behavior-v2.1 · 带置信度" },
-    { t: "聚类能力信号", s: 700, hint: "标记 3 条后续练习重点" },
-    { t: "生成建议", s: 900, hint: "推荐回答框架 + 映射简历证据" },
-  ];
+  const report = window.EI_DATA.reportGeneration;
+  const status = report.status;
+  const reportMatches = !!params.reportId && params.reportId === report.id;
+  const isWaiting = reportMatches && (status === "queued" || status === "generating");
+  const isRecoverable = reportMatches && (status === "timeout" || status === "network_error");
+  const isOversize = reportMatches && status === "failed" && report.errorCode === "REPORT_CONTEXT_TOO_LARGE";
+  const isTerminal = !reportMatches || status === "failed" || (!isWaiting && !isRecoverable && status !== "ready");
+  const continueCheck = () => window.location.reload();
 
   React.useEffect(() => {
-    let cancel = false;
-    let acc = 0;
-    phases.forEach((p, i) => {
-      acc += p.s;
-      setTimeout(() => { if (!cancel) setPhase(i + 1); }, acc);
-    });
-    setTimeout(() => { if (!cancel) nav("report", { ...params, sessionId: params.sessionId || "session-24" }); }, acc + 600);
-    return () => { cancel = true; };
-  }, []);
+    if (reportMatches && status === "ready") nav("report", { reportId: report.id });
+  }, [reportMatches, status, report.id]);
 
-  const pct = Math.min(100, (phase / phases.length) * 100);
-
-  // Live "evidence" fragments appearing
-  const liveSnippets = lang === "en" ? [
-    '"LCP from 3.2s to 1.4s" → impact evidence · high confidence',
-    '"We — actually I — drove the migration" → ownership signal observed',
-    '"they just agreed" → conflict resolution lacks depth · flag',
-    'candidate questions → business context could be stronger',
-  ] : [
-    '"LCP 从 3.2s 到 1.4s" → 影响证据 · 高置信度',
-    '"我们——其实主要是我——推动迁移" → 观察到责任边界修正',
-    '"他就同意了" → 冲突解决缺乏深度 · 标记',
-    '候选人反问 → 对业务上下文的关注仍可加强',
-  ];
-
-  const [shown, setShown] = React.useState([]);
-  React.useEffect(() => {
-    let cancel = false;
-    liveSnippets.forEach((s, i) => {
-      setTimeout(() => { if (!cancel) setShown((prev) => [...prev, s]); }, 700 + i * 800);
-    });
-    return () => { cancel = true; };
-  }, []);
+  const terminalCopy = !reportMatches
+    ? {
+      title: lang === "en" ? "Report ID missing" : "缺少报告 ID",
+      description: lang === "en" ? "Open this page from a completed mock interview with a valid report link." : "请从已完成的模拟面试使用有效报告链接打开此页面。",
+    }
+    : isOversize
+      ? {
+        title: lang === "en" ? "The source material and conversation were too long" : "本次材料与对话过长",
+        description: lang === "en" ? "Return to your interview plan, shorten the input, and start a new session." : "请返回面试规划，缩短输入后开启一场新会话。",
+      }
+      : report.errorCode === "REPORT_NOT_FOUND"
+        ? {
+          title: lang === "en" ? "Report not found" : "找不到这份报告",
+          description: lang === "en" ? "Make sure this link belongs to a completed mock interview on your account, then return to the workspace." : "请确认链接来自当前账户已完成的模拟面试，然后返回面试规划。",
+        }
+        : report.errorCode === "AI_OUTPUT_INVALID"
+          ? {
+            title: lang === "en" ? "Report content failed validation" : "报告内容未通过校验",
+            description: lang === "en" ? "Unreliable content was not shown. Return to the workspace and start a new session." : "系统没有展示不可靠内容。请返回面试规划后开启一场新会话。",
+          }
+          : {
+            title: lang === "en" ? "This report cannot continue" : "这份报告无法继续生成",
+            description: lang === "en" ? "Return to the workspace and start a new session when ready." : "请返回面试规划，并在准备好后开启一场新会话。",
+          };
+  const recoverableCopy = status === "network_error"
+    ? {
+      title: lang === "en" ? "Report status could not connect" : "报告状态连接异常",
+      description: lang === "en" ? "This connection did not finish. You can check the same report again or return to the workspace." : "本次连接没有完成。你可以继续检查同一份报告，或返回面试规划。",
+    }
+    : {
+      title: lang === "en" ? "Report status could not be confirmed" : "暂时无法确认报告状态",
+      description: lang === "en" ? "This check timed out. You can check the same report again or return to the workspace." : "本次检查超时。你可以继续检查同一份报告，或返回面试规划。",
+    };
+  const eyebrow = isWaiting
+    ? (status === "queued" ? (lang === "en" ? "REPORT QUEUED" : "报告已排队") : (lang === "en" ? "GENERATING REPORT" : "报告生成中"))
+    : isRecoverable
+      ? (lang === "en" ? "CHECK PAUSED" : "检查已暂停")
+      : (lang === "en" ? "REPORT UNAVAILABLE" : "报告不可用");
+  const title = isWaiting
+    ? (lang === "en" ? "Building an evidence-based report." : "正在生成证据化报告。")
+    : isRecoverable
+      ? recoverableCopy.title
+      : terminalCopy.title;
+  const description = isWaiting
+    ? (lang === "en" ? "We are checking the completed conversation and forming grounded recommendations. This page will keep checking the same report." : "系统正在核对已完成的对话并形成有依据的建议；本页会继续检查同一份报告。")
+    : isRecoverable
+      ? recoverableCopy.description
+      : terminalCopy.description;
 
   return (
-    <div className="ei-fadein" style={{ minHeight: "calc(100vh - 58px)", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 48 }}>
+    <div className="ei-fadein" data-testid="generating-screen" data-report-status={isWaiting ? status : undefined} aria-live="polite" style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: "48px clamp(16px, 6vw, 48px)" }}>
       <div style={{ maxWidth: 780, width: "100%" }}>
-        <div className="ei-label" style={{ color: T.ink3, marginBottom: 12, letterSpacing: "0.1em" }}>
-          {lang === "en" ? "GENERATING REPORT · ASYNC" : "报告生成中 · 异步"}
+        <div className="ei-label" data-testid="generating-header-eyebrow" style={{ color: T.ink3, marginBottom: 12, letterSpacing: "0.1em" }}>
+          {eyebrow}
         </div>
-        <h1 className="ei-serif" style={{ fontSize: 34, margin: 0, color: T.ink, letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: 10 }}>
-          {lang === "en" ? "Reading the full conversation. Evidence first." : "正在通读完整对话——先找证据，再判断。"}
+        <h1 className="ei-serif" data-testid="generating-header-title" style={{ fontSize: 34, margin: 0, color: T.ink, letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: 10 }}>
+          {title}
         </h1>
-        <div style={{ fontSize: 14, color: T.ink3, marginBottom: 32, lineHeight: 1.5, maxWidth: 540 }}>
-          {lang === "en" ? "Typical: 8-15s. You can close this tab; the report opens from this session records when it's done." : "通常 8-15 秒。可以关掉这个页面；报告生成后可从本场会话记录打开。"}
+        <div data-testid="generating-header-subtitle" style={{ fontSize: 14, color: T.ink3, lineHeight: 1.65, maxWidth: 600 }}>
+          {description}
         </div>
 
-        {/* Progress */}
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-            <div style={{ fontFamily: "var(--ei-mono)", fontSize: 11, color: T.ink3, letterSpacing: "0.04em" }}>
-              {phase} / {phases.length} · {phase < phases.length ? phases[phase]?.t : (lang === "en" ? "done" : "完成")}
-            </div>
-            <div style={{ fontFamily: "var(--ei-mono)", fontSize: 11, color: T.ink3 }}>{Math.round(pct)}%</div>
+        {(isRecoverable || isTerminal) && (
+          <div style={{ marginTop: 28, paddingTop: 16, borderTop: `1px solid ${T.rule}`, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {isRecoverable && <Btn T={T} variant="accent" size="sm" onClick={continueCheck}>{lang === "en" ? "Check again" : "继续检查"}</Btn>}
+            <Btn T={T} variant="secondary" size="sm" onClick={() => nav("workspace")}>{lang === "en" ? "Back to workspace" : "返回面试规划"}</Btn>
           </div>
-          <div style={{ height: 2, background: T.rule, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${pct}%`, background: T.accent, transition: "width .5s ease" }} />
-          </div>
-        </div>
-
-        {/* Phases */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 0, marginBottom: 32 }}>
-          {phases.map((p, i) => {
-            const done = i < phase;
-            const active = i === phase;
-            return (
-              <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: i < phases.length - 1 ? `1px dotted ${T.rule}` : "none", alignItems: "center" }}>
-                <div style={{
-                  width: 18, height: 18, borderRadius: 9, flexShrink: 0,
-                  background: done ? T.ok : active ? T.accent : "transparent",
-                  border: `1.5px solid ${done ? T.ok : active ? T.accent : T.rule}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  {done && <Icon name="check" size={11} color="#fff" stroke={2.5} />}
-                  {active && <div style={{ width: 5, height: 5, borderRadius: 3, background: "#fff" }} className="ei-pulse" />}
-                </div>
-                <div style={{ fontSize: 13.5, color: done ? T.ink3 : active ? T.ink : T.ink4, flex: 1, textDecoration: done ? "line-through" : "none" }}>
-                  {p.t}
-                </div>
-                <div style={{ fontSize: 11, color: T.ink4, fontFamily: "var(--ei-mono)", letterSpacing: "0.04em" }}>
-                  {active ? <span className="ei-pulse">●</span> : ""} {p.hint}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Live evidence stream */}
-        <div>
-          <div className="ei-label" style={{ color: T.ink3, marginBottom: 10 }}>{lang === "en" ? "LIVE OBSERVATIONS" : "实时观察"}</div>
-          <div style={{ padding: "14px 16px", background: T.bgSoft, border: `1px solid ${T.rule}`, borderRadius: 2, fontFamily: "var(--ei-mono)", fontSize: 12, lineHeight: 1.75, color: T.ink2, minHeight: 100 }}>
-            {shown.map((s, i) => (
-              <div key={i} className="ei-fadein" style={{ marginBottom: 4 }}>
-                <span style={{ color: T.ink4 }}>›</span> {s}
-              </div>
-            ))}
-            {shown.length < liveSnippets.length && (
-              <div style={{ display: "inline-block", width: 8, height: 12, background: T.accent, verticalAlign: "text-bottom" }} className="ei-pulse" />
-            )}
-          </div>
-        </div>
-
-        <div style={{ marginTop: 28, paddingTop: 16, borderTop: `1px solid ${T.rule}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontSize: 11, color: T.ink3, fontFamily: "var(--ei-mono)", letterSpacing: "0.04em" }}>
-            {lang === "en" ? "target p95 · <12s · you can safely leave" : "P95 目标 · <12s · 可以安心离开"}
-          </div>
-          <Btn T={T} variant="ghost" size="sm" onClick={() => nav("home")}>
-            {lang === "en" ? "Notify me when ready →" : "好了通知我 →"}
-          </Btn>
-        </div>
+        )}
       </div>
     </div>
   );

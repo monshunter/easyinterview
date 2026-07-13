@@ -7,9 +7,18 @@ import "time"
 // finalized as dead instead of being requeued.
 const MaxAttempts int32 = 5
 
-// defaultBackoffSchedule is the single source of truth for retry spacing
-// (spec D-4): the Nth retry waits schedule[N-1].
+// defaultBackoffSchedule is the business async-job retry policy. The Nth retry
+// waits schedule[N-1] and later retries remain capped at 80 seconds.
 var defaultBackoffSchedule = []time.Duration{
+	10 * time.Second,
+	20 * time.Second,
+	40 * time.Second,
+	80 * time.Second,
+}
+
+// outboxBackoffSchedule is intentionally independent from business jobs. Event
+// delivery remains infrastructure work and retains the slower delivery policy.
+var outboxBackoffSchedule = []time.Duration{
 	30 * time.Second,
 	2 * time.Minute,
 	10 * time.Minute,
@@ -24,9 +33,16 @@ type BackoffPolicy struct {
 	schedule []time.Duration
 }
 
-// DefaultBackoffPolicy returns the spec D-4 policy: [30s, 2m, 10m, 1h, 6h].
+// DefaultBackoffPolicy returns the business async-job policy:
+// [10s, 20s, 40s, 80s], capped at 80s.
 func DefaultBackoffPolicy() BackoffPolicy {
 	return BackoffPolicy{schedule: defaultBackoffSchedule}
+}
+
+// DefaultOutboxBackoffPolicy returns the infrastructure delivery policy:
+// [30s, 2m, 10m, 1h, 6h].
+func DefaultOutboxBackoffPolicy() BackoffPolicy {
+	return BackoffPolicy{schedule: outboxBackoffSchedule}
 }
 
 // Next returns the delay before the next retry for the given attempt count.

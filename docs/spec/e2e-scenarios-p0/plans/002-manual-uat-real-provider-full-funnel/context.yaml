@@ -4,9 +4,11 @@ metadata:
   subspec: e2e-scenarios-p0
   name: 002-manual-uat-real-provider-full-funnel
   sequence: 2
+  baseBranch: main
+  branch: fix/report-semantic-grounding-0712
   specVersion:
-    from: 1.1
-    to: 1.7
+    from: 2.9
+    to: 2.12
 spec:
   defaultTarget: scenario
   discovery:
@@ -42,6 +44,60 @@ spec:
       - full funnel manual acceptance
       - AI Agent first-run preflight
       - E2E.P0.100
+      - grounded report reliability
+      - context-aware judge
+      - supported partial unsupported
+      - empty focus replay
+      - repeated real provider runs
+      - REPORT_RUBRIC_V020_PASS
+      - REPORT_CONTEXT_AWARE_EVAL_PASS
+      - REPORT_PROMPT_V020_PASS
+      - evalkit same source output schema validation
+      - evalkit reuses product full semantic validator
+      - evalkit whole report repair all other schema semantic mixed invalid
+      - targeted action label only LLM repair
+      - action labels repair schema200 or language24 64 violations
+      - sole label over 200 still action labels scope
+      - targeted repair internal margin 18 words 52 code points
+      - normalized schema and language label violation set
+      - labels only merge preserves non label fields
+      - initial targeted merge whole replacement full revalidation
+      - product action local initial plus three retries
+      - action local waits 10 seconds 20 seconds 40 seconds
+      - retry context destroyed on return
+      - second independent generation action resets to attempt one
+      - async job attempts infrastructure only
+      - attempt four ends current product action
+      - nonretryable provider failure zero retry
+      - claimed attempts lease generation stale worker zero side effects
+      - frontend inflight hidden blur resume next attempt cap49
+      - per round reason and scope provenance
+      - post attempt four schema200 semantic24 64 invalid fail before judge
+      - aggregate generation usage latency
+      - generation attempt count retry count
+      - independent judge budget four
+      - judge provider retryable or protocol schema invalid retry
+      - judge valid negative terminal content rejected no retry
+      - english action 24 whitespace words
+      - zh-CN action 64 Unicode code points
+      - english whitespace word counting
+      - zh-CN Unicode code point counting
+      - action maxLength 200 code points malformed output fuse
+      - backend no action truncate rewrite
+      - multi focus per code semicolon fragments
+      - fixed five case four of five semantic product acceptance
+      - independent five case eleven attempt strict diagnostic
+      - redacted manifest attempt count retry count reason scope
+      - redacted internal context output digests
+      - no P0.099 output digest dependency
+      - run 80338 full validator escape historical
+      - run 59906 injection summary evidence mapping judge3 pass
+      - run 75753 exact generic empty focus same digest plus5 pass
+      - run 25849 aborted at ten of eleven after contract change not pass
+      - run 35622 aborted at seven of eleven after L2 findings not pass
+      - run 35103 historical five case eleven attempt judge and blind audit pass
+      - run 59381 final prompt mechanical nine of nine semantic eight of nine cases four of five strict fail
+      - runner log exact named test package build drift positive gates
   targets:
     scenario:
       plan: ./plan.md
@@ -54,6 +110,10 @@ spec:
         - ../../../ai-provider-and-model-routing/spec.md
         - ../../../backend-auth/spec.md
         - ../../../prompt-rubric-registry/spec.md
+        - ../../../prompt-rubric-registry/plans/002-output-schema-contract/plan.md
+        - ../../../prompt-rubric-registry/plans/004-real-model-profile-and-evals/plan.md
+        - ../../../backend-review/plans/001-report-generation-baseline/bdd-plan.md
+        - ../../../frontend-report-dashboard/plans/001-report-screen-and-generating-handoff/bdd-plan.md
         - ../../../../development.md
       discovery:
         packages:

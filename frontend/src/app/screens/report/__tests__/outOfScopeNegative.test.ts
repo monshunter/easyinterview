@@ -44,6 +44,14 @@ const FORBIDDEN = [
   /from\s+["'][^"']*ui-design\/src\/screen-practice/,
   /window\.EI_DATA/,
   /ui-design\/src\/data/,
+  /useReportContextData/,
+  /getTargetJob\b/,
+  /getResume\b/,
+  /retryFocusCompetencyCodes/,
+  /focusCompetencyCodes/,
+  /evidenceGaps/,
+  /reportStatus/,
+  /params\.(?:sessionId|targetJobId|resumeId|roundId|roundName|errorCode)/,
 ];
 
 const PRACTICE_OPERATIONS_FORBIDDEN = [

@@ -1,6 +1,6 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.26
+> **版本**: 2.27
 > **状态**: active
 > **更新日期**: 2026-07-12
 
@@ -22,6 +22,7 @@
 8. 简历是一级模块：平铺列表、上传 / 粘贴创建、注册后直接详情、只读原始正文。
 9. 当前只开放连续文本面试；电话入口置灰，不产生 `phone` / `voice` route state，通用 speech 基础设施留待后续重新评审。
 10. 顶栏主题色、暗色模式、语言下拉和设置页字体预设是全局显示控制，不属于业务模块。
+11. Desktop TopBar 保持 58px 单行节奏；`<=720px` 使用内容驱动的响应式换行，primary nav 独占下一行，`<=460px` 收起品牌文字并限制语言标签宽度。移动端页面内容必须从 TopBar 实际底部开始，所有控件与导航都留在 viewport 内，不允许用固定 58px 或横向页面溢出来伪造对齐。
 
 ## 3 目标产品骨架
 
@@ -95,6 +96,12 @@
 - `经历库`
 - `单题 Drill`
 - `独立 Voice`
+
+响应式约束：
+
+- Desktop：TopBar 单行、58px 高、左右 32px padding。
+- Mobile：TopBar 可按当前语言和已登录用户名称换行，左右 14px padding；primary nav 独占一行并可在自身容器内横向滚动，但不得扩大 document 宽度。
+- 报告等带 App Shell 的页面从 TopBar 实际 `getBoundingClientRect().bottom` 开始；中英文或登录态引起的合法高度差不能用页面局部 offset 抹平。
 
 ## 5 目标模块关系
 
@@ -188,8 +195,14 @@ ROUTE_ALIASES
 
 ## 8 后续实现输入
 
-1. 正式前端 TopBar 必须源级复刻当前三入口静态原型。
+1. 正式前端 TopBar 必须源级复刻当前三入口静态原型，包括 desktop 58px 单行与 mobile 响应式换行、无 document 横向溢出的状态。
 2. `frontend` 不得注册 `debrief` / `profile` RouteName、primary nav、user menu 或 screen 分支。
 3. OpenAPI、backend、migrations、shared、config 和 scenario 的复盘 / 用户画像范围收敛由 product-scope/001-core-loop-module-pruning 承接。
 4. `auth_profile_setup` 保留为账号资料补全，不得写成用户画像。
 5. Pixel parity 和 route tests 必须覆盖范围外入口负向断言。
+
+## 9 修订记录
+
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-07-12 | 2.27 | 将正式前端既有的 mobile TopBar 两行/多行响应式、内容驱动高度和无 document 横向溢出规则回写为 UI 真理源，并要求带 App Shell 页面使用真实 TopBar 底部做绝对 viewport parity。 |

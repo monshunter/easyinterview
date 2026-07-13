@@ -195,25 +195,19 @@ values ($1,$2,$3,$4,'ready',$5,$5)`, reportID, userID, sessionID, targetID, now)
 	if _, err := db.ExecContext(ctx, `delete from idempotency_records where id=$1`, reservation.IdempotencyRecordID); err != nil {
 		t.Fatalf("delete reservation probe idempotency: %v", err)
 	}
-	complete(first.ID, "019f5585-0000-7000-8000-000000000012", "019f5585-0000-7000-8000-000000000013", "019f5585-0000-7000-8000-000000000014")
+	complete(first.ID, "019f5585-0000-7000-8000-000000000012", "019f5585-0000-7000-8000-000000000013", "")
 
-	second, err := create("019f5585-0000-7000-8000-000000000020", "019f5585-0000-7000-8000-000000000021", "019f5585-0000-7000-8000-000000000014", sharedtypes.PracticeGoalNextRound, "round-2-technical", 60)
+	second, err := create("019f5585-0000-7000-8000-000000000020", "019f5585-0000-7000-8000-000000000021", "", sharedtypes.PracticeGoalBaseline, "round-2-technical", 60)
 	if err != nil {
-		t.Fatalf("create equal-duration next round: %v", err)
+		t.Fatalf("create completed-ledger successor: %v", err)
 	}
 	if second.RoundID != "round-2-technical" || second.RoundSequence != 2 {
 		t.Fatalf("second round = %+v", second)
 	}
-	t.Log("equal-duration-next-round=PASS")
-
-	retry, err := create("019f5585-0000-7000-8000-000000000022", "019f5585-0000-7000-8000-000000000023", "019f5585-0000-7000-8000-000000000014", sharedtypes.PracticeGoalRetryCurrentRound, "round-1-hr", 60)
-	if err != nil || retry.RoundID != "round-1-hr" || retry.RoundSequence != 1 {
-		t.Fatalf("retry source round = %+v err=%v", retry, err)
-	}
-	t.Log("retry-source-round=PASS")
+	t.Log("completed-ledger-successor=PASS")
 
 	complete(second.ID, "019f5585-0000-7000-8000-000000000024", "019f5585-0000-7000-8000-000000000025", "019f5585-0000-7000-8000-000000000026")
-	fourth, err := create("019f5585-0000-7000-8000-000000000030", "019f5585-0000-7000-8000-000000000031", "019f5585-0000-7000-8000-000000000026", sharedtypes.PracticeGoalNextRound, "round-4-manager", 45)
+	fourth, err := create("019f5585-0000-7000-8000-000000000030", "019f5585-0000-7000-8000-000000000031", "", sharedtypes.PracticeGoalBaseline, "round-4-manager", 45)
 	if err != nil {
 		t.Fatalf("create non-contiguous successor: %v", err)
 	}
@@ -222,13 +216,10 @@ values ($1,$2,$3,$4,'ready',$5,$5)`, reportID, userID, sessionID, targetID, now)
 	}
 	t.Log("non-contiguous-successor=PASS")
 
-	if _, err := create("019f5585-0000-7000-8000-000000000032", "019f5585-0000-7000-8000-000000000033", "019f5585-0000-7000-8000-000000000014", sharedtypes.PracticeGoalNextRound, "round-2-technical", 60); !errors.Is(err, domain.ErrPlanPrerequisiteNotFound) {
-		t.Fatalf("stale source next error = %v", err)
-	}
 	if _, err := create("019f5585-0000-7000-8000-000000000034", "019f5585-0000-7000-8000-000000000035", "", sharedtypes.PracticeGoalBaseline, "round-2-technical", 45); !errors.Is(err, domain.ErrPlanPrerequisiteNotFound) {
 		t.Fatalf("mismatched round/budget error = %v", err)
 	}
-	t.Log("stale-source-and-round-budget-mismatch=PASS")
+	t.Log("round-budget-mismatch=PASS")
 
 	complete(fourth.ID, "019f5585-0000-7000-8000-000000000036", "019f5585-0000-7000-8000-000000000037", "")
 	if _, err := create("019f5585-0000-7000-8000-000000000038", "019f5585-0000-7000-8000-000000000039", "", sharedtypes.PracticeGoalBaseline, "", 45); !errors.Is(err, domain.ErrPlanPrerequisiteNotFound) {

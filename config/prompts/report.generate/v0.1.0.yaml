@@ -1,6 +1,6 @@
 feature_key: "report.generate"
 version: "v0.1.0"
 language: "multi"
-template_hash: "c0e064840e356dfcdbf5da54633b0f552e324c388cbce34ea95dfe4e1bf407e3"
-status: "active"
+template_hash: "4c0e25167304cb4f3170d583a94bdb5a16b9cc0ccd9fdbc2540fb85a68120fa2"
+status: "draft"
 created_at: "2026-05-09T11:30:00Z"

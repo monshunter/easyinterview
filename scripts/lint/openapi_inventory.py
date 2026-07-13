@@ -261,12 +261,19 @@ def validate_product_scope_contract(data: dict[str, Any], errors: list[str]) -> 
     for required in ("sessionId", "targetJobId"):
         if required not in feedback_required:
             errors.append(f"FeedbackReport must be session-scoped and require {required!r}")
-    for prop in ("dimensionAssessments", "retryFocusCompetencyCodes", "provenance"):
+    for prop in (
+        "summary",
+        "context",
+        "dimensionAssessments",
+        "retryFocusDimensionCodes",
+        "provenance",
+    ):
         if prop not in feedback_props:
             errors.append(f"FeedbackReport missing current product property {prop!r}")
     for prop in (
         "questionAssessments",
         "retryFocusTurnIds",
+        "retryFocusCompetencyCodes",
         "mistakes",
         "mistakeEntries",
         "mistakeIds",

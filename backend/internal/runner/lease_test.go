@@ -101,9 +101,9 @@ func TestFinalizeAsyncJob_RetryableRequeuesWithBackoff(t *testing.T) {
 	if row == nil || row.status != "queued" {
 		t.Fatalf("row status = %v, want queued for retryable below max", row)
 	}
-	// attempts == 1 after claim -> backoff Next(1) == 30s.
-	wantAvailable := now.Add(30 * time.Second)
+	// attempts == 1 after claim -> business backoff Next(1) == 10s.
+	wantAvailable := now.Add(10 * time.Second)
 	if !row.availableAt.Equal(wantAvailable) {
-		t.Fatalf("availableAt = %s, want %s (30s backoff)", row.availableAt, wantAvailable)
+		t.Fatalf("availableAt = %s, want %s (10s business backoff)", row.availableAt, wantAvailable)
 	}
 }

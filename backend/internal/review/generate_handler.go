@@ -46,20 +46,22 @@ func NewGenerateHandler(opts GenerateHandlerOptions) *GenerateHandler {
 // Handle satisfies runner.Handler.
 func (h *GenerateHandler) Handle(ctx context.Context, job runner.ClaimedJob) runner.JobOutcome {
 	if h == nil || h.service == nil {
-		return runner.JobOutcome{Retryable: true, ErrorCode: sharederrors.CodeAiOutputInvalid, ErrorMessage: "review generate handler is not configured"}
+		return runner.JobOutcome{Retryable: true, ErrorCode: sharederrors.CodeAiOutputInvalid, ErrorMessage: safeReportErrorMessage(sharederrors.CodeAiOutputInvalid)}
 	}
 	now := h.now()
 	if h.store != nil {
 		if err := h.store.UpdateFeedbackReportStatus(ctx, ReportStatusUpdate{
-			ReportID: job.ResourceID,
-			From:     sharedtypes.ReportStatusQueued,
-			To:       sharedtypes.ReportStatusGenerating,
-			Now:      now,
+			ReportID:        job.ResourceID,
+			AsyncJobID:      job.JobID,
+			ClaimedAttempts: job.Attempts,
+			From:            sharedtypes.ReportStatusQueued,
+			To:              sharedtypes.ReportStatusGenerating,
+			Now:             now,
 		}); err != nil {
 			// The report row is not in a leaseable state (e.g. already
 			// generating after a reaped lease). Requeue with backoff rather than
 			// finalizing so the kernel reaper / retry path can recover.
-			return runner.JobOutcome{Retryable: true, ErrorCode: sharederrors.CodeValidationFailed, ErrorMessage: err.Error()}
+			return runner.JobOutcome{Retryable: true, ErrorCode: sharederrors.CodeValidationFailed, ErrorMessage: safeReportErrorMessage(sharederrors.CodeValidationFailed)}
 		}
 	}
 	outcome := h.service.GenerateReport(ctx, AsyncJob{
@@ -72,11 +74,15 @@ func (h *GenerateHandler) Handle(ctx context.Context, job runner.ClaimedJob) run
 		MaxAttempts:  job.MaxAttempts,
 		AvailableAt:  job.AvailableAt,
 	})
+	errorMessage := ""
+	if !outcome.Succeeded {
+		errorMessage = safeReportErrorMessage(outcome.ErrorCode)
+	}
 	return runner.JobOutcome{
 		Succeeded:         outcome.Succeeded,
 		Retryable:         outcome.Retryable,
 		ErrorCode:         outcome.ErrorCode,
-		ErrorMessage:      outcome.ErrorMessage,
+		ErrorMessage:      errorMessage,
 		AsyncJobFinalized: outcome.Succeeded && outcome.AsyncJobFinalized,
 	}
 }

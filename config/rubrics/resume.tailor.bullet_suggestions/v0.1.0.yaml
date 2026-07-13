@@ -1,6 +1,7 @@
 feature_key: "resume.tailor.bullet_suggestions"
 version: "v0.1.0"
 language: "multi"
+status: "active"
 dimensions:
   - name: "resume_impact"
     weight: 0.4

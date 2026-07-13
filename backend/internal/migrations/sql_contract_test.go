@@ -259,6 +259,95 @@ func TestFeedbackReportsContainsProvenancePersistenceColumns(t *testing.T) {
 	}
 }
 
+func TestGroundedReportContextMigrationContract(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000018_grounded_report_context.up.sql")))
+	down := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000018_grounded_report_context.down.sql")))
+
+	for _, required := range []string{
+		"alter table feedback_reports",
+		"add column summary text",
+		"add column generation_context jsonb not null default '{}'::jsonb",
+		"rename column retry_focus_competency_codes to retry_focus_dimension_codes",
+		"alter table practice_plans",
+		"rename column focus_competency_codes to focus_dimension_codes",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("grounded report context up migration missing %q", required)
+		}
+	}
+	for _, forbidden := range []string{
+		"summary text not null",
+		"add column retry_focus_dimension_codes",
+		"add column focus_dimension_codes",
+		"report-context.v1",
+		"update feedback_reports",
+		"create trigger",
+		"audit_events",
+		"async_jobs",
+		"outbox_events",
+		"llm_attempt_count",
+	} {
+		if strings.Contains(up, forbidden) {
+			t.Fatalf("grounded report context up migration must not contain %q", forbidden)
+		}
+	}
+
+	for _, required := range []string{
+		"rename column retry_focus_dimension_codes to retry_focus_competency_codes",
+		"rename column focus_dimension_codes to focus_competency_codes",
+		"drop column if exists generation_context",
+		"drop column if exists summary",
+	} {
+		if !strings.Contains(down, required) {
+			t.Fatalf("grounded report context down migration missing %q", required)
+		}
+	}
+	if strings.Contains(down, "llm_attempt_count") {
+		t.Fatal("grounded report context down migration must not contain product retry attempt persistence")
+	}
+}
+
+func TestReportAndPracticeV020ActivationMigrationContract(t *testing.T) {
+	root := repoRoot(t)
+	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000019_activate_report_and_practice_prompt_rubric_v020.up.sql")))
+	down := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000019_activate_report_and_practice_prompt_rubric_v020.down.sql")))
+
+	for _, required := range []string{
+		"begin;",
+		"insert into prompt_versions",
+		"insert into rubric_versions",
+		"'report.generate', 'v0.2.0', 'multi'",
+		"'practice.session.chat', 'v0.2.0', 'multi'",
+		"update prompt_versions",
+		"set is_active = (version = 'v0.2.0')",
+		"update rubric_versions",
+		"where feature_key in ('report.generate', 'practice.session.chat')",
+		"activation invariant",
+		"commit;",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("v0.2 activation up migration missing %q", required)
+		}
+	}
+	for _, required := range []string{
+		"begin;",
+		"set is_active = (version = 'v0.1.0')",
+		"delete from prompt_versions",
+		"delete from rubric_versions",
+		"version = 'v0.2.0'",
+		"rollback invariant",
+		"commit;",
+	} {
+		if !strings.Contains(down, required) {
+			t.Fatalf("v0.2 activation down migration missing %q", required)
+		}
+	}
+	if strings.Contains(up, "update prompt_versions set template_body") || strings.Contains(up, "update rubric_versions set schema_json") {
+		t.Fatal("v0.2 activation must not mutate immutable version content")
+	}
+}
+
 func TestResumeVersionsAdditiveMigrationContract(t *testing.T) {
 	root := repoRoot(t)
 	up := strings.ToLower(readFile(t, filepath.Join(root, "migrations", "000005_resume_versions.up.sql")))

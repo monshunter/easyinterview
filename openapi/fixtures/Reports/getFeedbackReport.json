@@ -5,56 +5,77 @@
       "response": {
         "status": 200,
         "headers": {
-          "X-Request-ID": "req_2026-07-12-report-get"
+          "X-Request-ID": "req-report-ready-needs-practice"
         },
         "body": {
-          "id": "01918fa0-0000-7000-8000-000000007000",
-          "sessionId": "01918fa0-0000-7000-8000-000000005000",
-          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
+          "id": "01918fa0-0070-7000-8000-000000000070",
+          "sessionId": "01918fa0-0050-7000-8000-000000000050",
+          "targetJobId": "01918fa0-0020-7000-8000-000000000020",
           "status": "ready",
-          "preparednessLevel": "basically_ready",
+          "errorCode": null,
+          "summary": "你能清楚说明项目背景与个人职责，但关键技术取舍仍缺少可核验的对比依据。下一次复练应优先补齐方案选择、风险控制与结果验证之间的因果链。",
+          "context": {
+            "sourcePlanId": "01918fa0-0040-7000-8000-000000000040",
+            "targetJobTitle": "Senior Platform Engineer",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-0010-7000-8000-000000000010",
+            "resumeDisplayName": "Platform Engineering Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Technical Interview",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
+          "preparednessLevel": "needs_practice",
           "dimensionAssessments": [
             {
-              "dimension": "communication",
+              "code": "structured_communication",
+              "label": "结构化表达",
               "status": "meets_bar",
               "confidence": "high"
             },
             {
-              "dimension": "technical_depth",
+              "code": "technical_tradeoffs",
+              "label": "技术取舍",
               "status": "needs_work",
               "confidence": "medium"
             }
           ],
           "highlights": [
             {
-              "dimension": "ownership",
-              "evidence": "明确说明了跨团队推进路径。",
+              "dimensionCode": "structured_communication",
+              "evidence": "回答按背景、行动与结果展开，并明确区分了个人职责与团队协作。",
               "confidence": "high"
             }
           ],
           "issues": [
             {
-              "dimension": "technical_depth",
-              "evidence": "缺少迁移回归率和灰度策略的量化证据。",
+              "dimensionCode": "technical_tradeoffs",
+              "evidence": "说明了最终方案，但没有比较备选方案的成本、风险和验证标准。",
               "confidence": "medium"
             }
           ],
           "nextActions": [
             {
               "type": "retry_current_round",
-              "label": "围绕灰度策略复练当前轮。"
+              "label": "复练当前技术轮，并补充备选方案、选择依据与验证结果。"
+            },
+            {
+              "type": "review_evidence",
+              "label": "回看技术取舍证据，整理一条可量化的决策链。"
             }
           ],
-          "retryFocusCompetencyCodes": [
-            "technical_depth"
+          "retryFocusDimensionCodes": [
+            "technical_tradeoffs"
           ],
           "provenance": {
-            "promptVersion": "v0.1.0",
-            "rubricVersion": "v0.1.0",
+            "promptVersion": "v0.2.0",
+            "rubricVersion": "v0.2.0",
             "modelId": "model-profile:report.generate.default",
             "language": "zh-CN",
             "featureFlag": "none",
-            "dataSourceVersion": "registry.v1"
+            "dataSourceVersion": "report-context.v1"
           },
           "createdAt": "2026-07-12T08:30:00Z",
           "updatedAt": "2026-07-12T08:31:00Z"
@@ -68,64 +89,86 @@
           "X-Request-ID": "req_2026-04-28T13-45-12-prototype"
         },
         "body": {
-          "id": "01918fa0-c3cb-7268-8404-d3b2603536d8",
-          "sessionId": "01918fa0-4e08-7aa5-82fb-429d4ca5536d",
+          "id": "01918fa0-ccd3-7b9b-84a2-b6839916a02f",
+          "sessionId": "01918fa0-2caf-72bd-819e-5f18e0501192",
           "targetJobId": "01918fa0-ee66-739f-855a-0a9c27ab13df",
           "status": "ready",
-          "preparednessLevel": "basically_ready",
+          "errorCode": null,
+          "summary": "你能用具体项目说明自己的行动，结构也比较清楚；但关键技术取舍与量化结果仍不够完整，建议先补强这些证据再进入下一轮。",
+          "context": {
+            "sourcePlanId": "01918fa0-fac2-7aee-80e1-9e4651b61de4",
+            "targetJobTitle": "高级前端工程师",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-34dc-76a8-84d1-516c9bc97462",
+            "resumeDisplayName": "前端工程师简历 · 第 3 版",
+            "roundId": "round-2-technical",
+            "roundSequence": 2,
+            "roundName": "技术一面 · 45m",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
+          "preparednessLevel": "needs_practice",
+          "dimensionAssessments": [
+            {
+              "code": "answer_structure",
+              "label": "回答结构",
+              "status": "strong",
+              "confidence": "high"
+            },
+            {
+              "code": "technical_tradeoffs",
+              "label": "技术取舍",
+              "status": "needs_work",
+              "confidence": "high"
+            },
+            {
+              "code": "role_relevance",
+              "label": "岗位相关性",
+              "status": "meets_bar",
+              "confidence": "medium"
+            }
+          ],
           "highlights": [
             {
-              "dimension": "内容有具体场景",
-              "evidence": "订单改价系统的例子真实且有细节，比上次练习更扎实。",
+              "dimensionCode": "answer_structure",
+              "evidence": "你按背景、行动和结果说明了订单改价系统的治理过程，面试官可以顺着叙述理解关键步骤。",
               "confidence": "high"
             },
             {
-              "dimension": "表达节奏稳定",
-              "evidence": "整体语速和停顿没有影响理解，追问时也没有明显慌乱。",
-              "confidence": "high"
-            },
-            {
-              "dimension": "对岗位关键词有映射",
-              "evidence": "主动把自己的「B 端表单」经验映射到 JD 里的「数据可视化」。",
-              "confidence": "high"
+              "dimensionCode": "role_relevance",
+              "evidence": "你把复杂表单与设计系统经验直接对应到岗位要求中的中后台交付与组件治理。",
+              "confidence": "medium"
             }
           ],
           "issues": [
             {
-              "dimension": "缺量化结果",
-              "evidence": "性能优化的故事没有给出可验证的量化指标（如 LCP 下降多少、FCP 变化、错误率等）。",
+              "dimensionCode": "technical_tradeoffs",
+              "evidence": "被追问替代方案时，你说明了最终方案，却没有比较其他方案的成本、风险与放弃原因。",
               "confidence": "high"
             },
             {
-              "dimension": "追问后有轻微空转",
-              "evidence": "被追问「为什么选这个方案而不是 X」时，回答只复述了方案，没有给权衡。",
-              "confidence": "medium"
-            },
-            {
-              "dimension": "反问偏套路",
-              "evidence": "反问基本停留在「团队规模、技术栈」，没有体现对公司当下业务的关注。",
-              "confidence": "low"
+              "dimensionCode": "technical_tradeoffs",
+              "evidence": "性能优化案例提到了结果改善，但没有给出起点指标、结束指标与影响范围。",
+              "confidence": "high"
             }
           ],
           "nextActions": [
             {
               "type": "retry_current_round",
-              "label": "重复技术一面复练时，必须覆盖「性能优化量化」"
+              "label": "先复练当前轮：补充一个包含替代方案比较和量化结果的技术案例。"
             },
             {
-              "type": "retry_current_round",
-              "label": "项目深挖中加入一次「替代方案权衡」追问"
-            },
-            {
-              "type": "retry_current_round",
-              "label": "反问环节准备 3 个岗位定制问题"
+              "type": "review_evidence",
+              "label": "回看简历中的性能治理经历，整理可核对的指标与个人责任边界。"
             }
           ],
-          "questionAssessments": [],
-          "retryFocusTurnIds": [],
+          "retryFocusDimensionCodes": [
+            "technical_tradeoffs"
+          ],
           "provenance": {
-            "promptVersion": "feedback_report.v3",
-            "rubricVersion": "feedback_report.rubric.v2",
+            "promptVersion": "v0.2.0",
+            "rubricVersion": "v0.2.0",
             "modelId": "model-profile:prototype-baseline.default",
             "language": "zh-CN",
             "featureFlag": "none",
@@ -136,50 +179,487 @@
         }
       }
     },
-    "report-generating": {
+    "ready-needs-practice": {
       "response": {
         "status": 200,
         "headers": {
-          "X-Request-ID": "req_2026-07-12-report-generating"
+          "X-Request-ID": "req-report-ready-needs-practice-named"
         },
         "body": {
-          "id": "01918fa0-0000-7000-8000-000000007000",
-          "sessionId": "01918fa0-0000-7000-8000-000000005000",
-          "targetJobId": "01918fa0-0000-7000-8000-000000002000",
-          "status": "generating",
+          "id": "01918fa0-0072-7000-8000-000000000072",
+          "sessionId": "01918fa0-0052-7000-8000-000000000052",
+          "targetJobId": "01918fa0-0020-7000-8000-000000000020",
+          "status": "ready",
+          "errorCode": null,
+          "summary": "当前回答结构清楚，但技术取舍证据仍不足，建议先复练当前轮。",
+          "context": {
+            "sourcePlanId": "01918fa0-0040-7000-8000-000000000040",
+            "targetJobTitle": "Senior Platform Engineer",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-0010-7000-8000-000000000010",
+            "resumeDisplayName": "Platform Engineering Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Technical Interview",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
+          "preparednessLevel": "needs_practice",
+          "dimensionAssessments": [
+            {
+              "code": "technical_tradeoffs",
+              "label": "技术取舍",
+              "status": "needs_work",
+              "confidence": "medium"
+            }
+          ],
+          "highlights": [],
+          "issues": [
+            {
+              "dimensionCode": "technical_tradeoffs",
+              "evidence": "回答没有给出备选方案及选择标准。",
+              "confidence": "medium"
+            }
+          ],
+          "nextActions": [
+            {
+              "type": "retry_current_round",
+              "label": "围绕技术取舍复练当前轮。"
+            }
+          ],
+          "retryFocusDimensionCodes": [
+            "technical_tradeoffs"
+          ],
+          "provenance": {
+            "promptVersion": "v0.2.0",
+            "rubricVersion": "v0.2.0",
+            "modelId": "model-profile:report.generate.default",
+            "language": "zh-CN",
+            "featureFlag": "none",
+            "dataSourceVersion": "report-context.v1"
+          },
+          "createdAt": "2026-07-12T08:30:00Z",
+          "updatedAt": "2026-07-12T08:31:00Z"
+        }
+      }
+    },
+    "queued": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req-report-queued"
+        },
+        "body": {
+          "id": "01918fa0-0073-7000-8000-000000000073",
+          "sessionId": "01918fa0-0053-7000-8000-000000000053",
+          "targetJobId": "01918fa0-0020-7000-8000-000000000020",
+          "status": "queued",
+          "errorCode": null,
+          "summary": null,
+          "context": {
+            "sourcePlanId": "01918fa0-0040-7000-8000-000000000040",
+            "targetJobTitle": "Senior Platform Engineer",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-0010-7000-8000-000000000010",
+            "resumeDisplayName": "Platform Engineering Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Technical Interview",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
           "preparednessLevel": null,
           "dimensionAssessments": [],
           "highlights": [],
           "issues": [],
           "nextActions": [],
-          "retryFocusCompetencyCodes": [],
+          "retryFocusDimensionCodes": [],
+          "provenance": null,
+          "createdAt": "2026-07-12T08:30:00Z",
+          "updatedAt": "2026-07-12T08:30:00Z"
+        }
+      }
+    },
+    "generating": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req-report-generating"
+        },
+        "body": {
+          "id": "01918fa0-0074-7000-8000-000000000074",
+          "sessionId": "01918fa0-0054-7000-8000-000000000054",
+          "targetJobId": "01918fa0-0020-7000-8000-000000000020",
+          "status": "generating",
+          "errorCode": null,
+          "summary": null,
+          "context": {
+            "sourcePlanId": "01918fa0-0040-7000-8000-000000000040",
+            "targetJobTitle": "Senior Platform Engineer",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-0010-7000-8000-000000000010",
+            "resumeDisplayName": "Platform Engineering Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Technical Interview",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
+          "preparednessLevel": null,
+          "dimensionAssessments": [],
+          "highlights": [],
+          "issues": [],
+          "nextActions": [],
+          "retryFocusDimensionCodes": [],
           "provenance": null,
           "createdAt": "2026-07-12T08:30:00Z",
           "updatedAt": "2026-07-12T08:30:30Z"
         }
       }
     },
-    "report-failed": {
+    "ready-well-prepared": {
       "response": {
         "status": 200,
         "headers": {
-          "X-Request-ID": "req_2026-07-12-report-failed"
+          "X-Request-ID": "req-report-ready-well-prepared"
         },
         "body": {
-          "id": "01918fa0-0000-7000-8000-0000000070f0",
-          "sessionId": "01918fa0-0000-7000-8000-0000000050f0",
-          "targetJobId": "01918fa0-0000-7000-8000-0000000020f0",
+          "id": "01918fa0-0075-7000-8000-000000000075",
+          "sessionId": "01918fa0-0055-7000-8000-000000000055",
+          "targetJobId": "01918fa0-0025-7000-8000-000000000025",
+          "status": "ready",
+          "errorCode": null,
+          "summary": "Your examples are specific, your trade-offs are explicit, and your answers stay aligned with the role. You are ready to move to the next interview round.",
+          "context": {
+            "sourcePlanId": "01918fa0-0045-7000-8000-000000000045",
+            "targetJobTitle": "Staff Backend Engineer",
+            "targetJobCompany": "Lumen Labs",
+            "resumeId": "01918fa0-0015-7000-8000-000000000015",
+            "resumeDisplayName": "Backend Leadership Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Systems Interview",
+            "roundType": "technical",
+            "language": "en",
+            "hasNextRound": true
+          },
+          "preparednessLevel": "well_prepared",
+          "dimensionAssessments": [
+            {
+              "code": "system_design",
+              "label": "System design",
+              "status": "strong",
+              "confidence": "high"
+            },
+            {
+              "code": "leadership",
+              "label": "Technical leadership",
+              "status": "meets_bar",
+              "confidence": "high"
+            }
+          ],
+          "highlights": [
+            {
+              "dimensionCode": "system_design",
+              "evidence": "The answer compared two architectures and tied the choice to latency and failure isolation.",
+              "confidence": "high"
+            },
+            {
+              "dimensionCode": "leadership",
+              "evidence": "The example separated personal decisions from team execution and named the review mechanism.",
+              "confidence": "high"
+            }
+          ],
+          "issues": [],
+          "nextActions": [
+            {
+              "type": "next_round",
+              "label": "Continue to the next interview round, then review the cited strengths and prepare concise evidence for likely follow-up questions before your next conversation starts"
+            }
+          ],
+          "retryFocusDimensionCodes": [],
+          "provenance": {
+            "promptVersion": "v0.2.0",
+            "rubricVersion": "v0.2.0",
+            "modelId": "model-profile:report.generate.default",
+            "language": "en",
+            "featureFlag": "none",
+            "dataSourceVersion": "report-context.v1"
+          },
+          "createdAt": "2026-07-12T09:00:00Z",
+          "updatedAt": "2026-07-12T09:01:00Z"
+        }
+      }
+    },
+    "ready-empty-focus": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req-report-ready-empty-focus"
+        },
+        "body": {
+          "id": "01918fa0-0076-7000-8000-000000000076",
+          "sessionId": "01918fa0-0056-7000-8000-000000000056",
+          "targetJobId": "01918fa0-0020-7000-8000-000000000020",
+          "status": "ready",
+          "errorCode": null,
+          "summary": "本轮信息较少，建议进行一次通用同轮复练，再补充更完整的项目证据。",
+          "context": {
+            "sourcePlanId": "01918fa0-0040-7000-8000-000000000040",
+            "targetJobTitle": "Senior Platform Engineer",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-0010-7000-8000-000000000010",
+            "resumeDisplayName": "Platform Engineering Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Technical Interview",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
+          "preparednessLevel": "needs_practice",
+          "dimensionAssessments": [
+            {
+              "code": "evidence_coverage",
+              "label": "证据覆盖",
+              "status": "needs_work",
+              "confidence": "low"
+            }
+          ],
+          "highlights": [],
+          "issues": [
+            {
+              "dimensionCode": "evidence_coverage",
+              "evidence": "当前回答样本不足，尚不能支持更具体的能力结论。",
+              "confidence": "low"
+            }
+          ],
+          "nextActions": [
+            {
+              "type": "retry_current_round",
+              "label": "进行一次通用同轮复练并补充完整回答。"
+            }
+          ],
+          "retryFocusDimensionCodes": [],
+          "provenance": {
+            "promptVersion": "v0.2.0",
+            "rubricVersion": "v0.2.0",
+            "modelId": "model-profile:report.generate.default",
+            "language": "zh-CN",
+            "featureFlag": "none",
+            "dataSourceVersion": "report-context.v1"
+          },
+          "createdAt": "2026-07-12T09:10:00Z",
+          "updatedAt": "2026-07-12T09:11:00Z"
+        }
+      }
+    },
+    "failed": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req-report-failed"
+        },
+        "body": {
+          "id": "01918fa0-0077-7000-8000-000000000077",
+          "sessionId": "01918fa0-0057-7000-8000-000000000057",
+          "targetJobId": "01918fa0-0020-7000-8000-000000000020",
           "status": "failed",
           "errorCode": "AI_PROVIDER_TIMEOUT",
+          "summary": null,
+          "context": {
+            "sourcePlanId": "01918fa0-0040-7000-8000-000000000040",
+            "targetJobTitle": "Senior Platform Engineer",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-0010-7000-8000-000000000010",
+            "resumeDisplayName": "Platform Engineering Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Technical Interview",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
           "preparednessLevel": null,
           "dimensionAssessments": [],
           "highlights": [],
           "issues": [],
           "nextActions": [],
-          "retryFocusCompetencyCodes": [],
+          "retryFocusDimensionCodes": [],
           "provenance": null,
-          "createdAt": "2026-07-12T08:30:00Z",
-          "updatedAt": "2026-07-12T08:40:00Z"
+          "createdAt": "2026-07-12T09:20:00Z",
+          "updatedAt": "2026-07-12T09:21:00Z"
+        }
+      }
+    },
+    "failed-context-too-large": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req-report-failed-context-too-large"
+        },
+        "body": {
+          "id": "01918fa0-0078-7000-8000-000000000078",
+          "sessionId": "01918fa0-0058-7000-8000-000000000058",
+          "targetJobId": "01918fa0-0020-7000-8000-000000000020",
+          "status": "failed",
+          "errorCode": "REPORT_CONTEXT_TOO_LARGE",
+          "summary": null,
+          "context": {
+            "sourcePlanId": "01918fa0-0040-7000-8000-000000000040",
+            "targetJobTitle": "Senior Platform Engineer",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-0010-7000-8000-000000000010",
+            "resumeDisplayName": "Platform Engineering Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Technical Interview",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
+          "preparednessLevel": null,
+          "dimensionAssessments": [],
+          "highlights": [],
+          "issues": [],
+          "nextActions": [],
+          "retryFocusDimensionCodes": [],
+          "provenance": null,
+          "createdAt": "2026-07-12T09:30:00Z",
+          "updatedAt": "2026-07-12T09:30:01Z"
+        }
+      }
+    },
+    "invalid-contract": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req-report-invalid-contract"
+        },
+        "body": {
+          "id": "01918fa0-0079-7000-8000-000000000079",
+          "sessionId": "01918fa0-0059-7000-8000-000000000059",
+          "targetJobId": "01918fa0-0020-7000-8000-000000000020",
+          "status": "failed",
+          "errorCode": "AI_OUTPUT_INVALID",
+          "summary": null,
+          "context": {
+            "sourcePlanId": "01918fa0-0040-7000-8000-000000000040",
+            "targetJobTitle": "Senior Platform Engineer",
+            "targetJobCompany": "Acme",
+            "resumeId": "01918fa0-0010-7000-8000-000000000010",
+            "resumeDisplayName": "Platform Engineering Resume",
+            "roundId": "round-1-technical",
+            "roundSequence": 1,
+            "roundName": "Technical Interview",
+            "roundType": "technical",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
+          "preparednessLevel": null,
+          "dimensionAssessments": [],
+          "highlights": [],
+          "issues": [],
+          "nextActions": [],
+          "retryFocusDimensionCodes": [],
+          "provenance": null,
+          "createdAt": "2026-07-12T09:40:00Z",
+          "updatedAt": "2026-07-12T09:41:00Z"
+        }
+      }
+    },
+    "long-content": {
+      "response": {
+        "status": 200,
+        "headers": {
+          "X-Request-ID": "req-report-long-content"
+        },
+        "body": {
+          "id": "01918fa0-007a-7000-8000-00000000007a",
+          "sessionId": "01918fa0-005a-7000-8000-00000000005a",
+          "targetJobId": "01918fa0-002a-7000-8000-00000000002a",
+          "status": "ready",
+          "errorCode": null,
+          "summary": "你已经能够完整解释复杂项目的背景、约束、个人职责、协作方式与最终结果，并把关键判断关联到目标岗位要求。当前主要改进点不是增加更多故事，而是让每个故事中的技术取舍都包含备选方案、决策依据、风险控制、验证方法和可量化结果，同时在追问中保持同一条事实链，避免因为补充细节而改变前后口径。",
+          "context": {
+            "sourcePlanId": "01918fa0-004a-7000-8000-00000000004a",
+            "targetJobTitle": "Principal Distributed Systems Engineer for Global Reliability and Developer Productivity",
+            "targetJobCompany": "Acme International Platform Group",
+            "resumeId": "01918fa0-001a-7000-8000-00000000001a",
+            "resumeDisplayName": "Distributed Systems Leadership and Reliability Engineering Resume",
+            "roundId": "round-2-manager",
+            "roundSequence": 2,
+            "roundName": "Architecture, Leadership, Reliability, and Cross-functional Decision Interview",
+            "roundType": "manager",
+            "language": "zh-CN",
+            "hasNextRound": true
+          },
+          "preparednessLevel": "needs_practice",
+          "dimensionAssessments": [
+            {
+              "code": "architecture_reasoning",
+              "label": "架构推理与约束分析",
+              "status": "strong",
+              "confidence": "high"
+            },
+            {
+              "code": "cross_functional_leadership",
+              "label": "跨团队技术领导与协作",
+              "status": "meets_bar",
+              "confidence": "medium"
+            },
+            {
+              "code": "measurable_outcomes",
+              "label": "结果量化与验证闭环",
+              "status": "needs_work",
+              "confidence": "medium"
+            }
+          ],
+          "highlights": [
+            {
+              "dimensionCode": "architecture_reasoning",
+              "evidence": "候选人先说明一致性、延迟、容量和恢复目标，再比较两种部署拓扑，并解释为什么最终方案更符合故障隔离要求。",
+              "confidence": "high"
+            },
+            {
+              "dimensionCode": "cross_functional_leadership",
+              "evidence": "候选人区分了自己负责的技术决策、平台团队的实施工作和业务团队的验收责任，并说明了争议升级与复盘机制。",
+              "confidence": "medium"
+            }
+          ],
+          "issues": [
+            {
+              "dimensionCode": "measurable_outcomes",
+              "evidence": "候选人描述了上线后的稳定性改善，但尚未给出错误率、恢复时间、发布失败率或告警噪声变化等可核验指标。",
+              "confidence": "medium"
+            }
+          ],
+          "nextActions": [
+            {
+              "type": "retry_current_round",
+              "label": "复练当前管理轮：补全约束、备选、选择、风险、验证和量化结果。"
+            },
+            {
+              "type": "review_evidence",
+              "label": "回看结果量化证据，优先整理恢复时间、发布失败率和告警噪声三个能够直接验证的指标，并补充对应数据来源、统计周期与个人责任边界信息。"
+            }
+          ],
+          "retryFocusDimensionCodes": [
+            "measurable_outcomes"
+          ],
+          "provenance": {
+            "promptVersion": "v0.2.0",
+            "rubricVersion": "v0.2.0",
+            "modelId": "model-profile:report.generate.default",
+            "language": "zh-CN",
+            "featureFlag": "none",
+            "dataSourceVersion": "report-context.v1"
+          },
+          "createdAt": "2026-07-12T10:00:00Z",
+          "updatedAt": "2026-07-12T10:01:00Z"
         }
       }
     }

@@ -76,22 +76,23 @@ func IsProviderRegistryFieldName(value string) bool {
 type ModelProfileFieldName string
 
 const (
-	ModelProfileFieldNameName              ModelProfileFieldName = "name"
-	ModelProfileFieldNameCapability        ModelProfileFieldName = "capability"
-	ModelProfileFieldNameStatus            ModelProfileFieldName = "status"
-	ModelProfileFieldNameUnsupportedReason ModelProfileFieldName = "unsupported_reason"
-	ModelProfileFieldNameDefault           ModelProfileFieldName = "default"
-	ModelProfileFieldNameProviderRef       ModelProfileFieldName = "provider_ref"
-	ModelProfileFieldNameModel             ModelProfileFieldName = "model"
-	ModelProfileFieldNameParams            ModelProfileFieldName = "params"
-	ModelProfileFieldNameFallback          ModelProfileFieldName = "fallback"
-	ModelProfileFieldNameWhen              ModelProfileFieldName = "when"
-	ModelProfileFieldNameTimeoutMs         ModelProfileFieldName = "timeout_ms"
-	ModelProfileFieldNameMaxTokens         ModelProfileFieldName = "max_tokens"
-	ModelProfileFieldNameRateLimit         ModelProfileFieldName = "rate_limit"
-	ModelProfileFieldNameRoute             ModelProfileFieldName = "route"
-	ModelProfileFieldNameVersion           ModelProfileFieldName = "version"
-	ModelProfileFieldNamePrivacyPolicy     ModelProfileFieldName = "privacy_policy"
+	ModelProfileFieldNameName                ModelProfileFieldName = "name"
+	ModelProfileFieldNameCapability          ModelProfileFieldName = "capability"
+	ModelProfileFieldNameStatus              ModelProfileFieldName = "status"
+	ModelProfileFieldNameUnsupportedReason   ModelProfileFieldName = "unsupported_reason"
+	ModelProfileFieldNameDefault             ModelProfileFieldName = "default"
+	ModelProfileFieldNameProviderRef         ModelProfileFieldName = "provider_ref"
+	ModelProfileFieldNameModel               ModelProfileFieldName = "model"
+	ModelProfileFieldNameParams              ModelProfileFieldName = "params"
+	ModelProfileFieldNameFallback            ModelProfileFieldName = "fallback"
+	ModelProfileFieldNameWhen                ModelProfileFieldName = "when"
+	ModelProfileFieldNameTimeoutMs           ModelProfileFieldName = "timeout_ms"
+	ModelProfileFieldNameContextWindowTokens ModelProfileFieldName = "context_window_tokens"
+	ModelProfileFieldNameMaxTokens           ModelProfileFieldName = "max_tokens"
+	ModelProfileFieldNameRateLimit           ModelProfileFieldName = "rate_limit"
+	ModelProfileFieldNameRoute               ModelProfileFieldName = "route"
+	ModelProfileFieldNameVersion             ModelProfileFieldName = "version"
+	ModelProfileFieldNamePrivacyPolicy       ModelProfileFieldName = "privacy_policy"
 )
 
 // AllModelProfileFieldNames lists every AI model profile field in declaration order.
@@ -107,6 +108,7 @@ var AllModelProfileFieldNames = []ModelProfileFieldName{
 	ModelProfileFieldNameFallback,
 	ModelProfileFieldNameWhen,
 	ModelProfileFieldNameTimeoutMs,
+	ModelProfileFieldNameContextWindowTokens,
 	ModelProfileFieldNameMaxTokens,
 	ModelProfileFieldNameRateLimit,
 	ModelProfileFieldNameRoute,

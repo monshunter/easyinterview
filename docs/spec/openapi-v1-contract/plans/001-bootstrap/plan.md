@@ -1,8 +1,8 @@
 # 001 - OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.12
+> **版本**: 1.20
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -86,6 +86,14 @@ BDD is not applicable. This plan owns internal API contract and generated artifa
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2026-07-13 | 1.20 | Keep max4 generation/judge audit internal-only；no attempt/retry/reason/scope/progress field or retry endpoint，and no new expected OpenAPI finding. |
+| 2026-07-13 | 1.19 | Clarify downstream product full-validator repair responsibility without changing expected OpenAPI finding maxLength200；audit/codegen remain pending. |
+| 2026-07-13 | 1.18 | Finalize A：wire fuse200 code points；semantic/UX 24/64；targeted action-label repair margin18/52；keep audit/re-freeze/codegen pending. |
+| 2026-07-12 | 1.15 | Complete baseline/derived CreatePracticePlanRequest conditional positive/negative matrix and non-null source contract. |
+| 2026-07-12 | 1.14 | Require B1 oversized-context enum marker and include its additive-only oracle classification before report codegen. |
+| 2026-07-13 | 1.17 | A-200：set ReportNextAction.label fuse200；keep14/40 UX gate and reopen audit/re-freeze/codegen evidence. |
+| 2026-07-13 | 1.16 | Separate wire fuse from14/40 UX responsibility；specific bound superseded by A-200. |
+| 2026-07-12 | 1.13 | Reopen Phase 12 for OPENAPI-001 closed grounded direct report schema and Go/TS codegen. |
 | 2026-07-12 | 1.12 | Reopen Phase 11 for additive practice round identity and TargetJob progress projection contract. |
 | 2026-07-10 | 1.11 | Remove the unconsumed frontend raw OpenAPI snapshot output and its dedicated generator surface. |
 | 2026-07-10 | 1.10 | Remove the unreferenced provenance ref constant from the inventory linter. |
@@ -130,3 +138,21 @@ TargetJob lifecycle `status` 只表示岗位生命周期，不能解释为面试
 | `getPracticePlan` | `PracticePlans/getPracticePlan.json` current + legacy-null | shared start exact-pair reuse; Practice budget | backend-practice generated adapter/store | read nullable legacy/current plan identity | none | P0.022/P0.070/P0.098 |
 | `listTargetJobs` | `TargetJobs/listTargetJobs.json` zero/partial/final progress | Home/Workspace cards and quick-start | backend-targetjob list handler/store/service projection | TargetJob summary + plans/sessions/completion events; no mutable progress column | none | P0.018/P0.098 |
 | `getTargetJob` | `TargetJobs/getTargetJob.json` zero/partial/final progress | Parse/Report/current-round handoff | backend-targetjob get handler/store/service projection | same ledger projection as list | none after persisted JD parse | P0.057/P0.098 |
+
+## 12 OPENAPI-001 grounded direct report contract
+
+### 12.1 Closed wire shape
+
+After OPENAPI-001 is accepted and B1 emits `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS`, update the proposed `FeedbackReport` while the old baseline remains unchanged. Require nullable-until-state-resolved `summary` / `preparednessLevel` / `provenance`, non-null minimal `ReportContextSnapshot` with `hasNextRound`, code+label dimensions, dimensionCode evidence and `retryFocusDimensionCodes`. Close the report state machine: ready requires non-null summary/preparedness/provenance plus non-empty dimensions/actions; failed alone requires non-null errorCode and all other states require null errorCode. Keep CreatePracticePlanRequest as `type: object` with typed superset properties and conditional `oneOf`: baseline requires its existing non-focus fields and forbids sourceReportId; retry/next each require a non-null UUID sourceReportId and allow only goal+sourceReportId. Existing generators must produce Go/TS object types rather than `any`; schema/runtime fixtures reject invalid report states, baseline source, derived missing/null/blank source and every derived extra, while valid ready/failed and minimal retry/next requests pass. Delete `DimensionResult` and old dimension/focus names, close objects and apply ADR bounds. Synchronize `REPORT_CONTEXT_TOO_LARGE` into `ApiErrorCode` only through the B1 source. Run 003 base-ref exact audit across breaking and additive findings before codegen/fixtures.
+
+Under approved方案 A，`ReportNextAction.label.maxLength=200` code points is only a malformed-output fuse。F3/runtime/frontend enforce English `<=24` whitespace words / zh-CN `<=64` Unicode code points；targeted action-label repair uses an internal 18/52 generation margin and is revalidated against 200+24/64。P0.099 proves desktop+390 wrapping and typed-invalid/no-raw behavior。Old baseline clean PASS is invalid until new audit/re-freeze；codegen-check remains separately pending。
+
+Generation/judge max4，attempt_count/retry_count/reason/scope and business/outbox backoff are internal runtime/eval contracts。Do not add HTTP fields、progress or retry-generation operation。`FeedbackReport` remains queued/generating/ready/failed；frontend maxAttempts49 exhaustion is a client continue-check state，not an API failed transition。This decision creates no additional expected finding beyond the existing maxLength200 correction。
+
+### 12.2 Generated artifacts and inventory
+
+Regenerate Go/TS artifacts and add exact inventory/negative tests that reject old report fields and unknown object properties. The operation/tag inventory remains 37/10; no endpoint or status changes.
+
+### 12.3 Handoff
+
+002 must replace every Reports/PracticePlans scenario and prototype projection before backend/frontend consumers compile. 003 must preserve the merge-base breaking artifact before current baseline re-freeze.

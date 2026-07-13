@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract Fixtures & Mock Source Checklist
 
-> **版本**: 1.10
+> **版本**: 1.14
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -48,3 +48,14 @@
 - [x] 6.2 Add plan fixtures for baseline/current round and legacy null identity, plus TargetJob fixtures for zero/partial/all completed round states.<!-- verified: 2026-07-12 method=fixture-validation count=37 variants="not-started,partial,completed,legacy-null,mismatch" -->
 - [x] 6.3 Update prototype mapping/data and prove `make sync-fixtures-from-prototype` idempotency without lifecycle-status round inference.<!-- verified: 2026-07-12 method=prototype-sync-twice+4-unit-tests+37-fixture-validation evidence="ui-design/src/data.jsx is the practiceProgress source; sync does not read TargetJob lifecycle status" -->
 - [x] 6.4 Run `make validate-fixtures`, example rendering, mock consumer tests, and scenario-owner handoff gates.<!-- verified: 2026-07-12 method=57-python-tests+validate-fixtures+render-examples+generated-consumers -->
+
+## 7 OPENAPI-001 report fixtures
+
+- [x] 7.1 RED-GREEN: validator negatives inject old dimension/focus/question fields and unknown properties into each closed report object and must fail before fixture migration. Create-plan matrix also rejects baseline+sourceReportId; retry/next missing/null/blank/malformed sourceReportId; and every derived extra.
+  <!-- verified: 2026-07-12 method=tdd-red-green evidence="Initial fixture validation failed 60 current-schema errors. Focused RED also proved bare const predicates incorrectly selected the ready branch and old prototype projection restored dimension/question fields. GREEN passes the 12-case request matrix, status-conditional branch test, closed-object/bounds negatives and canonical oversize alias rejection." -->
+- [x] 7.2 Replace get/list report and create-plan scenarios with current direct shape, frozen context and no client focus input; include queued/generating/two ready/failed/failed-context-too-large/invalid/long-content variants plus valid baseline and minimal retry/next `{goal,sourceReportId}` requests. The oversized variant uses canonical B1 `REPORT_CONTEXT_TOO_LARGE` and fixture validation rejects aliases.
+  <!-- verified: 2026-07-12 method=fixture-status-and-derived-matrix evidence="getFeedbackReport includes queued, generating, ready-needs-practice, ready-well-prepared, ready-empty-focus, failed, failed-context-too-large, invalid-contract and long-content direct bodies; list reports is direct; retry-derived/next-derived requests contain only goal+sourceReportId; all 37 fixtures validate." -->
+- [x] 7.3 Update prototype data/mapping and run `make sync-fixtures-from-prototype` twice; the second run is byte-idempotent and cannot restore old fields.
+  <!-- verified: 2026-07-12 method=prototype-sync-twice+unit-tests evidence="Two full fixture-tree SHA-256 manifests are identical; 6 sync tests pass including direct FeedbackReport projection and negative old-field assertions." -->
+- [x] 7.4 Run `make validate-fixtures`, example rendering and Prism byte-equal smoke for `getFeedbackReport`, `listTargetJobReports` and `createPracticePlan`; pass exact response markers to backend/frontend owners.
+  <!-- verified: 2026-07-12 method=fixture-example-prism evidence="validate-fixtures passes 37; renderer passes 5 tests and emits e4017fcf5a3a...; live Prism 5.14.2 passes 7/7 byte-equal checks including exact getFeedbackReport=200, listTargetJobReports=200 and createPracticePlan=201 defaults." -->

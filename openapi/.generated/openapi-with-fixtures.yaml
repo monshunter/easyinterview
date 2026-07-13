@@ -1872,38 +1872,56 @@ paths:
                 default:
                   summary: Default fixture for getFeedbackReport
                   value:
-                    id: 01918fa0-0000-7000-8000-000000007000
-                    sessionId: 01918fa0-0000-7000-8000-000000005000
-                    targetJobId: 01918fa0-0000-7000-8000-000000002000
+                    id: 01918fa0-0070-7000-8000-000000000070
+                    sessionId: 01918fa0-0050-7000-8000-000000000050
+                    targetJobId: 01918fa0-0020-7000-8000-000000000020
                     status: ready
-                    preparednessLevel: basically_ready
+                    errorCode: null
+                    summary: 你能清楚说明项目背景与个人职责，但关键技术取舍仍缺少可核验的对比依据。下一次复练应优先补齐方案选择、风险控制与结果验证之间的因果链。
+                    context:
+                      sourcePlanId: 01918fa0-0040-7000-8000-000000000040
+                      targetJobTitle: Senior Platform Engineer
+                      targetJobCompany: Acme
+                      resumeId: 01918fa0-0010-7000-8000-000000000010
+                      resumeDisplayName: Platform Engineering Resume
+                      roundId: round-1-technical
+                      roundSequence: 1
+                      roundName: Technical Interview
+                      roundType: technical
+                      language: zh-CN
+                      hasNextRound: true
+                    preparednessLevel: needs_practice
                     dimensionAssessments:
-                    - dimension: communication
+                    - code: structured_communication
+                      label: 结构化表达
                       status: meets_bar
                       confidence: high
-                    - dimension: technical_depth
+                    - code: technical_tradeoffs
+                      label: 技术取舍
                       status: needs_work
                       confidence: medium
                     highlights:
-                    - dimension: ownership
-                      evidence: 明确说明了跨团队推进路径。
+                    - dimensionCode: structured_communication
+                      evidence: 回答按背景、行动与结果展开，并明确区分了个人职责与团队协作。
                       confidence: high
                     issues:
-                    - dimension: technical_depth
-                      evidence: 缺少迁移回归率和灰度策略的量化证据。
+                    - dimensionCode: technical_tradeoffs
+                      evidence: 说明了最终方案，但没有比较备选方案的成本、风险和验证标准。
                       confidence: medium
                     nextActions:
                     - type: retry_current_round
-                      label: 围绕灰度策略复练当前轮。
-                    retryFocusCompetencyCodes:
-                    - technical_depth
+                      label: 复练当前技术轮，并补充备选方案、选择依据与验证结果。
+                    - type: review_evidence
+                      label: 回看技术取舍证据，整理一条可量化的决策链。
+                    retryFocusDimensionCodes:
+                    - technical_tradeoffs
                     provenance:
-                      promptVersion: v0.1.0
-                      rubricVersion: v0.1.0
+                      promptVersion: v0.2.0
+                      rubricVersion: v0.2.0
                       modelId: model-profile:report.generate.default
                       language: zh-CN
                       featureFlag: none
-                      dataSourceVersion: registry.v1
+                      dataSourceVersion: report-context.v1
                     createdAt: '2026-07-12T08:30:00Z'
                     updatedAt: '2026-07-12T08:31:00Z'
         '404':
@@ -1974,27 +1992,50 @@ paths:
                       sessionId: 01918fa0-0000-7000-8000-000000005000
                       targetJobId: 01918fa0-0000-7000-8000-000000002000
                       status: ready
-                      preparednessLevel: basically_ready
+                      errorCode: null
+                      summary: 回答结构清楚，技术取舍仍需补充备选方案与量化验证。
+                      context:
+                        sourcePlanId: 01918fa0-0000-7000-8000-000000004000
+                        targetJobTitle: Senior Platform Engineer
+                        targetJobCompany: Acme
+                        resumeId: 01918fa0-0000-7000-8000-000000001000
+                        resumeDisplayName: Platform Engineering Resume
+                        roundId: round-1-technical
+                        roundSequence: 1
+                        roundName: Technical Interview
+                        roundType: technical
+                        language: zh-CN
+                        hasNextRound: true
+                      preparednessLevel: needs_practice
                       dimensionAssessments:
-                      - dimension: communication
+                      - code: structured_communication
+                        label: 结构化表达
                         status: meets_bar
                         confidence: high
+                      - code: technical_tradeoffs
+                        label: 技术取舍
+                        status: needs_work
+                        confidence: medium
                       highlights:
-                      - dimension: ownership
-                        evidence: 明确说明了跨团队推进路径。
+                      - dimensionCode: structured_communication
+                        evidence: 回答按背景、行动和结果展开，并明确了个人职责。
                         confidence: high
-                      issues: []
+                      issues:
+                      - dimensionCode: technical_tradeoffs
+                        evidence: 没有比较备选方案的成本、风险和验证标准。
+                        confidence: medium
                       nextActions:
-                      - type: next_round
-                        label: 进入下一轮
-                      retryFocusCompetencyCodes: []
+                      - type: retry_current_round
+                        label: 复练当前技术轮，补齐技术取舍证据。
+                      retryFocusDimensionCodes:
+                      - technical_tradeoffs
                       provenance:
-                        promptVersion: v0.1.0
-                        rubricVersion: v0.1.0
+                        promptVersion: v0.2.0
+                        rubricVersion: v0.2.0
                         modelId: model-profile:report.generate.default
                         language: zh-CN
                         featureFlag: none
-                        dataSourceVersion: registry.v1
+                        dataSourceVersion: report-context.v1
                       createdAt: '2026-07-12T08:30:00Z'
                       updatedAt: '2026-07-12T08:31:00Z'
                     pageInfo:
@@ -2418,6 +2459,7 @@ components:
       - PRACTICE_SESSION_NOT_FOUND
       - REPORT_NOT_FOUND
       - REPORT_NOT_READY
+      - REPORT_CONTEXT_TOO_LARGE
       - RESUME_EXPORT_NOT_AVAILABLE
       - VALIDATION_FAILED
       - RESOURCE_NOT_FOUND
@@ -3395,13 +3437,8 @@ components:
     CreatePracticePlanRequest:
       type: object
       required:
-      - targetJobId
       - goal
-      - interviewerPersona
-      - difficulty
-      - language
-      - timeBudgetMinutes
-      - resumeId
+      additionalProperties: false
       properties:
         targetJobId:
           type: string
@@ -3433,12 +3470,61 @@ components:
         sourceReportId:
           type: string
           format: uuid
-          nullable: true
-          description: Required for retry_current_round and next_round practice goals.
-        focusCompetencyCodes:
-          type: array
-          items:
+          description: Required only for retry_current_round and next_round; forbidden for baseline.
+      oneOf:
+      - title: baseline
+        required:
+        - targetJobId
+        - goal
+        - interviewerPersona
+        - difficulty
+        - language
+        - timeBudgetMinutes
+        - resumeId
+        additionalProperties: false
+        properties:
+          targetJobId:
             type: string
+            format: uuid
+          goal:
+            const: baseline
+          interviewerPersona:
+            $ref: '#/components/schemas/InterviewerRole'
+          difficulty:
+            type: string
+            enum:
+            - easy
+            - standard
+            - stretch
+          language:
+            type: string
+          timeBudgetMinutes:
+            type: integer
+            format: int32
+            minimum: 1
+          resumeId:
+            type: string
+            format: uuid
+          roundId:
+            type: string
+            pattern: ^round-[1-9][0-9]{0,9}-(hr|technical|manager|cross_functional|culture|final|other)$
+        not:
+          required:
+          - sourceReportId
+      - title: report-derived
+        required:
+        - goal
+        - sourceReportId
+        additionalProperties: false
+        properties:
+          goal:
+            type: string
+            enum:
+            - retry_current_round
+            - next_round
+          sourceReportId:
+            type: string
+            format: uuid
     PracticePlan:
       type: object
       required:
@@ -3822,40 +3908,36 @@ components:
           format: uuid
         job:
           $ref: '#/components/schemas/Job'
-    DimensionResult:
-      type: object
-      required:
-      - status
-      - confidence
-      properties:
-        status:
-          $ref: '#/components/schemas/DimensionStatus'
-        confidence:
-          $ref: '#/components/schemas/Confidence'
     ReportHighlight:
       type: object
       required:
-      - dimension
+      - dimensionCode
       - evidence
       - confidence
+      additionalProperties: false
       properties:
-        dimension:
+        dimensionCode:
           type: string
         evidence:
           type: string
+          minLength: 1
+          maxLength: 240
         confidence:
           $ref: '#/components/schemas/Confidence'
     ReportIssue:
       type: object
       required:
-      - dimension
+      - dimensionCode
       - evidence
       - confidence
+      additionalProperties: false
       properties:
-        dimension:
+        dimensionCode:
           type: string
         evidence:
           type: string
+          minLength: 1
+          maxLength: 240
         confidence:
           $ref: '#/components/schemas/Confidence'
     ReportNextAction:
@@ -3863,6 +3945,7 @@ components:
       required:
       - type
       - label
+      additionalProperties: false
       properties:
         type:
           type: string
@@ -3872,19 +3955,80 @@ components:
           - review_evidence
         label:
           type: string
+          minLength: 1
+          maxLength: 200
     DimensionAssessment:
       type: object
       required:
-      - dimension
+      - code
+      - label
       - status
       - confidence
+      additionalProperties: false
       properties:
-        dimension:
+        code:
           type: string
+          pattern: ^[a-z][a-z0-9_]{1,63}$
+        label:
+          type: string
+          minLength: 1
+          maxLength: 48
         status:
           $ref: '#/components/schemas/DimensionStatus'
         confidence:
           $ref: '#/components/schemas/Confidence'
+    ReportContextSnapshot:
+      type: object
+      required:
+      - sourcePlanId
+      - targetJobTitle
+      - targetJobCompany
+      - resumeId
+      - resumeDisplayName
+      - roundId
+      - roundSequence
+      - roundName
+      - roundType
+      - language
+      - hasNextRound
+      additionalProperties: false
+      properties:
+        sourcePlanId:
+          type: string
+          format: uuid
+        targetJobTitle:
+          type: string
+        targetJobCompany:
+          type: string
+        resumeId:
+          type: string
+          format: uuid
+        resumeDisplayName:
+          type: string
+        roundId:
+          type: string
+          pattern: ^round-[1-9][0-9]{0,9}-(hr|technical|manager|cross_functional|culture|final|other)$
+        roundSequence:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 2147483647
+        roundName:
+          type: string
+        roundType:
+          type: string
+          enum:
+          - hr
+          - technical
+          - manager
+          - cross_functional
+          - culture
+          - final
+          - other
+        language:
+          type: string
+        hasNextRound:
+          type: boolean
     FeedbackReport:
       type: object
       required:
@@ -3892,8 +4036,79 @@ components:
       - sessionId
       - targetJobId
       - status
+      - errorCode
+      - summary
+      - context
+      - preparednessLevel
+      - highlights
+      - issues
+      - nextActions
+      - dimensionAssessments
+      - retryFocusDimensionCodes
+      - provenance
       - createdAt
       - updatedAt
+      additionalProperties: false
+      allOf:
+      - if:
+          required:
+          - status
+          properties:
+            status:
+              const: ready
+        then:
+          properties:
+            summary:
+              type: string
+              minLength: 1
+              maxLength: 360
+            preparednessLevel:
+              $ref: '#/components/schemas/ReadinessTier'
+            dimensionAssessments:
+              type: array
+              minItems: 1
+            nextActions:
+              type: array
+              minItems: 1
+            provenance:
+              $ref: '#/components/schemas/GenerationProvenance'
+        else:
+          properties:
+            summary:
+              type: 'null'
+            preparednessLevel:
+              type: 'null'
+            dimensionAssessments:
+              type: array
+              maxItems: 0
+            highlights:
+              type: array
+              maxItems: 0
+            issues:
+              type: array
+              maxItems: 0
+            nextActions:
+              type: array
+              maxItems: 0
+            retryFocusDimensionCodes:
+              type: array
+              maxItems: 0
+            provenance:
+              type: 'null'
+      - if:
+          required:
+          - status
+          properties:
+            status:
+              const: failed
+        then:
+          properties:
+            errorCode:
+              $ref: '#/components/schemas/ApiErrorCode'
+        else:
+          properties:
+            errorCode:
+              type: 'null'
       description: 'Evidence-based feedback report. AI-generated; `provenance` is required
 
         once `status == ready` per spec §4.6. Queued or generating reports
@@ -3922,28 +4137,43 @@ components:
             (typically the `AI_*` family) so clients can render a failure state.
 
             '
+        summary:
+          oneOf:
+          - type: string
+            minLength: 1
+            maxLength: 360
+          - type: 'null'
+          description: Final report summary; non-empty only when status is ready.
+        context:
+          $ref: '#/components/schemas/ReportContextSnapshot'
         preparednessLevel:
           oneOf:
           - $ref: '#/components/schemas/ReadinessTier'
           - type: 'null'
         highlights:
           type: array
+          maxItems: 4
           items:
             $ref: '#/components/schemas/ReportHighlight'
         issues:
           type: array
+          maxItems: 4
           items:
             $ref: '#/components/schemas/ReportIssue'
         nextActions:
           type: array
+          maxItems: 2
           items:
             $ref: '#/components/schemas/ReportNextAction'
         dimensionAssessments:
           type: array
+          maxItems: 6
           items:
             $ref: '#/components/schemas/DimensionAssessment'
-        retryFocusCompetencyCodes:
+        retryFocusDimensionCodes:
           type: array
+          maxItems: 6
+          uniqueItems: true
           items:
             type: string
         provenance:

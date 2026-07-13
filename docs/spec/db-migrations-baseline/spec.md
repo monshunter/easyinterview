@@ -1,8 +1,8 @@
 # DB Migrations Baseline Spec
 
-> **版本**: 1.30
+> **版本**: 1.34
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 背景与目标
 
@@ -10,14 +10,14 @@
 
 本 spec 只描述当前 net-state：
 
-- 22 张当前应用表；
+- 21 张当前应用表；
 - 3 张 auth / session 支撑表；
 - 2 张迁移元数据表；
 - 当前索引、check constraint、backfill ledger、privacy deletion matrix 与迁移执行 gate。
 
 目标是：
 
-1. **稳定 schema inventory**：干净 DB 迁移完成后，public schema 至少包含 27 张表，且当前应用 / auth / 元数据表清单与 §2.1 完全一致。
+1. **稳定 schema inventory**：干净 DB 迁移完成后，public schema 至少包含 26 张表，且 21 张应用表、3 张 auth 支撑表和 2 张迁移元数据表与 §2.1 完全一致。
 2. **统一迁移工具**：迁移入口使用 `golang-migrate` 包装器，不并行维护第二套迁移工具。
 3. **可逆与可审计**：每个 migration 都有 `.down.sql`；行级 backfill 通过 Go registry 记录 dry-run / apply ledger。
 4. **索引与约束可验证**：B-Tree、可选 GIN、enum/check source 与 migration lint 必须能被本地 gate 验证。
@@ -93,7 +93,7 @@
 | D-16 | Privacy deletion matrix | §3.1.2 是 table disposition 真理源；新增用户关联列必须先更新矩阵 | 防止漏删或误删 |
 | D-17 | Flat Resume net-state | `resumes` 是当前简历表；`source_type` 为 `upload` / `paste`；`practice_plans.resume_id` 绑定简历 | 支撑 Resume Workshop、Practice 与 privacy delete |
 | D-18 | Practice message replay | `practice_messages.client_message_id` 在 session 内唯一；assistant `reply_to_message_id` 唯一 | 同一用户消息重试不重复落库或生成 reply |
-| D-19 | Report generation columns | `feedback_reports.retry_focus_competency_codes` 与 `ai_task_runs` 承载 conversation-level report language / retry / provenance | 支撑 async report generation，不保留 question assessment 表 |
+| D-19 | Grounded report columns | `feedback_reports.summary`、content-bearing `generation_context`、`retry_focus_dimension_codes` 与 `ai_task_runs` 承载direct report/provenance；`practice_plans.focus_dimension_codes`接收服务端report projection；schema不存产品retry次数 | `000018`中不存在`llm_attempt_count`或同义retry列；不保留单次repair flag、question assessment、numeric score或competency-name compatibility列；旧row的empty context由current runtime fail closed，不伪造快照 |
 | D-20 | Privacy request tombstone | `privacy_requests.user_id` 可置空，FK 为 `ON DELETE SET NULL` | 用户行 hard delete 后保留最小删除证据 |
 | D-21 | Current public schema count | 当前 public schema gate 为 21 app + 3 auth + 2 metadata，count >= 26 | 作为 migration inventory drift gate |
 | D-22 | Practice conversation schema | 删除 `practice_turns`、`question_assessments`、`practice_plans.question_budget/mode`、`practice_sessions.turn_count/hints_enabled`；新增 `practice_messages` | pre-launch baseline 原地修订，不保留旧表/列兼容层 |
@@ -189,7 +189,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 干净 DB baseline | 干净 Postgres 18 | `make migrate-up` | §2.1 的 22 app + 3 auth + 2 metadata table 全部存在；public schema count >= 27；app inventory 不多不少 | [001](./plans/001-bootstrap/plan.md) + [002](./plans/002-flat-resume-migration/plan.md) |
+| C-1 | 干净 DB baseline | 干净 Postgres 18 | `make migrate-up` | §2.1 的 21 app + 3 auth + 2 metadata table 全部存在；public schema count >= 26；app inventory 不多不少 | [001](./plans/001-bootstrap/plan.md) + [002](./plans/002-flat-resume-migration/plan.md) |
 | C-2 | 索引覆盖 | C-1 完成 | 查询 `pg_indexes` | 当前 B-Tree inventory 与可选 `idx_target_jobs_fts` 存在 | [001](./plans/001-bootstrap/plan.md) |
 | C-3 | 迁移可逆 | C-1 完成 | `make migrate-down` in dev | 应用 / auth / backfill metadata 按 down 语义回滚；exit 0 | [001](./plans/001-bootstrap/plan.md) |
 | C-4 | 幂等执行 | 已迁移一次 | 再次 `make migrate-up` | exit 0；`schema_migrations` 无重复 | [001](./plans/001-bootstrap/plan.md) |
@@ -201,6 +201,7 @@
 | C-10 | Privacy matrix | 测试用户产生覆盖样本 | `privacy_delete` dry-run / apply | §3.1.2 每表 disposition 输出并执行；用户可识别内容删除或脱敏 | [001](./plans/001-bootstrap/plan.md) |
 | C-11 | Live test rerun-safe | `DATABASE_URL` 指向可用 DB | 固定 UUID migration tests 连续运行 | 重复运行不因样本残留失败；无 DB 时明确 skip | [002](./plans/002-flat-resume-migration/plan.md) |
 | C-12 | Practice plan round identity migration | DB 含新 plan、唯一时长 legacy plan、同一时长多轮 legacy plan | 执行 `000017` up/backfill/down/up | 新 plan 可保存成对 round identity；唯一匹配 legacy plan 可审计回填；歧义 legacy plan 保持 null；pair CHECK、正数 CHECK 与 partial lookup index 存在；`target_jobs` 不出现 progress 列 | [001](./plans/001-bootstrap/plan.md) |
+| C-13 | Grounded report storage migration | DB 同时含 queued/current-ready 与 pre-contract development report rows | 执行 `000018` up/down/up | summary、`report-context.v1`与report/plan dimension focus列可逆，且`llm_attempt_count`/同义产品retry列不存在；current completion可原子写入，pre-contract invalid context只fail closed、不被伪造或兼容读取；privacy删除和非内容存储面均通过 | [001](./plans/001-bootstrap/plan.md) |
 
 ## 7 关联计划
 

@@ -26,6 +26,52 @@ export async function startPracticeFromParams(
 ): Promise<StartPracticeResult> {
   const ctx = interviewContextStateFromParams(params);
   const batch = newIdempotencyBatch();
+  if (ctx.practiceGoal === "retry_current_round" || ctx.practiceGoal === "next_round") {
+    const plan = await client.createPracticePlan(
+      buildCreatePlanRequest(ctx, lang, 0),
+      { idempotencyKey: batch.create },
+    );
+    const sourceReportId = normalizeServerBoundId(ctx.sourceReportId);
+    const targetJobId = normalizeServerBoundId(plan.targetJobId);
+    const resumeId = normalizeServerBoundId(plan.resumeId);
+    if (
+      !sourceReportId ||
+      plan.sourceReportId !== sourceReportId ||
+      plan.goal !== ctx.practiceGoal ||
+      plan.status !== "ready" ||
+      !targetJobId ||
+      !resumeId ||
+      !plan.roundId ||
+      !Number.isInteger(plan.roundSequence) ||
+      !Number.isInteger(plan.timeBudgetMinutes) ||
+      plan.timeBudgetMinutes <= 0
+    ) {
+      throw new Error("derived practice plan context mismatch");
+    }
+    const session = await client.startPracticeSession(
+      { planId: plan.id },
+      { idempotencyKey: batch.start },
+    );
+    if (session.planId !== plan.id || session.targetJobId !== targetJobId) {
+      throw new Error("derived practice session context mismatch");
+    }
+    return {
+      sessionId: session.id,
+      planId: plan.id,
+      params: omitEmpty({
+        targetJobId,
+        jobId: targetJobId,
+        resumeId,
+        sourceReportId,
+        roundId: plan.roundId,
+        practiceGoal: plan.goal,
+        language: plan.language,
+        planId: plan.id,
+        sessionId: session.id,
+      }),
+    };
+  }
+
   const targetJobId = normalizeServerBoundId(ctx.targetJobId);
   if (!targetJobId) throw new Error("invalid targetJobId");
   const targetJob = await client.getTargetJob(targetJobId);
@@ -40,13 +86,7 @@ export async function startPracticeFromParams(
       throw new Error("round is not backend current");
     }
   }
-  const shouldCreateDerivedPlan =
-    ctx.practiceGoal === "retry_current_round" ||
-    ctx.practiceGoal === "next_round";
-
-  let planId = shouldCreateDerivedPlan
-    ? undefined
-    : normalizeServerBoundId(ctx.planId);
+  let planId = normalizeServerBoundId(ctx.planId);
 
   if (planId) {
     try {
@@ -133,7 +173,7 @@ export function interviewContextStateFromParams(
     roundId: params.roundId || undefined,
     roundName: params.roundName || undefined,
     practiceGoal:
-      params.practiceGoal || DEFAULT_INTERVIEW_CONTEXT.practiceGoal,
+      params.goal || params.practiceGoal || DEFAULT_INTERVIEW_CONTEXT.practiceGoal,
     sessionId: params.sessionId || undefined,
   };
 }

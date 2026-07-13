@@ -19,7 +19,7 @@ func (r *SQLRepository) CompleteSession(ctx context.Context, in domain.CompleteS
 	if r == nil || r.db == nil {
 		return domain.CompleteSessionResult{}, fmt.Errorf("practice SQL repository is not configured")
 	}
-	tx, err := r.db.BeginTx(ctx, nil)
+	tx, err := r.db.BeginTx(ctx, completionTransactionOptions())
 	if err != nil {
 		return domain.CompleteSessionResult{}, fmt.Errorf("begin complete practice session: %w", err)
 	}
@@ -40,6 +40,21 @@ func (r *SQLRepository) CompleteSession(ctx context.Context, in domain.CompleteS
 	}
 	if !canCompletePracticeSessionStatus(session.Status) {
 		return domain.CompleteSessionResult{}, domain.ErrSessionConflict
+	}
+	hasUserMessage, hasPendingReply, err := selectReportableConversationState(ctx, tx, in.SessionID)
+	if err != nil {
+		return domain.CompleteSessionResult{}, err
+	}
+	if !hasUserMessage || hasPendingReply {
+		return domain.CompleteSessionResult{}, domain.ErrSessionNotReportable
+	}
+	generationContext, err := loadCompletionReportContext(ctx, tx, in.UserID, in.SessionID)
+	if err != nil {
+		return domain.CompleteSessionResult{}, err
+	}
+	generationContextRaw, err := json.Marshal(generationContext)
+	if err != nil {
+		return domain.CompleteSessionResult{}, fmt.Errorf("marshal completion report context: %w", err)
 	}
 
 	if _, err := tx.ExecContext(ctx, `
@@ -81,13 +96,14 @@ insert into practice_session_events (
 	}
 	if _, err := tx.ExecContext(ctx, `
 insert into feedback_reports (
-  id, user_id, session_id, target_job_id, status, created_at, updated_at
-) values ($1,$2,$3,$4,$5,$6,$6)`,
+  id, user_id, session_id, target_job_id, status, generation_context, created_at, updated_at
+) values ($1,$2,$3,$4,$5,$6,$7,$7)`,
 		in.ReportID,
 		in.UserID,
 		in.SessionID,
 		session.TargetJobID,
 		string(sharedtypes.ReportStatusQueued),
+		generationContextRaw,
 		in.Now.UTC(),
 	); err != nil {
 		if isUniqueViolation(err) {
@@ -180,7 +196,8 @@ insert into audit_events (
 		return domain.CompleteSessionResult{}, fmt.Errorf("commit complete practice session: %w", err)
 	}
 	return domain.CompleteSessionResult{
-		ReportID: in.ReportID,
+		ReportID:          in.ReportID,
+		GenerationContext: generationContext,
 		Job: domain.JobRecord{
 			ID:           in.JobID,
 			JobType:      api.JobTypeReportGenerate,
@@ -191,6 +208,10 @@ insert into audit_events (
 			UpdatedAt:    in.Now.UTC(),
 		},
 	}, nil
+}
+
+func completionTransactionOptions() *sql.TxOptions {
+	return &sql.TxOptions{Isolation: sql.LevelRepeatableRead}
 }
 
 func selectSessionForCompletion(ctx context.Context, tx *sql.Tx, userID, sessionID string) (domain.SessionRecord, error) {
@@ -229,6 +250,30 @@ func nextSessionEventSeq(ctx context.Context, tx *sql.Tx, sessionID string) (int
 	return seq, nil
 }
 
+func selectReportableConversationState(ctx context.Context, tx *sql.Tx, sessionID string) (bool, bool, error) {
+	var hasUserMessage bool
+	var hasPendingReply bool
+	err := tx.QueryRowContext(ctx, `
+select exists(
+         select 1 from practice_messages
+         where session_id=$1 and role='user'
+       ),
+       exists(
+         select 1
+         from practice_messages u
+         where u.session_id=$1
+           and u.role='user'
+           and not exists (
+             select 1 from practice_messages a
+             where a.reply_to_message_id=u.id and a.role='assistant'
+           )
+       )`, sessionID).Scan(&hasUserMessage, &hasPendingReply)
+	if err != nil {
+		return false, false, fmt.Errorf("select reportable practice conversation state: %w", err)
+	}
+	return hasUserMessage, hasPendingReply, nil
+}
+
 func canCompletePracticeSessionStatus(status sharedtypes.SessionStatus) bool {
 	switch status {
 	case sharedtypes.SessionStatusRunning, sharedtypes.SessionStatusWaitingUserInput, sharedtypes.SessionStatusCompleted:
@@ -241,8 +286,9 @@ func canCompletePracticeSessionStatus(status sharedtypes.SessionStatus) bool {
 func selectExistingReportWithJob(ctx context.Context, tx *sql.Tx, userID, sessionID string) (domain.CompleteSessionResult, bool, error) {
 	var result domain.CompleteSessionResult
 	var errorCode sql.NullString
+	var generationContextRaw []byte
 	err := tx.QueryRowContext(ctx, `
-select fr.id,
+select fr.id, fr.generation_context,
        j.id, j.job_type, j.resource_type, j.resource_id, j.status, j.error_code,
        j.created_at, j.updated_at
 from feedback_reports fr
@@ -260,6 +306,7 @@ limit 1`,
 		sessionID,
 	).Scan(
 		&result.ReportID,
+		&generationContextRaw,
 		&result.Job.ID,
 		&result.Job.JobType,
 		&result.Job.ResourceType,
@@ -274,6 +321,12 @@ limit 1`,
 	}
 	if err != nil {
 		return domain.CompleteSessionResult{}, false, fmt.Errorf("select existing practice report job: %w", err)
+	}
+	if err := json.Unmarshal(generationContextRaw, &result.GenerationContext); err != nil {
+		return domain.CompleteSessionResult{}, false, fmt.Errorf("decode existing completion report context: %w", err)
+	}
+	if err := domain.ValidateReportContextSnapshot(result.GenerationContext); err != nil {
+		return domain.CompleteSessionResult{}, false, fmt.Errorf("validate existing completion report context: %w", err)
 	}
 	result.Job.ErrorCode = errorCode.String
 	return result, true, nil

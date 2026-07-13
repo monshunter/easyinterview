@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql/driver"
 	"encoding/json"
+	"errors"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -50,11 +52,11 @@ func TestSQLRepositoryCreatePlanUsesConversationColumns(t *testing.T) {
 		ResumeID: "resume-1", RoundID: "round-1-technical", Goal: sharedtypes.PracticeGoalBaseline, InterviewerPersona: sharedtypes.InterviewerRoleHiringManager,
 		Difficulty: "standard", Language: "zh-CN", TimeBudgetMinutes: 30, Now: now}
 	mock.ExpectBegin()
-	query := `(?s)tj\.resume_id = \$10.*summary#>>'\{provenance,promptVersion\}'.*canonical_rounds.*pp\.resume_id = \$10.*session_completed.*insert into practice_plans.*round_id, round_sequence.*interviewer_persona, difficulty, language, time_budget_minutes.*resume_id, focus_competency_codes`
+	query := `(?s)tj\.resume_id = \$10.*summary#>>'\{provenance,promptVersion\}'.*canonical_rounds.*pp\.resume_id = \$10.*session_completed.*insert into practice_plans.*round_id, round_sequence.*interviewer_persona, difficulty, language, time_budget_minutes.*resume_id, focus_dimension_codes`
 	mock.ExpectQuery(query).WithArgs(in.PlanID, in.UserID, in.TargetJobID, "", string(in.Goal), string(in.InterviewerPersona),
 		in.Difficulty, in.Language, in.TimeBudgetMinutes, in.ResumeID, nonNullEmptyTextArray{}, in.Now, in.RoundID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "target_job_id", "source_report_id", "goal", "round_id", "round_sequence", "interviewer_persona", "difficulty", "language", "time_budget_minutes", "resume_id", "status", "created_at"}).
-			AddRow(in.PlanID, in.TargetJobID, nil, string(in.Goal), in.RoundID, 1, string(in.InterviewerPersona), in.Difficulty, in.Language, in.TimeBudgetMinutes, in.ResumeID, "ready", now))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "target_job_id", "source_report_id", "goal", "round_id", "round_sequence", "interviewer_persona", "difficulty", "language", "time_budget_minutes", "resume_id", "focus_dimension_codes", "status", "created_at"}).
+			AddRow(in.PlanID, in.TargetJobID, nil, string(in.Goal), in.RoundID, 1, string(in.InterviewerPersona), in.Difficulty, in.Language, in.TimeBudgetMinutes, in.ResumeID, `{}`, "ready", now))
 	mock.ExpectExec(regexp.QuoteMeta("insert into audit_events")).WithArgs(in.AuditEventID, in.UserID, in.UserID, in.PlanID, metadataWithoutQuestionFields{}, in.Now).WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
 	plan, err := NewSQLRepository(db).CreatePlan(context.Background(), in)
@@ -78,8 +80,8 @@ func TestSQLRepositoryGetPlanKeepsLegacyNullRoundIdentity(t *testing.T) {
 	now := time.Unix(1, 0).UTC()
 	mock.ExpectQuery(`select id, target_job_id, source_report_id::text, goal, round_id, round_sequence`).
 		WithArgs("user-1", "plan-legacy").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "target_job_id", "source_report_id", "goal", "round_id", "round_sequence", "interviewer_persona", "difficulty", "language", "time_budget_minutes", "resume_id", "status", "created_at"}).
-			AddRow("plan-legacy", "target-1", nil, string(sharedtypes.PracticeGoalBaseline), nil, nil, string(sharedtypes.InterviewerRoleHiringManager), "standard", "zh-CN", 30, "resume-1", "ready", now))
+		WillReturnRows(sqlmock.NewRows([]string{"id", "target_job_id", "source_report_id", "goal", "round_id", "round_sequence", "interviewer_persona", "difficulty", "language", "time_budget_minutes", "resume_id", "focus_dimension_codes", "status", "created_at"}).
+			AddRow("plan-legacy", "target-1", nil, string(sharedtypes.PracticeGoalBaseline), nil, nil, string(sharedtypes.InterviewerRoleHiringManager), "standard", "zh-CN", 30, "resume-1", `{}`, "ready", now))
 
 	plan, err := NewSQLRepository(db).GetPlan(context.Background(), "user-1", "plan-legacy")
 	if err != nil {
@@ -114,13 +116,17 @@ func TestSQLRepositoryReserveSessionStartPrefersCompleteResumeSourceSnapshot(t *
 	mock.ExpectExec(`insert into idempotency_records`).
 		WithArgs(in.IdempotencyRecordID, in.UserID, in.IdempotencyKeyHash, in.RequestFingerprint, "pending", in.ExpiresAt, in.Now).
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectQuery(`(?s)with selected_plan as \(.*p\.round_id.*r\.parsed_text_snapshot.*r\.original_text.*r\.structured_profile.*join target_jobs tj.*tj\.resume_id = p\.resume_id.*btrim\(entry\.value->>'type'\) round_type.*2147483647.*jsonb_array_elements.*insert into practice_sessions`).
+	mock.ExpectQuery(`(?s)with selected_plan as \(.*p\.focus_dimension_codes.*fr\.dimension_assessments.*fr\.issues.*p\.round_id.*r\.parsed_text_snapshot.*r\.original_text.*r\.structured_profile.*join target_jobs tj.*tj\.resume_id = p\.resume_id.*join feedback_reports fr.*btrim\(entry\.value->>'type'\) round_type.*2147483647.*jsonb_array_elements.*insert into practice_sessions`).
 		WithArgs(in.SessionID, in.UserID, in.PlanID, in.Now).
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "plan_id", "target_job_id", "goal", "interviewer_persona", "language", "role_title",
-			"seniority", "top_skills", "resume_context", "focus_competency_codes", "round_id", "round_sequence", "round_type", "round_name", "round_focus", "created_at", "updated_at",
-		}).AddRow(in.SessionID, in.PlanID, "target-1", string(sharedtypes.PracticeGoalBaseline), string(sharedtypes.InterviewerRoleHiringManager),
-			"zh-CN", "后端工程师", "senior", "Go", "# Complete resume\n"+tailMarker, `{technical_depth}`, "round-1-technical", 1, "technical", "技术面", "系统设计", now, now))
+			"seniority", "top_skills", "resume_context", "focus_dimension_codes", "dimension_assessments", "issues",
+			"round_id", "round_sequence", "round_type", "round_name", "round_focus", "created_at", "updated_at",
+		}).AddRow(in.SessionID, in.PlanID, "target-1", string(sharedtypes.PracticeGoalRetryCurrentRound), string(sharedtypes.InterviewerRoleHiringManager),
+			"zh-CN", "后端工程师", "senior", "Go", "# Complete resume\n"+tailMarker, `{system_design}`,
+			`[{"code":"system_design","label":"系统设计","status":"needs_work","confidence":"high"}]`,
+			`[{"dimensionCode":"system_design","evidence":"缺少容量估算","confidence":"high","sourceMessageSeqNos":[2]}]`,
+			"round-1-technical", 1, "technical", "技术面", "系统设计", now, now))
 	mock.ExpectCommit()
 
 	reservation, err := NewSQLRepository(db).ReserveSessionStart(context.Background(), in)
@@ -130,7 +136,8 @@ func TestSQLRepositoryReserveSessionStartPrefersCompleteResumeSourceSnapshot(t *
 	if !strings.Contains(reservation.ResumeContext, tailMarker) {
 		t.Fatalf("resume context lost source snapshot tail: %+v", reservation)
 	}
-	if reservation.RoundID != "round-1-technical" || reservation.RoundSequence != 1 || reservation.RoundFocus != "系统设计" {
+	if reservation.RoundID != "round-1-technical" || reservation.RoundSequence != 1 || reservation.RoundFocus != "系统设计" ||
+		!reflect.DeepEqual(reservation.SemanticFocus, []domain.SemanticFocusDimension{{Code: "system_design", Label: "系统设计", Issues: []string{"缺少容量估算"}}}) {
 		t.Fatalf("round context mismatch: %+v", reservation)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -159,6 +166,10 @@ func TestSQLRepositoryCompleteSessionUsesLifecycleOnlyEventColumns(t *testing.T)
 	mock.ExpectQuery(`select fr.id`).
 		WithArgs(in.UserID, in.SessionID, "report_generate", in.SessionID).
 		WillReturnRows(sqlmock.NewRows([]string{"report_id", "job_id", "job_type", "resource_type", "resource_id", "status", "error_code", "created_at", "updated_at"}))
+	mock.ExpectQuery(`(?s)select exists\(.*role='user'.*not exists \(`).
+		WithArgs(in.SessionID).
+		WillReturnRows(sqlmock.NewRows([]string{"has_user", "has_pending_reply"}).AddRow(true, false))
+	expectCompletionReportContextLoad(mock, in, "en", 3, 3)
 	mock.ExpectExec(`update practice_sessions`).
 		WithArgs(string(sharedtypes.SessionStatusCompleting), in.Now, in.SessionID, in.UserID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -187,6 +198,117 @@ func TestSQLRepositoryCompleteSessionUsesLifecycleOnlyEventColumns(t *testing.T)
 	}
 }
 
+func TestE2EP0047RejectsZeroAnswerCompletion(t *testing.T) {
+	t.Run("zero committed user messages", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer db.Close()
+		now := time.Unix(7, 0).UTC()
+		in := domain.CompleteSessionStoreInput{UserID: "user-1", SessionID: "session-zero", Now: now}
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(`select id, plan_id, target_job_id, status, language, created_at, updated_at`).
+			WithArgs(in.UserID, in.SessionID).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "status", "language", "created_at", "updated_at"}).
+				AddRow(in.SessionID, "plan-1", "target-1", string(sharedtypes.SessionStatusRunning), "zh-CN", now, now))
+		mock.ExpectQuery(`select fr.id`).
+			WithArgs(in.UserID, in.SessionID, "report_generate", in.SessionID).
+			WillReturnRows(sqlmock.NewRows([]string{"report_id", "job_id", "job_type", "resource_type", "resource_id", "status", "error_code", "created_at", "updated_at"}))
+		mock.ExpectQuery(`(?s)select exists\(.*role='user'.*not exists \(`).
+			WithArgs(in.SessionID).
+			WillReturnRows(sqlmock.NewRows([]string{"has_user", "has_pending_reply"}).AddRow(false, false))
+		mock.ExpectRollback()
+
+		_, err = NewSQLRepository(db).CompleteSession(context.Background(), in)
+		if !errors.Is(err, domain.ErrSessionNotReportable) {
+			t.Fatalf("error=%v want ErrSessionNotReportable", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Fatalf("zero-answer completion produced side effects: %v", err)
+		}
+	})
+
+	t.Run("pending assistant reply", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer db.Close()
+		now := time.Unix(8, 0).UTC()
+		in := domain.CompleteSessionStoreInput{UserID: "user-1", SessionID: "session-pending", Now: now}
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(`select id, plan_id, target_job_id, status, language, created_at, updated_at`).
+			WithArgs(in.UserID, in.SessionID).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "status", "language", "created_at", "updated_at"}).
+				AddRow(in.SessionID, "plan-1", "target-1", string(sharedtypes.SessionStatusRunning), "zh-CN", now, now))
+		mock.ExpectQuery(`select fr.id`).
+			WithArgs(in.UserID, in.SessionID, "report_generate", in.SessionID).
+			WillReturnRows(sqlmock.NewRows([]string{"report_id", "job_id", "job_type", "resource_type", "resource_id", "status", "error_code", "created_at", "updated_at"}))
+		mock.ExpectQuery(`(?s)select exists\(.*role='user'.*not exists \(`).
+			WithArgs(in.SessionID).
+			WillReturnRows(sqlmock.NewRows([]string{"has_user", "has_pending_reply"}).AddRow(true, true))
+		mock.ExpectRollback()
+
+		_, err = NewSQLRepository(db).CompleteSession(context.Background(), in)
+		if !errors.Is(err, domain.ErrSessionNotReportable) {
+			t.Fatalf("error=%v want ErrSessionNotReportable", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Fatalf("pending-reply completion produced side effects: %v", err)
+		}
+	})
+
+	t.Run("one answered user message", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer db.Close()
+		now := time.Unix(9, 0).UTC()
+		in := domain.CompleteSessionStoreInput{
+			UserID: "user-1", SessionID: "session-answered", ReportID: "report-1", JobID: "job-1",
+			SessionEventID: "event-1", OutboxEventID: "outbox-1", AuditEventID: "audit-1",
+			ClientCompletedAt: now.Add(-time.Second), Now: now,
+		}
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(`select id, plan_id, target_job_id, status, language, created_at, updated_at`).
+			WithArgs(in.UserID, in.SessionID).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "status", "language", "created_at", "updated_at"}).
+				AddRow(in.SessionID, "plan-1", "target-1", string(sharedtypes.SessionStatusRunning), "zh-CN", now, now))
+		mock.ExpectQuery(`select fr.id`).
+			WithArgs(in.UserID, in.SessionID, "report_generate", in.SessionID).
+			WillReturnRows(sqlmock.NewRows([]string{"report_id", "job_id", "job_type", "resource_type", "resource_id", "status", "error_code", "created_at", "updated_at"}))
+		mock.ExpectQuery(`(?s)select exists\(.*role='user'.*not exists \(`).
+			WithArgs(in.SessionID).
+			WillReturnRows(sqlmock.NewRows([]string{"has_user", "has_pending_reply"}).AddRow(true, false))
+		expectCompletionReportContextLoad(mock, in, "zh-CN", 3, 3)
+		mock.ExpectExec(`update practice_sessions`).WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectQuery(`select coalesce\(max\(seq_no\),0\)\+1 from practice_session_events`).
+			WithArgs(in.SessionID).WillReturnRows(sqlmock.NewRows([]string{"seq_no"}).AddRow(4))
+		mock.ExpectExec(`insert into practice_session_events`).WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec(`insert into feedback_reports`).WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec(`insert into async_jobs`).WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec(`insert into outbox_events`).WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectExec(`insert into audit_events`).WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		result, err := NewSQLRepository(db).CompleteSession(context.Background(), in)
+		if err != nil {
+			t.Fatalf("CompleteSession: %v", err)
+		}
+		if result.ReportID != in.ReportID || result.Job.ID != in.JobID {
+			t.Fatalf("unexpected completion result: %+v", result)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
 func TestSQLRepositoryCompleteSessionReplayDoesNotAppendSecondCompletedFact(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -199,16 +321,26 @@ func TestSQLRepositoryCompleteSessionReplayDoesNotAppendSecondCompletedFact(t *t
 		SessionEventID: "new-event", OutboxEventID: "new-outbox", AuditEventID: "new-audit",
 		ClientCompletedAt: now.Add(-time.Second), Now: now,
 	}
+	snapshot, err := domain.BuildReportContextSnapshot(domain.ReportContextSnapshotInput{
+		TargetJob:    domain.ReportTargetJobSnapshot{ID: "target-1", Title: "Role", Language: "zh-CN", RawJD: "jd", Summary: json.RawMessage(reportContextSummary())},
+		Resume:       domain.ReportResumeSnapshot{ID: "resume-1", DisplayName: "Resume", Language: "zh-CN", SourceSnapshot: "resume", StructuredProfile: json.RawMessage(`{}`)},
+		Plan:         domain.ReportPlanSnapshot{ID: "plan-1", Goal: "baseline", InterviewerPersona: "hiring_manager", Difficulty: "standard", Language: "zh-CN", TimeBudgetMinutes: 45, ResumeID: "resume-1", RoundID: "round-1-technical", RoundSequence: 1},
+		Conversation: domain.ReportConversationCoordinate{SessionID: in.SessionID, Language: "zh-CN", MessageCount: 3, LastMessageSeqNo: 3},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	contextRaw, _ := json.Marshal(snapshot)
 
 	mock.ExpectBegin()
 	mock.ExpectQuery(`select id, plan_id, target_job_id, status, language, created_at, updated_at`).
 		WithArgs(in.UserID, in.SessionID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "status", "language", "created_at", "updated_at"}).
 			AddRow(in.SessionID, "plan-1", "target-1", string(sharedtypes.SessionStatusCompleting), "zh-CN", now.Add(-time.Minute), now))
-	mock.ExpectQuery(`select fr.id`).
+	mock.ExpectQuery(`(?s)select fr\.id, fr\.generation_context`).
 		WithArgs(in.UserID, in.SessionID, "report_generate", in.SessionID).
-		WillReturnRows(sqlmock.NewRows([]string{"report_id", "job_id", "job_type", "resource_type", "resource_id", "status", "error_code", "created_at", "updated_at"}).
-			AddRow("report-1", "job-1", "report_generate", "feedback_report", "report-1", "queued", nil, now, now))
+		WillReturnRows(sqlmock.NewRows([]string{"report_id", "generation_context", "job_id", "job_type", "resource_type", "resource_id", "status", "error_code", "created_at", "updated_at"}).
+			AddRow("report-1", contextRaw, "job-1", "report_generate", "feedback_report", "report-1", "queued", nil, now, now))
 	mock.ExpectCommit()
 
 	result, err := NewSQLRepository(db).CompleteSession(context.Background(), in)
@@ -254,9 +386,12 @@ func TestSQLRepositoryReservePracticeMessageRetriesPendingUserMessage(t *testing
 	now := time.Unix(2, 0).UTC()
 	mock.ExpectBegin()
 	const tailMarker = "SEND_RESUME_SNAPSHOT_TAIL_0712"
-	mock.ExpectQuery(`(?s)select s\.id, s\.plan_id, s\.target_job_id.*r\.parsed_text_snapshot.*r\.original_text.*r\.structured_profile.*p\.round_id.*from practice_sessions.*join target_jobs tj.*tj\.resume_id\s*=\s*p\.resume_id.*btrim\(entry\.value->>'type'\) round_type.*2147483647.*jsonb_array_elements`).WithArgs("session-1", "user-1").WillReturnRows(
-		sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "goal", "interviewer_persona", "language", "title", "seniority_level", "top_skills", "resume_context", "focus_competency_codes", "round_id", "round_sequence", "round_type", "round_name", "round_focus", "created_at", "updated_at"}).
-			AddRow("session-1", "plan-1", "target-1", string(sharedtypes.PracticeGoalBaseline), string(sharedtypes.InterviewerRoleHiringManager), "zh-CN", "后端工程师", "senior", "Go", "# Complete resume\n"+tailMarker, `{technical_depth}`, "round-1-technical", 1, "technical", "技术面", "系统设计", now, now))
+	mock.ExpectQuery(`(?s)select s\.id, s\.plan_id, s\.target_job_id.*r\.parsed_text_snapshot.*r\.original_text.*r\.structured_profile.*p\.focus_dimension_codes.*fr\.dimension_assessments.*fr\.issues.*p\.round_id.*from practice_sessions.*join target_jobs tj.*tj\.resume_id\s*=\s*p\.resume_id.*join feedback_reports fr.*btrim\(entry\.value->>'type'\) round_type.*2147483647.*jsonb_array_elements`).WithArgs("session-1", "user-1").WillReturnRows(
+		sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "goal", "interviewer_persona", "language", "title", "seniority_level", "top_skills", "resume_context", "focus_dimension_codes", "dimension_assessments", "issues", "round_id", "round_sequence", "round_type", "round_name", "round_focus", "created_at", "updated_at"}).
+			AddRow("session-1", "plan-1", "target-1", string(sharedtypes.PracticeGoalRetryCurrentRound), string(sharedtypes.InterviewerRoleHiringManager), "zh-CN", "后端工程师", "senior", "Go", "# Complete resume\n"+tailMarker, `{system_design}`,
+				`[{"code":"system_design","label":"系统设计","status":"needs_work","confidence":"high"}]`,
+				`[{"dimensionCode":"system_design","evidence":"缺少容量估算","confidence":"high","sourceMessageSeqNos":[2]}]`,
+				"round-1-technical", 1, "technical", "技术面", "系统设计", now, now))
 	mock.ExpectQuery(`select u.id, u.role, u.content, u.seq_no`).WithArgs("session-1", "client-1").WillReturnRows(
 		sqlmock.NewRows([]string{"id", "role", "content", "seq_no", "created_at", "assistant_id", "assistant_content", "assistant_seq", "assistant_created"}).
 			AddRow("m2", "user", "继续", 2, now, nil, nil, nil, nil))
@@ -280,6 +415,9 @@ func TestSQLRepositoryReservePracticeMessageRetriesPendingUserMessage(t *testing
 	if reservation.Session.RoundID != "round-1-technical" || reservation.Session.RoundFocus != "系统设计" {
 		t.Fatalf("send reservation round mismatch: %+v", reservation.Session)
 	}
+	if !reflect.DeepEqual(reservation.Session.SemanticFocus, []domain.SemanticFocusDimension{{Code: "system_design", Label: "系统设计", Issues: []string{"缺少容量估算"}}}) {
+		t.Fatalf("send reservation semantic focus mismatch: %+v", reservation.Session.SemanticFocus)
+	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
 	}
@@ -294,8 +432,8 @@ func TestSQLRepositoryReservePracticeMessageRejectsNewMessageWhileReplyPending(t
 	now := time.Unix(2, 0).UTC()
 	mock.ExpectBegin()
 	mock.ExpectQuery(`select s.id, s.plan_id, s.target_job_id`).WithArgs("session-1", "user-1").WillReturnRows(
-		sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "goal", "interviewer_persona", "language", "title", "seniority_level", "top_skills", "resume_context", "focus_competency_codes", "round_id", "round_sequence", "round_type", "round_name", "round_focus", "created_at", "updated_at"}).
-			AddRow("session-1", "plan-1", "target-1", string(sharedtypes.PracticeGoalBaseline), string(sharedtypes.InterviewerRoleHiringManager), "zh-CN", "后端工程师", "senior", "Go", `{}`, `{technical_depth}`, "round-1-technical", 1, "technical", "技术面", "系统设计", now, now))
+		sqlmock.NewRows([]string{"id", "plan_id", "target_job_id", "goal", "interviewer_persona", "language", "title", "seniority_level", "top_skills", "resume_context", "focus_dimension_codes", "dimension_assessments", "issues", "round_id", "round_sequence", "round_type", "round_name", "round_focus", "created_at", "updated_at"}).
+			AddRow("session-1", "plan-1", "target-1", string(sharedtypes.PracticeGoalBaseline), string(sharedtypes.InterviewerRoleHiringManager), "zh-CN", "后端工程师", "senior", "Go", `{}`, `{}`, nil, nil, "round-1-technical", 1, "technical", "技术面", "系统设计", now, now))
 	mock.ExpectQuery(`select u.id, u.role, u.content, u.seq_no`).WithArgs("session-1", "client-new").WillReturnRows(
 		sqlmock.NewRows([]string{"id", "role", "content", "seq_no", "created_at", "assistant_id", "assistant_content", "assistant_seq", "assistant_created"}))
 	mock.ExpectQuery(`select exists`).WithArgs("session-1").WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))

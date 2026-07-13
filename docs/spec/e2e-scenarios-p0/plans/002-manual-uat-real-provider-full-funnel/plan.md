@@ -1,8 +1,8 @@
 # 002 Real Provider Hybrid Full Funnel
 
-> **版本**: 1.7
-> **状态**: completed
-> **更新日期**: 2026-07-10
+> **版本**: 2.10
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -20,6 +20,7 @@
 - 提供完整 hybrid 场景材料：Mailpit 本地 6 位 email-code 登录、JD、简历、作答样例、验收 checklist、`deploy/dev-stack/.env` 配置说明、证据归档路径与清理说明。
 - 明确禁止用 `APP_ENV=test`、deterministic stub AI、fixture-backed frontend mock transport、`Prefer: example=<scenario>` 或 P0.099 test server 冒充真实 AI 联调。
 - 将真实 AI LLM 连接作为验收边界：当前开发主力 provider ref 为 `deepseek` / `judge-deepseek`，真实调用通过 `AI_PROVIDER_BASE_URL` + `AI_PROVIDER_API_KEY` 指向 OpenAI-compatible provider；无真实 key 时本计划不得标记完成。
+- 将报告内容可靠性纳入 P0.100 的硬门禁：针对不同上下文与对话独立生成报告，逐条核对“事实 -> 判断 -> 行动”可追溯性，并以 context-aware judge + 人工抽查证明描述真实、建议可执行；结构或 schema 合法不能替代内容正确性。
 
 ## 2 背景
 
@@ -36,11 +37,13 @@
 
 因此本计划必须明确：真实 UAT 不能复用 001 的 test server；账号入口必须走真实 email-code flow + Mailpit 本地邮箱，不得通过 direct DB session bootstrap、新增 `backend/cmd` / Go helper 或真实外部邮箱账号完成。
 
+2026-07-12 的报告语义重校对把本 owner 重新置为 active。`001-full-funnel-happy-journey` Phase 5 只负责 P0.099 的精确六张截图矩阵；所有新增 P0.100 内容可靠性、多样本与重复运行 gate 均由本计划 Phase 8 独占，避免同一场景在两个 plan 中出现互相漂移的 BDD 合同。
+
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior + tooling + docs + contract`。本计划覆盖用户可感知的 hybrid UAT 工作流、Mailpit 本地邮箱账号入口、真实 provider runtime 验证、Agent-first 场景脚本与人工验收材料。
-- **TDD 策略**: 本计划 v1.6 涉及场景脚本、lint contract 与 skill 指令逻辑，必须通过 `/tdd` 红绿重构执行。Red gate 为 `python3 -m pytest scripts/lint/scenario_env_contract_test.py -q`，覆盖 `E2E.P0.100` e2e 注册、旧 `manual-uat` 入口删除、`scenario-run` 环境 preflight、`MANUAL_REQUIRED` 语义、禁止场景专属 env、统一读取 `deploy/dev-stack/.env`、`RUN_ID` 当前轮证据匹配、`evidence.md` 脱敏红线与 env consumer gate 的 owner 文档回填。
-- **BDD 策略**: Feature plan requires BDD。本计划新增人工可接手的端到端业务流，BDD 场景 `E2E.P0.100` 记录在 [bdd-plan.md](./bdd-plan.md)，主 checklist 使用 `BDD-Gate:` 引用。该场景为 `hybrid`：AI Agent 自动验证环境/材料/配置/隐私和 result artifact，人工或浏览器 Agent 记录真实 UI/AI 结果。
+- **TDD 策略**: Phase 8必须证明product generation每次invocation独立initial+3、10s/20s/40s、返回销毁/新动作清零与async-attempt separation；evalkit generation/judge继续独立max4；动态scope/full validation、provider/nonretryable分流、typed judge outcome与脱敏attempt manifest均有RED/GREEN。本owner只验证，不复制第二套validator/judge。
+- **BDD 策略**: Feature plan requires BDD。本计划新增人工可接手的端到端业务流，BDD 场景 `E2E.P0.100` 记录在 [bdd-plan.md](./bdd-plan.md)，主 checklist 使用 `BDD-Gate:` 引用。该场景为 `hybrid`：AI Agent 自动验证环境/材料/配置/隐私和 result artifact，人工或浏览器 Agent 记录真实 UI/AI 结果；Phase 8 在同一场景 ID 下增加内容可靠性 gate，不创建新的 sibling 场景。
 - **替代验证 gate**:
   - Mailpit / SMTP writer / config focused tests（由 local-dev-stack/backend-auth/A4 owner 承接）。
   - `test ! -d backend/cmd/devsession && test ! -d backend/internal/devsession`，确认不把 hybrid UAT 依赖放进正式 backend cmd / internal 包。
@@ -57,19 +60,34 @@
 | # | operation / tool | fixture | frontend consumer | backend handler / tool | persistence | AI dependency | scenario coverage |
 |---|------------------|---------|-------------------|------------------------|-------------|---------------|-------------------|
 | 0 | `startAuthEmailChallenge` + Mailpit 6 位 code + `verifyAuthEmailChallenge` | 不使用 fixture；synthetic `.example.test` email | AuthLogin/AuthVerify 或操作级 auth gate | real backend-auth handler + `email_dispatch` handler + Mailpit SMTP writer | `auth_challenges` + `async_jobs` + `users` + `sessions` | none | `E2E.P0.100` preflight |
-| 1 | `registerResume` | 不使用 fixture；人工粘贴材料或由真实 UI 创建 | ResumeVersions / Home handoff | real resume handler + `resume_parse` runner | `resume_assets` + `async_jobs` | `resume.parse.default` via real provider | `E2E.P0.100` |
-| 2 | `importTargetJob` | 不使用 fixture；人工粘贴 JD | HomeScreen | real targetjob handler + `target_import` runner | `target_jobs` + `jobs` | `target.import.default` via real provider | `E2E.P0.100` |
+| 1 | `registerResume` | 不使用 fixture；人工粘贴材料或由真实 UI 创建 | Resume create / readonly detail / Home handoff | real resume handler + `resume_parse` runner | `resumes` + `async_jobs` | `resume.parse.default` via real provider | `E2E.P0.100` |
+| 2 | `importTargetJob` | 不使用 fixture；人工粘贴 JD | HomeScreen | real targetjob handler + `target_import` runner | `target_jobs` + `async_jobs` | `target.import.default` via real provider | `E2E.P0.100` |
 | 3 | `getTargetJob` | N/A | ParseScreen polling | real handler | `target_jobs` | none | `E2E.P0.100` |
-| 4 | `createPracticePlan` | N/A | Workspace / Report CTA | real practice handler | `practice_plans` | none | `E2E.P0.100` |
-| 5 | `startPracticeSession` | `PracticeSessions/startPracticeSession.json` | Workspace CTA | real practice handler | `practice_sessions` + `practice_messages` | `practice.chat.default` via real provider | `E2E.P0.100` |
+| 4 | `createPracticePlan` | N/A | Parse / Workspace / Report CTA | real practice handler | `practice_plans` | none | `E2E.P0.100` |
+| 5 | `startPracticeSession` | `PracticeSessions/startPracticeSession.json` | Parse launch / Workspace / Report CTA | real practice handler | `practice_sessions` + `practice_messages` | `practice.chat.default` via real provider | `E2E.P0.100` |
 | 6 | `sendPracticeMessage` | `PracticeSessions/sendPracticeMessage.json` | PracticeScreen | real practice handler | `practice_messages` | `practice.chat.default` via real provider | `E2E.P0.100` |
-| 7 | `completePracticeSession` | N/A | PracticeScreen | real practice handler + report runner | `feedback_reports` + `jobs` + outbox | `report.generate.default` via real provider | `E2E.P0.100` |
-| 8 | `getFeedbackReport` / `getJob` | N/A | Generating / ReportDashboard | real reports/jobs handlers | `feedback_reports` / `jobs` | none | `E2E.P0.100` |
+| 7 | `completePracticeSession` | N/A | PracticeScreen | real practice handler + report runner | `feedback_reports` + `async_jobs` + outbox | `report.generate.default` via real provider | `E2E.P0.100` |
+| 8 | `getFeedbackReport` / `getJob` | N/A | Generating / ReportDashboard | real reports/jobs handlers | `feedback_reports` / `async_jobs` | none | `E2E.P0.100` |
+| 9 | `report.generate` completion + F3/004 context-aware judge + manual audit | 不复用输出；每个上下文与对话独立生成 | Generating/Report + P0.100 manifest | product action-local initial+3/10s-20s-40s/reset + evalkit independent generation/judge max4；dynamic repair/full validation；typed judge retry boundary | `feedback_reports` + `ai_task_runs` + redacted attempt audit；不持久化product retry state | `report.generate.default` + `judge.default` via real provider | `E2E.P0.100` Phase 8 |
 
 ### 3.2 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-13 | 2.10 | Separate deterministic 100% mechanical acceptance, fixed five-case 4/5 semantic confidence, and the stricter 11/11 P0.100 diagnostic; record final-prompt run59381 honestly as product-accepted and strict-FAIL. |
+| 2026-07-13 | 2.9 | Correct product retry to per-invocation initial+3 with10s/20s/40s, destroy/reset semantics and async-attempt separation; retain evalkit independent generation/judge max4 and historical run evidence. |
+| 2026-07-13 | 2.8 | Accept then-current run35103：five isolated cases/11 attempts、critical3x、context-aware judge + blind audit PASS；runner-log verifier locks exact named tests/packages/build/drift evidence. |
+| 2026-07-13 | 2.7 | Record run35622 aborted after7/11 for L2 job-max4/lease-fencing/poll-resume findings；not PASS and requires full restart after gates. |
+| 2026-07-13 | 2.6 | Replace old single-call assumptions with independent max4 generation/judge contracts，durable/retry/typed-outcome BDD matrix and aborted25849 evidence. |
+| 2026-07-13 | 2.5 | Reuse product full validator；record80338 validator escape、59906 injection grounding and75753 exact generic empty-focus focused fixes；full matrix pending. |
+| 2026-07-13 | 2.4 | Record/fix short-conservative generic-replay rubric contradiction；single-case0.82/0.70 zero-violation retest，full matrix pending. |
+| 2026-07-13 | 2.4 | Finalize scheme A：fuse200 code points；semantic/UX24 whitespace words/64 Unicode code points；targeted repair internal margin18/52；fresh P0.100 rerun pending. |
+| 2026-07-13 | 2.3 | Record live FAIL：label>120 was misclassified whole_report；normalize all-label schema120/14-40 violations before choosing action_labels. |
+| 2026-07-13 | 2.2 | Add one-budget whole-report versus sole-action-length label-only LLM repair，lossless merge，full revalidation and one-shot judge gate. |
+| 2026-07-13 | 2.1 | Keep P0.100 as an independent 5-case/11-attempt reliability gate；align 14/40 counting and one-repair fail-close with backend，without coupling P0.099 to its output digest. |
+| 2026-07-13 | 2.0 | Require same-source output-schema validation, one `$ / output_schema_invalid` product repair, aggregate generation usage/latency + repair_used and zero judge repair/retry；bound actions to en 14 words / zh-CN 40 chars with per-code semicolon fragments. |
+| 2026-07-12 | 1.9 | Make F3/004 the sole context-aware judge owner; P0.100 consumes both GREEN markers and only orchestrates live/manual reliability evidence. |
+| 2026-07-12 | 1.8 | 重新激活 owner；把 P0.100 内容可靠性从 plan 001 迁入 Phase 8，固化多样本、逐项事实支撑、空 focus 合法、重复运行与隐私证据 gate。 |
 | 2026-05-27 | 1.6 | L2 回填 owner gate：把 `RUN_ID` 当前轮证据匹配、`evidence.md` 脱敏红线扫描和 env consumer gate 固化到 plan / checklist / BDD，并由 `scenario_env_contract_test.py` 反查。 |
 | 2026-05-27 | 1.5 | 修正 hybrid UAT env 边界：`deploy/dev-stack/.env` 是真实本地联调唯一 env 来源，删除 `p0-100` 场景专属 `dev-real.env` 模板，脚本只读取 dev-stack env。 |
 | 2026-05-27 | 1.4 | 将 `E2E.P0.100` 从独立 `manual-uat` companion 迁移为标准 `e2e` hybrid 场景；新增 AI Agent first-run preflight、`MANUAL_REQUIRED` 结果语义和统一输出目录。 |
@@ -164,7 +182,7 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 - 环境 / secret / provider 就绪。
 - backend 真进程 + frontend real mode。
 - 账号登录态。
-- Home -> Parse -> Workspace -> Practice -> Generating -> Report -> next_round。
+- Home -> JD import -> Parse & Confirm -> Practice -> Generating -> Report -> retry/next；Workspace 仅作为回访/返回枢纽，不是首次导入与 session 之间的第二确认页。
 - AI 真实调用证据：至少检查 backend log / `ai_task_runs` / report/provider metadata 中的 provider/profile/model 摘要，不要求在 tracked 文件中保存 provider response。
 - 隐私与 out-of-scope-negative spot-check。
 
@@ -226,6 +244,42 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 
 把真实 env 消费面固化为 owner gate：`env-setup.sh --with-migrations` 必须从 `deploy/dev-stack/.env` 派生 migration `DATABASE_URL`；`env-redeploy.sh frontend` 必须在 frontend build 前加载同一 env 中的 `VITE_EI_API_MODE=real` / `VITE_EI_API_BASE_URL`；`E2E.P0.100` trigger 必须 source `deploy/dev-stack/.env` 并检查 backend dev env、Mailpit、真实 AI provider、raw debug 与 frontend real mode，禁止场景专属 env 或 fixture `Prefer` header 成为完成证据。
 
+### Phase 8: Grounded report content reliability
+
+#### 8.0 F3 judge owner handoff
+
+Before any content verdict is accepted, consume current F3/004 `REPORT_RUBRIC_V020_PASS` and `REPORT_CONTEXT_AWARE_EVAL_PASS` plus F3/002 final `REPORT_PROMPT_V020_PASS`. The scenario invokes the registered F3 evalkit completion/grade path and validates its redacted result; it must not duplicate output schema, product repair prompt, rubric text, score logic, judge request construction or a second reliability evaluator. Old markers that predate the corrected completion path are stale. Missing/stale markers make P0.100 `MANUAL_REQUIRED` or FAIL before sampling.
+
+#### 8.1 Action-local product generation and independent evalkit state machines
+
+Each product `GenerateReport` invocation creates an in-memory retry context for initial+up to3 retries。Before retries it waits exactly10s/20s/40s，recomputes action_labels/whole_report scope and fully validates each result。Retryable provider/protocol failure stays inside that invocation；nonretryable terminates immediately。Returning destroys the context and a later independent invocation starts at attempt1。`async_jobs.attempts/max_attempts` remain infrastructure-only；this contract intentionally does not claim process crash/replay global calls<=4。
+
+Evalkit mirrors generation in memory with budget4 and maintains a separate judge budget4。Judge retries only retryable provider or protocol/schema invalid；a structurally valid unsupported/causal/zero-tolerance/critical negative verdict is typed terminal content rejection。Both chains aggregate usage/latency and record redacted attempt_count/retry_count/reason/scope。
+
+Historical runs remain attributed to their exact prompt/contract: `36625` exposed generic-replay rubric drift, `80338` exposed a full-validator escape, `59906` and `75753` closed focused judge regressions, `25849` / `35622` were aborted, and `35103` passed the then-current strict matrix. None is current final-prompt evidence.
+
+Current final-prompt run `e2e-p0-100-20260713T101214Z-59381` reached all five fixed representative categories. All nine emitted final outputs passed deterministic JSON/schema/200/24/64/focus/action/cross-field validation；judge passed eight attempts and four of five representative categories. Injection repetition1 was terminally rejected at `$.summary` as `unsupported_item`, so attempts10-11 and blind review did not run. Under the user-approved product criterion, mechanical validity is 100% and fixed-case semantic confidence is4/5=80%；the stricter P0.100 scenario correctly remains FAIL and is not promoted.
+
+#### 8.2 独立样本与输出隔离
+
+为完整作答、部分作答、短答、存在待追问问题、提示注入五类上下文与对话建立独立输入和独立报告输出。每份 evidence 必须绑定当前 `run_id`、session/report ID、输入类别与 provider/task-run 摘要；禁止复用上一样本的报告正文、judge 结果或人工结论。
+
+#### 8.3 逐项事实支撑与行动闭环
+
+context-aware judge 与人工抽查共同输出逐项表格，并核对“事实 -> 判断 -> 行动”。Generation每轮按当前violations选择18/52 targeted label repair或whole-report repair并完整复验。Judge protocol invalid与content rejected分型；valid negative不重采样。
+
+#### 8.4 关键样本重复运行与失败阈值
+
+完整作答、部分作答、短答、待追问、提示注入五类固定代表场景均须独立且不得失败后替换。每个样本仍以 rubric dimension `>=0.70`、加权均值 `>=0.80` 和 zero-tolerance item/causal 规则判定 PASS/FAIL；产品语义验收至少4/5。P0.100 继续额外重复三类关键样本到11次并要求11/11+blind review，作为更严格诊断；任一失败都使该严格场景FAIL，但不把概率性产品语义置信度伪装成100%。仅 `contract-safe`、schema valid 或页面可渲染不能获得语义 PASS。
+
+#### 8.5 脱敏证据
+
+证据只保留当前run/resource IDs、输入类别、逐项verdict、阈值与provider/profile/model摘要。Generation/judge分别记录聚合usage/latency以及attempt_count/retry_count/reason/scope链。5类/11次通过当前run脱敏摘要与内部digests闭环，不得写raw output，也不向P0.099输出前置条件。
+
+#### 8.6 BDD 四阶段 gate
+
+`E2E.P0.100` 四阶段共同证明product action-local initial+3/10s-20s-40s/destroy-reset与async-attempt separation、evalkit generation/judge独立max4、动态scope/full validation、retryable/nonretryable分流、typed judge retry boundary与attempt manifest。产品验收读取机械通过率与固定五类语义通过率；严格场景继续要求5类/11次和blind review。P0.100不自行宣称desktop/390 UX；P0.099独立闭合。
+
 ## 5 验收标准
 
 - 本计划文档集完整，`test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/` 是 `E2E.P0.100` 唯一 active 场景入口。
@@ -239,6 +293,12 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 - UAT 材料包包含 Mailpit 本地 email-code 登录说明、JD、简历、作答样例、检查清单、证据归档与清理说明。
 - hybrid UAT 不新增正式 backend cmd，不直接写 session 表，且不依赖真实外部邮箱服务或真实邮箱账号。
 - BDD-Gate `E2E.P0.100` 的材料结构、Agent preflight、人工执行证据和 cleanup 边界在同一场景目录下闭环。
+- P0.100 对完整、部分、短答、待追问和提示注入样本分别生成当前轮报告，没有跨样本复用输出或 judge 结论。
+- 产品验收以最终输出机械100%和固定五类至少4/5语义PASS收口；失败样本不得替换。严格P0.100只有完成5类/11次、关键3/3和blind review才可输出PASS；当前run59381保持strict FAIL。P0.099不消费这些digests。
+- Product generation action-local initial+3、10s/20s/40s、dynamic scope/full validation、attempt4结束当前动作、nonretryable零retry、return销毁与新invocation清零全部通过；async job attempts不影响产品attempt。Evalkit独立judge budget正确区分protocol invalid与terminal content rejection。
+- context-aware judge + 人工抽查逐条判定报告描述有上下文/对话证据、建议相关且可执行；任何 fabricated fact、unsupported negative、irrelevant/unexecutable advice 或 critical miss 使该样本失败，并使严格P0.100失败；产品固定五类仍按至少4/5汇总。
+- `needs_work -> issue -> focus/action` 可追溯；empty focus 仅接受两个 exact single-issue exception；focused multi-code action 使用逐 code 分号短片段，English <=24 whitespace words、zh-CN <=64 Unicode code points。
+- 关键样本满足至少 3 次独立真实 provider 重复运行阈值，且证据符合 current-run 与隐私 redline。
 
 ## 6 风险与应对
 
@@ -247,5 +307,7 @@ runbook 必须显式说明以下路径不是本计划完成证据：
 | 真实 AI key 不在仓库内，自动验证不能证明 live provider 成功 | runbook 只记录脱敏命令和 provider/task-run 摘要；真实 key 由人工本地注入，缺 key 时不得标记完成 |
 | dev-only 登录路径被误用为生产账号入口 | Mailpit 只在 `deploy/dev-stack` local dependency 中启用；runbook 只允许 synthetic `.example.test` 邮箱；tracked 文件禁止保存 token/cookie，negative gate 禁止新增 `backend/cmd` helper 或直接 session bootstrap |
 | 手工材料被误当成 fixture/mock 数据 | 文档明确材料是用户输入样本，不是 response fixture；frontend 必须 `VITE_EI_API_MODE=real` |
-| 真实 LLM 输出不稳定 | checklist 只要求结构、provider 调用和用户可观察质量记录，不把具体文案写成硬基线 |
+| 真实 LLM 输出不稳定 | 不把具体措辞写成硬基线；把事实支撑、问题相关性、建议可执行性、关键风险命中和重复运行阈值作为内容可靠性硬 gate |
+| retry抽样掩盖失败 | 单次product invocation与evalkit generation/judge各自cap4；valid negative不得重试；manifest逐attempt记录reason/scope，当前动作attempt5或content-rejected后retry直接FAIL |
+| 把基础设施重放误作产品retry延续 | 两次独立GenerateReport调用证明第二次从attempt1开始；async_jobs attempts变化不得继承/恢复产品retry context；不承诺process crash/replay全局cap4 |
 | 直接 DB 清理误删本地数据 | cleanup 仅针对 UAT 邮箱和关联资源；全量 `dev-reset` 必须显式人工确认 |

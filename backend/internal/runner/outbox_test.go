@@ -29,6 +29,17 @@ type fakeOutboxStore struct {
 
 func newFakeOutboxStore() *fakeOutboxStore { return &fakeOutboxStore{} }
 
+func TestOutboxDispatcherDefaultsToInfrastructureBackoffSchedule(t *testing.T) {
+	dispatcher := NewOutboxDispatcher(OutboxDispatcherOptions{Store: newFakeOutboxStore()})
+	want := []time.Duration{30 * time.Second, 2 * time.Minute, 10 * time.Minute, time.Hour, 6 * time.Hour}
+	for index, delay := range want {
+		attempt := int32(index + 1)
+		if got := dispatcher.backoff.Next(attempt); got != delay {
+			t.Fatalf("outbox attempt=%d delay=%s want=%s", attempt, got, delay)
+		}
+	}
+}
+
 func (s *fakeOutboxStore) enqueue(id, eventName string, payload []byte, createdAt time.Time) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

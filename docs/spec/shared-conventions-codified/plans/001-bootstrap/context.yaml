@@ -4,9 +4,11 @@ metadata:
   subspec: shared-conventions-codified
   name: 001-bootstrap
   sequence: 1
+  baseBranch: main
+  branch: fix/report-semantic-grounding-0712
   specVersion:
     from: 1.24
-    to: 1.27
+    to: 1.30
 spec:
   defaultTarget: backend
   discovery:
@@ -27,12 +29,16 @@ spec:
       - pnpm workspace
       - typescript toolchain
       - current enum catalog
-      - 22 error codes
+      - 23 error codes
       - ai shared vocabulary
-      - practice mode assisted strict
-      - question review status
+      - practice goal current values
+      - removed practice mode and question review status
       - local quality gate
       - codegen check
+      - REPORT_CONTEXT_TOO_LARGE
+      - report oversized context error
+      - ApiErrorCode additive enum
+      - REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS
   targets:
     backend:
       plan: ./plan.md
@@ -53,6 +59,8 @@ spec:
           - pnpm-workspace.yaml
           - scripts/lint/conventions_yaml.py
           - scripts/lint/error_codes.py
+          - openapi/openapi.yaml
+          - scripts/lint/openapi_diff.py
           - Makefile
         uiRoutes: []
         apiNames: []

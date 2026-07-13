@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v3"
@@ -27,7 +28,7 @@ func TestSeedMigrationCoversBaselineFeatureKeys(t *testing.T) {
 	repoRoot := walkUpToRepoRoot(t)
 	wantPrompts := expectedPromptRows(t, repoRoot)
 	wantRubrics := expectedRubricRows(t, repoRoot)
-	rows := extractSeedMigrationRows(t, repoRoot)
+	rows := extractCurrentMigrationRows(t, repoRoot)
 
 	assertSeedRows(t, "prompt_versions", wantPrompts, rows["prompt_versions"])
 	assertSeedRows(t, "rubric_versions", wantRubrics, rows["rubric_versions"])
@@ -104,11 +105,12 @@ func expectedRubricRows(t *testing.T, repoRoot string) map[string]insertRow {
 			FeatureKey string `yaml:"feature_key"`
 			Version    string `yaml:"version"`
 			Language   string `yaml:"language"`
+			Status     string `yaml:"status"`
 		}
 		if err := yaml.Unmarshal(bytes, &meta); err != nil {
 			t.Fatalf("parse rubric baseline %s: %v", path, err)
 		}
-		if meta.Language != "multi" {
+		if meta.Status != "active" || meta.Language != "multi" {
 			continue
 		}
 		row := insertRow{
@@ -137,30 +139,52 @@ func addExpectedRow(t *testing.T, rows map[string]insertRow, row insertRow, path
 	rows[key] = row
 }
 
-func extractSeedMigrationRows(t *testing.T, repoRoot string) map[string][]insertRow {
+func extractCurrentMigrationRows(t *testing.T, repoRoot string) map[string][]insertRow {
 	t.Helper()
 
-	paths, err := filepath.Glob(filepath.Join(repoRoot, "migrations", "*seed_baseline_prompt_rubric*.up.sql"))
+	paths, err := filepath.Glob(filepath.Join(repoRoot, "migrations", "*prompt_rubric*.up.sql"))
 	if err != nil {
-		t.Fatalf("glob seed migrations: %v", err)
+		t.Fatalf("glob prompt/rubric migrations: %v", err)
 	}
 	sort.Strings(paths)
 	if len(paths) == 0 {
-		t.Fatal("no baseline prompt/rubric seed migrations found")
+		t.Fatal("no prompt/rubric migrations found")
 	}
 
-	out := map[string][]insertRow{
+	allRows := map[string]map[string]insertRow{
 		"prompt_versions": {},
 		"rubric_versions": {},
 	}
+	activeVersions := map[string]map[string]string{
+		"prompt_versions": {},
+		"rubric_versions": {},
+	}
+	updateRe := regexp.MustCompile(`(?is)UPDATE\s+(prompt_versions|rubric_versions)\s+SET\s+is_active\s*=\s*\(version\s*=\s*'([^']+)'\)\s+WHERE\s+feature_key\s+IN\s*\(([^)]+)\)\s+AND\s+language\s*=\s*'([^']+)'`)
+	keyRe := regexp.MustCompile(`'([^']+)'`)
 	for _, path := range paths {
 		body, err := os.ReadFile(path)
 		if err != nil {
-			t.Fatalf("read seed migration %s: %v", path, err)
+			t.Fatalf("read prompt/rubric migration %s: %v", path, err)
 		}
 		rows := extractInsertRows(string(body))
-		out["prompt_versions"] = append(out["prompt_versions"], rows["prompt_versions"]...)
-		out["rubric_versions"] = append(out["rubric_versions"], rows["rubric_versions"]...)
+		for table, inserted := range rows {
+			for _, row := range inserted {
+				key := rowKey(row)
+				if _, duplicate := allRows[table][key]; duplicate {
+					t.Fatalf("%s duplicate migration row %s", table, key)
+				}
+				allRows[table][key] = row
+				if strings.Contains(filepath.Base(path), "seed_baseline_prompt_rubric") {
+					activeVersions[table][row.featureKey+"|"+row.language] = row.version
+				}
+			}
+		}
+		for _, match := range updateRe.FindAllStringSubmatch(string(body), -1) {
+			table, version, rawKeys, language := match[1], match[2], match[3], match[4]
+			for _, key := range keyRe.FindAllStringSubmatch(rawKeys, -1) {
+				activeVersions[table][key[1]+"|"+language] = version
+			}
+		}
 	}
 
 	// Later module-removal migrations (e.g. product-scope v2.1 D-17 dropping
@@ -168,14 +192,22 @@ func extractSeedMigrationRows(t *testing.T, repoRoot string) map[string][]insert
 	// state — not the raw seed inserts — is what must match the on-disk
 	// config truth source, so subtract out-of-scope feature keys here.
 	outOfScope := outOfScopeFeatureKeys(t, repoRoot)
-	for table, rows := range out {
-		kept := rows[:0]
-		for _, row := range rows {
-			if !outOfScope[row.featureKey] {
-				kept = append(kept, row)
+	out := map[string][]insertRow{"prompt_versions": {}, "rubric_versions": {}}
+	for table, coordinates := range activeVersions {
+		for coordinate, version := range coordinates {
+			parts := strings.Split(coordinate, "|")
+			if len(parts) != 2 || outOfScope[parts[0]] {
+				continue
 			}
+			key := parts[0] + "|" + version + "|" + parts[1]
+			row, ok := allRows[table][key]
+			if !ok {
+				t.Errorf("%s active migration coordinate has no inserted row: %s", table, key)
+				continue
+			}
+			out[table] = append(out[table], row)
 		}
-		out[table] = kept
+		sort.Slice(out[table], func(i, j int) bool { return rowKey(out[table][i]) < rowKey(out[table][j]) })
 	}
 	return out
 }

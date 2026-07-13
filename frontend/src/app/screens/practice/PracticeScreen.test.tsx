@@ -1,10 +1,58 @@
 /** @vitest-environment jsdom */
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDevMockClient } from "../../../api/devMockClient";
 import { App } from "../../App";
 
+afterEach(() => localStorage.removeItem("ei-lang"));
+
 describe("PracticeScreen continuous conversation", () => {
+  it("TestE2EP0047RejectsZeroAnswerCompletion: keeps Finish natively disabled with a localized accessible reason until a committed answer is complete", async () => {
+    localStorage.setItem("ei-lang", "zh");
+    const client = createDevMockClient();
+    const session = await client.getPracticeSession("01918fa0-0000-7000-8000-000000005000");
+    const complete = vi.spyOn(client, "completePracticeSession");
+    vi.spyOn(client, "getPracticeSession").mockResolvedValue({
+      ...session,
+      messages: session.messages.filter((message) => message.role === "assistant").slice(0, 1),
+    });
+
+    render(<App client={client} requestOptions={{ getMe: { headers: { Prefer: "example=authenticated" } } }} initialRoute={{ name: "practice", params: {
+      sessionId: "01918fa0-0000-7000-8000-000000005000",
+      planId: "01918fa0-0000-7000-8000-000000004000",
+      targetJobId: "01918fa0-0000-7000-8000-000000002000",
+      reportId: "route-report-must-not-count",
+    } }} />);
+
+    await screen.findByText("你好，我们直接开始。先聊聊你最近最有代表性的项目。");
+    fireEvent.change(screen.getByTestId("practice-input-textarea"), { target: { value: "尚未提交的草稿" } });
+    const finish = screen.getByTestId("practice-finish-cta");
+    const reason = screen.getByTestId("practice-finish-disabled-reason");
+    expect(finish).toBeDisabled();
+    expect(finish).toHaveAttribute("aria-describedby", reason.id);
+    expect(reason).toHaveTextContent("请先完成至少一次回答");
+    fireEvent.click(finish);
+    expect(complete).not.toHaveBeenCalled();
+  });
+
+  it("keeps Finish disabled while the latest committed candidate message still awaits an assistant reply", async () => {
+    const client = createDevMockClient();
+    const session = await client.getPracticeSession("01918fa0-0000-7000-8000-000000005000");
+    vi.spyOn(client, "getPracticeSession").mockResolvedValue({
+      ...session,
+      messages: session.messages.slice(0, 2),
+    });
+
+    render(<App client={client} requestOptions={{ getMe: { headers: { Prefer: "example=authenticated" } } }} initialRoute={{ name: "practice", params: {
+      sessionId: "01918fa0-0000-7000-8000-000000005000",
+      planId: "01918fa0-0000-7000-8000-000000004000",
+      targetJobId: "01918fa0-0000-7000-8000-000000002000",
+    } }} />);
+
+    await screen.findByText("我主导过一次跨团队设计系统迁移。");
+    expect(screen.getByTestId("practice-finish-cta")).toBeDisabled();
+  });
+
   it("renders the persisted practice plan time budget", async () => {
     const client = createDevMockClient();
     const getPlan = vi.spyOn(client, "getPracticePlan").mockResolvedValue({

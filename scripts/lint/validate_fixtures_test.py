@@ -426,6 +426,24 @@ class FixtureContentTest(unittest.TestCase):
 
         self.assertFalse([err for err in errors if "modelId" in err], errors)
 
+    def test_non_ready_feedback_report_requires_null_provenance(self) -> None:
+        validator = _load_validator()
+        errors: list[str] = []
+        validator.check_provenance(
+            "getFeedbackReport",
+            {
+                "response": {
+                    "body": {
+                        "status": "generating",
+                        "provenance": None,
+                    }
+                }
+            },
+            errors,
+        )
+
+        self.assertEqual([], errors)
+
     def test_with_job_operations_carry_correct_jobType(self) -> None:
         for opid, expected_job_type in WITH_JOB_OPERATIONS.items():
             if expected_job_type is None:
@@ -482,10 +500,127 @@ class FixtureContentTest(unittest.TestCase):
         )
         self.assertTrue(any("uniqueItems" in error for error in duplicate_errors))
 
+    def test_create_practice_plan_conditional_request_matrix(self) -> None:
+        validator = _load_validator()
+        spec = _load_openapi()
+        schema = spec["components"]["schemas"]["CreatePracticePlanRequest"]
+        baseline = {
+            "targetJobId": "01918fa0-0001-7000-8000-000000000001",
+            "goal": "baseline",
+            "interviewerPersona": "technical_manager",
+            "difficulty": "standard",
+            "language": "zh-CN",
+            "timeBudgetMinutes": 45,
+            "resumeId": "01918fa0-0002-7000-8000-000000000002",
+        }
+        source_report_id = "01918fa0-0003-7000-8000-000000000003"
+        valid = [
+            baseline,
+            {"goal": "retry_current_round", "sourceReportId": source_report_id},
+            {"goal": "next_round", "sourceReportId": source_report_id},
+        ]
+        for index, body in enumerate(valid):
+            with self.subTest(valid=index):
+                errors: list[str] = []
+                validator.schema_validate(body, schema, root=spec, path="request", errors=errors)
+                self.assertEqual([], errors)
+
+        invalid = [
+            {**baseline, "sourceReportId": source_report_id},
+            {"goal": "retry_current_round"},
+            {"goal": "retry_current_round", "sourceReportId": None},
+            {"goal": "retry_current_round", "sourceReportId": ""},
+            {"goal": "retry_current_round", "sourceReportId": "not-a-uuid"},
+            {"goal": "retry_current_round", "sourceReportId": source_report_id, "targetJobId": baseline["targetJobId"]},
+            {"goal": "next_round"},
+            {"goal": "next_round", "sourceReportId": None},
+            {"goal": "next_round", "sourceReportId": ""},
+            {"goal": "next_round", "sourceReportId": "not-a-uuid"},
+            {"goal": "next_round", "sourceReportId": source_report_id, "difficulty": "standard"},
+            {"goal": "next_round", "sourceReportId": source_report_id, "focusCompetencyCodes": ["delivery"]},
+        ]
+        for index, body in enumerate(invalid):
+            with self.subTest(invalid=index):
+                errors = []
+                validator.schema_validate(body, schema, root=spec, path="request", errors=errors)
+                self.assertTrue(errors, body)
+
+    def test_schema_validator_enforces_report_bounds_and_closed_objects(self) -> None:
+        validator = _load_validator()
+        spec = _load_openapi()
+        schemas = spec["components"]["schemas"]
+
+        cases = [
+            (schemas["DimensionAssessment"], {"code": "x", "label": "X", "status": "strong", "confidence": "high", "dimension": "legacy"}),
+            (schemas["ReportHighlight"], {"dimensionCode": "x", "evidence": "ok", "confidence": "high", "questionId": "legacy"}),
+            (schemas["ReportIssue"], {"dimensionCode": "x", "evidence": "ok", "confidence": "high", "unknown": True}),
+            (schemas["ReportNextAction"], {"type": "review_evidence", "label": "x" * 201}),
+        ]
+        for index, (schema, value) in enumerate(cases):
+            with self.subTest(case=index):
+                errors: list[str] = []
+                validator.schema_validate(value, schema, root=spec, path="report", errors=errors)
+                self.assertTrue(errors, value)
+
+    def test_schema_validator_selects_feedback_status_conditional_branch(self) -> None:
+        validator = _load_validator()
+        spec = _load_openapi()
+        schema = spec["components"]["schemas"]["FeedbackReport"]
+        queued = _load_fixture("getFeedbackReport", "Reports")["scenarios"]["queued"]
+        body = queued["response"]["body"]
+
+        errors: list[str] = []
+        validator.schema_validate(body, schema, root=spec, path="report", errors=errors)
+        self.assertEqual([], errors)
+
+        leaked = json.loads(json.dumps(body))
+        leaked["summary"] = "generation is not ready"
+        errors = []
+        validator.schema_validate(leaked, schema, root=spec, path="report", errors=errors)
+        self.assertTrue(any("expected null" in error for error in errors), errors)
+
+    def test_schema_validator_rejects_ready_null_state_fields(self) -> None:
+        validator = _load_validator()
+        spec = _load_openapi()
+        schema = spec["components"]["schemas"]["FeedbackReport"]
+        ready = _load_fixture("getFeedbackReport", "Reports")["scenarios"]["ready-needs-practice"]
+        for field in ("preparednessLevel", "provenance"):
+            with self.subTest(field=field):
+                body = json.loads(json.dumps(ready["response"]["body"]))
+                body[field] = None
+                errors: list[str] = []
+                validator.schema_validate(body, schema, root=spec, path="report", errors=errors)
+                self.assertTrue(errors, field)
+
+        body = json.loads(json.dumps(ready["response"]["body"]))
+        body["errorCode"] = "AI_OUTPUT_INVALID"
+        errors = []
+        validator.schema_validate(body, schema, root=spec, path="report", errors=errors)
+        self.assertTrue(errors, "ready errorCode must be null")
+
+        queued = _load_fixture("getFeedbackReport", "Reports")["scenarios"]["queued"]
+        body = json.loads(json.dumps(queued["response"]["body"]))
+        body["errorCode"] = "AI_OUTPUT_INVALID"
+        errors = []
+        validator.schema_validate(body, schema, root=spec, path="report", errors=errors)
+        self.assertTrue(errors, "queued errorCode must be null")
+
+        failed = _load_fixture("getFeedbackReport", "Reports")["scenarios"]["failed"]
+        body = json.loads(json.dumps(failed["response"]["body"]))
+        body["errorCode"] = None
+        errors = []
+        validator.schema_validate(body, schema, root=spec, path="report", errors=errors)
+        self.assertTrue(errors, "failed errorCode must be non-null")
+
     def test_practice_round_fixtures_cover_current_legacy_and_progress_states(self) -> None:
         validator = _load_validator()
         expected_scenarios = {
-            ("PracticePlans", "createPracticePlan"): {"default", "report-derived", "round-mismatch"},
+            ("PracticePlans", "createPracticePlan"): {
+                "default",
+                "retry-derived",
+                "next-derived",
+                "round-mismatch",
+            },
             ("PracticePlans", "getPracticePlan"): {"default", "legacy-null-round-identity"},
             ("TargetJobs", "getTargetJob"): {"default", "not-started-progress", "all-completed-progress"},
             ("TargetJobs", "listTargetJobs"): {"default", "not-started-progress", "all-completed-progress"},
@@ -498,6 +633,57 @@ class FixtureContentTest(unittest.TestCase):
                 errors: list[str] = []
                 validator.check_practice_round_semantics(opid, scenarios, errors)
                 self.assertEqual([], errors)
+
+    def test_feedback_report_fixtures_cover_current_status_matrix(self) -> None:
+        validator = _load_validator()
+        scenarios = _load_fixture("getFeedbackReport", "Reports")["scenarios"]
+        expected = {
+            "default",
+            "prototype-baseline",
+            "ready-needs-practice",
+            "queued",
+            "generating",
+            "ready-well-prepared",
+            "ready-empty-focus",
+            "failed",
+            "failed-context-too-large",
+            "invalid-contract",
+            "long-content",
+        }
+        self.assertTrue(expected.issubset(scenarios), sorted(expected - set(scenarios)))
+
+        errors: list[str] = []
+        validator.check_feedback_report_semantics(scenarios, errors)
+        self.assertEqual([], errors)
+
+        self.assertEqual(
+            "REPORT_CONTEXT_TOO_LARGE",
+            scenarios["failed-context-too-large"]["response"]["body"]["errorCode"],
+        )
+
+    def test_feedback_report_semantics_rejects_oversize_error_alias(self) -> None:
+        validator = _load_validator()
+        scenarios = _load_fixture("getFeedbackReport", "Reports")["scenarios"]
+        mutated = json.loads(json.dumps(scenarios))
+        mutated["failed-context-too-large"]["response"]["body"]["errorCode"] = (
+            "REPORT_INPUT_TOO_LARGE"
+        )
+        errors: list[str] = []
+
+        validator.check_feedback_report_semantics(mutated, errors)
+
+        self.assertTrue(any("REPORT_CONTEXT_TOO_LARGE" in error for error in errors), errors)
+
+    def test_feedback_report_semantics_rejects_ready_null_state_fields(self) -> None:
+        validator = _load_validator()
+        scenarios = _load_fixture("getFeedbackReport", "Reports")["scenarios"]
+        for field in ("preparednessLevel", "provenance"):
+            with self.subTest(field=field):
+                mutated = json.loads(json.dumps(scenarios))
+                mutated["ready-needs-practice"]["response"]["body"][field] = None
+                errors: list[str] = []
+                validator.check_feedback_report_semantics(mutated, errors)
+                self.assertTrue(any(field in error for error in errors), errors)
 
     def test_practice_progress_validator_rejects_non_prefix_completion(self) -> None:
         validator = _load_validator()

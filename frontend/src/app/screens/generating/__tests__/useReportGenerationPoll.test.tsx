@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  *
  * Phase 1.7 — useReportGenerationPoll: 7-state machine, exponential backoff
- * (1.5s × 1.5 capped at 8s, max attempts 30), visibility/focus pause-resume,
+ * (1.5s × 1.5 capped at 8s, max attempts 49), visibility/focus pause-resume,
  * onReady / onFailed callbacks, unmount-cancel, no Idempotency-Key, cross-user
  * 404 → REPORT_NOT_FOUND failure path.
  */
@@ -18,6 +18,7 @@ import type {
 import { EasyInterviewClient } from "../../../../api/generated/client";
 import { AppRuntimeContext } from "../../../runtime/AppRuntimeProvider";
 import {
+  REPORT_GENERATION_POLL_MAX_ATTEMPTS,
   useReportGenerationPoll,
   type PollScheduler,
 } from "../hooks/useReportGenerationPoll";
@@ -30,6 +31,28 @@ function makeReport(overrides: Partial<FeedbackReport>): FeedbackReport {
     sessionId: "01918fa0-0000-7000-8000-000000005000",
     targetJobId: "01918fa0-0000-7000-8000-000000002000",
     status: "generating",
+    errorCode: null,
+    summary: null,
+    preparednessLevel: null,
+    context: {
+      sourcePlanId: "01918fa0-0000-7000-8000-000000004000",
+      targetJobTitle: "Senior Engineer",
+      targetJobCompany: "Acme",
+      resumeId: "01918fa0-0000-7000-8000-000000001000",
+      resumeDisplayName: "Resume",
+      roundId: "round-2-technical",
+      roundSequence: 2,
+      roundName: "Technical",
+      roundType: "technical",
+      language: "en-US",
+      hasNextRound: true,
+    },
+    dimensionAssessments: [],
+    highlights: [],
+    issues: [],
+    nextActions: [],
+    retryFocusDimensionCodes: [],
+    provenance: null,
     createdAt: "2026-05-16T00:00:00Z",
     updatedAt: "2026-05-16T00:00:01Z",
     ...overrides,
@@ -58,6 +81,37 @@ function buildClientStuck(): EasyInterviewClient {
       return makeReport({ status: "generating" });
     },
   } as unknown as EasyInterviewClient;
+}
+
+function buildAbortAwareStuckClient() {
+  let activeRequests = 0;
+  let maxActiveRequests = 0;
+
+  const client = {
+    getFeedbackReport(
+      _reportId: string,
+      options?: { signal?: AbortSignal },
+    ): Promise<FeedbackReport> {
+      activeRequests += 1;
+      maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
+
+      return new Promise((_resolve, reject) => {
+        const onAbort = () => {
+          activeRequests -= 1;
+          const error = new Error("aborted");
+          error.name = "AbortError";
+          reject(error);
+        };
+        options?.signal?.addEventListener("abort", onAbort, { once: true });
+      });
+    },
+  } as unknown as EasyInterviewClient;
+
+  return {
+    client,
+    getActiveRequests: () => activeRequests,
+    getMaxActiveRequests: () => maxActiveRequests,
+  };
 }
 
 interface ManualScheduler extends PollScheduler {
@@ -118,6 +172,19 @@ function Wrapper({
 }
 
 describe("useReportGenerationPoll", () => {
+  it("keeps the default status-check window open across three provider retry backoffs", () => {
+    expect(REPORT_GENERATION_POLL_MAX_ATTEMPTS).toBe(49);
+
+    const delays = Array.from(
+      { length: REPORT_GENERATION_POLL_MAX_ATTEMPTS - 1 },
+      (_, index) => Math.min(8000, 1500 * Math.pow(1.5, index)),
+    );
+    const totalWindowMs = delays.reduce((sum, delay) => sum + delay, 0);
+
+    expect(totalWindowMs).toBeGreaterThanOrEqual(6 * 60 * 1000);
+    expect(totalWindowMs).toBeLessThan(6 * 60 * 1000 + 10_000);
+  });
+
   it("renders error state immediately when reportId is missing (TestGeneratingScreenMissingReportIdRendersErrorState)", () => {
     const client = buildClientStuck();
     const spy = vi.spyOn(client, "getFeedbackReport");
@@ -238,6 +305,30 @@ describe("useReportGenerationPoll", () => {
     });
     await waitFor(() => expect(result.current.attemptCount).toBe(3));
     await waitFor(() => expect(result.current.state).toBe("timeout"));
+  });
+
+  it("surfaces an exhausted network check separately from a resource timeout and allows checking again", async () => {
+    const ready = makeReport({ status: "ready", preparednessLevel: "basically_ready" });
+    const client = buildClientWithSequence([
+      { reject: new Error("network unavailable") },
+      ready,
+    ]);
+    const onReady = vi.fn();
+    const { result } = renderHook(
+      () => useReportGenerationPoll({
+        reportId: REPORT_ID,
+        maxAttempts: 1,
+        onReady,
+      }),
+      {
+        wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
+      },
+    );
+
+    await waitFor(() => expect(result.current.state).toBe("error"));
+    act(() => result.current.retry());
+    await waitFor(() => expect(result.current.state).toBe("ready"));
+    expect(onReady).toHaveBeenCalledWith(ready);
   });
 
   it("uses exponential backoff capped at maxDelay (TestUseReportGenerationPollExponentialBackoff)", async () => {
@@ -366,6 +457,194 @@ describe("useReportGenerationPoll", () => {
     });
     await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
     expect(result.current.attemptCount).toBe(2);
+  });
+
+  it("pausing an in-flight request resumes at n+1 after the preserved delay", async () => {
+    const tracked = buildAbortAwareStuckClient();
+    const spy = vi.spyOn(tracked.client, "getFeedbackReport");
+    const sched = manualScheduler();
+    const { result, unmount } = renderHook(
+      () =>
+        useReportGenerationPoll({
+          reportId: REPORT_ID,
+          scheduler: sched,
+          initialDelayMs: 1500,
+        }),
+      {
+        wrapper: ({ children }) => (
+          <Wrapper client={tracked.client}>{children}</Wrapper>
+        ),
+      },
+    );
+
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+    expect(result.current.attemptCount).toBe(1);
+    expect(tracked.getActiveRequests()).toBe(1);
+
+    await act(async () => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => "hidden",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+      window.dispatchEvent(new Event("blur"));
+      window.dispatchEvent(new Event("blur"));
+    });
+    await waitFor(() => expect(result.current.state).toBe("paused"));
+    await waitFor(() => expect(tracked.getActiveRequests()).toBe(0));
+
+    await act(async () => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => "visible",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+      window.dispatchEvent(new Event("focus"));
+      window.dispatchEvent(new Event("focus"));
+    });
+    await waitFor(() => expect(result.current.state).toBe("polling"));
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(
+      sched.pending.filter((entry) => !entry.cancelled).map((entry) => entry.ms),
+    ).toEqual([1500]);
+
+    await act(async () => {
+      sched.flushNext();
+    });
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
+    expect(result.current.attemptCount).toBe(2);
+    expect(tracked.getMaxActiveRequests()).toBe(1);
+
+    unmount();
+    await waitFor(() => expect(tracked.getActiveRequests()).toBe(0));
+  });
+
+  it("repeated pause-resume during a saved wait is idempotent and does not restart attempt one", async () => {
+    const client = buildClientStuck();
+    const spy = vi.spyOn(client, "getFeedbackReport");
+    const sched = manualScheduler();
+    const { result } = renderHook(
+      () =>
+        useReportGenerationPoll({
+          reportId: REPORT_ID,
+          scheduler: sched,
+          initialDelayMs: 1500,
+        }),
+      {
+        wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
+      },
+    );
+
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(sched.pending.some((entry) => !entry.cancelled)).toBe(true),
+    );
+
+    for (let cycle = 0; cycle < 3; cycle += 1) {
+      await act(async () => {
+        window.dispatchEvent(new Event("blur"));
+        window.dispatchEvent(new Event("blur"));
+      });
+      await waitFor(() => expect(result.current.state).toBe("paused"));
+
+      await act(async () => {
+        window.dispatchEvent(new Event("focus"));
+        window.dispatchEvent(new Event("focus"));
+      });
+      await waitFor(() => expect(result.current.state).toBe("polling"));
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(
+        sched.pending.filter((entry) => !entry.cancelled).map((entry) => entry.ms),
+      ).toEqual([1500]);
+    }
+
+    await act(async () => {
+      sched.flushNext();
+    });
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
+    expect(result.current.attemptCount).toBe(2);
+  });
+
+  it("fences a scheduled callback immediately when blur pauses the run", async () => {
+    const client = buildClientStuck();
+    const spy = vi.spyOn(client, "getFeedbackReport");
+    const sched = manualScheduler();
+    const { result } = renderHook(
+      () =>
+        useReportGenerationPoll({
+          reportId: REPORT_ID,
+          scheduler: sched,
+          initialDelayMs: 1500,
+        }),
+      {
+        wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
+      },
+    );
+
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(sched.pending.some((entry) => !entry.cancelled)).toBe(true),
+    );
+
+    act(() => {
+      window.dispatchEvent(new Event("blur"));
+      sched.flushNext();
+    });
+
+    await waitFor(() => expect(result.current.state).toBe("paused"));
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    await waitFor(() => expect(result.current.state).toBe("polling"));
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(
+      sched.pending.filter((entry) => !entry.cancelled).map((entry) => entry.ms),
+    ).toEqual([1500]);
+  });
+
+  it("never starts more than 49 requests in one default poll run", async () => {
+    const client = buildClientStuck();
+    const spy = vi.spyOn(client, "getFeedbackReport");
+    const sched = manualScheduler();
+    const { result } = renderHook(
+      () =>
+        useReportGenerationPoll({
+          reportId: REPORT_ID,
+          scheduler: sched,
+        }),
+      {
+        wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
+      },
+    );
+
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+    for (
+      let expectedCalls = 2;
+      expectedCalls <= REPORT_GENERATION_POLL_MAX_ATTEMPTS;
+      expectedCalls += 1
+    ) {
+      await waitFor(() =>
+        expect(sched.pending.some((entry) => !entry.cancelled)).toBe(true),
+      );
+      await act(async () => {
+        sched.flushNext();
+      });
+      await waitFor(() => expect(spy).toHaveBeenCalledTimes(expectedCalls));
+    }
+
+    await waitFor(() => expect(result.current.state).toBe("timeout"));
+    expect(result.current.attemptCount).toBe(
+      REPORT_GENERATION_POLL_MAX_ATTEMPTS,
+    );
+    expect(spy).toHaveBeenCalledTimes(REPORT_GENERATION_POLL_MAX_ATTEMPTS);
+
+    await act(async () => {
+      sched.flushAll();
+    });
+    expect(spy).toHaveBeenCalledTimes(REPORT_GENERATION_POLL_MAX_ATTEMPTS);
   });
 
   it("getFeedbackReport requests do not carry Idempotency-Key (TestUseReportGenerationPollNoIdempotencyHeader)", async () => {

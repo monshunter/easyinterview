@@ -282,6 +282,51 @@ def test_ai_task_runs_task_type_tracks_conversation_report_generation() -> None:
     assert "report_assessment" not in enum_sources
 
 
+def test_grounded_report_v18_is_current_shape_without_compatibility_columns() -> None:
+    normalized_sql = migrations_lint.normalize_sql(current_migration_up_sql())
+
+    for required in (
+        "add column summary text",
+        "add column generation_context jsonb not null default '{}'::jsonb",
+        "rename column retry_focus_competency_codes to retry_focus_dimension_codes",
+        "rename column focus_competency_codes to focus_dimension_codes",
+    ):
+        assert required in normalized_sql
+
+    assert "add column retry_focus_dimension_codes" not in normalized_sql
+    assert "add column focus_dimension_codes" not in normalized_sql
+    assert "llm_attempt_count" not in normalized_sql
+    assert "content_repair_attempted" not in normalized_sql
+
+
+def test_grounded_report_v18_lint_rejects_missing_current_rename() -> None:
+    sql = current_migration_up_sql().replace(
+        "RENAME COLUMN retry_focus_competency_codes TO retry_focus_dimension_codes;",
+        "-- removed report focus rename",
+        1,
+    )
+
+    problems = migrations_lint.validate_product_scope_sql(sql, current_enum_sources())
+
+    assert any("retry_focus_dimension_codes" in problem for problem in problems), problems
+
+
+def test_grounded_report_v18_lint_rejects_compatibility_mirror() -> None:
+    sql = current_migration_up_sql() + "\nALTER TABLE feedback_reports ADD COLUMN retry_focus_dimension_codes text[];\n"
+
+    problems = migrations_lint.validate_product_scope_sql(sql, current_enum_sources())
+
+    assert any("compatibility" in problem and "retry_focus_dimension_codes" in problem for problem in problems), problems
+
+
+def test_grounded_report_v18_lint_rejects_persisted_product_retry_count() -> None:
+    sql = current_migration_up_sql() + "\nALTER TABLE feedback_reports ADD COLUMN llm_attempt_count integer;\n"
+
+    problems = migrations_lint.validate_product_scope_sql(sql, current_enum_sources())
+
+    assert any("forbidden" in problem and "llm_attempt_count" in problem for problem in problems), problems
+
+
 def write_repo(tmp_path: Path, *, sql: str, enum_sources: str) -> Path:
     repo = tmp_path / "repo"
     migrations = repo / "migrations"

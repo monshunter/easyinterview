@@ -38,8 +38,14 @@ Each `<feature_key>/cases.yaml` is:
 feature_key: <feature_key>           # must match the directory name and a §3.1.1 chat feature_key
 cases:
   - id: <unique case id>
-    language: multi | en | ...       # request language; en exercises the multi fallback
+    language: multi | en | zh-CN     # request language; report.generate must be en/zh-CN and match context.language
+    prompt_version: <optional exact candidate version>
+    rubric_version: <optional exact candidate version>
     input: <short description of the business input>
+    context: { ... }                 # required for report.generate
+    transcript: [ ... ]              # required for report.generate
+    critical: true | false           # report critical-safety sampling
+    redacted: true                   # required for tracked report cases
     output: { ... }                  # recorded golden model output (must satisfy the output schema)
     judge:                           # recorded judge verdict replayed in offline mode
       scores:
@@ -48,10 +54,17 @@ cases:
       reasoning:
         summary: <non-empty>
         evidence_quotes: []
+      item_verdicts: []               # required strict item verdicts for report.generate
+      causal_checks: []               # one per needs-work dimension
+      zero_tolerance_violations: []
+      critical_safety_pass: true
 ```
 
-The committed suite has at least 24 cases covering the 6 active §3.1.1 chat
-`feature_key`s, including at least one `en -> multi` fallback case.
+The committed suite has exactly 28 cases covering the 6 current §3.1.1 chat
+`feature_key`s, including at least one `en -> multi` fallback case. The five
+`report.generate` cases are distinct complete/partial/short/pending/injection
+fixtures; all carry synthetic redacted context + transcript, and exactly three
+are critical.
 
 ## 3 Runner and gates
 
@@ -59,7 +72,7 @@ The Go `backend/cmd/evalkit` binary owns registry single-source resolution and
 grading via the single `registry.LLMJudge`; Promptfoo is the runner that
 orchestrates and reports.
 
-- `make eval-offline` — single-source drift gate + `>= 24` count gate + the
+- `make eval-offline` — single-source drift gate + exact `28` count gate + the
   Promptfoo runner over recorded fixtures. Deterministic, zero-cost, no network.
   **Not** part of `make test`. Runtime artifacts are confined to
   `$(EVAL_OUTPUT_DIR)` (default `.test-output/evals/`).
@@ -69,10 +82,27 @@ orchestrates and reports.
 - `EVAL_LIVE=1 make eval-offline` — opt in to real provider/judge calls
   (`judge.default` profile). Requires provider secrets; excluded from CI and the
   default offline run.
+- `evalkit complete --case <id> --live --audit-out <file>` — write the candidate
+  JSON to stdout for an ephemeral `0600` pipe/file and persist only a redacted
+  `evalkit-live-call-audit.v1` completion audit (coordinate, model/provider,
+  usage, latency, validation, `finishReason`, output digest/size).
+- `evalkit grade --case <id> --live --output <json> --audit-out <file>` — run the
+  context-aware judge, return scores, registry-derived `weighted_score`, item
+  verdicts, causal checks and critical safety on stdout, and persist the same
+  redacted call-audit schema for the judge. The audit never contains prompt,
+  frozen context, transcript, candidate output, judge response, cookie or
+  secret values; callers must delete the ephemeral stdout payload after merging
+  a redacted UAT manifest.
 
 The drift gate proves Promptfoo consumes the same prompt the registry resolves
 (no second prompt copy); `make lint-prompts-hardcode` proves no prompt body was
 copied into business code.
+
+For report v0.2, every dimension must score at least `0.70` and the weighted
+mean must be at least `0.80`. Unsupported items, fabrication, unsupported
+negative claims, irrelevant/unexecutable advice, causal mismatch, or critical
+safety failure have zero tolerance. Partial support passes only when the report
+explicitly marks evidence limits and does not use the item negatively.
 
 ## 4 References
 

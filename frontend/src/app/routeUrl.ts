@@ -62,7 +62,7 @@ const PATH_TO_ROUTE: ReadonlyMap<string, RouteName> = (() => {
 })();
 
 // workspace is a collection/list route. Item context belongs to parse,
-// practice, generating, and report routes; detail params are dropped here.
+// practice routes; generating/report resolve frozen facts from reportId only.
 const WORKSPACE_SAFE = new Set<string>();
 
 const PRACTICE_SAFE = new Set([
@@ -80,30 +80,11 @@ const PRACTICE_SAFE = new Set([
 ]);
 
 const GENERATING_SAFE = new Set([
-  "sessionId",
   "reportId",
-  "planId",
-  "targetJobId",
-  "jobId",
-  "jdId",
-  "resumeId",
-  "roundId",
-  "roundName",
-  "practiceGoal",
 ]);
 
 const REPORT_SAFE = new Set([
-  "sessionId",
   "reportId",
-  "targetJobId",
-  "jobId",
-  "jdId",
-  "resumeId",
-  "roundId",
-  "roundName",
-  "practiceGoal",
-  "reportStatus",
-  "errorCode",
 ]);
 
 const RESUME_VERSIONS_SAFE = new Set([

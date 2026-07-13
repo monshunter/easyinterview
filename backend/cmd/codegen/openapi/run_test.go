@@ -230,6 +230,51 @@ func TestRun_PracticeRoundIdentityAndProgressTypes(t *testing.T) {
 	mustContain(t, tsTypes, "\troundSequence?: number | null;")
 }
 
+func TestRun_GroundedReportAndTypedDerivedPlanTypes(t *testing.T) {
+	repoRoot := mustFindRepoRoot(t)
+	tmp := t.TempDir()
+	openapiDst := filepath.Join(tmp, "openapi", "openapi.yaml")
+	if err := os.MkdirAll(filepath.Dir(openapiDst), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	mustCopy(t, filepath.Join(repoRoot, "openapi", "openapi.yaml"), openapiDst)
+	templates := filepath.Join(tmp, "openapi", "templates")
+	if err := mirrorDir(filepath.Join(repoRoot, "openapi", "templates"), templates); err != nil {
+		t.Fatalf("mirror templates: %v", err)
+	}
+	if err := Run(
+		openapiDst,
+		filepath.Join(repoRoot, "shared", "conventions.yaml"),
+		templates,
+		tmp,
+		false,
+	); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	goTypes := readFile(t, filepath.Join(tmp, "backend/internal/api/generated/types.gen.go"))
+	mustContain(t, goTypes, "type CreatePracticePlanRequest struct {")
+	mustNotContain(t, goTypes, "type CreatePracticePlanRequest = any")
+	mustContain(t, goTypes, "SourceReportId     *string")
+	mustContain(t, goTypes, "type ReportContextSnapshot struct {")
+	mustMatch(t, goTypes, `(?s)type FeedbackReport struct \{.*?RetryFocusDimensionCodes\s+\[\]string\s+`+"`json:\"retryFocusDimensionCodes\"`"+`.*?Summary\s+\*string\s+`+"`json:\"summary\"`"+`.*?\n\}`)
+	mustNotContain(t, goTypes, "type FeedbackReport struct {\n\tItems")
+	mustNotContain(t, goTypes, "RetryFocusCompetencyCodes")
+	mustNotContain(t, goTypes, "FocusCompetencyCodes")
+	mustNotContain(t, goTypes, "type DimensionResult")
+
+	tsTypes := readFile(t, filepath.Join(tmp, "frontend/src/api/generated/types.ts"))
+	mustContain(t, tsTypes, "export interface CreatePracticePlanRequest {")
+	mustNotContain(t, tsTypes, "export type CreatePracticePlanRequest = any")
+	mustContain(t, tsTypes, "\tsourceReportId?: string;")
+	mustContain(t, tsTypes, "export interface ReportContextSnapshot {")
+	mustMatch(t, tsTypes, `(?s)export interface FeedbackReport \{.*?\tretryFocusDimensionCodes: string\[\];.*?\tsummary: string \| null;.*?\n\}`)
+	mustNotContain(t, tsTypes, "export interface FeedbackReport {\n\titems:")
+	mustNotContain(t, tsTypes, "retryFocusCompetencyCodes")
+	mustNotContain(t, tsTypes, "focusCompetencyCodes")
+	mustNotContain(t, tsTypes, "export interface DimensionResult")
+}
+
 func mustFindRepoRoot(t *testing.T) string {
 	t.Helper()
 	wd, err := os.Getwd()

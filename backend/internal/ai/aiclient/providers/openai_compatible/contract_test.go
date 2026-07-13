@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -370,6 +371,64 @@ func TestComplete_RequestsJSONObjectWhenOutputSchemaIsPresent(t *testing.T) {
 	}
 }
 
+func TestComplete_MapsThinkingProfileParamToOfficialWireShape(t *testing.T) {
+	for _, mode := range []string{"enabled", "disabled"} {
+		t.Run(mode, func(t *testing.T) {
+			srv := mockserver.New()
+			defer srv.Close()
+			a := newAdapter(t, srv)
+
+			profile := chatProfile(5000)
+			profile.Default.Params = map[string]any{"thinking": mode}
+			payload := samplePayload()
+			payload.Metadata.OutputSchema = json.RawMessage(`{"type":"object","properties":{"summary":{"type":"string"}}}`)
+
+			if _, _, err := a.Complete(context.Background(), profile, payload); err != nil {
+				t.Fatalf("Complete: %v", err)
+			}
+			var wire map[string]any
+			if err := json.Unmarshal(srv.Captured()[0].Body, &wire); err != nil {
+				t.Fatalf("unmarshal captured request: %v", err)
+			}
+			thinking, ok := wire["thinking"].(map[string]any)
+			if !ok || thinking["type"] != mode || len(thinking) != 1 {
+				t.Fatalf("thinking=%+v, want exact {type:%s}", wire["thinking"], mode)
+			}
+			responseFormat, ok := wire["response_format"].(map[string]any)
+			if !ok || responseFormat["type"] != "json_object" {
+				t.Fatalf("object output schema must still drive response_format: %+v", wire["response_format"])
+			}
+		})
+	}
+}
+
+func TestComplete_RejectsInvalidThinkingProfileParamBeforeRequest(t *testing.T) {
+	for _, value := range []any{"auto", true, 1} {
+		t.Run(fmt.Sprint(value), func(t *testing.T) {
+			srv := mockserver.New()
+			defer srv.Close()
+			a := newAdapter(t, srv)
+
+			profile := chatProfile(5000)
+			profile.Default.Params = map[string]any{"thinking": value}
+			_, meta, err := a.Complete(context.Background(), profile, samplePayload())
+			if err == nil {
+				t.Fatal("expected invalid thinking profile param to fail closed")
+			}
+			var apiErr *sharederrors.APIError
+			if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiProviderConfigInvalid {
+				t.Fatalf("expected AI_PROVIDER_CONFIG_INVALID, got %v", err)
+			}
+			if meta.ErrorCode != sharederrors.CodeAiProviderConfigInvalid || meta.ValidationStatus != aiclient.ValidationStatusInvalid {
+				t.Fatalf("invalid profile param meta=%+v", meta)
+			}
+			if got := len(srv.Captured()); got != 0 {
+				t.Fatalf("invalid profile param reached provider: requests=%d", got)
+			}
+		})
+	}
+}
+
 func TestComplete_LeavesResponseFormatUnsetForArrayOutputSchema(t *testing.T) {
 	srv := mockserver.New()
 	defer srv.Close()
@@ -475,7 +534,7 @@ func TestComplete_4xxUnknownErrorCodeFallsBackToAIOutputInvalid(t *testing.T) {
 	}
 }
 
-func TestComplete_FallbackHeadersPopulateMeta(t *testing.T) {
+func TestComplete_ProviderHeadersCannotOverrideCanonicalMeta(t *testing.T) {
 	srv := mockserver.New()
 	srv.SetChatBehavior(mockserver.Behavior{
 		FallbackFrom: "primary/chat",
@@ -489,11 +548,11 @@ func TestComplete_FallbackHeadersPopulateMeta(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Complete: %v", err)
 	}
-	if len(meta.FallbackChain) != 2 || meta.FallbackChain[0] != "primary/chat" || meta.FallbackChain[1] != "fallback/chat" {
-		t.Fatalf("fallback chain not populated: %+v", meta.FallbackChain)
+	if len(meta.FallbackChain) != 0 {
+		t.Fatalf("provider fallback headers entered canonical meta: %+v", meta.FallbackChain)
 	}
 	if meta.Route != "practice.session.chat" {
-		t.Fatalf("route not populated: %q", meta.Route)
+		t.Fatalf("provider route header overrode profile route: %q", meta.Route)
 	}
 }
 

@@ -119,12 +119,14 @@ Rules:
 1. **Language-independent**: JSON keys and structure do not vary by prompt
    language. The same schema applies to `multi` and any later language
    override for the same `(feature_key, version)`.
-2. **Allowed validation subset**: schemas may use only `type`, `required`,
-   `properties`, `items`, and `enum`. `description` is allowed as a
+2. **Allowed validation subset**: schemas may use `type`, `required`,
+   `properties`, `additionalProperties`, `items`, `enum`, numeric
+   `minimum`/`maximum`, string `minLength`/`maxLength`/`pattern`, and array
+   `minItems`/`maxItems`/`uniqueItems`. `description` is allowed as a
    non-validation annotation for rendered prompt text and reviewer context.
    Do not use provider-specific structured-output keys, `$ref`, `oneOf`,
-   `anyOf`, `additionalProperties`, `format`, `minimum`, `maximum`, or SDK
-   private fields.
+   `anyOf`, `format`, or SDK private fields. Closed contracts set
+   `additionalProperties: false` recursively on every object.
 3. **Top-level shape**: chat feature keys use top-level `type: object`.
    Voice / STT / TTS feature keys do not produce JSON content and must not
    have output schema files.
@@ -189,12 +191,33 @@ The rendered block contract is:
   block explicitly says the model must return a JSON value rather than JSON
   Schema or an OpenAPI schema. The example must parse as JSON and pass the same
   schema subset validator used by lint.
+- `report.generate/v0.2.0` keeps the complete JSON example and pairs it with an
+  explicit synthetic candidate input. The adjacent anti-copy rule limits the pair
+  to format and cross-field-coherence calibration: actual reports must regenerate
+  every fact, dimension, preparedness level, wording, and action from the current
+  frozen context and cited candidate messages.
 - `multi` and optional language overrides render the same JSON keys and
   structure. Only surrounding task prose may differ, and only when that
   difference carries real task semantics.
 - Manual edits that add, remove, rename, or reorder output keys in the prompt
   contract block must make `make lint-prompts` fail until the schema or prompt
   block is corrected.
+
+### 6.1 Practice semantic-focus input coordinate
+
+`practice.session.chat/v0.2.0` is the active immutable semantic-focus coordinate. Its
+untrusted context contains exactly `"semanticFocus": {{semantic_focus_json}}`
+for focus guidance: an empty value means generic same-round practice; a
+non-empty value is the backend-resolved report-local code, label, and issue
+summary structure. The prompt must not accept the old focus field/token or
+inject rubric dimensions, raw report transcripts, or evidence anchors.
+
+The v0.2 output schema remains the closed `{messageText}` envelope. Its rubric
+is versioned as v0.2 only for prompt/rubric parity and is content-identical to
+v0.1; changing the input token does not invent a new evaluation design. The
+coordinated release activates the `report.generate` and
+`practice.session.chat` v0.2 prompt/rubric pairs together. Their v0.1 files
+stay immutable and exactly retrievable as rollback evidence.
 
 ## 7 Language coordinate convention
 
@@ -216,12 +239,19 @@ The rendered block contract is:
 
 ## 8 Status / lifecycle
 
-- `draft`: file exists in the truth source but is not seeded into the
-  database; the lint gate accepts it but Phase 4 seed migration excludes it.
-- `active`: file is seeded into the database with `is_active = true`. Only
-  one `active` YAML may exist per `(feature_key, language)` pair.
+- `draft`: immutable candidate content exists in the truth source but is not
+  selected by `ResolveActive`; the lint gate still validates its body/schema.
+- `active`: selected by `ResolveActive`. Exactly one `active` YAML must exist
+  per `(feature_key, language)` pair across all retained versions.
 DB-level `is_active` reflects staging/prod runtime state and does not write
 back into this YAML. Edits to YAML `status` are pull-request reviewable.
+
+The loader retains every `(feature_key, language, version)` coordinate, fully
+validates prompt/rubric version parity and unique active state, then publishes
+the new snapshot with one atomic pointer swap. `GetPrompt` can retrieve either
+active or draft immutable versions exactly. File rollback changes only prompt
+and rubric activation metadata before a full reload; database activation is a
+separate transactional truth substrate and is not cross-media atomic.
 
 ## 9 Forbidden values
 

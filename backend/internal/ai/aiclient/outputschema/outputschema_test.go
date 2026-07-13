@@ -28,6 +28,15 @@ func TestValidate(t *testing.T) {
 		{"markdown fenced object with trailing prose rejected", objectSchema, "```json\n{\"a\":\"hello\"}\n```\nDone.", true},
 		{"array of objects", json.RawMessage(`{"type":"array","items":{"type":"object","required":["k"],"properties":{"k":{"type":"string"}}}}`), `[{"k":"v"}]`, false},
 		{"array item invalid", json.RawMessage(`{"type":"array","items":{"type":"object","required":["k"]}}`), `[{"other":"v"}]`, true},
+		{"closed object rejects unknown", json.RawMessage(`{"type":"object","additionalProperties":false,"properties":{"a":{"type":"string"}}}`), `{"a":"ok","old":true}`, true},
+		{"string min length", json.RawMessage(`{"type":"string","minLength":2}`), `"x"`, true},
+		{"string max length", json.RawMessage(`{"type":"string","maxLength":2}`), `"xyz"`, true},
+		{"string pattern", json.RawMessage(`{"type":"string","pattern":"^[a-z_]+$"}`), `"Bad-Key"`, true},
+		{"array min items", json.RawMessage(`{"type":"array","minItems":1}`), `[]`, true},
+		{"array max items", json.RawMessage(`{"type":"array","maxItems":1}`), `[1,2]`, true},
+		{"array unique items", json.RawMessage(`{"type":"array","uniqueItems":true}`), `["same","same"]`, true},
+		{"number minimum", json.RawMessage(`{"type":"integer","minimum":1}`), `0`, true},
+		{"number maximum", json.RawMessage(`{"type":"integer","maximum":3}`), `4`, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

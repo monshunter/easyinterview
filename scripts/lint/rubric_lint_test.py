@@ -34,6 +34,7 @@ def _write_baseline(tmp_path: pathlib.Path, feature_key: str, dimensions_yaml: s
         f'feature_key: "{feature_key}"\n'
         'version: "v0.1.0"\n'
         'language: "multi"\n'
+        'status: "active"\n'
         "dimensions:\n"
     )
     body = header + dimensions_yaml
@@ -48,6 +49,87 @@ def test_baseline_passes():
     """Linting `config/rubrics/` against the baseline files must succeed."""
     result = _run(REPO_ROOT / "config/rubrics")
     assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+
+
+def test_unknown_status_is_rejected(tmp_path):
+    dimensions = (
+        '  - name: "report_evidence"\n'
+        '    weight: 1.0\n'
+        '    description: "Grounding quality."\n'
+        '    score_levels:\n'
+        '      - label: "weak"\n'
+        '        threshold: 0.0\n'
+        '        description: "Unsupported."\n'
+        '      - label: "proficient"\n'
+        '        threshold: 0.7\n'
+        '        description: "Supported."\n'
+        '      - label: "strong"\n'
+        '        threshold: 0.9\n'
+        '        description: "Fully supported."\n'
+    )
+    path = _write_baseline(tmp_path, "report.generate", dimensions)
+    path.write_text(path.read_text(encoding="utf-8").replace('status: "active"', 'status: "retired"'), encoding="utf-8")
+
+    result = _run(tmp_path / "config/rubrics")
+    assert result.returncode == 1
+    assert "status" in result.stderr
+    assert "active|inactive" in result.stderr
+
+
+def test_report_v020_locked_grounding_dimensions_and_weights():
+    path = REPO_ROOT / "config/rubrics/report.generate/v0.2.0.yaml"
+    import yaml
+
+    rubric = yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert rubric["status"] == "active"
+    assert {
+        dimension["name"]: dimension["weight"] for dimension in rubric["dimensions"]
+    } == {
+        "report_evidence": 0.35,
+        "report_specificity": 0.25,
+        "report_action_quality": 0.25,
+        "report_calibration": 0.15,
+    }
+    rendered = str(rubric)
+    for term in (
+        "candidate user messages",
+        "supported",
+        "executable",
+        "causal",
+    ):
+        assert term in rendered
+    action_quality = next(
+        dimension for dimension in rubric["dimensions"]
+        if dimension["name"] == "report_action_quality"
+    )
+    action_contract = " ".join(
+        [action_quality["description"]]
+        + [level["description"] for level in action_quality["score_levels"]]
+    ).lower()
+    assert "answer_depth" in action_contract
+    assert "answer_relevance" in action_contract
+    assert "intentionally generic" in action_contract
+
+
+def test_practice_chat_v020_rubric_is_content_identical_to_v010():
+    import yaml
+
+    v010 = yaml.safe_load(
+        (REPO_ROOT / "config/rubrics/practice.session.chat/v0.1.0.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    v020 = yaml.safe_load(
+        (REPO_ROOT / "config/rubrics/practice.session.chat/v0.2.0.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert v010.pop("version") == "v0.1.0"
+    assert v020.pop("version") == "v0.2.0"
+    assert v010.pop("status") == "inactive"
+    assert v020.pop("status") == "active"
+    assert v020 == v010
 
 
 def test_weight_sum_tolerance(tmp_path):

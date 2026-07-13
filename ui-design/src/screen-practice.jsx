@@ -19,6 +19,8 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId }) => {
   const budget = currentRound ? formatElapsed(currentRound.durationMinutes * 60) : "--:--";
   const interviewerRole = context.roundName || (lang === "en" ? "Manager round" : "经理面");
   const interviewerLabel = lang === "en" ? `${interviewerRole} interviewer` : `${interviewerRole}面试官`;
+  const hasCommittedCandidateMessage = messages.some((message) => message.role === "user");
+  const finishReasonId = "practice-finish-disabled-reason";
   const send = () => {
     const text = input.trim();
     if (!text || paused) return;
@@ -58,9 +60,19 @@ const PracticeScreen = ({ T, lang, nav, params = {}, jobId }) => {
             <Icon name="phone" size={15} />
           </button>
           <div style={{ height: 18, width: 1, background: T.rule }} />
-          <button onClick={() => nav("generating", { ...context })} style={{ padding: "7px 12px", background: T.accent, color: "#fff", border: "none", borderRadius: 2, cursor: "pointer", fontSize: 12.5, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
-            <Icon name="check" size={13} />{lang === "en" ? "Finish report" : "结束并生成报告"}
-          </button>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5 }}>
+            <button
+              type="button"
+              data-testid="practice-finish-cta"
+              disabled={!hasCommittedCandidateMessage}
+              aria-describedby={!hasCommittedCandidateMessage ? finishReasonId : undefined}
+              onClick={() => hasCommittedCandidateMessage && nav("generating", { reportId: D.report.id })}
+              style={{ padding: "7px 12px", background: hasCommittedCandidateMessage ? T.accent : T.bgSoft, color: hasCommittedCandidateMessage ? "#fff" : T.ink4, border: hasCommittedCandidateMessage ? "none" : `1px solid ${T.rule}`, borderRadius: 2, cursor: hasCommittedCandidateMessage ? "pointer" : "not-allowed", fontSize: 12.5, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <Icon name="check" size={13} />{lang === "en" ? "Finish report" : "结束并生成报告"}
+            </button>
+            {!hasCommittedCandidateMessage && <span id={finishReasonId} data-testid="practice-finish-disabled-reason" style={{ maxWidth: 190, color: T.ink3, fontSize: 11, lineHeight: 1.35, textAlign: "right" }}>{lang === "en" ? "Complete at least one answer first." : "请先完成至少一次回答。"}</span>}
+          </div>
         </div>
       </div>
 

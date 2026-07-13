@@ -1,8 +1,8 @@
 # Shared Conventions Bootstrap
 
-> **版本**: 1.8
+> **版本**: 1.10
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -22,7 +22,7 @@
 
 | surface | current behavior | truth / generated files | coverage |
 |---------|------------------|-------------------------|----------|
-| conventions truth source | current enum catalog, 22 error codes, job statuses, UUID/idempotency/pagination constants, AI vocabulary | `shared/conventions.yaml` | `make lint-conventions` |
+| conventions truth source | current enum catalog, 23 error codes after Phase 9, job statuses, UUID/idempotency/pagination constants, AI vocabulary | `shared/conventions.yaml` | `make lint-conventions` |
 | Go generated shared types | enums, HTTP DTOs, error codes, AI vocabulary, ID constants | `backend/internal/shared/{types,errors,idx,ai}` | `go test ./backend/internal/shared/...`, `make codegen-check` |
 | TS generated shared types | enum literals, error codes, pagination, AI vocabulary, ID constants | `frontend/src/lib/{conventions,ids}` | frontend conventions Vitest/typecheck gates |
 | UUID / server ID tools | UUIDv7 generation, `tmp_` rejection, shared ID regex | Go `idx`, TS `ids` | Go/TS id tests |
@@ -71,10 +71,8 @@
 
 ### Phase 4: product-scope enum contract
 
-- Keep `PracticeMode=assisted|strict`.
 - Keep `PracticeGoal=baseline|retry_current_round|next_round`.
-- Keep `QuestionReviewStatus=open|queued_for_retry|resolved`.
-- Keep removed practice mode/goal/status values out of generated runtime surfaces.
+- Keep removed `PracticeMode` and `QuestionReviewStatus` types and removed practice goal values out of generated runtime surfaces.
 
 ### Phase 5: closeout
 
@@ -99,6 +97,13 @@
 - Delete the empty pending-decision section without a historical marker or replacement compatibility note.
 - Verify the current generator source, focused tests, drift gate, owner contexts and docs/index/diff/pruning gates; do not change generated artifacts.
 
+### Phase 9: report oversized-context error contract
+
+- Add exactly one canonical entry to `shared/conventions.yaml`: `REPORT_CONTEXT_TOO_LARGE`, message `report context exceeds supported generation size`, `retryable: false`. B1 owns this cross-language literal and retryability; backend-review owns the 48,000-byte boundary and terminal behavior.
+- Drive the change Red-Green through conventions validator/generator tests, then regenerate Go `backend/internal/shared/errors`, frontend `frontend/src/lib/conventions/errors.ts` and parity fixtures. Reject a missing/duplicate/misspelled code, changed message, or `retryable: true`.
+- Emit `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS` after B1 conventions lint/codegen idempotency, Go/TS parity and owner context validation pass. The marker means only that the canonical cross-language literal and retryability are ready for downstream consumption; it does not wait for B2 and therefore cannot encode OpenAPI parity.
+- B2 consumes that marker, synchronizes `ApiErrorCode` from B1 without hand-maintaining a second error list, and independently proves through the OPENAPI-001 normalized base-ref audit that the single `enum_value_added` finding for `REPORT_CONTEXT_TOO_LARGE` is additive, outside the breaking allowset, with no unrecorded enum delta. User-visible terminal behavior and 48,000/+1 byte tests remain backend-review-owned.
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -109,11 +114,14 @@
 | A-4 | Frontend conventions and ids helpers pass type/test gates | `pnpm --filter @easyinterview/frontend exec tsc --noEmit`; `pnpm --dir frontend test src/lib/conventions src/lib/ids` |
 | A-5 | Error code and enum naming remain enforceable locally | conventions lint and parity tests |
 | A-6 | Current product-scope enum values stay aligned across generated surfaces | conventions parity tests and pruning-surface lint |
+| A-7 | `REPORT_CONTEXT_TOO_LARGE` is single-source and non-retryable before B2 consumption | conventions lint/codegen + Go/TS parity + owner context validation |
 
 ## 6 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-12 | 1.10 | Remove the B1/B2 cycle: B1 source-ready marker covers YAML/Go/TS only; B2 independently proves OpenAPI parity/oracle. |
+| 2026-07-12 | 1.9 | Reopen Phase 9 for the single-source REPORT_CONTEXT_TOO_LARGE YAML/codegen/OpenAPI enum contract. |
 | 2026-07-10 | 1.8 | Reconcile implemented generator and TypeScript output choices as current locked decisions. |
 | 2026-07-10 | 1.7 | Lock the root Go workspace to backend, align all Go version declarations, and enforce tidy zero drift. |
 | 2026-07-10 | 1.6 | 删除 conventions validator 中无调用方的异常式校验 helper 与专用异常类型。 |

@@ -21,12 +21,17 @@ type LeaseStore interface {
 	// FinalizeAsyncJob applies a handler outcome. Succeeded -> succeeded;
 	// retryable -> queued (or dead at max attempts) with available_at set to the
 	// supplied backoff target; non-retryable -> failed.
-	FinalizeAsyncJob(ctx context.Context, jobID string, outcome JobOutcome, availableAt time.Time, now time.Time) error
+	FinalizeAsyncJob(ctx context.Context, jobID string, claimedAttempts int32, outcome JobOutcome, availableAt time.Time, now time.Time) error
 	// ReclaimExpiredLeases requeues running rows whose locked_at is older than
 	// olderThan. attempts is NOT incremented (lease timeout, not a business
 	// failure). Returns the number of reclaimed rows.
 	ReclaimExpiredLeases(ctx context.Context, jobTypes []string, olderThan time.Time, now time.Time) (int64, error)
 }
+
+// ErrStaleLease means the claimed async-job generation is no longer the
+// current running lease. Callers must treat it as a fenced no-op: a reaper and
+// subsequent claimant now own the row.
+var ErrStaleLease = errors.New("runner: stale async job lease")
 
 // SQLStore is the Postgres-backed LeaseStore. Column names follow the B4
 // baseline (locked_at / attempts / max_attempts / available_at / status) and
@@ -106,15 +111,18 @@ returning id, job_type, resource_type, resource_id, payload, attempts, max_attem
 // FinalizeAsyncJob persists a handler outcome. The retryable terminal split
 // (dead at attempts >= max_attempts, queued otherwise) is enforced in SQL so it
 // stays atomic with the row read.
-func (s *SQLStore) FinalizeAsyncJob(ctx context.Context, jobID string, outcome JobOutcome, availableAt time.Time, now time.Time) error {
+func (s *SQLStore) FinalizeAsyncJob(ctx context.Context, jobID string, claimedAttempts int32, outcome JobOutcome, availableAt time.Time, now time.Time) error {
 	if err := s.checkDB(); err != nil {
 		return err
 	}
 	if jobID == "" {
 		return fmt.Errorf("FinalizeAsyncJob requires jobID")
 	}
+	if claimedAttempts < 1 {
+		return fmt.Errorf("FinalizeAsyncJob requires positive claimedAttempts")
+	}
 	if outcome.Succeeded {
-		_, err := s.db.ExecContext(ctx, `
+		res, err := s.db.ExecContext(ctx, `
 update async_jobs
 set status = 'succeeded',
     completed_at = $1,
@@ -122,35 +130,40 @@ set status = 'succeeded',
     locked_at = null,
     error_code = null,
     error_message = null
-where id = $2`, now, jobID)
+where id = $2
+  and status = 'running'
+  and attempts = $3`, now, jobID, claimedAttempts)
 		if err != nil {
 			return fmt.Errorf("finalize async_jobs succeeded: %w", err)
 		}
-		return nil
+		return requireCurrentLeaseRow(res, jobID, claimedAttempts)
 	}
 	if outcome.Retryable {
-		_, err := s.db.ExecContext(ctx, `
+		res, err := s.db.ExecContext(ctx, `
 update async_jobs
 set status = case when attempts >= max_attempts then 'dead' else 'queued' end,
     completed_at = case when attempts >= max_attempts then $1::timestamptz else null end,
-    available_at = $2,
+    available_at = case when attempts >= max_attempts then available_at else $2 end,
     updated_at = $1,
     locked_at = null,
     error_code = $3,
     error_message = $4
-where id = $5`,
+where id = $5
+  and status = 'running'
+  and attempts = $6`,
 			now,
 			availableAt,
 			outcome.ErrorCode,
 			nullableString(outcome.ErrorMessage),
 			jobID,
+			claimedAttempts,
 		)
 		if err != nil {
 			return fmt.Errorf("finalize async_jobs retryable: %w", err)
 		}
-		return nil
+		return requireCurrentLeaseRow(res, jobID, claimedAttempts)
 	}
-	_, err := s.db.ExecContext(ctx, `
+	res, err := s.db.ExecContext(ctx, `
 update async_jobs
 set status = 'failed',
     completed_at = $1,
@@ -158,14 +171,28 @@ set status = 'failed',
     locked_at = null,
     error_code = $2,
     error_message = $3
-where id = $4`,
+where id = $4
+  and status = 'running'
+  and attempts = $5`,
 		now,
 		outcome.ErrorCode,
 		nullableString(outcome.ErrorMessage),
 		jobID,
+		claimedAttempts,
 	)
 	if err != nil {
 		return fmt.Errorf("finalize async_jobs failed: %w", err)
+	}
+	return requireCurrentLeaseRow(res, jobID, claimedAttempts)
+}
+
+func requireCurrentLeaseRow(res sql.Result, jobID string, claimedAttempts int32) error {
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("finalize async_jobs rows affected: %w", err)
+	}
+	if rows != 1 {
+		return fmt.Errorf("%w: job_id=%s claimed_attempts=%d", ErrStaleLease, jobID, claimedAttempts)
 	}
 	return nil
 }

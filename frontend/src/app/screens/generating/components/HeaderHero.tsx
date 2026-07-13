@@ -6,7 +6,7 @@ import { useI18n } from "../../../i18n/messages";
  * Source-level mirror of ui-design/src/screens-p0-complete.jsx
  * lines 323-331 (eyebrow + serif headline + sub line).
  */
-export const HeaderHero: FC = () => {
+export const HeaderHero: FC<{ status: "queued" | "generating" }> = ({ status }) => {
   const { t } = useI18n();
   return (
     <div>
@@ -19,7 +19,7 @@ export const HeaderHero: FC = () => {
           letterSpacing: "0.1em",
         }}
       >
-        {t("generating.header.eyebrow")}
+        {t(status === "queued" ? "generating.status.queued" : "generating.status.generating")}
       </div>
       <h1
         className="ei-serif"
@@ -28,7 +28,7 @@ export const HeaderHero: FC = () => {
           fontSize: 34,
           margin: 0,
           color: "var(--ei-color-fg-primary)",
-          letterSpacing: 0,
+          letterSpacing: "-0.02em",
           lineHeight: 1.2,
           marginBottom: 10,
         }}
@@ -40,9 +40,8 @@ export const HeaderHero: FC = () => {
         style={{
           fontSize: 14,
           color: "var(--ei-color-fg-tertiary)",
-          marginBottom: 32,
-          lineHeight: 1.5,
-          maxWidth: 540,
+          lineHeight: 1.65,
+          maxWidth: 600,
         }}
       >
         {t("generating.header.subtitle")}

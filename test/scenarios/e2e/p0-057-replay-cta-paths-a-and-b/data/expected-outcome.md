@@ -1,7 +1,9 @@
 # Expected outcome
 
-- Path A: `createPracticePlan` receives `goal=retry_current_round` and the source report; `startPracticeSession` creates a fresh session; navigation goes directly to `practice`. The payload carries competency focus codes and evidence gaps.
-- Path B: `createPracticePlan` receives `goal=next_round`; the immediate structured successor supplies `roundId` and `timeBudgetMinutes`; a fresh session starts and navigation goes directly to `practice`.
-- Final/single/empty/unknown/loading/failure and duplicate-derived-ID state keeps next-round disabled. Either in-flight CTA disables both buttons, and repeated clicks create at most one plan/session.
-- A signed-out report route enters `auth_login` before report data or CTA side effects run. The standalone `replay_practice` pending-action round trip preserves `route=report` and the original safe params.
-- No raw answer / question / hint text appears in nav payload, console.log, or route params.
+- Replay sends exactly `{goal: "retry_current_round", sourceReportId}` for both empty generic and valid non-empty issue-backed report focus; no client focus/evidence/identity/settings field is present.
+- Next sends exactly `{goal: "next_round", sourceReportId}` when frozen `hasNextRound=true`; no `roundId`, duration or successor inference is sent by the client.
+- The client trusts the returned server-derived plan, starts one fresh session and navigates directly to Practice; it never re-reads mutable TargetJob/Resume/report context.
+- Empty focus remains a valid generic Replay. Invalid non-empty focus fails before CTA use; server-owned projection/isolation remains composed from P0.070/P0.072.
+- Terminal next-round state is accessibly disabled. Either pending CTA locks both actions and repeated clicks create at most one plan/session.
+- Signed-out entry runs no report/plan/session side effect and the pending action restores the same report route.
+- Raw conversation text, focus codes and evidence never enter request, URL, pending action or logs.

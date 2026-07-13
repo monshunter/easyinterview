@@ -1,6 +1,6 @@
 # 002 — Conversation Message Loop and Completion Checklist
 
-> **版本**: 2.4
+> **版本**: 2.6
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -47,8 +47,21 @@
 - [x] 8.3 BDD-Gate: P0.047 executes completion/replay event evidence; P0.098 proves first-to-next and final-round projection after real completion.<!-- verified: 2026-07-12 method=scenario-run both=PASS -->
 - [x] 8.4 Run focused/full backend, migration/OpenAPI, privacy, context/docs/index/diff and no-frontend-business-persistence gates.<!-- verified: 2026-07-12 evidence="completion replay+bound-resume integration; P0.098; storage negative search; make test; migration/OpenAPI/context/docs/index/diff" -->
 
+## Phase 9: Reportable completion and frozen context
+
+- [x] 9.1 RED-GREEN: sole-owner test `TestE2EP0047RejectsZeroAnswerCompletion` proves zero committed user messages or pending assistant reply returns VALIDATION_FAILED, keeps session mutable and writes no completion/report/job/outbox/idempotency success; one committed user message succeeds. (`cd backend && go test ./internal/api/practice ./internal/practice ./internal/store/practice -run '^TestE2EP0047RejectsZeroAnswerCompletion$' -count=1 -v`; real PostgreSQL)
+  <!-- verified: 2026-07-12 method=red-green+postgres evidence="RED undefined reportability contract; GREEN exact test PASS in api/practice/store packages, adjacent package suites PASS, integration TestIntegrationE2EP0047RejectsZeroAnswerCompletion PASS against version=17 Postgres with zero invalid side effects and one-answer success; marker ZERO_ANSWER_COMPLETION_REJECTED_PASS" -->
+- [x] 9.2 RED-GREEN: sole-owner tests `TestE2EP0047FreezesReportContext` and `TestE2EP0047CompletionReplayPreservesReportContext` prove successful completion atomically writes full report-context.v1 + terminal coordinate from one consistent DB view; concurrent target/resume mutation, mismatch and replay pass with no AI call. (`cd backend && go test ./internal/api/practice ./internal/practice ./internal/store/practice -run '^(TestE2EP0047FreezesReportContext|TestE2EP0047CompletionReplayPreservesReportContext)$' -count=1 -v`)
+  <!-- verified: 2026-07-12 method=red-green+postgres-v18 evidence="exact API/domain/store tests emit REPORT_CONTEXT_SNAPSHOT_PASS and REPORT_CONTEXT_REPLAY_PASS; completion uses read-write repeatable-read; a tagged Postgres advisory gate proves a concurrent TargetJob mutation blocks behind completion row locks, then report-context.v1/terminal 3:3 persists from the pre-mutation view; replay stays byte-equivalent after further TargetJob/Resume edits, mismatch writes zero side effects, and a second isolated rerun passes" -->
+- [x] 9.3 RED-GREEN: frontend Practice Finish is disabled before the first committed user message and exposes a localized accessible reason; backend remains authoritative.
+  <!-- verified: 2026-07-12 method=focused-vitest evidence="24/24 PASS across PracticeScreen, useCompletePracticeSession, target display and zh/en coverage; TestE2EP0047RejectsZeroAnswerCompletion proves opening-only and draft input do not count, native disabled + aria-describedby exposes localized reason, pending assistant reply also disables, and no completion request is sent" -->
+- [x] 9.4 BDD-Gate: P0.047 runs the three exact owner tests and writes `completion-backend-evidence.json` schema `practice-completion-evidence.v1` with `ZERO_ANSWER_COMPLETION_REJECTED_PASS`, `REPORT_CONTEXT_SNAPSHOT_PASS`, `REPORT_CONTEXT_REPLAY_PASS`; PASS requires command exit 0, exact RUN/PASS markers, no FAIL/no-test marker, zero-answer no-side-effect DB assertions and same-snapshot replay. P0.056/058 consume rather than duplicate it.
+  <!-- verified: 2026-07-12 method=scenario-run evidence="E2E.P0.047 setup/trigger/verify/cleanup PASS; exact 3-package owner command and tagged v18 PostgreSQL test pass with no FAIL/no-test; verifier alone writes schema-valid redacted artifact; cleanup leaves only completion-backend-evidence.json" -->
+
 ## 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-12 | 2.6 | 锁定 002 completion 唯一 owner、精确 P0.047 tests/markers/artifact。 |
+| 2026-07-12 | 2.5 | 要求至少一条 candidate user message 后才能 completion，并原子冻结 report-context.v1。 |
 | 2026-07-12 | 2.4 | 完成事实限定 TargetJob 绑定 resume，并增加 system policy / JSON 不可信 follow-up 上下文分层 gate。 |

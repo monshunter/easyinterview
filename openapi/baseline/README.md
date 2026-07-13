@@ -25,12 +25,19 @@ ResumeTailor, Jobs, and Privacy. It includes `DELETE /api/v1/me`
 TargetJob archive (`operationId=archiveTargetJob`), Practice session / voice
 contracts, and Auth `completeMyProfile`
 profile-completion endpoint. The
-project is still in a pre-launch P0 phase, so accepted v1.0.0 freeze
-corrections may re-freeze this file in place only when the same change updates
-`history.md` and `diff-config.yaml`.
+project is still in a pre-launch P0 phase. A `v1.0.0 pre-release correction`
+may re-freeze this file in place only when all of the following hold: explicit
+product-owner authorization, an accepted OPENAPI ADR, a merge-base old-baseline
+finding set that exactly matches the ADR, same-change spec/history/fixtures/
+codegen/consumer migration, and a final current-baseline clean diff. Editing the
+baseline first or using the resulting zero diff as authorization is forbidden.
+The preserved OPENAPI-001 merge-base audit is tracked at
+[`audits/OPENAPI-001-report-direct-semantics.json`](./audits/OPENAPI-001-report-direct-semantics.json);
+it records the old-baseline Git source and the exact 33 breaking + 3 additive
+finding set before any baseline re-freeze.
 
-If a breaking change is genuinely required, follow [the SemVer upgrade
-flow](#semver-upgrade-flow) below; never modify an existing baseline file.
+After a baseline is release-ready or published, follow [the SemVer upgrade
+flow](#semver-upgrade-flow) below and never modify that existing baseline file.
 
 ## SemVer upgrade flow
 
@@ -41,9 +48,10 @@ until that decision is recorded.
 
 | 升级类型 | 触发条件 | 是否新增 baseline 文件 | history.md / spec / ADR 要求 |
 |----------|----------|----------------------|------------------------------|
+| **v1.0.0 pre-release correction** | 未上线且未发布；product owner 明确授权；accepted ADR；所有 consumer 同批迁移 | 原地 re-freeze，但必须先保存 merge-base finding artifact | spec/history/ADR + exact finding + fixtures/codegen/consumer gates 全部必需 |
 | **v1.0.x patch** | 仅 fixture / example / 文案修订；schema 与 endpoint 集合不变 | 不强制递增；如要递增需在 PR 描述中说明动机 | 仍需 `history.md` 增量记录；不需要 ADR；spec 通常不升版 |
 | **v1.x.0 minor** | release-ready baseline 已发布后，additive 累积 ≥ 5 个新 endpoint，或显著新 tag / 新业务领域 | **必须**新增 `openapi-v1.<X>.0.yaml`；既有 baseline 保留 | `history.md` 递增 + 相关 plan 增量；不强制 ADR（仅 additive 时） |
-| **v2.0.0 major** | 任何 breaking change：删字段 / 改字段类型 / required 新增 / 删 endpoint / 删 enum 值 / 改 method / 重命名 path（除已纳入白名单的 P0 例外） | **必须**新增 `openapi-v2.0.0.yaml` | `history.md` 递增 + spec 修订 + **必须**有 `状态: accepted` 的 ADR（[OPENAPI-NNN-...](../../docs/spec/openapi-v1-contract/decisions/TEMPLATE.md)） |
+| **v2.0.0 major** | release-ready/published baseline 后的任何 breaking change：删字段 / 改字段类型 / required 新增 / 删 endpoint / 删 enum 值 / 改 method / 重命名 path（除已纳入白名单的 P0 例外） | **必须**新增 `openapi-v2.0.0.yaml` | `history.md` 递增 + spec 修订 + **必须**有 `状态: accepted` 的 ADR（[OPENAPI-NNN-...](../../docs/spec/openapi-v1-contract/decisions/TEMPLATE.md)） |
 
 阈值校准触发条件：每次实际触发 minor / major 时，spec §3.2 owner 把当时的执行
 理由回填到 §3.2，并在本 README 调整阈值默认值（如有调整）。

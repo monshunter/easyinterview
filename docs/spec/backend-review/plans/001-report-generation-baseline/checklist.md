@@ -1,31 +1,86 @@
-# 001 — Conversation-level Report Generation Checklist
+# 001 — Grounded Conversation Report Generation Checklist
 
-> **版本**: 2.1
+> **版本**: 2.18
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
 
-## Phase 1: Contract/prompt
-- [x] 1.1 RED-GREEN: replace QuestionAssessment/retryFocusTurnIds with DimensionAssessment/retryFocusCompetencyCodes across OpenAPI/fixtures/generated types.
-- [x] 1.2 RED-GREEN: remove question_assessments/report.question_assessment and update report.generate prompt/rubric/schema/evals/seeds.
+## Phase 1-5: Conversation-level baseline（历史已完成）
 
-## Phase 2: Generate/store
-- [x] 2.1 RED-GREEN: load ordered practice_messages and generate/persist session-level report.
-- [x] 2.2 RED-GREEN: readiness/dimension validation and AI retry/failure matrix pass.
-- [x] 2.3 BDD-Gate: P0.056/P0.058/P0.099 pass for generate/failure/real integration.
+- [x] 1-4 Conversation-level contract/generate/read/replay/privacy baseline completed.
+- [x] 5.1-5.3 Candidate numeric score boundary remediation completed; Phase 6-8 now supersede the hidden score design.
 
-## Phase 3: Read/replay
-- [x] 3.1 RED-GREEN: queued/generating/ready/failed get/list mappings use new shape.
-- [x] 3.2 RED-GREEN: retry plan uses competency codes and no turn IDs.
-- [x] 3.3 BDD-Gate: P0.056/P0.057/P0.058 pass for read/retry states.
+## Phase 6: Frozen context and direct contract
 
-## Phase 4: Privacy/closeout
-- [x] 4.1 RED-GREEN: isolation/redaction/current-scope negative tests pass.
-- [x] 4.2 Substitute gate: focused isolation/redaction/current-scope negative tests pass.
-- [x] 4.3 Run focused/full backend, prompt/eval, migration/codegen/fixture/docs/diff gates.
+- [x] 6.1 DEPENDENCY-GATE: B1/001 emits `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS`; B2/003 accepts ADR/snapshots merge-base; 001 edits proposed OpenAPI while old baseline stays frozen, including frozen context/hasNextRound and typed-object closed baseline-vs-derived constraints; 003 exact-audits 33 breaking + 3 additive findings; only then 001/002 regenerate direct-report fixtures/Go/TS. Do not re-freeze baseline in Phase 6. (`make lint-openapi`; base-ref ADR audit; `make validate-fixtures`; `make codegen-check`)
+  <!-- verified: 2026-07-12 method=owner-handoff+independent-rerun evidence="B1 error/type tests and OpenAPI generator tests PASS; 37 fixtures validate; tracked audit exact set=36 with 33 breaking+3 additive/errors=0 and one additive REPORT_CONTEXT_TOO_LARGE; old baseline worktree diff=0; Go/TS FeedbackReport are direct typed objects" -->
+- [x] 6.2 OWNER-HANDOFF + RED-GREEN: consume B4/001 `REPORT_STORAGE_V18_PASS` and backend-practice/002 `practice-completion-evidence.v1` with all three owner markers; review code only loads frozen context/terminal messages, rejects missing/mismatched coordinate or mutable-entity fallback, and reports API projects exact immutable fields. (`cd backend && go test ./internal/review ./internal/store/review ./internal/api/reports -run 'Context|Frozen|Projection' -count=1`; no practice package in this owner gate)
+  <!-- verified: 2026-07-12 method=owner-artifact+red-green+focused-full evidence="REPORT_STORAGE_V18_PASS; practice-completion-evidence.v1 result=PASS with ZERO_ANSWER_COMPLETION_REJECTED_PASS, REPORT_CONTEXT_SNAPSHOT_PASS, REPORT_CONTEXT_REPLAY_PASS; frozen load rejects row/language/count/last-seq/role/order drift and never joins mutable context; queued/generating/ready/failed API context projection, ready lossless fields, anchor stripping and cross-user 404 tests PASS; focused and full review/store/api package tests PASS" -->
+- [x] 6.3 OWNER-HANDOFF + RED-GREEN: consume F3/002 Phase 14 `REPORT_PROMPT_V020_PASS`; report prompt isolates trusted policy from untrusted context and actual v0.2.0 PromptResolution/AICallMeta provenance is persisted, not hardcoded. (`go test ./backend/internal/review ./backend/internal/store/review -count=1`; `make lint-prompts`)
+  <!-- verified: 2026-07-12 evidence="000019 activates prompt/rubric v0.2.0 with v0.1 rollback preserved; BuildReportPromptMessages keeps trusted system policy separate from untrusted context; service/store tests persist exact PromptResolution/AICallMeta coordinates and reject seven missing provenance fields instead of writing fallbacks; lint-prompts and focused packages PASS" -->
+- [x] 6.4 FIXTURE-GATE RED-GREEN: commit synthetic exact 48,000/48,001-byte final framed input fixtures, current-schema worst-case zh/en output fixtures and a manifest with deterministic serializer command, byte counts and SHA-256 values under `backend/internal/review/testdata/report-boundary/`; byte/hash/schema drift fails and the focused fixture test emits `REPORT_BOUNDARY_FIXTURES_READY` for A3. No provider call occurs in this fixture gate.
+  <!-- verified: 2026-07-12 evidence="report-boundary manifest reconstructs exact 48000/48001-byte framed inputs and current zh/en output fixtures with stable SHA-256; focused fixture test emits REPORT_BOUNDARY_FIXTURES_READY without a provider call" -->
+- [x] 6.5 OWNER-HANDOFF + RED-GREEN: consume A3/003 `REPORT_PROFILE_6144_PASS`; review owns the final UTF-8 prompt boundary where exactly 48,000 bytes calls provider unchanged and +1 byte persists terminal `REPORT_CONTEXT_TOO_LARGE` with zero provider/repair. Do not close context capacity or output budget from a YAML grep or TPM arithmetic. (byte-boundary/service tests + executable A3 marker)
+  <!-- verified: 2026-07-12 evidence="A3 real-provider smoke records stop with exact framed input 7050/1710 tokens and zh/en probes below the 1M window; review boundary tests pass 48000 unchanged and 48001 terminal failure with zero provider/repair" -->
 
-## Phase 5: Review remediation
-- [x] 5.1 RED-GREEN: report prompt/output schema declare candidate score range `1.0-5.0` and distinguish it from evaluator rubric thresholds. (`python3 -m pytest scripts/lint/practice_conversation_contract_test.py -q -k candidate_score`; `python3 -m pytest scripts/lint/prompt_lint_test.py -q -k numeric_schema_bounds`; `make lint-prompts`)
-- [x] 5.2 RED-GREEN: runtime rejects missing, duplicate or out-of-range dimension scores before readiness/persistence and maps valid boundaries deterministically. (`go test ./backend/internal/review -count=1`)
-- [x] 5.3 BDD-Gate: P0.056 and P0.058 valid-report and invalid-output scenarios pass. (serial `setup.sh` → `trigger.sh` → `verify.sh` → `cleanup.sh`, both PASS)
+## Phase 7: Direct semantics, grounding and repair
+
+- [x] 7.1 RED-GREEN: `report.generate` schema directly emits final preparedness/dimensions/evidence/actions/report-local focus, uses code+label and strict action enum, and no runtime evaluator-rubric/candidate numeric-score path remains. (`python3 -m pytest scripts/lint/prompt_lint_test.py scripts/lint/practice_conversation_contract_test.py -q`; `make lint-prompts`)
+  <!-- verified: 2026-07-12 evidence="v0.2 prompt/schema, runtime decoder, OpenAPI/generated types and fixtures use direct semantic fields; prompt/conversation contract lints and lint-prompts PASS; active numeric-score path negative search PASS" -->
+- [x] 7.2 VALIDATOR-FOUNDATION: language-bound detection结构与其它invariants已证明；旧14/40结果仅为历史证据，本项不证明当前200/24/64或18/52合同实现。
+  <!-- verified: 2026-07-13 commands="cd backend && go test ./internal/review -count=1" result="exact empty exceptions, complete ascending focus set, subset/superset, I>=2 empty, action uniqueness/readiness and boundary tests PASS" -->
+- [x] 7.3 HISTORICAL-SUPERSEDED: existing CAS/crash/replay tests recorded the former durable-attempt design；they do not prove or constrain the current action-local retry contract.
+  <!-- verified: 2026-07-12 evidence="focused/unit/Postgres tests established durable reservation and infra/content failure separation; superseded retry limits are excluded from current acceptance" -->
+- [x] 7.3a HISTORICAL-SUPERSEDED: product generation persisted max4 attempts/report and reused runner backoff; this checked evidence is retained only as the former contract and is superseded by Phase 9.
+- [x] 7.3b HISTORICAL-SUPERSEDED: completion enqueue explicitly set `report_generate.max_attempts=4` as a product ceiling; this is no longer current.
+- [x] 7.3c HISTORICAL-SUPERSEDED (reservation only): lease fencing was coupled to pre-call `llm_attempt_count` reservation. Result/failure side-effect fencing remains a current invariant, but the reservation/count portion is superseded by Phase 9.
+- [x] 7.4 RED-GREEN + REGRESSION-GATE: persistence/API read returns summary/context/model-owned fields losslessly while stripping internal anchors. Active runtime/generated/OpenAPI/fixtures/scenarios have zero positive `dimension_scores|dimensionScores|retry_round|retryFocusCompetencyCodes|retry_focus_competency_codes|focusCompetencyCodes|focus_competency_codes|retryFocusTurnIds|retry_focus_turn_ids|questionAssessments|question_assessments|DimensionResult`; only history/migration/explicit negative fixtures are allowlisted, and this owner alone emits `REPORT_REVIEW_LEGACY_IDENTIFIER_NEGATIVE_PASS`. (`go test ./backend/internal/review ./backend/internal/store/review ./backend/internal/api/reports -count=1`; scoped negative search)
+  <!-- verified: 2026-07-12 evidence="lossless store/read/API and anchor-redaction tests PASS; executable legacy scanner covers report runtime, generated Go/TS/OpenAPI, fixtures and P0.056/058/070/072/099/100 surfaces with only two explicit negative allowlists and zero positive occurrences" -->
+- [x] 7.5 BACKEND-EVIDENCE-GATE: after 7.4, P0.056 consumes the P0.047 owner artifact and runs `cd backend && go test ./internal/review ./internal/store/review ./internal/api/reports -run '^TestE2EP0056ReportBackendEvidence$' -count=1 -v`; the exact Go test emits log/DB markers `REPORT_COMPLETION_OWNER_EVIDENCE_CONSUMED_PASS`, `REPORT_DIRECT_READY_PASS`, `REPORT_FROZEN_CONTEXT_READ_PASS`, `REPORT_REVIEW_LEGACY_IDENTIFIER_NEGATIVE_PASS`, while the registry-owned P0.056 `verify.sh` is the sole writer of `.test-output/e2e/p0-056-generating-to-report-happy-path/backend-evidence.json` schema `report-backend-evidence.v1`. Frontend-only Vitest cannot satisfy this item.
+  <!-- verified: 2026-07-12 evidence="P0.056 exact backend test, frontend markers, owner-artifact consumption and sole-writer redacted backend-evidence validator all PASS; verify and cleanup exit 0" -->
+- [x] 7.6 HISTORICAL-SUPERSEDED BDD-Gate: P0.058 v2 durable/backoff artifact passed under the former contract; it cannot satisfy the current Phase 9 gate.
+
+## Phase 8: Server-owned replay focus and reliability closeout
+
+- [x] 8.1 OWNER-HANDOFF: backend-practice/004 Phase 3 emits `REPORT_GENERIC_RETRY_PASS`, `REPORT_DERIVED_FOCUS_PASS`, `REPORT_DERIVED_ISOLATION_PASS`, `REPORT_DERIVED_LEGACY_IDENTIFIER_NEGATIVE_PASS` for generic empty-focus retry, issue-backed non-empty projection, next successor/empty focus, server-derived settings/identity and exact IK replay; backend-review does not duplicate its checklist.
+  <!-- verified: 2026-07-12 evidence="P0.070 real-Postgres v19 passes generic retry, issue-backed focus, next-round empty focus, server-derived settings/identity and idempotency; P0.072 passes missing/cross-user/non-ready/mismatch/unsupported/duplicate/privacy negatives" -->
+- [x] 8.2 OWNER-HANDOFF: F3/004 Phase 8 re-emits current `REPORT_RUBRIC_V020_PASS` / `REPORT_CONTEXT_AWARE_EVAL_PASS` after final24/64、18/52、generic-replay rubric fixes；5 distinct report cases, exact focus decision table and action-support negatives pass。Historical markers below did not close the handoff at the time。(`make eval-offline-resolve`; `make eval-offline`)
+  <!-- historical: 2026-07-13 evidence="F3/004 prior execution established same-source completion schema and baseline judge wiring; superseded retry limits were excluded from current acceptance" -->
+  <!-- verified: 2026-07-13 commands="make lint-prompts; make eval-offline-resolve; make eval-offline" result="prompt lint clean; resolved prompt single-source clean; exact 28 offline cases and Promptfoo 28/28 PASS" markers="REPORT_RUBRIC_V020_PASS REPORT_CONTEXT_AWARE_EVAL_PASS" -->
+- [x] 8.3 RED-GREEN + PRODUCT-LIVE-GATE: evalkit generation/judge budgets are independent max4 counters；generation mirrors dynamic scope/full validation and aggregates usage/latency；judge retries only provider-retryable or protocol/schema invalid，while valid unsupported/causal/zero-tolerance/critical negative is typed terminal rejection。All emitted final outputs must pass the mechanical contract；fixed five semantic categories require at least4/5。The stricter P0.100 diagnostic still requires11/11+blind review and may remain FAIL。
+  <!-- verified: 2026-07-13 run="e2e-p0-100-20260713T101214Z-59381" evidence="mechanical9/9; semantic8/9; fixed categories4/5; ninth unsupported summary terminal; strict runner FAIL and blind review skipped" -->
+  - [x] Static/offline RED-GREEN enforces exact focus and type-specific action-support contracts；at the time this left the real P0.100 matrix open，whose then-current strict form was later closed by historical run35103.
+    <!-- verified: 2026-07-13 red="real judge exposed both the universal review_evidence contradiction and an umbrella-only focused retry that received a high score" green="prompt/judge contracts require type-specific support, per-focus directly cited behavior and reject umbrella-only labels; static rerun evidence belongs to F3/004" historical-then-current-pass="e2e-p0-100-20260713T034811Z-35103" -->
+  - [x] GENERIC-REPLAY-RUBRIC-RED-GREEN: run `36625` exposed the exact generic replay contradiction and the focused retest passes weighted0.82/min0.70 with zero violations；historical run35103 later closed its then-current strict matrix, while final evidence is run59381。
+  - [x] FULL-VALIDATOR-HANDOFF: preserve run `80338` as the historical incompatible readiness/action escape；run35103 is historical strict evidence, while final run59381 independently passed full validation for all nine emitted outputs。
+    <!-- verified: 2026-07-13 run="e2e-p0-100-20260713T101214Z-59381" evidence="all nine emitted final outputs passed full validation before judge" -->
+  - [x] CONTENT-JUDGE-FOCUSED-REGRESSIONS: run59906 maps every summary clause to candidate evidence and run75753 treats the exact generic empty-focus exception as supported；both focused regressions and historical run35103 remain attributed to their exact inputs, not promoted over final run59381。
+  - [x] CONTRACT-RESTART: preserve `25849` as aborted/not-PASS and `35103` as strict PASS only for its exact historical prompt；neither is current final-prompt evidence。
+  - [x] L2-RESTART: preserve `35622` as aborted/not-PASS；current job/fencing/polling evidence comes from focused gates and P0.058, not from promoting a historical content run。
+- [x] 8.4 RED-GREEN: P0.099/P0.100 state/evidence artifacts contain no session cookie or raw sensitive context and preserve only the redacted audit table; P0.100 pre-judge structural failure diagnostics retain only bounded issue/needs-work/action/focus/token counts, focus mode and digests. (`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q`; scenario verify)
+  <!-- verified: 2026-07-13 evidence="P0.099 and P0.100 current manifests are redacted and record no cookie/raw context/raw output/secret; scenario privacy tests 38/38 and scenario script tests 9/9 PASS" -->
+- [x] 8.5 BDD-Gate: registry-owned P0.070/P0.072 compose backend server-owned focus markers; P0.099/P0.100 compose real-provider DB/API/audit/screenshot markers. backend-review supplies evidence but does not claim duplicate scenario ownership.
+  <!-- verified: 2026-07-13 evidence="P0.099 run12381 strict scenario PASS；P0.100 run59381 product acceptance met while strict scenario FAIL remains redacted and visible" -->
+- [x] 8.5a HISTORICAL-SUPERSEDED (product durability only): E2E.P0.100 previously composed product durable/crash-cap evidence; its evalkit generation/judge max4 content-quality evidence remains historical regression input, not current product-retry proof.
+
+## Phase 9: Action-local retry contract refresh
+
+- [x] 9.1 RED-GREEN: `GenerateReport` owns a local invocation counter and injected context-aware waiter; initial+up to3 retries wait exactly10s/20s/40s, retry provider/protocol and invalid-output paths, honor cancellation, dynamically scope repair and fully revalidate every round.
+  <!-- verified: 2026-07-13 method=go-test+scenario evidence="backend full/race PASS; P0.058 v3 records firstActionCallCount=4 and waits10/20/40" -->
+- [x] 9.2 RED-GREEN: returning from an invocation destroys its retry context; a second independent invocation starts at attempt1 even when the prior action exhausted four calls. Do not assert a process crash/replay global cap.
+  <!-- verified: 2026-07-13 method=scenario evidence="P0.058 v3 records retryStateDestroyedAfterAction=true and secondActionInitialAttempt=1" -->
+- [x] 9.3 STORAGE/NEGATIVE-GATE: remove `feedback_reports.llm_attempt_count`, `TryConsume*`/pre-call reservation and report product max_attempts4 coupling from migration/store/runtime/tests; runner attempts/max_attempts remain infrastructure-only.
+  <!-- verified: 2026-07-13 method=migration+integration evidence="no llm_attempt_count remains; dev PostgreSQL report producer uses generic infrastructure max_attempts=5" -->
+- [x] 9.4 LEASE-FENCE: preserve `jobID + claimed AsyncJob.Attempts` fencing for ready/failure/outbox/audit/job persistence so stale workers have zero domain side effects, without reserving or incrementing product retry state.
+  <!-- verified: 2026-07-13 method=go-test+race evidence="review/store/runner/practice fencing regressions PASS" -->
+- [x] 9.5 BDD-Gate: P0.058 exact test/registry verifier emits `report-backend-evidence.v3` with six current markers and separate `database`/`runtime` facts; exact RUN/PASS, no FAIL/no-test/raw content and frontend composition remain mandatory.
+  <!-- verified: 2026-07-13 method=scenario evidence="P0.058 setup-trigger-verify-cleanup PASS; v3 six markers; seven frontend files/51 tests PASS" -->
+- [x] 9.6 P0.100 wording composes action-local product retry only; evalkit generation/judge retain independent max4 counters. It must not claim report-lifetime durable budget, runner-owned waits or report job max_attempts4.
+  <!-- verified: 2026-07-13 method=scenario-composition evidence="P0.058 v3 owns product retry; final P0.100 run59381 demonstrates typed terminal negative with no resampling" -->
+- [x] 9.7 Run focused/full Go/race/PostgreSQL gates, P0.058, both owner contexts, docs/index and diff checks before restoring completed state.
+  <!-- verified: 2026-07-13 evidence="make test PASS (Python 536 + 4517 subtests, all Go packages, frontend 112 files/795 tests); focused race suites and PostgreSQL report tests PASS; E2E.P0.058 PASS; backend-review/prompt/e2e contexts valid; docs zero drift and git diff --check clean" -->
+- [x] 8.6 UX-AUDIT: P0.099 current-run rows bind canonical digests；desktop+390 prove legal24/64 complete wrapping，over-limit typed invalid/no raw。200 fuse and18/52 repair margin cannot satisfy UX gate。
+  <!-- verified: 2026-07-13 run="e2e-p0-099-20260713T095144Z-12381" evidence="exact six full-page desktop/mobile images across two ready states plus generating; DB/API canonical digests and manual content audit bound; raw-debug absent; trigger+verify PASS" -->
+- [x] 8.7 After every backend/frontend/scenario consumer passes, complete OpenAPI 003 Phase 5.4 baseline re-freeze; require preserved old-baseline audit plus clean current `make openapi-diff`, then run all focused/full backend, migration, OpenAPI/codegen/fixtures, prompt/eval, privacy/negative, docs/index and diff gates.
+  <!-- verified: 2026-07-13 evidence="preserved OPENAPI-001 old-baseline audit; current OpenAPI 37 operations/37 fixtures/0 findings; Prism 7/7 byte-equal; migration v19 up/down/up and lint PASS; prompt/rubric/offline eval, privacy negatives, docs/index/context/diff gates PASS" -->

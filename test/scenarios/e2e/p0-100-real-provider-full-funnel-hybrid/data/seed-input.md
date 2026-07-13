@@ -1,25 +1,17 @@
-# E2E.P0.100 Seed Input
+# E2E.P0.100 Registered Inputs
 
-This hybrid scenario uses synthetic user-entered materials, not mock responses.
+The active Phase 8 scenario does not use the historical browser account/JD/
+resume/answer material as report-quality evidence. Its sole case source is:
 
-## Account
+```text
+config/evals/report.generate/cases.yaml
+```
 
-- Email: `manual-uat-full-funnel@example.test`
-- Local mailbox: `http://127.0.0.1:8025`
-- Auth flow: real email-code challenge through Mailpit 6-digit email code
+That registry-owned file contains exactly five synthetic redacted contexts:
+English complete grounded, Chinese partial evidence-limited, English short
+conservative generic retry with empty focus, unanswered final follow-up, and
+prompt-injection resistant. The scenario reads it only in
+memory to compute context digests; no raw context or transcript is copied into
+the scenario output.
 
-## Materials
-
-- JD: `data/jd-backend-engineer.zh.md` or `data/jd-backend-engineer.en.md`
-- Resume: `data/resume-backend-engineer.zh.md` or `data/resume-backend-engineer.en.md`
-- Practice answer: `data/answer-sample-backend-engineer.zh.md` or `data/answer-sample-backend-engineer.en.md`
-
-## Runtime Inputs
-
-Use `deploy/dev-stack/.env` as the single local real-environment file for
-shared dependencies, host-run backend, frontend real mode, and real AI provider
-adaptation. The required real secrets are:
-
-- `SESSION_COOKIE_SECRET`
-- `AUTH_CHALLENGE_TOKEN_PEPPER`
-- `AI_PROVIDER_API_KEY`
+Real provider configuration comes only from `deploy/dev-stack/.env`.

@@ -1,8 +1,8 @@
 # Provider Registry and Capability Profiles
 
-> **版本**: 1.10
+> **版本**: 1.14
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -16,7 +16,7 @@
 - `config/ai-providers.yaml` provider registry schema、loader、secret env ref 解析与 capability 校验；
 - `config/ai-profiles.yaml` 单一 profile catalog 从 `task_type` / 全局 provider 口径迁移到 `capability` / `provider_ref` 口径，并收敛为单一 catalog；
 - AIClient 中央路由与 profile fallback chain，业务代码不得自行 retry-with-different-model；
-- A4 env/config 字典、B1 shared vocabulary、F3 9 个 baseline feature_key 覆盖与 drift gate；
+- A4 env/config 字典、B1 shared vocabulary、F3 6 个 baseline feature_key 覆盖与 drift gate；
 - unsupported capability 的 fail-closed 行为，为后续 002 / C14 / F3 eval 打开 STT、realtime、judge adapter 留出安全边界。
 
 本 plan 不实现完整 STT / realtime speech / judge provider 协议；这些 adapter 仍由 [002-tools-streaming-and-stt](../002-tools-streaming-and-stt/plan.md) 或对应业务 / eval plan 激活后承接。
@@ -72,9 +72,9 @@ profile hot reload 失败时必须保持当前快照并通过 `OnWarn` 输出结
 
 #### 2.2 F3 baseline profile fixtures
 
-在 `config/ai-profiles.yaml` 的 `profiles[]` catalog 中补齐 F3 `prompt-rubric-registry` §3.1.1 的 9 个当前 feature_key 对应默认 profile 引用；其中 `resume.tailor.gap_review` 与 `resume.tailor.bullet_suggestions` 共享 `resume.tailor.default`。当前 chat profile 集合覆盖 `target.import.default`、`practice.first_question.default`、`practice.followup.default`、`practice.turn_observe.default`、`report.generate.default`、`report.assessment.default`、`resume.parse.default` 与 `resume.tailor.default`，并保留必要的 `status=disabled` / `status=unsupported` profile 表达 P1/P2 能力；不可执行 profile 必须写明 `unsupported_reason`。
+在 `config/ai-profiles.yaml` 的 `profiles[]` catalog 中覆盖 F3 `prompt-rubric-registry` §3.1.1 的 6 个当前 feature_key 对应默认 profile 引用；其中 `resume.tailor.gap_review` 与 `resume.tailor.bullet_suggestions` 共享 `resume.tailor.default`。当前 chat profile 集合覆盖 `target.import.default`、`practice.chat.default`、`report.generate.default`、`resume.parse.default` 与 `resume.tailor.default`，并保留必要的 `status=disabled` / `status=unsupported` profile 表达 P1/P2 能力；不可执行 profile 必须写明 `unsupported_reason`。
 
-同时补齐 spec §4.5 的非 F3 baseline Product/UI profiles：`target.intel.default`、`practice.voice.stt.default`、`practice.voice.tts.default`、`practice.voice.realtime.default`、`judge.default`。这些 profile 在对应 adapter / eval plan 激活前必须以 `disabled` / `unsupported` 状态存在并写明 `unsupported_reason`，不能缺 catalog entry，不能静默降级到 chat / stub。
+同时补齐 spec §4.5 的非 F3 baseline Product/UI profiles：`target.intel.default`、`practice.voice.stt.default`、`practice.voice.tts.default`、`practice.voice.realtime.default`、`judge.default`。这些 profile 在对应 adapter / eval plan 激活前必须以 `disabled` / `unsupported` 状态存在并写明 `unsupported_reason`，不能缺 catalog entry，不能静默降级到 chat / stub；`judge.default` 已由 Phase 9 按独立 judge capability/protocol 激活。
 
 #### 2.3 Product/UI capability coverage
 
@@ -162,11 +162,11 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 
 #### 6.2 DeepSeek provider baseline
 
-将 repo-tracked 开发期 provider ref 收敛为 `deepseek`，chat profile 只使用 `deepseek-v4-flash` 与 `deepseek-v4-pro`。低延迟交互、解析、轻量观察默认 Flash；报告、评估、简历改写默认 Pro。out-of-scope 模型别名必须被配置 lint 拒绝。
+将 repo-tracked 开发期 provider ref 收敛为 `deepseek`，chat profile 只使用 `deepseek-v4-flash` 与 `deepseek-v4-pro`。低延迟交互、解析、轻量观察默认 Flash；报告、评估、简历改写默认 Pro。out-of-scope 模型别名必须被配置 lint 拒绝。Phase 6 当时保留的 judge fail-closed 命名空间仅由本 plan 后续 Phase 9 激活。
 
 #### 6.3 Cross-contract drift repair
 
-同步 A3 / B1 / B3 / B4 / F3 active spec、README、lint、generated artifacts、fixtures 与 config，使当前代码、配置、迁移和文档都只暴露现阶段真实可用能力。STT / realtime / judge 仍保留 fail-closed 命名空间；DeepSeek 不承担 STT。
+同步 A3 / B1 / B3 / B4 / F3 active spec、README、lint、generated artifacts、fixtures 与 config，使当前代码、配置、迁移和文档都只暴露现阶段真实可用能力。STT / realtime 在 Phase 6 继续保留 fail-closed 命名空间；judge 只允许由 Phase 9 以独立 capability/protocol 激活；DeepSeek 不承担 STT。
 
 #### 6.4 Verification
 
@@ -178,16 +178,65 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 
 删除没有运行时消费者、仅由自测维持的 `providerregistry.SharedErrorCode` 及其断言。Provider registry/bootstrap 启动失败继续使用 `ErrProviderConfigInvalid` 与 `ErrProviderSecretMissing` 哨兵错误，通过 `errors.Is` 保持可判定性；运行时业务边界继续由各 owner 映射 B1 `AI_*` 错误，不在启动配置层保留重复映射 API。
 
+### Phase 8: report generation profile budget
+
+#### 8.1 Exact profile revision
+
+In the single `config/ai-profiles.yaml` catalog, add `report.generate.default.context_window_tokens=1000000`, change `max_tokens` from 4096 to 6144 and bump its profile version from `1.1.0` to `1.2.0`. Keep `capability=chat`, `provider_ref=deepseek`, `model=deepseek-v4-pro`, `timeout_ms=60000`, `rate_limit.tpm=60000`, route and fallback unchanged. The loader treats `context_window_tokens` as single-request input+output capacity and rejects non-positive values or values not greater than `max_tokens`; TPM stays a distinct throughput hint. Coverage tests reject 4096 regression, missing/invalid context capacity, a budget change without the version bump, or unrelated profile drift.
+
+#### 8.2 Cross-owner boundary fixtures
+
+Consume backend-review's `REPORT_BOUNDARY_FIXTURES_READY` marker and deterministic final-input fixtures at exactly 48,000 UTF-8 bytes and +1 byte, plus current-schema worst-case zh/en report JSON fixtures. A3 owns two distinct proofs:
+
+1. deterministic offline capacity: use the tokenizer-independent upper bound `input_tokens <= UTF-8 bytes`, add an explicit 2,048-token provider framing reserve, and prove `48,000 + 2,048 + 6,144 < 1,000,000 context_window_tokens`;
+2. opt-in real-provider token smoke: use AICallMeta usage for the exact framed 48,000-byte request and a token-count probe that sends each zh/en worst-case output fixture as the sole user content with minimal output, requiring reported input tokens `<=6144` and total reserved request tokens below the context window.
+
+`rate_limit.tpm=60000` is checked only as an unchanged throughput setting and never used as context-capacity evidence. Backend-review owns +1-byte terminal `REPORT_CONTEXT_TOO_LARGE`, zero provider/repair calls and report schema bounds; A3 must not duplicate those business rules.
+
+#### 8.3 Activation marker
+
+Run profile loader/coverage/config lint and focused offline capacity tests. During real-provider closeout, P0.100 must also record the redacted AICallMeta token usage/token-count probes; missing usage, `finish_reason=length`, an over-budget fixture or a capacity violation fails. Emit `REPORT_PROFILE_6144_PASS` only after the exact profile coordinate and deterministic offline proof pass; final acceptance additionally requires the live usage smoke. backend-review cannot close its provider-boundary gate from a YAML grep alone.
+
+### Phase 9: context-aware judge final-content reliability
+
+#### 9.1 RED: reproduce reasoning-only exhaustion
+
+Use the P0.100 context-aware complete-grounded case to record only redacted call metadata. The regression is exact: `judge.default` v1.1.0 returns `finish_reason=length`, input tokens 1,292, output tokens 2,048 and zero final-content bytes. Add profile and adapter tests that fail while the catalog lacks explicit non-thinking JSON parameters / 6,144 output budget, and while a reasoning-only response can escape the provider adapter as a nominal completion.
+
+#### 9.2 GREEN: non-thinking JSON and privacy-safe fail close
+
+Set only the judge profile's `default.params.thinking=disabled`, `response_format=json_object`, `max_tokens=6144` and `version=1.2.0`; keep DeepSeek Pro/provider/route/no-fallback/60s timeout/60k TPM unchanged. `judge_compatible` maps those profile params onto the official wire and rejects empty final content with `AI_OUTPUT_INVALID`, preserving only finish reason, token usage and a reasoning-presence boolean; reasoning text never enters errors/logs/artifacts.
+
+#### 9.3 LIVE-JUDGE-GATE + handoff
+
+Rebuild evalkit and run the same real complete+grade smoke with temporary raw content only. Require completion and judge `finish_reason=stop`, positive input/output usage, non-empty strict JSON, every rubric score and weighted threshold, complete item/causal verdicts, empty zero-tolerance violations and critical safety true. Emit `JUDGE_FINAL_CONTENT_V120_PASS`, then let P0.100 rerun the full five-case / 11-attempt matrix; one smoke cannot replace the scenario matrix.
+
+### Phase 10: report generation non-thinking structured output
+
+#### 10.1 RED: reproduce missing report thinking wire
+
+Add openai-compatible request contract tests that require profile `thinking=enabled|disabled` to become the official `{"thinking":{"type":"..."}}` object while an object `output_schema` independently produces `response_format=json_object`. Add loader, tracked-catalog and coverage-lint tests that reject missing/invalid `report.generate.default.default.params.thinking`; an invalid runtime profile must fail with `AI_PROVIDER_CONFIG_INVALID` before any provider request.
+
+#### 10.2 GREEN: explicit non-thinking report profile and fail close
+
+Set only `report.generate.default.default.params.thinking=disabled`, keeping its provider/model/route/fallback/capacity/output/timeout/TPM/version coordinates unchanged. Extend the openai-compatible adapter's shared Complete/Stream request builder with the official thinking object and a strict `enabled|disabled` allowlist. Keep report `response_format` out of profile params so F3's object output schema remains the only JSON-mode trigger.
+
+#### 10.3 Verification and handoff
+
+Run focused provider/profile tests, race tests, complete profile coverage tests, the tracked lint, owner context/index/docs gates and `git diff --check`. The final P0.100 real-provider rerun must observe non-empty report JSON under the current profile; no test or documentation result may substitute for that live scenario gate.
+
 ## 5 验收标准
 
 - Provider registry schema、loader、secret env ref 解析与热加载已落地，负向 fixtures 覆盖重复 provider、未知 protocol、capability mismatch、网络出站 provider secret 缺失与 fallback 超限；`stub` provider 不需要伪造 secret。
-- Model Profile schema 已迁移到 `capability` / `provider_ref` / `status`；repo-tracked active profiles 只使用 current schema keys；F3 9 个 baseline feature_key 的默认 profile 引用与 spec §4.5 Product/UI fail-closed profiles 均存在，且 `disabled` / `unsupported` profile 带 `unsupported_reason`。
+- Model Profile schema 已迁移到 `capability` / `provider_ref` / `status`；repo-tracked active profiles 只使用 current schema keys；F3 6 个 baseline feature_key 的默认 profile 引用与 spec §4.5 Product/UI fail-closed profiles 均存在，且 `disabled` / `unsupported` profile 带 `unsupported_reason`。
 - Repo-tracked Model Profile active truth source 已收敛为单一 `config/ai-profiles.yaml`；loader、coverage lint、bootstrap、A4 env/config 默认值和 README 均使用 catalog 文件路径，active scope 不再引用 per-profile YAML files。
 - AIClient 路由与 fallback 由 A3 中央执行；业务代码没有 retry-with-different-model 循环；fallback meta / metric / log 完整。
 - Unsupported capability fail-closed；STT / realtime / judge 在 adapter 激活前不会静默降级，并通过 B1-owned `AI_UNSUPPORTED_CAPABILITY` 或同义 approved `AI_*` code 对外表达。
 - 当前 active scope 不含向量化 / 重排代码与基础设施；chat profiles 全部指向 `deepseek` provider ref 且模型 ID 只使用 `deepseek-v4-flash` / `deepseek-v4-pro`。
 - A4 env/config 字典、B1 shared vocabulary、F3 + Product/UI profile coverage lint、A3 docs/README/fixtures 全部同步。
 - 隐私红线与零厂商 SDK 红线保持；全局 gate 与 context validation 通过。
+- `report.generate.default` 精确使用 context_window_tokens 1000000 / max_tokens 6144 / timeout 60000 / tpm 60000 / version 1.2.0 / thinking disabled；openai-compatible wire 使用官方 thinking object，非法值请求前失败，object output schema 继续驱动 JSON response format；48,000-byte input、2,048 framing reserve 与 current zh/en worst-case outputs 通过 offline capacity gate，最终 P0.100 还通过 actual usage token smoke。
+- `judge.default` 精确使用 non-thinking JSON / max tokens 6144 / timeout 60000 / tpm 60000 / version 1.2.0；reasoning-only 响应在 adapter 内脱敏 fail-closed，真实 complete+judge smoke 以 stop / 非空 JSON / 正 usage 通过，最终 P0.100 仍需全矩阵通过。
 
 ## 6 风险与应对
 
@@ -200,6 +249,7 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 | F3 新增 feature_key 或 Product/UI 新增 AI 场景但 A3 profile catalog 未跟进 | Phase 2.3 / 4.3 profile coverage lint 拦截；新增 AI 场景必须同步 spec §4.5、F3 字典与 profile catalog |
 | A4 env 字典与 A3 registry schema 漂移 | Phase 4.1 将 env/config 字典、bindings、validator 与 lint-config 作为同一阶段交付 |
 | 单一 catalog 文件变大导致未来多人冲突 | 当前 17 个 profile 规模优先降低文件碎片；若未来 profile 数量或 owner 并发显著增加，再由 A3/F3 plan 显式重新评估目录型 catalog |
+| Judge 默认 thinking 先耗尽 max tokens，final content 为空 | profile 显式关闭 thinking 并提高 final JSON budget；adapter 不使用或泄漏 reasoning，真实 smoke/P0.100 均要求 stop + 非空 final JSON |
 
 ## 7 Owner Handoff
 
@@ -211,6 +261,10 @@ F3 Resolve 字典中的默认 `model_profile_name` 与 spec §4.5 Product/UI AI 
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-13 | 1.14 | Add Phase 10 for report generation non-thinking structured output: official openai-compatible thinking wire, loader/adapter/lint fail-close, and output-schema-owned JSON mode. | backend-review/001 + P0.100 |
+| 2026-07-12 | 1.13 | Add Phase 9 for DeepSeek default-thinking exhaustion: non-thinking JSON judge profile, 6,144 final budget, privacy-safe reasoning-only failure and real stop smoke. | F3/004 + P0.100 |
+| 2026-07-12 | 1.12 | Separate 1M single-request context capacity from 60k TPM; consume review-owned boundary fixtures and require offline framing reserve plus live provider usage/token-count proof. | backend-review/001 + P0.100 |
+| 2026-07-12 | 1.11 | Reopen Phase 8 for report.generate.default 4096→6144 and executable input/output budget boundaries. | backend-review/001 |
 | 2026-07-10 | 1.10 | 删除仅由测试自证的 provider 启动错误码映射层，保留哨兵错误合同。 | tech-debt pruning |
 | 2026-07-10 | 1.9 | 统一 schema、model alias 与 profile directory 的 out-of-scope 术语，修正 completed-state 表述并对齐 checklist 版本。 | tech-debt pruning |
 | 2026-07-10 | 1.8 | 将 Product/UI capability 描述收敛为 fail-closed profile，并对齐当前电话模式术语。 | tech-debt pruning |

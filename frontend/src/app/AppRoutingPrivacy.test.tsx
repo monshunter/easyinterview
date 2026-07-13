@@ -148,7 +148,7 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
     expect(window.location.search).toBe("");
   });
 
-  it("navigate(report) with reportStatus + raw markers keeps handoff keys but drops raw markers", async () => {
+  it("navigate(report) keeps only reportId and drops route-selected state plus raw markers", async () => {
     render(
       <App>
         <NavTrigger
@@ -168,11 +168,12 @@ describe("Plan 004 Phase 3.2 — URL / privacy redline", () => {
     );
     const user = userEvent.setup();
     await user.click(screen.getByTestId("go-report-raw"));
-    await waitFor(() => screen.getByTestId("report-failure-state"));
+    await waitFor(() => screen.getByTestId("report-dashboard-loading"));
     expectNoRawMarkerLeak();
     expect(window.location.search).toContain("reportId=rpt-1");
-    expect(window.location.search).toContain("reportStatus=failed");
-    expect(window.location.search).toContain("errorCode=AI_PROVIDER_TIMEOUT");
+    expect(window.location.search).not.toContain("sessionId=");
+    expect(window.location.search).not.toContain("reportStatus=");
+    expect(window.location.search).not.toContain("errorCode=");
   });
 
   it("navigate(jd_match) normalizes to home and drops raw query/label (D-17)", async () => {

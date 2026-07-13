@@ -43,5 +43,6 @@ if [ "$DRY_RUN" -eq 1 ]; then
   exit 0
 fi
 
+secure_dev_stack_env
 (cd "$REPO_ROOT" && make dev-doctor)
 local_dev_summary >&2

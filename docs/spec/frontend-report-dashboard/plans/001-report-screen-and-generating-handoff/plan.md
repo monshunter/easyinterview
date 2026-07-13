@@ -1,8 +1,8 @@
-# 001 — Conversation Report Screen and Handoff
+# 001 — Honest Grounded Report Screen and Handoff
 
-> **版本**: 2.0
+> **版本**: 2.9
 > **状态**: completed
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,66 +11,130 @@
 
 ## 1 目标
 
-将 generating/report UI 原地改为 conversation-level report：三项 summary metrics、四个无 tab 内容区（dimensions/highlights/issues/next actions）与 competency-focused replay，删除 QuestionsTab、逐题 summary、hint/phone/mode context。
+在既有 conversation report UI owner 内接入 grounded direct semantic report，修复 generating 伪实时语义、raw enum、CTA 推荐优先级、长内容/mobile 可读性与假强 parity gate；保持三指标 + 四常驻区块，不增加 tab 或平行页面。
 
 ## 2 Operation Matrix
 
 | operationId | fixture | consumer | backend | persistence | AI | scenario |
 |-------------|---------|----------|---------|-------------|----|----------|
-| `getFeedbackReport` | queued/ready/failed/new shape | generating/report | backend-review | feedback_reports | read none | P0.056/P0.058 |
-| `createPracticePlan` | retry/next | replay handler | backend-practice | practice_plans | none | P0.057 |
-| `startPracticeSession` | opening message | replay handler | backend-practice | session/messages | practice.session.chat | P0.057 |
+| getFeedbackReport | `Reports/getFeedbackReport.json`: queued/generating/ready-needs-practice/ready-well-prepared/ready-empty-focus/failed/invalid-focus/long-content | generating/report; only status/context truth | reports handler/store | feedback_reports + frozen context | read none | P0.056/P0.057/P0.058/P0.059/P0.099 |
+| createPracticePlan | `PracticePlans/createPracticePlan.json`: retry/next/mismatch | replay handler; no focus input | practice handler/store | practice_plans + source report projection | none | P0.057/P0.070/P0.072 |
+| startPracticeSession | `PracticeSessions/startPracticeSession.json` | replay handler | practice handler/store | session/messages | practice.session.chat | P0.057 |
+
+## 2.1 Owner / Dependency Order
+
+| Gate | Dependency | Rule |
+|------|------------|------|
+| Phase 6 | ownership transfer recorded in `frontend/README.md` + workspace/practice spec | this plan exclusively edits prototype/formal GeneratingScreen |
+| Phase 7.1 | `backend-review/001 6.1` + OpenAPI 001/002 codegen/fixture PASS | frontend RED/GREEN uses the real generated contract, not handwritten types |
+| Phase 7.4 | `backend-practice/004 Phase 3` server-derived request/focus PASS | frontend removes all derived settings/identity/focus route authority |
+| Phase 8 | backend 6-8 + frontend 6-7 PASS | scenario owners compose named markers; this plan owns 056-059 only |
 
 ## 3 质量门禁分类
 
-- **Plan 类型**: user-visible UI + API consumer + contract migration。
-- **TDD 策略**: prototype/source tests first; formal component/hook tests then consume generated session-level report.
-- **BDD 策略**: P0.056 happy generating/report, P0.057 replay/next, P0.058 failure, P0.059 parity/negative, P0.099 real screenshot.
-- **替代验证 gate**: i18n/typecheck/build/source/pixel parity/stale negative.
+- **Plan 类型**: user-visible UI + API consumer + contract migration + UX truthfulness。
+- **TDD 策略**: /implement → /tdd；先修改 prototype/source tests，再以 component/hook/i18n/request negative/Playwright parity tests 建立 RED，最后迁移正式 frontend。
+- **BDD 策略**: 原地加强 P0.056 happy report、P0.057 replay/next、P0.058 failure、P0.059 parity/negative、P0.099 real full-stack screenshots；P0.070/P0.072 验证服务端 focus。
+- **替代验证 gate**: source traceability、i18n exact set、typecheck/build、computed-style/bbox/screenshot difference 与 full-page visual artifacts 补充 BDD。
 
 ## 4 Coverage Matrix
 
 | Source | Category | Phase | Verification | UI anchor | Negative |
 |--------|----------|-------|--------------|-----------|----------|
-| three metrics/four sections | source structure | 1-2 | prototype/formal tests | screen-report::ReportScreen | QuestionsTab |
-| generating copy | UX | 1-2 | i18n/DOM tests | ReportGeneratingScreen | 逐题/题目回顾 |
-| ready report | primary | 3 | P0.056 | dashboard | questionAssessments |
-| replay competency | primary | 4 | P0.057 | Header CTA | retryFocusTurnIds |
-| failure/missing | recovery | 3 | P0.058 | failure states | fake report |
-| geometry/screenshot | visual | 5 | P0.059/P0.099 | updated prototype | old tab/bbox |
+| spec C-1 | UX truthfulness | 6 | prototype/formal generating tests + P0.056 | screens-p0-complete::ReportGeneratingScreen | fake progress/live observation/notify |
+| spec C-2 | primary/contract | 7 | component/API fixture tests | screen-report::ReportDashboard | raw enum/code, missing summary |
+| spec C-3 | interaction | 7 | CTA variant/a11y tests + P0.057 | ReportHeader | fixed replay-primary styling |
+| spec C-4 | business truth | 7 | request negative + P0.070/P0.072 | buildReplayPayload/startPractice | URL/client focus authority |
+| spec C-5 | UX boundary | 7 | 1440/390 bbox/overflow/full-content tests | ContextStrip/DetailGrid | unrecoverable ellipsis/two-column mobile |
+| spec C-6 | source parity | 8 | formal-vs-prototype DOM/style/bbox/screenshot diff | screen-report.jsx | non-empty-buffer-only gate |
+| spec C-7 | real integration | 8 | P0.099 full-page screenshots | real ReportDashboard | cropped top-half-only evidence |
+| spec C-8 | regression | 8 | repo-wide active negative scan | report/generating/scenarios/fixtures | stale question fields/fake-live/raw enum |
+| spec C-9 | business truth | 7 | deep-link/route-tamper tests | ReportScreen/ContextStrip/CTA | route status/identity authority |
+| spec C-10 | i18n boundary | 7 | mixed UI/report language tests | chrome vs semantic content | client translation of model labels/evidence/actions |
 
 ## 5 实施步骤
 
-### Phase 1: UI truth source
-- Rewrite report prototype/data/generating copy to readiness/dimensions/evidence/next.
-- Delete perQuestion state, Questions tab/list/toggle and hint/phone context.
+### Phase 1-5: Conversation-level baseline（已交付）
 
-### Phase 2: Formal structure
-- Delete QuestionsTab and question summary/card/body paths.
-- Use three summary metrics and four always-visible content sections; simplify ContextStrip.
-- Update i18n/a11y/responsive geometry.
+既有 prototype/formal data states、replay/next 与基础 parity 保留为历史；Phase 6 起修订真实性和 direct semantic contract。
 
-### Phase 3: Data states
-- Consume dimensionAssessments/retryFocusCompetencyCodes.
-- Cover queued/generating/ready/failed/notFound/missing/empty evidence.
+### Phase 6: UI truth source and honest generating
 
-### Phase 4: Replay/next
-- Retry plan uses competency codes; next round uses stable round context.
-- Fresh session opens conversation with assistant message.
+#### 6.1 Reconcile report truth sources
 
-### Phase 5: Parity and real scenario
-- Full frontend/source/pixel parity/negative gates.
-- P0.099 real browser conversation → generating → report screenshots.
+统一 docs 与 prototype 为三项 summary metrics + 四个常驻区块，无 tab；readiness metric 增加服务端 summary，保留现有视觉语言。
+
+#### 6.2 Remove simulated runtime claims
+
+Prototype/Formal Generating 删除固定百分比、自动完成阶段、固定观察流、“通知我”与“稍后从记录查看”承诺。queued/generating 自动轮询；timeout/network 才能继续检查；failed/not-found/invalid-contract/`REPORT_CONTEXT_TOO_LARGE` 为终态并只返回，不把再次 GET 伪装成重新生成。超限文案说明返回规划、缩短材料并开启新会话这一真实恢复方向。
+
+单次`GenerateReport`动作内部为provider/protocol恢复执行initial+最多3次retry，等待10s/20s/40s；动作返回即销毁retry context，新动作从0开始。Runner的`async_jobs.attempts/max_attempts`只作基础设施lease/finalize，outbox/infra仍独立使用30s/2m/10m/1h/6h。Frontend只看服务端status，不展示attempt_count/retry_count/reason/scope或假进度。Polling用`maxAttempts=49`、1.5s×1.5、cap8s，总约6m04s；覆盖4×60s+10+20+40=5m10s并留约54s。窗口耗尽只能表达客户端等待超时并允许继续检查，不能改写为report failed。当前OpenAPI没有failed-report regenerate operation，本plan不新增或宣称Retry UI。
+
+Visibility/focus暂停是同一poll run内的调度暂停，不是retry/reset边界。无论hidden/blur发生在timer等待还是request in-flight，poller都必须保存当前attempt与下一attempt/delay；恢复后从`n+1`继续且不重复n。只有reportId/client identity改变或用户显式“继续检查”才创建新run并重置count。重复hidden/visible/blur/focus不得产生并行请求，单run总调用仍`<=49`。
+
+### Phase 7: Direct semantic dashboard and server-owned handoff
+
+#### 7.1 Consume code+label direct report
+
+接入 summary、immutable context、dimension code+label/status/confidence、dimensionCode evidence 与 retryFocusDimensionCodes；reportId 是唯一 locator，未知/缺失合同 fail closed，不前端补值。空 focus 是合法通用同轮 Replay；仅当 focus 非空时逐项校验其同时命中 `needs_work` dimension 与同 code issue，非法非空引用整份 fail closed。
+
+#### 7.2 Localize and prioritize
+
+status/confidence/readiness 与固定 chrome 全量 i18n；first next action 只改变两枚现有 CTA variant，disabled reason 可访问。模型生成的 summary/dimension/evidence/action label 按 report language 原样显示，即使 UI locale 不同也不翻译。
+
+#### 7.3 Readability and responsive layout
+
+长内容在 desktop/mobile 可靠换行。action schema200 code points 只作 malformed fuse；frontend 以 English 24 whitespace words / zh-CN 64 Unicode code points 为 semantic/UX gate，超界 ready payload 进入 typed invalid 且不回显 raw；合法边界在 1440x1200 与 390x844 完整换行。18/52 仅是上游 targeted-repair 内部余量，UI 不显示或校验为更小边界。
+
+#### 7.4 Remove client focus authority
+
+Replay/Next URL/request 删除 settings/identity/focus/evidence gaps；closed derived request 只有 goal + sourceReportId，后端派生 plan/round/focus。空 server focus 仍合法创建通用同轮 plan；非空 focus 的 issue-backed 合法性由 backend 与 frontend direct-contract gate 共同拒绝漂移。`context.hasNextRound` 控制 Next disabled，保留 fresh session 与重复点击锁。
+
+### Phase 8: Strong parity and real acceptance
+
+#### 8.1 Source/geometry/screenshot parity
+
+Playwright 使用同一 deterministic fixture 同时加载 prototype/formal：locale/timezone/Date/deviceScaleFactor=1 固定，等待 `document.fonts.ready`，关闭 animation/transition；分别验证 DOM、computed style、关键 bbox、390/1440 layout，并用 pixelmatch threshold 0.1、changed-pixel ratio ≤0.5% 判定 screenshot diff。失败保留 prototype/formal/diff 三件套，不以 buffer 非空收口。
+
+#### 8.2 Full-page real UAT
+
+P0.099 为当前 run 创建 en/zh ready rows 并捕获六图，不依赖 P0.100 output digest。每个 ready row 必须绑定 DB/API `canonical_report_content_digest`、`action_length_audit`、`content_audit`、`screenshot_sha256` 与 report/session/context digest。两张 390x844 mobile report `fullPage: true` 图完整覆盖 action 区域，证明实际 zh-CN / English label 满足 `<=64 Unicode code points` / `<=24 whitespace words`，完整可见、无 clipping/ellipsis/hidden content 且 `scrollWidth=390`。恰好 64/24 的换行由确定性 ui-design/OpenAPI fixture + prototype/formal pixel parity 独立证明。
+
+#### 8.3 Active stale negative
+
+扩展 fixture/scenario/docs/runtime/lint 扫描，删除旧 question fields、fake-live copy、raw enum surface 与客户端 focus authority；历史 bug/report/journal 作为证据保留。
 
 ## 6 验收标准
 
-- No Questions tab/card/list/count/toggle or turn-based replay.
-- Four current report surfaces render server data and error/empty states.
-- Replay/next create fresh conversation sessions.
-- Desktop/mobile prototype/formal/real screenshots close.
+- Generating 对用户只陈述真实状态和真实可用动作。
+- Report 三指标四区块完整展示 direct semantic summary/dimensions/evidence/actions，用户看不到 raw enum/code。
+- 推荐 action 与 CTA 主次一致，功能仍允许用户选择；retry focus 由服务端投影。
+- 空 retry focus 不阻塞通用同轮 Replay；非空 focus 必须与 needs-work dimension 和 issue 一一闭合。
+- Desktop/mobile 长内容完整可读；formal/prototype DOM/style/bbox/screenshot difference gate 通过。
+- P0.099 desktop+390 截图与 current-run audit 闭环合法24/64可读性；200-code-point fuse、18/52 repair margin 或P0.100内容PASS都不能替代。
 
-## 7 修订记录
+## 7 风险与应对
+
+| 风险 | 应对措施 |
+|------|----------|
+| 为修复 UX 重新设计页面 | 保留三指标四常驻区块，只做原型先行的真实性/可读性修订 |
+| CTA 主次被误当业务权限 | variant 只表达推荐；可用性仍由 round/state/replay lock 决定 |
+| 截图 gate 假绿 | 强制 prototype/formal 双端 DOM/style/bbox/diff 与 full-page artifact |
+| 前端重新成为业务事实源 | URL/request negative gate，后端 source report integration proof |
+| 空 focus 被误判为不可复练，或非法非空 focus 被静默删改 | 空数组显式正向 fixture；非空 cross-reference fail-closed table tests；前端不补默认 focus |
+| 把动作内产品retry、基础设施attempt或客户端窗口误当服务端失败 | 锁定action-local report / runner lease / outbox infra三层所有权；maxAttempts49耗尽只进入可继续检查态，terminal failed只来自API |
+
+## 8 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-13 | 2.9 | Correct report timing ownership to action-local initial+3 with 10s/20s/40s; async attempts are infrastructure-only. Keep maxAttempts49 math and prohibit unsupported failed-report regenerate claims. |
+| 2026-07-13 | 2.8 | L2：preserve poll attempt and next schedule across timer/in-flight hidden or blur；resume never resets to1 and one run remains capped at49. |
+| 2026-07-13 | 2.7 | Lock report use of business10s/20s/40s under durable max4 and frontend maxAttempts49 (~6m04s)；separate business async cap80 from infra delivery and hide internal attempts/progress. |
+| 2026-07-13 | 2.6 | Finalize A：wire fuse200；frontend semantic/UX 24 whitespace words / 64 Unicode code points；18/52 remains upstream targeted-repair margin；reopen boundary evidence. |
+| 2026-07-13 | 2.5 | A-200 fuse；keep14/40 typed-invalid/no-raw gate and require desktop+390 complete wrapping. |
+| 2026-07-13 | 2.4 | Bind each P0.099 ready row to its current-run canonical content/action/content-audit/screenshot/report/session/context digests；keep P0.100 independent and exact 14/40 in deterministic parity. |
+| 2026-07-12 | 2.3 | Make empty focus a valid generic same-round replay and require issue-backed validation only for non-empty focus. |
+| 2026-07-12 | 2.2 | Resolve Generating ownership, frozen report context/status truth, terminal action honesty, language split, dependency order and deterministic six-image acceptance. |
+| 2026-07-12 | 2.1 | Reopen for honest generating, direct semantic summary/code+label, localized states, action-driven CTA priority, server-owned focus, responsive readability and strong screenshot acceptance. |
 | 2026-07-12 | 2.0 | Reopen for conversation-level report and competency replay. |

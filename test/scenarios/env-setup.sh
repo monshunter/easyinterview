@@ -58,7 +58,13 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
+if [ "$DRY_RUN" -eq 0 ] && [ -s "$REPO_ROOT/deploy/dev-stack/.env" ]; then
+  secure_dev_stack_env
+fi
 run_root make dev-up
+if [ "$DRY_RUN" -eq 0 ]; then
+  secure_dev_stack_env
+fi
 run_root make dev-doctor
 
 if [ "$WITH_MIGRATIONS" -eq 1 ]; then

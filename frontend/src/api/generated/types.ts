@@ -26,7 +26,7 @@ export type ApiError = ApiErrorAlias;
 
 export type PageInfo = PageInfoAlias;
 
-export type ApiErrorCode = "AUTH_UNAUTHORIZED" | "TARGET_IMPORT_FAILED" | "TARGET_JOB_NOT_FOUND" | "TARGET_IMPORT_SOURCE_INVALID" | "TARGET_IMPORT_SOURCE_UNAVAILABLE" | "TARGET_INVALID_STATE_TRANSITION" | "PRACTICE_SESSION_CONFLICT" | "PRACTICE_PLAN_NOT_FOUND" | "PRACTICE_SESSION_NOT_FOUND" | "REPORT_NOT_FOUND" | "REPORT_NOT_READY" | "RESUME_EXPORT_NOT_AVAILABLE" | "VALIDATION_FAILED" | "RESOURCE_NOT_FOUND" | "IDEMPOTENCY_KEY_MISMATCH" | "RATE_LIMITED" | "AI_PROVIDER_TIMEOUT" | "AI_OUTPUT_INVALID" | "AI_FALLBACK_EXHAUSTED" | "AI_UNSUPPORTED_CAPABILITY" | "AI_PROVIDER_CONFIG_INVALID" | "AI_PROVIDER_SECRET_MISSING" | "PRIVACY_EXPORT_NOT_AVAILABLE";
+export type ApiErrorCode = "AUTH_UNAUTHORIZED" | "TARGET_IMPORT_FAILED" | "TARGET_JOB_NOT_FOUND" | "TARGET_IMPORT_SOURCE_INVALID" | "TARGET_IMPORT_SOURCE_UNAVAILABLE" | "TARGET_INVALID_STATE_TRANSITION" | "PRACTICE_SESSION_CONFLICT" | "PRACTICE_PLAN_NOT_FOUND" | "PRACTICE_SESSION_NOT_FOUND" | "REPORT_NOT_FOUND" | "REPORT_NOT_READY" | "REPORT_CONTEXT_TOO_LARGE" | "RESUME_EXPORT_NOT_AVAILABLE" | "VALIDATION_FAILED" | "RESOURCE_NOT_FOUND" | "IDEMPOTENCY_KEY_MISMATCH" | "RATE_LIMITED" | "AI_PROVIDER_TIMEOUT" | "AI_OUTPUT_INVALID" | "AI_FALLBACK_EXHAUSTED" | "AI_UNSUPPORTED_CAPABILITY" | "AI_PROVIDER_CONFIG_INVALID" | "AI_PROVIDER_SECRET_MISSING" | "PRIVACY_EXPORT_NOT_AVAILABLE";
 
 export type JobStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled" | "dead";
 
@@ -290,16 +290,15 @@ export interface PaginatedTargetJob {
 }
 
 export interface CreatePracticePlanRequest {
-	difficulty: "easy" | "standard" | "stretch";
-	focusCompetencyCodes?: string[];
+	difficulty?: "easy" | "standard" | "stretch";
 	goal: PracticeGoal;
-	interviewerPersona: InterviewerRole;
-	language: string;
-	resumeId: string;
+	interviewerPersona?: InterviewerRole;
+	language?: string;
+	resumeId?: string;
 	roundId?: string;
-	sourceReportId?: string | null;
-	targetJobId: string;
-	timeBudgetMinutes: number;
+	sourceReportId?: string;
+	targetJobId?: string;
+	timeBudgetMinutes?: number;
 }
 
 export interface PracticePlan {
@@ -418,20 +417,15 @@ export interface ReportWithJob {
 	reportId: string;
 }
 
-export interface DimensionResult {
-	confidence: Confidence;
-	status: DimensionStatus;
-}
-
 export interface ReportHighlight {
 	confidence: Confidence;
-	dimension: string;
+	dimensionCode: string;
 	evidence: string;
 }
 
 export interface ReportIssue {
 	confidence: Confidence;
-	dimension: string;
+	dimensionCode: string;
 	evidence: string;
 }
 
@@ -441,24 +435,41 @@ export interface ReportNextAction {
 }
 
 export interface DimensionAssessment {
+	code: string;
 	confidence: Confidence;
-	dimension: string;
+	label: string;
 	status: DimensionStatus;
 }
 
+export interface ReportContextSnapshot {
+	hasNextRound: boolean;
+	language: string;
+	resumeDisplayName: string;
+	resumeId: string;
+	roundId: string;
+	roundName: string;
+	roundSequence: number;
+	roundType: "hr" | "technical" | "manager" | "cross_functional" | "culture" | "final" | "other";
+	sourcePlanId: string;
+	targetJobCompany: string;
+	targetJobTitle: string;
+}
+
 export interface FeedbackReport {
+	context: ReportContextSnapshot;
 	createdAt: string;
-	dimensionAssessments?: DimensionAssessment[];
-	errorCode?: ApiErrorCode | null;
-	highlights?: ReportHighlight[];
+	dimensionAssessments: DimensionAssessment[];
+	errorCode: ApiErrorCode | null;
+	highlights: ReportHighlight[];
 	id: string;
-	issues?: ReportIssue[];
-	nextActions?: ReportNextAction[];
-	preparednessLevel?: ReadinessTier | null;
-	provenance?: GenerationProvenance | null;
-	retryFocusCompetencyCodes?: string[];
+	issues: ReportIssue[];
+	nextActions: ReportNextAction[];
+	preparednessLevel: ReadinessTier | null;
+	provenance: GenerationProvenance | null;
+	retryFocusDimensionCodes: string[];
 	sessionId: string;
 	status: ReportStatus;
+	summary: string | null;
 	targetJobId: string;
 	updatedAt: string;
 }

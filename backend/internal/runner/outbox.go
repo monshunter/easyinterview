@@ -221,7 +221,7 @@ func NewOutboxDispatcher(opts OutboxDispatcherOptions) *OutboxDispatcher {
 		opts.Metrics = discardMetrics{}
 	}
 	if len(opts.Backoff.schedule) == 0 {
-		opts.Backoff = DefaultBackoffPolicy()
+		opts.Backoff = DefaultOutboxBackoffPolicy()
 	}
 	if opts.Batch <= 0 {
 		opts.Batch = defaultOutboxBatch

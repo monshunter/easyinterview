@@ -28,11 +28,11 @@ func resolveSnapshot(snap *snapshot, featureKey, language string, fallbackCounte
 		return PromptResolution{}, ErrPromptUnsupported
 	}
 
-	prompt, lang, ok := selectByLanguage(prompts, language)
+	promptVersions, lang, ok := selectByLanguage(prompts, language)
 	if !ok {
 		return PromptResolution{}, ErrLanguageUnsupported
 	}
-	rubric, _, ok := selectByLanguage(rubrics, lang)
+	rubricVersions, _, ok := selectByLanguage(rubrics, lang)
 	if !ok {
 		// Language parity is enforced at load time, so this should be
 		// unreachable in practice; return a precise error if it ever fires.
@@ -46,14 +46,20 @@ func resolveSnapshot(snap *snapshot, featureKey, language string, fallbackCounte
 	// Current baselines keep SystemMessage empty and put the full markdown body
 	// in UserMessageTemplate, which existing executors consume directly.
 	// Feature-specific system/user splits must be introduced by the owning spec.
-	pe := prompt.(promptEntry)
-	re := rubric.(rubricEntry)
+	pe, ok := activePrompt(promptVersions)
+	if !ok {
+		return PromptResolution{}, ErrPromptUnsupported
+	}
+	re, ok := activeRubric(rubricVersions)
+	if !ok {
+		return PromptResolution{}, ErrPromptUnsupported
+	}
 	return PromptResolution{
 		FeatureKey:          featureKey,
 		PromptVersion:       pe.meta.Version,
 		RubricVersion:       re.schema.Version,
 		ModelProfileName:    defaultModelProfile(featureKey),
-		DataSourceVersion:   "registry.v1",
+		DataSourceVersion:   resolvedDataSourceVersion(featureKey, pe.meta.Version),
 		FeatureFlag:         "none",
 		SystemMessage:       "",
 		UserMessageTemplate: pe.body,
@@ -63,10 +69,17 @@ func resolveSnapshot(snap *snapshot, featureKey, language string, fallbackCounte
 	}, nil
 }
 
+func resolvedDataSourceVersion(featureKey, promptVersion string) string {
+	if featurekeys.FeatureKey(featureKey) == featurekeys.ReportGenerate && promptVersion == "v0.2.0" {
+		return "report-context.v1"
+	}
+	return "registry.v1"
+}
+
 // selectByLanguage returns the entry for the requested language, falling
 // back to "multi" when the exact language is missing. The returned string
 // is the language actually used (so callers can tell whether fallback fired).
-func selectByLanguage[T any](entries map[string]T, requested string) (any, string, bool) {
+func selectByLanguage[T any](entries map[string]T, requested string) (T, string, bool) {
 	if e, ok := entries[requested]; ok {
 		return e, requested, true
 	}
@@ -74,6 +87,24 @@ func selectByLanguage[T any](entries map[string]T, requested string) (any, strin
 		return e, "multi", true
 	}
 	return *new(T), "", false
+}
+
+func activePrompt(entries map[string]promptEntry) (promptEntry, bool) {
+	for _, entry := range entries {
+		if entry.meta.Status == "active" {
+			return entry, true
+		}
+	}
+	return promptEntry{}, false
+}
+
+func activeRubric(entries map[string]rubricEntry) (rubricEntry, bool) {
+	for _, entry := range entries {
+		if entry.schema.Status == "active" {
+			return entry, true
+		}
+	}
+	return rubricEntry{}, false
 }
 
 // defaultModelProfile maps a feature_key to its spec §3.1.1 default
@@ -119,11 +150,12 @@ func (c *Client) GetPrompt(featureKey, version, language string) (PromptMeta, st
 	if !ok {
 		return PromptMeta{}, "", ErrPromptUnsupported
 	}
-	pe, ok := prompts[language]
+	versions, ok := prompts[language]
 	if !ok {
 		return PromptMeta{}, "", ErrLanguageUnsupported
 	}
-	if pe.meta.Version != version {
+	pe, ok := versions[version]
+	if !ok {
 		return PromptMeta{}, "", ErrPromptUnsupported
 	}
 	meta := pe.meta
@@ -141,11 +173,12 @@ func (c *Client) GetRubric(featureKey, version, language string) (RubricSchema, 
 	if !ok {
 		return RubricSchema{}, ErrPromptUnsupported
 	}
-	re, ok := rubrics[language]
+	versions, ok := rubrics[language]
 	if !ok {
 		return RubricSchema{}, ErrLanguageUnsupported
 	}
-	if re.schema.Version != version {
+	re, ok := versions[version]
+	if !ok {
 		return RubricSchema{}, ErrPromptUnsupported
 	}
 	return re.schema, nil

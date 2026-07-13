@@ -13,7 +13,7 @@ Fixture-backed API entrypoint for frontend workstreams.
   - `getMe`: `default`, `authenticated`, `unauthenticated`, `prototype-baseline`
   - `getPracticeSession`: `default`, `missing-session`, `prototype-baseline`
   - `createPracticePlan`: `default`, `missing-resume`
-  - `getFeedbackReport`: `default`, `report-generating`, `prototype-baseline`
+  - `getFeedbackReport`: `default`, `generating`, `prototype-baseline`
   - `requestPrivacyDelete`: `default`, `privacy-delete-requested`
 
 ## Blockers

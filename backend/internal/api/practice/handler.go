@@ -55,29 +55,76 @@ func (h *Handler) CreatePracticePlan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body api.CreatePracticePlanRequest
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&body); err != nil {
 		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "request body is malformed", nil)
+		return
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		writeAPIError(w, http.StatusBadRequest, sharederrors.CodeValidationFailed, "request body is malformed", nil)
+		return
+	}
+	if field := invalidCreatePracticePlanRequestField(body); field != "" {
+		writeAPIError(w, http.StatusUnprocessableEntity, sharederrors.CodeValidationFailed, "request fields do not match practice goal", map[string]any{"field": field})
 		return
 	}
 
 	res, err := h.service.CreatePracticePlan(r.Context(), domain.CreatePlanRequest{
-		UserID:               userID,
-		TargetJobID:          body.TargetJobId,
-		ResumeID:             body.ResumeId,
-		SourceReportID:       stringValue(body.SourceReportId),
-		RoundID:              stringValue(body.RoundId),
-		Goal:                 body.Goal,
-		InterviewerPersona:   body.InterviewerPersona,
-		Difficulty:           body.Difficulty,
-		Language:             body.Language,
-		TimeBudgetMinutes:    body.TimeBudgetMinutes,
-		FocusCompetencyCodes: body.FocusCompetencyCodes,
+		UserID:             userID,
+		TargetJobID:        stringValue(body.TargetJobId),
+		ResumeID:           stringValue(body.ResumeId),
+		SourceReportID:     stringValue(body.SourceReportId),
+		RoundID:            stringValue(body.RoundId),
+		Goal:               body.Goal,
+		InterviewerPersona: valueOrZero(body.InterviewerPersona),
+		Difficulty:         stringValue(body.Difficulty),
+		Language:           stringValue(body.Language),
+		TimeBudgetMinutes:  valueOrZero(body.TimeBudgetMinutes),
 	})
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, toAPIPracticePlan(res))
+}
+
+func invalidCreatePracticePlanRequestField(body api.CreatePracticePlanRequest) string {
+	switch body.Goal {
+	case sharedtypes.PracticeGoalBaseline:
+		if body.SourceReportId != nil {
+			return "sourceReportId"
+		}
+	case sharedtypes.PracticeGoalRetryCurrentRound, sharedtypes.PracticeGoalNextRound:
+		if body.SourceReportId == nil {
+			return "sourceReportId"
+		}
+		for _, field := range []struct {
+			name    string
+			present bool
+		}{
+			{name: "targetJobId", present: body.TargetJobId != nil},
+			{name: "resumeId", present: body.ResumeId != nil},
+			{name: "roundId", present: body.RoundId != nil},
+			{name: "interviewerPersona", present: body.InterviewerPersona != nil},
+			{name: "difficulty", present: body.Difficulty != nil},
+			{name: "language", present: body.Language != nil},
+			{name: "timeBudgetMinutes", present: body.TimeBudgetMinutes != nil},
+		} {
+			if field.present {
+				return field.name
+			}
+		}
+	}
+	return ""
+}
+
+func valueOrZero[T any](value *T) T {
+	if value == nil {
+		var zero T
+		return zero
+	}
+	return *value
 }
 
 func (h *Handler) GetPracticePlan(w http.ResponseWriter, r *http.Request, planID string) {

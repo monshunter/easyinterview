@@ -127,7 +127,8 @@ values ($1,$2,$3,'user',$4,$5,$6)`, in.UserMessageID, in.SessionID, nextSeq, in.
 func loadMessageReservationContext(ctx context.Context, tx *sql.Tx, userID, sessionID string) (domain.PracticeMessageReservation, error) {
 	var out domain.PracticeMessageReservation
 	var topSkills string
-	var focus pq.StringArray
+	var focusDimensionCodes pq.StringArray
+	var semanticDimensions, semanticIssues []byte
 	err := tx.QueryRowContext(ctx, `
 select s.id, s.plan_id, s.target_job_id, p.goal, p.interviewer_persona, s.language,
        coalesce(nullif(tj.title,''),'target role'), coalesce(nullif(tj.seniority_level,''),'not specified'),
@@ -145,13 +146,18 @@ select s.id, s.plan_id, s.target_job_id, p.goal, p.interviewer_persona, s.langua
            then r.structured_profile::text
          end,
          ''
-       ), p.focus_competency_codes, p.round_id, p.round_sequence,
+	       ), p.focus_dimension_codes,
+	       case when p.goal='retry_current_round' and cardinality(p.focus_dimension_codes)>0 then fr.dimension_assessments end,
+	       case when p.goal='retry_current_round' and cardinality(p.focus_dimension_codes)>0 then fr.issues end,
+	       p.round_id, p.round_sequence,
        round_context.round_type, round_context.round_name, round_context.round_focus,
        s.created_at, s.updated_at
 from practice_sessions s
 join practice_plans p on p.id=s.plan_id and p.user_id=s.user_id
 join target_jobs tj on tj.id=s.target_job_id and tj.user_id=s.user_id and tj.resume_id=p.resume_id and tj.deleted_at is null
 join resumes r on r.id=p.resume_id and r.user_id=s.user_id and r.deleted_at is null
+left join feedback_reports fr
+  on fr.id=p.source_report_id and fr.user_id=p.user_id and fr.target_job_id=p.target_job_id and fr.status='ready'
 cross join lateral (
   select btrim(entry.value->>'type') round_type,
          btrim(entry.value->>'name') round_name,
@@ -170,10 +176,13 @@ where s.id=$1 and s.user_id=$2 and s.status in ('running','waiting_user_input')
   and p.round_id = 'round-' || round_context.round_sequence::text || '-' || round_context.round_type
   and nullif(round_context.round_name, '') is not null
   and nullif(round_context.round_focus, '') is not null
+	and (p.goal='retry_current_round' or cardinality(p.focus_dimension_codes)=0)
+	and (cardinality(p.focus_dimension_codes)=0 or fr.id is not null)
 for update of s`, sessionID, userID).Scan(
 		&out.Session.SessionID, &out.Session.PlanID, &out.Session.TargetJobID, &out.Session.Goal,
 		&out.Session.InterviewerPersona, &out.Session.Language, &out.Session.RoleTitle,
-		&out.Session.Seniority, &topSkills, &out.Session.ResumeContext, &focus,
+		&out.Session.Seniority, &topSkills, &out.Session.ResumeContext, &focusDimensionCodes,
+		&semanticDimensions, &semanticIssues,
 		&out.Session.RoundID, &out.Session.RoundSequence,
 		&out.Session.RoundType, &out.Session.RoundName, &out.Session.RoundFocus,
 		&out.Session.CreatedAt, &out.Session.UpdatedAt,
@@ -186,7 +195,10 @@ for update of s`, sessionID, userID).Scan(
 	}
 	out.Session.UserID = userID
 	out.Session.TopSkills = splitCommaList(topSkills)
-	out.Session.FocusCompetencies = append([]string(nil), focus...)
+	out.Session.SemanticFocus, err = resolveDerivedSemanticFocus(focusDimensionCodes, semanticDimensions, semanticIssues)
+	if err != nil {
+		return out, domain.ErrSessionNotFound
+	}
 	return out, nil
 }
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
-OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-056-generating-to-report-happy-path"
-rm -rf "$OUTPUT_DIR"
+
+ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
+OUT="$ROOT/.test-output/e2e/p0-056-generating-to-report-happy-path"
+rm -f "$OUT/setup.env" "$OUT"/*.log

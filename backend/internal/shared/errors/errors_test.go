@@ -164,6 +164,22 @@ func TestReportNotFoundErrorCode_Documented(t *testing.T) {
 	}
 }
 
+func TestReportContextTooLargeErrorCode_Documented(t *testing.T) {
+	meta, ok := CodeRegistry[CodeReportContextTooLarge]
+	if !ok {
+		t.Fatalf("CodeRegistry missing %s", CodeReportContextTooLarge)
+	}
+	if meta.Message != "report context exceeds supported generation size" {
+		t.Fatalf("%s message = %q", CodeReportContextTooLarge, meta.Message)
+	}
+	if meta.Retryable {
+		t.Fatalf("%s retryable = true, want false", CodeReportContextTooLarge)
+	}
+	if !contains(AllCodes, CodeReportContextTooLarge) {
+		t.Fatalf("AllCodes missing %s", CodeReportContextTooLarge)
+	}
+}
+
 func contains[T comparable](values []T, want T) bool {
 	for _, value := range values {
 		if value == want {

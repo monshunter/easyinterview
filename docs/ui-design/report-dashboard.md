@@ -1,118 +1,154 @@
 # 报告仪表盘目标结构
 
-> **版本**: 1.16
+> **版本**: 1.29
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 目标
 
-报告以整场 conversation 为分析单位，帮助用户判断准备度、理解能力表现、查看证据并选择复练当前轮或进入下一轮。报告不再按题目组织。
+报告以整场 conversation 为分析单位，帮助用户理解准备度、能力表现、证据与下一步。页面只展示后端持久化的 grounded direct semantic report，不按题目组织、不展示隐藏数值分，也不由前端推断报告含义。
 
 ## 2 页面结构
 
 ```text
-ReportDashboard(sessionId, reportId)
+ReportDashboard(reportId)
 ├─ Back
 ├─ Header
-│  ├─ breadcrumb
-│  ├─ title / subtitle
+│  ├─ breadcrumb / title / subtitle
 │  ├─ 复练当前轮
 │  └─ 进入下一轮
 ├─ ContextStrip
 │  ├─ session
-│  ├─ target / round
+│  ├─ target
+│  ├─ round
 │  └─ resume
-├─ SummaryCards
-│  ├─ 准备度
-│  ├─ 能力维度
-│  ├─ 会话证据
-│  └─ 下一步
-└─ DetailSurface
-   ├─ 准备度
+├─ SummaryMetrics
+│  ├─ 准备度 + summary
+│  ├─ 能力维度数量
+│  └─ 会话证据数量
+└─ DetailGrid
    ├─ 能力维度
-   ├─ 会话证据
-   └─ 下一步
+   ├─ 优势证据
+   ├─ 风险 / 待加强证据
+   └─ 下一步行动
 ```
 
-## 3 生成态
+当前 UI 真理源是“三项指标 + 四个常驻区块，无 tab”。不得根据旧文档恢复四卡或四 tab。
 
-生成态五阶段：
+## 3 诚实生成态
 
-1. 整理会话上下文。
-2. 提取能力证据。
-3. 评估能力维度。
-4. 归纳改进重点。
-5. 生成行动建议。
+Generating 只表达后端真实的 queued / generating / failed / timeout / ready 状态：
 
-不得出现逐题抽取、题目回顾、每题评分等旧文案。
+- 可以说明系统正在整理上下文、核对证据、形成建议，但不得显示与后端无关的百分比或自动完成阶段。
+- 不得展示固定示例作为“实时观察”。
+- 不得使用“好了通知我”或“稍后从记录查看”：当前没有通知/records 合同。
+- queued/generating 自动继续轮询；timeout/network 可“继续检查”；ready 后进入 report；failed/not found/invalid contract/`REPORT_CONTEXT_TOO_LARGE` 是终态，只能返回，不把重新 GET 伪装成重新生成。超限态说明本次材料与对话过长，并引导返回规划、缩短输入后开启新会话。
+- Report单次`GenerateReport`动作在后端调用内执行initial+最多3次retry与10s/20s/40s等待；动作返回销毁retry context，新动作清零。Runner的`async_jobs.attempts/max_attempts`与outbox/infra的30s/2m/10m/1h/6h都不是产品retry事实。Frontend使用`maxAttempts=49`、初始1.5s、×1.5、cap8s，总约6m04s，覆盖4×60s+10+20+40=5m10s并留约54s。整个queued/generating期间不显示attempt/retry/progress；轮询窗口耗尽只提供“继续检查”，不能显示为服务端failed。当前OpenAPI没有failed-report regenerate operation，不设计或宣称同report Retry入口。
 
-## 4 Summary Cards
+## 4 Summary Metrics
 
-| Card | 内容 | 进入详情 |
-|------|------|----------|
-| 准备度 | readiness tier | Readiness tab |
-| 能力维度 | dimension count / summary | Dimensions tab |
-| 会话证据 | highlights + issues 数量 | Evidence tab |
-| 下一步 | 推荐动作 | Next tab |
+| Metric | 内容 |
+|--------|------|
+| 准备度 | localized readiness tier + LLM `summary` |
+| 能力维度 | `dimensionAssessments.length` |
+| 会话证据 | `highlights.length + issues.length` |
 
-## 5 Detail Surface
+不得在前端补默认数量、默认 summary 或假报告。
 
-### 5.1 Readiness
+## 5 Detail Grid
 
-展示当前 tier、核心判断和最优先改进项，不展示精确通过率。
+### 5.1 Dimensions
 
-### 5.2 Dimensions
+- 使用 `label` 作为用户可见维度名称，`code` 只作为报告内关联标识。
+- status / confidence 必须映射为当前 UI 语言文案，不能显示 `strong · high` 等 raw enum。模型生成的 dimension label 按 report language 原样显示。
 
-按能力维度展示 `status / confidence`，证据入口跳到 Evidence tab，不跳题目。
+### 5.2 Evidence
 
-### 5.3 Evidence
+- highlights / issues 显示 report-language dimension label/evidence 与 localized confidence。
+- 前端不展示内部 message anchors，不复制完整 transcript，不按题号或 turn 分组。
+- 缺失/未知 dimensionCode 视为合同错误，不由前端猜测。
 
-展示 highlights / issues 的 dimension、evidence summary 和 confidence。不得复制完整 transcript，不按题号或 turn 分组。
+### 5.3 Next Actions
 
-### 5.4 Next
+- 按服务端顺序展示，第一项是推荐优先级。
+- action type 不直接作为用户文案；action label 按 report language 原样显示；未知类型 fail closed。
+- `ReportNextAction.label.maxLength=200` code points 只是在 OpenAPI / JSON Schema 层拒绝 malformed model output 的技术保险丝，不是正常文案长度、设计目标或 UI 验收目标。真实用户体验只接受 English `<=24 whitespace words`、`zh-CN <=64 Unicode code points`；正式 UI 不展示以 200 为目标的文案。
+- 产品完整validator若发现全部违规仅为`nextActions[i].label` schema maxLength200和/或语言24/64，即使schema-invalid也走`action_labels`；targeted generation使用内部生成余量18/52，只merge labels。其它任意schema、semantic或mixed violation走整报告generation。Initial及后续每轮输出均完整复验，最多4次调用；attempt4仍invalid才在judge前fail closed。Frontend 对超24/64 ready payload进入typed invalid，不回显raw label，不截断/代写/ellipsis伪装合法。
 
-展示复练当前轮与进入下一轮的路径说明、能力重点和行动清单；CTA 仍只存在于 Header。
+## 6 CTA
 
-## 6 Replay
+- first action 为 `retry_current_round`：复练使用 accent，下一轮为 secondary。
+- first action 为 `next_round`：下一轮使用 accent，复练为 secondary。
+- first action 为 `review_evidence`：两者均 secondary。
+- 视觉主次只表达建议，不改变用户可选择的合法路径。
+- 下一轮未知/末轮/加载失败/重复派生 ID 时 disabled 并提供可访问原因；任一 start 进行中时两枚 CTA 都 disabled。
+- Replay/Next derived 请求只携带 goal + sourceReportId；后端从 source report/plan 投影全部 settings、round 与 focus。Replay 始终允许：有 issue-backed needs-work dimension 时使用服务端 focus，没有可支持 focus 时创建空 focus 的通用同轮复练。`context.hasNextRound=false` 时 Next disabled。
 
-- `复练当前轮`：使用 report 的 `retryFocusCompetencyCodes` 创建新 plan/session。
-- `进入下一轮`：从当前 `TargetJob.summary.interviewRounds[]` 按 `sequence` 排序后的列表中选择紧邻下一轮，使用该轮 id/name/duration 创建新 plan/session。
-- 轮次列表产生重复派生 ID、当前轮是末轮/单轮、轮次为空、当前 `roundId` 未命中、TargetJob 仍在加载或加载失败时，`进入下一轮` disabled，不得回退第一轮、当前轮或固定默认轮次。
-- 任一 replay/next start 进行中时两枚 CTA 都 disabled；重复点击最多创建一次 plan/session。
-- 不传 `retryFocusTurnIds`、question IDs 或 per-question selection。
+## 6.1 事实源与语言边界
 
-## 7 状态
+- `reportId` 是唯一 locator；status/error、target/resume/round label 与 CTA identity 全部来自 `getFeedbackReport.context`。route 中冲突参数必须忽略。
+- UI chrome、enum、固定 CTA/错误文案随 UI locale；LLM summary/dimension/evidence/action label 使用 report language，前端不得翻译或改写。
+
+## 7 可读性与响应式
+
+- frozen target / round / resume 允许换行或通过 title/accessible description 读取完整值。
+- session ID 可以单行省略，但必须可获取完整值。
+- Desktop 使用双列 DetailGrid；390px mobile 明确单列。
+- 长 dimension/evidence/action 必须换行，不横向溢出、不被不可恢复截断。
+- 1440x1200 desktop 与 390x844 mobile full-page 都必须覆盖 action 区域，并证明合法 24/64 label 完整换行、无截断/ellipsis/隐藏/横溢。恰好 24/64 由 deterministic fixture parity 证明；200-code-point malformed fixture只用于 typed invalid/no-raw-output 测试，不能充当 UX PASS。18/52 只用于 targeted repair 内部生成，不替代边界 fixture。
+- 能力维度行在宽度足够时保持 `label` 与本地化 status/confidence 左右对齐；空间不足时整项换为两段可读行。英文长 label 优先按单词换行，禁止为了保留右侧状态而压缩成逐字符竖排。
+- Report 保留 App Shell TopBar：desktop 内容从 58px TopBar 后开始；390px mobile 内容从响应式 TopBar 的实际底部开始。TopBar 可因 UI locale 与已登录用户名称产生合法换行，但 document `scrollWidth` 不得超过 viewport，报告局部布局也不得用相对坐标掩盖共享 TopBar 的绝对纵向偏差。
+
+## 8 状态
 
 - Missing session/report：专用空态。
-- Queued/generating：留在 generating。
-- Failed/not found/timeout：typed error + retry/back。
-- Empty evidence：Evidence tab 显示空态，其他 tab 仍可用。
+- Queued/generating：诚实等待态。
+- Timeout/network：typed recoverable error，可继续检查；Failed/not found/invalid contract/`REPORT_CONTEXT_TOO_LARGE`：typed terminal error，只能返回；超限态不得出现同 report 的 Retry。
+- Ready：summary、dimensions、evidence、actions 完整。
+- Empty required semantic fields：合同失败，不回退假内容。
 
-## 8 负向边界
+## 9 负向边界
 
-当前 UI、fixtures、tests、scenarios 和文档中不得保留正向：
+当前 UI、fixtures、tests、scenarios 和 active 文档不得正向保留：
 
-- Questions tab / 题目回顾页。
-- questionAssessments / retryFocusTurnIds。
-- 题数 summary card。
-- per-question replay toggle。
-- hint/practiceMode/phone modality context。
-- 独立错题本、精确通过率或 timeline。
+- 四卡 / 四 tab 或 Questions tab。
+- questionAssessments / retryFocusTurnIds / per-question replay。
+- candidate numeric score、录用概率、timeline。
+- raw enum/code 用户文案。
+- fake progress / live observation / fake notify。
+- focusCompetencyCodes / evidenceGaps URL 或客户端事实源。
+- route status/error/target/resume/round 覆盖 API frozen facts。
+- client translation/rewrite of model summary/dimension/evidence/action labels。
 
-## 9 验收标准
+## 10 验收标准
 
 | ID | Given | When | Then |
 |----|-------|------|------|
-| R-1 | ready report | 打开 report | 四卡四 tab，默认 readiness |
-| R-2 | 有 dimensions/evidence | 切换 tabs | 展示会话级分析，无题目结构 |
-| R-3 | needs practice | 点击复练当前轮 | competency focus 创建 fresh session |
-| R-4 | next round available | 点击进入下一轮 | next-round fresh session |
-| R-5 | desktop/mobile | parity gate | DOM、geometry、screenshot 与原型一致 |
-| R-6 | final/single/empty/unknown/loading round state | 查看或点击进入下一轮 | CTA disabled 且不创建 plan/session；无 fallback |
+| R-1 | queued/generating | 打开生成页 | 无假进度、假观察、假通知 |
+| R-2 | ready direct report | 打开报告 | 三指标四常驻区块，summary 与 localized semantic 完整 |
+| R-3 | retry/next/review first action | 查看 Header | 现有 CTA 主次与建议一致 |
+| R-4 | needs-work / well-prepared report | 点击复练 | source report 服务端投影 issue-backed focus，或在无可支持 focus 时创建空 focus 的通用同轮复练；客户端不携带 focus |
+| R-5 | 长内容 desktop/mobile | 打开报告 | 完整可读、mobile 单列、无横向溢出 |
+| R-6 | prototype/formal deterministic boundary fixture | 运行 desktop+390 parity | 恰好 24-whitespace-word / 64-Unicode-code-point label 在 1440x1200 与 390x844 均完整换行；超 24/64 fixture 进入 typed invalid 且不回显 raw |
+| R-7 | real provider zh/en | P0.099 当前 run 的 en/zh ready rows | 六图 manifest 对每个 row 绑定 DB/API `canonical_report_content_digest`、`action_length_audit`、`content_audit`、`screenshot_sha256` 与 report/session/context digest；两张 390x844 report full-page 截图完整覆盖 action 区域，实际 label 分别满足 `<=24 whitespace words` / `<=64 Unicode code points` 且完整可见、无截断/省略/横溢 |
+| R-8 | reportId-only / conflicting route | 深链刷新/点击 CTA | API frozen status/context 获胜 |
+| R-9 | UI locale != report language | 打开报告 | chrome 本地化，模型语义保持报告原文 |
 
-## 10 修订记录
+## 11 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
-| 2026-07-12 | 1.16 | 下一轮只使用 TargetJob 有序结构化轮次的紧邻后一项；末轮、未知/缺失/加载失败和重复点击 fail closed。 |
-| 2026-07-12 | 1.15 | 删除题目回顾和逐题 replay，报告收敛为 readiness/dimensions/evidence/next。 |
+| 2026-07-13 | 1.29 | Correct report timing ownership to action-local initial+3 with10s/20s/40s; async attempts are infrastructure-only. Keep maxAttempts49/6m04s and no unsupported failed-report regenerate UI. |
+| 2026-07-13 | 1.28 | Lock report use of business10s/20s/40s under durable max4 and frontend maxAttempts49 (~6m04s)；separate business cap80 from infra delivery and expose no internal attempt/progress. |
+| 2026-07-13 | 1.27 | Clarify product full-validator repair scope：sole-label targeted，all other/mixed whole-report，one-budget full revalidation；visible UI boundary unchanged. |
+| 2026-07-13 | 1.26 | 方案 A 最终边界：200 code-point wire fuse；24-word/64-code-point semantic/UX；targeted repair 内部余量18/52；desktop+390完整换行，超限typed invalid/no raw。 |
+| 2026-07-13 | 1.25 | A-200：wire/schema fuse改为200；14/40仍为UX gate，desktop+390合法边界完整换行，超限typed invalid且不回显raw。 |
+| 2026-07-13 | 1.24 | 归一化 action-label schema120/语言14-40 violation set；即使 label>120 导致 schema-invalid 仍使用 action_labels，修复同时满足两层上限。 |
+| 2026-07-13 | 1.23 | Runtime 使用一次总预算下的整报告 / 唯一 action-length label-only LLM repair，labels-only 原样 merge并全量复验；evalkit 分界由 F3/P0.100 owner 承接。 |
+| 2026-07-13 | 1.22 | 区分 120-char wire/schema fuse、P0.099 current-run canonical audit chain 与确定性 14/40 boundary fixture pixel parity；P0.100 内容可靠性不与六图强绑 output digest。 |
+| 2026-07-12 | 1.21 | 修复 prototype/formal 同时错误导致的 mobile 英文能力维度逐字符竖排，定义 label 与 status 可读换行契约。 |
+| 2026-07-12 | 1.20 | 固化 Report mobile TopBar 响应式换行、内容起点和无横向溢出的绝对 viewport parity 契约。 |
+| 2026-07-12 | 1.19 | 明确 Replay 在无可支持 focus 时创建空 focus 的通用同轮复练，并补 `REPORT_CONTEXT_TOO_LARGE` 的诚实终态与可执行返回指引。 |
+| 2026-07-12 | 1.18 | 补 frozen context/reportId-only 事实源、终态动作矩阵、records 负向边界与 UI/report 双语言契约。 |
+| 2026-07-12 | 1.17 | 统一三指标四常驻区块；接入 direct semantic summary/code+label，删除 generating 伪实时语义，补齐 enum i18n、CTA 推荐、server-owned focus、mobile 可读性与强截图 gate。 |
+| 2026-07-12 | 1.16 | 下一轮只使用 TargetJob 有序结构化轮次的紧邻后一项；异常状态 fail closed。 |

@@ -18,6 +18,11 @@ type chatCompletionsRequest struct {
 	ResponseFormat any           `json:"response_format,omitempty"`
 	Temperature    *float64      `json:"temperature,omitempty"`
 	TopP           *float64      `json:"top_p,omitempty"`
+	Thinking       *thinkingMode `json:"thinking,omitempty"`
+}
+
+type thinkingMode struct {
+	Type string `json:"type"`
 }
 
 type chatCompletionsResponse struct {

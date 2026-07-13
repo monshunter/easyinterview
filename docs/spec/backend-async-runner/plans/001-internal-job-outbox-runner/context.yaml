@@ -5,10 +5,10 @@ metadata:
   name: 001-internal-job-outbox-runner
   sequence: 1
   specVersion:
-    from: null
-    to: 1.11
+    from: 1.12
+    to: 1.15
   baseBranch: main
-  branch: feat/backend-async-runner-001-internal-job-outbox-runner-0522
+  branch: fix/report-semantic-grounding-0712
 spec:
   defaultTarget: backend
   discovery:
@@ -25,6 +25,20 @@ spec:
       - native runner handler
       - runner.OutboxDispatcher
       - runner.BackoffPolicy
+      - DefaultBackoffPolicy business 10s 20s 40s 80s cap80
+      - DefaultOutboxBackoffPolicy infra 30s 2m 10m 1h 6h
+      - report action local initial plus three retries
+      - report action local waits 10s 20s 40s
+      - report retry context destroyed on return
+      - new report action resets retry count
+      - async job attempts infrastructure only
+      - no report durable provider attempt reservation
+      - claimed attempts lease generation fencing
+      - running and claimed attempts finalize predicate
+      - stale worker zero report outbox audit job side effects
+      - resume_tailor result outbox lease fencing
+      - review store duplicate lease reaper clean break
+      - business report infra retry policy separation
       - LeaseAsyncJob
       - FinalizeAsyncJob
       - ReclaimExpiredLeases

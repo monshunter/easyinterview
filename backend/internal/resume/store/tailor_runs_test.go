@@ -11,6 +11,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
+	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
@@ -206,8 +207,11 @@ func TestCompleteTailorRunSuccessWritesResultAndOutbox(t *testing.T) {
 	now := time.Date(2026, 6, 13, 11, 0, 0, 0, time.UTC)
 
 	mock.ExpectBegin()
+	mock.ExpectQuery(`(?s)select attempts.*from async_jobs.*where id = \$1.*resource_type = \$2.*resource_id = \$3.*status = 'running'.*attempts = \$4.*for update`).
+		WithArgs("job-1", "resume_tailor_run", "tailor-1", int32(2)).
+		WillReturnRows(sqlmock.NewRows([]string{"attempts"}).AddRow(2))
 	mock.ExpectExec(regexp.QuoteMeta(`update async_jobs`)).
-		WithArgs(sqlmock.AnyArg(), now, "resume_tailor_run", "tailor-1").
+		WithArgs(sqlmock.AnyArg(), now, "job-1", "resume_tailor_run", "tailor-1", int32(2)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectExec(regexp.QuoteMeta(`insert into outbox_events`)).
 		WithArgs("event-1", "resume.tailor.completed", "resume", "resume-1", sqlmock.AnyArg(), now).
@@ -215,11 +219,13 @@ func TestCompleteTailorRunSuccessWritesResultAndOutbox(t *testing.T) {
 	mock.ExpectCommit()
 
 	if err := repo.CompleteTailorRunSuccess(context.Background(), resumestore.CompleteTailorRunSuccessInput{
-		TailorRunID:  "tailor-1",
-		ResumeID:     "resume-1",
-		TargetJobID:  "target-1",
-		Mode:         "gap_review",
-		MatchSummary: []byte(`{"strengths":["Go"],"gaps":[]}`),
+		JobID:           "job-1",
+		ClaimedAttempts: 2,
+		TailorRunID:     "tailor-1",
+		ResumeID:        "resume-1",
+		TargetJobID:     "target-1",
+		Mode:            "gap_review",
+		MatchSummary:    []byte(`{"strengths":["Go"],"gaps":[]}`),
 		Suggestions: []resumestore.TailorSuggestionInput{
 			{ID: "sug-1", OriginalBullet: "a", SuggestedBullet: "b", Reason: "impact"},
 		},
@@ -241,20 +247,22 @@ func TestCompleteTailorRunSuccessInvalidStateTransition(t *testing.T) {
 	now := time.Date(2026, 6, 13, 11, 0, 0, 0, time.UTC)
 
 	mock.ExpectBegin()
-	mock.ExpectExec(regexp.QuoteMeta(`update async_jobs`)).
-		WithArgs(sqlmock.AnyArg(), now, "resume_tailor_run", "tailor-1").
-		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery(`(?s)select attempts.*from async_jobs.*for update`).
+		WithArgs("job-1", "resume_tailor_run", "tailor-1", int32(1)).
+		WillReturnError(sql.ErrNoRows)
 	mock.ExpectRollback()
 
 	err := repo.CompleteTailorRunSuccess(context.Background(), resumestore.CompleteTailorRunSuccessInput{
+		JobID:              "job-1",
+		ClaimedAttempts:    1,
 		TailorRunID:        "tailor-1",
 		ResumeID:           "resume-1",
 		OutboxEventID:      "event-1",
 		OutboxEventPayload: []byte(`{}`),
 		Now:                now,
 	})
-	if !errors.Is(err, resumestore.ErrInvalidStateTransition) {
-		t.Fatalf("err = %v, want ErrInvalidStateTransition", err)
+	if !errors.Is(err, runner.ErrStaleLease) {
+		t.Fatalf("err = %v, want ErrStaleLease", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatalf("sql expectations: %v", err)

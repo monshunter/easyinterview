@@ -1,6 +1,7 @@
 feature_key: "report.generate"
 version: "v0.1.0"
 language: "multi"
+status: "inactive"
 dimensions:
   - name: "report_evidence"
     weight: 0.35

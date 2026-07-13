@@ -8,7 +8,9 @@ interface ReportFailureStateProps {
   errorCode: ApiErrorCode | string | null;
   /** True when the failure source is REPORT_NOT_FOUND (HTTP 404 cross-user). */
   notFound?: boolean;
-  onRetry: () => void;
+  contractInvalid?: boolean;
+  recoverable?: boolean;
+  onRetry?: () => void;
   onBackToWorkspace: () => void;
 }
 
@@ -22,17 +24,28 @@ interface ReportFailureStateProps {
 export const ReportFailureState: FC<ReportFailureStateProps> = ({
   errorCode,
   notFound,
+  contractInvalid,
+  recoverable,
   onRetry,
   onBackToWorkspace,
 }) => {
   const { t } = useI18n();
   const isNotFound = notFound || errorCode === "REPORT_NOT_FOUND";
-  const titleKey = isNotFound
-    ? "report.failureState.notFound.title"
-    : "report.failureState.title";
-  const descKey = isNotFound
-    ? "report.failureState.notFound.desc"
-    : "report.failureState.desc";
+  const isOversize = errorCode === "REPORT_CONTEXT_TOO_LARGE";
+  const titleKey = contractInvalid
+    ? "report.failureState.invalidContract.title"
+    : isOversize
+      ? "report.failureState.contextTooLarge.title"
+      : isNotFound
+        ? "report.failureState.notFound.title"
+        : "report.failureState.title";
+  const descKey = contractInvalid
+    ? "report.failureState.invalidContract.desc"
+    : isOversize
+      ? "report.failureState.contextTooLarge.desc"
+      : isNotFound
+        ? "report.failureState.notFound.desc"
+        : "report.failureState.desc";
   const codeLabel = isNotFound
     ? t("report.failureState.errorCode.REPORT_NOT_FOUND")
     : t(failureErrorCodeKey(errorCode));
@@ -40,6 +53,7 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
     <div
       data-testid="report-failure-state"
       data-not-found={isNotFound ? "true" : "false"}
+      data-contract-invalid={contractInvalid ? "true" : "false"}
       className="ei-fadein"
       style={{
         maxWidth: 820,
@@ -114,7 +128,7 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
           {codeLabel}
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {isNotFound ? null : (
+          {recoverable && onRetry ? (
             <button
               type="button"
               data-testid="report-failure-retry-cta"
@@ -132,7 +146,7 @@ export const ReportFailureState: FC<ReportFailureStateProps> = ({
             >
               {t("report.failureState.retry")}
             </button>
-          )}
+          ) : null}
           <button
             type="button"
             data-testid="report-failure-back-to-workspace"

@@ -1,16 +1,25 @@
-# E2E.P0.059 — Pixel parity + i18n + out-of-scope negative gates
+# E2E.P0.059 — Deterministic report/generating parity and stale-contract negatives
 
 > **Owner**: frontend-report-dashboard/001-report-screen-and-generating-handoff
-> **Coverage tags**: C-13 / C-14 / D-12
-> **Execution**: Vitest + Python lint + frontend build + Playwright pixel parity
+> **Coverage tags**: C-5 / C-6 / C-8 / C-10
+> **Execution**: Vitest + Python lint + frontend build + Playwright semantic/pixel parity
 
-Runs the composable gates:
+## Given / When / Then
 
-- `report/__tests__/preflight.test.ts` — keeps the active spec, six plan artifacts, both Playwright sources and this scenario runner bound to executable browser evidence.
-- `reportDashboardI18nCoverage.test.ts` — namespace sync + B1 AI_* enum coverage.
-- `outOfScopeNegative.test.ts` — implementation code negative grep.
-- `scripts/lint/frontend_report_dashboard_out_of_scope.py` — repository-wide scoped grep.
-- `pnpm --filter @easyinterview/frontend build` — compile the frontend bundle before visual parity.
-- `pnpm --filter @easyinterview/frontend test:pixel-parity -- tests/pixel-parity/generating.spec.ts tests/pixel-parity/report.spec.ts` — execute seven generating/report states across desktop and mobile; every state captures an in-memory screenshot and asserts that its buffer is non-empty.
+- **Given** prototype and formal surfaces receive identical deterministic API fixtures, fixed locale/timezone/Date, DPR 1, loaded fonts and disabled animation/transition.
+- **When** the runner executes zh needs-practice, en well-prepared and honest generating surfaces at 1440×900 and 390×844.
+- **Then** normalized DOM text, selected computed style and absolute bounding boxes match; `pixelmatch` uses threshold 0.1 and the changed-pixel ratio is at most 0.5%. A mismatch retains prototype/formal/diff images for diagnosis.
 
-The verify step reads `trigger.log` and fails unless the owner/browser preflight marker, both Playwright spec paths and the Playwright pass marker are present. The scenario does not create or maintain image-comparison files.
+The source/geometry checks are first-class gates. A screenshot capture by itself is not acceptance evidence, and viewport-relative root coordinates must not be normalized away.
+
+## Composed gates
+
+- `preflight.test.ts` binds active owner docs, both Playwright specs and the shared comparison helper to DOM/style/bbox, absolute viewport geometry and pixel-difference evidence.
+- `reportDashboardI18nCoverage.test.ts` proves exact zh/en UI-key coverage while model-owned report-language prose remains unchanged.
+- Report/generating out-of-scope tests plus `frontend_report_dashboard_out_of_scope.py` reject fake-live copy, client focus authority and stale report identifiers.
+- Frontend build succeeds before browser execution.
+- `generating.spec.ts` and `report.spec.ts` use the identical fixture bridge for prototype/formal pages, compare deterministic semantic snapshots and enforce pixelmatch ≤0.5% at both viewport widths.
+
+## Failure artifacts
+
+Playwright attaches prototype/formal/diff PNGs only when dimensions or changed-pixel ratio fail. Cleanup removes successful-run output and preserves failure diagnostics for investigation.

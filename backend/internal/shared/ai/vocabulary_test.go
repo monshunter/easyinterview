@@ -149,14 +149,15 @@ func TestAIProviderRegistryAndProfileFieldVocabulary(t *testing.T) {
 	}
 
 	modelProfileFields := map[string]ModelProfileFieldName{
-		"name":               ModelProfileFieldNameName,
-		"capability":         ModelProfileFieldNameCapability,
-		"status":             ModelProfileFieldNameStatus,
-		"unsupported_reason": ModelProfileFieldNameUnsupportedReason,
-		"provider_ref":       ModelProfileFieldNameProviderRef,
-		"fallback":           ModelProfileFieldNameFallback,
-		"timeout_ms":         ModelProfileFieldNameTimeoutMs,
-		"privacy_policy":     ModelProfileFieldNamePrivacyPolicy,
+		"name":                  ModelProfileFieldNameName,
+		"capability":            ModelProfileFieldNameCapability,
+		"status":                ModelProfileFieldNameStatus,
+		"unsupported_reason":    ModelProfileFieldNameUnsupportedReason,
+		"provider_ref":          ModelProfileFieldNameProviderRef,
+		"fallback":              ModelProfileFieldNameFallback,
+		"timeout_ms":            ModelProfileFieldNameTimeoutMs,
+		"context_window_tokens": ModelProfileFieldNameContextWindowTokens,
+		"privacy_policy":        ModelProfileFieldNamePrivacyPolicy,
 	}
 	for wire, field := range modelProfileFields {
 		if string(field) != wire {

@@ -29,6 +29,7 @@ from textwrap import dedent
 import yaml
 
 HERE = Path(__file__).resolve().parent
+REPO_ROOT = HERE.parent.parent
 sys.path.insert(0, str(HERE))
 
 import openapi_diff as od  # noqa: E402  (path setup above)
@@ -324,6 +325,132 @@ class HistoryGateTests(unittest.TestCase):
 
     def test_operation_count_counts_operation_ids(self) -> None:
         self.assertEqual(od._operation_count(_baseline_doc()), 3)
+
+
+class OpenAPI001OracleTests(unittest.TestCase):
+    def test_exact_set_rejects_missing_unexpected_and_severity_drift(self) -> None:
+        expected = [
+            {
+                "severity": "breaking",
+                "path": "/components/schemas/FeedbackReport/properties/context",
+                "kind": "required_property_added",
+                "before": "absent",
+                "after": "ReportContextSnapshot",
+            }
+        ]
+        self.assertEqual([], od.compare_finding_sets(expected, copy.deepcopy(expected)))
+
+        missing = od.compare_finding_sets(expected, [])
+        self.assertTrue(any("missing" in error for error in missing), missing)
+
+        unexpected_finding = {**expected[0], "path": "/unexpected"}
+        unexpected = od.compare_finding_sets(expected, [*expected, unexpected_finding])
+        self.assertTrue(any("unexpected" in error for error in unexpected), unexpected)
+
+        drifted = [{**expected[0], "severity": "additive"}]
+        severity = od.compare_finding_sets(expected, drifted)
+        self.assertTrue(any("missing" in error for error in severity), severity)
+        self.assertTrue(any("unexpected" in error for error in severity), severity)
+
+    def test_decision_record_requires_matching_accepted_id(self) -> None:
+        accepted = "# Decision\n\n> **ID**: OPENAPI-001\n> **状态**: accepted\n"
+        self.assertEqual([], od.validate_decision_record(accepted, "OPENAPI-001"))
+        self.assertTrue(od.validate_decision_record(accepted.replace("accepted", "draft"), "OPENAPI-001"))
+        self.assertTrue(od.validate_decision_record(accepted, "OPENAPI-999"))
+
+    def test_normalized_conditional_and_error_enum_findings(self) -> None:
+        baseline = {
+            "components": {
+                "schemas": {
+                    "CreatePracticePlanRequest": {
+                        "type": "object",
+                        "required": [
+                            "targetJobId",
+                            "goal",
+                            "interviewerPersona",
+                            "difficulty",
+                            "language",
+                            "timeBudgetMinutes",
+                            "resumeId",
+                        ],
+                        "properties": {
+                            "goal": {"type": "string"},
+                            "targetJobId": {"type": "string"},
+                        },
+                    },
+                    "ApiErrorCode": {"type": "string", "enum": ["REPORT_NOT_READY"]},
+                }
+            }
+        }
+        current = copy.deepcopy(baseline)
+        request = current["components"]["schemas"]["CreatePracticePlanRequest"]
+        request["required"] = ["goal"]
+        request["additionalProperties"] = False
+        request["properties"]["sourceReportId"] = {"type": "string", "format": "uuid"}
+        request["oneOf"] = [
+            {"properties": {"goal": {"const": "baseline"}}, "not": {"required": ["sourceReportId"]}},
+            {
+                "required": ["goal", "sourceReportId"],
+                "properties": {"goal": {"enum": ["retry_current_round", "next_round"]}},
+            },
+        ]
+        current["components"]["schemas"]["ApiErrorCode"]["enum"].append(
+            "REPORT_CONTEXT_TOO_LARGE"
+        )
+
+        findings = od.normalize_openapi_001_findings(baseline, current)
+
+        self.assertIn(
+            {
+                "severity": "breaking",
+                "path": "/components/schemas/CreatePracticePlanRequest/oneOf",
+                "kind": "conditional_contract_added",
+                "before": "absent",
+                "after": "baseline-required-fields-sourceReportId-forbidden|derived-retry-next-sourceReportId-required-nonnull-only",
+            },
+            findings,
+        )
+
+    def test_repo_openapi_001_preserved_audit_exact_matches_machine_oracle(self) -> None:
+        audit = json.loads(
+            (
+                REPO_ROOT
+                / "openapi/baseline/audits/OPENAPI-001-report-direct-semantics.json"
+            ).read_text(encoding="utf-8")
+        )
+        source_kind, source_ref, source_path = audit["baselineSource"].split(":", 2)
+        self.assertEqual("git", source_kind)
+        baseline_text = od._git_show(REPO_ROOT, source_ref, REPO_ROOT / source_path)
+        self.assertIsNotNone(baseline_text)
+        baseline = yaml.safe_load(baseline_text)
+        current = yaml.safe_load(
+            (REPO_ROOT / "openapi/openapi.yaml").read_text(encoding="utf-8")
+        )
+        oracle = json.loads(
+            (
+                REPO_ROOT
+                / "docs/spec/openapi-v1-contract/decisions/OPENAPI-001-report-direct-semantics.expected-findings.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        findings = od.normalize_openapi_001_findings(baseline, current)
+
+        self.assertEqual([], od.compare_finding_sets(oracle["findings"], findings))
+        self.assertEqual([], od.compare_finding_sets(audit["findings"], findings))
+        self.assertEqual(36, len(findings))
+        self.assertEqual(33, sum(finding["severity"] == "breaking" for finding in findings))
+        self.assertEqual(3, sum(finding["severity"] == "additive" for finding in findings))
+        self.assertEqual([], od.validate_openapi_001_conditional_contract(current))
+        self.assertIn(
+            {
+                "severity": "additive",
+                "path": "/components/schemas/ApiErrorCode/enum",
+                "kind": "enum_value_added",
+                "before": "absent",
+                "after": "REPORT_CONTEXT_TOO_LARGE",
+            },
+            findings,
+        )
 
 
 class CLIWhitelistTests(unittest.TestCase):

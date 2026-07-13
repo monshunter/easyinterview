@@ -17,6 +17,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
+	"github.com/monshunter/easyinterview/backend/internal/shared/featurekeys"
 	"gopkg.in/yaml.v3"
 )
 
@@ -34,16 +35,43 @@ type JudgeFixture struct {
 		Summary        string   `yaml:"summary"`
 		EvidenceQuotes []string `yaml:"evidence_quotes"`
 	} `yaml:"reasoning"`
+	ItemVerdicts            []ItemVerdictFixture `yaml:"item_verdicts,omitempty"`
+	CausalChecks            []CausalCheckFixture `yaml:"causal_checks,omitempty"`
+	ZeroToleranceViolations []string             `yaml:"zero_tolerance_violations,omitempty"`
+	CriticalSafetyPass      *bool                `yaml:"critical_safety_pass,omitempty"`
+}
+
+type ItemVerdictFixture struct {
+	Path                    string `yaml:"path"`
+	Kind                    string `yaml:"kind"`
+	Support                 string `yaml:"support"`
+	EvidenceLimitedExplicit bool   `yaml:"evidence_limited_explicit"`
+	UsedForNegativeClaim    bool   `yaml:"used_for_negative_claim"`
+	Reason                  string `yaml:"reason"`
+}
+
+type CausalCheckFixture struct {
+	DimensionCode   string `yaml:"dimension_code"`
+	IssueSupported  bool   `yaml:"issue_supported"`
+	FocusSupported  bool   `yaml:"focus_supported"`
+	ActionSupported bool   `yaml:"action_supported"`
+	Reason          string `yaml:"reason"`
 }
 
 // Case is one offline evaluation case.
 type Case struct {
-	ID         string       `yaml:"id"`
-	FeatureKey string       `yaml:"-"`
-	Language   string       `yaml:"language"`
-	Input      string       `yaml:"input"`
-	Output     any          `yaml:"output"`
-	Judge      JudgeFixture `yaml:"judge"`
+	ID            string       `yaml:"id"`
+	FeatureKey    string       `yaml:"-"`
+	Language      string       `yaml:"language"`
+	PromptVersion string       `yaml:"prompt_version,omitempty"`
+	RubricVersion string       `yaml:"rubric_version,omitempty"`
+	Input         string       `yaml:"input"`
+	Context       any          `yaml:"context,omitempty"`
+	Transcript    any          `yaml:"transcript,omitempty"`
+	Critical      bool         `yaml:"critical,omitempty"`
+	Redacted      bool         `yaml:"redacted,omitempty"`
+	Output        any          `yaml:"output"`
+	Judge         JudgeFixture `yaml:"judge"`
 }
 
 // Suite is the loaded eval suite.
@@ -114,7 +142,70 @@ func LoadSuite(dir string) (*Suite, error) {
 		}
 	}
 	sort.Slice(suite.Cases, func(i, j int) bool { return suite.Cases[i].ID < suite.Cases[j].ID })
+	if err := validateGroundedReportCases(suite.Cases); err != nil {
+		return nil, err
+	}
 	return suite, nil
+}
+
+func validateGroundedReportCases(cases []Case) error {
+	count := 0
+	critical := 0
+	outputs := map[string]string{}
+	for _, c := range cases {
+		if c.FeatureKey != string(featurekeys.ReportGenerate) {
+			continue
+		}
+		count++
+		if c.PromptVersion != "v0.2.0" || c.RubricVersion != "v0.2.0" {
+			return fmt.Errorf("eval: report case %q must pin prompt/rubric v0.2.0", c.ID)
+		}
+		if c.Context == nil || c.Transcript == nil {
+			return fmt.Errorf("eval: report case %q requires context and transcript", c.ID)
+		}
+		if c.Language != "en" && c.Language != "zh-CN" {
+			return fmt.Errorf("eval: report case %q runtime language must be en or zh-CN", c.ID)
+		}
+		contextRaw, err := json.Marshal(c.Context)
+		if err != nil {
+			return fmt.Errorf("eval: marshal report case %q context: %w", c.ID, err)
+		}
+		var reportContext struct {
+			Language string `json:"language"`
+		}
+		if err := json.Unmarshal(contextRaw, &reportContext); err != nil {
+			return fmt.Errorf("eval: parse report case %q context: %w", c.ID, err)
+		}
+		if reportContext.Language != c.Language {
+			return fmt.Errorf("eval: report case %q runtime language must match context language", c.ID)
+		}
+		transcript, err := json.Marshal(c.Transcript)
+		var messages []json.RawMessage
+		if err != nil || json.Unmarshal(transcript, &messages) != nil || len(messages) == 0 {
+			return fmt.Errorf("eval: report case %q transcript must be a non-empty array", c.ID)
+		}
+		if !c.Redacted {
+			return fmt.Errorf("eval: report case %q must declare redacted tracked data", c.ID)
+		}
+		if c.Critical {
+			critical++
+		}
+		output, err := json.Marshal(c.Output)
+		if err != nil {
+			return fmt.Errorf("eval: marshal report case %q output: %w", c.ID, err)
+		}
+		if previous := outputs[string(output)]; previous != "" {
+			return fmt.Errorf("eval: report cases %q and %q reuse the same output", previous, c.ID)
+		}
+		outputs[string(output)] = c.ID
+	}
+	if count == 0 {
+		return nil
+	}
+	if count != 5 || critical != 3 {
+		return fmt.Errorf("eval: grounded report suite requires exactly 5 cases and 3 critical cases; got %d/%d", count, critical)
+	}
+	return nil
 }
 
 // Result is the offline grading outcome for one case.
@@ -123,6 +214,7 @@ type Result struct {
 	FeatureKey string
 	Scores     []registry.Score
 	Reasoning  registry.Reasoning
+	Critical   bool
 	Err        error
 }
 
@@ -146,8 +238,12 @@ func (f fixtureJudgeModel) CompleteJudge(_ context.Context, _ string, _ aiclient
 // judgeWire mirrors the strict JSON shape registry.LLMJudge expects from a
 // judge model so a recorded fixture replays exactly like a live response.
 type judgeWire struct {
-	Scores    []wireScore   `json:"scores"`
-	Reasoning wireReasoning `json:"reasoning"`
+	Scores                  []wireScore       `json:"scores"`
+	Reasoning               wireReasoning     `json:"reasoning"`
+	ItemVerdicts            []wireItemVerdict `json:"item_verdicts,omitempty"`
+	CausalChecks            []wireCausalCheck `json:"causal_checks,omitempty"`
+	ZeroToleranceViolations []string          `json:"zero_tolerance_violations,omitempty"`
+	CriticalSafetyPass      *bool             `json:"critical_safety_pass,omitempty"`
 }
 
 type wireScore struct {
@@ -160,10 +256,43 @@ type wireReasoning struct {
 	EvidenceQuotes []string `json:"evidence_quotes"`
 }
 
+type wireItemVerdict struct {
+	Path                    string `json:"path"`
+	Kind                    string `json:"kind"`
+	Support                 string `json:"support"`
+	EvidenceLimitedExplicit bool   `json:"evidence_limited_explicit"`
+	UsedForNegativeClaim    bool   `json:"used_for_negative_claim"`
+	Reason                  string `json:"reason"`
+}
+
+type wireCausalCheck struct {
+	DimensionCode   string `json:"dimension_code"`
+	IssueSupported  bool   `json:"issue_supported"`
+	FocusSupported  bool   `json:"focus_supported"`
+	ActionSupported bool   `json:"action_supported"`
+	Reason          string `json:"reason"`
+}
+
 func toWireScores(scores []DimensionScore) []wireScore {
 	out := make([]wireScore, len(scores))
 	for i, s := range scores {
 		out[i] = wireScore(s)
+	}
+	return out
+}
+
+func toWireItemVerdicts(items []ItemVerdictFixture) []wireItemVerdict {
+	out := make([]wireItemVerdict, len(items))
+	for i, item := range items {
+		out[i] = wireItemVerdict(item)
+	}
+	return out
+}
+
+func toWireCausalChecks(checks []CausalCheckFixture) []wireCausalCheck {
+	out := make([]wireCausalCheck, len(checks))
+	for i, check := range checks {
+		out[i] = wireCausalCheck(check)
 	}
 	return out
 }
@@ -186,21 +315,25 @@ func (s *Suite) RunOffline(ctx context.Context, reg RubricProvider) ([]Result, e
 }
 
 func (s *Suite) gradeOffline(ctx context.Context, reg RubricProvider, c Case) Result {
-	res := Result{CaseID: c.ID, FeatureKey: c.FeatureKey}
+	res := Result{CaseID: c.ID, FeatureKey: c.FeatureKey, Critical: c.Critical}
 	outputBytes, err := json.Marshal(c.Output)
 	if err != nil {
 		res.Err = fmt.Errorf("marshal output: %w", err)
 		return res
 	}
 	transcript, err := json.Marshal(judgeWire{
-		Scores:    toWireScores(c.Judge.Scores),
-		Reasoning: wireReasoning{Summary: c.Judge.Reasoning.Summary, EvidenceQuotes: c.Judge.Reasoning.EvidenceQuotes},
+		Scores:                  toWireScores(c.Judge.Scores),
+		Reasoning:               wireReasoning{Summary: c.Judge.Reasoning.Summary, EvidenceQuotes: c.Judge.Reasoning.EvidenceQuotes},
+		ItemVerdicts:            toWireItemVerdicts(c.Judge.ItemVerdicts),
+		CausalChecks:            toWireCausalChecks(c.Judge.CausalChecks),
+		ZeroToleranceViolations: c.Judge.ZeroToleranceViolations,
+		CriticalSafetyPass:      c.Judge.CriticalSafetyPass,
 	})
 	if err != nil {
 		res.Err = fmt.Errorf("marshal judge fixture: %w", err)
 		return res
 	}
-	resolution, err := reg.ResolveActive(ctx, c.FeatureKey, c.Language)
+	resolution, err := ResolveCase(ctx, reg, c)
 	if err != nil {
 		res.Err = fmt.Errorf("resolve active prompt: %w", err)
 		return res
@@ -212,8 +345,89 @@ func (s *Suite) gradeOffline(ctx context.Context, reg RubricProvider, c Case) Re
 	}
 	// PromptVersion/RubricVersion follow the active registry coordinate so the
 	// eval gate tracks future prompt/rubric upgrades instead of pinning v0.1.0.
+	if c.FeatureKey == string(featurekeys.ReportGenerate) {
+		evidence, evidenceErr := judgeContext(c)
+		if evidenceErr != nil {
+			res.Err = evidenceErr
+			return res
+		}
+		res.Scores, res.Reasoning, res.Err = judge.JudgeWithContext(ctx, c.FeatureKey, resolution.PromptVersion, outputBytes, resolution.RubricVersion, evidence)
+		if res.Err == nil {
+			res.Err = validateReportScores(reg, resolution.RubricVersion, res.Scores)
+		}
+		return res
+	}
 	res.Scores, res.Reasoning, res.Err = judge.Judge(ctx, c.FeatureKey, resolution.PromptVersion, outputBytes, resolution.RubricVersion)
 	return res
+}
+
+// ResolveCase returns the active coordinate for ordinary cases or the exact
+// inactive candidate coordinate pinned by a pre-activation evaluation case.
+func ResolveCase(ctx context.Context, reg RubricProvider, c Case) (registry.PromptResolution, error) {
+	resolution, err := reg.ResolveActive(ctx, c.FeatureKey, c.Language)
+	if err != nil {
+		return registry.PromptResolution{}, err
+	}
+	if c.PromptVersion == "" && c.RubricVersion == "" {
+		return resolution, nil
+	}
+	if c.PromptVersion == "" || c.RubricVersion == "" {
+		return registry.PromptResolution{}, fmt.Errorf("eval: case %q must pin prompt and rubric together", c.ID)
+	}
+	meta, body, err := reg.GetPrompt(c.FeatureKey, c.PromptVersion, "multi")
+	if err != nil {
+		return registry.PromptResolution{}, fmt.Errorf("eval: case %q prompt version: %w", c.ID, err)
+	}
+	if _, err := reg.GetRubric(c.FeatureKey, c.RubricVersion, "multi"); err != nil {
+		return registry.PromptResolution{}, fmt.Errorf("eval: case %q rubric version: %w", c.ID, err)
+	}
+	resolution.PromptVersion = c.PromptVersion
+	resolution.RubricVersion = c.RubricVersion
+	resolution.UserMessageTemplate = body
+	resolution.OutputSchema = meta.OutputSchema
+	return resolution, nil
+}
+
+func judgeContext(c Case) (registry.JudgeContext, error) {
+	contextJSON, err := json.Marshal(c.Context)
+	if err != nil {
+		return registry.JudgeContext{}, fmt.Errorf("eval: marshal case %q context: %w", c.ID, err)
+	}
+	transcriptJSON, err := json.Marshal(c.Transcript)
+	if err != nil {
+		return registry.JudgeContext{}, fmt.Errorf("eval: marshal case %q transcript: %w", c.ID, err)
+	}
+	return registry.JudgeContext{FrozenContext: contextJSON, Transcript: transcriptJSON}, nil
+}
+
+func validateReportScores(reg RubricProvider, rubricVersion string, scores []registry.Score) error {
+	_, err := ReportWeightedScore(reg, rubricVersion, scores)
+	return err
+}
+
+// ReportWeightedScore validates the locked report score thresholds and returns
+// the weighted result using the registry rubric as the sole weight source.
+// Live UAT consumers use this value instead of copying evaluator weights.
+func ReportWeightedScore(reg RubricProvider, rubricVersion string, scores []registry.Score) (float64, error) {
+	rubric, err := reg.GetRubric(string(featurekeys.ReportGenerate), rubricVersion, "multi")
+	if err != nil {
+		return 0, err
+	}
+	weights := make(map[string]float64, len(rubric.Dimensions))
+	for _, dimension := range rubric.Dimensions {
+		weights[dimension.Name] = dimension.Weight
+	}
+	weighted := 0.0
+	for _, score := range scores {
+		if score.Value < 0.70 {
+			return 0, fmt.Errorf("eval: report dimension %s score %.3f is below 0.70", score.Dimension, score.Value)
+		}
+		weighted += score.Value * weights[score.Dimension]
+	}
+	if weighted < 0.80 {
+		return 0, fmt.Errorf("eval: report weighted score %.3f is below 0.80", weighted)
+	}
+	return weighted, nil
 }
 
 // CaseByID returns the case with the given id.
@@ -235,8 +449,12 @@ func (c Case) OutputJSON() ([]byte, error) {
 // JSON a judge model would return.
 func (c Case) JudgeTranscript() ([]byte, error) {
 	return json.Marshal(judgeWire{
-		Scores:    toWireScores(c.Judge.Scores),
-		Reasoning: wireReasoning{Summary: c.Judge.Reasoning.Summary, EvidenceQuotes: c.Judge.Reasoning.EvidenceQuotes},
+		Scores:                  toWireScores(c.Judge.Scores),
+		Reasoning:               wireReasoning{Summary: c.Judge.Reasoning.Summary, EvidenceQuotes: c.Judge.Reasoning.EvidenceQuotes},
+		ItemVerdicts:            toWireItemVerdicts(c.Judge.ItemVerdicts),
+		CausalChecks:            toWireCausalChecks(c.Judge.CausalChecks),
+		ZeroToleranceViolations: c.Judge.ZeroToleranceViolations,
+		CriticalSafetyPass:      c.Judge.CriticalSafetyPass,
 	})
 }
 
@@ -244,13 +462,27 @@ func (c Case) JudgeTranscript() ([]byte, error) {
 // fixtureJudgeModel; live callers pass a real JudgeModelClient. It reuses the
 // single registry.LLMJudge implementation.
 func (s *Suite) GradeOutput(ctx context.Context, reg RubricProvider, model registry.JudgeModelClient, c Case, output []byte) ([]registry.Score, registry.Reasoning, error) {
-	resolution, err := reg.ResolveActive(ctx, c.FeatureKey, c.Language)
+	resolution, err := ResolveCase(ctx, reg, c)
 	if err != nil {
 		return nil, registry.Reasoning{}, fmt.Errorf("eval: resolve %s/%s: %w", c.FeatureKey, c.Language, err)
 	}
 	judge, err := registry.NewLLMJudge(reg, model, s.Instruction, registry.WithJudgeRubricLanguage("multi"))
 	if err != nil {
 		return nil, registry.Reasoning{}, err
+	}
+	if c.FeatureKey == string(featurekeys.ReportGenerate) {
+		evidence, err := judgeContext(c)
+		if err != nil {
+			return nil, registry.Reasoning{}, err
+		}
+		scores, reasoning, err := judge.JudgeWithContext(ctx, c.FeatureKey, resolution.PromptVersion, output, resolution.RubricVersion, evidence)
+		if err != nil {
+			return nil, registry.Reasoning{}, err
+		}
+		if err := validateReportScores(reg, resolution.RubricVersion, scores); err != nil {
+			return nil, registry.Reasoning{}, err
+		}
+		return scores, reasoning, nil
 	}
 	return judge.Judge(ctx, c.FeatureKey, resolution.PromptVersion, output, resolution.RubricVersion)
 }
@@ -303,7 +535,7 @@ func (s *Suite) ResolveAll(ctx context.Context, reg RubricProvider) (map[string]
 		if _, ok := out[key]; ok {
 			continue
 		}
-		res, err := reg.ResolveActive(ctx, c.FeatureKey, c.Language)
+		res, err := ResolveCase(ctx, reg, c)
 		if err != nil {
 			return nil, fmt.Errorf("eval: resolve %s/%s: %w", c.FeatureKey, c.Language, err)
 		}

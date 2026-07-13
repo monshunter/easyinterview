@@ -9,6 +9,19 @@ function isDerivedReportGoal(goal: string): goal is PracticeGoal {
   return goal === "retry_current_round" || goal === "next_round";
 }
 
+function canonicalPracticeLanguage(language: string): "en" | "zh-CN" {
+  switch (language.trim().toLowerCase()) {
+    case "en":
+      return "en";
+    case "zh":
+    case "zh_cn":
+    case "zh-cn":
+      return "zh-CN";
+    default:
+      throw new Error("invalid language");
+  }
+}
+
 /**
  * Builds a CreatePracticePlanRequest from InterviewContext per plan §4.2 mapping.
  */
@@ -17,6 +30,15 @@ export function buildCreatePlanRequest(
   lang: string,
   timeBudgetMinutes: number,
 ): CreatePracticePlanRequest {
+  const goal: PracticeGoal = isDerivedReportGoal(ctx.practiceGoal)
+    ? ctx.practiceGoal
+    : "baseline";
+  if (isDerivedReportGoal(goal)) {
+    const sourceReportId = normalizeServerBoundId(ctx.sourceReportId);
+    if (!sourceReportId) throw new Error("invalid sourceReportId");
+    return { goal, sourceReportId };
+  }
+
   const targetJobId = normalizeServerBoundId(ctx.targetJobId);
   if (!targetJobId) {
     throw new Error("invalid targetJobId");
@@ -34,28 +56,16 @@ export function buildCreatePlanRequest(
     throw new Error("invalid roundId");
   }
 
-  const goal: PracticeGoal = isDerivedReportGoal(ctx.practiceGoal)
-    ? ctx.practiceGoal
-    : "baseline";
   const body: CreatePracticePlanRequest = {
     targetJobId,
     goal,
     interviewerPersona: "hiring_manager",
     difficulty: "standard",
-    language: lang,
+    language: canonicalPracticeLanguage(lang),
     timeBudgetMinutes,
     resumeId,
     roundId,
-    focusCompetencyCodes: [],
   };
-
-  if (isDerivedReportGoal(goal)) {
-    const sourceReportId = normalizeServerBoundId(ctx.sourceReportId);
-    if (!sourceReportId) {
-      throw new Error("invalid sourceReportId");
-    }
-    body.sourceReportId = sourceReportId;
-  }
 
   return body;
 }

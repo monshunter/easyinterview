@@ -1,33 +1,18 @@
 /**
  * @vitest-environment jsdom
  *
- * Phase 2.7 — ReportMissingSessionState focused gate.
+ * ReportMissingState reportId-only boundary gate.
  */
 
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-import { ReportMissingSessionState } from "../components/ReportMissingSessionState";
+import { ReportMissingState } from "../components/ReportMissingState";
 
-describe("ReportMissingSessionState", () => {
-  it("renders the eyebrow + title + desc + back CTA and wires the handler (TestReportMissingSessionNavigatesWorkspace)", () => {
+describe("ReportMissingState", () => {
+  it("renders the missing-report state and wires the back handler", () => {
     const onBack = vi.fn();
-    render(<ReportMissingSessionState onBackToWorkspace={onBack} />);
-    expect(screen.getByTestId("report-missing-session-eyebrow")).toBeInTheDocument();
-    expect(screen.getByTestId("report-missing-session-title")).toBeInTheDocument();
-    expect(screen.getByTestId("report-missing-session-desc")).toBeInTheDocument();
-    screen.getByTestId("report-missing-session-cta").click();
-    expect(onBack).toHaveBeenCalledTimes(1);
-  });
-
-  it("renders the missing-report variant with distinct testids", () => {
-    const onBack = vi.fn();
-    render(
-      <ReportMissingSessionState
-        kind="missingReport"
-        onBackToWorkspace={onBack}
-      />,
-    );
+    render(<ReportMissingState onBackToWorkspace={onBack} />);
     expect(screen.getByTestId("report-missing-report-eyebrow")).toBeInTheDocument();
     expect(screen.getByTestId("report-missing-report-title")).toBeInTheDocument();
     expect(screen.getByTestId("report-missing-report-desc")).toBeInTheDocument();

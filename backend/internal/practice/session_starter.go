@@ -61,10 +61,16 @@ type SessionReservation struct {
 	Seniority           string
 	TopSkills           []string
 	ResumeContext       string
-	FocusCompetencies   []string
+	SemanticFocus       []SemanticFocusDimension
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
 	ReplaySession       *SessionRecord
+}
+
+type SemanticFocusDimension struct {
+	Code   string   `json:"code"`
+	Label  string   `json:"label"`
+	Issues []string `json:"issues"`
 }
 
 type CommitSessionStartInput struct {
@@ -262,7 +268,10 @@ func renderPracticeChatTemplate(template string, reservation SessionReservation,
 	resumeContext := strings.TrimSpace(reservation.ResumeContext)
 	interviewRound := formatPracticeRoundContext(reservation)
 	practiceGoal := fallbackText(string(reservation.Goal), string(sharedtypes.PracticeGoalBaseline))
-	focusCompetencies := fallbackList(reservation.FocusCompetencies, "follow the strongest unresolved signal")
+	semanticFocus := reservation.SemanticFocus
+	if semanticFocus == nil {
+		semanticFocus = []SemanticFocusDimension{}
+	}
 	conversationHistory := fallbackList(historyValues, "empty; open the conversation naturally")
 	return strings.TrimSpace(strings.NewReplacer(
 		"{{language}}", systemLanguage,
@@ -271,7 +280,6 @@ func renderPracticeChatTemplate(template string, reservation SessionReservation,
 		"{{resume_context}}", resumeContext,
 		"{{interview_round}}", interviewRound,
 		"{{practice_goal}}", practiceGoal,
-		"{{focus_competencies}}", focusCompetencies,
 		"{{conversation_history}}", conversationHistory,
 		"{{language_json}}", jsonTemplateString(language),
 		"{{interviewer_persona_json}}", jsonTemplateString(persona),
@@ -279,7 +287,7 @@ func renderPracticeChatTemplate(template string, reservation SessionReservation,
 		"{{resume_context_json}}", jsonTemplateString(resumeContext),
 		"{{interview_round_json}}", jsonTemplateString(interviewRound),
 		"{{practice_goal_json}}", jsonTemplateString(practiceGoal),
-		"{{focus_competencies_json}}", jsonTemplateString(focusCompetencies),
+		"{{semantic_focus_json}}", jsonTemplateValue(semanticFocus),
 		"{{conversation_history_json}}", jsonTemplateString(conversationHistory),
 	).Replace(template))
 }
@@ -310,6 +318,11 @@ func splitPracticeChatPrompt(rendered string) (string, string) {
 }
 
 func jsonTemplateString(value string) string {
+	encoded, _ := json.Marshal(value)
+	return string(encoded)
+}
+
+func jsonTemplateValue(value any) string {
 	encoded, _ := json.Marshal(value)
 	return string(encoded)
 }

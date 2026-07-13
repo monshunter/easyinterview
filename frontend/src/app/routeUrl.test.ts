@@ -93,13 +93,13 @@ describe("serializeRouteToUrl", () => {
     ).toBe("/");
   });
 
-  it("retains generating/report/resume_versions deep-link params", () => {
+  it("retains only reportId for generating/report deep links", () => {
     expect(
       formatRouteUrl({
         name: "generating",
         params: { sessionId: "s-1", reportId: "rpt-1" },
       }),
-    ).toBe("/generating?reportId=rpt-1&sessionId=s-1");
+    ).toBe("/generating?reportId=rpt-1");
 
     expect(
       formatRouteUrl({
@@ -111,9 +111,7 @@ describe("serializeRouteToUrl", () => {
           errorCode: "AI_PROVIDER_TIMEOUT",
         },
       }),
-    ).toBe(
-      "/report?errorCode=AI_PROVIDER_TIMEOUT&reportId=rpt-1&reportStatus=failed&sessionId=s-1",
-    );
+    ).toBe("/report?reportId=rpt-1");
 
     expect(
       formatRouteUrl({
@@ -353,7 +351,7 @@ describe("parseUrlToRoute", () => {
     });
   });
 
-  it("parses canonical report deep link with reportStatus + errorCode", () => {
+  it("parses canonical report deep links with reportId as the sole locator", () => {
     expect(
       parseUrlToRoute(
         "/report?sessionId=s-1&reportId=rpt-1&reportStatus=failed&errorCode=AI_PROVIDER_TIMEOUT",
@@ -361,10 +359,7 @@ describe("parseUrlToRoute", () => {
     ).toEqual({
       name: "report",
       params: {
-        sessionId: "s-1",
         reportId: "rpt-1",
-        reportStatus: "failed",
-        errorCode: "AI_PROVIDER_TIMEOUT",
       },
     });
   });
@@ -495,8 +490,10 @@ describe("isSafeRouteParam", () => {
     expect(isSafeRouteParam("workspace", "replayItems", {})).toBe(false);
     expect(isSafeRouteParam("workspace", "evidenceGaps", {})).toBe(false);
     expect(isSafeRouteParam("workspace", "nextRoundId", {})).toBe(false);
-    expect(isSafeRouteParam("report", "reportStatus", {})).toBe(true);
-    expect(isSafeRouteParam("report", "errorCode", {})).toBe(true);
+    expect(isSafeRouteParam("report", "reportId", {})).toBe(true);
+    expect(isSafeRouteParam("report", "reportStatus", {})).toBe(false);
+    expect(isSafeRouteParam("report", "errorCode", {})).toBe(false);
+    expect(isSafeRouteParam("generating", "sessionId", {})).toBe(false);
     expect(isSafeRouteParam("resume_versions", "tailorRunId", {})).toBe(false);
     expect(isSafeRouteParam("parse", "resumeId", {})).toBe(true);
     expect(isSafeRouteParam("home", "resumeId", {})).toBe(true);

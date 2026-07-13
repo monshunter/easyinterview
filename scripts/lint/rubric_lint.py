@@ -22,6 +22,7 @@ LANGUAGE_RE = re.compile(r"^multi$|^[a-z]{2,3}$")
 LANGUAGE_OVERRIDE_ALLOWLIST: set[tuple[str, str, str]] = set()
 WEIGHT_TOLERANCE = 0.001
 MIN_SCORE_LEVELS = 3
+STATUS_ENUM = {"active", "inactive"}
 
 # F1/F3 quality metrics + business-domain dimension allowlist (mirrors
 # config/rubrics/README.md §3). Adding a dimension requires updating both
@@ -96,6 +97,12 @@ def lint_rubric_yaml(yaml_path: pathlib.Path) -> list[str]:
                 f"{yaml_path}: yaml language '{language}' does not match filename '{filename_lang}'"
             )
 
+    status = parsed.get("status")
+    if status not in STATUS_ENUM:
+        errors.append(
+            f"{yaml_path}: status {status!r} violates active|inactive activation metadata"
+        )
+
     dimensions = parsed.get("dimensions")
     if not isinstance(dimensions, list) or not dimensions:
         errors.append(f"{yaml_path}: dimensions must be a non-empty list")
@@ -162,6 +169,7 @@ def lint_rubrics_directory(root: pathlib.Path) -> list[str]:
 def lint_language_coordinates(root: pathlib.Path) -> list[str]:
     errors: list[str] = []
     by_feature_version: dict[tuple[str, str], list[tuple[pathlib.Path, str]]] = {}
+    by_coordinate: dict[tuple[str, str], list[tuple[pathlib.Path, str, str]]] = {}
 
     for yaml_path in sorted(p for p in root.rglob("*.yaml") if p.is_file()):
         try:
@@ -173,9 +181,11 @@ def lint_language_coordinates(root: pathlib.Path) -> list[str]:
         feature_key = parsed.get("feature_key")
         version = parsed.get("version")
         language = parsed.get("language")
+        status = parsed.get("status")
         if not all(isinstance(v, str) and v for v in (feature_key, version, language)):
             continue
         by_feature_version.setdefault((feature_key, version), []).append((yaml_path, language))
+        by_coordinate.setdefault((feature_key, language), []).append((yaml_path, version, status))
 
         if language != "multi" and (
             feature_key,
@@ -192,6 +202,21 @@ def lint_language_coordinates(root: pathlib.Path) -> list[str]:
         if "multi" not in languages:
             first_path = entries[0][0]
             errors.append(f"{first_path}: feature/version {feature_key} {version} missing multi rubric")
+
+    for (feature_key, language), entries in sorted(by_coordinate.items()):
+        versions = [version for _, version, _ in entries]
+        duplicate_versions = sorted({version for version in versions if versions.count(version) > 1})
+        if duplicate_versions:
+            errors.append(
+                f"{entries[0][0]}: duplicate rubric versions for {feature_key}/{language}: "
+                f"{duplicate_versions}"
+            )
+        active_versions = [version for _, version, status in entries if status == "active"]
+        if len(active_versions) != 1:
+            errors.append(
+                f"{entries[0][0]}: {feature_key}/{language} must have exactly one active rubric; "
+                f"got {active_versions}"
+            )
 
     return errors
 

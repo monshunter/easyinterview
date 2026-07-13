@@ -1,8 +1,8 @@
 # Internal Job and Outbox Runner Test Plan
 
-> **版本**: 1.7
+> **版本**: 1.11
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
 **关联 Checklist**: [checklist](./checklist.md)
@@ -11,7 +11,7 @@
 
 ## 1 测试目标
 
-为 backend in-process runtime kernel + outbox dispatcher 提供跨 phase 的覆盖矩阵；保证 D-1~D-14 决策的实现路径都有可执行测试断言，并把既有 owner 域 handler 的回归基线纳入本计划，避免迁移过程中行为漂移。
+为 backend in-process runtime kernel + outbox dispatcher 提供跨 phase 的覆盖矩阵；保证 D-1~D-15 决策的实现路径都有可执行测试断言，并把既有 owner 域 handler 的回归基线纳入本计划，避免迁移过程中行为漂移。
 
 ## 2 覆盖矩阵
 
@@ -22,7 +22,7 @@
 | P1-1 | spec D-1 / D-2 kernel 接口 | 1 | `backend/internal/runner/runtime_test.go::TestRuntime_RegisterAndRunOnce` | unit |
 | P1-2 | spec D-3 lease SQL contract | 1 | `backend/internal/runner/lease_integration_test.go::TestLeaseAsyncJob_ClaimsQueuedRow` | integration (PG) |
 | P1-3 | spec D-3 finalize succeed/retry/fail | 1 | `backend/internal/runner/lease_integration_test.go::TestFinalizeAsyncJob_*` | integration (PG) |
-| P1-4 | spec D-4 退避表 | 1 | `backend/internal/runner/backoff_test.go::TestBackoffPolicy_Next_Table` | unit |
+| P1-4 | spec D-4 business/infra退避分层 | 1/5 | `TestBackoffPolicy_BusinessJobSchedule` + `TestBackoffPolicy_OutboxScheduleRemainsInfrastructurePolicy` | unit |
 | P1-5 | spec D-5 reaper | 1 | `backend/internal/runner/reaper_test.go::TestReaper_ReclaimsExpiredLeases` | unit + integration |
 | P1-6 | spec D-8 shutdown 顺序 | 1 | `backend/internal/runner/runtime_test.go::TestRuntime_GracefulShutdown` | unit |
 | P2-1 | spec C-5 target_import / source_refresh | 2 | `backend/internal/targetjob/pipeline_test.go` + `e2e_scenario_test.go` rerun | regression |
@@ -60,7 +60,7 @@
 
 | 行 | 决策 | Phase | 入口 | 类型 |
 |----|------|-------|------|------|
-| B-1 | spec C-2 退避表 attempts<1 / attempts≥len 边界 | 1 | `backend/internal/runner/backoff_test.go::TestBackoffPolicy_BoundaryAttempts` | unit |
+| B-1 | spec C-2 business 10/20/40/80 cap80与infra 30s/2m/10m/1h/6h边界 | 1/5 | `backend/internal/runner/backoff_test.go::TestBackoffPolicy_BoundaryAttempts` + policy-specific tables | unit |
 | B-2 | spec C-10 outbox batch≤100 边界 | 3 | `backend/internal/runner/outbox_integration_test.go::TestOutboxDispatcher_BatchSizeLimit` | integration |
 | B-3 | spec C-12 outbox at-least-once + consumer idempotency | 3 | `backend/internal/runner/outbox_integration_test.go::TestOutboxDispatcher_DuplicateEventIdHandledIdempotently` | integration |
 | B-4 | spec C-13 `source_event_only` skip | 3 | `backend/internal/runner/outbox_source_event_only_test.go::TestOutboxDispatcher_SkipsSourceEventOnly` | integration |
@@ -76,7 +76,26 @@
 | X-3 | spec D-10 `email_dispatch` payload validator 与 B3 `shared/jobs/jobs.go` 一致 | 3 | `backend/internal/shared/jobs/jobs_test.go::TestEmailDispatchPayloadValidator` + `backend/internal/runner/email_dispatch_integration_test.go` | unit + integration |
 | X-4 | spec D-14 新增 `async.scanIntervalSeconds` / `leaseTimeoutSeconds` / `shutdownGraceSeconds` / `reaperIntervalSeconds` typed config 注入（A4 additive config-only，不新增 env key） | 1 | `backend/internal/platform/config/loader_test.go::TestAsyncSection` + `backend/internal/runner/config_test.go::TestRuntimeConfig_AsyncTimings` | unit + integration |
 | X-5 | B3 D-18 / `shared/jobs.yaml` 8 canonical job_type 当前事实 | 2 / 4 | `python3 scripts/lint/events_inventory.py shared/events.yaml shared/jobs.yaml` + `make lint-runner-out-of-scope` + `backend/internal/shared/jobs/jobs_test.go` | generated contract + lint |
-| X-6 | spec C-9 / C-21 `report_generate` retryable failure 通过 kernel shared `BackoffPolicy` finalize | 4 | `backend/internal/review/generate_handler_test.go::TestGenerateHandler_NormalizesFinalizedRetryableFailureThroughKernel` + `backend/cmd/api/reports_http_scenario_test.go::TestE2EP0054ReportAIFailureAndRetry` + `backend/internal/store/review/persist_report_integration_test.go::TestPersistReportFailureRetryAndPermanent` | unit + scenario + integration (PG) |
+| X-6 | spec C-9 / C-21 `report_generate`产品retry使用动作内10/20/40且新动作清零；runner attempts/max_attempts只作基础设施lease；outbox保留infra schedule | 6 | runner backoff/runtime/outbox tests + backend-review action-retry/store integration + P0.058 v3 | unit + scenario + integration (PG) |
+| X-7 | spec C-24 kernel finalize与当前直接事务generation fencing | 5 | `runner/lease_integration_test.go::TestFinalizeAsyncJob_RejectsStaleLeaseGenerationAfterTakeover` + `store/review/report_backend_evidence_e2e_test.go::TestReportPersistenceFencesStaleLeaseBeforeAnyDomainSideEffect` + `resume/store/tailor_runs_integration_test.go::TestCompleteTailorRunSuccessFencesStaleTakeover` | integration (PG) |
+
+### 2.7 Phase 5 historical policy split
+
+- Runtime default policy exact10s/20s/40s/80s and cap80；all business handlers use it without private schedule.
+- Outbox dispatcher exact30s/2m/10m/1h/6h，attempt5 failed，and never falls back to business policy.
+- HISTORICAL-SUPERSEDED: Report transient failures scheduled through runner10s/20s/40s because durable provider budget4 terminated attempt4.
+- HISTORICAL-SUPERSEDED: Producer/store tests asserted every report_generate row had max_attempts=4 and reservation failure on job attempt4 was terminal.
+- Lease fencing DB matrix：attempt1 running→reap queued→attempt2 running；delayed attempt1 success/retry/failure all affect0 rows and return typed stale。Attempt2 alone may finalize.
+- 当前继续保留的直接事务范围只覆盖report status/success/failure与`resume_tailor` result/outbox：均在业务写入前校验running+claimed attempts；report与tailor takeover tests证明stale worker零副作用，但不再执行report产品attempt预留。
+
+### 2.8 Phase 6 current retry-ownership correction
+
+- Fake waiter/unit tests assert each `GenerateReport` invocation performs initial+at most3 retries with exact waits10s/20s/40s and respects context cancellation.
+- Consecutive-invocation tests assert the first action returning destroys its retry context and the next action restarts from zero; no process crash/replay global <=4 assertion remains.
+- Runner/store integration asserts changing `async_jobs.attempts/max_attempts` affects lease/finalize only and cannot restore, inherit or schedule the product retry context.
+- Fencing tests retain stale-result zero side effects using jobID+claimed attempts while negative assertions reject `llm_attempt_count`, pre-call reserve and report explicit max_attempts4.
+- P0.058 `report-backend-evidence.v3` composes action schedule/reset and async-attempt-separation markers with the existing fail-closed database outcomes.
+- Clean-break structure test拒绝`backend/internal/store/review/{lease_async_job,reaper}.go`、对应Repository方法及重复claim/reaper SQL回流。
 
 ### 2.6 Privacy / security / observability
 
@@ -96,12 +115,13 @@
 | R-2 | spec C-18 owner BDD 场景 rerun | 4 | Script BDD: `E2E.P0.003` / `010` / `011` / `012` / `013` / `033` / `034` / `035` / `077` / `078` / `080`；Go HTTP BDD: `E2E.P0.041` / `052` / `053` / `054` / `055` | BDD regression |
 | R-3 | `git ls-files backend/internal/review` 不含 `runner.go` / `reaper.go` / `lease.go` | 4 | `backend/internal/review/structure_test.go::TestNoOutOfScopeRunnerFiles` 或 lint | structure test |
 | R-4 | `git ls-files backend/internal/auth` 不含 `BackgroundMailDispatcher` 引用 | 4 | `backend/internal/auth/mail_test.go::TestNoBackgroundDispatcher` | unit |
+| R-5 | review store不持有重复lease/reaper owner | 5 | `backend/internal/store/review/structure_test.go::TestReviewStoreDoesNotOwnAsyncJobLeaseFinalizeOrReaper` | structure-negative |
 
-### 2.8 UI source parity
+### 2.9 UI source parity
 
 不适用。本计划是纯后端基建，无 UI 真理源；`ui-design/` 没有对应 prototype。N/A 理由记录在 spec §2.2 与本节。
 
-### 2.9 高风险 N/A
+### 2.10 高风险 N/A
 
 - **跨日 SLA / saga 编排**：N/A，仍走 ADR-Q2 锁定的「秒级-分钟级 + 幂等」范围。
 - **Asynq Redis 队列**：N/A，本 plan 沿用 PG `async_jobs`；future Asynq 替换由 ADR 触发条件成立后另起 plan。
@@ -123,4 +143,4 @@
 
 - 所有 §2 行有对应通过证据（unit / integration / scenario / lint / doc reconcile）。
 - §2.7 R-1 lint 通过；R-2 BDD 场景全 PASS。
-- spec §6 acceptance criteria C-1~C-21（含 C-13a）全部有对应测试入口。
+- spec §6 acceptance criteria C-1~C-24（含 C-13a）全部有对应测试入口。

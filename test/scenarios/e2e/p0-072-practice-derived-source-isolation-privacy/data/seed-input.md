@@ -1,3 +1,3 @@
 # Seed Input — E2E.P0.072
 
-Run `TestE2EP0072PracticeDerivedSourceValidationIsolationPrivacy`.
+Run `TestCreateDerivedPracticePlanRejectsCopiedServerFields` and the PostgreSQL-tagged `TestE2EP0072PracticeDerivedSourceValidationIsolationPrivacy` against schema v19.

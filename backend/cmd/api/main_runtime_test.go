@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/runner"
 	"github.com/monshunter/easyinterview/backend/internal/shared/jobs"
+	"github.com/monshunter/easyinterview/backend/internal/testsupport"
 )
 
 // TestMain_SingleRuntimeShutdown proves spec C-16 / D-1 / D-8: every executable
@@ -57,6 +59,42 @@ func TestMain_SingleRuntimeShutdown(t *testing.T) {
 	defer cancel()
 	if err := kernel.Shutdown(shutdownCtx); err != nil {
 		t.Fatalf("single runtime Shutdown: %v", err)
+	}
+}
+
+func TestMainReportRuntimeHandlerRegistersIntoStartedKernel(t *testing.T) {
+	dir := t.TempDir()
+	promptsDir, rubricsDir := testsupport.ConfigRoots(t)
+	writeAPIFile(t, filepath.Join(dir, "config.yaml"), `
+runtime:
+  appVersion: "1.2.3"
+  defaultUiLanguage: zh-CN
+ai:
+  promptsDir: "`+promptsDir+`"
+  rubricsDir: "`+rubricsDir+`"
+`)
+	loader, err := config.Load(config.Options{AppEnv: "test", ConfigDir: dir})
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	report, err := buildReportRuntime(loader, nil, &apiNoopAIClient{})
+	if err != nil {
+		t.Fatalf("buildReportRuntime: %v", err)
+	}
+
+	kernel := runner.New(runner.Options{Store: runner.NewSQLStore(nil), Config: testRunnerConfig()})
+	registerRunnerHandlers(kernel, report.Handlers)
+	if !kernel.Handles(string(jobs.JobTypeReportGenerate)) {
+		t.Fatalf("production report runtime did not register %s", jobs.JobTypeReportGenerate)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	kernel.Start(ctx)
+	cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer shutdownCancel()
+	if err := kernel.Shutdown(shutdownCtx); err != nil {
+		t.Fatalf("report runtime kernel shutdown: %v", err)
 	}
 }
 

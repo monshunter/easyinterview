@@ -1,6 +1,6 @@
 # Backend Practice History
 
-> **版本**: 1.27
+> **版本**: 1.31
 > **状态**: active
 > **更新日期**: 2026-07-12
 
@@ -8,6 +8,10 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-12 | 1.31 | 完成 004：active v0.2 semantic focus 限定为 code+label+issues，空 focus 不伪造，raw/anchor/code-only fail closed；P0.070/P0.072 PostgreSQL v19、IK/isolation/privacy 与 legacy-negative markers 闭环。 | [004](./plans/004-report-derived-practice-plans/plan.md) + F3/002 |
+| 2026-07-12 | 1.30 | 方案 A 将 backend-practice 的结构化 `semanticFocus` runtime payload 与 F3/002-owned immutable practice v0.2 pair、8-status/000019 激活边界对齐。 | [004](./plans/004-report-derived-practice-plans/plan.md) + F3/002 |
+| 2026-07-12 | 1.29 | 将零回答/pending-reply completion 拒绝与 `report-context.v1` 原子快照收口到 002 唯一 owner；004 允许空 focus 作为通用同轮复练，非空 focus 保持 issue-backed。 | [002](./plans/002-event-loop-and-completion/plan.md) + [004](./plans/004-report-derived-practice-plans/plan.md) |
+| 2026-07-12 | 1.28 | Report-derived retry focus 改为服务端投影 report-local dimension codes；客户端 focus 输入删除，completion 冻结 report context。 | [004](./plans/004-report-derived-practice-plans/plan.md) + [002](./plans/002-event-loop-and-completion/plan.md) |
 | 2026-07-12 | 1.27 | Practice 事实来源收紧为 persisted resume 与 candidate-authored user message；assistant history 仅保持连续性，不能把上一轮模型臆造转化为后续履历事实。 | [001](./plans/001-plan-and-session-orchestration/plan.md) |
 | 2026-07-12 | 1.26 | CreatePlan、source report 与 completion 台账统一约束为 TargetJob 绑定 resume；canonical round 增加非空 provenance、小写 type allowlist、正 int32 严格递增但可不连续的约束；Practice prompt 分离 system policy 与 JSON 编码的不可信 JD/简历/历史，persona 只控制风格。 | [001](./plans/001-plan-and-session-orchestration/plan.md) / [002](./plans/002-event-loop-and-completion/plan.md) |
 | 2026-07-12 | 1.25 | PracticePlan 持久化规范化 `roundId + roundSequence`；baseline / retry / next 由完成 session 台账和 TargetJob canonical rounds 校验，真实 round name/type/focus 注入 AI 上下文。 | [001](./plans/001-plan-and-session-orchestration/plan.md) / [002](./plans/002-event-loop-and-completion/plan.md) |

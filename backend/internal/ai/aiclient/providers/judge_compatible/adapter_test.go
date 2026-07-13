@@ -2,9 +2,12 @@ package judgecompatible_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
@@ -29,10 +32,19 @@ func judgeProfile(timeoutMs int) *aiclient.ModelProfile {
 		Name:       "judge.default",
 		Capability: aiclient.CapabilityJudge,
 		Status:     aiclient.ProfileStatusActive,
-		Default:    aiclient.ProviderConfig{ProviderRef: "judge-deepseek", Model: "deepseek-v4-pro"},
-		TimeoutMs:  timeoutMs,
-		Route:      "judge.default",
-		Version:    "1.0.0",
+		Default: aiclient.ProviderConfig{
+			ProviderRef: "judge-deepseek",
+			Model:       "deepseek-v4-pro",
+			Params: map[string]any{
+				"temperature":     0.0,
+				"thinking":        "disabled",
+				"response_format": "json_object",
+			},
+		},
+		MaxTokens: 6144,
+		TimeoutMs: timeoutMs,
+		Route:     "judge.default",
+		Version:   "1.0.0",
 	}
 }
 
@@ -62,6 +74,25 @@ func TestCompletePostsAndParses(t *testing.T) {
 		if r.Header.Get("Authorization") != "Bearer k" {
 			t.Fatalf("missing bearer auth")
 		}
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("read request: %v", err)
+		}
+		var request map[string]any
+		if err := json.Unmarshal(body, &request); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		thinking, ok := request["thinking"].(map[string]any)
+		if !ok || thinking["type"] != "disabled" {
+			t.Fatalf("thinking mode must be disabled for deterministic judge JSON: %+v", request["thinking"])
+		}
+		responseFormat, ok := request["response_format"].(map[string]any)
+		if !ok || responseFormat["type"] != "json_object" {
+			t.Fatalf("judge request must require a JSON object: %+v", request["response_format"])
+		}
+		if request["max_tokens"] != float64(6144) {
+			t.Fatalf("max_tokens=%v, want 6144", request["max_tokens"])
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"model":"deepseek-v4-pro","choices":[{"message":{"content":"{\"scores\":[]}"},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":4}}`))
 	}))
@@ -84,6 +115,41 @@ func TestCompletePostsAndParses(t *testing.T) {
 	}
 	if meta.InputTokens != 5 || meta.OutputTokens != 4 {
 		t.Fatalf("token usage not propagated: in=%d out=%d", meta.InputTokens, meta.OutputTokens)
+	}
+}
+
+func TestCompleteRejectsReasoningOnlyResponseWithoutLeakingReasoning(t *testing.T) {
+	const privateReasoning = "private chain of thought must never leave the adapter"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"model":"deepseek-v4-pro","choices":[{"message":{"content":"","reasoning_content":"` + privateReasoning + `"},"finish_reason":"length"}],"usage":{"prompt_tokens":1292,"completion_tokens":2048}}`))
+	}))
+	defer server.Close()
+
+	adapter, err := judgecompatible.New(judgecompatible.Options{Provider: resolved(server.URL, "k")})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	_, meta, err := adapter.Complete(
+		context.Background(),
+		judgeProfile(5000),
+		aiclient.CompletePayload{Messages: []aiclient.Message{{Role: "user", Content: "score this"}}},
+	)
+	if err == nil {
+		t.Fatal("expected reasoning-only response to fail closed")
+	}
+	var apiErr *sharederrors.APIError
+	if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {
+		t.Fatalf("expected AI_OUTPUT_INVALID, got %v", err)
+	}
+	if strings.Contains(err.Error(), privateReasoning) {
+		t.Fatalf("error leaked private reasoning: %v", err)
+	}
+	if !strings.Contains(err.Error(), "finish_reason=length") || !strings.Contains(err.Error(), "reasoning_content_present=true") {
+		t.Fatalf("error lacks redacted root-cause metadata: %v", err)
+	}
+	if meta.InputTokens != 1292 || meta.OutputTokens != 2048 || meta.ValidationStatus != aiclient.ValidationStatusInvalid {
+		t.Fatalf("invalid-response meta lost usage/provenance: %+v", meta)
 	}
 }
 

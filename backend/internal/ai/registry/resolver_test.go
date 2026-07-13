@@ -82,8 +82,8 @@ func TestResolveFallbackToMulti(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ResolveActive: %v", err)
 	}
-	if res.PromptVersion != "v0.1.0" {
-		t.Errorf("PromptVersion: want v0.1.0, got %s", res.PromptVersion)
+	if res.PromptVersion != "v0.2.0" {
+		t.Errorf("PromptVersion: want v0.2.0, got %s", res.PromptVersion)
 	}
 	if got := client.FallbackCount(); got != 1 {
 		t.Errorf("FallbackCount: language fallback must increment, got %d", got)
@@ -129,8 +129,8 @@ func TestResolvePracticeSessionBaselineFeatures(t *testing.T) {
 			if res.FeatureKey != featureKey {
 				t.Errorf("FeatureKey: want %s, got %s", featureKey, res.FeatureKey)
 			}
-			if res.PromptVersion != "v0.1.0" || res.RubricVersion != "v0.1.0" {
-				t.Errorf("versions: want prompt/rubric v0.1.0, got %s/%s", res.PromptVersion, res.RubricVersion)
+			if res.PromptVersion != "v0.2.0" || res.RubricVersion != "v0.2.0" {
+				t.Errorf("versions: want prompt/rubric v0.2.0, got %s/%s", res.PromptVersion, res.RubricVersion)
 			}
 			if res.ModelProfileName != profileName {
 				t.Errorf("ModelProfileName: want %s, got %s", profileName, res.ModelProfileName)
@@ -139,6 +139,28 @@ func TestResolvePracticeSessionBaselineFeatures(t *testing.T) {
 				t.Errorf("UserMessageTemplate must be populated for current baseline")
 			}
 		})
+	}
+}
+
+func TestV020ResolveProvenanceCoordinates(t *testing.T) {
+	t.Parallel()
+	client := newTestClient(t)
+	ctx := context.Background()
+
+	report, err := client.ResolveActive(ctx, "report.generate", "en")
+	if err != nil {
+		t.Fatalf("ResolveActive report: %v", err)
+	}
+	if report.PromptVersion != "v0.2.0" || report.RubricVersion != "v0.2.0" || report.DataSourceVersion != "report-context.v1" {
+		t.Fatalf("report resolution = %+v", report)
+	}
+
+	practice, err := client.ResolveActive(ctx, "practice.session.chat", "en")
+	if err != nil {
+		t.Fatalf("ResolveActive practice: %v", err)
+	}
+	if practice.PromptVersion != "v0.2.0" || practice.RubricVersion != "v0.2.0" || practice.DataSourceVersion != "registry.v1" {
+		t.Fatalf("practice resolution = %+v", practice)
 	}
 }
 
@@ -189,6 +211,46 @@ func TestGetPromptExact(t *testing.T) {
 	}
 	if _, _, err := client.GetPrompt("target.import.parse", "v9.9.9", "multi"); !errors.Is(err, ErrPromptUnsupported) {
 		t.Errorf("unknown version: want ErrPromptUnsupported, got %v", err)
+	}
+}
+
+func TestReportV020IsActiveAndV010RemainsRetrievableForRollback(t *testing.T) {
+	t.Parallel()
+	client := newTestClient(t)
+
+	rollbackMeta, rollbackBody, err := client.GetPrompt("report.generate", "v0.1.0", "multi")
+	if err != nil {
+		t.Fatalf("GetPrompt v0.1.0: %v", err)
+	}
+	candidateMeta, candidateBody, err := client.GetPrompt("report.generate", "v0.2.0", "multi")
+	if err != nil {
+		t.Fatalf("GetPrompt v0.2.0: %v", err)
+	}
+	if rollbackMeta.Status != "draft" || candidateMeta.Status != "active" {
+		t.Fatalf("release statuses: want draft/active, got %s/%s", rollbackMeta.Status, candidateMeta.Status)
+	}
+	if rollbackBody == "" || candidateBody == "" || rollbackBody == candidateBody {
+		t.Fatal("both immutable prompt versions must be populated and distinct")
+	}
+
+	rollbackRubric, err := client.GetRubric("report.generate", "v0.1.0", "multi")
+	if err != nil {
+		t.Fatalf("GetRubric v0.1.0: %v", err)
+	}
+	candidateRubric, err := client.GetRubric("report.generate", "v0.2.0", "multi")
+	if err != nil {
+		t.Fatalf("GetRubric v0.2.0: %v", err)
+	}
+	if rollbackRubric.Status != "inactive" || candidateRubric.Status != "active" {
+		t.Fatalf("release rubric statuses: want inactive/active, got %s/%s", rollbackRubric.Status, candidateRubric.Status)
+	}
+
+	resolved, err := client.ResolveActive(context.Background(), "report.generate", "multi")
+	if err != nil {
+		t.Fatalf("ResolveActive: %v", err)
+	}
+	if resolved.PromptVersion != "v0.2.0" || resolved.RubricVersion != "v0.2.0" {
+		t.Fatalf("active pair: want v0.2.0/v0.2.0, got %s/%s", resolved.PromptVersion, resolved.RubricVersion)
 	}
 }
 

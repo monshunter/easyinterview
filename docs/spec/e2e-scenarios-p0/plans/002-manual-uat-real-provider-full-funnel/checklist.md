@@ -1,8 +1,8 @@
 # 002 Real Provider Hybrid Full Funnel Checklist
 
-> **版本**: 1.7
-> **状态**: completed
-> **更新日期**: 2026-07-10
+> **版本**: 2.10
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -75,3 +75,41 @@
   <!-- verified: 2026-05-27 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/verify.sh" evidence="12 contract tests pass; trigger/verify accepted evidence.md only because it contained the current RUN_ID e2e-p0-100-20260527T081532Z-38774 and passed scan_evidence_redline" -->
 - [x] 7.2 回填 env consumer gate：`env-setup.sh --with-migrations`、`env-redeploy.sh frontend` 与 `E2E.P0.100` trigger 均消费 `deploy/dev-stack/.env`，并拒绝场景专属 env、frontend fixture mock 或 `Prefer: example=<scenario>` 作为真实联调完成证据；验证：`python3 -m pytest scripts/lint/scenario_env_contract_test.py -q`
   <!-- verified: 2026-05-27 command="bash test/scenarios/env-setup.sh --with-migrations && cd frontend && set -a && . ../deploy/dev-stack/.env && set +a && pnpm build && pnpm exec vite preview --host 127.0.0.1 --port 4174 && python3 -m pytest scripts/lint/scenario_env_contract_test.py -q && bash test/scenarios/e2e/p0-100-real-provider-full-funnel-hybrid/scripts/trigger.sh" evidence="dev-stack env supplied migrations, backend/frontend real-mode runtime, and E2E.P0.100 trigger; no scenario-specific env or fixture Prefer path was accepted" -->
+
+## Phase 8: Grounded report content reliability
+
+- [x] 8.1 OWNER-GATE: consume F3/004 current `REPORT_RUBRIC_V020_PASS` + `REPORT_CONTEXT_AWARE_EVAL_PASS` after its corrected evalkit completion gate, plus F3/002 `REPORT_PROMPT_V020_PASS`; missing/stale marker fails before sampling. Scenario invokes registered F3 completion/grade and contains no duplicate output schema, repair prompt, rubric, score or judge-request evaluator.
+  <!-- verified: 2026-07-13 evidence="final paired-example prompt/rubric markers current; prompt lint 24/24 and offline/Promptfoo 28/28 PASS before final live run59381" -->
+- [x] 8.2 HISTORICAL-FOUNDATION: evalkit resolves the registry schema and existing manifest privacy redlines。Superseded call-count behavior is not current max4 evidence。
+  <!-- verified: 2026-07-13 commands="cd backend && go test ./cmd/evalkit -run 'TestValidateLiveReportOutputSchema|TestCompleteLiveReport|Test.*Judge.*Repair' -count=1; python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k p0_100" result="PASS; focused evalkit contract and 8 P0.100 scenario contract tests pass" -->
+- [x] 8.2a HISTORICAL-SUPERSEDED: product report durable generation max4/pre-call reserve/runner requeue/crash-cap evidence was accepted under the former contract and cannot satisfy the current gate.
+- [x] 8.3 RED-GREEN: 为完整作答、部分作答、短答、待追问和提示注入五类独立输入补失败测试与独立输出证据；禁止跨样本复用 report/judge/manual verdict。
+- [x] 8.4 RED-GREEN: evalkit generation/judge独立max4；generation每轮完整validation与动态scope；judge provider/protocol invalid可重试，valid negative typed terminal且不重采样；两链聚合usage/latency并记录attempt/retry/reason/scope。
+- [x] 8.5 PRODUCT-ACCEPTANCE: every emitted final output passes deterministic schema/200/24/64/focus/action/cross-field validation；five fixed representative categories are independent and not replaced after failure；each sample uses the existing threshold/zero-tolerance judge rule and at least4/5 must pass。Strict P0.100 still requires critical3x、11/11 and blind review and may remain FAIL independently。
+  <!-- verified: 2026-07-13 run="e2e-p0-100-20260713T101214Z-59381" evidence="mechanical9/9; semantic judge8/9; fixed representative categories4/5=80%; injection summary unsupported; strict scenario FAIL and blind audit skipped" -->
+  - [x] HISTORICAL-FAILURE→FOCUSED-FIX: run36625定位generic replay与report_action_quality冲突并完成同case复测；run35103仅作为随后对应prompt的历史strict PASS，最终证据使用run59381。
+  - [x] FULL-VALIDATOR-HANDOFF: preserve run80338 as historical failure and run35103 as then-current full-validator PASS；final run59381 independently proves all nine emitted finals pass before judge。
+  - [x] FOCUSED-JUDGE-REGRESSIONS: `e2e-p0-100-20260713T012359Z-59906` direct injection3次PASS；`e2e-p0-100-20260713T013642Z-75753` exact generic empty-focus same-digest+5次PASS；均不勾选8.5。
+  - [x] CONTRACT-REPLACED: preserve run25849 as aborted/not-PASS and run35103 as historical strict PASS for its exact prompt；neither is final-prompt evidence。
+  - [x] HISTORICAL L2-RESTART: preserve run35622 as aborted/not-PASS；current retry/fencing/polling proof comes from focused gates and P0.058, not from promoting a historical run。
+- [x] 8.6 HISTORICAL-PRIVACY-FOUNDATION: manifest拒绝raw context/prompt/response/cookie/email code/provider key/auth secret；本项不证明新attempt chain。
+  <!-- verified: 2026-07-12 command="python3 -m pytest scripts/lint/scenario_env_contract_test.py -q -k p0_100_grounded_reliability" evidence="manifest validator accepts only 5 distinct cases/11 attempts with usage, finish reason, full coordinates, item/causal classifications and privacy false-booleans; negative fixture with score 0.69 fails; raw context/output/cookie/secret keys are fail-closed" -->
+- [x] 8.7 INDEPENDENT-EVIDENCE: final-prompt product acceptance records the fixed five-category numerator/denominator and every completed attempt's mechanical/judge result without replacement sampling；strict P0.100 keeps its own FAIL result and redacted diagnostic。No P0.100 output digest becomes a P0.099 prerequisite。
+  <!-- verified: 2026-07-13 run="e2e-p0-100-20260713T101214Z-59381" evidence="product mechanical9/9, semantic8/9, categories4/5; strict FAIL retained; cleanup privacy scan PASS" -->
+- [x] 8.7a MANIFEST-GATE: generation/judge各自记录连续attempt_count<=4、retry_count、bounded reason/scope与聚合usage/latency；拒绝缺号/重复/attempt5/valid-negative后retry。
+  <!-- verified: 2026-07-13 evidence="current reliability manifest passes attempt-chain validation and privacy redline; scenario privacy tests 38/38 and script tests 9/9 PASS" -->
+- [x] 8.8 HISTORICAL-SUPERSEDED BDD-Gate: prior P0.100 composed durable/crash-cap product evidence with 5-case/11-attempt content evidence; only the latter remains regression input.
+
+## Phase 9: Action-local product retry evidence refresh
+
+- [x] 9.1 OWNER-GATE: consume backend-review P0.058 v3 action-local markers proving initial+3, exact10s/20s/40s, return-time destruction, second-invocation reset and async-attempt separation.
+  <!-- verified: 2026-07-13 evidence="P0.058 four-stage PASS; v3 first4/waits10-20-40/destroyed/second1 and asyncAttemptsAffectProductAttempt=false markers consumed" -->
+- [x] 9.2 RED-GREEN: P0.100 product variants use an independent in-memory retry context per invocation, dynamic scope/full validation and nonretryable zero retry; no durable report counter, pre-call reservation, report job max_attempts4 or crash/replay global-cap assertion remains.
+  <!-- verified: 2026-07-13 evidence="current composition consumes P0.058 v3 product proof; P0.100 trigger+verify rerun does not resample or reuse evalkit attempt_count as product state" -->
+- [x] 9.3 LEASE-FENCE: deterministic takeover evidence still proves stale worker zero report/outbox/audit/job side effects via claimed attempts, without treating lease attempts as product attempts.
+  <!-- verified: 2026-07-13 evidence="current runner/review/store PostgreSQL and race fencing regressions PASS with generic max_attempts=5" -->
+- [x] 9.4 BDD-Gate: rerun P0.100 contract/privacy validators and final wording composition；evalkit generation/judge max4, product retry state, fixed-five semantic acceptance and strict diagnostic result remain separately attributable。
+  <!-- verified: 2026-07-13 run="e2e-p0-100-20260713T101214Z-59381" evidence="prompt/eval/static gates PASS; product mechanical9/9 and categories4/5 accepted; strict runner FAIL retained without resampling" -->
+- [x] 9.5 Run context/docs/index/diff gates before completion; no current PASS may reuse the historical durable/max4 product rows above.
+  <!-- verified: 2026-07-13 evidence="scenario context valid; docs/index zero drift; git diff --check clean; run35103 remains historical and run59381 remains the current strict FAIL" -->
+- [ ] 9.6 STRICT-DIAGNOSTIC: a future current-prompt run must complete 11/11 judge attempts plus independent blind review before P0.100 itself can be marked PASS. This is not required for the accepted 100% mechanical and fixed-category 4/5 product criterion.

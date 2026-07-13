@@ -38,11 +38,13 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
 import sys
 from collections import OrderedDict
+from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -779,6 +781,509 @@ def _format_summary(findings: Iterable[Dict[str, Any]]) -> Dict[str, int]:
     return summary
 
 
+OPENAPI_001_CONDITIONAL_CONTRACT = (
+    "baseline-required-fields-sourceReportId-forbidden|"
+    "derived-retry-next-sourceReportId-required-nonnull-only"
+)
+OPENAPI_001_FINDING_KEYS = ("severity", "path", "kind", "before", "after")
+CONSTRAINT_KEYS = (
+    "minLength",
+    "maxLength",
+    "minItems",
+    "maxItems",
+    "uniqueItems",
+    "pattern",
+)
+
+
+def _json_pointer(*parts: str) -> str:
+    return "/" + "/".join(part.replace("~", "~0").replace("/", "~1") for part in parts)
+
+
+def _type_signature(schema: Any) -> str:
+    if not isinstance(schema, dict):
+        return "unknown"
+    ref = schema.get("$ref")
+    if isinstance(ref, str):
+        return ref.rsplit("/", 1)[-1]
+    one_of = schema.get("oneOf")
+    if isinstance(one_of, list):
+        signatures = [_type_signature(branch) for branch in one_of]
+        if signatures:
+            return "|".join(signatures)
+    schema_type = schema.get("type")
+    if schema_type == "array":
+        return f"array<{_type_signature(schema.get('items') or {})}>"
+    if isinstance(schema_type, list):
+        return "|".join(str(value) for value in schema_type)
+    return str(schema_type or "unknown")
+
+
+def _format_constraints(schema: Any) -> str:
+    if not isinstance(schema, dict):
+        return ""
+    if isinstance(schema.get("oneOf"), list):
+        for branch in schema["oneOf"]:
+            if isinstance(branch, dict) and branch.get("type") != "null":
+                nested = _format_constraints(branch)
+                if nested:
+                    return nested
+    fragments: List[str] = []
+    for key in CONSTRAINT_KEYS:
+        if key not in schema:
+            continue
+        value = schema[key]
+        if isinstance(value, bool):
+            value = str(value).lower()
+        fragments.append(f"{key}={value}")
+    return ",".join(fragments)
+
+
+def _property_with_ready_constraints(
+    parent_schema: Dict[str, Any], property_name: str, property_schema: Any
+) -> Any:
+    if not isinstance(property_schema, dict):
+        return property_schema
+    merged = dict(property_schema)
+    for clause in parent_schema.get("allOf") or []:
+        then_properties = ((clause.get("then") or {}).get("properties") or {})
+        conditional = then_properties.get(property_name)
+        if not isinstance(conditional, dict):
+            continue
+        for key in CONSTRAINT_KEYS:
+            if key in conditional:
+                merged[key] = conditional[key]
+    return merged
+
+
+def _normalized_finding(
+    severity: str,
+    path: str,
+    kind: str,
+    before: Any,
+    after: Any,
+) -> Dict[str, Any]:
+    return {
+        "severity": severity,
+        "path": path,
+        "kind": kind,
+        "before": before,
+        "after": after,
+    }
+
+
+def normalize_openapi_001_findings(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> List[Dict[str, Any]]:
+    """Normalize the structural surface governed by OPENAPI-001.
+
+    This intentionally ignores descriptions and examples. It records every
+    component-schema add/remove, top-level property/required/closure change,
+    supported constraint tightening, composition addition and enum widening so
+    an exact-set oracle cannot hide an extra contract mutation.
+    """
+
+    findings: List[Dict[str, Any]] = []
+    baseline_schemas = ((baseline.get("components") or {}).get("schemas") or {})
+    current_schemas = ((current.get("components") or {}).get("schemas") or {})
+
+    for name, base_schema in baseline_schemas.items():
+        schema_path = _json_pointer("components", "schemas", name)
+        if name not in current_schemas:
+            findings.append(
+                _normalized_finding("breaking", schema_path, "schema_removed", "present", "absent")
+            )
+            continue
+
+        current_schema = current_schemas[name]
+        if not isinstance(base_schema, dict) or not isinstance(current_schema, dict):
+            continue
+
+        base_properties = base_schema.get("properties") or {}
+        current_properties = current_schema.get("properties") or {}
+        base_required = list(base_schema.get("required") or [])
+        current_required = list(current_schema.get("required") or [])
+        current_required_set = set(current_required)
+
+        for property_name, base_property in base_properties.items():
+            property_path = _json_pointer(
+                "components", "schemas", name, "properties", property_name
+            )
+            if property_name not in current_properties:
+                findings.append(
+                    _normalized_finding(
+                        "breaking",
+                        property_path,
+                        "property_removed",
+                        _type_signature(base_property),
+                        "absent",
+                    )
+                )
+                continue
+            current_property = current_properties[property_name]
+            before_constraints = _format_constraints(base_property)
+            after_constraints = _format_constraints(
+                _property_with_ready_constraints(
+                    current_schema, property_name, current_property
+                )
+            )
+            if before_constraints != after_constraints and after_constraints:
+                findings.append(
+                    _normalized_finding(
+                        "breaking",
+                        property_path,
+                        "constraint_added",
+                        before_constraints or "none",
+                        after_constraints,
+                    )
+                )
+
+        for property_name, current_property in current_properties.items():
+            if property_name in base_properties:
+                continue
+            property_path = _json_pointer(
+                "components", "schemas", name, "properties", property_name
+            )
+            if property_name in current_required_set:
+                signature = _type_signature(current_property)
+                kind = (
+                    "required_nullable_property_added"
+                    if "null" in signature.split("|")
+                    else "required_property_added"
+                )
+                findings.append(
+                    _normalized_finding("breaking", property_path, kind, "absent", signature)
+                )
+            else:
+                findings.append(
+                    _normalized_finding(
+                        "additive",
+                        property_path,
+                        "property_added",
+                        "absent",
+                        _type_signature(current_property),
+                    )
+                )
+            constraints = _format_constraints(
+                _property_with_ready_constraints(
+                    current_schema, property_name, current_property
+                )
+            )
+            if constraints:
+                constraint_before = (
+                    "none"
+                    if "null" in _type_signature(current_property).split("|")
+                    else "absent"
+                )
+                findings.append(
+                    _normalized_finding(
+                        "breaking",
+                        property_path,
+                        "constraint_added",
+                        constraint_before,
+                        constraints,
+                    )
+                )
+
+        if base_required != current_required and name in {
+            "CreatePracticePlanRequest",
+            "FeedbackReport",
+        }:
+            findings.append(
+                _normalized_finding(
+                    "breaking",
+                    _json_pointer("components", "schemas", name, "required"),
+                    "required_set_changed",
+                    ",".join(base_required),
+                    ",".join(current_required),
+                )
+            )
+
+        if base_schema.get("additionalProperties", "unspecified") != current_schema.get(
+            "additionalProperties", "unspecified"
+        ):
+            findings.append(
+                _normalized_finding(
+                    "breaking",
+                    _json_pointer("components", "schemas", name, "additionalProperties"),
+                    "closed_object",
+                    base_schema.get("additionalProperties", "unspecified"),
+                    current_schema.get("additionalProperties", "unspecified"),
+                )
+            )
+
+        if "oneOf" not in base_schema and "oneOf" in current_schema:
+            after = (
+                OPENAPI_001_CONDITIONAL_CONTRACT
+                if name == "CreatePracticePlanRequest"
+                else "present"
+            )
+            findings.append(
+                _normalized_finding(
+                    "breaking",
+                    _json_pointer("components", "schemas", name, "oneOf"),
+                    "conditional_contract_added",
+                    "absent",
+                    after,
+                )
+            )
+
+        base_enum = base_schema.get("enum")
+        current_enum = current_schema.get("enum")
+        if isinstance(base_enum, list) and isinstance(current_enum, list):
+            for value in current_enum:
+                if value not in base_enum:
+                    findings.append(
+                        _normalized_finding(
+                            "additive",
+                            _json_pointer("components", "schemas", name, "enum"),
+                            "enum_value_added",
+                            "absent",
+                            str(value),
+                        )
+                    )
+            for value in base_enum:
+                if value not in current_enum:
+                    findings.append(
+                        _normalized_finding(
+                            "breaking",
+                            _json_pointer("components", "schemas", name, "enum"),
+                            "enum_value_removed",
+                            str(value),
+                            "absent",
+                        )
+                    )
+
+    for name, current_schema in current_schemas.items():
+        if name in baseline_schemas:
+            continue
+        schema_path = _json_pointer("components", "schemas", name)
+        required = list(current_schema.get("required") or []) if isinstance(current_schema, dict) else []
+        findings.append(
+            _normalized_finding(
+                "additive",
+                schema_path,
+                "schema_added_with_required_fields" if required else "schema_added",
+                "absent",
+                ",".join(required) if required else "present",
+            )
+        )
+        if isinstance(current_schema, dict) and current_schema.get("additionalProperties") is False:
+            findings.append(
+                _normalized_finding(
+                    "additive",
+                    _json_pointer("components", "schemas", name, "additionalProperties"),
+                    "closed_object",
+                    "absent",
+                    False,
+                )
+            )
+
+    return findings
+
+
+def _finding_key(finding: Dict[str, Any]) -> Tuple[str, str, str, str, str]:
+    return tuple(str(finding.get(key, "")) for key in OPENAPI_001_FINDING_KEYS)  # type: ignore[return-value]
+
+
+def compare_finding_sets(
+    expected: Iterable[Dict[str, Any]], actual: Iterable[Dict[str, Any]]
+) -> List[str]:
+    expected_counts = Counter(_finding_key(finding) for finding in expected)
+    actual_counts = Counter(_finding_key(finding) for finding in actual)
+    errors: List[str] = []
+    for key, count in sorted((expected_counts - actual_counts).items()):
+        errors.append(f"missing finding x{count}: {json.dumps(dict(zip(OPENAPI_001_FINDING_KEYS, key)), sort_keys=True)}")
+    for key, count in sorted((actual_counts - expected_counts).items()):
+        errors.append(f"unexpected finding x{count}: {json.dumps(dict(zip(OPENAPI_001_FINDING_KEYS, key)), sort_keys=True)}")
+    return errors
+
+
+def validate_decision_record(text: str, decision_id: str) -> List[str]:
+    errors: List[str] = []
+    if not re.search(rf"^> \*\*ID\*\*: {re.escape(decision_id)}\s*$", text, re.MULTILINE):
+        errors.append(f"decision record must declare ID {decision_id}")
+    if not re.search(r"^> \*\*状态\*\*: accepted\s*$", text, re.MULTILINE):
+        errors.append("decision record status must be accepted")
+    return errors
+
+
+def validate_openapi_001_conditional_contract(current: Dict[str, Any]) -> List[str]:
+    request = (
+        ((current.get("components") or {}).get("schemas") or {}).get(
+            "CreatePracticePlanRequest"
+        )
+        or {}
+    )
+    errors: List[str] = []
+    if request.get("type") != "object":
+        errors.append("CreatePracticePlanRequest must remain type=object")
+    if request.get("required") != ["goal"]:
+        errors.append("CreatePracticePlanRequest top-level required must equal [goal]")
+    if request.get("additionalProperties") is not False:
+        errors.append("CreatePracticePlanRequest must set additionalProperties=false")
+    properties = request.get("properties") or {}
+    source = properties.get("sourceReportId") or {}
+    if source.get("type") != "string" or source.get("format") != "uuid" or source.get("nullable"):
+        errors.append("sourceReportId must be a non-null UUID string property")
+
+    branches = request.get("oneOf") or []
+    if not isinstance(branches, list) or len(branches) != 2:
+        errors.append("CreatePracticePlanRequest oneOf must have baseline and derived branches")
+        return errors
+
+    baseline_branch, derived_branch = branches
+    baseline_required = {
+        "targetJobId",
+        "goal",
+        "interviewerPersona",
+        "difficulty",
+        "language",
+        "timeBudgetMinutes",
+        "resumeId",
+    }
+    if set(baseline_branch.get("required") or []) != baseline_required:
+        errors.append("baseline branch must require the existing non-focus baseline fields")
+    baseline_properties = baseline_branch.get("properties") or {}
+    if (baseline_properties.get("goal") or {}).get("const") != "baseline":
+        errors.append("baseline branch must fix goal=baseline")
+    if "sourceReportId" in baseline_properties:
+        errors.append("baseline branch must not declare sourceReportId")
+    if baseline_branch.get("additionalProperties") is not False:
+        errors.append("baseline branch must reject additional properties")
+    if ((baseline_branch.get("not") or {}).get("required") or []) != ["sourceReportId"]:
+        errors.append("baseline branch must explicitly forbid sourceReportId")
+
+    if set(derived_branch.get("required") or []) != {"goal", "sourceReportId"}:
+        errors.append("derived branch must require goal and sourceReportId")
+    derived_properties = derived_branch.get("properties") or {}
+    if set(derived_properties) != {"goal", "sourceReportId"}:
+        errors.append("derived branch must allow only goal and sourceReportId")
+    if (derived_properties.get("goal") or {}).get("enum") != [
+        "retry_current_round",
+        "next_round",
+    ]:
+        errors.append("derived branch goal must equal retry_current_round|next_round")
+    derived_source = derived_properties.get("sourceReportId") or {}
+    if (
+        derived_source.get("type") != "string"
+        or derived_source.get("format") != "uuid"
+        or derived_source.get("nullable")
+    ):
+        errors.append("derived sourceReportId must be non-null UUID string")
+    if derived_branch.get("additionalProperties") is not False:
+        errors.append("derived branch must reject every extra field")
+    return errors
+
+
+def _sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _write_json_payload(payload: Dict[str, Any], output_path: Optional[str]) -> None:
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    if output_path:
+        Path(output_path).write_text(rendered, encoding="utf-8")
+    sys.stdout.write(rendered)
+
+
+def run_openapi_001_audit(
+    args: argparse.Namespace,
+    repo_root: Path,
+    baseline_path: Path,
+    current_path: Path,
+) -> int:
+    decision_path = Path(args.decision_record).resolve() if args.decision_record else None
+    oracle_path = Path(args.oracle).resolve() if args.oracle else None
+    errors: List[str] = []
+    if decision_path is None or not decision_path.is_file():
+        errors.append("OPENAPI-001 audit requires --decision-record")
+    if oracle_path is None or not oracle_path.is_file():
+        errors.append("OPENAPI-001 audit requires --oracle")
+
+    base_ref = args.base_ref or "main"
+    base_commit = _git_merge_base(repo_root, "HEAD", base_ref)
+    if base_commit is None:
+        base_commit = _git_rev_parse(repo_root, base_ref)
+    baseline_text: Optional[str] = None
+    if base_commit is None:
+        errors.append(f"cannot resolve base ref {base_ref!r}")
+    else:
+        baseline_text = _git_show(repo_root, base_commit, baseline_path)
+        if baseline_text is None:
+            errors.append(f"cannot load {baseline_path.relative_to(repo_root)} from {base_commit}")
+
+    current_text = current_path.read_text(encoding="utf-8")
+    baseline_doc = yaml.safe_load(baseline_text) if baseline_text is not None else {}
+    current_doc = yaml.safe_load(current_text) or {}
+
+    expected_findings: List[Dict[str, Any]] = []
+    if decision_path is not None and decision_path.is_file():
+        errors.extend(
+            validate_decision_record(
+                decision_path.read_text(encoding="utf-8"), args.decision_id
+            )
+        )
+    if oracle_path is not None and oracle_path.is_file():
+        oracle = json.loads(oracle_path.read_text(encoding="utf-8"))
+        if oracle.get("decisionId") != args.decision_id:
+            errors.append("oracle decisionId does not match requested decision")
+        comparison = oracle.get("comparison") or {}
+        if comparison.get("mode") != "exact-set" or comparison.get("keyFields") != list(
+            OPENAPI_001_FINDING_KEYS
+        ):
+            errors.append("oracle must use exact-set with severity/path/kind/before/after")
+        expected_findings = oracle.get("findings") or []
+
+    actual_findings = normalize_openapi_001_findings(baseline_doc or {}, current_doc)
+    errors.extend(compare_finding_sets(expected_findings, actual_findings))
+    errors.extend(validate_openapi_001_conditional_contract(current_doc))
+    if (baseline_doc or {}).get("paths") != current_doc.get("paths"):
+        errors.append("OPENAPI-001 must not change paths or operations")
+    if (baseline_doc or {}).get("tags") != current_doc.get("tags"):
+        errors.append("OPENAPI-001 must not change tags")
+
+    oversize_findings = [
+        finding
+        for finding in actual_findings
+        if finding.get("after") == "REPORT_CONTEXT_TOO_LARGE"
+    ]
+    if oversize_findings != [
+        _normalized_finding(
+            "additive",
+            "/components/schemas/ApiErrorCode/enum",
+            "enum_value_added",
+            "absent",
+            "REPORT_CONTEXT_TOO_LARGE",
+        )
+    ]:
+        errors.append(
+            "REPORT_CONTEXT_TOO_LARGE must appear exactly once as additive enum_value_added"
+        )
+
+    sorted_findings = sorted(actual_findings, key=_finding_key)
+    summary = _format_summary(sorted_findings)
+    payload: Dict[str, Any] = OrderedDict(
+        schemaVersion=1,
+        decisionId=args.decision_id,
+        mode="exact-set",
+        baselineSource=(
+            f"git:{base_commit}:{baseline_path.relative_to(repo_root)}"
+            if base_commit is not None
+            else None
+        ),
+        currentSource=str(current_path.relative_to(repo_root)),
+        baselineSha256=_sha256_text(baseline_text or ""),
+        currentSha256=_sha256_text(current_text),
+        summary=summary,
+        findingCount=len(sorted_findings),
+        findings=sorted_findings,
+        errors=errors,
+    )
+    _write_json_payload(payload, args.output)
+    return 0 if not errors else 1
+
+
 def run(args: argparse.Namespace) -> int:
     repo_root = Path(args.repo_root).resolve()
 
@@ -803,6 +1308,17 @@ def run(args: argparse.Namespace) -> int:
     if not current_path.is_file():
         sys.stderr.write(f"ERROR: current file not found: {current_path}\n")
         return 1
+
+    if args.decision_id:
+        if args.decision_id != "OPENAPI-001":
+            sys.stderr.write(f"ERROR: unsupported decision audit: {args.decision_id}\n")
+            return 1
+        return run_openapi_001_audit(
+            args,
+            repo_root,
+            baseline_path,
+            current_path,
+        )
 
     config_path = (
         Path(args.config).resolve() if args.config else repo_root / "openapi" / "diff-config.yaml"
@@ -876,6 +1392,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", default=None)
     parser.add_argument("--history", default=None)
     parser.add_argument("--history-ref", default="auto")
+    parser.add_argument("--decision-id", default=None)
+    parser.add_argument("--decision-record", default=None)
+    parser.add_argument("--oracle", default=None)
+    parser.add_argument("--base-ref", default=None)
     parser.add_argument(
         "--fail-on-incompatible",
         dest="fail_on_incompatible",

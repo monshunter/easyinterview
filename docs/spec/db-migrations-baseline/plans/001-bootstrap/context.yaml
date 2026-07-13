@@ -4,9 +4,11 @@ metadata:
   subspec: db-migrations-baseline
   name: 001-bootstrap
   sequence: 1
+  baseBranch: main
+  branch: fix/report-semantic-grounding-0712
   specVersion:
-    from: null
-    to: 1.30
+    from: 1.32
+    to: 1.34
 spec:
   defaultTarget: backend
   discovery:
@@ -29,11 +31,21 @@ spec:
       - practice plan round identity
       - round sequence
       - legacy round backfill
+      - 000018 grounded report context
+      - generation_context
+      - no report product retry column
+      - no llm attempt count column
+      - action scoped retry stays outside database
+      - focus_dimension_codes
+      - REPORT_STORAGE_V18_PASS
   targets:
     backend:
       plan: ./plan.md
       checklist: ./checklist.md
       spec: ../../spec.md
+      references:
+        - ../../../backend-review/spec.md
+        - ../../../backend-review/plans/001-report-generation-baseline/plan.md
       discovery:
         packages:
           - migrations

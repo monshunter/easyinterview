@@ -1,6 +1,6 @@
 # 002 Conversation Message Loop BDD Checklist
 
-> **版本**: 2.4
+> **版本**: 2.6
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -23,3 +23,11 @@
 
 - [x] P0.047 executes and verifies atomic completion fact plus exact replay without duplicates.<!-- verified: 2026-07-12 method=scenario-run result=PASS -->
 - [x] P0.098 executes wrong-resume completion exclusion plus persisted first-to-next-existing and final projection with no frontend business-state storage.<!-- verified: 2026-07-12 method=real-postgres+scenario-run marker=wrong-resume-completion-ignored=PASS -->
+
+## Phase 9 reportable completion/context
+
+- [x] P0.047 setup includes zero-answer, pending-reply and one-answer sessions plus a run correlation value containing no cookie/raw business content.<!-- verified: 2026-07-12 method=scenario-run -->
+- [x] Trigger runs `cd backend && go test ./internal/api/practice ./internal/practice ./internal/store/practice -run '^(TestE2EP0047RejectsZeroAnswerCompletion|TestE2EP0047FreezesReportContext|TestE2EP0047CompletionReplayPreservesReportContext)$' -count=1 -v` and records exact RUN/PASS output.<!-- verified: 2026-07-12 method=scenario-run -->
+- [x] Verify requires `ZERO_ANSWER_COMPLETION_REJECTED_PASS`, `REPORT_CONTEXT_SNAPSHOT_PASS`, `REPORT_CONTEXT_REPLAY_PASS`, frontend disabled reason, zero forbidden FAIL/no-test output and redacted DB no-side-effect/same-snapshot assertions.<!-- verified: 2026-07-12 method=scenario-run -->
+- [x] Write `completion-backend-evidence.json` with exact `practice-completion-evidence.v1` keys and `result=PASS`; P0.056/058 consume this artifact rather than recreating completion evidence.<!-- verified: 2026-07-12 method=scenario-run -->
+- [x] Cleanup removes scenario rows and preserves only the redacted owner artifact/marker evidence.<!-- verified: 2026-07-12 method=scenario-run evidence="only completion-backend-evidence.json remains" -->

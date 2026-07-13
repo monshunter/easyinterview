@@ -1,6 +1,7 @@
 feature_key: "practice.session.chat"
 version: "v0.1.0"
 language: "multi"
+status: "inactive"
 dimensions:
   - name: "followup_relevance"
     weight: 0.4

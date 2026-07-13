@@ -4,9 +4,11 @@ metadata:
   subspec: prompt-rubric-registry
   name: 004-real-model-profile-and-evals
   sequence: 4
+  baseBranch: main
+  branch: fix/report-semantic-grounding-0712
   specVersion:
-    from: 2.7
-    to: 2.20
+    from: 2.21
+    to: 2.40
 spec:
   defaultTarget: backend
   discovery:
@@ -26,13 +28,71 @@ spec:
       - CompleteJudge judge capability dispatch
       - judge_compatible adapter activation
       - judge-deepseek provider ref
-      - offline eval set >=36 questions
-      - 36 recorded eval cases
+      - offline eval set 28 current cases
+      - five distinct grounded report cases
+      - zh-CN evidence limited report case
+      - generic retry empty focus case
+      - exact single answer depth generic retry
+      - exact single answer relevance generic retry
+      - multiple issues require focused retry
+      - unique action type lower tier no next round
+      - unsafe current round blocking
+      - pre judge mechanical focus gate
+      - redacted structural counts
+      - independent agent review raw packet
+      - JUDGE_FINAL_CONTENT_V120_PASS
+      - context transcript output judge
+      - item level support verdict
+      - ordered expected item verdicts
+      - expected causal dimension codes
+      - empty evidence arrays no collection verdict
+      - retry focus sole array verdict
+      - retry current round cited missing behavior only
+      - focused retry per code directly cited missing behavior
+      - multi focus semicolon fragments
+      - english 24 whitespace words zh-CN 64 Unicode code points
+      - targeted action label repair internal margin 18 words 52 code points
+      - action 200 malformed output fuse
+      - final scheme A approved
+      - independent five case eleven attempt reliability
+      - redacted internal context output digests
+      - P0.099 independent current run canonical 390 action audit
+      - umbrella retry label unsupported
+      - review evidence cited positive evidence limit
+      - no invented review artifact corrective gap
+      - no invented review scenario transfer task
+      - next round readiness has next round
+      - uncited action specificity unsupported not partial
+      - mechanism threshold tool sequence framework example
+      - exact focus empty exceptions
+      - complete ascending needs work issue focus set
+      - reject focus subset superset
+      - weighted threshold 0.80
+      - report rubric v0.2 sole owner
+      - REPORT_RUBRIC_V020_PASS
+      - REPORT_CONTEXT_AWARE_EVAL_PASS
       - Promptfoo registry-driven eval
       - pinned Promptfoo pnpm dependency
       - recorded fixture golden transcript
       - EVAL_LIVE opt-in live provider
       - eval-offline make target
+      - evalkit same source output schema validation
+      - evalkit reuses product full semantic validator
+      - evalkit whole report repair for all other schema semantic mixed invalid
+      - targeted action label only LLM repair
+      - action labels repair for schema200 or language24 64 violations
+      - P0.100 fresh scheme A live rerun pending
+      - normalized schema and language label violation set
+      - labels only merge preserves non label fields
+      - independent evalkit generation judge max4 call budgets
+      - generation dynamic targeted whole scope every invalid round
+      - generation provider transient retry attempts2 3 4
+      - judge retryable provider protocol schema invalid retry
+      - judge valid negative typed content rejected terminal
+      - backend no truncate or authored rewrite
+      - aggregate generation judge usage latency
+      - redacted attempt count retry count reason scope manifest
+      - P0.100 run25849 aborted10 of11 not pass
       - rubric dimension reuse
       - followup_relevance report_specificity score_outlier language_consistency
       - make test build final gate
@@ -52,6 +112,8 @@ spec:
         - ../../../engineering-roadmap/decisions/ADR-Q6-ai-provider-and-model-routing.md
         - ../001-baseline/plan.md
         - ../003-language-coordinate-simplification/plan.md
+        - ../../../backend-review/plans/001-report-generation-baseline/plan.md
+        - ../002-output-schema-contract/plan.md
       discovery:
         packages:
           - config/evals

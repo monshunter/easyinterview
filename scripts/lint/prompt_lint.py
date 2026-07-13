@@ -43,8 +43,30 @@ LANGUAGE_OVERRIDE_ALLOWLIST: set[tuple[str, str, str]] = set()
 FORBIDDEN_BODY_TOKEN_RE = re.compile(r"\bTBD\b|\bplaceholder\b", re.IGNORECASE)
 OUT_OF_SCOPE_MODULE_RE = re.compile(r"\bmistakes\b|\bgrowth\b|\bdrill\b|mistake\.extract")
 OUT_OF_SCOPE_FEATURE_KEY_PREFIXES = ("jd_match.",)
+PRACTICE_CHAT_V020_SEMANTIC_FOCUS_ENTRY = '"semanticFocus": {{semantic_focus_json}}'
+PRACTICE_CHAT_LEGACY_FOCUS_TOKENS = (
+    '"focusCompetencies"',
+    "{{focus_competencies_json}}",
+    "{{focus_competencies}}",
+)
 
-SCHEMA_ALLOWED_KEYS = {"type", "required", "properties", "items", "enum", "description", "minimum", "maximum"}
+SCHEMA_ALLOWED_KEYS = {
+    "type",
+    "required",
+    "properties",
+    "additionalProperties",
+    "items",
+    "enum",
+    "description",
+    "minimum",
+    "maximum",
+    "minLength",
+    "maxLength",
+    "pattern",
+    "minItems",
+    "maxItems",
+    "uniqueItems",
+}
 SCHEMA_ALLOWED_TYPES = {"object", "array", "string", "number", "integer", "boolean", "null"}
 OUTPUT_CONTRACT_START = "<!-- output-schema-contract:start -->"
 OUTPUT_CONTRACT_END = "<!-- output-schema-contract:end -->"
@@ -132,6 +154,43 @@ FEATURE_CONTRACTS = {
     },
 }
 
+REPORT_V020_REQUIRED_PATHS = {
+    "$.summary",
+    "$.preparednessLevel",
+    "$.dimensionAssessments",
+    "$.dimensionAssessments[].code",
+    "$.dimensionAssessments[].label",
+    "$.dimensionAssessments[].status",
+    "$.dimensionAssessments[].confidence",
+    "$.highlights",
+    "$.highlights[].dimensionCode",
+    "$.highlights[].evidence",
+    "$.highlights[].confidence",
+    "$.highlights[].sourceMessageSeqNos",
+    "$.issues",
+    "$.issues[].dimensionCode",
+    "$.issues[].evidence",
+    "$.issues[].confidence",
+    "$.issues[].sourceMessageSeqNos",
+    "$.nextActions",
+    "$.nextActions[].type",
+    "$.nextActions[].label",
+    "$.retryFocusDimensionCodes",
+}
+
+VERSIONED_FEATURE_CONTRACTS = {
+    ("practice.session.chat", "v0.2.0"): {
+        "type": "object",
+        "required_paths": {"$.messageText"},
+        "allowed_paths": {"$.messageText"},
+    },
+    ("report.generate", "v0.2.0"): {
+        "type": "object",
+        "required_paths": REPORT_V020_REQUIRED_PATHS,
+        "allowed_paths": REPORT_V020_REQUIRED_PATHS,
+    },
+}
+
 
 def canonical_meta_json(meta: dict) -> bytes:
     meta_for_hash = {k: v for k, v in meta.items() if k != "template_hash"}
@@ -148,6 +207,28 @@ def canonical_meta_json(meta: dict) -> bytes:
 
 def expected_hash(body_bytes: bytes, meta: dict) -> str:
     return hashlib.sha256(body_bytes + canonical_meta_json(meta)).hexdigest()
+
+
+def validate_practice_chat_context(md_path: pathlib.Path, body: str) -> list[str]:
+    errors: list[str] = []
+    start = body.find("<untrusted_interview_context_json>")
+    end = body.find("</untrusted_interview_context_json>")
+    if start < 0 or end <= start:
+        errors.append(f"{md_path}: practice chat v0.2 missing untrusted context block")
+        context = ""
+    else:
+        context = body[start:end]
+    if PRACTICE_CHAT_V020_SEMANTIC_FOCUS_ENTRY not in context:
+        errors.append(
+            f"{md_path}: practice chat v0.2 must contain structured semanticFocus entry "
+            f"{PRACTICE_CHAT_V020_SEMANTIC_FOCUS_ENTRY!r}"
+        )
+    if body.count("{{semantic_focus_json}}") != 1:
+        errors.append(f"{md_path}: {{semantic_focus_json}} must appear exactly once")
+    for token in PRACTICE_CHAT_LEGACY_FOCUS_TOKENS:
+        if token in body:
+            errors.append(f"{md_path}: practice chat v0.2 contains legacy focus token {token!r}")
+    return errors
 
 
 def _filename_language(yaml_path: pathlib.Path) -> str:
@@ -227,6 +308,8 @@ def lint_prompt_yaml(yaml_path: pathlib.Path) -> list[str]:
         errors.append(f"{md_path}: body contains forbidden stub marker (TBD/placeholder)")
     if OUT_OF_SCOPE_MODULE_RE.search(body_text):
         errors.append(f"{md_path}: body contains out-of-scope module name")
+    if feature_key == "practice.session.chat" and version == "v0.2.0":
+        errors.extend(validate_practice_chat_context(md_path, body_text))
 
     actual_hash = expected_hash(body_bytes, parsed)
     if parsed.get("template_hash") != actual_hash:
@@ -250,23 +333,25 @@ def lint_prompts_directory(root: pathlib.Path) -> list[str]:
 
 
 def lint_seed_migration(prompts_root: pathlib.Path, migrations_root: pathlib.Path) -> list[str]:
-    """Phase 4.6 enhancement: assert seed migration template_hash matches yaml hash.
+    """Assert the post-migration active prompt coordinates match active YAML.
 
-    The check is enabled only when a seed migration named
-    `*seed_baseline_prompt_rubric_versions*.up.sql` is present. Phase 4.4 lands
-    that migration; until then the check returns no findings.
+    Historical seed rows remain immutable. Later prompt/rubric activation
+    migrations add new versions and switch `is_active`; this gate replays that
+    version selection before applying the same missing/extra/hash checks.
     """
     errors: list[str] = []
     if not migrations_root.exists():
         return errors
 
-    seed_re = re.compile(
-        r"INSERT\s+INTO\s+prompt_versions\s*\(([^)]+)\)\s*VALUES",
-        re.IGNORECASE,
-    )
     row_re = re.compile(
         r"\(\s*'[^']+'\s*,\s*'(?P<feature_key>[^']+)'\s*,\s*'(?P<version>[^']+)'\s*,"
         r"\s*'(?P<language>[^']+)'\s*,\s*'(?P<template_hash>[a-fA-F0-9]+)'",
+    )
+    update_re = re.compile(
+        r"UPDATE\s+prompt_versions\s+SET\s+is_active\s*=\s*"
+        r"\(version\s*=\s*'(?P<version>[^']+)'\)\s+WHERE\s+feature_key\s+IN\s*"
+        r"\((?P<feature_keys>[^)]+)\)\s+AND\s+language\s*=\s*'(?P<language>[^']+)'",
+        re.IGNORECASE | re.DOTALL,
     )
 
     yaml_index: dict[tuple[str, str, str], str] = {}
@@ -276,6 +361,8 @@ def lint_seed_migration(prompts_root: pathlib.Path, migrations_root: pathlib.Pat
         except Exception:
             continue
         if not isinstance(parsed, dict):
+            continue
+        if parsed.get("status") != "active":
             continue
         key = (
             str(parsed.get("feature_key", "")),
@@ -297,26 +384,48 @@ def lint_seed_migration(prompts_root: pathlib.Path, migrations_root: pathlib.Pat
         for dm in delete_re.finditer(text):
             out_of_scope.update(re.findall(r"'([^']+)'", dm.group(1)))
 
-    for sql_path in sorted(migrations_root.glob("*seed_baseline_prompt_rubric*.up.sql")):
+    migration_rows: dict[tuple[str, str, str], tuple[pathlib.Path, str]] = {}
+    active_versions: dict[tuple[str, str], str] = {}
+    migration_paths = sorted(migrations_root.glob("*prompt_rubric*.up.sql"))
+    for sql_path in migration_paths:
         text = sql_path.read_text(encoding="utf-8")
-        if not seed_re.search(text):
-            continue
         for m in row_re.finditer(text):
             key = (m.group("feature_key"), m.group("version"), m.group("language"))
-            if m.group("feature_key") in out_of_scope:
-                continue
-            sql_hash = m.group("template_hash")
-            yaml_hash = yaml_index.get(key)
-            if yaml_hash is None:
+            if key in migration_rows:
                 errors.append(
-                    f"{sql_path}: seed row {key} has no matching yaml under prompts dir"
+                    f"{sql_path}: duplicate prompt migration row {key}"
                 )
                 continue
-            if sql_hash != yaml_hash:
-                errors.append(
-                    f"{sql_path}: seed row {key} template_hash drift "
-                    f"(sql={sql_hash}, yaml={yaml_hash})"
-                )
+            migration_rows[key] = (sql_path, m.group("template_hash"))
+            if "seed_baseline_prompt_rubric" in sql_path.name:
+                active_versions[(key[0], key[2])] = key[1]
+        for update in update_re.finditer(text):
+            for feature_key in re.findall(r"'([^']+)'", update.group("feature_keys")):
+                active_versions[(feature_key, update.group("language"))] = update.group("version")
+
+    current_rows: dict[tuple[str, str, str], tuple[pathlib.Path, str]] = {}
+    for (feature_key, language), version in active_versions.items():
+        if feature_key in out_of_scope:
+            continue
+        key = (feature_key, version, language)
+        row = migration_rows.get(key)
+        if row is None:
+            errors.append(f"{migrations_root}: active prompt migration row missing for {key}")
+            continue
+        current_rows[key] = row
+
+    for key in sorted(set(yaml_index) - set(current_rows)):
+        errors.append(f"{migrations_root}: active YAML prompt row missing from migrations: {key}")
+    for key in sorted(set(current_rows) - set(yaml_index)):
+        errors.append(f"{current_rows[key][0]}: active migration row has no active YAML: {key}")
+    for key in sorted(set(yaml_index) & set(current_rows)):
+        sql_path, sql_hash = current_rows[key]
+        yaml_hash = yaml_index[key]
+        if sql_hash != yaml_hash:
+            errors.append(
+                f"{sql_path}: current row {key} template_hash drift "
+                f"(sql={sql_hash}, yaml={yaml_hash})"
+            )
     return errors
 
 
@@ -350,6 +459,7 @@ def lint_language_coordinates(root: pathlib.Path) -> list[str]:
     errors: list[str] = []
     metas = _collect_prompt_metas(root)
     by_feature_version: dict[tuple[str, str], list[tuple[pathlib.Path, str]]] = {}
+    by_coordinate: dict[tuple[str, str], list[tuple[pathlib.Path, str, str]]] = {}
     for yaml_path, meta in metas:
         feature_key = meta.get("feature_key")
         version = meta.get("version")
@@ -357,6 +467,9 @@ def lint_language_coordinates(root: pathlib.Path) -> list[str]:
         if not all(isinstance(v, str) and v for v in (feature_key, version, language)):
             continue
         by_feature_version.setdefault((feature_key, version), []).append((yaml_path, language))
+        by_coordinate.setdefault((feature_key, language), []).append(
+            (yaml_path, version, str(meta.get("status", "")))
+        )
 
         if language == "multi" and feature_key not in OUTPUT_SCHEMA_EXEMPT_FEATURE_KEYS:
             body_path = yaml_path.with_suffix(".md")
@@ -385,6 +498,21 @@ def lint_language_coordinates(root: pathlib.Path) -> list[str]:
             first_path = entries[0][0]
             errors.append(f"{first_path}: feature/version {feature_key} {version} missing multi prompt")
 
+    for (feature_key, language), entries in sorted(by_coordinate.items()):
+        versions = [version for _, version, _ in entries]
+        duplicate_versions = sorted({version for version in versions if versions.count(version) > 1})
+        if duplicate_versions:
+            errors.append(
+                f"{entries[0][0]}: duplicate prompt versions for {feature_key}/{language}: "
+                f"{duplicate_versions}"
+            )
+        active_versions = [version for _, version, status in entries if status == "active"]
+        if len(active_versions) != 1:
+            errors.append(
+                f"{entries[0][0]}: {feature_key}/{language} must have exactly one active prompt; "
+                f"got {active_versions}"
+            )
+
     return errors
 
 
@@ -407,7 +535,9 @@ def lint_output_schemas(prompts_root: pathlib.Path) -> list[str]:
     for feature_key, version in feature_versions:
         if feature_key in OUTPUT_SCHEMA_EXEMPT_FEATURE_KEYS:
             continue
-        contract = FEATURE_CONTRACTS.get(feature_key)
+        contract = VERSIONED_FEATURE_CONTRACTS.get(
+            (feature_key, version), FEATURE_CONTRACTS.get(feature_key)
+        )
         if contract is None:
             errors.append(f"{feature_key}: missing prompt_lint FEATURE_CONTRACTS entry")
             continue
@@ -422,6 +552,10 @@ def lint_output_schemas(prompts_root: pathlib.Path) -> list[str]:
             continue
         schema_errors = validate_schema_subset(schema_path, schema)
         schema_errors.extend(validate_schema_contract(schema_path, schema, contract))
+        if feature_key == "report.generate" and version == "v0.2.0":
+            schema_errors.extend(validate_grounded_report_schema(schema_path, schema))
+        if feature_key == "practice.session.chat" and version == "v0.2.0":
+            schema_errors.extend(validate_practice_chat_schema(schema_path, schema))
         errors.extend(schema_errors)
         if schema_errors:
             continue
@@ -476,6 +610,11 @@ def validate_schema_subset(schema_path: pathlib.Path, schema: dict) -> list[str]
         enum = node.get("enum")
         if enum is not None and (not isinstance(enum, list) or not enum):
             errors.append(f"{schema_path}: {path}.enum must be a non-empty list")
+        additional = node.get("additionalProperties")
+        if additional is not None and not isinstance(additional, bool):
+            errors.append(f"{schema_path}: {path}.additionalProperties must be boolean")
+        if additional is not None and schema_type != "object":
+            errors.append(f"{schema_path}: {path}.additionalProperties requires object type")
         minimum = node.get("minimum")
         maximum = node.get("maximum")
         for key, bound in (("minimum", minimum), ("maximum", maximum)):
@@ -485,6 +624,36 @@ def validate_schema_subset(schema_path: pathlib.Path, schema: dict) -> list[str]
                 errors.append(f"{schema_path}: {path}.{key} requires a numeric schema type")
         if isinstance(minimum, (int, float)) and isinstance(maximum, (int, float)) and minimum > maximum:
             errors.append(f"{schema_path}: {path}.minimum must be <= maximum")
+        for low_key, high_key, expected_type in (
+            ("minLength", "maxLength", "string"),
+            ("minItems", "maxItems", "array"),
+        ):
+            low = node.get(low_key)
+            high = node.get(high_key)
+            for key, bound in ((low_key, low), (high_key, high)):
+                if bound is not None and (not isinstance(bound, int) or isinstance(bound, bool) or bound < 0):
+                    errors.append(f"{schema_path}: {path}.{key} must be a non-negative integer")
+                if bound is not None and schema_type != expected_type:
+                    errors.append(f"{schema_path}: {path}.{key} requires {expected_type} type")
+            if isinstance(low, int) and isinstance(high, int) and low > high:
+                errors.append(f"{schema_path}: {path}.{low_key} must be <= {high_key}")
+        pattern = node.get("pattern")
+        if pattern is not None:
+            if not isinstance(pattern, str) or not pattern:
+                errors.append(f"{schema_path}: {path}.pattern must be a non-empty string")
+            elif schema_type != "string":
+                errors.append(f"{schema_path}: {path}.pattern requires string type")
+            else:
+                try:
+                    re.compile(pattern)
+                except re.error as exc:
+                    errors.append(f"{schema_path}: {path}.pattern is invalid: {exc}")
+        unique_items = node.get("uniqueItems")
+        if unique_items is not None:
+            if not isinstance(unique_items, bool):
+                errors.append(f"{schema_path}: {path}.uniqueItems must be boolean")
+            if schema_type != "array":
+                errors.append(f"{schema_path}: {path}.uniqueItems requires array type")
         props = node.get("properties")
         if props is not None:
             if not isinstance(props, dict):
@@ -506,6 +675,58 @@ def validate_schema_subset(schema_path: pathlib.Path, schema: dict) -> list[str]
     return errors
 
 
+def validate_grounded_report_schema(schema_path: pathlib.Path, schema: dict) -> list[str]:
+    errors: list[str] = []
+
+    def walk_closed(node: dict, path: str) -> None:
+        if node.get("type") == "object" and node.get("additionalProperties") is not False:
+            errors.append(f"{schema_path}: {path} must set additionalProperties=false")
+        for key, child in (node.get("properties") or {}).items():
+            if isinstance(child, dict):
+                walk_closed(child, f"{path}.{key}")
+        item = node.get("items")
+        if isinstance(item, dict):
+            walk_closed(item, path + "[]")
+
+    def at(*segments: str) -> dict:
+        node = schema
+        for segment in segments:
+            if segment == "[]":
+                node = node.get("items") or {}
+            else:
+                node = (node.get("properties") or {}).get(segment) or {}
+        return node
+
+    def require(path: str, node: dict, expected: dict) -> None:
+        for key, value in expected.items():
+            if node.get(key) != value:
+                errors.append(f"{schema_path}: {path}.{key} must be {value!r}, got {node.get(key)!r}")
+
+    walk_closed(schema, "$")
+    code_bounds = {"minLength": 2, "maxLength": 64, "pattern": r"^[a-z][a-z0-9_]{1,63}$"}
+    require("$.summary", at("summary"), {"minLength": 1, "maxLength": 360})
+    require("$.dimensionAssessments", at("dimensionAssessments"), {"minItems": 1, "maxItems": 6, "uniqueItems": True})
+    require("$.dimensionAssessments[].code", at("dimensionAssessments", "[]", "code"), code_bounds)
+    require("$.dimensionAssessments[].label", at("dimensionAssessments", "[]", "label"), {"minLength": 1, "maxLength": 48})
+    for collection in ("highlights", "issues"):
+        require(f"$.{collection}", at(collection), {"minItems": 0, "maxItems": 4, "uniqueItems": True})
+        require(f"$.{collection}[].dimensionCode", at(collection, "[]", "dimensionCode"), code_bounds)
+        require(f"$.{collection}[].evidence", at(collection, "[]", "evidence"), {"minLength": 1, "maxLength": 240})
+        require(f"$.{collection}[].sourceMessageSeqNos", at(collection, "[]", "sourceMessageSeqNos"), {"minItems": 1, "uniqueItems": True})
+        require(f"$.{collection}[].sourceMessageSeqNos[]", at(collection, "[]", "sourceMessageSeqNos", "[]"), {"minimum": 1})
+    require("$.nextActions", at("nextActions"), {"minItems": 1, "maxItems": 2, "uniqueItems": True})
+    require("$.nextActions[].label", at("nextActions", "[]", "label"), {"minLength": 1, "maxLength": 200})
+    require("$.retryFocusDimensionCodes", at("retryFocusDimensionCodes"), {"minItems": 0, "maxItems": 6, "uniqueItems": True})
+    require("$.retryFocusDimensionCodes[]", at("retryFocusDimensionCodes", "[]"), code_bounds)
+    return errors
+
+
+def validate_practice_chat_schema(schema_path: pathlib.Path, schema: dict) -> list[str]:
+    if schema.get("additionalProperties") is not False:
+        return [f"{schema_path}: practice chat v0.2 must set additionalProperties=false"]
+    return []
+
+
 def validate_schema_contract(schema_path: pathlib.Path, schema: dict, contract: dict) -> list[str]:
     errors: list[str] = []
     expected_type = contract["type"]
@@ -519,6 +740,15 @@ def validate_schema_contract(schema_path: pathlib.Path, schema: dict, contract: 
         errors.append(f"{schema_path}: required paths missing from schema: {missing}")
     if extra:
         errors.append(f"{schema_path}: required paths are not parser/struct-owned: {extra}")
+    allowed_paths = contract.get("allowed_paths")
+    if allowed_paths is not None:
+        actual_paths = collect_property_paths(schema)
+        unknown = sorted(actual_paths - set(allowed_paths))
+        missing_properties = sorted(set(allowed_paths) - actual_paths)
+        if unknown:
+            errors.append(f"{schema_path}: unknown contract properties: {unknown}")
+        if missing_properties:
+            errors.append(f"{schema_path}: contract properties missing from schema: {missing_properties}")
     return errors
 
 
@@ -535,6 +765,20 @@ def collect_required_paths(schema: dict, path: str = "$") -> set[str]:
         for key, child in props.items():
             if isinstance(child, dict):
                 out.update(collect_required_paths(child, f"{path}.{key}"))
+    return out
+
+
+def collect_property_paths(schema: dict, path: str = "$") -> set[str]:
+    out: set[str] = set()
+    if schema.get("type") == "array" and isinstance(schema.get("items"), dict):
+        out.update(collect_property_paths(schema["items"], path + "[]"))
+    props = schema.get("properties")
+    if isinstance(props, dict):
+        for key, child in props.items():
+            child_path = f"{path}.{key}"
+            out.add(child_path)
+            if isinstance(child, dict):
+                out.update(collect_property_paths(child, child_path))
     return out
 
 
@@ -601,6 +845,12 @@ ENUM_EXAMPLE_BY_PATH = {
     "$.riskItems[].severity": "medium",
     "$.severity": "nudge",
     "$.suggestions[].source": "jd",
+    "$.preparednessLevel": "needs_practice",
+    "$.dimensionAssessments[].status": "needs_work",
+    "$.dimensionAssessments[].confidence": "high",
+    "$.highlights[].confidence": "high",
+    "$.issues[].confidence": "medium",
+    "$.nextActions[].type": "retry_current_round",
 }
 
 STRING_EXAMPLE_BY_PATH = {
@@ -615,6 +865,7 @@ STRING_EXAMPLE_BY_PATH = {
     "$.highlights[].evidence": "Explained queue backpressure and deployment tradeoffs.",
     "$.issues[].dimension": "Risk handling",
     "$.issues[].evidence": "Rollback plan was mentioned but not made concrete.",
+    "$.nextActions[].label": "Retry the prioritization answer by explaining the tie-breaking rule",
     "$.next_actions[].label": "Replay the system design follow-up",
     "$.projects[].name": "Interview Prep Platform",
     "$.projects[].summary": "Built evidence-backed interview practice workflows.",
@@ -630,6 +881,10 @@ STRING_EXAMPLE_BY_PATH = {
     "$.riskItems[].label": "Thin rollback detail",
     "$.suggestions[].reason": "Adds scope, measurable impact, and target-JD language.",
     "$.suggestions[].suggestedBullet": "Improved API reliability by reducing incident rate 28% through retry-safe queue processing.",
+    "$.dimensionAssessments[].code": "decision_clarity",
+    "$.dimensionAssessments[].label": "Decision clarity",
+    "$.highlights[].dimensionCode": "decision_clarity",
+    "$.issues[].dimensionCode": "decision_clarity",
 }
 
 STRING_EXAMPLE_BY_KEY = {
@@ -650,7 +905,7 @@ STRING_EXAMPLE_BY_KEY = {
     "headline": "Backend engineer focused on distributed systems",
     "interviewerReaction": "The interviewer asked for more detail on rollback strategy.",
     "jobMatchId": "job-123",
-    "label": "retry system design drill",
+    "label": "replay the system design follow-up",
     "level": "senior",
     "location": "Remote US",
     "myAnswerSummary": "Described a queue-backed service migration and the operational safeguards used.",
@@ -748,6 +1003,8 @@ ARRAY_ITEM_EXAMPLE_BY_KEY = {
         "reason": "Adds scope, measurable impact, and target-JD language.",
     },
     "supporting_observations": "Used concrete operational examples from the session.",
+    "sourceMessageSeqNos": 2,
+    "retryFocusDimensionCodes": "decision_clarity",
 }
 
 INTEGER_EXAMPLE_BY_KEY = {
@@ -801,6 +1058,21 @@ def example_for_schema(schema: dict, path: str = "$") -> object:
             child = props.get(key)
             if isinstance(child, dict):
                 out[key] = example_for_schema(child, f"{path}.{key}")
+        if path == "$" and "preparednessLevel" in props and "summary" in out:
+            out["summary"] = (
+                "The candidate gave a usable prioritization approach but explicitly said "
+                "the tie-breaking rule was not explained."
+            )
+            if isinstance(out.get("highlights"), list) and out["highlights"]:
+                out["highlights"][0]["dimensionCode"] = "decision_clarity"
+                out["highlights"][0]["evidence"] = (
+                    "Ranked work by user impact and delivery effort."
+                )
+            if isinstance(out.get("issues"), list) and out["issues"]:
+                out["issues"][0]["dimensionCode"] = "decision_clarity"
+                out["issues"][0]["evidence"] = (
+                    "Explicitly said the tie-breaking rule was not explained in the answer."
+                )
         if out:
             return out
         dynamic = ARRAY_ITEM_EXAMPLE_BY_KEY.get(_array_key(path))
@@ -860,6 +1132,10 @@ def validate_value_against_schema(value: object, schema: dict, path: str, errors
             if key not in value:
                 errors.append(f"{path}: missing required field {key!r}")
         props = schema.get("properties") or {}
+        if schema.get("additionalProperties") is False:
+            unknown = sorted(set(value) - set(props))
+            if unknown:
+                errors.append(f"{path}: unknown fields {unknown}")
         for key, child in props.items():
             if key in value and isinstance(child, dict):
                 validate_value_against_schema(value[key], child, f"{path}.{key}", errors)
@@ -868,12 +1144,32 @@ def validate_value_against_schema(value: object, schema: dict, path: str, errors
             errors.append(f"{path}: expected array")
             return
         item_schema = schema.get("items")
+        minimum_items = schema.get("minItems")
+        maximum_items = schema.get("maxItems")
+        if isinstance(minimum_items, int) and len(value) < minimum_items:
+            errors.append(f"{path}: needs at least {minimum_items} items")
+        if isinstance(maximum_items, int) and len(value) > maximum_items:
+            errors.append(f"{path}: allows at most {maximum_items} items")
+        if schema.get("uniqueItems") is True:
+            canonical = [json.dumps(item, sort_keys=True, ensure_ascii=False) for item in value]
+            if len(canonical) != len(set(canonical)):
+                errors.append(f"{path}: items must be unique")
         if isinstance(item_schema, dict):
             for index, item in enumerate(value):
                 validate_value_against_schema(item, item_schema, f"{path}[{index}]", errors)
     elif schema_type == "string":
         if not isinstance(value, str):
             errors.append(f"{path}: expected string")
+        else:
+            minimum_length = schema.get("minLength")
+            maximum_length = schema.get("maxLength")
+            if isinstance(minimum_length, int) and len(value) < minimum_length:
+                errors.append(f"{path}: length must be >= {minimum_length}")
+            if isinstance(maximum_length, int) and len(value) > maximum_length:
+                errors.append(f"{path}: length must be <= {maximum_length}")
+            pattern = schema.get("pattern")
+            if isinstance(pattern, str) and re.fullmatch(pattern, value) is None:
+                errors.append(f"{path}: value does not match pattern {pattern!r}")
     elif schema_type == "number":
         if not isinstance(value, (int, float)) or isinstance(value, bool):
             errors.append(f"{path}: expected number")

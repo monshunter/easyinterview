@@ -2,12 +2,15 @@ package eval_test
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
 	"github.com/monshunter/easyinterview/backend/internal/eval"
+	"gopkg.in/yaml.v3"
 )
 
 func repoRoot(t *testing.T) string {
@@ -151,7 +154,7 @@ func TestResolveAllSingleSource(t *testing.T) {
 	}
 }
 
-// TestRealSuiteOfflineGreen is the count>=24 + offline-grades-clean gate over
+// TestRealSuiteOfflineGreen is the exact-28 + offline-grades-clean gate over
 // the committed config/evals suite (plan 004 §4.1/§4.5). It runs with no
 // AI_PROVIDER env and must not touch the network.
 func TestRealSuiteOfflineGreen(t *testing.T) {
@@ -160,10 +163,37 @@ func TestRealSuiteOfflineGreen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSuite(real): %v", err)
 	}
-	// Baseline is 24: 6 active feature keys each keep
-	// the four quality-band cases after jd_match and debrief/profile removal.
-	if suite.Count() < 24 {
-		t.Fatalf("offline eval suite must have >= 24 cases, got %d", suite.Count())
+	if suite.Count() != 28 {
+		t.Fatalf("offline eval suite must have exactly 28 cases, got %d", suite.Count())
+	}
+	reportCases := 0
+	criticalReportCases := 0
+	outputs := map[string]string{}
+	for _, c := range suite.Cases {
+		if c.FeatureKey != "report.generate" {
+			continue
+		}
+		reportCases++
+		if c.PromptVersion != "v0.2.0" || c.RubricVersion != "v0.2.0" {
+			t.Fatalf("report case %s versions = %s/%s", c.ID, c.PromptVersion, c.RubricVersion)
+		}
+		if c.Context == nil || c.Transcript == nil || !c.Redacted {
+			t.Fatalf("report case %s must carry redacted context+transcript", c.ID)
+		}
+		if c.Critical {
+			criticalReportCases++
+		}
+		raw, err := json.Marshal(c.Output)
+		if err != nil {
+			t.Fatalf("marshal report output %s: %v", c.ID, err)
+		}
+		if previous := outputs[string(raw)]; previous != "" {
+			t.Fatalf("report cases %s and %s reuse the same output", previous, c.ID)
+		}
+		outputs[string(raw)] = c.ID
+	}
+	if reportCases != 5 || criticalReportCases != 3 {
+		t.Fatalf("grounded report cases: want 5 total/3 critical, got %d/%d", reportCases, criticalReportCases)
 	}
 	reg := repoRegistry(t, root)
 	results, err := suite.RunOffline(context.Background(), reg)
@@ -171,9 +201,13 @@ func TestRealSuiteOfflineGreen(t *testing.T) {
 		t.Fatalf("RunOffline(real): %v", err)
 	}
 	hasEnFallback := false
+	criticalPasses := 0
 	for _, r := range results {
 		if r.Err != nil {
 			t.Fatalf("case %s failed offline grading: %v", r.CaseID, r.Err)
+		}
+		if r.Critical && r.Reasoning.CriticalSafetyPass {
+			criticalPasses++
 		}
 	}
 	for _, c := range suite.Cases {
@@ -184,6 +218,119 @@ func TestRealSuiteOfflineGreen(t *testing.T) {
 	if !hasEnFallback {
 		t.Fatal("suite must include at least one en->multi fallback case")
 	}
+	if criticalPasses != 3 {
+		t.Fatalf("critical report gate: want 3/3, got %d/3", criticalPasses)
+	}
+}
+
+func TestReportSuiteRejectsMissingContextAndRepeatedOutput(t *testing.T) {
+	root := repoRoot(t)
+	source, err := os.ReadFile(filepath.Join(root, "config", "evals", "report.generate", "cases.yaml"))
+	if err != nil {
+		t.Fatalf("read report cases: %v", err)
+	}
+	instruction, err := os.ReadFile(filepath.Join(root, "config", "evals", "judge-instruction.md"))
+	if err != nil {
+		t.Fatalf("read instruction: %v", err)
+	}
+
+	tests := []struct {
+		name   string
+		want   string
+		mutate func(map[string]any)
+	}{
+		{name: "missing context", want: "requires context and transcript", mutate: func(doc map[string]any) {
+			delete(doc["cases"].([]any)[0].(map[string]any), "context")
+		}},
+		{name: "repeated output", want: "reuse the same output", mutate: func(doc map[string]any) {
+			cases := doc["cases"].([]any)
+			cases[1].(map[string]any)["output"] = cases[0].(map[string]any)["output"]
+		}},
+		{name: "non-canonical runtime language", want: "runtime language must be en or zh-CN", mutate: func(doc map[string]any) {
+			doc["cases"].([]any)[0].(map[string]any)["language"] = "multi"
+		}},
+		{name: "context language mismatch", want: "runtime language must match context language", mutate: func(doc map[string]any) {
+			doc["cases"].([]any)[0].(map[string]any)["language"] = "zh-CN"
+		}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var doc map[string]any
+			if err := yaml.Unmarshal(source, &doc); err != nil {
+				t.Fatalf("parse report cases: %v", err)
+			}
+			tc.mutate(doc)
+			body, err := yaml.Marshal(doc)
+			if err != nil {
+				t.Fatalf("marshal report cases: %v", err)
+			}
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, "judge-instruction.md"), instruction, 0o600); err != nil {
+				t.Fatalf("write instruction: %v", err)
+			}
+			featureDir := filepath.Join(dir, "report.generate")
+			if err := os.MkdirAll(featureDir, 0o755); err != nil {
+				t.Fatalf("mkdir: %v", err)
+			}
+			if err := os.WriteFile(filepath.Join(featureDir, "cases.yaml"), body, 0o600); err != nil {
+				t.Fatalf("write cases: %v", err)
+			}
+			if _, err := eval.LoadSuite(dir); err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("want %q diagnostic, got %v", tc.want, err)
+			}
+		})
+	}
+}
+
+func TestReportGradeThresholdsAndUnknownActionFail(t *testing.T) {
+	root := repoRoot(t)
+	suite, err := eval.LoadSuite(filepath.Join(root, "config", "evals"))
+	if err != nil {
+		t.Fatalf("LoadSuite: %v", err)
+	}
+	reg := repoRegistry(t, root)
+	c, ok := suite.CaseByID("report.generate-complete-grounded")
+	if !ok {
+		t.Fatal("grounded report case missing")
+	}
+
+	t.Run("dimension below 0.70", func(t *testing.T) {
+		mutated := c
+		mutated.Judge.Scores = append([]eval.DimensionScore(nil), c.Judge.Scores...)
+		mutated.Judge.Scores[0].Value = 0.69
+		model, _ := mutated.OfflineJudgeModel()
+		output, _ := mutated.OutputJSON()
+		if _, _, err := suite.GradeOutput(context.Background(), reg, model, mutated, output); err == nil || !strings.Contains(err.Error(), "below 0.70") {
+			t.Fatalf("want per-dimension threshold failure, got %v", err)
+		}
+	})
+
+	t.Run("weighted mean below 0.80", func(t *testing.T) {
+		mutated := c
+		mutated.Judge.Scores = append([]eval.DimensionScore(nil), c.Judge.Scores...)
+		for i := range mutated.Judge.Scores {
+			mutated.Judge.Scores[i].Value = 0.79
+		}
+		model, _ := mutated.OfflineJudgeModel()
+		output, _ := mutated.OutputJSON()
+		if _, _, err := suite.GradeOutput(context.Background(), reg, model, mutated, output); err == nil || !strings.Contains(err.Error(), "below 0.80") {
+			t.Fatalf("want weighted threshold failure, got %v", err)
+		}
+	})
+
+	t.Run("unknown action", func(t *testing.T) {
+		output, _ := c.OutputJSON()
+		var body map[string]any
+		if err := json.Unmarshal(output, &body); err != nil {
+			t.Fatalf("parse output: %v", err)
+		}
+		body["nextActions"].([]any)[0].(map[string]any)["type"] = "unknown_action"
+		mutatedOutput, _ := json.Marshal(body)
+		model, _ := c.OfflineJudgeModel()
+		if _, _, err := suite.GradeOutput(context.Background(), reg, model, c, mutatedOutput); err == nil {
+			t.Fatal("unknown action must fail")
+		}
+	})
 }
 
 // TestRunOfflineMakesNoNetworkCall asserts the offline path is hermetic: even

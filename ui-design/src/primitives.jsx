@@ -126,6 +126,39 @@ if (!document.getElementById("ei-global")) {
     @keyframes ei-toast-in { from { opacity: 0; transform: translateY(8px);} to { opacity: 1; transform: translateY(0);} }
     .ei-toast-stack { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 9999; pointer-events: none; }
     .ei-toast { pointer-events: auto; padding: 10px 16px; border-radius: 4px; font-family: var(--ei-sans); font-size: 13px; line-height: 1.4; max-width: 360px; box-shadow: 0 8px 28px rgba(0,0,0,0.18); animation: ei-toast-in .22s ease-out both; display: flex; gap: 8px; align-items: center; }
+    .ei-topbar-nav button { line-height: 20.25px; }
+    @media (max-width: 720px) {
+      .ei-shell-topbar {
+        flex-wrap: wrap;
+        height: auto !important;
+        min-height: 58px;
+        padding: 8px 14px !important;
+        gap: 8px 10px !important;
+        overflow-x: clip;
+      }
+      .ei-topbar-brand { min-width: 0; flex: 1 1 auto; }
+      .ei-topbar-brand-copy { min-width: 0; }
+      .ei-topbar-brand-copy .ei-serif { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .ei-topbar-spacer { display: none; }
+      .ei-topbar-controls, .ei-topbar-user { flex: 0 0 auto; }
+      .ei-topbar-dark { height: 26px; }
+      .ei-topbar-lang { height: 29px; }
+      .ei-topbar-nav {
+        order: 10;
+        width: 100%;
+        margin-left: 0 !important;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+      }
+      .ei-topbar-nav::-webkit-scrollbar { display: none; }
+      .ei-topbar-nav button { flex: 0 0 auto; padding: 6px 10px !important; }
+    }
+    @media (max-width: 460px) {
+      .ei-topbar-brand-copy { display: none; }
+      .ei-topbar-lang { min-width: 54px; }
+      .ei-topbar-lang-current { max-width: 38px; overflow: hidden; text-overflow: ellipsis; }
+    }
   `;
   document.head.appendChild(s);
 }
@@ -246,7 +279,7 @@ const Tag = ({ children, tone = "neutral", T }) => {
   );
 };
 
-const Btn = ({ children, onClick, variant = "primary", size = "md", icon, iconRight, T, style = {}, disabled }) => {
+const Btn = ({ children, onClick, variant = "primary", size = "md", icon, iconRight, T, style = {}, disabled, ariaDescribedby }) => {
   const sizes = {
     sm: { px: 12, h: 30, fs: 13 },
     md: { px: 16, h: 38, fs: 14 },
@@ -261,7 +294,7 @@ const Btn = ({ children, onClick, variant = "primary", size = "md", icon, iconRi
   };
   const s = sizes[size]; const v = variants[variant];
   return (
-    <button onClick={disabled ? undefined : onClick} disabled={disabled} style={{
+    <button onClick={disabled ? undefined : onClick} disabled={disabled} aria-describedby={disabled ? ariaDescribedby : undefined} style={{
       display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
       height: s.h, padding: `0 ${s.px}px`, fontSize: s.fs, fontWeight: 500,
       background: v.bg, color: v.fg, border: `1px solid ${v.bd}`,

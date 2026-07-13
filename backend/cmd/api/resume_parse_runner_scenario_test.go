@@ -166,7 +166,7 @@ func (s *apiResumeAsyncStore) LeaseAsyncJob(_ context.Context, _ []string, _ tim
 	return s.job, true, nil
 }
 
-func (s *apiResumeAsyncStore) FinalizeAsyncJob(_ context.Context, jobID string, outcome runner.JobOutcome, _ time.Time, _ time.Time) error {
+func (s *apiResumeAsyncStore) FinalizeAsyncJob(_ context.Context, jobID string, _ int32, outcome runner.JobOutcome, _ time.Time, _ time.Time) error {
 	s.outcome = outcome
 	return nil
 }
@@ -190,7 +190,7 @@ func (s *apiResumeRetryAsyncStore) LeaseAsyncJob(_ context.Context, _ []string, 
 	return job, true, nil
 }
 
-func (s *apiResumeRetryAsyncStore) FinalizeAsyncJob(_ context.Context, _ string, outcome runner.JobOutcome, _ time.Time, _ time.Time) error {
+func (s *apiResumeRetryAsyncStore) FinalizeAsyncJob(_ context.Context, _ string, _ int32, outcome runner.JobOutcome, _ time.Time, _ time.Time) error {
 	s.outcomes = append(s.outcomes, outcome)
 	return nil
 }

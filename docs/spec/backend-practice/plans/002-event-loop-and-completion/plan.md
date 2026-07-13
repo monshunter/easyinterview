@@ -1,6 +1,6 @@
 # 002 — Conversation Message Loop and Completion
 
-> **版本**: 2.4
+> **版本**: 2.6
 > **状态**: completed
 > **更新日期**: 2026-07-12
 
@@ -11,14 +11,14 @@
 
 ## 1 目标
 
-实现 `sendPracticeMessage` 连续聊天与 `completePracticeSession`：普通 user/assistant messages 按序持久化，不区分题目、回答或追问；失败可用同一 `clientMessageId` 恢复且不重复消息。
+实现 `sendPracticeMessage` 连续聊天，并作为 `completePracticeSession` 的唯一 owner 负责可报告性校验、完成事务与 `report-context.v1` 原子快照：普通 user/assistant messages 按序持久化，不区分题目、回答或追问；失败可用同一 `clientMessageId` 恢复且不重复消息。
 
 ## 2 Operation Matrix
 
 | operationId | fixture | frontend consumer | handler | persistence | AI | scenario |
 |-------------|---------|-------------------|---------|-------------|----|----------|
 | `sendPracticeMessage` | `sendPracticeMessage.json` | Practice conversation hook | new message handler/service/store | `practice_messages`, task-runs | `practice.session.chat` | P0.044/P0.046 |
-| `completePracticeSession` | existing fixture | finish hook | existing completion path | session/report/job/outbox/idempotency | report job | P0.047/P0.056 |
+| `completePracticeSession` | `openapi/fixtures/PracticeSessions/completePracticeSession.json` | Practice finish hook | `backend-practice/002` handler/service/store（唯一 completion owner） | session/terminal messages/report-context.v1/job/outbox/idempotency | transaction 内无 AI；随后 report job | P0.047 owner artifact；P0.056/058 只消费 marker |
 
 ## 3 质量门禁分类
 
@@ -40,6 +40,8 @@
 | privacy | security | 5 | redaction/outbox/task tests | raw message outside content store |
 | send/complete race | lifecycle/boundary | 6 | service/store race regression + P0.047 | late reply reopens completing session |
 | failure scenario evidence | BDD/gate | 6 | P0.046 named failure/replay/mismatch markers | happy-path-only false PASS |
+| zero-answer / pending reply | failure/boundary | 9 | exact service/store/API tests + P0.047 | empty conversation creates report/job |
+| frozen report context | cross-owner handoff | 9 | one-view DB tests + owner artifact | review rebuilds from mutable entities |
 
 ## 5 实施步骤
 
@@ -81,6 +83,16 @@
 - Progress becomes visible immediately after completion commit, independent of report queued/generating/ready/failed state; no frontend/local storage write is part of completion.
 - P0.047 and the cross-layer P0.098 gate prove first-round completion advances TargetJob projection to the next canonical round and final completion yields no current round.
 
+### Phase 9: Reportable completion and frozen report context
+
+`backend-practice/002` 是本阶段唯一 completion owner；`backend-review/001` 不得复制 completion 查询、事务或零回答判断，只能消费冻结快照与 owner evidence。
+
+- Completion requires at least one committed candidate `user` message and no pending assistant reply. A zero-answer session returns typed `VALIDATION_FAILED`, remains running, and creates no completion fact/report/job/outbox/idempotency success record.
+- In the same successful completion transaction, freeze current `report-context.v1` from TargetJob raw/structured data, bound Resume source/profile, canonical round ladder/current round, source Plan settings, session language and terminal message count/last sequence. No AI call occurs in this transaction.
+- Focused owner command is `cd backend && go test ./internal/api/practice ./internal/practice ./internal/store/practice -run '^(TestE2EP0047RejectsZeroAnswerCompletion|TestE2EP0047FreezesReportContext|TestE2EP0047CompletionReplayPreservesReportContext)$' -count=1 -v`.
+- P0.047 writes `.test-output/e2e/p0-047-practice-text-loop-complete-and-generating-handoff/completion-backend-evidence.json` with exact top-level keys `schemaVersion`, `scenarioId`, `command`, `tests`, `markers`, `database`, `result`. `schemaVersion` is `practice-completion-evidence.v1`; `scenarioId` is `E2E.P0.047`; `tests` records the three exact names/statuses; `markers` contains `ZERO_ANSWER_COMPLETION_REJECTED_PASS`, `REPORT_CONTEXT_SNAPSHOT_PASS`, `REPORT_CONTEXT_REPLAY_PASS`; `database` records only redacted booleans/counts/context version; `result` is `PASS` only when the command exits 0, every exact `=== RUN`/`--- PASS:` and marker exists, no `--- FAIL:`/package `FAIL`/`no tests to run` appears, zero-answer has no side effects, and one-answer replay preserves the same snapshot.
+- P0.056/P0.058 consume the schema-valid P0.047 artifact/markers later; they cannot substitute their own completion implementation or infer PASS from frontend Vitest.
+
 ## 6 验收标准
 
 - Multiple message pairs append in stable order with no question classification.
@@ -88,6 +100,7 @@
 - Completion creates one report job and conversation-level handoff.
 - Completion commits one auditable round fact that TargetJob read models can project without a mutable progress column.
 - Wrong-resume plan/session facts cannot complete or advance the TargetJob's canonical prefix, even when both resumes belong to the same user.
+- Zero-answer/pending-reply completion is rejected without side effects; successful completion atomically freezes one immutable current-shape report context under this plan's sole ownership.
 - No raw message leaks outside authorized content/prompt/report paths.
 
 ## 7 风险与应对
@@ -107,6 +120,8 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-12 | 2.6 | Make 002 the sole reportable-completion/snapshot owner and lock exact P0.047 backend evidence. |
+| 2026-07-12 | 2.5 | Require one candidate message before completion and atomically freeze report-context.v1. |
 | 2026-07-12 | 2.4 | Bind completion facts to the TargetJob resume and separate immutable system policy from JSON-encoded untrusted follow-up context. |
 | 2026-07-12 | 2.3 | Reopen Phase 8 so the committed session-completion event is the durable round-progress fact. |
 | 2026-07-12 | 2.2 | Reopen follow-up messaging so every AI call uses the complete resume source snapshot and fails closed without evidence. |

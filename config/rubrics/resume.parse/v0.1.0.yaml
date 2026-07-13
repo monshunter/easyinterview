@@ -1,6 +1,7 @@
 feature_key: "resume.parse"
 version: "v0.1.0"
 language: "multi"
+status: "active"
 dimensions:
   - name: "resume_match"
     weight: 0.3

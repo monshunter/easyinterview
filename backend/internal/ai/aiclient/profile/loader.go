@@ -223,6 +223,9 @@ func readCatalog(path string) ([]*aiclient.ModelProfile, error) {
 		if err := rejectOutOfScopeSchemaKeys(path, item); err != nil {
 			return nil, err
 		}
+		if err := rejectUnsupportedSchemaKeys(path, item); err != nil {
+			return nil, err
+		}
 		var raw aiclient.ModelProfile
 		if err := item.Decode(&raw); err != nil {
 			return nil, fmt.Errorf("profile: parse %s: %w", path, err)
@@ -269,13 +272,110 @@ func validateProfile(path string, doc *yaml.Node, raw *aiclient.ModelProfile) er
 	if raw.Default.Model == "" {
 		return profileValidationError(path, fieldLine(doc, "default", "model"), "missing required field 'default.model'")
 	}
+	if err := validateThinkingParam(path, doc, raw.Default.Params); err != nil {
+		return err
+	}
+	if fallbackNode, ok := mappingValue(doc, "fallback"); ok && fallbackNode.Kind == yaml.SequenceNode {
+		for i, fallback := range raw.Fallback {
+			if i >= len(fallbackNode.Content) {
+				break
+			}
+			if err := validateThinkingParam(path, fallbackNode.Content[i], fallback.Params); err != nil {
+				return err
+			}
+		}
+	}
 	if raw.TimeoutMs <= 0 {
 		return profileValidationError(path, fieldLine(doc, "timeout_ms"), "missing or non-positive 'timeout_ms'")
+	}
+	_, hasContextWindow := mappingValue(doc, "context_window_tokens")
+	if raw.Name == "report.generate.default" && !hasContextWindow {
+		return profileValidationError(path, fieldLine(doc, "context_window_tokens"), "missing required field 'context_window_tokens'")
+	}
+	if hasContextWindow && raw.ContextWindowTokens <= 0 {
+		return profileValidationError(path, fieldLine(doc, "context_window_tokens"), "'context_window_tokens' must be positive")
+	}
+	if hasContextWindow && raw.ContextWindowTokens <= raw.MaxTokens {
+		return profileValidationError(path, fieldLine(doc, "context_window_tokens"), "'context_window_tokens' must be greater than 'max_tokens'")
 	}
 	if raw.Version == "" {
 		return profileValidationError(path, fieldLine(doc, "version"), "missing required field 'version'")
 	}
 	return nil
+}
+
+func validateThinkingParam(path string, doc *yaml.Node, params map[string]any) error {
+	raw, ok := params["thinking"]
+	if !ok {
+		return nil
+	}
+	mode, ok := raw.(string)
+	if !ok || (mode != "enabled" && mode != "disabled") {
+		return profileValidationError(path, fieldLine(doc, "params", "thinking"), "'thinking' must be enabled | disabled")
+	}
+	return nil
+}
+
+func rejectUnsupportedSchemaKeys(path string, doc *yaml.Node) error {
+	profileFields := map[string]struct{}{
+		"name": {}, "capability": {}, "status": {}, "unsupported_reason": {},
+		"default": {}, "fallback": {}, "timeout_ms": {}, "context_window_tokens": {},
+		"max_tokens": {}, "rate_limit": {}, "route": {}, "version": {}, "privacy_policy": {},
+	}
+	if err := rejectUnsupportedMappingFields(path, doc, "profile", profileFields); err != nil {
+		return err
+	}
+	if node, ok := mappingValue(doc, "default"); ok {
+		if err := rejectUnsupportedMappingFields(path, node, "default", map[string]struct{}{
+			"provider_ref": {}, "model": {}, "params": {},
+		}); err != nil {
+			return err
+		}
+	}
+	if node, ok := mappingValue(doc, "fallback"); ok && node.Kind == yaml.SequenceNode {
+		for _, entry := range node.Content {
+			if err := rejectUnsupportedMappingFields(path, entry, "fallback entry", map[string]struct{}{
+				"provider_ref": {}, "model": {}, "params": {}, "when": {},
+			}); err != nil {
+				return err
+			}
+		}
+	}
+	if node, ok := mappingValue(doc, "rate_limit"); ok {
+		if err := rejectUnsupportedMappingFields(path, node, "rate_limit", map[string]struct{}{
+			"rps": {}, "tpm": {},
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func rejectUnsupportedMappingFields(path string, node *yaml.Node, scope string, allowed map[string]struct{}) error {
+	root := yamlRoot(node)
+	if root == nil || root.Kind != yaml.MappingNode {
+		return nil
+	}
+	for i := 0; i+1 < len(root.Content); i += 2 {
+		key := root.Content[i]
+		if _, ok := allowed[key.Value]; !ok {
+			return profileValidationError(path, yamlNodeLine(key), "unsupported %s field %q", scope, key.Value)
+		}
+	}
+	return nil
+}
+
+func mappingValue(doc *yaml.Node, name string) (*yaml.Node, bool) {
+	root := yamlRoot(doc)
+	if root == nil || root.Kind != yaml.MappingNode {
+		return nil, false
+	}
+	for i := 0; i+1 < len(root.Content); i += 2 {
+		if root.Content[i].Value == name {
+			return root.Content[i+1], true
+		}
+	}
+	return nil, false
 }
 
 func rejectOutOfScopeSchemaKeys(path string, doc *yaml.Node) error {

@@ -1,54 +1,61 @@
 #!/usr/bin/env bash
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
-OUTPUT_DIR="$REPO_ROOT/.test-output/e2e/p0-057-replay-cta-paths-a-and-b"
-LOG_FILE="$OUTPUT_DIR/trigger.log"
 
-test -s "$LOG_FILE"
-"$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}"
-grep -Fq 'E2E.P0.057: validating direct-start owner contract' "$LOG_FILE" || { echo "E2E.P0.057: direct-start owner preflight did not run" >&2; exit 1; }
-grep -Fq 'preflight.test.ts' "$LOG_FILE" || { echo "E2E.P0.057: report owner preflight did not pass" >&2; exit 1; }
-grep -Fq 'pendingActionReplayPractice.test.ts' "$LOG_FILE" || { echo "E2E.P0.057: pendingAction replay test did not run" >&2; exit 1; }
-grep -Fq 'roundAssumptions.test.ts' "$LOG_FILE" || { echo "E2E.P0.057: structured round resolver test did not run" >&2; exit 1; }
-grep -Fq 'useReportContextData.test.tsx' "$LOG_FILE" || { echo "E2E.P0.057: target round load/failure test did not run" >&2; exit 1; }
-grep -Fq 'ReplayCta.test.tsx' "$LOG_FILE" || { echo "E2E.P0.057: ReplayCta test did not run" >&2; exit 1; }
-grep -Fq 'TestReplayCtaPathA_AuthenticatedDirectStartPractice' \
-  "$REPO_ROOT/frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx" || { echo "E2E.P0.057: replay direct-start assertion is missing" >&2; exit 1; }
-grep -Fq 'TestNextRoundCta_DirectStartPractice' \
-  "$REPO_ROOT/frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx" || { echo "E2E.P0.057: next-round direct-start assertion is missing" >&2; exit 1; }
-grep -Fq 'fails closed for %s' \
-  "$REPO_ROOT/frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx" || { echo "E2E.P0.057: next-round fail-closed matrix is missing" >&2; exit 1; }
-grep -Fq 'locks both CTAs synchronously and creates at most one plan/session' \
-  "$REPO_ROOT/frontend/src/app/screens/report/__tests__/ReplayCta.test.tsx" || { echo "E2E.P0.057: duplicate-click guard assertion is missing" >&2; exit 1; }
-grep -Fq 'startPracticeFromParams(runtime.client, params, lang)' \
-  "$REPO_ROOT/frontend/src/app/screens/report/useReplayCtaHandlers.ts" || { echo "E2E.P0.057: replay CTA does not use the shared direct-start helper" >&2; exit 1; }
-grep -Fq 'navigate({ name: "practice", params: started.params })' \
-  "$REPO_ROOT/frontend/src/app/screens/report/useReplayCtaHandlers.ts" || { echo "E2E.P0.057: replay CTA does not navigate directly to practice" >&2; exit 1; }
-grep -Fq 'route: "report"' \
-  "$REPO_ROOT/frontend/src/app/auth/__tests__/pendingActionReplayPractice.test.ts" || { echo "E2E.P0.057: replay pending action does not restore the report route" >&2; exit 1; }
-grep -Fq 'client.createPracticePlan(' \
-  "$REPO_ROOT/frontend/src/app/interview-context/startPractice.ts" || { echo "E2E.P0.057: direct-start helper does not create a derived plan" >&2; exit 1; }
-grep -Fq 'client.startPracticeSession(' \
-  "$REPO_ROOT/frontend/src/app/interview-context/startPractice.ts" || { echo "E2E.P0.057: direct-start helper does not start a fresh session" >&2; exit 1; }
+ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
+OUT="$ROOT/.test-output/e2e/p0-057-replay-cta-paths-a-and-b"
+LOG="$OUT/trigger.log"
 
-# Replay CTA payload must not assign raw text literals into payload keys.
-# Match key-style usages (`answerText:`, `answerText =`, `"answerText"`).
-if grep -RnE '("answerText"|''answerText''|answerText\s*[:=]|"questionText"|''questionText''|questionText\s*[:=]|promptHash\s*[:=]|"promptHash")' \
-    "$REPO_ROOT/frontend/src/app/screens/report" \
-    --include='*.tsx' --include='*.ts' --exclude-dir=__tests__; then
-  echo "E2E.P0.057: raw text leaked into replay payload code" >&2
-  exit 1
-fi
+test -s "$LOG"
+"$ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG" E2E.P0.057
+grep -Fq 'E2E.P0.057: validating closed derived-plan requests and one fresh session' "$LOG"
+for frontend_file in \
+  preflight.test.ts \
+  pendingActionReplayPractice.test.ts \
+  buildCreatePlanRequest.test.ts \
+  startPractice.test.ts \
+  ConversationReport.test.tsx \
+  ReplayCta.test.tsx; do
+  grep -Fq "$frontend_file" "$LOG" || {
+    echo "E2E.P0.057: $frontend_file did not run" >&2
+    exit 1
+  }
+done
+for frontend_assertion in \
+  'creates a closed retry_current_round request without client focus or identity' \
+  'creates retry-current-round from only goal + sourceReportId and trusts server-derived context' \
+  'uses the server-derived non-contiguous next round without sending round identity' \
+  'uses the first action only for CTA visual priority and keeps an empty replay focus valid' \
+  'fails closed when non-empty replay focus is not backed by a needs-work dimension and same-code issue' \
+  'replay sends only goal + sourceReportId and starts the backend-derived plan' \
+  'next-round sends only goal + sourceReportId when frozen context allows it' \
+  'locks both CTAs synchronously and creates at most one plan'; do
+  grep -Fq "$frontend_assertion" "$LOG"
+done
 
-# practiceGoal values surface in both paths.
-grep -Fq 'retry_current_round' "$REPO_ROOT/frontend/src/app/screens/report/handoff.ts"
-grep -Fq 'next_round' "$REPO_ROOT/frontend/src/app/screens/report/handoff.ts"
+for runtime_file in \
+  "$ROOT/frontend/src/app/interview-context/buildCreatePlanRequest.ts" \
+  "$ROOT/frontend/src/app/interview-context/startPractice.ts" \
+  "$ROOT/frontend/src/app/screens/report/handoff.ts" \
+  "$ROOT/frontend/src/app/screens/report/useReplayCtaHandlers.ts"; do
+  if rg -n 'retryFocusCompetencyCodes|focusCompetencyCodes|retryFocusDimensionCodes|focusDimensionCodes|evidenceGaps|evidenceGap|answerText|questionText|promptHash' "$runtime_file"; then
+    echo "E2E.P0.057: client focus/evidence/raw-text authority leaked into $runtime_file" >&2
+    exit 1
+  fi
+done
 
-if rg -n 'ROUND_ORDER|DEFAULT_NEXT_ROUND|inferNextRoundId' \
-    "$REPO_ROOT/frontend/src/app/screens/report" \
-    "$REPO_ROOT/frontend/src/app/interview-context" \
+grep -Fq 'return { goal, sourceReportId };' "$ROOT/frontend/src/app/interview-context/buildCreatePlanRequest.ts"
+grep -Fq 'startPracticeFromParams(runtime.client, params, lang)' "$ROOT/frontend/src/app/screens/report/useReplayCtaHandlers.ts"
+grep -Fq 'navigate({ name: "practice", params: started.params })' "$ROOT/frontend/src/app/screens/report/useReplayCtaHandlers.ts"
+if rg -n 'ROUND_ORDER|DEFAULT_NEXT_ROUND|inferNextRoundId|useReportContextData' \
+    "$ROOT/frontend/src/app/screens/report" \
+    "$ROOT/frontend/src/app/interview-context" \
     -g '!*.test.*'; then
-  echo "E2E.P0.057: fixed or fallback next-round logic leaked into runtime" >&2
+  echo "E2E.P0.057: mutable/fallback next-round authority leaked into runtime" >&2
   exit 1
 fi
+if grep -Eq -- '--- FAIL:|^FAIL($|[[:space:]])|no tests to run|\[no tests to run\]' "$LOG"; then
+  echo "E2E.P0.057: failing or empty runner evidence found" >&2
+  exit 1
+fi
+
+echo "E2E.P0.057 PASS"

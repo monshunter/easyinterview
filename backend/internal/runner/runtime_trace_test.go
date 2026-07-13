@@ -42,7 +42,7 @@ func newCapturingHandler() *capturingHandler {
 func (h *capturingHandler) Enabled(context.Context, slog.Level) bool { return true }
 
 func (h *capturingHandler) Handle(_ context.Context, r slog.Record) error {
-	fields := map[string]string{"msg": r.Message}
+	fields := map[string]string{"msg": r.Message, "level": r.Level.String()}
 	for _, a := range h.attrs {
 		fields[a.Key] = a.Value.String()
 	}
@@ -54,6 +54,12 @@ func (h *capturingHandler) Handle(_ context.Context, r slog.Record) error {
 	h.store.records = append(h.store.records, fields)
 	h.store.mu.Unlock()
 	return nil
+}
+
+type staleFinalizeStore struct{ *fakeStore }
+
+func (s *staleFinalizeStore) FinalizeAsyncJob(context.Context, string, int32, JobOutcome, time.Time, time.Time) error {
+	return ErrStaleLease
 }
 
 func (h *capturingHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
@@ -127,5 +133,25 @@ func TestRuntime_HandlerSkipsTraceWhenMissing(t *testing.T) {
 	}
 	if seen != "" {
 		t.Fatalf("expected empty trace id when payload has none, got %q", seen)
+	}
+}
+
+func TestRuntime_StaleFinalizeIsExpectedFencedDebugSignal(t *testing.T) {
+	now := time.Date(2026, 7, 13, 12, 0, 0, 0, time.UTC)
+	base := newFakeStore()
+	base.enqueue("job-stale", "target_import", 0, now.Add(-time.Minute), now.Add(-time.Minute))
+	capture := newCapturingHandler()
+	rt := New(Options{Store: &staleFinalizeStore{fakeStore: base}, Config: testConfig(), Now: fixedClock(now), Logger: slog.New(capture)})
+	rt.Register("target_import", JobHandlerFunc(func(context.Context, ClaimedJob) JobOutcome {
+		return JobOutcome{Succeeded: true}
+	}))
+	if processed, err := rt.RunOnce(context.Background()); err != nil || !processed {
+		t.Fatalf("RunOnce processed=%t err=%v", processed, err)
+	}
+	if level, ok := capture.store.field("runner.finalize fenced stale lease", "level"); !ok || level != "DEBUG" {
+		t.Fatalf("stale finalize signal level=%q present=%t want DEBUG", level, ok)
+	}
+	if _, ok := capture.store.field("runner.finalize failed", "level"); ok {
+		t.Fatal("stale finalize was emitted as an error")
 	}
 }

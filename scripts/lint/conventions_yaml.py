@@ -54,6 +54,11 @@ REQUIRED_ERROR_CODES = {
     "VALIDATION_FAILED",
     "RATE_LIMITED",
 }
+REPORT_CONTEXT_TOO_LARGE = {
+    "code": "REPORT_CONTEXT_TOO_LARGE",
+    "message": "report context exceeds supported generation size",
+    "retryable": False,
+}
 REQUIRED_AI_VOCABULARY_FIELDS = {
     "model_profile_name",
     "model_profile_version",
@@ -148,6 +153,20 @@ def validate(data: dict[str, Any]) -> list[str]:
         errors.append(
             "errors must include all 6 shared error-code examples from the owner spec; "
             f"missing {sorted(missing_error_codes)}"
+        )
+    report_context_errors = [
+        entry
+        for entry in error_list
+        if entry.get("code") == REPORT_CONTEXT_TOO_LARGE["code"]
+    ]
+    if len(report_context_errors) != 1:
+        errors.append(
+            "REPORT_CONTEXT_TOO_LARGE must appear exactly once with canonical message and retryable=false"
+        )
+    elif report_context_errors[0] != REPORT_CONTEXT_TOO_LARGE:
+        errors.append(
+            "REPORT_CONTEXT_TOO_LARGE must use message "
+            "'report context exceeds supported generation size' and retryable=false"
         )
 
     job_statuses = set(data.get("jobStatuses") or [])

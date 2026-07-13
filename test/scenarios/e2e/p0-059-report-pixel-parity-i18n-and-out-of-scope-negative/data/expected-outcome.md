@@ -1,10 +1,8 @@
 # Expected outcome
 
-- `report.*` and `generating.*` key sets are byte-identical across zh and en.
-- AI_* enum errorCodes each have a dedicated i18n string distinct from UNKNOWN.
-- REPORT_NOT_FOUND has independent failureState.notFound.{eyebrow,title,desc} copy.
-- Implementation files under report/ and generating/ contain none of the out-of-scope vocabulary terms; the Python lint script and TypeScript negative-grep both pass.
-- Frontend build succeeds before visual parity execution.
-- The owner/browser preflight checks the active spec, six plan artifacts, browser sources and scenario claims; it rejects claims not backed by the P0.059 runner and confirms both Playwright specs execute real screenshot calls.
-- Playwright `generating.spec.ts` passes desktop main, missing-report and mobile-overflow states; `report.spec.ts` passes desktop dashboard, missing-session, failed and mobile-overflow states.
-- Every covered browser state produces a non-empty in-memory screenshot; no image-comparison files are written.
+- `report.*` and `generating.*` UI key sets stay exact across zh/en; typed backend enums never render as raw user copy.
+- Prototype and formal pages use identical fixtures and deterministic locale/timezone/Date/DPR/font/motion controls at 1440×900 and 390×844.
+- Normalized DOM text, selected computed styles, viewport-relative absolute bbox and responsive column/scroll-width assertions pass for zh needs-practice, en well-prepared and generating.
+- `pixelmatch` runs with threshold 0.1; every compared root has changed-pixel ratio ≤0.5%.
+- On parity failure, prototype/formal/diff images are attached; on success, no diagnostic image set is retained.
+- Frontend build, owner preflight, both browser specs, i18n gate and stale-contract negatives all pass with no skipped/no-test/failure marker.

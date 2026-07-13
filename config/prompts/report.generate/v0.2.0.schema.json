@@ -1,0 +1,236 @@
+{
+  "type": "object",
+  "description": "Direct, evidence-grounded interview feedback report content.",
+  "additionalProperties": false,
+  "required": [
+    "summary",
+    "preparednessLevel",
+    "dimensionAssessments",
+    "highlights",
+    "issues",
+    "nextActions",
+    "retryFocusDimensionCodes"
+  ],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "Concise evidence-grounded overall assessment in the frozen session language.",
+      "minLength": 1,
+      "maxLength": 360
+    },
+    "preparednessLevel": {
+      "type": "string",
+      "description": "Semantic readiness tier: blocking deficiency, improvable non-blocking gap, usable answer, or uniformly strong/high evidence.",
+      "enum": [
+        "not_ready",
+        "needs_practice",
+        "basically_ready",
+        "well_prepared"
+      ]
+    },
+    "dimensionAssessments": {
+      "type": "array",
+      "description": "One to six directly assessed interview-performance dimensions.",
+      "minItems": 1,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "description": "One named report-local dimension and its direct semantic assessment.",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "label",
+          "status",
+          "confidence"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Stable report-local snake_case dimension code.",
+            "minLength": 2,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]{1,63}$"
+          },
+          "label": {
+            "type": "string",
+            "description": "User-facing dimension label in the frozen session language.",
+            "minLength": 1,
+            "maxLength": 48
+          },
+          "status": {
+            "type": "string",
+            "description": "Direct semantic assessment status; never derive it from a numeric score.",
+            "enum": [
+              "strong",
+              "meets_bar",
+              "needs_work"
+            ]
+          },
+          "confidence": {
+            "type": "string",
+            "description": "Evidence directness: explicit/specific, small direct synthesis, or sparse non-negative support.",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          }
+        }
+      }
+    },
+    "highlights": {
+      "type": "array",
+      "description": "Zero to four positive evidence items grounded in candidate messages.",
+      "minItems": 0,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "description": "One positive evidence item with internal message anchors.",
+        "additionalProperties": false,
+        "required": [
+          "dimensionCode",
+          "evidence",
+          "confidence",
+          "sourceMessageSeqNos"
+        ],
+        "properties": {
+          "dimensionCode": {
+            "type": "string",
+            "description": "Code of a declared dimensionAssessment.",
+            "minLength": 2,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]{1,63}$"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Concise supported observation without inventing facts or copying long source text.",
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "confidence": {
+            "type": "string",
+            "description": "Evidence directness for this highlight; low is allowed only for an explicitly evidence-limited non-negative observation.",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "sourceMessageSeqNos": {
+            "type": "array",
+            "description": "Ascending unique sequence numbers of supporting candidate user messages.",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "description": "One positive candidate user-message sequence number.",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "description": "Zero to four improvement evidence items grounded in candidate messages.",
+      "minItems": 0,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "description": "One improvement evidence item with internal message anchors.",
+        "additionalProperties": false,
+        "required": [
+          "dimensionCode",
+          "evidence",
+          "confidence",
+          "sourceMessageSeqNos"
+        ],
+        "properties": {
+          "dimensionCode": {
+            "type": "string",
+            "description": "Code of a declared dimensionAssessment.",
+            "minLength": 2,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9_]{1,63}$"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Concise supported gap or limitation without inferring from an unanswered assistant prompt.",
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "confidence": {
+            "type": "string",
+            "description": "Evidence directness for this issue; a negative issue requires medium or high confidence.",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "sourceMessageSeqNos": {
+            "type": "array",
+            "description": "Ascending unique sequence numbers of supporting candidate user messages.",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer",
+              "description": "One positive candidate user-message sequence number.",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "nextActions": {
+      "type": "array",
+      "description": "One to two executable actions causally linked to report evidence.",
+      "minItems": 1,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "description": "One executable report action.",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "label"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Supported action type in recommendation order.",
+            "enum": [
+              "retry_current_round",
+              "next_round",
+              "review_evidence"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "Compact user-facing action label. English: at most 24 whitespace-delimited words; zh-CN: at most 64 Unicode code points. The schema's 200 Unicode-code-point maximum is an outer malformed-output safety cap, not a writing target. A focused retry uses semicolon-separated cited missing-behavior fragments, one per selected focus code, without framing or umbrella prose.",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        }
+      }
+    },
+    "retryFocusDimensionCodes": {
+      "type": "array",
+      "description": "Zero to six sorted unique needs-work dimension codes; empty only for the exact single-issue answer_depth or answer_relevance generic exceptions, otherwise a retry copies every sorted unique needs-work issue code.",
+      "minItems": 0,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "description": "Issue-backed needs-work dimension code.",
+        "minLength": 2,
+        "maxLength": 64,
+        "pattern": "^[a-z][a-z0-9_]{1,63}$"
+      }
+    }
+  }
+}

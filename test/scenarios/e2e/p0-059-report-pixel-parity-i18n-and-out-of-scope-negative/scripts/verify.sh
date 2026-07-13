@@ -9,7 +9,14 @@ test -s "$LOG_FILE"
 "$REPO_ROOT/test/scenarios/_shared/scripts/frontend-real-backend-verify.sh" "$LOG_FILE" "${SCENARIO_ID:-$(basename "$OUTPUT_DIR")}"
 grep -Fq 'E2E.P0.059: validating owner and browser evidence contract' "$LOG_FILE" || { echo "E2E.P0.059: owner/browser evidence preflight did not run" >&2; exit 1; }
 grep -Fq 'frontend-report-dashboard out-of-scope lint OK' "$LOG_FILE" || { echo "E2E.P0.059: out-of-scope lint script did not succeed" >&2; exit 1; }
+for frontend_file in \
+  preflight.test.ts \
+  reportDashboardI18nCoverage.test.ts \
+  outOfScopeNegative.test.ts; do
+  grep -Fq "$frontend_file" "$LOG_FILE" || { echo "E2E.P0.059: $frontend_file did not run" >&2; exit 1; }
+done
 grep -Fq 'E2E.P0.059: running Playwright pixel parity' "$LOG_FILE" || { echo "E2E.P0.059: Playwright pixel parity did not run" >&2; exit 1; }
+grep -Fq 'viewports=1440x900,390x844; DOM/style/bbox; pixelmatch threshold 0.1; changed-pixel ratio <=0.5%; failure artifacts=prototype/formal/diff' "$LOG_FILE" || { echo "E2E.P0.059: deterministic semantic/pixel contract marker missing" >&2; exit 1; }
 grep -Fq 'tests/pixel-parity/generating.spec.ts' "$LOG_FILE" || { echo "E2E.P0.059: generating pixel parity spec was not executed" >&2; exit 1; }
 grep -Fq 'tests/pixel-parity/report.spec.ts' "$LOG_FILE" || { echo "E2E.P0.059: report pixel parity spec was not executed" >&2; exit 1; }
 awk '
@@ -18,3 +25,7 @@ awk '
   END { exit passed ? 0 : 1 }
 ' "$LOG_FILE" || { echo "E2E.P0.059: Playwright pixel parity pass marker missing" >&2; exit 1; }
 grep -Fq 'E2E.P0.059: Playwright pixel parity complete' "$LOG_FILE" || { echo "E2E.P0.059: Playwright pixel parity did not complete" >&2; exit 1; }
+if grep -Eq -- '--- FAIL:|^FAIL($|[[:space:]])|no tests to run|\[no tests to run\]|[[:space:]][1-9][0-9]* failed' "$LOG_FILE"; then
+  echo "E2E.P0.059: failing or empty runner evidence found" >&2
+  exit 1
+fi

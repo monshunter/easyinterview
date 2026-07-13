@@ -36,6 +36,14 @@ const FORBIDDEN = [
   /window\.EI_DATA/,
   /ui-design\/src\/data/,
   /listTargetJobReports/,
+  /\bProgressBar\b/,
+  /\bPhaseList\b/,
+  /\bLiveEvidenceStream\b/,
+  /\bSlaHint\b/,
+  /generating-notify-cta/,
+  /generating-live-stream/,
+  /HANDOFF_PASSTHROUGH_KEYS/,
+  /reportStatus/,
 ];
 
 function* walk(dir: string): Generator<string> {

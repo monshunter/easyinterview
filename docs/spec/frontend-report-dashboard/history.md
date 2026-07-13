@@ -1,13 +1,22 @@
 # Frontend Report Dashboard History
 
-> **版本**: 1.11
+> **版本**: 1.20
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 1.20 | Supersede 1.18的runner-owned/durable口径：10s/20s/40s属于单次`GenerateReport`动作内retry；async job attempts只作基础设施执行；保留maxAttempts49/6m04s诚实轮询且不虚构failed-report regenerate API。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
+| 2026-07-13 | 1.19 | hidden/blur发生在timer或in-flight时保留attempt/next delay；visible/focus从n+1继续，单run仍cap49。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
+| 2026-07-13 | 1.18 | Generating轮询锁定maxAttempts49（约6m04s），覆盖report复用business policy的10s/20s/40s与4×60s调用；business async与outbox/infra退避分离，UI不显示内部attempt/progress。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
+| 2026-07-13 | 1.17 | 方案 A 最终边界：wire fuse200；frontend semantic/UX改为English 24 whitespace words / zh-CN 64 Unicode code points；targeted repair 18/52不进入UI；desktop+390合法边界完整换行。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
+| 2026-07-13 | 1.16 | A-200批准：schema fuse改200；14/40仍为typed-invalid gate，desktop+390合法边界完整换行且超限不回显raw。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
+| 2026-07-13 | 1.15 | 建立14/40 fail-close与P0.099 current-run audit；wire上限由1.16 A-200取代。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
+| 2026-07-12 | 1.14 | 将空 `retryFocusDimensionCodes` 定义为合法通用同轮 Replay；非空 focus 才要求 needs-work dimension 与同 code issue 双重支撑。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
+| 2026-07-12 | 1.13 | 将 GeneratingScreen 唯一 owner 转入本模块；补 immutable report context、route tamper、终态动作矩阵与 UI/report 双语言边界。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
+| 2026-07-12 | 1.12 | 重新打开 001：锁定三指标四常驻区块，接入 grounded direct semantic report，删除 generating 伪实时语义，补齐 enum i18n、CTA 推荐、server-owned focus、mobile 可读性与强截图验收。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | 2026-07-12 | 1.11 | Report Dashboard 删除 Questions tab、逐题 replay 与 turn-based retry，收敛为会话级四部分报告。 | [001-report-screen-and-generating-handoff](./plans/001-report-screen-and-generating-handoff/plan.md) |
 | 2026-07-10 | 1.10 | 将 active visual acceptance 收敛到 P0.059 实际执行的七个浏览器状态、390px overflow 与逐状态非空内存截图；主题归 frontend-shell，detail tab 结构继续由 source-parity 单测拥有。 | 001-report-screen-and-generating-handoff |
 | 2026-07-10 | 1.9 | 对齐当前 UI 真理源、frontend-workspace-and-practice D-9 与生产调用链：报告 Header CTA 通过 generated client 创建 plan、启动 fresh session 并直接进入 practice；未登录 pendingAction 回 report 重试；同步 P0.057 与 operation matrix。 | 001-report-screen-and-generating-handoff |

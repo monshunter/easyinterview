@@ -1,4 +1,4 @@
-import type { FC } from "react";
+import type { CSSProperties, FC } from "react";
 
 import { useI18n } from "../../../i18n/messages";
 
@@ -10,6 +10,9 @@ interface ReportHeaderProps {
   onNextRound: () => void;
   disableReplay?: boolean;
   disableNextRound?: boolean;
+  replayVariant?: "accent" | "secondary";
+  nextVariant?: "accent" | "secondary";
+  nextDisabledReason?: string;
 }
 
 /**
@@ -25,21 +28,24 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
   onNextRound,
   disableReplay,
   disableNextRound,
+  replayVariant = "secondary",
+  nextVariant = "secondary",
+  nextDisabledReason,
 }) => {
   const { t } = useI18n();
   return (
-    <div
+    <header
       data-testid="report-header"
       style={{
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "flex-end",
         gap: 24,
-        marginBottom: 18,
+        alignItems: "flex-end",
         flexWrap: "wrap",
+        marginBottom: 24,
       }}
     >
-      <div style={{ minWidth: 0, flex: "1 1 320px" }}>
+      <div style={{ minWidth: 0, flex: "1 1 440px" }}>
         <div
           className="ei-label"
           data-testid="report-header-breadcrumb"
@@ -54,34 +60,27 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
             fontSize: 38,
             color: "var(--ei-color-fg-primary)",
             margin: 0,
-            lineHeight: 1.15,
-            letterSpacing: 0,
             overflowWrap: "anywhere",
           }}
         >
           {title}
         </h1>
-        <div
+        <p
           data-testid="report-header-subtitle"
           style={{
-            fontSize: 14,
             color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
-            marginTop: 8,
-            lineHeight: 1.65,
-            maxWidth: 720,
+            lineHeight: 1.7,
+            marginBottom: 0,
           }}
         >
           {subtitle}
-        </div>
+        </p>
       </div>
       <div
         style={{
           display: "flex",
           gap: 10,
           flexWrap: "wrap",
-          justifyContent: "flex-end",
-          minWidth: 0,
-          flex: "1 1 240px",
         }}
       >
         <button
@@ -90,18 +89,9 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
           onClick={onReplay}
           disabled={disableReplay}
           aria-disabled={disableReplay}
-          style={{
-            padding: "10px 16px",
-            background: "var(--ei-color-accent)",
-            color: "#fff",
-            border: "1px solid var(--ei-color-accent)",
-            borderRadius: 2,
-            cursor: disableReplay ? "not-allowed" : "pointer",
-            opacity: disableReplay ? 0.5 : 1,
-            fontFamily: "var(--ei-font-sans)",
-            fontSize: 13,
-            flex: "1 1 160px",
-          }}
+          aria-describedby={disableReplay && nextDisabledReason ? "report-next-disabled-reason" : undefined}
+          data-variant={replayVariant}
+          style={buttonStyle(replayVariant, Boolean(disableReplay))}
         >
           {t("report.header.cta.replay")}
         </button>
@@ -111,22 +101,44 @@ export const ReportHeader: FC<ReportHeaderProps> = ({
           onClick={onNextRound}
           disabled={disableNextRound}
           aria-disabled={disableNextRound}
-          style={{
-            padding: "10px 16px",
-            background: "transparent",
-            color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
-            border: "1px solid var(--ei-color-rule-soft)",
-            borderRadius: 2,
-            cursor: disableNextRound ? "not-allowed" : "pointer",
-            opacity: disableNextRound ? 0.5 : 1,
-            fontFamily: "var(--ei-font-sans)",
-            fontSize: 13,
-            flex: "1 1 160px",
-          }}
+          aria-describedby={disableNextRound && nextDisabledReason ? "report-next-disabled-reason" : undefined}
+          data-variant={nextVariant}
+          style={buttonStyle(nextVariant, Boolean(disableNextRound))}
         >
           {t("report.header.cta.nextRound")}
         </button>
+        {disableNextRound && nextDisabledReason ? (
+          <span id="report-next-disabled-reason" data-testid="report-next-disabled-reason" style={{ flexBasis: "100%", color: "var(--ei-color-fg-tertiary)", fontSize: 11, lineHeight: 1.35, textAlign: "right" }}>
+            {nextDisabledReason}
+          </span>
+        ) : null}
       </div>
-    </div>
+    </header>
   );
 };
+
+function buttonStyle(
+  variant: "accent" | "secondary",
+  disabled: boolean,
+): CSSProperties {
+  const accent = variant === "accent";
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 38,
+    padding: "0 16px",
+    fontSize: 14,
+    fontWeight: 500,
+    background: accent ? "var(--ei-color-accent)" : "var(--ei-color-bg-canvas)",
+    color: accent ? "#fff" : "var(--ei-color-fg-primary)",
+    border: accent ? "1px solid var(--ei-color-accent)" : "1px solid var(--ei-color-rule-strong)",
+    borderRadius: 2,
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.5 : 1,
+    fontFamily: "var(--ei-font-sans)",
+    letterSpacing: "-0.005em",
+    transition: "transform .08s ease, opacity .15s",
+  };
+}

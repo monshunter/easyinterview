@@ -74,6 +74,9 @@ errors:
   - code: REPORT_NOT_READY
     message: "report is not ready yet"
     retryable: true
+  - code: REPORT_CONTEXT_TOO_LARGE
+    message: "report context exceeds supported generation size"
+    retryable: false
   - code: RESUME_EXPORT_NOT_AVAILABLE
     message: "resume version export is not available in P0"
     retryable: false
@@ -284,6 +287,7 @@ aiVocabulary:
     - name: fallback
     - name: when
     - name: timeout_ms
+    - name: context_window_tokens
     - name: max_tokens
     - name: rate_limit
     - name: route

@@ -2,7 +2,14 @@ import type { FC } from "react";
 
 import { useI18n, type MessageKey } from "../../../i18n/messages";
 
-export type GeneratingErrorKind = "missingReportId" | "timeout" | "loadFailed";
+export type GeneratingErrorKind =
+  | "missingReportId"
+  | "timeout"
+  | "loadFailed"
+  | "failed"
+  | "notFound"
+  | "invalidReport"
+  | "contextTooLarge";
 
 interface GeneratingErrorStateProps {
   kind: GeneratingErrorKind;
@@ -14,12 +21,20 @@ const TITLE_KEY: Record<GeneratingErrorKind, MessageKey> = {
   missingReportId: "generating.errors.missingReportId.title",
   timeout: "generating.errors.timeout.title",
   loadFailed: "generating.errors.loadFailed.title",
+  failed: "generating.errors.failed.title",
+  notFound: "generating.errors.notFound.title",
+  invalidReport: "generating.errors.invalidReport.title",
+  contextTooLarge: "generating.errors.contextTooLarge.title",
 };
 
 const DESC_KEY: Record<GeneratingErrorKind, MessageKey> = {
   missingReportId: "generating.errors.missingReportId.desc",
   timeout: "generating.errors.timeout.desc",
   loadFailed: "generating.errors.loadFailed.desc",
+  failed: "generating.errors.failed.desc",
+  notFound: "generating.errors.notFound.desc",
+  invalidReport: "generating.errors.invalidReport.desc",
+  contextTooLarge: "generating.errors.contextTooLarge.desc",
 };
 
 /**
@@ -34,91 +49,89 @@ export const GeneratingErrorState: FC<GeneratingErrorStateProps> = ({
   onBackToWorkspace,
 }) => {
   const { t } = useI18n();
-  const showRetry = kind !== "missingReportId" && onRetry !== undefined;
+  const showRetry = (kind === "timeout" || kind === "loadFailed") && onRetry !== undefined;
   return (
     <div
-      data-testid="generating-error-state"
-      data-error-kind={kind}
+      data-testid="generating-screen"
+      aria-live="polite"
       className="ei-fadein"
       style={{
-        minHeight: "calc(100vh - 58px)",
+        minHeight: "100vh",
         background: "var(--ei-color-bg-canvas)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 48,
+        padding: "48px clamp(16px, 6vw, 48px)",
       }}
     >
-      <div style={{ maxWidth: 540, width: "100%" }}>
+      <div
+        data-testid="generating-error-state"
+        data-error-kind={kind}
+        style={{ maxWidth: 780, width: "100%" }}
+      >
         <div
           className="ei-label"
-          data-testid="generating-error-eyebrow"
+          data-testid="generating-header-eyebrow"
           style={{
-            color: "var(--ei-color-danger, var(--ei-color-fg-primary))",
-            marginBottom: 10,
+            color: "var(--ei-color-fg-tertiary)",
+            marginBottom: 12,
             letterSpacing: "0.1em",
           }}
         >
-          {t("generating.errors.eyebrow")}
+          <span data-testid="generating-error-eyebrow">
+            {t(showRetry ? "generating.errors.checkPaused" : "generating.errors.eyebrow")}
+          </span>
         </div>
         <h1
           className="ei-serif"
-          data-testid="generating-error-title"
+          data-testid="generating-header-title"
           style={{
-            fontSize: 28,
+            fontSize: 34,
             margin: 0,
             color: "var(--ei-color-fg-primary)",
-            lineHeight: 1.25,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.2,
             marginBottom: 10,
           }}
         >
-          {t(TITLE_KEY[kind])}
+          <span data-testid="generating-error-title">{t(TITLE_KEY[kind])}</span>
         </h1>
         <div
-          data-testid="generating-error-desc"
+          data-testid="generating-header-subtitle"
           style={{
             fontSize: 14,
             color: "var(--ei-color-fg-tertiary)",
-            lineHeight: 1.6,
-            marginBottom: 22,
+            lineHeight: 1.65,
+            maxWidth: 600,
           }}
         >
-          {t(DESC_KEY[kind])}
+          <span data-testid="generating-error-desc">{t(DESC_KEY[kind])}</span>
         </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <div
+          style={{
+            marginTop: 28,
+            paddingTop: 16,
+            borderTop: "1px solid var(--ei-color-rule-strong)",
+            display: "flex",
+            gap: 10,
+            flexWrap: "wrap",
+          }}
+        >
           {showRetry ? (
             <button
               type="button"
               data-testid="generating-error-retry"
               onClick={onRetry}
-              style={{
-                padding: "10px 16px",
-                background: "var(--ei-color-accent)",
-                color: "#fff",
-                border: "1px solid var(--ei-color-accent)",
-                borderRadius: 2,
-                cursor: "pointer",
-                fontFamily: "var(--ei-font-sans)",
-                fontSize: 13,
-              }}
+              style={buttonStyle("accent")}
             >
-              {t("generating.errors.retry")}
+              {t("generating.errors.continueCheck")}
             </button>
           ) : null}
           <button
             type="button"
             data-testid="generating-error-back-to-workspace"
             onClick={onBackToWorkspace}
-            style={{
-              padding: "10px 16px",
-              background: "transparent",
-              color: "var(--ei-color-fg-secondary, var(--ei-color-fg-primary))",
-              border: "1px solid var(--ei-color-rule-soft)",
-              borderRadius: 2,
-              cursor: "pointer",
-              fontFamily: "var(--ei-font-sans)",
-              fontSize: 13,
-            }}
+            style={buttonStyle("secondary")}
           >
             {t("generating.errors.backToWorkspace")}
           </button>
@@ -127,3 +140,27 @@ export const GeneratingErrorState: FC<GeneratingErrorStateProps> = ({
     </div>
   );
 };
+
+function buttonStyle(variant: "accent" | "secondary") {
+  const accent = variant === "accent";
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 30,
+    padding: "0 12px",
+    fontSize: 13,
+    fontWeight: 500,
+    background: accent ? "var(--ei-color-accent)" : "var(--ei-color-bg-canvas)",
+    color: accent ? "#fff" : "var(--ei-color-fg-primary)",
+    border: accent
+      ? "1px solid var(--ei-color-accent)"
+      : "1px solid var(--ei-color-rule-strong)",
+    borderRadius: 2,
+    cursor: "pointer",
+    fontFamily: "var(--ei-font-sans)",
+    letterSpacing: "-0.005em",
+    transition: "transform .08s ease, opacity .15s",
+  } as const;
+}

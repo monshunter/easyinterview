@@ -71,28 +71,56 @@ describe("frontend-report-dashboard/001 Phase 0 preflight", () => {
     ).toBe(true);
   });
 
-  it("generated TS FeedbackReport interface exposes optional errorCode (TestB2FeedbackReportSchemaHasErrorCode TS half)", () => {
+  it("generated TS FeedbackReport exposes the required nullable direct contract", () => {
     // Type-only assertion: compile-time + runtime mirror. The runtime check
     // grep'd from generated types defends against codegen drift.
     const generated = readRepoFile("frontend/src/api/generated/types.ts");
     expect(
-      /errorCode\?\s*:\s*ApiErrorCode\s*\|\s*null;/.test(generated),
-      "blocked on backend-review/001 Phase 0.2 (generated TS errorCode optional nullable)",
+      /errorCode\s*:\s*ApiErrorCode\s*\|\s*null;/.test(generated),
+      "blocked on backend-review/001 Phase 0.2 (generated TS errorCode required nullable)",
     ).toBe(true);
 
     const sample: FeedbackReport = {
-      id: "00000000-0000-0000-0000-000000000000",
-      sessionId: "00000000-0000-0000-0000-000000000000",
-      targetJobId: "00000000-0000-0000-0000-000000000000",
+      id: "01918fa0-0000-7000-8000-000000000001",
+      sessionId: "01918fa0-0000-7000-8000-000000000002",
+      targetJobId: "01918fa0-0000-7000-8000-000000000003",
       status: "ready",
       errorCode: null,
+      summary: "Grounded summary",
+      context: {
+        sourcePlanId: "01918fa0-0000-7000-8000-000000000004",
+        targetJobTitle: "Platform Engineer",
+        targetJobCompany: "Acme",
+        resumeId: "01918fa0-0000-7000-8000-000000000005",
+        resumeDisplayName: "Platform resume",
+        roundId: "round-1-technical",
+        roundSequence: 1,
+        roundName: "Technical interview",
+        roundType: "technical",
+        language: "en",
+        hasNextRound: true,
+      },
+      preparednessLevel: "needs_practice",
+      highlights: [],
+      issues: [{ dimensionCode: "technical_depth", evidence: "Needs a metric.", confidence: "medium" }],
+      nextActions: [{ type: "retry_current_round", label: "Practice with a measurable result." }],
+      dimensionAssessments: [{ code: "technical_depth", label: "Technical depth", status: "needs_work", confidence: "medium" }],
+      retryFocusDimensionCodes: ["technical_depth"],
+      provenance: {
+        promptVersion: "v0.2.0",
+        rubricVersion: "v0.2.0",
+        modelId: "fixture",
+        language: "en",
+        featureFlag: "none",
+        dataSourceVersion: "fixture.v1",
+      },
       createdAt: "2026-05-15T00:00:00Z",
       updatedAt: "2026-05-15T00:00:00Z",
     };
     expect(sample.errorCode).toBeNull();
   });
 
-  it("openapi/fixtures/Reports/getFeedbackReport.json has default + report-generating + report-failed scenarios (TestReportFailedFixtureVariantExists)", () => {
+  it("openapi report fixtures expose direct queued/generating/ready/failed variants", () => {
     const fixture = readRepoJson<FixtureFile>(
       "openapi/fixtures/Reports/getFeedbackReport.json",
     );
@@ -102,15 +130,15 @@ describe("frontend-report-dashboard/001 Phase 0 preflight", () => {
       "blocked on backend-review/001 Phase 0.4: missing default fixture variant",
     ).toBeDefined();
     expect(
-      scenarios["report-generating"],
-      "blocked on backend-review/001 Phase 0.4: missing report-generating fixture variant",
+      scenarios.generating,
+      "blocked on backend-review/001 Phase 0.4: missing generating fixture variant",
     ).toBeDefined();
     expect(
-      scenarios["report-failed"],
-      "blocked on backend-review/001 Phase 0.4: missing report-failed fixture variant",
+      scenarios.failed,
+      "blocked on backend-review/001 Phase 0.4: missing failed fixture variant",
     ).toBeDefined();
 
-    const failedBody = scenarios["report-failed"]!.response.body as {
+    const failedBody = scenarios.failed!.response.body as {
       status: string;
       errorCode: string | null;
     };
@@ -179,7 +207,7 @@ describe("frontend-report-dashboard/001 Phase 0 preflight", () => {
 });
 
 describe("frontend-report-dashboard/001 Phase 8 browser evidence", () => {
-  it("keeps owner claims and P0.059 bound to executable screenshot smoke", () => {
+  it("keeps owner claims and P0.059 bound to deterministic semantic and pixel-difference gates", () => {
     const planRoot =
       "docs/spec/frontend-report-dashboard/plans/001-report-screen-and-generating-handoff";
     const ownerPaths = [
@@ -202,38 +230,56 @@ describe("frontend-report-dashboard/001 Phase 8 browser evidence", () => {
     const claimText = claimPaths.map(readRepoFile).join("\n");
     expect(ownerPaths).toHaveLength(7);
 
-    for (const staleClaim of [
-      /8\s*主题/,
-      /toHaveScreenshot/,
-      /screenshot baseline/i,
-      /稳定 baseline/,
-      /pixel parity baseline/i,
-      /theme 切换/i,
-      /主题切换/,
-      /主题循环/,
-      /theme\/dark\/customAccent/i,
-      /computed style/i,
-      /截图差异/,
-      /collapsible Accordion/i,
-      /ARIA tablist\s*(?:→|->)\s*ARIA accordion/i,
-      /sticky CTA|CTA sticky|sticky bottom/i,
-      /report.{0,30}三列折叠为单列/,
-      /no overlap/i,
-    ]) {
-      expect(claimText).not.toMatch(staleClaim);
-    }
+    expect(claimText).toMatch(/DOM\/style\/bbox/);
+    expect(claimText).toMatch(/pixelmatch/);
+    expect(claimText).toMatch(/changed-pixel ratio.*0\.5%/i);
+    expect(claimText).toMatch(/prototype\/formal\/diff/);
+    expect(claimText).toMatch(/fullPage:\s*true/);
 
-    for (const [path, expectedCalls] of [
-      ["frontend/tests/pixel-parity/generating.spec.ts", 3],
-      ["frontend/tests/pixel-parity/report.spec.ts", 4],
+    const helper = readRepoFile(
+      "frontend/tests/pixel-parity/report-parity-helpers.ts",
+    );
+    expect(helper).toMatch(/from "pixelmatch"/);
+    expect(helper).toMatch(/document\.fonts\.ready/);
+    expect(helper).toMatch(/clock\.setFixedTime/);
+    expect(helper).toMatch(/animation:\s*none !important/);
+    expect(helper).toMatch(/transition:\s*none !important/);
+    expect(helper).toMatch(/threshold:\s*0\.1/);
+    expect(helper).toMatch(/maxChangedRatio = 0\.005/);
+    expect(helper).toMatch(/changed \/ \(width \* height\)/);
+    expect(helper).toMatch(/formal\.png/);
+    expect(helper).toMatch(/prototype\.png/);
+    expect(helper).toMatch(/diff\.png/);
+
+    for (const path of [
+      "frontend/tests/pixel-parity/generating.spec.ts",
+      "frontend/tests/pixel-parity/report.spec.ts",
     ] as const) {
       const source = readRepoFile(path);
-      expect(source).toMatch(/page\.screenshot\(\)/);
-      expect(source).toMatch(/screenshot\.byteLength\)\.toBeGreaterThan\(0\)/);
-      expect(source.match(/await expectNonEmptyScreenshot\(page\);/g)).toHaveLength(
-        expectedCalls,
-      );
+      expect(source).toMatch(/configureDeterministicPage/);
+      expect(source).toMatch(/injectPrototypeReportFixture/);
+      expect(source).toMatch(/normalizedText/);
+      expect(source).toMatch(/surfaceSnapshot/);
+      expect(source).toMatch(/expectSurfaceParity/);
+      expect(source).toMatch(/expectPixelParity/);
+      expect(source).toMatch(/deviceScaleFactor:\s*1/);
+      expect(source).toMatch(/timezoneId:\s*"UTC"/);
     }
+
+    const reportParity = readRepoFile(
+      "frontend/tests/pixel-parity/report.spec.ts",
+    );
+    expect(reportParity).toMatch(/report root absolute viewport geometry/);
+    expect(reportParity).toMatch(/prototype-baseline/);
+    expect(reportParity).toMatch(/ready-well-prepared/);
+    expect(reportParity).toMatch(/failed-context-too-large/);
+
+    const generatingParity = readRepoFile(
+      "frontend/tests/pixel-parity/generating.spec.ts",
+    );
+    expect(generatingParity).toMatch(/data-report-status='generating'/);
+    expect(generatingParity).toMatch(/generating-progress/);
+    expect(generatingParity).toMatch(/failed-context-too-large/);
 
     const trigger = readRepoFile(
       "test/scenarios/e2e/p0-059-report-pixel-parity-i18n-and-out-of-scope-negative/scripts/trigger.sh",
@@ -320,7 +366,8 @@ describe("frontend-report-dashboard/001 Phase 10 P0.056 evidence", () => {
       expect(currentClaims).not.toMatch(unsupportedClaim);
     }
     expect(readme).toContain("four focused owner test files");
-    expect(readme).toContain("not a single browser or live-backend journey");
+    expect(readme).toContain("composed backend/frontend gate");
+    expect(readme).toContain("not a single browser journey");
 
     const focusedFiles = [
       "src/app/screens/report/__tests__/preflight.test.ts",
@@ -367,8 +414,8 @@ describe("frontend-report-dashboard/001 Phase 11 P0.058 evidence", () => {
     ]) {
       expect(currentClaims).not.toMatch(unsupportedClaim);
     }
-    expect(readme).toContain("six focused owner test files");
-    expect(readme).toContain("does not mount `GeneratingScreen`");
+    expect(readme).toContain("seven focused frontend Vitest files");
+    expect(readme).toContain("REPORT_CONTEXT_TOO_LARGE");
 
     const focusedFiles = [
       "src/app/screens/report/__tests__/preflight.test.ts",
@@ -377,6 +424,7 @@ describe("frontend-report-dashboard/001 Phase 11 P0.058 evidence", () => {
       "src/app/screens/report/__tests__/useFeedbackReport.test.tsx",
       "src/app/screens/report/__tests__/ConversationReport.test.tsx",
       "src/app/screens/generating/__tests__/useReportGenerationPoll.test.tsx",
+      "src/app/screens/generating/__tests__/GeneratingScreen.test.tsx",
     ];
     for (const path of focusedFiles) {
       expect(trigger).toContain(path);

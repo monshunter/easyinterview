@@ -1,6 +1,6 @@
 feature_key: "practice.session.chat"
 version: "v0.1.0"
 language: "multi"
-template_hash: "97ace468909420b72f80fbf24695428851cd93ffd73697b5696d3cf967a6f6ae"
-status: "active"
+template_hash: "2ded81191acce21cf90c928ebac0dabe16079509ef1c8376ddbfb7ef1dcf7ce3"
+status: "draft"
 created_at: "2026-07-12T08:00:00Z"

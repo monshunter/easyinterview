@@ -1,8 +1,8 @@
 # Expected outcome
 
-- Four focused Vitest files pass: owner preflight, poll hook, GeneratingScreen and ConversationReport.
-- Generating tests cover the current DOM and ready/failed route handoff; report tests cover conversation-level readiness, dimensions, evidence and actions.
-- Read-only generated-client calls do not send `Idempotency-Key`; ContextStrip does not read raw resume/JD body fields.
-- `listTargetJobReports` is never invoked from report or generating implementation code.
-- Out-of-scope vocabulary (`reportLayout`, `mistakesQueue`, voice surface imports, etc.) is absent.
-- The real-mode bootstrap gate and fixture-backed focused tests both pass, without representing a single live-backend/browser journey.
+- All three backend packages execute and pass the exact `TestE2EP0056ReportBackendEvidence` name; no package reports a skipped/no-test/failure result.
+- The backend emits `REPORT_COMPLETION_OWNER_EVIDENCE_CONSUMED_PASS`, `REPORT_DIRECT_READY_PASS`, `REPORT_FROZEN_CONTEXT_READ_PASS` and `REPORT_REVIEW_LEGACY_IDENTIFIER_NEGATIVE_PASS` with redacted ready/frozen/zero-legacy assertions.
+- Four focused frontend files pass and prove honest generating copy/actions, reportId-only handoff, frozen API context, direct summary/dimensions/evidence/actions, route-tamper rejection and no mutable TargetJob/Resume reads.
+- `verify.sh` alone writes `backend-evidence.json` with exact `report-backend-evidence.v1` top-level keys and `result=PASS`.
+- Read-only client calls send no `Idempotency-Key`; runtime contains no `listTargetJobReports`, fake-live progress/records promise or stale report identifiers.
+- Cleanup keeps only the approved redacted evidence artifact.

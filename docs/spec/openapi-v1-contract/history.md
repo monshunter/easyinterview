@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.43
+> **版本**: 1.52
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 修订规则
 
@@ -15,6 +15,7 @@
 | 任何 schema / endpoint / response status / required 字段集合的变更（包括 additive 与 breaking） | 是 | 关联 plan id（如 `openapi-v1-contract/003-breaking-change-gate`） |
 | privacy export 白名单切换：`POST /api/v1/privacy/exports` 从 `501` 切到 `202`（spec §3.1 D-12 / §4.4 P0 例外） | 是；缺则 `make openapi-diff` 升级为 breaking 退出码 1 | 标注「白名单 additive」+ 当前 spec / plan 版本号；`error.code = "PRIVACY_EXPORT_NOT_AVAILABLE"` 的 fixture 同 PR 切换到 `PrivacyRequestWithJob` |
 | 白名单外的 breaking change（删字段 / 改 type / required 新增 / 删 enum / 删 endpoint / path rename / method change） | 是 | **必须**引用 `状态: accepted` 的 ADR id（`OPENAPI-NNN-<short>`）；新 baseline 文件名 `openapi-v<MAJOR>.<MINOR>.<PATCH>.yaml`；spec 同 PR 修订 |
+| 未上线 v1.0.0 freeze correction | 是 | accepted ADR + product owner 授权 + merge-base 旧 baseline finding exact-match；所有 consumer 同批迁移后才允许原地 re-freeze |
 | fixture / example / 文案修订（v1.0.x patch） | 是 | 注明「fixture-only / docs-only」；不强制 ADR；不强制 baseline 递增 |
 | 工具 / tooling 锁版变更（如 swagger-cli / Redocly / wrapper 版本） | 是 | 注明影响的 `make` target 与 [openapi/diff-config.yaml](../../../openapi/diff-config.yaml) `tooling` 段落 |
 
@@ -29,6 +30,15 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 1.52 | pre-release state closure：FeedbackReport ready要求non-null summary/preparednessLevel/provenance与非空dimensions/actions；failed独占non-null errorCode；source/baseline/generated/fixture validator同批同步。 | OPENAPI-001 v1.6 + openapi-v1-contract/001/003 |
+| 2026-07-13 | 1.51 | docs-only责任边界：generation/judge max4与attempt/retry/reason/scope保持internal-only；FeedbackReport不新增retry/progress字段或endpoint。 | OPENAPI-001 v1.5 + openapi-v1-contract/001 |
+| 2026-07-13 | 1.50 | OPENAPI-001职责澄清：runtime/evalkit复用产品完整validator；sole-label targeted repair、其它schema/semantic/mixed whole-report repair、全阶段复验；wire expected finding仍为maxLength200。 | OPENAPI-001 v1.4 + F3/P0.100 |
+| 2026-07-13 | 1.49 | 用户确认方案 A 最终边界：ReportNextAction.label wire/schema fuse 为 200 code points；semantic/UX 为 English 24 whitespace words / zh-CN 64 Unicode code points；targeted repair 内部目标 18/52。 | OPENAPI-001 v1.3 + 001/003 |
+| 2026-07-13 | 1.48 | 用户批准A-200：ReportNextAction.label fuse改200；14/40仍为semantic/UX gate，旧baseline clean PASS失效并等待新audit/re-freeze/codegen。 | OPENAPI-001 v1.2 + 001/003 |
+| 2026-07-13 | 1.47 | 建立wire fuse与14/40下游职责分界；具体上限由1.48 A-200取代。 | 001 + F3 002/004 + P0.099/P0.100 |
+| 2026-07-12 | 1.46 | 补全 CreatePracticePlanRequest closed conditional matrix：baseline 禁止 sourceReportId，derived 两个 goal 均要求 non-null UUID 且禁止 extras，并要求 typed codegen/runtime negative fixtures。 | OPENAPI-001 + 001/002/003 |
+| 2026-07-12 | 1.45 | 补强 OPENAPI-001 机器 oracle：按 severity/path/kind/before/after exact-set；`REPORT_CONTEXT_TOO_LARGE` 只作为 B1-sourced additive enum widening，failed report fixture 使用 canonical code。 | OPENAPI-001 v1.1 / B1 001 / B2 001-003 |
+| 2026-07-12 | 1.44 | OPENAPI-001 accepted：报告采用 summary + frozen context + closed code/label/dimensionCode direct shape，删除旧 report/focus 输入；001/002/003 原地重开并增加 merge-base breaking audit。 | OPENAPI-001 / backend-review 001 / frontend-report-dashboard 001 |
 | 2026-07-12 | 1.43 | additive practice round contract：`CreatePracticePlanRequest.roundId`、`PracticePlan.roundId/roundSequence` 与 `TargetJob.practiceProgress`；进度由完成 session 台账投影，legacy null round identity 不复用。 | openapi-v1-contract/001 Phase 11 + 002 Phase 6 / backend-practice 001-002 / backend-targetjob 001 / frontend-workspace-and-practice 001 |
 | 2026-07-12 | 1.42 | pre-launch breaking correction：Practice API 从 turn/event 问题状态机改为 `sendPracticeMessage` 连续消息合同；报告改为会话级，voice endpoint 仅保留 fail-closed。 | backend-practice 001-003 / backend-review 001 / practice-voice-mvp 001 |
 | 2026-07-10 | 1.41 | tooling-only：删除无消费方的 frontend raw OpenAPI 字符串快照、专用模板与转义 helper；TS codegen 只保留 client/types，wire contract 不变。 | 001-bootstrap Phase 10 |

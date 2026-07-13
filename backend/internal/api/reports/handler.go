@@ -48,6 +48,7 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 		writeAPIError(w, http.StatusInternalServerError, sharederrors.CodeValidationFailed, "response encoding failed", nil)
 		return
 	}
+	setPrivateReportHeaders(w)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_, _ = w.Write(raw)
@@ -65,6 +66,7 @@ func writeServiceError(w http.ResponseWriter, err error) {
 }
 
 func writeAPIError(w http.ResponseWriter, status int, code string, message string, details map[string]any) {
+	setPrivateReportHeaders(w)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	meta := sharederrors.CodeRegistry[code]
@@ -78,6 +80,11 @@ func writeAPIError(w http.ResponseWriter, status int, code string, message strin
 		},
 	})
 	_, _ = w.Write(raw)
+}
+
+func setPrivateReportHeaders(w http.ResponseWriter) {
+	w.Header().Set("Cache-Control", "private, no-store")
+	w.Header().Set("Pragma", "no-cache")
 }
 
 func optionalString(value string) *string {

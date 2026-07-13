@@ -175,6 +175,89 @@ func TestLoaderRejectsUnknownCatalogTopLevelField(t *testing.T) {
 	}
 }
 
+func TestLoaderValidatesReportContextWindowTokens(t *testing.T) {
+	base := `name: report.generate.default
+capability: chat
+status: active
+default:
+  provider_ref: deepseek
+  model: deepseek-v4-pro
+timeout_ms: 60000
+max_tokens: 6144
+rate_limit:
+  tpm: 60000
+route: report.generate
+version: 1.2.0
+`
+
+	invalid := map[string]string{
+		"missing":             base,
+		"zero":                strings.Replace(base, "max_tokens: 6144\n", "max_tokens: 6144\ncontext_window_tokens: 0\n", 1),
+		"negative":            strings.Replace(base, "max_tokens: 6144\n", "max_tokens: 6144\ncontext_window_tokens: -1\n", 1),
+		"equal-to-output":     strings.Replace(base, "max_tokens: 6144\n", "max_tokens: 6144\ncontext_window_tokens: 6144\n", 1),
+		"smaller-than-output": strings.Replace(base, "max_tokens: 6144\n", "max_tokens: 6144\ncontext_window_tokens: 6143\n", 1),
+	}
+	for label, body := range invalid {
+		t.Run(label, func(t *testing.T) {
+			path := writeProfileCatalog(t, catalog(body))
+			_, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
+			if err == nil {
+				t.Fatalf("expected invalid context_window_tokens to be rejected")
+			}
+			if !strings.Contains(err.Error(), "context_window_tokens") {
+				t.Fatalf("expected context_window_tokens error, got %v", err)
+			}
+		})
+	}
+
+	valid := strings.Replace(base, "max_tokens: 6144\n", "max_tokens: 6144\ncontext_window_tokens: 1000000\n", 1)
+	path := writeProfileCatalog(t, catalog(valid))
+	loader, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
+	if err != nil {
+		t.Fatalf("NewLoader valid report profile: %v", err)
+	}
+	defer loader.Close()
+	got, err := loader.Resolve("report.generate.default")
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	if got.ContextWindowTokens != 1_000_000 {
+		t.Fatalf("context_window_tokens=%d, want 1000000", got.ContextWindowTokens)
+	}
+}
+
+func TestLoaderRejectsUnknownProfileField(t *testing.T) {
+	body := strings.Replace(sampleProfile, "version: 1.0.0\n", "version: 1.0.0\nunrelated_budget_hint: 42\n", 1)
+	path := writeProfileCatalog(t, catalog(body))
+	_, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
+	if err == nil {
+		t.Fatal("expected unknown profile field to be rejected")
+	}
+	if !strings.Contains(err.Error(), "unsupported profile field") || !strings.Contains(err.Error(), "unrelated_budget_hint") {
+		t.Fatalf("expected named unsupported profile field error, got %v", err)
+	}
+}
+
+func TestLoaderRejectsInvalidThinkingProfileParam(t *testing.T) {
+	for label, value := range map[string]string{
+		"unsupported-string": "auto",
+		"boolean":            "true",
+		"number":             "1",
+	} {
+		t.Run(label, func(t *testing.T) {
+			body := strings.Replace(sampleProfile, "model: stub-chat-1\n", "model: stub-chat-1\n  params:\n    thinking: "+value+"\n", 1)
+			path := writeProfileCatalog(t, catalog(body))
+			_, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})
+			if err == nil {
+				t.Fatal("expected invalid thinking profile param to be rejected")
+			}
+			if !strings.Contains(err.Error(), "thinking") || !strings.Contains(err.Error(), "enabled | disabled") {
+				t.Fatalf("expected thinking allowlist error, got %v", err)
+			}
+		})
+	}
+}
+
 func TestLoaderResolveUnknownProfile(t *testing.T) {
 	path := writeProfileCatalog(t, catalog(sampleProfile))
 	loader, err := profile.NewLoader(profile.Options{Path: path, PollInterval: -1})

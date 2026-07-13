@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
-> **版本**: 1.7
+> **版本**: 1.10
 > **状态**: completed
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-12
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -116,10 +116,27 @@ The wrapper must verify the exact path, method and statuses. Any other status tr
 | A-4 | Privacy export whitelist is exact and isolated | `make openapi-diff`, wrapper unit tests |
 | A-5 | Generated artifacts and fixtures remain current | `make lint-openapi`, `make validate-fixtures`, `make codegen-check` |
 
-## 6 修订记录
+## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-12 | 1.10 | Require the normalized conditional-contract finding to encode baseline source prohibition and derived non-null source-only branches. |
+| 2026-07-12 | 1.9 | Exact-match OPENAPI-001 across severity and classify REPORT_CONTEXT_TOO_LARGE enum widening as additive-only. |
+| 2026-07-12 | 1.8 | Reopen Phase 5 for OPENAPI-001 merge-base breaking authorization and guarded pre-release baseline re-freeze. |
 | 2026-07-10 | 1.7 | Re-freeze the breaking-change baseline and diff inventory to the current 37-operation contract. |
 | 2026-07-07 | 1.6 | Compress owner docs to the 2026-07-07 36-operation breaking-change gate contract. |
 | 2026-05-04 | 1.5 | Add quality-gate classification for the completed breaking-change gate. |
+
+## 6 Phase 5: OPENAPI-001 pre-release correction gate
+
+### 5.1 Authorize before mutation
+
+Require accepted `OPENAPI-001-report-direct-semantics.md` and B1 `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS` before changing current OpenAPI. Capture the merge-base `openapi/baseline/openapi-v1.0.0.yaml` and compare it to the proposed new OpenAPI before baseline re-freeze.
+
+### 5.2 Exact finding audit
+
+Extend the wrapper with a base-ref mode that emits a deterministic normalized JSON artifact. Findings must exact-match `OPENAPI-001-report-direct-semantics.expected-findings.json` by `severity + JSON pointer + kind + before + after`; an unlisted/missing finding, severity drift, non-accepted ADR or missing spec/history increment fails. The synthetic conditional finding must encode baseline sourceReportId prohibition plus retry/next non-null source-only branches, not merely the existence of a `oneOf`. Closed objects and constraint tightening are audited even if the underlying diff library omits them. `REPORT_CONTEXT_TOO_LARGE` must appear exactly once as additive `enum_value_added`; treating it as breaking, informational or a wildcard authorization fails.
+
+### 5.3 Guarded re-freeze
+
+Only after 001 schema/codegen, 002 fixtures/prototype/Prism and downstream consumer gates pass may `openapi-v1.0.0.yaml` be re-frozen. Final verification requires both the preserved old-baseline finding artifact and a clean current-baseline `make openapi-diff`; the clean result alone is insufficient.

@@ -1,5 +1,6 @@
 import type {
   ApiErrorCode,
+  Confidence,
   DimensionStatus,
   ReadinessTier,
 } from "../../../api/generated/types";
@@ -27,6 +28,16 @@ export function dimensionStatusLabel(status: DimensionStatus): MessageKey {
   return DIMENSION_STATUS_LABEL[status];
 }
 
+const CONFIDENCE_LABEL: Record<Confidence, MessageKey> = {
+  high: "report.confidence.high",
+  medium: "report.confidence.medium",
+  low: "report.confidence.low",
+};
+
+export function confidenceLabel(confidence: Confidence): MessageKey {
+  return CONFIDENCE_LABEL[confidence];
+}
+
 const FAILURE_LABEL_BY_CODE: Partial<Record<ApiErrorCode, MessageKey>> = {
   AI_PROVIDER_TIMEOUT: "report.failureState.errorCode.AI_PROVIDER_TIMEOUT",
   AI_PROVIDER_SECRET_MISSING:
@@ -37,6 +48,8 @@ const FAILURE_LABEL_BY_CODE: Partial<Record<ApiErrorCode, MessageKey>> = {
   AI_FALLBACK_EXHAUSTED: "report.failureState.errorCode.AI_FALLBACK_EXHAUSTED",
   AI_UNSUPPORTED_CAPABILITY:
     "report.failureState.errorCode.AI_UNSUPPORTED_CAPABILITY",
+  REPORT_CONTEXT_TOO_LARGE:
+    "report.failureState.errorCode.REPORT_CONTEXT_TOO_LARGE",
 };
 
 /**

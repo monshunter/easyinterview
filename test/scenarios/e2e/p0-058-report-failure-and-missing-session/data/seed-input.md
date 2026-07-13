@@ -1,6 +1,6 @@
 # Seed input
 
-- Report component routes: failed status, missing sessionId, missing reportId and normal report params.
-- Deterministic report clients: ready response, HTTP 404, HTTP 5xx and refresh success.
-- Deterministic poll clients: failed response, HTTP 404 and persistent generating responses through max attempts.
-- No live backend response sequence or browser surface is used by the focused files.
+- Existing schema-valid P0.047 `completion-backend-evidence.json`; the backend evidence test receives its path through `PRACTICE_COMPLETION_EVIDENCE_PATH`.
+- Isolated backend cases: missing/mismatched frozen coordinate, exactly 48,001-byte framed input, invalid→valid multi-attempt recovery, four-invalid terminal failure, exact action-local `10s/20s/40s` waits, first-action exhaustion followed by a second independent invocation at attempt one, and async-job attempt values that do not change product retry state.
+- API/frontend states keyed only by `reportId`: missing ID, queued/generating, ready, not-found, timeout/network transport exhaustion, terminal failed, `REPORT_CONTEXT_TOO_LARGE` and malformed direct-ready shape.
+- Route noise may contain conflicting session/status/target/resume/error values; tests prove the API projection remains authoritative.

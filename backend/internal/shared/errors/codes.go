@@ -17,6 +17,7 @@ const (
 	CodePracticeSessionNotFound       = "PRACTICE_SESSION_NOT_FOUND"
 	CodeReportNotFound                = "REPORT_NOT_FOUND"
 	CodeReportNotReady                = "REPORT_NOT_READY"
+	CodeReportContextTooLarge         = "REPORT_CONTEXT_TOO_LARGE"
 	CodeResumeExportNotAvailable      = "RESUME_EXPORT_NOT_AVAILABLE"
 	CodeValidationFailed              = "VALIDATION_FAILED"
 	CodeResourceNotFound              = "RESOURCE_NOT_FOUND"
@@ -43,6 +44,7 @@ var AllCodes = []string{
 	CodePracticeSessionNotFound,
 	CodeReportNotFound,
 	CodeReportNotReady,
+	CodeReportContextTooLarge,
 	CodeResumeExportNotAvailable,
 	CodeValidationFailed,
 	CodeResourceNotFound,
@@ -75,6 +77,7 @@ var CodeRegistry = map[string]CodeMeta{
 	CodePracticeSessionNotFound:       {Message: "practice session not found", Retryable: false},
 	CodeReportNotFound:                {Message: "feedback report not found or not accessible", Retryable: false},
 	CodeReportNotReady:                {Message: "report is not ready yet", Retryable: true},
+	CodeReportContextTooLarge:         {Message: "report context exceeds supported generation size", Retryable: false},
 	CodeResumeExportNotAvailable:      {Message: "resume version export is not available in P0", Retryable: false},
 	CodeValidationFailed:              {Message: "request validation failed", Retryable: false},
 	CodeResourceNotFound:              {Message: "requested resource not found or not accessible", Retryable: false},

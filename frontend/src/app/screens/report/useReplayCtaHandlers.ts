@@ -4,20 +4,15 @@ import type { FeedbackReport } from "../../../api/generated/types";
 import { useNavigation } from "../../navigation/NavigationProvider";
 import { useRequestAuth } from "../../auth/useRequestAuth";
 import { useAppRuntimeOptional } from "../../runtime/AppRuntimeProvider";
-import type { Route } from "../../routes";
 import { useI18n } from "../../i18n/messages";
 import { startPracticeFromParams } from "../../interview-context/startPractice";
-import type { TargetJobRoundAssumption } from "../../interview-context/roundAssumptions";
 import {
   buildNextRoundPayload,
   buildReplayPayload,
 } from "./handoff";
 
 export interface ReplayCtaHandlersInput {
-  route: Route;
   report: FeedbackReport | null;
-  sessionId: string;
-  nextRound: TargetJobRoundAssumption | null;
 }
 
 export interface ReplayCtaHandlers {
@@ -38,7 +33,7 @@ export interface ReplayCtaHandlers {
 export function useReplayCtaHandlers(
   input: ReplayCtaHandlersInput,
 ): ReplayCtaHandlers {
-  const { route, report, sessionId, nextRound } = input;
+  const { report } = input;
   const { navigate } = useNavigation();
   const requestAuth = useRequestAuth();
   const runtime = useAppRuntimeOptional();
@@ -48,12 +43,12 @@ export function useReplayCtaHandlers(
   const [starting, setStarting] = useState(false);
 
   const replayParams = useMemo(
-    () => buildReplayPayload({ route, report, sessionId }),
-    [report, route, sessionId],
+    () => buildReplayPayload({ report }),
+    [report],
   );
   const nextRoundParams = useMemo(
-    () => nextRound ? buildNextRoundPayload({ route, report, sessionId }, nextRound) : null,
-    [nextRound, report, route, sessionId],
+    () => report?.context.hasNextRound ? buildNextRoundPayload({ report }) : null,
+    [report],
   );
   const startPractice = useCallback(
     async (params: Record<string, string>) => {
@@ -80,9 +75,9 @@ export function useReplayCtaHandlers(
       type: "replay_practice",
       label: "replay",
       route: "report",
-      params: route.params,
+      params: report?.id ? { reportId: report.id } : {},
     });
-  }, [authenticated, replayParams, requestAuth, route.params, startPractice]);
+  }, [authenticated, replayParams, report?.id, requestAuth, startPractice]);
 
   const goNextRound = useCallback(() => {
     if (!nextRoundParams) return;
@@ -94,9 +89,9 @@ export function useReplayCtaHandlers(
       type: "replay_practice",
       label: "next-round",
       route: "report",
-      params: route.params,
+      params: report?.id ? { reportId: report.id } : {},
     });
-  }, [authenticated, nextRoundParams, requestAuth, route.params, startPractice]);
+  }, [authenticated, nextRoundParams, report?.id, requestAuth, startPractice]);
 
   return {
     goReplay,

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Prism fixture-parity smoke for B2 002 Phase 3.2.
+"""Prism fixture-parity smoke for B2 002 fixture/example parity.
 
-Hits 5 fixed operations on a Prism mock server (assumed running on
+Hits the fixed operation matrix on a Prism mock server (assumed running on
 http://127.0.0.1:4010 against `openapi/.generated/openapi-with-fixtures.yaml`)
 with `Prefer: example=default`, then asserts the response body is byte-equal
 to the matching fixture's `scenarios.default.response.body`.
@@ -37,12 +37,22 @@ SMOKE_MATRIX: tuple[tuple[str, str, str, int, str], ...] = (
     ("getFeedbackReport", "GET",
      "/reports/01918fa0-0070-7a00-8a00-000000000070", 200,
      "openapi/fixtures/Reports/getFeedbackReport.json"),
+    ("listTargetJobReports", "GET",
+     "/targets/01918fa0-0000-7000-8000-000000002000/reports", 200,
+     "openapi/fixtures/Reports/listTargetJobReports.json"),
+    ("createPracticePlan", "POST", "/practice/plans", 201,
+     "openapi/fixtures/PracticePlans/createPracticePlan.json"),
     ("requestPrivacyExport", "POST", "/privacy/exports", 501,
      "openapi/fixtures/Privacy/requestPrivacyExport.json"),
 )
 
 
-def _curl(method: str, url: str, prefer: str) -> tuple[int, str]:
+def _curl(
+    method: str,
+    url: str,
+    prefer: str,
+    request_body: dict | None = None,
+) -> tuple[int, str]:
     cmd = [
         "/usr/bin/curl", "-s", "-w", "\nHTTP=%{http_code}\n",
         "-H", f"Prefer: {prefer}",
@@ -51,6 +61,13 @@ def _curl(method: str, url: str, prefer: str) -> tuple[int, str]:
     if method == "POST":
         cmd += ["-X", "POST",
                 "-H", "Idempotency-Key: 01918fa0-0001-7a00-8a00-aaaaaaaaaaaa"]
+    if request_body is not None:
+        cmd += [
+            "-H",
+            "Content-Type: application/json",
+            "--data",
+            json.dumps(request_body, ensure_ascii=False, separators=(",", ":")),
+        ]
     cmd.append(url)
     res = subprocess.run(cmd, capture_output=True, text=True, check=False)
     text = res.stdout
@@ -71,15 +88,17 @@ def main(argv: Iterable[str]) -> int:
     for opid, method, path, expected, fixture_rel in SMOKE_MATRIX:
         prefer = f"code={expected}, example=default" if expected != 200 else "example=default"
         url = args.base_url + path
-        got_status, body_text = _curl(method, url, prefer)
+        with (repo / fixture_rel).open("r", encoding="utf-8") as f:
+            fixture_default = json.load(f)["scenarios"]["default"]
+        request_body = (fixture_default.get("request") or {}).get("body")
+        got_status, body_text = _curl(method, url, prefer, request_body)
         try:
             prism_body = json.loads(body_text) if body_text.strip() else None
         except json.JSONDecodeError as e:
             print(f"FAIL {opid}: prism response is not JSON: {e}", file=sys.stderr)
             failures += 1
             continue
-        with (repo / fixture_rel).open("r", encoding="utf-8") as f:
-            fixture_body = json.load(f)["scenarios"]["default"]["response"]["body"]
+        fixture_body = fixture_default["response"]["body"]
         ok_status = got_status == expected
         ok_body = prism_body == fixture_body
         marker = "OK " if (ok_status and ok_body) else "FAIL"

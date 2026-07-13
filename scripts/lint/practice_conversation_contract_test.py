@@ -49,7 +49,8 @@ class PracticeConversationContractTest(unittest.TestCase):
 
         report_properties = schemas["FeedbackReport"]["properties"]
         self.assertIn("dimensionAssessments", report_properties)
-        self.assertIn("retryFocusCompetencyCodes", report_properties)
+        self.assertIn("retryFocusDimensionCodes", report_properties)
+        self.assertNotIn("retryFocusCompetencyCodes", report_properties)
         self.assertNotIn("questionAssessments", report_properties)
         self.assertNotIn("retryFocusTurnIds", report_properties)
 

@@ -701,7 +701,7 @@ func (s *scenarioTargetJobStore) LeaseAsyncJob(_ context.Context, jobTypes []str
 	return runner.ClaimedJob{}, false, nil
 }
 
-func (s *scenarioTargetJobStore) FinalizeAsyncJob(_ context.Context, jobID string, outcome runner.JobOutcome, _ time.Time, _ time.Time) error {
+func (s *scenarioTargetJobStore) FinalizeAsyncJob(_ context.Context, jobID string, _ int32, outcome runner.JobOutcome, _ time.Time, _ time.Time) error {
 	s.finalized[jobID] = outcome
 	if outcome.Succeeded {
 		s.jobStatus[jobID] = sharedtypes.JobStatusSucceeded

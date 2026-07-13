@@ -8,6 +8,7 @@
 
 | 日期 | 报告 | 类型 |
 |------|------|------|
+| [2026-07-13](./2026-07-13-report-semantics-and-reliability-assessment.md) | Report Semantics and Reliability 交付复盘 | #assessment #BUG-0164 #BUG-0165 #BUG-0166 |
 | [2026-07-12](./2026-07-12-interview-resume-grounding-and-round-progress-assessment.md) | Interview Resume Grounding and Round Progress 交付复盘 | #assessment #BUG-0162 #BUG-0163 |
 | [2026-07-12](./2026-07-12-structured-round-runtime-consistency-assessment.md) | Structured Round Runtime Consistency 交付复盘 | #assessment #BUG-0161 |
 | [2026-07-12](./2026-07-12-practice-conversation-simplification-assessment.md) | Practice Conversation Simplification 交付复盘 | #assessment #BUG-0159 #BUG-0160 |

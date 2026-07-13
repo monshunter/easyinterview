@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "description": "One ordinary assistant message in a continuous practice conversation.",
+  "additionalProperties": false,
+  "required": ["messageText"],
+  "properties": {
+    "messageText": {
+      "type": "string",
+      "description": "Assistant message shown to the user."
+    }
+  }
+}

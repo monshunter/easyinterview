@@ -5,12 +5,28 @@ set -euo pipefail
 
 LOCAL_DEV_OUTPUT_DIR="${LOCAL_DEV_OUTPUT_DIR:-$REPO_ROOT/.test-output/local-dev}"
 
-load_dev_stack_env() {
+secure_dev_stack_env() {
   local env_file="$REPO_ROOT/deploy/dev-stack/.env"
   if [ ! -s "$env_file" ]; then
     echo "local-dev-runtime: missing $env_file; run test/scenarios/env-setup.sh first" >&2
-    exit 1
+    return 1
   fi
+  python3 - "$env_file" <<'PY'
+import os
+import stat
+import sys
+
+path = sys.argv[1]
+os.chmod(path, 0o600)
+mode = stat.S_IMODE(os.stat(path).st_mode)
+if mode != 0o600:
+    raise SystemExit("local-dev-runtime: dev-stack env permission hardening failed")
+PY
+}
+
+load_dev_stack_env() {
+  local env_file="$REPO_ROOT/deploy/dev-stack/.env"
+  secure_dev_stack_env
   set -a
   # shellcheck disable=SC1090
   . "$env_file"
@@ -124,14 +140,17 @@ start_detached() {
   local pid_file="$3"
   shift 3
 
+  umask 077
   mkdir -p "$(dirname "$log_file")"
   : > "$log_file"
+  chmod 600 "$log_file"
   python3 - "$cwd" "$log_file" "$pid_file" "$@" <<'PY'
 import os
 import subprocess
 import sys
 
 cwd, log_file, pid_file, *cmd = sys.argv[1:]
+os.chmod(log_file, 0o600)
 with open(log_file, "ab", buffering=0) as log:
     proc = subprocess.Popen(
         cmd,
@@ -144,6 +163,7 @@ with open(log_file, "ab", buffering=0) as log:
     )
 with open(pid_file, "w", encoding="utf-8") as handle:
     handle.write(f"{proc.pid}\n")
+os.chmod(pid_file, 0o600)
 print(proc.pid)
 PY
 }

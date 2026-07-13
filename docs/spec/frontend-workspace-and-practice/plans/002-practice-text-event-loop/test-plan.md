@@ -1,7 +1,7 @@
 # 002 Practice Continuous Conversation Test Plan
 
-> **版本**: 2.1
-> **状态**: completed
+> **版本**: 2.4
+> **状态**: active
 > **更新日期**: 2026-07-12
 
 ## Phase 1: Prototype/source
@@ -18,3 +18,14 @@
 ## Phase 6: Review remediation
 - PracticeScreen component tests simulate loader 5xx, send failure and completion failure, then assert the retry button invokes only the matching operation.
 - CTA-state tests hold send/load/complete promises open and assert Finish remains disabled until the mutable state returns.
+
+## Phase 7: Zero-answer finish
+
+- Eligibility table covers opening-only, route/draft-only, first committed user message, pending assistant reply, loading, sending, completing and non-mutable session states; only the committed-user/no-pending/mutable idle combination enables Finish.
+- Prototype/formal DOM and i18n tests require the same visible zh/en zero-answer reason and stable `aria-describedby`; no hardcoded bilingual copy lives in the component.
+- P0.047 composes frontend disabled-reason evidence with backend `VALIDATION_FAILED`/zero-side-effect evidence, then covers one-answer success and idempotent completion replay.
+
+## Phase 8: reportId-only handoff
+
+- Component/router tests require exact navigation query/state/context `{reportId}` and fail on any copied target/plan/session/resume/round/status/error field.
+- P0.047 inspects browser URL/history plus downstream `getFeedbackReport` request, proving reportId is the sole locator and completion replay keeps the same locator.
