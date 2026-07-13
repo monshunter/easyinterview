@@ -1,7 +1,7 @@
 # 001 - OpenAPI v1 Contract Bootstrap Checklist
 
-> **版本**: 1.21
-> **状态**: completed
+> **版本**: 1.23
+> **状态**: active
 > **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
@@ -68,3 +68,21 @@ git diff --check
   <!-- verified: 2026-07-13 commands="make lint-openapi validate-fixtures openapi-diff; make codegen-check" result="37 operations/10 tags; 37 fixtures; ready requires non-null summary/preparedness/provenance and non-empty dimensions/actions; failed alone requires non-null errorCode; baseline diff breaking=0/additive=0; generated conventions/events/OpenAPI byte-stable; ReportNextAction.label minLength=1,maxLength=200" -->
 - [x] 12.8 RESPONSIBILITY-NEGATIVE: generated/OpenAPI/fixtures contain zero `attemptCount|retryCount|repairReason|repairScope|generationProgress|retryReportGeneration` positive surfaces；max4/internal audit/status polling create no new expected finding，and maxAttempts49 exhaustion is not encoded as server failed.
   <!-- verified: 2026-07-13 evidence="OpenAPI inventory/diff/codegen and scoped negative search keep attempt/retry/repair/progress fields and retryReportGeneration endpoint absent; frontend maxAttempts49 remains local polling exhaustion only" -->
+
+## Phase 13: OPENAPI-002 TargetJob paste-only contract
+
+- [ ] 13.1 OWNER/GOVERNANCE-GATE: consume accepted OPENAPI-002 and its 15-finding exact oracle; preserve the merge-base old baseline before any OpenAPI/baseline mutation.
+- [ ] 13.2 RED: focused schema/inventory tests fail until `ImportTargetJobRequest` is closed, exactly requires `rawText,targetLanguage,resumeId`, and `rawText` has `minLength: 1` + `pattern: '\S'`; empty/space/tab/newline-only text plus old source wrapper/URL/file/manual-form/title/company/extra payloads, TargetJob source fields and `target_job_attachment` are rejected while both operation invariants and 37/10 inventory remain.
+- [ ] 13.3 GREEN: update `openapi/openapi.yaml`, delete all `TargetJobImportSource*`, remove `TargetJob.sourceType/sourceUrl` and only the TargetJob upload purpose, regenerate typed Go/TS artifacts, and prove no union/discriminator/compatibility alias remains. (`make lint-openapi`; generator tests; `make codegen-openapi`; isolated pre-freeze `make codegen-check`)
+- [ ] 13.4 AUDIT/HANDOFF-GATE: 003 Phase 6 wrapper RED proves unconsolidated new-property constraints do not match the oracle, then GREEN exact-matches 15 findings with `rawText` constraints folded into `required_property_added.after`; audit passes before baseline edit. 002 canonical 422 fixture and mock runtime pass before frontend/backend consumers compile; re-freeze remains deferred until every owner gate is green.
+- [ ] 13.5 BDD-Gate: downstream P0.010/P0.015 prove paste submit, accepted/failed import and persisted readback using the flattened request; URL/file/manual-form positive scenarios are deleted, not treated as compatibility coverage.
+- [ ] 13.6 ZERO-REFERENCE-GATE: current OpenAPI/generated/positive-fixture/frontend/backend/mock/positive-scenario surfaces contain zero positive/runtime `TargetJobImportSource*|target_job_attachment|sourceType/sourceUrl|url/file/manual_form` TargetJob-import branches. ADR/oracle and exact negative test/fixture declarations are allowed; no whole-file/directory exclusion.
+
+## Phase 14: Practice durable message recovery
+
+- [ ] 14.1 RED: schema/generator tests require a closed user/assistant discriminated union; user requires `clientMessageId + replyStatus(pending|retryable_failed|terminal_failed|complete)`, assistant forbids both, and generated Go/TS remains typed without `any`.
+- [ ] 14.2 GREEN: update OpenAPI source and generated artifacts; backend-practice handoff persists user client ID/reply status and proves pending/retryable/terminal/complete transitions, unique reservation and at-most-one assistant.
+- [ ] 14.3 REPLAY-GATE: `getPracticeSession` reload after AI failure returns the same user ID/status; only retryable failure accepts same-ID/same-text retry, complete replays existing result, mismatch/conflict return typed 409 without duplicates.
+- [ ] 14.4 TS-ERROR-GATE: generated `ApiClientError(status,apiError)` exact tests cover valid JSON, non-JSON, empty, Abort and transport failures; non-JSON/empty/Abort/transport use `apiError=null`, raw body is not leaked and frontend consumers contain zero error-message parsing.
+- [ ] 14.5 HANDOFF-GATE: 002 and mock owners publish exact get/send recovery fixtures including planned validation/auth/not-found/conflict/mismatch/retryable cases; 003 preserves a separate Practice finding audit before baseline re-freeze.
+- [ ] 14.6 BDD-Gate: frontend-workspace-and-practice/002 and P0.046 prove immediate optimistic user row, pending input lock/thinking state, retry icon only for retryable failure, reload recovery and same-ID retry with no duplicate messages.

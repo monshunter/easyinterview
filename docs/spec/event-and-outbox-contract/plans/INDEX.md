@@ -8,10 +8,10 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| [001-bootstrap](./001-bootstrap/plan.md) | [plan](./001-bootstrap/plan.md) / [checklist](./001-bootstrap/checklist.md) / [context](./001-bootstrap/context.yaml) | 1.14 | active | 2026-07-13 |
 
 ## 2 已完成（Completed）
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-bootstrap](./001-bootstrap/plan.md) | [plan](./001-bootstrap/plan.md) / [checklist](./001-bootstrap/checklist.md) / [context](./001-bootstrap/context.yaml) | 1.13 | completed | 2026-07-12 |
 | [002-resume-tailor-mode-drift-fix](./002-resume-tailor-mode-drift-fix/plan.md) | [plan](./002-resume-tailor-mode-drift-fix/plan.md) / [checklist](./002-resume-tailor-mode-drift-fix/checklist.md) / [context](./002-resume-tailor-mode-drift-fix/context.yaml) | 1.2 | completed | 2026-07-10 |

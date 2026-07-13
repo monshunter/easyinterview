@@ -5,8 +5,9 @@ metadata:
   name: 001-targetjob-import-and-parse-bootstrap
   sequence: 1
   specVersion:
-    from: null
-    to: 2.10
+    from: 2.10
+    to: 2.11
+  branch: fix/interview-turn-ux-0713
 spec:
   defaultTarget: backend
   discovery:
@@ -23,6 +24,8 @@ spec:
       - targetjob-import-and-parse-bootstrap
       - target job import parse
       - jd parse backend
+      - paste only jd import
+      - raw text target import
     keywords:
       - importTargetJob
       - listTargetJobs
@@ -33,20 +36,20 @@ spec:
       - target.import.requested
       - target.parsed
       - target.analysis.failed
-      - source_refresh follow-up job
       - target.import.parse feature_key
       - target.import.default profile
       - target_jobs table
       - target_jobs profile_id removed
       - target_job_requirements table
-      - target_job_sources table
-      - E2E.P0.013 manual_form terminal job
+      - raw_jd_text sole source of truth
+      - ImportTargetJobRequest rawText targetLanguage resumeId
+      - E2E.P0.010 paste import
+      - E2E.P0.012 parse failure
       - TARGET_JOB_NOT_FOUND
-      - TARGET_IMPORT_SOURCE_INVALID
-      - TARGET_IMPORT_SOURCE_UNAVAILABLE
       - TARGET_INVALID_STATE_TRANSITION
-      - URL fetch SSRF guard
-      - manual_form synchronous path
+      - VALIDATION_FAILED blank rawText
+      - no target source variants
+      - no jd attachment upload
       - backend-internal goroutine runner kernel
       - idempotency user-scoped dedupe
       - privacy redline raw_jd_text

@@ -1,8 +1,8 @@
 # 001 Home + JD Import + Parse
 
-> **版本**: 2.23
-> **状态**: completed
-> **更新日期**: 2026-07-10
+> **版本**: 2.25
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -11,13 +11,13 @@
 
 ## 1 目标
 
-本计划交付当前 Home + Parse 新建模拟面试入口，并在 v2.10 原地修订中把轮次假设升级为结构化 LLM/JD parse 合同：Parse 详情、Home 最近模拟面试卡片、Workspace 规划回访 handoff 和共享导航上下文必须使用同一份 TargetJob structured round mapper；卡片视觉仍复刻 UI 真理源，但轮次数量必须为 2~5，轮次类型、标题、时长和 focus 都必须来自后端保存的 `TargetJob.summary.interviewRounds[]`。v2.11 原地修订把 Home 最近模拟面试卡片和 workspace 面试列表卡片收敛到同一个 `MockInterviewCard` 主体：Home recent grid 使用固定最大列宽，workspace 只追加 footer CTA。本次 v2.12 原地修订要求 Home recent 继续复用 workspace 面试列表卡片动作模型：点击卡片主体进入统一规划详情，`立即面试` 主按钮直接启动 practice，但 Home 不展示删除按钮。v2.13 review remediation 要求 Home recent 只准入 ready TargetJob，并且 quick-start 必须把结构化 `roundId/roundName` 带入 practice route。v2.14 将 workspace detail 负向锚点统一为 out-of-scope 口径。用户从首页输入、上传或 URL 导入 JD，显式选择一份 ready 简历，进入统一详情页核对已保存的 JD、简历和由 LLM 推断的面试轮次；既有规划从 `workspace` 列表回访时也使用同一母版，不再出现第二套 workspace 当前规划详情页。
+本计划交付当前 Home + Parse 新建模拟面试入口，并在 v2.10 原地修订中把轮次假设升级为结构化 LLM/JD parse 合同：Parse 详情、Home 最近模拟面试卡片、Workspace 规划回访 handoff 和共享导航上下文必须使用同一份 TargetJob structured round mapper；卡片视觉仍复刻 UI 真理源，但轮次数量必须为 2~5，轮次类型、标题、时长和 focus 都必须来自后端保存的 `TargetJob.summary.interviewRounds[]`。v2.11-v2.14 继续收敛 recent card、workspace 详情与 quick-start。Phase 17 删除 Parse loading 内部元数据。Phase 18 把 Home JD intake 收敛为唯一粘贴文本框：用户粘贴 JD、显式选择一份 ready 简历，前端只提交 `{ rawText, targetLanguage, resumeId }`，随后进入统一详情页核对已保存的 JD、简历和由 LLM 推断的面试轮次；既有规划从 `workspace` 列表回访时也使用同一母版。
 
 交付后的当前链路：
 
 ```text
-Home JD source + ready Resume
-  -> importTargetJob(resumeId)
+Home pasted JD + ready Resume
+  -> importTargetJob({ rawText, targetLanguage, resumeId })
   -> Parse loading
   -> Unified Plan Detail / Context Confirm
   -> Start interview
@@ -36,27 +36,25 @@ UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-desig
 |-------------|---------|-------------------|---------------|-------------|---------------|----------|
 | `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json` | Home recent mock interviews, ready TargetJob only | `backend-targetjob` | TargetJob read | none in frontend | `E2E.P0.014` |
 | `listResumes` | `openapi/fixtures/Resumes/listResumes.json` | Home resume select + Parse readonly bound resume display | `backend-resume` | Resume read | none | `E2E.P0.015` / `E2E.P0.016` |
-| `createUploadPresign` | `openapi/fixtures/Uploads/createUploadPresign.json` | Home upload source | `backend-upload` | `file_objects` create | none | `E2E.P0.015` |
-| `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | Home paste / file / URL import with selected `resumeId` | `backend-targetjob` | TargetJob create + target job-level resume binding + parse job | backend-only | `E2E.P0.015` |
+| `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json`（paste success + validation/failure） | Home `{ rawText, targetLanguage, resumeId }` submit | `backend-targetjob` | TargetJob create + saved `resume_id` + parse job；无 source-specific side branch | backend-only | `E2E.P0.015` |
 | `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json` | Parse polling + readonly preview, including structured rounds from `summary.interviewRounds[]` | `backend-targetjob` | TargetJob read from `target_jobs.summary` | backend-only `target.import.parse` structured round result | `E2E.P0.015` / `E2E.P0.016` |
 | `createPracticePlan` / `getPracticePlan` / `startPracticeSession` | `openapi/fixtures/PracticePlans/*`, `openapi/fixtures/PracticeSessions/*` | Parse readonly detail Start action and Home recent quick start | `backend-practice` | PracticePlan / PracticeSession create-read-start | none | `E2E.P0.016` |
 
 ## 3 质量门禁分类
 
 - **Plan 类型**: `feature-behavior` + `contract`
-- **TDD 策略**: v2.11 继续通过 `/implement` -> `/tdd` 执行；Red-Green-Refactor 覆盖 `config/prompts/target.import.parse/*`、`openapi/openapi.yaml`、`backend/internal/targetjob/*`、`frontend/src/app/interview-context/roundAssumptions.ts`、`frontend/src/app/screens/{parse,home,workspace}/*`、`frontend/src/app/navigation/interviewContext.ts`、`ui-design/src/*` 和 P0.016/P0.018 scenario wrappers。
-- **BDD 策略**: Feature plan requires BDD；当前 BDD gate 为 `E2E.P0.014`、`E2E.P0.015`、`E2E.P0.016`，v2.7 追加 `E2E.P0.018` 作为 workspace 列表进入统一详情的回访 gate；v2.10 继续使用 `E2E.P0.016` 证明结构化轮次在 Parse、Home recent rail 和 shared navigation context 中同源消费，并要求 Playwright 截图附件或 `screenshotBytes=` marker 作为验收证据。
+- **TDD 策略**: 通过 `/implement` -> `/tdd` 执行。Phase 18 先让 UI contract、Home Vitest、OpenAPI lint/fixture/generated drift、backend TargetJob tests 与 scenario contract 对旧多入口和旧 discriminator 失败，再最小删除 UI/modal/i18n、contract/generated、backend 分支与专属 scenario，最后重构 paste-only 提交 helper 与 opaque-ID one-shot auth vault；auth RED/GREEN 必须覆盖正常 consume、refresh/lost、expired 与 duplicate consume；每个 checklist item 的断言入口见 Phase 18。
+- **BDD 策略**: Feature plan requires BDD；当前 BDD gate 为 `E2E.P0.014`、`E2E.P0.015`、`E2E.P0.016` 与 `E2E.P0.018`。Phase 18 原地修订 P0.014/P0.015 为 paste-only，并要求 1440×900 / 390×844 Home 截图、DOM/style/bbox/viewport 证据；URL 专属场景从 active scenario registry 删除且不复用编号。
 - **替代验证 gate**: 不适用；本计划具备 TDD + BDD 双层验证。
 
 ## 4 当前实现合同
 
 ### 4.1 Home
 
-- 渲染 Hero label/title、`home-jd-input-card`、`home-jd-textarea`、输入卡底部 `home-jd-source-controls`、upload/URL source actions、`home-resume-row`、`home-resume-select`、`home-resume-create`、`home-submit-row` 与 `home-jd-submit`。
-- `listResumes` 只把 ready 且可用的简历作为下拉选项；用户未显式选择简历时，paste / upload / URL import 均不得提交。
-- paste 提交 `ImportTargetJobRequest.source.type=manual_text` + selected `resumeId`；upload 先 `createUploadPresign(purpose=target_job_attachment)`，再提交 `source.type=file` + selected `resumeId`；URL 提交 `source.type=url` + selected `resumeId`。
-- `createUploadPresign`、`importTargetJob` 都必须通过 generated client 发送，并携带 side-effect idempotency key。
-- 成功 import 后导航到 `parse`，params 必须包含 `targetJobId`、source 与真实 `resumeId`。
+- 渲染 Hero label/title、只含 `home-jd-textarea` 的 `home-jd-input-card`、`home-resume-row`、`home-resume-select`、`home-resume-create`、`home-submit-row` 与 `home-jd-submit`；旧 source control / trigger / modal DOM 必须不存在。
+- `listResumes` 只把 ready 且可用的简历作为下拉选项；JD 为空或用户未显式选择简历时不得提交。
+- Home 只通过 generated client 提交 `importTargetJob({ rawText, targetLanguage, resumeId })`，并携带 side-effect idempotency key。
+- 成功 import 后导航到 `parse`，params 只包含 `targetJobId` 与真实 `resumeId`；不把 raw JD 或 intake 类型写入 route。
 - `listTargetJobs` 请求必须带 `analysisStatus=ready`，UI 层防御性排除 failed / processing / queued / 空标题 TargetJob，只渲染最近 3 张模拟面试卡片，排序按 `updatedAt desc`；卡片 grid 使用固定最大列宽，单卡不得被 `1fr` 拉伸；`MockInterviewCard` 主体也被 workspace 面试列表复用；Home 卡片点击主体进入统一规划详情，`立即面试` 主按钮启动 practice 并携带结构化 `roundId/roundName`，且不展示删除按钮；`更多` 进入 `workspace`。
 
 ### 4.2 Parse
@@ -71,10 +69,11 @@ UI 必须源级追溯到 `ui-design/src/screen-home.jsx::HomeScreen`、`ui-desig
 
 ### 4.3 Privacy / Auth
 
-- JD 原文、source URL 与 raw source content 不进入 URL、localStorage、console 或 telemetry。
-- 未登录 Home import 使用 opaque pending import id 接续；pending action 不携带 JD 原文或 source URL。
+- JD 原文不进入 URL、localStorage、console 或 telemetry。
+- 未登录 Home import 的 `pendingAction` 只携带 `opaquePendingImportId`；exact `{ rawText, targetLanguage, resumeId }` intent、同一次 import 的 idempotency key 与 expiry 只存在于当前进程的一次性内存 vault，登录成功后原子 consume 一次。
+- refresh / 进程重启导致 vault 丢失、entry 过期或 duplicate consume 时必须 fail closed：不调用 `importTargetJob`，清除无效 pending action，返回 Home 并显示本地化重新粘贴 JD / 选择简历提示；不得把 raw JD 或 vault entry 写入 URL、localStorage、sessionStorage、IndexedDB、console 或 telemetry。
 - Parse Start 只有在真实 `resumeId` 已绑定时才触发 auth continuation。
-- 前端只允许调用 generated TargetJobs / Uploads / Resumes client；不得直接调用 AI provider、prompt registry、provider-specific endpoint 或 ad hoc parse fetch。
+- 前端只允许调用当前 generated TargetJobs / Resumes client；Resume 自己的 upload consumer 继续留在 Resume owner。Home 不得直接调用 upload、AI provider、prompt registry、provider-specific endpoint 或 ad hoc parse fetch。
 
 ## 5 实施步骤
 
@@ -86,7 +85,7 @@ Home DOM、布局、控件密度、主题、i18n 与响应式行为对齐 `ui-de
 
 #### 1.2 Generated client contract
 
-Home 使用 `listResumes`、`listTargetJobs`、`createUploadPresign` 和 `importTargetJob`。所有 request body、headers、route params 和错误态由 Vitest 覆盖。
+Home 使用 `listResumes`、`listTargetJobs` 和 `importTargetJob`。所有 request body、headers、route params 和错误态由 Vitest 覆盖。
 
 #### 1.3 BDD-Gate
 
@@ -124,15 +123,15 @@ Parse 使用 `getTargetJob`、`listResumes` 和 practice handoff generated clien
 
 #### 4.1 Generated client request contract
 
-Home must include the selected ready `resumeId` in every `importTargetJob` request body for paste, upload and URL sources. Missing resume remains a client-side block before request dispatch.
+Home must include the selected ready `resumeId` in the single `importTargetJob({ rawText, targetLanguage, resumeId })` request. Missing raw text or resume remains a client-side block before request dispatch.
 
 #### 4.2 Route continuity
 
-Successful import still navigates to Parse with `targetJobId`, source and `resumeId`, but route params are not a binding fallback; the backend TargetJob response is authoritative after reload or list re-entry.
+Successful import navigates to Parse with `targetJobId` and `resumeId`; route params are not a binding fallback, and the backend TargetJob response is authoritative after reload or list re-entry.
 
 #### 4.3 BDD-Gate
 
-`E2E.P0.015` must continue to cover Home import request shape and privacy behavior, with `resumeId` treated as an allowed business identifier and JD raw text/source secrets still excluded from URL/pending action storage.
+`E2E.P0.015` must cover the exact paste-only request shape and privacy behavior, with `resumeId` treated as an allowed business identifier and JD raw text excluded from URL/pending action storage.
 
 ### Phase 5: Unified plan detail remediation
 
@@ -262,6 +261,34 @@ Align the BDD closeout checklist with the current B2 truth source: `make validat
 
 门禁：共享 helper 参数行为与三个 caller source contract 先红后绿；P0.014/P0.015/P0.016 的 setup/trigger/verify/cleanup、owner/product contexts、docs/diff/pruning gates 通过。BDD 不适用，因为 trigger 测试集合、场景业务断言、浏览器覆盖和环境生命周期均不改变。
 
+### Phase 17: Parse loading internal-metadata removal
+
+先更新 `ui-design/src/screens-p0-complete.jsx::ParseScreen` 与对应 UI 文档，删除 loading footer 中的 model/provider、rubric/prompt/version/hash、provenance 与 typical latency；保留当前四步进度、等待说明、布局和响应式节奏。随后用 RED-GREEN 同步正式 `ParseScreen`，删除同类硬编码与可见 DOM，不改 `getTargetJob` 轮询、ready/failed 分支或 API 合同。
+
+门禁：UI source contract 与正式 DOM 测试先对内部元数据失败后转绿；`E2E.P0.015` 在 1440 desktop 与 390 mobile 捕获 loading 截图并做 source/formal DOM、computed style、bbox 与 viewport parity，截图和 active source negative search 均不得出现上述内部标记。
+
+### Phase 18: Paste-only Home JD intake
+
+#### 18.1 UI truth source and documentation
+
+先更新 `ui-design/src/screen-home.jsx` 与 `docs/ui-design/`：Home 输入卡只保留 textarea，ready Resume 下拉框与「立即面试」CTA 保持当前布局；删除平行 intake 控件、弹窗、双语 copy 和空态中的多入口提示。`ui-design/ui-design-contract.test.mjs` 先红后绿，并固定旧 DOM/testid/copy 为负向。
+
+#### 18.2 OpenAPI and persistence contract
+
+`importTargetJob` 请求收敛为 `{ rawText, targetLanguage, resumeId }`，不再使用 source discriminator。OpenAPI schema、fixtures、generated Go/TS、backend handler/service/store/runner、persistence 与事件 payload 同步删除非当前 intake 分支及来源枚举；`target_jobs.raw_jd_text` 是唯一 JD 原文事实源，不保留 `manual_text` 兼容词汇、来源列或来源表。Resume upload operation、purpose、handler、fixture 与场景保持可用。
+
+#### 18.3 Frontend TDD
+
+RED：Home layout/import/auth/i18n/UI contract/pixel tests 对旧 source controls、modal、额外 locale keys、upload-client call、intake route param，以及 raw-text pending action 失败。GREEN：删除 `JDAssistModal` 及其 tests；`pendingAction` 只保存 `opaquePendingImportId`，一次性内存 vault 保存 exact intent + 原 idempotency key 并原子 consume；正常登录只重放一次，refresh/lost、expired、duplicate consume 均不调用 import 而返回 Home 提示重新输入。成功后仅导航 `targetJobId + resumeId`。REFACTOR：保留一个 paste submit path，不新增 mode enum、兼容 adapter、浏览器持久化或不可达 branch。
+
+#### 18.4 Backend and contract TDD
+
+RED：OpenAPI lint/fixture/generated drift、backend request decode/service/store/runner 和 package-level negative tests先证明公共多源 union、URL fetch/source refresh、JD attachment purpose 与 manual-form branch 仍存在。GREEN：删除当前 source-specific schema、handler、persistence/job/event/config 与专属 scenario；文本成功、validation、idempotency、parse failure/retry、privacy 与 resume binding 必须保持。REFACTOR：共用现有 text parse path，不保留兼容路由或 retired enum。
+
+#### 18.5 BDD, screenshots and zero-reference gate
+
+原地修订 `E2E.P0.014` / `E2E.P0.015`，删除 URL 专属 `E2E.P0.011` 实体目录与 active INDEX 行（编号不复用）。P0.015 覆盖 paste success、当前 4xx/failed、idempotency、privacy 与 Parse loading；P0.014/P0.015 在 1440×900 和 390×844 捕获 Home paste-only 截图并验证 DOM、computed style、bbox、viewport。active truth-source zero-reference gate 必须扫描 `ui-design/`、`docs/ui-design/`、owner specs/plans、OpenAPI/generated、frontend Home、backend TargetJob 与 active scenarios，排除 work-journal/bug/report 等合法历史证据，并明确允许 Resume upload 资产。
+
 ## 6 验收标准
 
 - Home/Parse owner 文档只描述当前 Home + Parse 合同、operation matrix、BDD gate 和验证入口。
@@ -271,14 +298,19 @@ Align the BDD closeout checklist with the current B2 truth source: `make validat
 - Parse and workspace detail routes share the same "面试规划详情 / 面试上下文确认" page structure, copy, resume binding and action semantics; workspace no longer renders an independent full-page current-plan confirmation.
 - Parse round assumptions, Home recent mock rails and shared TargetJob navigation context display/use backend/LLM `TargetJob.summary.interviewRounds[]`; round count is 2~5, and type/name, duration and focus are not front-end fixed values.
 - Home recent mock cards and workspace plan-list cards share the same `MockInterviewCard` body, mini round rail, fixed max-width grid and quick-start action; quick-start preserves structured `roundId/roundName`; Home omits delete controls while workspace includes them.
-- The pending import module exposes no test-only reset API; Home auth continuation tests cover one-shot store/consume behavior and privacy unchanged.
+- The pending import module exposes no test-only reset API；`pendingAction` only carries `opaquePendingImportId`，while raw JD remains in a process-memory one-shot vault. Home auth continuation tests cover normal atomic consume, refresh/lost vault, expiry and duplicate consume；only the normal path dispatches one exact request with the original idempotency key.
 - P0.014/P0.015/P0.016 reuse the shared real-backend verifier with the TargetJob generated-client owner test while retaining scenario-specific evidence checks.
+- Parse loading 只展示用户可理解的进度/等待状态；prototype、formal、desktop/mobile 截图和 active source 均不含 model/provider、rubric/prompt/version/hash、provenance 或 typical latency。
+- Home 只展示 JD textarea、ready Resume 下拉框和主 CTA；`importTargetJob` 只接受 `{ rawText, targetLanguage, resumeId }`，route 只携带 `targetJobId + resumeId`。
+- 非当前 JD intake 的 UI、public schema、generated type、backend branch、专属 fixture/scenario 和 active docs 为零；Resume 上传路径继续通过原 owner gates。
 - `sync-doc-index --check`、`make docs-check`、`git diff --check` 和 `make lint-core-loop-pruning-surface` 通过。
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-13 | 2.25 | Reopen in place to make Home JD intake paste-only across UI, contract, backend and scenarios, with exact request shape, zero-reference gates and desktop/mobile screenshots. |
+| 2026-07-13 | 2.24 | Reopen in place to remove internal parse model/rubric/provenance/latency metadata and require clean desktop/mobile loading screenshots. |
 | 2026-07-10 | 2.23 | Reuse the shared real-backend verifier across the three Home/Parse scenarios. |
 | 2026-07-10 | 2.22 | Remove the unread MiniRoundRail language prop and caller argument. |
 | 2026-07-10 | 2.21 | Remove the unrendered Home upload-source subtitle from prototype and locale assets. |

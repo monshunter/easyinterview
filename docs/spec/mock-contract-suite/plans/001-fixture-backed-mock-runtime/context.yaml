@@ -4,9 +4,11 @@ metadata:
   subspec: mock-contract-suite
   name: 001-fixture-backed-mock-runtime
   sequence: 1
+  baseBranch: main
+  branch: fix/interview-turn-ux-0713
   specVersion:
-    from: null
-    to: 1.16
+    from: 1.17
+    to: 1.18
 spec:
   defaultTarget: tooling
   discovery:
@@ -25,6 +27,16 @@ spec:
       - P0 mock runway
       - 37 operation fixtures
       - VITE_EI_API_BASE_URL
+      - OPENAPI-002 TargetJob paste only
+      - flattened rawText targetLanguage resumeId
+      - remove URL file manual_form source variants
+      - remove TargetJob sourceType sourceUrl
+      - remove target_job_attachment purpose
+      - preserve createUploadPresign resume privacy
+      - P0.015 paste only handoff
+      - TargetJob mock zero reference
+      - Practice durable reply status mock parity
+      - retryable failure reload same ID retry
   targets:
     tooling:
       plan: ./plan.md
@@ -35,6 +47,7 @@ spec:
         - ../../../product-scope/spec.md
         - ../../../openapi-v1-contract/spec.md
         - ../../../openapi-v1-contract/history.md
+        - ../../../openapi-v1-contract/decisions/OPENAPI-002-targetjob-paste-only.md
         - ../../../shared-conventions-codified/spec.md
       discovery:
         packages:
@@ -72,7 +85,7 @@ spec:
           - startPracticeSession
           - getPracticeSession
           - createPracticeVoiceTurn
-          - appendSessionEvent
+          - sendPracticeMessage
           - completePracticeSession
           - getFeedbackReport
           - listTargetJobReports

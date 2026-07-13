@@ -5,8 +5,9 @@ metadata:
   name: 001-file-objects-and-presign-baseline
   sequence: 1
   specVersion:
-    from: null
-    to: 1.5
+    from: 1.5
+    to: 1.6
+  branch: fix/interview-turn-ux-0713
 spec:
   defaultTarget: backend
   discovery:
@@ -23,7 +24,10 @@ spec:
     keywords:
       - presign url
       - idempotency key 24h
-      - purpose resume target_job_attachment privacy_export
+      - public upload purpose resume privacy_export
+      - reject target job attachment purpose
+      - A4 maxBytes handoff
+      - paste only dependency order
       - upload_status state machine
       - pending uploaded scan_failed deleted
       - minio dev provider

@@ -8,6 +8,7 @@
 
 | 日期 | Commit Message | 标签 |
 |------|----------------|------|
+| [2026-07-13](2026-07-13.md) | `docs(interview): define resilient turns and paste-only intake` | #docs #api #ui #test #bdd |
 | [2026-07-13](2026-07-13.md) | `fix(report): ground report semantics and reliability (BUG-0164, BUG-0165, BUG-0166)` | #fix #api #ui #test #docs #bdd |
 | [2026-07-12](2026-07-12.md) | `fix(resume): preserve source snapshot evidence (BUG-0162)` | #fix #api #test #docs #bdd |
 | [2026-07-12](2026-07-12.md) | `fix(interview): ground resumes and persist round progress (BUG-0162, BUG-0163)` | #fix #api #ui #test #docs #bdd |

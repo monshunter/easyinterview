@@ -1,13 +1,15 @@
 # Product Scope History
 
-> **版本**: 2.18
+> **版本**: 2.20
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 2.20 | 用户确认方案 A：Practice 发送采用即时 user row、pending thinking/输入锁、failed-row retry，并由服务端持久化原 message identity/reply state 保障刷新恢复。 | backend-practice/002 + frontend-workspace-and-practice/002 + openapi-v1-contract/001 |
+| 2026-07-13 | 2.19 | Home JD intake 只保留粘贴文本框和 `{ rawText, targetLanguage, resumeId }` 请求合同；删除其他 JD 导入形态，保留 Resume 上传能力。 | frontend-home-job-picks-and-parse/001 + contract/backend owners |
 | 2026-07-12 | 2.18 | 删除首次 Parse 页已不存在的“仅保存规划”分叉；确认一次提交同时持久化规划并直接进入 Practice，回访仍从既有入口承接。 | frontend-workspace-and-practice/001 + UI module-job-workspace |
 | 2026-07-12 | 2.17 | 明确零回答不可完成、空 focus 通用同轮复练和 reportId-only 缺失态，修正报告 locator 漂移。 | backend-practice/002 + backend-practice/004 + frontend-workspace-and-practice/002 + frontend-report-dashboard/001 |
 | 2026-07-12 | 2.16 | 报告统一为 reportId-only 深链，状态/上下文/CTA identity 来自冻结后端投影；复练 focus 明确为单份报告内 dimension code。 | backend-review/001 + frontend-report-dashboard/001 |

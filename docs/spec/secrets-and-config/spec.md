@@ -1,8 +1,8 @@
 # Secrets and Config Spec
 
-> **版本**: 2.15
+> **版本**: 2.16
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 背景与目标
 
@@ -64,7 +64,7 @@
 | D-8 | Session cookie 字面量 | `ei_session`，由 [ADR-Q1 §3](../engineering-roadmap/decisions/ADR-Q1-auth.md#3-决策) 锁定；P0 不提供 env/config override | A4 只管理 `SESSION_COOKIE_SECRET` 等 secret，不允许环境差异改 cookie name 导致 B2 OpenAPI / C1 middleware / D1 fetch 口径分裂 |
 | D-9 | 后台任务队列权重 | `async.queueWeights` 配置路径固定在 `config/config.yaml` / `config/{env}.yaml`，默认 `critical: 6` / `default: 3` / `low: 1`；P0 不因队列权重额外增加 env key，backend-async-runner kernel 通过 typed config 读取 | ADR-Q2 的 queue priority 可由配置驱动，同时避免把 runner tuning 扩成环境变量面 |
 | D-14 | Runner kernel 时序（additive） | additive 新增 config-only 节点 `async.leaseTimeoutSeconds`(300) / `async.shutdownGraceSeconds`(10) / `async.reaperIntervalSeconds`(60) / `async.scanIntervalSeconds`(5)；不因 runner 时序新增 env key；缺失或非正数 fail-fast，不得静默回退为代码常量 | 由 active [`backend-async-runner/001`](../backend-async-runner/spec.md) D-5 / D-8 / D-14 消费，作为 kernel lease loop / reaper / graceful shutdown 时序源 |
-| D-10 | 上传基础配置 | `objectStorage.provider=minio|filesystem`、`upload.presignTTLSeconds` 默认 600、`upload.maxBytes.resume=10485760`、`upload.maxBytes.targetJobAttachment=10485760`、`upload.maxBytes.privacyExport=5242880` 均为 config-only path；P0 不新增 `UPLOAD_*` / `OBJECT_STORE_*` env key | backend-upload 通过 typed config 注入 provider / TTL / per-purpose size limit，继续复用现有 `OBJECT_STORAGE_*` secret/env 字典 |
+| D-10 | 上传基础配置 | `objectStorage.provider=minio|filesystem`、`upload.presignTTLSeconds` 默认 600、`upload.maxBytes.resume=10485760`、`upload.maxBytes.privacyExport=5242880` 均为 config-only path；JD intake 只接收 raw text，不拥有附件上传配额；P0 不新增 `UPLOAD_*` / `OBJECT_STORE_*` env key | backend-upload 通过 typed config 注入 provider / TTL / 当前 per-purpose size limit，继续复用现有 `OBJECT_STORAGE_*` secret/env 字典 |
 
 #### 3.1.1 P0 必备 env key 字典
 
@@ -117,7 +117,7 @@
 | `objectStorage.accessKey` / `objectStorage.secretKey` | `OBJECT_STORAGE_ACCESS_KEY` / `OBJECT_STORAGE_SECRET_KEY` | 是 | always；prod 必须来自 runtime secret / env | 否 | A4 |
 | `objectStorage.provider` | `(config.yaml only)` | 否 | always；`minio|filesystem` | 否 | A4 + backend-upload |
 | `upload.presignTTLSeconds` | `(config.yaml only)` | 否 | always；正整数，默认 600 | 否 | A4 + backend-upload |
-| `upload.maxBytes.resume` / `upload.maxBytes.targetJobAttachment` / `upload.maxBytes.privacyExport` | `(config.yaml only)` | 否 | always；正整数，默认 10MB / 10MB / 5MB | 否 | A4 + backend-upload |
+| `upload.maxBytes.resume` / `upload.maxBytes.privacyExport` | `(config.yaml only)` | 否 | always；正整数，默认 10MB / 5MB | 否 | A4 + backend-upload |
 | `observability.otlpEndpoint` | `OTEL_EXPORTER_OTLP_ENDPOINT` | 否 | optional | 否 | A4 + F1 |
 | `log.level` | `LOG_LEVEL` | 否 | always | 否 | A4 |
 | `auth.sessionCookieSecret` | `SESSION_COOKIE_SECRET` | 是 | prod required；dev init generated | 否 | A4 + C1 |
@@ -151,6 +151,7 @@
 - `os.Getenv` 与 `flag.String` 等系统级读取只允许出现在 `backend/internal/platform/config/` 与 `backend/cmd/{api,migrate}/main.go` 中；其它包必须通过 `config.Get*` 注入；A5 接入 lint 强制。`cmd/migrate` 作为 B4 db-migrations-baseline 引入的 CLI 入口与 cmd/api 同列，bootstrap 期允许直接读取 `DATABASE_URL` / `APP_ENV` / `MIGRATE_*` 等 env key。P0 不保留 `cmd/worker` 入口或 worker listen addr。
 - 前端任何代码不得直接读取 `import.meta.env.VITE_*` 之外的 build-time 变量；运行时配置统一通过 `runtime-config` 端点。
 - `config/feature-flags.yaml` 是 dev / 单测真理源；prod 走 PostHogFlagProvider；切换由 `FEATURE_FLAG_SOURCE` 决定。
+- 上传配置、typed binding 与 validator 只承认 Resume 和 Privacy Export 两个当前 maxBytes path；旧 TargetJob attachment maxBytes key 不得出现在 active config、validator、composition binding 或 current owner contract。该负向 gate 不删除 Resume 上传，也不改变 privacy export 限额。
 - PostHog provider 启动时必须校验 `FEATURE_FLAG_SOURCE=posthog` 时 `POSTHOG_HOST` / `POSTHOG_PROJECT_API_KEY` 存在，且 staging/prod `POSTHOG_SELF_HOSTED=true`；启动后 PostHog 临时不可用时只允许回退到 last-known-good 内存缓存并输出 warn，不允许静默切回 file provider 造成 prod flag 口径漂移。
 - `runtime-config` 只能序列化 §3.1.2 标记为可暴露的字段；`featureFlags` 只包含 `config/feature-flags.yaml` 或 PostHog 中显式标记 `public=true` 的 flag，`ai_fallback_model_enabled` 等 operator-only flag 不得进入 public response。
 
@@ -194,7 +195,7 @@
 | C-7 | lint 红线 | 本地改动在 `internal/auth/` 下出现 `os.Getenv("SESSION_COOKIE_SECRET")` | `make lint` | 报错并阻止本地质量门禁通过 | A4 后续 001 |
 | C-8 | secrets 红线 | 本地改动包含一行形似真实凭证的测试样本（例如 `OPENAI_API_KEY=<redacted-test-token>`；测试文件通过临时生成内容触发正则，不在文档中写真实形态） | pre-commit / 本地 gitleaks | hook 拦截，gitleaks 拦截；远端 CI secret scan 仅在 A5 触发条件成立后再接入 | A4 后续 001 |
 | C-12 | 后台队列权重配置 | `config/config.yaml` 声明 `async.queueWeights`，dev/staging/prod override 可调整权重 | backend internal runner 初始化读取 typed config | 读取到 `critical/default/low` 三档权重，缺失或非正数 fail-fast；不需要新增 env key | A4 后续 001 + backend-runtime-topology |
-| C-13 | 上传基础 config-only path | `config/config.yaml` 声明 `objectStorage.provider`、`upload.presignTTLSeconds`、`upload.maxBytes.*` | backend-upload handler / objectstore 初始化读取 typed config | 默认值可读取；非法 provider、非正数 TTL / maxBytes fail-fast；`.env.example` 不新增 `UPLOAD_*` / `OBJECT_STORE_*` | backend-upload/001 |
+| C-13 | 上传基础 config-only path | `config/config.yaml` 声明 `objectStorage.provider`、`upload.presignTTLSeconds`、`upload.maxBytes.resume` 与 `upload.maxBytes.privacyExport` | backend-upload handler / objectstore 初始化读取 typed config | Resume 10MB 与 Privacy Export 5MB 默认值可读取；非法 provider、非正数 TTL / 当前 maxBytes fail-fast；JD intake 不产生附件配额；`.env.example` 不新增 `UPLOAD_*` / `OBJECT_STORE_*` | A4 001 + backend-upload/001 |
 | C-9 | env 字典覆盖 | `.env.example` 中缺 `AI_PROVIDER_REGISTRY_PATH` 或 registry 引用的 provider secret env | `make lint-config` | 报错：env key 在代码或 registry truth source 出现但 `.env.example` 缺失 | A4 后续 001 + A3 003 |
 | C-10 | AI provider 本地运行校验 | `APP_ENV=dev` 且启用了需要 AIClient 的 backend 运行路径，但 provider registry 缺失或选中 provider secret 缺失 | 启动宿主机 backend runtime 或已显式接入 compose 的 optional app service | 进程启动失败并报告缺失 provider registry / secret；`APP_ENV=test` 的单元测试仍可走 stub | A4 后续 001 + A3 003 + A2 |
 | C-11 | config schema 分类 | `SESSION_COOKIE_SECRET` 标记为 secret，`runtime.defaultUiLanguage` 标记为 public | `make lint-config` / runtime-config schema check | secret 字段缺 redaction 或出现在 runtime-config schema 时失败；public 字段缺 runtime-config schema 时失败 | A4 后续 001 |

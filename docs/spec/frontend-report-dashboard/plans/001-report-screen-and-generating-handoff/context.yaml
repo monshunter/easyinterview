@@ -5,15 +5,15 @@ metadata:
   name: 001-report-screen-and-generating-handoff
   sequence: 1
   baseBranch: main
-  branch: fix/report-semantic-grounding-0712
+  branch: fix/interview-turn-ux-0713
   specVersion:
-    from: 1.18
-    to: 1.20
+    from: 1.20
+    to: 1.21
 spec:
   defaultTarget: frontend
   discovery:
     aliases: [conversation report dashboard, session evidence report, honest grounded report]
-    keywords: [reportSummary, immutableReportContext, dimensionCode, dimensionLabel, emptyFocusReplay, issueBackedFocus, honestGenerating, actionScopedReportRetry10s20s40s, actionRetryDestroyedOnReturn, newActionRetryReset, asyncJobAttemptsInfrastructureOnly, infraDeliveryBackoffSeparate, noFailedReportRegenerateAPI, maxAttempts49, pollInitial1.5Multiplier1.5Cap8, pollWindow6m04s, preserveAttemptAcrossInflightHiddenBlur, resumeNextAttemptNotOne, noDuplicateConcurrentPoll, singleRunCallsAtMost49, reportWorstCase5m10s, noAttemptRetryProgressSurface, pollTimeoutDoesNotFabricateFailed, routeTamper, languageSplit, actionPriority, action200MalformedFuse, backendFrontendFailClose24WhitespaceWords64UnicodeCodePoints, targetedRepairInternalMargin18Words52CodePoints, typedInvalidNoRawLabel, desktopAnd390CompleteWrapping, noClientTruncateRewrite, p0099CurrentRunCanonicalAudit, canonicalReportContentDigest, actionLengthAudit, contentAudit, screenshotSha256, noP0100OutputDigestDependency, deterministicExact24Words64CodePointsParity, mobile390ActionRegion, noClipEllipsisOverflow, serverOwnedFocus, fullPageParity, no QuestionsTab]
+    keywords: [reportSummary, immutableReportContext, noVisibleSessionUuid, noVisibleReportUuid, contextStripTargetRoundResumeOnly, reportContextStripAcceptance, formalRealReadyScreenshots, exact1440x1200And390x844, fullPageTrue, fixedScreenshotManifest, screenshotPathSha256StateViewport, reportSessionSentinelAbsent, dimensionCode, dimensionLabel, emptyFocusReplay, issueBackedFocus, honestGenerating, actionScopedReportRetry10s20s40s, actionRetryDestroyedOnReturn, newActionRetryReset, asyncJobAttemptsInfrastructureOnly, infraDeliveryBackoffSeparate, noFailedReportRegenerateAPI, maxAttempts49, pollInitial1.5Multiplier1.5Cap8, pollWindow6m04s, preserveAttemptAcrossInflightHiddenBlur, resumeNextAttemptNotOne, noDuplicateConcurrentPoll, singleRunCallsAtMost49, reportWorstCase5m10s, noAttemptRetryProgressSurface, pollTimeoutDoesNotFabricateFailed, routeTamper, languageSplit, actionPriority, action200MalformedFuse, backendFrontendFailClose24WhitespaceWords64UnicodeCodePoints, targetedRepairInternalMargin18Words52CodePoints, typedInvalidNoRawLabel, desktopAnd390CompleteWrapping, noClientTruncateRewrite, p0099CurrentRunCanonicalAudit, canonicalReportContentDigest, actionLengthAudit, contentAudit, screenshotSha256, noP0100OutputDigestDependency, deterministicExact24Words64CodePointsParity, mobile390ActionRegion, noClipEllipsisOverflow, serverOwnedFocus, fullPageParity, no QuestionsTab]
   targets:
     frontend:
       plan: ./plan.md

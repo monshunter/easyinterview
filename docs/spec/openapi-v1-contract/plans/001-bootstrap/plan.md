@@ -1,7 +1,7 @@
 # 001 - OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.20
-> **状态**: completed
+> **版本**: 1.22
+> **状态**: active
 > **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -18,7 +18,7 @@
 - B1 shared conventions are referenced through generated/shared types and error envelope rules.
 - Fixtures and breaking-change gates consume this bootstrap output through sibling B2 plans.
 
-This completed owner plan is now an executable evidence index. It does not preserve staged remediation prose.
+This owner plan remains the executable contract/codegen evidence index and is reopened for the accepted OPENAPI-002 paste-only correction.
 
 ## 2 Current Contract
 
@@ -80,12 +80,14 @@ git diff --check
 
 ## 6 BDD Applicability
 
-BDD is not applicable. This plan owns internal API contract and generated artifact reproducibility, not a user-facing workflow. User-visible API behavior is covered by the backend/frontend/scenario owners that consume the generated contract.
+本 plan 不新建本地 BDD 文件，因为它只拥有 API schema、codegen 与 contract gate；但 Practice recovery 是用户可见行为，不能只用内部 contract test 收口。Phase 14 必须以 frontend-workspace-and-practice/002 的 BDD 与 P0.046 failure/recovery scenario 作为 mandatory `BDD-Gate`，证明 optimistic user message、pending lock、reload projection、typed failure branching 与 same-ID retry。未取得该 handoff evidence 时，本 plan 不得恢复 completed。
 
 ## 7 Revision Log
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2026-07-13 | 1.22 | Add Practice durable reply-state, same-ID recovery and typed TypeScript ApiClientError phase; tighten OPENAPI-002 rawText/oracle/invariant gates. |
+| 2026-07-13 | 1.21 | Reopen Phase 13 for OPENAPI-002 TargetJob paste-only schema, generated artifacts and consumer handoff. |
 | 2026-07-13 | 1.20 | Keep max4 generation/judge audit internal-only；no attempt/retry/reason/scope/progress field or retry endpoint，and no new expected OpenAPI finding. |
 | 2026-07-13 | 1.19 | Clarify downstream product full-validator repair responsibility without changing expected OpenAPI finding maxLength200；audit/codegen remain pending. |
 | 2026-07-13 | 1.18 | Finalize A：wire fuse200 code points；semantic/UX 24/64；targeted action-label repair margin18/52；keep audit/re-freeze/codegen pending. |
@@ -156,3 +158,73 @@ Regenerate Go/TS artifacts and add exact inventory/negative tests that reject ol
 ### 12.3 Handoff
 
 002 must replace every Reports/PracticePlans scenario and prototype projection before backend/frontend consumers compile. 003 must preserve the merge-base breaking artifact before current baseline re-freeze.
+
+## 13 OPENAPI-002 TargetJob paste-only contract
+
+### 13.1 RED contract boundary
+
+After [OPENAPI-002](../../decisions/OPENAPI-002-targetjob-paste-only.md) is accepted, keep the merge-base baseline untouched and add focused schema/inventory tests that require `ImportTargetJobRequest` to be a closed object with exactly required `rawText` / `targetLanguage` / `resumeId`. `rawText` must declare `minLength: 1` and `pattern: '\S'`; positive cases include non-whitespace text and negative cases include empty/space/tab/newline-only values. Negative cases must also reject the old `source` wrapper, every URL/file/manual-form discriminator payload, `fileObjectId`, `titleHint`, `companyNameHint` and arbitrary extra properties. Read-side tests must reject `TargetJob.sourceType` / `sourceUrl`; upload tests must reject `purpose=target_job_attachment` while proving `createUploadPresign` still supports resume/privacy consumers.
+
+### 13.2 GREEN source, codegen and freeze invariant
+
+Delete all five `TargetJobImportSource*` schemas, flatten and constrain `ImportTargetJobRequest`, remove TargetJob source provenance properties and remove only the TargetJob attachment enum value. Regenerate Go/TS artifacts and assert no compatibility union, discriminator, alias or legacy generated type remains. `importTargetJob` remains operationId `importTargetJob`, `POST /api/v1/targets/import`, `202 + TargetJobWithJob`; `createUploadPresign` remains operationId `createUploadPresign`, `POST /api/v1/uploads/presign`, `201 + UploadPresign`; inventory remains 37 operations / 10 tags. The current baseline cannot be edited until 003 Phase 6 preserves the exact old-baseline audit and all downstream gates pass.
+
+### 13.3 Operation matrix
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| `importTargetJob` | `TargetJobs/importTargetJob.json` paste-only default/manual-text | Home paste submit and Parse polling | backend-targetjob generated adapter/service/runner | TargetJob + async job; no URL/file source provenance | parse pasted JD text | P0.010/P0.015 paste-only |
+| `createUploadPresign` | `Uploads/createUploadPresign.json` resume/privacy only | Resume Workshop/privacy consumers; no Home consumer | backend-upload generated adapter/service | file object for remaining purposes only | none | existing resume/privacy scenarios; no TargetJob attachment |
+| `listTargetJobs` / `getTargetJob` | TargetJobs list/get without source fields | Home/Workspace/Parse/Report | backend-targetjob list/get adapters | current TargetJob projection without source provenance | none after persisted parse | P0.010/P0.015/P0.018/P0.057 |
+
+### 13.4 Zero-reference and handoff gates
+
+Run exact current-contract searches over OpenAPI, generated artifacts, positive fixtures, frontend/backend runtime consumers, mock runtime and active positive scenarios. Positive/runtime occurrences of `TargetJobImportSource*`, `target_job_attachment`, TargetJob `sourceType/sourceUrl`, URL/file/manual-form import branches or compatibility aliases must be zero. Accepted ADR、expected-findings oracle 与显式 negative test/fixture declaration 可包含被拒绝 token；gate 必须按语义/可达面区分正负引用，禁止用整文件或整测试目录排除。BDD assets are owned downstream: P0.010/P0.015 must prove the paste-only main/failure paths, while URL/file/manual-form positive scenarios are removed rather than retained as compatibility coverage.
+
+## 14 Practice durable message recovery（方案 A）
+
+### 14.1 RED: role-discriminated message contract
+
+先新增 schema/generator RED，要求 `PracticeMessage` 是 closed role-discriminated union，而不是所有字段都 optional 的宽对象：
+
+- user projection required `clientMessageId` 与 `replyStatus`；`replyStatus` exact enum 为 `pending|retryable_failed|terminal_failed|complete`；
+- assistant projection 禁止 `clientMessageId` / `replyStatus`；
+- `pending` 表示 user reservation 已持久化但 reply 尚未有权威终态；`retryable_failed` 表示 reservation 后发生 typed retryable failure；`terminal_failed` 表示 reservation 后发生 non-retryable reply failure；`complete` 必须关联恰好一条 assistant reply；
+- validation/auth/not-found/conflict/mismatch 若在 reservation 前失败，不得创建新的 user message；transport outcome 不确定时 consumer 先通过 `getPracticeSession` 对账，不能从本地 error 文案猜测服务端是否已持久化。
+
+Go/TS generated type tests must reject assistant recovery fields, user missing fields, unknown status and any fallback to `any`.
+
+### 14.2 GREEN: persistence/read-side and replay semantics
+
+`replyStatus` 与原始 `clientMessageId` 由 backend-practice persistence/read model 持久化，前端 memory、URL、localStorage/sessionStorage/IndexedDB 或“是否已有 assistant”均不能充当事实源。`getPracticeSession` reload 必须返回 ordered authoritative messages：
+
+- `pending`：composer remains locked；client may reconcile/poll but cannot submit another text；
+- `retryable_failed`：只允许用相同 `clientMessageId` 与完全相同 text 执行 retry；
+- `terminal_failed`：不提供 retry，consumer 使用 reload/auth/session-lost 等 typed recovery；
+- `complete`：same-ID replay 返回既有完成结果，不新增 user 或 assistant；
+- same ID + different text/session 返回 `409 + IDEMPOTENCY_KEY_MISMATCH`；session 已有 unresolved reply conflict 返回 `409 + PRACTICE_SESSION_CONFLICT`。
+
+Storage/handler tests must prove unique user reservation, at-most-one assistant reply, retryable failure → reload → same-ID success and concurrent replay determinism.
+
+### 14.3 Typed TypeScript failure contract
+
+Update the TS generator template and golden tests so generated client exports `ApiClientError` with public `status: number | null` and `apiError: ApiErrorResponse | null`（可另带 stable `kind=http|abort|transport` / `cause`；不得公开 fetch `Response`）。Exact tests cover：
+
+1. non-2xx JSON `ApiErrorResponse` → HTTP status + parsed `apiError`；
+2. non-JSON body → HTTP status + `apiError=null`，且不泄漏 raw body；
+3. empty body → HTTP status + `apiError=null`；
+4. abort → null status/apiError + abort discriminant；
+5. transport rejection → null status/apiError + transport discriminant。
+
+Consumer contract tests must fail on `error.message` regex/string parsing；retryability 只读取 `apiError.error.retryable`，status/code/details 只读取 typed fields。
+
+### 14.4 Operation matrix
+
+| operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
+|-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
+| `getPracticeSession` | `PracticeSessions/getPracticeSession.json`: pending/retryable-failed/terminal-failed/complete + reload recovery | Practice transcript hydration, composer lock and retry affordance | backend-practice get adapter/service/store | user `client_message_id` + durable reply status + ordered assistant projection | none on read | P0.044 + P0.046 |
+| `sendPracticeMessage` | `PracticeSessions/sendPracticeMessage.json`: default plus validation/auth/not-found/conflict/mismatch/retryable failure | optimistic row, thinking state and typed retry dispatch | backend-practice generated adapter/service/store | reserve once by `(session_id,client_message_id)`; transition reply status; at-most-one assistant | interviewer generation | P0.044 + P0.046 |
+
+### 14.5 Contract audit and downstream handoff
+
+This union/persistence correction changes existing Practice message validation semantics. 003 must audit old-baseline → proposed findings separately from OPENAPI-002（不得并入其 exact 15 allowset），preserve the artifact before baseline mutation, then wait for 002 fixture matrix、mock-contract-suite parity、backend-practice persistence、frontend-workspace-and-practice typed consumer and P0.046 before re-freeze. Operation/tag inventory stays 37/10；no retry endpoint, client-side business-state store or compatibility message schema is allowed.

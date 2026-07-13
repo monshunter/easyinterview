@@ -1,24 +1,31 @@
 # 001 BDD Checklist
 
-> **版本**: 2.17
-> **状态**: completed
-> **更新日期**: 2026-07-10
+> **版本**: 2.19
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
 ## E2E.P0.014 Home 默认渲染与最近模拟面试
 
 - [x] 场景目录 `test/scenarios/e2e/p0-014-home-default-render/` 保留 README、seed、expected outcome 与 `scripts/{setup,trigger,verify,cleanup}.sh`。
-- [x] Trigger 覆盖 generated-client routing、Home shell/control、source controls、resume select、submit row、英文 i18n、ready filter、empty/one/twelve-plus fixtures、sort/3-card cap、More、card detail 与 quick-start handoff。
+- [x] Historical trigger 覆盖 generated-client routing、Home shell/control、resume select、submit row、英文 i18n、ready filter、empty/one/twelve-plus fixtures、sort/3-card cap、More、card detail 与 quick-start handoff。
 - [x] Verify 要求 real-mode generated-client 配置 marker、目标测试文件 marker、Vitest pass marker 和 out-of-scope source/log negatives。
 - [x] 场景资产合同拒绝 TopBar/theme/mobile/build/Playwright/live-backend 等 runner 未执行的覆盖声明。
   <!-- verified: 2026-07-10 method=scenario-asset-contract evidence="HomeScreen asset gate passes inside the P0.014 trigger; generated-client 1 test plus Home 34 tests and all four scenario scripts pass." -->
+- [ ] Revision 2026-07-13 trigger proves Home intake only renders textarea、ready Resume select 和 CTA，并拒绝旧 source controls/modal/trigger/copy；Resume upload surface remains available under its own owner.
+- [ ] Revision 2026-07-13 captures 1440×900 / 390×844 Home screenshots and verifies DOM/computed-style/bbox/viewport parity against the updated prototype.
 
 ## E2E.P0.015 Home import 到 Parse preview
 
 - [x] 场景目录 `test/scenarios/e2e/p0-015-jd-import-and-parse/` 保留 README、seed、expected outcome 与 `scripts/{setup,trigger,verify,cleanup}.sh`。
-- [x] Trigger 覆盖 explicit ready resume selection、paste/manual_text import、upload/presign/file import、URL import、4xx inline error、failed parse state、loading browser gate 和 preview mapping。
-- [x] Verify 要求 real-mode generated-client marker、`createUploadPresign` / `importTargetJob` idempotency marker、真实 `resumeId` parse route marker、loading screenshot marker 与 privacy marker。
+- [x] Historical trigger covered explicit ready resume selection、import、4xx inline error、failed parse state、loading browser gate 和 preview mapping；Phase 18 supersedes the current intake assertions.
+- [x] Historical verify required real-mode generated-client、idempotency、真实 `resumeId` parse route、loading screenshot 与 privacy markers；Phase 18 replaces its current request-shape evidence.
+- [ ] Revision 2026-07-13 updates prototype/formal loading assertions and active negatives so internal model/provider、rubric/prompt/version/hash、provenance and typical-latency metadata cannot render.
+- [ ] Revision 2026-07-13 captures clean 1440/390 Parse loading screenshots and verifies DOM/computed-style/bbox/viewport parity before preview.
+- [ ] Revision 2026-07-13 trigger covers ready Resume selection、paste submit、exact `{ rawText, targetLanguage, resumeId }` body、idempotency、empty/4xx/failed paths and successful `targetJobId + resumeId` handoff, with no source discriminator or source route param.
+- [ ] Revision 2026-07-13 auth trigger proves `pendingAction` stores only `opaquePendingImportId`；raw JD / language / resume / original idempotency key live only in a process-memory one-shot vault. Normal login atomically consumes and dispatches once；refresh/lost vault、expired and duplicate consume dispatch zero imports, clear the invalid action and return Home with localized re-entry guidance；route/browser storage/log/telemetry remain raw-JD-free.
+- [ ] Revision 2026-07-13 verify requires paste-only real-mode marker、privacy marker、old intake negative marker and clean 1440×900 / 390×844 Home/Parse screenshot evidence.
 
 ## E2E.P0.016 面试规划详情只读收据与 Start handoff
 
@@ -43,11 +50,14 @@
 
 ## 整体收口
 
-- [x] P0.014、P0.015、P0.016、P0.018 均执行 `setup -> trigger -> verify -> cleanup` 或记录 focused equivalent + scenario wrapper 证据。
+- [ ] Revision 2026-07-13 reruns P0.014/P0.015 after paste-only intake and loading-metadata cleanup, then records current 1440×900 / 390×844 screenshot evidence before this plan returns to completed.
+- [x] Historical P0.014、P0.015、P0.016、P0.018 baseline executed `setup -> trigger -> verify -> cleanup` or recorded focused equivalent + scenario wrapper evidence；Phase 18 reruns P0.014/P0.015.
 - [x] `make validate-fixtures` 确认相关 fixture 仍在当前 37-operation 合同内。
 - [x] Owner 文档、context、INDEX 与 product-scope / workspace 证据同步。
 - [x] Round assumptions shared data-binding regression and focused equivalent evidence are linked back to owner checklist Phase 7.
 - [x] Structured interview rounds contract and scenario evidence are linked back to owner checklist Phase 8.
+- [ ] Phase 18 physically deletes URL-only `E2E.P0.011` and its active INDEX row without reusing the ID.
+- [ ] Phase 18 active zero-reference scan rejects old JD source controls/modal/route source/public schema/generated/backend branch/fixture/scenario, excludes legal historical evidence, and explicitly allows Resume upload assets.
 
 ## Internal Cleanup Substitute Gate
 

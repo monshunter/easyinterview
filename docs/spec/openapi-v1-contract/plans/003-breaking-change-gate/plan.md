@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
-> **版本**: 1.10
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 1.12
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -120,6 +120,8 @@ The wrapper must verify the exact path, method and statuses. Any other status tr
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-13 | 1.12 | Fix OPENAPI-002 proposed/audit order and exact invariants; add a separate Practice message recovery correction audit phase. |
+| 2026-07-13 | 1.11 | Reopen Phase 6 for OPENAPI-002 exact TargetJob paste-only audit and guarded v1.0.0 re-freeze. |
 | 2026-07-12 | 1.10 | Require the normalized conditional-contract finding to encode baseline source prohibition and derived non-null source-only branches. |
 | 2026-07-12 | 1.9 | Exact-match OPENAPI-001 across severity and classify REPORT_CONTEXT_TOO_LARGE enum widening as additive-only. |
 | 2026-07-12 | 1.8 | Reopen Phase 5 for OPENAPI-001 merge-base breaking authorization and guarded pre-release baseline re-freeze. |
@@ -140,3 +142,31 @@ Extend the wrapper with a base-ref mode that emits a deterministic normalized JS
 ### 5.3 Guarded re-freeze
 
 Only after 001 schema/codegen, 002 fixtures/prototype/Prism and downstream consumer gates pass may `openapi-v1.0.0.yaml` be re-frozen. Final verification requires both the preserved old-baseline finding artifact and a clean current-baseline `make openapi-diff`; the clean result alone is insufficient.
+
+## 8 Phase 6: OPENAPI-002 pre-release paste-only gate
+
+### 6.1 Authorize and snapshot before mutation
+
+Require accepted [OPENAPI-002](../../decisions/OPENAPI-002-targetjob-paste-only.md), product-owner approval, spec/history 1.54 and the machine oracle. Resolve the merge-base from `main` and snapshot the old `openapi/baseline/openapi-v1.0.0.yaml`; then let 001 update the proposed OpenAPI while the worktree baseline remains byte-unchanged. Only after the proposed source exists may this gate compare old baseline → proposed and persist the exact audit artifact.
+
+### 6.2 Exact finding audit
+
+Extend/reuse base-ref mode to exact-match `OPENAPI-002-targetjob-paste-only.expected-findings.json` by the full five-key tuple. The expected set remains exactly 15 breaking findings. `rawText` is a new constrained required property: normalize its initial `minLength=1,pattern=\S` into the single `required_property_added.after` signature and do not emit a second constraint finding. A focused RED must prove the unnormalized extra finding fails exact-set; GREEN must equal 15. Missing/unexpected findings, severity/path/kind/before/after drift, wildcard authorizations, edited old baseline or a zero-finding simultaneous replacement must fail.
+
+The audit must separately enforce unchanged invariants: 37 operations / 10 tags；`POST /api/v1/targets/import`, operationId `importTargetJob`, `202 + TargetJobWithJob`；and `POST /api/v1/uploads/presign`, operationId `createUploadPresign`, `201 + UploadPresign`, with remaining resume/privacy purposes.
+
+### 6.3 Guarded consumer handoff and re-freeze
+
+Do not re-freeze until 001 source/codegen, 002 fixtures/prototype/Prism, mock-contract-suite runtime, frontend Home, backend TargetJob/upload, persistence/event owners and P0.010/P0.015 all pass paste-only positive/negative gates. Require zero positive/runtime references for `TargetJobImportSource*`, `target_job_attachment`, TargetJob `sourceType/sourceUrl`, URL/file/manual-form import branches and compatibility aliases. Accepted ADR/oracle and exact negative declarations may retain rejected tokens; whole-file/test-directory exclusions are forbidden.
+
+Preserve the deterministic old-baseline audit artifact under `openapi/baseline/audits/` before re-freeze. Final completion requires both that artifact and a clean current-baseline `make openapi-diff`, followed independently by fixture, codegen and consumer gates; clean current diff alone is never sufficient evidence.
+
+## 9 Phase 7: Practice durable message recovery correction
+
+### 7.1 Separate authority and audit
+
+Treat spec D-35 / history 1.54 and the product-approved方案 A as the correction authority. Snapshot the old baseline, keep it unchanged while 001 produces the role-discriminated Practice schema, and preserve a deterministic full five-key finding manifest before any re-freeze. Practice findings must be audited separately and must never be merged into OPENAPI-002's exact 15 allowset; missing or wildcard authorization fails.
+
+### 7.2 Guarded re-freeze
+
+Do not re-freeze the Practice correction until 001 typed schema/codegen/`ApiClientError` gates, 002 get/send recovery fixtures, mock-contract-suite parity, backend-practice persistence, frontend typed consumer and P0.046 reload/same-ID retry all pass. Final proof requires the preserved old-baseline artifact plus clean current diff and independent fixture/codegen/consumer gates.

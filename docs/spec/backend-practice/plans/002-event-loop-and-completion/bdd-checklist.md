@@ -1,8 +1,8 @@
 # 002 Conversation Message Loop BDD Checklist
 
-> **版本**: 2.6
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 2.7
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -31,3 +31,10 @@
 - [x] Verify requires `ZERO_ANSWER_COMPLETION_REJECTED_PASS`, `REPORT_CONTEXT_SNAPSHOT_PASS`, `REPORT_CONTEXT_REPLAY_PASS`, frontend disabled reason, zero forbidden FAIL/no-test output and redacted DB no-side-effect/same-snapshot assertions.<!-- verified: 2026-07-12 method=scenario-run -->
 - [x] Write `completion-backend-evidence.json` with exact `practice-completion-evidence.v1` keys and `result=PASS`; P0.056/058 consume this artifact rather than recreating completion evidence.<!-- verified: 2026-07-12 method=scenario-run -->
 - [x] Cleanup removes scenario rows and preserves only the redacted owner artifact/marker evidence.<!-- verified: 2026-07-12 method=scenario-run evidence="only completion-backend-evidence.json remains" -->
+
+## Phase 10 server-recoverable reply state
+
+- [ ] P0.044 proves pending readback carries the original user clientMessageId and pending status, then commits exactly one assistant reply.
+- [ ] P0.046 proves retryable AI failure is persisted before error response, survives reload, and same-ID retry converges without duplicate user/reply rows.
+- [ ] P0.046 proves terminal failure readback has no retry path, cross-user access stays hidden, and no raw message/error content leaks outside authorized response/session content.
+- [ ] Current setup/trigger/verify/cleanup run records named backend + frontend recovery markers; historical PASS cannot close Phase 10.

@@ -1,10 +1,12 @@
 # Backend Upload File Objects and Presign Baseline Checklist
 
-> **版本**: 1.4
-> **状态**: completed
-> **更新日期**: 2026-07-10
+> **版本**: 1.5
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
+
+> Phase 0-6 的已勾选项只保留为历史交付证据；Phase 7 是当前 JD attachment purpose 收缩合同。旧 Phase 中的 TargetJob upload/config 正向口径不构成当前实现、验收或兼容要求。
 
 ## Phase 0: A4 config contract preflight
 
@@ -60,3 +62,10 @@
 - [x] 6.3 `cmd/api` runtime privacy_delete runner kernel 挂入 upload deleter，`DELETE /api/v1/me` 创建的 job 可调用 `DeleteFileObjectsForUser(userId)`（验证：`go test ./backend/internal/privacy/runner -run TestPrivacyDeleteHandler -count=1`；`go test ./backend/cmd/api -run 'TestBuildTargetJobRuntime(RegistersPrivacyDeleteHandler|WiresRunnerAndAIClient)' -count=1`）
 - [x] 6.4 `file_objects` DB hard delete 与 audit tombstone 同事务提交，audit 失败时 row 保留可重试（验证：`go test ./backend/internal/upload/store -run 'TestRepositoryHardDeleteWithAuditTombstone|TestRepositoryInsertAuditTombstoneDoesNotPersistObjectKey' -count=1`；`go test ./backend/internal/upload/service -run 'TestDeleteFileObjectsForUser(DeletesObjectsBeforeDBAndWritesAudit|ObjectDeleteFailureIsRetryableAndKeepsDBRows|UsesAtomicDBDeleteAndAudit)' -count=1`）
 - [x] 6.5 BDD-Gate hardening: E2E.P0.033 在缺少 `DATABASE_URL` / `OBJECT_STORAGE_*`、live integration skip 或 focused gate no-op 时 fail；`trigger.sh` 必须执行 `TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip` 覆盖真实 HTTP presign → MinIO PUT → register → `DELETE /api/v1/me` → privacy runner kernel roundtrip，不能只以离线 focused tests 作为 PASS 证据（验证：`python3 test/scenarios/e2e/p0-033-file-presign-register-roundtrip/scripts/script_contract_test.py`；`go test ./backend/cmd/api -tags=integration -run TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip -count=1 -v`）
+
+## Phase 7: Remove JD attachment upload purpose
+
+- [ ] 7.1 RED: B1/B3/OpenAPI、B4、A4 与 backend-upload 各 owner test 共同证明 JD attachment purpose 与专属 maxBytes 仍可达；本 owner 锁定 purpose validation/handler 分支和 `resume` / `privacy_export` 正向基线。
+- [ ] 7.2 GREEN: 先消费 OpenAPI/B4 purpose 与 A4 Phase 12 maxBytes handoff，再只删除 backend-upload handler/service 自有分支；不直接修改 A4 config/validator/composition 或 B4 DB constraint，并保留 endpoint、state machine、resume register 与 privacy delete。
+- [ ] 7.3 BDD-Gate: E2E.P0.033 证明 resume roundtrip、JD attachment purpose 被拒绝、privacy export purpose 仍合法。
+- [ ] 7.4 Zero-ref: OpenAPI/generated/backend/migrations/config/fixtures/scripts 精确搜索旧 purpose 为零，resume/privacy focused/full gates 通过。

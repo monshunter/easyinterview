@@ -1,8 +1,8 @@
 # 002 Conversation Message Loop Test Plan
 
-> **版本**: 2.6
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 2.7
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 ## Phase 1: Store
 - Reserve/replay/mismatch/concurrency/sequence/reply uniqueness and rollback tests.
@@ -42,3 +42,10 @@
 - Exact backend command: `cd backend && go test ./internal/api/practice ./internal/practice ./internal/store/practice -run '^(TestE2EP0047RejectsZeroAnswerCompletion|TestE2EP0047FreezesReportContext|TestE2EP0047CompletionReplayPreservesReportContext)$' -count=1 -v`.
 - P0.047 writes `.test-output/e2e/p0-047-practice-text-loop-complete-and-generating-handoff/completion-backend-evidence.json` with exact keys `schemaVersion/scenarioId/command/tests/markers/database/result`; PASS requires the three test PASS markers, three owner markers, zero forbidden failure/no-test markers and redacted DB assertions.
 - Frontend test asserts Finish disabled/accessibly explained until a committed user message exists.
+
+## Phase 10: Durable reply-state recovery
+
+- Migration/store transition table covers new reservation, same-ID retry, replay, retryable/terminal failure, concurrent new ID, assistant commit and rollback; every transition is user/session scoped.
+- Service/API tests require failure status to be committed before the error response and `getPracticeSession` to expose user `clientMessageId/replyStatus` while assistant messages omit both.
+- OpenAPI/fixture/generated tests cover pending, retryable-failed, terminal-failed and complete read projections plus typed `ApiClientError` JSON/non-JSON/empty/Abort/transport behavior.
+- Integration/BDD proves AI failure → reload → same-ID retry → one user/assistant pair, with no browser business-storage dependency and no raw-content leakage.

@@ -4,9 +4,11 @@ metadata:
   subspec: event-and-outbox-contract
   name: 001-bootstrap
   sequence: 1
+  baseBranch: main
   specVersion:
-    from: null
-    to: 2.14
+    from: 2.14
+    to: 2.15
+  branch: fix/interview-turn-ux-0713
 spec:
   defaultTarget: backend
   discovery:
@@ -18,8 +20,8 @@ spec:
       - outbox-contract
     keywords:
       - event envelope
-      - 13 events
-      - 8 canonical jobs
+      - 12 events
+      - 7 canonical jobs
       - 6 api-facing jobs
       - dot case event name
       - practice conversation lifecycle
@@ -31,6 +33,11 @@ spec:
       - traceid soft required
       - codegen events
       - lint events
+      - TargetJob paste only event contract
+      - target import payload without source discriminator
+      - five event domains
+      - regenerated event job baselines
+      - source records persistence retained
   targets:
     backend:
       plan: ./plan.md

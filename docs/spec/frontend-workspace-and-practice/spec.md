@@ -1,8 +1,8 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.40
+> **版本**: 1.41
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 背景与目标
 
@@ -28,10 +28,15 @@
 - Conversation：全宽有序 Transcript + Error/Retry + Composer。
 - opening message 和后续 assistant reply 统一来自 server messages，不是 QuestionCard。
 - 用户输入通过 generated `sendPracticeMessage`，不提交 `turnId`，不标记 answer/hint/question。
-- `getPracticeSession` 刷新恢复完整 ordered messages。
+- 提交后必须立即清空 composer，并先把该条 user message 作为当前页面的瞬时 optimistic row 加入 Transcript；不得等待 assistant response 后才与 reply 一起出现。该 row 只用于请求中的即时反馈，不写浏览器存储、不计入 Finish 资格，也不覆盖 server messages 事实源。
+- `getPracticeSession` 刷新恢复完整 ordered messages，并为每条 user message 返回服务端事实 `clientMessageId` 与 `replyStatus=pending|retryable_failed|terminal_failed|complete`；assistant message 不伪造这些 user-only 字段。`pending` 继续显示思考并自动 re-read server truth，`retryable_failed` 恢复 row-local retry，`terminal_failed` 进入无 retry 的事实恢复，`complete` 只展示唯一 user/assistant pair。
 - 暂停/恢复只控制当前页面的 composer 与计时显示，不产生 backend 事件；结束通过 `completePracticeSession`。
 - Error/Retry 必须按失败来源恢复：session loader 调用 `refresh`，message failure 使用同一 `clientMessageId` 重试 send，completion failure 使用同一 completion idempotency key 重试 finish；不得把完成重试误接到 send。
-- message 发送、session loading、completion 进行中或 session 已进入 `completing / completed` 时结束 CTA 必须 disabled，避免 UI 主动制造 send/complete 竞态。
+- message pending/retrying 时 composer disabled，并在 Transcript 中追加 assistant-style、`aria-live` 的面试官思考动画；成功后用 server session 原子替换 optimistic row/思考态，不能重复 user message。失败后隐藏思考态、保留原 user row，只在该 row 底部渲染 retry icon；该 icon 必须调用与 composer submit 相同的 send path，并复用原 `clientMessageId` 与原文本。
+- row-local retry 只属于明确可重试的 message failure：无 HTTP response 的网络错误，或 generated `ApiClientError.apiError.retryable=true`（含 AI timeout/5xx）。OpenAPI owner 必须从 error envelope 生成 typed `ApiClientError`，保留 HTTP status、`code/requestId/retryable/details` 与 transport cause；Practice 不得解析普通 `Error.message` 字符串。intentional abort/unmount 不渲染 retry。`VALIDATION_FAILED`、auth/not-found、client-message conflict/mismatch 等终态不得渲染同 ID retry icon；它们必须走 loader/auth/session-lost 等事实恢复，重新读取 server messages 后再决定 composer 是否可用，不能让用户陷入无限重试。
+- 当前页面内存中的 `{text, clientMessageId, status}` 只覆盖 submit 到首次 response/read convergence 的即时反馈；一旦刷新或重挂载，恢复必须完全来自 `getPracticeSession` 的 `clientMessageId + replyStatus`，不得用 URL、localStorage、sessionStorage 或 IndexedDB 保存 retry identity。AI 失败后刷新仍必须用服务端返回的原文本与同一 `clientMessageId` 重试，最终收敛为唯一 user/reply pair。
+- message failure 后 textarea 可恢复输入以保留下一条草稿，但在失败消息完成同 ID retry 前 submit 仍 disabled，并提供本地化说明；草稿不得改变 retry payload，也不得作为另一条业务消息绕过待回复状态。
+- message optimistic row 仍处于 pending/retryable-failed/retrying/terminal-recovery、session loading、completion 进行中或 session 已进入 `completing / completed` 时结束 CTA 必须 disabled，避免 UI 主动制造 send/complete 竞态。
 - 只有 server-loaded `messages` 中至少存在一条已提交的 candidate `user` message 且不存在 pending assistant reply 时，Finish 才具备前端资格。零回答时使用原生 disabled，并在控件附近展示 zh/en 本地化原因，通过稳定 `aria-describedby` 关联；route params、composer draft 或仅有 opening assistant message 均不能充当回答。
 - 前端资格只减少无效操作，不是业务授权：即使绕过 UI 直接调用 `completePracticeSession`，backend 仍必须权威返回 typed `VALIDATION_FAILED`，保持 session mutable，且不创建 completion/report/job/outbox/idempotency success。
 - phone icon 使用原生 disabled 控件；phone/voice route params 不得 materialize PhoneSurface。
@@ -64,6 +69,7 @@
 | D-6 | 轮次目录与预算来源 | `TargetJob.summary.interviewRounds[]` 定义 canonical 轮次目录、顺序与时长；sequence 必须正 int32、唯一、严格递增但允许 `1,2,4`，下一轮是数组中下一条已存在 canonical round，不是 `current.sequence + 1`。`TargetJob.practiceProgress` 决定当前/已完成轮次；`PracticePlan.timeBudgetMinutes` 保存所选轮次时长快照；重复派生 ID、未知轮次、空轮次和末轮不得回退到第一轮或固定默认轮次 |
 | D-7 | 业务状态后端持久化 | 除主题/外观偏好外，轮次进度、当前轮、plan/session/report 和完成事实只来自 backend API；前端内存、URL、`localStorage`、`sessionStorage`、IndexedDB、自由文本 `nextRound` 或 fixture 不得作为事实源。`TargetJob.practiceProgress` 是卡片/详情/quick-start 的 read model；缺失或不一致时 fail closed。 |
 | D-8 | Finish 最低回答门槛 | 前端只从 server-loaded messages 计算至少一条 committed candidate `user` message；零回答原生 disabled 并显示本地化可访问原因。Backend `completePracticeSession` 独立执行同一事实校验并保持最终权威。 |
+| D-9 | 即时消息与失败恢复（方案 A） | user submit 后立即显示瞬时 optimistic row；服务端 `PracticeMessage` 为 user message 投影 `clientMessageId + replyStatus(pending|retryable_failed|terminal_failed|complete)`，`getPracticeSession` 在刷新后恢复 thinking/retry/terminal/complete；OpenAPI owner 生成 typed `ApiClientError.apiError`；retry 复用服务端原文与同 ID | 兼顾即时反馈、跨刷新幂等恢复与后端事实源；前端不持久化 retry identity、不解析 error string、不引入第二套消息事实或无限重试 |
 
 ## 4 UI 真理源与 parity
 
@@ -83,22 +89,28 @@
 
 | operationId | fixture | frontend consumer | backend handler | persistence | AI dependency | scenario coverage |
 |-------------|---------|-------------------|-----------------|-------------|---------------|-------------------|
-| `createPracticePlan` | `PracticePlans/createPracticePlan.json` | parse/workspace/report start helpers；发送 `roundId` 和该轮 `timeBudgetMinutes`，不发送 sequence | backend-practice | `practice_plans.round_id/round_sequence` | none | `E2E.P0.021`, `E2E.P0.057`, `E2E.P0.098` |
-| `getPracticePlan` | `PracticePlans/getPracticePlan.json` | start helper 只按 exact non-null round pair + target/resume/status 复用；Practice Top Bar 读取预算 | backend-practice | `practice_plans` | none | `E2E.P0.021`, `E2E.P0.045`, `E2E.P0.098` |
-| `listTargetJobs` / `getTargetJob` | TargetJobs fixtures | Home/Workspace rail、parse、quick-start、report next gate 消费 `practiceProgress` | backend-targetjob | completion ledger projection；无 mutable progress column | none | `E2E.P0.018`, `E2E.P0.098` |
-| `startPracticeSession` | `PracticeSessions/startPracticeSession.json` | start helper | backend-practice | session + opening message | `practice.session.chat` | `E2E.P0.023`, `E2E.P0.057` |
-| `getPracticeSession` | `PracticeSessions/getPracticeSession.json` | `usePracticeSessionLoader` | backend-practice | session + messages | none | `E2E.P0.044`, `E2E.P0.046` |
-| `sendPracticeMessage` | `PracticeSessions/sendPracticeMessage.json` | conversation send hook | backend-practice | `practice_messages` | `practice.session.chat` | `E2E.P0.044`, `E2E.P0.046` |
-| `completePracticeSession` | `PracticeSessions/completePracticeSession.json`: zero-answer-rejected/one-answer-ready/replay | finish hook；zero-answer disabled reason | backend-practice authoritative validation | zero-answer none；success writes session/report/job/outbox/idempotency | report job only after valid completion | `E2E.P0.047` |
-| `createPracticeVoiceTurn` | disabled negative fixture | no frontend consumer | backend fail-closed | none | none | `E2E.P0.007` |
+| `createPracticePlan` | `openapi/fixtures/PracticePlans/createPracticePlan.json`: current `default`, `next-derived`, `retry-derived`, `round-mismatch` | `frontend/src/app/interview-context/startPractice.ts` | `backend/internal/api/practice.Handler.CreatePracticePlan` → `backend/internal/practice.Service.CreatePracticePlan` → `backend/internal/store/practice.SQLRepository.CreatePlan` | `practice_plans`, `idempotency_records`, `audit_events` | none | `E2E.P0.021`, `E2E.P0.057`, `E2E.P0.098` |
+| `getPracticePlan` | `openapi/fixtures/PracticePlans/getPracticePlan.json`: current `default`, `legacy-null-round-identity`, `not-found` | `startPractice.ts` exact-plan reuse + `PracticeScreen` budget read | `Handler.GetPracticePlan` → `Service.GetPracticePlan` → `SQLRepository.GetPlan` | `practice_plans` read | none | `E2E.P0.021`, `E2E.P0.045`, `E2E.P0.098` |
+| `listTargetJobs` | `openapi/fixtures/TargetJobs/listTargetJobs.json`: current `default`, `empty`, `one-job`, `twelve-plus`, `not-started-progress`, `all-completed-progress`, `prototype-baseline` | Home/Workspace plan rails | `backend/internal/targetjob.Handler.ListTargetJobs` → `Service.ListTargetJobs` → `SQLStore.ListTargetJobsForUser` | `target_jobs` + completion-ledger read projection | none | `E2E.P0.018`, `E2E.P0.098` |
+| `getTargetJob` | `openapi/fixtures/TargetJobs/getTargetJob.json`: current `default`, `not-started-progress`, `all-completed-progress`, `prototype-baseline` | `startPractice.ts` + `usePracticeTargetDisplay` | `backend/internal/targetjob.Handler.GetTargetJob` → `Service.GetTargetJob` → `SQLStore.GetTargetJobByUser` | `target_jobs` + requirements/progress projection | none | `E2E.P0.045`, `E2E.P0.098` |
+| `startPracticeSession` | `openapi/fixtures/PracticeSessions/startPracticeSession.json`: current `default`, `ai-timeout-502` | `frontend/src/app/interview-context/startPractice.ts` | `Handler.StartPracticeSession` → `Service.StartPracticeSession` → `SQLRepository.ReserveSessionStart/CommitSessionStart` | `practice_sessions`, opening `practice_messages`, lifecycle/outbox/idempotency/AI task records | `practice.session.chat` | `E2E.P0.023`, `E2E.P0.057` |
+| `getPracticeSession` | `openapi/fixtures/PracticeSessions/getPracticeSession.json`: current `default`, `missing-session`, `prototype-baseline`; **planned** `pending-reply`, `retryable-failed-reply`, `terminal-failed-reply`, `complete-reply` after contract lands | `frontend/src/app/screens/practice/hooks/usePracticeSessionLoader.ts` + `PracticeScreen` rehydration | current `Handler.GetPracticeSession` → `Service.GetPracticeSession` → `SQLRepository.GetSession`; planned read projection adds user-message retry fields | `practice_sessions`, `practice_messages.client_message_id` + durable server-owned reply-status projection (**planned**, not yet current) | none | `E2E.P0.044`, `E2E.P0.046` |
+| `sendPracticeMessage` | `openapi/fixtures/PracticeSessions/sendPracticeMessage.json`: current `default`, `ai-timeout`; **planned** `validation-failed`, `auth-unauthorized`, `session-not-found`, `session-conflict`, `client-message-mismatch`；transport-no-response stays a fetch test, not an HTTP fixture | `frontend/src/app/screens/practice/hooks/usePracticeMessages.ts` + row-local retry in `PracticeScreen` | current `Handler.SendPracticeMessage` → `Service.SendPracticeMessage` → `SQLRepository.ReservePracticeMessage/CommitPracticeMessage`; planned failure persistence maintains `replyStatus` | `practice_messages.client_message_id/reply_to_message_id` + durable reply-status/error classification (**planned**) | `practice.session.chat` | `E2E.P0.044`, `E2E.P0.046` |
+| `completePracticeSession` | `openapi/fixtures/PracticeSessions/completePracticeSession.json`: current `default`, `replay`, `mismatch`, `cross-user-not-found`, `session-already-completed`; **planned** `zero-answer-rejected`, `one-answer-ready` | `useCompletePracticeSession` + Finish CTA | `Handler.CompletePracticeSession` → `Service.CompletePracticeSession` → backend-practice completion store transaction | zero-answer none；success writes session/report/job/outbox/idempotency | report job only after valid completion | `E2E.P0.047` |
+| `createPracticeVoiceTurn` | `openapi/fixtures/PracticeSessions/createPracticeVoiceTurn.json`: current `default` disabled response | no frontend consumer | `backend/internal/api/practice.Handler.CreatePracticeVoiceTurn` fail-closed | none | none | `E2E.P0.007`, `E2E.P0.045` |
 
 ## 6 Conversation 状态
 
 - Loading：conversation skeleton，不展示假 opening message。
 - Running：ordered messages + enabled composer。
 - Running / zero-answer：composer enabled，Finish native disabled；可见 zh/en reason 与按钮通过 `aria-describedby` 关联。
-- Sending：保留已发送 user message，composer disabled。
-- AI failure：显示 retry；同一 `clientMessageId` 重试，不重复 user message。
+- Sending：提交后立即清空 composer 并显示 optimistic user row；composer disabled，Transcript 显示面试官思考动画，retry icon 不渲染。
+- AI failure：思考动画消失，原 optimistic user row 保留；retry icon 只出现在该 row 底部。同一 `clientMessageId` 与原文本重试，不重复 user message；textarea 可保存下一条草稿但 submit disabled，直至失败消息恢复成功。
+- Retry pending：复用 Sending 的 composer lock 与思考动画；retry icon 暂时隐藏，成功后 server session 替换 optimistic row，失败后同一 icon 恢复。
+- Terminal message failure：不显示 row-local retry；保持 Finish disabled，调用 loader/auth/session-lost 恢复并以重新读取的 server messages 收敛，避免对 validation/auth/not-found/conflict 永久重放。
+- Reloaded pending：`getPracticeSession` 返回原 user message 的 `clientMessageId + replyStatus=pending`；不追加第二条 optimistic row、不再次 send，保持 composer/Finish disabled 与思考动画，并单飞 re-read 直到服务端变为 failed/complete。
+- Reloaded retryable failure：服务端返回 `retryable_failed` 时在原持久 user row 下恢复唯一 retry icon；点击后使用该 row 的原文本与 `clientMessageId`，成功只产生一个 assistant reply。
+- Reloaded terminal / complete：`terminal_failed` 无 retry 并进入事实恢复；`complete` 直接显示服务端唯一 pair。以上状态均不从浏览器 storage 恢复。
 - Paused：仅当前页面 composer disabled、计时显示暂停，可恢复；刷新后以 server session 状态重新进入 Running。
 - Completing/completed：composer disabled，finish CTA guarded。
 - Missing/cross-user：session-lost state 返回 workspace。
@@ -116,8 +128,8 @@
 |----|------|-------|------|------|-----------|
 | C-1 | Workspace | ready plans | 进入 workspace | 当前卡片列表/启动/归档行为保持 | 001 |
 | C-2 | Practice 首屏 | session 有 opening message | 进入 practice | 只见 Top Bar + 全宽 Conversation | 002 |
-| C-3 | 连续聊天 | session running | 连续发送消息 | server messages 按序追加，无题目分类 | 002 |
-| C-4 | 消息失败恢复 | AI 首次失败 | retry | user message 不重复，最终唯一 reply | 002 |
+| C-3 | 连续聊天 | session running，或刷新后服务端 user message 为 `replyStatus=pending` | 提交一条消息并等待 AI / 刷新页面 | user message 立即进入 Transcript、composer 立即清空并禁用、面试官思考动画可访问；刷新从 `getPracticeSession` 重建同一 row + thinking，不重复 send；成功后 server messages 按序收敛且无重复/题目分类 | 002 |
+| C-4 | 消息失败恢复 | AI/网络首次可重试失败，或 validation/auth/not-found/conflict 终态失败 | 查看失败 row、刷新、编辑下一条草稿并恢复 | generated `ApiClientError.apiError` 或 transport failure 决定当前请求分类；刷新后以 server `clientMessageId + replyStatus` 重建。可重试失败只在原 user row 底部显示 retry，复用原文本/同 ID 且保留草稿；终态错误无 retry icon并转入事实恢复；两类状态均保持 Finish disabled，AI failure → reload → retry 成功后 user message 与 reply 各唯一一条 | 002 |
 | C-5 | 暂停/完成 | session running，可能存在加载/发送/完成失败 | pause/resume/finish/retry | 暂停为页面本地状态；retry 调用原失败操作；完成期间 CTA guarded 并进入 generating | 002 |
 | C-6 | phone disabled | 任意 route params | 查看/操作 phone icon | disabled，仍为文本 conversation | 002 + voice/001 |
 | C-7 | DOM parity | prototype 已更新 | Vitest | 结构/控件/a11y 与 source 一致 | 002 |
@@ -146,6 +158,7 @@
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.41 | 2026-07-13 | 用户消息改为即时 optimistic row；pending/retry 显示面试官思考并锁定 composer；失败仅在原消息底部显示同 ID retry icon，成功回归 server messages。 |
 | 1.40 | 2026-07-12 | 原地重开 002：零回答 Finish 原生禁用并提供本地化可访问原因；backend completion 保持权威拒绝与零副作用。 |
 | 1.39 | 2026-07-12 | 将 GeneratingScreen 唯一 owner 转交 frontend-report-dashboard；本 owner 仅保留 completion 的 stable reportId handoff，避免两个计划并行修改同一屏幕。 |
 | 1.38 | 2026-07-12 | 明确 sequence 可严格递增但不连续，下一轮取现有 canonical successor；区分真实 PostgreSQL/单测组合证据与尚需实际执行的 live browser 刷新门禁。 |

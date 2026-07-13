@@ -1,8 +1,8 @@
 # 001 BDD Checklist
 
-> **版本**: 1.4
-> **状态**: completed
-> **更新日期**: 2026-07-10
+> **版本**: 1.5
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -15,3 +15,10 @@
 - [x] 记录验证证据：`.test-output/e2e/p0-033-file-presign-register-roundtrip/trigger.log` + verify 输出 + `createUploadPresign.default` 201 fixture byte diff 0 + DB state machine 轨迹 + 对象存储 key list before/after + privacy delete audit tombstone 内容 + 隐私反查日志
 - [x] 在 `test/scenarios/e2e/INDEX.md` P0 表追加 P0.033 行（关联需求 `backend-upload C-1, C-2, C-3, C-4, C-6, C-7, C-8`，状态 Ready，automated）
 - [x] L2 remediation：`scripts/trigger.sh` 必须在缺少 `DATABASE_URL` / `OBJECT_STORAGE_*` 时失败，并执行 `TestUploadPresignRegisterPrivacyDeleteLiveRoundtrip` live gate；`scripts/verify.sh` 必须在 trigger log 出现 live integration skip、focused gate no-op 或缺少 live roundtrip 证据时失败；缺 live env 或只跑离线 focused tests 不得作为 E2E.P0.033 PASS 证据（验证：`python3 test/scenarios/e2e/p0-033-file-presign-register-roundtrip/scripts/script_contract_test.py`）
+
+## Phase 7: JD attachment purpose contraction
+
+- [ ] RED: 扩展 E2E.P0.033 contract test，使缺少旧 JD purpose rejection、resume roundtrip 或 privacy_export 保留任一断言时先失败。
+- [ ] GREEN: scenario 消费 OpenAPI/B4 purpose 收缩与 A4 Phase 12 maxBytes handoff；以旧 `target_job_attachment` purpose 调 presign 返回 422 `VALIDATION_FAILED`，且不创建 DB row 或对象。
+- [ ] RETAIN: resume presign → PUT → register → privacy delete roundtrip 继续通过；`privacy_export` 5MB presign 返回 201/pending，TargetJob 不调用 upload endpoint。
+- [ ] BDD-Gate: 运行 E2E.P0.033 setup → trigger → verify → cleanup，保存旧 purpose rejection、resume roundtrip、privacy_export 5MB 与 zero-side-effect 证据；live gate skip/no-op 或任一证据缺失时不得勾选。

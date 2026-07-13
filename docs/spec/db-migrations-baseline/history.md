@@ -1,6 +1,6 @@
 # DB Migrations Baseline Change Log
 
-> **版本**: 1.34
+> **版本**: 1.36
 > **状态**: active
 > **更新日期**: 2026-07-13
 
@@ -8,6 +8,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 1.36 | Practice user message 增加 durable reply status，支持刷新后按原 clientMessageId 恢复 pending/retryable/terminal/complete 状态。 | db-migrations-baseline/001 Phase 11 + backend-practice/002 |
 | 2026-07-13 | 1.34 | Supersede 1.31/1.33中的durable report-attempt存储：`000018`只保留summary、generation context与dimension focus，显式删除/拒绝`llm_attempt_count`及同义产品retry列；动作内retry归backend-review内存上下文。 | db-migrations-baseline/001 Phase 9 + backend-review/001 |
 | 2026-07-13 | 1.33 | 将单次 repair flag 替换为 `feedback_reports.llm_attempt_count` 0..4 durable pre-call CAS，锁定 crash/replay 不回退与无第 5 次调用。 | db-migrations-baseline/001 Phase 8 + backend-review/001 |
 | 2026-07-12 | 1.32 | 修复 current inventory 为 21 app + 3 auth + 2 metadata / public >=26，并补 C-13 grounded report migration 验收。 | db-migrations-baseline/001 Phase 8 |

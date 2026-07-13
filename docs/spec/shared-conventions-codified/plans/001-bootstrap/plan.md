@@ -1,8 +1,8 @@
 # Shared Conventions Bootstrap
 
-> **版本**: 1.10
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 1.11
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -17,12 +17,13 @@
 - UUIDv7、`tmp_` 前缀拒绝、24h `Idempotency-Key` 解析/生成和 `ApiError` inner object 在 Go/TS 双端保持一致。
 - 本地 lint gate 约束错误码 `UPPER_SNAKE_CASE`、枚举值 `lower_snake_case`、JSON field `camelCase`、generator drift 和跨语言 parity。
 - 根 `go.work` 只 use `./backend`；workspace、module 与根 tool version 使用同一 Go 版本，module metadata 保持 tidy 零漂移。
+- TargetJob 当前只接受粘贴 JD：删除 `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE`，保留 `VALIDATION_FAILED` 与 `TARGET_IMPORT_FAILED` 的通用校验/失败语义。
 
 ## 2 当前合同
 
 | surface | current behavior | truth / generated files | coverage |
 |---------|------------------|-------------------------|----------|
-| conventions truth source | current enum catalog, 23 error codes after Phase 9, job statuses, UUID/idempotency/pagination constants, AI vocabulary | `shared/conventions.yaml` | `make lint-conventions` |
+| conventions truth source | current enum catalog, 21 error codes after Phase 10, job statuses, UUID/idempotency/pagination constants, AI vocabulary | `shared/conventions.yaml` | `make lint-conventions` |
 | Go generated shared types | enums, HTTP DTOs, error codes, AI vocabulary, ID constants | `backend/internal/shared/{types,errors,idx,ai}` | `go test ./backend/internal/shared/...`, `make codegen-check` |
 | TS generated shared types | enum literals, error codes, pagination, AI vocabulary, ID constants | `frontend/src/lib/{conventions,ids}` | frontend conventions Vitest/typecheck gates |
 | UUID / server ID tools | UUIDv7 generation, `tmp_` rejection, shared ID regex | Go `idx`, TS `ids` | Go/TS id tests |
@@ -49,6 +50,8 @@
   - `make docs-check`
 
 ## 4 实施步骤
+
+Phase 1-9 保留为历史完成证据；Phase 10 是本轮 current net-state owner，不回写历史 PASS。
 
 ### Phase 1: truth source and generator
 
@@ -104,6 +107,12 @@
 - Emit `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS` after B1 conventions lint/codegen idempotency, Go/TS parity and owner context validation pass. The marker means only that the canonical cross-language literal and retryability are ready for downstream consumption; it does not wait for B2 and therefore cannot encode OpenAPI parity.
 - B2 consumes that marker, synchronizes `ApiErrorCode` from B1 without hand-maintaining a second error list, and independently proves through the OPENAPI-001 normalized base-ref audit that the single `enum_value_added` finding for `REPORT_CONTEXT_TOO_LARGE` is additive, outside the breaking allowset, with no unrecorded enum delta. User-visible terminal behavior and 48,000/+1 byte tests remain backend-review-owned.
 
+### Phase 10: TargetJob paste-only error vocabulary
+
+- **RED**: add exact contract assertions proving the current YAML/generated/OpenAPI parity still exposes `TARGET_IMPORT_SOURCE_INVALID` and `TARGET_IMPORT_SOURCE_UNAVAILABLE`; also lock positive assertions for `VALIDATION_FAILED`, `TARGET_IMPORT_FAILED`, `TARGET_JOB_NOT_FOUND` and `TARGET_INVALID_STATE_TRANSITION` so the cleanup cannot over-delete shared behavior.
+- **GREEN**: remove only the two source-specific entries from `shared/conventions.yaml`, regenerate Go/TS artifacts, and hand off the same exact enum subtraction to B2 OpenAPI codegen/parity. Do not add compatibility aliases or replacement source-specific codes.
+- **BDD 不适用**: this is an internal cross-language vocabulary contraction rather than a standalone user flow. Substitute gates are conventions lint, generator unit/parity tests, two-pass idempotent codegen, Go/TS focused tests, OpenAPI parity handoff, and exact zero-reference searches for both removed literals with positive retained-code probes.
+
 ## 5 验收标准
 
 | ID | 验收点 | 验证 |
@@ -115,11 +124,13 @@
 | A-5 | Error code and enum naming remain enforceable locally | conventions lint and parity tests |
 | A-6 | Current product-scope enum values stay aligned across generated surfaces | conventions parity tests and pruning-surface lint |
 | A-7 | `REPORT_CONTEXT_TOO_LARGE` is single-source and non-retryable before B2 consumption | conventions lint/codegen + Go/TS parity + owner context validation |
+| A-8 | TargetJob paste-only vocabulary removes both source-specific errors while retaining generic validation and retryable import-failure semantics | conventions RED/GREEN + codegen idempotency + Go/TS/OpenAPI parity + exact zero-reference/positive-presence probes |
 
 ## 6 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-13 | 1.11 | Reopen Phase 10 to contract TargetJob errors to the paste-only vocabulary and require generated/OpenAPI zero-reference closure. |
 | 2026-07-12 | 1.10 | Remove the B1/B2 cycle: B1 source-ready marker covers YAML/Go/TS only; B2 independently proves OpenAPI parity/oracle. |
 | 2026-07-12 | 1.9 | Reopen Phase 9 for the single-source REPORT_CONTEXT_TOO_LARGE YAML/codegen/OpenAPI enum contract. |
 | 2026-07-10 | 1.8 | Reconcile implemented generator and TypeScript output choices as current locked decisions. |

@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Breaking-Change Gate Checklist
 
-> **版本**: 1.14
-> **状态**: completed
+> **版本**: 1.16
+> **状态**: active
 > **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
@@ -43,3 +43,18 @@
   <!-- verified: 2026-07-12 method=tracked-audit-artifact path=openapi/baseline/audits/OPENAPI-001-report-direct-semantics.json evidence="baselineSource is git:c3c9902a37b1aaefe0c4fb154296d711c8a6332d; findingCount=36; errors=[]; current baseline worktree has zero diff" -->
 - [x] 5.4 方案 A 重新打开本 gate：expected finding 保持 `maxLength=200` code points；FeedbackReport ready/failed state closure与 current freeze 同步；重新生成 preserved old-baseline audit、re-freeze v1.0.0 并要求 clean `make openapi-diff`，随后独立执行 codegen-check。24/64、18/52、generation/judge max4与internal attempt audit均不进入OpenAPI finding；负向确认没有attempt/retry/progress字段或retry endpoint。旧合同clean-baseline PASS/sha不再是当前完成证据。
   <!-- verified: 2026-07-13 commands="make lint-openapi validate-fixtures openapi-diff; make codegen-check" result="preserved OPENAPI-001 audit regenerated from merge-base and remains exact at 36 findings; ready/non-ready/errorCode state conditions are in source, baseline and generated schemas; re-frozen v1.0.0 baseline matches current with zero findings; codegen byte-stable; no attempt/retry/progress wire surface or retry endpoint" -->
+
+## Phase 6: OPENAPI-002 TargetJob paste-only correction
+
+- [ ] 6.1 OWNER/GOVERNANCE-GATE: OPENAPI-002 is accepted, product-owner approval and spec/history 1.54 are recorded; capture merge-base old baseline, then update proposed OpenAPI while worktree baseline remains byte-unchanged, then audit old → proposed.
+- [ ] 6.2 RED-GREEN: base-ref audit folds new `rawText` minLength/pattern into `required_property_added.after` and exact-matches 15 findings; RED proves an extra constraint finding fails. Missing/unexpected/drifted finding, wildcard, edited baseline and simultaneous zero-finding replacement all fail.
+- [ ] 6.3 INVARIANT-GATE: audit proves 37/10 plus exact method/path/operationId/status/response for `importTargetJob` and `createUploadPresign`, with resume/privacy purposes retained.
+- [ ] 6.4 Preserve deterministic old-baseline JSON finding artifact before baseline mutation; 001/002/mock/frontend/backend/persistence/event/P0.010/P0.015 paste-only and scoped zero-reference gates all pass.
+- [ ] 6.5 Re-freeze `openapi-v1.0.0.yaml` only after 6.4; require clean current-baseline `make openapi-diff`, then independently run lint, fixture, codegen and downstream consumer gates. Historical clean PASS is not current evidence.
+
+## Phase 7: Practice durable message recovery correction
+
+- [ ] 7.1 GOVERNANCE/RED: spec D-35/history 1.54 authorize方案 A；snapshot old baseline and fail until a separate deterministic five-key Practice finding manifest exists. Never add Practice findings to OPENAPI-002's 15.
+- [ ] 7.2 AUDIT-GATE: old baseline → proposed role-discriminated message schema exact-matches the Practice manifest while baseline remains unchanged; missing/extra/wildcard findings fail.
+- [ ] 7.3 HANDOFF-GATE: 001 schema/codegen/typed `ApiClientError`, 002 fixtures, mock runtime, backend persistence, frontend typed consumer and P0.046 reload/same-ID retry pass before re-freeze.
+- [ ] 7.4 RE-FREEZE: preserve the old-baseline artifact, then re-freeze and independently run current diff, lint, fixture, codegen and consumer gates.

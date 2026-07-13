@@ -1,13 +1,14 @@
 # Backend Practice History
 
-> **版本**: 1.31
+> **版本**: 1.32
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 1.32 | 用户确认方案 A：Practice user message 持久化 reply status，并在会话读模型返回原 `clientMessageId/replyStatus`，支持刷新后同 ID 恢复且不以浏览器存储为事实源。 | [002](./plans/002-event-loop-and-completion/plan.md) + openapi-v1-contract/001 + frontend-workspace-and-practice/002 |
 | 2026-07-12 | 1.31 | 完成 004：active v0.2 semantic focus 限定为 code+label+issues，空 focus 不伪造，raw/anchor/code-only fail closed；P0.070/P0.072 PostgreSQL v19、IK/isolation/privacy 与 legacy-negative markers 闭环。 | [004](./plans/004-report-derived-practice-plans/plan.md) + F3/002 |
 | 2026-07-12 | 1.30 | 方案 A 将 backend-practice 的结构化 `semanticFocus` runtime payload 与 F3/002-owned immutable practice v0.2 pair、8-status/000019 激活边界对齐。 | [004](./plans/004-report-derived-practice-plans/plan.md) + F3/002 |
 | 2026-07-12 | 1.29 | 将零回答/pending-reply completion 拒绝与 `report-context.v1` 原子快照收口到 002 唯一 owner；004 允许空 focus 作为通用同轮复练，非空 focus 保持 issue-backed。 | [002](./plans/002-event-loop-and-completion/plan.md) + [004](./plans/004-report-derived-practice-plans/plan.md) |

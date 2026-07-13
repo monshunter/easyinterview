@@ -1,13 +1,14 @@
 # Secrets and Config History
 
-> **版本**: 2.15
+> **版本**: 2.16
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 2.16 | JD intake 收敛为 raw text 后，删除 TargetJob attachment maxBytes 的当前 config/validator contract；Resume 与 Privacy Export maxBytes 保持不变。 | 001-bootstrap Phase 12 + frontend-home-job-picks-and-parse/001 Phase 18 |
 | 2026-07-12 | 2.15 | 删除 Practice hint/assistance flags；speech profile 保持 disabled，前后端电话模式 fail-closed。 | backend-practice 003 / practice-voice-mvp 001 |
 | 2026-07-10 | 2.14 | 删除无正式入口消费者的平行 frontend runtime-config client；当前唯一前端链路为 B2 generated client/types + D1 `AppRuntimeProvider`。 | 001-bootstrap Phase 11 |
 | 2026-07-10 | 2.13 | 收敛 `.env.example` / secret 默认值口径：当前合同使用空值、public key 示例和 env ref 注入说明，删除旧模板字段描述。 | tech-debt pruning |

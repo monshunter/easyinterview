@@ -1,7 +1,7 @@
 # 001 — Honest Grounded Report Screen Checklist
 
-> **版本**: 2.9
-> **状态**: completed
+> **版本**: 3.0
+> **状态**: active
 > **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
@@ -50,3 +50,10 @@
   <!-- verified: 2026-07-13 method=ui-contract+focused-playwright evidence="54/54 + 34/34 PASS; exact en24/zh64 labels wrap completely at 1440x1200 and 390x844; malformed over-limit fixture is typed invalid with no raw output" -->
 - [x] 8.6 Run full frontend, UI contract, typecheck/build, privacy/negative, docs/index and diff gates; record current evidence only.
   <!-- verified: 2026-07-13 evidence="frontend 112 files/795 tests, production build and UI source contracts PASS; P0.099 current exact-six desktop/390px screenshots PASS; privacy/negative, docs/index/context and diff gates PASS" -->
+
+## Phase 9: User-visible internal locator removal
+
+- [ ] 9.1 RED-GREEN: prototype source/contract removes session/report UUID from Context Strip and preserves target/round/resume layout at desktop/mobile.
+- [ ] 9.2 RED-GREEN: formal `ReportContextStrip` removes distinct report/session sentinel UUIDs from text/title/tooltip/aria/accessibility DOM while OpenAPI/report contract UUID validation and CTA `sourceReportId` authority stay green.
+- [ ] 9.3 REGRESSION-GATE: delete orphan `report.context.session` zh/en keys；update P0.059 README/INDEX C-12 metadata；focused Report/i18n tests, UI source contracts, active negative, full frontend and typecheck/build pass.
+- [ ] 9.4 BDD-Gate: `E2E.P0.059` passes refreshed 1440/390 DOM/style/bbox/viewport/pixel parity under normal PASS cleanup；then `/agent-browser` captures the same real ready report from formal frontend as exact 1440x1200 / 390x844 `fullPage: true` files under `.test-output/acceptance/report-context-strip/<run-id>/`. The directory contains only the two fixed PNG names plus `manifest.json`, whose per-image path/SHA-256/state/viewport/fullPage/report+session sentinel absence and linked DOM/a11y audit all validate.

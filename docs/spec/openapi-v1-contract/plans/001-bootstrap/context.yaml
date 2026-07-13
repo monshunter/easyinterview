@@ -5,10 +5,10 @@ metadata:
   name: 001-bootstrap
   sequence: 1
   baseBranch: main
-  branch: fix/report-semantic-grounding-0712
+  branch: fix/interview-turn-ux-0713
   specVersion:
-    from: 1.50
-    to: 1.52
+    from: 1.53
+    to: 1.54
 spec:
   defaultTarget: contract
   discovery:
@@ -34,6 +34,16 @@ spec:
       - no client retry generation endpoint
       - queued generating ready failed unchanged
       - frontend poll timeout does not mean server failed
+      - OPENAPI-002 target job paste only
+      - flattened rawText targetLanguage resumeId
+      - delete TargetJobImportSource schemas
+      - remove target_job_attachment purpose
+      - remove TargetJob sourceType sourceUrl
+      - preserve createUploadPresign
+      - TargetJob import zero reference gate
+      - Practice replyStatus durable recovery
+      - ApiClientError status apiError
+      - same clientMessageId retry
       - deterministic exact 24 words 64 code points parity
       - 10 tags
       - 37 operations
@@ -72,6 +82,7 @@ spec:
       spec: ../../spec.md
       references:
         - ../../decisions/OPENAPI-001-report-direct-semantics.md
+        - ../../decisions/OPENAPI-002-targetjob-paste-only.md
         - ../../../shared-conventions-codified/plans/001-bootstrap/plan.md
         - ../../../backend-review/spec.md
         - ../../../frontend-report-dashboard/spec.md
@@ -86,6 +97,12 @@ spec:
           - Makefile
         uiRoutes: []
         apiNames:
+          - importTargetJob
+          - createUploadPresign
+          - listTargetJobs
+          - getTargetJob
           - getFeedbackReport
           - listTargetJobReports
           - createPracticePlan
+          - getPracticeSession
+          - sendPracticeMessage

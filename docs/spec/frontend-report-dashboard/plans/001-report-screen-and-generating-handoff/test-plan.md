@@ -1,7 +1,7 @@
 # Honest Grounded Report Screen Test Plan
 
-> **版本**: 2.9
-> **状态**: completed
+> **版本**: 3.0
+> **状态**: active
 > **更新日期**: 2026-07-13
 
 ## Phase 1-5: Historical baseline
@@ -32,3 +32,10 @@
 - Visual tests fix locale/timezone/Date/DPR, await fonts, disable animation/transition, compare computed style/key bbox/1440/390 layout and enforce pixelmatch changed ratio ≤0.5%; failure writes prototype/formal/diff artifacts.
 - Real UAT captures the exact six-image full-page matrix from current-run en/zh ready rows；each row binds DB/API `canonical_report_content_digest`、`action_length_audit`、`content_audit`、`screenshot_sha256` and report/session/context digest。The 390x844 report images fully include the action region and actual `<=24-whitespace-word` / `<=64-Unicode-code-point` labels；deterministic parity separately proves exact boundaries.
 - Every real screenshot maps to report/session ID, redacted DB/API assertions and a fact→judgment→action audit table.
+
+## Phase 9: Internal locator cleanup
+
+- Prototype/formal fixtures use distinct report/session UUID sentinels. DOM tests reject each exact value from visible text, title/tooltip, every `aria-*` and accessible name while retaining target/round/resume；contract tests keep both UUIDs required and CTA replay/next continues using `sourceReportId`.
+- Remove the orphan `report.context.session` locale keys and require active zero-reference. Update P0.059 README/INDEX mapping to C-12, then rerun deterministic 1440/390 DOM/computed-style/bbox/viewport/pixel parity under its normal PASS cleanup.
+- Final successful screenshots are captured separately through `/agent-browser` from the same formal real-backend ready report into `.test-output/acceptance/report-context-strip/<run-id>/`, so scenario cleanup does not erase user-facing evidence. Require exact `report-context-strip-desktop-1440x1200.png` and `report-context-strip-mobile-390x844.png`, exact viewports 1440x1200 / 390x844, `fullPage: true`, and no prototype/fixture-only/cropped/extra-state substitutes.
+- Validate the directory has only those two PNGs plus `manifest.json`. For each image recompute SHA-256 and compare the manifest relative path/hash/`state=ready`/viewport/`fullPage=true`; require the same redacted report locator/digest, visible target/round/resume, and `reportSentinelAbsent=true` / `sessionSentinelAbsent=true` backed by the linked text/title/tooltip/`aria-*`/accessible-name audit.

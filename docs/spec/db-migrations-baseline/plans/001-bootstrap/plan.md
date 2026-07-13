@@ -1,7 +1,7 @@
 # DB Migrations Baseline Bootstrap
 
-> **版本**: 1.19
-> **状态**: completed
+> **版本**: 1.21
+> **状态**: active
 > **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -9,7 +9,9 @@
 
 ## 1 目标
 
-把 [db-migrations-baseline spec](../../spec.md) 当前锁定的迁移工具、24 张应用 / auth 支撑表、2 张迁移元数据表、B3 outbox retry operational columns、A3/F1 `ai_task_runs` typed columns、enum/check 来源矩阵、backfill ledger 与 P0 privacy deletion matrix 落到 `migrations/` 与 `backend/cmd/migrate`。
+把 [db-migrations-baseline spec](../../spec.md) 当前锁定的迁移工具、20 张应用表、3 张 auth 支撑表、2 张迁移元数据表、B3 outbox retry operational columns、A3/F1 `ai_task_runs` typed columns、enum/check 来源矩阵、backfill ledger 与 P0 privacy deletion matrix 落到 `migrations/` 与 `backend/cmd/migrate`。TargetJob 当前 net-state 只保留 `raw_jd_text`，不保留来源列/表、JD attachment purpose 或 JD source refresh jobType；独立 `source_records` 与 resume/privacy purpose 保留。
+
+Phase 1-9 保留为既有交付证据；当前待执行 schema 合同由 Phase 10（TargetJob paste-only）与 Phase 11（Practice reply recovery）覆盖。
 
 本 plan 不实现业务 repository、不实现 C8 dispatcher、不实现 privacy_delete runner；只提供 schema baseline、迁移可执行入口、lint/check gate 与下游 handoff。
 
@@ -160,9 +162,37 @@ Migration lint与SQL contract必须要求nullable-until-ready `feedback_reports.
 
 重新运行migration lint、clean/populated PostgreSQL up/down/up、invalid-context、rename/down restoration、privacy/non-content leakage与最终schema negative probes。`REPORT_STORAGE_V18_PASS`只有在最终schema确认无产品retry列后才能重新发出；provider调用次数、动作重置与10s/20s/40s不由DB gate证明。
 
+### Phase 10: TargetJob paste-only schema net-state
+
+#### 10.1 RED migration contract
+
+先让 migration lint、SQL contract、privacy matrix 与 clean-DB inventory tests 要求 20 app + 3 auth + 2 metadata，并明确旧 TargetJob 来源列/表、JD attachment purpose 与 JD source refresh jobType 必须不存在；当前 baseline 仍含任一旧结构时记录 RED。BDD 不适用，因为本 Phase 只改变内部 schema/check；替代 gate 为 migration contract、enum-source lint、privacy dry-run 与 PostgreSQL up/down/up。
+
+#### 10.2 GREEN baseline reconciliation
+
+项目未上线，原地修订 baseline/up/down 与 `enum-sources.yaml`：删除 `target_jobs.source_type/source_url/source_file_object_id`、`target_job_sources`、JD attachment purpose 和 JD source refresh jobType；保留 `target_jobs.raw_jd_text`、独立 `source_records`、resume/privacy purpose。同步 migration inventory、privacy matrix 和相关 SQL contract，不创建兼容列、影子表或 sibling migration。
+
+#### 10.3 Migration and zero-reference closure
+
+运行 migration lint、focused backend migration tests、clean/populated PostgreSQL up/down/up 与 privacy dry-run。精确 zero-reference gate 覆盖 migrations/enum sources/backend migration probes；正向 probe 必须确认 `raw_jd_text`、`source_records`、resume/privacy purpose 仍存在，并输出最终 20+3+2 inventory。
+
+### Phase 11: Practice reply-status net-state
+
+#### 11.1 RED migration contract
+
+先让 SQL contract、enum-source lint 与 populated PostgreSQL probe 失败于缺失 `practice_messages.reply_status`。RED 数据集必须同时包含 opening assistant、已完成 user/assistant pair、无 reply user 与跨 session 相同 client ID；不得只验证空表 DDL。BDD 不适用，因为本 Phase 是内部 schema；替代 gate 为 migration/store contract、privacy cascade 与真实 Postgres up/down/up。
+
+#### 11.2 GREEN baseline reconciliation
+
+项目未上线，在 baseline 中为 user message 增加 `reply_status`，allowlist 为 `pending / retryable_failed / terminal_failed / complete`，assistant 必须为 NULL；与 `client_message_id/reply_to_message_id` 角色约束合并校验。既有有 reply user 在 populated migration proof 中归一为 `complete`，无 reply user 保持可恢复状态；不新建平行状态表、浏览器 token 或兼容列。
+
+#### 11.3 Migration and persistence closure
+
+运行 migration lint、backend migration/store focused tests、clean/populated PostgreSQL up/down/up 与 privacy delete probe。正向证明 reply transition 与原唯一约束共存；负向证明非法状态、assistant 非空状态、complete 无 reply、重复 assistant 与跨用户读取均失败或不可见。
+
 ## 5 验收标准
 
-- spec §6 C-1..C-13 全部具备本 plan 或下游 handoff 证据；C8/F1/C11 等运行时验证由各自 owner 后续关闭。
+- spec §6 C-1..C-15 全部具备本 plan 或下游 handoff 证据；C8/F1/C11 等运行时验证由各自 owner 后续关闭。
 - `make migrate-check` 可在干净本地 DB 重复执行；prod down 防呆有效。
 - enum/check 来源、B3 jobType manifest、A3/F1 AI typed columns、P0 privacy deletion matrix 都有可执行 lint/probe。
 
@@ -171,7 +201,7 @@ Migration lint与SQL contract必须要求nullable-until-ready `feedback_reports.
 | 风险 | 应对措施 |
 |------|----------|
 | baseline DDL 过大难以 review | 分 phase 编排，保持 migration 文件编号稳定；用 table/column/index inventory probe 辅助 review |
-| internal-only jobType 误暴露到 B2 API | Phase 3 enum/source lint 对比 B2 API-facing 6 项与 B3 canonical 8 项，`source_refresh` / `email_dispatch` 只能进入 DB / backend runner check |
+| internal-only jobType 误暴露到 B2 API | Phase 10 后 DB job check 只跟随 B3 当前 canonical 集合；JD source refresh 不得以 internal-only 名义残留，`email_dispatch` 仍按其 owner 合同保留 |
 | migration down 误在 prod 执行 | wrapper 在 `APP_ENV=prod` 时拒绝 down，除非显式 `MIGRATE_DOWN_FORCE=1` 且执行环境允许 |
 | backfill 重复 apply | `schema_backfills` 以 version/mode/checksum 做幂等 ledger；重复执行必须 fail 或 skip |
 | privacy deletion matrix 漏表 | Phase 3.3 dry-run 输出必须覆盖所有 baseline 表组；新增表时 lint 要求同步 matrix |
@@ -180,6 +210,8 @@ Migration lint与SQL contract必须要求nullable-until-ready `feedback_reports.
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-13 | 1.21 | Reopen Phase 11 for durable Practice reply status and refresh-safe same-ID recovery. | backend-practice/002 + frontend-workspace-and-practice/002 |
+| 2026-07-13 | 1.20 | Reopen Phase 10 to converge the TargetJob baseline to paste-only schema, 20+3+2 inventory, and migration zero-reference gates. | TargetJob paste-only current net-state |
 | 2026-07-13 | 1.19 | Reopen Phase 9 to remove durable report retry columns/CAS from migration 000018, retain summary/context/focus, and revalidate reversible current shape plus privacy with explicit retry-column absence. | backend-review/001 action-local retry contract |
 | 2026-07-13 | 1.18 | Close Phase 8 after current-shape SQL lint, durable CAS/replay tests, disposable PostgreSQL migrate-check and populated up/down/up privacy probes re-emit `REPORT_STORAGE_V18_PASS`. | backend-review/001 max-four generation contract |
 | 2026-07-13 | 1.17 | Replace the single repair flag with durable `llm_attempt_count` 0..4 pre-call reservation and crash/replay-safe no-fifth-call probes. | backend-review/001 max-four generation contract |

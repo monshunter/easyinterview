@@ -1,7 +1,7 @@
 # Internal Job and Outbox Runner
 
-> **版本**: 1.15
-> **状态**: completed
+> **版本**: 1.16
+> **状态**: active
 > **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -11,16 +11,17 @@
 
 ## 1 目标
 
-保持单一 `backend/internal/runner/` kernel：统一承接 7 个可执行 handler（`email_dispatch` / `privacy_delete` / `report_generate` / `target_import` / `source_refresh` / `resume_parse` / `resume_tailor`）的 lease / retry / dead-letter / reaper / shutdown 与 B3 outbox dispatcher 协议。所有业务 handler 直接实现 `runner.Handler`，业务域不持有重复 async job contract/SQL 或测试专用 runtime；`privacy_export` 仅保留 DB / OpenAPI 501 contract，无 runner handler。
+保持单一 `backend/internal/runner/` kernel：统一承接 6 个可执行 handler（`email_dispatch` / `privacy_delete` / `report_generate` / `target_import` / `resume_parse` / `resume_tailor`）的 lease / retry / dead-letter / reaper / shutdown 与 B3 outbox dispatcher 协议。所有业务 handler 直接实现 `runner.Handler`，业务域不持有重复 async job contract/SQL 或测试专用 runtime；`privacy_export` 仅保留 DB / OpenAPI 501 contract，无 runner handler。
 
 ## 2 背景
 
-[backend-async-runner spec](../../spec.md) §1 / §3 是当前 runtime 真理源。`cmd/api` 只持有一个 `runner.Runtime`，7 个可执行 handler 直接注册；kernel 单点拥有 lease/finalize/reaper SQL，并明确分离business-job与outbox/infra backoff；`runner.OutboxDispatcher` 消费业务事务写入的 outbox；场景通过 `Runtime.RunOnce` 同步驱动真实 kernel。计划维护以 [spec v1.14](../../spec.md)、[checklist](./checklist.md) 和 [test-checklist](./test-checklist.md) 的当前 gate 为准。
+[backend-async-runner spec](../../spec.md) §1 / §3 是当前 runtime 真理源。`cmd/api` 只持有一个 `runner.Runtime`，6 个可执行 handler 直接注册；kernel 单点拥有 lease/finalize/reaper SQL，并明确分离business-job与outbox/infra backoff；`runner.OutboxDispatcher` 消费业务事务写入的 outbox；场景通过 `Runtime.RunOnce` 同步驱动真实 kernel。计划维护以 [spec v1.16](../../spec.md)、[checklist](./checklist.md) 和 [test-checklist](./test-checklist.md) 的当前 gate 为准。
 
 ## 2.1 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-13 | 1.16 | Reopen Phase 7 for OPENAPI-002 TargetJob refresh handler/job/queue removal while preserving independent source-record persistence. |
 | 2026-07-13 | 1.15 | Reopen Phase 6 to separate report action-local initial+3 retries/10s-20s-40s from infrastructure lease attempts; supersede report job max4, durable reservation and crash/replay global-cap semantics without rewriting historical evidence. |
 | 2026-07-13 | 1.14 | Close Phase 5 report goal: split business/infra backoff, cap report job/provider execution at four attempts, fence all kernel finalizes plus current report/`resume_tailor` direct async-job transactions, and remove duplicate review-store lease/reaper ownership with a structure gate. |
 | 2026-07-13 | 1.13 | L2：report job explicit max_attempts4；claim attempts is lease generation，kernel finalize and current report direct transactions fence on running+claimed generation. |
@@ -47,7 +48,7 @@
 
 ### 3.1 Operation Matrix
 
-本计划不新增 user-facing operation；以下当前仍可执行 job_type 的 API envelope、fixture、frontend consumer 与 scenario 入口均不变，matrix 标注当前 handler、kernel registration、persistence 与 scenario gate。B3 当前 8 个 canonical job_type 中，`privacy_export` 仅保留为 DB / OpenAPI 501 contract（`requestPrivacyExport` fixture），无 runner producer / handler。
+本计划不新增 user-facing operation；以下当前仍可执行 job_type 的 API envelope、fixture、frontend consumer 与 scenario 入口均不变，matrix 标注当前 handler、kernel registration、persistence 与 scenario gate。B3 当前 7 个 canonical job_type 中，`privacy_export` 仅保留为 DB / OpenAPI 501 contract（`requestPrivacyExport` fixture），无 runner producer / handler。
 
 | canonical job_type | 触发 operationId（OpenAPI） | fixture | frontend consumer | backend handler | kernel registration | persistence | AI dependency | scenario coverage |
 |--------------------|---------------------------|---------|-------------------|----------------------|--------------------------|-------------|---------------|-------------------|
@@ -55,7 +56,6 @@
 | `privacy_delete` | `deleteMe` (`DELETE /v1/me`) | `openapi/fixtures/Auth/deleteMe.json` | account / privacy 设置面 | `backend/internal/privacy/runner/delete_handler.go` | `PrivacyDeleteHandler` 直接注册到 `runner.Runtime` | `privacy_requests` + `async_jobs(privacy_delete)` + 用户级资源级联删除 | none | BDD `E2E.P0.003` + `E2E.P0.033`；smoke `DELETE /api/v1/me` → `privacy_requests.status='completed'` |
 | `report_generate` | source event：`completePracticeSession`（同事务写 pending `feedback_reports` row + `async_jobs(report_generate)`）；查询：`getFeedbackReport` / `listTargetJobReports` | `openapi/fixtures/PracticeSessions/completePracticeSession.json` / `openapi/fixtures/Reports/getFeedbackReport.json` / `openapi/fixtures/Reports/listTargetJobReports.json` | 报告面 | `backend/internal/review/generate_handler.go` 的 `review.GenerateHandler` | `GenerateHandler`直接注册到`runner.Runtime`；kernel单点负责lease/finalize/reaper，review store不保留重复owner | `feedback_reports` + `async_jobs(report_generate)` + `outbox_events('report.generated')` | A3/F3 评审 AI profile | BDD `E2E.P0.041` + `E2E.P0.052` / `053` / `054` / `055`（Go HTTP BDD tests）；regression `review/generate_handler_test.go` + `cmd/api/reports_http_scenario_test.go` |
 | `target_import` | `importTargetJob` | `openapi/fixtures/TargetJobs/importTargetJob.json` | 目标导入面 | `targetjob.ParseExecutor` | 直接注册到 `runner.Runtime` | `target_jobs` + `async_jobs(target_import)` + `outbox_events('target.import.requested')` | A3 解析 profile | BDD `E2E.P0.010` / `011` / `012` / `013`；regression `targetjob/pipeline_test.go` + `e2e_scenario_test.go` |
-| `source_refresh` | N/A（internal-only，由调度或目标更新触发，无独立 API surface） | N/A | N/A（无 frontend） | `targetjob.SourceRefreshHandler` | 直接注册到 `runner.Runtime` | `source_records` + `async_jobs(source_refresh)` | A3 解析 profile（同 target_import） | regression `targetjob/pipeline_test.go::TestSourceRefreshHandler_MarksStale` |
 | `resume_parse` | `registerResume` / `confirmResumeStructuredMaster` | `openapi/fixtures/Resumes/registerResume.json` / `openapi/fixtures/Resumes/confirmResumeStructuredMaster.json` | 简历上传面 | `resumejobs.ParseHandler` | 直接注册到 `runner.Runtime` | `resume_assets` + `async_jobs(resume_parse)` | A3 简历解析 profile | BDD `E2E.P0.034` / `035`；regression `resume/jobs/parse_test.go` + `cmd/api/resume_parse_runner_scenario_test.go` |
 | `resume_tailor` | `requestResumeTailor`（查询 `getResumeTailorRun` / `acceptResumeTailorSuggestion` / `rejectResumeTailorSuggestion`） | `openapi/fixtures/ResumeTailor/requestResumeTailor.json` / `openapi/fixtures/ResumeTailor/getResumeTailorRun.json` / `openapi/fixtures/Resumes/acceptResumeTailorSuggestion.json` / `openapi/fixtures/Resumes/rejectResumeTailorSuggestion.json` | 简历适配面 | `resumejobs.TailorHandler` | 直接注册到 `runner.Runtime`；退避走 kernel `BackoffPolicy` | `resume_tailor_runs` + `async_jobs(resume_tailor)` | A3 简历适配 profile | BDD `E2E.P0.077` / `078` / `080`；regression `resume/jobs/tailor_test.go` + `cmd/api/resume_tailor_runner_scenario_test.go` |
 
@@ -99,9 +99,9 @@
 
 ### Phase 2: 业务 handler 迁移
 
-#### 2.1 `target_import` + `source_refresh` 迁移
+#### 2.1 HISTORICAL-SUPERSEDED: TargetJob import + refresh handler 迁移
 
-`targetjob.SourceRefreshHandler` / `ParseExecutor` 直接实现 `runner.Handler`，由 `cmd/api/main.go.buildTargetJobRuntime` 返回给统一 `runner.Runtime` 注册。
+本项记录此前两个 TargetJob handler 进入统一 kernel 的历史基础；refresh handler 当前由 Phase 7 删除，只有 `ParseExecutor` 继续作为 `target_import` handler。
 
 #### 2.2 `privacy_delete` 迁移
 
@@ -238,7 +238,7 @@ kernel package 承接租约、退避、回收、shutdown 与 outbox 测试；业
 
 #### 4.10 Canonical runner contract cleanup
 
-生产入口已经只使用 `runner.Runtime`，因此删除仅由测试使用的 `targetjob.Drainer`、`targetjob.ClaimedJob` / `targetjob.JobOutcome` / `targetjob.JobHandler`、targetjob store 中重复的 claim/finalize SQL，以及 `runner.FromTargetjobHandler` adapter。`target_import` / `source_refresh` / `privacy_delete` / `resume_parse` / `resume_tailor` handler 直接实现 `runner.Handler`；相关 cmd/api 场景通过 `runner.Runtime.RunOnce` 验证 lease、dispatch 与 finalize，场景文件和测试名不再保留 drainer 标签。`scripts/lint/runner_out_of_scope.py` 必须把上述旧形态作为 zero-reference gate。
+生产入口已经只使用 `runner.Runtime`，因此删除仅由测试使用的 `targetjob.Drainer`、`targetjob.ClaimedJob` / `targetjob.JobOutcome` / `targetjob.JobHandler`、targetjob store 中重复的 claim/finalize SQL，以及 `runner.FromTargetjobHandler` adapter。该历史 phase 当时迁移的 refresh handler 由 Phase 7 删除；其余保留 handler 继续直接实现 `runner.Handler`。相关 cmd/api 场景通过 `runner.Runtime.RunOnce` 验证 lease、dispatch 与 finalize，场景文件和测试名不再保留 drainer 标签。
 
 ## 5 验收标准
 
@@ -258,3 +258,11 @@ kernel package 承接租约、退避、回收、shutdown 与 outbox 测试；业
 | 退避收口期间 in-flight job 行为变化导致已部署环境异常 | 本仓库无线上环境，P0 不需要兼容 layer；本 plan 仅需保证 dev / test scenario 通过 |
 | typed config 节点新增导致 A4 owner spec 需要 additive 修订 | Phase 1.6 把 A4 修订作为前置 checklist item；若实施期发现 A4 owner spec 已有冲突决策，停止进入 plan-review / design 修订，不以 kernel default 常量绕过 |
 | product、business job与infra schedule误复用 | runner/outbox两个显式factory + injection tests；report使用动作内waiter与reset测试，负向断言runner attempts/max_attempts不拥有产品10s/20s/40s或调用上限 |
+
+## Phase 7: OPENAPI-002 TargetJob refresh runner contraction
+
+本批次依赖顺序固定为：统一 RED → B1/B3/OpenAPI 真理源与生成物 → A4/B4/F3/backend-upload/backend-async-runner 各自 owner surface → backend-targetjob Phase 18 集成 → BDD/全局 zero-reference。Runner 只在 B3 Phase 9 的 12-event/7-job/6-API-facing handoff 可消费后进入 GREEN；任一上游 handoff 未完成时不得宣称本 Phase 完成。
+
+Consume B3 2.15 regenerated 12-event/7-job manifests before runtime edits. RED runner/registry/builder/queue tests must fail while the old refresh job can be registered, leased, handled, assigned to low priority, or emitted as a metric label. GREEN deletes its handler, registration, cmd/api wiring, queue assignment and targeted tests while keeping `target_import` operational and `source_records` table/model/query behavior intact.
+
+Generated/baseline ownership stays with B3 Phase 9, but this phase must compile and test against those artifacts and reject stale generated symbols. BDD is not applicable because no new user behavior is introduced; replacement evidence is B3 contract tests plus runner registry, target-import, scheduler, reaper, cmd/api builder and zero-reference tests. Current runtime/code/generated-consumer surfaces must have zero positive refresh job/handler/dotted task/queue references, excluding history and explicit negative fixtures; `source_records` is explicitly outside that search.

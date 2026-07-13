@@ -1,7 +1,7 @@
 # DB Migrations Baseline Bootstrap Checklist
 
-> **版本**: 1.19
-> **状态**: completed
+> **版本**: 1.21
+> **状态**: active
 > **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
@@ -81,3 +81,17 @@
   <!-- verified: 2026-07-13 method=postgres-integration evidence="disposable and dev PostgreSQL completion/storage/privacy probes PASS; REPORT_STORAGE_V18_PASS re-emitted" -->
 - [x] 9.4 Run `make migrate-check`, migration lint, backend migration tests, C-13 schema/privacy probes and `git diff --check`; only then re-emit owner-only `REPORT_STORAGE_V18_PASS` and return plan to completed.
   <!-- verified: 2026-07-13 method=full-migration-gate evidence="disposable PostgreSQL make migrate-check PASS; migration tests/lint and git diff --check PASS" -->
+
+## Phase 10: TargetJob paste-only schema net-state
+
+- [ ] 10.1 RED: migration lint/SQL contracts/inventory tests 要求 20+3+2，并断言旧 TargetJob 来源列/表、JD attachment purpose 与 JD source refresh jobType 不存在；记录当前失败证据。
+- [ ] 10.2 GREEN: 原地修订 baseline up/down、enum sources、privacy matrix 与 SQL contracts；删除旧结构，保留 `raw_jd_text`、独立 `source_records`、resume/privacy purpose，不创建兼容层。
+- [ ] 10.3 BDD-Gate: 不适用；替代 gate 运行 migration contract、enum-source lint、privacy dry-run、focused migration tests 与 clean/populated PostgreSQL up/down/up。
+- [ ] 10.4 Zero-ref: migrations/enum sources/backend migration probes 中旧结构精确零命中；正向 probe 证明 `raw_jd_text`、`source_records`、resume/privacy purpose 与 20+3+2 inventory。
+
+## Phase 11: Practice reply-status net-state
+
+- [ ] 11.1 RED: SQL/enum/store contracts fail until `practice_messages.reply_status` exists with the exact user-only four-state allowlist and populated-row expectations.
+- [ ] 11.2 GREEN: revise baseline up/down, enum source and role CHECK so user rows carry `pending|retryable_failed|terminal_failed|complete`, assistant rows carry NULL, and original client/reply uniqueness remains intact.
+- [ ] 11.3 REGRESSION-GATE: migration/store tests cover pending→retryable/terminal→pending retry→complete, completed replay, illegal role/status pairs, duplicate reply and cross-session client IDs.
+- [ ] 11.4 BDD-Gate: not applicable; run migration lint, clean/populated PostgreSQL up/down/up, privacy cascade and backend-practice/002 composed persistence gates.

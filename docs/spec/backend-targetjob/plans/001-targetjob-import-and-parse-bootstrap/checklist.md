@@ -1,8 +1,8 @@
 # TargetJob Import and Parse Bootstrap Checklist
 
-> **版本**: 1.24
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 1.25
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -145,3 +145,12 @@
 - [x] 17.4 Handler/generated JSON tests prove Get/List wire parity and optional fail-closed behavior for invalid/unloaded summaries.<!-- verified: 2026-07-12 method=handler-tests -->
 - [x] 17.5 BDD-Gate: P0.098 executes persisted first→next→final, duplicate completion, report-state independence, Get/List parity and no frontend business-storage assertions.<!-- verified: 2026-07-12 method=scenario-run result=PASS -->
 - [x] 17.6 Run focused/full backend, OpenAPI/migration, query-count, context/docs/index/diff/privacy gates.<!-- verified: 2026-07-12 evidence="Get/List one-query projection; real DB first-next-final+wrong-resume+1-2-4; OpenAPI/migrate; make test; context/docs/index/diff" -->
+
+## Phase 18: Paste-only JD import contract convergence
+
+- [ ] 18.1 RED: contract tests 必须证明旧 request source union、`TargetJob.sourceType/sourceUrl`、JD source 表/列、JD attachment purpose、URL fetch、同步手工表单、JD source refresh 与来源专属错误码当前仍可达；记录具体失败断言。
+- [ ] 18.2 GREEN: `importTargetJob` 只接受 `{rawText,targetLanguage,resumeId}`，空白返回 `VALIDATION_FAILED`；`target_jobs.raw_jd_text` 是唯一 JD 原文事实源，ParseExecutor 无 source fallback，所有有效请求只派发 queued `target_import`。
+- [ ] 18.3 GREEN: 删除 TargetJob URL/file/manual-form 分支、来源 response/event/metric 字段、来源表/列、JD attachment purpose、URL fetcher、JD source refresh job/event/handler/registration、来源专属错误码、`jd_source_url` prompt/config/seed 派生物；保留 resume/privacy upload 与独立 `source_records`。
+- [ ] 18.4 BDD-Gate: 修订并运行 `E2E.P0.010` direct rawText success/idempotency/ready 与 `E2E.P0.012` AI failure/recovery；删除 `E2E.P0.011` / `E2E.P0.013` 场景目录和 INDEX 行。
+- [ ] 18.5 Zero-ref: 对 production/OpenAPI/shared/config/migrations/prompts/generated/fixtures/scripts 运行精确负向搜索并通过；另以正向测试确认 `purpose=resume`、`privacy_export`、file_objects privacy cleanup 与独立 `source_records` 保持可用。
+- [ ] 18.6 运行 focused/full backend、codegen/check、fixture/event/migration/config/prompt、context/docs/diff gates，记录 RED/GREEN 与 BDD 证据后再恢复 completed。

@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.52
+> **版本**: 1.54
 > **状态**: active
 > **更新日期**: 2026-07-13
 
@@ -30,6 +30,8 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 1.54 | L1 correction：修正 OPENAPI-002 freeze 顺序与 invariant/oracle 精度，要求 non-whitespace `rawText` 和 canonical 422 fixture；按方案 A 增加 Practice durable reply status、reload/same-ID retry、typed TS `ApiClientError` 与 send failure fixture matrix。 | OPENAPI-002 + openapi-v1-contract 001/002/003 + mock-contract-suite/001 + P0.046 |
+| 2026-07-13 | 1.53 | OPENAPI-002 accepted pre-release correction：`importTargetJob` request 收敛为 closed required `{rawText,targetLanguage,resumeId}`；删除全部 `TargetJobImportSource*`、`TargetJob.sourceType/sourceUrl` 与 `target_job_attachment` purpose；保留 import path/202 response、通用 `createUploadPresign` 和 37 operation / 10 tag inventory，并要求 old-baseline 15 findings exact audit 后同批迁移/re-freeze。 | OPENAPI-002 + openapi-v1-contract/001/002/003 + mock-contract-suite/001 |
 | 2026-07-13 | 1.52 | pre-release state closure：FeedbackReport ready要求non-null summary/preparednessLevel/provenance与非空dimensions/actions；failed独占non-null errorCode；source/baseline/generated/fixture validator同批同步。 | OPENAPI-001 v1.6 + openapi-v1-contract/001/003 |
 | 2026-07-13 | 1.51 | docs-only责任边界：generation/judge max4与attempt/retry/reason/scope保持internal-only；FeedbackReport不新增retry/progress字段或endpoint。 | OPENAPI-001 v1.5 + openapi-v1-contract/001 |
 | 2026-07-13 | 1.50 | OPENAPI-001职责澄清：runtime/evalkit复用产品完整validator；sole-label targeted repair、其它schema/semantic/mixed whole-report repair、全阶段复验；wire expected finding仍为maxLength200。 | OPENAPI-001 v1.4 + F3/P0.100 |

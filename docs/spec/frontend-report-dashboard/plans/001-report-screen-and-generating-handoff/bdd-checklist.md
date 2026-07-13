@@ -1,7 +1,7 @@
 # Honest Grounded Report Screen BDD Checklist
 
-> **版本**: 2.9
-> **状态**: completed
+> **版本**: 3.0
+> **状态**: active
 > **更新日期**: 2026-07-13
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
@@ -53,6 +53,9 @@
 - [x] Trigger records DOM/style/bbox and prototype/formal/diff PNGs; changed-pixel ratio must be ≤0.5% using pixelmatch threshold 0.1.
 - [x] Verify rejects non-empty-buffer-only evidence and requires visual + active stale-contract negatives; cleanup keeps failure artifacts only.
   <!-- verified: 2026-07-13 scenario="E2E.P0.059" evidence="source/DOM/style/bbox/pixel threshold gate, stale-contract negatives, production build and 12 Playwright cases PASS; cleanup PASS" -->
+- [ ] Revision 2026-07-13 removes session/report UUID from prototype/formal visible and accessible Context Strip, then executes clean 1440/390 DOM/style/bbox/viewport/pixel parity.
+- [ ] Revision 2026-07-13 updates P0.059 README/INDEX to C-12, verifies distinct UUID sentinels are UI/a11y-negative but contract/CTA-positive, preserves normal PASS cleanup, then captures the same formal real ready report at exact 1440x1200 / 390x844 with `fullPage: true` into `.test-output/acceptance/report-context-strip/<run-id>/`.
+- [ ] Acceptance directory contains only `report-context-strip-desktop-1440x1200.png`, `report-context-strip-mobile-390x844.png`, `manifest.json`; recomputed SHA-256 matches each manifest row, `state=ready`/viewport/fullPage are exact, target/round/resume are visible, and report/session sentinel absence is linked to passing DOM/a11y negative evidence.
 
 ## E2E.P0.099 Real full-stack screenshots
 

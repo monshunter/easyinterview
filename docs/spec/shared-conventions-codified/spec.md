@@ -1,8 +1,8 @@
 # Shared Conventions Codified Spec
 
-> **版本**: 1.30
+> **版本**: 1.31
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 背景与目标
 
@@ -55,7 +55,7 @@
 | D-2 | Go workspace / module | 根 `go.work` 只 use `./backend`；module 名称为 `github.com/monshunter/easyinterview/backend`（落点 `backend/go.mod`）；两者 `go` directive 与 `.tool-versions` 同为 `1.24.5` | 后续所有 Go 包必须以此为根；不允许另起 module 或产生版本漂移 |
 | D-3 | TS 包管理 | pnpm workspace（启用 `pnpm-workspace.yaml`），前端 package 名 `@easyinterview/frontend` | A2 `local-dev-stack` 与 B2 `openapi-v1-contract` 默认沿用 |
 | D-4 | UUID 算法 | UUIDv7（含时序）；前端临时 id 使用 `tmp_<uuidv4>` | 所有业务主键由 idx 工具生成；不允许 NewV4 直接用作 DB id |
-| D-5 | 错误码命名 | `UPPER_SNAKE_CASE`，前缀按 domain：`AUTH_*` / `TARGET_*` / `PRACTICE_*` / `REPORT_*` / `RESUME_*` / `PRIVACY_*` / `AI_*` / `RATE_LIMITED` / `VALIDATION_FAILED` / `RESOURCE_NOT_FOUND` | 任何非前缀错误码必须由本 spec 修订决定；business code 直接 import 常量；A3 已授权 `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_CONFIG_INVALID` / `AI_PROVIDER_SECRET_MISSING`；C4 已授权 `TARGET_JOB_NOT_FOUND` / `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` / `TARGET_INVALID_STATE_TRANSITION`；backend-practice/001 Phase 0 已授权 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND`；backend-review/001 已授权 non-retryable `REPORT_CONTEXT_TOO_LARGE`；`RESOURCE_NOT_FOUND` 是当前 cross-resource generic 404 |
+| D-5 | 错误码命名 | `UPPER_SNAKE_CASE`，前缀按 domain：`AUTH_*` / `TARGET_*` / `PRACTICE_*` / `REPORT_*` / `RESUME_*` / `PRIVACY_*` / `AI_*` / `RATE_LIMITED` / `VALIDATION_FAILED` / `RESOURCE_NOT_FOUND` | 任何非前缀错误码必须由本 spec 修订决定；business code 直接 import 常量；A3 已授权 `AI_PROVIDER_TIMEOUT` / `AI_OUTPUT_INVALID` / `AI_FALLBACK_EXHAUSTED` / `AI_UNSUPPORTED_CAPABILITY` / `AI_PROVIDER_CONFIG_INVALID` / `AI_PROVIDER_SECRET_MISSING`；C4 当前使用 `TARGET_JOB_NOT_FOUND` / `TARGET_IMPORT_FAILED` / `TARGET_INVALID_STATE_TRANSITION`，空白或格式错误的粘贴文本使用 generic `VALIDATION_FAILED`；backend-practice/001 Phase 0 已授权 `PRACTICE_PLAN_NOT_FOUND` / `PRACTICE_SESSION_NOT_FOUND`；backend-review/001 已授权 non-retryable `REPORT_CONTEXT_TOO_LARGE`；`RESOURCE_NOT_FOUND` 是当前 cross-resource generic 404 |
 | D-6 | 枚举值书写 | `lower_snake_case`；TS 用 union string literal，Go 用 named string + 常量集 | 覆盖 `shared/conventions.yaml` 当前 11 个生成枚举类型；增删枚举必须先修订 owner spec |
 | D-7 | `ApiError` inner object 归属 | `shared/conventions.yaml#structures.ApiError` 表示错误响应 envelope 内部的 `error` 对象（`code` / `message` / `requestId` / `retryable` / `details`），不表示外层 `{error: ...}` envelope；Go 侧 canonical 类型是手写 `backend/internal/shared/errors.APIError` + generated `errors.AllCodes`，TS 侧 canonical 类型是 generated `frontend/src/lib/conventions.ApiError` | B2 OpenAPI 必须把 wire response body 建模为 `ApiErrorResponse` envelope，并在 envelope 内 `$ref` B1 `ApiError` inner object；不得把 Go 侧误写为 `sharedtypes.ApiError` |
 | D-8 | AI shared vocabulary 归属 | B1 提供 `AI_*` 错误码、AI capability、Provider Registry 字段名、Model Profile 字段名、AI meta 字段名常量或生成类型；A3 提供 Model Profile schema、`AIClient` runtime、`AICallMeta` runtime 填充与 OpenAI-compatible provider adapter；A4 校验 `AI_PROVIDER_*` 连接参数 | 避免 B1/A3/B4/F1 对同一 AI 字段私造名称；同时避免把运行时或连接配置误下沉到 shared conventions |
@@ -65,6 +65,7 @@
 | D-12 | TypeScript 生成边界 | conventions 输出固定为 `enums.ts`、`errors.ts`、`ai.ts`、`pagination.ts`，ID 输出固定为 `frontend/src/lib/ids/generated.ts` | 消费方从 conventions barrel 或 IDs 模块引用；不得把已拆分资产重新合并为单文件或复制出第二套生成入口 |
 | D-13 | Report context size error | `REPORT_CONTEXT_TOO_LARGE` 是 B1 canonical report error code，message 为 `report context exceeds supported generation size`，`retryable: false`。它由 `shared/conventions.yaml` 单源生成 Go/TS constants，并以 string enum additive 同步到 B2 `ApiErrorCode`。 | backend-review 在最终 UTF-8 prompt 超过 48,000 bytes 时 terminal fail 且不调用 provider/repair；B1 不拥有该业务阈值，只拥有跨语言字面量与 retryability |
 | D-20 | 扁平 Resume vocabulary boundary | Resume 是单一实体，API path / request / response 使用 `resumeId` 与 `Resume`；UI resume ≡ OpenAPI `Resume` | 由 [openapi-v1-contract/004](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md) 与 [backend-resume](../backend-resume/spec.md) 同步 `shared/conventions.yaml`、Go/TS generated errors、B2 `ApiErrorCode` 与 parity fixtures；新增 Resume shared vocabulary 必须先修订 owner spec |
+| D-21 | TargetJob paste-only error vocabulary | 删除 URL / 文件导入源专用的 `TARGET_IMPORT_SOURCE_INVALID` 与 `TARGET_IMPORT_SOURCE_UNAVAILABLE`；保留 generic `VALIDATION_FAILED` 处理粘贴输入校验，保留 retryable `TARGET_IMPORT_FAILED` 处理异步导入失败 | YAML、Go/TS generated errors 与 OpenAPI `ApiErrorCode` 必须同步收敛；不得保留旧错误码或兼容 alias |
 
 ## 4 设计约束
 
@@ -110,7 +111,7 @@
 | C-6 | OpenAPI codegen 复用 B1 | B2 在自己 plan 里生成 OpenAPI types | B2 codegen 完成 | 任何枚举字段直接 import B1 的常量；不出现重复定义 enum 字面量 | B2 自身 plan |
 | C-7 | OpenAPI 错误响应 envelope 复用 B1 inner error | B2 渲染 `components.schemas.ApiError` 与 `components.schemas.ApiErrorResponse` | `make codegen-openapi && make codegen-check` | `ApiError` 只包含 inner error 字段；`ApiErrorResponse.error` `$ref` 到 `ApiError`；Go generated 复用 `sharederrors.APIError`，TS generated 复用 `conventions.ApiError` | openapi-v1-contract/001-bootstrap |
 | C-8 | AI vocabulary 共享 | A3/B4/F1/B2/TS client 同时消费 AI capability、provider/profile 字段、AI meta 字段与 `AI_*` 错误码 | `make codegen-conventions && make codegen-openapi`，再跑 parity tests / drift gate | `chat/stt/realtime/judge`、provider registry 字段、Model Profile 字段、`model_profile_name` / `capability` / fallback label 等字段名由 B1 生成或校验；F3 prompt/rubric provenance 字段（`feature_key` / `feature_flag` / `data_source_version`）作为 AI vocabulary 的一部分由 [F3 `prompt-rubric-registry/001-baseline`](../prompt-rubric-registry/plans/001-baseline/plan.md) 阶段 4.1 登记，仅服务于 prompt/rubric 来源追溯，不进入 F1 metric label 集合；A3 `AICallMeta` runtime 与 B4 `ai_task_runs` typed columns 使用同一来源；B1 不生成 `AICallMeta` DTO | ai-provider-and-model-routing/003 Phase 6 + db-migrations-baseline remediation + F3 `prompt-rubric-registry/001-baseline` 阶段 4.1 |
-| C-9 | TargetJob 场景错误码共享 | C4 `backend-targetjob` 需要区分不存在/越权、非法导入源、暂时不可用导入源、非法状态迁移 | `make codegen-conventions && make codegen-openapi`，再跑 B1/B2 parity tests / drift gate | `TARGET_JOB_NOT_FOUND` / `TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` / `TARGET_INVALID_STATE_TRANSITION` 出现在 `shared/conventions.yaml`、Go/TS generated 错误码和 OpenAPI `ApiErrorCode` enum；handler 只使用上述 canonical codes，不私造 bare aliases | backend-targetjob/001 Phase 0 |
+| C-9 | TargetJob paste-only 场景错误码共享 | C4 `backend-targetjob` 需要区分不存在/越权、粘贴输入校验、异步导入失败和非法状态迁移 | `make codegen-conventions && make codegen-openapi`，再跑 B1/B2 parity tests / drift gate | `TARGET_JOB_NOT_FOUND` / `TARGET_IMPORT_FAILED` / `TARGET_INVALID_STATE_TRANSITION` 出现在 YAML、Go/TS generated errors 与 OpenAPI `ApiErrorCode`，粘贴输入校验复用 `VALIDATION_FAILED`；`TARGET_IMPORT_SOURCE_INVALID` / `TARGET_IMPORT_SOURCE_UNAVAILABLE` 全部零残留且不存在 alias | 001-bootstrap Phase 10 + backend-targetjob/001 |
 | C-10 | Go workspace/module metadata | 根 workspace 与 backend module 已落地 | 执行 `make lint-go-mod-tidy` | `.tool-versions`、`go.work`、`backend/go.mod` 的 Go 版本均为 `1.24.5`；workspace 只 use backend；tidy 无 diff | 001-bootstrap |
 | C-11 | Report oversized-context error parity | backend-review 需要 deterministic terminal code | 更新 B1 truth source 并执行 conventions/OpenAPI parity | YAML、Go、TS 与 B2 `ApiErrorCode` 精确包含 `REPORT_CONTEXT_TOO_LARGE`；retryable 为 false；OpenAPI merge-base audit 只把该 enum widening 记为 additive，不进入 OPENAPI-001 breaking allowset | 001-bootstrap Phase 9 + openapi-v1-contract/003 |
 
@@ -127,6 +128,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 1.31 | 收敛 TargetJob paste-only 错误词汇：删除两项 source-specific error，保留 `VALIDATION_FAILED` 与 `TARGET_IMPORT_FAILED`。 | 001-bootstrap Phase 10 |
 | 2026-07-12 | 1.30 | 授权 `REPORT_CONTEXT_TOO_LARGE`，锁定 non-retryable YAML/Go/TS/OpenAPI enum parity 与 additive-diff 口径。 | 001-bootstrap Phase 9 + backend-review/001 |
 | 2026-07-10 | 1.27 | 将已经实现的 generator 与 TypeScript 输出边界固化为当前决策，删除陈旧待确认段落。 | tech-debt pruning |
 | 2026-07-10 | 1.26 | 将当前 Go topology 固化为根 `go.work` 单 use backend，并统一三处 Go 版本与 tidy drift gate。 | tech-debt pruning |

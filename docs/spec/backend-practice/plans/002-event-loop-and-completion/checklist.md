@@ -1,8 +1,8 @@
 # 002 — Conversation Message Loop and Completion Checklist
 
-> **版本**: 2.6
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 2.7
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -58,10 +58,20 @@
 - [x] 9.4 BDD-Gate: P0.047 runs the three exact owner tests and writes `completion-backend-evidence.json` schema `practice-completion-evidence.v1` with `ZERO_ANSWER_COMPLETION_REJECTED_PASS`, `REPORT_CONTEXT_SNAPSHOT_PASS`, `REPORT_CONTEXT_REPLAY_PASS`; PASS requires command exit 0, exact RUN/PASS markers, no FAIL/no-test marker, zero-answer no-side-effect DB assertions and same-snapshot replay. P0.056/058 consume rather than duplicate it.
   <!-- verified: 2026-07-12 method=scenario-run evidence="E2E.P0.047 setup/trigger/verify/cleanup PASS; exact 3-package owner command and tagged v18 PostgreSQL test pass with no FAIL/no-test; verifier alone writes schema-valid redacted artifact; cleanup leaves only completion-backend-evidence.json" -->
 
+## Phase 10: Server-recoverable message reply state
+
+- [ ] 10.1 RED: store/service/API/OpenAPI tests prove failed reservations lack durable/public recovery status and `getPracticeSession` cannot return the original replay identity; generated TS error tests prove `retryable` is dropped.
+- [ ] 10.2 GREEN: baseline migration and store add user-only `reply_status=pending|retryable_failed|terminal_failed|complete`; reserve/fail/commit transitions are atomic, user-scoped and preserve unique user/reply rows.
+- [ ] 10.3 GREEN: generated `PracticeMessage` exposes user `clientMessageId/replyStatus`; `getPracticeSession` fixtures cover pending/retryable/terminal/complete and assistant messages omit recovery fields.
+- [ ] 10.4 GREEN: generated TS `ApiClientError` preserves HTTP status plus parsed `ApiErrorResponse`; JSON/non-JSON/empty/Abort/transport tests pass and no consumer parses `Error.message`.
+- [ ] 10.5 BDD-Gate: P0.046 proves AI failure → reload/readback → same-ID retry → one assistant reply, plus pending/terminal/cross-user/privacy gates; P0.044 remains the immediate-send pending/success owner.
+- [ ] 10.6 Run focused/full backend, OpenAPI/codegen/fixture, migration, frontend composed owner, context/docs/index/diff gates and restore completed only after current evidence is recorded.
+
 ## 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-13 | 2.7 | Reopen for durable reply status and refresh-safe same-ID recovery. |
 | 2026-07-12 | 2.6 | 锁定 002 completion 唯一 owner、精确 P0.047 tests/markers/artifact。 |
 | 2026-07-12 | 2.5 | 要求至少一条 candidate user message 后才能 completion，并原子冻结 report-context.v1。 |
 | 2026-07-12 | 2.4 | 完成事实限定 TargetJob 绑定 resume，并增加 system policy / JSON 不可信 follow-up 上下文分层 gate。 |

@@ -5,8 +5,9 @@ metadata:
   name: 001-baseline
   sequence: 1
   specVersion:
-    from: 2.0
-    to: 2.20
+    from: 2.40
+    to: 2.41
+  branch: fix/interview-turn-ux-0713
 spec:
   defaultTarget: backend
   discovery:
@@ -35,7 +36,12 @@ spec:
       - RegistryAdapter
       - config roots testing TB
       - language fallback multi
-      - 9 baseline feature keys
+      - 6 baseline feature keys
+      - target import raw JD text
+      - jd_text
+      - target_language output instruction
+      - prompt hash seed resolved snapshot
+      - source metadata zero reference
   targets:
     backend:
       plan: ./plan.md

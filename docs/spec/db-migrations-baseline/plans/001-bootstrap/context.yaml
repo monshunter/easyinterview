@@ -5,10 +5,10 @@ metadata:
   name: 001-bootstrap
   sequence: 1
   baseBranch: main
-  branch: fix/report-semantic-grounding-0712
+  branch: fix/interview-turn-ux-0713
   specVersion:
-    from: 1.32
-    to: 1.34
+    from: 1.35
+    to: 1.36
 spec:
   defaultTarget: backend
   discovery:
@@ -38,6 +38,17 @@ spec:
       - action scoped retry stays outside database
       - focus_dimension_codes
       - REPORT_STORAGE_V18_PASS
+      - targetjob paste only schema
+      - raw_jd_text retained
+      - no target job source columns
+      - no target_job_sources table
+      - no jd attachment purpose
+      - no jd source refresh job
+      - independent source_records retained
+      - resume privacy upload purposes retained
+      - 20 app 3 auth 2 metadata
+      - practice messages reply status
+      - refresh safe client message recovery
   targets:
     backend:
       plan: ./plan.md

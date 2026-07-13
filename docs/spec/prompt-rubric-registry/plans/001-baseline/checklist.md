@@ -1,8 +1,8 @@
 # F3 Baseline Registry, Resolve and Lint Gates Checklist
 
-> **版本**: 1.10
-> **状态**: completed
-> **更新日期**: 2026-07-10
+> **版本**: 1.11
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -72,3 +72,10 @@
   <!-- verified: 2026-07-10 method=shared-config-roots-green evidence="ConfigRoots resolves both current directories in its unit test and serves 26 test/benchmark calls. Four local walkers and exact symbols are gone; integration-tag cmd/api compiles, focused registry/TargetJob/cmd-api tests pass and full backend dupl drops from nine to eight groups." -->
 - [x] 11.3 BDD-Gate: 不适用；运行 testsupport/registry/TargetJob/cmd-api focused tests、full backend/vet/staticcheck、F3 lints、contexts 和 docs/pruning gates。
   <!-- verified: 2026-07-10 method=shared-config-roots-closeout evidence="Completed-state testsupport/registry/TargetJob/cmd-api and full backend suites pass; integration-tag cmd/api compiles, vet/staticcheck and four F3 lints pass. Owner/product contexts, index/docs/diff and pruning gates pass with real_residuals=0." -->
+
+## Phase 12: TargetJob raw-text-only prompt input
+
+- [ ] 12.1 RED: prompt lint/hash、seed drift、registry snapshot 与 TargetJob render tests 要求 JD 内容只来自 `{{jd_text}}`，`{{target_language}}` 仅指定输出语言；旧 source token/wording 存在时失败。
+- [ ] 12.2 GREEN: 删除 current prompt 的 URL/source metadata token 与说明，重算 YAML hash、同步 baseline seed body/hash，并删除 renderer 旧变量替换；不增加 alias 或兼容层。
+- [ ] 12.3 REGRESSION-GATE: prompt/profile/migration lints、registry/TargetJob focused tests 与 resolved snapshot parity 通过，渲染结果只含 raw JD text 与目标语言。
+- [ ] 12.4 ZERO-REF/BDD-GATE: active prompt、seed、renderer 与 F3 current docs 旧 source token/wording 零命中；合法历史/显式负测排除。BDD 不适用，以 Red/Green、lint/hash/seed/snapshot 作为替代 gate。

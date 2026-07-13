@@ -1,8 +1,8 @@
 # Secrets and Config Bootstrap
 
-> **版本**: 1.16
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 1.17
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -17,6 +17,8 @@
 
 本次 v1.16 随连续对话简化删除 `practice_hint_enabled` / `practice_assistance_mode_enabled` 及 public runtime allowlist，baseline 收敛为 4 项仍有当前消费者的 report/readiness/operator flags。
 
+本次 v1.17 随 Home JD intake 收敛为 raw text，删除 A4 中已无当前消费者的 TargetJob attachment maxBytes config、validator 与 typed composition binding；`upload.maxBytes.resume` 和 `upload.maxBytes.privacyExport` 的默认值、验证与业务边界保持不变。
+
 本次 v1.10 技术债清理同步当前实现事实：`runtime_config_handler.go` 支持由 C1 backend-auth 注入 session-aware resolver；resolver 缺省时才使用 anonymous opt-out 默认，不再将 handler 描述为 stub。
 
 本次 v1.11 技术债清理将 `config/config.yaml` 与 `.env.example` 的 secret 默认值描述收敛为空字符串 / 说明注释，不改变配置文件合同或 lint 行为。
@@ -24,6 +26,8 @@
 本次 v1.12 技术债清理统一 feature flag 范围术语为 `out-of-scope`，并将 plan context 对齐当前 spec 2.13；六项 current baseline 与负向回归输入保持不变。
 
 本次 v1.13 技术债清理删除仅供单测清理 module cache 的 `_resetRuntimeConfigCache` export。各用例改用生产 `forceRefresh` 选项建立独立缓存边界，缓存、失败恢复和刷新行为不变。
+
+Phase 1-11 及其已完成条目只保留为历史交付证据；Phase 12 是当前 TargetJob attachment maxBytes 收缩合同。旧 Phase 中出现的附件配置正向口径不得作为当前实现、验收或兼容要求，统一由 Phase 12 覆盖。
 
 ## 2 背景
 
@@ -42,9 +46,9 @@
 ## 3 质量门禁分类
 
 - **Plan 类型**: `platform-config + code-internal + contract + tooling`。本 plan 修改 backend config/secrets/featureflag packages、config truth source、secret lint hooks、runtime-config builder/handler、前端 generated-client handoff 和本地 lint gate；不直接交付用户可见 workflow。
-- **TDD 策略**: 本 plan 既有实现以 checklist 每项的 Go tests、TS tests、lint negative cases、pre-commit secret redline、runtime-config allowlist tests 和 config fail-fast smoke 作为 Red-Green-Refactor 断言来源；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行。
+- **TDD 策略**: 本 plan 既有实现以 checklist 每项的 Go tests、TS tests、lint negative cases、pre-commit secret redline、runtime-config allowlist tests 和 config fail-fast smoke 作为 Red-Green-Refactor 断言来源；Phase 12 先让 config/validator/composition tests 对旧 TargetJob attachment maxBytes key 失败，再删除该 key 并证明 Resume/Privacy 配额不变；重进本 plan 时必须通过 `/implement` -> `/tdd` 顺序执行。
 - **BDD 策略**: BDD 不适用。本 plan 是内部配置/secret/feature flag contract 与 tooling；后续 D1/B2/C workstream 把 runtime-config 暴露到用户流程时维护自身 BDD gate。
-- **替代验证 gate**: `go test ./backend/internal/platform/config/... ./backend/internal/platform/secrets/... ./backend/internal/platform/featureflag/...`、`AppRuntimeProvider` focused tests、frontend typecheck/build、`make lint-config`、secret hook negative tests、`make lint`、runtime-config allowlist smoke、`sync-doc-index --check`。
+- **替代验证 gate**: `go test ./backend/internal/platform/config/... ./backend/internal/platform/secrets/... ./backend/internal/platform/featureflag/...`、backend API composition focused tests、`AppRuntimeProvider` focused tests、frontend typecheck/build、`make lint-config`、secret hook negative tests、`make lint`、runtime-config allowlist smoke、active config-key zero-reference、`sync-doc-index --check`。
 
 ## 4 实施步骤
 
@@ -279,9 +283,29 @@ type FeatureFlagClient interface {
 
 删除仅由自身单测消费、正式 `src/main.tsx` 依赖图不可达的平行 frontend runtime-config fetch/cache/type/test 包。D1 `AppRuntimeProvider` 继续通过 B2 generated client/types 获取同一 endpoint；同步 frontend README、A4 spec/plan/checklist/context 与 D1 discovery context，不保留 wrapper、兼容 export 或退役标记。
 
+### Phase 12: TargetJob attachment maxBytes config removal
+
+本批次依赖顺序固定为：统一 RED → B1/B3/OpenAPI 真理源与生成物 → A4/B4/F3/backend-upload/backend-async-runner 各自 owner surface → backend-targetjob Phase 18 集成 → BDD/全局 zero-reference。A4 只在 B1/B3/OpenAPI 当前合同可消费后修改自己拥有的 config、validator 与 backend API composition surface；purpose/DB constraint 删除分别归 backend-upload/B4，任一上游 handoff 未完成时不得宣称本 Phase 完成。
+
+#### 12.1 Red: pin the current two-purpose maxBytes contract
+
+先更新 config schema、validator 与 backend API composition tests，使它们要求 maxBytes 当前集合只包含 `resume` 和 `privacyExport`；旧 TargetJob attachment key 仍存在时，focused tests 与 active-key inventory 必须失败。负向断言同时固定 Resume 10MB、Privacy Export 5MB 与 presign TTL 不变。
+
+#### 12.2 Green: remove the orphaned config and validator surface
+
+从 `config/config.yaml`、`backend/internal/platform/config/validator.go`、validator fixtures/tests 与 `backend/cmd/api` typed upload-limit composition 删除旧 TargetJob attachment maxBytes binding，不增加 alias、默认回退或兼容读取。文件 purpose/schema 的跨 owner 删除由 backend-upload / TargetJob owner 承接；A4 只删除自己拥有的 config、validator 与 composition surface。
+
+#### 12.3 Verify: lint, focused tests and zero-reference
+
+运行 `make lint-config`、platform config focused tests 与 backend API composition tests，证明 Resume/Privacy 非正数继续 fail-fast、默认值保持 10MB/5MB。active zero-reference 扫描覆盖 `config/`、platform config、backend API composition 与 A4 current docs；work-journal/history/bug/report 和显式 negative tests 可作为合法历史证据保留。
+
+#### 12.4 BDD substitute gate
+
+BDD 不适用：本 phase 删除内部 config/validator orphan，不新增 UI、HTTP wire 或用户业务流程。替代 gate 为 Red/Green focused tests、`make lint-config`、typed composition test、current-key inventory 与 active zero-reference。
+
 ## 5 验收标准
 
-- [secrets-and-config spec §6 验收标准](../../spec.md#6-验收标准) C-1..C-12 全部成立；C-6 由 A4 builder/handler、B2 generated contract 与 D1 `AppRuntimeProvider` 共同闭环，无平行前端 fetcher。
+- [secrets-and-config spec §6 验收标准](../../spec.md#6-验收标准) C-1..C-13 全部成立；C-6 由 A4 builder/handler、B2 generated contract 与 D1 `AppRuntimeProvider` 共同闭环，无平行前端 fetcher；C-13 只保留 Resume/Privacy maxBytes。
 - 本 plan checklist 全部勾选；Phase 6 的 AC 验证命令日志贴入工作日志。
 - engineering-roadmap/001 保留的 A4 bootstrap 承诺由 Phase 6.3 关闭 partial、Phase 6.4 关闭文档侧；不重复修改父 roadmap checklist。
 
@@ -300,6 +324,7 @@ type FeatureFlagClient interface {
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-13 | 1.17 | 删除无当前消费者的 TargetJob attachment maxBytes config/validator/composition binding，保留 Resume 与 Privacy Export 配额。 | Home paste-only JD intake |
 | 2026-07-10 | 1.15 | 删除无正式入口消费者的平行 frontend runtime-config fetch/cache/type/test 包。 | tech-debt pruning |
 | 2026-07-10 | 1.14 | 删除零消费者 `Loader.GetDuration` 与旧 bootstrap 合同引用。 | tech-debt pruning |
 | 2026-07-10 | 1.13 | 删除 runtime-config 测试 reset export，单测改用生产 forceRefresh 边界。 | tech-debt pruning |

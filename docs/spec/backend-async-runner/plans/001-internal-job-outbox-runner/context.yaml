@@ -5,10 +5,10 @@ metadata:
   name: 001-internal-job-outbox-runner
   sequence: 1
   specVersion:
-    from: 1.12
-    to: 1.15
+    from: 1.15
+    to: 1.16
   baseBranch: main
-  branch: fix/report-semantic-grounding-0712
+  branch: fix/interview-turn-ux-0713
 spec:
   defaultTarget: backend
   discovery:
@@ -47,7 +47,9 @@ spec:
       - email_dispatch
       - email.dispatch
       - target_import
-      - source_refresh
+      - six executable runner handlers
+      - TargetJob paste only runner contraction
+      - source records persistence retained
       - privacy_delete
       - BUG-0106
       - users.deleted_at

@@ -1,8 +1,8 @@
 # EasyInterview UI 目标模块地图
 
-> **版本**: 2.15
+> **版本**: 2.16
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 文档目的
 
@@ -12,7 +12,7 @@
 
 | 模块 | 用户任务 | 页面/能力 | 说明 |
 |------|----------|----------------|------|
-| Home / 首页 | 粘贴 JD 或继续最近模拟面试 | JD 输入、JD 文件/URL 弹窗、最近模拟面试、创建简历入口 | 默认入口；JD 获取唯一入口 |
+| Home / 首页 | 粘贴 JD 或继续最近模拟面试 | 单一 JD 文本框、ready 简历选择、最近模拟面试、创建简历入口 | 默认入口；JD 获取唯一入口，只接受粘贴文本 |
 | Interview / 面试 | 浏览并回访既有面试规划，再次发起 session | 面试规划列表、当前面试规划、切换/新建规划、JD/简历绑定、面试轮次、公司情报嵌入卡片、立即面试、会话记录 | 一级导航 |
 | Interview Session | 完成一场完整模拟面试 | 全宽连续文本聊天、普通消息自然推进、disabled 电话入口、结束生成报告 | 会话级页面 |
 | Report Dashboard | 查看一次已完成模拟面试的报告 | 仪表盘、上下文条、准备度、维度、证据、下一步；Header 唯一一对复练 / 下一轮 CTA | 隶属于 session，不是一级导航 |
@@ -110,3 +110,4 @@ User
 3. `debrief`、`debrief_full`、`profile` 不得作为目标 route、screen key、data-testid 正向锚点或场景正向入口。
 4. `auth_profile_setup` 是账号资料补全，不是用户画像。
 5. 复盘和用户画像不得作为静态源码、设计文档、正式前端、OpenAPI、backend、migrations、shared、config、scenario 正向资产。
+6. Home JD intake 只渲染 textarea、ready Resume 下拉框与「立即面试」CTA；不得出现其他 JD 导入控件、弹窗或并行请求形态。Resume 模块的文件上传不受此约束影响。

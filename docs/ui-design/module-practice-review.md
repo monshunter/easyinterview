@@ -1,8 +1,8 @@
 # 模拟面试与报告模块
 
-> **版本**: 1.26
+> **版本**: 1.28
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 目标
 
@@ -22,8 +22,10 @@ PracticeScreen(sessionId)
 └─ Conversation
    ├─ Transcript
    │  ├─ assistant message
-   │  └─ user message
-   ├─ Error / retry state
+   │  ├─ user message
+   │  │  └─ failed-only retry icon
+   │  └─ pending-only interviewer-thinking row
+   ├─ loader/completion error state
    └─ Composer
       ├─ text input
       └─ send
@@ -43,9 +45,14 @@ PracticeScreen(sessionId)
 - opening assistant message 与后续 assistant reply 都是普通 message，不标记为问题。
 - 用户输入是普通 message，不标记为回答。
 - UI 不显示“第 N 题”“追问”“回答”“下一题”等类别标签。
-- transcript 来自 server `PracticeSession.messages`；刷新必须恢复完整有序会话，不使用本地 fixture transcript。
+- transcript 来自 server `PracticeSession.messages`；user message 同时返回原 `clientMessageId/replyStatus`。刷新必须恢复完整有序会话及 pending/retryable/terminal/complete 回复状态，不使用本地 fixture、URL 或 browser storage 恢复业务状态。
 - 用户请求提示时直接输入普通聊天内容，不存在专用 hint 行为。
-- 发送期间禁用 composer；失败保留用户消息和 retry，不重复追加。
+- 提交后立即清空 composer，并先把该条 user message 加入 transcript；不得等 assistant response 返回后才一起显示。
+- pending/retrying 期间禁用 composer，并显示可访问的面试官思考动画；此时不显示 retry。
+- 失败时移除思考动画，保留原 user message，只在该消息底部显示 retry icon；retry 复用原文与同一 `clientMessageId`，不得重复追加。
+- retry icon 仅用于无 HTTP response 的网络错误、API 明确 `retryable=true`，或刷新后 server message 为 `replyStatus=retryable_failed`；`pending` 继续 thinking，`terminal_failed` 以及 validation/auth/not-found/conflict/mismatch 不渲染 retry，改走 loader/auth/session-lost 并重新读取 server truth。
+- 失败后 textarea 可保存下一条草稿，但 submit 保持 disabled 并说明需先重试失败消息；retry 不得消费或覆盖该草稿。成功后以 server messages 收敛，optimistic row 不作为持久事实或 Finish 资格。
+- 任一 optimistic pending/retryable-failed/retrying/terminal-recovery 状态都必须禁用 Finish，直到 server messages 完成收敛。
 
 ## 4 Top Bar
 
@@ -74,7 +81,7 @@ Ready 报告只展示：
 - 有候选人消息 grounding anchor 的会话证据摘要。
 - 服务端排序的下一步行动。
 
-报告不得展示题目回顾、逐题评分、题数、raw enum/code 或 turn-based retry。`reportId` 是唯一 locator，Context Strip/status/CTA identity 来自 frozen report context。复练/下一轮只提交 goal + sourceReportId，由后端从 source report/plan 派生 settings/round；复练有可靠 issue-backed dimension 时投影 focus，否则使用空 focus 开始通用同轮复练。
+报告不得展示题目回顾、逐题评分、题数、raw enum/code、turn-based retry 或 session UUID 等内部 locator。`reportId` 是唯一路由 locator，但不得作为用户界面字段；Context Strip/status/CTA identity 来自 frozen report context，Context Strip 只显示目标岗位、轮次和简历。复练/下一轮只提交 goal + sourceReportId，由后端从 source report/plan 派生 settings/round；复练有可靠 issue-backed dimension 时投影 focus，否则使用空 focus 开始通用同轮复练。
 
 ## 7 UI 真理源
 
@@ -94,18 +101,21 @@ Ready 报告只展示：
 | ID | Given | When | Then |
 |----|-------|------|------|
 | U-1 | session 有 opening message | 进入 practice | 只看到 TopBar + 全宽聊天 + composer |
-| U-2 | 多轮 messages | 用户连续发送 | 消息按序追加，无题目分类 |
+| U-2 | running session | 用户提交消息并等待 | user message 立即显示、composer 清空/禁用、面试官思考；成功后无重复 |
 | U-3 | phone disabled | 查看/键盘操作电话图标 | 图标置灰且不能改变模式 |
-| U-4 | send failure | 重试同一 clientMessageId | user message 不重复，成功后只有一个 reply |
+| U-4 | send failure | 查看失败消息并点击其底部 retry icon | retry 只在失败后显示，复用原文与同一 clientMessageId；下一条草稿保留，成功后 user message 不重复且只有一个 reply |
 | U-5 | 仅有 opening、尚无 user message | 查看/操作结束 CTA | CTA disabled，显示本地化可访问原因；绕过前端调用仍由后端 `VALIDATION_FAILED` 拒绝且不生成报告 |
 | U-6 | desktop/mobile | parity gate | 无 sidebar 空白、无溢出、截图与原型一致 |
 | U-7 | 当前结构化轮次为 60 分钟 | 启动/刷新 Practice | plan 保存 60 分钟预算且 Top Bar 显示 `elapsed / 60:00`；不存在固定 `25:00` |
 | U-8 | 已提交至少一条 user message | 点击结束并生成报告 | 进入 generating，随后会话级报告 |
+| U-9 | AI 失败后刷新或组件重挂载 | `getPracticeSession` 返回 user `clientMessageId/replyStatus` | pending 恢复 thinking；retryable failure 在原 row 恢复同 ID retry；terminal failure 无 retry；成功后只有一个 assistant reply |
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-13 | 1.28 | 用户确认方案 A：Practice reply state 与原 clientMessageId 由后端读模型恢复，刷新后仍可在原消息下同 ID 重试。 |
+| 2026-07-13 | 1.27 | Practice 增加即时 user row、pending 思考/锁定与失败消息底部同 ID retry；Report Context Strip 删除 session UUID 等内部 locator。 |
 | 2026-07-12 | 1.26 | 增加零回答 Finish 禁用/后端权威拒绝，明确空 focus 通用同轮复练，并补输入超限报告的诚实终态。 |
 | 2026-07-12 | 1.25 | 明确 Generating 终态动作、无 records 承诺、reportId-only frozen context 事实源与 report-local dimension focus。 |
 | 2026-07-12 | 1.24 | 报告接入 grounded direct semantic shape；生成页删除伪实时语义，ready 页补齐 summary、code+label、本地化状态、服务端 replay focus 与强截图验收。 |

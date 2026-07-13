@@ -1,15 +1,17 @@
 # F3 Baseline Registry, Resolve and Lint Gates
 
-> **版本**: 1.10
-> **状态**: completed
-> **更新日期**: 2026-07-10
+> **版本**: 1.11
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-本 owner 固化 F3 baseline registry 的当前可执行合同：9 个 baseline `feature_key` 使用 canonical `multi` prompt / rubric / output schema 真理源，`backend/internal/ai/registry` 提供加载、hash 校验、`ResolveActive`、cache、Judge interface 与 registry client，TargetJob 解析链路通过 adapter 消费 registry resolution，AI task run 与 OpenAPI provenance 保持字段闭环。
+本 owner 固化 F3 baseline registry 的当前可执行合同：6 个 baseline `feature_key` 使用 canonical `multi` prompt / rubric / output schema 真理源，`backend/internal/ai/registry` 提供加载、hash 校验、`ResolveActive`、cache、Judge interface 与 registry client，TargetJob 解析链路通过 adapter 消费 registry resolution，AI task run 与 OpenAPI provenance 保持字段闭环。
+
+本次 v1.11 将 `target.import.parse` 收敛为 raw JD text 唯一内容输入；current prompt、YAML hash、baseline seed、resolved snapshot 与 TargetJob renderer 必须同步删除 URL/source metadata token 和 wording，不保留兼容变量。
 
 本 owner 不实现 prompt 编辑 UI、不直接调用 AI provider、不持有 provider/model 字符串、不改变 A3 model profile 状态。真实 provider routing 归 A3，output schema 深化归 F3 `002`，language coordinate 收敛归 F3 `003`，real judge / eval归 F3 `004`。
 
@@ -17,7 +19,7 @@
 
 | 范围 | 当前来源 | 可执行落点 |
 |------|----------|------------|
-| Baseline feature keys | `docs/spec/prompt-rubric-registry/spec.md` §3.1.1 | 9 个 feature_key 目录 |
+| Baseline feature keys | `docs/spec/prompt-rubric-registry/spec.md` §3.1.1 | 6 个 feature_key 目录 |
 | Prompt meta/body | `config/prompts/README.md`、`config/prompts/<feature_key>/v0.1.0.{yaml,md}` | `scripts/lint/prompt_lint.py`、Go loader |
 | Output schema | `config/prompts/<feature_key>/v0.1.0.schema.json` | registry `OutputSchema`、prompt/schema/struct lint |
 | Rubric schema | `config/rubrics/README.md`、`config/rubrics/<feature_key>/v0.1.0.yaml` | `scripts/lint/rubric_lint.py`、Go loader |
@@ -28,15 +30,15 @@
 ## 3 质量门禁
 
 - **Plan 类型**: `code-internal` + `contract` + `truth-source` + `migration` + `tooling`
-- **TDD 策略**: 通过 `/implement prompt-rubric-registry/001-baseline backend` 进入 `/tdd`。实现项必须由 lint negative fixtures、Go unit tests、migration static gates、fixture validation 或 cross-layer tests 先行约束。
+- **TDD 策略**: 通过 `/implement prompt-rubric-registry/001-baseline backend` 进入 `/tdd`。Phase 12 由 prompt lint/hash、seed drift、registry snapshot 与 TargetJob render tests 先红，再删除旧 source token/wording并同步全部 truth source。
 - **BDD 策略**: 不适用。该 owner 只提供内部 Go 包、config truth source、lint scripts、migration seed 与 TargetJob adapter，不新增用户可见 UI、HTTP API 行为或端到端业务流程。
-- **替代验证 gate**: `lint-prompts`、`lint-rubrics`、`lint-prompts-hardcode`、`lint-ai-profile-coverage`、registry / targetjob / aiclient Go tests、migration static lint、`make validate-fixtures`、context validator、sync-doc-index 和 product-scope pruning surface lint。
+- **替代验证 gate**: `lint-prompts`、`lint-rubrics`、`lint-prompts-hardcode`、`lint-ai-profile-coverage`、registry / targetjob Go tests、migration static lint、hash/seed/resolved-snapshot parity、active token zero-reference、context validator 和 pruning surface lint。
 
 ## 4 当前合同
 
 ### 4.1 Config truth source
 
-`config/prompts/` 和 `config/rubrics/` 只维护当前 9 个 baseline feature_key。每个 prompt feature_key 有 `v0.1.0.yaml`、`v0.1.0.md`、`v0.1.0.schema.json`；每个 rubric feature_key 有 `v0.1.0.yaml`。Baseline 坐标为 `language: multi`；语言 override 只在 spec/plan 记录真实语义差异时允许。
+`config/prompts/` 和 `config/rubrics/` 只维护当前 6 个 baseline feature_key。每个 prompt feature_key 有 `v0.1.0.yaml`、`v0.1.0.md`、`v0.1.0.schema.json`；每个 rubric feature_key 有 `v0.1.0.yaml`。Baseline 坐标为 `language: multi`；语言 override 只在 spec/plan 记录真实语义差异时允许。
 
 `template_hash` 算法由 prompt README、Python lint 和 Go loader 共享：`sha256(template_body || canonical_json(meta_without_template_hash))`。hash drift、字段顺序漂移、stub marker、provider/model 字符串和 schema/prompt/struct 字段漂移都必须让 lint 失败。
 
@@ -52,7 +54,7 @@
 
 ### 4.4 Provenance and migrations
 
-B1 shared vocabulary、B4 migrations、A3 aiclient metadata/writer 和 `ai_task_runs` typed columns共同承载 `feature_key`、`prompt_version`、`rubric_version`、`model_profile_name`、`model_id`、`feature_flag`、`data_source_version`。Prompt/rubric baseline seed migration 写入 9 个 canonical `multi` rows，并保持 down SQL 范围限定到 `version='v0.1.0'` 与 9-key 集合。
+B1 shared vocabulary、B4 migrations、A3 aiclient metadata/writer 和 `ai_task_runs` typed columns共同承载 `feature_key`、`prompt_version`、`rubric_version`、`model_profile_name`、`model_id`、`feature_flag`、`data_source_version`。Prompt/rubric baseline seed migration 写入 6 个 canonical `multi` rows，并保持 down SQL 范围限定到 `version='v0.1.0'` 与当前 6-key 集合。
 
 ### 4.5 Lint targets
 
@@ -67,8 +69,8 @@ Makefile 暴露并聚合：
 
 ## 5 验收标准
 
-- 9 个 baseline feature_key 均存在 canonical `multi` prompt / rubric / output schema truth source。
-- `RegistryClient.ResolveActive` 对 9 个 feature_key 返回完整 resolution，language fallback 到 `multi`，unknown feature/language 走明确错误。
+- 6 个 baseline feature_key 均存在 canonical `multi` prompt / rubric / output schema truth source。
+- `RegistryClient.ResolveActive` 对 6 个 feature_key 返回完整 resolution，language fallback 到 `multi`，unknown feature/language 走明确错误。
 - TargetJob parse pipeline 通过 `RegistryAdapter` 消费 F3 registry，不保留独立 static prompt registry。
 - B1/B4/A3 provenance 字段与 `GenerationProvenance`、`ai_task_runs` 和 TargetJob fake writer tests 对齐。
 - Prompt / rubric lint、hardcode lint、AI profile coverage、migration static lint、Go focused tests 和 fixture validation 通过。
@@ -93,6 +95,7 @@ make validate-fixtures
 
 | 日期 | 版本 | 说明 |
 |------|------|------|
+| 2026-07-13 | 1.11 | Make `target.import.parse` raw-text-only and synchronize prompt hash, seed and resolved snapshot. |
 | 2026-07-10 | 1.10 | Centralize prompt/rubric config-root discovery for tests and benchmarks. |
 | 2026-07-10 | 1.9 | Remove the unused `Iterable` import from the prompt linter. |
 | 2026-07-10 | 1.8 | Collapse three pytest alias wrappers into directly collected tests. |
@@ -122,3 +125,9 @@ make validate-fixtures
 ## 12 Shared config-root test support
 
 `backend/internal/testsupport.ConfigRoots` 使用 `testing.TB` 同时服务 registry tests、registry benchmark、TargetJob cross-layer tests 和 cmd/api composition tests。删除各 package 向上查找 `backend/go.mod` 的本地 walker，不保留转发 alias；共享 helper 仍在无法定位 checkout 时 skip，并返回 repo `config/prompts` / `config/rubrics` 绝对路径。
+
+## 13 Pending implementation
+
+### Phase 12: TargetJob raw-text-only prompt input
+
+RED 先让 prompt lint/hash、seed drift、registry snapshot 与 TargetJob render tests 对旧 source token/wording 失败。GREEN 删除 current prompt 的 URL/source metadata 变量与说明，只保留 `{{jd_text}}` 和输出语言指令 `{{target_language}}`，重算 YAML hash、同步 baseline seed body/hash 并删除 renderer 旧变量替换。最终运行 prompt/profile/migration/registry/TargetJob gates，确认 resolved snapshot byte-semantic 一致且 active zero-reference 为零；BDD 不适用，以上 contract gates 为替代验证。

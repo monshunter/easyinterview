@@ -1,12 +1,12 @@
 # Interview 面试规划目标模块
 
-> **版本**: 1.32
+> **版本**: 1.34
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 文档目的
 
-本文档定义当前静态 UI 中 `面试` 一级模块的目标结构。`workspace` / 顶部导航 `面试` 是纯列表页，只展示可继续的面试规划列表，不读取也不解释 `targetJobId` / `planId` / `resumeId` 等详情上下文。规划详情由 `parse` route 的统一“面试规划详情 / 面试上下文确认”母版承接，列表卡片点击卡片主体时导航到 `parse?targetJobId=...`；卡片右上角展示删除图标按钮，卡片底部只展示 `立即面试` 主按钮，不再展示可见的 `进入规划` 按钮；删除图标调用 generated `archiveTargetJob` 持久软归档，成功后卡片移出列表且刷新后不得回灌。该模块是既有面试规划的回访入口，不是“当前岗位”页：用户从首页最近模拟面试、报告、会话记录或一级导航回到这里，只浏览规划列表并选择一个规划继续。首页最近模拟面试只展示 3 条快捷卡片，复用同一卡片主体和 `立即面试` 主按钮但不展示删除按钮，`更多` 进入本页列表。首次导入新 JD 时，首页作为新建面试规划快捷入口，必须在同一个 JD 输入卡中粘贴 JD，或从卡片底部 source actions 选择上传 JD 文件 / URL 导入，再通过适度宽度的下拉框显式选择已有 ready 简历；`还没有简历？1 分钟创建 →` 与下拉框同一行水平对齐，`立即面试` 位于简历选择下方。统一详情页继承该选择并只读展示 JD / 简历 / 轮次上下文；缺少或无效简历时只阻断开始，不在当前规划上补绑或默认替用户选中最近简历。
+本文档定义当前静态 UI 中 `面试` 一级模块的目标结构。`workspace` / 顶部导航 `面试` 是纯列表页，只展示可继续的面试规划列表，不读取也不解释 `targetJobId` / `planId` / `resumeId` 等详情上下文。规划详情由 `parse` route 的统一“面试规划详情 / 面试上下文确认”母版承接，列表卡片点击卡片主体时导航到 `parse?targetJobId=...`；卡片右上角展示删除图标按钮，卡片底部只展示 `立即面试` 主按钮，不再展示可见的 `进入规划` 按钮；删除图标调用 generated `archiveTargetJob` 持久软归档，成功后卡片移出列表且刷新后不得回灌。该模块是既有面试规划的回访入口，不是“当前岗位”页：用户从首页最近模拟面试、报告、会话记录或一级导航回到这里，只浏览规划列表并选择一个规划继续。首页最近模拟面试只展示 3 条快捷卡片，复用同一卡片主体和 `立即面试` 主按钮但不展示删除按钮，`更多` 进入本页列表。首次导入新 JD 时，首页作为新建面试规划快捷入口，只保留 JD textarea、ready 简历下拉框与「立即面试」CTA；`还没有简历？1 分钟创建 →` 与下拉框同一行水平对齐。提交 `{ rawText, targetLanguage, resumeId }` 后进入统一详情页，后者只读展示 JD / 简历 / 轮次上下文；缺少或无效简历时只阻断开始，不在当前规划上补绑或默认替用户选中最近简历。
 
 ## 2 模块职责
 
@@ -51,6 +51,10 @@
    └─ 暂无规划 -> 返回首页导入 JD
 
 [Parse / Unified Plan Detail]
+├─ Loading（仅首次导入）
+│  ├─ 解析中标题 / 等待说明
+│  └─ 四步进度（当前步显示处理中动画）
+│     └─ 不展示 model/provider、rubric/prompt/version/hash、provenance 或典型耗时
 ├─ Back
 │  ├─ 首次导入: 返回首页
 │  └─ 规划回访: 返回面试规划列表
@@ -87,7 +91,7 @@
 ```text
 入口:
 ├─ Home 最近模拟面试卡片（最多 3 条）或“更多”
-├─ Home 新建规划快捷入口（JD 输入卡内 source actions + 选择已有简历 + JD import）
+├─ Home 新建规划快捷入口（粘贴 JD + 选择已有简历 + JD import）
 ├─ 一级导航 面试
 ├─ Report 的复练当前轮
 └─ Report 的进入下一轮
@@ -98,7 +102,7 @@
   点击立即面试 -> start practice session
 ```
 
-一级 `面试` 入口不得默认展示“没有 JD 上下文”的死胡同；`workspace` 永远展示面试规划列表，列表候选来自当前 `listTargetJobs(analysisStatus=ready)` 契约。列表必须以卡片承载每个规划：卡片主体与 Home 最近模拟面试卡片同源，包含公司/状态 eyebrow、岗位、地点和 mini round rail；workspace 只在卡片底部追加 `立即面试` 主按钮，并把删除图标固定在卡片右上角。桌面端响应式多列，移动端单列；桌面端卡片列必须使用固定最大列宽，1 张、2 张或 3 张规划卡片的规格保持一致，不得因为 `auto-fit + 1fr` 拉伸成整行宽卡；不得退化为没有容器感的文本列。卡片信息必须保持简洁，不得展示 `sourceType`、目标语言、`手动输入` 等导入元信息；解析失败、非 ready 或空标题 JD 不得显示为面试规划卡片。卡片主体点击进入 `parse` 统一面试规划详情页；底部 `立即面试` 按钮使用主题 accent 样式并直接启动 practice；右上角删除按钮使用简历列表同款 trash 图标样式，调用 generated `archiveTargetJob` 软归档 TargetJob，成功后从当前列表移除，失败时保留卡片并展示错误。首次导入主路径为 `Home 选择 JD source -> 选择已有简历 -> 立即面试 -> 面试规划详情核对 -> practice`；回访既有规划、点击列表卡片也进入同一个只读详情母版，不再经过另一套 workspace 全页确认。
+一级 `面试` 入口不得默认展示“没有 JD 上下文”的死胡同；`workspace` 永远展示面试规划列表，列表候选来自当前 `listTargetJobs(analysisStatus=ready)` 契约。列表必须以卡片承载每个规划：卡片主体与 Home 最近模拟面试卡片同源，包含公司/状态 eyebrow、岗位、地点和 mini round rail；workspace 只在卡片底部追加 `立即面试` 主按钮，并把删除图标固定在卡片右上角。桌面端响应式多列，移动端单列；桌面端卡片列必须使用固定最大列宽，1 张、2 张或 3 张规划卡片的规格保持一致，不得因为 `auto-fit + 1fr` 拉伸成整行宽卡；不得退化为没有容器感的文本列。卡片信息必须保持简洁，不得展示 `sourceType`、目标语言、`手动输入` 等导入元信息；解析失败、非 ready 或空标题 JD 不得显示为面试规划卡片。卡片主体点击进入 `parse` 统一面试规划详情页；底部 `立即面试` 按钮使用主题 accent 样式并直接启动 practice；右上角删除按钮使用简历列表同款 trash 图标样式，调用 generated `archiveTargetJob` 软归档 TargetJob，成功后从当前列表移除，失败时保留卡片并展示错误。首次导入主路径为 `Home 粘贴 JD -> 选择已有简历 -> 立即面试 -> 面试规划详情核对 -> practice`；回访既有规划、点击列表卡片也进入同一个只读详情母版，不再经过另一套 workspace 全页确认。
 
 ### 4.2 切换或新建规划
 
@@ -235,3 +239,12 @@ Resume
    当前/已完成状态必须来自 `TargetJob.practiceProgress`：`completedRounds` 画为完成态，`currentRound` 画为当前态，全部完成时所有节点为完成态且 `立即面试` disabled。缺失、跳轮、重复或 pair 不匹配时不高亮/不启动；禁止读取 lifecycle `status`、自由文本 `nextRound`、URL 或浏览器存储做轮次 fallback。mini rail 的 DOM、间距、颜色、节点几何保持现有原型值不变。
 6. 已绑定简历展示、启动面试、公司信号、记录区等详情能力由 `parse` / practice / report 对应 owner 承接，不属于 workspace 列表页。
 7. 本页是回访入口：不得把首次 JD 导入用户从 `parse` 强制带回本页做第二次全页确认；解析成功即代表规划已保存，详情页不再提供“仅保存规划”。
+8. `parse` 首次导入 loading 只保留四步进度、当前步处理动画与面向用户的等待说明；内部 model/provider、rubric/prompt/version/hash、provenance、typical latency 不得出现在 prototype、formal DOM 或 desktop/mobile 截图中。
+9. Home JD intake 只接受粘贴文本；prototype、formal DOM、OpenAPI 请求与 desktop/mobile 截图不得出现平行 JD 导入控件、弹窗或 source discriminator。Resume 上传能力属于 Resume owner，必须继续保留。
+
+## 9 修订记录
+
+| 日期 | 版本 | 变更 |
+|------|------|------|
+| 2026-07-13 | 1.34 | Home JD intake 收敛为唯一粘贴文本框、ready 简历下拉框与主 CTA，并固定 `{ rawText, targetLanguage, resumeId }` handoff。 |
+| 2026-07-13 | 1.33 | 补齐 Parse loading 页面树并删除用户界面中的模型、rubric、provenance 与典型耗时等内部元数据。 |

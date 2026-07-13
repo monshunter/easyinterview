@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Fixtures & Mock Source
 
-> **版本**: 1.13
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 1.15
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -26,7 +26,7 @@
 
 - **Plan 类型**: `contract + tooling + mock-source`
 - **TDD 策略**: fixture coverage、schema validation、provenance、privacy allowlist、UUIDv7 / `tmp_` id scan、prototype sync idempotency、example projection 和 Prism byte-equal smoke 是可执行断言。重进本 plan 时必须先运行对应 gate 暴露 drift，再最小修复 fixture 或工具。
-- **BDD 策略**: BDD 不适用。本 plan 只交付内部 mock data truth source，不产生用户行为流；用户可见流程由当前 P0 scenario owner 维护。
+- **BDD 策略**: 本 plan 不创建本地 BDD 文件，只交付内部 mock data truth source；TargetJob 由 P0.010/P0.015 验收，Practice recovery 必须把 exact fixture markers 交给 frontend-workspace-and-practice/002 与 P0.046。对应 checklist 的 `BDD-Gate` 未通过时不得收口。
 - **替代验证 gate**: `make validate-fixtures`、`make sync-fixtures-from-prototype`、`make render-openapi-fixture-examples`、`python3 scripts/codegen/prism_fixture_smoke.py`、fixture render/unit tests、`make lint-openapi`、`make codegen-check`、`sync-doc-index --check`。
 
 ## 4 交付范围
@@ -103,6 +103,8 @@ Mock consumer 的 scenario 选择规则固定为：
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-13 | 1.15 | Add canonical blank-rawText 422 validation fixture and Practice reload/same-ID recovery plus planned typed failure fixture matrix. | openapi-v1-contract 1.54 + P0.046 |
+| 2026-07-13 | 1.14 | Reopen fixture owner for OPENAPI-002 paste-only TargetJob requests/responses, upload purpose cleanup and runtime projection gates. | OPENAPI-002 + 001/003 + mock-contract-suite/001 |
 | 2026-07-12 | 1.13 | Add exact baseline/derived CreatePracticePlanRequest positive and negative fixture matrix. | openapi-v1-contract 1.46 |
 | 2026-07-12 | 1.12 | Add the canonical REPORT_CONTEXT_TOO_LARGE failed-report scenario sourced from B1. | openapi-v1-contract 1.45 + shared-conventions 1.30 |
 | 2026-07-12 | 1.11 | Reopen Phase 7 for OPENAPI-001 closed Reports/PracticePlans fixtures, prototype projection and Prism proof. | openapi-v1-contract 1.44 |
@@ -122,3 +124,55 @@ Mock consumer 的 scenario 选择规则固定为：
 Replace every `getFeedbackReport` scenario with queued/generating/ready-needs-practice/ready-well-prepared/failed/failed-context-too-large/invalid-contract/long-content current-shape variants. Every body includes frozen minimal context; ready variants include summary, code+label dimensions, dimensionCode evidence, actions and report-local focus. The oversized-context failed variant uses exactly B1 `REPORT_CONTEXT_TOO_LARGE`; no local alias is permitted. Replace `listTargetJobReports` and `createPracticePlan` focus-input scenarios, and update `ui-design/src/data.jsx` + `PROTOTYPE_MAPPING.md` before running sync twice.
 
 Fixture/schema negative tests must prove old `dimension`, `retryFocusCompetencyCodes`, question fields and arbitrary additional properties fail. Render examples and run Prism byte-equal smoke for both Reports operations plus createPracticePlan.
+
+## 10 OPENAPI-002 paste-only fixtures and projection
+
+### 10.1 TargetJob request/response fixtures
+
+- Replace `importTargetJob` `default` and `manual-text-primary` requests with the flattened exact body `{rawText,targetLanguage,resumeId}` and non-whitespace `rawText`. Add canonical negative scenario `validation-blank-raw-text`: whitespace-only request, `422`, `ApiErrorResponse.error.code=VALIDATION_FAILED`, `retryable=false`, `details.field=rawText`.
+- Extend the fixture validator with an exact negative-request assertion for this one scenario: it must fail at `/rawText` because of the non-whitespace rule while the 422 response validates normally. A generic “skip request validation” flag, wildcard pointer or file-level exemption is forbidden.
+- Delete URL, file and manual-form positive scenarios; do not rename them into historical compatibility cases.
+- Remove `sourceType` / `sourceUrl` from every TargetJob response scenario, prototype projection and generated example. Parsed-ready, cross-user hidden and invalid-transition coverage remains, but source provenance is no longer part of the wire shape.
+- Update `createUploadPresign` fixtures to remove `target_job_attachment` while preserving resume/privacy purpose coverage and the operation itself.
+
+### 10.2 TDD negative matrix
+
+Focused validator tests must first fail on current fixtures, then prove old `source` wrapper, URL, `fileObjectId`, manual-form fields, `titleHint`, `companyNameHint`, unknown properties, TargetJob source response fields and `purpose=target_job_attachment` are schema-invalid. Construct negative payloads in test code or dedicated negative fixtures; do not keep retired variants as positive named scenarios.
+
+### 10.3 Prototype, examples and runtime handoff
+
+Update `ui-design/src/data.jsx` mapping inputs and `PROTOTYPE_MAPPING.md` so prototype sync can only emit paste-only TargetJob requests/responses. Run sync twice and require byte idempotency. Render examples and run Prism byte-equal smoke for `importTargetJob`, `listTargetJobs`, `getTargetJob` and `createUploadPresign`; hand the exact fixture markers to mock-contract-suite/001 and frontend/backend consumers.
+
+### 10.4 BDD and zero-reference gates
+
+BDD behavior remains owned by P0.010/P0.015: fixtures provide paste success/failure states, while scenario owners prove the user flow. Current positive fixture/prototype/example surfaces must have zero positive/runtime `TargetJobImportSource*`, `target_job_attachment`, TargetJob `sourceType/sourceUrl`, URL/file/manual-form requests or compatibility aliases. Accepted ADR/oracle and exact negative test/fixture declarations may retain rejected tokens；searches must classify positive/runtime reachability and may not exclude a whole file or test directory. Inventory remains exactly 37 fixtures for 37 operations.
+
+## 11 Practice message recovery fixtures
+
+### 11.1 Authoritative get-session projections
+
+`PracticeSessions/getPracticeSession.json` must add schema-valid named scenarios for `reply-pending`、`reply-retryable-failed`、`reply-terminal-failed` 与 `reply-complete`。All user messages carry stable `clientMessageId` + exact `replyStatus`; assistant messages carry neither. The scenario family must share one session/user message identity so tests can prove reload changes only authoritative reply state, not fabricate a new message. Exact invariants:
+
+- pending/retryable/terminal contain zero assistant reply for that user message；
+- complete contains exactly one assistant reply after that user message；
+- no scenario derives status merely from assistant absence；the explicit persisted field is the assertion source；
+- a reload marker identifies the retryable-failed user message that P0.046 retries with the same ID/text.
+
+### 11.2 Planned send failure matrix
+
+`PracticeSessions/sendPracticeMessage.json` keeps `default` as 200 complete success and adds this exact planned matrix:
+
+| scenario | status | error code | retryable | exact marker / persistence expectation |
+|----------|--------|------------|-----------|----------------------------------------|
+| `validation-empty-text` | 422 | `VALIDATION_FAILED` | false | `details.field=text`; no user reservation |
+| `auth-unauthorized` | 401 | `AUTH_UNAUTHORIZED` | false | no user reservation |
+| `session-not-found` | 404 | `PRACTICE_SESSION_NOT_FOUND` | false | no user reservation |
+| `reply-pending-conflict` | 409 | `PRACTICE_SESSION_CONFLICT` | false | existing pending reservation unchanged |
+| `client-message-mismatch` | 409 | `IDEMPOTENCY_KEY_MISMATCH` | false | same ID with different text; existing reservation unchanged |
+| `ai-timeout-retryable` | 502 | `AI_PROVIDER_TIMEOUT` | true | user reservation persisted as `retryable_failed`; no assistant |
+
+Every scenario must use `ApiErrorResponse` and lock status/code/retryable/details without parsing `message`. Add a paired retry-success scenario or cross-fixture contract that sends the same `clientMessageId` + same text after `ai-timeout-retryable`, transitions the existing user projection to `complete`, and yields exactly one assistant reply. Unknown scenario selection remains fail-loudly.
+
+### 11.3 Validator, projection and BDD handoff
+
+Focused fixture tests first RED on missing role-specific fields, assistant recovery fields, invalid reply enum, duplicate user/assistant IDs, wrong failure marker and retry success that allocates a second message. GREEN then runs fixture validation, example rendering and Prism byte parity for `getPracticeSession` and `sendPracticeMessage` without adding operations or tags. Hand exact scenario/status/body markers to mock-contract-suite/001, frontend-workspace-and-practice/002, backend-practice/002 and P0.046; local fixture tests do not substitute for reload/optimistic/pending/retry user-flow evidence.

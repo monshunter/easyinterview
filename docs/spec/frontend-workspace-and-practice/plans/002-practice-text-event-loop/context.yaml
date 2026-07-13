@@ -5,15 +5,15 @@ metadata:
   name: 002-practice-text-event-loop
   sequence: 2
   baseBranch: main
-  branch: fix/report-semantic-grounding-0712
+  branch: fix/interview-turn-ux-0713
   specVersion:
-    from: 1.38
-    to: 1.40
+    from: 1.40
+    to: 1.41
 spec:
   defaultTarget: frontend
   discovery:
     aliases: [practice continuous chat, full width conversation]
-    keywords: [PracticeScreen, PracticeMessage, sendPracticeMessage, zeroAnswerFinish, finishDisabledReason, backendAuthoritativeCompletion, reportIdOnlyHandoff, noCopiedRouteIdentity, disabled phone, no SessionMap, no QuestionCard]
+    keywords: [PracticeScreen, PracticeMessage, sendPracticeMessage, optimisticUserMessage, interviewerThinking, pendingComposerLock, failedMessageRetryIcon, sameClientMessageIdRetry, clientMessageIdReplyStatus, getPracticeSessionRetryProjection, ApiClientError, reloadSameIdRetry, noBrowserRetryPersistence, draftPreservedDuringRetry, zeroAnswerFinish, finishDisabledReason, backendAuthoritativeCompletion, reportIdOnlyHandoff, noCopiedRouteIdentity, disabled phone, no SessionMap, no QuestionCard]
   targets:
     frontend:
       plan: ./plan.md
@@ -31,6 +31,10 @@ spec:
         packages:
           - ui-design/src/screen-practice.jsx
           - frontend/src/app/screens/practice
+          - frontend/src/api/generated
+          - openapi/templates/ts/client.tmpl
+          - openapi/fixtures/PracticeSessions/getPracticeSession.json
+          - openapi/fixtures/PracticeSessions/sendPracticeMessage.json
           - frontend/src/app/interview-context
           - frontend/src/app/i18n/locales
           - frontend/tests/pixel-parity

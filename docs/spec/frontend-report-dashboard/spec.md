@@ -1,6 +1,6 @@
 # Frontend Report Dashboard Spec
 
-> **版本**: 1.20
+> **版本**: 1.21
 > **状态**: active
 > **更新日期**: 2026-07-13
 
@@ -45,6 +45,7 @@
 | D-9 | Replay focus | `retryFocusDimensionCodes=[]` 是合法的通用同轮复练，不因空 focus 禁用 Replay；只有非空 focus 才要求每个 code 同时引用 `needs_work` dimension 与至少一条同 code issue，非法非空引用按 direct-contract failure fail closed |
 | D-10 | Generating 等待窗口 | 单次`GenerateReport`动作在后端调用内执行initial+最多3次retry并等待10s/20s/40s；动作结束销毁retry context，新的独立动作清零，`async_jobs.attempts/max_attempts`仅作基础设施执行。Frontend固定`maxAttempts=49`、初始1.5s、×1.5、cap8s，总约6m04s，覆盖4×60s+70s=5m10s并留约54s；queued/generating不展示attempt/retry/progress，窗口耗尽只进入可继续检查态，不伪装服务端failed |
 | D-11 | Poll pause/resume | hidden/blur只暂停同一poll run；timer等待与in-flight请求都保存current/next attempt和delay，visible/focus从n+1继续，不回1、不重复n。单run累计调用<=49；只有显式continue-check或reportId/client identity变化重置 |
+| D-12 | Context Strip 正式截图验收 | 每次验收只保留同一 ready report 的两张 formal real UI `fullPage: true` 图：1440x1200 与 390x844；固定目录、文件名与 manifest schema，逐图绑定 SHA-256、ready state、viewport/fullPage 和 report/session sentinel DOM/a11y absence。Prototype、裁剪图、额外状态图不能替代或混入这组成功证据。 |
 
 ## 4 UI 真理源
 
@@ -94,7 +95,6 @@ ReportDashboard
 │  ├─ replay current round
 │  └─ next round
 ├─ ContextStrip
-│  ├─ session
 │  ├─ target
 │  ├─ round
 │  └─ resume
@@ -111,10 +111,12 @@ ReportDashboard
 
 ### 6.3 可读性与响应式
 
-- target/round/resume 只读 frozen report context，可换行或通过 title/accessible description 查看完整值；session ID 可视觉省略但完整值可访问。
+- target/round/resume 只读 frozen report context，可换行或通过 title/accessible description 查看完整值。session/report UUID 等内部 locator 不渲染为用户字段，也不通过 title、tooltip 或 accessible description 暴露。
 - Desktop detail 使用双列；mobile 390px 明确单列，长 label/evidence/action 不横向溢出。
 - Frontend consumer 在 render 前执行 24/64 semantic boundary；English 按 ECMAScript `/\s/u` whitespace words（U+FEFF 是 delimiter，U+0085 不是）、zh-CN 按 Unicode code points 计数。超界 payload 不进入 ReportDashboard，不得利用 CSS 截断把 invalid 内容伪装为可用。
 - Deterministic ui-design/OpenAPI fixture 使用恰好 24-word/64-code-point actions；prototype/formal 1440x1200 与 390x844 full-page parity 均覆盖 action 区域并证明完整换行。200-code-point malformed fixture只证明 typed invalid/no-raw-output，不得替代 UX gate；18/52 targeted-repair margin 也不得替代边界 fixture。
+- Context Strip 用户验收固定写入 `.test-output/acceptance/report-context-strip/<run-id>/`，且成功目录只包含 `report-context-strip-desktop-1440x1200.png`、`report-context-strip-mobile-390x844.png` 与 `manifest.json`。两图必须来自同一 formal frontend 的真实 backend ready report，分别使用 exact viewport 1440x1200 / 390x844 和 `fullPage: true`；不得用 `ui-design` prototype、fixture-only 页面、裁剪图或额外 loading/error 图冒充。
+- `manifest.json` 必须逐图记录相对路径、SHA-256、`state=ready`、viewport width/height、`fullPage=true`、同一 report 的脱敏 locator/digest，以及 `reportSentinelAbsent=true`、`sessionSentinelAbsent=true`；同时绑定该页面的 DOM/a11y negative audit，证明 report/session sentinel 在 text、title/tooltip、任意 `aria-*` 与 accessible name 中均不存在。截图中 target/round/resume 必须可见，且 report/session sentinel 不能以用户文案、调试标记或可访问名称出现。
 - status/confidence、readiness、CTA chrome、empty/error/loading 随 UI locale 本地化；summary、dimension label、evidence 与 action label 按 report language 原样展示。未知 enum fail closed 到 typed error，不回显 raw token。
 
 ### 6.4 CTA
@@ -150,6 +152,7 @@ ReportDashboard
 | C-9 | route tamper / deep link | 只有 reportId，或 route 带冲突 status/target/resume/round | 刷新/读取/点击 CTA | API frozen context/status 获胜，route 不能改变展示与动作 | 001 |
 | C-10 | language split | UI locale 与 report language 不同 | 查看报告 | chrome 随 UI locale；模型语义原文不翻译、不改写 | 001 |
 | C-11 | empty / issue-backed focus | ready report 的 focus 为空，或非空 focus 引用 needs-work/issue | 点击 Replay / 校验 direct contract | 空 focus 合法创建通用同轮复练；非空 focus 必须逐项 issue-backed，非法引用 fail closed | 001 |
+| C-12 | internal locator cleanup + formal acceptance | 同一真实 backend ready report 含 distinct frozen session/report sentinel | 以 formal frontend 分别在 exact 1440x1200 / 390x844 执行 `fullPage: true` 捕获并生成固定 manifest | Context Strip 只显示 target/round/resume；成功目录只有固定两图+manifest；逐图 path/hash/state/viewport/fullPage 与 DOM/a11y sentinel absence 闭合，API 事实源与 CTA 行为不变 | 001 |
 
 ## 9 关联计划
 
@@ -159,6 +162,7 @@ ReportDashboard
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-13 | 1.21 | Remove session/report UUID from the user-visible Context Strip while retaining API-frozen context as the internal action authority. |
 | 2026-07-13 | 1.20 | Supersede 1.18 timing ownership: 10s/20s/40s belong to one action-local GenerateReport retry context; async job attempts are infrastructure-only. Keep maxAttempts49/6m04s honest polling and do not claim a failed-report regenerate API. |
 | 2026-07-13 | 1.19 | L2：in-flight/timer pause preserves attempt and schedule；resume never resets1 or exceeds49；run35622 is aborted7/11 not PASS. |
 | 2026-07-13 | 1.18 | 锁定maxAttempts49（约6m04s），覆盖report复用business policy的10s/20s/40s与4×60s调用；分离business async与infra投递退避，不展示内部attempt/progress。 |

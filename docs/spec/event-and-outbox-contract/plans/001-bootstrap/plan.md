@@ -1,24 +1,25 @@
 # Event and Outbox Contract Bootstrap
 
-> **版本**: 1.13
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 1.14
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
 
 ## 1 目标
 
-维护 B3 当前 event/job/outbox contract：`shared/events.yaml` 定义 13 个 internal events，`shared/jobs.yaml` 定义 8 个 canonical job_type 与 6 个 B2 API-facing job_type subset，`backend/cmd/codegen/events` 生成 Go / TS / JSON Schema / baseline artifacts，`make lint-events` 和 focused tests 负责 drift 与 boundary gate。
+维护 B3 当前 event/job/outbox contract：`shared/events.yaml` 定义 12 个 internal events，`shared/jobs.yaml` 定义 7 个 canonical job_type 与 6 个 B2 API-facing job_type subset，`backend/cmd/codegen/events` 生成 Go / TS / JSON Schema / baseline artifacts，`make lint-events` 和 focused tests 负责 drift 与 boundary gate。
 
 本 plan 不实现 backend internal runner、dispatcher loop、业务 producer/consumer、DB migration、PostHog analytics 或 OTel SDK。它只拥有 event/job truth source、generated contract、baseline、lint/codegen gate 和下游 handoff contract。
 
 ## 2 当前合同
 
-- `shared/events.yaml` 是 13 个 eventName、envelope、payload schema、producer、aggregateType、PII boundary 和 event-local enum 的真理源。
-- 当前 event domains 固定为 `target` / `practice` / `report` / `resume` / `source` / `privacy`。
-- `shared/jobs.yaml` 是 8 个 canonical job_type、Asynq dotted task name、`triggerEventSemantic`、priority、owner domain、API-facing subset 和 `email_dispatch` redaction policy 的真理源。
-- API-facing job_type subset 固定为 `target_import` / `resume_parse` / `report_generate` / `resume_tailor` / `privacy_export` / `privacy_delete`。`source_refresh` 与 `email_dispatch` 保持 internal-only。
+- `shared/events.yaml` 是 12 个 eventName、envelope、payload schema、producer、aggregateType、PII boundary 和 event-local enum 的真理源。
+- 当前 event domains 固定为 `target` / `practice` / `report` / `resume` / `privacy`。
+- `shared/jobs.yaml` 是 7 个 canonical job_type、Asynq dotted task name、`triggerEventSemantic`、priority、owner domain、API-facing subset 和 `email_dispatch` redaction policy 的真理源。
+- API-facing job_type subset 固定为 `target_import` / `resume_parse` / `report_generate` / `resume_tailor` / `privacy_export` / `privacy_delete`。`email_dispatch` 是唯一 internal-only job。
+- `target.import.requested` payload 只保留 `targetJobId` / `userId` / `targetLanguage`；`source.refreshed` 与 refresh job/task contract 不再属于 current inventory。独立 `source_records` persistence 保留，不由本 plan 删除。
 - `email_dispatch` payload 只允许审计字段；raw auth token、auth URL、邮箱明文和邮件正文不得进入 `async_jobs.payload`、outbox 或 log。
 - Generated artifacts include backend event/job constants and payload structs, frontend event/job constants and payload types, JSON Schemas under `shared/events/schemas`, refs under `shared/events/refs`, and baselines under `shared/events/baseline` / `shared/jobs/baseline`.
 
@@ -37,7 +38,7 @@
 
 ### 4.2 Job truth source
 
-`shared/jobs.yaml` holds canonical job_type values, Asynq dotted task names, API-facing subset and `triggerEventSemantic`. Inventory lint verifies the 8-job set, 6 API-facing subset, dotted mapping and `email_dispatch` redaction schema.
+`shared/jobs.yaml` holds canonical job_type values, Asynq dotted task names, API-facing subset and `triggerEventSemantic`. Inventory lint verifies the 7-job set, 6 API-facing subset, dotted mapping and `email_dispatch` redaction schema.
 
 ### 4.3 Codegen and baselines
 
@@ -63,8 +64,8 @@ Downstream owners consume this contract:
 
 ## 5 验收标准
 
-- Current event inventory is exactly 13 events across 6 domains.
-- Current job inventory is exactly 8 canonical job_type values with 6 API-facing values.
+- Current event inventory is exactly 12 events across 5 domains.
+- Current job inventory is exactly 7 canonical job_type values with 6 API-facing values.
 - `make codegen-events` is deterministic and generated artifacts match yaml truth sources.
 - `make lint-events` rejects bare event/job literals, missing generated files, breaking payload changes and email_dispatch redaction violations.
 - Go and TS shared event/job tests pass.
@@ -84,9 +85,30 @@ Downstream owners consume this contract:
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-13 | 1.14 | Reopen Phase 9 for OPENAPI-002 paste-only event/job contraction, regenerated baselines and zero-reference gates. | event-and-outbox-contract 2.15 + backend-async-runner 1.16 |
 | 2026-07-12 | 1.13 | 对齐 Practice 连续会话合同，删除 turn-level event 与题目/模式计数字段，事件全集收敛为 13。 | backend-practice/001 Phase 1 |
 | 2026-07-10 | 1.12 | 对齐事件 inventory contract tests 与当前 14-event / 8-job 数量口径。 | tech-debt pruning |
 | 2026-07-10 | 1.11 | 删除两个测试专用 generator wrapper，测试与 CLI 统一使用显式 conventions 入口。 | tech-debt pruning |
 | 2026-07-07 | 1.10 | 压缩 owner 文档为当前 14-event / 8-job / 6 API-facing subset event-job contract。 | product-scope/001-core-loop-module-pruning |
 | 2026-07-06 | 1.9 | 对齐当前 14 events / 8 canonical jobs / 6 API-facing JobType subset。 | product-scope/001-core-loop-module-pruning |
 | 2026-04-30 | 1.3 | 完成 B3 event/job contract bootstrap implementation。 | implementation close-out |
+
+## Phase 9: OPENAPI-002 paste-only event/job contraction
+
+### 9.1 RED contract inventory
+
+Add focused inventory/generator tests that fail against the pre-contraction truth source. RED must require `target.import.requested.requiredPayload` to omit `sourceType`, reject event-local `TargetImportSourceType` / `SourceFreshnessStatus`, reject `source.refreshed`, and reject the refresh canonical job/dotted task/priority mapping. Expected inventory is exactly 12 events / 5 domains / 7 canonical jobs / 6 API-facing jobs. Tests must also assert `source_records` is not a deletion target of this contract phase.
+
+### 9.2 GREEN truth source, generated artifacts and baselines
+
+Update `shared/events.yaml` and `shared/jobs.yaml`, then regenerate backend/frontend event/job types, JSON Schemas, refs and committed v1 baseline manifests. `target.import.requested` retains required `targetJobId` / `userId` / `targetLanguage` so the runner can read the persisted paste text by ID; raw JD text does not enter outbox payload. Delete generated refresh event/job symbols and schema files without compatibility aliases or deprecated wrappers.
+
+Because the project is pre-launch, this accepted contraction re-freezes the current v1 manifests after preserving a before/after inventory audit. A baseline-only edit without proposed truth-source/generated diffs must fail.
+
+### 9.3 Handoff and zero-reference
+
+Hand regenerated job types to backend-async-runner Phase 7, B4 job constraint owner and TargetJob producer/consumer owners in the same implementation batch. Current truth source/generated/schema/baseline/runtime/producer/consumer surfaces must contain zero positive source discriminator enum, refresh event, refresh job, dotted refresh task or queue assignment; historical docs and explicit negative-test tokens may be excluded. `source_records` table/model/query ownership remains independently intact and must not be caught by this zero-reference gate.
+
+### 9.4 Verification strategy
+
+BDD is not applicable: this plan changes an internal contract and codegen surface, not a new user workflow. Replacement gates are RED/GREEN inventory tests, generator tests, `make codegen-events`, `make lint-events`, Go/TS generated-package tests, baseline drift checks, backend runner focused tests and scoped zero-reference searches.

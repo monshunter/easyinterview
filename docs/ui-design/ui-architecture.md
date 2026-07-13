@@ -1,8 +1,8 @@
 # EasyInterview UI 目标总体架构
 
-> **版本**: 2.27
+> **版本**: 2.29
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 ## 1 文档目的
 
@@ -34,9 +34,7 @@
 │  ├─ Theme / dark / language
 │  └─ User menu: 设置与隐私 / 退出登录
 ├─ Home / 首页
-│  ├─ JD 输入源
-│  │  ├─ 粘贴 JD 输入框
-│  │  └─ 上传文件 / URL 导入入口（输入卡底部 source actions）
+│  ├─ 粘贴 JD 输入框（唯一 JD intake）
 │  ├─ 选择已有简历（适度宽度下拉框）
 │  │  └─ 还没有简历？1 分钟创建（右侧同行）
 │  ├─ 立即面试（简历选择下方）
@@ -49,7 +47,8 @@
 ├─ Interview Session
 │  ├─ 全宽连续文本聊天
 │  ├─ 电话入口置灰
-│  ├─ 普通消息自然推进
+│  ├─ 即时 user row + pending interviewer thinking
+│  ├─ server-owned reply state + failed-row same-ID retry
 │  └─ 结束并生成报告
 ├─ Report Dashboard
 │  ├─ 会话 / 岗位 / 简历 / 轮次上下文
@@ -107,9 +106,7 @@
 
 ```text
 Home
-├─ JD 输入源
-│  ├─ 粘贴 JD
-│  └─ 上传文件 / URL 导入（同一输入卡底部 source actions）
+├─ 粘贴 JD（唯一文本输入）
 ├─ 选择已有 ready 简历（定宽下拉框）
 │  └─ 还没有简历？1 分钟创建（同排）
 │     └─ Resume Intake
@@ -200,9 +197,13 @@ ROUTE_ALIASES
 3. OpenAPI、backend、migrations、shared、config 和 scenario 的复盘 / 用户画像范围收敛由 product-scope/001-core-loop-module-pruning 承接。
 4. `auth_profile_setup` 保留为账号资料补全，不得写成用户画像。
 5. Pixel parity 和 route tests 必须覆盖范围外入口负向断言。
+6. Home 必须只保留 JD textarea、ready Resume 下拉框和主 CTA；正式前端与静态原型都不得保留其他 JD intake 控件或弹窗，desktop 1440px 与 mobile 390px 截图必须证明该单一路径。
+7. Practice transient optimistic row 不得成为跨刷新事实源；`getPracticeSession` 必须恢复 user `clientMessageId/replyStatus`，pending/retryable/terminal/complete UI 由该服务端投影收敛。
 
 ## 9 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-13 | 2.29 | Practice conversation 增加服务端可恢复 reply state、即时消息/思考态与 failed-row same-ID retry 架构。 |
+| 2026-07-13 | 2.28 | Home JD intake 收敛为唯一粘贴文本框，保留 ready 简历选择与主 CTA，并要求 desktop/mobile 截图验收。 |
 | 2026-07-12 | 2.27 | 将正式前端既有的 mobile TopBar 两行/多行响应式、内容驱动高度和无 document 横向溢出规则回写为 UI 真理源，并要求带 App Shell 页面使用真实 TopBar 底部做绝对 viewport parity。 |

@@ -1,13 +1,15 @@
 # Mock Contract Suite History
 
-> **版本**: 1.16
+> **版本**: 1.18
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-13
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 1.18 | Add Practice durable reply-status and typed failure fixture parity, same-ID recovery handoff, and narrow TargetJob zero-reference to positive/runtime surfaces. | openapi-v1-contract 1.54 + 001 Phase 9 + P0.046 |
+| 2026-07-13 | 1.17 | OPENAPI-002 paste-only handoff：mock runtime/fixtures/generated surface 移除 TargetJob URL/file/manual_form/sourceType/sourceUrl/`target_job_attachment` 正向能力，保留 `createUploadPresign` resume/privacy，并重开 001 Phase 8 承接 P0.015 与 zero-reference gate。 | OPENAPI-002 + 001-fixture-backed-mock-runtime Phase 8 |
 | 2026-07-10 | 1.16 | 统一 fixture-backed mock runtime 的 out-of-scope 边界 gate 命名，并同步 001 plan 与 context 版本。 | tech-debt pruning |
 | 2026-07-10 | 1.15 | docs-only：将 active spec 的 backend mock 目标收敛为 fixture-backed backend mock runtime，不改变 fixture/mock contract。 | tech-debt pruning |
 | 2026-07-06 | 1.12 | docs-only：将 E1 active spec 收敛为当前 10 tag / 35 operation fixture coverage 与 current-scope negative search。 | product-scope/001-core-loop-module-pruning Phase 6 |

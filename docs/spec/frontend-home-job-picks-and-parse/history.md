@@ -1,13 +1,15 @@
 # Frontend Home / Parse History
 
-> **版本**: 2.19
+> **版本**: 2.21
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-13
 
 ## 1 修订记录
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-13 | 2.21 | Home JD intake 收敛为唯一 textarea 与 `{ rawText, targetLanguage, resumeId }`；删除其他 JD intake 正向合同并保留 Resume 上传。 | 001-home-jd-import-and-parse Phase 18 |
+| 2026-07-13 | 2.20 | Parse loading 删除用户界面中的 model/rubric/provenance/latency 内部元数据并增加 desktop/mobile 截图 gate。 | 001-home-jd-import-and-parse Phase 17 |
 | 2026-07-10 | 2.19 | Parse success detail ignores route-only `resumeId` for binding; Start requires saved `TargetJob.resumeId`. | 001-home-jd-import-and-parse |
 | 2026-07-10 | 2.18 | Home empty state 文案口径收敛为不展示示例业务数据。 | tech-debt pruning |
 | 2026-07-09 | 2.10 | Spec v2.13 and plan 001 v2.8 simplify the unified Parse detail into a readonly saved-plan receipt: no field edits, resume picker, success Re-parse, Save plan, or Cancel; Start uses the saved TargetJob / Resume / PracticePlan snapshot directly. | 001-home-jd-import-and-parse Phase 6 |

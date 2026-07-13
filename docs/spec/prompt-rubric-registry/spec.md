@@ -1,6 +1,6 @@
 # Prompt Rubric Registry Spec
 
-> **版本**: 2.40
+> **版本**: 2.41
 > **状态**: active
 > **更新日期**: 2026-07-13
 
@@ -79,6 +79,7 @@
 | D-19 | Practice semantic-focus prompt pair | F3 `002` 拥有 immutable `practice.session.chat/v0.2.0` prompt/schema 与同版本 rubric pair。prompt 只消费 backend-practice 提供的结构化 `semanticFocus` / `{{semantic_focus_json}}`，不得消费 code-only focus 或旧 `focusCompetencies` token；schema 保持 closed `{messageText}`。v0.2 rubric 的 dimensions/weights/score levels 必须与 v0.1 byte-semantic 等价，仅 version/status coordinate 不同，避免为 token rename 发明新评估语义；发布前为 inactive，D-18 协调发布后与 prompt 一起 active。 | backend-practice/004 只拥有 runtime payload 与 exact-version test；F3/002 拥有文件、hash、version parity、activation/migration；v0.1 文件和 000002 不改且保留为 rollback coordinate |
 | D-20 | Resolve provenance coordinate | `ResolveActive(report.generate)` 在 active pair 为 v0.2.0 时必须返回 `DataSourceVersion=report-context.v1`，使 backend-review generation `CallMetadata` / `AICallMeta` 与冻结输入坐标一致；不得沿用通用 registry coordinate。`practice.session.chat/v0.2.0` 仍返回现有 `registry.v1`。 | focused resolver test 同时断言 report/practice，防止条件扩散到其他 feature key |
 | D-21 | Independent live report review | P0.100 真实矩阵中 generation/judge 同模型，judge PASS不能单独自证。每个case先在generation max4内完整validate/repair，再在独立judge max4内按typed retry policy执行；valid negative立即FAIL。最终 representative packet 再交blind Agent reviewer。 | manifest分别保留generation/judge attempt_count/retry_count/reason/scope、aggregate usage/latency与item/causal digest；valid negative retry、attempt5、protocol/content混淆或任何unsupported都失败 |
+| D-22 | TargetJob raw-text-only prompt | `target.import.parse` 的唯一 JD 内容输入是 raw JD text（`{{jd_text}}`）；`{{target_language}}` 只指定输出语言。current prompt 不接收 URL、page heading、file 或 source metadata。 | prompt body/meta hash、baseline seed、registry resolved snapshot 与 TargetJob render tests 同步；旧 source token/wording 只允许出现在显式负测或合法历史证据中 |
 
 #### 3.1.1 6 个当前 baseline feature_key 字典
 
@@ -112,6 +113,7 @@
 - 受 output schema 约束的 runtime parser 只消费 schema canonical keys；范围外 alias 不属于 prompt 或 runtime contract，只能作为 negative-test 输入验证 fail-close / degrade 路径。
 - `practice.session.chat` 输出只包含 canonical `messageText`；不得要求 question intent、generation kind、answer summary 或 hint cue。
 - `practice.session.chat/v0.2.0` 输入只使用 JSON 编码的 `semanticFocus`；空值表示通用同轮复练，非空值是服务端解析后的 report-local code/label/issues 结构。旧 `focusCompetencies` 只允许保留在 immutable v0.1 rollback coordinate、000002 历史 seed 与显式负测，最终 active runtime 不得消费。
+- `target.import.parse` 只渲染 `{{jd_text}}` 与输出语言指令 `{{target_language}}`；prompt/meta、active seed、resolved snapshot 与 runtime renderer 不得声明或消费 source URL、page heading、file metadata 或其它 source descriptor。
 - `report.generate/v0.2.0` 从 root 到 nested item object 全部 closed；summary/dimension/evidence/action/focus 的已锁定 min/max/pattern/unique 约束必须同时通过 Python lint、registry loader 与 A3/F3 共享 `outputschema` runtime validator。
 - `report.generate/v0.2.0` 保留完整 JSON exemplar，并在其前放置相邻 synthetic candidate input：候选人按 user impact 与 delivery effort 排序，同时明确没有解释 tie-breaking rule。示例的 highlight/issue/readiness/action 必须只引用该 synthetic seqNo；紧邻 anti-copy 规则明确示例只教授 JSON shape 与 cross-field coherence，不得复用示例事实、维度、准备度、措辞或行动。示例不得使用 unbounded load、未验证 rollback 或其他 unsafe current-round approach 充当 `needs_practice` 普通缺口。
 - `report.generate/v0.2.0` action support 按 type 判定：corrective retry 只把 cited missing behavior 转成待补动作，focused retry 首 label 还必须对每个 selected focus code 至少命名一个 directly cited missing behavior，umbrella-only label 无效；review_evidence 可复核 cited positive 或 explicitly evidence-limited content，但不得虚构 artifact/corrective gap/new scenario/transfer task；next_round 只在 `hasNextRound=true` 且 readiness 为 basically/well 时支持。即使建议在领域上合理，任何类型新增未被 cited candidate messages 陈述的 mechanism、threshold、tool、sequence、framework 或 example，都超出 support 边界。
@@ -175,6 +177,7 @@
 | C-19 | practice semantic focus pair | backend-practice 将 report-local code 解析为 label/issues 的 JSON payload | exact `GetPrompt/GetRubric(v0.2.0)` + prompt lint/hash + backend-practice fixture + final `ResolveActive` | v0.2 prompt 只含 `semanticFocus` / `{{semantic_focus_json}}`，closed schema 仍只输出 `messageText`；v0.2 rubric 内容/权重与 v0.1 相同；协调发布后 v0.2 pair active，v0.1 pair 保留为 exact rollback coordinate | F3 002 + backend-practice 004 |
 | C-20 | report v0.2 frozen provenance | report/practice v0.2 pairs active | exact ResolveActive test | report returns `report-context.v1`; practice remains `registry.v1`; prompt/rubric versions are v0.2 on both | F3 002 + backend-review 001 |
 | C-21 | independent live report audit | 5-case / 11-attempt matrix，generation/judge 当前同 provider/model | independent max4 generation/judge state machines → full validation / typed judge outcome → blind review | generation动态scope；judge invalid可重试、valid negative不重试；attempt/retry/reason/scope+usage/latency manifest与5-case evidence一致 | F3 004 + P0.100 |
+| C-22 | TargetJob raw-text-only prompt | current prompt、seed 与 registry snapshot 已加载 | lint/hash/seed drift + TargetJob resolved-render tests | resolved prompt 只包含 raw JD text 与目标语言指令；无 URL/source metadata token 或说明；hash、seed 与 snapshot byte-semantic 一致 | F3 001 + backend-targetjob 001 |
 
 ## 7 关联计划
 

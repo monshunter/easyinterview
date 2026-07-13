@@ -1,18 +1,18 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.23
-> **状态**: completed
-> **更新日期**: 2026-07-10
+> **版本**: 2.25
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
 
 ## Phase 1: Home 当前入口
 
-- [x] 1.1 Home 源级复刻当前 `ui-design/src/screen-home.jsx::HomeScreen`：Hero label/title、JD 输入卡、输入卡底部 upload/URL source actions、ready 简历下拉框、创建简历入口、提交区、最近 3 张模拟面试卡片和 More handoff。
-- [x] 1.2 Home 使用 generated client 调 `listResumes`、`listTargetJobs`、`createUploadPresign`、`importTargetJob`；paste/file/URL source discriminator、side-effect idempotency key、错误态和 pending import continuation 均有 focused Vitest 覆盖。
+- [x] 1.1 Historical Phase 1 delivered the original Home shell, JD input card, ready 简历下拉框、创建简历入口、提交区、最近 3 张模拟面试卡片和 More handoff；Phase 18 owns the current paste-only intake surface.
+- [x] 1.2 Historical Phase 1 delivered the original generated-client import baseline, idempotency、错误态和 pending continuation；Phase 18 supersedes the current request and continuation contract.
 - [x] 1.3 Home import 前必须显式选择 ready 简历；成功进入 `parse` 时 params 携带真实 `resumeId`。
-- [x] 1.4 BDD-Gate: `E2E.P0.014` 覆盖默认渲染、empty/one/twelve-plus fixtures、ready filter/sort/3-card cap、More/quick-start handoff、英文 i18n 和 source/resume/submit layout。
-- [x] 1.5 BDD-Gate: `E2E.P0.015` 覆盖 paste/upload/URL import、4xx/failed path、privacy gate、generated client request contract 和 real-mode generated-client preflight。
+- [x] 1.4 Historical BDD-Gate: `E2E.P0.014` 覆盖默认渲染、empty/one/twelve-plus fixtures、ready filter/sort/3-card cap、More/quick-start handoff 和英文 i18n；Phase 18 reruns the current layout and screenshot gate.
+- [x] 1.5 Historical BDD-Gate: `E2E.P0.015` 覆盖原始 import、4xx/failed path、privacy gate、generated client request contract 和 real-mode generated-client preflight；Phase 18 replaces its current intake assertions.
 
 ## Phase 2: Historical pre-readonly Parse confirmation and handoff
 
@@ -31,7 +31,7 @@
 
 ## Phase 4: Import resume binding remediation
 
-- [x] 4.1 Home paste/upload/URL imports include the selected `resumeId` in generated `importTargetJob` request bodies（验证：`HomeImport.test.tsx`, `HomeResumeSelection.test.tsx`, `HomeAuthGate.test.tsx` PASS）
+- [x] 4.1 Historical import variants included the selected `resumeId` in generated `importTargetJob` request bodies；Phase 18 preserves the binding in the flattened paste-only body（历史验证：`HomeImport.test.tsx`, `HomeResumeSelection.test.tsx`, `HomeAuthGate.test.tsx` PASS）
 - [x] 4.2 Parse route handoff still carries `resumeId`, but reload/list re-entry can recover binding from `TargetJob.resumeId` instead of transient route-only state（验证：Workspace focused tests and `InterviewContext` merge tests PASS）
 - [x] 4.3 BDD-Gate: `E2E.P0.015` import request contract remains aligned with allowed `resumeId` and privacy redlines（验证：focused equivalent Home import tests + `make validate-fixtures` PASS）
 
@@ -116,3 +116,22 @@
 - [x] 16.1 共享 helper 支持可配置 owner test 文件，P0.014/P0.015/P0.016 删除内联 real-mode/Vitest 通用解析与冗余 PASS grep；验证 helper/caller RED/GREEN、三个 wrapper 生命周期、owner/product contexts 与 docs/diff/pruning gates。
   <!-- red: 2026-07-10 method=scenario-env-contract evidence="The focused contract suite failed only the two new checks while the prior 16 tests passed: the helper ignored the requested targetJob owner test marker, and all three Home/Parse callers still contained inline real-mode and generic Vitest summary parsing." -->
   <!-- verified: 2026-07-10 method=home-parse-real-backend-verifier-convergence evidence="The helper now accepts an optional owner test marker while preserving frontendOwners as its default. P0.014/P0.015/P0.016 pass targetJob.realApiMode.test.ts explicitly and retain their scenario-specific test, privacy, browser and out-of-scope assertions with no duplicate generic parsing. Contract tests pass 18/18 and all touched shell scripts pass bash syntax. Complete wrapper lifecycles pass: P0.014 real mode 1 plus Home 34; P0.015 real mode 1 plus Home/Parse 56, build and Playwright 2; P0.016 real mode 1 plus focused 37, build and Playwright 4; default-argument P0.018 real mode 1 plus focused 57. Both owner contexts, git diff check and pruning surface pass with real_residuals=0. No Bug or retrospective report was needed because scenario behavior and coverage did not change. No environment restart or data cleanup occurred." -->
+
+## Phase 17: Parse loading internal-metadata removal
+
+- [ ] 17.1 RED-GREEN: prototype source contract rejects the Parse loading model/provider, rubric/prompt/version/hash, provenance and typical-latency footer while preserving four progress steps and responsive layout.
+- [ ] 17.2 RED-GREEN: formal Parse loading DOM removes the same internal metadata without changing polling, ready mapping or failed recovery.
+- [ ] 17.3 REGRESSION-GATE: focused Parse tests, UI source contract, typecheck/build and active negative search pass.
+- [ ] 17.4 BDD-Gate: `E2E.P0.015` passes with clean 1440/390 loading screenshots plus DOM/style/bbox/viewport parity evidence.
+
+## Phase 18: Paste-only Home JD intake
+
+- [ ] 18.1 RED-GREEN: prototype-first 更新 `ui-design/src/screen-home.jsx` 与 UI source contract，使 Home intake 仅渲染 textarea、ready Resume select 和 CTA；旧 source controls、辅助弹窗、触发 testid 与多入口 copy 必须先红后删，且 Resume 上传入口保持可用。
+- [ ] 18.2 RED-GREEN: OpenAPI、fixtures 与 generated Go/TS 将 `importTargetJob` public request 收敛为 exact flattened wire `{ rawText, targetLanguage, resumeId }`，拒绝 source discriminator、嵌套 source payload 和非文本 JD intake；Resume upload operation/fixture 不受影响。
+- [ ] 18.3 RED-GREEN: formal Home layout/import/i18n tests 证明只存在一个 paste submit path；删除 source controls/modal、source-specific branches、额外 locale keys 和 JD upload-client 调用，不新增 mode enum、compatibility adapter 或不可达 branch。
+- [ ] 18.4 RED-GREEN: Home auth `pendingAction` 只保存 `opaquePendingImportId`；一次性进程内 vault 保存 `{ rawText, targetLanguage, resumeId, idempotencyKey, expiresAt }` 并在登录成功后原子 consume 一次。正常路径以原 key 提交同一 exact request；refresh/lost、expired、duplicate consume 均不调用 import，清除 action、返回 Home 并显示本地化重新输入提示；route/browser storage/log/telemetry 均不得携带 JD 原文。
+- [ ] 18.5 RED-GREEN: backend TargetJob decode/service/store/runner 删除 public 多来源 union、URL fetch/refresh、JD attachment purpose、structured manual-form branch 及 source-specific persistence/event/config，同时保留文本 validation、idempotency、parse failure/retry、privacy 与 resume binding。
+- [ ] 18.6 REGRESSION-GATE: UI contract、Home focused Vitest、OpenAPI lint/fixture/generated drift、backend TargetJob tests、typecheck/build 与 Resume upload owner tests 全部通过。
+- [ ] 18.7 BDD-Gate: 原地修订 `E2E.P0.014` / `E2E.P0.015`，P0.015 覆盖 paste success、exact request、auth pending replay、4xx/failed、idempotency、privacy 与 Parse loading；在 1440×900 和 390×844 捕获 Home/Parse 截图并验证 DOM、computed style、bbox 与 viewport parity。
+- [ ] 18.8 ZERO-REF-GATE: 删除 URL 专属 `E2E.P0.011` 实体目录与 active INDEX 行且不复用编号；扫描 active UI truth、owner docs、OpenAPI/generated、frontend Home、backend TargetJob 与 active scenarios，确认旧 JD source controls/modal/route source/schema/fixture/branch/scenario 为零，排除 work-journal/bug/report 等合法历史证据并明确允许 Resume upload 资产。
+- [ ] 18.9 POST-PASS: owner spec/plan/checklist/BDD/context 与 document INDEX 完成 reconcile，`validate_context.py`、`sync-doc-index --check`、`make docs-check`、`git diff --check` 和 pruning gate 通过后再恢复 `completed`。

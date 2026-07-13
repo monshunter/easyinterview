@@ -1,6 +1,6 @@
 # DB Migrations Baseline Spec
 
-> **版本**: 1.34
+> **版本**: 1.36
 > **状态**: active
 > **更新日期**: 2026-07-13
 
@@ -10,14 +10,14 @@
 
 本 spec 只描述当前 net-state：
 
-- 21 张当前应用表；
+- 20 张当前应用表；
 - 3 张 auth / session 支撑表；
 - 2 张迁移元数据表；
 - 当前索引、check constraint、backfill ledger、privacy deletion matrix 与迁移执行 gate。
 
 目标是：
 
-1. **稳定 schema inventory**：干净 DB 迁移完成后，public schema 至少包含 26 张表，且 21 张应用表、3 张 auth 支撑表和 2 张迁移元数据表与 §2.1 完全一致。
+1. **稳定 schema inventory**：干净 DB 迁移完成后，public schema 至少包含 25 张表，且 20 张应用表、3 张 auth 支撑表和 2 张迁移元数据表与 §2.1 完全一致。
 2. **统一迁移工具**：迁移入口使用 `golang-migrate` 包装器，不并行维护第二套迁移工具。
 3. **可逆与可审计**：每个 migration 都有 `.down.sql`；行级 backfill 通过 Go registry 记录 dry-run / apply ledger。
 4. **索引与约束可验证**：B-Tree、可选 GIN、enum/check source 与 migration lint 必须能被本地 gate 验证。
@@ -28,28 +28,31 @@
 ### 2.1 In Scope
 
 - **迁移目录与命名**：所有 SQL migration 位于 `migrations/`，文件名为 `NNNNNN_<verb>_<noun>.up.sql` / `NNNNNN_<verb>_<noun>.down.sql`，序号 6 位递增。
-- **21 张当前应用表**：
+- **20 张当前应用表**：
   1. `users`
   2. `user_settings`
   3. `file_objects`
   4. `resumes`
   5. `target_jobs`
   6. `target_job_requirements`
-  7. `target_job_sources`
-  8. `practice_plans`
-  9. `idempotency_records`
-  10. `practice_sessions`
-  11. `practice_session_events`
-  12. `practice_messages`
-  13. `feedback_reports`
-  14. `source_records`
-  15. `prompt_versions`
-  16. `rubric_versions`
-  17. `ai_task_runs`
-  18. `async_jobs`
-  19. `outbox_events`
-  20. `privacy_requests`
-  21. `audit_events`
+  7. `practice_plans`
+  8. `idempotency_records`
+  9. `practice_sessions`
+  10. `practice_session_events`
+  11. `practice_messages`
+  12. `feedback_reports`
+  13. `source_records`
+  14. `prompt_versions`
+  15. `rubric_versions`
+  16. `ai_task_runs`
+  17. `async_jobs`
+  18. `outbox_events`
+  19. `privacy_requests`
+  20. `audit_events`
+- **TargetJob paste-only net-state**：`target_jobs.raw_jd_text` 是唯一 JD 原文列；`source_type` / `source_url` / `source_file_object_id` 不存在，`target_job_sources` 表不存在。独立 `source_records` 表保留，不作为 TargetJob 导入来源。
+- **上传 purpose net-state**：`file_objects` 保留 `resume` / `privacy_export` 与仍有 owner 的 DB-local purpose；不存在 JD attachment purpose。Resume 的 `source_type IN ('upload','paste')` 是简历域合同，不得因 TargetJob paste-only 被误删。
+- **Async job net-state**：`async_jobs.job_type` 不包含 JD source refresh；其它 canonical job 由 B3 owner 驱动。
+- **Practice reply recovery net-state**：user `practice_messages.reply_status` 只允许 `pending / retryable_failed / terminal_failed / complete`；assistant row 该列为 NULL。它与既有 `client_message_id/reply_to_message_id` 唯一约束共同支持刷新后同 ID 恢复。
 - **Flat Resume schema**：`resumes` 承载 `original_text`、`parsed_text_snapshot`、`raw_text`、`file_object_id`、`structured_profile`、`display_name` 与 `source_type IN ('upload', 'paste')`；`practice_plans.resume_id` 是 practice 绑定简历的当前 FK。
 - **3 张 auth / session 支撑表**：`auth_challenges`、`sessions`、`external_identities`，遵守 [ADR-Q1](../engineering-roadmap/decisions/ADR-Q1-auth.md) 与 [backend-auth](../backend-auth/spec.md) 的 token / session / identity 约束。
 - **迁移元数据表**：`schema_migrations` 由迁移工具管理；`schema_backfills` 由 B4 Go registry 管理。
@@ -95,9 +98,11 @@
 | D-18 | Practice message replay | `practice_messages.client_message_id` 在 session 内唯一；assistant `reply_to_message_id` 唯一 | 同一用户消息重试不重复落库或生成 reply |
 | D-19 | Grounded report columns | `feedback_reports.summary`、content-bearing `generation_context`、`retry_focus_dimension_codes` 与 `ai_task_runs` 承载direct report/provenance；`practice_plans.focus_dimension_codes`接收服务端report projection；schema不存产品retry次数 | `000018`中不存在`llm_attempt_count`或同义retry列；不保留单次repair flag、question assessment、numeric score或competency-name compatibility列；旧row的empty context由current runtime fail closed，不伪造快照 |
 | D-20 | Privacy request tombstone | `privacy_requests.user_id` 可置空，FK 为 `ON DELETE SET NULL` | 用户行 hard delete 后保留最小删除证据 |
-| D-21 | Current public schema count | 当前 public schema gate 为 21 app + 3 auth + 2 metadata，count >= 26 | 作为 migration inventory drift gate |
+| D-21 | Current public schema count | 当前 public schema gate 为 20 app + 3 auth + 2 metadata，count >= 25 | 作为 migration inventory drift gate |
 | D-22 | Practice conversation schema | 删除 `practice_turns`、`question_assessments`、`practice_plans.question_budget/mode`、`practice_sessions.turn_count/hints_enabled`；新增 `practice_messages` | pre-launch baseline 原地修订，不保留旧表/列兼容层 |
 | D-23 | Practice plan 规范化轮次身份 | `practice_plans` additive 新增 nullable `round_id` / `round_sequence`，并以 CHECK 保证二者同时为 null 或同时非 null 且 sequence > 0；所有新写入必须成对有值。legacy plan 仅在 user/target/current-resume 绑定一致、TargetJob 未删除、sequence 为正 int32，且结构化轮次可按唯一时长无歧义匹配时由 backfill registry 填充；零/多匹配、错绑、删除或溢出保持 null。 | 完成进度从 session ledger + plan round identity 投影；不在 `target_jobs` 新增可变进度列；legacy null 记录不得被当前轮复用；实现语义变化必须更新 manifest checksum，避免旧 ledger 误跳过 |
+| D-24 | TargetJob paste-only schema | 保留 `target_jobs.raw_jd_text`；删除 TargetJob 来源列、来源表、JD attachment purpose 与 JD source refresh jobType；保留独立 `source_records`、resume/privacy purposes | 项目未上线，原地修订 baseline 与 enum/check source，不增加兼容 migration 或影子列 |
+| D-25 | Practice reply recovery | `practice_messages.reply_status` 对 user 必填且只允许 `pending/retryable_failed/terminal_failed/complete`，assistant 必须为 NULL；`client_message_id` 仍是 session 内唯一 replay key | pending/failure/complete 成为后端事实；刷新后可恢复原 ID，禁止浏览器存储充当状态源 |
 
 #### 3.1.1 Field-Level Enum / Check 来源矩阵
 
@@ -117,7 +122,7 @@
 | `users` | sync soft delete + final hard delete | 请求受理时先置 `deleted_at` 并吊销 session；子表处理完成后硬删用户行 |
 | `user_settings` | hard delete | 删除账号设置 |
 | `file_objects` / `resumes` | hard delete + object storage delete | 先删对象存储，再删 DB 行；简历原文、解析快照、结构化内容一并删除 |
-| `target_jobs` / `target_job_requirements` / `target_job_sources` | cascade / hard delete | 先删 requirements / sources，再删 target job；不得保留 raw JD 或 source URL |
+| `target_jobs` / `target_job_requirements` | cascade / hard delete | 先删 requirements，再删 target job；不得保留 raw JD |
 | `practice_plans` / `practice_sessions` / `practice_session_events` / `practice_messages` | cascade / hard delete | messages/events 随 session 级联删除；raw conversation content 必须覆盖 |
 | `idempotency_records` | hard delete | 按 `user_id` 删除幂等记录；不得保留可反查用户请求的 fingerprint、response 或错误 payload |
 | `feedback_reports` | hard delete | 证据摘要、报告正文、能力重点和复练建议均视为用户内容 |
@@ -189,7 +194,7 @@
 
 | ID | 场景 | Given | When | Then | 对应 Plan |
 |----|------|-------|------|------|-----------|
-| C-1 | 干净 DB baseline | 干净 Postgres 18 | `make migrate-up` | §2.1 的 21 app + 3 auth + 2 metadata table 全部存在；public schema count >= 26；app inventory 不多不少 | [001](./plans/001-bootstrap/plan.md) + [002](./plans/002-flat-resume-migration/plan.md) |
+| C-1 | 干净 DB baseline | 干净 Postgres 18 | `make migrate-up` | §2.1 的 20 app + 3 auth + 2 metadata table 全部存在；public schema count >= 25；app inventory 不多不少 | [001](./plans/001-bootstrap/plan.md) + [002](./plans/002-flat-resume-migration/plan.md) |
 | C-2 | 索引覆盖 | C-1 完成 | 查询 `pg_indexes` | 当前 B-Tree inventory 与可选 `idx_target_jobs_fts` 存在 | [001](./plans/001-bootstrap/plan.md) |
 | C-3 | 迁移可逆 | C-1 完成 | `make migrate-down` in dev | 应用 / auth / backfill metadata 按 down 语义回滚；exit 0 | [001](./plans/001-bootstrap/plan.md) |
 | C-4 | 幂等执行 | 已迁移一次 | 再次 `make migrate-up` | exit 0；`schema_migrations` 无重复 | [001](./plans/001-bootstrap/plan.md) |
@@ -202,6 +207,8 @@
 | C-11 | Live test rerun-safe | `DATABASE_URL` 指向可用 DB | 固定 UUID migration tests 连续运行 | 重复运行不因样本残留失败；无 DB 时明确 skip | [002](./plans/002-flat-resume-migration/plan.md) |
 | C-12 | Practice plan round identity migration | DB 含新 plan、唯一时长 legacy plan、同一时长多轮 legacy plan | 执行 `000017` up/backfill/down/up | 新 plan 可保存成对 round identity；唯一匹配 legacy plan 可审计回填；歧义 legacy plan 保持 null；pair CHECK、正数 CHECK 与 partial lookup index 存在；`target_jobs` 不出现 progress 列 | [001](./plans/001-bootstrap/plan.md) |
 | C-13 | Grounded report storage migration | DB 同时含 queued/current-ready 与 pre-contract development report rows | 执行 `000018` up/down/up | summary、`report-context.v1`与report/plan dimension focus列可逆，且`llm_attempt_count`/同义产品retry列不存在；current completion可原子写入，pre-contract invalid context只fail closed、不被伪造或兼容读取；privacy删除和非内容存储面均通过 | [001](./plans/001-bootstrap/plan.md) |
+| C-14 | TargetJob paste-only schema migration | baseline 仍含旧 TargetJob source/attachment/refresh 结构 | 执行 001 Phase 10 的 clean/populated up/down/up 与 zero-ref probes | `raw_jd_text`、独立 `source_records`、resume/privacy purpose 保留；旧来源列/表、JD attachment purpose 与 JD source refresh jobType 不存在 | [001](./plans/001-bootstrap/plan.md) |
+| C-15 | Practice reply-status migration | baseline 含既有 completed message pairs、pending user row 与 assistant rows | 执行 001 Phase 11 的 clean/populated up/down/up | user row 状态约束正确、既有有回复 user 回填 complete、无回复 user 可恢复、assistant 为 NULL；原 client/reply 唯一约束与 privacy cascade 保持 | [001](./plans/001-bootstrap/plan.md) + backend-practice/002 |
 
 ## 7 关联计划
 

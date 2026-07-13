@@ -5,10 +5,10 @@ metadata:
   name: 003-breaking-change-gate
   sequence: 3
   baseBranch: main
-  branch: fix/report-semantic-grounding-0712
+  branch: fix/interview-turn-ux-0713
   specVersion:
-    from: 1.43
-    to: 1.52
+    from: 1.53
+    to: 1.54
 spec:
   defaultTarget: contract
   discovery:
@@ -26,6 +26,14 @@ spec:
       - REPORT_CONTEXT_TOO_LARGE additive enum
       - conditional contract baseline source forbidden
       - derived source required non-null
+      - OPENAPI-002 exact 15 findings
+      - TargetJob paste only pre-release correction
+      - old baseline before re-freeze
+      - importTargetJob invariant
+      - createUploadPresign retained
+      - target job import zero reference
+      - Practice recovery separate finding audit
+      - role discriminated PracticeMessage
     keywords:
       - openapi-diff
       - additive only
@@ -46,6 +54,7 @@ spec:
       spec: ../../spec.md
       references:
         - ../../decisions/OPENAPI-001-report-direct-semantics.md
+        - ../../decisions/OPENAPI-002-targetjob-paste-only.md
         - ../001-bootstrap/plan.md
         - ../002-fixtures-and-mock-source/plan.md
         - ../../../shared-conventions-codified/plans/001-bootstrap/plan.md
@@ -59,6 +68,10 @@ spec:
           - Makefile
         uiRoutes: []
         apiNames:
+          - importTargetJob
+          - createUploadPresign
           - getFeedbackReport
           - listTargetJobReports
           - createPracticePlan
+          - getPracticeSession
+          - sendPracticeMessage

@@ -5,8 +5,9 @@ metadata:
   name: 001-bootstrap
   sequence: 1
   specVersion:
-    from: null
-    to: 2.14
+    from: 2.15
+    to: 2.16
+  branch: fix/interview-turn-ux-0713
 spec:
   defaultTarget: platform-config
   discovery:
@@ -29,6 +30,9 @@ spec:
       - gitleaks
       - env example
       - session cookie secret
+      - upload maxBytes resume privacyExport
+      - current upload purpose limits
+      - TargetJob attachment config zero reference
   targets:
     platform-config:
       plan: ./plan.md

@@ -1,8 +1,8 @@
 # 002 — Practice Continuous Text Conversation Checklist
 
-> **版本**: 2.4
+> **版本**: 2.5
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -31,8 +31,8 @@
 ## Phase 5: Parity and real scenario
 - [x] 5.1 Run focused/full frontend, typecheck/build, UI contract and pixel parity desktop/mobile.
   <!-- verified: 2026-07-12 method=full-frontend-and-parity evidence="111 files/708 Vitest tests, typecheck, build, 45 UI contracts and 8 desktop/mobile practice Playwright cases pass" -->
-- [x] 5.2 Run real backend/frontend P0.099 path and capture redacted conversation/report screenshots.
-- [x] 5.3 BDD-Gate: P0.099 real fullstack screenshot evidence passes.
+- [x] 5.2 Run the then-current real backend/frontend path and capture redacted conversation/report screenshots.
+- [x] 5.3 BDD-Gate: the then-current real fullstack screenshot evidence passes; current Practice screenshot ownership is Phase 9 P0.044/P0.046.
 
 ## Phase 6: Review remediation
 - [x] 6.1 RED-GREEN: PracticeScreen retries loader, message and completion failures through the correct operation and preserves message/completion idempotency. (`pnpm --filter @easyinterview/frontend test src/app/screens/practice/PracticeScreen.test.tsx`)
@@ -55,3 +55,12 @@
 - [x] 8.2 REGRESSION-GATE: active PracticeScreen/context/router code contains no positive write of those copied fields to generating/report navigation; frontend-report consumes `getFeedbackReport(reportId)` as the sole downstream authority.
   <!-- verified: 2026-07-12 method=active-negative-and-route-tamper evidence="report/generating out-of-scope tests PASS; Playwright canonicalizes hostile report/generating URLs to reportId only" -->
 - [ ] 8.3 BDD-Gate: E2E.P0.047 one-answer completion asserts URL/history state contains only reportId, downstream request is keyed only by reportId, and idempotent replay returns the same locator.
+
+## Phase 9: Immediate user message, thinking state and row-local retry
+
+- [ ] 9.1 RED-GREEN: prototype tests/source append one user row and clear composer synchronously, render accessible interviewer-thinking only while pending/retrying, and render retry only beneath a failed user row.
+- [ ] 9.2 CONTRACT-DEPENDENCY-GATE: OpenAPI-generated user `PracticeMessage` exposes `clientMessageId + replyStatus=pending|retryable_failed|terminal_failed|complete` and typed `ApiClientError.apiError.retryable` with HTTP/envelope/transport metadata；backend durably projects reply status；add the operation-matrix **planned** fixtures without claiming they are current.
+- [ ] 9.3 RED-GREEN: formal Practice keeps transient `{text, clientMessageId, status}` only until first response/read convergence；reload/remount rehydrates pending/retryable/terminal/complete solely from `getPracticeSession`, with no URL/browser-storage retry persistence or `Error.message` parsing.
+- [ ] 9.4 RED-GREEN: typed retryable failure invokes the shared send path with server original text + same `clientMessageId`, preserves row/draft and restores one icon after repeated failure；AI failure → reload → same-ID retry converges to one user/reply pair；pending re-read never duplicate-sends；terminal failures have no retry.
+- [ ] 9.5 REGRESSION-GATE: pending/retryable-failed/retrying/terminal-recovery all keep Finish disabled；focused generated-client/Practice hooks/screen/i18n/a11y tests, UI source contracts, full frontend, typecheck/build and active negative searches pass.
+- [ ] 9.6 BDD-Gate: `E2E.P0.044` pending/reload/success and `E2E.P0.046` AI-failure/reload/same-ID retry/terminal recovery pass with prototype/formal DOM/style/bbox/viewport parity and exact 1440/390 screenshots.

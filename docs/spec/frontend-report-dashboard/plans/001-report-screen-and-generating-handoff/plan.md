@@ -1,7 +1,7 @@
 # 001 — Honest Grounded Report Screen and Handoff
 
-> **版本**: 2.9
-> **状态**: completed
+> **版本**: 3.0
+> **状态**: active
 > **更新日期**: 2026-07-13
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -51,6 +51,7 @@
 | spec C-8 | regression | 8 | repo-wide active negative scan | report/generating/scenarios/fixtures | stale question fields/fake-live/raw enum |
 | spec C-9 | business truth | 7 | deep-link/route-tamper tests | ReportScreen/ContextStrip/CTA | route status/identity authority |
 | spec C-10 | i18n boundary | 7 | mixed UI/report language tests | chrome vs semantic content | client translation of model labels/evidence/actions |
+| spec C-12 | privacy/UX negative | 9 | sentinel-ID DOM/a11y tests + P0.059 + browser acceptance manifest | ContextStrip target/round/resume | visible session/report UUID; deleted internal API/CTA identity |
 
 ## 5 实施步骤
 
@@ -104,6 +105,14 @@ P0.099 为当前 run 创建 en/zh ready rows 并捕获六图，不依赖 P0.100 
 
 扩展 fixture/scenario/docs/runtime/lint 扫描，删除旧 question fields、fake-live copy、raw enum surface 与客户端 focus authority；历史 bug/report/journal 作为证据保留。
 
+### Phase 9: User-visible internal locator removal
+
+先更新 `ui-design/src/screen-report.jsx` 与 UI 文档，把 Context Strip 从 session/target/round/resume 收敛为 target/round/resume。随后 RED-GREEN 同步 `ReportContextStrip` 与 direct tests；session/report IDs 继续作为 generated API/内部动作关联事实，但不进入可见 DOM、title、tooltip 或 accessible name。
+
+门禁：fixture 使用彼此不同的 `report.id` / `sessionId` sentinel，focused tests 逐值拒绝它们出现在 textContent、title/tooltip、`aria-*` 或 accessible name，同时正向证明 OpenAPI/report contract 仍要求合法 UUID、CTA 仍使用 `sourceReportId`。删除孤儿 `report.context.session` locale key 并做 zero-reference。`E2E.P0.059` 更新 README/INDEX owner metadata 后执行 deterministic 1440/390 DOM/style/bbox/viewport/pixel parity；该场景保持 PASS cleanup 合同。
+
+面向用户的成功证据必须由 `/agent-browser` 从同一真实 backend ready report 的 formal frontend 另存到 `.test-output/acceptance/report-context-strip/<run-id>/`，不依赖场景临时输出。目录只允许三项：`report-context-strip-desktop-1440x1200.png`（exact 1440x1200）、`report-context-strip-mobile-390x844.png`（exact 390x844）与 `manifest.json`；两图都必须 `fullPage: true`，不得使用 prototype、fixture-only、裁剪图或额外状态图。manifest 逐图记录 relative path、SHA-256、`state=ready`、viewport、`fullPage=true`、同一 report 的脱敏 locator/digest、`reportSentinelAbsent=true`、`sessionSentinelAbsent=true`，并链接 DOM/a11y negative audit；截图正向显示 target/round/resume，负向不存在 report/session sentinel。
+
 ## 6 验收标准
 
 - Generating 对用户只陈述真实状态和真实可用动作。
@@ -112,6 +121,8 @@ P0.099 为当前 run 创建 en/zh ready rows 并捕获六图，不依赖 P0.100 
 - 空 retry focus 不阻塞通用同轮 Replay；非空 focus 必须与 needs-work dimension 和 issue 一一闭合。
 - Desktop/mobile 长内容完整可读；formal/prototype DOM/style/bbox/screenshot difference gate 通过。
 - P0.099 desktop+390 截图与 current-run audit 闭环合法24/64可读性；200-code-point fuse、18/52 repair margin 或P0.100内容PASS都不能替代。
+- Report Context Strip 只显示 target/round/resume；session/report UUID 不出现在用户可见或可访问 UI，既有 API frozen context 与 CTA 行为保持不变。
+- Context Strip 正式验收只有同一 ready report 的 exact 1440x1200 / 390x844 两张 formal real UI full-page 图与固定 manifest；path/hash/state/viewport/fullPage、target/round/resume 可见和 report/session DOM/a11y/screenshot sentinel absence 全部可校验。
 
 ## 7 风险与应对
 
@@ -120,6 +131,7 @@ P0.099 为当前 run 创建 en/zh ready rows 并捕获六图，不依赖 P0.100 
 | 为修复 UX 重新设计页面 | 保留三指标四常驻区块，只做原型先行的真实性/可读性修订 |
 | CTA 主次被误当业务权限 | variant 只表达推荐；可用性仍由 round/state/replay lock 决定 |
 | 截图 gate 假绿 | 强制 prototype/formal 双端 DOM/style/bbox/diff 与 full-page artifact |
+| 用户验收截图来源或状态漂移 | 固定 formal real ready state、两种 exact viewport、两张固定文件名和逐图 SHA-256/DOM-a11y sentinel manifest；拒绝 prototype、裁剪图和额外状态图 |
 | 前端重新成为业务事实源 | URL/request negative gate，后端 source report integration proof |
 | 空 focus 被误判为不可复练，或非法非空 focus 被静默删改 | 空数组显式正向 fixture；非空 cross-reference fail-closed table tests；前端不补默认 focus |
 | 把动作内产品retry、基础设施attempt或客户端窗口误当服务端失败 | 锁定action-local report / runner lease / outbox infra三层所有权；maxAttempts49耗尽只进入可继续检查态，terminal failed只来自API |
@@ -128,6 +140,7 @@ P0.099 为当前 run 创建 en/zh ready rows 并捕获六图，不依赖 P0.100 
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-13 | 3.0 | Reopen in place to remove session/report UUID from the user-visible Context Strip and refresh deterministic desktop/mobile parity screenshots. |
 | 2026-07-13 | 2.9 | Correct report timing ownership to action-local initial+3 with 10s/20s/40s; async attempts are infrastructure-only. Keep maxAttempts49 math and prohibit unsupported failed-report regenerate claims. |
 | 2026-07-13 | 2.8 | L2：preserve poll attempt and next schedule across timer/in-flight hidden or blur；resume never resets to1 and one run remains capped at49. |
 | 2026-07-13 | 2.7 | Lock report use of business10s/20s/40s under durable max4 and frontend maxAttempts49 (~6m04s)；separate business async cap80 from infra delivery and hide internal attempts/progress. |

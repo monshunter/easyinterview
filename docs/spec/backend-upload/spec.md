@@ -1,20 +1,20 @@
 # Backend Upload Spec
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-13
 
 ## 1 背景与目标
 
 [engineering-roadmap §5.2](../engineering-roadmap/spec.md#52-当前-p0-实施-workstream-候选) 标记 Resume Workshop 候选 subject 依赖 `C2 backend-upload`（roadmap 3.10 已显式化）。本 subject 是当前仓库的横向 file 上传基础设施 owner：把 `POST /api/v1/uploads/presign` 真实落地为 backend handler，管理 `file_objects` 表 CRUD 与 state machine，并提供 `purpose` 枚举强约束 + 隐私 / 留存策略。
 
-backend-upload 之所以独立于 `backend-resume`：`file_objects` 同时服务多个业务消费方——`resume_assets` / `target_job_attachment`（[backend-targetjob/001](../backend-targetjob/plans/001-targetjob-import-and-parse-bootstrap/plan.md) Phase 0 已消费）/ privacy export。把 file 基础设施收敛到一个 owner 避免重复实现。`resume_export` 输出文件仍是 P1 预留能力；在 B2 / B4 追加 public purpose 与 DB enum 前，不得把它写入 P0 handler 或 store gate。
+backend-upload 之所以独立于 `backend-resume`：`file_objects` 同时服务简历资产、privacy export 与 DB-local 内部对象。JD 当前只允许粘贴文本，不消费上传基础设施；public upload purpose 只保留 `resume` / `privacy_export`。把文件基础设施收敛到一个 owner 可避免重复实现，同时防止删除 JD 附件能力时误伤简历与隐私链路。
 
 目标：
 
 1. **唯一上传入口**：所有业务文件上传都必须通过 `POST /api/v1/uploads/presign` 获取签名 URL + register 引用，不允许业务 handler 自建 presign 逻辑。
 2. **file_objects state machine**：P0 复用当前 B4 baseline `upload_status`：`pending` → `uploaded`，失败为 `scan_failed`，隐私/清理终态为 `deleted`；业务 register 通过 backend-upload internal API 在确认对象已 PUT 后原子完成 `pending → uploaded`，再由业务表 FK（如 `resume_assets.file_object_id`）表达引用，不向 `file_objects.upload_status` 私自加入 `registered` / `deleted_pending`。
-3. **purpose 强约束**：public `createUploadPresign` 只接受当前 B2 `UploadPresignRequest.purpose` 枚举：`resume` / `target_job_attachment` / `privacy_export`；DB-local `source_snapshot` / `audio` / `video` 仅可由后续 owner spec 显式开放。新增 `resume_source` / `resume_export` 等 purpose 必须先修订 B2 + B4。
+3. **purpose 强约束**：public `createUploadPresign` 只接受 `resume` / `privacy_export`；DB-local `source_snapshot` / `audio` / `video` 不构成 public API。新增 purpose 必须先修订 B2 + B4。
 4. **隐私 / 留存策略**：对象存储 hard delete 与 DB 行 hard delete 同事务（[B4 §3.1.2 privacy deletion matrix](../db-migrations-baseline/spec.md#312-p0-privacy-deletion-table-matrix)）；presign URL TTL 与 secret 由 [A4 secrets-and-config](../secrets-and-config/spec.md) 锁定。
 5. **mock-first 可用**：本 subject 的 `createUploadPresign` fixtures（B2 已存在）可被 `frontend-resume-workshop` / 未来 `frontend-onboarding` / `frontend-resume-workshop/002-create-flow` 直接消费，无需等真实 backend 落地。
 
@@ -34,7 +34,7 @@ backend-upload 之所以独立于 `backend-resume`：`file_objects` 同时服务
 
 ### 2.2 Out of Scope
 
-- 业务文件解析（resume 解析归 backend-resume；JD 文件解析归 backend-targetjob）。
+- 业务文件解析（resume 解析归 backend-resume）；JD 文件导入不属于当前产品范围。
 - 前端上传组件 UI（归 `frontend-shell` / `frontend-resume-workshop/002`）。
 - 对象存储 provider 抉择（S3 / OSS / MinIO / 本地）：归 [A2 local-dev-stack](../local-dev-stack/spec.md) 与 [A4 secrets-and-config](../secrets-and-config/spec.md) 决策。
 - 文件病毒扫描 / 内容安全扫描：P0 不实现；P1 评估。
@@ -47,13 +47,13 @@ backend-upload 之所以独立于 `backend-resume`：`file_objects` 同时服务
 
 | ID | 决策 | 锁定值 | 影响 |
 |----|------|--------|------|
-| D-1 | public purpose enum 锁定集 | `resume`（resume_assets.file_object_id 引用）/ `target_job_attachment`（target_job_sources / target_jobs 引用）/ `privacy_export`（privacy export 输出物）；`source_snapshot` / `audio` / `video` 为 DB-local 内部值，P0 public presign 不开放；`resume_source` / `resume_export` 未登记 | 业务调用 createUploadPresign 必传 purpose；其他扩展需先修订 B2 OpenAPI 与 B4 migration/enum-sources |
+| D-1 | public purpose enum 锁定集 | `resume`（resume_assets.file_object_id 引用）/ `privacy_export`（privacy export 输出物）；`source_snapshot` / `audio` / `video` 为 DB-local 内部值，不开放 public presign | 业务调用 createUploadPresign 必传 purpose；JD 不使用该 endpoint；扩展需先修订 B2 与 B4 |
 | D-2 | state machine 字面量 | `pending` / `uploaded` / `scan_failed` / `deleted`；存于 `file_objects.upload_status` text + check constraint | 与 B4 baseline `migrations/000001_create_baseline.up.sql` 对齐；本 spec 不引入 `registered` / `deleted_pending` |
 | D-3 | presign URL TTL | 默认 600s（10 分钟）；通过 A4 additive config path `upload.presignTTLSeconds` 注入；当前不新增 env key，若未来需要 env override 必须先修订 A4 env 字典 | 客户端必须在 TTL 内完成 PUT；超时后重新调用 createUploadPresign |
 | D-4 | IK 必带 | `createUploadPresign` 必带 `Idempotency-Key`（与 B2 D-6 / D-18 一致）；upload presign route 的 idempotency record TTL 必须与 `upload.presignTTLSeconds` 对齐，避免在 signed URL 过期后继续 replay stale `uploadUrl` / `expiresAt`；TTL 内重复请求返回同一 fileObjectId + uploadUrl/method/headers/expiresAt | 防止网络抖动产生孤儿 `file_objects` 行，同时避免过期 signed URL 被 response cache 继续 replay |
 | D-5 | register 路径 | P0 不引入独立 `POST /api/v1/file-objects/{id}/register` endpoint；register 行为由业务 handler（如 `registerResume`）调用 backend-upload internal `RegisterFileObject(fileObjectId, expectedPurpose, ownerUserId)` 完成。该 API 必须锁定同 user + purpose 行，若状态为 `pending` 则先调用 `ObjectStore.Exists(objectKey)` 确认客户端 PUT 已落对象存储，再原子标记 `uploaded`；若状态已为 `uploaded` 则幂等通过；`scan_failed` / `deleted` 返回 `VALIDATION_FAILED` | 避免独立 HTTP endpoint；business owner 持有 file 引用语义；不新增 `registered` 状态，同时补齐 presign → PUT → business register 的公开上传完成路径 |
 | D-6 | 隐私删除 | privacy_delete job 调用 `DeleteFileObjectsForUser(userId)`：先按 owner 反查 file_object 行 → 对象存储 hard delete → DB 行 hard delete；失败 retryable | 与 [B4 §3.1.2](../db-migrations-baseline/spec.md#312-p0-privacy-deletion-table-matrix) `file_objects` / `resume_assets` 行对齐 |
-| D-7 | 最大文件大小 | 默认 10 MB（resume）/ 10 MB（target_job_attachment）/ 5 MB（privacy_export）；通过 A4 additive config paths `upload.maxBytes.resume` / `upload.maxBytes.targetJobAttachment` / `upload.maxBytes.privacyExport` 注入；超限由 presign 拒绝 `VALIDATION_FAILED`，RegisterFileObject 必须读取对象存储实际大小并与 `file_objects.byte_size` 精确匹配后才允许 `pending → uploaded`，不向当前 `UploadPresign` response 私加 `maxBytes` 字段 | 简化 frontend pre-check，并用 register-time object stat 防止客户端低报 byteSize 后上传超限对象 |
+| D-7 | 最大文件大小 | 默认 10 MB（resume）/ 5 MB（privacy_export）；通过 `upload.maxBytes.resume` / `upload.maxBytes.privacyExport` 注入；超限由 presign 拒绝 `VALIDATION_FAILED`，RegisterFileObject 以对象存储实际大小裁决 | 删除无消费者的 JD attachment 配置，同时保留简历与隐私导出边界 |
 
 ### 3.2 待确认事项
 
@@ -95,7 +95,7 @@ backend-upload 之所以独立于 `backend-resume`：`file_objects` 同时服务
 | `purpose` / `upload_status` 枚举字面量 | backend-upload（D-1/D-2）+ [B4 enum-sources.yaml](../db-migrations-baseline/spec.md#21-in-scope) 登记 | DB check constraint 必须与本 spec 对齐 |
 | presign URL 签发 | backend-upload + 对象存储 provider | 通过 `ObjectStore` interface 抽象 |
 | 对象存储 endpoint / secret / TTL | [A4 secrets-and-config](../secrets-and-config/spec.md) | 不 hardcode |
-| 业务 register 引用 | 各业务 handler（[backend-resume](../backend-resume/spec.md) / [backend-targetjob](../backend-targetjob/spec.md)） | 通过 backend-upload internal API |
+| 业务 register 引用 | [backend-resume](../backend-resume/spec.md) 等真实文件业务 owner | 通过 backend-upload internal API；TargetJob paste-only 不注册文件 |
 | 隐私删除调用 | backend internal privacy runner（[backend-runtime-topology](../backend-runtime-topology/spec.md)） | 调用 backend-upload `DeleteFileObjectsForUser` |
 | frontend 上传组件 | [frontend-shell](../frontend-shell/spec.md) / `frontend-resume-workshop/002-create-flow` | 消费 generated client 调 createUploadPresign + 客户端 PUT |
 
@@ -111,7 +111,8 @@ backend-upload 之所以独立于 `backend-resume`：`file_objects` 同时服务
 | C-6 | privacy delete 链路 | 用户 A 有 5 个 fileObject + 1 个 privacy_export pending | `DELETE /api/v1/me` 创建 `privacy_delete` async job，backend runtime runner kernel 执行该 job | 对象存储删除 5 行 → DB 5 行硬删 + audit tombstone 同事务写入；retryable 失败时 DB 行保留原状态等待重试；upload deleter 必须被实际挂入 `cmd/api` runtime privacy_delete path | 001（含隐私章节）+ backend-runtime-topology |
 | C-7 | 隐私 / 范围外输入负向 | grep `frontend-` / `backend-` / `docs/spec/` | – | 不出现范围外 `upload-route` / `pre-signed-by-frontend` / hardcode S3 SDK 路径等 out-of-scope 模式 | 001 |
 | C-8 | mock-first 对齐 | B2 fixture `createUploadPresign.json` `default` scenario | mock-server 返回该 scenario | 字段集 / status code / IK 行为与真实 handler 字节级一致 | 001 + mock-contract-suite |
+| C-9 | JD purpose 收缩 | OpenAPI/DB/config/backend 仍可能存在 JD attachment purpose | 执行 001 Phase 7 | JD attachment purpose 与专属 maxBytes zero-reference；`resume` / `privacy_export` presign、register 与 privacy delete 回归通过 | 001 |
 
 ## 7 关联计划
 
-- [001-file-objects-and-presign-baseline](./plans/001-file-objects-and-presign-baseline/plan.md)：handler + store + state machine + IK + purpose validation + privacy delete 链路；BDD 覆盖 presign → upload → register → delete happy path。
+- [001-file-objects-and-presign-baseline](./plans/001-file-objects-and-presign-baseline/plan.md)（active）：Phase 7 删除 JD attachment public purpose 与专属配置，保留 resume/privacy presign、register、删除链路及 E2E.P0.033。

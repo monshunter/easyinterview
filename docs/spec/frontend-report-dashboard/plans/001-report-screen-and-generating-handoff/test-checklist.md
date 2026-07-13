@@ -1,7 +1,7 @@
 # Honest Grounded Report Screen Test Checklist
 
-> **版本**: 2.9
-> **状态**: completed
+> **版本**: 3.0
+> **状态**: active
 > **更新日期**: 2026-07-13
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
@@ -27,3 +27,7 @@
 
 - [x] Phase8 exact-six/current-run audit plus1440x1200+390x844 parity prove legal24/64 labels fully visible；over-limit fixture is typed invalid/no raw。P0.100 output、200-code-point fuse and18/52 repair margin are excluded from UX PASS.
   <!-- verified: 2026-07-13 evidence="P0.099 e2e-p0-099-20260713T095144Z-12381 trigger+verify PASS; exact six/three states/current DB-API digests/manual audit/raw-debug absent" -->
+
+## Phase 9: Internal locator cleanup
+
+- [ ] Distinct UUID sentinel DOM/a11y negatives, internal contract/CTA positives, locale zero-reference and refreshed P0.059 parity pass；separate `/agent-browser` acceptance contains only the same ready report's exact formal 1440x1200/390x844 full-page PNGs plus manifest, with recomputed path/hash/state/viewport/fullPage and report/session sentinel-absence audit all passing.

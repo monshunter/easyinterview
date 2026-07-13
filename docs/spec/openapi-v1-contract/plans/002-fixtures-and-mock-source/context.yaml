@@ -5,10 +5,10 @@ metadata:
   name: 002-fixtures-and-mock-source
   sequence: 2
   baseBranch: main
-  branch: fix/report-semantic-grounding-0712
+  branch: fix/interview-turn-ux-0713
   specVersion:
-    from: 1.43
-    to: 1.52
+    from: 1.53
+    to: 1.54
 spec:
   defaultTarget: contract
   discovery:
@@ -44,6 +44,14 @@ spec:
       - REPORT_CONTEXT_TOO_LARGE failed report
       - create plan conditional matrix
       - derived sourceReportId required non-null
+      - OPENAPI-002 target job paste only fixtures
+      - flattened rawText targetLanguage resumeId
+      - remove URL file manual form scenarios
+      - remove target_job_attachment purpose
+      - TargetJob source fields zero reference
+      - validation blank rawText 422
+      - Practice recovery fixtures
+      - retryable failure same ID reload
   targets:
     contract:
       plan: ./plan.md
@@ -51,6 +59,7 @@ spec:
       spec: ../../spec.md
       references:
         - ../../decisions/OPENAPI-001-report-direct-semantics.md
+        - ../../decisions/OPENAPI-002-targetjob-paste-only.md
         - ../001-bootstrap/plan.md
         - ../003-breaking-change-gate/plan.md
         - ../../../shared-conventions-codified/plans/001-bootstrap/plan.md
@@ -63,6 +72,12 @@ spec:
           - Makefile
         uiRoutes: []
         apiNames:
+          - importTargetJob
+          - createUploadPresign
+          - listTargetJobs
+          - getTargetJob
           - getFeedbackReport
           - listTargetJobReports
           - createPracticePlan
+          - getPracticeSession
+          - sendPracticeMessage

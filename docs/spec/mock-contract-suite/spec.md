@@ -1,8 +1,8 @@
 # Mock Contract Suite Spec
 
-> **版本**: 1.16
+> **版本**: 1.18
 > **状态**: active
-> **更新日期**: 2026-07-10
+> **更新日期**: 2026-07-13
 
 ## 1 背景与目标
 
@@ -20,7 +20,7 @@
 
 ### 2.1 In Scope
 
-- 读取 `openapi/fixtures/` 当前 10 tag / 37 operation fixtures；Auth `completeMyProfile`、扁平 `Resumes`、`getResumeSource` PDF 原件预览、TargetJob archive、PracticeSessions listing、PracticeVoiceTurn 与 runtime config 均属于当前 fixture coverage。落地路径由 [openapi-v1-contract/004-resume-additive-coverage](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md)、[backend-resume](../backend-resume/spec.md)、[backend-auth/001](../backend-auth/plans/001-email-code-session-bootstrap/plan.md) 与 [frontend-shell/001](../frontend-shell/plans/001-app-shell-auth-settings/plan.md) 承接。
+- 读取 `openapi/fixtures/` 当前 10 tag / 37 operation fixtures；Auth `completeMyProfile`、扁平 `Resumes`、`getResumeSource` PDF 原件预览、TargetJob paste-only import/archive、PracticeSessions listing、PracticeVoiceTurn 与 runtime config 均属于当前 fixture coverage。TargetJob paste-only contract 由 accepted [OPENAPI-002](../openapi-v1-contract/decisions/OPENAPI-002-targetjob-paste-only.md) 与 openapi-v1-contract 001/002/003 承接；其它落地路径由 [openapi-v1-contract/004-resume-additive-coverage](../openapi-v1-contract/plans/004-resume-additive-coverage/plan.md)、[backend-resume](../backend-resume/spec.md)、[backend-auth/001](../backend-auth/plans/001-email-code-session-bootstrap/plan.md) 与 [frontend-shell/001](../frontend-shell/plans/001-app-shell-auth-settings/plan.md) 承接。
 - 基于 generated OpenAPI types 为前端提供 fixture-backed API client 或 mock transport。
 - 为本地后端或开发服务器提供同源 mock handler / router。
 - 校验 fixtures 与 `openapi/openapi.yaml`、generated packages 和 `openapi/fixtures/PROTOTYPE_MAPPING.md` 的一致性。
@@ -46,6 +46,8 @@
 | D-3 | Mock 范围 | P0 happy path + 高风险错误态 | 不扩展当前范围外的空壳 |
 | D-4 | Drift gate | mock runtime 必须跑 fixture coverage、OpenAPI diff / validation 和 current-scope negative search | 后续 UI / API 改动要先更新 owner truth source |
 | D-5 | Frontend dev preview 默认行为 | Vite dev 默认 fixture-backed；`VITE_EI_API_MODE=real` 必须同时提供 `VITE_EI_API_BASE_URL` 才打真实 backend | 避免本地开发时大量真实接口报错导致页面不可见，且避免相对 `/api/v1` 隐式打到 frontend 5173 |
+| D-6 | TargetJob mock paste-only | `importTargetJob` mock request 只接受 flattened `{rawText,targetLanguage,resumeId}`；TargetJob fixture/generated mock response 不含 `sourceType` / `sourceUrl`；URL/file/manual_form 与 `target_job_attachment` 不得作为正向 mock 能力 | 保留通用 `createUploadPresign` 及 resume/privacy purpose；P0.015 只消费 paste-only fixture state，不保留兼容分支 |
+| D-7 | Practice recovery mock parity | mock runtime 原样消费 B2 role-discriminated messages 与 typed failure fixtures：user 有 `clientMessageId/replyStatus`，assistant 无；get-session 覆盖四种 durable status，send 覆盖 validation/auth/not-found/conflict/mismatch/retryable failure 与 same-ID retry success | 不复制本地 recovery DTO/错误表；unknown scenario 继续 fail loudly；frontend-workspace-and-practice/002 与 P0.046 消费 exact markers |
 
 ## 4 设计约束
 
@@ -58,6 +60,9 @@
 - 前端 dev preview 必须保留显式真实 backend 逃生口：`VITE_EI_API_MODE=real VITE_EI_API_BASE_URL=<url> pnpm --filter @easyinterview/frontend dev` 使用默认 generated client + real `fetch`；dev real 模式不得隐式使用相对 `/api/v1` 打到 frontend 5173，也不得在缺少 `VITE_EI_API_BASE_URL` 时猜测 backend 地址。
 - Mock response 必须只覆盖当前 `openapi/openapi.yaml` inventory、当前 fixtures 与 product-scope current contract；禁止新增当前范围之外的 route、tag、operationId、schema key 或 runtime config path。
 - tag / fixture 目录拦截必须覆盖目录名本身，包括空目录和 Git 不跟踪的目录；`openapi/fixtures/` 下只允许当前 10 个 tag 目录。
+- TargetJob mock 必须原样消费 OPENAPI-002 迁移后的 fixture/generated types：`importTargetJob` request 精确为 `rawText` / `targetLanguage` / `resumeId`，read response 不含 `sourceType` / `sourceUrl`。旧能力在 positive/runtime mock surface 中必须 zero-reference；accepted ADR/oracle 与 exact negative declarations 可保留 rejected token，禁止 whole-file/directory exclusion。
+- `createUploadPresign` operation 必须继续存在，mock coverage 只保留 resume/privacy purpose。TargetJob 收敛不得误删简历原件或隐私导出仍依赖的通用上传合同。
+- Practice mock 只投影 B2 fixtures/generated types：四种 get-session reply status 与 send exact failure matrix 的 status/body 必须字节一致；retryable failure → reload → same-ID success 不得新增第二条 user/assistant。Mock adapter 不解析 `Error.message`，也不自行推断 retryability。
 
 ## 5 模块边界
 
@@ -77,6 +82,8 @@
 | C-3 | 后端 mock 同源 | 本地 API smoke 请求 mock handler | 命中任一 P0 operation | handler 返回同一 fixture registry 的 typed response | 001-fixture-backed-mock-runtime |
 | C-4 | 当前范围负向搜索 | mock runtime / fixtures / generated artifacts 已生成 | 运行 scoped negative search | 不含当前 product-scope 范围之外的 route / tag / operationId / schema key / config path；不误杀普通业务文案 | 001-fixture-backed-mock-runtime |
 | C-5 | 前端 dev preview 可见 | 没有启动真实 backend | 运行 Vite dev frontend 并打开已开发页面 | 默认 fixture-backed client 返回 runtime/auth/业务 fixtures，页面可渲染；只有显式 `VITE_EI_API_MODE=real` 且提供 `VITE_EI_API_BASE_URL` 才访问真实 backend | 001-fixture-backed-mock-runtime |
+| C-6 | TargetJob paste-only mock parity | OPENAPI-002 与 openapi-v1-contract 002 已迁移 fixtures/generated artifacts | 运行 mock registry、frontend transport、backend mockruntime 与 boundary focused gates | `importTargetJob` 只接受 `{rawText,targetLanguage,resumeId}`；TargetJob response 无 `sourceType/sourceUrl`；URL/file/manual_form/`TargetJobImportSource*`/`target_job_attachment` 正向 surface 为零；`createUploadPresign` resume/privacy 仍可解析；P0.015 获得 paste-only exact fixture marker | 001-fixture-backed-mock-runtime Phase 8 |
+| C-7 | Practice recovery mock parity | B2 001/002 发布 role-discriminated generated types 与 planned fixtures | frontend/backend mock 选择 get/send recovery scenarios | exact status/body parity；user/assistant recovery fields 合法；validation/auth/not-found/conflict/mismatch/retryable markers 可选；unknown scenario fail loudly；P0.046 可证明 reload/same-ID retry 无重复消息 | 001-fixture-backed-mock-runtime Phase 9 |
 
 ## 7 关联计划
 

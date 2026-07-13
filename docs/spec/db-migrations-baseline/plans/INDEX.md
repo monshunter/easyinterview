@@ -8,10 +8,10 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
+| [001-bootstrap](./001-bootstrap/plan.md) | [plan](./001-bootstrap/plan.md) / [checklist](./001-bootstrap/checklist.md) / [context](./001-bootstrap/context.yaml) | 1.21 | active | 2026-07-13 |
 
 ## 2 已完成（Completed）
 
 | 计划 | 文件 | 版本 | 状态 | 完成日期 |
 |------|------|------|------|----------|
-| [001-bootstrap](./001-bootstrap/plan.md) | [plan](./001-bootstrap/plan.md) / [checklist](./001-bootstrap/checklist.md) / [context](./001-bootstrap/context.yaml) | 1.19 | completed | 2026-07-13 |
 | [002-flat-resume-migration](./002-flat-resume-migration/plan.md) | [plan](./002-flat-resume-migration/plan.md) / [checklist](./002-flat-resume-migration/checklist.md) / [context](./002-flat-resume-migration/context.yaml) | 1.5 | completed | 2026-07-10 |

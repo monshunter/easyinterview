@@ -1,7 +1,7 @@
 # Internal Job and Outbox Runner Test Checklist
 
-> **版本**: 1.12
-> **状态**: completed
+> **版本**: 1.13
+> **状态**: active
 > **更新日期**: 2026-07-13
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
@@ -14,7 +14,7 @@
 - [x] Phase 1 typed config 注入通过：`backend/internal/platform/config/loader_test.go::TestAsyncSection` + `backend/internal/runner/config_test.go`（覆盖 `async.queueWeights` / `leaseTimeoutSeconds` / `shutdownGraceSeconds` / `reaperIntervalSeconds` / `scanIntervalSeconds`）
 - [x] Phase 1 runtime handler trace 透传通过：`backend/internal/runner/runtime_trace_test.go::TestRuntime_HandlerInheritsTraceparent` + `TestRuntime_HandlerLogsTraceIdField`
 
-- [x] Phase 2 `target_import` / `source_refresh` regression 通过：`cd backend && go test ./internal/targetjob/...`
+- [x] Phase 2 HISTORICAL-SUPERSEDED：当时的 `target_import` / `source_refresh` regression 通过；Phase 7 current contract 不再把 refresh 作为正向能力。
 - [x] Phase 2 `privacy_delete` regression 通过：`cd backend && go test ./internal/privacy/runner/...` + cmd/api smoke `DELETE /api/v1/me`
 - [x] Phase 2 out-of-scope debrief runner surface negative guard 通过：当前正向 package/test list 不再包含 deleted debrief handler。
 - [x] Phase 2 `resume_parse` / `resume_tailor` regression 通过：`cd backend && go test ./internal/resume/jobs/... ./cmd/api -run 'TestResume(Parse|Tailor)Runner' -count=1`
@@ -41,7 +41,7 @@
 - [x] Phase 4 `validate_context.py` PASS（target=backend）
 - [x] Phase 4 `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` PASS
 - [x] Phase 4 doc reconcile：`backend-runtime-topology` / `backend-review` / `backend-targetjob` / `backend-resume` / `backend-auth` / `event-and-outbox-contract` / `secrets-and-config` / `engineering-roadmap` D-* 边界条款已同步且 0 范围外口径回流；owner spec 负向 grep `grep -n "未来 .backend-async-runner" docs/spec/{backend-runtime-topology,backend-review,backend-targetjob,backend-resume,backend-auth,event-and-outbox-contract}/spec.md` 期望 0 命中；roadmap 负向 grep `grep -n "backend-async-runner.*未创建\|未创建.*backend-async-runner" docs/spec/engineering-roadmap/spec.md` 期望 0 命中。
-- [x] Phase 4 BDD-Gate owner rerun 全 PASS（当前正向 scope：`E2E.P0.003` / `010` / `011` / `012` / `013` / `034` / `035` / `077` / `078` / `080`，`E2E.P0.033` live repeatability，Go HTTP BDD `E2E.P0.041` / `052` / `053` / `054` / `055` via `cmd/api/reports_http_scenario_test.go`）。D-22 删除的 out-of-scope 场景不再是当前 gate。
+- [x] Phase 4 HISTORICAL-EVIDENCE：当时的 owner BDD rerun 覆盖 `E2E.P0.003` / `010` / `011` / `012` / `013` / `034` / `035` / `077` / `078` / `080`、`E2E.P0.033` 与报告 HTTP BDD；Phase 7 当前 TargetJob regression 仅由 `E2E.P0.010` / `E2E.P0.012` 覆盖。
 - [x] Phase 4 p0-033 live repeatability regression 通过：dev-stack `make dev-doctor` OK；`DATABASE_URL` + `OBJECT_STORAGE_*` live env 下 `scripts/setup.sh` / `trigger.sh` / `verify.sh` / `cleanup.sh` PASS，覆盖真实 MinIO PUT、`RegisterFileObject`、`DELETE /api/v1/me`、privacy runner succeeded、audit tombstone integration 且重复运行不撞固定 audit id
 - [x] Phase 4 scheduler/backoff L2 review regression 通过：`cd backend && go test ./internal/runner ./internal/review ./cmd/api -run '^(TestRuntime_FinalizeUsesTimestampAfterHandlerReturns|TestRuntime_StartDoesNotLetCriticalJobStarveEmailDispatch|TestGenerateHandler_NormalizesFinalizedRetryableFailureThroughKernel|TestE2EP0052ReportGenerationHappyPath|TestE2EP0054ReportAIFailureAndRetry)$' -count=1` PASS，覆盖 fresh finalize timestamp、`email_dispatch` 防饥饿、`report_generate` failure 走 kernel finalize。
 - [x] Phase 4 review store integration gate 可发现但本机跳过：`cd backend && go test -tags=integration ./internal/store/review -run '^TestPersistReportFailure' -count=1 -v` PASS with SKIP because `DATABASE_URL is not set`；非 integration 包级回归由 `cd backend && go test ./internal/store/review -count=1` 覆盖。
@@ -72,3 +72,10 @@
   <!-- verified: 2026-07-13 evidence="out-of-scope lint PASS; scenario+migration lint 31 PASS; no active coupling found" -->
 - [x] Phase 6 focused/full tests, context validation, docs/index and diff gates pass before completion.
   <!-- verified: 2026-07-13 evidence="focused/full runner+review tests and race gates PASS; contexts valid; docs/index zero drift; git diff --check clean" -->
+
+## Phase 7: OPENAPI-002 TargetJob refresh runner contraction
+
+- [ ] 7.1 CONTRACT-ORDER: 统一 RED 已记录，且先消费 B3 Phase 9 的 12-event/7-job/6-API-facing generated handoff；上游未完成时不进入 Runner GREEN。
+- [ ] 7.2 SIX-HANDLER-GATE: kernel registry/cmd-api composition 只保留 `email_dispatch`、`privacy_delete`、`report_generate`、`target_import`、`resume_parse`、`resume_tailor` 六个可执行 handler，scheduler/reaper/finalize 回归通过。
+- [ ] 7.3 TARGETJOB-REGRESSION: current scenario 仅运行 `E2E.P0.010` / `E2E.P0.012`，证明 paste import 与失败恢复继续通过；`E2E.P0.011` / `E2E.P0.013` 不作为 current gate。
+- [ ] 7.4 ZERO-REF/RETAIN: refresh job/handler/dotted task/queue/metric positive surface 零命中；正向 probe 证明独立 `source_records` table/model/query 保留，再运行 context/diff gate。

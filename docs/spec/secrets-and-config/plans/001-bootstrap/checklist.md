@@ -1,10 +1,12 @@
 # Secrets and Config Bootstrap Checklist
 
-> **版本**: 1.16
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 1.17
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
+
+> Phase 1-11 的已勾选项只保留为历史交付证据；Phase 12 是当前 TargetJob attachment maxBytes 收缩合同。旧 Phase 中出现的附件配置正向口径不构成当前实现、验收或兼容要求。
 
 ## Phase 1: Three-tier config loader 与 redactor
 
@@ -83,3 +85,10 @@
 - [x] 11.1 删除 main-entry 不可达且仅自身测试消费的平行 frontend runtime-config client 包，收敛到 generated client + `AppRuntimeProvider`；验证 source contract RED/GREEN、focused/full frontend、config/codegen、owner contexts 与 docs/diff/pruning gates。
   <!-- red: 2026-07-10 method=main-entry-reachability+pruning-contract evidence="The TypeScript main-entry graph reported six unreachable non-test files, of which the two hand-written runtime-config modules were consumed only by their own five-test file. The focused pruning suite failed only the new package-absence contract while the prior nine tests passed." -->
   <!-- verified: 2026-07-10 method=parallel-frontend-runtime-config-client-removal evidence="Deleted the fetch/cache implementation, duplicate hand-written types and five self-only tests without a wrapper or replacement. AppRuntimeProvider continues to use generated EasyInterviewClient/RuntimeConfig and getRuntimeConfig. Focused frontend passes 14 tests; full frontend passes 136 files/836 tests plus typecheck/build; backend config/secrets/featureflag packages, make lint-config and make codegen-check pass. The post-delete graph reports 264 source files, 121 runtime-reachable files and only four unreachable non-test generated B2/B3 contract assets. A4, D1 and product contexts, git diff check and pruning surface pass with real_residuals=0. No Bug/retrospective report, environment restart or data cleanup was needed." -->
+
+## Phase 12: TargetJob attachment maxBytes config removal
+
+- [ ] 12.1 RED: config schema、validator 与 backend API composition tests 要求 maxBytes 当前集合仅含 `resume` / `privacyExport`，并固定默认值 10MB / 5MB；旧 TargetJob attachment key 仍存在时测试失败。
+- [ ] 12.2 GREEN: 删除 `config/config.yaml`、platform config validator/fixtures/tests 与 backend API composition 中的旧 TargetJob attachment maxBytes binding，不增加 alias、fallback 或兼容读取。
+- [ ] 12.3 REGRESSION-GATE: `make lint-config`、platform config focused tests 与 backend API composition tests 通过；Resume/Privacy 非正数仍 fail-fast，presign TTL 和 10MB/5MB 默认值不变。
+- [ ] 12.4 ZERO-REF/BDD-GATE: active `config/`、platform config、backend API composition 与 A4 current docs 对旧 key 零命中；合法历史/显式负测排除。BDD 不适用，以 Red/Green focused tests、config lint、typed composition 与 zero-reference 作为替代 gate。

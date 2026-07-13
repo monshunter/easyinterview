@@ -1,8 +1,8 @@
 # OpenAPI v1 Contract Fixtures & Mock Source Checklist
 
-> **版本**: 1.14
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 1.16
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -32,7 +32,7 @@
 - [x] 4.1 Mock consumer scenario 选择规则固定：显式 scenario 命中则使用；未指定时使用 `default`；指定不存在 scenario 时失败。
 - [x] 4.2 前端 MSW、后端 mock server、Prism 和文档站必须共享 `openapi/fixtures/` 或生成 examples；需要新增 mock variant 时在 fixture scenario 中增加。
 - [x] 4.3 `openapi/fixtures/README.md`、`openapi/README.md` 与本 owner docs 只描述当前 fixture truth source、命令和 consumer contract。
-- [x] 4.4 BDD 不适用；本 plan 的用户可见行为由当前 P0 scenario owner 验证。
+- [x] 4.4 本地 BDD 文件不适用；用户可见行为由当前 P0 scenario owner 验证，新增 Practice recovery 必须通过 Phase 9.6 downstream `BDD-Gate`。
 
 ## 5 Current owner compression gate
 
@@ -59,3 +59,21 @@
   <!-- verified: 2026-07-12 method=prototype-sync-twice+unit-tests evidence="Two full fixture-tree SHA-256 manifests are identical; 6 sync tests pass including direct FeedbackReport projection and negative old-field assertions." -->
 - [x] 7.4 Run `make validate-fixtures`, example rendering and Prism byte-equal smoke for `getFeedbackReport`, `listTargetJobReports` and `createPracticePlan`; pass exact response markers to backend/frontend owners.
   <!-- verified: 2026-07-12 method=fixture-example-prism evidence="validate-fixtures passes 37; renderer passes 5 tests and emits e4017fcf5a3a...; live Prism 5.14.2 passes 7/7 byte-equal checks including exact getFeedbackReport=200, listTargetJobReports=200 and createPracticePlan=201 defaults." -->
+
+## Phase 8: OPENAPI-002 paste-only fixtures
+
+- [ ] 8.1 RED: focused fixture/schema tests reject empty/space/tab/newline-only `rawText`, old source wrapper, URL/file/manual-form/title/company/extra request fields, TargetJob `sourceType/sourceUrl` responses and `target_job_attachment`; current positive fixtures fail before migration.
+- [ ] 8.2 GREEN: make `importTargetJob` default/manual-text requests exactly `{rawText,targetLanguage,resumeId}` with non-whitespace text; add canonical `validation-blank-raw-text`=`422/VALIDATION_FAILED/retryable=false/details.field=rawText`, whose negative harness asserts the exact `/rawText` schema violation without skipping request validation; remove URL/file/manual-form positive scenarios and source response fields; preserve 37-operation fixture coverage.
+- [ ] 8.3 GREEN: remove only TargetJob attachment purpose/scenarios from `createUploadPresign`; keep resume/privacy purpose coverage and the generic upload operation.
+- [ ] 8.4 Update prototype data/mapping and run `make sync-fixtures-from-prototype` twice; second run is byte-identical and cannot restore old source fields or import variants.
+- [ ] 8.5 Run `make validate-fixtures`, example rendering and Prism byte parity for import/list/get TargetJob plus upload presign; hand exact markers to mock/frontend/backend owners.
+- [ ] 8.6 BDD/ZERO-REFERENCE-GATE: P0.010/P0.015 consume paste-only states; current positive fixture/prototype/example surfaces contain zero positive/runtime `TargetJobImportSource*|target_job_attachment|sourceType/sourceUrl|url/file/manual_form` import variants. ADR/oracle and exact negative declarations are allowed; whole-file/directory exclusions are forbidden.
+
+## Phase 9: Practice message recovery fixtures
+
+- [ ] 9.1 RED: fixture-validator tests reject user messages missing `clientMessageId/replyStatus`, assistant messages containing recovery fields, invalid status, duplicate retry messages and non-typed error bodies.
+- [ ] 9.2 GREEN: `getPracticeSession` provides pending/retryable-failed/terminal-failed/complete projections with stable same user ID; only complete has exactly one assistant reply.
+- [ ] 9.3 FAILURE-MATRIX: `sendPracticeMessage` includes exact validation 422, auth 401, not-found 404, pending-conflict 409, same-ID mismatch 409 and retryable AI-timeout 502 scenarios with locked code/retryable/details markers and reservation expectations.
+- [ ] 9.4 REPLAY-GATE: paired retry-success uses the same `clientMessageId` and text after retryable failure, transitions the existing user projection to complete and creates exactly one assistant; mismatch/terminal cases never retry.
+- [ ] 9.5 PARITY-GATE: validate fixtures, render examples and run Prism byte parity for `getPracticeSession` / `sendPracticeMessage`; mock runtime unknown-scenario behavior stays fail-loudly.
+- [ ] 9.6 BDD-Gate: hand exact markers to mock-contract-suite/001, frontend-workspace-and-practice/002, backend-practice/002 and P0.046; scenario proof covers reload → same-ID retry with no duplicate user/assistant message.

@@ -1,7 +1,7 @@
 # Internal Job and Outbox Runner Checklist
 
-> **版本**: 1.15
-> **状态**: completed
+> **版本**: 1.16
+> **状态**: active
 > **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
@@ -17,7 +17,7 @@
 - [x] 1.7 单元测试基础设施：fake `LeaseStore` + deterministic clock；test 来源 `backend/internal/runner/fakestore_test.go`
 - [x] 1.8 Runtime handler trace 透传：从 `async_jobs.payload` / envelope 读取 W3C `traceparent` 重建 span context；slog 输出注入 `trace_id` 字段（缺失时跳过）；test 来源 `backend/internal/runner/runtime_trace_test.go::TestRuntime_HandlerInheritsTraceparent` + `TestRuntime_HandlerLogsTraceIdField`
 
-- [x] 2.1 `target_import` + `source_refresh` handler 直接注册到 kernel；rerun `backend/internal/targetjob/pipeline_test.go::TestSourceRefreshHandler_MarksStale` + `e2e_scenario_test.go`
+- [x] 2.1 HISTORICAL-SUPERSEDED: TargetJob import 与 refresh handler 曾共同注册到 kernel；Phase 7 删除 refresh handler，仅保留 import。
 - [x] 2.2 `privacy_delete` 注册到 kernel；rerun `backend/internal/privacy/runner/delete_handler_test.go::TestPrivacyDeleteHandler_DeletesUploadFilesForUser`；smoke `DELETE /api/v1/me` 触发链路 → `privacy_requests.status='completed'`
 - [x] 2.3 D-22 后复盘 runner surface 收敛：当前不再有 debrief handler/package/job 作为正向 target；out-of-scope token 仅允许保留在 audit、lint 或负向断言中。
 - [x] 2.4 `resume_parse` + `resume_tailor` handler 直接注册到 kernel；rerun `backend/internal/resume/jobs/parse_test.go` + `tailor_test.go` + `backend/cmd/api/resume_parse_runner_scenario_test.go` + `resume_tailor_runner_scenario_test.go`
@@ -49,7 +49,7 @@
 - [x] 4.11 同步 `event-and-outbox-contract` § 模块边界：「backend internal runner 实现」owner 改为 `backend-async-runner`；test 来源 `grep -n "backend-async-runner.*未创建\|未创建.*backend-async-runner\|未来 .backend-async-runner" docs/spec/event-and-outbox-contract/spec.md` 期望 0 命中
 - [x] 4.12 同步 `secrets-and-config` D-9 / § config dictionary：additive 新增 `async.leaseTimeoutSeconds` / `async.shutdownGraceSeconds` / `async.reaperIntervalSeconds` / `async.scanIntervalSeconds`；test 来源 `backend/internal/platform/config/loader_test.go` + `scripts/lint/env_dict.py`
 - [x] 4.13 同步 `engineering-roadmap` §5.2 / §6.3 S2：确认 `backend-async-runner` active subject 引用，不再把范围外 Jobs Recommendations / JD Match 模块列为当前 runner work；test 来源 `grep -n "backend-async-runner.*未创建\|未创建.*backend-async-runner" docs/spec/engineering-roadmap/spec.md` 期望 0 命中。
-- [x] 4.14 BDD-Gate: 当前 owner BDD rerun 全 PASS：auth email + privacy_delete `E2E.P0.003` / `033`；target_import / source_refresh `E2E.P0.010` / `011` / `012` / `013`；report_generate Go HTTP BDD `E2E.P0.041` / `052` / `053` / `054` / `055`；resume_parse `E2E.P0.034` / `035`；resume_tailor `E2E.P0.077` / `078` / `080`；evidence 归档到 [test-checklist Phase 4](./test-checklist.md)。D-22 范围外场景不再作为当前 rerun gate。
+- [x] 4.14 HISTORICAL-EVIDENCE: previous owner BDD rerun covered the then-current handler set；Phase 7 uses contract/runner tests because refresh deletion adds no user workflow.
   <!-- verified: 2026-07-06 method=post-pruning-reconcile evidence="Current positive BDD list excludes out-of-scope debrief/JD Match scenarios; retained runner handlers remain email/privacy/target/report/resume. 2026-05-22 scenario run remains audit evidence only." -->
 
 - [x] 4.15 全局 drift gate：`cd backend && go build ./...` / `cd backend && go vet ./...` / `cd backend && go test ./...` / `validate_context.py` / `python3 .agent-skills/sync-doc-index/scripts/sync-doc-index.py --check` / `make lint-runner-out-of-scope` / `git diff --check` 全部 PASS
@@ -89,3 +89,10 @@
   <!-- verified: 2026-07-13 method=contract-lint evidence="backend-review out-of-scope PASS; scenario+migration lint 31 PASS; active product coupling absent" -->
 - [x] 6.6 Run focused/full runner+review tests, both contexts, docs/index and `git diff --check`; only then return plan/test assets to completed.
   <!-- verified: 2026-07-13 evidence="runner/review focused, full and race gates PASS; backend-async-runner and backend-review contexts valid; docs/index zero drift; git diff --check clean" -->
+
+## Phase 7: OPENAPI-002 TargetJob refresh runner contraction
+
+- [ ] 7.1 RED/GREEN: consume B3 2.15 generated/baseline contract; fail while the refresh job/handler can register, lease, run, enter low-priority scheduling or emit metric expectations, then delete those surfaces while `target_import` stays green.
+- [ ] 7.2 RUNTIME/PERSISTENCE-GATE: remove handler, cmd/api registration, queue assignment and dedicated positive tests; keep six-handler kernel behavior and independent `source_records` table/model/query behavior intact.
+- [ ] 7.3 GENERATED-GATE: compile/test against B3 12-event/7-job artifacts and reject stale generated symbols or baseline-only migration without matching source/generated changes.
+- [ ] 7.4 BDD-N/A/ZERO-REFERENCE: run B3 contract plus runner/target-import/scheduler/reaper/cmd-api tests and prove zero positive refresh job/handler/dotted task/queue references outside history/negative fixtures; exclude `source_records`, then validate context/diff before restoring completed.

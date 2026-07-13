@@ -1,6 +1,6 @@
 # 报告仪表盘目标结构
 
-> **版本**: 1.29
+> **版本**: 1.30
 > **状态**: active
 > **更新日期**: 2026-07-13
 
@@ -18,7 +18,6 @@ ReportDashboard(reportId)
 │  ├─ 复练当前轮
 │  └─ 进入下一轮
 ├─ ContextStrip
-│  ├─ session
 │  ├─ target
 │  ├─ round
 │  └─ resume
@@ -92,7 +91,7 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 ## 7 可读性与响应式
 
 - frozen target / round / resume 允许换行或通过 title/accessible description 读取完整值。
-- session ID 可以单行省略，但必须可获取完整值。
+- session/report UUID 等内部 locator 不渲染为用户字段，也不进入 title、tooltip 或 accessible description；它们只保留在 API/动作内部关联中。
 - Desktop 使用双列 DetailGrid；390px mobile 明确单列。
 - 长 dimension/evidence/action 必须换行，不横向溢出、不被不可恢复截断。
 - 1440x1200 desktop 与 390x844 mobile full-page 都必须覆盖 action 区域，并证明合法 24/64 label 完整换行、无截断/ellipsis/隐藏/横溢。恰好 24/64 由 deterministic fixture parity 证明；200-code-point malformed fixture只用于 typed invalid/no-raw-output 测试，不能充当 UX PASS。18/52 只用于 targeted repair 内部生成，不替代边界 fixture。
@@ -119,6 +118,7 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 - focusCompetencyCodes / evidenceGaps URL 或客户端事实源。
 - route status/error/target/resume/round 覆盖 API frozen facts。
 - client translation/rewrite of model summary/dimension/evidence/action labels。
+- user-visible or accessibility-exposed session/report UUID/internal locator。
 
 ## 10 验收标准
 
@@ -133,11 +133,13 @@ Generating 只表达后端真实的 queued / generating / failed / timeout / rea
 | R-7 | real provider zh/en | P0.099 当前 run 的 en/zh ready rows | 六图 manifest 对每个 row 绑定 DB/API `canonical_report_content_digest`、`action_length_audit`、`content_audit`、`screenshot_sha256` 与 report/session/context digest；两张 390x844 report full-page 截图完整覆盖 action 区域，实际 label 分别满足 `<=24 whitespace words` / `<=64 Unicode code points` 且完整可见、无截断/省略/横溢 |
 | R-8 | reportId-only / conflicting route | 深链刷新/点击 CTA | API frozen status/context 获胜 |
 | R-9 | UI locale != report language | 打开报告 | chrome 本地化，模型语义保持报告原文 |
+| R-10 | ready report has internal IDs | 打开 desktop/mobile 报告 | Context Strip 只显示 target/round/resume；可见 DOM、可访问名称与截图都不暴露 session/report UUID |
 
 ## 11 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-13 | 1.30 | Context Strip 删除 session/report UUID 等内部 locator，只保留 target/round/resume，并要求 desktop/mobile 可见与可访问负向验收。 |
 | 2026-07-13 | 1.29 | Correct report timing ownership to action-local initial+3 with10s/20s/40s; async attempts are infrastructure-only. Keep maxAttempts49/6m04s and no unsupported failed-report regenerate UI. |
 | 2026-07-13 | 1.28 | Lock report use of business10s/20s/40s under durable max4 and frontend maxAttempts49 (~6m04s)；separate business cap80 from infra delivery and expose no internal attempt/progress. |
 | 2026-07-13 | 1.27 | Clarify product full-validator repair scope：sole-label targeted，all other/mixed whole-report，one-budget full revalidation；visible UI boundary unchanged. |

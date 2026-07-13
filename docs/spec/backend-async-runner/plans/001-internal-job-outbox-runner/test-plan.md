@@ -1,7 +1,7 @@
 # Internal Job and Outbox Runner Test Plan
 
-> **版本**: 1.11
-> **状态**: completed
+> **版本**: 1.12
+> **状态**: active
 > **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
@@ -25,7 +25,7 @@
 | P1-4 | spec D-4 business/infra退避分层 | 1/5 | `TestBackoffPolicy_BusinessJobSchedule` + `TestBackoffPolicy_OutboxScheduleRemainsInfrastructurePolicy` | unit |
 | P1-5 | spec D-5 reaper | 1 | `backend/internal/runner/reaper_test.go::TestReaper_ReclaimsExpiredLeases` | unit + integration |
 | P1-6 | spec D-8 shutdown 顺序 | 1 | `backend/internal/runner/runtime_test.go::TestRuntime_GracefulShutdown` | unit |
-| P2-1 | spec C-5 target_import / source_refresh | 2 | `backend/internal/targetjob/pipeline_test.go` + `e2e_scenario_test.go` rerun | regression |
+| P2-1 | HISTORICAL-SUPERSEDED: Phase 2 当时的 target_import / source_refresh handler 迁移 | 2 | 历史 `backend/internal/targetjob/pipeline_test.go` + `e2e_scenario_test.go` evidence；current contract 由 §2.11 覆盖 | historical regression |
 | P2-2 | spec C-6 privacy_delete | 2 | `backend/internal/privacy/runner/delete_handler_test.go` rerun + cmd/api smoke | regression + smoke |
 | P2-3 | D-22 out-of-scope module guard | 2 | Out-of-scope module negative search / current package absence check | regression-negative |
 | P2-4 | spec C-8 resume_parse / resume_tailor | 2 | `backend/internal/resume/jobs/*_test.go` + `backend/cmd/api/resume_parse_runner_scenario_test.go` + `resume_tailor_runner_scenario_test.go` rerun | regression + scenario |
@@ -112,7 +112,7 @@
 | 行 | 决策 | Phase | 入口 | 类型 |
 |----|------|-------|------|------|
 | R-1 | spec D-12 zero-reference grep | 4 | `make lint-runner-out-of-scope`（`scripts/lint/runner_out_of_scope.py`，与既有 `backend_review_out_of_scope.py` 同风格） | lint |
-| R-2 | spec C-18 owner BDD 场景 rerun | 4 | Script BDD: `E2E.P0.003` / `010` / `011` / `012` / `013` / `033` / `034` / `035` / `077` / `078` / `080`；Go HTTP BDD: `E2E.P0.041` / `052` / `053` / `054` / `055` | BDD regression |
+| R-2 | spec C-18 owner BDD 场景 rerun | 4 | Script BDD: `E2E.P0.003` / `010` / `012` / `033` / `034` / `035` / `077` / `078` / `080`；Go HTTP BDD: `E2E.P0.041` / `052` / `053` / `054` / `055` | BDD regression |
 | R-3 | `git ls-files backend/internal/review` 不含 `runner.go` / `reaper.go` / `lease.go` | 4 | `backend/internal/review/structure_test.go::TestNoOutOfScopeRunnerFiles` 或 lint | structure test |
 | R-4 | `git ls-files backend/internal/auth` 不含 `BackgroundMailDispatcher` 引用 | 4 | `backend/internal/auth/mail_test.go::TestNoBackgroundDispatcher` | unit |
 | R-5 | review store不持有重复lease/reaper owner | 5 | `backend/internal/store/review/structure_test.go::TestReviewStoreDoesNotOwnAsyncJobLeaseFinalizeOrReaper` | structure-negative |
@@ -126,6 +126,15 @@
 - **跨日 SLA / saga 编排**：N/A，仍走 ADR-Q2 锁定的「秒级-分钟级 + 幂等」范围。
 - **Asynq Redis 队列**：N/A，本 plan 沿用 PG `async_jobs`；future Asynq 替换由 ADR 触发条件成立后另起 plan。
 - **`privacy_export` handler**：N/A，B3 / B4 保留 canonical job_type 以支持 future 导出链路，但当前 B2 requestPrivacyExport 为 501 fixture，无 producer / handler；本 plan 不注册 `privacy_export`。
+
+### 2.11 Phase 7 current TargetJob refresh contraction
+
+| 行 | 当前合同 | Phase | 测试入口 | 类型 |
+|----|----------|-------|----------|------|
+| P7-1 | 先消费 B3 的 12 events / 7 canonical jobs / 6 API-facing jobs generated handoff | 7 | B3 inventory/generator tests + runner generated-consumer compile | contract preflight |
+| P7-2 | kernel 只注册 `email_dispatch` / `privacy_delete` / `report_generate` / `target_import` / `resume_parse` / `resume_tailor` 六个可执行 handler | 7 | runner registry、scheduler、reaper 与 cmd/api builder focused tests | unit + integration |
+| P7-3 | TargetJob 当前场景回归只执行 `E2E.P0.010` / `E2E.P0.012`；已删除的 URL/manual-form 场景不进入 current gate | 7 | 两个 owner scenario 的 setup → trigger → verify → cleanup | regression scenario |
+| P7-4 | refresh job/handler/dotted task/queue/metric positive surface zero-reference，同时保留独立 `source_records` table/model/query | 7 | scoped zero-reference + positive persistence probes | regression-negative |
 
 ## 3 测试命令清单
 
@@ -143,4 +152,4 @@
 
 - 所有 §2 行有对应通过证据（unit / integration / scenario / lint / doc reconcile）。
 - §2.7 R-1 lint 通过；R-2 BDD 场景全 PASS。
-- spec §6 acceptance criteria C-1~C-24（含 C-13a）全部有对应测试入口。
+- spec §6 acceptance criteria C-1~C-25（含 C-13a）全部有对应测试入口。

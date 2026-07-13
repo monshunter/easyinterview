@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "OPENAPI-002",
+  "baseline": "openapi/baseline/openapi-v1.0.0.yaml@merge-base(main)",
+  "proposed": "openapi/openapi.yaml@working-tree",
+  "comparison": {
+    "mode": "exact-set",
+    "kindFormat": "lower_snake_case",
+    "keyFields": ["severity", "path", "kind", "before", "after"],
+    "orderSignificant": false,
+    "missingFinding": "fail",
+    "unexpectedFinding": "fail"
+  },
+  "invariants": {
+    "inventory": {
+      "operations": 37,
+      "tags": 10
+    },
+    "importTargetJob": {
+      "method": "POST",
+      "path": "/api/v1/targets/import",
+      "operationId": "importTargetJob",
+      "successStatus": 202,
+      "response": "TargetJobWithJob"
+    },
+    "createUploadPresign": {
+      "required": true,
+      "method": "POST",
+      "path": "/api/v1/uploads/presign",
+      "operationId": "createUploadPresign",
+      "successStatus": 201,
+      "response": "UploadPresign",
+      "remainingPurposes": ["resume", "privacy_export"]
+    },
+    "compatibilityAliases": "forbidden"
+  },
+  "findings": [
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/TargetJobImportSourceURL",
+      "kind": "schema_removed",
+      "before": "present",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/TargetJobImportSourceManualText",
+      "kind": "schema_removed",
+      "before": "present",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/TargetJobImportSourceFile",
+      "kind": "schema_removed",
+      "before": "present",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/TargetJobImportSourceManualForm",
+      "kind": "schema_removed",
+      "before": "present",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/TargetJobImportSource",
+      "kind": "schema_removed",
+      "before": "present",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ImportTargetJobRequest/properties/source",
+      "kind": "property_removed",
+      "before": "TargetJobImportSource",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ImportTargetJobRequest/properties/titleHint",
+      "kind": "property_removed",
+      "before": "string",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ImportTargetJobRequest/properties/companyNameHint",
+      "kind": "property_removed",
+      "before": "string",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ImportTargetJobRequest/properties/rawText",
+      "kind": "required_property_added",
+      "before": "absent",
+      "after": "string(minLength=1,pattern=\\S)"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ImportTargetJobRequest/required",
+      "kind": "required_set_changed",
+      "before": "source,targetLanguage,resumeId",
+      "after": "rawText,targetLanguage,resumeId"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/ImportTargetJobRequest/additionalProperties",
+      "kind": "closed_object",
+      "before": "unspecified",
+      "after": false
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/TargetJob/properties/sourceType",
+      "kind": "property_removed",
+      "before": "enum(manual_text,url,file,manual_form)",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/TargetJob/properties/sourceUrl",
+      "kind": "property_removed",
+      "before": "string|null",
+      "after": "absent"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/TargetJob/required",
+      "kind": "required_set_changed",
+      "before": "id,status,analysisStatus,title,companyName,targetLanguage,sourceType,requirements,openQuestionIssueCount,createdAt,updatedAt",
+      "after": "id,status,analysisStatus,title,companyName,targetLanguage,requirements,openQuestionIssueCount,createdAt,updatedAt"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/UploadPresignRequest/properties/purpose/enum",
+      "kind": "enum_value_removed",
+      "before": "resume,target_job_attachment,privacy_export",
+      "after": "resume,privacy_export"
+    }
+  ]
+}

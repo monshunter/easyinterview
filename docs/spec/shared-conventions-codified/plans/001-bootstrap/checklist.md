@@ -1,8 +1,8 @@
 # Shared Conventions Bootstrap Checklist
 
-> **版本**: 1.10
-> **状态**: completed
-> **更新日期**: 2026-07-12
+> **版本**: 1.11
+> **状态**: active
+> **更新日期**: 2026-07-13
 
 **关联计划**: [plan](./plan.md)
 
@@ -65,3 +65,10 @@
   <!-- verified: 2026-07-12 method=generator-linter-cross-language-parity evidence="Generator and linter mutation matrices reject all five variants; generated Go registry and TS registry assert exact code/message/retryability and match the shared parity fixture." -->
 - [x] 9.4 Emit `REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS` after B1 context validation and hand off to B2/openapi-v1-contract/001; the marker does not claim OpenAPI parity, the 48,000-byte runtime boundary or provider-call suppression.
   <!-- verified: 2026-07-12 marker=REPORT_CONTEXT_TOO_LARGE_CONVENTIONS_PASS method=validated-b1-owner-context scope="canonical YAML plus generated Go/TS code/message/retryability only; excludes OpenAPI parity, runtime byte boundary and provider suppression" -->
+
+## Phase 10: TargetJob paste-only error vocabulary
+
+- [ ] 10.1 RED: conventions validator/generator/parity tests prove `TARGET_IMPORT_SOURCE_INVALID` and `TARGET_IMPORT_SOURCE_UNAVAILABLE` still exist before implementation, while locking retained-code expectations for `VALIDATION_FAILED`, `TARGET_IMPORT_FAILED`, `TARGET_JOB_NOT_FOUND` and `TARGET_INVALID_STATE_TRANSITION`.
+- [ ] 10.2 GREEN: delete only the two source-specific YAML entries, regenerate Go/TS errors, and synchronize the exact enum contraction through the B2 OpenAPI handoff without aliases.
+- [ ] 10.3 BDD-N/A-GATE: run conventions lint, focused generator/Go/TS tests, two-pass codegen idempotency, OpenAPI parity handoff and owner context validation as the internal-contract substitute gate.
+- [ ] 10.4 ZERO-REF: exact searches find neither removed literal in current YAML/generated/OpenAPI/runtime consumers, while positive probes still find all four retained canonical codes.

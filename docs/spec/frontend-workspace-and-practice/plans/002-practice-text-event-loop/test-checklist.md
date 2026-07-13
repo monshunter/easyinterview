@@ -1,8 +1,8 @@
 # 002 Practice Continuous Conversation Test Checklist
 
-> **版本**: 2.3
+> **版本**: 2.5
 > **状态**: active
-> **更新日期**: 2026-07-12
+> **更新日期**: 2026-07-13
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
 
@@ -20,3 +20,7 @@
 - [x] Source-aware retry and Finish CTA lifecycle tests pass. (`pnpm --filter @easyinterview/frontend test src/app/screens/practice/PracticeScreen.test.tsx src/app/screens/practice/hooks/useCompletePracticeSession.test.tsx`; frontend typecheck)
 ## Phase 7
 - [ ] Zero-answer eligibility, native-disabled/a11y/i18n, backend-authoritative rejection, one-answer completion and replay tests pass.
+## Phase 8
+- [ ] reportId-only one-answer completion/replay scenario tests pass.
+## Phase 9
+- [ ] Generated typed-error contract, server `clientMessageId + replyStatus` rehydration, pending single-flight/no-resend, AI failure → reload → same-ID retry → single reply, terminal no-retry, no browser persistence/string parsing, immediate row/thinking/lock/draft/dedupe and exact 1440/390 parity tests pass.
