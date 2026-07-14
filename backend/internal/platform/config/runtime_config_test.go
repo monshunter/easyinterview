@@ -101,6 +101,15 @@ func TestBuildRuntimeConfigAllowlistAndOptOut(t *testing.T) {
 	if rc.FeatureFlags["report_retry_plan_enabled"].Variant != "v1" {
 		t.Errorf("variant pass-through broken")
 	}
+	if rc.ContentLimits != (config.PublicContentLimits{
+		ResumeUploadBytes:        10 * 1024 * 1024,
+		ResumePasteTextBytes:     384 * 1024,
+		TargetJobRawTextBytes:    96 * 1024,
+		PracticeMessageBytes:     32 * 1024,
+		PracticeSessionTextBytes: 256 * 1024,
+	}) {
+		t.Errorf("public content limits wrong: %+v", rc.ContentLimits)
+	}
 
 	// JSON marshal must not leak secrets.
 	body, err := json.Marshal(rc)
@@ -191,9 +200,18 @@ func TestRuntimeConfigHandlerReturnsAllowlistJSON(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	for _, key := range []string{"appVersion", "defaultUiLanguage", "analyticsEnabled", "featureFlags"} {
+	for _, key := range []string{"appVersion", "defaultUiLanguage", "analyticsEnabled", "featureFlags", "contentLimits"} {
 		if _, ok := payload[key]; !ok {
 			t.Errorf("missing key: %s", key)
+		}
+	}
+	limits, ok := payload["contentLimits"].(map[string]any)
+	if !ok || len(limits) != 5 {
+		t.Fatalf("contentLimits must be a closed five-field object: %#v", payload["contentLimits"])
+	}
+	for _, internal := range []string{"reportMaxFramedInputBytes", "httpMaxRequestBodyBytes", "aiProviderMaxResponseBodyBytes", "resumeMaxExtractedTextBytes"} {
+		if _, leaked := limits[internal]; leaked {
+			t.Errorf("internal limit leaked: %s", internal)
 		}
 	}
 	if contains(rec.Body.String(), "should-not-leak") {

@@ -118,6 +118,36 @@ func TestCompletePostsAndParses(t *testing.T) {
 	}
 }
 
+func TestCompleteUsesConfiguredResponseBodyByteLimit(t *testing.T) {
+	body := []byte(`{"model":"deepseek-v4-pro","choices":[{"message":{"content":"{\"scores\":[]}"},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":4}}`)
+	for _, tc := range []struct {
+		name      string
+		limit     int64
+		wantError bool
+	}{
+		{name: "exact byte limit", limit: int64(len(body))},
+		{name: "one byte over", limit: int64(len(body) - 1), wantError: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(body) }))
+			defer server.Close()
+			adapter, err := judgecompatible.New(judgecompatible.Options{Provider: resolved(server.URL, "k"), MaxResponseBodyBytes: tc.limit})
+			if err != nil {
+				t.Fatalf("New: %v", err)
+			}
+			_, _, err = adapter.Complete(context.Background(), judgeProfile(5000), aiclient.CompletePayload{Messages: []aiclient.Message{{Role: "user", Content: "score this"}}})
+			var apiErr *sharederrors.APIError
+			if tc.wantError {
+				if !errors.As(err, &apiErr) || apiErr.Code != sharederrors.CodeAiOutputInvalid {
+					t.Fatalf("err=%v want %s", err, sharederrors.CodeAiOutputInvalid)
+				}
+			} else if err != nil {
+				t.Fatalf("Complete: %v", err)
+			}
+		})
+	}
+}
+
 func TestCompleteRejectsReasoningOnlyResponseWithoutLeakingReasoning(t *testing.T) {
 	const privateReasoning = "private chain of thought must never leave the adapter"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

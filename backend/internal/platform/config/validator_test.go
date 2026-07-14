@@ -443,8 +443,16 @@ func TestDefaultUploadConfigPaths(t *testing.T) {
 		t.Fatalf("upload.presignTTLSeconds = %d", got)
 	}
 	for path, want := range map[string]int{
+		"ai.maxResponseBodyBytes":       4194304,
+		"http.maxRequestBodyBytes":      10485760,
+		"practice.maxMessageBytes":      32768,
+		"practice.maxSessionTextBytes":  262144,
+		"report.maxFramedInputBytes":    917504,
 		"resume.maxActive":              10,
-		"upload.maxBytes.resume":        2097152,
+		"resume.maxExtractedTextBytes":  393216,
+		"resume.maxPasteTextBytes":      393216,
+		"targetJob.maxRawTextBytes":     98304,
+		"upload.maxBytes.resume":        10485760,
 		"upload.maxBytes.privacyExport": 5242880,
 	} {
 		if got := loader.GetInt(path); got != want {

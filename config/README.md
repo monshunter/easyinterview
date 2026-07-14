@@ -108,11 +108,14 @@ cookie.SignWith(cookieSecret.Reveal())
 `GET /api/v1/runtime-config`（spec D-2）只返回 §3.1.2 标记为可暴露的字段：
 
 - `appVersion`、`defaultUiLanguage`、`analyticsEnabled`、`featureFlags`、可选
-  `postHogPublicKey`。
+  `postHogPublicKey`，以及仅含 Resume upload/paste、TargetJob raw text、
+  Practice message/session 五项前端预检字段的 `contentLimits`。
 - `featureFlags` 仅纳入 `feature-flags.yaml` / PostHog 中 `public: true` 的
   flag；`ai_fallback_model_enabled` 等 operator-only flag 永远不进 response。
 - 任何 secret 字段绝对不能进 response；session 携带 `analytics_opt_in=false`
   时 `analyticsEnabled=false` 且不返回 `postHogPublicKey`。
+- `report.maxFramedInputBytes`、`http.maxRequestBodyBytes`、
+  `ai.maxResponseBodyBytes` 与 AI profile token budget 是 backend-only，禁止投影。
 
 OpenAPI schema 真理源在 [B2
 `openapi-v1-contract`](../docs/spec/openapi-v1-contract/spec.md)；A4 在

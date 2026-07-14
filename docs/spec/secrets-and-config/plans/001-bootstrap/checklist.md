@@ -99,11 +99,18 @@
 
 ## Phase 13: Runtime content size defaults and boundary alignment
 
-- [ ] 13.1 RED-CONFIG: 为全部 size key 增加缺 key、合法 override、显式 `0`/负数、`paste > extracted`、`message > session` 用例；在 typed defaults 与 validator 未落地前测试按预期失败。
-- [ ] 13.2 GREEN-CONFIG: 落地统一 typed code defaults 与 YAML 镜像：HTTP 10MiB、Resume upload 10MiB、Privacy Export 5MiB、Resume active 10、Resume extracted/paste 384KiB、TargetJob raw 96KiB、Practice message 32KiB/session 256KiB、Report framed 896KiB、AI response 4MiB。
-- [ ] 13.3 BACKEND-GREEN: 将全局 HTTP body、upload/resume/target-job/practice/report consumers 与四个 AI provider adapters 改为注入配置；UTF-8 bytes 的 limit 接受、limit+1 拒绝且不调用 provider；删除重复生产常量。
-- [ ] 13.4 REPORT-CAPACITY: A3 profile code fallback 与 canonical catalog 一致；测试锁定 `917504 + 2048 + 6144 = 925696 < 1000000`，真实 62,397-byte 失败样本可进入 provider 路径，TPM 不再作为单请求 hard cap。
-- [ ] 13.5 CONTRACT: OpenAPI `RuntimeConfig.contentLimits` 只含五项 public limit；backend builder、fixture、generated Go/TS 与 `make codegen-check` 同步；内部 report/HTTP/provider/profile 上限不泄漏。
-- [ ] 13.6 FRONTEND: Resume upload/paste、Home JD raw text、Practice message/session 校验统一消费 runtime config 并按 UTF-8 bytes 判断；删除 2MiB 与 rune/character 本地真理源，limit/limit+1 focused tests 通过。
-- [ ] 13.7 BDD-GATE: [`bdd-checklist.md`](./bdd-checklist.md) 中 `E2E.P0.010`、`E2E.P0.046`、`E2E.P0.081`、`E2E.P0.056` 全部通过并记录当前证据。
+- [x] 13.1 RED-CONFIG: 为全部 size key 增加缺 key、合法 override、显式 `0`/负数、`paste > extracted`、`message > session` 用例；在 typed defaults 与 validator 未落地前测试按预期失败。
+  <!-- verified: 2026-07-14 method=focused-red evidence="go test ./internal/platform/config -run TestContentLimits -count=1 failed to compile because Loader.ContentLimits, config.ContentLimits, and DefaultContentLimits do not yet exist; the new tests cover every key with missing/default, override, zero, negative, and both cross-field invalid combinations." -->
+- [x] 13.2 GREEN-CONFIG: 落地统一 typed code defaults 与 YAML 镜像：HTTP 10MiB、Resume upload 10MiB、Privacy Export 5MiB、Resume active 10、Resume extracted/paste 384KiB、TargetJob raw 96KiB、Practice message 32KiB/session 256KiB、Report framed 896KiB、AI response 4MiB。
+  <!-- verified: 2026-07-14 method=typed-defaults-green evidence="ContentLimits and DefaultContentLimits now resolve missing keys, honor YAML overrides, reject all explicit non-positive values plus invalid paste/extracted and message/session combinations; focused and full platform config tests, make lint-config, and git diff --check pass." -->
+- [x] 13.3 BACKEND-GREEN: 将全局 HTTP body、upload/resume/target-job/practice/report consumers 与四个 AI provider adapters 改为注入配置；UTF-8 bytes 的 limit 接受、limit+1 拒绝且不调用 provider；删除重复生产常量。
+  <!-- verified: 2026-07-14 method=focused+full+race evidence="All injected consumers pass exact/+1 tests; backend go test ./... and selected config/practice/review/provider race packages pass." -->
+- [x] 13.4 REPORT-CAPACITY: A3 profile code fallback 与 canonical catalog 一致；测试锁定 `917504 + 2048 + 6144 = 925696 < 1000000`，真实 62,397-byte 失败样本可进入 provider 路径，TPM 不再作为单请求 hard cap。
+  <!-- verified: 2026-07-14 method=in-memory-capacity+P0.056 evidence="62,397 and 917,504 bytes each reach provider once; 917,505 is terminal before provider; formula/profile fallback tests pass." -->
+- [x] 13.5 CONTRACT: OpenAPI `RuntimeConfig.contentLimits` 只含五项 public limit；backend builder、fixture、generated Go/TS 同步；内部 report/HTTP/provider/profile 上限不泄漏。
+  <!-- verified: 2026-07-14 method=OPENAPI-006-exact-audit evidence="Exact 1 breaking + 8 additive audit preserved; 37/10 lint, fixtures, generated artifacts and 52 wrapper tests pass. Final post-commit codegen-check remains owned by 13.8." -->
+- [x] 13.6 FRONTEND: Resume upload/paste、Home JD raw text、Practice message/session 校验统一消费 runtime config 并按 UTF-8 bytes 判断；删除 2MiB 与 rune/character 本地真理源，limit/limit+1 focused tests 通过。
+  <!-- verified: 2026-07-14 method=vitest+build+BDD evidence="Frontend full 126 files/1018 tests and production build pass; P0.015/P0.046/P0.081 exact/+1 assertions pass." -->
+- [x] 13.7 BDD-GATE: [`bdd-checklist.md`](./bdd-checklist.md) 中 `E2E.P0.010`、`E2E.P0.046`、`E2E.P0.081`、`E2E.P0.056` 全部通过并记录当前证据。
+  <!-- verified: 2026-07-14 method=serial-scenario-run evidence="Fresh P0.010/P0.015/P0.034/P0.035/P0.046/P0.056/P0.058/P0.081 pass; P0.046 isolated PostgreSQL residual=0." -->
 - [ ] 13.8 REGRESSION/POST-PASS: config/profile/provider/domain/OpenAPI/frontend focused/full gates、`make lint-config`、`make codegen-check`、旧硬编码 negative search、`sync-doc-index --check`、`make docs-check`、`git diff --check` 全部通过；完成 Bug 记录评估与 retrospective。

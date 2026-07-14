@@ -34,6 +34,7 @@ import (
 	"github.com/monshunter/easyinterview/backend/internal/auth"
 	domainjobs "github.com/monshunter/easyinterview/backend/internal/jobs"
 	"github.com/monshunter/easyinterview/backend/internal/middleware/idempotency"
+	"github.com/monshunter/easyinterview/backend/internal/middleware/requestbody"
 	"github.com/monshunter/easyinterview/backend/internal/platform/config"
 	"github.com/monshunter/easyinterview/backend/internal/platform/featureflag"
 	"github.com/monshunter/easyinterview/backend/internal/platform/secrets"
@@ -365,6 +366,12 @@ type resumeRoutes struct {
 }
 
 func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagClient, authService *auth.EmailCodeService, targetJobHandler *targetjob.Handler, practice practiceRoutes, upload uploadRoutes, resume resumeRoutes, reports reportRoutes, jobs jobsRoutes) http.Handler {
+	limits, err := loader.ContentLimits()
+	if err != nil {
+		return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "invalid content limit configuration", http.StatusInternalServerError)
+		})
+	}
 	mux := http.NewServeMux()
 	authHandler := auth.NewHandler(auth.HandlerOptions{
 		EmailCode:    authService,
@@ -497,7 +504,7 @@ func buildAPIHandler(loader *config.Loader, flagsClient featureflag.FeatureFlagC
 			practice.Handler.SendPracticeMessage(w, r, r.PathValue("sessionId"))
 		})))
 	}
-	return mux
+	return requestbody.Limit(limits.HTTPMaxRequestBodyBytes, mux)
 }
 
 type reportRuntime struct {
@@ -516,6 +523,10 @@ func (r *reportRuntime) Routes() reportRoutes {
 func buildReportRuntime(loader *config.Loader, db *sql.DB, ai aiclient.AIClient) (*reportRuntime, error) {
 	if ai == nil {
 		return nil, fmt.Errorf("report AI client is required")
+	}
+	limits, err := loader.ContentLimits()
+	if err != nil {
+		return nil, err
 	}
 	repo := storereview.NewRepository(db)
 	registryClient, err := registry.NewRegistryClient(registry.RegistryOptions{
@@ -539,11 +550,12 @@ func buildReportRuntime(loader *config.Loader, db *sql.DB, ai aiclient.AIClient)
 		observedAI = wrapped
 	}
 	service := domainreview.NewService(domainreview.ServiceOptions{
-		Registry:   registryClient,
-		AI:         observedAI,
-		AITaskRuns: taskRuns,
-		Repository: repo,
-		NewID:      idx.NewID,
+		Registry:            registryClient,
+		AI:                  observedAI,
+		AITaskRuns:          taskRuns,
+		Repository:          repo,
+		NewID:               idx.NewID,
+		MaxFramedInputBytes: limits.ReportMaxFramedInputBytes,
 	})
 	return &reportRuntime{
 		Handler: apireports.NewHandler(apireports.HandlerOptions{
@@ -572,6 +584,10 @@ func buildJobsRoutes(db *sql.DB) jobsRoutes {
 }
 
 func buildUploadRoutes(loader *config.Loader, db *sql.DB) (uploadRoutes, error) {
+	limits, err := loader.ContentLimits()
+	if err != nil {
+		return uploadRoutes{}, err
+	}
 	presignTTL := time.Duration(loader.GetInt("upload.presignTTLSeconds")) * time.Second
 	objects, err := objectstore.NewFromConfig(objectstore.FactoryConfig{
 		Provider:       loader.GetString("objectStorage.provider"),
@@ -597,14 +613,15 @@ func buildUploadRoutes(loader *config.Loader, db *sql.DB) (uploadRoutes, error) 
 			Session:    currentUserFromContext,
 			PresignTTL: presignTTL,
 			MaxBytesByPurpose: map[string]int64{
-				string(uploadstore.PurposeResume):        int64(loader.GetInt("upload.maxBytes.resume")),
-				string(uploadstore.PurposePrivacyExport): int64(loader.GetInt("upload.maxBytes.privacyExport")),
+				string(uploadstore.PurposeResume):        limits.ResumeUploadBytes,
+				string(uploadstore.PurposePrivacyExport): limits.PrivacyExportUploadBytes,
 			},
 		}),
 		Idempotency: idempotency.New(idempotency.MiddlewareOptions{
-			Store:     idempotency.NewSQLStore(db),
-			KeyPepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
-			TTL:       presignTTL,
+			Store:               idempotency.NewSQLStore(db),
+			KeyPepper:           loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+			TTL:                 presignTTL,
+			MaxRequestBodyBytes: limits.HTTPMaxRequestBodyBytes,
 		}),
 		Service: service,
 		Objects: objects,
@@ -612,6 +629,10 @@ func buildUploadRoutes(loader *config.Loader, db *sql.DB) (uploadRoutes, error) 
 }
 
 func buildPracticeRoutes(loader *config.Loader, db *sql.DB, ai aiclient.AIClient) (practiceRoutes, error) {
+	limits, err := loader.ContentLimits()
+	if err != nil {
+		return practiceRoutes{}, err
+	}
 	registryClient, err := registry.NewRegistryClient(registry.RegistryOptions{
 		PromptsDir: registryDirOrDefault(loader, "ai.promptsDir", "config/prompts"),
 		RubricsDir: registryDirOrDefault(loader, "ai.rubricsDir", "config/rubrics"),
@@ -635,11 +656,13 @@ func buildPracticeRoutes(loader *config.Loader, db *sql.DB, ai aiclient.AIClient
 	}
 	handler := apipractice.NewHandler(apipractice.HandlerOptions{
 		Service: domainpractice.NewService(domainpractice.ServiceOptions{
-			Store:      store,
-			Registry:   registryClient,
-			AI:         observedAI,
-			AITaskRuns: taskRuns,
-			NewID:      idx.NewID,
+			Store:               store,
+			Registry:            registryClient,
+			AI:                  observedAI,
+			AITaskRuns:          taskRuns,
+			NewID:               idx.NewID,
+			MaxMessageBytes:     limits.PracticeMaxMessageBytes,
+			MaxSessionTextBytes: limits.PracticeMaxSessionTextBytes,
 		}),
 		Session:              currentUserFromContext,
 		IdempotencyKeyPepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
@@ -647,8 +670,9 @@ func buildPracticeRoutes(loader *config.Loader, db *sql.DB, ai aiclient.AIClient
 	return practiceRoutes{
 		Handler: handler,
 		Idempotency: idempotency.New(idempotency.MiddlewareOptions{
-			Store:     idempotency.NewSQLStore(db),
-			KeyPepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+			Store:               idempotency.NewSQLStore(db),
+			KeyPepper:           loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+			MaxRequestBodyBytes: limits.HTTPMaxRequestBodyBytes,
 		}),
 	}, nil
 }
@@ -689,6 +713,10 @@ func buildResumeRuntime(loader *config.Loader, db *sql.DB, upload uploadRoutes, 
 	if ai == nil {
 		return nil, fmt.Errorf("resume AI client is required")
 	}
+	limits, err := loader.ContentLimits()
+	if err != nil {
+		return nil, err
+	}
 	store := resumestore.NewRepository(db)
 	registryClient, err := registry.NewRegistryClient(registry.RegistryOptions{
 		PromptsDir: registryDirOrDefault(loader, "ai.promptsDir", "config/prompts"),
@@ -715,11 +743,13 @@ func buildResumeRuntime(loader *config.Loader, db *sql.DB, upload uploadRoutes, 
 		}
 	}
 	parseHandler := resumejobs.NewParseHandler(resumejobs.ParseHandlerOptions{
-		Store:    store,
-		Registry: resumejobs.NewRegistryAdapter(registryClient),
-		AI:       parseAI,
-		Objects:  upload.Objects,
-		NewID:    idx.NewID,
+		Store:                 store,
+		Registry:              resumejobs.NewRegistryAdapter(registryClient),
+		AI:                    parseAI,
+		Objects:               upload.Objects,
+		NewID:                 idx.NewID,
+		MaxInputBytes:         limits.ResumeUploadBytes,
+		MaxExtractedTextBytes: limits.ResumeMaxExtractedTextBytes,
 	})
 	tailorHandler := resumejobs.NewTailorHandler(resumejobs.TailorHandlerOptions{
 		Store:      store,
@@ -733,12 +763,13 @@ func buildResumeRuntime(loader *config.Loader, db *sql.DB, upload uploadRoutes, 
 		string(jobs.JobTypeResumeTailor): tailorHandler,
 	}
 	service := domainresume.NewService(domainresume.ServiceOptions{
-		Store:            store,
-		UploadRegister:   upload.Service,
-		SourceObjects:    upload.Objects,
-		NewID:            idx.NewID,
-		DedupePepper:     loader.GetSecret("auth.challengeTokenPepper").Reveal(),
-		MaxActiveResumes: loader.GetInt("resume.maxActive"),
+		Store:             store,
+		UploadRegister:    upload.Service,
+		SourceObjects:     upload.Objects,
+		NewID:             idx.NewID,
+		DedupePepper:      loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+		MaxActiveResumes:  limits.ResumeMaxActive,
+		MaxPasteTextBytes: limits.ResumeMaxPasteTextBytes,
 	})
 	return &resumeRuntime{
 		Handler: resumehandler.New(resumehandler.Options{
@@ -746,9 +777,10 @@ func buildResumeRuntime(loader *config.Loader, db *sql.DB, upload uploadRoutes, 
 			Session: currentUserFromContext,
 		}),
 		Idempotency: idempotency.New(idempotency.MiddlewareOptions{
-			Store:     idempotency.NewSQLStore(db),
-			KeyPepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
-			TTL:       time.Duration(sharedtypes.IdempotencyKeyTTLSeconds) * time.Second,
+			Store:               idempotency.NewSQLStore(db),
+			KeyPepper:           loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+			TTL:                 time.Duration(sharedtypes.IdempotencyKeyTTLSeconds) * time.Second,
+			MaxRequestBodyBytes: limits.HTTPMaxRequestBodyBytes,
 		}),
 		Handlers: handlers,
 		ParseAI:  parseAI,
@@ -759,6 +791,10 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 	if logger == nil {
 		logger = slog.Default()
 	}
+	limits, err := loader.ContentLimits()
+	if err != nil {
+		return nil, err
+	}
 	store := targetjob.NewSQLStore(db)
 	aiRuntime, err := bootstrap.NewClient(bootstrap.Options{
 		Config: aiclient.Config{
@@ -766,8 +802,9 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 			ProviderRegistryPath: loader.GetString("ai.providerRegistryPath"),
 			ModelProfilePath:     loader.GetString("ai.modelProfilePath"),
 		},
-		SecretSource:      secrets.EnvSecretSource{},
-		AllowStubProvider: targetjob.IsTestAppEnv(loader.AppEnv()),
+		SecretSource:         secrets.EnvSecretSource{},
+		AllowStubProvider:    targetjob.IsTestAppEnv(loader.AppEnv()),
+		MaxResponseBodyBytes: limits.AIProviderMaxResponseBodyBytes,
 		OnWarn: func(err error) {
 			logger.Warn("targetjob.ai reload warning", "error", err.Error())
 		},
@@ -814,19 +851,20 @@ func buildTargetJobRuntime(loader *config.Loader, db *sql.DB, logger *slog.Logge
 		string(jobs.JobTypePrivacyDelete): privacyDeleteHandler,
 	}
 	return &targetJobRuntime{
-		Handler:  buildTargetJobHandler(loader, store),
+		Handler:  buildTargetJobHandler(loader, store, limits.TargetJobMaxRawTextBytes),
 		Handlers: handlers,
 		AI:       aiRuntime,
 		ParseAI:  parseAI,
 	}, nil
 }
 
-func buildTargetJobHandler(loader *config.Loader, store targetjob.Store) *targetjob.Handler {
+func buildTargetJobHandler(loader *config.Loader, store targetjob.Store, maxRawTextBytes int64) *targetjob.Handler {
 	return targetjob.NewHandler(targetjob.HandlerOptions{
 		Service: targetjob.NewService(targetjob.ServiceOptions{
-			Store:        store,
-			NewID:        idx.NewID,
-			DedupePepper: loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+			Store:           store,
+			NewID:           idx.NewID,
+			DedupePepper:    loader.GetSecret("auth.challengeTokenPepper").Reveal(),
+			MaxRawTextBytes: maxRawTextBytes,
 		}),
 		Session: currentUserFromContext,
 	})

@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Breaking-Change Gate
 
-> **版本**: 1.20
-> **状态**: completed
+> **版本**: 1.21
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -9,7 +9,7 @@
 
 ## 1 目标
 
-本 plan 承接 [openapi-v1-contract spec](../../spec.md) 的 v1.0.0 freeze gate：
+本 plan 承接 [openapi-v1-contract spec](../../spec.md) 的 v1.0.0 freeze gate；Phase 10 是当前 OPENAPI-006 RuntimeConfig content-limits correction owner：
 
 - `openapi/baseline/openapi-v1.0.0.yaml` 是当前 37 operation / 10 tag contract 的 baseline snapshot。
 - `make openapi-diff` 比对 baseline 与 `openapi/openapi.yaml`，并按 B2 additive-only rules 拦截 breaking changes。
@@ -195,3 +195,13 @@ The generated oracle must exact-match the response item ref change, new closed/r
 ### 9.2 Invariants and guarded re-freeze
 
 Audit separately locks 37 operations/10 tags；`GET /api/v1/resumes`, operationId `listResumes`, 200 `PaginatedResume` pagination envelope；and `GET /api/v1/resumes/{resumeId}`, operationId `getResume`, 200 full `Resume`. Preserve the deterministic old-baseline artifact before mutation. Do not re-freeze until 001 Phase 16, 002 Phase 11, 004 Phase 7, backend list projection, mock parity, every frontend consumer and P0.034/P0.036/P0.037 all pass without compatibility fields or N+1 detail fetch. Final proof requires preserved audit + clean current diff + independent lint/fixture/codegen/consumer gates.
+
+## 12 Phase 10: OPENAPI-006 Runtime content limits
+
+### 10.1 Accepted authority and exact oracle
+
+Require accepted [OPENAPI-006](../../decisions/OPENAPI-006-runtime-content-limits.md), spec D-38 and history 1.60. Keep the merge-base baseline unchanged while 001 Phase 17 produces proposed `RuntimeConfig.contentLimits`. Exact-match required-property addition, closed required `ContentLimits`, its exact five positive-int64 properties and the runtime `$ref` by `severity + path + kind + before + after`; missing/extra/wildcard/type/minimum/required drift fails.
+
+### 10.2 Invariants and guarded re-freeze
+
+Audit preserves 37 operations/10 tags and unchanged `GET /runtime-config`, operationId `getRuntimeConfig`, 200 `RuntimeConfig`. Do not re-freeze until fixture/generated/backend builder, Resume/Home/Practice consumers and focused/full gates pass with report/HTTP/provider/profile limits absent from the public schema. Preserve the audit artifact before baseline mutation; final proof requires clean current diff plus independent lint/fixture/codegen/consumer gates.

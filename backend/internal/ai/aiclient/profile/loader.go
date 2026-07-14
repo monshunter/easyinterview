@@ -22,6 +22,11 @@ import (
 // hot-reload SLA (≤30 s, spec §6 C-4) comfortably satisfied.
 const DefaultPollInterval = 5 * time.Second
 
+const (
+	DefaultReportContextWindowTokens = 1_000_000
+	DefaultReportMaxTokens           = 6_144
+)
+
 // Options control loader construction. Callers typically use NewLoader.
 type Options struct {
 	// Path is the single YAML profile catalog file
@@ -289,8 +294,14 @@ func validateProfile(path string, doc *yaml.Node, raw *aiclient.ModelProfile) er
 		return profileValidationError(path, fieldLine(doc, "timeout_ms"), "missing or non-positive 'timeout_ms'")
 	}
 	_, hasContextWindow := mappingValue(doc, "context_window_tokens")
-	if raw.Name == "report.generate.default" && !hasContextWindow {
-		return profileValidationError(path, fieldLine(doc, "context_window_tokens"), "missing required field 'context_window_tokens'")
+	_, hasMaxTokens := mappingValue(doc, "max_tokens")
+	if raw.Name == "report.generate.default" {
+		if !hasContextWindow {
+			raw.ContextWindowTokens = DefaultReportContextWindowTokens
+		}
+		if !hasMaxTokens {
+			raw.MaxTokens = DefaultReportMaxTokens
+		}
 	}
 	if hasContextWindow && raw.ContextWindowTokens <= 0 {
 		return profileValidationError(path, fieldLine(doc, "context_window_tokens"), "'context_window_tokens' must be positive")

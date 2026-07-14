@@ -15,7 +15,7 @@
 - `backend-practice/002` owns completion/store snapshot tests and publishes schema `practice-completion-evidence.v1`; this plan only validates and consumes its three markers.
 - Review load tests mutate current TargetJob/Resume after the owner snapshot and prove report payload remains unchanged; count/last-seq mismatch fails and no mutable-entity fallback is called.
 - Prompt payload tests prove trusted policy/untrusted JSON split and no raw context in job/outbox/audit/log/metric.
-- Deterministic synthetic boundary fixtures contain exact 48,000-byte and +1-byte final framed payloads, current-schema worst-case zh/en JSON and a byte-count/SHA-256 manifest; reconstruction drift fails before `REPORT_BOUNDARY_FIXTURES_READY` is emitted. Runtime boundary tests send those exact payloads; oversized content makes zero provider/repair calls and persists REPORT_CONTEXT_TOO_LARGE. A3 separately proves provider context capacity and actual-token output fit before returning the 6,144-token profile marker.
+- The historical committed input-boundary fixtures are superseded by Phase 11 in-memory exact-payload construction. Current-schema worst-case zh/en JSON and its manifest remain; reconstruction drift fails before `REPORT_BOUNDARY_FIXTURES_READY` is emitted. Runtime boundary tests send in-memory exact payloads; oversized content makes zero provider/repair calls and persists REPORT_CONTEXT_TOO_LARGE. A3 separately proves provider context capacity and actual-token output fit before returning the 6,144-token profile marker.
 
 ## Phase 7: Direct semantics and reliability
 
@@ -58,7 +58,7 @@
 
 ## Phase 11: Configured report input boundary
 
-- Deterministic fixtures reconstruct exact 62,397-byte regression, 917,504-byte limit and 917,505-byte limit+1 framed payloads with stable SHA-256.
+- Deterministic test helpers construct exact 62,397-byte regression, 917,504-byte limit and 917,505-byte limit+1 framed payloads in memory and prove canonical JSON round-trips; no `input-*.json` files are committed.
 - Config injection tests cover default, legal override and invalid values; service tests prove limit calls provider unchanged while limit+1 makes zero provider/repair calls and persists `REPORT_CONTEXT_TOO_LARGE`.
 - A3 capacity test proves `917504+2048+6144=925696<1000000`; no TPM arithmetic may satisfy the gate.
 - P0.056 exercises the regression/default path; P0.058 exercises oversized terminal receipt and recovery.

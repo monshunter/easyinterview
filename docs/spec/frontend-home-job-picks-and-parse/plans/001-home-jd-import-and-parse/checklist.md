@@ -184,7 +184,8 @@
 
 ## Phase 22: Runtime-configured JD text boundary
 
-- [ ] 22.1 RED: 98,304/98,305-byte ASCII/multibyte and zero-request/vault tests fail before a runtime size source exists.
-- [ ] 22.2 GREEN: Home consumes `targetJobRawTextBytes`, shared UTF-8 byte helper and A4-matching missing-field code default; DOM/style unchanged.
-- [ ] 22.3 BDD-Gate: P0.015 limit/+1/auth/privacy and backend P0.010 handoff pass on current source.
-- [ ] 22.4 focused/full Home/API/runtime-provider、typecheck/build、OpenAPI/codegen、parity、contexts/docs/diff 与 duplicate-limit negative search 通过。
+- [x] 22.1 RED: 98,304/98,305-byte ASCII/multibyte and zero-request/vault tests fail before a runtime size source exists.
+- [x] 22.2 GREEN: Home consumes `targetJobRawTextBytes`, shared UTF-8 byte helper and A4-matching missing-field code default; DOM/style unchanged.
+- [x] 22.3 BDD-Gate: P0.015 limit/+1/auth/privacy and backend P0.010 handoff pass on current source.
+- [x] 22.4 focused/full Home/API/runtime-provider、typecheck/build、OpenAPI parity、contexts/docs/diff 与 duplicate-limit negative search 通过；post-commit codegen drift 由 A4 13.8 收口。
+  <!-- verified: 2026-07-14 evidence="Fresh P0.010 exact default backend and P0.015 verbose Home/browser parity pass; frontend full/build pass." -->

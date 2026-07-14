@@ -75,9 +75,10 @@
 
 ## Phase 22 JD text boundary
 
-- [ ] P0.015 consumes RuntimeConfig/default 98,304-byte limit and covers ASCII/multibyte limit/+1.
-- [ ] Limit sends one exact import; +1 sends zero import and creates no pending vault; localized recovery and privacy remain intact.
-- [ ] P0.010 backend evidence proves the same limit is authoritative with zero business/provider side effects on +1.
+- [x] P0.015 consumes RuntimeConfig/default 98,304-byte limit and covers ASCII/multibyte limit/+1.
+- [x] Limit sends one exact import; +1 sends zero import and creates no pending vault; localized recovery and privacy remain intact.
+- [x] P0.010 backend evidence proves the same limit is authoritative with zero business/provider side effects on +1.
+  <!-- verified: 2026-07-14 evidence="Fresh P0.010/P0.015 current-source scenario runs pass." -->
 
 ## 整体收口
 

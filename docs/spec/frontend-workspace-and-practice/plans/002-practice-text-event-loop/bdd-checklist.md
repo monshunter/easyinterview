@@ -48,8 +48,9 @@
 
 ## Phase 12 Runtime text boundaries
 
-- [ ] P0.046 consumes RuntimeConfig/default 32KiB/256KiB and covers ASCII/multibyte limit/+1.
-- [ ] Limit sends; +1 preserves draft with zero send; reload uses backend persisted aggregate/reply truth.
+- [x] P0.046 consumes RuntimeConfig/default 32KiB/256KiB and covers ASCII/multibyte limit/+1.
+- [x] Limit sends; +1 preserves draft with zero send; reload uses backend persisted aggregate/reply truth.
+  <!-- verified: 2026-07-14 evidence="Fresh P0.046 verbose frontend and backend markers pass." -->
 
 - [x] P0.044 renders persisted user and assistant GFM through the shared safe projection and records current 1440/390 DOM/style/bbox/viewport/screenshot evidence with zero document overflow.
   <!-- verified: 2026-07-14 evidence="P0.044 run c71ceb11-300f-4b35-b68c-2ec726b8d4f7 passed 8/8 browser checks and emitted PRACTICE_SAFE_GFM_PROJECTION_PASS with six current screenshots." -->

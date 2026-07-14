@@ -48,6 +48,7 @@
 
 ## Phase 16 configured Resume content boundaries
 
-- [ ] P0.034 proves 10MiB upload and 384KiB paste limit/limit+1 with zero resume/job partial state.
-- [ ] P0.035 proves 384KiB extracted text reaches AI and +1 is rejected before AI while deterministic snapshot/truncation gates remain intact.
-- [ ] P0.081 consumes current runtime-config upload/paste limits; backend remains authoritative and no browser storage is used.
+- [x] P0.034 proves configured active/paste exact/limit+1 business boundaries with zero resume/job partial state; P0.081 locks the public 10MiB/384KiB defaults.
+- [x] P0.035 proves configured extracted text reaches AI and +1 is rejected before AI while deterministic snapshot/truncation gates remain intact.
+- [x] P0.081 consumes current runtime-config upload/paste limits; backend remains authoritative and no browser storage is used.
+  <!-- verified: 2026-07-14 evidence="Fresh P0.034/P0.035/P0.081 current-source runs pass without committed large input files." -->

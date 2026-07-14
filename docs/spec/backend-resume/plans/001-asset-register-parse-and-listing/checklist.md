@@ -137,8 +137,9 @@
 
 ## Phase 16: Configured Resume content boundaries
 
-- [ ] 16.1 RED: active/upload/paste/extracted missing/default/override/invalid 与 limit/+1 测试暴露旧 2MiB upload、8MiB reader 和无 paste cap。
-- [ ] 16.2 GREEN: 注入 `maxActive=10`、upload 10MiB、paste/extracted 384KiB；显式非法 fail-fast，删除重复 production constants。
-- [ ] 16.3 REGISTER/PARSE: upload/paste/extracted limit 接受、limit+1 在 resume/job/provider 前拒绝；UTF-8 bytes、无静默截断、无半成品。
-- [ ] 16.4 CONTRACT/BDD: RuntimeConfig 只公开 upload/paste；P0.081、P0.034、P0.035 current gates 通过，list/get 合同不变。
-- [ ] 16.5 VERIFY: focused/full resume/upload/config/AI、OpenAPI/codegen、scenario、privacy、contexts/docs/diff 与旧 2MiB/8MiB truth negative search 通过。
+- [x] 16.1 RED: active/upload/paste/extracted missing/default/override/invalid 与 limit/+1 测试暴露旧 2MiB upload、8MiB reader 和无 paste cap。
+- [x] 16.2 GREEN: 注入 `maxActive=10`、upload 10MiB、paste/extracted 384KiB；显式非法 fail-fast，删除重复 production constants。
+- [x] 16.3 REGISTER/PARSE: upload/paste/extracted limit 接受、limit+1 在 resume/job/provider 前拒绝；UTF-8 bytes、无静默截断、无半成品。
+- [x] 16.4 CONTRACT/BDD: RuntimeConfig 只公开 upload/paste；P0.081、P0.034、P0.035 current gates 通过，list/get 合同不变。
+- [x] 16.5 VERIFY: focused/full resume/upload/config/AI、OpenAPI scenario、privacy、contexts/docs/diff 与旧 2MiB/8MiB truth negative search 通过；post-commit codegen drift 由 A4 13.8 收口。
+  <!-- verified: 2026-07-14 evidence="Fresh P0.034/P0.035/P0.081 pass in-memory paste/extracted/upload boundaries; backend full and frontend full/build pass." -->

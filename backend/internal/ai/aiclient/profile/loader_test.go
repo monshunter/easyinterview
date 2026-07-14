@@ -191,7 +191,6 @@ version: 1.2.0
 `
 
 	invalid := map[string]string{
-		"missing":             base,
 		"zero":                strings.Replace(base, "max_tokens: 6144\n", "max_tokens: 6144\ncontext_window_tokens: 0\n", 1),
 		"negative":            strings.Replace(base, "max_tokens: 6144\n", "max_tokens: 6144\ncontext_window_tokens: -1\n", 1),
 		"equal-to-output":     strings.Replace(base, "max_tokens: 6144\n", "max_tokens: 6144\ncontext_window_tokens: 6144\n", 1),
@@ -208,6 +207,17 @@ version: 1.2.0
 				t.Fatalf("expected context_window_tokens error, got %v", err)
 			}
 		})
+	}
+	missingBoth := strings.Replace(base, "max_tokens: 6144\n", "", 1)
+	missingPath := writeProfileCatalog(t, catalog(missingBoth))
+	missingLoader, err := profile.NewLoader(profile.Options{Path: missingPath, PollInterval: -1})
+	if err != nil {
+		t.Fatalf("NewLoader missing report budgets: %v", err)
+	}
+	defer missingLoader.Close()
+	defaulted, err := missingLoader.Resolve("report.generate.default")
+	if err != nil || defaulted.ContextWindowTokens != profile.DefaultReportContextWindowTokens || defaulted.MaxTokens != profile.DefaultReportMaxTokens {
+		t.Fatalf("report code defaults drifted: profile=%+v err=%v", defaulted, err)
 	}
 
 	valid := strings.Replace(base, "max_tokens: 6144\n", "max_tokens: 6144\ncontext_window_tokens: 1000000\n", 1)

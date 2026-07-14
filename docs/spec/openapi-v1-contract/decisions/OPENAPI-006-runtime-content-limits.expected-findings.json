@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "OPENAPI-006",
+  "baseline": "openapi/baseline/openapi-v1.0.0.yaml@merge-base(main)",
+  "proposed": "openapi/openapi.yaml@working-tree",
+  "comparison": {
+    "mode": "exact-set",
+    "keyFields": [
+      "severity",
+      "path",
+      "kind",
+      "before",
+      "after"
+    ],
+    "orderSignificant": false,
+    "missingFinding": "fail",
+    "unexpectedFinding": "fail"
+  },
+  "authority": {
+    "decision": "OPENAPI-006",
+    "specDecision": "D-38",
+    "historyVersion": "1.60",
+    "productDecision": "方案 A and revised defaults"
+  },
+  "invariants": {
+    "inventory": {
+      "operations": 37,
+      "tags": 10
+    },
+    "getRuntimeConfig": {
+      "path": "/api/v1/runtime-config",
+      "method": "GET",
+      "operationId": "getRuntimeConfig",
+      "successStatus": 200,
+      "response": "RuntimeConfig"
+    }
+  },
+  "findings": [
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/RuntimeConfig/required",
+      "kind": "required_property_added",
+      "before": "absent",
+      "after": "contentLimits"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/RuntimeConfig/properties/contentLimits",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "ContentLimits"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ContentLimits",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "resumeUploadBytes,resumePasteTextBytes,targetJobRawTextBytes,practiceMessageBytes,practiceSessionTextBytes"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ContentLimits/additionalProperties",
+      "kind": "closed_object",
+      "before": "absent",
+      "after": false
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ContentLimits/properties/resumeUploadBytes",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "integer(format=int64,minimum=1)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ContentLimits/properties/resumePasteTextBytes",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "integer(format=int64,minimum=1)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ContentLimits/properties/targetJobRawTextBytes",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "integer(format=int64,minimum=1)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ContentLimits/properties/practiceMessageBytes",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "integer(format=int64,minimum=1)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ContentLimits/properties/practiceSessionTextBytes",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "integer(format=int64,minimum=1)"
+    }
+  ]
+}

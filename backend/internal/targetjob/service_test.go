@@ -9,6 +9,7 @@ import (
 	"time"
 
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
+	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 	"github.com/monshunter/easyinterview/backend/internal/targetjob"
@@ -211,6 +212,83 @@ func TestService_ImportTargetJob_RejectsBlankRawText(t *testing.T) {
 	if store.callCount != 0 {
 		t.Fatalf("blank rawText must fail before persistence, calls=%d", store.callCount)
 	}
+}
+
+func TestService_ImportTargetJob_UsesConfiguredUTF8ByteLimitBeforeStore(t *testing.T) {
+	newService := func(maxRawTextBytes int64) (*targetjob.Service, *fakeStore) {
+		store := &fakeStore{}
+		ids := []string{
+			"018f2a40-0000-7000-9000-0000000000a1",
+			"018f2a40-0000-7000-9000-0000000000f1",
+			"018f2a40-0000-7000-9000-0000000000e1",
+		}
+		idx := 0
+		return targetjob.NewService(targetjob.ServiceOptions{
+			Store: store,
+			NewID: func() string {
+				id := ids[idx]
+				idx++
+				return id
+			},
+			Now:             func() time.Time { return time.Date(2026, 7, 14, 0, 0, 0, 0, time.UTC) },
+			DedupePepper:    "test-pepper",
+			MaxRawTextBytes: maxRawTextBytes,
+		}), store
+	}
+
+	t.Run("exact byte limit is accepted", func(t *testing.T) {
+		svc, store := newService(6)
+		_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
+			UserID: "user-1", IdempotencyKey: "key-1", TargetLanguage: "zh-CN", ResumeID: testResumeID, RawText: "你好",
+		})
+		if err != nil || store.callCount != 1 {
+			t.Fatalf("err=%v storeCalls=%d want success and one store call", err, store.callCount)
+		}
+	})
+
+	t.Run("one byte over is rejected before store", func(t *testing.T) {
+		svc, store := newService(6)
+		_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
+			UserID: "user-1", IdempotencyKey: "key-1", TargetLanguage: "zh-CN", ResumeID: testResumeID, RawText: "你好a",
+		})
+		var serviceErr *targetjob.ServiceImportError
+		if !errors.As(err, &serviceErr) || serviceErr.Code != sharederrors.CodeValidationFailed {
+			t.Fatalf("err=%v want %s", err, sharederrors.CodeValidationFailed)
+		}
+		if store.callCount != 0 {
+			t.Fatalf("storeCalls=%d want 0", store.callCount)
+		}
+	})
+
+	defaultLimit := platformconfig.DefaultContentLimits().TargetJobMaxRawTextBytes
+	t.Run("default exact multibyte limit is accepted", func(t *testing.T) {
+		svc, store := newService(defaultLimit)
+		rawText := strings.Repeat("你", int(defaultLimit/3))
+		if int64(len([]byte(rawText))) != defaultLimit {
+			t.Fatalf("test input bytes=%d want %d", len([]byte(rawText)), defaultLimit)
+		}
+		_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
+			UserID: "user-1", IdempotencyKey: "key-default-exact", TargetLanguage: "zh-CN", ResumeID: testResumeID, RawText: rawText,
+		})
+		if err != nil || store.callCount != 1 {
+			t.Fatalf("err=%v storeCalls=%d want success and one store call", err, store.callCount)
+		}
+	})
+
+	t.Run("default limit plus one is rejected before store", func(t *testing.T) {
+		svc, store := newService(defaultLimit)
+		rawText := strings.Repeat("你", int(defaultLimit/3)) + "a"
+		_, err := svc.ImportTargetJob(context.Background(), targetjob.ImportRequest{
+			UserID: "user-1", IdempotencyKey: "key-default-over", TargetLanguage: "zh-CN", ResumeID: testResumeID, RawText: rawText,
+		})
+		var serviceErr *targetjob.ServiceImportError
+		if !errors.As(err, &serviceErr) || serviceErr.Code != sharederrors.CodeValidationFailed {
+			t.Fatalf("err=%v want %s", err, sharederrors.CodeValidationFailed)
+		}
+		if store.callCount != 0 {
+			t.Fatalf("storeCalls=%d want 0", store.callCount)
+		}
+	})
 }
 
 func TestService_ImportTargetJob_RequiresResumeID(t *testing.T) {

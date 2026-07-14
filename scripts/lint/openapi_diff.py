@@ -2181,6 +2181,172 @@ def validate_openapi_005_invariants(
     return errors
 
 
+OPENAPI_006_LIMIT_FIELDS = (
+    "resumeUploadBytes",
+    "resumePasteTextBytes",
+    "targetJobRawTextBytes",
+    "practiceMessageBytes",
+    "practiceSessionTextBytes",
+)
+
+
+def normalize_openapi_006_findings(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> List[Dict[str, Any]]:
+    """Normalize only OPENAPI-006's RuntimeConfig content-limit correction."""
+    findings: List[Dict[str, Any]] = []
+    baseline_schemas = ((baseline.get("components") or {}).get("schemas") or {})
+    current_schemas = ((current.get("components") or {}).get("schemas") or {})
+    baseline_runtime = baseline_schemas.get("RuntimeConfig") or {}
+    current_runtime = current_schemas.get("RuntimeConfig") or {}
+
+    baseline_required = list(baseline_runtime.get("required") or [])
+    current_required = list(current_runtime.get("required") or [])
+    if "contentLimits" not in baseline_required and "contentLimits" in current_required:
+        findings.append(
+            _normalized_finding(
+                "breaking",
+                _json_pointer("components", "schemas", "RuntimeConfig", "required"),
+                "required_property_added",
+                "absent",
+                "contentLimits",
+            )
+        )
+
+    baseline_properties = baseline_runtime.get("properties") or {}
+    current_properties = current_runtime.get("properties") or {}
+    if "contentLimits" not in baseline_properties and "contentLimits" in current_properties:
+        findings.append(
+            _normalized_finding(
+                "additive",
+                _json_pointer(
+                    "components", "schemas", "RuntimeConfig", "properties", "contentLimits"
+                ),
+                "property_added",
+                "absent",
+                "ContentLimits",
+            )
+        )
+
+    if "ContentLimits" not in baseline_schemas and "ContentLimits" in current_schemas:
+        limits = current_schemas["ContentLimits"]
+        required = list(limits.get("required") or []) if isinstance(limits, dict) else []
+        findings.append(
+            _normalized_finding(
+                "additive",
+                _json_pointer("components", "schemas", "ContentLimits"),
+                "schema_added_with_required_fields" if required else "schema_added",
+                "absent",
+                ",".join(required) if required else "present",
+            )
+        )
+        if isinstance(limits, dict) and limits.get("additionalProperties") is False:
+            findings.append(
+                _normalized_finding(
+                    "additive",
+                    _json_pointer(
+                        "components", "schemas", "ContentLimits", "additionalProperties"
+                    ),
+                    "closed_object",
+                    "absent",
+                    False,
+                )
+            )
+        for name, schema in (limits.get("properties") or {}).items():
+            signature = _type_signature(schema)
+            if isinstance(schema, dict) and schema.get("format"):
+                signature += f"(format={schema['format']},minimum={schema.get('minimum')})"
+            findings.append(
+                _normalized_finding(
+                    "additive",
+                    _json_pointer(
+                        "components", "schemas", "ContentLimits", "properties", name
+                    ),
+                    "property_added",
+                    "absent",
+                    signature,
+                )
+            )
+    return findings
+
+
+def validate_openapi_006_contract(
+    baseline: Dict[str, Any], current: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    baseline_schemas = ((baseline.get("components") or {}).get("schemas") or {})
+    schemas = ((current.get("components") or {}).get("schemas") or {})
+    baseline_runtime = copy.deepcopy(baseline_schemas.get("RuntimeConfig") or {})
+    runtime = copy.deepcopy(schemas.get("RuntimeConfig") or {})
+
+    if "ContentLimits" in baseline_schemas:
+        errors.append("old baseline must not contain ContentLimits")
+    if "contentLimits" in (baseline_runtime.get("properties") or {}):
+        errors.append("old baseline RuntimeConfig must not contain contentLimits")
+
+    expected_limit_property = {"type": "integer", "format": "int64", "minimum": 1}
+    expected_limits = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": list(OPENAPI_006_LIMIT_FIELDS),
+        "properties": {
+            name: copy.deepcopy(expected_limit_property)
+            for name in OPENAPI_006_LIMIT_FIELDS
+        },
+    }
+    actual_limits = copy.deepcopy(schemas.get("ContentLimits") or {})
+    actual_limits.pop("description", None)
+    if actual_limits != expected_limits:
+        errors.append("ContentLimits must be closed, required, and contain exactly five positive int64 fields")
+
+    if (runtime.get("properties") or {}).get("contentLimits") != {
+        "$ref": "#/components/schemas/ContentLimits"
+    }:
+        errors.append("RuntimeConfig.contentLimits must reference ContentLimits")
+    required = list(runtime.get("required") or [])
+    if required != [*list(baseline_runtime.get("required") or []), "contentLimits"]:
+        errors.append("RuntimeConfig must add only required contentLimits")
+
+    runtime["required"] = list(baseline_runtime.get("required") or [])
+    (runtime.get("properties") or {}).pop("contentLimits", None)
+    if runtime != baseline_runtime:
+        errors.append("RuntimeConfig may change only by adding required contentLimits")
+    return errors
+
+
+def validate_openapi_006_invariants(
+    baseline: Dict[str, Any], current: Dict[str, Any], invariants: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    inventory = invariants.get("inventory") or {}
+    tag_names = [
+        str(tag.get("name"))
+        for tag in current.get("tags") or []
+        if isinstance(tag, dict) and tag.get("name")
+    ]
+    if _operation_count(current) != inventory.get("operations"):
+        errors.append("OPENAPI-006 operation inventory drifted")
+    if len(tag_names) != inventory.get("tags") or len(set(tag_names)) != inventory.get("tags"):
+        errors.append("OPENAPI-006 tag inventory drifted")
+
+    expected = invariants.get("getRuntimeConfig") or {}
+    baseline_operation = _operation_at_contract_path(
+        baseline, str(expected.get("path") or ""), str(expected.get("method") or "")
+    )
+    current_operation = _operation_at_contract_path(
+        current, str(expected.get("path") or ""), str(expected.get("method") or "")
+    )
+    if baseline_operation is None or current_operation is None:
+        errors.append("getRuntimeConfig method/path must remain unchanged")
+        return errors
+    if baseline_operation.get("operationId") != expected.get("operationId") or current_operation.get("operationId") != expected.get("operationId"):
+        errors.append("getRuntimeConfig operationId must remain unchanged")
+    status = expected.get("successStatus")
+    if _success_response_schema(baseline_operation, status) != expected.get("response") or _success_response_schema(current_operation, status) != expected.get("response"):
+        errors.append("getRuntimeConfig success response must remain RuntimeConfig")
+    return errors
+
+
 def validate_d_35_contract(
     current: Dict[str, Any], baseline: Optional[Dict[str, Any]] = None
 ) -> List[str]:
@@ -3085,6 +3251,142 @@ def run_openapi_005_audit(
     return 0 if not errors else 1
 
 
+def validate_openapi_006_authority(
+    repo_root: Path, oracle: Dict[str, Any]
+) -> List[str]:
+    errors: List[str] = []
+    if oracle.get("authority") != {
+        "decision": "OPENAPI-006",
+        "specDecision": "D-38",
+        "historyVersion": "1.60",
+        "productDecision": "方案 A and revised defaults",
+    }:
+        errors.append(
+            "OPENAPI-006 authority must bind accepted decision, spec D-38, history 1.60 and user-approved defaults"
+        )
+
+    contract_dir = repo_root / "docs" / "spec" / "openapi-v1-contract"
+    spec_text = (contract_dir / "spec.md").read_text(encoding="utf-8")
+    history_text = (contract_dir / "history.md").read_text(encoding="utf-8")
+    decision_text = (
+        contract_dir / "decisions" / "OPENAPI-006-runtime-content-limits.md"
+    ).read_text(encoding="utf-8")
+    if not any(
+        "OPENAPI-006" in line and "ContentLimits" in line
+        for line in spec_text.splitlines()
+        if re.search(r"\|\s*D-38\s*\|", line)
+    ):
+        errors.append("OPENAPI-006 requires current spec D-38 authority")
+    if not any(
+        "OPENAPI-006" in line and "contentLimits" in line
+        for line in history_text.splitlines()
+        if re.search(r"\|\s*1\.60\s*\|", line)
+    ):
+        errors.append("OPENAPI-006 requires history 1.60 authority")
+    if "Runtime content limits" not in decision_text:
+        errors.append("OPENAPI-006 decision record must preserve runtime content-limit authority")
+    return errors
+
+
+def run_openapi_006_audit(
+    args: argparse.Namespace,
+    repo_root: Path,
+    baseline_path: Path,
+    current_path: Path,
+) -> int:
+    decision_path = Path(args.decision_record).resolve() if args.decision_record else None
+    oracle_path = Path(args.oracle).resolve() if args.oracle else None
+    errors: List[str] = []
+    if decision_path is None or not decision_path.is_file():
+        errors.append("OPENAPI-006 audit requires --decision-record")
+    if oracle_path is None or not oracle_path.is_file():
+        errors.append("OPENAPI-006 audit requires --oracle")
+
+    base_ref = args.base_ref or "main"
+    base_commit = _git_merge_base(repo_root, "HEAD", base_ref)
+    if base_commit is None:
+        base_commit = _git_rev_parse(repo_root, base_ref)
+    baseline_text: Optional[str] = None
+    if base_commit is None:
+        errors.append(f"cannot resolve base ref {base_ref!r}")
+    else:
+        baseline_text = _git_show(repo_root, base_commit, baseline_path)
+        if baseline_text is None:
+            errors.append(
+                f"cannot load {baseline_path.relative_to(repo_root)} from {base_commit}"
+            )
+
+    current_text = current_path.read_text(encoding="utf-8")
+    worktree_baseline_text = baseline_path.read_text(encoding="utf-8")
+    if baseline_text is not None and worktree_baseline_text != baseline_text:
+        errors.append("OPENAPI-006 worktree baseline differs from base-ref snapshot")
+    baseline_doc = yaml.safe_load(baseline_text) if baseline_text is not None else {}
+    current_doc = yaml.safe_load(current_text) or {}
+
+    oracle: Dict[str, Any] = {}
+    expected_findings: List[Dict[str, Any]] = []
+    if decision_path is not None and decision_path.is_file():
+        errors.extend(
+            validate_decision_record(
+                decision_path.read_text(encoding="utf-8"), args.decision_id
+            )
+        )
+    if oracle_path is not None and oracle_path.is_file():
+        try:
+            loaded_oracle = json.loads(oracle_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            errors.append(f"cannot parse OPENAPI-006 oracle: {exc}")
+        else:
+            if isinstance(loaded_oracle, dict):
+                oracle = loaded_oracle
+                errors.extend(validate_exact_set_oracle(oracle, args.decision_id))
+                raw_findings = oracle.get("findings")
+                if isinstance(raw_findings, list):
+                    expected_findings = [
+                        finding for finding in raw_findings if isinstance(finding, dict)
+                    ]
+            else:
+                errors.append("OPENAPI-006 oracle must be a JSON object")
+
+    errors.extend(validate_openapi_006_authority(repo_root, oracle))
+    actual_findings = normalize_openapi_006_findings(baseline_doc or {}, current_doc)
+    if len(expected_findings) != len(actual_findings):
+        errors.append(
+            f"OPENAPI-006 exact-set expected {len(expected_findings)} findings but actual {len(actual_findings)}"
+        )
+    errors.extend(compare_finding_sets(expected_findings, actual_findings))
+    errors.extend(validate_openapi_006_contract(baseline_doc or {}, current_doc))
+    errors.extend(
+        validate_openapi_006_invariants(
+            baseline_doc or {}, current_doc, oracle.get("invariants") or {}
+        )
+    )
+
+    sorted_findings = sorted(actual_findings, key=_finding_key)
+    payload: Dict[str, Any] = OrderedDict(
+        schemaVersion=1,
+        decisionId=args.decision_id,
+        mode="exact-set",
+        keyFields=list(OPENAPI_001_FINDING_KEYS),
+        authority=oracle.get("authority"),
+        baselineSource=(
+            f"git:{base_commit}:{baseline_path.relative_to(repo_root)}"
+            if base_commit is not None
+            else None
+        ),
+        currentSource=str(current_path.relative_to(repo_root)),
+        baselineSha256=_sha256_text(baseline_text or ""),
+        currentSha256=_sha256_text(current_text),
+        summary=_format_summary(sorted_findings),
+        expectedFindingCount=len(expected_findings),
+        findingCount=len(sorted_findings),
+        findings=sorted_findings,
+        errors=errors,
+    )
+    _write_json_payload(payload, args.output)
+    return 0 if not errors else 1
+
+
 def validate_d_35_authority(
     repo_root: Path, oracle: Dict[str, Any]
 ) -> List[str]:
@@ -3238,6 +3540,7 @@ def run(args: argparse.Namespace) -> int:
             "OPENAPI-002",
             "OPENAPI-004",
             "OPENAPI-005",
+            "OPENAPI-006",
             "D-35",
         }:
             sys.stderr.write(f"ERROR: unsupported decision audit: {args.decision_id}\n")
@@ -3251,6 +3554,13 @@ def run(args: argparse.Namespace) -> int:
             )
         if args.decision_id == "OPENAPI-005":
             return run_openapi_005_audit(
+                args,
+                repo_root,
+                baseline_path,
+                current_path,
+            )
+        if args.decision_id == "OPENAPI-006":
+            return run_openapi_006_audit(
                 args,
                 repo_root,
                 baseline_path,

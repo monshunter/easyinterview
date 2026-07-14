@@ -4,6 +4,8 @@ import { useI18n } from "../../../i18n/messages";
 import { ResumeWorkshopIcon } from "../components/ResumeWorkshopIcon";
 import { useResumeRegistration } from "./hooks/useResumeRegistration";
 import { deriveDefaultTitle } from "./util/title";
+import { resolveContentLimits, utf8ByteLength } from "../../../../lib/contentLimits";
+import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 
 export interface PasteTabProps {
   rawText: string;
@@ -26,12 +28,21 @@ export const PasteTab: FC<PasteTabProps> = ({
 }) => {
   const { t, lang } = useI18n();
   const register = useResumeRegistration();
+  const runtime = useAppRuntimeOptional();
+  const maxPasteTextBytes = resolveContentLimits(
+    runtime?.runtime.status === "ready" ? runtime.runtime.config : undefined,
+  ).resumePasteTextBytes;
 
   const trimmed = rawText.trim();
+  const overLimit = utf8ByteLength(trimmed) > maxPasteTextBytes;
   const canSubmit = trimmed.length > 0 && !submitting;
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit) return;
+    if (overLimit) {
+      setInlineError(t("resumeWorkshop.create.errors.pasteSizeExceeded"));
+      return;
+    }
     setSubmitting(true);
     setInlineError(null);
     try {
@@ -54,6 +65,7 @@ export const PasteTab: FC<PasteTabProps> = ({
     }
   }, [
     canSubmit,
+    overLimit,
     lang,
     onRegistered,
     rawText,

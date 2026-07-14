@@ -27,6 +27,7 @@ Verifies the single paste-only JD import flow:
 - Home omits the out-of-scope hero sub copy and `解析并确认面试` CTA
 - Home contains only the paste textarea, keeps the resume dropdown compact with create CTA on the same row, places `立即面试` below resume selection, and exposes no source controls, upload / URL trigger, or assist modal
 - Home requires non-blank JD text and explicit ready resume selection before importTargetJob or pending import
+- Home consumes `targetJobRawTextBytes` from runtime config and rejects UTF-8 limit+1 in memory before `importTargetJob`, while preserving the draft
 - `importTargetJob` request is exactly `{rawText,targetLanguage,resumeId}` with no source discriminator or title/company hint
 - Successful Home import navigates to Parse with `targetJobId` as its sole command locator; the selected resume remains server-owned TargetJob data and never becomes Parse URL authority
 - Idempotency-Key header on all side-effect calls

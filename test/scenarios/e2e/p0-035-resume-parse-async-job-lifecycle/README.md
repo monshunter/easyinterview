@@ -16,7 +16,7 @@ Given registered resumes for `upload` and `paste` sources, an in-process
 
 When the runner kernel claims queued jobs and invokes the resume parse handler for structured-only success, invalid output, `finish_reason=length`, timeout, and retry-exhausted variants.
 
-Then `resume.parse.default.max_tokens` is at least 8192 for structured output safety; the complete source, including a long-input tail marker, reaches the AI prompt and a deterministic `parsed_text_snapshot`; the model does not echo full Markdown; `finish_reason=length` writes `AI_OUTPUT_INVALID`, keeps the complete snapshot, and emits no completed event. DOCX and unreadable PDF input fail before AI; success writes ready state, structured fields, LLM-derived `displayName`, typed task metadata, and one ready-only completed event.
+Then `resume.parse.default.max_tokens` is at least 8192 for structured output safety; the complete source, including a long-input tail marker, reaches the AI prompt and a deterministic `parsed_text_snapshot`; the model does not echo full Markdown; `finish_reason=length` writes `AI_OUTPUT_INVALID`, keeps the complete snapshot, and emits no completed event. Configured extracted-text exact/limit+1 cases are constructed in memory, and overflow fails before AI. DOCX and unreadable PDF input fail before AI; success writes ready state, structured fields, LLM-derived `displayName`, typed task metadata, and one ready-only completed event.
 
 ## 4. Scripts
 

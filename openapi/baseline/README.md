@@ -35,6 +35,10 @@ The preserved OPENAPI-001 merge-base audit is tracked at
 [`audits/OPENAPI-001-report-direct-semantics.json`](./audits/OPENAPI-001-report-direct-semantics.json);
 it records the old-baseline Git source and the exact 33 breaking + 3 additive
 finding set before any baseline re-freeze.
+The current runtime content-limit correction is preserved at
+[`audits/OPENAPI-006-runtime-content-limits.json`](./audits/OPENAPI-006-runtime-content-limits.json);
+it records the old-baseline Git source and exact 1 breaking + 8 additive finding
+set before the guarded in-place re-freeze.
 
 After a baseline is release-ready or published, follow [the SemVer upgrade
 flow](#semver-upgrade-flow) below and never modify that existing baseline file.

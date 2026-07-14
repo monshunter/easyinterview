@@ -24,6 +24,7 @@ type conversationTestStore struct {
 	startInput          CommitSessionStartInput
 	messageReserveInput ReservePracticeMessageInput
 	messageReservation  PracticeMessageReservation
+	messageReserveErr   error
 	messageInput        CommitPracticeMessageInput
 	messageCommitErr    error
 	messageFailure      FailPracticeMessageInput
@@ -62,7 +63,7 @@ func (s *conversationTestStore) FailSessionStart(_ context.Context, in FailSessi
 }
 func (s *conversationTestStore) ReservePracticeMessage(_ context.Context, in ReservePracticeMessageInput) (PracticeMessageReservation, error) {
 	s.messageReserveInput = in
-	return s.messageReservation, nil
+	return s.messageReservation, s.messageReserveErr
 }
 func (s *conversationTestStore) CommitPracticeMessage(_ context.Context, in CommitPracticeMessageInput) (SendPracticeMessageResult, error) {
 	s.messageInput = in
@@ -549,6 +550,57 @@ func TestSendPracticeMessageUsesOrdinaryConversationHistory(t *testing.T) {
 	if strings.Contains(ai.payloads[0].Messages[1].Content, injectedPolicy) || !strings.Contains(ai.payloads[0].Messages[1].Content, `\u003c/system_policy\u003e`) {
 		t.Fatalf("follow-up resume context was not JSON encoded: %s", ai.payloads[0].Messages[1].Content)
 	}
+}
+
+func TestSendPracticeMessageUsesConfiguredUTF8ByteLimitsBeforeAI(t *testing.T) {
+	newReservation := func() PracticeMessageReservation {
+		return PracticeMessageReservation{
+			Session:         SessionReservation{SessionID: "session-1", UserID: "user-1", TargetJobID: "target-1", Language: "zh-CN", Goal: sharedtypes.PracticeGoalBaseline, ResumeContext: "真实简历上下文"},
+			UserMessage:     MessageRecord{ID: "m2", Role: "user", Content: "你好", SeqNo: 2},
+			ReplyGeneration: 1,
+		}
+	}
+
+	t.Run("exact message byte limit is accepted and aggregate limit is forwarded", func(t *testing.T) {
+		store := &conversationTestStore{messageReservation: newReservation()}
+		ai := &conversationTestAI{responses: []string{`{"messageText":"继续。"}`}}
+		service := NewService(ServiceOptions{Store: store, Registry: conversationTestRegistry{}, AI: ai, NewID: func() string { return "m3" }, MaxMessageBytes: 6, MaxSessionTextBytes: 10})
+		_, err := service.SendPracticeMessage(context.Background(), SendPracticeMessageRequest{UserID: "user-1", SessionID: "session-1", ClientMessageID: "client-1", Text: "你好"})
+		if err != nil || len(ai.payloads) != 1 {
+			t.Fatalf("err=%v aiCalls=%d want success and one AI call", err, len(ai.payloads))
+		}
+		if store.messageReserveInput.MaxSessionTextBytes != 10 {
+			t.Fatalf("aggregate limit=%d want 10", store.messageReserveInput.MaxSessionTextBytes)
+		}
+	})
+
+	t.Run("one byte over message limit is rejected before store and AI", func(t *testing.T) {
+		store := &conversationTestStore{messageReservation: newReservation()}
+		ai := &conversationTestAI{}
+		service := NewService(ServiceOptions{Store: store, Registry: conversationTestRegistry{}, AI: ai, NewID: func() string { return "m3" }, MaxMessageBytes: 6, MaxSessionTextBytes: 10})
+		_, err := service.SendPracticeMessage(context.Background(), SendPracticeMessageRequest{UserID: "user-1", SessionID: "session-1", ClientMessageID: "client-1", Text: "你好a"})
+		var serviceErr *ServiceError
+		if !errors.As(err, &serviceErr) || serviceErr.Code != sharederrors.CodeValidationFailed {
+			t.Fatalf("err=%v want %s", err, sharederrors.CodeValidationFailed)
+		}
+		if store.messageReserveInput.SessionID != "" || len(ai.payloads) != 0 {
+			t.Fatalf("storeInput=%+v aiCalls=%d want no downstream calls", store.messageReserveInput, len(ai.payloads))
+		}
+	})
+
+	t.Run("aggregate limit error is mapped before AI", func(t *testing.T) {
+		store := &conversationTestStore{messageReserveErr: ErrPracticeSessionTextLimitExceeded}
+		ai := &conversationTestAI{}
+		service := NewService(ServiceOptions{Store: store, Registry: conversationTestRegistry{}, AI: ai, NewID: func() string { return "m3" }, MaxMessageBytes: 6, MaxSessionTextBytes: 10})
+		_, err := service.SendPracticeMessage(context.Background(), SendPracticeMessageRequest{UserID: "user-1", SessionID: "session-1", ClientMessageID: "client-1", Text: "你好"})
+		var serviceErr *ServiceError
+		if !errors.As(err, &serviceErr) || serviceErr.Code != sharederrors.CodeValidationFailed {
+			t.Fatalf("err=%v want %s", err, sharederrors.CodeValidationFailed)
+		}
+		if store.messageReserveInput.MaxSessionTextBytes != 10 || len(ai.payloads) != 0 {
+			t.Fatalf("reserve=%+v aiCalls=%d", store.messageReserveInput, len(ai.payloads))
+		}
+	})
 }
 
 func TestSendPracticeMessageProviderFailureKeepsReservationUncommitted(t *testing.T) {

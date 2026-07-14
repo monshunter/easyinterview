@@ -29,6 +29,16 @@ type RuntimeFlag struct {
 	Variant string `json:"variant,omitempty"`
 }
 
+// PublicContentLimits contains only boundaries needed for browser preflight.
+// Internal HTTP, extraction, report and provider limits are intentionally absent.
+type PublicContentLimits struct {
+	ResumeUploadBytes        int64 `json:"resumeUploadBytes"`
+	ResumePasteTextBytes     int64 `json:"resumePasteTextBytes"`
+	TargetJobRawTextBytes    int64 `json:"targetJobRawTextBytes"`
+	PracticeMessageBytes     int64 `json:"practiceMessageBytes"`
+	PracticeSessionTextBytes int64 `json:"practiceSessionTextBytes"`
+}
+
 // RuntimeConfig is the JSON shape returned by /api/v1/runtime-config.
 // Field set is locked; expansion requires a spec revision (D-2).
 type RuntimeConfig struct {
@@ -37,6 +47,7 @@ type RuntimeConfig struct {
 	AnalyticsEnabled  bool                   `json:"analyticsEnabled"`
 	FeatureFlags      map[string]RuntimeFlag `json:"featureFlags"`
 	PostHogPublicKey  string                 `json:"postHogPublicKey,omitempty"`
+	ContentLimits     PublicContentLimits    `json:"contentLimits"`
 }
 
 // RuntimeConfigInput captures everything the builder needs to produce a
@@ -64,6 +75,15 @@ func BuildRuntimeConfig(_ context.Context, in RuntimeConfigInput) RuntimeConfig 
 		rc.DefaultUILanguage = in.Loader.GetString("runtime.defaultUiLanguage")
 		if in.AnalyticsOptIn {
 			rc.PostHogPublicKey = in.Loader.GetString("featureFlag.posthogPublicKey")
+		}
+		if limits, err := in.Loader.ContentLimits(); err == nil {
+			rc.ContentLimits = PublicContentLimits{
+				ResumeUploadBytes:        limits.ResumeUploadBytes,
+				ResumePasteTextBytes:     limits.ResumeMaxPasteTextBytes,
+				TargetJobRawTextBytes:    limits.TargetJobMaxRawTextBytes,
+				PracticeMessageBytes:     limits.PracticeMaxMessageBytes,
+				PracticeSessionTextBytes: limits.PracticeMaxSessionTextBytes,
+			}
 		}
 	}
 	if snapshotter, ok := in.Flags.(featureflag.SnapshotProvider); ok {

@@ -10,7 +10,7 @@
 
 | 场景 ID | 类别 | 覆盖范围 | 关联 Checklist |
 |---------|------|----------|----------------|
-| E2E.P0.081 | primary | CreateFlow upload / paste happy path, PDF / Markdown / TXT whitelist, DOCX rejection, 2MiB file limit, presign, register, waiting/detail navigation, privacy and UI parity | 5.1 / 6.1 / 6.3 / 7.1 |
+| E2E.P0.081 | primary | CreateFlow upload / paste happy path, PDF / Markdown / TXT whitelist, DOCX rejection, runtime/default 10MiB file limit, presign, register, waiting/detail navigation, privacy and UI parity | 5.1 / 6.1 / 6.3 / 7.1 |
 | E2E.P0.082 | absence gate | Parser animation / parse failure UI are absent from create flow | 5.2 |
 | E2E.P0.083 | primary + handoff | Home CTA and auth pending action direct-create handoff | 5.3 |
 | E2E.P0.084 | historical regression | 2026-07-08 full-Resume picker evidence；current summary-only behavior is owned by active 001 Phase 19 | historical 8.1 / 8.2 / 8.3 |

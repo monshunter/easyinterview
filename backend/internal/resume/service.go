@@ -11,6 +11,7 @@ import (
 	"time"
 
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
+	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
@@ -26,8 +27,6 @@ var (
 	ErrInvalidCursor       = errors.New("invalid resume cursor")
 	ErrResumeLimitExceeded = errors.New("resume active limit exceeded")
 )
-
-const DefaultMaxActiveResumes = 10
 
 type RegisterInput struct {
 	UserID         string
@@ -78,23 +77,25 @@ type ObjectReader interface {
 }
 
 type ServiceOptions struct {
-	Store            RegisterStore
-	UploadRegister   UploadRegistrar
-	SourceObjects    ObjectReader
-	Now              func() time.Time
-	NewID            func() string
-	DedupePepper     string
-	MaxActiveResumes int
+	Store             RegisterStore
+	UploadRegister    UploadRegistrar
+	SourceObjects     ObjectReader
+	Now               func() time.Time
+	NewID             func() string
+	DedupePepper      string
+	MaxActiveResumes  int
+	MaxPasteTextBytes int64
 }
 
 type Service struct {
-	store            RegisterStore
-	uploadRegister   UploadRegistrar
-	sourceObjects    ObjectReader
-	now              func() time.Time
-	newID            func() string
-	dedupePepper     string
-	maxActiveResumes int
+	store             RegisterStore
+	uploadRegister    UploadRegistrar
+	sourceObjects     ObjectReader
+	now               func() time.Time
+	newID             func() string
+	dedupePepper      string
+	maxActiveResumes  int
+	maxPasteTextBytes int64
 }
 
 func NewService(opts ServiceOptions) *Service {
@@ -108,16 +109,21 @@ func NewService(opts ServiceOptions) *Service {
 	}
 	maxActiveResumes := opts.MaxActiveResumes
 	if maxActiveResumes <= 0 {
-		maxActiveResumes = DefaultMaxActiveResumes
+		maxActiveResumes = platformconfig.DefaultContentLimits().ResumeMaxActive
+	}
+	maxPasteTextBytes := opts.MaxPasteTextBytes
+	if maxPasteTextBytes <= 0 {
+		maxPasteTextBytes = platformconfig.DefaultContentLimits().ResumeMaxPasteTextBytes
 	}
 	return &Service{
-		store:            opts.Store,
-		uploadRegister:   opts.UploadRegister,
-		sourceObjects:    opts.SourceObjects,
-		now:              now,
-		newID:            newID,
-		dedupePepper:     opts.DedupePepper,
-		maxActiveResumes: maxActiveResumes,
+		store:             opts.Store,
+		uploadRegister:    opts.UploadRegister,
+		sourceObjects:     opts.SourceObjects,
+		now:               now,
+		newID:             newID,
+		dedupePepper:      opts.DedupePepper,
+		maxActiveResumes:  maxActiveResumes,
+		maxPasteTextBytes: maxPasteTextBytes,
 	}
 }
 
@@ -167,6 +173,9 @@ func (s *Service) RegisterResume(ctx context.Context, in RegisterInput) (api.Res
 		storeIn.FileObjectID = &file.ID
 		storeIn.RequestPayload.FileObjectID = strings.TrimSpace(in.FileObjectID)
 	case "paste":
+		if int64(len(storeIn.RawText)) > s.maxPasteTextBytes {
+			return api.ResumeWithJob{}, ErrValidationFailed
+		}
 		storeIn.RequestPayload.RawTextHash = contentHash(in.RawText)
 	default:
 		return api.ResumeWithJob{}, ErrValidationFailed

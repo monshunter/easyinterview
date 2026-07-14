@@ -14,8 +14,8 @@
 
 - [x] Phase 6 ADR/merge-base OpenAPI and B4/F3/002 owner markers are consumed; review-only frozen-load/public-projection/trust-boundary/provenance tests pass without practice implementation ownership.
   <!-- verified: 2026-07-12 evidence="OpenAPI audit, storage v18, completion snapshot, prompt v0.2 activation and profile markers consumed; frozen-load/projection/trust-boundary/exact-provenance tests PASS" -->
-- [x] Phase 6 deterministic boundary fixtures reconstruct to exact bytes/hashes and emit `REPORT_BOUNDARY_FIXTURES_READY`; after A3 marker, exact 48,000/+1 runtime tests pass and +1 makes zero provider/repair calls.
-  <!-- verified: 2026-07-12 evidence="deterministic manifest/hash tests and exact 48000/48001 runtime boundary tests PASS; A3 real token smoke stop/usage evidence consumed" -->
+- [x] Phase 6 historical input fixtures are superseded by Phase 11 in-memory exact-payload construction; remaining output bytes/hashes emit `REPORT_BOUNDARY_FIXTURES_READY`, and configured limit/+1 tests prove provider admission/zero-call rejection after the A3 marker.
+  <!-- verified: 2026-07-14 evidence="No input boundary files remain; in-memory regression/limit/limit+1 tests and A3 capacity evidence pass." -->
 
 ## Phase 7: Direct semantics and reliability
 
@@ -67,6 +67,7 @@
 
 ## Phase 11: Configured report input boundary
 
-- [ ] Exact 62,397/917,504/917,505-byte fixtures reconstruct with stable manifest hashes.
-- [ ] Default/override/invalid config injection and limit/limit+1 provider-call tests pass.
-- [ ] A3 capacity formula and P0.056/P0.058 current evidence pass; old 48KB is absent from production truth.
+- [x] Exact 62,397/917,504/917,505-byte payloads are constructed in memory and canonical round-trip checks pass with no committed `input-*.json` files.
+- [x] Default/override/invalid config injection and limit/limit+1 provider-call tests pass.
+- [x] A3 capacity formula and P0.056/P0.058 current evidence pass; old 48KB is absent from production truth.
+  <!-- verified: 2026-07-14 evidence="Focused/full/race review tests and fresh report BDD evidence pass." -->

@@ -44,6 +44,7 @@
 
 | ID | 标题 | 严重度 | 状态 | 发现日期 | 关联 Commit |
 |----|------|--------|------|----------|-------------|
+| [BUG-0171](./BUG-0171.md) | report generation rejected valid context at a stale hardcoded byte limit | high | resolved | 2026-07-14 | `fix(runtime): centralize content size limits (BUG-0171)` |
 | [BUG-0166](./BUG-0166.md) | unpaired report prompt example leaked unsupported facts into live output | high | resolved | 2026-07-13 | `fix(report): ground report semantics and reliability (BUG-0164, BUG-0165, BUG-0166)` |
 | [BUG-0165](./BUG-0165.md) | empty report retry focus encoded as null and blocked ready dashboards | high | resolved | 2026-07-13 | `fix(report): ground report semantics and reliability (BUG-0164, BUG-0165, BUG-0166)` |
 | [BUG-0064](./BUG-0064.md) | report replay handoff reused source sessions and pixel gate was false-green | high | resolved | 2026-05-16 | `fix(frontend-report): harden replay handoff and pixel gate (BUG-0064)` |

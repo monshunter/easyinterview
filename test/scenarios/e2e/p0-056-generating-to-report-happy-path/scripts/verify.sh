@@ -36,6 +36,8 @@ for marker in \
   REPORT_REVIEW_LEGACY_IDENTIFIER_NEGATIVE_PASS; do
   grep -Fq "$marker" "$BACKEND_LOG"
 done
+grep -Fq 'REPORT_62397_PROVIDER_ADMISSION_PASS' "$BACKEND_LOG"
+grep -Fq 'REPORT_917504_PROVIDER_ADMISSION_PASS' "$BACKEND_LOG"
 for database_assertion in \
   direct_ready_status=ready \
   frozen_context_read_equal=true \

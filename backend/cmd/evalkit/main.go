@@ -351,13 +351,18 @@ func liveRuntime(live liveOpts) (*bootstrap.Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
+	limits, err := loader.ContentLimits()
+	if err != nil {
+		return nil, err
+	}
 	return bootstrap.NewClient(bootstrap.Options{
 		Config: aiclient.Config{
 			AppEnv:               loader.AppEnv(),
 			ProviderRegistryPath: loader.GetString("ai.providerRegistryPath"),
 			ModelProfilePath:     loader.GetString("ai.modelProfilePath"),
 		},
-		SecretSource: secrets.EnvSecretSource{},
+		SecretSource:         secrets.EnvSecretSource{},
+		MaxResponseBodyBytes: limits.AIProviderMaxResponseBodyBytes,
 	})
 }
 

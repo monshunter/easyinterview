@@ -24,6 +24,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
+	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
 
@@ -34,20 +35,20 @@ const Name = "judge_compatible"
 // PathChatCompletions is the OpenAI-compatible endpoint the judge wire posts to.
 const PathChatCompletions = "/v1/chat/completions"
 
-const maxResponseBodyBytes int64 = 4 << 20
-
 // Options configures the adapter.
 type Options struct {
-	Provider   providerregistry.ResolvedProvider
-	HTTPClient *http.Client
+	Provider             providerregistry.ResolvedProvider
+	HTTPClient           *http.Client
+	MaxResponseBodyBytes int64
 }
 
 // Adapter is the concrete aiclient.Provider implementation for judge calls.
 type Adapter struct {
-	providerRef string
-	baseURL     string
-	apiKey      string
-	client      *http.Client
+	providerRef          string
+	baseURL              string
+	apiKey               string
+	client               *http.Client
+	maxResponseBodyBytes int64
 }
 
 // New constructs an Adapter from a Provider Registry entry materialized by A4
@@ -70,11 +71,15 @@ func New(opts Options) (*Adapter, error) {
 	if hc == nil {
 		hc = &http.Client{}
 	}
+	if opts.MaxResponseBodyBytes <= 0 {
+		opts.MaxResponseBodyBytes = platformconfig.DefaultContentLimits().AIProviderMaxResponseBodyBytes
+	}
 	return &Adapter{
-		providerRef: opts.Provider.Entry.Name,
-		baseURL:     normalizeBaseURL(opts.Provider.BaseURL),
-		apiKey:      opts.Provider.APIKey,
-		client:      hc,
+		providerRef:          opts.Provider.Entry.Name,
+		baseURL:              normalizeBaseURL(opts.Provider.BaseURL),
+		apiKey:               opts.Provider.APIKey,
+		client:               hc,
+		maxResponseBodyBytes: opts.MaxResponseBodyBytes,
 	}, nil
 }
 
@@ -195,7 +200,7 @@ func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, payl
 		return nil, 0, stableError(sharederrors.CodeAiProviderTimeout)
 	}
 	defer resp.Body.Close()
-	body, err := readResponseBody(resp)
+	body, err := readResponseBody(resp, a.maxResponseBodyBytes)
 	if err != nil {
 		return nil, resp.StatusCode, err
 	}
@@ -237,7 +242,7 @@ func errorCode(err error) string {
 	return ""
 }
 
-func readResponseBody(resp *http.Response) ([]byte, error) {
+func readResponseBody(resp *http.Response, maxResponseBodyBytes int64) ([]byte, error) {
 	reader := io.Reader(resp.Body)
 	compressed := false
 	if !resp.Uncompressed {

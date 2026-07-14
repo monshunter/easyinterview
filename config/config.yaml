@@ -33,11 +33,26 @@ objectStorage:
 upload:
   presignTTLSeconds: 600
   maxBytes:
-    resume: 2097152
+    resume: 10485760
     privacyExport: 5242880
 
 resume:
   maxActive: 10
+  maxExtractedTextBytes: 393216
+  maxPasteTextBytes: 393216
+
+http:
+  maxRequestBodyBytes: 10485760
+
+targetJob:
+  maxRawTextBytes: 98304
+
+practice:
+  maxMessageBytes: 32768
+  maxSessionTextBytes: 262144
+
+report:
+  maxFramedInputBytes: 917504
 
 observability:
   otlpEndpoint: ""
@@ -61,6 +76,7 @@ ai:
   defaultProviderBaseURL: ""
   defaultProviderApiKey: ""
   modelProfilePath: "config/ai-profiles.yaml"
+  maxResponseBodyBytes: 4194304
   debugPrintRawOutput: false
 
 featureFlag:

@@ -70,6 +70,45 @@ func TestRegisterResumePassesConfiguredActiveLimitToStore(t *testing.T) {
 	}
 }
 
+func TestRegisterPasteUsesConfiguredUTF8ByteLimitBeforeStore(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		rawText   string
+		wantError bool
+		wantCalls int
+	}{
+		{name: "exact multibyte limit", rawText: "你好", wantCalls: 1},
+		{name: "one byte over", rawText: "你好a", wantError: true, wantCalls: 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			store := &fakeStore{out: resumestore.CreateAssetResult{AssetID: "resume-1", JobID: "job-1", JobStatus: sharedtypes.JobStatusQueued}}
+			svc := resume.NewService(resume.ServiceOptions{
+				Store:             store,
+				NewID:             sequenceIDs("resume-1", "job-1"),
+				MaxPasteTextBytes: 6,
+				MaxActiveResumes:  10,
+			})
+			_, err := svc.RegisterResume(context.Background(), resume.RegisterInput{
+				UserID:         "user-1",
+				IdempotencyKey: "idem-1",
+				SourceType:     "paste",
+				RawText:        tc.rawText,
+				Title:          "Resume",
+				Language:       "zh-CN",
+			})
+			if tc.wantError && !errors.Is(err, resume.ErrValidationFailed) {
+				t.Fatalf("err=%v, want ErrValidationFailed", err)
+			}
+			if !tc.wantError && err != nil {
+				t.Fatalf("RegisterResume: %v", err)
+			}
+			if store.createCalls != tc.wantCalls {
+				t.Fatalf("store calls=%d, want %d", store.createCalls, tc.wantCalls)
+			}
+		})
+	}
+}
+
 func TestRegisterPasteRejectsBlankIdempotencyKey(t *testing.T) {
 	svc := resume.NewService(resume.ServiceOptions{Store: &fakeStore{}, NewID: sequenceIDs("resume-1", "job-1")})
 	_, err := svc.RegisterResume(context.Background(), resume.RegisterInput{

@@ -55,6 +55,7 @@ for marker in \
   REPORT_RETRY_LAYER_SEPARATION_PASS; do
   grep -Fq "$marker" "$BACKEND_LOG"
 done
+grep -Fq 'context_too_large_input_bytes=917505' "$BACKEND_LOG"
 for database_assertion in \
   context_mismatch_fail_closed=true \
   context_too_large_status=failed \

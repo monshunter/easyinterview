@@ -13,6 +13,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
+	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
 
@@ -27,16 +28,18 @@ const (
 
 // Options configures the adapter.
 type Options struct {
-	Provider   providerregistry.ResolvedProvider
-	HTTPClient *http.Client
+	Provider             providerregistry.ResolvedProvider
+	HTTPClient           *http.Client
+	MaxResponseBodyBytes int64
 }
 
 // Adapter implements aiclient.Provider for Doubao speech services.
 type Adapter struct {
-	providerRef string
-	baseURL     string
-	apiKey      string
-	client      *http.Client
+	providerRef          string
+	baseURL              string
+	apiKey               string
+	client               *http.Client
+	maxResponseBodyBytes int64
 }
 
 // New constructs an Adapter.
@@ -57,11 +60,15 @@ func New(opts Options) (*Adapter, error) {
 	if hc == nil {
 		hc = &http.Client{}
 	}
+	if opts.MaxResponseBodyBytes <= 0 {
+		opts.MaxResponseBodyBytes = platformconfig.DefaultContentLimits().AIProviderMaxResponseBodyBytes
+	}
 	return &Adapter{
-		providerRef: opts.Provider.Entry.Name,
-		baseURL:     strings.TrimRight(opts.Provider.BaseURL, "/"),
-		apiKey:      opts.Provider.APIKey,
-		client:      hc,
+		providerRef:          opts.Provider.Entry.Name,
+		baseURL:              strings.TrimRight(opts.Provider.BaseURL, "/"),
+		apiKey:               opts.Provider.APIKey,
+		client:               hc,
+		maxResponseBodyBytes: opts.MaxResponseBodyBytes,
 	}, nil
 }
 
@@ -200,9 +207,12 @@ func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, a.maxResponseBodyBytes+1))
 	if err != nil {
 		return nil, 0, sharederrors.Wrap(sharederrors.CodeAiProviderTimeout, "doubao_speech: read response: "+err.Error(), true)
+	}
+	if int64(len(respBody)) > a.maxResponseBodyBytes {
+		return nil, 0, sharederrors.Wrap(sharederrors.CodeAiOutputInvalid, "doubao_speech: response body is too large", false)
 	}
 	return respBody, resp.StatusCode, nil
 }

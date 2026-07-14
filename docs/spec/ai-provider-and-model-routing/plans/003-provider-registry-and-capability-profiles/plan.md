@@ -237,7 +237,7 @@ Keep the current catalog coordinates unchanged and encode matching per-profile c
 
 #### 11.3 Report capacity handoff
 
-Consume backend-review's regenerated 917,504 / 917,505-byte fixtures and prove `917504 + 2048 + 6144 = 925696 < 1000000`. The real 62,397-byte regression sample must enter the provider path. TPM remains a throughput hint only. Focused/full provider/profile/race tests, lint/config gates, P0.056 and opt-in P0.100 token usage complete the handoff.
+Consume backend-review's in-memory 917,504 / 917,505-byte boundary gate and prove `917504 + 2048 + 6144 = 925696 < 1000000`. The in-memory 62,397-byte regression case must enter the provider path; no `input-*.json` boundary files are committed. TPM remains a throughput hint only. Focused/full provider/profile/race tests, lint/config gates, P0.056 and opt-in P0.100 token usage complete the handoff.
 
 ## 5 验收标准
 

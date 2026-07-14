@@ -51,7 +51,7 @@ python3 "$REPO_ROOT/test/scenarios/_shared/scripts/capture-source-fingerprint.py
   printf 'VITE_EI_API_MODE=%s\nVITE_EI_API_BASE_URL=%s\n' "$REAL_API_MODE" "$REAL_API_BASE_URL"
   VITE_EI_API_MODE="$REAL_API_MODE" VITE_EI_API_BASE_URL="$REAL_API_BASE_URL" pnpm --filter @easyinterview/frontend exec vitest run \
     src/api/targetJob.realApiMode.test.ts
-  pnpm --filter @easyinterview/frontend test \
+  pnpm --filter @easyinterview/frontend exec vitest run --reporter=verbose \
     src/app/screens/home/HomeScreen.test.tsx \
     src/app/screens/home/HomeLayout.test.tsx \
     src/app/screens/home/HomeResumeSelection.test.tsx \

@@ -18,7 +18,7 @@ regressions.
 
 When user A registers resumes, replays the same idempotency key, fetches one resume, lists the collection with cursor pagination, and user B attempts to fetch user A's resume.
 
-Then detail and list APIs return their distinct checked-in fixtures: `getResume` owns the full asset, while every `listResumes.items[]` contains exactly the nine scalar summary fields `id,title,displayName,language,sourceType,parseStatus,summaryHeadline,hasReadableContent,updatedAt`. The list SQL performs one closed scalar projection with no detail JSON/blob scan or per-item detail fetch. Registration remains atomic, invalid input is rejected, cross-user resumes are hidden as 404, and raw resume body values stay out of logs and evidence.
+Then detail and list APIs return their distinct checked-in fixtures: `getResume` owns the full asset, while every `listResumes.items[]` contains exactly the nine scalar summary fields `id,title,displayName,language,sourceType,parseStatus,summaryHeadline,hasReadableContent,updatedAt`. The list SQL performs one closed scalar projection with no detail JSON/blob scan or per-item detail fetch. Registration remains atomic, configured active/paste boundaries are checked with in-memory exact and limit+1 values before store, invalid input is rejected, cross-user resumes are hidden as 404, and raw resume body values stay out of logs and evidence.
 
 ## 4. Scripts
 

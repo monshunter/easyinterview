@@ -129,8 +129,9 @@ git diff --check
 
 ## Phase 17: RuntimeConfig content limits projection
 
-- [ ] 17.1 RED: schema/generator tests require exact five-field closed `ContentLimits`, positive int64, required RuntimeConfig field and no internal limits/any/optional fallback.
-- [ ] 17.2 GREEN: source/fixture/generated Go/TS/backend builder use defaults 10485760/393216/98304/32768/262144.
-- [ ] 17.3 HANDOFF: Resume/Home/Practice frontend consumers compile and use generated fields; report/HTTP/provider/profile values remain absent.
-- [ ] 17.4 BDD-Gate: P0.010/P0.015/P0.046/P0.081/P0.056 current boundary evidence passes.
+- [x] 17.1 RED: schema/generator tests require exact five-field closed `ContentLimits`, positive int64, required RuntimeConfig field and no internal limits/any/optional fallback.
+- [x] 17.2 GREEN: source/fixture/generated Go/TS/backend builder use defaults 10485760/393216/98304/32768/262144.
+- [x] 17.3 HANDOFF: Resume/Home/Practice frontend consumers compile and use generated fields; report/HTTP/provider/profile values remain absent.
+- [x] 17.4 BDD-Gate: P0.010/P0.015/P0.046/P0.081/P0.056 current boundary evidence passes.
+  <!-- verified: 2026-07-14 evidence="OPENAPI-006 exact contract/fixture/generated/builder/consumer gates and fresh BDD runs pass." -->
 - [ ] 17.5 REGRESSION: 37/10 inventory, lint/fixtures/Prism/codegen-check/openapi-diff, focused/full consumers, contexts/docs/diff pass.

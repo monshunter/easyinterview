@@ -131,6 +131,15 @@ select exists(
 	if hasPending {
 		return domain.PracticeMessageReservation{}, domain.ErrSessionConflict
 	}
+	if in.MaxSessionTextBytes > 0 {
+		var currentTextBytes int64
+		if err := tx.QueryRowContext(ctx, `select coalesce(sum(octet_length(content)),0) from practice_messages where session_id=$1`, in.SessionID).Scan(&currentTextBytes); err != nil {
+			return domain.PracticeMessageReservation{}, fmt.Errorf("sum practice session text bytes: %w", err)
+		}
+		if currentTextBytes+int64(len(in.Text)) > in.MaxSessionTextBytes {
+			return domain.PracticeMessageReservation{}, domain.ErrPracticeSessionTextLimitExceeded
+		}
+	}
 
 	var nextSeq int32
 	if err := tx.QueryRowContext(ctx, `select coalesce(max(seq_no),0)+1 from practice_messages where session_id=$1`, in.SessionID).Scan(&nextSeq); err != nil {
@@ -336,6 +345,15 @@ for update of m`, in.UserMessageID, in.SessionID).Scan(
 		return domain.SendPracticeMessageResult{}, domain.ErrSessionConflict
 	}
 	assistant := domain.MessageRecord{ID: in.AssistantMessageID, Role: "assistant", Content: strings.TrimSpace(in.AssistantText), SeqNo: userMessage.SeqNo + 1, CreatedAt: in.Now}
+	if in.MaxSessionTextBytes > 0 {
+		var currentTextBytes int64
+		if err := tx.QueryRowContext(ctx, `select coalesce(sum(octet_length(content)),0) from practice_messages where session_id=$1`, in.SessionID).Scan(&currentTextBytes); err != nil {
+			return domain.SendPracticeMessageResult{}, fmt.Errorf("sum practice session text bytes: %w", err)
+		}
+		if currentTextBytes+int64(len(assistant.Content)) > in.MaxSessionTextBytes {
+			return domain.SendPracticeMessageResult{}, domain.ErrPracticeSessionTextLimitExceeded
+		}
+	}
 	if _, err := tx.ExecContext(ctx, `
 insert into practice_messages (id, session_id, seq_no, role, content, reply_to_message_id, created_at)
 values ($1,$2,$3,'assistant',$4,$5,$6)`, assistant.ID, in.SessionID, assistant.SeqNo, assistant.Content, userMessage.ID, in.Now); err != nil {

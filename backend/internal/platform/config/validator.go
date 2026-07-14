@@ -28,6 +28,9 @@ func (l *Loader) Validate() error {
 	}
 	env := strings.ToLower(strings.TrimSpace(l.appEnv))
 	var problems []string
+	if _, err := l.ContentLimits(); err != nil {
+		problems = append(problems, err.Error())
+	}
 
 	if env == "staging" || env == "prod" {
 		problems = append(problems, l.checkRequiredValue("app.listenAddr", "APP_LISTEN_ADDR")...)
@@ -68,18 +71,6 @@ func (l *Loader) Validate() error {
 		if l.GetInt("upload.presignTTLSeconds") <= 0 {
 			problems = append(problems, "upload.presignTTLSeconds must be positive")
 		}
-		for _, path := range []string{
-			"upload.maxBytes.resume",
-			"upload.maxBytes.privacyExport",
-		} {
-			if l.GetInt(path) <= 0 {
-				problems = append(problems, fmt.Sprintf("%s must be positive", path))
-			}
-		}
-		if l.GetInt("resume.maxActive") <= 0 {
-			problems = append(problems, "resume.maxActive must be positive")
-		}
-
 		// Async queue weights must declare three positive entries.
 		if l.GetInt("async.queueWeights.critical") <= 0 ||
 			l.GetInt("async.queueWeights.default") <= 0 ||

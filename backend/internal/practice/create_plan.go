@@ -9,19 +9,21 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
+	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
 
 var (
-	ErrPlanPrerequisiteNotFound = stderrs.New("practice plan prerequisite not found")
-	ErrPlanNotFound             = stderrs.New("practice plan not found")
-	ErrSessionNotFound          = stderrs.New("practice session not found")
-	ErrSessionConflict          = stderrs.New("practice session conflict")
-	ErrSessionNotReportable     = stderrs.New("practice session is not reportable")
-	ErrClientEventMismatch      = stderrs.New("practice session client event mismatch")
-	ErrInvalidCursor            = stderrs.New("practice session invalid cursor")
+	ErrPlanPrerequisiteNotFound         = stderrs.New("practice plan prerequisite not found")
+	ErrPlanNotFound                     = stderrs.New("practice plan not found")
+	ErrSessionNotFound                  = stderrs.New("practice session not found")
+	ErrSessionConflict                  = stderrs.New("practice session conflict")
+	ErrSessionNotReportable             = stderrs.New("practice session is not reportable")
+	ErrClientEventMismatch              = stderrs.New("practice session client event mismatch")
+	ErrInvalidCursor                    = stderrs.New("practice session invalid cursor")
+	ErrPracticeSessionTextLimitExceeded = stderrs.New("practice session text limit exceeded")
 )
 
 type ServiceError struct {
@@ -56,21 +58,25 @@ type PromptResolver interface {
 }
 
 type ServiceOptions struct {
-	Store      Store
-	Registry   PromptResolver
-	AI         aiclient.AIClient
-	AITaskRuns aiclient.AITaskRunWriter
-	Now        func() time.Time
-	NewID      func() string
+	Store               Store
+	Registry            PromptResolver
+	AI                  aiclient.AIClient
+	AITaskRuns          aiclient.AITaskRunWriter
+	Now                 func() time.Time
+	NewID               func() string
+	MaxMessageBytes     int64
+	MaxSessionTextBytes int64
 }
 
 type Service struct {
-	store      Store
-	registry   PromptResolver
-	ai         aiclient.AIClient
-	aiTaskRuns aiclient.AITaskRunWriter
-	now        func() time.Time
-	newID      func() string
+	store               Store
+	registry            PromptResolver
+	ai                  aiclient.AIClient
+	aiTaskRuns          aiclient.AITaskRunWriter
+	now                 func() time.Time
+	newID               func() string
+	maxMessageBytes     int64
+	maxSessionTextBytes int64
 }
 
 func NewService(opts ServiceOptions) *Service {
@@ -82,7 +88,14 @@ func NewService(opts ServiceOptions) *Service {
 	if newID == nil {
 		newID = idx.NewID
 	}
-	return &Service{store: opts.Store, registry: opts.Registry, ai: opts.AI, aiTaskRuns: opts.AITaskRuns, now: now, newID: newID}
+	defaults := platformconfig.DefaultContentLimits()
+	if opts.MaxMessageBytes <= 0 {
+		opts.MaxMessageBytes = defaults.PracticeMaxMessageBytes
+	}
+	if opts.MaxSessionTextBytes <= 0 {
+		opts.MaxSessionTextBytes = defaults.PracticeMaxSessionTextBytes
+	}
+	return &Service{store: opts.Store, registry: opts.Registry, ai: opts.AI, aiTaskRuns: opts.AITaskRuns, now: now, newID: newID, maxMessageBytes: opts.MaxMessageBytes, maxSessionTextBytes: opts.MaxSessionTextBytes}
 }
 
 type CreatePlanRequest struct {

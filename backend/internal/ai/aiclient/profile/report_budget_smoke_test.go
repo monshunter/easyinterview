@@ -44,15 +44,7 @@ func TestReportProfileLiveTokenGate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
-	framedRaw := mustReadLiveProbeFixture(t, filepath.Join(fixtureDir, "input-48000.json"))
-	var framedMessages []aiclient.Message
-	if err := json.Unmarshal(framedRaw, &framedMessages); err != nil {
-		t.Fatalf("decode exact framed input fixture: %v", err)
-	}
-	reframed, err := json.Marshal(framedMessages)
-	if err != nil || !bytes.Equal(reframed, framedRaw) {
-		t.Fatal("exact framed input fixture did not round-trip byte-identically")
-	}
+	framedMessages := buildLiveFramedInput(t, reportInputByteLimit)
 	exactResponse, exactMeta, err := adapter.Complete(ctx, reportProfile, aiclient.CompletePayload{Messages: framedMessages})
 	if err != nil {
 		t.Fatal("exact framed live probe failed; provider error details redacted")
@@ -60,7 +52,7 @@ func TestReportProfileLiveTokenGate(t *testing.T) {
 	if err := validateReportProfileLiveProbeResult(reportProfile, exactMeta, exactResponse.FinishReason, 0); err != nil {
 		t.Fatalf("exact framed live probe rejected: %v", err)
 	}
-	logLiveProbeEvidence(t, "framed-48000", reportProfile, exactMeta, exactResponse.FinishReason)
+	logLiveProbeEvidence(t, "framed-917504", reportProfile, exactMeta, exactResponse.FinishReason)
 
 	for _, fixtureName := range []string{"output-worst-case-en.json", "output-worst-case-zh-CN.json"} {
 		t.Run(fixtureName, func(t *testing.T) {
@@ -82,6 +74,39 @@ func TestReportProfileLiveTokenGate(t *testing.T) {
 			logLiveProbeEvidence(t, fixtureName, reportProfile, meta, response.FinishReason)
 		})
 	}
+}
+
+func buildLiveFramedInput(t *testing.T, targetBytes int) []aiclient.Message {
+	t.Helper()
+	messages := []aiclient.Message{
+		{Role: "system", Content: "Synthetic non-sensitive report capacity probe."},
+		{Role: "user", Content: ""},
+	}
+	base, err := json.Marshal(messages)
+	if err != nil {
+		t.Fatalf("marshal live capacity probe base: %v", err)
+	}
+	padding := targetBytes - len(base)
+	if padding < 0 {
+		t.Fatalf("live capacity probe base=%d bytes exceeds target=%d", len(base), targetBytes)
+	}
+	messages[1].Content = strings.Repeat("x", padding)
+	framed, err := json.Marshal(messages)
+	if err != nil {
+		t.Fatalf("marshal live capacity probe: %v", err)
+	}
+	if len(framed) != targetBytes {
+		t.Fatalf("live capacity probe=%d bytes, want %d", len(framed), targetBytes)
+	}
+	var roundTrip []aiclient.Message
+	if err := json.Unmarshal(framed, &roundTrip); err != nil {
+		t.Fatalf("decode generated live capacity probe: %v", err)
+	}
+	reframed, err := json.Marshal(roundTrip)
+	if err != nil || !bytes.Equal(reframed, framed) {
+		t.Fatal("generated live capacity probe did not round-trip byte-identically")
+	}
+	return messages
 }
 
 func loadLiveReportProfile(t *testing.T, repoRoot string) *aiclient.ModelProfile {

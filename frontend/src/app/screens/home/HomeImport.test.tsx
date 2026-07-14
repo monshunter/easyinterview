@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { createFixtureBackedFetch, createFixtureRegistry } from "../../../api/mockTransport";
@@ -69,6 +69,20 @@ function renderHome(client: EasyInterviewClient, options?: { lang?: Lang }) {
 }
 
 describe("HomeImport — paste-only", () => {
+	 it("rejects runtime limit+1 UTF-8 bytes before import and keeps the JD", async () => {
+		const client = createClient("paste-primary");
+		const spy = vi.spyOn(client, "importTargetJob");
+		renderHome(client);
+		await selectDefaultResume();
+		const overLimit = `${"a".repeat(98_304)}b`;
+		const textarea = screen.getByTestId("home-jd-textarea");
+		fireEvent.change(textarea, { target: { value: overLimit } });
+		await userEvent.click(screen.getByTestId("home-jd-submit"));
+		expect(screen.getByTestId("home-import-error")).toHaveTextContent(/超出|exceeds/i);
+		expect(textarea).toHaveValue(overLimit);
+		expect(spy).not.toHaveBeenCalled();
+	});
+
   it("submits the exact flattened request with trimmed raw text", async () => {
     const client = createClient("paste-primary");
     const spy = vi.spyOn(client, "importTargetJob");

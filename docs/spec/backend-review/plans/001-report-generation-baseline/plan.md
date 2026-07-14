@@ -34,7 +34,7 @@
 | 4 | `backend-practice/002 Phase 9` | `practice-completion-evidence.v1` + `ZERO_ANSWER_COMPLETION_REJECTED_PASS` / `REPORT_CONTEXT_SNAPSHOT_PASS` / `REPORT_CONTEXT_REPLAY_PASS` | review context consumer |
 | 5 | `prompt-rubric-registry/004 Phase 8` | v0.2 rubric/context-aware judge/eval + `REPORT_RUBRIC_V020_PASS` / `REPORT_CONTEXT_AWARE_EVAL_PASS` | F3 final activation + P0.100 reliability |
 | 6 | `prompt-rubric-registry/002 Phase 14 activation` | consume both 004 markers, atomically activate prompt/rubric v0.2 via 000019, preserve v0.1 rollback, emit `REPORT_PROMPT_V020_PASS` | backend generation/provenance |
-| 7a | `backend-review/001 Phase 6.1-6.4` | consume schema/prompt/context markers, implement frozen request builder, commit deterministic exact 48,000/48,001-byte input plus zh/en worst-case output fixtures and emit `REPORT_BOUNDARY_FIXTURES_READY` | A3 executable capacity/profile gate |
+| 7a | `backend-review/001 Phase 6.1-6.4` | consume schema/prompt/context markers, implement frozen request builder and emit `REPORT_BOUNDARY_FIXTURES_READY`; the former committed input-boundary files are superseded by Phase 11 in-memory construction, while zh/en worst-case output fixtures remain | A3 executable capacity/profile gate |
 | 7b | `ai-provider-and-model-routing/003 Phase 8` | consume boundary fixtures, prove model context capacity separately from TPM, set 6,144 output budget and emit `REPORT_PROFILE_6144_PASS` | report runtime boundary |
 | 7c | `backend-review/001 Phase 6.5-7.5` | consume profile marker; implement runtime byte gate, direct semantics, validator/repair/persistence/read and exact backend evidence | frontend 7.1/7.4 + 056/058 composition |
 | 8 | `backend-practice/004 Phase 3` | generic-empty-focus retry, issue-backed non-empty focus, next successor, isolation + IK markers | report replay CTA/scenarios |
@@ -87,9 +87,9 @@ Prompt 使用可信 system policy + untrusted JSON；generation persistence 使�
 
 #### 6.4 Executable input/output budget
 
-First commit synthetic, non-sensitive deterministic fixtures under `backend/internal/review/testdata/report-boundary/`: exact final framed inputs at 48,000 and 48,001 UTF-8 bytes, current-schema worst-case zh/en outputs, and a manifest containing byte counts plus SHA-256 values. A focused fixture test must reconstruct/serialize them byte-identically and emit `REPORT_BOUNDARY_FIXTURES_READY`; A3 consumes these files without owning or rewriting report business bounds.
+This historical phase first used committed synthetic input-boundary files plus current-schema worst-case zh/en outputs. Phase 11 supersedes that input-file technique: exact framed inputs are now constructed and round-tripped in memory, while `backend/internal/review/testdata/report-boundary/` retains only the small output fixtures and their manifest. The focused fixture test still emits `REPORT_BOUNDARY_FIXTURES_READY` without a provider call.
 
-After A3 returns `REPORT_PROFILE_6144_PASS`, freeze full content and measure the exact final UTF-8 policy+context payload immediately before provider call. At >48,000 bytes persist terminal `REPORT_CONTEXT_TOO_LARGE` without provider/repair; never truncate/summarize. Exactly 48,000 bytes reaches the provider unchanged. The context-window capacity proof, 6,144 output budget and actual-token smoke are A3-owned; TPM remains a separate throughput setting.
+After A3 returns `REPORT_PROFILE_6144_PASS`, freeze full content and measure the exact final UTF-8 policy+context payload immediately before provider call. The historical package-local threshold from this phase is superseded by the configured Phase 11 boundary: limit+1 persists terminal `REPORT_CONTEXT_TOO_LARGE` without provider/repair, while the exact limit reaches the provider unchanged. The context-window capacity proof, 6,144 output budget and actual-token smoke are A3-owned; TPM remains a separate throughput setting.
 
 ### Phase 7: Direct semantics, grounding, repair and persistence
 
@@ -165,7 +165,7 @@ Handler 只投影 `targetJobId`、`PracticeRoundRef`、`currentReport{id,generat
 
 #### 11.1 RED: current regression and configured boundary
 
-Replace the old 48,000-byte business-bound assertions with a real 62,397-byte regression fixture plus deterministic 917,504/917,505-byte final framed inputs. RED must show that the regression sample is currently rejected and that construction still depends on a package constant.
+Replace the old 48,000-byte business-bound assertions with an in-memory 62,397-byte regression case plus deterministic in-memory 917,504/917,505-byte final framed inputs. RED must show that the regression case is currently rejected and that construction still depends on a package constant. Do not commit large `input-*.json` boundary files.
 
 #### 11.2 GREEN: injected 896KiB default
 
@@ -173,7 +173,7 @@ Inject A4 `report.maxFramedInputBytes` into the report service/context builder. 
 
 #### 11.3 Capacity and BDD handoff
 
-Consume A3 `917504+2048+6144=925696<1000000` capacity evidence. Extend P0.056 with the 62,397-byte regression and default limit path; retain P0.058 for oversized failure/recovery. Focused/full review tests and fixture hash reconstruction must pass without using TPM as capacity evidence.
+Consume A3 `917504+2048+6144=925696<1000000` capacity evidence. Extend P0.056 with the in-memory 62,397-byte regression and default limit path; retain P0.058 for oversized failure/recovery. Focused/full review tests must prove exact generated byte counts and canonical frame round-trips without committed input files or TPM-based capacity evidence.
 
 ## 6 验收标准
 

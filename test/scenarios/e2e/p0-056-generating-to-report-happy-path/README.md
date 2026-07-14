@@ -8,7 +8,7 @@
 
 - **Given** P0.047 has already published a schema-valid, redacted `practice-completion-evidence.v1` artifact and the report API exposes queued/generating/ready projections from the frozen `report-context.v1` snapshot.
 - **When** the exact backend evidence test and four focused owner Vitest files run.
-- **Then** the backend proves direct-ready persistence/read, immutable context and legacy-identifier absence; the UI shows an honest generating state and renders the direct semantic report from `reportId` alone without mutable context reads or route overrides.
+- **Then** the backend proves direct-ready persistence/read, immutable context and legacy-identifier absence; in-memory 62,397-byte regression and 917,504-byte boundary inputs each reach the provider exactly once without committed `input-*.json`; the UI shows an honest generating state and renders the direct semantic report from `reportId` alone without mutable context reads or route overrides.
 
 This is a composed backend/frontend gate, not a single browser journey. The four focused owner test files are `preflight.test.ts`, `useReportGenerationPoll.test.tsx`, `GeneratingScreen.test.tsx` and `ConversationReport.test.tsx`. Frontend-only PASS cannot replace the backend evidence contract.
 
@@ -17,7 +17,7 @@ This is a composed backend/frontend gate, not a single browser journey. The four
 - `setup.sh` validates and consumes the existing P0.047 artifact; it does not recreate completion or copy raw content.
 - `trigger.sh` runs `TestE2EP0056ReportBackendEvidence` in `internal/review`, `internal/store/review` and `internal/api/reports`, plus the four frontend files.
 - `verify.sh` is the sole writer of `backend-evidence.json` (`report-backend-evidence.v1`) after exact RUN/PASS, marker, redacted database and frontend evidence all pass.
-- Required backend markers are `REPORT_COMPLETION_OWNER_EVIDENCE_CONSUMED_PASS`, `REPORT_DIRECT_READY_PASS`, `REPORT_FROZEN_CONTEXT_READ_PASS` and `REPORT_REVIEW_LEGACY_IDENTIFIER_NEGATIVE_PASS`.
+- Required backend markers are `REPORT_COMPLETION_OWNER_EVIDENCE_CONSUMED_PASS`, `REPORT_DIRECT_READY_PASS`, `REPORT_FROZEN_CONTEXT_READ_PASS`, `REPORT_REVIEW_LEGACY_IDENTIFIER_NEGATIVE_PASS`, `REPORT_62397_PROVIDER_ADMISSION_PASS` and `REPORT_917504_PROVIDER_ADMISSION_PASS`.
 
 ## Pipeline
 

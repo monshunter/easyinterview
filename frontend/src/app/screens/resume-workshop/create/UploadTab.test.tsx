@@ -178,7 +178,7 @@ describe("UploadTab pre-check + presign + register", () => {
     );
   });
 
-  it("rejects an oversized file inline using the default 2 MB resume upload ceiling", async () => {
+  it("rejects limit+1 before presign using the runtime 10 MiB resume upload ceiling", async () => {
     const client = buildClient();
     const presignSpy = vi.spyOn(client, "createUploadPresign");
 
@@ -191,13 +191,24 @@ describe("UploadTab pre-check + presign + register", () => {
     ) as HTMLInputElement;
     fireEvent.change(input, {
       target: {
-        files: [makeFile("huge.pdf", 3 * 1024 * 1024, "application/pdf")],
+        files: [makeFile("huge.pdf", 10 * 1024 * 1024 + 1, "application/pdf")],
       },
     });
     expect(
       screen.getByTestId("resume-create-upload-error"),
-    ).toHaveTextContent(/2 MB|超出|exceeds/i);
+    ).toHaveTextContent(/10 MB|超出|exceeds/i);
     expect(presignSpy).not.toHaveBeenCalled();
+  });
+
+  it("accepts a file at the exact runtime 10 MiB ceiling", async () => {
+    const client = buildClient();
+    const presignSpy = vi.spyOn(client, "createUploadPresign");
+    renderUploadTab(client);
+    await waitFor(() => expect(screen.getByTestId("resume-create-upload-input")).toBeInTheDocument());
+    fireEvent.change(screen.getByTestId("resume-create-upload-input"), {
+      target: { files: [makeFile("exact.pdf", 10 * 1024 * 1024, "application/pdf")] },
+    });
+    await waitFor(() => expect(presignSpy).toHaveBeenCalledTimes(1));
   });
 
   it("completes presign + browser PUT + registerResume + opens the detail directly", async () => {

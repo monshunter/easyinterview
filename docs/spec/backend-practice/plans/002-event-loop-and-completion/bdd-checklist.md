@@ -50,6 +50,7 @@
 
 ## Phase 12 configured text boundaries
 
-- [ ] P0.046 consumes runtime config and proves 32KiB message / 256KiB session limit values with UTF-8 multibyte input.
-- [ ] Boundary values succeed; each +1 path has zero new message/provider side effects and typed validation recovery.
-- [ ] Reload/same-ID accepted-message behavior remains idempotent and browser storage is not a business fact.
+- [x] P0.046 consumes runtime config and proves 32KiB message / 256KiB session limit values with UTF-8 multibyte input.
+- [x] Boundary values succeed; each +1 path has zero new message/provider side effects and typed validation recovery.
+- [x] Reload/same-ID accepted-message behavior remains idempotent and browser storage is not a business fact.
+  <!-- verified: 2026-07-14 evidence="Fresh P0.046 run includes frontend exact/+1, backend service, SQL aggregate reserve/commit and existing reload/same-ID/concurrency gates." -->

@@ -27,6 +27,7 @@ import {
 } from "./pendingImportState";
 import { useRecentTargetJobs } from "./useRecentTargetJobs";
 import type { ResumeSummary, TargetJob } from "../../../api/generated/types";
+import { resolveContentLimits, utf8ByteLength } from "../../../lib/contentLimits";
 
 function idempotencyKey(): string {
   return `ik-${crypto.randomUUID()}`;
@@ -61,6 +62,9 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const handledPendingImportId = useRef<string | null>(null);
   const { jobs: rawJobs, loading, error } = useRecentTargetJobs();
   const targetLanguage = lang === "zh" ? "zh-CN" : "en";
+  const contentLimits = resolveContentLimits(
+    runtime?.runtime.status === "ready" ? runtime.runtime.config : undefined,
+  );
   const showRecentMocks = isAuthenticated;
   const selectedResume = useMemo(
     () => readyResumes.find((resume) => resume.id === selectedResumeId) ?? null,
@@ -185,6 +189,10 @@ export const HomeScreen: FC<{ route: Route }> = ({ route }) => {
   const handlePasteImport = async () => {
     const rawText = input.trim();
     if (!runtime || !rawText || importing || !selectedResume) return;
+    if (utf8ByteLength(rawText) > contentLimits.targetJobRawTextBytes) {
+      setImportError("home.errors.rawTextTooLarge");
+      return;
+    }
     const intent: PendingImportIntent = {
       rawText,
       targetLanguage,

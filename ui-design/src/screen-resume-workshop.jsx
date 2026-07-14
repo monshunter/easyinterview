@@ -435,7 +435,7 @@ const ResumeCreateFlow = ({ T, lang, onBack, onCreateResume }) => {
                 </div>
                 <div className="ei-serif" style={{ fontSize: 22, color: T.ink }}>{lang === "en" ? "Drop a PDF / Markdown resume" : "拖入 PDF / Markdown 简历"}</div>
                 <div style={{ fontSize: 13, color: T.ink3, maxWidth: 460, lineHeight: 1.55 }}>
-                  {lang === "en" ? "PDF / Markdown / TXT, up to 2 MiB. PDFs render as a page stack; Markdown and text render as Markdown." : "支持 PDF / Markdown / TXT，最大 2MiB。PDF 以页面栈展示，Markdown 和文本以 Markdown 渲染。"}
+                  {lang === "en" ? "PDF / Markdown / TXT, up to 10 MiB. PDFs render as a page stack; Markdown and text render as Markdown." : "支持 PDF / Markdown / TXT，最大 10MiB。PDF 以页面栈展示，Markdown 和文本以 Markdown 渲染。"}
                 </div>
                 <Btn T={T} variant="accent" icon="upload" onClick={() => {
                   const input = document.createElement("input");

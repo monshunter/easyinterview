@@ -33,6 +33,7 @@ mkdir -p "$OUT"
     TestParseHandlerPreservesInlineHeadingWordsInSourceSnapshot
     TestParseHandlerPreservesLongInputTailWithStructuredOnlyResponse
     TestParseHandlerRejectsLengthFinishReasonAndPreservesSourceSnapshot
+    TestParseHandlerUsesConfiguredExtractedTextByteLimitBeforeAI
     TestCreateWithParseJobKeepsDisplayNameUnsetUntilParseReady
     TestCompleteParseSuccessWritesReadyStateProfileDisplayNameAndCompletedOutboxAtomically
     TestCompleteParseFailureCanPersistExtractedTextSnapshot
@@ -69,4 +70,5 @@ mkdir -p "$OUT"
   echo "resumes.structured_profile: ready-state persistence covered by integration gate"
   echo "resumes.display_name: queued null + LLM-derived ready-state name + failed-with-snapshot fallback covered by parse/store/runner kernel gates"
   echo "upload parsed_text_snapshot: deterministic full PDF/Markdown/text extraction covered; DOCX and unreadable PDF fallback rejected before AI"
+  echo "resume.parse boundary: configured extracted-text exact/limit+1 inputs are constructed in memory and overflow is rejected before AI"
 } | tee "$OUT/verify.log"

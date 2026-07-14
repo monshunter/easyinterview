@@ -12,6 +12,7 @@ import (
 	"time"
 
 	api "github.com/monshunter/easyinterview/backend/internal/api/generated"
+	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	sharedtypes "github.com/monshunter/easyinterview/backend/internal/shared/types"
 )
@@ -42,10 +43,11 @@ func (e *ServiceImportError) Error() string {
 // ImportTargetJobInput to the Store. The runner side, F3+A3 calls, and
 // outbox publish flow are layered in Phase 3 / Phase 4.
 type Service struct {
-	store        Store
-	newID        IDGenerator
-	now          func() time.Time
-	dedupePepper string
+	store           Store
+	newID           IDGenerator
+	now             func() time.Time
+	dedupePepper    string
+	maxRawTextBytes int64
 }
 
 // IDGenerator returns a UUIDv7-shaped string. The service uses this for
@@ -54,10 +56,11 @@ type IDGenerator func() string
 
 // ServiceOptions wires the Service constructor.
 type ServiceOptions struct {
-	Store        Store
-	NewID        IDGenerator
-	Now          func() time.Time
-	DedupePepper string
+	Store           Store
+	NewID           IDGenerator
+	Now             func() time.Time
+	DedupePepper    string
+	MaxRawTextBytes int64
 }
 
 // NewService constructs a Service. Now defaults to time.Now().UTC().
@@ -65,11 +68,15 @@ func NewService(opts ServiceOptions) *Service {
 	if opts.Now == nil {
 		opts.Now = func() time.Time { return time.Now().UTC() }
 	}
+	if opts.MaxRawTextBytes <= 0 {
+		opts.MaxRawTextBytes = platformconfig.DefaultContentLimits().TargetJobMaxRawTextBytes
+	}
 	return &Service{
-		store:        opts.Store,
-		newID:        opts.NewID,
-		now:          opts.Now,
-		dedupePepper: opts.DedupePepper,
+		store:           opts.Store,
+		newID:           opts.NewID,
+		now:             opts.Now,
+		dedupePepper:    opts.DedupePepper,
+		maxRawTextBytes: opts.MaxRawTextBytes,
 	}
 }
 
@@ -115,6 +122,9 @@ func (s *Service) ImportTargetJob(ctx context.Context, in ImportRequest) (Import
 	rawText := strings.TrimSpace(in.RawText)
 	if rawText == "" {
 		return ImportResponse{}, &ServiceImportError{Code: sharederrors.CodeValidationFailed, Message: "rawText is required"}
+	}
+	if int64(len(rawText)) > s.maxRawTextBytes {
+		return ImportResponse{}, &ServiceImportError{Code: sharederrors.CodeValidationFailed, Message: "rawText is too large"}
 	}
 
 	now := s.now()

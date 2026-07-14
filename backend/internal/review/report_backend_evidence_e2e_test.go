@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -66,12 +67,29 @@ func TestE2EP0056ReportBackendEvidence(t *testing.T) {
 	}
 	t.Log("legacy_identifier_count=0")
 	t.Log("REPORT_REVIEW_LEGACY_IDENTIFIER_NEGATIVE_PASS")
+
+	for _, targetBytes := range []int{62_397, reportPayloadByteLimit} {
+		t.Run(fmt.Sprintf("%d bytes reach provider", targetBytes), func(t *testing.T) {
+			boundaryCtx := exactReportPayloadContext(t, targetBytes)
+			boundaryAI := &conversationReportAI{results: []conversationAIResult{{
+				response: aiclient.CompleteResponse{Content: validDirectReportJSON("en"), FinishReason: "stop"},
+				meta:     validReportCallMeta("en"),
+			}}}
+			boundaryRepo := &conversationReportRepository{ctx: boundaryCtx}
+			boundaryOutcome := newConversationReportService(boundaryAI, boundaryRepo).GenerateReport(context.Background(), AsyncJob{JobID: testUUID(8), ResourceID: boundaryCtx.Session.ReportID})
+			if !boundaryOutcome.Succeeded || len(boundaryAI.payloads) != 1 || boundaryRepo.providerAdmissionCount != 1 {
+				t.Fatalf("boundary outcome=%+v providerCalls=%d admissions=%d", boundaryOutcome, len(boundaryAI.payloads), boundaryRepo.providerAdmissionCount)
+			}
+		})
+	}
+	t.Log("REPORT_62397_PROVIDER_ADMISSION_PASS")
+	t.Log("REPORT_917504_PROVIDER_ADMISSION_PASS")
 }
 
 func TestE2EP0058ReportFailureBackendEvidence(t *testing.T) {
 	requireReportCompletionOwnerEvidence(t)
 
-	t.Run("48001 bytes fail before provider attempt", func(t *testing.T) {
+	t.Run("917505 bytes fail before provider attempt", func(t *testing.T) {
 		reportCtx := exactReportPayloadContext(t, reportPayloadByteLimit+1)
 		ai := &conversationReportAI{}
 		repo := &conversationReportRepository{ctx: reportCtx}
@@ -81,6 +99,7 @@ func TestE2EP0058ReportFailureBackendEvidence(t *testing.T) {
 		if outcome.Succeeded || outcome.Retryable || outcome.ErrorCode != sharederrors.CodeReportContextTooLarge || len(ai.payloads) != 0 || repo.providerAdmissionCount != 0 {
 			t.Fatalf("oversized report was not terminal before provider: succeeded=%t retryable=%t code=%s providerCalls=%d attemptCount=%d", outcome.Succeeded, outcome.Retryable, outcome.ErrorCode, len(ai.payloads), repo.providerAdmissionCount)
 		}
+		t.Log("context_too_large_input_bytes=917505")
 		t.Log("REPORT_CONTEXT_TOO_LARGE_PASS")
 	})
 

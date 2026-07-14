@@ -100,7 +100,7 @@ func TestE2EP0058ReportFailureBackendEvidence(t *testing.T) {
 	})
 
 	t.Run("oversized context persists terminal failure without provider", func(t *testing.T) {
-		_, reportID, jobID := fixture.seedGeneratingReport(t, 20, storeReportSnapshotOptions{RawJDBytes: 60_000})
+		_, reportID, jobID := fixture.seedGeneratingReport(t, 20, storeReportSnapshotOptions{RawJDBytes: 917_505})
 		ai := &storeReportEvidenceAI{}
 		service := fixture.service(repository, ai, 120)
 		outcome := service.GenerateReport(fixture.ctx, reviewdomain.AsyncJob{JobID: jobID, ResourceID: reportID, Attempts: 1, MaxAttempts: 4})
@@ -108,6 +108,7 @@ func TestE2EP0058ReportFailureBackendEvidence(t *testing.T) {
 			t.Fatalf("oversized context did not fail terminal: succeeded=%t retryable=%t code=%s providerCalls=%d", outcome.Succeeded, outcome.Retryable, outcome.ErrorCode, ai.calls)
 		}
 		fixture.assertFailedReadyColumnsEmpty(t, reportID, sharederrors.CodeReportContextTooLarge)
+		t.Log("context_too_large_raw_jd_bytes=917505")
 		t.Log("context_too_large_status=failed")
 		t.Log("context_too_large_provider_calls=0")
 	})

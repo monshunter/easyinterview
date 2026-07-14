@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FC } from "reac
 import { ApiClientError } from "../../../api/generated/client";
 import type { PracticeUserMessage } from "../../../api/generated/types";
 import { newId } from "../../../lib/ids";
+import { resolveContentLimits, utf8ByteLength } from "../../../lib/contentLimits";
 import { useI18n, type MessageKey } from "../../i18n/messages";
 import { useInterviewContext } from "../../interview-context/InterviewContext";
 import { useNavigation } from "../../navigation/NavigationProvider";
@@ -74,6 +75,9 @@ const PracticeSessionScreen: FC<PracticeScreenProps & { sessionId: string }> = (
   const sessionEpochRef = useRef({ sessionId, active: true });
   const planId = loader.data?.planId || route.params.planId || ctx.planId || "";
   const committedMessages = loader.data?.messages ?? [];
+  const contentLimits = resolveContentLimits(
+    runtime?.runtime.status === "ready" ? runtime.runtime.config : undefined,
+  );
   const hasCommittedCandidateMessage = committedMessages.some((message) => message.role === "user");
   const serverUnresolvedMessage = [...committedMessages].reverse().find(
     (message): message is PracticeUserMessage => message.role === "user" && message.replyStatus !== "complete",
@@ -316,11 +320,24 @@ const PracticeSessionScreen: FC<PracticeScreenProps & { sessionId: string }> = (
   const send = useCallback(() => {
     const text = input;
     if (!text.trim() || sending || paused || hasUnresolvedReply) return;
+    const textBytes = utf8ByteLength(text.trim());
+    const sessionTextBytes = committedMessages.reduce(
+      (total, message) => total + utf8ByteLength(message.content),
+      0,
+    );
+    if (
+      textBytes > contentLimits.practiceMessageBytes
+      || sessionTextBytes + textBytes > contentLimits.practiceSessionTextBytes
+    ) {
+      setError(t("practice.errors.textTooLarge"));
+      setErrorSource(null);
+      return;
+    }
     const clientMessageId = newId();
     const createdAt = new Date().toISOString();
     setInput("");
     void runMessageRequest({ text, clientMessageId }, "pending", createdAt);
-  }, [hasUnresolvedReply, input, paused, runMessageRequest, sending]);
+  }, [committedMessages, contentLimits, hasUnresolvedReply, input, paused, runMessageRequest, sending, t]);
 
   const retryMessage = useCallback((message: TranscriptMessage) => {
     if (

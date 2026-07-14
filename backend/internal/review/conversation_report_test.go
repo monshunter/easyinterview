@@ -690,7 +690,7 @@ func TestReportInvalidIssuesPreservesSafeOutputSchemaPathAndCode(t *testing.T) {
 	}
 }
 
-func TestReportPayloadExact48000PassesAndPlusOneFailsBeforeProvider(t *testing.T) {
+func TestReportPayloadUsesConfiguredByteLimitBeforeProvider(t *testing.T) {
 	reportCtx := validGenerationReportContext("en")
 	resolution := validReportResolution()
 	basePayload, err := reportCompletePayload(resolution, reportCtx, nil)
@@ -701,22 +701,20 @@ func TestReportPayloadExact48000PassesAndPlusOneFailsBeforeProvider(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(baseFrame) >= reportPayloadByteLimit {
-		t.Fatalf("base fixture unexpectedly large: %d", len(baseFrame))
-	}
-	reportCtx.FrozenContext.TargetJob.RawJD += strings.Repeat("x", reportPayloadByteLimit-len(baseFrame))
-	payload48000, err := reportCompletePayload(resolution, reportCtx, nil)
+	limit := len(baseFrame) + 64
+	reportCtx.FrozenContext.TargetJob.RawJD += strings.Repeat("x", limit-len(baseFrame))
+	payloadAtLimit, err := reportCompletePayload(resolution, reportCtx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	frame48000, _ := frameReportMessages(payload48000.Messages)
-	if len(frame48000) != reportPayloadByteLimit {
-		t.Fatalf("boundary frame = %d, want %d", len(frame48000), reportPayloadByteLimit)
+	frameAtLimit, _ := frameReportMessages(payloadAtLimit.Messages)
+	if len(frameAtLimit) != limit {
+		t.Fatalf("boundary frame = %d, want %d", len(frameAtLimit), limit)
 	}
 
 	ai := &conversationReportAI{results: []conversationAIResult{{response: aiclient.CompleteResponse{Content: validDirectReportJSON("en"), FinishReason: "stop"}, meta: validReportCallMeta("en")}}}
 	repo := &conversationReportRepository{ctx: reportCtx}
-	svc := newConversationReportService(ai, repo)
+	svc := newConversationReportServiceWithLimit(ai, repo, int64(limit))
 	if out := svc.GenerateReport(context.Background(), AsyncJob{JobID: testUUID(8), ResourceID: reportCtx.Session.ReportID}); !out.Succeeded || len(ai.payloads) != 1 {
 		t.Fatalf("exact boundary outcome=%+v calls=%d", out, len(ai.payloads))
 	}
@@ -731,6 +729,37 @@ func TestReportPayloadExact48000PassesAndPlusOneFailsBeforeProvider(t *testing.T
 	if out.Succeeded || out.ErrorCode != sharederrors.CodeReportContextTooLarge || out.Retryable || len(ai.payloads) != 0 || repo.providerAdmissionCount != 0 {
 		t.Fatalf("plus-one outcome=%+v calls=%d attemptCount=%d", out, len(ai.payloads), repo.providerAdmissionCount)
 	}
+}
+
+func TestReportDefaultBoundaryUsesInMemoryPayloadsBeforeProvider(t *testing.T) {
+	for _, targetBytes := range []int{62_397, reportPayloadByteLimit} {
+		t.Run(fmt.Sprintf("%d bytes reach provider", targetBytes), func(t *testing.T) {
+			reportCtx := exactReportPayloadContext(t, targetBytes)
+			ai := &conversationReportAI{results: []conversationAIResult{{
+				response: aiclient.CompleteResponse{Content: validDirectReportJSON("en"), FinishReason: "stop"},
+				meta:     validReportCallMeta("en"),
+			}}}
+			repo := &conversationReportRepository{ctx: reportCtx}
+			out := newConversationReportService(ai, repo).GenerateReport(context.Background(), AsyncJob{
+				JobID: testUUID(8), ResourceID: reportCtx.Session.ReportID,
+			})
+			if !out.Succeeded || len(ai.payloads) != 1 || repo.providerAdmissionCount != 1 {
+				t.Fatalf("outcome=%+v calls=%d admissions=%d", out, len(ai.payloads), repo.providerAdmissionCount)
+			}
+		})
+	}
+
+	t.Run("limit plus one fails before provider", func(t *testing.T) {
+		reportCtx := exactReportPayloadContext(t, reportPayloadByteLimit+1)
+		ai := &conversationReportAI{}
+		repo := &conversationReportRepository{ctx: reportCtx}
+		out := newConversationReportService(ai, repo).GenerateReport(context.Background(), AsyncJob{
+			JobID: testUUID(8), ResourceID: reportCtx.Session.ReportID,
+		})
+		if out.Succeeded || out.Retryable || out.ErrorCode != sharederrors.CodeReportContextTooLarge || len(ai.payloads) != 0 || repo.providerAdmissionCount != 0 {
+			t.Fatalf("outcome=%+v calls=%d admissions=%d", out, len(ai.payloads), repo.providerAdmissionCount)
+		}
+	})
 }
 
 func TestGenerateReportProviderInfrastructureErrorConsumesOneAttemptWithoutLeakingRawError(t *testing.T) {
@@ -779,6 +808,18 @@ func TestCompleteReportGenerationRejectsEveryNonStopFinishReason(t *testing.T) {
 
 func newConversationReportService(ai AIClient, repo *conversationReportRepository) *Service {
 	return newConversationReportServiceWithWait(ai, repo, func(context.Context, time.Duration) error { return nil })
+}
+
+func newConversationReportServiceWithLimit(ai AIClient, repo *conversationReportRepository, maxFramedInputBytes int64) *Service {
+	return NewService(ServiceOptions{
+		Registry:            conversationPromptResolver{resolution: validReportResolution()},
+		AI:                  ai,
+		Repository:          repo,
+		WaitBeforeRetry:     func(context.Context, time.Duration) error { return nil },
+		Now:                 func() time.Time { return time.Date(2026, 7, 12, 8, 30, 0, 0, time.UTC) },
+		NewID:               fixedConversationIDs(testUUID(6), testUUID(7), testUUID(9), testUUID(10)),
+		MaxFramedInputBytes: maxFramedInputBytes,
+	})
 }
 
 func newConversationReportServiceWithWait(ai AIClient, repo *conversationReportRepository, wait func(context.Context, time.Duration) error) *Service {

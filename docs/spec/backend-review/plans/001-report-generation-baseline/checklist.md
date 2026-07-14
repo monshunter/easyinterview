@@ -19,10 +19,10 @@
   <!-- verified: 2026-07-12 method=owner-artifact+red-green+focused-full evidence="REPORT_STORAGE_V18_PASS; practice-completion-evidence.v1 result=PASS with ZERO_ANSWER_COMPLETION_REJECTED_PASS, REPORT_CONTEXT_SNAPSHOT_PASS, REPORT_CONTEXT_REPLAY_PASS; frozen load rejects row/language/count/last-seq/role/order drift and never joins mutable context; queued/generating/ready/failed API context projection, ready lossless fields, anchor stripping and cross-user 404 tests PASS; focused and full review/store/api package tests PASS" -->
 - [x] 6.3 OWNER-HANDOFF + RED-GREEN: consume F3/002 Phase 14 `REPORT_PROMPT_V020_PASS`; report prompt isolates trusted policy from untrusted context and actual v0.2.0 PromptResolution/AICallMeta provenance is persisted, not hardcoded. (`go test ./backend/internal/review ./backend/internal/store/review -count=1`; `make lint-prompts`)
   <!-- verified: 2026-07-12 evidence="000019 activates prompt/rubric v0.2.0 with v0.1 rollback preserved; BuildReportPromptMessages keeps trusted system policy separate from untrusted context; service/store tests persist exact PromptResolution/AICallMeta coordinates and reject seven missing provenance fields instead of writing fallbacks; lint-prompts and focused packages PASS" -->
-- [x] 6.4 FIXTURE-GATE RED-GREEN: commit synthetic exact 48,000/48,001-byte final framed input fixtures, current-schema worst-case zh/en output fixtures and a manifest with deterministic serializer command, byte counts and SHA-256 values under `backend/internal/review/testdata/report-boundary/`; byte/hash/schema drift fails and the focused fixture test emits `REPORT_BOUNDARY_FIXTURES_READY` for A3. No provider call occurs in this fixture gate.
-  <!-- verified: 2026-07-12 evidence="report-boundary manifest reconstructs exact 48000/48001-byte framed inputs and current zh/en output fixtures with stable SHA-256; focused fixture test emits REPORT_BOUNDARY_FIXTURES_READY without a provider call" -->
-- [x] 6.5 OWNER-HANDOFF + RED-GREEN: consume A3/003 `REPORT_PROFILE_6144_PASS`; review owns the final UTF-8 prompt boundary where exactly 48,000 bytes calls provider unchanged and +1 byte persists terminal `REPORT_CONTEXT_TOO_LARGE` with zero provider/repair. Do not close context capacity or output budget from a YAML grep or TPM arithmetic. (byte-boundary/service tests + executable A3 marker)
-  <!-- verified: 2026-07-12 evidence="A3 real-provider smoke records stop with exact framed input 7050/1710 tokens and zh/en probes below the 1M window; review boundary tests pass 48000 unchanged and 48001 terminal failure with zero provider/repair" -->
+- [x] 6.4 HISTORICAL-SUPERSEDED FIXTURE-GATE: the former committed input-boundary files established deterministic framing, but Phase 11 now constructs every exact input boundary in memory and deletes those files. Current-schema worst-case zh/en outputs and the manifest remain; the focused fixture test emits `REPORT_BOUNDARY_FIXTURES_READY` without a provider call.
+  <!-- verified: 2026-07-14 evidence="Exact regression/limit/limit+1 framed inputs reconstruct and canonical-round-trip in memory; report-boundary retains only manifest plus two output fixtures." -->
+- [x] 6.5 HISTORICAL-SUPERSEDED OWNER-HANDOFF: the former package-local prompt threshold is replaced by the configured Phase 11 limit/limit+1 contract. Current capacity proof still consumes A3 `REPORT_PROFILE_6144_PASS`; TPM remains throughput-only and cannot close single-request capacity.
+  <!-- verified: 2026-07-14 evidence="A3 capacity formula and in-memory service boundaries pass; exact limit reaches provider and limit+1 persists terminal REPORT_CONTEXT_TOO_LARGE with zero provider/repair." -->
 
 ## Phase 7: Direct semantics, grounding and repair
 
@@ -102,9 +102,11 @@
 
 ## Phase 11: Configured report input boundary
 
-- [ ] 11.1 RED: 62,397-byte regression fixture、917,504/917,505 deterministic framed fixtures 与 package-hardcode negative test 先暴露旧 48,000-byte 拒绝。
-- [ ] 11.2 GREEN: report service/context builder 消费 A4 `report.maxFramedInputBytes`；limit 原样调用 provider，limit+1 在 provider/repair/retry 前 terminal `REPORT_CONTEXT_TOO_LARGE`。
-- [ ] 11.3 FIXTURE-GATE: manifest 重建 exact bytes/SHA-256；旧 48,000 fixture 不再作为 current production boundary，历史证据可保留。
-- [ ] 11.4 CAPACITY-GATE: 消费 A3 `917504+2048+6144=925696<1000000` marker，TPM 只作 throughput hint。
-- [ ] 11.5 BDD-GATE: P0.056 覆盖 62,397/default-limit provider path；P0.058 覆盖 limit+1 zero-provider 与返回报告恢复路径。
-- [ ] 11.6 VERIFY: focused/full review/store/API、race、fixture、privacy、contexts/docs/diff 与旧 48KB production-truth negative search 全部通过。
+- [x] 11.1 RED: 内存构造的 62,397-byte regression、917,504/917,505 deterministic framed inputs 与 package-hardcode negative test 先暴露旧 48,000-byte 拒绝。
+- [x] 11.2 GREEN: report service/context builder 消费 A4 `report.maxFramedInputBytes`；limit 原样调用 provider，limit+1 在 provider/repair/retry 前 terminal `REPORT_CONTEXT_TOO_LARGE`。
+- [x] 11.3 INPUT-GATE: 测试 helper 在内存中重建 exact bytes 并通过 canonical frame round-trip；`report-boundary/` 不提交 `input-*.json`，旧 48,000 fixture 不再作为 current production boundary。
+- [x] 11.4 CAPACITY-GATE: 消费 A3 `917504+2048+6144=925696<1000000` marker，TPM 只作 throughput hint。
+- [x] 11.5 BDD-GATE: P0.056 覆盖 62,397/default-limit provider path；P0.058 覆盖 limit+1 zero-provider 与返回报告恢复路径。
+  <!-- verified: 2026-07-14 evidence="Fresh P0.056/P0.058 pass exact provider admission/no-admission markers; report-boundary directory contains only manifest and two output fixtures." -->
+- [x] 11.6 VERIFY: focused/full review/store/API、race、fixture、privacy、contexts/docs/diff 与旧 48KB production-truth negative search 全部通过。
+  <!-- verified: 2026-07-14 evidence="Backend full and selected race packages, 11 owner contexts, report fixtures/privacy, docs/index/diff checks and production hardcode negative searches pass." -->

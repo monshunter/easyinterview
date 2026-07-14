@@ -80,6 +80,7 @@ export const zh = {
   "home.pendingImportInvalid": "登录状态已更新，请重新粘贴 JD 并选择简历。",
   "home.errors.resumeLoad": "简历暂时无法读取，请稍后重试。",
   "home.errors.import": "暂时无法创建面试规划，请稍后重试。",
+  "home.errors.rawTextTooLarge": "JD 内容超出大小限制，请精简后重试。",
   "home.errors.recentLoad": "最近面试规划暂时无法读取，请稍后重试。",
   "home.errors.start": "暂时无法开始面试，请稍后重试。",
   "parse.loadingLabel": "解析中 · 第 01 / 04 步",
@@ -187,6 +188,8 @@ export const zh = {
     "暂不支持该文件类型，仅支持 .pdf / .md / .markdown / .txt。",
   "resumeWorkshop.create.errors.sizeExceeded":
     "文件超出大小限制 ({maxMb} MB)，请压缩后再试。",
+  "resumeWorkshop.create.errors.pasteSizeExceeded":
+    "粘贴内容超出大小限制，请精简后重试。",
   "resumeWorkshop.create.errors.uploadFailed": "上传失败 · 请重试。",
   "resumeWorkshop.create.errors.registerFailed": "提交失败，请重试。",
   "resumeWorkshop.auth.eyebrow": "简历工坊",
@@ -252,6 +255,7 @@ export const zh = {
   "practice.errors.messageRejected": "这条消息未被接受，请检查内容后重新发送。",
   "practice.errors.messageAborted": "请求已中断，请确认当前面试状态后再继续。",
   "practice.errors.messageFailed": "这条消息未能发送，请稍后再试。",
+  "practice.errors.textTooLarge": "消息或本场对话内容超出大小限制，请精简后重试。",
   "practice.errors.completionFailed": "暂时无法结束面试并生成报告，请稍后重试。",
   "practice.errors.sessionLoadFailed": "面试会话暂时无法读取，请稍后重试。",
   "practice.errors.retry": "重试",

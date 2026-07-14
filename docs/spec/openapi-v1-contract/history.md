@@ -1,6 +1,6 @@
 # OpenAPI v1 Contract History
 
-> **版本**: 1.59
+> **版本**: 1.60
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -30,6 +30,7 @@
 
 | 日期 | 版本 | 变更 | 关联计划 |
 |------|------|------|----------|
+| 2026-07-14 | 1.60 | 接受 OPENAPI-006：`RuntimeConfig.contentLimits` 改为 required closed 五字段 public projection；用户批准方案 A 与修订默认值，全部 generated/backend/frontend consumer 同批迁移且内部限制不公开。 | OPENAPI-006 + openapi-v1-contract/001/003 + secrets-and-config/001 + Resume/Home/Practice owners |
 | 2026-07-14 | 1.59 | 接受 OPENAPI-005：`listResumes` 外层 method/path/operationId/200/pagination 不变，`PaginatedResume.items` 改为九字段 closed `ResumeSummary`；`getResume` 保持 full `Resume`，全部 consumer 同批迁移且无兼容层。 | OPENAPI-005 + openapi-v1-contract/001/002/003/004 + backend/frontend Resume owners |
 | 2026-07-14 | 1.58 | OPENAPI-004 wire/fixture/generated contracts remain unchanged；consumer handoff moves from Parse/P0.016 to target-scoped ReportsScreen/P0.059，with Parse/Report/Generating list-consumer negatives. | B2 001/002/003 + frontend-report/001 |
 | 2026-07-14 | 1.57 | 接受 OPENAPI-004：`listTargetJobReports` 原地改为无分页 canonical-round overview，删除 `TargetJob.latestReportId`；current ready 与 latest attempt 独立投影并对非法冻结 context 整体 fail closed。 | B2 001/002/003 + backend-review/001 + frontend-home/001 |

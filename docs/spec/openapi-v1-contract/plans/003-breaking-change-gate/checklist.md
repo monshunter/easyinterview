@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Breaking-Change Gate Checklist
 
-> **版本**: 1.20
-> **状态**: completed
+> **版本**: 1.21
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -88,3 +88,11 @@
   <!-- verified: 2026-07-14 evidence="all Resume summary/detail owners and P0.034/P0.036/P0.037 fresh PASS before baseline edit; no compatibility or list-row detail fetch" -->
 - [x] 9.5 RE-FREEZE: preserve the deterministic old-baseline artifact, then re-freeze and independently run current diff/lint/fixture/codegen/downstream gates；clean current diff alone is insufficient.
   <!-- verified: 2026-07-14 artifact="OPENAPI-005-resume-list-summary.json" findings=12 expected=12 errors=0 evidence="baseline/current sha256=6e81b656...9bc6; independent gates PASS" -->
+
+## Phase 10: OPENAPI-006 Runtime content limits
+
+- [x] 10.1 GOVERNANCE/RED: accepted OPENAPI-006 + spec D-38/history 1.60 exist；merge-base baseline stays unchanged and generic diff reports the authorized required-field break before re-freeze.
+- [x] 10.2 ORACLE-GATE: exact five-key oracle covers required `RuntimeConfig.contentLimits`, closed required `ContentLimits`, exact five positive-int64 properties and runtime `$ref`; missing/extra/wildcard/type/minimum/required drift fails.
+- [x] 10.3 INVARIANT/HANDOFF: 37/10 and getRuntimeConfig method/path/operationId/200 stay unchanged；fixture/generated/backend builder/Resume/Home/Practice pass and internal limits remain absent.
+  <!-- verified: 2026-07-14 evidence="Preserved OPENAPI-006 audit has 9 exact findings/errors=[]; current diff 0 and 52 wrapper tests pass." -->
+- [ ] 10.4 RE-FREEZE: preserve the audit artifact, re-freeze, then independently run current diff/lint/fixture/codegen/consumer/docs gates.

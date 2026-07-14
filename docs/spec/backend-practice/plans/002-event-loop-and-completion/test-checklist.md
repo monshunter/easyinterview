@@ -54,6 +54,7 @@
 
 ## Phase 12: Message/session UTF-8 byte limits
 
-- [ ] 32KiB/32KiB+1 single-message ASCII/multibyte tests pass.
-- [ ] 256KiB/256KiB+1 persisted aggregate, replay and concurrent-submit tests pass with zero overflow side effects.
-- [ ] RuntimeConfig/frontend and P0.046 current evidence pass.
+- [x] 32KiB/32KiB+1 single-message ASCII/multibyte tests pass.
+- [x] 256KiB/256KiB+1 persisted aggregate, replay and concurrent-submit tests pass with zero overflow side effects.
+- [x] RuntimeConfig/frontend and P0.046 current evidence pass.
+  <!-- verified: 2026-07-14 evidence="Focused/full/race store tests and fresh P0.046 current-source run pass." -->

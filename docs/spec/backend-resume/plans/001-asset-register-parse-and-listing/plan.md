@@ -22,7 +22,7 @@
 - `resume.parse` 成功路径必须把完整抽取正文发送给 LLM，但模型只返回 `displayName` 与结构化字段，不再回显整份 `markdownText`；`parsed_text_snapshot` 由后端从同一份完整正文确定性构建，成功与失败路径都不依赖模型复述；
 - `resume.parse.default` 必须为结构化 strict JSON 提供至少 8192 tokens 输出预算；同时用长输入尾部唯一 marker 证明业务代码未截断 1M-context 模型可承载的简历正文，并在 `finish_reason=length` 时 fail closed 为 `AI_OUTPUT_INVALID`；
 - 若 LLM provider / output validation 失败但 upload / paste 已抽取出可读正文，失败路径必须保存 Markdown fallback 快照，而不是把 PDF 抽取文本原样折叠成一段；fallback 只用于失败态展示，不发送 `resume.parse.completed`，也不伪装为 LLM 成功结果；
-- `registerResume` 必须强制 active resume 数量上限，默认 `resume.maxActive=10`，并继续强制 upload 文件大小上限，默认 `upload.maxBytes.resume=2097152`；
+- `registerResume` 必须强制 active resume 数量上限，默认 `resume.maxActive=10`，并继续强制 upload 文件大小上限，默认 `upload.maxBytes.resume=10485760`；
 - 接 [B3 events `resume.parse.completed`](../../../event-and-outbox-contract/spec.md#314-v1-payload-schema-inventory)：只有最终 ready 成功路径通过 outbox 写入 envelope 字段集（`resumeId / userId / parseStatus`）+ PII 边界（不含 raw text / parsed_summary）；失败路径不发 completed event；
 - 在 `cmd/api` 挂载 `registerResume` / `getResume` / `listResumes` route，验证 session middleware、IK middleware、path params 与 backend-internal `resume_parse` runner wiring 都走真实 runtime；
 - 明确本 plan 落地 flat `Resume` source 登记、解析、Markdown 快照与列表读取，不创建 `structured_master` `ResumeVersion`；
@@ -332,7 +332,7 @@
 
 #### 11.4 upload default size limit
 
-`upload.maxBytes.resume` 默认改为 `2097152`，配置校验继续要求正数；前端本地校验与后端默认一致。
+`upload.maxBytes.resume` 当前默认值为 `10485760`，配置校验继续要求正数；前端通过 RuntimeConfig 投影消费同值默认。
 
 （验证：`cd backend && go test ./internal/platform/config/... ./cmd/api -run 'TestRepoLocalConfigLoadsPublicDefaults|TestBuildUploadRoutesAlignsIdempotencyTTLWithPresignTTL' -count=1` PASS）
 

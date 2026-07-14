@@ -5,8 +5,9 @@ import { ResumeWorkshopIcon } from "../components/ResumeWorkshopIcon";
 import { useResumePresignUpload } from "./hooks/useResumePresignUpload";
 import { useResumeRegistration } from "./hooks/useResumeRegistration";
 import { deriveDefaultTitle } from "./util/title";
+import { resolveContentLimits } from "../../../../lib/contentLimits";
+import { useAppRuntimeOptional } from "../../../runtime/AppRuntimeProvider";
 
-const MAX_RESUME_UPLOAD_BYTES = 2 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = [".pdf", ".md", ".markdown", ".txt"];
 
 const hasAllowedExtension = (name: string): boolean => {
@@ -48,6 +49,10 @@ export const UploadTab: FC<UploadTabProps> = ({
   const [uploadingMessage, setUploadingMessage] = useState<string | null>(null);
   const upload = useResumePresignUpload();
   const register = useResumeRegistration();
+  const runtime = useAppRuntimeOptional();
+  const maxResumeUploadBytes = resolveContentLimits(
+    runtime?.runtime.status === "ready" ? runtime.runtime.config : undefined,
+  ).resumeUploadBytes;
 
   const performUpload = useCallback(
     async (file: File) => {
@@ -98,12 +103,12 @@ export const UploadTab: FC<UploadTabProps> = ({
       onValidationError(t("resumeWorkshop.create.errors.extensionInvalid"));
       return;
     }
-    if (file.size > MAX_RESUME_UPLOAD_BYTES) {
+    if (file.size > maxResumeUploadBytes) {
       onPickFile(null);
       onValidationError(
         t("resumeWorkshop.create.errors.sizeExceeded").replace(
           "{maxMb}",
-          `${Math.round(MAX_RESUME_UPLOAD_BYTES / (1024 * 1024))}`,
+          `${Math.round(maxResumeUploadBytes / (1024 * 1024))}`,
         ),
       );
       return;

@@ -22,4 +22,13 @@ grep -Fq "submits pasted content with a neutral source title" "$LOG_FILE" || {
   echo "$SCENARIO_ID: neutral paste title regression test did not run" >&2
   exit 1
 }
+for boundary_assertion in \
+  "accepts exact UTF-8 paste bytes from runtime config" \
+  "rejects paste limit+1 before register and preserves the draft" \
+  "rejects limit+1 before presign using the runtime 10 MiB resume upload ceiling"; do
+  grep -Fq "$boundary_assertion" "$LOG_FILE" || {
+    echo "$SCENARIO_ID: boundary assertion did not run: $boundary_assertion" >&2
+    exit 1
+  }
+done
 echo "$SCENARIO_ID PASS"

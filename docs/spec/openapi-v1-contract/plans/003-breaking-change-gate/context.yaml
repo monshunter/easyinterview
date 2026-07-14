@@ -5,10 +5,10 @@ metadata:
   name: 003-breaking-change-gate
   sequence: 3
   baseBranch: main
-  branch: fix/request-dedup-resume-summary-routing-0714
+  branch: fix/runtime-size-limits-0714
   specVersion:
-    from: 1.58
-    to: 1.59
+    from: 1.59
+    to: 1.60
 spec:
   defaultTarget: contract
   discovery:
@@ -44,6 +44,8 @@ spec:
       - ResumeSummary closed required fields
       - listResumes and getResume invariants
       - no placeholder expected findings JSON
+      - OPENAPI-006 runtime content limits exact oracle
+      - RuntimeConfig contentLimits required correction
     keywords:
       - openapi-diff
       - additive only
@@ -67,6 +69,7 @@ spec:
         - ../../decisions/OPENAPI-002-targetjob-paste-only.md
         - ../../decisions/OPENAPI-004-targetjob-report-overview.md
         - ../../decisions/OPENAPI-005-resume-list-summary.md
+        - ../../decisions/OPENAPI-006-runtime-content-limits.md
         - ../001-bootstrap/plan.md
         - ../002-fixtures-and-mock-source/plan.md
         - ../../../shared-conventions-codified/plans/001-bootstrap/plan.md

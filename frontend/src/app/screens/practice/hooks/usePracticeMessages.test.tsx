@@ -52,6 +52,20 @@ describe("usePracticeMessages", () => {
       { signal: controller.signal },
     );
   });
+
+  it("accepts exact UTF-8 bytes and rejects limit+1 before the generated client", async () => {
+		const client = new EasyInterviewClient({ fetch: vi.fn<typeof fetch>() });
+		const send = vi.spyOn(client, "sendPracticeMessage").mockResolvedValue({} as SendPracticeMessageResponse);
+		const { result } = renderHook(() => usePracticeMessages(SESSION_ID), {
+			wrapper: ({ children }) => <Wrapper client={client}>{children}</Wrapper>,
+		});
+		await act(async () => {
+			await result.current.sendMessage({ text: "a".repeat(32_768), clientMessageId: FIRST_ID });
+		});
+		await expect(result.current.sendMessage({ text: `${"a".repeat(32_768)}b`, clientMessageId: SECOND_ID }))
+			.rejects.toThrow("PRACTICE_MESSAGE_TOO_LARGE");
+		expect(send).toHaveBeenCalledTimes(1);
+	});
 });
 
 function Wrapper({ children, client }: { children: ReactNode; client: EasyInterviewClient }) {

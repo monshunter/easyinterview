@@ -17,6 +17,7 @@ import (
 	pdf "github.com/ledongthuc/pdf"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
+	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	resumestore "github.com/monshunter/easyinterview/backend/internal/resume/store"
 	"github.com/monshunter/easyinterview/backend/internal/runner"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
@@ -26,8 +27,6 @@ import (
 )
 
 const FeatureKeyResumeParse = string(featurekeys.ResumeParse)
-
-const defaultMaxResumeInputBytes int64 = 8 * 1024 * 1024
 
 var ErrPromptUnsupported = errors.New("prompt registry: feature/language is not enabled")
 
@@ -60,23 +59,25 @@ type ObjectReader interface {
 }
 
 type ParseHandlerOptions struct {
-	Store         Store
-	Registry      PromptRegistryClient
-	AI            aiclient.AIClient
-	Objects       ObjectReader
-	NewID         func() string
-	Now           func() time.Time
-	MaxInputBytes int64
+	Store                 Store
+	Registry              PromptRegistryClient
+	AI                    aiclient.AIClient
+	Objects               ObjectReader
+	NewID                 func() string
+	Now                   func() time.Time
+	MaxInputBytes         int64
+	MaxExtractedTextBytes int64
 }
 
 type ParseHandler struct {
-	store         Store
-	registry      PromptRegistryClient
-	ai            aiclient.AIClient
-	objects       ObjectReader
-	newID         func() string
-	now           func() time.Time
-	maxInputBytes int64
+	store                 Store
+	registry              PromptRegistryClient
+	ai                    aiclient.AIClient
+	objects               ObjectReader
+	newID                 func() string
+	now                   func() time.Time
+	maxInputBytes         int64
+	maxExtractedTextBytes int64
 }
 
 func NewParseHandler(opts ParseHandlerOptions) *ParseHandler {
@@ -86,16 +87,21 @@ func NewParseHandler(opts ParseHandlerOptions) *ParseHandler {
 	}
 	maxInputBytes := opts.MaxInputBytes
 	if maxInputBytes <= 0 {
-		maxInputBytes = defaultMaxResumeInputBytes
+		maxInputBytes = platformconfig.DefaultContentLimits().ResumeUploadBytes
+	}
+	maxExtractedTextBytes := opts.MaxExtractedTextBytes
+	if maxExtractedTextBytes <= 0 {
+		maxExtractedTextBytes = platformconfig.DefaultContentLimits().ResumeMaxExtractedTextBytes
 	}
 	return &ParseHandler{
-		store:         opts.Store,
-		registry:      opts.Registry,
-		ai:            opts.AI,
-		objects:       opts.Objects,
-		newID:         opts.NewID,
-		now:           now,
-		maxInputBytes: maxInputBytes,
+		store:                 opts.Store,
+		registry:              opts.Registry,
+		ai:                    opts.AI,
+		objects:               opts.Objects,
+		newID:                 opts.NewID,
+		now:                   now,
+		maxInputBytes:         maxInputBytes,
+		maxExtractedTextBytes: maxExtractedTextBytes,
 	}
 }
 
@@ -223,6 +229,9 @@ func (h *ParseHandler) resumeInput(ctx context.Context, asset resumestore.ParseA
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return "", fmt.Errorf("resume input is empty")
+	}
+	if int64(len(raw)) > h.maxExtractedTextBytes {
+		return "", fmt.Errorf("resume extracted text is too large")
 	}
 	return raw, nil
 }

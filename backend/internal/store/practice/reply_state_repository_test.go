@@ -161,6 +161,8 @@ func TestSQLRepositoryCommitPracticeMessageInsertsReplyAndCompletesUserAtomicall
 		WithArgs(in.UserMessageID, in.SessionID).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "role", "content", "seq_no", "client_message_id", "reply_status", "reply_generation", "created_at"}).
 			AddRow("m2", "user", "继续", 2, "client-1", string(domain.PracticeReplyStatusPending), int64(1), now))
+	mock.ExpectQuery(`select coalesce\(sum\(octet_length\(content\)\),0\) from practice_messages`).WithArgs(in.SessionID).
+		WillReturnRows(sqlmock.NewRows([]string{"bytes"}).AddRow(20))
 	mock.ExpectExec(`insert into practice_messages`).
 		WithArgs(in.AssistantMessageID, in.SessionID, 3, in.AssistantText, in.UserMessageID, in.Now).
 		WillReturnResult(sqlmock.NewResult(0, 1))
@@ -181,12 +183,44 @@ func TestSQLRepositoryCommitPracticeMessageInsertsReplyAndCompletesUserAtomicall
 			AddRow("m3", "assistant", "我们继续。", 3, nil, nil, now))
 	mock.ExpectCommit()
 
+	in.MaxSessionTextBytes = 35
 	result, err := NewSQLRepository(db).CommitPracticeMessage(context.Background(), in)
 	if err != nil {
 		t.Fatalf("CommitPracticeMessage: %v", err)
 	}
 	if result.UserMessage.ReplyStatus != domain.PracticeReplyStatusComplete || result.UserMessage.ClientMessageID != "client-1" || result.AssistantMessage.ReplyStatus != "" {
 		t.Fatalf("commit result = %+v", result)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLRepositoryCommitPracticeMessageRejectsAssistantAggregateLimitPlusOneBeforeInsert(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	now := time.Unix(4, 0).UTC()
+	in := domain.CommitPracticeMessageInput{
+		UserID: "user-1", SessionID: "session-1", UserMessageID: "m2",
+		ExpectedReplyGeneration: 1, AssistantMessageID: "m3", AssistantText: "我们继续。", MaxSessionTextBytes: 34, Now: now,
+	}
+	mock.ExpectBegin()
+	mock.ExpectQuery(`select id from practice_sessions where id=\$1 and user_id=\$2 for update`).WithArgs(in.SessionID, in.UserID).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(in.SessionID))
+	mock.ExpectQuery(`select m.id, m.role, m.content, m.seq_no, m.client_message_id::text, m.reply_status, m.reply_generation, m.created_at`).
+		WithArgs(in.UserMessageID, in.SessionID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "role", "content", "seq_no", "client_message_id", "reply_status", "reply_generation", "created_at"}).
+			AddRow("m2", "user", "继续", 2, "client-1", string(domain.PracticeReplyStatusPending), int64(1), now))
+	mock.ExpectQuery(`select coalesce\(sum\(octet_length\(content\)\),0\) from practice_messages`).WithArgs(in.SessionID).
+		WillReturnRows(sqlmock.NewRows([]string{"bytes"}).AddRow(20))
+	mock.ExpectRollback()
+
+	_, err = NewSQLRepository(db).CommitPracticeMessage(context.Background(), in)
+	if err != domain.ErrPracticeSessionTextLimitExceeded {
+		t.Fatalf("error=%v want ErrPracticeSessionTextLimitExceeded", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)

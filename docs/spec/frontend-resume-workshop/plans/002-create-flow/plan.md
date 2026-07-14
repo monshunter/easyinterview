@@ -29,7 +29,7 @@
 当前实现事实：
 
 - `frontend/src/app/screens/resume-workshop/ResumeWorkshopScreen.tsx` 将 `flow=create` dispatch 到 `ResumeCreateFlow`。
-- `frontend/src/app/screens/resume-workshop/create/` 包含 create-flow 容器、tabs、upload/paste hooks、2MiB upload validation 和 out-of-scope parsing/preview-confirm negative tests。
+- `frontend/src/app/screens/resume-workshop/create/` 包含 create-flow 容器、tabs、RuntimeConfig/default 10MiB upload 与 384KiB paste validation，以及 out-of-scope parsing/preview-confirm negative tests。
 - P0.081 / P0.083 场景资产覆盖直接详情跳转、CTA handoff 和隐私边界；P0.082 现在只验证直接详情跳转和 out-of-scope 解析/预览面不存在，因为创建流不再暴露解析进度页。
 
 ## 3 质量门禁分类
@@ -55,7 +55,7 @@
 
 ### Phase 2: Upload / Paste Registration
 
-- Upload tab validates file extension (`.pdf` / `.md` / `.markdown` / `.txt`) and default 2MiB size, requests a presigned upload, uploads the file through browser `fetch`, then calls `registerResume`; `.docx` is rejected before presign.
+- Upload tab validates file extension (`.pdf` / `.md` / `.markdown` / `.txt`) and RuntimeConfig/default 10MiB size, requests a presigned upload, uploads the file through browser `fetch`, then calls `registerResume`; `.docx` is rejected before presign.
 - Paste tab validates non-empty text, sends a neutral source title, and calls `registerResume`; visible naming is owned by backend parse after LLM structured output.
 - Side-effect calls use `Idempotency-Key`; `getResume` polling does not.
 - Request headers carry language where required.

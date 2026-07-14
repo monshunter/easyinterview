@@ -40,6 +40,8 @@ func TestSQLRepositoryReservePracticeMessageStartsGenerationOneWithExactLease(t 
 		WillReturnError(sql.ErrNoRows)
 	mock.ExpectQuery(`select exists`).WithArgs("session-1").
 		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+	mock.ExpectQuery(`select coalesce\(sum\(octet_length\(content\)\),0\) from practice_messages`).WithArgs("session-1").
+		WillReturnRows(sqlmock.NewRows([]string{"bytes"}).AddRow(4))
 	mock.ExpectQuery(`select coalesce\(max\(seq_no\),0\)\+1`).WithArgs("session-1").
 		WillReturnRows(sqlmock.NewRows([]string{"seq"}).AddRow(2))
 	mock.ExpectExec(`(?s)insert into practice_messages .*reply_generation, reply_lease_expires_at, created_at.*values`).
@@ -52,13 +54,41 @@ func TestSQLRepositoryReservePracticeMessageStartsGenerationOneWithExactLease(t 
 	mock.ExpectCommit()
 
 	reservation, err := NewSQLRepository(db).ReservePracticeMessage(context.Background(), domain.ReservePracticeMessageInput{
-		UserMessageID: "m2", UserID: "user-1", SessionID: "session-1", ClientMessageID: "client-1", Text: "继续", Now: now,
+		UserMessageID: "m2", UserID: "user-1", SessionID: "session-1", ClientMessageID: "client-1", Text: "继续", MaxSessionTextBytes: 10, Now: now,
 	})
 	if err != nil {
 		t.Fatalf("ReservePracticeMessage: %v", err)
 	}
 	if reservation.ReplyGeneration != 1 {
 		t.Fatalf("generation=%d want 1", reservation.ReplyGeneration)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSQLRepositoryReservePracticeMessageRejectsAggregateLimitPlusOneBeforeInsert(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	now := time.Date(2026, 7, 14, 8, 0, 0, 123000000, time.UTC)
+	expectReplyStateReservationContext(mock, now)
+	mock.ExpectQuery(`(?s)select u\.id, u\.role, u\.content, u\.seq_no.*for update of u`).
+		WithArgs("session-1", "client-1").
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery(`select exists`).WithArgs("session-1").
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+	mock.ExpectQuery(`select coalesce\(sum\(octet_length\(content\)\),0\) from practice_messages`).WithArgs("session-1").
+		WillReturnRows(sqlmock.NewRows([]string{"bytes"}).AddRow(4))
+	mock.ExpectRollback()
+
+	_, err = NewSQLRepository(db).ReservePracticeMessage(context.Background(), domain.ReservePracticeMessageInput{
+		UserMessageID: "m2", UserID: "user-1", SessionID: "session-1", ClientMessageID: "client-1", Text: "继续", MaxSessionTextBytes: 9, Now: now,
+	})
+	if err != domain.ErrPracticeSessionTextLimitExceeded {
+		t.Fatalf("error=%v want ErrPracticeSessionTextLimitExceeded", err)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)

@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "OPENAPI-006",
+  "mode": "exact-set",
+  "keyFields": [
+    "severity",
+    "path",
+    "kind",
+    "before",
+    "after"
+  ],
+  "authority": {
+    "decision": "OPENAPI-006",
+    "specDecision": "D-38",
+    "historyVersion": "1.60",
+    "productDecision": "方案 A and revised defaults"
+  },
+  "baselineSource": "git:a3ce741ea009660647b940a7f391338133d83a5c:openapi/baseline/openapi-v1.0.0.yaml",
+  "currentSource": "openapi/openapi.yaml",
+  "baselineSha256": "6e81b65667fdb9f1a48b4a018dd3327ef3e52066d3bab1a8a43726d2bc7d9bc6",
+  "currentSha256": "b5f99de3e49aec52f1e748907d1ca44a39c4ced0fe5b336912676a2365927a87",
+  "summary": {
+    "breaking": 1,
+    "additive": 8,
+    "informational": 0
+  },
+  "expectedFindingCount": 9,
+  "findingCount": 9,
+  "findings": [
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ContentLimits",
+      "kind": "schema_added_with_required_fields",
+      "before": "absent",
+      "after": "resumeUploadBytes,resumePasteTextBytes,targetJobRawTextBytes,practiceMessageBytes,practiceSessionTextBytes"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ContentLimits/additionalProperties",
+      "kind": "closed_object",
+      "before": "absent",
+      "after": false
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ContentLimits/properties/practiceMessageBytes",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "integer(format=int64,minimum=1)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ContentLimits/properties/practiceSessionTextBytes",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "integer(format=int64,minimum=1)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ContentLimits/properties/resumePasteTextBytes",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "integer(format=int64,minimum=1)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ContentLimits/properties/resumeUploadBytes",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "integer(format=int64,minimum=1)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/ContentLimits/properties/targetJobRawTextBytes",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "integer(format=int64,minimum=1)"
+    },
+    {
+      "severity": "additive",
+      "path": "/components/schemas/RuntimeConfig/properties/contentLimits",
+      "kind": "property_added",
+      "before": "absent",
+      "after": "ContentLimits"
+    },
+    {
+      "severity": "breaking",
+      "path": "/components/schemas/RuntimeConfig/required",
+      "kind": "required_property_added",
+      "before": "absent",
+      "after": "contentLimits"
+    }
+  ],
+  "errors": []
+}

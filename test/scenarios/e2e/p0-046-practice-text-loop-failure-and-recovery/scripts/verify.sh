@@ -46,6 +46,8 @@ for frontend_marker in \
   'timeout reconciliation ends in read-failure' \
   'keeps hostile HTML, images, and unsafe links inert while hardening safe external links' \
   'sends and retries the exact raw Markdown bytes with one clientMessageId without replacing the next draft' \
+  'uses runtime UTF-8 byte limits for the exact session boundary and blocks +1 before send' \
+  'accepts exact UTF-8 bytes and rejects limit+1 before the generated client' \
   'terminal state with one safe exact current-plan CTA'; do
   grep -Fq -- "$frontend_marker" "$OUT/frontend-contract.log"
 done
@@ -61,6 +63,11 @@ for pass_marker in \
   '--- PASS: TestSendPracticeMessageExactReplayReturnsOriginalResultWithoutAICall' \
   '--- PASS: TestSendPracticeMessageMapsClientMismatchAndCrossUserAccess' \
   '--- PASS: TestSendPracticeMessagePendingSameIDDoesNotCallAI' \
+  '--- PASS: TestSendPracticeMessageUsesConfiguredUTF8ByteLimitsBeforeAI' \
+  '--- PASS: TestSQLRepositoryReservePracticeMessageStartsGenerationOneWithExactLease' \
+  '--- PASS: TestSQLRepositoryReservePracticeMessageRejectsAggregateLimitPlusOneBeforeInsert' \
+  '--- PASS: TestSQLRepositoryCommitPracticeMessageInsertsReplyAndCompletesUserAtomically' \
+  '--- PASS: TestSQLRepositoryCommitPracticeMessageRejectsAssistantAggregateLimitPlusOneBeforeInsert' \
   '--- PASS: TestSQLRepositoryGetSessionReturnsUserReplyRecoveryStateOnly' \
   '--- PASS: TestSQLRepositoryReservePracticeMessageRetriesOnlyRetryableFailure' \
   '--- PASS: TestSQLRepositoryReservePracticeMessageRejectsPendingAndTerminalSameID' \

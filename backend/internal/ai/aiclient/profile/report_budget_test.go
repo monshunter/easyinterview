@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	reportInputByteLimit       = 48_000
+	reportInputByteLimit       = 917_504
 	reportProviderFrameReserve = 2_048
 )
 
@@ -41,7 +41,7 @@ type reportBoundaryManifestFile struct {
 	Purpose   string `json:"purpose"`
 }
 
-func TestReportProfileOfflineCapacityConsumesReviewBoundaryFixtures(t *testing.T) {
+func TestReportProfileOfflineCapacityConsumesReviewBoundaryGate(t *testing.T) {
 	repoRoot := filepath.Clean(filepath.Join("..", "..", "..", "..", ".."))
 	backendRoot := filepath.Join(repoRoot, "backend")
 	marker := exec.Command("go", "test", "./internal/review", "-run", "^TestReportBoundaryFixtures$", "-count=1", "-v")
@@ -93,8 +93,6 @@ func TestReportProfileOfflineCapacityConsumesReviewBoundaryFixtures(t *testing.T
 		locale  string
 		purpose string
 	}{
-		"input-48000.json":             {48_000, "en", "final_framed_messages_exact_48000_byte_limit"},
-		"input-48001.json":             {48_001, "en", "final_framed_messages_48001_byte_limit_plus_one"},
 		"output-worst-case-en.json":    {3_651, "en", "current_direct_schema_semantic_worst_case"},
 		"output-worst-case-zh-CN.json": {7_811, "zh-CN", "current_direct_schema_semantic_worst_case"},
 	}

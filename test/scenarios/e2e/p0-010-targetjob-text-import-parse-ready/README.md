@@ -16,7 +16,7 @@
 
 ## 3 Then
 
-`POST /targets/import` 返回 generated `TargetJobWithJob` 与 queued `target_import` job；幂等重放不新增 TargetJob；`rawText` 只作为 `target_jobs.raw_jd_text` 持久化。解析完成后详情返回 `analysisStatus=ready`、requirements、summary/fitSummary provenance；列表包含该 TargetJob；`PATCH /targets/{id}` 可更新合法 status / notes 且不改 `analysisStatus`。`target.import.requested` / `target.parsed` 与 job payload 不含 JD 原文、`sourceType`、`sourceUrl`、prompt 或 response，且不产生 source refresh job。
+`POST /targets/import` 返回 generated `TargetJobWithJob` 与 queued `target_import` job；幂等重放不新增 TargetJob；`rawText` 只作为 `target_jobs.raw_jd_text` 持久化。UTF-8 byte 边界由内存字符串证明：exact limit 可进入 store，limit+1 在 store 前失败，不提交大输入 fixture。解析完成后详情返回 `analysisStatus=ready`、requirements、summary/fitSummary provenance；列表包含该 TargetJob；`PATCH /targets/{id}` 可更新合法 status / notes 且不改 `analysisStatus`。`target.import.requested` / `target.parsed` 与 job payload 不含 JD 原文、`sourceType`、`sourceUrl`、prompt 或 response，且不产生 source refresh job。
 
 ## 4 执行
 

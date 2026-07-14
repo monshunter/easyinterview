@@ -31,7 +31,8 @@ type Options struct {
 
 	// AllowStubProvider is reserved for explicit mock/offline runtime wiring.
 	// Non-test deployments must leave it false.
-	AllowStubProvider bool
+	AllowStubProvider    bool
+	MaxResponseBodyBytes int64
 }
 
 // Runtime owns the AIClient and the hot-reloading truth-source loaders it uses.
@@ -79,11 +80,12 @@ func NewClient(opts Options) (*Runtime, error) {
 	}
 
 	resolver := &providerResolver{
-		registry:          registry,
-		appEnv:            opts.Config.AppEnv,
-		secrets:           opts.SecretSource,
-		httpClient:        opts.HTTPClient,
-		allowStubProvider: opts.AllowStubProvider,
+		registry:             registry,
+		appEnv:               opts.Config.AppEnv,
+		secrets:              opts.SecretSource,
+		httpClient:           opts.HTTPClient,
+		allowStubProvider:    opts.AllowStubProvider,
+		maxResponseBodyBytes: opts.MaxResponseBodyBytes,
 	}
 
 	if err := validateActiveProfiles(profiles, registry, opts); err != nil {
@@ -132,11 +134,12 @@ func validateActiveProfiles(profiles *profile.Loader, registry *providerregistry
 }
 
 type providerResolver struct {
-	registry          *providerregistry.Loader
-	appEnv            string
-	secrets           providerregistry.SecretSource
-	httpClient        *http.Client
-	allowStubProvider bool
+	registry             *providerregistry.Loader
+	appEnv               string
+	secrets              providerregistry.SecretSource
+	httpClient           *http.Client
+	allowStubProvider    bool
+	maxResponseBodyBytes int64
 }
 
 func (r *providerResolver) ResolveProvider(ref string) (aiclient.Provider, error) {
@@ -154,8 +157,9 @@ func (r *providerResolver) ResolveProvider(ref string) (aiclient.Provider, error
 			return nil, err
 		}
 		return openaicompatible.New(openaicompatible.Options{
-			Provider:   resolved,
-			HTTPClient: r.httpClient,
+			Provider:             resolved,
+			HTTPClient:           r.httpClient,
+			MaxResponseBodyBytes: r.maxResponseBodyBytes,
 		})
 	case aiclient.ProviderProtocolDoubaoSpeech:
 		resolved, err := providerregistry.ResolveProviderEntry(entry, r.appEnv, r.secrets)
@@ -163,8 +167,9 @@ func (r *providerResolver) ResolveProvider(ref string) (aiclient.Provider, error
 			return nil, err
 		}
 		return doubaospeech.New(doubaospeech.Options{
-			Provider:   resolved,
-			HTTPClient: r.httpClient,
+			Provider:             resolved,
+			HTTPClient:           r.httpClient,
+			MaxResponseBodyBytes: r.maxResponseBodyBytes,
 		})
 	case aiclient.ProviderProtocolMinimaxSpeech:
 		resolved, err := providerregistry.ResolveProviderEntry(entry, r.appEnv, r.secrets)
@@ -172,8 +177,9 @@ func (r *providerResolver) ResolveProvider(ref string) (aiclient.Provider, error
 			return nil, err
 		}
 		return minimaxspeech.New(minimaxspeech.Options{
-			Provider:   resolved,
-			HTTPClient: r.httpClient,
+			Provider:             resolved,
+			HTTPClient:           r.httpClient,
+			MaxResponseBodyBytes: r.maxResponseBodyBytes,
 		})
 	case aiclient.ProviderProtocolJudgeCompatible:
 		resolved, err := providerregistry.ResolveProviderEntry(entry, r.appEnv, r.secrets)
@@ -181,8 +187,9 @@ func (r *providerResolver) ResolveProvider(ref string) (aiclient.Provider, error
 			return nil, err
 		}
 		return judgecompatible.New(judgecompatible.Options{
-			Provider:   resolved,
-			HTTPClient: r.httpClient,
+			Provider:             resolved,
+			HTTPClient:           r.httpClient,
+			MaxResponseBodyBytes: r.maxResponseBodyBytes,
 		})
 	case aiclient.ProviderProtocolRealtimeAudio:
 		return nil, sharederrors.Wrap(sharederrors.CodeAiUnsupportedCapability, fmt.Sprintf("provider protocol %q is unsupported in this build", entry.Protocol), false)

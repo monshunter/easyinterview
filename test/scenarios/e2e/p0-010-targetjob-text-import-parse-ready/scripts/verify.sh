@@ -11,7 +11,9 @@ RUN_DIR="${TEST_OUTPUT_DIR:-$REPO_ROOT/.test-output}/runs/$RUN_ID/e2e/E2E.P0.010
 
 test -s "$LOG_FILE"
 grep -Fq -- '--- PASS: TestE2EP0010HTTPTextImportParseReady' "$LOG_FILE"
+grep -Fq -- '--- PASS: TestService_ImportTargetJob_UsesConfiguredUTF8ByteLimitBeforeStore' "$LOG_FILE"
 grep -Eq 'ok[[:space:]]+github.com/monshunter/easyinterview/backend/cmd/api' "$LOG_FILE"
+grep -Eq 'ok[[:space:]]+github.com/monshunter/easyinterview/backend/internal/targetjob' "$LOG_FILE"
 
 for forbidden in \
   'Private scenario JD text that must stay out of evidence logs.' \

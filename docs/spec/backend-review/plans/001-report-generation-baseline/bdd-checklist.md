@@ -8,7 +8,8 @@
 
 ## E2E.P0.056 Frozen direct report
 
-- [ ] Phase 11 size boundary: 62,397-byte regression and 917,504-byte framed input reach provider unchanged under the A4 default; current evidence records the injected limit.
+- [x] Phase 11 size boundary: 62,397-byte regression and 917,504-byte framed input reach provider unchanged under the A4 default; current evidence records the injected limit.
+  <!-- verified: 2026-07-14 method=P0.056-current evidence="Both in-memory payloads emit provider admission PASS markers." -->
 
 - [x] Setup validates/consumes P0.047 `completion-backend-evidence.json` schema `practice-completion-evidence.v1` with all three owner markers; it creates no duplicate completion path and records redacted correlation only.
 - [x] Trigger runs `cd backend && go test ./internal/review ./internal/store/review ./internal/api/reports -run '^TestE2EP0056ReportBackendEvidence$' -count=1 -v` plus existing frontend Vitest files; backend log must contain the exact test RUN/PASS and `REPORT_COMPLETION_OWNER_EVIDENCE_CONSUMED_PASS`, `REPORT_DIRECT_READY_PASS`, `REPORT_FROZEN_CONTEXT_READ_PASS`, `REPORT_REVIEW_LEGACY_IDENTIFIER_NEGATIVE_PASS`.
@@ -17,9 +18,10 @@
 
 ## E2E.P0.058 Repair and fail closed
 
-- [ ] Phase 11 oversize: 917,505-byte input persists `REPORT_CONTEXT_TOO_LARGE` with zero provider/repair calls and the frontend return action remains usable.
+- [x] Phase 11 oversize: 917,505-byte input persists `REPORT_CONTEXT_TOO_LARGE` with zero provider/repair calls and the frontend return action remains usable.
+  <!-- verified: 2026-07-14 method=P0.058-current evidence="Domain exact-frame and PostgreSQL oversized context both pass with provider calls=0; frontend back-only state passes." -->
 
-- [x] Setup validates/consumes the P0.047 owner artifact and prepares isolated missing/mismatched/48,001-byte context plus action-local attempts2/3/4, exact waiter, second-invocation reset, async-attempt separation and nonretryable cases without recreating completion ownership.
+- [x] Setup validates/consumes the P0.047 owner artifact and prepares isolated missing/mismatched/in-memory 917,505-byte context plus action-local attempts2/3/4, exact waiter, second-invocation reset, async-attempt separation and nonretryable cases without recreating completion ownership; no `input-*.json` is committed.
   <!-- verified: 2026-07-13 evidence="P0.058 setup PASS with isolated v3 owner cases" -->
 - [x] Trigger runs `cd backend && go test ./internal/review ./internal/store/review ./internal/api/reports -run '^TestE2EP0058ReportFailureBackendEvidence$' -count=1 -v` plus frontend failure-state Vitest and emits the six v3 markers from test-plan.
   <!-- verified: 2026-07-13 evidence="exact backend test and seven frontend files/51 tests PASS; six v3 markers emitted" -->

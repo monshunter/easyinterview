@@ -15,7 +15,14 @@
           },
           "appVersion": "1.0.0+dev.0428",
           "analyticsEnabled": true,
-          "postHogPublicKey": "phc_local_dev_public_key"
+          "postHogPublicKey": "phc_local_dev_public_key",
+          "contentLimits": {
+            "resumeUploadBytes": 10485760,
+            "resumePasteTextBytes": 393216,
+            "targetJobRawTextBytes": 98304,
+            "practiceMessageBytes": 32768,
+            "practiceSessionTextBytes": 262144
+          }
         }
       }
     }

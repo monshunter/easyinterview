@@ -91,8 +91,9 @@
 
 ## Phase 11: typed profile defaults and provider response cap
 
-- [ ] 11.1 RED: active profile missing token fields、合法 override、显式零/负数/invalid capacity 与四 adapter response body limit/+1 测试先失败。
-- [ ] 11.2 GREEN: 每个 active profile 增加与 tracked catalog 一致的 typed code default；显式非法值 fail-closed，catalog 坐标不漂移。
-- [ ] 11.3 GREEN: 四个 provider adapter 统一消费 A4 `ai.maxResponseBodyBytes=4194304`，删除 adapter-local 4MiB 与无界 response read；limit 接受、limit+1 返回 typed provider error。
-- [ ] 11.4 CAPACITY-GATE: 消费 917,504/917,505-byte review fixtures，证明 `917504+2048+6144=925696<1000000`；62,397-byte regression sample 调用 provider；TPM 不参与裁决。
+- [x] 11.1 RED: active profile missing token fields、合法 override、显式零/负数/invalid capacity 与四 adapter response body limit/+1 测试先失败。
+- [x] 11.2 GREEN: 每个 active profile 增加与 tracked catalog 一致的 typed code default；显式非法值 fail-closed，catalog 坐标不漂移。
+- [x] 11.3 GREEN: 四个 provider adapter 统一消费 A4 `ai.maxResponseBodyBytes=4194304`，删除 adapter-local 4MiB 与无界 response read；limit 接受、limit+1 返回 typed provider error。
+- [x] 11.4 CAPACITY-GATE: 消费内存构造的 917,504/917,505-byte review boundary cases，证明 `917504+2048+6144=925696<1000000`；62,397-byte regression case 调用 provider；不提交 `input-*.json`，TPM 不参与裁决。
+  <!-- verified: 2026-07-14 evidence="Profile/provider focused/full/race and offline capacity/P0.056/P0.058 gates pass; opt-in live P0.100 remains in 11.5." -->
 - [ ] 11.5 VERIFY: provider/profile focused/full/race、coverage/config lint、P0.056 与 opt-in P0.100 token usage、contexts/docs/diff gates 全部通过。

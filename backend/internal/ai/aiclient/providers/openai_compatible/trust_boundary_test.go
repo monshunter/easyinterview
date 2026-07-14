@@ -17,7 +17,7 @@ import (
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
 
-const responseBodyLimit = 4 << 20
+const responseBodyLimit = 256
 
 func TestCompleteResponseBodyLimitAndTrustedModelProvenance(t *testing.T) {
 	const untrustedModel = "provider-model-RAW-MARKER"
@@ -256,7 +256,7 @@ func TestCompleteDoesNotExposeTransportReadOrParseErrors(t *testing.T) {
 func newAdapterAt(t *testing.T, baseURL string, client *http.Client) *openaicompatible.Adapter {
 	t.Helper()
 	provider := resolvedProvider(baseURL)
-	adapter, err := openaicompatible.New(openaicompatible.Options{Provider: provider, HTTPClient: client})
+	adapter, err := openaicompatible.New(openaicompatible.Options{Provider: provider, HTTPClient: client, MaxResponseBodyBytes: responseBodyLimit})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}

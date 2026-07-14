@@ -25,7 +25,6 @@ const (
 	reportGenerateFeatureKey    = string(featurekeys.ReportGenerate)
 	reportGeneratePromptVersion = "v0.2.0"
 	reportGenerateRubricVersion = "v0.2.0"
-	reportPayloadByteLimit      = 48_000
 	reportContextStartMarker    = "<untrusted_report_context_json>"
 	reportContextEndMarker      = "</untrusted_report_context_json>"
 	reportMaxCallsPerAction     = 4
@@ -128,7 +127,7 @@ func (s *Service) prepareReportGeneration(ctx context.Context, reportCtx ReportC
 	if err != nil {
 		return resolution, payload, err
 	}
-	if len(framed) > reportPayloadByteLimit {
+	if int64(len(framed)) > s.maxFramedInputBytes {
 		return resolution, payload, fmt.Errorf("%w: framed payload is %d bytes", ErrReportContextTooLarge, len(framed))
 	}
 	return resolution, payload, nil

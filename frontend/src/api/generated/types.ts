@@ -111,9 +111,18 @@ export interface Session {
 export interface RuntimeConfig {
 	analyticsEnabled: boolean;
 	appVersion: string;
+	contentLimits: ContentLimits;
 	defaultUiLanguage: string;
 	featureFlags: Record<string, unknown>;
 	postHogPublicKey?: string;
+}
+
+export interface ContentLimits {
+	practiceMessageBytes: number;
+	practiceSessionTextBytes: number;
+	resumePasteTextBytes: number;
+	resumeUploadBytes: number;
+	targetJobRawTextBytes: number;
 }
 
 export interface UploadPresignRequest {

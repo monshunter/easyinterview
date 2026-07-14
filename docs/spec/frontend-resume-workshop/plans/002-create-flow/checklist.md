@@ -92,7 +92,8 @@ The checked assertions below record the 2026-07-08 full-Resume list contract. Ac
 
 ## Phase 13: Runtime-configured upload and paste boundaries
 
-- [ ] 13.1 RED: runtime 10MiB/384KiB、UTF-8 limit/limit+1 与 zero-request tests 在旧 2MiB constant 下失败。
-- [ ] 13.2 GREEN: UploadTab/PasteTab 消费 AppRuntimeProvider 两字段和共享 byte helper；缺字段使用同值 code default，UI DOM/style 不变。
-- [ ] 13.3 BDD-Gate: P0.081 upload/paste boundary、DOCX、direct detail、privacy/recovery 当前证据通过。
-- [ ] 13.4 focused/full frontend、typecheck/build、OpenAPI/generated、parity、contexts/docs/diff 与旧 2MiB production-truth negative search 通过。
+- [x] 13.1 RED: runtime 10MiB/384KiB、UTF-8 limit/limit+1 与 zero-request tests 在旧 2MiB constant 下失败。
+- [x] 13.2 GREEN: UploadTab/PasteTab 消费 AppRuntimeProvider 两字段和共享 byte helper；缺字段使用同值 code default，UI DOM/style 不变。
+- [x] 13.3 BDD-Gate: P0.081 upload/paste boundary、DOCX、direct detail、privacy/recovery 当前证据通过。
+- [x] 13.4 focused/full frontend、typecheck/build、OpenAPI/generated、parity、contexts/docs/diff 与旧 2MiB production-truth negative search 通过。
+  <!-- verified: 2026-07-14 evidence="Frontend full 126 files/1018 tests, build and fresh P0.081 5 files/33 tests pass." -->

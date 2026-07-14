@@ -18,12 +18,13 @@ type SendPracticeMessageRequest struct {
 }
 
 type ReservePracticeMessageInput struct {
-	UserMessageID   string
-	UserID          string
-	SessionID       string
-	ClientMessageID string
-	Text            string
-	Now             time.Time
+	UserMessageID       string
+	UserID              string
+	SessionID           string
+	ClientMessageID     string
+	Text                string
+	MaxSessionTextBytes int64
+	Now                 time.Time
 }
 
 const PracticeReplyLeaseDuration = 90 * time.Second
@@ -44,6 +45,7 @@ type CommitPracticeMessageInput struct {
 	AssistantMessageID      string
 	AssistantText           string
 	Now                     time.Time
+	MaxSessionTextBytes     int64
 }
 
 type FailPracticeMessageInput struct {
@@ -81,17 +83,18 @@ func (s *Service) SendPracticeMessage(ctx context.Context, in SendPracticeMessag
 	if in.Text == "" {
 		return SendPracticeMessageResult{}, validationError("text is required", map[string]any{"field": "text"})
 	}
-	if len([]rune(in.Text)) > 8000 {
+	if int64(len(in.Text)) > s.maxMessageBytes {
 		return SendPracticeMessageResult{}, validationError("text is too long", map[string]any{"field": "text"})
 	}
 
 	reservation, err := s.store.ReservePracticeMessage(ctx, ReservePracticeMessageInput{
-		UserMessageID:   s.newID(),
-		UserID:          in.UserID,
-		SessionID:       in.SessionID,
-		ClientMessageID: in.ClientMessageID,
-		Text:            in.Text,
-		Now:             s.now().UTC(),
+		UserMessageID:       s.newID(),
+		UserID:              in.UserID,
+		SessionID:           in.SessionID,
+		ClientMessageID:     in.ClientMessageID,
+		Text:                in.Text,
+		MaxSessionTextBytes: s.maxSessionTextBytes,
+		Now:                 s.now().UTC(),
 	})
 	if stderrs.Is(err, ErrSessionNotFound) {
 		return SendPracticeMessageResult{}, sessionNotFoundError()
@@ -101,6 +104,9 @@ func (s *Service) SendPracticeMessage(ctx context.Context, in SendPracticeMessag
 	}
 	if stderrs.Is(err, ErrSessionConflict) {
 		return SendPracticeMessageResult{}, sessionConflictError()
+	}
+	if stderrs.Is(err, ErrPracticeSessionTextLimitExceeded) {
+		return SendPracticeMessageResult{}, validationError("practice session text is too large", map[string]any{"field": "text"})
 	}
 	if err != nil {
 		return SendPracticeMessageResult{}, err
@@ -121,12 +127,19 @@ func (s *Service) SendPracticeMessage(ctx context.Context, in SendPracticeMessag
 		AssistantMessageID:      s.newID(),
 		AssistantText:           assistantText,
 		Now:                     s.now().UTC(),
+		MaxSessionTextBytes:     s.maxSessionTextBytes,
 	})
 	if stderrs.Is(err, ErrSessionNotFound) {
 		return SendPracticeMessageResult{}, sessionNotFoundError()
 	}
 	if stderrs.Is(err, ErrSessionConflict) {
 		return SendPracticeMessageResult{}, sessionConflictError()
+	}
+	if stderrs.Is(err, ErrPracticeSessionTextLimitExceeded) {
+		return SendPracticeMessageResult{}, s.finalizeReservedPracticeMessageFailure(
+			ctx, reservation, PracticeReplyStatusTerminalFailed,
+			validationError("practice session text is too large", map[string]any{"field": "text"}),
+		)
 	}
 	if err != nil {
 		return SendPracticeMessageResult{}, s.finalizeReservedPracticeMessageFailure(

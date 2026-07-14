@@ -114,10 +114,11 @@
 
 ## Phase 12: Runtime-configured message and session byte limits
 
-- [ ] 12.1 RED: 32KiB/32KiB+1 message and 256KiB/256KiB+1 session ASCII/multibyte tests fail under old 8,000-rune/no-runtime behavior.
-- [ ] 12.2 GREEN: Practice consumes two RuntimeConfig fields/shared UTF-8 helper/A4-matching fallback; overflow preserves draft and sends zero requests, DOM/styles unchanged.
-- [ ] 12.3 BDD-Gate: P0.046 current limit/+1/reload/backend-authority evidence passes with raw-retry/pending/terminal regressions.
-- [ ] 12.4 focused/full frontend、typecheck/build、OpenAPI/generated、parity、privacy、contexts/docs/diff 与 old-rune-limit negative search pass.
+- [x] 12.1 RED: 32KiB/32KiB+1 message and 256KiB/256KiB+1 session ASCII/multibyte tests fail under old 8,000-rune/no-runtime behavior.
+- [x] 12.2 GREEN: Practice consumes two RuntimeConfig fields/shared UTF-8 helper/A4-matching fallback; overflow preserves draft and sends zero requests, DOM/styles unchanged.
+- [x] 12.3 BDD-Gate: P0.046 current limit/+1/reload/backend-authority evidence passes with raw-retry/pending/terminal regressions.
+- [x] 12.4 focused/full frontend、typecheck/build、OpenAPI/generated、parity、privacy、contexts/docs/diff 与 old-rune-limit negative search pass.
+  <!-- verified: 2026-07-14 evidence="Fresh P0.046 current source run passes frontend byte gates, backend aggregate/store authority, browser parity and residual=0." -->
   <!-- verified: 2026-07-14 method=ui-contract-and-playwright-red-green evidence="Unknown prototype markdown-gfm state first failed both projects; source-owned semantic demo/CSS then passed UI contract 64/64 and Playwright 2/2 at 1440x900 and 390x844 with matching DOM/style/bbox/pixels, local pre overflow, mobile table overflow, bounded surfaces and zero document horizontal overflow." -->
 - [x] 11.5 RED-GREEN: terminal recovery navigates exactly to `{ name: "workspace", params: { targetJobId } }` / `/workspace?targetJobId=...` read-only detail; query-free workspace, `planId` and current-scope `parse(targetJobId)` recovery are negative assertions.
   <!-- verified: 2026-07-14 method=source-unit-ui-contract-playwright-red-green evidence="Formal/prototype source assertions first failed on parse(targetJobId); direct Workspace-detail navigation then passed zh/en focused Vitest 2/2, UI contract 64/64 and desktop/mobile terminal parity 2/2 with exact targetJobId-only query, no empty query, planId, hash or parse path." -->

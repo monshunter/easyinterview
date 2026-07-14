@@ -10,6 +10,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/registry"
+	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	practicedomain "github.com/monshunter/easyinterview/backend/internal/practice"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
@@ -36,23 +37,25 @@ var (
 )
 
 type ServiceOptions struct {
-	Registry        PromptResolver
-	AI              AIClient
-	AITaskRuns      aiclient.AITaskRunWriter
-	Repository      ReportRepository
-	WaitBeforeRetry func(context.Context, time.Duration) error
-	Now             func() time.Time
-	NewID           func() string
+	Registry            PromptResolver
+	AI                  AIClient
+	AITaskRuns          aiclient.AITaskRunWriter
+	Repository          ReportRepository
+	WaitBeforeRetry     func(context.Context, time.Duration) error
+	Now                 func() time.Time
+	NewID               func() string
+	MaxFramedInputBytes int64
 }
 
 type Service struct {
-	registry        PromptResolver
-	ai              AIClient
-	aiTaskRuns      aiclient.AITaskRunWriter
-	repository      ReportRepository
-	waitBeforeRetry func(context.Context, time.Duration) error
-	now             func() time.Time
-	newID           func() string
+	registry            PromptResolver
+	ai                  AIClient
+	aiTaskRuns          aiclient.AITaskRunWriter
+	repository          ReportRepository
+	waitBeforeRetry     func(context.Context, time.Duration) error
+	now                 func() time.Time
+	newID               func() string
+	maxFramedInputBytes int64
 }
 
 func NewService(opts ...ServiceOptions) *Service {
@@ -69,9 +72,12 @@ func NewService(opts ...ServiceOptions) *Service {
 	if o.WaitBeforeRetry == nil {
 		o.WaitBeforeRetry = waitForReportRetry
 	}
+	if o.MaxFramedInputBytes <= 0 {
+		o.MaxFramedInputBytes = platformconfig.DefaultContentLimits().ReportMaxFramedInputBytes
+	}
 	return &Service{
 		registry: o.Registry, ai: o.AI, aiTaskRuns: o.AITaskRuns, repository: o.Repository,
-		waitBeforeRetry: o.WaitBeforeRetry, now: o.Now, newID: o.NewID,
+		waitBeforeRetry: o.WaitBeforeRetry, now: o.Now, newID: o.NewID, maxFramedInputBytes: o.MaxFramedInputBytes,
 	}
 }
 
@@ -226,7 +232,7 @@ func (s *Service) generateReportWithActionRetries(ctx context.Context, reportCtx
 			return result, lastAttempt, err
 		}
 		if invalidOutput {
-			request, err = buildNextReportAttempt(reportCtx, result, issues)
+			request, err = buildNextReportAttempt(reportCtx, result, issues, s.maxFramedInputBytes)
 			if err != nil {
 				return result, lastAttempt, err
 			}
@@ -240,7 +246,7 @@ func (s *Service) generateReportWithActionRetries(ctx context.Context, reportCtx
 	return request.base, lastAttempt, ErrReviewAIOutputInvalid
 }
 
-func buildNextReportAttempt(reportCtx ReportContext, previous ReportGenerationResult, issues []ReportValidationIssue) (reportAttemptRequest, error) {
+func buildNextReportAttempt(reportCtx ReportContext, previous ReportGenerationResult, issues []ReportValidationIssue, maxFramedInputBytes int64) (reportAttemptRequest, error) {
 	if _, targeted := actionLabelRepairIndices(previous.Content, reportCtx.Session.Language, issues); targeted {
 		payload, err := BuildReportActionLabelRepairPayload(
 			previous.Resolution,
@@ -265,7 +271,7 @@ func buildNextReportAttempt(reportCtx ReportContext, previous ReportGenerationRe
 	if err != nil {
 		return reportAttemptRequest{}, err
 	}
-	if len(framed) > reportPayloadByteLimit {
+	if int64(len(framed)) > maxFramedInputBytes {
 		return reportAttemptRequest{}, fmt.Errorf("%w: repair framed payload is %d bytes", ErrReportContextTooLarge, len(framed))
 	}
 	return reportAttemptRequest{scope: reportAttemptScopeWholeReport, payload: payload, base: previous}, nil

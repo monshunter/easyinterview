@@ -94,11 +94,12 @@
 
 ## Phase 12: Configured message and session text limits
 
-- [ ] 12.1 RED: UTF-8 32KiB/32KiB+1 单条与 256KiB/256KiB+1 会话累计 fixture 暴露旧 8,000-rune/无总量上限行为。
-- [ ] 12.2 GREEN: service 注入 `practice.maxMessageBytes=32768` / `practice.maxSessionTextBytes=262144`；按 bytes 在 reservation/provider 前校验。
-- [ ] 12.3 STORE/CONCURRENCY: persisted aggregate + candidate 在一致性边界内裁决；越界零 user/assistant/provider side effect，并发不得联合绕过。
-- [ ] 12.4 CONTRACT/BDD: RuntimeConfig 两字段、前端 precheck 与 P0.046 limit/limit+1/multibyte/reload/same-ID gates 通过。
-- [ ] 12.5 VERIFY: focused/full practice/store/API/race、OpenAPI/codegen、scenario、privacy、contexts/docs/diff 与旧 8,000-rune production-truth negative search 通过。
+- [x] 12.1 RED: UTF-8 32KiB/32KiB+1 单条与 256KiB/256KiB+1 会话累计 fixture 暴露旧 8,000-rune/无总量上限行为。
+- [x] 12.2 GREEN: service 注入 `practice.maxMessageBytes=32768` / `practice.maxSessionTextBytes=262144`；按 bytes 在 reservation/provider 前校验。
+- [x] 12.3 STORE/CONCURRENCY: persisted aggregate + candidate 在一致性边界内裁决；越界零 user/assistant/provider side effect，并发不得联合绕过。
+- [x] 12.4 CONTRACT/BDD: RuntimeConfig 两字段、前端 precheck 与 P0.046 limit/limit+1/multibyte/reload/same-ID gates 通过。
+- [x] 12.5 VERIFY: focused/full practice/store/API/race、OpenAPI scenario、privacy、contexts/docs/diff 与旧 8,000-rune production-truth negative search 通过；post-commit codegen drift 由 A4 13.8 收口。
+  <!-- verified: 2026-07-14 evidence="Service and SQLRepository exact/+1 user/assistant aggregate tests pass; P0.046 fresh current run passes real concurrency, browser, fingerprint and residual=0 gates." -->
 
 ## 修订记录
 

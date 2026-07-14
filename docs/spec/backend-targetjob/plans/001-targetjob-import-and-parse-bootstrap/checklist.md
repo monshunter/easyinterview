@@ -178,7 +178,8 @@
 
 ## Phase 20: Configured raw JD text boundary
 
-- [ ] 20.1 RED: 98,304/98,305-byte ASCII/multibyte 与 missing/default/override/invalid config tests 暴露无 runtime size cap。
-- [ ] 20.2 GREEN: import service 注入 `targetJob.maxRawTextBytes=98304`；limit 接受，limit+1 在 TargetJob/job/outbox/provider 前 typed reject。
-- [ ] 20.3 CONTRACT/BDD: RuntimeConfig `targetJobRawTextBytes`、P0.010 backend 与 P0.015 frontend current gates 通过；request wire 不变。
-- [ ] 20.4 VERIFY: focused/full targetjob/config/API/race、OpenAPI/codegen、scenario、privacy、contexts/docs/diff 与 duplicate-limit negative search 通过。
+- [x] 20.1 RED: 98,304/98,305-byte ASCII/multibyte 与 missing/default/override/invalid config tests 暴露无 runtime size cap。
+- [x] 20.2 GREEN: import service 注入 `targetJob.maxRawTextBytes=98304`；limit 接受，limit+1 在 TargetJob/job/outbox/provider 前 typed reject。
+- [x] 20.3 CONTRACT/BDD: RuntimeConfig `targetJobRawTextBytes`、P0.010 backend 与 P0.015 frontend current gates 通过；request wire 不变。
+- [x] 20.4 VERIFY: focused/full targetjob/config/API/race、OpenAPI scenario、privacy、contexts/docs/diff 与 duplicate-limit negative search 通过；post-commit codegen drift 由 A4 13.8 收口。
+  <!-- verified: 2026-07-14 evidence="P0.010 exact 98,304 multibyte/+1 and P0.015 frontend runtime boundary pass; full backend, OpenAPI and current browser parity pass." -->

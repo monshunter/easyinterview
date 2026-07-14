@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 	"github.com/monshunter/easyinterview/backend/internal/shared/idx"
 )
@@ -22,9 +23,8 @@ const (
 	ReplayHeader = "X-Idempotency-Replay"
 	DefaultTTL   = 24 * time.Hour
 
-	defaultMaxRequestBodyBytes = 10 << 20
-	resourceTypeHeader         = "X-Idempotency-Resource-Type"
-	resourceIDHeader           = "X-Idempotency-Resource-ID"
+	resourceTypeHeader = "X-Idempotency-Resource-Type"
+	resourceIDHeader   = "X-Idempotency-Resource-ID"
 )
 
 var (
@@ -127,7 +127,7 @@ func New(opts MiddlewareOptions) *Middleware {
 	}
 	maxBody := opts.MaxRequestBodyBytes
 	if maxBody == 0 {
-		maxBody = defaultMaxRequestBodyBytes
+		maxBody = platformconfig.DefaultContentLimits().HTTPMaxRequestBodyBytes
 	}
 	return &Middleware{
 		store:               opts.Store,

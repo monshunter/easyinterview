@@ -218,9 +218,18 @@ type Session struct {
 type RuntimeConfig struct {
 	AnalyticsEnabled  bool           `json:"analyticsEnabled"`
 	AppVersion        string         `json:"appVersion"`
+	ContentLimits     ContentLimits  `json:"contentLimits"`
 	DefaultUiLanguage string         `json:"defaultUiLanguage"`
 	FeatureFlags      map[string]any `json:"featureFlags"`
 	PostHogPublicKey  *string        `json:"postHogPublicKey,omitempty"`
+}
+
+type ContentLimits struct {
+	PracticeMessageBytes     int64 `json:"practiceMessageBytes"`
+	PracticeSessionTextBytes int64 `json:"practiceSessionTextBytes"`
+	ResumePasteTextBytes     int64 `json:"resumePasteTextBytes"`
+	ResumeUploadBytes        int64 `json:"resumeUploadBytes"`
+	TargetJobRawTextBytes    int64 `json:"targetJobRawTextBytes"`
 }
 
 type UploadPresignRequest struct {

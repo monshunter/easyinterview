@@ -1639,7 +1639,7 @@ components:
 
     RuntimeConfig:
       type: object
-      required: [defaultUiLanguage, featureFlags, appVersion, analyticsEnabled]
+      required: [defaultUiLanguage, featureFlags, appVersion, analyticsEnabled, contentLimits]
       description: |
         Public runtime configuration returned by `GET /runtime-config`.
         Contains only the allowlisted public fields per A4 D-2; secret /
@@ -1661,6 +1661,35 @@ components:
         postHogPublicKey:
           type: string
           description: Optional; omitted when `analyticsEnabled == false`.
+        contentLimits:
+          $ref: '#/components/schemas/ContentLimits'
+
+    ContentLimits:
+      type: object
+      additionalProperties: false
+      required: [resumeUploadBytes, resumePasteTextBytes, targetJobRawTextBytes, practiceMessageBytes, practiceSessionTextBytes]
+      description: Public UTF-8 byte limits used for client-side preflight; backend validation remains authoritative.
+      properties:
+        resumeUploadBytes:
+          type: integer
+          format: int64
+          minimum: 1
+        resumePasteTextBytes:
+          type: integer
+          format: int64
+          minimum: 1
+        targetJobRawTextBytes:
+          type: integer
+          format: int64
+          minimum: 1
+        practiceMessageBytes:
+          type: integer
+          format: int64
+          minimum: 1
+        practiceSessionTextBytes:
+          type: integer
+          format: int64
+          minimum: 1
 
     # ----- Uploads -----
     UploadPresignRequest:

@@ -86,6 +86,7 @@ export const en: LocaleMessages = {
   "home.pendingImportInvalid": "Paste the JD and select a resume again after signing in.",
   "home.errors.resumeLoad": "Resumes cannot be loaded right now. Please try again later.",
   "home.errors.import": "The interview plan cannot be created right now. Please try again.",
+  "home.errors.rawTextTooLarge": "The JD exceeds the size limit. Shorten it before retrying.",
   "home.errors.recentLoad": "Recent interview plans cannot be loaded right now. Try again later.",
   "home.errors.start": "The interview cannot be started right now. Please try again.",
   "parse.loadingLabel": "PARSING · step 01 of 04",
@@ -197,6 +198,8 @@ export const en: LocaleMessages = {
     "Unsupported file type — only .pdf / .md / .markdown / .txt are allowed.",
   "resumeWorkshop.create.errors.sizeExceeded":
     "File exceeds {maxMb} MB. Compress or trim before retrying.",
+  "resumeWorkshop.create.errors.pasteSizeExceeded":
+    "The pasted resume exceeds the size limit. Shorten it before retrying.",
   "resumeWorkshop.create.errors.uploadFailed": "Upload failed · please retry.",
   "resumeWorkshop.create.errors.registerFailed":
     "Submission failed · please retry.",
@@ -263,6 +266,7 @@ export const en: LocaleMessages = {
   "practice.errors.messageRejected": "This message was not accepted. Check it before sending again.",
   "practice.errors.messageAborted": "The request was interrupted. Check the current interview state before continuing.",
   "practice.errors.messageFailed": "This message could not be sent. Please try again later.",
+  "practice.errors.textTooLarge": "The message or session text exceeds the size limit. Shorten it before retrying.",
   "practice.errors.completionFailed": "We could not finish the interview and start the report. Please try again.",
   "practice.errors.sessionLoadFailed": "The interview session is temporarily unavailable. Please try again.",
   "practice.errors.retry": "Retry",

@@ -9,5 +9,7 @@ mkdir -p "$OUTPUT_DIR"
 
 (
   cd "$REPO_ROOT/backend"
-  go test -v ./cmd/api -run 'TestE2EP0010HTTPTextImportParseReady' -count=1
+  go test -v ./cmd/api ./internal/targetjob \
+    -run '^(TestE2EP0010HTTPTextImportParseReady|TestService_ImportTargetJob_UsesConfiguredUTF8ByteLimitBeforeStore)$' \
+    -count=1
 ) | tee "$OUTPUT_DIR/trigger.log"

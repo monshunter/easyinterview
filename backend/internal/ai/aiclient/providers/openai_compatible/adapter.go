@@ -19,6 +19,7 @@ import (
 
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient"
 	"github.com/monshunter/easyinterview/backend/internal/ai/aiclient/providerregistry"
+	platformconfig "github.com/monshunter/easyinterview/backend/internal/platform/config"
 	sharederrors "github.com/monshunter/easyinterview/backend/internal/shared/errors"
 )
 
@@ -41,20 +42,20 @@ const (
 	HeaderRoute        = "X-Route"
 )
 
-const maxResponseBodyBytes int64 = 4 << 20
-
 // Options configures the adapter.
 type Options struct {
-	Provider   providerregistry.ResolvedProvider
-	HTTPClient *http.Client
+	Provider             providerregistry.ResolvedProvider
+	HTTPClient           *http.Client
+	MaxResponseBodyBytes int64
 }
 
 // Adapter is the concrete aiclient.Provider implementation.
 type Adapter struct {
-	providerRef string
-	baseURL     string
-	apiKey      string
-	client      *http.Client
+	providerRef          string
+	baseURL              string
+	apiKey               string
+	client               *http.Client
+	maxResponseBodyBytes int64
 }
 
 // New constructs an Adapter from a Provider Registry entry materialized by A4
@@ -76,11 +77,15 @@ func New(opts Options) (*Adapter, error) {
 	if hc == nil {
 		hc = &http.Client{}
 	}
+	if opts.MaxResponseBodyBytes <= 0 {
+		opts.MaxResponseBodyBytes = platformconfig.DefaultContentLimits().AIProviderMaxResponseBodyBytes
+	}
 	return &Adapter{
-		providerRef: opts.Provider.Entry.Name,
-		baseURL:     normalizeBaseURL(opts.Provider.BaseURL),
-		apiKey:      opts.Provider.APIKey,
-		client:      hc,
+		providerRef:          opts.Provider.Entry.Name,
+		baseURL:              normalizeBaseURL(opts.Provider.BaseURL),
+		apiKey:               opts.Provider.APIKey,
+		client:               hc,
+		maxResponseBodyBytes: opts.MaxResponseBodyBytes,
 	}, nil
 }
 
@@ -273,7 +278,7 @@ func (a *Adapter) consumeStream(ctx context.Context, cancel context.CancelFunc, 
 	}
 
 	if resp.StatusCode >= 400 {
-		body, err := readResponseBody(resp)
+		body, err := readResponseBody(resp, a.maxResponseBodyBytes)
 		if err != nil {
 			ch <- aiclient.AIStreamEvent{Type: aiclient.StreamEventError, ErrorCode: errorCodeOf(err)}
 			return
@@ -383,7 +388,7 @@ func (a *Adapter) postJSON(ctx context.Context, timeoutMs int, path string, body
 		return nil, 0, nil, stableError(sharederrors.CodeAiProviderTimeout)
 	}
 	defer resp.Body.Close()
-	respBody, err := readResponseBody(resp)
+	respBody, err := readResponseBody(resp, a.maxResponseBodyBytes)
 	if err != nil {
 		return nil, resp.StatusCode, resp.Header, err
 	}
@@ -414,7 +419,7 @@ func (a *Adapter) postMultipart(ctx context.Context, timeoutMs int, path, conten
 		return nil, 0, nil, stableError(sharederrors.CodeAiProviderTimeout)
 	}
 	defer resp.Body.Close()
-	respBody, err := readResponseBody(resp)
+	respBody, err := readResponseBody(resp, a.maxResponseBodyBytes)
 	if err != nil {
 		return nil, resp.StatusCode, resp.Header, err
 	}
@@ -485,7 +490,7 @@ func mergeFallbackHeaders(profile *aiclient.ModelProfile, _ http.Header, meta *a
 	}
 }
 
-func readResponseBody(resp *http.Response) ([]byte, error) {
+func readResponseBody(resp *http.Response, maxResponseBodyBytes int64) ([]byte, error) {
 	reader := io.Reader(resp.Body)
 	compressed := false
 	if !resp.Uncompressed {
