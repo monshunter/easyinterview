@@ -1,7 +1,7 @@
 # 002 — Practice Continuous Text Conversation Checklist
 
-> **版本**: 2.7
-> **状态**: completed
+> **版本**: 2.8
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -111,6 +111,13 @@
 - [x] 11.3 PAYLOAD-GATE: send and row-local same-ID retry use the exact original raw `message.text/clientMessageId`; rendered DOM text or normalized Markdown never becomes the business payload, and the next draft remains untouched.
   <!-- verified: 2026-07-14 method=focused-vitest-red-green evidence="Byte-array assertion first exposed input.trim payload drift; validation now trims only for emptiness while POST retains the exact raw GFM/HTML bytes. Initial send and row-local retry reuse identical text/clientMessageId, the inert rendered HTML is not a payload source, and the next draft remains unchanged (3 focused tests PASS)." -->
 - [x] 11.4 PARITY-GATE: headings/lists/blockquote/inline and fenced code/tables preserve prototype-derived typography; at desktop 1440 and mobile 390, pre/code/table stays inside the message viewport and document horizontal overflow is zero.
+
+## Phase 12: Runtime-configured message and session byte limits
+
+- [ ] 12.1 RED: 32KiB/32KiB+1 message and 256KiB/256KiB+1 session ASCII/multibyte tests fail under old 8,000-rune/no-runtime behavior.
+- [ ] 12.2 GREEN: Practice consumes two RuntimeConfig fields/shared UTF-8 helper/A4-matching fallback; overflow preserves draft and sends zero requests, DOM/styles unchanged.
+- [ ] 12.3 BDD-Gate: P0.046 current limit/+1/reload/backend-authority evidence passes with raw-retry/pending/terminal regressions.
+- [ ] 12.4 focused/full frontend、typecheck/build、OpenAPI/generated、parity、privacy、contexts/docs/diff 与 old-rune-limit negative search pass.
   <!-- verified: 2026-07-14 method=ui-contract-and-playwright-red-green evidence="Unknown prototype markdown-gfm state first failed both projects; source-owned semantic demo/CSS then passed UI contract 64/64 and Playwright 2/2 at 1440x900 and 390x844 with matching DOM/style/bbox/pixels, local pre overflow, mobile table overflow, bounded surfaces and zero document horizontal overflow." -->
 - [x] 11.5 RED-GREEN: terminal recovery navigates exactly to `{ name: "workspace", params: { targetJobId } }` / `/workspace?targetJobId=...` read-only detail; query-free workspace, `planId` and current-scope `parse(targetJobId)` recovery are negative assertions.
   <!-- verified: 2026-07-14 method=source-unit-ui-contract-playwright-red-green evidence="Formal/prototype source assertions first failed on parse(targetJobId); direct Workspace-detail navigation then passed zh/en focused Vitest 2/2, UI contract 64/64 and desktop/mobile terminal parity 2/2 with exact targetJobId-only query, no empty query, planId, hash or parse path." -->

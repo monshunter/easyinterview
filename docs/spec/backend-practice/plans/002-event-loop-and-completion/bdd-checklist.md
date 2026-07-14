@@ -1,7 +1,7 @@
 # 002 Conversation Message Loop BDD Checklist
 
-> **版本**: 2.8
-> **状态**: completed
+> **版本**: 2.9
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
@@ -47,3 +47,9 @@
 - [x] Both scenarios bind setup/trigger/verify evidence to one tracked source fingerprint and per-screenshot SHA-256/dimensions/viewport；verifier-time drift, missing paths, historical PASS, FAIL or no-tests fail closed.
 - [x] Serial setup → trigger → verify → cleanup passes on current code and isolated migrated PostgreSQL with every exact Phase 11 marker.
   <!-- verified: 2026-07-14 evidence="Fresh P0.044/P0.046 serial runs passed current migration, contract, real concurrency, marker, fingerprint and eight-PNG evidence gates; isolated database residual=0." -->
+
+## Phase 12 configured text boundaries
+
+- [ ] P0.046 consumes runtime config and proves 32KiB message / 256KiB session limit values with UTF-8 multibyte input.
+- [ ] Boundary values succeed; each +1 path has zero new message/provider side effects and typed validation recovery.
+- [ ] Reload/same-ID accepted-message behavior remains idempotent and browser storage is not a business fact.

@@ -1,7 +1,7 @@
 # 001 BDD Plan
 
-> **版本**: 1.13
-> **状态**: completed
+> **版本**: 1.14
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 Plan**: [plan](./plan.md)
@@ -10,8 +10,8 @@
 
 | 场景 ID | 类别 | 关联 Phase | 关联 Spec C-* | 关联 BDD-Gate（主 checklist） |
 |---------|------|-----------|--------------|----------------------------|
-| E2E.P0.034 | primary + alternate · register upload/paste + active count limit + full getResume + getResumeSource + closed ResumeSummary pagination + cross-user 隔离 | Phase 1 + 2 + 4 + 11 + 12 + 15 | C-1, C-2, C-5, C-6, C-7, C-8, C-10, C-14, C-15 | Phase 5.4 / 11.3 / 12.3 / 15.7 |
-| E2E.P0.035 | primary + failure / recovery · resume.parse async job lifecycle + deterministic full-resume snapshot + long-input tail marker + output truncation fail-closed + outbox event + AI failure retryable + DOCX rejection | Phase 3 + 5 + 11 + 12 + 13 + 14 | C-3, C-4, C-13 | Phase 5.5 / 11.1 / 11.2 / 12.1 / 12.2 / 13.4 / 14.6 |
+| E2E.P0.034 | primary + alternate · register upload/paste + active/content limits + full getResume + getResumeSource + closed ResumeSummary pagination + cross-user 隔离 | Phase 1 + 2 + 4 + 11 + 12 + 15 + 16 | C-1, C-2, C-5, C-6, C-7, C-8, C-10, C-14, C-15, C-16 | Phase 5.4 / 11.3 / 12.3 / 15.7 / 16.4 |
+| E2E.P0.035 | primary + failure / recovery · resume.parse async lifecycle + 384KiB extracted boundary + deterministic snapshot + output truncation fail-closed | Phase 3 + 5 + 11 + 12 + 13 + 14 + 16 | C-3, C-4, C-13, C-16 | Phase 5.5 / 13.4 / 14.6 / 16.4 |
 | E2E.P0.036 | cross-owner consumer · frontend flat summary list + Home selector | Phase 15 | C-5, C-15 | Phase 15.8 |
 | E2E.P0.037 | cross-owner consumer · detail fetch occurs after row open and returns full Resume | Phase 15 | C-15 | Phase 15.9 |
 

@@ -5,8 +5,9 @@ metadata:
   name: 001-asset-register-parse-and-listing
   sequence: 1
   specVersion:
-    from: null
-    to: 2.8
+    from: 2.8
+    to: 2.9
+  branch: runtime-size-limits
 spec:
   defaultTarget: backend
   discovery:
@@ -60,6 +61,9 @@ spec:
       - one million context input integrity
       - long input tail marker
       - finish reason length fail closed
+      - resume upload bytes 10485760
+      - resume paste extracted bytes 393216
+      - typed resume limit defaults
   targets:
     backend:
       plan: ./plan.md

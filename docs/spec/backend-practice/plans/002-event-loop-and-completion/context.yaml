@@ -5,15 +5,15 @@ metadata:
   name: 002-event-loop-and-completion
   sequence: 2
   baseBranch: main
-  branch: fix/interview-turn-ux-0713
+  branch: runtime-size-limits
   specVersion:
-    from: 1.32
-    to: 1.33
+    from: 1.33
+    to: 1.34
 spec:
   defaultTarget: backend
   discovery:
     aliases: [practice conversation loop, send practice message]
-    keywords: [sendPracticeMessage, getPracticeSession, clientMessageId, replyStatus, replyGeneration, replyLeaseExpiresAt, 90 second lease, generation fence, lazy convergence, retryable failed, terminal failed, refresh recovery, ApiClientError, replyToMessageId, practice_messages, completePracticeSession, reportable completion, zero answer completion rejected, report-context.v1, REPORT_CONTEXT_SNAPSHOT_PASS, backend business persistence]
+    keywords: [sendPracticeMessage, getPracticeSession, clientMessageId, replyStatus, replyGeneration, replyLeaseExpiresAt, 90 second lease, generation fence, lazy convergence, retryable failed, terminal failed, refresh recovery, ApiClientError, replyToMessageId, practice_messages, practiceMaxMessageBytes32768, practiceMaxSessionTextBytes262144, utf8ByteBoundary, completePracticeSession, reportable completion, zero answer completion rejected, report-context.v1, REPORT_CONTEXT_SNAPSHOT_PASS, backend business persistence]
   targets:
     backend:
       plan: ./plan.md

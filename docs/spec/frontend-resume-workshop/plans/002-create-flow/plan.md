@@ -1,7 +1,7 @@
 # Frontend Resume Workshop Create Flow
 
-> **版本**: 1.18
-> **状态**: completed
+> **版本**: 1.19
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -14,7 +14,7 @@
 
 - `resume_versions?flow=create` 渲染 `ResumeCreateFlow`。
 - 创建入口只提供 upload / paste 两种输入。
-- Upload 路径只接受 PDF / Markdown / TXT，先执行默认 2MiB 文件大小和扩展名校验，再通过 `createUploadPresign`、browser PUT 和 `registerResume` 完成注册；DOCX 不属于当前 Resume 上传支持范围。
+- Upload 路径只接受 PDF / Markdown / TXT，从 runtime config 读取默认 10MiB；Paste 默认 384KiB。两者按 UTF-8 bytes 在请求前校验，再通过 generated client 完成注册；DOCX 不属于当前支持范围。
 - Paste 路径通过 `registerResume` 完成注册，但只提交中性来源标题；用户可见简历名称等待 backend parse 的 LLM-derived `displayName`，不得把原始文本第一行作为最终或列表名称。
 - 注册成功后导航到 `resume_versions?resumeId=<id>`，由详情 route 展示解析等待态，直到 parse 成功后按来源格式展示 PDF 页面栈或 Markdown 只读详情，或失败后展示失败态。
 - 创建流不渲染右侧“会保存什么 / 接下来”说明 rail、预览确认页或确认保存页；不在 create-flow 中轮询 `getResume` 或调用 `updateResume`。
@@ -100,12 +100,16 @@ The static `ResumeCreateFlow` uses `onBack` to return to the flat list and `onCr
 
 ghost variant 删除后，`ei-resume-create-cta-accent` 不再需要“共享基础规则 + 独立颜色规则”的两段声明。将 layout、typography、interaction、accent colors 与 border 合并为一个规则，disabled state 保持独立；最终 computed values 与 upload/paste DOM 不变。BDD 不适用；替代 gate 为 source RED/GREEN、focused CreateFlow、full frontend、typecheck/build、owner contexts 与 docs/diff/pruning gates。
 
+### Phase 13: Runtime-configured upload and paste boundaries
+
+RED tests pin `resumeUploadBytes=10485760` / `resumePasteTextBytes=393216`, UTF-8 multibyte limit/limit+1 and zero presign/register on overflow; current 2MiB constant must fail. GREEN reads both values from `AppRuntimeProvider`, uses a shared byte helper, keeps selected input local for recovery and leaves UI DOM/styles unchanged. Missing runtime fields use the A4-matching generated/runtime code default; explicit backend config errors never reach the browser. `BDD-Gate: E2E.P0.081` covers upload/paste boundary and direct-detail handoff.
+
 ## 5 验收标准
 
 | ID | 场景 | Given | When | Then | 证据 |
 |----|------|-------|------|------|------|
 | C-1 | Create route | Authenticated user opens `resume_versions?flow=create` | App renders route | `ResumeCreateFlow` appears with upload tab active by default | focused Vitest |
-| C-2 | Upload path | Valid PDF / Markdown / TXT file selected | Submit | DOCX and unsupported extensions are rejected before presign; 2MiB file limit is enforced before presign; valid file presign + PUT + register flow runs with IK and language headers | hook / component tests |
+| C-2 | Upload/paste path | Valid PDF / Markdown / TXT or pasted text | Submit | DOCX rejected; runtime/default 10MiB upload and 384KiB paste UTF-8 limits enforced before request; limit+1 makes zero presign/register; valid input completes | hook/component + P0.081 |
 | C-3 | Paste path | Non-empty text | Submit | `registerResume` receives paste payload with a neutral source title, raw text is not used as a visible name, and direct detail navigation follows | hook / component tests |
 | C-4 | Register recovery | Upload/register fails | User retries or returns | Input stays local and content does not leak | upload/paste tests |
 | C-5 | Out-of-scope surfaces absent | Register succeeds | Route updates | Sidebar, preview confirm and create-flow `updateResume` save path do not render or run; waiting state and source-format renderer belong to detail route | negative tests |
@@ -127,6 +131,7 @@ ghost variant 删除后，`ei-resume-create-cta-accent` 不再需要“共享基
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.19 | Reopen Phase 13 for RuntimeConfig 10MiB upload / 384KiB paste UTF-8 boundaries and removal of the 2MiB local truth. |
 | 2026-07-14 | 1.18 | Mark the old full-Resume Home selection inference as historical; current selection consumes ResumeSummary parseStatus/hasReadableContent under active plan 001 Phase 19. |
 | 2026-07-10 | 1.17 | Consolidate the accent CTA declarations into one equivalent rule. |
 | 2026-07-10 | 1.16 | Delete the zero-consumer CreateFlow ghost CTA CSS branches. |

@@ -1,7 +1,7 @@
 # 001 Home + JD Import + Parse
 
-> **版本**: 2.29
-> **状态**: completed
+> **版本**: 2.30
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -347,6 +347,16 @@ Home `listTargetJobs` / `listResumes` 与 Parse 每个 `getTargetJob` 分类/调
 
 原地扩展 `E2E.P0.016`，在同一详情截图/浏览器路径验证三类卡片的可见标签、`data-round-state`、背景/边框差异与列表 mini rail 一致性；不创建 sibling scenario。
 
+### Phase 22: Runtime-configured JD text boundary
+
+#### 22.1 RED/GREEN Home validation
+
+Add ASCII/multibyte UTF-8 tests at 98,304/98,305 bytes. RED proves the current Home has no runtime size source. GREEN consumes `AppRuntimeProvider.contentLimits.targetJobRawTextBytes`, uses the shared byte helper and keeps textarea DOM/styles unchanged. Limit+1 creates neither import request nor pending vault entry; missing public field uses the A4-matching code default.
+
+#### 22.2 Backend and BDD handoff
+
+The generated import wire remains exact `{rawText,targetLanguage,resumeId}`. `BDD-Gate: E2E.P0.015` covers limit success, +1 inline recovery, auth continuation at a legal boundary and zero raw content leakage; backend P0.010 separately proves authoritative zero-side-effect rejection.
+
 ## 6 验收标准
 
 - Home/Parse owner 文档只描述当前 Home + Parse 合同、operation matrix、BDD gate 和验证入口。
@@ -366,12 +376,14 @@ Home `listTargetJobs` / `listResumes` 与 Parse 每个 `getTargetJob` 分类/调
 - Parse 与 Workspace detail 中 `listTargetJobReports` 调用、嵌入式报告 DOM、列表状态、`section=reports` safe param 与滚动/聚焦兼容逻辑为零；独立 ReportsScreen 与返回路径由 report/shell owner 验证。
 - POST import 只进入 `/parse?targetJobId`；Home ready card 直达 `/workspace?targetJobId`；Parse ready 使用 replace，Back 不重播动画。
 - Home `listTargetJobs` / `listResumes` 与 Parse 每个 `getTargetJob` tick 的同 key 底层 request count 为 1；polling 必须有 scheduler 时间证据。
+- Home JD raw text 默认上限为 98,304 UTF-8 bytes，来自 RuntimeConfig；limit 可 import，limit+1 零 import/vault，backend P0.010 同值裁决。
 - `sync-doc-index --check`、`make docs-check`、`git diff --check` 和 `make lint-core-loop-pruning-surface` 通过。
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 2.30 | Reopen Phase 22 for RuntimeConfig 96KiB JD UTF-8 validation and P0.010/P0.015 boundary handoff. |
 | 2026-07-14 | 2.29 | Add Phase 21 prototype-first Workspace detail round-state affordance with persisted progress, three visual treatments and P0.016 parity. |
 | 2026-07-14 | 2.28 | Add Phase 20 command-only Parse, ready-card direct Workspace detail, ready replace, Workspace-owned report/start detail language, targetJobId-only routes and exact safe-read GET count gates. |
 | 2026-07-14 | 2.27 | Revise Phase 19 in place: move reports to an independent target-scoped page, keep only the plan-detail header entry, and delete Parse list requests, embedded UI, and section compatibility. |

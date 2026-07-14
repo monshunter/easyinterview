@@ -1,7 +1,7 @@
 # 002 Practice Continuous Conversation BDD Checklist
 
-> **版本**: 2.7
-> **状态**: completed
+> **版本**: 2.8
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
@@ -45,6 +45,11 @@
   <!-- verified: 2026-07-14 evidence="Fresh P0.044/P0.046 serial runs passed all current source-fingerprint, marker, eight-PNG geometry/hash and isolated PostgreSQL cleanup gates." -->
 
 ## Phase 11 safe Markdown/GFM and Workspace-detail recovery
+
+## Phase 12 Runtime text boundaries
+
+- [ ] P0.046 consumes RuntimeConfig/default 32KiB/256KiB and covers ASCII/multibyte limit/+1.
+- [ ] Limit sends; +1 preserves draft with zero send; reload uses backend persisted aggregate/reply truth.
 
 - [x] P0.044 renders persisted user and assistant GFM through the shared safe projection and records current 1440/390 DOM/style/bbox/viewport/screenshot evidence with zero document overflow.
   <!-- verified: 2026-07-14 evidence="P0.044 run c71ceb11-300f-4b35-b68c-2ec726b8d4f7 passed 8/8 browser checks and emitted PRACTICE_SAFE_GFM_PROJECTION_PASS with six current screenshots." -->

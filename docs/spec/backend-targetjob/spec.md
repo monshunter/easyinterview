@@ -1,6 +1,6 @@
 # Backend TargetJob Spec
 
-> **版本**: 2.12
+> **版本**: 2.13
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -102,6 +102,7 @@
 ### 4.3 安全 / 隐私约束
 
 - `rawText` trim 后必须非空；空白输入在 HTTP 边界返回 `VALIDATION_FAILED`，不得创建 TargetJob、job 或 outbox event。
+- `rawText` 按 UTF-8 bytes 受 A4 `targetJob.maxRawTextBytes` 约束，默认 98,304 bytes（96KiB）并有同值 typed code default；limit 接受，limit+1 在 TargetJob/job/outbox/provider 前返回 `VALIDATION_FAILED`。不得静默截断或把 OpenAPI schema 静态约束当作 runtime override。
 - AI 调用必须 fail-closed：F3 `Resolve` 返回 unsupported / disabled profile 或 A3 缺 provider secret 时，整个 import 必须返回 B1 错误并写 `target.analysis.failed`；不得静默回退到 stub provider（除非 `APP_ENV=test`）。
 - log / metric label / audit / 事件 payload 不得出现 `raw_jd_text`、AI prompt / response body、provider secret；仅允许 hash / 长度 / status / profile / provider / model_id / cost micros / error code 摘要。
 
@@ -158,6 +159,7 @@
 | C-16 | 有效 JD 未披露公司名 | 用户提交有效 JD，AI 输出包含 title / requirements 但 `companyName` 为空 | `target_import` runner kernel 调用真实 provider 并完成 parse | TargetJob 进入 `analysisStatus='ready'`，`companyName` 写入语言相关兜底值，requirements 可见，`ai_task_runs` 记录 jd_parse provider/model/status/validation 摘要；markdown fenced JSON 可解析，带 prose 的输出仍失败 | 001 |
 | C-17 | Practice progress projection | 结构化 TargetJob 有零/部分/全部完成轮次，canonical sequence 可能是 `1,2,4`；可能有同用户 wrong-resume completion、重复完成 session、更新的旧轮复练 plan、legacy null plan、缺 provenance/溢出/大小写错误 round 与不同 lifecycle status | `GET /targets` / `GET /targets/{id}` | Get/List 仅接纳 TargetJob 绑定 resume 的合法 exact pair；返回一致的有序去重 completed prefix、第一个未完成 canonical `currentRound` 与 status，`2` 的下一轮是现有 `4`；只匹配当前 pair+绑定 resume 的 ready plan 成为 `currentPracticePlanId`；最终完成时 current/plan 均 null；无效 summary fail closed；一页列表只做一条聚合查询，无逐卡 N+1 | 001 |
 | C-18 | 报告指针去规范化清理 | TargetJob row/response 仍含 `latest_report_id/latestReportId` | 执行 001 Phase 19 | DB、store、generated/fixture 与 public TargetJob response 均无该指针；canonical rounds 保持完整，报告当前态仅由 backend-review overview 按冻结 context 投影 | 001 + backend-review/001 |
+| C-19 | JD raw text size boundary | 构造 UTF-8 96KiB 与 96KiB+1 的 `{rawText,targetLanguage,resumeId}` | `importTargetJob` | limit 正常 queued/parse；limit+1 返回 `VALIDATION_FAILED`，不创建 TargetJob/job/outbox、不调用 AI；前端从 RuntimeConfig 同值预检 | 001 Phase 20 + P0.010/P0.015 |
 
 ## 7 关联计划
 

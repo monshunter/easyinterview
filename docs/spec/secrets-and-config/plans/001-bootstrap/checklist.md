@@ -1,12 +1,12 @@
 # Secrets and Config Bootstrap Checklist
 
-> **版本**: 1.17
+> **版本**: 1.18
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
-> Phase 1-11 的已勾选项只保留为历史交付证据；Phase 12 是当前 TargetJob attachment maxBytes 收缩合同。旧 Phase 中出现的附件配置正向口径不构成当前实现、验收或兼容要求。
+> Phase 1-12 的已勾选项只保留为历史交付证据；Phase 13 是当前内容大小配置与代码缺省合同。旧 Phase 中出现的附件配置或散落硬编码不构成当前实现、验收或兼容要求。
 
 ## Phase 1: Three-tier config loader 与 redactor
 
@@ -92,5 +92,18 @@
   <!-- verified: 2026-07-13 method=default-config-red evidence="focused test failed because upload.maxBytes.targetJobAttachment still resolved to 10485760 instead of being absent" -->
 - [x] 12.2 GREEN: 删除 `config/config.yaml`、platform config validator/fixtures/tests 与 backend API composition 中的旧 TargetJob attachment maxBytes binding，不增加 alias、fallback 或兼容读取。
   <!-- verified: 2026-07-13 method=config+composition-green evidence="canonical config, validator required paths, cmd/api purpose-limit composition and all config fixtures now expose only resume=10MB/privacyExport=5MB; no alias or fallback" -->
-- [ ] 12.3 REGRESSION-GATE: `make lint-config`、platform config focused tests 与 backend API composition tests 通过；Resume/Privacy 非正数仍 fail-fast，presign TTL 和 10MB/5MB 默认值不变。
-- [ ] 12.4 ZERO-REF/BDD-GATE: active `config/`、platform config、backend API composition 与 A4 current docs 对旧 key 零命中；合法历史/显式负测排除。BDD 不适用，以 Red/Green focused tests、config lint、typed composition 与 zero-reference 作为替代 gate。
+- [x] 12.3 REGRESSION-GATE: `make lint-config`、platform config focused tests 与 backend API composition tests 通过；Resume/Privacy 非正数仍 fail-fast，presign TTL 和 10MB/5MB 默认值不变。
+  <!-- verified: 2026-07-14 method=lint+focused-regression evidence="make lint-config passed after shortening a pre-existing SHA-256 evidence string that gitleaks misclassified; go test ./internal/platform/config ./cmd/api -count=1 passed and retained TTL plus 10MiB/5MiB validation." -->
+- [x] 12.4 ZERO-REF/BDD-GATE: active `config/`、platform config、backend API composition 与 A4 current docs 对旧 key 零命中；合法历史/显式负测排除。BDD 不适用，以 Red/Green focused tests、config lint、typed composition 与 zero-reference 作为替代 gate。
+  <!-- verified: 2026-07-14 method=zero-reference+substitute-gate evidence="Production config, platform config, and cmd/api scopes have zero targetJobAttachment key matches; remaining matches are the explicit validator/integration negative tests and historical RED evidence. Phase 12 lint and focused typed composition tests pass." -->
+
+## Phase 13: Runtime content size defaults and boundary alignment
+
+- [ ] 13.1 RED-CONFIG: 为全部 size key 增加缺 key、合法 override、显式 `0`/负数、`paste > extracted`、`message > session` 用例；在 typed defaults 与 validator 未落地前测试按预期失败。
+- [ ] 13.2 GREEN-CONFIG: 落地统一 typed code defaults 与 YAML 镜像：HTTP 10MiB、Resume upload 10MiB、Privacy Export 5MiB、Resume active 10、Resume extracted/paste 384KiB、TargetJob raw 96KiB、Practice message 32KiB/session 256KiB、Report framed 896KiB、AI response 4MiB。
+- [ ] 13.3 BACKEND-GREEN: 将全局 HTTP body、upload/resume/target-job/practice/report consumers 与四个 AI provider adapters 改为注入配置；UTF-8 bytes 的 limit 接受、limit+1 拒绝且不调用 provider；删除重复生产常量。
+- [ ] 13.4 REPORT-CAPACITY: A3 profile code fallback 与 canonical catalog 一致；测试锁定 `917504 + 2048 + 6144 = 925696 < 1000000`，真实 62,397-byte 失败样本可进入 provider 路径，TPM 不再作为单请求 hard cap。
+- [ ] 13.5 CONTRACT: OpenAPI `RuntimeConfig.contentLimits` 只含五项 public limit；backend builder、fixture、generated Go/TS 与 `make codegen-check` 同步；内部 report/HTTP/provider/profile 上限不泄漏。
+- [ ] 13.6 FRONTEND: Resume upload/paste、Home JD raw text、Practice message/session 校验统一消费 runtime config 并按 UTF-8 bytes 判断；删除 2MiB 与 rune/character 本地真理源，limit/limit+1 focused tests 通过。
+- [ ] 13.7 BDD-GATE: [`bdd-checklist.md`](./bdd-checklist.md) 中 `E2E.P0.010`、`E2E.P0.046`、`E2E.P0.081`、`E2E.P0.056` 全部通过并记录当前证据。
+- [ ] 13.8 REGRESSION/POST-PASS: config/profile/provider/domain/OpenAPI/frontend focused/full gates、`make lint-config`、`make codegen-check`、旧硬编码 negative search、`sync-doc-index --check`、`make docs-check`、`git diff --check` 全部通过；完成 Bug 记录评估与 retrospective。

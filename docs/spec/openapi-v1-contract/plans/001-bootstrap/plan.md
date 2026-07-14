@@ -1,7 +1,7 @@
 # 001 - OpenAPI v1 Contract Bootstrap
 
-> **版本**: 1.27
-> **状态**: completed
+> **版本**: 1.28
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -18,7 +18,7 @@
 - B1 shared conventions are referenced through generated/shared types and error envelope rules.
 - Fixtures and breaking-change gates consume this bootstrap output through sibling B2 plans.
 
-This owner plan remains the executable contract/codegen evidence index; the reopened corrections through Phase 16 are now completed with current handoff and regression evidence.
+This owner plan remains the executable contract/codegen evidence index; Phase 17 is the current RuntimeConfig content-limits handoff.
 
 ## 2 Current Contract
 
@@ -35,7 +35,7 @@ This owner plan remains the executable contract/codegen evidence index; the reop
 
 - **Plan 类型**: `contract + tooling + feature-behavior handoff`
 - **TDD 策略**: schema inventory、semantic lint、Go/TS generator structure、codegen idempotency 与 negative surface tests 必须按 Red-Green-Refactor 执行；每个 correction Phase 的 checklist 明确对应断言与命令入口。
-- **BDD 策略**: 本 plan 不复制场景资产；用户可见 contract correction 必须引用下游 owner BDD。Phase 16 复用 P0.034/P0.036/P0.037，并在主 checklist 保留 `BDD-Gate:`。
+- **BDD 策略**: 本 plan 不复制场景资产；用户可见 contract correction 必须引用下游 owner BDD。Phase 17 复用 P0.010/P0.015/P0.046/P0.081/P0.056。
 - **替代验证 gate**: `make lint-openapi`、generator tests、`make codegen-check`、`make openapi-diff`、scoped zero-reference 与 downstream compile/consumer gates。
 
 ### 3.1 Current Operation Inventory
@@ -93,6 +93,7 @@ git diff --check
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2026-07-14 | 1.28 | Reopen Phase 17 for closed RuntimeConfig ContentLimits public projection and generated consumer handoff. |
 | 2026-07-14 | 1.27 | Reopen Phase 16 for OPENAPI-005 closed ResumeSummary list projection, full getResume detail and all-consumer handoff. |
 | 2026-07-14 | 1.23 | Correct OPENAPI-002 to an exact 17-finding boundary including both source-only ApiErrorCode removals; keep the separate D-35 Practice machine oracle non-ADR. |
 | 2026-07-13 | 1.22 | Add Practice durable reply-state, same-ID recovery and typed TypeScript ApiClientError phase; tighten OPENAPI-002 rawText/oracle/invariant gates. |
@@ -274,3 +275,17 @@ Add the closed source schema, switch only `PaginatedResume.items`, and regenerat
 | `getResume` | full `Resume` unchanged | `Resumes/getResume.json` full-detail scenarios | existing owned detail lookup/mapper | Resume Workshop read-only detail | P0.037 |
 
 002 Phase 11 must migrate fixture/example/Prism/mock bytes；003 Phase 9 must generate the declared OPENAPI-005 exact oracle from merge-base old baseline before any re-freeze；004 Phase 7 coordinates backend store/service/handler, generated consumers and frontend list/detail migration. All consumers compile and pass focused tests in the same batch；frontend may not issue N+1 `getResume` requests to restore removed list fields.
+
+## 17 RuntimeConfig content limits projection
+
+### 17.1 RED/GREEN closed schema
+
+Add required `RuntimeConfig.contentLimits` referencing a closed required `ContentLimits` object with exactly five positive int64 fields: `resumeUploadBytes`, `resumePasteTextBytes`, `targetJobRawTextBytes`, `practiceMessageBytes`, `practiceSessionTextBytes`. Generator tests reject missing/extra/internal fields and `any`/optional fallbacks.
+
+### 17.2 Fixture/generated handoff
+
+Update getRuntimeConfig fixture, generated Go/TS types and backend builder mapping. The fixture uses A4 defaults 10485760/393216/98304/32768/262144. Explicitly reject report framed input, HTTP body, provider response and profile token values from the public schema.
+
+### 17.3 BDD and regression
+
+P0.010/P0.015, P0.046, P0.081 and P0.056 consume their appropriate public/internal boundaries. Run lint/fixture/codegen/Prism, backend builder and all frontend consumers; operation/tag inventory remains 37/10 and no business request wire changes.

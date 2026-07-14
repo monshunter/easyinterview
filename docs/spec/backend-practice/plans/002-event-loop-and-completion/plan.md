@@ -1,7 +1,7 @@
 # 002 — Conversation Message Loop and Completion
 
-> **版本**: 2.8
-> **状态**: completed
+> **版本**: 2.9
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -117,6 +117,13 @@
 - **Contract/BDD 11.6**: public `PracticeMessage` remains `clientMessageId + replyStatus` only；OpenAPI/codegen/fixtures remain compatible. P0.044/P0.046 consume one tracked Practice source manifest, record its SHA-256 fingerprint in trigger output, reject verifier-time drift, and record screenshot SHA-256/dimensions/viewport. Any source change invalidates prior evidence；historical PASS cannot close Phase 11.
 - P0.046 exact markers are `PRACTICE_PENDING_LEASE_RECOVERY_PASS`, `PRACTICE_STALE_GENERATION_FENCED_PASS`, `PRACTICE_CONCURRENT_RESERVATION_PASS`, `PRACTICE_POST_TIMEOUT_RECONCILIATION_PASS`, `PRACTICE_TERMINAL_PLAN_RECOVERY_PASS` and `PRACTICE_EVIDENCE_FINGERPRINT_PASS`；P0.044 must emit `PRACTICE_IMMEDIATE_PENDING_PASS`, `PRACTICE_PERSISTED_PENDING_PASS` and the same fingerprint marker.
 
+### Phase 12: Configured message and session text limits
+
+- **RED 12.1**: construct UTF-8 byte fixtures at 32KiB/32KiB+1 per message and at 256KiB/256KiB+1 persisted session total. Existing 8,000-rune behavior or missing total cap must fail the new tests.
+- **GREEN 12.2**: inject A4 `practice.maxMessageBytes=32768` and `practice.maxSessionTextBytes=262144` into `SendPracticeMessage`. Count bytes, not runes; evaluate before reservation and provider call; replay of an already accepted same ID remains idempotent.
+- **Persistence 12.3**: session total is computed from authorized persisted `practice_messages` plus the candidate message in the same consistency boundary. Over-limit returns typed `VALIDATION_FAILED` with zero user/assistant/provider side effects; concurrency cannot let two messages jointly bypass the total.
+- **Contract/BDD 12.4**: public RuntimeConfig exposes both values for frontend precheck without adding them to Practice operation bodies. P0.046 covers limit/limit+1, multibyte text, reload and same-ID behavior; backend remains authoritative.
+
 ## 6 验收标准
 
 - Multiple message pairs append in stable order with no question classification.
@@ -129,6 +136,7 @@
 - Reload/remount cannot strand a persisted user message: server reply state reconstructs pending/failure UI and same-ID retry converges to one reply.
 - A pending reservation expires after exactly 90 seconds of server time；GET or same-ID reserve lazily converges it, while generation fencing prevents every stale worker from mutating the newer attempt.
 - P0.044/P0.046 evidence is accepted only when its tracked source fingerprint and every screenshot hash/geometry still match the current tree.
+- Practice 单条/会话文本默认边界分别为 32KiB/256KiB UTF-8 bytes；limit 接受，limit+1 在 reservation/provider 前拒绝且无半成品持久化。
 
 ## 7 风险与应对
 
@@ -152,6 +160,7 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 2.9 | Reopen Phase 12 for injected 32KiB message and 256KiB persisted-session UTF-8 byte limits. |
 | 2026-07-14 | 2.8 | Add Phase 11 for a 90-second reply lease, internal generation fence, GET/same-ID lazy convergence, four concurrent PostgreSQL gates and fingerprint-bound P0.044/P0.046 evidence. |
 | 2026-07-13 | 2.7 | Add server-persisted reply status, refresh-safe same-ID recovery and typed API-error handoff. |
 | 2026-07-12 | 2.6 | Make 002 the sole reportable-completion/snapshot owner and lock exact P0.047 backend evidence. |

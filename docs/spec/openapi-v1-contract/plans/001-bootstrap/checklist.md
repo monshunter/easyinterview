@@ -1,7 +1,7 @@
 # 001 - OpenAPI v1 Contract Bootstrap Checklist
 
-> **版本**: 1.27
-> **状态**: completed
+> **版本**: 1.28
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -126,3 +126,11 @@ git diff --check
   <!-- verified: 2026-07-14 evidence="P0.034/P0.036/P0.037 fresh setup-trigger-verify-cleanup PASS" -->
 - [x] 16.6 REGRESSION-GATE: after guarded re-freeze, `make lint-openapi validate-fixtures codegen-check openapi-diff`, downstream focused tests and scoped list-detail zero-reference gates all pass with current evidence.
   <!-- verified: 2026-07-14 evidence="guarded re-freeze is byte-equal; independent diff/lint/fixture/unit/Prism/codegen and downstream consumer gates PASS" -->
+
+## Phase 17: RuntimeConfig content limits projection
+
+- [ ] 17.1 RED: schema/generator tests require exact five-field closed `ContentLimits`, positive int64, required RuntimeConfig field and no internal limits/any/optional fallback.
+- [ ] 17.2 GREEN: source/fixture/generated Go/TS/backend builder use defaults 10485760/393216/98304/32768/262144.
+- [ ] 17.3 HANDOFF: Resume/Home/Practice frontend consumers compile and use generated fields; report/HTTP/provider/profile values remain absent.
+- [ ] 17.4 BDD-Gate: P0.010/P0.015/P0.046/P0.081/P0.056 current boundary evidence passes.
+- [ ] 17.5 REGRESSION: 37/10 inventory, lint/fixtures/Prism/codegen-check/openapi-diff, focused/full consumers, contexts/docs/diff pass.

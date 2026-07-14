@@ -1,7 +1,7 @@
 # 001 BDD Checklist
 
-> **版本**: 1.14
-> **状态**: completed
+> **版本**: 1.15
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
@@ -45,3 +45,9 @@
 - [x] D-21 truncation：stub `FinishReason="length"` 必须在 decode 前落 `AI_OUTPUT_INVALID`，完整 snapshot 保留且 completed outbox 为零<!-- verified: 2026-07-12 method=mutation-red-green -->
 - [x] D-17/D-21 runner evidence：P0.035 trigger/verify 检查 long-input tail-marker、structured-only response、finish-reason fail-closed 测试名与 PASS，拒绝 no-op / skip<!-- verified: 2026-07-12 method=scenario -->
 - [x] D-17/D-21 execution：执行 P0.035 `setup → trigger → verify → cleanup` 并记录完整输入、deterministic snapshot 与 output truncation terminality 证据<!-- verified: 2026-07-12 method=scenario result=PASS cleanup=PASS -->
+
+## Phase 16 configured Resume content boundaries
+
+- [ ] P0.034 proves 10MiB upload and 384KiB paste limit/limit+1 with zero resume/job partial state.
+- [ ] P0.035 proves 384KiB extracted text reaches AI and +1 is rejected before AI while deterministic snapshot/truncation gates remain intact.
+- [ ] P0.081 consumes current runtime-config upload/paste limits; backend remains authoritative and no browser storage is used.

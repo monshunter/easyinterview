@@ -1,7 +1,7 @@
 # Backend Resume Register Parse and Listing
 
-> **版本**: 3.2
-> **状态**: completed
+> **版本**: 3.3
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -452,6 +452,20 @@ E2E.P0.035 trigger/verify 必须执行并核验 long-input tail marker、structu
 - `BDD-Gate: E2E.P0.036`：frontend list/Home consumer 只依赖 summary fields，不从正文/structured profile 推断列表状态。
 - `BDD-Gate: E2E.P0.037`：打开 row 后才通过 `getResume` 获取完整详情，list payload 不承担详情预取。
 
+### Phase 16: Configured Resume content boundaries
+
+#### 16.1 RED/GREEN typed limits
+
+Add missing/default/override/invalid tests for `resume.maxActive=10`, `upload.maxBytes.resume=10485760`, `resume.maxExtractedTextBytes=393216` and `resume.maxPasteTextBytes=393216`. Replace the historical 2MiB upload and 8MiB parse-reader production constants with injected config; explicit zero/negative or paste>extracted fails startup.
+
+#### 16.2 Registration and parse boundaries
+
+Upload 10MiB and paste 384KiB boundaries succeed; each +1 fails before resume/job creation. Extracted PDF/Markdown/TXT text is read through a bounded path that accepts 384KiB and rejects +1 before AI, while preserving deterministic snapshot and retry semantics. All text checks use UTF-8 bytes with no silent truncation.
+
+#### 16.3 RuntimeConfig and BDD
+
+Expose `resumeUploadBytes` and `resumePasteTextBytes` only; extracted-text and active-count remain internal. Frontend P0.081 consumes public limits, while P0.034/P0.035 prove backend registration/parse authority and zero partial state. Existing list/detail contracts remain unchanged.
+
 ## 5 验收标准
 
 - 本计划列出的 §4 所有 Phase task 全部完成
@@ -462,7 +476,7 @@ E2E.P0.035 trigger/verify 必须执行并核验 long-input tail marker、structu
 - D-14 display_name gates PASS：prompt schema、parse job、store create / complete success / failure、cmd/api runner kernel ready/retry scenario 均断言 ready 或 failed-with-snapshot resume 不保留通用上传 / 粘贴名称、上传文件名，也不把 raw resume 第一行作为名称
 - D-15 upload text snapshot gates PASS：upload PDF / Markdown / text 的 `parsed_text_snapshot` 与 AI prompt input 来自可读正文，不是文件名、截断文件片段、PDF literal 乱码或二进制 bytes；DOCX 被 presign/register 和 parse fallback 双层拒绝；已抽取正文在 LLM 失败时仍持久化
 - D-18 PDF source preview gates PASS：`getResumeSource` 只对当前用户 upload-backed PDF 返回 inline PDF，paste / Markdown / TXT / missing / archived / cross-user 返回 404
-- D-16/D-17 limits and deterministic snapshot gates PASS：`resume.maxActive` 默认 10 且新建上限可测，`upload.maxBytes.resume` 默认 2MiB，成功/失败态 `parsed_text_snapshot` 均由完整提取正文确定性构建，模型输出不再包含 `markdownText`
+- D-16/D-17 limits and deterministic snapshot gates PASS：`resume.maxActive=10`、upload 10MiB、paste/extracted 384KiB 的 code default/config/limit/+1 可测；成功/失败态 `parsed_text_snapshot` 均由完整且未截断的提取正文确定性构建，模型输出不再包含 `markdownText`
 - D-19 output budget gate PASS：`resume.parse.default.max_tokens >= 8192`，profile version 已递增，E2E.P0.035 verify 检查 focused regression runner 证据
 - D-21 context/truncation gates PASS：长输入末尾 marker 同时存在于 AI prompt 与 snapshot；`finish_reason=length` 映射 `AI_OUTPUT_INVALID`、保留完整快照且不发 completed outbox
 - D-22 summary gates PASS：`listResumes` store/service/handler/generated fixture 只承接 closed `ResumeSummary` exact fields，所有 forbidden detail fields absent；`getResume` 仍返回完整详情
@@ -496,6 +510,7 @@ E2E.P0.035 trigger/verify 必须执行并核验 long-input tail marker、structu
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 3.3 | Reopen Phase 16 for 10MiB upload and 384KiB paste/extracted typed limits, replacing 2MiB/8MiB hardcodes. |
 | 2026-07-14 | 3.2 | Reopen Phase 15 to return a closed ResumeSummary projection from listResumes while preserving full getResume detail, with store/service/handler and P0.034/P0.036/P0.037 gates. |
 | 2026-07-12 | 3.1 | Replace full-resume model echo with deterministic source snapshots; add long-input tail-marker and finish-reason truncation gates. |
 | 2026-07-12 | 3.0 | Reopen the owner after a real 3170-character resume hit the 2048-token output cap; add the 8192-token profile regression and P0.035 gate. |

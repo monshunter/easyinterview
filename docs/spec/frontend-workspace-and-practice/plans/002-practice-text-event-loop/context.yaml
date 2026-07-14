@@ -5,15 +5,15 @@ metadata:
   name: 002-practice-text-event-loop
   sequence: 2
   baseBranch: main
-  branch: fix/request-dedup-resume-summary-routing-0714
+  branch: runtime-size-limits
   specVersion:
-    from: 1.42
-    to: 1.43
+    from: 1.44
+    to: 1.45
 spec:
   defaultTarget: frontend
   discovery:
     aliases: [practice continuous chat, full width conversation]
-    keywords: [PracticeScreen, PracticeMessage, sendPracticeMessage, optimisticUserMessage, interviewerThinking, pendingComposerLock, 95 second timeout, abort reconcile, stale response guard, failedMessageRetryIcon, sameClientMessageIdRetry, clientMessageIdReplyStatus, getPracticeSessionRetryProjection, terminal plan recovery, workspace targetJobId, ApiClientError, reloadSameIdRetry, noBrowserRetryPersistence, draftPreservedDuringRetry, react-markdown, remark-gfm, skipHtml, no rehypeRaw, no remote image, safe link, exact raw retry payload, mobile code overflow, zeroAnswerFinish, finishDisabledReason, backendAuthoritativeCompletion, reportIdOnlyHandoff, noCopiedRouteIdentity, disabled phone, no SessionMap, no QuestionCard]
+    keywords: [PracticeScreen, PracticeMessage, sendPracticeMessage, optimisticUserMessage, interviewerThinking, pendingComposerLock, 95 second timeout, abort reconcile, stale response guard, failedMessageRetryIcon, sameClientMessageIdRetry, clientMessageIdReplyStatus, getPracticeSessionRetryProjection, terminal plan recovery, workspace targetJobId, ApiClientError, reloadSameIdRetry, noBrowserRetryPersistence, draftPreservedDuringRetry, practiceMessageBytes32768, practiceSessionTextBytes262144, utf8ByteValidation, react-markdown, remark-gfm, skipHtml, no rehypeRaw, no remote image, safe link, exact raw retry payload, mobile code overflow, zeroAnswerFinish, finishDisabledReason, backendAuthoritativeCompletion, reportIdOnlyHandoff, noCopiedRouteIdentity, disabled phone, no SessionMap, no QuestionCard]
   targets:
     frontend:
       plan: ./plan.md

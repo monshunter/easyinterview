@@ -1,7 +1,7 @@
 # Frontend Resume Workshop Spec
 
-> **版本**: 2.15
-> **状态**: completed
+> **版本**: 2.16
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 ## 1 背景与目标
@@ -27,7 +27,7 @@
 - **List view**：`ResumeListView` 只消费 `ResumeSummary` closed DTO，渲染平铺列表、统计、唯一创建入口、详情入口和删除入口；不得通过列表响应携带或读取详情正文、结构化档案、文件对象或审计时间字段；列表底部不再重复“上传或粘贴另一份简历”CTA。
 - **Detail view**：`ResumeDetailView` 在 `queued/processing` 且正文快照为空时渲染解析等待态并轮询；`ready` 后根据来源格式展示 PDF 页面栈或 Markdown 正文；`failed` 且无可读正文时渲染失败态；`parsedTextSnapshot` / `originalText` 是 Markdown 渲染主要正文来源，结构化字段只能作为无原文时的降级兜底。
 - **Preview body**：`ResumePreviewTab` 作为只读正文投影，PDF 上传自动使用 source endpoint 的 PDF 页面栈 renderer，所有页面从上到下平铺展示，不使用浏览器内置 PDF viewer toolbar / sidebar / pagination controls；粘贴 / Markdown / TXT 自动使用 Markdown engine，body card 只包含 `parsedTextSnapshot` / `originalText` / fallback body 本身，不额外 prepend `displayName`、详情 header 名称、summary 或来源元数据；PDF 与 Markdown 共用阅读背景板，Markdown 正文也位于背景板内的白色 page surface；不渲染复制、导出、原件弹层、改写建议、结构化草稿确认或编辑控件。
-- **Create flow**：`ResumeCreateFlow` upload / paste 两路径；upload 只允许 `.pdf,.md,.markdown,.txt`；`createUploadPresign`、browser PUT、`registerResume` generated-client contract；upload 文件大小默认 2MiB 本地校验；注册成功后导航到详情等待/终态页，不在创建流内 `getResume` 轮询或 `updateResume` 保存；右侧“会保存什么 / 接下来”说明 rail 不再渲染。
+- **Create flow**：`ResumeCreateFlow` upload / paste 两路径；upload 只允许 `.pdf,.md,.markdown,.txt`；`createUploadPresign`、browser PUT、`registerResume` generated-client contract；upload 10MiB 与 paste 384KiB 默认边界从 `AppRuntimeProvider.contentLimits` 读取并按 UTF-8 bytes 本地校验，backend 仍作最终裁决；注册成功后导航到详情等待/终态页，不在创建流内 `getResume` 轮询或 `updateResume` 保存；右侧说明 rail 不再渲染。
 - **Home entry handoff**：Home `还没有简历？1 分钟创建` 进入当前 CreateFlow；Home `选择已有简历` 消费 `listResumes`，对非归档且已有可读简历证据的记录保持可选，不因 `parseStatus` 仍为 `queued` / `processing` / `failed` 但已有正文快照而显示空态。
 - **i18n / a11y**：中英双语、只读正文语义、错误/空态和 keyboard behavior。
 - **Auth boundary**：未登录只能显示登录引导 / pending action；pending action 只保存安全 route params。
@@ -63,6 +63,7 @@
 | D-12 | Source-format renderer | 详情正文区域根据来源格式自动选择 renderer：upload PDF 使用 `/api/v1/resumes/{resumeId}/source` 通过 PDF 页面栈从上到下平铺所有页面；paste、Markdown 文件和 TXT 文件使用 Markdown engine；PDF 与 Markdown 使用统一阅读背景板和 page surface；DOCX 不属于当前 Resume 上传支持范围 | 兼顾用户查看原始 PDF 版式与 LLM 后续交互所需的可读文本，不增加新按钮、二级入口或浏览器 PDF viewer 工具栏 |
 | D-13 | List/detail responsibility | `ResumeSummary` 字段集固定为 `id,title,displayName,language,sourceType,parseStatus,summaryHeadline,hasReadableContent,updatedAt`；`originalText`、`parsedTextSnapshot`、`structuredProfile`、`fileObjectId`、`parsedSummary` object、`createdAt`、`deletedAt` 只属于详情或服务端内部，不得进入列表 item | 缩小列表 payload 与隐私面，避免一次列表读取传输所有简历正文和结构化详情 |
 | D-14 | StrictMode request identity | 相同 method + normalized URL/query + auth scope 且不带 `AbortSignal` 的并发初始 GET 共享一个 in-flight Promise；settled 后立即驱逐，reject 也必须驱逐；带 `AbortSignal` 的 loader/polling 不进入通用共享，业务轮询只在上一次请求 settle 后继续 | 保留 StrictMode 与合法重试/轮询语义，同时消除同一用户动作导致的重复实际 transport；不引入 TTL cache 或跨时间结果缓存 |
+| D-15 | CreateFlow content limits | 只消费 RuntimeConfig `resumeUploadBytes` / `resumePasteTextBytes`，缺 endpoint 字段时由 generated/runtime provider 使用 A4 同值 code default 10MiB/384KiB；按 `TextEncoder` UTF-8 bytes 判断；limit 接受、limit+1 不发 presign/register | 删除 2MiB 本地真理源并与 backend typed config 对齐；UI DOM/样式不变，只更新验证数据与错误文案 |
 
 ## 4 设计约束
 
@@ -114,7 +115,7 @@
 | C-1 | Route shell | Authenticated user opens `resume_versions` | Route renders | Resume Workshop shell appears and TopBar highlights resume nav | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-2 | List view | `listResumes` returns `ResumeSummary[]` | List loads | Flat table, header create entrypoint, detail entrypoints and delete actions render; each item exposes only the locked summary fields, and forbidden detail fields are absent; duplicate bottom upload/paste CTA is absent | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
 | C-3 | Detail read-only | User opens a resume | Detail renders | Full `Resume` is fetched only through `getResume`; pending parse with no readable body shows a waiting state and polls sequentially; upload PDF renders the source endpoint as a top-to-bottom page stack without native PDF viewer toolbar; paste / Markdown / TXT renders Markdown headings / lists / paragraphs without injected displayName/header metadata; PDF and Markdown share the same reading backdrop and page-surface rhythm; failed with no readable body shows a failure state; export / copy / original modal / rewrite / edit surfaces are absent; out-of-scope tab params are ignored | [001](./plans/001-listing-routing-and-detail-readonly/plan.md) |
-| C-4 | Create upload | User selects valid file | Submit | Files over the configured/default 2MiB limit are rejected inline; `.docx` is rejected inline; valid PDF / Markdown / TXT presign, PUT and register complete; app navigates to `resume_versions?resumeId=<id>` waiting/detail route; preview confirm / `updateResume` save path are absent | [002](./plans/002-create-flow/plan.md) |
+| C-4 | Create upload/paste | User selects valid file or enters text | Submit | RuntimeConfig/default 10MiB upload and 384KiB paste limits are enforced by UTF-8 bytes; limit+1 is rejected inline without presign/register; valid input completes and navigates to waiting/detail route | [002 Phase 13](./plans/002-create-flow/plan.md) + P0.081 |
 | C-5 | Create paste | User enters text | Submit | Register completes and app navigates to the waiting/detail route; request title remains a neutral source title, and visible list/detail name comes from backend generated `displayName` after parse or extracted-text fallback, never from the raw first line or source filename/title fallback | [002](./plans/002-create-flow/plan.md) |
 | C-6 | Create recovery | Register or upload fails | User retries from input | Input is preserved locally and no raw content leaks | [002](./plans/002-create-flow/plan.md) |
 | C-7 | Home handoff | Home create CTA or Home existing-resume selector | Click / select | Create CTA lands on CreateFlow and auth pending action is safe; Home existing-resume selector shows non-archived readable `listResumes` records and carries the selected `resumeId` into JD import / parse handoff | [002](./plans/002-create-flow/plan.md) |
@@ -127,4 +128,4 @@
 ## 7 关联计划
 
 - [001-listing-routing-and-detail-readonly](./plans/001-listing-routing-and-detail-readonly/plan.md)：route shell、list view、delete action、waiting/detail Markdown read-only body, display-name fallback and out-of-scope detail-action negative owner.
-- [002-create-flow](./plans/002-create-flow/plan.md)：current upload/paste CreateFlow input, 2MiB upload validation, waiting/detail handoff, out-of-scope preview-confirm negative owner, CTA handoff, Home existing-resume selector handoff, privacy and focused frontend tests.
+- [002-create-flow](./plans/002-create-flow/plan.md)：current upload/paste CreateFlow input, RuntimeConfig 10MiB/384KiB validation, waiting/detail handoff, out-of-scope preview-confirm negative owner, CTA handoff, privacy and focused frontend tests.

@@ -1,6 +1,6 @@
 # Backend Review Spec
 
-> **版本**: 1.25
+> **版本**: 1.26
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -34,7 +34,7 @@
 
 `backend-practice/002` 保证 completed session 后不可追加 `practice_messages`，并在同一数据库一致性视图校验 TargetJob/Resume/Plan 绑定关系；`backend-review` 生成器只按 `seq_no` 读取 terminal messages 并校验数量与最后序号等于已冻结坐标，禁止回查 mutable TargetJob/Resume/Plan 重建或补写快照。不得在 job payload、outbox、audit、metric label 或普通 log 中复制 JD、简历、会话或完整 generation context。
 
-数据库始终冻结全量原文用于审计，generation 不做静默截断、抽样或模型摘要。可信 policy + 完整 untrusted context 的最终 UTF-8 payload 上限为 48,000 bytes（为当前 60k TPM 与 6,144 output token 保留余量）；超限在任何 provider 调用或会话内重试计数开始前 fail fast，报告以 non-retryable `REPORT_CONTEXT_TOO_LARGE` 失败。任何未来压缩必须另行设计事实保真 gate。
+数据库始终冻结全量原文用于审计，generation 不做静默截断、抽样或模型摘要。可信 policy + 完整 untrusted context 的最终 UTF-8 payload 上限由 A4 `report.maxFramedInputBytes` 注入，默认 917,504 bytes（896KiB）；它与 A3 的 1,000,000-token context window、2,048 framing reserve、6,144 output budget 共同满足 `925696 < 1000000`。超限在任何 provider 调用或会话内重试计数开始前 fail fast，报告以 non-retryable `REPORT_CONTEXT_TOO_LARGE` 失败。TPM 不参与单请求容量裁决；任何未来压缩必须另行设计事实保真 gate。
 
 `getFeedbackReport` 必须从冻结快照投影与 OPENAPI-001 一致的最小 immutable `context`：`sourcePlanId`、`targetJobTitle`、`targetJobCompany`、`resumeId`、`resumeDisplayName`、`roundId`、`roundSequence`、`roundName`、`roundType`、`language`、`hasNextRound`。前端不得为 Context Strip 或 CTA 再读取当前可变 TargetJob/Resume/route identity；`reportId` 是唯一 locator。queued/generating/ready/failed 均返回相同 context 投影。
 
@@ -119,7 +119,7 @@ OpenAPI ready read model 对用户返回相同业务 shape 与最小 frozen `con
 - 生成审计以脱敏 bounded coordinate 记录 `attempt_count`、`retry_count`、每轮 `reason` 与 `scope`，并聚合所有调用的 token usage 与 latency；不得保存 raw prompt/output、secret 或候选人正文。label-only 结果只原样 merge 到目标 label，非 label 字段保持不变；服务端不截断、压缩、代写或启发式改写。
 - Evalkit 与产品 runtime 都使用动作会话内 generation budget=4 并复用相同 validator/scope 状态机；manifest 输出 attempt/retry/reason/scope 脱敏审计和聚合 usage/latency，但不得把它描述为 report 生命周期持久化额度。
 - Judge/evaluator 使用与 generation 相互独立的 budget=4。仅 retryable provider failure 或 judge protocol/schema invalid 可以再次调用；每次调用都消耗 judge attempt 并聚合 usage/latency。一个结构合法的 unsupported、causal mismatch、zero-tolerance 或 critical negative verdict 是有效的 terminal content rejection，必须一次失败并禁止重新抽样到 PASS。实现与 manifest 必须把 retryable `protocol invalid` 和 terminal `content rejected` 表达为不同 typed outcome。
-- 完整 payload 超过 48,000 bytes 以 `REPORT_CONTEXT_TOO_LARGE` terminal fail；provider 不被调用，前端只提供返回动作。
+- 完整 payload 在默认配置下超过 917,504 bytes 以 `REPORT_CONTEXT_TOO_LARGE` terminal fail；provider 不被调用，前端只提供返回动作。62,397-byte 真实回归样本必须进入 provider 路径。
 - ready report 必须持久化实际 `PromptResolution` 与 `AICallMeta` 的 prompt/rubric/model/provider/language/feature/data-source coordinates；禁止使用 store 硬编码占位值。
 
 ### 2.7 复练事实源
@@ -194,6 +194,7 @@ TargetJobReportsOverview
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.26 | 方案 A：report framed input 默认提升至 896KiB，由 A4 注入并以 1M context window 公式验证；62,397-byte 回归样本不得再被本地拒绝。 |
 | 2026-07-14 | 1.25 | Move the unchanged canonical-round overview consumer from embedded Parse to the independent target-scoped ReportsScreen and P0.059; no wire, schema, persistence, or selection change. |
 | 2026-07-14 | 1.24 | 将 `listTargetJobReports` 收敛为 Parse 消费的 canonical-round overview，锁定最小 wire、独立 current/latest 排序、完整 round coverage 与 fail-closed 边界。 |
 | 2026-07-13 | 1.23 | 区分机械100%、固定五类4/5语义产品验收与严格P0.100 11/11诊断；记录最终prompt run59381为产品通过、strict FAIL。 |

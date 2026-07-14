@@ -1,7 +1,7 @@
 # 002 Practice Continuous Conversation Test Plan
 
-> **版本**: 2.7
-> **状态**: completed
+> **版本**: 2.8
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 ## Phase 1: Prototype/source
@@ -55,6 +55,11 @@
 - Renderer unit/component tests require one `react-markdown + remark-gfm` projection for persisted user and assistant messages, with `skipHtml` enabled and no `rehypeRaw` dependency or configuration.
 - Security cases inject raw HTML, event handlers, Markdown images, `javascript:`/unsafe links and safe links；they prove HTML is inert, remote images do not create a network-fetching `<img>`, unsafe URIs are rejected and safe external links are hardened.
 - Payload tests distinguish source from projection: initial send and same-ID retry must receive the byte-identical raw `message.text` and original `clientMessageId`, never rendered DOM text or normalized Markdown, while preserving the next draft.
+
+## Phase 12: Runtime byte limits
+
+- ASCII/multibyte exact 32KiB/32KiB+1 message and 256KiB/256KiB+1 loaded-session tests use `TextEncoder` bytes.
+- Runtime defaults/overrides and zero-send/draft-preservation tests compose with backend typed rejection/reload authority.
 - Responsive parity covers headings, lists, blockquotes, inline/fenced code and GFM tables at 1440 and 390；pre/code/table may scroll locally but cannot create document horizontal overflow.
 - Terminal route tests require exactly `{name:"workspace", params:{targetJobId}}` / `/workspace?targetJobId=...` read-only detail and reject query-free workspace, `planId`, current-scope `parse(targetJobId)`, row retry, composer send and technical error text.
 - Reuse P0.044 for user+assistant GFM/parity and P0.046 for malicious-content negatives, exact raw retry and terminal Workspace detail；refresh source fingerprints and screenshots without creating sibling scenarios.

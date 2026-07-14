@@ -5,9 +5,9 @@ metadata:
   name: 001-bootstrap
   sequence: 1
   specVersion:
-    from: 2.15
-    to: 2.16
-  branch: fix/interview-turn-ux-0713
+    from: 2.16
+    to: 2.17
+  branch: runtime-size-limits
 spec:
   defaultTarget: platform-config
   discovery:
@@ -33,10 +33,19 @@ spec:
       - upload maxBytes resume privacyExport
       - current upload purpose limits
       - TargetJob attachment config zero reference
+      - runtime content limits
+      - typed code defaults
+      - report framed input 896KiB
+      - practice message session bytes
+      - resume paste upload limits
+      - target job raw text limit
+      - AI provider response body
   targets:
     platform-config:
       plan: ./plan.md
       checklist: ./checklist.md
+      bddPlan: ./bdd-plan.md
+      bddChecklist: ./bdd-checklist.md
       spec: ../../spec.md
       discovery:
         packages:
@@ -45,6 +54,16 @@ spec:
           - backend/internal/platform/featureflag
           - frontend/src/app/runtime
           - frontend/src/api/generated
+          - backend/internal/ai
+          - backend/internal/practice
+          - backend/internal/report
+          - backend/internal/resume
+          - backend/internal/targetjob
+          - backend/internal/upload
+          - frontend/src/app/screens/home
+          - frontend/src/app/screens/practice
+          - frontend/src/app/screens/resume
+          - openapi
           - config
           - scripts/git-hooks
           - Makefile

@@ -1,7 +1,7 @@
 # 002 Conversation Message Loop Test Plan
 
-> **版本**: 2.8
-> **状态**: completed
+> **版本**: 2.9
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 ## Phase 1: Store
@@ -58,3 +58,9 @@
 - Service/API tests prove `Now` reaches GET/reserve consistently, generation is carried only across internal Reserve/Commit/Fail calls, stale conflicts map deterministically, and the public response never includes generation/lease.
 - Scenario contract tests require a shared tracked Practice source-path manifest for P0.044/P0.046, trigger-time/current SHA-256 equality, screenshot SHA-256/dimensions/viewport and the exact Phase 11 markers；they reject FAIL/no-tests/missing paths/stale artifacts.
 - Focused implementation order is migration SQL contract → store unit/domain → real PostgreSQL four-test set → service/API/OpenAPI/codegen/fixture → P0.044/P0.046 serial setup/trigger/verify/cleanup → full regression/docs/diff.
+
+## Phase 12: Message/session UTF-8 byte limits
+
+- Unit fixtures cover ASCII and multibyte values at 32KiB/32KiB+1 and persisted totals at 256KiB/256KiB+1.
+- Store/service tests prove authoritative aggregate, replay behavior, zero write/provider on overflow and concurrent total-limit fencing.
+- RuntimeConfig/frontend contract and P0.046 cover server/client agreement without browser persistence becoming fact.

@@ -5,10 +5,10 @@ metadata:
   name: 001-home-jd-import-and-parse
   sequence: 1
   baseBranch: main
-  branch: fix/request-dedup-resume-summary-routing-0714
+  branch: runtime-size-limits
   specVersion:
-    from: 2.23
-    to: 2.24
+    from: 2.25
+    to: 2.26
 spec:
   defaultTarget: frontend
   discovery:
@@ -25,6 +25,8 @@ spec:
       - paste-only Home JD intake
       - Home JD textarea
       - rawText targetLanguage resumeId
+      - targetJobRawTextBytes 98304
+      - JD UTF8 byte validation
       - exact flattened import wire
       - no source discriminator
       - opaquePendingImportId only pending action

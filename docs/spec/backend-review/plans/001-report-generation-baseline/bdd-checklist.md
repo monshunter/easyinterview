@@ -1,6 +1,6 @@
 # Grounded Conversation Report BDD Checklist
 
-> **版本**: 2.18
+> **版本**: 2.19
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -8,12 +8,16 @@
 
 ## E2E.P0.056 Frozen direct report
 
+- [ ] Phase 11 size boundary: 62,397-byte regression and 917,504-byte framed input reach provider unchanged under the A4 default; current evidence records the injected limit.
+
 - [x] Setup validates/consumes P0.047 `completion-backend-evidence.json` schema `practice-completion-evidence.v1` with all three owner markers; it creates no duplicate completion path and records redacted correlation only.
 - [x] Trigger runs `cd backend && go test ./internal/review ./internal/store/review ./internal/api/reports -run '^TestE2EP0056ReportBackendEvidence$' -count=1 -v` plus existing frontend Vitest files; backend log must contain the exact test RUN/PASS and `REPORT_COMPLETION_OWNER_EVIDENCE_CONSUMED_PASS`, `REPORT_DIRECT_READY_PASS`, `REPORT_FROZEN_CONTEXT_READ_PASS`, `REPORT_REVIEW_LEGACY_IDENTIFIER_NEGATIVE_PASS`.
 - [x] Registry-owned `verify.sh` is the sole writer of `.test-output/e2e/p0-056-generating-to-report-happy-path/backend-evidence.json` with exact `report-backend-evidence.v1` keys `schemaVersion/scenarioId/command/tests/consumedOwnerEvidence/markers/database/result` after the complete marker set exists.
 - [x] Verify sets `result=PASS` only when command exit is 0, exact backend/frontend markers and redacted DB assertions pass, and no FAIL/no-test/raw cookie/JD/resume/transcript/prompt/output appears; cleanup deletes rows and keeps only approved redacted artifacts.
 
 ## E2E.P0.058 Repair and fail closed
+
+- [ ] Phase 11 oversize: 917,505-byte input persists `REPORT_CONTEXT_TOO_LARGE` with zero provider/repair calls and the frontend return action remains usable.
 
 - [x] Setup validates/consumes the P0.047 owner artifact and prepares isolated missing/mismatched/48,001-byte context plus action-local attempts2/3/4, exact waiter, second-invocation reset, async-attempt separation and nonretryable cases without recreating completion ownership.
   <!-- verified: 2026-07-13 evidence="P0.058 setup PASS with isolated v3 owner cases" -->

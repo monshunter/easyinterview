@@ -1,8 +1,8 @@
 # Backend Upload Spec
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 ## 1 背景与目标
 
@@ -53,7 +53,7 @@ backend-upload 之所以独立于 `backend-resume`：`file_objects` 同时服务
 | D-4 | IK 必带 | `createUploadPresign` 必带 `Idempotency-Key`（与 B2 D-6 / D-18 一致）；upload presign route 的 idempotency record TTL 必须与 `upload.presignTTLSeconds` 对齐，避免在 signed URL 过期后继续 replay stale `uploadUrl` / `expiresAt`；TTL 内重复请求返回同一 fileObjectId + uploadUrl/method/headers/expiresAt | 防止网络抖动产生孤儿 `file_objects` 行，同时避免过期 signed URL 被 response cache 继续 replay |
 | D-5 | register 路径 | P0 不引入独立 `POST /api/v1/file-objects/{id}/register` endpoint；register 行为由业务 handler（如 `registerResume`）调用 backend-upload internal `RegisterFileObject(fileObjectId, expectedPurpose, ownerUserId)` 完成。该 API 必须锁定同 user + purpose 行，若状态为 `pending` 则先调用 `ObjectStore.Exists(objectKey)` 确认客户端 PUT 已落对象存储，再原子标记 `uploaded`；若状态已为 `uploaded` 则幂等通过；`scan_failed` / `deleted` 返回 `VALIDATION_FAILED` | 避免独立 HTTP endpoint；business owner 持有 file 引用语义；不新增 `registered` 状态，同时补齐 presign → PUT → business register 的公开上传完成路径 |
 | D-6 | 隐私删除 | privacy_delete job 调用 `DeleteFileObjectsForUser(userId)`：先按 owner 反查 file_object 行 → 对象存储 hard delete → DB 行 hard delete；失败 retryable | 与 [B4 §3.1.2](../db-migrations-baseline/spec.md#312-p0-privacy-deletion-table-matrix) `file_objects` / `resume_assets` 行对齐 |
-| D-7 | 最大文件大小 | 默认 10 MB（resume）/ 5 MB（privacy_export）；通过 `upload.maxBytes.resume` / `upload.maxBytes.privacyExport` 注入；超限由 presign 拒绝 `VALIDATION_FAILED`，RegisterFileObject 以对象存储实际大小裁决 | 删除无消费者的 JD attachment 配置，同时保留简历与隐私导出边界 |
+| D-7 | 最大文件大小 | 默认 10MiB（resume）/ 5MiB（privacy_export）；通过 `upload.maxBytes.resume` / `upload.maxBytes.privacyExport` 注入，并有同值 typed code defaults；缺 key 使用缺省，显式非正数启动失败。超限由 presign 拒绝 `VALIDATION_FAILED`，RegisterFileObject 以对象存储实际大小再次裁决 | 删除无消费者的 JD attachment 配置，同时保留可覆盖、可测试且不漂移的简历与隐私导出边界 |
 
 ### 3.2 待确认事项
 
@@ -112,6 +112,7 @@ backend-upload 之所以独立于 `backend-resume`：`file_objects` 同时服务
 | C-7 | 隐私 / 范围外输入负向 | grep `frontend-` / `backend-` / `docs/spec/` | – | 不出现范围外 `upload-route` / `pre-signed-by-frontend` / hardcode S3 SDK 路径等 out-of-scope 模式 | 001 |
 | C-8 | mock-first 对齐 | B2 fixture `createUploadPresign.json` `default` scenario | mock-server 返回该 scenario | 字段集 / status code / IK 行为与真实 handler 字节级一致 | 001 + mock-contract-suite |
 | C-9 | JD purpose 收缩 | OpenAPI/DB/config/backend 仍可能存在 JD attachment purpose | 执行 001 Phase 7 | JD attachment purpose 与专属 maxBytes zero-reference；`resume` / `privacy_export` presign、register 与 privacy delete 回归通过 | 001 |
+| C-10 | Config default/override boundary | 删除 maxBytes key、合法 override、显式 0/负数，并提交 limit/limit+1 | load + presign/register | 缺 key 使用 10MiB/5MiB code default；override 生效；非法启动失败；limit 成功，limit+1 零 DB/object；Resume public limit 投影 RuntimeConfig | 001 Phase 8 + P0.033/P0.081 |
 
 ## 7 关联计划
 

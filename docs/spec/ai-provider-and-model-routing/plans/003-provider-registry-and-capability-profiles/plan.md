@@ -1,8 +1,8 @@
 # Provider Registry and Capability Profiles
 
-> **版本**: 1.14
-> **状态**: completed
-> **更新日期**: 2026-07-13
+> **版本**: 1.15
+> **状态**: active
+> **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
 **关联 Spec**: [spec](../../spec.md)
@@ -225,6 +225,20 @@ Set only `report.generate.default.default.params.thinking=disabled`, keeping its
 
 Run focused provider/profile tests, race tests, complete profile coverage tests, the tracked lint, owner context/index/docs gates and `git diff --check`. The final P0.100 real-provider rerun must observe non-empty report JSON under the current profile; no test or documentation result may substitute for that live scenario gate.
 
+### Phase 11: typed profile defaults and provider response cap
+
+#### 11.1 RED: default/override/invalid profile and adapter boundaries
+
+Add tests that remove each canonical `max_tokens` / `context_window_tokens` field, provide a legal override, and provide explicit zero/negative/invalid capacity. Missing fields must resolve through typed code defaults that equal the tracked catalog; explicit invalid values must fail before network. Add exact response-body limit/+1 tests for every provider adapter.
+
+#### 11.2 GREEN: shared defaults and injected response limit
+
+Keep the current catalog coordinates unchanged and encode matching per-profile code defaults for every active profile. Route `ai.maxResponseBodyBytes=4194304` from A4 typed config into openai-compatible, judge-compatible, Doubao and MiniMax adapters; delete adapter-local 4MiB constants and replace unbounded `io.ReadAll` paths with a shared bounded reader.
+
+#### 11.3 Report capacity handoff
+
+Consume backend-review's regenerated 917,504 / 917,505-byte fixtures and prove `917504 + 2048 + 6144 = 925696 < 1000000`. The real 62,397-byte regression sample must enter the provider path. TPM remains a throughput hint only. Focused/full provider/profile/race tests, lint/config gates, P0.056 and opt-in P0.100 token usage complete the handoff.
+
 ## 5 验收标准
 
 - Provider registry schema、loader、secret env ref 解析与热加载已落地，负向 fixtures 覆盖重复 provider、未知 protocol、capability mismatch、网络出站 provider secret 缺失与 fallback 超限；`stub` provider 不需要伪造 secret。
@@ -235,7 +249,8 @@ Run focused provider/profile tests, race tests, complete profile coverage tests,
 - 当前 active scope 不含向量化 / 重排代码与基础设施；chat profiles 全部指向 `deepseek` provider ref 且模型 ID 只使用 `deepseek-v4-flash` / `deepseek-v4-pro`。
 - A4 env/config 字典、B1 shared vocabulary、F3 + Product/UI profile coverage lint、A3 docs/README/fixtures 全部同步。
 - 隐私红线与零厂商 SDK 红线保持；全局 gate 与 context validation 通过。
-- `report.generate.default` 精确使用 context_window_tokens 1000000 / max_tokens 6144 / timeout 60000 / tpm 60000 / version 1.2.0 / thinking disabled；openai-compatible wire 使用官方 thinking object，非法值请求前失败，object output schema 继续驱动 JSON response format；48,000-byte input、2,048 framing reserve 与 current zh/en worst-case outputs 通过 offline capacity gate，最终 P0.100 还通过 actual usage token smoke。
+- `report.generate.default` 精确使用 context_window_tokens 1000000 / max_tokens 6144 / timeout 60000 / tpm 60000 / version 1.2.0 / thinking disabled；缺 key 使用同值 typed code default，显式非法失败；917,504-byte input + 2,048 framing reserve + 6,144 output 的 offline capacity gate 通过，最终 P0.100 还通过 actual usage token smoke。
+- 四个 provider adapter 统一消费 `ai.maxResponseBodyBytes=4194304` 注入值并覆盖 limit/+1；不存在 adapter-local 4MiB 或无界 response `ReadAll`。
 - `judge.default` 精确使用 non-thinking JSON / max tokens 6144 / timeout 60000 / tpm 60000 / version 1.2.0；reasoning-only 响应在 adapter 内脱敏 fail-closed，真实 complete+judge smoke 以 stop / 非空 JSON / 正 usage 通过，最终 P0.100 仍需全矩阵通过。
 
 ## 6 风险与应对
@@ -261,6 +276,7 @@ Run focused provider/profile tests, race tests, complete profile coverage tests,
 
 | 日期 | 版本 | 变更 | 关联 |
 |------|------|------|------|
+| 2026-07-14 | 1.15 | Reopen Phase 11 for typed profile code defaults, shared 4MiB provider response cap and 896KiB report capacity handoff. | A4 Phase 13 + backend-review/001 |
 | 2026-07-13 | 1.14 | Add Phase 10 for report generation non-thinking structured output: official openai-compatible thinking wire, loader/adapter/lint fail-close, and output-schema-owned JSON mode. | backend-review/001 + P0.100 |
 | 2026-07-12 | 1.13 | Add Phase 9 for DeepSeek default-thinking exhaustion: non-thinking JSON judge profile, 6,144 final budget, privacy-safe reasoning-only failure and real stop smoke. | F3/004 + P0.100 |
 | 2026-07-12 | 1.12 | Separate 1M single-request context capacity from 60k TPM; consume review-owned boundary fixtures and require offline framing reserve plus live provider usage/token-count proof. | backend-review/001 + P0.100 |

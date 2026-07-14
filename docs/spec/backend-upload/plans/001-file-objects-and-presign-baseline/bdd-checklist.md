@@ -1,8 +1,8 @@
 # 001 BDD Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
@@ -25,4 +25,10 @@
 - [x] RETAIN: resume presign → PUT → register → privacy delete roundtrip 继续通过；`privacy_export` 5MB presign 返回 201/pending，TargetJob 不调用 upload endpoint。
   <!-- verified: 2026-07-13 evidence="live MinIO resume signed PUT/register/privacy delete passed; privacy_export 5242880-byte request returned 201 and persisted pending before the same privacy delete removed both rows." -->
 - [x] BDD-Gate: 运行 E2E.P0.033 setup → trigger → verify → cleanup，保存旧 purpose rejection、resume roundtrip、privacy_export 5MB 与 zero-side-effect 证据；live gate skip/no-op 或任一证据缺失时不得勾选。
+
+## Phase 8 exact size limits
+
+- [ ] P0.033 proves resume 10MiB and privacy_export 5MiB exact boundaries through live object size verification.
+- [ ] Each limit+1 returns validation and creates zero file_object/object; current source evidence is recorded.
+- [ ] P0.081 consumes only resume public RuntimeConfig value; privacy export limit remains internal.
   <!-- verified: 2026-07-13 evidence="setup/trigger/verify/cleanup PASS; 6 scenario script contract tests PASS; evidence retained under .test-output/e2e/p0-033-file-presign-register-roundtrip/." -->

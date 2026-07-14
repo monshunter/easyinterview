@@ -1,7 +1,7 @@
 # TargetJob Import and Parse Bootstrap Checklist
 
-> **版本**: 1.28
-> **状态**: completed
+> **版本**: 1.29
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -175,3 +175,10 @@
   <!-- verified: 2026-07-14 method=consumer-negative+P0.016+P0.059 evidence="ReportsScreen is the sole frontend listTargetJobReports consumer; backend-review owns selection; Parse makes zero list requests and P0.016/P0.059 pass." -->
 - [x] 19.5 ZERO-REF: production/generated/OpenAPI/fixtures/migrations 中旧字段/列精确零命中，历史/负向审计之外无正向表述。
   <!-- verified: 2026-07-14 decision="用户批准方案 A" method=aggregate-current-gates evidence="Current migration, OpenAPI, 37 fixtures, isolated-index codegen drift, full backend/frontend, context, docs, diff and active-surface negative gates pass; 18.6 remains historical-superseded." -->
+
+## Phase 20: Configured raw JD text boundary
+
+- [ ] 20.1 RED: 98,304/98,305-byte ASCII/multibyte 与 missing/default/override/invalid config tests 暴露无 runtime size cap。
+- [ ] 20.2 GREEN: import service 注入 `targetJob.maxRawTextBytes=98304`；limit 接受，limit+1 在 TargetJob/job/outbox/provider 前 typed reject。
+- [ ] 20.3 CONTRACT/BDD: RuntimeConfig `targetJobRawTextBytes`、P0.010 backend 与 P0.015 frontend current gates 通过；request wire 不变。
+- [ ] 20.4 VERIFY: focused/full targetjob/config/API/race、OpenAPI/codegen、scenario、privacy、contexts/docs/diff 与 duplicate-limit negative search 通过。

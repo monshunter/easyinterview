@@ -1,8 +1,8 @@
 # Backend Upload File Objects and Presign Baseline Checklist
 
-> **版本**: 1.5
+> **版本**: 1.6
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -70,6 +70,13 @@
 - [x] 7.2 GREEN: 先消费 OpenAPI/B4 purpose 与 A4 Phase 12 maxBytes handoff，再只删除 backend-upload handler/service 自有分支；不直接修改 A4 config/validator/composition 或 B4 DB constraint，并保留 endpoint、state machine、resume register 与 privacy delete。
   <!-- verified: 2026-07-13 method=owner-green evidence="OpenAPI and runtime accept only resume/privacy_export; service rejects target_job_attachment; full backend go test ./... passes." -->
 - [x] 7.3 BDD-Gate: E2E.P0.033 证明 resume roundtrip、JD attachment purpose 被拒绝、privacy export purpose 仍合法。
+
+## Phase 8: Typed upload defaults and exact size boundaries
+
+- [ ] 8.1 RED: resume/privacy missing/default/override/invalid 与 10MiB/5MiB limit/+1 tests 暴露 package-local fallback/边界漂移。
+- [ ] 8.2 GREEN: presign/register 消费 A4 typed limits/code defaults；显式非法启动失败，limit+1 零 DB/object side effect。
+- [ ] 8.3 BDD-Gate: P0.033 exact resume/privacy limit/+1 + actual object size；P0.081 consumes only resume public value。
+- [ ] 8.4 focused/full upload/config/API/objectstore、scenario、privacy、contexts/docs/diff 与 duplicate-limit negative search 通过。
   <!-- verified: 2026-07-13 method=live-scenario evidence="P0.033 setup/trigger/verify/cleanup PASS against live PostgreSQL and MinIO after repairing stale auth request data and an over-broad status grep; signed PUT/register/privacy delete completed and removed JD purpose was rejected." -->
 - [x] 7.4 Zero-ref: OpenAPI/generated/backend/migrations/config/fixtures/scripts 精确搜索旧 purpose 为零，resume/privacy focused/full gates 通过。
   <!-- verified: 2026-07-13 method=negative-search evidence="No production target_job_attachment/targetJobAttachment hit remains outside explicit negative tests; make codegen-check, backend go test ./..., and P0.033 live owner gates pass." -->

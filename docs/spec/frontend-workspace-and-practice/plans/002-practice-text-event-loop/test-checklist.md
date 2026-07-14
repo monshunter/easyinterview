@@ -1,7 +1,7 @@
 # 002 Practice Continuous Conversation Test Checklist
 
-> **版本**: 2.7
-> **状态**: completed
+> **版本**: 2.8
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
@@ -37,6 +37,11 @@
 - [x] P0.044/P0.046 source-fingerprint, screenshot-hash/geometry and exact-marker scenario gates pass with fresh artifacts. (fresh serial runs `13f3b898-4054-4949-8b85-4a15df35c712` / `e26ba887-5f71-4c25-834e-448b4595ede2`)
 
 ## Phase 11
+
+## Phase 12
+
+- [ ] Runtime message/session ASCII/multibyte limit/+1 and override/fallback tests pass.
+- [ ] Overflow zero-send/draft preservation and P0.046 backend-authority tests pass.
 
 - [x] Shared user/assistant `react-markdown + remark-gfm` renderer tests pass with `skipHtml` and no `rehypeRaw`.
   <!-- verified: 2026-07-14 command="pnpm --dir frontend exec vitest run src/app/screens/practice/components/Transcript.test.tsx" result="2/2 PASS after recorded RED" -->

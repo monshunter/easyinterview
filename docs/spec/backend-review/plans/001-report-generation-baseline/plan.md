@@ -1,6 +1,6 @@
 # 001 — Grounded Conversation Report Generation
 
-> **版本**: 2.22
+> **版本**: 2.23
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -161,6 +161,20 @@ Handler 只投影 `targetJobId`、`PracticeRoundRef`、`currentReport{id,generat
 
 向 `E2E.P0.059` 提供 focused backend contract evidence；证明独立 ReportsScreen 可按 TargetJob summary join 并隔离当前规划，而 Parse/Report/Generating 不消费 list operation。运行 focused/full review/API/store、OpenAPI/fixture/generated handoff、context/docs/diff 与旧分页/`latest_report_id` scoped negative gate 后再完成本 Phase。
 
+### Phase 11: Configured report input boundary
+
+#### 11.1 RED: current regression and configured boundary
+
+Replace the old 48,000-byte business-bound assertions with a real 62,397-byte regression fixture plus deterministic 917,504/917,505-byte final framed inputs. RED must show that the regression sample is currently rejected and that construction still depends on a package constant.
+
+#### 11.2 GREEN: injected 896KiB default
+
+Inject A4 `report.maxFramedInputBytes` into the report service/context builder. Exactly 917,504 UTF-8 bytes reaches the provider unchanged; 917,505 persists terminal `REPORT_CONTEXT_TOO_LARGE` before provider/repair and does not consume action retry. No truncation, sampling or summary fallback is allowed.
+
+#### 11.3 Capacity and BDD handoff
+
+Consume A3 `917504+2048+6144=925696<1000000` capacity evidence. Extend P0.056 with the 62,397-byte regression and default limit path; retain P0.058 for oversized failure/recovery. Focused/full review tests and fixture hash reconstruction must pass without using TPM as capacity evidence.
+
 ## 6 验收标准
 
 - Ready report 来自冻结完整上下文，模型最终语义经严格 validator 后无损持久化/API 返回。
@@ -173,6 +187,7 @@ Handler 只投影 `targetJobId`、`PracticeRoundRef`、`currentReport{id,generat
 - OpenAPI、generated、fixture、DB、prompt/schema/eval、frontend consumer 与 BDD 无旧 numeric-score/unknown-action 漂移。
 - 最终prompt真实provider run59381的机械输出9/9、语义judge8/9、固定五类4/5满足当前产品验收；strict P0.100因unsupported summary保持FAIL，未运行blind audit。P0.099 的 desktop/mobile zh/en full-page 截图由其自身 current-run DB/API/content/action/screenshot/report/session/context 摘要闭合，并完整覆盖满足 `<=24 whitespace words` / `<=64 Unicode code points` 的实际 action。确定性 boundary fixture 另行证明恰好24/64的pixel parity。
 - `listTargetJobReports` 对每个当前 canonical round 返回最小 `currentReport/latestAttempt` 概览；两个指针独立、排序稳定、invalid identity/context 整体 fail closed，且不形成顶层报告中心或完整报告列表。
+- Report 默认 framed input 上限由 A4 注入为 917,504 UTF-8 bytes；62,397-byte regression 与 limit 值调用 provider，limit+1 在 provider 前 terminal fail；A3 容量公式通过且 TPM 不参与裁决。
 
 ## 7 风险与应对
 
@@ -181,7 +196,7 @@ Handler 只投影 `targetJobId`、`PracticeRoundRef`、`currentReport{id,generat
 | LLM retry 被用成抽样到PASS | generation/judge各自硬cap4；judge valid negative终端；manifest记录reason/scope，禁止第五次调用 |
 | 把动作重试误作报告终身额度 | retry context仅存在于单次GenerateReport；DB无计数列；同一动作max4，新的独立invocation从0开始 |
 | context snapshot 扩大敏感面 | 仅 content-bearing report 字段保存；job/outbox/audit/log/state 全部负向扫描 |
-| 完整上下文超出模型预算 | 全量冻结供审计；48,000-byte preflight typed fail，不静默截断；输出合同与 6,144-token profile 做 worst-case gate |
+| 完整上下文超出模型预算 | 全量冻结供审计；A4 默认 917,504-byte preflight typed fail，不静默截断；输出合同与 6,144-token profile / 1M context window 做 worst-case gate |
 | 维度 code 过早全局固化 | code 仅在单份报告内唯一，P0 不建立全局 taxonomy |
 | API 改动扩散遗漏 consumer | B2 accepted ADR、merge-base diff、OpenAPI-first、closed schemas、codegen、fixtures、mapper、frontend、scenarios exact-set gate |
 | 历史 PASS 继续掩盖语义缺口 | 所有 completed marker 只作线索，重新运行 current-state gates 与真实 provider UAT |
@@ -192,6 +207,7 @@ Handler 只投影 `targetJobId`、`PracticeRoundRef`、`currentReport{id,generat
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 2.23 | Reopen Phase 11: replace the 48KB business bound with injected 896KiB, a 62,397-byte regression fixture and executable 1M-context capacity proof. |
 | 2026-07-14 | 2.22 | Move the unchanged overview handoff to target-scoped ReportsScreen/P0.059 and require Parse/Report/Generating zero-consumer evidence. |
 | 2026-07-14 | 2.21 | Reopen Phase 10 for the R-A canonical-round report overview, minimal wire, independent ready/latest selection, fail-closed identity checks and P0.016 handoff. |
 | 2026-07-13 | 2.20 | Separate mechanical 100%, fixed-five 4/5 semantic product acceptance and strict P0.100 11/11 diagnostics; record final-prompt run59381 without promoting its strict FAIL. |

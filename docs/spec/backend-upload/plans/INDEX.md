@@ -8,7 +8,7 @@
 
 | 计划 | 文件 | 版本 | 状态 | 更新日期 |
 |------|------|------|------|----------|
-| [001-file-objects-and-presign-baseline](./001-file-objects-and-presign-baseline/plan.md) | [plan](./001-file-objects-and-presign-baseline/plan.md) / [checklist](./001-file-objects-and-presign-baseline/checklist.md) / [context](./001-file-objects-and-presign-baseline/context.yaml) / [bdd-plan](./001-file-objects-and-presign-baseline/bdd-plan.md) / [bdd-checklist](./001-file-objects-and-presign-baseline/bdd-checklist.md) | 1.5 | active | 2026-07-13 |
+| [001-file-objects-and-presign-baseline](./001-file-objects-and-presign-baseline/plan.md) | [plan](./001-file-objects-and-presign-baseline/plan.md) / [checklist](./001-file-objects-and-presign-baseline/checklist.md) / [context](./001-file-objects-and-presign-baseline/context.yaml) / [bdd-plan](./001-file-objects-and-presign-baseline/bdd-plan.md) / [bdd-checklist](./001-file-objects-and-presign-baseline/bdd-checklist.md) | 1.6 | active | 2026-07-14 |
 
 ## 2 已完成（Completed）
 

@@ -1,7 +1,7 @@
 # 001 Home + JD Import + Parse Checklist
 
-> **版本**: 2.29
-> **状态**: completed
+> **版本**: 2.30
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -181,3 +181,10 @@
 - [x] 21.4 BDD-Gate: existing `E2E.P0.016` browser path captures the three labels/states/backgrounds and confirms consistency with the list-card mini rail; no sibling scenario.
 - [x] 21.5 POST-PASS: focused round/detail tests, UI contract, P0.016, typecheck/build, owner context/docs/diff and negative state-source searches pass before restoring `completed`.
   <!-- verified: 2026-07-14 evidence="P0.016 desktop/mobile PASS; UI contract 65/65 and acceptance screenshot 03 prove persisted done/current/pending labels and distinct background/border treatments without URL/storage fallback." -->
+
+## Phase 22: Runtime-configured JD text boundary
+
+- [ ] 22.1 RED: 98,304/98,305-byte ASCII/multibyte and zero-request/vault tests fail before a runtime size source exists.
+- [ ] 22.2 GREEN: Home consumes `targetJobRawTextBytes`, shared UTF-8 byte helper and A4-matching missing-field code default; DOM/style unchanged.
+- [ ] 22.3 BDD-Gate: P0.015 limit/+1/auth/privacy and backend P0.010 handoff pass on current source.
+- [ ] 22.4 focused/full Home/API/runtime-provider、typecheck/build、OpenAPI/codegen、parity、contexts/docs/diff 与 duplicate-limit negative search 通过。

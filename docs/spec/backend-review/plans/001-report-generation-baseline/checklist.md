@@ -1,6 +1,6 @@
 # 001 — Grounded Conversation Report Generation Checklist
 
-> **版本**: 2.20
+> **版本**: 2.21
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -99,3 +99,12 @@
   <!-- verified: 2026-07-14 method=fixture-exact-remediation+full-package evidence="An independent review caught the reused single-report error mapper. RED fixture-exact tests then required request correlation, TARGET_JOB_NOT_FOUND and AI_OUTPUT_INVALID missing/invalid details; operation-specific GREEN mapping now matches current fixtures. Four full target packages pass and the minimal JSON-key/privacy negatives remain green." -->
 - [ ] 10.6 BDD-Gate: `E2E.P0.059` composes focused backend overview evidence and proves target-scoped ReportsScreen-only consumption；Parse/Report/Generating keep zero list calls，Report/Generating stay reportId-only，and no global/history Report Center appears.
 - [ ] 10.7 POST-PASS: focused/full review/store/API tests、owner handoffs、context/docs/diff checks and scoped negative searches for pagination/full-list/`latest_report_id` drift pass before this plan returns to completed.
+
+## Phase 11: Configured report input boundary
+
+- [ ] 11.1 RED: 62,397-byte regression fixture、917,504/917,505 deterministic framed fixtures 与 package-hardcode negative test 先暴露旧 48,000-byte 拒绝。
+- [ ] 11.2 GREEN: report service/context builder 消费 A4 `report.maxFramedInputBytes`；limit 原样调用 provider，limit+1 在 provider/repair/retry 前 terminal `REPORT_CONTEXT_TOO_LARGE`。
+- [ ] 11.3 FIXTURE-GATE: manifest 重建 exact bytes/SHA-256；旧 48,000 fixture 不再作为 current production boundary，历史证据可保留。
+- [ ] 11.4 CAPACITY-GATE: 消费 A3 `917504+2048+6144=925696<1000000` marker，TPM 只作 throughput hint。
+- [ ] 11.5 BDD-GATE: P0.056 覆盖 62,397/default-limit provider path；P0.058 覆盖 limit+1 zero-provider 与返回报告恢复路径。
+- [ ] 11.6 VERIFY: focused/full review/store/API、race、fixture、privacy、contexts/docs/diff 与旧 48KB production-truth negative search 全部通过。

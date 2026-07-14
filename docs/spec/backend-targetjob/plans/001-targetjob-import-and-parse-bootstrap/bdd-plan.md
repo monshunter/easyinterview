@@ -1,14 +1,14 @@
 # Backend TargetJob BDD Plan
 
-> **版本**: 1.12
-> **状态**: completed
+> **版本**: 1.13
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 ## 0 场景矩阵
 
 | 场景 ID | 类别 | 关联 Plan Phase | 关联主 checklist BDD-Gate | 关联 spec C-* |
 |---------|------|----------------|---------------------------|----------------|
-| E2E.P0.010 | paste-only primary | Phase 18 | 18.4 | C-1 / C-2 / C-3 / C-6 / C-7 / C-9 / C-12 / C-16 |
+| E2E.P0.010 | paste-only primary + size boundary | Phase 18 + 20 | 18.4 / 20.3 | C-1 / C-2 / C-3 / C-6 / C-7 / C-9 / C-12 / C-16 / C-19 |
 | E2E.P0.012 | failure / recovery | Phase 18 | 18.4 | C-4 / C-5 / C-9 / C-10 |
 | E2E.P0.098 | backend progress / persistence / recovery | Phase 17 | 17.5 | C-17 |
 | E2E.P0.018 | primary / workspace delete archive | Phase 12 | 12.4 | C-7a / C-8 |
@@ -25,6 +25,6 @@
 
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
-| E2E.P0.010 | 粘贴 JD 走完异步解析并可列表 / 详情 / 更新 | 已登录用户、A3/F3 active、cookie jar、`Idempotency-Key` 与合法 `{rawText,targetLanguage,resumeId}` | 用户调用 `POST /targets/import`，runner 完成后依次调用 list/get/patch，并以同 key replay | 202 返回 queued job；DB 只以 `target_jobs.raw_jd_text` 保存原文；事件无来源字段/原文；解析后 ready 且 provenance 完整；replay 不新增 row/job/event；旧 source/URL/file/manual-form 字段不被合同接受 | `test/scenarios/e2e/p0-010-targetjob-text-import-parse-ready/` + local browser smoke |
+| E2E.P0.010 | 粘贴 JD 走完异步解析并验证 96KiB 边界 | 已登录用户、A3/F3 active、RuntimeConfig/default 98,304 bytes 与合法 `{rawText,targetLanguage,resumeId}` | 提交 UTF-8 limit、limit+1，runner 完成 limit case 后 list/get/patch，并 replay 同 key | limit 返回 queued 并 ready；limit+1 typed validation 且零 TargetJob/job/outbox/provider；replay 不重复；raw_jd_text 是唯一原文事实源 | `test/scenarios/e2e/p0-010-targetjob-text-import-parse-ready/` + P0.015 handoff |
 | E2E.P0.012 | Parse 失败 retryable / non-retryable | 已登录用户使用同一 paste-only wire，F3/A3 可注入 timeout/output-invalid/secret/config 错误 | runner 分别处理 retryable 与 non-retryable 失败 | `target.analysis.failed.retryable` 与 AI 错误语义一致，失败 TargetJob 不可见；用户可重新粘贴创建新 TargetJob；无 source row/file ref/refresh job，日志与事件不泄漏原文 | `test/scenarios/e2e/p0-012-targetjob-parse-failure-retryable/` |
 | E2E.P0.018 | Workspace 删除图标持久归档 | 已登录用户已有 ready TargetJob，workspace 使用 real backend / generated client，准备 `Idempotency-Key` | 用户点击 workspace 卡片删除图标；随后刷新 workspace 并直接调用 `GET /targets` / `GET /targets/{id}` | `archiveTargetJob` 返回 archived `TargetJob`，DB 写 `status='archived'` 与 `deleted_at`；workspace 成功后移除卡片且刷新后不回灌；`GET /targets` 不含该 job，`GET /targets/{id}` 返回 404；重复归档返回 `TARGET_INVALID_STATE_TRANSITION` conflict；越权归档返回 `TARGET_JOB_NOT_FOUND` | `test/scenarios/e2e/p0-018-workspace-default-render/` + local real-backend browser smoke |

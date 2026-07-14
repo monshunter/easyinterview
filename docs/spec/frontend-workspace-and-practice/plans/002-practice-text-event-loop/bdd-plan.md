@@ -1,7 +1,7 @@
 # 002 Practice Continuous Conversation BDD Plan
 
-> **版本**: 2.7
-> **状态**: completed
+> **版本**: 2.8
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 ## Scenario Matrix
@@ -15,3 +15,4 @@
 | E2E.P0.046 | timeout and terminal recovery | 10/11 | POST crosses 95 seconds, stale response may return, server row can be pending/retryable/terminal/complete | abort, reconcile the same ID, retry only retryable or choose terminal CTA | authoritative state wins；uncertain read stays fail-locked；stale response is ignored；terminal has one `/workspace?targetJobId` read-only-detail CTA and no current-scope `parse(targetJobId)` recovery；lease/fence/concurrency/timeout/terminal/fingerprint markers all pass |
 | E2E.P0.044 | safe Markdown/GFM conversation | 11 | persisted user and assistant text contains GFM headings/lists/blockquote/code/table at desktop or mobile | load/reload the conversation | both roles render through the shared safe projection；raw text remains authoritative；prototype/formal DOM/style/bbox/viewport parity holds and code/table creates no document overflow |
 | E2E.P0.046 | Markdown security/raw retry | 11 | persisted text contains raw HTML, remote image and unsafe/safe links, or a retryable row with Markdown source | render, inspect requests/DOM and retry the same row | HTML/scripts/events remain inert；no remote image request；unsafe URI rejected；safe link hardened；retry sends byte-identical raw text and same ID；terminal CTA enters Workspace detail |
+| E2E.P0.046 | Runtime text boundaries | 12 | RuntimeConfig/default 32KiB message / 256KiB session and server-loaded history near boundary | submit ASCII/multibyte limit and limit+1, reload after backend decision | limit sends；+1 zero send and draft retained；backend authoritative total/reply state reloads consistently |

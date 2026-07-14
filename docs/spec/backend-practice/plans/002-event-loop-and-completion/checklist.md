@@ -1,7 +1,7 @@
 # 002 — Conversation Message Loop and Completion Checklist
 
-> **版本**: 2.8
-> **状态**: completed
+> **版本**: 2.9
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -92,10 +92,19 @@
 - [x] 11.8 Run focused/full backend, migration, OpenAPI/codegen/fixture, scenario contract, context/docs/diff gates；only then record current evidence and restore completed lifecycle.
   <!-- reverified: 2026-07-14 decision="User approved Scheme A" method=current-full-aggregate evidence="Root make test passed UI 62/62, Python 590 tests/5181 subtests, all Go packages and frontend 121 files/977 tests after exact event/table sets and shared-verifier ownership were repaired; current P0.044/P0.046, context, docs, diff and pruning gates pass, while 10.6 remains historical-superseded." -->
 
+## Phase 12: Configured message and session text limits
+
+- [ ] 12.1 RED: UTF-8 32KiB/32KiB+1 单条与 256KiB/256KiB+1 会话累计 fixture 暴露旧 8,000-rune/无总量上限行为。
+- [ ] 12.2 GREEN: service 注入 `practice.maxMessageBytes=32768` / `practice.maxSessionTextBytes=262144`；按 bytes 在 reservation/provider 前校验。
+- [ ] 12.3 STORE/CONCURRENCY: persisted aggregate + candidate 在一致性边界内裁决；越界零 user/assistant/provider side effect，并发不得联合绕过。
+- [ ] 12.4 CONTRACT/BDD: RuntimeConfig 两字段、前端 precheck 与 P0.046 limit/limit+1/multibyte/reload/same-ID gates 通过。
+- [ ] 12.5 VERIFY: focused/full practice/store/API/race、OpenAPI/codegen、scenario、privacy、contexts/docs/diff 与旧 8,000-rune production-truth negative search 通过。
+
 ## 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 2.9 | Reopen with unchecked Phase 12 for configured Practice message/session byte boundaries. |
 | 2026-07-14 | 2.8 | Reopen with unchecked Phase 11 for lease expiry, generation fencing, real concurrency and freshness-bound scenario evidence. |
 | 2026-07-13 | 2.7 | Reopen for durable reply status and refresh-safe same-ID recovery. |
 | 2026-07-12 | 2.6 | 锁定 002 completion 唯一 owner、精确 P0.047 tests/markers/artifact。 |

@@ -1,7 +1,7 @@
 # 002 — Practice Continuous Text Conversation
 
-> **版本**: 2.7
-> **状态**: completed
+> **版本**: 2.8
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -126,6 +126,12 @@
 - Extend P0.044 for user+assistant GFM and desktop/mobile parity; extend P0.046 for malicious raw HTML/remote image/unsafe link negatives and exact raw same-ID retry. Existing scenario IDs remain; no sibling.
 - Supersede the Phase 10 terminal CTA target: authoritative `terminal_failed` must call exactly `navigate({ name: "workspace", params: { targetJobId: loader.data.targetJobId } })` and resolve to `/workspace?targetJobId=...` read-only detail. Query-free workspace, `parse(targetJobId)`, `planId`, row retry, composer submit and technical error text are negative gates; active spec/plan/tests/source must have zero positive current-scope `parse(targetJobId)` recovery references.
 
+### Phase 12: Runtime-configured message and session byte limits
+
+- RED tests use ASCII and multibyte UTF-8 inputs at 32KiB/32KiB+1 and server-loaded session totals at 256KiB/256KiB+1；the old 8,000-rune path must fail.
+- GREEN consumes `AppRuntimeProvider.contentLimits.practiceMessageBytes/practiceSessionTextBytes`, uses the shared byte helper and A4-matching missing-field defaults. Overflow preserves the draft and makes zero send calls; existing DOM/styles, raw retry and pending state remain unchanged.
+- `BDD-Gate: E2E.P0.046` proves limit/+1, reload, server-authoritative aggregate and typed backend rejection. Optimistic rows are never persisted or counted as final facts.
+
 ## 6 验收标准
 
 - No left rail, question count or QuestionCard at any viewport.
@@ -139,11 +145,13 @@
 - A send never waits beyond 95 seconds without reconciliation；timeout uses the same ID, preserves fail-locked state on uncertain reads and ignores stale responses. Terminal failure offers one generic CTA to the exact current `/workspace?targetJobId` read-only detail and never a row retry, query-free workspace fallback or `parse(targetJobId)` recovery.
 - P0.044/P0.046 evidence is current only when the tracked source fingerprint and every screenshot SHA-256/geometry match at verify time.
 - Persisted user and assistant text renders through safe Markdown/GFM; raw HTML, remote images and unsafe URIs cannot execute/request; safe links are hardened; retry preserves exact raw text/clientMessageId; mobile code/table content does not overflow the document.
+- Runtime/default message/session limits are 32KiB/256KiB UTF-8 bytes；limit sends, limit+1 preserves draft with zero send，backend aggregate remains authoritative。
 
 ## 7 修订记录
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 2.8 | Reopen Phase 12 for RuntimeConfig 32KiB message / 256KiB session UTF-8 limits and removal of 8,000-rune local truth. |
 | 2026-07-14 | 2.7 | Add Phase 11 safe react-markdown/remark-gfm projection, security negatives, exact raw retry, mobile code-overflow gates, and supersede terminal recovery to Workspace detail. |
 | 2026-07-14 | 2.6 | Add Phase 10 for a 95-second abort-and-reconcile timeout aligned to the backend lease, stale-response guards, generic terminal recovery to `parse(targetJobId)`, parity and fingerprint-bound P0.044/P0.046 evidence. |
 | 2026-07-13 | 2.5 | Add immediate optimistic user rows, interviewer-thinking, row-local same-ID retry, draft-safe failure handling and P0.044/P0.046 desktop/mobile screenshot closure. |

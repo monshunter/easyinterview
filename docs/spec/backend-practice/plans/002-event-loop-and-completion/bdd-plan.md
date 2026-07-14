@@ -1,7 +1,7 @@
 # 002 Conversation Message Loop BDD Plan
 
-> **版本**: 2.8
-> **状态**: completed
+> **版本**: 2.9
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 ## 1 Scenario Matrix
@@ -19,3 +19,4 @@
 | E2E.P0.046 | reload recovery | 10 | AI returns retryable or terminal failure after user reservation | reload/get session, then retry only the retryable row with the same ID | read projection restores exact status; retryable failure converges to one reply, terminal failure has no retry, new IDs remain blocked while unresolved |
 | E2E.P0.044 | lease-bounded pending | 11 | one immediate request and one reloaded server pending row are covered by a current tracked-source fingerprint | hold before 90 seconds, then read after expiry | immediate/persisted pending UX remains locked before expiry；GET lazily converges expiry without a duplicate send；fresh screenshot/source hashes prove current evidence |
 | E2E.P0.046 | concurrent expiry and stale worker | 11 | G1 is pending, lease expires, two same-ID retries race and the old worker later returns | GET/reserve G2, release stale G1 Commit/Fail, then commit G2 | one retry owns G2；stale G1 writes nothing；one assistant reply exists；terminal recovery exposes the current-plan CTA；95-second client timeout reconciles the same ID |
+| E2E.P0.046 | configured text boundaries | 12 | runtime config exposes 32KiB message / 256KiB session limits and persisted history is below/at boundary | send ASCII and multibyte limit/limit+1 messages, reload and retry accepted ID | boundary values persist and call AI；single/aggregate +1 returns typed validation with zero new row/provider；reload stays consistent |

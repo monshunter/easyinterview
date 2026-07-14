@@ -1,12 +1,14 @@
 # Backend TargetJob BDD Checklist
 
-> **版本**: 1.12
-> **状态**: completed
+> **版本**: 1.13
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
 
 ## E2E.P0.010 Text JD import 走完异步解析并可列表 / 详情 / 更新
+
+- [ ] Phase 20: current scenario covers 98,304-byte limit success and 98,305-byte typed rejection with zero TargetJob/job/outbox/provider side effects, including multibyte input and IK replay.
 
 - [x] 创建场景目录 `test/scenarios/e2e/p0-010-targetjob-text-import-parse-ready/`，并在 `test/scenarios/e2e/INDEX.md` 添加 `E2E.P0.010` 行（关联需求：backend-targetjob C-1/C-3/C-6/C-7/C-12）
 - [x] 历史主路径证据已存在；Phase 18 必须把 payload 改为合法 `{rawText,targetLanguage,resumeId}`，并保留 cookie、IK、stub profile、outbox 与 DB 清理边界。

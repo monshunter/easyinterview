@@ -1,7 +1,7 @@
 # 002 Conversation Message Loop Test Checklist
 
-> **版本**: 2.8
-> **状态**: completed
+> **版本**: 2.9
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 Test Plan**: [test-plan](./test-plan.md)
@@ -51,3 +51,9 @@
 - [x] All four named real PostgreSQL concurrency tests pass with independent connections/start barriers and exact row/reply/generation assertions.
 - [x] Service/API/OpenAPI/codegen/fixture regression passes and proves generation/lease remain internal.
 - [x] P0.044/P0.046 scenario contract, source fingerprint, screenshot hash/geometry and exact marker checks pass with fresh artifacts. (fresh serial runs `13f3b898-4054-4949-8b85-4a15df35c712` / `e26ba887-5f71-4c25-834e-448b4595ede2`)
+
+## Phase 12: Message/session UTF-8 byte limits
+
+- [ ] 32KiB/32KiB+1 single-message ASCII/multibyte tests pass.
+- [ ] 256KiB/256KiB+1 persisted aggregate, replay and concurrent-submit tests pass with zero overflow side effects.
+- [ ] RuntimeConfig/frontend and P0.046 current evidence pass.

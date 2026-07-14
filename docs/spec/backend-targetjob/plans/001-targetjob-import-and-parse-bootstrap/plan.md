@@ -1,7 +1,7 @@
 # TargetJob Import and Parse Bootstrap
 
-> **版本**: 1.28
-> **状态**: completed
+> **版本**: 1.29
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 Checklist**: [checklist](./checklist.md)
@@ -331,6 +331,16 @@ Service 对 TargetJob summary 做一次 canonical round 解码：provenance 的 
 
 BDD 不适用：本 Phase 本身只删除重复内部/public pointer，用户可见 report overview 由 backend-review/frontend-report-dashboard 的 P0.059 owner 验收。替代 gate 为 OpenAPI exact diff、migration up/down/up、TargetJob store unit/real PostgreSQL、generated/fixture validation 与精确 zero-reference；正向回归必须保留 Get/List canonical rounds、practice progress、resume binding 和 backend-review ownership。
 
+### Phase 20: Configured raw JD text boundary
+
+#### 20.1 RED/GREEN config and service limit
+
+Add UTF-8 98,304/98,305-byte fixtures plus missing/default/override/invalid config tests. Inject A4 `targetJob.maxRawTextBytes=98304` into import service; validate trimmed raw text before TargetJob/job/outbox/provider work. Delete any duplicated local limit and reject explicit invalid config at startup.
+
+#### 20.2 Contract and BDD
+
+RuntimeConfig exposes only `targetJobRawTextBytes`; the OpenAPI request shape remains `{rawText,targetLanguage,resumeId}` without a static value copied as runtime truth. P0.010 proves limit success, limit+1 zero side effects, idempotent replay and ready parse; frontend P0.015 proves the same public value blocks the POST locally while backend remains authoritative.
+
 ## 5 验收标准
 
 - Phase 18 owner contract gates 通过：request/response、generated types、fixtures、B1/B3/B4/A4/F3 与 paste-only 合同一致。
@@ -351,6 +361,7 @@ BDD 不适用：本 Phase 本身只删除重复内部/public pointer，用户可
 - TargetJob Get/List project practice progress from persisted completion facts without N+1 or mutable progress columns, and only expose a ready plan matching the current canonical round.
 - TargetJob Get/List ignore same-user wrong-resume completion/ready-plan facts, accept strictly increasing non-contiguous positive-int32 round ladders, and choose the next existing canonical successor rather than `sequence + 1`.
 - TargetJob public/generated/fixture/store/DB surface contains no latest-report pointer; current ready report and latest attempt are projected only by backend-review from owned reports and frozen canonical-round context.
+- TargetJob raw JD 默认 96KiB UTF-8 bytes，limit 可入队解析，limit+1 在所有业务副作用与 provider 前拒绝；RuntimeConfig/frontend 与 backend 同值。
 
 ## 6 风险与应对
 

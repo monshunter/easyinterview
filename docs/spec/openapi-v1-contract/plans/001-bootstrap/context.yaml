@@ -5,10 +5,10 @@ metadata:
   name: 001-bootstrap
   sequence: 1
   baseBranch: main
-  branch: fix/request-dedup-resume-summary-routing-0714
+  branch: runtime-size-limits
   specVersion:
-    from: 1.58
-    to: 1.59
+    from: 1.59
+    to: 1.60
 spec:
   defaultTarget: contract
   discovery:
@@ -55,6 +55,8 @@ spec:
       - PaginatedResume items summary only
       - getResume full detail unchanged
       - hasReadableContent backend projection
+      - RuntimeConfig contentLimits
+      - ContentLimits five public byte fields
       - no list detail compatibility or N plus one
       - deterministic exact 24 words 64 code points parity
       - 10 tags

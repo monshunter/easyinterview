@@ -5,8 +5,9 @@ metadata:
   name: 002-create-flow
   sequence: 2
   specVersion:
-    from: 1.0
-    to: 2.15
+    from: 2.15
+    to: 2.16
+  branch: runtime-size-limits
 spec:
   defaultTarget: frontend
   discovery:
@@ -38,6 +39,9 @@ spec:
       - resume create ui parity desktop mobile
       - mock-first fixture parity
       - real backend generated client gate
+      - resumeUploadBytes 10485760
+      - resumePasteTextBytes 393216
+      - utf8 byte validation
   targets:
     frontend:
       plan: ./plan.md

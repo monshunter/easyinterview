@@ -1,6 +1,6 @@
 # Backend Practice Spec
 
-> **版本**: 1.33
+> **版本**: 1.34
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -83,6 +83,7 @@
 - start/send 两条 store reservation 必须使用相同的 resume context 投影，并再次验证 `practice_plans.resume_id = target_jobs.resume_id`；TargetJob 改绑后，旧 plan/session 即使仍属同一用户也必须 fail closed，不能继续使用旧简历。若三种简历内容均为空，必须在 prompt resolve / AI 调用前 fail closed 为 typed `VALIDATION_FAILED`，不得注入 `resume context unavailable` 后继续生成，也不得写 assistant message。
 - 面试官只能把 persisted Resume context 或 candidate-authored `user` message 中明确出现的公司、项目、产品和技术栈当作候选人事实；`assistant` history 只用于连续性，不是事实来源。不得声称简历包含实际不存在的项目，也不得继续追问仅由上一条 assistant 引入的项目。用户只说“几个项目”却未给出名称时，应先请用户命名或描述，不能自行补造项目。
 - 输出保持最小结构化 envelope `{messageText}`，只用于 schema 与语言校验；它不是题目结构。
+- 用户输入大小按 UTF-8 bytes 由 A4 typed config 注入：`practice.maxMessageBytes` 默认 32KiB，`practice.maxSessionTextBytes` 默认 256KiB。会话总量按已持久化 user/assistant 正文加本次 user message 计算；单条或累计 limit+1 在 reservation/AI 调用前返回 typed `VALIDATION_FAILED`，不得静默截断、写入半条 user row 或调用 provider。`maxMessageBytes <= maxSessionTextBytes` 在启动期验证。
 - `finish_reason=length` 即使返回内容碰巧是合法 JSON 也视为截断的 `AI_OUTPUT_INVALID`；schema / business parse、语言不一致或 length 截断只 repair 一次，provider/config/secret/timeout/unsupported 不做 business repair。
 - 二次 invalid output 返回 typed `AI_OUTPUT_INVALID`，不生成 canned message。
 
@@ -177,6 +178,7 @@ reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`Com
 | C-12 | 绑定、目录与 prompt 信任边界 | TargetJob 绑定 resume A；同用户另有 resume B；summary 可能缺 provenance、含大于 int32 / 非连续 sequence 或大小写错误 type；简历/JD/历史可能含指令式文本，assistant history 可能已臆造项目 | 创建 plan 并启动/继续会话 | 只有绑定 resume A 的 source/completion/ready-plan 事实有效；`1,2,4` 目录按 canonical successor 推进，溢出/非法 type/缺 provenance fail closed；system policy 不被 JSON 编码的不可信上下文覆盖，persona 只影响风格，assistant-only claim 不成为候选人事实 | 001/002 |
 | C-13 | reportable completion | running session 为零回答、存在 pending reply 或已有至少一条 committed user message | 调用 complete 并重放 | 002 唯一负责拒绝不可报告 completion 或原子冻结 `report-context.v1`；P0.047 产出 owner artifact，review 只消费 | 002 |
 | C-14 | 刷新可恢复消息 | user message 已持久化为 pending/retryable/terminal 状态，页面刷新或重挂载 | `getPracticeSession` 后按需用同一 ID 重试 | 读模型返回原 `clientMessageId/replyStatus`；pending 继续 thinking，retryable failure 原 row 可重试，terminal failure 无 retry；成功后仅一个 assistant reply，浏览器存储不参与 | 002 |
+| C-16 | 消息与会话文本边界 | 当前累计文本分别位于 256KiB 内/边界，提交 32KiB 内或 limit+1 用户消息 | `sendPracticeMessage` | 单条 32KiB 与累计 256KiB 边界可正常持久化/调用 AI；任一 limit+1 返回 `VALIDATION_FAILED`，不写 user row、不调用 AI；前端从 runtime config 同值预检 | 002 Phase 12 + P0.046 |
 | C-15 | pending lease 与 generation fence | G1 worker 在写 reply 前失联或迟到，90 秒 lease 已过期，随后发生 GET 或两个同 ID 并发 retry | 读取会话并 reserve G2，再释放 G1 Commit/Fail | GET 或同 ID reserve 惰性收敛过期 pending；只一个调用取得 G2；G1 Commit/Fail 均 typed conflict 且零写入；G2 最终只写一个 assistant reply | 002 |
 
 ## 5 关联计划
@@ -190,6 +192,7 @@ reserve 成功必须把本次 `reply_generation` 返回给 service 内部；`Com
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-14 | 1.34 | 方案 A：新增 32KiB 单条与 256KiB 会话文本 typed config，统一 UTF-8 byte 边界、持久化前拒绝与 P0.046 恢复合同。 |
 | 2026-07-14 | 1.33 | Confirm T-B/P-A recovery contract: 90-second server lease, internal reply-generation fence, GET/same-ID-reserve lazy convergence, 95-second client timeout reconciliation and terminal return-to-current-plan handoff. |
 | 2026-07-13 | 1.32 | Reopen 002 for server-persisted reply status and same-client-message recovery across refresh, plus typed frontend error consumption handoff. |
 | 2026-07-12 | 1.31 | 完成 004 server-owned report focus：active practice v0.2 只消费结构化 semantic focus，P0.070/P0.072 在 PostgreSQL v19 闭环 projection/IK/isolation/privacy 与 legacy-negative gate。 |

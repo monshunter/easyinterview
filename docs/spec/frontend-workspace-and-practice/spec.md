@@ -1,7 +1,7 @@
 # Frontend Workspace and Practice Spec
 
-> **版本**: 1.44
-> **状态**: completed
+> **版本**: 1.45
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 ## 1 背景与目标
@@ -40,6 +40,7 @@
 - `terminal_failed` 是服务端权威终态，不显示 row-local retry，也不允许永久空白锁死。页面必须显示一条不泄漏技术细节的通用恢复说明和唯一主动作“返回当前面试规划”，精确执行 `navigate({ name: "workspace", params: { targetJobId: session.targetJobId } })` 并进入 `/workspace?targetJobId=...` 只读详情；不得退回无上下文 workspace 列表、不得再进入 `parse(targetJobId)` 命令进度页、不得携带 `planId`、不得复用 composer submit。
 - 当前页面内存中的 `{text, clientMessageId, status}` 只覆盖 submit 到首次 response/read convergence 的即时反馈；一旦刷新或重挂载，恢复必须完全来自 `getPracticeSession` 的 `clientMessageId + replyStatus`，不得用 URL、localStorage、sessionStorage 或 IndexedDB 保存 retry identity。AI 失败后刷新仍必须用服务端返回的原文本与同一 `clientMessageId` 重试，最终收敛为唯一 user/reply pair。
 - message failure 后 textarea 可恢复输入以保留下一条草稿，但在失败消息完成同 ID retry 前 submit 仍 disabled，并提供本地化说明；草稿不得改变 retry payload，也不得作为另一条业务消息绕过待回复状态。
+- Composer 按 RuntimeConfig `practiceMessageBytes` 默认 32KiB 预检，当前 server-loaded messages 与 draft 按 `practiceSessionTextBytes` 默认 256KiB 预检；统一使用 UTF-8 bytes 而不是字符/rune 计数。limit+1 不调用 send，显示本地化可恢复说明；backend persisted aggregate 仍是最终权威，前端不得把 optimistic/route/storage 作为会话总量事实。
 - 95 秒 POST timeout 后的对账必须采用有界、可取消的 GET：若读到 `complete/pending/retryable_failed/terminal_failed`，立即采用服务端事实；若尚无该 ID 或 GET 本身失败，保留原 optimistic row 与原 `clientMessageId` 为 unresolved/retryable recovery，继续禁止新 ID submit/Finish，并允许刷新或同 ID 恢复。被 abort 的旧 POST 即使迟到返回也不得覆盖较新的对账或 retry generation。
 - message optimistic row 仍处于 pending/retryable-failed/retrying/terminal-recovery、session loading、completion 进行中或 session 已进入 `completing / completed` 时结束 CTA 必须 disabled，避免 UI 主动制造 send/complete 竞态。
 - 只有 server-loaded `messages` 中至少存在一条已提交的 candidate `user` message 且不存在 pending assistant reply 时，Finish 才具备前端资格。零回答时使用原生 disabled，并在控件附近展示 zh/en 本地化原因，通过稳定 `aria-describedby` 关联；route params、composer draft 或仅有 opening assistant message 均不能充当回答。
@@ -80,6 +81,7 @@
 | D-12 | Workspace list/detail split | 无 targetJobId 是列表；有 targetJobId 是只读详情，card 直达；详情只执行一次同 key `getTargetJob`，不 import、不 poll、不播放 Parse animation | shell/004 owns ready replace/back；shell/001 owns safe-read single-flight |
 | D-13 | Conversation Markdown projection | user/assistant 均由 `react-markdown + remark-gfm` 渲染；`skipHtml`、no `rehypeRaw`、no remote image、safe link；retry 保留原始 text/clientMessageId | Markdown 只是 view，不能改写业务 payload；mobile code block 必须容器内滚动 |
 | D-14 | Workspace detail round-state affordance | 详情卡片与列表 mini rail 消费同一 `practiceProgress`：`done/已进行`、`current/即将进行`、`pending/未进行` 使用三种背景、边框、可见标签与 `data-round-state`；无效投影中性 fail closed | 不新增 API/schema/前端状态机，不从 TargetJob lifecycle、URL 或 storage 猜测 |
+| D-15 | Practice text limits | `AppRuntimeProvider.contentLimits.practiceMessageBytes/practiceSessionTextBytes` 是唯一前端数据源，缺字段用 A4 同值 code default 32768/262144；`TextEncoder` 计算 bytes；backend error 可覆盖前端估算 | 删除 8,000-rune 本地真理源，保持 composer DOM/视觉不变并防止正常长回答误拒 |
 
 ## 4 UI 真理源与 parity
 
@@ -153,6 +155,7 @@
 | C-15 | terminal 当前规划恢复 | server row 为 `terminal_failed` 且 session 有 authoritative `targetJobId` | 查看终态并点击恢复 CTA | 无 retry icon；唯一 CTA 精确进入 `/workspace?targetJobId` 当前规划详情 | 002 |
 | C-16 | Safe Markdown/GFM | persisted user/assistant text 含 GFM 与恶意 HTML/image/link/code | 渲染、retry、mobile 查看 | 两类角色都渲染 GFM；HTML/remote image/unsafe URI 不执行；safe link hardened；retry exact raw text/ID；code 不撑破 viewport | 002 |
 | C-17 | Workspace 详情轮次三态 | ready TargetJob 有 2~5 条 canonical rounds 与合法/完成/无效 `practiceProgress` | 打开或刷新 `/workspace?targetJobId` | 合法进行中显示完成前缀 `done/已进行`、唯一 `current/即将进行`、其余 `pending/未进行`，三态背景/边框不同且与列表 rail 一致；全完成全部 done；无效投影中性且启动 disabled | 001 |
+| C-18 | Practice byte boundaries | RuntimeConfig/default 32KiB message / 256KiB session，输入 ASCII/多字节 limit 或 limit+1 | submit / reload | limit send；limit+1 zero send 并保留 draft；reload 后 backend authoritative total/reply state 一致 | 002 Phase 12 + P0.046 |
 
 ## 9 关联计划
 
@@ -172,6 +175,7 @@
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.45 | 2026-07-14 | Add RuntimeConfig-backed 32KiB message and 256KiB persisted-session UTF-8 byte limits, replacing the 8,000-rune frontend/backend drift. |
 | 1.44 | 2026-07-14 | Add persisted done/current/pending round-state cards to Workspace detail with rail-consistent visuals and invalid-projection fail-closed behavior. |
 | 1.43 | 2026-07-14 | Add Workspace query-addressed detail, supersede terminal recovery to that detail, and add safe Markdown/GFM conversation projection with exact raw retry payloads. |
 | 1.42 | 2026-07-14 | Confirm T-B/P-A: pair the 90-second backend lease with a 95-second abort-and-reconcile client timeout, ignore stale responses, and give terminal failures one generic CTA to the exact current `parse(targetJobId)` plan. |

@@ -1,8 +1,8 @@
 # 001 BDD Plan
 
-> **版本**: 1.6
+> **版本**: 1.7
 > **状态**: active
-> **更新日期**: 2026-07-13
+> **更新日期**: 2026-07-14
 
 **关联 Plan**: [plan](./plan.md)
 
@@ -10,7 +10,7 @@
 
 | 场景 ID | 类别 | 关联 Phase | 关联 Spec C-* | 关联 BDD-Gate（主 checklist） |
 |---------|------|-----------|--------------|----------------------------|
-| E2E.P0.033 | primary + boundary + failure · file presign → 客户端 PUT → register → privacy delete roundtrip | Phase 1 + 2 + 3 + 4 + 5 + 7 | C-1, C-2, C-3, C-4, C-6, C-7, C-8, C-9 | Phase 5.3 + Phase 7.3 |
+| E2E.P0.033 | primary + boundary + failure · file presign → 客户端 PUT → register → privacy delete roundtrip | Phase 1 + 2 + 3 + 4 + 5 + 7 + 8 | C-1, C-2, C-3, C-4, C-6, C-7, C-8, C-9, C-10 | Phase 5.3 + Phase 7.3 + Phase 8.3 |
 
 ---
 
@@ -25,3 +25,7 @@
 | 场景 ID | 场景 | Given | When | Then | 验证入口 |
 |---------|------|-------|------|------|----------|
 | E2E.P0.033 | paste-only upload-purpose boundary | OpenAPI/B4 purpose 收缩与 A4 Phase 12 maxBytes handoff 已可消费；live Postgres + MinIO 已就绪；准备 1MB resume PDF、旧 `target_job_attachment` purpose 请求和 5MB privacy export 对象 | （A）执行既有 resume presign → PUT → register → privacy delete roundtrip；（B）以旧 `target_job_attachment` purpose 调 `POST /api/v1/uploads/presign`；（C）以 `purpose=privacy_export`、`byteSize=5242880` 调 presign | （A）resume 全链路继续 PASS；（B）返回 422 `VALIDATION_FAILED` / `details.field=purpose`，且不创建 DB row 或对象；（C）返回 201、创建 `pending` row，并证明 5MB limit 与 privacy delete 链路保留；TargetJob 不调用 upload endpoint | `test/scenarios/e2e/p0-033-file-presign-register-roundtrip/` 的 setup → trigger → verify → cleanup；缺 live evidence、出现 skip/no-op 或三组断言任一缺失均不得 PASS |
+
+## Phase 8: exact size limits
+
+P0.033 additionally submits exact resume 10MiB/10MiB+1 and privacy_export 5MiB/5MiB+1 declared/actual sizes. Boundary values complete presign/PUT/register; +1 creates neither DB row nor object. Missing/override config behavior is covered by focused A4/upload tests, not inferred from scenario constants.

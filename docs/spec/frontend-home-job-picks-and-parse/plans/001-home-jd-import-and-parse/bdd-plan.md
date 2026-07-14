@@ -1,7 +1,7 @@
 # 001 BDD Plan
 
-> **版本**: 2.19
-> **状态**: completed
+> **版本**: 2.20
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 Plan**: [plan](./plan.md)
@@ -11,7 +11,7 @@
 | 场景 ID | 场景 | 关联 Phase | 关联 Spec C-* | 主 checklist gate |
 |---------|------|-----------|--------------|-------------------|
 | E2E.P0.014 | Home paste-only 默认渲染、exact GET 与最近模拟面试 | Phase 1 + 18 + 20 | C-1, C-2, C-5, C-10 | 1.4, 18.7, 20.5 |
-| E2E.P0.015 | Home paste JD 到 command-only Parse | Phase 1 + 2 + 17 + 18 + 20 | C-2, C-3, C-4, C-6, C-7, C-10 | 1.5, 17.4, 18.7, 20.5 |
+| E2E.P0.015 | Home paste JD 到 command-only Parse + 96KiB boundary | Phase 1 + 2 + 17 + 18 + 20 + 22 | C-2, C-3, C-4, C-6, C-7, C-10, C-14 | 1.5, 17.4, 18.7, 20.5, 22.3 |
 | E2E.P0.016 | Workspace 面试规划详情只读收据、结构化轮次三态、报告入口与 Start handoff | Phase 2 + 5 + 6 + 8 + 19 + 20 + 21 | C-6, C-8, C-9, C-10, C-12, C-13 | 2.5, 5.4, 6.4, 8.5, 19.6, 20.5, 21.4 |
 | E2E.P0.018 | Workspace 列表直达统一面试规划详情 | Phase 5 + 20 | C-11 | 5.4, 20.5 |
 
@@ -20,7 +20,7 @@
 | 场景 ID | Given | When | Then | 验证入口 |
 |---------|-------|------|------|----------|
 | E2E.P0.014 | Home focused tests 使用 fixture-backed runtime；底层 transport 可计数；`listTargetJobs` / `listResumes` 提供当前变体 | 在 React StrictMode 打开 Home 并点击 ready recent card | 两项同 key 初载底层 GET 各恰好 1；无紧邻重复 pair；ready card 直达 `/workspace?targetJobId`，不进入 Parse；原 paste-only/quick-start/More/parity 合同保持 | `test/scenarios/e2e/p0-014-home-default-render/` |
-| E2E.P0.015 | Home 有 ready 简历；import 后 TargetJob 可经历 queued/processing/ready；底层 transport/timer/history 可观察 | 选择简历、粘贴 JD 并提交；推进 polling scheduler 到 ready，再执行 Back | POST 成功只进入 `/parse?targetJobId`；每个 getTargetJob tick 底层请求恰好 1；ready 使用 replace 进入 `/workspace?targetJobId`，Back 不返回 Parse animation；现有 auth/privacy/failed/idempotency 合同保持 | `test/scenarios/e2e/p0-015-jd-import-and-parse/` |
+| E2E.P0.015 | Home 有 ready 简历；RuntimeConfig/default 98,304 bytes；import 可经历 queued/processing/ready | 提交 UTF-8 limit 与 limit+1，推进合法 import polling 到 ready，再执行 Back/auth continuation | limit POST 成功并进入 command route；+1 inline reject 且零 POST/vault；每 tick GET=1；ready replace；auth/privacy/idempotency 保持 | `test/scenarios/e2e/p0-015-jd-import-and-parse/` |
 | E2E.P0.016 | 用户进入 Workspace 面试规划详情；TargetJob 已保存真实 `resumeId`、backend-generated 2~5 条 rounds 与合法 completed/current progress | 用户打开只读详情、观察轮次三态、点击内容区右上角“面试报告”，并继续验证立即面试 | 轮次卡显示 done/current/pending 对应“已进行/即将进行/未进行”，背景和边框三态不同且与列表 rail 一致；既有 readonly/report/Start/zero-list 断言保持；1440×900 / 390×844 parity 通过 | `test/scenarios/e2e/p0-016-parse-confirm-to-workspace/` |
 | E2E.P0.018 | 用户从 query-free workspace 列表打开已有 ready 规划；TargetJob fixture 提供绑定上下文 | 点击规划卡片 | 直接进入 `/workspace?targetJobId`；详情只读复用统一母版，不播放 Parse animation，不 import/poll/auto-start；详情 `getTargetJob` 同 key 初载底层请求恰好 1 | `test/scenarios/e2e/p0-018-workspace-default-render/` |
 

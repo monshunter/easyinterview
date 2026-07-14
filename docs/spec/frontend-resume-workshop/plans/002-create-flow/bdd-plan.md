@@ -1,7 +1,7 @@
 # Frontend Resume Workshop Create Flow BDD Plan
 
-> **版本**: 1.11
-> **状态**: completed
+> **版本**: 1.12
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 Plan**: [plan](./plan.md)
@@ -21,7 +21,7 @@
 
 Given an authenticated user opens the Resume Workshop create route.
 When the user completes upload or paste creation and `registerResume` returns a `resumeId`.
-Then the app navigates to `resume_versions?resumeId=<id>` where detail owns waiting/terminal states and source-format rendering, side-effect requests use IK, files over 2MiB and DOCX files are rejected before presign, sidebar and preview-confirm DOM are absent, raw resume content is not stored in route state or browser storage, and pasted raw first line is not submitted or displayed as the resume name.
+Then the app navigates to `resume_versions?resumeId=<id>` where detail owns waiting/terminal states and source-format rendering, side-effect requests use IK, runtime/default 10MiB upload and 384KiB paste limits accept boundary values and reject +1 before requests, DOCX is rejected, sidebar/preview-confirm are absent, and raw content is not stored in route/browser storage.
 
 ### E2E.P0.082
 

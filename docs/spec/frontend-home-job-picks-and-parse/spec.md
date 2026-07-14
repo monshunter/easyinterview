@@ -1,7 +1,7 @@
 # Frontend Home / Parse Spec
 
-> **版本**: 2.25
-> **状态**: completed
+> **版本**: 2.26
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 ## 1 背景与目标
@@ -76,6 +76,7 @@ Home 粘贴 JD
 | D-12 | Recent card planning and start actions | Home ready 卡片主体直接进入 `/workspace?targetJobId=...`；`立即面试 / Start interview now` 仍用 generated practice handoff 启动 PracticeSession | 已解析规划不经过 Parse 动画；删除按钮只属于 workspace 列表 |
 | D-13 | Parse loading 信息层级 | loading 只说明当前进度与等待状态，不暴露 model/provider、rubric/prompt/version/hash、provenance 或典型耗时 | 内部诊断信息留在受控日志/观测面，不进入用户界面 |
 | D-14 | JD intake 单一合同 | Home 与 `importTargetJob` 只保留 `{ rawText, targetLanguage, resumeId }` | 不保留 source discriminator；删除其他 JD 导入形态但不影响 Resume 上传 |
+| D-15 | JD raw text runtime limit | Home 只消费 RuntimeConfig `targetJobRawTextBytes`，默认/code fallback 98,304 bytes；通过 `TextEncoder` 按 UTF-8 bytes 预检，limit+1 不调用 import；backend 仍作最终裁决 | 不改变 textarea DOM/样式，只统一数据源、字节口径与本地化错误；不把 route/vault/browser storage 当限制事实源 |
 | D-15 | 报告记录入口 | Workspace detail 内容区右上角提供页面级“面试报告”入口，进入 `/reports?targetJobId=<uuid>`；入口不进入全局 TopBar，Parse 不渲染 ready 入口、不嵌入或请求报告列表 | 用户在独立页面查看且只查看当前规划的轮次报告；Report/Generating 仍由各自 reportId-only 页面承接 |
 | D-16 | Initial GET request count | Home `listResumes` / `listTargetJobs` 与 Parse 每个分类/调度 tick 的 `getTargetJob` 依赖 shell safe-read single-flight | StrictMode mount 不产生紧邻重复底层 GET；轮询只由明确 scheduler 在间隔到期后发起 |
 | D-17 | Workspace detail round state | 轮次假设卡片使用与 Home/Workspace mini rail 相同的 `practiceProgress` 投影：完成前缀为 `done/已进行`，首个未完成轮为 `current/即将进行`，其余为 `pending/未进行`；三态必须同时有不同背景、边框、文字标签和可测试状态属性 | 用户无需从顺序猜测进度；不从 lifecycle status、URL 或浏览器存储推断轮次状态 |
@@ -140,6 +141,7 @@ Home 粘贴 JD
 | C-11 | Workspace 回访统一详情 | `listTargetJobs` 返回已保存 ready 规划且有 `targetJobId/resumeId` | 用户从 Home 或 workspace 卡片打开 | 直达 `/workspace?targetJobId=...` 并渲染同一详情母版；无 Parse loading/animation；返回 `/workspace` 列表 | 001 / frontend-workspace-and-practice 001 |
 | C-12 | 规划详情报告入口 | ready TargetJob 有可信 `targetJobId` | 打开 Workspace 面试规划详情并点击标题行右上角“面试报告” | 精确进入 `/reports?targetJobId=<uuid>`；入口不在全局 TopBar；Parse 不渲染 ready detail/报告入口，Workspace detail 不渲染报告列表、不调用 `listTargetJobReports`、不保留 `section=reports` 兼容逻辑，Start 不受影响 | 001 |
 | C-13 | 规划详情轮次三态 | ready TargetJob 有合法 2~5 轮与 `practiceProgress` 完成前缀/current | 打开或刷新 `/workspace?targetJobId=...` | 每张 round assumption 卡显示且仅显示 done/current/pending 之一，对应“已进行 / 即将进行 / 未进行”及三种不同背景/边框；状态与列表 mini rail 一致，全完成与无效投影 fail closed | 001 |
+| C-14 | JD size boundary | RuntimeConfig/default 96KiB，用户粘贴 UTF-8 limit 或 limit+1 | 点击「立即面试」 | limit 发起 exact import；limit+1 inline validation 且零 import/pending vault；backend P0.010 同值 authoritative gate | 001 Phase 22 + P0.015 |
 
 ## 8 关联计划
 
@@ -157,5 +159,6 @@ Home 粘贴 JD
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 2.26 | 2026-07-14 | Add RuntimeConfig-backed 96KiB JD UTF-8 boundary to Home without changing the paste-only UI structure. |
 | 2.25 | 2026-07-14 | Add Workspace detail round-assumption done/current/pending visual states derived from the same backend practice-progress projection as list-card rails. |
 | 2.24 | 2026-07-14 | Make Parse command-progress-only, replace ready targets into Workspace detail, route ready cards directly, move ready detail/report/start language to Workspace, and require exact initial GET counts. |

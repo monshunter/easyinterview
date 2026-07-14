@@ -1,7 +1,7 @@
 # Frontend Resume Workshop Create Flow Checklist
 
-> **版本**: 1.18
-> **状态**: completed
+> **版本**: 1.19
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -89,3 +89,10 @@ The checked assertions below record the 2026-07-08 full-Resume list contract. Ac
   <!-- verified: 2026-07-10 method=create-accent-css-cascade-green evidence="CreateFlowScopeNegative passes 5/5; exactly one accent CTA rule contains all effective layout, typography, interaction, background, border and color declarations, while the disabled rule and two component consumers remain unchanged." -->
 - [x] 12.3 Run focused CreateFlow, full frontend, typecheck/build, owner/product contexts and docs/index/diff/pruning gates; then restore the owner to `completed`.
   <!-- verified: 2026-07-10 method=create-accent-css-cascade-consolidation evidence="Source gate passes 5/5; CreateFlow owner passes 6 files/34 tests; full frontend passes 136 files/844 tests; typecheck/build and both contexts pass. Exactly one complete accent CTA rule remains, while the disabled rule and both production consumers are unchanged. Final docs/index/diff/pruning gates pass during closeout. No Bug/retrospective report, environment restart or data cleanup was needed." -->
+
+## Phase 13: Runtime-configured upload and paste boundaries
+
+- [ ] 13.1 RED: runtime 10MiB/384KiB、UTF-8 limit/limit+1 与 zero-request tests 在旧 2MiB constant 下失败。
+- [ ] 13.2 GREEN: UploadTab/PasteTab 消费 AppRuntimeProvider 两字段和共享 byte helper；缺字段使用同值 code default，UI DOM/style 不变。
+- [ ] 13.3 BDD-Gate: P0.081 upload/paste boundary、DOCX、direct detail、privacy/recovery 当前证据通过。
+- [ ] 13.4 focused/full frontend、typecheck/build、OpenAPI/generated、parity、contexts/docs/diff 与旧 2MiB production-truth negative search 通过。

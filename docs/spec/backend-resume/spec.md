@@ -1,7 +1,7 @@
 # Backend Resume Spec
 
-> **版本**: 2.8
-> **状态**: completed
+> **版本**: 2.9
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 ## 1 背景与目标
@@ -58,7 +58,7 @@
 | D-13 | 简历资产扁平化 | 当前合同是单一扁平 `resumes` 表 + 10 个 op：`registerResume` / `getResume` / `getResumeSource` / `listResumes` / `updateResume` / `duplicateResume` / `archiveResume` / `exportResume` / `requestResumeTailor` / `getResumeTailorRun`。`registerResume` + parse 直接写当前 resume 的 `structured_profile`；`requestResumeTailor` / `getResumeTailorRun` 的 run + suggestions 落在 `ai_task_runs` task 输出；客户端采纳后通过 `updateResume` 覆盖或 `duplicateResume` 另存 | 对齐 [B2 D-26](../openapi-v1-contract/spec.md)、[B4 D-22](../db-migrations-baseline/spec.md)、[B3 D-17](../event-and-outbox-contract/spec.md) 与 [B1 D-20](../shared-conventions-codified/spec.md) |
 | D-14 | parse-derived displayName | `resume.parse` 输出合同必须显式要求可读 `displayName`，并由后端校验为非通用、非文件名、非 raw 第一行直出；成功路径优先使用 LLM `displayName`，再从结构化结果组合候选人姓名与标题 / 岗位 / 项目名称。若 LLM 输出失败但可读正文已抽取，失败路径也必须写入一个保守的 extracted-text fallback `display_name`，不得长期保留空值或通用“上传/粘贴的简历” | 支撑前端列表和只读详情展示可识别名称，避免用户看到无意义标题、正文首行、PDF 文件名或长期“名称生成中” |
 | D-15 | upload text snapshot | upload 简历的 `parsed_text_snapshot` 必须来自文件正文提取，而不是文件名、截断文件片段、PDF literal 乱码或二进制 bytes 直转 string；PDF / Markdown / text 覆盖当前上传白名单；DOCX 必须在上传注册前被拒绝，不进入解析链路；PDF 读取预算必须覆盖真实浏览器生成简历文件所需的 xref / 字体映射，优先使用 `pdftotext` 获取可读正文，所有 fallback 都必须通过可读性 gate；若可读正文已抽取成功，后续 LLM 输出失败也必须保留该 snapshot | LLM prompt 消费同一可读文本；PDF 用户预览走原始 source endpoint，Markdown / TXT / paste 详情走 Markdown renderer |
-| D-16 | Resume limits | 每个用户 active resume 数量由 `resume.maxActive` 配置强制，默认 10；upload 文件大小由 `upload.maxBytes.resume` 配置强制，默认 2MiB；达到数量上限时 `registerResume` 返回 `422 + VALIDATION_FAILED` 且不创建 resume / async job；`archiveResume` 软删除后释放 active 数量 | 防止无限资产增长和大文件上传风险，同时保留用户自助清理路径 |
+| D-16 | Resume limits | 每个用户 active resume 数量由 `resume.maxActive` 配置强制，默认 10；upload 文件大小由 `upload.maxBytes.resume` 强制，默认 10MiB；paste raw text 与 upload 提取正文分别由 `resume.maxPasteTextBytes` / `resume.maxExtractedTextBytes` 强制，默认均为 384KiB。所有字段有同值 typed code default，显式非法启动失败；达到数量/大小上限返回 `422 + VALIDATION_FAILED` 且不创建 resume / async job；归档释放 active 数量 | 让真实简历可用，同时在注册/AI 前以 UTF-8 byte 边界阻止无限资产、超大文本和半成品 |
 | D-17 | Deterministic source snapshot | `parsed_text_snapshot` 由后端从完整提取正文确定性构建，成功和失败路径使用同一来源；`resume.parse` prompt/schema 不再要求模型回显 `markdownText`，模型只返回结构化字段。任何输入尾部标记必须同时出现在发给 AI 的 prompt 与持久化快照中 | 消除“完整正文 + 结构化字段”重复输出导致的 token 截断，并把真实简历正文保留从概率性模型输出改为程序不变量 |
 | D-18 | PDF source preview | `GET /api/v1/resumes/{resumeId}/source` 只服务当前用户 upload-backed PDF 原件，返回 `application/pdf` + `Content-Disposition: inline`；paste、Markdown、TXT、DOCX、缺失对象、归档或跨用户均返回 404；endpoint 不参与 IK，不泄漏对象存储 key | 前端 PDF 详情可保留原始版式；LLM 与报告链路继续消费提取出的 `parsed_text_snapshot` |
 | D-19 | 真实长简历输出预算 | `resume.parse.default` 的输出预算下限为 8192 tokens，并随 profile version 演进；若输出仍在 cap 处终止或 strict JSON 不完整，必须记录 `AI_OUTPUT_INVALID`，同时保留已抽取的 `parsed_text_snapshot`，不得把失败资产伪装为 ready | 2048-token cap 已在真实长简历的“正文回显 + 结构化字段”旧合同中截断 JSON；去除正文回显后仍保留预算下限作为结构化输出安全余量 |
@@ -132,6 +132,7 @@
 | C-8 | mock-first 字节比对 | B2 fixture `registerResume.json` `default` scenario | 通过 `cmd/api` route 调真实 handler | 响应字段集 / status / header 字节一致；session / IK middleware 不改变 generated response envelope | 001 + mock-contract-suite |
 | C-9 | privacy 删除链路 | 用户 A 有 3 resume | privacy_delete job 触发 | backend-resume `DeleteResumesForUser` 删除 `resumes` 单表行；backend-upload 同一 privacy request 删除 file binary / file_objects（对象存储先删，成功后 DB hard delete）；audit tombstone 仅保留 ID / 删除时间，不含内容 | 后续 plan |
 | C-10 | register active limit | 用户已有 `resume.maxActive` 份未删除简历 | 再次 register upload/paste | 返回 `422 + VALIDATION_FAILED`，不创建新 resume / async job；归档一份后可再次创建 | 001 |
+| C-19 | upload/paste/extracted size limits | 构造 10MiB upload、384KiB paste/extracted 及各自 limit+1 | register / parse | limit 可注册/解析；limit+1 在 presign/register/AI 前返回 `VALIDATION_FAILED`，无 resume/job/provider 半成品；前端 runtime config 与 backend 默认一致 | 001 Phase 16 + P0.081/P0.034/P0.035 |
 | C-12 | exportResume P0 | 调 `POST /api/v1/resumes/{resumeId}/exports` | – | 返回 501 + `error.code="RESUME_EXPORT_NOT_AVAILABLE"`；ai_task_runs 不写入；不消耗 model 配额 | 后续 plan |
 | C-13 | events 漂移负向 | grep `inline\|rewrite\|mirror` 在 events / job / dispatcher 上下文 | – | 0 命中（与 [B3 D-14](../event-and-outbox-contract/spec.md#31-已锁定决策含-jobtype-映射表) 同步） | 001 + 002-tailor-runs-and-save-v1 |
 | C-14 | getResumeSource PDF 原件预览 | 用户 A 有 upload-backed PDF resume；用户 B 无访问权 | 用户 A / B 调 `GET /api/v1/resumes/{resumeId}/source` | 用户 A 返回 200 + `application/pdf` + inline disposition + PDF bytes；paste、Markdown、TXT、缺失对象、归档或跨用户返回 404；不暴露 object key；同 route 不要求 IK | 001 |

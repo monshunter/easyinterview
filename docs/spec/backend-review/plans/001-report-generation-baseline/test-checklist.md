@@ -1,6 +1,6 @@
 # Grounded Conversation Report Test Checklist
 
-> **版本**: 2.19
+> **版本**: 2.20
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -64,3 +64,9 @@
 - [x] Closed-wire, canonical coverage/order, independent current/latest selection, tie-break, nullable/error-enum, hidden-404, invalid-context whole-response fail-closed and privacy tests pass.
   <!-- verified: 2026-07-14 evidence="Focused RED/GREEN plus full practice/review/store/reports package runs pass; handler error responses are asserted directly against listTargetJobReports fixtures including X-Request-ID/requestId/details." -->
 - [ ] Generated/fixture owner handoff, P0.059 composition, ReportsScreen-only consumer negative, focused/full review/store/API and scoped stale-pointer/pagination searches pass.
+
+## Phase 11: Configured report input boundary
+
+- [ ] Exact 62,397/917,504/917,505-byte fixtures reconstruct with stable manifest hashes.
+- [ ] Default/override/invalid config injection and limit/limit+1 provider-call tests pass.
+- [ ] A3 capacity formula and P0.056/P0.058 current evidence pass; old 48KB is absent from production truth.

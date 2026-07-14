@@ -5,10 +5,10 @@ metadata:
   name: 003-provider-registry-and-capability-profiles
   sequence: 3
   baseBranch: main
-  branch: fix/report-semantic-grounding-0712
+  branch: runtime-size-limits
   specVersion:
     from: 1.8
-    to: 2.27
+    to: 2.28
 spec:
   defaultTarget: backend
   discovery:
@@ -37,7 +37,9 @@ spec:
       - REPORT_BOUNDARY_FIXTURES_READY
       - AICallMeta token usage
       - report output token budget
-      - 48000 byte input boundary
+      - 917504 byte input boundary
+      - typed profile code defaults
+      - ai max response body bytes 4194304
       - REPORT_PROFILE_6144_PASS
       - report.generate.default thinking disabled
       - openai compatible thinking wire

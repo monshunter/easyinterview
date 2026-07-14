@@ -1,8 +1,8 @@
 # Provider Registry and Capability Profiles Checklist
 
-> **版本**: 1.14
-> **状态**: completed
-> **更新日期**: 2026-07-13
+> **版本**: 1.15
+> **状态**: active
+> **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
 
@@ -88,3 +88,11 @@
   <!-- verified: 2026-07-13 method=tdd-green evidence="focused provider/profile tests and report profile coverage cases PASS; enabled/disabled exact wire, object-schema JSON mode, invalid pre-request fail-close, tracked catalog non-thinking coordinate and missing/invalid lint cases are executable" -->
 - [x] 10.3 VERIFY + HANDOFF: run provider/profile full and race tests, full profile coverage/lint, owner context/index/docs gates and `git diff --check`; P0.100 must rerun the live report matrix before final acceptance.
   <!-- verified: 2026-07-13 method=focused-race-contract-docs evidence="openai-compatible/profile full and race PASS; 13 profile-coverage tests and tracked lint PASS; smoke-tag consumer compiles without live call; owner context, zero-drift index/docs links and diff check PASS. Live P0.100 remains root-owner final acceptance." -->
+
+## Phase 11: typed profile defaults and provider response cap
+
+- [ ] 11.1 RED: active profile missing token fields、合法 override、显式零/负数/invalid capacity 与四 adapter response body limit/+1 测试先失败。
+- [ ] 11.2 GREEN: 每个 active profile 增加与 tracked catalog 一致的 typed code default；显式非法值 fail-closed，catalog 坐标不漂移。
+- [ ] 11.3 GREEN: 四个 provider adapter 统一消费 A4 `ai.maxResponseBodyBytes=4194304`，删除 adapter-local 4MiB 与无界 response read；limit 接受、limit+1 返回 typed provider error。
+- [ ] 11.4 CAPACITY-GATE: 消费 917,504/917,505-byte review fixtures，证明 `917504+2048+6144=925696<1000000`；62,397-byte regression sample 调用 provider；TPM 不参与裁决。
+- [ ] 11.5 VERIFY: provider/profile focused/full/race、coverage/config lint、P0.056 与 opt-in P0.100 token usage、contexts/docs/diff gates 全部通过。

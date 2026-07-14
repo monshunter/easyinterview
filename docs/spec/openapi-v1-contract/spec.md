@@ -1,7 +1,7 @@
 # OpenAPI v1 Contract Spec
 
-> **版本**: 1.59
-> **状态**: completed
+> **版本**: 1.60
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 ## 1 背景与目标
@@ -170,13 +170,15 @@
 | 类别 | 必须覆盖的 schema | 来源 / 约束 |
 |------|-------------------|-------------|
 | B1 shared | `ApiError` inner object、`PageInfo`、`Paginated<T>`、当前共享枚举、错误码 enum、`IdempotencyKey` 工具语义 | `$ref` / codegen 复用 B1；OpenAPI 不重复维护 B1 enum 字面量；wire error body 另用 B2 `ApiErrorResponse` envelope |
-| Auth / runtime | `UserContext`、`AuthEmailStartRequest`、`CompleteProfileRequest`、`AuthEmailVerifyQuery`、`Session`、`RuntimeConfig`、`DeleteMeResponse`（alias `PrivacyRequestWithJob`） | Auth 路径以 ADR-Q1 与 D-25 单入口邮箱验证码登录为准；`AuthEmailStartRequest` 不含 `purpose` / `displayName`，`UserContext.profileCompletionRequired` 是首次资料补全强制跳转信号；runtime-config 字段以 [A4 D-2](../secrets-and-config/spec.md#31-已锁定决策含-p0-必备-env-key-字典) 为准；`DELETE /me` 删除语义以 ADR-Q5 / B4 deletion matrix 为准 |
+| Auth / runtime | `UserContext`、`AuthEmailStartRequest`、`CompleteProfileRequest`、`AuthEmailVerifyQuery`、`Session`、`RuntimeConfig`、`ContentLimits`、`DeleteMeResponse`（alias `PrivacyRequestWithJob`） | `ContentLimits` 是 closed required object，精确含 `resumeUploadBytes`、`resumePasteTextBytes`、`targetJobRawTextBytes`、`practiceMessageBytes`、`practiceSessionTextBytes` 五个 positive int64；runtime-config 不公开 report/HTTP/provider/profile limits；其余字段以 A4 D-2 为准 |
 | Uploads / resumes | `UploadPresignRequest`、`UploadPresign`、`RegisterResumeRequest`、`ResumeSummary`、`Resume`、`ResumeWithJob`、`PaginatedResume`、`UpdateResumeRequest`、`DuplicateResumeRequest` | B2 owns request/response schema and fixture provenance；`PaginatedResume.items` 只引用 D-37 closed `ResumeSummary`，`getResume` 继续返回 full `Resume`；`Resume.structuredProfile` 承载结构化内容；`updateResume` 覆盖保存，`duplicateResume` 另存为新简历 |
 | TargetJobs | `ImportTargetJobRequest`、`TargetJobWithJob`、`TargetJob`、`UpdateTargetJobRequest`、`TargetJobRequirement`、`TargetJobSummary`、`TargetJobFitSummary`、`PracticeProgress`、`PaginatedTargetJob` | `ImportTargetJobRequest` 只允许 required `rawText` / `targetLanguage` / `resumeId`；`rawText` 必须 `minLength: 1` 且 `pattern: '\S'`；不得出现 source wrapper、URL、file、manual form 或客户端 title/company hints；`TargetJobRequirement.kind` 覆盖 `must_have` / `nice_to_have` / `hidden_signal` / `interview_focus`；structured round TargetJob runtime 必须返回 backend ledger projection |
 | Practice | `CreatePracticePlanRequest`、`PracticePlan`、`PracticeRoundRef`、`StartPracticeSessionRequest`、`PracticeSession`、role-discriminated `PracticeMessage`（user / assistant）、`PracticeReplyStatus`、`SendPracticeMessageRequest`、`SendPracticeMessageResult`、`CompletePracticeSessionRequest`、`ReportWithJob` | plan/session/message schemas 不含 question/mode/hint；user message 必带 `clientMessageId` 和 persisted `replyStatus`，assistant message 禁止二者；session 返回 ordered messages；same-ID 是唯一 replay key；round identity 为 paired logical key + sequence |
 | Review | `FeedbackReport`、`ReportContextSnapshot`、`DimensionAssessment`、`ReportHighlight`、`ReportIssue`、`ReportNextAction`、`TargetJobReportsOverview` 及其轻量 round summaries | closed report schemas；详情输出 grounded direct semantics，TargetJob overview 只输出 canonical round identity、current ready locator/timestamp 与 latest attempt status/error/timestamp，不输出 full report、provenance/model/rubric 或内部 locator |
 | ResumeTailor | `RequestResumeTailorRequest`、`ResumeTailorRun`、`ResumeTailorRunWithJob` | 简历定制必须携带 provenance；`RequestResumeTailorRequest.resumeId` 指向扁平 resume，`targetJobId` 可选用于 JD-aware 改写上下文；`ResumeTailorRun.suggestions` 为 ephemeral，用户采纳后经 `updateResume`（覆盖）/ `duplicateResume`（另存）落盘；感谢信草稿与完整跟进建议字段在 P1 以前必须 optional / hidden，不得阻塞 P0 |
 | Jobs / privacy | `Job`、`ResourceType`、`JobType`、`PrivacyRequest`、`PrivacyRequestWithJob`、`ApiErrorResponse` 501 example | privacy export P0 fixture 必须是 `501 + ApiErrorResponse.error.code = PRIVACY_EXPORT_NOT_AVAILABLE`；resume export P0 fixture 必须是 `501 + ApiErrorResponse.error.code = RESUME_EXPORT_NOT_AVAILABLE`；privacy deletion 保持 `202 + PrivacyRequestWithJob` |
+
+`RuntimeConfig.contentLimits` 是 runtime public projection，不把数值复制到各业务 request schema 的静态 `maxLength`/`maximum` 作为可覆盖配置真理源。业务 request wire 保持不变；backend domain validation 仍是权威边界。
 
 每个 §3.1.1 endpoint 在 `openapi/openapi.yaml` 中必须同时声明 `operationId`、request body（若有）、success / P0 例外 response schema 与 error response `$ref`；缺任一项时 `make codegen-openapi` 或 inventory lint 不得通过。每个 operationId 的 default fixture 由 [002-fixtures-and-mock-source](./plans/002-fixtures-and-mock-source/plan.md) 交付，缺失 fixture 时 `make validate-fixtures` 不得通过；Prism / 文档站所需的 OpenAPI examples 必须由 fixtures 投影生成，并由 002 的 examples 同步门禁校验不漂移。
 

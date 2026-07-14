@@ -1,7 +1,7 @@
 # 001 BDD Checklist
 
-> **版本**: 2.23
-> **状态**: completed
+> **版本**: 2.24
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联 BDD Plan**: [bdd-plan](./bdd-plan.md)
@@ -72,6 +72,12 @@
 - [x] Browser/focused coverage proves all-completed renders every card done and invalid/missing progress renders no false done/current; lifecycle status, URL and browser storage do not affect the state.
 - [x] Screenshot/parity evidence covers 1440×900 and 390×844 Workspace detail and compares the same persisted state with Home/Workspace mini rail; no sibling scenario is created.
   <!-- verified: 2026-07-14 evidence="P0.016 and focused invalid/all-completed gates PASS; desktop/mobile parity plus acceptance evidence.json and screenshot 03 prove the same persisted rail/card states and three distinct treatments." -->
+
+## Phase 22 JD text boundary
+
+- [ ] P0.015 consumes RuntimeConfig/default 98,304-byte limit and covers ASCII/multibyte limit/+1.
+- [ ] Limit sends one exact import; +1 sends zero import and creates no pending vault; localized recovery and privacy remain intact.
+- [ ] P0.010 backend evidence proves the same limit is authoritative with zero business/provider side effects on +1.
 
 ## 整体收口
 

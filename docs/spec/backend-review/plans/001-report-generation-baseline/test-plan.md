@@ -1,6 +1,6 @@
 # Grounded Conversation Report Test Plan
 
-> **版本**: 2.20
+> **版本**: 2.21
 > **状态**: active
 > **更新日期**: 2026-07-14
 
@@ -55,3 +55,10 @@
 - Store tests enumerate every canonical round in order and exercise empty、prior-ready+newer-failed、generating-only、latest-ready and deterministic tie cases. Assertions lock `currentReport` ordering to `generated_at DESC, created_at DESC, id DESC` and `latestAttempt` ordering to `created_at DESC, id DESC`.
 - Failure/security tests cover hidden 404 plus invalid TargetJob summary、missing/invalid frozen context、row user/target/session mismatch、noncanonical round pair and ready-null-generatedAt. Every invalid case rejects the whole overview, makes no mutable/URL fallback call and leaks no partial identity.
 - Consumer/negative tests prove only target-scoped ReportsScreen uses `listTargetJobReports`; Parse/Report/Generating do not, Report/Generating continue `getFeedbackReport(reportId)`, and active runtime/generated/fixtures contain no paginated full-list or TargetJob latest-report pointer semantics.
+
+## Phase 11: Configured report input boundary
+
+- Deterministic fixtures reconstruct exact 62,397-byte regression, 917,504-byte limit and 917,505-byte limit+1 framed payloads with stable SHA-256.
+- Config injection tests cover default, legal override and invalid values; service tests prove limit calls provider unchanged while limit+1 makes zero provider/repair calls and persists `REPORT_CONTEXT_TOO_LARGE`.
+- A3 capacity test proves `917504+2048+6144=925696<1000000`; no TPM arithmetic may satisfy the gate.
+- P0.056 exercises the regression/default path; P0.058 exercises oversized terminal receipt and recovery.

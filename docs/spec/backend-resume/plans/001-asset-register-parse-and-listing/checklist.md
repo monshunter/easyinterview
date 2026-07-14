@@ -1,7 +1,7 @@
 # Backend Resume Register Parse and Listing Checklist
 
-> **版本**: 3.2
-> **状态**: completed
+> **版本**: 3.3
+> **状态**: active
 > **更新日期**: 2026-07-14
 
 **关联计划**: [plan](./plan.md)
@@ -134,3 +134,11 @@
 - [x] 15.8 `BDD-Gate: E2E.P0.036` PASS：frontend list/Home 只消费 summary，列表无需正文/structured profile。 <!-- verified: 2026-07-14 method=scenario result=PASS evidence="5/5; summaryFields=9 listResumes=1 getResumeBeforeOpen=0 getResumeAfterOpen=1" -->
 - [x] 15.9 `BDD-Gate: E2E.P0.037` PASS：用户打开详情后才调用 `getResume` 获取完整详情，list payload 不预取详情。 <!-- verified: 2026-07-14 method=scenario+browser result=PASS evidence="8/8; ready detail initial=1 maxInFlight=1; browser list GET=1 and detail click GET=1" -->
 - [x] 15.10 收口：backend focused/full tests、P0.034/036/037、context validation、`sync-doc-index --check`、`make docs-check`、`git diff --check` PASS；同步证据后恢复 completed。 <!-- verified: 2026-07-14 method=post-pass-reconcile evidence="backend full/focused and fresh P0.034/P0.036/P0.037 PASS; owner context valid; aggregate INDEX finalization delegated to root integration" -->
+
+## Phase 16: Configured Resume content boundaries
+
+- [ ] 16.1 RED: active/upload/paste/extracted missing/default/override/invalid 与 limit/+1 测试暴露旧 2MiB upload、8MiB reader 和无 paste cap。
+- [ ] 16.2 GREEN: 注入 `maxActive=10`、upload 10MiB、paste/extracted 384KiB；显式非法 fail-fast，删除重复 production constants。
+- [ ] 16.3 REGISTER/PARSE: upload/paste/extracted limit 接受、limit+1 在 resume/job/provider 前拒绝；UTF-8 bytes、无静默截断、无半成品。
+- [ ] 16.4 CONTRACT/BDD: RuntimeConfig 只公开 upload/paste；P0.081、P0.034、P0.035 current gates 通过，list/get 合同不变。
+- [ ] 16.5 VERIFY: focused/full resume/upload/config/AI、OpenAPI/codegen、scenario、privacy、contexts/docs/diff 与旧 2MiB/8MiB truth negative search 通过。
